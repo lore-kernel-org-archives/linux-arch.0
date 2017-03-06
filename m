@@ -1,60 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:21787 "EHLO mga11.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1754134AbdCFOAE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 6 Mar 2017 09:00:04 -0500
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv4 07/33] mm: introduce __p4d_alloc()
-Date: Mon,  6 Mar 2017 16:53:31 +0300
-Message-ID: <20170306135357.3124-8-kirill.shutemov@linux.intel.com>
-In-Reply-To: <20170306135357.3124-1-kirill.shutemov@linux.intel.com>
-References: <20170306135357.3124-1-kirill.shutemov@linux.intel.com>
+Received: from mail-wm0-f41.google.com ([74.125.82.41]:37349 "EHLO
+        mail-wm0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754249AbdCFOBB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Mar 2017 09:01:01 -0500
+MIME-Version: 1.0
+In-Reply-To: <20170221124217.GB13174@node.shutemov.name>
+References: <20170217141328.164563-1-kirill.shutemov@linux.intel.com>
+ <20170217141328.164563-34-kirill.shutemov@linux.intel.com>
+ <CALCETrVKKU_eJVH3scF=89z98dba8iHwuNfdUPE9Hx=-3b_+Pg@mail.gmail.com>
+ <CAJwJo6ajrum1AkMS4Mu7nXBzAui_9+fjARBN8NpsFEdA+ZeN7A@mail.gmail.com> <20170221124217.GB13174@node.shutemov.name>
+From: Dmitry Safonov <0x7f454c46@gmail.com>
+Date: Mon, 6 Mar 2017 17:00:28 +0300
+Message-ID: <CAJwJo6YUA0i8AsQ+sKJZcJSsUGwGFuNxOWB71_n4KJ2dDyKbCQ@mail.gmail.com>
+Subject: Re: [PATCHv3 33/33] mm, x86: introduce PR_SET_MAX_VADDR and PR_GET_MAX_VADDR
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20170306135331.Xt8z0SMlMKguFZIRxGGPyHnTKJoZ3MCPsYU1QCmiM6w@z>
+To: "Kirill A. Shutemov" <kirill@shutemov.name>
+Cc: Andy Lutomirski <luto@amacapital.net>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Dmitry Safonov <dsafonov@virtuozzo.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, X86 ML <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Linux API <linux-api@vger.kernel.org>
+Message-ID: <20170306140028.E4X6lyK1_qqte-wpuJgK7UDS4bHRb4v628MbPxLiF-0@z>
 
-For full 5-level paging we need a helper to allocate p4d page table.
+2017-02-21 15:42 GMT+03:00 Kirill A. Shutemov <kirill@shutemov.name>:
+> On Tue, Feb 21, 2017 at 02:54:20PM +0300, Dmitry Safonov wrote:
+>> 2017-02-17 19:50 GMT+03:00 Andy Lutomirski <luto@amacapital.net>:
+>> > On Fri, Feb 17, 2017 at 6:13 AM, Kirill A. Shutemov
+>> > <kirill.shutemov@linux.intel.com> wrote:
+>> >> This patch introduces two new prctl(2) handles to manage maximum virtual
+>> >> address available to userspace to map.
+>> ...
+>> > Anyway, can you and Dmitry try to reconcile your patches?
+>>
+>> So, how can I help that?
+>> Is there the patch's version, on which I could rebase?
+>> Here are BTW the last patches, which I will resend with trivial ifdef-fixup
+>> after the merge window:
+>> http://marc.info/?i=20170214183621.2537-1-dsafonov%20()%20virtuozzo%20!%20com
+>
+> Could you check if this patch collides with anything you do:
+>
+> http://lkml.kernel.org/r/20170220131515.GA9502@node.shutemov.name
 
-Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
----
- mm/memory.c | 23 +++++++++++++++++++++++
- 1 file changed, 23 insertions(+)
+Ok, sorry for the late reply - it was the merge window anyway and I've got
+urgent work to do.
 
-diff --git a/mm/memory.c b/mm/memory.c
-index 7f1c2163b3ce..235ba51b2fbf 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -3906,6 +3906,29 @@ int handle_mm_fault(struct vm_area_struct *vma, unsigned long address,
- }
- EXPORT_SYMBOL_GPL(handle_mm_fault);
- 
-+#ifndef __PAGETABLE_P4D_FOLDED
-+/*
-+ * Allocate p4d page table.
-+ * We've already handled the fast-path in-line.
-+ */
-+int __p4d_alloc(struct mm_struct *mm, pgd_t *pgd, unsigned long address)
-+{
-+	p4d_t *new = p4d_alloc_one(mm, address);
-+	if (!new)
-+		return -ENOMEM;
-+
-+	smp_wmb(); /* See comment in __pte_alloc */
-+
-+	spin_lock(&mm->page_table_lock);
-+	if (pgd_present(*pgd))		/* Another has populated it */
-+		p4d_free(mm, new);
-+	else
-+		pgd_populate(mm, pgd, new);
-+	spin_unlock(&mm->page_table_lock);
-+	return 0;
-+}
-+#endif /* __PAGETABLE_P4D_FOLDED */
-+
- #ifndef __PAGETABLE_PUD_FOLDED
- /*
-  * Allocate page upper directory.
+Let's see:
+
+I'll need minor merge fixup here:
+>-#define TASK_UNMAPPED_BASE (PAGE_ALIGN(TASK_SIZE / 3))
+>+#define TASK_UNMAPPED_BASE (PAGE_ALIGN(DEFAULT_MAP_WINDOW / 3))
+while in my patches:
+>+#define __TASK_UNMAPPED_BASE(task_size)        (PAGE_ALIGN(task_size / 3))
+>+#define TASK_UNMAPPED_BASE             __TASK_UNMAPPED_BASE(TASK_SIZE)
+
+This should be just fine with my changes:
+>- info.high_limit = end;
+>+ info.high_limit = min(end, DEFAULT_MAP_WINDOW);
+
+This will need another minor fixup:
+>-#define MAX_GAP (TASK_SIZE/6*5)
+>+#define MAX_GAP (DEFAULT_MAP_WINDOW/6*5)
+I've moved it from macro to mmap_base() as local var,
+which depends on task_size parameter.
+
+That's all, as far as I can see at this moment.
+Does not seems hard to fix. So I suggest sending patches sets
+in parallel, the second accepted will rebase the set.
+Is it convenient for you?
+If you have/will have some questions about my patches, I'll be
+open to answer.
+
 -- 
-2.11.0
+             Dmitry
