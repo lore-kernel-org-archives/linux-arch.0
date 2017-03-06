@@ -1,65 +1,120 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:23554 "EHLO mga09.intel.com"
+Received: from mga04.intel.com ([192.55.52.120]:11538 "EHLO mga04.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753150AbdCFOA1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 6 Mar 2017 09:00:27 -0500
+        id S1754163AbdCFOAQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 6 Mar 2017 09:00:16 -0500
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv4 32/33] x86: enable 5-level paging support
-Date: Mon,  6 Mar 2017 16:53:56 +0300
-Message-ID: <20170306135357.3124-33-kirill.shutemov@linux.intel.com>
+Subject: [PATCHv4 13/33] x86/power: support p4d_t in hibernate code
+Date: Mon,  6 Mar 2017 16:53:37 +0300
+Message-ID: <20170306135357.3124-14-kirill.shutemov@linux.intel.com>
 In-Reply-To: <20170306135357.3124-1-kirill.shutemov@linux.intel.com>
 References: <20170306135357.3124-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20170306135356.88xQl67tGj13XybA4T52xYi2E8xzfBjs3j_BzdPQtes@z>
+Message-ID: <20170306135337.OMykOKLVTmJszqqtAmdOjJUKPmF-fu9OkFhxYmMDRi0@z>
 
-Most of things are in place and we can enable support of 5-level paging.
-
-Enabling XEN with 5-level paging requires more work. The patch makes XEN
-dependent on !X86_5LEVEL.
+set_up_temporary_text_mapping() and relocate_restore_code() require
+trivial adjustments to handle additional page table level.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
- arch/x86/Kconfig     | 5 +++++
- arch/x86/xen/Kconfig | 1 +
- 2 files changed, 6 insertions(+)
+ arch/x86/power/hibernate_64.c | 49 ++++++++++++++++++++++++++++++-------------
+ 1 file changed, 35 insertions(+), 14 deletions(-)
 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 747f06f00a22..43b3343402f5 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -317,6 +317,7 @@ config FIX_EARLYCON_MEM
+diff --git a/arch/x86/power/hibernate_64.c b/arch/x86/power/hibernate_64.c
+index ded2e8272382..9ec941638932 100644
+--- a/arch/x86/power/hibernate_64.c
++++ b/arch/x86/power/hibernate_64.c
+@@ -49,6 +49,7 @@ static int set_up_temporary_text_mapping(pgd_t *pgd)
+ {
+ 	pmd_t *pmd;
+ 	pud_t *pud;
++	p4d_t *p4d;
  
- config PGTABLE_LEVELS
- 	int
-+	default 5 if X86_5LEVEL
- 	default 4 if X86_64
- 	default 3 if X86_PAE
- 	default 2
-@@ -1381,6 +1382,10 @@ config X86_PAE
- 	  has the cost of more pagetable lookup overhead, and also
- 	  consumes more pagetable space per process.
- 
-+config X86_5LEVEL
-+	bool "Enable 5-level page tables support"
-+	depends on X86_64
+ 	/*
+ 	 * The new mapping only has to cover the page containing the image
+@@ -63,6 +64,13 @@ static int set_up_temporary_text_mapping(pgd_t *pgd)
+ 	 * the virtual address space after switching over to the original page
+ 	 * tables used by the image kernel.
+ 	 */
 +
- config ARCH_PHYS_ADDR_T_64BIT
- 	def_bool y
- 	depends on X86_64 || X86_PAE
-diff --git a/arch/x86/xen/Kconfig b/arch/x86/xen/Kconfig
-index 76b6dbd627df..b90d481ce5a1 100644
---- a/arch/x86/xen/Kconfig
-+++ b/arch/x86/xen/Kconfig
-@@ -5,6 +5,7 @@
- config XEN
- 	bool "Xen guest support"
- 	depends on PARAVIRT
-+	depends on !X86_5LEVEL
- 	select PARAVIRT_CLOCK
- 	select XEN_HAVE_PVMMU
- 	select XEN_HAVE_VPMU
++	if (IS_ENABLED(CONFIG_X86_5LEVEL)) {
++		p4d = (p4d_t *)get_safe_page(GFP_ATOMIC);
++		if (!p4d)
++			return -ENOMEM;
++	}
++
+ 	pud = (pud_t *)get_safe_page(GFP_ATOMIC);
+ 	if (!pud)
+ 		return -ENOMEM;
+@@ -75,8 +83,15 @@ static int set_up_temporary_text_mapping(pgd_t *pgd)
+ 		__pmd((jump_address_phys & PMD_MASK) | __PAGE_KERNEL_LARGE_EXEC));
+ 	set_pud(pud + pud_index(restore_jump_address),
+ 		__pud(__pa(pmd) | _KERNPG_TABLE));
+-	set_pgd(pgd + pgd_index(restore_jump_address),
+-		__pgd(__pa(pud) | _KERNPG_TABLE));
++	if (IS_ENABLED(CONFIG_X86_5LEVEL)) {
++		set_p4d(p4d + p4d_index(restore_jump_address),
++				__p4d(__pa(pud) | _KERNPG_TABLE));
++		set_pgd(pgd + pgd_index(restore_jump_address),
++				__pgd(__pa(p4d) | _KERNPG_TABLE));
++	} else {
++		set_pgd(pgd + pgd_index(restore_jump_address),
++				__pgd(__pa(pud) | _KERNPG_TABLE));
++	}
+ 
+ 	return 0;
+ }
+@@ -124,7 +139,10 @@ static int set_up_temporary_mappings(void)
+ static int relocate_restore_code(void)
+ {
+ 	pgd_t *pgd;
++	p4d_t *p4d;
+ 	pud_t *pud;
++	pmd_t *pmd;
++	pte_t *pte;
+ 
+ 	relocated_restore_code = get_safe_page(GFP_ATOMIC);
+ 	if (!relocated_restore_code)
+@@ -134,22 +152,25 @@ static int relocate_restore_code(void)
+ 
+ 	/* Make the page containing the relocated code executable */
+ 	pgd = (pgd_t *)__va(read_cr3()) + pgd_index(relocated_restore_code);
+-	pud = pud_offset(pgd, relocated_restore_code);
++	p4d = p4d_offset(pgd, relocated_restore_code);
++	if (p4d_large(*p4d)) {
++		set_p4d(p4d, __p4d(p4d_val(*p4d) & ~_PAGE_NX));
++		goto out;
++	}
++	pud = pud_offset(p4d, relocated_restore_code);
+ 	if (pud_large(*pud)) {
+ 		set_pud(pud, __pud(pud_val(*pud) & ~_PAGE_NX));
+-	} else {
+-		pmd_t *pmd = pmd_offset(pud, relocated_restore_code);
+-
+-		if (pmd_large(*pmd)) {
+-			set_pmd(pmd, __pmd(pmd_val(*pmd) & ~_PAGE_NX));
+-		} else {
+-			pte_t *pte = pte_offset_kernel(pmd, relocated_restore_code);
+-
+-			set_pte(pte, __pte(pte_val(*pte) & ~_PAGE_NX));
+-		}
++		goto out;
++	}
++	pmd = pmd_offset(pud, relocated_restore_code);
++	if (pmd_large(*pmd)) {
++		set_pmd(pmd, __pmd(pmd_val(*pmd) & ~_PAGE_NX));
++		goto out;
+ 	}
++	pte = pte_offset_kernel(pmd, relocated_restore_code);
++	set_pte(pte, __pte(pte_val(*pte) & ~_PAGE_NX));
++out:
+ 	__flush_tlb_all();
+-
+ 	return 0;
+ }
+ 
 -- 
 2.11.0
