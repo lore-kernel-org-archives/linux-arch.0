@@ -1,47 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga02.intel.com ([134.134.136.20]:31098 "EHLO mga02.intel.com"
+Received: from mga09.intel.com ([134.134.136.24]:39010 "EHLO mga09.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753188AbdCFN5p (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S1753159AbdCFN5p (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Mon, 6 Mar 2017 08:57:45 -0500
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv4 21/33] x86/asm: remove __VIRTUAL_MASK_SHIFT==47 assert
-Date: Mon,  6 Mar 2017 16:53:45 +0300
-Message-ID: <20170306135357.3124-22-kirill.shutemov@linux.intel.com>
+Subject: [PATCHv4 27/33] x86/espfix: support 5-level paging
+Date: Mon,  6 Mar 2017 16:53:51 +0300
+Message-ID: <20170306135357.3124-28-kirill.shutemov@linux.intel.com>
 In-Reply-To: <20170306135357.3124-1-kirill.shutemov@linux.intel.com>
 References: <20170306135357.3124-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20170306135345.rdQUvqpKP6lSO3mz6948EwVMgFq1WvnhsTAd67NWbyA@z>
+Message-ID: <20170306135351.AdVuxqSohW2qCmpLQRn1jrtFz6y3c5a_MD9CWafNfwA@z>
 
-We don't need it anymore. 17be0aec74fb ("x86/asm/entry/64: Implement
-better check for canonical addresses") made canonical address check
-generic wrt. address width.
+We don't need extra virtual address space for ESPFIX, so it stays within
+one PUD page table for both 4- and 5-level paging.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
- arch/x86/entry/entry_64.S | 7 ++-----
- 1 file changed, 2 insertions(+), 5 deletions(-)
+ arch/x86/kernel/espfix_64.c | 12 +++++++-----
+ 1 file changed, 7 insertions(+), 5 deletions(-)
 
-diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
-index 044d18ebc43c..f07b4efb34d5 100644
---- a/arch/x86/entry/entry_64.S
-+++ b/arch/x86/entry/entry_64.S
-@@ -265,12 +265,9 @@ return_from_SYSCALL_64:
- 	 *
- 	 * If width of "canonical tail" ever becomes variable, this will need
- 	 * to be updated to remain correct on both old and new CPUs.
-+	 *
-+	 * Change top 16 bits to be the sign-extension of 47th bit
- 	 */
--	.ifne __VIRTUAL_MASK_SHIFT - 47
--	.error "virtual address width changed -- SYSRET checks need update"
--	.endif
--
--	/* Change top 16 bits to be the sign-extension of 47th bit */
- 	shl	$(64 - (__VIRTUAL_MASK_SHIFT+1)), %rcx
- 	sar	$(64 - (__VIRTUAL_MASK_SHIFT+1)), %rcx
+diff --git a/arch/x86/kernel/espfix_64.c b/arch/x86/kernel/espfix_64.c
+index 04f89caef9c4..8e598a1ad986 100644
+--- a/arch/x86/kernel/espfix_64.c
++++ b/arch/x86/kernel/espfix_64.c
+@@ -50,11 +50,11 @@
+ #define ESPFIX_STACKS_PER_PAGE	(PAGE_SIZE/ESPFIX_STACK_SIZE)
  
+ /* There is address space for how many espfix pages? */
+-#define ESPFIX_PAGE_SPACE	(1UL << (PGDIR_SHIFT-PAGE_SHIFT-16))
++#define ESPFIX_PAGE_SPACE	(1UL << (P4D_SHIFT-PAGE_SHIFT-16))
+ 
+ #define ESPFIX_MAX_CPUS		(ESPFIX_STACKS_PER_PAGE * ESPFIX_PAGE_SPACE)
+ #if CONFIG_NR_CPUS > ESPFIX_MAX_CPUS
+-# error "Need more than one PGD for the ESPFIX hack"
++# error "Need more virtual address space for the ESPFIX hack"
+ #endif
+ 
+ #define PGALLOC_GFP (GFP_KERNEL | __GFP_NOTRACK | __GFP_ZERO)
+@@ -121,11 +121,13 @@ static void init_espfix_random(void)
+ 
+ void __init init_espfix_bsp(void)
+ {
+-	pgd_t *pgd_p;
++	pgd_t *pgd;
++	p4d_t *p4d;
+ 
+ 	/* Install the espfix pud into the kernel page directory */
+-	pgd_p = &init_level4_pgt[pgd_index(ESPFIX_BASE_ADDR)];
+-	pgd_populate(&init_mm, pgd_p, (pud_t *)espfix_pud_page);
++	pgd = &init_level4_pgt[pgd_index(ESPFIX_BASE_ADDR)];
++	p4d = p4d_alloc(&init_mm, pgd, ESPFIX_BASE_ADDR);
++	p4d_populate(&init_mm, p4d, espfix_pud_page);
+ 
+ 	/* Randomize the locations */
+ 	init_espfix_random();
 -- 
 2.11.0
