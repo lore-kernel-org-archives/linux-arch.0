@@ -1,7 +1,7 @@
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 1/7] x86/cpufeature: Add 5-level paging detection
-Date: Mon,  6 Mar 2017 23:45:08 +0300
-Message-ID: <20170306204514.1852-2-kirill.shutemov@linux.intel.com>
+Subject: [PATCH 7/7] mm: introduce __p4d_alloc()
+Date: Mon,  6 Mar 2017 23:45:14 +0300
+Message-ID: <20170306204514.1852-8-kirill.shutemov@linux.intel.com>
 References: <20170306204514.1852-1-kirill.shutemov@linux.intel.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <20170306204514.1852-1-kirill.shutemov@linux.intel.com>
@@ -10,28 +10,47 @@ To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-fo
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-Look for 'la57' in /proc/cpuinfo to see if your machine supports 5-level
-paging.
+For full 5-level paging we need a helper to allocate p4d page table.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
- arch/x86/include/asm/cpufeatures.h | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+ mm/memory.c | 23 +++++++++++++++++++++++
+ 1 file changed, 23 insertions(+)
 
-diff --git a/arch/x86/include/asm/cpufeatures.h b/arch/x86/include/asm/cpufeatures.h
-index 4e7772387c6e..b04bb6dfed7f 100644
---- a/arch/x86/include/asm/cpufeatures.h
-+++ b/arch/x86/include/asm/cpufeatures.h
-@@ -289,7 +289,8 @@
- #define X86_FEATURE_PKU		(16*32+ 3) /* Protection Keys for Userspace */
- #define X86_FEATURE_OSPKE	(16*32+ 4) /* OS Protection Keys Enable */
- #define X86_FEATURE_AVX512_VPOPCNTDQ (16*32+14) /* POPCNT for vectors of DW/QW */
--#define X86_FEATURE_RDPID	(16*32+ 22) /* RDPID instruction */
-+#define X86_FEATURE_LA57	(16*32+16) /* 5-level page tables */
-+#define X86_FEATURE_RDPID	(16*32+22) /* RDPID instruction */
+diff --git a/mm/memory.c b/mm/memory.c
+index 7f1c2163b3ce..235ba51b2fbf 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -3906,6 +3906,29 @@ int handle_mm_fault(struct vm_area_struct *vma, unsigned long address,
+ }
+ EXPORT_SYMBOL_GPL(handle_mm_fault);
  
- /* AMD-defined CPU features, CPUID level 0x80000007 (ebx), word 17 */
- #define X86_FEATURE_OVERFLOW_RECOV (17*32+0) /* MCA overflow recovery support */
++#ifndef __PAGETABLE_P4D_FOLDED
++/*
++ * Allocate p4d page table.
++ * We've already handled the fast-path in-line.
++ */
++int __p4d_alloc(struct mm_struct *mm, pgd_t *pgd, unsigned long address)
++{
++	p4d_t *new = p4d_alloc_one(mm, address);
++	if (!new)
++		return -ENOMEM;
++
++	smp_wmb(); /* See comment in __pte_alloc */
++
++	spin_lock(&mm->page_table_lock);
++	if (pgd_present(*pgd))		/* Another has populated it */
++		p4d_free(mm, new);
++	else
++		pgd_populate(mm, pgd, new);
++	spin_unlock(&mm->page_table_lock);
++	return 0;
++}
++#endif /* __PAGETABLE_P4D_FOLDED */
++
+ #ifndef __PAGETABLE_PUD_FOLDED
+ /*
+  * Allocate page upper directory.
 -- 
 2.11.0
 
