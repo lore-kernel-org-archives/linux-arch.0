@@ -1,86 +1,88 @@
-From: Dmitry Safonov <dsafonov@virtuozzo.com>
-Subject: Re: [PATCHv3 33/33] mm, x86: introduce PR_SET_MAX_VADDR and
- PR_GET_MAX_VADDR
-Date: Mon, 6 Mar 2017 17:15:27 +0300
-Message-ID: <f5bb3006-e0df-d27c-d9d4-a5500c305fab@virtuozzo.com>
-References: <20170217141328.164563-1-kirill.shutemov@linux.intel.com>
- <20170217141328.164563-34-kirill.shutemov@linux.intel.com>
- <CALCETrVKKU_eJVH3scF=89z98dba8iHwuNfdUPE9Hx=-3b_+Pg@mail.gmail.com>
- <CAJwJo6ajrum1AkMS4Mu7nXBzAui_9+fjARBN8NpsFEdA+ZeN7A@mail.gmail.com>
- <20170221124217.GB13174@node.shutemov.name>
- <CAJwJo6YUA0i8AsQ+sKJZcJSsUGwGFuNxOWB71_n4KJ2dDyKbCQ@mail.gmail.com>
- <20170306141746.GA27719@node.shutemov.name>
+From: "Carlos O'Donell" <carlos@systemhalted.org>
+Subject: Re: [PATCH] uapi: fix asm/signal.h userspace compilation errors
+Date: Mon, 6 Mar 2017 10:10:18 -0500
+Message-ID: <CAE2sS1jTyENymA-fSAk4dt29rYgX50zYqubVYnGVGnFrH=-1nA@mail.gmail.com>
+References: <20170226010156.GA28831@altlinux.org> <CAK8P3a0YX3RGAqWN0mwUJtBsqUX0C+QRtJLrT_UA=wX6Z+q0DA@mail.gmail.com>
+ <CAE2sS1h9QNV+31GMSv8aahJYOb9hFtFp5Aj-yVOfg7cjBHr_kg@mail.gmail.com>
+ <20170302154845.GB3503@altlinux.org> <CAE2sS1i-xezJu2hHfzOxpCMZHc2J+dsturtqFPMRWHa6mm6ccQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="windows-1252"; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20170306141746.GA27719@node.shutemov.name>
-Sender: owner-linux-mm@kvack.org
-To: "Kirill A. Shutemov" <kirill@shutemov.name>, Dmitry Safonov <0x7f454c46@gmail.com>
-Cc: Andy Lutomirski <luto@amacapital.net>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, X86 ML <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Linux API <linux-api@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-qk0-f173.google.com ([209.85.220.173]:34156 "EHLO
+        mail-qk0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S932162AbdCFPKU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Mar 2017 10:10:20 -0500
+Received: by mail-qk0-f173.google.com with SMTP id p64so39430937qke.1
+        for <linux-arch@vger.kernel.org>; Mon, 06 Mar 2017 07:10:19 -0800 (PST)
+In-Reply-To: <CAE2sS1i-xezJu2hHfzOxpCMZHc2J+dsturtqFPMRWHa6mm6ccQ@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Dmitry V. Levin" <ldv@altlinux.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.>
 
-On 03/06/2017 05:17 PM, Kirill A. Shutemov wrote:
-> On Mon, Mar 06, 2017 at 05:00:28PM +0300, Dmitry Safonov wrote:
->> 2017-02-21 15:42 GMT+03:00 Kirill A. Shutemov <kirill@shutemov.name>:
->>> On Tue, Feb 21, 2017 at 02:54:20PM +0300, Dmitry Safonov wrote:
->>>> 2017-02-17 19:50 GMT+03:00 Andy Lutomirski <luto@amacapital.net>:
->>>>> On Fri, Feb 17, 2017 at 6:13 AM, Kirill A. Shutemov
->>>>> <kirill.shutemov@linux.intel.com> wrote:
->>>>>> This patch introduces two new prctl(2) handles to manage maximum virtual
->>>>>> address available to userspace to map.
->>>> ...
->>>>> Anyway, can you and Dmitry try to reconcile your patches?
->>>>
->>>> So, how can I help that?
->>>> Is there the patch's version, on which I could rebase?
->>>> Here are BTW the last patches, which I will resend with trivial ifdef-fixup
->>>> after the merge window:
->>>> http://marc.info/?i=20170214183621.2537-1-dsafonov%20()%20virtuozzo%20!%20com
+On Fri, Mar 3, 2017 at 8:23 PM, Carlos O'Donell <carlos@systemhalted.org> wrote:
+> On Thu, Mar 2, 2017 at 10:48 AM, Dmitry V. Levin <ldv@altlinux.org> wrote:
+>> On Thu, Mar 02, 2017 at 10:22:18AM -0500, Carlos O'Donell wrote:
+>>> On Wed, Mar 1, 2017 at 11:20 AM, Arnd Bergmann <arnd@arndb.de> wrote:
+>>> > On Sun, Feb 26, 2017 at 2:01 AM, Dmitry V. Levin <ldv@altlinux.org> wrote:
+>>> >> Include <stddef.h> (guarded by #ifndef __KERNEL__) to fix asm/signal.h
+>>> >> userspace compilation errors like this:
+>>> >>
+>>> >> /usr/include/asm/signal.h:126:2: error: unknown type name 'size_t'
+>>> >>   size_t ss_size;
+>>> >>
+>>> >> As no uapi header provides a definition of size_t, inclusion
+>>> >> of <stddef.h> seems to be the most conservative fix available.
+>> [...]
+>>> > I'm not sure if this is the best fix. We generally should not include one
+>>> > standard header from another standard header. Would it be possible
+>>> > to use __kernel_size_t instead of size_t?
 >>>
->>> Could you check if this patch collides with anything you do:
+>>> In glibc we handle this with special use of __need_size_t with GCC's
+>>> provided stddef.h.
 >>>
->>> http://lkml.kernel.org/r/20170220131515.GA9502@node.shutemov.name
+>>> For example glibc's signal.h does this:
+>>>
+>>> # define __need_size_t
+>>> # include <stddef.h>
 >>
->> Ok, sorry for the late reply - it was the merge window anyway and I've got
->> urgent work to do.
->>
->> Let's see:
->>
->> I'll need minor merge fixup here:
->>> -#define TASK_UNMAPPED_BASE (PAGE_ALIGN(TASK_SIZE / 3))
->>> +#define TASK_UNMAPPED_BASE (PAGE_ALIGN(DEFAULT_MAP_WINDOW / 3))
->> while in my patches:
->>> +#define __TASK_UNMAPPED_BASE(task_size)        (PAGE_ALIGN(task_size / 3))
->>> +#define TASK_UNMAPPED_BASE             __TASK_UNMAPPED_BASE(TASK_SIZE)
->>
->> This should be just fine with my changes:
->>> - info.high_limit = end;
->>> + info.high_limit = min(end, DEFAULT_MAP_WINDOW);
->>
->> This will need another minor fixup:
->>> -#define MAX_GAP (TASK_SIZE/6*5)
->>> +#define MAX_GAP (DEFAULT_MAP_WINDOW/6*5)
->> I've moved it from macro to mmap_base() as local var,
->> which depends on task_size parameter.
->>
->> That's all, as far as I can see at this moment.
->> Does not seems hard to fix. So I suggest sending patches sets
->> in parallel, the second accepted will rebase the set.
->> Is it convenient for you?
->
-> Works for me.
->
-> In fact, I've just sent v4 of the patchset.
->
+>> Just to make it clear, do you suggest this approach for asm/signal.h as well?
 
-Ok, thanks.
+The best practice from the glibc community looks like this:
 
--- 
-              Dmitry
+(a) Create a bits/types/*.h header for the type you need.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+e.g.
+./time/bits/types/struct_timeval.h
+./time/bits/types/struct_itimerspec.h
+./time/bits/types/time_t.h
+./time/bits/types/struct_timespec.h
+./time/bits/types/struct_tm.h
+./time/bits/types/clockid_t.h
+./time/bits/types/clock_t.h
+./time/bits/types/timer_t.h
+
+(b) If neccessary the bits/types/*.h header is a wrapper:
+~~~
+#define __need_size_t
+#include <stddef.h>
+~~~
+to get access to the compiler provided type.
+
+This way all of the code you need simplifies to includes for the types you need.
+
+e.g.
+
+time/sys/time.h:
+...
+#include <bits/types.h>
+#include <bits/types/time_t.h>
+#include <bits/types/struct_timeval.h>
+...
+
+This is what we've been doing in glibc starting last September as we
+cleaned up all the convoluted conditional logic to get the types we
+needed in the headers that needed them.
+
+Cheers,
+Carlos.
