@@ -1,122 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga03.intel.com ([134.134.136.65]:9515 "EHLO mga03.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932615AbdCFUrp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 6 Mar 2017 15:47:45 -0500
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 2/7] asm-generic: introduce 5level-fixup.h
-Date: Mon,  6 Mar 2017 23:45:09 +0300
-Message-ID: <20170306204514.1852-3-kirill.shutemov@linux.intel.com>
-In-Reply-To: <20170306204514.1852-1-kirill.shutemov@linux.intel.com>
-References: <20170306204514.1852-1-kirill.shutemov@linux.intel.com>
+Received: from mail-wr0-f195.google.com ([209.85.128.195]:34485 "EHLO
+        mail-wr0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753906AbdCFUt5 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Mar 2017 15:49:57 -0500
+Received: by mail-wr0-f195.google.com with SMTP id u48so23278845wrc.1
+        for <linux-arch@vger.kernel.org>; Mon, 06 Mar 2017 12:49:22 -0800 (PST)
+Date: Mon, 6 Mar 2017 23:23:39 +0300
+From: "Kirill A. Shutemov" <kirill@shutemov.name>
+Subject: Re: [PATCHv4 28/33] x86/mm: add support of additional page table
+ level during early boot
+Message-ID: <20170306202339.GC27719@node.shutemov.name>
+References: <20170306135357.3124-1-kirill.shutemov@linux.intel.com>
+ <20170306135357.3124-29-kirill.shutemov@linux.intel.com>
+ <7e78a76a-f5e8-bb60-e5be-a91a84faa1f9@oracle.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <7e78a76a-f5e8-bb60-e5be-a91a84faa1f9@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20170306204509.j1AabdN_IIr26VI-vyYgCmGJhr2-8LMt1ytUVLqWX50@z>
+To: Boris Ostrovsky <boris.ostrovsky@oracle.com>
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, xen-devel <xen-devel@lists.xen.org>, Juergen Gross <jgross@suse.com>
+Message-ID: <20170306202339.qrtu33gGtCK8iR2wRRT__ZQbI_xHPskiIYqVwfm67rY@z>
 
-We are going to switch core MM to 5-level paging abstraction.
+On Mon, Mar 06, 2017 at 03:05:49PM -0500, Boris Ostrovsky wrote:
+> 
+> > diff --git a/arch/x86/include/asm/pgtable_64.h b/arch/x86/include/asm/pgtable_64.h
+> > index 9991224f6238..c9e41f1599dd 100644
+> > --- a/arch/x86/include/asm/pgtable_64.h
+> > +++ b/arch/x86/include/asm/pgtable_64.h
+> > @@ -14,15 +14,17 @@
+> >  #include <linux/bitops.h>
+> >  #include <linux/threads.h>
+> >  
+> > +extern p4d_t level4_kernel_pgt[512];
+> > +extern p4d_t level4_ident_pgt[512];
+> >  extern pud_t level3_kernel_pgt[512];
+> >  extern pud_t level3_ident_pgt[512];
+> >  extern pmd_t level2_kernel_pgt[512];
+> >  extern pmd_t level2_fixmap_pgt[512];
+> >  extern pmd_t level2_ident_pgt[512];
+> >  extern pte_t level1_fixmap_pgt[512];
+> > -extern pgd_t init_level4_pgt[];
+> > +extern pgd_t init_top_pgt[];
+> >  
+> > -#define swapper_pg_dir init_level4_pgt
+> > +#define swapper_pg_dir init_top_pgt
+> >  
+> >  extern void paging_init(void);
+> >  
+> 
+> 
+> This means you also need
+> 
+> 
+> diff --git a/arch/x86/xen/xen-pvh.S b/arch/x86/xen/xen-pvh.S
+> index 5e24671..e1a5fbe 100644
+> --- a/arch/x86/xen/xen-pvh.S
+> +++ b/arch/x86/xen/xen-pvh.S
+> @@ -87,7 +87,7 @@ ENTRY(pvh_start_xen)
+>         wrmsr
+>  
+>         /* Enable pre-constructed page tables. */
+> -       mov $_pa(init_level4_pgt), %eax
+> +       mov $_pa(init_top_pgt), %eax
+>         mov %eax, %cr3
+>         mov $(X86_CR0_PG | X86_CR0_PE), %eax
+>         mov %eax, %cr0
+> 
+> 
 
-This is preparation step which adds <asm-generic/5level-fixup.h>
-As with 4level-fixup.h, the new header allows quickly make all
-architectures compatible with 5-level paging in core MM.
+Ah. Thanks. I've missed that.
 
-In long run we would like to switch architectures to properly folded p4d
-level by using <asm-generic/pgtable-nop4d.h>, but it requires more
-changes to arch-specific code.
+The fix is folded.
 
-Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
----
- include/asm-generic/4level-fixup.h |  3 ++-
- include/asm-generic/5level-fixup.h | 41 ++++++++++++++++++++++++++++++++++++++
- include/linux/mm.h                 |  3 +++
- 3 files changed, 46 insertions(+), 1 deletion(-)
- create mode 100644 include/asm-generic/5level-fixup.h
-
-diff --git a/include/asm-generic/4level-fixup.h b/include/asm-generic/4level-fixup.h
-index 5bdab6bffd23..928fd66b1271 100644
---- a/include/asm-generic/4level-fixup.h
-+++ b/include/asm-generic/4level-fixup.h
-@@ -15,7 +15,6 @@
- 	((unlikely(pgd_none(*(pud))) && __pmd_alloc(mm, pud, address))? \
-  		NULL: pmd_offset(pud, address))
- 
--#define pud_alloc(mm, pgd, address)	(pgd)
- #define pud_offset(pgd, start)		(pgd)
- #define pud_none(pud)			0
- #define pud_bad(pud)			0
-@@ -35,4 +34,6 @@
- #undef  pud_addr_end
- #define pud_addr_end(addr, end)		(end)
- 
-+#include <asm-generic/5level-fixup.h>
-+
- #endif
-diff --git a/include/asm-generic/5level-fixup.h b/include/asm-generic/5level-fixup.h
-new file mode 100644
-index 000000000000..b5ca82dc4175
---- /dev/null
-+++ b/include/asm-generic/5level-fixup.h
-@@ -0,0 +1,41 @@
-+#ifndef _5LEVEL_FIXUP_H
-+#define _5LEVEL_FIXUP_H
-+
-+#define __ARCH_HAS_5LEVEL_HACK
-+#define __PAGETABLE_P4D_FOLDED
-+
-+#define P4D_SHIFT			PGDIR_SHIFT
-+#define P4D_SIZE			PGDIR_SIZE
-+#define P4D_MASK			PGDIR_MASK
-+#define PTRS_PER_P4D			1
-+
-+#define p4d_t				pgd_t
-+
-+#define pud_alloc(mm, p4d, address) \
-+	((unlikely(pgd_none(*(p4d))) && __pud_alloc(mm, p4d, address)) ? \
-+		NULL : pud_offset(p4d, address))
-+
-+#define p4d_alloc(mm, pgd, address)	(pgd)
-+#define p4d_offset(pgd, start)		(pgd)
-+#define p4d_none(p4d)			0
-+#define p4d_bad(p4d)			0
-+#define p4d_present(p4d)		1
-+#define p4d_ERROR(p4d)			do { } while (0)
-+#define p4d_clear(p4d)			pgd_clear(p4d)
-+#define p4d_val(p4d)			pgd_val(p4d)
-+#define p4d_populate(mm, p4d, pud)	pgd_populate(mm, p4d, pud)
-+#define p4d_page(p4d)			pgd_page(p4d)
-+#define p4d_page_vaddr(p4d)		pgd_page_vaddr(p4d)
-+
-+#define __p4d(x)			__pgd(x)
-+#define set_p4d(p4dp, p4d)		set_pgd(p4dp, p4d)
-+
-+#undef p4d_free_tlb
-+#define p4d_free_tlb(tlb, x, addr)	do { } while (0)
-+#define p4d_free(mm, x)			do { } while (0)
-+#define __p4d_free_tlb(tlb, x, addr)	do { } while (0)
-+
-+#undef  p4d_addr_end
-+#define p4d_addr_end(addr, end)		(end)
-+
-+#endif
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index 0d65dd72c0f4..be1fe264eb37 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -1619,11 +1619,14 @@ int __pte_alloc_kernel(pmd_t *pmd, unsigned long address);
-  * Remove it when 4level-fixup.h has been removed.
-  */
- #if defined(CONFIG_MMU) && !defined(__ARCH_HAS_4LEVEL_HACK)
-+
-+#ifndef __ARCH_HAS_5LEVEL_HACK
- static inline pud_t *pud_alloc(struct mm_struct *mm, pgd_t *pgd, unsigned long address)
- {
- 	return (unlikely(pgd_none(*pgd)) && __pud_alloc(mm, pgd, address))?
- 		NULL: pud_offset(pgd, address);
- }
-+#endif /* !__ARCH_HAS_5LEVEL_HACK */
- 
- static inline pmd_t *pmd_alloc(struct mm_struct *mm, pud_t *pud, unsigned long address)
- {
 -- 
-2.11.0
+ Kirill A. Shutemov
