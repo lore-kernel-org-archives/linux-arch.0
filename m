@@ -1,89 +1,88 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f173.google.com ([209.85.220.173]:34156 "EHLO
-        mail-qk0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S932162AbdCFPKU (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Mar 2017 10:10:20 -0500
-Received: by mail-qk0-f173.google.com with SMTP id p64so39430937qke.1
-        for <linux-arch@vger.kernel.org>; Mon, 06 Mar 2017 07:10:19 -0800 (PST)
+Received: from mail-cys01nam02on0052.outbound.protection.outlook.com ([104.47.37.52]:49078
+        "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S932272AbdCFR6u (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 6 Mar 2017 12:58:50 -0500
+Subject: Re: [RFC PATCH v4 26/28] x86: Allow kexec to be used with SME
+References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
+ <20170216154755.19244.51276.stgit@tlendack-t1.amdoffice.net>
+ <20170217155756.GJ30272@char.us.ORACLE.com>
+ <d2f16b24-f2ef-a22b-3c72-2d8ad585553e@amd.com>
+ <20170301092536.GB8353@dhcp-128-65.nay.redhat.com>
+From: Tom Lendacky <thomas.lendacky@amd.com>
+Message-ID: <998eb58b-eefd-3093-093f-9ae25ddda472@amd.com>
+Date: Mon, 6 Mar 2017 11:58:40 -0600
 MIME-Version: 1.0
-In-Reply-To: <CAE2sS1i-xezJu2hHfzOxpCMZHc2J+dsturtqFPMRWHa6mm6ccQ@mail.gmail.com>
-References: <20170226010156.GA28831@altlinux.org> <CAK8P3a0YX3RGAqWN0mwUJtBsqUX0C+QRtJLrT_UA=wX6Z+q0DA@mail.gmail.com>
- <CAE2sS1h9QNV+31GMSv8aahJYOb9hFtFp5Aj-yVOfg7cjBHr_kg@mail.gmail.com>
- <20170302154845.GB3503@altlinux.org> <CAE2sS1i-xezJu2hHfzOxpCMZHc2J+dsturtqFPMRWHa6mm6ccQ@mail.gmail.com>
-From: "Carlos O'Donell" <carlos@systemhalted.org>
-Date: Mon, 6 Mar 2017 10:10:18 -0500
-Message-ID: <CAE2sS1jTyENymA-fSAk4dt29rYgX50zYqubVYnGVGnFrH=-1nA@mail.gmail.com>
-Subject: Re: [PATCH] uapi: fix asm/signal.h userspace compilation errors
-Content-Type: text/plain; charset=UTF-8
+In-Reply-To: <20170301092536.GB8353@dhcp-128-65.nay.redhat.com>
+Content-Type: text/plain; charset="windows-1252"; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Dmitry V. Levin" <ldv@altlinux.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "David S. Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-cris-kernel@axis.com, uclinux-h8-devel@lists.sourceforge.jp, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, linux-am33-list@redhat.com, linux-parisc <linux-parisc@vger.kernel.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Message-ID: <20170306151018.jOs87DFV8elYWLlRHIfgyrQLWeYWOHMxc2LqSyBvLms@z>
+To: Dave Young <dyoung@redhat.com>
+Cc: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Paolo Bonzini <pbonzini@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Alexander Potapenko <glider@google.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Borislav Petkov <bp@alien8.de>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Larry Woodman <lwoodman@redhat.com>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20170306175840.BL42ubW5Ag1td8tjpnE9_H6Jgm1uzbQG2WTDjlUJFdU@z>
 
-On Fri, Mar 3, 2017 at 8:23 PM, Carlos O'Donell <carlos@systemhalted.org> wrote:
-> On Thu, Mar 2, 2017 at 10:48 AM, Dmitry V. Levin <ldv@altlinux.org> wrote:
->> On Thu, Mar 02, 2017 at 10:22:18AM -0500, Carlos O'Donell wrote:
->>> On Wed, Mar 1, 2017 at 11:20 AM, Arnd Bergmann <arnd@arndb.de> wrote:
->>> > On Sun, Feb 26, 2017 at 2:01 AM, Dmitry V. Levin <ldv@altlinux.org> wrote:
->>> >> Include <stddef.h> (guarded by #ifndef __KERNEL__) to fix asm/signal.h
->>> >> userspace compilation errors like this:
->>> >>
->>> >> /usr/include/asm/signal.h:126:2: error: unknown type name 'size_t'
->>> >>   size_t ss_size;
->>> >>
->>> >> As no uapi header provides a definition of size_t, inclusion
->>> >> of <stddef.h> seems to be the most conservative fix available.
->> [...]
->>> > I'm not sure if this is the best fix. We generally should not include one
->>> > standard header from another standard header. Would it be possible
->>> > to use __kernel_size_t instead of size_t?
+On 3/1/2017 3:25 AM, Dave Young wrote:
+> Hi Tom,
+
+Hi Dave,
+
+>
+> On 02/17/17 at 10:43am, Tom Lendacky wrote:
+>> On 2/17/2017 9:57 AM, Konrad Rzeszutek Wilk wrote:
+>>> On Thu, Feb 16, 2017 at 09:47:55AM -0600, Tom Lendacky wrote:
+>>>> Provide support so that kexec can be used to boot a kernel when SME is
+>>>> enabled.
 >>>
->>> In glibc we handle this with special use of __need_size_t with GCC's
->>> provided stddef.h.
->>>
->>> For example glibc's signal.h does this:
->>>
->>> # define __need_size_t
->>> # include <stddef.h>
+>>> Is the point of kexec and kdump to ehh, dump memory ? But if the
+>>> rest of the memory is encrypted you won't get much, will you?
 >>
->> Just to make it clear, do you suggest this approach for asm/signal.h as well?
+>> Kexec can be used to reboot a system without going back through BIOS.
+>> So you can use kexec without using kdump.
+>>
+>> For kdump, just taking a quick look, the option to enable memory
+>> encryption can be provided on the crash kernel command line and then
+>
+> Is there a simple way to get the SME status? Probably add some sysfs
+> file for this purpose.
 
-The best practice from the glibc community looks like this:
+Currently there is not.  I can look at adding something, maybe just the
+sme_me_mask value, which if non-zero, would indicate SME is active.
 
-(a) Create a bits/types/*.h header for the type you need.
+>
+>> crash kernel can would be able to copy the memory decrypted if the
+>> pagetable is set up properly. It looks like currently ioremap_cache()
+>> is used to map the old memory page.  That might be able to be changed
+>> to a memremap() so that the encryption bit is set in the mapping. That
+>> will mean that memory that is not marked encrypted (EFI tables, swiotlb
+>> memory, etc) would not be read correctly.
+>
+> Manage to store info about those ranges which are not encrypted so that
+> memremap can handle them?
 
-e.g.
-./time/bits/types/struct_timeval.h
-./time/bits/types/struct_itimerspec.h
-./time/bits/types/time_t.h
-./time/bits/types/struct_timespec.h
-./time/bits/types/struct_tm.h
-./time/bits/types/clockid_t.h
-./time/bits/types/clock_t.h
-./time/bits/types/timer_t.h
+I can look into whether something can be done in this area. Any input
+you can provide as to what would be the best way/place to store the
+range info so kdump can make use of it, would be greatly appreciated.
 
-(b) If neccessary the bits/types/*.h header is a wrapper:
-~~~
-#define __need_size_t
-#include <stddef.h>
-~~~
-to get access to the compiler provided type.
+>
+>>
+>>>
+>>> Would it make sense to include some printk to the user if they
+>>> are setting up kdump that they won't get anything out of it?
+>>
+>> Probably a good idea to add something like that.
+>
+> It will break kdump functionality, it should be fixed instead of
+> just adding printk to warn user..
 
-This way all of the code you need simplifies to includes for the types you need.
+I do want kdump to work. I'll investigate further what can be done in
+this area.
 
-e.g.
+Thanks,
+Tom
 
-time/sys/time.h:
-...
-#include <bits/types.h>
-#include <bits/types/time_t.h>
-#include <bits/types/struct_timeval.h>
-...
-
-This is what we've been doing in glibc starting last September as we
-cleaned up all the convoluted conditional logic to get the types we
-needed in the headers that needed them.
-
-Cheers,
-Carlos.
+>
+> Thanks
+> Dave
+>
