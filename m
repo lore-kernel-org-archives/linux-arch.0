@@ -1,127 +1,140 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:32470 "EHLO mga11.intel.com"
+Received: from mga06.intel.com ([134.134.136.31]:10864 "EHLO mga06.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753075AbdCFN5p (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S1753072AbdCFN5p (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Mon, 6 Mar 2017 08:57:45 -0500
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv4 30/33] x86/mm: make kernel_physical_mapping_init() support 5-level paging
-Date: Mon,  6 Mar 2017 16:53:54 +0300
-Message-ID: <20170306135357.3124-31-kirill.shutemov@linux.intel.com>
+Subject: [PATCHv4 20/33] x86: detect 5-level paging support
+Date: Mon,  6 Mar 2017 16:53:44 +0300
+Message-ID: <20170306135357.3124-21-kirill.shutemov@linux.intel.com>
 In-Reply-To: <20170306135357.3124-1-kirill.shutemov@linux.intel.com>
 References: <20170306135357.3124-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20170306135354.cfdWipl8LUAfwoSv7eI6NF6kD6ciHXIGhenDiV-6IgA@z>
+Message-ID: <20170306135344.c4c1IDBbRYX2g-hWQbQNs0qOWa5rgzX_r-YOKoPm3wk@z>
 
-Properly populate addition pagetable level if CONFIG_X86_5LEVEL is
-enabled.
+5-level paging support is required from hardware when compiled with
+CONFIG_X86_5LEVEL=y. We may implement runtime switch support later.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
- arch/x86/mm/init_64.c | 71 ++++++++++++++++++++++++++++++++++++++++++++-------
- 1 file changed, 62 insertions(+), 9 deletions(-)
+ arch/x86/boot/cpucheck.c                 |  9 +++++++++
+ arch/x86/boot/cpuflags.c                 | 12 ++++++++++--
+ arch/x86/include/asm/disabled-features.h |  8 +++++++-
+ arch/x86/include/asm/required-features.h |  8 +++++++-
+ 4 files changed, 33 insertions(+), 4 deletions(-)
 
-diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
-index 5ba99090dc3c..ef117a69f74e 100644
---- a/arch/x86/mm/init_64.c
-+++ b/arch/x86/mm/init_64.c
-@@ -622,6 +622,58 @@ phys_pud_init(pud_t *pud_page, unsigned long paddr, unsigned long paddr_end,
- 	return paddr_last;
+diff --git a/arch/x86/boot/cpucheck.c b/arch/x86/boot/cpucheck.c
+index 4ad7d70e8739..8f0c4c9fc904 100644
+--- a/arch/x86/boot/cpucheck.c
++++ b/arch/x86/boot/cpucheck.c
+@@ -44,6 +44,15 @@ static const u32 req_flags[NCAPINTS] =
+ 	0, /* REQUIRED_MASK5 not implemented in this file */
+ 	REQUIRED_MASK6,
+ 	0, /* REQUIRED_MASK7 not implemented in this file */
++	0, /* REQUIRED_MASK8 not implemented in this file */
++	0, /* REQUIRED_MASK9 not implemented in this file */
++	0, /* REQUIRED_MASK10 not implemented in this file */
++	0, /* REQUIRED_MASK11 not implemented in this file */
++	0, /* REQUIRED_MASK12 not implemented in this file */
++	0, /* REQUIRED_MASK13 not implemented in this file */
++	0, /* REQUIRED_MASK14 not implemented in this file */
++	0, /* REQUIRED_MASK15 not implemented in this file */
++	REQUIRED_MASK16,
+ };
+ 
+ #define A32(a, b, c, d) (((d) << 24)+((c) << 16)+((b) << 8)+(a))
+diff --git a/arch/x86/boot/cpuflags.c b/arch/x86/boot/cpuflags.c
+index 6687ab953257..9e77c23c2422 100644
+--- a/arch/x86/boot/cpuflags.c
++++ b/arch/x86/boot/cpuflags.c
+@@ -70,16 +70,19 @@ int has_eflag(unsigned long mask)
+ # define EBX_REG "=b"
+ #endif
+ 
+-static inline void cpuid(u32 id, u32 *a, u32 *b, u32 *c, u32 *d)
++static inline void cpuid_count(u32 id, u32 count,
++		u32 *a, u32 *b, u32 *c, u32 *d)
+ {
+ 	asm volatile(".ifnc %%ebx,%3 ; movl  %%ebx,%3 ; .endif	\n\t"
+ 		     "cpuid					\n\t"
+ 		     ".ifnc %%ebx,%3 ; xchgl %%ebx,%3 ; .endif	\n\t"
+ 		    : "=a" (*a), "=c" (*c), "=d" (*d), EBX_REG (*b)
+-		    : "a" (id)
++		    : "a" (id), "c" (count)
+ 	);
  }
  
-+static unsigned long __meminit
-+phys_p4d_init(p4d_t *p4d_page, unsigned long paddr, unsigned long paddr_end,
-+	      unsigned long page_size_mask)
-+{
-+	unsigned long paddr_next, paddr_last = paddr_end;
-+	unsigned long vaddr = (unsigned long)__va(paddr);
-+	int i = p4d_index(vaddr);
++#define cpuid(id, a, b, c, d) cpuid_count(id, 0, a, b, c, d)
 +
-+	if (!IS_ENABLED(CONFIG_X86_5LEVEL))
-+		return phys_pud_init((pud_t *) p4d_page, paddr, paddr_end, page_size_mask);
-+
-+	for (; i < PTRS_PER_P4D; i++, paddr = paddr_next) {
-+		p4d_t *p4d;
-+		pud_t *pud;
-+
-+		vaddr = (unsigned long)__va(paddr);
-+		p4d = p4d_page + p4d_index(vaddr);
-+		paddr_next = (paddr & P4D_MASK) + P4D_SIZE;
-+
-+		if (paddr >= paddr_end) {
-+			if (!after_bootmem &&
-+			    !e820_any_mapped(paddr & P4D_MASK, paddr_next,
-+					     E820_RAM) &&
-+			    !e820_any_mapped(paddr & P4D_MASK, paddr_next,
-+					     E820_RESERVED_KERN)) {
-+				set_p4d(p4d, __p4d(0));
-+			}
-+			continue;
-+		}
-+
-+		if (!p4d_none(*p4d)) {
-+			pud = pud_offset(p4d, 0);
-+			paddr_last = phys_pud_init(pud, paddr,
-+					paddr_end,
-+					page_size_mask);
-+			__flush_tlb_all();
-+			continue;
-+		}
-+
-+		pud = alloc_low_page();
-+		paddr_last = phys_pud_init(pud, paddr, paddr_end,
-+					   page_size_mask);
-+
-+		spin_lock(&init_mm.page_table_lock);
-+		p4d_populate(&init_mm, p4d, pud);
-+		spin_unlock(&init_mm.page_table_lock);
-+	}
-+	__flush_tlb_all();
-+
-+	return paddr_last;
-+}
-+
- /*
-  * Create page table mapping for the physical memory for specific physical
-  * addresses. The virtual and physical addresses have to be aligned on PMD level
-@@ -643,26 +695,27 @@ kernel_physical_mapping_init(unsigned long paddr_start,
- 	for (; vaddr < vaddr_end; vaddr = vaddr_next) {
- 		pgd_t *pgd = pgd_offset_k(vaddr);
- 		p4d_t *p4d;
--		pud_t *pud;
- 
- 		vaddr_next = (vaddr & PGDIR_MASK) + PGDIR_SIZE;
- 
--		BUILD_BUG_ON(pgd_none(*pgd));
--		p4d = p4d_offset(pgd, vaddr);
--		if (p4d_val(*p4d)) {
--			pud = (pud_t *)p4d_page_vaddr(*p4d);
--			paddr_last = phys_pud_init(pud, __pa(vaddr),
-+		if (pgd_val(*pgd)) {
-+			p4d = (p4d_t *)pgd_page_vaddr(*pgd);
-+			paddr_last = phys_p4d_init(p4d, __pa(vaddr),
- 						   __pa(vaddr_end),
- 						   page_size_mask);
- 			continue;
+ void get_cpuflags(void)
+ {
+ 	u32 max_intel_level, max_amd_level;
+@@ -108,6 +111,11 @@ void get_cpuflags(void)
+ 				cpu.model += ((tfms >> 16) & 0xf) << 4;
  		}
  
--		pud = alloc_low_page();
--		paddr_last = phys_pud_init(pud, __pa(vaddr), __pa(vaddr_end),
-+		p4d = alloc_low_page();
-+		paddr_last = phys_p4d_init(p4d, __pa(vaddr), __pa(vaddr_end),
- 					   page_size_mask);
++		if (max_intel_level >= 0x00000007) {
++			cpuid_count(0x00000007, 0, &ignored, &ignored,
++					&cpu.flags[16], &ignored);
++		}
++
+ 		cpuid(0x80000000, &max_amd_level, &ignored, &ignored,
+ 		      &ignored);
  
- 		spin_lock(&init_mm.page_table_lock);
--		p4d_populate(&init_mm, p4d, pud);
-+		if (IS_ENABLED(CONFIG_X86_5LEVEL))
-+			pgd_populate(&init_mm, pgd, p4d);
-+		else
-+			p4d_populate(&init_mm, p4d_offset(pgd, vaddr),
-+					(pud_t *) p4d);
- 		spin_unlock(&init_mm.page_table_lock);
- 		pgd_changed = true;
- 	}
+diff --git a/arch/x86/include/asm/disabled-features.h b/arch/x86/include/asm/disabled-features.h
+index 85599ad4d024..fc0960236fc3 100644
+--- a/arch/x86/include/asm/disabled-features.h
++++ b/arch/x86/include/asm/disabled-features.h
+@@ -36,6 +36,12 @@
+ # define DISABLE_OSPKE		(1<<(X86_FEATURE_OSPKE & 31))
+ #endif /* CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS */
+ 
++#ifdef CONFIG_X86_5LEVEL
++#define DISABLE_LA57	0
++#else
++#define DISABLE_LA57	(1<<(X86_FEATURE_LA57 & 31))
++#endif
++
+ /*
+  * Make sure to add features to the correct mask
+  */
+@@ -55,7 +61,7 @@
+ #define DISABLED_MASK13	0
+ #define DISABLED_MASK14	0
+ #define DISABLED_MASK15	0
+-#define DISABLED_MASK16	(DISABLE_PKU|DISABLE_OSPKE)
++#define DISABLED_MASK16	(DISABLE_PKU|DISABLE_OSPKE|DISABLE_LA57)
+ #define DISABLED_MASK17	0
+ #define DISABLED_MASK_CHECK BUILD_BUG_ON_ZERO(NCAPINTS != 18)
+ 
+diff --git a/arch/x86/include/asm/required-features.h b/arch/x86/include/asm/required-features.h
+index fac9a5c0abe9..d91ba04dd007 100644
+--- a/arch/x86/include/asm/required-features.h
++++ b/arch/x86/include/asm/required-features.h
+@@ -53,6 +53,12 @@
+ # define NEED_MOVBE	0
+ #endif
+ 
++#ifdef CONFIG_X86_5LEVEL
++# define NEED_LA57	(1<<(X86_FEATURE_LA57 & 31))
++#else
++# define NEED_LA57	0
++#endif
++
+ #ifdef CONFIG_X86_64
+ #ifdef CONFIG_PARAVIRT
+ /* Paravirtualized systems may not have PSE or PGE available */
+@@ -98,7 +104,7 @@
+ #define REQUIRED_MASK13	0
+ #define REQUIRED_MASK14	0
+ #define REQUIRED_MASK15	0
+-#define REQUIRED_MASK16	0
++#define REQUIRED_MASK16	(NEED_LA57)
+ #define REQUIRED_MASK17	0
+ #define REQUIRED_MASK_CHECK BUILD_BUG_ON_ZERO(NCAPINTS != 18)
+ 
 -- 
 2.11.0
