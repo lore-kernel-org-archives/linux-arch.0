@@ -1,7 +1,7 @@
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv4 03/33] asm-generic: introduce __ARCH_USE_5LEVEL_HACK
-Date: Mon,  6 Mar 2017 16:53:27 +0300
-Message-ID: <20170306135357.3124-4-kirill.shutemov@linux.intel.com>
+Subject: [PATCHv4 27/33] x86/espfix: support 5-level paging
+Date: Mon,  6 Mar 2017 16:53:51 +0300
+Message-ID: <20170306135357.3124-28-kirill.shutemov@linux.intel.com>
 References: <20170306135357.3124-1-kirill.shutemov@linux.intel.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <20170306135357.3124-1-kirill.shutemov@linux.intel.com>
@@ -10,113 +10,49 @@ To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-fo
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-We are going to introduce <asm-generic/pgtable-nop4d.h> to provide
-abstraction for properly (in opposite to 5level-fixup.h hack) folded
-p4d level. The new header will be included from pgtable-nopud.h.
-
-If an architecture uses <asm-generic/nop*d.h>, we cannot use
-5level-fixup.h directly to quickly convert the architecture to 5-level
-paging as it would conflict with pgtable-nop4d.h.
-
-With this patch an architecture can define __ARCH_USE_5LEVEL_HACK before
-inclusion <asm-genenric/nop*d.h> to use 5level-fixup.h.
+We don't need extra virtual address space for ESPFIX, so it stays within
+one PUD page table for both 4- and 5-level paging.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
- include/asm-generic/pgtable-nop4d-hack.h | 62 ++++++++++++++++++++++++++++++++
- include/asm-generic/pgtable-nopud.h      |  5 +++
- 2 files changed, 67 insertions(+)
- create mode 100644 include/asm-generic/pgtable-nop4d-hack.h
+ arch/x86/kernel/espfix_64.c | 12 +++++++-----
+ 1 file changed, 7 insertions(+), 5 deletions(-)
 
-diff --git a/include/asm-generic/pgtable-nop4d-hack.h b/include/asm-generic/pgtable-nop4d-hack.h
-new file mode 100644
-index 000000000000..752fb7511750
---- /dev/null
-+++ b/include/asm-generic/pgtable-nop4d-hack.h
-@@ -0,0 +1,62 @@
-+#ifndef _PGTABLE_NOP4D_HACK_H
-+#define _PGTABLE_NOP4D_HACK_H
-+
-+#ifndef __ASSEMBLY__
-+#include <asm-generic/5level-fixup.h>
-+
-+#define __PAGETABLE_PUD_FOLDED
-+
-+/*
-+ * Having the pud type consist of a pgd gets the size right, and allows
-+ * us to conceptually access the pgd entry that this pud is folded into
-+ * without casting.
-+ */
-+typedef struct { pgd_t pgd; } pud_t;
-+
-+#define PUD_SHIFT	PGDIR_SHIFT
-+#define PTRS_PER_PUD	1
-+#define PUD_SIZE	(1UL << PUD_SHIFT)
-+#define PUD_MASK	(~(PUD_SIZE-1))
-+
-+/*
-+ * The "pgd_xxx()" functions here are trivial for a folded two-level
-+ * setup: the pud is never bad, and a pud always exists (as it's folded
-+ * into the pgd entry)
-+ */
-+static inline int pgd_none(pgd_t pgd)		{ return 0; }
-+static inline int pgd_bad(pgd_t pgd)		{ return 0; }
-+static inline int pgd_present(pgd_t pgd)	{ return 1; }
-+static inline void pgd_clear(pgd_t *pgd)	{ }
-+#define pud_ERROR(pud)				(pgd_ERROR((pud).pgd))
-+
-+#define pgd_populate(mm, pgd, pud)		do { } while (0)
-+/*
-+ * (puds are folded into pgds so this doesn't get actually called,
-+ * but the define is needed for a generic inline function.)
-+ */
-+#define set_pgd(pgdptr, pgdval)	set_pud((pud_t *)(pgdptr), (pud_t) { pgdval })
-+
-+static inline pud_t *pud_offset(pgd_t *pgd, unsigned long address)
-+{
-+	return (pud_t *)pgd;
-+}
-+
-+#define pud_val(x)				(pgd_val((x).pgd))
-+#define __pud(x)				((pud_t) { __pgd(x) })
-+
-+#define pgd_page(pgd)				(pud_page((pud_t){ pgd }))
-+#define pgd_page_vaddr(pgd)			(pud_page_vaddr((pud_t){ pgd }))
-+
-+/*
-+ * allocating and freeing a pud is trivial: the 1-entry pud is
-+ * inside the pgd, so has no extra memory associated with it.
-+ */
-+#define pud_alloc_one(mm, address)		NULL
-+#define pud_free(mm, x)				do { } while (0)
-+#define __pud_free_tlb(tlb, x, a)		do { } while (0)
-+
-+#undef  pud_addr_end
-+#define pud_addr_end(addr, end)			(end)
-+
-+#endif /* __ASSEMBLY__ */
-+#endif /* _PGTABLE_NOP4D_HACK_H */
-diff --git a/include/asm-generic/pgtable-nopud.h b/include/asm-generic/pgtable-nopud.h
-index 810431d8351b..5e49430a30a4 100644
---- a/include/asm-generic/pgtable-nopud.h
-+++ b/include/asm-generic/pgtable-nopud.h
-@@ -3,6 +3,10 @@
+diff --git a/arch/x86/kernel/espfix_64.c b/arch/x86/kernel/espfix_64.c
+index 04f89caef9c4..8e598a1ad986 100644
+--- a/arch/x86/kernel/espfix_64.c
++++ b/arch/x86/kernel/espfix_64.c
+@@ -50,11 +50,11 @@
+ #define ESPFIX_STACKS_PER_PAGE	(PAGE_SIZE/ESPFIX_STACK_SIZE)
  
- #ifndef __ASSEMBLY__
+ /* There is address space for how many espfix pages? */
+-#define ESPFIX_PAGE_SPACE	(1UL << (PGDIR_SHIFT-PAGE_SHIFT-16))
++#define ESPFIX_PAGE_SPACE	(1UL << (P4D_SHIFT-PAGE_SHIFT-16))
  
-+#ifdef __ARCH_USE_5LEVEL_HACK
-+#include <asm-generic/pgtable-nop4d-hack.h>
-+#else
-+
- #define __PAGETABLE_PUD_FOLDED
+ #define ESPFIX_MAX_CPUS		(ESPFIX_STACKS_PER_PAGE * ESPFIX_PAGE_SPACE)
+ #if CONFIG_NR_CPUS > ESPFIX_MAX_CPUS
+-# error "Need more than one PGD for the ESPFIX hack"
++# error "Need more virtual address space for the ESPFIX hack"
+ #endif
  
- /*
-@@ -58,4 +62,5 @@ static inline pud_t * pud_offset(pgd_t * pgd, unsigned long address)
- #define pud_addr_end(addr, end)			(end)
+ #define PGALLOC_GFP (GFP_KERNEL | __GFP_NOTRACK | __GFP_ZERO)
+@@ -121,11 +121,13 @@ static void init_espfix_random(void)
  
- #endif /* __ASSEMBLY__ */
-+#endif /* !__ARCH_USE_5LEVEL_HACK */
- #endif /* _PGTABLE_NOPUD_H */
+ void __init init_espfix_bsp(void)
+ {
+-	pgd_t *pgd_p;
++	pgd_t *pgd;
++	p4d_t *p4d;
+ 
+ 	/* Install the espfix pud into the kernel page directory */
+-	pgd_p = &init_level4_pgt[pgd_index(ESPFIX_BASE_ADDR)];
+-	pgd_populate(&init_mm, pgd_p, (pud_t *)espfix_pud_page);
++	pgd = &init_level4_pgt[pgd_index(ESPFIX_BASE_ADDR)];
++	p4d = p4d_alloc(&init_mm, pgd, ESPFIX_BASE_ADDR);
++	p4d_populate(&init_mm, p4d, espfix_pud_page);
+ 
+ 	/* Randomize the locations */
+ 	init_espfix_random();
 -- 
 2.11.0
 
