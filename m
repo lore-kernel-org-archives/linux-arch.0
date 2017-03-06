@@ -1,7 +1,7 @@
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv4 25/33] x86/dump_pagetables: support 5-level paging
-Date: Mon,  6 Mar 2017 16:53:49 +0300
-Message-ID: <20170306135357.3124-26-kirill.shutemov@linux.intel.com>
+Subject: [PATCHv4 32/33] x86: enable 5-level paging support
+Date: Mon,  6 Mar 2017 16:53:56 +0300
+Message-ID: <20170306135357.3124-33-kirill.shutemov@linux.intel.com>
 References: <20170306135357.3124-1-kirill.shutemov@linux.intel.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <20170306135357.3124-1-kirill.shutemov@linux.intel.com>
@@ -10,101 +10,52 @@ To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-fo
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-Simple extension to support one more page table level.
+Most of things are in place and we can enable support of 5-level paging.
+
+Enabling XEN with 5-level paging requires more work. The patch makes XEN
+dependent on !X86_5LEVEL.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
- arch/x86/mm/dump_pagetables.c | 49 ++++++++++++++++++++++++++++++++++++-------
- 1 file changed, 42 insertions(+), 7 deletions(-)
+ arch/x86/Kconfig     | 5 +++++
+ arch/x86/xen/Kconfig | 1 +
+ 2 files changed, 6 insertions(+)
 
-diff --git a/arch/x86/mm/dump_pagetables.c b/arch/x86/mm/dump_pagetables.c
-index 58b5bee7ea27..0effac6989cd 100644
---- a/arch/x86/mm/dump_pagetables.c
-+++ b/arch/x86/mm/dump_pagetables.c
-@@ -110,7 +110,8 @@ static struct addr_marker address_markers[] = {
- #define PTE_LEVEL_MULT (PAGE_SIZE)
- #define PMD_LEVEL_MULT (PTRS_PER_PTE * PTE_LEVEL_MULT)
- #define PUD_LEVEL_MULT (PTRS_PER_PMD * PMD_LEVEL_MULT)
--#define PGD_LEVEL_MULT (PTRS_PER_PUD * PUD_LEVEL_MULT)
-+#define P4D_LEVEL_MULT (PTRS_PER_PUD * PUD_LEVEL_MULT)
-+#define PGD_LEVEL_MULT (PTRS_PER_PUD * P4D_LEVEL_MULT)
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 747f06f00a22..43b3343402f5 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -317,6 +317,7 @@ config FIX_EARLYCON_MEM
  
- #define pt_dump_seq_printf(m, to_dmesg, fmt, args...)		\
- ({								\
-@@ -347,7 +348,7 @@ static bool pud_already_checked(pud_t *prev_pud, pud_t *pud, bool checkwx)
- 	return checkwx && prev_pud && (pud_val(*prev_pud) == pud_val(*pud));
- }
+ config PGTABLE_LEVELS
+ 	int
++	default 5 if X86_5LEVEL
+ 	default 4 if X86_64
+ 	default 3 if X86_PAE
+ 	default 2
+@@ -1381,6 +1382,10 @@ config X86_PAE
+ 	  has the cost of more pagetable lookup overhead, and also
+ 	  consumes more pagetable space per process.
  
--static void walk_pud_level(struct seq_file *m, struct pg_state *st, pgd_t addr,
-+static void walk_pud_level(struct seq_file *m, struct pg_state *st, p4d_t addr,
- 							unsigned long P)
- {
- 	int i;
-@@ -355,7 +356,7 @@ static void walk_pud_level(struct seq_file *m, struct pg_state *st, pgd_t addr,
- 	pgprotval_t prot;
- 	pud_t *prev_pud = NULL;
- 
--	start = (pud_t *) pgd_page_vaddr(addr);
-+	start = (pud_t *) p4d_page_vaddr(addr);
- 
- 	for (i = 0; i < PTRS_PER_PUD; i++) {
- 		st->current_address = normalize_addr(P + i * PUD_LEVEL_MULT);
-@@ -377,9 +378,43 @@ static void walk_pud_level(struct seq_file *m, struct pg_state *st, pgd_t addr,
- }
- 
- #else
--#define walk_pud_level(m,s,a,p) walk_pmd_level(m,s,__pud(pgd_val(a)),p)
--#define pgd_large(a) pud_large(__pud(pgd_val(a)))
--#define pgd_none(a)  pud_none(__pud(pgd_val(a)))
-+#define walk_pud_level(m,s,a,p) walk_pmd_level(m,s,__pud(p4d_val(a)),p)
-+#define p4d_large(a) pud_large(__pud(p4d_val(a)))
-+#define p4d_none(a)  pud_none(__pud(p4d_val(a)))
-+#endif
++config X86_5LEVEL
++	bool "Enable 5-level page tables support"
++	depends on X86_64
 +
-+#if PTRS_PER_P4D > 1
-+
-+static void walk_p4d_level(struct seq_file *m, struct pg_state *st, pgd_t addr,
-+							unsigned long P)
-+{
-+	int i;
-+	p4d_t *start;
-+	pgprotval_t prot;
-+
-+	start = (p4d_t *) pgd_page_vaddr(addr);
-+
-+	for (i = 0; i < PTRS_PER_P4D; i++) {
-+		st->current_address = normalize_addr(P + i * P4D_LEVEL_MULT);
-+		if (!p4d_none(*start)) {
-+			if (p4d_large(*start) || !p4d_present(*start)) {
-+				prot = p4d_flags(*start);
-+				note_page(m, st, __pgprot(prot), 2);
-+			} else {
-+				walk_pud_level(m, st, *start,
-+					       P + i * P4D_LEVEL_MULT);
-+			}
-+		} else
-+			note_page(m, st, __pgprot(0), 2);
-+
-+		start++;
-+	}
-+}
-+
-+#else
-+#define walk_p4d_level(m,s,a,p) walk_pud_level(m,s,__p4d(pgd_val(a)),p)
-+#define pgd_large(a) p4d_large(__p4d(pgd_val(a)))
-+#define pgd_none(a)  p4d_none(__p4d(pgd_val(a)))
- #endif
- 
- static inline bool is_hypervisor_range(int idx)
-@@ -424,7 +459,7 @@ static void ptdump_walk_pgd_level_core(struct seq_file *m, pgd_t *pgd,
- 				prot = pgd_flags(*start);
- 				note_page(m, &st, __pgprot(prot), 1);
- 			} else {
--				walk_pud_level(m, &st, *start,
-+				walk_p4d_level(m, &st, *start,
- 					       i * PGD_LEVEL_MULT);
- 			}
- 		} else
+ config ARCH_PHYS_ADDR_T_64BIT
+ 	def_bool y
+ 	depends on X86_64 || X86_PAE
+diff --git a/arch/x86/xen/Kconfig b/arch/x86/xen/Kconfig
+index 76b6dbd627df..b90d481ce5a1 100644
+--- a/arch/x86/xen/Kconfig
++++ b/arch/x86/xen/Kconfig
+@@ -5,6 +5,7 @@
+ config XEN
+ 	bool "Xen guest support"
+ 	depends on PARAVIRT
++	depends on !X86_5LEVEL
+ 	select PARAVIRT_CLOCK
+ 	select XEN_HAVE_PVMMU
+ 	select XEN_HAVE_VPMU
 -- 
 2.11.0
 
