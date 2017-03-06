@@ -1,68 +1,106 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga04.intel.com ([192.55.52.120]:27547 "EHLO mga04.intel.com"
+Received: from mga05.intel.com ([192.55.52.43]:64442 "EHLO mga05.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752877AbdCFN75 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 6 Mar 2017 08:59:57 -0500
+        id S1753790AbdCFOAB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 6 Mar 2017 09:00:01 -0500
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv4 12/33] x86/mm: add support of p4d_t in vmalloc_fault()
-Date: Mon,  6 Mar 2017 16:53:36 +0300
-Message-ID: <20170306135357.3124-13-kirill.shutemov@linux.intel.com>
+Subject: [PATCHv4 15/33] x86/efi: handle p4d in EFI pagetables
+Date: Mon,  6 Mar 2017 16:53:39 +0300
+Message-ID: <20170306135357.3124-16-kirill.shutemov@linux.intel.com>
 In-Reply-To: <20170306135357.3124-1-kirill.shutemov@linux.intel.com>
 References: <20170306135357.3124-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20170306135336.bwHxR1rIxqmhr0Lfd86klg5Xow5lut1IlZ1i0sQYl58@z>
+Message-ID: <20170306135339.fZd0d8WfsbgDk1Vv8MyPgJQhRJg4p_cFF7ggDFgBPlo@z>
 
-With 4-level paging copying happens on p4d level, as we have pgd_none()
-always false when p4d_t folded.
+Allocate additional page table level and change efi_sync_low_kernel_mappings()
+to make syncing logic work with additional page table level.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+Reviewed-by: Matt Fleming <matt@codeblueprint.co.uk>
 ---
- arch/x86/mm/fault.c | 18 ++++++++++++++++--
- 1 file changed, 16 insertions(+), 2 deletions(-)
+ arch/x86/platform/efi/efi_64.c | 33 +++++++++++++++++++++++----------
+ 1 file changed, 23 insertions(+), 10 deletions(-)
 
-diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
-index 605fd5e8e048..fcc887f607c2 100644
---- a/arch/x86/mm/fault.c
-+++ b/arch/x86/mm/fault.c
-@@ -435,6 +435,7 @@ void vmalloc_sync_all(void)
- static noinline int vmalloc_fault(unsigned long address)
+diff --git a/arch/x86/platform/efi/efi_64.c b/arch/x86/platform/efi/efi_64.c
+index 8544dae3d1b4..34d019f75239 100644
+--- a/arch/x86/platform/efi/efi_64.c
++++ b/arch/x86/platform/efi/efi_64.c
+@@ -135,6 +135,7 @@ static pgd_t *efi_pgd;
+ int __init efi_alloc_page_tables(void)
  {
- 	pgd_t *pgd, *pgd_ref;
-+	p4d_t *p4d, *p4d_ref;
- 	pud_t *pud, *pud_ref;
- 	pmd_t *pmd, *pmd_ref;
- 	pte_t *pte, *pte_ref;
-@@ -462,13 +463,26 @@ static noinline int vmalloc_fault(unsigned long address)
- 		BUG_ON(pgd_page_vaddr(*pgd) != pgd_page_vaddr(*pgd_ref));
+ 	pgd_t *pgd;
++	p4d_t *p4d;
+ 	pud_t *pud;
+ 	gfp_t gfp_mask;
+ 
+@@ -147,15 +148,20 @@ int __init efi_alloc_page_tables(void)
+ 		return -ENOMEM;
+ 
+ 	pgd = efi_pgd + pgd_index(EFI_VA_END);
++	p4d = p4d_alloc(&init_mm, pgd, EFI_VA_END);
++	if (!p4d) {
++		free_page((unsigned long)efi_pgd);
++		return -ENOMEM;
++	}
+ 
+-	pud = pud_alloc_one(NULL, 0);
++	pud = pud_alloc(&init_mm, p4d, EFI_VA_END);
+ 	if (!pud) {
++		if (CONFIG_PGTABLE_LEVELS > 4)
++			free_page((unsigned long) pgd_page_vaddr(*pgd));
+ 		free_page((unsigned long)efi_pgd);
+ 		return -ENOMEM;
  	}
  
-+	/* With 4-level paging copying happens on p4d level. */
-+	p4d = p4d_offset(pgd, address);
-+	p4d_ref = p4d_offset(pgd_ref, address);
-+	if (p4d_none(*p4d_ref))
-+		return -1;
+-	pgd_populate(NULL, pgd, pud);
+-
+ 	return 0;
+ }
+ 
+@@ -190,6 +196,18 @@ void efi_sync_low_kernel_mappings(void)
+ 	num_entries = pgd_index(EFI_VA_END) - pgd_index(PAGE_OFFSET);
+ 	memcpy(pgd_efi, pgd_k, sizeof(pgd_t) * num_entries);
+ 
++	/* The same story as with PGD entries */
++	BUILD_BUG_ON(p4d_index(EFI_VA_END) != p4d_index(MODULES_END));
++	BUILD_BUG_ON((EFI_VA_START & P4D_MASK) != (EFI_VA_END & P4D_MASK));
 +
-+	if (p4d_none(*p4d)) {
-+		set_p4d(p4d, *p4d_ref);
-+		arch_flush_lazy_mmu_mode();
-+	} else {
-+		BUG_ON(p4d_pfn(*p4d) != p4d_pfn(*p4d_ref));
-+	}
++	pgd_efi = efi_pgd + pgd_index(EFI_VA_END);
++	pgd_k = pgd_offset_k(EFI_VA_END);
++	p4d_efi = p4d_offset(pgd_efi, 0);
++	p4d_k = p4d_offset(pgd_k, 0);
++
++	num_entries = p4d_index(EFI_VA_END);
++	memcpy(p4d_efi, p4d_k, sizeof(p4d_t) * num_entries);
 +
  	/*
- 	 * Below here mismatches are bugs because these lower tables
- 	 * are shared:
- 	 */
+ 	 * We share all the PUD entries apart from those that map the
+ 	 * EFI regions. Copy around them.
+@@ -197,20 +215,15 @@ void efi_sync_low_kernel_mappings(void)
+ 	BUILD_BUG_ON((EFI_VA_START & ~PUD_MASK) != 0);
+ 	BUILD_BUG_ON((EFI_VA_END & ~PUD_MASK) != 0);
  
--	pud = pud_offset(pgd, address);
--	pud_ref = pud_offset(pgd_ref, address);
-+	pud = pud_offset(p4d, address);
-+	pud_ref = pud_offset(p4d_ref, address);
- 	if (pud_none(*pud_ref))
- 		return -1;
+-	pgd_efi = efi_pgd + pgd_index(EFI_VA_END);
+-	p4d_efi = p4d_offset(pgd_efi, 0);
++	p4d_efi = p4d_offset(pgd_efi, EFI_VA_END);
++	p4d_k = p4d_offset(pgd_k, EFI_VA_END);
+ 	pud_efi = pud_offset(p4d_efi, 0);
+-
+-	pgd_k = pgd_offset_k(EFI_VA_END);
+-	p4d_k = p4d_offset(pgd_k, 0);
+ 	pud_k = pud_offset(p4d_k, 0);
  
+ 	num_entries = pud_index(EFI_VA_END);
+ 	memcpy(pud_efi, pud_k, sizeof(pud_t) * num_entries);
+ 
+-	p4d_efi = p4d_offset(pgd_efi, EFI_VA_START);
+ 	pud_efi = pud_offset(p4d_efi, EFI_VA_START);
+-	p4d_k = p4d_offset(pgd_k, EFI_VA_START);
+ 	pud_k = pud_offset(p4d_k, EFI_VA_START);
+ 
+ 	num_entries = PTRS_PER_PUD - pud_index(EFI_VA_START);
 -- 
 2.11.0
