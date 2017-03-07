@@ -1,48 +1,131 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f180.google.com ([209.85.220.180]:33691 "EHLO
-        mail-qk0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755990AbdCGVYI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 7 Mar 2017 16:24:08 -0500
-Received: by mail-qk0-f180.google.com with SMTP id y76so26967208qkb.0
-        for <linux-arch@vger.kernel.org>; Tue, 07 Mar 2017 13:23:19 -0800 (PST)
+Received: from mail-qk0-f170.google.com ([209.85.220.170]:33096 "EHLO
+        mail-qk0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S933176AbdCGVYu (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 7 Mar 2017 16:24:50 -0500
+Received: by mail-qk0-f170.google.com with SMTP id y76so27032713qkb.0
+        for <linux-arch@vger.kernel.org>; Tue, 07 Mar 2017 13:24:44 -0800 (PST)
 From: Laura Abbott <labbott@redhat.com>
-Subject: [PATCHv3 10/16] bpf: Use set_memory.h header
-Date: Tue,  7 Mar 2017 12:55:27 -0800
-Message-ID: <1488920133-27229-11-git-send-email-labbott@redhat.com>
+Subject: [PATCHv3 07/16] drm: Use set_memory.h header
+Date: Tue,  7 Mar 2017 12:55:24 -0800
+Message-ID: <1488920133-27229-8-git-send-email-labbott@redhat.com>
 In-Reply-To: <1488920133-27229-1-git-send-email-labbott@redhat.com>
 References: <1488920133-27229-1-git-send-email-labbott@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "David S. Miller" <davem@davemloft.net>, Daniel Borkmann <daniel@iogearbox.net>
-Cc: Laura Abbott <labbott@redhat.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Kees Cook <keescook@chromium.org>, Mark Rutland <mark.rutland@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, David Airlie <airlied@linux.ie>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Wim Van Sebroeck <wim@iguana.be>, Guenter Roeck <linux@roeck-us.net>, linux-watchdog@vger.kernel.org, Jessica Yu <jeyu@redhat.com>, Takashi Iwai <tiwai@suse.com>, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20170307205527.2iKStfu5fpYsK2YMC-fCLsrfo4s7X0IDF2EfJGW-IdU@z>
-
+To: David Airlie <airlied@linux.ie>
+Cc: Laura Abbott <labbott@redhat.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Kees Cook <keescook@chromium.org>, Mark Rutland <mark.rutland@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Wim Van Sebroeck <wim@iguana.be>, Guenter Roeck <linux@roeck-us.net>, linux-watchdog@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, Daniel Borkmann <daniel@iogearbox.net>, Jessica Yu <jeyu@redhat.com>, Takashi Iwai <tiwai@suse.com>, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20170307205524.lFLd2TCCsb9J8zDGs11yV1yRQMWG0pgLjfRYf23Sch4@z>
 
 set_memory_* functions have moved to set_memory.h. Switch to this
 explicitly.
 
-Acked-by: Daniel Borkmann <daniel@iogearbox.net>
 Signed-off-by: Laura Abbott <labbott@redhat.com>
 ---
-v3: #ifdef guard
+v3: Add some #ifdef CONFIG_X86
 ---
- include/linux/filter.h | 4 +++-
- 1 file changed, 3 insertions(+), 1 deletion(-)
+ drivers/gpu/drm/amd/amdgpu/amdgpu_gart.c | 3 +++
+ drivers/gpu/drm/gma500/gtt.c             | 1 +
+ drivers/gpu/drm/gma500/psb_drv.c         | 1 +
+ drivers/gpu/drm/radeon/radeon_gart.c     | 3 +++
+ drivers/gpu/drm/ttm/ttm_page_alloc.c     | 3 +++
+ drivers/gpu/drm/ttm/ttm_page_alloc_dma.c | 3 +++
+ drivers/gpu/drm/ttm/ttm_tt.c             | 3 +++
+ 7 files changed, 17 insertions(+)
 
-diff --git a/include/linux/filter.h b/include/linux/filter.h
-index 0c167fd..8053c38 100644
---- a/include/linux/filter.h
-+++ b/include/linux/filter.h
-@@ -18,7 +18,9 @@
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_gart.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_gart.c
+index 964d2a94..b135521 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_gart.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_gart.c
+@@ -27,6 +27,9 @@
+  */
+ #include <drm/drmP.h>
+ #include <drm/amdgpu_drm.h>
++#ifdef CONFIG_X86
++#include <asm/set_memory.h>
++#endif
+ #include "amdgpu.h"
  
- #include <net/sch_generic.h>
+ /*
+diff --git a/drivers/gpu/drm/gma500/gtt.c b/drivers/gpu/drm/gma500/gtt.c
+index 3f4f424..3949b09 100644
+--- a/drivers/gpu/drm/gma500/gtt.c
++++ b/drivers/gpu/drm/gma500/gtt.c
+@@ -21,6 +21,7 @@
  
--#include <asm/cacheflush.h>
-+#ifdef CONFIG_ARCH_HAS_SET_MEMORY
+ #include <drm/drmP.h>
+ #include <linux/shmem_fs.h>
++#include <asm/set_memory.h>
+ #include "psb_drv.h"
+ #include "blitter.h"
+ 
+diff --git a/drivers/gpu/drm/gma500/psb_drv.c b/drivers/gpu/drm/gma500/psb_drv.c
+index 5ee93ff..1f9b35a 100644
+--- a/drivers/gpu/drm/gma500/psb_drv.c
++++ b/drivers/gpu/drm/gma500/psb_drv.c
+@@ -35,6 +35,7 @@
+ #include <linux/pm_runtime.h>
+ #include <acpi/video.h>
+ #include <linux/module.h>
++#include <asm/set_memory.h>
+ 
+ static struct drm_driver driver;
+ static int psb_pci_probe(struct pci_dev *pdev, const struct pci_device_id *ent);
+diff --git a/drivers/gpu/drm/radeon/radeon_gart.c b/drivers/gpu/drm/radeon/radeon_gart.c
+index c4777c8..0b3ec35 100644
+--- a/drivers/gpu/drm/radeon/radeon_gart.c
++++ b/drivers/gpu/drm/radeon/radeon_gart.c
+@@ -27,6 +27,9 @@
+  */
+ #include <drm/drmP.h>
+ #include <drm/radeon_drm.h>
++#ifdef CONFIG_X86
++#include <asm/set_memory.h>
++#endif
+ #include "radeon.h"
+ 
+ /*
+diff --git a/drivers/gpu/drm/ttm/ttm_page_alloc.c b/drivers/gpu/drm/ttm/ttm_page_alloc.c
+index a37de5d..eeddc1e 100644
+--- a/drivers/gpu/drm/ttm/ttm_page_alloc.c
++++ b/drivers/gpu/drm/ttm/ttm_page_alloc.c
+@@ -51,6 +51,9 @@
+ #if IS_ENABLED(CONFIG_AGP)
+ #include <asm/agp.h>
+ #endif
++#ifdef CONFIG_X86
 +#include <asm/set_memory.h>
 +#endif
  
- #include <uapi/linux/filter.h>
- #include <uapi/linux/bpf.h>
+ #define NUM_PAGES_TO_ALLOC		(PAGE_SIZE/sizeof(struct page *))
+ #define SMALL_ALLOCATION		16
+diff --git a/drivers/gpu/drm/ttm/ttm_page_alloc_dma.c b/drivers/gpu/drm/ttm/ttm_page_alloc_dma.c
+index cec4b4b..90ddbdc 100644
+--- a/drivers/gpu/drm/ttm/ttm_page_alloc_dma.c
++++ b/drivers/gpu/drm/ttm/ttm_page_alloc_dma.c
+@@ -53,6 +53,9 @@
+ #if IS_ENABLED(CONFIG_AGP)
+ #include <asm/agp.h>
+ #endif
++#ifdef CONFIG_X86
++#include <asm/set_memory.h>
++#endif
+ 
+ #define NUM_PAGES_TO_ALLOC		(PAGE_SIZE/sizeof(struct page *))
+ #define SMALL_ALLOCATION		4
+diff --git a/drivers/gpu/drm/ttm/ttm_tt.c b/drivers/gpu/drm/ttm/ttm_tt.c
+index aee3c00..5260179 100644
+--- a/drivers/gpu/drm/ttm/ttm_tt.c
++++ b/drivers/gpu/drm/ttm/ttm_tt.c
+@@ -44,6 +44,9 @@
+ #include <drm/ttm/ttm_bo_driver.h>
+ #include <drm/ttm/ttm_placement.h>
+ #include <drm/ttm/ttm_page_alloc.h>
++#ifdef CONFIG_X86
++#include <asm/set_memory.h>
++#endif
+ 
+ /**
+  * Allocates storage for pointers to the pages that back the ttm.
 -- 
 2.7.4
