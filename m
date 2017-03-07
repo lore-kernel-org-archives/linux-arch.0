@@ -1,253 +1,190 @@
-From: "Kirill A. Shutemov" <kirill@shutemov.name>
-Subject: Re: [PATCHv4 18/33] x86/xen: convert __xen_pgd_walk() and
- xen_cleanmfnmap() to support p4d
-Date: Tue, 7 Mar 2017 16:00:09 +0300
-Message-ID: <20170307130009.GA2154@node>
-References: <20170306135357.3124-1-kirill.shutemov@linux.intel.com>
- <20170306135357.3124-19-kirill.shutemov@linux.intel.com>
- <ab2868ea-1dd1-d51b-4c5a-921ef5c9a427@oracle.com>
+From: Tom Lendacky <thomas.lendacky@amd.com>
+Subject: Re: [RFC PATCH v4 28/28] x86: Add support to make use of Secure
+ Memory Encryption
+Date: Tue, 7 Mar 2017 10:05:00 -0600
+Message-ID: <7e6c308f-3caf-5531-3cb2-9b6986f4288e@amd.com>
+References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
+ <20170216154825.19244.32545.stgit@tlendack-t1.amdoffice.net>
+ <20170301184055.gl3iic3gir6zzb23@pd.tnic>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="utf-8"; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <ab2868ea-1dd1-d51b-4c5a-921ef5c9a427@oracle.com>
+In-Reply-To: <20170301184055.gl3iic3gir6zzb23@pd.tnic>
 Sender: owner-linux-mm@kvack.org
-To: Boris Ostrovsky <boris.ostrovsky@oracle.com>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Xiong Zhang <xiong.y.zhang@intel.com>, Juergen Gross <jgross@suse.com>, xen-devel <xen-devel@lists.xen.org>
+To: Borislav Petkov <bp@alien8.de>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S.
+ Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Alexander Potapenko <glider@google.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter
+ Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Thomas Gleixner <tglx@li>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Mar 06, 2017 at 03:48:24PM -0500, Boris Ostrovsky wrote:
-> 
-> > +static int xen_p4d_walk(struct mm_struct *mm, p4d_t *p4d,
-> > +		int (*func)(struct mm_struct *mm, struct page *, enum pt_level),
-> > +		bool last, unsigned long limit)
-> > +{
-> > +	int i, nr, flush = 0;
-> > +
-> > +	nr = last ? p4d_index(limit) + 1 : PTRS_PER_P4D;
-> > +	for (i = 0; i < nr; i++) {
-> > +		pud_t *pud;
-> > +
-> > +		if (p4d_none(p4d[i]))
-> > +			continue;
-> > +
-> > +		pud = pud_offset(&p4d[i], 0);
-> > +		if (PTRS_PER_PUD > 1)
-> > +			flush |= (*func)(mm, virt_to_page(pud), PT_PUD);
-> > +		xen_pud_walk(mm, pud, func, last && i == nr - 1, limit);
-> > +	}
-> > +	return flush;
-> > +}
-> 
-> ..
-> 
-> > +		p4d = p4d_offset(&pgd[i], 0);
-> > +		if (PTRS_PER_P4D > 1)
-> > +			flush |= (*func)(mm, virt_to_page(p4d), PT_P4D);
-> > +		xen_p4d_walk(mm, p4d, func, i == nr - 1, limit);
-> 
-> 
-> We are losing flush status at all levels so we need something like
-> 
-> flush |= xen_XXX_walk(...)
+On 3/1/2017 12:40 PM, Borislav Petkov wrote:
+> On Thu, Feb 16, 2017 at 09:48:25AM -0600, Tom Lendacky wrote:
+>> This patch adds the support to check if SME has been enabled and if
+>> memory encryption should be activated (checking of command line option
+>> based on the configuration of the default state).  If memory encryption
+>> is to be activated, then the encryption mask is set and the kernel is
+>> encrypted "in place."
+>>
+>> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+>> ---
+>>  arch/x86/kernel/head_64.S          |    1 +
+>>  arch/x86/kernel/mem_encrypt_init.c |   71 +++++++++++++++++++++++++++++++++++-
+>>  arch/x86/mm/mem_encrypt.c          |    2 +
+>>  3 files changed, 73 insertions(+), 1 deletion(-)
+>>
+>> diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
+>> index edd2f14..e6820e7 100644
+>> --- a/arch/x86/kernel/head_64.S
+>> +++ b/arch/x86/kernel/head_64.S
+>> @@ -97,6 +97,7 @@ startup_64:
+>>  	 * Save the returned mask in %r12 for later use.
+>>  	 */
+>>  	push	%rsi
+>> +	movq	%rsi, %rdi
+>>  	call	sme_enable
+>>  	pop	%rsi
+>>  	movq	%rax, %r12
+>> diff --git a/arch/x86/kernel/mem_encrypt_init.c b/arch/x86/kernel/mem_encrypt_init.c
+>> index 07cbb90..35c5e3d 100644
+>> --- a/arch/x86/kernel/mem_encrypt_init.c
+>> +++ b/arch/x86/kernel/mem_encrypt_init.c
+>> @@ -19,6 +19,12 @@
+>>  #include <linux/mm.h>
+>>
+>>  #include <asm/sections.h>
+>> +#include <asm/processor-flags.h>
+>> +#include <asm/msr.h>
+>> +#include <asm/cmdline.h>
+>> +
+>> +static char sme_cmdline_arg_on[] __initdata = "mem_encrypt=on";
+>> +static char sme_cmdline_arg_off[] __initdata = "mem_encrypt=off";
+>>
+>>  extern void sme_encrypt_execute(unsigned long, unsigned long, unsigned long,
+>>  				void *, pgd_t *);
+>> @@ -217,8 +223,71 @@ unsigned long __init sme_get_me_mask(void)
+>>  	return sme_me_mask;
+>>  }
+>>
+>> -unsigned long __init sme_enable(void)
+>> +unsigned long __init sme_enable(void *boot_data)
+>
+> unsigned long __init sme_enable(struct boot_params *bp)
+>
+> works too.
 
-+ Xiong.
+Ok, will do.
 
-Thanks for noticing this. The fixup is below.
+>
+> And then you need to correct the function signature in the
+> !CONFIG_AMD_MEM_ENCRYPT case, at the end of this file, too:
+>
+> unsigned long __init sme_enable(struct boot_params *bp)		{ return 0; }
 
-Please test, I don't have a setup for this.
+Yup, missed that.  I'll make it match.
 
-> 
-> 
-> 
-> >  	}
-> >  
-> > -out:
-> >  	/* Do the top level last, so that the callbacks can use it as
-> >  	   a cue to do final things like tlb flushes. */
-> >  	flush |= (*func)(mm, virt_to_page(pgd), PT_PGD);
-> > @@ -1150,57 +1161,97 @@ static void __init xen_cleanmfnmap_free_pgtbl(void *pgtbl, bool unpin)
-> >  	xen_free_ro_pages(pa, PAGE_SIZE);
-> >  }
-> >  
-> > +static void __init xen_cleanmfnmap_pmd(pmd_t *pmd, bool unpin)
-> > +{
-> > +	unsigned long pa;
-> > +	pte_t *pte_tbl;
-> > +	int i;
-> > +
-> > +	if (pmd_large(*pmd)) {
-> > +		pa = pmd_val(*pmd) & PHYSICAL_PAGE_MASK;
-> > +		xen_free_ro_pages(pa, PMD_SIZE);
-> > +		return;
-> > +	}
-> > +
-> > +	pte_tbl = pte_offset_kernel(pmd, 0);
-> > +	for (i = 0; i < PTRS_PER_PTE; i++) {
-> > +		if (pte_none(pte_tbl[i]))
-> > +			continue;
-> > +		pa = pte_pfn(pte_tbl[i]) << PAGE_SHIFT;
-> > +		xen_free_ro_pages(pa, PAGE_SIZE);
-> > +	}
-> > +	set_pmd(pmd, __pmd(0));
-> > +	xen_cleanmfnmap_free_pgtbl(pte_tbl, unpin);
-> > +}
-> > +
-> > +static void __init xen_cleanmfnmap_pud(pud_t *pud, bool unpin)
-> > +{
-> > +	unsigned long pa;
-> > +	pmd_t *pmd_tbl;
-> > +	int i;
-> > +
-> > +	if (pud_large(*pud)) {
-> > +		pa = pud_val(*pud) & PHYSICAL_PAGE_MASK;
-> > +		xen_free_ro_pages(pa, PUD_SIZE);
-> > +		return;
-> > +	}
-> > +
-> > +	pmd_tbl = pmd_offset(pud, 0);
-> > +	for (i = 0; i < PTRS_PER_PMD; i++) {
-> > +		if (pmd_none(pmd_tbl[i]))
-> > +			continue;
-> > +		xen_cleanmfnmap_pmd(pmd_tbl + i, unpin);
-> > +	}
-> > +	set_pud(pud, __pud(0));
-> > +	xen_cleanmfnmap_free_pgtbl(pmd_tbl, unpin);
-> > +}
-> > +
-> > +static void __init xen_cleanmfnmap_p4d(p4d_t *p4d, bool unpin)
-> > +{
-> > +	unsigned long pa;
-> > +	pud_t *pud_tbl;
-> > +	int i;
-> > +
-> > +	if (p4d_large(*p4d)) {
-> > +		pa = p4d_val(*p4d) & PHYSICAL_PAGE_MASK;
-> > +		xen_free_ro_pages(pa, P4D_SIZE);
-> > +		return;
-> > +	}
-> > +
-> > +	pud_tbl = pud_offset(p4d, 0);
-> > +	for (i = 0; i < PTRS_PER_PUD; i++) {
-> > +		if (pud_none(pud_tbl[i]))
-> > +			continue;
-> > +		xen_cleanmfnmap_pud(pud_tbl + i, unpin);
-> > +	}
-> > +	set_p4d(p4d, __p4d(0));
-> > +	xen_cleanmfnmap_free_pgtbl(pud_tbl, unpin);
-> > +}
-> > +
-> >  /*
-> >   * Since it is well isolated we can (and since it is perhaps large we should)
-> >   * also free the page tables mapping the initial P->M table.
-> >   */
-> >  static void __init xen_cleanmfnmap(unsigned long vaddr)
-> >  {
-> > -	unsigned long va = vaddr & PMD_MASK;
-> > -	unsigned long pa;
-> > -	pgd_t *pgd = pgd_offset_k(va);
-> > -	pud_t *pud_page = pud_offset(pgd, 0);
-> > -	pud_t *pud;
-> > -	pmd_t *pmd;
-> > -	pte_t *pte;
-> > +	pgd_t *pgd;
-> > +	p4d_t *p4d;
-> >  	unsigned int i;
-> >  	bool unpin;
-> >  
-> >  	unpin = (vaddr == 2 * PGDIR_SIZE);
-> > -	set_pgd(pgd, __pgd(0));
-> > -	do {
-> > -		pud = pud_page + pud_index(va);
-> > -		if (pud_none(*pud)) {
-> > -			va += PUD_SIZE;
-> > -		} else if (pud_large(*pud)) {
-> > -			pa = pud_val(*pud) & PHYSICAL_PAGE_MASK;
-> > -			xen_free_ro_pages(pa, PUD_SIZE);
-> > -			va += PUD_SIZE;
-> > -		} else {
-> > -			pmd = pmd_offset(pud, va);
-> > -			if (pmd_large(*pmd)) {
-> > -				pa = pmd_val(*pmd) & PHYSICAL_PAGE_MASK;
-> > -				xen_free_ro_pages(pa, PMD_SIZE);
-> > -			} else if (!pmd_none(*pmd)) {
-> > -				pte = pte_offset_kernel(pmd, va);
-> > -				set_pmd(pmd, __pmd(0));
-> > -				for (i = 0; i < PTRS_PER_PTE; ++i) {
-> > -					if (pte_none(pte[i]))
-> > -						break;
-> > -					pa = pte_pfn(pte[i]) << PAGE_SHIFT;
-> > -					xen_free_ro_pages(pa, PAGE_SIZE);
-> > -				}
-> > -				xen_cleanmfnmap_free_pgtbl(pte, unpin);
-> > -			}
-> > -			va += PMD_SIZE;
-> > -			if (pmd_index(va))
-> > -				continue;
-> > -			set_pud(pud, __pud(0));
-> > -			xen_cleanmfnmap_free_pgtbl(pmd, unpin);
-> > -		}
-> > -
-> > -	} while (pud_index(va) || pmd_index(va));
-> > -	xen_cleanmfnmap_free_pgtbl(pud_page, unpin);
-> > +	vaddr &= PMD_MASK;
-> > +	pgd = pgd_offset_k(vaddr);
-> > +	p4d = p4d_offset(pgd, 0);
-> > +	for (i = 0; i < PTRS_PER_P4D; i++) {
-> > +		if (p4d_none(p4d[i]))
-> > +			continue;
-> > +		xen_cleanmfnmap_p4d(p4d + i, unpin);
-> > +	}
-> 
-> Don't we need to pass vaddr down to all routines so that they select
-> appropriate tables? You seem to always be choosing the first one.
+>
+>>  {
+>> +	struct boot_params *bp = boot_data;
+>> +	unsigned int eax, ebx, ecx, edx;
+>> +	unsigned long cmdline_ptr;
+>> +	bool enable_if_found;
+>> +	void *cmdline_arg;
+>> +	u64 msr;
+>> +
+>> +	/* Check for an AMD processor */
+>> +	eax = 0;
+>> +	ecx = 0;
+>> +	native_cpuid(&eax, &ebx, &ecx, &edx);
+>> +	if ((ebx != 0x68747541) || (edx != 0x69746e65) || (ecx != 0x444d4163))
+>> +		goto out;
+>> +
+>> +	/* Check for the SME support leaf */
+>> +	eax = 0x80000000;
+>> +	ecx = 0;
+>> +	native_cpuid(&eax, &ebx, &ecx, &edx);
+>> +	if (eax < 0x8000001f)
+>> +		goto out;
+>> +
+>> +	/*
+>> +	 * Check for the SME feature:
+>> +	 *   CPUID Fn8000_001F[EAX] - Bit 0
+>> +	 *     Secure Memory Encryption support
+>> +	 *   CPUID Fn8000_001F[EBX] - Bits 5:0
+>> +	 *     Pagetable bit position used to indicate encryption
+>> +	 */
+>> +	eax = 0x8000001f;
+>> +	ecx = 0;
+>> +	native_cpuid(&eax, &ebx, &ecx, &edx);
+>> +	if (!(eax & 1))
+>> +		goto out;
+>> +
+>> +	/* Check if SME is enabled */
+>> +	msr = native_read_msr(MSR_K8_SYSCFG);
+>
+> This native_read_msr() wankery is adding this check:
+>
+> 	if (msr_tracepoint_active(__tracepoint_read_msr))
+>
+> and here it is clearly too early for tracepoints. Please use __rdmsr()
+> which is purely doing the MSR operation. (... and exception handling for
 
-IIUC, we clear whole page table subtree covered by one pgd entry.
-So, no, there's no need to pass vaddr down. Just pointer to page table
-entry is enough.
+Ah, good catch.  I'll switch to __rdmsr().
 
-But I know virtually nothing about Xen. Please re-check my reasoning.
+> when the RDMSR itself raises an exception but we're very early here too
+> so the MSR better be there, otherwise we'll blow up).
 
-I would also appreciate help with getting x86 Xen code work with 5-level
-paging enabled. For now I make CONFIG_XEN dependent on !CONFIG_X86_5LEVEL.
+Yes, it will be there if SME support is indicated in the CPUID result.
 
-Fixup:
+>
+>> +	if (!(msr & MSR_K8_SYSCFG_MEM_ENCRYPT))
+>> +		goto out;
+>> +
+>> +	/*
+>> +	 * Fixups have not been to applied phys_base yet, so we must obtain
+>
+> 		...    not been applied to phys_base yet ...
 
-diff --git a/arch/x86/xen/mmu.c b/arch/x86/xen/mmu.c
-index a4079cfab007..d66b7e79781a 100644
---- a/arch/x86/xen/mmu.c
-+++ b/arch/x86/xen/mmu.c
-@@ -629,7 +629,8 @@ static int xen_pud_walk(struct mm_struct *mm, pud_t *pud,
- 		pmd = pmd_offset(&pud[i], 0);
- 		if (PTRS_PER_PMD > 1)
- 			flush |= (*func)(mm, virt_to_page(pmd), PT_PMD);
--		xen_pmd_walk(mm, pmd, func, last && i == nr - 1, limit);
-+		flush |= xen_pmd_walk(mm, pmd, func,
-+				last && i == nr - 1, limit);
- 	}
- 	return flush;
- }
-@@ -650,7 +651,8 @@ static int xen_p4d_walk(struct mm_struct *mm, p4d_t *p4d,
- 		pud = pud_offset(&p4d[i], 0);
- 		if (PTRS_PER_PUD > 1)
- 			flush |= (*func)(mm, virt_to_page(pud), PT_PUD);
--		xen_pud_walk(mm, pud, func, last && i == nr - 1, limit);
-+		flush |= xen_pud_walk(mm, pud, func,
-+				last && i == nr - 1, limit);
- 	}
- 	return flush;
- }
-@@ -706,7 +708,7 @@ static int __xen_pgd_walk(struct mm_struct *mm, pgd_t *pgd,
- 		p4d = p4d_offset(&pgd[i], 0);
- 		if (PTRS_PER_P4D > 1)
- 			flush |= (*func)(mm, virt_to_page(p4d), PT_P4D);
--		xen_p4d_walk(mm, p4d, func, i == nr - 1, limit);
-+		flush |= xen_p4d_walk(mm, p4d, func, i == nr - 1, limit);
- 	}
- 
- 	/* Do the top level last, so that the callbacks can use it as
--- 
- Kirill A. Shutemov
+Yup.
+
+>
+>> +	 * the address to the SME command line option in the following way.
+>> +	 */
+>> +	if (IS_ENABLED(CONFIG_AMD_MEM_ENCRYPT_ACTIVE_BY_DEFAULT)) {
+>> +		asm ("lea sme_cmdline_arg_off(%%rip), %0"
+>> +		     : "=r" (cmdline_arg)
+>> +		     : "p" (sme_cmdline_arg_off));
+>> +		enable_if_found = false;
+>> +	} else {
+>> +		asm ("lea sme_cmdline_arg_on(%%rip), %0"
+>> +		     : "=r" (cmdline_arg)
+>> +		     : "p" (sme_cmdline_arg_on));
+>> +		enable_if_found = true;
+>> +	}
+>> +
+>> +	cmdline_ptr = bp->hdr.cmd_line_ptr | ((u64)bp->ext_cmd_line_ptr << 32);
+>> +
+>> +	if (cmdline_find_option_bool((char *)cmdline_ptr, cmdline_arg))
+>> +		sme_me_mask = enable_if_found ? 1UL << (ebx & 0x3f) : 0;
+>> +	else
+>> +		sme_me_mask = enable_if_found ? 0 : 1UL << (ebx & 0x3f);
+>
+> I have a better idea: you can copy __cmdline_find_option() +
+> cmdline_find_option() to arch/x86/lib/cmdline.c in a pre-patch. Then,
+> pass in a buffer and check for "on" and "off". This way you don't
+> have to misuse the _bool() variant for something which is actually
+> "option=argument".
+
+I can do that.  Because phys_base hasn't been updated yet, I'll have to
+create "on" and "off" constants and get their address in a similar way
+to the command line option so that I can do the strncmp properly.
+
+Thanks,
+Tom
+
+>
+> Thanks.
+>
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
