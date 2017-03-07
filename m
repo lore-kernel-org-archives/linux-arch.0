@@ -1,41 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([5.9.137.197]:45250 "EHLO mail.skyhub.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1755212AbdCGSOa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 7 Mar 2017 13:14:30 -0500
-Date: Tue, 7 Mar 2017 18:42:51 +0100
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [RFC PATCH v4 28/28] x86: Add support to make use of Secure
- Memory Encryption
-Message-ID: <20170307174251.qrg4kgi34anuxd33@pd.tnic>
-References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
- <20170216154825.19244.32545.stgit@tlendack-t1.amdoffice.net>
- <20170301184055.gl3iic3gir6zzb23@pd.tnic>
- <7e6c308f-3caf-5531-3cb2-9b6986f4288e@amd.com>
+Received: from userp1040.oracle.com ([156.151.31.81]:51029 "EHLO
+        userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1755536AbdCGSTY (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 7 Mar 2017 13:19:24 -0500
+Subject: Re: [PATCHv4 18/33] x86/xen: convert __xen_pgd_walk() and
+ xen_cleanmfnmap() to support p4d
+References: <20170306135357.3124-1-kirill.shutemov@linux.intel.com>
+ <20170306135357.3124-19-kirill.shutemov@linux.intel.com>
+ <ab2868ea-1dd1-d51b-4c5a-921ef5c9a427@oracle.com>
+ <20170307130009.GA2154@node>
+From: Boris Ostrovsky <boris.ostrovsky@oracle.com>
+Message-ID: <8bd7d5b7-7a22-a0a2-8eff-e909a1c6783e@oracle.com>
+Date: Tue, 7 Mar 2017 13:18:17 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <7e6c308f-3caf-5531-3cb2-9b6986f4288e@amd.com>
+In-Reply-To: <20170307130009.GA2154@node>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Alexander Potapenko <glider@google.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Larry Woodman <lwoodman@redhat.com>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170307174251.Rky64A6I8-a19mlvBn2LjhggOB3OG16IuwCxQfFi4Eg@z>
+To: "Kirill A. Shutemov" <kirill@shutemov.name>, "Zhang, Xiong Y" <xiong.y.zhang@intel.com>
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Juergen Gross <jgross@suse.com>, xen-devel <xen-devel@lists.xen.org>
+Message-ID: <20170307181817.Kx9i4EIx6fTdgyJLg6JHPw5jynj3k9FmC-ptw2JfSEs@z>
 
-On Tue, Mar 07, 2017 at 10:05:00AM -0600, Tom Lendacky wrote:
-> I can do that.  Because phys_base hasn't been updated yet, I'll have to
-> create "on" and "off" constants and get their address in a similar way
-> to the command line option so that I can do the strncmp properly.
 
-Actually, wouldn't it be simpler to inspect the passed in buffer for
-containing the chars 'o', 'n' - in that order, or 'o', 'f', 'f' - in
-that order too? Because __cmdline_find_option() does copy the option
-characters into the buffer.
+>> Don't we need to pass vaddr down to all routines so that they select
+>> appropriate tables? You seem to always be choosing the first one.
+> IIUC, we clear whole page table subtree covered by one pgd entry.
+> So, no, there's no need to pass vaddr down. Just pointer to page table
+> entry is enough.
+>
+> But I know virtually nothing about Xen. Please re-check my reasoning.
 
-Then you wouldn't need those "on" and "off" constants...
+Yes, we effectively remove the whole page table for vaddr so I guess
+it's OK.
 
--- 
-Regards/Gruss,
-    Boris.
+>
+> I would also appreciate help with getting x86 Xen code work with 5-level
+> paging enabled. For now I make CONFIG_XEN dependent on !CONFIG_X86_5LEVEL.
 
-Good mailing practices for 400: avoid top-posting and trim the reply.
+Hmmm... that's a problem since this requires changes in the hypervisor
+and even if/when these changes are made older version of hypervisor
+still will not be able to run those guests.
+
+This affects only PV guests and there is a series under review that
+provides clean code separation with CONFIG_XEN_PV but because, for
+example, dom0 (Xen control domain) is PV this will significantly limit
+availability of dom0-capable kernels (because I assume distros will want
+to have CONFIG_X86_5LEVEL).
+
+
+>
+> Fixup:
+
+Yes, that works. (But then it worked even without this change because
+problems caused by missing the flush would be intermittent. And a joy to
+debug).
+
+-boris
