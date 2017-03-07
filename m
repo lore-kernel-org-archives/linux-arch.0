@@ -1,59 +1,56 @@
-From: Boris Ostrovsky <boris.ostrovsky@oracle.com>
-Subject: Re: [PATCHv4 18/33] x86/xen: convert __xen_pgd_walk() and
+From: Andrew Cooper <andrew.cooper3@citrix.com>
+Subject: Re: [Xen-devel] [PATCHv4 18/33] x86/xen: convert __xen_pgd_walk() and
  xen_cleanmfnmap() to support p4d
-Date: Tue, 7 Mar 2017 13:18:17 -0500
-Message-ID: <8bd7d5b7-7a22-a0a2-8eff-e909a1c6783e@oracle.com>
+Date: Tue, 7 Mar 2017 18:26:05 +0000
+Message-ID: <47f06f4a-ef29-5a77-c48b-43a91a8c9579@citrix.com>
 References: <20170306135357.3124-1-kirill.shutemov@linux.intel.com>
  <20170306135357.3124-19-kirill.shutemov@linux.intel.com>
  <ab2868ea-1dd1-d51b-4c5a-921ef5c9a427@oracle.com>
  <20170307130009.GA2154@node>
+ <8bd7d5b7-7a22-a0a2-8eff-e909a1c6783e@oracle.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20170307130009.GA2154@node>
+In-Reply-To: <8bd7d5b7-7a22-a0a2-8eff-e909a1c6783e@oracle.com>
 Sender: owner-linux-mm@kvack.org
-To: "Kirill A. Shutemov" <kirill@shutemov.name>, "Zhang, Xiong Y" <xiong.y.zhang@intel.com>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Juergen Gross <jgross@suse.com>, xen-devel <xen-devel@lists.xen.org>
+To: Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, "Zhang, Xiong Y" <xiong.y.zhang@intel.com>
+Cc: linux-arch@vger.kernel.org, Juergen Gross <jgross@suse.com>, Andi Kleen <ak@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>, linux-mm@kvack.org, x86@kernel.org, linux-kernel@vger.kernel.org, Andy Lutomirski <luto@amacapital.net>, Dave Hansen <dave.hansen@intel.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, xen-devel <xen-devel@lists.xen.org>, Linus Torvalds <torvalds@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-
->> Don't we need to pass vaddr down to all routines so that they select
->> appropriate tables? You seem to always be choosing the first one.
-> IIUC, we clear whole page table subtree covered by one pgd entry.
-> So, no, there's no need to pass vaddr down. Just pointer to page table
-> entry is enough.
+On 07/03/17 18:18, Boris Ostrovsky wrote:
+>>> Don't we need to pass vaddr down to all routines so that they select
+>>> appropriate tables? You seem to always be choosing the first one.
+>> IIUC, we clear whole page table subtree covered by one pgd entry.
+>> So, no, there's no need to pass vaddr down. Just pointer to page table
+>> entry is enough.
+>>
+>> But I know virtually nothing about Xen. Please re-check my reasoning.
+> Yes, we effectively remove the whole page table for vaddr so I guess
+> it's OK.
 >
-> But I know virtually nothing about Xen. Please re-check my reasoning.
-
-Yes, we effectively remove the whole page table for vaddr so I guess
-it's OK.
-
+>> I would also appreciate help with getting x86 Xen code work with 5-level
+>> paging enabled. For now I make CONFIG_XEN dependent on !CONFIG_X86_5LEVEL.
+> Hmmm... that's a problem since this requires changes in the hypervisor
+> and even if/when these changes are made older version of hypervisor
+> still will not be able to run those guests.
 >
-> I would also appreciate help with getting x86 Xen code work with 5-leve=
-l
-> paging enabled. For now I make CONFIG_XEN dependent on !CONFIG_X86_5LEV=
-EL.
+> This affects only PV guests and there is a series under review that
+> provides clean code separation with CONFIG_XEN_PV but because, for
+> example, dom0 (Xen control domain) is PV this will significantly limit
+> availability of dom0-capable kernels (because I assume distros will want
+> to have CONFIG_X86_5LEVEL).
 
-Hmmm... that's a problem since this requires changes in the hypervisor
-and even if/when these changes are made older version of hypervisor
-still will not be able to run those guests.
+Wasn't the plan to be able to automatically detect 4 vs 5 level support,
+and cope either way, so distros didn't have to ship two different builds
+of Linux?
 
-This affects only PV guests and there is a series under review that
-provides clean code separation with CONFIG_XEN_PV but because, for
-example, dom0 (Xen control domain) is PV this will significantly limit
-availability of dom0-capable kernels (because I assume distros will want
-to have CONFIG_X86_5LEVEL).
+If so, all we need to do git things to compile sensibly, and have the PV
+entry code in Linux configure the rest of the kernel appropriately.
 
+(If not, please ignore me.)
 
->
-> Fixup:
-
-Yes, that works. (But then it worked even without this change because
-problems caused by missing the flush would be intermittent. And a joy to
-debug).
-
--boris
+~Andrew
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
