@@ -1,59 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from userp1050.oracle.com ([156.151.31.82]:31330 "EHLO
-        userp1050.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755722AbdCGTZc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 7 Mar 2017 14:25:32 -0500
-Subject: Re: [Xen-devel] [PATCHv4 18/33] x86/xen: convert __xen_pgd_walk() and
- xen_cleanmfnmap() to support p4d
-References: <20170306135357.3124-1-kirill.shutemov@linux.intel.com>
- <20170306135357.3124-19-kirill.shutemov@linux.intel.com>
- <ab2868ea-1dd1-d51b-4c5a-921ef5c9a427@oracle.com>
- <20170307130009.GA2154@node>
- <8bd7d5b7-7a22-a0a2-8eff-e909a1c6783e@oracle.com>
- <47f06f4a-ef29-5a77-c48b-43a91a8c9579@citrix.com>
-From: Boris Ostrovsky <boris.ostrovsky@oracle.com>
-Message-ID: <c15b7954-2573-5624-7132-1d435e012922@oracle.com>
-Date: Tue, 7 Mar 2017 13:45:07 -0500
-MIME-Version: 1.0
-In-Reply-To: <47f06f4a-ef29-5a77-c48b-43a91a8c9579@citrix.com>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Received: from mail-qk0-f178.google.com ([209.85.220.178]:32895 "EHLO
+        mail-qk0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751507AbdCGU5q (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 7 Mar 2017 15:57:46 -0500
+Received: by mail-qk0-f178.google.com with SMTP id y76so25675700qkb.0
+        for <linux-arch@vger.kernel.org>; Tue, 07 Mar 2017 12:56:47 -0800 (PST)
+From: Laura Abbott <labbott@redhat.com>
+Subject: [PATCHv3 15/16] video: vermilion: Use set_memory.h header
+Date: Tue,  7 Mar 2017 12:55:32 -0800
+Message-ID: <1488920133-27229-16-git-send-email-labbott@redhat.com>
+In-Reply-To: <1488920133-27229-1-git-send-email-labbott@redhat.com>
+References: <1488920133-27229-1-git-send-email-labbott@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Cooper <andrew.cooper3@citrix.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, "Zhang, Xiong Y" <xiong.y.zhang@intel.com>
-Cc: linux-arch@vger.kernel.org, Juergen Gross <jgross@suse.com>, Andi Kleen <ak@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>, linux-mm@kvack.org, x86@kernel.org, linux-kernel@vger.kernel.org, Andy Lutomirski <luto@amacapital.net>, Dave Hansen <dave.hansen@intel.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, xen-devel <xen-devel@lists.xen.org>, Linus Torvalds <torvalds@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20170307184507.AfTCmTsmNbq9zPETzZfTp2Nll9-eRNEH1vFoPE2L4DQ@z>
+To: Andrew Morton <akpm@linux-foundation.org>, Bartlomiej Zolnierkiewicz <b.zolnierkie@samsung.com>
+Cc: Laura Abbott <labbott@redhat.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Kees Cook <keescook@chromium.org>, Mark Rutland <mark.rutland@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, David Airlie <airlied@linux.ie>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Wim Van Sebroeck <wim@iguana.be>, Guenter Roeck <linux@roeck-us.net>, linux-watchdog@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, Daniel Borkmann <daniel@iogearbox.net>, Jessica Yu <jeyu@redhat.com>, Takashi Iwai <tiwai@suse.com>, linux-fbdev@vger.kernel.org
+Message-ID: <20170307205532.sfsTPh5BvVdtDv2iyB8nVrop3VQFNrqccA1_Q9V2aUs@z>
 
-On 03/07/2017 01:26 PM, Andrew Cooper wrote:
-> On 07/03/17 18:18, Boris Ostrovsky wrote:
->>>> Don't we need to pass vaddr down to all routines so that they select
->>>> appropriate tables? You seem to always be choosing the first one.
->>> IIUC, we clear whole page table subtree covered by one pgd entry.
->>> So, no, there's no need to pass vaddr down. Just pointer to page table
->>> entry is enough.
->>>
->>> But I know virtually nothing about Xen. Please re-check my reasoning.
->> Yes, we effectively remove the whole page table for vaddr so I guess
->> it's OK.
->>
->>> I would also appreciate help with getting x86 Xen code work with 5-level
->>> paging enabled. For now I make CONFIG_XEN dependent on !CONFIG_X86_5LEVEL.
->> Hmmm... that's a problem since this requires changes in the hypervisor
->> and even if/when these changes are made older version of hypervisor
->> still will not be able to run those guests.
->>
->> This affects only PV guests and there is a series under review that
->> provides clean code separation with CONFIG_XEN_PV but because, for
->> example, dom0 (Xen control domain) is PV this will significantly limit
->> availability of dom0-capable kernels (because I assume distros will want
->> to have CONFIG_X86_5LEVEL).
-> Wasn't the plan to be able to automatically detect 4 vs 5 level support,
-> and cope either way, so distros didn't have to ship two different builds
-> of Linux?
->
-> If so, all we need to do git things to compile sensibly, and have the PV
-> entry code in Linux configure the rest of the kernel appropriately.
 
-I am not aware of any plans but this would obviously be the preferred route.
+set_memory_* functions have moved to set_memory.h. Switch to this
+explicitly.
 
--boris
+Signed-off-by: Laura Abbott <labbott@redhat.com>
+---
+v3: New files not caught in the first pass
+---
+ drivers/video/fbdev/vermilion/vermilion.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/video/fbdev/vermilion/vermilion.c b/drivers/video/fbdev/vermilion/vermilion.c
+index 1c1e95a..ce4c4729 100644
+--- a/drivers/video/fbdev/vermilion/vermilion.c
++++ b/drivers/video/fbdev/vermilion/vermilion.c
+@@ -37,7 +37,7 @@
+ #include <linux/mm.h>
+ #include <linux/fb.h>
+ #include <linux/pci.h>
+-#include <asm/cacheflush.h>
++#include <asm/set_memory.h>
+ #include <asm/tlbflush.h>
+ #include <linux/mmzone.h>
+ 
+-- 
+2.7.4
