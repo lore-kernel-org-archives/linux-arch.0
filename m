@@ -1,45 +1,62 @@
-From: Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>
-Subject: Re: [RFC PATCH v4 28/28] x86: Add support to make use of Secure
-	Memory Encryption
-Date: Tue, 7 Mar 2017 18:42:51 +0100
-Message-ID: <20170307174251.qrg4kgi34anuxd33@pd.tnic>
-References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
-	<20170216154825.19244.32545.stgit@tlendack-t1.amdoffice.net>
-	<20170301184055.gl3iic3gir6zzb23@pd.tnic>
-	<7e6c308f-3caf-5531-3cb2-9b6986f4288e@amd.com>
+From: Boris Ostrovsky <boris.ostrovsky@oracle.com>
+Subject: Re: [PATCHv4 18/33] x86/xen: convert __xen_pgd_walk() and
+ xen_cleanmfnmap() to support p4d
+Date: Tue, 7 Mar 2017 13:18:17 -0500
+Message-ID: <8bd7d5b7-7a22-a0a2-8eff-e909a1c6783e@oracle.com>
+References: <20170306135357.3124-1-kirill.shutemov@linux.intel.com>
+ <20170306135357.3124-19-kirill.shutemov@linux.intel.com>
+ <ab2868ea-1dd1-d51b-4c5a-921ef5c9a427@oracle.com>
+ <20170307130009.GA2154@node>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <7e6c308f-3caf-5531-3cb2-9b6986f4288e-5C7GfCeVMHo@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
-Cc: linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Brijesh Singh <brijesh.singh-5C7GfCeVMHo@public.gmane.org>, Toshimitsu Kani <toshi.kani-ZPxbGqLxI0U@public.gmane.org>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Larry Woodman <lwoodman-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrey Ryabinin <aryabinin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Rik van Riel <riel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, "Michael S. Tsirkin" <mst-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Paolo Bonzini <pbonzini-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: quoted-printable
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20170307130009.GA2154@node>
+Sender: owner-linux-mm@kvack.org
+To: "Kirill A. Shutemov" <kirill@shutemov.name>, "Zhang, Xiong Y" <xiong.y.zhang@intel.com>
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Juergen Gross <jgross@suse.com>, xen-devel <xen-devel@lists.xen.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Mar 07, 2017 at 10:05:00AM -0600, Tom Lendacky wrote:
-> I can do that.  Because phys_base hasn't been updated yet, I'll have to
-> create "on" and "off" constants and get their address in a similar way
-> to the command line option so that I can do the strncmp properly.
 
-Actually, wouldn't it be simpler to inspect the passed in buffer for
-containing the chars 'o', 'n' - in that order, or 'o', 'f', 'f' - in
-that order too? Because __cmdline_find_option() does copy the option
-characters into the buffer.
+>> Don't we need to pass vaddr down to all routines so that they select
+>> appropriate tables? You seem to always be choosing the first one.
+> IIUC, we clear whole page table subtree covered by one pgd entry.
+> So, no, there's no need to pass vaddr down. Just pointer to page table
+> entry is enough.
+>
+> But I know virtually nothing about Xen. Please re-check my reasoning.
 
-Then you wouldn't need those "on" and "off" constants...
+Yes, we effectively remove the whole page table for vaddr so I guess
+it's OK.
 
--- 
-Regards/Gruss,
-    Boris.
+>
+> I would also appreciate help with getting x86 Xen code work with 5-leve=
+l
+> paging enabled. For now I make CONFIG_XEN dependent on !CONFIG_X86_5LEV=
+EL.
 
-Good mailing practices for 400: avoid top-posting and trim the reply.
+Hmmm... that's a problem since this requires changes in the hypervisor
+and even if/when these changes are made older version of hypervisor
+still will not be able to run those guests.
+
+This affects only PV guests and there is a series under review that
+provides clean code separation with CONFIG_XEN_PV but because, for
+example, dom0 (Xen control domain) is PV this will significantly limit
+availability of dom0-capable kernels (because I assume distros will want
+to have CONFIG_X86_5LEVEL).
+
+
+>
+> Fixup:
+
+Yes, that works. (But then it worked even without this change because
+problems caused by missing the flush would be intermittent. And a joy to
+debug).
+
+-boris
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
