@@ -1,53 +1,43 @@
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [RFC PATCH v4 28/28] x86: Add support to make use of Secure
- Memory Encryption
-Date: Wed, 8 Mar 2017 16:05:20 +0100
-Message-ID: <20170308150520.fwdrit6bjweqsztq@pd.tnic>
-References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
- <20170216154825.19244.32545.stgit@tlendack-t1.amdoffice.net>
- <20170301184055.gl3iic3gir6zzb23@pd.tnic>
- <7e6c308f-3caf-5531-3cb2-9b6986f4288e@amd.com>
+From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Subject: Re: [PATCH 0/7] 5-level paging: prepare generic code
+Date: Wed, 8 Mar 2017 18:07:42 +0300
+Message-ID: <20170308150742.aaqfknxhurvvrvsl@black.fi.intel.com>
+References: <20170306204514.1852-1-kirill.shutemov@linux.intel.com>
+ <20170308142501.GB11034@dhcp22.suse.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <7e6c308f-3caf-5531-3cb2-9b6986f4288e@amd.com>
+In-Reply-To: <20170308142501.GB11034@dhcp22.suse.cz>
 Sender: owner-linux-mm@kvack.org
-To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Alexander Potapenko <glider@google.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>
+To: Michal Hocko <mhocko@kernel.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Mar 07, 2017 at 10:05:00AM -0600, Tom Lendacky wrote:
-> > And then you need to correct the function signature in the
-> > !CONFIG_AMD_MEM_ENCRYPT case, at the end of this file, too:
-> > 
-> > unsigned long __init sme_enable(struct boot_params *bp)		{ return 0; }
-> 
-> Yup, missed that.  I'll make it match.
+On Wed, Mar 08, 2017 at 03:25:01PM +0100, Michal Hocko wrote:
+> Btw. my build test machinery has reported this:
+> microblaze/allnoconfig
 
-Or, you can do this:
+Thanks.
 
-unsigned long __init sme_enable(void *boot_data)
-{
-#ifdef CONFIG_AMD_MEM_ENCRYPT
-        struct boot_params *bp = boot_data;
-        unsigned int eax, ebx, ecx, edx;
-        unsigned long cmdline_ptr;
+Fixup is below. I guess it should be folded into 4/7.
 
-	...
-
-out:
-#endif /* CONFIG_AMD_MEM_ENCRYPT */
-        return sme_me_mask;
-}
-
-and never worry for function headers going out of whack.
-
+diff --git a/arch/microblaze/include/asm/page.h b/arch/microblaze/include/asm/page.h
+index fd850879854d..d506bb0893f9 100644
+--- a/arch/microblaze/include/asm/page.h
++++ b/arch/microblaze/include/asm/page.h
+@@ -95,7 +95,8 @@ typedef struct { unsigned long pgd; } pgd_t;
+ #   else /* CONFIG_MMU */
+ typedef struct { unsigned long	ste[64]; }	pmd_t;
+ typedef struct { pmd_t		pue[1]; }	pud_t;
+-typedef struct { pud_t		pge[1]; }	pgd_t;
++typedef struct { pud_t		p4e[1]; }	p4d_t;
++typedef struct { p4d_t		pge[1]; }	pgd_t;
+ #   endif /* CONFIG_MMU */
+ 
+ # define pte_val(x)	((x).pte)
 -- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
+ Kirill A. Shutemov
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
