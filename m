@@ -1,95 +1,72 @@
-From: Dave Young <dyoung@redhat.com>
-Subject: Re: [RFC PATCH v4 26/28] x86: Allow kexec to be used with SME
-Date: Wed, 8 Mar 2017 16:12:28 +0800
-Message-ID: <20170308081228.GD11045@dhcp-128-65.nay.redhat.com>
-References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
- <20170216154755.19244.51276.stgit@tlendack-t1.amdoffice.net>
- <20170217155756.GJ30272@char.us.ORACLE.com>
- <d2f16b24-f2ef-a22b-3c72-2d8ad585553e@amd.com>
- <20170301092536.GB8353@dhcp-128-65.nay.redhat.com>
- <998eb58b-eefd-3093-093f-9ae25ddda472@amd.com>
+From: Michal Hocko <mhocko@kernel.org>
+Subject: Re: [PATCH 6/7] mm: convert generic code to 5-level paging
+Date: Wed, 8 Mar 2017 14:57:35 +0100
+Message-ID: <20170308135734.GA11034@dhcp22.suse.cz>
+References: <20170306204514.1852-1-kirill.shutemov@linux.intel.com>
+ <20170306204514.1852-7-kirill.shutemov@linux.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <998eb58b-eefd-3093-093f-9ae25ddda472@amd.com>
+In-Reply-To: <20170306204514.1852-7-kirill.shutemov@linux.intel.com>
 Sender: owner-linux-mm@kvack.org
-To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Paolo Bonzini <pbonzini@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Alexander Potapenko <glider@google.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa>
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 03/06/17 at 11:58am, Tom Lendacky wrote:
-> On 3/1/2017 3:25 AM, Dave Young wrote:
-> > Hi Tom,
+On Mon 06-03-17 23:45:13, Kirill A. Shutemov wrote:
+> Convert all non-architecture-specific code to 5-level paging.
 > 
-> Hi Dave,
+> It's mostly mechanical adding handling one more page table level in
+> places where we deal with pud_t.
 > 
-> > 
-> > On 02/17/17 at 10:43am, Tom Lendacky wrote:
-> > > On 2/17/2017 9:57 AM, Konrad Rzeszutek Wilk wrote:
-> > > > On Thu, Feb 16, 2017 at 09:47:55AM -0600, Tom Lendacky wrote:
-> > > > > Provide support so that kexec can be used to boot a kernel when SME is
-> > > > > enabled.
-> > > > 
-> > > > Is the point of kexec and kdump to ehh, dump memory ? But if the
-> > > > rest of the memory is encrypted you won't get much, will you?
-> > > 
-> > > Kexec can be used to reboot a system without going back through BIOS.
-> > > So you can use kexec without using kdump.
-> > > 
-> > > For kdump, just taking a quick look, the option to enable memory
-> > > encryption can be provided on the crash kernel command line and then
-> > 
-> > Is there a simple way to get the SME status? Probably add some sysfs
-> > file for this purpose.
-> 
-> Currently there is not.  I can look at adding something, maybe just the
-> sme_me_mask value, which if non-zero, would indicate SME is active.
-> 
-> > 
-> > > crash kernel can would be able to copy the memory decrypted if the
-> > > pagetable is set up properly. It looks like currently ioremap_cache()
-> > > is used to map the old memory page.  That might be able to be changed
-> > > to a memremap() so that the encryption bit is set in the mapping. That
-> > > will mean that memory that is not marked encrypted (EFI tables, swiotlb
-> > > memory, etc) would not be read correctly.
-> > 
-> > Manage to store info about those ranges which are not encrypted so that
-> > memremap can handle them?
-> 
-> I can look into whether something can be done in this area. Any input
-> you can provide as to what would be the best way/place to store the
-> range info so kdump can make use of it, would be greatly appreciated.
+> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 
-Previously to support efi runtime in kexec, I passed some efi
-infomation via setup_data, see below userspace kexec-tools commit:
-e1ffc9e9a0769e1f54185003102e9bec428b84e8, it was what Boris mentioned
-about the setup_data use case for kexec.
+OK, I haven't spotted anything major. I am just scratching my head about
+the __ARCH_HAS_5LEVEL_HACK leak into kasan_init.c (see below). Why do we
+need it?  It looks more than ugly but I am not familiar with kasan so
+maybe this is really necessary.
 
-Suppose you have successfully tested kexec reboot, so the EFI tables you
-mentioned should be those area in old mem for copying /proc/vmcore? If
-only EFI tables and swiotlb maybe not worth to passing those stuff
-across kexec reboot.
+Other than that free to to add
+Acked-by: Michal Hocko <mhocko@suse.com>
 
-I have more idea about this for now..
-> 
-> > 
-> > > 
-> > > > 
-> > > > Would it make sense to include some printk to the user if they
-> > > > are setting up kdump that they won't get anything out of it?
-> > > 
-> > > Probably a good idea to add something like that.
-> > 
-> > It will break kdump functionality, it should be fixed instead of
-> > just adding printk to warn user..
-> 
-> I do want kdump to work. I'll investigate further what can be done in
-> this area.
+The rest of the series look good (as good as all the pte hackery can get
+;)) as well.
 
-Thanks a lot!
-
-Dave
+[...]
+> diff --git a/mm/kasan/kasan_init.c b/mm/kasan/kasan_init.c
+> index 31238dad85fb..7870ad44ee20 100644
+> --- a/mm/kasan/kasan_init.c
+> +++ b/mm/kasan/kasan_init.c
+> @@ -30,6 +30,9 @@
+>   */
+>  unsigned char kasan_zero_page[PAGE_SIZE] __page_aligned_bss;
+>  
+> +#if CONFIG_PGTABLE_LEVELS > 4
+> +p4d_t kasan_zero_p4d[PTRS_PER_P4D] __page_aligned_bss;
+> +#endif
+>  #if CONFIG_PGTABLE_LEVELS > 3
+>  pud_t kasan_zero_pud[PTRS_PER_PUD] __page_aligned_bss;
+>  #endif
+[...]
+> @@ -136,8 +157,12 @@ void __init kasan_populate_zero_shadow(const void *shadow_start,
+>  			 * puds,pmds, so pgd_populate(), pud_populate()
+>  			 * is noops.
+>  			 */
+> -			pgd_populate(&init_mm, pgd, lm_alias(kasan_zero_pud));
+> -			pud = pud_offset(pgd, addr);
+> +#ifndef __ARCH_HAS_5LEVEL_HACK
+> +			pgd_populate(&init_mm, pgd, lm_alias(kasan_zero_p4d));
+> +#endif
+> +			p4d = p4d_offset(pgd, addr);
+> +			p4d_populate(&init_mm, p4d, lm_alias(kasan_zero_pud));
+> +			pud = pud_offset(p4d, addr);
+>  			pud_populate(&init_mm, pud, lm_alias(kasan_zero_pmd));
+>  			pmd = pmd_offset(pud, addr);
+>  			pmd_populate_kernel(&init_mm, pmd, lm_alias(kasan_zero_pte));
+-- 
+Michal Hocko
+SUSE Labs
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
