@@ -1,53 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga14.intel.com ([192.55.52.115]:36437 "EHLO mga14.intel.com"
+Received: from mail.skyhub.de ([5.9.137.197]:57274 "EHLO mail.skyhub.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750727AbdCHPZV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 8 Mar 2017 10:25:21 -0500
-Date: Wed, 8 Mar 2017 18:21:30 +0300
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: Re: [PATCH 6/7] mm: convert generic code to 5-level paging
-Message-ID: <20170308152129.sknp75d5usdu4vne@black.fi.intel.com>
-References: <20170306204514.1852-1-kirill.shutemov@linux.intel.com>
- <20170306204514.1852-7-kirill.shutemov@linux.intel.com>
- <20170308135734.GA11034@dhcp22.suse.cz>
+        id S1751803AbdCHPef (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 8 Mar 2017 10:34:35 -0500
+Date: Wed, 8 Mar 2017 16:05:20 +0100
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [RFC PATCH v4 28/28] x86: Add support to make use of Secure
+ Memory Encryption
+Message-ID: <20170308150520.fwdrit6bjweqsztq@pd.tnic>
+References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
+ <20170216154825.19244.32545.stgit@tlendack-t1.amdoffice.net>
+ <20170301184055.gl3iic3gir6zzb23@pd.tnic>
+ <7e6c308f-3caf-5531-3cb2-9b6986f4288e@amd.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <20170308135734.GA11034@dhcp22.suse.cz>
+In-Reply-To: <7e6c308f-3caf-5531-3cb2-9b6986f4288e@amd.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Hocko <mhocko@kernel.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
-Message-ID: <20170308152130.XGvX7RBS_VUWcrkN1JmFwVQtx_6kwwA-8_7qekyuGao@z>
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Alexander Potapenko <glider@google.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Larry Woodman <lwoodman@redhat.com>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20170308150520.Qh6kHfGd7Fyxq2-ik1E1zml-cITP6YV_eomXuMTD9aE@z>
 
-On Wed, Mar 08, 2017 at 02:57:35PM +0100, Michal Hocko wrote:
-> On Mon 06-03-17 23:45:13, Kirill A. Shutemov wrote:
-> > Convert all non-architecture-specific code to 5-level paging.
+On Tue, Mar 07, 2017 at 10:05:00AM -0600, Tom Lendacky wrote:
+> > And then you need to correct the function signature in the
+> > !CONFIG_AMD_MEM_ENCRYPT case, at the end of this file, too:
 > > 
-> > It's mostly mechanical adding handling one more page table level in
-> > places where we deal with pud_t.
-> > 
-> > Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+> > unsigned long __init sme_enable(struct boot_params *bp)		{ return 0; }
 > 
-> OK, I haven't spotted anything major. I am just scratching my head about
-> the __ARCH_HAS_5LEVEL_HACK leak into kasan_init.c (see below). Why do we
-> need it?  It looks more than ugly but I am not familiar with kasan so
-> maybe this is really necessary.
+> Yup, missed that.  I'll make it match.
 
-Yeah ugly.
+Or, you can do this:
 
-kasan_zero_p4d is only defined if we have real page table level. It's okay
-if the page table level is folded properly -- using pgtable-nop4d.h -- in
-this case pgd_populate() is nop and we don't reference kasan_zero_p4d.
+unsigned long __init sme_enable(void *boot_data)
+{
+#ifdef CONFIG_AMD_MEM_ENCRYPT
+        struct boot_params *bp = boot_data;
+        unsigned int eax, ebx, ecx, edx;
+        unsigned long cmdline_ptr;
 
-With 5level-fixup.h, pgd_populate() is not nop, so we would reference
-kasan_zero_p4d and build breaks. We don't need this as p4d_populate()
-would do what we really need in this case.
+	...
 
-We can drop the hack once all architectures that support kasan would be
-converted to pgtable-nop4d.h -- amd64 and x86 at the moment.
+out:
+#endif /* CONFIG_AMD_MEM_ENCRYPT */
+        return sme_me_mask;
+}
 
-Makes sense?
+and never worry for function headers going out of whack.
 
 -- 
- Kirill A. Shutemov
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
