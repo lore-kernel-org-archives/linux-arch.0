@@ -1,71 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:46621 "EHLO mx2.suse.de"
+Received: from mga14.intel.com ([192.55.52.115]:36437 "EHLO mga14.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752265AbdCHPNs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 8 Mar 2017 10:13:48 -0500
-Date: Wed, 8 Mar 2017 15:25:01 +0100
-From: Michal Hocko <mhocko@kernel.org>
-Subject: Re: [PATCH 0/7] 5-level paging: prepare generic code
-Message-ID: <20170308142501.GB11034@dhcp22.suse.cz>
+        id S1750727AbdCHPZV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 8 Mar 2017 10:25:21 -0500
+Date: Wed, 8 Mar 2017 18:21:30 +0300
+From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Subject: Re: [PATCH 6/7] mm: convert generic code to 5-level paging
+Message-ID: <20170308152129.sknp75d5usdu4vne@black.fi.intel.com>
 References: <20170306204514.1852-1-kirill.shutemov@linux.intel.com>
+ <20170306204514.1852-7-kirill.shutemov@linux.intel.com>
+ <20170308135734.GA11034@dhcp22.suse.cz>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20170306204514.1852-1-kirill.shutemov@linux.intel.com>
+In-Reply-To: <20170308135734.GA11034@dhcp22.suse.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+To: Michal Hocko <mhocko@kernel.org>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
-Message-ID: <20170308142501.XGi3eE3xCwbaqMA5MfZB8IwnnkmsMCAuc8v_8mz42Rk@z>
+Message-ID: <20170308152130.XGvX7RBS_VUWcrkN1JmFwVQtx_6kwwA-8_7qekyuGao@z>
 
-Btw. my build test machinery has reported this:
-microblaze/allnoconfig
-In file included from ./arch/microblaze/include/asm/pgtable.h:550:0,
-                 from ./include/linux/mm.h:68,
-                 from ./arch/microblaze/include/asm/io.h:17,
-                 from ./include/linux/io.h:25,
-                 from ./include/linux/irq.h:24,
-                 from ./include/asm-generic/hardirq.h:12,
-                 from ./arch/microblaze/include/asm/hardirq.h:1,
-                 from ./include/linux/hardirq.h:8,
-                 from ./include/linux/interrupt.h:12,
-                 from ./include/linux/kernel_stat.h:8,
-                 from arch/microblaze/kernel/asm-offsets.c:14:
-./include/asm-generic/pgtable.h:886:32: error: unknown type name 'p4d_t'
- static inline int p4d_set_huge(p4d_t *p4d, phys_addr_t addr, pgprot_t prot)
-                                ^
-./include/asm-generic/pgtable.h:898:34: error: unknown type name 'p4d_t'
- static inline int p4d_clear_huge(p4d_t *p4d)
-                                  ^
-In file included from ./arch/microblaze/include/asm/io.h:17:0,
-                 from ./include/linux/io.h:25,
-                 from ./include/linux/irq.h:24,
-                 from ./include/asm-generic/hardirq.h:12,
-                 from ./arch/microblaze/include/asm/hardirq.h:1,
-                 from ./include/linux/hardirq.h:8,
-                 from ./include/linux/interrupt.h:12,
-                 from ./include/linux/kernel_stat.h:8,
-                 from arch/microblaze/kernel/asm-offsets.c:14:
-./include/linux/mm.h:1580:39: error: unknown type name 'p4d_t'
- int __pud_alloc(struct mm_struct *mm, p4d_t *p4d, unsigned long address);
-                                       ^
-In file included from ./arch/microblaze/include/asm/io.h:17:0,
-                 from ./include/linux/io.h:25,
-                 from ./include/linux/irq.h:24,
-                 from ./include/asm-generic/hardirq.h:12,
-                 from ./arch/microblaze/include/asm/hardirq.h:1,
-                 from ./include/linux/hardirq.h:8,
-                 from ./include/linux/interrupt.h:12,
-                 from ./include/linux/kernel_stat.h:8,
-                 from arch/microblaze/kernel/asm-offsets.c:14:
-./include/linux/mm.h:2409:1: error: unknown type name 'p4d_t'
- p4d_t *vmemmap_p4d_populate(pgd_t *pgd, unsigned long addr, int node);
- ^
-./include/linux/mm.h:2410:29: error: unknown type name 'p4d_t'
- pud_t *vmemmap_pud_populate(p4d_t *p4d, unsigned long addr, int node);
-                             ^
-make[1]: *** [arch/microblaze/kernel/asm-offsets.s] Error 1
-make: *** [prepare0] Error 2
+On Wed, Mar 08, 2017 at 02:57:35PM +0100, Michal Hocko wrote:
+> On Mon 06-03-17 23:45:13, Kirill A. Shutemov wrote:
+> > Convert all non-architecture-specific code to 5-level paging.
+> > 
+> > It's mostly mechanical adding handling one more page table level in
+> > places where we deal with pud_t.
+> > 
+> > Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+> 
+> OK, I haven't spotted anything major. I am just scratching my head about
+> the __ARCH_HAS_5LEVEL_HACK leak into kasan_init.c (see below). Why do we
+> need it?  It looks more than ugly but I am not familiar with kasan so
+> maybe this is really necessary.
+
+Yeah ugly.
+
+kasan_zero_p4d is only defined if we have real page table level. It's okay
+if the page table level is folded properly -- using pgtable-nop4d.h -- in
+this case pgd_populate() is nop and we don't reference kasan_zero_p4d.
+
+With 5level-fixup.h, pgd_populate() is not nop, so we would reference
+kasan_zero_p4d and build breaks. We don't need this as p4d_populate()
+would do what we really need in this case.
+
+We can drop the hack once all architectures that support kasan would be
+converted to pgtable-nop4d.h -- amd64 and x86 at the moment.
+
+Makes sense?
+
 -- 
-Michal Hocko
-SUSE Labs
+ Kirill A. Shutemov
