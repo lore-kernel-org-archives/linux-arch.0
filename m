@@ -1,69 +1,53 @@
-From: Michal Hocko <mhocko@kernel.org>
-Subject: Re: [PATCH 0/7] 5-level paging: prepare generic code
-Date: Wed, 8 Mar 2017 15:25:01 +0100
-Message-ID: <20170308142501.GB11034@dhcp22.suse.cz>
-References: <20170306204514.1852-1-kirill.shutemov@linux.intel.com>
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [RFC PATCH v4 28/28] x86: Add support to make use of Secure
+ Memory Encryption
+Date: Wed, 8 Mar 2017 16:05:20 +0100
+Message-ID: <20170308150520.fwdrit6bjweqsztq@pd.tnic>
+References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
+ <20170216154825.19244.32545.stgit@tlendack-t1.amdoffice.net>
+ <20170301184055.gl3iic3gir6zzb23@pd.tnic>
+ <7e6c308f-3caf-5531-3cb2-9b6986f4288e@amd.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <20170306204514.1852-1-kirill.shutemov@linux.intel.com>
+In-Reply-To: <7e6c308f-3caf-5531-3cb2-9b6986f4288e@amd.com>
 Sender: owner-linux-mm@kvack.org
-To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Alexander Potapenko <glider@google.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>
 List-Id: linux-arch.vger.kernel.org
 
-Btw. my build test machinery has reported this:
-microblaze/allnoconfig
-In file included from ./arch/microblaze/include/asm/pgtable.h:550:0,
-                 from ./include/linux/mm.h:68,
-                 from ./arch/microblaze/include/asm/io.h:17,
-                 from ./include/linux/io.h:25,
-                 from ./include/linux/irq.h:24,
-                 from ./include/asm-generic/hardirq.h:12,
-                 from ./arch/microblaze/include/asm/hardirq.h:1,
-                 from ./include/linux/hardirq.h:8,
-                 from ./include/linux/interrupt.h:12,
-                 from ./include/linux/kernel_stat.h:8,
-                 from arch/microblaze/kernel/asm-offsets.c:14:
-./include/asm-generic/pgtable.h:886:32: error: unknown type name 'p4d_t'
- static inline int p4d_set_huge(p4d_t *p4d, phys_addr_t addr, pgprot_t prot)
-                                ^
-./include/asm-generic/pgtable.h:898:34: error: unknown type name 'p4d_t'
- static inline int p4d_clear_huge(p4d_t *p4d)
-                                  ^
-In file included from ./arch/microblaze/include/asm/io.h:17:0,
-                 from ./include/linux/io.h:25,
-                 from ./include/linux/irq.h:24,
-                 from ./include/asm-generic/hardirq.h:12,
-                 from ./arch/microblaze/include/asm/hardirq.h:1,
-                 from ./include/linux/hardirq.h:8,
-                 from ./include/linux/interrupt.h:12,
-                 from ./include/linux/kernel_stat.h:8,
-                 from arch/microblaze/kernel/asm-offsets.c:14:
-./include/linux/mm.h:1580:39: error: unknown type name 'p4d_t'
- int __pud_alloc(struct mm_struct *mm, p4d_t *p4d, unsigned long address);
-                                       ^
-In file included from ./arch/microblaze/include/asm/io.h:17:0,
-                 from ./include/linux/io.h:25,
-                 from ./include/linux/irq.h:24,
-                 from ./include/asm-generic/hardirq.h:12,
-                 from ./arch/microblaze/include/asm/hardirq.h:1,
-                 from ./include/linux/hardirq.h:8,
-                 from ./include/linux/interrupt.h:12,
-                 from ./include/linux/kernel_stat.h:8,
-                 from arch/microblaze/kernel/asm-offsets.c:14:
-./include/linux/mm.h:2409:1: error: unknown type name 'p4d_t'
- p4d_t *vmemmap_p4d_populate(pgd_t *pgd, unsigned long addr, int node);
- ^
-./include/linux/mm.h:2410:29: error: unknown type name 'p4d_t'
- pud_t *vmemmap_pud_populate(p4d_t *p4d, unsigned long addr, int node);
-                             ^
-make[1]: *** [arch/microblaze/kernel/asm-offsets.s] Error 1
-make: *** [prepare0] Error 2
+On Tue, Mar 07, 2017 at 10:05:00AM -0600, Tom Lendacky wrote:
+> > And then you need to correct the function signature in the
+> > !CONFIG_AMD_MEM_ENCRYPT case, at the end of this file, too:
+> > 
+> > unsigned long __init sme_enable(struct boot_params *bp)		{ return 0; }
+> 
+> Yup, missed that.  I'll make it match.
+
+Or, you can do this:
+
+unsigned long __init sme_enable(void *boot_data)
+{
+#ifdef CONFIG_AMD_MEM_ENCRYPT
+        struct boot_params *bp = boot_data;
+        unsigned int eax, ebx, ecx, edx;
+        unsigned long cmdline_ptr;
+
+	...
+
+out:
+#endif /* CONFIG_AMD_MEM_ENCRYPT */
+        return sme_me_mask;
+}
+
+and never worry for function headers going out of whack.
+
 -- 
-Michal Hocko
-SUSE Labs
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
