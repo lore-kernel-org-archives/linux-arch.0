@@ -1,51 +1,79 @@
-From: Laura Abbott <labbott@redhat.com>
-Subject: [PATCHv3 14/16] misc: sram: Use set_memory.h header
-Date: Tue,  7 Mar 2017 12:55:31 -0800
-Message-ID: <1488920133-27229-15-git-send-email-labbott@redhat.com>
-References: <1488920133-27229-1-git-send-email-labbott@redhat.com>
+From: Dave Young <dyoung@redhat.com>
+Subject: Re: [RFC PATCH v4 14/28] Add support to access boot related data in
+ the clear
+Date: Wed, 8 Mar 2017 14:55:55 +0800
+Message-ID: <20170308065555.GA11045@dhcp-128-65.nay.redhat.com>
+References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
+ <20170216154508.19244.58580.stgit@tlendack-t1.amdoffice.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <1488920133-27229-1-git-send-email-labbott@redhat.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Mark Rutland <mark.rutland@arm.com>, David Airlie <airlied@linux.ie>, Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Takashi Iwai <tiwai@suse.com>, Wim Van Sebroeck <wim@iguana.be>, "H. Peter Anvin" <hpa@zytor.com>, linux-watchdog@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Jessica Yu <jeyu@redhat.com>, Daniel Borkmann <daniel@iogearbox.net>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Ingo Molnar <mingo@redhat.com>, Laura Abbott <labbott@redhat.com>, Guenter Roeck <linux@roeck-us.net>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>D
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <20170216154508.19244.58580.stgit@tlendack-t1.amdoffice.net>
+Sender: owner-linux-mm@kvack.org
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Alexander Potapenko <glider@google.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa>
 List-Id: linux-arch.vger.kernel.org
 
-set_memory_* functions have moved to set_memory.h. Switch to this
-explicitly.
+On 02/16/17 at 09:45am, Tom Lendacky wrote:
+[snip]
+> + * This function determines if an address should be mapped encrypted.
+> + * Boot setup data, EFI data and E820 areas are checked in making this
+> + * determination.
+> + */
+> +static bool memremap_should_map_encrypted(resource_size_t phys_addr,
+> +					  unsigned long size)
+> +{
+> +	/*
+> +	 * SME is not active, return true:
+> +	 *   - For early_memremap_pgprot_adjust(), returning true or false
+> +	 *     results in the same protection value
+> +	 *   - For arch_memremap_do_ram_remap(), returning true will allow
+> +	 *     the RAM remap to occur instead of falling back to ioremap()
+> +	 */
+> +	if (!sme_active())
+> +		return true;
 
-Signed-off-by: Laura Abbott <labbott@redhat.com>
----
-V3: New file which was not caught in the first pass.
----
- drivers/misc/sram-exec.c | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+From the function name shouldn't above be return false? 
 
-diff --git a/drivers/misc/sram-exec.c b/drivers/misc/sram-exec.c
-index ac52241..3d528a1 100644
---- a/drivers/misc/sram-exec.c
-+++ b/drivers/misc/sram-exec.c
-@@ -16,9 +16,10 @@
- 
- #include <linux/device.h>
- #include <linux/genalloc.h>
-+#include <linux/mm.h>
- #include <linux/sram.h>
- 
--#include <asm/cacheflush.h>
-+#include <asm/set_memory.h>
- 
- #include "sram.h"
- 
--- 
-2.7.4
+> +
+> +	/* Check if the address is part of the setup data */
+> +	if (memremap_is_setup_data(phys_addr, size))
+> +		return false;
+> +
+> +	/* Check if the address is part of EFI boot/runtime data */
+> +	switch (efi_mem_type(phys_addr)) {
+> +	case EFI_BOOT_SERVICES_DATA:
+> +	case EFI_RUNTIME_SERVICES_DATA:
+
+Only these two types needed? I'm not sure about this, just bring up the
+question.
+
+> +		return false;
+> +	default:
+> +		break;
+> +	}
+> +
+> +	/* Check if the address is outside kernel usable area */
+> +	switch (e820__get_entry_type(phys_addr, phys_addr + size - 1)) {
+> +	case E820_TYPE_RESERVED:
+> +	case E820_TYPE_ACPI:
+> +	case E820_TYPE_NVS:
+> +	case E820_TYPE_UNUSABLE:
+> +		return false;
+> +	default:
+> +		break;
+> +	}
+> +
+> +	return true;
+> +}
+> +
+
+Thanks
+Dave
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
