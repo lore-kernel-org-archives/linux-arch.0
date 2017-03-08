@@ -1,238 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f172.google.com ([209.85.220.172]:35801 "EHLO
-        mail-qk0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752052AbdCHKQC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Mar 2017 05:16:02 -0500
-Received: by mail-qk0-f172.google.com with SMTP id v125so56013992qkh.2
-        for <linux-arch@vger.kernel.org>; Wed, 08 Mar 2017 02:16:01 -0800 (PST)
-From: Laura Abbott <labbott@redhat.com>
-Subject: [PATCHv3 05/16] x86: Use set_memory.h header
-Date: Tue,  7 Mar 2017 12:55:22 -0800
-Message-ID: <1488920133-27229-6-git-send-email-labbott@redhat.com>
-In-Reply-To: <1488920133-27229-1-git-send-email-labbott@redhat.com>
-References: <1488920133-27229-1-git-send-email-labbott@redhat.com>
+Received: from mx2.suse.de ([195.135.220.15]:37853 "EHLO mx2.suse.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1753149AbdCHOeO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 8 Mar 2017 09:34:14 -0500
+Date: Wed, 8 Mar 2017 14:57:35 +0100
+From: Michal Hocko <mhocko@kernel.org>
+Subject: Re: [PATCH 6/7] mm: convert generic code to 5-level paging
+Message-ID: <20170308135734.GA11034@dhcp22.suse.cz>
+References: <20170306204514.1852-1-kirill.shutemov@linux.intel.com>
+ <20170306204514.1852-7-kirill.shutemov@linux.intel.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20170306204514.1852-7-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: Laura Abbott <labbott@redhat.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, x86@kernel.org, Kees Cook <keescook@chromium.org>, Mark Rutland <mark.rutland@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, David Airlie <airlied@linux.ie>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Wim Van Sebroeck <wim@iguana.be>, Guenter Roeck <linux@roeck-us.net>, linux-watchdog@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, Daniel Borkmann <daniel@iogearbox.net>, Jessica Yu <jeyu@redhat.com>, Takashi Iwai <tiwai@suse.com>, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20170307205522.8lLt0Vo1aFR0Vm863zT3CByLAtkKir2thSnD7Ylvnz0@z>
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+Message-ID: <20170308135735.unzmkubVtl3CDlaudLju0j0PounS3ekk5GYY6Uw4xfM@z>
 
-set_memory_* functions have moved to set_memory.h. Switch to this
-explicitly.
+On Mon 06-03-17 23:45:13, Kirill A. Shutemov wrote:
+> Convert all non-architecture-specific code to 5-level paging.
+> 
+> It's mostly mechanical adding handling one more page table level in
+> places where we deal with pud_t.
+> 
+> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 
-Acked-by: Ingo Molnar <mingo@kernel.org>
-Signed-off-by: Laura Abbott <labbott@redhat.com>
----
-v3: Add missing headers
----
- arch/x86/kernel/amd_gart_64.c      | 2 +-
- arch/x86/kernel/cpu/amd.c          | 2 +-
- arch/x86/kernel/cpu/bugs.c         | 2 +-
- arch/x86/kernel/ftrace.c           | 2 +-
- arch/x86/kernel/machine_kexec_32.c | 2 +-
- arch/x86/kernel/machine_kexec_64.c | 1 +
- arch/x86/mm/init.c                 | 2 +-
- arch/x86/mm/init_32.c              | 2 +-
- arch/x86/mm/init_64.c              | 2 +-
- arch/x86/mm/ioremap.c              | 2 +-
- arch/x86/mm/pageattr.c             | 1 +
- arch/x86/net/bpf_jit_comp.c        | 1 +
- arch/x86/pci/pcbios.c              | 2 +-
- arch/x86/platform/efi/efi.c        | 2 +-
- arch/x86/realmode/init.c           | 2 +-
- 15 files changed, 15 insertions(+), 12 deletions(-)
+OK, I haven't spotted anything major. I am just scratching my head about
+the __ARCH_HAS_5LEVEL_HACK leak into kasan_init.c (see below). Why do we
+need it?  It looks more than ugly but I am not familiar with kasan so
+maybe this is really necessary.
 
-diff --git a/arch/x86/kernel/amd_gart_64.c b/arch/x86/kernel/amd_gart_64.c
-index df083ef..815dd63 100644
---- a/arch/x86/kernel/amd_gart_64.c
-+++ b/arch/x86/kernel/amd_gart_64.c
-@@ -36,7 +36,7 @@
- #include <asm/proto.h>
- #include <asm/iommu.h>
- #include <asm/gart.h>
--#include <asm/cacheflush.h>
-+#include <asm/set_memory.h>
- #include <asm/swiotlb.h>
- #include <asm/dma.h>
- #include <asm/amd_nb.h>
-diff --git a/arch/x86/kernel/cpu/amd.c b/arch/x86/kernel/cpu/amd.c
-index 35a5d5d..326d40d 100644
---- a/arch/x86/kernel/cpu/amd.c
-+++ b/arch/x86/kernel/cpu/amd.c
-@@ -16,7 +16,7 @@
- 
- #ifdef CONFIG_X86_64
- # include <asm/mmconfig.h>
--# include <asm/cacheflush.h>
-+# include <asm/set_memory.h>
- #endif
- 
- #include "cpu.h"
-diff --git a/arch/x86/kernel/cpu/bugs.c b/arch/x86/kernel/cpu/bugs.c
-index a44ef52..0af86d9 100644
---- a/arch/x86/kernel/cpu/bugs.c
-+++ b/arch/x86/kernel/cpu/bugs.c
-@@ -17,7 +17,7 @@
- #include <asm/paravirt.h>
- #include <asm/alternative.h>
- #include <asm/pgtable.h>
--#include <asm/cacheflush.h>
-+#include <asm/set_memory.h>
- 
- void __init check_bugs(void)
- {
-diff --git a/arch/x86/kernel/ftrace.c b/arch/x86/kernel/ftrace.c
-index 8639bb2..da9f2b0 100644
---- a/arch/x86/kernel/ftrace.c
-+++ b/arch/x86/kernel/ftrace.c
-@@ -24,7 +24,7 @@
- 
- #include <trace/syscall.h>
- 
--#include <asm/cacheflush.h>
-+#include <asm/set_memory.h>
- #include <asm/kprobes.h>
- #include <asm/ftrace.h>
- #include <asm/nops.h>
-diff --git a/arch/x86/kernel/machine_kexec_32.c b/arch/x86/kernel/machine_kexec_32.c
-index 469b23d..77d571b 100644
---- a/arch/x86/kernel/machine_kexec_32.c
-+++ b/arch/x86/kernel/machine_kexec_32.c
-@@ -23,7 +23,7 @@
- #include <asm/io_apic.h>
- #include <asm/cpufeature.h>
- #include <asm/desc.h>
--#include <asm/cacheflush.h>
-+#include <asm/set_memory.h>
- #include <asm/debugreg.h>
- 
- static void set_idt(void *newidt, __u16 limit)
-diff --git a/arch/x86/kernel/machine_kexec_64.c b/arch/x86/kernel/machine_kexec_64.c
-index 307b1f4..8887311 100644
---- a/arch/x86/kernel/machine_kexec_64.c
-+++ b/arch/x86/kernel/machine_kexec_64.c
-@@ -27,6 +27,7 @@
- #include <asm/debugreg.h>
- #include <asm/kexec-bzimage64.h>
- #include <asm/setup.h>
-+#include <asm/set_memory.h>
- 
- #ifdef CONFIG_KEXEC_FILE
- static struct kexec_file_ops *kexec_file_loaders[] = {
-diff --git a/arch/x86/mm/init.c b/arch/x86/mm/init.c
-index 22af912..adbfb09 100644
---- a/arch/x86/mm/init.c
-+++ b/arch/x86/mm/init.c
-@@ -5,7 +5,7 @@
- #include <linux/memblock.h>
- #include <linux/bootmem.h>	/* for max_low_pfn */
- 
--#include <asm/cacheflush.h>
-+#include <asm/set_memory.h>
- #include <asm/e820.h>
- #include <asm/init.h>
- #include <asm/page.h>
-diff --git a/arch/x86/mm/init_32.c b/arch/x86/mm/init_32.c
-index 2b4b53e..928cfde 100644
---- a/arch/x86/mm/init_32.c
-+++ b/arch/x86/mm/init_32.c
-@@ -48,7 +48,7 @@
- #include <asm/sections.h>
- #include <asm/paravirt.h>
- #include <asm/setup.h>
--#include <asm/cacheflush.h>
-+#include <asm/set_memory.h>
- #include <asm/page_types.h>
- #include <asm/init.h>
- 
-diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
-index 15173d3..7eef172 100644
---- a/arch/x86/mm/init_64.c
-+++ b/arch/x86/mm/init_64.c
-@@ -50,7 +50,7 @@
- #include <asm/sections.h>
- #include <asm/kdebug.h>
- #include <asm/numa.h>
--#include <asm/cacheflush.h>
-+#include <asm/set_memory.h>
- #include <asm/init.h>
- #include <asm/uv/uv.h>
- #include <asm/setup.h>
-diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
-index 7aaa263..8ae010c 100644
---- a/arch/x86/mm/ioremap.c
-+++ b/arch/x86/mm/ioremap.c
-@@ -13,7 +13,7 @@
- #include <linux/vmalloc.h>
- #include <linux/mmiotrace.h>
- 
--#include <asm/cacheflush.h>
-+#include <asm/set_memory.h>
- #include <asm/e820.h>
- #include <asm/fixmap.h>
- #include <asm/pgtable.h>
-diff --git a/arch/x86/mm/pageattr.c b/arch/x86/mm/pageattr.c
-index 28d4213..bfcdd45 100644
---- a/arch/x86/mm/pageattr.c
-+++ b/arch/x86/mm/pageattr.c
-@@ -24,6 +24,7 @@
- #include <asm/pgalloc.h>
- #include <asm/proto.h>
- #include <asm/pat.h>
-+#include <asm/set_memory.h>
- 
- /*
-  * The current flushing context - we pass it instead of 5 arguments:
-diff --git a/arch/x86/net/bpf_jit_comp.c b/arch/x86/net/bpf_jit_comp.c
-index 32322ce..a63e6af 100644
---- a/arch/x86/net/bpf_jit_comp.c
-+++ b/arch/x86/net/bpf_jit_comp.c
-@@ -12,6 +12,7 @@
- #include <linux/filter.h>
- #include <linux/if_vlan.h>
- #include <asm/cacheflush.h>
-+#include <asm/set_memory.h>
- #include <linux/bpf.h>
- 
- int bpf_jit_enable __read_mostly;
-diff --git a/arch/x86/pci/pcbios.c b/arch/x86/pci/pcbios.c
-index 1d97cea..4d510a6 100644
---- a/arch/x86/pci/pcbios.c
-+++ b/arch/x86/pci/pcbios.c
-@@ -9,7 +9,7 @@
- #include <linux/uaccess.h>
- #include <asm/pci_x86.h>
- #include <asm/pci-functions.h>
--#include <asm/cacheflush.h>
-+#include <asm/set_memory.h>
- 
- /* BIOS32 signature: "_32_" */
- #define BIOS32_SIGNATURE	(('_' << 0) + ('3' << 8) + ('2' << 16) + ('_' << 24))
-diff --git a/arch/x86/platform/efi/efi.c b/arch/x86/platform/efi/efi.c
-index 565dff3..6867d88 100644
---- a/arch/x86/platform/efi/efi.c
-+++ b/arch/x86/platform/efi/efi.c
-@@ -48,7 +48,7 @@
- #include <asm/setup.h>
- #include <asm/efi.h>
- #include <asm/time.h>
--#include <asm/cacheflush.h>
-+#include <asm/set_memory.h>
- #include <asm/tlbflush.h>
- #include <asm/x86_init.h>
- #include <asm/uv/uv.h>
-diff --git a/arch/x86/realmode/init.c b/arch/x86/realmode/init.c
-index 5db706f1..a163a90 100644
---- a/arch/x86/realmode/init.c
-+++ b/arch/x86/realmode/init.c
-@@ -2,7 +2,7 @@
- #include <linux/slab.h>
- #include <linux/memblock.h>
- 
--#include <asm/cacheflush.h>
-+#include <asm/set_memory.h>
- #include <asm/pgtable.h>
- #include <asm/realmode.h>
- #include <asm/tlbflush.h>
+Other than that free to to add
+Acked-by: Michal Hocko <mhocko@suse.com>
+
+The rest of the series look good (as good as all the pte hackery can get
+;)) as well.
+
+[...]
+> diff --git a/mm/kasan/kasan_init.c b/mm/kasan/kasan_init.c
+> index 31238dad85fb..7870ad44ee20 100644
+> --- a/mm/kasan/kasan_init.c
+> +++ b/mm/kasan/kasan_init.c
+> @@ -30,6 +30,9 @@
+>   */
+>  unsigned char kasan_zero_page[PAGE_SIZE] __page_aligned_bss;
+>  
+> +#if CONFIG_PGTABLE_LEVELS > 4
+> +p4d_t kasan_zero_p4d[PTRS_PER_P4D] __page_aligned_bss;
+> +#endif
+>  #if CONFIG_PGTABLE_LEVELS > 3
+>  pud_t kasan_zero_pud[PTRS_PER_PUD] __page_aligned_bss;
+>  #endif
+[...]
+> @@ -136,8 +157,12 @@ void __init kasan_populate_zero_shadow(const void *shadow_start,
+>  			 * puds,pmds, so pgd_populate(), pud_populate()
+>  			 * is noops.
+>  			 */
+> -			pgd_populate(&init_mm, pgd, lm_alias(kasan_zero_pud));
+> -			pud = pud_offset(pgd, addr);
+> +#ifndef __ARCH_HAS_5LEVEL_HACK
+> +			pgd_populate(&init_mm, pgd, lm_alias(kasan_zero_p4d));
+> +#endif
+> +			p4d = p4d_offset(pgd, addr);
+> +			p4d_populate(&init_mm, p4d, lm_alias(kasan_zero_pud));
+> +			pud = pud_offset(p4d, addr);
+>  			pud_populate(&init_mm, pud, lm_alias(kasan_zero_pmd));
+>  			pmd = pmd_offset(pud, addr);
+>  			pmd_populate_kernel(&init_mm, pmd, lm_alias(kasan_zero_pte));
 -- 
-2.7.4
+Michal Hocko
+SUSE Labs
