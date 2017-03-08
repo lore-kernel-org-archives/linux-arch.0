@@ -1,151 +1,98 @@
-From: Dave Young <dyoung-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-Subject: Re: [RFC PATCH v4 25/28] x86: Access the setup data through sysfs
-	decrypted
-Date: Wed, 8 Mar 2017 15:09:34 +0800
-Message-ID: <20170308070934.GC11045@dhcp-128-65.nay.redhat.com>
+From: Dave Young <dyoung@redhat.com>
+Subject: Re: [RFC PATCH v4 26/28] x86: Allow kexec to be used with SME
+Date: Wed, 8 Mar 2017 16:12:28 +0800
+Message-ID: <20170308081228.GD11045@dhcp-128-65.nay.redhat.com>
 References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
-	<20170216154738.19244.37908.stgit@tlendack-t1.amdoffice.net>
+ <20170216154755.19244.51276.stgit@tlendack-t1.amdoffice.net>
+ <20170217155756.GJ30272@char.us.ORACLE.com>
+ <d2f16b24-f2ef-a22b-3c72-2d8ad585553e@amd.com>
+ <20170301092536.GB8353@dhcp-128-65.nay.redhat.com>
+ <998eb58b-eefd-3093-093f-9ae25ddda472@amd.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <20170216154738.19244.37908.stgit-qCXWGYdRb2BnqfbPTmsdiZQ+2ll4COg0XqFh9Ls21Oc@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
-Cc: linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Brijesh Singh <brijesh.singh-5C7GfCeVMHo@public.gmane.org>, Toshimitsu Kani <toshi.kani-ZPxbGqLxI0U@public.gmane.org>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Larry Woodman <lwoodman-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrey Ryabinin <aryabinin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Rik van Riel <riel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, "Michael S. Tsirkin" <mst-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+In-Reply-To: <998eb58b-eefd-3093-093f-9ae25ddda472@amd.com>
+Sender: owner-linux-mm@kvack.org
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Paolo Bonzini <pbonzini@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Alexander Potapenko <glider@google.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa>
 List-Id: linux-arch.vger.kernel.org
 
-On 02/16/17 at 09:47am, Tom Lendacky wrote:
-> Use memremap() to map the setup data.  This will make the appropriate
-> decision as to whether a RAM remapping can be done or if a fallback to
-> ioremap_cache() is needed (similar to the setup data debugfs support).
+On 03/06/17 at 11:58am, Tom Lendacky wrote:
+> On 3/1/2017 3:25 AM, Dave Young wrote:
+> > Hi Tom,
 > 
-> Signed-off-by: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
-> ---
->  arch/x86/kernel/ksysfs.c |   27 ++++++++++++++-------------
->  1 file changed, 14 insertions(+), 13 deletions(-)
+> Hi Dave,
 > 
-> diff --git a/arch/x86/kernel/ksysfs.c b/arch/x86/kernel/ksysfs.c
-> index 4afc67f..d653b3e 100644
-> --- a/arch/x86/kernel/ksysfs.c
-> +++ b/arch/x86/kernel/ksysfs.c
-> @@ -16,6 +16,7 @@
->  #include <linux/stat.h>
->  #include <linux/slab.h>
->  #include <linux/mm.h>
-> +#include <linux/io.h>
->  
->  #include <asm/io.h>
->  #include <asm/setup.h>
-> @@ -79,12 +80,12 @@ static int get_setup_data_paddr(int nr, u64 *paddr)
->  			*paddr = pa_data;
->  			return 0;
->  		}
-> -		data = ioremap_cache(pa_data, sizeof(*data));
-> +		data = memremap(pa_data, sizeof(*data), MEMREMAP_WB);
->  		if (!data)
->  			return -ENOMEM;
->  
->  		pa_data = data->next;
-> -		iounmap(data);
-> +		memunmap(data);
->  		i++;
->  	}
->  	return -EINVAL;
-> @@ -97,17 +98,17 @@ static int __init get_setup_data_size(int nr, size_t *size)
->  	u64 pa_data = boot_params.hdr.setup_data;
->  
->  	while (pa_data) {
-> -		data = ioremap_cache(pa_data, sizeof(*data));
-> +		data = memremap(pa_data, sizeof(*data), MEMREMAP_WB);
->  		if (!data)
->  			return -ENOMEM;
->  		if (nr == i) {
->  			*size = data->len;
-> -			iounmap(data);
-> +			memunmap(data);
->  			return 0;
->  		}
->  
->  		pa_data = data->next;
-> -		iounmap(data);
-> +		memunmap(data);
->  		i++;
->  	}
->  	return -EINVAL;
-> @@ -127,12 +128,12 @@ static ssize_t type_show(struct kobject *kobj,
->  	ret = get_setup_data_paddr(nr, &paddr);
->  	if (ret)
->  		return ret;
-> -	data = ioremap_cache(paddr, sizeof(*data));
-> +	data = memremap(paddr, sizeof(*data), MEMREMAP_WB);
->  	if (!data)
->  		return -ENOMEM;
->  
->  	ret = sprintf(buf, "0x%x\n", data->type);
-> -	iounmap(data);
-> +	memunmap(data);
->  	return ret;
->  }
->  
-> @@ -154,7 +155,7 @@ static ssize_t setup_data_data_read(struct file *fp,
->  	ret = get_setup_data_paddr(nr, &paddr);
->  	if (ret)
->  		return ret;
-> -	data = ioremap_cache(paddr, sizeof(*data));
-> +	data = memremap(paddr, sizeof(*data), MEMREMAP_WB);
->  	if (!data)
->  		return -ENOMEM;
->  
-> @@ -170,15 +171,15 @@ static ssize_t setup_data_data_read(struct file *fp,
->  		goto out;
->  
->  	ret = count;
-> -	p = ioremap_cache(paddr + sizeof(*data), data->len);
-> +	p = memremap(paddr + sizeof(*data), data->len, MEMREMAP_WB);
->  	if (!p) {
->  		ret = -ENOMEM;
->  		goto out;
->  	}
->  	memcpy(buf, p + off, count);
-> -	iounmap(p);
-> +	memunmap(p);
->  out:
-> -	iounmap(data);
-> +	memunmap(data);
->  	return ret;
->  }
->  
-> @@ -250,13 +251,13 @@ static int __init get_setup_data_total_num(u64 pa_data, int *nr)
->  	*nr = 0;
->  	while (pa_data) {
->  		*nr += 1;
-> -		data = ioremap_cache(pa_data, sizeof(*data));
-> +		data = memremap(pa_data, sizeof(*data), MEMREMAP_WB);
->  		if (!data) {
->  			ret = -ENOMEM;
->  			goto out;
->  		}
->  		pa_data = data->next;
-> -		iounmap(data);
-> +		memunmap(data);
->  	}
->  
->  out:
+> > 
+> > On 02/17/17 at 10:43am, Tom Lendacky wrote:
+> > > On 2/17/2017 9:57 AM, Konrad Rzeszutek Wilk wrote:
+> > > > On Thu, Feb 16, 2017 at 09:47:55AM -0600, Tom Lendacky wrote:
+> > > > > Provide support so that kexec can be used to boot a kernel when SME is
+> > > > > enabled.
+> > > > 
+> > > > Is the point of kexec and kdump to ehh, dump memory ? But if the
+> > > > rest of the memory is encrypted you won't get much, will you?
+> > > 
+> > > Kexec can be used to reboot a system without going back through BIOS.
+> > > So you can use kexec without using kdump.
+> > > 
+> > > For kdump, just taking a quick look, the option to enable memory
+> > > encryption can be provided on the crash kernel command line and then
+> > 
+> > Is there a simple way to get the SME status? Probably add some sysfs
+> > file for this purpose.
 > 
+> Currently there is not.  I can look at adding something, maybe just the
+> sme_me_mask value, which if non-zero, would indicate SME is active.
+> 
+> > 
+> > > crash kernel can would be able to copy the memory decrypted if the
+> > > pagetable is set up properly. It looks like currently ioremap_cache()
+> > > is used to map the old memory page.  That might be able to be changed
+> > > to a memremap() so that the encryption bit is set in the mapping. That
+> > > will mean that memory that is not marked encrypted (EFI tables, swiotlb
+> > > memory, etc) would not be read correctly.
+> > 
+> > Manage to store info about those ranges which are not encrypted so that
+> > memremap can handle them?
+> 
+> I can look into whether something can be done in this area. Any input
+> you can provide as to what would be the best way/place to store the
+> range info so kdump can make use of it, would be greatly appreciated.
 
-It would be better that these cleanup patches are sent separately.
+Previously to support efi runtime in kexec, I passed some efi
+infomation via setup_data, see below userspace kexec-tools commit:
+e1ffc9e9a0769e1f54185003102e9bec428b84e8, it was what Boris mentioned
+about the setup_data use case for kexec.
 
-Acked-by: Dave Young <dyoung-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+Suppose you have successfully tested kexec reboot, so the EFI tables you
+mentioned should be those area in old mem for copying /proc/vmcore? If
+only EFI tables and swiotlb maybe not worth to passing those stuff
+across kexec reboot.
 
-Thanks
+I have more idea about this for now..
+> 
+> > 
+> > > 
+> > > > 
+> > > > Would it make sense to include some printk to the user if they
+> > > > are setting up kdump that they won't get anything out of it?
+> > > 
+> > > Probably a good idea to add something like that.
+> > 
+> > It will break kdump functionality, it should be fixed instead of
+> > just adding printk to warn user..
+> 
+> I do want kdump to work. I'll investigate further what can be done in
+> this area.
+
+Thanks a lot!
+
 Dave
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
