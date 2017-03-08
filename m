@@ -1,45 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga05.intel.com ([192.55.52.43]:20034 "EHLO mga05.intel.com"
+Received: from mx2.suse.de ([195.135.220.15]:46621 "EHLO mx2.suse.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751657AbdCHPHs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 8 Mar 2017 10:07:48 -0500
-Date: Wed, 8 Mar 2017 18:07:42 +0300
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+        id S1752265AbdCHPNs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 8 Mar 2017 10:13:48 -0500
+Date: Wed, 8 Mar 2017 15:25:01 +0100
+From: Michal Hocko <mhocko@kernel.org>
 Subject: Re: [PATCH 0/7] 5-level paging: prepare generic code
-Message-ID: <20170308150742.aaqfknxhurvvrvsl@black.fi.intel.com>
+Message-ID: <20170308142501.GB11034@dhcp22.suse.cz>
 References: <20170306204514.1852-1-kirill.shutemov@linux.intel.com>
- <20170308142501.GB11034@dhcp22.suse.cz>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20170308142501.GB11034@dhcp22.suse.cz>
+In-Reply-To: <20170306204514.1852-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Hocko <mhocko@kernel.org>
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
-Message-ID: <20170308150742.TY9IijEW3yvvC_eCWJxtjV4016sdm9kpEAP3P8e_54c@z>
+Message-ID: <20170308142501.XGi3eE3xCwbaqMA5MfZB8IwnnkmsMCAuc8v_8mz42Rk@z>
 
-On Wed, Mar 08, 2017 at 03:25:01PM +0100, Michal Hocko wrote:
-> Btw. my build test machinery has reported this:
-> microblaze/allnoconfig
-
-Thanks.
-
-Fixup is below. I guess it should be folded into 4/7.
-
-diff --git a/arch/microblaze/include/asm/page.h b/arch/microblaze/include/asm/page.h
-index fd850879854d..d506bb0893f9 100644
---- a/arch/microblaze/include/asm/page.h
-+++ b/arch/microblaze/include/asm/page.h
-@@ -95,7 +95,8 @@ typedef struct { unsigned long pgd; } pgd_t;
- #   else /* CONFIG_MMU */
- typedef struct { unsigned long	ste[64]; }	pmd_t;
- typedef struct { pmd_t		pue[1]; }	pud_t;
--typedef struct { pud_t		pge[1]; }	pgd_t;
-+typedef struct { pud_t		p4e[1]; }	p4d_t;
-+typedef struct { p4d_t		pge[1]; }	pgd_t;
- #   endif /* CONFIG_MMU */
- 
- # define pte_val(x)	((x).pte)
+Btw. my build test machinery has reported this:
+microblaze/allnoconfig
+In file included from ./arch/microblaze/include/asm/pgtable.h:550:0,
+                 from ./include/linux/mm.h:68,
+                 from ./arch/microblaze/include/asm/io.h:17,
+                 from ./include/linux/io.h:25,
+                 from ./include/linux/irq.h:24,
+                 from ./include/asm-generic/hardirq.h:12,
+                 from ./arch/microblaze/include/asm/hardirq.h:1,
+                 from ./include/linux/hardirq.h:8,
+                 from ./include/linux/interrupt.h:12,
+                 from ./include/linux/kernel_stat.h:8,
+                 from arch/microblaze/kernel/asm-offsets.c:14:
+./include/asm-generic/pgtable.h:886:32: error: unknown type name 'p4d_t'
+ static inline int p4d_set_huge(p4d_t *p4d, phys_addr_t addr, pgprot_t prot)
+                                ^
+./include/asm-generic/pgtable.h:898:34: error: unknown type name 'p4d_t'
+ static inline int p4d_clear_huge(p4d_t *p4d)
+                                  ^
+In file included from ./arch/microblaze/include/asm/io.h:17:0,
+                 from ./include/linux/io.h:25,
+                 from ./include/linux/irq.h:24,
+                 from ./include/asm-generic/hardirq.h:12,
+                 from ./arch/microblaze/include/asm/hardirq.h:1,
+                 from ./include/linux/hardirq.h:8,
+                 from ./include/linux/interrupt.h:12,
+                 from ./include/linux/kernel_stat.h:8,
+                 from arch/microblaze/kernel/asm-offsets.c:14:
+./include/linux/mm.h:1580:39: error: unknown type name 'p4d_t'
+ int __pud_alloc(struct mm_struct *mm, p4d_t *p4d, unsigned long address);
+                                       ^
+In file included from ./arch/microblaze/include/asm/io.h:17:0,
+                 from ./include/linux/io.h:25,
+                 from ./include/linux/irq.h:24,
+                 from ./include/asm-generic/hardirq.h:12,
+                 from ./arch/microblaze/include/asm/hardirq.h:1,
+                 from ./include/linux/hardirq.h:8,
+                 from ./include/linux/interrupt.h:12,
+                 from ./include/linux/kernel_stat.h:8,
+                 from arch/microblaze/kernel/asm-offsets.c:14:
+./include/linux/mm.h:2409:1: error: unknown type name 'p4d_t'
+ p4d_t *vmemmap_p4d_populate(pgd_t *pgd, unsigned long addr, int node);
+ ^
+./include/linux/mm.h:2410:29: error: unknown type name 'p4d_t'
+ pud_t *vmemmap_pud_populate(p4d_t *p4d, unsigned long addr, int node);
+                             ^
+make[1]: *** [arch/microblaze/kernel/asm-offsets.s] Error 1
+make: *** [prepare0] Error 2
 -- 
- Kirill A. Shutemov
+Michal Hocko
+SUSE Labs
