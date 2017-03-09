@@ -1,7 +1,7 @@
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv2 1/7] x86/cpufeature: Add 5-level paging detection
-Date: Thu,  9 Mar 2017 17:24:02 +0300
-Message-ID: <20170309142408.2868-2-kirill.shutemov@linux.intel.com>
+Subject: [PATCHv2 2/7] asm-generic: introduce 5level-fixup.h
+Date: Thu,  9 Mar 2017 17:24:03 +0300
+Message-ID: <20170309142408.2868-3-kirill.shutemov@linux.intel.com>
 References: <20170309142408.2868-1-kirill.shutemov@linux.intel.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <20170309142408.2868-1-kirill.shutemov@linux.intel.com>
@@ -10,29 +10,110 @@ To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-fo
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, Michal Hocko <mhocko@suse.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-Look for 'la57' in /proc/cpuinfo to see if your machine supports 5-level
-paging.
+We are going to switch core MM to 5-level paging abstraction.
+
+This is preparation step which adds <asm-generic/5level-fixup.h>
+As with 4level-fixup.h, the new header allows quickly make all
+architectures compatible with 5-level paging in core MM.
+
+In long run we would like to switch architectures to properly folded p4d
+level by using <asm-generic/pgtable-nop4d.h>, but it requires more
+changes to arch-specific code.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 Acked-by: Michal Hocko <mhocko@suse.com>
 ---
- arch/x86/include/asm/cpufeatures.h | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+ include/asm-generic/4level-fixup.h |  3 ++-
+ include/asm-generic/5level-fixup.h | 41 ++++++++++++++++++++++++++++++++++++++
+ include/linux/mm.h                 |  3 +++
+ 3 files changed, 46 insertions(+), 1 deletion(-)
+ create mode 100644 include/asm-generic/5level-fixup.h
 
-diff --git a/arch/x86/include/asm/cpufeatures.h b/arch/x86/include/asm/cpufeatures.h
-index 4e7772387c6e..b04bb6dfed7f 100644
---- a/arch/x86/include/asm/cpufeatures.h
-+++ b/arch/x86/include/asm/cpufeatures.h
-@@ -289,7 +289,8 @@
- #define X86_FEATURE_PKU		(16*32+ 3) /* Protection Keys for Userspace */
- #define X86_FEATURE_OSPKE	(16*32+ 4) /* OS Protection Keys Enable */
- #define X86_FEATURE_AVX512_VPOPCNTDQ (16*32+14) /* POPCNT for vectors of DW/QW */
--#define X86_FEATURE_RDPID	(16*32+ 22) /* RDPID instruction */
-+#define X86_FEATURE_LA57	(16*32+16) /* 5-level page tables */
-+#define X86_FEATURE_RDPID	(16*32+22) /* RDPID instruction */
+diff --git a/include/asm-generic/4level-fixup.h b/include/asm-generic/4level-fixup.h
+index 5bdab6bffd23..928fd66b1271 100644
+--- a/include/asm-generic/4level-fixup.h
++++ b/include/asm-generic/4level-fixup.h
+@@ -15,7 +15,6 @@
+ 	((unlikely(pgd_none(*(pud))) && __pmd_alloc(mm, pud, address))? \
+  		NULL: pmd_offset(pud, address))
  
- /* AMD-defined CPU features, CPUID level 0x80000007 (ebx), word 17 */
- #define X86_FEATURE_OVERFLOW_RECOV (17*32+0) /* MCA overflow recovery support */
+-#define pud_alloc(mm, pgd, address)	(pgd)
+ #define pud_offset(pgd, start)		(pgd)
+ #define pud_none(pud)			0
+ #define pud_bad(pud)			0
+@@ -35,4 +34,6 @@
+ #undef  pud_addr_end
+ #define pud_addr_end(addr, end)		(end)
+ 
++#include <asm-generic/5level-fixup.h>
++
+ #endif
+diff --git a/include/asm-generic/5level-fixup.h b/include/asm-generic/5level-fixup.h
+new file mode 100644
+index 000000000000..b5ca82dc4175
+--- /dev/null
++++ b/include/asm-generic/5level-fixup.h
+@@ -0,0 +1,41 @@
++#ifndef _5LEVEL_FIXUP_H
++#define _5LEVEL_FIXUP_H
++
++#define __ARCH_HAS_5LEVEL_HACK
++#define __PAGETABLE_P4D_FOLDED
++
++#define P4D_SHIFT			PGDIR_SHIFT
++#define P4D_SIZE			PGDIR_SIZE
++#define P4D_MASK			PGDIR_MASK
++#define PTRS_PER_P4D			1
++
++#define p4d_t				pgd_t
++
++#define pud_alloc(mm, p4d, address) \
++	((unlikely(pgd_none(*(p4d))) && __pud_alloc(mm, p4d, address)) ? \
++		NULL : pud_offset(p4d, address))
++
++#define p4d_alloc(mm, pgd, address)	(pgd)
++#define p4d_offset(pgd, start)		(pgd)
++#define p4d_none(p4d)			0
++#define p4d_bad(p4d)			0
++#define p4d_present(p4d)		1
++#define p4d_ERROR(p4d)			do { } while (0)
++#define p4d_clear(p4d)			pgd_clear(p4d)
++#define p4d_val(p4d)			pgd_val(p4d)
++#define p4d_populate(mm, p4d, pud)	pgd_populate(mm, p4d, pud)
++#define p4d_page(p4d)			pgd_page(p4d)
++#define p4d_page_vaddr(p4d)		pgd_page_vaddr(p4d)
++
++#define __p4d(x)			__pgd(x)
++#define set_p4d(p4dp, p4d)		set_pgd(p4dp, p4d)
++
++#undef p4d_free_tlb
++#define p4d_free_tlb(tlb, x, addr)	do { } while (0)
++#define p4d_free(mm, x)			do { } while (0)
++#define __p4d_free_tlb(tlb, x, addr)	do { } while (0)
++
++#undef  p4d_addr_end
++#define p4d_addr_end(addr, end)		(end)
++
++#endif
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index 0d65dd72c0f4..be1fe264eb37 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -1619,11 +1619,14 @@ int __pte_alloc_kernel(pmd_t *pmd, unsigned long address);
+  * Remove it when 4level-fixup.h has been removed.
+  */
+ #if defined(CONFIG_MMU) && !defined(__ARCH_HAS_4LEVEL_HACK)
++
++#ifndef __ARCH_HAS_5LEVEL_HACK
+ static inline pud_t *pud_alloc(struct mm_struct *mm, pgd_t *pgd, unsigned long address)
+ {
+ 	return (unlikely(pgd_none(*pgd)) && __pud_alloc(mm, pgd, address))?
+ 		NULL: pud_offset(pgd, address);
+ }
++#endif /* !__ARCH_HAS_5LEVEL_HACK */
+ 
+ static inline pmd_t *pmd_alloc(struct mm_struct *mm, pud_t *pud, unsigned long address)
+ {
 -- 
 2.11.0
 
