@@ -1,55 +1,46 @@
-From: Michal Hocko <mhocko@kernel.org>
-Subject: Re: [PATCH 0/7] 5-level paging: prepare generic code
-Date: Wed, 8 Mar 2017 16:38:38 +0100
-Message-ID: <20170308153837.GA27822@dhcp22.suse.cz>
-References: <20170306204514.1852-1-kirill.shutemov@linux.intel.com>
- <20170308142501.GB11034@dhcp22.suse.cz>
- <20170308150742.aaqfknxhurvvrvsl@black.fi.intel.com>
+From: Rob Landley <rob@landley.net>
+Subject: Re: [PATCH 1/3] futex: remove duplicated code
+Date: Wed, 8 Mar 2017 22:16:49 -0600
+Message-ID: <23e5808b-2a20-518d-b49a-4d95dd23cfde@landley.net>
+References: <20170303122712.13353-1-jslaby@suse.cz>
+ <20170304130550.GT21222@n2100.armlinux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20170308150742.aaqfknxhurvvrvsl@black.fi.intel.com>
-Sender: owner-linux-mm@kvack.org
-To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
+Return-path: <sparclinux-owner@vger.kernel.org>
+In-Reply-To: <20170304130550.GT21222@n2100.armlinux.org.uk>
+Sender: sparclinux-owner@vger.kernel.org
+To: Russell King - ARM Linux <linux@armlinux.org.uk>, Jiri Slaby <jslaby@suse.cz>
+Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed 08-03-17 18:07:42, Kirill A. Shutemov wrote:
-> On Wed, Mar 08, 2017 at 03:25:01PM +0100, Michal Hocko wrote:
-> > Btw. my build test machinery has reported this:
-> > microblaze/allnoconfig
+On 03/04/2017 07:05 AM, Russell King - ARM Linux wrote:
+> On Fri, Mar 03, 2017 at 01:27:10PM +0100, Jiri Slaby wrote:
+>> diff --git a/kernel/futex.c b/kernel/futex.c
+>> index b687cb22301c..c5ff9850952f 100644
+>> --- a/kernel/futex.c
+>> +++ b/kernel/futex.c
+>> @@ -1457,6 +1457,42 @@ futex_wake(u32 __user *uaddr, unsigned int flags, int nr_wake, u32 bitset)
+>>  	return ret;
+>>  }
+>>  
+>> +static int futex_atomic_op_inuser(int encoded_op, u32 __user *uaddr)
+>> +{
+>> +	int op = (encoded_op >> 28) & 7;
+>> +	int cmp = (encoded_op >> 24) & 15;
+>> +	int oparg = (encoded_op << 8) >> 20;
+>> +	int cmparg = (encoded_op << 20) >> 20;
 > 
-> Thanks.
-> 
-> Fixup is below. I guess it should be folded into 4/7.
+> Hmm.  oparg and cmparg look like they're doing these shifts to get sign
+> extension of the 12-bit values by assuming that "int" is 32-bit -
+> probably worth a comment, or for safety, they should be "s32" so it's
+> not dependent on the bit-width of "int".
 
-yes, this has passed the testing
+I thought Linux depended on the LP64 standard for all architectures?
 
-> 
-> diff --git a/arch/microblaze/include/asm/page.h b/arch/microblaze/include/asm/page.h
-> index fd850879854d..d506bb0893f9 100644
-> --- a/arch/microblaze/include/asm/page.h
-> +++ b/arch/microblaze/include/asm/page.h
-> @@ -95,7 +95,8 @@ typedef struct { unsigned long pgd; } pgd_t;
->  #   else /* CONFIG_MMU */
->  typedef struct { unsigned long	ste[64]; }	pmd_t;
->  typedef struct { pmd_t		pue[1]; }	pud_t;
-> -typedef struct { pud_t		pge[1]; }	pgd_t;
-> +typedef struct { pud_t		p4e[1]; }	p4d_t;
-> +typedef struct { p4d_t		pge[1]; }	pgd_t;
->  #   endif /* CONFIG_MMU */
->  
->  # define pte_val(x)	((x).pte)
-> -- 
->  Kirill A. Shutemov
+Standard: http://www.unix.org/whitepapers/64bit.html
+Rationale: http://www.unix.org/version2/whatsnew/lp64_wp.html
 
--- 
-Michal Hocko
-SUSE Labs
+So int has a defined bit width (32) on linux?
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Rob
