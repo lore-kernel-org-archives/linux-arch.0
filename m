@@ -1,200 +1,116 @@
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 00/26] x86: 5-level paging enabling for v4.12
-Date: Mon, 13 Mar 2017 08:49:54 +0300
-Message-ID: <20170313055020.69655-1-kirill.shutemov@linux.intel.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Subject: [PATCH 06/26] x86/power: support p4d_t in hibernate code
+Date: Mon, 13 Mar 2017 08:50:00 +0300
+Message-ID: <20170313055020.69655-7-kirill.shutemov@linux.intel.com>
+References: <20170313055020.69655-1-kirill.shutemov@linux.intel.com>
 Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20170313055020.69655-1-kirill.shutemov@linux.intel.com>
 Sender: owner-linux-mm@kvack.org
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, Michal Hocko <mhocko@suse.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-Here is v5 of 5-level paging patchset. Please review and consider applying.
+set_up_temporary_text_mapping() and relocate_restore_code() require
+trivial adjustments to handle additional page table level.
 
-== Overview ==
+Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+---
+ arch/x86/power/hibernate_64.c | 49 ++++++++++++++++++++++++++++++-------------
+ 1 file changed, 35 insertions(+), 14 deletions(-)
 
-x86-64 is currently limited to 256 TiB of virtual address space and 64 TiB
-of physical address space. We are already bumping into this limit: some
-vendors offers servers with 64 TiB of memory today.
-
-To overcome the limitation upcoming hardware will introduce support for
-5-level paging[1]. It is a straight-forward extension of the current page
-table structure adding one more layer of translation.
-
-It bumps the limits to 128 PiB of virtual address space and 4 PiB of
-physical address space. This "ought to be enough for anybody" ©.
-
-==  Patches ==
-
-The patchset is build on top of v4.11-rc2.
-
-Current QEMU upstream git supports 5-level paging. Use "-cpu qemu64,+la57"
-to enable it.
-
-Patches 1-12:
-	Convert x86 to properly folded p4d layer using
-	<asm-generic/pgtable-nop4d.h>.
-
-Patches 13-25:
-	Enabling of real 5-level paging.
-
-	CONFIG_X86_5LEVEL=y will enable new paging mode.
-
-Patch 26:
-	Introduce new prctl(2) handles -- PR_SET_MAX_VADDR and PR_GET_MAX_VADDR.
-
-	This aims to address compatibility issue. Only supports x86 for
-	now, but should be useful for other archtectures.
-
-Git:
-	git://git.kernel.org/pub/scm/linux/kernel/git/kas/linux.git la57/v5
-
-== TODO ==
-
-There is still work to do:
-
-  - CONFIG_XEN is broken for 5-level paging.
-
-    Xen for 5-level paging requires more work to get functional.
-    
-    Xen on 4-level paging works, so it's not a regression.
-
-  - Boot-time switch between 4- and 5-level paging.
-
-    We assume that distributions will be keen to avoid returning to the
-    i386 days where we shipped one kernel binary for each page table
-    layout.
-
-    As page table format is the same for 4- and 5-level paging it should
-    be possible to have single kernel binary and switch between them at
-    boot-time without too much hassle.
-
-    For now I only implemented compile-time switch.
-
-    This will implemented with separate patchset.
-
-== Changelong ==
-
-  v5:
-    - Rebased to v4.11-rc2;
-    - Fix false-positive BUG_ON() in vmalloc_fault() with 4-level paging
-      enabled;
-    - __xen_pgd_walk(): do not not miss required flushes;
-    - Fix build with CONFIG_XEN_PVH=y;
-  v4:
-    - Rebased to v4.11-rc1;
-    - Use mmap() hint address to allocate virtual addresss space above
-      47-bits insteads of prctl() handles.
-  v3:
-    - Rebased to v4.10-rc5;
-    - prctl() handles for large address space opt-in;
-    - Xen works for 4-level paging;
-    - EFI boot fixed for both 4- and 5-level paging;
-    - Hibernation fixed for 4-level paging;
-    - kexec() fixed;
-    - Couple of build fixes;
-  v2:
-    - Rebased to v4.10-rc1;
-    - RLIMIT_VADDR proposal;
-    - Fix virtual map and update documentation;
-    - Fix few build errors;
-    - Rework cpuid helpers in boot code;
-    - Fix espfix code to work with 5-level pages;
-
-[1] https://software.intel.com/sites/default/files/managed/2b/80/5-level_paging_white_paper.pdf
-
-Kirill A. Shutemov (26):
-  x86: basic changes into headers for 5-level paging
-  x86: trivial portion of 5-level paging conversion
-  x86/gup: add 5-level paging support
-  x86/ident_map: add 5-level paging support
-  x86/mm: add support of p4d_t in vmalloc_fault()
-  x86/power: support p4d_t in hibernate code
-  x86/kexec: support p4d_t
-  x86/efi: handle p4d in EFI pagetables
-  x86/mm/pat: handle additional page table
-  x86/kasan: prepare clear_pgds() to switch to
-    <asm-generic/pgtable-nop4d.h>
-  x86/xen: convert __xen_pgd_walk() and xen_cleanmfnmap() to support p4d
-  x86: convert the rest of the code to support p4d_t
-  x86: detect 5-level paging support
-  x86/asm: remove __VIRTUAL_MASK_SHIFT==47 assert
-  x86/mm: define virtual memory map for 5-level paging
-  x86/paravirt: make paravirt code support 5-level paging
-  x86/mm: basic defines/helpers for CONFIG_X86_5LEVEL
-  x86/dump_pagetables: support 5-level paging
-  x86/kasan: extend to support 5-level paging
-  x86/espfix: support 5-level paging
-  x86/mm: add support of additional page table level during early boot
-  x86/mm: add sync_global_pgds() for configuration with 5-level paging
-  x86/mm: make kernel_physical_mapping_init() support 5-level paging
-  x86/mm: add support for 5-level paging for KASLR
-  x86: enable 5-level paging support
-  x86/mm: allow to have userspace mappings above 47-bits
-
- Documentation/x86/x86_64/mm.txt             |  33 ++-
- arch/x86/Kconfig                            |   6 +
- arch/x86/boot/compressed/head_64.S          |  23 +-
- arch/x86/boot/cpucheck.c                    |   9 +
- arch/x86/boot/cpuflags.c                    |  12 +-
- arch/x86/entry/entry_64.S                   |   7 +-
- arch/x86/include/asm/disabled-features.h    |   8 +-
- arch/x86/include/asm/elf.h                  |   2 +-
- arch/x86/include/asm/kasan.h                |   9 +-
- arch/x86/include/asm/kexec.h                |   1 +
- arch/x86/include/asm/mpx.h                  |   9 +
- arch/x86/include/asm/page_64_types.h        |  10 +
- arch/x86/include/asm/paravirt.h             |  65 ++++-
- arch/x86/include/asm/paravirt_types.h       |  17 +-
- arch/x86/include/asm/pgalloc.h              |  37 ++-
- arch/x86/include/asm/pgtable-2level_types.h |   1 +
- arch/x86/include/asm/pgtable-3level_types.h |   1 +
- arch/x86/include/asm/pgtable.h              |  85 +++++-
- arch/x86/include/asm/pgtable_64.h           |  29 +-
- arch/x86/include/asm/pgtable_64_types.h     |  27 ++
- arch/x86/include/asm/pgtable_types.h        |  46 ++-
- arch/x86/include/asm/processor.h            |   9 +-
- arch/x86/include/asm/required-features.h    |   8 +-
- arch/x86/include/asm/sparsemem.h            |   9 +-
- arch/x86/include/asm/xen/page.h             |   8 +-
- arch/x86/include/uapi/asm/processor-flags.h |   2 +
- arch/x86/kernel/espfix_64.c                 |  12 +-
- arch/x86/kernel/head64.c                    |  40 ++-
- arch/x86/kernel/head_64.S                   |  63 +++-
- arch/x86/kernel/machine_kexec_32.c          |   4 +-
- arch/x86/kernel/machine_kexec_64.c          |  16 +-
- arch/x86/kernel/paravirt.c                  |  13 +-
- arch/x86/kernel/sys_x86_64.c                |  28 +-
- arch/x86/kernel/tboot.c                     |   6 +-
- arch/x86/kernel/vm86_32.c                   |   6 +-
- arch/x86/mm/dump_pagetables.c               |  51 +++-
- arch/x86/mm/fault.c                         |  66 ++++-
- arch/x86/mm/gup.c                           |  33 ++-
- arch/x86/mm/hugetlbpage.c                   |  31 +-
- arch/x86/mm/ident_map.c                     |  47 ++-
- arch/x86/mm/init_32.c                       |  22 +-
- arch/x86/mm/init_64.c                       | 269 ++++++++++++++---
- arch/x86/mm/ioremap.c                       |   3 +-
- arch/x86/mm/kasan_init_64.c                 |  41 ++-
- arch/x86/mm/kaslr.c                         |  82 ++++--
- arch/x86/mm/mmap.c                          |   4 +-
- arch/x86/mm/mpx.c                           |  33 ++-
- arch/x86/mm/pageattr.c                      |  56 +++-
- arch/x86/mm/pgtable.c                       |  38 ++-
- arch/x86/mm/pgtable_32.c                    |   8 +-
- arch/x86/platform/efi/efi_64.c              |  38 ++-
- arch/x86/power/hibernate_32.c               |   7 +-
- arch/x86/power/hibernate_64.c               |  49 +++-
- arch/x86/realmode/init.c                    |   2 +-
- arch/x86/xen/Kconfig                        |   1 +
- arch/x86/xen/mmu.c                          | 435 +++++++++++++++++-----------
- arch/x86/xen/mmu.h                          |   1 +
- arch/x86/xen/xen-pvh.S                      |   2 +-
- include/trace/events/xen.h                  |  28 +-
- 59 files changed, 1571 insertions(+), 437 deletions(-)
-
+diff --git a/arch/x86/power/hibernate_64.c b/arch/x86/power/hibernate_64.c
+index ded2e8272382..9ec941638932 100644
+--- a/arch/x86/power/hibernate_64.c
++++ b/arch/x86/power/hibernate_64.c
+@@ -49,6 +49,7 @@ static int set_up_temporary_text_mapping(pgd_t *pgd)
+ {
+ 	pmd_t *pmd;
+ 	pud_t *pud;
++	p4d_t *p4d;
+ 
+ 	/*
+ 	 * The new mapping only has to cover the page containing the image
+@@ -63,6 +64,13 @@ static int set_up_temporary_text_mapping(pgd_t *pgd)
+ 	 * the virtual address space after switching over to the original page
+ 	 * tables used by the image kernel.
+ 	 */
++
++	if (IS_ENABLED(CONFIG_X86_5LEVEL)) {
++		p4d = (p4d_t *)get_safe_page(GFP_ATOMIC);
++		if (!p4d)
++			return -ENOMEM;
++	}
++
+ 	pud = (pud_t *)get_safe_page(GFP_ATOMIC);
+ 	if (!pud)
+ 		return -ENOMEM;
+@@ -75,8 +83,15 @@ static int set_up_temporary_text_mapping(pgd_t *pgd)
+ 		__pmd((jump_address_phys & PMD_MASK) | __PAGE_KERNEL_LARGE_EXEC));
+ 	set_pud(pud + pud_index(restore_jump_address),
+ 		__pud(__pa(pmd) | _KERNPG_TABLE));
+-	set_pgd(pgd + pgd_index(restore_jump_address),
+-		__pgd(__pa(pud) | _KERNPG_TABLE));
++	if (IS_ENABLED(CONFIG_X86_5LEVEL)) {
++		set_p4d(p4d + p4d_index(restore_jump_address),
++				__p4d(__pa(pud) | _KERNPG_TABLE));
++		set_pgd(pgd + pgd_index(restore_jump_address),
++				__pgd(__pa(p4d) | _KERNPG_TABLE));
++	} else {
++		set_pgd(pgd + pgd_index(restore_jump_address),
++				__pgd(__pa(pud) | _KERNPG_TABLE));
++	}
+ 
+ 	return 0;
+ }
+@@ -124,7 +139,10 @@ static int set_up_temporary_mappings(void)
+ static int relocate_restore_code(void)
+ {
+ 	pgd_t *pgd;
++	p4d_t *p4d;
+ 	pud_t *pud;
++	pmd_t *pmd;
++	pte_t *pte;
+ 
+ 	relocated_restore_code = get_safe_page(GFP_ATOMIC);
+ 	if (!relocated_restore_code)
+@@ -134,22 +152,25 @@ static int relocate_restore_code(void)
+ 
+ 	/* Make the page containing the relocated code executable */
+ 	pgd = (pgd_t *)__va(read_cr3()) + pgd_index(relocated_restore_code);
+-	pud = pud_offset(pgd, relocated_restore_code);
++	p4d = p4d_offset(pgd, relocated_restore_code);
++	if (p4d_large(*p4d)) {
++		set_p4d(p4d, __p4d(p4d_val(*p4d) & ~_PAGE_NX));
++		goto out;
++	}
++	pud = pud_offset(p4d, relocated_restore_code);
+ 	if (pud_large(*pud)) {
+ 		set_pud(pud, __pud(pud_val(*pud) & ~_PAGE_NX));
+-	} else {
+-		pmd_t *pmd = pmd_offset(pud, relocated_restore_code);
+-
+-		if (pmd_large(*pmd)) {
+-			set_pmd(pmd, __pmd(pmd_val(*pmd) & ~_PAGE_NX));
+-		} else {
+-			pte_t *pte = pte_offset_kernel(pmd, relocated_restore_code);
+-
+-			set_pte(pte, __pte(pte_val(*pte) & ~_PAGE_NX));
+-		}
++		goto out;
++	}
++	pmd = pmd_offset(pud, relocated_restore_code);
++	if (pmd_large(*pmd)) {
++		set_pmd(pmd, __pmd(pmd_val(*pmd) & ~_PAGE_NX));
++		goto out;
+ 	}
++	pte = pte_offset_kernel(pmd, relocated_restore_code);
++	set_pte(pte, __pte(pte_val(*pte) & ~_PAGE_NX));
++out:
+ 	__flush_tlb_all();
+-
+ 	return 0;
+ }
+ 
 -- 
 2.11.0
 
