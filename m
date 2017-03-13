@@ -1,73 +1,126 @@
-From: Josh Hunt <johunt@akamai.com>
-Subject: Re: [RFC PATCH] sock: add SO_RCVQUEUE_SIZE getsockopt
-Date: Mon, 13 Mar 2017 18:34:41 -0500
-Message-ID: <9f775c33-01f4-fbd8-4d4d-4ca67f0f6d3b@akamai.com>
-References: <1489420786-19547-1-git-send-email-johunt@akamai.com>
- <CANn89iJ21dhirFW2OdNqHWfOgq-EieVMm5ou9pZ7g2oUz=+bfA@mail.gmail.com>
- <522a2e2d-c288-7019-3f12-2b624d6aa921@akamai.com>
- <20170313.123933.1813218797817423920.davem@davemloft.net>
+From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Subject: Re: [RFC PATCH 10/13] mm: Introduce first class virtual address
+ spaces
+Date: Tue, 14 Mar 2017 07:52:25 +0800
+Message-ID: <20170313235225.GA15359@kroah.com>
+References: <20170313221415.9375-1-till.smejkal@gmail.com>
+ <20170313221415.9375-11-till.smejkal@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <netdev-owner@vger.kernel.org>
-In-Reply-To: <20170313.123933.1813218797817423920.davem@davemloft.net>
-Sender: netdev-owner@vger.kernel.org
-To: David Miller <davem@davemloft.net>
-Cc: edumazet@google.com, arnd@arndb.de, soheil@google.com, willemb@google.com, pabeni@redhat.com, linux-arch@vger.kernel.org, netdev@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-aio@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <20170313221415.9375-11-till.smejkal@gmail.com>
+Sender: owner-linux-aio@kvack.org
+To: Till Smejkal <till.smejkal@googlemail.com>
+Cc: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Steven Miao <realmz6@gmail.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, James Hogan <james.hogan@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@daveml>
 List-Id: linux-arch.vger.kernel.org
 
-On 03/13/2017 02:39 PM, David Miller wrote:
-> From: Josh Hunt <johunt@akamai.com>
-> Date: Mon, 13 Mar 2017 12:38:39 -0500
->
->> On 03/13/2017 11:12 AM, Eric Dumazet wrote:
->>> On Mon, Mar 13, 2017 at 8:59 AM, Josh Hunt <johunt@akamai.com> wrote:
->>>> Allows application to read the amount of data sitting in the receive
->>>> queue.
->>>>
->>>> Signed-off-by: Josh Hunt <johunt@akamai.com>
->>>> ---
->>>>
->>>> A team here is looking for a way to get the amount of data in a UDP
->>>> socket's
->>>> receive queue. It seems like this should be SIOCINQ, but for UDP
->>>> sockets that
->>>> returns the size of the next pending datagram. I implemented the patch
->>>> below,
->>>> but am wondering if this is the right place for this change? I was
->>>> debating
->>>> between this or a new UDP ioctl.
->>>
->>> But what is the 'amount of data' exactly ?
->>> Number of packets, amount of bytes to read from these packets ?
->>
->> I meant bytes. I will clarify in the next version.
->
-> As Eric is hinting, the calculation you are using doesn't represent
-> this.
->
-> You need to do something like walk the receive queue and add the
-> skb->len values together.
->
-> sk->sk_rmem_alloc is usually much larger than the sum of the skb->len
-> values in the socket receive queue.  I don't see how this culmination
-> of skb->truesize values is useful, whereas I can see how an application
-> could want the summation of the skb->len values.
->
+On Mon, Mar 13, 2017 at 03:14:12PM -0700, Till Smejkal wrote:
 
-In this particular case they really do want to know total # of bytes in 
-the receive queue, not the data bytes they can consume from an 
-application pov. The kernel currently only exposes this value through 
-netlink or /proc/net/udp from what I saw.
+There's no way with that many cc: lists and people that this is really
+making it through very many people's filters and actually on a mailing
+list.  Please trim them down.
 
-I believe Eric's suggestion in his previous mail was to export all of 
-these meminfo metrics via a single socket option call similar to how its 
-done in netlink. We could then use that for both call sites.
+Minor sysfs questions/issues:
 
-I agree that it would be useful to also have the data you and Eric are 
-suggesting exposed somewhere, the total # of skb->len bytes sitting in 
-the receive queue. I could add that as a second socket option.
+> +struct vas {
+> +	struct kobject kobj;		/* < the internal kobject that we use *
+> +					 *   for reference counting and sysfs *
+> +					 *   handling.                        */
+> +
+> +	int id;				/* < ID                               */
+> +	char name[VAS_MAX_NAME_LENGTH];	/* < name                             */
 
-Does this sound reasonable?
+The kobject has a name, why not use that?
 
-Josh
+> +
+> +	struct mutex mtx;		/* < lock for parallel access.        */
+> +
+> +	struct mm_struct *mm;		/* < a partial memory map containing  *
+> +					 *   all mappings of this VAS.        */
+> +
+> +	struct list_head link;		/* < the link in the global VAS list. */
+> +	struct rcu_head rcu;		/* < the RCU helper used for          *
+> +					 *   asynchronous VAS deletion.       */
+> +
+> +	u16 refcount;			/* < how often is the VAS attached.   */
+
+The kobject has a refcount, use that?  Don't have 2 refcounts in the
+same structure, that way lies madness.  And bugs, lots of bugs...
+
+And if this really is a refcount (hint, I don't think it is), you should
+use the refcount_t type.
+
+> +/**
+> + * The sysfs structure we need to handle attributes of a VAS.
+> + **/
+> +struct vas_sysfs_attr {
+> +	struct attribute attr;
+> +	ssize_t (*show)(struct vas *vas, struct vas_sysfs_attr *vsattr,
+> +			char *buf);
+> +	ssize_t (*store)(struct vas *vas, struct vas_sysfs_attr *vsattr,
+> +			 const char *buf, size_t count);
+> +};
+> +
+> +#define VAS_SYSFS_ATTR(NAME, MODE, SHOW, STORE)				\
+> +static struct vas_sysfs_attr vas_sysfs_attr_##NAME =			\
+> +	__ATTR(NAME, MODE, SHOW, STORE)
+
+__ATTR_RO and __ATTR_RW should work better for you.  If you really need
+this.
+
+Oh, and where is the Documentation/ABI/ updates to try to describe the
+sysfs structure and files?  Did I miss that in the series?
+
+> +static ssize_t __show_vas_name(struct vas *vas, struct vas_sysfs_attr *vsattr,
+> +			       char *buf)
+> +{
+> +	return scnprintf(buf, PAGE_SIZE, "%s", vas->name);
+
+It's a page size, just use sprintf() and be done with it.  No need to
+ever check, you "know" it will be correct.
+
+Also, what about a trailing '\n' for these attributes?
+
+Oh wait, why have a name when the kobject name is already there in the
+directory itself?  Do you really need this?
+
+> +/**
+> + * The ktype data structure representing a VAS.
+> + **/
+> +static struct kobj_type vas_ktype = {
+> +	.sysfs_ops = &vas_sysfs_ops,
+> +	.release = __vas_release,
+
+Why the odd __vas* naming?  What's wrong with vas_release?
+
+
+> +	.default_attrs = vas_default_attr,
+> +};
+> +
+> +
+> +/***
+> + * Internally visible functions
+> + ***/
+> +
+> +/**
+> + * Working with the global VAS list.
+> + **/
+> +static inline void vas_remove(struct vas *vas)
+
+<snip>
+
+You have a ton of inline functions, for no good reason.  Make them all
+"real" functions please.  Unless you can measure the size/speed
+differences?  If so, please say so.
+
+
+thanks,
+
+greg k-h
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-aio' in
+the body to majordomo@kvack.org.  For more info on Linux AIO,
+see: http://www.kvack.org/aio/
+Don't email: <a href=mailto:"aart@kvack.org">aart@kvack.org</a>
