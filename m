@@ -1,53 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f67.google.com ([74.125.83.67]:33786 "EHLO
-        mail-pg0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752537AbdCMOps (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Mar 2017 10:45:48 -0400
-From: Stafford Horne <shorne@gmail.com>
-Subject: [PATCH v2] generic syscalls: Wire up statx syscall
-Date: Mon, 13 Mar 2017 23:45:21 +0900
-Message-ID: <20170313144521.28127-1-shorne@gmail.com>
+Received: from prod-mail-xrelay06.akamai.com ([96.6.114.98]:32999 "EHLO
+        prod-mail-xrelay06.akamai.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1753912AbdCMQFI (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 13 Mar 2017 12:05:08 -0400
+From: Josh Hunt <johunt@akamai.com>
+Subject: [RFC PATCH] sock: add SO_RCVQUEUE_SIZE getsockopt
+Date: Mon, 13 Mar 2017 11:59:46 -0400
+Message-ID: <1489420786-19547-1-git-send-email-johunt@akamai.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Stafford Horne <shorne@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
-Message-ID: <20170313144521.d8cPkLrqs56OGrcFgnOIDSDCyPijyllX8HtqCdNO20w@z>
+To: davem@davemloft.net, arnd@arndb.de
+Cc: edumazet@google.com, soheil@google.com, willemb@google.com, pabeni@redhat.com, linux-arch@vger.kernel.org, netdev@vger.kernel.org, Josh Hunt <johunt@akamai.com>
+Message-ID: <20170313155946.Ul2OLZgjUibZBGtpT2BZD_Udw1Qln23R2wA3nxOKGhk@z>
 
-The new syscall statx is implemented as generic code, so enable it
-for architectures like openrisc which use the generic syscall table.
+Allows application to read the amount of data sitting in the receive
+queue.
 
-Fixes: a528d35e8bfcc ("statx: Add a system call to make enhanced file info available")
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: David Howells <dhowells@redhat.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org
-Signed-off-by: Stafford Horne <shorne@gmail.com>
+Signed-off-by: Josh Hunt <johunt@akamai.com>
 ---
-Change in v2:
- - Add a few more Cc's to get attention of the right people
- - Add a fixes tag for better audit
 
- include/uapi/asm-generic/unistd.h | 4 +++-
- 1 file changed, 3 insertions(+), 1 deletion(-)
+A team here is looking for a way to get the amount of data in a UDP socket's
+receive queue. It seems like this should be SIOCINQ, but for UDP sockets that
+returns the size of the next pending datagram. I implemented the patch below,
+but am wondering if this is the right place for this change? I was debating
+between this or a new UDP ioctl.
 
-diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
-index 9b1462e..a076cf1 100644
---- a/include/uapi/asm-generic/unistd.h
-+++ b/include/uapi/asm-generic/unistd.h
-@@ -730,9 +730,11 @@ __SYSCALL(__NR_pkey_mprotect, sys_pkey_mprotect)
- __SYSCALL(__NR_pkey_alloc,    sys_pkey_alloc)
- #define __NR_pkey_free 290
- __SYSCALL(__NR_pkey_free,     sys_pkey_free)
-+#define __NR_statx 291
-+__SYSCALL(__NR_statx,     sys_statx)
+ include/net/sock.h                | 7 ++++++-
+ include/uapi/asm-generic/socket.h | 2 ++
+ net/core/sock.c                   | 4 ++++
+ 3 files changed, 12 insertions(+), 1 deletion(-)
+
+diff --git a/include/net/sock.h b/include/net/sock.h
+index 5e59976..bcfed2ae 100644
+--- a/include/net/sock.h
++++ b/include/net/sock.h
+@@ -854,6 +854,11 @@ static inline void __sk_add_backlog(struct sock *sk, struct sk_buff *skb)
+ 	skb->next = NULL;
+ }
  
- #undef __NR_syscalls
--#define __NR_syscalls 291
-+#define __NR_syscalls 292
- 
++static unsigned int sk_rcvqueue_size(const struct sock *sk)
++{
++	return sk->sk_backlog.len + atomic_read(&sk->sk_rmem_alloc);
++}
++
  /*
-  * All syscalls below here should go away really,
+  * Take into account size of receive queue and backlog queue
+  * Do not take into account this skb truesize,
+@@ -861,7 +866,7 @@ static inline void __sk_add_backlog(struct sock *sk, struct sk_buff *skb)
+  */
+ static inline bool sk_rcvqueues_full(const struct sock *sk, unsigned int limit)
+ {
+-	unsigned int qsize = sk->sk_backlog.len + atomic_read(&sk->sk_rmem_alloc);
++	unsigned int qsize = sk_rcvqueue_size(sk);
+ 
+ 	return qsize > limit;
+ }
+diff --git a/include/uapi/asm-generic/socket.h b/include/uapi/asm-generic/socket.h
+index 2c748dd..36b8cd5 100644
+--- a/include/uapi/asm-generic/socket.h
++++ b/include/uapi/asm-generic/socket.h
+@@ -94,4 +94,6 @@
+ 
+ #define SCM_TIMESTAMPING_OPT_STATS	54
+ 
++#define SO_RCVQUEUE_SIZE	55
++
+ #endif /* __ASM_GENERIC_SOCKET_H */
+diff --git a/net/core/sock.c b/net/core/sock.c
+index f6fd79f..fa69864 100644
+--- a/net/core/sock.c
++++ b/net/core/sock.c
+@@ -1269,6 +1269,10 @@ int sock_getsockopt(struct socket *sock, int level, int optname,
+ 		v.val = sk->sk_incoming_cpu;
+ 		break;
+ 
++	case SO_RCVQUEUE_SIZE:
++		v.val = sk_rcvqueue_size(sk);
++		break;
++
+ 	default:
+ 		/* We implement the SO_SNDLOWAT etc to not be settable
+ 		 * (1003.1g 7).
 -- 
-2.9.3
+1.9.1
