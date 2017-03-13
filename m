@@ -1,336 +1,355 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga03.intel.com ([134.134.136.65]:39555 "EHLO mga03.intel.com"
+Received: from mga06.intel.com ([134.134.136.31]:47912 "EHLO mga06.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751033AbdCMFvc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 13 Mar 2017 01:51:32 -0400
+        id S1751094AbdCMFvk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 13 Mar 2017 01:51:40 -0400
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 11/26] x86/xen: convert __xen_pgd_walk() and xen_cleanmfnmap() to support p4d
-Date: Mon, 13 Mar 2017 08:50:05 +0300
-Message-ID: <20170313055020.69655-12-kirill.shutemov@linux.intel.com>
+Subject: [PATCH 26/26] x86/mm: allow to have userspace mappings above 47-bits
+Date: Mon, 13 Mar 2017 08:50:20 +0300
+Message-ID: <20170313055020.69655-27-kirill.shutemov@linux.intel.com>
 In-Reply-To: <20170313055020.69655-1-kirill.shutemov@linux.intel.com>
 References: <20170313055020.69655-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, Michal Hocko <mhocko@suse.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Xiong Zhang <xiong.y.zhang@intel.com>
-Message-ID: <20170313055005.Kuyo4IMXPkCYb6T2yZxbKVeNSNfSqvNPSInh0J-c-T0@z>
+Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, Michal Hocko <mhocko@suse.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Message-ID: <20170313055020.n10cEWEi-LG7ue09rtoggHExYdWqid36DdUXZT3A_R4@z>
 
-Split these helpers few per-level functions and add p4d support.
+On x86, 5-level paging enables 56-bit userspace virtual address space.
+Not all user space is ready to handle wide addresses. It's known that
+at least some JIT compilers use higher bits in pointers to encode their
+information. It collides with valid pointers with 5-level paging and
+leads to crashes.
 
-Signed-off-by: Xiong Zhang <xiong.y.zhang@intel.com>
-[kirill.shutemov@linux.intel.com: split off into separate patch]
+To mitigate this, we are not going to allocate virtual address space
+above 47-bit by default.
+
+But userspace can ask for allocation from full address space by
+specifying hint address (with or without MAP_FIXED) above 47-bits.
+
+If hint address set above 47-bit, but MAP_FIXED is not specified, we try
+to look for unmapped area by specified address. If it's already
+occupied, we look for unmapped area in *full* address space, rather than
+from 47-bit window.
+
+This approach helps to easily make application's memory allocator aware
+about large address space without manually tracking allocated virtual
+address space.
+
+One important case we need to handle here is interaction with MPX.
+MPX (without MAWA( extension cannot handle addresses above 47-bit, so we
+need to make sure that MPX cannot be enabled we already have VMA above
+the boundary and forbid creating such VMAs once MPX is enabled.
+
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
- arch/x86/xen/mmu.c | 245 ++++++++++++++++++++++++++++++++---------------------
- arch/x86/xen/mmu.h |   1 +
- 2 files changed, 150 insertions(+), 96 deletions(-)
+ arch/x86/include/asm/elf.h       |  2 +-
+ arch/x86/include/asm/mpx.h       |  9 +++++++++
+ arch/x86/include/asm/processor.h |  9 ++++++---
+ arch/x86/kernel/sys_x86_64.c     | 28 +++++++++++++++++++++++++++-
+ arch/x86/mm/hugetlbpage.c        | 31 +++++++++++++++++++++++++++----
+ arch/x86/mm/mmap.c               |  4 ++--
+ arch/x86/mm/mpx.c                | 33 ++++++++++++++++++++++++++++++++-
+ 7 files changed, 104 insertions(+), 12 deletions(-)
 
-diff --git a/arch/x86/xen/mmu.c b/arch/x86/xen/mmu.c
-index 37cb5aad71de..c49e165fde60 100644
---- a/arch/x86/xen/mmu.c
-+++ b/arch/x86/xen/mmu.c
-@@ -593,6 +593,64 @@ static void xen_set_pgd(pgd_t *ptr, pgd_t val)
+diff --git a/arch/x86/include/asm/elf.h b/arch/x86/include/asm/elf.h
+index 9d49c18b5ea9..265625b0d6cb 100644
+--- a/arch/x86/include/asm/elf.h
++++ b/arch/x86/include/asm/elf.h
+@@ -250,7 +250,7 @@ extern int force_personality32;
+    the loader.  We need to make sure that it is out of the way of the program
+    that it will "exec", and that there is sufficient room for the brk.  */
+ 
+-#define ELF_ET_DYN_BASE		(TASK_SIZE / 3 * 2)
++#define ELF_ET_DYN_BASE		(DEFAULT_MAP_WINDOW / 3 * 2)
+ 
+ /* This yields a mask that user programs can use to figure out what
+    instruction set this CPU supports.  This could be done in user space,
+diff --git a/arch/x86/include/asm/mpx.h b/arch/x86/include/asm/mpx.h
+index a0d662be4c5b..7d7404756bb4 100644
+--- a/arch/x86/include/asm/mpx.h
++++ b/arch/x86/include/asm/mpx.h
+@@ -73,6 +73,9 @@ static inline void mpx_mm_init(struct mm_struct *mm)
  }
- #endif	/* CONFIG_PGTABLE_LEVELS == 4 */
- 
-+static int xen_pmd_walk(struct mm_struct *mm, pmd_t *pmd,
-+		int (*func)(struct mm_struct *mm, struct page *, enum pt_level),
-+		bool last, unsigned long limit)
-+{
-+	int i, nr, flush = 0;
+ void mpx_notify_unmap(struct mm_struct *mm, struct vm_area_struct *vma,
+ 		      unsigned long start, unsigned long end);
 +
-+	nr = last ? pmd_index(limit) + 1 : PTRS_PER_PMD;
-+	for (i = 0; i < nr; i++) {
-+		if (!pmd_none(pmd[i]))
-+			flush |= (*func)(mm, pmd_page(pmd[i]), PT_PTE);
-+	}
-+	return flush;
-+}
-+
-+static int xen_pud_walk(struct mm_struct *mm, pud_t *pud,
-+		int (*func)(struct mm_struct *mm, struct page *, enum pt_level),
-+		bool last, unsigned long limit)
-+{
-+	int i, nr, flush = 0;
-+
-+	nr = last ? pud_index(limit) + 1 : PTRS_PER_PUD;
-+	for (i = 0; i < nr; i++) {
-+		pmd_t *pmd;
-+
-+		if (pud_none(pud[i]))
-+			continue;
-+
-+		pmd = pmd_offset(&pud[i], 0);
-+		if (PTRS_PER_PMD > 1)
-+			flush |= (*func)(mm, virt_to_page(pmd), PT_PMD);
-+		flush |= xen_pmd_walk(mm, pmd, func,
-+				last && i == nr - 1, limit);
-+	}
-+	return flush;
-+}
-+
-+static int xen_p4d_walk(struct mm_struct *mm, p4d_t *p4d,
-+		int (*func)(struct mm_struct *mm, struct page *, enum pt_level),
-+		bool last, unsigned long limit)
-+{
-+	int i, nr, flush = 0;
-+
-+	nr = last ? p4d_index(limit) + 1 : PTRS_PER_P4D;
-+	for (i = 0; i < nr; i++) {
-+		pud_t *pud;
-+
-+		if (p4d_none(p4d[i]))
-+			continue;
-+
-+		pud = pud_offset(&p4d[i], 0);
-+		if (PTRS_PER_PUD > 1)
-+			flush |= (*func)(mm, virt_to_page(pud), PT_PUD);
-+		flush |= xen_pud_walk(mm, pud, func,
-+				last && i == nr - 1, limit);
-+	}
-+	return flush;
-+}
-+
- /*
-  * (Yet another) pagetable walker.  This one is intended for pinning a
-  * pagetable.  This means that it walks a pagetable and calls the
-@@ -613,10 +671,8 @@ static int __xen_pgd_walk(struct mm_struct *mm, pgd_t *pgd,
- 				      enum pt_level),
- 			  unsigned long limit)
++unsigned long mpx_unmapped_area_check(unsigned long addr, unsigned long len,
++		unsigned long flags);
+ #else
+ static inline siginfo_t *mpx_generate_siginfo(struct pt_regs *regs)
  {
--	int flush = 0;
-+	int i, nr, flush = 0;
- 	unsigned hole_low, hole_high;
--	unsigned pgdidx_limit, pudidx_limit, pmdidx_limit;
--	unsigned pgdidx, pudidx, pmdidx;
+@@ -94,6 +97,12 @@ static inline void mpx_notify_unmap(struct mm_struct *mm,
+ 				    unsigned long start, unsigned long end)
+ {
+ }
++
++static inline unsigned long mpx_unmapped_area_check(unsigned long addr,
++		unsigned long len, unsigned long flags)
++{
++	return addr;
++}
+ #endif /* CONFIG_X86_INTEL_MPX */
  
- 	/* The limit is the last byte to be touched */
- 	limit--;
-@@ -633,65 +689,22 @@ static int __xen_pgd_walk(struct mm_struct *mm, pgd_t *pgd,
- 	hole_low = pgd_index(USER_LIMIT);
- 	hole_high = pgd_index(PAGE_OFFSET);
+ #endif /* _ASM_X86_MPX_H */
+diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
+index f385eca5407a..da8ab4f2d0c7 100644
+--- a/arch/x86/include/asm/processor.h
++++ b/arch/x86/include/asm/processor.h
+@@ -799,6 +799,7 @@ static inline void spin_lock_prefetch(const void *x)
+  */
+ #define TASK_SIZE		PAGE_OFFSET
+ #define TASK_SIZE_MAX		TASK_SIZE
++#define DEFAULT_MAP_WINDOW	TASK_SIZE
+ #define STACK_TOP		TASK_SIZE
+ #define STACK_TOP_MAX		STACK_TOP
  
--	pgdidx_limit = pgd_index(limit);
--#if PTRS_PER_PUD > 1
--	pudidx_limit = pud_index(limit);
--#else
--	pudidx_limit = 0;
--#endif
--#if PTRS_PER_PMD > 1
--	pmdidx_limit = pmd_index(limit);
--#else
--	pmdidx_limit = 0;
--#endif
--
--	for (pgdidx = 0; pgdidx <= pgdidx_limit; pgdidx++) {
--		pud_t *pud;
-+	nr = pgd_index(limit) + 1;
-+	for (i = 0; i < nr; i++) {
-+		p4d_t *p4d;
+@@ -838,7 +839,9 @@ static inline void spin_lock_prefetch(const void *x)
+  * particular problem by preventing anything from being mapped
+  * at the maximum canonical address.
+  */
+-#define TASK_SIZE_MAX	((1UL << 47) - PAGE_SIZE)
++#define TASK_SIZE_MAX	((1UL << __VIRTUAL_MASK_SHIFT) - PAGE_SIZE)
++
++#define DEFAULT_MAP_WINDOW	((1UL << 47) - PAGE_SIZE)
  
--		if (pgdidx >= hole_low && pgdidx < hole_high)
-+		if (i >= hole_low && i < hole_high)
- 			continue;
+ /* This decides where the kernel will search for a free chunk of vm
+  * space during mmap's.
+@@ -851,7 +854,7 @@ static inline void spin_lock_prefetch(const void *x)
+ #define TASK_SIZE_OF(child)	((test_tsk_thread_flag(child, TIF_ADDR32)) ? \
+ 					IA32_PAGE_OFFSET : TASK_SIZE_MAX)
  
--		if (!pgd_val(pgd[pgdidx]))
-+		if (pgd_none(pgd[i]))
- 			continue;
+-#define STACK_TOP		TASK_SIZE
++#define STACK_TOP		DEFAULT_MAP_WINDOW
+ #define STACK_TOP_MAX		TASK_SIZE_MAX
  
--		pud = pud_offset(&pgd[pgdidx], 0);
--
--		if (PTRS_PER_PUD > 1) /* not folded */
--			flush |= (*func)(mm, virt_to_page(pud), PT_PUD);
--
--		for (pudidx = 0; pudidx < PTRS_PER_PUD; pudidx++) {
--			pmd_t *pmd;
--
--			if (pgdidx == pgdidx_limit &&
--			    pudidx > pudidx_limit)
--				goto out;
--
--			if (pud_none(pud[pudidx]))
--				continue;
--
--			pmd = pmd_offset(&pud[pudidx], 0);
--
--			if (PTRS_PER_PMD > 1) /* not folded */
--				flush |= (*func)(mm, virt_to_page(pmd), PT_PMD);
--
--			for (pmdidx = 0; pmdidx < PTRS_PER_PMD; pmdidx++) {
--				struct page *pte;
--
--				if (pgdidx == pgdidx_limit &&
--				    pudidx == pudidx_limit &&
--				    pmdidx > pmdidx_limit)
--					goto out;
--
--				if (pmd_none(pmd[pmdidx]))
--					continue;
--
--				pte = pmd_page(pmd[pmdidx]);
--				flush |= (*func)(mm, pte, PT_PTE);
--			}
--		}
-+		p4d = p4d_offset(&pgd[i], 0);
-+		if (PTRS_PER_P4D > 1)
-+			flush |= (*func)(mm, virt_to_page(p4d), PT_P4D);
-+		flush |= xen_p4d_walk(mm, p4d, func, i == nr - 1, limit);
+ #define INIT_THREAD  {						\
+@@ -873,7 +876,7 @@ extern void start_thread(struct pt_regs *regs, unsigned long new_ip,
+  * This decides where the kernel will search for a free chunk of vm
+  * space during mmap's.
+  */
+-#define TASK_UNMAPPED_BASE	(PAGE_ALIGN(TASK_SIZE / 3))
++#define TASK_UNMAPPED_BASE	(PAGE_ALIGN(DEFAULT_MAP_WINDOW / 3))
+ 
+ #define KSTK_EIP(task)		(task_pt_regs(task)->ip)
+ 
+diff --git a/arch/x86/kernel/sys_x86_64.c b/arch/x86/kernel/sys_x86_64.c
+index 50215a4b9347..bae3706130a6 100644
+--- a/arch/x86/kernel/sys_x86_64.c
++++ b/arch/x86/kernel/sys_x86_64.c
+@@ -19,6 +19,7 @@
+ 
+ #include <asm/ia32.h>
+ #include <asm/syscalls.h>
++#include <asm/mpx.h>
+ 
+ /*
+  * Align a virtual address to avoid aliasing in the I$ on AMD F15h.
+@@ -129,6 +130,10 @@ arch_get_unmapped_area(struct file *filp, unsigned long addr,
+ 	struct vm_unmapped_area_info info;
+ 	unsigned long begin, end;
+ 
++	addr = mpx_unmapped_area_check(addr, len, flags);
++	if (IS_ERR_VALUE(addr))
++		return addr;
++
+ 	if (flags & MAP_FIXED)
+ 		return addr;
+ 
+@@ -148,7 +153,16 @@ arch_get_unmapped_area(struct file *filp, unsigned long addr,
+ 	info.flags = 0;
+ 	info.length = len;
+ 	info.low_limit = begin;
+-	info.high_limit = end;
++
++	/*
++	 * If hint address is above DEFAULT_MAP_WINDOW, look for unmapped area
++	 * in the full address space.
++	 */
++	if (addr > DEFAULT_MAP_WINDOW)
++		info.high_limit = min(end, TASK_SIZE);
++	else
++		info.high_limit = min(end, DEFAULT_MAP_WINDOW);
++
+ 	info.align_mask = 0;
+ 	info.align_offset = pgoff << PAGE_SHIFT;
+ 	if (filp) {
+@@ -168,6 +182,10 @@ arch_get_unmapped_area_topdown(struct file *filp, const unsigned long addr0,
+ 	unsigned long addr = addr0;
+ 	struct vm_unmapped_area_info info;
+ 
++	addr = mpx_unmapped_area_check(addr, len, flags);
++	if (IS_ERR_VALUE(addr))
++		return addr;
++
+ 	/* requested length too big for entire address space */
+ 	if (len > TASK_SIZE)
+ 		return -ENOMEM;
+@@ -192,6 +210,14 @@ arch_get_unmapped_area_topdown(struct file *filp, const unsigned long addr0,
+ 	info.length = len;
+ 	info.low_limit = PAGE_SIZE;
+ 	info.high_limit = mm->mmap_base;
++
++	/*
++	 * If hint address is above DEFAULT_MAP_WINDOW, look for unmapped area
++	 * in the full address space.
++	 */
++	if (addr > DEFAULT_MAP_WINDOW)
++		info.high_limit += TASK_SIZE - DEFAULT_MAP_WINDOW;
++
+ 	info.align_mask = 0;
+ 	info.align_offset = pgoff << PAGE_SHIFT;
+ 	if (filp) {
+diff --git a/arch/x86/mm/hugetlbpage.c b/arch/x86/mm/hugetlbpage.c
+index c5066a260803..94f41a39d8fe 100644
+--- a/arch/x86/mm/hugetlbpage.c
++++ b/arch/x86/mm/hugetlbpage.c
+@@ -16,6 +16,7 @@
+ #include <asm/tlb.h>
+ #include <asm/tlbflush.h>
+ #include <asm/pgalloc.h>
++#include <asm/mpx.h>
+ 
+ #if 0	/* This is just for testing */
+ struct page *
+@@ -83,24 +84,41 @@ static unsigned long hugetlb_get_unmapped_area_bottomup(struct file *file,
+ 	info.flags = 0;
+ 	info.length = len;
+ 	info.low_limit = current->mm->mmap_legacy_base;
+-	info.high_limit = TASK_SIZE;
++	info.high_limit = DEFAULT_MAP_WINDOW;
++
++	/*
++	 * If hint address is above DEFAULT_MAP_WINDOW, look for unmapped area
++	 * in the full address space.
++	 */
++	if (addr > DEFAULT_MAP_WINDOW)
++		info.high_limit = TASK_SIZE;
++	else
++		info.high_limit = DEFAULT_MAP_WINDOW;
++
+ 	info.align_mask = PAGE_MASK & ~huge_page_mask(h);
+ 	info.align_offset = 0;
+ 	return vm_unmapped_area(&info);
+ }
+ 
+ static unsigned long hugetlb_get_unmapped_area_topdown(struct file *file,
+-		unsigned long addr0, unsigned long len,
++		unsigned long addr, unsigned long len,
+ 		unsigned long pgoff, unsigned long flags)
+ {
+ 	struct hstate *h = hstate_file(file);
+ 	struct vm_unmapped_area_info info;
+-	unsigned long addr;
+ 
+ 	info.flags = VM_UNMAPPED_AREA_TOPDOWN;
+ 	info.length = len;
+ 	info.low_limit = PAGE_SIZE;
+ 	info.high_limit = current->mm->mmap_base;
++
++	/*
++	 * If hint address is above DEFAULT_MAP_WINDOW, look for unmapped area
++	 * in the full address space.
++	 */
++	if (addr > DEFAULT_MAP_WINDOW)
++		info.high_limit += TASK_SIZE - DEFAULT_MAP_WINDOW;
++
+ 	info.align_mask = PAGE_MASK & ~huge_page_mask(h);
+ 	info.align_offset = 0;
+ 	addr = vm_unmapped_area(&info);
+@@ -115,7 +133,7 @@ static unsigned long hugetlb_get_unmapped_area_topdown(struct file *file,
+ 		VM_BUG_ON(addr != -ENOMEM);
+ 		info.flags = 0;
+ 		info.low_limit = TASK_UNMAPPED_BASE;
+-		info.high_limit = TASK_SIZE;
++		info.high_limit = DEFAULT_MAP_WINDOW;
+ 		addr = vm_unmapped_area(&info);
  	}
  
--out:
- 	/* Do the top level last, so that the callbacks can use it as
- 	   a cue to do final things like tlb flushes. */
- 	flush |= (*func)(mm, virt_to_page(pgd), PT_PGD);
-@@ -1150,57 +1163,97 @@ static void __init xen_cleanmfnmap_free_pgtbl(void *pgtbl, bool unpin)
- 	xen_free_ro_pages(pa, PAGE_SIZE);
- }
+@@ -132,6 +150,11 @@ hugetlb_get_unmapped_area(struct file *file, unsigned long addr,
  
-+static void __init xen_cleanmfnmap_pmd(pmd_t *pmd, bool unpin)
-+{
-+	unsigned long pa;
-+	pte_t *pte_tbl;
-+	int i;
+ 	if (len & ~huge_page_mask(h))
+ 		return -EINVAL;
 +
-+	if (pmd_large(*pmd)) {
-+		pa = pmd_val(*pmd) & PHYSICAL_PAGE_MASK;
-+		xen_free_ro_pages(pa, PMD_SIZE);
-+		return;
-+	}
++	addr = mpx_unmapped_area_check(addr, len, flags);
++	if (IS_ERR_VALUE(addr))
++		return addr;
 +
-+	pte_tbl = pte_offset_kernel(pmd, 0);
-+	for (i = 0; i < PTRS_PER_PTE; i++) {
-+		if (pte_none(pte_tbl[i]))
-+			continue;
-+		pa = pte_pfn(pte_tbl[i]) << PAGE_SHIFT;
-+		xen_free_ro_pages(pa, PAGE_SIZE);
-+	}
-+	set_pmd(pmd, __pmd(0));
-+	xen_cleanmfnmap_free_pgtbl(pte_tbl, unpin);
-+}
-+
-+static void __init xen_cleanmfnmap_pud(pud_t *pud, bool unpin)
-+{
-+	unsigned long pa;
-+	pmd_t *pmd_tbl;
-+	int i;
-+
-+	if (pud_large(*pud)) {
-+		pa = pud_val(*pud) & PHYSICAL_PAGE_MASK;
-+		xen_free_ro_pages(pa, PUD_SIZE);
-+		return;
-+	}
-+
-+	pmd_tbl = pmd_offset(pud, 0);
-+	for (i = 0; i < PTRS_PER_PMD; i++) {
-+		if (pmd_none(pmd_tbl[i]))
-+			continue;
-+		xen_cleanmfnmap_pmd(pmd_tbl + i, unpin);
-+	}
-+	set_pud(pud, __pud(0));
-+	xen_cleanmfnmap_free_pgtbl(pmd_tbl, unpin);
-+}
-+
-+static void __init xen_cleanmfnmap_p4d(p4d_t *p4d, bool unpin)
-+{
-+	unsigned long pa;
-+	pud_t *pud_tbl;
-+	int i;
-+
-+	if (p4d_large(*p4d)) {
-+		pa = p4d_val(*p4d) & PHYSICAL_PAGE_MASK;
-+		xen_free_ro_pages(pa, P4D_SIZE);
-+		return;
-+	}
-+
-+	pud_tbl = pud_offset(p4d, 0);
-+	for (i = 0; i < PTRS_PER_PUD; i++) {
-+		if (pud_none(pud_tbl[i]))
-+			continue;
-+		xen_cleanmfnmap_pud(pud_tbl + i, unpin);
-+	}
-+	set_p4d(p4d, __p4d(0));
-+	xen_cleanmfnmap_free_pgtbl(pud_tbl, unpin);
-+}
-+
- /*
-  * Since it is well isolated we can (and since it is perhaps large we should)
-  * also free the page tables mapping the initial P->M table.
+ 	if (len > TASK_SIZE)
+ 		return -ENOMEM;
+ 
+diff --git a/arch/x86/mm/mmap.c b/arch/x86/mm/mmap.c
+index 7940166c799b..2fbfcabd098a 100644
+--- a/arch/x86/mm/mmap.c
++++ b/arch/x86/mm/mmap.c
+@@ -53,7 +53,7 @@ static unsigned long stack_maxrandom_size(void)
+  * Leave an at least ~128 MB hole with possible stack randomization.
   */
- static void __init xen_cleanmfnmap(unsigned long vaddr)
- {
--	unsigned long va = vaddr & PMD_MASK;
--	unsigned long pa;
--	pgd_t *pgd = pgd_offset_k(va);
--	pud_t *pud_page = pud_offset(pgd, 0);
--	pud_t *pud;
--	pmd_t *pmd;
--	pte_t *pte;
-+	pgd_t *pgd;
-+	p4d_t *p4d;
- 	unsigned int i;
- 	bool unpin;
+ #define MIN_GAP (128*1024*1024UL + stack_maxrandom_size())
+-#define MAX_GAP (TASK_SIZE/6*5)
++#define MAX_GAP (DEFAULT_MAP_WINDOW/6*5)
  
- 	unpin = (vaddr == 2 * PGDIR_SIZE);
--	set_pgd(pgd, __pgd(0));
--	do {
--		pud = pud_page + pud_index(va);
--		if (pud_none(*pud)) {
--			va += PUD_SIZE;
--		} else if (pud_large(*pud)) {
--			pa = pud_val(*pud) & PHYSICAL_PAGE_MASK;
--			xen_free_ro_pages(pa, PUD_SIZE);
--			va += PUD_SIZE;
--		} else {
--			pmd = pmd_offset(pud, va);
--			if (pmd_large(*pmd)) {
--				pa = pmd_val(*pmd) & PHYSICAL_PAGE_MASK;
--				xen_free_ro_pages(pa, PMD_SIZE);
--			} else if (!pmd_none(*pmd)) {
--				pte = pte_offset_kernel(pmd, va);
--				set_pmd(pmd, __pmd(0));
--				for (i = 0; i < PTRS_PER_PTE; ++i) {
--					if (pte_none(pte[i]))
--						break;
--					pa = pte_pfn(pte[i]) << PAGE_SHIFT;
--					xen_free_ro_pages(pa, PAGE_SIZE);
--				}
--				xen_cleanmfnmap_free_pgtbl(pte, unpin);
--			}
--			va += PMD_SIZE;
--			if (pmd_index(va))
--				continue;
--			set_pud(pud, __pud(0));
--			xen_cleanmfnmap_free_pgtbl(pmd, unpin);
--		}
--
--	} while (pud_index(va) || pmd_index(va));
--	xen_cleanmfnmap_free_pgtbl(pud_page, unpin);
-+	vaddr &= PMD_MASK;
-+	pgd = pgd_offset_k(vaddr);
-+	p4d = p4d_offset(pgd, 0);
-+	for (i = 0; i < PTRS_PER_P4D; i++) {
-+		if (p4d_none(p4d[i]))
-+			continue;
-+		xen_cleanmfnmap_p4d(p4d + i, unpin);
-+	}
-+	if (IS_ENABLED(CONFIG_X86_5LEVEL)) {
-+		set_pgd(pgd, __pgd(0));
-+		xen_cleanmfnmap_free_pgtbl(p4d, unpin);
-+	}
+ static int mmap_is_legacy(void)
+ {
+@@ -91,7 +91,7 @@ static unsigned long mmap_base(unsigned long rnd)
+ 	else if (gap > MAX_GAP)
+ 		gap = MAX_GAP;
+ 
+-	return PAGE_ALIGN(TASK_SIZE - gap - rnd);
++	return PAGE_ALIGN(DEFAULT_MAP_WINDOW - gap - rnd);
  }
  
- static void __init xen_pagetable_p2m_free(void)
-diff --git a/arch/x86/xen/mmu.h b/arch/x86/xen/mmu.h
-index 73809bb951b4..3fe2b3292915 100644
---- a/arch/x86/xen/mmu.h
-+++ b/arch/x86/xen/mmu.h
-@@ -5,6 +5,7 @@
- 
- enum pt_level {
- 	PT_PGD,
-+	PT_P4D,
- 	PT_PUD,
- 	PT_PMD,
- 	PT_PTE
+ /*
+diff --git a/arch/x86/mm/mpx.c b/arch/x86/mm/mpx.c
+index 5126dfd52b18..cc318817ce7c 100644
+--- a/arch/x86/mm/mpx.c
++++ b/arch/x86/mm/mpx.c
+@@ -355,10 +355,19 @@ int mpx_enable_management(void)
+ 	 */
+ 	bd_base = mpx_get_bounds_dir();
+ 	down_write(&mm->mmap_sem);
++
++	/* MPX doesn't support addresses above 47-bits yet. */
++	if (find_vma(mm, DEFAULT_MAP_WINDOW)) {
++		pr_warn_once("%s (%d): MPX cannot handle addresses "
++				"above 47-bits. Disabling.",
++				current->comm, current->pid);
++		ret = -ENXIO;
++		goto out;
++	}
+ 	mm->context.bd_addr = bd_base;
+ 	if (mm->context.bd_addr == MPX_INVALID_BOUNDS_DIR)
+ 		ret = -ENXIO;
+-
++out:
+ 	up_write(&mm->mmap_sem);
+ 	return ret;
+ }
+@@ -1038,3 +1047,25 @@ void mpx_notify_unmap(struct mm_struct *mm, struct vm_area_struct *vma,
+ 	if (ret)
+ 		force_sig(SIGSEGV, current);
+ }
++
++/* MPX cannot handle addresses above 47-bits yet. */
++unsigned long mpx_unmapped_area_check(unsigned long addr, unsigned long len,
++		unsigned long flags)
++{
++	if (!kernel_managing_mpx_tables(current->mm))
++		return addr;
++	if (addr + len <= DEFAULT_MAP_WINDOW)
++		return addr;
++	if (flags & MAP_FIXED)
++		return -ENOMEM;
++
++	/*
++	 * Requested len is larger than whole area we're allowed to map in.
++	 * Resetting hinting address wouldn't do much good -- fail early.
++	 */
++	if (len > DEFAULT_MAP_WINDOW)
++		return -ENOMEM;
++
++	/* Look for unmap area within DEFAULT_MAP_WINDOW */
++	return 0;
++}
 -- 
 2.11.0
