@@ -1,385 +1,356 @@
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 02/26] x86: trivial portion of 5-level paging conversion
-Date: Mon, 13 Mar 2017 08:49:56 +0300
-Message-ID: <20170313055020.69655-3-kirill.shutemov@linux.intel.com>
+Subject: [PATCH 26/26] x86/mm: allow to have userspace mappings above 47-bits
+Date: Mon, 13 Mar 2017 08:50:20 +0300
+Message-ID: <20170313055020.69655-27-kirill.shutemov@linux.intel.com>
 References: <20170313055020.69655-1-kirill.shutemov@linux.intel.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga14.intel.com ([192.55.52.115]:4215 "EHLO mga14.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750975AbdCMFv2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 13 Mar 2017 01:51:28 -0400
+Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <20170313055020.69655-1-kirill.shutemov@linux.intel.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: owner-linux-mm@kvack.org
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, Michal Hocko <mhocko@suse.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+List-Id: linux-arch.vger.kernel.org
 
-This patch covers simple cases only.
+On x86, 5-level paging enables 56-bit userspace virtual address space.
+Not all user space is ready to handle wide addresses. It's known that
+at least some JIT compilers use higher bits in pointers to encode their
+information. It collides with valid pointers with 5-level paging and
+leads to crashes.
+
+To mitigate this, we are not going to allocate virtual address space
+above 47-bit by default.
+
+But userspace can ask for allocation from full address space by
+specifying hint address (with or without MAP_FIXED) above 47-bits.
+
+If hint address set above 47-bit, but MAP_FIXED is not specified, we try
+to look for unmapped area by specified address. If it's already
+occupied, we look for unmapped area in *full* address space, rather than
+from 47-bit window.
+
+This approach helps to easily make application's memory allocator aware
+about large address space without manually tracking allocated virtual
+address space.
+
+One important case we need to handle here is interaction with MPX.
+MPX (without MAWA( extension cannot handle addresses above 47-bit, so we
+need to make sure that MPX cannot be enabled we already have VMA above
+the boundary and forbid creating such VMAs once MPX is enabled.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
- arch/x86/kernel/tboot.c        |  6 +++++-
- arch/x86/kernel/vm86_32.c      |  6 +++++-
- arch/x86/mm/fault.c            | 39 +++++++++++++++++++++++++++++++++------
- arch/x86/mm/init_32.c          | 22 ++++++++++++++++------
- arch/x86/mm/ioremap.c          |  3 ++-
- arch/x86/mm/pgtable.c          |  4 +++-
- arch/x86/mm/pgtable_32.c       |  8 +++++++-
- arch/x86/platform/efi/efi_64.c | 13 +++++++++----
- arch/x86/power/hibernate_32.c  |  7 +++++--
- 9 files changed, 85 insertions(+), 23 deletions(-)
+ arch/x86/include/asm/elf.h       |  2 +-
+ arch/x86/include/asm/mpx.h       |  9 +++++++++
+ arch/x86/include/asm/processor.h |  9 ++++++---
+ arch/x86/kernel/sys_x86_64.c     | 28 +++++++++++++++++++++++++++-
+ arch/x86/mm/hugetlbpage.c        | 31 +++++++++++++++++++++++++++----
+ arch/x86/mm/mmap.c               |  4 ++--
+ arch/x86/mm/mpx.c                | 33 ++++++++++++++++++++++++++++++++-
+ 7 files changed, 104 insertions(+), 12 deletions(-)
 
-diff --git a/arch/x86/kernel/tboot.c b/arch/x86/kernel/tboot.c
-index b868fa1b812b..5db0f33cbf2c 100644
---- a/arch/x86/kernel/tboot.c
-+++ b/arch/x86/kernel/tboot.c
-@@ -118,12 +118,16 @@ static int map_tboot_page(unsigned long vaddr, unsigned long pfn,
- 			  pgprot_t prot)
- {
- 	pgd_t *pgd;
-+	p4d_t *p4d;
- 	pud_t *pud;
- 	pmd_t *pmd;
- 	pte_t *pte;
+diff --git a/arch/x86/include/asm/elf.h b/arch/x86/include/asm/elf.h
+index 9d49c18b5ea9..265625b0d6cb 100644
+--- a/arch/x86/include/asm/elf.h
++++ b/arch/x86/include/asm/elf.h
+@@ -250,7 +250,7 @@ extern int force_personality32;
+    the loader.  We need to make sure that it is out of the way of the program
+    that it will "exec", and that there is sufficient room for the brk.  */
  
- 	pgd = pgd_offset(&tboot_mm, vaddr);
--	pud = pud_alloc(&tboot_mm, pgd, vaddr);
-+	p4d = p4d_alloc(&tboot_mm, pgd, vaddr);
-+	if (!p4d)
-+		return -1;
-+	pud = pud_alloc(&tboot_mm, p4d, vaddr);
- 	if (!pud)
- 		return -1;
- 	pmd = pmd_alloc(&tboot_mm, pud, vaddr);
-diff --git a/arch/x86/kernel/vm86_32.c b/arch/x86/kernel/vm86_32.c
-index 23ee89ce59a9..62597c300d94 100644
---- a/arch/x86/kernel/vm86_32.c
-+++ b/arch/x86/kernel/vm86_32.c
-@@ -164,6 +164,7 @@ static void mark_screen_rdonly(struct mm_struct *mm)
- 	struct vm_area_struct *vma;
- 	spinlock_t *ptl;
- 	pgd_t *pgd;
-+	p4d_t *p4d;
- 	pud_t *pud;
- 	pmd_t *pmd;
- 	pte_t *pte;
-@@ -173,7 +174,10 @@ static void mark_screen_rdonly(struct mm_struct *mm)
- 	pgd = pgd_offset(mm, 0xA0000);
- 	if (pgd_none_or_clear_bad(pgd))
- 		goto out;
--	pud = pud_offset(pgd, 0xA0000);
-+	p4d = p4d_offset(pgd, 0xA0000);
-+	if (p4d_none_or_clear_bad(p4d))
-+		goto out;
-+	pud = pud_offset(p4d, 0xA0000);
- 	if (pud_none_or_clear_bad(pud))
- 		goto out;
- 	pmd = pmd_offset(pud, 0xA0000);
-diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
-index 428e31763cb9..605fd5e8e048 100644
---- a/arch/x86/mm/fault.c
-+++ b/arch/x86/mm/fault.c
-@@ -253,6 +253,7 @@ static inline pmd_t *vmalloc_sync_one(pgd_t *pgd, unsigned long address)
- {
- 	unsigned index = pgd_index(address);
- 	pgd_t *pgd_k;
-+	p4d_t *p4d, *p4d_k;
- 	pud_t *pud, *pud_k;
- 	pmd_t *pmd, *pmd_k;
+-#define ELF_ET_DYN_BASE		(TASK_SIZE / 3 * 2)
++#define ELF_ET_DYN_BASE		(DEFAULT_MAP_WINDOW / 3 * 2)
  
-@@ -265,10 +266,15 @@ static inline pmd_t *vmalloc_sync_one(pgd_t *pgd, unsigned long address)
- 	/*
- 	 * set_pgd(pgd, *pgd_k); here would be useless on PAE
- 	 * and redundant with the set_pmd() on non-PAE. As would
--	 * set_pud.
-+	 * set_p4d/set_pud.
- 	 */
--	pud = pud_offset(pgd, address);
--	pud_k = pud_offset(pgd_k, address);
-+	p4d = p4d_offset(pgd, address);
-+	p4d_k = p4d_offset(pgd_k, address);
-+	if (!p4d_present(*p4d_k))
-+		return NULL;
+ /* This yields a mask that user programs can use to figure out what
+    instruction set this CPU supports.  This could be done in user space,
+diff --git a/arch/x86/include/asm/mpx.h b/arch/x86/include/asm/mpx.h
+index a0d662be4c5b..7d7404756bb4 100644
+--- a/arch/x86/include/asm/mpx.h
++++ b/arch/x86/include/asm/mpx.h
+@@ -73,6 +73,9 @@ static inline void mpx_mm_init(struct mm_struct *mm)
+ }
+ void mpx_notify_unmap(struct mm_struct *mm, struct vm_area_struct *vma,
+ 		      unsigned long start, unsigned long end);
 +
-+	pud = pud_offset(p4d, address);
-+	pud_k = pud_offset(p4d_k, address);
- 	if (!pud_present(*pud_k))
- 		return NULL;
- 
-@@ -384,6 +390,8 @@ static void dump_pagetable(unsigned long address)
++unsigned long mpx_unmapped_area_check(unsigned long addr, unsigned long len,
++		unsigned long flags);
+ #else
+ static inline siginfo_t *mpx_generate_siginfo(struct pt_regs *regs)
  {
- 	pgd_t *base = __va(read_cr3());
- 	pgd_t *pgd = &base[pgd_index(address)];
-+	p4d_t *p4d;
-+	pud_t *pud;
- 	pmd_t *pmd;
- 	pte_t *pte;
- 
-@@ -392,7 +400,9 @@ static void dump_pagetable(unsigned long address)
- 	if (!low_pfn(pgd_val(*pgd) >> PAGE_SHIFT) || !pgd_present(*pgd))
- 		goto out;
- #endif
--	pmd = pmd_offset(pud_offset(pgd, address), address);
-+	p4d = p4d_offset(pgd, address);
-+	pud = pud_offset(p4d, address);
-+	pmd = pmd_offset(pud, address);
- 	printk(KERN_CONT "*pde = %0*Lx ", sizeof(*pmd) * 2, (u64)pmd_val(*pmd));
- 
- 	/*
-@@ -526,6 +536,7 @@ static void dump_pagetable(unsigned long address)
+@@ -94,6 +97,12 @@ static inline void mpx_notify_unmap(struct mm_struct *mm,
+ 				    unsigned long start, unsigned long end)
  {
- 	pgd_t *base = __va(read_cr3() & PHYSICAL_PAGE_MASK);
- 	pgd_t *pgd = base + pgd_index(address);
-+	p4d_t *p4d;
- 	pud_t *pud;
- 	pmd_t *pmd;
- 	pte_t *pte;
-@@ -538,7 +549,15 @@ static void dump_pagetable(unsigned long address)
- 	if (!pgd_present(*pgd))
- 		goto out;
- 
--	pud = pud_offset(pgd, address);
-+	p4d = p4d_offset(pgd, address);
-+	if (bad_address(p4d))
-+		goto bad;
+ }
 +
-+	printk("P4D %lx ", p4d_val(*p4d));
-+	if (!p4d_present(*p4d) || p4d_large(*p4d))
-+		goto out;
-+
-+	pud = pud_offset(p4d, address);
- 	if (bad_address(pud))
- 		goto bad;
++static inline unsigned long mpx_unmapped_area_check(unsigned long addr,
++		unsigned long len, unsigned long flags)
++{
++	return addr;
++}
+ #endif /* CONFIG_X86_INTEL_MPX */
  
-@@ -1082,6 +1101,7 @@ static noinline int
- spurious_fault(unsigned long error_code, unsigned long address)
- {
- 	pgd_t *pgd;
-+	p4d_t *p4d;
- 	pud_t *pud;
- 	pmd_t *pmd;
- 	pte_t *pte;
-@@ -1104,7 +1124,14 @@ spurious_fault(unsigned long error_code, unsigned long address)
- 	if (!pgd_present(*pgd))
- 		return 0;
- 
--	pud = pud_offset(pgd, address);
-+	p4d = p4d_offset(pgd, address);
-+	if (!p4d_present(*p4d))
-+		return 0;
-+
-+	if (p4d_large(*p4d))
-+		return spurious_fault_check(error_code, (pte_t *) p4d);
-+
-+	pud = pud_offset(p4d, address);
- 	if (!pud_present(*pud))
- 		return 0;
- 
-diff --git a/arch/x86/mm/init_32.c b/arch/x86/mm/init_32.c
-index 2b4b53e6793f..5ed3c141bbd5 100644
---- a/arch/x86/mm/init_32.c
-+++ b/arch/x86/mm/init_32.c
-@@ -67,6 +67,7 @@ bool __read_mostly __vmalloc_start_set = false;
+ #endif /* _ASM_X86_MPX_H */
+diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
+index f385eca5407a..da8ab4f2d0c7 100644
+--- a/arch/x86/include/asm/processor.h
++++ b/arch/x86/include/asm/processor.h
+@@ -799,6 +799,7 @@ static inline void spin_lock_prefetch(const void *x)
   */
- static pmd_t * __init one_md_table_init(pgd_t *pgd)
- {
-+	p4d_t *p4d;
- 	pud_t *pud;
- 	pmd_t *pmd_table;
+ #define TASK_SIZE		PAGE_OFFSET
+ #define TASK_SIZE_MAX		TASK_SIZE
++#define DEFAULT_MAP_WINDOW	TASK_SIZE
+ #define STACK_TOP		TASK_SIZE
+ #define STACK_TOP_MAX		STACK_TOP
  
-@@ -75,13 +76,15 @@ static pmd_t * __init one_md_table_init(pgd_t *pgd)
- 		pmd_table = (pmd_t *)alloc_low_page();
- 		paravirt_alloc_pmd(&init_mm, __pa(pmd_table) >> PAGE_SHIFT);
- 		set_pgd(pgd, __pgd(__pa(pmd_table) | _PAGE_PRESENT));
--		pud = pud_offset(pgd, 0);
-+		p4d = p4d_offset(pgd, 0);
-+		pud = pud_offset(p4d, 0);
- 		BUG_ON(pmd_table != pmd_offset(pud, 0));
+@@ -838,7 +839,9 @@ static inline void spin_lock_prefetch(const void *x)
+  * particular problem by preventing anything from being mapped
+  * at the maximum canonical address.
+  */
+-#define TASK_SIZE_MAX	((1UL << 47) - PAGE_SIZE)
++#define TASK_SIZE_MAX	((1UL << __VIRTUAL_MASK_SHIFT) - PAGE_SIZE)
++
++#define DEFAULT_MAP_WINDOW	((1UL << 47) - PAGE_SIZE)
  
- 		return pmd_table;
- 	}
- #endif
--	pud = pud_offset(pgd, 0);
-+	p4d = p4d_offset(pgd, 0);
-+	pud = pud_offset(p4d, 0);
- 	pmd_table = pmd_offset(pud, 0);
+ /* This decides where the kernel will search for a free chunk of vm
+  * space during mmap's.
+@@ -851,7 +854,7 @@ static inline void spin_lock_prefetch(const void *x)
+ #define TASK_SIZE_OF(child)	((test_tsk_thread_flag(child, TIF_ADDR32)) ? \
+ 					IA32_PAGE_OFFSET : TASK_SIZE_MAX)
  
- 	return pmd_table;
-@@ -390,8 +393,11 @@ pte_t *kmap_pte;
+-#define STACK_TOP		TASK_SIZE
++#define STACK_TOP		DEFAULT_MAP_WINDOW
+ #define STACK_TOP_MAX		TASK_SIZE_MAX
  
- static inline pte_t *kmap_get_fixmap_pte(unsigned long vaddr)
- {
--	return pte_offset_kernel(pmd_offset(pud_offset(pgd_offset_k(vaddr),
--			vaddr), vaddr), vaddr);
-+	pgd_t *pgd = pgd_offset_k(vaddr);
-+	p4d_t *p4d = p4d_offset(pgd, vaddr);
-+	pud_t *pud = pud_offset(p4d, vaddr);
-+	pmd_t *pmd = pmd_offset(pud, vaddr);
-+	return pte_offset_kernel(pmd, vaddr);
+ #define INIT_THREAD  {						\
+@@ -873,7 +876,7 @@ extern void start_thread(struct pt_regs *regs, unsigned long new_ip,
+  * This decides where the kernel will search for a free chunk of vm
+  * space during mmap's.
+  */
+-#define TASK_UNMAPPED_BASE	(PAGE_ALIGN(TASK_SIZE / 3))
++#define TASK_UNMAPPED_BASE	(PAGE_ALIGN(DEFAULT_MAP_WINDOW / 3))
+ 
+ #define KSTK_EIP(task)		(task_pt_regs(task)->ip)
+ 
+diff --git a/arch/x86/kernel/sys_x86_64.c b/arch/x86/kernel/sys_x86_64.c
+index 50215a4b9347..bae3706130a6 100644
+--- a/arch/x86/kernel/sys_x86_64.c
++++ b/arch/x86/kernel/sys_x86_64.c
+@@ -19,6 +19,7 @@
+ 
+ #include <asm/ia32.h>
+ #include <asm/syscalls.h>
++#include <asm/mpx.h>
+ 
+ /*
+  * Align a virtual address to avoid aliasing in the I$ on AMD F15h.
+@@ -129,6 +130,10 @@ arch_get_unmapped_area(struct file *filp, unsigned long addr,
+ 	struct vm_unmapped_area_info info;
+ 	unsigned long begin, end;
+ 
++	addr = mpx_unmapped_area_check(addr, len, flags);
++	if (IS_ERR_VALUE(addr))
++		return addr;
++
+ 	if (flags & MAP_FIXED)
+ 		return addr;
+ 
+@@ -148,7 +153,16 @@ arch_get_unmapped_area(struct file *filp, unsigned long addr,
+ 	info.flags = 0;
+ 	info.length = len;
+ 	info.low_limit = begin;
+-	info.high_limit = end;
++
++	/*
++	 * If hint address is above DEFAULT_MAP_WINDOW, look for unmapped area
++	 * in the full address space.
++	 */
++	if (addr > DEFAULT_MAP_WINDOW)
++		info.high_limit = min(end, TASK_SIZE);
++	else
++		info.high_limit = min(end, DEFAULT_MAP_WINDOW);
++
+ 	info.align_mask = 0;
+ 	info.align_offset = pgoff << PAGE_SHIFT;
+ 	if (filp) {
+@@ -168,6 +182,10 @@ arch_get_unmapped_area_topdown(struct file *filp, const unsigned long addr0,
+ 	unsigned long addr = addr0;
+ 	struct vm_unmapped_area_info info;
+ 
++	addr = mpx_unmapped_area_check(addr, len, flags);
++	if (IS_ERR_VALUE(addr))
++		return addr;
++
+ 	/* requested length too big for entire address space */
+ 	if (len > TASK_SIZE)
+ 		return -ENOMEM;
+@@ -192,6 +210,14 @@ arch_get_unmapped_area_topdown(struct file *filp, const unsigned long addr0,
+ 	info.length = len;
+ 	info.low_limit = PAGE_SIZE;
+ 	info.high_limit = mm->mmap_base;
++
++	/*
++	 * If hint address is above DEFAULT_MAP_WINDOW, look for unmapped area
++	 * in the full address space.
++	 */
++	if (addr > DEFAULT_MAP_WINDOW)
++		info.high_limit += TASK_SIZE - DEFAULT_MAP_WINDOW;
++
+ 	info.align_mask = 0;
+ 	info.align_offset = pgoff << PAGE_SHIFT;
+ 	if (filp) {
+diff --git a/arch/x86/mm/hugetlbpage.c b/arch/x86/mm/hugetlbpage.c
+index c5066a260803..94f41a39d8fe 100644
+--- a/arch/x86/mm/hugetlbpage.c
++++ b/arch/x86/mm/hugetlbpage.c
+@@ -16,6 +16,7 @@
+ #include <asm/tlb.h>
+ #include <asm/tlbflush.h>
+ #include <asm/pgalloc.h>
++#include <asm/mpx.h>
+ 
+ #if 0	/* This is just for testing */
+ struct page *
+@@ -83,24 +84,41 @@ static unsigned long hugetlb_get_unmapped_area_bottomup(struct file *file,
+ 	info.flags = 0;
+ 	info.length = len;
+ 	info.low_limit = current->mm->mmap_legacy_base;
+-	info.high_limit = TASK_SIZE;
++	info.high_limit = DEFAULT_MAP_WINDOW;
++
++	/*
++	 * If hint address is above DEFAULT_MAP_WINDOW, look for unmapped area
++	 * in the full address space.
++	 */
++	if (addr > DEFAULT_MAP_WINDOW)
++		info.high_limit = TASK_SIZE;
++	else
++		info.high_limit = DEFAULT_MAP_WINDOW;
++
+ 	info.align_mask = PAGE_MASK & ~huge_page_mask(h);
+ 	info.align_offset = 0;
+ 	return vm_unmapped_area(&info);
  }
  
- static void __init kmap_init(void)
-@@ -410,6 +416,7 @@ static void __init permanent_kmaps_init(pgd_t *pgd_base)
+ static unsigned long hugetlb_get_unmapped_area_topdown(struct file *file,
+-		unsigned long addr0, unsigned long len,
++		unsigned long addr, unsigned long len,
+ 		unsigned long pgoff, unsigned long flags)
  {
- 	unsigned long vaddr;
- 	pgd_t *pgd;
-+	p4d_t *p4d;
- 	pud_t *pud;
- 	pmd_t *pmd;
- 	pte_t *pte;
-@@ -418,7 +425,8 @@ static void __init permanent_kmaps_init(pgd_t *pgd_base)
- 	page_table_range_init(vaddr, vaddr + PAGE_SIZE*LAST_PKMAP, pgd_base);
+ 	struct hstate *h = hstate_file(file);
+ 	struct vm_unmapped_area_info info;
+-	unsigned long addr;
  
- 	pgd = swapper_pg_dir + pgd_index(vaddr);
--	pud = pud_offset(pgd, vaddr);
-+	p4d = p4d_offset(pgd, vaddr);
-+	pud = pud_offset(p4d, vaddr);
- 	pmd = pmd_offset(pud, vaddr);
- 	pte = pte_offset_kernel(pmd, vaddr);
- 	pkmap_page_table = pte;
-@@ -450,6 +458,7 @@ void __init native_pagetable_init(void)
- {
- 	unsigned long pfn, va;
- 	pgd_t *pgd, *base = swapper_pg_dir;
-+	p4d_t *p4d;
- 	pud_t *pud;
- 	pmd_t *pmd;
- 	pte_t *pte;
-@@ -469,7 +478,8 @@ void __init native_pagetable_init(void)
- 		if (!pgd_present(*pgd))
- 			break;
- 
--		pud = pud_offset(pgd, va);
-+		p4d = p4d_offset(pgd, va);
-+		pud = pud_offset(p4d, va);
- 		pmd = pmd_offset(pud, va);
- 		if (!pmd_present(*pmd))
- 			break;
-diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
-index 7aaa2635862d..a5e1cda85974 100644
---- a/arch/x86/mm/ioremap.c
-+++ b/arch/x86/mm/ioremap.c
-@@ -425,7 +425,8 @@ static inline pmd_t * __init early_ioremap_pmd(unsigned long addr)
- 	/* Don't assume we're using swapper_pg_dir at this point */
- 	pgd_t *base = __va(read_cr3());
- 	pgd_t *pgd = &base[pgd_index(addr)];
--	pud_t *pud = pud_offset(pgd, addr);
-+	p4d_t *p4d = p4d_offset(pgd, addr);
-+	pud_t *pud = pud_offset(p4d, addr);
- 	pmd_t *pmd = pmd_offset(pud, addr);
- 
- 	return pmd;
-diff --git a/arch/x86/mm/pgtable.c b/arch/x86/mm/pgtable.c
-index 6cbdff26bb96..38b6daf72deb 100644
---- a/arch/x86/mm/pgtable.c
-+++ b/arch/x86/mm/pgtable.c
-@@ -261,13 +261,15 @@ static void pgd_mop_up_pmds(struct mm_struct *mm, pgd_t *pgdp)
- 
- static void pgd_prepopulate_pmd(struct mm_struct *mm, pgd_t *pgd, pmd_t *pmds[])
- {
-+	p4d_t *p4d;
- 	pud_t *pud;
- 	int i;
- 
- 	if (PREALLOCATED_PMDS == 0) /* Work around gcc-3.4.x bug */
- 		return;
- 
--	pud = pud_offset(pgd, 0);
-+	p4d = p4d_offset(pgd, 0);
-+	pud = pud_offset(p4d, 0);
- 
- 	for (i = 0; i < PREALLOCATED_PMDS; i++, pud++) {
- 		pmd_t *pmd = pmds[i];
-diff --git a/arch/x86/mm/pgtable_32.c b/arch/x86/mm/pgtable_32.c
-index 9adce776852b..3d275a791c76 100644
---- a/arch/x86/mm/pgtable_32.c
-+++ b/arch/x86/mm/pgtable_32.c
-@@ -26,6 +26,7 @@ unsigned int __VMALLOC_RESERVE = 128 << 20;
- void set_pte_vaddr(unsigned long vaddr, pte_t pteval)
- {
- 	pgd_t *pgd;
-+	p4d_t *p4d;
- 	pud_t *pud;
- 	pmd_t *pmd;
- 	pte_t *pte;
-@@ -35,7 +36,12 @@ void set_pte_vaddr(unsigned long vaddr, pte_t pteval)
- 		BUG();
- 		return;
+ 	info.flags = VM_UNMAPPED_AREA_TOPDOWN;
+ 	info.length = len;
+ 	info.low_limit = PAGE_SIZE;
+ 	info.high_limit = current->mm->mmap_base;
++
++	/*
++	 * If hint address is above DEFAULT_MAP_WINDOW, look for unmapped area
++	 * in the full address space.
++	 */
++	if (addr > DEFAULT_MAP_WINDOW)
++		info.high_limit += TASK_SIZE - DEFAULT_MAP_WINDOW;
++
+ 	info.align_mask = PAGE_MASK & ~huge_page_mask(h);
+ 	info.align_offset = 0;
+ 	addr = vm_unmapped_area(&info);
+@@ -115,7 +133,7 @@ static unsigned long hugetlb_get_unmapped_area_topdown(struct file *file,
+ 		VM_BUG_ON(addr != -ENOMEM);
+ 		info.flags = 0;
+ 		info.low_limit = TASK_UNMAPPED_BASE;
+-		info.high_limit = TASK_SIZE;
++		info.high_limit = DEFAULT_MAP_WINDOW;
+ 		addr = vm_unmapped_area(&info);
  	}
--	pud = pud_offset(pgd, vaddr);
-+	p4d = p4d_offset(pgd, vaddr);
-+	if (p4d_none(*p4d)) {
-+		BUG();
-+		return;
-+	}
-+	pud = pud_offset(p4d, vaddr);
- 	if (pud_none(*pud)) {
- 		BUG();
- 		return;
-diff --git a/arch/x86/platform/efi/efi_64.c b/arch/x86/platform/efi/efi_64.c
-index a4695da42d77..8544dae3d1b4 100644
---- a/arch/x86/platform/efi/efi_64.c
-+++ b/arch/x86/platform/efi/efi_64.c
-@@ -166,6 +166,7 @@ void efi_sync_low_kernel_mappings(void)
- {
- 	unsigned num_entries;
- 	pgd_t *pgd_k, *pgd_efi;
-+	p4d_t *p4d_k, *p4d_efi;
- 	pud_t *pud_k, *pud_efi;
  
- 	if (efi_enabled(EFI_OLD_MEMMAP))
-@@ -197,16 +198,20 @@ void efi_sync_low_kernel_mappings(void)
- 	BUILD_BUG_ON((EFI_VA_END & ~PUD_MASK) != 0);
+@@ -132,6 +150,11 @@ hugetlb_get_unmapped_area(struct file *file, unsigned long addr,
  
- 	pgd_efi = efi_pgd + pgd_index(EFI_VA_END);
--	pud_efi = pud_offset(pgd_efi, 0);
-+	p4d_efi = p4d_offset(pgd_efi, 0);
-+	pud_efi = pud_offset(p4d_efi, 0);
+ 	if (len & ~huge_page_mask(h))
+ 		return -EINVAL;
++
++	addr = mpx_unmapped_area_check(addr, len, flags);
++	if (IS_ERR_VALUE(addr))
++		return addr;
++
+ 	if (len > TASK_SIZE)
+ 		return -ENOMEM;
  
- 	pgd_k = pgd_offset_k(EFI_VA_END);
--	pud_k = pud_offset(pgd_k, 0);
-+	p4d_k = p4d_offset(pgd_k, 0);
-+	pud_k = pud_offset(p4d_k, 0);
- 
- 	num_entries = pud_index(EFI_VA_END);
- 	memcpy(pud_efi, pud_k, sizeof(pud_t) * num_entries);
- 
--	pud_efi = pud_offset(pgd_efi, EFI_VA_START);
--	pud_k = pud_offset(pgd_k, EFI_VA_START);
-+	p4d_efi = p4d_offset(pgd_efi, EFI_VA_START);
-+	pud_efi = pud_offset(p4d_efi, EFI_VA_START);
-+	p4d_k = p4d_offset(pgd_k, EFI_VA_START);
-+	pud_k = pud_offset(p4d_k, EFI_VA_START);
- 
- 	num_entries = PTRS_PER_PUD - pud_index(EFI_VA_START);
- 	memcpy(pud_efi, pud_k, sizeof(pud_t) * num_entries);
-diff --git a/arch/x86/power/hibernate_32.c b/arch/x86/power/hibernate_32.c
-index 9f14bd34581d..c35fdb585c68 100644
---- a/arch/x86/power/hibernate_32.c
-+++ b/arch/x86/power/hibernate_32.c
-@@ -32,6 +32,7 @@ pgd_t *resume_pg_dir;
+diff --git a/arch/x86/mm/mmap.c b/arch/x86/mm/mmap.c
+index 7940166c799b..2fbfcabd098a 100644
+--- a/arch/x86/mm/mmap.c
++++ b/arch/x86/mm/mmap.c
+@@ -53,7 +53,7 @@ static unsigned long stack_maxrandom_size(void)
+  * Leave an at least ~128 MB hole with possible stack randomization.
   */
- static pmd_t *resume_one_md_table_init(pgd_t *pgd)
+ #define MIN_GAP (128*1024*1024UL + stack_maxrandom_size())
+-#define MAX_GAP (TASK_SIZE/6*5)
++#define MAX_GAP (DEFAULT_MAP_WINDOW/6*5)
+ 
+ static int mmap_is_legacy(void)
  {
-+	p4d_t *p4d;
- 	pud_t *pud;
- 	pmd_t *pmd_table;
+@@ -91,7 +91,7 @@ static unsigned long mmap_base(unsigned long rnd)
+ 	else if (gap > MAX_GAP)
+ 		gap = MAX_GAP;
  
-@@ -41,11 +42,13 @@ static pmd_t *resume_one_md_table_init(pgd_t *pgd)
- 		return NULL;
+-	return PAGE_ALIGN(TASK_SIZE - gap - rnd);
++	return PAGE_ALIGN(DEFAULT_MAP_WINDOW - gap - rnd);
+ }
  
- 	set_pgd(pgd, __pgd(__pa(pmd_table) | _PAGE_PRESENT));
--	pud = pud_offset(pgd, 0);
-+	p4d = p4d_offset(pgd, 0);
-+	pud = pud_offset(p4d, 0);
- 
- 	BUG_ON(pmd_table != pmd_offset(pud, 0));
- #else
--	pud = pud_offset(pgd, 0);
-+	p4d = p4d_offset(pgd, 0);
-+	pud = pud_offset(p4d, 0);
- 	pmd_table = pmd_offset(pud, 0);
- #endif
- 
+ /*
+diff --git a/arch/x86/mm/mpx.c b/arch/x86/mm/mpx.c
+index 5126dfd52b18..cc318817ce7c 100644
+--- a/arch/x86/mm/mpx.c
++++ b/arch/x86/mm/mpx.c
+@@ -355,10 +355,19 @@ int mpx_enable_management(void)
+ 	 */
+ 	bd_base = mpx_get_bounds_dir();
+ 	down_write(&mm->mmap_sem);
++
++	/* MPX doesn't support addresses above 47-bits yet. */
++	if (find_vma(mm, DEFAULT_MAP_WINDOW)) {
++		pr_warn_once("%s (%d): MPX cannot handle addresses "
++				"above 47-bits. Disabling.",
++				current->comm, current->pid);
++		ret = -ENXIO;
++		goto out;
++	}
+ 	mm->context.bd_addr = bd_base;
+ 	if (mm->context.bd_addr == MPX_INVALID_BOUNDS_DIR)
+ 		ret = -ENXIO;
+-
++out:
+ 	up_write(&mm->mmap_sem);
+ 	return ret;
+ }
+@@ -1038,3 +1047,25 @@ void mpx_notify_unmap(struct mm_struct *mm, struct vm_area_struct *vma,
+ 	if (ret)
+ 		force_sig(SIGSEGV, current);
+ }
++
++/* MPX cannot handle addresses above 47-bits yet. */
++unsigned long mpx_unmapped_area_check(unsigned long addr, unsigned long len,
++		unsigned long flags)
++{
++	if (!kernel_managing_mpx_tables(current->mm))
++		return addr;
++	if (addr + len <= DEFAULT_MAP_WINDOW)
++		return addr;
++	if (flags & MAP_FIXED)
++		return -ENOMEM;
++
++	/*
++	 * Requested len is larger than whole area we're allowed to map in.
++	 * Resetting hinting address wouldn't do much good -- fail early.
++	 */
++	if (len > DEFAULT_MAP_WINDOW)
++		return -ENOMEM;
++
++	/* Look for unmap area within DEFAULT_MAP_WINDOW */
++	return 0;
++}
 -- 
 2.11.0
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
