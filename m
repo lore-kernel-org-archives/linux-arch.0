@@ -1,39 +1,46 @@
-From: Eric Dumazet <edumazet@google.com>
-Subject: Re: [RFC PATCH] sock: add SO_RCVQUEUE_SIZE getsockopt
-Date: Mon, 13 Mar 2017 09:12:32 -0700
-Message-ID: <CANn89iJ21dhirFW2OdNqHWfOgq-EieVMm5ou9pZ7g2oUz=+bfA@mail.gmail.com>
-References: <1489420786-19547-1-git-send-email-johunt@akamai.com>
+From: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+Subject: Re: [PATCH v9 00/11] uapi: export all headers under uapi directories
+Date: Mon, 13 Mar 2017 17:57:17 +0100
+Message-ID: <96811b2b-25af-ed32-5094-14987aefd4d2@6wind.com>
+References: <20170301045241.GB9156@gondor.apana.org.au>
+ <1488473802-13354-1-git-send-email-nicolas.dichtel@6wind.com>
+ <3df45ecc-1aa0-a029-d7e5-2598f0908874@6wind.com>
+ <CAK7LNARpx7f0eV5_AiPmNYT7MsRbGFOygJwjfAzX_7aCpuHwuw@mail.gmail.com>
+Reply-To: nicolas.dichtel@6wind.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <netdev-owner@vger.kernel.org>
-In-Reply-To: <1489420786-19547-1-git-send-email-johunt@akamai.com>
-Sender: netdev-owner@vger.kernel.org
-To: Josh Hunt <johunt@akamai.com>
-Cc: David Miller <davem@davemloft.net>, Arnd Bergmann <arnd@arndb.de>, Soheil Hassas Yeganeh <soheil@google.com>, Willem de Bruijn <willemb@google.com>, Paolo Abeni <pabeni@redhat.com>, linux-arch@vger.kernel.org, netdev <netdev@vger.kernel.org>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CAK7LNARpx7f0eV5_AiPmNYT7MsRbGFOygJwjfAzX_7aCpuHwuw@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Masahiro Yamada <yamada.masahiro@socionext.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Michal Marek <mmarek@suse.com>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, David Airlie <airlied@linux.ie>, "David S. Miller" <davem@davemloft.net>, Russell King <linux@armlinux.org.uk>, bp@alien8.de, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, tklauser@distanz.ch, mpe@ellerman.id.au, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, ldv@altlinux.org, Herbert Xu <herbert@gondor.apana.org.au>, linux-rdma@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Mar 13, 2017 at 8:59 AM, Josh Hunt <johunt@akamai.com> wrote:
-> Allows application to read the amount of data sitting in the receive
-> queue.
->
-> Signed-off-by: Josh Hunt <johunt@akamai.com>
-> ---
->
-> A team here is looking for a way to get the amount of data in a UDP socket's
-> receive queue. It seems like this should be SIOCINQ, but for UDP sockets that
-> returns the size of the next pending datagram. I implemented the patch below,
-> but am wondering if this is the right place for this change? I was debating
-> between this or a new UDP ioctl.
+Le 11/03/2017 à 06:43, Masahiro Yamada a écrit :
+[snip]
+> 
+> I will take care of this.
+Thank you.
 
-But what is the 'amount of data' exactly ?
-Number of packets, amount of bytes to read from these packets ?
+> 
+> 
+> 
+>> kbuild tree has not been updated since two months (4.10-rc1) :/
+> 
+> Michal's tree is not active these days.
+Ok, I didn't know that.
 
-You chose to report kernel memory usage, which is not guaranteed to be
-the same among kernels versions (or kernel configs)
+> Going forward, I will queue up Kbuild patches in my repository.
+> 
+> 
+> 
+> BTW, this series does not apply cleanly.
+> 
+> If you could rebase it onto v4.11-rc1 tag,
+> it would be helpful.
+You really want this on top of 4.11-rc1 or the last linus tag, ie v4.11-rc2?
 
-If we export these internals, I would export the whole thing, like we
-did with netlink
 
-ie tweak sock_diag_put_meminfo() and export the SK_MEMINFO_VARS
-
-So that we avoid adding other options in the future.
+Regards,
+Nicolas
