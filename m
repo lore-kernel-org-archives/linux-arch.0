@@ -1,19 +1,19 @@
 From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH 21/26] x86/mm: add support of additional page table level
- during early boot
-Date: Mon, 13 Mar 2017 08:18:10 +0100
-Message-ID: <20170313071810.GA28726@gmail.com>
+Subject: Re: [PATCH 22/26] x86/mm: add sync_global_pgds() for configuration
+ with 5-level paging
+Date: Mon, 13 Mar 2017 08:22:27 +0100
+Message-ID: <20170313072227.GB28726@gmail.com>
 References: <20170313055020.69655-1-kirill.shutemov@linux.intel.com>
- <20170313055020.69655-22-kirill.shutemov@linux.intel.com>
+ <20170313055020.69655-23-kirill.shutemov@linux.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f194.google.com ([209.85.128.194]:33119 "EHLO
-        mail-wr0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750763AbdCMHSP (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Mar 2017 03:18:15 -0400
+Received: from mail-wm0-f68.google.com ([74.125.82.68]:35680 "EHLO
+        mail-wm0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750852AbdCMHWc (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Mar 2017 03:22:32 -0400
 Content-Disposition: inline
-In-Reply-To: <20170313055020.69655-22-kirill.shutemov@linux.intel.com>
+In-Reply-To: <20170313055020.69655-23-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
@@ -22,32 +22,43 @@ Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-fo
 
 * Kirill A. Shutemov <kirill.shutemov@linux.intel.com> wrote:
 
-> This patch adds support for 5-level paging during early boot.
-> It generalizes boot for 4- and 5-level paging on 64-bit systems with
-> compile-time switch between them.
-> 
-> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-> ---
->  arch/x86/boot/compressed/head_64.S          | 23 +++++++++--
->  arch/x86/include/asm/pgtable.h              |  2 +-
->  arch/x86/include/asm/pgtable_64.h           |  6 ++-
->  arch/x86/include/uapi/asm/processor-flags.h |  2 +
->  arch/x86/kernel/espfix_64.c                 |  2 +-
->  arch/x86/kernel/head64.c                    | 40 +++++++++++++-----
->  arch/x86/kernel/head_64.S                   | 63 +++++++++++++++++++++--------
+> This basically restores slightly modified version of original
+> sync_global_pgds() which we had before foldedl p4d was introduced.
 
-Ok, here I'd like to have a C version instead of further complicating an already 
-complex assembly version...
+Please read your changelogs, I saw several typos/grammar mistakes in earlier 
+patches. The one here is:
 
-I.e. the existing setup code should be converted to C in one patch, and then 
-another patch should add 5-level paging support to the C code.
+	s/foldedl/folded
 
-See how this was done for the 32-bit setup code already:
+> +	for (address = start; address <= end && address >= start;
+> +			address += PGDIR_SIZE) {
 
-  5a7670ee23f2 x86/boot/32: Convert the 32-bit pgtable setup code from assembly to C
+Please don't address col80 checkpatch warnings by breaking the line in such an 
+ugly way! Find another method, or just leave it slightly longer than 80 cols.
 
-Also, please split it up into per boot path and topic, i.e. have a sparate patch 
-for the Xen bits, the KASAN bits, the kexec extension, etc.
+This one could probably be solved by:
+
+	s/address/addr
+
+... which is the canonical variable name for such iterations anyway.
+
+> +			/* the pgt_lock only for Xen */
+
+Please use whole sentences in comments, and please capitalize them properly.
+
+I.e. here:
+
+
+			/* We acquire the pgt_lock only for Xen: */
+
+> +				BUG_ON(pgd_page_vaddr(*pgd)
+> +						!= pgd_page_vaddr(*pgd_ref));
+
+Ugly col80 artifact ...
+
+Please review the rest of the series for similar patterns as well, and please only 
+post 5-10 patches in the next submission - we'll review and apply them step by 
+step.
 
 Thanks,
 
