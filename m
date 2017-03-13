@@ -1,57 +1,34 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [RFC PATCH] sock: add SO_RCVQUEUE_SIZE getsockopt
-Date: Mon, 13 Mar 2017 12:39:33 -0700 (PDT)
-Message-ID: <20170313.123933.1813218797817423920.davem@davemloft.net>
-References: <1489420786-19547-1-git-send-email-johunt@akamai.com>
-        <CANn89iJ21dhirFW2OdNqHWfOgq-EieVMm5ou9pZ7g2oUz=+bfA@mail.gmail.com>
-        <522a2e2d-c288-7019-3f12-2b624d6aa921@akamai.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCH 0/6] x86: 5-level paging enabling for v4.12, Part 1
+Date: Mon, 13 Mar 2017 12:46:26 -0700
+Message-ID: <CA+55aFzo95ZYAW-M1uPp0Q0CJUVbc-FTCZuJQ-TtjL6S+E7hKg@mail.gmail.com>
+References: <20170313143309.16020-1-kirill.shutemov@linux.intel.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([184.105.139.130]:54606 "EHLO
-        shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751882AbdCMTje (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Mar 2017 15:39:34 -0400
-In-Reply-To: <522a2e2d-c288-7019-3f12-2b624d6aa921@akamai.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: johunt@akamai.com
-Cc: edumazet@google.com, arnd@arndb.de, soheil@google.com, willemb@google.com, pabeni@redhat.com, linux-arch@vger.kernel.org, netdev@vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20170313143309.16020-1-kirill.shutemov@linux.intel.com>
+Sender: owner-linux-mm@kvack.org
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, the arch/x86 maintainers <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, Michal Hocko <mhocko@suse.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-From: Josh Hunt <johunt@akamai.com>
-Date: Mon, 13 Mar 2017 12:38:39 -0500
+On Mon, Mar 13, 2017 at 7:33 AM, Kirill A. Shutemov
+<kirill.shutemov@linux.intel.com> wrote:
+> Here's the first bunch of patches of 5-level patchset. Let's see if I'm on
+> right track addressing Ingo's feedback. :)
 
-> On 03/13/2017 11:12 AM, Eric Dumazet wrote:
->> On Mon, Mar 13, 2017 at 8:59 AM, Josh Hunt <johunt@akamai.com> wrote:
->>> Allows application to read the amount of data sitting in the receive
->>> queue.
->>>
->>> Signed-off-by: Josh Hunt <johunt@akamai.com>
->>> ---
->>>
->>> A team here is looking for a way to get the amount of data in a UDP
->>> socket's
->>> receive queue. It seems like this should be SIOCINQ, but for UDP
->>> sockets that
->>> returns the size of the next pending datagram. I implemented the patch
->>> below,
->>> but am wondering if this is the right place for this change? I was
->>> debating
->>> between this or a new UDP ioctl.
->>
->> But what is the 'amount of data' exactly ?
->> Number of packets, amount of bytes to read from these packets ?
-> 
-> I meant bytes. I will clarify in the next version.
+Considering the bug we just had with the HAVE_GENERIC_RCU_GUP code,
+I'm wondering if people would be willing to look at what it would take
+to make x86 use the generic version?
 
-As Eric is hinting, the calculation you are using doesn't represent
-this.
+The x86 version of __get_user_pages_fast() seems to be quite similar
+to the generic one. And it would be lovely if all the main
+architectures shared the same core gup code.
 
-You need to do something like walk the receive queue and add the
-skb->len values together.
+                   Linus
 
-sk->sk_rmem_alloc is usually much larger than the sum of the skb->len
-values in the socket receive queue.  I don't see how this culmination
-of skb->truesize values is useful, whereas I can see how an application
-could want the summation of the skb->len values.
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
