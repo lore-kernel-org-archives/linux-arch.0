@@ -1,114 +1,92 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga03.intel.com ([134.134.136.65]:39555 "EHLO mga03.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751119AbdCMFvq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 13 Mar 2017 01:51:46 -0400
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 18/26] x86/dump_pagetables: support 5-level paging
-Date: Mon, 13 Mar 2017 08:50:12 +0300
-Message-ID: <20170313055020.69655-19-kirill.shutemov@linux.intel.com>
-In-Reply-To: <20170313055020.69655-1-kirill.shutemov@linux.intel.com>
+Received: from mail-wm0-f65.google.com ([74.125.82.65]:36032 "EHLO
+        mail-wm0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750961AbdCMHtR (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Mar 2017 03:49:17 -0400
+Date: Mon, 13 Mar 2017 08:49:12 +0100
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH 00/26] x86: 5-level paging enabling for v4.12
+Message-ID: <20170313074912.GA4651@gmail.com>
 References: <20170313055020.69655-1-kirill.shutemov@linux.intel.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20170313055020.69655-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, Michal Hocko <mhocko@suse.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20170313055012.f9xsIio-nZcJkMwPiN29FgOYAZ3eQ-6PFRU2eTBgsLY@z>
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, Michal Hocko <mhocko@suse.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+Message-ID: <20170313074912.rC_WKeVmZaqWrRNiRqKytRDf4I5NuMaIQdDu50YdqG0@z>
 
-Simple extension to support one more page table level.
 
-Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
----
- arch/x86/mm/dump_pagetables.c | 49 ++++++++++++++++++++++++++++++++++++-------
- 1 file changed, 42 insertions(+), 7 deletions(-)
+* Kirill A. Shutemov <kirill.shutemov@linux.intel.com> wrote:
 
-diff --git a/arch/x86/mm/dump_pagetables.c b/arch/x86/mm/dump_pagetables.c
-index 58b5bee7ea27..0effac6989cd 100644
---- a/arch/x86/mm/dump_pagetables.c
-+++ b/arch/x86/mm/dump_pagetables.c
-@@ -110,7 +110,8 @@ static struct addr_marker address_markers[] = {
- #define PTE_LEVEL_MULT (PAGE_SIZE)
- #define PMD_LEVEL_MULT (PTRS_PER_PTE * PTE_LEVEL_MULT)
- #define PUD_LEVEL_MULT (PTRS_PER_PMD * PMD_LEVEL_MULT)
--#define PGD_LEVEL_MULT (PTRS_PER_PUD * PUD_LEVEL_MULT)
-+#define P4D_LEVEL_MULT (PTRS_PER_PUD * PUD_LEVEL_MULT)
-+#define PGD_LEVEL_MULT (PTRS_PER_PUD * P4D_LEVEL_MULT)
- 
- #define pt_dump_seq_printf(m, to_dmesg, fmt, args...)		\
- ({								\
-@@ -347,7 +348,7 @@ static bool pud_already_checked(pud_t *prev_pud, pud_t *pud, bool checkwx)
- 	return checkwx && prev_pud && (pud_val(*prev_pud) == pud_val(*pud));
- }
- 
--static void walk_pud_level(struct seq_file *m, struct pg_state *st, pgd_t addr,
-+static void walk_pud_level(struct seq_file *m, struct pg_state *st, p4d_t addr,
- 							unsigned long P)
- {
- 	int i;
-@@ -355,7 +356,7 @@ static void walk_pud_level(struct seq_file *m, struct pg_state *st, pgd_t addr,
- 	pgprotval_t prot;
- 	pud_t *prev_pud = NULL;
- 
--	start = (pud_t *) pgd_page_vaddr(addr);
-+	start = (pud_t *) p4d_page_vaddr(addr);
- 
- 	for (i = 0; i < PTRS_PER_PUD; i++) {
- 		st->current_address = normalize_addr(P + i * PUD_LEVEL_MULT);
-@@ -377,9 +378,43 @@ static void walk_pud_level(struct seq_file *m, struct pg_state *st, pgd_t addr,
- }
- 
- #else
--#define walk_pud_level(m,s,a,p) walk_pmd_level(m,s,__pud(pgd_val(a)),p)
--#define pgd_large(a) pud_large(__pud(pgd_val(a)))
--#define pgd_none(a)  pud_none(__pud(pgd_val(a)))
-+#define walk_pud_level(m,s,a,p) walk_pmd_level(m,s,__pud(p4d_val(a)),p)
-+#define p4d_large(a) pud_large(__pud(p4d_val(a)))
-+#define p4d_none(a)  pud_none(__pud(p4d_val(a)))
-+#endif
-+
-+#if PTRS_PER_P4D > 1
-+
-+static void walk_p4d_level(struct seq_file *m, struct pg_state *st, pgd_t addr,
-+							unsigned long P)
-+{
-+	int i;
-+	p4d_t *start;
-+	pgprotval_t prot;
-+
-+	start = (p4d_t *) pgd_page_vaddr(addr);
-+
-+	for (i = 0; i < PTRS_PER_P4D; i++) {
-+		st->current_address = normalize_addr(P + i * P4D_LEVEL_MULT);
-+		if (!p4d_none(*start)) {
-+			if (p4d_large(*start) || !p4d_present(*start)) {
-+				prot = p4d_flags(*start);
-+				note_page(m, st, __pgprot(prot), 2);
-+			} else {
-+				walk_pud_level(m, st, *start,
-+					       P + i * P4D_LEVEL_MULT);
-+			}
-+		} else
-+			note_page(m, st, __pgprot(0), 2);
-+
-+		start++;
-+	}
-+}
-+
-+#else
-+#define walk_p4d_level(m,s,a,p) walk_pud_level(m,s,__p4d(pgd_val(a)),p)
-+#define pgd_large(a) p4d_large(__p4d(pgd_val(a)))
-+#define pgd_none(a)  p4d_none(__p4d(pgd_val(a)))
- #endif
- 
- static inline bool is_hypervisor_range(int idx)
-@@ -424,7 +459,7 @@ static void ptdump_walk_pgd_level_core(struct seq_file *m, pgd_t *pgd,
- 				prot = pgd_flags(*start);
- 				note_page(m, &st, __pgprot(prot), 1);
- 			} else {
--				walk_pud_level(m, &st, *start,
-+				walk_p4d_level(m, &st, *start,
- 					       i * PGD_LEVEL_MULT);
- 			}
- 		} else
--- 
-2.11.0
+> Kirill A. Shutemov (26):
+>   x86: basic changes into headers for 5-level paging
+>   x86: trivial portion of 5-level paging conversion
+>   x86/gup: add 5-level paging support
+>   x86/ident_map: add 5-level paging support
+>   x86/mm: add support of p4d_t in vmalloc_fault()
+>   x86/power: support p4d_t in hibernate code
+>   x86/kexec: support p4d_t
+>   x86/efi: handle p4d in EFI pagetables
+>   x86/mm/pat: handle additional page table
+>   x86/kasan: prepare clear_pgds() to switch to
+>     <asm-generic/pgtable-nop4d.h>
+>   x86/xen: convert __xen_pgd_walk() and xen_cleanmfnmap() to support p4d
+>   x86: convert the rest of the code to support p4d_t
+>   x86: detect 5-level paging support
+>   x86/asm: remove __VIRTUAL_MASK_SHIFT==47 assert
+>   x86/mm: define virtual memory map for 5-level paging
+>   x86/paravirt: make paravirt code support 5-level paging
+>   x86/mm: basic defines/helpers for CONFIG_X86_5LEVEL
+>   x86/dump_pagetables: support 5-level paging
+>   x86/kasan: extend to support 5-level paging
+>   x86/espfix: support 5-level paging
+>   x86/mm: add support of additional page table level during early boot
+>   x86/mm: add sync_global_pgds() for configuration with 5-level paging
+>   x86/mm: make kernel_physical_mapping_init() support 5-level paging
+>   x86/mm: add support for 5-level paging for KASLR
+>   x86: enable 5-level paging support
+>   x86/mm: allow to have userspace mappings above 47-bits
+
+Since we are cleaning up the series anyway, please fix the patch titles as well:
+
+ - Please try to find the proper subsystem marker instead of a generic 'x86: ' 
+   prefix. For example:
+
+      x86: basic changes into headers for 5-level paging
+
+   ... can be prefixed with "x86/headers: ..." or "x86/mm: ..."
+
+ - Please always start the titles with verbs, to make it easy to parse 
+   shortlogs and git oneliner logs quickly. I.e. instead of:
+
+      x86: basic changes into headers for 5-level paging
+
+   Use something like:
+
+      x86/mm: Apply basic changes into headers for 5-level paging
+
+ - Please capitalize them consistently, i.e. "x86/subsystem: Verb ...", with the 
+   verb in upper case.
+
+ - Also, please _read_ the titles and the changelogs, for example "basic changes 
+   into headers" is not a valid, easy to parse English sentence...
+
+I.e. applying all these 4 principles to the first line turns it from:
+
+      x86: basic changes into headers for 5-level paging
+
+... into something much more informative and easier to read:
+
+      x86/mm: Extend headers with basic definitions to support 5-level paging
+
+Please do this for all the other patches as well - almost all of them have one 
+deficiency or some other, several have multiple such deficiencnies.
+
+Ok?
+
+Thanks,
+
+	Ingo
