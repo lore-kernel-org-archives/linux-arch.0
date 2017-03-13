@@ -1,102 +1,46 @@
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 07/26] x86/kexec: support p4d_t
-Date: Mon, 13 Mar 2017 08:50:01 +0300
-Message-ID: <20170313055020.69655-8-kirill.shutemov@linux.intel.com>
+Subject: [PATCH 10/26] x86/kasan: prepare clear_pgds() to switch to <asm-generic/pgtable-nop4d.h>
+Date: Mon, 13 Mar 2017 08:50:04 +0300
+Message-ID: <20170313055020.69655-11-kirill.shutemov@linux.intel.com>
 References: <20170313055020.69655-1-kirill.shutemov@linux.intel.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <20170313055020.69655-1-kirill.shutemov@linux.intel.com>
 Sender: owner-linux-mm@kvack.org
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, Michal Hocko <mhocko@suse.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, Michal Hocko <mhocko@suse.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Dmitry Vyukov <dvyukov@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-Handle additional page table level in kexec code.
+With folded p4d, pgd_clear() is nop. Change clear_pgds() to use
+p4d_clear() instead.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+Cc: Dmitry Vyukov <dvyukov@google.com>
 ---
- arch/x86/include/asm/kexec.h       |  1 +
- arch/x86/kernel/machine_kexec_32.c |  4 +++-
- arch/x86/kernel/machine_kexec_64.c | 14 ++++++++++++--
- 3 files changed, 16 insertions(+), 3 deletions(-)
+ arch/x86/mm/kasan_init_64.c | 11 +++++++++--
+ 1 file changed, 9 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/include/asm/kexec.h b/arch/x86/include/asm/kexec.h
-index 282630e4c6ea..70ef205489f0 100644
---- a/arch/x86/include/asm/kexec.h
-+++ b/arch/x86/include/asm/kexec.h
-@@ -164,6 +164,7 @@ struct kimage_arch {
- };
- #else
- struct kimage_arch {
-+	p4d_t *p4d;
- 	pud_t *pud;
- 	pmd_t *pmd;
- 	pte_t *pte;
-diff --git a/arch/x86/kernel/machine_kexec_32.c b/arch/x86/kernel/machine_kexec_32.c
-index 469b23d6acc2..5f43cec296c5 100644
---- a/arch/x86/kernel/machine_kexec_32.c
-+++ b/arch/x86/kernel/machine_kexec_32.c
-@@ -103,6 +103,7 @@ static void machine_kexec_page_table_set_one(
- 	pgd_t *pgd, pmd_t *pmd, pte_t *pte,
- 	unsigned long vaddr, unsigned long paddr)
+diff --git a/arch/x86/mm/kasan_init_64.c b/arch/x86/mm/kasan_init_64.c
+index 8d63d7a104c3..733f8ba6a01f 100644
+--- a/arch/x86/mm/kasan_init_64.c
++++ b/arch/x86/mm/kasan_init_64.c
+@@ -32,8 +32,15 @@ static int __init map_range(struct range *range)
+ static void __init clear_pgds(unsigned long start,
+ 			unsigned long end)
  {
-+	p4d_t *p4d;
- 	pud_t *pud;
- 
- 	pgd += pgd_index(vaddr);
-@@ -110,7 +111,8 @@ static void machine_kexec_page_table_set_one(
- 	if (!(pgd_val(*pgd) & _PAGE_PRESENT))
- 		set_pgd(pgd, __pgd(__pa(pmd) | _PAGE_PRESENT));
- #endif
--	pud = pud_offset(pgd, vaddr);
-+	p4d = p4d_offset(pgd, vaddr);
-+	pud = pud_offset(p4d, vaddr);
- 	pmd = pmd_offset(pud, vaddr);
- 	if (!(pmd_val(*pmd) & _PAGE_PRESENT))
- 		set_pmd(pmd, __pmd(__pa(pte) | _PAGE_TABLE));
-diff --git a/arch/x86/kernel/machine_kexec_64.c b/arch/x86/kernel/machine_kexec_64.c
-index 857cdbd02867..085c3b300d32 100644
---- a/arch/x86/kernel/machine_kexec_64.c
-+++ b/arch/x86/kernel/machine_kexec_64.c
-@@ -36,6 +36,7 @@ static struct kexec_file_ops *kexec_file_loaders[] = {
- 
- static void free_transition_pgtable(struct kimage *image)
- {
-+	free_page((unsigned long)image->arch.p4d);
- 	free_page((unsigned long)image->arch.pud);
- 	free_page((unsigned long)image->arch.pmd);
- 	free_page((unsigned long)image->arch.pte);
-@@ -43,6 +44,7 @@ static void free_transition_pgtable(struct kimage *image)
- 
- static int init_transition_pgtable(struct kimage *image, pgd_t *pgd)
- {
-+	p4d_t *p4d;
- 	pud_t *pud;
- 	pmd_t *pmd;
- 	pte_t *pte;
-@@ -53,13 +55,21 @@ static int init_transition_pgtable(struct kimage *image, pgd_t *pgd)
- 	paddr = __pa(page_address(image->control_code_page)+PAGE_SIZE);
- 	pgd += pgd_index(vaddr);
- 	if (!pgd_present(*pgd)) {
-+		p4d = (p4d_t *)get_zeroed_page(GFP_KERNEL);
-+		if (!p4d)
-+			goto err;
-+		image->arch.p4d = p4d;
-+		set_pgd(pgd, __pgd(__pa(p4d) | _KERNPG_TABLE));
+-	for (; start < end; start += PGDIR_SIZE)
+-		pgd_clear(pgd_offset_k(start));
++	pgd_t *pgd;
++
++	for (; start < end; start += PGDIR_SIZE) {
++		pgd = pgd_offset_k(start);
++		if (CONFIG_PGTABLE_LEVELS < 5)
++			p4d_clear(p4d_offset(pgd, start));
++		else
++			pgd_clear(pgd);
 +	}
-+	p4d = p4d_offset(pgd, vaddr);
-+	if (!p4d_present(*p4d)) {
- 		pud = (pud_t *)get_zeroed_page(GFP_KERNEL);
- 		if (!pud)
- 			goto err;
- 		image->arch.pud = pud;
--		set_pgd(pgd, __pgd(__pa(pud) | _KERNPG_TABLE));
-+		set_p4d(p4d, __p4d(__pa(pud) | _KERNPG_TABLE));
- 	}
--	pud = pud_offset(pgd, vaddr);
-+	pud = pud_offset(p4d, vaddr);
- 	if (!pud_present(*pud)) {
- 		pmd = (pmd_t *)get_zeroed_page(GFP_KERNEL);
- 		if (!pmd)
+ }
+ 
+ static void __init kasan_map_early_shadow(pgd_t *pgd)
 -- 
 2.11.0
 
