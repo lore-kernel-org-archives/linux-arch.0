@@ -1,7 +1,7 @@
-From: Michal Hocko <mhocko@kernel.org>
+From: Mark Rutland <mark.rutland@arm.com>
 Subject: Re: [PATCH] mm, gup: fix typo in gup_p4d_range()
-Date: Mon, 13 Mar 2017 09:44:29 +0100
-Message-ID: <20170313084429.GB31518@dhcp22.suse.cz>
+Date: Mon, 13 Mar 2017 14:16:04 +0000
+Message-ID: <20170313141603.GA10026@leverpostej>
 References: <20170313052213.11411-1-kirill.shutemov@linux.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -10,20 +10,15 @@ Content-Disposition: inline
 In-Reply-To: <20170313052213.11411-1-kirill.shutemov@linux.intel.com>
 Sender: owner-linux-mm@kvack.org
 To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Michal Hocko <mhocko@suse.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Mon 13-03-17 08:22:13, Kirill A. Shutemov wrote:
+On Mon, Mar 13, 2017 at 08:22:13AM +0300, Kirill A. Shutemov wrote:
 > gup_p4d_range() should call gup_pud_range(), not itself.
 > 
 > Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 > Reported-by: Chris Packham <chris.packham@alliedtelesis.co.nz>
 > Fixes: c2febafc6773 ("mm: convert generic code to 5-level paging")
-
-Upps, missed this one during the review. Thanks for catching that up
-
-Acked-by: Michal Hocko <mhocko@suse.com>
-
 > ---
 >  mm/gup.c | 2 +-
 >  1 file changed, 1 insertion(+), 1 deletion(-)
@@ -40,14 +35,19 @@ Acked-by: Michal Hocko <mhocko@suse.com>
 > +		} else if (!gup_pud_range(p4d, addr, next, write, pages, nr))
 >  			return 0;
 >  	} while (p4dp++, addr = next, addr != end);
->  
-> -- 
-> 2.11.0
-> 
 
--- 
-Michal Hocko
-SUSE Labs
+I just hit this on arm64, where the compiler was nice enough to warn me
+that something was amiss:
+
+mm/gup.c:1412:12: warning: 'gup_pud_range' defined but not used [-Wunused-function]
+ static int gup_pud_range(p4d_t p4d, unsigned long addr, unsigned long end,
+            ^
+
+FWIW:
+
+Acked-by: Mark Rutland <mark.rutland@arm.com>
+
+Mark.
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
