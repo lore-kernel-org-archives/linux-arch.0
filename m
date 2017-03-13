@@ -1,68 +1,73 @@
-From: Till Smejkal <till.smejkal@googlemail.com>
-Subject: Re: [RFC PATCH 11/13] mm/vas: Introduce VAS segments - shareable
- address space regions
-Date: Mon, 13 Mar 2017 15:45:36 -0700
-Message-ID: <20170313224536.saqdijtdayxwmlpz@arch-dev>
-References: <20170313222758.GB4033@bombadil.infradead.org>
+From: Josh Hunt <johunt@akamai.com>
+Subject: Re: [RFC PATCH] sock: add SO_RCVQUEUE_SIZE getsockopt
+Date: Mon, 13 Mar 2017 18:34:41 -0500
+Message-ID: <9f775c33-01f4-fbd8-4d4d-4ca67f0f6d3b@akamai.com>
+References: <1489420786-19547-1-git-send-email-johunt@akamai.com>
+ <CANn89iJ21dhirFW2OdNqHWfOgq-EieVMm5ou9pZ7g2oUz=+bfA@mail.gmail.com>
+ <522a2e2d-c288-7019-3f12-2b624d6aa921@akamai.com>
+ <20170313.123933.1813218797817423920.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-aio@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20170313222758.GB4033@bombadil.infradead.org>
-Sender: owner-linux-aio@kvack.org
-To: Matthew Wilcox <willy@infradead.org>
-Cc: Till Smejkal <till.smejkal@googlemail.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Steven Miao <realmz6@gmail.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, James Hogan <james.hogan@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalia>
+Content-Type: text/plain; charset=windows-1252; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <netdev-owner@vger.kernel.org>
+In-Reply-To: <20170313.123933.1813218797817423920.davem@davemloft.net>
+Sender: netdev-owner@vger.kernel.org
+To: David Miller <davem@davemloft.net>
+Cc: edumazet@google.com, arnd@arndb.de, soheil@google.com, willemb@google.com, pabeni@redhat.com, linux-arch@vger.kernel.org, netdev@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi Matthew,
+On 03/13/2017 02:39 PM, David Miller wrote:
+> From: Josh Hunt <johunt@akamai.com>
+> Date: Mon, 13 Mar 2017 12:38:39 -0500
+>
+>> On 03/13/2017 11:12 AM, Eric Dumazet wrote:
+>>> On Mon, Mar 13, 2017 at 8:59 AM, Josh Hunt <johunt@akamai.com> wrote:
+>>>> Allows application to read the amount of data sitting in the receive
+>>>> queue.
+>>>>
+>>>> Signed-off-by: Josh Hunt <johunt@akamai.com>
+>>>> ---
+>>>>
+>>>> A team here is looking for a way to get the amount of data in a UDP
+>>>> socket's
+>>>> receive queue. It seems like this should be SIOCINQ, but for UDP
+>>>> sockets that
+>>>> returns the size of the next pending datagram. I implemented the patch
+>>>> below,
+>>>> but am wondering if this is the right place for this change? I was
+>>>> debating
+>>>> between this or a new UDP ioctl.
+>>>
+>>> But what is the 'amount of data' exactly ?
+>>> Number of packets, amount of bytes to read from these packets ?
+>>
+>> I meant bytes. I will clarify in the next version.
+>
+> As Eric is hinting, the calculation you are using doesn't represent
+> this.
+>
+> You need to do something like walk the receive queue and add the
+> skb->len values together.
+>
+> sk->sk_rmem_alloc is usually much larger than the sum of the skb->len
+> values in the socket receive queue.  I don't see how this culmination
+> of skb->truesize values is useful, whereas I can see how an application
+> could want the summation of the skb->len values.
+>
 
-On Mon, 13 Mar 2017, Matthew Wilcox wrote:
-> On Mon, Mar 13, 2017 at 03:14:13PM -0700, Till Smejkal wrote:
-> > +/**
-> > + * Create a new VAS segment.
-> > + *
-> > + * @param[in] name:		The name of the new VAS segment.
-> > + * @param[in] start:		The address where the VAS segment begins.
-> > + * @param[in] end:		The address where the VAS segment ends.
-> > + * @param[in] mode:		The access rights for the VAS segment.
-> > + *
-> > + * @returns:			The VAS segment ID on success, -ERRNO otherwise.
-> > + **/
-> 
-> Please follow the kernel-doc conventions, as described in
-> Documentation/doc-guide/kernel-doc.rst.  Also, function documentation
-> goes with the implementation, not the declaration.
+In this particular case they really do want to know total # of bytes in 
+the receive queue, not the data bytes they can consume from an 
+application pov. The kernel currently only exposes this value through 
+netlink or /proc/net/udp from what I saw.
 
-Thank you for this pointer. I wasn't aware of this convention. I will change the
-patches accordingly.
+I believe Eric's suggestion in his previous mail was to export all of 
+these meminfo metrics via a single socket option call similar to how its 
+done in netlink. We could then use that for both call sites.
 
-> > +/**
-> > + * Get ID of the VAS segment belonging to a given name.
-> > + *
-> > + * @param[in] name:		The name of the VAS segment for which the ID
-> > + *				should be returned.
-> > + *
-> > + * @returns:			The VAS segment ID on success, -ERRNO
-> > + *				otherwise.
-> > + **/
-> > +extern int vas_seg_find(const char *name);
-> 
-> So ... segments have names, and IDs ... and access permissions ...
-> Why isn't this a special purpose filesystem?
+I agree that it would be useful to also have the data you and Eric are 
+suggesting exposed somewhere, the total # of skb->len bytes sitting in 
+the receive queue. I could add that as a second socket option.
 
-We also thought about this. However, we decided against implementing them as a
-special purpose filesystem, mainly because we could not think of a good way to
-represent a VAS/VAS segment in this file system (should they be represented rather as
-file or directory) and we weren't sure what a hierarchy in the filesystem would mean
-for the underlying address spaces. Hence we decided against it and rather used a
-combination of IDR and sysfs. However, I don't have any strong feelings and would
-also reimplement them as a special purpose filesystem if people rather like them to
-be one.
+Does this sound reasonable?
 
-Till
-
---
-To unsubscribe, send a message with 'unsubscribe linux-aio' in
-the body to majordomo@kvack.org.  For more info on Linux AIO,
-see: http://www.kvack.org/aio/
-Don't email: <a href=mailto:"aart@kvack.org">aart@kvack.org</a>
+Josh
