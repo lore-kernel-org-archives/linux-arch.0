@@ -1,70 +1,127 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga04.intel.com ([192.55.52.120]:18949 "EHLO mga04.intel.com"
+Received: from mga04.intel.com ([192.55.52.120]:11588 "EHLO mga04.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751000AbdCMFv3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 13 Mar 2017 01:51:29 -0400
+        id S1751109AbdCMFvp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 13 Mar 2017 01:51:45 -0400
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 19/26] x86/kasan: extend to support 5-level paging
-Date: Mon, 13 Mar 2017 08:50:13 +0300
-Message-ID: <20170313055020.69655-20-kirill.shutemov@linux.intel.com>
+Subject: [PATCH 23/26] x86/mm: make kernel_physical_mapping_init() support 5-level paging
+Date: Mon, 13 Mar 2017 08:50:17 +0300
+Message-ID: <20170313055020.69655-24-kirill.shutemov@linux.intel.com>
 In-Reply-To: <20170313055020.69655-1-kirill.shutemov@linux.intel.com>
 References: <20170313055020.69655-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, Michal Hocko <mhocko@suse.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170313055013.Ix5Z7OpSnw1to4ZyDMgaFTLG89DNSuBVc__TfpWbw9s@z>
+Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, Michal Hocko <mhocko@suse.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Message-ID: <20170313055017.nee6aQihuu1-Z75J9qTDA0ymuu5m4EXWWnOTRhAuoI4@z>
 
-This patch bring support for non-folded additional page table level.
+Properly populate addition pagetable level if CONFIG_X86_5LEVEL is
+enabled.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-Cc: Dmitry Vyukov <dvyukov@google.com
 ---
- arch/x86/mm/kasan_init_64.c | 18 ++++++++++++++++--
- 1 file changed, 16 insertions(+), 2 deletions(-)
+ arch/x86/mm/init_64.c | 71 ++++++++++++++++++++++++++++++++++++++++++++-------
+ 1 file changed, 62 insertions(+), 9 deletions(-)
 
-diff --git a/arch/x86/mm/kasan_init_64.c b/arch/x86/mm/kasan_init_64.c
-index 733f8ba6a01f..bcabc56e0dc4 100644
---- a/arch/x86/mm/kasan_init_64.c
-+++ b/arch/x86/mm/kasan_init_64.c
-@@ -50,8 +50,18 @@ static void __init kasan_map_early_shadow(pgd_t *pgd)
- 	unsigned long end = KASAN_SHADOW_END;
- 
- 	for (i = pgd_index(start); start < end; i++) {
--		pgd[i] = __pgd(__pa_nodebug(kasan_zero_pud)
--				| _KERNPG_TABLE);
-+		switch (CONFIG_PGTABLE_LEVELS) {
-+		case 4:
-+			pgd[i] = __pgd(__pa_nodebug(kasan_zero_pud) |
-+					_KERNPG_TABLE);
-+			break;
-+		case 5:
-+			pgd[i] = __pgd(__pa_nodebug(kasan_zero_p4d) |
-+					_KERNPG_TABLE);
-+			break;
-+		default:
-+			BUILD_BUG();
-+		}
- 		start += PGDIR_SIZE;
- 	}
+diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
+index 5ba99090dc3c..ef117a69f74e 100644
+--- a/arch/x86/mm/init_64.c
++++ b/arch/x86/mm/init_64.c
+@@ -622,6 +622,58 @@ phys_pud_init(pud_t *pud_page, unsigned long paddr, unsigned long paddr_end,
+ 	return paddr_last;
  }
-@@ -79,6 +89,7 @@ void __init kasan_early_init(void)
- 	pteval_t pte_val = __pa_nodebug(kasan_zero_page) | __PAGE_KERNEL;
- 	pmdval_t pmd_val = __pa_nodebug(kasan_zero_pte) | _KERNPG_TABLE;
- 	pudval_t pud_val = __pa_nodebug(kasan_zero_pmd) | _KERNPG_TABLE;
-+	p4dval_t p4d_val = __pa_nodebug(kasan_zero_pud) | _KERNPG_TABLE;
  
- 	for (i = 0; i < PTRS_PER_PTE; i++)
- 		kasan_zero_pte[i] = __pte(pte_val);
-@@ -89,6 +100,9 @@ void __init kasan_early_init(void)
- 	for (i = 0; i < PTRS_PER_PUD; i++)
- 		kasan_zero_pud[i] = __pud(pud_val);
- 
-+	for (i = 0; CONFIG_PGTABLE_LEVELS >= 5 && i < PTRS_PER_P4D; i++)
-+		kasan_zero_p4d[i] = __p4d(p4d_val);
++static unsigned long __meminit
++phys_p4d_init(p4d_t *p4d_page, unsigned long paddr, unsigned long paddr_end,
++	      unsigned long page_size_mask)
++{
++	unsigned long paddr_next, paddr_last = paddr_end;
++	unsigned long vaddr = (unsigned long)__va(paddr);
++	int i = p4d_index(vaddr);
 +
- 	kasan_map_early_shadow(early_level4_pgt);
- 	kasan_map_early_shadow(init_level4_pgt);
- }
++	if (!IS_ENABLED(CONFIG_X86_5LEVEL))
++		return phys_pud_init((pud_t *) p4d_page, paddr, paddr_end, page_size_mask);
++
++	for (; i < PTRS_PER_P4D; i++, paddr = paddr_next) {
++		p4d_t *p4d;
++		pud_t *pud;
++
++		vaddr = (unsigned long)__va(paddr);
++		p4d = p4d_page + p4d_index(vaddr);
++		paddr_next = (paddr & P4D_MASK) + P4D_SIZE;
++
++		if (paddr >= paddr_end) {
++			if (!after_bootmem &&
++			    !e820_any_mapped(paddr & P4D_MASK, paddr_next,
++					     E820_RAM) &&
++			    !e820_any_mapped(paddr & P4D_MASK, paddr_next,
++					     E820_RESERVED_KERN)) {
++				set_p4d(p4d, __p4d(0));
++			}
++			continue;
++		}
++
++		if (!p4d_none(*p4d)) {
++			pud = pud_offset(p4d, 0);
++			paddr_last = phys_pud_init(pud, paddr,
++					paddr_end,
++					page_size_mask);
++			__flush_tlb_all();
++			continue;
++		}
++
++		pud = alloc_low_page();
++		paddr_last = phys_pud_init(pud, paddr, paddr_end,
++					   page_size_mask);
++
++		spin_lock(&init_mm.page_table_lock);
++		p4d_populate(&init_mm, p4d, pud);
++		spin_unlock(&init_mm.page_table_lock);
++	}
++	__flush_tlb_all();
++
++	return paddr_last;
++}
++
+ /*
+  * Create page table mapping for the physical memory for specific physical
+  * addresses. The virtual and physical addresses have to be aligned on PMD level
+@@ -643,26 +695,27 @@ kernel_physical_mapping_init(unsigned long paddr_start,
+ 	for (; vaddr < vaddr_end; vaddr = vaddr_next) {
+ 		pgd_t *pgd = pgd_offset_k(vaddr);
+ 		p4d_t *p4d;
+-		pud_t *pud;
+ 
+ 		vaddr_next = (vaddr & PGDIR_MASK) + PGDIR_SIZE;
+ 
+-		BUILD_BUG_ON(pgd_none(*pgd));
+-		p4d = p4d_offset(pgd, vaddr);
+-		if (p4d_val(*p4d)) {
+-			pud = (pud_t *)p4d_page_vaddr(*p4d);
+-			paddr_last = phys_pud_init(pud, __pa(vaddr),
++		if (pgd_val(*pgd)) {
++			p4d = (p4d_t *)pgd_page_vaddr(*pgd);
++			paddr_last = phys_p4d_init(p4d, __pa(vaddr),
+ 						   __pa(vaddr_end),
+ 						   page_size_mask);
+ 			continue;
+ 		}
+ 
+-		pud = alloc_low_page();
+-		paddr_last = phys_pud_init(pud, __pa(vaddr), __pa(vaddr_end),
++		p4d = alloc_low_page();
++		paddr_last = phys_p4d_init(p4d, __pa(vaddr), __pa(vaddr_end),
+ 					   page_size_mask);
+ 
+ 		spin_lock(&init_mm.page_table_lock);
+-		p4d_populate(&init_mm, p4d, pud);
++		if (IS_ENABLED(CONFIG_X86_5LEVEL))
++			pgd_populate(&init_mm, pgd, p4d);
++		else
++			p4d_populate(&init_mm, p4d_offset(pgd, vaddr),
++					(pud_t *) p4d);
+ 		spin_unlock(&init_mm.page_table_lock);
+ 		pgd_changed = true;
+ 	}
 -- 
 2.11.0
