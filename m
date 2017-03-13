@@ -1,113 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:7410 "EHLO mga11.intel.com"
+Received: from mga06.intel.com ([134.134.136.31]:26334 "EHLO mga06.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753539AbdCMOdh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 13 Mar 2017 10:33:37 -0400
+        id S1750860AbdCMOeS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 13 Mar 2017 10:34:18 -0400
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 4/6] x86/ident_map: Add 5-level paging support
-Date: Mon, 13 Mar 2017 17:33:07 +0300
-Message-ID: <20170313143309.16020-5-kirill.shutemov@linux.intel.com>
+Subject: [PATCH 5/6] x86/vmalloc: Add 5-level paging support
+Date: Mon, 13 Mar 2017 17:33:08 +0300
+Message-ID: <20170313143309.16020-6-kirill.shutemov@linux.intel.com>
 In-Reply-To: <20170313143309.16020-1-kirill.shutemov@linux.intel.com>
 References: <20170313143309.16020-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, Michal Hocko <mhocko@suse.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20170313143307.shDOG0buzNEE13clsAXDpe2hHyzMPqejO-53elVnKpo@z>
+Message-ID: <20170313143308.XLwe_9BrzYzNjrBnZt2bOruRMBhGUjOMNFgf3MLJ0P0@z>
 
-Add additional page table level handing. It's mostly mechanical.
+Modify vmalloc_fault() to handle additional page table level.
 
-The only quirk is that with p4d folded, 'pgd' is equal to 'p4d' in
-kernel_ident_mapping_init(). pgd entry has to point pud page table in
-this case.
+With 4-level paging, copying happens on p4d level, as we have pgd_none()
+always false if p4d_t is folded.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
- arch/x86/mm/ident_map.c | 51 ++++++++++++++++++++++++++++++++++++++++++-------
- 1 file changed, 44 insertions(+), 7 deletions(-)
+ arch/x86/mm/fault.c | 27 ++++++++++++++++++++++++---
+ 1 file changed, 24 insertions(+), 3 deletions(-)
 
-diff --git a/arch/x86/mm/ident_map.c b/arch/x86/mm/ident_map.c
-index 4473cb4f8b90..1c3f166bd8c3 100644
---- a/arch/x86/mm/ident_map.c
-+++ b/arch/x86/mm/ident_map.c
-@@ -45,6 +45,34 @@ static int ident_pud_init(struct x86_mapping_info *info, pud_t *pud_page,
- 	return 0;
- }
- 
-+static int ident_p4d_init(struct x86_mapping_info *info, p4d_t *p4d_page,
-+			  unsigned long addr, unsigned long end)
-+{
-+	unsigned long next;
-+
-+	for (; addr < end; addr = next) {
-+		p4d_t *p4d = p4d_page + p4d_index(addr);
-+		pud_t *pud;
-+
-+		next = (addr & P4D_MASK) + P4D_SIZE;
-+		if (next > end)
-+			next = end;
-+
-+		if (p4d_present(*p4d)) {
-+			pud = pud_offset(p4d, 0);
-+			ident_pud_init(info, pud, addr, next);
-+			continue;
-+		}
-+		pud = (pud_t *)info->alloc_pgt_page(info->context);
-+		if (!pud)
-+			return -ENOMEM;
-+		ident_pud_init(info, pud, addr, next);
-+		set_p4d(p4d, __p4d(__pa(pud) | _KERNPG_TABLE));
-+	}
-+
-+	return 0;
-+}
-+
- int kernel_ident_mapping_init(struct x86_mapping_info *info, pgd_t *pgd_page,
- 			      unsigned long pstart, unsigned long pend)
+diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
+index 605fd5e8e048..1928ea02e182 100644
+--- a/arch/x86/mm/fault.c
++++ b/arch/x86/mm/fault.c
+@@ -435,6 +435,7 @@ void vmalloc_sync_all(void)
+ static noinline int vmalloc_fault(unsigned long address)
  {
-@@ -55,27 +83,36 @@ int kernel_ident_mapping_init(struct x86_mapping_info *info, pgd_t *pgd_page,
- 
- 	for (; addr < end; addr = next) {
- 		pgd_t *pgd = pgd_page + pgd_index(addr);
--		pud_t *pud;
-+		p4d_t *p4d;
- 
- 		next = (addr & PGDIR_MASK) + PGDIR_SIZE;
- 		if (next > end)
- 			next = end;
- 
- 		if (pgd_present(*pgd)) {
--			pud = pud_offset(pgd, 0);
--			result = ident_pud_init(info, pud, addr, next);
-+			p4d = p4d_offset(pgd, 0);
-+			result = ident_p4d_init(info, p4d, addr, next);
- 			if (result)
- 				return result;
- 			continue;
- 		}
- 
--		pud = (pud_t *)info->alloc_pgt_page(info->context);
--		if (!pud)
-+		p4d = (p4d_t *)info->alloc_pgt_page(info->context);
-+		if (!p4d)
- 			return -ENOMEM;
--		result = ident_pud_init(info, pud, addr, next);
-+		result = ident_p4d_init(info, p4d, addr, next);
- 		if (result)
- 			return result;
--		set_pgd(pgd, __pgd(__pa(pud) | _KERNPG_TABLE));
-+		if (IS_ENABLED(CONFIG_X86_5LEVEL)) {
-+			set_pgd(pgd, __pgd(__pa(p4d) | _KERNPG_TABLE));
-+		} else {
-+			/*
-+			 * With p4d folded, pgd is equal to p4d.
-+			 * pgd entry has to point pud page table in this case.
-+			 */
-+			pud_t *pud = pud_offset(p4d, 0);
-+			set_pgd(pgd, __pgd(__pa(pud) | _KERNPG_TABLE));
-+		}
+ 	pgd_t *pgd, *pgd_ref;
++	p4d_t *p4d, *p4d_ref;
+ 	pud_t *pud, *pud_ref;
+ 	pmd_t *pmd, *pmd_ref;
+ 	pte_t *pte, *pte_ref;
+@@ -458,17 +459,37 @@ static noinline int vmalloc_fault(unsigned long address)
+ 	if (pgd_none(*pgd)) {
+ 		set_pgd(pgd, *pgd_ref);
+ 		arch_flush_lazy_mmu_mode();
+-	} else {
++	} else if (CONFIG_PGTABLE_LEVELS > 4) {
++		/*
++		 * With folded p4d, pgd_none() is always false. So pgd may
++		 * point to empty page table entry and pgd_page_vaddr()
++		 * will return garbage.
++		 *
++		 * We will do the correct sanity check on p4d level.
++		 */
+ 		BUG_ON(pgd_page_vaddr(*pgd) != pgd_page_vaddr(*pgd_ref));
  	}
  
- 	return 0;
++	/* With 4-level paging, copying happens on p4d level. */
++	p4d = p4d_offset(pgd, address);
++	p4d_ref = p4d_offset(pgd_ref, address);
++	if (p4d_none(*p4d_ref))
++		return -1;
++
++	if (p4d_none(*p4d)) {
++		set_p4d(p4d, *p4d_ref);
++		arch_flush_lazy_mmu_mode();
++	} else {
++		BUG_ON(p4d_pfn(*p4d) != p4d_pfn(*p4d_ref));
++	}
++
+ 	/*
+ 	 * Below here mismatches are bugs because these lower tables
+ 	 * are shared:
+ 	 */
+ 
+-	pud = pud_offset(pgd, address);
+-	pud_ref = pud_offset(pgd_ref, address);
++	pud = pud_offset(p4d, address);
++	pud_ref = pud_offset(p4d_ref, address);
+ 	if (pud_none(*pud_ref))
+ 		return -1;
+ 
 -- 
 2.11.0
