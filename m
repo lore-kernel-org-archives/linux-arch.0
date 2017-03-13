@@ -1,53 +1,52 @@
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCH] mm, gup: fix typo in gup_p4d_range()
-Date: Mon, 13 Mar 2017 14:16:04 +0000
-Message-ID: <20170313141603.GA10026@leverpostej>
-References: <20170313052213.11411-1-kirill.shutemov@linux.intel.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Subject: [PATCH 0/6] x86: 5-level paging enabling for v4.12, Part 1
+Date: Mon, 13 Mar 2017 17:33:03 +0300
+Message-ID: <20170313143309.16020-1-kirill.shutemov@linux.intel.com>
 Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20170313052213.11411-1-kirill.shutemov@linux.intel.com>
 Sender: owner-linux-mm@kvack.org
-To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Michal Hocko <mhocko@suse.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, Michal Hocko <mhocko@suse.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Mar 13, 2017 at 08:22:13AM +0300, Kirill A. Shutemov wrote:
-> gup_p4d_range() should call gup_pud_range(), not itself.
-> 
-> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-> Reported-by: Chris Packham <chris.packham@alliedtelesis.co.nz>
-> Fixes: c2febafc6773 ("mm: convert generic code to 5-level paging")
-> ---
->  mm/gup.c | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
-> 
-> diff --git a/mm/gup.c b/mm/gup.c
-> index c74bad1bf6e8..04aa405350dc 100644
-> --- a/mm/gup.c
-> +++ b/mm/gup.c
-> @@ -1455,7 +1455,7 @@ static int gup_p4d_range(pgd_t pgd, unsigned long addr, unsigned long end,
->  			if (!gup_huge_pd(__hugepd(p4d_val(p4d)), addr,
->  					 P4D_SHIFT, next, write, pages, nr))
->  				return 0;
-> -		} else if (!gup_p4d_range(p4d, addr, next, write, pages, nr))
-> +		} else if (!gup_pud_range(p4d, addr, next, write, pages, nr))
->  			return 0;
->  	} while (p4dp++, addr = next, addr != end);
+Here's the first bunch of patches of 5-level patchset. Let's see if I'm on
+right track addressing Ingo's feedback. :)
 
-I just hit this on arm64, where the compiler was nice enough to warn me
-that something was amiss:
+These patches prepare x86 code to be switched from <asm-generic/5level-fixup>
+to <asm-generic/pgtable-nop4d.h>. It's a stepping stone for adding 5-level
+paging support.
 
-mm/gup.c:1412:12: warning: 'gup_pud_range' defined but not used [-Wunused-function]
- static int gup_pud_range(p4d_t p4d, unsigned long addr, unsigned long end,
-            ^
+Please review and consider applying.
 
-FWIW:
+Kirill A. Shutemov (6):
+  x86/mm: Extend headers with basic definitions to support 5-level
+    paging
+  x86/mm: Convert trivial cases of page table walk to 5-level paging
+  x86/gup: Add 5-level paging support
+  x86/ident_map: Add 5-level paging support
+  x86/vmalloc: Add 5-level paging support
+  x86/power: Add 5-level paging support
 
-Acked-by: Mark Rutland <mark.rutland@arm.com>
+ arch/x86/include/asm/pgtable-2level_types.h |  1 +
+ arch/x86/include/asm/pgtable-3level_types.h |  1 +
+ arch/x86/include/asm/pgtable.h              | 26 +++++++++---
+ arch/x86/include/asm/pgtable_64_types.h     |  1 +
+ arch/x86/include/asm/pgtable_types.h        | 30 ++++++++++++-
+ arch/x86/kernel/tboot.c                     |  6 ++-
+ arch/x86/kernel/vm86_32.c                   |  6 ++-
+ arch/x86/mm/fault.c                         | 66 +++++++++++++++++++++++++----
+ arch/x86/mm/gup.c                           | 33 ++++++++++++---
+ arch/x86/mm/ident_map.c                     | 51 +++++++++++++++++++---
+ arch/x86/mm/init_32.c                       | 22 +++++++---
+ arch/x86/mm/ioremap.c                       |  3 +-
+ arch/x86/mm/pgtable.c                       |  4 +-
+ arch/x86/mm/pgtable_32.c                    |  8 +++-
+ arch/x86/platform/efi/efi_64.c              | 13 ++++--
+ arch/x86/power/hibernate_32.c               |  7 ++-
+ arch/x86/power/hibernate_64.c               | 50 ++++++++++++++++------
+ 17 files changed, 269 insertions(+), 59 deletions(-)
 
-Mark.
+-- 
+2.11.0
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
