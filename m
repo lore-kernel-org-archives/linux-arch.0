@@ -1,52 +1,48 @@
-From: Till Smejkal <till.smejkal@googlemail.com>
-Subject: Re: [RFC PATCH 00/13] Introduce first class virtual address spaces
-Date: Mon, 13 Mar 2017 18:31:12 -0700
-Message-ID: <20170314013112.ofhcgg2stzoft5mw@arch-dev>
-References: <fa60d132-0eef-4350-3c88-1558f447a48f@twiddle.net>
+From: Eric Dumazet <eric.dumazet@gmail.com>
+Subject: Re: [RFC PATCH] sock: add SO_RCVQUEUE_SIZE getsockopt
+Date: Mon, 13 Mar 2017 18:31:27 -0700
+Message-ID: <1489455087.28631.107.camel@edumazet-glaptop3.roam.corp.google.com>
+References: <1489420786-19547-1-git-send-email-johunt@akamai.com>
+         <CANn89iJ21dhirFW2OdNqHWfOgq-EieVMm5ou9pZ7g2oUz=+bfA@mail.gmail.com>
+         <522a2e2d-c288-7019-3f12-2b624d6aa921@akamai.com>
+         <20170313.123933.1813218797817423920.davem@davemloft.net>
+         <9f775c33-01f4-fbd8-4d4d-4ca67f0f6d3b@akamai.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <fa60d132-0eef-4350-3c88-1558f447a48f@twiddle.net>
-Sender: owner-linux-mm@kvack.org
-To: Richard Henderson <rth@twiddle.net>
-Cc: Till Smejkal <till.smejkal@googlemail.com>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Steven Miao <realmz6@gmail.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, James Hogan <james.hogan@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pg0-f68.google.com ([74.125.83.68]:36732 "EHLO
+        mail-pg0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751769AbdCNBbb (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Mar 2017 21:31:31 -0400
+In-Reply-To: <9f775c33-01f4-fbd8-4d4d-4ca67f0f6d3b@akamai.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Josh Hunt <johunt@akamai.com>
+Cc: David Miller <davem@davemloft.net>, edumazet@google.com, arnd@arndb.de, soheil@google.com, willemb@google.com, pabeni@redhat.com, linux-arch@vger.kernel.org, netdev@vger.kernel.org
 
-On Tue, 14 Mar 2017, Richard Henderson wrote:
-> On 03/14/2017 10:39 AM, Till Smejkal wrote:
-> > > Is this an indication that full virtual address spaces are useless?  It
-> > > would seem like if you only use virtual address segments then you avoid all
-> > > of the problems with executing code, active stacks, and brk.
-> > 
-> > What do you mean with *virtual address segments*? The nice part of first class
-> > virtual address spaces is that one can share/reuse collections of address space
-> > segments easily.
+On Mon, 2017-03-13 at 18:34 -0500, Josh Hunt wrote:
+
+> In this particular case they really do want to know total # of bytes in 
+> the receive queue, not the data bytes they can consume from an 
+> application pov. The kernel currently only exposes this value through 
+> netlink or /proc/net/udp from what I saw.
 > 
-> What do *I* mean?  You introduced the term, didn't you?
-> Rereading your original I see you called them "VAS segments".
+> I believe Eric's suggestion in his previous mail was to export all of 
+> these meminfo metrics via a single socket option call similar to how its 
+> done in netlink. We could then use that for both call sites.
+> 
+> I agree that it would be useful to also have the data you and Eric are 
+> suggesting exposed somewhere, the total # of skb->len bytes sitting in 
+> the receive queue. I could add that as a second socket option.
 
-Oh, I am sorry. I thought that you were referring to some other feature that I don't
-know.
+Please note that UDP stack does not maintain a per socket sum(skb->len)
 
-> Anyway, whatever they are called, it would seem that these segments do not
-> require any of the syncing mechanisms that are causing you problems.
+Implementing this in a system call would require to lock the receive
+queue (blocking BH) and iterating over a potential huge skb list.
 
-Yes, VAS segments provide a possibility to share memory regions between multiple
-address spaces without the need to synchronize heap, stack, etc. Unfortunately, the
-VAS segment feature itself without the whole concept of first class virtual address
-spaces is not as powerful. With some additional work it can probably be represented
-with the existing shmem functionality.
+Or add a new socket field and add/sub every skb->len of packets
+added/removed to/from receive queue.
 
-The first class virtual address space feature on the other side provides a real
-benefit for applications in our opinion namely that an application can switch between
-different views on its memory which enables various interesting programming paradigms
-as mentioned in the cover letter.
-
-Till
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+So I would prefer to not provide this information, this looks quite a
+bloat.
