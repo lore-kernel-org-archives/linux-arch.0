@@ -1,48 +1,85 @@
-From: Eric Dumazet <eric.dumazet@gmail.com>
-Subject: Re: [RFC PATCH] sock: add SO_RCVQUEUE_SIZE getsockopt
-Date: Mon, 13 Mar 2017 18:31:27 -0700
-Message-ID: <1489455087.28631.107.camel@edumazet-glaptop3.roam.corp.google.com>
-References: <1489420786-19547-1-git-send-email-johunt@akamai.com>
-         <CANn89iJ21dhirFW2OdNqHWfOgq-EieVMm5ou9pZ7g2oUz=+bfA@mail.gmail.com>
-         <522a2e2d-c288-7019-3f12-2b624d6aa921@akamai.com>
-         <20170313.123933.1813218797817423920.davem@davemloft.net>
-         <9f775c33-01f4-fbd8-4d4d-4ca67f0f6d3b@akamai.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [RFC PATCH 10/13] mm: Introduce first class virtual address
+ spaces
+Date: Mon, 13 Mar 2017 18:35:27 -0700
+Message-ID: <cd1adda8-bf6a-47ad-bff3-5bc6626ac100@synopsys.com>
+References: <20170313221415.9375-1-till.smejkal@gmail.com>
+ <20170313221415.9375-11-till.smejkal@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset="windows-1252"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f68.google.com ([74.125.83.68]:36732 "EHLO
-        mail-pg0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751769AbdCNBbb (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Mar 2017 21:31:31 -0400
-In-Reply-To: <9f775c33-01f4-fbd8-4d4d-4ca67f0f6d3b@akamai.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Josh Hunt <johunt@akamai.com>
-Cc: David Miller <davem@davemloft.net>, edumazet@google.com, arnd@arndb.de, soheil@google.com, willemb@google.com, pabeni@redhat.com, linux-arch@vger.kernel.org, netdev@vger.kernel.org
+Return-path: <owner-linux-aio@kvack.org>
+In-Reply-To: <20170313221415.9375-11-till.smejkal@gmail.com>
+Sender: owner-linux-aio@kvack.org
+To: Till Smejkal <till.smejkal@googlemail.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Steven Miao <realmz6@gmail.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, James Hogan <james.hogan@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, "James E.J.  Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin  Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>
+Cc: linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, adi-buildroot-devel@lists.sourceforge.net, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-media@vger.kernel.org, linux-mtd@lists.infradead.org, linux-usb@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-mm@kvack.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, alsa-devel@alsa-project.org, Ingo Molnar <mingo@kernel.org>, Thomas
+ Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@amacapital.net>
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, 2017-03-13 at 18:34 -0500, Josh Hunt wrote:
++CC Ingo, tglx
 
-> In this particular case they really do want to know total # of bytes in 
-> the receive queue, not the data bytes they can consume from an 
-> application pov. The kernel currently only exposes this value through 
-> netlink or /proc/net/udp from what I saw.
+Hi Till,
+
+On 03/13/2017 03:14 PM, Till Smejkal wrote:
+> Introduce a different type of address spaces which are first class citizens
+> in the OS. That means that the kernel now handles two types of AS, those
+> which are closely coupled with a process and those which aren't. While the
+> former ones are created and destroyed together with the process by the
+> kernel and are the default type of AS in the Linux kernel, the latter ones
+> have to be managed explicitly by the user and are the newly introduced
+> type.
 > 
-> I believe Eric's suggestion in his previous mail was to export all of 
-> these meminfo metrics via a single socket option call similar to how its 
-> done in netlink. We could then use that for both call sites.
+> Accordingly, a first class AS (also called VAS == virtual address space)
+> can exist in the OS independently from any process. A user has to
+> explicitly create and destroy them in the system. Processes and VAS can be
+> combined by attaching a previously created VAS to a process which basically
+> adds an additional AS to the process that the process' threads are able to
+> execute in. Hence, VAS allow a process to have different views onto the
+> main memory of the system (its original AS and the attached VAS) between
+> which its threads can switch arbitrarily during their lifetime.
 > 
-> I agree that it would be useful to also have the data you and Eric are 
-> suggesting exposed somewhere, the total # of skb->len bytes sitting in 
-> the receive queue. I could add that as a second socket option.
+> The functionality made available through first class virtual address spaces
+> can be used in various different ways. One possible way to utilize VAS is
+> to compartmentalize a process for security reasons. Another possible usage
+> is to improve the performance of data-centric applications by being able to
+> manage different sets of data in memory without the need to map or unmap
+> them.
+> 
+> Furthermore, first class virtual address spaces can be attached to
+> different processes at the same time if the underlying memory is only
+> readable. This mechanism allows sharing of whole address spaces between
+> multiple processes that can both execute in them using the contained
+> memory.
 
-Please note that UDP stack does not maintain a per socket sum(skb->len)
+I've not looked at the patches closely (or read the references paper fully yet),
+but at first glance it seems on ARC architecture, we can can potentially
+use/leverage this mechanism to implement the shared TLB entries. Before anyone
+shouts these are not same as the IA64/x86 protection keys which allow TLB entries
+with different protection bits across processes etc. These TLB entries are
+actually *shared* by processes.
 
-Implementing this in a system call would require to lock the receive
-queue (blocking BH) and iterating over a potential huge skb list.
+Conceptually there's shared address spaces, independent of processes. e.g. ldso
+code is shared address space #1, libc (code) #2 .... System can support a limited
+number of shared addr spaces (say 64, enough for typical embedded sys).
 
-Or add a new socket field and add/sub every skb->len of packets
-added/removed to/from receive queue.
+While Normal TLB entries are tagged with ASID (Addr space ID) to keep them unique
+across processes, Shared TLB entries are tagged with Shared address space ID.
 
-So I would prefer to not provide this information, this looks quite a
-bloat.
+A process MMU context consists of ASID (a single number) and a SASID bitmap (to
+allow "subscription" to multiple Shared spaces. The subscriptions are set up bu
+userspace ld.so which knows about the libs process wants to map.
+
+The restriction ofcourse is that the spaces are mapped at *same* vaddr is all
+participating processes. I know this goes against whole security, address space
+randomization - but it gives much better real time performance. Why does each
+process need to take a MMU exception for libc code...
+
+So long story short - it seems there can be multiple uses of this infrastructure !
+
+-Vineet
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-aio' in
+the body to majordomo@kvack.org.  For more info on Linux AIO,
+see: http://www.kvack.org/aio/
+Don't email: <a href=mailto:"aart@kvack.org">aart@kvack.org</a>
