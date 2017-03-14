@@ -1,79 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from prod-mail-xrelay08.akamai.com ([96.6.114.112]:54748 "EHLO
-        prod-mail-xrelay08.akamai.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1751243AbdCMXep (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 13 Mar 2017 19:34:45 -0400
-Subject: Re: [RFC PATCH] sock: add SO_RCVQUEUE_SIZE getsockopt
-References: <1489420786-19547-1-git-send-email-johunt@akamai.com>
- <CANn89iJ21dhirFW2OdNqHWfOgq-EieVMm5ou9pZ7g2oUz=+bfA@mail.gmail.com>
- <522a2e2d-c288-7019-3f12-2b624d6aa921@akamai.com>
- <20170313.123933.1813218797817423920.davem@davemloft.net>
-From: Josh Hunt <johunt@akamai.com>
-Message-ID: <9f775c33-01f4-fbd8-4d4d-4ca67f0f6d3b@akamai.com>
-Date: Mon, 13 Mar 2017 18:34:41 -0500
+Received: from us01smtprelay-2.synopsys.com ([198.182.47.9]:42908 "EHLO
+        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751655AbdCNBg1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Mar 2017 21:36:27 -0400
+Subject: Re: [RFC PATCH 10/13] mm: Introduce first class virtual address
+ spaces
+References: <20170313221415.9375-1-till.smejkal@gmail.com>
+ <20170313221415.9375-11-till.smejkal@gmail.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Message-ID: <cd1adda8-bf6a-47ad-bff3-5bc6626ac100@synopsys.com>
+Date: Mon, 13 Mar 2017 18:35:27 -0700
 MIME-Version: 1.0
-In-Reply-To: <20170313.123933.1813218797817423920.davem@davemloft.net>
-Content-Type: text/plain; charset=windows-1252; format=flowed
+In-Reply-To: <20170313221415.9375-11-till.smejkal@gmail.com>
+Content-Type: text/plain; charset="windows-1252"
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
-Cc: edumazet@google.com, arnd@arndb.de, soheil@google.com, willemb@google.com, pabeni@redhat.com, linux-arch@vger.kernel.org, netdev@vger.kernel.org
-Message-ID: <20170313233441.5tEDXR_C2utl_IKMYgNvCqS_IJO9iKYqnssV0uftZ10@z>
+To: Till Smejkal <till.smejkal@googlemail.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Steven Miao <realmz6@gmail.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, James Hogan <james.hogan@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@synopsys.COM>
+Cc: linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, adi-buildroot-devel@lists.sourceforge.net, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-media@vger.kernel.org, linux-mtd@lists.infradead.org, linux-usb@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-mm@kvack.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, alsa-devel@alsa-project.org, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@amacapital.net>
+Message-ID: <20170314013527.MzNuHgNC-MI9v62GCtqTfznjB0EJ65fzgTzkiAKPqc4@z>
 
-On 03/13/2017 02:39 PM, David Miller wrote:
-> From: Josh Hunt <johunt@akamai.com>
-> Date: Mon, 13 Mar 2017 12:38:39 -0500
->
->> On 03/13/2017 11:12 AM, Eric Dumazet wrote:
->>> On Mon, Mar 13, 2017 at 8:59 AM, Josh Hunt <johunt@akamai.com> wrote:
->>>> Allows application to read the amount of data sitting in the receive
->>>> queue.
->>>>
->>>> Signed-off-by: Josh Hunt <johunt@akamai.com>
->>>> ---
->>>>
->>>> A team here is looking for a way to get the amount of data in a UDP
->>>> socket's
->>>> receive queue. It seems like this should be SIOCINQ, but for UDP
->>>> sockets that
->>>> returns the size of the next pending datagram. I implemented the patch
->>>> below,
->>>> but am wondering if this is the right place for this change? I was
->>>> debating
->>>> between this or a new UDP ioctl.
->>>
->>> But what is the 'amount of data' exactly ?
->>> Number of packets, amount of bytes to read from these packets ?
->>
->> I meant bytes. I will clarify in the next version.
->
-> As Eric is hinting, the calculation you are using doesn't represent
-> this.
->
-> You need to do something like walk the receive queue and add the
-> skb->len values together.
->
-> sk->sk_rmem_alloc is usually much larger than the sum of the skb->len
-> values in the socket receive queue.  I don't see how this culmination
-> of skb->truesize values is useful, whereas I can see how an application
-> could want the summation of the skb->len values.
->
++CC Ingo, tglx
 
-In this particular case they really do want to know total # of bytes in 
-the receive queue, not the data bytes they can consume from an 
-application pov. The kernel currently only exposes this value through 
-netlink or /proc/net/udp from what I saw.
+Hi Till,
 
-I believe Eric's suggestion in his previous mail was to export all of 
-these meminfo metrics via a single socket option call similar to how its 
-done in netlink. We could then use that for both call sites.
+On 03/13/2017 03:14 PM, Till Smejkal wrote:
+> Introduce a different type of address spaces which are first class citizens
+> in the OS. That means that the kernel now handles two types of AS, those
+> which are closely coupled with a process and those which aren't. While the
+> former ones are created and destroyed together with the process by the
+> kernel and are the default type of AS in the Linux kernel, the latter ones
+> have to be managed explicitly by the user and are the newly introduced
+> type.
+> 
+> Accordingly, a first class AS (also called VAS == virtual address space)
+> can exist in the OS independently from any process. A user has to
+> explicitly create and destroy them in the system. Processes and VAS can be
+> combined by attaching a previously created VAS to a process which basically
+> adds an additional AS to the process that the process' threads are able to
+> execute in. Hence, VAS allow a process to have different views onto the
+> main memory of the system (its original AS and the attached VAS) between
+> which its threads can switch arbitrarily during their lifetime.
+> 
+> The functionality made available through first class virtual address spaces
+> can be used in various different ways. One possible way to utilize VAS is
+> to compartmentalize a process for security reasons. Another possible usage
+> is to improve the performance of data-centric applications by being able to
+> manage different sets of data in memory without the need to map or unmap
+> them.
+> 
+> Furthermore, first class virtual address spaces can be attached to
+> different processes at the same time if the underlying memory is only
+> readable. This mechanism allows sharing of whole address spaces between
+> multiple processes that can both execute in them using the contained
+> memory.
 
-I agree that it would be useful to also have the data you and Eric are 
-suggesting exposed somewhere, the total # of skb->len bytes sitting in 
-the receive queue. I could add that as a second socket option.
+I've not looked at the patches closely (or read the references paper fully yet),
+but at first glance it seems on ARC architecture, we can can potentially
+use/leverage this mechanism to implement the shared TLB entries. Before anyone
+shouts these are not same as the IA64/x86 protection keys which allow TLB entries
+with different protection bits across processes etc. These TLB entries are
+actually *shared* by processes.
 
-Does this sound reasonable?
+Conceptually there's shared address spaces, independent of processes. e.g. ldso
+code is shared address space #1, libc (code) #2 .... System can support a limited
+number of shared addr spaces (say 64, enough for typical embedded sys).
 
-Josh
+While Normal TLB entries are tagged with ASID (Addr space ID) to keep them unique
+across processes, Shared TLB entries are tagged with Shared address space ID.
+
+A process MMU context consists of ASID (a single number) and a SASID bitmap (to
+allow "subscription" to multiple Shared spaces. The subscriptions are set up bu
+userspace ld.so which knows about the libs process wants to map.
+
+The restriction ofcourse is that the spaces are mapped at *same* vaddr is all
+participating processes. I know this goes against whole security, address space
+randomization - but it gives much better real time performance. Why does each
+process need to take a MMU exception for libc code...
+
+So long story short - it seems there can be multiple uses of this infrastructure !
+
+-Vineet
