@@ -1,55 +1,38 @@
-From: David Laight <David.Laight@ACULAB.COM>
-Subject: RE: [RFC PATCH 07/13] kernel/fork: Split and export 'mm_alloc' and
- 'mm_init'
-Date: Tue, 14 Mar 2017 10:18:03 +0000
-Message-ID: <063D6719AE5E284EB5DD2968C1650D6DCFFB03F4@AcuExch.aculab.com>
-References: <20170313221415.9375-1-till.smejkal@gmail.com>
- <20170313221415.9375-8-till.smejkal@gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="Windows-1252"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <owner-linux-aio@kvack.org>
-In-Reply-To: <20170313221415.9375-8-till.smejkal@gmail.com>
-Content-Language: en-US
-Sender: owner-linux-aio@kvack.org
-To: 'Till Smejkal' <till.smejkal@googlemail.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will
- Deacon <will.deacon@arm.com>, Steven Miao <realmz6@gmail.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, James Hogan <james.hogan@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@>
-Cc: "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, "alsa-devel@alsa-project.org" <alsa-devel@alsa-project.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, "linux-aio@kvack.org" <linux-aio@kvack.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-mtd@lists.infradead.org" <linux-mtd@lists.infradead.org>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, "linux-hexagon@vger.kernel.org" <linux-hexagon@vger.kernel.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "linux-media@vger.kernel.org" <linux-media@vger.kernel.org>, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>, "adi-buildroot-devel@lists.sourceforge.net" <adi-build>
-List-Id: linux-arch.vger.kernel.org
+From: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+Subject: [PATCH v10 02/11] nios2: put setup.h in uapi
+Date: Tue, 14 Mar 2017 13:54:44 +0100
+Message-ID: <1489496093-15315-3-git-send-email-nicolas.dichtel@6wind.com>
+References: <CAK7LNARpx7f0eV5_AiPmNYT7MsRbGFOygJwjfAzX_7aCpuHwuw@mail.gmail.com>
+ <1489496093-15315-1-git-send-email-nicolas.dichtel@6wind.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from host.76.145.23.62.rev.coltfrance.com ([62.23.145.76]:47395 "EHLO
+        proxy.6wind.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751129AbdCNMzN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Mar 2017 08:55:13 -0400
+In-Reply-To: <1489496093-15315-1-git-send-email-nicolas.dichtel@6wind.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: yamada.masahiro@socionext.com
+Cc: arnd@arndb.de, mmarek@suse.com, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, bp@alien8.de, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, tklauser@distanz.ch, mpe@ellerman.id.au, mingo@kernel.org, tglx@linutronix.de, ldv@altlinux.org, nicolas.dichtel@6wind.com, herbert@gondor.apana.org.au, linux-rdma@vger.kernel.org
 
-From: Linuxppc-dev Till Smejkal
-> Sent: 13 March 2017 22:14
-> The only way until now to create a new memory map was via the exported
-> function 'mm_alloc'. Unfortunately, this function not only allocates a ne=
-w
-> memory map, but also completely initializes it. However, with the
-> introduction of first class virtual address spaces, some initialization
-> steps done in 'mm_alloc' are not applicable to the memory maps needed for
-> this feature and hence would lead to errors in the kernel code.
->=20
-> Instead of introducing a new function that can allocate and initialize
-> memory maps for first class virtual address spaces and potentially
-> duplicate some code, I decided to split the mm_alloc function as well as
-> the 'mm_init' function that it uses.
->=20
-> Now there are four functions exported instead of only one. The new
-> 'mm_alloc' function only allocates a new mm_struct and zeros it out. If o=
-ne
-> want to have the old behavior of mm_alloc one can use the newly introduce=
-d
-> function 'mm_alloc_and_setup' which not only allocates a new mm_struct bu=
-t
-> also fully initializes it.
-...
+This header file is exported, but from a userland pov, it's just a wrapper
+to asm-generic/setup.h.
 
-That looks like bugs waiting to happen.
-You need unchanged code to fail to compile.
+Signed-off-by: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+Reviewed-by: Tobias Klauser <tklauser@distanz.ch>
+---
+ arch/nios2/include/uapi/asm/Kbuild | 1 +
+ 1 file changed, 1 insertion(+)
 
-	David
-
-
---
-To unsubscribe, send a message with 'unsubscribe linux-aio' in
-the body to majordomo@kvack.org.  For more info on Linux AIO,
-see: http://www.kvack.org/aio/
-Don't email: <a href=mailto:"aart@kvack.org">aart@kvack.org</a>
+diff --git a/arch/nios2/include/uapi/asm/Kbuild b/arch/nios2/include/uapi/asm/Kbuild
+index e0bb972a50d7..69c965304146 100644
+--- a/arch/nios2/include/uapi/asm/Kbuild
++++ b/arch/nios2/include/uapi/asm/Kbuild
+@@ -2,4 +2,5 @@ include include/uapi/asm-generic/Kbuild.asm
+ 
+ header-y += elf.h
+ 
++generic-y += setup.h
+ generic-y += ucontext.h
+-- 
+2.8.1
