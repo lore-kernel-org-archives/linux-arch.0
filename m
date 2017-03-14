@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from host.76.145.23.62.rev.coltfrance.com ([62.23.145.76]:47414 "EHLO
+Received: from host.76.145.23.62.rev.coltfrance.com ([62.23.145.76]:47433 "EHLO
         proxy.6wind.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751302AbdCNMzY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Mar 2017 08:55:24 -0400
+        with ESMTP id S1751129AbdCNMzS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Mar 2017 08:55:18 -0400
 From: Nicolas Dichtel <nicolas.dichtel@6wind.com>
-Subject: [PATCH v10 04/11] Makefile.headersinst: cleanup input files
-Date: Tue, 14 Mar 2017 13:54:46 +0100
-Message-ID: <1489496093-15315-5-git-send-email-nicolas.dichtel@6wind.com>
+Subject: [PATCH v10 11/11] uapi: export all arch specifics directories
+Date: Tue, 14 Mar 2017 13:54:53 +0100
+Message-ID: <1489496093-15315-12-git-send-email-nicolas.dichtel@6wind.com>
 In-Reply-To: <1489496093-15315-1-git-send-email-nicolas.dichtel@6wind.com>
 References: <CAK7LNARpx7f0eV5_AiPmNYT7MsRbGFOygJwjfAzX_7aCpuHwuw@mail.gmail.com>
  <1489496093-15315-1-git-send-email-nicolas.dichtel@6wind.com>
@@ -14,86 +14,139 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: yamada.masahiro@socionext.com
 Cc: arnd@arndb.de, mmarek@suse.com, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, bp@alien8.de, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, tklauser@distanz.ch, mpe@ellerman.id.au, mingo@kernel.org, tglx@linutronix.de, ldv@altlinux.org, nicolas.dichtel@6wind.com, herbert@gondor.apana.org.au, linux-rdma@vger.kernel.org
-Message-ID: <20170314125446.Zcddzyvm48XF-936ZkbWTcOczhwbciKrG-XWfwZ6Lhc@z>
+Message-ID: <20170314125453.1tXtErlIj6Hwt1rfJesgtDGhN3qOXVOSakube6SfzJo@z>
 
-After the last three patches, all exported headers are under uapi/, thus
-input-files2 are not needed anymore.
-The side effect is that input-files1-name is exactly header-y.
+This patch removes the need of subdir-y. Now all files/directories under
+arch/<arch>/include/uapi/ are exported.
 
-Note also that input-files3-name is genhdr-y.
+The only change for userland is the layout of the command 'make
+headers_install_all': directories asm-<arch> are replaced by arch-<arch>/.
+Those new directories contains all files/directories of the specified arch.
+
+Note that only cris and tile have more directories than only asm:
+ - arch-v[10|32] for cris;
+ - arch for tile.
 
 Signed-off-by: Nicolas Dichtel <nicolas.dichtel@6wind.com>
 ---
- scripts/Makefile.headersinst | 38 ++++++++++++++------------------------
- 1 file changed, 14 insertions(+), 24 deletions(-)
+ Documentation/kbuild/makefiles.txt | 15 +--------------
+ Makefile                           |  6 +++---
+ arch/cris/include/uapi/asm/Kbuild  |  3 ---
+ arch/tile/include/uapi/asm/Kbuild  |  2 --
+ scripts/Makefile.headersinst       |  3 +--
+ 5 files changed, 5 insertions(+), 24 deletions(-)
 
+diff --git a/Documentation/kbuild/makefiles.txt b/Documentation/kbuild/makefiles.txt
+index 91ffb391ed54..223b33d5195a 100644
+--- a/Documentation/kbuild/makefiles.txt
++++ b/Documentation/kbuild/makefiles.txt
+@@ -49,7 +49,6 @@ This document describes the Linux kernel Makefiles.
+ 		--- 7.3 generic-y
+ 		--- 7.4 generated-y
+ 		--- 7.5 mandatory-y
+-		--- 7.6 subdir-y
+ 
+ 	=== 8 Kbuild Variables
+ 	=== 9 Makefile language
+@@ -1265,7 +1264,7 @@ The pre-processing does:
+ - drop all sections that are kernel internal (guarded by ifdef __KERNEL__)
+ 
+ All headers under include/uapi/, include/generated/uapi/,
+-arch/<arch>/include/uapi/asm/ and arch/<arch>/include/generated/uapi/asm/
++arch/<arch>/include/uapi/ and arch/<arch>/include/generated/uapi/
+ are exported.
+ 
+ A Kbuild file may be defined under arch/<arch>/include/uapi/asm/ and
+@@ -1338,18 +1337,6 @@ See subsequent chapter for the syntax of the Kbuild file.
+ 	The convention is to list one subdir per line and
+ 	preferably in alphabetic order.
+ 
+-	--- 7.6 subdir-y
+-
+-	subdir-y may be used to specify a subdirectory to be exported.
+-
+-		Example:
+-			#arch/cris/include/uapi/asm/Kbuild
+-			subdir-y += ../arch-v10/arch/
+-			subdir-y += ../arch-v32/arch/
+-
+-	The convention is to list one subdir per line and
+-	preferably in alphabetic order.
+-
+ === 8 Kbuild Variables
+ 
+ The top Makefile exports the following variables:
+diff --git a/Makefile b/Makefile
+index 165cf9783a5d..954b20072c42 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1128,7 +1128,7 @@ firmware_install:
+ export INSTALL_HDR_PATH = $(objtree)/usr
+ 
+ # If we do an all arch process set dst to asm-$(hdr-arch)
+-hdr-dst = $(if $(KBUILD_HEADERS), dst=include/asm-$(hdr-arch), dst=include/asm)
++hdr-dst = $(if $(KBUILD_HEADERS), dst=include/arch-$(hdr-arch), dst=include)
+ 
+ PHONY += archheaders
+ archheaders:
+@@ -1149,7 +1149,7 @@ headers_install: __headers
+ 	$(if $(wildcard $(srctree)/arch/$(hdr-arch)/include/uapi/asm/Kbuild),, \
+ 	  $(error Headers not exportable for the $(SRCARCH) architecture))
+ 	$(Q)$(MAKE) $(hdr-inst)=include/uapi
+-	$(Q)$(MAKE) $(hdr-inst)=arch/$(hdr-arch)/include/uapi/asm $(hdr-dst)
++	$(Q)$(MAKE) $(hdr-inst)=arch/$(hdr-arch)/include/uapi $(hdr-dst)
+ 
+ PHONY += headers_check_all
+ headers_check_all: headers_install_all
+@@ -1158,7 +1158,7 @@ headers_check_all: headers_install_all
+ PHONY += headers_check
+ headers_check: headers_install
+ 	$(Q)$(MAKE) $(hdr-inst)=include/uapi HDRCHECK=1
+-	$(Q)$(MAKE) $(hdr-inst)=arch/$(hdr-arch)/include/uapi/asm $(hdr-dst) HDRCHECK=1
++	$(Q)$(MAKE) $(hdr-inst)=arch/$(hdr-arch)/include/uapi/ $(hdr-dst) HDRCHECK=1
+ 
+ # ---------------------------------------------------------------------------
+ # Kernel selftest
+diff --git a/arch/cris/include/uapi/asm/Kbuild b/arch/cris/include/uapi/asm/Kbuild
+index d0c5471856e0..b15bf6bc0e94 100644
+--- a/arch/cris/include/uapi/asm/Kbuild
++++ b/arch/cris/include/uapi/asm/Kbuild
+@@ -1,5 +1,2 @@
+ # UAPI Header export list
+ include include/uapi/asm-generic/Kbuild.asm
+-
+-subdir-y += ../arch-v10/arch/
+-subdir-y += ../arch-v32/arch/
+diff --git a/arch/tile/include/uapi/asm/Kbuild b/arch/tile/include/uapi/asm/Kbuild
+index e0a50111e07f..0c74c3c5ebfa 100644
+--- a/arch/tile/include/uapi/asm/Kbuild
++++ b/arch/tile/include/uapi/asm/Kbuild
+@@ -2,5 +2,3 @@
+ include include/uapi/asm-generic/Kbuild.asm
+ 
+ generic-y += ucontext.h
+-
+-subdir-y += ../arch
 diff --git a/scripts/Makefile.headersinst b/scripts/Makefile.headersinst
-index 1106d6ca3a38..7bd9df6efe2f 100644
+index 6e56155579d8..3d692b650687 100644
 --- a/scripts/Makefile.headersinst
 +++ b/scripts/Makefile.headersinst
-@@ -40,31 +40,20 @@ wrapper-files := $(filter $(header-y), $(generic-y))
+@@ -2,7 +2,7 @@
+ # Installing headers
+ #
+ # All headers under include/uapi, include/generated/uapi,
+-# arch/<arch>/include/uapi/asm and arch/<arch>/include/generated/uapi/asm are
++# arch/<arch>/include/uapi and arch/<arch>/include/generated/uapi are
+ # exported.
+ # They are preprocessed to remove __KERNEL__ section of the file.
+ #
+@@ -30,7 +30,6 @@ installdir    := $(INSTALL_HDR_PATH)/$(subst uapi/,,$(_dst))
  srcdir        := $(srctree)/$(obj)
  gendir        := $(objtree)/$(gen)
- 
--oldsrcdir     := $(srctree)/$(subst /uapi,,$(obj))
--
- # all headers files for this dir
- header-y      := $(filter-out $(generic-y), $(header-y))
- all-files     := $(header-y) $(genhdr-y) $(wrapper-files)
- output-files  := $(addprefix $(installdir)/, $(all-files))
- 
--input-files1  := $(foreach hdr, $(header-y), \
--		   $(if $(wildcard $(srcdir)/$(hdr)), \
--			$(wildcard $(srcdir)/$(hdr))) \
--		   )
--input-files1-name := $(notdir $(input-files1))
--input-files2  := $(foreach hdr, $(header-y), \
--		   $(if  $(wildcard $(srcdir)/$(hdr)),, \
--			$(if $(wildcard $(oldsrcdir)/$(hdr)), \
--				$(wildcard $(oldsrcdir)/$(hdr)), \
--				$(error Missing UAPI file $(srcdir)/$(hdr))) \
--		   ))
--input-files2-name := $(notdir $(input-files2))
--input-files3  := $(foreach hdr, $(genhdr-y), \
--		   $(if	$(wildcard $(gendir)/$(hdr)), \
--			$(wildcard $(gendir)/$(hdr)), \
--			$(error Missing generated UAPI file $(gendir)/$(hdr)) \
--		   ))
--input-files3-name := $(notdir $(input-files3))
-+# Check that all expected files exist
-+$(foreach hdr, $(header-y), \
-+  $(if $(wildcard $(srcdir)/$(hdr)),, \
-+       $(error Missing UAPI file $(srcdir)/$(hdr)) \
-+   ))
-+$(foreach hdr, $(genhdr-y), \
-+  $(if	$(wildcard $(gendir)/$(hdr)),, \
-+       $(error Missing generated UAPI file $(gendir)/$(hdr)) \
-+  ))
- 
- # Work out what needs to be removed
- oldheaders    := $(patsubst $(installdir)/%,%,$(wildcard $(installdir)/*.h))
-@@ -78,9 +67,8 @@ printdir = $(patsubst $(INSTALL_HDR_PATH)/%/,%,$(dir $@))
- quiet_cmd_install = INSTALL $(printdir) ($(words $(all-files))\
-                             file$(if $(word 2, $(all-files)),s))
-       cmd_install = \
--        $(CONFIG_SHELL) $< $(installdir) $(srcdir) $(input-files1-name); \
--        $(CONFIG_SHELL) $< $(installdir) $(oldsrcdir) $(input-files2-name); \
--        $(CONFIG_SHELL) $< $(installdir) $(gendir) $(input-files3-name); \
-+        $(CONFIG_SHELL) $< $(installdir) $(srcdir) $(header-y); \
-+        $(CONFIG_SHELL) $< $(installdir) $(gendir) $(genhdr-y); \
-         for F in $(wrapper-files); do                                   \
-                 echo "\#include <asm-generic/$$F>" > $(installdir)/$$F;    \
-         done;                                                           \
-@@ -106,7 +94,9 @@ __headersinst: $(subdirs) $(install-file)
- 	@:
- 
- targets += $(install-file)
--$(install-file): scripts/headers_install.sh $(input-files1) $(input-files2) $(input-files3) FORCE
-+$(install-file): scripts/headers_install.sh \
-+		 $(addprefix $(srcdir)/,$(header-y)) \
-+		 $(addprefix $(gendir)/,$(genhdr-y)) FORCE
- 	$(if $(unwanted),$(call cmd,remove),)
- 	$(if $(wildcard $(dir $@)),,$(shell mkdir -p $(dir $@)))
- 	$(call if_changed,install)
+ subdirs       := $(patsubst $(srcdir)/%/.,%,$(wildcard $(srcdir)/*/.))
+-subdirs       += $(subdir-y)
+ header-files  := $(notdir $(wildcard $(srcdir)/*.h))
+ header-files  += $(notdir $(wildcard $(srcdir)/*.agh))
+ header-files  := $(filter-out $(header-n), $(header-files))
 -- 
 2.8.1
