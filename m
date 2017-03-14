@@ -1,51 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f47.google.com ([74.125.82.47]:38356 "EHLO
-        mail-wm0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750861AbdCNIZM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Mar 2017 04:25:12 -0400
-Received: by mail-wm0-f47.google.com with SMTP id t189so57549823wmt.1
-        for <linux-arch@vger.kernel.org>; Tue, 14 Mar 2017 01:25:10 -0700 (PDT)
-Reply-To: nicolas.dichtel@6wind.com
-Subject: Re: [PATCH v9 00/11] uapi: export all headers under uapi directories
-References: <20170301045241.GB9156@gondor.apana.org.au>
- <1488473802-13354-1-git-send-email-nicolas.dichtel@6wind.com>
- <3df45ecc-1aa0-a029-d7e5-2598f0908874@6wind.com>
- <CAK7LNARpx7f0eV5_AiPmNYT7MsRbGFOygJwjfAzX_7aCpuHwuw@mail.gmail.com>
- <96811b2b-25af-ed32-5094-14987aefd4d2@6wind.com>
- <CAK7LNAQV0tDw7RCTdn-qicttbyjU9QRfxasvc-7S-+dxMfii8g@mail.gmail.com>
-From: Nicolas Dichtel <nicolas.dichtel@6wind.com>
-Message-ID: <281def1c-e0dc-1493-3f48-fc0024c534ac@6wind.com>
-Date: Tue, 14 Mar 2017 09:25:03 +0100
+Received: from Galois.linutronix.de ([146.0.238.70]:40465 "EHLO
+        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750828AbdCNIeU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Mar 2017 04:34:20 -0400
+Date: Tue, 14 Mar 2017 09:33:20 +0100 (CET)
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH 0/6] x86: 5-level paging enabling for v4.12, Part 1
+In-Reply-To: <20170314082409.gjhefteglqbfb2gy@node.shutemov.name>
+Message-ID: <alpine.DEB.2.20.1703140932310.3619@nanos>
+References: <20170313143309.16020-1-kirill.shutemov@linux.intel.com> <20170314074729.GA23151@gmail.com> <20170314082409.gjhefteglqbfb2gy@node.shutemov.name>
 MIME-Version: 1.0
-In-Reply-To: <CAK7LNAQV0tDw7RCTdn-qicttbyjU9QRfxasvc-7S-+dxMfii8g@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Masahiro Yamada <yamada.masahiro@socionext.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Michal Marek <mmarek@suse.com>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, David Airlie <airlied@linux.ie>, "David S. Miller" <davem@davemloft.net>, Russell King <linux@armlinux.org.uk>, bp@alien8.de, slash.tmp@free.fr, Daniel Vetter <daniel.vetter@ffwll.ch>, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, Tobias Klauser <tklauser@distanz.ch>, mpe@ellerman.id.au, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, ldv@altlinux.org, Herbert Xu <herbert@gondor.apana.org.au>, linux-rdma@vger.kernel.org
-Message-ID: <20170314082503.bD8MWMdCUXriyyLAIDa8uNEEn59APSmX7KGT_uNdDhE@z>
+To: "Kirill A. Shutemov" <kirill@shutemov.name>
+Cc: Ingo Molnar <mingo@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, Michal Hocko <mhocko@suse.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+Message-ID: <20170314083320.DRgJ34dXz0xHejL2n6klKKBwtd2LQa-9BQDLZvVf7m4@z>
 
-Le 14/03/2017 à 06:38, Masahiro Yamada a écrit :
-> Ni Nicolas,
+On Tue, 14 Mar 2017, Kirill A. Shutemov wrote:
+> On Tue, Mar 14, 2017 at 08:47:29AM +0100, Ingo Molnar wrote:
+> > I've also applied the GUP patch, with the assumption that you'll address Linus's 
+> > request to switch x86 over to the generic version.
 > 
+> Okay, I'll do this.
 > 
-> 2017-03-14 1:57 GMT+09:00 Nicolas Dichtel <nicolas.dichtel@6wind.com>:
->>> BTW, this series does not apply cleanly.
->>>
->>> If you could rebase it onto v4.11-rc1 tag,
->>> it would be helpful.
->> You really want this on top of 4.11-rc1 or the last linus tag, ie v4.11-rc2?
->>
-> 
-> Basically, I queue up patches based on -rc1 tag
-> unless there is a particular reason for otherwise.
-Ok, thank you for the explanation.
+> I just want to make priorities clear here: is it okay to finish with the
+> rest of 5-level paging patches first before moving to GUP_fast switch?
 
-> 
-> If it is based on -rc1, will it cause conflicts with Linus tree?
-I will check and let you know in the v10 submission.
+I think moving it first is the preferred way to do it.
 
+Thanks,
 
-Thank you,
-Nicolas
+	tglx
