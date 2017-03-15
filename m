@@ -1,210 +1,69 @@
-From: Bjorn Helgaas <helgaas@kernel.org>
-Subject: Re: [PATCH v2 2/4] pci: Add arch_can_pci_mmap_wc() macro
-Date: Wed, 15 Mar 2017 16:25:06 -0500
-Message-ID: <20170315212506.GB31690@bhelgaas-glaptop.roam.corp.google.com>
-References: <1489610546.86622.20.camel@infradead.org>
+From: Till Smejkal <till.smejkal@googlemail.com>
+Subject: Re: [RFC PATCH 00/13] Introduce first class virtual address spaces
+Date: Wed, 15 Mar 2017 14:30:43 -0700
+Message-ID: <20170315213042.e5q6daqkqoam2iun@arch-dev>
+References: <20170315194723.GJ1693@brightrain.aerifal.cx>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-pci-owner@vger.kernel.org>
+Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <1489610546.86622.20.camel@infradead.org>
-Sender: linux-pci-owner@vger.kernel.org
-To: David Woodhouse <dwmw2@infradead.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Mark Rutland <mark.rutland@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-pci@vger.kernel.org
+In-Reply-To: <20170315194723.GJ1693@brightrain.aerifal.cx>
+Sender: owner-linux-mm@kvack.org
+To: Rich Felker <dalias@libc.org>
+Cc: Andy Lutomirski <luto@amacapital.net>, Andy Lutomirski <luto@kernel.org>, Till Smejkal <till.smejkal@googlemail.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Steven Miao <realmz6@gmail.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, James Hogan <james.hogan@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de>
 List-Id: linux-arch.vger.kernel.org
 
-[+cc linux-pci; there are a couple more: see LKML and please add linux-pci
-if you respond]
+On Wed, 15 Mar 2017, Rich Felker wrote:
+> On Wed, Mar 15, 2017 at 12:44:47PM -0700, Till Smejkal wrote:
+> > On Wed, 15 Mar 2017, Andy Lutomirski wrote:
+> > > > One advantage of VAS segments is that they can be globally queried by user programs
+> > > > which means that VAS segments can be shared by applications that not necessarily have
+> > > > to be related. If I am not mistaken, MAP_SHARED of pure in memory data will only work
+> > > > if the tasks that share the memory region are related (aka. have a common parent that
+> > > > initialized the shared mapping). Otherwise, the shared mapping have to be backed by a
+> > > > file.
+> > > 
+> > > What's wrong with memfd_create()?
+> > > 
+> > > > VAS segments on the other side allow sharing of pure in memory data by
+> > > > arbitrary related tasks without the need of a file. This becomes especially
+> > > > interesting if one combines VAS segments with non-volatile memory since one can keep
+> > > > data structures in the NVM and still be able to share them between multiple tasks.
+> > > 
+> > > What's wrong with regular mmap?
+> > 
+> > I never wanted to say that there is something wrong with regular mmap. We just
+> > figured that with VAS segments you could remove the need to mmap your shared data but
+> > instead can keep everything purely in memory.
+> > 
+> > Unfortunately, I am not at full speed with memfds. Is my understanding correct that
+> > if the last user of such a file descriptor closes it, the corresponding memory is
+> > freed? Accordingly, memfd cannot be used to keep data in memory while no program is
+> > currently using it, can it? To be able to do this you need again some representation
+> 
+> I have a name for application-allocated kernel resources that persist
+> without a process holding a reference to them or a node in the
+> filesystem: a bug. See: sysvipc.
 
-On Wed, Mar 15, 2017 at 08:42:26PM +0000, David Woodhouse wrote:
-> From: David Woodhouse <dwmw@amazon.co.uk>
-> 
-> Most of the almost-identical versions of pci_mmap_page_range() silently
-> ignore the 'write_combine' argument and give uncached mappings.
-> 
-> Yet we allow the PCIIOC_WRITE_COMBINE ioctl in /proc/bus/pci, expose the
-> 'resourceX_wc' file in sysfs, and allow an attempted mapping to apparently
-> succeed.
-> 
-> To fix this, introduce a macro arch_can_pci_mmap_wc() which indicates
-> whether the platform can do a write-combining mapping. On x86 this ends
-> up being pat_enabled(), while the few other platforms that support it
-> can just set it to a literal '1'.
-> 
-> Signed-off-by: David Woodhouse <dwmw@amazon.co.uk>
-> ---
->  Documentation/filesystems/sysfs-pci.txt |  4 ++++
->  arch/arm64/include/asm/pci.h            |  1 +
->  arch/ia64/include/asm/pci.h             |  2 ++
->  arch/powerpc/include/asm/pci.h          |  5 +++--
->  arch/x86/include/asm/pci.h              |  2 ++
->  arch/xtensa/include/asm/pci.h           |  6 +++++-
->  arch/xtensa/kernel/pci.c                |  2 +-
->  drivers/pci/pci-sysfs.c                 |  6 ++++--
->  drivers/pci/proc.c                      | 17 ++++++++++-------
->  9 files changed, 32 insertions(+), 13 deletions(-)
-> 
-> diff --git a/Documentation/filesystems/sysfs-pci.txt b/Documentation/filesystems/sysfs-pci.txt
-> index 6ea1ced..25b7f1c 100644
-> --- a/Documentation/filesystems/sysfs-pci.txt
-> +++ b/Documentation/filesystems/sysfs-pci.txt
-> @@ -117,6 +117,10 @@ code must define HAVE_PCI_MMAP and provide a pci_mmap_page_range function.
->  Platforms are free to only support subsets of the mmap functionality, but
->  useful return codes should be provided.
->  
-> +Platforms which support write-combining maps of PCI resources must define
-> +arch_can_pci_mmap_wc() which shall evaluate to non-zero at runtime when
-> +write-combining is permitted.
-> +
->  Legacy resources are protected by the HAVE_PCI_LEGACY define.  Platforms
->  wishing to support legacy functionality should define it and provide
->  pci_legacy_read, pci_legacy_write and pci_mmap_legacy_page_range functions.
-> diff --git a/arch/arm64/include/asm/pci.h b/arch/arm64/include/asm/pci.h
-> index f73734f..53b1541 100644
-> --- a/arch/arm64/include/asm/pci.h
-> +++ b/arch/arm64/include/asm/pci.h
-> @@ -38,6 +38,7 @@ static inline int pci_proc_domain(struct pci_bus *bus)
->  #endif  /* CONFIG_PCI */
->  
->  #define HAVE_PCI_MMAP
-> +#define arch_can_pci_mmap_wc()	1
->  extern int pci_mmap_page_range(struct pci_dev *dev, struct vm_area_struct *vma,
->  			       enum pci_mmap_state mmap_state, int write_combine);
->  
-> diff --git a/arch/ia64/include/asm/pci.h b/arch/ia64/include/asm/pci.h
-> index c0835b0..6283758 100644
-> --- a/arch/ia64/include/asm/pci.h
-> +++ b/arch/ia64/include/asm/pci.h
-> @@ -51,6 +51,8 @@ extern unsigned long ia64_max_iommu_merge_mask;
->  #define PCI_DMA_BUS_IS_PHYS	(ia64_max_iommu_merge_mask == ~0UL)
->  
->  #define HAVE_PCI_MMAP
-> +#define arch_can_pci_mmap_wc()	1
-> +
->  extern int pci_mmap_page_range (struct pci_dev *dev, struct vm_area_struct *vma,
->  				enum pci_mmap_state mmap_state, int write_combine);
->  #define HAVE_PCI_LEGACY
-> diff --git a/arch/powerpc/include/asm/pci.h b/arch/powerpc/include/asm/pci.h
-> index 93eded8..b5b68c6 100644
-> --- a/arch/powerpc/include/asm/pci.h
-> +++ b/arch/powerpc/include/asm/pci.h
-> @@ -81,8 +81,9 @@ struct vm_area_struct;
->  int pci_mmap_page_range(struct pci_dev *pdev, struct vm_area_struct *vma,
->  			enum pci_mmap_state mmap_state, int write_combine);
->  
-> -/* Tell drivers/pci/proc.c that we have pci_mmap_page_range() */
-> -#define HAVE_PCI_MMAP	1
-> +/* Tell drivers/pci/proc.c that we have pci_mmap_page_range() and it does WC */
-> +#define HAVE_PCI_MMAP		1
-> +#define arch_can_pci_mmap_wc()	1
->  
->  extern int pci_legacy_read(struct pci_bus *bus, loff_t port, u32 *val,
->  			   size_t count);
-> diff --git a/arch/x86/include/asm/pci.h b/arch/x86/include/asm/pci.h
-> index 1411dbe..f6e22c2 100644
-> --- a/arch/x86/include/asm/pci.h
-> +++ b/arch/x86/include/asm/pci.h
-> @@ -7,6 +7,7 @@
->  #include <linux/string.h>
->  #include <linux/scatterlist.h>
->  #include <asm/io.h>
-> +#include <asm/pat.h>
->  #include <asm/x86_init.h>
->  
->  #ifdef __KERNEL__
-> @@ -102,6 +103,7 @@ int pcibios_set_irq_routing(struct pci_dev *dev, int pin, int irq);
->  
->  
->  #define HAVE_PCI_MMAP
-> +#define arch_can_pci_mmap_wc()	pat_enabled()
->  extern int pci_mmap_page_range(struct pci_dev *dev, struct vm_area_struct *vma,
->  			       enum pci_mmap_state mmap_state,
->  			       int write_combine);
-> diff --git a/arch/xtensa/include/asm/pci.h b/arch/xtensa/include/asm/pci.h
-> index 5d6bd93..f106879 100644
-> --- a/arch/xtensa/include/asm/pci.h
-> +++ b/arch/xtensa/include/asm/pci.h
-> @@ -51,7 +51,11 @@ int pci_mmap_page_range(struct pci_dev *pdev, struct vm_area_struct *vma,
->  			enum pci_mmap_state mmap_state, int write_combine);
->  
->  /* Tell drivers/pci/proc.c that we have pci_mmap_page_range() */
-> -#define HAVE_PCI_MMAP	1
-> +#define HAVE_PCI_MMAP		1
-> +
-> +/* This was wrapped in #if 0 since the first merge of xtensa support...
-> +#define arch_can_pci_mmap_wc()	1
-> +*/
->  
->  #endif /* __KERNEL__ */
->  
-> diff --git a/arch/xtensa/kernel/pci.c b/arch/xtensa/kernel/pci.c
-> index b848cc3..c5944d3 100644
-> --- a/arch/xtensa/kernel/pci.c
-> +++ b/arch/xtensa/kernel/pci.c
-> @@ -345,7 +345,7 @@ __pci_mmap_set_pgprot(struct pci_dev *dev, struct vm_area_struct *vma,
->  
->  	/* Set to write-through */
->  	prot = (prot & _PAGE_CA_MASK) | _PAGE_CA_WT;
-> -#if 0
-> +#ifdef arch_can_pci_mmap_wc
->  	if (!write_combine)
->  		prot |= _PAGE_WRITETHRU;
->  #endif
-> diff --git a/drivers/pci/pci-sysfs.c b/drivers/pci/pci-sysfs.c
-> index 25d010d..e0474f3 100644
-> --- a/drivers/pci/pci-sysfs.c
-> +++ b/drivers/pci/pci-sysfs.c
-> @@ -1206,10 +1206,12 @@ static int pci_create_resource_files(struct pci_dev *pdev)
->  			continue;
->  
->  		retval = pci_create_attr(pdev, i, 0);
-> +#ifdef arch_can_pci_mmap_wc
->  		/* for prefetchable resources, create a WC mappable file */
-> -		if (!retval && pdev->resource[i].flags & IORESOURCE_PREFETCH)
-> +		if (!retval && arch_can_pci_mmap_wc() &&
-> +		    pdev->resource[i].flags & IORESOURCE_PREFETCH)
->  			retval = pci_create_attr(pdev, i, 1);
-> -
-> +#endif
->  		if (retval) {
->  			pci_remove_resource_files(pdev);
->  			return retval;
-> diff --git a/drivers/pci/proc.c b/drivers/pci/proc.c
-> index f82710a..5cd960c 100644
-> --- a/drivers/pci/proc.c
-> +++ b/drivers/pci/proc.c
-> @@ -209,15 +209,18 @@ static long proc_bus_pci_ioctl(struct file *file, unsigned int cmd,
->  		fpriv->mmap_state = pci_mmap_mem;
->  		break;
->  
-> +#ifdef arch_can_pci_mmap_wc
->  	case PCIIOC_WRITE_COMBINE:
-> -		if (arg)
-> -			fpriv->write_combine = 1;
-> -		else
-> -			fpriv->write_combine = 0;
-> -		break;
-> -
-> +		if (arch_can_pci_mmap_wc()) {
-> +			if (arg)
-> +				fpriv->write_combine = 1;
-> +			else
-> +				fpriv->write_combine = 0;
-> +			break;
-> +		}
-> +		/* If arch decided it can't, fall through... */
-> +#endif /* arch_can_pci_mmap_wc */
->  #endif /* HAVE_PCI_MMAP */
-> -
->  	default:
->  		ret = -EINVAL;
->  		break;
-> -- 
-> dwmw2
+VAS segments are first class citizens of the OS similar to processes. Accordingly, I
+would not see this behavior as a bug. VAS segments are a kernel handle to
+"persistent" memory (in the sense that they are independent of the lifetime of the
+application that created them). That means the memory that is described by VAS
+segments can be reused by other applications even if the VAS segment was not used by
+any application in between. It is very much like a pure in-memory file. An
+application creates a VAS segment, fills it with content and if it does not delete it
+again, can reuse/open it again later. This also means, that if you know that you
+never want to use this memory again you have to remove it explicitly, like you have
+to remove a file, if you don't want to use it anymore.
 
+I think it really might be better to implement VAS segments (if I should keep this
+feature at all) with a special purpose filesystem. The way I've designed it seams to
+be very misleading.
 
+Till
 
-> _______________________________________________
-> linux-arm-kernel mailing list
-> linux-arm-kernel@lists.infradead.org
-> http://lists.infradead.org/mailman/listinfo/linux-arm-kernel
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
