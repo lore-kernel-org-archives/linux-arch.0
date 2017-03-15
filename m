@@ -1,7 +1,7 @@
 From: "Kirill A. Shutemov" <kirill@shutemov.name>
 Subject: Re: [PATCH 0/6] x86: 5-level paging enabling for v4.12, Part 1
-Date: Wed, 15 Mar 2017 17:51:26 +0300
-Message-ID: <20170315145126.4xgvhuavtf5icjdc@node.shutemov.name>
+Date: Wed, 15 Mar 2017 18:42:05 +0300
+Message-ID: <20170315154205.33hvpvkbjypgkd7g@node.shutemov.name>
 References: <20170313143309.16020-1-kirill.shutemov@linux.intel.com>
  <20170314074729.GA23151@gmail.com>
  <CA+55aFzALboaXe5TWv8=3QZBPJCVAVBmfxTjQEi-aAnHKYAuPQ@mail.gmail.com>
@@ -11,7 +11,7 @@ Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
 In-Reply-To: <CA+55aFzALboaXe5TWv8=3QZBPJCVAVBmfxTjQEi-aAnHKYAuPQ@mail.gmail.com>
 Sender: owner-linux-mm@kvack.org
-To: Linus Torvalds <torvalds@linux-foundation.org>, Andrea Arcangeli <aarcange@redhat.com>
+To: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Ingo Molnar <mingo@kernel.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, the arch/x86 maintainers <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, Michal Hocko <mhocko@suse.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
@@ -30,31 +30,10 @@ On Tue, Mar 14, 2017 at 10:48:51AM -0700, Linus Torvalds wrote:
 >  (b) we need to make sure the atomicity of the page table reads is ok.
 > 
 >  (c) need to verify the maximum VM address properly
-> 
-> I _think_ (a) is ok. The code (and the config option name) talks about
-> freeing page tables using RCU, but in fact I don't think it relies on
-> it, and it's sufficient that it disables interrupts and that that will
-> block any IPI's.
-> 
-> In contrast, I think (b) needs real work to make sure it's ok on
-> 32-bit PAE with 64-bit pte entries. The generic code currently just
-> does READ_ONCE(), while the x86 code does gup_get_pte().
 
-+ Andrea.
-
-Looking on gup_get_pte() makes me thinkg, why don't we need the same
-approach for pmd level (pud is not relevant for PAE)?
-
-Looks like a bug to me.
-
-We have pmd_read_atomic() to address the issue in other places. The helper
-doesn't match required for GUP_fast() semantics, but we clearly need to
-address the issue.
-
-pgd deference doesn't look good too on PAE. Or am I missing something?
-
-Heck, we don't even have READ_ONCE() on x86 for page table entry
-dereference. Looks like a bug waiting to explode. And not only on PAE.
+There's another difference with generic version: it uses
+page_cache_get_speculative() instead of plain get_page() on x86.
+That's somewhat more expensive, but probably fine.
 
 -- 
  Kirill A. Shutemov
