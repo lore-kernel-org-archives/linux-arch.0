@@ -1,98 +1,221 @@
 From: David Woodhouse <dwmw2@infradead.org>
-Subject: [PATCH 1/3] arm64: enable pci resource mapping using sysfs
-Date: Wed, 15 Mar 2017 17:17:46 +0000
-Message-ID: <1489598266.86622.12.camel@infradead.org>
+Subject: [PATCH 2/3] pci: Add arch_can_pci_mmap_wc() macro
+Date: Wed, 15 Mar 2017 17:17:56 +0000
+Message-ID: <1489598276.86622.13.camel@infradead.org>
+References: <0e5266c6c883baa0e4a98dce796f8ab2ee18e71f.1489598108.git.dwmw2@infradead.org>
 Mime-Version: 1.0
-Content-Type: multipart/mixed; boundary="===============2125355457529371748=="
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+Content-Type: multipart/signed; micalg="sha-256";
+        protocol="application/x-pkcs7-signature";
+        boundary="=-dI495LjDknZDXmFC69/O"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <0e5266c6c883baa0e4a98dce796f8ab2ee18e71f.1489598108.git.dwmw2@infradead.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
 
---===============2125355457529371748==
-Content-Type: multipart/signed; micalg="sha-256";
-	protocol="application/x-pkcs7-signature";
-	boundary="=-TKWUPqX8Yisg6Gkm5qKN"
-
-
---=-TKWUPqX8Yisg6Gkm5qKN
+--=-dI495LjDknZDXmFC69/O
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: quoted-printable
 
-From: Brijesh Singh <brijess@amazon.com>
+From: David Woodhouse <dwmw@amazon.co.uk>
 
-To support pci resource mapping from userspace, pci_mmap_page_range
-implementation must be done for that platform. This support was
-broken for arm64.
+Most of the almost-identical versions of pci_mmap_page_range() silently
+ignore the 'write_combine' argument and give uncached mappings.
 
-This patch copies existing implementation from arm to
-enable sysfs mmap.
+Yet we allow the PCIIOC_WRITE_COMBINE ioctl in /proc/bus/pci, expose the
+'resourceX_wc' file in sysfs, and allow an attempted mapping to apparently
+succeed.
 
-[dwmw2: Add WC support]
-Reviewed-by: Erik Quanstrom <quanstro@amazon.com>
-Reviewed-by: Anthony Liguori <aliguori@amazon.com>
-Signed-off-by: Brijesh Singh <brijess@amazon.com>
+To fix this, introduce a macro arch_can_pci_mmap_wc() which indicates
+whether the platform can do a write-combining mapping. On x86 this ends
+up being pat_enabled(), while the few other platforms that support it
+can just set it to a literal '1'.
+
 Signed-off-by: David Woodhouse <dwmw@amazon.co.uk>
 ---
- arch/arm64/include/asm/pci.h |  4 ++++
- arch/arm64/kernel/pci.c      | 19 +++++++++++++++++++
- 2 files changed, 23 insertions(+)
+ Documentation/filesystems/sysfs-pci.txt |  4 ++++
+ arch/arm64/include/asm/pci.h            |  1 +
+ arch/ia64/include/asm/pci.h             |  2 ++
+ arch/powerpc/include/asm/pci.h          |  5 +++--
+ arch/x86/include/asm/pci.h              |  2 ++
+ arch/xtensa/include/asm/pci.h           |  6 +++++-
+ arch/xtensa/kernel/pci.c                |  2 +-
+ drivers/pci/pci-sysfs.c                 |  6 ++++--
+ drivers/pci/proc.c                      | 17 ++++++++++-------
+ 9 files changed, 32 insertions(+), 13 deletions(-)
 
+diff --git a/Documentation/filesystems/sysfs-pci.txt b/Documentation/filesy=
+stems/sysfs-pci.txt
+index 6ea1ced..25b7f1c 100644
+--- a/Documentation/filesystems/sysfs-pci.txt
++++ b/Documentation/filesystems/sysfs-pci.txt
+@@ -117,6 +117,10 @@ code must define HAVE_PCI_MMAP and provide a pci_mmap_=
+page_range function.
+ Platforms are free to only support subsets of the mmap functionality, but
+ useful return codes should be provided.
+=20
++Platforms which support write-combining maps of PCI resources must define
++arch_can_pci_mmap_wc() which shall evaluate to non-zero at runtime when
++write-combining is permitted.
++
+ Legacy resources are protected by the HAVE_PCI_LEGACY define.  Platforms
+ wishing to support legacy functionality should define it and provide
+ pci_legacy_read, pci_legacy_write and pci_mmap_legacy_page_range functions=
+.
 diff --git a/arch/arm64/include/asm/pci.h b/arch/arm64/include/asm/pci.h
-index b9a7ba9..f73734f 100644
+index f73734f..53b1541 100644
 --- a/arch/arm64/include/asm/pci.h
 +++ b/arch/arm64/include/asm/pci.h
-@@ -37,5 +37,9 @@ static inline int pci_proc_domain(struct pci_bus *bus)
- }
+@@ -38,6 +38,7 @@ static inline int pci_proc_domain(struct pci_bus *bus)
  #endif  /* CONFIG_PCI */
 =20
-+#define HAVE_PCI_MMAP
-+extern int pci_mmap_page_range(struct pci_dev *dev, struct vm_area_struct =
+ #define HAVE_PCI_MMAP
++#define arch_can_pci_mmap_wc()	1
+ extern int pci_mmap_page_range(struct pci_dev *dev, struct vm_area_struct =
 *vma,
-+			       enum pci_mmap_state mmap_state, int write_combine);
-+
- #endif  /* __KERNEL__ */
- #endif  /* __ASM_PCI_H */
-diff --git a/arch/arm64/kernel/pci.c b/arch/arm64/kernel/pci.c
-index 4f0e3eb..a9b6542 100644
---- a/arch/arm64/kernel/pci.c
-+++ b/arch/arm64/kernel/pci.c
-@@ -228,3 +228,22 @@ void pcibios_remove_bus(struct pci_bus *bus)
- }
+ 			       enum pci_mmap_state mmap_state, int write_combine);
 =20
+diff --git a/arch/ia64/include/asm/pci.h b/arch/ia64/include/asm/pci.h
+index c0835b0..6283758 100644
+--- a/arch/ia64/include/asm/pci.h
++++ b/arch/ia64/include/asm/pci.h
+@@ -51,6 +51,8 @@ extern unsigned long ia64_max_iommu_merge_mask;
+ #define PCI_DMA_BUS_IS_PHYS	(ia64_max_iommu_merge_mask =3D=3D ~0UL)
+=20
+ #define HAVE_PCI_MMAP
++#define arch_can_pci_mmap_wc()	1
++
+ extern int pci_mmap_page_range (struct pci_dev *dev, struct vm_area_struct=
+ *vma,
+ 				enum pci_mmap_state mmap_state, int write_combine);
+ #define HAVE_PCI_LEGACY
+diff --git a/arch/powerpc/include/asm/pci.h b/arch/powerpc/include/asm/pci.=
+h
+index 93eded8..b5b68c6 100644
+--- a/arch/powerpc/include/asm/pci.h
++++ b/arch/powerpc/include/asm/pci.h
+@@ -81,8 +81,9 @@ struct vm_area_struct;
+ int pci_mmap_page_range(struct pci_dev *pdev, struct vm_area_struct *vma,
+ 			enum pci_mmap_state mmap_state, int write_combine);
+=20
+-/* Tell drivers/pci/proc.c that we have pci_mmap_page_range() */
+-#define HAVE_PCI_MMAP	1
++/* Tell drivers/pci/proc.c that we have pci_mmap_page_range() and it does =
+WC */
++#define HAVE_PCI_MMAP		1
++#define arch_can_pci_mmap_wc()	1
+=20
+ extern int pci_legacy_read(struct pci_bus *bus, loff_t port, u32 *val,
+ 			   size_t count);
+diff --git a/arch/x86/include/asm/pci.h b/arch/x86/include/asm/pci.h
+index 1411dbe..f6e22c2 100644
+--- a/arch/x86/include/asm/pci.h
++++ b/arch/x86/include/asm/pci.h
+@@ -7,6 +7,7 @@
+ #include <linux/string.h>
+ #include <linux/scatterlist.h>
+ #include <asm/io.h>
++#include <asm/pat.h>
+ #include <asm/x86_init.h>
+=20
+ #ifdef __KERNEL__
+@@ -102,6 +103,7 @@ int pcibios_set_irq_routing(struct pci_dev *dev, int pi=
+n, int irq);
+=20
+=20
+ #define HAVE_PCI_MMAP
++#define arch_can_pci_mmap_wc()	pat_enabled()
+ extern int pci_mmap_page_range(struct pci_dev *dev, struct vm_area_struct =
+*vma,
+ 			       enum pci_mmap_state mmap_state,
+ 			       int write_combine);
+diff --git a/arch/xtensa/include/asm/pci.h b/arch/xtensa/include/asm/pci.h
+index 5d6bd93..f106879 100644
+--- a/arch/xtensa/include/asm/pci.h
++++ b/arch/xtensa/include/asm/pci.h
+@@ -51,7 +51,11 @@ int pci_mmap_page_range(struct pci_dev *pdev, struct vm_=
+area_struct *vma,
+ 			enum pci_mmap_state mmap_state, int write_combine);
+=20
+ /* Tell drivers/pci/proc.c that we have pci_mmap_page_range() */
+-#define HAVE_PCI_MMAP	1
++#define HAVE_PCI_MMAP		1
++
++/* This was wrapped in #if 0 since the first merge of xtensa support...
++#define arch_can_pci_mmap_wc()	1
++*/
+=20
+ #endif /* __KERNEL__ */
+=20
+diff --git a/arch/xtensa/kernel/pci.c b/arch/xtensa/kernel/pci.c
+index b848cc3..c5944d3 100644
+--- a/arch/xtensa/kernel/pci.c
++++ b/arch/xtensa/kernel/pci.c
+@@ -345,7 +345,7 @@ __pci_mmap_set_pgprot(struct pci_dev *dev, struct vm_ar=
+ea_struct *vma,
+=20
+ 	/* Set to write-through */
+ 	prot =3D (prot & _PAGE_CA_MASK) | _PAGE_CA_WT;
+-#if 0
++#ifdef arch_can_pci_mmap_wc
+ 	if (!write_combine)
+ 		prot |=3D _PAGE_WRITETHRU;
  #endif
-+
-+int pci_mmap_page_range(struct pci_dev *dev, struct vm_area_struct *vma,
-+			enum pci_mmap_state mmap_state, int write_combine)
-+{
-+	if (mmap_state =3D=3D pci_mmap_io)
-+		return -EINVAL;
-+
-+	if (write_combine)
-+		vma->vm_page_prot =3D pgprot_writecombine(vma->vm_page_prot);
-+	else
-+		vma->vm_page_prot =3D pgprot_noncached(vma->vm_page_prot);
-+
-+	if (remap_pfn_range(vma, vma->vm_start, vma->vm_pgoff,
-+			     vma->vm_end - vma->vm_start,
-+			     vma->vm_page_prot))
-+		return -EAGAIN;
-+
-+	return 0;
-+}
+diff --git a/drivers/pci/pci-sysfs.c b/drivers/pci/pci-sysfs.c
+index 25d010d..e0474f3 100644
+--- a/drivers/pci/pci-sysfs.c
++++ b/drivers/pci/pci-sysfs.c
+@@ -1206,10 +1206,12 @@ static int pci_create_resource_files(struct pci_dev=
+ *pdev)
+ 			continue;
+=20
+ 		retval =3D pci_create_attr(pdev, i, 0);
++#ifdef arch_can_pci_mmap_wc
+ 		/* for prefetchable resources, create a WC mappable file */
+-		if (!retval && pdev->resource[i].flags & IORESOURCE_PREFETCH)
++		if (!retval && arch_can_pci_mmap_wc() &&
++		    pdev->resource[i].flags & IORESOURCE_PREFETCH)
+ 			retval =3D pci_create_attr(pdev, i, 1);
+-
++#endif
+ 		if (retval) {
+ 			pci_remove_resource_files(pdev);
+ 			return retval;
+diff --git a/drivers/pci/proc.c b/drivers/pci/proc.c
+index f82710a..5cd960c 100644
+--- a/drivers/pci/proc.c
++++ b/drivers/pci/proc.c
+@@ -209,15 +209,18 @@ static long proc_bus_pci_ioctl(struct file *file, uns=
+igned int cmd,
+ 		fpriv->mmap_state =3D pci_mmap_mem;
+ 		break;
+=20
++#ifdef arch_can_pci_mmap_wc
+ 	case PCIIOC_WRITE_COMBINE:
+-		if (arg)
+-			fpriv->write_combine =3D 1;
+-		else
+-			fpriv->write_combine =3D 0;
+-		break;
+-
++		if (arch_can_pci_mmap_wc()) {
++			if (arg)
++				fpriv->write_combine =3D 1;
++			else
++				fpriv->write_combine =3D 0;
++			break;
++		}
++		/* If arch decided it can't, fall through... */
++#endif /* arch_can_pci_mmap_wc */
+ #endif /* HAVE_PCI_MMAP */
+-
+ 	default:
+ 		ret =3D -EINVAL;
+ 		break;
 --=20
 dwmw2
---=-TKWUPqX8Yisg6Gkm5qKN
+--=-dI495LjDknZDXmFC69/O
 Content-Type: application/x-pkcs7-signature; name="smime.p7s"
 Content-Disposition: attachment; filename="smime.p7s"
 Content-Transfer-Encoding: base64
@@ -170,8 +293,8 @@ GeE6+vmbHDFFQ9Ealsti3jGCA9MwggPPAgEBMIGwMIGbMQswCQYDVQQGEwJHQjEbMBkGA1UECBMS
 R3JlYXRlciBNYW5jaGVzdGVyMRAwDgYDVQQHEwdTYWxmb3JkMRowGAYDVQQKExFDT01PRE8gQ0Eg
 TGltaXRlZDFBMD8GA1UEAxM4Q09NT0RPIFNIQS0yNTYgQ2xpZW50IEF1dGhlbnRpY2F0aW9uIGFu
 ZCBTZWN1cmUgRW1haWwgQ0ECEGoLUFiVUy0EUE3iKBH+GjAwDQYJYIZIAWUDBAIBBQCgggHzMBgG
-CSqGSIb3DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTE3MDMxNTE3MTc0NlowLwYJ
-KoZIhvcNAQkEMSIEIEsjko/aFdOw15GWRodXTJ7OY+1Ye2HVFs705yDs6VNWMIHBBgkrBgEEAYI3
+CSqGSIb3DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTE3MDMxNTE3MTc1NlowLwYJ
+KoZIhvcNAQkEMSIEIInYTxgBDbBCZASyCHcmApTB00PD2HZC+fyZ2L1yKS6pMIHBBgkrBgEEAYI3
 EAQxgbMwgbAwgZsxCzAJBgNVBAYTAkdCMRswGQYDVQQIExJHcmVhdGVyIE1hbmNoZXN0ZXIxEDAO
 BgNVBAcTB1NhbGZvcmQxGjAYBgNVBAoTEUNPTU9ETyBDQSBMaW1pdGVkMUEwPwYDVQQDEzhDT01P
 RE8gU0hBLTI1NiBDbGllbnQgQXV0aGVudGljYXRpb24gYW5kIFNlY3VyZSBFbWFpbCBDQQIQagtQ
@@ -179,26 +302,11 @@ WJVTLQRQTeIoEf4aMDCBwwYLKoZIhvcNAQkQAgsxgbOggbAwgZsxCzAJBgNVBAYTAkdCMRswGQYD
 VQQIExJHcmVhdGVyIE1hbmNoZXN0ZXIxEDAOBgNVBAcTB1NhbGZvcmQxGjAYBgNVBAoTEUNPTU9E
 TyBDQSBMaW1pdGVkMUEwPwYDVQQDEzhDT01PRE8gU0hBLTI1NiBDbGllbnQgQXV0aGVudGljYXRp
 b24gYW5kIFNlY3VyZSBFbWFpbCBDQQIQagtQWJVTLQRQTeIoEf4aMDANBgkqhkiG9w0BAQEFAASC
-AQAdwLyouIH3/E2TiQfja6vVsg+qcwmotesFt/5m7ZrtGnuu0NyciG0YI7ZsS7IslPra4awuIaZK
-n3gFrVuMv5Tb3yI12HFQlK63eRPgLNie3FIpFCtMBE/abBEKCTDgaWVne/nx0/aSpL2t2gLHWtno
-pWGxDsLcghA8Pg5LjDk4aLGQbzsdoJm1qxhAAag1hQ2iiSm2E5GED6gTR9Ri5h+UTTdxmfne6kL+
-jzvfZ6nOrqQt5Mxv9zhbTf0styDcy9yRJLHEMPhW6eNeKPulY4BZae3H4rQolr930Y7z+g0WQRJb
-vOKcKdczCfMrEEDyRnLjxoY18DzIBDlZ94yFLMGlAAAAAAAA
+AQAIE2HQ9yqxchaBzlLnbK5k7SZTdi5UCPWyxJYef0cvc1cGcAvNcDEOLXgWo4FWku1S8oGie/Fn
+wU8oEq+ymb/kEvMKsZyHjH45UNmykb+SdxTqOq4z5rxrLqYov4E1BvIK2uanvZ+1ZqKKCxfR/+jY
+H0HQ30CZVw/4h1PFaQCSsUUi6mwQDljtWqpsfdb4sGvd3AGF3K3gz/AwX59Lm+WX6uQ6K8zQSbOO
+nFC5c/D7UnrfflZqx4oAVRgX7grS6bI8/QEknoL0/2IJOH77J12aQDxOi1skq5ZtuLSRoFwrVotW
+mb1rGxl0/lK6UroFTJxNwSHdeYi8T4aorfjvn2bnAAAAAAAA
 
 
---=-TKWUPqX8Yisg6Gkm5qKN--
-
-
-
---===============2125355457529371748==
-Content-Type: text/plain; charset="us-ascii"
-MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-
-_______________________________________________
-linux-arm-kernel mailing list
-linux-arm-kernel@lists.infradead.org
-http://lists.infradead.org/mailman/listinfo/linux-arm-kernel
-
---===============2125355457529371748==--
+--=-dI495LjDknZDXmFC69/O--
