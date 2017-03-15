@@ -1,70 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-sn1nam02on0091.outbound.protection.outlook.com ([104.47.36.91]:12352
-        "EHLO NAM02-SN1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751129AbdCQXdr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 17 Mar 2017 19:33:47 -0400
-From: "Elliott, Robert (Persistent Memory)" <elliott@hpe.com>
-Subject: RE: [RFC PATCH v4 15/28] Add support to access persistent memory in
- the clear
-Date: Fri, 17 Mar 2017 22:58:21 +0000
-Message-ID: <DF4PR84MB01694A716568EFB01F5C1C5EAB390@DF4PR84MB0169.NAMPRD84.PROD.OUTLOOK.COM>
-References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
- <20170216154521.19244.89502.stgit@tlendack-t1.amdoffice.net>
-In-Reply-To: <20170216154521.19244.89502.stgit@tlendack-t1.amdoffice.net>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+Received: from mail-wr0-f196.google.com ([209.85.128.196]:34162 "EHLO
+        mail-wr0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751771AbdCRRBT (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 18 Mar 2017 13:01:19 -0400
+Received: by mail-wr0-f196.google.com with SMTP id u48so13039614wrc.1
+        for <linux-arch@vger.kernel.org>; Sat, 18 Mar 2017 10:01:18 -0700 (PDT)
+Date: Wed, 15 Mar 2017 18:42:05 +0300
+From: "Kirill A. Shutemov" <kirill@shutemov.name>
+Subject: Re: [PATCH 0/6] x86: 5-level paging enabling for v4.12, Part 1
+Message-ID: <20170315154205.33hvpvkbjypgkd7g@node.shutemov.name>
+References: <20170313143309.16020-1-kirill.shutemov@linux.intel.com>
+ <20170314074729.GA23151@gmail.com>
+ <CA+55aFzALboaXe5TWv8=3QZBPJCVAVBmfxTjQEi-aAnHKYAuPQ@mail.gmail.com>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CA+55aFzALboaXe5TWv8=3QZBPJCVAVBmfxTjQEi-aAnHKYAuPQ@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tom Lendacky <thomas.lendacky@amd.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-efi@vger.kernel.org" <linux-efi@vger.kernel.org>, "kvm@vger.kernel.org" <kvm@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "kasan-dev@googlegroups.com" <kasan-dev@googlegroups.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "iommu@lists.linux-foundation.org" <iommu@lists.linux-foundation.org>
-Cc: Rik van Riel <riel@redhat.com>, =?utf-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, "Kani, Toshimitsu" <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Alexander Potapenko <glider@google.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Borislav Petkov <bp@alien8.de>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Larry Woodman <lwoodman@redhat.com>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170317225821.2XWwG9qNQkWfndXxT7ihCCztK8l7VocMWV85V9k00U4@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Ingo Molnar <mingo@kernel.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, the arch/x86 maintainers <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, Michal Hocko <mhocko@suse.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20170315154205.uL_UmHifThBCwSlcrlxOXgh88Olr5kke7-aue1HUS0I@z>
 
-DQoNCj4gLS0tLS1PcmlnaW5hbCBNZXNzYWdlLS0tLS0NCj4gRnJvbTogbGludXgta2VybmVsLW93
-bmVyQHZnZXIua2VybmVsLm9yZyBbbWFpbHRvOmxpbnV4LWtlcm5lbC0NCj4gb3duZXJAdmdlci5r
-ZXJuZWwub3JnXSBPbiBCZWhhbGYgT2YgVG9tIExlbmRhY2t5DQo+IFNlbnQ6IFRodXJzZGF5LCBG
-ZWJydWFyeSAxNiwgMjAxNyA5OjQ1IEFNDQo+IFN1YmplY3Q6IFtSRkMgUEFUQ0ggdjQgMTUvMjhd
-IEFkZCBzdXBwb3J0IHRvIGFjY2VzcyBwZXJzaXN0ZW50IG1lbW9yeSBpbg0KPiB0aGUgY2xlYXIN
-Cj4gDQo+IFBlcnNpc3RlbnQgbWVtb3J5IGlzIGV4cGVjdGVkIHRvIHBlcnNpc3QgYWNyb3NzIHJl
-Ym9vdHMuIFRoZSBlbmNyeXB0aW9uDQo+IGtleSB1c2VkIGJ5IFNNRSB3aWxsIGNoYW5nZSBhY3Jv
-c3MgcmVib290cyB3aGljaCB3aWxsIHJlc3VsdCBpbiBjb3JydXB0ZWQNCj4gcGVyc2lzdGVudCBt
-ZW1vcnkuICBQZXJzaXN0ZW50IG1lbW9yeSBpcyBoYW5kZWQgb3V0IGJ5IGJsb2NrIGRldmljZXMN
-Cj4gdGhyb3VnaCBtZW1vcnkgcmVtYXBwaW5nIGZ1bmN0aW9ucywgc28gYmUgc3VyZSBub3QgdG8g
-bWFwIHRoaXMgbWVtb3J5IGFzDQo+IGVuY3J5cHRlZC4NCg0KVGhlIHN5c3RlbSBtaWdodCBiZSBh
-YmxlIHRvIHNhdmUgYW5kIHJlc3RvcmUgdGhlIGNvcnJlY3QgZW5jcnlwdGlvbiBrZXkgZm9yIGEg
-DQpyZWdpb24gb2YgcGVyc2lzdGVudCBtZW1vcnksIGluIHdoaWNoIGNhc2UgaXQgZG9lcyBuZWVk
-IHRvIGJlIG1hcHBlZCBhcw0KZW5jcnlwdGVkLg0KDQpUaGlzIG1pZ2h0IGRlc2VydmUgYSBuZXcg
-RUZJX01FTU9SWV9FTkNSWVBURUQgYXR0cmlidXRlIGJpdCBzbyB0aGUNCnN5c3RlbSBmaXJtd2Fy
-ZSBjYW4gY29tbXVuaWNhdGUgdGhhdCBpbmZvcm1hdGlvbiB0byB0aGUgT1MgKGluIHRoZQ0KVUVG
-SSBtZW1vcnkgbWFwIGFuZCB0aGUgQUNQSSBORklUIFNQQSBSYW5nZSBzdHJ1Y3R1cmVzKS4gIEl0
-IHdvdWxkbid0DQpsaWtlbHkgZXZlciBiZSBhZGRlZCB0byB0aGUgRTgyMGggdGFibGUgLSBBQ1BJ
-IDYuMSBhbHJlYWR5IG9ic29sZXRlZCB0aGUNCkV4dGVuZGVkIEF0dHJpYnV0ZSBmb3IgQWRkcmVz
-c1JhbmdlTm9uVm9sYXRpbGUuDQoNCj4gDQo+IFNpZ25lZC1vZmYtYnk6IFRvbSBMZW5kYWNreSA8
-dGhvbWFzLmxlbmRhY2t5QGFtZC5jb20+DQo+IC0tLQ0KPiAgYXJjaC94ODYvbW0vaW9yZW1hcC5j
-IHwgICAgMiArKw0KPiAgMSBmaWxlIGNoYW5nZWQsIDIgaW5zZXJ0aW9ucygrKQ0KPiANCj4gZGlm
-ZiAtLWdpdCBhL2FyY2gveDg2L21tL2lvcmVtYXAuYyBiL2FyY2gveDg2L21tL2lvcmVtYXAuYw0K
-PiBpbmRleCBiMGZmNmJjLi5jNmNiOTIxIDEwMDY0NA0KPiAtLS0gYS9hcmNoL3g4Ni9tbS9pb3Jl
-bWFwLmMNCj4gKysrIGIvYXJjaC94ODYvbW0vaW9yZW1hcC5jDQo+IEBAIC00OTgsNiArNDk4LDgg
-QEAgc3RhdGljIGJvb2wNCj4gbWVtcmVtYXBfc2hvdWxkX21hcF9lbmNyeXB0ZWQocmVzb3VyY2Vf
-c2l6ZV90IHBoeXNfYWRkciwNCj4gIAljYXNlIEU4MjBfVFlQRV9BQ1BJOg0KPiAgCWNhc2UgRTgy
-MF9UWVBFX05WUzoNCj4gIAljYXNlIEU4MjBfVFlQRV9VTlVTQUJMRToNCj4gKwljYXNlIEU4MjBf
-VFlQRV9QTUVNOg0KPiArCWNhc2UgRTgyMF9UWVBFX1BSQU06DQo+ICAJCXJldHVybiBmYWxzZTsN
-Cj4gIAlkZWZhdWx0Og0KPiAgCQlicmVhazsNCg0KRTgyMF9UWVBFX1JFU0VSVkVEIGlzIGFsc28g
-dXNlZCB0byByZXBvcnQgcGVyc2lzdGVudCBtZW1vcnkgaW4NCnNvbWUgc3lzdGVtcyAocGF0Y2gg
-MTYgYWRkcyB0aGF0IGZvciBvdGhlciByZWFzb25zKS4NCg0KWW91IG1pZ2h0IHdhbnQgdG8gaW50
-ZXJjZXB0IHRoZSBwZXJzaXN0ZW50IG1lbW9yeSB0eXBlcyBpbiB0aGUgDQplZmlfbWVtX3R5cGUo
-cGh5c19hZGRyKSBzd2l0Y2ggc3RhdGVtZW50IGVhcmxpZXIgaW4gdGhlIGZ1bmN0aW9uDQphcyB3
-ZWxsLiAgaHR0cHM6Ly9sa21sLm9yZy9sa21sLzIwMTcvMy8xMy8zNTcgcmVjZW50bHkgbWVudGlv
-bmVkIHRoYXQNCiJpbiBxZW11IGhvdHBsdWdnYWJsZSBtZW1vcnkgaXNuJ3QgcHV0IGludG8gRTgy
-MCwiIHdpdGggdGhlIGxhdGVzdCANCmluZm9ybWF0aW9uIG9ubHkgaW4gdGhlIFVFRkkgbWVtb3J5
-IG1hcC4NCg0KUGVyc2lzdGVudCBtZW1vcnkgY2FuIGJlIHJlcG9ydGVkIHRoZXJlIGFzOg0KKiBF
-ZmlSZXNlcnZlZE1lbW9yeVR5cGUgdHlwZSB3aXRoIHRoZSBFRklfTUVNT1JZX05WIGF0dHJpYnV0
-ZQ0KKiBFZmlQZXJzaXN0ZW50TWVtb3J5IHR5cGUgd2l0aCB0aGUgRUZJX01FTU9SWV9OViBhdHRy
-aWJ1dGUNCg0KRXZlbiB0aGUgVUVGSSBtZW1vcnkgbWFwIGlzIG5vdCBhdXRob3JpdGF0aXZlLCB0
-aG91Z2guICBUbyByZWFsbHkNCmRldGVybWluZSB3aGF0IGlzIGluIHRoZXNlIHJlZ2lvbnMgcmVx
-dWlyZXMgcGFyc2luZyB0aGUgQUNQSSBORklUDQpTUEEgUmFuZ2VzIHN0cnVjdHVyZXMuICBQYXJ0
-cyBvZiB0aGUgRTgyMCBvciBVRUZJIHJlZ2lvbnMgY291bGQgYmUNCnJlcG9ydGVkIGFzIHZvbGF0
-aWxlIHRoZXJlIGFuZCBzaG91bGQgdGh1cyBiZSBlbmNyeXB0ZWQuDQoNCi0tLQ0KUm9iZXJ0IEVs
-bGlvdHQsIEhQRSBQZXJzaXN0ZW50IE1lbW9yeQ0KDQoNCg0K
+On Tue, Mar 14, 2017 at 10:48:51AM -0700, Linus Torvalds wrote:
+> On Tue, Mar 14, 2017 at 12:47 AM, Ingo Molnar <mingo@kernel.org> wrote:
+> >
+> > I've also applied the GUP patch, with the assumption that you'll address Linus's
+> > request to switch x86 over to the generic version.
+> 
+> Note that switching over to the generic version is somewhat fraught
+> with subtle issues:
+> 
+>  (a) we need to make sure that x86 actually matches the required
+> semantics for the generic GUP.
+> 
+>  (b) we need to make sure the atomicity of the page table reads is ok.
+> 
+>  (c) need to verify the maximum VM address properly
+
+There's another difference with generic version: it uses
+page_cache_get_speculative() instead of plain get_page() on x86.
+That's somewhat more expensive, but probably fine.
+
+-- 
+ Kirill A. Shutemov
