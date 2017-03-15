@@ -1,221 +1,287 @@
 From: David Woodhouse <dwmw2@infradead.org>
-Subject: [PATCH 2/3] pci: Add arch_can_pci_mmap_wc() macro
-Date: Wed, 15 Mar 2017 17:17:56 +0000
-Message-ID: <1489598276.86622.13.camel@infradead.org>
+Subject: [PATCH 3/3] pci: Move multiple declarations of
+ pci_mmap_page_range() to <linux/pci.h>
+Date: Wed, 15 Mar 2017 17:18:00 +0000
+Message-ID: <1489598280.86622.14.camel@infradead.org>
 References: <0e5266c6c883baa0e4a98dce796f8ab2ee18e71f.1489598108.git.dwmw2@infradead.org>
 Mime-Version: 1.0
 Content-Type: multipart/signed; micalg="sha-256";
         protocol="application/x-pkcs7-signature";
-        boundary="=-dI495LjDknZDXmFC69/O"
-Return-path: <linux-kernel-owner@vger.kernel.org>
+        boundary="=-FCCFbISCFFY2xWogioOc"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from casper.infradead.org ([85.118.1.10]:51786 "EHLO
+        casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753165AbdCORSQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 15 Mar 2017 13:18:16 -0400
 In-Reply-To: <0e5266c6c883baa0e4a98dce796f8ab2ee18e71f.1489598108.git.dwmw2@infradead.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-List-Id: linux-arch.vger.kernel.org
 
 
---=-dI495LjDknZDXmFC69/O
+--=-FCCFbISCFFY2xWogioOc
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: quoted-printable
 
 From: David Woodhouse <dwmw@amazon.co.uk>
 
-Most of the almost-identical versions of pci_mmap_page_range() silently
-ignore the 'write_combine' argument and give uncached mappings.
-
-Yet we allow the PCIIOC_WRITE_COMBINE ioctl in /proc/bus/pci, expose the
-'resourceX_wc' file in sysfs, and allow an attempted mapping to apparently
-succeed.
-
-To fix this, introduce a macro arch_can_pci_mmap_wc() which indicates
-whether the platform can do a write-combining mapping. On x86 this ends
-up being pat_enabled(), while the few other platforms that support it
-can just set it to a literal '1'.
+We can declare it <linux/pci.h> even on platforms where it isn't going
+to be defined. There's no need to have it littered through the various
+<asm/pci.h> files.
 
 Signed-off-by: David Woodhouse <dwmw@amazon.co.uk>
 ---
- Documentation/filesystems/sysfs-pci.txt |  4 ++++
- arch/arm64/include/asm/pci.h            |  1 +
- arch/ia64/include/asm/pci.h             |  2 ++
- arch/powerpc/include/asm/pci.h          |  5 +++--
- arch/x86/include/asm/pci.h              |  2 ++
- arch/xtensa/include/asm/pci.h           |  6 +++++-
- arch/xtensa/kernel/pci.c                |  2 +-
- drivers/pci/pci-sysfs.c                 |  6 ++++--
- drivers/pci/proc.c                      | 17 ++++++++++-------
- 9 files changed, 32 insertions(+), 13 deletions(-)
+ arch/arm/include/asm/pci.h        | 2 --
+ arch/arm64/include/asm/pci.h      | 2 --
+ arch/cris/include/asm/pci.h       | 3 ---
+ arch/ia64/include/asm/pci.h       | 2 --
+ arch/microblaze/include/asm/pci.h | 3 ---
+ arch/mips/include/asm/pci.h       | 3 ---
+ arch/mn10300/include/asm/pci.h    | 3 ---
+ arch/parisc/include/asm/pci.h     | 3 ---
+ arch/powerpc/include/asm/pci.h    | 3 ---
+ arch/sh/include/asm/pci.h         | 3 +--
+ arch/sparc/include/asm/pci_64.h   | 4 ----
+ arch/unicore32/include/asm/pci.h  | 2 --
+ arch/x86/include/asm/pci.h        | 4 ----
+ arch/xtensa/include/asm/pci.h     | 4 ----
+ include/linux/pci.h               | 7 +++++++
+ 15 files changed, 8 insertions(+), 40 deletions(-)
 
-diff --git a/Documentation/filesystems/sysfs-pci.txt b/Documentation/filesy=
-stems/sysfs-pci.txt
-index 6ea1ced..25b7f1c 100644
---- a/Documentation/filesystems/sysfs-pci.txt
-+++ b/Documentation/filesystems/sysfs-pci.txt
-@@ -117,6 +117,10 @@ code must define HAVE_PCI_MMAP and provide a pci_mmap_=
-page_range function.
- Platforms are free to only support subsets of the mmap functionality, but
- useful return codes should be provided.
+diff --git a/arch/arm/include/asm/pci.h b/arch/arm/include/asm/pci.h
+index 057d381..51118a0 100644
+--- a/arch/arm/include/asm/pci.h
++++ b/arch/arm/include/asm/pci.h
+@@ -29,8 +29,6 @@ static inline int pci_proc_domain(struct pci_bus *bus)
+ #define PCI_DMA_BUS_IS_PHYS     (1)
 =20
-+Platforms which support write-combining maps of PCI resources must define
-+arch_can_pci_mmap_wc() which shall evaluate to non-zero at runtime when
-+write-combining is permitted.
-+
- Legacy resources are protected by the HAVE_PCI_LEGACY define.  Platforms
- wishing to support legacy functionality should define it and provide
- pci_legacy_read, pci_legacy_write and pci_mmap_legacy_page_range functions=
-.
+ #define HAVE_PCI_MMAP
+-extern int pci_mmap_page_range(struct pci_dev *dev, struct vm_area_struct =
+*vma,
+-                               enum pci_mmap_state mmap_state, int write_c=
+ombine);
+=20
+ static inline int pci_get_legacy_ide_irq(struct pci_dev *dev, int channel)
+ {
 diff --git a/arch/arm64/include/asm/pci.h b/arch/arm64/include/asm/pci.h
-index f73734f..53b1541 100644
+index 53b1541..10fd0c2 100644
 --- a/arch/arm64/include/asm/pci.h
 +++ b/arch/arm64/include/asm/pci.h
-@@ -38,6 +38,7 @@ static inline int pci_proc_domain(struct pci_bus *bus)
- #endif  /* CONFIG_PCI */
+@@ -39,8 +39,6 @@ static inline int pci_proc_domain(struct pci_bus *bus)
 =20
  #define HAVE_PCI_MMAP
-+#define arch_can_pci_mmap_wc()	1
- extern int pci_mmap_page_range(struct pci_dev *dev, struct vm_area_struct =
+ #define arch_can_pci_mmap_wc()	1
+-extern int pci_mmap_page_range(struct pci_dev *dev, struct vm_area_struct =
 *vma,
- 			       enum pci_mmap_state mmap_state, int write_combine);
+-			       enum pci_mmap_state mmap_state, int write_combine);
 =20
-diff --git a/arch/ia64/include/asm/pci.h b/arch/ia64/include/asm/pci.h
-index c0835b0..6283758 100644
---- a/arch/ia64/include/asm/pci.h
-+++ b/arch/ia64/include/asm/pci.h
-@@ -51,6 +51,8 @@ extern unsigned long ia64_max_iommu_merge_mask;
- #define PCI_DMA_BUS_IS_PHYS	(ia64_max_iommu_merge_mask =3D=3D ~0UL)
-=20
- #define HAVE_PCI_MMAP
-+#define arch_can_pci_mmap_wc()	1
-+
- extern int pci_mmap_page_range (struct pci_dev *dev, struct vm_area_struct=
- *vma,
- 				enum pci_mmap_state mmap_state, int write_combine);
- #define HAVE_PCI_LEGACY
-diff --git a/arch/powerpc/include/asm/pci.h b/arch/powerpc/include/asm/pci.=
-h
-index 93eded8..b5b68c6 100644
---- a/arch/powerpc/include/asm/pci.h
-+++ b/arch/powerpc/include/asm/pci.h
-@@ -81,8 +81,9 @@ struct vm_area_struct;
- int pci_mmap_page_range(struct pci_dev *pdev, struct vm_area_struct *vma,
- 			enum pci_mmap_state mmap_state, int write_combine);
-=20
--/* Tell drivers/pci/proc.c that we have pci_mmap_page_range() */
--#define HAVE_PCI_MMAP	1
-+/* Tell drivers/pci/proc.c that we have pci_mmap_page_range() and it does =
-WC */
-+#define HAVE_PCI_MMAP		1
-+#define arch_can_pci_mmap_wc()	1
-=20
- extern int pci_legacy_read(struct pci_bus *bus, loff_t port, u32 *val,
- 			   size_t count);
-diff --git a/arch/x86/include/asm/pci.h b/arch/x86/include/asm/pci.h
-index 1411dbe..f6e22c2 100644
---- a/arch/x86/include/asm/pci.h
-+++ b/arch/x86/include/asm/pci.h
-@@ -7,6 +7,7 @@
- #include <linux/string.h>
- #include <linux/scatterlist.h>
- #include <asm/io.h>
-+#include <asm/pat.h>
- #include <asm/x86_init.h>
-=20
- #ifdef __KERNEL__
-@@ -102,6 +103,7 @@ int pcibios_set_irq_routing(struct pci_dev *dev, int pi=
-n, int irq);
-=20
+ #endif  /* __KERNEL__ */
+ #endif  /* __ASM_PCI_H */
+diff --git a/arch/cris/include/asm/pci.h b/arch/cris/include/asm/pci.h
+index b1b289d..65198cb 100644
+--- a/arch/cris/include/asm/pci.h
++++ b/arch/cris/include/asm/pci.h
+@@ -42,9 +42,6 @@ struct pci_dev;
+ #define PCI_DMA_BUS_IS_PHYS	(1)
 =20
  #define HAVE_PCI_MMAP
-+#define arch_can_pci_mmap_wc()	pat_enabled()
- extern int pci_mmap_page_range(struct pci_dev *dev, struct vm_area_struct =
+-extern int pci_mmap_page_range(struct pci_dev *dev, struct vm_area_struct =
 *vma,
- 			       enum pci_mmap_state mmap_state,
- 			       int write_combine);
-diff --git a/arch/xtensa/include/asm/pci.h b/arch/xtensa/include/asm/pci.h
-index 5d6bd93..f106879 100644
---- a/arch/xtensa/include/asm/pci.h
-+++ b/arch/xtensa/include/asm/pci.h
-@@ -51,7 +51,11 @@ int pci_mmap_page_range(struct pci_dev *pdev, struct vm_=
-area_struct *vma,
- 			enum pci_mmap_state mmap_state, int write_combine);
-=20
- /* Tell drivers/pci/proc.c that we have pci_mmap_page_range() */
--#define HAVE_PCI_MMAP	1
-+#define HAVE_PCI_MMAP		1
-+
-+/* This was wrapped in #if 0 since the first merge of xtensa support...
-+#define arch_can_pci_mmap_wc()	1
-+*/
+-			       enum pci_mmap_state mmap_state, int write_combine);
+-
 =20
  #endif /* __KERNEL__ */
 =20
-diff --git a/arch/xtensa/kernel/pci.c b/arch/xtensa/kernel/pci.c
-index b848cc3..c5944d3 100644
---- a/arch/xtensa/kernel/pci.c
-+++ b/arch/xtensa/kernel/pci.c
-@@ -345,7 +345,7 @@ __pci_mmap_set_pgprot(struct pci_dev *dev, struct vm_ar=
-ea_struct *vma,
+diff --git a/arch/ia64/include/asm/pci.h b/arch/ia64/include/asm/pci.h
+index 6283758..fc60b3d 100644
+--- a/arch/ia64/include/asm/pci.h
++++ b/arch/ia64/include/asm/pci.h
+@@ -53,8 +53,6 @@ extern unsigned long ia64_max_iommu_merge_mask;
+ #define HAVE_PCI_MMAP
+ #define arch_can_pci_mmap_wc()	1
 =20
- 	/* Set to write-through */
- 	prot =3D (prot & _PAGE_CA_MASK) | _PAGE_CA_WT;
--#if 0
-+#ifdef arch_can_pci_mmap_wc
- 	if (!write_combine)
- 		prot |=3D _PAGE_WRITETHRU;
+-extern int pci_mmap_page_range (struct pci_dev *dev, struct vm_area_struct=
+ *vma,
+-				enum pci_mmap_state mmap_state, int write_combine);
+ #define HAVE_PCI_LEGACY
+ extern int pci_mmap_legacy_page_range(struct pci_bus *bus,
+ 				      struct vm_area_struct *vma,
+diff --git a/arch/microblaze/include/asm/pci.h b/arch/microblaze/include/as=
+m/pci.h
+index 2a120bb..ab381d2 100644
+--- a/arch/microblaze/include/asm/pci.h
++++ b/arch/microblaze/include/asm/pci.h
+@@ -46,9 +46,6 @@ extern int pci_domain_nr(struct pci_bus *bus);
+ extern int pci_proc_domain(struct pci_bus *bus);
+=20
+ struct vm_area_struct;
+-/* Map a range of PCI memory or I/O space for a device into user space */
+-int pci_mmap_page_range(struct pci_dev *pdev, struct vm_area_struct *vma,
+-			enum pci_mmap_state mmap_state, int write_combine);
+=20
+ /* Tell drivers/pci/proc.c that we have pci_mmap_page_range() */
+ #define HAVE_PCI_MMAP	1
+diff --git a/arch/mips/include/asm/pci.h b/arch/mips/include/asm/pci.h
+index 30d1129..3141e2a 100644
+--- a/arch/mips/include/asm/pci.h
++++ b/arch/mips/include/asm/pci.h
+@@ -111,9 +111,6 @@ extern void pcibios_set_master(struct pci_dev *dev);
+=20
+ #define HAVE_PCI_MMAP
+=20
+-extern int pci_mmap_page_range(struct pci_dev *dev, struct vm_area_struct =
+*vma,
+-	enum pci_mmap_state mmap_state, int write_combine);
+-
+ #define HAVE_ARCH_PCI_RESOURCE_TO_USER
+=20
+ /*
+diff --git a/arch/mn10300/include/asm/pci.h b/arch/mn10300/include/asm/pci.=
+h
+index 51159ff..082b6de 100644
+--- a/arch/mn10300/include/asm/pci.h
++++ b/arch/mn10300/include/asm/pci.h
+@@ -74,9 +74,6 @@ static inline int pci_controller_num(struct pci_dev *dev)
+ }
+=20
+ #define HAVE_PCI_MMAP
+-extern int pci_mmap_page_range(struct pci_dev *dev, struct vm_area_struct =
+*vma,
+-			       enum pci_mmap_state mmap_state,
+-			       int write_combine);
+=20
+ #endif /* __KERNEL__ */
+=20
+diff --git a/arch/parisc/include/asm/pci.h b/arch/parisc/include/asm/pci.h
+index defebd9..bb9ea90 100644
+--- a/arch/parisc/include/asm/pci.h
++++ b/arch/parisc/include/asm/pci.h
+@@ -201,7 +201,4 @@ static inline int pci_get_legacy_ide_irq(struct pci_dev=
+ *dev, int channel)
+=20
+ #define HAVE_PCI_MMAP
+=20
+-extern int pci_mmap_page_range(struct pci_dev *dev, struct vm_area_struct =
+*vma,
+-	enum pci_mmap_state mmap_state, int write_combine);
+-
+ #endif /* __ASM_PARISC_PCI_H */
+diff --git a/arch/powerpc/include/asm/pci.h b/arch/powerpc/include/asm/pci.=
+h
+index b5b68c6..55887d1 100644
+--- a/arch/powerpc/include/asm/pci.h
++++ b/arch/powerpc/include/asm/pci.h
+@@ -77,9 +77,6 @@ extern int pci_domain_nr(struct pci_bus *bus);
+ extern int pci_proc_domain(struct pci_bus *bus);
+=20
+ struct vm_area_struct;
+-/* Map a range of PCI memory or I/O space for a device into user space */
+-int pci_mmap_page_range(struct pci_dev *pdev, struct vm_area_struct *vma,
+-			enum pci_mmap_state mmap_state, int write_combine);
+=20
+ /* Tell drivers/pci/proc.c that we have pci_mmap_page_range() and it does =
+WC */
+ #define HAVE_PCI_MMAP		1
+diff --git a/arch/sh/include/asm/pci.h b/arch/sh/include/asm/pci.h
+index 644314f..46abbc9 100644
+--- a/arch/sh/include/asm/pci.h
++++ b/arch/sh/include/asm/pci.h
+@@ -66,8 +66,7 @@ extern unsigned long PCIBIOS_MIN_IO, PCIBIOS_MIN_MEM;
+ struct pci_dev;
+=20
+ #define HAVE_PCI_MMAP
+-extern int pci_mmap_page_range(struct pci_dev *dev, struct vm_area_struct =
+*vma,
+-	enum pci_mmap_state mmap_state, int write_combine);
++
+ extern void pcibios_set_master(struct pci_dev *dev);
+=20
+ /* Dynamic DMA mapping stuff.
+diff --git a/arch/sparc/include/asm/pci_64.h b/arch/sparc/include/asm/pci_6=
+4.h
+index 2303635..516fda7 100644
+--- a/arch/sparc/include/asm/pci_64.h
++++ b/arch/sparc/include/asm/pci_64.h
+@@ -45,10 +45,6 @@ static inline int pci_proc_domain(struct pci_bus *bus)
+ #define HAVE_ARCH_PCI_GET_UNMAPPED_AREA
+ #define get_pci_unmapped_area get_fb_unmapped_area
+=20
+-int pci_mmap_page_range(struct pci_dev *dev, struct vm_area_struct *vma,
+-			enum pci_mmap_state mmap_state,
+-			int write_combine);
+-
+ static inline int pci_get_legacy_ide_irq(struct pci_dev *dev, int channel)
+ {
+ 	return PCI_IRQ_NONE;
+diff --git a/arch/unicore32/include/asm/pci.h b/arch/unicore32/include/asm/=
+pci.h
+index 37e55d0..a5129086 100644
+--- a/arch/unicore32/include/asm/pci.h
++++ b/arch/unicore32/include/asm/pci.h
+@@ -17,8 +17,6 @@
+ #include <mach/hardware.h> /* for PCIBIOS_MIN_* */
+=20
+ #define HAVE_PCI_MMAP
+-extern int pci_mmap_page_range(struct pci_dev *dev, struct vm_area_struct =
+*vma,
+-	enum pci_mmap_state mmap_state, int write_combine);
+=20
+ #endif /* __KERNEL__ */
  #endif
-diff --git a/drivers/pci/pci-sysfs.c b/drivers/pci/pci-sysfs.c
-index 25d010d..e0474f3 100644
---- a/drivers/pci/pci-sysfs.c
-+++ b/drivers/pci/pci-sysfs.c
-@@ -1206,10 +1206,12 @@ static int pci_create_resource_files(struct pci_dev=
- *pdev)
- 			continue;
+diff --git a/arch/x86/include/asm/pci.h b/arch/x86/include/asm/pci.h
+index f6e22c2..734cc94 100644
+--- a/arch/x86/include/asm/pci.h
++++ b/arch/x86/include/asm/pci.h
+@@ -104,10 +104,6 @@ int pcibios_set_irq_routing(struct pci_dev *dev, int p=
+in, int irq);
 =20
- 		retval =3D pci_create_attr(pdev, i, 0);
-+#ifdef arch_can_pci_mmap_wc
- 		/* for prefetchable resources, create a WC mappable file */
--		if (!retval && pdev->resource[i].flags & IORESOURCE_PREFETCH)
-+		if (!retval && arch_can_pci_mmap_wc() &&
-+		    pdev->resource[i].flags & IORESOURCE_PREFETCH)
- 			retval =3D pci_create_attr(pdev, i, 1);
+ #define HAVE_PCI_MMAP
+ #define arch_can_pci_mmap_wc()	pat_enabled()
+-extern int pci_mmap_page_range(struct pci_dev *dev, struct vm_area_struct =
+*vma,
+-			       enum pci_mmap_state mmap_state,
+-			       int write_combine);
 -
-+#endif
- 		if (retval) {
- 			pci_remove_resource_files(pdev);
- 			return retval;
-diff --git a/drivers/pci/proc.c b/drivers/pci/proc.c
-index f82710a..5cd960c 100644
---- a/drivers/pci/proc.c
-+++ b/drivers/pci/proc.c
-@@ -209,15 +209,18 @@ static long proc_bus_pci_ioctl(struct file *file, uns=
-igned int cmd,
- 		fpriv->mmap_state =3D pci_mmap_mem;
- 		break;
 =20
-+#ifdef arch_can_pci_mmap_wc
- 	case PCIIOC_WRITE_COMBINE:
--		if (arg)
--			fpriv->write_combine =3D 1;
--		else
--			fpriv->write_combine =3D 0;
--		break;
+ #ifdef CONFIG_PCI
+ extern void early_quirks(void);
+diff --git a/arch/xtensa/include/asm/pci.h b/arch/xtensa/include/asm/pci.h
+index f106879..e594eee 100644
+--- a/arch/xtensa/include/asm/pci.h
++++ b/arch/xtensa/include/asm/pci.h
+@@ -46,10 +46,6 @@ struct pci_dev;
+=20
+ #define PCI_DMA_BUS_IS_PHYS	(1)
+=20
+-/* Map a range of PCI memory or I/O space for a device into user space */
+-int pci_mmap_page_range(struct pci_dev *pdev, struct vm_area_struct *vma,
+-			enum pci_mmap_state mmap_state, int write_combine);
 -
-+		if (arch_can_pci_mmap_wc()) {
-+			if (arg)
-+				fpriv->write_combine =3D 1;
-+			else
-+				fpriv->write_combine =3D 0;
-+			break;
-+		}
-+		/* If arch decided it can't, fall through... */
-+#endif /* arch_can_pci_mmap_wc */
- #endif /* HAVE_PCI_MMAP */
--
- 	default:
- 		ret =3D -EINVAL;
- 		break;
+ /* Tell drivers/pci/proc.c that we have pci_mmap_page_range() */
+ #define HAVE_PCI_MMAP		1
+=20
+diff --git a/include/linux/pci.h b/include/linux/pci.h
+index eb3da1a..1882797 100644
+--- a/include/linux/pci.h
++++ b/include/linux/pci.h
+@@ -823,6 +823,13 @@ void pcibios_update_irq(struct pci_dev *, int irq);
+ /* Weak but can be overriden by arch */
+ void pci_fixup_cardbus(struct pci_bus *);
+=20
++/* Map a range of PCI memory or I/O space for a device into user space.
++ * Architectures provide this function if they set HAVE_PCI_MMAP, and
++ * it accepts the 'write_combine' argument when arch_can_pci_mmap_wc()
++ * evaluates to nonzero. */
++int pci_mmap_page_range(struct pci_dev *pdev, struct vm_area_struct *vma,
++			enum pci_mmap_state mmap_state, int write_combine);
++
+ /* Generic PCI functions used internally */
+=20
+ void pcibios_resource_to_bus(struct pci_bus *bus, struct pci_bus_region *r=
+egion,
 --=20
 dwmw2
---=-dI495LjDknZDXmFC69/O
+--=-FCCFbISCFFY2xWogioOc
 Content-Type: application/x-pkcs7-signature; name="smime.p7s"
 Content-Disposition: attachment; filename="smime.p7s"
 Content-Transfer-Encoding: base64
@@ -293,8 +359,8 @@ GeE6+vmbHDFFQ9Ealsti3jGCA9MwggPPAgEBMIGwMIGbMQswCQYDVQQGEwJHQjEbMBkGA1UECBMS
 R3JlYXRlciBNYW5jaGVzdGVyMRAwDgYDVQQHEwdTYWxmb3JkMRowGAYDVQQKExFDT01PRE8gQ0Eg
 TGltaXRlZDFBMD8GA1UEAxM4Q09NT0RPIFNIQS0yNTYgQ2xpZW50IEF1dGhlbnRpY2F0aW9uIGFu
 ZCBTZWN1cmUgRW1haWwgQ0ECEGoLUFiVUy0EUE3iKBH+GjAwDQYJYIZIAWUDBAIBBQCgggHzMBgG
-CSqGSIb3DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTE3MDMxNTE3MTc1NlowLwYJ
-KoZIhvcNAQkEMSIEIInYTxgBDbBCZASyCHcmApTB00PD2HZC+fyZ2L1yKS6pMIHBBgkrBgEEAYI3
+CSqGSIb3DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTE3MDMxNTE3MTgwMFowLwYJ
+KoZIhvcNAQkEMSIEIJ7xzGJKVsFKR91cw4pacJCd6SV3IYcV7agWXH+lBwRwMIHBBgkrBgEEAYI3
 EAQxgbMwgbAwgZsxCzAJBgNVBAYTAkdCMRswGQYDVQQIExJHcmVhdGVyIE1hbmNoZXN0ZXIxEDAO
 BgNVBAcTB1NhbGZvcmQxGjAYBgNVBAoTEUNPTU9ETyBDQSBMaW1pdGVkMUEwPwYDVQQDEzhDT01P
 RE8gU0hBLTI1NiBDbGllbnQgQXV0aGVudGljYXRpb24gYW5kIFNlY3VyZSBFbWFpbCBDQQIQagtQ
@@ -302,11 +368,11 @@ WJVTLQRQTeIoEf4aMDCBwwYLKoZIhvcNAQkQAgsxgbOggbAwgZsxCzAJBgNVBAYTAkdCMRswGQYD
 VQQIExJHcmVhdGVyIE1hbmNoZXN0ZXIxEDAOBgNVBAcTB1NhbGZvcmQxGjAYBgNVBAoTEUNPTU9E
 TyBDQSBMaW1pdGVkMUEwPwYDVQQDEzhDT01PRE8gU0hBLTI1NiBDbGllbnQgQXV0aGVudGljYXRp
 b24gYW5kIFNlY3VyZSBFbWFpbCBDQQIQagtQWJVTLQRQTeIoEf4aMDANBgkqhkiG9w0BAQEFAASC
-AQAIE2HQ9yqxchaBzlLnbK5k7SZTdi5UCPWyxJYef0cvc1cGcAvNcDEOLXgWo4FWku1S8oGie/Fn
-wU8oEq+ymb/kEvMKsZyHjH45UNmykb+SdxTqOq4z5rxrLqYov4E1BvIK2uanvZ+1ZqKKCxfR/+jY
-H0HQ30CZVw/4h1PFaQCSsUUi6mwQDljtWqpsfdb4sGvd3AGF3K3gz/AwX59Lm+WX6uQ6K8zQSbOO
-nFC5c/D7UnrfflZqx4oAVRgX7grS6bI8/QEknoL0/2IJOH77J12aQDxOi1skq5ZtuLSRoFwrVotW
-mb1rGxl0/lK6UroFTJxNwSHdeYi8T4aorfjvn2bnAAAAAAAA
+AQBKc3EvgaUgBzr51YLIE05xvuf52e66SjDHP3AOmtP8246bjXraEMv60aKvg3ZQ5CGgzpTS/L20
+kHs9TaG71rbWsvEVUhJESXAlYqx0zY2dddl6TJ8WvDOgtzlqUNhxsammTRmcWyyCEn0Cxns6xa2u
+FzsU25AiUgHzWlpqbBFuOHPS7cjs98S/TpA7UBdNwN0aTCqyAsUysROxNvrpyMz4sQ2hasXMXUzM
+0qK1cA7+TDg4TwvnT0Qbk7rZun4s2WNe0OQAqn1Sfo1sdzDbzMmhCK8pwjR5o83mRjFda7uUXJkF
+ot3f6wb93xs5aoCGjyAHmfrEEs9o2jCEbFUolTb6AAAAAAAA
 
 
---=-dI495LjDknZDXmFC69/O--
+--=-FCCFbISCFFY2xWogioOc--
