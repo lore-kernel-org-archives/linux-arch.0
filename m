@@ -1,144 +1,180 @@
-From: Till Smejkal <till.smejkal@googlemail.com>
-Subject: Re: [RFC PATCH 00/13] Introduce first class virtual address spaces
-Date: Wed, 15 Mar 2017 12:44:47 -0700
-Message-ID: <20170315194447.scsf3fiwvf7z5gzc@arch-dev>
-References: <CALCETrX5gv+zdhOYro4-u3wGWjVCab28DFHPSm5=BVG_hKxy3A@mail.gmail.com>
+From: David Woodhouse <dwmw2@infradead.org>
+Subject: [PATCH v2 1/4] arm64: enable pci resource mapping using sysfs
+Date: Wed, 15 Mar 2017 20:42:20 +0000
+Message-ID: <1489610540.86622.19.camel@infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
-Return-path: <owner-linux-aio@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <CALCETrX5gv+zdhOYro4-u3wGWjVCab28DFHPSm5=BVG_hKxy3A@mail.gmail.com>
-Sender: owner-linux-aio@kvack.org
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: Andy Lutomirski <luto@kernel.org>, Till Smejkal <till.smejkal@googlemail.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Steven Miao <realmz6@gmail.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, James Hogan <james.hogan@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Yoshinori Sato <ysato@users.>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: multipart/signed; micalg="sha-256";
+        protocol="application/x-pkcs7-signature";
+        boundary="=-ETmwjzJUmXTjvEZCp0GL"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from casper.infradead.org ([85.118.1.10]:42222 "EHLO
+        casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753124AbdCOUmX (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 15 Mar 2017 16:42:23 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>
 
-On Wed, 15 Mar 2017, Andy Lutomirski wrote:
-> > One advantage of VAS segments is that they can be globally queried by user programs
-> > which means that VAS segments can be shared by applications that not necessarily have
-> > to be related. If I am not mistaken, MAP_SHARED of pure in memory data will only work
-> > if the tasks that share the memory region are related (aka. have a common parent that
-> > initialized the shared mapping). Otherwise, the shared mapping have to be backed by a
-> > file.
-> 
-> What's wrong with memfd_create()?
-> 
-> > VAS segments on the other side allow sharing of pure in memory data by
-> > arbitrary related tasks without the need of a file. This becomes especially
-> > interesting if one combines VAS segments with non-volatile memory since one can keep
-> > data structures in the NVM and still be able to share them between multiple tasks.
-> 
-> What's wrong with regular mmap?
 
-I never wanted to say that there is something wrong with regular mmap. We just
-figured that with VAS segments you could remove the need to mmap your shared data but
-instead can keep everything purely in memory.
+--=-ETmwjzJUmXTjvEZCp0GL
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-Unfortunately, I am not at full speed with memfds. Is my understanding correct that
-if the last user of such a file descriptor closes it, the corresponding memory is
-freed? Accordingly, memfd cannot be used to keep data in memory while no program is
-currently using it, can it? To be able to do this you need again some representation
-of the data in a file? Yes, you can use a tmpfs to keep the file content in memory as
-well, or some DAX filesystem to keep the file content in NVM, but this always
-requires that such filesystems are mounted in the system that the application is
-currently running on. VAS segments on the other side would provide a functionality to
-achieve the same without the need of any mounted filesystem. However, I agree, that
-this is just a small advantage compared to what can already be achieved with the
-existing functionality provided by the Linux kernel. I probably need to revisit the
-whole idea of first class virtual address space segments before continuing with this
-pacthset. Thank you very much for the great feedback.
+From: Brijesh Singh <brijess@amazon.com>
 
-> >> >> Ick.  Please don't do this.  Can we please keep an mm as just an mm
-> >> >> and not make it look magically different depending on which process
-> >> >> maps it?  If you need a trampoline (which you do, of course), just
-> >> >> write a trampoline in regular user code and map it manually.
-> >> >
-> >> > Did I understand you correctly that you are proposing that the switching thread
-> >> > should make sure by itself that its code, stack, … memory regions are properly setup
-> >> > in the new AS before/after switching into it? I think, this would make using first
-> >> > class virtual address spaces much more difficult for user applications to the extend
-> >> > that I am not even sure if they can be used at all. At the moment, switching into a
-> >> > VAS is a very simple operation for an application because the kernel will just simply
-> >> > do the right thing.
-> >>
-> >> Yes.  I think that having the same mm_struct look different from
-> >> different tasks is problematic.  Getting it right in the arch code is
-> >> going to be nasty.  The heuristics of what to share are also tough --
-> >> why would text + data + stack or whatever you're doing be adequate?
-> >> What if you're in a thread?  What if two tasks have their stacks in
-> >> the same place?
-> >
-> > The different ASes that a task now can have when it uses first class virtual address
-> > spaces are not realized in the kernel by using only one mm_struct per task that just
-> > looks differently but by using multiple mm_structs - one for each AS that the task
-> > can execute in. When a task attaches a first class virtual address space to itself to
-> > be able to use another AS, the kernel adds a temporary mm_struct to this task that
-> > contains the mappings of the first class virtual address space and the one shared
-> > with the task's original AS. If a thread now wants to switch into this attached first
-> > class virtual address space the kernel only changes the 'mm' and 'active_mm' pointers
-> > in the task_struct of the thread to the temporary mm_struct and performs the
-> > corresponding mm_switch operation. The original mm_struct of the thread will not be
-> > changed.
-> >
-> > Accordingly, I do not magically make mm_structs look differently depending on the
-> > task that uses it, but create temporary mm_structs that only contain mappings to the
-> > same memory regions.
-> 
-> This sounds complicated and fragile.  What happens if a heuristically
-> shared region coincides with a region in the "first class address
-> space" being selected?
+To support PCI resource mapping from userspace, pci_mmap_page_range()
+must be implemented and HAVE_PCI_MMAP defined. This support was absent
+for arm64.
 
-If such a conflict happens, the task cannot use the first class address space and the
-corresponding system call will return an error. However, with the current available
-virtual address space size that programs can use, such conflicts are probably rare. I
-could also image some additional functionality that allows a user to mark parts of
-its AS to not to be shared/to be shared when switching into a VAS. With this
-functionality in place, there would be no need for a heuristic in the kernel but the
-user decides what to share. The kernel would by default only share code, data, and
-stack and the application/libraries have to mark all the other memory regions as
-shared if they need to be also available in the VAS.
+[dwmw2: Add WC support]
+Reviewed-by: Erik Quanstrom <quanstro@amazon.com>
+Reviewed-by: Anthony Liguori <aliguori@amazon.com>
+Signed-off-by: Brijesh Singh <brijess@amazon.com>
+Signed-off-by: David Woodhouse <dwmw@amazon.co.uk>
+---
+v2: s/pgprot_uncached/pgprot_device/
 
-> I think the right solution is "you're a user program playing virtual
-> address games -- make sure you do it right".
+ arch/arm64/include/asm/pci.h |  4 ++++
+ arch/arm64/kernel/pci.c      | 19 +++++++++++++++++++
+ 2 files changed, 23 insertions(+)
 
-Hm, in general I agree, that the easier and more robust solution from the kernel
-perspective is to let the user do the AS setup and only provide the functionality to
-create new empty ASes. Though, I think that such an interface would be much more
-difficult to use than my current design. Letting the user program setup the AS has
-also another implication that I currently don't have. Since I share the code and
-stack regions between all ASes that are available to a process, I don't need to
-save/restore stack pointers or instruction pointers when threads switch between ASes.
-However, when the user will setup the AS, the kernel cannot be sure that the code and
-stack will be mapped at the same virtual address and hence has to save and restore
-these registers (and also potentially others since we can now basically jump between
-different execution contexts).
+diff --git a/arch/arm64/include/asm/pci.h b/arch/arm64/include/asm/pci.h
+index b9a7ba9..f73734f 100644
+--- a/arch/arm64/include/asm/pci.h
++++ b/arch/arm64/include/asm/pci.h
+@@ -37,5 +37,9 @@ static inline int pci_proc_domain(struct pci_bus *bus)
+ }
+ #endif  /* CONFIG_PCI */
+=20
++#define HAVE_PCI_MMAP
++extern int pci_mmap_page_range(struct pci_dev *dev, struct vm_area_struct =
+*vma,
++			       enum pci_mmap_state mmap_state, int write_combine);
++
+ #endif  /* __KERNEL__ */
+ #endif  /* __ASM_PCI_H */
+diff --git a/arch/arm64/kernel/pci.c b/arch/arm64/kernel/pci.c
+index 4f0e3eb..9a87b2a 100644
+--- a/arch/arm64/kernel/pci.c
++++ b/arch/arm64/kernel/pci.c
+@@ -228,3 +228,22 @@ void pcibios_remove_bus(struct pci_bus *bus)
+ }
+=20
+ #endif
++
++int pci_mmap_page_range(struct pci_dev *dev, struct vm_area_struct *vma,
++			enum pci_mmap_state mmap_state, int write_combine)
++{
++	if (mmap_state =3D=3D pci_mmap_io)
++		return -EINVAL;
++
++	if (write_combine)
++		vma->vm_page_prot =3D pgprot_writecombine(vma->vm_page_prot);
++	else
++		vma->vm_page_prot =3D pgprot_device(vma->vm_page_prot);
++
++	if (remap_pfn_range(vma, vma->vm_start, vma->vm_pgoff,
++			     vma->vm_end - vma->vm_start,
++			     vma->vm_page_prot))
++		return -EAGAIN;
++
++	return 0;
++}
+--=20
+dwmw2
+--=-ETmwjzJUmXTjvEZCp0GL
+Content-Type: application/x-pkcs7-signature; name="smime.p7s"
+Content-Disposition: attachment; filename="smime.p7s"
+Content-Transfer-Encoding: base64
 
-When we first designed first class virtual address spaces, we had one special
-use-case in mind, namely that one application wants to use different data sets that
-it does not want/can keep in the same AS. Hence, sharing code and stack between the
-different ASes that the application uses was a logic step for us because the code
-memory region for example has to be available at all AS anyways since all of them
-execute the same application. Sharing the stack memory region enabled the application
-to keep volatile information that might be needed in the new AS on the stack which
-allows easy information flow between the different ASes. 
+MIAGCSqGSIb3DQEHAqCAMIACAQExDzANBglghkgBZQMEAgEFADCABgkqhkiG9w0BBwEAAKCCDzUw
+ggSvMIIDl6ADAgECAhEA4CPLFRKDU4mtYW56VGdrITANBgkqhkiG9w0BAQsFADBvMQswCQYDVQQG
+EwJTRTEUMBIGA1UEChMLQWRkVHJ1c3QgQUIxJjAkBgNVBAsTHUFkZFRydXN0IEV4dGVybmFsIFRU
+UCBOZXR3b3JrMSIwIAYDVQQDExlBZGRUcnVzdCBFeHRlcm5hbCBDQSBSb290MB4XDTE0MTIyMjAw
+MDAwMFoXDTIwMDUzMDEwNDgzOFowgZsxCzAJBgNVBAYTAkdCMRswGQYDVQQIExJHcmVhdGVyIE1h
+bmNoZXN0ZXIxEDAOBgNVBAcTB1NhbGZvcmQxGjAYBgNVBAoTEUNPTU9ETyBDQSBMaW1pdGVkMUEw
+PwYDVQQDEzhDT01PRE8gU0hBLTI1NiBDbGllbnQgQXV0aGVudGljYXRpb24gYW5kIFNlY3VyZSBF
+bWFpbCBDQTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAImxDdp6UxlOcFIdvFamBia3
+uEngludRq/HwWhNJFaO0jBtgvHpRQqd5jKQi3xdhTpHVdiMKFNNKAn+2HQmAbqUEPdm6uxb+oYep
+LkNSQxZ8rzJQyKZPWukI2M+TJZx7iOgwZOak+FaA/SokFDMXmaxE5WmLo0YGS8Iz1OlAnwawsayT
+QLm1CJM6nCpToxDbPSBhPFUDjtlOdiUCISn6o3xxdk/u4V+B6ftUgNvDezVSt4TeIj0sMC0xf1m9
+UjewM2ktQ+v61qXxl3dnUYzZ7ifrvKUHOHaMpKk4/9+M9QOsSb7K93OZOg8yq5yVOhM9DkY6V3Rh
+UL7GQD/L5OKfoiECAwEAAaOCARcwggETMB8GA1UdIwQYMBaAFK29mHo0tCb3+sQmVO8DveAky1Qa
+MB0GA1UdDgQWBBSSYWuC4aKgqk/sZ/HCo/e0gADB7DAOBgNVHQ8BAf8EBAMCAYYwEgYDVR0TAQH/
+BAgwBgEB/wIBADAdBgNVHSUEFjAUBggrBgEFBQcDAgYIKwYBBQUHAwQwEQYDVR0gBAowCDAGBgRV
+HSAAMEQGA1UdHwQ9MDswOaA3oDWGM2h0dHA6Ly9jcmwudXNlcnRydXN0LmNvbS9BZGRUcnVzdEV4
+dGVybmFsQ0FSb290LmNybDA1BggrBgEFBQcBAQQpMCcwJQYIKwYBBQUHMAGGGWh0dHA6Ly9vY3Nw
+LnVzZXJ0cnVzdC5jb20wDQYJKoZIhvcNAQELBQADggEBABsqbqxVwTqriMXY7c1V86prYSvACRAj
+mQ/FZmpvsfW0tXdeDwJhAN99Bf4Ss6SAgAD8+x1banICCkG8BbrBWNUmwurVTYT7/oKYz1gb4yJj
+nFL4uwU2q31Ypd6rO2Pl2tVz7+zg+3vio//wQiOcyraNTT7kSxgDsqgt1Ni7QkuQaYUQ26Y3NOh7
+4AEQpZzKOsefT4g0bopl0BqKu6ncyso20fT8wmQpNa/WsadxEdIDQ7GPPprsnjJT9HaSyoY0B7ks
+yuYcStiZDcGG4pCS+1pCaiMhEOllx/XVu37qjIUgAmLq0ToHLFnFmTPyOInltukWeh95FPZKEBom
++nyK+5swggU9MIIEJaADAgECAhBqC1BYlVMtBFBN4igR/howMA0GCSqGSIb3DQEBCwUAMIGbMQsw
+CQYDVQQGEwJHQjEbMBkGA1UECBMSR3JlYXRlciBNYW5jaGVzdGVyMRAwDgYDVQQHEwdTYWxmb3Jk
+MRowGAYDVQQKExFDT01PRE8gQ0EgTGltaXRlZDFBMD8GA1UEAxM4Q09NT0RPIFNIQS0yNTYgQ2xp
+ZW50IEF1dGhlbnRpY2F0aW9uIGFuZCBTZWN1cmUgRW1haWwgQ0EwHhcNMTYxMjIwMDAwMDAwWhcN
+MTcxMjIwMjM1OTU5WjAkMSIwIAYJKoZIhvcNAQkBFhNkd213MkBpbmZyYWRlYWQub3JnMIIBIjAN
+BgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwbTrFaiGdvN2pThnR9q+4eaXB2wQZQNqhter5ZrJ
+pPO47e87bZ+f1tmYoh6+rB90G/XN24NErPRfvU4zVzNT9pCtCzSSVnBlZQBpaEYMKhcXo5PGKNsm
+An8BoGwNXjlxwbBNRaNO+ky0wNCaMNd1JLxEuvqg9J7rrcpHhWmnpXD5IKa8gv9GyVAJgOpiBOts
+p91sShc2kHvWJ5waPEWPCHDH9J+twGGKqKIIU7fdbURLUgUL1wlDSAHf/lgIAVCSj2H2HpoGqHpy
+HgOAClX9iRSLNa0Znj8HTaqfOwxXevsz1KkLFY+Ahm426GIEqdfkK2iT6Hhgc7tjNO3f8i5ALQID
+AQABo4IB8TCCAe0wHwYDVR0jBBgwFoAUkmFrguGioKpP7GfxwqP3tIAAwewwHQYDVR0OBBYEFILE
+dmHLtK6oxmFJZvBhTQhvqrS0MA4GA1UdDwEB/wQEAwIFoDAMBgNVHRMBAf8EAjAAMCAGA1UdJQQZ
+MBcGCCsGAQUFBwMEBgsrBgEEAbIxAQMFAjARBglghkgBhvhCAQEEBAMCBSAwRgYDVR0gBD8wPTA7
+BgwrBgEEAbIxAQIBAQEwKzApBggrBgEFBQcCARYdaHR0cHM6Ly9zZWN1cmUuY29tb2RvLm5ldC9D
+UFMwXQYDVR0fBFYwVDBSoFCgToZMaHR0cDovL2NybC5jb21vZG9jYS5jb20vQ09NT0RPU0hBMjU2
+Q2xpZW50QXV0aGVudGljYXRpb25hbmRTZWN1cmVFbWFpbENBLmNybDCBkAYIKwYBBQUHAQEEgYMw
+gYAwWAYIKwYBBQUHMAKGTGh0dHA6Ly9jcnQuY29tb2RvY2EuY29tL0NPTU9ET1NIQTI1NkNsaWVu
+dEF1dGhlbnRpY2F0aW9uYW5kU2VjdXJlRW1haWxDQS5jcnQwJAYIKwYBBQUHMAGGGGh0dHA6Ly9v
+Y3NwLmNvbW9kb2NhLmNvbTAeBgNVHREEFzAVgRNkd213MkBpbmZyYWRlYWQub3JnMA0GCSqGSIb3
+DQEBCwUAA4IBAQA+AfvNhFwtapF5Lzjapgul3zYuEnMfR538Ya1vhP8wuOkcoJeT2gEFXzVO2WUu
+eWM0g0/DumnRB53htV/Qq/+vsL0i6a2+iOO7kHi5O7bZkgbdNv0t2lzonDUHi6LTa7NUj+tv+j6y
+hW+iNquC3ACP1dIZH8gJmicHblW63qRgp6wxhn315MLBeavi3uiSag2eeKFePiTIwJjN2UYq6kWg
+PL5G/Ycf9x/xN1XBTfJiURc0FsXhrA98VMWnt52C5Lo4txhGjzTI+IZg40b3YDs6E7mTYb5KKmbc
+QZA9priOFDdj1z5W9BdWhU6I/D0P9y8Z4Tr6+ZscMUVD0RqWy2LeMIIFPTCCBCWgAwIBAgIQagtQ
+WJVTLQRQTeIoEf4aMDANBgkqhkiG9w0BAQsFADCBmzELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdy
+ZWF0ZXIgTWFuY2hlc3RlcjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExp
+bWl0ZWQxQTA/BgNVBAMTOENPTU9ETyBTSEEtMjU2IENsaWVudCBBdXRoZW50aWNhdGlvbiBhbmQg
+U2VjdXJlIEVtYWlsIENBMB4XDTE2MTIyMDAwMDAwMFoXDTE3MTIyMDIzNTk1OVowJDEiMCAGCSqG
+SIb3DQEJARYTZHdtdzJAaW5mcmFkZWFkLm9yZzCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoC
+ggEBAMG06xWohnbzdqU4Z0favuHmlwdsEGUDaobXq+WayaTzuO3vO22fn9bZmKIevqwfdBv1zduD
+RKz0X71OM1czU/aQrQs0klZwZWUAaWhGDCoXF6OTxijbJgJ/AaBsDV45ccGwTUWjTvpMtMDQmjDX
+dSS8RLr6oPSe663KR4Vpp6Vw+SCmvIL/RslQCYDqYgTrbKfdbEoXNpB71iecGjxFjwhwx/SfrcBh
+iqiiCFO33W1ES1IFC9cJQ0gB3/5YCAFQko9h9h6aBqh6ch4DgApV/YkUizWtGZ4/B02qnzsMV3r7
+M9SpCxWPgIZuNuhiBKnX5Ctok+h4YHO7YzTt3/IuQC0CAwEAAaOCAfEwggHtMB8GA1UdIwQYMBaA
+FJJha4LhoqCqT+xn8cKj97SAAMHsMB0GA1UdDgQWBBSCxHZhy7SuqMZhSWbwYU0Ib6q0tDAOBgNV
+HQ8BAf8EBAMCBaAwDAYDVR0TAQH/BAIwADAgBgNVHSUEGTAXBggrBgEFBQcDBAYLKwYBBAGyMQED
+BQIwEQYJYIZIAYb4QgEBBAQDAgUgMEYGA1UdIAQ/MD0wOwYMKwYBBAGyMQECAQEBMCswKQYIKwYB
+BQUHAgEWHWh0dHBzOi8vc2VjdXJlLmNvbW9kby5uZXQvQ1BTMF0GA1UdHwRWMFQwUqBQoE6GTGh0
+dHA6Ly9jcmwuY29tb2RvY2EuY29tL0NPTU9ET1NIQTI1NkNsaWVudEF1dGhlbnRpY2F0aW9uYW5k
+U2VjdXJlRW1haWxDQS5jcmwwgZAGCCsGAQUFBwEBBIGDMIGAMFgGCCsGAQUFBzAChkxodHRwOi8v
+Y3J0LmNvbW9kb2NhLmNvbS9DT01PRE9TSEEyNTZDbGllbnRBdXRoZW50aWNhdGlvbmFuZFNlY3Vy
+ZUVtYWlsQ0EuY3J0MCQGCCsGAQUFBzABhhhodHRwOi8vb2NzcC5jb21vZG9jYS5jb20wHgYDVR0R
+BBcwFYETZHdtdzJAaW5mcmFkZWFkLm9yZzANBgkqhkiG9w0BAQsFAAOCAQEAPgH7zYRcLWqReS84
+2qYLpd82LhJzH0ed/GGtb4T/MLjpHKCXk9oBBV81TtllLnljNINPw7pp0Qed4bVf0Kv/r7C9Iumt
+vojju5B4uTu22ZIG3Tb9Ldpc6Jw1B4ui02uzVI/rb/o+soVvojargtwAj9XSGR/ICZonB25Vut6k
+YKesMYZ99eTCwXmr4t7okmoNnnihXj4kyMCYzdlGKupFoDy+Rv2HH/cf8TdVwU3yYlEXNBbF4awP
+fFTFp7edguS6OLcYRo80yPiGYONG92A7OhO5k2G+Sipm3EGQPaa4jhQ3Y9c+VvQXVoVOiPw9D/cv
+GeE6+vmbHDFFQ9Ealsti3jGCA9MwggPPAgEBMIGwMIGbMQswCQYDVQQGEwJHQjEbMBkGA1UECBMS
+R3JlYXRlciBNYW5jaGVzdGVyMRAwDgYDVQQHEwdTYWxmb3JkMRowGAYDVQQKExFDT01PRE8gQ0Eg
+TGltaXRlZDFBMD8GA1UEAxM4Q09NT0RPIFNIQS0yNTYgQ2xpZW50IEF1dGhlbnRpY2F0aW9uIGFu
+ZCBTZWN1cmUgRW1haWwgQ0ECEGoLUFiVUy0EUE3iKBH+GjAwDQYJYIZIAWUDBAIBBQCgggHzMBgG
+CSqGSIb3DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTE3MDMxNTIwNDIyMFowLwYJ
+KoZIhvcNAQkEMSIEIP69Ccq84FhsAQfQTwXTw3v3bWeW79RNbaPmTntSTogiMIHBBgkrBgEEAYI3
+EAQxgbMwgbAwgZsxCzAJBgNVBAYTAkdCMRswGQYDVQQIExJHcmVhdGVyIE1hbmNoZXN0ZXIxEDAO
+BgNVBAcTB1NhbGZvcmQxGjAYBgNVBAoTEUNPTU9ETyBDQSBMaW1pdGVkMUEwPwYDVQQDEzhDT01P
+RE8gU0hBLTI1NiBDbGllbnQgQXV0aGVudGljYXRpb24gYW5kIFNlY3VyZSBFbWFpbCBDQQIQagtQ
+WJVTLQRQTeIoEf4aMDCBwwYLKoZIhvcNAQkQAgsxgbOggbAwgZsxCzAJBgNVBAYTAkdCMRswGQYD
+VQQIExJHcmVhdGVyIE1hbmNoZXN0ZXIxEDAOBgNVBAcTB1NhbGZvcmQxGjAYBgNVBAoTEUNPTU9E
+TyBDQSBMaW1pdGVkMUEwPwYDVQQDEzhDT01PRE8gU0hBLTI1NiBDbGllbnQgQXV0aGVudGljYXRp
+b24gYW5kIFNlY3VyZSBFbWFpbCBDQQIQagtQWJVTLQRQTeIoEf4aMDANBgkqhkiG9w0BAQEFAASC
+AQCfI9FskUiEOtbudUGMryV1O1gkGuHFH62qpdwBV12l71v+dIvhuOtFLUPaFkx3q34cYAuN+hSd
+o2/F3Xm9BnukjkgsbN6XViAbFTvCbEX0KGPHTslBOte1tbIzMnCdxk+33oIr6/9CsW0anZlxsP4R
+SSsN8ZObpL/y896T/oZ2swcn6mSPd85Tqn3ajW/nwMhaxrpyB9hQc96ZmKtFY53y7IDvyDEKnlLx
+ELn1dwQBS+aKvlhNrJ1zdDIuEBgq/6HKPVzCkFNCQEwQVa/4vBrNrh9jyP+cpm3LFz8QkkLnFsmI
+FB18/np/QfykdUc7qaDf90p1itEcbDDnMNZ/PJ5OAAAAAAAA
 
-For this patch, I extended the initial sharing of stack and code memory regions to
-all memory regions that are available in the tasks original AS to also allow
-dynamically linked applications and multi-threaded applications to flawlessly use
-first class virtual address spaces.
 
-To put it in a nutshell, we envisioned first class virtual address spaces to be
-rather used as shareable/reusable data containers which made sharing various memory
-regions that are crucial for the execution of the application a feasible
-implementation decision.
-
-Thank you all very much for the feedback. I really appreciate it.
-
-Till
-
---
-To unsubscribe, send a message with 'unsubscribe linux-aio' in
-the body to majordomo@kvack.org.  For more info on Linux AIO,
-see: http://www.kvack.org/aio/
-Don't email: <a href=mailto:"aart@kvack.org">aart@kvack.org</a>
+--=-ETmwjzJUmXTjvEZCp0GL--
