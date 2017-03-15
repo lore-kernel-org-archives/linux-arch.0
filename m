@@ -1,90 +1,65 @@
-From: Till Smejkal <till.smejkal@googlemail.com>
-Subject: Re: [RFC PATCH 00/13] Introduce first class virtual address spaces
-Date: Wed, 15 Mar 2017 15:02:34 -0700
-Message-ID: <20170315220234.mooiyrzqdsglo4lp@arch-dev>
-References: <CALCETrXfGgxaLivhci0VL=wUaWAnBiUXC47P7TUaEuOYV_-X_g@mail.gmail.com>
+From: James Hogan <james.hogan@imgtec.com>
+Subject: Re: [PATCH v2] generic syscalls: Wire up statx syscall
+Date: Wed, 15 Mar 2017 22:26:32 +0000
+Message-ID: <CAAG0J99QAwefvpnNxrGRU6XH+0+k1LO6qRW3kLBQCc3nc6QdmA@mail.gmail.com>
+References: <20170313144521.28127-1-shorne@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-aio@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <CALCETrXfGgxaLivhci0VL=wUaWAnBiUXC47P7TUaEuOYV_-X_g@mail.gmail.com>
-Sender: owner-linux-aio@kvack.org
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: Andy Lutomirski <luto@kernel.org>, Till Smejkal <till.smejkal@googlemail.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Steven Miao <realmz6@gmail.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, James Hogan <james.hogan@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Yoshinori Sato <ysato@users.>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20170313144521.28127-1-shorne@gmail.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Stafford Horne <shorne@gmail.com>
+Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, LKML <linux-kernel@vger.kernel.org>, David Howells <dhowells@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, ARM Kernel List <linux-arm-kernel@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, 15 Mar 2017, Andy Lutomirski wrote:
-> On Wed, Mar 15, 2017 at 12:44 PM, Till Smejkal
-> <till.smejkal@googlemail.com> wrote:
-> > On Wed, 15 Mar 2017, Andy Lutomirski wrote:
-> >> > One advantage of VAS segments is that they can be globally queried by user programs
-> >> > which means that VAS segments can be shared by applications that not necessarily have
-> >> > to be related. If I am not mistaken, MAP_SHARED of pure in memory data will only work
-> >> > if the tasks that share the memory region are related (aka. have a common parent that
-> >> > initialized the shared mapping). Otherwise, the shared mapping have to be backed by a
-> >> > file.
-> >>
-> >> What's wrong with memfd_create()?
-> >>
-> >> > VAS segments on the other side allow sharing of pure in memory data by
-> >> > arbitrary related tasks without the need of a file. This becomes especially
-> >> > interesting if one combines VAS segments with non-volatile memory since one can keep
-> >> > data structures in the NVM and still be able to share them between multiple tasks.
-> >>
-> >> What's wrong with regular mmap?
-> >
-> > I never wanted to say that there is something wrong with regular mmap. We just
-> > figured that with VAS segments you could remove the need to mmap your shared data but
-> > instead can keep everything purely in memory.
-> 
-> memfd does that.
+On 13 March 2017 at 14:45, Stafford Horne <shorne@gmail.com> wrote:
+> The new syscall statx is implemented as generic code, so enable it
+> for architectures like openrisc which use the generic syscall table.
+>
+> Fixes: a528d35e8bfcc ("statx: Add a system call to make enhanced file info available")
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Cc: Al Viro <viro@zeniv.linux.org.uk>
+> Cc: David Howells <dhowells@redhat.com>
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Will Deacon <will.deacon@arm.com>
+> Cc: linux-arm-kernel@lists.infradead.org
+> Signed-off-by: Stafford Horne <shorne@gmail.com>
+> ---
+> Change in v2:
+>  - Add a few more Cc's to get attention of the right people
+>  - Add a fixes tag for better audit
+>
+>  include/uapi/asm-generic/unistd.h | 4 +++-
+>  1 file changed, 3 insertions(+), 1 deletion(-)
+>
+> diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
+> index 9b1462e..a076cf1 100644
+> --- a/include/uapi/asm-generic/unistd.h
+> +++ b/include/uapi/asm-generic/unistd.h
+> @@ -730,9 +730,11 @@ __SYSCALL(__NR_pkey_mprotect, sys_pkey_mprotect)
+>  __SYSCALL(__NR_pkey_alloc,    sys_pkey_alloc)
+>  #define __NR_pkey_free 290
+>  __SYSCALL(__NR_pkey_free,     sys_pkey_free)
+> +#define __NR_statx 291
+> +__SYSCALL(__NR_statx,     sys_statx)
+>
+>  #undef __NR_syscalls
+> -#define __NR_syscalls 291
+> +#define __NR_syscalls 292
 
-Yes, that's right. Thanks for giving me the pointer to this. I should have researched
-more carefully before starting to work at VAS segments.
+Out of interest, anybody know OTOH which other stat syscalls statx
+supersedes (such that they could at some point be disabled by default
+in asm-generic for new arches, and implemented in userspace)?
 
-> > VAS segments on the other side would provide a functionality to
-> > achieve the same without the need of any mounted filesystem. However, I agree, that
-> > this is just a small advantage compared to what can already be achieved with the
-> > existing functionality provided by the Linux kernel.
-> 
-> I see this "small advantage" as "resource leak and security problem".
-
-I don't agree here. VAS segments are basically in-memory files that are handled by
-the kernel directly without using a file system. Hence, if an application uses a VAS
-segment to store data the same rules apply as if it uses a file. Everything that it
-saves in the VAS segment might be accessible by other applications. An application
-using VAS segments should be aware of this fact. In addition, the resources that are
-represented by a VAS segment are not leaked. As I said, VAS segments are much like
-files. Hence, if you don't want to use them any more, delete them. But as with files,
-the kernel will not delete them for you (although something like this can be added).
-
-> >> This sounds complicated and fragile.  What happens if a heuristically
-> >> shared region coincides with a region in the "first class address
-> >> space" being selected?
-> >
-> > If such a conflict happens, the task cannot use the first class address space and the
-> > corresponding system call will return an error. However, with the current available
-> > virtual address space size that programs can use, such conflicts are probably rare.
-> 
-> A bug that hits 1% of the time is often worse than one that hits 100%
-> of the time because debugging it is miserable.
-
-I don't agree that this is a bug at all. If there is a conflict in the memory layout
-of the ASes the application simply cannot use this first class virtual address space.
-Every application that wants to use first class virtual address spaces should check
-for error return values and handle them.
-
-This situation is similar to mapping a file at some special address in memory because
-the file contains pointer based data structures and the application wants to use
-them, but the kernel cannot map the file at this particular position in the
-application's AS because there is already a different conflicting mapping. If an
-application wants to do such things, it should also handle all the errors that can
-occur.
-
-Till
-
---
-To unsubscribe, send a message with 'unsubscribe linux-aio' in
-the body to majordomo@kvack.org.  For more info on Linux AIO,
-see: http://www.kvack.org/aio/
-Don't email: <a href=mailto:"aart@kvack.org">aart@kvack.org</a>
+Cheers
+-- 
+James Hogan
