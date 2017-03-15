@@ -1,58 +1,91 @@
-From: Josh Hunt <johunt@akamai.com>
-Subject: Re: [RFC PATCH] sock: add SO_RCVQUEUE_SIZE getsockopt
-Date: Tue, 14 Mar 2017 17:11:17 -0500
-Message-ID: <7548ab46-6138-9a4e-9465-58f33c9063d7@akamai.com>
-References: <522a2e2d-c288-7019-3f12-2b624d6aa921@akamai.com>
- <20170313.123933.1813218797817423920.davem@davemloft.net>
- <9f775c33-01f4-fbd8-4d4d-4ca67f0f6d3b@akamai.com>
- <20170313.171008.1845413549443399902.davem@davemloft.net>
+From: <h.gerritsen12@chello.nl>
+Subject: (unknown)
+Date: Wed, 15 Mar 2017 07:30:29 -0000
+Message-ID: <148956302941.28984.9331533522299872747@nojabrsk.ru>
+Reply-To: <h.gerritsen12@chello.nl>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: application/zip; name="EMAIL_17586922488639_linux-arch.zip"
+Content-Transfer-Encoding: base64
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from prod-mail-xrelay07.akamai.com ([23.79.238.175]:25212 "EHLO
-        prod-mail-xrelay07.akamai.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1750846AbdCNWUD (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 14 Mar 2017 18:20:03 -0400
-In-Reply-To: <20170313.171008.1845413549443399902.davem@davemloft.net>
+Received: from adsl-178-46-14-60.nojabrsk.ru ([178.46.14.60]:46647 "HELO
+        nojabrsk.ru" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with SMTP
+        id S1751190AbdCOHaf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 15 Mar 2017 03:30:35 -0400
+Content-Disposition: attachment
+Subject: 
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
-Cc: edumazet@google.com, arnd@arndb.de, soheil@google.com, willemb@google.com, pabeni@redhat.com, linux-arch@vger.kernel.org, netdev@vger.kernel.org
+To: linux-arch <linux-arch@vger.kernel.org>
 
-On 03/13/2017 07:10 PM, David Miller wrote:
-> From: Josh Hunt <johunt@akamai.com>
-> Date: Mon, 13 Mar 2017 18:34:41 -0500
->
->> In this particular case they really do want to know total # of bytes
->> in the receive queue, not the data bytes they can consume from an
->> application pov. The kernel currently only exposes this value through
->> netlink or /proc/net/udp from what I saw.
->
-> Can you explain in what way this is useful?
->
-> The difference between skb->len and skb->truesize is really kernel
-> internal implementation detail, and I'm trying to figure out why
-> this would be useful to an application.
->
-
-First, it looks like my original patch was against an old kernel which 
-did not have the updated udp accounting code. Not sure how that 
-happened. Apologies for that. There's no need to add in the backlog, at 
-least for udp now, sk_rmem_alloc is all that is needed for my case.
-
-The application here is interested in monitoring the amount of data in 
-the receive buffer. Looking for and identifying overflows, and also 
-understanding how full it is. I know we already have SO_RXQ_OVFL, but 
-this only shows the # of drops on overflow.
-
-We expose this (skmem) information via /proc and netlink today. It seems 
-like unnecessary overhead to require an application to also create a 
-netlink socket to get this data.
-
-Creating a socket option to mimic the behavior of 
-sock_diag_put_meminfo() and export all meminfo_vars would be great if 
-that's something you'd accept.
-
-Josh
+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
