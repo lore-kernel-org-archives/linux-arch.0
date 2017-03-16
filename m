@@ -1,31 +1,54 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH 0/7] Switch x86 to generic get_user_pages_fast() implementation
-Date: Thu, 16 Mar 2017 11:03:07 -0700
-Message-ID: <CA+55aFxh7E4OzCUgN-42jYzQGXCZEUoT8dZfnmkGTXi6fxrbmw@mail.gmail.com>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [PATCH 7/7] x86/mm: Switch to generic get_user_page_fast()
+ implementation
+Date: Thu, 16 Mar 2017 12:11:02 -0700
+Message-ID: <20170316191102.GM3637@linux.vnet.ibm.com>
 References: <20170316152655.37789-1-kirill.shutemov@linux.intel.com>
+ <20170316152655.37789-8-kirill.shutemov@linux.intel.com>
+ <20170316172046.sl7j5elg77yjevau@hirez.programming.kicks-ass.net>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f46.google.com ([209.85.214.46]:37751 "EHLO
-        mail-it0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752151AbdCPSDJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 Mar 2017 14:03:09 -0400
-In-Reply-To: <20170316152655.37789-1-kirill.shutemov@linux.intel.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, the arch/x86 maintainers <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@intel.com>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Steve Capper <steve.capper@linaro.org>, Dann Frazier <dann.frazier@canonical.com>, Catalin Marinas <catalin.marinas@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <20170316172046.sl7j5elg77yjevau@hirez.programming.kicks-ass.net>
+Sender: owner-linux-mm@kvack.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@intel.com>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Steve Capper <steve.capper@linaro.org>, Dann Frazier <dann.frazier@canonical.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Mar 16, 2017 at 8:26 AM, Kirill A. Shutemov
-<kirill.shutemov@linux.intel.com> wrote:
->
-> The patcheset generalize mm/gup.c implementation of get_user_pages_fast()
-> to be usable for x86 and switches x86 over.
+On Thu, Mar 16, 2017 at 06:20:46PM +0100, Peter Zijlstra wrote:
+> On Thu, Mar 16, 2017 at 06:26:55PM +0300, Kirill A. Shutemov wrote:
+> > +config HAVE_GENERIC_RCU_GUP
+> > +	def_bool y
+> > +
+> 
+> Nothing immediately jumped out to me; except that this option might be
+> misnamed.
+> 
+> AFAICT that code does not in fact rely on HAVE_RCU_TABLE_FREE; it will
+> happily work with the (x86) broadcast IPI invalidate model, as you show
+> here.
+> 
+> Architectures that do not do that obviously need HAVE_RCU_TABLE_FREE,
+> but that is not the point I feel.
+> 
+> Also, this code hard relies on IRQ-disable delaying grace periods, which
+> is mostly true I think, but has always been something Paul didn't really
+> want to commit too firmly to.
 
-Thanks for doing this, it looks good and removes more lines than it adds.
+That is quite true!
 
-And despite removing lines, it should make it easier for other
-architectures to support devmap if they ever want to. I hadn't even
-noticed that difference in the GUP implementations.
+The only case where IRQ-disable is guaranteed to delay grace periods is
+when you are using RCU-sched, in other words synchronize_sched() and
+call_rcu_sched().  And even then, the CPU cannot be in the idle loop,
+cannot be offline, and cannot be a nohz_full CPU on its way to/from
+userspace execution.
 
-             Linus
+							Thanx, Paul
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
