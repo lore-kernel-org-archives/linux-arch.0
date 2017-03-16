@@ -1,76 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from mga14.intel.com ([192.55.52.115]:19935 "EHLO mga14.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1754412AbdCPP1r (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 16 Mar 2017 11:27:47 -0400
+        id S1753851AbdCPP1m (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 16 Mar 2017 11:27:42 -0400
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 6/7] mm/gup: Provide hook to check if __GUP_fast() is allowed for the range
-Date: Thu, 16 Mar 2017 18:26:54 +0300
-Message-ID: <20170316152655.37789-7-kirill.shutemov@linux.intel.com>
+Subject: [PATCH 3/7] mm/gup: Move page table entry dereference into helper
+Date: Thu, 16 Mar 2017 18:26:51 +0300
+Message-ID: <20170316152655.37789-4-kirill.shutemov@linux.intel.com>
 In-Reply-To: <20170316152655.37789-1-kirill.shutemov@linux.intel.com>
 References: <20170316152655.37789-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
 Cc: Dave Hansen <dave.hansen@intel.com>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Steve Capper <steve.capper@linaro.org>, Dann Frazier <dann.frazier@canonical.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20170316152654.raTGd7AoCHhloQ_Anq9GORBFkGRQv98MjhXS3naaPqw@z>
+Message-ID: <20170316152651.XxJVqle56Dl-DsOF6Bl51QEB3AEWfryVQrO2a0A2udE@z>
 
 This is preparation patch for transition of x86 to generic GUP_fast()
 implementation.
 
-On x86, get_user_pages_fast() does few sanity checks to see if we can
-call __get_user_pages_fast() for the range.
-
-Wrapping protection should be useful for generic code too.
+On x86 PAE, page table entry is larger than sizeof(long) and we would
+need to provide helper that can read the entry atomically.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
- mm/gup.c | 24 +++++++++++++++++++++---
- 1 file changed, 21 insertions(+), 3 deletions(-)
+ mm/gup.c | 20 ++++++++++++--------
+ 1 file changed, 12 insertions(+), 8 deletions(-)
 
 diff --git a/mm/gup.c b/mm/gup.c
-index e04f76594eb9..a6e21380c8b0 100644
+index a62a778ce4ec..ed2259dc4606 100644
 --- a/mm/gup.c
 +++ b/mm/gup.c
-@@ -1600,6 +1600,21 @@ int __get_user_pages_fast(unsigned long start, int nr_pages, int write,
- 	return nr;
- }
+@@ -1189,6 +1189,17 @@ struct page *get_dump_page(unsigned long addr)
+  */
+ #ifdef CONFIG_HAVE_GENERIC_RCU_GUP
  
-+#ifndef gup_fast_permitted
++#ifndef gup_get_pte
 +/*
-+ * Check if it's allowed to use __get_user_pages_fast() for the range or
-+ * need to fallback to non-fast version.
++ * We assume that the pte can be read atomically. If this is not the case for
++ * your architecture, please provide the helper.
 + */
-+bool gup_fast_permitted(unsigned long start, int nr_pages, int write)
++static inline pte_t gup_get_pte(pte_t *ptep)
 +{
-+	unsigned long len, end;
-+
-+	len = (unsigned long) nr_pages << PAGE_SHIFT;
-+	end = start + len;
-+	return end >= start;
++	return READ_ONCE(*ptep);
 +}
 +#endif
 +
- /**
-  * get_user_pages_fast() - pin user pages in memory
-  * @start:	starting user address
-@@ -1619,11 +1634,14 @@ int __get_user_pages_fast(unsigned long start, int nr_pages, int write,
- int get_user_pages_fast(unsigned long start, int nr_pages, int write,
- 			struct page **pages)
- {
--	int nr, ret;
-+	int nr = 0, ret = 0;
+ #ifdef __HAVE_ARCH_PTE_SPECIAL
+ static int gup_pte_range(pmd_t pmd, unsigned long addr, unsigned long end,
+ 			 int write, struct page **pages, int *nr)
+@@ -1198,14 +1209,7 @@ static int gup_pte_range(pmd_t pmd, unsigned long addr, unsigned long end,
  
- 	start &= PAGE_MASK;
--	nr = __get_user_pages_fast(start, nr_pages, write, pages);
--	ret = nr;
-+
-+	if (gup_fast_permitted(start, nr_pages, write)) {
-+		nr = __get_user_pages_fast(start, nr_pages, write, pages);
-+		ret = nr;
-+	}
+ 	ptem = ptep = pte_offset_map(&pmd, addr);
+ 	do {
+-		/*
+-		 * In the line below we are assuming that the pte can be read
+-		 * atomically. If this is not the case for your architecture,
+-		 * please wrap this in a helper function!
+-		 *
+-		 * for an example see gup_get_pte in arch/x86/mm/gup.c
+-		 */
+-		pte_t pte = READ_ONCE(*ptep);
++		pte_t pte = gup_get_pte(ptep);
+ 		struct page *head, *page;
  
- 	if (nr < nr_pages) {
- 		/* Try to get the remaining pages with get_user_pages */
+ 		/*
 -- 
 2.11.0
