@@ -1,139 +1,38 @@
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 1/7] mm: Drop arch_pte_access_permitted() mmu hook
-Date: Thu, 16 Mar 2017 18:26:49 +0300
-Message-ID: <20170316152655.37789-2-kirill.shutemov@linux.intel.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 7/7] x86/mm: Switch to generic get_user_page_fast()
+ implementation
+Date: Thu, 16 Mar 2017 18:20:46 +0100
+Message-ID: <20170316172046.sl7j5elg77yjevau@hirez.programming.kicks-ass.net>
 References: <20170316152655.37789-1-kirill.shutemov@linux.intel.com>
+ <20170316152655.37789-8-kirill.shutemov@linux.intel.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20170316152655.37789-1-kirill.shutemov@linux.intel.com>
+Content-Disposition: inline
+In-Reply-To: <20170316152655.37789-8-kirill.shutemov@linux.intel.com>
 Sender: owner-linux-mm@kvack.org
-To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: Dave Hansen <dave.hansen@intel.com>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Steve Capper <steve.capper@linaro.org>, Dann Frazier <dann.frazier@canonical.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@intel.com>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Steve Capper <steve.capper@linaro.org>, Dann Frazier <dann.frazier@canonical.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Paul McKenney <paulmck@linux.vnet.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-The only arch that defines it to something meaningful is x86.
-But x86 doesn't use generic GUP_fast() implementation -- the only place
-where the hook is called.
+On Thu, Mar 16, 2017 at 06:26:55PM +0300, Kirill A. Shutemov wrote:
+> +config HAVE_GENERIC_RCU_GUP
+> +	def_bool y
+> +
 
-Let's drop it.
+Nothing immediately jumped out to me; except that this option might be
+misnamed.
 
-Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
----
- arch/powerpc/include/asm/mmu_context.h   | 6 ------
- arch/s390/include/asm/mmu_context.h      | 6 ------
- arch/um/include/asm/mmu_context.h        | 6 ------
- arch/unicore32/include/asm/mmu_context.h | 6 ------
- arch/x86/include/asm/mmu_context.h       | 4 ----
- include/asm-generic/mm_hooks.h           | 6 ------
- mm/gup.c                                 | 3 ---
- 7 files changed, 37 deletions(-)
+AFAICT that code does not in fact rely on HAVE_RCU_TABLE_FREE; it will
+happily work with the (x86) broadcast IPI invalidate model, as you show
+here.
 
-diff --git a/arch/powerpc/include/asm/mmu_context.h b/arch/powerpc/include/asm/mmu_context.h
-index b9e3f0aca261..ecf9885ab660 100644
---- a/arch/powerpc/include/asm/mmu_context.h
-+++ b/arch/powerpc/include/asm/mmu_context.h
-@@ -163,11 +163,5 @@ static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
- 	/* by default, allow everything */
- 	return true;
- }
--
--static inline bool arch_pte_access_permitted(pte_t pte, bool write)
--{
--	/* by default, allow everything */
--	return true;
--}
- #endif /* __KERNEL__ */
- #endif /* __ASM_POWERPC_MMU_CONTEXT_H */
-diff --git a/arch/s390/include/asm/mmu_context.h b/arch/s390/include/asm/mmu_context.h
-index 6e31d87fb669..fa2bf69be182 100644
---- a/arch/s390/include/asm/mmu_context.h
-+++ b/arch/s390/include/asm/mmu_context.h
-@@ -156,10 +156,4 @@ static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
- 	/* by default, allow everything */
- 	return true;
- }
--
--static inline bool arch_pte_access_permitted(pte_t pte, bool write)
--{
--	/* by default, allow everything */
--	return true;
--}
- #endif /* __S390_MMU_CONTEXT_H */
-diff --git a/arch/um/include/asm/mmu_context.h b/arch/um/include/asm/mmu_context.h
-index 94ac2739918c..b668e351fd6c 100644
---- a/arch/um/include/asm/mmu_context.h
-+++ b/arch/um/include/asm/mmu_context.h
-@@ -37,12 +37,6 @@ static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
- 	return true;
- }
- 
--static inline bool arch_pte_access_permitted(pte_t pte, bool write)
--{
--	/* by default, allow everything */
--	return true;
--}
--
- /*
-  * end asm-generic/mm_hooks.h functions
-  */
-diff --git a/arch/unicore32/include/asm/mmu_context.h b/arch/unicore32/include/asm/mmu_context.h
-index 62dfc644c908..59b06b48f27d 100644
---- a/arch/unicore32/include/asm/mmu_context.h
-+++ b/arch/unicore32/include/asm/mmu_context.h
-@@ -103,10 +103,4 @@ static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
- 	/* by default, allow everything */
- 	return true;
- }
--
--static inline bool arch_pte_access_permitted(pte_t pte, bool write)
--{
--	/* by default, allow everything */
--	return true;
--}
- #endif
-diff --git a/arch/x86/include/asm/mmu_context.h b/arch/x86/include/asm/mmu_context.h
-index 306c7e12af55..68b329d77b3a 100644
---- a/arch/x86/include/asm/mmu_context.h
-+++ b/arch/x86/include/asm/mmu_context.h
-@@ -268,8 +268,4 @@ static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
- 	return __pkru_allows_pkey(vma_pkey(vma), write);
- }
- 
--static inline bool arch_pte_access_permitted(pte_t pte, bool write)
--{
--	return __pkru_allows_pkey(pte_flags_pkey(pte_flags(pte)), write);
--}
- #endif /* _ASM_X86_MMU_CONTEXT_H */
-diff --git a/include/asm-generic/mm_hooks.h b/include/asm-generic/mm_hooks.h
-index cc5d9a1405df..41e5b6784b97 100644
---- a/include/asm-generic/mm_hooks.h
-+++ b/include/asm-generic/mm_hooks.h
-@@ -32,10 +32,4 @@ static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
- 	/* by default, allow everything */
- 	return true;
- }
--
--static inline bool arch_pte_access_permitted(pte_t pte, bool write)
--{
--	/* by default, allow everything */
--	return true;
--}
- #endif	/* _ASM_GENERIC_MM_HOOKS_H */
-diff --git a/mm/gup.c b/mm/gup.c
-index 04aa405350dc..3f2338ba3402 100644
---- a/mm/gup.c
-+++ b/mm/gup.c
-@@ -1216,9 +1216,6 @@ static int gup_pte_range(pmd_t pmd, unsigned long addr, unsigned long end,
- 			pte_protnone(pte) || (write && !pte_write(pte)))
- 			goto pte_unmap;
- 
--		if (!arch_pte_access_permitted(pte, write))
--			goto pte_unmap;
--
- 		VM_BUG_ON(!pfn_valid(pte_pfn(pte)));
- 		page = pte_page(pte);
- 		head = compound_head(page);
--- 
-2.11.0
+Architectures that do not do that obviously need HAVE_RCU_TABLE_FREE,
+but that is not the point I feel.
+
+Also, this code hard relies on IRQ-disable delaying grace periods, which
+is mostly true I think, but has always been something Paul didn't really
+want to commit too firmly to.
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
