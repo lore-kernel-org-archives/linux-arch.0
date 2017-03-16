@@ -1,51 +1,76 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga05.intel.com ([192.55.52.43]:63446 "EHLO mga05.intel.com"
+Received: from mga14.intel.com ([192.55.52.115]:19935 "EHLO mga14.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752849AbdCPP1w (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 16 Mar 2017 11:27:52 -0400
+        id S1754412AbdCPP1r (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 16 Mar 2017 11:27:47 -0400
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 0/7] Switch x86 to generic get_user_pages_fast() implementation
-Date: Thu, 16 Mar 2017 18:26:48 +0300
-Message-ID: <20170316152655.37789-1-kirill.shutemov@linux.intel.com>
+Subject: [PATCH 6/7] mm/gup: Provide hook to check if __GUP_fast() is allowed for the range
+Date: Thu, 16 Mar 2017 18:26:54 +0300
+Message-ID: <20170316152655.37789-7-kirill.shutemov@linux.intel.com>
+In-Reply-To: <20170316152655.37789-1-kirill.shutemov@linux.intel.com>
+References: <20170316152655.37789-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
 Cc: Dave Hansen <dave.hansen@intel.com>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Steve Capper <steve.capper@linaro.org>, Dann Frazier <dann.frazier@canonical.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20170316152648.TKHVhapLLE6QNJXOKodmkE9dWUoHymFzmn-gb5HTqTo@z>
+Message-ID: <20170316152654.raTGd7AoCHhloQ_Anq9GORBFkGRQv98MjhXS3naaPqw@z>
 
-Hi,
+This is preparation patch for transition of x86 to generic GUP_fast()
+implementation.
 
-The patcheset generalize mm/gup.c implementation of get_user_pages_fast()
-to be usable for x86 and switches x86 over.
+On x86, get_user_pages_fast() does few sanity checks to see if we can
+call __get_user_pages_fast() for the range.
 
-Please review and consider applying.
+Wrapping protection should be useful for generic code too.
 
-Kirill A. Shutemov (7):
-  mm: Drop arch_pte_access_permitted() mmu hook
-  mm/gup: Move permission checks into helpers
-  mm/gup: Move page table entry dereference into helper
-  mm/gup: Make pages referenced during generic get_user_pages_fast()
-  mm/gup: Implement dev_pagemap logic in generic get_user_pages_fast()
-  mm/gup: Provide hook to check if __GUP_fast() is allowed for the range
-  x86/mm: Switch to generic get_user_page_fast() implementation
+Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+---
+ mm/gup.c | 24 +++++++++++++++++++++---
+ 1 file changed, 21 insertions(+), 3 deletions(-)
 
- arch/powerpc/include/asm/mmu_context.h   |   6 -
- arch/s390/include/asm/mmu_context.h      |   6 -
- arch/um/include/asm/mmu_context.h        |   6 -
- arch/unicore32/include/asm/mmu_context.h |   6 -
- arch/x86/Kconfig                         |   3 +
- arch/x86/include/asm/mmu_context.h       |  16 -
- arch/x86/include/asm/pgtable-3level.h    |  45 +++
- arch/x86/include/asm/pgtable.h           |  53 ++++
- arch/x86/include/asm/pgtable_64.h        |  16 +-
- arch/x86/mm/Makefile                     |   2 +-
- arch/x86/mm/gup.c                        | 496 -------------------------------
- include/asm-generic/mm_hooks.h           |   6 -
- include/asm-generic/pgtable.h            |  25 ++
- include/linux/mm.h                       |   4 +
- mm/gup.c                                 | 134 +++++++--
- 15 files changed, 262 insertions(+), 562 deletions(-)
- delete mode 100644 arch/x86/mm/gup.c
-
+diff --git a/mm/gup.c b/mm/gup.c
+index e04f76594eb9..a6e21380c8b0 100644
+--- a/mm/gup.c
++++ b/mm/gup.c
+@@ -1600,6 +1600,21 @@ int __get_user_pages_fast(unsigned long start, int nr_pages, int write,
+ 	return nr;
+ }
+ 
++#ifndef gup_fast_permitted
++/*
++ * Check if it's allowed to use __get_user_pages_fast() for the range or
++ * need to fallback to non-fast version.
++ */
++bool gup_fast_permitted(unsigned long start, int nr_pages, int write)
++{
++	unsigned long len, end;
++
++	len = (unsigned long) nr_pages << PAGE_SHIFT;
++	end = start + len;
++	return end >= start;
++}
++#endif
++
+ /**
+  * get_user_pages_fast() - pin user pages in memory
+  * @start:	starting user address
+@@ -1619,11 +1634,14 @@ int __get_user_pages_fast(unsigned long start, int nr_pages, int write,
+ int get_user_pages_fast(unsigned long start, int nr_pages, int write,
+ 			struct page **pages)
+ {
+-	int nr, ret;
++	int nr = 0, ret = 0;
+ 
+ 	start &= PAGE_MASK;
+-	nr = __get_user_pages_fast(start, nr_pages, write, pages);
+-	ret = nr;
++
++	if (gup_fast_permitted(start, nr_pages, write)) {
++		nr = __get_user_pages_fast(start, nr_pages, write, pages);
++		ret = nr;
++	}
+ 
+ 	if (nr < nr_pages) {
+ 		/* Try to get the remaining pages with get_user_pages */
 -- 
 2.11.0
