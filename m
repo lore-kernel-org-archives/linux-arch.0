@@ -1,70 +1,141 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:23687 "EHLO mga11.intel.com"
+Received: from mga06.intel.com ([134.134.136.31]:4720 "EHLO mga06.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753881AbdCPP1m (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 16 Mar 2017 11:27:42 -0400
+        id S1754682AbdCPPct (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 16 Mar 2017 11:32:49 -0400
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 4/7] mm/gup: Make pages referenced during generic get_user_pages_fast()
-Date: Thu, 16 Mar 2017 18:26:52 +0300
-Message-ID: <20170316152655.37789-5-kirill.shutemov@linux.intel.com>
+Subject: [PATCH 1/7] mm: Drop arch_pte_access_permitted() mmu hook
+Date: Thu, 16 Mar 2017 18:26:49 +0300
+Message-ID: <20170316152655.37789-2-kirill.shutemov@linux.intel.com>
 In-Reply-To: <20170316152655.37789-1-kirill.shutemov@linux.intel.com>
 References: <20170316152655.37789-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: Dave Hansen <dave.hansen@intel.com>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Steve Capper <steve.capper@linaro.org>, Dann Frazier <dann.frazier@canonical.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrea Arcangeli <aarcange@redhat.com>
-Message-ID: <20170316152652.as3fIIwn60AEHoSBM95RXWKsFJuZG1h3kRnsrl_uPrY@z>
+Cc: Dave Hansen <dave.hansen@intel.com>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Steve Capper <steve.capper@linaro.org>, Dann Frazier <dann.frazier@canonical.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Message-ID: <20170316152649.U1nPtnKDbSjsREf0VwwQlJebdAzJv_QApodT2io-JhA@z>
 
-This is preparation patch for transition of x86 to generic GUP_fast()
-implementation.
+The only arch that defines it to something meaningful is x86.
+But x86 doesn't use generic GUP_fast() implementation -- the only place
+where the hook is called.
 
-Unlike generic GUP_fast(), x86 version makes all pages it touches
-referenced. It seems required for GRU and EPT.
-
-See commit 8ee53820edfd ("thp: mmu_notifier_test_young").
+Let's drop it.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-Cc: Andrea Arcangeli <aarcange@redhat.com>
 ---
- mm/gup.c | 5 +++++
- 1 file changed, 5 insertions(+)
+ arch/powerpc/include/asm/mmu_context.h   | 6 ------
+ arch/s390/include/asm/mmu_context.h      | 6 ------
+ arch/um/include/asm/mmu_context.h        | 6 ------
+ arch/unicore32/include/asm/mmu_context.h | 6 ------
+ arch/x86/include/asm/mmu_context.h       | 4 ----
+ include/asm-generic/mm_hooks.h           | 6 ------
+ mm/gup.c                                 | 3 ---
+ 7 files changed, 37 deletions(-)
 
+diff --git a/arch/powerpc/include/asm/mmu_context.h b/arch/powerpc/include/asm/mmu_context.h
+index b9e3f0aca261..ecf9885ab660 100644
+--- a/arch/powerpc/include/asm/mmu_context.h
++++ b/arch/powerpc/include/asm/mmu_context.h
+@@ -163,11 +163,5 @@ static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
+ 	/* by default, allow everything */
+ 	return true;
+ }
+-
+-static inline bool arch_pte_access_permitted(pte_t pte, bool write)
+-{
+-	/* by default, allow everything */
+-	return true;
+-}
+ #endif /* __KERNEL__ */
+ #endif /* __ASM_POWERPC_MMU_CONTEXT_H */
+diff --git a/arch/s390/include/asm/mmu_context.h b/arch/s390/include/asm/mmu_context.h
+index 6e31d87fb669..fa2bf69be182 100644
+--- a/arch/s390/include/asm/mmu_context.h
++++ b/arch/s390/include/asm/mmu_context.h
+@@ -156,10 +156,4 @@ static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
+ 	/* by default, allow everything */
+ 	return true;
+ }
+-
+-static inline bool arch_pte_access_permitted(pte_t pte, bool write)
+-{
+-	/* by default, allow everything */
+-	return true;
+-}
+ #endif /* __S390_MMU_CONTEXT_H */
+diff --git a/arch/um/include/asm/mmu_context.h b/arch/um/include/asm/mmu_context.h
+index 94ac2739918c..b668e351fd6c 100644
+--- a/arch/um/include/asm/mmu_context.h
++++ b/arch/um/include/asm/mmu_context.h
+@@ -37,12 +37,6 @@ static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
+ 	return true;
+ }
+ 
+-static inline bool arch_pte_access_permitted(pte_t pte, bool write)
+-{
+-	/* by default, allow everything */
+-	return true;
+-}
+-
+ /*
+  * end asm-generic/mm_hooks.h functions
+  */
+diff --git a/arch/unicore32/include/asm/mmu_context.h b/arch/unicore32/include/asm/mmu_context.h
+index 62dfc644c908..59b06b48f27d 100644
+--- a/arch/unicore32/include/asm/mmu_context.h
++++ b/arch/unicore32/include/asm/mmu_context.h
+@@ -103,10 +103,4 @@ static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
+ 	/* by default, allow everything */
+ 	return true;
+ }
+-
+-static inline bool arch_pte_access_permitted(pte_t pte, bool write)
+-{
+-	/* by default, allow everything */
+-	return true;
+-}
+ #endif
+diff --git a/arch/x86/include/asm/mmu_context.h b/arch/x86/include/asm/mmu_context.h
+index 306c7e12af55..68b329d77b3a 100644
+--- a/arch/x86/include/asm/mmu_context.h
++++ b/arch/x86/include/asm/mmu_context.h
+@@ -268,8 +268,4 @@ static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
+ 	return __pkru_allows_pkey(vma_pkey(vma), write);
+ }
+ 
+-static inline bool arch_pte_access_permitted(pte_t pte, bool write)
+-{
+-	return __pkru_allows_pkey(pte_flags_pkey(pte_flags(pte)), write);
+-}
+ #endif /* _ASM_X86_MMU_CONTEXT_H */
+diff --git a/include/asm-generic/mm_hooks.h b/include/asm-generic/mm_hooks.h
+index cc5d9a1405df..41e5b6784b97 100644
+--- a/include/asm-generic/mm_hooks.h
++++ b/include/asm-generic/mm_hooks.h
+@@ -32,10 +32,4 @@ static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
+ 	/* by default, allow everything */
+ 	return true;
+ }
+-
+-static inline bool arch_pte_access_permitted(pte_t pte, bool write)
+-{
+-	/* by default, allow everything */
+-	return true;
+-}
+ #endif	/* _ASM_GENERIC_MM_HOOKS_H */
 diff --git a/mm/gup.c b/mm/gup.c
-index ed2259dc4606..f0cfe225c08f 100644
+index 04aa405350dc..3f2338ba3402 100644
 --- a/mm/gup.c
 +++ b/mm/gup.c
-@@ -1238,6 +1238,8 @@ static int gup_pte_range(pmd_t pmd, unsigned long addr, unsigned long end,
- 		}
+@@ -1216,9 +1216,6 @@ static int gup_pte_range(pmd_t pmd, unsigned long addr, unsigned long end,
+ 			pte_protnone(pte) || (write && !pte_write(pte)))
+ 			goto pte_unmap;
  
- 		VM_BUG_ON_PAGE(compound_head(page) != head, page);
-+
-+		SetPageReferenced(page);
- 		pages[*nr] = page;
- 		(*nr)++;
- 
-@@ -1299,6 +1301,7 @@ static int gup_huge_pmd(pmd_t orig, pmd_t *pmdp, unsigned long addr,
- 		return 0;
- 	}
- 
-+	SetPageReferenced(head);
- 	return 1;
- }
- 
-@@ -1334,6 +1337,7 @@ static int gup_huge_pud(pud_t orig, pud_t *pudp, unsigned long addr,
- 		return 0;
- 	}
- 
-+	SetPageReferenced(head);
- 	return 1;
- }
- 
-@@ -1370,6 +1374,7 @@ static int gup_huge_pgd(pgd_t orig, pgd_t *pgdp, unsigned long addr,
- 		return 0;
- 	}
- 
-+	SetPageReferenced(head);
- 	return 1;
- }
- 
+-		if (!arch_pte_access_permitted(pte, write))
+-			goto pte_unmap;
+-
+ 		VM_BUG_ON(!pfn_valid(pte_pfn(pte)));
+ 		page = pte_page(pte);
+ 		head = compound_head(page);
 -- 
 2.11.0
