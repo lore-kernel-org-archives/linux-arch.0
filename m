@@ -1,116 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga14.intel.com ([192.55.52.115]:19935 "EHLO mga14.intel.com"
+Received: from mga11.intel.com ([192.55.52.93]:23687 "EHLO mga11.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753169AbdCPP1b (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 16 Mar 2017 11:27:31 -0400
+        id S1753881AbdCPP1m (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 16 Mar 2017 11:27:42 -0400
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 2/7] mm/gup: Move permission checks into helpers
-Date: Thu, 16 Mar 2017 18:26:50 +0300
-Message-ID: <20170316152655.37789-3-kirill.shutemov@linux.intel.com>
+Subject: [PATCH 4/7] mm/gup: Make pages referenced during generic get_user_pages_fast()
+Date: Thu, 16 Mar 2017 18:26:52 +0300
+Message-ID: <20170316152655.37789-5-kirill.shutemov@linux.intel.com>
 In-Reply-To: <20170316152655.37789-1-kirill.shutemov@linux.intel.com>
 References: <20170316152655.37789-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: Dave Hansen <dave.hansen@intel.com>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Steve Capper <steve.capper@linaro.org>, Dann Frazier <dann.frazier@canonical.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20170316152650.tG4WO3wYZeTRyBSG4-2SNQclglq43TOxtvZULX0QHfk@z>
+Cc: Dave Hansen <dave.hansen@intel.com>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Steve Capper <steve.capper@linaro.org>, Dann Frazier <dann.frazier@canonical.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrea Arcangeli <aarcange@redhat.com>
+Message-ID: <20170316152652.as3fIIwn60AEHoSBM95RXWKsFJuZG1h3kRnsrl_uPrY@z>
 
 This is preparation patch for transition of x86 to generic GUP_fast()
 implementation.
 
-On x86, we would need to do additional permission checks to determinate if
-access is allowed.
+Unlike generic GUP_fast(), x86 version makes all pages it touches
+referenced. It seems required for GRU and EPT.
 
-Let's abstract it out into separate helpers.
+See commit 8ee53820edfd ("thp: mmu_notifier_test_young").
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+Cc: Andrea Arcangeli <aarcange@redhat.com>
 ---
- include/asm-generic/pgtable.h | 25 +++++++++++++++++++++++++
- mm/gup.c                      | 15 ++++++++++-----
- 2 files changed, 35 insertions(+), 5 deletions(-)
+ mm/gup.c | 5 +++++
+ 1 file changed, 5 insertions(+)
 
-diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-index 1fad160f35de..7dfa767dc680 100644
---- a/include/asm-generic/pgtable.h
-+++ b/include/asm-generic/pgtable.h
-@@ -341,6 +341,31 @@ static inline int pte_unused(pte_t pte)
- }
- #endif
- 
-+#ifndef pte_access_permitted
-+#define pte_access_permitted(pte, write) \
-+	(pte_present(pte) && (!(write) || pte_write(pte)))
-+#endif
-+
-+#ifndef pmd_access_permitted
-+#define pmd_access_permitted(pmd, write) \
-+	(pmd_present(pmd) && (!(write) || pmd_write(pmd)))
-+#endif
-+
-+#ifndef pud_access_permitted
-+#define pud_access_permitted(pud, write) \
-+	(pud_present(pud) && (!(write) || pud_write(pud)))
-+#endif
-+
-+#ifndef p4d_access_permitted
-+#define p4d_access_permitted(p4d, write) \
-+	(p4d_present(p4d) && (!(write) || p4d_write(p4d)))
-+#endif
-+
-+#ifndef pgd_access_permitted
-+#define pgd_access_permitted(pgd, write) \
-+	(pgd_present(pgd) && (!(write) || pgd_write(pgd)))
-+#endif
-+
- #ifndef __HAVE_ARCH_PMD_SAME
- #ifdef CONFIG_TRANSPARENT_HUGEPAGE
- static inline int pmd_same(pmd_t pmd_a, pmd_t pmd_b)
 diff --git a/mm/gup.c b/mm/gup.c
-index 3f2338ba3402..a62a778ce4ec 100644
+index ed2259dc4606..f0cfe225c08f 100644
 --- a/mm/gup.c
 +++ b/mm/gup.c
-@@ -1212,8 +1212,13 @@ static int gup_pte_range(pmd_t pmd, unsigned long addr, unsigned long end,
- 		 * Similar to the PMD case below, NUMA hinting must take slow
- 		 * path using the pte_protnone check.
- 		 */
--		if (!pte_present(pte) || pte_special(pte) ||
--			pte_protnone(pte) || (write && !pte_write(pte)))
-+		if (pte_protnone(pte))
-+			goto pte_unmap;
+@@ -1238,6 +1238,8 @@ static int gup_pte_range(pmd_t pmd, unsigned long addr, unsigned long end,
+ 		}
+ 
+ 		VM_BUG_ON_PAGE(compound_head(page) != head, page);
 +
-+		if (!pte_access_permitted(pte, write))
-+			goto pte_unmap;
-+
-+		if (pte_special(pte))
- 			goto pte_unmap;
++		SetPageReferenced(page);
+ 		pages[*nr] = page;
+ 		(*nr)++;
  
- 		VM_BUG_ON(!pfn_valid(pte_pfn(pte)));
-@@ -1264,7 +1269,7 @@ static int gup_huge_pmd(pmd_t orig, pmd_t *pmdp, unsigned long addr,
- 	struct page *head, *page;
- 	int refs;
- 
--	if (write && !pmd_write(orig))
-+	if (!pmd_access_permitted(orig, write))
+@@ -1299,6 +1301,7 @@ static int gup_huge_pmd(pmd_t orig, pmd_t *pmdp, unsigned long addr,
  		return 0;
+ 	}
  
- 	refs = 0;
-@@ -1299,7 +1304,7 @@ static int gup_huge_pud(pud_t orig, pud_t *pudp, unsigned long addr,
- 	struct page *head, *page;
- 	int refs;
++	SetPageReferenced(head);
+ 	return 1;
+ }
  
--	if (write && !pud_write(orig))
-+	if (!pud_access_permitted(orig, write))
+@@ -1334,6 +1337,7 @@ static int gup_huge_pud(pud_t orig, pud_t *pudp, unsigned long addr,
  		return 0;
+ 	}
  
- 	refs = 0;
-@@ -1335,7 +1340,7 @@ static int gup_huge_pgd(pgd_t orig, pgd_t *pgdp, unsigned long addr,
- 	int refs;
- 	struct page *head, *page;
++	SetPageReferenced(head);
+ 	return 1;
+ }
  
--	if (write && !pgd_write(orig))
-+	if (!pgd_access_permitted(orig, write))
+@@ -1370,6 +1374,7 @@ static int gup_huge_pgd(pgd_t orig, pgd_t *pgdp, unsigned long addr,
  		return 0;
+ 	}
  
- 	refs = 0;
++	SetPageReferenced(head);
+ 	return 1;
+ }
+ 
 -- 
 2.11.0
