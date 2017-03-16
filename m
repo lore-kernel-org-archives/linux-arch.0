@@ -1,68 +1,178 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga14.intel.com ([192.55.52.115]:19935 "EHLO mga14.intel.com"
+Received: from mga04.intel.com ([192.55.52.120]:1756 "EHLO mga04.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753851AbdCPP1m (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 16 Mar 2017 11:27:42 -0400
+        id S1754434AbdCPP1t (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 16 Mar 2017 11:27:49 -0400
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 3/7] mm/gup: Move page table entry dereference into helper
-Date: Thu, 16 Mar 2017 18:26:51 +0300
-Message-ID: <20170316152655.37789-4-kirill.shutemov@linux.intel.com>
+Subject: [PATCH 5/7] mm/gup: Implement dev_pagemap logic in generic get_user_pages_fast()
+Date: Thu, 16 Mar 2017 18:26:53 +0300
+Message-ID: <20170316152655.37789-6-kirill.shutemov@linux.intel.com>
 In-Reply-To: <20170316152655.37789-1-kirill.shutemov@linux.intel.com>
 References: <20170316152655.37789-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: Dave Hansen <dave.hansen@intel.com>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Steve Capper <steve.capper@linaro.org>, Dann Frazier <dann.frazier@canonical.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20170316152651.XxJVqle56Dl-DsOF6Bl51QEB3AEWfryVQrO2a0A2udE@z>
+Cc: Dave Hansen <dave.hansen@intel.com>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Steve Capper <steve.capper@linaro.org>, Dann Frazier <dann.frazier@canonical.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Dan Williams <dan.j.williams@intel.com>
+Message-ID: <20170316152653.V3HO__maXMiah5-k8jRa_gL5ELYx9LXfc_9aFFJXm54@z>
 
 This is preparation patch for transition of x86 to generic GUP_fast()
 implementation.
 
-On x86 PAE, page table entry is larger than sizeof(long) and we would
-need to provide helper that can read the entry atomically.
+Prepare generic GUP_fast() to handle dev_mapmap. At the moment, it's
+only implemented on x86. On non-x86, the new code will be compiled out.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+Cc: Dan Williams <dan.j.williams@intel.com>
 ---
- mm/gup.c | 20 ++++++++++++--------
- 1 file changed, 12 insertions(+), 8 deletions(-)
+ include/linux/mm.h |  4 +++
+ mm/gup.c           | 73 ++++++++++++++++++++++++++++++++++++++++++++++++++++--
+ 2 files changed, 75 insertions(+), 2 deletions(-)
 
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index 5f01c88f0800..e197d3ca3e8a 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -430,6 +430,10 @@ static inline int pud_devmap(pud_t pud)
+ {
+ 	return 0;
+ }
++static inline int pgd_devmap(pgd_t pgd)
++{
++	return 0;
++}
+ #endif
+ 
+ /*
 diff --git a/mm/gup.c b/mm/gup.c
-index a62a778ce4ec..ed2259dc4606 100644
+index f0cfe225c08f..e04f76594eb9 100644
 --- a/mm/gup.c
 +++ b/mm/gup.c
-@@ -1189,6 +1189,17 @@ struct page *get_dump_page(unsigned long addr)
-  */
- #ifdef CONFIG_HAVE_GENERIC_RCU_GUP
+@@ -1200,12 +1200,23 @@ static inline pte_t gup_get_pte(pte_t *ptep)
+ }
+ #endif
  
-+#ifndef gup_get_pte
-+/*
-+ * We assume that the pte can be read atomically. If this is not the case for
-+ * your architecture, please provide the helper.
-+ */
-+static inline pte_t gup_get_pte(pte_t *ptep)
++static void undo_dev_pagemap(int *nr, int nr_start, struct page **pages)
 +{
-+	return READ_ONCE(*ptep);
++	while ((*nr) - nr_start) {
++		struct page *page = pages[--(*nr)];
++
++		ClearPageReferenced(page);
++		put_page(page);
++	}
 +}
-+#endif
 +
  #ifdef __HAVE_ARCH_PTE_SPECIAL
  static int gup_pte_range(pmd_t pmd, unsigned long addr, unsigned long end,
  			 int write, struct page **pages, int *nr)
-@@ -1198,14 +1209,7 @@ static int gup_pte_range(pmd_t pmd, unsigned long addr, unsigned long end,
+ {
++	struct dev_pagemap *pgmap = NULL;
++	int nr_start = *nr, ret = 0;
+ 	pte_t *ptep, *ptem;
+-	int ret = 0;
  
  	ptem = ptep = pte_offset_map(&pmd, addr);
  	do {
--		/*
--		 * In the line below we are assuming that the pte can be read
--		 * atomically. If this is not the case for your architecture,
--		 * please wrap this in a helper function!
--		 *
--		 * for an example see gup_get_pte in arch/x86/mm/gup.c
--		 */
--		pte_t pte = READ_ONCE(*ptep);
-+		pte_t pte = gup_get_pte(ptep);
- 		struct page *head, *page;
+@@ -1222,7 +1233,13 @@ static int gup_pte_range(pmd_t pmd, unsigned long addr, unsigned long end,
+ 		if (!pte_access_permitted(pte, write))
+ 			goto pte_unmap;
  
- 		/*
+-		if (pte_special(pte))
++		if (pte_devmap(pte)) {
++			pgmap = get_dev_pagemap(pte_pfn(pte), pgmap);
++			if (unlikely(!pgmap)) {
++				undo_dev_pagemap(nr, nr_start, pages);
++				goto pte_unmap;
++			}
++		} else if (pte_special(pte))
+ 			goto pte_unmap;
+ 
+ 		VM_BUG_ON(!pfn_valid(pte_pfn(pte)));
+@@ -1239,6 +1256,7 @@ static int gup_pte_range(pmd_t pmd, unsigned long addr, unsigned long end,
+ 
+ 		VM_BUG_ON_PAGE(compound_head(page) != head, page);
+ 
++		put_dev_pagemap(pgmap);
+ 		SetPageReferenced(page);
+ 		pages[*nr] = page;
+ 		(*nr)++;
+@@ -1269,6 +1287,48 @@ static int gup_pte_range(pmd_t pmd, unsigned long addr, unsigned long end,
+ }
+ #endif /* __HAVE_ARCH_PTE_SPECIAL */
+ 
++static int __gup_device_huge(unsigned long pfn, unsigned long addr,
++		unsigned long end, struct page **pages, int *nr)
++{
++	int nr_start = *nr;
++	struct dev_pagemap *pgmap = NULL;
++
++	do {
++		struct page *page = pfn_to_page(pfn);
++
++		pgmap = get_dev_pagemap(pfn, pgmap);
++		if (unlikely(!pgmap)) {
++			undo_dev_pagemap(nr, nr_start, pages);
++			return 0;
++		}
++		SetPageReferenced(page);
++		pages[*nr] = page;
++		get_page(page);
++		put_dev_pagemap(pgmap);
++		(*nr)++;
++		pfn++;
++	} while (addr += PAGE_SIZE, addr != end);
++	return 1;
++}
++
++static int __gup_device_huge_pmd(pmd_t pmd, unsigned long addr,
++		unsigned long end, struct page **pages, int *nr)
++{
++	unsigned long fault_pfn;
++
++	fault_pfn = pmd_pfn(pmd) + ((addr & ~PMD_MASK) >> PAGE_SHIFT);
++	return __gup_device_huge(fault_pfn, addr, end, pages, nr);
++}
++
++static int __gup_device_huge_pud(pud_t pud, unsigned long addr,
++		unsigned long end, struct page **pages, int *nr)
++{
++	unsigned long fault_pfn;
++
++	fault_pfn = pud_pfn(pud) + ((addr & ~PUD_MASK) >> PAGE_SHIFT);
++	return __gup_device_huge(fault_pfn, addr, end, pages, nr);
++}
++
+ static int gup_huge_pmd(pmd_t orig, pmd_t *pmdp, unsigned long addr,
+ 		unsigned long end, int write, struct page **pages, int *nr)
+ {
+@@ -1278,6 +1338,10 @@ static int gup_huge_pmd(pmd_t orig, pmd_t *pmdp, unsigned long addr,
+ 	if (!pmd_access_permitted(orig, write))
+ 		return 0;
+ 
++	VM_BUG_ON(!pfn_valid(pmd_pfn(orig)));
++	if (pmd_devmap(orig))
++		return __gup_device_huge_pmd(orig, addr, end, pages, nr);
++
+ 	refs = 0;
+ 	head = pmd_page(orig);
+ 	page = head + ((addr & ~PMD_MASK) >> PAGE_SHIFT);
+@@ -1314,6 +1378,10 @@ static int gup_huge_pud(pud_t orig, pud_t *pudp, unsigned long addr,
+ 	if (!pud_access_permitted(orig, write))
+ 		return 0;
+ 
++	VM_BUG_ON(!pfn_valid(pud_pfn(orig)));
++	if (pud_devmap(orig))
++		return __gup_device_huge_pud(orig, addr, end, pages, nr);
++
+ 	refs = 0;
+ 	head = pud_page(orig);
+ 	page = head + ((addr & ~PUD_MASK) >> PAGE_SHIFT);
+@@ -1351,6 +1419,7 @@ static int gup_huge_pgd(pgd_t orig, pgd_t *pgdp, unsigned long addr,
+ 	if (!pgd_access_permitted(orig, write))
+ 		return 0;
+ 
++	BUILD_BUG_ON(pgd_devmap(orig));
+ 	refs = 0;
+ 	head = pgd_page(orig);
+ 	page = head + ((addr & ~PGDIR_MASK) >> PAGE_SHIFT);
 -- 
 2.11.0
