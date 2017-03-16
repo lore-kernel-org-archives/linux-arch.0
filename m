@@ -1,64 +1,66 @@
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 3/7] mm/gup: Move page table entry dereference into helper
-Date: Thu, 16 Mar 2017 18:26:51 +0300
-Message-ID: <20170316152655.37789-4-kirill.shutemov@linux.intel.com>
+Subject: [PATCH 4/7] mm/gup: Make pages referenced during generic get_user_pages_fast()
+Date: Thu, 16 Mar 2017 18:26:52 +0300
+Message-ID: <20170316152655.37789-5-kirill.shutemov@linux.intel.com>
 References: <20170316152655.37789-1-kirill.shutemov@linux.intel.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <20170316152655.37789-1-kirill.shutemov@linux.intel.com>
 Sender: owner-linux-mm@kvack.org
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: Dave Hansen <dave.hansen@intel.com>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Steve Capper <steve.capper@linaro.org>, Dann Frazier <dann.frazier@canonical.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: Dave Hansen <dave.hansen@intel.com>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Steve Capper <steve.capper@linaro.org>, Dann Frazier <dann.frazier@canonical.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrea Arcangeli <aarcange@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
 This is preparation patch for transition of x86 to generic GUP_fast()
 implementation.
 
-On x86 PAE, page table entry is larger than sizeof(long) and we would
-need to provide helper that can read the entry atomically.
+Unlike generic GUP_fast(), x86 version makes all pages it touches
+referenced. It seems required for GRU and EPT.
+
+See commit 8ee53820edfd ("thp: mmu_notifier_test_young").
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+Cc: Andrea Arcangeli <aarcange@redhat.com>
 ---
- mm/gup.c | 20 ++++++++++++--------
- 1 file changed, 12 insertions(+), 8 deletions(-)
+ mm/gup.c | 5 +++++
+ 1 file changed, 5 insertions(+)
 
 diff --git a/mm/gup.c b/mm/gup.c
-index a62a778ce4ec..ed2259dc4606 100644
+index ed2259dc4606..f0cfe225c08f 100644
 --- a/mm/gup.c
 +++ b/mm/gup.c
-@@ -1189,6 +1189,17 @@ struct page *get_dump_page(unsigned long addr)
-  */
- #ifdef CONFIG_HAVE_GENERIC_RCU_GUP
+@@ -1238,6 +1238,8 @@ static int gup_pte_range(pmd_t pmd, unsigned long addr, unsigned long end,
+ 		}
  
-+#ifndef gup_get_pte
-+/*
-+ * We assume that the pte can be read atomically. If this is not the case for
-+ * your architecture, please provide the helper.
-+ */
-+static inline pte_t gup_get_pte(pte_t *ptep)
-+{
-+	return READ_ONCE(*ptep);
-+}
-+#endif
+ 		VM_BUG_ON_PAGE(compound_head(page) != head, page);
 +
- #ifdef __HAVE_ARCH_PTE_SPECIAL
- static int gup_pte_range(pmd_t pmd, unsigned long addr, unsigned long end,
- 			 int write, struct page **pages, int *nr)
-@@ -1198,14 +1209,7 @@ static int gup_pte_range(pmd_t pmd, unsigned long addr, unsigned long end,
++		SetPageReferenced(page);
+ 		pages[*nr] = page;
+ 		(*nr)++;
  
- 	ptem = ptep = pte_offset_map(&pmd, addr);
- 	do {
--		/*
--		 * In the line below we are assuming that the pte can be read
--		 * atomically. If this is not the case for your architecture,
--		 * please wrap this in a helper function!
--		 *
--		 * for an example see gup_get_pte in arch/x86/mm/gup.c
--		 */
--		pte_t pte = READ_ONCE(*ptep);
-+		pte_t pte = gup_get_pte(ptep);
- 		struct page *head, *page;
+@@ -1299,6 +1301,7 @@ static int gup_huge_pmd(pmd_t orig, pmd_t *pmdp, unsigned long addr,
+ 		return 0;
+ 	}
  
- 		/*
++	SetPageReferenced(head);
+ 	return 1;
+ }
+ 
+@@ -1334,6 +1337,7 @@ static int gup_huge_pud(pud_t orig, pud_t *pudp, unsigned long addr,
+ 		return 0;
+ 	}
+ 
++	SetPageReferenced(head);
+ 	return 1;
+ }
+ 
+@@ -1370,6 +1374,7 @@ static int gup_huge_pgd(pgd_t orig, pgd_t *pgdp, unsigned long addr,
+ 		return 0;
+ 	}
+ 
++	SetPageReferenced(head);
+ 	return 1;
+ }
+ 
 -- 
 2.11.0
 
