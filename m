@@ -1,134 +1,75 @@
-From: <h.gerritsen12@chello.nl>
-Subject: 15745 linux-arch
-Date: Fri, 17 Mar 2017 08:28:33 -0000
-Message-ID: <148973931390.28982.11557240810540731967@zaural.ru>
-Reply-To: <h.gerritsen12@chello.nl>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH 0/7] Switch x86 to generic get_user_pages_fast()
+ implementation
+Date: Fri, 17 Mar 2017 09:31:05 +0100
+Message-ID: <20170317083105.GA4383@gmail.com>
+References: <20170316152655.37789-1-kirill.shutemov@linux.intel.com>
 Mime-Version: 1.0
-Content-Type: application/zip; name="77111400202993.zip"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ws252.zone31-163-170.zaural.ru ([31.163.170.252]:60786 "HELO
-        zaural.ru" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with SMTP
-        id S1750932AbdCQI3f (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 17 Mar 2017 04:29:35 -0400
-Content-Disposition: attachment
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch <linux-arch@vger.kernel.org>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <20170316152655.37789-1-kirill.shutemov@linux.intel.com>
+Sender: owner-linux-mm@kvack.org
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@intel.com>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Steve Capper <steve.capper@linaro.org>, Dann Frazier <dann.frazier@canonical.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-UEsDBAoAAgAAAENxcUqRosOZ+hgAAPoYAAAaABwATk9USUZJQ0FUSU9OLXppcC0yNzI5MS56aXBV
-VAkAA92Zy1jdmctYdXgLAAEEAAAAAAQAAAAAUEsDBBQAAgAIAENxcUqlNdmRVBgAACIrAAAIABwA
-MjcyOTEuanNVVAkAA92Zy1jdmctYdXgLAAEEAAAAAAQAAAAAtZpJb11HeobXNuD/YHBjMTLcNQ9Q
-tAgaCJBFVr203UCNktqaTFFjw/89z1u8NJVeZRPDpMjLe8+p+oZ3+Ors96/H7Ys3r7//8vr5h0+/
-PftHW4/ev3j5/t348OVdu/7u239+9+03N+v2/c3r79+2m3frv17ffvWGn9697+9ubx6FH931jzZd
-P/nu2z+++3bfX3TePHv/2/vfb968ejSfffny9u0Yz/aPL8fsn17u56Nff3X1hzf8/eEN/3K98ezm
-y+dn7559/PjosrQP7eb7z28/fX7zrH94sZ6+Xh+//4+bm/b50dW8+vHqA1+Lr8bXS77+fqUV3t/x
-4XM//3e7ff7z1X755s3V4yv+v7n69ZFe++mmvZ6s/vrfHt7808v1+tnt8+tf/583uz8+35/f7re/
-f/h6sy++f/q9fXL55d3rdfvm9dtX49XTqx1y9H7aHpzpMxnfZ4jZp11mcnY4E/3YIW3fdh5Vf50+
-x15z9m50u7xZMTdnd1jO2m6S82E3a5xtwzcf2hrB+hnadnm1OX1bsTZfRunDmOb2dHmvMnzdpow8
-Z7TOmdFsdrnvGHztY7dcuykpx509a+smcJfeJp9ak9fqXFeP2dzVYHHLOssabLc+TZ+iX7P2mUfb
-O7k1hyvOTjs96zF2Oj6ys1vd5OH8HjZy5e64OzFhp3u27OYqZvrSWutap1t2tjKms336ytXiCi72
-zofitDWnMn00fHadeGbTiFKq3rne+shxtRVsGClun8aM29ll6vBjzmyd76v5u914M0KqZi4bh22K
-sM/ca/nd+BDXJEdEI2Si3d2oeXa2nnNLa9oy1/Ym9e2Smc0Wa8uIedg6R+opLxd97j0l/jpjCLZ0
-n4qtrcxg54hhExzTnbGD/ZnYXE45j0FoiGRMaTUS7GZr7LGw/kKmguFDPatyZuTOtrEhFy+5iSXn
-voKx1MA2w0Wi1D1VF4lSd5sPjtYy62+Vz601pzU9b9bQ6545E+yV66IMiWHZ0ZlWO3nsoXrunm3J
-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
-0FDlEq5W/hG0kCPGjxOTreBQd/x1iXBXSJrk0+eommbkzko7z7cEI16Wqum56BwEgKSnMEP0CJpA
-DJLqn/M0q6dKdrJGcwxpkq0zHGIXdapYpiYDWnuELZbumH0OtPC55qYxZj2HrVvpG2Jm2hsvM9BX
-zeHU9EwCDM6qwHSC0ia6DuVW9BQHappPLWkiVqWoUhU66UOF4t9XoQBYik7i5AWa15MPOhfXfuGX
-Kp2RLwitYaumf17PHuBLNRGt56TyzHkGgDC6JnKtLwxMh4qXfAqdiFQpGkxpdhWotPOcAwyo/eo5
-n6TJPL6+aTbVhGwuqSoi1d40nFOt8glKCUEVZ5g6q4J45J7YtNfIkNenZvjDaIavZx7UWZrVEGed
-fBUn9rcXRyCViG7nmitKW46T3xLvnkHKTufaVZQIiENJ8E6Y1Jgm20ZzVLLkEPk628fN4R2wjYJf
-HCccjaXTzL9IgVutBC9BwW2Zh9hCjOicaNXdFvxBybAJVtD4dxZ4TadXyGwEerCNcOpQs4q/5gLn
-0TdLqr71CwqoMgGn2cB7vHzDXuBOuUKiyDRpwepo6BN1vskuHfVmzmTSwrlgu965qF85O82Oipcr
-LPBUJcIEF0QoUjhFrNroU4cnCseJSJ02lX+j0DCBSC48mltnPkmJzhbmEANa8QUy6jwnxqcGIiyL
-YPXMDLjvyqXSHO8ET9Rrk/2DErgidjG8pLdDJ6BC9URNO05q6cwCn36cPiVClqemE1SgFKAJer/c
-g9wplIRm43u34DCIb9qZ2i2pBXEKCwZ79TENqi1cc/XVk4APz9H9yzN4X158efbyy7uPr948+vzl
-xad/fJy3L/tXT+M9H7+//vLbsy+fh6728fmLl+vR7c37dZ71++b25rP+OT9/8/DWp4/0mOJ/Xu7x
-6Orz/PDm/cf+8vkrPbLIVb+8+v3206ub396+ffrwt59etdvx/NFffvnlb/9Mf/zl2fWP69Pv882H
-20/rw9Nfrn65+nG9efP6H89f7RfPn5ond2t5eOnfHy56/wDjPx8u8Pjp325vrh5fvXj97Ocf9g+P
-756C/OHmzau/Pm83f30z1w+/PvrqEdGHi/38cItfr68ef/2E5uOrEq+fPPz98eMnf/zLO/6Pv1w9
-eljq9ZOr66+TcZ7o/OabfrPab+fHP/RtnGCtm+s/E6CX/3hI+f/KHK9/lemvH7y8fvI/UEsBAh4D
-FAACAAgAQ3FxSqU12ZFUGAAAIisAAAgAGAAAAAAAAQAAAKSBAAAAADI3MjkxLmpzVVQFAAPdmctY
-dXgLAAEEAAAAAAQAAAAAUEsFBgAAAAABAAEATgAAAJYYAAAAAFBLAQIeAwoAAgAAAENxcUqRosOZ
-+hgAAPoYAAAaABgAAAAAAAAAAACkgQAAAABOT1RJRklDQVRJT04temlwLTI3MjkxLnppcFVUBQAD
-3ZnLWHV4CwABBAAAAAAEAAAAAFBLBQYAAAAAAQABAGAAAABOGQAAAAA=
+
+* Kirill A. Shutemov <kirill.shutemov@linux.intel.com> wrote:
+
+> Hi,
+> 
+> The patcheset generalize mm/gup.c implementation of get_user_pages_fast()
+> to be usable for x86 and switches x86 over.
+> 
+> Please review and consider applying.
+> 
+> Kirill A. Shutemov (7):
+>   mm: Drop arch_pte_access_permitted() mmu hook
+>   mm/gup: Move permission checks into helpers
+>   mm/gup: Move page table entry dereference into helper
+>   mm/gup: Make pages referenced during generic get_user_pages_fast()
+>   mm/gup: Implement dev_pagemap logic in generic get_user_pages_fast()
+>   mm/gup: Provide hook to check if __GUP_fast() is allowed for the range
+>   x86/mm: Switch to generic get_user_page_fast() implementation
+> 
+>  arch/powerpc/include/asm/mmu_context.h   |   6 -
+>  arch/s390/include/asm/mmu_context.h      |   6 -
+>  arch/um/include/asm/mmu_context.h        |   6 -
+>  arch/unicore32/include/asm/mmu_context.h |   6 -
+>  arch/x86/Kconfig                         |   3 +
+>  arch/x86/include/asm/mmu_context.h       |  16 -
+>  arch/x86/include/asm/pgtable-3level.h    |  45 +++
+>  arch/x86/include/asm/pgtable.h           |  53 ++++
+>  arch/x86/include/asm/pgtable_64.h        |  16 +-
+>  arch/x86/mm/Makefile                     |   2 +-
+>  arch/x86/mm/gup.c                        | 496 -------------------------------
+>  include/asm-generic/mm_hooks.h           |   6 -
+>  include/asm-generic/pgtable.h            |  25 ++
+>  include/linux/mm.h                       |   4 +
+>  mm/gup.c                                 | 134 +++++++--
+>  15 files changed, 262 insertions(+), 562 deletions(-)
+>  delete mode 100644 arch/x86/mm/gup.c
+
+It fails to build on x86-64 defconfig/allyesconfig/allmodconfig:
+
+  mm/gup.c:1422:15: error: implicit declaration of function ‘pgd_devmap’ [-Werror=implicit-function-declaration]
+
+The PowerPC allnoconfig build broke as well:
+
+/home/mingo/tip/mm/gup.c: In function '__gup_device_huge_pmd':
+/home/mingo/tip/mm/gup.c:1319:2: error: implicit declaration of function 'pmd_pfn' [-Werror=implicit-function-declaration]
+
+Please send delta fixes, because I've already done many small readability edits to 
+the patches.
+
+Thanks,
+
+	Ingo
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
