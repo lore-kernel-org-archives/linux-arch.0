@@ -1,106 +1,189 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga03.intel.com ([134.134.136.65]:12811 "EHLO mga03.intel.com"
+Received: from mga02.intel.com ([134.134.136.20]:3607 "EHLO mga02.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751712AbdCQSz1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 17 Mar 2017 14:55:27 -0400
+        id S1751336AbdCQS4u (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 17 Mar 2017 14:56:50 -0400
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 1/6] x86/kexec: Add 5-level paging support
-Date: Fri, 17 Mar 2017 21:55:10 +0300
-Message-ID: <20170317185515.8636-2-kirill.shutemov@linux.intel.com>
+Subject: [PATCH 3/6] x86/mm/pat: Add 5-level paging support
+Date: Fri, 17 Mar 2017 21:55:12 +0300
+Message-ID: <20170317185515.8636-4-kirill.shutemov@linux.intel.com>
 In-Reply-To: <20170317185515.8636-1-kirill.shutemov@linux.intel.com>
 References: <20170317185515.8636-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, Michal Hocko <mhocko@suse.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20170317185510.hCmR-CXdcBuqPze-Rt64gZOxMOCfku2Y6RE9RIutQ0E@z>
+Message-ID: <20170317185512.tmY4Yx51AM2B4GEhwsjdVJF3wPDZnU1b_kgz109DhMA@z>
 
-Handle additional page table level in kexec code.
+Straight-forward extension of existing code to support additional page
+table level.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
- arch/x86/include/asm/kexec.h       |  1 +
- arch/x86/kernel/machine_kexec_32.c |  4 +++-
- arch/x86/kernel/machine_kexec_64.c | 14 ++++++++++++--
- 3 files changed, 16 insertions(+), 3 deletions(-)
+ arch/x86/mm/pageattr.c | 54 +++++++++++++++++++++++++++++++++++++-------------
+ 1 file changed, 40 insertions(+), 14 deletions(-)
 
-diff --git a/arch/x86/include/asm/kexec.h b/arch/x86/include/asm/kexec.h
-index 282630e4c6ea..70ef205489f0 100644
---- a/arch/x86/include/asm/kexec.h
-+++ b/arch/x86/include/asm/kexec.h
-@@ -164,6 +164,7 @@ struct kimage_arch {
- };
- #else
- struct kimage_arch {
-+	p4d_t *p4d;
- 	pud_t *pud;
- 	pmd_t *pmd;
- 	pte_t *pte;
-diff --git a/arch/x86/kernel/machine_kexec_32.c b/arch/x86/kernel/machine_kexec_32.c
-index 469b23d6acc2..5f43cec296c5 100644
---- a/arch/x86/kernel/machine_kexec_32.c
-+++ b/arch/x86/kernel/machine_kexec_32.c
-@@ -103,6 +103,7 @@ static void machine_kexec_page_table_set_one(
- 	pgd_t *pgd, pmd_t *pmd, pte_t *pte,
- 	unsigned long vaddr, unsigned long paddr)
- {
-+	p4d_t *p4d;
- 	pud_t *pud;
- 
- 	pgd += pgd_index(vaddr);
-@@ -110,7 +111,8 @@ static void machine_kexec_page_table_set_one(
- 	if (!(pgd_val(*pgd) & _PAGE_PRESENT))
- 		set_pgd(pgd, __pgd(__pa(pmd) | _PAGE_PRESENT));
- #endif
--	pud = pud_offset(pgd, vaddr);
-+	p4d = p4d_offset(pgd, vaddr);
-+	pud = pud_offset(p4d, vaddr);
- 	pmd = pmd_offset(pud, vaddr);
- 	if (!(pmd_val(*pmd) & _PAGE_PRESENT))
- 		set_pmd(pmd, __pmd(__pa(pte) | _PAGE_TABLE));
-diff --git a/arch/x86/kernel/machine_kexec_64.c b/arch/x86/kernel/machine_kexec_64.c
-index 857cdbd02867..085c3b300d32 100644
---- a/arch/x86/kernel/machine_kexec_64.c
-+++ b/arch/x86/kernel/machine_kexec_64.c
-@@ -36,6 +36,7 @@ static struct kexec_file_ops *kexec_file_loaders[] = {
- 
- static void free_transition_pgtable(struct kimage *image)
- {
-+	free_page((unsigned long)image->arch.p4d);
- 	free_page((unsigned long)image->arch.pud);
- 	free_page((unsigned long)image->arch.pmd);
- 	free_page((unsigned long)image->arch.pte);
-@@ -43,6 +44,7 @@ static void free_transition_pgtable(struct kimage *image)
- 
- static int init_transition_pgtable(struct kimage *image, pgd_t *pgd)
+diff --git a/arch/x86/mm/pageattr.c b/arch/x86/mm/pageattr.c
+index a57e8e02f457..56b22fa504df 100644
+--- a/arch/x86/mm/pageattr.c
++++ b/arch/x86/mm/pageattr.c
+@@ -346,6 +346,7 @@ static inline pgprot_t static_protections(pgprot_t prot, unsigned long address,
+ pte_t *lookup_address_in_pgd(pgd_t *pgd, unsigned long address,
+ 			     unsigned int *level)
  {
 +	p4d_t *p4d;
  	pud_t *pud;
  	pmd_t *pmd;
- 	pte_t *pte;
-@@ -53,13 +55,21 @@ static int init_transition_pgtable(struct kimage *image, pgd_t *pgd)
- 	paddr = __pa(page_address(image->control_code_page)+PAGE_SIZE);
- 	pgd += pgd_index(vaddr);
- 	if (!pgd_present(*pgd)) {
-+		p4d = (p4d_t *)get_zeroed_page(GFP_KERNEL);
+ 
+@@ -354,7 +355,15 @@ pte_t *lookup_address_in_pgd(pgd_t *pgd, unsigned long address,
+ 	if (pgd_none(*pgd))
+ 		return NULL;
+ 
+-	pud = pud_offset(pgd, address);
++	p4d = p4d_offset(pgd, address);
++	if (p4d_none(*p4d))
++		return NULL;
++
++	*level = PG_LEVEL_512G;
++	if (p4d_large(*p4d) || !p4d_present(*p4d))
++		return (pte_t *)p4d;
++
++	pud = pud_offset(p4d, address);
+ 	if (pud_none(*pud))
+ 		return NULL;
+ 
+@@ -406,13 +415,18 @@ static pte_t *_lookup_address_cpa(struct cpa_data *cpa, unsigned long address,
+ pmd_t *lookup_pmd_address(unsigned long address)
+ {
+ 	pgd_t *pgd;
++	p4d_t *p4d;
+ 	pud_t *pud;
+ 
+ 	pgd = pgd_offset_k(address);
+ 	if (pgd_none(*pgd))
+ 		return NULL;
+ 
+-	pud = pud_offset(pgd, address);
++	p4d = p4d_offset(pgd, address);
++	if (p4d_none(*p4d) || p4d_large(*p4d) || !p4d_present(*p4d))
++		return NULL;
++
++	pud = pud_offset(p4d, address);
+ 	if (pud_none(*pud) || pud_large(*pud) || !pud_present(*pud))
+ 		return NULL;
+ 
+@@ -477,11 +491,13 @@ static void __set_pmd_pte(pte_t *kpte, unsigned long address, pte_t pte)
+ 
+ 		list_for_each_entry(page, &pgd_list, lru) {
+ 			pgd_t *pgd;
++			p4d_t *p4d;
+ 			pud_t *pud;
+ 			pmd_t *pmd;
+ 
+ 			pgd = (pgd_t *)page_address(page) + pgd_index(address);
+-			pud = pud_offset(pgd, address);
++			p4d = p4d_offset(pgd, address);
++			pud = pud_offset(p4d, address);
+ 			pmd = pmd_offset(pud, address);
+ 			set_pte_atomic((pte_t *)pmd, pte);
+ 		}
+@@ -836,9 +852,9 @@ static void unmap_pmd_range(pud_t *pud, unsigned long start, unsigned long end)
+ 			pud_clear(pud);
+ }
+ 
+-static void unmap_pud_range(pgd_t *pgd, unsigned long start, unsigned long end)
++static void unmap_pud_range(p4d_t *p4d, unsigned long start, unsigned long end)
+ {
+-	pud_t *pud = pud_offset(pgd, start);
++	pud_t *pud = pud_offset(p4d, start);
+ 
+ 	/*
+ 	 * Not on a GB page boundary?
+@@ -1004,8 +1020,8 @@ static long populate_pmd(struct cpa_data *cpa,
+ 	return num_pages;
+ }
+ 
+-static long populate_pud(struct cpa_data *cpa, unsigned long start, pgd_t *pgd,
+-			 pgprot_t pgprot)
++static int populate_pud(struct cpa_data *cpa, unsigned long start, p4d_t *p4d,
++			pgprot_t pgprot)
+ {
+ 	pud_t *pud;
+ 	unsigned long end;
+@@ -1026,7 +1042,7 @@ static long populate_pud(struct cpa_data *cpa, unsigned long start, pgd_t *pgd,
+ 		cur_pages = (pre_end - start) >> PAGE_SHIFT;
+ 		cur_pages = min_t(int, (int)cpa->numpages, cur_pages);
+ 
+-		pud = pud_offset(pgd, start);
++		pud = pud_offset(p4d, start);
+ 
+ 		/*
+ 		 * Need a PMD page?
+@@ -1047,7 +1063,7 @@ static long populate_pud(struct cpa_data *cpa, unsigned long start, pgd_t *pgd,
+ 	if (cpa->numpages == cur_pages)
+ 		return cur_pages;
+ 
+-	pud = pud_offset(pgd, start);
++	pud = pud_offset(p4d, start);
+ 	pud_pgprot = pgprot_4k_2_large(pgprot);
+ 
+ 	/*
+@@ -1067,7 +1083,7 @@ static long populate_pud(struct cpa_data *cpa, unsigned long start, pgd_t *pgd,
+ 	if (start < end) {
+ 		long tmp;
+ 
+-		pud = pud_offset(pgd, start);
++		pud = pud_offset(p4d, start);
+ 		if (pud_none(*pud))
+ 			if (alloc_pmd_page(pud))
+ 				return -1;
+@@ -1090,33 +1106,43 @@ static int populate_pgd(struct cpa_data *cpa, unsigned long addr)
+ {
+ 	pgprot_t pgprot = __pgprot(_KERNPG_TABLE);
+ 	pud_t *pud = NULL;	/* shut up gcc */
++	p4d_t *p4d;
+ 	pgd_t *pgd_entry;
+ 	long ret;
+ 
+ 	pgd_entry = cpa->pgd + pgd_index(addr);
+ 
++	if (pgd_none(*pgd_entry)) {
++		p4d = (p4d_t *)get_zeroed_page(GFP_KERNEL | __GFP_NOTRACK);
 +		if (!p4d)
-+			goto err;
-+		image->arch.p4d = p4d;
-+		set_pgd(pgd, __pgd(__pa(p4d) | _KERNPG_TABLE));
++			return -1;
++
++		set_pgd(pgd_entry, __pgd(__pa(p4d) | _KERNPG_TABLE));
 +	}
-+	p4d = p4d_offset(pgd, vaddr);
-+	if (!p4d_present(*p4d)) {
- 		pud = (pud_t *)get_zeroed_page(GFP_KERNEL);
++
+ 	/*
+ 	 * Allocate a PUD page and hand it down for mapping.
+ 	 */
+-	if (pgd_none(*pgd_entry)) {
++	p4d = p4d_offset(pgd_entry, addr);
++	if (p4d_none(*p4d)) {
+ 		pud = (pud_t *)get_zeroed_page(GFP_KERNEL | __GFP_NOTRACK);
  		if (!pud)
- 			goto err;
- 		image->arch.pud = pud;
--		set_pgd(pgd, __pgd(__pa(pud) | _KERNPG_TABLE));
+ 			return -1;
+ 
+-		set_pgd(pgd_entry, __pgd(__pa(pud) | _KERNPG_TABLE));
 +		set_p4d(p4d, __p4d(__pa(pud) | _KERNPG_TABLE));
  	}
--	pud = pud_offset(pgd, vaddr);
-+	pud = pud_offset(p4d, vaddr);
- 	if (!pud_present(*pud)) {
- 		pmd = (pmd_t *)get_zeroed_page(GFP_KERNEL);
- 		if (!pmd)
+ 
+ 	pgprot_val(pgprot) &= ~pgprot_val(cpa->mask_clr);
+ 	pgprot_val(pgprot) |=  pgprot_val(cpa->mask_set);
+ 
+-	ret = populate_pud(cpa, addr, pgd_entry, pgprot);
++	ret = populate_pud(cpa, addr, p4d, pgprot);
+ 	if (ret < 0) {
+ 		/*
+ 		 * Leave the PUD page in place in case some other CPU or thread
+ 		 * already found it, but remove any useless entries we just
+ 		 * added to it.
+ 		 */
+-		unmap_pud_range(pgd_entry, addr,
++		unmap_pud_range(p4d, addr,
+ 				addr + (cpa->numpages << PAGE_SHIFT));
+ 		return ret;
+ 	}
 -- 
 2.11.0
