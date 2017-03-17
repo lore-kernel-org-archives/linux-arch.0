@@ -1,108 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga05.intel.com ([192.55.52.43]:46800 "EHLO mga05.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751714AbdCQS4o (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 17 Mar 2017 14:56:44 -0400
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 2/6] x86/efi: Add 5-level paging support
-Date: Fri, 17 Mar 2017 21:55:11 +0300
-Message-ID: <20170317185515.8636-3-kirill.shutemov@linux.intel.com>
-In-Reply-To: <20170317185515.8636-1-kirill.shutemov@linux.intel.com>
-References: <20170317185515.8636-1-kirill.shutemov@linux.intel.com>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:54247 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1751100AbdCQTdL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 17 Mar 2017 15:33:11 -0400
+Received: from pps.filterd (m0098421.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.20/8.16.0.20) with SMTP id v2HHrpfC119519
+        for <linux-arch@vger.kernel.org>; Fri, 17 Mar 2017 13:55:01 -0400
+Received: from e23smtp04.au.ibm.com (e23smtp04.au.ibm.com [202.81.31.146])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 298jc9p68t-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Fri, 17 Mar 2017 13:55:00 -0400
+Received: from localhost
+        by e23smtp04.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <aneesh.kumar@linux.vnet.ibm.com>;
+        Sat, 18 Mar 2017 03:54:57 +1000
+From: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
+Subject: Re: [PATCH 26/26] x86/mm: allow to have userspace mappings above 47-bits
+In-Reply-To: <20170313055020.69655-27-kirill.shutemov@linux.intel.com>
+References: <20170313055020.69655-1-kirill.shutemov@linux.intel.com> <20170313055020.69655-27-kirill.shutemov@linux.intel.com>
+Date: Fri, 17 Mar 2017 23:23:54 +0530
+MIME-Version: 1.0
+Content-Type: text/plain
+Message-ID: <87a88jg571.fsf@skywalker.in.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, Michal Hocko <mhocko@suse.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20170317185511.syWg-mkVpXSM1TSjuCOR5FcimPfQsB2jn97k5eqoe20@z>
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, Michal Hocko <mhocko@suse.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+Message-ID: <20170317175354.RWKVKkte4DNpUvsttEhL8LB5MR6XOVSjiq5KMfcjwn0@z>
 
-Allocate additional page table level and ajdust efi_sync_low_kernel_mappings()
-to work with additional page table level.
+"Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> writes:
 
-Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-Reviewed-by: Matt Fleming <matt@codeblueprint.co.uk>
----
- arch/x86/platform/efi/efi_64.c | 36 ++++++++++++++++++++++++++----------
- 1 file changed, 26 insertions(+), 10 deletions(-)
+> On x86, 5-level paging enables 56-bit userspace virtual address space.
+> Not all user space is ready to handle wide addresses. It's known that
+> at least some JIT compilers use higher bits in pointers to encode their
+> information. It collides with valid pointers with 5-level paging and
+> leads to crashes.
+>
+> To mitigate this, we are not going to allocate virtual address space
+> above 47-bit by default.
+>
+> But userspace can ask for allocation from full address space by
+> specifying hint address (with or without MAP_FIXED) above 47-bits.
+>
+> If hint address set above 47-bit, but MAP_FIXED is not specified, we try
+> to look for unmapped area by specified address. If it's already
+> occupied, we look for unmapped area in *full* address space, rather than
+> from 47-bit window.
+>
+> This approach helps to easily make application's memory allocator aware
+> about large address space without manually tracking allocated virtual
+> address space.
+>
 
-diff --git a/arch/x86/platform/efi/efi_64.c b/arch/x86/platform/efi/efi_64.c
-index 7b5202bc7b39..6b6b8e8d4ae7 100644
---- a/arch/x86/platform/efi/efi_64.c
-+++ b/arch/x86/platform/efi/efi_64.c
-@@ -135,6 +135,7 @@ static pgd_t *efi_pgd;
- int __init efi_alloc_page_tables(void)
- {
- 	pgd_t *pgd;
-+	p4d_t *p4d;
- 	pud_t *pud;
- 	gfp_t gfp_mask;
- 
-@@ -147,15 +148,20 @@ int __init efi_alloc_page_tables(void)
- 		return -ENOMEM;
- 
- 	pgd = efi_pgd + pgd_index(EFI_VA_END);
-+	p4d = p4d_alloc(&init_mm, pgd, EFI_VA_END);
-+	if (!p4d) {
-+		free_page((unsigned long)efi_pgd);
-+		return -ENOMEM;
-+	}
- 
--	pud = pud_alloc_one(NULL, 0);
-+	pud = pud_alloc(&init_mm, p4d, EFI_VA_END);
- 	if (!pud) {
-+		if (CONFIG_PGTABLE_LEVELS > 4)
-+			free_page((unsigned long) pgd_page_vaddr(*pgd));
- 		free_page((unsigned long)efi_pgd);
- 		return -ENOMEM;
- 	}
- 
--	pgd_populate(NULL, pgd, pud);
--
- 	return 0;
- }
- 
-@@ -191,26 +197,36 @@ void efi_sync_low_kernel_mappings(void)
- 	memcpy(pgd_efi, pgd_k, sizeof(pgd_t) * num_entries);
- 
- 	/*
-+	 * As with PGDs, we share all P4D entries apart from the one entry
-+	 * that covers the EFI runtime mapping space.
-+	 */
-+	BUILD_BUG_ON(p4d_index(EFI_VA_END) != p4d_index(MODULES_END));
-+	BUILD_BUG_ON((EFI_VA_START & P4D_MASK) != (EFI_VA_END & P4D_MASK));
-+
-+	pgd_efi = efi_pgd + pgd_index(EFI_VA_END);
-+	pgd_k = pgd_offset_k(EFI_VA_END);
-+	p4d_efi = p4d_offset(pgd_efi, 0);
-+	p4d_k = p4d_offset(pgd_k, 0);
-+
-+	num_entries = p4d_index(EFI_VA_END);
-+	memcpy(p4d_efi, p4d_k, sizeof(p4d_t) * num_entries);
-+
-+	/*
- 	 * We share all the PUD entries apart from those that map the
- 	 * EFI regions. Copy around them.
- 	 */
- 	BUILD_BUG_ON((EFI_VA_START & ~PUD_MASK) != 0);
- 	BUILD_BUG_ON((EFI_VA_END & ~PUD_MASK) != 0);
- 
--	pgd_efi = efi_pgd + pgd_index(EFI_VA_END);
--	p4d_efi = p4d_offset(pgd_efi, 0);
-+	p4d_efi = p4d_offset(pgd_efi, EFI_VA_END);
-+	p4d_k = p4d_offset(pgd_k, EFI_VA_END);
- 	pud_efi = pud_offset(p4d_efi, 0);
--
--	pgd_k = pgd_offset_k(EFI_VA_END);
--	p4d_k = p4d_offset(pgd_k, 0);
- 	pud_k = pud_offset(p4d_k, 0);
- 
- 	num_entries = pud_index(EFI_VA_END);
- 	memcpy(pud_efi, pud_k, sizeof(pud_t) * num_entries);
- 
--	p4d_efi = p4d_offset(pgd_efi, EFI_VA_START);
- 	pud_efi = pud_offset(p4d_efi, EFI_VA_START);
--	p4d_k = p4d_offset(pgd_k, EFI_VA_START);
- 	pud_k = pud_offset(p4d_k, EFI_VA_START);
- 
- 	num_entries = PTRS_PER_PUD - pud_index(EFI_VA_START);
--- 
-2.11.0
+So if I have done a successful mmap which returned > 128TB what should a
+following mmap(0,...) return ? Should that now search the *full* address
+space or below 128TB ?
+
+-aneesh
