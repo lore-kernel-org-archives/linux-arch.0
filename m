@@ -1,49 +1,49 @@
-From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: [PATCH v1 1/3] asm-generic/io.h: Fix "IOMMU" typos
-Date: Fri, 17 Mar 2017 12:46:43 -0500
-Message-ID: <20170317174643.6308.32011.stgit@bhelgaas-glaptop.roam.corp.google.com>
-References: <20170317172752.6308.91062.stgit@bhelgaas-glaptop.roam.corp.google.com>
+From: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
+Subject: Re: [PATCH 26/26] x86/mm: allow to have userspace mappings above 47-bits
+Date: Fri, 17 Mar 2017 23:23:54 +0530
+Message-ID: <87a88jg571.fsf@skywalker.in.ibm.com>
+References: <20170313055020.69655-1-kirill.shutemov@linux.intel.com> <20170313055020.69655-27-kirill.shutemov@linux.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20170317172752.6308.91062.stgit@bhelgaas-glaptop.roam.corp.google.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, "Luis R. Rodriguez" <mcgrof@kernel.org>, linux-kernel@vger.kernel.org
+Content-Type: text/plain
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20170313055020.69655-27-kirill.shutemov@linux.intel.com>
+Sender: owner-linux-mm@kvack.org
+To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, Michal Hocko <mhocko@suse.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-The ioremap() block comment refers to "IOMMU" when it means "MMU".  Fix
-these typos to avoid confusion.
+"Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> writes:
 
-Fixes: 8c7ea50c010b ("x86/mm, asm-generic: Add IOMMU ioremap_uc() variant default")
-Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
----
- include/asm-generic/io.h |    8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+> On x86, 5-level paging enables 56-bit userspace virtual address space.
+> Not all user space is ready to handle wide addresses. It's known that
+> at least some JIT compilers use higher bits in pointers to encode their
+> information. It collides with valid pointers with 5-level paging and
+> leads to crashes.
+>
+> To mitigate this, we are not going to allocate virtual address space
+> above 47-bit by default.
+>
+> But userspace can ask for allocation from full address space by
+> specifying hint address (with or without MAP_FIXED) above 47-bits.
+>
+> If hint address set above 47-bit, but MAP_FIXED is not specified, we try
+> to look for unmapped area by specified address. If it's already
+> occupied, we look for unmapped area in *full* address space, rather than
+> from 47-bit window.
+>
+> This approach helps to easily make application's memory allocator aware
+> about large address space without manually tracking allocated virtual
+> address space.
+>
 
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index 7ef015eb3403..978d2e27ce1d 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -802,16 +802,16 @@ static inline void *phys_to_virt(unsigned long address)
- /**
-  * DOC: ioremap() and ioremap_*() variants
-  *
-- * If you have an IOMMU your architecture is expected to have both ioremap()
-+ * If you have an MMU your architecture is expected to have both ioremap()
-  * and iounmap() implemented otherwise the asm-generic helpers will provide a
-  * direct mapping.
-  *
-- * There are ioremap_*() call variants, if you have no IOMMU we naturally will
-+ * There are ioremap_*() call variants, if you have no MMU we naturally will
-  * default to direct mapping for all of them, you can override these defaults.
-- * If you have an IOMMU you are highly encouraged to provide your own
-+ * If you have an MMU you are highly encouraged to provide your own
-  * ioremap variant implementation as there currently is no safe architecture
-  * agnostic default. To avoid possible improper behaviour default asm-generic
-- * ioremap_*() variants all return NULL when an IOMMU is available. If you've
-+ * ioremap_*() variants all return NULL when an MMU is available. If you've
-  * defined your own ioremap_*() variant you must then declare your own
-  * ioremap_*() variant as defined to itself to avoid the default NULL return.
-  */
+So if I have done a successful mmap which returned > 128TB what should a
+following mmap(0,...) return ? Should that now search the *full* address
+space or below 128TB ?
+
+-aneesh
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
