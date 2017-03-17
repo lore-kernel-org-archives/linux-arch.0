@@ -1,54 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:17488 "EHLO mga11.intel.com"
+Received: from mail.kernel.org ([198.145.29.136]:53722 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751218AbdCQRaf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 17 Mar 2017 13:30:35 -0400
-Date: Fri, 17 Mar 2017 20:27:57 +0300
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: Re: [PATCHv2 7/7] x86/mm: Switch to generic get_user_page_fast()
- implementation
-Message-ID: <20170317172757.dcfdq7ydqd2yenfg@black.fi.intel.com>
-References: <20170316152655.37789-8-kirill.shutemov@linux.intel.com>
- <20170316213906.89528-1-kirill.shutemov@linux.intel.com>
+        id S1751166AbdCQRrX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 17 Mar 2017 13:47:23 -0400
+Subject: [PATCH v1 3/3] asm-generic/io.h: Simplify ioremap() comments
+From: Bjorn Helgaas <bhelgaas@google.com>
+Date: Fri, 17 Mar 2017 12:46:58 -0500
+Message-ID: <20170317174658.6308.58743.stgit@bhelgaas-glaptop.roam.corp.google.com>
+In-Reply-To: <20170317172752.6308.91062.stgit@bhelgaas-glaptop.roam.corp.google.com>
+References: <20170317172752.6308.91062.stgit@bhelgaas-glaptop.roam.corp.google.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20170316213906.89528-1-kirill.shutemov@linux.intel.com>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: Dave Hansen <dave.hansen@intel.com>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Steve Capper <steve.capper@linaro.org>, Dann Frazier <dann.frazier@canonical.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
-Message-ID: <20170317172757.ZD6zQFyYcg6ti_6A74PmLdLjkh1EkFokn90G69217T4@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, "Luis R. Rodriguez" <mcgrof@kernel.org>, linux-kernel@vger.kernel.org
+Message-ID: <20170317174658.DMkyJhSP4d5fRquWUvwwOoXkUZUjNhoVdGRVuZCNMd0@z>
 
-On Fri, Mar 17, 2017 at 12:39:06AM +0300, Kirill A. Shutemov wrote:
-> The patch provides all required hooks to match generic
-> get_user_pages_fast() behaviour to x86 and switch x86 over.
-> 
-> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-> ---
->  v2:
->     - Fix build on non-PAE 32-bit x86;
+Simplify ioremap() comments to make it clear that arches with an MMU *must*
+implement ioremap() and iounmap(), and that the default implementations
+only apply to non-MMU arches.  It's obvious how to override the defaults;
+no need to educate people here.  Remove the ancient "struct page" comment
+that doesn't seem related to anything here.
 
-Fixup for allmodconfig on x86-64:
+Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
+---
+ include/asm-generic/io.h |   24 +++++++-----------------
+ 1 file changed, 7 insertions(+), 17 deletions(-)
 
-diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
-index e55fe9475979..e1a0a1fb5971 100644
---- a/arch/x86/include/asm/pgtable.h
-+++ b/arch/x86/include/asm/pgtable.h
-@@ -230,13 +230,13 @@ static inline int pud_devmap(pud_t pud)
- {
- 	return 0;
- }
-+#endif
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+index e0a331a22346..3f8a7e589071 100644
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -780,8 +780,7 @@ static inline void pci_iounmap(struct pci_dev *dev, void __iomem *p)
+ #endif /* CONFIG_GENERIC_IOMAP */
  
- static inline int pgd_devmap(pgd_t pgd)
- {
- 	return 0;
- }
- #endif
--#endif
- #endif /* CONFIG_TRANSPARENT_HUGEPAGE */
+ /*
+- * Change virtual addresses to physical addresses and vv.
+- * These are pretty trivial
++ * Change virtual addresses to physical addresses and vice versa.
+  */
+ #ifndef virt_to_phys
+ #define virt_to_phys virt_to_phys
+@@ -802,18 +801,11 @@ static inline void *phys_to_virt(unsigned long address)
+ /**
+  * DOC: ioremap() and ioremap_*() variants
+  *
+- * If you have an MMU your architecture is expected to have both ioremap()
+- * and iounmap() implemented otherwise the asm-generic helpers will provide a
+- * direct mapping.
++ * If you have an MMU, your architecture must implement both ioremap() and
++ * iounmap().
+  *
+- * There are ioremap_*() call variants, if you have no MMU we naturally will
+- * default to direct mapping for all of them, you can override these defaults.
+- * If you have an MMU you are highly encouraged to provide your own
+- * ioremap variant implementation as there currently is no safe architecture
+- * agnostic default. To avoid possible improper behaviour default asm-generic
+- * ioremap_*() variants all return NULL when an MMU is available. If you've
+- * defined your own ioremap_*() variant you must then declare your own
+- * ioremap_*() variant as defined to itself to avoid the default NULL return.
++ * It must also implement variants such as ioremap_uc().  The default
++ * implementation here returns failure (NULL) to avoid improper behavior.
+  */
  
- static inline pte_t pte_set_flags(pte_t pte, pteval_t set)
--- 
- Kirill A. Shutemov
+ #ifdef CONFIG_MMU
+@@ -829,10 +821,8 @@ static inline void __iomem *ioremap_uc(phys_addr_t offset, size_t size)
+ #else /* !CONFIG_MMU */
+ 
+ /*
+- * Change "struct page" to physical address.
+- *
+- * This implementation is for the no-MMU case only... if you have an MMU
+- * you'll need to provide your own definitions.
++ * If you don't have an MMU, the default implementations here provide
++ * direct identity mapping.  You can override these if necessary.
+  */
+ 
+ #ifndef ioremap
