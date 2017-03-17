@@ -1,96 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn3nam01on0050.outbound.protection.outlook.com ([104.47.33.50]:60980
-        "EHLO NAM01-BN3-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751174AbdCQULI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 17 Mar 2017 16:11:08 -0400
-Subject: Re: [RFC PATCH v4 14/28] Add support to access boot related data in
- the clear
-References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
- <20170216154508.19244.58580.stgit@tlendack-t1.amdoffice.net>
- <20170308065555.GA11045@dhcp-128-65.nay.redhat.com>
-From: Tom Lendacky <thomas.lendacky@amd.com>
-Message-ID: <79f1c44e-0138-8b50-8931-723a5d243644@amd.com>
-Date: Fri, 17 Mar 2017 14:50:14 -0500
+Received: from mx2.suse.de ([195.135.220.15]:57828 "EHLO mx2.suse.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751320AbdCQUNw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 17 Mar 2017 16:13:52 -0400
+Date: Fri, 17 Mar 2017 17:26:18 +0100
+From: "Luis R. Rodriguez" <mcgrof@kernel.org>
+Subject: Re: [PATCH 02/20] PCI: fix pci_remap_iospace() remap attribute
+Message-ID: <20170317162617.GC28800@wotan.suse.de>
+References: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
+ <20170227151436.18698-3-lorenzo.pieralisi@arm.com>
+ <20170316214844.GA17769@bhelgaas-glaptop.roam.corp.google.com>
+ <20170317003321.GB28800@wotan.suse.de>
+ <20170317104339.GD24830@bart.dudau.co.uk>
 MIME-Version: 1.0
-In-Reply-To: <20170308065555.GA11045@dhcp-128-65.nay.redhat.com>
-Content-Type: text/plain; charset="windows-1252"; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20170317104339.GD24830@bart.dudau.co.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Young <dyoung@redhat.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Alexander Potapenko <glider@google.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Borislav Petkov <bp@alien8.de>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Larry Woodman <lwoodman@redhat.com>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170317195014.8C-yAliRm1vgoH5ogKS5AkXYoOLeqwmTCrZDym4c_vI@z>
+To: Liviu Dudau <liviu@dudau.co.uk>
+Cc: "Luis R. Rodriguez" <mcgrof@kernel.org>, Bjorn Helgaas <helgaas@kernel.org>, Liviu Dudau <Liviu.Dudau@arm.com>, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Andy Lutomirski <luto@amacapital.net>, linux-pci@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Wenrui Li <wenrui.li@rock-chips.com>, Gabriele Paoloni <gabriele.paoloni@huawei.com>, Catalin Marinas <catalin.marinas@arm.com>, Shawn Lin <shawn.lin@rock-chips.com>, Will Deacon <will.deacon@arm.com>, Michal Simek <michal.simek@xilinx.com>, Thierry Reding <thierry.reding@gmail.com>, Tanmay Inamdar <tinamdar@apm.com>, linux-arch@vger.kernel.org, Pratyush Anand <pratyush.anand@gmail.com>, Russell King <linux@armlinux.org.uk>, Jon Mason <jonmason@broadcom.com>, Murali Karicheri <m-karicheri2@ti.com>, Arnd Bergmann <arnd@arndb.de>, Bharat Kumar Gogada <bharat.kumar.gogada@xilinx.com>, Ray Jui <rjui@broadcom.com>, John Garry <john.garry@huawei.com>, Joao Pinto <Joao.Pinto@synopsys.com>, Bjorn Helgaas <bhelgaas@google.com>, Mingkai Hu <mingkai.hu@freescale.com>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Jingoo Han <jingoohan1@gmail.com>, linux-kernel@vger.kernel.org, Stanimir Varbanov <svarbanov@mm-sol.com>, Minghuan Lian <minghuan.Lian@freescale.com>, Zhou Wang <wangzhou1@hisilicon.com>, Roy Zang <tie-fei.zang@freescale.com>
+Message-ID: <20170317162618.U-seS8EpmeKw3_BanQ4KX_6aRtPSQ5WyRMi4kI9cEUI@z>
 
-On 3/8/2017 12:55 AM, Dave Young wrote:
-> On 02/16/17 at 09:45am, Tom Lendacky wrote:
-> [snip]
->> + * This function determines if an address should be mapped encrypted.
->> + * Boot setup data, EFI data and E820 areas are checked in making this
->> + * determination.
->> + */
->> +static bool memremap_should_map_encrypted(resource_size_t phys_addr,
->> +					  unsigned long size)
->> +{
->> +	/*
->> +	 * SME is not active, return true:
->> +	 *   - For early_memremap_pgprot_adjust(), returning true or false
->> +	 *     results in the same protection value
->> +	 *   - For arch_memremap_do_ram_remap(), returning true will allow
->> +	 *     the RAM remap to occur instead of falling back to ioremap()
->> +	 */
->> +	if (!sme_active())
->> +		return true;
->
-> From the function name shouldn't above be return false?
+On Fri, Mar 17, 2017 at 10:43:39AM +0000, Liviu Dudau wrote:
+> On Fri, Mar 17, 2017 at 01:33:21AM +0100, Luis R. Rodriguez wrote:
+> > a) should we then use a Fixes tag for this patch ?
+> 
+> I'm not aware of issues being reported, but Lorenzo might have more info on this.
 
-I've re-worked this so that the check is in a different location and
-doesn't cause confusion.
+Lorenzo ? If not what exactly made you discover this ? If it is a fix, and only 
+ARM64 is implicated, seems like a worthy change to consider for stable for the
+sake of stable ARM64 kernels. But, that would leave the PCI config space without
+a simple 1 liner fix too -- so maybe its not worth it. Distributions wanting
+to support ARM64 however would like to carry these changes, so some annotations
+such as Fixes should help.
 
->
->> +
->> +	/* Check if the address is part of the setup data */
->> +	if (memremap_is_setup_data(phys_addr, size))
->> +		return false;
->> +
->> +	/* Check if the address is part of EFI boot/runtime data */
->> +	switch (efi_mem_type(phys_addr)) {
->> +	case EFI_BOOT_SERVICES_DATA:
->> +	case EFI_RUNTIME_SERVICES_DATA:
->
-> Only these two types needed? I'm not sure about this, just bring up the
-> question.
+> > b) it does not seem clear what the semantics for pgprot_device() or even
+> >    pgprot_noncached(). Can you add some ?
+> > 
+> > 8b921acfeffdb ("PCI: Add pci_remap_iospace() to map bus I/O resources")
+> > 
+> > Also this patch claims archs can override this call alone, as its __weak.
+> > So is the right thing to do to change pci_remap_iospace() to pgprot_noncached()
+> > or is it for archs to add their own pci_remap_iospace()? If so why ? Without
+> > proper semantics defined for these helpers this is all fuzzy.
+> 
+> That was the initial intention, to let arches / platforms overwrite the whole
+> pci_remap_iospace(). I guess the reality is that no one needs to overwrite it except
+> for the AArch64 quirk, so probably easier to remove the __weak and fix the attributes for arm64.
 
-I've re-worked this code so that there is a single EFI routine that
-checks boot_params.efi_info.efi_memmap/efi_systab, EFI tables and the
-EFI memtype.  As for the EFI memtypes, I believe those are the only
-ones required.  Some of the other types will be picked up by the e820
-checks (ACPI, NVS, etc.).
+Sounds much more reasonable to me.
 
-Thanks,
-Tom
-
->
->> +		return false;
->> +	default:
->> +		break;
->> +	}
->> +
->> +	/* Check if the address is outside kernel usable area */
->> +	switch (e820__get_entry_type(phys_addr, phys_addr + size - 1)) {
->> +	case E820_TYPE_RESERVED:
->> +	case E820_TYPE_ACPI:
->> +	case E820_TYPE_NVS:
->> +	case E820_TYPE_UNUSABLE:
->> +		return false;
->> +	default:
->> +		break;
->> +	}
->> +
->> +	return true;
->> +}
->> +
->
-> Thanks
-> Dave
->
+  Luis
