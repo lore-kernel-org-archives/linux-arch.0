@@ -1,58 +1,99 @@
-From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Subject: Re: [PATCH 02/20] PCI: fix pci_remap_iospace() remap attribute
-Date: Fri, 17 Mar 2017 17:26:18 +0100
-Message-ID: <20170317162617.GC28800@wotan.suse.de>
-References: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
- <20170227151436.18698-3-lorenzo.pieralisi@arm.com>
- <20170316214844.GA17769@bhelgaas-glaptop.roam.corp.google.com>
- <20170317003321.GB28800@wotan.suse.de>
- <20170317104339.GD24830@bart.dudau.co.uk>
+From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Subject: Re: [PATCH 5/7] mm/gup: Implement dev_pagemap logic in generic
+ get_user_pages_fast()
+Date: Fri, 17 Mar 2017 20:27:12 +0300
+Message-ID: <20170317172711.kx4oed6jbe5knbgs@black.fi.intel.com>
+References: <20170316152655.37789-1-kirill.shutemov@linux.intel.com>
+ <20170316152655.37789-6-kirill.shutemov@linux.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <20170317104339.GD24830@bart.dudau.co.uk>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Liviu Dudau <liviu@dudau.co.uk>
-Cc: Wenrui Li <wenrui.li@rock-chips.com>, Gabriele Paoloni <gabriele.paoloni@huawei.com>, linux-pci@vger.kernel.org, Shawn Lin <shawn.lin@rock-chips.com>, Liviu Dudau <Liviu.Dudau@arm.com>, Russell King <linux@armlinux.org.uk>, Thierry Reding <thierry.reding@gmail.com>, Tanmay Inamdar <tinamdar@apm.com>, Zhou Wang <wangzhou1@hisilicon.com>, linux-arch@vger.kernel.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Pratyush Anand <pratyush.anand@gmail.com>, Michal Simek <michal.simek@xilinx.com>, Bharat Kumar Gogada <bharat.kumar.gogada@xilinx.com>, Murali Karicheri <m-karicheri2@ti.com>, Bjorn Helgaas <helgaas@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Arnd Bergmann <arnd@arndb.de>, Jon Mason <jonmason@broadcom.com>, Will Deacon <will.deacon@arm.com>, John Garry <john.garry@huawei.com>, Joao Pinto <Joao.Pinto@syn>
+In-Reply-To: <20170316152655.37789-6-kirill.shutemov@linux.intel.com>
+Sender: owner-linux-mm@kvack.org
+To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: Dave Hansen <dave.hansen@intel.com>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Steve Capper <steve.capper@linaro.org>, Dann Frazier <dann.frazier@canonical.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Dan Williams <dan.j.williams@intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Mar 17, 2017 at 10:43:39AM +0000, Liviu Dudau wrote:
-> On Fri, Mar 17, 2017 at 01:33:21AM +0100, Luis R. Rodriguez wrote:
-> > a) should we then use a Fixes tag for this patch ?
-> 
-> I'm not aware of issues being reported, but Lorenzo might have more info on this.
+On Thu, Mar 16, 2017 at 06:26:53PM +0300, Kirill A. Shutemov wrote:
+> +static int __gup_device_huge_pmd(pmd_t pmd, unsigned long addr,
+> +		unsigned long end, struct page **pages, int *nr)
+> +{
+> +	unsigned long fault_pfn;
+> +
+> +	fault_pfn = pmd_pfn(pmd) + ((addr & ~PMD_MASK) >> PAGE_SHIFT);
+> +	return __gup_device_huge(fault_pfn, addr, end, pages, nr);
+> +}
+> +
+> +static int __gup_device_huge_pud(pud_t pud, unsigned long addr,
+> +		unsigned long end, struct page **pages, int *nr)
+> +{
+> +	unsigned long fault_pfn;
+> +
+> +	fault_pfn = pud_pfn(pud) + ((addr & ~PUD_MASK) >> PAGE_SHIFT);
+> +	return __gup_device_huge(fault_pfn, addr, end, pages, nr);
+> +}
+> +
 
-Lorenzo ? If not what exactly made you discover this ? If it is a fix, and only 
-ARM64 is implicated, seems like a worthy change to consider for stable for the
-sake of stable ARM64 kernels. But, that would leave the PCI config space without
-a simple 1 liner fix too -- so maybe its not worth it. Distributions wanting
-to support ARM64 however would like to carry these changes, so some annotations
-such as Fixes should help.
+PowerPC doesn't [always] provide pmd_pfn() and pud_pfn().
 
-> > b) it does not seem clear what the semantics for pgprot_device() or even
-> >    pgprot_noncached(). Can you add some ?
-> > 
-> > 8b921acfeffdb ("PCI: Add pci_remap_iospace() to map bus I/O resources")
-> > 
-> > Also this patch claims archs can override this call alone, as its __weak.
-> > So is the right thing to do to change pci_remap_iospace() to pgprot_noncached()
-> > or is it for archs to add their own pci_remap_iospace()? If so why ? Without
-> > proper semantics defined for these helpers this is all fuzzy.
-> 
-> That was the initial intention, to let arches / platforms overwrite the whole
-> pci_remap_iospace(). I guess the reality is that no one needs to overwrite it except
-> for the AArch64 quirk, so probably easier to remove the __weak and fix the attributes for arm64.
+Fixup:
 
-Sounds much more reasonable to me.
+diff --git a/mm/gup.c b/mm/gup.c
+index 5cc489d98562..6f36cbc294cf 100644
+--- a/mm/gup.c
++++ b/mm/gup.c
+@@ -1287,6 +1287,7 @@ static int gup_pte_range(pmd_t pmd, unsigned long addr, unsigned long end,
+ }
+ #endif /* __HAVE_ARCH_PTE_SPECIAL */
+ 
++#ifdef __HAVE_ARCH_PTE_DEVMAP
+ static int __gup_device_huge(unsigned long pfn, unsigned long addr,
+ 		unsigned long end, struct page **pages, int *nr)
+ {
+@@ -1328,6 +1329,21 @@ static int __gup_device_huge_pud(pud_t pud, unsigned long addr,
+ 	fault_pfn = pud_pfn(pud) + ((addr & ~PUD_MASK) >> PAGE_SHIFT);
+ 	return __gup_device_huge(fault_pfn, addr, end, pages, nr);
+ }
++#else
++static int __gup_device_huge_pmd(pmd_t pmd, unsigned long addr,
++		unsigned long end, struct page **pages, int *nr)
++{
++	BUILD_BUG();
++	return 0;
++}
++
++static int __gup_device_huge_pud(pud_t pud, unsigned long addr,
++		unsigned long end, struct page **pages, int *nr)
++{
++	BUILD_BUG();
++	return 0;
++}
++#endif
+ 
+ static int gup_huge_pmd(pmd_t orig, pmd_t *pmdp, unsigned long addr,
+ 		unsigned long end, int write, struct page **pages, int *nr)
+@@ -1338,7 +1354,6 @@ static int gup_huge_pmd(pmd_t orig, pmd_t *pmdp, unsigned long addr,
+ 	if (!pmd_access_permitted(orig, write))
+ 		return 0;
+ 
+-	VM_BUG_ON(!pfn_valid(pmd_pfn(orig)));
+ 	if (pmd_devmap(orig))
+ 		return __gup_device_huge_pmd(orig, addr, end, pages, nr);
+ 
+@@ -1378,7 +1393,6 @@ static int gup_huge_pud(pud_t orig, pud_t *pudp, unsigned long addr,
+ 	if (!pud_access_permitted(orig, write))
+ 		return 0;
+ 
+-	VM_BUG_ON(!pfn_valid(pud_pfn(orig)));
+ 	if (pud_devmap(orig))
+ 		return __gup_device_huge_pud(orig, addr, end, pages, nr);
+ 
+-- 
+ Kirill A. Shutemov
 
-  Luis
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
