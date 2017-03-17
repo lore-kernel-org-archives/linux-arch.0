@@ -1,54 +1,106 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:53660 "EHLO mail.kernel.org"
+Received: from mga03.intel.com ([134.134.136.65]:12811 "EHLO mga03.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751131AbdCQRrX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 17 Mar 2017 13:47:23 -0400
-Subject: [PATCH v1 1/3] asm-generic/io.h: Fix "IOMMU" typos
-From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Fri, 17 Mar 2017 12:46:43 -0500
-Message-ID: <20170317174643.6308.32011.stgit@bhelgaas-glaptop.roam.corp.google.com>
-In-Reply-To: <20170317172752.6308.91062.stgit@bhelgaas-glaptop.roam.corp.google.com>
-References: <20170317172752.6308.91062.stgit@bhelgaas-glaptop.roam.corp.google.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
+        id S1751712AbdCQSz1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 17 Mar 2017 14:55:27 -0400
+From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Subject: [PATCH 1/6] x86/kexec: Add 5-level paging support
+Date: Fri, 17 Mar 2017 21:55:10 +0300
+Message-ID: <20170317185515.8636-2-kirill.shutemov@linux.intel.com>
+In-Reply-To: <20170317185515.8636-1-kirill.shutemov@linux.intel.com>
+References: <20170317185515.8636-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, "Luis R. Rodriguez" <mcgrof@kernel.org>, linux-kernel@vger.kernel.org
-Message-ID: <20170317174643.0MS9fAPB6MWQCpkUypa3dAuimJ46SnmhaizGNCMfVMM@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, Michal Hocko <mhocko@suse.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Message-ID: <20170317185510.hCmR-CXdcBuqPze-Rt64gZOxMOCfku2Y6RE9RIutQ0E@z>
 
-The ioremap() block comment refers to "IOMMU" when it means "MMU".  Fix
-these typos to avoid confusion.
+Handle additional page table level in kexec code.
 
-Fixes: 8c7ea50c010b ("x86/mm, asm-generic: Add IOMMU ioremap_uc() variant default")
-Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
+Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
- include/asm-generic/io.h |    8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+ arch/x86/include/asm/kexec.h       |  1 +
+ arch/x86/kernel/machine_kexec_32.c |  4 +++-
+ arch/x86/kernel/machine_kexec_64.c | 14 ++++++++++++--
+ 3 files changed, 16 insertions(+), 3 deletions(-)
 
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index 7ef015eb3403..978d2e27ce1d 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -802,16 +802,16 @@ static inline void *phys_to_virt(unsigned long address)
- /**
-  * DOC: ioremap() and ioremap_*() variants
-  *
-- * If you have an IOMMU your architecture is expected to have both ioremap()
-+ * If you have an MMU your architecture is expected to have both ioremap()
-  * and iounmap() implemented otherwise the asm-generic helpers will provide a
-  * direct mapping.
-  *
-- * There are ioremap_*() call variants, if you have no IOMMU we naturally will
-+ * There are ioremap_*() call variants, if you have no MMU we naturally will
-  * default to direct mapping for all of them, you can override these defaults.
-- * If you have an IOMMU you are highly encouraged to provide your own
-+ * If you have an MMU you are highly encouraged to provide your own
-  * ioremap variant implementation as there currently is no safe architecture
-  * agnostic default. To avoid possible improper behaviour default asm-generic
-- * ioremap_*() variants all return NULL when an IOMMU is available. If you've
-+ * ioremap_*() variants all return NULL when an MMU is available. If you've
-  * defined your own ioremap_*() variant you must then declare your own
-  * ioremap_*() variant as defined to itself to avoid the default NULL return.
-  */
+diff --git a/arch/x86/include/asm/kexec.h b/arch/x86/include/asm/kexec.h
+index 282630e4c6ea..70ef205489f0 100644
+--- a/arch/x86/include/asm/kexec.h
++++ b/arch/x86/include/asm/kexec.h
+@@ -164,6 +164,7 @@ struct kimage_arch {
+ };
+ #else
+ struct kimage_arch {
++	p4d_t *p4d;
+ 	pud_t *pud;
+ 	pmd_t *pmd;
+ 	pte_t *pte;
+diff --git a/arch/x86/kernel/machine_kexec_32.c b/arch/x86/kernel/machine_kexec_32.c
+index 469b23d6acc2..5f43cec296c5 100644
+--- a/arch/x86/kernel/machine_kexec_32.c
++++ b/arch/x86/kernel/machine_kexec_32.c
+@@ -103,6 +103,7 @@ static void machine_kexec_page_table_set_one(
+ 	pgd_t *pgd, pmd_t *pmd, pte_t *pte,
+ 	unsigned long vaddr, unsigned long paddr)
+ {
++	p4d_t *p4d;
+ 	pud_t *pud;
+ 
+ 	pgd += pgd_index(vaddr);
+@@ -110,7 +111,8 @@ static void machine_kexec_page_table_set_one(
+ 	if (!(pgd_val(*pgd) & _PAGE_PRESENT))
+ 		set_pgd(pgd, __pgd(__pa(pmd) | _PAGE_PRESENT));
+ #endif
+-	pud = pud_offset(pgd, vaddr);
++	p4d = p4d_offset(pgd, vaddr);
++	pud = pud_offset(p4d, vaddr);
+ 	pmd = pmd_offset(pud, vaddr);
+ 	if (!(pmd_val(*pmd) & _PAGE_PRESENT))
+ 		set_pmd(pmd, __pmd(__pa(pte) | _PAGE_TABLE));
+diff --git a/arch/x86/kernel/machine_kexec_64.c b/arch/x86/kernel/machine_kexec_64.c
+index 857cdbd02867..085c3b300d32 100644
+--- a/arch/x86/kernel/machine_kexec_64.c
++++ b/arch/x86/kernel/machine_kexec_64.c
+@@ -36,6 +36,7 @@ static struct kexec_file_ops *kexec_file_loaders[] = {
+ 
+ static void free_transition_pgtable(struct kimage *image)
+ {
++	free_page((unsigned long)image->arch.p4d);
+ 	free_page((unsigned long)image->arch.pud);
+ 	free_page((unsigned long)image->arch.pmd);
+ 	free_page((unsigned long)image->arch.pte);
+@@ -43,6 +44,7 @@ static void free_transition_pgtable(struct kimage *image)
+ 
+ static int init_transition_pgtable(struct kimage *image, pgd_t *pgd)
+ {
++	p4d_t *p4d;
+ 	pud_t *pud;
+ 	pmd_t *pmd;
+ 	pte_t *pte;
+@@ -53,13 +55,21 @@ static int init_transition_pgtable(struct kimage *image, pgd_t *pgd)
+ 	paddr = __pa(page_address(image->control_code_page)+PAGE_SIZE);
+ 	pgd += pgd_index(vaddr);
+ 	if (!pgd_present(*pgd)) {
++		p4d = (p4d_t *)get_zeroed_page(GFP_KERNEL);
++		if (!p4d)
++			goto err;
++		image->arch.p4d = p4d;
++		set_pgd(pgd, __pgd(__pa(p4d) | _KERNPG_TABLE));
++	}
++	p4d = p4d_offset(pgd, vaddr);
++	if (!p4d_present(*p4d)) {
+ 		pud = (pud_t *)get_zeroed_page(GFP_KERNEL);
+ 		if (!pud)
+ 			goto err;
+ 		image->arch.pud = pud;
+-		set_pgd(pgd, __pgd(__pa(pud) | _KERNPG_TABLE));
++		set_p4d(p4d, __p4d(__pa(pud) | _KERNPG_TABLE));
+ 	}
+-	pud = pud_offset(pgd, vaddr);
++	pud = pud_offset(p4d, vaddr);
+ 	if (!pud_present(*pud)) {
+ 		pmd = (pmd_t *)get_zeroed_page(GFP_KERNEL);
+ 		if (!pmd)
+-- 
+2.11.0
