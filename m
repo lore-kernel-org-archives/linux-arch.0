@@ -1,55 +1,55 @@
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: Re: [PATCHv2 7/7] x86/mm: Switch to generic get_user_page_fast()
- implementation
-Date: Fri, 17 Mar 2017 20:27:57 +0300
-Message-ID: <20170317172757.dcfdq7ydqd2yenfg@black.fi.intel.com>
-References: <20170316152655.37789-8-kirill.shutemov@linux.intel.com>
- <20170316213906.89528-1-kirill.shutemov@linux.intel.com>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Subject: [PATCH v1 2/3] asm-generic/io.h: Remove unused generic __ioremap()
+ definition
+Date: Fri, 17 Mar 2017 12:46:51 -0500
+Message-ID: <20170317174651.6308.69605.stgit@bhelgaas-glaptop.roam.corp.google.com>
+References: <20170317172752.6308.91062.stgit@bhelgaas-glaptop.roam.corp.google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20170316213906.89528-1-kirill.shutemov@linux.intel.com>
-Sender: owner-linux-mm@kvack.org
-To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: Dave Hansen <dave.hansen@intel.com>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Steve Capper <steve.capper@linaro.org>, Dann Frazier <dann.frazier@canonical.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.kernel.org ([198.145.29.136]:53686 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751151AbdCQRrX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 17 Mar 2017 13:47:23 -0400
+In-Reply-To: <20170317172752.6308.91062.stgit@bhelgaas-glaptop.roam.corp.google.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, "Luis R. Rodriguez" <mcgrof@kernel.org>, linux-kernel@vger.kernel.org
 
-On Fri, Mar 17, 2017 at 12:39:06AM +0300, Kirill A. Shutemov wrote:
-> The patch provides all required hooks to match generic
-> get_user_pages_fast() behaviour to x86 and switch x86 over.
-> 
-> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-> ---
->  v2:
->     - Fix build on non-PAE 32-bit x86;
+Several arches use __ioremap() to help implement the generic ioremap(),
+ioremap_nocache(), and ioremap_wc() interfaces, but this usage is all
+inside the arch/ directory.
 
-Fixup for allmodconfig on x86-64:
+The only __ioremap() uses outside arch/ are in the ZorroII RAM disk driver
+and some framebuffer drivers that are only buildable on m68k and powerpc,
+and they use the versions provided by those arches.
 
-diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
-index e55fe9475979..e1a0a1fb5971 100644
---- a/arch/x86/include/asm/pgtable.h
-+++ b/arch/x86/include/asm/pgtable.h
-@@ -230,13 +230,13 @@ static inline int pud_devmap(pud_t pud)
- {
- 	return 0;
- }
-+#endif
- 
- static inline int pgd_devmap(pgd_t pgd)
- {
- 	return 0;
+There's no need for a generic version of __ioremap(), so remove it.
+
+Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
+---
+ include/asm-generic/io.h |    9 ---------
+ 1 file changed, 9 deletions(-)
+
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+index 978d2e27ce1d..e0a331a22346 100644
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -843,15 +843,6 @@ static inline void __iomem *ioremap(phys_addr_t offset, size_t size)
  }
  #endif
--#endif
- #endif /* CONFIG_TRANSPARENT_HUGEPAGE */
  
- static inline pte_t pte_set_flags(pte_t pte, pteval_t set)
--- 
- Kirill A. Shutemov
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+-#ifndef __ioremap
+-#define __ioremap __ioremap
+-static inline void __iomem *__ioremap(phys_addr_t offset, size_t size,
+-				      unsigned long flags)
+-{
+-	return ioremap(offset, size);
+-}
+-#endif
+-
+ #ifndef ioremap_nocache
+ #define ioremap_nocache ioremap_nocache
+ static inline void __iomem *ioremap_nocache(phys_addr_t offset, size_t size)
