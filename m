@@ -1,155 +1,98 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from dliviu.plus.com ([80.229.23.120]:47192 "EHLO smtp.dudau.co.uk"
+Received: from mga07.intel.com ([134.134.136.100]:34752 "EHLO mga07.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751130AbdCQMis (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 17 Mar 2017 08:38:48 -0400
-Date: Fri, 17 Mar 2017 10:43:39 +0000
-From: Liviu Dudau <liviu@dudau.co.uk>
-Subject: Re: [PATCH 02/20] PCI: fix pci_remap_iospace() remap attribute
-Message-ID: <20170317104339.GD24830@bart.dudau.co.uk>
-References: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
- <20170227151436.18698-3-lorenzo.pieralisi@arm.com>
- <20170316214844.GA17769@bhelgaas-glaptop.roam.corp.google.com>
- <20170317003321.GB28800@wotan.suse.de>
+        id S1751072AbdCQR1U (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 17 Mar 2017 13:27:20 -0400
+Date: Fri, 17 Mar 2017 20:27:12 +0300
+From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Subject: Re: [PATCH 5/7] mm/gup: Implement dev_pagemap logic in generic
+ get_user_pages_fast()
+Message-ID: <20170317172711.kx4oed6jbe5knbgs@black.fi.intel.com>
+References: <20170316152655.37789-1-kirill.shutemov@linux.intel.com>
+ <20170316152655.37789-6-kirill.shutemov@linux.intel.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <20170317003321.GB28800@wotan.suse.de>
+In-Reply-To: <20170316152655.37789-6-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Cc: Bjorn Helgaas <helgaas@kernel.org>, Liviu Dudau <Liviu.Dudau@arm.com>, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Andy Lutomirski <luto@amacapital.net>, linux-pci@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Wenrui Li <wenrui.li@rock-chips.com>, Gabriele Paoloni <gabriele.paoloni@huawei.com>, Catalin Marinas <catalin.marinas@arm.com>, Shawn Lin <shawn.lin@rock-chips.com>, Will Deacon <will.deacon@arm.com>, Michal Simek <michal.simek@xilinx.com>, Thierry Reding <thierry.reding@gmail.com>, Tanmay Inamdar <tinamdar@apm.com>, linux-arch@vger.kernel.org, Pratyush Anand <pratyush.anand@gmail.com>, Russell King <linux@armlinux.org.uk>, Jon Mason <jonmason@broadcom.com>, Murali Karicheri <m-karicheri2@ti.com>, Arnd Bergmann <arnd@arndb.de>, Bharat Kumar Gogada <bharat.kumar.gogada@xilinx.com>, Ray Jui <rjui@broadcom.com>, John Garry <john.garry@huawei.com>, Joao Pinto <Joao.Pinto@synopsys.com>, Bjorn Helgaas <bhelgaas@google.com>, Mingkai Hu <mingkai.hu@freescale.com>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Jingoo Han <jingoohan1@gmail.com>, linux-kernel@vger.kernel.org, Stanimir Varbanov <svarbanov@mm-sol.com>, Minghuan Lian <minghuan.Lian@freescale.com>, Zhou Wang <wangzhou1@hisilicon.com>, Roy Zang <tie-fei.zang@freescale.com>
-Message-ID: <20170317104339.IjiN5y1NBkzy9PioKifSJIjKm-gq2Hfh0dVs80PVQVs@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: Dave Hansen <dave.hansen@intel.com>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Steve Capper <steve.capper@linaro.org>, Dann Frazier <dann.frazier@canonical.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Dan Williams <dan.j.williams@intel.com>
+Message-ID: <20170317172712.d-E1GTxDnp5tyrU-6OdRvBmomiBj3e0Ut_YnrS0iecQ@z>
 
-On Fri, Mar 17, 2017 at 01:33:21AM +0100, Luis R. Rodriguez wrote:
-> On Thu, Mar 16, 2017 at 04:48:44PM -0500, Bjorn Helgaas wrote:
-> > [+cc Luis]
-> > 
-> > On Mon, Feb 27, 2017 at 03:14:13PM +0000, Lorenzo Pieralisi wrote:
-> > > According to the PCI local bus specifications (Revision 3.0, 3.2.5),
-> > > I/O Address space transactions are non-posted. On architectures where
-> > > I/O space is implemented through a chunk of memory mapped space mapped
-> > > to PCI address space (ie IA64/ARM/ARM64) the memory mapping for the
-> > > region backing I/O Address Space transactions determines the I/O
-> > > transactions attributes (before the transactions actually reaches the
-> > > PCI bus where it is handled according to the PCI specifications).
-> > > 
-> > > Current pci_remap_iospace() interface, that is used to map the PCI I/O
-> > > Address Space into virtual address space, use pgprot_device() as memory
-> > > attribute for the virtual address mapping, that in some architectures
-> > > (ie ARM64) provides non-cacheable but write bufferable mappings (ie
-> > > posted writes), 
-> 
-> <sarcasm>
-> Gee wiz, I am glad this is so well documented.
-> </sarcasm>
-> 
-> > > which clash with the non-posted write behaviour for I/O
-> > > Address Space mandated by the PCI specifications.
-> > > 
-> > > Update the prot ioremap_page_range() parameter in pci_remap_iospace()
-> > > to pgprot_noncached to ensure that the virtual mapping backing
-> > > I/O Address Space guarantee non-posted write transactions issued
-> > > when addressing I/O Address Space through the MMIO mapping.
-> 
-> How did we end up with pgprot_device() then in the first place Liviu Dudau [0] ?
-> I ask for two reasons:
+On Thu, Mar 16, 2017 at 06:26:53PM +0300, Kirill A. Shutemov wrote:
+> +static int __gup_device_huge_pmd(pmd_t pmd, unsigned long addr,
+> +		unsigned long end, struct page **pages, int *nr)
+> +{
+> +	unsigned long fault_pfn;
+> +
+> +	fault_pfn = pmd_pfn(pmd) + ((addr & ~PMD_MASK) >> PAGE_SHIFT);
+> +	return __gup_device_huge(fault_pfn, addr, end, pages, nr);
+> +}
+> +
+> +static int __gup_device_huge_pud(pud_t pud, unsigned long addr,
+> +		unsigned long end, struct page **pages, int *nr)
+> +{
+> +	unsigned long fault_pfn;
+> +
+> +	fault_pfn = pud_pfn(pud) + ((addr & ~PUD_MASK) >> PAGE_SHIFT);
+> +	return __gup_device_huge(fault_pfn, addr, end, pages, nr);
+> +}
+> +
 
-[replying using personal email as the corporate email system is taking its sweet time
-to deliver the email to my inbox]
+PowerPC doesn't [always] provide pmd_pfn() and pud_pfn().
 
-I've asked the people with the right knowledge about the correct API to use (Hi Catalin!),
-and during the review it did not throw any red flags. I guess, given Bjorn's comment,
-that everyone assumed AArch64 is the same as all other architectures and pgprot_device
-is synonymous to pgprot_noncached.
+Fixup:
 
-> 
-> a) should we then use a Fixes tag for this patch ?
-
-I'm not aware of issues being reported, but Lorenzo might have more info on this.
-
-> b) it does not seem clear what the semantics for pgprot_device() or even
->    pgprot_noncached(). Can you add some ?
-> 
-> 8b921acfeffdb ("PCI: Add pci_remap_iospace() to map bus I/O resources")
-> 
-> Also this patch claims archs can override this call alone, as its __weak.
-> So is the right thing to do to change pci_remap_iospace() to pgprot_noncached()
-> or is it for archs to add their own pci_remap_iospace()? If so why ? Without
-> proper semantics defined for these helpers this is all fuzzy.
-
-That was the initial intention, to let arches / platforms overwrite the whole
-pci_remap_iospace(). I guess the reality is that no one needs to overwrite it except
-for the AArch64 quirk, so probably easier to remove the __weak and fix the attributes for arm64.
-
-Best regards,
-Liviu
-
-> 
-> > > Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-> > > Cc: Arnd Bergmann <arnd@arndb.de>
-> > > Cc: Will Deacon <will.deacon@arm.com>
-> > > Cc: Bjorn Helgaas <bhelgaas@google.com>
-> > > Cc: Russell King <linux@armlinux.org.uk>
-> > > Cc: Catalin Marinas <catalin.marinas@arm.com>
-> > > ---
-> > >  drivers/pci/pci.c | 2 +-
-> > >  1 file changed, 1 insertion(+), 1 deletion(-)
-> > > 
-> > > diff --git a/drivers/pci/pci.c b/drivers/pci/pci.c
-> > > index bd98674..bfb3c6e 100644
-> > > --- a/drivers/pci/pci.c
-> > > +++ b/drivers/pci/pci.c
-> > > @@ -3375,7 +3375,7 @@ int pci_remap_iospace(const struct resource *res, phys_addr_t phys_addr)
-> > >  		return -EINVAL;
-> > >  
-> > >  	return ioremap_page_range(vaddr, vaddr + resource_size(res), phys_addr,
-> > > -				  pgprot_device(PAGE_KERNEL));
-> > > +				  pgprot_noncached(PAGE_KERNEL));
-> > 
-> > pgprot_device() is equivalent to pgprot_noncached() on all arches
-> > except ARM64, and I trust you're doing the right thing on ARM64, so
-> > I'm fine with this from a PCI perspective.
-> > 
-> > I do find this puzzling because I naively expected pgprot_noncached()
-> > to match up with ioremap_nocache(), and apparently it doesn't.
-> > 
-> > For example, ARM64 ioremap_nocache() uses PROT_DEVICE_nGnRE, which
-> > doesn't match the MT_DEVICE_nGnRnE in pgprot_noncached().
-> > 
-> > The point of these patches is to use non-posted mappings.  Apparently
-> > you can do that with pgprot_noncached() here, but ioremap_nocache()
-> > isn't enough for the config space mappings?
-> 
-> This is for iospace it seems, so the other patch I think was for
-> config space.
-> 
->   Luis
-> 
-> > I suppose that's a consequence of the pgprot_noncached() vs
-> > ioremap_nocache() mismatch, but this is all extremely confusing.
-> > 
-> > >  #else
-> > >  	/* this architecture does not have memory mapped I/O space,
-> > >  	   so this function should never be called */
-> > > -- 
-> > > 2.10.0
-> > > 
-> > > 
-> > > _______________________________________________
-> > > linux-arm-kernel mailing list
-> > > linux-arm-kernel@lists.infradead.org
-> > > http://lists.infradead.org/mailman/listinfo/linux-arm-kernel
-> > 
-> 
-> -- 
-> Luis Rodriguez, SUSE LINUX GmbH
-> Maxfeldstrasse 5; D-90409 Nuernberg
-
+diff --git a/mm/gup.c b/mm/gup.c
+index 5cc489d98562..6f36cbc294cf 100644
+--- a/mm/gup.c
++++ b/mm/gup.c
+@@ -1287,6 +1287,7 @@ static int gup_pte_range(pmd_t pmd, unsigned long addr, unsigned long end,
+ }
+ #endif /* __HAVE_ARCH_PTE_SPECIAL */
+ 
++#ifdef __HAVE_ARCH_PTE_DEVMAP
+ static int __gup_device_huge(unsigned long pfn, unsigned long addr,
+ 		unsigned long end, struct page **pages, int *nr)
+ {
+@@ -1328,6 +1329,21 @@ static int __gup_device_huge_pud(pud_t pud, unsigned long addr,
+ 	fault_pfn = pud_pfn(pud) + ((addr & ~PUD_MASK) >> PAGE_SHIFT);
+ 	return __gup_device_huge(fault_pfn, addr, end, pages, nr);
+ }
++#else
++static int __gup_device_huge_pmd(pmd_t pmd, unsigned long addr,
++		unsigned long end, struct page **pages, int *nr)
++{
++	BUILD_BUG();
++	return 0;
++}
++
++static int __gup_device_huge_pud(pud_t pud, unsigned long addr,
++		unsigned long end, struct page **pages, int *nr)
++{
++	BUILD_BUG();
++	return 0;
++}
++#endif
+ 
+ static int gup_huge_pmd(pmd_t orig, pmd_t *pmdp, unsigned long addr,
+ 		unsigned long end, int write, struct page **pages, int *nr)
+@@ -1338,7 +1354,6 @@ static int gup_huge_pmd(pmd_t orig, pmd_t *pmdp, unsigned long addr,
+ 	if (!pmd_access_permitted(orig, write))
+ 		return 0;
+ 
+-	VM_BUG_ON(!pfn_valid(pmd_pfn(orig)));
+ 	if (pmd_devmap(orig))
+ 		return __gup_device_huge_pmd(orig, addr, end, pages, nr);
+ 
+@@ -1378,7 +1393,6 @@ static int gup_huge_pud(pud_t orig, pud_t *pudp, unsigned long addr,
+ 	if (!pud_access_permitted(orig, write))
+ 		return 0;
+ 
+-	VM_BUG_ON(!pfn_valid(pud_pfn(orig)));
+ 	if (pud_devmap(orig))
+ 		return __gup_device_huge_pud(orig, addr, end, pages, nr);
+ 
 -- 
-   _
- _|_|_
- ('_')
- (⊃  )⊃
- |_|_|
+ Kirill A. Shutemov
