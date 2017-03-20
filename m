@@ -1,77 +1,57 @@
-From: Bjorn Helgaas <helgaas@kernel.org>
-Subject: Re: [PATCH 02/20] PCI: fix pci_remap_iospace() remap attribute
-Date: Mon, 20 Mar 2017 11:38:43 -0500
-Message-ID: <20170320163843.GD24572@bhelgaas-glaptop.roam.corp.google.com>
+From: Russell King - ARM Linux <linux@armlinux.org.uk>
+Subject: Re: [PATCH 05/20] ARM: implement pci_remap_cfgspace() interface
+Date: Mon, 20 Mar 2017 16:43:55 +0000
+Message-ID: <20170320164354.GQ21222@n2100.armlinux.org.uk>
 References: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
- <20170227151436.18698-3-lorenzo.pieralisi@arm.com>
- <20170316214844.GA17769@bhelgaas-glaptop.roam.corp.google.com>
- <20170317003321.GB28800@wotan.suse.de>
- <20170320160636.GB24572@bhelgaas-glaptop.roam.corp.google.com>
- <20170320162627.GE7632@red-moon>
+ <20170227151436.18698-6-lorenzo.pieralisi@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 Content-Disposition: inline
-In-Reply-To: <20170320162627.GE7632@red-moon>
-Sender: linux-kernel-owner@vger.kernel.org
+In-Reply-To: <20170227151436.18698-6-lorenzo.pieralisi@arm.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Cc: "Luis R. Rodriguez" <mcgrof@kernel.org>, Liviu Dudau <Liviu.Dudau@arm.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Andy Lutomirski <luto@amacapital.net>, linux-pci@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Wenrui Li <wenrui.li@rock-chips.com>, Gabriele Paoloni <gabriele.paoloni@huawei.com>, Catalin Marinas <catalin.marinas@arm.com>, Shawn Lin <shawn.lin@rock-chips.com>, Will Deacon <will.deacon@arm.com>, Michal Simek <michal.simek@xilinx.com>, Thierry Reding <thierry.reding@gmail.com>, Tanmay Inamdar <tinamdar@apm.com>, linux-arch@vger.kernel.org, Pratyush Anand <pratyush.anand@gmail.com>, Russell King <linux@armlinux.org.uk>, Jon Mason <jonmason@broadcom.com>, Murali Karicheri <m-karicheri2@ti.com>, Arnd Bergmann <arnd@arndb.d>
+Cc: Wenrui Li <wenrui.li@rock-chips.com>, Gabriele Paoloni <gabriele.paoloni@huawei.com>, linux-pci@vger.kernel.org, Shawn Lin <shawn.lin@rock-chips.com>, Will Deacon <will.deacon@arm.com>, Thierry Reding <thierry.reding@gmail.com>, Tanmay Inamdar <tinamdar@apm.com>, linux-arch@vger.kernel.org, Joao Pinto <Joao.Pinto@synopsys.com>, Pratyush Anand <pratyush.anand@gmail.com>, Michal Simek <michal.simek@xilinx.com>, Jon Mason <jonmason@broadcom.com>, Murali Karicheri <m-karicheri2@ti.com>, Catalin Marinas <catalin.marinas@arm.com>, Arnd Bergmann <arnd@arndb.de>, Bharat Kumar Gogada <bharat.kumar.gogada@xilinx.com>, Ray Jui <rjui@broadcom.com>, John Garry <john.garry@huawei.com>, Bjorn Helgaas <bhelgaas@google.com>, Mingkai Hu <mingkai.hu@freescale.com>, linux-arm-kernel@lists.infradead.org, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Jingoo Han <jingoohan1@gmail.co>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Mar 20, 2017 at 04:26:27PM +0000, Lorenzo Pieralisi wrote:
-> On Mon, Mar 20, 2017 at 11:06:36AM -0500, Bjorn Helgaas wrote:
+On Mon, Feb 27, 2017 at 03:14:16PM +0000, Lorenzo Pieralisi wrote:
+> The PCI bus specifications (rev 3.0, 3.2.5 "Transaction Ordering
+> and Posting") define rules for PCI configuration space transactions
+> ordering and posting, that state that configuration writes have to
+> be non-posted transactions.
 > 
-> [...]
+> Current ioremap interface on ARM provides mapping functions that
+> provide "bufferable" writes transactions (ie ioremap uses MT_DEVICE
+> memory type) aka posted writes, so PCI host controller drivers have
+> no arch interface to remap PCI configuration space with memory
+> attributes that comply with the PCI specifications for configuration
+> space.
 > 
-> > > > > @@ -3375,7 +3375,7 @@ int pci_remap_iospace(const struct resource *res, phys_addr_t phys_addr)
-> > > > >  		return -EINVAL;
-> > > > >  
-> > > > >  	return ioremap_page_range(vaddr, vaddr + resource_size(res), phys_addr,
-> > > > > -				  pgprot_device(PAGE_KERNEL));
-> > > > > +				  pgprot_noncached(PAGE_KERNEL));
-> > > > 
-> > > > ...
-> > > > I do find this puzzling because I naively expected pgprot_noncached()
-> > > > to match up with ioremap_nocache(), and apparently it doesn't.
-> > > > 
-> > > > For example, ARM64 ioremap_nocache() uses PROT_DEVICE_nGnRE, which
-> > > > doesn't match the MT_DEVICE_nGnRnE in pgprot_noncached().
-> > > > 
-> > > > The point of these patches is to use non-posted mappings.  Apparently
-> > > > you can do that with pgprot_noncached() here, but ioremap_nocache()
-> > > > isn't enough for the config space mappings?
-> > > 
-> > > This is for iospace it seems, so the other patch I think was for
-> > > config space.
-> > 
-> > I understand that 02/20 is for PCI I/O port space and 03/20 is for PCI
-> > config space.  I'm confused because I thought we wanted the same
-> > non-posted mapping for both, but looks like they're different.
-> > 
-> > Patch 02/20 uses ioremap_page_range(..., pgprot_noncached(PAGE_KERNEL))
-> > to map PCI I/O port space:
-> > 
-> >   #define pgprot_noncached(prot) \
-> >           __pgprot_modify(prot, PTE_ATTRINDX_MASK, PTE_ATTRINDX(MT_DEVICE_nGnRnE) | PTE_PXN | PTE_UXN)
-> > 
-> > Patch 03/20 uses ioremap_nocache() to map PCI config space:
-> > 
-> >   #define ioremap_nocache(addr, size)     __ioremap((addr), (size), __pgprot(PROT_DEVICE_nGnRE))
-> > 
-> > So the I/O port mapping uses MT_DEVICE_nGnRnE, while the config space
-> > mapping uses PROT_DEVICE_nGnRE, which looks different.
-> 
-> On ARM64 (PATCH 4) and ARM (PATCH 5) we override pci_remap_cfgspace()
-> with implementations that provide non-posted writes bus attributes,
-> PATCH 3 is just there to provide a "safe" (well, I need input on that)
-> fall-back.
+> Implement an ARM specific pci_remap_cfgspace() interface that allows to
+> map PCI config memory regions with MT_UNCACHED memory type (ie strongly
+> ordered - non-posted writes), providing a remap function that complies
+> with PCI specifications for config space transactions.
 
-Ah, thanks, that makes sense to me finally!  After patch 4,
-pci_remap_cfgspace() uses PROT_DEVICE_nGnRnE, which does look like the
-MT_DEVICE_nGnRnE used in the ioremap_page_range() path.
+Doesn't this have the side effect that configuration writes can bypass
+writes to device memory if there isn't an intervening dsb?  (They
+probably can do on some CPUs today anyway.)
 
-I wonder if we can get rid of pgprot_device() altogether?  Patch 2
-removed the use in pci_remap_iospace(), and patch 18 removes the use
-in tegra_pcie_bus_alloc().
+So, in any case, this looks like an improvement:
 
-Bjorn
+Acked-by: Russell King <rmk+kernel@armlinux.org.uk>
+
+Thanks.
+
+-- 
+RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
+FTTC broadband for 0.8mile line: currently at 9.6Mbps down 400kbps up
+according to speedtest.net.
