@@ -1,12 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:51778 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.136]:51928 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932144AbdCTSms (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 20 Mar 2017 14:42:48 -0400
-Subject: [PATCH v2 0/4] ioremap() tidy-up
+        id S932627AbdCTSnJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 20 Mar 2017 14:43:09 -0400
+Subject: [PATCH v2 3/4] asm-generic/io.h: Simplify ioremap() comments
 From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Mon, 20 Mar 2017 13:42:39 -0500
-Message-ID: <20170320182014.4858.22352.stgit@bhelgaas-glaptop.roam.corp.google.com>
+Date: Mon, 20 Mar 2017 13:43:00 -0500
+Message-ID: <20170320184300.4858.47081.stgit@bhelgaas-glaptop.roam.corp.google.com>
+In-Reply-To: <20170320182014.4858.22352.stgit@bhelgaas-glaptop.roam.corp.google.com>
+References: <20170320182014.4858.22352.stgit@bhelgaas-glaptop.roam.corp.google.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
@@ -14,35 +16,67 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
 Cc: linux-arch@vger.kernel.org, linux-pci@vger.kernel.org, "Luis R. Rodriguez" <mcgrof@kernel.org>, linux-kernel@vger.kernel.org
-Message-ID: <20170320184239.Z-wEgv0_PPVTJXgobmeoh91d0WV2am0Pf7TNhi3j-Bs@z>
+Message-ID: <20170320184300.92PvfPkBLM6OoXTWMg34r3FvvuWluCLNHLwcifvsdDs@z>
 
-Fix some typos, remove unused code, simplify comments.
+Simplify ioremap() comments to make it clear that arches with an MMU *must*
+implement ioremap() and iounmap(), and that the default implementations
+only apply to non-MMU arches.  It's obvious how to override the defaults;
+no need to educate people here.  Remove the ancient "struct page" comment
+that doesn't seem related to anything here.
 
-I added patch 4 to remove the default ioremap_uc() implementation on MMU
-systems.
-
-I hesitated about this because it basically reverts 8c7ea50c010b ("x86/mm,
-asm-generic: Add IOMMU ioremap_uc() variant default"), and I'm worried that
-I'm missing the real value of having that default implementation.  So this
-is just a proposal; if it makes no sense, I'll drop patch 4 again.
-
-As far as I can tell, having the default ioremap_uc() implementation means
-we can *build* drivers that use it, but those drivers won't actually work.
-It seems preferable to me to have those be build-time failures rather than
-run-time failures, but if I'm missing something, let me know.
-
-Change from v1 to v2:
-  - Add Arnd's Reviewed-by on patches 1-3.
-  - Add patch 4 to remove ioremap_uc() stub.
-
+Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
+Reviewed-by: Arnd Bergmann <arnd@arndb.de>
 ---
+ include/asm-generic/io.h |   24 +++++++-----------------
+ 1 file changed, 7 insertions(+), 17 deletions(-)
 
-Bjorn Helgaas (4):
-      asm-generic/io.h: Fix "IOMMU" typos
-      asm-generic/io.h: Remove unused generic __ioremap() definition
-      asm-generic/io.h: Simplify ioremap() comments
-      asm-generic/io.h: Drop ioremap_uc() stub for systems with MMU
-
-
- include/asm-generic/io.h |   49 ++++++++--------------------------------------
- 1 file changed, 8 insertions(+), 41 deletions(-)
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+index e0a331a22346..3f8a7e589071 100644
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -780,8 +780,7 @@ static inline void pci_iounmap(struct pci_dev *dev, void __iomem *p)
+ #endif /* CONFIG_GENERIC_IOMAP */
+ 
+ /*
+- * Change virtual addresses to physical addresses and vv.
+- * These are pretty trivial
++ * Change virtual addresses to physical addresses and vice versa.
+  */
+ #ifndef virt_to_phys
+ #define virt_to_phys virt_to_phys
+@@ -802,18 +801,11 @@ static inline void *phys_to_virt(unsigned long address)
+ /**
+  * DOC: ioremap() and ioremap_*() variants
+  *
+- * If you have an MMU your architecture is expected to have both ioremap()
+- * and iounmap() implemented otherwise the asm-generic helpers will provide a
+- * direct mapping.
++ * If you have an MMU, your architecture must implement both ioremap() and
++ * iounmap().
+  *
+- * There are ioremap_*() call variants, if you have no MMU we naturally will
+- * default to direct mapping for all of them, you can override these defaults.
+- * If you have an MMU you are highly encouraged to provide your own
+- * ioremap variant implementation as there currently is no safe architecture
+- * agnostic default. To avoid possible improper behaviour default asm-generic
+- * ioremap_*() variants all return NULL when an MMU is available. If you've
+- * defined your own ioremap_*() variant you must then declare your own
+- * ioremap_*() variant as defined to itself to avoid the default NULL return.
++ * It must also implement variants such as ioremap_uc().  The default
++ * implementation here returns failure (NULL) to avoid improper behavior.
+  */
+ 
+ #ifdef CONFIG_MMU
+@@ -829,10 +821,8 @@ static inline void __iomem *ioremap_uc(phys_addr_t offset, size_t size)
+ #else /* !CONFIG_MMU */
+ 
+ /*
+- * Change "struct page" to physical address.
+- *
+- * This implementation is for the no-MMU case only... if you have an MMU
+- * you'll need to provide your own definitions.
++ * If you don't have an MMU, the default implementations here provide
++ * direct identity mapping.  You can override these if necessary.
+  */
+ 
+ #ifndef ioremap
