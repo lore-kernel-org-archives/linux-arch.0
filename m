@@ -1,43 +1,52 @@
 From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: [PATCH v2 0/4] ioremap() tidy-up
-Date: Mon, 20 Mar 2017 13:42:39 -0500
-Message-ID: <20170320182014.4858.22352.stgit@bhelgaas-glaptop.roam.corp.google.com>
+Subject: [PATCH v2 2/4] asm-generic/io.h: Remove unused generic __ioremap()
+ definition
+Date: Mon, 20 Mar 2017 13:42:53 -0500
+Message-ID: <20170320184253.4858.12956.stgit@bhelgaas-glaptop.roam.corp.google.com>
+References: <20170320182014.4858.22352.stgit@bhelgaas-glaptop.roam.corp.google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-pci-owner@vger.kernel.org>
+In-Reply-To: <20170320182014.4858.22352.stgit@bhelgaas-glaptop.roam.corp.google.com>
 Sender: linux-pci-owner@vger.kernel.org
 To: Arnd Bergmann <arnd@arndb.de>
 Cc: linux-arch@vger.kernel.org, linux-pci@vger.kernel.org, "Luis R. Rodriguez" <mcgrof@kernel.org>, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Fix some typos, remove unused code, simplify comments.
+Several arches use __ioremap() to help implement the generic ioremap(),
+ioremap_nocache(), and ioremap_wc() interfaces, but this usage is all
+inside the arch/ directory.
 
-I added patch 4 to remove the default ioremap_uc() implementation on MMU
-systems.
+The only __ioremap() uses outside arch/ are in the ZorroII RAM disk driver
+and some framebuffer drivers that are only buildable on m68k and powerpc,
+and they use the versions provided by those arches.
 
-I hesitated about this because it basically reverts 8c7ea50c010b ("x86/mm,
-asm-generic: Add IOMMU ioremap_uc() variant default"), and I'm worried that
-I'm missing the real value of having that default implementation.  So this
-is just a proposal; if it makes no sense, I'll drop patch 4 again.
+There's no need for a generic version of __ioremap(), so remove it.
 
-As far as I can tell, having the default ioremap_uc() implementation means
-we can *build* drivers that use it, but those drivers won't actually work.
-It seems preferable to me to have those be build-time failures rather than
-run-time failures, but if I'm missing something, let me know.
-
-Change from v1 to v2:
-  - Add Arnd's Reviewed-by on patches 1-3.
-  - Add patch 4 to remove ioremap_uc() stub.
-
+Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
+Reviewed-by: Arnd Bergmann <arnd@arndb.de>
 ---
+ include/asm-generic/io.h |    9 ---------
+ 1 file changed, 9 deletions(-)
 
-Bjorn Helgaas (4):
-      asm-generic/io.h: Fix "IOMMU" typos
-      asm-generic/io.h: Remove unused generic __ioremap() definition
-      asm-generic/io.h: Simplify ioremap() comments
-      asm-generic/io.h: Drop ioremap_uc() stub for systems with MMU
-
-
- include/asm-generic/io.h |   49 ++++++++--------------------------------------
- 1 file changed, 8 insertions(+), 41 deletions(-)
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+index 978d2e27ce1d..e0a331a22346 100644
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -843,15 +843,6 @@ static inline void __iomem *ioremap(phys_addr_t offset, size_t size)
+ }
+ #endif
+ 
+-#ifndef __ioremap
+-#define __ioremap __ioremap
+-static inline void __iomem *__ioremap(phys_addr_t offset, size_t size,
+-				      unsigned long flags)
+-{
+-	return ioremap(offset, size);
+-}
+-#endif
+-
+ #ifndef ioremap_nocache
+ #define ioremap_nocache ioremap_nocache
+ static inline void __iomem *ioremap_nocache(phys_addr_t offset, size_t size)
