@@ -1,44 +1,43 @@
-From: Matthew Wilcox <willy@infradead.org>
-Subject: Re: [PATCH 26/26] x86/mm: allow to have userspace mappings above
- 47-bits
-Date: Mon, 20 Mar 2017 11:38:54 -0700
-Message-ID: <20170320183854.GB22036@bombadil.infradead.org>
-References: <20170313055020.69655-1-kirill.shutemov@linux.intel.com>
- <20170313055020.69655-27-kirill.shutemov@linux.intel.com>
- <87a88jg571.fsf@skywalker.in.ibm.com>
- <20170317175714.3bvpdylaaudf4ig2@node.shutemov.name>
- <877f3lfzdo.fsf@skywalker.in.ibm.com>
- <CAFZ8GQx2JmEECQHEsKOymP8nDv9YHfLgcK80R75gM+r-1q-owQ@mail.gmail.com>
- <95631D05-2CA2-4967-A29E-DB396C76F62D@zytor.com>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Subject: [PATCH v2 0/4] ioremap() tidy-up
+Date: Mon, 20 Mar 2017 13:42:39 -0500
+Message-ID: <20170320182014.4858.22352.stgit@bhelgaas-glaptop.roam.corp.google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <95631D05-2CA2-4967-A29E-DB396C76F62D@zytor.com>
-Sender: owner-linux-mm@kvack.org
-To: hpa@zytor.com
-Cc: "Kirill A. Shutemov" <kirill@shutemov.name>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Michal Hocko <mhocko@suse.com>, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Dave Hansen <dave.hansen@intel.com>, linux-mm@kvack.org, x86@kernel.org, Andi Kleen <ak@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-pci-owner@vger.kernel.org>
+Sender: linux-pci-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-pci@vger.kernel.org, "Luis R. Rodriguez" <mcgrof@kernel.org>, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Mar 20, 2017 at 11:08:41AM -0700, hpa@zytor.com wrote:
-> On March 19, 2017 1:26:58 AM PDT, "Kirill A. Shutemov" <kirill@shutemov.name> wrote:
-> >On Mar 19, 2017 09:25, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com> wrote:
-> > > What is the epectation when the hint addr is below 128TB but addr + len
-> > > 128TB ? Should such mmap request fail ?
-> >
-> >Yes, I believe so.
-> 
-> This *better* be conditional on some kind of settable limit.  Having a
-> barrier in the middle of the address space for no apparent reason to
-> "clean" software is insane.
+Fix some typos, remove unused code, simplify comments.
 
-I disagree with Kirill here.  If addr+len > 128TB, I think we should
-assume the application is 57-bit aware.
+I added patch 4 to remove the default ioremap_uc() implementation on MMU
+systems.
 
-Specifying hint addresses is such a rare thing to do anyway.
+I hesitated about this because it basically reverts 8c7ea50c010b ("x86/mm,
+asm-generic: Add IOMMU ioremap_uc() variant default"), and I'm worried that
+I'm missing the real value of having that default implementation.  So this
+is just a proposal; if it makes no sense, I'll drop patch 4 again.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+As far as I can tell, having the default ioremap_uc() implementation means
+we can *build* drivers that use it, but those drivers won't actually work.
+It seems preferable to me to have those be build-time failures rather than
+run-time failures, but if I'm missing something, let me know.
+
+Change from v1 to v2:
+  - Add Arnd's Reviewed-by on patches 1-3.
+  - Add patch 4 to remove ioremap_uc() stub.
+
+---
+
+Bjorn Helgaas (4):
+      asm-generic/io.h: Fix "IOMMU" typos
+      asm-generic/io.h: Remove unused generic __ioremap() definition
+      asm-generic/io.h: Simplify ioremap() comments
+      asm-generic/io.h: Drop ioremap_uc() stub for systems with MMU
+
+
+ include/asm-generic/io.h |   49 ++++++++--------------------------------------
+ 1 file changed, 8 insertions(+), 41 deletions(-)
