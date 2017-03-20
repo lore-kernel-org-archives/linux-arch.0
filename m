@@ -1,57 +1,31 @@
-From: Russell King - ARM Linux <linux@armlinux.org.uk>
-Subject: Re: [PATCH 05/20] ARM: implement pci_remap_cfgspace() interface
-Date: Mon, 20 Mar 2017 16:43:55 +0000
-Message-ID: <20170320164354.GQ21222@n2100.armlinux.org.uk>
-References: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
- <20170227151436.18698-6-lorenzo.pieralisi@arm.com>
+From: Bartlomiej Zolnierkiewicz <b.zolnierkie@samsung.com>
+Subject: Re: [PATCHv3 15/16] video: vermilion: Use set_memory.h header
+Date: Mon, 20 Mar 2017 18:20:33 +0100
+Message-ID: <2793672.rAfjMbnPi9@amdc3058>
+References: <1488920133-27229-1-git-send-email-labbott@redhat.com>
+ <CGME20170307205649epcas3p416380b3e38150b3532dcf1742aad56ae@epcas3p4.samsung.com>
+ <1488920133-27229-16-git-send-email-labbott@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-Content-Disposition: inline
-In-Reply-To: <20170227151436.18698-6-lorenzo.pieralisi@arm.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Cc: Wenrui Li <wenrui.li@rock-chips.com>, Gabriele Paoloni <gabriele.paoloni@huawei.com>, linux-pci@vger.kernel.org, Shawn Lin <shawn.lin@rock-chips.com>, Will Deacon <will.deacon@arm.com>, Thierry Reding <thierry.reding@gmail.com>, Tanmay Inamdar <tinamdar@apm.com>, linux-arch@vger.kernel.org, Joao Pinto <Joao.Pinto@synopsys.com>, Pratyush Anand <pratyush.anand@gmail.com>, Michal Simek <michal.simek@xilinx.com>, Jon Mason <jonmason@broadcom.com>, Murali Karicheri <m-karicheri2@ti.com>, Catalin Marinas <catalin.marinas@arm.com>, Arnd Bergmann <arnd@arndb.de>, Bharat Kumar Gogada <bharat.kumar.gogada@xilinx.com>, Ray Jui <rjui@broadcom.com>, John Garry <john.garry@huawei.com>, Bjorn Helgaas <bhelgaas@google.com>, Mingkai Hu <mingkai.hu@freescale.com>, linux-arm-kernel@lists.infradead.org, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Jingoo Han <jingoohan1@gmail.co>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mailout2.samsung.com ([203.254.224.25]:42068 "EHLO
+        mailout2.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753223AbdCTRUk (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 Mar 2017 13:20:40 -0400
+In-reply-to: <1488920133-27229-16-git-send-email-labbott@redhat.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Laura Abbott <labbott@redhat.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Kees Cook <keescook@chromium.org>, Mark Rutland <mark.rutland@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, David Airlie <airlied@linux.ie>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Wim Van Sebroeck <wim@iguana.be>, Guenter Roeck <linux@roeck-us.net>
 
-On Mon, Feb 27, 2017 at 03:14:16PM +0000, Lorenzo Pieralisi wrote:
-> The PCI bus specifications (rev 3.0, 3.2.5 "Transaction Ordering
-> and Posting") define rules for PCI configuration space transactions
-> ordering and posting, that state that configuration writes have to
-> be non-posted transactions.
+On Tuesday, March 07, 2017 12:55:32 PM Laura Abbott wrote:
 > 
-> Current ioremap interface on ARM provides mapping functions that
-> provide "bufferable" writes transactions (ie ioremap uses MT_DEVICE
-> memory type) aka posted writes, so PCI host controller drivers have
-> no arch interface to remap PCI configuration space with memory
-> attributes that comply with the PCI specifications for configuration
-> space.
+> set_memory_* functions have moved to set_memory.h. Switch to this
+> explicitly.
 > 
-> Implement an ARM specific pci_remap_cfgspace() interface that allows to
-> map PCI config memory regions with MT_UNCACHED memory type (ie strongly
-> ordered - non-posted writes), providing a remap function that complies
-> with PCI specifications for config space transactions.
+> Signed-off-by: Laura Abbott <labbott@redhat.com>
 
-Doesn't this have the side effect that configuration writes can bypass
-writes to device memory if there isn't an intervening dsb?  (They
-probably can do on some CPUs today anyway.)
+Acked-by: Bartlomiej Zolnierkiewicz <b.zolnierkie@samsung.com>
 
-So, in any case, this looks like an improvement:
-
-Acked-by: Russell King <rmk+kernel@armlinux.org.uk>
-
-Thanks.
-
--- 
-RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
-FTTC broadband for 0.8mile line: currently at 9.6Mbps down 400kbps up
-according to speedtest.net.
+Best regards,
