@@ -1,68 +1,77 @@
-From: Andrey Ryabinin <aryabinin@virtuozzo.com>
-Subject: Re: [PATCH 4/6] x86/kasan: Prepare clear_pgds() to switch to
- <asm-generic/pgtable-nop4d.h>
-Date: Mon, 20 Mar 2017 19:21:20 +0300
-Message-ID: <218853b4-3498-dab9-d1e9-02caed4d9322@virtuozzo.com>
-References: <20170317185515.8636-1-kirill.shutemov@linux.intel.com>
- <20170317185515.8636-5-kirill.shutemov@linux.intel.com>
+From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+Subject: Re: [PATCH 02/20] PCI: fix pci_remap_iospace() remap attribute
+Date: Mon, 20 Mar 2017 16:26:27 +0000
+Message-ID: <20170320162627.GE7632@red-moon>
+References: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
+ <20170227151436.18698-3-lorenzo.pieralisi@arm.com>
+ <20170316214844.GA17769@bhelgaas-glaptop.roam.corp.google.com>
+ <20170317003321.GB28800@wotan.suse.de>
+ <20170320160636.GB24572@bhelgaas-glaptop.roam.corp.google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="windows-1252"
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20170317185515.8636-5-kirill.shutemov@linux.intel.com>
-Sender: owner-linux-mm@kvack.org
-To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, Michal Hocko <mhocko@suse.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Dmitry Vyukov <dvyukov@google.com>
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Disposition: inline
+In-Reply-To: <20170320160636.GB24572@bhelgaas-glaptop.roam.corp.google.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Bjorn Helgaas <helgaas@kernel.org>
+Cc: Wenrui Li <wenrui.li@rock-chips.com>, Gabriele Paoloni <gabriele.paoloni@huawei.com>, linux-pci@vger.kernel.org, Shawn Lin <shawn.lin@rock-chips.com>, Liviu Dudau <Liviu.Dudau@arm.com>, Russell King <linux@armlinux.org.uk>, Thierry Reding <thierry.reding@gmail.com>, Tanmay Inamdar <tinamdar@apm.com>, Zhou Wang <wangzhou1@hisilicon.com>, linux-arch@vger.kernel.org, Joao Pinto <Joao.Pinto@synopsys.com>, Pratyush Anand <pratyush.anand@gmail.com>, Michal Simek <michal.simek@xilinx.com>, Will Deacon <will.deacon@arm.com>, Bharat Kumar Gogada <bharat.kumar.gogada@xilinx.com>, Murali Karicheri <m-karicheri2@ti.com>, Catalin Marinas <catalin.marinas@arm.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Arnd Bergmann <arnd@arndb.de>, Jon Mason <jonmason@broadcom.com>, Ray Jui <rjui@broadcom.com>, John Garry <john.garry@huawei.com>, Bjorn Helgaas <bhelgaas@google.com>, Ming
 List-Id: linux-arch.vger.kernel.org
 
+On Mon, Mar 20, 2017 at 11:06:36AM -0500, Bjorn Helgaas wrote:
 
+[...]
 
-On 03/17/2017 09:55 PM, Kirill A. Shutemov wrote:
-> With folded p4d, pgd_clear() is nop. Change clear_pgds() to use
-> p4d_clear() instead.
+> > > > @@ -3375,7 +3375,7 @@ int pci_remap_iospace(const struct resource *res, phys_addr_t phys_addr)
+> > > >  		return -EINVAL;
+> > > >  
+> > > >  	return ioremap_page_range(vaddr, vaddr + resource_size(res), phys_addr,
+> > > > -				  pgprot_device(PAGE_KERNEL));
+> > > > +				  pgprot_noncached(PAGE_KERNEL));
+> > > 
+> > > ...
+> > > I do find this puzzling because I naively expected pgprot_noncached()
+> > > to match up with ioremap_nocache(), and apparently it doesn't.
+> > > 
+> > > For example, ARM64 ioremap_nocache() uses PROT_DEVICE_nGnRE, which
+> > > doesn't match the MT_DEVICE_nGnRnE in pgprot_noncached().
+> > > 
+> > > The point of these patches is to use non-posted mappings.  Apparently
+> > > you can do that with pgprot_noncached() here, but ioremap_nocache()
+> > > isn't enough for the config space mappings?
+> > 
+> > This is for iospace it seems, so the other patch I think was for
+> > config space.
 > 
-
-You could probably just use set_pgd(pgd_offset_k(start), __pgd(0)); instead of pgd_clear()
-as we already do in arm64.
-It's basically pgd_clear() except it's not a nop wih p4d folded.
-
-
-> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-> Cc: Dmitry Vyukov <dvyukov@google.com>
-> ---
->  arch/x86/mm/kasan_init_64.c | 15 +++++++++++++--
->  1 file changed, 13 insertions(+), 2 deletions(-)
+> I understand that 02/20 is for PCI I/O port space and 03/20 is for PCI
+> config space.  I'm confused because I thought we wanted the same
+> non-posted mapping for both, but looks like they're different.
 > 
-> diff --git a/arch/x86/mm/kasan_init_64.c b/arch/x86/mm/kasan_init_64.c
-> index 0a56059a95c7..b775ffd7989d 100644
-> --- a/arch/x86/mm/kasan_init_64.c
-> +++ b/arch/x86/mm/kasan_init_64.c
-> @@ -35,8 +35,19 @@ static int __init map_range(struct range *range)
->  static void __init clear_pgds(unsigned long start,
->  			unsigned long end)
->  {
-> -	for (; start < end; start += PGDIR_SIZE)
-> -		pgd_clear(pgd_offset_k(start));
-> +	pgd_t *pgd;
-> +
-> +	for (; start < end; start += PGDIR_SIZE) {
-> +		pgd = pgd_offset_k(start);
-> +		/*
-> +		 * With folded p4d, pgd_clear() is nop, use p4d_clear()
-> +		 * instead.
-> +		 */
-> +		if (CONFIG_PGTABLE_LEVELS < 5)
-> +			p4d_clear(p4d_offset(pgd, start));
-> +		else
-> +			pgd_clear(pgd);
-> +	}
->  }
->  
->  static void __init kasan_map_early_shadow(pgd_t *pgd)
+> Patch 02/20 uses ioremap_page_range(..., pgprot_noncached(PAGE_KERNEL))
+> to map PCI I/O port space:
 > 
+>   #define pgprot_noncached(prot) \
+>           __pgprot_modify(prot, PTE_ATTRINDX_MASK, PTE_ATTRINDX(MT_DEVICE_nGnRnE) | PTE_PXN | PTE_UXN)
+> 
+> Patch 03/20 uses ioremap_nocache() to map PCI config space:
+> 
+>   #define ioremap_nocache(addr, size)     __ioremap((addr), (size), __pgprot(PROT_DEVICE_nGnRE))
+> 
+> So the I/O port mapping uses MT_DEVICE_nGnRnE, while the config space
+> mapping uses PROT_DEVICE_nGnRE, which looks different.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+On ARM64 (PATCH 4) and ARM (PATCH 5) we override pci_remap_cfgspace()
+with implementations that provide non-posted writes bus attributes,
+PATCH 3 is just there to provide a "safe" (well, I need input on that)
+fall-back.
+
+Thanks,
+Lorenzo
