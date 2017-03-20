@@ -1,55 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:51808 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753084AbdCTSmu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 20 Mar 2017 14:42:50 -0400
-Subject: [PATCH v2 1/4] asm-generic/io.h: Fix "IOMMU" typos
-From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Mon, 20 Mar 2017 13:42:46 -0500
-Message-ID: <20170320184246.4858.15836.stgit@bhelgaas-glaptop.roam.corp.google.com>
-In-Reply-To: <20170320182014.4858.22352.stgit@bhelgaas-glaptop.roam.corp.google.com>
-References: <20170320182014.4858.22352.stgit@bhelgaas-glaptop.roam.corp.google.com>
+Received: from bombadil.infradead.org ([65.50.211.133]:51720 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1755908AbdCTSlQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 Mar 2017 14:41:16 -0400
+Date: Mon, 20 Mar 2017 11:38:54 -0700
+From: Matthew Wilcox <willy@infradead.org>
+Subject: Re: [PATCH 26/26] x86/mm: allow to have userspace mappings above
+ 47-bits
+Message-ID: <20170320183854.GB22036@bombadil.infradead.org>
+References: <20170313055020.69655-1-kirill.shutemov@linux.intel.com>
+ <20170313055020.69655-27-kirill.shutemov@linux.intel.com>
+ <87a88jg571.fsf@skywalker.in.ibm.com>
+ <20170317175714.3bvpdylaaudf4ig2@node.shutemov.name>
+ <877f3lfzdo.fsf@skywalker.in.ibm.com>
+ <CAFZ8GQx2JmEECQHEsKOymP8nDv9YHfLgcK80R75gM+r-1q-owQ@mail.gmail.com>
+ <95631D05-2CA2-4967-A29E-DB396C76F62D@zytor.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <95631D05-2CA2-4967-A29E-DB396C76F62D@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-pci@vger.kernel.org, "Luis R. Rodriguez" <mcgrof@kernel.org>, linux-kernel@vger.kernel.org
-Message-ID: <20170320184246.MXkmT6ejbwAwYxVgIVq9g-luMWhboOS4unb6L7dpAD4@z>
+To: hpa@zytor.com
+Cc: "Kirill A. Shutemov" <kirill@shutemov.name>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Michal Hocko <mhocko@suse.com>, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Dave Hansen <dave.hansen@intel.com>, linux-mm@kvack.org, x86@kernel.org, Andi Kleen <ak@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>
+Message-ID: <20170320183854.VHFr7wUs6OhFKn_ukpSedg6BAxuP565oeIbjCXoUSrk@z>
 
-The ioremap() block comment refers to "IOMMU" when it means "MMU".  Fix
-these typos to avoid confusion.
+On Mon, Mar 20, 2017 at 11:08:41AM -0700, hpa@zytor.com wrote:
+> On March 19, 2017 1:26:58 AM PDT, "Kirill A. Shutemov" <kirill@shutemov.name> wrote:
+> >On Mar 19, 2017 09:25, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com> wrote:
+> > > What is the epectation when the hint addr is below 128TB but addr + len
+> > > 128TB ? Should such mmap request fail ?
+> >
+> >Yes, I believe so.
+> 
+> This *better* be conditional on some kind of settable limit.  Having a
+> barrier in the middle of the address space for no apparent reason to
+> "clean" software is insane.
 
-Fixes: 8c7ea50c010b ("x86/mm, asm-generic: Add IOMMU ioremap_uc() variant default")
-Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
-Reviewed-by: Arnd Bergmann <arnd@arndb.de>
----
- include/asm-generic/io.h |    8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+I disagree with Kirill here.  If addr+len > 128TB, I think we should
+assume the application is 57-bit aware.
 
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index 7ef015eb3403..978d2e27ce1d 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -802,16 +802,16 @@ static inline void *phys_to_virt(unsigned long address)
- /**
-  * DOC: ioremap() and ioremap_*() variants
-  *
-- * If you have an IOMMU your architecture is expected to have both ioremap()
-+ * If you have an MMU your architecture is expected to have both ioremap()
-  * and iounmap() implemented otherwise the asm-generic helpers will provide a
-  * direct mapping.
-  *
-- * There are ioremap_*() call variants, if you have no IOMMU we naturally will
-+ * There are ioremap_*() call variants, if you have no MMU we naturally will
-  * default to direct mapping for all of them, you can override these defaults.
-- * If you have an IOMMU you are highly encouraged to provide your own
-+ * If you have an MMU you are highly encouraged to provide your own
-  * ioremap variant implementation as there currently is no safe architecture
-  * agnostic default. To avoid possible improper behaviour default asm-generic
-- * ioremap_*() variants all return NULL when an IOMMU is available. If you've
-+ * ioremap_*() variants all return NULL when an MMU is available. If you've
-  * defined your own ioremap_*() variant you must then declare your own
-  * ioremap_*() variant as defined to itself to avoid the default NULL return.
-  */
+Specifying hint addresses is such a rare thing to do anyway.
