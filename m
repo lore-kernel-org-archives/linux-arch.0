@@ -1,13 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:51872 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.136]:51808 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932523AbdCTSnC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 20 Mar 2017 14:43:02 -0400
-Subject: [PATCH v2 2/4] asm-generic/io.h: Remove unused generic __ioremap()
- definition
+        id S1753084AbdCTSmu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 20 Mar 2017 14:42:50 -0400
+Subject: [PATCH v2 1/4] asm-generic/io.h: Fix "IOMMU" typos
 From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Mon, 20 Mar 2017 13:42:53 -0500
-Message-ID: <20170320184253.4858.12956.stgit@bhelgaas-glaptop.roam.corp.google.com>
+Date: Mon, 20 Mar 2017 13:42:46 -0500
+Message-ID: <20170320184246.4858.15836.stgit@bhelgaas-glaptop.roam.corp.google.com>
 In-Reply-To: <20170320182014.4858.22352.stgit@bhelgaas-glaptop.roam.corp.google.com>
 References: <20170320182014.4858.22352.stgit@bhelgaas-glaptop.roam.corp.google.com>
 MIME-Version: 1.0
@@ -17,41 +16,40 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
 Cc: linux-arch@vger.kernel.org, linux-pci@vger.kernel.org, "Luis R. Rodriguez" <mcgrof@kernel.org>, linux-kernel@vger.kernel.org
-Message-ID: <20170320184253.UYBeDsBFa2Al1nQzaxGG2T5fQYUXcVV_kJroGxsaXwU@z>
+Message-ID: <20170320184246.MXkmT6ejbwAwYxVgIVq9g-luMWhboOS4unb6L7dpAD4@z>
 
-Several arches use __ioremap() to help implement the generic ioremap(),
-ioremap_nocache(), and ioremap_wc() interfaces, but this usage is all
-inside the arch/ directory.
+The ioremap() block comment refers to "IOMMU" when it means "MMU".  Fix
+these typos to avoid confusion.
 
-The only __ioremap() uses outside arch/ are in the ZorroII RAM disk driver
-and some framebuffer drivers that are only buildable on m68k and powerpc,
-and they use the versions provided by those arches.
-
-There's no need for a generic version of __ioremap(), so remove it.
-
+Fixes: 8c7ea50c010b ("x86/mm, asm-generic: Add IOMMU ioremap_uc() variant default")
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 Reviewed-by: Arnd Bergmann <arnd@arndb.de>
 ---
- include/asm-generic/io.h |    9 ---------
- 1 file changed, 9 deletions(-)
+ include/asm-generic/io.h |    8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
 diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index 978d2e27ce1d..e0a331a22346 100644
+index 7ef015eb3403..978d2e27ce1d 100644
 --- a/include/asm-generic/io.h
 +++ b/include/asm-generic/io.h
-@@ -843,15 +843,6 @@ static inline void __iomem *ioremap(phys_addr_t offset, size_t size)
- }
- #endif
- 
--#ifndef __ioremap
--#define __ioremap __ioremap
--static inline void __iomem *__ioremap(phys_addr_t offset, size_t size,
--				      unsigned long flags)
--{
--	return ioremap(offset, size);
--}
--#endif
--
- #ifndef ioremap_nocache
- #define ioremap_nocache ioremap_nocache
- static inline void __iomem *ioremap_nocache(phys_addr_t offset, size_t size)
+@@ -802,16 +802,16 @@ static inline void *phys_to_virt(unsigned long address)
+ /**
+  * DOC: ioremap() and ioremap_*() variants
+  *
+- * If you have an IOMMU your architecture is expected to have both ioremap()
++ * If you have an MMU your architecture is expected to have both ioremap()
+  * and iounmap() implemented otherwise the asm-generic helpers will provide a
+  * direct mapping.
+  *
+- * There are ioremap_*() call variants, if you have no IOMMU we naturally will
++ * There are ioremap_*() call variants, if you have no MMU we naturally will
+  * default to direct mapping for all of them, you can override these defaults.
+- * If you have an IOMMU you are highly encouraged to provide your own
++ * If you have an MMU you are highly encouraged to provide your own
+  * ioremap variant implementation as there currently is no safe architecture
+  * agnostic default. To avoid possible improper behaviour default asm-generic
+- * ioremap_*() variants all return NULL when an IOMMU is available. If you've
++ * ioremap_*() variants all return NULL when an MMU is available. If you've
+  * defined your own ioremap_*() variant you must then declare your own
+  * ioremap_*() variant as defined to itself to avoid the default NULL return.
+  */
