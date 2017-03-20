@@ -1,64 +1,111 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH 1/3] arm64: enable pci resource mapping using sysfs
-Date: Mon, 20 Mar 2017 10:24:04 +0000
-Message-ID: <20170320102403.GC17263@arm.com>
-References: <1489598266.86622.12.camel@infradead.org>
- <20170315175353.GA29452@leverpostej>
- <1489605496.4195.182.camel@infradead.org>
+From: John Garry <john.garry@huawei.com>
+Subject: Re: [PATCH 03/20] asm-generic/io.h: add PCI config space remap
+ interface
+Date: Mon, 20 Mar 2017 10:22:59 +0000
+Message-ID: <f7a4083d-373d-c93b-1aa4-89a967aa97fe@huawei.com>
+References: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
+ <20170227151436.18698-4-lorenzo.pieralisi@arm.com>
+ <20170316211243.GE9739@bhelgaas-glaptop.roam.corp.google.com>
+ <20170317000803.GA28800@wotan.suse.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="iso-8859-1"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-Content-Disposition: inline
-In-Reply-To: <1489605496.4195.182.camel@infradead.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: David Woodhouse <dwmw2@infradead.org>
-Cc: Mark Rutland <mark.rutland@arm.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Catalin Marinas <catalin.marinas@arm.com>
+Content-Type: text/plain; charset="windows-1252"; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20170317000803.GA28800@wotan.suse.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: "Luis R. Rodriguez" <mcgrof@kernel.org>, Bjorn Helgaas <helgaas@kernel.org>
+Cc: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Andy Lutomirski <luto@amacapital.net>, linux-pci@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>, Bjorn Helgaas <bhelgaas@google.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Pratyush Anand <pratyush.anand@gmail.com>, Jingoo Han <jingoohan1@gmail.com>, Mingkai Hu <mingkai.hu@freescale.com>, Tanmay Inamdar <tinamdar@apm.com>, Murali Karicheri <m-karicheri2@ti.com>, Bharat Kumar Gogada <bharat.kumar.gogada@xilinx.com>, Ray Jui <rjui@broadcom.com>, Wenrui Li <wenrui.li@>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Mar 15, 2017 at 07:18:16PM +0000, David Woodhouse wrote:
-> On Wed, 2017-03-15 at 17:54 +0000, Mark Rutland wrote:
-> > It's not so much "broken" as "not currently supported".
-> =
+On 17/03/2017 00:08, Luis R. Rodriguez wrote:
+> On Thu, Mar 16, 2017 at 04:12:43PM -0500, Bjorn Helgaas wrote:
+>> [+cc Luis]
+>>
+>> On Mon, Feb 27, 2017 at 03:14:14PM +0000, Lorenzo Pieralisi wrote:
+>>> The PCI specifications (Rev 3.0, 3.2.5 "Transaction Ordering and
+>>> Posting") mandate non-posted configuration transactions. As further
+>>> highlighted in the PCIe specifications (4.0 - Rev0.3, "Ordering
+>>> Considerations for the Enhanced Configuration Access Mechanism"),
+>>> through ECAM and ECAM-derivative configuration mechanism, the memory
+>>> mapped transactions from the host CPU into Configuration Requests on the
+>>> PCI express fabric may create ordering problems for software because
+>>> writes to memory address are typically posted transactions (unless the
+>>> architecture can enforce through virtual address mapping non-posted
+>>> write transactions behaviour) but writes to Configuration Space are not
+>>> posted on the PCI express fabric.
+>>>
+>>> Current DT and ACPI host bridge controllers map PCI configuration space
+>>> (ECAM and ECAM-derivative) into the virtual address space through
+>>> ioremap() calls, that are non-cacheable device accesses on most
+>>> architectures, but may provide "bufferable" or "posted" write semantics
+>>> in architecture like eg ARM/ARM64 that allow ioremap'ed regions writes
+>>> to be buffered in the bus connecting the host CPU to the PCI fabric;
+>>> this behaviour, as underlined in the PCIe specifications, may trigger
+>>> transactions ordering rules and must be prevented.
+>>>
+>>> Introduce a new generic and explicit API to create a memory
+>>> mapping for ECAM and ECAM-derivative config space area that
+>>> defaults to ioremap_nocache() (which should provide a sane default
+>>> behaviour) but still allowing architectures on which ioremap_nocache()
+>>> results in posted write transactions to override the function
+>>> call with an arch specific implementation that complies with
+>>> the PCI specifications for configuration transactions.
+>
+> So... I take it this is actually fixing a series of odd issues also,
+> do we at least have some reports or actual issues ?
+>
 
-> Yeah, I thought that when I inherited the commit, but didn't get as far
-> as rephrasing it. Will do so.
-> =
+We (Huawei) originally raised the concern [1], but have not actually 
+experienced any related issue.
 
-> > [...]
-> > =
+Thanks,
+John
 
-> > > =
+[1] 
+http://lists.infradead.org/pipermail/linux-arm-kernel/2017-January/477353.html
 
-> > > +#define HAVE_PCI_MMAP
-> > > +extern int pci_mmap_page_range(struct pci_dev *dev, struct vm_area_s=
-truct *vma,
-> > > +			=A0=A0=A0=A0=A0=A0=A0enum pci_mmap_state mmap_state, int write_co=
-mbine);
-> > > +
-> > Per the prior attempt at this [1], we only want to expose the sysfs
-> > interface, and not the legacy procfs interface, and need the two
-> > decoupled [2].
-> =
-
-> I do not like that idea. The procfs horridness is legacy, sure, but
-> it's not actually an arch-specific interface. You get to mess with
-> 'legacy' syscalls all you like on a new architecture, but there could
-> exist arch-agnostic code which uses the procfs interface, surely?
-
-Just to be clear here: I'm not against exposing the proc interface if
-something actually needs it, but all the requests we've had for this have
-been concerned only with the sysfs API. So I'd rather start with just that,
-instead of exposing both and have new software written to the proc interfac=
-e,
-which we certainly want to discourage.
-
-Will
+>>> Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+>>> Cc: Arnd Bergmann <arnd@arndb.de>
+>>> Cc: Will Deacon <will.deacon@arm.com>
+>>> Cc: Bjorn Helgaas <bhelgaas@google.com>
+>>> Cc: Russell King <linux@armlinux.org.uk>
+>>> Cc: Catalin Marinas <catalin.marinas@arm.com>
+>>> ---
+>>>  include/asm-generic/io.h | 9 +++++++++
+>>>  1 file changed, 9 insertions(+)
+>>>
+>>> diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+>>> index 7ef015e..52dda81 100644
+>>> --- a/include/asm-generic/io.h
+>>> +++ b/include/asm-generic/io.h
+>>> @@ -915,6 +915,15 @@ extern void ioport_unmap(void __iomem *p);
+>>>  #endif /* CONFIG_GENERIC_IOMAP */
+>>>  #endif /* CONFIG_HAS_IOPORT_MAP */
+>>>
+>>> +#ifndef pci_remap_cfgspace
+>>> +#define pci_remap_cfgspace pci_remap_cfgspace
+>>> +static inline void __iomem *pci_remap_cfgspace(phys_addr_t offset,
+>>> +					       size_t size)
+>>> +{
+>>> +	return ioremap_nocache(offset, size);
+>>> +}
+>>
+>> I'm fine with this conceptually, but I think it would make more sense
+>> if the name weren't specific to PCI or config space, e.g.,
+>> ioremap_nopost() or something.
+>
+> Seems reasonable to me -- but are there other buses that could use this already
+> as well ? Wouldn't these other buses also run into similar issues ? Can someone
+> also bounce me a copy of the patches that use this ?
+>
+> While at it, please add some documentation too, the above commit log is huge,
+> and yet for the person eyeballing the code they won't have any clue why this
+> was added exactly. Since this is about helping with picking the right
+> ioremap due to certain semantics / requirements on the PCI config space,
+> we should clarify then what exactly are the expectations here. The clearer
+> you are the less in trouble we can get later.
+>
+>   Luis
+>
+> .
+>
