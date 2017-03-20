@@ -1,53 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pandora.armlinux.org.uk ([78.32.30.218]:36944 "EHLO
-        pandora.armlinux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1756047AbdCTQub (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 Mar 2017 12:50:31 -0400
-Date: Mon, 20 Mar 2017 16:43:55 +0000
-From: Russell King - ARM Linux <linux@armlinux.org.uk>
-Subject: Re: [PATCH 05/20] ARM: implement pci_remap_cfgspace() interface
-Message-ID: <20170320164354.GQ21222@n2100.armlinux.org.uk>
-References: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
- <20170227151436.18698-6-lorenzo.pieralisi@arm.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20170227151436.18698-6-lorenzo.pieralisi@arm.com>
+Received: from mailout2.samsung.com ([203.254.224.25]:42068 "EHLO
+        mailout2.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753223AbdCTRUk (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 Mar 2017 13:20:40 -0400
+From: Bartlomiej Zolnierkiewicz <b.zolnierkie@samsung.com>
+Subject: Re: [PATCHv3 15/16] video: vermilion: Use set_memory.h header
+Date: Mon, 20 Mar 2017 18:20:33 +0100
+Message-ID: <2793672.rAfjMbnPi9@amdc3058>
+In-reply-to: <1488920133-27229-16-git-send-email-labbott@redhat.com>
+MIME-version: 1.0
+Content-transfer-encoding: 7Bit
+Content-type: text/plain; charset=us-ascii
+References: <1488920133-27229-1-git-send-email-labbott@redhat.com>
+ <CGME20170307205649epcas3p416380b3e38150b3532dcf1742aad56ae@epcas3p4.samsung.com>
+ <1488920133-27229-16-git-send-email-labbott@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Cc: linux-pci@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Pratyush Anand <pratyush.anand@gmail.com>, Jingoo Han <jingoohan1@gmail.com>, Bjorn Helgaas <bhelgaas@google.com>, Mingkai Hu <mingkai.hu@freescale.com>, John Garry <john.garry@huawei.com>, Tanmay Inamdar <tinamdar@apm.com>, Murali Karicheri <m-karicheri2@ti.com>, Bharat Kumar Gogada <bharat.kumar.gogada@xilinx.com>, Ray Jui <rjui@broadcom.com>, Wenrui Li <wenrui.li@rock-chips.com>, Shawn Lin <shawn.lin@rock-chips.com>, Minghuan Lian <minghuan.Lian@freescale.com>, Jon Mason <jonmason@broadcom.com>, Gabriele Paoloni <gabriele.paoloni@huawei.com>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Joao Pinto <Joao.Pinto@synopsys.com>, Thierry Reding <thierry.reding@gmail.com>, Michal Simek <michal.simek@xilinx.com>, Stanimir Varbanov <svarbanov@mm-sol.com>, Zhou Wang <wangzhou1@hisilicon.com>, Roy Zang <tie-fei.zang@freescale.com>
-Message-ID: <20170320164355.RcfAvE1dzsdRw81so1WU-DfMLltpiBgCQCTyqrfpYFk@z>
+To: Laura Abbott <labbott@redhat.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Kees Cook <keescook@chromium.org>, Mark Rutland <mark.rutland@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, David Airlie <airlied@linux.ie>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Wim Van Sebroeck <wim@iguana.be>, Guenter Roeck <linux@roeck-us.net>, linux-watchdog@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, Daniel Borkmann <daniel@iogearbox.net>, Jessica Yu <jeyu@redhat.com>, Takashi Iwai <tiwai@suse.com>, linux-fbdev@vger.kernel.org
+Message-ID: <20170320172033.dykE3s-2a5k6WGMDDP-QfpdTEvjKiwOuvo4oCbjrcO8@z>
 
-On Mon, Feb 27, 2017 at 03:14:16PM +0000, Lorenzo Pieralisi wrote:
-> The PCI bus specifications (rev 3.0, 3.2.5 "Transaction Ordering
-> and Posting") define rules for PCI configuration space transactions
-> ordering and posting, that state that configuration writes have to
-> be non-posted transactions.
+On Tuesday, March 07, 2017 12:55:32 PM Laura Abbott wrote:
 > 
-> Current ioremap interface on ARM provides mapping functions that
-> provide "bufferable" writes transactions (ie ioremap uses MT_DEVICE
-> memory type) aka posted writes, so PCI host controller drivers have
-> no arch interface to remap PCI configuration space with memory
-> attributes that comply with the PCI specifications for configuration
-> space.
+> set_memory_* functions have moved to set_memory.h. Switch to this
+> explicitly.
 > 
-> Implement an ARM specific pci_remap_cfgspace() interface that allows to
-> map PCI config memory regions with MT_UNCACHED memory type (ie strongly
-> ordered - non-posted writes), providing a remap function that complies
-> with PCI specifications for config space transactions.
+> Signed-off-by: Laura Abbott <labbott@redhat.com>
 
-Doesn't this have the side effect that configuration writes can bypass
-writes to device memory if there isn't an intervening dsb?  (They
-probably can do on some CPUs today anyway.)
+Acked-by: Bartlomiej Zolnierkiewicz <b.zolnierkie@samsung.com>
 
-So, in any case, this looks like an improvement:
-
-Acked-by: Russell King <rmk+kernel@armlinux.org.uk>
-
-Thanks.
-
--- 
-RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
-FTTC broadband for 0.8mile line: currently at 9.6Mbps down 400kbps up
-according to speedtest.net.
+Best regards,
+--
+Bartlomiej Zolnierkiewicz
+Samsung R&D Institute Poland
+Samsung Electronics
