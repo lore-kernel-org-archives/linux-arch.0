@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:51970 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.136]:51872 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932884AbdCTSnQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 20 Mar 2017 14:43:16 -0400
-Subject: [PATCH v2 4/4] asm-generic/io.h: Drop ioremap_uc() stub for systems
- with MMU
+        id S932523AbdCTSnC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 20 Mar 2017 14:43:02 -0400
+Subject: [PATCH v2 2/4] asm-generic/io.h: Remove unused generic __ioremap()
+ definition
 From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Mon, 20 Mar 2017 13:43:07 -0500
-Message-ID: <20170320184307.4858.40982.stgit@bhelgaas-glaptop.roam.corp.google.com>
+Date: Mon, 20 Mar 2017 13:42:53 -0500
+Message-ID: <20170320184253.4858.12956.stgit@bhelgaas-glaptop.roam.corp.google.com>
 In-Reply-To: <20170320182014.4858.22352.stgit@bhelgaas-glaptop.roam.corp.google.com>
 References: <20170320182014.4858.22352.stgit@bhelgaas-glaptop.roam.corp.google.com>
 MIME-Version: 1.0
@@ -17,59 +17,41 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
 Cc: linux-arch@vger.kernel.org, linux-pci@vger.kernel.org, "Luis R. Rodriguez" <mcgrof@kernel.org>, linux-kernel@vger.kernel.org
-Message-ID: <20170320184307.0-J0_ZQ3xQgqrBRq2wTcq-XOQneL1gd08EDYdRuWins@z>
+Message-ID: <20170320184253.UYBeDsBFa2Al1nQzaxGG2T5fQYUXcVV_kJroGxsaXwU@z>
 
-8c7ea50c010b ("x86/mm, asm-generic: Add IOMMU ioremap_uc() variant
-default") added a default ioremap_uc() implementation that always returns
-NULL to indicate failure.
+Several arches use __ioremap() to help implement the generic ioremap(),
+ioremap_nocache(), and ioremap_wc() interfaces, but this usage is all
+inside the arch/ directory.
 
-For arches that don't implement their own ioremap_uc(), the default
-implementation allows us to *build* drivers that use ioremap_uc(), but they
-won't work.
+The only __ioremap() uses outside arch/ are in the ZorroII RAM disk driver
+and some framebuffer drivers that are only buildable on m68k and powerpc,
+and they use the versions provided by those arches.
 
-Remove the default ioremap_uc() so a driver that depends on it will fail at
-build-time rather than at run-time.
+There's no need for a generic version of __ioremap(), so remove it.
 
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
+Reviewed-by: Arnd Bergmann <arnd@arndb.de>
 ---
- include/asm-generic/io.h |   22 ++++------------------
- 1 file changed, 4 insertions(+), 18 deletions(-)
+ include/asm-generic/io.h |    9 ---------
+ 1 file changed, 9 deletions(-)
 
 diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index 3f8a7e589071..7b0617d2d210 100644
+index 978d2e27ce1d..e0a331a22346 100644
 --- a/include/asm-generic/io.h
 +++ b/include/asm-generic/io.h
-@@ -798,29 +798,15 @@ static inline void *phys_to_virt(unsigned long address)
+@@ -843,15 +843,6 @@ static inline void __iomem *ioremap(phys_addr_t offset, size_t size)
  }
  #endif
  
-+#ifndef CONFIG_MMU
-+
- /**
-  * DOC: ioremap() and ioremap_*() variants
-  *
-  * If you have an MMU, your architecture must implement both ioremap() and
-- * iounmap().
-+ * iounmap(), as well as variants like ioremap_nocache(), ioremap_uc(),
-+ * and ioremap_wc().
-  *
-- * It must also implement variants such as ioremap_uc().  The default
-- * implementation here returns failure (NULL) to avoid improper behavior.
-- */
--
--#ifdef CONFIG_MMU
--
--#ifndef ioremap_uc
--#define ioremap_uc ioremap_uc
--static inline void __iomem *ioremap_uc(phys_addr_t offset, size_t size)
+-#ifndef __ioremap
+-#define __ioremap __ioremap
+-static inline void __iomem *__ioremap(phys_addr_t offset, size_t size,
+-				      unsigned long flags)
 -{
--	return NULL;
+-	return ioremap(offset, size);
 -}
 -#endif
 -
--#else /* !CONFIG_MMU */
--
--/*
-  * If you don't have an MMU, the default implementations here provide
-  * direct identity mapping.  You can override these if necessary.
-  */
+ #ifndef ioremap_nocache
+ #define ioremap_nocache ioremap_nocache
+ static inline void __iomem *ioremap_nocache(phys_addr_t offset, size_t size)
