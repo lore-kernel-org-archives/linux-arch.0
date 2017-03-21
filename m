@@ -1,44 +1,60 @@
-From: Russell King - ARM Linux <linux@armlinux.org.uk>
-Subject: Re: [PATCH 05/20] ARM: implement pci_remap_cfgspace() interface
-Date: Tue, 21 Mar 2017 16:53:50 +0000
-Message-ID: <20170321165349.GB21222@n2100.armlinux.org.uk>
-References: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
- <20170227151436.18698-6-lorenzo.pieralisi@arm.com>
- <20170320164354.GQ21222@n2100.armlinux.org.uk>
- <20170321152636.GA4799@red-moon>
+From: Bjorn Helgaas <helgaas@kernel.org>
+Subject: Re: [PATCH v2 2/4] asm-generic/io.h: Remove unused generic
+ __ioremap() definition
+Date: Tue, 21 Mar 2017 14:59:23 -0500
+Message-ID: <20170321195923.GC5073@bhelgaas-glaptop.roam.corp.google.com>
+References: <20170320182014.4858.22352.stgit@bhelgaas-glaptop.roam.corp.google.com>
+ <20170320184253.4858.12956.stgit@bhelgaas-glaptop.roam.corp.google.com>
+ <CAMuHMdXzCPwijpHsvgHGDYRawF5paBxi4RNYPjxA8fRKOHQb0w@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-pci-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20170321152636.GA4799@red-moon>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Cc: Wenrui Li <wenrui.li@rock-chips.com>, Gabriele Paoloni <gabriele.paoloni@huawei.com>, linux-pci@vger.kernel.org, Shawn Lin <shawn.lin@rock-chips.com>, Will Deacon <will.deacon@arm.com>, Thierry Reding <thierry.reding@gmail.com>, Tanmay Inamdar <tinamdar@apm.com>, linux-arch@vger.kernel.org, Joao Pinto <Joao.Pinto@synopsys.com>, Pratyush Anand <pratyush.anand@gmail.com>, Michal Simek <michal.simek@xilinx.com>, Jon Mason <jonmason@broadcom.com>, Murali Karicheri <m-karicheri2@ti.com>, Catalin Marinas <catalin.marinas@arm.com>, Arnd Bergmann <arnd@arndb.de>, Bharat Kumar Gogada <bharat.kumar.gogada@xilinx.com>, Ray Jui <rjui@broadcom.com>, John Garry <john.garry@huawei.com>, Bjorn Helgaas <bhelgaas@google.com>, Mingkai Hu <mingkai.hu@freescale.com>, linux-arm-kernel@lists.infradead.org, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Jingoo Han <jingoohan1@gmail.co>
+In-Reply-To: <CAMuHMdXzCPwijpHsvgHGDYRawF5paBxi4RNYPjxA8fRKOHQb0w@mail.gmail.com>
+Sender: linux-pci-owner@vger.kernel.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, Linux-Arch <linux-arch@vger.kernel.org>, linux-pci <linux-pci@vger.kernel.org>, "Luis R. Rodriguez" <mcgrof@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Mar 21, 2017 at 03:26:36PM +0000, Lorenzo Pieralisi wrote:
-> I assumed that in plain terms, the difference between MT_DEVICE and
-> MT_UNCACHED is write posting (aka bufferable) behaviour (across CPU
-> architecture versions) and that does not affect write ordering rules.
+On Tue, Mar 21, 2017 at 11:37:11AM +0100, Geert Uytterhoeven wrote:
+> Hi Björn,
+> 
+> On Mon, Mar 20, 2017 at 7:42 PM, Bjorn Helgaas <bhelgaas@google.com> wrote:
+> > Several arches use __ioremap() to help implement the generic ioremap(),
+> > ioremap_nocache(), and ioremap_wc() interfaces, but this usage is all
+> > inside the arch/ directory.
+> >
+> > The only __ioremap() uses outside arch/ are in the ZorroII RAM disk driver
+> > and some framebuffer drivers that are only buildable on m68k and powerpc,
+> > and they use the versions provided by those arches.
+> >
+> > There's no need for a generic version of __ioremap(), so remove it.
+> 
+> These all predate the ioremap_*() variants, and can be converted to
+> either ioremap_nocache() or ioremap_wt().
+> 
+> However, PPC doesn't implement ioremap_wt() yet, so asm-generic will
+> fall back to the less-efficient nocache variant.
+> PPC does support __ioremap(..., _PAGE_WRITETHRU), so adding a wrapper
+> is trivial.
 
-Having looked it up in the ARM ARM, I think we're fine.  Device and
-strongly ordered accesses are both ordered as one group, so can be
-thought of as the same.  The only difference is that Device can
-complete from the CPU's perspective before it hits the peripheral,
-whereas strongly ordered only completes once it's hit the peripheral.
+Thanks, I'll try adding ioremap_wt() (at least for PPC32) and cleaning this
+up.
 
-So this looks like exactly the right thing to do here.
-
--- 
-RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
-FTTC broadband for 0.8mile line: currently at 9.6Mbps down 400kbps up
-according to speedtest.net.
+> > Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
+> > Reviewed-by: Arnd Bergmann <arnd@arndb.de>
+> 
+> Regardless,
+> Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+> 
+> Gr{oetje,eeting}s,
+> 
+>                         Geert
+> 
+> --
+> Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+> 
+> In personal conversations with technical people, I call myself a hacker. But
+> when I'm talking to journalists I just say "programmer" or something like that.
+>                                 -- Linus Torvalds
