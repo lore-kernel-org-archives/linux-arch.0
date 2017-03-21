@@ -1,96 +1,52 @@
-From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Subject: Re: [PATCH 03/20] asm-generic/io.h: add PCI config space remap
- interface
-Date: Mon, 20 Mar 2017 18:45:27 +0000
-Message-ID: <20170320184527.GA8332@red-moon>
-References: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
- <20170227151436.18698-4-lorenzo.pieralisi@arm.com>
- <20170316211243.GE9739@bhelgaas-glaptop.roam.corp.google.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH v2 2/4] asm-generic/io.h: Remove unused generic
+ __ioremap() definition
+Date: Tue, 21 Mar 2017 11:37:11 +0100
+Message-ID: <CAMuHMdXzCPwijpHsvgHGDYRawF5paBxi4RNYPjxA8fRKOHQb0w@mail.gmail.com>
+References: <20170320182014.4858.22352.stgit@bhelgaas-glaptop.roam.corp.google.com>
+ <20170320184253.4858.12956.stgit@bhelgaas-glaptop.roam.corp.google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-pci-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20170316211243.GE9739@bhelgaas-glaptop.roam.corp.google.com>
-Sender: linux-pci-owner@vger.kernel.org
-To: Bjorn Helgaas <helgaas@kernel.org>
-Cc: linux-pci@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>, Bjorn Helgaas <bhelgaas@google.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Pratyush Anand <pratyush.anand@gmail.com>, Jingoo Han <jingoohan1@gmail.com>, Mingkai Hu <mingkai.hu@freescale.com>, John Garry <john.garry@huawei.com>, Tanmay Inamdar <tinamdar@apm.com>, Murali Karicheri <m-karicheri2@ti.com>, Bharat Kumar Gogada <bharat.kumar.gogada@xilinx.com>, Ray Jui <rjui@broadcom.com>, Wenrui Li <wenrui.li@rock-chips.com>, Shawn Lin <shawn.lin@rock-chips.com>, Minghuan Lian <minghuan.Lian@freescale.com>Jon Mason <jo>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-io0-f193.google.com ([209.85.223.193]:33121 "EHLO
+        mail-io0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1756186AbdCUKh2 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Mar 2017 06:37:28 -0400
+In-Reply-To: <20170320184253.4858.12956.stgit@bhelgaas-glaptop.roam.corp.google.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Bjorn Helgaas <bhelgaas@google.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, Linux-Arch <linux-arch@vger.kernel.org>, linux-pci <linux-pci@vger.kernel.org>, "Luis R. Rodriguez" <mcgrof@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>
 
-On Thu, Mar 16, 2017 at 04:12:43PM -0500, Bjorn Helgaas wrote:
-> [+cc Luis]
-> 
-> On Mon, Feb 27, 2017 at 03:14:14PM +0000, Lorenzo Pieralisi wrote:
-> > The PCI specifications (Rev 3.0, 3.2.5 "Transaction Ordering and
-> > Posting") mandate non-posted configuration transactions. As further
-> > highlighted in the PCIe specifications (4.0 - Rev0.3, "Ordering
-> > Considerations for the Enhanced Configuration Access Mechanism"),
-> > through ECAM and ECAM-derivative configuration mechanism, the memory
-> > mapped transactions from the host CPU into Configuration Requests on the
-> > PCI express fabric may create ordering problems for software because
-> > writes to memory address are typically posted transactions (unless the
-> > architecture can enforce through virtual address mapping non-posted
-> > write transactions behaviour) but writes to Configuration Space are not
-> > posted on the PCI express fabric.
-> > 
-> > Current DT and ACPI host bridge controllers map PCI configuration space
-> > (ECAM and ECAM-derivative) into the virtual address space through
-> > ioremap() calls, that are non-cacheable device accesses on most
-> > architectures, but may provide "bufferable" or "posted" write semantics
-> > in architecture like eg ARM/ARM64 that allow ioremap'ed regions writes
-> > to be buffered in the bus connecting the host CPU to the PCI fabric;
-> > this behaviour, as underlined in the PCIe specifications, may trigger
-> > transactions ordering rules and must be prevented.
-> > 
-> > Introduce a new generic and explicit API to create a memory
-> > mapping for ECAM and ECAM-derivative config space area that
-> > defaults to ioremap_nocache() (which should provide a sane default
-> > behaviour) but still allowing architectures on which ioremap_nocache()
-> > results in posted write transactions to override the function
-> > call with an arch specific implementation that complies with
-> > the PCI specifications for configuration transactions.
-> > 
-> > Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-> > Cc: Arnd Bergmann <arnd@arndb.de>
-> > Cc: Will Deacon <will.deacon@arm.com>
-> > Cc: Bjorn Helgaas <bhelgaas@google.com>
-> > Cc: Russell King <linux@armlinux.org.uk>
-> > Cc: Catalin Marinas <catalin.marinas@arm.com>
-> > ---
-> >  include/asm-generic/io.h | 9 +++++++++
-> >  1 file changed, 9 insertions(+)
-> > 
-> > diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-> > index 7ef015e..52dda81 100644
-> > --- a/include/asm-generic/io.h
-> > +++ b/include/asm-generic/io.h
-> > @@ -915,6 +915,15 @@ extern void ioport_unmap(void __iomem *p);
-> >  #endif /* CONFIG_GENERIC_IOMAP */
-> >  #endif /* CONFIG_HAS_IOPORT_MAP */
-> >  
-> > +#ifndef pci_remap_cfgspace
-> > +#define pci_remap_cfgspace pci_remap_cfgspace
-> > +static inline void __iomem *pci_remap_cfgspace(phys_addr_t offset,
-> > +					       size_t size)
-> > +{
-> > +	return ioremap_nocache(offset, size);
-> > +}
-> 
-> I'm fine with this conceptually, but I think it would make more sense
-> if the name weren't specific to PCI or config space, e.g.,
-> ioremap_nopost() or something.
+Hi Bj=C3=B6rn,
 
-I agree with you since there is not much PCI specific in the ioremap
-implementation we are introducing (and it may be used more by other
-subsystems too), I suspect it is all about finding a reasonable
-ioremap_ naming extension (ioremap_nowb() ?).
+On Mon, Mar 20, 2017 at 7:42 PM, Bjorn Helgaas <bhelgaas@google.com> wrote:
+> Several arches use __ioremap() to help implement the generic ioremap(),
+> ioremap_nocache(), and ioremap_wc() interfaces, but this usage is all
+> inside the arch/ directory.
+>
+> The only __ioremap() uses outside arch/ are in the ZorroII RAM disk drive=
+r
+> and some framebuffer drivers that are only buildable on m68k and powerpc,
+> and they use the versions provided by those arches.
+>
+> There's no need for a generic version of __ioremap(), so remove it.
 
-On the other hand having an explicit pci_remap_cfgspace() interface
-would simplify preventing drivers to sneak into the kernel with the
-wrong ioremap API for config space (even though when all existing
-ones are converted new drivers would just be based on existing ones
-so it should be fine).
+These all predate the ioremap_*() variants, and can be converted to
+either ioremap_nocache() or ioremap_wt().
 
-Suggestions welcome.
+However, PPC doesn't implement ioremap_wt() yet, so asm-generic will
+fall back to the less-efficient nocache variant.
+PPC does support __ioremap(..., _PAGE_WRITETHRU), so adding a wrapper
+is trivial.
 
-Thanks !
-Lorenzo
+> Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
+> Reviewed-by: Arnd Bergmann <arnd@arndb.de>
+
+Regardless,
+Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+
+Gr{oetje,eeting}s,
+
+                        Geert
