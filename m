@@ -1,52 +1,67 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH v2 2/4] asm-generic/io.h: Remove unused generic
- __ioremap() definition
-Date: Tue, 21 Mar 2017 11:37:11 +0100
-Message-ID: <CAMuHMdXzCPwijpHsvgHGDYRawF5paBxi4RNYPjxA8fRKOHQb0w@mail.gmail.com>
-References: <20170320182014.4858.22352.stgit@bhelgaas-glaptop.roam.corp.google.com>
- <20170320184253.4858.12956.stgit@bhelgaas-glaptop.roam.corp.google.com>
+From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+Subject: Re: [PATCH 05/20] ARM: implement pci_remap_cfgspace() interface
+Date: Tue, 21 Mar 2017 15:26:36 +0000
+Message-ID: <20170321152636.GA4799@red-moon>
+References: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
+ <20170227151436.18698-6-lorenzo.pieralisi@arm.com>
+ <20170320164354.GQ21222@n2100.armlinux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f193.google.com ([209.85.223.193]:33121 "EHLO
-        mail-io0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1756186AbdCUKh2 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Mar 2017 06:37:28 -0400
-In-Reply-To: <20170320184253.4858.12956.stgit@bhelgaas-glaptop.roam.corp.google.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, Linux-Arch <linux-arch@vger.kernel.org>, linux-pci <linux-pci@vger.kernel.org>, "Luis R. Rodriguez" <mcgrof@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Disposition: inline
+In-Reply-To: <20170320164354.GQ21222@n2100.armlinux.org.uk>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Russell King - ARM Linux <linux@armlinux.org.uk>
+Cc: Wenrui Li <wenrui.li@rock-chips.com>, Gabriele Paoloni <gabriele.paoloni@huawei.com>, linux-pci@vger.kernel.org, Shawn Lin <shawn.lin@rock-chips.com>, Will Deacon <will.deacon@arm.com>, Thierry Reding <thierry.reding@gmail.com>, Tanmay Inamdar <tinamdar@apm.com>, linux-arch@vger.kernel.org, Joao Pinto <Joao.Pinto@synopsys.com>, Pratyush Anand <pratyush.anand@gmail.com>, Michal Simek <michal.simek@xilinx.com>, Jon Mason <jonmason@broadcom.com>, Murali Karicheri <m-karicheri2@ti.com>, Catalin Marinas <catalin.marinas@arm.com>, Arnd Bergmann <arnd@arndb.de>, Bharat Kumar Gogada <bharat.kumar.gogada@xilinx.com>, Ray Jui <rjui@broadcom.com>, John Garry <john.garry@huawei.com>, Bjorn Helgaas <bhelgaas@google.com>, Mingkai Hu <mingkai.hu@freescale.com>, linux-arm-kernel@lists.infradead.org, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Jingoo Han <jingoohan1@gmail.co>
+List-Id: linux-arch.vger.kernel.org
 
-Hi Bj=C3=B6rn,
+Hi Russell,
 
-On Mon, Mar 20, 2017 at 7:42 PM, Bjorn Helgaas <bhelgaas@google.com> wrote:
-> Several arches use __ioremap() to help implement the generic ioremap(),
-> ioremap_nocache(), and ioremap_wc() interfaces, but this usage is all
-> inside the arch/ directory.
->
-> The only __ioremap() uses outside arch/ are in the ZorroII RAM disk drive=
-r
-> and some framebuffer drivers that are only buildable on m68k and powerpc,
-> and they use the versions provided by those arches.
->
-> There's no need for a generic version of __ioremap(), so remove it.
+On Mon, Mar 20, 2017 at 04:43:55PM +0000, Russell King - ARM Linux wrote:
+> On Mon, Feb 27, 2017 at 03:14:16PM +0000, Lorenzo Pieralisi wrote:
+> > The PCI bus specifications (rev 3.0, 3.2.5 "Transaction Ordering
+> > and Posting") define rules for PCI configuration space transactions
+> > ordering and posting, that state that configuration writes have to
+> > be non-posted transactions.
+> > 
+> > Current ioremap interface on ARM provides mapping functions that
+> > provide "bufferable" writes transactions (ie ioremap uses MT_DEVICE
+> > memory type) aka posted writes, so PCI host controller drivers have
+> > no arch interface to remap PCI configuration space with memory
+> > attributes that comply with the PCI specifications for configuration
+> > space.
+> > 
+> > Implement an ARM specific pci_remap_cfgspace() interface that allows to
+> > map PCI config memory regions with MT_UNCACHED memory type (ie strongly
+> > ordered - non-posted writes), providing a remap function that complies
+> > with PCI specifications for config space transactions.
+> 
+> Doesn't this have the side effect that configuration writes can bypass
+> writes to device memory if there isn't an intervening dsb?  (They
+> probably can do on some CPUs today anyway.)
 
-These all predate the ioremap_*() variants, and can be converted to
-either ioremap_nocache() or ioremap_wt().
+I assumed that in plain terms, the difference between MT_DEVICE and
+MT_UNCACHED is write posting (aka bufferable) behaviour (across CPU
+architecture versions) and that does not affect write ordering rules.
 
-However, PPC doesn't implement ioremap_wt() yet, so asm-generic will
-fall back to the less-efficient nocache variant.
-PPC does support __ioremap(..., _PAGE_WRITETHRU), so adding a wrapper
-is trivial.
+You and Catalin have more insights into ARM 32-bit memory types so
+I definitely need your input here to be comprehensive and avoid
+pitfalls, let me know if you have some specific CPUs in mind on
+which this may trigger a regression.
 
-> Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
-> Reviewed-by: Arnd Bergmann <arnd@arndb.de>
+> So, in any case, this looks like an improvement:
+> 
+> Acked-by: Russell King <rmk+kernel@armlinux.org.uk>
 
-Regardless,
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+Thank you !
 
-Gr{oetje,eeting}s,
-
-                        Geert
+Lorenzo
