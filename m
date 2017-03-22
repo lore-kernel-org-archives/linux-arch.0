@@ -1,72 +1,67 @@
 From: David Woodhouse <dwmw2@infradead.org>
-Subject: [PATCH 15/17] sh: Use generic pci_mmap_resource_range()
-Date: Wed, 22 Mar 2017 13:25:29 +0000
-Message-ID: <becdfc8e2154d3d21665fcae4a642c9a629fe688.1490188942.git.dwmw2@infradead.org>
+Subject: [PATCH 16/17] unicore: Use generic pci_mmap_resource_range()
+Date: Wed, 22 Mar 2017 13:25:30 +0000
+Message-ID: <47e2b47595ff658ded621e9610f9f7b0226d26b7.1490188942.git.dwmw2@infradead.org>
 References: <cover.1490188942.git.dwmw2@infradead.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:47292 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1759832AbdCVNZk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Mar 2017 09:25:40 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1490188942.git.dwmw2@infradead.org>
 In-Reply-To: <cover.1490188942.git.dwmw2@infradead.org>
 References: <cover.1490188942.git.dwmw2@infradead.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
 From: David Woodhouse <dwmw@amazon.co.uk>
 
 Signed-off-by: David Woodhouse <dwmw@amazon.co.uk>
 ---
- arch/sh/drivers/pci/pci.c | 22 ----------------------
- arch/sh/include/asm/pci.h |  1 +
- 2 files changed, 1 insertion(+), 22 deletions(-)
+ arch/unicore32/include/asm/pci.h |  1 +
+ arch/unicore32/kernel/pci.c      | 24 ------------------------
+ 2 files changed, 1 insertion(+), 24 deletions(-)
 
-diff --git a/arch/sh/drivers/pci/pci.c b/arch/sh/drivers/pci/pci.c
-index c8b36b7..c99ee28 100644
---- a/arch/sh/drivers/pci/pci.c
-+++ b/arch/sh/drivers/pci/pci.c
-@@ -269,28 +269,6 @@ void __ref pcibios_report_status(unsigned int status_mask, int warn)
- 	}
- }
- 
--int pci_mmap_page_range(struct pci_dev *dev, int bar,
--			struct vm_area_struct *vma,
--			enum pci_mmap_state mmap_state, int write_combine)
--{
--	/*
--	 * I/O space can be accessed via normal processor loads and stores on
--	 * this platform but for now we elect not to do this and portable
--	 * drivers should not do this anyway.
--	 */
--	if (mmap_state == pci_mmap_io)
--		return -EINVAL;
--
--	/*
--	 * Ignore write-combine; for now only return uncached mappings.
--	 */
--	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
--
--	return remap_pfn_range(vma, vma->vm_start, vma->vm_pgoff,
--			       vma->vm_end - vma->vm_start,
--			       vma->vm_page_prot);
--}
--
- #ifndef CONFIG_GENERIC_IOMAP
- 
- void __iomem *__pci_ioport_map(struct pci_dev *dev,
-diff --git a/arch/sh/include/asm/pci.h b/arch/sh/include/asm/pci.h
-index 46abbc9..17fa69b 100644
---- a/arch/sh/include/asm/pci.h
-+++ b/arch/sh/include/asm/pci.h
-@@ -66,6 +66,7 @@ extern unsigned long PCIBIOS_MIN_IO, PCIBIOS_MIN_MEM;
- struct pci_dev;
+diff --git a/arch/unicore32/include/asm/pci.h b/arch/unicore32/include/asm/pci.h
+index a5129086..ac5acdf 100644
+--- a/arch/unicore32/include/asm/pci.h
++++ b/arch/unicore32/include/asm/pci.h
+@@ -17,6 +17,7 @@
+ #include <mach/hardware.h> /* for PCIBIOS_MIN_* */
  
  #define HAVE_PCI_MMAP
 +#define ARCH_GENERIC_PCI_MMAP_RESOURCE
  
- extern void pcibios_set_master(struct pci_dev *dev);
- 
+ #endif /* __KERNEL__ */
+ #endif
+diff --git a/arch/unicore32/kernel/pci.c b/arch/unicore32/kernel/pci.c
+index 1b43885..1053bca 100644
+--- a/arch/unicore32/kernel/pci.c
++++ b/arch/unicore32/kernel/pci.c
+@@ -356,27 +356,3 @@ int pcibios_enable_device(struct pci_dev *dev, int mask)
+ 	}
+ 	return 0;
+ }
+-
+-int pci_mmap_page_range(struct pci_dev *dev, int bar,
+-			struct vm_area_struct *vma,
+-			enum pci_mmap_state mmap_state, int write_combine)
+-{
+-	unsigned long phys;
+-
+-	if (mmap_state == pci_mmap_io)
+-		return -EINVAL;
+-
+-	phys = vma->vm_pgoff;
+-
+-	/*
+-	 * Mark this as IO
+-	 */
+-	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
+-
+-	if (remap_pfn_range(vma, vma->vm_start, phys,
+-			     vma->vm_end - vma->vm_start,
+-			     vma->vm_page_prot))
+-		return -EAGAIN;
+-
+-	return 0;
+-}
 -- 
 2.9.3
