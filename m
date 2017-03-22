@@ -1,113 +1,74 @@
 From: David Woodhouse <dwmw2@infradead.org>
-Subject: [PATCH 07/17] pci: Use BAR index in sysfs attr->private instead of resource pointer
-Date: Wed, 22 Mar 2017 13:25:21 +0000
-Message-ID: <985f4e5c7356be06ecc26ba5aa2d5fcacce83d2d.1490188942.git.dwmw2@infradead.org>
+Subject: [PATCH 14/17] parisc: Use generic pci_mmap_resource_range()
+Date: Wed, 22 Mar 2017 13:25:28 +0000
+Message-ID: <1e07d41a8fbb2824718c0432db8e06f39e4272e2.1490188942.git.dwmw2@infradead.org>
 References: <cover.1490188942.git.dwmw2@infradead.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:47282 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1759632AbdCVNZd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Mar 2017 09:25:33 -0400
+Return-path: <linux-pci-owner@vger.kernel.org>
 In-Reply-To: <cover.1490188942.git.dwmw2@infradead.org>
 In-Reply-To: <cover.1490188942.git.dwmw2@infradead.org>
 References: <cover.1490188942.git.dwmw2@infradead.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-pci-owner@vger.kernel.org
 To: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
 From: David Woodhouse <dwmw@amazon.co.uk>
 
-We store the pointer, and then on *every* use of it we loop over the
-device's resources to find out the index. That's kind of silly.
-
 Signed-off-by: David Woodhouse <dwmw@amazon.co.uk>
 ---
- drivers/pci/pci-sysfs.c | 38 ++++++++++++++------------------------
- 1 file changed, 14 insertions(+), 24 deletions(-)
+ arch/parisc/include/asm/pci.h |  1 +
+ arch/parisc/kernel/pci.c      | 29 -----------------------------
+ 2 files changed, 1 insertion(+), 29 deletions(-)
 
-diff --git a/drivers/pci/pci-sysfs.c b/drivers/pci/pci-sysfs.c
-index 07cb2fc..8a2d77b 100644
---- a/drivers/pci/pci-sysfs.c
-+++ b/drivers/pci/pci-sysfs.c
-@@ -1017,26 +1017,20 @@ static int pci_mmap_resource(struct kobject *kobj, struct bin_attribute *attr,
- 			     struct vm_area_struct *vma, int write_combine)
- {
- 	struct pci_dev *pdev = to_pci_dev(kobj_to_dev(kobj));
--	struct resource *res = attr->private;
-+	int bar = (unsigned long)attr->private;
- 	enum pci_mmap_state mmap_type;
- 	resource_size_t start, end;
--	int i;
+diff --git a/arch/parisc/include/asm/pci.h b/arch/parisc/include/asm/pci.h
+index bb9ea90..1de1a3f 100644
+--- a/arch/parisc/include/asm/pci.h
++++ b/arch/parisc/include/asm/pci.h
+@@ -200,5 +200,6 @@ static inline int pci_get_legacy_ide_irq(struct pci_dev *dev, int channel)
+ }
+ 
+ #define HAVE_PCI_MMAP
++#define ARCH_GENERIC_PCI_MMAP_RESOURCE
+ 
+ #endif /* __ASM_PARISC_PCI_H */
+diff --git a/arch/parisc/kernel/pci.c b/arch/parisc/kernel/pci.c
+index 6538775..13ee356 100644
+--- a/arch/parisc/kernel/pci.c
++++ b/arch/parisc/kernel/pci.c
+@@ -227,35 +227,6 @@ resource_size_t pcibios_align_resource(void *data, const struct resource *res,
+ 	return start;
+ }
+ 
 -
--	for (i = 0; i < PCI_ROM_RESOURCE; i++)
--		if (res == &pdev->resource[i])
--			break;
--	if (i >= PCI_ROM_RESOURCE)
--		return -ENODEV;
-+	struct resource *res = &pdev->resource[bar];
- 
- 	if (res->flags & IORESOURCE_MEM && iomem_is_exclusive(res->start))
- 		return -EINVAL;
- 
--	if (!pci_mmap_fits(pdev, i, vma, PCI_MMAP_SYSFS)) {
-+	if (!pci_mmap_fits(pdev, bar, vma, PCI_MMAP_SYSFS)) {
- 		WARN(1, "process \"%s\" tried to map 0x%08lx bytes at page 0x%08lx on %s BAR %d (start 0x%16Lx, size 0x%16Lx)\n",
- 			current->comm, vma->vm_end-vma->vm_start, vma->vm_pgoff,
--			pci_name(pdev), i,
--			(u64)pci_resource_start(pdev, i),
--			(u64)pci_resource_len(pdev, i));
-+			pci_name(pdev), bar,
-+			(u64)pci_resource_start(pdev, bar),
-+			(u64)pci_resource_len(pdev, bar));
- 		return -EINVAL;
- 	}
- 
-@@ -1044,7 +1038,7 @@ static int pci_mmap_resource(struct kobject *kobj, struct bin_attribute *attr,
- 	 * from /proc/bus/pci/ which is a "user visible" value. If this is
- 	 * different from the resource itself, arch will do necessary fixup.
- 	 */
--	pci_resource_to_user(pdev, i, res, &start, &end);
-+	pci_resource_to_user(pdev, bar, res, &start, &end);
- 	vma->vm_pgoff += start >> PAGE_SHIFT;
- 	mmap_type = res->flags & IORESOURCE_MEM ? pci_mmap_mem : pci_mmap_io;
- 	return pci_mmap_page_range(pdev, vma, mmap_type, write_combine);
-@@ -1069,22 +1063,18 @@ static ssize_t pci_resource_io(struct file *filp, struct kobject *kobj,
- 			       loff_t off, size_t count, bool write)
- {
- 	struct pci_dev *pdev = to_pci_dev(kobj_to_dev(kobj));
--	struct resource *res = attr->private;
-+	int bar = (unsigned long)attr->private;
-+	struct resource *res;
- 	unsigned long port = off;
--	int i;
- 
--	for (i = 0; i < PCI_ROM_RESOURCE; i++)
--		if (res == &pdev->resource[i])
--			break;
--	if (i >= PCI_ROM_RESOURCE)
--		return -ENODEV;
-+	res = &pdev->resource[bar];
- 
--	port += pci_resource_start(pdev, i);
-+	port += pci_resource_start(pdev, bar);
- 
--	if (port > pci_resource_end(pdev, i))
-+	if (port > pci_resource_end(pdev, bar))
- 		return 0;
- 
--	if (port + count - 1 > pci_resource_end(pdev, i))
-+	if (port + count - 1 > pci_resource_end(pdev, bar))
- 		return -EINVAL;
- 
- 	switch (count) {
-@@ -1187,7 +1177,7 @@ static int pci_create_attr(struct pci_dev *pdev, int num, int write_combine)
- 	res_attr->attr.name = res_attr_name;
- 	res_attr->attr.mode = S_IRUSR | S_IWUSR;
- 	res_attr->size = pci_resource_len(pdev, num);
--	res_attr->private = &pdev->resource[num];
-+	res_attr->private = (void *)(unsigned long)num;
- 	retval = sysfs_create_bin_file(&pdev->dev.kobj, res_attr);
- 	if (retval)
- 		kfree(res_attr);
+-int pci_mmap_page_range(struct pci_dev *dev, int bar,
+-			struct vm_area_struct *vma,
+-			enum pci_mmap_state mmap_state, int write_combine)
+-{
+-	unsigned long prot;
+-
+-	/*
+-	 * I/O space can be accessed via normal processor loads and stores on
+-	 * this platform but for now we elect not to do this and portable
+-	 * drivers should not do this anyway.
+-	 */
+-	if (mmap_state == pci_mmap_io)
+-		return -EINVAL;
+-
+-	if (write_combine)
+-		return -EINVAL;
+-
+-	/*
+-	 * Ignore write-combine; for now only return uncached mappings.
+-	 */
+-	prot = pgprot_val(vma->vm_page_prot);
+-	prot |= _PAGE_NO_CACHE;
+-	vma->vm_page_prot = __pgprot(prot);
+-
+-	return remap_pfn_range(vma, vma->vm_start, vma->vm_pgoff,
+-		vma->vm_end - vma->vm_start, vma->vm_page_prot);
+-}
+-
+ /*
+  * A driver is enabling the device.  We make sure that all the appropriate
+  * bits are set to allow the device to operate as the driver is expecting.
 -- 
 2.9.3
