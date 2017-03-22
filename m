@@ -1,13 +1,13 @@
 From: David Woodhouse <dwmw2@infradead.org>
-Subject: [PATCH 01/17] pci: Fix pci_mmap_fits() for HAVE_PCI_RESOURCE_TO_USER platforms
-Date: Wed, 22 Mar 2017 13:25:15 +0000
-Message-ID: <931e096104d6e7e3b20ce9c2770a22ee0d2755e2.1490188942.git.dwmw2@infradead.org>
+Subject: [PATCH 13/17] mn10300: Use generic pci_mmap_resource_range()
+Date: Wed, 22 Mar 2017 13:25:27 +0000
+Message-ID: <fa831bd26dbaa1220f24a427c4ad959305942e0b.1490188942.git.dwmw2@infradead.org>
 References: <cover.1490188942.git.dwmw2@infradead.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([65.50.211.133]:56847 "EHLO
+Received: from bombadil.infradead.org ([65.50.211.133]:47206 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S934290AbdCVNZt (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Mar 2017 09:25:49 -0400
+        with ESMTP id S934194AbdCVNZp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Mar 2017 09:25:45 -0400
 In-Reply-To: <cover.1490188942.git.dwmw2@infradead.org>
 In-Reply-To: <cover.1490188942.git.dwmw2@infradead.org>
 References: <cover.1490188942.git.dwmw2@infradead.org>
@@ -17,43 +17,57 @@ To: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.ker
 
 From: David Woodhouse <dwmw@amazon.co.uk>
 
-In the PCI_MMAP_PROCFS case when the address being passed by the user
-is a 'user visible' resource address based on the bus window, and not
-the actual contents of the resource, that's what we need to be checking
-it against.
+This was setting vma->vm_flags |= VM_LOCKED. Not sure why...
 
 Signed-off-by: David Woodhouse <dwmw@amazon.co.uk>
-Cc: stable@vger.kernel.org
 ---
- drivers/pci/pci-sysfs.c | 10 +++++++---
- 1 file changed, 7 insertions(+), 3 deletions(-)
+ arch/mn10300/include/asm/pci.h          |  1 +
+ arch/mn10300/unit-asb2305/pci-asb2305.c | 24 ------------------------
+ 2 files changed, 1 insertion(+), 24 deletions(-)
 
-diff --git a/drivers/pci/pci-sysfs.c b/drivers/pci/pci-sysfs.c
-index 25d010d..7ac258f 100644
---- a/drivers/pci/pci-sysfs.c
-+++ b/drivers/pci/pci-sysfs.c
-@@ -985,15 +985,19 @@ void pci_remove_legacy_files(struct pci_bus *b)
- int pci_mmap_fits(struct pci_dev *pdev, int resno, struct vm_area_struct *vma,
- 		  enum pci_mmap_api mmap_api)
- {
--	unsigned long nr, start, size, pci_start;
-+	unsigned long nr, start, size;
-+	resource_size_t pci_start = 0, pci_end;
+diff --git a/arch/mn10300/include/asm/pci.h b/arch/mn10300/include/asm/pci.h
+index 082b6de..d276549 100644
+--- a/arch/mn10300/include/asm/pci.h
++++ b/arch/mn10300/include/asm/pci.h
+@@ -74,6 +74,7 @@ static inline int pci_controller_num(struct pci_dev *dev)
+ }
  
- 	if (pci_resource_len(pdev, resno) == 0)
- 		return 0;
- 	nr = vma_pages(vma);
- 	start = vma->vm_pgoff;
- 	size = ((pci_resource_len(pdev, resno) - 1) >> PAGE_SHIFT) + 1;
--	pci_start = (mmap_api == PCI_MMAP_PROCFS) ?
--			pci_resource_start(pdev, resno) >> PAGE_SHIFT : 0;
-+	if (mmap_api == PCI_MMAP_PROCFS) {
-+		pci_resource_to_user(pdev, resno, &pdev->resource[resno],
-+				     &pci_start, &pci_end);
-+		pci_start >>= PAGE_SHIFT;
-+	}
- 	if (start >= pci_start && start < pci_start + size &&
- 			start + nr <= pci_start + size)
- 		return 1;
+ #define HAVE_PCI_MMAP
++#define ARCH_GENERIC_PCI_MMAP_RESOURCE
+ 
+ #endif /* __KERNEL__ */
+ 
+diff --git a/arch/mn10300/unit-asb2305/pci-asb2305.c b/arch/mn10300/unit-asb2305/pci-asb2305.c
+index 4abbbd5..e0f4617 100644
+--- a/arch/mn10300/unit-asb2305/pci-asb2305.c
++++ b/arch/mn10300/unit-asb2305/pci-asb2305.c
+@@ -210,27 +210,3 @@ void __init pcibios_resource_survey(void)
+ 	pcibios_allocate_resources(0);
+ 	pcibios_allocate_resources(1);
+ }
+-
+-int pci_mmap_page_range(struct pci_dev *dev, int bar,
+-			struct vm_area_struct *vma,
+-			enum pci_mmap_state mmap_state, int write_combine)
+-{
+-	unsigned long prot;
+-
+-	/* Leave vm_pgoff as-is, the PCI space address is the physical
+-	 * address on this platform.
+-	 */
+-	vma->vm_flags |= VM_LOCKED;
+-
+-	prot = pgprot_val(vma->vm_page_prot);
+-	prot &= ~_PAGE_CACHE;
+-	vma->vm_page_prot = __pgprot(prot);
+-
+-	/* Write-combine setting is ignored */
+-	if (io_remap_pfn_range(vma, vma->vm_start, vma->vm_pgoff,
+-			       vma->vm_end - vma->vm_start,
+-			       vma->vm_page_prot))
+-		return -EAGAIN;
+-
+-	return 0;
+-}
 -- 
 2.9.3
