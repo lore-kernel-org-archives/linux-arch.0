@@ -1,13 +1,13 @@
 From: David Woodhouse <dwmw2@infradead.org>
-Subject: [PATCH 02/17] pci: Fix another sanity check bug in /proc/pci mmap
-Date: Wed, 22 Mar 2017 13:25:16 +0000
-Message-ID: <ab313a676468ed1e372cd1a41cea57dad3860ca1.1490188942.git.dwmw2@infradead.org>
+Subject: [PATCH 01/17] pci: Fix pci_mmap_fits() for HAVE_PCI_RESOURCE_TO_USER platforms
+Date: Wed, 22 Mar 2017 13:25:15 +0000
+Message-ID: <931e096104d6e7e3b20ce9c2770a22ee0d2755e2.1490188942.git.dwmw2@infradead.org>
 References: <cover.1490188942.git.dwmw2@infradead.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([65.50.211.133]:49729 "EHLO
+Received: from bombadil.infradead.org ([65.50.211.133]:56847 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S934214AbdCVNZp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Mar 2017 09:25:45 -0400
+        with ESMTP id S934290AbdCVNZt (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Mar 2017 09:25:49 -0400
 In-Reply-To: <cover.1490188942.git.dwmw2@infradead.org>
 In-Reply-To: <cover.1490188942.git.dwmw2@infradead.org>
 References: <cover.1490188942.git.dwmw2@infradead.org>
@@ -17,40 +17,43 @@ To: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.ker
 
 From: David Woodhouse <dwmw@amazon.co.uk>
 
-Don't match MMIO maps with I/O BARs and vice versa.
+In the PCI_MMAP_PROCFS case when the address being passed by the user
+is a 'user visible' resource address based on the bus window, and not
+the actual contents of the resource, that's what we need to be checking
+it against.
 
 Signed-off-by: David Woodhouse <dwmw@amazon.co.uk>
 Cc: stable@vger.kernel.org
 ---
- drivers/pci/proc.c | 10 ++++++++--
- 1 file changed, 8 insertions(+), 2 deletions(-)
+ drivers/pci/pci-sysfs.c | 10 +++++++---
+ 1 file changed, 7 insertions(+), 3 deletions(-)
 
-diff --git a/drivers/pci/proc.c b/drivers/pci/proc.c
-index f82710a..62a0c3e 100644
---- a/drivers/pci/proc.c
-+++ b/drivers/pci/proc.c
-@@ -231,14 +231,20 @@ static int proc_bus_pci_mmap(struct file *file, struct vm_area_struct *vma)
+diff --git a/drivers/pci/pci-sysfs.c b/drivers/pci/pci-sysfs.c
+index 25d010d..7ac258f 100644
+--- a/drivers/pci/pci-sysfs.c
++++ b/drivers/pci/pci-sysfs.c
+@@ -985,15 +985,19 @@ void pci_remove_legacy_files(struct pci_bus *b)
+ int pci_mmap_fits(struct pci_dev *pdev, int resno, struct vm_area_struct *vma,
+ 		  enum pci_mmap_api mmap_api)
  {
- 	struct pci_dev *dev = PDE_DATA(file_inode(file));
- 	struct pci_filp_private *fpriv = file->private_data;
--	int i, ret, write_combine;
-+	int i, ret, write_combine, res_bit;
+-	unsigned long nr, start, size, pci_start;
++	unsigned long nr, start, size;
++	resource_size_t pci_start = 0, pci_end;
  
- 	if (!capable(CAP_SYS_RAWIO))
- 		return -EPERM;
- 
-+	if (fpriv->mmap_state == pci_mmap_io)
-+		res_bit = IORESOURCE_IO;
-+	else
-+		res_bit = IORESOURCE_MEM;
-+
- 	/* Make sure the caller is mapping a real resource for this device */
- 	for (i = 0; i < PCI_ROM_RESOURCE; i++) {
--		if (pci_mmap_fits(dev, i, vma,  PCI_MMAP_PROCFS))
-+		if (dev->resource[i].flags & res_bit &&
-+		    pci_mmap_fits(dev, i, vma,  PCI_MMAP_PROCFS))
- 			break;
- 	}
- 
+ 	if (pci_resource_len(pdev, resno) == 0)
+ 		return 0;
+ 	nr = vma_pages(vma);
+ 	start = vma->vm_pgoff;
+ 	size = ((pci_resource_len(pdev, resno) - 1) >> PAGE_SHIFT) + 1;
+-	pci_start = (mmap_api == PCI_MMAP_PROCFS) ?
+-			pci_resource_start(pdev, resno) >> PAGE_SHIFT : 0;
++	if (mmap_api == PCI_MMAP_PROCFS) {
++		pci_resource_to_user(pdev, resno, &pdev->resource[resno],
++				     &pci_start, &pci_end);
++		pci_start >>= PAGE_SHIFT;
++	}
+ 	if (start >= pci_start && start < pci_start + size &&
+ 			start + nr <= pci_start + size)
+ 		return 1;
 -- 
 2.9.3
