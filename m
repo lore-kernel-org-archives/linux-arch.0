@@ -1,72 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:47294 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1759833AbdCVNZk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Mar 2017 09:25:40 -0400
+Received: from bombadil.infradead.org ([65.50.211.133]:48414 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1759811AbdCVNZe (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Mar 2017 09:25:34 -0400
 From: David Woodhouse <dwmw2@infradead.org>
-Subject: [PATCH 16/17] unicore: Use generic pci_mmap_resource_range()
-Date: Wed, 22 Mar 2017 13:25:30 +0000
-Message-ID: <47e2b47595ff658ded621e9610f9f7b0226d26b7.1490188942.git.dwmw2@infradead.org>
-In-Reply-To: <cover.1490188942.git.dwmw2@infradead.org>
-References: <cover.1490188942.git.dwmw2@infradead.org>
-In-Reply-To: <cover.1490188942.git.dwmw2@infradead.org>
-References: <cover.1490188942.git.dwmw2@infradead.org>
+Subject: [PATCH 00/17] PCI resource mmap cleanup
+Date: Wed, 22 Mar 2017 13:25:14 +0000
+Message-ID: <cover.1490188942.git.dwmw2@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20170322132530.IIM4bznIVPvewu17OnF5p5yUPjZmf88vE447P2wdRho@z>
+Message-ID: <20170322132514.OHh4FWJv-4gctzLac7ap0rf-fSlMpIQ1bXEfyK7eYhQ@z>
 
-From: David Woodhouse <dwmw@amazon.co.uk>
+This started out as a fairly trivial "add pci_mmap_page_range() for 
+ARM64" patch. But pci_mmap_page_range() is a vile interface, taking 
+"user visible" resource addresses converted with pci_resource_to_user() 
+on those platforms unlucky enough to use that... and even in the *sane* 
+sysfs-based mmap method, we convert through user addresses to call the
+platform-specific method.
 
-Signed-off-by: David Woodhouse <dwmw@amazon.co.uk>
----
- arch/unicore32/include/asm/pci.h |  1 +
- arch/unicore32/kernel/pci.c      | 24 ------------------------
- 2 files changed, 1 insertion(+), 24 deletions(-)
+In most cases there's just no need for any of this crap. We can migrate
+most architectures to a generic implementation without much thought,
+and the few that aren't converted in this series can probably be added
+fairly easily too but need a little more arch-specific attention.
 
-diff --git a/arch/unicore32/include/asm/pci.h b/arch/unicore32/include/asm/pci.h
-index a5129086..ac5acdf 100644
---- a/arch/unicore32/include/asm/pci.h
-+++ b/arch/unicore32/include/asm/pci.h
-@@ -17,6 +17,7 @@
- #include <mach/hardware.h> /* for PCIBIOS_MIN_* */
- 
- #define HAVE_PCI_MMAP
-+#define ARCH_GENERIC_PCI_MMAP_RESOURCE
- 
- #endif /* __KERNEL__ */
- #endif
-diff --git a/arch/unicore32/kernel/pci.c b/arch/unicore32/kernel/pci.c
-index 1b43885..1053bca 100644
---- a/arch/unicore32/kernel/pci.c
-+++ b/arch/unicore32/kernel/pci.c
-@@ -356,27 +356,3 @@ int pcibios_enable_device(struct pci_dev *dev, int mask)
- 	}
- 	return 0;
- }
--
--int pci_mmap_page_range(struct pci_dev *dev, int bar,
--			struct vm_area_struct *vma,
--			enum pci_mmap_state mmap_state, int write_combine)
--{
--	unsigned long phys;
--
--	if (mmap_state == pci_mmap_io)
--		return -EINVAL;
--
--	phys = vma->vm_pgoff;
--
--	/*
--	 * Mark this as IO
--	 */
--	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
--
--	if (remap_pfn_range(vma, vma->vm_start, phys,
--			     vma->vm_end - vma->vm_start,
--			     vma->vm_page_prot))
--		return -EAGAIN;
--
--	return 0;
--}
+Utterly untested for now; I'll do some testing while I deal with the
+inevitable bikeshedding.
+
+David Woodhouse (17):
+  pci: Fix pci_mmap_fits() for HAVE_PCI_RESOURCE_TO_USER platforms
+  pci: Fix another sanity check bug in /proc/pci mmap
+  pci: Only allow WC mmap on prefetchable resources
+  pci: Add arch_can_pci_mmap_wc() macro
+  pci: Move multiple declarations of pci_mmap_page_range() to <linux/pci.h>
+  pci: Add HAVE_PCI_MMAP_IO to architectures which can mmap() I/O space
+  pci: Use BAR index in sysfs attr->private instead of resource pointer
+  pci: Add BAR index argument to pci_mmap_page_range()
+  pci: Add pci_mmap_resource_range() and use it for ARM64
+  arm: Use generic pci_mmap_resource_range()
+  cris: Use generic pci_mmap_resource_range()
+  mips: Use generic pci_mmap_resource_range()
+  mn10300: Use generic pci_mmap_resource_range()
+  parisc: Use generic pci_mmap_resource_range()
+  sh: Use generic pci_mmap_resource_range()
+  unicore: Use generic pci_mmap_resource_range()
+  arm64: Do not expose PCI mmap through procfs
+
+ Documentation/filesystems/sysfs-pci.txt |  9 +++-
+ arch/arm/include/asm/pci.h              |  3 +-
+ arch/arm/kernel/bios32.c                | 19 -------
+ arch/arm64/include/asm/pci.h            |  3 ++
+ arch/cris/arch-v32/drivers/pci/bios.c   | 22 --------
+ arch/cris/include/asm/pci.h             |  4 +-
+ arch/ia64/include/asm/pci.h             |  4 +-
+ arch/ia64/pci/pci.c                     |  3 +-
+ arch/microblaze/include/asm/pci.h       |  6 +--
+ arch/microblaze/pci/pci-common.c        |  2 +-
+ arch/mips/include/asm/pci.h             |  5 +-
+ arch/mips/pci/pci.c                     | 24 ---------
+ arch/mn10300/include/asm/pci.h          |  4 +-
+ arch/mn10300/unit-asb2305/pci-asb2305.c | 23 ---------
+ arch/parisc/include/asm/pci.h           |  4 +-
+ arch/parisc/kernel/pci.c                | 28 ----------
+ arch/powerpc/include/asm/pci.h          |  9 ++--
+ arch/powerpc/kernel/pci-common.c        |  3 +-
+ arch/sh/drivers/pci/pci.c               | 21 --------
+ arch/sh/include/asm/pci.h               |  4 +-
+ arch/sparc/include/asm/pci_64.h         |  5 +-
+ arch/sparc/kernel/pci.c                 |  6 +--
+ arch/unicore32/include/asm/pci.h        |  3 +-
+ arch/unicore32/kernel/pci.c             | 23 ---------
+ arch/x86/include/asm/pci.h              |  6 +--
+ arch/x86/pci/i386.c                     |  3 +-
+ arch/xtensa/include/asm/pci.h           | 11 ++--
+ arch/xtensa/kernel/pci.c                |  5 +-
+ drivers/pci/Makefile                    |  2 +-
+ drivers/pci/mmap.c                      | 90 +++++++++++++++++++++++++++++++++
+ drivers/pci/pci-sysfs.c                 | 77 +++++++++++++---------------
+ drivers/pci/proc.c                      | 55 ++++++++++++++------
+ include/linux/pci.h                     | 19 +++++++
+ 33 files changed, 233 insertions(+), 272 deletions(-)
+ create mode 100644 drivers/pci/mmap.c
+
 -- 
 2.9.3
