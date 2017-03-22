@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:47286 "EHLO
+Received: from merlin.infradead.org ([205.233.59.134]:47294 "EHLO
         merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1759809AbdCVNZd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Mar 2017 09:25:33 -0400
+        with ESMTP id S1759833AbdCVNZk (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Mar 2017 09:25:40 -0400
 From: David Woodhouse <dwmw2@infradead.org>
-Subject: [PATCH 10/17] arm: Use generic pci_mmap_resource_range()
-Date: Wed, 22 Mar 2017 13:25:24 +0000
-Message-ID: <60f1a26d0f10bf8b6f1e88283ba1df1b3b1d0c0a.1490188942.git.dwmw2@infradead.org>
+Subject: [PATCH 16/17] unicore: Use generic pci_mmap_resource_range()
+Date: Wed, 22 Mar 2017 13:25:30 +0000
+Message-ID: <47e2b47595ff658ded621e9610f9f7b0226d26b7.1490188942.git.dwmw2@infradead.org>
 In-Reply-To: <cover.1490188942.git.dwmw2@infradead.org>
 References: <cover.1490188942.git.dwmw2@infradead.org>
 In-Reply-To: <cover.1490188942.git.dwmw2@infradead.org>
@@ -14,58 +14,59 @@ References: <cover.1490188942.git.dwmw2@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20170322132524.Ukdy9bqa3pZ_llGwrAd3PRIN5Hyx0NObJlCKyyGg5UA@z>
+Message-ID: <20170322132530.IIM4bznIVPvewu17OnF5p5yUPjZmf88vE447P2wdRho@z>
 
 From: David Woodhouse <dwmw@amazon.co.uk>
 
 Signed-off-by: David Woodhouse <dwmw@amazon.co.uk>
 ---
- arch/arm/include/asm/pci.h |  1 +
- arch/arm/kernel/bios32.c   | 20 --------------------
- 2 files changed, 1 insertion(+), 20 deletions(-)
+ arch/unicore32/include/asm/pci.h |  1 +
+ arch/unicore32/kernel/pci.c      | 24 ------------------------
+ 2 files changed, 1 insertion(+), 24 deletions(-)
 
-diff --git a/arch/arm/include/asm/pci.h b/arch/arm/include/asm/pci.h
-index 51118a0..396c92b 100644
---- a/arch/arm/include/asm/pci.h
-+++ b/arch/arm/include/asm/pci.h
-@@ -29,6 +29,7 @@ static inline int pci_proc_domain(struct pci_bus *bus)
- #define PCI_DMA_BUS_IS_PHYS     (1)
+diff --git a/arch/unicore32/include/asm/pci.h b/arch/unicore32/include/asm/pci.h
+index a5129086..ac5acdf 100644
+--- a/arch/unicore32/include/asm/pci.h
++++ b/arch/unicore32/include/asm/pci.h
+@@ -17,6 +17,7 @@
+ #include <mach/hardware.h> /* for PCIBIOS_MIN_* */
  
  #define HAVE_PCI_MMAP
 +#define ARCH_GENERIC_PCI_MMAP_RESOURCE
  
- static inline int pci_get_legacy_ide_irq(struct pci_dev *dev, int channel)
- {
-diff --git a/arch/arm/kernel/bios32.c b/arch/arm/kernel/bios32.c
-index a4fc3f4..b259956 100644
---- a/arch/arm/kernel/bios32.c
-+++ b/arch/arm/kernel/bios32.c
-@@ -597,26 +597,6 @@ resource_size_t pcibios_align_resource(void *data, const struct resource *res,
- 	return start;
+ #endif /* __KERNEL__ */
+ #endif
+diff --git a/arch/unicore32/kernel/pci.c b/arch/unicore32/kernel/pci.c
+index 1b43885..1053bca 100644
+--- a/arch/unicore32/kernel/pci.c
++++ b/arch/unicore32/kernel/pci.c
+@@ -356,27 +356,3 @@ int pcibios_enable_device(struct pci_dev *dev, int mask)
+ 	}
+ 	return 0;
  }
- 
+-
 -int pci_mmap_page_range(struct pci_dev *dev, int bar,
 -			struct vm_area_struct *vma,
 -			enum pci_mmap_state mmap_state, int write_combine)
 -{
+-	unsigned long phys;
+-
 -	if (mmap_state == pci_mmap_io)
 -		return -EINVAL;
+-
+-	phys = vma->vm_pgoff;
 -
 -	/*
 -	 * Mark this as IO
 -	 */
 -	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
 -
--	if (remap_pfn_range(vma, vma->vm_start, vma->vm_pgoff,
+-	if (remap_pfn_range(vma, vma->vm_start, phys,
 -			     vma->vm_end - vma->vm_start,
 -			     vma->vm_page_prot))
 -		return -EAGAIN;
 -
 -	return 0;
 -}
--
- void __init pci_map_io_early(unsigned long pfn)
- {
- 	struct map_desc pci_io_desc = {
 -- 
 2.9.3
