@@ -1,51 +1,110 @@
-From: Alexander Kochetkov <al.kochet@gmail.com>
-Subject: [PATCH] vmlinux.lds: add __clkevt_of_table to kernel
-Date: Wed, 22 Mar 2017 17:29:06 +0300
-Message-ID: <1490192947-21465-1-git-send-email-al.kochet@gmail.com>
+From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+Subject: Re: [PATCH 03/20] asm-generic/io.h: add PCI config space remap
+ interface
+Date: Wed, 22 Mar 2017 15:04:03 +0000
+Message-ID: <20170322150403.GA4951@red-moon>
+References: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
+ <20170227151436.18698-4-lorenzo.pieralisi@arm.com>
+ <20170316211243.GE9739@bhelgaas-glaptop.roam.corp.google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f67.google.com ([74.125.82.67]:32869 "EHLO
-        mail-wm0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1759029AbdCVOhT (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Mar 2017 10:37:19 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Alexander Kochetkov <al.kochet@gmail.com>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Disposition: inline
+In-Reply-To: <20170316211243.GE9739@bhelgaas-glaptop.roam.corp.google.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Bjorn Helgaas <helgaas@kernel.org>, arnd@arndb.de
+Cc: Wenrui Li <wenrui.li@rock-chips.com>, Gabriele Paoloni <gabriele.paoloni@huawei.com>, linux-pci@vger.kernel.org, Shawn Lin <shawn.lin@rock-chips.com>, Will Deacon <will.deacon@arm.com>, Michal Simek <michal.simek@xilinx.com>, Thierry Reding <thierry.reding@gmail.com>, Tanmay Inamdar <tinamdar@apm.com>, linux-arch@vger.kernel.org, Joao Pinto <Joao.Pinto@synopsys.com>, Pratyush Anand <pratyush.anand@gmail.com>, Russell King <linux@armlinux.org.uk>, Jon Mason <jonmason@broadcom.com>, Murali Karicheri <m-karicheri2@ti.com>, Catalin Marinas <catalin.marinas@arm.com>, Bharat Kumar Gogada <bharat.kumar.gogada@xilinx.com>, Ray Jui <rjui@broadcom.com>, John Garry <john.garry@huawei.com>, Bjorn Helgaas <bhelgaas@google.com>, Mingkai Hu <mingkai.hu@freescale.com>, linux-arm-kernel@lists.infradead.org, "Luis R. Rodriguez" <mcgrof@kernel.org>, Thomas Petazzoni <thomas.petazzoni@free>
+List-Id: linux-arch.vger.kernel.org
 
-The code introduced by commit 0c8893c9095d ("clockevents: Add a
-clkevt-of mechanism like clksrc-of") refer to __clkevt_of_table
-what doesn't exist in the vmlinux. As a result kernel build
-failed with error: "clkevt-probe.c:63: undefined reference to
-`__clkevt_of_table’"
+Hi Bjorn, Arnd,
 
-Fixes: 0c8893c9095d ("clockevents: Add a clkevt-of mechanism like clksrc-of")
-Signed-off-by: Alexander Kochetkov <al.kochet@gmail.com>
----
- include/asm-generic/vmlinux.lds.h |    2 ++
- 1 file changed, 2 insertions(+)
+On Thu, Mar 16, 2017 at 04:12:43PM -0500, Bjorn Helgaas wrote:
+> [+cc Luis]
+> 
+> On Mon, Feb 27, 2017 at 03:14:14PM +0000, Lorenzo Pieralisi wrote:
+> > The PCI specifications (Rev 3.0, 3.2.5 "Transaction Ordering and
+> > Posting") mandate non-posted configuration transactions. As further
+> > highlighted in the PCIe specifications (4.0 - Rev0.3, "Ordering
+> > Considerations for the Enhanced Configuration Access Mechanism"),
+> > through ECAM and ECAM-derivative configuration mechanism, the memory
+> > mapped transactions from the host CPU into Configuration Requests on the
+> > PCI express fabric may create ordering problems for software because
+> > writes to memory address are typically posted transactions (unless the
+> > architecture can enforce through virtual address mapping non-posted
+> > write transactions behaviour) but writes to Configuration Space are not
+> > posted on the PCI express fabric.
+> > 
+> > Current DT and ACPI host bridge controllers map PCI configuration space
+> > (ECAM and ECAM-derivative) into the virtual address space through
+> > ioremap() calls, that are non-cacheable device accesses on most
+> > architectures, but may provide "bufferable" or "posted" write semantics
+> > in architecture like eg ARM/ARM64 that allow ioremap'ed regions writes
+> > to be buffered in the bus connecting the host CPU to the PCI fabric;
+> > this behaviour, as underlined in the PCIe specifications, may trigger
+> > transactions ordering rules and must be prevented.
+> > 
+> > Introduce a new generic and explicit API to create a memory
+> > mapping for ECAM and ECAM-derivative config space area that
+> > defaults to ioremap_nocache() (which should provide a sane default
+> > behaviour) but still allowing architectures on which ioremap_nocache()
+> > results in posted write transactions to override the function
+> > call with an arch specific implementation that complies with
+> > the PCI specifications for configuration transactions.
+> > 
+> > Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+> > Cc: Arnd Bergmann <arnd@arndb.de>
+> > Cc: Will Deacon <will.deacon@arm.com>
+> > Cc: Bjorn Helgaas <bhelgaas@google.com>
+> > Cc: Russell King <linux@armlinux.org.uk>
+> > Cc: Catalin Marinas <catalin.marinas@arm.com>
+> > ---
+> >  include/asm-generic/io.h | 9 +++++++++
+> >  1 file changed, 9 insertions(+)
+> > 
+> > diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+> > index 7ef015e..52dda81 100644
+> > --- a/include/asm-generic/io.h
+> > +++ b/include/asm-generic/io.h
+> > @@ -915,6 +915,15 @@ extern void ioport_unmap(void __iomem *p);
+> >  #endif /* CONFIG_GENERIC_IOMAP */
+> >  #endif /* CONFIG_HAS_IOPORT_MAP */
+> >  
+> > +#ifndef pci_remap_cfgspace
+> > +#define pci_remap_cfgspace pci_remap_cfgspace
+> > +static inline void __iomem *pci_remap_cfgspace(phys_addr_t offset,
+> > +					       size_t size)
+> > +{
+> > +	return ioremap_nocache(offset, size);
+> > +}
+> 
+> I'm fine with this conceptually, but I think it would make more sense
+> if the name weren't specific to PCI or config space, e.g.,
+> ioremap_nopost() or something.
 
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 2456397..42afee3 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -173,6 +173,7 @@
- 	*(__##name##_of_table_end)
- 
- #define CLKSRC_OF_TABLES()	OF_TABLE(CONFIG_CLKSRC_OF, clksrc)
-+#define CLKEVT_OF_TABLES()	OF_TABLE(CONFIG_CLKEVT_OF, clkevt)
- #define IRQCHIP_OF_MATCH_TABLE() OF_TABLE(CONFIG_IRQCHIP, irqchip)
- #define CLK_OF_TABLES()		OF_TABLE(CONFIG_COMMON_CLK, clk)
- #define IOMMU_OF_TABLES()	OF_TABLE(CONFIG_OF_IOMMU, iommu)
-@@ -539,6 +540,7 @@
- 	CLK_OF_TABLES()							\
- 	RESERVEDMEM_OF_TABLES()						\
- 	CLKSRC_OF_TABLES()						\
-+	CLKEVT_OF_TABLES()						\
- 	IOMMU_OF_TABLES()						\
- 	CPU_METHOD_OF_TABLES()						\
- 	CPUIDLE_METHOD_OF_TABLES()					\
--- 
-1.7.9.5
+I would like to respin shortly so I have to make a decision on the
+interface, either:
+
+(1) I keep it a PCI only interface (which means I can even move it to
+    include/linux/pci.h and arch*/include/asm/pci.h to override it)
+
+or
+
+(2) We add it as a generic ioremap_* interface (I am not sure though
+    that's really useful other than to map PCI config space, actually
+    the reasoning behind the naming was to limit its usage to PCI
+    config space mappings)
+
+I take it as Bjorn is keener on (2), just running a final check before
+putting v2 together to make progress.
+
+Thanks !
+Lorenzo
