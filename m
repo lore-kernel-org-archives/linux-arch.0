@@ -1,57 +1,106 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:41580 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:43322 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S935185AbdCVOSP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 22 Mar 2017 10:18:15 -0400
-Date: Wed, 22 Mar 2017 14:18:21 +0000
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH 17/17] arm64: Do not expose PCI mmap through procfs
-Message-ID: <20170322141820.GI8026@arm.com>
-References: <cover.1490188942.git.dwmw2@infradead.org>
- <4281f8e01b9fc5628cbf4a5c77abd642801e23c7.1490188942.git.dwmw2@infradead.org>
- <cd878fb7-86f1-50cc-d394-364cb8bde344@codeaurora.org>
- <1490191473.28249.9.camel@infradead.org>
- <5362b452-8526-1a97-ebf7-7052f1af56f7@codeaurora.org>
+        id S1759055AbdCVPES (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 22 Mar 2017 11:04:18 -0400
+Date: Wed, 22 Mar 2017 15:04:03 +0000
+From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+Subject: Re: [PATCH 03/20] asm-generic/io.h: add PCI config space remap
+ interface
+Message-ID: <20170322150403.GA4951@red-moon>
+References: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
+ <20170227151436.18698-4-lorenzo.pieralisi@arm.com>
+ <20170316211243.GE9739@bhelgaas-glaptop.roam.corp.google.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <5362b452-8526-1a97-ebf7-7052f1af56f7@codeaurora.org>
+In-Reply-To: <20170316211243.GE9739@bhelgaas-glaptop.roam.corp.google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sinan Kaya <okaya@codeaurora.org>
-Cc: David Woodhouse <dwmw2@infradead.org>, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20170322141821.8uu7yv3s1_DyVo7-AAUeahDG5XgaGPXBpQE9FxGWVOA@z>
+To: Bjorn Helgaas <helgaas@kernel.org>, arnd@arndb.de
+Cc: linux-pci@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Bjorn Helgaas <bhelgaas@google.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Pratyush Anand <pratyush.anand@gmail.com>, Jingoo Han <jingoohan1@gmail.com>, Mingkai Hu <mingkai.hu@freescale.com>, John Garry <john.garry@huawei.com>, Tanmay Inamdar <tinamdar@apm.com>, Murali Karicheri <m-karicheri2@ti.com>, Bharat Kumar Gogada <bharat.kumar.gogada@xilinx.com>, Ray Jui <rjui@broadcom.com>, Wenrui Li <wenrui.li@rock-chips.com>, Shawn Lin <shawn.lin@rock-chips.com>, Minghuan Lian <minghuan.Lian@freescale.com>, Jon Mason <jonmason@broadcom.com>, Gabriele Paoloni <gabriele.paoloni@huawei.com>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Joao Pinto <Joao.Pinto@synopsys.com>, Thierry Reding <thierry.reding@gmail.com>, Michal Simek <michal.simek@xilinx.com>, Stanimir Varbanov <svarbanov@mm-sol.com>, Zhou Wang <wangzhou1@hisilicon.com>, Roy Zang <tie-fei.zang@freescale.com>, "Luis R. Rodriguez" <mcgrof@kernel.org>
+Message-ID: <20170322150403.Nr3YX3biztpoS8rlHlSdSEeyQpuVkP8G1mdw7ZLuIZQ@z>
 
-On Wed, Mar 22, 2017 at 10:15:04AM -0400, Sinan Kaya wrote:
-> On 3/22/2017 10:04 AM, David Woodhouse wrote:
-> > On Wed, 2017-03-22 at 09:54 -0400, Sinan Kaya wrote:
-> >> On 3/22/2017 9:25 AM, David Woodhouse wrote:
-> >>>
-> >>>  
-> >>> +#ifdef __aarch64__
-> >>> +/* ARM64 wants to be special and not expose this through /proc
-> >>> like everyone else */
-> >>> +#undef HAVE_PCI_MMAP
-> >>> +#endif
-> >>> +
-> >> Where is this ARM64 special requirement coming from?
-> > 
-> > The idea is that as a new platform, ARM64 shouldn't need to implement
-> > legacy userspace interfaces.
-> > 
-> > http://lists.infradead.org/pipermail/linux-arm-kernel/2016-April/422571.html
-> > 
+Hi Bjorn, Arnd,
+
+On Thu, Mar 16, 2017 at 04:12:43PM -0500, Bjorn Helgaas wrote:
+> [+cc Luis]
 > 
-> Aren't we breaking an ABI for userspace? I know DPDK relies on this feature.
+> On Mon, Feb 27, 2017 at 03:14:14PM +0000, Lorenzo Pieralisi wrote:
+> > The PCI specifications (Rev 3.0, 3.2.5 "Transaction Ordering and
+> > Posting") mandate non-posted configuration transactions. As further
+> > highlighted in the PCIe specifications (4.0 - Rev0.3, "Ordering
+> > Considerations for the Enhanced Configuration Access Mechanism"),
+> > through ECAM and ECAM-derivative configuration mechanism, the memory
+> > mapped transactions from the host CPU into Configuration Requests on the
+> > PCI express fabric may create ordering problems for software because
+> > writes to memory address are typically posted transactions (unless the
+> > architecture can enforce through virtual address mapping non-posted
+> > write transactions behaviour) but writes to Configuration Space are not
+> > posted on the PCI express fabric.
+> > 
+> > Current DT and ACPI host bridge controllers map PCI configuration space
+> > (ECAM and ECAM-derivative) into the virtual address space through
+> > ioremap() calls, that are non-cacheable device accesses on most
+> > architectures, but may provide "bufferable" or "posted" write semantics
+> > in architecture like eg ARM/ARM64 that allow ioremap'ed regions writes
+> > to be buffered in the bus connecting the host CPU to the PCI fabric;
+> > this behaviour, as underlined in the PCIe specifications, may trigger
+> > transactions ordering rules and must be prevented.
+> > 
+> > Introduce a new generic and explicit API to create a memory
+> > mapping for ECAM and ECAM-derivative config space area that
+> > defaults to ioremap_nocache() (which should provide a sane default
+> > behaviour) but still allowing architectures on which ioremap_nocache()
+> > results in posted write transactions to override the function
+> > call with an arch specific implementation that complies with
+> > the PCI specifications for configuration transactions.
+> > 
+> > Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+> > Cc: Arnd Bergmann <arnd@arndb.de>
+> > Cc: Will Deacon <will.deacon@arm.com>
+> > Cc: Bjorn Helgaas <bhelgaas@google.com>
+> > Cc: Russell King <linux@armlinux.org.uk>
+> > Cc: Catalin Marinas <catalin.marinas@arm.com>
+> > ---
+> >  include/asm-generic/io.h | 9 +++++++++
+> >  1 file changed, 9 insertions(+)
+> > 
+> > diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+> > index 7ef015e..52dda81 100644
+> > --- a/include/asm-generic/io.h
+> > +++ b/include/asm-generic/io.h
+> > @@ -915,6 +915,15 @@ extern void ioport_unmap(void __iomem *p);
+> >  #endif /* CONFIG_GENERIC_IOMAP */
+> >  #endif /* CONFIG_HAS_IOPORT_MAP */
+> >  
+> > +#ifndef pci_remap_cfgspace
+> > +#define pci_remap_cfgspace pci_remap_cfgspace
+> > +static inline void __iomem *pci_remap_cfgspace(phys_addr_t offset,
+> > +					       size_t size)
+> > +{
+> > +	return ioremap_nocache(offset, size);
+> > +}
+> 
+> I'm fine with this conceptually, but I think it would make more sense
+> if the name weren't specific to PCI or config space, e.g.,
+> ioremap_nopost() or something.
 
-It relies on the /proc interface? That's the first I've ever heard of that
--- everybody so far has only been interested in the sysfs stuff.
+I would like to respin shortly so I have to make a decision on the
+interface, either:
 
-Nothing's more broken than before, because we've never supported the /proc
-interface, but if existing arm64 code out there is failing because of that
-then I'm of course open to supporting it. I'm just surprised that nobody
-else has come up with that before, since DPDK is in common use.
+(1) I keep it a PCI only interface (which means I can even move it to
+    include/linux/pci.h and arch*/include/asm/pci.h to override it)
 
-Can you point me at the specific code, please?
+or
 
-Will
+(2) We add it as a generic ioremap_* interface (I am not sure though
+    that's really useful other than to map PCI config space, actually
+    the reasoning behind the naming was to limit its usage to PCI
+    config space mappings)
+
+I take it as Bjorn is keener on (2), just running a final check before
+putting v2 together to make progress.
+
+Thanks !
+Lorenzo
