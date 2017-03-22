@@ -1,60 +1,43 @@
-From: Bjorn Helgaas <helgaas@kernel.org>
-Subject: Re: [PATCH v2 2/4] asm-generic/io.h: Remove unused generic
- __ioremap() definition
-Date: Tue, 21 Mar 2017 14:59:23 -0500
-Message-ID: <20170321195923.GC5073@bhelgaas-glaptop.roam.corp.google.com>
-References: <20170320182014.4858.22352.stgit@bhelgaas-glaptop.roam.corp.google.com>
- <20170320184253.4858.12956.stgit@bhelgaas-glaptop.roam.corp.google.com>
- <CAMuHMdXzCPwijpHsvgHGDYRawF5paBxi4RNYPjxA8fRKOHQb0w@mail.gmail.com>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH 4/6] x86/kasan: Prepare clear_pgds() to switch to
+ <asm-generic/pgtable-nop4d.h>
+Date: Wed, 22 Mar 2017 08:31:36 +0100
+Message-ID: <20170322073136.GC13904@gmail.com>
+References: <20170317185515.8636-1-kirill.shutemov@linux.intel.com>
+ <20170317185515.8636-5-kirill.shutemov@linux.intel.com>
+ <218853b4-3498-dab9-d1e9-02caed4d9322@virtuozzo.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-pci-owner@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <CAMuHMdXzCPwijpHsvgHGDYRawF5paBxi4RNYPjxA8fRKOHQb0w@mail.gmail.com>
-Sender: linux-pci-owner@vger.kernel.org
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, Linux-Arch <linux-arch@vger.kernel.org>, linux-pci <linux-pci@vger.kernel.org>, "Luis R. Rodriguez" <mcgrof@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>
+In-Reply-To: <218853b4-3498-dab9-d1e9-02caed4d9322@virtuozzo.com>
+Sender: owner-linux-mm@kvack.org
+To: Andrey Ryabinin <aryabinin@virtuozzo.com>
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, Michal Hocko <mhocko@suse.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Dmitry Vyukov <dvyukov@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Mar 21, 2017 at 11:37:11AM +0100, Geert Uytterhoeven wrote:
-> Hi Björn,
-> 
-> On Mon, Mar 20, 2017 at 7:42 PM, Bjorn Helgaas <bhelgaas@google.com> wrote:
-> > Several arches use __ioremap() to help implement the generic ioremap(),
-> > ioremap_nocache(), and ioremap_wc() interfaces, but this usage is all
-> > inside the arch/ directory.
-> >
-> > The only __ioremap() uses outside arch/ are in the ZorroII RAM disk driver
-> > and some framebuffer drivers that are only buildable on m68k and powerpc,
-> > and they use the versions provided by those arches.
-> >
-> > There's no need for a generic version of __ioremap(), so remove it.
-> 
-> These all predate the ioremap_*() variants, and can be converted to
-> either ioremap_nocache() or ioremap_wt().
-> 
-> However, PPC doesn't implement ioremap_wt() yet, so asm-generic will
-> fall back to the less-efficient nocache variant.
-> PPC does support __ioremap(..., _PAGE_WRITETHRU), so adding a wrapper
-> is trivial.
 
-Thanks, I'll try adding ioremap_wt() (at least for PPC32) and cleaning this
-up.
+* Andrey Ryabinin <aryabinin@virtuozzo.com> wrote:
 
-> > Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
-> > Reviewed-by: Arnd Bergmann <arnd@arndb.de>
 > 
-> Regardless,
-> Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
 > 
-> Gr{oetje,eeting}s,
+> On 03/17/2017 09:55 PM, Kirill A. Shutemov wrote:
+> > With folded p4d, pgd_clear() is nop. Change clear_pgds() to use
+> > p4d_clear() instead.
+> > 
 > 
->                         Geert
-> 
-> --
-> Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-> 
-> In personal conversations with technical people, I call myself a hacker. But
-> when I'm talking to journalists I just say "programmer" or something like that.
->                                 -- Linus Torvalds
+> You could probably just use set_pgd(pgd_offset_k(start), __pgd(0)); instead of pgd_clear()
+> as we already do in arm64.
+> It's basically pgd_clear() except it's not a nop wih p4d folded.
+
+Makes sense. Kirill, if you agree, mind spinning a v2 patch?
+
+Thanks,
+
+	Ingo
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
