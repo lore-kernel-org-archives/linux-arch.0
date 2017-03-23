@@ -1,95 +1,109 @@
-From: David Woodhouse <dwmw2@infradead.org>
-Subject: [PATCH 18/17] x86: Use generic pci_mmap_resource_range()
-Date: Thu, 23 Mar 2017 14:29:34 +0000
-Message-ID: <7d3b0692a8c539b81b3feda8ad18503b49534c9e.1490279148.git.dwmw2@infradead.org>
-References: <cover.1490188942.git.dwmw2@infradead.org>
-Return-path: <linux-pci-owner@vger.kernel.org>
-In-Reply-To: <cover.1490188942.git.dwmw2@infradead.org>
-Sender: linux-pci-owner@vger.kernel.org
-To: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+From: Tom Lendacky <thomas.lendacky@amd.com>
+Subject: Re: [RFC PATCH v4 15/28] Add support to access persistent memory in
+ the clear
+Date: Thu, 23 Mar 2017 16:02:53 -0500
+Message-ID: <01d5f854-c8ea-61db-7e1b-1f97952bff75@amd.com>
+References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
+ <20170216154521.19244.89502.stgit@tlendack-t1.amdoffice.net>
+ <DF4PR84MB01694A716568EFB01F5C1C5EAB390@DF4PR84MB0169.NAMPRD84.PROD.OUTLOOK.COM>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="utf-8"; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <DF4PR84MB01694A716568EFB01F5C1C5EAB390@DF4PR84MB0169.NAMPRD84.PROD.OUTLOOK.COM>
+Sender: owner-linux-mm@kvack.org
+To: "Elliott, Robert (Persistent Memory)" <elliott@hpe.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-efi@vger.kernel.org" <linux-efi@vger.kernel.org>, "kvm@vger.kernel.org" <kvm@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "kasan-dev@googlegroups.com" <kasan-dev@googlegroups.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "iommu@lists.linux-foundation.org" <iommu@lists.linux-foundation.org>
+Cc: Rik van Riel <riel@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, "Kani, Toshimitsu" <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Alexander Potapenko <glider@google.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Borislav Petkov <bp@alien8.de>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Larry Woodman <lwoodman@redhat.com>, Dmitry Vyukov <dvyukov@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-From: David Woodhouse <dwmw@amazon.co.uk>
+On 3/17/2017 5:58 PM, Elliott, Robert (Persistent Memory) wrote:
+>
+>
+>> -----Original Message-----
+>> From: linux-kernel-owner@vger.kernel.org [mailto:linux-kernel-
+>> owner@vger.kernel.org] On Behalf Of Tom Lendacky
+>> Sent: Thursday, February 16, 2017 9:45 AM
+>> Subject: [RFC PATCH v4 15/28] Add support to access persistent memory in
+>> the clear
+>>
+>> Persistent memory is expected to persist across reboots. The encryption
+>> key used by SME will change across reboots which will result in corrupted
+>> persistent memory.  Persistent memory is handed out by block devices
+>> through memory remapping functions, so be sure not to map this memory as
+>> encrypted.
+>
+> The system might be able to save and restore the correct encryption key for a
+> region of persistent memory, in which case it does need to be mapped as
+> encrypted.
 
-Signed-off-by: David Woodhouse <dwmw@amazon.co.uk>
----
-Actually it turns out this is fairly trivial for x86 too; it just looked
-more interesting at first glance. But pgprot_writecombine() and
-pgprot_device() will both do the right thing here, and allowing WC
-conditionally based on pat_enabled() is already working so we'll never
-get asked to do that when we don't want to.
+If the OS could get some indication that BIOS/UEFI has saved and
+restored the encryption key, then it could be mapped encrypted.
 
- arch/x86/include/asm/pci.h |  1 +
- arch/x86/pci/i386.c        | 48 ----------------------------------------------
- 2 files changed, 1 insertion(+), 48 deletions(-)
+>
+> This might deserve a new EFI_MEMORY_ENCRYPTED attribute bit so the
+> system firmware can communicate that information to the OS (in the
+> UEFI memory map and the ACPI NFIT SPA Range structures).  It wouldn't
+> likely ever be added to the E820h table - ACPI 6.1 already obsoleted the
+> Extended Attribute for AddressRangeNonVolatile.
 
-diff --git a/arch/x86/include/asm/pci.h b/arch/x86/include/asm/pci.h
-index 734cc94..f513cc2 100644
---- a/arch/x86/include/asm/pci.h
-+++ b/arch/x86/include/asm/pci.h
-@@ -104,6 +104,7 @@ int pcibios_set_irq_routing(struct pci_dev *dev, int pin, int irq);
- 
- #define HAVE_PCI_MMAP
- #define arch_can_pci_mmap_wc()	pat_enabled()
-+#define ARCH_GENERIC_PCI_MMAP_RESOURCE
- 
- #ifdef CONFIG_PCI
- extern void early_quirks(void);
-diff --git a/arch/x86/pci/i386.c b/arch/x86/pci/i386.c
-index 8ca5e5d..68499cf 100644
---- a/arch/x86/pci/i386.c
-+++ b/arch/x86/pci/i386.c
-@@ -406,51 +406,3 @@ void __init pcibios_resource_survey(void)
- 	 */
- 	ioapic_insert_resources();
- }
--
--static const struct vm_operations_struct pci_mmap_ops = {
--	.access = generic_access_phys,
--};
--
--int pci_mmap_page_range(struct pci_dev *dev, int bar,
--			struct vm_area_struct *vma,
--			enum pci_mmap_state mmap_state, int write_combine)
--{
--	unsigned long prot;
--
--	/* I/O space cannot be accessed via normal processor loads and
--	 * stores on this platform.
--	 */
--	if (mmap_state == pci_mmap_io)
--		return -EINVAL;
--
--	prot = pgprot_val(vma->vm_page_prot);
--
--	/*
-- 	 * Return error if pat is not enabled and write_combine is requested.
-- 	 * Caller can followup with UC MINUS request and add a WC mtrr if there
-- 	 * is a free mtrr slot.
-- 	 */
--	if (!pat_enabled() && write_combine)
--		return -EINVAL;
--
--	if (pat_enabled() && write_combine)
--		prot |= cachemode2protval(_PAGE_CACHE_MODE_WC);
--	else if (pat_enabled() || boot_cpu_data.x86 > 3)
--		/*
--		 * ioremap() and ioremap_nocache() defaults to UC MINUS for now.
--		 * To avoid attribute conflicts, request UC MINUS here
--		 * as well.
--		 */
--		prot |= cachemode2protval(_PAGE_CACHE_MODE_UC_MINUS);
--
--	vma->vm_page_prot = __pgprot(prot);
--
--	if (io_remap_pfn_range(vma, vma->vm_start, vma->vm_pgoff,
--			       vma->vm_end - vma->vm_start,
--			       vma->vm_page_prot))
--		return -EAGAIN;
--
--	vma->vm_ops = &pci_mmap_ops;
--
--	return 0;
--}
--- 
-2.9.3
+An attribute bit in some form would be a nice way to inform the OS that
+the persistent memory can be mapped encrypted.
+
+>
+>>
+>> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+>> ---
+>>  arch/x86/mm/ioremap.c |    2 ++
+>>  1 file changed, 2 insertions(+)
+>>
+>> diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
+>> index b0ff6bc..c6cb921 100644
+>> --- a/arch/x86/mm/ioremap.c
+>> +++ b/arch/x86/mm/ioremap.c
+>> @@ -498,6 +498,8 @@ static bool
+>> memremap_should_map_encrypted(resource_size_t phys_addr,
+>>  	case E820_TYPE_ACPI:
+>>  	case E820_TYPE_NVS:
+>>  	case E820_TYPE_UNUSABLE:
+>> +	case E820_TYPE_PMEM:
+>> +	case E820_TYPE_PRAM:
+>>  		return false;
+>>  	default:
+>>  		break;
+>
+> E820_TYPE_RESERVED is also used to report persistent memory in
+> some systems (patch 16 adds that for other reasons).
+>
+> You might want to intercept the persistent memory types in the
+> efi_mem_type(phys_addr) switch statement earlier in the function
+> as well.  https://lkml.org/lkml/2017/3/13/357 recently mentioned that
+> "in qemu hotpluggable memory isn't put into E820," with the latest
+> information only in the UEFI memory map.
+>
+> Persistent memory can be reported there as:
+> * EfiReservedMemoryType type with the EFI_MEMORY_NV attribute
+> * EfiPersistentMemory type with the EFI_MEMORY_NV attribute
+>
+> Even the UEFI memory map is not authoritative, though.  To really
+> determine what is in these regions requires parsing the ACPI NFIT
+> SPA Ranges structures.  Parts of the E820 or UEFI regions could be
+> reported as volatile there and should thus be encrypted.
+
+Thanks for the details on this. I'll take a closer look at this and
+update the checks appropriately.
+
+Thanks,
+Tom
+
+>
+> ---
+> Robert Elliott, HPE Persistent Memory
+>
+>
+>
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
