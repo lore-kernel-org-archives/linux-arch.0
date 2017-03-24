@@ -1,7 +1,7 @@
 From: Matthew Wilcox <willy@infradead.org>
-Subject: [PATCH v3 2/7] ARM: Implement memset16, memset32 & memset64
-Date: Fri, 24 Mar 2017 09:13:13 -0700
-Message-ID: <20170324161318.18718-3-willy@infradead.org>
+Subject: [PATCH v3 4/7] alpha: Add support for memset16
+Date: Fri, 24 Mar 2017 09:13:15 -0700
+Message-ID: <20170324161318.18718-5-willy@infradead.org>
 References: <20170324161318.18718-1-willy@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -23,153 +23,93 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Matthew Wilcox <mawilcox@microsoft.com>
 
-ARM is only 32-bit, so it doesn't really need a memset64, but it was
-essentially free to add it to the existing implementation.
+Alpha already had an optimised memset-16-bit-quantity assembler routine
+called memsetw().  It has a slightly different calling convention
+from memset16() in that it takes a byte count, not a count of words.
+That's the same convention used by ARM's __memset16(), so rename Alpha's
+routine to match and add a memset16() wrapper around it.  Then convert
+Alpha's scr_memsetw() to call memset16() instead of memsetw().
 
 Signed-off-by: Matthew Wilcox <mawilcox@microsoft.com>
-Reviewed-by: Russell King <rmk+kernel@armlinux.org.uk>
 ---
- arch/arm/include/asm/string.h | 21 +++++++++++++++++++++
- arch/arm/kernel/armksyms.c    |  3 +++
- arch/arm/lib/memset.S         | 44 ++++++++++++++++++++++++++++++++++---------
- 3 files changed, 59 insertions(+), 9 deletions(-)
+ arch/alpha/include/asm/string.h | 15 ++++++++-------
+ arch/alpha/include/asm/vga.h    |  2 +-
+ arch/alpha/lib/memset.S         | 10 +++++-----
+ 3 files changed, 14 insertions(+), 13 deletions(-)
 
-diff --git a/arch/arm/include/asm/string.h b/arch/arm/include/asm/string.h
-index cf4f3aad0fc1..bc7a1be7a76a 100644
---- a/arch/arm/include/asm/string.h
-+++ b/arch/arm/include/asm/string.h
-@@ -24,6 +24,27 @@ extern void * memchr(const void *, int, __kernel_size_t);
- #define __HAVE_ARCH_MEMSET
- extern void * memset(void *, int, __kernel_size_t);
+diff --git a/arch/alpha/include/asm/string.h b/arch/alpha/include/asm/string.h
+index c2911f591704..74c0a693b76b 100644
+--- a/arch/alpha/include/asm/string.h
++++ b/arch/alpha/include/asm/string.h
+@@ -65,13 +65,14 @@ extern void * memchr(const void *, int, size_t);
+    aligned values.  The DEST and COUNT parameters must be even for 
+    correct operation.  */
  
+-#define __HAVE_ARCH_MEMSETW
+-extern void * __memsetw(void *dest, unsigned short, size_t count);
+-
+-#define memsetw(s, c, n)						 \
+-(__builtin_constant_p(c)						 \
+- ? __constant_c_memset((s),0x0001000100010001UL*(unsigned short)(c),(n)) \
+- : __memsetw((s),(c),(n)))
 +#define __HAVE_ARCH_MEMSET16
-+extern void *__memset16(uint16_t *, uint16_t v, __kernel_size_t);
-+static inline void *memset16(uint16_t *p, uint16_t v, __kernel_size_t n)
++extern void * __memset16(void *dest, unsigned short, size_t count);
++static inline void *memset16(uint16_t *p, uint16_t v, size_t n)
 +{
++	if (__builtin_constant_p(v))
++		return __constant_c_memset(p, 0x0001000100010001UL * v, n * 2)
 +	return __memset16(p, v, n * 2);
 +}
-+
-+#define __HAVE_ARCH_MEMSET32
-+extern void *__memset32(uint32_t *, uint32_t v, __kernel_size_t);
-+static inline void *memset32(uint32_t *p, uint32_t v, __kernel_size_t n)
-+{
-+	return __memset32(p, v, n * 4);
-+}
-+
-+#define __HAVE_ARCH_MEMSET64
-+extern void *__memset64(uint64_t *, uint32_t low, __kernel_size_t, uint32_t hi);
-+static inline void *memset64(uint64_t *p, uint64_t v, __kernel_size_t n)
-+{
-+	return __memset64(p, v, n * 8, v >> 32);
-+}
-+
- extern void __memzero(void *ptr, __kernel_size_t n);
  
- #define memset(p,v,n)							\
-diff --git a/arch/arm/kernel/armksyms.c b/arch/arm/kernel/armksyms.c
-index 8e8d20cdbce7..633341ed0713 100644
---- a/arch/arm/kernel/armksyms.c
-+++ b/arch/arm/kernel/armksyms.c
-@@ -87,6 +87,9 @@ EXPORT_SYMBOL(__raw_writesl);
- EXPORT_SYMBOL(strchr);
- EXPORT_SYMBOL(strrchr);
- EXPORT_SYMBOL(memset);
-+EXPORT_SYMBOL(__memset16);
-+EXPORT_SYMBOL(__memset32);
-+EXPORT_SYMBOL(__memset64);
- EXPORT_SYMBOL(memcpy);
- EXPORT_SYMBOL(memmove);
- EXPORT_SYMBOL(memchr);
-diff --git a/arch/arm/lib/memset.S b/arch/arm/lib/memset.S
-index 3c65e3bd790f..9adc9bdf3ffb 100644
---- a/arch/arm/lib/memset.S
-+++ b/arch/arm/lib/memset.S
-@@ -21,14 +21,14 @@ ENTRY(memset)
- UNWIND( .fnstart         )
- 	ands	r3, r0, #3		@ 1 unaligned?
- 	mov	ip, r0			@ preserve r0 as return value
-+	orr	r1, r1, r1, lsl #8
- 	bne	6f			@ 1
- /*
-  * we know that the pointer in ip is aligned to a word boundary.
-  */
--1:	orr	r1, r1, r1, lsl #8
--	orr	r1, r1, r1, lsl #16
-+1:	orr	r1, r1, r1, lsl #16
- 	mov	r3, r1
--	cmp	r2, #16
-+7:	cmp	r2, #16
- 	blt	4f
+ #endif /* __KERNEL__ */
  
- #if ! CALGN(1)+0
-@@ -41,7 +41,7 @@ UNWIND( .fnend              )
- UNWIND( .fnstart            )
- UNWIND( .save {r8, lr}      )
- 	mov	r8, r1
--	mov	lr, r1
-+	mov	lr, r3
+diff --git a/arch/alpha/include/asm/vga.h b/arch/alpha/include/asm/vga.h
+index c00106bac521..3c1c2b6128e7 100644
+--- a/arch/alpha/include/asm/vga.h
++++ b/arch/alpha/include/asm/vga.h
+@@ -34,7 +34,7 @@ static inline void scr_memsetw(u16 *s, u16 c, unsigned int count)
+ 	if (__is_ioaddr(s))
+ 		memsetw_io((u16 __iomem *) s, c, count);
+ 	else
+-		memsetw(s, c, count);
++		memset16(s, c, count / 2);
+ }
  
- 2:	subs	r2, r2, #64
- 	stmgeia	ip!, {r1, r3, r8, lr}	@ 64 bytes at a time.
-@@ -73,11 +73,11 @@ UNWIND( .fnend                 )
- UNWIND( .fnstart               )
- UNWIND( .save {r4-r8, lr}      )
- 	mov	r4, r1
--	mov	r5, r1
-+	mov	r5, r3
- 	mov	r6, r1
--	mov	r7, r1
-+	mov	r7, r3
- 	mov	r8, r1
--	mov	lr, r1
-+	mov	lr, r3
+ /* Do not trust that the usage will be correct; analyze the arguments.  */
+diff --git a/arch/alpha/lib/memset.S b/arch/alpha/lib/memset.S
+index 89a26f5e89de..f824969e9e77 100644
+--- a/arch/alpha/lib/memset.S
++++ b/arch/alpha/lib/memset.S
+@@ -20,7 +20,7 @@
+ 	.globl memset
+ 	.globl __memset
+ 	.globl ___memset
+-	.globl __memsetw
++	.globl __memset16
+ 	.globl __constant_c_memset
  
- 	cmp	r2, #96
- 	tstgt	ip, #31
-@@ -114,12 +114,13 @@ UNWIND( .fnstart            )
- 	tst	r2, #4
- 	strne	r1, [ip], #4
- /*
-- * When we get here, we've got less than 4 bytes to zero.  We
-+ * When we get here, we've got less than 4 bytes to set.  We
-  * may have an unaligned pointer as well.
-  */
- 5:	tst	r2, #2
-+	movne	r3, r1, lsr #8		@ the top half of a 16-bit pattern
- 	strneb	r1, [ip], #1
--	strneb	r1, [ip], #1
-+	strneb	r3, [ip], #1
- 	tst	r2, #1
- 	strneb	r1, [ip], #1
- 	ret	lr
-@@ -135,3 +136,28 @@ UNWIND( .fnstart            )
- UNWIND( .fnend   )
- ENDPROC(memset)
- ENDPROC(mmioset)
-+
-+ENTRY(__memset16)
-+UNWIND( .fnstart         )
-+	tst	r0, #2			@ pointer unaligned?
-+	mov	ip, r0			@ preserve r0 as return value
-+	beq	1b			@ jump into the middle of memset
-+	subs	r2, r2, #2		@ cope with n == 0
-+	movge	r3, r1, lsr #8		@ r3 = r1 >> 8
-+	strgeb	r1, [ip], #1		@ *ip = r1
-+	strgeb	r3, [ip], #1		@ *ip = r3
-+	bgt	1b			@ back into memset if n > 0
-+	ret	lr			@ otherwise return
-+UNWIND( .fnend   )
-+ENDPROC(__memset16)
-+ENTRY(__memset32)
-+UNWIND( .fnstart         )
-+	mov	r3, r1			@ copy r1 to r3 and fall into memset64
-+UNWIND( .fnend   )
-+ENDPROC(__memset32)
-+ENTRY(__memset64)
-+UNWIND( .fnstart         )
-+	mov	ip, r0			@ preserve r0 as return value
-+	b	7b			@ jump into the middle of memset
-+UNWIND( .fnend   )
-+ENDPROC(__memset64)
+ 	.ent ___memset
+@@ -110,8 +110,8 @@ EXPORT_SYMBOL(___memset)
+ EXPORT_SYMBOL(__constant_c_memset)
+ 
+ 	.align 5
+-	.ent __memsetw
+-__memsetw:
++	.ent __memset16
++__memset16:
+ 	.prologue 0
+ 
+ 	inswl $17,0,$1		/* E0 */
+@@ -123,8 +123,8 @@ __memsetw:
+ 	or $1,$4,$17		/* E0 */
+ 	br __constant_c_memset	/* .. E1 */
+ 
+-	.end __memsetw
+-EXPORT_SYMBOL(__memsetw)
++	.end __memset16
++EXPORT_SYMBOL(__memset16)
+ 
+ memset = ___memset
+ __memset = ___memset
 -- 
 2.11.0
