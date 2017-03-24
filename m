@@ -1,109 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-sn1nam01on0055.outbound.protection.outlook.com ([104.47.32.55]:36000
-        "EHLO NAM01-SN1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1753960AbdCWVC7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 23 Mar 2017 17:02:59 -0400
-Subject: Re: [RFC PATCH v4 15/28] Add support to access persistent memory in
- the clear
-References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
- <20170216154521.19244.89502.stgit@tlendack-t1.amdoffice.net>
- <DF4PR84MB01694A716568EFB01F5C1C5EAB390@DF4PR84MB0169.NAMPRD84.PROD.OUTLOOK.COM>
-From: Tom Lendacky <thomas.lendacky@amd.com>
-Message-ID: <01d5f854-c8ea-61db-7e1b-1f97952bff75@amd.com>
-Date: Thu, 23 Mar 2017 16:02:53 -0500
+Received: from mail-wm0-f48.google.com ([74.125.82.48]:36637 "EHLO
+        mail-wm0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1756459AbdCXIc7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Mar 2017 04:32:59 -0400
+Received: by mail-wm0-f48.google.com with SMTP id n11so7037861wma.1
+        for <linux-arch@vger.kernel.org>; Fri, 24 Mar 2017 01:32:57 -0700 (PDT)
+Reply-To: nicolas.dichtel@6wind.com
+Subject: Re: [PATCH v10 00/11] uapi: export all headers under uapi directories
+References: <CAK7LNARpx7f0eV5_AiPmNYT7MsRbGFOygJwjfAzX_7aCpuHwuw@mail.gmail.com>
+ <1489496093-15315-1-git-send-email-nicolas.dichtel@6wind.com>
+From: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+Message-ID: <365519b5-d69e-34b7-fa2f-f11b8fabe69f@6wind.com>
+Date: Fri, 24 Mar 2017 09:32:54 +0100
 MIME-Version: 1.0
-In-Reply-To: <DF4PR84MB01694A716568EFB01F5C1C5EAB390@DF4PR84MB0169.NAMPRD84.PROD.OUTLOOK.COM>
-Content-Type: text/plain; charset="utf-8"; format=flowed
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <1489496093-15315-1-git-send-email-nicolas.dichtel@6wind.com>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Elliott, Robert (Persistent Memory)" <elliott@hpe.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-efi@vger.kernel.org" <linux-efi@vger.kernel.org>, "kvm@vger.kernel.org" <kvm@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "kasan-dev@googlegroups.com" <kasan-dev@googlegroups.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "iommu@lists.linux-foundation.org" <iommu@lists.linux-foundation.org>
-Cc: Rik van Riel <riel@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, "Kani, Toshimitsu" <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Alexander Potapenko <glider@google.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Borislav Petkov <bp@alien8.de>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Larry Woodman <lwoodman@redhat.com>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170323210253.Bp2aFBW8Xn5m-FHFjjkVX1onTAo7flg1UjQXnv2kOI8@z>
+To: yamada.masahiro@socionext.com
+Cc: arnd@arndb.de, mmarek@suse.com, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, bp@alien8.de, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, tklauser@distanz.ch, mpe@ellerman.id.au, mingo@kernel.org, tglx@linutronix.de, ldv@altlinux.org, herbert@gondor.apana.org.au, linux-rdma@vger.kernel.org
+Message-ID: <20170324083254.eGUlvIaXQjKAjDiQIdqF3moHON0m6vWpC3EjOJqTIUA@z>
 
-On 3/17/2017 5:58 PM, Elliott, Robert (Persistent Memory) wrote:
->
->
->> -----Original Message-----
->> From: linux-kernel-owner@vger.kernel.org [mailto:linux-kernel-
->> owner@vger.kernel.org] On Behalf Of Tom Lendacky
->> Sent: Thursday, February 16, 2017 9:45 AM
->> Subject: [RFC PATCH v4 15/28] Add support to access persistent memory in
->> the clear
->>
->> Persistent memory is expected to persist across reboots. The encryption
->> key used by SME will change across reboots which will result in corrupted
->> persistent memory.  Persistent memory is handed out by block devices
->> through memory remapping functions, so be sure not to map this memory as
->> encrypted.
->
-> The system might be able to save and restore the correct encryption key for a
-> region of persistent memory, in which case it does need to be mapped as
-> encrypted.
+Le 14/03/2017 à 13:54, Nicolas Dichtel a écrit :
+> Patches #1 and #2 are just cleanup: some exported headers were still under
+> a non-uapi directory. Patch #3 is a fix to avoid exporting a file that was
+> not under an uapi directory.
+> After these three patches, all exported headers are under an uapi directory:
+> path #4 stops searching files in non uapi directories.
+> The patch #5 was spotted by code review: there is no in-tree user of this
+> functionality.
+> Patch #6 fixes some warnings/errors reported by 0-day tests.
+> Patch #7 to #9 fix some errors when the corresponding files are included by
+> userland.
+> Patches #10 and #11 remove the need to list explicitly headers. Now all files
+> under an uapi directory are exported.
+> 
+> This series has been tested with a 'make headers_install' on x86 and a
+> 'make headers_install_all'. I've checked the result of both commands.
+> 
+> This patch is built on top of masahiroy/linux-kbuild.git#for-next (v4.11-rc1).
+> I didn't find any conflict with v4.11-rc2.
+Masahiro, is this series under review or do you expect something else on my side?
 
-If the OS could get some indication that BIOS/UEFI has saved and
-restored the encryption key, then it could be mapped encrypted.
 
->
-> This might deserve a new EFI_MEMORY_ENCRYPTED attribute bit so the
-> system firmware can communicate that information to the OS (in the
-> UEFI memory map and the ACPI NFIT SPA Range structures).  It wouldn't
-> likely ever be added to the E820h table - ACPI 6.1 already obsoleted the
-> Extended Attribute for AddressRangeNonVolatile.
-
-An attribute bit in some form would be a nice way to inform the OS that
-the persistent memory can be mapped encrypted.
-
->
->>
->> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
->> ---
->>  arch/x86/mm/ioremap.c |    2 ++
->>  1 file changed, 2 insertions(+)
->>
->> diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
->> index b0ff6bc..c6cb921 100644
->> --- a/arch/x86/mm/ioremap.c
->> +++ b/arch/x86/mm/ioremap.c
->> @@ -498,6 +498,8 @@ static bool
->> memremap_should_map_encrypted(resource_size_t phys_addr,
->>  	case E820_TYPE_ACPI:
->>  	case E820_TYPE_NVS:
->>  	case E820_TYPE_UNUSABLE:
->> +	case E820_TYPE_PMEM:
->> +	case E820_TYPE_PRAM:
->>  		return false;
->>  	default:
->>  		break;
->
-> E820_TYPE_RESERVED is also used to report persistent memory in
-> some systems (patch 16 adds that for other reasons).
->
-> You might want to intercept the persistent memory types in the
-> efi_mem_type(phys_addr) switch statement earlier in the function
-> as well.  https://lkml.org/lkml/2017/3/13/357 recently mentioned that
-> "in qemu hotpluggable memory isn't put into E820," with the latest
-> information only in the UEFI memory map.
->
-> Persistent memory can be reported there as:
-> * EfiReservedMemoryType type with the EFI_MEMORY_NV attribute
-> * EfiPersistentMemory type with the EFI_MEMORY_NV attribute
->
-> Even the UEFI memory map is not authoritative, though.  To really
-> determine what is in these regions requires parsing the ACPI NFIT
-> SPA Ranges structures.  Parts of the E820 or UEFI regions could be
-> reported as volatile there and should thus be encrypted.
-
-Thanks for the details on this. I'll take a closer look at this and
-update the checks appropriately.
-
-Thanks,
-Tom
-
->
-> ---
-> Robert Elliott, HPE Persistent Memory
->
->
->
+Regards,
+Nicolas
