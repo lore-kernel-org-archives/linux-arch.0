@@ -1,109 +1,152 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([65.50.211.133]:49678 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S966126AbdCXQNj (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Mar 2017 12:13:39 -0400
-From: Matthew Wilcox <willy@infradead.org>
-Subject: [PATCH v3 4/7] alpha: Add support for memset16
-Date: Fri, 24 Mar 2017 09:13:15 -0700
-Message-ID: <20170324161318.18718-5-willy@infradead.org>
-In-Reply-To: <20170324161318.18718-1-willy@infradead.org>
-References: <20170324161318.18718-1-willy@infradead.org>
+Received: from twosheds.infradead.org ([90.155.92.209]:48320 "EHLO
+        twosheds.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S935665AbdCXQUv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Mar 2017 12:20:51 -0400
+Message-ID: <1490372446.11996.11.camel@infradead.org>
+Subject: Re: [PATCH 17/17] arm64: Do not expose PCI mmap through procfs
+From: David Woodhouse <dwmw2@infradead.org>
+In-Reply-To: <CAK8P3a3RtSCGfbtpJDF2d30rLagPMY=HnnjYpBe+k1UxKrXOig@mail.gmail.com>
+References: <cover.1490188942.git.dwmw2@infradead.org>
+         <4281f8e01b9fc5628cbf4a5c77abd642801e23c7.1490188942.git.dwmw2@infradead.org>
+         <CAK8P3a3RtSCGfbtpJDF2d30rLagPMY=HnnjYpBe+k1UxKrXOig@mail.gmail.com>
+Content-Type: multipart/signed; micalg="sha-256"; protocol="application/x-pkcs7-signature"; boundary="=-W73jAO+yOM4QHSR0Fw9U"
+Date: Fri, 24 Mar 2017 16:20:46 +0000
+Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-fbdev@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, x86@kernel.org, linux-mips@linux-mips.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, Minchan Kim <minchan@kernel.org>, Matthew Wilcox <mawilcox@microsoft.com>
-Message-ID: <20170324161315.da0rjDywzMTDYbh23tvP8roqVv2LEc5dPA895aY_2Ws@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-pci <linux-pci@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20170324162046.AyKPN0zBgcCLJg0adecwQQwQc0NVDdcokD6mxoI3vnQ@z>
 
-From: Matthew Wilcox <mawilcox@microsoft.com>
 
-Alpha already had an optimised memset-16-bit-quantity assembler routine
-called memsetw().  It has a slightly different calling convention
-from memset16() in that it takes a byte count, not a count of words.
-That's the same convention used by ARM's __memset16(), so rename Alpha's
-routine to match and add a memset16() wrapper around it.  Then convert
-Alpha's scr_memsetw() to call memset16() instead of memsetw().
+--=-W73jAO+yOM4QHSR0Fw9U
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-Signed-off-by: Matthew Wilcox <mawilcox@microsoft.com>
----
- arch/alpha/include/asm/string.h | 15 ++++++++-------
- arch/alpha/include/asm/vga.h    |  2 +-
- arch/alpha/lib/memset.S         | 10 +++++-----
- 3 files changed, 14 insertions(+), 13 deletions(-)
+On Fri, 2017-03-24 at 17:13 +0100, Arnd Bergmann wrote:
+>=20
+> I'd still prefer this to be a whitelist of the existing architectures usi=
+ng PCI
+> MMAP in procfs, there is really no reason for arm64 to be special, the
+> one thing we want to control here is whether new architectures (including
+> arm64) that have never had either the sysfs or the procfs interface
+> should get one or both of them.
+>
+> As it seems that there are important use cases for the sysfs interface
+> and your patch series will just make that work everywhere, I'd argue
+> that we should just always provide the sysfs interface now, and use
+> HAVE_PCI_MMAP only control the procfs interface.
 
-diff --git a/arch/alpha/include/asm/string.h b/arch/alpha/include/asm/string.h
-index c2911f591704..74c0a693b76b 100644
---- a/arch/alpha/include/asm/string.h
-+++ b/arch/alpha/include/asm/string.h
-@@ -65,13 +65,14 @@ extern void * memchr(const void *, int, size_t);
-    aligned values.  The DEST and COUNT parameters must be even for 
-    correct operation.  */
- 
--#define __HAVE_ARCH_MEMSETW
--extern void * __memsetw(void *dest, unsigned short, size_t count);
--
--#define memsetw(s, c, n)						 \
--(__builtin_constant_p(c)						 \
-- ? __constant_c_memset((s),0x0001000100010001UL*(unsigned short)(c),(n)) \
-- : __memsetw((s),(c),(n)))
-+#define __HAVE_ARCH_MEMSET16
-+extern void * __memset16(void *dest, unsigned short, size_t count);
-+static inline void *memset16(uint16_t *p, uint16_t v, size_t n)
-+{
-+	if (__builtin_constant_p(v))
-+		return __constant_c_memset(p, 0x0001000100010001UL * v, n * 2)
-+	return __memset16(p, v, n * 2);
-+}
- 
- #endif /* __KERNEL__ */
- 
-diff --git a/arch/alpha/include/asm/vga.h b/arch/alpha/include/asm/vga.h
-index c00106bac521..3c1c2b6128e7 100644
---- a/arch/alpha/include/asm/vga.h
-+++ b/arch/alpha/include/asm/vga.h
-@@ -34,7 +34,7 @@ static inline void scr_memsetw(u16 *s, u16 c, unsigned int count)
- 	if (__is_ioaddr(s))
- 		memsetw_io((u16 __iomem *) s, c, count);
- 	else
--		memsetw(s, c, count);
-+		memset16(s, c, count / 2);
- }
- 
- /* Do not trust that the usage will be correct; analyze the arguments.  */
-diff --git a/arch/alpha/lib/memset.S b/arch/alpha/lib/memset.S
-index 89a26f5e89de..f824969e9e77 100644
---- a/arch/alpha/lib/memset.S
-+++ b/arch/alpha/lib/memset.S
-@@ -20,7 +20,7 @@
- 	.globl memset
- 	.globl __memset
- 	.globl ___memset
--	.globl __memsetw
-+	.globl __memset16
- 	.globl __constant_c_memset
- 
- 	.ent ___memset
-@@ -110,8 +110,8 @@ EXPORT_SYMBOL(___memset)
- EXPORT_SYMBOL(__constant_c_memset)
- 
- 	.align 5
--	.ent __memsetw
--__memsetw:
-+	.ent __memset16
-+__memset16:
- 	.prologue 0
- 
- 	inswl $17,0,$1		/* E0 */
-@@ -123,8 +123,8 @@ __memsetw:
- 	or $1,$4,$17		/* E0 */
- 	br __constant_c_memset	/* .. E1 */
- 
--	.end __memsetw
--EXPORT_SYMBOL(__memsetw)
-+	.end __memset16
-+EXPORT_SYMBOL(__memset16)
- 
- memset = ___memset
- __memset = ___memset
--- 
-2.11.0
+I still have no sympathy for the "we don't want <this> tiny part of the
+legacy generic non-architecture-specific procfs ABI to exist on ARM64".
+Why not just kill /proc/bus/pci *entirely* there?
+
+But sure, I suppose we could refactor things so that the sysfs mmap
+bits depend on (HAVE_PCI_MMAP || ARCH_GENERIC_MMAP_RESOURCE_RANGE)
+rather than having architectures define the latter in *addition* to the
+former.
+
+> That way, we turn on the sysfs interface on arc, arm64, frv and tile
+> as well as any future architecture with PCI support, but leave
+> the procfs support as opt-in.
+
+OK. My plan was for ARCH_GENERIC_MMAP_RESOURCE_RANGE to go away once
+all architectures were converted, and HAVE_PCI_MMAP to be all that's
+left. It does make send to do arc, fr-v and tile too though. So we can
+do it that way.
+--=-W73jAO+yOM4QHSR0Fw9U
+Content-Type: application/x-pkcs7-signature; name="smime.p7s"
+Content-Disposition: attachment; filename="smime.p7s"
+Content-Transfer-Encoding: base64
+
+MIAGCSqGSIb3DQEHAqCAMIACAQExDzANBglghkgBZQMEAgEFADCABgkqhkiG9w0BBwEAAKCCDzUw
+ggSvMIIDl6ADAgECAhEA4CPLFRKDU4mtYW56VGdrITANBgkqhkiG9w0BAQsFADBvMQswCQYDVQQG
+EwJTRTEUMBIGA1UEChMLQWRkVHJ1c3QgQUIxJjAkBgNVBAsTHUFkZFRydXN0IEV4dGVybmFsIFRU
+UCBOZXR3b3JrMSIwIAYDVQQDExlBZGRUcnVzdCBFeHRlcm5hbCBDQSBSb290MB4XDTE0MTIyMjAw
+MDAwMFoXDTIwMDUzMDEwNDgzOFowgZsxCzAJBgNVBAYTAkdCMRswGQYDVQQIExJHcmVhdGVyIE1h
+bmNoZXN0ZXIxEDAOBgNVBAcTB1NhbGZvcmQxGjAYBgNVBAoTEUNPTU9ETyBDQSBMaW1pdGVkMUEw
+PwYDVQQDEzhDT01PRE8gU0hBLTI1NiBDbGllbnQgQXV0aGVudGljYXRpb24gYW5kIFNlY3VyZSBF
+bWFpbCBDQTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAImxDdp6UxlOcFIdvFamBia3
+uEngludRq/HwWhNJFaO0jBtgvHpRQqd5jKQi3xdhTpHVdiMKFNNKAn+2HQmAbqUEPdm6uxb+oYep
+LkNSQxZ8rzJQyKZPWukI2M+TJZx7iOgwZOak+FaA/SokFDMXmaxE5WmLo0YGS8Iz1OlAnwawsayT
+QLm1CJM6nCpToxDbPSBhPFUDjtlOdiUCISn6o3xxdk/u4V+B6ftUgNvDezVSt4TeIj0sMC0xf1m9
+UjewM2ktQ+v61qXxl3dnUYzZ7ifrvKUHOHaMpKk4/9+M9QOsSb7K93OZOg8yq5yVOhM9DkY6V3Rh
+UL7GQD/L5OKfoiECAwEAAaOCARcwggETMB8GA1UdIwQYMBaAFK29mHo0tCb3+sQmVO8DveAky1Qa
+MB0GA1UdDgQWBBSSYWuC4aKgqk/sZ/HCo/e0gADB7DAOBgNVHQ8BAf8EBAMCAYYwEgYDVR0TAQH/
+BAgwBgEB/wIBADAdBgNVHSUEFjAUBggrBgEFBQcDAgYIKwYBBQUHAwQwEQYDVR0gBAowCDAGBgRV
+HSAAMEQGA1UdHwQ9MDswOaA3oDWGM2h0dHA6Ly9jcmwudXNlcnRydXN0LmNvbS9BZGRUcnVzdEV4
+dGVybmFsQ0FSb290LmNybDA1BggrBgEFBQcBAQQpMCcwJQYIKwYBBQUHMAGGGWh0dHA6Ly9vY3Nw
+LnVzZXJ0cnVzdC5jb20wDQYJKoZIhvcNAQELBQADggEBABsqbqxVwTqriMXY7c1V86prYSvACRAj
+mQ/FZmpvsfW0tXdeDwJhAN99Bf4Ss6SAgAD8+x1banICCkG8BbrBWNUmwurVTYT7/oKYz1gb4yJj
+nFL4uwU2q31Ypd6rO2Pl2tVz7+zg+3vio//wQiOcyraNTT7kSxgDsqgt1Ni7QkuQaYUQ26Y3NOh7
+4AEQpZzKOsefT4g0bopl0BqKu6ncyso20fT8wmQpNa/WsadxEdIDQ7GPPprsnjJT9HaSyoY0B7ks
+yuYcStiZDcGG4pCS+1pCaiMhEOllx/XVu37qjIUgAmLq0ToHLFnFmTPyOInltukWeh95FPZKEBom
++nyK+5swggU9MIIEJaADAgECAhBqC1BYlVMtBFBN4igR/howMA0GCSqGSIb3DQEBCwUAMIGbMQsw
+CQYDVQQGEwJHQjEbMBkGA1UECBMSR3JlYXRlciBNYW5jaGVzdGVyMRAwDgYDVQQHEwdTYWxmb3Jk
+MRowGAYDVQQKExFDT01PRE8gQ0EgTGltaXRlZDFBMD8GA1UEAxM4Q09NT0RPIFNIQS0yNTYgQ2xp
+ZW50IEF1dGhlbnRpY2F0aW9uIGFuZCBTZWN1cmUgRW1haWwgQ0EwHhcNMTYxMjIwMDAwMDAwWhcN
+MTcxMjIwMjM1OTU5WjAkMSIwIAYJKoZIhvcNAQkBFhNkd213MkBpbmZyYWRlYWQub3JnMIIBIjAN
+BgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwbTrFaiGdvN2pThnR9q+4eaXB2wQZQNqhter5ZrJ
+pPO47e87bZ+f1tmYoh6+rB90G/XN24NErPRfvU4zVzNT9pCtCzSSVnBlZQBpaEYMKhcXo5PGKNsm
+An8BoGwNXjlxwbBNRaNO+ky0wNCaMNd1JLxEuvqg9J7rrcpHhWmnpXD5IKa8gv9GyVAJgOpiBOts
+p91sShc2kHvWJ5waPEWPCHDH9J+twGGKqKIIU7fdbURLUgUL1wlDSAHf/lgIAVCSj2H2HpoGqHpy
+HgOAClX9iRSLNa0Znj8HTaqfOwxXevsz1KkLFY+Ahm426GIEqdfkK2iT6Hhgc7tjNO3f8i5ALQID
+AQABo4IB8TCCAe0wHwYDVR0jBBgwFoAUkmFrguGioKpP7GfxwqP3tIAAwewwHQYDVR0OBBYEFILE
+dmHLtK6oxmFJZvBhTQhvqrS0MA4GA1UdDwEB/wQEAwIFoDAMBgNVHRMBAf8EAjAAMCAGA1UdJQQZ
+MBcGCCsGAQUFBwMEBgsrBgEEAbIxAQMFAjARBglghkgBhvhCAQEEBAMCBSAwRgYDVR0gBD8wPTA7
+BgwrBgEEAbIxAQIBAQEwKzApBggrBgEFBQcCARYdaHR0cHM6Ly9zZWN1cmUuY29tb2RvLm5ldC9D
+UFMwXQYDVR0fBFYwVDBSoFCgToZMaHR0cDovL2NybC5jb21vZG9jYS5jb20vQ09NT0RPU0hBMjU2
+Q2xpZW50QXV0aGVudGljYXRpb25hbmRTZWN1cmVFbWFpbENBLmNybDCBkAYIKwYBBQUHAQEEgYMw
+gYAwWAYIKwYBBQUHMAKGTGh0dHA6Ly9jcnQuY29tb2RvY2EuY29tL0NPTU9ET1NIQTI1NkNsaWVu
+dEF1dGhlbnRpY2F0aW9uYW5kU2VjdXJlRW1haWxDQS5jcnQwJAYIKwYBBQUHMAGGGGh0dHA6Ly9v
+Y3NwLmNvbW9kb2NhLmNvbTAeBgNVHREEFzAVgRNkd213MkBpbmZyYWRlYWQub3JnMA0GCSqGSIb3
+DQEBCwUAA4IBAQA+AfvNhFwtapF5Lzjapgul3zYuEnMfR538Ya1vhP8wuOkcoJeT2gEFXzVO2WUu
+eWM0g0/DumnRB53htV/Qq/+vsL0i6a2+iOO7kHi5O7bZkgbdNv0t2lzonDUHi6LTa7NUj+tv+j6y
+hW+iNquC3ACP1dIZH8gJmicHblW63qRgp6wxhn315MLBeavi3uiSag2eeKFePiTIwJjN2UYq6kWg
+PL5G/Ycf9x/xN1XBTfJiURc0FsXhrA98VMWnt52C5Lo4txhGjzTI+IZg40b3YDs6E7mTYb5KKmbc
+QZA9priOFDdj1z5W9BdWhU6I/D0P9y8Z4Tr6+ZscMUVD0RqWy2LeMIIFPTCCBCWgAwIBAgIQagtQ
+WJVTLQRQTeIoEf4aMDANBgkqhkiG9w0BAQsFADCBmzELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdy
+ZWF0ZXIgTWFuY2hlc3RlcjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExp
+bWl0ZWQxQTA/BgNVBAMTOENPTU9ETyBTSEEtMjU2IENsaWVudCBBdXRoZW50aWNhdGlvbiBhbmQg
+U2VjdXJlIEVtYWlsIENBMB4XDTE2MTIyMDAwMDAwMFoXDTE3MTIyMDIzNTk1OVowJDEiMCAGCSqG
+SIb3DQEJARYTZHdtdzJAaW5mcmFkZWFkLm9yZzCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoC
+ggEBAMG06xWohnbzdqU4Z0favuHmlwdsEGUDaobXq+WayaTzuO3vO22fn9bZmKIevqwfdBv1zduD
+RKz0X71OM1czU/aQrQs0klZwZWUAaWhGDCoXF6OTxijbJgJ/AaBsDV45ccGwTUWjTvpMtMDQmjDX
+dSS8RLr6oPSe663KR4Vpp6Vw+SCmvIL/RslQCYDqYgTrbKfdbEoXNpB71iecGjxFjwhwx/SfrcBh
+iqiiCFO33W1ES1IFC9cJQ0gB3/5YCAFQko9h9h6aBqh6ch4DgApV/YkUizWtGZ4/B02qnzsMV3r7
+M9SpCxWPgIZuNuhiBKnX5Ctok+h4YHO7YzTt3/IuQC0CAwEAAaOCAfEwggHtMB8GA1UdIwQYMBaA
+FJJha4LhoqCqT+xn8cKj97SAAMHsMB0GA1UdDgQWBBSCxHZhy7SuqMZhSWbwYU0Ib6q0tDAOBgNV
+HQ8BAf8EBAMCBaAwDAYDVR0TAQH/BAIwADAgBgNVHSUEGTAXBggrBgEFBQcDBAYLKwYBBAGyMQED
+BQIwEQYJYIZIAYb4QgEBBAQDAgUgMEYGA1UdIAQ/MD0wOwYMKwYBBAGyMQECAQEBMCswKQYIKwYB
+BQUHAgEWHWh0dHBzOi8vc2VjdXJlLmNvbW9kby5uZXQvQ1BTMF0GA1UdHwRWMFQwUqBQoE6GTGh0
+dHA6Ly9jcmwuY29tb2RvY2EuY29tL0NPTU9ET1NIQTI1NkNsaWVudEF1dGhlbnRpY2F0aW9uYW5k
+U2VjdXJlRW1haWxDQS5jcmwwgZAGCCsGAQUFBwEBBIGDMIGAMFgGCCsGAQUFBzAChkxodHRwOi8v
+Y3J0LmNvbW9kb2NhLmNvbS9DT01PRE9TSEEyNTZDbGllbnRBdXRoZW50aWNhdGlvbmFuZFNlY3Vy
+ZUVtYWlsQ0EuY3J0MCQGCCsGAQUFBzABhhhodHRwOi8vb2NzcC5jb21vZG9jYS5jb20wHgYDVR0R
+BBcwFYETZHdtdzJAaW5mcmFkZWFkLm9yZzANBgkqhkiG9w0BAQsFAAOCAQEAPgH7zYRcLWqReS84
+2qYLpd82LhJzH0ed/GGtb4T/MLjpHKCXk9oBBV81TtllLnljNINPw7pp0Qed4bVf0Kv/r7C9Iumt
+vojju5B4uTu22ZIG3Tb9Ldpc6Jw1B4ui02uzVI/rb/o+soVvojargtwAj9XSGR/ICZonB25Vut6k
+YKesMYZ99eTCwXmr4t7okmoNnnihXj4kyMCYzdlGKupFoDy+Rv2HH/cf8TdVwU3yYlEXNBbF4awP
+fFTFp7edguS6OLcYRo80yPiGYONG92A7OhO5k2G+Sipm3EGQPaa4jhQ3Y9c+VvQXVoVOiPw9D/cv
+GeE6+vmbHDFFQ9Ealsti3jGCA9MwggPPAgEBMIGwMIGbMQswCQYDVQQGEwJHQjEbMBkGA1UECBMS
+R3JlYXRlciBNYW5jaGVzdGVyMRAwDgYDVQQHEwdTYWxmb3JkMRowGAYDVQQKExFDT01PRE8gQ0Eg
+TGltaXRlZDFBMD8GA1UEAxM4Q09NT0RPIFNIQS0yNTYgQ2xpZW50IEF1dGhlbnRpY2F0aW9uIGFu
+ZCBTZWN1cmUgRW1haWwgQ0ECEGoLUFiVUy0EUE3iKBH+GjAwDQYJYIZIAWUDBAIBBQCgggHzMBgG
+CSqGSIb3DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTE3MDMyNDE2MjA0NlowLwYJ
+KoZIhvcNAQkEMSIEICQlx8jv38++VSX41sdUOLj+hSe4hAKKIsrk1HU3O4DRMIHBBgkrBgEEAYI3
+EAQxgbMwgbAwgZsxCzAJBgNVBAYTAkdCMRswGQYDVQQIExJHcmVhdGVyIE1hbmNoZXN0ZXIxEDAO
+BgNVBAcTB1NhbGZvcmQxGjAYBgNVBAoTEUNPTU9ETyBDQSBMaW1pdGVkMUEwPwYDVQQDEzhDT01P
+RE8gU0hBLTI1NiBDbGllbnQgQXV0aGVudGljYXRpb24gYW5kIFNlY3VyZSBFbWFpbCBDQQIQagtQ
+WJVTLQRQTeIoEf4aMDCBwwYLKoZIhvcNAQkQAgsxgbOggbAwgZsxCzAJBgNVBAYTAkdCMRswGQYD
+VQQIExJHcmVhdGVyIE1hbmNoZXN0ZXIxEDAOBgNVBAcTB1NhbGZvcmQxGjAYBgNVBAoTEUNPTU9E
+TyBDQSBMaW1pdGVkMUEwPwYDVQQDEzhDT01PRE8gU0hBLTI1NiBDbGllbnQgQXV0aGVudGljYXRp
+b24gYW5kIFNlY3VyZSBFbWFpbCBDQQIQagtQWJVTLQRQTeIoEf4aMDANBgkqhkiG9w0BAQEFAASC
+AQBMVR41Mc7GSA+TsR0BC9eTqRHh7TP87VtXDjHyVIT5Dg5AaZECSlEG0roH5wr/N+Of/MO7cRxb
+MtGYW/qGLDCgqaEgS92IhwJwp+sLQ2ug/xABiABEqlmJWsA85iiO0/NY9CrfNjOgXcWoXCRFIS0e
+hnuSoYZWsZNYq50jk1sJYJ4FWwL/8XDZeGitEAibpwngmvgE0x6JzNtVHGysekIqh166QXflkw2P
+ThNT18byk6XsP+sSpuR7QIa3T1Oi+Ae8w3YL9CXr01k7pRYKew0fKYTkxsgGFkNA1KxXCtI8pL+P
+gPfaHIOJ3mLSB1KFknqUEv5Tes9jGC/S2VKUsfE6AAAAAAAA
+
+
+--=-W73jAO+yOM4QHSR0Fw9U--
