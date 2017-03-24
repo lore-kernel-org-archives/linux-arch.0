@@ -1,7 +1,7 @@
 From: Matthew Wilcox <willy@infradead.org>
-Subject: [PATCH v3 5/7] zram: Convert to using memset_l
-Date: Fri, 24 Mar 2017 09:13:16 -0700
-Message-ID: <20170324161318.18718-6-willy@infradead.org>
+Subject: [PATCH v3 3/7] x86: Implement memset16, memset32 & memset64
+Date: Fri, 24 Mar 2017 09:13:14 -0700
+Message-ID: <20170324161318.18718-4-willy@infradead.org>
 References: <20170324161318.18718-1-willy@infradead.org>
 Return-path: <linux-alpha-owner@vger.kernel.org>
 In-Reply-To: <20170324161318.18718-1-willy@infradead.org>
@@ -12,57 +12,98 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Matthew Wilcox <mawilcox@microsoft.com>
 
-zram was the motivation for creating memset_l().  Minchan Kim sees a 7%
-performance improvement on x86 with 100MB of non-zero deduplicatable
-data:
-
-        perf stat -r 10 dd if=/dev/zram0 of=/dev/null
-
-vanilla:        0.232050465 seconds time elapsed ( +-  0.51% )
-memset_l:	0.217219387 seconds time elapsed ( +-  0.07% )
+These are single instructions on x86.  There's no 64-bit instruction
+for x86-32, but we don't yet have any user for memset64() on 32-bit
+architectures, so don't bother to implement it.
 
 Signed-off-by: Matthew Wilcox <mawilcox@microsoft.com>
-Tested-by: Minchan Kim <minchan@kernel.org>
 ---
- drivers/block/zram/zram_drv.c | 15 +++------------
- 1 file changed, 3 insertions(+), 12 deletions(-)
+ arch/x86/include/asm/string_32.h | 24 ++++++++++++++++++++++++
+ arch/x86/include/asm/string_64.h | 36 ++++++++++++++++++++++++++++++++++++
+ 2 files changed, 60 insertions(+)
 
-diff --git a/drivers/block/zram/zram_drv.c b/drivers/block/zram/zram_drv.c
-index e27d89a36c34..25dcad309695 100644
---- a/drivers/block/zram/zram_drv.c
-+++ b/drivers/block/zram/zram_drv.c
-@@ -157,20 +157,11 @@ static inline void update_used_max(struct zram *zram,
- 	} while (old_max != cur_max);
- }
+diff --git a/arch/x86/include/asm/string_32.h b/arch/x86/include/asm/string_32.h
+index 3d3e8353ee5c..84da91fe13ac 100644
+--- a/arch/x86/include/asm/string_32.h
++++ b/arch/x86/include/asm/string_32.h
+@@ -331,6 +331,30 @@ void *__constant_c_and_count_memset(void *s, unsigned long pattern,
+ 	 : __memset((s), (c), (count)))
+ #endif
  
--static inline void zram_fill_page(char *ptr, unsigned long len,
-+static inline void zram_fill_page(void *ptr, unsigned long len,
- 					unsigned long value)
- {
--	int i;
--	unsigned long *page = (unsigned long *)ptr;
--
- 	WARN_ON_ONCE(!IS_ALIGNED(len, sizeof(unsigned long)));
--
--	if (likely(value == 0)) {
--		memset(ptr, 0, len);
--	} else {
--		for (i = 0; i < len / sizeof(*page); i++)
--			page[i] = value;
--	}
-+	memset_l(ptr, value, len / sizeof(unsigned long));
- }
++#define __HAVE_ARCH_MEMSET16
++static inline void *memset16(uint16_t *s, uint16_t v, size_t n)
++{
++	int d0, d1;
++	asm volatile("rep\n\t"
++		     "stosw"
++		     : "=&c" (d0), "=&D" (d1)
++		     : "a" (v), "1" (s), "0" (n)
++		     : "memory");
++	return s;
++}
++
++#define __HAVE_ARCH_MEMSET_32
++static inline void *memset32(uint32_t *s, uint32_t v, size_t n)
++{
++	int d0, d1;
++	asm volatile("rep\n\t"
++		     "stosl"
++		     : "=&c" (d0), "=&D" (d1)
++		     : "a" (v), "1" (s), "0" (n)
++		     : "memory");
++	return s;
++}
++
+ /*
+  * find the first occurrence of byte 'c', or 1 past the area if none
+  */
+diff --git a/arch/x86/include/asm/string_64.h b/arch/x86/include/asm/string_64.h
+index a164862d77e3..71c5e860c7da 100644
+--- a/arch/x86/include/asm/string_64.h
++++ b/arch/x86/include/asm/string_64.h
+@@ -56,6 +56,42 @@ extern void *__memcpy(void *to, const void *from, size_t len);
+ void *memset(void *s, int c, size_t n);
+ void *__memset(void *s, int c, size_t n);
  
- static bool page_same_filled(void *ptr, unsigned long *element)
-@@ -193,7 +184,7 @@ static bool page_same_filled(void *ptr, unsigned long *element)
- static void handle_same_page(struct bio_vec *bvec, unsigned long element)
- {
- 	struct page *page = bvec->bv_page;
--	void *user_mem;
-+	char *user_mem;
- 
- 	user_mem = kmap_atomic(page);
- 	zram_fill_page(user_mem + bvec->bv_offset, bvec->bv_len, element);
++#define __HAVE_ARCH_MEMSET16
++static inline void *memset16(uint16_t *s, uint16_t v, size_t n)
++{
++	long d0, d1;
++	asm volatile("rep\n\t"
++		     "stosw"
++		     : "=&c" (d0), "=&D" (d1)
++		     : "a" (v), "1" (s), "0" (n)
++		     : "memory");
++	return s;
++}
++
++#define __HAVE_ARCH_MEMSET32
++static inline void *memset32(uint32_t *s, uint32_t v, size_t n)
++{
++	long d0, d1;
++	asm volatile("rep\n\t"
++		     "stosl"
++		     : "=&c" (d0), "=&D" (d1)
++		     : "a" (v), "1" (s), "0" (n)
++		     : "memory");
++	return s;
++}
++
++#define __HAVE_ARCH_MEMSET64
++static inline void *memset64(uint64_t *s, uint64_t v, size_t n)
++{
++	long d0, d1;
++	asm volatile("rep\n\t"
++		     "stosq"
++		     : "=&c" (d0), "=&D" (d1)
++		     : "a" (v), "1" (s), "0" (n)
++		     : "memory");
++	return s;
++}
++
+ #define __HAVE_ARCH_MEMMOVE
+ void *memmove(void *dest, const void *src, size_t count);
+ void *__memmove(void *dest, const void *src, size_t count);
 -- 
 2.11.0
 
