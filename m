@@ -1,77 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([65.50.211.133]:41045 "EHLO
+Received: from bombadil.infradead.org ([65.50.211.133]:59447 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1757733AbdCXQNk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Mar 2017 12:13:40 -0400
+        with ESMTP id S966142AbdCXQNp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Mar 2017 12:13:45 -0400
 From: Matthew Wilcox <willy@infradead.org>
-Subject: [PATCH v3 0/7] Add memsetN functions
-Date: Fri, 24 Mar 2017 09:13:11 -0700
-Message-ID: <20170324161318.18718-1-willy@infradead.org>
+Subject: [PATCH v3 5/7] zram: Convert to using memset_l
+Date: Fri, 24 Mar 2017 09:13:16 -0700
+Message-ID: <20170324161318.18718-6-willy@infradead.org>
+In-Reply-To: <20170324161318.18718-1-willy@infradead.org>
+References: <20170324161318.18718-1-willy@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-fbdev@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, x86@kernel.org, linux-mips@linux-mips.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, Minchan Kim <minchan@kernel.org>, Matthew Wilcox <mawilcox@microsoft.com>
-Message-ID: <20170324161311.I_nrhcm3g_9A1z63zMHgXH8L2tdoCs_DY_NczcfS0KU@z>
+Message-ID: <20170324161316.jAJ-QDBvvuBbxi4rPxmAuWdYFf2LZe6MBkK9Wr8eu2c@z>
 
 From: Matthew Wilcox <mawilcox@microsoft.com>
 
-zram was recently enhanced to support compressing pages with a repeating
-pattern up to the size of an unsigned long.  As part of the discussion,
-we noted it would be nice if architectures had optimised routines
-to fill regions of memory with patterns larger than those contained
-in a single byte.  Our suspicions were right; the x86 version offers
-approximately a 7% performance improvement over the C implementation.
+zram was the motivation for creating memset_l().  Minchan Kim sees a 7%
+performance improvement on x86 with 100MB of non-zero deduplicatable
+data:
 
-The generic memfill() function is part of Lars Wirzenius' publib,
-but it doesn't offer the most convenient interface.  I chose to add
-five more-specific functions as part of this patchset -- memset16(),
-memset32(), memset64(), memset_l() (long) and memset_p() (pointer).
+        perf stat -r 10 dd if=/dev/zram0 of=/dev/null
 
-It would be nice to have some more architectures implement optimised
-memsetN calls.  It would also be nice to find more places in the kernel
-which could benefit from calling these functions.  Maybe a coccinelle
-script could be written to find such places?  We're looking for loops
-over an array where the value being stored into the array does not depend
-on the iteration variable.
+vanilla:        0.232050465 seconds time elapsed ( +-  0.51% )
+memset_l:	0.217219387 seconds time elapsed ( +-  0.07% )
 
-Since v1 of the patchset, I stumbled on Alpha's memsetw() which
-caused me to add memset16() to complete the set.  I removed the
-'__HAVE_ARCH_MEMSET_PLUS' preprocessor symbol in favour of separate
-MEMSET16 MEMSET32 and MEMSET64 symbols.  I also reviewed the scr_mem*w()
-usages across the different architectures and implemented some obvious
-missing optimisations.  Alpha is still missing scr_memmovew() as it
-would be non-trivial to write.
+Signed-off-by: Matthew Wilcox <mawilcox@microsoft.com>
+Tested-by: Minchan Kim <minchan@kernel.org>
+---
+ drivers/block/zram/zram_drv.c | 15 +++------------
+ 1 file changed, 3 insertions(+), 12 deletions(-)
 
-Russell's review on patch 2 only applies to the memset32/memset64
-implementation.  The memset16 is unreviewed (and, indeed, untested)
-to date.
-
-Matthew Wilcox (7):
-  Add multibyte memset functions
-  ARM: Implement memset16, memset32 & memset64
-  x86: Implement memset16, memset32 & memset64
-  alpha: Add support for memset16
-  zram: Convert to using memset_l
-  sym53c8xx_2: Convert to use memset32
-  vga: Optimise console scrolling
-
- arch/alpha/include/asm/string.h     | 15 ++++----
- arch/alpha/include/asm/vga.h        |  2 +-
- arch/alpha/lib/memset.S             | 10 +++---
- arch/arm/include/asm/string.h       | 21 ++++++++++++
- arch/arm/kernel/armksyms.c          |  3 ++
- arch/arm/lib/memset.S               | 44 +++++++++++++++++++-----
- arch/mips/include/asm/vga.h         |  6 ++++
- arch/powerpc/include/asm/vga.h      |  8 +++++
- arch/sparc/include/asm/vga.h        | 24 +++++++++++++
- arch/x86/include/asm/string_32.h    | 24 +++++++++++++
- arch/x86/include/asm/string_64.h    | 36 ++++++++++++++++++++
- drivers/block/zram/zram_drv.c       | 15 ++------
- drivers/scsi/sym53c8xx_2/sym_hipd.c | 11 ++----
- include/linux/string.h              | 30 ++++++++++++++++
- include/linux/vt_buffer.h           | 12 +++++++
- lib/string.c                        | 68 +++++++++++++++++++++++++++++++++++++
- 16 files changed, 287 insertions(+), 42 deletions(-)
-
+diff --git a/drivers/block/zram/zram_drv.c b/drivers/block/zram/zram_drv.c
+index e27d89a36c34..25dcad309695 100644
+--- a/drivers/block/zram/zram_drv.c
++++ b/drivers/block/zram/zram_drv.c
+@@ -157,20 +157,11 @@ static inline void update_used_max(struct zram *zram,
+ 	} while (old_max != cur_max);
+ }
+ 
+-static inline void zram_fill_page(char *ptr, unsigned long len,
++static inline void zram_fill_page(void *ptr, unsigned long len,
+ 					unsigned long value)
+ {
+-	int i;
+-	unsigned long *page = (unsigned long *)ptr;
+-
+ 	WARN_ON_ONCE(!IS_ALIGNED(len, sizeof(unsigned long)));
+-
+-	if (likely(value == 0)) {
+-		memset(ptr, 0, len);
+-	} else {
+-		for (i = 0; i < len / sizeof(*page); i++)
+-			page[i] = value;
+-	}
++	memset_l(ptr, value, len / sizeof(unsigned long));
+ }
+ 
+ static bool page_same_filled(void *ptr, unsigned long *element)
+@@ -193,7 +184,7 @@ static bool page_same_filled(void *ptr, unsigned long *element)
+ static void handle_same_page(struct bio_vec *bvec, unsigned long element)
+ {
+ 	struct page *page = bvec->bv_page;
+-	void *user_mem;
++	char *user_mem;
+ 
+ 	user_mem = kmap_atomic(page);
+ 	zram_fill_page(user_mem + bvec->bv_offset, bvec->bv_len, element);
 -- 
 2.11.0
