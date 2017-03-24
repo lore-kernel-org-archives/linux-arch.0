@@ -1,49 +1,44 @@
-From: Daniel Lezcano <daniel.lezcano@linaro.org>
-Subject: Re: [PATCH] vmlinux.lds: add __clkevt_of_table to kernel
-Date: Fri, 24 Mar 2017 09:54:13 +0100
-Message-ID: <457c9f52-ee5c-a67f-1440-35e851b62e7b@linaro.org>
-References: <1490192947-21465-1-git-send-email-al.kochet@gmail.com>
+From: "Kirill A. Shutemov" <kirill@shutemov.name>
+Subject: Re: [PATCH 26/26] x86/mm: allow to have userspace mappings above
+ 47-bits
+Date: Fri, 24 Mar 2017 11:59:31 +0300
+Message-ID: <20170324085931.7hvhrs2emqu5k5mr@node.shutemov.name>
+References: <20170313055020.69655-1-kirill.shutemov@linux.intel.com>
+ <20170313055020.69655-27-kirill.shutemov@linux.intel.com>
+ <87a88jg571.fsf@skywalker.in.ibm.com>
+ <20170317175714.3bvpdylaaudf4ig2@node.shutemov.name>
+ <877f3lfzdo.fsf@skywalker.in.ibm.com>
+ <CAFZ8GQx2JmEECQHEsKOymP8nDv9YHfLgcK80R75gM+r-1q-owQ@mail.gmail.com>
+ <95631D05-2CA2-4967-A29E-DB396C76F62D@zytor.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f42.google.com ([74.125.82.42]:35342 "EHLO
-        mail-wm0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751455AbdCXIy1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Mar 2017 04:54:27 -0400
-Received: by mail-wm0-f42.google.com with SMTP id u132so7444192wmg.0
-        for <linux-arch@vger.kernel.org>; Fri, 24 Mar 2017 01:54:25 -0700 (PDT)
-In-Reply-To: <1490192947-21465-1-git-send-email-al.kochet@gmail.com>
+Received: from mail-wm0-f65.google.com ([74.125.82.65]:32787 "EHLO
+        mail-wm0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S965156AbdCXI7g (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Mar 2017 04:59:36 -0400
+Received: by mail-wm0-f65.google.com with SMTP id n11so1890457wma.0
+        for <linux-arch@vger.kernel.org>; Fri, 24 Mar 2017 01:59:34 -0700 (PDT)
+Content-Disposition: inline
+In-Reply-To: <95631D05-2CA2-4967-A29E-DB396C76F62D@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexander Kochetkov <al.kochet@gmail.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: hpa@zytor.com
+Cc: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Michal Hocko <mhocko@suse.com>, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Dave Hansen <dave.hansen@intel.com>, linux-mm@kvack.org, x86@kernel.org, Andi Kleen <ak@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>
 
-On 22/03/2017 15:29, Alexander Kochetkov wrote:
-> The code introduced by commit 0c8893c9095d ("clockevents: Add a
-> clkevt-of mechanism like clksrc-of") refer to __clkevt_of_table
-> what doesn't exist in the vmlinux. As a result kernel build
-> failed with error: "clkevt-probe.c:63: undefined reference to
-> `__clkevt_of_table’"
-> 
-> Fixes: 0c8893c9095d ("clockevents: Add a clkevt-of mechanism like clksrc-of")
-> Signed-off-by: Alexander Kochetkov <al.kochet@gmail.com>
-> ---
+On Mon, Mar 20, 2017 at 11:08:41AM -0700, hpa@zytor.com wrote:
+> This *better* be conditional on some kind of settable limit.  Having a
+> barrier in the middle of the address space for no apparent reason to
+> "clean" software is insane.
 
-Arnd,
+I had the same argument (on your side) before, but if you look on numbers
+it's far from the middle of address space. The barrier is around 0.2% from
+the start 56-bit address space.
 
-I would like to take this patch through my tree.
+And it's we have vdso/vvar/stack just below the barier anyway.
 
-Is it ok for you ?
-
-Thanks.
-
-  -- Daniel
-
-
+I don't think we would loose much if wouldn't not allow VMA to sit
+across it.
 
 -- 
- <http://www.linaro.org/> Linaro.org │ Open source software for ARM SoCs
-
-Follow Linaro:  <http://www.facebook.com/pages/Linaro> Facebook |
-<http://twitter.com/#!/linaroorg> Twitter |
-<http://www.linaro.org/linaro-blog/> Blog
+ Kirill A. Shutemov
