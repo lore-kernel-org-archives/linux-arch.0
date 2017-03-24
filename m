@@ -1,153 +1,113 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([65.50.211.133]:39121 "EHLO
+Received: from bombadil.infradead.org ([65.50.211.133]:52703 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1757585AbdCXQNk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Mar 2017 12:13:40 -0400
+        with ESMTP id S966143AbdCXQNp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Mar 2017 12:13:45 -0400
 From: Matthew Wilcox <willy@infradead.org>
-Subject: [PATCH v3 1/7] Add multibyte memset functions
-Date: Fri, 24 Mar 2017 09:13:12 -0700
-Message-ID: <20170324161318.18718-2-willy@infradead.org>
+Subject: [PATCH v3 3/7] x86: Implement memset16, memset32 & memset64
+Date: Fri, 24 Mar 2017 09:13:14 -0700
+Message-ID: <20170324161318.18718-4-willy@infradead.org>
 In-Reply-To: <20170324161318.18718-1-willy@infradead.org>
 References: <20170324161318.18718-1-willy@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-fbdev@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, x86@kernel.org, linux-mips@linux-mips.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, Minchan Kim <minchan@kernel.org>, Matthew Wilcox <mawilcox@microsoft.com>
-Message-ID: <20170324161312.ZQmfT1FyXv3jBzGQno_D1wrgo6OjTH3pyCe6Ur667Ho@z>
+Message-ID: <20170324161314.v5Nd_Wcgjupnw581JQ7nC6fR2ySfKBDXMgicEz_Zb4E@z>
 
 From: Matthew Wilcox <mawilcox@microsoft.com>
 
-memset16(), memset32() and memset64() are like memset(), but allow the
-caller to fill the destination with a multibyte pattern.  memset_l()
-and memset_p() allow the caller to use unsigned long and pointer
-values respectively.  memset64() is currently only available on 64-bit
-architectures.
+These are single instructions on x86.  There's no 64-bit instruction
+for x86-32, but we don't yet have any user for memset64() on 32-bit
+architectures, so don't bother to implement it.
 
 Signed-off-by: Matthew Wilcox <mawilcox@microsoft.com>
 ---
- include/linux/string.h | 30 ++++++++++++++++++++++
- lib/string.c           | 68 ++++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 98 insertions(+)
+ arch/x86/include/asm/string_32.h | 24 ++++++++++++++++++++++++
+ arch/x86/include/asm/string_64.h | 36 ++++++++++++++++++++++++++++++++++++
+ 2 files changed, 60 insertions(+)
 
-diff --git a/include/linux/string.h b/include/linux/string.h
-index 26b6f6a66f83..b376875b650c 100644
---- a/include/linux/string.h
-+++ b/include/linux/string.h
-@@ -99,6 +99,36 @@ extern __kernel_size_t strcspn(const char *,const char *);
- #ifndef __HAVE_ARCH_MEMSET
- extern void * memset(void *,int,__kernel_size_t);
+diff --git a/arch/x86/include/asm/string_32.h b/arch/x86/include/asm/string_32.h
+index 3d3e8353ee5c..84da91fe13ac 100644
+--- a/arch/x86/include/asm/string_32.h
++++ b/arch/x86/include/asm/string_32.h
+@@ -331,6 +331,30 @@ void *__constant_c_and_count_memset(void *s, unsigned long pattern,
+ 	 : __memset((s), (c), (count)))
  #endif
-+
-+#ifndef __HAVE_ARCH_MEMSET16
-+extern void *memset16(uint16_t *, uint16_t, __kernel_size_t);
-+#endif
-+
-+#ifndef __HAVE_ARCH_MEMSET32
-+extern void *memset32(uint32_t *, uint32_t, __kernel_size_t);
-+#endif
-+
-+#ifndef __HAVE_ARCH_MEMSET64
-+extern void *memset64(uint64_t *, uint64_t, __kernel_size_t);
-+#endif
-+
-+static inline void *memset_l(unsigned long *p, unsigned long v,
-+		__kernel_size_t n)
-+{
-+	if (BITS_PER_LONG == 32)
-+		return memset32((uint32_t *)p, v, n);
-+	else
-+		return memset64((uint64_t *)p, v, n);
-+}
-+
-+static inline void *memset_p(void **p, void *v, __kernel_size_t n)
-+{
-+	if (BITS_PER_LONG == 32)
-+		return memset32((uint32_t *)p, (uintptr_t)v, n);
-+	else
-+		return memset64((uint64_t *)p, (uintptr_t)v, n);
-+}
-+
- #ifndef __HAVE_ARCH_MEMCPY
- extern void * memcpy(void *,const void *,__kernel_size_t);
- #endif
-diff --git a/lib/string.c b/lib/string.c
-index ed83562a53ae..f18ba402e503 100644
---- a/lib/string.c
-+++ b/lib/string.c
-@@ -697,6 +697,74 @@ void memzero_explicit(void *s, size_t count)
- }
- EXPORT_SYMBOL(memzero_explicit);
  
-+#ifndef __HAVE_ARCH_MEMSET16
-+/**
-+ * memset16() - Fill a memory area with a uint16_t
-+ * @s: Pointer to the start of the area.
-+ * @v: The value to fill the area with
-+ * @count: The number of values to store
-+ *
-+ * Differs from memset() in that it fills with a uint16_t instead
-+ * of a byte.  Remember that @count is the number of uint16_ts to
-+ * store, not the number of bytes.
-+ */
-+void *memset16(uint16_t *s, uint16_t v, size_t count)
++#define __HAVE_ARCH_MEMSET16
++static inline void *memset16(uint16_t *s, uint16_t v, size_t n)
 +{
-+	uint16_t *xs = s;
-+
-+	while (count--)
-+		*xs++ = v;
++	int d0, d1;
++	asm volatile("rep\n\t"
++		     "stosw"
++		     : "=&c" (d0), "=&D" (d1)
++		     : "a" (v), "1" (s), "0" (n)
++		     : "memory");
 +	return s;
 +}
-+EXPORT_SYMBOL(memset16);
-+#endif
 +
-+#ifndef __HAVE_ARCH_MEMSET32
-+/**
-+ * memset32() - Fill a memory area with a uint32_t
-+ * @s: Pointer to the start of the area.
-+ * @v: The value to fill the area with
-+ * @count: The number of values to store
-+ *
-+ * Differs from memset() in that it fills with a uint32_t instead
-+ * of a byte.  Remember that @count is the number of uint32_ts to
-+ * store, not the number of bytes.
-+ */
-+void *memset32(uint32_t *s, uint32_t v, size_t count)
++#define __HAVE_ARCH_MEMSET_32
++static inline void *memset32(uint32_t *s, uint32_t v, size_t n)
 +{
-+	uint32_t *xs = s;
-+
-+	while (count--)
-+		*xs++ = v;
++	int d0, d1;
++	asm volatile("rep\n\t"
++		     "stosl"
++		     : "=&c" (d0), "=&D" (d1)
++		     : "a" (v), "1" (s), "0" (n)
++		     : "memory");
 +	return s;
 +}
-+EXPORT_SYMBOL(memset32);
-+#endif
 +
-+#ifndef __HAVE_ARCH_MEMSET64
-+#if BITS_PER_LONG > 32
-+/**
-+ * memset64() - Fill a memory area with a uint64_t
-+ * @s: Pointer to the start of the area.
-+ * @v: The value to fill the area with
-+ * @count: The number of values to store
-+ *
-+ * Differs from memset() in that it fills with a uint64_t instead
-+ * of a byte.  Remember that @count is the number of uint64_ts to
-+ * store, not the number of bytes.
-+ */
-+void *memset64(uint64_t *s, uint64_t v, size_t count)
+ /*
+  * find the first occurrence of byte 'c', or 1 past the area if none
+  */
+diff --git a/arch/x86/include/asm/string_64.h b/arch/x86/include/asm/string_64.h
+index a164862d77e3..71c5e860c7da 100644
+--- a/arch/x86/include/asm/string_64.h
++++ b/arch/x86/include/asm/string_64.h
+@@ -56,6 +56,42 @@ extern void *__memcpy(void *to, const void *from, size_t len);
+ void *memset(void *s, int c, size_t n);
+ void *__memset(void *s, int c, size_t n);
+ 
++#define __HAVE_ARCH_MEMSET16
++static inline void *memset16(uint16_t *s, uint16_t v, size_t n)
 +{
-+	uint64_t *xs = s;
-+
-+	while (count--)
-+		*xs++ = v;
++	long d0, d1;
++	asm volatile("rep\n\t"
++		     "stosw"
++		     : "=&c" (d0), "=&D" (d1)
++		     : "a" (v), "1" (s), "0" (n)
++		     : "memory");
 +	return s;
 +}
-+EXPORT_SYMBOL(memset64);
-+#endif
-+#endif
 +
- #ifndef __HAVE_ARCH_MEMCPY
- /**
-  * memcpy - Copy one area of memory to another
++#define __HAVE_ARCH_MEMSET32
++static inline void *memset32(uint32_t *s, uint32_t v, size_t n)
++{
++	long d0, d1;
++	asm volatile("rep\n\t"
++		     "stosl"
++		     : "=&c" (d0), "=&D" (d1)
++		     : "a" (v), "1" (s), "0" (n)
++		     : "memory");
++	return s;
++}
++
++#define __HAVE_ARCH_MEMSET64
++static inline void *memset64(uint64_t *s, uint64_t v, size_t n)
++{
++	long d0, d1;
++	asm volatile("rep\n\t"
++		     "stosq"
++		     : "=&c" (d0), "=&D" (d1)
++		     : "a" (v), "1" (s), "0" (n)
++		     : "memory");
++	return s;
++}
++
+ #define __HAVE_ARCH_MEMMOVE
+ void *memmove(void *dest, const void *src, size_t count);
+ void *__memmove(void *dest, const void *src, size_t count);
 -- 
 2.11.0
