@@ -1,56 +1,36 @@
 From: David Woodhouse <dwmw2@infradead.org>
 Subject: Re: [PATCH 17/17] arm64: Do not expose PCI mmap through procfs
-Date: Fri, 24 Mar 2017 16:20:46 +0000
-Message-ID: <1490372446.11996.11.camel@infradead.org>
+Date: Fri, 24 Mar 2017 16:23:18 +0000
+Message-ID: <1490372598.11996.15.camel@infradead.org>
 References: <cover.1490188942.git.dwmw2@infradead.org>
          <4281f8e01b9fc5628cbf4a5c77abd642801e23c7.1490188942.git.dwmw2@infradead.org>
          <CAK8P3a3RtSCGfbtpJDF2d30rLagPMY=HnnjYpBe+k1UxKrXOig@mail.gmail.com>
+         <CAK8P3a0+os4sNzmPYvm-MrsdppZEg9VKhQ9ROJf9DumXCHgnhA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg="sha-256"; protocol="application/x-pkcs7-signature"; boundary="=-W73jAO+yOM4QHSR0Fw9U"
+Content-Type: multipart/signed; micalg="sha-256"; protocol="application/x-pkcs7-signature"; boundary="=-P2lVDBVibXpn7YAG/2w7"
 Return-path: <linux-pci-owner@vger.kernel.org>
-In-Reply-To: <CAK8P3a3RtSCGfbtpJDF2d30rLagPMY=HnnjYpBe+k1UxKrXOig@mail.gmail.com>
+In-Reply-To: <CAK8P3a0+os4sNzmPYvm-MrsdppZEg9VKhQ9ROJf9DumXCHgnhA@mail.gmail.com>
 Sender: linux-pci-owner@vger.kernel.org
 To: Arnd Bergmann <arnd@arndb.de>
 Cc: linux-pci <linux-pci@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
 
---=-W73jAO+yOM4QHSR0Fw9U
+--=-P2lVDBVibXpn7YAG/2w7
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: quoted-printable
 
-On Fri, 2017-03-24 at 17:13 +0100, Arnd Bergmann wrote:
+On Fri, 2017-03-24 at 17:16 +0100, Arnd Bergmann wrote:
 >=20
-> I'd still prefer this to be a whitelist of the existing architectures usi=
-ng PCI
-> MMAP in procfs, there is really no reason for arm64 to be special, the
-> one thing we want to control here is whether new architectures (including
-> arm64) that have never had either the sysfs or the procfs interface
-> should get one or both of them.
->
-> As it seems that there are important use cases for the sysfs interface
-> and your patch series will just make that work everywhere, I'd argue
-> that we should just always provide the sysfs interface now, and use
-> HAVE_PCI_MMAP only control the procfs interface.
+> Something alone these lines, to replace your patch 17/17 and the
+> one that turns on HAVE_PCI_MMAP for arm64.
 
-I still have no sympathy for the "we don't want <this> tiny part of the
-legacy generic non-architecture-specific procfs ABI to exist on ARM64".
-Why not just kill /proc/bus/pci *entirely* there?
-
-But sure, I suppose we could refactor things so that the sysfs mmap
-bits depend on (HAVE_PCI_MMAP || ARCH_GENERIC_MMAP_RESOURCE_RANGE)
-rather than having architectures define the latter in *addition* to the
-former.
-
-> That way, we turn on the sysfs interface on arc, arm64, frv and tile
-> as well as any future architecture with PCI support, but leave
-> the procfs support as opt-in.
-
-OK. My plan was for ARCH_GENERIC_MMAP_RESOURCE_RANGE to go away once
-all architectures were converted, and HAVE_PCI_MMAP to be all that's
-left. It does make send to do arc, fr-v and tile too though. So we can
-do it that way.
---=-W73jAO+yOM4QHSR0Fw9U
+No, I think that won't build because you don't have a
+pci_mmap_page_range() function. And you didn't define
+ARCH_GENERIC_PCI_MMAP_RESOURCE_RANGE. You probably get away with it if
+you just fix up the ARCH_GENERIC_PCI_MMAP_RESOURCE_RANGE checks in
+drivers/pci/mmap.c to be !HAVE_PCI_MMAP?
+--=-P2lVDBVibXpn7YAG/2w7
 Content-Type: application/x-pkcs7-signature; name="smime.p7s"
 Content-Disposition: attachment; filename="smime.p7s"
 Content-Transfer-Encoding: base64
@@ -128,8 +108,8 @@ GeE6+vmbHDFFQ9Ealsti3jGCA9MwggPPAgEBMIGwMIGbMQswCQYDVQQGEwJHQjEbMBkGA1UECBMS
 R3JlYXRlciBNYW5jaGVzdGVyMRAwDgYDVQQHEwdTYWxmb3JkMRowGAYDVQQKExFDT01PRE8gQ0Eg
 TGltaXRlZDFBMD8GA1UEAxM4Q09NT0RPIFNIQS0yNTYgQ2xpZW50IEF1dGhlbnRpY2F0aW9uIGFu
 ZCBTZWN1cmUgRW1haWwgQ0ECEGoLUFiVUy0EUE3iKBH+GjAwDQYJYIZIAWUDBAIBBQCgggHzMBgG
-CSqGSIb3DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTE3MDMyNDE2MjA0NlowLwYJ
-KoZIhvcNAQkEMSIEICQlx8jv38++VSX41sdUOLj+hSe4hAKKIsrk1HU3O4DRMIHBBgkrBgEEAYI3
+CSqGSIb3DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTE3MDMyNDE2MjMxOFowLwYJ
+KoZIhvcNAQkEMSIEIOs/DE37OOX2ZBnq5Ee+1RUeUfvCLPbQoJhPgGjnn79/MIHBBgkrBgEEAYI3
 EAQxgbMwgbAwgZsxCzAJBgNVBAYTAkdCMRswGQYDVQQIExJHcmVhdGVyIE1hbmNoZXN0ZXIxEDAO
 BgNVBAcTB1NhbGZvcmQxGjAYBgNVBAoTEUNPTU9ETyBDQSBMaW1pdGVkMUEwPwYDVQQDEzhDT01P
 RE8gU0hBLTI1NiBDbGllbnQgQXV0aGVudGljYXRpb24gYW5kIFNlY3VyZSBFbWFpbCBDQQIQagtQ
@@ -137,11 +117,11 @@ WJVTLQRQTeIoEf4aMDCBwwYLKoZIhvcNAQkQAgsxgbOggbAwgZsxCzAJBgNVBAYTAkdCMRswGQYD
 VQQIExJHcmVhdGVyIE1hbmNoZXN0ZXIxEDAOBgNVBAcTB1NhbGZvcmQxGjAYBgNVBAoTEUNPTU9E
 TyBDQSBMaW1pdGVkMUEwPwYDVQQDEzhDT01PRE8gU0hBLTI1NiBDbGllbnQgQXV0aGVudGljYXRp
 b24gYW5kIFNlY3VyZSBFbWFpbCBDQQIQagtQWJVTLQRQTeIoEf4aMDANBgkqhkiG9w0BAQEFAASC
-AQBMVR41Mc7GSA+TsR0BC9eTqRHh7TP87VtXDjHyVIT5Dg5AaZECSlEG0roH5wr/N+Of/MO7cRxb
-MtGYW/qGLDCgqaEgS92IhwJwp+sLQ2ug/xABiABEqlmJWsA85iiO0/NY9CrfNjOgXcWoXCRFIS0e
-hnuSoYZWsZNYq50jk1sJYJ4FWwL/8XDZeGitEAibpwngmvgE0x6JzNtVHGysekIqh166QXflkw2P
-ThNT18byk6XsP+sSpuR7QIa3T1Oi+Ae8w3YL9CXr01k7pRYKew0fKYTkxsgGFkNA1KxXCtI8pL+P
-gPfaHIOJ3mLSB1KFknqUEv5Tes9jGC/S2VKUsfE6AAAAAAAA
+AQCmQcguCJ0eFUf3pAwrt61OsRle6DQeuDor1OPsSrRe0wzMTaFhKFB65XlTGbtXqCXzzcaDBTPH
+XyRlKdINPrS05cKp0SZkYoAwE8w7lxDPQ38fVYgrCZwORCfwznWpCiqBxOWvzujVzsrjDq9JZ6QR
+FOHcbZnmjtqFHBBNkr7eX6AZiuWmFz35cc9PGtjCNKk+GQMtr2sEiM6tlHGw9l9beQke4tw2ya4R
+2hMPF9y/6lpzE6easut0XrTBmD9wiajtN6lrEis0yds+SF1hWOluggX1kLd5P9CxyaijdBTF3k2w
+rXbgJ0iMM7/O+zSadFmw1D2L74p93UagXisvmKuBAAAAAAAA
 
 
---=-W73jAO+yOM4QHSR0Fw9U--
+--=-P2lVDBVibXpn7YAG/2w7--
