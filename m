@@ -1,59 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga03.intel.com ([134.134.136.65]:54223 "EHLO mga03.intel.com"
+Received: from mga14.intel.com ([192.55.52.115]:19157 "EHLO mga14.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S935930AbdCXQ50 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 24 Mar 2017 12:57:26 -0400
-Date: Fri, 24 Mar 2017 09:57:24 -0700
-From: "Luck, Tony" <tony.luck@intel.com>
-Subject: Re: [PATCH 00/17] PCI resource mmap cleanup
-Message-ID: <20170324165724.GA27823@intel.com>
-References: <cover.1490188942.git.dwmw2@infradead.org>
- <1490355633.11856.17.camel@infradead.org>
+        id S1753426AbdCXSqI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 24 Mar 2017 14:46:08 -0400
+Subject: Re: [PATCH v6 2/4] mm: Add functions to support extra actions on swap
+ in/out
+References: <cover.1488232591.git.khalid.aziz@oracle.com>
+ <4c4da87ff45b98e236cdfef66055b876074dabfb.1488232597.git.khalid.aziz@oracle.com>
+From: Dave Hansen <dave.hansen@linux.intel.com>
+Message-ID: <8665482b-f808-e995-cda1-99011be6ee34@linux.intel.com>
+Date: Fri, 24 Mar 2017 11:45:55 -0700
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <1490355633.11856.17.camel@infradead.org>
+In-Reply-To: <4c4da87ff45b98e236cdfef66055b876074dabfb.1488232597.git.khalid.aziz@oracle.com>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Woodhouse <dwmw2@infradead.org>
-Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Message-ID: <20170324165724.7eQDCMeFtQQPteEuA9ItX28obivL9POp3y3aJTDPK-A@z>
+To: Khalid Aziz <khalid.aziz@oracle.com>, akpm@linux-foundation.org, davem@davemloft.net, arnd@arndb.de
+Cc: kirill.shutemov@linux.intel.com, mhocko@suse.com, jmarchan@redhat.com, vbabka@suse.cz, dan.j.williams@intel.com, lstoakes@gmail.com, hannes@cmpxchg.org, mgorman@suse.de, hughd@google.com, vdavydov.dev@gmail.com, minchan@kernel.org, namit@vmware.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, sparclinux@vger.kernel.org, Khalid Aziz <khalid@gonehiking.org>
+Message-ID: <20170324184555.wjL0jBEcKW2DWyPNCBbPYtOaPV3NOoJON2NxoGSVc94@z>
 
-On Fri, Mar 24, 2017 at 11:40:33AM +0000, David Woodhouse wrote:
-> That leaves IA64 as the last holdout, as the selection of vm_page_prot
-> there is rather complicated:
-> 
-> 	prot = phys_mem_access_prot(NULL, vma->vm_pgoff, size,
-> 				    vma->vm_page_prot);
-> 
-> 	/*
-> 	 * If the user requested WC, the kernel uses UC or WC for this region,
-> 	 * and the chipset supports WC, we can use WC. Otherwise, we have to
-> 	 * use the same attribute the kernel uses.
-> 	 */
-> 	if (write_combine &&
-> 	    ((pgprot_val(prot) & _PAGE_MA_MASK) == _PAGE_MA_UC ||
-> 	     (pgprot_val(prot) & _PAGE_MA_MASK) == _PAGE_MA_WC) &&
-> 	    efi_range_is_wc(vma->vm_start, vma->vm_end - vma->vm_start))
-> 		vma->vm_page_prot = pgprot_writecombine(vma->vm_page_prot);
-> 	else
-> 		vma->vm_page_prot = prot;
-> 
-> 
-> But I suspect it's *overcomplicated*, as the kernel should only ever be
-> mapping PCI memory BARs as UC or WC in the first place, so the middle
-> two checks in the if (write_combine…) condition are redundant.
-
-Agreed.
-
-> And if the efi_range_is_wc() check isn't gratuitous, perhaps that
-> should be in the generic code whenever CONFIG_EFI is set?
-
-Sounds dubious whether EFI could even get this right.  The efi
-memory map table is static, but we could remap a BAR to a different
-spot. Does the efi map have entries for all the places that you
-could remap a BAR?  Isn't it more likely a property of the device
-whether it supports WC?
-
--Tony
+On 02/28/2017 10:35 AM, Khalid Aziz wrote:
+> diff --git a/mm/memory.c b/mm/memory.c
+> index 6bf2b47..b086c76 100644
+> --- a/mm/memory.c
+> +++ b/mm/memory.c
+> @@ -2658,6 +2658,7 @@ int do_swap_page(struct vm_fault *vmf)
+>  	if (pte_swp_soft_dirty(vmf->orig_pte))
+>  		pte = pte_mksoft_dirty(pte);
+>  	set_pte_at(vma->vm_mm, vmf->address, vmf->pte, pte);
+> +	arch_do_swap_page(vma->vm_mm, vmf->address, pte, vmf->orig_pte);
+>  	vmf->orig_pte = pte;
+>  	if (page == swapcache) {
+>  		do_page_add_anon_rmap(page, vma, vmf->address, exclusive);
+> diff --git a/mm/rmap.c b/mm/rmap.c
+> index 91619fd..192c41a 100644
+> --- a/mm/rmap.c
+> +++ b/mm/rmap.c
+> @@ -1538,6 +1538,7 @@ static int try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
+>  		swp_pte = swp_entry_to_pte(entry);
+>  		if (pte_soft_dirty(pteval))
+>  			swp_pte = pte_swp_mksoft_dirty(swp_pte);
+> +		arch_unmap_one(mm, address, swp_pte, pteval);
+>  		set_pte_at(mm, address, pte, swp_pte);
+>  	} else if (PageAnon(page)) {
+>  		swp_entry_t entry = { .val = page_private(page) };
+> @@ -1571,6 +1572,7 @@ static int try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
+>  		swp_pte = swp_entry_to_pte(entry);
+>  		if (pte_soft_dirty(pteval))
+>  			swp_pte = pte_swp_mksoft_dirty(swp_pte);
+> +		arch_unmap_one(mm, address, swp_pte, pteval);
+>  		set_pte_at(mm, address, pte, swp_pte);
+>  	} else
+>  		dec_mm_counter(mm, mm_counter_file(page));
