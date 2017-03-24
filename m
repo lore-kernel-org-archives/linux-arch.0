@@ -1,65 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from condef-08.nifty.com ([202.248.20.73]:64864 "EHLO
-        condef-08.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S934936AbdCXIzH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Mar 2017 04:55:07 -0400
-MIME-Version: 1.0
-In-Reply-To: <365519b5-d69e-34b7-fa2f-f11b8fabe69f@6wind.com>
-References: <CAK7LNARpx7f0eV5_AiPmNYT7MsRbGFOygJwjfAzX_7aCpuHwuw@mail.gmail.com>
- <1489496093-15315-1-git-send-email-nicolas.dichtel@6wind.com> <365519b5-d69e-34b7-fa2f-f11b8fabe69f@6wind.com>
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Date: Fri, 24 Mar 2017 17:42:34 +0900
-Message-ID: <CAK7LNAR_yp+O9jUZC8mKdaHgTiCkE7p2-ZbA9YZ8OGyp+uxhBQ@mail.gmail.com>
-Subject: Re: [PATCH v10 00/11] uapi: export all headers under uapi directories
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
+Received: from bombadil.infradead.org ([65.50.211.133]:41045 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1757733AbdCXQNk (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Mar 2017 12:13:40 -0400
+From: Matthew Wilcox <willy@infradead.org>
+Subject: [PATCH v3 0/7] Add memsetN functions
+Date: Fri, 24 Mar 2017 09:13:11 -0700
+Message-ID: <20170324161318.18718-1-willy@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicolas Dichtel <nicolas.dichtel@6wind.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Michal Marek <mmarek@suse.com>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, David Airlie <airlied@linux.ie>, "David S. Miller" <davem@davemloft.net>, Russell King <linux@armlinux.org.uk>, bp@alien8.de, slash.tmp@free.fr, Daniel Vetter <daniel.vetter@ffwll.ch>, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, Tobias Klauser <tklauser@distanz.ch>, mpe@ellerman.id.au, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, "Dmitry V. Levin" <ldv@altlinux.org>, Herbert Xu <herbert@gondor.apana.org.au>, linux-rdma@vger.kernel.org
-Message-ID: <20170324084234.1Y69DXc5J5fmHD4yhEDBYF7Mg1chmZGAbiUka_LCMRU@z>
+To: linux-kernel@vger.kernel.org
+Cc: linux-fbdev@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, x86@kernel.org, linux-mips@linux-mips.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, Minchan Kim <minchan@kernel.org>, Matthew Wilcox <mawilcox@microsoft.com>
+Message-ID: <20170324161311.I_nrhcm3g_9A1z63zMHgXH8L2tdoCs_DY_NczcfS0KU@z>
 
-Hi Nicolas,
+From: Matthew Wilcox <mawilcox@microsoft.com>
 
+zram was recently enhanced to support compressing pages with a repeating
+pattern up to the size of an unsigned long.  As part of the discussion,
+we noted it would be nice if architectures had optimised routines
+to fill regions of memory with patterns larger than those contained
+in a single byte.  Our suspicions were right; the x86 version offers
+approximately a 7% performance improvement over the C implementation.
 
-2017-03-24 17:32 GMT+09:00 Nicolas Dichtel <nicolas.dichtel@6wind.com>:
-> Le 14/03/2017 =C3=A0 13:54, Nicolas Dichtel a =C3=A9crit :
->> Patches #1 and #2 are just cleanup: some exported headers were still und=
-er
->> a non-uapi directory. Patch #3 is a fix to avoid exporting a file that w=
-as
->> not under an uapi directory.
->> After these three patches, all exported headers are under an uapi direct=
-ory:
->> path #4 stops searching files in non uapi directories.
->> The patch #5 was spotted by code review: there is no in-tree user of thi=
-s
->> functionality.
->> Patch #6 fixes some warnings/errors reported by 0-day tests.
->> Patch #7 to #9 fix some errors when the corresponding files are included=
- by
->> userland.
->> Patches #10 and #11 remove the need to list explicitly headers. Now all =
-files
->> under an uapi directory are exported.
->>
->> This series has been tested with a 'make headers_install' on x86 and a
->> 'make headers_install_all'. I've checked the result of both commands.
->>
->> This patch is built on top of masahiroy/linux-kbuild.git#for-next (v4.11=
--rc1).
->> I didn't find any conflict with v4.11-rc2.
-> Masahiro, is this series under review or do you expect something else on =
-my side?
->
+The generic memfill() function is part of Lars Wirzenius' publib,
+but it doesn't offer the most convenient interface.  I chose to add
+five more-specific functions as part of this patchset -- memset16(),
+memset32(), memset64(), memset_l() (long) and memset_p() (pointer).
 
-Under review.
-Please give me time to take a closer look.
-Sorry for the delay.
+It would be nice to have some more architectures implement optimised
+memsetN calls.  It would also be nice to find more places in the kernel
+which could benefit from calling these functions.  Maybe a coccinelle
+script could be written to find such places?  We're looking for loops
+over an array where the value being stored into the array does not depend
+on the iteration variable.
 
+Since v1 of the patchset, I stumbled on Alpha's memsetw() which
+caused me to add memset16() to complete the set.  I removed the
+'__HAVE_ARCH_MEMSET_PLUS' preprocessor symbol in favour of separate
+MEMSET16 MEMSET32 and MEMSET64 symbols.  I also reviewed the scr_mem*w()
+usages across the different architectures and implemented some obvious
+missing optimisations.  Alpha is still missing scr_memmovew() as it
+would be non-trivial to write.
 
+Russell's review on patch 2 only applies to the memset32/memset64
+implementation.  The memset16 is unreviewed (and, indeed, untested)
+to date.
 
+Matthew Wilcox (7):
+  Add multibyte memset functions
+  ARM: Implement memset16, memset32 & memset64
+  x86: Implement memset16, memset32 & memset64
+  alpha: Add support for memset16
+  zram: Convert to using memset_l
+  sym53c8xx_2: Convert to use memset32
+  vga: Optimise console scrolling
 
---=20
-Best Regards
-Masahiro Yamada
+ arch/alpha/include/asm/string.h     | 15 ++++----
+ arch/alpha/include/asm/vga.h        |  2 +-
+ arch/alpha/lib/memset.S             | 10 +++---
+ arch/arm/include/asm/string.h       | 21 ++++++++++++
+ arch/arm/kernel/armksyms.c          |  3 ++
+ arch/arm/lib/memset.S               | 44 +++++++++++++++++++-----
+ arch/mips/include/asm/vga.h         |  6 ++++
+ arch/powerpc/include/asm/vga.h      |  8 +++++
+ arch/sparc/include/asm/vga.h        | 24 +++++++++++++
+ arch/x86/include/asm/string_32.h    | 24 +++++++++++++
+ arch/x86/include/asm/string_64.h    | 36 ++++++++++++++++++++
+ drivers/block/zram/zram_drv.c       | 15 ++------
+ drivers/scsi/sym53c8xx_2/sym_hipd.c | 11 ++----
+ include/linux/string.h              | 30 ++++++++++++++++
+ include/linux/vt_buffer.h           | 12 +++++++
+ lib/string.c                        | 68 +++++++++++++++++++++++++++++++++++++
+ 16 files changed, 287 insertions(+), 42 deletions(-)
+
+-- 
+2.11.0
