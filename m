@@ -1,55 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga14.intel.com ([192.55.52.115]:19157 "EHLO mga14.intel.com"
+Received: from mail.skyhub.de ([5.9.137.197]:54644 "EHLO mail.skyhub.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753426AbdCXSqI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 24 Mar 2017 14:46:08 -0400
-Subject: Re: [PATCH v6 2/4] mm: Add functions to support extra actions on swap
- in/out
-References: <cover.1488232591.git.khalid.aziz@oracle.com>
- <4c4da87ff45b98e236cdfef66055b876074dabfb.1488232597.git.khalid.aziz@oracle.com>
-From: Dave Hansen <dave.hansen@linux.intel.com>
-Message-ID: <8665482b-f808-e995-cda1-99011be6ee34@linux.intel.com>
-Date: Fri, 24 Mar 2017 11:45:55 -0700
+        id S1751054AbdCYVuf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 25 Mar 2017 17:50:35 -0400
+Date: Sat, 25 Mar 2017 22:50:12 +0100
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: Splat during resume
+Message-ID: <20170325215012.v5vywew7pfi3qk5f@pd.tnic>
+References: <20170325185855.4itsyevunczus7sc@pd.tnic>
+ <20170325214615.eqgmkwbkyldt7wwl@pd.tnic>
 MIME-Version: 1.0
-In-Reply-To: <4c4da87ff45b98e236cdfef66055b876074dabfb.1488232597.git.khalid.aziz@oracle.com>
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20170325214615.eqgmkwbkyldt7wwl@pd.tnic>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Khalid Aziz <khalid.aziz@oracle.com>, akpm@linux-foundation.org, davem@davemloft.net, arnd@arndb.de
-Cc: kirill.shutemov@linux.intel.com, mhocko@suse.com, jmarchan@redhat.com, vbabka@suse.cz, dan.j.williams@intel.com, lstoakes@gmail.com, hannes@cmpxchg.org, mgorman@suse.de, hughd@google.com, vdavydov.dev@gmail.com, minchan@kernel.org, namit@vmware.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, sparclinux@vger.kernel.org, Khalid Aziz <khalid@gonehiking.org>
-Message-ID: <20170324184555.wjL0jBEcKW2DWyPNCBbPYtOaPV3NOoJON2NxoGSVc94@z>
+To: "Rafael J. Wysocki" <rjw@rjwysocki.net>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: lkml <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Brian Gerst <brgerst@gmail.com>, Dave Hansen <dave.hansen@intel.com>, Denys Vlasenko <dvlasenk@redhat.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Michal Hocko <mhocko@suse.com>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86-ml <x86@kernel.org>
+Message-ID: <20170325215012.Cd7xSwPvo-GperQKegiGIF3V2H5-kruPPjf3oNOVfkI@z>
 
-On 02/28/2017 10:35 AM, Khalid Aziz wrote:
-> diff --git a/mm/memory.c b/mm/memory.c
-> index 6bf2b47..b086c76 100644
-> --- a/mm/memory.c
-> +++ b/mm/memory.c
-> @@ -2658,6 +2658,7 @@ int do_swap_page(struct vm_fault *vmf)
->  	if (pte_swp_soft_dirty(vmf->orig_pte))
->  		pte = pte_mksoft_dirty(pte);
->  	set_pte_at(vma->vm_mm, vmf->address, vmf->pte, pte);
-> +	arch_do_swap_page(vma->vm_mm, vmf->address, pte, vmf->orig_pte);
->  	vmf->orig_pte = pte;
->  	if (page == swapcache) {
->  		do_page_add_anon_rmap(page, vma, vmf->address, exclusive);
-> diff --git a/mm/rmap.c b/mm/rmap.c
-> index 91619fd..192c41a 100644
-> --- a/mm/rmap.c
-> +++ b/mm/rmap.c
-> @@ -1538,6 +1538,7 @@ static int try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
->  		swp_pte = swp_entry_to_pte(entry);
->  		if (pte_soft_dirty(pteval))
->  			swp_pte = pte_swp_mksoft_dirty(swp_pte);
-> +		arch_unmap_one(mm, address, swp_pte, pteval);
->  		set_pte_at(mm, address, pte, swp_pte);
->  	} else if (PageAnon(page)) {
->  		swp_entry_t entry = { .val = page_private(page) };
-> @@ -1571,6 +1572,7 @@ static int try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
->  		swp_pte = swp_entry_to_pte(entry);
->  		if (pte_soft_dirty(pteval))
->  			swp_pte = pte_swp_mksoft_dirty(swp_pte);
-> +		arch_unmap_one(mm, address, swp_pte, pteval);
->  		set_pte_at(mm, address, pte, swp_pte);
->  	} else
->  		dec_mm_counter(mm, mm_counter_file(page));
+On Sat, Mar 25, 2017 at 10:46:15PM +0100, Borislav Petkov wrote:
+> On Sat, Mar 25, 2017 at 07:58:55PM +0100, Borislav Petkov wrote:
+> > Hey Rafael,
+> > 
+> > have you seen this already (partial splat photo attached)? Happens
+> > during resume from s2d. Judging by the timestamps, this looks like the
+> > resume kernel before we switch to the original, boot one but I could be
+> > mistaken.
+> > 
+> > This is -rc3+tip/master.
+> > 
+> > I can't catch a full splat because this is a laptop and it doesn't have
+> > serial. netconsole is helping me for shit so we'd need some guess work.
+> > 
+> > So I'm open to suggestions.
+> > 
+> > Please don't say "bisect" yet ;-)))
+> 
+> No need, I found it. Reverting
+> 
+>   ea3b5e60ce80 ("x86/mm/ident_map: Add 5-level paging support")
+> 
+> makes the machine suspend and resume just fine again. Lemme add people to CC.
+
+So I see rIP pointing to ident_pmd_init() and the stack trace has
+load_image_and_restore() so if I try to connect the dots, I get:
+
+load_image_and_restore
+|-> hibernation_restore
+ |-> resume_target_kernel
+  |-> swsusp_arch_resume
+   |-> set_up_temporary_mappings
+    |-> kernel_ident_mapping_init
+     |-> ... ident_pmd_init
+
+I'll let you folks make sense of what's going on.
+
+Thanks.
+
+-- 
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
