@@ -1,8 +1,7 @@
 From: "Dmitry V. Levin" <ldv@altlinux.org>
-Subject: [PATCH 5/5] uapi: fix another asm/shmbuf.h userspace compilation
- error
-Date: Sun, 26 Mar 2017 06:30:43 +0300
-Message-ID: <20170326033043.GE13511@altlinux.org>
+Subject: [PATCH 3/5] uapi: fix asm/sembuf.h userspace compilation errors
+Date: Sun, 26 Mar 2017 06:30:29 +0300
+Message-ID: <20170326033029.GC13511@altlinux.org>
 References: <20170326032728.GA13481@altlinux.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -16,200 +15,223 @@ List-Id: linux-arch.vger.kernel.org
 
 Date: Sat, 25 Feb 2017 12:34:56 +0000
 
-Replace size_t with __kernel_size_t to fix asm/shmbuf.h userspace
-compilation errors like this:
+Include <asm/ipcbuf.h> to fix asm/sembuf.h userspace compilation errors
+like this:
 
-/usr/include/asm-generic/shmbuf.h:28:2: error: unknown type name 'size_t'
-  size_t   shm_segsz; /* size of segment (bytes) */
-
-x32 is the only architecture where sizeof(size_t) is less than
-sizeof(__kernel_size_t), but as the kernel treats shm_segsz field as
-__kernel_size_t anyway, UAPI should follow.  Thanks to little-endiannes
-of x32 and 64-bit alignment of the field following shm_segsz, this
-change doesn't break ABI, and the difference doesn't manifest itself
-easily.
+/usr/include/asm/sembuf.h:14:20: error: field 'sem_perm' has incomplete type
+  struct ipc64_perm sem_perm; /* permissions .. see ipc.h */
+/usr/include/asm/sembuf.h:15:2: error: unknown type name '__kernel_time_t'
+  __kernel_time_t sem_otime; /* last semop time */
+/usr/include/asm/sembuf.h:16:2: error: unknown type name '__kernel_ulong_t'
+  __kernel_ulong_t __unused1;
+/usr/include/asm/sembuf.h:17:2: error: unknown type name '__kernel_time_t'
+  __kernel_time_t sem_ctime; /* last change time */
+/usr/include/asm/sembuf.h:18:2: error: unknown type name '__kernel_ulong_t'
+  __kernel_ulong_t __unused2;
+/usr/include/asm/sembuf.h:19:2: error: unknown type name '__kernel_ulong_t'
+  __kernel_ulong_t sem_nsems; /* no. of semaphores in array */
+/usr/include/asm/sembuf.h:20:2: error: unknown type name '__kernel_ulong_t'
+  __kernel_ulong_t __unused3;
+/usr/include/asm/sembuf.h:21:2: error: unknown type name '__kernel_ulong_t'
+  __kernel_ulong_t __unused4;
 
 Signed-off-by: Dmitry V. Levin <ldv@altlinux.org>
 Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/alpha/include/uapi/asm/shmbuf.h   | 2 +-
- arch/avr32/include/uapi/asm/shmbuf.h   | 2 +-
- arch/frv/include/uapi/asm/shmbuf.h     | 2 +-
- arch/ia64/include/uapi/asm/shmbuf.h    | 2 +-
- arch/m32r/include/uapi/asm/shmbuf.h    | 2 +-
- arch/mips/include/uapi/asm/shmbuf.h    | 2 +-
- arch/mn10300/include/uapi/asm/shmbuf.h | 2 +-
- arch/powerpc/include/uapi/asm/shmbuf.h | 2 +-
- arch/s390/include/uapi/asm/shmbuf.h    | 2 +-
- arch/sparc/include/uapi/asm/shmbuf.h   | 2 +-
- arch/xtensa/include/uapi/asm/shmbuf.h  | 4 ++--
- include/uapi/asm-generic/shmbuf.h      | 2 +-
- 12 files changed, 13 insertions(+), 13 deletions(-)
+ arch/alpha/include/uapi/asm/sembuf.h   | 2 ++
+ arch/avr32/include/uapi/asm/sembuf.h   | 2 ++
+ arch/frv/include/uapi/asm/sembuf.h     | 2 ++
+ arch/ia64/include/uapi/asm/sembuf.h    | 2 ++
+ arch/m32r/include/uapi/asm/sembuf.h    | 2 ++
+ arch/mips/include/uapi/asm/sembuf.h    | 2 ++
+ arch/mn10300/include/uapi/asm/sembuf.h | 2 ++
+ arch/parisc/include/uapi/asm/sembuf.h  | 1 +
+ arch/powerpc/include/uapi/asm/sembuf.h | 2 ++
+ arch/s390/include/uapi/asm/sembuf.h    | 2 ++
+ arch/sparc/include/uapi/asm/sembuf.h   | 2 ++
+ arch/x86/include/uapi/asm/sembuf.h     | 2 ++
+ arch/xtensa/include/uapi/asm/sembuf.h  | 1 +
+ include/uapi/asm-generic/sembuf.h      | 1 +
+ 14 files changed, 25 insertions(+)
 
-diff --git a/arch/alpha/include/uapi/asm/shmbuf.h b/arch/alpha/include/uapi/asm/shmbuf.h
-index 6156099..e32ed1f 100644
---- a/arch/alpha/include/uapi/asm/shmbuf.h
-+++ b/arch/alpha/include/uapi/asm/shmbuf.h
-@@ -14,7 +14,7 @@
+diff --git a/arch/alpha/include/uapi/asm/sembuf.h b/arch/alpha/include/uapi/asm/sembuf.h
+index 7b38b15..b6bdd5f 100644
+--- a/arch/alpha/include/uapi/asm/sembuf.h
++++ b/arch/alpha/include/uapi/asm/sembuf.h
+@@ -1,6 +1,8 @@
+ #ifndef _ALPHA_SEMBUF_H
+ #define _ALPHA_SEMBUF_H
  
- struct shmid64_ds {
- 	struct ipc64_perm	shm_perm;	/* operation perms */
--	size_t			shm_segsz;	/* size of segment (bytes) */
-+	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
- 	__kernel_time_t		shm_atime;	/* last attach time */
- 	__kernel_time_t		shm_dtime;	/* last detach time */
- 	__kernel_time_t		shm_ctime;	/* last change time */
-diff --git a/arch/avr32/include/uapi/asm/shmbuf.h b/arch/avr32/include/uapi/asm/shmbuf.h
-index c8e5234..2804f25 100644
---- a/arch/avr32/include/uapi/asm/shmbuf.h
-+++ b/arch/avr32/include/uapi/asm/shmbuf.h
-@@ -15,7 +15,7 @@
++#include <asm/ipcbuf.h>
++
+ /* 
+  * The semid64_ds structure for alpha architecture.
+  * Note extra padding because this structure is passed back and forth
+diff --git a/arch/avr32/include/uapi/asm/sembuf.h b/arch/avr32/include/uapi/asm/sembuf.h
+index 6c6f7cf..ec4ddd6 100644
+--- a/arch/avr32/include/uapi/asm/sembuf.h
++++ b/arch/avr32/include/uapi/asm/sembuf.h
+@@ -1,6 +1,8 @@
+ #ifndef _UAPI__ASM_AVR32_SEMBUF_H
+ #define _UAPI__ASM_AVR32_SEMBUF_H
  
- struct shmid64_ds {
- 	struct ipc64_perm	shm_perm;	/* operation perms */
--	size_t			shm_segsz;	/* size of segment (bytes) */
-+	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
- 	__kernel_time_t		shm_atime;	/* last attach time */
- 	unsigned long		__unused1;
- 	__kernel_time_t		shm_dtime;	/* last detach time */
-diff --git a/arch/frv/include/uapi/asm/shmbuf.h b/arch/frv/include/uapi/asm/shmbuf.h
-index 943746c..2af199f 100644
---- a/arch/frv/include/uapi/asm/shmbuf.h
-+++ b/arch/frv/include/uapi/asm/shmbuf.h
-@@ -15,7 +15,7 @@
++#include <asm/ipcbuf.h>
++
+ /*
+ * The semid64_ds structure for AVR32 architecture.
+  * Note extra padding because this structure is passed back and forth
+diff --git a/arch/frv/include/uapi/asm/sembuf.h b/arch/frv/include/uapi/asm/sembuf.h
+index 164b127..0d73641 100644
+--- a/arch/frv/include/uapi/asm/sembuf.h
++++ b/arch/frv/include/uapi/asm/sembuf.h
+@@ -1,6 +1,8 @@
+ #ifndef _ASM_SEMBUF_H
+ #define _ASM_SEMBUF_H
  
- struct shmid64_ds {
- 	struct ipc64_perm	shm_perm;	/* operation perms */
--	size_t			shm_segsz;	/* size of segment (bytes) */
-+	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
- 	__kernel_time_t		shm_atime;	/* last attach time */
- 	unsigned long		__unused1;
- 	__kernel_time_t		shm_dtime;	/* last detach time */
-diff --git a/arch/ia64/include/uapi/asm/shmbuf.h b/arch/ia64/include/uapi/asm/shmbuf.h
-index ca81d77e..8e35495 100644
---- a/arch/ia64/include/uapi/asm/shmbuf.h
-+++ b/arch/ia64/include/uapi/asm/shmbuf.h
-@@ -14,7 +14,7 @@
++#include <asm/ipcbuf.h>
++
+ /*
+  * The semid64_ds structure for FR-V architecture.
+  * Note extra padding because this structure is passed back and forth
+diff --git a/arch/ia64/include/uapi/asm/sembuf.h b/arch/ia64/include/uapi/asm/sembuf.h
+index 1340fbc..2e218b0 100644
+--- a/arch/ia64/include/uapi/asm/sembuf.h
++++ b/arch/ia64/include/uapi/asm/sembuf.h
+@@ -1,6 +1,8 @@
+ #ifndef _ASM_IA64_SEMBUF_H
+ #define _ASM_IA64_SEMBUF_H
  
- struct shmid64_ds {
- 	struct ipc64_perm	shm_perm;	/* operation perms */
--	size_t			shm_segsz;	/* size of segment (bytes) */
-+	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
- 	__kernel_time_t		shm_atime;	/* last attach time */
- 	__kernel_time_t		shm_dtime;	/* last detach time */
- 	__kernel_time_t		shm_ctime;	/* last change time */
-diff --git a/arch/m32r/include/uapi/asm/shmbuf.h b/arch/m32r/include/uapi/asm/shmbuf.h
-index 714de6e..fa36b9e 100644
---- a/arch/m32r/include/uapi/asm/shmbuf.h
-+++ b/arch/m32r/include/uapi/asm/shmbuf.h
-@@ -15,7 +15,7 @@
++#include <asm/ipcbuf.h>
++
+ /*
+  * The semid64_ds structure for IA-64 architecture.
+  * Note extra padding because this structure is passed back and forth
+diff --git a/arch/m32r/include/uapi/asm/sembuf.h b/arch/m32r/include/uapi/asm/sembuf.h
+index c9873d6..58ad1f8 100644
+--- a/arch/m32r/include/uapi/asm/sembuf.h
++++ b/arch/m32r/include/uapi/asm/sembuf.h
+@@ -1,6 +1,8 @@
+ #ifndef _ASM_M32R_SEMBUF_H
+ #define _ASM_M32R_SEMBUF_H
  
- struct shmid64_ds {
- 	struct ipc64_perm	shm_perm;	/* operation perms */
--	size_t			shm_segsz;	/* size of segment (bytes) */
-+	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
- 	__kernel_time_t		shm_atime;	/* last attach time */
- 	unsigned long		__unused1;
- 	__kernel_time_t		shm_dtime;	/* last detach time */
-diff --git a/arch/mips/include/uapi/asm/shmbuf.h b/arch/mips/include/uapi/asm/shmbuf.h
-index f47d193..95c53ff 100644
---- a/arch/mips/include/uapi/asm/shmbuf.h
-+++ b/arch/mips/include/uapi/asm/shmbuf.h
-@@ -14,7 +14,7 @@
++#include <asm/ipcbuf.h>
++
+ /*
+  * The semid64_ds structure for m32r architecture.
+  * Note extra padding because this structure is passed back and forth
+diff --git a/arch/mips/include/uapi/asm/sembuf.h b/arch/mips/include/uapi/asm/sembuf.h
+index e1085ac..a55ab3c 100644
+--- a/arch/mips/include/uapi/asm/sembuf.h
++++ b/arch/mips/include/uapi/asm/sembuf.h
+@@ -1,6 +1,8 @@
+ #ifndef _ASM_SEMBUF_H
+ #define _ASM_SEMBUF_H
  
- struct shmid64_ds {
- 	struct ipc64_perm	shm_perm;	/* operation perms */
--	size_t			shm_segsz;	/* size of segment (bytes) */
-+	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
- 	__kernel_time_t		shm_atime;	/* last attach time */
- 	__kernel_time_t		shm_dtime;	/* last detach time */
- 	__kernel_time_t		shm_ctime;	/* last change time */
-diff --git a/arch/mn10300/include/uapi/asm/shmbuf.h b/arch/mn10300/include/uapi/asm/shmbuf.h
-index 71df684..e156878 100644
---- a/arch/mn10300/include/uapi/asm/shmbuf.h
-+++ b/arch/mn10300/include/uapi/asm/shmbuf.h
-@@ -15,7 +15,7 @@
++#include <asm/ipcbuf.h>
++
+ /*
+  * The semid64_ds structure for the MIPS architecture.
+  * Note extra padding because this structure is passed back and forth
+diff --git a/arch/mn10300/include/uapi/asm/sembuf.h b/arch/mn10300/include/uapi/asm/sembuf.h
+index 301f3f9..3529f55 100644
+--- a/arch/mn10300/include/uapi/asm/sembuf.h
++++ b/arch/mn10300/include/uapi/asm/sembuf.h
+@@ -1,6 +1,8 @@
+ #ifndef _ASM_SEMBUF_H
+ #define _ASM_SEMBUF_H
  
- struct shmid64_ds {
- 	struct ipc64_perm	shm_perm;	/* operation perms */
--	size_t			shm_segsz;	/* size of segment (bytes) */
-+	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
- 	__kernel_time_t		shm_atime;	/* last attach time */
- 	unsigned long		__unused1;
- 	__kernel_time_t		shm_dtime;	/* last detach time */
-diff --git a/arch/powerpc/include/uapi/asm/shmbuf.h b/arch/powerpc/include/uapi/asm/shmbuf.h
-index 7937289..a2425e5 100644
---- a/arch/powerpc/include/uapi/asm/shmbuf.h
-+++ b/arch/powerpc/include/uapi/asm/shmbuf.h
-@@ -38,7 +38,7 @@ struct shmid64_ds {
- #ifndef __powerpc64__
- 	unsigned long		__unused4;
- #endif
--	size_t			shm_segsz;	/* size of segment (bytes) */
-+	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
- 	__kernel_pid_t		shm_cpid;	/* pid of creator */
- 	__kernel_pid_t		shm_lpid;	/* pid of last operator */
- 	unsigned long		shm_nattch;	/* no. of current attaches */
-diff --git a/arch/s390/include/uapi/asm/shmbuf.h b/arch/s390/include/uapi/asm/shmbuf.h
-index 9ce1d9f..9ddf9e0 100644
---- a/arch/s390/include/uapi/asm/shmbuf.h
-+++ b/arch/s390/include/uapi/asm/shmbuf.h
-@@ -15,7 +15,7 @@
++#include <asm/ipcbuf.h>
++
+ /*
+  * The semid64_ds structure for MN10300 architecture.
+  * Note extra padding because this structure is passed back and forth
+diff --git a/arch/parisc/include/uapi/asm/sembuf.h b/arch/parisc/include/uapi/asm/sembuf.h
+index c20971b..cff5e43 100644
+--- a/arch/parisc/include/uapi/asm/sembuf.h
++++ b/arch/parisc/include/uapi/asm/sembuf.h
+@@ -1,6 +1,7 @@
+ #ifndef _PARISC_SEMBUF_H
+ #define _PARISC_SEMBUF_H
  
- struct shmid64_ds {
- 	struct ipc64_perm	shm_perm;	/* operation perms */
--	size_t			shm_segsz;	/* size of segment (bytes) */
-+	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
- 	__kernel_time_t		shm_atime;	/* last attach time */
- #ifndef __s390x__
- 	unsigned long		__unused1;
-diff --git a/arch/sparc/include/uapi/asm/shmbuf.h b/arch/sparc/include/uapi/asm/shmbuf.h
-index f651952..ed72656 100644
---- a/arch/sparc/include/uapi/asm/shmbuf.h
-+++ b/arch/sparc/include/uapi/asm/shmbuf.h
-@@ -27,7 +27,7 @@ struct shmid64_ds {
- 	__kernel_time_t		shm_dtime;	/* last detach time */
- 	PADDING(__pad3)
- 	__kernel_time_t		shm_ctime;	/* last change time */
--	size_t			shm_segsz;	/* size of segment (bytes) */
-+	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
- 	__kernel_pid_t		shm_cpid;	/* pid of creator */
- 	__kernel_pid_t		shm_lpid;	/* pid of last operator */
- 	unsigned long		shm_nattch;	/* no. of current attaches */
-diff --git a/arch/xtensa/include/uapi/asm/shmbuf.h b/arch/xtensa/include/uapi/asm/shmbuf.h
-index ad90d05..8d9206e 100644
---- a/arch/xtensa/include/uapi/asm/shmbuf.h
-+++ b/arch/xtensa/include/uapi/asm/shmbuf.h
-@@ -24,7 +24,7 @@
- #if defined (__XTENSA_EL__)
- struct shmid64_ds {
- 	struct ipc64_perm	shm_perm;	/* operation perms */
--	size_t			shm_segsz;	/* size of segment (bytes) */
-+	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
- 	__kernel_time_t		shm_atime;	/* last attach time */
- 	unsigned long		__unused1;
- 	__kernel_time_t		shm_dtime;	/* last detach time */
-@@ -40,7 +40,7 @@ struct shmid64_ds {
- #elif defined (__XTENSA_EB__)
- struct shmid64_ds {
- 	struct ipc64_perm	shm_perm;	/* operation perms */
--	size_t			shm_segsz;	/* size of segment (bytes) */
-+	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
- 	__kernel_time_t		shm_atime;	/* last attach time */
- 	unsigned long		__unused1;
- 	__kernel_time_t		shm_dtime;	/* last detach time */
-diff --git a/include/uapi/asm-generic/shmbuf.h b/include/uapi/asm-generic/shmbuf.h
-index 2a6d508..0756934 100644
---- a/include/uapi/asm-generic/shmbuf.h
-+++ b/include/uapi/asm-generic/shmbuf.h
-@@ -25,7 +25,7 @@
++#include <asm/ipcbuf.h>
+ #include <asm/bitsperlong.h>
  
- struct shmid64_ds {
- 	struct ipc64_perm	shm_perm;	/* operation perms */
--	size_t			shm_segsz;	/* size of segment (bytes) */
-+	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
- 	__kernel_time_t		shm_atime;	/* last attach time */
- #if __BITS_PER_LONG != 64
- 	unsigned long		__unused1;
+ /* 
+diff --git a/arch/powerpc/include/uapi/asm/sembuf.h b/arch/powerpc/include/uapi/asm/sembuf.h
+index 99a4193..d001c0a 100644
+--- a/arch/powerpc/include/uapi/asm/sembuf.h
++++ b/arch/powerpc/include/uapi/asm/sembuf.h
+@@ -1,6 +1,8 @@
+ #ifndef _ASM_POWERPC_SEMBUF_H
+ #define _ASM_POWERPC_SEMBUF_H
+ 
++#include <asm/ipcbuf.h>
++
+ /*
+  * This program is free software; you can redistribute it and/or
+  * modify it under the terms of the GNU General Public License
+diff --git a/arch/s390/include/uapi/asm/sembuf.h b/arch/s390/include/uapi/asm/sembuf.h
+index 32626b0..734c9de 100644
+--- a/arch/s390/include/uapi/asm/sembuf.h
++++ b/arch/s390/include/uapi/asm/sembuf.h
+@@ -1,6 +1,8 @@
+ #ifndef _S390_SEMBUF_H
+ #define _S390_SEMBUF_H
+ 
++#include <asm/ipcbuf.h>
++
+ /* 
+  * The semid64_ds structure for S/390 architecture.
+  * Note extra padding because this structure is passed back and forth
+diff --git a/arch/sparc/include/uapi/asm/sembuf.h b/arch/sparc/include/uapi/asm/sembuf.h
+index faee1be..28f7060 100644
+--- a/arch/sparc/include/uapi/asm/sembuf.h
++++ b/arch/sparc/include/uapi/asm/sembuf.h
+@@ -1,6 +1,8 @@
+ #ifndef _SPARC_SEMBUF_H
+ #define _SPARC_SEMBUF_H
+ 
++#include <asm/ipcbuf.h>
++
+ /*
+  * The semid64_ds structure for sparc architecture.
+  * Note extra padding because this structure is passed back and forth
+diff --git a/arch/x86/include/uapi/asm/sembuf.h b/arch/x86/include/uapi/asm/sembuf.h
+index cc2d6a3..d88cc89 100644
+--- a/arch/x86/include/uapi/asm/sembuf.h
++++ b/arch/x86/include/uapi/asm/sembuf.h
+@@ -1,6 +1,8 @@
+ #ifndef _ASM_X86_SEMBUF_H
+ #define _ASM_X86_SEMBUF_H
+ 
++#include <asm/ipcbuf.h>
++
+ /*
+  * The semid64_ds structure for x86 architecture.
+  * Note extra padding because this structure is passed back and forth
+diff --git a/arch/xtensa/include/uapi/asm/sembuf.h b/arch/xtensa/include/uapi/asm/sembuf.h
+index c158704..2494c41 100644
+--- a/arch/xtensa/include/uapi/asm/sembuf.h
++++ b/arch/xtensa/include/uapi/asm/sembuf.h
+@@ -21,6 +21,7 @@
+ #ifndef _XTENSA_SEMBUF_H
+ #define _XTENSA_SEMBUF_H
+ 
++#include <asm/ipcbuf.h>
+ #include <asm/byteorder.h>
+ 
+ struct semid64_ds {
+diff --git a/include/uapi/asm-generic/sembuf.h b/include/uapi/asm-generic/sembuf.h
+index 4cb2c13..1d910d7 100644
+--- a/include/uapi/asm-generic/sembuf.h
++++ b/include/uapi/asm-generic/sembuf.h
+@@ -1,6 +1,7 @@
+ #ifndef __ASM_GENERIC_SEMBUF_H
+ #define __ASM_GENERIC_SEMBUF_H
+ 
++#include <asm/ipcbuf.h>
+ #include <asm/bitsperlong.h>
+ 
+ /*
 -- 
 ldv
