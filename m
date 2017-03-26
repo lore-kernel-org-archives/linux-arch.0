@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from vmicros1.altlinux.org ([194.107.17.57]:51356 "EHLO
+Received: from vmicros1.altlinux.org ([194.107.17.57]:50972 "EHLO
         vmicros1.altlinux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751258AbdCZDbO (ORCPT
+        with ESMTP id S1751256AbdCZDbO (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Sat, 25 Mar 2017 23:31:14 -0400
-Date: Sun, 26 Mar 2017 06:30:38 +0300
+Date: Sun, 26 Mar 2017 06:30:25 +0300
 From: "Dmitry V. Levin" <ldv@altlinux.org>
-Subject: [PATCH 4/5] uapi: fix asm/shmbuf.h userspace compilation errors
-Message-ID: <20170326033038.GD13511@altlinux.org>
+Subject: [PATCH 2/5] uapi: fix asm/msgbuf.h userspace compilation errors
+Message-ID: <20170326033024.GB13511@altlinux.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
@@ -15,234 +15,219 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20170326033038._fhOxJMNIgcZ6YEFIDf8Qs8hok9sOkcOFdVTPgR9o6s@z>
+Message-ID: <20170326033025.mbDqDO61RzfNA6rOFtPycTvGuZ8bqDNZC0Va2wy51Hs@z>
 
 Date: Sat, 25 Feb 2017 12:34:56 +0000
 
-Include <asm/ipcbuf.h> to fix asm/shmbuf.h userspace compilation errors
+Include <asm/ipcbuf.h> to fix asm/msgbuf.h userspace compilation errors
 like this:
 
-/usr/include/asm-generic/shmbuf.h:26:20: error: field 'shm_perm' has incomplete type
-  struct ipc64_perm shm_perm; /* operation perms */
-/usr/include/asm-generic/shmbuf.h:28:2: error: unknown type name '__kernel_time_t'
-  __kernel_time_t  shm_atime; /* last attach time */
-/usr/include/asm-generic/shmbuf.h:32:2: error: unknown type name '__kernel_time_t'
-  __kernel_time_t  shm_dtime; /* last detach time */
-/usr/include/asm-generic/shmbuf.h:36:2: error: unknown type name '__kernel_time_t'
-  __kernel_time_t  shm_ctime; /* last change time */
-/usr/include/asm-generic/shmbuf.h:40:2: error: unknown type name '__kernel_pid_t'
-  __kernel_pid_t  shm_cpid; /* pid of creator */
-/usr/include/asm-generic/shmbuf.h:41:2: error: unknown type name '__kernel_pid_t'
-  __kernel_pid_t  shm_lpid; /* pid of last operator */
-/usr/include/asm-generic/shmbuf.h:42:2: error: unknown type name '__kernel_ulong_t'
-  __kernel_ulong_t shm_nattch; /* no. of current attaches */
-/usr/include/asm-generic/shmbuf.h:43:2: error: unknown type name '__kernel_ulong_t'
+/usr/include/asm-generic/msgbuf.h:25:20: error: field 'msg_perm' has incomplete type
+  struct ipc64_perm msg_perm;
+/usr/include/asm-generic/msgbuf.h:26:2: error: unknown type name '__kernel_time_t'
+  __kernel_time_t msg_stime; /* last msgsnd time */
+/usr/include/asm-generic/msgbuf.h:30:2: error: unknown type name '__kernel_time_t'
+  __kernel_time_t msg_rtime; /* last msgrcv time */
+/usr/include/asm-generic/msgbuf.h:34:2: error: unknown type name '__kernel_time_t'
+  __kernel_time_t msg_ctime; /* last change time */
+/usr/include/asm-generic/msgbuf.h:38:2: error: unknown type name '__kernel_ulong_t'
+  __kernel_ulong_t msg_cbytes; /* current number of bytes on queue */
+/usr/include/asm-generic/msgbuf.h:39:2: error: unknown type name '__kernel_ulong_t'
+  __kernel_ulong_t msg_qnum; /* number of messages in queue */
+/usr/include/asm-generic/msgbuf.h:40:2: error: unknown type name '__kernel_ulong_t'
+  __kernel_ulong_t msg_qbytes; /* max number of bytes on queue */
+/usr/include/asm-generic/msgbuf.h:41:2: error: unknown type name '__kernel_pid_t'
+  __kernel_pid_t msg_lspid; /* pid of last msgsnd */
+/usr/include/asm-generic/msgbuf.h:42:2: error: unknown type name '__kernel_pid_t'
+  __kernel_pid_t msg_lrpid; /* last receive pid */
+/usr/include/asm-generic/msgbuf.h:43:2: error: unknown type name '__kernel_ulong_t'
   __kernel_ulong_t __unused4;
-/usr/include/asm-generic/shmbuf.h:44:2: error: unknown type name '__kernel_ulong_t'
+/usr/include/asm-generic/msgbuf.h:44:2: error: unknown type name '__kernel_ulong_t'
   __kernel_ulong_t __unused5;
-/usr/include/asm-generic/shmbuf.h:48:2: error: unknown type name '__kernel_ulong_t'
-  __kernel_ulong_t shmmax;
-/usr/include/asm-generic/shmbuf.h:49:2: error: unknown type name '__kernel_ulong_t'
-  __kernel_ulong_t shmmin;
-/usr/include/asm-generic/shmbuf.h:50:2: error: unknown type name '__kernel_ulong_t'
-  __kernel_ulong_t shmmni;
-/usr/include/asm-generic/shmbuf.h:51:2: error: unknown type name '__kernel_ulong_t'
-  __kernel_ulong_t shmseg;
-/usr/include/asm-generic/shmbuf.h:52:2: error: unknown type name '__kernel_ulong_t'
-  __kernel_ulong_t shmall;
-/usr/include/asm-generic/shmbuf.h:53:2: error: unknown type name '__kernel_ulong_t'
-  __kernel_ulong_t __unused1;
-/usr/include/asm-generic/shmbuf.h:54:2: error: unknown type name '__kernel_ulong_t'
-  __kernel_ulong_t __unused2;
-/usr/include/asm-generic/shmbuf.h:55:2: error: unknown type name '__kernel_ulong_t'
-  __kernel_ulong_t __unused3;
-/usr/include/asm-generic/shmbuf.h:56:2: error: unknown type name '__kernel_ulong_t'
-  __kernel_ulong_t __unused4;
 
 Signed-off-by: Dmitry V. Levin <ldv@altlinux.org>
 Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/alpha/include/uapi/asm/shmbuf.h   | 2 ++
- arch/avr32/include/uapi/asm/shmbuf.h   | 2 ++
- arch/frv/include/uapi/asm/shmbuf.h     | 2 ++
- arch/ia64/include/uapi/asm/shmbuf.h    | 2 ++
- arch/m32r/include/uapi/asm/shmbuf.h    | 2 ++
- arch/mips/include/uapi/asm/shmbuf.h    | 2 ++
- arch/mn10300/include/uapi/asm/shmbuf.h | 2 ++
- arch/parisc/include/uapi/asm/shmbuf.h  | 1 +
- arch/powerpc/include/uapi/asm/shmbuf.h | 2 ++
- arch/s390/include/uapi/asm/shmbuf.h    | 2 ++
- arch/sparc/include/uapi/asm/shmbuf.h   | 2 ++
- arch/xtensa/include/uapi/asm/shmbuf.h  | 2 ++
- include/uapi/asm-generic/shmbuf.h      | 1 +
- 13 files changed, 24 insertions(+)
+ arch/alpha/include/uapi/asm/msgbuf.h   | 2 ++
+ arch/avr32/include/uapi/asm/msgbuf.h   | 2 ++
+ arch/frv/include/uapi/asm/msgbuf.h     | 2 ++
+ arch/ia64/include/uapi/asm/msgbuf.h    | 2 ++
+ arch/m32r/include/uapi/asm/msgbuf.h    | 2 ++
+ arch/mips/include/uapi/asm/msgbuf.h    | 1 +
+ arch/mn10300/include/uapi/asm/msgbuf.h | 2 ++
+ arch/parisc/include/uapi/asm/msgbuf.h  | 1 +
+ arch/powerpc/include/uapi/asm/msgbuf.h | 2 ++
+ arch/s390/include/uapi/asm/msgbuf.h    | 2 ++
+ arch/sparc/include/uapi/asm/msgbuf.h   | 2 ++
+ arch/xtensa/include/uapi/asm/msgbuf.h  | 2 ++
+ include/uapi/asm-generic/msgbuf.h      | 1 +
+ 13 files changed, 23 insertions(+)
 
-diff --git a/arch/alpha/include/uapi/asm/shmbuf.h b/arch/alpha/include/uapi/asm/shmbuf.h
-index 37ee84f..6156099 100644
---- a/arch/alpha/include/uapi/asm/shmbuf.h
-+++ b/arch/alpha/include/uapi/asm/shmbuf.h
+diff --git a/arch/alpha/include/uapi/asm/msgbuf.h b/arch/alpha/include/uapi/asm/msgbuf.h
+index 9849650..8de899a 100644
+--- a/arch/alpha/include/uapi/asm/msgbuf.h
++++ b/arch/alpha/include/uapi/asm/msgbuf.h
 @@ -1,6 +1,8 @@
- #ifndef _ALPHA_SHMBUF_H
- #define _ALPHA_SHMBUF_H
+ #ifndef _ALPHA_MSGBUF_H
+ #define _ALPHA_MSGBUF_H
  
 +#include <asm/ipcbuf.h>
 +
  /* 
-  * The shmid64_ds structure for alpha architecture.
+  * The msqid64_ds structure for alpha architecture.
   * Note extra padding because this structure is passed back and forth
-diff --git a/arch/avr32/include/uapi/asm/shmbuf.h b/arch/avr32/include/uapi/asm/shmbuf.h
-index b94cf8b..c8e5234 100644
---- a/arch/avr32/include/uapi/asm/shmbuf.h
-+++ b/arch/avr32/include/uapi/asm/shmbuf.h
+diff --git a/arch/avr32/include/uapi/asm/msgbuf.h b/arch/avr32/include/uapi/asm/msgbuf.h
+index 9eae6ef..45cdffb 100644
+--- a/arch/avr32/include/uapi/asm/msgbuf.h
++++ b/arch/avr32/include/uapi/asm/msgbuf.h
 @@ -1,6 +1,8 @@
- #ifndef _UAPI__ASM_AVR32_SHMBUF_H
- #define _UAPI__ASM_AVR32_SHMBUF_H
+ #ifndef _UAPI__ASM_AVR32_MSGBUF_H
+ #define _UAPI__ASM_AVR32_MSGBUF_H
  
 +#include <asm/ipcbuf.h>
 +
  /*
-  * The shmid64_ds structure for i386 architecture.
+  * The msqid64_ds structure for i386 architecture.
   * Note extra padding because this structure is passed back and forth
-diff --git a/arch/frv/include/uapi/asm/shmbuf.h b/arch/frv/include/uapi/asm/shmbuf.h
-index 4c6e711..943746c 100644
---- a/arch/frv/include/uapi/asm/shmbuf.h
-+++ b/arch/frv/include/uapi/asm/shmbuf.h
+diff --git a/arch/frv/include/uapi/asm/msgbuf.h b/arch/frv/include/uapi/asm/msgbuf.h
+index 97ceb55..92d6656 100644
+--- a/arch/frv/include/uapi/asm/msgbuf.h
++++ b/arch/frv/include/uapi/asm/msgbuf.h
 @@ -1,6 +1,8 @@
- #ifndef _ASM_SHMBUF_H
- #define _ASM_SHMBUF_H
+ #ifndef _ASM_MSGBUF_H
+ #define _ASM_MSGBUF_H
  
 +#include <asm/ipcbuf.h>
 +
  /*
-  * The shmid64_ds structure for FR-V architecture.
+  * The msqid64_ds structure for FR-V architecture.
   * Note extra padding because this structure is passed back and forth
-diff --git a/arch/ia64/include/uapi/asm/shmbuf.h b/arch/ia64/include/uapi/asm/shmbuf.h
-index 585002a..ca81d77e 100644
---- a/arch/ia64/include/uapi/asm/shmbuf.h
-+++ b/arch/ia64/include/uapi/asm/shmbuf.h
+diff --git a/arch/ia64/include/uapi/asm/msgbuf.h b/arch/ia64/include/uapi/asm/msgbuf.h
+index 6c64c0d..9a31b60 100644
+--- a/arch/ia64/include/uapi/asm/msgbuf.h
++++ b/arch/ia64/include/uapi/asm/msgbuf.h
 @@ -1,6 +1,8 @@
- #ifndef _ASM_IA64_SHMBUF_H
- #define _ASM_IA64_SHMBUF_H
+ #ifndef _ASM_IA64_MSGBUF_H
+ #define _ASM_IA64_MSGBUF_H
  
 +#include <asm/ipcbuf.h>
 +
  /*
-  * The shmid64_ds structure for IA-64 architecture.
+  * The msqid64_ds structure for IA-64 architecture.
   * Note extra padding because this structure is passed back and forth
-diff --git a/arch/m32r/include/uapi/asm/shmbuf.h b/arch/m32r/include/uapi/asm/shmbuf.h
-index b0cdf0a..714de6e 100644
---- a/arch/m32r/include/uapi/asm/shmbuf.h
-+++ b/arch/m32r/include/uapi/asm/shmbuf.h
+diff --git a/arch/m32r/include/uapi/asm/msgbuf.h b/arch/m32r/include/uapi/asm/msgbuf.h
+index 0d5a877..4786c0c 100644
+--- a/arch/m32r/include/uapi/asm/msgbuf.h
++++ b/arch/m32r/include/uapi/asm/msgbuf.h
 @@ -1,6 +1,8 @@
- #ifndef _ASM_M32R_SHMBUF_H
- #define _ASM_M32R_SHMBUF_H
+ #ifndef _ASM_M32R_MSGBUF_H
+ #define _ASM_M32R_MSGBUF_H
  
 +#include <asm/ipcbuf.h>
 +
  /*
-  * The shmid64_ds structure for M32R architecture.
+  * The msqid64_ds structure for m32r architecture.
   * Note extra padding because this structure is passed back and forth
-diff --git a/arch/mips/include/uapi/asm/shmbuf.h b/arch/mips/include/uapi/asm/shmbuf.h
-index f994438..f47d193 100644
---- a/arch/mips/include/uapi/asm/shmbuf.h
-+++ b/arch/mips/include/uapi/asm/shmbuf.h
-@@ -1,6 +1,8 @@
- #ifndef _ASM_SHMBUF_H
- #define _ASM_SHMBUF_H
- 
-+#include <asm/ipcbuf.h>
-+
- /*
-  * The shmid64_ds structure for the MIPS architecture.
-  * Note extra padding because this structure is passed back and forth
-diff --git a/arch/mn10300/include/uapi/asm/shmbuf.h b/arch/mn10300/include/uapi/asm/shmbuf.h
-index 8f300cc..71df684 100644
---- a/arch/mn10300/include/uapi/asm/shmbuf.h
-+++ b/arch/mn10300/include/uapi/asm/shmbuf.h
-@@ -1,6 +1,8 @@
- #ifndef _ASM_SHMBUF_H
- #define _ASM_SHMBUF_H
- 
-+#include <asm/ipcbuf.h>
-+
- /*
-  * The shmid64_ds structure for MN10300 architecture.
-  * Note extra padding because this structure is passed back and forth
-diff --git a/arch/parisc/include/uapi/asm/shmbuf.h b/arch/parisc/include/uapi/asm/shmbuf.h
-index 750e13e..d8105ef 100644
---- a/arch/parisc/include/uapi/asm/shmbuf.h
-+++ b/arch/parisc/include/uapi/asm/shmbuf.h
+diff --git a/arch/mips/include/uapi/asm/msgbuf.h b/arch/mips/include/uapi/asm/msgbuf.h
+index df849e8..c84a388 100644
+--- a/arch/mips/include/uapi/asm/msgbuf.h
++++ b/arch/mips/include/uapi/asm/msgbuf.h
 @@ -1,6 +1,7 @@
- #ifndef _PARISC_SHMBUF_H
- #define _PARISC_SHMBUF_H
+ #ifndef _ASM_MSGBUF_H
+ #define _ASM_MSGBUF_H
+ 
++#include <asm/ipcbuf.h>
+ 
+ /*
+  * The msqid64_ds structure for the MIPS architecture.
+diff --git a/arch/mn10300/include/uapi/asm/msgbuf.h b/arch/mn10300/include/uapi/asm/msgbuf.h
+index 8b60245..f1c5dd5 100644
+--- a/arch/mn10300/include/uapi/asm/msgbuf.h
++++ b/arch/mn10300/include/uapi/asm/msgbuf.h
+@@ -1,6 +1,8 @@
+ #ifndef _ASM_MSGBUF_H
+ #define _ASM_MSGBUF_H
+ 
++#include <asm/ipcbuf.h>
++
+ /*
+  * The msqid64_ds structure for MN10300 architecture.
+  * Note extra padding because this structure is passed back and forth
+diff --git a/arch/parisc/include/uapi/asm/msgbuf.h b/arch/parisc/include/uapi/asm/msgbuf.h
+index 2e83ac7..c70f1d3 100644
+--- a/arch/parisc/include/uapi/asm/msgbuf.h
++++ b/arch/parisc/include/uapi/asm/msgbuf.h
+@@ -1,6 +1,7 @@
+ #ifndef _PARISC_MSGBUF_H
+ #define _PARISC_MSGBUF_H
  
 +#include <asm/ipcbuf.h>
  #include <asm/bitsperlong.h>
  
  /* 
-diff --git a/arch/powerpc/include/uapi/asm/shmbuf.h b/arch/powerpc/include/uapi/asm/shmbuf.h
-index 8efa396..7937289 100644
---- a/arch/powerpc/include/uapi/asm/shmbuf.h
-+++ b/arch/powerpc/include/uapi/asm/shmbuf.h
+diff --git a/arch/powerpc/include/uapi/asm/msgbuf.h b/arch/powerpc/include/uapi/asm/msgbuf.h
+index dd76743..3b87d25 100644
+--- a/arch/powerpc/include/uapi/asm/msgbuf.h
++++ b/arch/powerpc/include/uapi/asm/msgbuf.h
 @@ -1,6 +1,8 @@
- #ifndef _ASM_POWERPC_SHMBUF_H
- #define _ASM_POWERPC_SHMBUF_H
+ #ifndef _ASM_POWERPC_MSGBUF_H
+ #define _ASM_POWERPC_MSGBUF_H
  
 +#include <asm/ipcbuf.h>
 +
  /*
-  * This program is free software; you can redistribute it and/or
-  * modify it under the terms of the GNU General Public License
-diff --git a/arch/s390/include/uapi/asm/shmbuf.h b/arch/s390/include/uapi/asm/shmbuf.h
-index eed2e28..9ce1d9f 100644
---- a/arch/s390/include/uapi/asm/shmbuf.h
-+++ b/arch/s390/include/uapi/asm/shmbuf.h
+  * The msqid64_ds structure for the PowerPC architecture.
+  * Note extra padding because this structure is passed back and forth
+diff --git a/arch/s390/include/uapi/asm/msgbuf.h b/arch/s390/include/uapi/asm/msgbuf.h
+index 1bbdee9..ab04112 100644
+--- a/arch/s390/include/uapi/asm/msgbuf.h
++++ b/arch/s390/include/uapi/asm/msgbuf.h
 @@ -1,6 +1,8 @@
- #ifndef _S390_SHMBUF_H
- #define _S390_SHMBUF_H
+ #ifndef _S390_MSGBUF_H
+ #define _S390_MSGBUF_H
  
 +#include <asm/ipcbuf.h>
 +
  /* 
-  * The shmid64_ds structure for S/390 architecture.
+  * The msqid64_ds structure for S/390 architecture.
   * Note extra padding because this structure is passed back and forth
-diff --git a/arch/sparc/include/uapi/asm/shmbuf.h b/arch/sparc/include/uapi/asm/shmbuf.h
-index 83a1605..f651952 100644
---- a/arch/sparc/include/uapi/asm/shmbuf.h
-+++ b/arch/sparc/include/uapi/asm/shmbuf.h
+diff --git a/arch/sparc/include/uapi/asm/msgbuf.h b/arch/sparc/include/uapi/asm/msgbuf.h
+index efc7cbe9..699f631 100644
+--- a/arch/sparc/include/uapi/asm/msgbuf.h
++++ b/arch/sparc/include/uapi/asm/msgbuf.h
 @@ -1,6 +1,8 @@
- #ifndef _SPARC_SHMBUF_H
- #define _SPARC_SHMBUF_H
+ #ifndef _SPARC_MSGBUF_H
+ #define _SPARC_MSGBUF_H
  
 +#include <asm/ipcbuf.h>
 +
- /* 
-  * The shmid64_ds structure for sparc architecture.
+ /*
+  * The msqid64_ds structure for sparc64 architecture.
   * Note extra padding because this structure is passed back and forth
-diff --git a/arch/xtensa/include/uapi/asm/shmbuf.h b/arch/xtensa/include/uapi/asm/shmbuf.h
-index ad4b012..ad90d05 100644
---- a/arch/xtensa/include/uapi/asm/shmbuf.h
-+++ b/arch/xtensa/include/uapi/asm/shmbuf.h
-@@ -19,6 +19,8 @@
- #ifndef _XTENSA_SHMBUF_H
- #define _XTENSA_SHMBUF_H
+diff --git a/arch/xtensa/include/uapi/asm/msgbuf.h b/arch/xtensa/include/uapi/asm/msgbuf.h
+index 693c967..b75458b 100644
+--- a/arch/xtensa/include/uapi/asm/msgbuf.h
++++ b/arch/xtensa/include/uapi/asm/msgbuf.h
+@@ -17,6 +17,8 @@
+ #ifndef _XTENSA_MSGBUF_H
+ #define _XTENSA_MSGBUF_H
  
 +#include <asm/ipcbuf.h>
 +
- #if defined (__XTENSA_EL__)
- struct shmid64_ds {
- 	struct ipc64_perm	shm_perm;	/* operation perms */
-diff --git a/include/uapi/asm-generic/shmbuf.h b/include/uapi/asm-generic/shmbuf.h
-index 7e9fb2f..2a6d508 100644
---- a/include/uapi/asm-generic/shmbuf.h
-+++ b/include/uapi/asm-generic/shmbuf.h
+ struct msqid64_ds {
+ 	struct ipc64_perm msg_perm;
+ #ifdef __XTENSA_EB__
+diff --git a/include/uapi/asm-generic/msgbuf.h b/include/uapi/asm-generic/msgbuf.h
+index f55ecc4..f3c3b43 100644
+--- a/include/uapi/asm-generic/msgbuf.h
++++ b/include/uapi/asm-generic/msgbuf.h
 @@ -1,6 +1,7 @@
- #ifndef __ASM_GENERIC_SHMBUF_H
- #define __ASM_GENERIC_SHMBUF_H
+ #ifndef __ASM_GENERIC_MSGBUF_H
+ #define __ASM_GENERIC_MSGBUF_H
  
 +#include <asm/ipcbuf.h>
  #include <asm/bitsperlong.h>
- 
  /*
+  * generic msqid64_ds structure.
 -- 
 ldv
