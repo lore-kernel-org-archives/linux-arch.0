@@ -1,7 +1,8 @@
 From: "Dmitry V. Levin" <ldv@altlinux.org>
-Subject: [PATCH 4/5] uapi: fix asm/shmbuf.h userspace compilation errors
-Date: Sun, 26 Mar 2017 06:30:38 +0300
-Message-ID: <20170326033038.GD13511@altlinux.org>
+Subject: [PATCH 5/5] uapi: fix another asm/shmbuf.h userspace compilation
+ error
+Date: Sun, 26 Mar 2017 06:30:43 +0300
+Message-ID: <20170326033043.GE13511@altlinux.org>
 References: <20170326032728.GA13481@altlinux.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -15,230 +16,200 @@ List-Id: linux-arch.vger.kernel.org
 
 Date: Sat, 25 Feb 2017 12:34:56 +0000
 
-Include <asm/ipcbuf.h> to fix asm/shmbuf.h userspace compilation errors
-like this:
+Replace size_t with __kernel_size_t to fix asm/shmbuf.h userspace
+compilation errors like this:
 
-/usr/include/asm-generic/shmbuf.h:26:20: error: field 'shm_perm' has incomplete type
-  struct ipc64_perm shm_perm; /* operation perms */
-/usr/include/asm-generic/shmbuf.h:28:2: error: unknown type name '__kernel_time_t'
-  __kernel_time_t  shm_atime; /* last attach time */
-/usr/include/asm-generic/shmbuf.h:32:2: error: unknown type name '__kernel_time_t'
-  __kernel_time_t  shm_dtime; /* last detach time */
-/usr/include/asm-generic/shmbuf.h:36:2: error: unknown type name '__kernel_time_t'
-  __kernel_time_t  shm_ctime; /* last change time */
-/usr/include/asm-generic/shmbuf.h:40:2: error: unknown type name '__kernel_pid_t'
-  __kernel_pid_t  shm_cpid; /* pid of creator */
-/usr/include/asm-generic/shmbuf.h:41:2: error: unknown type name '__kernel_pid_t'
-  __kernel_pid_t  shm_lpid; /* pid of last operator */
-/usr/include/asm-generic/shmbuf.h:42:2: error: unknown type name '__kernel_ulong_t'
-  __kernel_ulong_t shm_nattch; /* no. of current attaches */
-/usr/include/asm-generic/shmbuf.h:43:2: error: unknown type name '__kernel_ulong_t'
-  __kernel_ulong_t __unused4;
-/usr/include/asm-generic/shmbuf.h:44:2: error: unknown type name '__kernel_ulong_t'
-  __kernel_ulong_t __unused5;
-/usr/include/asm-generic/shmbuf.h:48:2: error: unknown type name '__kernel_ulong_t'
-  __kernel_ulong_t shmmax;
-/usr/include/asm-generic/shmbuf.h:49:2: error: unknown type name '__kernel_ulong_t'
-  __kernel_ulong_t shmmin;
-/usr/include/asm-generic/shmbuf.h:50:2: error: unknown type name '__kernel_ulong_t'
-  __kernel_ulong_t shmmni;
-/usr/include/asm-generic/shmbuf.h:51:2: error: unknown type name '__kernel_ulong_t'
-  __kernel_ulong_t shmseg;
-/usr/include/asm-generic/shmbuf.h:52:2: error: unknown type name '__kernel_ulong_t'
-  __kernel_ulong_t shmall;
-/usr/include/asm-generic/shmbuf.h:53:2: error: unknown type name '__kernel_ulong_t'
-  __kernel_ulong_t __unused1;
-/usr/include/asm-generic/shmbuf.h:54:2: error: unknown type name '__kernel_ulong_t'
-  __kernel_ulong_t __unused2;
-/usr/include/asm-generic/shmbuf.h:55:2: error: unknown type name '__kernel_ulong_t'
-  __kernel_ulong_t __unused3;
-/usr/include/asm-generic/shmbuf.h:56:2: error: unknown type name '__kernel_ulong_t'
-  __kernel_ulong_t __unused4;
+/usr/include/asm-generic/shmbuf.h:28:2: error: unknown type name 'size_t'
+  size_t   shm_segsz; /* size of segment (bytes) */
+
+x32 is the only architecture where sizeof(size_t) is less than
+sizeof(__kernel_size_t), but as the kernel treats shm_segsz field as
+__kernel_size_t anyway, UAPI should follow.  Thanks to little-endiannes
+of x32 and 64-bit alignment of the field following shm_segsz, this
+change doesn't break ABI, and the difference doesn't manifest itself
+easily.
 
 Signed-off-by: Dmitry V. Levin <ldv@altlinux.org>
 Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/alpha/include/uapi/asm/shmbuf.h   | 2 ++
- arch/avr32/include/uapi/asm/shmbuf.h   | 2 ++
- arch/frv/include/uapi/asm/shmbuf.h     | 2 ++
- arch/ia64/include/uapi/asm/shmbuf.h    | 2 ++
- arch/m32r/include/uapi/asm/shmbuf.h    | 2 ++
- arch/mips/include/uapi/asm/shmbuf.h    | 2 ++
- arch/mn10300/include/uapi/asm/shmbuf.h | 2 ++
- arch/parisc/include/uapi/asm/shmbuf.h  | 1 +
- arch/powerpc/include/uapi/asm/shmbuf.h | 2 ++
- arch/s390/include/uapi/asm/shmbuf.h    | 2 ++
- arch/sparc/include/uapi/asm/shmbuf.h   | 2 ++
- arch/xtensa/include/uapi/asm/shmbuf.h  | 2 ++
- include/uapi/asm-generic/shmbuf.h      | 1 +
- 13 files changed, 24 insertions(+)
+ arch/alpha/include/uapi/asm/shmbuf.h   | 2 +-
+ arch/avr32/include/uapi/asm/shmbuf.h   | 2 +-
+ arch/frv/include/uapi/asm/shmbuf.h     | 2 +-
+ arch/ia64/include/uapi/asm/shmbuf.h    | 2 +-
+ arch/m32r/include/uapi/asm/shmbuf.h    | 2 +-
+ arch/mips/include/uapi/asm/shmbuf.h    | 2 +-
+ arch/mn10300/include/uapi/asm/shmbuf.h | 2 +-
+ arch/powerpc/include/uapi/asm/shmbuf.h | 2 +-
+ arch/s390/include/uapi/asm/shmbuf.h    | 2 +-
+ arch/sparc/include/uapi/asm/shmbuf.h   | 2 +-
+ arch/xtensa/include/uapi/asm/shmbuf.h  | 4 ++--
+ include/uapi/asm-generic/shmbuf.h      | 2 +-
+ 12 files changed, 13 insertions(+), 13 deletions(-)
 
 diff --git a/arch/alpha/include/uapi/asm/shmbuf.h b/arch/alpha/include/uapi/asm/shmbuf.h
-index 37ee84f..6156099 100644
+index 6156099..e32ed1f 100644
 --- a/arch/alpha/include/uapi/asm/shmbuf.h
 +++ b/arch/alpha/include/uapi/asm/shmbuf.h
-@@ -1,6 +1,8 @@
- #ifndef _ALPHA_SHMBUF_H
- #define _ALPHA_SHMBUF_H
+@@ -14,7 +14,7 @@
  
-+#include <asm/ipcbuf.h>
-+
- /* 
-  * The shmid64_ds structure for alpha architecture.
-  * Note extra padding because this structure is passed back and forth
+ struct shmid64_ds {
+ 	struct ipc64_perm	shm_perm;	/* operation perms */
+-	size_t			shm_segsz;	/* size of segment (bytes) */
++	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
+ 	__kernel_time_t		shm_atime;	/* last attach time */
+ 	__kernel_time_t		shm_dtime;	/* last detach time */
+ 	__kernel_time_t		shm_ctime;	/* last change time */
 diff --git a/arch/avr32/include/uapi/asm/shmbuf.h b/arch/avr32/include/uapi/asm/shmbuf.h
-index b94cf8b..c8e5234 100644
+index c8e5234..2804f25 100644
 --- a/arch/avr32/include/uapi/asm/shmbuf.h
 +++ b/arch/avr32/include/uapi/asm/shmbuf.h
-@@ -1,6 +1,8 @@
- #ifndef _UAPI__ASM_AVR32_SHMBUF_H
- #define _UAPI__ASM_AVR32_SHMBUF_H
+@@ -15,7 +15,7 @@
  
-+#include <asm/ipcbuf.h>
-+
- /*
-  * The shmid64_ds structure for i386 architecture.
-  * Note extra padding because this structure is passed back and forth
+ struct shmid64_ds {
+ 	struct ipc64_perm	shm_perm;	/* operation perms */
+-	size_t			shm_segsz;	/* size of segment (bytes) */
++	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
+ 	__kernel_time_t		shm_atime;	/* last attach time */
+ 	unsigned long		__unused1;
+ 	__kernel_time_t		shm_dtime;	/* last detach time */
 diff --git a/arch/frv/include/uapi/asm/shmbuf.h b/arch/frv/include/uapi/asm/shmbuf.h
-index 4c6e711..943746c 100644
+index 943746c..2af199f 100644
 --- a/arch/frv/include/uapi/asm/shmbuf.h
 +++ b/arch/frv/include/uapi/asm/shmbuf.h
-@@ -1,6 +1,8 @@
- #ifndef _ASM_SHMBUF_H
- #define _ASM_SHMBUF_H
+@@ -15,7 +15,7 @@
  
-+#include <asm/ipcbuf.h>
-+
- /*
-  * The shmid64_ds structure for FR-V architecture.
-  * Note extra padding because this structure is passed back and forth
+ struct shmid64_ds {
+ 	struct ipc64_perm	shm_perm;	/* operation perms */
+-	size_t			shm_segsz;	/* size of segment (bytes) */
++	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
+ 	__kernel_time_t		shm_atime;	/* last attach time */
+ 	unsigned long		__unused1;
+ 	__kernel_time_t		shm_dtime;	/* last detach time */
 diff --git a/arch/ia64/include/uapi/asm/shmbuf.h b/arch/ia64/include/uapi/asm/shmbuf.h
-index 585002a..ca81d77e 100644
+index ca81d77e..8e35495 100644
 --- a/arch/ia64/include/uapi/asm/shmbuf.h
 +++ b/arch/ia64/include/uapi/asm/shmbuf.h
-@@ -1,6 +1,8 @@
- #ifndef _ASM_IA64_SHMBUF_H
- #define _ASM_IA64_SHMBUF_H
+@@ -14,7 +14,7 @@
  
-+#include <asm/ipcbuf.h>
-+
- /*
-  * The shmid64_ds structure for IA-64 architecture.
-  * Note extra padding because this structure is passed back and forth
+ struct shmid64_ds {
+ 	struct ipc64_perm	shm_perm;	/* operation perms */
+-	size_t			shm_segsz;	/* size of segment (bytes) */
++	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
+ 	__kernel_time_t		shm_atime;	/* last attach time */
+ 	__kernel_time_t		shm_dtime;	/* last detach time */
+ 	__kernel_time_t		shm_ctime;	/* last change time */
 diff --git a/arch/m32r/include/uapi/asm/shmbuf.h b/arch/m32r/include/uapi/asm/shmbuf.h
-index b0cdf0a..714de6e 100644
+index 714de6e..fa36b9e 100644
 --- a/arch/m32r/include/uapi/asm/shmbuf.h
 +++ b/arch/m32r/include/uapi/asm/shmbuf.h
-@@ -1,6 +1,8 @@
- #ifndef _ASM_M32R_SHMBUF_H
- #define _ASM_M32R_SHMBUF_H
+@@ -15,7 +15,7 @@
  
-+#include <asm/ipcbuf.h>
-+
- /*
-  * The shmid64_ds structure for M32R architecture.
-  * Note extra padding because this structure is passed back and forth
+ struct shmid64_ds {
+ 	struct ipc64_perm	shm_perm;	/* operation perms */
+-	size_t			shm_segsz;	/* size of segment (bytes) */
++	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
+ 	__kernel_time_t		shm_atime;	/* last attach time */
+ 	unsigned long		__unused1;
+ 	__kernel_time_t		shm_dtime;	/* last detach time */
 diff --git a/arch/mips/include/uapi/asm/shmbuf.h b/arch/mips/include/uapi/asm/shmbuf.h
-index f994438..f47d193 100644
+index f47d193..95c53ff 100644
 --- a/arch/mips/include/uapi/asm/shmbuf.h
 +++ b/arch/mips/include/uapi/asm/shmbuf.h
-@@ -1,6 +1,8 @@
- #ifndef _ASM_SHMBUF_H
- #define _ASM_SHMBUF_H
+@@ -14,7 +14,7 @@
  
-+#include <asm/ipcbuf.h>
-+
- /*
-  * The shmid64_ds structure for the MIPS architecture.
-  * Note extra padding because this structure is passed back and forth
+ struct shmid64_ds {
+ 	struct ipc64_perm	shm_perm;	/* operation perms */
+-	size_t			shm_segsz;	/* size of segment (bytes) */
++	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
+ 	__kernel_time_t		shm_atime;	/* last attach time */
+ 	__kernel_time_t		shm_dtime;	/* last detach time */
+ 	__kernel_time_t		shm_ctime;	/* last change time */
 diff --git a/arch/mn10300/include/uapi/asm/shmbuf.h b/arch/mn10300/include/uapi/asm/shmbuf.h
-index 8f300cc..71df684 100644
+index 71df684..e156878 100644
 --- a/arch/mn10300/include/uapi/asm/shmbuf.h
 +++ b/arch/mn10300/include/uapi/asm/shmbuf.h
-@@ -1,6 +1,8 @@
- #ifndef _ASM_SHMBUF_H
- #define _ASM_SHMBUF_H
+@@ -15,7 +15,7 @@
  
-+#include <asm/ipcbuf.h>
-+
- /*
-  * The shmid64_ds structure for MN10300 architecture.
-  * Note extra padding because this structure is passed back and forth
-diff --git a/arch/parisc/include/uapi/asm/shmbuf.h b/arch/parisc/include/uapi/asm/shmbuf.h
-index 750e13e..d8105ef 100644
---- a/arch/parisc/include/uapi/asm/shmbuf.h
-+++ b/arch/parisc/include/uapi/asm/shmbuf.h
-@@ -1,6 +1,7 @@
- #ifndef _PARISC_SHMBUF_H
- #define _PARISC_SHMBUF_H
- 
-+#include <asm/ipcbuf.h>
- #include <asm/bitsperlong.h>
- 
- /* 
+ struct shmid64_ds {
+ 	struct ipc64_perm	shm_perm;	/* operation perms */
+-	size_t			shm_segsz;	/* size of segment (bytes) */
++	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
+ 	__kernel_time_t		shm_atime;	/* last attach time */
+ 	unsigned long		__unused1;
+ 	__kernel_time_t		shm_dtime;	/* last detach time */
 diff --git a/arch/powerpc/include/uapi/asm/shmbuf.h b/arch/powerpc/include/uapi/asm/shmbuf.h
-index 8efa396..7937289 100644
+index 7937289..a2425e5 100644
 --- a/arch/powerpc/include/uapi/asm/shmbuf.h
 +++ b/arch/powerpc/include/uapi/asm/shmbuf.h
-@@ -1,6 +1,8 @@
- #ifndef _ASM_POWERPC_SHMBUF_H
- #define _ASM_POWERPC_SHMBUF_H
- 
-+#include <asm/ipcbuf.h>
-+
- /*
-  * This program is free software; you can redistribute it and/or
-  * modify it under the terms of the GNU General Public License
+@@ -38,7 +38,7 @@ struct shmid64_ds {
+ #ifndef __powerpc64__
+ 	unsigned long		__unused4;
+ #endif
+-	size_t			shm_segsz;	/* size of segment (bytes) */
++	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
+ 	__kernel_pid_t		shm_cpid;	/* pid of creator */
+ 	__kernel_pid_t		shm_lpid;	/* pid of last operator */
+ 	unsigned long		shm_nattch;	/* no. of current attaches */
 diff --git a/arch/s390/include/uapi/asm/shmbuf.h b/arch/s390/include/uapi/asm/shmbuf.h
-index eed2e28..9ce1d9f 100644
+index 9ce1d9f..9ddf9e0 100644
 --- a/arch/s390/include/uapi/asm/shmbuf.h
 +++ b/arch/s390/include/uapi/asm/shmbuf.h
-@@ -1,6 +1,8 @@
- #ifndef _S390_SHMBUF_H
- #define _S390_SHMBUF_H
+@@ -15,7 +15,7 @@
  
-+#include <asm/ipcbuf.h>
-+
- /* 
-  * The shmid64_ds structure for S/390 architecture.
-  * Note extra padding because this structure is passed back and forth
+ struct shmid64_ds {
+ 	struct ipc64_perm	shm_perm;	/* operation perms */
+-	size_t			shm_segsz;	/* size of segment (bytes) */
++	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
+ 	__kernel_time_t		shm_atime;	/* last attach time */
+ #ifndef __s390x__
+ 	unsigned long		__unused1;
 diff --git a/arch/sparc/include/uapi/asm/shmbuf.h b/arch/sparc/include/uapi/asm/shmbuf.h
-index 83a1605..f651952 100644
+index f651952..ed72656 100644
 --- a/arch/sparc/include/uapi/asm/shmbuf.h
 +++ b/arch/sparc/include/uapi/asm/shmbuf.h
-@@ -1,6 +1,8 @@
- #ifndef _SPARC_SHMBUF_H
- #define _SPARC_SHMBUF_H
- 
-+#include <asm/ipcbuf.h>
-+
- /* 
-  * The shmid64_ds structure for sparc architecture.
-  * Note extra padding because this structure is passed back and forth
+@@ -27,7 +27,7 @@ struct shmid64_ds {
+ 	__kernel_time_t		shm_dtime;	/* last detach time */
+ 	PADDING(__pad3)
+ 	__kernel_time_t		shm_ctime;	/* last change time */
+-	size_t			shm_segsz;	/* size of segment (bytes) */
++	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
+ 	__kernel_pid_t		shm_cpid;	/* pid of creator */
+ 	__kernel_pid_t		shm_lpid;	/* pid of last operator */
+ 	unsigned long		shm_nattch;	/* no. of current attaches */
 diff --git a/arch/xtensa/include/uapi/asm/shmbuf.h b/arch/xtensa/include/uapi/asm/shmbuf.h
-index ad4b012..ad90d05 100644
+index ad90d05..8d9206e 100644
 --- a/arch/xtensa/include/uapi/asm/shmbuf.h
 +++ b/arch/xtensa/include/uapi/asm/shmbuf.h
-@@ -19,6 +19,8 @@
- #ifndef _XTENSA_SHMBUF_H
- #define _XTENSA_SHMBUF_H
- 
-+#include <asm/ipcbuf.h>
-+
+@@ -24,7 +24,7 @@
  #if defined (__XTENSA_EL__)
  struct shmid64_ds {
  	struct ipc64_perm	shm_perm;	/* operation perms */
+-	size_t			shm_segsz;	/* size of segment (bytes) */
++	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
+ 	__kernel_time_t		shm_atime;	/* last attach time */
+ 	unsigned long		__unused1;
+ 	__kernel_time_t		shm_dtime;	/* last detach time */
+@@ -40,7 +40,7 @@ struct shmid64_ds {
+ #elif defined (__XTENSA_EB__)
+ struct shmid64_ds {
+ 	struct ipc64_perm	shm_perm;	/* operation perms */
+-	size_t			shm_segsz;	/* size of segment (bytes) */
++	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
+ 	__kernel_time_t		shm_atime;	/* last attach time */
+ 	unsigned long		__unused1;
+ 	__kernel_time_t		shm_dtime;	/* last detach time */
 diff --git a/include/uapi/asm-generic/shmbuf.h b/include/uapi/asm-generic/shmbuf.h
-index 7e9fb2f..2a6d508 100644
+index 2a6d508..0756934 100644
 --- a/include/uapi/asm-generic/shmbuf.h
 +++ b/include/uapi/asm-generic/shmbuf.h
-@@ -1,6 +1,7 @@
- #ifndef __ASM_GENERIC_SHMBUF_H
- #define __ASM_GENERIC_SHMBUF_H
+@@ -25,7 +25,7 @@
  
-+#include <asm/ipcbuf.h>
- #include <asm/bitsperlong.h>
- 
- /*
+ struct shmid64_ds {
+ 	struct ipc64_perm	shm_perm;	/* operation perms */
+-	size_t			shm_segsz;	/* size of segment (bytes) */
++	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
+ 	__kernel_time_t		shm_atime;	/* last attach time */
+ #if __BITS_PER_LONG != 64
+ 	unsigned long		__unused1;
 -- 
 ldv
