@@ -1,78 +1,117 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f174.google.com ([209.85.128.174]:35488 "EHLO
-        mail-wr0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751908AbdC0Js7 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Mar 2017 05:48:59 -0400
-Received: by mail-wr0-f174.google.com with SMTP id u1so47870621wra.2
-        for <linux-arch@vger.kernel.org>; Mon, 27 Mar 2017 02:48:53 -0700 (PDT)
-Reply-To: nicolas.dichtel@6wind.com
-Subject: Re: [PATCH v10 11/11] uapi: export all arch specifics directories
-References: <CAK7LNARpx7f0eV5_AiPmNYT7MsRbGFOygJwjfAzX_7aCpuHwuw@mail.gmail.com>
- <1489496093-15315-1-git-send-email-nicolas.dichtel@6wind.com>
- <1489496093-15315-12-git-send-email-nicolas.dichtel@6wind.com>
- <CAK7LNASihZAunuAR2TwfWUFnk+SNiVgzZjfDKBHzOEtwVnxVHw@mail.gmail.com>
+Received: from host.76.145.23.62.rev.coltfrance.com ([62.23.145.76]:60987 "EHLO
+        proxy.6wind.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751911AbdC0MV1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Mar 2017 08:21:27 -0400
 From: Nicolas Dichtel <nicolas.dichtel@6wind.com>
-Message-ID: <d3a9ad53-2be9-5446-5932-27820842ffc6@6wind.com>
-Date: Mon, 27 Mar 2017 11:42:36 +0200
-MIME-Version: 1.0
-In-Reply-To: <CAK7LNASihZAunuAR2TwfWUFnk+SNiVgzZjfDKBHzOEtwVnxVHw@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
+Subject: [PATCH v11 06/12] uapi: includes linux/types.h before exporting files
+Date: Mon, 27 Mar 2017 14:20:11 +0200
+Message-ID: <1490617217-30192-7-git-send-email-nicolas.dichtel@6wind.com>
+In-Reply-To: <1490617217-30192-1-git-send-email-nicolas.dichtel@6wind.com>
+References: <CAK7LNAR_yp+O9jUZC8mKdaHgTiCkE7p2-ZbA9YZ8OGyp+uxhBQ@mail.gmail.com>
+ <1490617217-30192-1-git-send-email-nicolas.dichtel@6wind.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Masahiro Yamada <yamada.masahiro@socionext.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Michal Marek <mmarek@suse.com>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, David Airlie <airlied@linux.ie>, "David S. Miller" <davem@davemloft.net>, Russell King <linux@armlinux.org.uk>, bp@alien8.de, slash.tmp@free.fr, Daniel Vetter <daniel.vetter@ffwll.ch>, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, Tobias Klauser <tklauser@distanz.ch>, mpe@ellerman.id.au, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, "Dmitry V. Levin" <ldv@altlinux.org>, Herbert Xu <herbert@gondor.apana.org.au>, linux-rdma@vger.kernel.org
-Message-ID: <20170327094236.DKM8gP8RKuOvjcmVk7jbo8HZOV6pQf1RE-bnuXpnlw0@z>
+To: yamada.masahiro@socionext.com
+Cc: arnd@arndb.de, mmarek@suse.com, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, bp@alien8.de, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, tklauser@distanz.ch, mpe@ellerman.id.au, mingo@kernel.org, tglx@linutronix.de, ldv@altlinux.org, nicolas.dichtel@6wind.com, herbert@gondor.apana.org.au, linux-rdma@vger.kernel.org
+Message-ID: <20170327122011.PRRSgr_qXiQbeUeJpB3DNXSMBbgj2HMXUD0c7XIpb-E@z>
 
-Hi Masahiro,
+Some files will be exported after a following patch. 0-day tests report the
+following warning/error:
+./usr/include/linux/bcache.h:8: include of <linux/types.h> is preferred over <asm/types.h>
+./usr/include/linux/bcache.h:11: found __[us]{8,16,32,64} type without #include <linux/types.h>
+./usr/include/linux/qrtr.h:8: found __[us]{8,16,32,64} type without #include <linux/types.h>
+./usr/include/linux/cryptouser.h:39: found __[us]{8,16,32,64} type without #include <linux/types.h>
+./usr/include/linux/pr.h:14: found __[us]{8,16,32,64} type without #include <linux/types.h>
+./usr/include/linux/btrfs_tree.h:337: found __[us]{8,16,32,64} type without #include <linux/types.h>
+./usr/include/rdma/bnxt_re-abi.h:45: found __[us]{8,16,32,64} type without #include <linux/types.h>
 
-Le 27/03/2017 à 07:27, Masahiro Yamada a écrit :
-> Hi Nicolas,
-> 
-> 
-> 2017-03-14 21:54 GMT+09:00 Nicolas Dichtel <nicolas.dichtel@6wind.com>:
->> diff --git a/arch/cris/include/uapi/asm/Kbuild b/arch/cris/include/uapi/asm/Kbuild
->> index d0c5471856e0..b15bf6bc0e94 100644
->> --- a/arch/cris/include/uapi/asm/Kbuild
->> +++ b/arch/cris/include/uapi/asm/Kbuild
->> @@ -1,5 +1,2 @@
->>  # UAPI Header export list
->>  include include/uapi/asm-generic/Kbuild.asm
->> -
->> -subdir-y += ../arch-v10/arch/
->> -subdir-y += ../arch-v32/arch/
-> 
-> 
-> Can you remove
-> arch/cris/include/arch-v32/arch/Kbuild
-> arch/cris/include/arch-v10/arch/Kbuild
-> as well?
-Ok.
+Signed-off-by: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+---
+ include/uapi/linux/bcache.h     | 2 +-
+ include/uapi/linux/btrfs_tree.h | 2 ++
+ include/uapi/linux/cryptouser.h | 2 ++
+ include/uapi/linux/pr.h         | 2 ++
+ include/uapi/linux/qrtr.h       | 1 +
+ include/uapi/rdma/bnxt_re-abi.h | 2 ++
+ 6 files changed, 10 insertions(+), 1 deletion(-)
 
-> 
-> Or, not sure if they are still needed?
-I don't think so. Have a look to 77c8006d8df4 ("UAPI: Fix up empty files in
-arch/cris/") for more details.
-
-> 
-> 
-> 
->> diff --git a/arch/tile/include/uapi/asm/Kbuild b/arch/tile/include/uapi/asm/Kbuild
->> index e0a50111e07f..0c74c3c5ebfa 100644
->> --- a/arch/tile/include/uapi/asm/Kbuild
->> +++ b/arch/tile/include/uapi/asm/Kbuild
->> @@ -2,5 +2,3 @@
->>  include include/uapi/asm-generic/Kbuild.asm
->>
->>  generic-y += ucontext.h
->> -
->> -subdir-y += ../arch
-> 
-> Can you remove  arch/tile/include/arch/Kbuild as well?
-Ok.
-
-Because this removal is not directly related to this patch, I will add another
-patch in the series.
-
-Regards,
-Nicolas
+diff --git a/include/uapi/linux/bcache.h b/include/uapi/linux/bcache.h
+index 22b6ad31c706..e3bb0635e94a 100644
+--- a/include/uapi/linux/bcache.h
++++ b/include/uapi/linux/bcache.h
+@@ -5,7 +5,7 @@
+  * Bcache on disk data structures
+  */
+ 
+-#include <asm/types.h>
++#include <linux/types.h>
+ 
+ #define BITMASK(name, type, field, offset, size)		\
+ static inline __u64 name(const type *k)				\
+diff --git a/include/uapi/linux/btrfs_tree.h b/include/uapi/linux/btrfs_tree.h
+index d5ad15a106a7..6a261cb52d95 100644
+--- a/include/uapi/linux/btrfs_tree.h
++++ b/include/uapi/linux/btrfs_tree.h
+@@ -1,6 +1,8 @@
+ #ifndef _BTRFS_CTREE_H_
+ #define _BTRFS_CTREE_H_
+ 
++#include <linux/types.h>
++
+ /*
+  * This header contains the structure definitions and constants used
+  * by file system objects that can be retrieved using
+diff --git a/include/uapi/linux/cryptouser.h b/include/uapi/linux/cryptouser.h
+index 11d21fce14d6..c6a09c5261e7 100644
+--- a/include/uapi/linux/cryptouser.h
++++ b/include/uapi/linux/cryptouser.h
+@@ -18,6 +18,8 @@
+  * 51 Franklin St - Fifth Floor, Boston, MA 02110-1301 USA.
+  */
+ 
++#include <linux/types.h>
++
+ /* Netlink configuration messages.  */
+ enum {
+ 	CRYPTO_MSG_BASE = 0x10,
+diff --git a/include/uapi/linux/pr.h b/include/uapi/linux/pr.h
+index 57d7c0f916b6..645ef3cf3dd0 100644
+--- a/include/uapi/linux/pr.h
++++ b/include/uapi/linux/pr.h
+@@ -1,6 +1,8 @@
+ #ifndef _UAPI_PR_H
+ #define _UAPI_PR_H
+ 
++#include <linux/types.h>
++
+ enum pr_type {
+ 	PR_WRITE_EXCLUSIVE		= 1,
+ 	PR_EXCLUSIVE_ACCESS		= 2,
+diff --git a/include/uapi/linux/qrtr.h b/include/uapi/linux/qrtr.h
+index 66c0748d26e2..9d76c566f66e 100644
+--- a/include/uapi/linux/qrtr.h
++++ b/include/uapi/linux/qrtr.h
+@@ -2,6 +2,7 @@
+ #define _LINUX_QRTR_H
+ 
+ #include <linux/socket.h>
++#include <linux/types.h>
+ 
+ struct sockaddr_qrtr {
+ 	__kernel_sa_family_t sq_family;
+diff --git a/include/uapi/rdma/bnxt_re-abi.h b/include/uapi/rdma/bnxt_re-abi.h
+index e2c8a3f0ccec..74018bd18d72 100644
+--- a/include/uapi/rdma/bnxt_re-abi.h
++++ b/include/uapi/rdma/bnxt_re-abi.h
+@@ -39,6 +39,8 @@
+ #ifndef __BNXT_RE_UVERBS_ABI_H__
+ #define __BNXT_RE_UVERBS_ABI_H__
+ 
++#include <linux/types.h>
++
+ #define BNXT_RE_ABI_VERSION	1
+ 
+ struct bnxt_re_uctx_resp {
+-- 
+2.8.1
