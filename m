@@ -1,175 +1,132 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga02.intel.com ([134.134.136.20]:48155 "EHLO mga02.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751474AbdC0QaS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 27 Mar 2017 12:30:18 -0400
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 4/8] x86/paravirt: Make paravirt code support 5-level paging
-Date: Mon, 27 Mar 2017 19:29:21 +0300
-Message-ID: <20170327162925.16092-5-kirill.shutemov@linux.intel.com>
-In-Reply-To: <20170327162925.16092-1-kirill.shutemov@linux.intel.com>
-References: <20170327162925.16092-1-kirill.shutemov@linux.intel.com>
+Received: from mail-pg0-f51.google.com ([74.125.83.51]:33936 "EHLO
+        mail-pg0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751801AbdC0TWQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Mar 2017 15:22:16 -0400
+Received: by mail-pg0-f51.google.com with SMTP id 21so49262933pgg.1
+        for <linux-arch@vger.kernel.org>; Mon, 27 Mar 2017 12:22:15 -0700 (PDT)
+Date: Mon, 27 Mar 2017 12:22:13 -0700
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH] mm: fix section name for .data..ro_after_init
+Message-ID: <20170327192213.GA129375@beast>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20170327162921.5lIpiS_M5mZCixFxgguet9Bx9Ho_HNUc3KrFan82BI4@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Chris Metcalf <cmetcalf@mellanox.com>, Jakub Kicinski <jakub.kicinski@netronome.com>, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Eddie Kovsky <ewk@edkovsky.org>, linux-kernel@vger.kernel.org
+Message-ID: <20170327192213.E-hKwY889UiyYjlxKe5p4-ifCp8BIgcv3_0B-rD3MRw@z>
 
-Add operations to allocate/release p4ds.
+A section name for .data..ro_after_init was added by both:
 
-Xen requires more work. We will need to come back to it.
+    commit d07a980c1b8d ("s390: add proper __ro_after_init support")
 
-Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+and
+
+    commit d7c19b066dcf ("mm: kmemleak: scan .data.ro_after_init")
+
+The latter adds incorrect wrapping around the existing s390 section,
+and came later. I'd prefer the s390 naming, so this moves the
+s390-specific name up to the asm-generic/sections.h and renames the
+section as used by kmemleak (and in the future, kernel/extable.c).
+
+Cc: Jakub Kicinski <jakub.kicinski@netronome.com>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Eddie Kovsky <ewk@edkovsky.org>
+Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- arch/x86/include/asm/paravirt.h       | 37 ++++++++++++++++++++++++-----------
- arch/x86/include/asm/paravirt_types.h |  7 ++++++-
- arch/x86/include/asm/pgalloc.h        |  2 ++
- arch/x86/kernel/paravirt.c            |  9 +++++++--
- 4 files changed, 41 insertions(+), 14 deletions(-)
+ arch/s390/include/asm/sections.h  | 1 -
+ arch/s390/kernel/vmlinux.lds.S    | 2 --
+ include/asm-generic/sections.h    | 6 +++---
+ include/asm-generic/vmlinux.lds.h | 4 ++--
+ mm/kmemleak.c                     | 2 +-
+ 5 files changed, 6 insertions(+), 9 deletions(-)
 
-diff --git a/arch/x86/include/asm/paravirt.h b/arch/x86/include/asm/paravirt.h
-index 158d877ce9e9..55fa56fe4e45 100644
---- a/arch/x86/include/asm/paravirt.h
-+++ b/arch/x86/include/asm/paravirt.h
-@@ -357,6 +357,16 @@ static inline void paravirt_release_pud(unsigned long pfn)
- 	PVOP_VCALL1(pv_mmu_ops.release_pud, pfn);
- }
+diff --git a/arch/s390/include/asm/sections.h b/arch/s390/include/asm/sections.h
+index 5ce29fe100ba..fbd9116eb17b 100644
+--- a/arch/s390/include/asm/sections.h
++++ b/arch/s390/include/asm/sections.h
+@@ -4,6 +4,5 @@
+ #include <asm-generic/sections.h>
  
-+static inline void paravirt_alloc_p4d(struct mm_struct *mm, unsigned long pfn)
-+{
-+	PVOP_VCALL2(pv_mmu_ops.alloc_p4d, mm, pfn);
-+}
-+
-+static inline void paravirt_release_p4d(unsigned long pfn)
-+{
-+	PVOP_VCALL1(pv_mmu_ops.release_p4d, pfn);
-+}
-+
- static inline void pte_update(struct mm_struct *mm, unsigned long addr,
- 			      pte_t *ptep)
- {
-@@ -582,25 +592,25 @@ static inline void set_p4d(p4d_t *p4dp, p4d_t p4d)
- 			    val);
- }
+ extern char _eshared[], _ehead[];
+-extern char __start_ro_after_init[], __end_ro_after_init[];
  
--static inline void p4d_clear(p4d_t *p4dp)
-+#if CONFIG_PGTABLE_LEVELS >= 5
-+
-+static inline p4d_t __p4d(p4dval_t val)
- {
--	set_p4d(p4dp, __p4d(0));
--}
-+	p4dval_t ret = PVOP_CALLEE1(p4dval_t, pv_mmu_ops.make_p4d, val);
+ #endif
+diff --git a/arch/s390/kernel/vmlinux.lds.S b/arch/s390/kernel/vmlinux.lds.S
+index 5ccf95396251..72307f108c40 100644
+--- a/arch/s390/kernel/vmlinux.lds.S
++++ b/arch/s390/kernel/vmlinux.lds.S
+@@ -63,11 +63,9 @@ SECTIONS
  
--#if CONFIG_PGTABLE_LEVELS >= 5
-+	return (p4d_t) { ret };
-+}
- 
--#error FIXME
-+static inline p4dval_t p4d_val(p4d_t p4d)
-+{
-+	return PVOP_CALLEE1(p4dval_t, pv_mmu_ops.p4d_val, p4d.p4d);
-+}
- 
- static inline void set_pgd(pgd_t *pgdp, pgd_t pgd)
- {
- 	pgdval_t val = native_pgd_val(pgd);
- 
--	if (sizeof(pgdval_t) > sizeof(long))
--		PVOP_VCALL3(pv_mmu_ops.set_pgd, pgdp,
--			    val, (u64)val >> 32);
--	else
--		PVOP_VCALL2(pv_mmu_ops.set_pgd, pgdp,
--			    val);
-+	PVOP_VCALL2(pv_mmu_ops.set_pgd, pgdp, val);
- }
- 
- static inline void pgd_clear(pgd_t *pgdp)
-@@ -610,6 +620,11 @@ static inline void pgd_clear(pgd_t *pgdp)
- 
- #endif  /* CONFIG_PGTABLE_LEVELS == 5 */
- 
-+static inline void p4d_clear(p4d_t *p4dp)
-+{
-+	set_p4d(p4dp, __p4d(0));
-+}
-+
- #endif	/* CONFIG_PGTABLE_LEVELS == 4 */
- 
- #endif	/* CONFIG_PGTABLE_LEVELS >= 3 */
-diff --git a/arch/x86/include/asm/paravirt_types.h b/arch/x86/include/asm/paravirt_types.h
-index 93c49cf09b63..7465d6fe336f 100644
---- a/arch/x86/include/asm/paravirt_types.h
-+++ b/arch/x86/include/asm/paravirt_types.h
-@@ -238,9 +238,11 @@ struct pv_mmu_ops {
- 	void (*alloc_pte)(struct mm_struct *mm, unsigned long pfn);
- 	void (*alloc_pmd)(struct mm_struct *mm, unsigned long pfn);
- 	void (*alloc_pud)(struct mm_struct *mm, unsigned long pfn);
-+	void (*alloc_p4d)(struct mm_struct *mm, unsigned long pfn);
- 	void (*release_pte)(unsigned long pfn);
- 	void (*release_pmd)(unsigned long pfn);
- 	void (*release_pud)(unsigned long pfn);
-+	void (*release_p4d)(unsigned long pfn);
- 
- 	/* Pagetable manipulation functions */
- 	void (*set_pte)(pte_t *ptep, pte_t pteval);
-@@ -286,7 +288,10 @@ struct pv_mmu_ops {
- 	void (*set_p4d)(p4d_t *p4dp, p4d_t p4dval);
- 
- #if CONFIG_PGTABLE_LEVELS >= 5
--#error FIXME
-+	struct paravirt_callee_save p4d_val;
-+	struct paravirt_callee_save make_p4d;
-+
-+	void (*set_pgd)(pgd_t *pgdp, pgd_t pgdval);
- #endif	/* CONFIG_PGTABLE_LEVELS >= 5 */
- 
- #endif	/* CONFIG_PGTABLE_LEVELS >= 4 */
-diff --git a/arch/x86/include/asm/pgalloc.h b/arch/x86/include/asm/pgalloc.h
-index 2f585054c63c..b2d0cd8288aa 100644
---- a/arch/x86/include/asm/pgalloc.h
-+++ b/arch/x86/include/asm/pgalloc.h
-@@ -17,9 +17,11 @@ static inline void paravirt_alloc_pmd(struct mm_struct *mm, unsigned long pfn)	{
- static inline void paravirt_alloc_pmd_clone(unsigned long pfn, unsigned long clonepfn,
- 					    unsigned long start, unsigned long count) {}
- static inline void paravirt_alloc_pud(struct mm_struct *mm, unsigned long pfn)	{}
-+static inline void paravirt_alloc_p4d(struct mm_struct *mm, unsigned long pfn)	{}
- static inline void paravirt_release_pte(unsigned long pfn) {}
- static inline void paravirt_release_pmd(unsigned long pfn) {}
- static inline void paravirt_release_pud(unsigned long pfn) {}
-+static inline void paravirt_release_p4d(unsigned long pfn) {}
+ 	. = ALIGN(PAGE_SIZE);
+ 	__start_ro_after_init = .;
+-	__start_data_ro_after_init = .;
+ 	.data..ro_after_init : {
+ 		 *(.data..ro_after_init)
+ 	}
+-	__end_data_ro_after_init = .;
+ 	EXCEPTION_TABLE(16)
+ 	. = ALIGN(PAGE_SIZE);
+ 	__end_ro_after_init = .;
+diff --git a/include/asm-generic/sections.h b/include/asm-generic/sections.h
+index 4df64a1fc09e..532372c6cf15 100644
+--- a/include/asm-generic/sections.h
++++ b/include/asm-generic/sections.h
+@@ -14,8 +14,8 @@
+  * [_sdata, _edata]: contains .data.* sections, may also contain .rodata.*
+  *                   and/or .init.* sections.
+  * [__start_rodata, __end_rodata]: contains .rodata.* sections
+- * [__start_data_ro_after_init, __end_data_ro_after_init]:
+- *		     contains data.ro_after_init section
++ * [__start_ro_after_init, __end_ro_after_init]:
++ *		     contains .data..ro_after_init section
+  * [__init_begin, __init_end]: contains .init.* sections, but .init.text.*
+  *                   may be out of this range on some architectures.
+  * [_sinittext, _einittext]: contains .init.text.* sections
+@@ -33,7 +33,7 @@ extern char _data[], _sdata[], _edata[];
+ extern char __bss_start[], __bss_stop[];
+ extern char __init_begin[], __init_end[];
+ extern char _sinittext[], _einittext[];
+-extern char __start_data_ro_after_init[], __end_data_ro_after_init[];
++extern char __start_ro_after_init[], __end_ro_after_init[];
+ extern char _end[];
+ extern char __per_cpu_load[], __per_cpu_start[], __per_cpu_end[];
+ extern char __kprobes_text_start[], __kprobes_text_end[];
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 0968d13b3885..f9f21e2c59f3 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -260,9 +260,9 @@
+  */
+ #ifndef RO_AFTER_INIT_DATA
+ #define RO_AFTER_INIT_DATA						\
+-	__start_data_ro_after_init = .;					\
++	__start_ro_after_init = .;					\
+ 	*(.data..ro_after_init)						\
+-	__end_data_ro_after_init = .;
++	__end_ro_after_init = .;
  #endif
  
  /*
-diff --git a/arch/x86/kernel/paravirt.c b/arch/x86/kernel/paravirt.c
-index 110daf22f5c7..3586996fc50d 100644
---- a/arch/x86/kernel/paravirt.c
-+++ b/arch/x86/kernel/paravirt.c
-@@ -405,9 +405,11 @@ struct pv_mmu_ops pv_mmu_ops __ro_after_init = {
- 	.alloc_pte = paravirt_nop,
- 	.alloc_pmd = paravirt_nop,
- 	.alloc_pud = paravirt_nop,
-+	.alloc_p4d = paravirt_nop,
- 	.release_pte = paravirt_nop,
- 	.release_pmd = paravirt_nop,
- 	.release_pud = paravirt_nop,
-+	.release_p4d = paravirt_nop,
+diff --git a/mm/kmemleak.c b/mm/kmemleak.c
+index 26c874e90b12..20036d4f9f13 100644
+--- a/mm/kmemleak.c
++++ b/mm/kmemleak.c
+@@ -1416,7 +1416,7 @@ static void kmemleak_scan(void)
+ 	/* data/bss scanning */
+ 	scan_large_block(_sdata, _edata);
+ 	scan_large_block(__bss_start, __bss_stop);
+-	scan_large_block(__start_data_ro_after_init, __end_data_ro_after_init);
++	scan_large_block(__start_ro_after_init, __end_ro_after_init);
  
- 	.set_pte = native_set_pte,
- 	.set_pte_at = native_set_pte_at,
-@@ -437,8 +439,11 @@ struct pv_mmu_ops pv_mmu_ops __ro_after_init = {
- 	.set_p4d = native_set_p4d,
- 
- #if CONFIG_PGTABLE_LEVELS >= 5
--#error FIXME
--#endif /* CONFIG_PGTABLE_LEVELS >= 4 */
-+	.p4d_val = PTE_IDENT,
-+	.make_p4d = PTE_IDENT,
-+
-+	.set_pgd = native_set_pgd,
-+#endif /* CONFIG_PGTABLE_LEVELS >= 5 */
- #endif /* CONFIG_PGTABLE_LEVELS >= 4 */
- #endif /* CONFIG_PGTABLE_LEVELS >= 3 */
- 
+ #ifdef CONFIG_SMP
+ 	/* per-cpu sections scanning */
 -- 
-2.11.0
+2.7.4
+
+
+-- 
+Kees Cook
+Pixel Security
