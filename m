@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from host.76.145.23.62.rev.coltfrance.com ([62.23.145.76]:60986 "EHLO
+Received: from host.76.145.23.62.rev.coltfrance.com ([62.23.145.76]:60915 "EHLO
         proxy.6wind.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753292AbdC0MVc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Mar 2017 08:21:32 -0400
+        with ESMTP id S1753075AbdC0MVG (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Mar 2017 08:21:06 -0400
 From: Nicolas Dichtel <nicolas.dichtel@6wind.com>
-Subject: [PATCH v11 11/12] uapi: export all arch specifics directories
-Date: Mon, 27 Mar 2017 14:20:16 +0200
-Message-ID: <1490617217-30192-12-git-send-email-nicolas.dichtel@6wind.com>
+Subject: [PATCH v11 03/12] x86: stop exporting msr-index.h to userland
+Date: Mon, 27 Mar 2017 14:20:08 +0200
+Message-ID: <1490617217-30192-4-git-send-email-nicolas.dichtel@6wind.com>
 In-Reply-To: <1490617217-30192-1-git-send-email-nicolas.dichtel@6wind.com>
 References: <CAK7LNAR_yp+O9jUZC8mKdaHgTiCkE7p2-ZbA9YZ8OGyp+uxhBQ@mail.gmail.com>
  <1490617217-30192-1-git-send-email-nicolas.dichtel@6wind.com>
@@ -14,139 +14,32 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: yamada.masahiro@socionext.com
 Cc: arnd@arndb.de, mmarek@suse.com, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, bp@alien8.de, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, tklauser@distanz.ch, mpe@ellerman.id.au, mingo@kernel.org, tglx@linutronix.de, ldv@altlinux.org, nicolas.dichtel@6wind.com, herbert@gondor.apana.org.au, linux-rdma@vger.kernel.org
-Message-ID: <20170327122016.HPC35hpUYe1DmgFw0QpJabe5Ug_JAH4CHirPz9sVeHM@z>
+Message-ID: <20170327122008.HHCPIUBWjaisaSbwVaLT6xqbQl4DuSAqXL_PajU6WYc@z>
 
-This patch removes the need of subdir-y. Now all files/directories under
-arch/<arch>/include/uapi/ are exported.
+Even if this file was not in an uapi directory, it was exported because
+it was listed in the Kbuild file.
 
-The only change for userland is the layout of the command 'make
-headers_install_all': directories asm-<arch> are replaced by arch-<arch>/.
-Those new directories contains all files/directories of the specified arch.
-
-Note that only cris and tile have more directories than only asm:
- - arch-v[10|32] for cris;
- - arch for tile.
-
+Fixes: b72e7464e4cf ("x86/uapi: Do not export <asm/msr-index.h> as part of the user API headers")
+Suggested-by: Borislav Petkov <bp@alien8.de>
+CC: Ingo Molnar <mingo@kernel.org>
 Signed-off-by: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+Acked-by: Ingo Molnar <mingo@kernel.org>
+Acked-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- Documentation/kbuild/makefiles.txt | 15 +--------------
- Makefile                           |  6 +++---
- arch/cris/include/uapi/asm/Kbuild  |  3 ---
- arch/tile/include/uapi/asm/Kbuild  |  2 --
- scripts/Makefile.headersinst       |  3 +--
- 5 files changed, 5 insertions(+), 24 deletions(-)
+ arch/x86/include/uapi/asm/Kbuild | 1 -
+ 1 file changed, 1 deletion(-)
 
-diff --git a/Documentation/kbuild/makefiles.txt b/Documentation/kbuild/makefiles.txt
-index b9f7ca4e62ae..e18daca65ccd 100644
---- a/Documentation/kbuild/makefiles.txt
-+++ b/Documentation/kbuild/makefiles.txt
-@@ -49,7 +49,6 @@ This document describes the Linux kernel Makefiles.
- 		--- 7.3 generic-y
- 		--- 7.4 generated-y
- 		--- 7.5 mandatory-y
--		--- 7.6 subdir-y
- 
- 	=== 8 Kbuild Variables
- 	=== 9 Makefile language
-@@ -1265,7 +1264,7 @@ The pre-processing does:
- - drop all sections that are kernel internal (guarded by ifdef __KERNEL__)
- 
- All headers under include/uapi/, include/generated/uapi/,
--arch/<arch>/include/uapi/asm/ and arch/<arch>/include/generated/uapi/asm/
-+arch/<arch>/include/uapi/ and arch/<arch>/include/generated/uapi/
- are exported.
- 
- A Kbuild file may be defined under arch/<arch>/include/uapi/asm/ and
-@@ -1338,18 +1337,6 @@ See subsequent chapter for the syntax of the Kbuild file.
- 	The convention is to list one subdir per line and
- 	preferably in alphabetic order.
- 
--	--- 7.6 subdir-y
--
--	subdir-y may be used to specify a subdirectory to be exported.
--
--		Example:
--			#arch/cris/include/uapi/asm/Kbuild
--			subdir-y += ../arch-v10/arch/
--			subdir-y += ../arch-v32/arch/
--
--	The convention is to list one subdir per line and
--	preferably in alphabetic order.
--
- === 8 Kbuild Variables
- 
- The top Makefile exports the following variables:
-diff --git a/Makefile b/Makefile
-index 6ea27d9f1384..50547481ed5a 100644
---- a/Makefile
-+++ b/Makefile
-@@ -1131,7 +1131,7 @@ firmware_install:
- export INSTALL_HDR_PATH = $(objtree)/usr
- 
- # If we do an all arch process set dst to asm-$(hdr-arch)
--hdr-dst = $(if $(KBUILD_HEADERS), dst=include/asm-$(hdr-arch), dst=include/asm)
-+hdr-dst = $(if $(KBUILD_HEADERS), dst=include/arch-$(hdr-arch), dst=include)
- 
- PHONY += archheaders
- archheaders:
-@@ -1152,7 +1152,7 @@ headers_install: __headers
- 	$(if $(wildcard $(srctree)/arch/$(hdr-arch)/include/uapi/asm/Kbuild),, \
- 	  $(error Headers not exportable for the $(SRCARCH) architecture))
- 	$(Q)$(MAKE) $(hdr-inst)=include/uapi
--	$(Q)$(MAKE) $(hdr-inst)=arch/$(hdr-arch)/include/uapi/asm $(hdr-dst)
-+	$(Q)$(MAKE) $(hdr-inst)=arch/$(hdr-arch)/include/uapi $(hdr-dst)
- 
- PHONY += headers_check_all
- headers_check_all: headers_install_all
-@@ -1161,7 +1161,7 @@ headers_check_all: headers_install_all
- PHONY += headers_check
- headers_check: headers_install
- 	$(Q)$(MAKE) $(hdr-inst)=include/uapi HDRCHECK=1
--	$(Q)$(MAKE) $(hdr-inst)=arch/$(hdr-arch)/include/uapi/asm $(hdr-dst) HDRCHECK=1
-+	$(Q)$(MAKE) $(hdr-inst)=arch/$(hdr-arch)/include/uapi/ $(hdr-dst) HDRCHECK=1
- 
- # ---------------------------------------------------------------------------
- # Kernel selftest
-diff --git a/arch/cris/include/uapi/asm/Kbuild b/arch/cris/include/uapi/asm/Kbuild
-index d0c5471856e0..b15bf6bc0e94 100644
---- a/arch/cris/include/uapi/asm/Kbuild
-+++ b/arch/cris/include/uapi/asm/Kbuild
-@@ -1,5 +1,2 @@
- # UAPI Header export list
- include include/uapi/asm-generic/Kbuild.asm
--
--subdir-y += ../arch-v10/arch/
--subdir-y += ../arch-v32/arch/
-diff --git a/arch/tile/include/uapi/asm/Kbuild b/arch/tile/include/uapi/asm/Kbuild
-index e0a50111e07f..0c74c3c5ebfa 100644
---- a/arch/tile/include/uapi/asm/Kbuild
-+++ b/arch/tile/include/uapi/asm/Kbuild
-@@ -2,5 +2,3 @@
- include include/uapi/asm-generic/Kbuild.asm
- 
- generic-y += ucontext.h
--
--subdir-y += ../arch
-diff --git a/scripts/Makefile.headersinst b/scripts/Makefile.headersinst
-index 20be1fbc19cc..6ba97a1f9c5a 100644
---- a/scripts/Makefile.headersinst
-+++ b/scripts/Makefile.headersinst
-@@ -2,7 +2,7 @@
- # Installing headers
- #
- # All headers under include/uapi, include/generated/uapi,
--# arch/<arch>/include/uapi/asm and arch/<arch>/include/generated/uapi/asm are
-+# arch/<arch>/include/uapi and arch/<arch>/include/generated/uapi are
- # exported.
- # They are preprocessed to remove __KERNEL__ section of the file.
- #
-@@ -30,7 +30,6 @@ installdir    := $(INSTALL_HDR_PATH)/$(subst uapi/,,$(_dst))
- srcdir        := $(srctree)/$(obj)
- gendir        := $(objtree)/$(gen)
- subdirs       := $(patsubst $(srcdir)/%/.,%,$(wildcard $(srcdir)/*/.))
--subdirs       += $(subdir-y)
- header-files  := $(notdir $(wildcard $(srcdir)/*.h))
- header-files  += $(notdir $(wildcard $(srcdir)/*.agh))
- header-files  := $(filter-out $(no-export-headers), $(header-files))
+diff --git a/arch/x86/include/uapi/asm/Kbuild b/arch/x86/include/uapi/asm/Kbuild
+index 3dec769cadf7..1c532b3f18ea 100644
+--- a/arch/x86/include/uapi/asm/Kbuild
++++ b/arch/x86/include/uapi/asm/Kbuild
+@@ -27,7 +27,6 @@ header-y += ldt.h
+ header-y += mce.h
+ header-y += mman.h
+ header-y += msgbuf.h
+-header-y += msr-index.h
+ header-y += msr.h
+ header-y += mtrr.h
+ header-y += param.h
 -- 
 2.8.1
