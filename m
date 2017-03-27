@@ -1,191 +1,128 @@
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 3/8] x86/mm: Define virtual memory map for 5-level paging
-Date: Mon, 27 Mar 2017 19:29:20 +0300
-Message-ID: <20170327162925.16092-4-kirill.shutemov@linux.intel.com>
-References: <20170327162925.16092-1-kirill.shutemov@linux.intel.com>
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH] mm: fix section name for .data..ro_after_init
+Date: Mon, 27 Mar 2017 12:22:13 -0700
+Message-ID: <20170327192213.GA129375@beast>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20170327162925.16092-1-kirill.shutemov@linux.intel.com>
+Content-Disposition: inline
 Sender: owner-linux-mm@kvack.org
-To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Chris Metcalf <cmetcalf@mellanox.com>, Jakub Kicinski <jakub.kicinski@netronome.com>, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Eddie Kovsky <ewk@edkovsky.org>, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-The first part of memory map (up to %esp fixup) simply scales existing
-map for 4-level paging by factor of 9 -- number of bits addressed by
-additional page table level.
+A section name for .data..ro_after_init was added by both:
 
-The rest of the map is unchanged.
+    commit d07a980c1b8d ("s390: add proper __ro_after_init support")
 
-Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+and
+
+    commit d7c19b066dcf ("mm: kmemleak: scan .data.ro_after_init")
+
+The latter adds incorrect wrapping around the existing s390 section,
+and came later. I'd prefer the s390 naming, so this moves the
+s390-specific name up to the asm-generic/sections.h and renames the
+section as used by kmemleak (and in the future, kernel/extable.c).
+
+Cc: Jakub Kicinski <jakub.kicinski@netronome.com>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Eddie Kovsky <ewk@edkovsky.org>
+Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- Documentation/x86/x86_64/mm.txt         | 33 ++++++++++++++++++++++++++++++---
- arch/x86/Kconfig                        |  1 +
- arch/x86/include/asm/kasan.h            |  9 ++++++---
- arch/x86/include/asm/page_64_types.h    | 10 ++++++++++
- arch/x86/include/asm/pgtable_64_types.h |  6 ++++++
- arch/x86/include/asm/sparsemem.h        |  9 +++++++--
- 6 files changed, 60 insertions(+), 8 deletions(-)
+ arch/s390/include/asm/sections.h  | 1 -
+ arch/s390/kernel/vmlinux.lds.S    | 2 --
+ include/asm-generic/sections.h    | 6 +++---
+ include/asm-generic/vmlinux.lds.h | 4 ++--
+ mm/kmemleak.c                     | 2 +-
+ 5 files changed, 6 insertions(+), 9 deletions(-)
 
-diff --git a/Documentation/x86/x86_64/mm.txt b/Documentation/x86/x86_64/mm.txt
-index ee3f9c30957c..0774d2cb3151 100644
---- a/Documentation/x86/x86_64/mm.txt
-+++ b/Documentation/x86/x86_64/mm.txt
-@@ -4,7 +4,7 @@
- Virtual memory map with 4 level page tables:
+diff --git a/arch/s390/include/asm/sections.h b/arch/s390/include/asm/sections.h
+index 5ce29fe100ba..fbd9116eb17b 100644
+--- a/arch/s390/include/asm/sections.h
++++ b/arch/s390/include/asm/sections.h
+@@ -4,6 +4,5 @@
+ #include <asm-generic/sections.h>
  
- 0000000000000000 - 00007fffffffffff (=47 bits) user space, different per mm
--hole caused by [48:63] sign extension
-+hole caused by [47:63] sign extension
- ffff800000000000 - ffff87ffffffffff (=43 bits) guard hole, reserved for hypervisor
- ffff880000000000 - ffffc7ffffffffff (=64 TB) direct mapping of all phys. memory
- ffffc80000000000 - ffffc8ffffffffff (=40 bits) hole
-@@ -23,12 +23,39 @@ ffffffffa0000000 - ffffffffff5fffff (=1526 MB) module mapping space (variable)
- ffffffffff600000 - ffffffffffdfffff (=8 MB) vsyscalls
- ffffffffffe00000 - ffffffffffffffff (=2 MB) unused hole
+ extern char _eshared[], _ehead[];
+-extern char __start_ro_after_init[], __end_ro_after_init[];
  
-+Virtual memory map with 5 level page tables:
-+
-+0000000000000000 - 00ffffffffffffff (=56 bits) user space, different per mm
-+hole caused by [56:63] sign extension
-+ff00000000000000 - ff0fffffffffffff (=52 bits) guard hole, reserved for hypervisor
-+ff10000000000000 - ff8fffffffffffff (=55 bits) direct mapping of all phys. memory
-+ff90000000000000 - ff91ffffffffffff (=49 bits) hole
-+ff92000000000000 - ffd1ffffffffffff (=54 bits) vmalloc/ioremap space
-+ffd2000000000000 - ffd3ffffffffffff (=49 bits) hole
-+ffd4000000000000 - ffd5ffffffffffff (=49 bits) virtual memory map (512TB)
-+... unused hole ...
-+ffd8000000000000 - fff7ffffffffffff (=53 bits) kasan shadow memory (8PB)
-+... unused hole ...
-+fffe000000000000 - fffe007fffffffff (=39 bits) %esp fixup stacks
-+... unused hole ...
-+ffffffef00000000 - fffffffeffffffff (=64 GB) EFI region mapping space
-+... unused hole ...
-+ffffffff80000000 - ffffffff9fffffff (=512 MB)  kernel text mapping, from phys 0
-+ffffffffa0000000 - ffffffffff5fffff (=1526 MB) module mapping space
-+ffffffffff600000 - ffffffffffdfffff (=8 MB) vsyscalls
-+ffffffffffe00000 - ffffffffffffffff (=2 MB) unused hole
-+
-+Architecture defines a 64-bit virtual address. Implementations can support
-+less. Currently supported are 48- and 57-bit virtual addresses. Bits 63
-+through to the most-significant implemented bit are set to either all ones
-+or all zero. This causes hole between user space and kernel addresses.
-+
- The direct mapping covers all memory in the system up to the highest
- memory address (this means in some cases it can also include PCI memory
- holes).
+ #endif
+diff --git a/arch/s390/kernel/vmlinux.lds.S b/arch/s390/kernel/vmlinux.lds.S
+index 5ccf95396251..72307f108c40 100644
+--- a/arch/s390/kernel/vmlinux.lds.S
++++ b/arch/s390/kernel/vmlinux.lds.S
+@@ -63,11 +63,9 @@ SECTIONS
  
--vmalloc space is lazily synchronized into the different PML4 pages of
--the processes using the page fault handler, with init_level4_pgt as
-+vmalloc space is lazily synchronized into the different PML4/PML5 pages of
-+the processes using the page fault handler, with init_top_pgt as
- reference.
- 
- Current X86-64 implementations support up to 46 bits of address space (64 TB),
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index ff5c43af7b4e..6a8535a893e2 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -291,6 +291,7 @@ config ARCH_SUPPORTS_DEBUG_PAGEALLOC
- config KASAN_SHADOW_OFFSET
- 	hex
- 	depends on KASAN
-+	default 0xdff8000000000000 if X86_5LEVEL
- 	default 0xdffffc0000000000
- 
- config HAVE_INTEL_TXT
-diff --git a/arch/x86/include/asm/kasan.h b/arch/x86/include/asm/kasan.h
-index 1410b567ecde..f527b02a0ee3 100644
---- a/arch/x86/include/asm/kasan.h
-+++ b/arch/x86/include/asm/kasan.h
-@@ -11,9 +11,12 @@
-  * 'kernel address space start' >> KASAN_SHADOW_SCALE_SHIFT
+ 	. = ALIGN(PAGE_SIZE);
+ 	__start_ro_after_init = .;
+-	__start_data_ro_after_init = .;
+ 	.data..ro_after_init : {
+ 		 *(.data..ro_after_init)
+ 	}
+-	__end_data_ro_after_init = .;
+ 	EXCEPTION_TABLE(16)
+ 	. = ALIGN(PAGE_SIZE);
+ 	__end_ro_after_init = .;
+diff --git a/include/asm-generic/sections.h b/include/asm-generic/sections.h
+index 4df64a1fc09e..532372c6cf15 100644
+--- a/include/asm-generic/sections.h
++++ b/include/asm-generic/sections.h
+@@ -14,8 +14,8 @@
+  * [_sdata, _edata]: contains .data.* sections, may also contain .rodata.*
+  *                   and/or .init.* sections.
+  * [__start_rodata, __end_rodata]: contains .rodata.* sections
+- * [__start_data_ro_after_init, __end_data_ro_after_init]:
+- *		     contains data.ro_after_init section
++ * [__start_ro_after_init, __end_ro_after_init]:
++ *		     contains .data..ro_after_init section
+  * [__init_begin, __init_end]: contains .init.* sections, but .init.text.*
+  *                   may be out of this range on some architectures.
+  * [_sinittext, _einittext]: contains .init.text.* sections
+@@ -33,7 +33,7 @@ extern char _data[], _sdata[], _edata[];
+ extern char __bss_start[], __bss_stop[];
+ extern char __init_begin[], __init_end[];
+ extern char _sinittext[], _einittext[];
+-extern char __start_data_ro_after_init[], __end_data_ro_after_init[];
++extern char __start_ro_after_init[], __end_ro_after_init[];
+ extern char _end[];
+ extern char __per_cpu_load[], __per_cpu_start[], __per_cpu_end[];
+ extern char __kprobes_text_start[], __kprobes_text_end[];
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 0968d13b3885..f9f21e2c59f3 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -260,9 +260,9 @@
   */
- #define KASAN_SHADOW_START      (KASAN_SHADOW_OFFSET + \
--					(0xffff800000000000ULL >> 3))
--/* 47 bits for kernel address -> (47 - 3) bits for shadow */
--#define KASAN_SHADOW_END        (KASAN_SHADOW_START + (1ULL << (47 - 3)))
-+					((-1UL << __VIRTUAL_MASK_SHIFT) >> 3))
-+/*
-+ * 47 bits for kernel address -> (47 - 3) bits for shadow
-+ * 56 bits for kernel address -> (56 - 3) bits for shadow
-+ */
-+#define KASAN_SHADOW_END        (KASAN_SHADOW_START + (1ULL << (__VIRTUAL_MASK_SHIFT - 3)))
- 
- #ifndef __ASSEMBLY__
- 
-diff --git a/arch/x86/include/asm/page_64_types.h b/arch/x86/include/asm/page_64_types.h
-index 9215e0527647..3f5f08b010d0 100644
---- a/arch/x86/include/asm/page_64_types.h
-+++ b/arch/x86/include/asm/page_64_types.h
-@@ -36,7 +36,12 @@
-  * hypervisor to fit.  Choosing 16 slots here is arbitrary, but it's
-  * what Xen requires.
-  */
-+#ifdef CONFIG_X86_5LEVEL
-+#define __PAGE_OFFSET_BASE      _AC(0xff10000000000000, UL)
-+#else
- #define __PAGE_OFFSET_BASE      _AC(0xffff880000000000, UL)
-+#endif
-+
- #ifdef CONFIG_RANDOMIZE_MEMORY
- #define __PAGE_OFFSET           page_offset_base
- #else
-@@ -46,8 +51,13 @@
- #define __START_KERNEL_map	_AC(0xffffffff80000000, UL)
- 
- /* See Documentation/x86/x86_64/mm.txt for a description of the memory map. */
-+#ifdef CONFIG_X86_5LEVEL
-+#define __PHYSICAL_MASK_SHIFT	52
-+#define __VIRTUAL_MASK_SHIFT	56
-+#else
- #define __PHYSICAL_MASK_SHIFT	46
- #define __VIRTUAL_MASK_SHIFT	47
-+#endif
- 
- /*
-  * Kernel image size is limited to 1GiB due to the fixmap living in the
-diff --git a/arch/x86/include/asm/pgtable_64_types.h b/arch/x86/include/asm/pgtable_64_types.h
-index 516593e66bd6..4edc97917382 100644
---- a/arch/x86/include/asm/pgtable_64_types.h
-+++ b/arch/x86/include/asm/pgtable_64_types.h
-@@ -56,9 +56,15 @@ typedef struct { pteval_t pte; } pte_t;
- 
- /* See Documentation/x86/x86_64/mm.txt for a description of the memory map. */
- #define MAXMEM		_AC(__AC(1, UL) << MAX_PHYSMEM_BITS, UL)
-+#ifdef CONFIG_X86_5LEVEL
-+#define VMALLOC_SIZE_TB _AC(16384, UL)
-+#define __VMALLOC_BASE	_AC(0xff92000000000000, UL)
-+#define __VMEMMAP_BASE	_AC(0xffd4000000000000, UL)
-+#else
- #define VMALLOC_SIZE_TB	_AC(32, UL)
- #define __VMALLOC_BASE	_AC(0xffffc90000000000, UL)
- #define __VMEMMAP_BASE	_AC(0xffffea0000000000, UL)
-+#endif
- #ifdef CONFIG_RANDOMIZE_MEMORY
- #define VMALLOC_START	vmalloc_base
- #define VMEMMAP_START	vmemmap_base
-diff --git a/arch/x86/include/asm/sparsemem.h b/arch/x86/include/asm/sparsemem.h
-index 4517d6b93188..1f5bee2c202f 100644
---- a/arch/x86/include/asm/sparsemem.h
-+++ b/arch/x86/include/asm/sparsemem.h
-@@ -26,8 +26,13 @@
- # endif
- #else /* CONFIG_X86_32 */
- # define SECTION_SIZE_BITS	27 /* matt - 128 is convenient right now */
--# define MAX_PHYSADDR_BITS	44
--# define MAX_PHYSMEM_BITS	46
-+# ifdef CONFIG_X86_5LEVEL
-+#  define MAX_PHYSADDR_BITS	52
-+#  define MAX_PHYSMEM_BITS	52
-+# else
-+#  define MAX_PHYSADDR_BITS	44
-+#  define MAX_PHYSMEM_BITS	46
-+# endif
+ #ifndef RO_AFTER_INIT_DATA
+ #define RO_AFTER_INIT_DATA						\
+-	__start_data_ro_after_init = .;					\
++	__start_ro_after_init = .;					\
+ 	*(.data..ro_after_init)						\
+-	__end_data_ro_after_init = .;
++	__end_ro_after_init = .;
  #endif
  
- #endif /* CONFIG_SPARSEMEM */
+ /*
+diff --git a/mm/kmemleak.c b/mm/kmemleak.c
+index 26c874e90b12..20036d4f9f13 100644
+--- a/mm/kmemleak.c
++++ b/mm/kmemleak.c
+@@ -1416,7 +1416,7 @@ static void kmemleak_scan(void)
+ 	/* data/bss scanning */
+ 	scan_large_block(_sdata, _edata);
+ 	scan_large_block(__bss_start, __bss_stop);
+-	scan_large_block(__start_data_ro_after_init, __end_data_ro_after_init);
++	scan_large_block(__start_ro_after_init, __end_ro_after_init);
+ 
+ #ifdef CONFIG_SMP
+ 	/* per-cpu sections scanning */
 -- 
-2.11.0
+2.7.4
+
+
+-- 
+Kees Cook
+Pixel Security
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
