@@ -1,58 +1,70 @@
-From: Nicolas Dichtel <nicolas.dichtel@6wind.com>
-Subject: Re: [PATCH v10 07/11] btrfs_tree.h: fix include from userland
-Date: Mon, 27 Mar 2017 11:45:17 +0200
-Message-ID: <f82705b0-1727-ef4a-138c-e268f3530f07@6wind.com>
-References: <CAK7LNARpx7f0eV5_AiPmNYT7MsRbGFOygJwjfAzX_7aCpuHwuw@mail.gmail.com>
- <1489496093-15315-1-git-send-email-nicolas.dichtel@6wind.com>
- <1489496093-15315-8-git-send-email-nicolas.dichtel@6wind.com>
- <CAK7LNATUdjuNVdOEhitsPrpeORFOR2ER3OYDf9Pxn1JP639FeQ@mail.gmail.com>
-Reply-To: nicolas.dichtel@6wind.com
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f173.google.com ([209.85.128.173]:35914 "EHLO
-        mail-wr0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752513AbdC0Jpd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Mar 2017 05:45:33 -0400
-Received: by mail-wr0-f173.google.com with SMTP id w11so35158424wrc.3
-        for <linux-arch@vger.kernel.org>; Mon, 27 Mar 2017 02:45:31 -0700 (PDT)
-In-Reply-To: <CAK7LNATUdjuNVdOEhitsPrpeORFOR2ER3OYDf9Pxn1JP639FeQ@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Masahiro Yamada <yamada.masahiro@socionext.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Michal Marek <mmarek@suse.com>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, David Airlie <airlied@linux.ie>, "David S. Miller" <davem@davemloft.net>, Russell King <linux@armlinux.org.uk>, bp@alien8.de, slash.tmp@free.fr, Daniel Vetter <daniel.vetter@ffwll.ch>, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, Tobias Klauser <tklauser@distanz.ch>, mpe@ellerman.id.au, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, "Dmitry V. Levin" <ldv@altlinux.org>, Herbert Xu <herbert@gondor.apana.org.au>, linux-rdma@vger.kernel.org
+From: Nicolas Dichtel <nicolas.dichtel-pdR9zngts4EAvxtiuMwx3w@public.gmane.org>
+Subject: [PATCH v11 01/12] h8300: put bitsperlong.h in uapi
+Date: Mon, 27 Mar 2017 14:20:06 +0200
+Message-ID: <1490617217-30192-2-git-send-email-nicolas.dichtel@6wind.com>
+References: <CAK7LNAR_yp+O9jUZC8mKdaHgTiCkE7p2-ZbA9YZ8OGyp+uxhBQ@mail.gmail.com>
+ <1490617217-30192-1-git-send-email-nicolas.dichtel@6wind.com>
+Return-path: <linux-rdma-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <1490617217-30192-1-git-send-email-nicolas.dichtel-pdR9zngts4EAvxtiuMwx3w@public.gmane.org>
+Sender: linux-rdma-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: yamada.masahiro-uWyLwvC0a2jby3iVrkZq2A@public.gmane.org
+Cc: arnd-r2nGTMty4D4@public.gmane.org, mmarek-IBi9RG/b67k@public.gmane.org, linux-kbuild-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, airlied-cv59FeDIM0c@public.gmane.org, davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org, linux-I+IVW8TIWO2tmTQ+vhA3Yw@public.gmane.org, bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org, slash.tmp-GANU6spQydw@public.gmane.org, daniel.vetter-/w4YWyX8dFk@public.gmane.org, rmk+kernel-I+IVW8TIWO2tmTQ+vhA3Yw@public.gmane.org, msalter-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, jengelh-9+2X+4sQBs8@public.gmane.org, hch-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org, tklauser-93Khv+1bN0NyDzI6CaY1VQ@public.gmane.org, mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org, mingo-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org, ldv-u2l5PoMzF/Vg9hUCZPvPmw@public.gmane.org, nicolas.dichtel-pdR9zngts4EAvxtiuMwx3w@public.gmane.org, herbert-lOAM2aK0SrRLBo1qDEOMRrpzq4S04n8Q@public.gmane.org, linux-rdma-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
-Hi Masahiro,
+This header file is exported, thus move it to uapi.
 
-Le 27/03/2017 à 07:53, Masahiro Yamada a écrit :
-> Hi Nicolas,
-> 
-> 
-> 2017-03-14 21:54 GMT+09:00 Nicolas Dichtel <nicolas.dichtel@6wind.com>:
-[snip]
->> diff --git a/include/uapi/linux/btrfs_tree.h b/include/uapi/linux/btrfs_tree.h
->> index 6a261cb52d95..6a754ada59af 100644
->> --- a/include/uapi/linux/btrfs_tree.h
->> +++ b/include/uapi/linux/btrfs_tree.h
->> @@ -2,6 +2,7 @@
->>  #define _BTRFS_CTREE_H_
->>
->>  #include <linux/types.h>
->> +#include <linux/btrfs.h>
->>
-> 
-> Can you move <linux/types.h> below <linux/btrfs.h>
-> to sort the includes alphabetically?
-Ok.
+Signed-off-by: Nicolas Dichtel <nicolas.dichtel-pdR9zngts4EAvxtiuMwx3w@public.gmane.org>
+---
+ arch/h8300/include/asm/bitsperlong.h      | 14 --------------
+ arch/h8300/include/uapi/asm/bitsperlong.h | 14 ++++++++++++++
+ 2 files changed, 14 insertions(+), 14 deletions(-)
+ delete mode 100644 arch/h8300/include/asm/bitsperlong.h
+ create mode 100644 arch/h8300/include/uapi/asm/bitsperlong.h
 
-> 
-> This also applies to:
-> 
-> include/uapi/linux/qrtr.h in 06/11
-> include/uapi/linux/cryptouser.h  in 08/11
-Ok.
+diff --git a/arch/h8300/include/asm/bitsperlong.h b/arch/h8300/include/asm/bitsperlong.h
+deleted file mode 100644
+index e140e46729ac..000000000000
+--- a/arch/h8300/include/asm/bitsperlong.h
++++ /dev/null
+@@ -1,14 +0,0 @@
+-#ifndef __ASM_H8300_BITS_PER_LONG
+-#define __ASM_H8300_BITS_PER_LONG
+-
+-#include <asm-generic/bitsperlong.h>
+-
+-#if !defined(__ASSEMBLY__)
+-/* h8300-unknown-linux required long */
+-#define __kernel_size_t __kernel_size_t
+-typedef unsigned long	__kernel_size_t;
+-typedef long		__kernel_ssize_t;
+-typedef long		__kernel_ptrdiff_t;
+-#endif
+-
+-#endif /* __ASM_H8300_BITS_PER_LONG */
+diff --git a/arch/h8300/include/uapi/asm/bitsperlong.h b/arch/h8300/include/uapi/asm/bitsperlong.h
+new file mode 100644
+index 000000000000..34212608371e
+--- /dev/null
++++ b/arch/h8300/include/uapi/asm/bitsperlong.h
+@@ -0,0 +1,14 @@
++#ifndef _UAPI__ASM_H8300_BITS_PER_LONG
++#define _UAPI__ASM_H8300_BITS_PER_LONG
++
++#include <asm-generic/bitsperlong.h>
++
++#if !defined(__ASSEMBLY__)
++/* h8300-unknown-linux required long */
++#define __kernel_size_t __kernel_size_t
++typedef unsigned long	__kernel_size_t;
++typedef long		__kernel_ssize_t;
++typedef long		__kernel_ptrdiff_t;
++#endif
++
++#endif /* _UAPI__ASM_H8300_BITS_PER_LONG */
+-- 
+2.8.1
 
-
-Regards,
-Nicolas
+--
+To unsubscribe from this list: send the line "unsubscribe linux-rdma" in
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
