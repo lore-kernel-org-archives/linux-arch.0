@@ -1,58 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from conssluserg-05.nifty.com ([210.131.2.90]:48631 "EHLO
-        conssluserg-05.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752292AbdC0Pfa (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Mar 2017 11:35:30 -0400
-MIME-Version: 1.0
-In-Reply-To: <1490617217-30192-1-git-send-email-nicolas.dichtel@6wind.com>
-References: <CAK7LNAR_yp+O9jUZC8mKdaHgTiCkE7p2-ZbA9YZ8OGyp+uxhBQ@mail.gmail.com>
- <1490617217-30192-1-git-send-email-nicolas.dichtel@6wind.com>
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Date: Tue, 28 Mar 2017 00:35:07 +0900
-Message-ID: <CAK7LNATG6M7Q_sXbfRRLF6ALJPRkbr=h5zz9VjFRQEsDNL1AQA@mail.gmail.com>
-Subject: Re: [PATCH v11 00/12] uapi: export all headers under uapi directories
-Content-Type: text/plain; charset=UTF-8
+Received: from mga01.intel.com ([192.55.52.88]:49758 "EHLO mga01.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751124AbdC0QaN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 27 Mar 2017 12:30:13 -0400
+From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Subject: [PATCH 0/8] x86: 5-level paging enabling for v4.12, Part 3
+Date: Mon, 27 Mar 2017 19:29:17 +0300
+Message-ID: <20170327162925.16092-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicolas Dichtel <nicolas.dichtel@6wind.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Michal Marek <mmarek@suse.com>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, David Airlie <airlied@linux.ie>, "David S. Miller" <davem@davemloft.net>, Russell King <linux@armlinux.org.uk>, bp@alien8.de, slash.tmp@free.fr, Daniel Vetter <daniel.vetter@ffwll.ch>, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, Tobias Klauser <tklauser@distanz.ch>, mpe@ellerman.id.au, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, "Dmitry V. Levin" <ldv@altlinux.org>, Herbert Xu <herbert@gondor.apana.org.au>, linux-rdma@vger.kernel.org
-Message-ID: <20170327153507.LKeEkuRdoQS0zRH3D2-wdnr6welT7OiupOiewwR1RRU@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Message-ID: <20170327162917.t_oW7ZQ_RXbIXLU4FGfM20oiCaQKoKPgQsCrZStihOE@z>
 
-2017-03-27 21:20 GMT+09:00 Nicolas Dichtel <nicolas.dichtel@6wind.com>:
->
->
-> Patches #1 and #2 are just cleanup: some exported headers were still under
-> a non-uapi directory. Patch #3 is a fix to avoid exporting a file that was
-> not under an uapi directory.
-> After these three patches, all exported headers are under an uapi directory:
-> path #4 stops searching files in non uapi directories.
-> The patch #5 was spotted by code review: there is no in-tree user of this
-> functionality.
-> Patch #6 fixes some warnings/errors reported by 0-day tests.
-> Patch #7 to #9 fix some errors when the corresponding files are included by
-> userland.
-> Patches #10 and #11 remove the need to list explicitly headers. Now all files
-> under an uapi directory are exported.
-> Patch #12 is also a small cleanup.
->
-> This series has been tested with a 'make headers_install' on x86 and a
-> 'make headers_install_all'. I've checked the result of both commands.
->
-> This patch is built on top of masahiroy/linux-kbuild.git#for-next (v4.11-rc1).
-> I didn't find any conflict with v4.11-rc4.
->
-> v10 -> v11:
->   - patch #1: restore the double '_' in the header guard
->   - patch #6, #7, #8: order '#include' in alphabetical order
->   - patch #10: rename header-n to no-export-headers
->                cleanup management of kvm.h, kvm_para.h and a.out.h
->   - patch #12: add it
->   - rebase on top of masahiroy/linux-kbuild.git#for-next
+Here's the third bunch of patches of 5-level patchset.
 
+This time we prepare code to handle non-folded version of the additional page
+table level.
 
-Series, applied to linux-kbuild/uapi.  Thanks!
+Kirill A. Shutemov (8):
+  x86/boot: Detect 5-level paging support
+  x86/asm: Remove __VIRTUAL_MASK_SHIFT==47 assert
+  x86/mm: Define virtual memory map for 5-level paging
+  x86/paravirt: Make paravirt code support 5-level paging
+  x86/mm: Add basic defines/helpers for CONFIG_X86_5LEVEL
+  x86/dump_pagetables: Add support 5-level paging
+  x86/kasan: Extend to support 5-level paging
+  x86/espfix: Add support 5-level paging
 
+ Documentation/x86/x86_64/mm.txt          | 33 +++++++++++++++++++--
+ arch/x86/Kconfig                         |  1 +
+ arch/x86/boot/cpucheck.c                 |  9 ++++++
+ arch/x86/boot/cpuflags.c                 | 12 ++++++--
+ arch/x86/entry/entry_64.S                |  7 ++---
+ arch/x86/include/asm/disabled-features.h |  8 +++++-
+ arch/x86/include/asm/kasan.h             |  9 ++++--
+ arch/x86/include/asm/page_64_types.h     | 10 +++++++
+ arch/x86/include/asm/paravirt.h          | 37 +++++++++++++++++-------
+ arch/x86/include/asm/paravirt_types.h    |  7 ++++-
+ arch/x86/include/asm/pgalloc.h           |  2 ++
+ arch/x86/include/asm/pgtable_64.h        | 11 +++++++
+ arch/x86/include/asm/pgtable_64_types.h  | 26 +++++++++++++++++
+ arch/x86/include/asm/pgtable_types.h     | 10 ++++++-
+ arch/x86/include/asm/required-features.h |  8 +++++-
+ arch/x86/include/asm/sparsemem.h         |  9 ++++--
+ arch/x86/kernel/espfix_64.c              | 12 ++++----
+ arch/x86/kernel/paravirt.c               |  9 ++++--
+ arch/x86/mm/dump_pagetables.c            | 49 +++++++++++++++++++++++++++-----
+ arch/x86/mm/kasan_init_64.c              | 18 ++++++++++--
+ arch/x86/mm/pgtable.c                    | 34 +++++++++++++++++++++-
+ 21 files changed, 274 insertions(+), 47 deletions(-)
 
 -- 
-Best Regards
-Masahiro Yamada
+2.11.0
