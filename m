@@ -1,55 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from condef-08.nifty.com ([202.248.20.73]:64788 "EHLO
-        condef-08.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751847AbdC0Ffc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Mar 2017 01:35:32 -0400
+Received: from mail-wr0-f195.google.com ([209.85.128.195]:36588 "EHLO
+        mail-wr0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752059AbdC0Ger (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Mar 2017 02:34:47 -0400
+Date: Mon, 27 Mar 2017 08:34:23 +0200
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH 5/6] x86/xen: Change __xen_pgd_walk() and
+ xen_cleanmfnmap() to support p4d
+Message-ID: <20170327063423.GA13876@gmail.com>
+References: <20170317185515.8636-1-kirill.shutemov@linux.intel.com>
+ <20170317185515.8636-6-kirill.shutemov@linux.intel.com>
 MIME-Version: 1.0
-In-Reply-To: <1489496093-15315-2-git-send-email-nicolas.dichtel@6wind.com>
-References: <CAK7LNARpx7f0eV5_AiPmNYT7MsRbGFOygJwjfAzX_7aCpuHwuw@mail.gmail.com>
- <1489496093-15315-1-git-send-email-nicolas.dichtel@6wind.com> <1489496093-15315-2-git-send-email-nicolas.dichtel@6wind.com>
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Date: Mon, 27 Mar 2017 14:31:21 +0900
-Message-ID: <CAK7LNASeY8-74c_7wcgVdw5BwCgJGO48YsTMzc06rAFRRqAyPw@mail.gmail.com>
-Subject: Re: [PATCH v10 01/11] h8300: put bitsperlong.h in uapi
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20170317185515.8636-6-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicolas Dichtel <nicolas.dichtel@6wind.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Michal Marek <mmarek@suse.com>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, David Airlie <airlied@linux.ie>, "David S. Miller" <davem@davemloft.net>, Russell King <linux@armlinux.org.uk>, bp@alien8.de, slash.tmp@free.fr, Daniel Vetter <daniel.vetter@ffwll.ch>, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, Tobias Klauser <tklauser@distanz.ch>, mpe@ellerman.id.au, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, "Dmitry V. Levin" <ldv@altlinux.org>, Herbert Xu <herbert@gondor.apana.org.au>, linux-rdma@vger.kernel.org
-Message-ID: <20170327053121.yCnMcNzYLczdNj4rV6V0qz5ivxYjEOtHEaWU-1LQ9Zc@z>
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, Michal Hocko <mhocko@suse.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Xiong Zhang <xiong.y.zhang@intel.com>
+Message-ID: <20170327063423.ohX5aQV2i52zAQuyx7u-TC4VgDPbHMcaPMMpBMhrpv4@z>
 
-Hi Nicolas,
+y
+* Kirill A. Shutemov <kirill.shutemov@linux.intel.com> wrote:
 
+> Split these helpers into few per-level functions and add support of
+> additional page table level.
+> 
+> Signed-off-by: Xiong Zhang <xiong.y.zhang@intel.com>
+> [kirill.shutemov@linux.intel.com: split off into separate patch]
+> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 
-2017-03-14 21:54 GMT+09:00 Nicolas Dichtel <nicolas.dichtel@6wind.com>:
-> This header file is exported, thus move it to uapi.
->
-> Signed-off-by: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+So who's the primary author of this patch, you or Xiong Zhang? If the latter then 
+a "From: " line is missing. For now I've added the missing "From" line.
 
+Thanks,
 
-
-> -#endif /* __ASM_H8300_BITS_PER_LONG */
-> diff --git a/arch/h8300/include/uapi/asm/bitsperlong.h b/arch/h8300/include/uapi/asm/bitsperlong.h
-> new file mode 100644
-> index 000000000000..e56cf72369b6
-> --- /dev/null
-> +++ b/arch/h8300/include/uapi/asm/bitsperlong.h
-> @@ -0,0 +1,14 @@
-> +#ifndef _UAPI_ASM_H8300_BITS_PER_LONG
-> +#define _UAPI_ASM_H8300_BITS_PER_LONG
-
-
-Just a minor comment.
-
-The include guard was originally __ASM_H8300_BITS_PER_LONG.
-This will change it into _ASM_H8300_BITS_PER_LONG
-(after _UAPI is stripped by headers_install.sh)
-
-I just thought _UAPI__ASM_H8300_BITS_PER_LONG might be even safer,
-but I know I am nit-picking.  I can apply this as-is.
-I leave it to you.
-
-
--- 
-Best Regards
-Masahiro Yamada
+	Ingo
