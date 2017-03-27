@@ -1,67 +1,39 @@
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: Re: [PATCH v10 07/11] btrfs_tree.h: fix include from userland
-Date: Mon, 27 Mar 2017 14:53:30 +0900
-Message-ID: <CAK7LNATUdjuNVdOEhitsPrpeORFOR2ER3OYDf9Pxn1JP639FeQ@mail.gmail.com>
-References: <CAK7LNARpx7f0eV5_AiPmNYT7MsRbGFOygJwjfAzX_7aCpuHwuw@mail.gmail.com>
- <1489496093-15315-1-git-send-email-nicolas.dichtel@6wind.com> <1489496093-15315-8-git-send-email-nicolas.dichtel@6wind.com>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH 5/6] x86/xen: Change __xen_pgd_walk() and
+ xen_cleanmfnmap() to support p4d
+Date: Mon, 27 Mar 2017 08:34:23 +0200
+Message-ID: <20170327063423.GA13876@gmail.com>
+References: <20170317185515.8636-1-kirill.shutemov@linux.intel.com>
+ <20170317185515.8636-6-kirill.shutemov@linux.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from conssluserg-04.nifty.com ([210.131.2.83]:18576 "EHLO
-        conssluserg-04.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751213AbdC0Fxf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Mar 2017 01:53:35 -0400
-In-Reply-To: <1489496093-15315-8-git-send-email-nicolas.dichtel@6wind.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Nicolas Dichtel <nicolas.dichtel@6wind.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Michal Marek <mmarek@suse.com>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, David Airlie <airlied@linux.ie>, "David S. Miller" <davem@davemloft.net>, Russell King <linux@armlinux.org.uk>, bp@alien8.de, slash.tmp@free.fr, Daniel Vetter <daniel.vetter@ffwll.ch>, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, Tobias Klauser <tklauser@distanz.ch>, mpe@ellerman.id.au, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, "Dmitry V. Levin" <ldv@altlinux.org>, Herbert Xu <herbert@gondor.apana.org.au>, linux-rdma@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <20170317185515.8636-6-kirill.shutemov@linux.intel.com>
+Sender: owner-linux-mm@kvack.org
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, Michal Hocko <mhocko@suse.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Xiong Zhang <xiong.y.zhang@intel.com>
+List-Id: linux-arch.vger.kernel.org
 
-Hi Nicolas,
+y
+* Kirill A. Shutemov <kirill.shutemov@linux.intel.com> wrote:
 
+> Split these helpers into few per-level functions and add support of
+> additional page table level.
+> 
+> Signed-off-by: Xiong Zhang <xiong.y.zhang@intel.com>
+> [kirill.shutemov@linux.intel.com: split off into separate patch]
+> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 
-2017-03-14 21:54 GMT+09:00 Nicolas Dichtel <nicolas.dichtel@6wind.com>:
-> This patch prepares the uapi export by fixing the following errors:
->
-> .../linux/btrfs_tree.h:283:2: error: #error "UUID items require BTRFS_UUI=
-D_SIZE =3D=3D 16!"
->  #error "UUID items require BTRFS_UUID_SIZE =3D=3D 16!"
->
-> .../linux/btrfs_tree.h:390:12: error: =E2=80=98BTRFS_UUID_SIZE=E2=80=99 u=
-ndeclared here (not in a function)
->   __u8 uuid[BTRFS_UUID_SIZE];
->             ^
-> .../linux/btrfs_tree.h:796:16: error: =E2=80=98BTRFS_DEV_STAT_VALUES_MAX=
-=E2=80=99 undeclared here (not in a function)
->   __le64 values[BTRFS_DEV_STAT_VALUES_MAX];
->
-> Signed-off-by: Nicolas Dichtel <nicolas.dichtel@6wind.com>
-> ---
->  include/uapi/linux/btrfs_tree.h | 1 +
->  1 file changed, 1 insertion(+)
->
-> diff --git a/include/uapi/linux/btrfs_tree.h b/include/uapi/linux/btrfs_t=
-ree.h
-> index 6a261cb52d95..6a754ada59af 100644
-> --- a/include/uapi/linux/btrfs_tree.h
-> +++ b/include/uapi/linux/btrfs_tree.h
-> @@ -2,6 +2,7 @@
->  #define _BTRFS_CTREE_H_
->
->  #include <linux/types.h>
-> +#include <linux/btrfs.h>
->
+So who's the primary author of this patch, you or Xiong Zhang? If the latter then 
+a "From: " line is missing. For now I've added the missing "From" line.
 
-Can you move <linux/types.h> below <linux/btrfs.h>
-to sort the includes alphabetically?
+Thanks,
 
-This also applies to:
+	Ingo
 
-include/uapi/linux/qrtr.h in 06/11
-include/uapi/linux/cryptouser.h  in 08/11
-
-
---=20
-Best Regards
-Masahiro Yamada
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
