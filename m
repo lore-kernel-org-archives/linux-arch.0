@@ -1,95 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from host.76.145.23.62.rev.coltfrance.com ([62.23.145.76]:60850 "EHLO
-        proxy.6wind.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753223AbdC0MUk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Mar 2017 08:20:40 -0400
-From: Nicolas Dichtel <nicolas.dichtel@6wind.com>
-Subject: [PATCH v11 00/12] uapi: export all headers under uapi directories
-Date: Mon, 27 Mar 2017 14:20:05 +0200
-Message-ID: <1490617217-30192-1-git-send-email-nicolas.dichtel@6wind.com>
-In-Reply-To: <CAK7LNAR_yp+O9jUZC8mKdaHgTiCkE7p2-ZbA9YZ8OGyp+uxhBQ@mail.gmail.com>
-References: <CAK7LNAR_yp+O9jUZC8mKdaHgTiCkE7p2-ZbA9YZ8OGyp+uxhBQ@mail.gmail.com>
+Received: from conssluserg-03.nifty.com ([210.131.2.82]:57625 "EHLO
+        conssluserg-03.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752686AbdC0Pdi (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Mar 2017 11:33:38 -0400
+MIME-Version: 1.0
+In-Reply-To: <be3fddad-8e04-e6aa-c486-c64864c5a061@6wind.com>
+References: <CAK7LNARpx7f0eV5_AiPmNYT7MsRbGFOygJwjfAzX_7aCpuHwuw@mail.gmail.com>
+ <1489496093-15315-1-git-send-email-nicolas.dichtel@6wind.com>
+ <365519b5-d69e-34b7-fa2f-f11b8fabe69f@6wind.com> <CAK7LNAR_yp+O9jUZC8mKdaHgTiCkE7p2-ZbA9YZ8OGyp+uxhBQ@mail.gmail.com>
+ <c963314f-bcde-f483-c6b1-cad975842e16@6wind.com> <CAK7LNAQJWNCRjWoKMH_Br1bwqtq+mQG-6yaWu5fwhC6sJ1fV8Q@mail.gmail.com>
+ <be3fddad-8e04-e6aa-c486-c64864c5a061@6wind.com>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Date: Tue, 28 Mar 2017 00:33:16 +0900
+Message-ID: <CAK7LNAQ9v=y-kt8x9FKo8AnkVMXuHKAzQHhZET-J02RfV-rZLA@mail.gmail.com>
+Subject: Re: [PATCH v10 00/11] uapi: export all headers under uapi directories
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: yamada.masahiro@socionext.com
-Cc: arnd@arndb.de, mmarek@suse.com, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, bp@alien8.de, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, tklauser@distanz.ch, mpe@ellerman.id.au, mingo@kernel.org, tglx@linutronix.de, ldv@altlinux.org, nicolas.dichtel@6wind.com, herbert@gondor.apana.org.au, linux-rdma@vger.kernel.org
-Message-ID: <20170327122005.DZ-lp9zO1rsnB-HE_YBFHAzKYFWhn4Pg9ZiD55ma2cA@z>
+To: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Michal Marek <mmarek@suse.com>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, David Airlie <airlied@linux.ie>, "David S. Miller" <davem@davemloft.net>, Russell King <linux@armlinux.org.uk>, bp@alien8.de, slash.tmp@free.fr, Daniel Vetter <daniel.vetter@ffwll.ch>, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, Tobias Klauser <tklauser@distanz.ch>, mpe@ellerman.id.au, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, "Dmitry V. Levin" <ldv@altlinux.org>, Herbert Xu <herbert@gondor.apana.org.au>, linux-rdma@vger.kernel.org
+Message-ID: <20170327153316.-LWub4alqI8upWKFvFCRdBsTTC4QZSsVK9Kj2IOpV7Q@z>
+
+Hi Nicolas,
+
+2017-03-27 18:45 GMT+09:00 Nicolas Dichtel <nicolas.dichtel@6wind.com>:
+>> I wanted to leave comments/questions on 10/11,
+>> but I could not find 10/11 in my mailbox.  I do not know why.
+> Note that you can download the mail from the kbuild patchwork, open it with your
+> email client and do a reply ;-)
+
+I took the patch from the patchwork for git-am,
+but I was too lazy to import it to my mailer.  I will try it next time.
+Thanks for the tip!
 
 
-
-Patches #1 and #2 are just cleanup: some exported headers were still under
-a non-uapi directory. Patch #3 is a fix to avoid exporting a file that was
-not under an uapi directory.
-After these three patches, all exported headers are under an uapi directory:
-path #4 stops searching files in non uapi directories.
-The patch #5 was spotted by code review: there is no in-tree user of this
-functionality.
-Patch #6 fixes some warnings/errors reported by 0-day tests.
-Patch #7 to #9 fix some errors when the corresponding files are included by
-userland.
-Patches #10 and #11 remove the need to list explicitly headers. Now all files
-under an uapi directory are exported.
-Patch #12 is also a small cleanup.
-
-This series has been tested with a 'make headers_install' on x86 and a
-'make headers_install_all'. I've checked the result of both commands.
-
-This patch is built on top of masahiroy/linux-kbuild.git#for-next (v4.11-rc1).
-I didn't find any conflict with v4.11-rc4.
-
-v10 -> v11:
-  - patch #1: restore the double '_' in the header guard
-  - patch #6, #7, #8: order '#include' in alphabetical order 
-  - patch #10: rename header-n to no-export-headers
-               cleanup management of kvm.h, kvm_para.h and a.out.h
-  - patch #12: add it
-  - rebase on top of masahiroy/linux-kbuild.git#for-next
-
-v9 -> v10:
-  - rebase on top of masahiroy/linux-kbuild.git#for-next
-  - patch #4 & #10: fix dependency check
-  - fix some typos in commits logs
-
-v8 -> v9:
-  - rebase on top of linus tree
-  - patch #8: add include/uapi/linux/crypto.h
-
-v7 -> v8:
-  - rebase on top of linus tree
-  - add patch #7, #8 and #9
-
-v6 -> v7:
-  - rebase on top of linus tree
-  - patch #7: remove autogenerated files from the list in the commit log
-
-v5 -> v6:
-  - patch #6: remove change of include/uapi/linux/media.h
-  - patch #7: fix hdr export when 'make O=' is used (look for genhdr files in
-              the right directory)
-  - patch #8: fix 'make headers_check'
-
-v4 -> v5:
-  - patch #3: get back to v3 (don't export msr-index.h)
-  - patch #6: new in this version
-  - patch #7: fix compilation by introducing header-n
-
-v3 -> v4:
- - first patch has been included
- - patch #4: get back to v2 and remove arch/x86/include/asm/msr-index.h
-
-v2 -> v3:
- - patch #1: remove arch/arm/include/asm/types.h
- - patch #2: remove arch/h8300/include/asm/bitsperlong.h
- - patch #3: remove arch/nios2/include/uapi/asm/setup.h
- - patch #4: don't export msr-index.h
- - patch #5: fix a typo: s/unput-files3-name/input-files3-name
- - patch #6: no change
- - patch #7: fix include/uapi/asm-generic/Kbuild.asm by introducing mandatory-y
- - add patch #8
-
-v1 -> v2:
- - add patch #1 to #6
- - patch #7: remove use of header-y
-
-Comments are welcomed,
-Nicolas
+-- 
+Best Regards
+Masahiro Yamada
