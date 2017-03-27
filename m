@@ -1,51 +1,43 @@
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 0/8] x86: 5-level paging enabling for v4.12, Part 3
-Date: Mon, 27 Mar 2017 19:29:17 +0300
-Message-ID: <20170327162925.16092-1-kirill.shutemov@linux.intel.com>
+Subject: [PATCH 2/8] x86/asm: Remove __VIRTUAL_MASK_SHIFT==47 assert
+Date: Mon, 27 Mar 2017 19:29:19 +0300
+Message-ID: <20170327162925.16092-3-kirill.shutemov@linux.intel.com>
+References: <20170327162925.16092-1-kirill.shutemov@linux.intel.com>
 Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20170327162925.16092-1-kirill.shutemov@linux.intel.com>
 Sender: owner-linux-mm@kvack.org
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-Here's the third bunch of patches of 5-level patchset.
+We don't need the assert anymore. 17be0aec74fb ("x86/asm/entry/64:
+Implement better check for canonical addresses") made canonical
+address check generic wrt. address width.
 
-This time we prepare code to handle non-folded version of the additional page
-table level.
+Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+---
+ arch/x86/entry/entry_64.S | 7 ++-----
+ 1 file changed, 2 insertions(+), 5 deletions(-)
 
-Kirill A. Shutemov (8):
-  x86/boot: Detect 5-level paging support
-  x86/asm: Remove __VIRTUAL_MASK_SHIFT==47 assert
-  x86/mm: Define virtual memory map for 5-level paging
-  x86/paravirt: Make paravirt code support 5-level paging
-  x86/mm: Add basic defines/helpers for CONFIG_X86_5LEVEL
-  x86/dump_pagetables: Add support 5-level paging
-  x86/kasan: Extend to support 5-level paging
-  x86/espfix: Add support 5-level paging
-
- Documentation/x86/x86_64/mm.txt          | 33 +++++++++++++++++++--
- arch/x86/Kconfig                         |  1 +
- arch/x86/boot/cpucheck.c                 |  9 ++++++
- arch/x86/boot/cpuflags.c                 | 12 ++++++--
- arch/x86/entry/entry_64.S                |  7 ++---
- arch/x86/include/asm/disabled-features.h |  8 +++++-
- arch/x86/include/asm/kasan.h             |  9 ++++--
- arch/x86/include/asm/page_64_types.h     | 10 +++++++
- arch/x86/include/asm/paravirt.h          | 37 +++++++++++++++++-------
- arch/x86/include/asm/paravirt_types.h    |  7 ++++-
- arch/x86/include/asm/pgalloc.h           |  2 ++
- arch/x86/include/asm/pgtable_64.h        | 11 +++++++
- arch/x86/include/asm/pgtable_64_types.h  | 26 +++++++++++++++++
- arch/x86/include/asm/pgtable_types.h     | 10 ++++++-
- arch/x86/include/asm/required-features.h |  8 +++++-
- arch/x86/include/asm/sparsemem.h         |  9 ++++--
- arch/x86/kernel/espfix_64.c              | 12 ++++----
- arch/x86/kernel/paravirt.c               |  9 ++++--
- arch/x86/mm/dump_pagetables.c            | 49 +++++++++++++++++++++++++++-----
- arch/x86/mm/kasan_init_64.c              | 18 ++++++++++--
- arch/x86/mm/pgtable.c                    | 34 +++++++++++++++++++++-
- 21 files changed, 274 insertions(+), 47 deletions(-)
-
+diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
+index d2b2a2948ffe..607d72c4a485 100644
+--- a/arch/x86/entry/entry_64.S
++++ b/arch/x86/entry/entry_64.S
+@@ -265,12 +265,9 @@ return_from_SYSCALL_64:
+ 	 *
+ 	 * If width of "canonical tail" ever becomes variable, this will need
+ 	 * to be updated to remain correct on both old and new CPUs.
++	 *
++	 * Change top 16 bits to be the sign-extension of 47th bit
+ 	 */
+-	.ifne __VIRTUAL_MASK_SHIFT - 47
+-	.error "virtual address width changed -- SYSRET checks need update"
+-	.endif
+-
+-	/* Change top 16 bits to be the sign-extension of 47th bit */
+ 	shl	$(64 - (__VIRTUAL_MASK_SHIFT+1)), %rcx
+ 	sar	$(64 - (__VIRTUAL_MASK_SHIFT+1)), %rcx
+ 
 -- 
 2.11.0
 
