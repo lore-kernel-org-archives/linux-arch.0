@@ -1,51 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from host.76.145.23.62.rev.coltfrance.com ([62.23.145.76]:32774 "EHLO
+Received: from host.76.145.23.62.rev.coltfrance.com ([62.23.145.76]:60869 "EHLO
         proxy.6wind.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753314AbdC0MVx (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Mar 2017 08:21:53 -0400
+        with ESMTP id S1752918AbdC0MUk (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Mar 2017 08:20:40 -0400
 From: Nicolas Dichtel <nicolas.dichtel@6wind.com>
-Subject: [PATCH v11 07/12] btrfs_tree.h: fix include from userland
-Date: Mon, 27 Mar 2017 14:20:12 +0200
-Message-ID: <1490617217-30192-8-git-send-email-nicolas.dichtel@6wind.com>
+Subject: [PATCH v11 01/12] h8300: put bitsperlong.h in uapi
+Date: Mon, 27 Mar 2017 14:20:06 +0200
+Message-ID: <1490617217-30192-2-git-send-email-nicolas.dichtel@6wind.com>
 In-Reply-To: <1490617217-30192-1-git-send-email-nicolas.dichtel@6wind.com>
 References: <CAK7LNAR_yp+O9jUZC8mKdaHgTiCkE7p2-ZbA9YZ8OGyp+uxhBQ@mail.gmail.com>
  <1490617217-30192-1-git-send-email-nicolas.dichtel@6wind.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: yamada.masahiro@socionext.com
 Cc: arnd@arndb.de, mmarek@suse.com, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, bp@alien8.de, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, tklauser@distanz.ch, mpe@ellerman.id.au, mingo@kernel.org, tglx@linutronix.de, ldv@altlinux.org, nicolas.dichtel@6wind.com, herbert@gondor.apana.org.au, linux-rdma@vger.kernel.org
-Message-ID: <20170327122012.5wDyLjgnViPyGPEW_qb86kwrXHtLvql3XVopU8D9YJM@z>
+Message-ID: <20170327122006.XQB39h2Z1I-ju8HaJtNCsCtUFIkxTLcgWyxlHDVlVTs@z>
 
-This patch prepares the uapi export by fixing the following errors:
-
-.../linux/btrfs_tree.h:283:2: error: #error "UUID items require BTRFS_UUID_SIZE == 16!"
- #error "UUID items require BTRFS_UUID_SIZE == 16!"
-
-.../linux/btrfs_tree.h:390:12: error: ‘BTRFS_UUID_SIZE’ undeclared here (not in a function)
-  __u8 uuid[BTRFS_UUID_SIZE];
-            ^
-.../linux/btrfs_tree.h:796:16: error: ‘BTRFS_DEV_STAT_VALUES_MAX’ undeclared here (not in a function)
-  __le64 values[BTRFS_DEV_STAT_VALUES_MAX];
+This header file is exported, thus move it to uapi.
 
 Signed-off-by: Nicolas Dichtel <nicolas.dichtel@6wind.com>
 ---
- include/uapi/linux/btrfs_tree.h | 1 +
- 1 file changed, 1 insertion(+)
+ arch/h8300/include/asm/bitsperlong.h      | 14 --------------
+ arch/h8300/include/uapi/asm/bitsperlong.h | 14 ++++++++++++++
+ 2 files changed, 14 insertions(+), 14 deletions(-)
+ delete mode 100644 arch/h8300/include/asm/bitsperlong.h
+ create mode 100644 arch/h8300/include/uapi/asm/bitsperlong.h
 
-diff --git a/include/uapi/linux/btrfs_tree.h b/include/uapi/linux/btrfs_tree.h
-index 6a261cb52d95..10689e1fdf11 100644
---- a/include/uapi/linux/btrfs_tree.h
-+++ b/include/uapi/linux/btrfs_tree.h
-@@ -1,6 +1,7 @@
- #ifndef _BTRFS_CTREE_H_
- #define _BTRFS_CTREE_H_
- 
-+#include <linux/btrfs.h>
- #include <linux/types.h>
- 
- /*
+diff --git a/arch/h8300/include/asm/bitsperlong.h b/arch/h8300/include/asm/bitsperlong.h
+deleted file mode 100644
+index e140e46729ac..000000000000
+--- a/arch/h8300/include/asm/bitsperlong.h
++++ /dev/null
+@@ -1,14 +0,0 @@
+-#ifndef __ASM_H8300_BITS_PER_LONG
+-#define __ASM_H8300_BITS_PER_LONG
+-
+-#include <asm-generic/bitsperlong.h>
+-
+-#if !defined(__ASSEMBLY__)
+-/* h8300-unknown-linux required long */
+-#define __kernel_size_t __kernel_size_t
+-typedef unsigned long	__kernel_size_t;
+-typedef long		__kernel_ssize_t;
+-typedef long		__kernel_ptrdiff_t;
+-#endif
+-
+-#endif /* __ASM_H8300_BITS_PER_LONG */
+diff --git a/arch/h8300/include/uapi/asm/bitsperlong.h b/arch/h8300/include/uapi/asm/bitsperlong.h
+new file mode 100644
+index 000000000000..34212608371e
+--- /dev/null
++++ b/arch/h8300/include/uapi/asm/bitsperlong.h
+@@ -0,0 +1,14 @@
++#ifndef _UAPI__ASM_H8300_BITS_PER_LONG
++#define _UAPI__ASM_H8300_BITS_PER_LONG
++
++#include <asm-generic/bitsperlong.h>
++
++#if !defined(__ASSEMBLY__)
++/* h8300-unknown-linux required long */
++#define __kernel_size_t __kernel_size_t
++typedef unsigned long	__kernel_size_t;
++typedef long		__kernel_ssize_t;
++typedef long		__kernel_ptrdiff_t;
++#endif
++
++#endif /* _UAPI__ASM_H8300_BITS_PER_LONG */
 -- 
 2.8.1
