@@ -1,7 +1,7 @@
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 2/8] x86/asm: Remove __VIRTUAL_MASK_SHIFT==47 assert
-Date: Mon, 27 Mar 2017 19:29:19 +0300
-Message-ID: <20170327162925.16092-3-kirill.shutemov@linux.intel.com>
+Subject: [PATCH 1/8] x86/boot: Detect 5-level paging support
+Date: Mon, 27 Mar 2017 19:29:18 +0300
+Message-ID: <20170327162925.16092-2-kirill.shutemov@linux.intel.com>
 References: <20170327162925.16092-1-kirill.shutemov@linux.intel.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <20170327162925.16092-1-kirill.shutemov@linux.intel.com>
@@ -10,33 +10,128 @@ To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-fo
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-We don't need the assert anymore. 17be0aec74fb ("x86/asm/entry/64:
-Implement better check for canonical addresses") made canonical
-address check generic wrt. address width.
+5-level paging support is required from hardware when compiled with
+CONFIG_X86_5LEVEL=y.
+
+We will implement boot-time switch between 4- and 5-level paging later.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
- arch/x86/entry/entry_64.S | 7 ++-----
- 1 file changed, 2 insertions(+), 5 deletions(-)
+ arch/x86/boot/cpucheck.c                 |  9 +++++++++
+ arch/x86/boot/cpuflags.c                 | 12 ++++++++++--
+ arch/x86/include/asm/disabled-features.h |  8 +++++++-
+ arch/x86/include/asm/required-features.h |  8 +++++++-
+ 4 files changed, 33 insertions(+), 4 deletions(-)
 
-diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
-index d2b2a2948ffe..607d72c4a485 100644
---- a/arch/x86/entry/entry_64.S
-+++ b/arch/x86/entry/entry_64.S
-@@ -265,12 +265,9 @@ return_from_SYSCALL_64:
- 	 *
- 	 * If width of "canonical tail" ever becomes variable, this will need
- 	 * to be updated to remain correct on both old and new CPUs.
-+	 *
-+	 * Change top 16 bits to be the sign-extension of 47th bit
- 	 */
--	.ifne __VIRTUAL_MASK_SHIFT - 47
--	.error "virtual address width changed -- SYSRET checks need update"
--	.endif
--
--	/* Change top 16 bits to be the sign-extension of 47th bit */
- 	shl	$(64 - (__VIRTUAL_MASK_SHIFT+1)), %rcx
- 	sar	$(64 - (__VIRTUAL_MASK_SHIFT+1)), %rcx
+diff --git a/arch/x86/boot/cpucheck.c b/arch/x86/boot/cpucheck.c
+index 4ad7d70e8739..8f0c4c9fc904 100644
+--- a/arch/x86/boot/cpucheck.c
++++ b/arch/x86/boot/cpucheck.c
+@@ -44,6 +44,15 @@ static const u32 req_flags[NCAPINTS] =
+ 	0, /* REQUIRED_MASK5 not implemented in this file */
+ 	REQUIRED_MASK6,
+ 	0, /* REQUIRED_MASK7 not implemented in this file */
++	0, /* REQUIRED_MASK8 not implemented in this file */
++	0, /* REQUIRED_MASK9 not implemented in this file */
++	0, /* REQUIRED_MASK10 not implemented in this file */
++	0, /* REQUIRED_MASK11 not implemented in this file */
++	0, /* REQUIRED_MASK12 not implemented in this file */
++	0, /* REQUIRED_MASK13 not implemented in this file */
++	0, /* REQUIRED_MASK14 not implemented in this file */
++	0, /* REQUIRED_MASK15 not implemented in this file */
++	REQUIRED_MASK16,
+ };
+ 
+ #define A32(a, b, c, d) (((d) << 24)+((c) << 16)+((b) << 8)+(a))
+diff --git a/arch/x86/boot/cpuflags.c b/arch/x86/boot/cpuflags.c
+index 6687ab953257..9e77c23c2422 100644
+--- a/arch/x86/boot/cpuflags.c
++++ b/arch/x86/boot/cpuflags.c
+@@ -70,16 +70,19 @@ int has_eflag(unsigned long mask)
+ # define EBX_REG "=b"
+ #endif
+ 
+-static inline void cpuid(u32 id, u32 *a, u32 *b, u32 *c, u32 *d)
++static inline void cpuid_count(u32 id, u32 count,
++		u32 *a, u32 *b, u32 *c, u32 *d)
+ {
+ 	asm volatile(".ifnc %%ebx,%3 ; movl  %%ebx,%3 ; .endif	\n\t"
+ 		     "cpuid					\n\t"
+ 		     ".ifnc %%ebx,%3 ; xchgl %%ebx,%3 ; .endif	\n\t"
+ 		    : "=a" (*a), "=c" (*c), "=d" (*d), EBX_REG (*b)
+-		    : "a" (id)
++		    : "a" (id), "c" (count)
+ 	);
+ }
+ 
++#define cpuid(id, a, b, c, d) cpuid_count(id, 0, a, b, c, d)
++
+ void get_cpuflags(void)
+ {
+ 	u32 max_intel_level, max_amd_level;
+@@ -108,6 +111,11 @@ void get_cpuflags(void)
+ 				cpu.model += ((tfms >> 16) & 0xf) << 4;
+ 		}
+ 
++		if (max_intel_level >= 0x00000007) {
++			cpuid_count(0x00000007, 0, &ignored, &ignored,
++					&cpu.flags[16], &ignored);
++		}
++
+ 		cpuid(0x80000000, &max_amd_level, &ignored, &ignored,
+ 		      &ignored);
+ 
+diff --git a/arch/x86/include/asm/disabled-features.h b/arch/x86/include/asm/disabled-features.h
+index 85599ad4d024..fc0960236fc3 100644
+--- a/arch/x86/include/asm/disabled-features.h
++++ b/arch/x86/include/asm/disabled-features.h
+@@ -36,6 +36,12 @@
+ # define DISABLE_OSPKE		(1<<(X86_FEATURE_OSPKE & 31))
+ #endif /* CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS */
+ 
++#ifdef CONFIG_X86_5LEVEL
++#define DISABLE_LA57	0
++#else
++#define DISABLE_LA57	(1<<(X86_FEATURE_LA57 & 31))
++#endif
++
+ /*
+  * Make sure to add features to the correct mask
+  */
+@@ -55,7 +61,7 @@
+ #define DISABLED_MASK13	0
+ #define DISABLED_MASK14	0
+ #define DISABLED_MASK15	0
+-#define DISABLED_MASK16	(DISABLE_PKU|DISABLE_OSPKE)
++#define DISABLED_MASK16	(DISABLE_PKU|DISABLE_OSPKE|DISABLE_LA57)
+ #define DISABLED_MASK17	0
+ #define DISABLED_MASK_CHECK BUILD_BUG_ON_ZERO(NCAPINTS != 18)
+ 
+diff --git a/arch/x86/include/asm/required-features.h b/arch/x86/include/asm/required-features.h
+index fac9a5c0abe9..d91ba04dd007 100644
+--- a/arch/x86/include/asm/required-features.h
++++ b/arch/x86/include/asm/required-features.h
+@@ -53,6 +53,12 @@
+ # define NEED_MOVBE	0
+ #endif
+ 
++#ifdef CONFIG_X86_5LEVEL
++# define NEED_LA57	(1<<(X86_FEATURE_LA57 & 31))
++#else
++# define NEED_LA57	0
++#endif
++
+ #ifdef CONFIG_X86_64
+ #ifdef CONFIG_PARAVIRT
+ /* Paravirtualized systems may not have PSE or PGE available */
+@@ -98,7 +104,7 @@
+ #define REQUIRED_MASK13	0
+ #define REQUIRED_MASK14	0
+ #define REQUIRED_MASK15	0
+-#define REQUIRED_MASK16	0
++#define REQUIRED_MASK16	(NEED_LA57)
+ #define REQUIRED_MASK17	0
+ #define REQUIRED_MASK_CHECK BUILD_BUG_ON_ZERO(NCAPINTS != 18)
  
 -- 
 2.11.0
