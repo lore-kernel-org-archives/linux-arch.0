@@ -1,77 +1,95 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from host.76.145.23.62.rev.coltfrance.com ([62.23.145.76]:60988 "EHLO
+Received: from host.76.145.23.62.rev.coltfrance.com ([62.23.145.76]:60850 "EHLO
         proxy.6wind.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752482AbdC0MUo (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Mar 2017 08:20:44 -0400
+        with ESMTP id S1753223AbdC0MUk (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Mar 2017 08:20:40 -0400
 From: Nicolas Dichtel <nicolas.dichtel@6wind.com>
-Subject: [PATCH v11 09/12] smc_diag.h: fix include from userland
-Date: Mon, 27 Mar 2017 14:20:14 +0200
-Message-ID: <1490617217-30192-10-git-send-email-nicolas.dichtel@6wind.com>
-In-Reply-To: <1490617217-30192-1-git-send-email-nicolas.dichtel@6wind.com>
+Subject: [PATCH v11 00/12] uapi: export all headers under uapi directories
+Date: Mon, 27 Mar 2017 14:20:05 +0200
+Message-ID: <1490617217-30192-1-git-send-email-nicolas.dichtel@6wind.com>
+In-Reply-To: <CAK7LNAR_yp+O9jUZC8mKdaHgTiCkE7p2-ZbA9YZ8OGyp+uxhBQ@mail.gmail.com>
 References: <CAK7LNAR_yp+O9jUZC8mKdaHgTiCkE7p2-ZbA9YZ8OGyp+uxhBQ@mail.gmail.com>
- <1490617217-30192-1-git-send-email-nicolas.dichtel@6wind.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: yamada.masahiro@socionext.com
 Cc: arnd@arndb.de, mmarek@suse.com, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, bp@alien8.de, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, tklauser@distanz.ch, mpe@ellerman.id.au, mingo@kernel.org, tglx@linutronix.de, ldv@altlinux.org, nicolas.dichtel@6wind.com, herbert@gondor.apana.org.au, linux-rdma@vger.kernel.org
-Message-ID: <20170327122014.d17gZof23YEHt1uhxB53fBJo1x_2HrsWxSNvloOCuJc@z>
+Message-ID: <20170327122005.DZ-lp9zO1rsnB-HE_YBFHAzKYFWhn4Pg9ZiD55ma2cA@z>
 
-This patch prepares the uapi export by fixing the following error:
 
-.../linux/smc_diag.h:6:27: fatal error: rdma/ib_verbs.h: No such file or directory
- #include <rdma/ib_verbs.h>
 
-Signed-off-by: Nicolas Dichtel <nicolas.dichtel@6wind.com>
----
- include/rdma/ib_verbs.h           | 3 +--
- include/uapi/linux/smc_diag.h     | 2 +-
- include/uapi/rdma/ib_user_verbs.h | 2 ++
- 3 files changed, 4 insertions(+), 3 deletions(-)
+Patches #1 and #2 are just cleanup: some exported headers were still under
+a non-uapi directory. Patch #3 is a fix to avoid exporting a file that was
+not under an uapi directory.
+After these three patches, all exported headers are under an uapi directory:
+path #4 stops searching files in non uapi directories.
+The patch #5 was spotted by code review: there is no in-tree user of this
+functionality.
+Patch #6 fixes some warnings/errors reported by 0-day tests.
+Patch #7 to #9 fix some errors when the corresponding files are included by
+userland.
+Patches #10 and #11 remove the need to list explicitly headers. Now all files
+under an uapi directory are exported.
+Patch #12 is also a small cleanup.
 
-diff --git a/include/rdma/ib_verbs.h b/include/rdma/ib_verbs.h
-index 0f1813c13687..50f276a4afdc 100644
---- a/include/rdma/ib_verbs.h
-+++ b/include/rdma/ib_verbs.h
-@@ -61,6 +61,7 @@
- #include <linux/mmu_notifier.h>
- #include <linux/uaccess.h>
- #include <linux/cgroup_rdma.h>
-+#include <uapi/rdma/ib_user_verbs.h>
- 
- extern struct workqueue_struct *ib_wq;
- extern struct workqueue_struct *ib_comp_wq;
-@@ -1838,8 +1839,6 @@ enum ib_mad_result {
- 	IB_MAD_RESULT_CONSUMED = 1 << 2  /* Packet consumed: stop processing */
- };
- 
--#define IB_DEVICE_NAME_MAX 64
--
- struct ib_port_cache {
- 	struct ib_pkey_cache  *pkey;
- 	struct ib_gid_table   *gid;
-diff --git a/include/uapi/linux/smc_diag.h b/include/uapi/linux/smc_diag.h
-index 0063919fea34..87712bfaa9dd 100644
---- a/include/uapi/linux/smc_diag.h
-+++ b/include/uapi/linux/smc_diag.h
-@@ -3,7 +3,7 @@
- 
- #include <linux/types.h>
- #include <linux/inet_diag.h>
--#include <rdma/ib_verbs.h>
-+#include <rdma/ib_user_verbs.h>
- 
- /* Request structure */
- struct smc_diag_req {
-diff --git a/include/uapi/rdma/ib_user_verbs.h b/include/uapi/rdma/ib_user_verbs.h
-index 997f904c7692..8edce2b65903 100644
---- a/include/uapi/rdma/ib_user_verbs.h
-+++ b/include/uapi/rdma/ib_user_verbs.h
-@@ -1124,4 +1124,6 @@ struct ib_uverbs_ex_destroy_rwq_ind_table  {
- 	__u32 ind_tbl_handle;
- };
- 
-+#define IB_DEVICE_NAME_MAX 64
-+
- #endif /* IB_USER_VERBS_H */
--- 
-2.8.1
+This series has been tested with a 'make headers_install' on x86 and a
+'make headers_install_all'. I've checked the result of both commands.
+
+This patch is built on top of masahiroy/linux-kbuild.git#for-next (v4.11-rc1).
+I didn't find any conflict with v4.11-rc4.
+
+v10 -> v11:
+  - patch #1: restore the double '_' in the header guard
+  - patch #6, #7, #8: order '#include' in alphabetical order 
+  - patch #10: rename header-n to no-export-headers
+               cleanup management of kvm.h, kvm_para.h and a.out.h
+  - patch #12: add it
+  - rebase on top of masahiroy/linux-kbuild.git#for-next
+
+v9 -> v10:
+  - rebase on top of masahiroy/linux-kbuild.git#for-next
+  - patch #4 & #10: fix dependency check
+  - fix some typos in commits logs
+
+v8 -> v9:
+  - rebase on top of linus tree
+  - patch #8: add include/uapi/linux/crypto.h
+
+v7 -> v8:
+  - rebase on top of linus tree
+  - add patch #7, #8 and #9
+
+v6 -> v7:
+  - rebase on top of linus tree
+  - patch #7: remove autogenerated files from the list in the commit log
+
+v5 -> v6:
+  - patch #6: remove change of include/uapi/linux/media.h
+  - patch #7: fix hdr export when 'make O=' is used (look for genhdr files in
+              the right directory)
+  - patch #8: fix 'make headers_check'
+
+v4 -> v5:
+  - patch #3: get back to v3 (don't export msr-index.h)
+  - patch #6: new in this version
+  - patch #7: fix compilation by introducing header-n
+
+v3 -> v4:
+ - first patch has been included
+ - patch #4: get back to v2 and remove arch/x86/include/asm/msr-index.h
+
+v2 -> v3:
+ - patch #1: remove arch/arm/include/asm/types.h
+ - patch #2: remove arch/h8300/include/asm/bitsperlong.h
+ - patch #3: remove arch/nios2/include/uapi/asm/setup.h
+ - patch #4: don't export msr-index.h
+ - patch #5: fix a typo: s/unput-files3-name/input-files3-name
+ - patch #6: no change
+ - patch #7: fix include/uapi/asm-generic/Kbuild.asm by introducing mandatory-y
+ - add patch #8
+
+v1 -> v2:
+ - add patch #1 to #6
+ - patch #7: remove use of header-y
+
+Comments are welcomed,
+Nicolas
