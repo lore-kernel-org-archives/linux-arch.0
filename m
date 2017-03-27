@@ -1,46 +1,34 @@
-From: "Kirill A. Shutemov" <kirill@shutemov.name>
-Subject: Re: [PATCH 5/6] x86/xen: Change __xen_pgd_walk() and
- xen_cleanmfnmap() to support p4d
-Date: Mon, 27 Mar 2017 16:13:22 +0300
-Message-ID: <20170327131322.3xroyjqeerb37f3d@node.shutemov.name>
-References: <20170317185515.8636-1-kirill.shutemov@linux.intel.com>
- <20170317185515.8636-6-kirill.shutemov@linux.intel.com>
- <20170327063423.GA13876@gmail.com>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Subject: Re: [PATCH v10 00/11] uapi: export all headers under uapi directories
+Date: Tue, 28 Mar 2017 00:33:16 +0900
+Message-ID: <CAK7LNAQ9v=y-kt8x9FKo8AnkVMXuHKAzQHhZET-J02RfV-rZLA@mail.gmail.com>
+References: <CAK7LNARpx7f0eV5_AiPmNYT7MsRbGFOygJwjfAzX_7aCpuHwuw@mail.gmail.com>
+ <1489496093-15315-1-git-send-email-nicolas.dichtel@6wind.com>
+ <365519b5-d69e-34b7-fa2f-f11b8fabe69f@6wind.com> <CAK7LNAR_yp+O9jUZC8mKdaHgTiCkE7p2-ZbA9YZ8OGyp+uxhBQ@mail.gmail.com>
+ <c963314f-bcde-f483-c6b1-cad975842e16@6wind.com> <CAK7LNAQJWNCRjWoKMH_Br1bwqtq+mQG-6yaWu5fwhC6sJ1fV8Q@mail.gmail.com>
+ <be3fddad-8e04-e6aa-c486-c64864c5a061@6wind.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lf0-f65.google.com ([209.85.215.65]:35611 "EHLO
-        mail-lf0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752146AbdC0NN1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Mar 2017 09:13:27 -0400
-Received: by mail-lf0-f65.google.com with SMTP id v2so7148662lfi.2
-        for <linux-arch@vger.kernel.org>; Mon, 27 Mar 2017 06:13:25 -0700 (PDT)
-Content-Disposition: inline
-In-Reply-To: <20170327063423.GA13876@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, Michal Hocko <mhocko@suse.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Xiong Zhang <xiong.y.zhang@intel.com>
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <be3fddad-8e04-e6aa-c486-c64864c5a061@6wind.com>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Michal Marek <mmarek@suse.com>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, David Airlie <airlied@linux.ie>, "David S. Miller" <davem@davemloft.net>, Russell King <linux@armlinux.org.uk>, bp@alien8.de, slash.tmp@free.fr, Daniel Vetter <daniel.vetter@ffwll.ch>, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, Tobias Klauser <tklauser@distanz.ch>, mpe@ellerman.id.au, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, "Dmitry V. Levin" <ldv@altlinux.org>, Herbert Xu <herbert@gondor.apana.org.au>, linux-rdma@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Mar 27, 2017 at 08:34:23AM +0200, Ingo Molnar wrote:
-> y
-> * Kirill A. Shutemov <kirill.shutemov@linux.intel.com> wrote:
-> 
-> > Split these helpers into few per-level functions and add support of
-> > additional page table level.
-> > 
-> > Signed-off-by: Xiong Zhang <xiong.y.zhang@intel.com>
-> > [kirill.shutemov@linux.intel.com: split off into separate patch]
-> > Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-> 
-> So who's the primary author of this patch, you or Xiong Zhang? If the latter then 
-> a "From: " line is missing. For now I've added the missing "From" line.
+Hi Nicolas,
 
-Xiong is author of the changes. I've writetten commit message.
+2017-03-27 18:45 GMT+09:00 Nicolas Dichtel <nicolas.dichtel@6wind.com>:
+>> I wanted to leave comments/questions on 10/11,
+>> but I could not find 10/11 in my mailbox.  I do not know why.
+> Note that you can download the mail from the kbuild patchwork, open it with your
+> email client and do a reply ;-)
 
-So, you're right, "From:" is missing.
+I took the patch from the patchwork for git-am,
+but I was too lazy to import it to my mailer.  I will try it next time.
+Thanks for the tip!
 
-Thanks.
 
 -- 
- Kirill A. Shutemov
+Best Regards
+Masahiro Yamada
