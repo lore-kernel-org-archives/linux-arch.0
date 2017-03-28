@@ -1,77 +1,52 @@
-From: Borislav Petkov <bp@alien8.de>
+From: "Kirill A. Shutemov" <kirill@shutemov.name>
 Subject: Re: [PATCHv2 6/8] x86/dump_pagetables: Add support 5-level paging
-Date: Tue, 28 Mar 2017 20:55:22 +0200
-Message-ID: <20170328185522.5akqgfh4niqi3ptf@pd.tnic>
+Date: Wed, 29 Mar 2017 00:15:07 +0300
+Message-ID: <20170328211507.ungejuigkewn6prl@node.shutemov.name>
 References: <20170328093946.GA30567@gmail.com>
  <20170328104806.41711-1-kirill.shutemov@linux.intel.com>
+ <20170328185522.5akqgfh4niqi3ptf@pd.tnic>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([5.9.137.197]:58888 "EHLO mail.skyhub.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752617AbdC1Szd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 28 Mar 2017 14:55:33 -0400
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <20170328104806.41711-1-kirill.shutemov@linux.intel.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+In-Reply-To: <20170328185522.5akqgfh4niqi3ptf@pd.tnic>
+Sender: owner-linux-mm@kvack.org
+To: Borislav Petkov <bp@alien8.de>
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Mar 28, 2017 at 01:48:06PM +0300, Kirill A. Shutemov wrote:
-> Simple extension to support one more page table level.
+On Tue, Mar 28, 2017 at 08:55:22PM +0200, Borislav Petkov wrote:
+> On Tue, Mar 28, 2017 at 01:48:06PM +0300, Kirill A. Shutemov wrote:
+> > Simple extension to support one more page table level.
+> > 
+> > Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+> > ---
+> >  arch/x86/mm/dump_pagetables.c | 59 +++++++++++++++++++++++++++++++++----------
+> >  1 file changed, 45 insertions(+), 14 deletions(-)
 > 
-> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-> ---
->  arch/x86/mm/dump_pagetables.c | 59 +++++++++++++++++++++++++++++++++----------
->  1 file changed, 45 insertions(+), 14 deletions(-)
+> Hmm, so without this I get the splat below.
 
-Hmm, so without this I get the splat below.
+On current tip/master?
 
-Can we do something about this bisection breakage? I mean, this is the
-second explosion caused by 5level paging I trigger. Maybe we should
-merge the whole thing into a single big patch when everything is applied
-and tested, more or less, so that bisection is fine.
+> Can we do something about this bisection breakage? I mean, this is the
+> second explosion caused by 5level paging I trigger. Maybe we should
+> merge the whole thing into a single big patch when everything is applied
+> and tested, more or less, so that bisection is fine.
+> 
+> Or someone might have a better idea...
 
-Or someone might have a better idea...
+I'm not sure that collapsing history in one commit to fix bisectability is
+any better than having broken bisectability.
 
-[    2.801262] BUG: unable to handle kernel paging request at ffffc753f000f000
-[    2.803013] IP: ptdump_walk_pgd_level_core+0x236/0x3a0
-[    2.804472] PGD 0 
-[    2.804473] P4D 0 
-[    2.805231] 
-[    2.805231] Oops: 0000 [#1] PREEMPT SMP
-[    2.805231] Modules linked in:
-[    2.805231] CPU: 1 PID: 1 Comm: swapper/0 Not tainted 4.11.0-rc4+ #1
-[    2.805231] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS Debian-1.8.2-1 04/01/2014
-[    2.805231] task: ffff88007c1c8040 task.stack: ffffc90000008000
-[    2.805231] RIP: 0010:ptdump_walk_pgd_level_core+0x236/0x3a0
-[    2.805231] RSP: 0018:ffffc9000000be48 EFLAGS: 00010256
-[    2.805231] RAX: 0000000000000000 RBX: 0000000000000000 RCX: 0000000000000000
-[    2.805231] RDX: ffff880000001000 RSI: ffff880000000000 RDI: ffffc9000000bed0
-[    2.805231] RBP: ffffc9000000bef8 R08: 0000000000000000 R09: 000000000000017f
-[    2.805231] R10: 000000000000001f R11: 0000000000000001 R12: ffffc9000000be90
-[    2.805231] R13: 0000000000000000 R14: ffffc753f000f000 R15: 00000000ffffff00
-[    2.805231] FS:  0000000000000000(0000) GS:ffff88007ed00000(0000) knlGS:0000000000000000
-[    2.805231] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-[    2.805231] CR2: ffffc753f000f000 CR3: 0000000001c09000 CR4: 00000000000406e0
-[    2.805231] Call Trace:
-[    2.805231]  ? 0xffffffff81000000
-[    2.805231]  ptdump_walk_pgd_level_checkwx+0x17/0x20
-[    2.805231]  mark_rodata_ro+0xec/0x100
-[    2.805231]  ? rest_init+0x90/0x90
-[    2.805231]  kernel_init+0x2a/0x100
-[    2.805231]  ret_from_fork+0x2e/0x40
-[    2.805231] Code: 00 88 ff ff 48 8b 5d 88 4c 8d 34 10 48 ba 00 10 00 00 00 88 ff ff 48 01 d0 48 89 85 70 ff ff ff 48 89 d8 48 c1 f8 10 48 89 45 b0 <49> 8b 06 48 a9 9f ff ff ff 74 7c 48 89 c1 48 be ff 0f 00 00 00 
-[    2.805231] RIP: ptdump_walk_pgd_level_core+0x236/0x3a0 RSP: ffffc9000000be48
-[    2.805231] CR2: ffffc753f000f000
-[    2.805231] ---[ end trace 3ec6e2c757df799d ]---
-[    2.805231] Kernel panic - not syncing: Fatal exception
-[    2.805231] Kernel Offset: disabled
-[    2.805231] ---[ end Kernel panic - not syncing: Fatal exception
+I'll try to look more into this issue tomorrow.
+
+Sorry for this.
 
 -- 
-Regards/Gruss,
-    Boris.
+ Kirill A. Shutemov
 
-Good mailing practices for 400: avoid top-posting and trim the reply.
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
