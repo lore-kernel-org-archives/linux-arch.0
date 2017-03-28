@@ -1,53 +1,102 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f195.google.com ([209.85.128.195]:34272 "EHLO
-        mail-wr0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753306AbdC1VPL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Mar 2017 17:15:11 -0400
-Received: by mail-wr0-f195.google.com with SMTP id w43so21785037wrb.1
-        for <linux-arch@vger.kernel.org>; Tue, 28 Mar 2017 14:15:10 -0700 (PDT)
-Date: Wed, 29 Mar 2017 00:15:07 +0300
-From: "Kirill A. Shutemov" <kirill@shutemov.name>
-Subject: Re: [PATCHv2 6/8] x86/dump_pagetables: Add support 5-level paging
-Message-ID: <20170328211507.ungejuigkewn6prl@node.shutemov.name>
-References: <20170328093946.GA30567@gmail.com>
- <20170328104806.41711-1-kirill.shutemov@linux.intel.com>
- <20170328185522.5akqgfh4niqi3ptf@pd.tnic>
+Received: from aserp1040.oracle.com ([141.146.126.69]:48326 "EHLO
+        aserp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751410AbdC1WIv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Mar 2017 18:08:51 -0400
+Subject: Re: [PATCH v6 2/4] mm: Add functions to support extra actions on swap
+ in/out
+References: <cover.1488232591.git.khalid.aziz@oracle.com>
+ <4c4da87ff45b98e236cdfef66055b876074dabfb.1488232597.git.khalid.aziz@oracle.com>
+ <8665482b-f808-e995-cda1-99011be6ee34@linux.intel.com>
+From: Khalid Aziz <khalid.aziz@oracle.com>
+Message-ID: <0f1c17ef-cd40-77b0-61ee-8c5043caf02a@oracle.com>
+Date: Tue, 28 Mar 2017 16:08:06 -0600
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20170328185522.5akqgfh4niqi3ptf@pd.tnic>
+In-Reply-To: <8665482b-f808-e995-cda1-99011be6ee34@linux.intel.com>
+Content-Type: text/plain; charset=windows-1252; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
-Message-ID: <20170328211507.vaBA_FbCJtGKK8-Wkt7InU077aWDvFCNAeO9VpmPWWM@z>
+To: Dave Hansen <dave.hansen@linux.intel.com>, akpm@linux-foundation.org, davem@davemloft.net, arnd@arndb.de
+Cc: kirill.shutemov@linux.intel.com, mhocko@suse.com, jmarchan@redhat.com, vbabka@suse.cz, dan.j.williams@intel.com, lstoakes@gmail.com, hannes@cmpxchg.org, mgorman@suse.de, hughd@google.com, vdavydov.dev@gmail.com, minchan@kernel.org, namit@vmware.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, sparclinux@vger.kernel.org, Khalid Aziz <khalid@gonehiking.org>
+Message-ID: <20170328220806.xPFWqm7J-CYaopzgCtFTK4dvCXtqByv_Gqst8m_8UHs@z>
 
-On Tue, Mar 28, 2017 at 08:55:22PM +0200, Borislav Petkov wrote:
-> On Tue, Mar 28, 2017 at 01:48:06PM +0300, Kirill A. Shutemov wrote:
-> > Simple extension to support one more page table level.
-> > 
-> > Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-> > ---
-> >  arch/x86/mm/dump_pagetables.c | 59 +++++++++++++++++++++++++++++++++----------
-> >  1 file changed, 45 insertions(+), 14 deletions(-)
-> 
-> Hmm, so without this I get the splat below.
+On 03/24/2017 12:45 PM, Dave Hansen wrote:
+> On 02/28/2017 10:35 AM, Khalid Aziz wrote:
+>> diff --git a/mm/memory.c b/mm/memory.c
+>> index 6bf2b47..b086c76 100644
+>> --- a/mm/memory.c
+>> +++ b/mm/memory.c
+>> @@ -2658,6 +2658,7 @@ int do_swap_page(struct vm_fault *vmf)
+>>  	if (pte_swp_soft_dirty(vmf->orig_pte))
+>>  		pte = pte_mksoft_dirty(pte);
+>>  	set_pte_at(vma->vm_mm, vmf->address, vmf->pte, pte);
+>> +	arch_do_swap_page(vma->vm_mm, vmf->address, pte, vmf->orig_pte);
+>>  	vmf->orig_pte = pte;
+>>  	if (page == swapcache) {
+>>  		do_page_add_anon_rmap(page, vma, vmf->address, exclusive);
+>> diff --git a/mm/rmap.c b/mm/rmap.c
+>> index 91619fd..192c41a 100644
+>> --- a/mm/rmap.c
+>> +++ b/mm/rmap.c
+>> @@ -1538,6 +1538,7 @@ static int try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
+>>  		swp_pte = swp_entry_to_pte(entry);
+>>  		if (pte_soft_dirty(pteval))
+>>  			swp_pte = pte_swp_mksoft_dirty(swp_pte);
+>> +		arch_unmap_one(mm, address, swp_pte, pteval);
+>>  		set_pte_at(mm, address, pte, swp_pte);
+>>  	} else if (PageAnon(page)) {
+>>  		swp_entry_t entry = { .val = page_private(page) };
+>> @@ -1571,6 +1572,7 @@ static int try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
+>>  		swp_pte = swp_entry_to_pte(entry);
+>>  		if (pte_soft_dirty(pteval))
+>>  			swp_pte = pte_swp_mksoft_dirty(swp_pte);
+>> +		arch_unmap_one(mm, address, swp_pte, pteval);
+>>  		set_pte_at(mm, address, pte, swp_pte);
+>>  	} else
+>>  		dec_mm_counter(mm, mm_counter_file(page));
+>
+> From a core VM perspective, I'm fine with these hooks.  It's minimally
+> invasive.  It is missing some explanation in the *code* of why sparc is
+> doing this and when/why other architectures might want to use these
+> hooks.  I think that would be awfully nice.
 
-On current tip/master?
+Hi Dave,
 
-> Can we do something about this bisection breakage? I mean, this is the
-> second explosion caused by 5level paging I trigger. Maybe we should
-> merge the whole thing into a single big patch when everything is applied
-> and tested, more or less, so that bisection is fine.
-> 
-> Or someone might have a better idea...
+Thanks for the review.
 
-I'm not sure that collapsing history in one commit to fix bisectability is
-any better than having broken bisectability.
+I will add explanation for these hooks.
 
-I'll try to look more into this issue tomorrow.
+>
+> I still think the _current_ SPARC implementation of these hooks is
+> pretty broken because it doesn't allow more than one ADI tag within a
+> given page.  But, fixing that is confined to sparc code and shouldn't
+> affect the core VM or these hooks.
 
-Sorry for this.
+Yes, this initial implementation is limited and can be expanded to 
+support more than one tag per page in sparc code.
 
--- 
- Kirill A. Shutemov
+>
+> I suspect these hooks are still quite incomplete.  For instance, I do
+> not think KSM goes through these paths.  Couldn't a process *lose* its
+> ADI tags when KSM merges an underlying physical page?
+
+Good point. I will look into KSM integration. KSM could possibly merge 
+two physical pages that have identical contents but different ADI tags 
+although that comes into play only if userspace sets the VM_MERGEABLE 
+flag on pages it has enabled ADI on. It should be addressed nevertheless.
+
+>
+> I think you need to resolve your outstanding issues (from your 0/4
+> patch) before anyone can really ack these.  I suspect solving your
+> issues will change the number and placement of these hooks.
+>
+> There is no mention in these patches of the effectively reduced virtual
+> address space.  Why?
+
+ADI uses bits 63-60 of VA. VA is already limited to only 56 bits by the 
+MMU, so virtual address space is not reduced by this patch. I will add 
+this explanation to the patch.
+
+Thanks,
+Khalid
