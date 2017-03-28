@@ -1,147 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga01.intel.com ([192.55.52.88]:6254 "EHLO mga01.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1754390AbdC1KuJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 28 Mar 2017 06:50:09 -0400
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv2 6/8] x86/dump_pagetables: Add support 5-level paging
-Date: Tue, 28 Mar 2017 13:48:06 +0300
-Message-ID: <20170328104806.41711-1-kirill.shutemov@linux.intel.com>
-In-Reply-To: <20170328093946.GA30567@gmail.com>
+Received: from mail-wr0-f195.google.com ([209.85.128.195]:34272 "EHLO
+        mail-wr0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753306AbdC1VPL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Mar 2017 17:15:11 -0400
+Received: by mail-wr0-f195.google.com with SMTP id w43so21785037wrb.1
+        for <linux-arch@vger.kernel.org>; Tue, 28 Mar 2017 14:15:10 -0700 (PDT)
+Date: Wed, 29 Mar 2017 00:15:07 +0300
+From: "Kirill A. Shutemov" <kirill@shutemov.name>
+Subject: Re: [PATCHv2 6/8] x86/dump_pagetables: Add support 5-level paging
+Message-ID: <20170328211507.ungejuigkewn6prl@node.shutemov.name>
 References: <20170328093946.GA30567@gmail.com>
+ <20170328104806.41711-1-kirill.shutemov@linux.intel.com>
+ <20170328185522.5akqgfh4niqi3ptf@pd.tnic>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20170328185522.5akqgfh4niqi3ptf@pd.tnic>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20170328104806.4F5bSpMgIfELbgjUV0tSkpNPDvpuoXQkCyuapkFZTx8@z>
+To: Borislav Petkov <bp@alien8.de>
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+Message-ID: <20170328211507.vaBA_FbCJtGKK8-Wkt7InU077aWDvFCNAeO9VpmPWWM@z>
 
-Simple extension to support one more page table level.
+On Tue, Mar 28, 2017 at 08:55:22PM +0200, Borislav Petkov wrote:
+> On Tue, Mar 28, 2017 at 01:48:06PM +0300, Kirill A. Shutemov wrote:
+> > Simple extension to support one more page table level.
+> > 
+> > Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+> > ---
+> >  arch/x86/mm/dump_pagetables.c | 59 +++++++++++++++++++++++++++++++++----------
+> >  1 file changed, 45 insertions(+), 14 deletions(-)
+> 
+> Hmm, so without this I get the splat below.
 
-Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
----
- arch/x86/mm/dump_pagetables.c | 59 +++++++++++++++++++++++++++++++++----------
- 1 file changed, 45 insertions(+), 14 deletions(-)
+On current tip/master?
 
-diff --git a/arch/x86/mm/dump_pagetables.c b/arch/x86/mm/dump_pagetables.c
-index 58b5bee7ea27..9f305be71a72 100644
---- a/arch/x86/mm/dump_pagetables.c
-+++ b/arch/x86/mm/dump_pagetables.c
-@@ -110,7 +110,8 @@ static struct addr_marker address_markers[] = {
- #define PTE_LEVEL_MULT (PAGE_SIZE)
- #define PMD_LEVEL_MULT (PTRS_PER_PTE * PTE_LEVEL_MULT)
- #define PUD_LEVEL_MULT (PTRS_PER_PMD * PMD_LEVEL_MULT)
--#define PGD_LEVEL_MULT (PTRS_PER_PUD * PUD_LEVEL_MULT)
-+#define P4D_LEVEL_MULT (PTRS_PER_PUD * PUD_LEVEL_MULT)
-+#define PGD_LEVEL_MULT (PTRS_PER_PUD * P4D_LEVEL_MULT)
- 
- #define pt_dump_seq_printf(m, to_dmesg, fmt, args...)		\
- ({								\
-@@ -286,14 +287,13 @@ static void note_page(struct seq_file *m, struct pg_state *st,
- 	}
- }
- 
--static void walk_pte_level(struct seq_file *m, struct pg_state *st, pmd_t addr,
--							unsigned long P)
-+static void walk_pte_level(struct seq_file *m, struct pg_state *st, pmd_t addr, unsigned long P)
- {
- 	int i;
- 	pte_t *start;
- 	pgprotval_t prot;
- 
--	start = (pte_t *) pmd_page_vaddr(addr);
-+	start = (pte_t *)pmd_page_vaddr(addr);
- 	for (i = 0; i < PTRS_PER_PTE; i++) {
- 		prot = pte_flags(*start);
- 		st->current_address = normalize_addr(P + i * PTE_LEVEL_MULT);
-@@ -304,14 +304,13 @@ static void walk_pte_level(struct seq_file *m, struct pg_state *st, pmd_t addr,
- 
- #if PTRS_PER_PMD > 1
- 
--static void walk_pmd_level(struct seq_file *m, struct pg_state *st, pud_t addr,
--							unsigned long P)
-+static void walk_pmd_level(struct seq_file *m, struct pg_state *st, pud_t addr, unsigned long P)
- {
- 	int i;
- 	pmd_t *start;
- 	pgprotval_t prot;
- 
--	start = (pmd_t *) pud_page_vaddr(addr);
-+	start = (pmd_t *)pud_page_vaddr(addr);
- 	for (i = 0; i < PTRS_PER_PMD; i++) {
- 		st->current_address = normalize_addr(P + i * PMD_LEVEL_MULT);
- 		if (!pmd_none(*start)) {
-@@ -347,15 +346,14 @@ static bool pud_already_checked(pud_t *prev_pud, pud_t *pud, bool checkwx)
- 	return checkwx && prev_pud && (pud_val(*prev_pud) == pud_val(*pud));
- }
- 
--static void walk_pud_level(struct seq_file *m, struct pg_state *st, pgd_t addr,
--							unsigned long P)
-+static void walk_pud_level(struct seq_file *m, struct pg_state *st, p4d_t addr, unsigned long P)
- {
- 	int i;
- 	pud_t *start;
- 	pgprotval_t prot;
- 	pud_t *prev_pud = NULL;
- 
--	start = (pud_t *) pgd_page_vaddr(addr);
-+	start = (pud_t *)p4d_page_vaddr(addr);
- 
- 	for (i = 0; i < PTRS_PER_PUD; i++) {
- 		st->current_address = normalize_addr(P + i * PUD_LEVEL_MULT);
-@@ -377,9 +375,42 @@ static void walk_pud_level(struct seq_file *m, struct pg_state *st, pgd_t addr,
- }
- 
- #else
--#define walk_pud_level(m,s,a,p) walk_pmd_level(m,s,__pud(pgd_val(a)),p)
--#define pgd_large(a) pud_large(__pud(pgd_val(a)))
--#define pgd_none(a)  pud_none(__pud(pgd_val(a)))
-+#define walk_pud_level(m,s,a,p) walk_pmd_level(m,s,__pud(p4d_val(a)),p)
-+#define p4d_large(a) pud_large(__pud(p4d_val(a)))
-+#define p4d_none(a)  pud_none(__pud(p4d_val(a)))
-+#endif
-+
-+#if PTRS_PER_P4D > 1
-+
-+static void walk_p4d_level(struct seq_file *m, struct pg_state *st, pgd_t addr, unsigned long P)
-+{
-+	int i;
-+	p4d_t *start;
-+	pgprotval_t prot;
-+
-+	start = (p4d_t *)pgd_page_vaddr(addr);
-+
-+	for (i = 0; i < PTRS_PER_P4D; i++) {
-+		st->current_address = normalize_addr(P + i * P4D_LEVEL_MULT);
-+		if (!p4d_none(*start)) {
-+			if (p4d_large(*start) || !p4d_present(*start)) {
-+				prot = p4d_flags(*start);
-+				note_page(m, st, __pgprot(prot), 2);
-+			} else {
-+				walk_pud_level(m, st, *start,
-+					       P + i * P4D_LEVEL_MULT);
-+			}
-+		} else
-+			note_page(m, st, __pgprot(0), 2);
-+
-+		start++;
-+	}
-+}
-+
-+#else
-+#define walk_p4d_level(m,s,a,p) walk_pud_level(m,s,__p4d(pgd_val(a)),p)
-+#define pgd_large(a) p4d_large(__p4d(pgd_val(a)))
-+#define pgd_none(a)  p4d_none(__p4d(pgd_val(a)))
- #endif
- 
- static inline bool is_hypervisor_range(int idx)
-@@ -424,7 +455,7 @@ static void ptdump_walk_pgd_level_core(struct seq_file *m, pgd_t *pgd,
- 				prot = pgd_flags(*start);
- 				note_page(m, &st, __pgprot(prot), 1);
- 			} else {
--				walk_pud_level(m, &st, *start,
-+				walk_p4d_level(m, &st, *start,
- 					       i * PGD_LEVEL_MULT);
- 			}
- 		} else
+> Can we do something about this bisection breakage? I mean, this is the
+> second explosion caused by 5level paging I trigger. Maybe we should
+> merge the whole thing into a single big patch when everything is applied
+> and tested, more or less, so that bisection is fine.
+> 
+> Or someone might have a better idea...
+
+I'm not sure that collapsing history in one commit to fix bisectability is
+any better than having broken bisectability.
+
+I'll try to look more into this issue tomorrow.
+
+Sorry for this.
+
 -- 
-2.11.0
+ Kirill A. Shutemov
