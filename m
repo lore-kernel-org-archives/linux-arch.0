@@ -1,148 +1,59 @@
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv2 6/8] x86/dump_pagetables: Add support 5-level paging
-Date: Tue, 28 Mar 2017 13:48:06 +0300
-Message-ID: <20170328104806.41711-1-kirill.shutemov@linux.intel.com>
-References: <20170328093946.GA30567@gmail.com>
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20170328093946.GA30567@gmail.com>
-Sender: owner-linux-mm@kvack.org
-To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-List-Id: linux-arch.vger.kernel.org
+From: Daniel Lezcano <daniel.lezcano@linaro.org>
+Subject: [PATCH 2/2] vmlinux.lds: Add __clkevt_of_table to kernel
+Date: Tue, 28 Mar 2017 17:14:00 +0200
+Message-ID: <1490714040-30474-2-git-send-email-daniel.lezcano@linaro.org>
+References: <20170328151230.GG2123@mai>
+ <1490714040-30474-1-git-send-email-daniel.lezcano@linaro.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wm0-f53.google.com ([74.125.82.53]:37055 "EHLO
+        mail-wm0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752159AbdC1PO1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Mar 2017 11:14:27 -0400
+Received: by mail-wm0-f53.google.com with SMTP id x124so1410250wmf.0
+        for <linux-arch@vger.kernel.org>; Tue, 28 Mar 2017 08:14:26 -0700 (PDT)
+In-Reply-To: <1490714040-30474-1-git-send-email-daniel.lezcano@linaro.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: tglx@linutronix.de, mingo@kernel.org
+Cc: al.kochet@gmail.com, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>
 
-Simple extension to support one more page table level.
+From: Alexander Kochetkov <al.kochet@gmail.com>
 
-Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+The code introduced by commit 0c8893c9095d ("clockevents: Add a
+clkevt-of mechanism like clksrc-of") refer to __clkevt_of_table
+what doesn't exist in the vmlinux. As a result kernel build
+failed with error: "clkevt-probe.c:63: undefined reference to
+`__clkevt_of_table’"
+
+Fixes: 0c8893c9095d ("clockevents: Add a clkevt-of mechanism like clksrc-of")
+Signed-off-by: Alexander Kochetkov <al.kochet@gmail.com>
+Signed-off-by: Daniel Lezcano <daniel.lezcano@linaro.org>
 ---
- arch/x86/mm/dump_pagetables.c | 59 +++++++++++++++++++++++++++++++++----------
- 1 file changed, 45 insertions(+), 14 deletions(-)
+ include/asm-generic/vmlinux.lds.h | 2 ++
+ 1 file changed, 2 insertions(+)
 
-diff --git a/arch/x86/mm/dump_pagetables.c b/arch/x86/mm/dump_pagetables.c
-index 58b5bee7ea27..9f305be71a72 100644
---- a/arch/x86/mm/dump_pagetables.c
-+++ b/arch/x86/mm/dump_pagetables.c
-@@ -110,7 +110,8 @@ static struct addr_marker address_markers[] = {
- #define PTE_LEVEL_MULT (PAGE_SIZE)
- #define PMD_LEVEL_MULT (PTRS_PER_PTE * PTE_LEVEL_MULT)
- #define PUD_LEVEL_MULT (PTRS_PER_PMD * PMD_LEVEL_MULT)
--#define PGD_LEVEL_MULT (PTRS_PER_PUD * PUD_LEVEL_MULT)
-+#define P4D_LEVEL_MULT (PTRS_PER_PUD * PUD_LEVEL_MULT)
-+#define PGD_LEVEL_MULT (PTRS_PER_PUD * P4D_LEVEL_MULT)
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 0968d13..8c6b525 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -173,6 +173,7 @@
+ 	KEEP(*(__##name##_of_table_end))
  
- #define pt_dump_seq_printf(m, to_dmesg, fmt, args...)		\
- ({								\
-@@ -286,14 +287,13 @@ static void note_page(struct seq_file *m, struct pg_state *st,
- 	}
- }
- 
--static void walk_pte_level(struct seq_file *m, struct pg_state *st, pmd_t addr,
--							unsigned long P)
-+static void walk_pte_level(struct seq_file *m, struct pg_state *st, pmd_t addr, unsigned long P)
- {
- 	int i;
- 	pte_t *start;
- 	pgprotval_t prot;
- 
--	start = (pte_t *) pmd_page_vaddr(addr);
-+	start = (pte_t *)pmd_page_vaddr(addr);
- 	for (i = 0; i < PTRS_PER_PTE; i++) {
- 		prot = pte_flags(*start);
- 		st->current_address = normalize_addr(P + i * PTE_LEVEL_MULT);
-@@ -304,14 +304,13 @@ static void walk_pte_level(struct seq_file *m, struct pg_state *st, pmd_t addr,
- 
- #if PTRS_PER_PMD > 1
- 
--static void walk_pmd_level(struct seq_file *m, struct pg_state *st, pud_t addr,
--							unsigned long P)
-+static void walk_pmd_level(struct seq_file *m, struct pg_state *st, pud_t addr, unsigned long P)
- {
- 	int i;
- 	pmd_t *start;
- 	pgprotval_t prot;
- 
--	start = (pmd_t *) pud_page_vaddr(addr);
-+	start = (pmd_t *)pud_page_vaddr(addr);
- 	for (i = 0; i < PTRS_PER_PMD; i++) {
- 		st->current_address = normalize_addr(P + i * PMD_LEVEL_MULT);
- 		if (!pmd_none(*start)) {
-@@ -347,15 +346,14 @@ static bool pud_already_checked(pud_t *prev_pud, pud_t *pud, bool checkwx)
- 	return checkwx && prev_pud && (pud_val(*prev_pud) == pud_val(*pud));
- }
- 
--static void walk_pud_level(struct seq_file *m, struct pg_state *st, pgd_t addr,
--							unsigned long P)
-+static void walk_pud_level(struct seq_file *m, struct pg_state *st, p4d_t addr, unsigned long P)
- {
- 	int i;
- 	pud_t *start;
- 	pgprotval_t prot;
- 	pud_t *prev_pud = NULL;
- 
--	start = (pud_t *) pgd_page_vaddr(addr);
-+	start = (pud_t *)p4d_page_vaddr(addr);
- 
- 	for (i = 0; i < PTRS_PER_PUD; i++) {
- 		st->current_address = normalize_addr(P + i * PUD_LEVEL_MULT);
-@@ -377,9 +375,42 @@ static void walk_pud_level(struct seq_file *m, struct pg_state *st, pgd_t addr,
- }
- 
- #else
--#define walk_pud_level(m,s,a,p) walk_pmd_level(m,s,__pud(pgd_val(a)),p)
--#define pgd_large(a) pud_large(__pud(pgd_val(a)))
--#define pgd_none(a)  pud_none(__pud(pgd_val(a)))
-+#define walk_pud_level(m,s,a,p) walk_pmd_level(m,s,__pud(p4d_val(a)),p)
-+#define p4d_large(a) pud_large(__pud(p4d_val(a)))
-+#define p4d_none(a)  pud_none(__pud(p4d_val(a)))
-+#endif
-+
-+#if PTRS_PER_P4D > 1
-+
-+static void walk_p4d_level(struct seq_file *m, struct pg_state *st, pgd_t addr, unsigned long P)
-+{
-+	int i;
-+	p4d_t *start;
-+	pgprotval_t prot;
-+
-+	start = (p4d_t *)pgd_page_vaddr(addr);
-+
-+	for (i = 0; i < PTRS_PER_P4D; i++) {
-+		st->current_address = normalize_addr(P + i * P4D_LEVEL_MULT);
-+		if (!p4d_none(*start)) {
-+			if (p4d_large(*start) || !p4d_present(*start)) {
-+				prot = p4d_flags(*start);
-+				note_page(m, st, __pgprot(prot), 2);
-+			} else {
-+				walk_pud_level(m, st, *start,
-+					       P + i * P4D_LEVEL_MULT);
-+			}
-+		} else
-+			note_page(m, st, __pgprot(0), 2);
-+
-+		start++;
-+	}
-+}
-+
-+#else
-+#define walk_p4d_level(m,s,a,p) walk_pud_level(m,s,__p4d(pgd_val(a)),p)
-+#define pgd_large(a) p4d_large(__p4d(pgd_val(a)))
-+#define pgd_none(a)  p4d_none(__p4d(pgd_val(a)))
- #endif
- 
- static inline bool is_hypervisor_range(int idx)
-@@ -424,7 +455,7 @@ static void ptdump_walk_pgd_level_core(struct seq_file *m, pgd_t *pgd,
- 				prot = pgd_flags(*start);
- 				note_page(m, &st, __pgprot(prot), 1);
- 			} else {
--				walk_pud_level(m, &st, *start,
-+				walk_p4d_level(m, &st, *start,
- 					       i * PGD_LEVEL_MULT);
- 			}
- 		} else
+ #define CLKSRC_OF_TABLES()	OF_TABLE(CONFIG_CLKSRC_OF, clksrc)
++#define CLKEVT_OF_TABLES()	OF_TABLE(CONFIG_CLKEVT_OF, clkevt)
+ #define IRQCHIP_OF_MATCH_TABLE() OF_TABLE(CONFIG_IRQCHIP, irqchip)
+ #define CLK_OF_TABLES()		OF_TABLE(CONFIG_COMMON_CLK, clk)
+ #define IOMMU_OF_TABLES()	OF_TABLE(CONFIG_OF_IOMMU, iommu)
+@@ -559,6 +560,7 @@
+ 	CLK_OF_TABLES()							\
+ 	RESERVEDMEM_OF_TABLES()						\
+ 	CLKSRC_OF_TABLES()						\
++	CLKEVT_OF_TABLES()						\
+ 	IOMMU_OF_TABLES()						\
+ 	CPU_METHOD_OF_TABLES()						\
+ 	CPUIDLE_METHOD_OF_TABLES()					\
 -- 
-2.11.0
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+2.7.4
