@@ -1,83 +1,32 @@
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv2 8/8] x86/espfix: Add support 5-level paging
-Date: Wed, 29 Mar 2017 16:22:11 +0300
-Message-ID: <20170329132211.51612-1-kirill.shutemov@linux.intel.com>
-References: <20170327162925.16092-9-kirill.shutemov@linux.intel.com>
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20170327162925.16092-9-kirill.shutemov@linux.intel.com>
-Sender: owner-linux-mm@kvack.org
-To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-List-Id: linux-arch.vger.kernel.org
+From: "Kirill A. Shutemov" <kirill@shutemov.name>
+Subject: Re: [PATCHv2 6/8] x86/dump_pagetables: Add support 5-level paging
+Date: Wed, 29 Mar 2017 18:00:10 +0300
+Message-ID: <20170329150010.dy47s4kcqsv4dmgz@node.shutemov.name>
+References: <20170328093946.GA30567@gmail.com>
+ <20170328104806.41711-1-kirill.shutemov@linux.intel.com>
+ <20170328185522.5akqgfh4niqi3ptf@pd.tnic>
+ <20170328211507.ungejuigkewn6prl@node.shutemov.name>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wr0-f178.google.com ([209.85.128.178]:34927 "EHLO
+        mail-wr0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752059AbdC2PZN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 29 Mar 2017 11:25:13 -0400
+Received: by mail-wr0-f178.google.com with SMTP id k6so13819576wre.2
+        for <linux-arch@vger.kernel.org>; Wed, 29 Mar 2017 08:25:12 -0700 (PDT)
+Content-Disposition: inline
+In-Reply-To: <20170328211507.ungejuigkewn6prl@node.shutemov.name>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Borislav Petkov <bp@alien8.de>
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
 
-We don't need extra virtual address space for ESPFIX, so it stays within
-one PUD page table for both 4- and 5-level paging.
+On Wed, Mar 29, 2017 at 12:15:07AM +0300, Kirill A. Shutemov wrote:
+> I'll try to look more into this issue tomorrow.
 
-Redefining ESPFIX_BASE_ADDR using P4D_SHIFT instead of PGDIR_SHIFT would
-make it stay in the same place regarding of paging mode.
+Putting this commit before seems f2a6a7050109 ("x86: Convert the rest of
+the code to support p4d_t") seems fixes the issue.
 
-Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
----
- v2:
-  - make ESPFIX_BASE_ADDR the same for both paging modes.
----
- arch/x86/include/asm/pgtable_64_types.h |  2 +-
- arch/x86/kernel/espfix_64.c             | 12 +++++++-----
- 2 files changed, 8 insertions(+), 6 deletions(-)
-
-diff --git a/arch/x86/include/asm/pgtable_64_types.h b/arch/x86/include/asm/pgtable_64_types.h
-index adc3e7b107ee..06470da156ba 100644
---- a/arch/x86/include/asm/pgtable_64_types.h
-+++ b/arch/x86/include/asm/pgtable_64_types.h
-@@ -98,7 +98,7 @@ typedef struct { pteval_t pte; } pte_t;
- #define MODULES_END   __fix_to_virt(__end_of_fixed_addresses + 1)
- #define MODULES_LEN   (MODULES_END - MODULES_VADDR)
- #define ESPFIX_PGD_ENTRY _AC(-2, UL)
--#define ESPFIX_BASE_ADDR (ESPFIX_PGD_ENTRY << PGDIR_SHIFT)
-+#define ESPFIX_BASE_ADDR (ESPFIX_PGD_ENTRY << P4D_SHIFT)
- #define EFI_VA_START	 ( -4 * (_AC(1, UL) << 30))
- #define EFI_VA_END	 (-68 * (_AC(1, UL) << 30))
- 
-diff --git a/arch/x86/kernel/espfix_64.c b/arch/x86/kernel/espfix_64.c
-index 04f89caef9c4..8e598a1ad986 100644
---- a/arch/x86/kernel/espfix_64.c
-+++ b/arch/x86/kernel/espfix_64.c
-@@ -50,11 +50,11 @@
- #define ESPFIX_STACKS_PER_PAGE	(PAGE_SIZE/ESPFIX_STACK_SIZE)
- 
- /* There is address space for how many espfix pages? */
--#define ESPFIX_PAGE_SPACE	(1UL << (PGDIR_SHIFT-PAGE_SHIFT-16))
-+#define ESPFIX_PAGE_SPACE	(1UL << (P4D_SHIFT-PAGE_SHIFT-16))
- 
- #define ESPFIX_MAX_CPUS		(ESPFIX_STACKS_PER_PAGE * ESPFIX_PAGE_SPACE)
- #if CONFIG_NR_CPUS > ESPFIX_MAX_CPUS
--# error "Need more than one PGD for the ESPFIX hack"
-+# error "Need more virtual address space for the ESPFIX hack"
- #endif
- 
- #define PGALLOC_GFP (GFP_KERNEL | __GFP_NOTRACK | __GFP_ZERO)
-@@ -121,11 +121,13 @@ static void init_espfix_random(void)
- 
- void __init init_espfix_bsp(void)
- {
--	pgd_t *pgd_p;
-+	pgd_t *pgd;
-+	p4d_t *p4d;
- 
- 	/* Install the espfix pud into the kernel page directory */
--	pgd_p = &init_level4_pgt[pgd_index(ESPFIX_BASE_ADDR)];
--	pgd_populate(&init_mm, pgd_p, (pud_t *)espfix_pud_page);
-+	pgd = &init_level4_pgt[pgd_index(ESPFIX_BASE_ADDR)];
-+	p4d = p4d_alloc(&init_mm, pgd, ESPFIX_BASE_ADDR);
-+	p4d_populate(&init_mm, p4d, espfix_pud_page);
- 
- 	/* Randomize the locations */
- 	init_espfix_random();
 -- 
-2.11.0
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+ Kirill A. Shutemov
