@@ -1,82 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga03.intel.com ([134.134.136.65]:65425 "EHLO mga03.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753107AbdC2NWb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 29 Mar 2017 09:22:31 -0400
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv2 8/8] x86/espfix: Add support 5-level paging
-Date: Wed, 29 Mar 2017 16:22:11 +0300
-Message-ID: <20170329132211.51612-1-kirill.shutemov@linux.intel.com>
-In-Reply-To: <20170327162925.16092-9-kirill.shutemov@linux.intel.com>
-References: <20170327162925.16092-9-kirill.shutemov@linux.intel.com>
+Received: from mail-yw0-f195.google.com ([209.85.161.195]:36357 "EHLO
+        mail-yw0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751979AbdC2P2a (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 29 Mar 2017 11:28:30 -0400
+Date: Wed, 29 Mar 2017 11:28:27 -0400
+From: Tejun Heo <tj@kernel.org>
+Subject: Re: [PATCH] percpu: drop useless macro PER_CPU_DEF_ATTRIBUTES
+Message-ID: <20170329152827.GB30385@htj.duckdns.org>
+References: <1490690107-30009-1-git-send-email-caoj.fnst@cn.fujitsu.com>
+ <20170328160040.GC28157@htj.duckdns.org>
+ <58DB1E19.4020501@cn.fujitsu.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <58DB1E19.4020501@cn.fujitsu.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20170329132211.WbsQnRAboU3pZUk8zYMrS5wvgp87tzX-1bEKg7blRq0@z>
+To: Cao jin <caoj.fnst@cn.fujitsu.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de, cl@linux.com
+Message-ID: <20170329152827.6jZrijWgmR0hYCDikxSpXRno-HZMY9tPum3PDOHBCz8@z>
 
-We don't need extra virtual address space for ESPFIX, so it stays within
-one PUD page table for both 4- and 5-level paging.
+On Wed, Mar 29, 2017 at 10:38:17AM +0800, Cao jin wrote:
+> On 03/29/2017 12:00 AM, Tejun Heo wrote:
+> > On Tue, Mar 28, 2017 at 04:35:07PM +0800, Cao jin wrote:
+> >> Signed-off-by: Cao jin <caoj.fnst@cn.fujitsu.com>
+> > 
+> > I'm not sure.  I think I used it during development and it's not like
+> > it costs anything to keep.
+> 
+> It easily confusing newbies without any comments for its purpose.
 
-Redefining ESPFIX_BASE_ADDR using P4D_SHIFT instead of PGDIR_SHIFT would
-make it stay in the same place regarding of paging mode.
+percpu variable handling is pretty complex to begin with.  I don't buy
+that an empty default attribute macro adds anything noticeable there.
 
-Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
----
- v2:
-  - make ESPFIX_BASE_ADDR the same for both paging modes.
----
- arch/x86/include/asm/pgtable_64_types.h |  2 +-
- arch/x86/kernel/espfix_64.c             | 12 +++++++-----
- 2 files changed, 8 insertions(+), 6 deletions(-)
+> Temporary using during development seems not good to persist. Could I
+> know its purpose?
 
-diff --git a/arch/x86/include/asm/pgtable_64_types.h b/arch/x86/include/asm/pgtable_64_types.h
-index adc3e7b107ee..06470da156ba 100644
---- a/arch/x86/include/asm/pgtable_64_types.h
-+++ b/arch/x86/include/asm/pgtable_64_types.h
-@@ -98,7 +98,7 @@ typedef struct { pteval_t pte; } pte_t;
- #define MODULES_END   __fix_to_virt(__end_of_fixed_addresses + 1)
- #define MODULES_LEN   (MODULES_END - MODULES_VADDR)
- #define ESPFIX_PGD_ENTRY _AC(-2, UL)
--#define ESPFIX_BASE_ADDR (ESPFIX_PGD_ENTRY << PGDIR_SHIFT)
-+#define ESPFIX_BASE_ADDR (ESPFIX_PGD_ENTRY << P4D_SHIFT)
- #define EFI_VA_START	 ( -4 * (_AC(1, UL) << 30))
- #define EFI_VA_END	 (-68 * (_AC(1, UL) << 30))
- 
-diff --git a/arch/x86/kernel/espfix_64.c b/arch/x86/kernel/espfix_64.c
-index 04f89caef9c4..8e598a1ad986 100644
---- a/arch/x86/kernel/espfix_64.c
-+++ b/arch/x86/kernel/espfix_64.c
-@@ -50,11 +50,11 @@
- #define ESPFIX_STACKS_PER_PAGE	(PAGE_SIZE/ESPFIX_STACK_SIZE)
- 
- /* There is address space for how many espfix pages? */
--#define ESPFIX_PAGE_SPACE	(1UL << (PGDIR_SHIFT-PAGE_SHIFT-16))
-+#define ESPFIX_PAGE_SPACE	(1UL << (P4D_SHIFT-PAGE_SHIFT-16))
- 
- #define ESPFIX_MAX_CPUS		(ESPFIX_STACKS_PER_PAGE * ESPFIX_PAGE_SPACE)
- #if CONFIG_NR_CPUS > ESPFIX_MAX_CPUS
--# error "Need more than one PGD for the ESPFIX hack"
-+# error "Need more virtual address space for the ESPFIX hack"
- #endif
- 
- #define PGALLOC_GFP (GFP_KERNEL | __GFP_NOTRACK | __GFP_ZERO)
-@@ -121,11 +121,13 @@ static void init_espfix_random(void)
- 
- void __init init_espfix_bsp(void)
- {
--	pgd_t *pgd_p;
-+	pgd_t *pgd;
-+	p4d_t *p4d;
- 
- 	/* Install the espfix pud into the kernel page directory */
--	pgd_p = &init_level4_pgt[pgd_index(ESPFIX_BASE_ADDR)];
--	pgd_populate(&init_mm, pgd_p, (pud_t *)espfix_pud_page);
-+	pgd = &init_level4_pgt[pgd_index(ESPFIX_BASE_ADDR)];
-+	p4d = p4d_alloc(&init_mm, pgd, ESPFIX_BASE_ADDR);
-+	p4d_populate(&init_mm, p4d, espfix_pud_page);
- 
- 	/* Randomize the locations */
- 	init_espfix_random();
+I don't remember the exact details but at the same time I don't see
+the value of the proposed change.  We can apply or not apply the patch
+and either way wouldn't make any noticeable difference.  What's the
+point?
+
+Thanks.
+
 -- 
-2.11.0
+tejun
