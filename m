@@ -1,197 +1,197 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [RFC][CFT][PATCHSET v1] uaccess unification
-Date: Wed, 29 Mar 2017 06:57:06 +0100
-Message-ID: <20170329055706.GH29622@ZenIV.linux.org.uk>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Subject: [PATCHv2 3/8] x86/mm: Define virtual memory map for 5-level paging
+Date: Wed, 29 Mar 2017 16:20:16 +0300
+Message-ID: <20170329132016.51446-1-kirill.shutemov@linux.intel.com>
+References: <20170327162925.16092-4-kirill.shutemov@linux.intel.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:54488 "EHLO
-        ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752750AbdC2F52 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 29 Mar 2017 01:57:28 -0400
-Content-Disposition: inline
+Received: from mga05.intel.com ([192.55.52.43]:4431 "EHLO mga05.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1756015AbdC2NUZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 29 Mar 2017 09:20:25 -0400
+In-Reply-To: <20170327162925.16092-4-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Richard Henderson <rth@twiddle.net>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Vineet Gupta <vgupta@synopsys.com>, Steven Miao <realmz6@gmail.com>, Jesper Nilsson <jesper.nilsson@axis.com>, Mark Salter <msalter@redhat.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, James Hogan <james.hogan@imgtec.com>, Michal Simek <monstr@monstr.eu>, David Howells <dhowells@redhat.com>, Ley Foon Tan <lftan@altera.com>, Jonas Bonn <jonas@southpole.se>, Helge Deller <deller@gmx.de>, Martin
+To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 
-	We have several primitives for bulk kernel<->userland copying.
-That stuff lives in various asm/uaccess.h, with serious code duplication
-_and_ seriously inconsistent semantics.
+The first part of memory map (up to %esp fixup) simply scales existing
+map for 4-level paging by factor of 9 -- number of bits addressed by
+additional page table level.
 
-	That code has grown a lot of cruft and more than a few bugs.
-Some got caught and fixed last year, but some fairly unpleasant ones
-still remain.  A large part of problem was that a lot of code used to
-include <asm/uaccess.h> directly, so we had no single place to work
-with.  That got finally fixed in 4.10-rc1, when everything had been
-forcibly switched to including <linux/uaccess.h>.  At that point it
-became possible to start getting rid of boilerplate; I hoped to deal
-with that by 4.11-rc1, but the things didn't work out and that work
-has slipped to this cycle.
+The rest of the map is unchanged.
 
-	The patchset currently in vfs.git#work.uaccess is the result;
-there's more work to do, but it takes care of a large part of the
-problems.  About 2.8KLoc removed, a lot of cruft is gone and semantics
-is hopefully in sync now.  All but two architectures (ia64 and metag)
-had been switched to new mechanism; for these two I'm afraid that I'll
-need serious help from maintainers.
+Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 
-	Currently we have 8 primitives - 6 on every architecture and 2 more
-on biarch ones.  All of them have the same calling conventions: arguments
-are the same as for memcpy() (void *to, const void *from, unsigned long size)
-and the same rules for return value.
-	If all loads and stores succeed, everything is obvious - the
-'size' bytes starting at 'to' become equal to 'size' bytes starting at 'from'
-and zero is returned.  If some loads or stores fail, non-zero value should
-be returned.  If any of those primitives returns a positive value N,
-	* N should be no greater than size
-	* the values fetched out of from[0..size-N-1] should be stored into the
-corresponding bytes of to[0..size-N-1]
-	* N should not be equal to size unless not a single byte could have
-been fetched or stored.  As long as that restriction is satisfied, these
-primitives are not required to squeeze every possible byte in case some
-loads or stores fail.
+---
+ v2:
+  - Document esp fixup stack for 5-level paging at the same place as for
+    4-level mode (actual change is in v2 of 8/8).
+---
+ Documentation/x86/x86_64/mm.txt         | 33 ++++++++++++++++++++++++++++++---
+ arch/x86/Kconfig                        |  1 +
+ arch/x86/include/asm/kasan.h            |  9 ++++++---
+ arch/x86/include/asm/page_64_types.h    | 10 ++++++++++
+ arch/x86/include/asm/pgtable_64_types.h |  6 ++++++
+ arch/x86/include/asm/sparsemem.h        |  9 +++++++--
+ 6 files changed, 60 insertions(+), 8 deletions(-)
 
-	1) copy_from_user() - 'to' points to kernel memory, 'from' is
-normally a userland pointer.  This is used for copying structures from
-userland in all kinds of ioctls, etc.  No faults on access to destination are
-allowed, faults on access to source lead to zero-padding the rest of
-destination.  Note that for architectures with the same address space split
-between the kernel and userland (i.e. the ones that have non-trivial
-access_ok()) passing a kernel address instead of a userland one should be
-treated as 'every access would fail'.  In such cases the entire destination
-should be zeroed (failure to do so was a fairly common bug).
-	Note that all these functions, including copy_from_user(), are
-affected by set_fs() - when called under set_fs(KERNEL_DS), they expect
-kernel pointers where normally a userland one would be given.
-
-	2) copy_to_user() - 'from' points to kernel memory, 'to' is
-a userland pointer (subject to set_fs() effects, as usual).  Again.
-this is used by all kinds of code in all kinds of drivers, syscalls, etc.
-No faults on access to source, fault on access to destination terminates
-copying.  No zero-padding, of course - the faults are going to be on store
-here.  Does not assume that access_ok() had been checked by caller;
-given 'to'/'size' that fails access_ok() returns "nothing copied".
-
-	3) copy_in_user() - both 'from' and 'to' are in userland.  Used
-only by compat code that needs to repack 32bit data structures into native
-64bit counterparts.  As the result, provided only by biarch architectures.
-Subject to set_fs(), but really should not be (and AFAICS isn't) used that way.
-Some architectures tried to zero-pad, but did it inconsistently and it's
-pointless anyway - destination is in userland memory, so no infoleaks would
-happen.
-
-	4) __copy_from_user_inatomic() - similar to copy_from_user(),
-except that
-	* the caller is presumed to have verified that the source range passes
-access_ok() [note that this is does not guarantee the lack of faults]
-	* most importantly, zero-padding SHOULD NOT happen on short copy.
-If implementation fails to guarantee that, it's a bug and potentially
-bad one[1].
-	* it may be called with pagefaults disabled (of course, in
-that case any pagefault results in a short copy).  That's what 'inatomic'
-in the name refers to.  Note that actually disabling pagefaults is
-up to the caller; blindly calling it e.g. from under a spinlock will just
-get you a deadlock.  Even more precautions are needed to call it from
-something like an interrupt handler - you must do that under set_fs(),
-etc.   It's not "this variant is safe to call from atomic contexts", it's
-"I know what I'm doing, don't worry if you see it in an atomic context".
-
-	5) __copy_to_user_inatomic().  A counterpart of
-__copy_from_user_inatomic(), except for the direction of copying.
-
-	6) __copy_from_user().  Essentially the only difference from
-__copy_from_user_inatomic() is that one isn't supposed to call it from
-atomic contexts.  It may be marginally faster than copy_from_user() (due
-to skipped access_ok()), but these days the main costs are not in doing
-fairly light arithmetics.  In theory, you might do a single access_ok()
-covering a large structure and then proceed to call __copy_from_user()
-on various parts of that.  In practice doing many calls of that thing on
-small chunks of data is going to cost a lot on current x86 boxen due to
-STAC/CLAC pair inside each call.  Has fewer call sites than copy_from_user()
-- copy_from_user() is in thousands, while this one has only 40 callers
-outside of arch/, some fairly dubious.  In arch there's about 170 callers
-total, mostly in sigreturn instances.
-
-	7) __copy_to_user().  A counterpart of __copy_from_user(), with
-pretty much the same considerations applied.
-
-	8) __copy_in_user().  Basically, copy_in_user() sans access_ok().
-Biarch-only, with the grand total of 6 callers...
-
-
-	What this series does is:
-
-* convert architectures to fewer primitives (raw_copy_{to,from,in}_user(),
-the last one only on biarch ones), switching to generic implementations
-of the 8 primitives aboves via raw_... ones.  Those generic implementations
-are in linux/uaccess.h (and lib/usercopy.c).  Architecture provides
-raw_... ones, selects ARCH_HAS_RAW_COPY_USER and it's done.
-
-* all object size check, kasan, etc. instrumentation is taken care of
-in linux/uaccess.h; no need to touch it in arch/*
-
-* consistent semantics wrt zero-padding - none of the raw_... do any of
-that, copy_from_user() does (outside of fast path).
-
-At the moment I have that conversion done for everything except ia64 and
-metag.  Once everything is converted, I'll remove ARCH_HAS_RAW_COPY_USER
-and make generic stuff unconditional; at the same point
-HAVE_ARCH_HARDENED_USERCOPY will be gone (becoming unconditionally true).
-
-The series lives in git://git.kernel.org/pub/scm/linux/kernel/git/viro/vfs.git
-in #work.uaccess.  It's based at 4.11-rc1.  Infrastructure is in
-#uaccess.stem, then it splits into per-architecture branches (uaccess.<arch>),
-eventually merged into #work.uaccess.  Some stuff (including a cherry-picked
-mips build fix) is in #uaccess.misc, also merged into the final.
-
-I hope that infrastructure part is stable enough to put it into never-rebased
-state.  Some of per-architecture branches might be even done right; however,
-most of them got no testing whatsoever, so any help with testing (as well
-as "Al, for fuck sake, dump that garbage of yours, here's the correct patch"
-from maintainers) would be very welcome.  So would the review, of course.
-
-In particular, the fix in uaccess.parisc should be replaced with the stuff
-Helge posted on parisc list, probably along with the get_user/put_user
-patches.  I've put my variant of fix there as a stopgap; switch of pa_memcpy()
-to assembler is clearly the right way to solve it and I'll be happy to
-switch to that as soon as parisc folks settle on the final version of that
-stuff.
-
-For most of the oddball architectures I have no way to test that stuff, so
-please treat the asm-affecting patches in there as a starting point for
-doing it right.  Some might even work as is - stranger things had happened,
-but don't count ont it.
-
-And again, metag and ia64 parts are simply not there - both architectures
-zero-pad in __copy_from_user_inatomic() and that really needs fixing.
-In case of metag there's __copy_to_user() breakage as well, AFAICS, and
-I've been unable to find any documentation describing the architecture
-wrt exceptions, and that part is apparently fairly weird.  In case of
-ia64...  I can test mckinley side of things, but not the generic __copy_user()
-and ia64 is about as weird as it gets.  With no reliable emulator, at that...
-So these two are up to respective maintainers.
-
-Other things not there:
-	* unification of strncpy_from_user() and friends.  Probably next
-cycle.
-	* anything to do with uaccess_begin/unsafe accesses/uaccess_end
-stuff.  Definitely next cycle.
-
-I'm not sure if mailbombing linux-arch would be a good idea; there are
-90 patches in that pile, with total size nearly half a megabyte.  If anyone
-wants that posted, I'll do so, but it might be more convenient to just
-use git.
-
-Comments, review, testing, replacement patches, etc. are very welcome.
-
-				Al "hates assembers, dozens of them" Viro
-
-
-[1]  Nick Piggin has spotted that bug back in early 2000s, fixed it for
-i386 and hadn't bothered to do anything about other architectures (including
-amd64, for crying out loud!).  Since then we had inconsistent behaviour
-between the architectures.  Results of those bugs range from transient bogus
-values observed in mmap() if you get memory pressure combined with bad timing
-to outright fs corruption, if the timing is *really* bad.  All architectures
-used to have it, hopefully this series will take care of the last stragglers.
+diff --git a/Documentation/x86/x86_64/mm.txt b/Documentation/x86/x86_64/mm.txt
+index ee3f9c30957c..b0798e281aa6 100644
+--- a/Documentation/x86/x86_64/mm.txt
++++ b/Documentation/x86/x86_64/mm.txt
+@@ -4,7 +4,7 @@
+ Virtual memory map with 4 level page tables:
+ 
+ 0000000000000000 - 00007fffffffffff (=47 bits) user space, different per mm
+-hole caused by [48:63] sign extension
++hole caused by [47:63] sign extension
+ ffff800000000000 - ffff87ffffffffff (=43 bits) guard hole, reserved for hypervisor
+ ffff880000000000 - ffffc7ffffffffff (=64 TB) direct mapping of all phys. memory
+ ffffc80000000000 - ffffc8ffffffffff (=40 bits) hole
+@@ -23,12 +23,39 @@ ffffffffa0000000 - ffffffffff5fffff (=1526 MB) module mapping space (variable)
+ ffffffffff600000 - ffffffffffdfffff (=8 MB) vsyscalls
+ ffffffffffe00000 - ffffffffffffffff (=2 MB) unused hole
+ 
++Virtual memory map with 5 level page tables:
++
++0000000000000000 - 00ffffffffffffff (=56 bits) user space, different per mm
++hole caused by [56:63] sign extension
++ff00000000000000 - ff0fffffffffffff (=52 bits) guard hole, reserved for hypervisor
++ff10000000000000 - ff8fffffffffffff (=55 bits) direct mapping of all phys. memory
++ff90000000000000 - ff91ffffffffffff (=49 bits) hole
++ff92000000000000 - ffd1ffffffffffff (=54 bits) vmalloc/ioremap space
++ffd2000000000000 - ffd3ffffffffffff (=49 bits) hole
++ffd4000000000000 - ffd5ffffffffffff (=49 bits) virtual memory map (512TB)
++... unused hole ...
++ffd8000000000000 - fff7ffffffffffff (=53 bits) kasan shadow memory (8PB)
++... unused hole ...
++ffffff0000000000 - ffffff7fffffffff (=39 bits) %esp fixup stacks
++... unused hole ...
++ffffffef00000000 - fffffffeffffffff (=64 GB) EFI region mapping space
++... unused hole ...
++ffffffff80000000 - ffffffff9fffffff (=512 MB)  kernel text mapping, from phys 0
++ffffffffa0000000 - ffffffffff5fffff (=1526 MB) module mapping space
++ffffffffff600000 - ffffffffffdfffff (=8 MB) vsyscalls
++ffffffffffe00000 - ffffffffffffffff (=2 MB) unused hole
++
++Architecture defines a 64-bit virtual address. Implementations can support
++less. Currently supported are 48- and 57-bit virtual addresses. Bits 63
++through to the most-significant implemented bit are set to either all ones
++or all zero. This causes hole between user space and kernel addresses.
++
+ The direct mapping covers all memory in the system up to the highest
+ memory address (this means in some cases it can also include PCI memory
+ holes).
+ 
+-vmalloc space is lazily synchronized into the different PML4 pages of
+-the processes using the page fault handler, with init_level4_pgt as
++vmalloc space is lazily synchronized into the different PML4/PML5 pages of
++the processes using the page fault handler, with init_top_pgt as
+ reference.
+ 
+ Current X86-64 implementations support up to 46 bits of address space (64 TB),
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index ff5c43af7b4e..6a8535a893e2 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -291,6 +291,7 @@ config ARCH_SUPPORTS_DEBUG_PAGEALLOC
+ config KASAN_SHADOW_OFFSET
+ 	hex
+ 	depends on KASAN
++	default 0xdff8000000000000 if X86_5LEVEL
+ 	default 0xdffffc0000000000
+ 
+ config HAVE_INTEL_TXT
+diff --git a/arch/x86/include/asm/kasan.h b/arch/x86/include/asm/kasan.h
+index 1410b567ecde..f527b02a0ee3 100644
+--- a/arch/x86/include/asm/kasan.h
++++ b/arch/x86/include/asm/kasan.h
+@@ -11,9 +11,12 @@
+  * 'kernel address space start' >> KASAN_SHADOW_SCALE_SHIFT
+  */
+ #define KASAN_SHADOW_START      (KASAN_SHADOW_OFFSET + \
+-					(0xffff800000000000ULL >> 3))
+-/* 47 bits for kernel address -> (47 - 3) bits for shadow */
+-#define KASAN_SHADOW_END        (KASAN_SHADOW_START + (1ULL << (47 - 3)))
++					((-1UL << __VIRTUAL_MASK_SHIFT) >> 3))
++/*
++ * 47 bits for kernel address -> (47 - 3) bits for shadow
++ * 56 bits for kernel address -> (56 - 3) bits for shadow
++ */
++#define KASAN_SHADOW_END        (KASAN_SHADOW_START + (1ULL << (__VIRTUAL_MASK_SHIFT - 3)))
+ 
+ #ifndef __ASSEMBLY__
+ 
+diff --git a/arch/x86/include/asm/page_64_types.h b/arch/x86/include/asm/page_64_types.h
+index 9215e0527647..3f5f08b010d0 100644
+--- a/arch/x86/include/asm/page_64_types.h
++++ b/arch/x86/include/asm/page_64_types.h
+@@ -36,7 +36,12 @@
+  * hypervisor to fit.  Choosing 16 slots here is arbitrary, but it's
+  * what Xen requires.
+  */
++#ifdef CONFIG_X86_5LEVEL
++#define __PAGE_OFFSET_BASE      _AC(0xff10000000000000, UL)
++#else
+ #define __PAGE_OFFSET_BASE      _AC(0xffff880000000000, UL)
++#endif
++
+ #ifdef CONFIG_RANDOMIZE_MEMORY
+ #define __PAGE_OFFSET           page_offset_base
+ #else
+@@ -46,8 +51,13 @@
+ #define __START_KERNEL_map	_AC(0xffffffff80000000, UL)
+ 
+ /* See Documentation/x86/x86_64/mm.txt for a description of the memory map. */
++#ifdef CONFIG_X86_5LEVEL
++#define __PHYSICAL_MASK_SHIFT	52
++#define __VIRTUAL_MASK_SHIFT	56
++#else
+ #define __PHYSICAL_MASK_SHIFT	46
+ #define __VIRTUAL_MASK_SHIFT	47
++#endif
+ 
+ /*
+  * Kernel image size is limited to 1GiB due to the fixmap living in the
+diff --git a/arch/x86/include/asm/pgtable_64_types.h b/arch/x86/include/asm/pgtable_64_types.h
+index 516593e66bd6..4edc97917382 100644
+--- a/arch/x86/include/asm/pgtable_64_types.h
++++ b/arch/x86/include/asm/pgtable_64_types.h
+@@ -56,9 +56,15 @@ typedef struct { pteval_t pte; } pte_t;
+ 
+ /* See Documentation/x86/x86_64/mm.txt for a description of the memory map. */
+ #define MAXMEM		_AC(__AC(1, UL) << MAX_PHYSMEM_BITS, UL)
++#ifdef CONFIG_X86_5LEVEL
++#define VMALLOC_SIZE_TB _AC(16384, UL)
++#define __VMALLOC_BASE	_AC(0xff92000000000000, UL)
++#define __VMEMMAP_BASE	_AC(0xffd4000000000000, UL)
++#else
+ #define VMALLOC_SIZE_TB	_AC(32, UL)
+ #define __VMALLOC_BASE	_AC(0xffffc90000000000, UL)
+ #define __VMEMMAP_BASE	_AC(0xffffea0000000000, UL)
++#endif
+ #ifdef CONFIG_RANDOMIZE_MEMORY
+ #define VMALLOC_START	vmalloc_base
+ #define VMEMMAP_START	vmemmap_base
+diff --git a/arch/x86/include/asm/sparsemem.h b/arch/x86/include/asm/sparsemem.h
+index 4517d6b93188..1f5bee2c202f 100644
+--- a/arch/x86/include/asm/sparsemem.h
++++ b/arch/x86/include/asm/sparsemem.h
+@@ -26,8 +26,13 @@
+ # endif
+ #else /* CONFIG_X86_32 */
+ # define SECTION_SIZE_BITS	27 /* matt - 128 is convenient right now */
+-# define MAX_PHYSADDR_BITS	44
+-# define MAX_PHYSMEM_BITS	46
++# ifdef CONFIG_X86_5LEVEL
++#  define MAX_PHYSADDR_BITS	52
++#  define MAX_PHYSMEM_BITS	52
++# else
++#  define MAX_PHYSADDR_BITS	44
++#  define MAX_PHYSMEM_BITS	46
++# endif
+ #endif
+ 
+ #endif /* CONFIG_SPARSEMEM */
+-- 
+2.11.0
