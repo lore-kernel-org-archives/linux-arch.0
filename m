@@ -1,36 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:48090 "EHLO
-        ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S932865AbdC2UaJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 29 Mar 2017 16:30:09 -0400
-Date: Wed, 29 Mar 2017 21:29:39 +0100
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [RFC][CFT][PATCHSET v1] uaccess unification
-Message-ID: <20170329202939.GI29622@ZenIV.linux.org.uk>
-References: <20170329055706.GH29622@ZenIV.linux.org.uk>
- <3399faa9-795e-39db-42f5-7d1e10bbff9c@synopsys.com>
+Received: from mail-io0-f195.google.com ([209.85.223.195]:35427 "EHLO
+        mail-io0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753549AbdC2Uhc (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 29 Mar 2017 16:37:32 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <3399faa9-795e-39db-42f5-7d1e10bbff9c@synopsys.com>
+In-Reply-To: <20170329202939.GI29622@ZenIV.linux.org.uk>
+References: <20170329055706.GH29622@ZenIV.linux.org.uk> <3399faa9-795e-39db-42f5-7d1e10bbff9c@synopsys.com>
+ <20170329202939.GI29622@ZenIV.linux.org.uk>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Wed, 29 Mar 2017 13:37:30 -0700
+Message-ID: <CA+55aFxJ6HnkLzRTwoXRoWMmH4npUmT5S1gSbMges9msXKzuow@mail.gmail.com>
+Subject: Re: [RFC][CFT][PATCHSET v1] uaccess unification
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Richard Henderson <rth@twiddle.net>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Steven Miao <realmz6@gmail.com>, Jesper Nilsson <jesper.nilsson@axis.com>, Mark Salter <msalter@redhat.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, James Hogan <james.hogan@imgtec.com>, Michal Simek <monstr@monstr.eu>, David Howells <dhowells@redhat.com>, Ley Foon Tan <lftan@altera.com>, Jonas Bonn <jonas@southpole.se>, Helge Deller <deller@gmx.de>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Ralf Baechle <ralf@linux-mips.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Chen Liqin <liqin.linux@gmail.com>, "David S. Miller" <davem@davemloft.net>, Chris Metcalf <cmetcalf@mellanox.com>, Richard Weinberger <richard@nod.at>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Chris Zankel <chris@zankel.net>
-Message-ID: <20170329202939.1zYZN_g-Z7YTcvtYGdjbt0LMohLpjuIj9ZiD2hGMbnw@z>
+To: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Richard Henderson <rth@twiddle.net>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Steven Miao <realmz6@gmail.com>, Jesper Nilsson <jesper.nilsson@axis.com>, Mark Salter <msalter@redhat.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, James Hogan <james.hogan@imgtec.com>, Michal Simek <monstr@monstr.eu>, David Howells <dhowells@redhat.com>, Ley Foon Tan <lftan@altera.com>, Jonas Bonn <jonas@southpole.se>, Helge Deller <deller@gmx.de>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Ralf Baechle <ralf@linux-mips.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Chen Liqin <liqin.linux@gmail.com>, "David S. Miller" <davem@davemloft.net>, Chris Metcalf <cmetcalf@mellanox.com>, Richard Weinberger <richard@nod.at>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Chris Zankel <chris@zankel.net>
+Message-ID: <20170329203730.NmaMPSxG_q4rkajatM1qf8RrOmmUQVr_KyCcnJD_5xw@z>
 
-On Wed, Mar 29, 2017 at 01:08:12PM -0700, Vineet Gupta wrote:
+On Wed, Mar 29, 2017 at 1:29 PM, Al Viro <viro@zeniv.linux.org.uk> wrote:
+>
+> BTW, I wonder if inlining all of the copy_{to,from}_user() is actually a win.
 
-> Hi Al,
-> 
-> Thx for taking this up. It seems ARC was missing INLINE_COPY* switch likely due to
-> existing 2 variants (inline/out-of-line) we already have.
-> I've added a patch for that (attached too) - boot tested the series on ARC.
+I would suggest against it.
 
-BTW, I wonder if inlining all of the copy_{to,from}_user() is actually a win.
-It's probably arch-dependent and it would be nice if somebody compared
-performance with and without inlining those...  ARC, in particular, has
-__arc_copy_{to,from}_user() inlining a whole lot, even in case of non-constant
-size and your patch, AFAICS, will inline all of it in *all* cases.  It might
-end up being a win, but that's not apriori obvious...  Do you have any
-profiling results in that area?
+The only part I think is worth inlining is the compile time size
+checks for kasan - and that only because of the obvious "sizes are
+constant only when inlining" issue.
+
+We used to inline a *lot* of user accesses historically, pretty much
+all of them were bogus.
+
+The only ones that really want inlining are the non-checking ones that
+people should never use directly, but that are just helper things used
+by other routines (ie the "unsafe_copy_from_user()" kind of things
+that are designed for strncpy_from_user()).
+
+Once you start checking access ranges, and have might_fault debugging
+etc, it shouldn't be inlined.
+
+              Linus
