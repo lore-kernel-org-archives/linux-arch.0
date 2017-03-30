@@ -1,54 +1,67 @@
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv3 0/7] x86: 5-level paging enabling for v4.12, Part 3
-Date: Thu, 30 Mar 2017 11:07:24 +0300
-Message-ID: <20170330080731.65421-1-kirill.shutemov@linux.intel.com>
+Subject: [PATCHv3 6/7] x86/kasan: Extend to support 5-level paging
+Date: Thu, 30 Mar 2017 11:07:30 +0300
+Message-ID: <20170330080731.65421-7-kirill.shutemov@linux.intel.com>
+References: <20170330080731.65421-1-kirill.shutemov@linux.intel.com>
 Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20170330080731.65421-1-kirill.shutemov@linux.intel.com>
 Sender: owner-linux-mm@kvack.org
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>
 List-Id: linux-arch.vger.kernel.org
 
-Here's the third bunch of patches of 5-level patchset.
+This patch bring support for non-folded additional page table level.
 
-This time we prepare code to handle non-folded version of the additional page
-table level.
+Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+Cc: Dmitry Vyukov <dvyukov@google.com>
+Cc: Andrey Ryabinin <aryabinin@virtuozzo.com>
+---
+ arch/x86/mm/kasan_init_64.c | 18 ++++++++++++++++--
+ 1 file changed, 16 insertions(+), 2 deletions(-)
 
-v3:
- - rebased onto tip/master;
-v2:
- - address Ingo's and Peter's feedback;
-
-Kirill A. Shutemov (7):
-  x86/boot: Detect 5-level paging support
-  x86/asm: Remove __VIRTUAL_MASK_SHIFT==47 assert
-  x86/mm: Define virtual memory map for 5-level paging
-  x86/paravirt: Make paravirt code support 5-level paging
-  x86/mm: Add basic defines/helpers for CONFIG_X86_5LEVEL
-  x86/kasan: Extend to support 5-level paging
-  x86/espfix: Add support 5-level paging
-
- Documentation/x86/x86_64/mm.txt          | 33 +++++++++++++++++++++++++---
- arch/x86/Kconfig                         |  1 +
- arch/x86/boot/cpucheck.c                 |  9 ++++++++
- arch/x86/boot/cpuflags.c                 | 12 +++++++++--
- arch/x86/entry/entry_64.S                |  7 ++----
- arch/x86/include/asm/disabled-features.h |  8 ++++++-
- arch/x86/include/asm/kasan.h             |  9 +++++---
- arch/x86/include/asm/page_64_types.h     | 10 +++++++++
- arch/x86/include/asm/paravirt.h          | 37 ++++++++++++++++++++++----------
- arch/x86/include/asm/paravirt_types.h    |  7 +++++-
- arch/x86/include/asm/pgalloc.h           |  2 ++
- arch/x86/include/asm/pgtable_64.h        | 11 ++++++++++
- arch/x86/include/asm/pgtable_64_types.h  | 28 +++++++++++++++++++++++-
- arch/x86/include/asm/pgtable_types.h     | 10 ++++++++-
- arch/x86/include/asm/required-features.h |  8 ++++++-
- arch/x86/include/asm/sparsemem.h         |  9 ++++++--
- arch/x86/kernel/espfix_64.c              | 12 ++++++-----
- arch/x86/kernel/paravirt.c               |  9 ++++++--
- arch/x86/mm/kasan_init_64.c              | 18 ++++++++++++++--
- arch/x86/mm/pgtable.c                    | 32 ++++++++++++++++++++++++++-
- 20 files changed, 231 insertions(+), 41 deletions(-)
-
+diff --git a/arch/x86/mm/kasan_init_64.c b/arch/x86/mm/kasan_init_64.c
+index 864950994371..0c7d8129bed6 100644
+--- a/arch/x86/mm/kasan_init_64.c
++++ b/arch/x86/mm/kasan_init_64.c
+@@ -56,8 +56,18 @@ static void __init kasan_map_early_shadow(pgd_t *pgd)
+ 	unsigned long end = KASAN_SHADOW_END;
+ 
+ 	for (i = pgd_index(start); start < end; i++) {
+-		pgd[i] = __pgd(__pa_nodebug(kasan_zero_pud)
+-				| _KERNPG_TABLE);
++		switch (CONFIG_PGTABLE_LEVELS) {
++		case 4:
++			pgd[i] = __pgd(__pa_nodebug(kasan_zero_pud) |
++					_KERNPG_TABLE);
++			break;
++		case 5:
++			pgd[i] = __pgd(__pa_nodebug(kasan_zero_p4d) |
++					_KERNPG_TABLE);
++			break;
++		default:
++			BUILD_BUG();
++		}
+ 		start += PGDIR_SIZE;
+ 	}
+ }
+@@ -85,6 +95,7 @@ void __init kasan_early_init(void)
+ 	pteval_t pte_val = __pa_nodebug(kasan_zero_page) | __PAGE_KERNEL;
+ 	pmdval_t pmd_val = __pa_nodebug(kasan_zero_pte) | _KERNPG_TABLE;
+ 	pudval_t pud_val = __pa_nodebug(kasan_zero_pmd) | _KERNPG_TABLE;
++	p4dval_t p4d_val = __pa_nodebug(kasan_zero_pud) | _KERNPG_TABLE;
+ 
+ 	for (i = 0; i < PTRS_PER_PTE; i++)
+ 		kasan_zero_pte[i] = __pte(pte_val);
+@@ -95,6 +106,9 @@ void __init kasan_early_init(void)
+ 	for (i = 0; i < PTRS_PER_PUD; i++)
+ 		kasan_zero_pud[i] = __pud(pud_val);
+ 
++	for (i = 0; CONFIG_PGTABLE_LEVELS >= 5 && i < PTRS_PER_P4D; i++)
++		kasan_zero_p4d[i] = __p4d(p4d_val);
++
+ 	kasan_map_early_shadow(early_level4_pgt);
+ 	kasan_map_early_shadow(init_level4_pgt);
+ }
 -- 
 2.11.0
 
