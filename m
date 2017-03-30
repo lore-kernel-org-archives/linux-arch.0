@@ -1,39 +1,45 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCHv2 6/8] x86/dump_pagetables: Add support 5-level paging
-Date: Thu, 30 Mar 2017 08:22:48 +0200
-Message-ID: <20170330062248.GA32658@gmail.com>
-References: <20170328093946.GA30567@gmail.com>
- <20170328104806.41711-1-kirill.shutemov@linux.intel.com>
- <20170328185522.5akqgfh4niqi3ptf@pd.tnic>
- <20170328211507.ungejuigkewn6prl@node.shutemov.name>
- <20170329150010.dy47s4kcqsv4dmgz@node.shutemov.name>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Subject: [PATCHv3 2/7] x86/asm: Remove __VIRTUAL_MASK_SHIFT==47 assert
+Date: Thu, 30 Mar 2017 11:07:26 +0300
+Message-ID: <20170330080731.65421-3-kirill.shutemov@linux.intel.com>
+References: <20170330080731.65421-1-kirill.shutemov@linux.intel.com>
 Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20170329150010.dy47s4kcqsv4dmgz@node.shutemov.name>
+In-Reply-To: <20170330080731.65421-1-kirill.shutemov@linux.intel.com>
 Sender: owner-linux-mm@kvack.org
-To: "Kirill A. Shutemov" <kirill@shutemov.name>
-Cc: Borislav Petkov <bp@alien8.de>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
+We don't need the assert anymore. 17be0aec74fb ("x86/asm/entry/64:
+Implement better check for canonical addresses") made canonical
+address check generic wrt. address width.
 
-* Kirill A. Shutemov <kirill@shutemov.name> wrote:
+Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+---
+ arch/x86/entry/entry_64.S | 7 ++-----
+ 1 file changed, 2 insertions(+), 5 deletions(-)
 
-> On Wed, Mar 29, 2017 at 12:15:07AM +0300, Kirill A. Shutemov wrote:
-> > I'll try to look more into this issue tomorrow.
-> 
-> Putting this commit before seems f2a6a7050109 ("x86: Convert the rest of
-> the code to support p4d_t") seems fixes the issue.
-
-Ok, I've applied this patch standalone to make tip:x86/mm boot again.
-
-Since half of the patches in this series got iterated please send out a clean v3 
-series against the tip:x86/mm that I'm going to push out later today.
-
-Thanks,
-
-	Ingo
+diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
+index d2b2a2948ffe..607d72c4a485 100644
+--- a/arch/x86/entry/entry_64.S
++++ b/arch/x86/entry/entry_64.S
+@@ -265,12 +265,9 @@ return_from_SYSCALL_64:
+ 	 *
+ 	 * If width of "canonical tail" ever becomes variable, this will need
+ 	 * to be updated to remain correct on both old and new CPUs.
++	 *
++	 * Change top 16 bits to be the sign-extension of 47th bit
+ 	 */
+-	.ifne __VIRTUAL_MASK_SHIFT - 47
+-	.error "virtual address width changed -- SYSRET checks need update"
+-	.endif
+-
+-	/* Change top 16 bits to be the sign-extension of 47th bit */
+ 	shl	$(64 - (__VIRTUAL_MASK_SHIFT+1)), %rcx
+ 	sar	$(64 - (__VIRTUAL_MASK_SHIFT+1)), %rcx
+ 
+-- 
+2.11.0
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
