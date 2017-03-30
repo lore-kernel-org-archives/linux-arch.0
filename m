@@ -1,79 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga05.intel.com ([192.55.52.43]:38019 "EHLO mga05.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S933084AbdC3IHn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 30 Mar 2017 04:07:43 -0400
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv3 7/7] x86/espfix: Add support 5-level paging
-Date: Thu, 30 Mar 2017 11:07:31 +0300
-Message-ID: <20170330080731.65421-8-kirill.shutemov@linux.intel.com>
-In-Reply-To: <20170330080731.65421-1-kirill.shutemov@linux.intel.com>
-References: <20170330080731.65421-1-kirill.shutemov@linux.intel.com>
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:42442 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S932938AbdC3Mc1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 30 Mar 2017 08:32:27 -0400
+Received: from pps.filterd (m0098396.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.20/8.16.0.20) with SMTP id v2UCNgku035562
+        for <linux-arch@vger.kernel.org>; Thu, 30 Mar 2017 08:32:26 -0400
+Received: from e06smtp12.uk.ibm.com (e06smtp12.uk.ibm.com [195.75.94.108])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 29h1pe9bnv-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Thu, 30 Mar 2017 08:32:26 -0400
+Received: from localhost
+        by e06smtp12.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <schwidefsky@de.ibm.com>;
+        Thu, 30 Mar 2017 13:32:22 +0100
+Date: Thu, 30 Mar 2017 14:32:12 +0200
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Subject: Re: [RFC][CFT][PATCHSET v1] uaccess unification
+In-Reply-To: <20170329055706.GH29622@ZenIV.linux.org.uk>
+References: <20170329055706.GH29622@ZenIV.linux.org.uk>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Message-ID: <20170330143212.31353830@mschwideX1>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20170330080731.XnWiA2XDSs6dN8BR25YUHj6c68t9sjSJ6KIn1O8r4dc@z>
+To: Al Viro <viro@ZenIV.linux.org.uk>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Richard Henderson <rth@twiddle.net>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Vineet Gupta <vgupta@synopsys.com>, Steven Miao <realmz6@gmail.com>, Jesper Nilsson <jesper.nilsson@axis.com>, Mark Salter <msalter@redhat.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, James Hogan <james.hogan@imgtec.com>, Michal Simek <monstr@monstr.eu>, David Howells <dhowells@redhat.com>, Ley Foon Tan <lftan@altera.com>, Jonas Bonn <jonas@southpole.se>, Helge Deller <deller@gmx.de>, Ralf Baechle <ralf@linux-mips.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Chen Liqin <liqin.linux@gmail.com>, "David S. Miller" <davem@davemloft.net>, Chris Metcalf <cmetcalf@mellanox.com>, Richard Weinberger <richard@nod.at>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Chris Zankel <chris@zankel.net>
+Message-ID: <20170330123212.6vEn2jNhrM5fpk-vujkPjbVreBD3_EePpykIAk0zcGo@z>
 
-We don't need extra virtual address space for ESPFIX, so it stays within
-one PUD page table for both 4- and 5-level paging.
+On Wed, 29 Mar 2017 06:57:06 +0100
+Al Viro <viro@ZenIV.linux.org.uk> wrote:
 
-Redefining ESPFIX_BASE_ADDR using P4D_SHIFT instead of PGDIR_SHIFT would
-make it stay in the same place regarding of paging mode.
+> 	The patchset currently in vfs.git#work.uaccess is the result;
+> there's more work to do, but it takes care of a large part of the
+> problems.  About 2.8KLoc removed, a lot of cruft is gone and semantics
+> is hopefully in sync now.  All but two architectures (ia64 and metag)
+> had been switched to new mechanism; for these two I'm afraid that I'll
+> need serious help from maintainers.
 
-Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
----
- arch/x86/include/asm/pgtable_64_types.h |  2 +-
- arch/x86/kernel/espfix_64.c             | 12 +++++++-----
- 2 files changed, 8 insertions(+), 6 deletions(-)
+I have tested the code in vfs.git#work.uaccess and in principle it works
+for s390. I found one bug which would return an incorrect result
+for copy_from_user if the access faults on the last page of the copy.
+In that case the new code would return 0 instead of the remaining bytes.
 
-diff --git a/arch/x86/include/asm/pgtable_64_types.h b/arch/x86/include/asm/pgtable_64_types.h
-index adc3e7b107ee..06470da156ba 100644
---- a/arch/x86/include/asm/pgtable_64_types.h
-+++ b/arch/x86/include/asm/pgtable_64_types.h
-@@ -98,7 +98,7 @@ typedef struct { pteval_t pte; } pte_t;
- #define MODULES_END   __fix_to_virt(__end_of_fixed_addresses + 1)
- #define MODULES_LEN   (MODULES_END - MODULES_VADDR)
- #define ESPFIX_PGD_ENTRY _AC(-2, UL)
--#define ESPFIX_BASE_ADDR (ESPFIX_PGD_ENTRY << PGDIR_SHIFT)
-+#define ESPFIX_BASE_ADDR (ESPFIX_PGD_ENTRY << P4D_SHIFT)
- #define EFI_VA_START	 ( -4 * (_AC(1, UL) << 30))
- #define EFI_VA_END	 (-68 * (_AC(1, UL) << 30))
- 
-diff --git a/arch/x86/kernel/espfix_64.c b/arch/x86/kernel/espfix_64.c
-index 04f89caef9c4..8e598a1ad986 100644
---- a/arch/x86/kernel/espfix_64.c
-+++ b/arch/x86/kernel/espfix_64.c
-@@ -50,11 +50,11 @@
- #define ESPFIX_STACKS_PER_PAGE	(PAGE_SIZE/ESPFIX_STACK_SIZE)
- 
- /* There is address space for how many espfix pages? */
--#define ESPFIX_PAGE_SPACE	(1UL << (PGDIR_SHIFT-PAGE_SHIFT-16))
-+#define ESPFIX_PAGE_SPACE	(1UL << (P4D_SHIFT-PAGE_SHIFT-16))
- 
- #define ESPFIX_MAX_CPUS		(ESPFIX_STACKS_PER_PAGE * ESPFIX_PAGE_SPACE)
- #if CONFIG_NR_CPUS > ESPFIX_MAX_CPUS
--# error "Need more than one PGD for the ESPFIX hack"
-+# error "Need more virtual address space for the ESPFIX hack"
- #endif
- 
- #define PGALLOC_GFP (GFP_KERNEL | __GFP_NOTRACK | __GFP_ZERO)
-@@ -121,11 +121,13 @@ static void init_espfix_random(void)
- 
- void __init init_espfix_bsp(void)
- {
--	pgd_t *pgd_p;
-+	pgd_t *pgd;
-+	p4d_t *p4d;
- 
- 	/* Install the espfix pud into the kernel page directory */
--	pgd_p = &init_level4_pgt[pgd_index(ESPFIX_BASE_ADDR)];
--	pgd_populate(&init_mm, pgd_p, (pud_t *)espfix_pud_page);
-+	pgd = &init_level4_pgt[pgd_index(ESPFIX_BASE_ADDR)];
-+	p4d = p4d_alloc(&init_mm, pgd, ESPFIX_BASE_ADDR);
-+	p4d_populate(&init_mm, p4d, espfix_pud_page);
- 
- 	/* Randomize the locations */
- 	init_espfix_random();
+This patch snippet should fix it, please just merge it into commit
+"s390: get rid of zeroing, switch to RAW_COPY_USER"
+
+diff --git a/arch/s390/lib/uaccess.c b/arch/s390/lib/uaccess.c
+index b55172c..1e5bb2b 100644
+--- a/arch/s390/lib/uaccess.c
++++ b/arch/s390/lib/uaccess.c
+@@ -35,7 +35,7 @@ static inline unsigned long copy_from_user_mvcos(void *x, const void __user *ptr
+ 		"   nr    %4,%3\n"	/* %4 = (ptr + 4095) & -4096 */
+ 		"   slgr  %4,%1\n"
+ 		"   clgr  %0,%4\n"	/* copy crosses next page boundary? */
+-		"   jnh   4f\n"
++		"   jnh   5f\n"
+ 		"3: .insn ss,0xc80000000000,0(%4,%2),0(%1),0\n"
+ 		"7: slgr  %0,%4\n"
+ 		"   j     5f\n"
+
 -- 
-2.11.0
+blue skies,
+   Martin.
+
+"Reality continues to ruin my life." - Calvin.
