@@ -1,71 +1,142 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga07.intel.com ([134.134.136.100]:31007 "EHLO mga07.intel.com"
+Received: from mga11.intel.com ([192.55.52.93]:7053 "EHLO mga11.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S933140AbdC3IHn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 30 Mar 2017 04:07:43 -0400
+        id S932864AbdC3IHk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 30 Mar 2017 04:07:40 -0400
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv3 6/7] x86/kasan: Extend to support 5-level paging
-Date: Thu, 30 Mar 2017 11:07:30 +0300
-Message-ID: <20170330080731.65421-7-kirill.shutemov@linux.intel.com>
+Subject: [PATCHv3 1/7] x86/boot: Detect 5-level paging support
+Date: Thu, 30 Mar 2017 11:07:25 +0300
+Message-ID: <20170330080731.65421-2-kirill.shutemov@linux.intel.com>
 In-Reply-To: <20170330080731.65421-1-kirill.shutemov@linux.intel.com>
 References: <20170330080731.65421-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>
-Message-ID: <20170330080730.sC69mx_j39eoCbHLgty5Rkk_n2A5Rg9o6tocnJwKe30@z>
+Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Message-ID: <20170330080725.Y0sKPh2mUJpHgm7_hpzrxWrmJ0MQBjYUrxVozTroC7A@z>
 
-This patch bring support for non-folded additional page table level.
+5-level paging support is required from hardware when compiled with
+CONFIG_X86_5LEVEL=y.
+
+We will implement boot-time switch between 4- and 5-level paging later.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-Cc: Dmitry Vyukov <dvyukov@google.com>
-Cc: Andrey Ryabinin <aryabinin@virtuozzo.com>
 ---
- arch/x86/mm/kasan_init_64.c | 18 ++++++++++++++++--
- 1 file changed, 16 insertions(+), 2 deletions(-)
+ arch/x86/boot/cpucheck.c                 |  9 +++++++++
+ arch/x86/boot/cpuflags.c                 | 12 ++++++++++--
+ arch/x86/include/asm/disabled-features.h |  8 +++++++-
+ arch/x86/include/asm/required-features.h |  8 +++++++-
+ 4 files changed, 33 insertions(+), 4 deletions(-)
 
-diff --git a/arch/x86/mm/kasan_init_64.c b/arch/x86/mm/kasan_init_64.c
-index 864950994371..0c7d8129bed6 100644
---- a/arch/x86/mm/kasan_init_64.c
-+++ b/arch/x86/mm/kasan_init_64.c
-@@ -56,8 +56,18 @@ static void __init kasan_map_early_shadow(pgd_t *pgd)
- 	unsigned long end = KASAN_SHADOW_END;
+diff --git a/arch/x86/boot/cpucheck.c b/arch/x86/boot/cpucheck.c
+index 4ad7d70e8739..8f0c4c9fc904 100644
+--- a/arch/x86/boot/cpucheck.c
++++ b/arch/x86/boot/cpucheck.c
+@@ -44,6 +44,15 @@ static const u32 req_flags[NCAPINTS] =
+ 	0, /* REQUIRED_MASK5 not implemented in this file */
+ 	REQUIRED_MASK6,
+ 	0, /* REQUIRED_MASK7 not implemented in this file */
++	0, /* REQUIRED_MASK8 not implemented in this file */
++	0, /* REQUIRED_MASK9 not implemented in this file */
++	0, /* REQUIRED_MASK10 not implemented in this file */
++	0, /* REQUIRED_MASK11 not implemented in this file */
++	0, /* REQUIRED_MASK12 not implemented in this file */
++	0, /* REQUIRED_MASK13 not implemented in this file */
++	0, /* REQUIRED_MASK14 not implemented in this file */
++	0, /* REQUIRED_MASK15 not implemented in this file */
++	REQUIRED_MASK16,
+ };
  
- 	for (i = pgd_index(start); start < end; i++) {
--		pgd[i] = __pgd(__pa_nodebug(kasan_zero_pud)
--				| _KERNPG_TABLE);
-+		switch (CONFIG_PGTABLE_LEVELS) {
-+		case 4:
-+			pgd[i] = __pgd(__pa_nodebug(kasan_zero_pud) |
-+					_KERNPG_TABLE);
-+			break;
-+		case 5:
-+			pgd[i] = __pgd(__pa_nodebug(kasan_zero_p4d) |
-+					_KERNPG_TABLE);
-+			break;
-+		default:
-+			BUILD_BUG();
-+		}
- 		start += PGDIR_SIZE;
- 	}
+ #define A32(a, b, c, d) (((d) << 24)+((c) << 16)+((b) << 8)+(a))
+diff --git a/arch/x86/boot/cpuflags.c b/arch/x86/boot/cpuflags.c
+index 6687ab953257..9e77c23c2422 100644
+--- a/arch/x86/boot/cpuflags.c
++++ b/arch/x86/boot/cpuflags.c
+@@ -70,16 +70,19 @@ int has_eflag(unsigned long mask)
+ # define EBX_REG "=b"
+ #endif
+ 
+-static inline void cpuid(u32 id, u32 *a, u32 *b, u32 *c, u32 *d)
++static inline void cpuid_count(u32 id, u32 count,
++		u32 *a, u32 *b, u32 *c, u32 *d)
+ {
+ 	asm volatile(".ifnc %%ebx,%3 ; movl  %%ebx,%3 ; .endif	\n\t"
+ 		     "cpuid					\n\t"
+ 		     ".ifnc %%ebx,%3 ; xchgl %%ebx,%3 ; .endif	\n\t"
+ 		    : "=a" (*a), "=c" (*c), "=d" (*d), EBX_REG (*b)
+-		    : "a" (id)
++		    : "a" (id), "c" (count)
+ 	);
  }
-@@ -85,6 +95,7 @@ void __init kasan_early_init(void)
- 	pteval_t pte_val = __pa_nodebug(kasan_zero_page) | __PAGE_KERNEL;
- 	pmdval_t pmd_val = __pa_nodebug(kasan_zero_pte) | _KERNPG_TABLE;
- 	pudval_t pud_val = __pa_nodebug(kasan_zero_pmd) | _KERNPG_TABLE;
-+	p4dval_t p4d_val = __pa_nodebug(kasan_zero_pud) | _KERNPG_TABLE;
  
- 	for (i = 0; i < PTRS_PER_PTE; i++)
- 		kasan_zero_pte[i] = __pte(pte_val);
-@@ -95,6 +106,9 @@ void __init kasan_early_init(void)
- 	for (i = 0; i < PTRS_PER_PUD; i++)
- 		kasan_zero_pud[i] = __pud(pud_val);
- 
-+	for (i = 0; CONFIG_PGTABLE_LEVELS >= 5 && i < PTRS_PER_P4D; i++)
-+		kasan_zero_p4d[i] = __p4d(p4d_val);
++#define cpuid(id, a, b, c, d) cpuid_count(id, 0, a, b, c, d)
 +
- 	kasan_map_early_shadow(early_level4_pgt);
- 	kasan_map_early_shadow(init_level4_pgt);
- }
+ void get_cpuflags(void)
+ {
+ 	u32 max_intel_level, max_amd_level;
+@@ -108,6 +111,11 @@ void get_cpuflags(void)
+ 				cpu.model += ((tfms >> 16) & 0xf) << 4;
+ 		}
+ 
++		if (max_intel_level >= 0x00000007) {
++			cpuid_count(0x00000007, 0, &ignored, &ignored,
++					&cpu.flags[16], &ignored);
++		}
++
+ 		cpuid(0x80000000, &max_amd_level, &ignored, &ignored,
+ 		      &ignored);
+ 
+diff --git a/arch/x86/include/asm/disabled-features.h b/arch/x86/include/asm/disabled-features.h
+index 85599ad4d024..5dff775af7cd 100644
+--- a/arch/x86/include/asm/disabled-features.h
++++ b/arch/x86/include/asm/disabled-features.h
+@@ -36,6 +36,12 @@
+ # define DISABLE_OSPKE		(1<<(X86_FEATURE_OSPKE & 31))
+ #endif /* CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS */
+ 
++#ifdef CONFIG_X86_5LEVEL
++# define DISABLE_LA57	0
++#else
++# define DISABLE_LA57	(1<<(X86_FEATURE_LA57 & 31))
++#endif
++
+ /*
+  * Make sure to add features to the correct mask
+  */
+@@ -55,7 +61,7 @@
+ #define DISABLED_MASK13	0
+ #define DISABLED_MASK14	0
+ #define DISABLED_MASK15	0
+-#define DISABLED_MASK16	(DISABLE_PKU|DISABLE_OSPKE)
++#define DISABLED_MASK16	(DISABLE_PKU|DISABLE_OSPKE|DISABLE_LA57)
+ #define DISABLED_MASK17	0
+ #define DISABLED_MASK_CHECK BUILD_BUG_ON_ZERO(NCAPINTS != 18)
+ 
+diff --git a/arch/x86/include/asm/required-features.h b/arch/x86/include/asm/required-features.h
+index fac9a5c0abe9..d91ba04dd007 100644
+--- a/arch/x86/include/asm/required-features.h
++++ b/arch/x86/include/asm/required-features.h
+@@ -53,6 +53,12 @@
+ # define NEED_MOVBE	0
+ #endif
+ 
++#ifdef CONFIG_X86_5LEVEL
++# define NEED_LA57	(1<<(X86_FEATURE_LA57 & 31))
++#else
++# define NEED_LA57	0
++#endif
++
+ #ifdef CONFIG_X86_64
+ #ifdef CONFIG_PARAVIRT
+ /* Paravirtualized systems may not have PSE or PGE available */
+@@ -98,7 +104,7 @@
+ #define REQUIRED_MASK13	0
+ #define REQUIRED_MASK14	0
+ #define REQUIRED_MASK15	0
+-#define REQUIRED_MASK16	0
++#define REQUIRED_MASK16	(NEED_LA57)
+ #define REQUIRED_MASK17	0
+ #define REQUIRED_MASK_CHECK BUILD_BUG_ON_ZERO(NCAPINTS != 18)
+ 
 -- 
 2.11.0
