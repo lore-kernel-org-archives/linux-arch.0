@@ -1,79 +1,79 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
+From: Russell King - ARM Linux <linux@armlinux.org.uk>
 Subject: Re: [RFC][CFT][PATCHSET v1] uaccess unification
-Date: Thu, 30 Mar 2017 16:31:59 +0100
-Message-ID: <20170330153159.GP29622@ZenIV.linux.org.uk>
+Date: Thu, 30 Mar 2017 17:22:41 +0100
+Message-ID: <20170330162241.GG7909@n2100.armlinux.org.uk>
 References: <20170329055706.GH29622@ZenIV.linux.org.uk>
- <3399faa9-795e-39db-42f5-7d1e10bbff9c@synopsys.com>
- <20170329202939.GI29622@ZenIV.linux.org.uk>
- <CA+55aFxJ6HnkLzRTwoXRoWMmH4npUmT5S1gSbMges9msXKzuow@mail.gmail.com>
- <20170329210322.GJ29622@ZenIV.linux.org.uk>
- <CA+55aFyEQ_naUW6Q+qVoBA24bgBh1=2H+V54k501uV2pKFv+nw@mail.gmail.com>
- <20170329230934.GK29622@ZenIV.linux.org.uk>
- <CA+55aFzvcU7sNa_qp6pkYau20RwL3UVDw5-dmce0EE1MX7JuKg@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from pandora.armlinux.org.uk ([78.32.30.218]:36386 "EHLO
+        pandora.armlinux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S933864AbdC3QXQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 30 Mar 2017 12:23:16 -0400
 Content-Disposition: inline
-In-Reply-To: <CA+55aFzvcU7sNa_qp6pkYau20RwL3UVDw5-dmce0EE1MX7JuKg@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Richard Henderson <rth@twiddle.net>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Steven Miao <realmz6@gmail.com>, Jesper Nilsson <jesper.nilsson@axis.com>, Mark Salter <msalter@redhat.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, James Hogan <james.hogan@imgtec.com>, Michal Simek <monstr@monstr.eu>, David Howells <dhowells@redhat.com>, Ley Foon Tan <lftan@altera.com>, Jonas Bonn <jonas@southpole>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20170329055706.GH29622@ZenIV.linux.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Al Viro <viro@ZenIV.linux.org.uk>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Richard Henderson <rth@twiddle.net>, Will Deacon <will.deacon@arm.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Vineet Gupta <vgupta@synopsys.com>, Steven Miao <realmz6@gmail.com>, Jesper Nilsson <jesper.nilsson@axis.com>, Mark Salter <msalter@redhat.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, James Hogan <james.hogan@imgtec.com>, Michal Simek <monstr@monstr.eu>, David Howells <dhowells@redhat.com>, Ley Foon Tan <lftan@altera.com>, Jonas Bonn <jonas@southpole.se>, Helge Deller <deller@gmx.de>, Martin Schwidefsky <schwi>
 
-On Wed, Mar 29, 2017 at 04:43:05PM -0700, Linus Torvalds wrote:
+On Wed, Mar 29, 2017 at 06:57:06AM +0100, Al Viro wrote:
+> Comments, review, testing, replacement patches, etc. are very welcome.
 
-> > As for __copy_in_user()... I'm not sure we want to keep it in the long run -
-> 
-> I agree, it's probably not worth it at all.
-> 
-> In fact, I suspect none of the "__copy_.*_user()" versions are worth
-> it, and we should strive to remove them.
-> 
-> There aren't even that many users, and they _have_ caused security
-> issues when people have had some path that hasn't checked the range.
+I've given this a spin, and it appears to work (in that the box boots).
 
-Actually, looking through those users shows some very odd places: for example,
-sctp_setsockopt_bindx() does
-        /* Check the user passed a healthy pointer.  */
-        if (unlikely(!access_ok(VERIFY_READ, addrs, addrs_size)))
-                return -EFAULT;
+Kernel size wise:
 
-        /* Alloc space for the address array in kernel memory.  */
-        kaddrs = kmalloc(addrs_size, GFP_USER | __GFP_NOWARN);
-        if (unlikely(!kaddrs))
-                return -ENOMEM;
+   text    data      bss      dec     hex filename
+8020229 3014220 10243276 21277725 144ac1d vmlinux.orig
+8034741 3014388 10243276 21292405 144e575 vmlinux.uaccess
+7976719 3014324 10243276 21234319 144028f vmlinux.noinline
 
-        if (__copy_from_user(kaddrs, addrs, addrs_size)) {
-                kfree(kaddrs);
-                return -EFAULT;
-        }
-The obvious question is "why not memdup_user()?" and rationale looks fishy:
- * We don't use copy_from_user() for optimization: we first do the
- * sanity checks (buffer size -fast- and access check-healthy
- * pointer); if all of those succeed, then we can alloc the memory
- * (expensive operation) needed to copy the data to kernel. Then we do
- * the copying without checking the user space area
- * (__copy_from_user()).
-plus that:
-    sctp: use GFP_USER for user-controlled kmalloc
-    
-    Dmitry Vyukov reported that the user could trigger a kernel warning by
-    using a large len value for getsockopt SCTP_GET_LOCAL_ADDRS, as that
-    value directly affects the value used as a kmalloc() parameter.
-    
-    This patch thus switches the allocation flags from all user-controllable
-    kmalloc size to GFP_USER to put some more restrictions on it and also
-    disables the warn, as they are not necessary.
+Performance using hdparm -T (cached reads) to evaluate against a SSD
+gives me the following results:
 
-First of all, access_ok() for sanity checks on size is BS - on some
-architectures it's constant 1 and on *all* architectures it allows a lot
-more than what kmalloc() will.  So it won't stop a malicious program from
-getting to kmalloc() and wasting its cycles and it's not much help with
-buggy ones.  __GFP_NOWARN part is more interesting, but... the quoted
-commit misses memdup_user() calls in other setsockopt cases on the same
-sctp.  So if we care about that one, we probably should care about the
-rest of them as well, and I doubt that open-coding each is a good solution.
-Something like kvmemdup_user(), perhaps?  I.e. quiet fallback to vmalloc
-on large sizes/in case when kmalloc barfs, with kvfree on the freeing side?
-Or just a flat-out check for some reasonably upper limit on optlen in
-the very beginning?
+* original:
+ Timing cached reads:   580 MB in  2.00 seconds = 289.64 MB/sec
+ Timing cached reads:   580 MB in  2.00 seconds = 290.06 MB/sec
+ Timing cached reads:   580 MB in  2.00 seconds = 289.65 MB/sec
+ Timing cached reads:   582 MB in  2.00 seconds = 290.82 MB/sec
+ Timing cached reads:   578 MB in  2.00 seconds = 289.07 MB/sec
+
+ Average = 289.85MB/s
+
+* uaccess:
+ Timing cached reads:   578 MB in  2.00 seconds = 288.36 MB/sec
+ Timing cached reads:   534 MB in  2.00 seconds = 266.68 MB/sec
+ Timing cached reads:   534 MB in  2.00 seconds = 267.07 MB/sec
+ Timing cached reads:   552 MB in  2.00 seconds = 275.45 MB/sec
+ Timing cached reads:   532 MB in  2.00 seconds = 266.08 MB/sec
+
+ Average = 272.73 MB/sec
+
+* noinline:
+ Timing cached reads:   548 MB in  2.00 seconds = 274.16 MB/sec
+ Timing cached reads:   574 MB in  2.00 seconds = 287.19 MB/sec
+ Timing cached reads:   574 MB in  2.00 seconds = 286.47 MB/sec
+ Timing cached reads:   572 MB in  2.00 seconds = 286.20 MB/sec
+ Timing cached reads:   578 MB in  2.00 seconds = 288.86 MB/sec
+
+ Average = 284.58 MB/sec
+
+I've run the test twice, and there's definitely a reproducable drop in
+performance for some reason when switching between current and Al's
+uaccess patches, which is partly recovered by switching to the out of
+line versions.
+
+The only difference that I can identify that could explain this are
+the extra might_fault() checks in Al's version but which are missing
+from the ARM version.
+
+I'd suggest that we immediately switch to the uninlined versions on
+ARM so that the impact of that change is reduced.  We end up with
+a 1.9% performance reduction rather than a 6% reduction with the
+inlined versions.
+
+-- 
+RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
+FTTC broadband for 0.8mile line: currently at 9.6Mbps down 400kbps up
+according to speedtest.net.
