@@ -1,176 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga02.intel.com ([134.134.136.20]:2955 "EHLO mga02.intel.com"
+Received: from mga07.intel.com ([134.134.136.100]:31007 "EHLO mga07.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S933204AbdC3IHo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 30 Mar 2017 04:07:44 -0400
+        id S933140AbdC3IHn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 30 Mar 2017 04:07:43 -0400
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv3 5/7] x86/mm: Add basic defines/helpers for CONFIG_X86_5LEVEL
-Date: Thu, 30 Mar 2017 11:07:29 +0300
-Message-ID: <20170330080731.65421-6-kirill.shutemov@linux.intel.com>
+Subject: [PATCHv3 6/7] x86/kasan: Extend to support 5-level paging
+Date: Thu, 30 Mar 2017 11:07:30 +0300
+Message-ID: <20170330080731.65421-7-kirill.shutemov@linux.intel.com>
 In-Reply-To: <20170330080731.65421-1-kirill.shutemov@linux.intel.com>
 References: <20170330080731.65421-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20170330080729.mHaQZRB4lKAs33dTlvK4q9Cct1jioL-bPycTSO-4lOU@z>
+Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>
+Message-ID: <20170330080730.sC69mx_j39eoCbHLgty5Rkk_n2A5Rg9o6tocnJwKe30@z>
 
-Extends pagetable headers to support new paging mode.
+This patch bring support for non-folded additional page table level.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+Cc: Dmitry Vyukov <dvyukov@google.com>
+Cc: Andrey Ryabinin <aryabinin@virtuozzo.com>
 ---
- arch/x86/include/asm/pgtable_64.h       | 11 +++++++++++
- arch/x86/include/asm/pgtable_64_types.h | 20 ++++++++++++++++++++
- arch/x86/include/asm/pgtable_types.h    | 10 +++++++++-
- arch/x86/mm/pgtable.c                   | 32 +++++++++++++++++++++++++++++++-
- 4 files changed, 71 insertions(+), 2 deletions(-)
+ arch/x86/mm/kasan_init_64.c | 18 ++++++++++++++++--
+ 1 file changed, 16 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/include/asm/pgtable_64.h b/arch/x86/include/asm/pgtable_64.h
-index 0593a1ae7573..12ea31274eb6 100644
---- a/arch/x86/include/asm/pgtable_64.h
-+++ b/arch/x86/include/asm/pgtable_64.h
-@@ -35,6 +35,13 @@ extern void paging_init(void);
- #define pud_ERROR(e)					\
- 	pr_err("%s:%d: bad pud %p(%016lx)\n",		\
- 	       __FILE__, __LINE__, &(e), pud_val(e))
-+
-+#if CONFIG_PGTABLE_LEVELS >= 5
-+#define p4d_ERROR(e)					\
-+	pr_err("%s:%d: bad p4d %p(%016lx)\n",		\
-+	       __FILE__, __LINE__, &(e), p4d_val(e))
-+#endif
-+
- #define pgd_ERROR(e)					\
- 	pr_err("%s:%d: bad pgd %p(%016lx)\n",		\
- 	       __FILE__, __LINE__, &(e), pgd_val(e))
-@@ -128,7 +135,11 @@ static inline void native_set_p4d(p4d_t *p4dp, p4d_t p4d)
+diff --git a/arch/x86/mm/kasan_init_64.c b/arch/x86/mm/kasan_init_64.c
+index 864950994371..0c7d8129bed6 100644
+--- a/arch/x86/mm/kasan_init_64.c
++++ b/arch/x86/mm/kasan_init_64.c
+@@ -56,8 +56,18 @@ static void __init kasan_map_early_shadow(pgd_t *pgd)
+ 	unsigned long end = KASAN_SHADOW_END;
  
- static inline void native_p4d_clear(p4d_t *p4d)
- {
-+#ifdef CONFIG_X86_5LEVEL
-+	native_set_p4d(p4d, native_make_p4d(0));
-+#else
- 	native_set_p4d(p4d, (p4d_t) { .pgd = native_make_pgd(0)});
-+#endif
+ 	for (i = pgd_index(start); start < end; i++) {
+-		pgd[i] = __pgd(__pa_nodebug(kasan_zero_pud)
+-				| _KERNPG_TABLE);
++		switch (CONFIG_PGTABLE_LEVELS) {
++		case 4:
++			pgd[i] = __pgd(__pa_nodebug(kasan_zero_pud) |
++					_KERNPG_TABLE);
++			break;
++		case 5:
++			pgd[i] = __pgd(__pa_nodebug(kasan_zero_p4d) |
++					_KERNPG_TABLE);
++			break;
++		default:
++			BUILD_BUG();
++		}
+ 		start += PGDIR_SIZE;
+ 	}
  }
+@@ -85,6 +95,7 @@ void __init kasan_early_init(void)
+ 	pteval_t pte_val = __pa_nodebug(kasan_zero_page) | __PAGE_KERNEL;
+ 	pmdval_t pmd_val = __pa_nodebug(kasan_zero_pte) | _KERNPG_TABLE;
+ 	pudval_t pud_val = __pa_nodebug(kasan_zero_pmd) | _KERNPG_TABLE;
++	p4dval_t p4d_val = __pa_nodebug(kasan_zero_pud) | _KERNPG_TABLE;
  
- static inline void native_set_pgd(pgd_t *pgdp, pgd_t pgd)
-diff --git a/arch/x86/include/asm/pgtable_64_types.h b/arch/x86/include/asm/pgtable_64_types.h
-index 4edc97917382..adc3e7b107ee 100644
---- a/arch/x86/include/asm/pgtable_64_types.h
-+++ b/arch/x86/include/asm/pgtable_64_types.h
-@@ -23,12 +23,32 @@ typedef struct { pteval_t pte; } pte_t;
+ 	for (i = 0; i < PTRS_PER_PTE; i++)
+ 		kasan_zero_pte[i] = __pte(pte_val);
+@@ -95,6 +106,9 @@ void __init kasan_early_init(void)
+ 	for (i = 0; i < PTRS_PER_PUD; i++)
+ 		kasan_zero_pud[i] = __pud(pud_val);
  
- #define SHARED_KERNEL_PMD	0
- 
-+#ifdef CONFIG_X86_5LEVEL
++	for (i = 0; CONFIG_PGTABLE_LEVELS >= 5 && i < PTRS_PER_P4D; i++)
++		kasan_zero_p4d[i] = __p4d(p4d_val);
 +
-+/*
-+ * PGDIR_SHIFT determines what a top-level page table entry can map
-+ */
-+#define PGDIR_SHIFT	48
-+#define PTRS_PER_PGD	512
-+
-+/*
-+ * 4th level page in 5-level paging case
-+ */
-+#define P4D_SHIFT	39
-+#define PTRS_PER_P4D	512
-+#define P4D_SIZE	(_AC(1, UL) << P4D_SHIFT)
-+#define P4D_MASK	(~(P4D_SIZE - 1))
-+
-+#else /* CONFIG_X86_5LEVEL */
-+
- /*
-  * PGDIR_SHIFT determines what a top-level page table entry can map
-  */
- #define PGDIR_SHIFT	39
- #define PTRS_PER_PGD	512
- 
-+#endif /* CONFIG_X86_5LEVEL */
-+
- /*
-  * 3rd level page
-  */
-diff --git a/arch/x86/include/asm/pgtable_types.h b/arch/x86/include/asm/pgtable_types.h
-index 4930afe9df0a..bf9638e1ee42 100644
---- a/arch/x86/include/asm/pgtable_types.h
-+++ b/arch/x86/include/asm/pgtable_types.h
-@@ -273,9 +273,17 @@ static inline pgdval_t pgd_flags(pgd_t pgd)
+ 	kasan_map_early_shadow(early_level4_pgt);
+ 	kasan_map_early_shadow(init_level4_pgt);
  }
- 
- #if CONFIG_PGTABLE_LEVELS > 4
-+typedef struct { p4dval_t p4d; } p4d_t;
- 
--#error FIXME
-+static inline p4d_t native_make_p4d(pudval_t val)
-+{
-+	return (p4d_t) { val };
-+}
- 
-+static inline p4dval_t native_p4d_val(p4d_t p4d)
-+{
-+	return p4d.p4d;
-+}
- #else
- #include <asm-generic/pgtable-nop4d.h>
- 
-diff --git a/arch/x86/mm/pgtable.c b/arch/x86/mm/pgtable.c
-index 38b6daf72deb..508a708eb9a6 100644
---- a/arch/x86/mm/pgtable.c
-+++ b/arch/x86/mm/pgtable.c
-@@ -81,6 +81,14 @@ void ___pud_free_tlb(struct mmu_gather *tlb, pud_t *pud)
- 	paravirt_release_pud(__pa(pud) >> PAGE_SHIFT);
- 	tlb_remove_page(tlb, virt_to_page(pud));
- }
-+
-+#if CONFIG_PGTABLE_LEVELS > 4
-+void ___p4d_free_tlb(struct mmu_gather *tlb, p4d_t *p4d)
-+{
-+	paravirt_release_p4d(__pa(p4d) >> PAGE_SHIFT);
-+	tlb_remove_page(tlb, virt_to_page(p4d));
-+}
-+#endif	/* CONFIG_PGTABLE_LEVELS > 4 */
- #endif	/* CONFIG_PGTABLE_LEVELS > 3 */
- #endif	/* CONFIG_PGTABLE_LEVELS > 2 */
- 
-@@ -120,7 +128,7 @@ static void pgd_ctor(struct mm_struct *mm, pgd_t *pgd)
- 	   references from swapper_pg_dir. */
- 	if (CONFIG_PGTABLE_LEVELS == 2 ||
- 	    (CONFIG_PGTABLE_LEVELS == 3 && SHARED_KERNEL_PMD) ||
--	    CONFIG_PGTABLE_LEVELS == 4) {
-+	    CONFIG_PGTABLE_LEVELS >= 4) {
- 		clone_pgd_range(pgd + KERNEL_PGD_BOUNDARY,
- 				swapper_pg_dir + KERNEL_PGD_BOUNDARY,
- 				KERNEL_PGD_PTRS);
-@@ -582,6 +590,28 @@ void native_set_fixmap(enum fixed_addresses idx, phys_addr_t phys,
- }
- 
- #ifdef CONFIG_HAVE_ARCH_HUGE_VMAP
-+#ifdef CONFIG_X86_5LEVEL
-+/**
-+ * p4d_set_huge - setup kernel P4D mapping
-+ *
-+ * No 512GB pages yet -- always return 0
-+ */
-+int p4d_set_huge(p4d_t *p4d, phys_addr_t addr, pgprot_t prot)
-+{
-+	return 0;
-+}
-+
-+/**
-+ * p4d_clear_huge - clear kernel P4D mapping when it is set
-+ *
-+ * No 512GB pages yet -- always return 0
-+ */
-+int p4d_clear_huge(p4d_t *p4d)
-+{
-+	return 0;
-+}
-+#endif
-+
- /**
-  * pud_set_huge - setup kernel PUD mapping
-  *
 -- 
 2.11.0
