@@ -1,58 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga02.intel.com ([134.134.136.20]:36863 "EHLO mga02.intel.com"
+Received: from mga05.intel.com ([192.55.52.43]:38019 "EHLO mga05.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S933068AbdC3IHk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 30 Mar 2017 04:07:40 -0400
+        id S933084AbdC3IHn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 30 Mar 2017 04:07:43 -0400
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv3 0/7] x86: 5-level paging enabling for v4.12, Part 3
-Date: Thu, 30 Mar 2017 11:07:24 +0300
-Message-ID: <20170330080731.65421-1-kirill.shutemov@linux.intel.com>
+Subject: [PATCHv3 7/7] x86/espfix: Add support 5-level paging
+Date: Thu, 30 Mar 2017 11:07:31 +0300
+Message-ID: <20170330080731.65421-8-kirill.shutemov@linux.intel.com>
+In-Reply-To: <20170330080731.65421-1-kirill.shutemov@linux.intel.com>
+References: <20170330080731.65421-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20170330080724.A4Hsiax-jcLN6U9ZfpgID8pSpO6Kcy84L3uwutr-MwU@z>
+Message-ID: <20170330080731.XnWiA2XDSs6dN8BR25YUHj6c68t9sjSJ6KIn1O8r4dc@z>
 
-Here's the third bunch of patches of 5-level patchset.
+We don't need extra virtual address space for ESPFIX, so it stays within
+one PUD page table for both 4- and 5-level paging.
 
-This time we prepare code to handle non-folded version of the additional page
-table level.
+Redefining ESPFIX_BASE_ADDR using P4D_SHIFT instead of PGDIR_SHIFT would
+make it stay in the same place regarding of paging mode.
 
-v3:
- - rebased onto tip/master;
-v2:
- - address Ingo's and Peter's feedback;
+Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+---
+ arch/x86/include/asm/pgtable_64_types.h |  2 +-
+ arch/x86/kernel/espfix_64.c             | 12 +++++++-----
+ 2 files changed, 8 insertions(+), 6 deletions(-)
 
-Kirill A. Shutemov (7):
-  x86/boot: Detect 5-level paging support
-  x86/asm: Remove __VIRTUAL_MASK_SHIFT==47 assert
-  x86/mm: Define virtual memory map for 5-level paging
-  x86/paravirt: Make paravirt code support 5-level paging
-  x86/mm: Add basic defines/helpers for CONFIG_X86_5LEVEL
-  x86/kasan: Extend to support 5-level paging
-  x86/espfix: Add support 5-level paging
-
- Documentation/x86/x86_64/mm.txt          | 33 +++++++++++++++++++++++++---
- arch/x86/Kconfig                         |  1 +
- arch/x86/boot/cpucheck.c                 |  9 ++++++++
- arch/x86/boot/cpuflags.c                 | 12 +++++++++--
- arch/x86/entry/entry_64.S                |  7 ++----
- arch/x86/include/asm/disabled-features.h |  8 ++++++-
- arch/x86/include/asm/kasan.h             |  9 +++++---
- arch/x86/include/asm/page_64_types.h     | 10 +++++++++
- arch/x86/include/asm/paravirt.h          | 37 ++++++++++++++++++++++----------
- arch/x86/include/asm/paravirt_types.h    |  7 +++++-
- arch/x86/include/asm/pgalloc.h           |  2 ++
- arch/x86/include/asm/pgtable_64.h        | 11 ++++++++++
- arch/x86/include/asm/pgtable_64_types.h  | 28 +++++++++++++++++++++++-
- arch/x86/include/asm/pgtable_types.h     | 10 ++++++++-
- arch/x86/include/asm/required-features.h |  8 ++++++-
- arch/x86/include/asm/sparsemem.h         |  9 ++++++--
- arch/x86/kernel/espfix_64.c              | 12 ++++++-----
- arch/x86/kernel/paravirt.c               |  9 ++++++--
- arch/x86/mm/kasan_init_64.c              | 18 ++++++++++++++--
- arch/x86/mm/pgtable.c                    | 32 ++++++++++++++++++++++++++-
- 20 files changed, 231 insertions(+), 41 deletions(-)
-
+diff --git a/arch/x86/include/asm/pgtable_64_types.h b/arch/x86/include/asm/pgtable_64_types.h
+index adc3e7b107ee..06470da156ba 100644
+--- a/arch/x86/include/asm/pgtable_64_types.h
++++ b/arch/x86/include/asm/pgtable_64_types.h
+@@ -98,7 +98,7 @@ typedef struct { pteval_t pte; } pte_t;
+ #define MODULES_END   __fix_to_virt(__end_of_fixed_addresses + 1)
+ #define MODULES_LEN   (MODULES_END - MODULES_VADDR)
+ #define ESPFIX_PGD_ENTRY _AC(-2, UL)
+-#define ESPFIX_BASE_ADDR (ESPFIX_PGD_ENTRY << PGDIR_SHIFT)
++#define ESPFIX_BASE_ADDR (ESPFIX_PGD_ENTRY << P4D_SHIFT)
+ #define EFI_VA_START	 ( -4 * (_AC(1, UL) << 30))
+ #define EFI_VA_END	 (-68 * (_AC(1, UL) << 30))
+ 
+diff --git a/arch/x86/kernel/espfix_64.c b/arch/x86/kernel/espfix_64.c
+index 04f89caef9c4..8e598a1ad986 100644
+--- a/arch/x86/kernel/espfix_64.c
++++ b/arch/x86/kernel/espfix_64.c
+@@ -50,11 +50,11 @@
+ #define ESPFIX_STACKS_PER_PAGE	(PAGE_SIZE/ESPFIX_STACK_SIZE)
+ 
+ /* There is address space for how many espfix pages? */
+-#define ESPFIX_PAGE_SPACE	(1UL << (PGDIR_SHIFT-PAGE_SHIFT-16))
++#define ESPFIX_PAGE_SPACE	(1UL << (P4D_SHIFT-PAGE_SHIFT-16))
+ 
+ #define ESPFIX_MAX_CPUS		(ESPFIX_STACKS_PER_PAGE * ESPFIX_PAGE_SPACE)
+ #if CONFIG_NR_CPUS > ESPFIX_MAX_CPUS
+-# error "Need more than one PGD for the ESPFIX hack"
++# error "Need more virtual address space for the ESPFIX hack"
+ #endif
+ 
+ #define PGALLOC_GFP (GFP_KERNEL | __GFP_NOTRACK | __GFP_ZERO)
+@@ -121,11 +121,13 @@ static void init_espfix_random(void)
+ 
+ void __init init_espfix_bsp(void)
+ {
+-	pgd_t *pgd_p;
++	pgd_t *pgd;
++	p4d_t *p4d;
+ 
+ 	/* Install the espfix pud into the kernel page directory */
+-	pgd_p = &init_level4_pgt[pgd_index(ESPFIX_BASE_ADDR)];
+-	pgd_populate(&init_mm, pgd_p, (pud_t *)espfix_pud_page);
++	pgd = &init_level4_pgt[pgd_index(ESPFIX_BASE_ADDR)];
++	p4d = p4d_alloc(&init_mm, pgd, ESPFIX_BASE_ADDR);
++	p4d_populate(&init_mm, p4d, espfix_pud_page);
+ 
+ 	/* Randomize the locations */
+ 	init_espfix_random();
 -- 
 2.11.0
