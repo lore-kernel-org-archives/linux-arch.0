@@ -1,89 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:60462 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:60434 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751716AbdDCPUg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 3 Apr 2017 11:20:36 -0400
+        id S1751716AbdDCPU1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 3 Apr 2017 11:20:27 -0400
 From: Mark Rutland <mark.rutland@arm.com>
-Subject: [RFC 5/9] arm64: Don't trap host pointer auth use to EL2
-Date: Mon,  3 Apr 2017 16:19:21 +0100
-Message-ID: <1491232765-32501-6-git-send-email-mark.rutland@arm.com>
+Subject: [RFC 4/9] arm64/cpufeature: detect pointer authentication
+Date: Mon,  3 Apr 2017 16:19:20 +0100
+Message-ID: <1491232765-32501-5-git-send-email-mark.rutland@arm.com>
 In-Reply-To: <1491232765-32501-1-git-send-email-mark.rutland@arm.com>
 References: <1491232765-32501-1-git-send-email-mark.rutland@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org
 Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, catalin.marinas@arm.com, christoffer.dall@linaro.org, jiong.wang@arm.com, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, marc.zyngier@arm.com, mark.rutland@arm.com, suzuki.poulose@arm.com, will.deacon@arm.com
-Message-ID: <20170403151921.myh9CHNPewjt6qn5YKDe81rnMlAOm1Zb2_OfbtgLGpU@z>
+Message-ID: <20170403151920.JRB4-bDn9znBmjsgfLoWaPuQ2KcMufnt3_sDABp7HKI@z>
 
-To allow EL0 (and/or EL1) to use pointer authentication functionality,
-we must ensure that pointer authentication instructions and accesses to
-pointer authentication keys are not trapped to EL2 (where we will not be
-able to handle them).
+So that we can dynamically handle the presence of pointer authentication
+functionality, wire up probing code in cpufeature.c.
 
-This patch ensures that HCR_EL2 is configured appropriately when the
-kernel is booted at EL2. For non-VHE kernels we set HCR_EL2.{API,APK},
-ensuring that EL1 can access keys and permit EL0 use of instructions.
-For VHE kernels, EL2 access is controlled by EL3, and we need not set
-anything.
-
-This does not enable support for KVM guests, since KVM manages HCR_EL2
-itself.
+Currently, this only detects the presence of an architected algorithm.
 
 Signed-off-by: Mark Rutland <mark.rutland@arm.com>
 Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Christoffer Dall <christoffer.dall@linaro.org>
-Cc: Marc Zyngier <marc.zyngier@arm.com> 
+Cc: Suzuki K Poulose <suzuki.poulose@arm.com>
 Cc: Will Deacon <will.deacon@arm.com>
-Cc: kvmarm@lists.cs.columbia.edu
 ---
- arch/arm64/include/asm/kvm_arm.h |  2 ++
- arch/arm64/kernel/head.S         | 19 +++++++++++++++++--
- 2 files changed, 19 insertions(+), 2 deletions(-)
+ arch/arm64/include/asm/cpucaps.h |  4 +++-
+ arch/arm64/kernel/cpufeature.c   | 22 ++++++++++++++++++++++
+ 2 files changed, 25 insertions(+), 1 deletion(-)
 
-diff --git a/arch/arm64/include/asm/kvm_arm.h b/arch/arm64/include/asm/kvm_arm.h
-index 6e99978..d8a1271 100644
---- a/arch/arm64/include/asm/kvm_arm.h
-+++ b/arch/arm64/include/asm/kvm_arm.h
-@@ -23,6 +23,8 @@
- #include <asm/types.h>
+diff --git a/arch/arm64/include/asm/cpucaps.h b/arch/arm64/include/asm/cpucaps.h
+index fb78a5d..15dd6d6 100644
+--- a/arch/arm64/include/asm/cpucaps.h
++++ b/arch/arm64/include/asm/cpucaps.h
+@@ -37,7 +37,9 @@
+ #define ARM64_HAS_NO_FPSIMD			16
+ #define ARM64_WORKAROUND_REPEAT_TLBI		17
+ #define ARM64_WORKAROUND_QCOM_FALKOR_E1003	18
++#define ARM64_HAS_ADDRESS_AUTH			19
++#define ARM64_HAS_GENERIC_AUTH			20
  
- /* Hyp Configuration Register (HCR) bits */
-+#define HCR_API		(UL(1) << 41)
-+#define HCR_APK		(UL(1) << 40)
- #define HCR_E2H		(UL(1) << 34)
- #define HCR_ID		(UL(1) << 33)
- #define HCR_CD		(UL(1) << 32)
-diff --git a/arch/arm64/kernel/head.S b/arch/arm64/kernel/head.S
-index 0b13748..9f3f49f 100644
---- a/arch/arm64/kernel/head.S
-+++ b/arch/arm64/kernel/head.S
-@@ -562,10 +562,25 @@ CPU_LE(	bic	x0, x0, #(1 << 25)	)	// Clear the EE bit for EL2
+-#define ARM64_NCAPS				19
++#define ARM64_NCAPS				21
  
- 	/* Hyp configuration. */
- 	mov	x0, #HCR_RW			// 64-bit EL1
--	cbz	x2, set_hcr
-+	cbz	x2, 1f
- 	orr	x0, x0, #HCR_TGE		// Enable Host Extensions
- 	orr	x0, x0, #HCR_E2H
--set_hcr:
-+1:
+ #endif /* __ASM_CPUCAPS_H */
+diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
+index 30255b2..172c80e 100644
+--- a/arch/arm64/kernel/cpufeature.c
++++ b/arch/arm64/kernel/cpufeature.c
+@@ -871,6 +871,28 @@ static bool has_no_fpsimd(const struct arm64_cpu_capabilities *entry, int __unus
+ 		.min_field_value = 0,
+ 		.matches = has_no_fpsimd,
+ 	},
 +#ifdef CONFIG_ARM64_POINTER_AUTHENTICATION
-+	/*
-+	 * Disable pointer authentication traps to EL2. The HCR_EL2.{APK,API}
-+	 * bits exist iff at least one authentication mechanism is implemented.
-+	 */
-+	mrs	x1, id_aa64isar1_el1
-+	mov_q	x3, ((0xf << ID_AA64ISAR1_GPI_SHIFT) | \
-+		     (0xf << ID_AA64ISAR1_GPA_SHIFT) | \
-+		     (0xf << ID_AA64ISAR1_API_SHIFT) | \
-+		     (0xf << ID_AA64ISAR1_APA_SHIFT))
-+	and	x1, x1, x3
-+	cbz	x1, 1f
-+	orr	x0, x0, #(HCR_APK | HCR_API)
-+1:
-+#endif
- 	msr	hcr_el2, x0
- 	isb
++	{
++		.desc = "Address authentication (architected algorithm)",
++		.capability = ARM64_HAS_ADDRESS_AUTH,
++		.def_scope = SCOPE_SYSTEM,
++		.sys_reg = SYS_ID_AA64ISAR1_EL1,
++		.sign = FTR_UNSIGNED,
++		.field_pos = ID_AA64ISAR1_APA_SHIFT,
++		.min_field_value = ID_AA64ISAR1_APA_ARCHITECTED,
++		.matches = has_cpuid_feature,
++	},
++	{
++		.desc = "Generic authentication (architected algorithm)",
++		.capability = ARM64_HAS_GENERIC_AUTH,
++		.def_scope = SCOPE_SYSTEM,
++		.sys_reg = SYS_ID_AA64ISAR1_EL1,
++		.sign = FTR_UNSIGNED,
++		.field_pos = ID_AA64ISAR1_GPA_SHIFT,
++		.min_field_value = ID_AA64ISAR1_GPA_ARCHITECTED,
++		.matches = has_cpuid_feature
++	},
++#endif /* CONFIG_ARM64_POINTER_AUTHENTICATION */
+ 	{},
+ };
  
 -- 
 1.9.1
