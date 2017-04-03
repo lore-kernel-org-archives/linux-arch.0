@@ -1,69 +1,122 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailapp01.imgtec.com ([195.59.15.196]:57498 "EHLO
-        imgpgp01.kl.imgtec.org" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-        with ESMTP id S933030AbdCaNiV (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 Mar 2017 09:38:21 -0400
-Date: Fri, 31 Mar 2017 14:38:17 +0100
-From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: [RFC][CFT][PATCHSET v1] uaccess unification
-Message-ID: <20170331133817.GH31606@jhogan-linux.le.imgtec.org>
-References: <20170329055706.GH29622@ZenIV.linux.org.uk>
- <CAGXu5j+R1gNpuUv1=795t7PGwyLznVCGrRovy5ZXb69SmA0NJA@mail.gmail.com>
-MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-        protocol="application/pgp-signature"; boundary="6S+CllbbV/7E5K18"
-Content-Disposition: inline
-In-Reply-To: <CAGXu5j+R1gNpuUv1=795t7PGwyLznVCGrRovy5ZXb69SmA0NJA@mail.gmail.com>
+Received: from mail-pg0-f68.google.com ([74.125.83.68]:33577 "EHLO
+        mail-pg0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750938AbdDCINj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 3 Apr 2017 04:13:39 -0400
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: [RFC][PATCH] spin loop arch primitives for busy waiting
+Date: Mon,  3 Apr 2017 18:13:28 +1000
+Message-ID: <20170403081328.30266-1-npiggin@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: Al Viro <viro@zeniv.linux.org.uk>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Richard Henderson <rth@twiddle.net>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Vineet Gupta <vgupta@synopsys.com>, Steven Miao <realmz6@gmail.com>, Jesper Nilsson <jesper.nilsson@axis.com>, Mark Salter <msalter@redhat.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Michal Simek <monstr@monstr.eu>, David Howells <dhowells@redhat.com>, Ley Foon Tan <lftan@altera.com>, Jonas Bonn <jonas@southpole.se>, Helge Deller <deller@gmx.de>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Ralf Baechle <ralf@linux-mips.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Chen Liqin <liqin.linux@gmail.com>, "David S. Miller" <davem@davemloft.net>, Chris Metcalf <cmetcalf@mellanox.com>, Richard Weinberger <richard@nod.at>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Chris Zankel <chris@zankel.net>
-Message-ID: <20170331133817.grxK5OZx6cjrCJlTsfnRGX62H8onE_xO8Vd3MCyiAkk@z>
+To: linux-arch@vger.kernel.org
+Cc: Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, Anton Blanchard <anton@samba.org>
+Message-ID: <20170403081328.T3m22GmTGu_XUESEgA0JNbRAYa6Fy62XrCQ1BITACQ0@z>
 
---6S+CllbbV/7E5K18
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Hi,
 
-On Thu, Mar 30, 2017 at 05:21:32PM -0700, Kees Cook wrote:
-> On Tue, Mar 28, 2017 at 10:57 PM, Al Viro <viro@zeniv.linux.org.uk> wrote:
-> > At the moment I have that conversion done for everything except ia64 and
-> > metag.  Once everything is converted, I'll remove ARCH_HAS_RAW_COPY_USER
-> > and make generic stuff unconditional; at the same point
-> > HAVE_ARCH_HARDENED_USERCOPY will be gone (becoming unconditionally true=
-).
->=20
-> Yay! :)
+I would like to revisit this again and see if people are opposed to this
+arch primitive. We have attributed cases of suboptimal performance on
+real customer workloads to this, so I'd like to find a solution.
 
-In the mean time should ARCH_HAS_RAW_COPY_USER select
-HAVE_ARCH_HARDENED_USERCOPY?
+Since last posting, I promised the s390 people I'd consider hypervisor
+yield additions. I'd like to punt that until after getting the basic
+primitives in. HV yielding can still be done within these loops, but
+there's no real simple recipe that's useful to add, that I've found yet.
+We have cpu_relax_yield, but it's barely used so I prefer to avoid
+over-engineering something that's not well tested.
 
-FWIW I already have patches for metag to enable RAW_COPY_USER that just
-need some more testing (mainly due to prerequisite user copy fixes), but
-I don't know about ia64
+Thanks,
+Nick
 
-Cheers
-James
 
---6S+CllbbV/7E5K18
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
+Current busy-wait loops are implemented by once calling cpu_relax() to
+give a low latency arch option for improving power and/or SMT resource
+consumption.
 
------BEGIN PGP SIGNATURE-----
+This poses some difficulties for powerpc, which has SMT priority setting
+instructions where relative priorities between threads determine how
+ifetch cycles are apportioned. cpu_relax() is implemented by setting a
+low priority then setting normal priority. This has several problems:
 
-iQIcBAEBCAAGBQJY3lvDAAoJEGwLaZPeOHZ6lRwP/1B2sYYvFA7rkWucSeTOPllY
-DMho8dzqTi85UgPLffReWhqMcYnCNgkL39u2cVYB5osVv4oPVEM2wEW6nIc0EY6s
-npKtrzRK8UhvrqiafNPOiWaQm+QEpinFsO0MpawuDznpg5fy04C9wqyurO+fQfWv
-1EUghSbCY0q3JvW25XbOTvUqQ4b6qOaYr7Z+HxKTf7DK/nmFfO7tOEfzaxC6iKUG
-yMHLbFv+AqHO43QmYRP/MBIE80eGUfB+S+kJfk7prhpRDXPUCxB66nycEuR5O1k6
-RZ/YWj8MUdl/yf59gh7T1+CJGIhsrAaGcQg8jWjdKeJvXTlWGzs1C7jBK/G1TsTS
-wKbLDgu1g0jlNdp7px4vByNFjdKkLXjQJIQmcaeuZybjpqXX0+3BmAmg3BqZxsHS
-Fsw3DVlQZSGRQrzpAP9lRnGm9GtYkQHf2lVdVi97chC6pB0qOoFES24Dk9KUYrp4
-fuELEDIcWhSo/u4Pn4kvK/PW8WKTdSdQyPN8vwnwOkCs5CvHhZVI1QmdL2Jdp0nj
-BEWXkI/pNpC4Qz5SmDYEo+Nfx1M0rYD10FHG2b7SS/ybsa04EkaktSFh1UmnN/3p
-rGbXbKBhMOUnUQNVPDBVYnJEk7I3WW73abpqXWSYDT5iIIG6BlGbzopM7OnQ8B4d
-ApJyoJ2G/S7pHTOgzJKp
-=f3v1
------END PGP SIGNATURE-----
+ - Changing thread priority can have some execution cost and potential
+   impact to other threads in the core. It's inefficient to execute them
+   every time around a busy-wait loop.
 
---6S+CllbbV/7E5K18--
+ - Depending on implementation details, a `low ; medium` sequence may
+   not have much if any affect. Some software with similar pattern
+   actually inserts a lot of nops between, in order to cause a few
+   fetch cycles with the low priority.
+
+ - The rest of the busy-wait loop runs with regular priority. This
+   might only be a few fetch cycles, but if there are several threads
+   running such loops, they could cause a noticable impact on a non-idle
+   thread.
+
+Implement spin_do {} spin_while(), and spin_do {} spin_until()
+primitives ("until" tends to be quite readable for busy-wait loops),
+which allows powerpc to enter low SMT priority, run the loop, then enter
+normal SMT priority.
+
+The loops have some restrictions on what can be used, but they are
+intended to be small and simple so it's not generally a problem:
+ - Don't use cpu_relax.
+ - Don't use return or goto.
+ - Don't use sleeping or spinning primitives.
+
+---
+ include/linux/processor.h            | 43 ++++++++++++++++++++++++++++++++++++
+ 2 files changed, 64 insertions(+)
+ create mode 100644 include/linux/processor.h
+
+diff --git a/include/linux/processor.h b/include/linux/processor.h
+new file mode 100644
+index 000000000000..282457cd9b67
+--- /dev/null
++++ b/include/linux/processor.h
+@@ -0,0 +1,43 @@
++/* Misc low level processor primitives */
++#ifndef _LINUX_PROCESSOR_H
++#define _LINUX_PROCESSOR_H
++
++#include <asm/processor.h>
++
++/*
++ * Begin a busy-wait loop, terminated with spin_while() or spin_until().
++ * This can be used in place of cpu_relax, and should be optimized to be
++ * used where wait times are expected to be less than the cost of a context
++ * switch.
++ *
++ * These loops should be very simple, and avoid calling cpu_relax, or
++ * any "spin" or sleep type of primitive. That should not cause a bug, just
++ * possible suboptimal behaviour on some implementations.
++ *
++ * The most common / fastpath exit case(s) should be tested in the
++ * spin_while / spin_until conditions. Uncommon cases can use break from
++ * within the loop. Return and goto must not be used to exit from the
++ * loop.
++ *
++ * Guest yielding and such techniques are to be implemented by the caller.
++ */
++#ifndef spin_do
++#define spin_do								\
++do {									\
++	do {								\
++		cpu_relax();						\
++#endif
++
++#ifndef spin_while
++#define spin_while(cond)						\
++	} while (cond);							\
++} while (0)
++#endif
++
++#ifndef spin_until
++#define spin_until(cond)						\
++	} while (!(cond));						\
++} while (0)
++#endif
++
++#endif /* _LINUX_PROCESSOR_H */
+-- 
+2.11.0
