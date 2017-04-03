@@ -1,73 +1,106 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH] vmlinux.lds: add missing VMLINUX_SYMBOL macros
-Date: Mon, 3 Apr 2017 16:30:24 -0700
-Message-ID: <CAGXu5jKMzy5nZtpDq=_LO+ps0HNbGkKjoe+PycF7HBkLrod1rw@mail.gmail.com>
-References: <1491259387-15869-1-git-send-email-jeyu@redhat.com>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [RFC][PATCH] spin loop arch primitives for busy waiting
+Date: Tue, 4 Apr 2017 09:50:01 +1000
+Message-ID: <20170404095001.664718b8@roar.ozlabs.ibm.com>
+References: <20170403081328.30266-1-npiggin@gmail.com>
+        <CA+55aFx92vOh28CWp5zid8RzbM=5pO0Or51zS4D8M97L=69hHA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f43.google.com ([209.85.214.43]:36179 "EHLO
-        mail-it0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751628AbdDCXaZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 3 Apr 2017 19:30:25 -0400
-Received: by mail-it0-f43.google.com with SMTP id e75so55818306itd.1
-        for <linux-arch@vger.kernel.org>; Mon, 03 Apr 2017 16:30:25 -0700 (PDT)
-In-Reply-To: <1491259387-15869-1-git-send-email-jeyu@redhat.com>
+Received: from mail-pg0-f68.google.com ([74.125.83.68]:34496 "EHLO
+        mail-pg0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751384AbdDCXuU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 3 Apr 2017 19:50:20 -0400
+In-Reply-To: <CA+55aFx92vOh28CWp5zid8RzbM=5pO0Or51zS4D8M97L=69hHA@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jessica <jeyu@redhat.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Eddie Kovsky <ewk@edkovsky.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Anton Blanchard <anton@samba.org>, linuxppc-dev <linuxppc-dev@ozlabs.org>
 
-On Mon, Apr 3, 2017 at 3:43 PM, Jessica <jeyu@redhat.com> wrote:
-> From: Jessica Yu <jeyu@redhat.com>
->
-> When __{start,end}_ro_after_init is referenced from C code, we run into the
-> following build errors on blackfin:
->
->   kernel/extable.c:169: undefined reference to `__start_ro_after_init'
->   kernel/extable.c:169: undefined reference to `__end_ro_after_init'
->
-> The build error is due to the fact that blackfin is one of the few arches
-> that prepends an underscore '_' to all symbols defined in C. Fix this by
-> wrapping __{start,end}_ro_after_init in vmlinux.lds.h with VMLINUX_SYMBOL(),
-> which adds the necessary prefix for arches that have HAVE_UNDERSCORE_SYMBOL_PREFIX.
->
-> Signed-off-by: Jessica Yu <jeyu@redhat.com>
+On Mon, 3 Apr 2017 08:31:30 -0700
+Linus Torvalds <torvalds@linux-foundation.org> wrote:
 
-Thanks!
+> On Mon, Apr 3, 2017 at 1:13 AM, Nicholas Piggin <npiggin@gmail.com> wrote:
+> >
+> > The loops have some restrictions on what can be used, but they are
+> > intended to be small and simple so it's not generally a problem:
+> >  - Don't use cpu_relax.
+> >  - Don't use return or goto.
+> >  - Don't use sleeping or spinning primitives.  
+> 
+> So you're supposed to "break" out of the loop if you want to exit
+> early? Or what?
 
-Acked-by: Kees Cook <keescook@chromium.org>
+Yes, break (I put that as a comment somewhere).
 
--Kees
+> One of the issues is that with a do-while/until loop, at least the way
+> you've coded it, it's always done at least once.
+> 
+> Which means that people will have to code the condition as
+> 
+>     if (cond) {
+>         .. fast case..
+>         return;
+>     }
+> 
+>     spin_do {
+>        ...
+>     } spin_until (cond);
+>     .. slow case ..
+> 
+> because "cpu_relax()" itself can be slightly slow.
+> 
+> And the way you've done it, even if there's a "break" in the loop, the
+> cpu_relax() is still done (because it's done at the top).
+> 
+> So quite frankly, I think "while(cond) ()" semantics would be better
+> than "do { } while (cond)".
+> 
+> Now, a lot of loops *are* of the kind where we've already handled the
+> fast case earlier, so by the time we get into the loop we really are
+> waiting for the condition to become true (but we knew it started out
+> false). But not all.
 
-> ---
-> This patch is based on next-20170403.
->
->  include/asm-generic/vmlinux.lds.h | 4 ++--
->  1 file changed, 2 insertions(+), 2 deletions(-)
->
-> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-> index 979b573..54918ae 100644
-> --- a/include/asm-generic/vmlinux.lds.h
-> +++ b/include/asm-generic/vmlinux.lds.h
-> @@ -261,9 +261,9 @@
->   */
->  #ifndef RO_AFTER_INIT_DATA
->  #define RO_AFTER_INIT_DATA                                             \
-> -       __start_ro_after_init = .;                                      \
-> +       VMLINUX_SYMBOL(__start_ro_after_init) = .;                      \
->         *(.data..ro_after_init)                                         \
-> -       __end_ro_after_init = .;
-> +       VMLINUX_SYMBOL(__end_ro_after_init) = .;
->  #endif
->
->  /*
-> --
-> 2.5.5
->
+Yeah that's a good point, I see what you mean. The important cases I've
+been looked at (e.g., mutex spinning, bit spinlock, idle loops) are the
+slowpath cases. But this would need to be explicit in the API so fastpaths
+don't use it.
 
+> Doing a quick
+> 
+>     git grep -2 cpu_relax
+> 
+> for existing users of cpu_relax() does imply that most of the current
+> users are very much of the "cpu_relax() at the _end_ of the loop
+> tests" type.
+> 
+> So I don't know. I think the interface sucks.
 
+It's a bit clunky.
 
--- 
-Kees Cook
-Pixel Security
+> What is it that POWER _actually_ wants? Not the loop - the
+> "cpu_relax()" kind of thing. Can we abstract *that* better?
+
+POWER does not have an instruction like pause. We can only set current
+thread priority, and current implementations do something like allocate
+issue cycles to threads based on relative priorities. So there should
+be at least one or two issue cycles at low priority, but ideally we
+would not be changing priority in the busy-wait loop because it can
+impact other threads in the core.
+
+I couldn't think of a good way to improve cpu_relax. Our (open source)
+firmware has a cpu_relax, and it puts a bunch of nops between low and
+normal priority instructions so we get some fetch cycles at low prio.
+That isn't ideal though.
+
+If you have any ideas, I'd be open to them.
+
+I had a secondary motive for defining it as a loop, and that was using
+branch hints or even asm goto to arrange the loop and exit branch
+nicely. E.g., if we static predict loop exits, then we don't take a
+branch miss as first thing when condition changes. This is a second
+order concern though.
+
+Thanks,
+Nick
