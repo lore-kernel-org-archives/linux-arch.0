@@ -1,122 +1,89 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f68.google.com ([74.125.83.68]:33577 "EHLO
-        mail-pg0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750938AbdDCINj (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 3 Apr 2017 04:13:39 -0400
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [RFC][PATCH] spin loop arch primitives for busy waiting
-Date: Mon,  3 Apr 2017 18:13:28 +1000
-Message-ID: <20170403081328.30266-1-npiggin@gmail.com>
+Received: from foss.arm.com ([217.140.101.70]:60394 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1753801AbdDCPT5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 3 Apr 2017 11:19:57 -0400
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: [RFC 1/9] asm-generic: mm_hooks: allow hooks to be overridden individually
+Date: Mon,  3 Apr 2017 16:19:17 +0100
+Message-ID: <1491232765-32501-2-git-send-email-mark.rutland@arm.com>
+In-Reply-To: <1491232765-32501-1-git-send-email-mark.rutland@arm.com>
+References: <1491232765-32501-1-git-send-email-mark.rutland@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, Anton Blanchard <anton@samba.org>
-Message-ID: <20170403081328.T3m22GmTGu_XUESEgA0JNbRAYa6Fy62XrCQ1BITACQ0@z>
+To: linux-arm-kernel@lists.infradead.org
+Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, catalin.marinas@arm.com, christoffer.dall@linaro.org, jiong.wang@arm.com, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, marc.zyngier@arm.com, mark.rutland@arm.com, suzuki.poulose@arm.com, will.deacon@arm.com
+Message-ID: <20170403151917.23nmYV91Pct2R6BTj9r6VUJwrtZ-cyoH12uVIWZjdJU@z>
 
-Hi,
+Currently, an architecture must either implement all of the mm hooks
+itself, or use all of those provided by the asm-generic implementation.
+When an architecture only needs to override a single hook, it must copy
+the stub implementations from the asm-generic version.
 
-I would like to revisit this again and see if people are opposed to this
-arch primitive. We have attributed cases of suboptimal performance on
-real customer workloads to this, so I'd like to find a solution.
+To avoid this repetition, allow each hook to be overridden indiviually,
+by placing each under an #ifndef block. As architectures providing their
+own hooks can't include this file today, this shouldn't adversely affect
+any existing hooks.
 
-Since last posting, I promised the s390 people I'd consider hypervisor
-yield additions. I'd like to punt that until after getting the basic
-primitives in. HV yielding can still be done within these loops, but
-there's no real simple recipe that's useful to add, that I've found yet.
-We have cpu_relax_yield, but it's barely used so I prefer to avoid
-over-engineering something that's not well tested.
-
-Thanks,
-Nick
-
-
-Current busy-wait loops are implemented by once calling cpu_relax() to
-give a low latency arch option for improving power and/or SMT resource
-consumption.
-
-This poses some difficulties for powerpc, which has SMT priority setting
-instructions where relative priorities between threads determine how
-ifetch cycles are apportioned. cpu_relax() is implemented by setting a
-low priority then setting normal priority. This has several problems:
-
- - Changing thread priority can have some execution cost and potential
-   impact to other threads in the core. It's inefficient to execute them
-   every time around a busy-wait loop.
-
- - Depending on implementation details, a `low ; medium` sequence may
-   not have much if any affect. Some software with similar pattern
-   actually inserts a lot of nops between, in order to cause a few
-   fetch cycles with the low priority.
-
- - The rest of the busy-wait loop runs with regular priority. This
-   might only be a few fetch cycles, but if there are several threads
-   running such loops, they could cause a noticable impact on a non-idle
-   thread.
-
-Implement spin_do {} spin_while(), and spin_do {} spin_until()
-primitives ("until" tends to be quite readable for busy-wait loops),
-which allows powerpc to enter low SMT priority, run the loop, then enter
-normal SMT priority.
-
-The loops have some restrictions on what can be used, but they are
-intended to be small and simple so it's not generally a problem:
- - Don't use cpu_relax.
- - Don't use return or goto.
- - Don't use sleeping or spinning primitives.
-
+Signed-off-by: Mark Rutland <mark.rutland@arm.com>
+Cc: Arnd Bergmann <arnd@arndb.de> 
+Cc: linux-arch@vger.kernel.org
 ---
- include/linux/processor.h            | 43 ++++++++++++++++++++++++++++++++++++
- 2 files changed, 64 insertions(+)
- create mode 100644 include/linux/processor.h
+ include/asm-generic/mm_hooks.h | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
 
-diff --git a/include/linux/processor.h b/include/linux/processor.h
-new file mode 100644
-index 000000000000..282457cd9b67
---- /dev/null
-+++ b/include/linux/processor.h
-@@ -0,0 +1,43 @@
-+/* Misc low level processor primitives */
-+#ifndef _LINUX_PROCESSOR_H
-+#define _LINUX_PROCESSOR_H
-+
-+#include <asm/processor.h>
-+
-+/*
-+ * Begin a busy-wait loop, terminated with spin_while() or spin_until().
-+ * This can be used in place of cpu_relax, and should be optimized to be
-+ * used where wait times are expected to be less than the cost of a context
-+ * switch.
-+ *
-+ * These loops should be very simple, and avoid calling cpu_relax, or
-+ * any "spin" or sleep type of primitive. That should not cause a bug, just
-+ * possible suboptimal behaviour on some implementations.
-+ *
-+ * The most common / fastpath exit case(s) should be tested in the
-+ * spin_while / spin_until conditions. Uncommon cases can use break from
-+ * within the loop. Return and goto must not be used to exit from the
-+ * loop.
-+ *
-+ * Guest yielding and such techniques are to be implemented by the caller.
-+ */
-+#ifndef spin_do
-+#define spin_do								\
-+do {									\
-+	do {								\
-+		cpu_relax();						\
+diff --git a/include/asm-generic/mm_hooks.h b/include/asm-generic/mm_hooks.h
+index cc5d9a1..c5a4328 100644
+--- a/include/asm-generic/mm_hooks.h
++++ b/include/asm-generic/mm_hooks.h
+@@ -6,36 +6,48 @@
+ #ifndef _ASM_GENERIC_MM_HOOKS_H
+ #define _ASM_GENERIC_MM_HOOKS_H
+ 
++#ifndef arch_dup_mmap
+ static inline void arch_dup_mmap(struct mm_struct *oldmm,
+ 				 struct mm_struct *mm)
+ {
+ }
 +#endif
-+
-+#ifndef spin_while
-+#define spin_while(cond)						\
-+	} while (cond);							\
-+} while (0)
+ 
++#ifndef arch_exit_mmap
+ static inline void arch_exit_mmap(struct mm_struct *mm)
+ {
+ }
 +#endif
-+
-+#ifndef spin_until
-+#define spin_until(cond)						\
-+	} while (!(cond));						\
-+} while (0)
+ 
++#ifndef arch_unmap
+ static inline void arch_unmap(struct mm_struct *mm,
+ 			struct vm_area_struct *vma,
+ 			unsigned long start, unsigned long end)
+ {
+ }
 +#endif
-+
-+#endif /* _LINUX_PROCESSOR_H */
+ 
++#ifndef arch_bprm_mm_init
+ static inline void arch_bprm_mm_init(struct mm_struct *mm,
+ 				     struct vm_area_struct *vma)
+ {
+ }
++#endif
+ 
++#ifndef arch_vma_access_permitted
+ static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
+ 		bool write, bool execute, bool foreign)
+ {
+ 	/* by default, allow everything */
+ 	return true;
+ }
++#endif
+ 
++#ifndef arch_pte_access_permitted
+ static inline bool arch_pte_access_permitted(pte_t pte, bool write)
+ {
+ 	/* by default, allow everything */
+ 	return true;
+ }
++#endif
+ #endif	/* _ASM_GENERIC_MM_HOOKS_H */
 -- 
-2.11.0
+1.9.1
