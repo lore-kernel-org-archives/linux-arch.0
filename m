@@ -1,117 +1,134 @@
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [RFC][PATCH] spin loop arch primitives for busy waiting
-Date: Mon,  3 Apr 2017 18:13:28 +1000
-Message-ID: <20170403081328.30266-1-npiggin@gmail.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org
-Cc: Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, Anton Blanchard <anton@samba.org>
-List-Id: linux-arch.vger.kernel.org
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: [RFC 0/9] ARMv8.3 pointer authentication userspace support
+Date: Mon,  3 Apr 2017 16:19:16 +0100
+Message-ID: <1491232765-32501-1-git-send-email-mark.rutland@arm.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:60368 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1753024AbdDCPTu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 3 Apr 2017 11:19:50 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arm-kernel@lists.infradead.org
+Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, catalin.marinas@arm.com, christoffer.dall@linaro.org, jiong.wang@arm.com, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, marc.zyngier@arm.com, mark.rutland@arm.com, suzuki.poulose@arm.com, will.deacon@arm.com
 
-Hi,
+This series adds support for the ARMv8.3 pointer authentication extension.
 
-I would like to revisit this again and see if people are opposed to this
-arch primitive. We have attributed cases of suboptimal performance on
-real customer workloads to this, so I'd like to find a solution.
+I've included a quick intro to the extension below, with the usual series
+description below that. The final patch of the series adds additional
+documentation regarding the extension.
 
-Since last posting, I promised the s390 people I'd consider hypervisor
-yield additions. I'd like to punt that until after getting the basic
-primitives in. HV yielding can still be done within these loops, but
-there's no real simple recipe that's useful to add, that I've found yet.
-We have cpu_relax_yield, but it's barely used so I prefer to avoid
-over-engineering something that's not well tested.
+I've based the series on the arm64 for-next/core branch [1]. I'm aware that
+this series may conflict with other patches currently in flight (e.g.
+allocation of ELF notes), and I intend to rebase this series as things settle.
+
+I've pushed the series to the arm64/pointer-auth branch [2] of my linux tree.
+I've also pushed out a necessary bootwrapper patch to the pointer-auth branch
+[3] of my bootwrapper repo.
+
+
+Extension Overview 
+==================
+
+The ARMv8.3 pointer authentication extension adds functionality to detect
+modification of pointer values, mitigating certain classes of attack such as
+stack smashing, and making return oriented programming attacks harder
+
+The extension introduces the concept of a pointer authentication code (PAC),
+which is stored in some upper bits of pointers. Each PAC is derived from the
+original pointer, another 64-bit value (e.g. the stack pointer), and a secret
+128-bit key.
+
+New instructions are added which can be used to:
+
+* Insert a PAC into a pointer
+* Strip a PAC from a pointer
+* Authenticate strip a PAC from a pointer
+
+If authentication succeeds, the code is removed, yielding the original pointer.
+If authentication fails, bits are set in the pointer such that it is guaranteed
+to cause a fault if used.
+
+These instructions can make use of four keys:
+
+* APIAKey (A.K.A. Instruction A key)
+* APIBKey (A.K.A. Instruction B key)
+* APDAKey (A.K.A. Data A key)
+* APDBKey (A.K.A. Data B Key)
+
+A subset of these instruction encodings have been allocated from the HINT
+space, and will operate as NOPs on any ARMv8 parts which do not feature the
+extension (or if purposefully disabled by the kernel). Software using only this
+subset of the instructions should function correctly on all ARMv8-A parts.
+
+Additionally, instructions are added to authenticate small blocks of memory in
+similar fashion, using APGAKey (A.K.A. Generic key).
+
+
+This Series
+===========
+
+This series enables the use of instructions using APIAKey, which is initialised
+and maintained per-process (shared by all threads). This series does not add
+support for APIBKey, APDAKey, APDBKey, nor APGAKey. The series only supports
+the use of an architected algorithm.
+
+I've given this some basic testing with a homebrew test suite. More ideally,
+we'd add some tests to the kernel source tree.
+
+I've added some basic KVM support, but this doesn't cater for systems with
+mismatched support. Looking forward, we'll need ID register emulation in KVM so
+that we can hide features from guests to cater for cases like this.
+
+There are also a few questions to consider, e.g:
+
+* Should we expose a per-process data key now, to go with the insn key?
+* Should keys be per-thread rather than per-process?
+* Should we expose generic authentication (i.e. APGAKey)?
+* Should the kernel remove PACs when unwinding user stacks?
 
 Thanks,
-Nick
+Mark.
 
+[1] git://git.kernel.org/pub/scm/linux/kernel/git/arm64/linux.git for-next/core
+[2] git://git.kernel.org/pub/scm/linux/kernel/git/mark/linux.git arm64/pointer-auth
+[3] git://git.kernel.org/pub/scm/linux/kernel/git/mark/boot-wrapper-aarch64.git pointer-auth
 
-Current busy-wait loops are implemented by once calling cpu_relax() to
-give a low latency arch option for improving power and/or SMT resource
-consumption.
+Mark Rutland (9):
+  asm-generic: mm_hooks: allow hooks to be overridden individually
+  arm64: add pointer authentication register bits
+  arm64/cpufeature: add ARMv8.3 id_aa64isar1 bits
+  arm64/cpufeature: detect pointer authentication
+  arm64: Don't trap host pointer auth use to EL2
+  arm64: add basic pointer authentication support
+  arm64: expose PAC bit positions via ptrace
+  arm64/kvm: context-switch PAC registers
+  arm64: docs: document pointer authentication
 
-This poses some difficulties for powerpc, which has SMT priority setting
-instructions where relative priorities between threads determine how
-ifetch cycles are apportioned. cpu_relax() is implemented by setting a
-low priority then setting normal priority. This has several problems:
+ Documentation/arm64/booting.txt                |  8 +++
+ Documentation/arm64/pointer-authentication.txt | 78 +++++++++++++++++++++
+ arch/arm64/Kconfig                             | 23 ++++++
+ arch/arm64/include/asm/cpucaps.h               |  4 +-
+ arch/arm64/include/asm/esr.h                   |  3 +-
+ arch/arm64/include/asm/kvm_arm.h               |  2 +
+ arch/arm64/include/asm/kvm_emulate.h           | 15 ++++
+ arch/arm64/include/asm/kvm_host.h              | 12 ++++
+ arch/arm64/include/asm/mmu.h                   |  5 ++
+ arch/arm64/include/asm/mmu_context.h           | 25 ++++++-
+ arch/arm64/include/asm/pointer_auth.h          | 96 ++++++++++++++++++++++++++
+ arch/arm64/include/asm/sysreg.h                | 30 ++++++++
+ arch/arm64/include/uapi/asm/hwcap.h            |  1 +
+ arch/arm64/include/uapi/asm/ptrace.h           |  5 ++
+ arch/arm64/kernel/cpufeature.c                 | 39 ++++++++++-
+ arch/arm64/kernel/cpuinfo.c                    |  1 +
+ arch/arm64/kernel/head.S                       | 19 ++++-
+ arch/arm64/kernel/ptrace.c                     | 39 +++++++++++
+ arch/arm64/kvm/hyp/sysreg-sr.c                 | 43 ++++++++++++
+ include/asm-generic/mm_hooks.h                 | 12 ++++
+ include/uapi/linux/elf.h                       |  1 +
+ 21 files changed, 454 insertions(+), 7 deletions(-)
+ create mode 100644 Documentation/arm64/pointer-authentication.txt
+ create mode 100644 arch/arm64/include/asm/pointer_auth.h
 
- - Changing thread priority can have some execution cost and potential
-   impact to other threads in the core. It's inefficient to execute them
-   every time around a busy-wait loop.
-
- - Depending on implementation details, a `low ; medium` sequence may
-   not have much if any affect. Some software with similar pattern
-   actually inserts a lot of nops between, in order to cause a few
-   fetch cycles with the low priority.
-
- - The rest of the busy-wait loop runs with regular priority. This
-   might only be a few fetch cycles, but if there are several threads
-   running such loops, they could cause a noticable impact on a non-idle
-   thread.
-
-Implement spin_do {} spin_while(), and spin_do {} spin_until()
-primitives ("until" tends to be quite readable for busy-wait loops),
-which allows powerpc to enter low SMT priority, run the loop, then enter
-normal SMT priority.
-
-The loops have some restrictions on what can be used, but they are
-intended to be small and simple so it's not generally a problem:
- - Don't use cpu_relax.
- - Don't use return or goto.
- - Don't use sleeping or spinning primitives.
-
----
- include/linux/processor.h            | 43 ++++++++++++++++++++++++++++++++++++
- 2 files changed, 64 insertions(+)
- create mode 100644 include/linux/processor.h
-
-diff --git a/include/linux/processor.h b/include/linux/processor.h
-new file mode 100644
-index 000000000000..282457cd9b67
---- /dev/null
-+++ b/include/linux/processor.h
-@@ -0,0 +1,43 @@
-+/* Misc low level processor primitives */
-+#ifndef _LINUX_PROCESSOR_H
-+#define _LINUX_PROCESSOR_H
-+
-+#include <asm/processor.h>
-+
-+/*
-+ * Begin a busy-wait loop, terminated with spin_while() or spin_until().
-+ * This can be used in place of cpu_relax, and should be optimized to be
-+ * used where wait times are expected to be less than the cost of a context
-+ * switch.
-+ *
-+ * These loops should be very simple, and avoid calling cpu_relax, or
-+ * any "spin" or sleep type of primitive. That should not cause a bug, just
-+ * possible suboptimal behaviour on some implementations.
-+ *
-+ * The most common / fastpath exit case(s) should be tested in the
-+ * spin_while / spin_until conditions. Uncommon cases can use break from
-+ * within the loop. Return and goto must not be used to exit from the
-+ * loop.
-+ *
-+ * Guest yielding and such techniques are to be implemented by the caller.
-+ */
-+#ifndef spin_do
-+#define spin_do								\
-+do {									\
-+	do {								\
-+		cpu_relax();						\
-+#endif
-+
-+#ifndef spin_while
-+#define spin_while(cond)						\
-+	} while (cond);							\
-+} while (0)
-+#endif
-+
-+#ifndef spin_until
-+#define spin_until(cond)						\
-+	} while (!(cond));						\
-+} while (0)
-+#endif
-+
-+#endif /* _LINUX_PROCESSOR_H */
 -- 
-2.11.0
+1.9.1
