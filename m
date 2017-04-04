@@ -1,15 +1,16 @@
-From: Sricharan R <sricharan-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>
-Subject: [PATCH V10 12/12] ACPI/IORT: Remove linker section for IORT entries
-	probing
-Date: Tue,  4 Apr 2017 15:48:25 +0530
-Message-ID: <1491301105-5274-13-git-send-email-sricharan@codeaurora.org>
+From: Robin Murphy <robin.murphy-5wv7dgnIgG8@public.gmane.org>
+Subject: Re: [PATCH V10 03/12] of: dma: Move range size workaround to
+	of_dma_get_range()
+Date: Tue, 4 Apr 2017 11:46:22 +0100
+Message-ID: <805ec386-3e42-aa16-ac7d-57ca6de232b0@arm.com>
 References: <1489086061-9356-1-git-send-email-sricharan@codeaurora.org>
 	<1491301105-5274-1-git-send-email-sricharan@codeaurora.org>
+	<1491301105-5274-4-git-send-email-sricharan@codeaurora.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <1491301105-5274-1-git-send-email-sricharan-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>
+In-Reply-To: <1491301105-5274-4-git-send-email-sricharan-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>
 List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
 	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
 List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
@@ -19,71 +20,91 @@ List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
 	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
 Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
 Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: robin.murphy-5wv7dgnIgG8@public.gmane.org, will.deacon-5wv7dgnIgG8@public.gmane.org, joro-zLv9SwRftAIdnm+yROfE0A@public.gmane.org, lorenzo.pieralisi-5wv7dgnIgG8@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-arm-msm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, m.szyprowski-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org, bhelgaas-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org, linux-pci-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-acpi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, tn-nYOzD4b6Jr9Wk0Htik3J/w@public.gmane.org, hanjun.guo-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org, okaya-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org, robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, frowand.list-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, sudeep.holla-5wv7dgnIgG8@public.gmane.org, rjw-LthD3rsA81gm4RdzfppkhA@public.gmane.org, lenb-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, catalin.marinas-5wv7dgnIgG8@public.gmane.org, arnd-r2nGTMty4D4@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org
+To: Sricharan R <sricharan-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>, will.deacon-5wv7dgnIgG8@public.gmane.org, joro-zLv9SwRftAIdnm+yROfE0A@public.gmane.org, lorenzo.pieralisi-5wv7dgnIgG8@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-arm-msm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, m.szyprowski-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org, bhelgaas-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org, linux-pci-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-acpi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, tn-nYOzD4b6Jr9Wk0Htik3J/w@public.gmane.org, hanjun.guo-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org, okaya-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org, robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, frowand.list-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, sudeep.holla-5wv7dgnIgG8@public.gmane.org, rjw-LthD3rsA81gm4RdzfppkhA@public.gmane.org, lenb-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, catalin.marinas-5wv7dgnIgG8@public.gmane.org, arnd-r2nGTMty4D4@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-From: Lorenzo Pieralisi <lorenzo.pieralisi-5wv7dgnIgG8@public.gmane.org>
+On 04/04/17 11:18, Sricharan R wrote:
+> From: Laurent Pinchart <laurent.pinchart+renesas-ryLnwIuWjnjg/C1BVhZhaw@public.gmane.org>
+> 
+> Invalid dma-ranges values should be worked around when retrieving the
+> DMA range in of_dma_get_range(), not by all callers of the function.
+> This isn't much of a problem now that we have a single caller, but that
+> situation will change when moving DMA configuration to device probe
+> time.
 
-The IORT linker section introduced by commit 34ceea275f62
-("ACPI/IORT: Introduce linker section for IORT entries probing")
-was needed to make sure SMMU drivers are registered (and therefore
-probed) in the kernel before devices using the SMMU have a chance
-to probe in turn.
+Just for completeness:
 
-Through the introduction of deferred IOMMU configuration the linker
-section based IORT probing infrastructure is not needed any longer, in
-that device/SMMU probe dependencies are managed through the probe
-deferral mechanism, making the IORT linker section infrastructure
-unused, so that it can be removed.
+Reviewed-by: Robin Murphy <robin.murphy-5wv7dgnIgG8@public.gmane.org>
 
-Remove the unused IORT linker section probing infrastructure
-from the kernel to complete the ACPI IORT IOMMU configure probe
-deferral mechanism implementation.
-
-Tested-by: Hanjun Guo <hanjun.guo-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>
-Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi-5wv7dgnIgG8@public.gmane.org>
-Cc: Robin Murphy <robin.murphy-5wv7dgnIgG8@public.gmane.org>
-Cc: Sricharan R <sricharan-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>
----
- drivers/acpi/arm64/iort.c         | 2 --
- include/asm-generic/vmlinux.lds.h | 1 -
- include/linux/acpi_iort.h         | 3 ---
- 3 files changed, 6 deletions(-)
-
-diff --git a/drivers/acpi/arm64/iort.c b/drivers/acpi/arm64/iort.c
-index e323ece..e7b1940 100644
---- a/drivers/acpi/arm64/iort.c
-+++ b/drivers/acpi/arm64/iort.c
-@@ -1000,6 +1000,4 @@ void __init acpi_iort_init(void)
- 	}
- 
- 	iort_init_platform_devices();
--
--	acpi_probe_device_table(iort);
- }
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 0968d13..9faa26c 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -566,7 +566,6 @@
- 	IRQCHIP_OF_MATCH_TABLE()					\
- 	ACPI_PROBE_TABLE(irqchip)					\
- 	ACPI_PROBE_TABLE(clksrc)					\
--	ACPI_PROBE_TABLE(iort)						\
- 	EARLYCON_TABLE()
- 
- #define INIT_TEXT							\
-diff --git a/include/linux/acpi_iort.h b/include/linux/acpi_iort.h
-index 77e0809..f167e1d04 100644
---- a/include/linux/acpi_iort.h
-+++ b/include/linux/acpi_iort.h
-@@ -52,7 +52,4 @@ const struct iommu_ops *iort_iommu_configure(struct device *dev)
- { return NULL; }
- #endif
- 
--#define IORT_ACPI_DECLARE(name, table_id, fn)		\
--	ACPI_DECLARE_PROBE_ENTRY(iort, name, table_id, 0, NULL, 0, fn)
--
- #endif /* __ACPI_IORT_H__ */
--- 
-QUALCOMM INDIA, on behalf of Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum, hosted by The Linux Foundation
+> Tested-by: Marek Szyprowski <m.szyprowski-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>
+> Signed-off-by: Laurent Pinchart <laurent.pinchart+renesas-ryLnwIuWjnjg/C1BVhZhaw@public.gmane.org>
+> ---
+>  drivers/of/address.c | 20 ++++++++++++++++++--
+>  drivers/of/device.c  | 15 ---------------
+>  2 files changed, 18 insertions(+), 17 deletions(-)
+> 
+> diff --git a/drivers/of/address.c b/drivers/of/address.c
+> index 02b2903..6aeb816 100644
+> --- a/drivers/of/address.c
+> +++ b/drivers/of/address.c
+> @@ -819,8 +819,8 @@ void __iomem *of_io_request_and_map(struct device_node *np, int index,
+>   *	CPU addr (phys_addr_t)	: pna cells
+>   *	size			: nsize cells
+>   *
+> - * It returns -ENODEV if "dma-ranges" property was not found
+> - * for this device in DT.
+> + * Return 0 on success, -ENODEV if the "dma-ranges" property was not found for
+> + * this device in DT, or -EINVAL if the CPU address or size is invalid.
+>   */
+>  int of_dma_get_range(struct device_node *np, u64 *dma_addr, u64 *paddr, u64 *size)
+>  {
+> @@ -880,6 +880,22 @@ int of_dma_get_range(struct device_node *np, u64 *dma_addr, u64 *paddr, u64 *siz
+>  	*dma_addr = dmaaddr;
+>  
+>  	*size = of_read_number(ranges + naddr + pna, nsize);
+> +	/*
+> +	 * DT nodes sometimes incorrectly set the size as a mask. Work around
+> +	 * those incorrect DT by computing the size as mask + 1.
+> +	 */
+> +	if (*size & 1) {
+> +		pr_warn("%s: size 0x%llx for dma-range in node(%s) set as mask\n",
+> +			__func__, *size, np->full_name);
+> +		*size = *size + 1;
+> +	}
+> +
+> +	if (!*size) {
+> +		pr_err("%s: invalid size zero for dma-range in node(%s)\n",
+> +		       __func__, np->full_name);
+> +		ret = -EINVAL;
+> +		goto out;
+> +	}
+>  
+>  	pr_debug("dma_addr(%llx) cpu_addr(%llx) size(%llx)\n",
+>  		 *dma_addr, *paddr, *size);
+> diff --git a/drivers/of/device.c b/drivers/of/device.c
+> index b1e6beb..09dedd0 100644
+> --- a/drivers/of/device.c
+> +++ b/drivers/of/device.c
+> @@ -110,21 +110,6 @@ void of_dma_configure(struct device *dev, struct device_node *np)
+>  		size = dev->coherent_dma_mask + 1;
+>  	} else {
+>  		offset = PFN_DOWN(paddr - dma_addr);
+> -
+> -		/*
+> -		 * Add a work around to treat the size as mask + 1 in case
+> -		 * it is defined in DT as a mask.
+> -		 */
+> -		if (size & 1) {
+> -			dev_warn(dev, "Invalid size 0x%llx for dma-range\n",
+> -				 size);
+> -			size = size + 1;
+> -		}
+> -
+> -		if (!size) {
+> -			dev_err(dev, "Adjusted size 0x%llx invalid\n", size);
+> -			return;
+> -		}
+>  		dev_dbg(dev, "dma_pfn_offset(%#08lx)\n", offset);
+>  	}
+>  
+> 
