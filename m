@@ -1,15 +1,16 @@
 From: Robin Murphy <robin.murphy-5wv7dgnIgG8@public.gmane.org>
-Subject: Re: [PATCH V10 04/12] of: dma: Make of_dma_deconfigure() public
-Date: Tue, 4 Apr 2017 11:47:17 +0100
-Message-ID: <2b2b6268-ad58-4c10-8866-e44a777a4128@arm.com>
+Subject: Re: [PATCH V10 05/12] ACPI/IORT: Add function to check SMMUs drivers
+	presence
+Date: Tue, 4 Apr 2017 12:04:39 +0100
+Message-ID: <e2713b7b-718d-c059-2e14-cc6ab7636a22@arm.com>
 References: <1489086061-9356-1-git-send-email-sricharan@codeaurora.org>
 	<1491301105-5274-1-git-send-email-sricharan@codeaurora.org>
-	<1491301105-5274-5-git-send-email-sricharan@codeaurora.org>
+	<1491301105-5274-6-git-send-email-sricharan@codeaurora.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <1491301105-5274-5-git-send-email-sricharan-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>
+In-Reply-To: <1491301105-5274-6-git-send-email-sricharan-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>
 List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
 	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
 List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
@@ -23,81 +24,50 @@ To: Sricharan R <sricharan-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>, will.deacon
 List-Id: linux-arch.vger.kernel.org
 
 On 04/04/17 11:18, Sricharan R wrote:
-> From: Laurent Pinchart <laurent.pinchart+renesas-ryLnwIuWjnjg/C1BVhZhaw@public.gmane.org>
+> From: Lorenzo Pieralisi <lorenzo.pieralisi-5wv7dgnIgG8@public.gmane.org>
 > 
-> As part of moving DMA initializing to probe time the
-> of_dma_deconfigure() function will need to be called from different
-> source files. Make it public and move it to drivers/of/device.c where
-> the of_dma_configure() function is.
+> The IOMMU probe deferral implementation requires a mechanism to detect
+> if drivers for SMMU components are built-in in the kernel to detect
+> whether IOMMU configuration for a given device should be deferred (ie
+> SMMU drivers present but still not probed) or not (drivers not present).
+> 
+> Add a simple function to IORT to detect if SMMU drivers for SMMU
+> components managed by IORT are built-in in the kernel.
+
+Ah, if only DT could be this neat and tidy :D
 
 Reviewed-by: Robin Murphy <robin.murphy-5wv7dgnIgG8@public.gmane.org>
 
-> Tested-by: Marek Szyprowski <m.szyprowski-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>
-> Signed-off-by: Laurent Pinchart <laurent.pinchart+renesas-ryLnwIuWjnjg/C1BVhZhaw@public.gmane.org>
+> Tested-by: Hanjun Guo <hanjun.guo-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>
+> Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi-5wv7dgnIgG8@public.gmane.org>
+> Cc: Robin Murphy <robin.murphy-5wv7dgnIgG8@public.gmane.org>
+> Cc: Sricharan R <sricharan-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>
 > ---
->  drivers/of/device.c       | 12 ++++++++++++
->  drivers/of/platform.c     |  5 -----
->  include/linux/of_device.h |  3 +++
->  3 files changed, 15 insertions(+), 5 deletions(-)
+>  drivers/acpi/arm64/iort.c | 13 +++++++++++++
+>  1 file changed, 13 insertions(+)
 > 
-> diff --git a/drivers/of/device.c b/drivers/of/device.c
-> index 09dedd0..c17c19d 100644
-> --- a/drivers/of/device.c
-> +++ b/drivers/of/device.c
-> @@ -136,6 +136,18 @@ void of_dma_configure(struct device *dev, struct device_node *np)
+> diff --git a/drivers/acpi/arm64/iort.c b/drivers/acpi/arm64/iort.c
+> index 4a5bb96..3dd9ec3 100644
+> --- a/drivers/acpi/arm64/iort.c
+> +++ b/drivers/acpi/arm64/iort.c
+> @@ -523,6 +523,19 @@ static int arm_smmu_iort_xlate(struct device *dev, u32 streamid,
+>  	return ret;
 >  }
->  EXPORT_SYMBOL_GPL(of_dma_configure);
 >  
-> +/**
-> + * of_dma_deconfigure - Clean up DMA configuration
-> + * @dev:	Device for which to clean up DMA configuration
-> + *
-> + * Clean up all configuration performed by of_dma_configure_ops() and free all
-> + * resources that have been allocated.
-> + */
-> +void of_dma_deconfigure(struct device *dev)
+> +static inline bool iort_iommu_driver_enabled(u8 type)
 > +{
-> +	arch_teardown_dma_ops(dev);
+> +	switch (type) {
+> +	case ACPI_IORT_NODE_SMMU_V3:
+> +		return IS_BUILTIN(CONFIG_ARM_SMMU_V3);
+> +	case ACPI_IORT_NODE_SMMU:
+> +		return IS_BUILTIN(CONFIG_ARM_SMMU);
+> +	default:
+> +		pr_warn("IORT node type %u does not describe an SMMU\n", type);
+> +		return false;
+> +	}
 > +}
 > +
->  int of_device_register(struct platform_device *pdev)
->  {
->  	device_initialize(&pdev->dev);
-> diff --git a/drivers/of/platform.c b/drivers/of/platform.c
-> index 5dfcc96..5344db5 100644
-> --- a/drivers/of/platform.c
-> +++ b/drivers/of/platform.c
-> @@ -158,11 +158,6 @@ struct platform_device *of_device_alloc(struct device_node *np,
->  }
->  EXPORT_SYMBOL(of_device_alloc);
->  
-> -static void of_dma_deconfigure(struct device *dev)
-> -{
-> -	arch_teardown_dma_ops(dev);
-> -}
-> -
->  /**
->   * of_platform_device_create_pdata - Alloc, initialize and register an of_device
->   * @np: pointer to node to create device for
-> diff --git a/include/linux/of_device.h b/include/linux/of_device.h
-> index c12dace..af98455 100644
-> --- a/include/linux/of_device.h
-> +++ b/include/linux/of_device.h
-> @@ -56,6 +56,7 @@ static inline struct device_node *of_cpu_device_node_get(int cpu)
->  }
->  
->  void of_dma_configure(struct device *dev, struct device_node *np);
-> +void of_dma_deconfigure(struct device *dev);
->  #else /* CONFIG_OF */
->  
->  static inline int of_driver_match_device(struct device *dev,
-> @@ -105,6 +106,8 @@ static inline struct device_node *of_cpu_device_node_get(int cpu)
->  }
->  static inline void of_dma_configure(struct device *dev, struct device_node *np)
->  {}
-> +static inline void of_dma_deconfigure(struct device *dev)
-> +{}
->  #endif /* CONFIG_OF */
->  
->  #endif /* _LINUX_OF_DEVICE_H */
+>  static const struct iommu_ops *iort_iommu_xlate(struct device *dev,
+>  					struct acpi_iort_node *node,
+>  					u32 streamid)
 > 
