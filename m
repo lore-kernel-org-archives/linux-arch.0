@@ -1,70 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:42590 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:42726 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753260AbdDDLEr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 4 Apr 2017 07:04:47 -0400
-Subject: Re: [PATCH V10 05/12] ACPI/IORT: Add function to check SMMUs drivers
- presence
+        id S1751101AbdDDLK6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 4 Apr 2017 07:10:58 -0400
+Subject: Re: [PATCH V10 06/12] of: device: Fix overflow of coherent_dma_mask
 References: <1489086061-9356-1-git-send-email-sricharan@codeaurora.org>
  <1491301105-5274-1-git-send-email-sricharan@codeaurora.org>
- <1491301105-5274-6-git-send-email-sricharan@codeaurora.org>
+ <1491301105-5274-7-git-send-email-sricharan@codeaurora.org>
 From: Robin Murphy <robin.murphy@arm.com>
-Message-ID: <e2713b7b-718d-c059-2e14-cc6ab7636a22@arm.com>
-Date: Tue, 4 Apr 2017 12:04:39 +0100
+Message-ID: <906032bd-8f3d-f34c-7c0f-0222c39fb552@arm.com>
+Date: Tue, 4 Apr 2017 12:10:51 +0100
 MIME-Version: 1.0
-In-Reply-To: <1491301105-5274-6-git-send-email-sricharan@codeaurora.org>
+In-Reply-To: <1491301105-5274-7-git-send-email-sricharan@codeaurora.org>
 Content-Type: text/plain; charset=windows-1252
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Sricharan R <sricharan@codeaurora.org>, will.deacon@arm.com, joro@8bytes.org, lorenzo.pieralisi@arm.com, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arm-msm@vger.kernel.org, m.szyprowski@samsung.com, bhelgaas@google.com, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, tn@semihalf.com, hanjun.guo@linaro.org, okaya@codeaurora.org, robh+dt@kernel.org, frowand.list@gmail.com, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, sudeep.holla@arm.com, rjw@rjwysocki.net, lenb@kernel.org, catalin.marinas@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, gregkh@linuxfoundation.org
-Message-ID: <20170404110439.m01Odghbm-25uOoylszRGcBqzOjKle9EIy80VdIOLMQ@z>
+Message-ID: <20170404111051.7xR-S4Hc3KIVoU1v9ZpBLcxBLmI-tE7PNumXi4GJW9U@z>
 
 On 04/04/17 11:18, Sricharan R wrote:
-> From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-> 
-> The IOMMU probe deferral implementation requires a mechanism to detect
-> if drivers for SMMU components are built-in in the kernel to detect
-> whether IOMMU configuration for a given device should be deferred (ie
-> SMMU drivers present but still not probed) or not (drivers not present).
-> 
-> Add a simple function to IORT to detect if SMMU drivers for SMMU
-> components managed by IORT are built-in in the kernel.
+> Size of the dma-range is calculated as coherent_dma_mask + 1
+> and passed to arch_setup_dma_ops further. It overflows when
+> the coherent_dma_mask is set for full 64 bits 0xFFFFFFFFFFFFFFFF,
+> resulting in size getting passed as 0 wrongly. Fix this by
+> passsing in max(mask, mask + 1). Note that in this case
+> when the mask is set to full 64bits, we will be passing the mask
+> itself to arch_setup_dma_ops instead of the size. The real fix
+> for this should be to make arch_setup_dma_ops receive the
+> mask and handle it, to be done in the future.
 
-Ah, if only DT could be this neat and tidy :D
+Agreed; in the meantime, this fix is neat and robust enough.
 
 Reviewed-by: Robin Murphy <robin.murphy@arm.com>
 
-> Tested-by: Hanjun Guo <hanjun.guo@linaro.org>
-> Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-> Cc: Robin Murphy <robin.murphy@arm.com>
-> Cc: Sricharan R <sricharan@codeaurora.org>
+> Signed-off-by: Sricharan R <sricharan@codeaurora.org>
 > ---
->  drivers/acpi/arm64/iort.c | 13 +++++++++++++
->  1 file changed, 13 insertions(+)
+>  drivers/of/device.c | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
 > 
-> diff --git a/drivers/acpi/arm64/iort.c b/drivers/acpi/arm64/iort.c
-> index 4a5bb96..3dd9ec3 100644
-> --- a/drivers/acpi/arm64/iort.c
-> +++ b/drivers/acpi/arm64/iort.c
-> @@ -523,6 +523,19 @@ static int arm_smmu_iort_xlate(struct device *dev, u32 streamid,
->  	return ret;
->  }
->  
-> +static inline bool iort_iommu_driver_enabled(u8 type)
-> +{
-> +	switch (type) {
-> +	case ACPI_IORT_NODE_SMMU_V3:
-> +		return IS_BUILTIN(CONFIG_ARM_SMMU_V3);
-> +	case ACPI_IORT_NODE_SMMU:
-> +		return IS_BUILTIN(CONFIG_ARM_SMMU);
-> +	default:
-> +		pr_warn("IORT node type %u does not describe an SMMU\n", type);
-> +		return false;
-> +	}
-> +}
-> +
->  static const struct iommu_ops *iort_iommu_xlate(struct device *dev,
->  					struct acpi_iort_node *node,
->  					u32 streamid)
+> diff --git a/drivers/of/device.c b/drivers/of/device.c
+> index c17c19d..c2ae6bb 100644
+> --- a/drivers/of/device.c
+> +++ b/drivers/of/device.c
+> @@ -107,7 +107,7 @@ void of_dma_configure(struct device *dev, struct device_node *np)
+>  	ret = of_dma_get_range(np, &dma_addr, &paddr, &size);
+>  	if (ret < 0) {
+>  		dma_addr = offset = 0;
+> -		size = dev->coherent_dma_mask + 1;
+> +		size = max(dev->coherent_dma_mask, dev->coherent_dma_mask + 1);
+>  	} else {
+>  		offset = PFN_DOWN(paddr - dma_addr);
+>  		dev_dbg(dev, "dma_pfn_offset(%#08lx)\n", offset);
 > 
