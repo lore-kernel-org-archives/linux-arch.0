@@ -1,93 +1,211 @@
 From: Bjorn Helgaas <helgaas@kernel.org>
-Subject: Re: PCI enumeration without a BIOS
-Date: Tue, 4 Apr 2017 15:56:17 -0500
-Message-ID: <20170404205617.GG27692@bhelgaas-glaptop.roam.corp.google.com>
-References: <CAMgXwTjX1j2dhi7n+APNef0di5oo+iK57Cq0S+3NdMtQzAc=Vw@mail.gmail.com>
+Subject: Re: [PATCH 04/17] pci: Add arch_can_pci_mmap_wc() macro
+Date: Tue, 4 Apr 2017 16:36:31 -0500
+Message-ID: <20170404213631.GB989@bhelgaas-glaptop.roam.corp.google.com>
+References: <cover.1490188942.git.dwmw2@infradead.org>
+ <11552df0208f8134f315f32217a3e033fe2174f4.1490188942.git.dwmw2@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:35498 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.136]:37902 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753876AbdDDU4U (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 4 Apr 2017 16:56:20 -0400
+        id S1752997AbdDDVgf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 4 Apr 2017 17:36:35 -0400
 Content-Disposition: inline
-In-Reply-To: <CAMgXwTjX1j2dhi7n+APNef0di5oo+iK57Cq0S+3NdMtQzAc=Vw@mail.gmail.com>
+In-Reply-To: <11552df0208f8134f315f32217a3e033fe2174f4.1490188942.git.dwmw2@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Wesley Terpstra <wesley@sifive.com>
-Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org
+To: David Woodhouse <dwmw2@infradead.org>
+Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-Hi Wesley,
-
-On Tue, Apr 04, 2017 at 12:31:57PM -0700, Wesley Terpstra wrote:
-> Good morning,
+On Wed, Mar 22, 2017 at 01:25:18PM +0000, David Woodhouse wrote:
+> From: David Woodhouse <dwmw@amazon.co.uk>
 > 
-> I am trying to clean up PCIe support for the RISC-V port. On this
-> architecture, PCIe enumeration may not have been performed by the
-> "BIOS", of which there is none. However, it looks like linux is
-> expecting a valid PCIe configuration during boot. I've attached the
-> output of dmesg.
-
-If firmware has already configured PCI, Linux generally will use that
-configuration.  Linux *should* be able to enumerate PCI devices and
-configure them even without any prior firmware configuration.  But
-there may be bugs there, since those paths aren't exercised as much.
-
-> In particular, these are the lines that seem wrong to me:
-> [    5.920000] pci 0000:00:00.0: bridge configuration invalid ([bus
-> 00-00]), reconfiguring
-> [    5.930000] pci 0000:01:00.0: bridge configuration invalid ([bus
-> 00-00]), reconfiguring
-
-This is normal but possibly worded more alarmingly than necessary.
-Bridges power up with secondary/subordinate bus numbers as zero, so
-this just means nothing has changed their configuration from the
-power-up default.
-
-> [    6.000000] pci 0000:04:00.0: [Firmware Bug]: reg 0x10: invalid BAR
-> (can't size)
-> [    6.010000] pci 0000:06:00.0: [Firmware Bug]: reg 0x10: invalid BAR
-> (can't size)
-
-These are more worrisome.  We discover the size of a BAR by writing
-all ones to it and reading it back, which tells us how many bits of
-the BAR are hard-wired to zero.  This behavior is prescribed by the
-PCI specs, so it's likely a hardware defect.
-
-It's tagged as a "Firmware Bug" because sometimes this problem is a
-consequence of a BIOS forgetting to configure something in the device
-or forgetting to hide the device from the OS completely.  Possibly the
-tag is a little too aggressive -- it's making assumptions that aren't
-always true.
-
-> To my eyes the above looks like linux was expecting a pre-enumerated
-> bus. How can I tell linux to just enumerate everything and not be
-> surprised? Ideally, I'd like this to be optional, in case a future
-> boot loader might enumerate PCIe in order to netboot or whatever.
+> Most of the almost-identical versions of pci_mmap_page_range() silently
+> ignore the 'write_combine' argument and give uncached mappings.
 > 
-> These warnings are also troubling, but seem to be a general weakness
-> of the xilinx PCIe bridge:
-> [    6.210000] pci 0000:02:01.0: BAR 7: no space for [io  size 0x1000]
-> [    6.210000] pci 0000:02:01.0: BAR 7: failed to assign [io  size 0x1000]
+> Yet we allow the PCIIOC_WRITE_COMBINE ioctl in /proc/bus/pci, expose the
+> 'resourceX_wc' file in sysfs, and allow an attempted mapping to apparently
+> succeed.
+> 
+> To fix this, introduce a macro arch_can_pci_mmap_wc() which indicates
+> whether the platform can do a write-combining mapping. On x86 this ends
+> up being pat_enabled(), while the few other platforms that support it
+> can just set it to a literal '1'.
+> 
+> Signed-off-by: David Woodhouse <dwmw@amazon.co.uk>
+> ---
+>  Documentation/filesystems/sysfs-pci.txt |  4 ++++
+>  arch/ia64/include/asm/pci.h             |  2 ++
+>  arch/powerpc/include/asm/pci.h          |  5 +++--
+>  arch/x86/include/asm/pci.h              |  2 ++
+>  arch/xtensa/include/asm/pci.h           |  6 +++++-
+>  arch/xtensa/kernel/pci.c                |  2 +-
+>  drivers/pci/pci-sysfs.c                 |  6 ++++--
+>  drivers/pci/proc.c                      | 17 ++++++++++-------
+>  8 files changed, 31 insertions(+), 13 deletions(-)
+> 
+> diff --git a/Documentation/filesystems/sysfs-pci.txt b/Documentation/filesystems/sysfs-pci.txt
+> index 6ea1ced..25b7f1c 100644
+> --- a/Documentation/filesystems/sysfs-pci.txt
+> +++ b/Documentation/filesystems/sysfs-pci.txt
+> @@ -117,6 +117,10 @@ code must define HAVE_PCI_MMAP and provide a pci_mmap_page_range function.
+>  Platforms are free to only support subsets of the mmap functionality, but
+>  useful return codes should be provided.
+>  
+> +Platforms which support write-combining maps of PCI resources must define
+> +arch_can_pci_mmap_wc() which shall evaluate to non-zero at runtime when
+> +write-combining is permitted.
+> +
+>  Legacy resources are protected by the HAVE_PCI_LEGACY define.  Platforms
+>  wishing to support legacy functionality should define it and provide
+>  pci_legacy_read, pci_legacy_write and pci_mmap_legacy_page_range functions.
+> diff --git a/arch/ia64/include/asm/pci.h b/arch/ia64/include/asm/pci.h
+> index c0835b0..6283758 100644
+> --- a/arch/ia64/include/asm/pci.h
+> +++ b/arch/ia64/include/asm/pci.h
+> @@ -51,6 +51,8 @@ extern unsigned long ia64_max_iommu_merge_mask;
+>  #define PCI_DMA_BUS_IS_PHYS	(ia64_max_iommu_merge_mask == ~0UL)
+>  
+>  #define HAVE_PCI_MMAP
+> +#define arch_can_pci_mmap_wc()	1
+> +
+>  extern int pci_mmap_page_range (struct pci_dev *dev, struct vm_area_struct *vma,
+>  				enum pci_mmap_state mmap_state, int write_combine);
+>  #define HAVE_PCI_LEGACY
+> diff --git a/arch/powerpc/include/asm/pci.h b/arch/powerpc/include/asm/pci.h
+> index 93eded8..b5b68c6 100644
+> --- a/arch/powerpc/include/asm/pci.h
+> +++ b/arch/powerpc/include/asm/pci.h
+> @@ -81,8 +81,9 @@ struct vm_area_struct;
+>  int pci_mmap_page_range(struct pci_dev *pdev, struct vm_area_struct *vma,
+>  			enum pci_mmap_state mmap_state, int write_combine);
+>  
+> -/* Tell drivers/pci/proc.c that we have pci_mmap_page_range() */
+> -#define HAVE_PCI_MMAP	1
+> +/* Tell drivers/pci/proc.c that we have pci_mmap_page_range() and it does WC */
+> +#define HAVE_PCI_MMAP		1
+> +#define arch_can_pci_mmap_wc()	1
+>  
+>  extern int pci_legacy_read(struct pci_bus *bus, loff_t port, u32 *val,
+>  			   size_t count);
+> diff --git a/arch/x86/include/asm/pci.h b/arch/x86/include/asm/pci.h
+> index 1411dbe..f6e22c2 100644
+> --- a/arch/x86/include/asm/pci.h
+> +++ b/arch/x86/include/asm/pci.h
+> @@ -7,6 +7,7 @@
+>  #include <linux/string.h>
+>  #include <linux/scatterlist.h>
+>  #include <asm/io.h>
+> +#include <asm/pat.h>
+>  #include <asm/x86_init.h>
+>  
+>  #ifdef __KERNEL__
+> @@ -102,6 +103,7 @@ int pcibios_set_irq_routing(struct pci_dev *dev, int pin, int irq);
+>  
+>  
+>  #define HAVE_PCI_MMAP
+> +#define arch_can_pci_mmap_wc()	pat_enabled()
+>  extern int pci_mmap_page_range(struct pci_dev *dev, struct vm_area_struct *vma,
+>  			       enum pci_mmap_state mmap_state,
+>  			       int write_combine);
+> diff --git a/arch/xtensa/include/asm/pci.h b/arch/xtensa/include/asm/pci.h
+> index 5d6bd93..f106879 100644
+> --- a/arch/xtensa/include/asm/pci.h
+> +++ b/arch/xtensa/include/asm/pci.h
+> @@ -51,7 +51,11 @@ int pci_mmap_page_range(struct pci_dev *pdev, struct vm_area_struct *vma,
+>  			enum pci_mmap_state mmap_state, int write_combine);
+>  
+>  /* Tell drivers/pci/proc.c that we have pci_mmap_page_range() */
+> -#define HAVE_PCI_MMAP	1
+> +#define HAVE_PCI_MMAP		1
+> +
+> +/* This was wrapped in #if 0 since the first merge of xtensa support...
+> +#define arch_can_pci_mmap_wc()	1
+> +*/
+>  
+>  #endif /* __KERNEL__ */
+>  
+> diff --git a/arch/xtensa/kernel/pci.c b/arch/xtensa/kernel/pci.c
+> index b848cc3..c5944d3 100644
+> --- a/arch/xtensa/kernel/pci.c
+> +++ b/arch/xtensa/kernel/pci.c
+> @@ -345,7 +345,7 @@ __pci_mmap_set_pgprot(struct pci_dev *dev, struct vm_area_struct *vma,
+>  
+>  	/* Set to write-through */
+>  	prot = (prot & _PAGE_CA_MASK) | _PAGE_CA_WT;
+> -#if 0
+> +#ifdef arch_can_pci_mmap_wc
 
-This is because the xilinx host bridge doesn't support I/O space (it
-could be that the hardware itself doesn't support it, or maybe the
-Linux driver just doesn't support it).  In any event, you have no PCI
-devices that actually require I/O space, so this doesn't hurt
-anything.  The messages about "BAR 7" are really referring to the
-bridge I/O windows, which Linux tries to configure by default.
+This hunk seems like maybe it should be a separate patch.
 
-I wish we had more informative messages about this situation, but it's
-a little subtle to detect this situation, so we don't.
+The rest of the patch:
 
-> Everything actually works in the end, so this is mostly a cosmetic concern.
+  - skips creation of /sys/.../resourceX_wc if !arch_can_pci_mmap_wc()
+  - makes PCIIOC_WRITE_COMBINE fail if !arch_can_pci_mmap_wc()
 
-Yeah, everything seems mostly working.  The "invalid BAR" things
-*could* be an issue -- those registers are not what the PCI spec says
-they should be.  Occasionally people put non-BAR registers where BARs
-are supposed to be.  We write 0xffffffff to those registers (as the
-spec says we must), and if they are non-BARs, we have no idea what
-that might do, so it's possible it could break something.  See the
-quirks that set non_compliant_bars for examples.
+This part seems different -- it changes the way pci_mmap_page_range()
+works.
 
-Bjorn
+>  	if (!write_combine)
+>  		prot |= _PAGE_WRITETHRU;
+>  #endif
+> diff --git a/drivers/pci/pci-sysfs.c b/drivers/pci/pci-sysfs.c
+> index 7ac258f..cf2c7d8 100644
+> --- a/drivers/pci/pci-sysfs.c
+> +++ b/drivers/pci/pci-sysfs.c
+> @@ -1210,10 +1210,12 @@ static int pci_create_resource_files(struct pci_dev *pdev)
+>  			continue;
+>  
+>  		retval = pci_create_attr(pdev, i, 0);
+> +#ifdef arch_can_pci_mmap_wc
+>  		/* for prefetchable resources, create a WC mappable file */
+> -		if (!retval && pdev->resource[i].flags & IORESOURCE_PREFETCH)
+> +		if (!retval && arch_can_pci_mmap_wc() &&
+> +		    pdev->resource[i].flags & IORESOURCE_PREFETCH)
+>  			retval = pci_create_attr(pdev, i, 1);
+> -
+> +#endif
+>  		if (retval) {
+>  			pci_remove_resource_files(pdev);
+>  			return retval;
+> diff --git a/drivers/pci/proc.c b/drivers/pci/proc.c
+> index dc8912e..c49be71 100644
+> --- a/drivers/pci/proc.c
+> +++ b/drivers/pci/proc.c
+> @@ -209,15 +209,18 @@ static long proc_bus_pci_ioctl(struct file *file, unsigned int cmd,
+>  		fpriv->mmap_state = pci_mmap_mem;
+>  		break;
+>  
+> +#ifdef arch_can_pci_mmap_wc
+
+Can we get rid of these #ifdefs in the code by adding this to linux/pci.h?
+
+  #ifndef arch_can_pci_mmap_wc
+  #define arch_can_pci_mmap_wc()	0
+  #endif
+
+>  	case PCIIOC_WRITE_COMBINE:
+> -		if (arg)
+> -			fpriv->write_combine = 1;
+> -		else
+> -			fpriv->write_combine = 0;
+> -		break;
+> -
+> +		if (arch_can_pci_mmap_wc()) {
+> +			if (arg)
+> +				fpriv->write_combine = 1;
+> +			else
+> +				fpriv->write_combine = 0;
+> +			break;
+> +		}
+> +		/* If arch decided it can't, fall through... */
+> +#endif /* arch_can_pci_mmap_wc */
+>  #endif /* HAVE_PCI_MMAP */
+> -
+>  	default:
+>  		ret = -EINVAL;
+>  		break;
+> -- 
+> 2.9.3
+> 
