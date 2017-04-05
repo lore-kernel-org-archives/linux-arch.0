@@ -1,165 +1,73 @@
-From: David Woodhouse <dwmw2@infradead.org>
-Subject: Re: [PATCH 04/17] pci: Add arch_can_pci_mmap_wc() macro
-Date: Wed, 05 Apr 2017 09:22:24 +0200
-Message-ID: <1491376944.22176.15.camel@infradead.org>
-References: <cover.1490188942.git.dwmw2@infradead.org>
-         <11552df0208f8134f315f32217a3e033fe2174f4.1490188942.git.dwmw2@infradead.org>
-         <20170404213631.GB989@bhelgaas-glaptop.roam.corp.google.com>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: ia64 exceptions (Re: [RFC][CFT][PATCHSET v1] uaccess unification)
+Date: Wed, 5 Apr 2017 09:08:57 +0100
+Message-ID: <20170405080857.GR29622@ZenIV.linux.org.uk>
+References: <20170329055706.GH29622@ZenIV.linux.org.uk>
+ <20170405050507.GQ29622@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg="sha-256"; protocol="application/x-pkcs7-signature"; boundary="=-aMgi7qKcxIgw0vBuWKq/"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20170404213631.GB989@bhelgaas-glaptop.roam.corp.google.com>
+Content-Disposition: inline
+In-Reply-To: <20170405050507.GQ29622@ZenIV.linux.org.uk>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Bjorn Helgaas <helgaas@kernel.org>
-Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: linux-ia64@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>
 List-Id: linux-arch.vger.kernel.org
 
+On Wed, Apr 05, 2017 at 06:05:08AM +0100, Al Viro wrote:
 
---=-aMgi7qKcxIgw0vBuWKq/
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+> Speaking of ia64: copy_user.S contains the following oddity:
+> 2:
+>         EX(.failure_in3,(p16) ld8 val1[0]=[src1],16)
+> (p16)   ld8 val2[0]=[src2],16
+> 
+> src1 is 16-byte aligned, src2 is src1 + 8.
+> 
+> What guarantees that we can't race with e.g. TLB shootdown from a thread on
+> another CPU, ending up with the second insn taking a fault and oopsing?
+> 
+> AFAICS, other places where we have such pairs of loads or stores (e.g.
+> EX(.ex_handler, (p16)   ld8     r34=[src0],16)
+> EK(.ex_handler, (p16)   ld8     r38=[src1],16)
+> in the memcpy_mck.S counterpart of that code) both have exception table
+> entries associated with them.
+> 
+> Is that one intentional and correct for some subtle reason, or is it a very
+> narrow race on the hardware nobody gives a damn anymore?  It is pre-mckinley
+> stuff, after all...
 
-On Tue, 2017-04-04 at 16:36 -0500, Bjorn Helgaas wrote:
-> > --- a/arch/xtensa/kernel/pci.c
-> > +++ b/arch/xtensa/kernel/pci.c
-> > @@ -345,7 +345,7 @@ __pci_mmap_set_pgprot(struct pci_dev *dev, struct v=
-m_area_struct *vma,
-> > =C2=A0
-> > =C2=A0	/* Set to write-through */
-> > =C2=A0	prot =3D (prot & _PAGE_CA_MASK) | _PAGE_CA_WT;
-> > -#if 0
-> > +#ifdef arch_can_pci_mmap_wc
->
-> This hunk seems like maybe it should be a separate patch.
->=20
-> ...
->
-> This part seems different -- it changes the way pci_mmap_page_range()
-> works.
+Actually, the piece immediately after that one is worse.  By that point,
+we have
+	* checked that len is large enough to be worth bothering with word
+copies.  Fine.
+	* checked that src and dst have the same remainder modulo 8.
+	* copied until src is a multiple of 16, incrementing src and dst
+by the same amount.
+	* prepared for copying in multiples of 16 bytes
+	* set src2 and dst2 8 bytes past src1 and dst1 resp.
+and now we have a pipelined loop with
+        EX(.failure_in3,(p16) ld8 val1[0]=[src1],16)
+(p16)   ld8 val2[0]=[src2],16
 
-It doesn't, because arch_can_pci_map_wc isn't defined on xtensa. So
-it's just a trivial cleanup for future-proofing, turning that 'if 0'
-into 'if <something that isn't set>'.
+        EX(.failure_out, (EPI)  st8 [dst1]=val1[PIPE_DEPTH-1],16)
+(EPI)   st8 [dst2]=val2[PIPE_DEPTH-1],16
+for body.  Now, consider the following case:
 
-> > diff --git a/drivers/pci/proc.c b/drivers/pci/proc.c
-> > index dc8912e..c49be71 100644
-> > --- a/drivers/pci/proc.c
-> > +++ b/drivers/pci/proc.c
-> > @@ -209,15 +209,18 @@ static long proc_bus_pci_ioctl(struct file *file,=
- unsigned int cmd,
-> > =C2=A0		fpriv->mmap_state =3D pci_mmap_mem;
-> > =C2=A0		break;
-> > =C2=A0
-> > +#ifdef arch_can_pci_mmap_wc
-> Can we get rid of these #ifdefs in the code by adding this to linux/pci.h=
-?
->=20
-> =C2=A0 #ifndef arch_can_pci_mmap_wc
-> =C2=A0 #define arch_can_pci_mmap_wc()	0
-> =C2=A0 #endif
+	* to is 8 bytes before the end of user page, next page is unmapped
+	* from is at the beginning of kernel page
+	* len is simply PAGE_SIZE
 
-Er.... at the time, that was non-trivial because there was something
-that actually needed to be *removed* with the preprocessor instead of
-just not being called. But after I settled on the incremental approach
-of having pci_mmap_resource_range() be a wrapper for
-pci_mmap_page_range() *and* vice versa I think that requirement went
-away. I'll take another look and see if I can do that now; thanks.
+and we call copy_to_user().  All the preparation work won't read or write
+anything - all alignments are fine.  src1 and src2 are kernel page and
+kernel page + 8 resp.; dst1 is 8 bytes before the end of user page, dst2
+is at the beginning of unmapped user page.  No loads are going to fail;
+the first store into dst1 won't fail either.  The *second* store - one to
+dst2 will not just fail, it'll oops.
 
-Are you happy with the suggestion that we use HAVE_PCI_MMAP *only* to
-control mmap on /proc/bus/pci, and we present mmap through sysfs on all
-platforms via the generic code?
---=-aMgi7qKcxIgw0vBuWKq/
-Content-Type: application/x-pkcs7-signature; name="smime.p7s"
-Content-Disposition: attachment; filename="smime.p7s"
-Content-Transfer-Encoding: base64
+<goes to test>
 
-MIAGCSqGSIb3DQEHAqCAMIACAQExDzANBglghkgBZQMEAgEFADCABgkqhkiG9w0BBwEAAKCCDzUw
-ggSvMIIDl6ADAgECAhEA4CPLFRKDU4mtYW56VGdrITANBgkqhkiG9w0BAQsFADBvMQswCQYDVQQG
-EwJTRTEUMBIGA1UEChMLQWRkVHJ1c3QgQUIxJjAkBgNVBAsTHUFkZFRydXN0IEV4dGVybmFsIFRU
-UCBOZXR3b3JrMSIwIAYDVQQDExlBZGRUcnVzdCBFeHRlcm5hbCBDQSBSb290MB4XDTE0MTIyMjAw
-MDAwMFoXDTIwMDUzMDEwNDgzOFowgZsxCzAJBgNVBAYTAkdCMRswGQYDVQQIExJHcmVhdGVyIE1h
-bmNoZXN0ZXIxEDAOBgNVBAcTB1NhbGZvcmQxGjAYBgNVBAoTEUNPTU9ETyBDQSBMaW1pdGVkMUEw
-PwYDVQQDEzhDT01PRE8gU0hBLTI1NiBDbGllbnQgQXV0aGVudGljYXRpb24gYW5kIFNlY3VyZSBF
-bWFpbCBDQTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAImxDdp6UxlOcFIdvFamBia3
-uEngludRq/HwWhNJFaO0jBtgvHpRQqd5jKQi3xdhTpHVdiMKFNNKAn+2HQmAbqUEPdm6uxb+oYep
-LkNSQxZ8rzJQyKZPWukI2M+TJZx7iOgwZOak+FaA/SokFDMXmaxE5WmLo0YGS8Iz1OlAnwawsayT
-QLm1CJM6nCpToxDbPSBhPFUDjtlOdiUCISn6o3xxdk/u4V+B6ftUgNvDezVSt4TeIj0sMC0xf1m9
-UjewM2ktQ+v61qXxl3dnUYzZ7ifrvKUHOHaMpKk4/9+M9QOsSb7K93OZOg8yq5yVOhM9DkY6V3Rh
-UL7GQD/L5OKfoiECAwEAAaOCARcwggETMB8GA1UdIwQYMBaAFK29mHo0tCb3+sQmVO8DveAky1Qa
-MB0GA1UdDgQWBBSSYWuC4aKgqk/sZ/HCo/e0gADB7DAOBgNVHQ8BAf8EBAMCAYYwEgYDVR0TAQH/
-BAgwBgEB/wIBADAdBgNVHSUEFjAUBggrBgEFBQcDAgYIKwYBBQUHAwQwEQYDVR0gBAowCDAGBgRV
-HSAAMEQGA1UdHwQ9MDswOaA3oDWGM2h0dHA6Ly9jcmwudXNlcnRydXN0LmNvbS9BZGRUcnVzdEV4
-dGVybmFsQ0FSb290LmNybDA1BggrBgEFBQcBAQQpMCcwJQYIKwYBBQUHMAGGGWh0dHA6Ly9vY3Nw
-LnVzZXJ0cnVzdC5jb20wDQYJKoZIhvcNAQELBQADggEBABsqbqxVwTqriMXY7c1V86prYSvACRAj
-mQ/FZmpvsfW0tXdeDwJhAN99Bf4Ss6SAgAD8+x1banICCkG8BbrBWNUmwurVTYT7/oKYz1gb4yJj
-nFL4uwU2q31Ypd6rO2Pl2tVz7+zg+3vio//wQiOcyraNTT7kSxgDsqgt1Ni7QkuQaYUQ26Y3NOh7
-4AEQpZzKOsefT4g0bopl0BqKu6ncyso20fT8wmQpNa/WsadxEdIDQ7GPPprsnjJT9HaSyoY0B7ks
-yuYcStiZDcGG4pCS+1pCaiMhEOllx/XVu37qjIUgAmLq0ToHLFnFmTPyOInltukWeh95FPZKEBom
-+nyK+5swggU9MIIEJaADAgECAhBqC1BYlVMtBFBN4igR/howMA0GCSqGSIb3DQEBCwUAMIGbMQsw
-CQYDVQQGEwJHQjEbMBkGA1UECBMSR3JlYXRlciBNYW5jaGVzdGVyMRAwDgYDVQQHEwdTYWxmb3Jk
-MRowGAYDVQQKExFDT01PRE8gQ0EgTGltaXRlZDFBMD8GA1UEAxM4Q09NT0RPIFNIQS0yNTYgQ2xp
-ZW50IEF1dGhlbnRpY2F0aW9uIGFuZCBTZWN1cmUgRW1haWwgQ0EwHhcNMTYxMjIwMDAwMDAwWhcN
-MTcxMjIwMjM1OTU5WjAkMSIwIAYJKoZIhvcNAQkBFhNkd213MkBpbmZyYWRlYWQub3JnMIIBIjAN
-BgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwbTrFaiGdvN2pThnR9q+4eaXB2wQZQNqhter5ZrJ
-pPO47e87bZ+f1tmYoh6+rB90G/XN24NErPRfvU4zVzNT9pCtCzSSVnBlZQBpaEYMKhcXo5PGKNsm
-An8BoGwNXjlxwbBNRaNO+ky0wNCaMNd1JLxEuvqg9J7rrcpHhWmnpXD5IKa8gv9GyVAJgOpiBOts
-p91sShc2kHvWJ5waPEWPCHDH9J+twGGKqKIIU7fdbURLUgUL1wlDSAHf/lgIAVCSj2H2HpoGqHpy
-HgOAClX9iRSLNa0Znj8HTaqfOwxXevsz1KkLFY+Ahm426GIEqdfkK2iT6Hhgc7tjNO3f8i5ALQID
-AQABo4IB8TCCAe0wHwYDVR0jBBgwFoAUkmFrguGioKpP7GfxwqP3tIAAwewwHQYDVR0OBBYEFILE
-dmHLtK6oxmFJZvBhTQhvqrS0MA4GA1UdDwEB/wQEAwIFoDAMBgNVHRMBAf8EAjAAMCAGA1UdJQQZ
-MBcGCCsGAQUFBwMEBgsrBgEEAbIxAQMFAjARBglghkgBhvhCAQEEBAMCBSAwRgYDVR0gBD8wPTA7
-BgwrBgEEAbIxAQIBAQEwKzApBggrBgEFBQcCARYdaHR0cHM6Ly9zZWN1cmUuY29tb2RvLm5ldC9D
-UFMwXQYDVR0fBFYwVDBSoFCgToZMaHR0cDovL2NybC5jb21vZG9jYS5jb20vQ09NT0RPU0hBMjU2
-Q2xpZW50QXV0aGVudGljYXRpb25hbmRTZWN1cmVFbWFpbENBLmNybDCBkAYIKwYBBQUHAQEEgYMw
-gYAwWAYIKwYBBQUHMAKGTGh0dHA6Ly9jcnQuY29tb2RvY2EuY29tL0NPTU9ET1NIQTI1NkNsaWVu
-dEF1dGhlbnRpY2F0aW9uYW5kU2VjdXJlRW1haWxDQS5jcnQwJAYIKwYBBQUHMAGGGGh0dHA6Ly9v
-Y3NwLmNvbW9kb2NhLmNvbTAeBgNVHREEFzAVgRNkd213MkBpbmZyYWRlYWQub3JnMA0GCSqGSIb3
-DQEBCwUAA4IBAQA+AfvNhFwtapF5Lzjapgul3zYuEnMfR538Ya1vhP8wuOkcoJeT2gEFXzVO2WUu
-eWM0g0/DumnRB53htV/Qq/+vsL0i6a2+iOO7kHi5O7bZkgbdNv0t2lzonDUHi6LTa7NUj+tv+j6y
-hW+iNquC3ACP1dIZH8gJmicHblW63qRgp6wxhn315MLBeavi3uiSag2eeKFePiTIwJjN2UYq6kWg
-PL5G/Ycf9x/xN1XBTfJiURc0FsXhrA98VMWnt52C5Lo4txhGjzTI+IZg40b3YDs6E7mTYb5KKmbc
-QZA9priOFDdj1z5W9BdWhU6I/D0P9y8Z4Tr6+ZscMUVD0RqWy2LeMIIFPTCCBCWgAwIBAgIQagtQ
-WJVTLQRQTeIoEf4aMDANBgkqhkiG9w0BAQsFADCBmzELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdy
-ZWF0ZXIgTWFuY2hlc3RlcjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExp
-bWl0ZWQxQTA/BgNVBAMTOENPTU9ETyBTSEEtMjU2IENsaWVudCBBdXRoZW50aWNhdGlvbiBhbmQg
-U2VjdXJlIEVtYWlsIENBMB4XDTE2MTIyMDAwMDAwMFoXDTE3MTIyMDIzNTk1OVowJDEiMCAGCSqG
-SIb3DQEJARYTZHdtdzJAaW5mcmFkZWFkLm9yZzCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoC
-ggEBAMG06xWohnbzdqU4Z0favuHmlwdsEGUDaobXq+WayaTzuO3vO22fn9bZmKIevqwfdBv1zduD
-RKz0X71OM1czU/aQrQs0klZwZWUAaWhGDCoXF6OTxijbJgJ/AaBsDV45ccGwTUWjTvpMtMDQmjDX
-dSS8RLr6oPSe663KR4Vpp6Vw+SCmvIL/RslQCYDqYgTrbKfdbEoXNpB71iecGjxFjwhwx/SfrcBh
-iqiiCFO33W1ES1IFC9cJQ0gB3/5YCAFQko9h9h6aBqh6ch4DgApV/YkUizWtGZ4/B02qnzsMV3r7
-M9SpCxWPgIZuNuhiBKnX5Ctok+h4YHO7YzTt3/IuQC0CAwEAAaOCAfEwggHtMB8GA1UdIwQYMBaA
-FJJha4LhoqCqT+xn8cKj97SAAMHsMB0GA1UdDgQWBBSCxHZhy7SuqMZhSWbwYU0Ib6q0tDAOBgNV
-HQ8BAf8EBAMCBaAwDAYDVR0TAQH/BAIwADAgBgNVHSUEGTAXBggrBgEFBQcDBAYLKwYBBAGyMQED
-BQIwEQYJYIZIAYb4QgEBBAQDAgUgMEYGA1UdIAQ/MD0wOwYMKwYBBAGyMQECAQEBMCswKQYIKwYB
-BQUHAgEWHWh0dHBzOi8vc2VjdXJlLmNvbW9kby5uZXQvQ1BTMF0GA1UdHwRWMFQwUqBQoE6GTGh0
-dHA6Ly9jcmwuY29tb2RvY2EuY29tL0NPTU9ET1NIQTI1NkNsaWVudEF1dGhlbnRpY2F0aW9uYW5k
-U2VjdXJlRW1haWxDQS5jcmwwgZAGCCsGAQUFBwEBBIGDMIGAMFgGCCsGAQUFBzAChkxodHRwOi8v
-Y3J0LmNvbW9kb2NhLmNvbS9DT01PRE9TSEEyNTZDbGllbnRBdXRoZW50aWNhdGlvbmFuZFNlY3Vy
-ZUVtYWlsQ0EuY3J0MCQGCCsGAQUFBzABhhhodHRwOi8vb2NzcC5jb21vZG9jYS5jb20wHgYDVR0R
-BBcwFYETZHdtdzJAaW5mcmFkZWFkLm9yZzANBgkqhkiG9w0BAQsFAAOCAQEAPgH7zYRcLWqReS84
-2qYLpd82LhJzH0ed/GGtb4T/MLjpHKCXk9oBBV81TtllLnljNINPw7pp0Qed4bVf0Kv/r7C9Iumt
-vojju5B4uTu22ZIG3Tb9Ldpc6Jw1B4ui02uzVI/rb/o+soVvojargtwAj9XSGR/ICZonB25Vut6k
-YKesMYZ99eTCwXmr4t7okmoNnnihXj4kyMCYzdlGKupFoDy+Rv2HH/cf8TdVwU3yYlEXNBbF4awP
-fFTFp7edguS6OLcYRo80yPiGYONG92A7OhO5k2G+Sipm3EGQPaa4jhQ3Y9c+VvQXVoVOiPw9D/cv
-GeE6+vmbHDFFQ9Ealsti3jGCA9MwggPPAgEBMIGwMIGbMQswCQYDVQQGEwJHQjEbMBkGA1UECBMS
-R3JlYXRlciBNYW5jaGVzdGVyMRAwDgYDVQQHEwdTYWxmb3JkMRowGAYDVQQKExFDT01PRE8gQ0Eg
-TGltaXRlZDFBMD8GA1UEAxM4Q09NT0RPIFNIQS0yNTYgQ2xpZW50IEF1dGhlbnRpY2F0aW9uIGFu
-ZCBTZWN1cmUgRW1haWwgQ0ECEGoLUFiVUy0EUE3iKBH+GjAwDQYJYIZIAWUDBAIBBQCgggHzMBgG
-CSqGSIb3DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTE3MDQwNTA3MjIyNFowLwYJ
-KoZIhvcNAQkEMSIEII5RoDXy/VdmyJPBQE+61sH8AT9yJceol5HtoUH4uPKwMIHBBgkrBgEEAYI3
-EAQxgbMwgbAwgZsxCzAJBgNVBAYTAkdCMRswGQYDVQQIExJHcmVhdGVyIE1hbmNoZXN0ZXIxEDAO
-BgNVBAcTB1NhbGZvcmQxGjAYBgNVBAoTEUNPTU9ETyBDQSBMaW1pdGVkMUEwPwYDVQQDEzhDT01P
-RE8gU0hBLTI1NiBDbGllbnQgQXV0aGVudGljYXRpb24gYW5kIFNlY3VyZSBFbWFpbCBDQQIQagtQ
-WJVTLQRQTeIoEf4aMDCBwwYLKoZIhvcNAQkQAgsxgbOggbAwgZsxCzAJBgNVBAYTAkdCMRswGQYD
-VQQIExJHcmVhdGVyIE1hbmNoZXN0ZXIxEDAOBgNVBAcTB1NhbGZvcmQxGjAYBgNVBAoTEUNPTU9E
-TyBDQSBMaW1pdGVkMUEwPwYDVQQDEzhDT01PRE8gU0hBLTI1NiBDbGllbnQgQXV0aGVudGljYXRp
-b24gYW5kIFNlY3VyZSBFbWFpbCBDQQIQagtQWJVTLQRQTeIoEf4aMDANBgkqhkiG9w0BAQEFAASC
-AQAKlNIff/GVBF+2qH9qq1DHcvejEd+STMs4NStOfZvqiY2iYku4vzI7OvVqaBaR8zea0B5DjYse
-a0+kpmmfIMA1Q1fmvIjI1c2g9IXHH42CekeDQC3xTscbxaKOIBw8U/t64i7sQwWaGLAbLlmXVu1O
-G21/mrxwRmak0UXTTnTK1W4ehL8MDrbYW4w6rsmr+XylCR5qBF7wYYgvOLQG67yDNKPgjBpSReZE
-7vhxSunrK6QwarFpH4tWFfTDsdWcWstTigF/ENlGbR9WxF5O/KAjN3E0TsmZgWAZoqPzLYt0phEq
-Q2WQqJCdkeB3SzFXfL8KgdqZ9Zp1nUmqUtceSx2SAAAAAAAA
+... and sure enough, on generic kernel (CONFIG_ITANIUM) that yields a nice
+shiny oops at precisely that insn.
 
-
---=-aMgi7qKcxIgw0vBuWKq/--
+We really need tests for uaccess primitives.  That's not a recent regression,
+BTW - it had been that way since 2.3.48-pre2, as far as I can see.
