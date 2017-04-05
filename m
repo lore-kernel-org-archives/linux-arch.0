@@ -1,29 +1,49 @@
-From: Rob Herring <robh+dt@kernel.org>
-Subject: Re: [PATCH V10 00/12] IOMMU probe deferral support
-Date: Tue, 4 Apr 2017 20:23:12 -0500
-Message-ID: <CAL_JsqJH9C9sNGBSLH88bJ=uKF7RibHDAUZUW9M2xeO2AM-FUw@mail.gmail.com>
-References: <1489086061-9356-1-git-send-email-sricharan@codeaurora.org> <1491301105-5274-1-git-send-email-sricharan@codeaurora.org>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: ia64 exceptions (Re: [RFC][CFT][PATCHSET v1] uaccess unification)
+Date: Wed, 5 Apr 2017 06:05:08 +0100
+Message-ID: <20170405050507.GQ29622@ZenIV.linux.org.uk>
+References: <20170329055706.GH29622@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:60154 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753794AbdDEBXj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 4 Apr 2017 21:23:39 -0400
-In-Reply-To: <1491301105-5274-1-git-send-email-sricharan@codeaurora.org>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:55756 "EHLO
+        ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751096AbdDEFFN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Apr 2017 01:05:13 -0400
+Content-Disposition: inline
+In-Reply-To: <20170329055706.GH29622@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sricharan R <sricharan@codeaurora.org>
-Cc: Robin Murphy <robin.murphy@arm.com>, Will Deacon <will.deacon@arm.com>, Joerg Roedel <joro@8bytes.org>, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Linux IOMMU <iommu@lists.linux-foundation.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-arm-msm <linux-arm-msm@vger.kernel.org>, Marek Szyprowski <m.szyprowski@samsung.com>, "bhelgaas@google.com" <bhelgaas@google.com>, "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, "linux-acpi@vger.kernel.org" <linux-acpi@vger.kernel.org>, Tomasz Nowicki <tn@semihalf.com>, Hanjun Guo <hanjun.guo@linaro.org>, Sinan Kaya <okaya@codeaurora.org>, Frank Rowand <frowand.list@gmail.com>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, linux-kernel@vger.kernel
+To: linux-ia64@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>
 
-On Tue, Apr 4, 2017 at 5:18 AM, Sricharan R <sricharan@codeaurora.org> wrote:
-> This series calls the dma ops configuration for the devices
-> at a generic place so that it works for all busses.
-> The dma_configure_ops for a device is now called during
-> the device_attach callback just before the probe of the
-> bus/driver is called. Similarly dma_deconfigure is called during
-> device/driver_detach path.
+On Wed, Mar 29, 2017 at 06:57:06AM +0100, Al Viro wrote:
 
-For patches 3, 4, 6, 7, 8:
+> And again, metag and ia64 parts are simply not there - both architectures
+> zero-pad in __copy_from_user_inatomic() and that really needs fixing.
+> In case of metag there's __copy_to_user() breakage as well, AFAICS, and
+> I've been unable to find any documentation describing the architecture
+> wrt exceptions, and that part is apparently fairly weird.  In case of
+> ia64...  I can test mckinley side of things, but not the generic __copy_user()
+> and ia64 is about as weird as it gets.  With no reliable emulator, at that...
+> So these two are up to respective maintainers.
 
-Acked-by: Rob Herring <robh@kernel.org>
+Speaking of ia64: copy_user.S contains the following oddity:
+2:
+        EX(.failure_in3,(p16) ld8 val1[0]=[src1],16)
+(p16)   ld8 val2[0]=[src2],16
+
+src1 is 16-byte aligned, src2 is src1 + 8.
+
+What guarantees that we can't race with e.g. TLB shootdown from a thread on
+another CPU, ending up with the second insn taking a fault and oopsing?
+
+AFAICS, other places where we have such pairs of loads or stores (e.g.
+EX(.ex_handler, (p16)   ld8     r34=[src0],16)
+EK(.ex_handler, (p16)   ld8     r38=[src1],16)
+in the memcpy_mck.S counterpart of that code) both have exception table
+entries associated with them.
+
+Is that one intentional and correct for some subtle reason, or is it a very
+narrow race on the hardware nobody gives a damn anymore?  It is pre-mckinley
+stuff, after all...
