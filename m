@@ -1,78 +1,222 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:59110 "EHLO
-        ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753735AbdDEIJC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Apr 2017 04:09:02 -0400
-Date: Wed, 5 Apr 2017 09:08:57 +0100
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: ia64 exceptions (Re: [RFC][CFT][PATCHSET v1] uaccess unification)
-Message-ID: <20170405080857.GR29622@ZenIV.linux.org.uk>
-References: <20170329055706.GH29622@ZenIV.linux.org.uk>
- <20170405050507.GQ29622@ZenIV.linux.org.uk>
+Received: from foss.arm.com ([217.140.101.70]:56204 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752916AbdDEKD7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 5 Apr 2017 06:03:59 -0400
+Date: Wed, 5 Apr 2017 11:04:25 +0100
+From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+Subject: Re: [PATCH V10 00/12] IOMMU probe deferral support
+Message-ID: <20170405100425.GA13290@red-moon>
+References: <1489086061-9356-1-git-send-email-sricharan@codeaurora.org>
+ <1491301105-5274-1-git-send-email-sricharan@codeaurora.org>
+ <b0f3a1ec-ea13-7465-1d44-9191e3e803ef@arm.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20170405050507.GQ29622@ZenIV.linux.org.uk>
+In-Reply-To: <b0f3a1ec-ea13-7465-1d44-9191e3e803ef@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-ia64@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>
-Message-ID: <20170405080857.k9p7iSI1FlRf0kzf3ylI5uWWtrfFiPnQzqQa2zftKcM@z>
+To: Robin Murphy <robin.murphy@arm.com>
+Cc: Sricharan R <sricharan@codeaurora.org>, will.deacon@arm.com, joro@8bytes.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arm-msm@vger.kernel.org, m.szyprowski@samsung.com, bhelgaas@google.com, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, tn@semihalf.com, hanjun.guo@linaro.org, okaya@codeaurora.org, robh+dt@kernel.org, frowand.list@gmail.com, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, sudeep.holla@arm.com, rjw@rjwysocki.net, lenb@kernel.org, catalin.marinas@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, gregkh@linuxfoundation.org
+Message-ID: <20170405100425.4_GOA6MKKS3e5ZtS_6fjC1getd0RJrt9l3eXTfba3n4@z>
 
-On Wed, Apr 05, 2017 at 06:05:08AM +0100, Al Viro wrote:
-
-> Speaking of ia64: copy_user.S contains the following oddity:
-> 2:
->         EX(.failure_in3,(p16) ld8 val1[0]=[src1],16)
-> (p16)   ld8 val2[0]=[src2],16
+On Tue, Apr 04, 2017 at 01:49:29PM +0100, Robin Murphy wrote:
+> On 04/04/17 11:18, Sricharan R wrote:
+> > This series calls the dma ops configuration for the devices
+> > at a generic place so that it works for all busses.
+> > The dma_configure_ops for a device is now called during
+> > the device_attach callback just before the probe of the
+> > bus/driver is called. Similarly dma_deconfigure is called during
+> > device/driver_detach path.
+> > 
+> > pci_bus_add_devices    (platform/amba)(_device_create/driver_register)
+> >        |                         |
+> > pci_bus_add_device     (device_add/driver_register)
+> >        |                         |
+> > device_attach           device_initial_probe
+> >        |                         |
+> > __device_attach_driver    __device_attach_driver
+> >        |
+> > driver_probe_device
+> >        |
+> > really_probe
+> >        |
+> > dma_configure
+> > 
+> > Similarly on the device/driver_unregister path __device_release_driver is
+> > called which inturn calls dma_deconfigure.
+> > 
+> > Rebased the series against mainline 4.11-rc5. Applies and builds cleanly
+> > against mainline and linux-next, iommu-next.
+> >   
+> > * Tested with platform and pci devices for probe deferral
+> >   and reprobe on arm64 based platform.
 > 
-> src1 is 16-byte aligned, src2 is src1 + 8.
+> Sricharan, thanks for keeping this going - I really think we're there now :)
+
+FYI, I re-tested this series with ACPI and tried a merge with IORT
+patches queued for 4.12 (via arm64) and there does not seem to be any
+merge conflicts so it should be ready to go.
+
+Thanks,
+Lorenzo
+
+> Joerg, I realise that at -rc5 time is getting on a bit already, but even
+> the non-vintage parts of the series are pretty mature now so it would be
+> nice to at least give it a spin in -next. If you don't quite share my
+> confidence for landing it in 4.12, please consider it for early next
+> cycle to get a full workout.
 > 
-> What guarantees that we can't race with e.g. TLB shootdown from a thread on
-> another CPU, ending up with the second insn taking a fault and oopsing?
+> Thanks,
+> Robin.
 > 
-> AFAICS, other places where we have such pairs of loads or stores (e.g.
-> EX(.ex_handler, (p16)   ld8     r34=[src0],16)
-> EK(.ex_handler, (p16)   ld8     r38=[src1],16)
-> in the memcpy_mck.S counterpart of that code) both have exception table
-> entries associated with them.
+> > Previous post of this series [8]. 
+> > 
+> > Please note that, i have kept the tested/acked tags intact from V8
+> > because V9/10 were for more fixes that was added, so the original
+> > tags that was given for the functional testing remains the same.
+> > 
+> >  [V10]
+> >      * Rebased on top of 4.11-rc5.
+> >  
+> >      * Fixed coherent_dma_mask 64bit overflow issue [8]
+> >        for OF. The fix for OF was added as a separate
+> >        patch#6, since the issue is true even without probe deferral,
+> >        but gets reproduced with the probe deferral series.
+> >        Added Lorenzo's ACPI fix for coherent_dma_mask overflow
+> >        and the fix for dma_configure getting called more than
+> >        once for the same device.
+> > 
+> >      * Also fixed an build issue caught by kbuild robot for
+> >        m68k arch. The issue was dma_(de)configure was not
+> >        getting defined for !CONFIG_HAS_DMA, so fixed that as well.
+> > 
+> >  [V9]
+> >      * Rebased on top of 4.11-rc1.
+> > 
+> >      * Merged Robin's fixes for legacy binding issue,
+> >        pci devices with no iommu-map property and deferencing
+> >        of_iommu_table after init.
+> >      
+> >  [V8]
+> >      * Picked up all the acks and tested tags from Marek and
+> >        Hanjun for DT and ACPI patches respectively, since
+> >        no functional changes was done.
+> > 
+> >      * Addressed Minor comments Sinan and Bjorn.
+> > 
+> >      * Added Robin's fix for fixing the deferencing NULL for
+> >        of_iommu_table after init in patch #2.
+> > 
+> >      * Rebased it on top of linux-next
+> > 
+> >  [V7]
+> >      * Updated the subject and commit log for patch #6 as per
+> >        comments from Lorenzo. No functional changes.
+> > 
+> >  [V6]
+> >      * Fixed a bug in dma_configure function pointed out by
+> >        Robin.
+> >      * Reordered the patches as per comments from Robin and
+> >        Lorenzo.
+> >      * Added Tags.
+> > 
+> >  [V5]
+> >      * Reworked the pci configuration code hanging outside and
+> >        pushed it to dma_configure as in PATCH#5,6,7.
+> >        Also added a couple of patches that Lorenzo provided for
+> >        correcting the Probe deferring mechanism in case of
+> >        ACPI devices from here [5].
+> > 
+> >  [V4]
+> >      * Took the reworked patches [2] from Robin's branch and
+> >        rebased on top of Lorenzo's ACPI IORT ARM support series [3].
+> > 
+> >      * Added the patches for moving the dma ops configuration of
+> >        acpi based devices to probe time as well.
+> >  [V3]
+> >      * Removed the patch to split dma_masks/dma_ops configuration
+> >        separately based on review comments that both masks and ops are
+> >        required only during the device probe time.
+> > 
+> >      * Reworked the series based on Generic DT bindings series.
+> > 
+> >      * Added call to iommu's remove_device in the cleanup path for arm and
+> >        arm64.
+> > 
+> >      * Removed the notifier trick in arm64 to handle early device
+> >        registration.
+> > 
+> >      * Added reset of dma_ops in cleanup path for arm based on comments.
+> > 
+> >      * Fixed the pci_iommu_configure path and tested with PCI device as
+> >        well.
+> >  
+> >      * Fixed a bug to return the correct iommu_ops from patch 7 [4] in
+> >        last post.
+> > 
+> >      * Fixed few other cosmetic comments.
+> >   
+> >  [V2]
+> >      * Updated the Initial post to call dma_configure/deconfigure from
+> >        generic code
+> >  
+> >      * Added iommu add_device callback from of_iommu_configure path
+> > 
+> >  [V1]
+> >      * Initial post from Laurent Pinchart [1]
+> > 
+> > [1] http://lists.linuxfoundation.org/pipermail/iommu/2015-May/013016.html
+> > [2] http://www.linux-arm.org/git?p=linux-rm.git;a=shortlog;h=refs/heads/iommu/defer
+> > [3] https://lkml.org/lkml/2016/11/21/141
+> > [4] https://www.mail-archive.com/iommu@xxxxxxxxxxxxxxxxxxxxxxxxxx/msg13940.html
+> > [5] git://git.kernel.org/pub/scm/linux/kernel/git/lpieralisi/linux.git iommu/probe-deferral
+> > [6] http://www.spinics.net/lists/linux-pci/msg57992.html
+> > [7] https://www.spinics.net/lists/arm-kernel/msg556209.html
+> > [8] http://patchwork.ozlabs.org/patch/743898/
+> > 
+> > Laurent Pinchart (3):
+> >   of: dma: Move range size workaround to of_dma_get_range()
+> >   of: dma: Make of_dma_deconfigure() public
+> >   iommu: of: Handle IOMMU lookup failure with deferred probing or error
+> > 
+> > Lorenzo Pieralisi (2):
+> >   ACPI/IORT: Add function to check SMMUs drivers presence
+> >   ACPI/IORT: Remove linker section for IORT entries probing
+> > 
+> > Robin Murphy (3):
+> >   iommu/of: Refactor of_iommu_configure() for error handling
+> >   iommu/of: Prepare for deferred IOMMU configuration
+> >   iommu/arm-smmu: Clean up early-probing workarounds
+> > 
+> > Sricharan R (4):
+> >   of: device: Fix overflow of coherent_dma_mask
+> >   of/acpi: Configure dma operations at probe time for platform/amba/pci
+> >     bus devices
+> >   drivers: acpi: Handle IOMMU lookup failure with deferred probing or
+> >     error
+> >   arm64: dma-mapping: Remove the notifier trick to handle early setting
+> >     of dma_ops
+> > 
+> >  arch/arm64/mm/dma-mapping.c       | 142 +++++---------------------------------
+> >  drivers/acpi/arm64/iort.c         |  48 ++++++++++++-
+> >  drivers/acpi/glue.c               |   5 --
+> >  drivers/acpi/scan.c               |  11 ++-
+> >  drivers/base/dd.c                 |   9 +++
+> >  drivers/base/dma-mapping.c        |  41 +++++++++++
+> >  drivers/iommu/arm-smmu-v3.c       |  46 +-----------
+> >  drivers/iommu/arm-smmu.c          | 110 +++++++++++++----------------
+> >  drivers/iommu/of_iommu.c          | 126 ++++++++++++++++++++++++---------
+> >  drivers/of/address.c              |  20 +++++-
+> >  drivers/of/device.c               |  36 +++++-----
+> >  drivers/of/platform.c             |  10 +--
+> >  drivers/pci/probe.c               |  28 --------
+> >  include/acpi/acpi_bus.h           |   2 +-
+> >  include/asm-generic/vmlinux.lds.h |   1 -
+> >  include/linux/acpi.h              |   7 +-
+> >  include/linux/acpi_iort.h         |   3 -
+> >  include/linux/dma-mapping.h       |  12 ++++
+> >  include/linux/of_device.h         |  10 ++-
+> >  19 files changed, 329 insertions(+), 338 deletions(-)
+> > 
 > 
-> Is that one intentional and correct for some subtle reason, or is it a very
-> narrow race on the hardware nobody gives a damn anymore?  It is pre-mckinley
-> stuff, after all...
-
-Actually, the piece immediately after that one is worse.  By that point,
-we have
-	* checked that len is large enough to be worth bothering with word
-copies.  Fine.
-	* checked that src and dst have the same remainder modulo 8.
-	* copied until src is a multiple of 16, incrementing src and dst
-by the same amount.
-	* prepared for copying in multiples of 16 bytes
-	* set src2 and dst2 8 bytes past src1 and dst1 resp.
-and now we have a pipelined loop with
-        EX(.failure_in3,(p16) ld8 val1[0]=[src1],16)
-(p16)   ld8 val2[0]=[src2],16
-
-        EX(.failure_out, (EPI)  st8 [dst1]=val1[PIPE_DEPTH-1],16)
-(EPI)   st8 [dst2]=val2[PIPE_DEPTH-1],16
-for body.  Now, consider the following case:
-
-	* to is 8 bytes before the end of user page, next page is unmapped
-	* from is at the beginning of kernel page
-	* len is simply PAGE_SIZE
-
-and we call copy_to_user().  All the preparation work won't read or write
-anything - all alignments are fine.  src1 and src2 are kernel page and
-kernel page + 8 resp.; dst1 is 8 bytes before the end of user page, dst2
-is at the beginning of unmapped user page.  No loads are going to fail;
-the first store into dst1 won't fail either.  The *second* store - one to
-dst2 will not just fail, it'll oops.
-
-<goes to test>
-
-... and sure enough, on generic kernel (CONFIG_ITANIUM) that yields a nice
-shiny oops at precisely that insn.
-
-We really need tests for uaccess primitives.  That's not a recent regression,
-BTW - it had been that way since 2.3.48-pre2, as far as I can see.
