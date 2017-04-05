@@ -1,40 +1,29 @@
-From: Wesley Terpstra <wesley@sifive.com>
-Subject: Re: PCI enumeration without a BIOS
-Date: Tue, 4 Apr 2017 16:17:22 -0700
-Message-ID: <CAMgXwTgOw_ANwTGYSSo7687dgW84_mweja3dFkziHwB5izZPfQ@mail.gmail.com>
-References: <CAMgXwTjX1j2dhi7n+APNef0di5oo+iK57Cq0S+3NdMtQzAc=Vw@mail.gmail.com>
- <20170404205617.GG27692@bhelgaas-glaptop.roam.corp.google.com> <CAMgXwTgacUcfzinQKuf8htwxFDJ_GvUN-R0zj7sNbqnpJF3QBA@mail.gmail.com>
+From: Rob Herring <robh+dt@kernel.org>
+Subject: Re: [PATCH V10 00/12] IOMMU probe deferral support
+Date: Tue, 4 Apr 2017 20:23:12 -0500
+Message-ID: <CAL_JsqJH9C9sNGBSLH88bJ=uKF7RibHDAUZUW9M2xeO2AM-FUw@mail.gmail.com>
+References: <1489086061-9356-1-git-send-email-sricharan@codeaurora.org> <1491301105-5274-1-git-send-email-sricharan@codeaurora.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-pci-owner@vger.kernel.org>
-In-Reply-To: <CAMgXwTgacUcfzinQKuf8htwxFDJ_GvUN-R0zj7sNbqnpJF3QBA@mail.gmail.com>
-Sender: linux-pci-owner@vger.kernel.org
-To: Bjorn Helgaas <helgaas@kernel.org>
-Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.kernel.org ([198.145.29.136]:60154 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1753794AbdDEBXj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 4 Apr 2017 21:23:39 -0400
+In-Reply-To: <1491301105-5274-1-git-send-email-sricharan@codeaurora.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Sricharan R <sricharan@codeaurora.org>
+Cc: Robin Murphy <robin.murphy@arm.com>, Will Deacon <will.deacon@arm.com>, Joerg Roedel <joro@8bytes.org>, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Linux IOMMU <iommu@lists.linux-foundation.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-arm-msm <linux-arm-msm@vger.kernel.org>, Marek Szyprowski <m.szyprowski@samsung.com>, "bhelgaas@google.com" <bhelgaas@google.com>, "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, "linux-acpi@vger.kernel.org" <linux-acpi@vger.kernel.org>, Tomasz Nowicki <tn@semihalf.com>, Hanjun Guo <hanjun.guo@linaro.org>, Sinan Kaya <okaya@codeaurora.org>, Frank Rowand <frowand.list@gmail.com>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, linux-kernel@vger.kernel
 
-On Tue, Apr 4, 2017 at 4:00 PM, Wesley Terpstra <wesley@sifive.com> wrote:
->> Yeah, everything seems mostly working.  The "invalid BAR" things
->> *could* be an issue -- those registers are not what the PCI spec says
->> they should be.
->
-> The devices in question are:
-> 04:00.0 Ethernet controller: Realtek Semiconductor Co., Ltd.
-> RTL8111/8168/8411 PCI Express Gigabit Ethernet Controller (rev 06)
-> 06:00.0 SATA controller: Marvell Technology Group Ltd. 88SE9230 PCIe
-> SATA 6Gb/s Controller (rev 11)
->
-> I am going to plug them in to an Intel machine with 4.11 and see if I
-> get the same warnings.
+On Tue, Apr 4, 2017 at 5:18 AM, Sricharan R <sricharan@codeaurora.org> wrote:
+> This series calls the dma ops configuration for the devices
+> at a generic place so that it works for all busses.
+> The dma_configure_ops for a device is now called during
+> the device_attach callback just before the probe of the
+> bus/driver is called. Similarly dma_deconfigure is called during
+> device/driver_detach path.
 
-What the devil! I just booted the riscv machine again and the
-"Firmware Bug" warnings were gone. All the other warnings remain the
-same.
+For patches 3, 4, 6, 7, 8:
 
-I've tried to reproduce it, but I can't. It's possible that I got the
-cards into a bad state from reprogramming my FPGA repeatedly with
-sometimes bad firmware. After the cold start that made the warnings go
-away, I can't get them back. I'm going to chalk those warnings up to
-"only happens when exposed to a bad processor image".
-
-Thanks again for your help.
+Acked-by: Rob Herring <robh@kernel.org>
