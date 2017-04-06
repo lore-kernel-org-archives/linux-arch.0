@@ -1,82 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga04.intel.com ([192.55.52.120]:48126 "EHLO mga04.intel.com"
+Received: from mga03.intel.com ([134.134.136.65]:40673 "EHLO mga03.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S934331AbdDFOBQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 6 Apr 2017 10:01:16 -0400
+        id S934970AbdDFOBj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 6 Apr 2017 10:01:39 -0400
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 4/8] x86/mm: Add sync_global_pgds() for configuration with 5-level paging
-Date: Thu,  6 Apr 2017 17:01:02 +0300
-Message-ID: <20170406140106.78087-5-kirill.shutemov@linux.intel.com>
-In-Reply-To: <20170406140106.78087-1-kirill.shutemov@linux.intel.com>
-References: <20170406140106.78087-1-kirill.shutemov@linux.intel.com>
+Subject: [PATCH 0/8] x86: 5-level paging enabling for v4.12, Part 4
+Date: Thu,  6 Apr 2017 17:00:58 +0300
+Message-ID: <20170406140106.78087-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20170406140102.HWXsbXZjCpvgY6bhiLyMHzZl3YbO12KX7aek6G6MCG4@z>
+Message-ID: <20170406140058.Zs3UhF_cbf5RyuQxEIwurfcDIQSM2795yyKnbCfm1I0@z>
 
-This basically restores slightly modified version of original
-sync_global_pgds() which we had before folded p4d was introduced.
+Here's the fourth and the last bunch of of patches that brings initial
+5-level paging enabling.
 
-The only modification is protection against 'address' overflow.
+Please review and consider applying.
 
-Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
----
- arch/x86/mm/init_64.c | 35 +++++++++++++++++++++++++++++++++++
- 1 file changed, 35 insertions(+)
+As Ingo requested I've tried to rewrite assembly parts of boot process
+into C before bringing 5-level paging support. The only part where I
+succeed is startup_64 in arch/x86/kernel/head_64.S. Most of the logic is
+now in C.
 
-diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
-index a242139df8fe..0b62b13e8655 100644
---- a/arch/x86/mm/init_64.c
-+++ b/arch/x86/mm/init_64.c
-@@ -92,6 +92,40 @@ __setup("noexec32=", nonx32_setup);
-  * When memory was added make sure all the processes MM have
-  * suitable PGD entries in the local PGD level page.
-  */
-+#ifdef CONFIG_X86_5LEVEL
-+void sync_global_pgds(unsigned long start, unsigned long end)
-+{
-+	unsigned long address;
-+
-+	for (address = start; address <= end && address >= start; address += PGDIR_SIZE) {
-+		const pgd_t *pgd_ref = pgd_offset_k(address);
-+		struct page *page;
-+
-+		if (pgd_none(*pgd_ref))
-+			continue;
-+
-+		spin_lock(&pgd_lock);
-+		list_for_each_entry(page, &pgd_list, lru) {
-+			pgd_t *pgd;
-+			spinlock_t *pgt_lock;
-+
-+			pgd = (pgd_t *)page_address(page) + pgd_index(address);
-+			/* the pgt_lock only for Xen */
-+			pgt_lock = &pgd_page_get_mm(page)->page_table_lock;
-+			spin_lock(pgt_lock);
-+
-+			if (!pgd_none(*pgd_ref) && !pgd_none(*pgd))
-+				BUG_ON(pgd_page_vaddr(*pgd) != pgd_page_vaddr(*pgd_ref));
-+
-+			if (pgd_none(*pgd))
-+				set_pgd(pgd, *pgd_ref);
-+
-+			spin_unlock(pgt_lock);
-+		}
-+		spin_unlock(&pgd_lock);
-+	}
-+}
-+#else
- void sync_global_pgds(unsigned long start, unsigned long end)
- {
- 	unsigned long address;
-@@ -135,6 +169,7 @@ void sync_global_pgds(unsigned long start, unsigned long end)
- 		spin_unlock(&pgd_lock);
- 	}
- }
-+#endif
- 
- /*
-  * NOTE: This function is marked __ref because it calls __init function
+I failed to rewrite startup_32 in arch/x86/boot/compressed/head_64.S in C.
+The code I need to modify in still in 32-bit mode, but if I would move it
+to C it will be compiled as 64-bit. I've tried to move it into separate
+translation unit and compile it with -m32, but then linking phase fails
+due to type mismatch of object files.
+
+I also have trouble with rewriting secondary_startup_64. Stack breaks as
+soon as we switch to new page tables when onlining secondary CPUs. I don't
+know how to get around this.
+
+I hope it's not show-stopper.
+
+If you know how to get around these issues, let me know.
+
+Kirill A. Shutemov (8):
+  x86/boot/64: Rewrite startup_64 in C
+  x86/boot/64: Rename init_level4_pgt and early_level4_pgt
+  x86/boot/64: Add support of additional page table level during early
+    boot
+  x86/mm: Add sync_global_pgds() for configuration with 5-level paging
+  x86/mm: Make kernel_physical_mapping_init() support 5-level paging
+  x86/mm: Add support for 5-level paging for KASLR
+  x86: Enable 5-level paging support
+  x86/mm: Allow to have userspace mappings above 47-bits
+
+ arch/x86/Kconfig                            |   5 +
+ arch/x86/boot/compressed/head_64.S          |  23 ++++-
+ arch/x86/include/asm/elf.h                  |   2 +-
+ arch/x86/include/asm/mpx.h                  |   9 ++
+ arch/x86/include/asm/pgtable.h              |   2 +-
+ arch/x86/include/asm/pgtable_64.h           |   6 +-
+ arch/x86/include/asm/processor.h            |   9 +-
+ arch/x86/include/uapi/asm/processor-flags.h |   2 +
+ arch/x86/kernel/espfix_64.c                 |   2 +-
+ arch/x86/kernel/head64.c                    | 137 +++++++++++++++++++++++++---
+ arch/x86/kernel/head_64.S                   | 132 ++++++---------------------
+ arch/x86/kernel/machine_kexec_64.c          |   2 +-
+ arch/x86/kernel/sys_x86_64.c                |  28 +++++-
+ arch/x86/mm/dump_pagetables.c               |   2 +-
+ arch/x86/mm/hugetlbpage.c                   |  27 +++++-
+ arch/x86/mm/init_64.c                       | 104 +++++++++++++++++++--
+ arch/x86/mm/kasan_init_64.c                 |  12 +--
+ arch/x86/mm/kaslr.c                         |  81 ++++++++++++----
+ arch/x86/mm/mmap.c                          |   2 +-
+ arch/x86/mm/mpx.c                           |  33 ++++++-
+ arch/x86/realmode/init.c                    |   2 +-
+ arch/x86/xen/Kconfig                        |   1 +
+ arch/x86/xen/mmu.c                          |  18 ++--
+ arch/x86/xen/xen-pvh.S                      |   2 +-
+ 24 files changed, 463 insertions(+), 180 deletions(-)
+
 -- 
 2.11.0
