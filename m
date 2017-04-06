@@ -1,70 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f66.google.com ([74.125.83.66]:33543 "EHLO
-        mail-pg0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1756352AbdDFHBd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Apr 2017 03:01:33 -0400
-Subject: Re: [PATCH V10 06/12] of: device: Fix overflow of coherent_dma_mask
+Received: from smtp.codeaurora.org ([198.145.29.96]:48846 "EHLO
+        smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S934298AbdDFJfr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Apr 2017 05:35:47 -0400
+Subject: Re: [PATCH V10 03/12] of: dma: Move range size workaround to
+ of_dma_get_range()
 References: <1489086061-9356-1-git-send-email-sricharan@codeaurora.org>
  <1491301105-5274-1-git-send-email-sricharan@codeaurora.org>
- <1491301105-5274-7-git-send-email-sricharan@codeaurora.org>
-From: Frank Rowand <frowand.list@gmail.com>
-Message-ID: <58E5E7B7.1050400@gmail.com>
-Date: Thu, 6 Apr 2017 00:01:11 -0700
+ <1491301105-5274-4-git-send-email-sricharan@codeaurora.org>
+ <58E5DF13.2020700@gmail.com>
+From: Sricharan R <sricharan@codeaurora.org>
+Message-ID: <4b56ef2a-3ede-6093-69d9-576b6e73ea44@codeaurora.org>
+Date: Thu, 6 Apr 2017 15:05:31 +0530
 MIME-Version: 1.0
-In-Reply-To: <1491301105-5274-7-git-send-email-sricharan@codeaurora.org>
-Content-Type: text/plain; charset=windows-1252
+In-Reply-To: <58E5DF13.2020700@gmail.com>
+Content-Type: text/plain; charset=windows-1252; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sricharan R <sricharan@codeaurora.org>, robin.murphy@arm.com, will.deacon@arm.com, joro@8bytes.org, lorenzo.pieralisi@arm.com, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arm-msm@vger.kernel.org, m.szyprowski@samsung.com, bhelgaas@google.com, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, tn@semihalf.com, hanjun.guo@linaro.org, okaya@codeaurora.org, robh+dt@kernel.org, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, sudeep.holla@arm.com, rjw@rjwysocki.net, lenb@kernel.org, catalin.marinas@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, gregkh@linuxfoundation.org
-Message-ID: <20170406070111.cDmgujl4wfawVY_8hI38SfUT6-rJcPaiF_IPTv2ZMHE@z>
+To: Frank Rowand <frowand.list@gmail.com>, robin.murphy@arm.com, will.deacon@arm.com, joro@8bytes.org, lorenzo.pieralisi@arm.com, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arm-msm@vger.kernel.org, m.szyprowski@samsung.com, bhelgaas@google.com, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, tn@semihalf.com, hanjun.guo@linaro.org, okaya@codeaurora.org, robh+dt@kernel.org, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, sudeep.holla@arm.com, rjw@rjwysocki.net, lenb@kernel.org, catalin.marinas@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, gregkh@linuxfoundation.org
+Message-ID: <20170406093531.nY2muPswnk6x5243TyN7wJREtlVsxYSFUL_wYwAPKUk@z>
 
-On 04/04/17 03:18, Sricharan R wrote:
-> Size of the dma-range is calculated as coherent_dma_mask + 1
-> and passed to arch_setup_dma_ops further. It overflows when
-> the coherent_dma_mask is set for full 64 bits 0xFFFFFFFFFFFFFFFF,
-> resulting in size getting passed as 0 wrongly. Fix this by
-> passsing in max(mask, mask + 1). Note that in this case
-> when the mask is set to full 64bits, we will be passing the mask
-> itself to arch_setup_dma_ops instead of the size. The real fix
-> for this should be to make arch_setup_dma_ops receive the
-> mask and handle it, to be done in the future.
-> 
-> Signed-off-by: Sricharan R <sricharan@codeaurora.org>
-> ---
->  drivers/of/device.c | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
-> 
-> diff --git a/drivers/of/device.c b/drivers/of/device.c
-> index c17c19d..c2ae6bb 100644
-> --- a/drivers/of/device.c
-> +++ b/drivers/of/device.c
-> @@ -107,7 +107,7 @@ void of_dma_configure(struct device *dev, struct device_node *np)
->  	ret = of_dma_get_range(np, &dma_addr, &paddr, &size);
->  	if (ret < 0) {
->  		dma_addr = offset = 0;
-> -		size = dev->coherent_dma_mask + 1;
-> +		size = max(dev->coherent_dma_mask, dev->coherent_dma_mask + 1);
->  	} else {
->  		offset = PFN_DOWN(paddr - dma_addr);
->  		dev_dbg(dev, "dma_pfn_offset(%#08lx)\n", offset);
-> 
+Hi Frank,
 
-NACK.
+On 4/6/2017 11:54 AM, Frank Rowand wrote:
+> On 04/04/17 03:18, Sricharan R wrote:
+>> From: Laurent Pinchart <laurent.pinchart+renesas@ideasonboard.com>
+>>
+>> Invalid dma-ranges values should be worked around when retrieving the
+>> DMA range in of_dma_get_range(), not by all callers of the function.
+>> This isn't much of a problem now that we have a single caller, but that
+>> situation will change when moving DMA configuration to device probe
+>> time.
+>
+> Please drop this patch from the series.  I just now sent Rob an
+> alternative that reflects other changes that have occurred since
+> this patch series was first created many, many moons ago
+> (https://lkml.org/lkml/2017/4/6/53).
 
-Passing an invalid size to arch_setup_dma_ops() is only part of the problem.
-size is also used in of_dma_configure() before calling arch_setup_dma_ops():
+ok, would drop this.
 
-        dev->coherent_dma_mask = min(dev->coherent_dma_mask,
-                                     DMA_BIT_MASK(ilog2(dma_addr + size)));
-        *dev->dma_mask = min((*dev->dma_mask),
-                             DMA_BIT_MASK(ilog2(dma_addr + size)));
+Regards,
+  Sricharan
 
-which would be incorrect for size == 0xffffffffffffffffULL when
-dma_addr != 0.  So the proposed fix really is not papering over
-the base problem very well.
-
-I agree that the proper solution involves passing a mask instead
-of a size to arch_setup_dma_ops().
-
--Frank
+-- 
+"QUALCOMM INDIA, on behalf of Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum, hosted by The Linux Foundation
