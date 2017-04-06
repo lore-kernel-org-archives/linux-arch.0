@@ -1,102 +1,116 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC][PATCH] spin loop arch primitives for busy waiting
-Date: Thu, 6 Apr 2017 21:23:42 +0200
-Message-ID: <20170406192342.GC3093@worktop>
-References: <20170404095001.664718b8@roar.ozlabs.ibm.com>
- <CA+55aFzdUMZHzXtn9PyhJg7GjYNQ5fy6=LzBNJx==Ab=U=YYjw@mail.gmail.com>
- <20170404130233.1f45115b@roar.ozlabs.ibm.com>
- <20170405.070157.871721909352646302.davem@davemloft.net>
- <20170406105958.196c6977@roar.ozlabs.ibm.com>
- <20170406141352.GF18204@arm.com>
- <CA+55aFwgNhF=QUKMKLc9TfQ=cgF2mvMEVx9hJms4wQqCsib9Rw@mail.gmail.com>
- <20170406163651.hj7apd63uxupgdb3@hirez.programming.kicks-ass.net>
- <CA+55aFzTn9e=F68SOtEvvZLdT6zCj9+gLc-OS7qhDKdM7zaasA@mail.gmail.com>
+From: Frank Rowand <frowand.list@gmail.com>
+Subject: Re: [PATCH V10 06/12] of: device: Fix overflow of coherent_dma_mask
+Date: Thu, 6 Apr 2017 12:24:12 -0700
+Message-ID: <58E695DC.7010808@gmail.com>
+References: <1489086061-9356-1-git-send-email-sricharan@codeaurora.org>
+ <1491301105-5274-1-git-send-email-sricharan@codeaurora.org>
+ <1491301105-5274-7-git-send-email-sricharan@codeaurora.org>
+ <58E5E7B7.1050400@gmail.com> <b081f333-084d-ffa5-635f-f7f1c0232ac3@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:49712 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752227AbdDFTYA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Apr 2017 15:24:00 -0400
-Content-Disposition: inline
-In-Reply-To: <CA+55aFzTn9e=F68SOtEvvZLdT6zCj9+gLc-OS7qhDKdM7zaasA@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Will Deacon <will.deacon@arm.com>, Nicholas Piggin <npiggin@gmail.com>, David Miller <davem@davemloft.net>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Anton Blanchard <anton@samba.org>, linuxppc-dev list <linuxppc-dev@ozlabs.org>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-msm-owner@vger.kernel.org>
+In-Reply-To: <b081f333-084d-ffa5-635f-f7f1c0232ac3@arm.com>
+Sender: linux-arm-msm-owner@vger.kernel.org
+To: Robin Murphy <robin.murphy@arm.com>, Sricharan R <sricharan@codeaurora.org>, will.deacon@arm.com, joro@8bytes.org, lorenzo.pieralisi@arm.com, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arm-msm@vger.kernel.org, m.szyprowski@samsung.com, bhelgaas@google.com, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, tn@semihalf.com, hanjun.guo@linaro.org, okaya@codeaurora.org, robh+dt@kernel.org, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, sudeep.holla@arm.com, rjw@rjwysocki.net, lenb@kernel.org, catalin.marinas@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, gregkh@linuxfoundation.org
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Apr 06, 2017 at 10:31:46AM -0700, Linus Torvalds wrote:
-> And we'd probably want to make it even more strict, in that soem mwait
-> implementations might simply not be very good for short waits.
-
-Yeah, we need to find something that works; assuming its beneficial at
-all on modern chips.
-
-> > But it builds and boots, no clue if its better or worse. Changing mwait
-> > eax to 0 would give us C1 and might also be worth a try I suppose.
+On 04/06/17 03:24, Robin Murphy wrote:
+> On 06/04/17 08:01, Frank Rowand wrote:
+>> On 04/04/17 03:18, Sricharan R wrote:
+>>> Size of the dma-range is calculated as coherent_dma_mask + 1
+>>> and passed to arch_setup_dma_ops further. It overflows when
+>>> the coherent_dma_mask is set for full 64 bits 0xFFFFFFFFFFFFFFFF,
+>>> resulting in size getting passed as 0 wrongly. Fix this by
+>>> passsing in max(mask, mask + 1). Note that in this case
+>>> when the mask is set to full 64bits, we will be passing the mask
+>>> itself to arch_setup_dma_ops instead of the size. The real fix
+>>> for this should be to make arch_setup_dma_ops receive the
+>>> mask and handle it, to be done in the future.
+>>>
+>>> Signed-off-by: Sricharan R <sricharan@codeaurora.org>
+>>> ---
+>>>  drivers/of/device.c | 2 +-
+>>>  1 file changed, 1 insertion(+), 1 deletion(-)
+>>>
+>>> diff --git a/drivers/of/device.c b/drivers/of/device.c
+>>> index c17c19d..c2ae6bb 100644
+>>> --- a/drivers/of/device.c
+>>> +++ b/drivers/of/device.c
+>>> @@ -107,7 +107,7 @@ void of_dma_configure(struct device *dev, struct device_node *np)
+>>>  	ret = of_dma_get_range(np, &dma_addr, &paddr, &size);
+>>>  	if (ret < 0) {
+>>>  		dma_addr = offset = 0;
+>>> -		size = dev->coherent_dma_mask + 1;
+>>> +		size = max(dev->coherent_dma_mask, dev->coherent_dma_mask + 1);
+>>>  	} else {
+>>>  		offset = PFN_DOWN(paddr - dma_addr);
+>>>  		dev_dbg(dev, "dma_pfn_offset(%#08lx)\n", offset);
+>>>
+>>
+>> NACK.
+>>
+>> Passing an invalid size to arch_setup_dma_ops() is only part of the problem.
+>> size is also used in of_dma_configure() before calling arch_setup_dma_ops():
+>>
+>>         dev->coherent_dma_mask = min(dev->coherent_dma_mask,
+>>                                      DMA_BIT_MASK(ilog2(dma_addr + size)));
+>>         *dev->dma_mask = min((*dev->dma_mask),
+>>                              DMA_BIT_MASK(ilog2(dma_addr + size)));
+>>
+>> which would be incorrect for size == 0xffffffffffffffffULL when
+>> dma_addr != 0.  So the proposed fix really is not papering over
+>> the base problem very well.
 > 
-> Hmm. Also:
+> I'm not sure I agree there. Granted, there exist many more problematic
+> aspects than are dealt with here (I've got more patches cooking to sort
+> out some of the other issues we have with dma-ranges), but considering
+> size specifically:
 > 
-> > +               ___mwait(0xf0 /* C0 */, 0x01 /* INT */);                \
+> - It is not possible to explicitly specify a range with a size of 2^64
+> in DT. If someone does specify a size of 0, they've done a silly thing
+> and should not be surprised that it ends badly.
 > 
-> Do you actually want that "INT" bit set? It's only meaningful if
-> interrupts are _masked_, afaik. Which doesn't necessarily make sense
-> for this case.
+> - It *is* perfectly legitimate for bus code (or a previous device
+> driver, once we start coming here at probe time) to have set a device's
+> DMA mask to 0xffffffffffffffffULL. If this code then blindly overflows
+> and infers an invalid size of 0 from that, breaking things in the
+> process, that is this code's fault alone. It just so happens that
+> nothing managed to trigger the latent problem until patch #7 here shakes
+> up the callsites.
 
-Correct, in fact its quite broken. Corrected.
+The existing code that uses size does not appear capable of dealing with
+the case of DMA mask of 0xffffffffffffffffULL since 2^64 does not fit
+into size.
 
-> But maybe "monitor" is really cheap. I suspect it's microcoded,
-> though, which implies "no".
+The code affected by the DMA mask is not within my area of knowledge, so
+take the following with a grain of salt.  If a DMA mask of
+0xffffffffffffffffULL is provided, would the code still work without error
+(though with reduced capability) if the mask was changed to
+0xefffffffffffffffULL?  I would guess that the location to do so would
+be where dev->coherent_dma_mask is set, or some other location that
+is not of_dma_configure().  This would just be a temporary workaround.
 
-Something like so then. According to the SDM mwait is a no-op if we do
-not execute monitor first. So this variant should get the first
-iteration without expensive instructions.
 
-And this variant is actually quite amenable to alternative(), with which
-we can pick between PAUSE and this.
-
----
- arch/x86/include/asm/barrier.h | 30 ++++++++++++++++++++++++++++++
- 1 file changed, 30 insertions(+)
-
-diff --git a/arch/x86/include/asm/barrier.h b/arch/x86/include/asm/barrier.h
-index bfb28ca..2b5d5a2 100644
---- a/arch/x86/include/asm/barrier.h
-+++ b/arch/x86/include/asm/barrier.h
-@@ -80,6 +80,36 @@ do {									\
- #define __smp_mb__before_atomic()	barrier()
- #define __smp_mb__after_atomic()	barrier()
- 
-+static inline void ___monitor(const void *eax, unsigned long ecx,
-+			     unsigned long edx)
-+{
-+	/* "monitor %eax, %ecx, %edx;" */
-+	asm volatile(".byte 0x0f, 0x01, 0xc8;"
-+		     :: "a" (eax), "c" (ecx), "d"(edx));
-+}
-+
-+static inline void ___mwait(unsigned long eax, unsigned long ecx)
-+{
-+	/* "mwait %eax, %ecx;" */
-+	asm volatile(".byte 0x0f, 0x01, 0xc9;"
-+		     :: "a" (eax), "c" (ecx));
-+}
-+
-+#define smp_cond_load_acquire(ptr, cond_expr)				\
-+({									\
-+	typeof(ptr) __PTR = (ptr);					\
-+	typeof(*ptr) VAL;						\
-+	for (;;) {							\
-+		VAL = READ_ONCE(*__PTR);				\
-+		if (cond_expr)						\
-+			break;						\
-+		___mwait(0xf0 /* C0 */, 0);				\
-+		___monitor(__PTR, 0, 0);				\
-+	}								\
-+	smp_acquire__after_ctrl_dep();					\
-+	VAL;								\
-+})
-+
- #include <asm-generic/barrier.h>
- 
- #endif /* _ASM_X86_BARRIER_H */
+> Yes, wacky impossible base + size combinations in DT were a theoretical
+> problem before, and remain a theoretical problem, but also fall into the
+> "how did you ever expect this to work?" category. There's certainly
+> plenty more we can do to improve the DT parsing/validation, but that
+> still doesn't apply to this path where the information is *not* coming
+> from the DT at all.
+> 
+>> I agree that the proper solution involves passing a mask instead
+>> of a size to arch_setup_dma_ops().
+> 
+> Having started writing that patch too, I can tell you it's a big bugger
+> touching multiple architectures and fixing up various drivers doing
+> stupid things, hence why I'm happy with this point fix being the lesser
+> of two evils in terms of not holding up this mostly-orthogonal series.
+> 
+> Robin.
+> 
+>>
+>> -Frank
+>>
+> 
+> 
