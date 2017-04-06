@@ -1,58 +1,187 @@
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [RFC][PATCH] spin loop arch primitives for busy waiting
-Date: Thu, 6 Apr 2017 10:59:58 +1000
-Message-ID: <20170406105958.196c6977@roar.ozlabs.ibm.com>
-References: <20170404095001.664718b8@roar.ozlabs.ibm.com>
-        <CA+55aFzdUMZHzXtn9PyhJg7GjYNQ5fy6=LzBNJx==Ab=U=YYjw@mail.gmail.com>
-        <20170404130233.1f45115b@roar.ozlabs.ibm.com>
-        <20170405.070157.871721909352646302.davem@davemloft.net>
+From: Ley Foon Tan <ley.foon.tan@intel.com>
+Subject: Re: PCI enumeration without a BIOS
+Date: Thu, 06 Apr 2017 09:11:45 +0800
+Message-ID: <1491441105.50673.2.camel@intel.com>
+References: <CAMgXwTjX1j2dhi7n+APNef0di5oo+iK57Cq0S+3NdMtQzAc=Vw@mail.gmail.com>
+         <20170404205617.GG27692@bhelgaas-glaptop.roam.corp.google.com>
+         <CAMgXwTgacUcfzinQKuf8htwxFDJ_GvUN-R0zj7sNbqnpJF3QBA@mail.gmail.com>
+         <20170405183732.GB17066@bhelgaas-glaptop.roam.corp.google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f67.google.com ([74.125.83.67]:34379 "EHLO
-        mail-pg0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752052AbdDFBAK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Apr 2017 21:00:10 -0400
-In-Reply-To: <20170405.070157.871721909352646302.davem@davemloft.net>
+Received: from mga11.intel.com ([192.55.52.93]:34986 "EHLO mga11.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1755924AbdDFBLv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 5 Apr 2017 21:11:51 -0400
+In-Reply-To: <20170405183732.GB17066@bhelgaas-glaptop.roam.corp.google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
-Cc: torvalds@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, anton@samba.org, linuxppc-dev@ozlabs.org
+To: Bjorn Helgaas <helgaas@kernel.org>, Wesley Terpstra <wesley@sifive.com>
+Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Michal Simek <michal.simek@xilinx.com>, rfi@lists.rocketboards.org
 
-On Wed, 05 Apr 2017 07:01:57 -0700 (PDT)
-David Miller <davem@davemloft.net> wrote:
+On Wed, 2017-04-05 at 13:37 -0500, Bjorn Helgaas wrote:
+> [+cc Michal, Ley Foon]
+>=20
+> On Tue, Apr 04, 2017 at 04:00:49PM -0700, Wesley Terpstra wrote:
+> >=20
+> > Thank you very much for your detailed analysis of the log!
+> >=20
+> > On Tue, Apr 4, 2017 at 1:56 PM, Bjorn Helgaas <helgaas@kernel.org>
+> > wrote:
+> > >=20
+> > > >=20
+> > > > In particular, these are the lines that seem wrong to me:
+> > > > [=C2=A0=C2=A0=C2=A0=C2=A05.920000] pci 0000:00:00.0: bridge configu=
+ration invalid
+> > > > ([bus
+> > > > 00-00]), reconfiguring
+> > > > [=C2=A0=C2=A0=C2=A0=C2=A05.930000] pci 0000:01:00.0: bridge configu=
+ration invalid
+> > > > ([bus
+> > > > 00-00]), reconfiguring
+> > > This is normal but possibly worded more alarmingly than
+> > > necessary.
+> > > Bridges power up with secondary/subordinate bus numbers as zero,
+> > > so
+> > > this just means nothing has changed their configuration from the
+> > > power-up default.
+> > Right. If the firmware had enumerated the bridge already, though,
+> > you
+> > would not see this message because it would have been assigned a
+> > bus
+> > number already. Right?
+> Yes.
+>=20
+> >=20
+> > >=20
+> > > >=20
+> > > > [=C2=A0=C2=A0=C2=A0=C2=A06.000000] pci 0000:04:00.0: [Firmware Bug]=
+: reg 0x10:
+> > > > invalid BAR
+> > > > (can't size)
+> > > > [=C2=A0=C2=A0=C2=A0=C2=A06.010000] pci 0000:06:00.0: [Firmware Bug]=
+: reg 0x10:
+> > > > invalid BAR
+> > > > (can't size)
+> > > These are more worrisome.=C2=A0=C2=A0We discover the size of a BAR by
+> > > writing
+> > > all ones to it and reading it back, which tells us how many bits
+> > > of
+> > > the BAR are hard-wired to zero.=C2=A0=C2=A0This behavior is prescribe=
+d by
+> > > the
+> > > PCI specs, so it's likely a hardware defect.
+> > So, you would say it's a hardware problem of the PCIe cards in
+> > question and I can safely ignore it?
+> Yes.
+>=20
+> >=20
+> > >=20
+> > > This is because the xilinx host bridge doesn't support I/O space
+> > Yeah. I knew this, but thanks for confirming.
+> >=20
+> > FYI, there is a bug in the pcie-xilinx bridge wrt legacy
+> > interrupts.
+> > I've seen several people discussing the same problem for the altera
+> > bridge and the "NW" xilinx bridge, but somehow this bridge still
+> > has
+> > the issue. I've attached a patch that solved the problem for me.
+> This sounds familiar to me, too.=C2=A0=C2=A0Copying Michal & Ley Foon in =
+case
+> they
+> know something about it.
+We have fixed this in last year.
+https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/comm
+it/drivers/pci/host/pcie-
+altera.c?id=3D99496bd2971fc378226ad4413e5b72c4545714bd
 
-> From: Nicholas Piggin <npiggin@gmail.com>
-> Date: Tue, 4 Apr 2017 13:02:33 +1000
-> 
-> > On Mon, 3 Apr 2017 17:43:05 -0700
-> > Linus Torvalds <torvalds@linux-foundation.org> wrote:
-> >   
-> >> But that depends on architectures having some pattern that we *can*
-> >> abstract. Would some "begin/in-loop/end" pattern like the above be
-> >> sufficient?  
-> > 
-> > Yes. begin/in/end would be sufficient for powerpc SMT priority, and
-> > for x86, and it looks like sparc64 too. So we could do that if you
-> > prefer.  
-> 
-> Sparc64 has two cases, on older chips we can induce a cpu thread yield
-> with a special sequence of instructions, and on newer chips we have
-> a bonafide pause instruction.
-> 
-> So cpu_relax() all by itself pretty much works for us.
-> 
+>=20
+> >=20
+> > Without it I see:
+> >=20
+> > [=C2=A0=C2=A0=C2=A0=C2=A06.230000] ------------[ cut here ]------------
+> > [=C2=A0=C2=A0=C2=A0=C2=A06.230000] WARNING: CPU: 0 PID: 1 at
+> > /scratch/terpstra/freedom-u-sdk/linux/kernel/irq/irqdomain.c:365
+> > irq_domain_associate+0x190/0x200
+> > [=C2=A0=C2=A0=C2=A0=C2=A06.240000] error: hwirq 0x4 is too large for du=
+mmy
+> > [=C2=A0=C2=A0=C2=A0=C2=A06.250000] CPU: 0 PID: 1 Comm: swapper Not tain=
+ted
+> > 4.11.0-rc1-661305-g4f97179 #12
+> > [=C2=A0=C2=A0=C2=A0=C2=A06.250000] Call Trace:
+> > [=C2=A0=C2=A0=C2=A0=C2=A06.260000] [<ffffffff80288660>] walk_stackframe=
++0x0/0x104
+> > [=C2=A0=C2=A0=C2=A0=C2=A06.260000] [<ffffffff80288800>] show_stack+0x38=
+/0x50
+> > [=C2=A0=C2=A0=C2=A0=C2=A06.270000] [<ffffffff803c6e30>] dump_stack+0x2c=
+/0x40
+> > [=C2=A0=C2=A0=C2=A0=C2=A06.270000] [<ffffffff8028c600>] __warn+0x118/0x=
+130
+> > [=C2=A0=C2=A0=C2=A0=C2=A06.280000] [<ffffffff8028c658>] warn_slowpath_f=
+mt+0x40/0x54
+> > [=C2=A0=C2=A0=C2=A0=C2=A06.280000] [<ffffffff802c02a8>]
+> > irq_domain_associate+0x18c/0x200
+> > [=C2=A0=C2=A0=C2=A0=C2=A06.290000] [<ffffffff802c0a3c>] irq_create_mapp=
+ing+0x90/0xe4
+> > [=C2=A0=C2=A0=C2=A0=C2=A06.300000] [<ffffffff802c0be4>]
+> > irq_create_fwspec_mapping+0x154/0x288
+> > [=C2=A0=C2=A0=C2=A0=C2=A06.300000] [<ffffffff802c0d7c>] irq_create_of_m=
+apping+0x64/0x84
+> > [=C2=A0=C2=A0=C2=A0=C2=A06.310000] [<ffffffff804f9cb8>]
+> > of_irq_parse_and_map_pci+0x38/0x50
+> > [=C2=A0=C2=A0=C2=A0=C2=A06.310000] [<ffffffff80407e00>] pci_fixup_irqs+=
+0x6c/0x114
+> > [=C2=A0=C2=A0=C2=A0=C2=A06.320000] [<ffffffff80408e64>] xilinx_pcie_pro=
+be+0x308/0x3f0
+> > [=C2=A0=C2=A0=C2=A0=C2=A06.330000] [<ffffffff8042cba4>] platform_drv_pr=
+obe+0x3c/0x88
+> > [=C2=A0=C2=A0=C2=A0=C2=A06.330000] [<ffffffff8042aec0>] really_probe+0x=
+bc/0x260
+> > [=C2=A0=C2=A0=C2=A0=C2=A06.340000] [<ffffffff8042b138>] __driver_attach=
++0xd4/0xdc
+> > [=C2=A0=C2=A0=C2=A0=C2=A06.340000] [<ffffffff80429200>] bus_for_each_de=
+v+0x68/0xb8
+> > [=C2=A0=C2=A0=C2=A0=C2=A06.350000] [<ffffffff8042b640>] driver_attach+0=
+x24/0x38
+> > [=C2=A0=C2=A0=C2=A0=C2=A06.350000] [<ffffffff80429db8>] bus_add_driver+=
+0x1b4/0x22c
+> > [=C2=A0=C2=A0=C2=A0=C2=A06.360000] [<ffffffff8042bdc0>] driver_register=
++0x68/0x12c
+> > [=C2=A0=C2=A0=C2=A0=C2=A06.360000] [<ffffffff8042da78>]
+> > __platform_driver_register+0x48/0x5c
+> > [=C2=A0=C2=A0=C2=A0=C2=A06.370000] [<ffffffff8000db38>]
+> > xilinx_pcie_driver_init+0x20/0x34
+> > [=C2=A0=C2=A0=C2=A0=C2=A06.380000] [<ffffffff80000d48>] do_one_initcall=
++0x98/0x140
+> > [=C2=A0=C2=A0=C2=A0=C2=A06.380000] [<ffffffff80000f38>]
+> > kernel_init_freeable+0x148/0x218
+> > [=C2=A0=C2=A0=C2=A0=C2=A06.390000] [<ffffffff805ad19c>] kernel_init+0x1=
+8/0x114
+> > [=C2=A0=C2=A0=C2=A0=C2=A06.390000] [<ffffffff80286cac>] ret_from_syscal=
+l+0xc/0x10
+> > [=C2=A0=C2=A0=C2=A0=C2=A06.400000] ---[ end trace 8023adf5befc91e0 ]---
+> >=20
+> > ... that said, I am not confident my patch is the right fix. So
+> > consider this a bug report + work-around only. :)
+> >=20
+> > >=20
+> > > Yeah, everything seems mostly working.=C2=A0=C2=A0The "invalid BAR" t=
+hings
+> > > *could* be an issue -- those registers are not what the PCI spec
+> > > says
+> > > they should be.
+> > The devices in question are:
+> > 04:00.0 Ethernet controller: Realtek Semiconductor Co., Ltd.
+> > RTL8111/8168/8411 PCI Express Gigabit Ethernet Controller (rev 06)
+> > 06:00.0 SATA controller: Marvell Technology Group Ltd. 88SE9230
+> > PCIe
+> > SATA 6Gb/s Controller (rev 11)
+> >=20
+> > I am going to plug them in to an Intel machine with 4.11 and see if
+> > I
+> > get the same warnings.
+>=20
 
-Thanks for taking a look. The default spin primitives should just
-continue to do the right thing for you in that case.
-
-Arm has a yield instruction, ia64 has a pause... No unusual
-requirements that I can see.
-
-If there are no objections, I'll send the arch-independent part of
-this through the powerpc tree (the last one I sent, which follows
-Linus' preferred pattern).
-
-Thanks,
-Nick
+Regards
+Ley Foon
