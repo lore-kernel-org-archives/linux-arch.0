@@ -1,127 +1,108 @@
-From: Wesley Terpstra <wesley@sifive.com>
-Subject: Re: PCI enumeration without a BIOS
-Date: Wed, 5 Apr 2017 19:22:48 -0700
-Message-ID: <CAMgXwThzPOiEcy=TWwFMjkxoAcwJTHoA65qqnDO6XVtWAoJ9mg@mail.gmail.com>
-References: <CAMgXwTjX1j2dhi7n+APNef0di5oo+iK57Cq0S+3NdMtQzAc=Vw@mail.gmail.com>
- <20170404205617.GG27692@bhelgaas-glaptop.roam.corp.google.com>
- <CAMgXwTgacUcfzinQKuf8htwxFDJ_GvUN-R0zj7sNbqnpJF3QBA@mail.gmail.com>
- <20170405183732.GB17066@bhelgaas-glaptop.roam.corp.google.com>
- <1491441105.50673.2.camel@intel.com> <CAMgXwTj2sKhn9XB+6aEgZyxjgnv3njLks26XG6B0nL3BEMiivw@mail.gmail.com>
- <1491444359.50673.4.camel@intel.com>
+From: Frank Rowand <frowand.list@gmail.com>
+Subject: Re: [PATCH V10 03/12] of: dma: Move range size workaround to
+ of_dma_get_range()
+Date: Wed, 5 Apr 2017 23:24:19 -0700
+Message-ID: <58E5DF13.2020700@gmail.com>
+References: <1489086061-9356-1-git-send-email-sricharan@codeaurora.org>
+ <1491301105-5274-1-git-send-email-sricharan@codeaurora.org>
+ <1491301105-5274-4-git-send-email-sricharan@codeaurora.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yb0-f177.google.com ([209.85.213.177]:34348 "EHLO
-        mail-yb0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752029AbdDFCWu (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Apr 2017 22:22:50 -0400
-Received: by mail-yb0-f177.google.com with SMTP id m133so7496297ybb.1
-        for <linux-arch@vger.kernel.org>; Wed, 05 Apr 2017 19:22:49 -0700 (PDT)
-In-Reply-To: <1491444359.50673.4.camel@intel.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ley Foon Tan <ley.foon.tan@intel.com>
-Cc: Bjorn Helgaas <helgaas@kernel.org>, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Michal Simek <michal.simek@xilinx.com>, rfi@lists.rocketboards.org
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-acpi-owner@vger.kernel.org>
+In-Reply-To: <1491301105-5274-4-git-send-email-sricharan@codeaurora.org>
+Sender: linux-acpi-owner@vger.kernel.org
+To: Sricharan R <sricharan@codeaurora.org>, robin.murphy@arm.com, will.deacon@arm.com, joro@8bytes.org, lorenzo.pieralisi@arm.com, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arm-msm@vger.kernel.org, m.szyprowski@samsung.com, bhelgaas@google.com, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, tn@semihalf.com, hanjun.guo@linaro.org, okaya@codeaurora.org, robh+dt@kernel.org, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, sudeep.holla@arm.com, rjw@rjwysocki.net, lenb@kernel.org, catalin.marinas@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, gregkh@linuxfoundation.org
+List-Id: linux-arch.vger.kernel.org
 
-Is there an equivalent patch for xilinx-pcie.c? That one is for
-xilinx-pcie-nwl.c. Also, forgive my ignorance, but if a patch has been
-around since August 2016, shouldn't it be in 4.11 by now? (I'm running
-4.11-rc1 which has the altera fix but neither of the xilinx changes).
+On 04/04/17 03:18, Sricharan R wrote:
+> From: Laurent Pinchart <laurent.pinchart+renesas@ideasonboard.com>
+> 
+> Invalid dma-ranges values should be worked around when retrieving the
+> DMA range in of_dma_get_range(), not by all callers of the function.
+> This isn't much of a problem now that we have a single caller, but that
+> situation will change when moving DMA configuration to device probe
+> time.
 
-On Wed, Apr 5, 2017 at 7:05 PM, Ley Foon Tan <ley.foon.tan@intel.com> wrote:
-> On Wed, 2017-04-05 at 18:59 -0700, Wesley Terpstra wrote:
->> On Wed, Apr 5, 2017 at 6:11 PM, Ley Foon Tan <ley.foon.tan@intel.com>
->> wrote:
->> >
->> > We have fixed this in last year.
->> Right, for host/pcie-altera.c
->> However, the problem persists in host/pcie-xilinx.c and host/pcie-
->> xilinx-nwl.c
->
-> It hasn't integrated to mainline yet.
-> https://lkml.org/lkml/2016/8/30/198
->
->>
->> >
->> > https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/
->> > comm
->> > it/drivers/pci/host/pcie-
->> > altera.c?id=99496bd2971fc378226ad4413e5b72c4545714bd
->> >
->> > >
->> > >
->> > > >
->> > > >
->> > > > Without it I see:
->> > > >
->> > > > [    6.230000] ------------[ cut here ]------------
->> > > > [    6.230000] WARNING: CPU: 0 PID: 1 at
->> > > > /scratch/terpstra/freedom-u-
->> > > > sdk/linux/kernel/irq/irqdomain.c:365
->> > > > irq_domain_associate+0x190/0x200
->> > > > [    6.240000] error: hwirq 0x4 is too large for dummy
->> > > > [    6.250000] CPU: 0 PID: 1 Comm: swapper Not tainted
->> > > > 4.11.0-rc1-661305-g4f97179 #12
->> > > > [    6.250000] Call Trace:
->> > > > [    6.260000] [<ffffffff80288660>] walk_stackframe+0x0/0x104
->> > > > [    6.260000] [<ffffffff80288800>] show_stack+0x38/0x50
->> > > > [    6.270000] [<ffffffff803c6e30>] dump_stack+0x2c/0x40
->> > > > [    6.270000] [<ffffffff8028c600>] __warn+0x118/0x130
->> > > > [    6.280000] [<ffffffff8028c658>] warn_slowpath_fmt+0x40/0x54
->> > > > [    6.280000] [<ffffffff802c02a8>]
->> > > > irq_domain_associate+0x18c/0x200
->> > > > [    6.290000] [<ffffffff802c0a3c>]
->> > > > irq_create_mapping+0x90/0xe4
->> > > > [    6.300000] [<ffffffff802c0be4>]
->> > > > irq_create_fwspec_mapping+0x154/0x288
->> > > > [    6.300000] [<ffffffff802c0d7c>]
->> > > > irq_create_of_mapping+0x64/0x84
->> > > > [    6.310000] [<ffffffff804f9cb8>]
->> > > > of_irq_parse_and_map_pci+0x38/0x50
->> > > > [    6.310000] [<ffffffff80407e00>] pci_fixup_irqs+0x6c/0x114
->> > > > [    6.320000] [<ffffffff80408e64>]
->> > > > xilinx_pcie_probe+0x308/0x3f0
->> > > > [    6.330000] [<ffffffff8042cba4>]
->> > > > platform_drv_probe+0x3c/0x88
->> > > > [    6.330000] [<ffffffff8042aec0>] really_probe+0xbc/0x260
->> > > > [    6.340000] [<ffffffff8042b138>] __driver_attach+0xd4/0xdc
->> > > > [    6.340000] [<ffffffff80429200>] bus_for_each_dev+0x68/0xb8
->> > > > [    6.350000] [<ffffffff8042b640>] driver_attach+0x24/0x38
->> > > > [    6.350000] [<ffffffff80429db8>] bus_add_driver+0x1b4/0x22c
->> > > > [    6.360000] [<ffffffff8042bdc0>] driver_register+0x68/0x12c
->> > > > [    6.360000] [<ffffffff8042da78>]
->> > > > __platform_driver_register+0x48/0x5c
->> > > > [    6.370000] [<ffffffff8000db38>]
->> > > > xilinx_pcie_driver_init+0x20/0x34
->> > > > [    6.380000] [<ffffffff80000d48>] do_one_initcall+0x98/0x140
->> > > > [    6.380000] [<ffffffff80000f38>]
->> > > > kernel_init_freeable+0x148/0x218
->> > > > [    6.390000] [<ffffffff805ad19c>] kernel_init+0x18/0x114
->> > > > [    6.390000] [<ffffffff80286cac>] ret_from_syscall+0xc/0x10
->> > > > [    6.400000] ---[ end trace 8023adf5befc91e0 ]---
->> > > >
->> > > > ... that said, I am not confident my patch is the right fix. So
->> > > > consider this a bug report + work-around only. :)
->> > > >
->> > > > >
->> > > > >
->> > > > > Yeah, everything seems mostly working.  The "invalid BAR"
->> > > > > things
->> > > > > *could* be an issue -- those registers are not what the PCI
->> > > > > spec
->> > > > > says
->> > > > > they should be.
->> > > > The devices in question are:
->> > > > 04:00.0 Ethernet controller: Realtek Semiconductor Co., Ltd.
->> > > > RTL8111/8168/8411 PCI Express Gigabit Ethernet Controller (rev
->> > > > 06)
->> > > > 06:00.0 SATA controller: Marvell Technology Group Ltd. 88SE9230
->> > > > PCIe
->> > > > SATA 6Gb/s Controller (rev 11)
->> > > >
->> > > > I am going to plug them in to an Intel machine with 4.11 and
->> > > > see if
->> > > > I
->> > > > get the same warnings.
->> > Regards
->> > Ley Foon
+Please drop this patch from the series.  I just now sent Rob an
+alternative that reflects other changes that have occurred since
+this patch series was first created many, many moons ago
+(https://lkml.org/lkml/2017/4/6/53).
+
+Thanks,
+
+Frank
+
+> 
+> Tested-by: Marek Szyprowski <m.szyprowski@samsung.com>
+> Signed-off-by: Laurent Pinchart <laurent.pinchart+renesas@ideasonboard.com>
+> ---
+>  drivers/of/address.c | 20 ++++++++++++++++++--
+>  drivers/of/device.c  | 15 ---------------
+>  2 files changed, 18 insertions(+), 17 deletions(-)
+> 
+> diff --git a/drivers/of/address.c b/drivers/of/address.c
+> index 02b2903..6aeb816 100644
+> --- a/drivers/of/address.c
+> +++ b/drivers/of/address.c
+> @@ -819,8 +819,8 @@ void __iomem *of_io_request_and_map(struct device_node *np, int index,
+>   *	CPU addr (phys_addr_t)	: pna cells
+>   *	size			: nsize cells
+>   *
+> - * It returns -ENODEV if "dma-ranges" property was not found
+> - * for this device in DT.
+> + * Return 0 on success, -ENODEV if the "dma-ranges" property was not found for
+> + * this device in DT, or -EINVAL if the CPU address or size is invalid.
+>   */
+>  int of_dma_get_range(struct device_node *np, u64 *dma_addr, u64 *paddr, u64 *size)
+>  {
+> @@ -880,6 +880,22 @@ int of_dma_get_range(struct device_node *np, u64 *dma_addr, u64 *paddr, u64 *siz
+>  	*dma_addr = dmaaddr;
+>  
+>  	*size = of_read_number(ranges + naddr + pna, nsize);
+> +	/*
+> +	 * DT nodes sometimes incorrectly set the size as a mask. Work around
+> +	 * those incorrect DT by computing the size as mask + 1.
+> +	 */
+> +	if (*size & 1) {
+> +		pr_warn("%s: size 0x%llx for dma-range in node(%s) set as mask\n",
+> +			__func__, *size, np->full_name);
+> +		*size = *size + 1;
+> +	}
+> +
+> +	if (!*size) {
+> +		pr_err("%s: invalid size zero for dma-range in node(%s)\n",
+> +		       __func__, np->full_name);
+> +		ret = -EINVAL;
+> +		goto out;
+> +	}
+>  
+>  	pr_debug("dma_addr(%llx) cpu_addr(%llx) size(%llx)\n",
+>  		 *dma_addr, *paddr, *size);
+> diff --git a/drivers/of/device.c b/drivers/of/device.c
+> index b1e6beb..09dedd0 100644
+> --- a/drivers/of/device.c
+> +++ b/drivers/of/device.c
+> @@ -110,21 +110,6 @@ void of_dma_configure(struct device *dev, struct device_node *np)
+>  		size = dev->coherent_dma_mask + 1;
+>  	} else {
+>  		offset = PFN_DOWN(paddr - dma_addr);
+> -
+> -		/*
+> -		 * Add a work around to treat the size as mask + 1 in case
+> -		 * it is defined in DT as a mask.
+> -		 */
+> -		if (size & 1) {
+> -			dev_warn(dev, "Invalid size 0x%llx for dma-range\n",
+> -				 size);
+> -			size = size + 1;
+> -		}
+> -
+> -		if (!size) {
+> -			dev_err(dev, "Adjusted size 0x%llx invalid\n", size);
+> -			return;
+> -		}
+>  		dev_dbg(dev, "dma_pfn_offset(%#08lx)\n", offset);
+>  	}
+>  
+> 
