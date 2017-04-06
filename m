@@ -1,86 +1,91 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:43624 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:44216 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1755655AbdDFONf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 6 Apr 2017 10:13:35 -0400
-Date: Thu, 6 Apr 2017 15:13:53 +0100
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [RFC][PATCH] spin loop arch primitives for busy waiting
-Message-ID: <20170406141352.GF18204@arm.com>
-References: <20170404095001.664718b8@roar.ozlabs.ibm.com>
- <CA+55aFzdUMZHzXtn9PyhJg7GjYNQ5fy6=LzBNJx==Ab=U=YYjw@mail.gmail.com>
- <20170404130233.1f45115b@roar.ozlabs.ibm.com>
- <20170405.070157.871721909352646302.davem@davemloft.net>
- <20170406105958.196c6977@roar.ozlabs.ibm.com>
+        id S1755664AbdDFOpo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 6 Apr 2017 10:45:44 -0400
+Subject: Re: [PATCH V10 06/12] of: device: Fix overflow of coherent_dma_mask
+References: <1489086061-9356-1-git-send-email-sricharan@codeaurora.org>
+ <1491301105-5274-1-git-send-email-sricharan@codeaurora.org>
+ <1491301105-5274-7-git-send-email-sricharan@codeaurora.org>
+ <58E5E7B7.1050400@gmail.com> <b081f333-084d-ffa5-635f-f7f1c0232ac3@arm.com>
+ <CAL_JsqLsE378hfs=xNvSdPV2r+7H81cAFzOwtda2W+mFVoohuA@mail.gmail.com>
+From: Robin Murphy <robin.murphy@arm.com>
+Message-ID: <ca028e7a-eca5-6ca4-7679-3dc393aa575b@arm.com>
+Date: Thu, 6 Apr 2017 15:45:37 +0100
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20170406105958.196c6977@roar.ozlabs.ibm.com>
+In-Reply-To: <CAL_JsqLsE378hfs=xNvSdPV2r+7H81cAFzOwtda2W+mFVoohuA@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: David Miller <davem@davemloft.net>, torvalds@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, anton@samba.org, linuxppc-dev@ozlabs.org, peterz@infradead.org
-Message-ID: <20170406141353.9ev_Kt96y-0pWvYC-gbgpmeGo50balEMLKl_9DKdWqw@z>
+To: Rob Herring <robh+dt@kernel.org>
+Cc: Frank Rowand <frowand.list@gmail.com>, Sricharan R <sricharan@codeaurora.org>, Will Deacon <will.deacon@arm.com>, Joerg Roedel <joro@8bytes.org>, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Linux IOMMU <iommu@lists.linux-foundation.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-arm-msm <linux-arm-msm@vger.kernel.org>, Marek Szyprowski <m.szyprowski@samsung.com>, "bhelgaas@google.com" <bhelgaas@google.com>, "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, "linux-acpi@vger.kernel.org" <linux-acpi@vger.kernel.org>, Tomasz Nowicki <tn@semihalf.com>, Hanjun Guo <hanjun.guo@linaro.org>, Sinan Kaya <okaya@codeaurora.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Sudeep Holla <sudeep.holla@arm.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Len Brown <lenb@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Message-ID: <20170406144537.HJOuVkAxV0qQFLT0xYJfhoa39OK_d0KUKRFjlV_75qk@z>
 
-Hi Nick,
-
-On Thu, Apr 06, 2017 at 10:59:58AM +1000, Nicholas Piggin wrote:
-> On Wed, 05 Apr 2017 07:01:57 -0700 (PDT)
-> David Miller <davem@davemloft.net> wrote:
+On 06/04/17 14:56, Rob Herring wrote:
+> On Thu, Apr 6, 2017 at 5:24 AM, Robin Murphy <robin.murphy@arm.com> wrote:
+>> On 06/04/17 08:01, Frank Rowand wrote:
+>>> On 04/04/17 03:18, Sricharan R wrote:
+>>>> Size of the dma-range is calculated as coherent_dma_mask + 1
+>>>> and passed to arch_setup_dma_ops further. It overflows when
+>>>> the coherent_dma_mask is set for full 64 bits 0xFFFFFFFFFFFFFFFF,
+>>>> resulting in size getting passed as 0 wrongly. Fix this by
+>>>> passsing in max(mask, mask + 1). Note that in this case
+>>>> when the mask is set to full 64bits, we will be passing the mask
+>>>> itself to arch_setup_dma_ops instead of the size. The real fix
+>>>> for this should be to make arch_setup_dma_ops receive the
+>>>> mask and handle it, to be done in the future.
+>>>>
+>>>> Signed-off-by: Sricharan R <sricharan@codeaurora.org>
+>>>> ---
+>>>>  drivers/of/device.c | 2 +-
+>>>>  1 file changed, 1 insertion(+), 1 deletion(-)
+>>>>
+>>>> diff --git a/drivers/of/device.c b/drivers/of/device.c
+>>>> index c17c19d..c2ae6bb 100644
+>>>> --- a/drivers/of/device.c
+>>>> +++ b/drivers/of/device.c
+>>>> @@ -107,7 +107,7 @@ void of_dma_configure(struct device *dev, struct device_node *np)
+>>>>      ret = of_dma_get_range(np, &dma_addr, &paddr, &size);
+>>>>      if (ret < 0) {
+>>>>              dma_addr = offset = 0;
+>>>> -            size = dev->coherent_dma_mask + 1;
+>>>> +            size = max(dev->coherent_dma_mask, dev->coherent_dma_mask + 1);
+>>>>      } else {
+>>>>              offset = PFN_DOWN(paddr - dma_addr);
+>>>>              dev_dbg(dev, "dma_pfn_offset(%#08lx)\n", offset);
+>>>>
+>>>
+>>> NACK.
+>>>
+>>> Passing an invalid size to arch_setup_dma_ops() is only part of the problem.
+>>> size is also used in of_dma_configure() before calling arch_setup_dma_ops():
+>>>
+>>>         dev->coherent_dma_mask = min(dev->coherent_dma_mask,
+>>>                                      DMA_BIT_MASK(ilog2(dma_addr + size)));
+>>>         *dev->dma_mask = min((*dev->dma_mask),
+>>>                              DMA_BIT_MASK(ilog2(dma_addr + size)));
+>>>
+>>> which would be incorrect for size == 0xffffffffffffffffULL when
+>>> dma_addr != 0.  So the proposed fix really is not papering over
+>>> the base problem very well.
+>>
+>> I'm not sure I agree there. Granted, there exist many more problematic
+>> aspects than are dealt with here (I've got more patches cooking to sort
+>> out some of the other issues we have with dma-ranges), but considering
+>> size specifically:
+>>
+>> - It is not possible to explicitly specify a range with a size of 2^64
+>> in DT. If someone does specify a size of 0, they've done a silly thing
+>> and should not be surprised that it ends badly.
 > 
-> > From: Nicholas Piggin <npiggin@gmail.com>
-> > Date: Tue, 4 Apr 2017 13:02:33 +1000
-> > 
-> > > On Mon, 3 Apr 2017 17:43:05 -0700
-> > > Linus Torvalds <torvalds@linux-foundation.org> wrote:
-> > >   
-> > >> But that depends on architectures having some pattern that we *can*
-> > >> abstract. Would some "begin/in-loop/end" pattern like the above be
-> > >> sufficient?  
-> > > 
-> > > Yes. begin/in/end would be sufficient for powerpc SMT priority, and
-> > > for x86, and it looks like sparc64 too. So we could do that if you
-> > > prefer.  
-> > 
-> > Sparc64 has two cases, on older chips we can induce a cpu thread yield
-> > with a special sequence of instructions, and on newer chips we have
-> > a bonafide pause instruction.
-> > 
-> > So cpu_relax() all by itself pretty much works for us.
-> > 
+> And because of this, we allow ~0 (both 32 and 64 bit) in DT dma-ranges
+> and fix these up as 2^32 and 2^64 sizes.
+
+...which is what Frank's patch gets rid of.
+
+Robin.
+
 > 
-> Thanks for taking a look. The default spin primitives should just
-> continue to do the right thing for you in that case.
+> Rob
 > 
-> Arm has a yield instruction, ia64 has a pause... No unusual
-> requirements that I can see.
-
-Yield tends to be implemented as a NOP in practice, since it's in the
-architecture for SMT CPUs and most ARM CPUs are single-threaded. We do have
-the WFE instruction (wait for event) which is used in our implementation of
-smp_cond_load_acquire, but I don't think we'd be able to use it with the
-proposals here.
-
-WFE can stop the clock for the CPU until an "event" is signalled by
-another CPU. This could be done by an explicit SEV (send event) instruction,
-but that tends to require heavy barriers on the signalling side. Instead,
-the preferred way to generate an event is to clear the exclusive monitor
-reservation for the CPU executing the WFE. That means that the waiter
-does something like:
-
-	LDXR x0, [some_address]	// Load exclusive from some_address
-	CMP  x0, some value	// If the value matches what I want
-	B.EQ out		// then we're done
-	WFE			// otherwise, wait
-
-at this point, the waiter will stop on the WFE until its monitor is cleared,
-which happens if another CPU writes to some_address.
-
-We've wrapped this up in the arm64 code as __cmpwait, and we use that
-to build smp_cond_load_acquire. It would be nice to use the same machinery
-for the conditional spinning here, unless you anticipate that we're only
-going to be spinning for a handful of iterations anyway?
-
-Cheers,
-
-Will
