@@ -1,65 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:10378 "EHLO mga09.intel.com"
+Received: from foss.arm.com ([217.140.101.70]:43624 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1755655AbdDFOBU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 6 Apr 2017 10:01:20 -0400
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 7/8] x86: Enable 5-level paging support
-Date: Thu,  6 Apr 2017 17:01:05 +0300
-Message-ID: <20170406140106.78087-8-kirill.shutemov@linux.intel.com>
-In-Reply-To: <20170406140106.78087-1-kirill.shutemov@linux.intel.com>
-References: <20170406140106.78087-1-kirill.shutemov@linux.intel.com>
+        id S1755655AbdDFONf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 6 Apr 2017 10:13:35 -0400
+Date: Thu, 6 Apr 2017 15:13:53 +0100
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [RFC][PATCH] spin loop arch primitives for busy waiting
+Message-ID: <20170406141352.GF18204@arm.com>
+References: <20170404095001.664718b8@roar.ozlabs.ibm.com>
+ <CA+55aFzdUMZHzXtn9PyhJg7GjYNQ5fy6=LzBNJx==Ab=U=YYjw@mail.gmail.com>
+ <20170404130233.1f45115b@roar.ozlabs.ibm.com>
+ <20170405.070157.871721909352646302.davem@davemloft.net>
+ <20170406105958.196c6977@roar.ozlabs.ibm.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20170406105958.196c6977@roar.ozlabs.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20170406140105.k8fCnZWg-hbjuE47CDL-mqImQJ8HCF7d_lC6SmBCKr8@z>
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: David Miller <davem@davemloft.net>, torvalds@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, anton@samba.org, linuxppc-dev@ozlabs.org, peterz@infradead.org
+Message-ID: <20170406141353.9ev_Kt96y-0pWvYC-gbgpmeGo50balEMLKl_9DKdWqw@z>
 
-Most of things are in place and we can enable support of 5-level paging.
+Hi Nick,
 
-Enabling XEN with 5-level paging requires more work. The patch makes XEN
-dependent on !X86_5LEVEL.
+On Thu, Apr 06, 2017 at 10:59:58AM +1000, Nicholas Piggin wrote:
+> On Wed, 05 Apr 2017 07:01:57 -0700 (PDT)
+> David Miller <davem@davemloft.net> wrote:
+> 
+> > From: Nicholas Piggin <npiggin@gmail.com>
+> > Date: Tue, 4 Apr 2017 13:02:33 +1000
+> > 
+> > > On Mon, 3 Apr 2017 17:43:05 -0700
+> > > Linus Torvalds <torvalds@linux-foundation.org> wrote:
+> > >   
+> > >> But that depends on architectures having some pattern that we *can*
+> > >> abstract. Would some "begin/in-loop/end" pattern like the above be
+> > >> sufficient?  
+> > > 
+> > > Yes. begin/in/end would be sufficient for powerpc SMT priority, and
+> > > for x86, and it looks like sparc64 too. So we could do that if you
+> > > prefer.  
+> > 
+> > Sparc64 has two cases, on older chips we can induce a cpu thread yield
+> > with a special sequence of instructions, and on newer chips we have
+> > a bonafide pause instruction.
+> > 
+> > So cpu_relax() all by itself pretty much works for us.
+> > 
+> 
+> Thanks for taking a look. The default spin primitives should just
+> continue to do the right thing for you in that case.
+> 
+> Arm has a yield instruction, ia64 has a pause... No unusual
+> requirements that I can see.
 
-Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
----
- arch/x86/Kconfig     | 5 +++++
- arch/x86/xen/Kconfig | 1 +
- 2 files changed, 6 insertions(+)
+Yield tends to be implemented as a NOP in practice, since it's in the
+architecture for SMT CPUs and most ARM CPUs are single-threaded. We do have
+the WFE instruction (wait for event) which is used in our implementation of
+smp_cond_load_acquire, but I don't think we'd be able to use it with the
+proposals here.
 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 4e153e93273f..7a76dcac357e 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -318,6 +318,7 @@ config FIX_EARLYCON_MEM
- 
- config PGTABLE_LEVELS
- 	int
-+	default 5 if X86_5LEVEL
- 	default 4 if X86_64
- 	default 3 if X86_PAE
- 	default 2
-@@ -1390,6 +1391,10 @@ config X86_PAE
- 	  has the cost of more pagetable lookup overhead, and also
- 	  consumes more pagetable space per process.
- 
-+config X86_5LEVEL
-+	bool "Enable 5-level page tables support"
-+	depends on X86_64
-+
- config ARCH_PHYS_ADDR_T_64BIT
- 	def_bool y
- 	depends on X86_64 || X86_PAE
-diff --git a/arch/x86/xen/Kconfig b/arch/x86/xen/Kconfig
-index 76b6dbd627df..b90d481ce5a1 100644
---- a/arch/x86/xen/Kconfig
-+++ b/arch/x86/xen/Kconfig
-@@ -5,6 +5,7 @@
- config XEN
- 	bool "Xen guest support"
- 	depends on PARAVIRT
-+	depends on !X86_5LEVEL
- 	select PARAVIRT_CLOCK
- 	select XEN_HAVE_PVMMU
- 	select XEN_HAVE_VPMU
--- 
-2.11.0
+WFE can stop the clock for the CPU until an "event" is signalled by
+another CPU. This could be done by an explicit SEV (send event) instruction,
+but that tends to require heavy barriers on the signalling side. Instead,
+the preferred way to generate an event is to clear the exclusive monitor
+reservation for the CPU executing the WFE. That means that the waiter
+does something like:
+
+	LDXR x0, [some_address]	// Load exclusive from some_address
+	CMP  x0, some value	// If the value matches what I want
+	B.EQ out		// then we're done
+	WFE			// otherwise, wait
+
+at this point, the waiter will stop on the WFE until its monitor is cleared,
+which happens if another CPU writes to some_address.
+
+We've wrapped this up in the arm64 code as __cmpwait, and we use that
+to build smp_cond_load_acquire. It would be nice to use the same machinery
+for the conditional spinning here, unless you anticipate that we're only
+going to be spinning for a handful of iterations anyway?
+
+Cheers,
+
+Will
