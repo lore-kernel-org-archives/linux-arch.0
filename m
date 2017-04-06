@@ -1,95 +1,76 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: [RFC PATCH] arm64: futex: Fix undefined behaviour with FUTEX_OP_OPARG_SHIFT usage
-Date: Thu,  6 Apr 2017 15:48:00 +0100
-Message-ID: <1491490080-23821-1-git-send-email-will.deacon@arm.com>
+From: Juergen Gross <jgross@suse.com>
+Subject: Re: [PATCH 7/8] x86: Enable 5-level paging support
+Date: Thu, 6 Apr 2017 16:52:11 +0200
+Message-ID: <469e1232-617c-daaa-90a6-a90d6f80059f@suse.com>
+References: <20170406140106.78087-1-kirill.shutemov@linux.intel.com>
+ <20170406140106.78087-8-kirill.shutemov@linux.intel.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:44264 "EHLO foss.arm.com"
+Received: from mx2.suse.de ([195.135.220.15]:51711 "EHLO mx2.suse.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1756123AbdDFOrs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 6 Apr 2017 10:47:48 -0400
+        id S934551AbdDFOwO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 6 Apr 2017 10:52:14 -0400
+In-Reply-To: <20170406140106.78087-8-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: mark.rutland@arm.com, tglx@linutronix.de, dvhart@linux.intel.com, jslaby@suse.com, Will Deacon <will.deacon@arm.com>
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
 
-FUTEX_OP_OPARG_SHIFT instructs the futex code to treat the 12-bit oparg
-field as a shift value, potentially leading to a left shift value that
-is negative or with an absolute value that is significantly larger then
-the size of the type. UBSAN chokes with:
+On 06/04/17 16:01, Kirill A. Shutemov wrote:
+> Most of things are in place and we can enable support of 5-level paging.
+> 
+> Enabling XEN with 5-level paging requires more work. The patch makes XEN
+> dependent on !X86_5LEVEL.
+> 
+> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+> ---
+>  arch/x86/Kconfig     | 5 +++++
+>  arch/x86/xen/Kconfig | 1 +
+>  2 files changed, 6 insertions(+)
+> 
+> diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+> index 4e153e93273f..7a76dcac357e 100644
+> --- a/arch/x86/Kconfig
+> +++ b/arch/x86/Kconfig
+> @@ -318,6 +318,7 @@ config FIX_EARLYCON_MEM
+>  
+>  config PGTABLE_LEVELS
+>  	int
+> +	default 5 if X86_5LEVEL
+>  	default 4 if X86_64
+>  	default 3 if X86_PAE
+>  	default 2
+> @@ -1390,6 +1391,10 @@ config X86_PAE
+>  	  has the cost of more pagetable lookup overhead, and also
+>  	  consumes more pagetable space per process.
+>  
+> +config X86_5LEVEL
+> +	bool "Enable 5-level page tables support"
+> +	depends on X86_64
+> +
+>  config ARCH_PHYS_ADDR_T_64BIT
+>  	def_bool y
+>  	depends on X86_64 || X86_PAE
+> diff --git a/arch/x86/xen/Kconfig b/arch/x86/xen/Kconfig
+> index 76b6dbd627df..b90d481ce5a1 100644
+> --- a/arch/x86/xen/Kconfig
+> +++ b/arch/x86/xen/Kconfig
+> @@ -5,6 +5,7 @@
+>  config XEN
+>  	bool "Xen guest support"
+>  	depends on PARAVIRT
+> +	depends on !X86_5LEVEL
+>  	select PARAVIRT_CLOCK
+>  	select XEN_HAVE_PVMMU
+>  	select XEN_HAVE_VPMU
+> 
 
-================================================================================
-UBSAN: Undefined behaviour in ./arch/arm64/include/asm/futex.h:60:13
-shift exponent -1 is negative
-CPU: 1 PID: 1449 Comm: syz-executor0 Not tainted 4.11.0-rc4-00005-g977eb52-dirty #11
-Hardware name: linux,dummy-virt (DT)
-Call trace:
-[<ffff200008094778>] dump_backtrace+0x0/0x538 arch/arm64/kernel/traps.c:73
-[<ffff200008094cd0>] show_stack+0x20/0x30 arch/arm64/kernel/traps.c:228
-[<ffff200008c194a8>] __dump_stack lib/dump_stack.c:16 [inline]
-[<ffff200008c194a8>] dump_stack+0x120/0x188 lib/dump_stack.c:52
-[<ffff200008cc24b8>] ubsan_epilogue+0x18/0x98 lib/ubsan.c:164
-[<ffff200008cc3098>] __ubsan_handle_shift_out_of_bounds+0x250/0x294 lib/ubsan.c:421
-[<ffff20000832002c>] futex_atomic_op_inuser arch/arm64/include/asm/futex.h:60 [inline]
-[<ffff20000832002c>] futex_wake_op kernel/futex.c:1489 [inline]
-[<ffff20000832002c>] do_futex+0x137c/0x1740 kernel/futex.c:3231
-[<ffff200008320504>] SYSC_futex kernel/futex.c:3281 [inline]
-[<ffff200008320504>] SyS_futex+0x114/0x268 kernel/futex.c:3249
-[<ffff200008084770>] el0_svc_naked+0x24/0x28
-================================================================================
-syz-executor1 uses obsolete (PF_INET,SOCK_PACKET)
-sock: process `syz-executor0' is using obsolete setsockopt SO_BSDCOMPAT
+Just a heads up: this last change will conflict with the Xen tree.
 
-This patch attempts to fix some of this by:
+Can't we just ignore the additional level in Xen pv mode and run with
+4 levels instead?
 
-  * Making encoded_op an unsigned type, so we can shift it left even if
-    the top bit is set.
 
-  * Casting to signed prior to shifting right when extracting oparg
-    and cmparg
-
-  * Consider only the bottom 5 bits of oparg when using it as a left-shift
-    value.
-
-Whilst I think this catches all of the issues, I'd much prefer to remove
-this stuff, as I think it's unused and the bugs are copy-pasted between
-a bunch of architectures.
-
-Reviewed-by: Robin Murphy <robin.murphy@arm.com>
-Signed-off-by: Will Deacon <will.deacon@arm.com>
----
-
-Whilst I think this fixes the splat for arm64, it leaves other architectures
-untouched and changes the type signature of futex_atomic_op_inuser locally.
-I would *much* prefer to rip out a lof of the unused futex functionality,
-specifically: FUTEX_OP_{OR,ANDN,XOR,OPARG_SHIFT}. Thoughts?
-
- arch/arm64/include/asm/futex.h | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
-
-diff --git a/arch/arm64/include/asm/futex.h b/arch/arm64/include/asm/futex.h
-index 85c4a8981d47..f32b42e8725d 100644
---- a/arch/arm64/include/asm/futex.h
-+++ b/arch/arm64/include/asm/futex.h
-@@ -48,16 +48,16 @@ do {									\
- } while (0)
- 
- static inline int
--futex_atomic_op_inuser (int encoded_op, u32 __user *uaddr)
-+futex_atomic_op_inuser(unsigned int encoded_op, u32 __user *uaddr)
- {
- 	int op = (encoded_op >> 28) & 7;
- 	int cmp = (encoded_op >> 24) & 15;
--	int oparg = (encoded_op << 8) >> 20;
--	int cmparg = (encoded_op << 20) >> 20;
-+	int oparg = (int)(encoded_op << 8) >> 20;
-+	int cmparg = (int)(encoded_op << 20) >> 20;
- 	int oldval = 0, ret, tmp;
- 
- 	if (encoded_op & (FUTEX_OP_OPARG_SHIFT << 28))
--		oparg = 1 << oparg;
-+		oparg = 1U << (oparg & 0x1f);
- 
- 	if (!access_ok(VERIFY_WRITE, uaddr, sizeof(u32)))
- 		return -EFAULT;
--- 
-2.1.4
+Juergen
