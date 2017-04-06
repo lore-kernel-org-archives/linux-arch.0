@@ -1,66 +1,80 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [RFC][PATCH] spin loop arch primitives for busy waiting
-Date: Thu, 6 Apr 2017 12:41:52 -0700
-Message-ID: <CA+55aFzvRiVx3dvXaQUpYwoHq0DnrV9RPXWnqSeb9b80DFosHA@mail.gmail.com>
-References: <20170404095001.664718b8@roar.ozlabs.ibm.com> <CA+55aFzdUMZHzXtn9PyhJg7GjYNQ5fy6=LzBNJx==Ab=U=YYjw@mail.gmail.com>
- <20170404130233.1f45115b@roar.ozlabs.ibm.com> <20170405.070157.871721909352646302.davem@davemloft.net>
- <20170406105958.196c6977@roar.ozlabs.ibm.com> <20170406141352.GF18204@arm.com>
- <CA+55aFwgNhF=QUKMKLc9TfQ=cgF2mvMEVx9hJms4wQqCsib9Rw@mail.gmail.com>
- <20170406163651.hj7apd63uxupgdb3@hirez.programming.kicks-ass.net>
- <CA+55aFzTn9e=F68SOtEvvZLdT6zCj9+gLc-OS7qhDKdM7zaasA@mail.gmail.com> <20170406192342.GC3093@worktop>
+From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Subject: Re: [PATCH 8/8] x86/mm: Allow to have userspace mappings above
+ 47-bits
+Date: Fri, 7 Apr 2017 02:21:37 +0300
+Message-ID: <20170406232137.uk7y2knbkcsru4pi@black.fi.intel.com>
+References: <20170406140106.78087-1-kirill.shutemov@linux.intel.com>
+ <20170406140106.78087-9-kirill.shutemov@linux.intel.com>
+ <3cb79f4b-76f5-6e31-6973-e9281b2e4553@virtuozzo.com>
+ <eaf4c954-e6c0-a9b4-50f1-49889dbd0f4b@virtuozzo.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f42.google.com ([209.85.214.42]:38697 "EHLO
-        mail-it0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752035AbdDFTly (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Apr 2017 15:41:54 -0400
-In-Reply-To: <20170406192342.GC3093@worktop>
+Received: from mga05.intel.com ([192.55.52.43]:51522 "EHLO mga05.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S932193AbdDFXWN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 6 Apr 2017 19:22:13 -0400
+Content-Disposition: inline
+In-Reply-To: <eaf4c954-e6c0-a9b4-50f1-49889dbd0f4b@virtuozzo.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Will Deacon <will.deacon@arm.com>, Nicholas Piggin <npiggin@gmail.com>, David Miller <davem@davemloft.net>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Anton Blanchard <anton@samba.org>, linuxppc-dev list <linuxppc-dev@ozlabs.org>
+To: Dmitry Safonov <dsafonov@virtuozzo.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
 
-On Thu, Apr 6, 2017 at 12:23 PM, Peter Zijlstra <peterz@infradead.org> wrote:
->
-> Something like so then. According to the SDM mwait is a no-op if we do
-> not execute monitor first. So this variant should get the first
-> iteration without expensive instructions.
+On Thu, Apr 06, 2017 at 10:15:47PM +0300, Dmitry Safonov wrote:
+> On 04/06/2017 09:43 PM, Dmitry Safonov wrote:
+> > Hi Kirill,
+> > 
+> > On 04/06/2017 05:01 PM, Kirill A. Shutemov wrote:
+> > > On x86, 5-level paging enables 56-bit userspace virtual address space.
+> > > Not all user space is ready to handle wide addresses. It's known that
+> > > at least some JIT compilers use higher bits in pointers to encode their
+> > > information. It collides with valid pointers with 5-level paging and
+> > > leads to crashes.
+> > > 
+> > > To mitigate this, we are not going to allocate virtual address space
+> > > above 47-bit by default.
+> > > 
+> > > But userspace can ask for allocation from full address space by
+> > > specifying hint address (with or without MAP_FIXED) above 47-bits.
+> > > 
+> > > If hint address set above 47-bit, but MAP_FIXED is not specified, we try
+> > > to look for unmapped area by specified address. If it's already
+> > > occupied, we look for unmapped area in *full* address space, rather than
+> > > from 47-bit window.
+> > 
+> > Do you wish after the first over-47-bit mapping the following mmap()
+> > calls return also over-47-bits if there is free space?
+> > It so, you could simplify all this code by changing only mm->mmap_base
+> > on the first over-47-bit mmap() call.
+> > This will do simple trick.
 
-No, the problem is that we *would* have executed a prior monitor that
-could still be pending - from a previous invocation of
-smp_cond_load_acquire().
+No.
 
-Especially with spinlocks, these things can very much happen back-to-back.
+I want every allocation to explicitely opt-in large address space. It's
+additional fail-safe: if a library can't handle large addresses it has
+better chance to survive if its own allocation will stay within 47-bits.
 
-And it would be pending with a different address (the previous
-spinlock) that might not have changed since then (and might not be
-changing), so now we might actually be pausing in mwait waiting for
-that *other* thing to change.
+> I just tried to define it like this:
+> -#define DEFAULT_MAP_WINDOW     ((1UL << 47) - PAGE_SIZE)
+> +#define DEFAULT_MAP_WINDOW     (test_thread_flag(TIF_ADDR32) ?         \
+> +                               IA32_PAGE_OFFSET : ((1UL << 47) -
+> PAGE_SIZE))
+> 
+> And it looks working better.
 
-So it would probably need to do something complicated like
+Okay, thanks. I'll send v2.
 
-  #define smp_cond_load_acquire(ptr, cond_expr)                         \
-  ({                                                                    \
-        typeof(ptr) __PTR = (ptr);                                      \
-        typeof(*ptr) VAL;                                               \
-        do {                                                            \
-                VAL = READ_ONCE(*__PTR);                                \
-                if (cond_expr)                                          \
-                        break;                                          \
-                for (;;) {                                              \
-                        ___monitor(__PTR, 0, 0);                        \
-                        VAL = READ_ONCE(*__PTR);                        \
-                        if (cond_expr) break;                           \
-                        ___mwait(0xf0 /* C0 */, 0);                     \
-                }                                                       \
-        } while (0)                                                     \
-        smp_acquire__after_ctrl_dep();                                  \
-        VAL;                                                            \
-  })
+> > > +    if (addr > DEFAULT_MAP_WINDOW && !in_compat_syscall())
+> > > +        info.high_limit += TASK_SIZE - DEFAULT_MAP_WINDOW;
+> > 
+> > Hmm, TASK_SIZE depends now on TIF_ADDR32, which is set during exec().
+> > That means for ia32/x32 ELF which has TASK_SIZE < 4Gb as TIF_ADDR32
+> > is set, which can do 64-bit syscalls - the subtraction will be
+> > a negative..
 
-which might just generate nasty enough code to not be worth it.
+With your proposed change to DEFAULT_MAP_WINDOW difinition it should be
+okay, right?
 
-I dunno
-
-             Linus
+-- 
+ Kirill A. Shutemov
