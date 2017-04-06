@@ -1,41 +1,121 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f65.google.com ([209.85.214.65]:34197 "EHLO
-        mail-it0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752941AbdDFSqa (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Apr 2017 14:46:30 -0400
-Subject: Re: [PATCH V10 00/12] IOMMU probe deferral support
+Received: from mail-io0-f196.google.com ([209.85.223.196]:35479 "EHLO
+        mail-io0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752227AbdDFTYf (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Apr 2017 15:24:35 -0400
+Subject: Re: [PATCH V10 06/12] of: device: Fix overflow of coherent_dma_mask
 References: <1489086061-9356-1-git-send-email-sricharan@codeaurora.org>
  <1491301105-5274-1-git-send-email-sricharan@codeaurora.org>
- <CAL_JsqJH9C9sNGBSLH88bJ=uKF7RibHDAUZUW9M2xeO2AM-FUw@mail.gmail.com>
+ <1491301105-5274-7-git-send-email-sricharan@codeaurora.org>
+ <58E5E7B7.1050400@gmail.com> <b081f333-084d-ffa5-635f-f7f1c0232ac3@arm.com>
 From: Frank Rowand <frowand.list@gmail.com>
-Message-ID: <58E68CEF.8090101@gmail.com>
-Date: Thu, 6 Apr 2017 11:46:07 -0700
+Message-ID: <58E695DC.7010808@gmail.com>
+Date: Thu, 6 Apr 2017 12:24:12 -0700
 MIME-Version: 1.0
-In-Reply-To: <CAL_JsqJH9C9sNGBSLH88bJ=uKF7RibHDAUZUW9M2xeO2AM-FUw@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8
+In-Reply-To: <b081f333-084d-ffa5-635f-f7f1c0232ac3@arm.com>
+Content-Type: text/plain; charset=windows-1252
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Rob Herring <robh+dt@kernel.org>, Sricharan R <sricharan@codeaurora.org>
-Cc: Robin Murphy <robin.murphy@arm.com>, Will Deacon <will.deacon@arm.com>, Joerg Roedel <joro@8bytes.org>, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Linux IOMMU <iommu@lists.linux-foundation.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-arm-msm <linux-arm-msm@vger.kernel.org>, Marek Szyprowski <m.szyprowski@samsung.com>, "bhelgaas@google.com" <bhelgaas@google.com>, "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, "linux-acpi@vger.kernel.org" <linux-acpi@vger.kernel.org>, Tomasz Nowicki <tn@semihalf.com>, Hanjun Guo <hanjun.guo@linaro.org>, Sinan Kaya <okaya@codeaurora.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Sudeep Holla <sudeep.holla@arm.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Len Brown <lenb@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Message-ID: <20170406184607.3PY1J3taAloWSXETLtS_YI_ctGD_Uw7GKzVxFEXFR88@z>
+To: Robin Murphy <robin.murphy@arm.com>, Sricharan R <sricharan@codeaurora.org>, will.deacon@arm.com, joro@8bytes.org, lorenzo.pieralisi@arm.com, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arm-msm@vger.kernel.org, m.szyprowski@samsung.com, bhelgaas@google.com, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, tn@semihalf.com, hanjun.guo@linaro.org, okaya@codeaurora.org, robh+dt@kernel.org, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, sudeep.holla@arm.com, rjw@rjwysocki.net, lenb@kernel.org, catalin.marinas@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, gregkh@linuxfoundation.org
+Message-ID: <20170406192412.pUG8wQ4OdEPySC0vdUwBMxpCl5C6-Qn-0pmZX6Z8r2E@z>
 
-On 04/04/17 18:23, Rob Herring wrote:
-> On Tue, Apr 4, 2017 at 5:18 AM, Sricharan R <sricharan@codeaurora.org> wrote:
->> This series calls the dma ops configuration for the devices
->> at a generic place so that it works for all busses.
->> The dma_configure_ops for a device is now called during
->> the device_attach callback just before the probe of the
->> bus/driver is called. Similarly dma_deconfigure is called during
->> device/driver_detach path.
+On 04/06/17 03:24, Robin Murphy wrote:
+> On 06/04/17 08:01, Frank Rowand wrote:
+>> On 04/04/17 03:18, Sricharan R wrote:
+>>> Size of the dma-range is calculated as coherent_dma_mask + 1
+>>> and passed to arch_setup_dma_ops further. It overflows when
+>>> the coherent_dma_mask is set for full 64 bits 0xFFFFFFFFFFFFFFFF,
+>>> resulting in size getting passed as 0 wrongly. Fix this by
+>>> passsing in max(mask, mask + 1). Note that in this case
+>>> when the mask is set to full 64bits, we will be passing the mask
+>>> itself to arch_setup_dma_ops instead of the size. The real fix
+>>> for this should be to make arch_setup_dma_ops receive the
+>>> mask and handle it, to be done in the future.
+>>>
+>>> Signed-off-by: Sricharan R <sricharan@codeaurora.org>
+>>> ---
+>>>  drivers/of/device.c | 2 +-
+>>>  1 file changed, 1 insertion(+), 1 deletion(-)
+>>>
+>>> diff --git a/drivers/of/device.c b/drivers/of/device.c
+>>> index c17c19d..c2ae6bb 100644
+>>> --- a/drivers/of/device.c
+>>> +++ b/drivers/of/device.c
+>>> @@ -107,7 +107,7 @@ void of_dma_configure(struct device *dev, struct device_node *np)
+>>>  	ret = of_dma_get_range(np, &dma_addr, &paddr, &size);
+>>>  	if (ret < 0) {
+>>>  		dma_addr = offset = 0;
+>>> -		size = dev->coherent_dma_mask + 1;
+>>> +		size = max(dev->coherent_dma_mask, dev->coherent_dma_mask + 1);
+>>>  	} else {
+>>>  		offset = PFN_DOWN(paddr - dma_addr);
+>>>  		dev_dbg(dev, "dma_pfn_offset(%#08lx)\n", offset);
+>>>
+>>
+>> NACK.
+>>
+>> Passing an invalid size to arch_setup_dma_ops() is only part of the problem.
+>> size is also used in of_dma_configure() before calling arch_setup_dma_ops():
+>>
+>>         dev->coherent_dma_mask = min(dev->coherent_dma_mask,
+>>                                      DMA_BIT_MASK(ilog2(dma_addr + size)));
+>>         *dev->dma_mask = min((*dev->dma_mask),
+>>                              DMA_BIT_MASK(ilog2(dma_addr + size)));
+>>
+>> which would be incorrect for size == 0xffffffffffffffffULL when
+>> dma_addr != 0.  So the proposed fix really is not papering over
+>> the base problem very well.
 > 
-> For patches 3, 4, 6, 7, 8:
+> I'm not sure I agree there. Granted, there exist many more problematic
+> aspects than are dealt with here (I've got more patches cooking to sort
+> out some of the other issues we have with dma-ranges), but considering
+> size specifically:
 > 
-> Acked-by: Rob Herring <robh@kernel.org>
-> .
+> - It is not possible to explicitly specify a range with a size of 2^64
+> in DT. If someone does specify a size of 0, they've done a silly thing
+> and should not be surprised that it ends badly.
 > 
+> - It *is* perfectly legitimate for bus code (or a previous device
+> driver, once we start coming here at probe time) to have set a device's
+> DMA mask to 0xffffffffffffffffULL. If this code then blindly overflows
+> and infers an invalid size of 0 from that, breaking things in the
+> process, that is this code's fault alone. It just so happens that
+> nothing managed to trigger the latent problem until patch #7 here shakes
+> up the callsites.
 
-And a few hours later, I had the opposite opinion on a couple of
-patches, so there is some ongoing discussion working this out.
+The existing code that uses size does not appear capable of dealing with
+the case of DMA mask of 0xffffffffffffffffULL since 2^64 does not fit
+into size.
 
--Frank
+The code affected by the DMA mask is not within my area of knowledge, so
+take the following with a grain of salt.  If a DMA mask of
+0xffffffffffffffffULL is provided, would the code still work without error
+(though with reduced capability) if the mask was changed to
+0xefffffffffffffffULL?  I would guess that the location to do so would
+be where dev->coherent_dma_mask is set, or some other location that
+is not of_dma_configure().  This would just be a temporary workaround.
+
+
+> Yes, wacky impossible base + size combinations in DT were a theoretical
+> problem before, and remain a theoretical problem, but also fall into the
+> "how did you ever expect this to work?" category. There's certainly
+> plenty more we can do to improve the DT parsing/validation, but that
+> still doesn't apply to this path where the information is *not* coming
+> from the DT at all.
+> 
+>> I agree that the proper solution involves passing a mask instead
+>> of a size to arch_setup_dma_ops().
+> 
+> Having started writing that patch too, I can tell you it's a big bugger
+> touching multiple architectures and fixing up various drivers doing
+> stupid things, hence why I'm happy with this point fix being the lesser
+> of two evils in terms of not holding up this mostly-orthogonal series.
+> 
+> Robin.
+> 
+>>
+>> -Frank
+>>
+> 
+> 
