@@ -1,114 +1,37 @@
-From: Sricharan R <sricharan@codeaurora.org>
-Subject: Re: [PATCH V10 06/12] of: device: Fix overflow of coherent_dma_mask
-Date: Fri, 7 Apr 2017 09:42:55 +0530
-Message-ID: <750b18f2-7cc5-c2d5-9bee-3574e787c80f@codeaurora.org>
-References: <1489086061-9356-1-git-send-email-sricharan@codeaurora.org>
- <1491301105-5274-1-git-send-email-sricharan@codeaurora.org>
- <1491301105-5274-7-git-send-email-sricharan@codeaurora.org>
- <58E5E7B7.1050400@gmail.com>
- <b77e3405-f060-bcd5-99f6-7d76f9edf08a@codeaurora.org>
- <58E69831.6010306@gmail.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [RFC][PATCH] spin loop arch primitives for busy waiting
+Date: Fri, 7 Apr 2017 11:43:49 +0200
+Message-ID: <20170407094349.f4hdqibbgl36s776@hirez.programming.kicks-ass.net>
+References: <20170404095001.664718b8@roar.ozlabs.ibm.com>
+ <CA+55aFzdUMZHzXtn9PyhJg7GjYNQ5fy6=LzBNJx==Ab=U=YYjw@mail.gmail.com>
+ <20170404130233.1f45115b@roar.ozlabs.ibm.com>
+ <20170405.070157.871721909352646302.davem@davemloft.net>
+ <20170406105958.196c6977@roar.ozlabs.ibm.com>
+ <20170406141352.GF18204@arm.com>
+ <CA+55aFwgNhF=QUKMKLc9TfQ=cgF2mvMEVx9hJms4wQqCsib9Rw@mail.gmail.com>
+ <20170406163651.hj7apd63uxupgdb3@hirez.programming.kicks-ass.net>
+ <CA+55aFzTn9e=F68SOtEvvZLdT6zCj9+gLc-OS7qhDKdM7zaasA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.codeaurora.org ([198.145.29.96]:41150 "EHLO
-        smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750823AbdDGENH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 7 Apr 2017 00:13:07 -0400
-In-Reply-To: <58E69831.6010306@gmail.com>
+Received: from bombadil.infradead.org ([65.50.211.133]:59083 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754581AbdDGJn5 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 7 Apr 2017 05:43:57 -0400
+Content-Disposition: inline
+In-Reply-To: <CA+55aFzTn9e=F68SOtEvvZLdT6zCj9+gLc-OS7qhDKdM7zaasA@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Frank Rowand <frowand.list@gmail.com>, robin.murphy@arm.com, will.deacon@arm.com, joro@8bytes.org, lorenzo.pieralisi@arm.com, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arm-msm@vger.kernel.org, m.szyprowski@samsung.com, bhelgaas@google.com, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, tn@semihalf.com, hanjun.guo@linaro.org, okaya@codeaurora.org, robh+dt@kernel.org, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, sudeep.holla@arm.com, rjw@rjwysocki.net, lenb@kernel.org, catalin.marinas@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, gregkh@linuxfoundation.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Will Deacon <will.deacon@arm.com>, Nicholas Piggin <npiggin@gmail.com>, David Miller <davem@davemloft.net>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Anton Blanchard <anton@samba.org>, linuxppc-dev list <linuxppc-dev@ozlabs.org>
 
-Hi Frank,
+On Thu, Apr 06, 2017 at 10:31:46AM -0700, Linus Torvalds wrote:
+> But maybe "monitor" is really cheap. I suspect it's microcoded,
+> though, which implies "no".
 
-On 4/7/2017 1:04 AM, Frank Rowand wrote:
-> On 04/06/17 04:01, Sricharan R wrote:
->> Hi Frank,
->>
->> On 4/6/2017 12:31 PM, Frank Rowand wrote:
->>> On 04/04/17 03:18, Sricharan R wrote:
->>>> Size of the dma-range is calculated as coherent_dma_mask + 1
->>>> and passed to arch_setup_dma_ops further. It overflows when
->>>> the coherent_dma_mask is set for full 64 bits 0xFFFFFFFFFFFFFFFF,
->>>> resulting in size getting passed as 0 wrongly. Fix this by
->>>> passsing in max(mask, mask + 1). Note that in this case
->>>> when the mask is set to full 64bits, we will be passing the mask
->>>> itself to arch_setup_dma_ops instead of the size. The real fix
->>>> for this should be to make arch_setup_dma_ops receive the
->>>> mask and handle it, to be done in the future.
->>>>
->>>> Signed-off-by: Sricharan R <sricharan@codeaurora.org>
->>>> ---
->>>>  drivers/of/device.c | 2 +-
->>>>  1 file changed, 1 insertion(+), 1 deletion(-)
->>>>
->>>> diff --git a/drivers/of/device.c b/drivers/of/device.c
->>>> index c17c19d..c2ae6bb 100644
->>>> --- a/drivers/of/device.c
->>>> +++ b/drivers/of/device.c
->>>> @@ -107,7 +107,7 @@ void of_dma_configure(struct device *dev, struct device_node *np)
->>>>      ret = of_dma_get_range(np, &dma_addr, &paddr, &size);
->>>>      if (ret < 0) {
->>>>          dma_addr = offset = 0;
->>>> -        size = dev->coherent_dma_mask + 1;
->>>> +        size = max(dev->coherent_dma_mask, dev->coherent_dma_mask + 1);
->>>>      } else {
->>>>          offset = PFN_DOWN(paddr - dma_addr);
->>>>          dev_dbg(dev, "dma_pfn_offset(%#08lx)\n", offset);
->>>>
->>>
->>> NACK.
->>>
->>> Passing an invalid size to arch_setup_dma_ops() is only part of the problem.
->>> size is also used in of_dma_configure() before calling arch_setup_dma_ops():
->>>
->>>         dev->coherent_dma_mask = min(dev->coherent_dma_mask,
->>>                                      DMA_BIT_MASK(ilog2(dma_addr + size)));
->>>         *dev->dma_mask = min((*dev->dma_mask),
->>>                              DMA_BIT_MASK(ilog2(dma_addr + size)));
->>>
->>> which would be incorrect for size == 0xffffffffffffffffULL when
->>> dma_addr != 0.  So the proposed fix really is not papering over
->>> the base problem very well.
->>>
->>
->> Ok, but with your fix for of_dma_get_range and the above fix,
->> dma_addr will be '0' when size = 0xffffffffffffffffULL,
->> but DMA_BIT_MASK(ilog2(dma_addr + size)) would be wrong though,
->> making coherent_dma_mask to be smaller 0x7fffffffffffffffULL.
->
-> Yes, that was my point.  Setting size to 0x7fffffffffffffffULL
-> affects several places.  Another potential location (based only
-> on the function header comment, not from reading the code) is
-> iommu_dma_init_domain().  The header comment says:
->
->     * @base and @size should be exact multiples of IOMMU page granularity to
->     * avoid rounding surprises.
->
+On my IVB-EP (will also try on something newer):
 
-ok, this is the same problem that should get solved when arch_setup_dma_ops
-is prepared to take mask instead of size. It would still work as said above
-with a smaller mask than specified.
+MONITOR	~332 cycles
+MWAIT	~224 cycles (C0, explicitly invalidated MONITOR)
 
-> I have not read enough context to really understand of_dma_configure(), but
-> it seems there is yet another issue in how the error return case from
-> of_dma_get_range() is handled (with the existing code, as well as if
-> my patch gets accepted).  An error return value can mean _either_
-> there is no dma-ranges property _or_ "an other problem occurred".  Should
-> the "an other problem occurred" case be handled by defaulting size to
-> a value based on dev->coherent_dma_mask (the current case) or should the
-> attempt to set up the DMA configuration just fail?
-
-The handling of return error value looks like separate item, but looks
-like its correct with what is there now. (ie) when of_dma_get_range fails
-either because 'dma-ranges property' populated in DT (or) because of some
-erroneous DT setting, better to set the mask which the driver has specified
-and ignore DT. So the above patch just corrects a mistake in that path.
-
-Regards,
-  Sricharan
-
--- 
-"QUALCOMM INDIA, on behalf of Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum, hosted by The Linux Foundation
+So yes, expensive.
