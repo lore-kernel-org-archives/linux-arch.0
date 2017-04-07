@@ -1,153 +1,148 @@
-From: Adam Wallis <awallis@codeaurora.org>
-Subject: Re: [RFC 0/9] ARMv8.3 pointer authentication userspace support
-Date: Fri, 7 Apr 2017 11:09:30 -0400
-Message-ID: <68cdfcee-33aa-8511-2fff-4b2308e80b7a@codeaurora.org>
+From: Marc Zyngier <marc.zyngier@arm.com>
+Subject: Re: [RFC 8/9] arm64/kvm: context-switch PAC registers
+Date: Fri, 7 Apr 2017 16:41:29 +0100
+Message-ID: <973af0d9-f7bc-24ee-567d-23e0e487b970@arm.com>
 References: <1491232765-32501-1-git-send-email-mark.rutland@arm.com>
+ <1491232765-32501-9-git-send-email-mark.rutland@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=windows-1252
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.codeaurora.org ([198.145.29.96]:44652 "EHLO
-        smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S934000AbdDGPJe (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 7 Apr 2017 11:09:34 -0400
-In-Reply-To: <1491232765-32501-1-git-send-email-mark.rutland@arm.com>
-Content-Language: en-US
+Received: from foss.arm.com ([217.140.101.70]:57086 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1755013AbdDGPld (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 7 Apr 2017 11:41:33 -0400
+In-Reply-To: <1491232765-32501-9-git-send-email-mark.rutland@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Mark Rutland <mark.rutland@arm.com>, linux-arm-kernel@lists.infradead.org
-Cc: linux-arch@vger.kernel.org, arnd@arndb.de, jiong.wang@arm.com, marc.zyngier@arm.com, catalin.marinas@arm.com, suzuki.poulose@arm.com, will.deacon@arm.com, linux-kernel@vger.kernel.org, kvmarm@lists.cs.columbia.edu, christoffer.dall@linaro.org
+Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, catalin.marinas@arm.com, christoffer.dall@linaro.org, jiong.wang@arm.com, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, suzuki.poulose@arm.com, will.deacon@arm.com
 
-On 4/3/2017 11:19 AM, Mark Rutland wrote:
-> This series adds support for the ARMv8.3 pointer authentication extension.
-> 
-> I've included a quick intro to the extension below, with the usual series
-> description below that. The final patch of the series adds additional
-> documentation regarding the extension.
-> 
-> I've based the series on the arm64 for-next/core branch [1]. I'm aware that
-> this series may conflict with other patches currently in flight (e.g.
-> allocation of ELF notes), and I intend to rebase this series as things settle.
-> 
-> I've pushed the series to the arm64/pointer-auth branch [2] of my linux tree.
-> I've also pushed out a necessary bootwrapper patch to the pointer-auth branch
-> [3] of my bootwrapper repo.
-> 
-> 
-> Extension Overview 
-> ==================
-> 
-> The ARMv8.3 pointer authentication extension adds functionality to detect
-> modification of pointer values, mitigating certain classes of attack such as
-> stack smashing, and making return oriented programming attacks harder
-> 
-> The extension introduces the concept of a pointer authentication code (PAC),
-> which is stored in some upper bits of pointers. Each PAC is derived from the
-> original pointer, another 64-bit value (e.g. the stack pointer), and a secret
-> 128-bit key.
-> 
-> New instructions are added which can be used to:
-> 
-> * Insert a PAC into a pointer
-> * Strip a PAC from a pointer
-> * Authenticate strip a PAC from a pointer
-> 
-> If authentication succeeds, the code is removed, yielding the original pointer.
-> If authentication fails, bits are set in the pointer such that it is guaranteed
-> to cause a fault if used.
-> 
-> These instructions can make use of four keys:
-> 
-> * APIAKey (A.K.A. Instruction A key)
-> * APIBKey (A.K.A. Instruction B key)
-> * APDAKey (A.K.A. Data A key)
-> * APDBKey (A.K.A. Data B Key)
-> 
-> A subset of these instruction encodings have been allocated from the HINT
-> space, and will operate as NOPs on any ARMv8 parts which do not feature the
-> extension (or if purposefully disabled by the kernel). Software using only this
-> subset of the instructions should function correctly on all ARMv8-A parts.
-> 
-> Additionally, instructions are added to authenticate small blocks of memory in
-> similar fashion, using APGAKey (A.K.A. Generic key).
-> 
-> 
-> This Series
-> ===========
-> 
-> This series enables the use of instructions using APIAKey, which is initialised
-> and maintained per-process (shared by all threads). This series does not add
-> support for APIBKey, APDAKey, APDBKey, nor APGAKey. The series only supports
-> the use of an architected algorithm.
-> 
-> I've given this some basic testing with a homebrew test suite. More ideally,
-> we'd add some tests to the kernel source tree.
-> 
-> I've added some basic KVM support, but this doesn't cater for systems with
-> mismatched support. Looking forward, we'll need ID register emulation in KVM so
-> that we can hide features from guests to cater for cases like this.
-> 
-> There are also a few questions to consider, e.g:
-> 
-> * Should we expose a per-process data key now, to go with the insn key?
-> * Should keys be per-thread rather than per-process?
-> * Should we expose generic authentication (i.e. APGAKey)?
-> * Should the kernel remove PACs when unwinding user stacks?
-> 
-> Thanks,
-> Mark.
-> 
-> [1] git://git.kernel.org/pub/scm/linux/kernel/git/arm64/linux.git for-next/core
-> [2] git://git.kernel.org/pub/scm/linux/kernel/git/mark/linux.git arm64/pointer-auth
-> [3] git://git.kernel.org/pub/scm/linux/kernel/git/mark/boot-wrapper-aarch64.git pointer-auth
-> 
-> Mark Rutland (9):
->   asm-generic: mm_hooks: allow hooks to be overridden individually
->   arm64: add pointer authentication register bits
->   arm64/cpufeature: add ARMv8.3 id_aa64isar1 bits
->   arm64/cpufeature: detect pointer authentication
->   arm64: Don't trap host pointer auth use to EL2
->   arm64: add basic pointer authentication support
->   arm64: expose PAC bit positions via ptrace
->   arm64/kvm: context-switch PAC registers
->   arm64: docs: document pointer authentication
-> 
->  Documentation/arm64/booting.txt                |  8 +++
->  Documentation/arm64/pointer-authentication.txt | 78 +++++++++++++++++++++
->  arch/arm64/Kconfig                             | 23 ++++++
->  arch/arm64/include/asm/cpucaps.h               |  4 +-
->  arch/arm64/include/asm/esr.h                   |  3 +-
->  arch/arm64/include/asm/kvm_arm.h               |  2 +
->  arch/arm64/include/asm/kvm_emulate.h           | 15 ++++
->  arch/arm64/include/asm/kvm_host.h              | 12 ++++
->  arch/arm64/include/asm/mmu.h                   |  5 ++
->  arch/arm64/include/asm/mmu_context.h           | 25 ++++++-
->  arch/arm64/include/asm/pointer_auth.h          | 96 ++++++++++++++++++++++++++
->  arch/arm64/include/asm/sysreg.h                | 30 ++++++++
->  arch/arm64/include/uapi/asm/hwcap.h            |  1 +
->  arch/arm64/include/uapi/asm/ptrace.h           |  5 ++
->  arch/arm64/kernel/cpufeature.c                 | 39 ++++++++++-
->  arch/arm64/kernel/cpuinfo.c                    |  1 +
->  arch/arm64/kernel/head.S                       | 19 ++++-
->  arch/arm64/kernel/ptrace.c                     | 39 +++++++++++
->  arch/arm64/kvm/hyp/sysreg-sr.c                 | 43 ++++++++++++
->  include/asm-generic/mm_hooks.h                 | 12 ++++
->  include/uapi/linux/elf.h                       |  1 +
->  21 files changed, 454 insertions(+), 7 deletions(-)
->  create mode 100644 Documentation/arm64/pointer-authentication.txt
->  create mode 100644 arch/arm64/include/asm/pointer_auth.h
-> 
+Hi Mark,
 
-Tested on Qualcomm platform with ARMV8 architecture (without 8.3 extensions) for
-backwards compatibility (meaning I did not pass -march=armv8.3-a to GCC; only
--msign-return-address=all). The HINT PACIASP/AUTIASP caused no issues and no
-other issues were encountered. Will test again once a platform is available with
-8.3-a extensions.
+On 03/04/17 16:19, Mark Rutland wrote:
+> If we have pointer authentication support, a guest may wish to use it.
+> This patch adds the infrastructure to allow it to do so.
+> 
+> This is sufficient for basic testing, but not for real-world usage. A
+> guest will still see pointer authentication support advertised in the ID
+> registers, and we will need to trap accesses to these to provide
+> santized values.
+> 
+> Signed-off-by: Mark Rutland <mark.rutland@arm.com>
+> Cc: Christoffer Dall <christoffer.dall@linaro.org> 
+> Cc: Marc Zyngier <marc.zyngier@arm.com>
+> Cc: kvmarm@lists.cs.columbia.edu
+> ---
+>  arch/arm64/include/asm/kvm_emulate.h | 15 +++++++++++++
+>  arch/arm64/include/asm/kvm_host.h    | 12 ++++++++++
+>  arch/arm64/kvm/hyp/sysreg-sr.c       | 43 ++++++++++++++++++++++++++++++++++++
+>  3 files changed, 70 insertions(+)
+> 
+> diff --git a/arch/arm64/include/asm/kvm_emulate.h b/arch/arm64/include/asm/kvm_emulate.h
+> index f5ea0ba..0c3cb43 100644
+> --- a/arch/arm64/include/asm/kvm_emulate.h
+> +++ b/arch/arm64/include/asm/kvm_emulate.h
+> @@ -28,6 +28,8 @@
+>  #include <asm/kvm_arm.h>
+>  #include <asm/kvm_mmio.h>
+>  #include <asm/ptrace.h>
+> +#include <asm/cpucaps.h>
+> +#include <asm/cpufeature.h>
+>  #include <asm/cputype.h>
+>  #include <asm/virt.h>
+>  
+> @@ -49,6 +51,19 @@ static inline void vcpu_reset_hcr(struct kvm_vcpu *vcpu)
+>  		vcpu->arch.hcr_el2 |= HCR_E2H;
+>  	if (test_bit(KVM_ARM_VCPU_EL1_32BIT, vcpu->arch.features))
+>  		vcpu->arch.hcr_el2 &= ~HCR_RW;
+> +
+> +	/*
+> +	 * Address auth and generic auth share the same enable bits, so we have
+> +	 * to ensure both are uniform before we can enable support in a guest.
+> +	 * Until we have the infrastructure to detect uniform absence of a
+> +	 * feature, only permit the case when both are supported.
+> +	 *
+> +	 * Note that a guest will still see the feature in ID_AA64_ISAR1 until
+> +	 * we introduce code to emulate the ID registers.
+> +	 */
+> +	if (cpus_have_const_cap(ARM64_HAS_ADDRESS_AUTH) &&
+> +	    cpus_have_const_cap(ARM64_HAS_GENERIC_AUTH))
+> +		vcpu->arch.hcr_el2 |= (HCR_API | HCR_APK);
 
-Thanks
+Instead of unconditionally allowing the guest to access this feature...
 
+>  }
+>  
+>  static inline unsigned long vcpu_get_hcr(struct kvm_vcpu *vcpu)
+> diff --git a/arch/arm64/include/asm/kvm_host.h b/arch/arm64/include/asm/kvm_host.h
+> index e7705e7..b25f710 100644
+> --- a/arch/arm64/include/asm/kvm_host.h
+> +++ b/arch/arm64/include/asm/kvm_host.h
+> @@ -133,6 +133,18 @@ enum vcpu_sysreg {
+>  	PMSWINC_EL0,	/* Software Increment Register */
+>  	PMUSERENR_EL0,	/* User Enable Register */
+>  
+> +	/* Pointer Authentication Registers */
+> +	APIAKEYLO_EL1,
+> +	APIAKEYHI_EL1,
+> +	APIBKEYLO_EL1,
+> +	APIBKEYHI_EL1,
+> +	APDAKEYLO_EL1,
+> +	APDAKEYHI_EL1,
+> +	APDBKEYLO_EL1,
+> +	APDBKEYHI_EL1,
+> +	APGAKEYLO_EL1,
+> +	APGAKEYHI_EL1,
+> +
+>  	/* 32bit specific registers. Keep them at the end of the range */
+>  	DACR32_EL2,	/* Domain Access Control Register */
+>  	IFSR32_EL2,	/* Instruction Fault Status Register */
+> diff --git a/arch/arm64/kvm/hyp/sysreg-sr.c b/arch/arm64/kvm/hyp/sysreg-sr.c
+> index 9341376..3440b42 100644
+> --- a/arch/arm64/kvm/hyp/sysreg-sr.c
+> +++ b/arch/arm64/kvm/hyp/sysreg-sr.c
+> @@ -18,6 +18,8 @@
+>  #include <linux/compiler.h>
+>  #include <linux/kvm_host.h>
+>  
+> +#include <asm/cpucaps.h>
+> +#include <asm/cpufeature.h>
+>  #include <asm/kvm_asm.h>
+>  #include <asm/kvm_hyp.h>
+>  
+> @@ -31,6 +33,24 @@ static void __hyp_text __sysreg_do_nothing(struct kvm_cpu_context *ctxt) { }
+>   * pstate, and guest must save everything.
+>   */
+>  
+> +#define __save_ap_key(regs, key) \
+> +	regs[key ## KEYLO_EL1] = read_sysreg_s(SYS_ ## key ## KEYLO_EL1); \
+> +	regs[key ## KEYHI_EL1] = read_sysreg_s(SYS_ ## key ## KEYHI_EL1)
+> +
+> +static void __hyp_text __sysreg_save_ap_keys(struct kvm_cpu_context *ctxt)
+> +{
+> +	if (cpus_have_const_cap(ARM64_HAS_ADDRESS_AUTH)) {
+> +		__save_ap_key(ctxt->sys_regs, APIA);
+> +		__save_ap_key(ctxt->sys_regs, APIB);
+> +		__save_ap_key(ctxt->sys_regs, APDA);
+> +		__save_ap_key(ctxt->sys_regs, APDB);
+> +	}
+> +
+> +	if (cpus_have_const_cap(ARM64_HAS_GENERIC_AUTH)) {
+> +		__save_ap_key(ctxt->sys_regs, APGA);
+> +	}
+> +}
+> +
+
+...which immediately translates in quite a bit of sysreg churn on both
+host and guest (specially given that these are not banked by exception
+level), could we make it a bit more lazy instead?
+
+Even an "enable on first use" would be good, given that it is likely
+that we'll have non PAC-enabled VMs for quite a while.
+
+Thoughts?
+
+	M.
 -- 
-Adam Wallis
-Qualcomm Datacenter Technologies as an affiliate of Qualcomm Technologies, Inc.
-Qualcomm Technologies, Inc. is a member of the Code Aurora Forum,
-a Linux Foundation Collaborative Project.
+Jazz is not dead. It just smells funny...
