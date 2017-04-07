@@ -1,138 +1,153 @@
-From: Robin Murphy <robin.murphy@arm.com>
-Subject: Re: [PATCH V10 06/12] of: device: Fix overflow of coherent_dma_mask
-Date: Fri, 7 Apr 2017 15:46:27 +0100
-Message-ID: <b38312b0-268b-ed86-a5b3-886f86ea13f5@arm.com>
-References: <1489086061-9356-1-git-send-email-sricharan@codeaurora.org>
- <1491301105-5274-1-git-send-email-sricharan@codeaurora.org>
- <1491301105-5274-7-git-send-email-sricharan@codeaurora.org>
- <58E5E7B7.1050400@gmail.com>
- <b77e3405-f060-bcd5-99f6-7d76f9edf08a@codeaurora.org>
- <58E69831.6010306@gmail.com>
+From: Adam Wallis <awallis@codeaurora.org>
+Subject: Re: [RFC 0/9] ARMv8.3 pointer authentication userspace support
+Date: Fri, 7 Apr 2017 11:09:30 -0400
+Message-ID: <68cdfcee-33aa-8511-2fff-4b2308e80b7a@codeaurora.org>
+References: <1491232765-32501-1-git-send-email-mark.rutland@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-acpi-owner@vger.kernel.org>
-In-Reply-To: <58E69831.6010306@gmail.com>
-Sender: linux-acpi-owner@vger.kernel.org
-To: Frank Rowand <frowand.list@gmail.com>, Sricharan R <sricharan@codeaurora.org>, will.deacon@arm.com, joro@8bytes.org, lorenzo.pieralisi@arm.com, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arm-msm@vger.kernel.org, m.szyprowski@samsung.com, bhelgaas@google.com, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, tn@semihalf.com, hanjun.guo@linaro.org, okaya@codeaurora.org, robh+dt@kernel.org, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, sudeep.holla@arm.com, rjw@rjwysocki.net, lenb@kernel.org, catalin.marinas@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, gregkh@linuxfoundation.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp.codeaurora.org ([198.145.29.96]:44652 "EHLO
+        smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S934000AbdDGPJe (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 7 Apr 2017 11:09:34 -0400
+In-Reply-To: <1491232765-32501-1-git-send-email-mark.rutland@arm.com>
+Content-Language: en-US
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Mark Rutland <mark.rutland@arm.com>, linux-arm-kernel@lists.infradead.org
+Cc: linux-arch@vger.kernel.org, arnd@arndb.de, jiong.wang@arm.com, marc.zyngier@arm.com, catalin.marinas@arm.com, suzuki.poulose@arm.com, will.deacon@arm.com, linux-kernel@vger.kernel.org, kvmarm@lists.cs.columbia.edu, christoffer.dall@linaro.org
 
-On 06/04/17 20:34, Frank Rowand wrote:
-> On 04/06/17 04:01, Sricharan R wrote:
->> Hi Frank,
->>
->> On 4/6/2017 12:31 PM, Frank Rowand wrote:
->>> On 04/04/17 03:18, Sricharan R wrote:
->>>> Size of the dma-range is calculated as coherent_dma_mask + 1
->>>> and passed to arch_setup_dma_ops further. It overflows when
->>>> the coherent_dma_mask is set for full 64 bits 0xFFFFFFFFFFFFFFFF,
->>>> resulting in size getting passed as 0 wrongly. Fix this by
->>>> passsing in max(mask, mask + 1). Note that in this case
->>>> when the mask is set to full 64bits, we will be passing the mask
->>>> itself to arch_setup_dma_ops instead of the size. The real fix
->>>> for this should be to make arch_setup_dma_ops receive the
->>>> mask and handle it, to be done in the future.
->>>>
->>>> Signed-off-by: Sricharan R <sricharan@codeaurora.org>
->>>> ---
->>>>  drivers/of/device.c | 2 +-
->>>>  1 file changed, 1 insertion(+), 1 deletion(-)
->>>>
->>>> diff --git a/drivers/of/device.c b/drivers/of/device.c
->>>> index c17c19d..c2ae6bb 100644
->>>> --- a/drivers/of/device.c
->>>> +++ b/drivers/of/device.c
->>>> @@ -107,7 +107,7 @@ void of_dma_configure(struct device *dev, struct device_node *np)
->>>>      ret = of_dma_get_range(np, &dma_addr, &paddr, &size);
->>>>      if (ret < 0) {
->>>>          dma_addr = offset = 0;
->>>> -        size = dev->coherent_dma_mask + 1;
->>>> +        size = max(dev->coherent_dma_mask, dev->coherent_dma_mask + 1);
->>>>      } else {
->>>>          offset = PFN_DOWN(paddr - dma_addr);
->>>>          dev_dbg(dev, "dma_pfn_offset(%#08lx)\n", offset);
->>>>
->>>
->>> NACK.
->>>
->>> Passing an invalid size to arch_setup_dma_ops() is only part of the problem.
->>> size is also used in of_dma_configure() before calling arch_setup_dma_ops():
->>>
->>>         dev->coherent_dma_mask = min(dev->coherent_dma_mask,
->>>                                      DMA_BIT_MASK(ilog2(dma_addr + size)));
->>>         *dev->dma_mask = min((*dev->dma_mask),
->>>                              DMA_BIT_MASK(ilog2(dma_addr + size)));
->>>
->>> which would be incorrect for size == 0xffffffffffffffffULL when
->>> dma_addr != 0.  So the proposed fix really is not papering over
->>> the base problem very well.
->>>
->>
->> Ok, but with your fix for of_dma_get_range and the above fix,
->> dma_addr will be '0' when size = 0xffffffffffffffffULL,
->> but DMA_BIT_MASK(ilog2(dma_addr + size)) would be wrong though,
->> making coherent_dma_mask to be smaller 0x7fffffffffffffffULL.
+On 4/3/2017 11:19 AM, Mark Rutland wrote:
+> This series adds support for the ARMv8.3 pointer authentication extension.
 > 
-> Yes, that was my point.  Setting size to 0x7fffffffffffffffULL
-> affects several places.  Another potential location (based only
-> on the function header comment, not from reading the code) is
-> iommu_dma_init_domain().  The header comment says:
+> I've included a quick intro to the extension below, with the usual series
+> description below that. The final patch of the series adds additional
+> documentation regarding the extension.
 > 
->     * @base and @size should be exact multiples of IOMMU page granularity to
->     * avoid rounding surprises.
-
-That is really only referring to the fact that some of the work done
-therein involves truncation to PFNs, so anyone passing in non-exact
-values expecting them to round a particular way may get things off by a
-page one way or the other. It's not going to have much practical
-significance for real devices (in particular since size is used more as
-a sanity check than any kind of actual limit there).
-
-> I have not read enough context to really understand of_dma_configure(), but
-> it seems there is yet another issue in how the error return case from
-> of_dma_get_range() is handled (with the existing code, as well as if
-> my patch gets accepted).  An error return value can mean _either_
-> there is no dma-ranges property _or_ "an other problem occurred".  Should
-> the "an other problem occurred" case be handled by defaulting size to
-> a value based on dev->coherent_dma_mask (the current case) or should the
-> attempt to set up the DMA configuration just fail?
-
-There is indeed a lot wrong with of_dma_configure() and
-arch_setup_dma_ops(), but fixing those is beyond the scope of this
-series. This is just working around a latent bug in the one specific
-case where a value is *not* derived from DT. Any DT which worked before
-still works; any DT which made of_dma_configure() go wrong before still
-makes of_dma_configure() go wrong exactly the same.
-
-Whilst it's not ideal, since a DMA mask basically represents the maximum
-size of address that that particular device can be given, I can't see it
-making any practical difference for a full 64-bit DMA mask to be trimmed
-down to 63 bits upon re-probing - no system is likely to have that many
-physical address bits anyway, and I don't think any IOMMUs support that
-large an IOVA space either, so as long as it's still big enough to cover
-"everything", it'll be OK.
-
-Of course, whether DMA_BIT_MASK(ilog2(dma_addr + size)) is the right
-thing to do in the first place is yet another matter, as there are
-plenty of cases where it results in something which can't reach the
-given range at all, but again, this isn't the place. Much as I'm keen to
-get the behaviour of of_dma_configure() sorted out properly, it doesn't
-seem reasonable that that should suddenly block this
-almost-entirely-orthogonal series that various other work has been
-waiting on for some time now. The WIP patch I have for
-arch_setup_dma_ops() already touches 3 architectures and 4 other
-subsystems...
-
-Robin.
-
+> I've based the series on the arm64 for-next/core branch [1]. I'm aware that
+> this series may conflict with other patches currently in flight (e.g.
+> allocation of ELF notes), and I intend to rebase this series as things settle.
 > 
->>
->> Regards,
->>  Sricharan
->>
->>> I agree that the proper solution involves passing a mask instead
->>> of a size to arch_setup_dma_ops().
->>>
->>
+> I've pushed the series to the arm64/pointer-auth branch [2] of my linux tree.
+> I've also pushed out a necessary bootwrapper patch to the pointer-auth branch
+> [3] of my bootwrapper repo.
+> 
+> 
+> Extension Overview 
+> ==================
+> 
+> The ARMv8.3 pointer authentication extension adds functionality to detect
+> modification of pointer values, mitigating certain classes of attack such as
+> stack smashing, and making return oriented programming attacks harder
+> 
+> The extension introduces the concept of a pointer authentication code (PAC),
+> which is stored in some upper bits of pointers. Each PAC is derived from the
+> original pointer, another 64-bit value (e.g. the stack pointer), and a secret
+> 128-bit key.
+> 
+> New instructions are added which can be used to:
+> 
+> * Insert a PAC into a pointer
+> * Strip a PAC from a pointer
+> * Authenticate strip a PAC from a pointer
+> 
+> If authentication succeeds, the code is removed, yielding the original pointer.
+> If authentication fails, bits are set in the pointer such that it is guaranteed
+> to cause a fault if used.
+> 
+> These instructions can make use of four keys:
+> 
+> * APIAKey (A.K.A. Instruction A key)
+> * APIBKey (A.K.A. Instruction B key)
+> * APDAKey (A.K.A. Data A key)
+> * APDBKey (A.K.A. Data B Key)
+> 
+> A subset of these instruction encodings have been allocated from the HINT
+> space, and will operate as NOPs on any ARMv8 parts which do not feature the
+> extension (or if purposefully disabled by the kernel). Software using only this
+> subset of the instructions should function correctly on all ARMv8-A parts.
+> 
+> Additionally, instructions are added to authenticate small blocks of memory in
+> similar fashion, using APGAKey (A.K.A. Generic key).
+> 
+> 
+> This Series
+> ===========
+> 
+> This series enables the use of instructions using APIAKey, which is initialised
+> and maintained per-process (shared by all threads). This series does not add
+> support for APIBKey, APDAKey, APDBKey, nor APGAKey. The series only supports
+> the use of an architected algorithm.
+> 
+> I've given this some basic testing with a homebrew test suite. More ideally,
+> we'd add some tests to the kernel source tree.
+> 
+> I've added some basic KVM support, but this doesn't cater for systems with
+> mismatched support. Looking forward, we'll need ID register emulation in KVM so
+> that we can hide features from guests to cater for cases like this.
+> 
+> There are also a few questions to consider, e.g:
+> 
+> * Should we expose a per-process data key now, to go with the insn key?
+> * Should keys be per-thread rather than per-process?
+> * Should we expose generic authentication (i.e. APGAKey)?
+> * Should the kernel remove PACs when unwinding user stacks?
+> 
+> Thanks,
+> Mark.
+> 
+> [1] git://git.kernel.org/pub/scm/linux/kernel/git/arm64/linux.git for-next/core
+> [2] git://git.kernel.org/pub/scm/linux/kernel/git/mark/linux.git arm64/pointer-auth
+> [3] git://git.kernel.org/pub/scm/linux/kernel/git/mark/boot-wrapper-aarch64.git pointer-auth
+> 
+> Mark Rutland (9):
+>   asm-generic: mm_hooks: allow hooks to be overridden individually
+>   arm64: add pointer authentication register bits
+>   arm64/cpufeature: add ARMv8.3 id_aa64isar1 bits
+>   arm64/cpufeature: detect pointer authentication
+>   arm64: Don't trap host pointer auth use to EL2
+>   arm64: add basic pointer authentication support
+>   arm64: expose PAC bit positions via ptrace
+>   arm64/kvm: context-switch PAC registers
+>   arm64: docs: document pointer authentication
+> 
+>  Documentation/arm64/booting.txt                |  8 +++
+>  Documentation/arm64/pointer-authentication.txt | 78 +++++++++++++++++++++
+>  arch/arm64/Kconfig                             | 23 ++++++
+>  arch/arm64/include/asm/cpucaps.h               |  4 +-
+>  arch/arm64/include/asm/esr.h                   |  3 +-
+>  arch/arm64/include/asm/kvm_arm.h               |  2 +
+>  arch/arm64/include/asm/kvm_emulate.h           | 15 ++++
+>  arch/arm64/include/asm/kvm_host.h              | 12 ++++
+>  arch/arm64/include/asm/mmu.h                   |  5 ++
+>  arch/arm64/include/asm/mmu_context.h           | 25 ++++++-
+>  arch/arm64/include/asm/pointer_auth.h          | 96 ++++++++++++++++++++++++++
+>  arch/arm64/include/asm/sysreg.h                | 30 ++++++++
+>  arch/arm64/include/uapi/asm/hwcap.h            |  1 +
+>  arch/arm64/include/uapi/asm/ptrace.h           |  5 ++
+>  arch/arm64/kernel/cpufeature.c                 | 39 ++++++++++-
+>  arch/arm64/kernel/cpuinfo.c                    |  1 +
+>  arch/arm64/kernel/head.S                       | 19 ++++-
+>  arch/arm64/kernel/ptrace.c                     | 39 +++++++++++
+>  arch/arm64/kvm/hyp/sysreg-sr.c                 | 43 ++++++++++++
+>  include/asm-generic/mm_hooks.h                 | 12 ++++
+>  include/uapi/linux/elf.h                       |  1 +
+>  21 files changed, 454 insertions(+), 7 deletions(-)
+>  create mode 100644 Documentation/arm64/pointer-authentication.txt
+>  create mode 100644 arch/arm64/include/asm/pointer_auth.h
 > 
 
+Tested on Qualcomm platform with ARMV8 architecture (without 8.3 extensions) for
+backwards compatibility (meaning I did not pass -march=armv8.3-a to GCC; only
+-msign-return-address=all). The HINT PACIASP/AUTIASP caused no issues and no
+other issues were encountered. Will test again once a platform is available with
+8.3-a extensions.
+
+Thanks
+
+-- 
+Adam Wallis
+Qualcomm Datacenter Technologies as an affiliate of Qualcomm Technologies, Inc.
+Qualcomm Technologies, Inc. is a member of the Code Aurora Forum,
+a Linux Foundation Collaborative Project.
