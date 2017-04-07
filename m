@@ -1,78 +1,93 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([65.50.211.136]:54005 "EHLO mail.zytor.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S933588AbdDGQUn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 7 Apr 2017 12:20:43 -0400
-Date: Fri, 07 Apr 2017 09:09:27 -0700
-In-Reply-To: <20170407155945.7lyapjbwacg3ikw6@node.shutemov.name>
-References: <20170406140106.78087-1-kirill.shutemov@linux.intel.com> <20170406140106.78087-9-kirill.shutemov@linux.intel.com> <8d68093b-670a-7d7e-2216-bf64b19c7a48@linux.vnet.ibm.com> <20170407155945.7lyapjbwacg3ikw6@node.shutemov.name>
+Received: from mail-pg0-f68.google.com ([74.125.83.68]:33189 "EHLO
+        mail-pg0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753853AbdDGXKu (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 7 Apr 2017 19:10:50 -0400
+Subject: Re: [PATCH V10 06/12] of: device: Fix overflow of coherent_dma_mask
+References: <1489086061-9356-1-git-send-email-sricharan@codeaurora.org>
+ <1491301105-5274-1-git-send-email-sricharan@codeaurora.org>
+ <1491301105-5274-7-git-send-email-sricharan@codeaurora.org>
+ <58E5E7B7.1050400@gmail.com>
+From: Frank Rowand <frowand.list@gmail.com>
+Message-ID: <58E81C63.3020701@gmail.com>
+Date: Fri, 7 Apr 2017 16:10:27 -0700
 MIME-Version: 1.0
-Content-Type: text/plain;
- charset=utf-8
-Content-Transfer-Encoding: 8BIT
-Subject: Re: [PATCH 8/8] x86/mm: Allow to have userspace mappings above 47-bits
-From: hpa@zytor.com
-Message-ID: <2A1F4E56-9374-4C41-876C-6E6CBD16DB22@zytor.com>
+In-Reply-To: <58E5E7B7.1050400@gmail.com>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Kirill A. Shutemov" <kirill@shutemov.name>, Anshuman Khandual <khandual@linux.vnet.ibm.com>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Dmitry Safonov <dsafonov@virtuozzo.com>
-Message-ID: <20170407160927.gTVoEv7vBoF7qQL2xxrts097VlsVch-pjBld8TElFsA@z>
+To: Sricharan R <sricharan@codeaurora.org>, robin.murphy@arm.com, will.deacon@arm.com, joro@8bytes.org, lorenzo.pieralisi@arm.com, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arm-msm@vger.kernel.org, m.szyprowski@samsung.com, bhelgaas@google.com, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, tn@semihalf.com, hanjun.guo@linaro.org, okaya@codeaurora.org, robh+dt@kernel.org, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, sudeep.holla@arm.com, rjw@rjwysocki.net, lenb@kernel.org, catalin.marinas@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, gregkh@linuxfoundation.org
+Message-ID: <20170407231027.E0Ui-ItWxWtFydupHY1m9fhFYzY_unLZ9nC-hQRSq_8@z>
 
-On April 7, 2017 8:59:45 AM PDT, "Kirill A. Shutemov" <kirill@shutemov.name> wrote:
->On Fri, Apr 07, 2017 at 07:05:26PM +0530, Anshuman Khandual wrote:
->> On 04/06/2017 07:31 PM, Kirill A. Shutemov wrote:
->> > On x86, 5-level paging enables 56-bit userspace virtual address
->space.
->> > Not all user space is ready to handle wide addresses. It's known
->that
->> > at least some JIT compilers use higher bits in pointers to encode
->their
->> > information. It collides with valid pointers with 5-level paging
->and
->> > leads to crashes.
->> > 
->> > To mitigate this, we are not going to allocate virtual address
->space
->> > above 47-bit by default.
->> 
->> I am wondering if the commitment of virtual space range to the
->> user space is kind of an API which needs to be maintained there
->> after. If that is the case then we need to have some plans when
->> increasing it from the current level.
->
->I don't think we should ever enable full address space for all
->applications. There's no point.
->
->/bin/true doesn't need more than 64TB of virtual memory.
->And I hope never will.
->
->By increasing virtual address space for everybody we will pay (assuming
->current page table format) at least one extra page per process for
->moving
->stack at very end of address space.
->
->Yes, you can gain something in security by having more bits for ASLR,
->but
->I don't think it worth the cost.
->
->> Will those JIT compilers keep using the higher bit positions of
->> the pointer for ever ? Then it will limit the ability of the
->> kernel to expand the virtual address range later as well. I am
->> not saying we should not increase till the extent it does not
->> affect any *known* user but then we should not increase twice
->> for now, create the hint mechanism to be passed from the user
->> to avail beyond that (which will settle in as a expectation
->> from the kernel later on). Do the same thing again while
->> expanding the address range next time around. I think we need
->> to have a plan for this and particularly around 'hint' mechanism
->> and whether it should be decided per mmap() request or at the
->> task level.
->
->I think the reasonable way for an application to claim it's 63-bit
->clean
->is to make allocations with (void *)-1 as hint address.
+On 04/06/17 00:01, Frank Rowand wrote:
+> On 04/04/17 03:18, Sricharan R wrote:
+>> Size of the dma-range is calculated as coherent_dma_mask + 1
+>> and passed to arch_setup_dma_ops further. It overflows when
+>> the coherent_dma_mask is set for full 64 bits 0xFFFFFFFFFFFFFFFF,
+>> resulting in size getting passed as 0 wrongly. Fix this by
+>> passsing in max(mask, mask + 1). Note that in this case
+>> when the mask is set to full 64bits, we will be passing the mask
+>> itself to arch_setup_dma_ops instead of the size. The real fix
+>> for this should be to make arch_setup_dma_ops receive the
+>> mask and handle it, to be done in the future.
+>>
+>> Signed-off-by: Sricharan R <sricharan@codeaurora.org>
+>> ---
+>>  drivers/of/device.c | 2 +-
+>>  1 file changed, 1 insertion(+), 1 deletion(-)
+>>
+>> diff --git a/drivers/of/device.c b/drivers/of/device.c
+>> index c17c19d..c2ae6bb 100644
+>> --- a/drivers/of/device.c
+>> +++ b/drivers/of/device.c
+>> @@ -107,7 +107,7 @@ void of_dma_configure(struct device *dev, struct device_node *np)
+>>  	ret = of_dma_get_range(np, &dma_addr, &paddr, &size);
+>>  	if (ret < 0) {
+>>  		dma_addr = offset = 0;
+>> -		size = dev->coherent_dma_mask + 1;
+>> +		size = max(dev->coherent_dma_mask, dev->coherent_dma_mask + 1);
 
-You realize that people have said that about just about every memory threshold from 64K onward?
--- 
-Sent from my Android device with K-9 Mail. Please excuse my brevity.
+NACK withdrawn below.
+
+However, I would prefer a change to this line for readability. Using max() results
+in the correct result, but obscures the reason behind the algorithm, where the
+intent is to avoid an overflow.  How about something like:
+
+	size = (dev->coherent_dma_mask == 0xffffffffffffffffULL)
+		? 0xffffffffffffffffULL : dev->coherent_dma_mask + 1;
+
+
+>>  	} else {
+>>  		offset = PFN_DOWN(paddr - dma_addr);
+>>  		dev_dbg(dev, "dma_pfn_offset(%#08lx)\n", offset);
+>>
+> 
+> NACK.
+> 
+> Passing an invalid size to arch_setup_dma_ops() is only part of the problem.
+> size is also used in of_dma_configure() before calling arch_setup_dma_ops():
+> 
+>         dev->coherent_dma_mask = min(dev->coherent_dma_mask,
+>                                      DMA_BIT_MASK(ilog2(dma_addr + size)));
+>         *dev->dma_mask = min((*dev->dma_mask),
+>                              DMA_BIT_MASK(ilog2(dma_addr + size)));
+> 
+> which would be incorrect for size == 0xffffffffffffffffULL when
+> dma_addr != 0.  So the proposed fix really is not papering over
+
+  ^^^^^^^^^^^^^  This is the flaw in my objection.  When in the
+(ret < 0) path, dma_addr is set to zero.  So my worry about dma_addr != 0
+is baseless.
+
+I withdraw my NACK because my analysis was flawed.
+
+-Frank
+
+> the base problem very well.
+> 
+> I agree that the proper solution involves passing a mask instead
+> of a size to arch_setup_dma_ops().
+> 
+> -Frank
+> 
