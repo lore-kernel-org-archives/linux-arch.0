@@ -1,164 +1,115 @@
 From: Sricharan R <sricharan@codeaurora.org>
-Subject: [PATCH V11 01/11] iommu/of: Refactor of_iommu_configure() for error handling
-Date: Mon, 10 Apr 2017 16:50:56 +0530
-Message-ID: <1491823266-1209-2-git-send-email-sricharan@codeaurora.org>
+Subject: [PATCH V11 02/11] iommu/of: Prepare for deferred IOMMU configuration
+Date: Mon, 10 Apr 2017 16:50:57 +0530
+Message-ID: <1491823266-1209-3-git-send-email-sricharan@codeaurora.org>
 References: <1491823266-1209-1-git-send-email-sricharan@codeaurora.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.codeaurora.org ([198.145.29.96]:53048 "EHLO
-        smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752251AbdDJLVs (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 10 Apr 2017 07:21:48 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1491823266-1209-1-git-send-email-sricharan@codeaurora.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: robin.murphy@arm.com, will.deacon@arm.com, joro@8bytes.org, lorenzo.pieralisi@arm.com, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arm-msm@vger.kernel.org, m.szyprowski@samsung.com, bhelgaas@google.com, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, tn@semihalf.com, hanjun.guo@linaro.org, okaya@codeaurora.org, robh+dt@kernel.org, frowand.list@gmail.com, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, sudeep.holla@arm.com, rjw@rjwysocki.net, lenb@kernel.org, catalin.marinas@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, gregkh@linuxfoundation.org
 Cc: sricharan@codeaurora.org
+List-Id: linux-arch.vger.kernel.org
 
 From: Robin Murphy <robin.murphy@arm.com>
 
-In preparation for some upcoming cleverness, rework the control flow in
-of_iommu_configure() to minimise duplication and improve the propogation
-of errors. It's also as good a time as any to switch over from the
-now-just-a-compatibility-wrapper of_iommu_get_ops() to using the generic
-IOMMU instance interface directly.
+IOMMU configuration represents unchanging properties of the hardware,
+and as such should only need happen once in a device's lifetime, but
+the necessary interaction with the IOMMU device and driver complicates
+exactly when that point should be.
+
+Since the only reasonable tool available for handling the inter-device
+dependency is probe deferral, we need to prepare of_iommu_configure()
+to run later than it is currently called (i.e. at driver probe rather
+than device creation), to handle being retried, and to tell whether a
+not-yet present IOMMU should be waited for or skipped (by virtue of
+having declared a built-in driver or not).
 
 Tested-by: Marek Szyprowski <m.szyprowski@samsung.com>
 Signed-off-by: Robin Murphy <robin.murphy@arm.com>
 ---
- drivers/iommu/of_iommu.c | 83 +++++++++++++++++++++++++++++++-----------------
- 1 file changed, 53 insertions(+), 30 deletions(-)
+ drivers/iommu/of_iommu.c | 43 ++++++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 42 insertions(+), 1 deletion(-)
 
 diff --git a/drivers/iommu/of_iommu.c b/drivers/iommu/of_iommu.c
-index 2683e9f..8f4e599 100644
+index 8f4e599..c8be889 100644
 --- a/drivers/iommu/of_iommu.c
 +++ b/drivers/iommu/of_iommu.c
-@@ -96,6 +96,28 @@ int of_get_dma_window(struct device_node *dn, const char *prefix, int index,
+@@ -96,6 +96,19 @@ int of_get_dma_window(struct device_node *dn, const char *prefix, int index,
  }
  EXPORT_SYMBOL_GPL(of_get_dma_window);
  
-+static const struct iommu_ops
-+*of_iommu_xlate(struct device *dev, struct of_phandle_args *iommu_spec)
++static bool of_iommu_driver_present(struct device_node *np)
 +{
-+	const struct iommu_ops *ops;
-+	struct fwnode_handle *fwnode = &iommu_spec->np->fwnode;
-+	int err;
++	/*
++	 * If the IOMMU still isn't ready by the time we reach init, assume
++	 * it never will be. We don't want to defer indefinitely, nor attempt
++	 * to dereference __iommu_of_table after it's been freed.
++	 */
++	if (system_state > SYSTEM_BOOTING)
++		return false;
 +
-+	ops = iommu_ops_from_fwnode(fwnode);
-+	if (!ops || !ops->of_xlate)
-+		return NULL;
-+
-+	err = iommu_fwspec_init(dev, &iommu_spec->np->fwnode, ops);
-+	if (err)
-+		return ERR_PTR(err);
-+
-+	err = ops->of_xlate(dev, iommu_spec);
-+	if (err)
-+		return ERR_PTR(err);
-+
-+	return ops;
++	return of_match_node(&__iommu_of_table, np);
 +}
 +
- static int __get_pci_rid(struct pci_dev *pdev, u16 alias, void *data)
- {
- 	struct of_phandle_args *iommu_spec = data;
-@@ -105,10 +127,11 @@ static int __get_pci_rid(struct pci_dev *pdev, u16 alias, void *data)
- }
- 
  static const struct iommu_ops
--*of_pci_iommu_configure(struct pci_dev *pdev, struct device_node *bridge_np)
-+*of_pci_iommu_init(struct pci_dev *pdev, struct device_node *bridge_np)
+ *of_iommu_xlate(struct device *dev, struct of_phandle_args *iommu_spec)
+ {
+@@ -104,12 +117,20 @@ int of_get_dma_window(struct device_node *dn, const char *prefix, int index,
+ 	int err;
+ 
+ 	ops = iommu_ops_from_fwnode(fwnode);
+-	if (!ops || !ops->of_xlate)
++	if ((ops && !ops->of_xlate) ||
++	    (!ops && !of_iommu_driver_present(iommu_spec->np)))
+ 		return NULL;
+ 
+ 	err = iommu_fwspec_init(dev, &iommu_spec->np->fwnode, ops);
+ 	if (err)
+ 		return ERR_PTR(err);
++	/*
++	 * The otherwise-empty fwspec handily serves to indicate the specific
++	 * IOMMU device we're waiting for, which will be useful if we ever get
++	 * a proper probe-ordering dependency mechanism in future.
++	 */
++	if (!ops)
++		return ERR_PTR(-EPROBE_DEFER);
+ 
+ 	err = ops->of_xlate(dev, iommu_spec);
+ 	if (err)
+@@ -186,14 +207,34 @@ const struct iommu_ops *of_iommu_configure(struct device *dev,
+ 					   struct device_node *master_np)
  {
  	const struct iommu_ops *ops;
- 	struct of_phandle_args iommu_spec;
-+	int err;
++	struct iommu_fwspec *fwspec = dev->iommu_fwspec;
  
- 	/*
- 	 * Start by tracing the RID alias down the PCI topology as
-@@ -123,56 +146,56 @@ static int __get_pci_rid(struct pci_dev *pdev, u16 alias, void *data)
- 	 * bus into the system beyond, and which IOMMU it ends up at.
- 	 */
- 	iommu_spec.np = NULL;
--	if (of_pci_map_rid(bridge_np, iommu_spec.args[0], "iommu-map",
--			   "iommu-map-mask", &iommu_spec.np, iommu_spec.args))
--		return NULL;
-+	err = of_pci_map_rid(bridge_np, iommu_spec.args[0], "iommu-map",
-+			     "iommu-map-mask", &iommu_spec.np,
-+			     iommu_spec.args);
-+	if (err)
-+		return err == -ENODEV ? NULL : ERR_PTR(err);
+ 	if (!master_np)
+ 		return NULL;
  
--	ops = iommu_ops_from_fwnode(&iommu_spec.np->fwnode);
--	if (!ops || !ops->of_xlate ||
--	    iommu_fwspec_init(&pdev->dev, &iommu_spec.np->fwnode, ops) ||
--	    ops->of_xlate(&pdev->dev, &iommu_spec))
--		ops = NULL;
-+	ops = of_iommu_xlate(&pdev->dev, &iommu_spec);
++	if (fwspec) {
++		if (fwspec->ops)
++			return fwspec->ops;
++
++		/* In the deferred case, start again from scratch */
++		iommu_fwspec_free(dev);
++	}
++
+ 	if (dev_is_pci(dev))
+ 		ops = of_pci_iommu_init(to_pci_dev(dev), master_np);
+ 	else
+ 		ops = of_platform_iommu_init(dev, master_np);
++	/*
++	 * If we have reason to believe the IOMMU driver missed the initial
++	 * add_device callback for dev, replay it to get things in order.
++	 */
++	if (!IS_ERR_OR_NULL(ops) && ops->add_device &&
++	    dev->bus && !dev->iommu_group) {
++		int err = ops->add_device(dev);
++
++		if (err)
++			ops = ERR_PTR(err);
++	}
  
- 	of_node_put(iommu_spec.np);
- 	return ops;
+ 	return IS_ERR(ops) ? NULL : ops;
  }
- 
--const struct iommu_ops *of_iommu_configure(struct device *dev,
--					   struct device_node *master_np)
-+static const struct iommu_ops
-+*of_platform_iommu_init(struct device *dev, struct device_node *np)
- {
- 	struct of_phandle_args iommu_spec;
--	struct device_node *np;
- 	const struct iommu_ops *ops = NULL;
- 	int idx = 0;
- 
--	if (dev_is_pci(dev))
--		return of_pci_iommu_configure(to_pci_dev(dev), master_np);
--
- 	/*
- 	 * We don't currently walk up the tree looking for a parent IOMMU.
- 	 * See the `Notes:' section of
- 	 * Documentation/devicetree/bindings/iommu/iommu.txt
- 	 */
--	while (!of_parse_phandle_with_args(master_np, "iommus",
--					   "#iommu-cells", idx,
--					   &iommu_spec)) {
--		np = iommu_spec.np;
--		ops = iommu_ops_from_fwnode(&np->fwnode);
--
--		if (!ops || !ops->of_xlate ||
--		    iommu_fwspec_init(dev, &np->fwnode, ops) ||
--		    ops->of_xlate(dev, &iommu_spec))
--			goto err_put_node;
--
--		of_node_put(np);
-+	while (!of_parse_phandle_with_args(np, "iommus", "#iommu-cells",
-+					   idx, &iommu_spec)) {
-+		ops = of_iommu_xlate(dev, &iommu_spec);
-+		of_node_put(iommu_spec.np);
- 		idx++;
-+		if (IS_ERR_OR_NULL(ops))
-+			break;
- 	}
- 
- 	return ops;
-+}
-+
-+const struct iommu_ops *of_iommu_configure(struct device *dev,
-+					   struct device_node *master_np)
-+{
-+	const struct iommu_ops *ops;
-+
-+	if (!master_np)
-+		return NULL;
-+
-+	if (dev_is_pci(dev))
-+		ops = of_pci_iommu_init(to_pci_dev(dev), master_np);
-+	else
-+		ops = of_platform_iommu_init(dev, master_np);
- 
--err_put_node:
--	of_node_put(np);
--	return NULL;
-+	return IS_ERR(ops) ? NULL : ops;
- }
- 
- static int __init of_iommu_init(void)
 -- 
 QUALCOMM INDIA, on behalf of Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum, hosted by The Linux Foundation
