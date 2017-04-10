@@ -1,66 +1,38 @@
 From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH 2/3] asm-generic: don't #include <linux/atomic.h> in qspinlock_types.h
-Date: Tue, 11 Apr 2017 01:35:03 +0400
-Message-ID: <1491860104-4103-3-git-send-email-ynorov@caviumnetworks.com>
+Subject: [PATCH 1/3] kernel/locking: #include <asm/spinlock.h> in qrwlock.c
+Date: Tue, 11 Apr 2017 01:35:02 +0400
+Message-ID: <1491860104-4103-2-git-send-email-ynorov@caviumnetworks.com>
 References: <1491860104-4103-1-git-send-email-ynorov@caviumnetworks.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn3nam01on0081.outbound.protection.outlook.com ([104.47.33.81]:12923
-        "EHLO NAM01-BN3-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752940AbdDJVfd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 10 Apr 2017 17:35:33 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1491860104-4103-1-git-send-email-ynorov@caviumnetworks.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: Yury Norov <ynorov@caviumnetworks.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Jan Glauber <jglauber@cavium.com>
+List-Id: linux-arch.vger.kernel.org
 
-The "qspinlock_types.h" doesn't need linux/atomic.h directly. So
-because of this, and because including of it requires the protection
-against recursive inclusion, it looks reasonable to move the
-inclusion exactly where it is needed. This change affects the x86_64
-arch, as the only user of qspinlocks at now. I have build-tested the
-change on x86_64 with CONFIG_PARAVIRT enabled and disabled.
+qrwlock.c calls arch_spin_lock() and arch_spin_unlock() but doesn't
+include the asm/spinlock.h, where those functions are defined. It
+may produce "implicit declaration of function" errors. This patch
+fixes it.
 
 Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
 ---
- include/asm-generic/qspinlock.h       | 1 +
- include/asm-generic/qspinlock_types.h | 8 --------
- 2 files changed, 1 insertion(+), 8 deletions(-)
+ kernel/locking/qrwlock.c | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/include/asm-generic/qspinlock.h b/include/asm-generic/qspinlock.h
-index 9f0681b..5f4d42a 100644
---- a/include/asm-generic/qspinlock.h
-+++ b/include/asm-generic/qspinlock.h
+diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
+index cc3ed0c..6fb4292 100644
+--- a/kernel/locking/qrwlock.c
++++ b/kernel/locking/qrwlock.c
 @@ -20,6 +20,7 @@
- #define __ASM_GENERIC_QSPINLOCK_H
+ #include <linux/cpumask.h>
+ #include <linux/percpu.h>
+ #include <linux/hardirq.h>
++#include <asm/spinlock.h>
+ #include <asm/qrwlock.h>
  
- #include <asm-generic/qspinlock_types.h>
-+#include <linux/atomic.h>
- 
- /**
-  * queued_spin_unlock_wait - wait until the _current_ lock holder releases the lock
-diff --git a/include/asm-generic/qspinlock_types.h b/include/asm-generic/qspinlock_types.h
-index 034acd0..a13cc90 100644
---- a/include/asm-generic/qspinlock_types.h
-+++ b/include/asm-generic/qspinlock_types.h
-@@ -18,15 +18,7 @@
- #ifndef __ASM_GENERIC_QSPINLOCK_TYPES_H
- #define __ASM_GENERIC_QSPINLOCK_TYPES_H
- 
--/*
-- * Including atomic.h with PARAVIRT on will cause compilation errors because
-- * of recursive header file incluson via paravirt_types.h. So don't include
-- * it if PARAVIRT is on.
-- */
--#ifndef CONFIG_PARAVIRT
- #include <linux/types.h>
--#include <linux/atomic.h>
--#endif
- 
- typedef struct qspinlock {
- 	atomic_t	val;
+ /*
 -- 
 2.7.4
