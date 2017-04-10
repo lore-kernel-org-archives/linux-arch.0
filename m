@@ -1,229 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.codeaurora.org ([198.145.29.96]:59718 "EHLO
+Received: from smtp.codeaurora.org ([198.145.29.96]:60120 "EHLO
         smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753599AbdDJLXB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 10 Apr 2017 07:23:01 -0400
+        with ESMTP id S1753624AbdDJLXJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 10 Apr 2017 07:23:09 -0400
 From: Sricharan R <sricharan@codeaurora.org>
-Subject: [PATCH V11 10/11] iommu/arm-smmu: Clean up early-probing workarounds
-Date: Mon, 10 Apr 2017 16:51:05 +0530
-Message-ID: <1491823266-1209-11-git-send-email-sricharan@codeaurora.org>
+Subject: [PATCH V11 11/11] ACPI/IORT: Remove linker section for IORT entries probing
+Date: Mon, 10 Apr 2017 16:51:06 +0530
+Message-ID: <1491823266-1209-12-git-send-email-sricharan@codeaurora.org>
 In-Reply-To: <1491823266-1209-1-git-send-email-sricharan@codeaurora.org>
 References: <1491823266-1209-1-git-send-email-sricharan@codeaurora.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: robin.murphy@arm.com, will.deacon@arm.com, joro@8bytes.org, lorenzo.pieralisi@arm.com, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arm-msm@vger.kernel.org, m.szyprowski@samsung.com, bhelgaas@google.com, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, tn@semihalf.com, hanjun.guo@linaro.org, okaya@codeaurora.org, robh+dt@kernel.org, frowand.list@gmail.com, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, sudeep.holla@arm.com, rjw@rjwysocki.net, lenb@kernel.org, catalin.marinas@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, gregkh@linuxfoundation.org
 Cc: sricharan@codeaurora.org
-Message-ID: <20170410112105.uJF-2xCehc1QiBX4_1qtIEntuwK6KE_zsTb5EaOJfhQ@z>
+Message-ID: <20170410112106.Nc5ly8zRXh-CJstfjmu7SRQ3kG4_KrlolSTjc6BA6-U@z>
 
-From: Robin Murphy <robin.murphy@arm.com>
+From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
 
-Now that the appropriate ordering is enforced via probe-deferral of
-masters in core code, rip it all out and bask in the simplicity.
+The IORT linker section introduced by commit 34ceea275f62
+("ACPI/IORT: Introduce linker section for IORT entries probing")
+was needed to make sure SMMU drivers are registered (and therefore
+probed) in the kernel before devices using the SMMU have a chance
+to probe in turn.
+
+Through the introduction of deferred IOMMU configuration the linker
+section based IORT probing infrastructure is not needed any longer, in
+that device/SMMU probe dependencies are managed through the probe
+deferral mechanism, making the IORT linker section infrastructure
+unused, so that it can be removed.
+
+Remove the unused IORT linker section probing infrastructure
+from the kernel to complete the ACPI IORT IOMMU configure probe
+deferral mechanism implementation.
 
 Tested-by: Hanjun Guo <hanjun.guo@linaro.org>
-Acked-by: Will Deacon <will.deacon@arm.com>
-Signed-off-by: Robin Murphy <robin.murphy@arm.com>
-[Sricharan: Rebased on top of ACPI IORT SMMU series]
-Signed-off-by: Sricharan R <sricharan@codeaurora.org>
+Reviewed-by: Robin Murphy <robin.murphy@arm.com>
+Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+Cc: Sricharan R <sricharan@codeaurora.org>
 ---
- drivers/iommu/arm-smmu-v3.c |  46 +-----------------
- drivers/iommu/arm-smmu.c    | 110 +++++++++++++++++++-------------------------
- 2 files changed, 49 insertions(+), 107 deletions(-)
+ drivers/acpi/arm64/iort.c         | 2 --
+ include/asm-generic/vmlinux.lds.h | 1 -
+ include/linux/acpi_iort.h         | 3 ---
+ 3 files changed, 6 deletions(-)
 
-diff --git a/drivers/iommu/arm-smmu-v3.c b/drivers/iommu/arm-smmu-v3.c
-index 5806a6a..9497800 100644
---- a/drivers/iommu/arm-smmu-v3.c
-+++ b/drivers/iommu/arm-smmu-v3.c
-@@ -2761,51 +2761,9 @@ static int arm_smmu_device_remove(struct platform_device *pdev)
- 	.probe	= arm_smmu_device_probe,
- 	.remove	= arm_smmu_device_remove,
- };
-+module_platform_driver(arm_smmu_driver);
+diff --git a/drivers/acpi/arm64/iort.c b/drivers/acpi/arm64/iort.c
+index e323ece..e7b1940 100644
+--- a/drivers/acpi/arm64/iort.c
++++ b/drivers/acpi/arm64/iort.c
+@@ -1000,6 +1000,4 @@ void __init acpi_iort_init(void)
+ 	}
  
--static int __init arm_smmu_init(void)
--{
--	static bool registered;
--	int ret = 0;
+ 	iort_init_platform_devices();
 -
--	if (!registered) {
--		ret = platform_driver_register(&arm_smmu_driver);
--		registered = !ret;
--	}
--	return ret;
--}
--
--static void __exit arm_smmu_exit(void)
--{
--	return platform_driver_unregister(&arm_smmu_driver);
--}
--
--subsys_initcall(arm_smmu_init);
--module_exit(arm_smmu_exit);
--
--static int __init arm_smmu_of_init(struct device_node *np)
--{
--	int ret = arm_smmu_init();
--
--	if (ret)
--		return ret;
--
--	if (!of_platform_device_create(np, NULL, platform_bus_type.dev_root))
--		return -ENODEV;
--
--	return 0;
--}
--IOMMU_OF_DECLARE(arm_smmuv3, "arm,smmu-v3", arm_smmu_of_init);
--
--#ifdef CONFIG_ACPI
--static int __init acpi_smmu_v3_init(struct acpi_table_header *table)
--{
--	if (iort_node_match(ACPI_IORT_NODE_SMMU_V3))
--		return arm_smmu_init();
--
--	return 0;
--}
--IORT_ACPI_DECLARE(arm_smmu_v3, ACPI_SIG_IORT, acpi_smmu_v3_init);
--#endif
-+IOMMU_OF_DECLARE(arm_smmuv3, "arm,smmu-v3", NULL);
- 
- MODULE_DESCRIPTION("IOMMU API for ARM architected SMMUv3 implementations");
- MODULE_AUTHOR("Will Deacon <will.deacon@arm.com>");
-diff --git a/drivers/iommu/arm-smmu.c b/drivers/iommu/arm-smmu.c
-index abf6496..be53b02 100644
---- a/drivers/iommu/arm-smmu.c
-+++ b/drivers/iommu/arm-smmu.c
-@@ -2075,6 +2075,23 @@ static int arm_smmu_device_dt_probe(struct platform_device *pdev,
- 	return 0;
+-	acpi_probe_device_table(iort);
  }
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 0968d13..9faa26c 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -566,7 +566,6 @@
+ 	IRQCHIP_OF_MATCH_TABLE()					\
+ 	ACPI_PROBE_TABLE(irqchip)					\
+ 	ACPI_PROBE_TABLE(clksrc)					\
+-	ACPI_PROBE_TABLE(iort)						\
+ 	EARLYCON_TABLE()
  
-+static void arm_smmu_bus_init(void)
-+{
-+	/* Oh, for a proper bus abstraction */
-+	if (!iommu_present(&platform_bus_type))
-+		bus_set_iommu(&platform_bus_type, &arm_smmu_ops);
-+#ifdef CONFIG_ARM_AMBA
-+	if (!iommu_present(&amba_bustype))
-+		bus_set_iommu(&amba_bustype, &arm_smmu_ops);
-+#endif
-+#ifdef CONFIG_PCI
-+	if (!iommu_present(&pci_bus_type)) {
-+		pci_request_acs();
-+		bus_set_iommu(&pci_bus_type, &arm_smmu_ops);
-+	}
-+#endif
-+}
-+
- static int arm_smmu_device_probe(struct platform_device *pdev)
- {
- 	struct resource *res;
-@@ -2180,21 +2197,30 @@ static int arm_smmu_device_probe(struct platform_device *pdev)
- 	arm_smmu_device_reset(smmu);
- 	arm_smmu_test_smr_masks(smmu);
+ #define INIT_TEXT							\
+diff --git a/include/linux/acpi_iort.h b/include/linux/acpi_iort.h
+index 77e0809..f167e1d04 100644
+--- a/include/linux/acpi_iort.h
++++ b/include/linux/acpi_iort.h
+@@ -52,7 +52,4 @@ const struct iommu_ops *iort_iommu_configure(struct device *dev)
+ { return NULL; }
+ #endif
  
--	/* Oh, for a proper bus abstraction */
--	if (!iommu_present(&platform_bus_type))
--		bus_set_iommu(&platform_bus_type, &arm_smmu_ops);
--#ifdef CONFIG_ARM_AMBA
--	if (!iommu_present(&amba_bustype))
--		bus_set_iommu(&amba_bustype, &arm_smmu_ops);
--#endif
--#ifdef CONFIG_PCI
--	if (!iommu_present(&pci_bus_type)) {
--		pci_request_acs();
--		bus_set_iommu(&pci_bus_type, &arm_smmu_ops);
--	}
--#endif
-+	/*
-+	 * For ACPI and generic DT bindings, an SMMU will be probed before
-+	 * any device which might need it, so we want the bus ops in place
-+	 * ready to handle default domain setup as soon as any SMMU exists.
-+	 */
-+	if (!using_legacy_binding)
-+		arm_smmu_bus_init();
-+
-+	return 0;
-+}
-+
-+/*
-+ * With the legacy DT binding in play, though, we have no guarantees about
-+ * probe order, but then we're also not doing default domains, so we can
-+ * delay setting bus ops until we're sure every possible SMMU is ready,
-+ * and that way ensure that no add_device() calls get missed.
-+ */
-+static int arm_smmu_legacy_bus_init(void)
-+{
-+	if (using_legacy_binding)
-+		arm_smmu_bus_init();
- 	return 0;
- }
-+device_initcall_sync(arm_smmu_legacy_bus_init);
- 
- static int arm_smmu_device_remove(struct platform_device *pdev)
- {
-@@ -2219,56 +2245,14 @@ static int arm_smmu_device_remove(struct platform_device *pdev)
- 	.probe	= arm_smmu_device_probe,
- 	.remove	= arm_smmu_device_remove,
- };
+-#define IORT_ACPI_DECLARE(name, table_id, fn)		\
+-	ACPI_DECLARE_PROBE_ENTRY(iort, name, table_id, 0, NULL, 0, fn)
 -
--static int __init arm_smmu_init(void)
--{
--	static bool registered;
--	int ret = 0;
--
--	if (!registered) {
--		ret = platform_driver_register(&arm_smmu_driver);
--		registered = !ret;
--	}
--	return ret;
--}
--
--static void __exit arm_smmu_exit(void)
--{
--	return platform_driver_unregister(&arm_smmu_driver);
--}
--
--subsys_initcall(arm_smmu_init);
--module_exit(arm_smmu_exit);
--
--static int __init arm_smmu_of_init(struct device_node *np)
--{
--	int ret = arm_smmu_init();
--
--	if (ret)
--		return ret;
--
--	if (!of_platform_device_create(np, NULL, platform_bus_type.dev_root))
--		return -ENODEV;
--
--	return 0;
--}
--IOMMU_OF_DECLARE(arm_smmuv1, "arm,smmu-v1", arm_smmu_of_init);
--IOMMU_OF_DECLARE(arm_smmuv2, "arm,smmu-v2", arm_smmu_of_init);
--IOMMU_OF_DECLARE(arm_mmu400, "arm,mmu-400", arm_smmu_of_init);
--IOMMU_OF_DECLARE(arm_mmu401, "arm,mmu-401", arm_smmu_of_init);
--IOMMU_OF_DECLARE(arm_mmu500, "arm,mmu-500", arm_smmu_of_init);
--IOMMU_OF_DECLARE(cavium_smmuv2, "cavium,smmu-v2", arm_smmu_of_init);
--
--#ifdef CONFIG_ACPI
--static int __init arm_smmu_acpi_init(struct acpi_table_header *table)
--{
--	if (iort_node_match(ACPI_IORT_NODE_SMMU))
--		return arm_smmu_init();
--
--	return 0;
--}
--IORT_ACPI_DECLARE(arm_smmu, ACPI_SIG_IORT, arm_smmu_acpi_init);
--#endif
-+module_platform_driver(arm_smmu_driver);
-+
-+IOMMU_OF_DECLARE(arm_smmuv1, "arm,smmu-v1", NULL);
-+IOMMU_OF_DECLARE(arm_smmuv2, "arm,smmu-v2", NULL);
-+IOMMU_OF_DECLARE(arm_mmu400, "arm,mmu-400", NULL);
-+IOMMU_OF_DECLARE(arm_mmu401, "arm,mmu-401", NULL);
-+IOMMU_OF_DECLARE(arm_mmu500, "arm,mmu-500", NULL);
-+IOMMU_OF_DECLARE(cavium_smmuv2, "cavium,smmu-v2", NULL);
- 
- MODULE_DESCRIPTION("IOMMU API for ARM architected SMMU implementations");
- MODULE_AUTHOR("Will Deacon <will.deacon@arm.com>");
+ #endif /* __ACPI_IORT_H__ */
 -- 
 QUALCOMM INDIA, on behalf of Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum, hosted by The Linux Foundation
