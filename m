@@ -1,202 +1,164 @@
 From: Sricharan R <sricharan@codeaurora.org>
-Subject: [PATCH V11 00/11] IOMMU probe deferral support
-Date: Mon, 10 Apr 2017 16:50:55 +0530
-Message-ID: <1491823266-1209-1-git-send-email-sricharan@codeaurora.org>
-Return-path: <linux-arm-msm-owner@vger.kernel.org>
-Sender: linux-arm-msm-owner@vger.kernel.org
+Subject: [PATCH V11 01/11] iommu/of: Refactor of_iommu_configure() for error handling
+Date: Mon, 10 Apr 2017 16:50:56 +0530
+Message-ID: <1491823266-1209-2-git-send-email-sricharan@codeaurora.org>
+References: <1491823266-1209-1-git-send-email-sricharan@codeaurora.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp.codeaurora.org ([198.145.29.96]:53048 "EHLO
+        smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752251AbdDJLVs (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 10 Apr 2017 07:21:48 -0400
+In-Reply-To: <1491823266-1209-1-git-send-email-sricharan@codeaurora.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: robin.murphy@arm.com, will.deacon@arm.com, joro@8bytes.org, lorenzo.pieralisi@arm.com, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arm-msm@vger.kernel.org, m.szyprowski@samsung.com, bhelgaas@google.com, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, tn@semihalf.com, hanjun.guo@linaro.org, okaya@codeaurora.org, robh+dt@kernel.org, frowand.list@gmail.com, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, sudeep.holla@arm.com, rjw@rjwysocki.net, lenb@kernel.org, catalin.marinas@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, gregkh@linuxfoundation.org
 Cc: sricharan@codeaurora.org
-List-Id: linux-arch.vger.kernel.org
 
-This series calls the dma ops configuration for the devices
-at a generic place so that it works for all busses.
-The dma_configure_ops for a device is now called during
-the device_attach callback just before the probe of the
-bus/driver is called. Similarly dma_deconfigure is called during
-device/driver_detach path.
+From: Robin Murphy <robin.murphy@arm.com>
 
-pci_bus_add_devices    (platform/amba)(_device_create/driver_register)
-       |                         |
-pci_bus_add_device     (device_add/driver_register)
-       |                         |
-device_attach           device_initial_probe
-       |                         |
-__device_attach_driver    __device_attach_driver
-       |
-driver_probe_device
-       |
-really_probe
-       |
-dma_configure
+In preparation for some upcoming cleverness, rework the control flow in
+of_iommu_configure() to minimise duplication and improve the propogation
+of errors. It's also as good a time as any to switch over from the
+now-just-a-compatibility-wrapper of_iommu_get_ops() to using the generic
+IOMMU instance interface directly.
 
-Similarly on the device/driver_unregister path __device_release_driver is
-called which inturn calls dma_deconfigure.
+Tested-by: Marek Szyprowski <m.szyprowski@samsung.com>
+Signed-off-by: Robin Murphy <robin.murphy@arm.com>
+---
+ drivers/iommu/of_iommu.c | 83 +++++++++++++++++++++++++++++++-----------------
+ 1 file changed, 53 insertions(+), 30 deletions(-)
 
-Rebased the series against mainline 4.11-rc5. Applies and builds cleanly
-against iommu-next and with 3-way merge applies on top of linux-next
-as well (patch #8), because of "ACPI platform MSI support" from
-Hanjun being merged.
-  
-* Tested with platform and pci devices for probe deferral
-  and reprobe on arm64 based platform.
-
-Previous post of this series [8]. 
-
-Please note that, i have kept the tested/acked tags intact from V8
-because V9/10/11 were for more fixes that was added, so the original
-tags that was given for the functional testing remains the same.
-
- [V11]
-     * No functional changes.
-
-     * Rebased on top of 4.11-rc6.
-
-     * Dropped patch#3 from V10, as a result have to make
-       a change in patch#7 to return a 'non-void' to fix a
-       build warning.
-
-     * Added Robin's and Rob's tags.
-
- [V10]
-     * Rebased on top of 4.11-rc5.
+diff --git a/drivers/iommu/of_iommu.c b/drivers/iommu/of_iommu.c
+index 2683e9f..8f4e599 100644
+--- a/drivers/iommu/of_iommu.c
++++ b/drivers/iommu/of_iommu.c
+@@ -96,6 +96,28 @@ int of_get_dma_window(struct device_node *dn, const char *prefix, int index,
+ }
+ EXPORT_SYMBOL_GPL(of_get_dma_window);
  
-     * Fixed coherent_dma_mask 64bit overflow issue [8]
-       for OF. The fix for OF was added as a separate
-       patch#6, since the issue is true even without probe deferral,
-       but gets reproduced with the probe deferral series.
-       Added Lorenzo's ACPI fix for coherent_dma_mask overflow
-       and the fix for dma_configure getting called more than
-       once for the same device.
-
-     * Also fixed an build issue caught by kbuild robot for
-       m68k arch. The issue was dma_(de)configure was not
-       getting defined for !CONFIG_HAS_DMA, so fixed that as well.
-
- [V9]
-     * Rebased on top of 4.11-rc1.
-
-     * Merged Robin's fixes for legacy binding issue,
-       pci devices with no iommu-map property and deferencing
-       of_iommu_table after init.
-     
- [V8]
-     * Picked up all the acks and tested tags from Marek and
-       Hanjun for DT and ACPI patches respectively, since
-       no functional changes was done.
-
-     * Addressed Minor comments Sinan and Bjorn.
-
-     * Added Robin's fix for fixing the deferencing NULL for
-       of_iommu_table after init in patch #2.
-
-     * Rebased it on top of linux-next
-
- [V7]
-     * Updated the subject and commit log for patch #6 as per
-       comments from Lorenzo. No functional changes.
-
- [V6]
-     * Fixed a bug in dma_configure function pointed out by
-       Robin.
-     * Reordered the patches as per comments from Robin and
-       Lorenzo.
-     * Added Tags.
-
- [V5]
-     * Reworked the pci configuration code hanging outside and
-       pushed it to dma_configure as in PATCH#5,6,7.
-       Also added a couple of patches that Lorenzo provided for
-       correcting the Probe deferring mechanism in case of
-       ACPI devices from here [5].
-
- [V4]
-     * Took the reworked patches [2] from Robin's branch and
-       rebased on top of Lorenzo's ACPI IORT ARM support series [3].
-
-     * Added the patches for moving the dma ops configuration of
-       acpi based devices to probe time as well.
- [V3]
-     * Removed the patch to split dma_masks/dma_ops configuration
-       separately based on review comments that both masks and ops are
-       required only during the device probe time.
-
-     * Reworked the series based on Generic DT bindings series.
-
-     * Added call to iommu's remove_device in the cleanup path for arm and
-       arm64.
-
-     * Removed the notifier trick in arm64 to handle early device
-       registration.
-
-     * Added reset of dma_ops in cleanup path for arm based on comments.
-
-     * Fixed the pci_iommu_configure path and tested with PCI device as
-       well.
++static const struct iommu_ops
++*of_iommu_xlate(struct device *dev, struct of_phandle_args *iommu_spec)
++{
++	const struct iommu_ops *ops;
++	struct fwnode_handle *fwnode = &iommu_spec->np->fwnode;
++	int err;
++
++	ops = iommu_ops_from_fwnode(fwnode);
++	if (!ops || !ops->of_xlate)
++		return NULL;
++
++	err = iommu_fwspec_init(dev, &iommu_spec->np->fwnode, ops);
++	if (err)
++		return ERR_PTR(err);
++
++	err = ops->of_xlate(dev, iommu_spec);
++	if (err)
++		return ERR_PTR(err);
++
++	return ops;
++}
++
+ static int __get_pci_rid(struct pci_dev *pdev, u16 alias, void *data)
+ {
+ 	struct of_phandle_args *iommu_spec = data;
+@@ -105,10 +127,11 @@ static int __get_pci_rid(struct pci_dev *pdev, u16 alias, void *data)
+ }
  
-     * Fixed a bug to return the correct iommu_ops from patch 7 [4] in
-       last post.
-
-     * Fixed few other cosmetic comments.
-  
- [V2]
-     * Updated the Initial post to call dma_configure/deconfigure from
-       generic code
+ static const struct iommu_ops
+-*of_pci_iommu_configure(struct pci_dev *pdev, struct device_node *bridge_np)
++*of_pci_iommu_init(struct pci_dev *pdev, struct device_node *bridge_np)
+ {
+ 	const struct iommu_ops *ops;
+ 	struct of_phandle_args iommu_spec;
++	int err;
  
-     * Added iommu add_device callback from of_iommu_configure path
-
- [V1]
-     * Initial post from Laurent Pinchart [1]
-
-[1] http://lists.linuxfoundation.org/pipermail/iommu/2015-May/013016.html
-[2] http://www.linux-arm.org/git?p=linux-rm.git;a=shortlog;h=refs/heads/iommu/defer
-[3] https://lkml.org/lkml/2016/11/21/141
-[4] https://www.mail-archive.com/iommu@xxxxxxxxxxxxxxxxxxxxxxxxxx/msg13940.html
-[5] git://git.kernel.org/pub/scm/linux/kernel/git/lpieralisi/linux.git iommu/probe-deferral
-[6] http://www.spinics.net/lists/linux-pci/msg57992.html
-[7] https://www.spinics.net/lists/arm-kernel/msg556209.html
-[8] http://lkml.iu.edu/hypermail/linux/kernel/1704.0/01557.html
-
-Laurent Pinchart (2):
-  of: dma: Make of_dma_deconfigure() public
-  iommu: of: Handle IOMMU lookup failure with deferred probing or error
-
-Lorenzo Pieralisi (2):
-  ACPI/IORT: Add function to check SMMUs drivers presence
-  ACPI/IORT: Remove linker section for IORT entries probing
-
-Robin Murphy (3):
-  iommu/of: Refactor of_iommu_configure() for error handling
-  iommu/of: Prepare for deferred IOMMU configuration
-  iommu/arm-smmu: Clean up early-probing workarounds
-
-Sricharan R (4):
-  of: device: Fix overflow of coherent_dma_mask
-  of/acpi: Configure dma operations at probe time for platform/amba/pci
-    bus devices
-  drivers: acpi: Handle IOMMU lookup failure with deferred probing or
-    error
-  arm64: dma-mapping: Remove the notifier trick to handle early setting
-    of dma_ops
-
- arch/arm64/mm/dma-mapping.c       | 142 +++++---------------------------------
- drivers/acpi/arm64/iort.c         |  48 ++++++++++++-
- drivers/acpi/glue.c               |   5 --
- drivers/acpi/scan.c               |  11 ++-
- drivers/base/dd.c                 |   9 +++
- drivers/base/dma-mapping.c        |  41 +++++++++++
- drivers/iommu/arm-smmu-v3.c       |  46 +-----------
- drivers/iommu/arm-smmu.c          | 110 +++++++++++++----------------
- drivers/iommu/of_iommu.c          | 126 ++++++++++++++++++++++++---------
- drivers/of/device.c               |  23 +++++-
- drivers/of/platform.c             |  10 +--
- drivers/pci/probe.c               |  28 --------
- include/acpi/acpi_bus.h           |   2 +-
- include/asm-generic/vmlinux.lds.h |   1 -
- include/linux/acpi.h              |   7 +-
- include/linux/acpi_iort.h         |   3 -
- include/linux/dma-mapping.h       |  12 ++++
- include/linux/of_device.h         |  10 ++-
- 18 files changed, 312 insertions(+), 322 deletions(-)
-
+ 	/*
+ 	 * Start by tracing the RID alias down the PCI topology as
+@@ -123,56 +146,56 @@ static int __get_pci_rid(struct pci_dev *pdev, u16 alias, void *data)
+ 	 * bus into the system beyond, and which IOMMU it ends up at.
+ 	 */
+ 	iommu_spec.np = NULL;
+-	if (of_pci_map_rid(bridge_np, iommu_spec.args[0], "iommu-map",
+-			   "iommu-map-mask", &iommu_spec.np, iommu_spec.args))
+-		return NULL;
++	err = of_pci_map_rid(bridge_np, iommu_spec.args[0], "iommu-map",
++			     "iommu-map-mask", &iommu_spec.np,
++			     iommu_spec.args);
++	if (err)
++		return err == -ENODEV ? NULL : ERR_PTR(err);
+ 
+-	ops = iommu_ops_from_fwnode(&iommu_spec.np->fwnode);
+-	if (!ops || !ops->of_xlate ||
+-	    iommu_fwspec_init(&pdev->dev, &iommu_spec.np->fwnode, ops) ||
+-	    ops->of_xlate(&pdev->dev, &iommu_spec))
+-		ops = NULL;
++	ops = of_iommu_xlate(&pdev->dev, &iommu_spec);
+ 
+ 	of_node_put(iommu_spec.np);
+ 	return ops;
+ }
+ 
+-const struct iommu_ops *of_iommu_configure(struct device *dev,
+-					   struct device_node *master_np)
++static const struct iommu_ops
++*of_platform_iommu_init(struct device *dev, struct device_node *np)
+ {
+ 	struct of_phandle_args iommu_spec;
+-	struct device_node *np;
+ 	const struct iommu_ops *ops = NULL;
+ 	int idx = 0;
+ 
+-	if (dev_is_pci(dev))
+-		return of_pci_iommu_configure(to_pci_dev(dev), master_np);
+-
+ 	/*
+ 	 * We don't currently walk up the tree looking for a parent IOMMU.
+ 	 * See the `Notes:' section of
+ 	 * Documentation/devicetree/bindings/iommu/iommu.txt
+ 	 */
+-	while (!of_parse_phandle_with_args(master_np, "iommus",
+-					   "#iommu-cells", idx,
+-					   &iommu_spec)) {
+-		np = iommu_spec.np;
+-		ops = iommu_ops_from_fwnode(&np->fwnode);
+-
+-		if (!ops || !ops->of_xlate ||
+-		    iommu_fwspec_init(dev, &np->fwnode, ops) ||
+-		    ops->of_xlate(dev, &iommu_spec))
+-			goto err_put_node;
+-
+-		of_node_put(np);
++	while (!of_parse_phandle_with_args(np, "iommus", "#iommu-cells",
++					   idx, &iommu_spec)) {
++		ops = of_iommu_xlate(dev, &iommu_spec);
++		of_node_put(iommu_spec.np);
+ 		idx++;
++		if (IS_ERR_OR_NULL(ops))
++			break;
+ 	}
+ 
+ 	return ops;
++}
++
++const struct iommu_ops *of_iommu_configure(struct device *dev,
++					   struct device_node *master_np)
++{
++	const struct iommu_ops *ops;
++
++	if (!master_np)
++		return NULL;
++
++	if (dev_is_pci(dev))
++		ops = of_pci_iommu_init(to_pci_dev(dev), master_np);
++	else
++		ops = of_platform_iommu_init(dev, master_np);
+ 
+-err_put_node:
+-	of_node_put(np);
+-	return NULL;
++	return IS_ERR(ops) ? NULL : ops;
+ }
+ 
+ static int __init of_iommu_init(void)
 -- 
 QUALCOMM INDIA, on behalf of Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum, hosted by The Linux Foundation
