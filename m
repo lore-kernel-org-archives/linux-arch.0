@@ -1,71 +1,104 @@
-From: Frank Rowand <frowand.list@gmail.com>
-Subject: Re: [PATCH V11 00/11] IOMMU probe deferral support
-Date: Mon, 10 Apr 2017 04:56:20 -0700
-Message-ID: <58EB72E4.6030009@gmail.com>
-References: <1491823266-1209-1-git-send-email-sricharan@codeaurora.org>
+From: David Howells <dhowells@redhat.com>
+Subject: [RFC PATCH 0/5] Consolidate init_task handling
+Date: Mon, 10 Apr 2017 13:15:51 +0100
+Message-ID: <149182655182.9959.4421578108754243877.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
+Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-acpi-owner@vger.kernel.org>
-In-Reply-To: <1491823266-1209-1-git-send-email-sricharan@codeaurora.org>
-Sender: linux-acpi-owner@vger.kernel.org
-To: Sricharan R <sricharan@codeaurora.org>, robin.murphy@arm.com, will.deacon@arm.com, joro@8bytes.org, lorenzo.pieralisi@arm.com, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arm-msm@vger.kernel.org, m.szyprowski@samsung.com, bhelgaas@google.com, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, tn@semihalf.com, hanjun.guo@linaro.org, okaya@codeaurora.org, robh+dt@kernel.org, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, sudeep.holla@arm.com, rjw@rjwysocki.net, lenb@kernel.org, catalin.marinas@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, gregkh@linuxfoundation.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:58244 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752941AbdDJMPy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 10 Apr 2017 08:15:54 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org, linux-ia64@vger.kernel.org
+Cc: dhowells@redhat.com, linux-kernel@vger.kernel.org
 
-On 04/10/17 04:20, Sricharan R wrote:
-> This series calls the dma ops configuration for the devices
-> at a generic place so that it works for all busses.
-> The dma_configure_ops for a device is now called during
-> the device_attach callback just before the probe of the
-> bus/driver is called. Similarly dma_deconfigure is called during
-> device/driver_detach path.
-> 
-> pci_bus_add_devices    (platform/amba)(_device_create/driver_register)
->        |                         |
-> pci_bus_add_device     (device_add/driver_register)
->        |                         |
-> device_attach           device_initial_probe
->        |                         |
-> __device_attach_driver    __device_attach_driver
->        |
-> driver_probe_device
->        |
-> really_probe
->        |
-> dma_configure
-> 
-> Similarly on the device/driver_unregister path __device_release_driver is
-> called which inturn calls dma_deconfigure.
-> 
-> Rebased the series against mainline 4.11-rc5. Applies and builds cleanly
-> against iommu-next and with 3-way merge applies on top of linux-next
-> as well (patch #8), because of "ACPI platform MSI support" from
-> Hanjun being merged.
->   
-> * Tested with platform and pci devices for probe deferral
->   and reprobe on arm64 based platform.
-> 
-> Previous post of this series [8]. 
-> 
-> Please note that, i have kept the tested/acked tags intact from V8
-> because V9/10/11 were for more fixes that was added, so the original
-> tags that was given for the functional testing remains the same.
-> 
->  [V11]
->      * No functional changes.
-> 
->      * Rebased on top of 4.11-rc6.
-> 
->      * Dropped patch#3 from V10, as a result have to make
->        a change in patch#7 to return a 'non-void' to fix a
->        build warning.
-> 
->      * Added Robin's and Rob's tags.
 
-< snip >
+Here are some patches that consolidate init_task handling:
 
-The changes are good enough for me and you have Rob's acks, so the
-series looks good from the device tree standpoint.
+ (1) Alter the INIT_TASK_DATA linker script macro to set init_thread_union
+     and init_stack rather than defining these in C.
 
--Frank
+     Insert init_task and init_thread_into into the init_stack area in the
+     linker script as appropriate to the configuration, with different
+     section markers so that they end up correctly ordered.
 
+     We can then get merge ia64's init_task.c into the main one.
+
+We then have a bunch of single-use INIT_*() macros that seem only to be
+macros because they used to be used per-arch.  We can then unroll these in
+place of the user and get rid of a few lines and a lot of backslashes.
+
+ (2) Unroll INIT_TASK().
+
+ (3) Unroll various small INIT_*() macros that are defined conditionally.
+     Unroll them and surround them by #if[n]def/#endif in the .c file as it
+     takes fewer lines.
+
+ (4) Unroll INIT_SIGNALS() and INIT_SIGHAND().
+
+ (5) Unroll INIT_STRUCT_PID.
+
+The patches can be found here also:
+
+	http://git.kernel.org/cgit/linux/kernel/git/dhowells/linux-fs.git/log/?h=init_task
+
+David
+---
+David Howells (5):
+      Construct init thread stack in the linker script rather than by union
+      Unroll INIT_TASK() in init/init_task.c
+      Unroll various INIT_* macros
+      Unroll the INIT_SIGNALS and INIT_SIGHAND macros
+      Unroll INIT_STRUCT_PID
+
+
+ arch/Kconfig                              |    4 
+ arch/alpha/include/asm/thread_info.h      |    3 
+ arch/arc/include/asm/thread_info.h        |    3 
+ arch/arm/include/asm/thread_info.h        |    3 
+ arch/arm64/include/asm/thread_info.h      |    2 
+ arch/avr32/include/asm/thread_info.h      |    3 
+ arch/blackfin/include/asm/thread_info.h   |    2 
+ arch/c6x/include/asm/thread_info.h        |    3 
+ arch/cris/include/asm/processor.h         |    2 
+ arch/frv/include/asm/thread_info.h        |    3 
+ arch/h8300/include/asm/thread_info.h      |    3 
+ arch/hexagon/include/asm/thread_info.h    |    3 
+ arch/ia64/Kconfig                         |    2 
+ arch/ia64/Makefile                        |    2 
+ arch/ia64/include/asm/thread_info.h       |    4 
+ arch/ia64/kernel/Makefile                 |    2 
+ arch/ia64/kernel/init_task.c              |   43 -----
+ arch/ia64/kernel/vmlinux.lds.S            |    1 
+ arch/m32r/include/asm/thread_info.h       |    3 
+ arch/m68k/include/asm/thread_info.h       |    2 
+ arch/metag/include/asm/thread_info.h      |    3 
+ arch/microblaze/include/asm/thread_info.h |    3 
+ arch/mips/include/asm/thread_info.h       |    3 
+ arch/mn10300/include/asm/thread_info.h    |    2 
+ arch/nios2/include/asm/thread_info.h      |    3 
+ arch/openrisc/include/asm/processor.h     |    2 
+ arch/parisc/include/asm/thread_info.h     |    3 
+ arch/powerpc/include/asm/thread_info.h    |    3 
+ arch/s390/include/asm/thread_info.h       |    2 
+ arch/score/include/asm/thread_info.h      |    3 
+ arch/sh/include/asm/thread_info.h         |    3 
+ arch/sparc/include/asm/thread_info_32.h   |    3 
+ arch/sparc/include/asm/thread_info_64.h   |    3 
+ arch/tile/include/asm/thread_info.h       |    3 
+ arch/um/include/asm/processor-generic.h   |    2 
+ arch/um/include/asm/thread_info.h         |    3 
+ arch/unicore32/include/asm/thread_info.h  |    3 
+ arch/x86/include/asm/thread_info.h        |    2 
+ arch/xtensa/include/asm/thread_info.h     |    3 
+ include/asm-generic/vmlinux.lds.h         |    4 
+ include/linux/init_task.h                 |  247 +----------------------------
+ include/linux/sched.h                     |    9 +
+ init/Makefile                             |    2 
+ init/init_task.c                          |  158 ++++++++++++++++++-
+ kernel/pid.c                              |   15 ++
+ 45 files changed, 196 insertions(+), 384 deletions(-)
+ delete mode 100644 arch/ia64/kernel/init_task.c
