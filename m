@@ -1,78 +1,123 @@
 From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Subject: [PATCH v3 04/32] asm-generic: add ioremap_nopost() remap interface
-Date: Tue, 11 Apr 2017 13:28:44 +0100
-Message-ID: <20170411122923.6285-5-lorenzo.pieralisi@arm.com>
+Subject: [PATCH v3 30/32] arm: implement ioremap_nopost() interface
+Date: Tue, 11 Apr 2017 13:29:10 +0100
+Message-ID: <20170411122923.6285-31-lorenzo.pieralisi@arm.com>
 References: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:60078 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1754974AbdDKMaa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 11 Apr 2017 08:30:30 -0400
 In-Reply-To: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org
-Cc: Jonas Bonn <jonas@southpole.se>, Rich Felker <dalias@libc.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, David Howells <dhowells@redhat.com>, Max Filippov <jcmvbkbc@gmail.com>, Paul Mackerras <paulus@samba.org>, Huacai Chen <chenhc@lemote.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, linux-arch@vger.kernel.org, Jesper Nilsson <jesper.nilsson@axis.com>, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, Russell King <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Matt Turner <mattst88@gmail.com>, Haa
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>
 
-The PCI specifications (Rev 3.0, 3.2.5 "Transaction Ordering and
-Posting") mandate non-posted configuration transactions. As further
-highlighted in the PCIe specifications (4.0 - Rev0.3, "Ordering
-Considerations for the Enhanced Configuration Access Mechanism"),
-through ECAM and ECAM-derivative configuration mechanism, the memory
-mapped transactions from the host CPU into Configuration Requests on the
-PCI express fabric may create ordering problems for software because
-writes to memory address are typically posted transactions (unless the
-architecture can enforce through virtual address mapping non-posted
-write transactions behaviour) but writes to Configuration Space are not
-posted on the PCI express fabric.
+The PCI bus specifications (rev 3.0, 3.2.5 "Transaction Ordering
+and Posting") define rules for PCI configuration space transactions
+ordering and posting, that state that configuration writes have to
+be non-posted transactions.
 
-Current DT and ACPI host bridge controllers map PCI configuration space
-(ECAM and ECAM-derivative) into the virtual address space through
-ioremap() calls, that are non-cacheable device accesses on most
-architectures, but may provide "bufferable" or "posted" write semantics
-in architecture like eg ARM/ARM64 that allow ioremap'ed regions writes
-to be buffered in the bus connecting the host CPU to the PCI fabric;
-this behaviour, as underlined in the PCIe specifications, may trigger
-transactions ordering rules and must be prevented.
+Current ioremap interface on ARM provides mapping functions that
+provide "bufferable" writes transactions (ie ioremap uses MT_DEVICE
+memory type) aka posted writes, so PCI host controller drivers have
+no arch interface to remap PCI configuration space with memory
+attributes that comply with the PCI specifications for configuration
+space.
 
-Introduce a new generic and explicit API to create a memory mapping for
-ECAM and ECAM-derivative config space area (and a corresponding generic
-asm-generic header file) that defaults to ioremap_nocache() (which
-should provide a sane default behaviour) and can be included by
-all architectures that do not require an arch specific memory mapping
-for ioremap_nopost() to guarantee non-posted writes behaviour.
+Implement an ARM specific ioremap_nopost() interface that allows to
+map PCI config memory regions with MT_UNCACHED memory type (ie strongly
+ordered - non-posted writes), providing a remap function that complies
+with PCI specifications for config space transactions.
 
 Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
 Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Bjorn Helgaas <bhelgaas@google.com>
 Cc: Russell King <linux@armlinux.org.uk>
-Cc: Luis R. Rodriguez <mcgrof@kernel.org>
 ---
- include/asm-generic/ioremap-nopost.h | 9 +++++++++
- 1 file changed, 9 insertions(+)
- create mode 100644 include/asm-generic/ioremap-nopost.h
+ arch/arm/include/asm/io.h | 9 +++++++++
+ arch/arm/mm/ioremap.c     | 7 +++++++
+ arch/arm/mm/nommu.c       | 9 +++++++++
+ 3 files changed, 25 insertions(+)
 
-diff --git a/include/asm-generic/ioremap-nopost.h b/include/asm-generic/ioremap-nopost.h
-new file mode 100644
-index 0000000..015911f
---- /dev/null
-+++ b/include/asm-generic/ioremap-nopost.h
-@@ -0,0 +1,9 @@
-+#ifndef __ASM_GENERIC_IOREMAP_NOPOST_H
-+#define __ASM_GENERIC_IOREMAP_NOPOST_H
+diff --git a/arch/arm/include/asm/io.h b/arch/arm/include/asm/io.h
+index 42871fb..28b15be 100644
+--- a/arch/arm/include/asm/io.h
++++ b/arch/arm/include/asm/io.h
+@@ -352,6 +352,7 @@ static inline void memcpy_toio(volatile void __iomem *to, const void *from,
+  * mapping has specific properties.
+  *
+  * Function		Memory type	Cacheability	Cache hint
++ * ioremap_nopost()	SO		n/a		n/a
+  * ioremap()		Device		n/a		n/a
+  * ioremap_nocache()	Device		n/a		n/a
+  * ioremap_cache()	Normal		Writeback	Read allocate
+@@ -372,6 +373,12 @@ static inline void memcpy_toio(volatile void __iomem *to, const void *from,
+  * compiler may generate unaligned accesses - eg, via inlining its own
+  * memcpy.
+  *
++ * ioremap_nopost() maps memory as strongly ordered, to be used for
++ * specific mappings (eg PCI config space) that require non-posted
++ * write transactions. Strongly ordered transactions are ordered wrt
++ * device mappings, which means that ioremap_nopost() is the same
++ * as ioremap() except for non-posted writes behaviour.
++ *
+  * All normal memory mappings have the following properties:
+  * - reads can be repeated with no side effects
+  * - repeated reads return the last value written
+@@ -407,6 +414,8 @@ void __iomem *ioremap_wc(resource_size_t res_cookie, size_t size);
+ #define ioremap_wc ioremap_wc
+ #define ioremap_wt ioremap_wc
+ 
++void __iomem *ioremap_nopost(resource_size_t res_cookie, size_t size);
 +
-+static inline void __iomem *ioremap_nopost(phys_addr_t offset, size_t size)
+ void iounmap(volatile void __iomem *iomem_cookie);
+ #define iounmap iounmap
+ 
+diff --git a/arch/arm/mm/ioremap.c b/arch/arm/mm/ioremap.c
+index ff0eed2..4ffaf16 100644
+--- a/arch/arm/mm/ioremap.c
++++ b/arch/arm/mm/ioremap.c
+@@ -463,6 +463,13 @@ void iounmap(volatile void __iomem *cookie)
+ }
+ EXPORT_SYMBOL(iounmap);
+ 
++void __iomem *ioremap_nopost(resource_size_t res_cookie, size_t size)
 +{
-+	return ioremap_nocache(offset, size);
++	return arch_ioremap_caller(res_cookie, size, MT_UNCACHED,
++				   __builtin_return_address(0));
 +}
++EXPORT_SYMBOL_GPL(ioremap_nopost);
 +
-+#endif /* __ASM_GENERIC_IOREMAP_NOPOST_H */
+ #ifdef CONFIG_PCI
+ static int pci_ioremap_mem_type = MT_DEVICE;
+ 
+diff --git a/arch/arm/mm/nommu.c b/arch/arm/mm/nommu.c
+index 3b5c7aa..dfd736a 100644
+--- a/arch/arm/mm/nommu.c
++++ b/arch/arm/mm/nommu.c
+@@ -21,6 +21,8 @@
+ #include <asm/mpu.h>
+ #include <asm/procinfo.h>
+ 
++#include <asm/mach/map.h>
++
+ #include "mm.h"
+ 
+ unsigned long vectors_base;
+@@ -433,6 +435,13 @@ void __iomem *ioremap_wc(resource_size_t res_cookie, size_t size)
+ }
+ EXPORT_SYMBOL(ioremap_wc);
+ 
++void __iomem *ioremap_nopost(resource_size_t res_cookie, size_t size)
++{
++	return __arm_ioremap_caller(res_cookie, size, MT_UNCACHED,
++				    __builtin_return_address(0));
++}
++EXPORT_SYMBOL(ioremap_nopost);
++
+ void *arch_memremap_wb(phys_addr_t phys_addr, size_t size)
+ {
+ 	return (void *)phys_addr;
 -- 
 2.10.0
