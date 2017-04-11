@@ -1,83 +1,165 @@
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: Re: [PATCH 3/8] x86/boot/64: Add support of additional page table
- level during early boot
-Date: Tue, 11 Apr 2017 14:46:16 +0300
-Message-ID: <20170411114616.otx2f6aw5lcvfc2o@black.fi.intel.com>
-References: <20170406140106.78087-1-kirill.shutemov@linux.intel.com>
- <20170406140106.78087-4-kirill.shutemov@linux.intel.com>
- <20170411070203.GA14621@gmail.com>
- <20170411105106.4zgbzuu4s4267zyv@node.shutemov.name>
- <20170411112845.GA15212@gmail.com>
+From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+Subject: [PATCH v3 00/32] PCI: fix config and I/O Address space memory mappings
+Date: Tue, 11 Apr 2017 13:28:40 +0100
+Message-ID: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20170411112845.GA15212@gmail.com>
-Sender: owner-linux-mm@kvack.org
-To: Ingo Molnar <mingo@kernel.org>, Andy Lutomirski <luto@amacapital.net>
-Cc: "Kirill A. Shutemov" <kirill@shutemov.name>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: linux-pci@vger.kernel.org
+Cc: Jonas Bonn <jonas@southpole.se>, Rich Felker <dalias@libc.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, David Howells <dhowells@redhat.com>, Max Filippov <jcmvbkbc@gmail.com>, Paul Mackerras <paulus@samba.org>, Huacai Chen <chenhc@lemote.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, linux-arch@vger.kernel.org, Jesper Nilsson <jesper.nilsson@axis.com>, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, Russell King <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Matt Turner <mattst88@gmail.com>, Haa
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Apr 11, 2017 at 01:28:45PM +0200, Ingo Molnar wrote:
-> 
-> * Kirill A. Shutemov <kirill@shutemov.name> wrote:
-> 
-> > On Tue, Apr 11, 2017 at 09:02:03AM +0200, Ingo Molnar wrote:
-> > > I realize that you had difficulties converting this to C, but it's not going to 
-> > > get any easier in the future either, with one more paging mode/level added!
-> > > 
-> > > If you are stuck on where it breaks I'd suggest doing it gradually: first add a 
-> > > trivial .c, build and link it in and call it separately. Then once that works, 
-> > > move functionality from asm to C step by step and test it at every step.
-> > 
-> > I've described the specific issue with converting this code to C in cover
-> > letter: how to make compiler to generate 32-bit code for a specific
-> > function or translation unit, without breaking linking afterwards (-m32
-> > break it).
-> 
-> Have you tried putting it into a separate .c file, and building it 32-bit?
+This patch series[1] is a v3 of a previous version:
 
-Yes, I have. The patch below fails linking:
+v2: https://lkml.org/lkml/2017/3/27/220
 
-ld: i386 architecture of input file `arch/x86/boot/compressed/head64.o' is incompatible with i386:x86-64 output
+v2 -> v3:
+	- Created a default ioremap_nopost() implementation in a separate
+	  asm-generic header and patched all arches to make use of it
+	- Removed PCI drivers patches from the series to simplify the
+	  review, they will be posted separately once the ioremap_nopost()
+	  interface is settled
+	- Fixed devm_ioremap_* BUS offset comments and implemented
+	  nopost interface on top of it
+	- Added collected tags
 
-> 
-> I think arch/x86/entry/vdso/Makefile contains an example of how to build 32-bit 
-> code even on 64-bit kernels.
+v1: https://lkml.org/lkml/2017/2/27/228
 
-I'll look closer (building proccess it's rather complicated), but my
-understanding is that VDSO is stand-alone binary and doesn't really links
-with the rest of the kernel, rather included as blob, no?
+v1 -> v2:
+	- Changed pci_remap_cfgspace() to more generic ioremap_nopost()
+	  interface
+	- Added pgprot_nonposted
+	- Fixed build errors on arches not relying on asm-generic headers
+	- Added PCI versatile host controller driver patch
+	- Added missing config space remapping to hisilicon host controller
 
-Andy, may be you have an idea?
+---------------------
+Original cover letter
+---------------------
 
-diff --git a/arch/x86/boot/compressed/Makefile b/arch/x86/boot/compressed/Makefile
-index 44163e8c3868..8c1acacf408e 100644
---- a/arch/x86/boot/compressed/Makefile
-+++ b/arch/x86/boot/compressed/Makefile
-@@ -76,6 +76,8 @@ vmlinux-objs-$(CONFIG_EARLY_PRINTK) += $(obj)/early_serial_console.o
- vmlinux-objs-$(CONFIG_RANDOMIZE_BASE) += $(obj)/kaslr.o
- ifdef CONFIG_X86_64
- 	vmlinux-objs-$(CONFIG_RANDOMIZE_BASE) += $(obj)/pagetable.o
-+	vmlinux-objs-y += $(obj)/head64.o
-+$(obj)/head64.o: KBUILD_CFLAGS := -m32 -D__KERNEL__ -O2
- endif
- 
- $(obj)/eboot.o: KBUILD_CFLAGS += -fshort-wchar -mno-red-zone
-diff --git a/arch/x86/boot/compressed/head64.c b/arch/x86/boot/compressed/head64.c
-new file mode 100644
-index 000000000000..42e1d64a15f4
---- /dev/null
-+++ b/arch/x86/boot/compressed/head64.c
-@@ -0,0 +1,3 @@
-+void __startup32(void)
-+{
-+}
+PCI local bus specifications (Rev3.0, 3.2.5 "Transaction Ordering
+and Posting") strictly require PCI configuration and I/O Address space
+write transactions to be non-posted.
+
+Current crop of DT/ACPI PCI host controllers drivers relies on
+the ioremap interface to map ECAM and ECAM-derivative PCI config
+regions and pci_remap_iospace() to create a VMA for mapping
+PCI host bridge I/O Address space transactions to CPU virtual address
+space.
+
+On some platforms (ie ARM/ARM64) ioremap fails to comply with the PCI
+configuration non-posted write transactions requirement, because it
+provides a memory mapping that issues "bufferable" or, in PCI terms
+"posted" write transactions. Likewise, the current pci_remap_iospace()
+implementation maps the physical address range that the PCI translates
+to I/O space cycles to virtual address space through pgprot_device()
+attributes that on eg ARM64 provides a memory mapping issuing
+posted writes transactions, which is not PCI specifications compliant.
+
+This patch series[1] addresses both issues in one go:
+
+- It updates the pci_remap_iospace() function to use a page mapping
+  that guarantees non-posted write transactions for I/O space addresses
+- It adds a kernel API to remap PCI config space resources, so that
+  architecture can override it with a mapping implementation that
+  guarantees PCI specifications compliancy wrt non-posted write
+  configuration transactions
+- It updates all PCI host controller implementations (and the generic
+  ECAM layer) to use the newly introduced mapping interface
+
+Tested on Juno ECAM based interface (DT/ACPI).
+
+Non-ECAM PCI host controller drivers patches need checking to make
+sure that:
+
+- I patched the correct resource region mapping for config space
+- There are not any other ways to ensure posted-write completion
+  in the respective pci_ops that make the relevant patch unnecessary
+
+[1] git://git.kernel.org/pub/scm/linux/kernel/git/lpieralisi/linux.git
+pci/config-io-mappings-fix-v3
+
+Lorenzo Pieralisi (32):
+  PCI: remove __weak tag from pci_remap_iospace()
+  asm-generic/pgtable.h: introduce pgprot_nonposted remap attribute
+  PCI: fix pci_remap_iospace() remap attribute
+  asm-generic: add ioremap_nopost() remap interface
+  alpha: include default ioremap_nopost() implementation
+  avr32: include default ioremap_nopost() implementation
+  arc: include default ioremap_nopost() implementation
+  cris: include default ioremap_nopost() implementation
+  frv: include default ioremap_nopost() implementation
+  hexagon: include default ioremap_nopost() implementation
+  ia64: include default ioremap_nopost() implementation
+  m32r: include default ioremap_nopost() implementation
+  m68k: include default ioremap_nopost() implementation
+  metag: include default ioremap_nopost() implementation
+  microblaze: include default ioremap_nopost() implementation
+  mips: include default ioremap_nopost() implementation
+  mn10300: include default ioremap_nopost() implementation
+  nios2: include default ioremap_nopost() implementation
+  openrisc: include default ioremap_nopost() implementation
+  parisc: include default ioremap_nopost() implementation
+  powerpc: include default ioremap_nopost() implementation
+  s390: include default ioremap_nopost() implementation
+  sh: include default ioremap_nopost() implementation
+  sparc: include default ioremap_nopost() implementation
+  tile: include default ioremap_nopost() implementation
+  unicore32: include default ioremap_nopost() implementation
+  x86: include default ioremap_nopost() implementation
+  xtensa: include default ioremap_nopost() implementation
+  arm64: implement ioremap_nopost() interface
+  arm: implement ioremap_nopost() interface
+  lib: fix Devres devm_ioremap_* offset parameter kerneldoc description
+  lib: implement Devres ioremap_nopost() interface
+
+ Documentation/driver-model/devres.txt |  3 ++
+ arch/alpha/include/asm/io.h           |  1 +
+ arch/arc/include/asm/io.h             |  1 +
+ arch/arm/include/asm/io.h             |  9 ++++
+ arch/arm/mm/ioremap.c                 |  7 +++
+ arch/arm/mm/nommu.c                   |  9 ++++
+ arch/arm64/include/asm/io.h           | 12 +++++
+ arch/avr32/include/asm/io.h           |  1 +
+ arch/cris/include/asm/io.h            |  1 +
+ arch/frv/include/asm/io.h             |  1 +
+ arch/hexagon/include/asm/io.h         |  2 +
+ arch/ia64/include/asm/io.h            |  1 +
+ arch/m32r/include/asm/io.h            |  1 +
+ arch/m68k/include/asm/io.h            |  1 +
+ arch/metag/include/asm/io.h           |  2 +
+ arch/microblaze/include/asm/io.h      |  1 +
+ arch/mips/include/asm/io.h            |  1 +
+ arch/mn10300/include/asm/io.h         |  1 +
+ arch/nios2/include/asm/io.h           |  1 +
+ arch/openrisc/include/asm/io.h        |  2 +
+ arch/parisc/include/asm/io.h          |  1 +
+ arch/powerpc/include/asm/io.h         |  1 +
+ arch/s390/include/asm/io.h            |  1 +
+ arch/sh/include/asm/io.h              |  1 +
+ arch/sparc/include/asm/io.h           |  1 +
+ arch/tile/include/asm/io.h            |  1 +
+ arch/unicore32/include/asm/io.h       |  1 +
+ arch/x86/include/asm/io.h             |  1 +
+ arch/xtensa/include/asm/io.h          |  1 +
+ drivers/pci/pci.c                     |  4 +-
+ include/asm-generic/ioremap-nopost.h  |  9 ++++
+ include/asm-generic/pgtable.h         |  4 ++
+ include/linux/device.h                |  2 +
+ include/linux/io.h                    |  2 +
+ lib/devres.c                          | 84 +++++++++++++++++++++++++++++++++--
+ 35 files changed, 167 insertions(+), 5 deletions(-)
+ create mode 100644 include/asm-generic/ioremap-nopost.h
+
 -- 
- Kirill A. Shutemov
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+2.10.0
