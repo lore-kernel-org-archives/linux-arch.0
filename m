@@ -1,123 +1,175 @@
 From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Subject: [PATCH v3 30/32] arm: implement ioremap_nopost() interface
-Date: Tue, 11 Apr 2017 13:29:10 +0100
-Message-ID: <20170411122923.6285-31-lorenzo.pieralisi@arm.com>
+Subject: [PATCH v3 32/32] lib: implement Devres ioremap_nopost() interface
+Date: Tue, 11 Apr 2017 13:29:12 +0100
+Message-ID: <20170411122923.6285-33-lorenzo.pieralisi@arm.com>
 References: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:60078 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1754974AbdDKMaa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 11 Apr 2017 08:30:30 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Jonathan Corbet <corbet@lwn.net>, Bjorn Helgaas <bhelgaas@google.com>, Tejun Heo <tj@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-The PCI bus specifications (rev 3.0, 3.2.5 "Transaction Ordering
-and Posting") define rules for PCI configuration space transactions
-ordering and posting, that state that configuration writes have to
-be non-posted transactions.
+The introduction of the ioremap_nopost() interface allows
+kernel drivers to map memory through a dedicated kernel
+interface providing non-posted writes semantics.
 
-Current ioremap interface on ARM provides mapping functions that
-provide "bufferable" writes transactions (ie ioremap uses MT_DEVICE
-memory type) aka posted writes, so PCI host controller drivers have
-no arch interface to remap PCI configuration space with memory
-attributes that comply with the PCI specifications for configuration
-space.
+Introduce two new functions in the Devres kernel layer and Devres
+documentation:
 
-Implement an ARM specific ioremap_nopost() interface that allows to
-map PCI config memory regions with MT_UNCACHED memory type (ie strongly
-ordered - non-posted writes), providing a remap function that complies
-with PCI specifications for config space transactions.
+- devm_ioremap_nopost()
+- devm_ioremap_nopost_resource()
+
+so that drivers can make use of devm_* interface to map memory
+regions requiring non-posted writes memory attributes.
 
 Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Russell King <linux@armlinux.org.uk>
+Cc: Jonathan Corbet <corbet@lwn.net>
+Cc: Bjorn Helgaas <bhelgaas@google.com>
+Cc: Tejun Heo <tj@kernel.org>
 ---
- arch/arm/include/asm/io.h | 9 +++++++++
- arch/arm/mm/ioremap.c     | 7 +++++++
- arch/arm/mm/nommu.c       | 9 +++++++++
- 3 files changed, 25 insertions(+)
+ Documentation/driver-model/devres.txt |  3 ++
+ include/linux/device.h                |  2 +
+ include/linux/io.h                    |  2 +
+ lib/devres.c                          | 78 +++++++++++++++++++++++++++++++++++
+ 4 files changed, 85 insertions(+)
 
-diff --git a/arch/arm/include/asm/io.h b/arch/arm/include/asm/io.h
-index 42871fb..28b15be 100644
---- a/arch/arm/include/asm/io.h
-+++ b/arch/arm/include/asm/io.h
-@@ -352,6 +352,7 @@ static inline void memcpy_toio(volatile void __iomem *to, const void *from,
-  * mapping has specific properties.
-  *
-  * Function		Memory type	Cacheability	Cache hint
-+ * ioremap_nopost()	SO		n/a		n/a
-  * ioremap()		Device		n/a		n/a
-  * ioremap_nocache()	Device		n/a		n/a
-  * ioremap_cache()	Normal		Writeback	Read allocate
-@@ -372,6 +373,12 @@ static inline void memcpy_toio(volatile void __iomem *to, const void *from,
-  * compiler may generate unaligned accesses - eg, via inlining its own
-  * memcpy.
-  *
-+ * ioremap_nopost() maps memory as strongly ordered, to be used for
-+ * specific mappings (eg PCI config space) that require non-posted
-+ * write transactions. Strongly ordered transactions are ordered wrt
-+ * device mappings, which means that ioremap_nopost() is the same
-+ * as ioremap() except for non-posted writes behaviour.
+diff --git a/Documentation/driver-model/devres.txt b/Documentation/driver-model/devres.txt
+index bf34d5b..9991a66 100644
+--- a/Documentation/driver-model/devres.txt
++++ b/Documentation/driver-model/devres.txt
+@@ -294,7 +294,10 @@ IOMAP
+   devm_ioremap()
+   devm_ioremap_nocache()
+   devm_ioremap_wc()
++  devm_ioremap_nopost()
+   devm_ioremap_resource() : checks resource, requests memory region, ioremaps
++  devm_ioremap_nopost_resource() : do devm_ioremap_resource() with nopost
++				   memory attributes
+   devm_iounmap()
+   pcim_iomap()
+   pcim_iomap_regions()	: do request_region() and iomap() on multiple BARs
+diff --git a/include/linux/device.h b/include/linux/device.h
+index 9ef518a..1dce865 100644
+--- a/include/linux/device.h
++++ b/include/linux/device.h
+@@ -689,6 +689,8 @@ extern unsigned long devm_get_free_pages(struct device *dev,
+ extern void devm_free_pages(struct device *dev, unsigned long addr);
+ 
+ void __iomem *devm_ioremap_resource(struct device *dev, struct resource *res);
++void __iomem *devm_ioremap_nopost_resource(struct device *dev,
++					   struct resource *res);
+ 
+ /* allows to add/remove a custom action to devres stack */
+ int devm_add_action(struct device *dev, void (*action)(void *), void *data);
+diff --git a/include/linux/io.h b/include/linux/io.h
+index 82ef36e..e34d799 100644
+--- a/include/linux/io.h
++++ b/include/linux/io.h
+@@ -79,6 +79,8 @@ void __iomem *devm_ioremap_nocache(struct device *dev, resource_size_t offset,
+ 				   resource_size_t size);
+ void __iomem *devm_ioremap_wc(struct device *dev, resource_size_t offset,
+ 				   resource_size_t size);
++void __iomem *devm_ioremap_nopost(struct device *dev, resource_size_t offset,
++				   resource_size_t size);
+ void devm_iounmap(struct device *dev, void __iomem *addr);
+ int check_signature(const volatile void __iomem *io_addr,
+ 			const unsigned char *signature, int length);
+diff --git a/lib/devres.c b/lib/devres.c
+index 78eca71..d16bd76 100644
+--- a/lib/devres.c
++++ b/lib/devres.c
+@@ -100,6 +100,34 @@ void __iomem *devm_ioremap_wc(struct device *dev, resource_size_t offset,
+ EXPORT_SYMBOL(devm_ioremap_wc);
+ 
+ /**
++ * devm_ioremap_nopost - Managed ioremap_nopost()
++ * @dev: Generic device to remap IO address for
++ * @offset: Resource address to map
++ * @size: Size of map
 + *
-  * All normal memory mappings have the following properties:
-  * - reads can be repeated with no side effects
-  * - repeated reads return the last value written
-@@ -407,6 +414,8 @@ void __iomem *ioremap_wc(resource_size_t res_cookie, size_t size);
- #define ioremap_wc ioremap_wc
- #define ioremap_wt ioremap_wc
- 
-+void __iomem *ioremap_nopost(resource_size_t res_cookie, size_t size);
-+
- void iounmap(volatile void __iomem *iomem_cookie);
- #define iounmap iounmap
- 
-diff --git a/arch/arm/mm/ioremap.c b/arch/arm/mm/ioremap.c
-index ff0eed2..4ffaf16 100644
---- a/arch/arm/mm/ioremap.c
-+++ b/arch/arm/mm/ioremap.c
-@@ -463,6 +463,13 @@ void iounmap(volatile void __iomem *cookie)
- }
- EXPORT_SYMBOL(iounmap);
- 
-+void __iomem *ioremap_nopost(resource_size_t res_cookie, size_t size)
++ * Managed ioremap_nopost().  Map is automatically unmapped on driver detach.
++ */
++void __iomem *devm_ioremap_nopost(struct device *dev, resource_size_t offset,
++			      resource_size_t size)
 +{
-+	return arch_ioremap_caller(res_cookie, size, MT_UNCACHED,
-+				   __builtin_return_address(0));
++	void __iomem **ptr, *addr;
++
++	ptr = devres_alloc(devm_ioremap_release, sizeof(*ptr), GFP_KERNEL);
++	if (!ptr)
++		return NULL;
++
++	addr = ioremap_nopost(offset, size);
++	if (addr) {
++		*ptr = addr;
++		devres_add(dev, ptr);
++	} else
++		devres_free(ptr);
++
++	return addr;
 +}
-+EXPORT_SYMBOL_GPL(ioremap_nopost);
++EXPORT_SYMBOL(devm_ioremap_nopost);
 +
- #ifdef CONFIG_PCI
- static int pci_ioremap_mem_type = MT_DEVICE;
- 
-diff --git a/arch/arm/mm/nommu.c b/arch/arm/mm/nommu.c
-index 3b5c7aa..dfd736a 100644
---- a/arch/arm/mm/nommu.c
-+++ b/arch/arm/mm/nommu.c
-@@ -21,6 +21,8 @@
- #include <asm/mpu.h>
- #include <asm/procinfo.h>
- 
-+#include <asm/mach/map.h>
-+
- #include "mm.h"
- 
- unsigned long vectors_base;
-@@ -433,6 +435,13 @@ void __iomem *ioremap_wc(resource_size_t res_cookie, size_t size)
++/**
+  * devm_iounmap - Managed iounmap()
+  * @dev: Generic device to unmap for
+  * @addr: Address to unmap
+@@ -163,6 +191,56 @@ void __iomem *devm_ioremap_resource(struct device *dev, struct resource *res)
  }
- EXPORT_SYMBOL(ioremap_wc);
+ EXPORT_SYMBOL(devm_ioremap_resource);
  
-+void __iomem *ioremap_nopost(resource_size_t res_cookie, size_t size)
++/**
++ * devm_ioremap_nopost_resource() - devm_ioremap_resource() nopost version
++ * @dev: generic device to handle the resource for
++ * @res: resource to be handled
++ *
++ * Checks that a resource is a valid memory region, requests the memory
++ * region and ioremaps it with ioremap_nopost() interface.
++ * All operations are managed and will be undone on driver detach.
++ *
++ * Returns a pointer to the remapped memory or an ERR_PTR() encoded error code
++ * on failure. Usage example:
++ *
++ *	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
++ *	base = devm_ioremap_nopost_resource(&pdev->dev, res);
++ *	if (IS_ERR(base))
++ *		return PTR_ERR(base);
++ */
++void __iomem *devm_ioremap_nopost_resource(struct device *dev,
++					   struct resource *res)
 +{
-+	return __arm_ioremap_caller(res_cookie, size, MT_UNCACHED,
-+				    __builtin_return_address(0));
-+}
-+EXPORT_SYMBOL(ioremap_nopost);
++	resource_size_t size;
++	const char *name;
++	void __iomem *dest_ptr;
 +
- void *arch_memremap_wb(phys_addr_t phys_addr, size_t size)
- {
- 	return (void *)phys_addr;
++	BUG_ON(!dev);
++
++	if (!res || resource_type(res) != IORESOURCE_MEM) {
++		dev_err(dev, "invalid resource\n");
++		return IOMEM_ERR_PTR(-EINVAL);
++	}
++
++	size = resource_size(res);
++	name = res->name ?: dev_name(dev);
++
++	if (!devm_request_mem_region(dev, res->start, size, name)) {
++		dev_err(dev, "can't request region for resource %pR\n", res);
++		return IOMEM_ERR_PTR(-EBUSY);
++	}
++
++	dest_ptr = devm_ioremap_nopost(dev, res->start, size);
++	if (!dest_ptr) {
++		dev_err(dev, "ioremap failed for resource %pR\n", res);
++		devm_release_mem_region(dev, res->start, size);
++		dest_ptr = IOMEM_ERR_PTR(-ENOMEM);
++	}
++
++	return dest_ptr;
++}
++EXPORT_SYMBOL(devm_ioremap_nopost_resource);
++
+ #ifdef CONFIG_HAS_IOPORT_MAP
+ /*
+  * Generic iomap devres
 -- 
 2.10.0
