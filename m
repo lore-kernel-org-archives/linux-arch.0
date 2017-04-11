@@ -1,13 +1,13 @@
 From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Subject: [PATCH v3 12/32] m32r: include default ioremap_nopost() implementation
-Date: Tue, 11 Apr 2017 13:28:52 +0100
-Message-ID: <20170411122923.6285-13-lorenzo.pieralisi@arm.com>
+Subject: [PATCH v3 22/32] s390: include default ioremap_nopost() implementation
+Date: Tue, 11 Apr 2017 13:29:02 +0100
+Message-ID: <20170411122923.6285-23-lorenzo.pieralisi@arm.com>
 References: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-pci-owner@vger.kernel.org>
 In-Reply-To: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-pci-owner@vger.kernel.org
 To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Bjorn Helgaas <bhelgaas@google.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Bjorn Helgaas <bhelgaas@google.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
 The PCI specifications (Rev 3.0, 3.2.5 "Transaction Ordering and Posting")
@@ -27,22 +27,24 @@ falling back to ioremap_nocache()) to provide a non-posted writes
 ioremap interface to kernel subsystems.
 
 Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
 Cc: Bjorn Helgaas <bhelgaas@google.com>
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
 ---
- arch/m32r/include/asm/io.h | 1 +
+ arch/s390/include/asm/io.h | 1 +
  1 file changed, 1 insertion(+)
 
-diff --git a/arch/m32r/include/asm/io.h b/arch/m32r/include/asm/io.h
-index 4b0f5e0..1577102 100644
---- a/arch/m32r/include/asm/io.h
-+++ b/arch/m32r/include/asm/io.h
-@@ -70,6 +70,7 @@ extern void iounmap(volatile void __iomem *addr);
- #define ioremap_wc ioremap_nocache
- #define ioremap_wt ioremap_nocache
- #define ioremap_uc ioremap_nocache
+diff --git a/arch/s390/include/asm/io.h b/arch/s390/include/asm/io.h
+index 437e9af..374fb43 100644
+--- a/arch/s390/include/asm/io.h
++++ b/arch/s390/include/asm/io.h
+@@ -39,6 +39,7 @@ static inline void __iomem *ioremap(unsigned long offset, unsigned long size)
+ static inline void iounmap(volatile void __iomem *addr)
+ {
+ }
 +#include <asm-generic/ioremap-nopost.h>
  
- /*
-  * IO bus memory addresses are also 1:1 with the physical address
+ static inline void __iomem *ioport_map(unsigned long port, unsigned int nr)
+ {
 -- 
 2.10.0
