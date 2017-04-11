@@ -1,13 +1,13 @@
 From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Subject: [PATCH v3 28/32] xtensa: include default ioremap_nopost() implementation
-Date: Tue, 11 Apr 2017 13:29:08 +0100
-Message-ID: <20170411122923.6285-29-lorenzo.pieralisi@arm.com>
+Subject: [PATCH v3 27/32] x86: include default ioremap_nopost() implementation
+Date: Tue, 11 Apr 2017 13:29:07 +0100
+Message-ID: <20170411122923.6285-28-lorenzo.pieralisi@arm.com>
 References: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Max Filippov <jcmvbkbc@gmail.com>, Bjorn Helgaas <bhelgaas@google.com>, Chris Zankel <chris@zankel.net>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Bjorn Helgaas <bhelgaas@google.com>, Ingo Molnar <mingo@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
 The PCI specifications (Rev 3.0, 3.2.5 "Transaction Ordering and Posting")
@@ -27,24 +27,24 @@ falling back to ioremap_nocache()) to provide a non-posted writes
 ioremap interface to kernel subsystems.
 
 Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Cc: Max Filippov <jcmvbkbc@gmail.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Chris Zankel <chris@zankel.net>
+Cc: Ingo Molnar <mingo@redhat.com>
 ---
- arch/xtensa/include/asm/io.h | 1 +
+ arch/x86/include/asm/io.h | 1 +
  1 file changed, 1 insertion(+)
 
-diff --git a/arch/xtensa/include/asm/io.h b/arch/xtensa/include/asm/io.h
-index c38e5a7..a469bef 100644
---- a/arch/xtensa/include/asm/io.h
-+++ b/arch/xtensa/include/asm/io.h
-@@ -55,6 +55,7 @@ static inline void __iomem *ioremap_cache(unsigned long offset,
+diff --git a/arch/x86/include/asm/io.h b/arch/x86/include/asm/io.h
+index 7afb0e2..9d431ef 100644
+--- a/arch/x86/include/asm/io.h
++++ b/arch/x86/include/asm/io.h
+@@ -201,6 +201,7 @@ extern void set_iounmap_nonlazy(void);
+ #ifdef __KERNEL__
  
- #define ioremap_wc ioremap_nocache
- #define ioremap_wt ioremap_nocache
+ #include <asm-generic/iomap.h>
 +#include <asm-generic/ioremap-nopost.h>
  
- static inline void __iomem *ioremap(unsigned long offset, unsigned long size)
- {
+ /*
+  * Convert a virtual cached pointer to an uncached pointer
 -- 
 2.10.0
