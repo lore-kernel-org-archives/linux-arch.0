@@ -1,14 +1,18 @@
 From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Subject: [PATCH v3 21/32] powerpc: include default ioremap_nopost() implementation
-Date: Tue, 11 Apr 2017 13:29:01 +0100
-Message-ID: <20170411122923.6285-22-lorenzo.pieralisi@arm.com>
+Subject: [PATCH v3 25/32] tile: include default ioremap_nopost() implementation
+Date: Tue, 11 Apr 2017 13:29:05 +0100
+Message-ID: <20170411122923.6285-26-lorenzo.pieralisi@arm.com>
 References: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:60026 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1753238AbdDKMaV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 11 Apr 2017 08:30:21 -0400
 In-Reply-To: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, Bjorn Helgaas <bhelgaas@google.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Bjorn Helgaas <bhelgaas@google.com>, Chris Metcalf <cmetcalf@mellanox.com>
 
 The PCI specifications (Rev 3.0, 3.2.5 "Transaction Ordering and Posting")
 mandate non-posted configuration transactions. As further highlighted in
@@ -27,25 +31,23 @@ falling back to ioremap_nocache()) to provide a non-posted writes
 ioremap interface to kernel subsystems.
 
 Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Cc: Michael Ellerman <mpe@ellerman.id.au>
 Cc: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Paul Mackerras <paulus@samba.org>
+Cc: Chris Metcalf <cmetcalf@mellanox.com>
 ---
- arch/powerpc/include/asm/io.h | 1 +
+ arch/tile/include/asm/io.h | 1 +
  1 file changed, 1 insertion(+)
 
-diff --git a/arch/powerpc/include/asm/io.h b/arch/powerpc/include/asm/io.h
-index 5ed2924..6dcd0e2 100644
---- a/arch/powerpc/include/asm/io.h
-+++ b/arch/powerpc/include/asm/io.h
-@@ -757,6 +757,7 @@ extern void __iomem *ioremap_prot(phys_addr_t address, unsigned long size,
- extern void __iomem *ioremap_wc(phys_addr_t address, unsigned long size);
- #define ioremap_nocache(addr, size)	ioremap((addr), (size))
- #define ioremap_uc(addr, size)		ioremap((addr), (size))
+diff --git a/arch/tile/include/asm/io.h b/arch/tile/include/asm/io.h
+index 30f4a21..d3f2b77 100644
+--- a/arch/tile/include/asm/io.h
++++ b/arch/tile/include/asm/io.h
+@@ -57,6 +57,7 @@ extern void iounmap(volatile void __iomem *addr);
+ #define ioremap_wt(physaddr, size)		ioremap(physaddr, size)
+ #define ioremap_uc(physaddr, size)		ioremap(physaddr, size)
+ #define ioremap_fullcache(physaddr, size)	ioremap(physaddr, size)
 +#include <asm-generic/ioremap-nopost.h>
  
- extern void iounmap(volatile void __iomem *addr);
+ #define mmiowb()
  
 -- 
 2.10.0
