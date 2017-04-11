@@ -1,41 +1,37 @@
-From: Bart Van Assche <Bart.VanAssche@sandisk.com>
-Subject: Re: "Consolidate get_dma_ops" breaks Xen on ARM
-Date: Tue, 11 Apr 2017 01:14:29 +0000
-Message-ID: <CY1PR0401MB1536C1FF3C069BC88D1DB14581000@CY1PR0401MB1536.namprd04.prod.outlook.com>
-References: <alpine.DEB.2.10.1704101713080.2759@sstabellini-ThinkPad-X260>
+From: Herbert Xu <herbert@gondor.apana.org.au>
+Subject: Re: [PATCH v11 08/12] cryptouser.h: fix include from userland
+Date: Tue, 11 Apr 2017 10:40:22 +0800
+Message-ID: <20170411024022.GA10615@gondor.apana.org.au>
+References: <CAK7LNAR_yp+O9jUZC8mKdaHgTiCkE7p2-ZbA9YZ8OGyp+uxhBQ@mail.gmail.com>
+ <1490617217-30192-1-git-send-email-nicolas.dichtel@6wind.com>
+ <1490617217-30192-9-git-send-email-nicolas.dichtel@6wind.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Language: en-US
+Content-Disposition: inline
+In-Reply-To: <1490617217-30192-9-git-send-email-nicolas.dichtel@6wind.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Stefano Stabellini <sstabellini@kernel.org>
-Cc: "boris.ostrovsky@oracle.com" <boris.ostrovsky@oracle.com>, "jgross@suse.com" <jgross@suse.com>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "dwmw2@infradead.org" <dwmw2@infradead.org>, "hpa@zytor.com" <hpa@zytor.com>, "mingo@redhat.com" <mingo@redhat.com>, "linux@armlinux.org.uk" <linux@armlinux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, "julien.grall@arm.com" <julien.grall@arm.com>
+To: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+Cc: yamada.masahiro@socionext.com, arnd@arndb.de, mmarek@suse.com, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, bp@alien8.de, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, tklauser@distanz.ch, mpe@ellerman.id.au, mingo@kernel.org, tglx@linutronix.de, ldv@altlinux.org, linux-rdma@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 04/10/17 17:31, Stefano Stabellini wrote:=0A=
-> I think the reason is that, as you can see, if (dev && dev->dma_ops),=0A=
-> dev->dma_ops is returned, while before this changes, xen_dma_ops was=0A=
-> returned on Xen on ARM.=0A=
->=0A=
-> Unfortunately DMA cannot work properly without using the appropriate=0A=
-> xen_dma_ops. See drivers/xen/swiotlb-xen.c and arch/arm/xen/mm.c for=0A=
-> more details. (The problem is easy to spot, but I wasn't CC'ed on the=0A=
-> patch.)=0A=
->=0A=
-> I don't know how to solve this problem without introducing some sort of=
-=0A=
-> if (xen()) in include/linux/dma-mapping.h.=0A=
-=0A=
-Sorry but I don't have access to an ARM development system. Does your =0A=
-comment apply to dev =3D=3D NULL only, dev !=3D NULL only or perhaps to bot=
-h? =0A=
-If your comment applies to dev !=3D NULL only, can you check whether =0A=
-adding something like set_dma_ops(dev, get_arch_dma_ops(NULL)) to the =0A=
-appropriate ARM arch_setup_dma_ops() function is sufficient?=0A=
-=0A=
-Thanks,=0A=
-=0A=
-Bart.=0A=
-=0A=
-=0A=
+On Mon, Mar 27, 2017 at 02:20:13PM +0200, Nicolas Dichtel wrote:
+> This patch prepares the uapi export by fixing the following error:
+> 
+> .../linux/cryptouser.h:58:16: error: ‘CRYPTO_MAX_ALG_NAME’ undeclared here (not in a function)
+>   char cru_name[CRYPTO_MAX_ALG_NAME];
+> 
+> Signed-off-by: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+> Acked-by: Herbert Xu <herbert@gondor.apana.org.au>
+
+Can we revert this patch please? I had forgotten about it when
+increasing the in-kernel CRYPTO_MAX_ALG_NAME so it now conflicts
+with the crypto tree.  The crypto tree has fixed the problem in
+a different way.
+
+Thanks,
+-- 
+Email: Herbert Xu <herbert@gondor.apana.org.au>
+Home Page: http://gondor.apana.org.au/~herbert/
+PGP Key: http://gondor.apana.org.au/~herbert/pubkey.txt
