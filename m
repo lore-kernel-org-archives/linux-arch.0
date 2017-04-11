@@ -1,26 +1,26 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bastet.se.axis.com ([195.60.68.11]:44951 "EHLO
-        bastet.se.axis.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752033AbdDKNQD (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 11 Apr 2017 09:16:03 -0400
-Date: Tue, 11 Apr 2017 15:15:59 +0200
-From: Jesper Nilsson <jesper.nilsson@axis.com>
-Subject: Re: [PATCH v3 08/32] cris: include default ioremap_nopost()
+Received: from gate.crashing.org ([63.228.1.57]:35912 "EHLO gate.crashing.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752195AbdDKNjz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 11 Apr 2017 09:39:55 -0400
+Message-ID: <1491917928.7236.8.camel@kernel.crashing.org>
+Subject: Re: [PATCH v3 21/32] powerpc: include default ioremap_nopost()
  implementation
-Message-ID: <20170411131559.GW26295@axis.com>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Date: Tue, 11 Apr 2017 23:38:48 +1000
+In-Reply-To: <20170411122923.6285-22-lorenzo.pieralisi@arm.com>
 References: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
- <20170411122923.6285-9-lorenzo.pieralisi@arm.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20170411122923.6285-9-lorenzo.pieralisi@arm.com>
+         <20170411122923.6285-22-lorenzo.pieralisi@arm.com>
+Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Niklas Cassel <nks@flawful.org>, Bjorn Helgaas <bhelgaas@google.com>, Jesper Nilsson <jespern@axis.com>, Mikael Starvik <starvik@axis.com>
-Message-ID: <20170411131559.F7GAXPy3WrVrASdBh9wdEGkzplZUXOYdmIBf162utKI@z>
+To: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, linux-pci@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Michael Ellerman <mpe@ellerman.id.au>, Bjorn Helgaas <bhelgaas@google.com>, Paul Mackerras <paulus@samba.org>
+Message-ID: <20170411133848.34MgpXHePan9m0iYHBFgk90CZOQC10uEGvAnVwnRlXw@z>
 
-On Tue, Apr 11, 2017 at 01:28:48PM +0100, Lorenzo Pieralisi wrote:
+On Tue, 2017-04-11 at 13:29 +0100, Lorenzo Pieralisi wrote:
 > The PCI specifications (Rev 3.0, 3.2.5 "Transaction Ordering and Posting")
 > mandate non-posted configuration transactions. As further highlighted in
 > the PCIe specifications (4.0 - Rev0.3, "Ordering Considerations for the
@@ -36,15 +36,27 @@ On Tue, Apr 11, 2017 at 01:28:48PM +0100, Lorenzo Pieralisi wrote:
 > Include the asm-generic ioremap_nopost() implementation (currently
 > falling back to ioremap_nocache()) to provide a non-posted writes
 > ioremap interface to kernel subsystems.
-> 
+
+NAK. As explained in my reply to patch 0.
+
 > Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-> Cc: Niklas Cassel <nks@flawful.org>
-> Cc: Bjorn Helgaas <bhelgaas@google.com>
-
-For the CRIS-part:
-
-Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
-
-/^JN - Jesper Nilsson
--- 
-               Jesper Nilsson -- jesper.nilsson@axis.com
+> > Cc: Michael Ellerman <mpe@ellerman.id.au>
+> > Cc: Bjorn Helgaas <bhelgaas@google.com>
+> > Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+> > Cc: Paul Mackerras <paulus@samba.org>
+> ---
+>  arch/powerpc/include/asm/io.h | 1 +
+>  1 file changed, 1 insertion(+)
+> 
+> diff --git a/arch/powerpc/include/asm/io.h b/arch/powerpc/include/asm/io.h
+> index 5ed2924..6dcd0e2 100644
+> --- a/arch/powerpc/include/asm/io.h
+> +++ b/arch/powerpc/include/asm/io.h
+> @@ -757,6 +757,7 @@ extern void __iomem *ioremap_prot(phys_addr_t address, unsigned long size,
+>  extern void __iomem *ioremap_wc(phys_addr_t address, unsigned long size);
+> >  #define ioremap_nocache(addr, size)	ioremap((addr), (size))
+> >  #define ioremap_uc(addr, size)		ioremap((addr), (size))
+> +#include <asm-generic/ioremap-nopost.h>
+>  
+>  extern void iounmap(volatile void __iomem *addr);
+>  
