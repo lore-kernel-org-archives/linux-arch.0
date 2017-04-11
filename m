@@ -1,19 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:59836 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:59824 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1754079AbdDKM3q (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 11 Apr 2017 08:29:46 -0400
+        id S1753490AbdDKM3p (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 11 Apr 2017 08:29:45 -0400
 From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Subject: [PATCH v3 09/32] frv: include default ioremap_nopost() implementation
-Date: Tue, 11 Apr 2017 13:28:49 +0100
-Message-ID: <20170411122923.6285-10-lorenzo.pieralisi@arm.com>
+Subject: [PATCH v3 08/32] cris: include default ioremap_nopost() implementation
+Date: Tue, 11 Apr 2017 13:28:48 +0100
+Message-ID: <20170411122923.6285-9-lorenzo.pieralisi@arm.com>
 In-Reply-To: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
 References: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Bjorn Helgaas <bhelgaas@google.com>
-Message-ID: <20170411122849.JhEc-Tj-YSOirQJeul3bBPK3vjHMAgpbvZwXNxWa-II@z>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Niklas Cassel <nks@flawful.org>, Bjorn Helgaas <bhelgaas@google.com>, Jesper Nilsson <jesper.nilsson@axis.com>, Mikael Starvik <starvik@axis.com>
+Message-ID: <20170411122848.LUSztUIPzpoIehTDmYKvDGc5VBxnL_0cWpqMPp5gDCI@z>
 
 The PCI specifications (Rev 3.0, 3.2.5 "Transaction Ordering and Posting")
 mandate non-posted configuration transactions. As further highlighted in
@@ -32,22 +32,24 @@ falling back to ioremap_nocache()) to provide a non-posted writes
 ioremap interface to kernel subsystems.
 
 Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+Cc: Niklas Cassel <nks@flawful.org>
 Cc: Bjorn Helgaas <bhelgaas@google.com>
+Cc: Jesper Nilsson <jesper.nilsson@axis.com>
+Cc: Mikael Starvik <starvik@axis.com>
 ---
- arch/frv/include/asm/io.h | 1 +
+ arch/cris/include/asm/io.h | 1 +
  1 file changed, 1 insertion(+)
 
-diff --git a/arch/frv/include/asm/io.h b/arch/frv/include/asm/io.h
-index 8062fc7..8808502 100644
---- a/arch/frv/include/asm/io.h
-+++ b/arch/frv/include/asm/io.h
-@@ -290,6 +290,7 @@ static inline void __iomem *ioremap_fullcache(unsigned long physaddr, unsigned l
+diff --git a/arch/cris/include/asm/io.h b/arch/cris/include/asm/io.h
+index fe0b2a0..b9c9397 100644
+--- a/arch/cris/include/asm/io.h
++++ b/arch/cris/include/asm/io.h
+@@ -21,5 +21,6 @@ extern void iounmap(volatile void * __iomem addr);
+ extern void __iomem * ioremap_nocache(unsigned long offset, unsigned long size);
  
- #define ioremap_wc ioremap_nocache
- #define ioremap_uc ioremap_nocache
+ #include <asm-generic/io.h>
 +#include <asm-generic/ioremap-nopost.h>
  
- extern void iounmap(void volatile __iomem *addr);
- 
+ #endif
 -- 
 2.10.0
