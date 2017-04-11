@@ -1,18 +1,14 @@
 From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Subject: [PATCH v3 17/32] mn10300: include default ioremap_nopost() implementation
-Date: Tue, 11 Apr 2017 13:28:57 +0100
-Message-ID: <20170411122923.6285-18-lorenzo.pieralisi@arm.com>
+Subject: [PATCH v3 14/32] metag: include default ioremap_nopost() implementation
+Date: Tue, 11 Apr 2017 13:28:54 +0100
+Message-ID: <20170411122923.6285-15-lorenzo.pieralisi@arm.com>
 References: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:59922 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1754830AbdDKMaF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 11 Apr 2017 08:30:05 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Bjorn Helgaas <bhelgaas@google.com>, David Howells <dhowells@redhat.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Bjorn Helgaas <bhelgaas@google.com>, James Hogan <james.hogan@imgtec.com>
+List-Id: linux-arch.vger.kernel.org
 
 The PCI specifications (Rev 3.0, 3.2.5 "Transaction Ordering and Posting")
 mandate non-posted configuration transactions. As further highlighted in
@@ -32,22 +28,21 @@ ioremap interface to kernel subsystems.
 
 Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
 Cc: Bjorn Helgaas <bhelgaas@google.com>
-Cc: David Howells <dhowells@redhat.com>
+Cc: James Hogan <james.hogan@imgtec.com>
 ---
- arch/mn10300/include/asm/io.h | 1 +
- 1 file changed, 1 insertion(+)
+ arch/metag/include/asm/io.h | 2 ++
+ 1 file changed, 2 insertions(+)
 
-diff --git a/arch/mn10300/include/asm/io.h b/arch/mn10300/include/asm/io.h
-index 6218935..95a3c20 100644
---- a/arch/mn10300/include/asm/io.h
-+++ b/arch/mn10300/include/asm/io.h
-@@ -284,6 +284,7 @@ static inline void __iomem *ioremap_nocache(unsigned long offset, unsigned long
- #define ioremap_wc ioremap_nocache
- #define ioremap_wt ioremap_nocache
- #define ioremap_uc ioremap_nocache
-+#include <asm-generic/ioremap-nopost.h>
+diff --git a/arch/metag/include/asm/io.h b/arch/metag/include/asm/io.h
+index 9890f21..c805e0d 100644
+--- a/arch/metag/include/asm/io.h
++++ b/arch/metag/include/asm/io.h
+@@ -166,4 +166,6 @@ extern void __iounmap(void __iomem *addr);
+ #define iounmap(addr)                           \
+ 	__iounmap(addr)
  
- static inline void iounmap(void __iomem *addr)
- {
++#include <asm-generic/ioremap-nopost.h>
++
+ #endif  /* _ASM_METAG_IO_H */
 -- 
 2.10.0
