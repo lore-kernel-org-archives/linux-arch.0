@@ -1,54 +1,68 @@
-From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Subject: [PATCH v3 06/32] avr32: include default ioremap_nopost() implementation
-Date: Tue, 11 Apr 2017 13:28:46 +0100
-Message-ID: <20170411122923.6285-7-lorenzo.pieralisi@arm.com>
-References: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:59796 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752596AbdDKM3l (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 11 Apr 2017 08:29:41 -0400
-In-Reply-To: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Bjorn Helgaas <bhelgaas@google.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Haavard Skinnemoen <hskinnemoen@gmail.com>
+From: Julien Grall <julien.grall@arm.com>
+Subject: Re: "Consolidate get_dma_ops" breaks Xen on ARM
+Date: Tue, 11 Apr 2017 13:43:28 +0100
+Message-ID: <a758dfc6-2b00-e279-303c-ba1e27380e35@arm.com>
+References: <alpine.DEB.2.10.1704101713080.2759@sstabellini-ThinkPad-X260>
+ <CY1PR0401MB1536C1FF3C069BC88D1DB14581000@CY1PR0401MB1536.namprd04.prod.outlook.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CY1PR0401MB1536C1FF3C069BC88D1DB14581000@CY1PR0401MB1536.namprd04.prod.outlook.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Bart Van Assche <Bart.VanAssche@sandisk.com>, Stefano Stabellini <sstabellini@kernel.org>
+Cc: "boris.ostrovsky@oracle.com" <boris.ostrovsky@oracle.com>, "jgross@suse.com" <jgross@suse.com>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "dwmw2@infradead.org" <dwmw2@infradead.org>, "hpa@zytor.com" <hpa@zytor.com>, "mingo@redhat.com" <mingo@redhat.com>, "linux@armlinux.org.uk" <linux@armlinux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, linux-arm-kernel@lists.infradead.org
+List-Id: linux-arch.vger.kernel.org
 
-The PCI specifications (Rev 3.0, 3.2.5 "Transaction Ordering and Posting")
-mandate non-posted configuration transactions. As further highlighted in
-the PCIe specifications (4.0 - Rev0.3, "Ordering Considerations for the
-Enhanced Configuration Access Mechanism"), through ECAM and
-ECAM-derivative configuration mechanism, the memory mapped transactions
-from the host CPU into Configuration Requests on the PCI express fabric
-may create ordering problems for software because writes to memory
-address are typically posted transactions (unless the architecture can
-enforce through virtual address mapping non-posted write transactions
-behaviour) but writes to Configuration Space are not posted on the PCI
-express fabric.
+Hi Bart,
 
-Include the asm-generic ioremap_nopost() implementation (currently
-falling back to ioremap_nocache()) to provide a non-posted writes
-ioremap interface to kernel subsystems.
+On 11/04/17 02:14, Bart Van Assche wrote:
+> On 04/10/17 17:31, Stefano Stabellini wrote:
+>> I think the reason is that, as you can see, if (dev && dev->dma_ops),
+>> dev->dma_ops is returned, while before this changes, xen_dma_ops was
+>> returned on Xen on ARM.
+>>
+>> Unfortunately DMA cannot work properly without using the appropriate
+>> xen_dma_ops. See drivers/xen/swiotlb-xen.c and arch/arm/xen/mm.c for
+>> more details. (The problem is easy to spot, but I wasn't CC'ed on the
+>> patch.)
+>>
+>> I don't know how to solve this problem without introducing some sort of
+>> if (xen()) in include/linux/dma-mapping.h.
+> 
+> Sorry but I don't have access to an ARM development system. Does your 
+> comment apply to dev == NULL only, dev != NULL only or perhaps to both? 
+> If your comment applies to dev != NULL only, can you check whether 
+> adding something like set_dma_ops(dev, get_arch_dma_ops(NULL)) to the 
+> appropriate ARM arch_setup_dma_ops() function is sufficient?
 
-Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Hans-Christian Egtvedt <egtvedt@samfundet.no>
-Cc: Haavard Skinnemoen <hskinnemoen@gmail.com>
----
- arch/avr32/include/asm/io.h | 1 +
- 1 file changed, 1 insertion(+)
+If I understand correctly, set_dma_ops will replace dev->dma_ops with
+Xen DMA ops.
 
-diff --git a/arch/avr32/include/asm/io.h b/arch/avr32/include/asm/io.h
-index f855646..b2ff522 100644
---- a/arch/avr32/include/asm/io.h
-+++ b/arch/avr32/include/asm/io.h
-@@ -298,6 +298,7 @@ extern void __iounmap(void __iomem *addr);
- #define ioremap_wc ioremap_nocache
- #define ioremap_wt ioremap_nocache
- #define ioremap_uc ioremap_nocache
-+#include <asm-generic/ioremap-nopost.h>
- 
- #define cached(addr) P1SEGADDR(addr)
- #define uncached(addr) P2SEGADDR(addr)
+However, Xen DMA ops will need in some places to call the device 
+specific DMA ops (see __generic_dma_ops(...)). So I think replacing
+dev->dma_ops is not a solution here.
+
+The hackish patch below is fixing the problem for both ARM64 and ARM32.
+
+diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
+index 0977317c6835..43a73ddeec7a 100644
+--- a/include/linux/dma-mapping.h
++++ b/include/linux/dma-mapping.h
+@@ -174,6 +174,8 @@ int dma_mmap_from_coherent(struct device *dev, struct vm_area_struct *vma,
+ #include <asm/dma-mapping.h>
+ static inline const struct dma_map_ops *get_dma_ops(struct device *dev)
+ {
++       if (xen_initial_domain())
++              return xen_dma_ops;
+        if (dev && dev->dma_ops)
+                return dev->dma_ops;
+        return get_arch_dma_ops(dev ? dev->bus : NULL);
+
+It is not nice as this is common code, but I can't find a better solution
+so far. Any opinions?
+
+Cheers,
+
 -- 
-2.10.0
+Julien Grall
