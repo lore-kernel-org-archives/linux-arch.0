@@ -1,62 +1,76 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:35912 "EHLO gate.crashing.org"
+Received: from foss.arm.com ([217.140.101.70]:33754 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752195AbdDKNjz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 11 Apr 2017 09:39:55 -0400
-Message-ID: <1491917928.7236.8.camel@kernel.crashing.org>
+        id S1753570AbdDKOYT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 11 Apr 2017 10:24:19 -0400
+Date: Tue, 11 Apr 2017 15:24:56 +0100
+From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
 Subject: Re: [PATCH v3 21/32] powerpc: include default ioremap_nopost()
  implementation
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Date: Tue, 11 Apr 2017 23:38:48 +1000
-In-Reply-To: <20170411122923.6285-22-lorenzo.pieralisi@arm.com>
+Message-ID: <20170411142456.GB6821@red-moon>
 References: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
-         <20170411122923.6285-22-lorenzo.pieralisi@arm.com>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
+ <20170411122923.6285-22-lorenzo.pieralisi@arm.com>
+ <1491917928.7236.8.camel@kernel.crashing.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=iso-8859-1
+Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
+In-Reply-To: <1491917928.7236.8.camel@kernel.crashing.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Michael Ellerman <mpe@ellerman.id.au>, Bjorn Helgaas <bhelgaas@google.com>, Paul Mackerras <paulus@samba.org>
-Message-ID: <20170411133848.34MgpXHePan9m0iYHBFgk90CZOQC10uEGvAnVwnRlXw@z>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Michael Ellerman <mpe@ellerman.id.au>, Bjorn Helgaas <bhelgaas@google.com>, Paul Mackerras <paulus@samba.org>
+Message-ID: <20170411142456.2jNJsBto59Cji8rgD0LQulNSBvCqsekLroG6zFtvf1w@z>
 
-On Tue, 2017-04-11 at 13:29 +0100, Lorenzo Pieralisi wrote:
-> The PCI specifications (Rev 3.0, 3.2.5 "Transaction Ordering and Posting")
-> mandate non-posted configuration transactions. As further highlighted in
-> the PCIe specifications (4.0 - Rev0.3, "Ordering Considerations for the
-> Enhanced Configuration Access Mechanism"), through ECAM and
-> ECAM-derivative configuration mechanism, the memory mapped transactions
-> from the host CPU into Configuration Requests on the PCI express fabric
-> may create ordering problems for software because writes to memory
-> address are typically posted transactions (unless the architecture can
-> enforce through virtual address mapping non-posted write transactions
-> behaviour) but writes to Configuration Space are not posted on the PCI
-> express fabric.
+On Tue, Apr 11, 2017 at 11:38:48PM +1000, Benjamin Herrenschmidt wrote:
+> On Tue, 2017-04-11 at 13:29 +0100, Lorenzo Pieralisi wrote:
+> > The PCI specifications (Rev 3.0, 3.2.5 "Transaction Ordering and Posting")
+> > mandate non-posted configuration transactions. As further highlighted in
+> > the PCIe specifications (4.0 - Rev0.3, "Ordering Considerations for the
+> > Enhanced Configuration Access Mechanism"), through ECAM and
+> > ECAM-derivative configuration mechanism, the memory mapped transactions
+> > from the host CPU into Configuration Requests on the PCI express fabric
+> > may create ordering problems for software because writes to memory
+> > address are typically posted transactions (unless the architecture can
+> > enforce through virtual address mapping non-posted write transactions
+> > behaviour) but writes to Configuration Space are not posted on the PCI
+> > express fabric.
+> > 
+> > Include the asm-generic ioremap_nopost() implementation (currently
+> > falling back to ioremap_nocache()) to provide a non-posted writes
+> > ioremap interface to kernel subsystems.
 > 
-> Include the asm-generic ioremap_nopost() implementation (currently
-> falling back to ioremap_nocache()) to provide a non-posted writes
-> ioremap interface to kernel subsystems.
+> NAK. As explained in my reply to patch 0.
 
-NAK. As explained in my reply to patch 0.
+Ok, point taken. BTW, may I ask you guys to have a look into this
+please ?
 
-> Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-> > Cc: Michael Ellerman <mpe@ellerman.id.au>
-> > Cc: Bjorn Helgaas <bhelgaas@google.com>
-> > Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-> > Cc: Paul Mackerras <paulus@samba.org>
-> ---
-> Â arch/powerpc/include/asm/io.h | 1 +
-> Â 1 file changed, 1 insertion(+)
-> 
-> diff --git a/arch/powerpc/include/asm/io.h b/arch/powerpc/include/asm/io.h
-> index 5ed2924..6dcd0e2 100644
-> --- a/arch/powerpc/include/asm/io.h
-> +++ b/arch/powerpc/include/asm/io.h
-> @@ -757,6 +757,7 @@ extern void __iomem *ioremap_prot(phys_addr_t address, unsigned long size,
-> Â extern void __iomem *ioremap_wc(phys_addr_t address, unsigned long size);
-> > Â #define ioremap_nocache(addr, size)	ioremap((addr), (size))
-> > Â #define ioremap_uc(addr, size)		ioremap((addr), (size))
-> +#include <asm-generic/ioremap-nopost.h>
-> Â 
-> Â extern void iounmap(volatile void __iomem *addr);
-> Â 
+https://lkml.org/lkml/2017/4/6/743
+
+It is a side effect of this thread (v2), not sure why <asm/io.h>
+on powerpc has to include <linux/io.h>.
+
+Thanks,
+Lorenzo
+
+> > Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+> > > Cc: Michael Ellerman <mpe@ellerman.id.au>
+> > > Cc: Bjorn Helgaas <bhelgaas@google.com>
+> > > Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+> > > Cc: Paul Mackerras <paulus@samba.org>
+> > ---
+> >  arch/powerpc/include/asm/io.h | 1 +
+> >  1 file changed, 1 insertion(+)
+> > 
+> > diff --git a/arch/powerpc/include/asm/io.h b/arch/powerpc/include/asm/io.h
+> > index 5ed2924..6dcd0e2 100644
+> > --- a/arch/powerpc/include/asm/io.h
+> > +++ b/arch/powerpc/include/asm/io.h
+> > @@ -757,6 +757,7 @@ extern void __iomem *ioremap_prot(phys_addr_t address, unsigned long size,
+> >  extern void __iomem *ioremap_wc(phys_addr_t address, unsigned long size);
+> > >  #define ioremap_nocache(addr, size)	ioremap((addr), (size))
+> > >  #define ioremap_uc(addr, size)		ioremap((addr), (size))
+> > +#include <asm-generic/ioremap-nopost.h>
+> >  
+> >  extern void iounmap(volatile void __iomem *addr);
+> >  
