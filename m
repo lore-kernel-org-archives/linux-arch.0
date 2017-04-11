@@ -1,19 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:59994 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:60042 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753282AbdDKMaP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 11 Apr 2017 08:30:15 -0400
+        id S1754875AbdDKMaU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 11 Apr 2017 08:30:20 -0400
 From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Subject: [PATCH v3 22/32] s390: include default ioremap_nopost() implementation
-Date: Tue, 11 Apr 2017 13:29:02 +0100
-Message-ID: <20170411122923.6285-23-lorenzo.pieralisi@arm.com>
+Subject: [PATCH v3 27/32] x86: include default ioremap_nopost() implementation
+Date: Tue, 11 Apr 2017 13:29:07 +0100
+Message-ID: <20170411122923.6285-28-lorenzo.pieralisi@arm.com>
 In-Reply-To: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
 References: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Bjorn Helgaas <bhelgaas@google.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>
-Message-ID: <20170411122902.VpnTD29QIF2H7pPci3A0dK9Jzpj74hLYVUNCWm0PtQY@z>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Bjorn Helgaas <bhelgaas@google.com>, Ingo Molnar <mingo@redhat.com>
+Message-ID: <20170411122907.Csa_YVPTbDzu0l_RzY_3PpznUZn8mafux4hSQZCrcEE@z>
 
 The PCI specifications (Rev 3.0, 3.2.5 "Transaction Ordering and Posting")
 mandate non-posted configuration transactions. As further highlighted in
@@ -32,24 +32,24 @@ falling back to ioremap_nocache()) to provide a non-posted writes
 ioremap interface to kernel subsystems.
 
 Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Ingo Molnar <mingo@redhat.com>
 ---
- arch/s390/include/asm/io.h | 1 +
+ arch/x86/include/asm/io.h | 1 +
  1 file changed, 1 insertion(+)
 
-diff --git a/arch/s390/include/asm/io.h b/arch/s390/include/asm/io.h
-index 437e9af..374fb43 100644
---- a/arch/s390/include/asm/io.h
-+++ b/arch/s390/include/asm/io.h
-@@ -39,6 +39,7 @@ static inline void __iomem *ioremap(unsigned long offset, unsigned long size)
- static inline void iounmap(volatile void __iomem *addr)
- {
- }
+diff --git a/arch/x86/include/asm/io.h b/arch/x86/include/asm/io.h
+index 7afb0e2..9d431ef 100644
+--- a/arch/x86/include/asm/io.h
++++ b/arch/x86/include/asm/io.h
+@@ -201,6 +201,7 @@ extern void set_iounmap_nonlazy(void);
+ #ifdef __KERNEL__
+ 
+ #include <asm-generic/iomap.h>
 +#include <asm-generic/ioremap-nopost.h>
  
- static inline void __iomem *ioport_map(unsigned long port, unsigned int nr)
- {
+ /*
+  * Convert a virtual cached pointer to an uncached pointer
 -- 
 2.10.0
