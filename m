@@ -1,18 +1,14 @@
 From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Subject: [PATCH v3 25/32] tile: include default ioremap_nopost() implementation
-Date: Tue, 11 Apr 2017 13:29:05 +0100
-Message-ID: <20170411122923.6285-26-lorenzo.pieralisi@arm.com>
+Subject: [PATCH v3 28/32] xtensa: include default ioremap_nopost() implementation
+Date: Tue, 11 Apr 2017 13:29:08 +0100
+Message-ID: <20170411122923.6285-29-lorenzo.pieralisi@arm.com>
 References: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:60026 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753238AbdDKMaV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 11 Apr 2017 08:30:21 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Bjorn Helgaas <bhelgaas@google.com>, Chris Metcalf <cmetcalf@mellanox.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Max Filippov <jcmvbkbc@gmail.com>, Bjorn Helgaas <bhelgaas@google.com>, Chris Zankel <chris@zankel.net>
+List-Id: linux-arch.vger.kernel.org
 
 The PCI specifications (Rev 3.0, 3.2.5 "Transaction Ordering and Posting")
 mandate non-posted configuration transactions. As further highlighted in
@@ -31,23 +27,24 @@ falling back to ioremap_nocache()) to provide a non-posted writes
 ioremap interface to kernel subsystems.
 
 Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+Cc: Max Filippov <jcmvbkbc@gmail.com>
 Cc: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Chris Metcalf <cmetcalf@mellanox.com>
+Cc: Chris Zankel <chris@zankel.net>
 ---
- arch/tile/include/asm/io.h | 1 +
+ arch/xtensa/include/asm/io.h | 1 +
  1 file changed, 1 insertion(+)
 
-diff --git a/arch/tile/include/asm/io.h b/arch/tile/include/asm/io.h
-index 30f4a21..d3f2b77 100644
---- a/arch/tile/include/asm/io.h
-+++ b/arch/tile/include/asm/io.h
-@@ -57,6 +57,7 @@ extern void iounmap(volatile void __iomem *addr);
- #define ioremap_wt(physaddr, size)		ioremap(physaddr, size)
- #define ioremap_uc(physaddr, size)		ioremap(physaddr, size)
- #define ioremap_fullcache(physaddr, size)	ioremap(physaddr, size)
+diff --git a/arch/xtensa/include/asm/io.h b/arch/xtensa/include/asm/io.h
+index c38e5a7..a469bef 100644
+--- a/arch/xtensa/include/asm/io.h
++++ b/arch/xtensa/include/asm/io.h
+@@ -55,6 +55,7 @@ static inline void __iomem *ioremap_cache(unsigned long offset,
+ 
+ #define ioremap_wc ioremap_nocache
+ #define ioremap_wt ioremap_nocache
 +#include <asm-generic/ioremap-nopost.h>
  
- #define mmiowb()
- 
+ static inline void __iomem *ioremap(unsigned long offset, unsigned long size)
+ {
 -- 
 2.10.0
