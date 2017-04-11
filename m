@@ -1,19 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:59940 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:59906 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753282AbdDKMaC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S1754819AbdDKMaC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Tue, 11 Apr 2017 08:30:02 -0400
 From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Subject: [PATCH v3 18/32] nios2: include default ioremap_nopost() implementation
-Date: Tue, 11 Apr 2017 13:28:58 +0100
-Message-ID: <20170411122923.6285-19-lorenzo.pieralisi@arm.com>
+Subject: [PATCH v3 15/32] microblaze: include default ioremap_nopost() implementation
+Date: Tue, 11 Apr 2017 13:28:55 +0100
+Message-ID: <20170411122923.6285-16-lorenzo.pieralisi@arm.com>
 In-Reply-To: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
 References: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Bjorn Helgaas <bhelgaas@google.com>, Ley Foon Tan <lftan@altera.com>
-Message-ID: <20170411122858.0EyZezmbNVbzdzixvA-Dr4Y3SWOaKkWkG4Uh_znpkog@z>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Bjorn Helgaas <bhelgaas@google.com>, Michal Simek <monstr@monstr.eu>
+Message-ID: <20170411122855.0sIuSDukg_bAxMvxbjA-fedJAdTENVk91s9PxBJEcBw@z>
 
 The PCI specifications (Rev 3.0, 3.2.5 "Transaction Ordering and Posting")
 mandate non-posted configuration transactions. As further highlighted in
@@ -33,22 +33,22 @@ ioremap interface to kernel subsystems.
 
 Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
 Cc: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Ley Foon Tan <lftan@altera.com>
+Cc: Michal Simek <monstr@monstr.eu>
 ---
- arch/nios2/include/asm/io.h | 1 +
+ arch/microblaze/include/asm/io.h | 1 +
  1 file changed, 1 insertion(+)
 
-diff --git a/arch/nios2/include/asm/io.h b/arch/nios2/include/asm/io.h
-index ce072ba..ff8ac76 100644
---- a/arch/nios2/include/asm/io.h
-+++ b/arch/nios2/include/asm/io.h
-@@ -47,6 +47,7 @@ static inline void iounmap(void __iomem *addr)
- 
- #define ioremap_wc ioremap_nocache
- #define ioremap_wt ioremap_nocache
+diff --git a/arch/microblaze/include/asm/io.h b/arch/microblaze/include/asm/io.h
+index 39b6315..4714a6d 100644
+--- a/arch/microblaze/include/asm/io.h
++++ b/arch/microblaze/include/asm/io.h
+@@ -43,6 +43,7 @@ extern void __iomem *ioremap(phys_addr_t address, unsigned long size);
+ #define ioremap_fullcache(addr, size)		ioremap((addr), (size))
+ #define ioremap_wc(addr, size)			ioremap((addr), (size))
+ #define ioremap_wt(addr, size)			ioremap((addr), (size))
 +#include <asm-generic/ioremap-nopost.h>
  
- /* Pages to physical address... */
- #define page_to_phys(page)	virt_to_phys(page_to_virt(page))
+ #endif /* CONFIG_MMU */
+ 
 -- 
 2.10.0
