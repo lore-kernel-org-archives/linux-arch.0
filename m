@@ -1,13 +1,13 @@
 From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Subject: [PATCH v3 18/32] nios2: include default ioremap_nopost() implementation
-Date: Tue, 11 Apr 2017 13:28:58 +0100
-Message-ID: <20170411122923.6285-19-lorenzo.pieralisi@arm.com>
+Subject: [PATCH v3 12/32] m32r: include default ioremap_nopost() implementation
+Date: Tue, 11 Apr 2017 13:28:52 +0100
+Message-ID: <20170411122923.6285-13-lorenzo.pieralisi@arm.com>
 References: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Bjorn Helgaas <bhelgaas@google.com>, Ley Foon Tan <lftan@altera.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Bjorn Helgaas <bhelgaas@google.com>
 List-Id: linux-arch.vger.kernel.org
 
 The PCI specifications (Rev 3.0, 3.2.5 "Transaction Ordering and Posting")
@@ -28,22 +28,21 @@ ioremap interface to kernel subsystems.
 
 Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
 Cc: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Ley Foon Tan <lftan@altera.com>
 ---
- arch/nios2/include/asm/io.h | 1 +
+ arch/m32r/include/asm/io.h | 1 +
  1 file changed, 1 insertion(+)
 
-diff --git a/arch/nios2/include/asm/io.h b/arch/nios2/include/asm/io.h
-index ce072ba..ff8ac76 100644
---- a/arch/nios2/include/asm/io.h
-+++ b/arch/nios2/include/asm/io.h
-@@ -47,6 +47,7 @@ static inline void iounmap(void __iomem *addr)
- 
+diff --git a/arch/m32r/include/asm/io.h b/arch/m32r/include/asm/io.h
+index 4b0f5e0..1577102 100644
+--- a/arch/m32r/include/asm/io.h
++++ b/arch/m32r/include/asm/io.h
+@@ -70,6 +70,7 @@ extern void iounmap(volatile void __iomem *addr);
  #define ioremap_wc ioremap_nocache
  #define ioremap_wt ioremap_nocache
+ #define ioremap_uc ioremap_nocache
 +#include <asm-generic/ioremap-nopost.h>
  
- /* Pages to physical address... */
- #define page_to_phys(page)	virt_to_phys(page_to_virt(page))
+ /*
+  * IO bus memory addresses are also 1:1 with the physical address
 -- 
 2.10.0
