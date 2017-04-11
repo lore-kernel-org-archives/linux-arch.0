@@ -1,44 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-dm3nam03on0089.outbound.protection.outlook.com ([104.47.41.89]:38560
-        "EHLO NAM03-DM3-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752940AbdDJVf0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 10 Apr 2017 17:35:26 -0400
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH 1/3] kernel/locking: #include <asm/spinlock.h> in qrwlock.c
-Date: Tue, 11 Apr 2017 01:35:02 +0400
-Message-ID: <1491860104-4103-2-git-send-email-ynorov@caviumnetworks.com>
-In-Reply-To: <1491860104-4103-1-git-send-email-ynorov@caviumnetworks.com>
-References: <1491860104-4103-1-git-send-email-ynorov@caviumnetworks.com>
+Received: from esa4.hgst.iphmx.com ([216.71.154.42]:17742 "EHLO
+        esa4.hgst.iphmx.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752835AbdDKBYA (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 10 Apr 2017 21:24:00 -0400
+From: Bart Van Assche <Bart.VanAssche@sandisk.com>
+Subject: Re: "Consolidate get_dma_ops" breaks Xen on ARM
+Date: Tue, 11 Apr 2017 01:14:29 +0000
+Message-ID: <CY1PR0401MB1536C1FF3C069BC88D1DB14581000@CY1PR0401MB1536.namprd04.prod.outlook.com>
+References: <alpine.DEB.2.10.1704101713080.2759@sstabellini-ThinkPad-X260>
+Content-Language: en-US
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
-Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Cc: Yury Norov <ynorov@caviumnetworks.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Jan Glauber <jglauber@cavium.com>
-Message-ID: <20170410213502.B6pGWsOKywG7Yw2Mkw8oVSGfaYwLW9E6LgNQ8L6yqfI@z>
+To: Stefano Stabellini <sstabellini@kernel.org>
+Cc: "boris.ostrovsky@oracle.com" <boris.ostrovsky@oracle.com>, "jgross@suse.com" <jgross@suse.com>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "dwmw2@infradead.org" <dwmw2@infradead.org>, "hpa@zytor.com" <hpa@zytor.com>, "mingo@redhat.com" <mingo@redhat.com>, "linux@armlinux.org.uk" <linux@armlinux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, "julien.grall@arm.com" <julien.grall@arm.com>
+Message-ID: <20170411011429.oCkjCFgsYIM8NQMAUrFvspfS5pRfJGF4GoKOWXx3OKk@z>
 
-qrwlock.c calls arch_spin_lock() and arch_spin_unlock() but doesn't
-include the asm/spinlock.h, where those functions are defined. It
-may produce "implicit declaration of function" errors. This patch
-fixes it.
-
-Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
----
- kernel/locking/qrwlock.c | 1 +
- 1 file changed, 1 insertion(+)
-
-diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
-index cc3ed0c..6fb4292 100644
---- a/kernel/locking/qrwlock.c
-+++ b/kernel/locking/qrwlock.c
-@@ -20,6 +20,7 @@
- #include <linux/cpumask.h>
- #include <linux/percpu.h>
- #include <linux/hardirq.h>
-+#include <asm/spinlock.h>
- #include <asm/qrwlock.h>
- 
- /*
--- 
-2.7.4
+On 04/10/17 17:31, Stefano Stabellini wrote:=0A=
+> I think the reason is that, as you can see, if (dev && dev->dma_ops),=0A=
+> dev->dma_ops is returned, while before this changes, xen_dma_ops was=0A=
+> returned on Xen on ARM.=0A=
+>=0A=
+> Unfortunately DMA cannot work properly without using the appropriate=0A=
+> xen_dma_ops. See drivers/xen/swiotlb-xen.c and arch/arm/xen/mm.c for=0A=
+> more details. (The problem is easy to spot, but I wasn't CC'ed on the=0A=
+> patch.)=0A=
+>=0A=
+> I don't know how to solve this problem without introducing some sort of=
+=0A=
+> if (xen()) in include/linux/dma-mapping.h.=0A=
+=0A=
+Sorry but I don't have access to an ARM development system. Does your =0A=
+comment apply to dev =3D=3D NULL only, dev !=3D NULL only or perhaps to bot=
+h? =0A=
+If your comment applies to dev !=3D NULL only, can you check whether =0A=
+adding something like set_dma_ops(dev, get_arch_dma_ops(NULL)) to the =0A=
+appropriate ARM arch_setup_dma_ops() function is sufficient?=0A=
+=0A=
+Thanks,=0A=
+=0A=
+Bart.=0A=
+=0A=
+=0A=
