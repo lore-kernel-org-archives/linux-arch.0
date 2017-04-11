@@ -1,35 +1,70 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH v3 04/32] asm-generic: add ioremap_nopost() remap interface
-Date: Tue, 11 Apr 2017 23:39:43 +1000
-Message-ID: <1491917983.7236.9.camel@kernel.crashing.org>
+From: Nicolas Ferre <nicolas.ferre@atmel.com>
+Subject: Re: [PATCH v3 06/32] avr32: include default ioremap_nopost()
+ implementation
+Date: Tue, 11 Apr 2017 15:55:15 +0200
+Message-ID: <d6124409-3603-4702-9684-419247856b27@atmel.com>
 References: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
- <20170411122923.6285-5-lorenzo.pieralisi@arm.com>
+ <20170411122923.6285-7-lorenzo.pieralisi@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20170411122923.6285-5-lorenzo.pieralisi@arm.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+Content-Type: text/plain; charset="windows-1252"
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from esa2.microchip.iphmx.com ([68.232.149.84]:32665 "EHLO
+        esa2.microchip.iphmx.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751799AbdDKNzQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 11 Apr 2017 09:55:16 -0400
+In-Reply-To: <20170411122923.6285-7-lorenzo.pieralisi@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, linux-pci@vger.kernel.org
-Cc: Jonas Bonn <jonas@southpole.se>, Rich Felker <dalias@libc.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, David Howells <dhowells@redhat.com>, Max Filippov <jcmvbkbc@gmail.com>, Paul Mackerras <paulus@samba.org>, Huacai Chen <chenhc@lemote.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, linux-arch@vger.kernel.org, Jesper Nilsson <jesper.nilsson@axis.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, Russell King <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Matt Turner <mattst88@gmail.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Fenghua Yu <fenghua.yu@intel.com>, James Hogan <james.hoga>
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Bjorn Helgaas <bhelgaas@google.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, linux-arm-kernel@lists.infradead.org, Hans-Christian Egtvedt <egtvedt@samfundet.no>
 
-T24gVHVlLCAyMDE3LTA0LTExIGF0IDEzOjI4ICswMTAwLCBMb3JlbnpvIFBpZXJhbGlzaSB3cm90
-ZToKPiArc3RhdGljIGlubGluZSB2b2lkIF9faW9tZW0gKmlvcmVtYXBfbm9wb3N0KHBoeXNfYWRk
-cl90IG9mZnNldCwKPiBzaXplX3Qgc2l6ZSkKPiArewo+ICvCoMKgwqDCoMKgwqDCoHJldHVybiBp
-b3JlbWFwX25vY2FjaGUob2Zmc2V0LCBzaXplKTsKPiArfQo+ICsKCk5vIHRoaXMgaXMgd3Jvbmcg
-YXMgSSBleHBsYWluZWQuCgpUaGlzIGlzIGEgc2VtYW50aWMgdGhhdCBzaW1wbHkgKmNhbm5vdCog
-YmUgZ2VuZXJpY2FsbHkgcHJvdmlkZWQgYWNjcm9zcwphcmNoaXRlY3R1cmVzIGFzIGEgbWFwcGlu
-ZyBhdHRyaWJ1dGUuCgpUaGUgc29sdXRpb24gdG8geW91ciBwcm9ibGVtIGxpZXMgZWxzZXdoZXJl
-LgoKQ2hlZXJzLApCZW4uCgoKX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
-X19fX19fX18KbGludXgtYXJtLWtlcm5lbCBtYWlsaW5nIGxpc3QKbGludXgtYXJtLWtlcm5lbEBs
-aXN0cy5pbmZyYWRlYWQub3JnCmh0dHA6Ly9saXN0cy5pbmZyYWRlYWQub3JnL21haWxtYW4vbGlz
-dGluZm8vbGludXgtYXJtLWtlcm5lbAo=
+Le 11/04/2017 à 14:28, Lorenzo Pieralisi a écrit :
+> The PCI specifications (Rev 3.0, 3.2.5 "Transaction Ordering and Posting")
+> mandate non-posted configuration transactions. As further highlighted in
+> the PCIe specifications (4.0 - Rev0.3, "Ordering Considerations for the
+> Enhanced Configuration Access Mechanism"), through ECAM and
+> ECAM-derivative configuration mechanism, the memory mapped transactions
+> from the host CPU into Configuration Requests on the PCI express fabric
+> may create ordering problems for software because writes to memory
+> address are typically posted transactions (unless the architecture can
+> enforce through virtual address mapping non-posted write transactions
+> behaviour) but writes to Configuration Space are not posted on the PCI
+> express fabric.
+> 
+> Include the asm-generic ioremap_nopost() implementation (currently
+> falling back to ioremap_nocache()) to provide a non-posted writes
+> ioremap interface to kernel subsystems.
+> 
+> Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+> Cc: Bjorn Helgaas <bhelgaas@google.com>
+> Cc: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+> Cc: Haavard Skinnemoen <hskinnemoen@gmail.com>
+> ---
+>  arch/avr32/include/asm/io.h | 1 +
+>  1 file changed, 1 insertion(+)
+
+You probably need to remove this one as the avr32 architecture will be
+removed in kernel 4.12:
+
+https://lkml.org/lkml/2017/3/27/422
+
+Best regards,
+
+> diff --git a/arch/avr32/include/asm/io.h b/arch/avr32/include/asm/io.h
+> index f855646..b2ff522 100644
+> --- a/arch/avr32/include/asm/io.h
+> +++ b/arch/avr32/include/asm/io.h
+> @@ -298,6 +298,7 @@ extern void __iounmap(void __iomem *addr);
+>  #define ioremap_wc ioremap_nocache
+>  #define ioremap_wt ioremap_nocache
+>  #define ioremap_uc ioremap_nocache
+> +#include <asm-generic/ioremap-nopost.h>
+>  
+>  #define cached(addr) P1SEGADDR(addr)
+>  #define uncached(addr) P2SEGADDR(addr)
+> 
+
+
+-- 
+Nicolas Ferre
