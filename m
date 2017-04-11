@@ -1,11 +1,13 @@
 From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Subject: [PATCH v3 00/32] PCI: fix config and I/O Address space memory mappings
-Date: Tue, 11 Apr 2017 13:28:40 +0100
-Message-ID: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
+Subject: [PATCH v3 01/32] PCI: remove __weak tag from pci_remap_iospace()
+Date: Tue, 11 Apr 2017 13:28:41 +0100
+Message-ID: <20170411122923.6285-2-lorenzo.pieralisi@arm.com>
+References: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
 List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
 List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
@@ -19,147 +21,35 @@ To: linux-pci@vger.kernel.org
 Cc: Jonas Bonn <jonas@southpole.se>, Rich Felker <dalias@libc.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, David Howells <dhowells@redhat.com>, Max Filippov <jcmvbkbc@gmail.com>, Paul Mackerras <paulus@samba.org>, Huacai Chen <chenhc@lemote.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, linux-arch@vger.kernel.org, Jesper Nilsson <jesper.nilsson@axis.com>, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, Russell King <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Matt Turner <mattst88@gmail.com>, Haa
 List-Id: linux-arch.vger.kernel.org
 
-This patch series[1] is a v3 of a previous version:
+pci_remap_iospace() is marked as a weak symbol even though
+no architecture is currently overriding it; given that its
+implementation internals have already code paths that are
+arch specific (ie PCI_IOBASE and ioremap_page_range() attributes)
+there is no need to leave the weak symbol in the kernel since the
+same functionality can be achieved by customizing per-arch the
+corresponding functionality.
 
-v2: https://lkml.org/lkml/2017/3/27/220
+Remove the __weak symbol from pci_remap_iospace().
 
-v2 -> v3:
-	- Created a default ioremap_nopost() implementation in a separate
-	  asm-generic header and patched all arches to make use of it
-	- Removed PCI drivers patches from the series to simplify the
-	  review, they will be posted separately once the ioremap_nopost()
-	  interface is settled
-	- Fixed devm_ioremap_* BUS offset comments and implemented
-	  nopost interface on top of it
-	- Added collected tags
+Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+Acked-by: Arnd Bergmann <arnd@arndb.de>
+Cc: Bjorn Helgaas <bhelgaas@google.com>
+---
+ drivers/pci/pci.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-v1: https://lkml.org/lkml/2017/2/27/228
-
-v1 -> v2:
-	- Changed pci_remap_cfgspace() to more generic ioremap_nopost()
-	  interface
-	- Added pgprot_nonposted
-	- Fixed build errors on arches not relying on asm-generic headers
-	- Added PCI versatile host controller driver patch
-	- Added missing config space remapping to hisilicon host controller
-
----------------------
-Original cover letter
----------------------
-
-PCI local bus specifications (Rev3.0, 3.2.5 "Transaction Ordering
-and Posting") strictly require PCI configuration and I/O Address space
-write transactions to be non-posted.
-
-Current crop of DT/ACPI PCI host controllers drivers relies on
-the ioremap interface to map ECAM and ECAM-derivative PCI config
-regions and pci_remap_iospace() to create a VMA for mapping
-PCI host bridge I/O Address space transactions to CPU virtual address
-space.
-
-On some platforms (ie ARM/ARM64) ioremap fails to comply with the PCI
-configuration non-posted write transactions requirement, because it
-provides a memory mapping that issues "bufferable" or, in PCI terms
-"posted" write transactions. Likewise, the current pci_remap_iospace()
-implementation maps the physical address range that the PCI translates
-to I/O space cycles to virtual address space through pgprot_device()
-attributes that on eg ARM64 provides a memory mapping issuing
-posted writes transactions, which is not PCI specifications compliant.
-
-This patch series[1] addresses both issues in one go:
-
-- It updates the pci_remap_iospace() function to use a page mapping
-  that guarantees non-posted write transactions for I/O space addresses
-- It adds a kernel API to remap PCI config space resources, so that
-  architecture can override it with a mapping implementation that
-  guarantees PCI specifications compliancy wrt non-posted write
-  configuration transactions
-- It updates all PCI host controller implementations (and the generic
-  ECAM layer) to use the newly introduced mapping interface
-
-Tested on Juno ECAM based interface (DT/ACPI).
-
-Non-ECAM PCI host controller drivers patches need checking to make
-sure that:
-
-- I patched the correct resource region mapping for config space
-- There are not any other ways to ensure posted-write completion
-  in the respective pci_ops that make the relevant patch unnecessary
-
-[1] git://git.kernel.org/pub/scm/linux/kernel/git/lpieralisi/linux.git
-pci/config-io-mappings-fix-v3
-
-Lorenzo Pieralisi (32):
-  PCI: remove __weak tag from pci_remap_iospace()
-  asm-generic/pgtable.h: introduce pgprot_nonposted remap attribute
-  PCI: fix pci_remap_iospace() remap attribute
-  asm-generic: add ioremap_nopost() remap interface
-  alpha: include default ioremap_nopost() implementation
-  avr32: include default ioremap_nopost() implementation
-  arc: include default ioremap_nopost() implementation
-  cris: include default ioremap_nopost() implementation
-  frv: include default ioremap_nopost() implementation
-  hexagon: include default ioremap_nopost() implementation
-  ia64: include default ioremap_nopost() implementation
-  m32r: include default ioremap_nopost() implementation
-  m68k: include default ioremap_nopost() implementation
-  metag: include default ioremap_nopost() implementation
-  microblaze: include default ioremap_nopost() implementation
-  mips: include default ioremap_nopost() implementation
-  mn10300: include default ioremap_nopost() implementation
-  nios2: include default ioremap_nopost() implementation
-  openrisc: include default ioremap_nopost() implementation
-  parisc: include default ioremap_nopost() implementation
-  powerpc: include default ioremap_nopost() implementation
-  s390: include default ioremap_nopost() implementation
-  sh: include default ioremap_nopost() implementation
-  sparc: include default ioremap_nopost() implementation
-  tile: include default ioremap_nopost() implementation
-  unicore32: include default ioremap_nopost() implementation
-  x86: include default ioremap_nopost() implementation
-  xtensa: include default ioremap_nopost() implementation
-  arm64: implement ioremap_nopost() interface
-  arm: implement ioremap_nopost() interface
-  lib: fix Devres devm_ioremap_* offset parameter kerneldoc description
-  lib: implement Devres ioremap_nopost() interface
-
- Documentation/driver-model/devres.txt |  3 ++
- arch/alpha/include/asm/io.h           |  1 +
- arch/arc/include/asm/io.h             |  1 +
- arch/arm/include/asm/io.h             |  9 ++++
- arch/arm/mm/ioremap.c                 |  7 +++
- arch/arm/mm/nommu.c                   |  9 ++++
- arch/arm64/include/asm/io.h           | 12 +++++
- arch/avr32/include/asm/io.h           |  1 +
- arch/cris/include/asm/io.h            |  1 +
- arch/frv/include/asm/io.h             |  1 +
- arch/hexagon/include/asm/io.h         |  2 +
- arch/ia64/include/asm/io.h            |  1 +
- arch/m32r/include/asm/io.h            |  1 +
- arch/m68k/include/asm/io.h            |  1 +
- arch/metag/include/asm/io.h           |  2 +
- arch/microblaze/include/asm/io.h      |  1 +
- arch/mips/include/asm/io.h            |  1 +
- arch/mn10300/include/asm/io.h         |  1 +
- arch/nios2/include/asm/io.h           |  1 +
- arch/openrisc/include/asm/io.h        |  2 +
- arch/parisc/include/asm/io.h          |  1 +
- arch/powerpc/include/asm/io.h         |  1 +
- arch/s390/include/asm/io.h            |  1 +
- arch/sh/include/asm/io.h              |  1 +
- arch/sparc/include/asm/io.h           |  1 +
- arch/tile/include/asm/io.h            |  1 +
- arch/unicore32/include/asm/io.h       |  1 +
- arch/x86/include/asm/io.h             |  1 +
- arch/xtensa/include/asm/io.h          |  1 +
- drivers/pci/pci.c                     |  4 +-
- include/asm-generic/ioremap-nopost.h  |  9 ++++
- include/asm-generic/pgtable.h         |  4 ++
- include/linux/device.h                |  2 +
- include/linux/io.h                    |  2 +
- lib/devres.c                          | 84 +++++++++++++++++++++++++++++++++--
- 35 files changed, 167 insertions(+), 5 deletions(-)
- create mode 100644 include/asm-generic/ioremap-nopost.h
-
+diff --git a/drivers/pci/pci.c b/drivers/pci/pci.c
+index 7904d02..bd98674 100644
+--- a/drivers/pci/pci.c
++++ b/drivers/pci/pci.c
+@@ -3363,7 +3363,7 @@ unsigned long __weak pci_address_to_pio(phys_addr_t address)
+  *	Only architectures that have memory mapped IO functions defined
+  *	(and the PCI_IOBASE value defined) should call this function.
+  */
+-int __weak pci_remap_iospace(const struct resource *res, phys_addr_t phys_addr)
++int pci_remap_iospace(const struct resource *res, phys_addr_t phys_addr)
+ {
+ #if defined(PCI_IOBASE) && defined(CONFIG_MMU)
+ 	unsigned long vaddr = (unsigned long)PCI_IOBASE + res->start;
 -- 
 2.10.0
