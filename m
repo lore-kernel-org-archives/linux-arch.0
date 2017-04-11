@@ -1,68 +1,49 @@
 From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Subject: [PATCH v3 03/32] PCI: fix pci_remap_iospace() remap attribute
-Date: Tue, 11 Apr 2017 13:28:43 +0100
-Message-ID: <20170411122923.6285-4-lorenzo.pieralisi@arm.com>
+Subject: [PATCH v3 15/32] microblaze: include default ioremap_nopost() implementation
+Date: Tue, 11 Apr 2017 13:28:55 +0100
+Message-ID: <20170411122923.6285-16-lorenzo.pieralisi@arm.com>
 References: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Return-path: <linux-pci-owner@vger.kernel.org>
 In-Reply-To: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+Sender: linux-pci-owner@vger.kernel.org
 To: linux-pci@vger.kernel.org
-Cc: Jonas Bonn <jonas@southpole.se>, Rich Felker <dalias@libc.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, David Howells <dhowells@redhat.com>, Max Filippov <jcmvbkbc@gmail.com>, Paul Mackerras <paulus@samba.org>, Huacai Chen <chenhc@lemote.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, linux-arch@vger.kernel.org, Jesper Nilsson <jesper.nilsson@axis.com>, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, Russell King <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Matt Turner <mattst88@gmail.com>, Haa
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Bjorn Helgaas <bhelgaas@google.com>, Michal Simek <monstr@monstr.eu>
 List-Id: linux-arch.vger.kernel.org
 
-According to the PCI local bus specifications (Revision 3.0, 3.2.5),
-I/O Address space transactions are non-posted. On architectures where
-I/O space is implemented through a chunk of memory mapped space mapped
-to PCI address space (ie IA64/ARM/ARM64) the memory mapping for the
-region backing I/O Address Space transactions determines the I/O
-transactions attributes (before the transactions actually reaches the
-PCI bus where it is handled according to the PCI specifications).
+The PCI specifications (Rev 3.0, 3.2.5 "Transaction Ordering and Posting")
+mandate non-posted configuration transactions. As further highlighted in
+the PCIe specifications (4.0 - Rev0.3, "Ordering Considerations for the
+Enhanced Configuration Access Mechanism"), through ECAM and
+ECAM-derivative configuration mechanism, the memory mapped transactions
+from the host CPU into Configuration Requests on the PCI express fabric
+may create ordering problems for software because writes to memory
+address are typically posted transactions (unless the architecture can
+enforce through virtual address mapping non-posted write transactions
+behaviour) but writes to Configuration Space are not posted on the PCI
+express fabric.
 
-Current pci_remap_iospace() interface, that is used to map the PCI I/O
-Address Space into virtual address space, use pgprot_device() as memory
-attribute for the virtual address mapping, that in some architectures
-(ie ARM64) provides non-cacheable but write bufferable mappings (ie
-posted writes), which clash with the non-posted write behaviour for I/O
-Address Space mandated by the PCI specifications.
-
-Update the prot ioremap_page_range() parameter in pci_remap_iospace()
-to pgprot_nonposted to ensure that the virtual mapping backing
-I/O Address Space guarantee non-posted write transactions issued
-when addressing I/O Address Space through the MMIO mapping.
+Include the asm-generic ioremap_nopost() implementation (currently
+falling back to ioremap_nocache()) to provide a non-posted writes
+ioremap interface to kernel subsystems.
 
 Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Will Deacon <will.deacon@arm.com>
 Cc: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Russell King <linux@armlinux.org.uk>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Michal Simek <monstr@monstr.eu>
 ---
- drivers/pci/pci.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ arch/microblaze/include/asm/io.h | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/drivers/pci/pci.c b/drivers/pci/pci.c
-index bd98674..9e084c0 100644
---- a/drivers/pci/pci.c
-+++ b/drivers/pci/pci.c
-@@ -3375,7 +3375,7 @@ int pci_remap_iospace(const struct resource *res, phys_addr_t phys_addr)
- 		return -EINVAL;
+diff --git a/arch/microblaze/include/asm/io.h b/arch/microblaze/include/asm/io.h
+index 39b6315..4714a6d 100644
+--- a/arch/microblaze/include/asm/io.h
++++ b/arch/microblaze/include/asm/io.h
+@@ -43,6 +43,7 @@ extern void __iomem *ioremap(phys_addr_t address, unsigned long size);
+ #define ioremap_fullcache(addr, size)		ioremap((addr), (size))
+ #define ioremap_wc(addr, size)			ioremap((addr), (size))
+ #define ioremap_wt(addr, size)			ioremap((addr), (size))
++#include <asm-generic/ioremap-nopost.h>
  
- 	return ioremap_page_range(vaddr, vaddr + resource_size(res), phys_addr,
--				  pgprot_device(PAGE_KERNEL));
-+				  pgprot_nonposted(PAGE_KERNEL));
- #else
- 	/* this architecture does not have memory mapped I/O space,
- 	   so this function should never be called */
+ #endif /* CONFIG_MMU */
+ 
 -- 
 2.10.0
