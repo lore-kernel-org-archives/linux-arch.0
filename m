@@ -1,13 +1,13 @@
 From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Subject: [PATCH v3 14/32] metag: include default ioremap_nopost() implementation
-Date: Tue, 11 Apr 2017 13:28:54 +0100
-Message-ID: <20170411122923.6285-15-lorenzo.pieralisi@arm.com>
+Subject: [PATCH v3 19/32] openrisc: include default ioremap_nopost() implementation
+Date: Tue, 11 Apr 2017 13:28:59 +0100
+Message-ID: <20170411122923.6285-20-lorenzo.pieralisi@arm.com>
 References: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Bjorn Helgaas <bhelgaas@google.com>, James Hogan <james.hogan@imgtec.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Jonas Bonn <jonas@southpole.se>, Bjorn Helgaas <bhelgaas@google.com>, Stafford Horne <shorne@gmail.com>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>
 List-Id: linux-arch.vger.kernel.org
 
 The PCI specifications (Rev 3.0, 3.2.5 "Transaction Ordering and Posting")
@@ -27,22 +27,25 @@ falling back to ioremap_nocache()) to provide a non-posted writes
 ioremap interface to kernel subsystems.
 
 Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+Cc: Jonas Bonn <jonas@southpole.se>
 Cc: Bjorn Helgaas <bhelgaas@google.com>
-Cc: James Hogan <james.hogan@imgtec.com>
+Cc: Stafford Horne <shorne@gmail.com>
+Cc: Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>
 ---
- arch/metag/include/asm/io.h | 2 ++
+ arch/openrisc/include/asm/io.h | 2 ++
  1 file changed, 2 insertions(+)
 
-diff --git a/arch/metag/include/asm/io.h b/arch/metag/include/asm/io.h
-index 9890f21..c805e0d 100644
---- a/arch/metag/include/asm/io.h
-+++ b/arch/metag/include/asm/io.h
-@@ -166,4 +166,6 @@ extern void __iounmap(void __iomem *addr);
- #define iounmap(addr)                           \
- 	__iounmap(addr)
+diff --git a/arch/openrisc/include/asm/io.h b/arch/openrisc/include/asm/io.h
+index 7c69139..1cea257 100644
+--- a/arch/openrisc/include/asm/io.h
++++ b/arch/openrisc/include/asm/io.h
+@@ -48,5 +48,7 @@ static inline void __iomem *ioremap_nocache(phys_addr_t offset,
+ 			 __pgprot(pgprot_val(PAGE_KERNEL) | _PAGE_CI));
+ }
  
 +#include <asm-generic/ioremap-nopost.h>
 +
- #endif  /* _ASM_METAG_IO_H */
+ extern void iounmap(void *addr);
+ #endif
 -- 
 2.10.0
