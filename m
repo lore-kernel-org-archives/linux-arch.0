@@ -1,19 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:60004 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:60042 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1754896AbdDKMaW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 11 Apr 2017 08:30:22 -0400
+        id S1754881AbdDKMaV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 11 Apr 2017 08:30:21 -0400
 From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Subject: [PATCH v3 23/32] sh: include default ioremap_nopost() implementation
-Date: Tue, 11 Apr 2017 13:29:03 +0100
-Message-ID: <20170411122923.6285-24-lorenzo.pieralisi@arm.com>
+Subject: [PATCH v3 28/32] xtensa: include default ioremap_nopost() implementation
+Date: Tue, 11 Apr 2017 13:29:08 +0100
+Message-ID: <20170411122923.6285-29-lorenzo.pieralisi@arm.com>
 In-Reply-To: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
 References: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Rich Felker <dalias@libc.org>, Bjorn Helgaas <bhelgaas@google.com>, Yoshinori Sato <ysato@users.sourceforge.jp>
-Message-ID: <20170411122903.lhA5U_YPhHuJVjqxMmMhuyYGHucvsh9Yu2A15yq8lh8@z>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Max Filippov <jcmvbkbc@gmail.com>, Bjorn Helgaas <bhelgaas@google.com>, Chris Zankel <chris@zankel.net>
+Message-ID: <20170411122908.uKCv45TyPgMrY5IqCFLTVcctuvcKxQj-bm08jwdJ0aU@z>
 
 The PCI specifications (Rev 3.0, 3.2.5 "Transaction Ordering and Posting")
 mandate non-posted configuration transactions. As further highlighted in
@@ -32,24 +32,24 @@ falling back to ioremap_nocache()) to provide a non-posted writes
 ioremap interface to kernel subsystems.
 
 Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Cc: Rich Felker <dalias@libc.org>
+Cc: Max Filippov <jcmvbkbc@gmail.com>
 Cc: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+Cc: Chris Zankel <chris@zankel.net>
 ---
- arch/sh/include/asm/io.h | 1 +
+ arch/xtensa/include/asm/io.h | 1 +
  1 file changed, 1 insertion(+)
 
-diff --git a/arch/sh/include/asm/io.h b/arch/sh/include/asm/io.h
-index 3280a6b..23814cd 100644
---- a/arch/sh/include/asm/io.h
-+++ b/arch/sh/include/asm/io.h
-@@ -371,6 +371,7 @@ static inline int iounmap_fixed(void __iomem *addr) { return -EINVAL; }
- #define ioremap_nocache	ioremap
- #define ioremap_uc	ioremap
- #define iounmap		__iounmap
+diff --git a/arch/xtensa/include/asm/io.h b/arch/xtensa/include/asm/io.h
+index c38e5a7..a469bef 100644
+--- a/arch/xtensa/include/asm/io.h
++++ b/arch/xtensa/include/asm/io.h
+@@ -55,6 +55,7 @@ static inline void __iomem *ioremap_cache(unsigned long offset,
+ 
+ #define ioremap_wc ioremap_nocache
+ #define ioremap_wt ioremap_nocache
 +#include <asm-generic/ioremap-nopost.h>
  
- /*
-  * Convert a physical pointer to a virtual kernel pointer for /dev/mem
+ static inline void __iomem *ioremap(unsigned long offset, unsigned long size)
+ {
 -- 
 2.10.0
