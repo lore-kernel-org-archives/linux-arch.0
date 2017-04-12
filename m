@@ -1,68 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([65.50.211.133]:46597 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753427AbdDLM0S (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Apr 2017 08:26:18 -0400
-From: David Woodhouse <dwmw2@infradead.org>
-Subject: [PATCH v2 04/27] xtensa: Do not mmap PCI BARs to userspace as write-through
-Date: Wed, 12 Apr 2017 13:25:53 +0100
-Message-ID: <6816f5f6ecc8d862718d3b0f87a7916576f5cef5.1491999859.git.dwmw2@infradead.org>
-In-Reply-To: <cover.1491999859.git.dwmw2@infradead.org>
-References: <cover.1491999859.git.dwmw2@infradead.org>
-In-Reply-To: <cover.1491999859.git.dwmw2@infradead.org>
-References: <cover.1491999859.git.dwmw2@infradead.org>
+Received: from mail-io0-f169.google.com ([209.85.223.169]:32915 "EHLO
+        mail-io0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751587AbdDLVrX (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Apr 2017 17:47:23 -0400
+MIME-Version: 1.0
+In-Reply-To: <109e9ddbde4334d0da34f331797236309d789353.1491999859.git.dwmw2@infradead.org>
+References: <cover.1491999859.git.dwmw2@infradead.org> <109e9ddbde4334d0da34f331797236309d789353.1491999859.git.dwmw2@infradead.org>
+From: Tony Luck <tony.luck@gmail.com>
+Date: Wed, 12 Apr 2017 14:47:21 -0700
+Message-ID: <CA+8MBbKwN=pBN17Msm-g=x-iEgvy6KNFkutKsw_pDboBHgMifA@mail.gmail.com>
+Subject: Re: [PATCH v2 25/27] ia64: Use generic pci_mmap_resource_range()
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20170412122553.-DnfXxJzBZRGqmdqVQ79SYd28M0OKltxKbpgqb0udFI@z>
+To: David Woodhouse <dwmw2@infradead.org>
+Cc: "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20170412214721.wiDRpaknDGGfXEnsz21TQvmE4ZVRihQpAByU9mx0EBQ@z>
 
-From: David Woodhouse <dwmw@amazon.co.uk>
+On Wed, Apr 12, 2017 at 5:26 AM, David Woodhouse <dwmw2@infradead.org> wrote:
+> From: David Woodhouse <dwmw@amazon.co.uk>
+>
+> Now that we eliminated the different behaviour in separately-reviewable
+> commits, we can switch IA64 to the generic implementation.
+>
+> Signed-off-by: David Woodhouse <dwmw@amazon.co.uk>
 
-These should be uncached, not write-through.
+Well it builds and boots on my last remaining ia64 machine. No warnings
+or weird stuff in the console log.  So you can mark the three ia64 patches
 
-Signed-off-by: David Woodhouse <dwmw@amazon.co.uk>
----
- arch/xtensa/kernel/pci.c | 21 +--------------------
- 1 file changed, 1 insertion(+), 20 deletions(-)
+Tested-by: Tony Luck <tony.luck@intel.com>
 
-diff --git a/arch/xtensa/kernel/pci.c b/arch/xtensa/kernel/pci.c
-index b848cc3..5b73fc2 100644
---- a/arch/xtensa/kernel/pci.c
-+++ b/arch/xtensa/kernel/pci.c
-@@ -334,25 +334,6 @@ __pci_mmap_make_offset(struct pci_dev *dev, struct vm_area_struct *vma,
- }
- 
- /*
-- * Set vm_page_prot of VMA, as appropriate for this architecture, for a pci
-- * device mapping.
-- */
--static __inline__ void
--__pci_mmap_set_pgprot(struct pci_dev *dev, struct vm_area_struct *vma,
--		      enum pci_mmap_state mmap_state, int write_combine)
--{
--	int prot = pgprot_val(vma->vm_page_prot);
--
--	/* Set to write-through */
--	prot = (prot & _PAGE_CA_MASK) | _PAGE_CA_WT;
--#if 0
--	if (!write_combine)
--		prot |= _PAGE_WRITETHRU;
--#endif
--	vma->vm_page_prot = __pgprot(prot);
--}
--
--/*
-  * Perform the actual remap of the pages for a PCI device mapping, as
-  * appropriate for this architecture.  The region in the process to map
-  * is described by vm_start and vm_end members of VMA, the base physical
-@@ -372,7 +353,7 @@ int pci_mmap_page_range(struct pci_dev *dev, struct vm_area_struct *vma,
- 	if (ret < 0)
- 		return ret;
- 
--	__pci_mmap_set_pgprot(dev, vma, mmap_state, write_combine);
-+	vma->vm_page_prot = pgprot_device(vma->vm_page_prot);
- 
- 	ret = io_remap_pfn_range(vma, vma->vm_start, vma->vm_pgoff,
- 			         vma->vm_end - vma->vm_start,vma->vm_page_prot);
--- 
-2.9.3
+and bundle them with the others rather than through the ia64 tree.
+
+-Tony
