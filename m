@@ -1,56 +1,67 @@
 From: David Woodhouse <dwmw2@infradead.org>
-Subject: [PATCH v2 02/27] pci: Fix another sanity check bug in /proc/pci mmap
-Date: Wed, 12 Apr 2017 13:25:51 +0100
-Message-ID: <08d0400c6bf711e3b26824eaa2870c1502f79834.1491999859.git.dwmw2@infradead.org>
+Subject: [PATCH v2 17/27] unicore: Use generic pci_mmap_resource_range()
+Date: Wed, 12 Apr 2017 13:26:06 +0100
+Message-ID: <96c9ec19826d30648041cf6de17e4ef62c4479a5.1491999859.git.dwmw2@infradead.org>
 References: <cover.1491999859.git.dwmw2@infradead.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:38096 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753382AbdDLM0S (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Apr 2017 08:26:18 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1491999859.git.dwmw2@infradead.org>
 In-Reply-To: <cover.1491999859.git.dwmw2@infradead.org>
 References: <cover.1491999859.git.dwmw2@infradead.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
 From: David Woodhouse <dwmw@amazon.co.uk>
 
-Don't match MMIO maps with I/O BARs and vice versa.
-
 Signed-off-by: David Woodhouse <dwmw@amazon.co.uk>
-Cc: stable@vger.kernel.org
 ---
- drivers/pci/proc.c | 10 ++++++++--
- 1 file changed, 8 insertions(+), 2 deletions(-)
+ arch/unicore32/include/asm/pci.h |  1 +
+ arch/unicore32/kernel/pci.c      | 24 ------------------------
+ 2 files changed, 1 insertion(+), 24 deletions(-)
 
-diff --git a/drivers/pci/proc.c b/drivers/pci/proc.c
-index f82710a..62a0c3e 100644
---- a/drivers/pci/proc.c
-+++ b/drivers/pci/proc.c
-@@ -231,14 +231,20 @@ static int proc_bus_pci_mmap(struct file *file, struct vm_area_struct *vma)
- {
- 	struct pci_dev *dev = PDE_DATA(file_inode(file));
- 	struct pci_filp_private *fpriv = file->private_data;
--	int i, ret, write_combine;
-+	int i, ret, write_combine, res_bit;
+diff --git a/arch/unicore32/include/asm/pci.h b/arch/unicore32/include/asm/pci.h
+index a5129086..ac5acdf 100644
+--- a/arch/unicore32/include/asm/pci.h
++++ b/arch/unicore32/include/asm/pci.h
+@@ -17,6 +17,7 @@
+ #include <mach/hardware.h> /* for PCIBIOS_MIN_* */
  
- 	if (!capable(CAP_SYS_RAWIO))
- 		return -EPERM;
+ #define HAVE_PCI_MMAP
++#define ARCH_GENERIC_PCI_MMAP_RESOURCE
  
-+	if (fpriv->mmap_state == pci_mmap_io)
-+		res_bit = IORESOURCE_IO;
-+	else
-+		res_bit = IORESOURCE_MEM;
-+
- 	/* Make sure the caller is mapping a real resource for this device */
- 	for (i = 0; i < PCI_ROM_RESOURCE; i++) {
--		if (pci_mmap_fits(dev, i, vma,  PCI_MMAP_PROCFS))
-+		if (dev->resource[i].flags & res_bit &&
-+		    pci_mmap_fits(dev, i, vma,  PCI_MMAP_PROCFS))
- 			break;
+ #endif /* __KERNEL__ */
+ #endif
+diff --git a/arch/unicore32/kernel/pci.c b/arch/unicore32/kernel/pci.c
+index 1b43885..1053bca 100644
+--- a/arch/unicore32/kernel/pci.c
++++ b/arch/unicore32/kernel/pci.c
+@@ -356,27 +356,3 @@ int pcibios_enable_device(struct pci_dev *dev, int mask)
  	}
- 
+ 	return 0;
+ }
+-
+-int pci_mmap_page_range(struct pci_dev *dev, int bar,
+-			struct vm_area_struct *vma,
+-			enum pci_mmap_state mmap_state, int write_combine)
+-{
+-	unsigned long phys;
+-
+-	if (mmap_state == pci_mmap_io)
+-		return -EINVAL;
+-
+-	phys = vma->vm_pgoff;
+-
+-	/*
+-	 * Mark this as IO
+-	 */
+-	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
+-
+-	if (remap_pfn_range(vma, vma->vm_start, phys,
+-			     vma->vm_end - vma->vm_start,
+-			     vma->vm_page_prot))
+-		return -EAGAIN;
+-
+-	return 0;
+-}
 -- 
 2.9.3
