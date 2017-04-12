@@ -1,52 +1,89 @@
-From: "Kirill A. Shutemov" <kirill@shutemov.name>
-Subject: Re: [PATCH 3/8] x86/boot/64: Add support of additional page table
- level during early boot
-Date: Wed, 12 Apr 2017 13:18:04 +0300
-Message-ID: <20170412101804.cxo6h472ns76ukgo@node.shutemov.name>
-References: <20170406140106.78087-1-kirill.shutemov@linux.intel.com>
- <20170406140106.78087-4-kirill.shutemov@linux.intel.com>
- <20170411070203.GA14621@gmail.com>
- <20170411105106.4zgbzuu4s4267zyv@node.shutemov.name>
- <20170411112845.GA15212@gmail.com>
- <20170411114616.otx2f6aw5lcvfc2o@black.fi.intel.com>
- <20170411140907.GD4021@tassilo.jf.intel.com>
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [PATCH 8/8] x86/mm: Allow to have userspace mappings above 47-bits
+Date: Wed, 12 Apr 2017 20:41:29 +1000
+Message-ID: <87wpap6h7q.fsf@concordia.ellerman.id.au>
+References: <20170406140106.78087-1-kirill.shutemov@linux.intel.com> <20170406140106.78087-9-kirill.shutemov@linux.intel.com> <8d68093b-670a-7d7e-2216-bf64b19c7a48@linux.vnet.ibm.com> <20170407155945.7lyapjbwacg3ikw6@node.shutemov.name>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f172.google.com ([209.85.128.172]:36490 "EHLO
-        mail-wr0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752498AbdDLKSJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Apr 2017 06:18:09 -0400
-Received: by mail-wr0-f172.google.com with SMTP id c55so14259342wrc.3
-        for <linux-arch@vger.kernel.org>; Wed, 12 Apr 2017 03:18:09 -0700 (PDT)
-Content-Disposition: inline
-In-Reply-To: <20170411140907.GD4021@tassilo.jf.intel.com>
+Received: from ozlabs.org ([103.22.144.67]:57459 "EHLO ozlabs.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751997AbdDLKlg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 12 Apr 2017 06:41:36 -0400
+In-Reply-To: <20170407155945.7lyapjbwacg3ikw6@node.shutemov.name>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Andi Kleen <ak@linux.intel.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andy Lutomirski <luto@amacapital.net>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@intel.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+To: "Kirill A. Shutemov" <kirill@shutemov.name>, Anshuman Khandual <khandual@linux.vnet.ibm.com>
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Dmitry Safonov <dsafonov@virtuozzo.com>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
 
-On Tue, Apr 11, 2017 at 07:09:07AM -0700, Andi Kleen wrote:
-> > I'll look closer (building proccess it's rather complicated), but my
-> > understanding is that VDSO is stand-alone binary and doesn't really links
-> > with the rest of the kernel, rather included as blob, no?
-> > 
-> > Andy, may be you have an idea?
-> 
-> There isn't any way I know of to directly link them together. The ELF 
-> format wasn't designed for that. You would need to merge blobs and then use
-> manual jump vectors, like the 16bit startup code does. It would be likely
-> complicated and ugly.
+Hi Kirill,
 
-Ingo, can we proceed without coverting this assembly to C?
+I'm interested in this because we're doing pretty much the same thing on
+powerpc at the moment, and I want to make sure x86 & powerpc end up with
+compatible behaviour.
 
-I'm committed to convert it to C later if we'll find reasonable solution
-to the issue.
+"Kirill A. Shutemov" <kirill@shutemov.name> writes:
+> On Fri, Apr 07, 2017 at 07:05:26PM +0530, Anshuman Khandual wrote:
+>> On 04/06/2017 07:31 PM, Kirill A. Shutemov wrote:
+>> > On x86, 5-level paging enables 56-bit userspace virtual address space.
+>> > Not all user space is ready to handle wide addresses. It's known that
+>> > at least some JIT compilers use higher bits in pointers to encode their
+>> > information. It collides with valid pointers with 5-level paging and
+>> > leads to crashes.
+>> > 
+>> > To mitigate this, we are not going to allocate virtual address space
+>> > above 47-bit by default.
+>> 
+>> I am wondering if the commitment of virtual space range to the
+>> user space is kind of an API which needs to be maintained there
+>> after. If that is the case then we need to have some plans when
+>> increasing it from the current level.
+>
+> I don't think we should ever enable full address space for all
+> applications. There's no point.
+>
+> /bin/true doesn't need more than 64TB of virtual memory.
+> And I hope never will.
+>
+> By increasing virtual address space for everybody we will pay (assuming
+> current page table format) at least one extra page per process for moving
+> stack at very end of address space.
 
-We're pretty late into release cycle. It would be nice to give the whole
-thing time in tip/master and -next before the merge window.
+That assumes the current layout though, it could be different.
 
-Can I repost part 4?
+> Yes, you can gain something in security by having more bits for ASLR, but
+> I don't think it worth the cost.
 
--- 
- Kirill A. Shutemov
+It may not be worth the cost now, for you, but that trade off will be
+different for other people and at other times.
+
+So I think it's quite likely some folks will be interested in the full
+address range for ASLR.
+
+>> expanding the address range next time around. I think we need
+>> to have a plan for this and particularly around 'hint' mechanism
+>> and whether it should be decided per mmap() request or at the
+>> task level.
+>
+> I think the reasonable way for an application to claim it's 63-bit clean
+> is to make allocations with (void *)-1 as hint address.
+
+I do like the simplicity of that.
+
+But I wouldn't be surprised if some (crappy) code out there already
+passes an address of -1. Probably it won't break if it starts getting
+high addresses, but who knows.
+
+An alternative would be to only interpret the hint as requesting a large
+address if it's >= 64TB && < TASK_SIZE_MAX.
+
+If we're really worried about breaking userspace then a new MMAP flag
+seems like the safest option?
+
+I don't feel particularly strongly about any option, but like I said my
+main concern is that x86 & powerpc end up with the same behaviour.
+
+And whatever we end up with someone will need to do an update to the man
+page for mmap.
+
+cheers
