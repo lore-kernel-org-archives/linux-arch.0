@@ -1,7 +1,7 @@
 From: David Woodhouse <dwmw2@infradead.org>
-Subject: [PATCH v2 11/27] arm: Use generic pci_mmap_resource_range()
-Date: Wed, 12 Apr 2017 13:26:00 +0100
-Message-ID: <8be48e631d445d30f76574602a7a7120564a7c15.1491999859.git.dwmw2@infradead.org>
+Subject: [PATCH v2 14/27] mn10300: Use generic pci_mmap_resource_range()
+Date: Wed, 12 Apr 2017 13:26:03 +0100
+Message-ID: <15683b749605aa5e6733a587d495a8eab596f0e8.1491999859.git.dwmw2@infradead.org>
 References: <cover.1491999859.git.dwmw2@infradead.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1491999859.git.dwmw2@infradead.org>
@@ -13,54 +13,57 @@ List-Id: linux-arch.vger.kernel.org
 
 From: David Woodhouse <dwmw@amazon.co.uk>
 
+This was setting vma->vm_flags |= VM_LOCKED. Not sure why...
+
 Signed-off-by: David Woodhouse <dwmw@amazon.co.uk>
 ---
- arch/arm/include/asm/pci.h |  1 +
- arch/arm/kernel/bios32.c   | 20 --------------------
- 2 files changed, 1 insertion(+), 20 deletions(-)
+ arch/mn10300/include/asm/pci.h          |  1 +
+ arch/mn10300/unit-asb2305/pci-asb2305.c | 24 ------------------------
+ 2 files changed, 1 insertion(+), 24 deletions(-)
 
-diff --git a/arch/arm/include/asm/pci.h b/arch/arm/include/asm/pci.h
-index 51118a0..396c92b 100644
---- a/arch/arm/include/asm/pci.h
-+++ b/arch/arm/include/asm/pci.h
-@@ -29,6 +29,7 @@ static inline int pci_proc_domain(struct pci_bus *bus)
- #define PCI_DMA_BUS_IS_PHYS     (1)
+diff --git a/arch/mn10300/include/asm/pci.h b/arch/mn10300/include/asm/pci.h
+index 082b6de..d276549 100644
+--- a/arch/mn10300/include/asm/pci.h
++++ b/arch/mn10300/include/asm/pci.h
+@@ -74,6 +74,7 @@ static inline int pci_controller_num(struct pci_dev *dev)
+ }
  
  #define HAVE_PCI_MMAP
 +#define ARCH_GENERIC_PCI_MMAP_RESOURCE
  
- static inline int pci_get_legacy_ide_irq(struct pci_dev *dev, int channel)
- {
-diff --git a/arch/arm/kernel/bios32.c b/arch/arm/kernel/bios32.c
-index a4fc3f4..b259956 100644
---- a/arch/arm/kernel/bios32.c
-+++ b/arch/arm/kernel/bios32.c
-@@ -597,26 +597,6 @@ resource_size_t pcibios_align_resource(void *data, const struct resource *res,
- 	return start;
- }
+ #endif /* __KERNEL__ */
  
+diff --git a/arch/mn10300/unit-asb2305/pci-asb2305.c b/arch/mn10300/unit-asb2305/pci-asb2305.c
+index 4abbbd5..e0f4617 100644
+--- a/arch/mn10300/unit-asb2305/pci-asb2305.c
++++ b/arch/mn10300/unit-asb2305/pci-asb2305.c
+@@ -210,27 +210,3 @@ void __init pcibios_resource_survey(void)
+ 	pcibios_allocate_resources(0);
+ 	pcibios_allocate_resources(1);
+ }
+-
 -int pci_mmap_page_range(struct pci_dev *dev, int bar,
 -			struct vm_area_struct *vma,
 -			enum pci_mmap_state mmap_state, int write_combine)
 -{
--	if (mmap_state == pci_mmap_io)
--		return -EINVAL;
+-	unsigned long prot;
 -
--	/*
--	 * Mark this as IO
+-	/* Leave vm_pgoff as-is, the PCI space address is the physical
+-	 * address on this platform.
 -	 */
--	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
+-	vma->vm_flags |= VM_LOCKED;
 -
--	if (remap_pfn_range(vma, vma->vm_start, vma->vm_pgoff,
--			     vma->vm_end - vma->vm_start,
--			     vma->vm_page_prot))
+-	prot = pgprot_val(vma->vm_page_prot);
+-	prot &= ~_PAGE_CACHE;
+-	vma->vm_page_prot = __pgprot(prot);
+-
+-	/* Write-combine setting is ignored */
+-	if (io_remap_pfn_range(vma, vma->vm_start, vma->vm_pgoff,
+-			       vma->vm_end - vma->vm_start,
+-			       vma->vm_page_prot))
 -		return -EAGAIN;
 -
 -	return 0;
 -}
--
- void __init pci_map_io_early(unsigned long pfn)
- {
- 	struct map_desc pci_io_desc = {
 -- 
 2.9.3
