@@ -1,63 +1,59 @@
 From: David Woodhouse <dwmw2@infradead.org>
-Subject: [PATCH v2 04/27] xtensa: Do not mmap PCI BARs to userspace as write-through
-Date: Wed, 12 Apr 2017 13:25:53 +0100
-Message-ID: <6816f5f6ecc8d862718d3b0f87a7916576f5cef5.1491999859.git.dwmw2@infradead.org>
+Subject: [PATCH v2 01/27] pci: Fix pci_mmap_fits() for HAVE_PCI_RESOURCE_TO_USER platforms
+Date: Wed, 12 Apr 2017 13:25:50 +0100
+Message-ID: <0d7c284a997414d7e9a264e21f316ca1ac673277.1491999859.git.dwmw2@infradead.org>
 References: <cover.1491999859.git.dwmw2@infradead.org>
-Return-path: <linux-pci-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from merlin.infradead.org ([205.233.59.134]:38092 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753373AbdDLM0S (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Apr 2017 08:26:18 -0400
 In-Reply-To: <cover.1491999859.git.dwmw2@infradead.org>
 In-Reply-To: <cover.1491999859.git.dwmw2@infradead.org>
 References: <cover.1491999859.git.dwmw2@infradead.org>
-Sender: linux-pci-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
 
 From: David Woodhouse <dwmw@amazon.co.uk>
 
-These should be uncached, not write-through.
+In the PCI_MMAP_PROCFS case when the address being passed by the user
+is a 'user visible' resource address based on the bus window, and not
+the actual contents of the resource, that's what we need to be checking
+it against.
 
 Signed-off-by: David Woodhouse <dwmw@amazon.co.uk>
+Cc: stable@vger.kernel.org
 ---
- arch/xtensa/kernel/pci.c | 21 +--------------------
- 1 file changed, 1 insertion(+), 20 deletions(-)
+ drivers/pci/pci-sysfs.c | 10 +++++++---
+ 1 file changed, 7 insertions(+), 3 deletions(-)
 
-diff --git a/arch/xtensa/kernel/pci.c b/arch/xtensa/kernel/pci.c
-index b848cc3..5b73fc2 100644
---- a/arch/xtensa/kernel/pci.c
-+++ b/arch/xtensa/kernel/pci.c
-@@ -334,25 +334,6 @@ __pci_mmap_make_offset(struct pci_dev *dev, struct vm_area_struct *vma,
- }
+diff --git a/drivers/pci/pci-sysfs.c b/drivers/pci/pci-sysfs.c
+index 25d010d..7ac258f 100644
+--- a/drivers/pci/pci-sysfs.c
++++ b/drivers/pci/pci-sysfs.c
+@@ -985,15 +985,19 @@ void pci_remove_legacy_files(struct pci_bus *b)
+ int pci_mmap_fits(struct pci_dev *pdev, int resno, struct vm_area_struct *vma,
+ 		  enum pci_mmap_api mmap_api)
+ {
+-	unsigned long nr, start, size, pci_start;
++	unsigned long nr, start, size;
++	resource_size_t pci_start = 0, pci_end;
  
- /*
-- * Set vm_page_prot of VMA, as appropriate for this architecture, for a pci
-- * device mapping.
-- */
--static __inline__ void
--__pci_mmap_set_pgprot(struct pci_dev *dev, struct vm_area_struct *vma,
--		      enum pci_mmap_state mmap_state, int write_combine)
--{
--	int prot = pgprot_val(vma->vm_page_prot);
--
--	/* Set to write-through */
--	prot = (prot & _PAGE_CA_MASK) | _PAGE_CA_WT;
--#if 0
--	if (!write_combine)
--		prot |= _PAGE_WRITETHRU;
--#endif
--	vma->vm_page_prot = __pgprot(prot);
--}
--
--/*
-  * Perform the actual remap of the pages for a PCI device mapping, as
-  * appropriate for this architecture.  The region in the process to map
-  * is described by vm_start and vm_end members of VMA, the base physical
-@@ -372,7 +353,7 @@ int pci_mmap_page_range(struct pci_dev *dev, struct vm_area_struct *vma,
- 	if (ret < 0)
- 		return ret;
- 
--	__pci_mmap_set_pgprot(dev, vma, mmap_state, write_combine);
-+	vma->vm_page_prot = pgprot_device(vma->vm_page_prot);
- 
- 	ret = io_remap_pfn_range(vma, vma->vm_start, vma->vm_pgoff,
- 			         vma->vm_end - vma->vm_start,vma->vm_page_prot);
+ 	if (pci_resource_len(pdev, resno) == 0)
+ 		return 0;
+ 	nr = vma_pages(vma);
+ 	start = vma->vm_pgoff;
+ 	size = ((pci_resource_len(pdev, resno) - 1) >> PAGE_SHIFT) + 1;
+-	pci_start = (mmap_api == PCI_MMAP_PROCFS) ?
+-			pci_resource_start(pdev, resno) >> PAGE_SHIFT : 0;
++	if (mmap_api == PCI_MMAP_PROCFS) {
++		pci_resource_to_user(pdev, resno, &pdev->resource[resno],
++				     &pci_start, &pci_end);
++		pci_start >>= PAGE_SHIFT;
++	}
+ 	if (start >= pci_start && start < pci_start + size &&
+ 			start + nr <= pci_start + size)
+ 		return 1;
 -- 
 2.9.3
