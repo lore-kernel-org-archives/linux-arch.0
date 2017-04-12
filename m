@@ -1,66 +1,133 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:41326 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751393AbdDLIeF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 12 Apr 2017 04:34:05 -0400
-Date: Wed, 12 Apr 2017 09:33:59 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: "Consolidate get_dma_ops" breaks Xen on ARM
-Message-ID: <20170412083359.GA19019@e104818-lin.cambridge.arm.com>
-References: <alpine.DEB.2.10.1704101713080.2759@sstabellini-ThinkPad-X260>
- <CY1PR0401MB1536C1FF3C069BC88D1DB14581000@CY1PR0401MB1536.namprd04.prod.outlook.com>
- <a758dfc6-2b00-e279-303c-ba1e27380e35@arm.com>
- <20170411133649.GB27857@e104818-lin.cambridge.arm.com>
- <alpine.DEB.2.10.1704111411350.2759@sstabellini-ThinkPad-X260>
+Received: from mail-wm0-f66.google.com ([74.125.82.66]:36298 "EHLO
+        mail-wm0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753777AbdDLLVM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Apr 2017 07:21:12 -0400
+Received: by mail-wm0-f66.google.com with SMTP id q125so5731548wmd.3
+        for <linux-arch@vger.kernel.org>; Wed, 12 Apr 2017 04:21:11 -0700 (PDT)
+Date: Wed, 12 Apr 2017 14:11:57 +0300
+From: "Kirill A. Shutemov" <kirill@shutemov.name>
+Subject: Re: [PATCH 8/8] x86/mm: Allow to have userspace mappings above
+ 47-bits
+Message-ID: <20170412111157.h6tjryt7jbum4tfg@node.shutemov.name>
+References: <20170406140106.78087-1-kirill.shutemov@linux.intel.com>
+ <20170406140106.78087-9-kirill.shutemov@linux.intel.com>
+ <8d68093b-670a-7d7e-2216-bf64b19c7a48@linux.vnet.ibm.com>
+ <20170407155945.7lyapjbwacg3ikw6@node.shutemov.name>
+ <87wpap6h7q.fsf@concordia.ellerman.id.au>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <alpine.DEB.2.10.1704111411350.2759@sstabellini-ThinkPad-X260>
+In-Reply-To: <87wpap6h7q.fsf@concordia.ellerman.id.au>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stefano Stabellini <sstabellini@kernel.org>
-Cc: Julien Grall <julien.grall@arm.com>, Bart Van Assche <Bart.VanAssche@sandisk.com>, "boris.ostrovsky@oracle.com" <boris.ostrovsky@oracle.com>, "jgross@suse.com" <jgross@suse.com>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "dwmw2@infradead.org" <dwmw2@infradead.org>, "hpa@zytor.com" <hpa@zytor.com>, "mingo@redhat.com" <mingo@redhat.com>, "linux@armlinux.org.uk" <linux@armlinux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, linux-arm-kernel@lists.infradead.org
-Message-ID: <20170412083359.WkO1I2SZNbuucOadTHgr-3s4Dt_4JB0eypKXuhTxdhU@z>
+To: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Anshuman Khandual <khandual@linux.vnet.ibm.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Dmitry Safonov <dsafonov@virtuozzo.com>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
+Message-ID: <20170412111157.XxfZ2dy5mbdOA6jX_m0wsuPQB3Ve-Cp4Bq5w23eC4gM@z>
 
-On Tue, Apr 11, 2017 at 04:39:09PM -0700, Stefano Stabellini wrote:
-> On Tue, 11 Apr 2017, Catalin Marinas wrote:
-> > On Tue, Apr 11, 2017 at 01:43:28PM +0100, Julien Grall wrote:
-> > > On 11/04/17 02:14, Bart Van Assche wrote:
-> > > > On 04/10/17 17:31, Stefano Stabellini wrote:
-> > > >> I think the reason is that, as you can see, if (dev && dev->dma_ops),
-> > > >> dev->dma_ops is returned, while before this changes, xen_dma_ops was
-> > > >> returned on Xen on ARM.
-> > > >>
-> > > >> Unfortunately DMA cannot work properly without using the appropriate
-> > > >> xen_dma_ops. See drivers/xen/swiotlb-xen.c and arch/arm/xen/mm.c for
-> > > >> more details. (The problem is easy to spot, but I wasn't CC'ed on the
-> > > >> patch.)
-> > > >>
-> > > >> I don't know how to solve this problem without introducing some sort of
-> > > >> if (xen()) in include/linux/dma-mapping.h.
-> > > > 
-> > > > Sorry but I don't have access to an ARM development system. Does your 
-> > > > comment apply to dev == NULL only, dev != NULL only or perhaps to both? 
-> > > > If your comment applies to dev != NULL only, can you check whether 
-> > > > adding something like set_dma_ops(dev, get_arch_dma_ops(NULL)) to the 
-> > > > appropriate ARM arch_setup_dma_ops() function is sufficient?
-> > > 
-> > > If I understand correctly, set_dma_ops will replace dev->dma_ops with
-> > > Xen DMA ops.
-[...]
-> > Yet another way would be for dom0 to always set dev->dma_ops to
-> > xen_dma_ops and preserve the real dma_ops somewhere under dev->archdata.
-> > You could intercept the arch_setup_dma_ops() function for this or use
-> > bus_register_notifier() (though I think the former is easier). The Xen
-> > code making use of the real dma_ops would have to dig them out from
-> > dev->archdata.
+On Wed, Apr 12, 2017 at 08:41:29PM +1000, Michael Ellerman wrote:
+> Hi Kirill,
 > 
-> This is a good suggestion, Catalin. Thank you. See below. Is that what
-> you have in mind? Julien could you test it, please? If it is the right
-> approach, I'll submit the patch properly and rename __generic_dma_ops to
-> xen_generic_dma_ops or something.
+> I'm interested in this because we're doing pretty much the same thing on
+> powerpc at the moment, and I want to make sure x86 & powerpc end up with
+> compatible behaviour.
+> 
+> "Kirill A. Shutemov" <kirill@shutemov.name> writes:
+> > On Fri, Apr 07, 2017 at 07:05:26PM +0530, Anshuman Khandual wrote:
+> >> On 04/06/2017 07:31 PM, Kirill A. Shutemov wrote:
+> >> > On x86, 5-level paging enables 56-bit userspace virtual address space.
+> >> > Not all user space is ready to handle wide addresses. It's known that
+> >> > at least some JIT compilers use higher bits in pointers to encode their
+> >> > information. It collides with valid pointers with 5-level paging and
+> >> > leads to crashes.
+> >> > 
+> >> > To mitigate this, we are not going to allocate virtual address space
+> >> > above 47-bit by default.
+> >> 
+> >> I am wondering if the commitment of virtual space range to the
+> >> user space is kind of an API which needs to be maintained there
+> >> after. If that is the case then we need to have some plans when
+> >> increasing it from the current level.
+> >
+> > I don't think we should ever enable full address space for all
+> > applications. There's no point.
+> >
+> > /bin/true doesn't need more than 64TB of virtual memory.
+> > And I hope never will.
+> >
+> > By increasing virtual address space for everybody we will pay (assuming
+> > current page table format) at least one extra page per process for moving
+> > stack at very end of address space.
+> 
+> That assumes the current layout though, it could be different.
 
-It looks fine to me (subject to testing successfully).
+True.
+
+> > Yes, you can gain something in security by having more bits for ASLR, but
+> > I don't think it worth the cost.
+> 
+> It may not be worth the cost now, for you, but that trade off will be
+> different for other people and at other times.
+> 
+> So I think it's quite likely some folks will be interested in the full
+> address range for ASLR.
+
+We always can extend interface if/when userspace demand materialize.
+
+Let's not invent interfaces unless we're sure there's demand.
+
+> >> expanding the address range next time around. I think we need
+> >> to have a plan for this and particularly around 'hint' mechanism
+> >> and whether it should be decided per mmap() request or at the
+> >> task level.
+> >
+> > I think the reasonable way for an application to claim it's 63-bit clean
+> > is to make allocations with (void *)-1 as hint address.
+> 
+> I do like the simplicity of that.
+> 
+> But I wouldn't be surprised if some (crappy) code out there already
+> passes an address of -1. Probably it won't break if it starts getting
+> high addresses, but who knows.
+
+To make an application break we need two thing:
+
+ - it sets hint address to -1 by mistake;
+ - it uses upper bit to encode its info;
+
+I would be surprise if such combination exists in real world.
+
+But let me know if you have any particular code in mind.
+
+> An alternative would be to only interpret the hint as requesting a large
+> address if it's >= 64TB && < TASK_SIZE_MAX.
+
+Nope. That doesn't work if you take into accounting further extension of the
+address space.
+
+Consider extension x86 to 6-level page tables. User-space has 63-bit
+address space. TASK_SIZE_MAX is bumped to (1UL << 63) - PAGE_SIZE.
+
+An application wants access to full address space. It gets recompiled
+using new TASK_SIZE_MAX as hint address. And everything works fine.
+
+But only on machine with 6-level paging enabled.
+
+If we run the same application binary on machine with older kernel and
+5-level paging, the application will get access to only 47-bit address
+space, not 56-bit, as hint address is more than TASK_SIZE_MAX in this
+configuration.
+
+> If we're really worried about breaking userspace then a new MMAP flag
+> seems like the safest option?
+> 
+> I don't feel particularly strongly about any option, but like I said my
+> main concern is that x86 & powerpc end up with the same behaviour.
+> 
+> And whatever we end up with someone will need to do an update to the man
+> page for mmap.
+
+Sure.
 
 -- 
-Catalin
+ Kirill A. Shutemov
