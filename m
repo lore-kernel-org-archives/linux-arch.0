@@ -1,8 +1,11 @@
 From: David Woodhouse <dwmw2@infradead.org>
-Subject: [PATCH v2 14/27] mn10300: Use generic pci_mmap_resource_range()
-Date: Wed, 12 Apr 2017 13:26:03 +0100
-Message-ID: <15683b749605aa5e6733a587d495a8eab596f0e8.1491999859.git.dwmw2@infradead.org>
+Subject: [PATCH v2 10/27] pci: Add pci_mmap_resource_range() and use it for ARM64
+Date: Wed, 12 Apr 2017 13:25:59 +0100
+Message-ID: <7ca58472ed9ff750fd1b7432b1738573e782290b.1491999859.git.dwmw2@infradead.org>
 References: <cover.1491999859.git.dwmw2@infradead.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1491999859.git.dwmw2@infradead.org>
 In-Reply-To: <cover.1491999859.git.dwmw2@infradead.org>
@@ -13,57 +16,251 @@ List-Id: linux-arch.vger.kernel.org
 
 From: David Woodhouse <dwmw@amazon.co.uk>
 
-This was setting vma->vm_flags |= VM_LOCKED. Not sure why...
+Starting to leave behind the legacy of the pci_mmap_page_range()
+interface which takes "user-visible" BAR addresses. This takes just the
+resource and offset.
+
+For now, both APIs coexist and depending on the platform, one is
+implemented as a wrapper around the other.
 
 Signed-off-by: David Woodhouse <dwmw@amazon.co.uk>
 ---
- arch/mn10300/include/asm/pci.h          |  1 +
- arch/mn10300/unit-asb2305/pci-asb2305.c | 24 ------------------------
- 2 files changed, 1 insertion(+), 24 deletions(-)
+ Documentation/filesystems/sysfs-pci.txt | 10 ++--
+ arch/arm64/include/asm/pci.h            |  2 +
+ drivers/pci/Makefile                    |  2 +-
+ drivers/pci/mmap.c                      | 84 +++++++++++++++++++++++++++++++++
+ drivers/pci/pci-sysfs.c                 | 13 ++---
+ drivers/pci/pci.h                       |  4 +-
+ include/linux/pci.h                     | 19 ++++++--
+ 7 files changed, 114 insertions(+), 20 deletions(-)
+ create mode 100644 drivers/pci/mmap.c
 
-diff --git a/arch/mn10300/include/asm/pci.h b/arch/mn10300/include/asm/pci.h
-index 082b6de..d276549 100644
---- a/arch/mn10300/include/asm/pci.h
-+++ b/arch/mn10300/include/asm/pci.h
-@@ -74,6 +74,7 @@ static inline int pci_controller_num(struct pci_dev *dev)
+diff --git a/Documentation/filesystems/sysfs-pci.txt b/Documentation/filesystems/sysfs-pci.txt
+index 46b95d8..06f1d64 100644
+--- a/Documentation/filesystems/sysfs-pci.txt
++++ b/Documentation/filesystems/sysfs-pci.txt
+@@ -113,9 +113,13 @@ Supporting PCI access on new platforms
+ --------------------------------------
+ 
+ In order to support PCI resource mapping as described above, Linux platform
+-code must define HAVE_PCI_MMAP and provide a pci_mmap_page_range function.
+-Platforms are free to only support subsets of the mmap functionality, but
+-useful return codes should be provided.
++code should ideally define ARCH_GENERIC_PCI_MMAP_RESOURCE and use the generic
++implementation of that functionality. To support the historical interface of
++mmap() through files in /proc/bus/pci, platforms may also set HAVE_PCI_MMAP.
++
++Alternatively, platforms which set HAVE_PCI_MMAP may provide their own
++implementation of pci_mmap_page_range() instead of defining
++ARCH_GENERIC_PCI_MMAP_RESOURCE.
+ 
+ Platforms which support write-combining maps of PCI resources must define
+ arch_can_pci_mmap_wc() which shall evaluate to non-zero at runtime when
+diff --git a/arch/arm64/include/asm/pci.h b/arch/arm64/include/asm/pci.h
+index b9a7ba9..1fc1974 100644
+--- a/arch/arm64/include/asm/pci.h
++++ b/arch/arm64/include/asm/pci.h
+@@ -22,6 +22,8 @@
+  */
+ #define PCI_DMA_BUS_IS_PHYS	(0)
+ 
++#define ARCH_GENERIC_PCI_MMAP_RESOURCE	1
++
+ extern int isa_dma_bridge_buggy;
+ 
+ #ifdef CONFIG_PCI
+diff --git a/drivers/pci/Makefile b/drivers/pci/Makefile
+index 8db5079..3d40e41 100644
+--- a/drivers/pci/Makefile
++++ b/drivers/pci/Makefile
+@@ -4,7 +4,7 @@
+ 
+ obj-y		+= access.o bus.o probe.o host-bridge.o remove.o pci.o \
+ 			pci-driver.o search.o pci-sysfs.o rom.o setup-res.o \
+-			irq.o vpd.o setup-bus.o vc.o
++			irq.o vpd.o setup-bus.o vc.o mmap.o
+ obj-$(CONFIG_PROC_FS) += proc.o
+ obj-$(CONFIG_SYSFS) += slot.o
+ 
+diff --git a/drivers/pci/mmap.c b/drivers/pci/mmap.c
+new file mode 100644
+index 0000000..9ba720b
+--- /dev/null
++++ b/drivers/pci/mmap.c
+@@ -0,0 +1,84 @@
++/*
++ * mmap.c — generic PCI resource mmap helper
++ *
++ * Copyright © 2017 Amazon.com, Inc. or its affiliates.
++ *
++ * Author: David Woodhouse <dwmw2@infradead.org>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++
++ */
++
++#include <linux/kernel.h>
++#include <linux/mm.h>
++#include <linux/pci.h>
++
++#ifdef ARCH_GENERIC_PCI_MMAP_RESOURCE
++/* Modern setup: generic pci_mmap_resource_range(), and implement the legacy
++ * pci_mmap_page_range() (if needed) as a wrapper round it. */
++
++#ifdef HAVE_PCI_MMAP
++int pci_mmap_page_range(struct pci_dev *pdev, int bar,
++			struct vm_area_struct *vma,
++			enum pci_mmap_state mmap_state, int write_combine)
++{
++	/* Adjust vm_pgoff to be the offset within the resource */
++	resource_size_t start, end;
++
++	pci_resource_to_user(pdev, bar, &pdev->resource[bar], &start, &end);
++	vma->vm_pgoff -= start >> PAGE_SHIFT;
++	return pci_mmap_resource_range(pdev, bar, vma, mmap_state, write_combine);
++}
++#endif
++
++static const struct vm_operations_struct pci_phys_vm_ops = {
++#ifdef CONFIG_HAVE_IOREMAP_PROT
++        .access = generic_access_phys,
++#endif
++};
++
++int pci_mmap_resource_range(struct pci_dev *pdev, int bar,
++			    struct vm_area_struct *vma,
++			    enum pci_mmap_state mmap_state, int write_combine)
++{
++	unsigned long size;
++
++	if (mmap_state == pci_mmap_io)
++		return -EINVAL;
++
++	size = ((pci_resource_len(pdev, bar) - 1) >> PAGE_SHIFT) + 1;
++	if (vma->vm_pgoff + vma_pages(vma) > size)
++		return -EINVAL;
++
++	if (write_combine)
++		vma->vm_page_prot = pgprot_writecombine(vma->vm_page_prot);
++	else
++		vma->vm_page_prot = pgprot_device(vma->vm_page_prot);
++
++	vma->vm_pgoff += (pci_resource_start(pdev, bar) >> PAGE_SHIFT);
++        vma->vm_ops = &pci_phys_vm_ops;
++
++	return io_remap_pfn_range(vma, vma->vm_start, vma->vm_pgoff,
++				  vma->vm_end - vma->vm_start, vma->vm_page_prot);
++}
++
++#elif defined(HAVE_PCI_MMAP) /* && !ARCH_GENERIC_PCI_MMAP_RESOURCE */
++/* Legacy setup: Impement pci_mmap_resource_range() as a wrapper around
++   the architecture's pci_mmap_page_range(), converting to "user visible"
++   addresses as necessary. */
++int pci_mmap_resource_range(struct pci_dev *pdev, int bar,
++			    struct vm_area_struct *vma,
++			    enum pci_mmap_state mmap_state, int write_combine)
++{
++	resource_size_t start, end;
++	/* pci_mmap_page_range() expects the same kind of entry as coming
++	 * from /proc/bus/pci/ which is a "user visible" value. If this is
++	 * different from the resource itself, arch will do necessary fixup.
++	 */
++	pci_resource_to_user(pdev, bar, &pdev->resource[bar], &start, &end);
++	vma->vm_pgoff += start >> PAGE_SHIFT;
++	return pci_mmap_page_range(pdev, bar, vma, mmap_state, write_combine);
++}
++#endif
+diff --git a/drivers/pci/pci-sysfs.c b/drivers/pci/pci-sysfs.c
+index bfd9efe..10feb98 100644
+--- a/drivers/pci/pci-sysfs.c
++++ b/drivers/pci/pci-sysfs.c
+@@ -980,7 +980,7 @@ void pci_remove_legacy_files(struct pci_bus *b)
  }
+ #endif /* HAVE_PCI_LEGACY */
  
- #define HAVE_PCI_MMAP
-+#define ARCH_GENERIC_PCI_MMAP_RESOURCE
+-#ifdef HAVE_PCI_MMAP
++#if defined(HAVE_PCI_MMAP) || defined(ARCH_GENERIC_PCI_MMAP_RESOURCE)
  
- #endif /* __KERNEL__ */
+ int pci_mmap_fits(struct pci_dev *pdev, int resno, struct vm_area_struct *vma,
+ 		  enum pci_mmap_api mmap_api)
+@@ -1019,7 +1019,6 @@ static int pci_mmap_resource(struct kobject *kobj, struct bin_attribute *attr,
+ 	struct pci_dev *pdev = to_pci_dev(kobj_to_dev(kobj));
+ 	int bar = (unsigned long)attr->private;
+ 	enum pci_mmap_state mmap_type;
+-	resource_size_t start, end;
+ 	struct resource *res = &pdev->resource[bar];
  
-diff --git a/arch/mn10300/unit-asb2305/pci-asb2305.c b/arch/mn10300/unit-asb2305/pci-asb2305.c
-index 4abbbd5..e0f4617 100644
---- a/arch/mn10300/unit-asb2305/pci-asb2305.c
-+++ b/arch/mn10300/unit-asb2305/pci-asb2305.c
-@@ -210,27 +210,3 @@ void __init pcibios_resource_survey(void)
- 	pcibios_allocate_resources(0);
- 	pcibios_allocate_resources(1);
- }
+ 	if (res->flags & IORESOURCE_MEM && iomem_is_exclusive(res->start))
+@@ -1033,15 +1032,9 @@ static int pci_mmap_resource(struct kobject *kobj, struct bin_attribute *attr,
+ 			(u64)pci_resource_len(pdev, bar));
+ 		return -EINVAL;
+ 	}
 -
--int pci_mmap_page_range(struct pci_dev *dev, int bar,
--			struct vm_area_struct *vma,
--			enum pci_mmap_state mmap_state, int write_combine)
--{
--	unsigned long prot;
--
--	/* Leave vm_pgoff as-is, the PCI space address is the physical
--	 * address on this platform.
+-	/* pci_mmap_page_range() expects the same kind of entry as coming
+-	 * from /proc/bus/pci/ which is a "user visible" value. If this is
+-	 * different from the resource itself, arch will do necessary fixup.
 -	 */
--	vma->vm_flags |= VM_LOCKED;
--
--	prot = pgprot_val(vma->vm_page_prot);
--	prot &= ~_PAGE_CACHE;
--	vma->vm_page_prot = __pgprot(prot);
--
--	/* Write-combine setting is ignored */
--	if (io_remap_pfn_range(vma, vma->vm_start, vma->vm_pgoff,
--			       vma->vm_end - vma->vm_start,
--			       vma->vm_page_prot))
--		return -EAGAIN;
--
--	return 0;
--}
+-	pci_resource_to_user(pdev, bar, res, &start, &end);
+-	vma->vm_pgoff += start >> PAGE_SHIFT;
+ 	mmap_type = res->flags & IORESOURCE_MEM ? pci_mmap_mem : pci_mmap_io;
+-	return pci_mmap_page_range(pdev, bar, vma, mmap_type, write_combine);
++
++	return pci_mmap_resource_range(pdev, bar, vma, mmap_type, write_combine);
+ }
+ 
+ static int pci_mmap_resource_uc(struct file *filp, struct kobject *kobj,
+diff --git a/drivers/pci/pci.h b/drivers/pci/pci.h
+index 8dd38e6..8e5ca2d 100644
+--- a/drivers/pci/pci.h
++++ b/drivers/pci/pci.h
+@@ -21,14 +21,14 @@ void pci_create_firmware_label_files(struct pci_dev *pdev);
+ void pci_remove_firmware_label_files(struct pci_dev *pdev);
+ #endif
+ void pci_cleanup_rom(struct pci_dev *dev);
+-#ifdef HAVE_PCI_MMAP
++
+ enum pci_mmap_api {
+ 	PCI_MMAP_SYSFS,	/* mmap on /sys/bus/pci/devices/<BDF>/resource<N> */
+ 	PCI_MMAP_PROCFS	/* mmap on /proc/bus/pci/<BDF> */
+ };
+ int pci_mmap_fits(struct pci_dev *pdev, int resno, struct vm_area_struct *vmai,
+ 		  enum pci_mmap_api mmap_api);
+-#endif
++
+ int pci_probe_reset_function(struct pci_dev *dev);
+ 
+ /**
+diff --git a/include/linux/pci.h b/include/linux/pci.h
+index 7173a67..ff1c818 100644
+--- a/include/linux/pci.h
++++ b/include/linux/pci.h
+@@ -1626,10 +1626,21 @@ static inline int pci_get_new_domain_nr(void) { return -ENOSYS; }
+ 
+ #include <asm/pci.h>
+ 
+-/* Map a range of PCI memory or I/O space for a device into user space.
+- * Architectures provide this function if they set HAVE_PCI_MMAP, and
+- * it accepts the 'write_combine' argument when arch_can_pci_mmap_wc()
+- * evaluates to nonzero. */
++/* These two functions provide almost identical functionality. Depennding
++ * on the architecture, one will be implemented as a wrapper aroudn the
++ * other (in drivers/pci/mmap.c).
++ *
++ * pci_mmap_resource_range() maps a specific BAR, and vm->vm_pgoff
++ * is expected to be an offset within that region.
++ *
++ * pci_mmap_page_range() is the legacy architecture-specific interface,
++ * which accepts a "user visible" resource address converted by
++ * pci_resource_to_user(), as used in the legacy mmap() interface in
++ * /proc/bus/pci/.
++ */
++int pci_mmap_resource_range(struct pci_dev *dev, int bar,
++			    struct vm_area_struct *vma,
++			    enum pci_mmap_state mmap_state, int write_combine);
+ int pci_mmap_page_range(struct pci_dev *pdev, int bar,
+ 			struct vm_area_struct *vma,
+ 			enum pci_mmap_state mmap_state, int write_combine);
 -- 
 2.9.3
