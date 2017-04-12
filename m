@@ -1,50 +1,74 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH v3 00/32] PCI: fix config and I/O Address space memory
- mappings
-Date: Wed, 12 Apr 2017 23:48:16 +1000
-Message-ID: <1492004896.7236.59.camel@kernel.crashing.org>
-References: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
- <1491917906.7236.7.camel@kernel.crashing.org>
- <20170411140857.GA6821@red-moon>
- <1491952371.7236.22.camel@kernel.crashing.org>
- <20170412094454.GA31143@red-moon>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20170412094454.GA31143@red-moon>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Cc: Jonas Bonn <jonas@southpole.se>, Rich Felker <dalias@libc.org>, linux-pci@vger.kernel.org, Will Deacon <will.deacon@arm.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, David Howells <dhowells@redhat.com>, Max Filippov <jcmvbkbc@gmail.com>, Paul Mackerras <paulus@samba.org>, Huacai Chen <chenhc@lemote.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, linux-arch@vger.kernel.org, Jesper Nilsson <jesper.nilsson@axis.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, Russell King <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Catalin Marinas <catalin.marinas@arm.com>, Matt Turner <mattst88@gmail.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Fenghua Yu <fenghua.yu@intel.co>
-List-Id: linux-arch.vger.kernel.org
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: [RFC PATCH v2 0/6] Signal frame expansion support
+Date: Wed, 12 Apr 2017 17:56:53 +0100
+Message-ID: <1492016239-19511-1-git-send-email-Dave.Martin@arm.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:47076 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752299AbdDLQ5h (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 12 Apr 2017 12:57:37 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arm-kernel@lists.infradead.org
+Cc: linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>
 
-On Wed, 2017-04-12 at 10:44 +0100, Lorenzo Pieralisi wrote:
-> > This is a problem to be solved by the bridge itself. If ARM has a
-> > mapping attribute to make stores non-posted, keep this an ARM specific
-> > attribute at this stage I'd say.
-> 
-> I can't. Some PCI host bridge drivers (DT) are shared between ARM/ARM64
-> and live in drivers (and are also reused on some arches eg microblaze)
-> and they use ioremap() to map config space.
-> 
-> So the idea behind this series was to add an interface (that is
-> overriden on ARM/ARM64), it started as a PCI specific interface (v1) and
-> evolved to ioremap_nopost() (v2).
+(Note: This is an arm64-specific series, but the concepts introduced may
+be of interest to other arches -- see in particular patch 6.)
 
-Then provide some kind of HAVE_* or config option indicating that this
-mapping attribute exist so the bridge code at least has the option of
-implementing an "alternative" mechanism when it doesn't rather than
-silently being wrong :-)
+Blurb:
 
-(Or just return NULL, that works too)
+An architecture advertises the maximum possible signal frame size via
+the MINSIGSTKSZ #define (mandated by POSIX).
 
-Cheers,
-Ben.
+However, CPU architecture extensions may increase the amount of space
+required to store the interrupted context when a signal is delivered.
+
+
+Eventually the amount of space needed in the signal frame may exceed
+MINSIGSTKSZ -- whether and when this happens is largely a matter of
+luck, depending on the initial guess for MINSIGSTKSZ and the evolution
+of that particular CPU architecture.  Unfortunately MINSIGSTKSZ cannot
+be changed without an ABI break, and POSIX provides no mechanism for
+migration.
+
+arm64 initially reserved 4KB of space in the signal frame for
+extensions, of which about 0.5KB is allocated to the FP/SIMD registers
+initially.
+
+Depending on the vector length supported by the hardware, SVE requires
+up to around 8KB of space to store the full SIMD register context, which
+is too large to fit in the existing frame.
+
+This series adds a mechanism for optionally enlarging the signal frame
+(patches 4-5) and reporting the actual maximum signal frame size to
+userspace (patch 6).  Patches 1-3 do some refactoring to support this
+change by abstracting the way signal frame records are allocated onto
+the user stack.
+
+Full backwards compatibility is not possible -- there is no way to hide
+the fact that the signal frame has grown -- so it is expected that
+support for new architecture extensions that can cause the signal frame
+to grow will be opt-in for userspace, in addition to using the extension
+mechanism defined by this series.
+
+[1] ARM Scalable Vector Extension
+https://community.arm.com/groups/processors/blog/2016/08/22/technology-update-the-scalable-vector-extension-sve-for-the-armv8-a-architecture
+https://developer.arm.com/docs/ddi0584/latest/arm-architecture-reference-manual-supplement-the-scalable-vector-extension-sve-for-armv8-a
+
+Dave Martin (6):
+  arm64: signal: Refactor sigcontext parsing in rt_sigreturn
+  arm64: signal: factor frame layout and population into separate passes
+  arm64: signal: factor out signal frame record allocation
+  arm64: signal: Allocate extra sigcontext space as needed
+  arm64: signal: Parse extra_context during sigreturn
+  arm64: signal: Report signal frame size to userspace via auxv
+
+ arch/arm64/include/asm/elf.h             |   5 +
+ arch/arm64/include/asm/processor.h       |   3 +
+ arch/arm64/include/uapi/asm/auxvec.h     |   3 +-
+ arch/arm64/include/uapi/asm/sigcontext.h |  50 ++++
+ arch/arm64/kernel/signal.c               | 389 ++++++++++++++++++++++++++++---
+ 5 files changed, 415 insertions(+), 35 deletions(-)
+
+-- 
+2.1.4
