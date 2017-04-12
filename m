@@ -1,81 +1,28 @@
-From: Hoeun Ryu <hoeun.ryu@gmail.com>
-Subject: [PATCH] mm: add VM_STATIC flag to vmalloc and prevent from removing the areas
-Date: Wed, 12 Apr 2017 14:01:59 +0900
-Message-ID: <1491973350-26816-1-git-send-email-hoeun.ryu@gmail.com>
+From: Christoph Hellwig <hch@infradead.org>
+Subject: Re: [PATCH] mm: add VM_STATIC flag to vmalloc and prevent from
+ removing the areas
+Date: Tue, 11 Apr 2017 23:02:18 -0700
+Message-ID: <20170412060218.GA16170@infradead.org>
+References: <1491973350-26816-1-git-send-email-hoeun.ryu@gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f194.google.com ([209.85.192.194]:33224 "EHLO
-        mail-pf0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751564AbdDLFDJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Apr 2017 01:03:09 -0400
+Received: from bombadil.infradead.org ([65.50.211.133]:38259 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752776AbdDLGCf (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Apr 2017 02:02:35 -0400
+Content-Disposition: inline
+In-Reply-To: <1491973350-26816-1-git-send-email-hoeun.ryu@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Andreas Dilger <adilger@dilger.ca>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@suse.com>, Chris Wilson <chris@chris-wilson.co.uk>, Ingo Molnar <mingo@kernel.org>, zijun_hu <zijun_hu@htc.com>, Matthew Wilcox <mawilcox@microsoft.com>, Thomas Garnier <thgarnie@google.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Cc: linux-arch@vger.kernel.org, Hoeun Ryu <hoeun.ryu@gmail.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+To: Hoeun Ryu <hoeun.ryu@gmail.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Andreas Dilger <adilger@dilger.ca>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@suse.com>, Chris Wilson <chris@chris-wilson.co.uk>, Ingo Molnar <mingo@kernel.org>, zijun_hu <zijun_hu@htc.com>, Matthew Wilcox <mawilcox@microsoft.com>, Thomas Garnier <thgarnie@google.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
 
-vm_area_add_early/vm_area_register_early() are used to reserve vmalloc area
-during boot process and those virtually mapped areas are never unmapped.
-So `OR` VM_STATIC flag to the areas in vmalloc_init() when importing
-existing vmlist entries and prevent those areas from being removed from the
-rbtree by accident.
+On Wed, Apr 12, 2017 at 02:01:59PM +0900, Hoeun Ryu wrote:
+> vm_area_add_early/vm_area_register_early() are used to reserve vmalloc area
+> during boot process and those virtually mapped areas are never unmapped.
+> So `OR` VM_STATIC flag to the areas in vmalloc_init() when importing
+> existing vmlist entries and prevent those areas from being removed from the
+> rbtree by accident.
 
-Signed-off-by: Hoeun Ryu <hoeun.ryu@gmail.com>
----
- include/linux/vmalloc.h | 1 +
- mm/vmalloc.c            | 9 ++++++---
- 2 files changed, 7 insertions(+), 3 deletions(-)
-
-diff --git a/include/linux/vmalloc.h b/include/linux/vmalloc.h
-index 46991ad..3df53fc 100644
---- a/include/linux/vmalloc.h
-+++ b/include/linux/vmalloc.h
-@@ -19,6 +19,7 @@ struct notifier_block;		/* in notifier.h */
- #define VM_UNINITIALIZED	0x00000020	/* vm_struct is not fully initialized */
- #define VM_NO_GUARD		0x00000040      /* don't add guard page */
- #define VM_KASAN		0x00000080      /* has allocated kasan shadow memory */
-+#define VM_STATIC		0x00000200
- /* bits [20..32] reserved for arch specific ioremap internals */
- 
- /*
-diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-index 8ef8ea1..fb5049a 100644
---- a/mm/vmalloc.c
-+++ b/mm/vmalloc.c
-@@ -1262,7 +1262,7 @@ void __init vmalloc_init(void)
- 	/* Import existing vmlist entries. */
- 	for (tmp = vmlist; tmp; tmp = tmp->next) {
- 		va = kzalloc(sizeof(struct vmap_area), GFP_NOWAIT);
--		va->flags = VM_VM_AREA;
-+		va->flags = VM_VM_AREA | VM_STATIC;
- 		va->va_start = (unsigned long)tmp->addr;
- 		va->va_end = va->va_start + tmp->size;
- 		va->vm = tmp;
-@@ -1480,7 +1480,7 @@ struct vm_struct *remove_vm_area(const void *addr)
- 	might_sleep();
- 
- 	va = find_vmap_area((unsigned long)addr);
--	if (va && va->flags & VM_VM_AREA) {
-+	if (va && va->flags & VM_VM_AREA && likely(!(va->flags & VM_STATIC))) {
- 		struct vm_struct *vm = va->vm;
- 
- 		spin_lock(&vmap_area_lock);
-@@ -1510,7 +1510,7 @@ static void __vunmap(const void *addr, int deallocate_pages)
- 
- 	area = remove_vm_area(addr);
- 	if (unlikely(!area)) {
--		WARN(1, KERN_ERR "Trying to vfree() nonexistent vm area (%p)\n",
-+		WARN(1, KERN_ERR "Trying to vfree() nonexistent or static vm area (%p)\n",
- 				addr);
- 		return;
- 	}
-@@ -2708,6 +2708,9 @@ static int s_show(struct seq_file *m, void *p)
- 	if (v->phys_addr)
- 		seq_printf(m, " phys=%pa", &v->phys_addr);
- 
-+	if (v->flags & VM_STATIC)
-+		seq_puts(m, " static");
-+
- 	if (v->flags & VM_IOREMAP)
- 		seq_puts(m, " ioremap");
- 
--- 
-2.7.4
+How would they be removed "by accident"?
