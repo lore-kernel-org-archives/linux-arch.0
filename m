@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:38116 "EHLO
+Received: from merlin.infradead.org ([205.233.59.134]:38114 "EHLO
         merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753567AbdDLM0T (ORCPT
+        with ESMTP id S1753566AbdDLM0T (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Apr 2017 08:26:19 -0400
 From: David Woodhouse <dwmw2@infradead.org>
-Subject: [PATCH v2 26/27] sparc: Use generic pci_mmap_resource_range()
-Date: Wed, 12 Apr 2017 13:26:15 +0100
-Message-ID: <24e2183a01d23fe3516b7a6c084949bdecc447f3.1491999859.git.dwmw2@infradead.org>
+Subject: [PATCH v2 22/27] xtensa: Use generic pci_mmap_resource_range()
+Date: Wed, 12 Apr 2017 13:26:11 +0100
+Message-ID: <cd5598d945d7fdac72da5b9b3c6e2b63bcbf95bb.1491999859.git.dwmw2@infradead.org>
 In-Reply-To: <cover.1491999859.git.dwmw2@infradead.org>
 References: <cover.1491999859.git.dwmw2@infradead.org>
 In-Reply-To: <cover.1491999859.git.dwmw2@infradead.org>
@@ -14,77 +14,58 @@ References: <cover.1491999859.git.dwmw2@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20170412122615.nN8_ac1Acoolz3iKx9eRbb2w3wZoXz6mOHdc7nlmtE0@z>
+Message-ID: <20170412122611.F5C2BSEtKm9XSQV4Q1nNm2uxSxwyYMEu7w6xfRH2CNg@z>
 
 From: David Woodhouse <dwmw@amazon.co.uk>
 
 Signed-off-by: David Woodhouse <dwmw@amazon.co.uk>
 ---
- arch/sparc/include/asm/pci_64.h |   1 +
- arch/sparc/kernel/pci.c         | 155 ----------------------------------------
- 2 files changed, 1 insertion(+), 155 deletions(-)
+ arch/xtensa/include/asm/pci.h |  7 ++--
+ arch/xtensa/kernel/pci.c      | 94 ++++---------------------------------------
+ 2 files changed, 12 insertions(+), 89 deletions(-)
 
-diff --git a/arch/sparc/include/asm/pci_64.h b/arch/sparc/include/asm/pci_64.h
-index b957ca5..b8206d5 100644
---- a/arch/sparc/include/asm/pci_64.h
-+++ b/arch/sparc/include/asm/pci_64.h
-@@ -42,6 +42,7 @@ static inline int pci_proc_domain(struct pci_bus *bus)
- /* Platform support for /proc/bus/pci/X/Y mmap()s. */
+diff --git a/arch/xtensa/include/asm/pci.h b/arch/xtensa/include/asm/pci.h
+index e4f366a..0ddb411 100644
+--- a/arch/xtensa/include/asm/pci.h
++++ b/arch/xtensa/include/asm/pci.h
+@@ -46,9 +46,10 @@ struct pci_dev;
  
- #define HAVE_PCI_MMAP
-+#define ARCH_GENERIC_PCI_MMAP_RESOURCE
- #define arch_can_pci_mmap_io()	1
- #define HAVE_ARCH_PCI_GET_UNMAPPED_AREA
- #define get_pci_unmapped_area get_fb_unmapped_area
-diff --git a/arch/sparc/kernel/pci.c b/arch/sparc/kernel/pci.c
-index 7eceaa1..56a9a9f 100644
---- a/arch/sparc/kernel/pci.c
-+++ b/arch/sparc/kernel/pci.c
-@@ -730,161 +730,6 @@ int pcibios_enable_device(struct pci_dev *dev, int mask)
- 	return 0;
- }
+ #define PCI_DMA_BUS_IS_PHYS	(1)
  
--/* Platform support for /proc/bus/pci/X/Y mmap()s. */
--
--/* If the user uses a host-bridge as the PCI device, he may use
-- * this to perform a raw mmap() of the I/O or MEM space behind
-- * that controller.
-- *
-- * This can be useful for execution of x86 PCI bios initialization code
-- * on a PCI card, like the xfree86 int10 stuff does.
-- */
--static int __pci_mmap_make_offset_bus(struct pci_dev *pdev, struct vm_area_struct *vma,
--				      enum pci_mmap_state mmap_state)
--{
--	struct pci_pbm_info *pbm = pdev->dev.archdata.host_controller;
--	unsigned long space_size, user_offset, user_size;
--
--	if (mmap_state == pci_mmap_io) {
--		space_size = resource_size(&pbm->io_space);
--	} else {
--		space_size = resource_size(&pbm->mem_space);
--	}
--
--	/* Make sure the request is in range. */
--	user_offset = vma->vm_pgoff << PAGE_SHIFT;
--	user_size = vma->vm_end - vma->vm_start;
--
--	if (user_offset >= space_size ||
--	    (user_offset + user_size) > space_size)
--		return -EINVAL;
--
--	if (mmap_state == pci_mmap_io) {
--		vma->vm_pgoff = (pbm->io_space.start +
--				 user_offset) >> PAGE_SHIFT;
--	} else {
--		vma->vm_pgoff = (pbm->mem_space.start +
--				 user_offset) >> PAGE_SHIFT;
--	}
--
--	return 0;
--}
--
--/* Adjust vm_pgoff of VMA such that it is the physical page offset
+-/* Tell drivers/pci/proc.c that we have pci_mmap_page_range() */
+-#define HAVE_PCI_MMAP		1
+-#define arch_can_pci_mmap_io()	1
++/* Tell PCI code what kind of PCI resource mappings we support */
++#define HAVE_PCI_MMAP			1
++#define ARCH_GENERIC_PCI_MMAP_RESOURCE	1
++#define arch_can_pci_mmap_io()		1
+ 
+ #endif /* __KERNEL__ */
+ 
+diff --git a/arch/xtensa/kernel/pci.c b/arch/xtensa/kernel/pci.c
+index 903963e..8f11b6d 100644
+--- a/arch/xtensa/kernel/pci.c
++++ b/arch/xtensa/kernel/pci.c
+@@ -47,7 +47,6 @@
+  * pcibios_align_resource
+  * pcibios_fixup_bus
+  * pci_bus_add_device
+- * pci_mmap_page_range
+  */
+ 
+ struct pci_controller* pci_ctrl_head;
+@@ -266,98 +265,21 @@ pci_controller_num(struct pci_dev *dev)
+ #endif /* CONFIG_PROC_FS */
+ 
+ /*
+- * Platform support for /proc/bus/pci/X/Y mmap()s,
+- * modelled on the sparc64 implementation by Dave Miller.
++ * Platform support for /proc/bus/pci/X/Y mmap()s.
+  *  -- paulus.
+  */
+ 
+-/*
+- * Adjust vm_pgoff of VMA such that it is the physical page offset
 - * corresponding to the 32-bit pci bus offset for DEV requested by the user.
 - *
 - * Basically, the user finds the base address for his device which he wishes
@@ -94,83 +75,67 @@ index 7eceaa1..56a9a9f 100644
 - *
 - * Returns negative error code on failure, zero on success.
 - */
--static int __pci_mmap_make_offset(struct pci_dev *pdev,
--				  struct vm_area_struct *vma,
--				  enum pci_mmap_state mmap_state)
--{
--	unsigned long user_paddr, user_size;
--	int i, err;
--
--	/* First compute the physical address in vma->vm_pgoff,
--	 * making sure the user offset is within range in the
--	 * appropriate PCI space.
--	 */
--	err = __pci_mmap_make_offset_bus(pdev, vma, mmap_state);
--	if (err)
--		return err;
--
--	/* If this is a mapping on a host bridge, any address
--	 * is OK.
--	 */
--	if ((pdev->class >> 8) == PCI_CLASS_BRIDGE_HOST)
--		return err;
--
--	/* Otherwise make sure it's in the range for one of the
--	 * device's resources.
--	 */
--	user_paddr = vma->vm_pgoff << PAGE_SHIFT;
--	user_size = vma->vm_end - vma->vm_start;
--
--	for (i = 0; i <= PCI_ROM_RESOURCE; i++) {
--		struct resource *rp = &pdev->resource[i];
--		resource_size_t aligned_end;
--
--		/* Active? */
--		if (!rp->flags)
--			continue;
--
--		/* Same type? */
--		if (i == PCI_ROM_RESOURCE) {
--			if (mmap_state != pci_mmap_mem)
--				continue;
--		} else {
--			if ((mmap_state == pci_mmap_io &&
--			     (rp->flags & IORESOURCE_IO) == 0) ||
--			    (mmap_state == pci_mmap_mem &&
--			     (rp->flags & IORESOURCE_MEM) == 0))
--				continue;
--		}
--
--		/* Align the resource end to the next page address.
--		 * PAGE_SIZE intentionally added instead of (PAGE_SIZE - 1),
--		 * because actually we need the address of the next byte
--		 * after rp->end.
--		 */
--		aligned_end = (rp->end + PAGE_SIZE) & PAGE_MASK;
--
--		if ((rp->start <= user_paddr) &&
--		    (user_paddr + user_size) <= aligned_end)
--			break;
+-static __inline__ int
+-__pci_mmap_make_offset(struct pci_dev *dev, struct vm_area_struct *vma,
+-		       enum pci_mmap_state mmap_state)
++int pci_iobar_pfn(struct pci_dev *pdev, int bar, struct vm_area_struct *vma)
+ {
+-	struct pci_controller *pci_ctrl = (struct pci_controller*) dev->sysdata;
+-	unsigned long offset = vma->vm_pgoff << PAGE_SHIFT;
+-	unsigned long io_offset = 0;
+-	int i, res_bit;
++	struct pci_controller *pci_ctrl = (struct pci_controller*) pdev->sysdata;
++	resource_size_t ioaddr = pci_resource_start(pdev, bar);
+ 
+ 	if (pci_ctrl == 0)
+ 		return -EINVAL;		/* should never happen */
+ 
+-	/* If memory, add on the PCI bridge address offset */
+-	if (mmap_state == pci_mmap_mem) {
+-		res_bit = IORESOURCE_MEM;
+-	} else {
+-		io_offset = (unsigned long)pci_ctrl->io_space.base;
+-		offset += io_offset;
+-		res_bit = IORESOURCE_IO;
 -	}
 -
--	if (i > PCI_ROM_RESOURCE)
--		return -EINVAL;
+-	/*
+-	 * Check that the offset requested corresponds to one of the
+-	 * resources of the device.
+-	 */
+-	for (i = 0; i <= PCI_ROM_RESOURCE; i++) {
+-		struct resource *rp = &dev->resource[i];
+-		int flags = rp->flags;
 -
--	return 0;
+-		/* treat ROM as memory (should be already) */
+-		if (i == PCI_ROM_RESOURCE)
+-			flags |= IORESOURCE_MEM;
+-
+-		/* Active and same type? */
+-		if ((flags & res_bit) == 0)
+-			continue;
+-
+-		/* In the range of this resource? */
+-		if (offset < (rp->start & PAGE_MASK) || offset > rp->end)
+-			continue;
+-
+-		/* found it! construct the final physical address */
+-		if (mmap_state == pci_mmap_io)
+-			offset += pci_ctrl->io_space.start - io_offset;
+-		vma->vm_pgoff = offset >> PAGE_SHIFT;
+-		return 0;
+-	}
+-
+-	return -EINVAL;
 -}
--
--/* Set vm_page_prot of VMA, as appropriate for this architecture, for a pci
-- * device mapping.
-- */
--static void __pci_mmap_set_pgprot(struct pci_dev *dev, struct vm_area_struct *vma,
--					     enum pci_mmap_state mmap_state)
--{
--	/* Our io_remap_pfn_range takes care of this, do nothing.  */
--}
--
--/* Perform the actual remap of the pages for a PCI device mapping, as appropriate
-- * for this architecture.  The region in the process to map is described by vm_start
-- * and vm_end members of VMA, the base physical address is found in vm_pgoff.
++	/* Convert to an offset within this PCI controller */
++	ioaddr -= (unsigned long)pci_ctrl->io_space.base;
+ 
+-/*
+- * Perform the actual remap of the pages for a PCI device mapping, as
+- * appropriate for this architecture.  The region in the process to map
+- * is described by vm_start and vm_end members of VMA, the base physical
+- * address is found in vm_pgoff.
 - * The pci device structure is provided so that architectures may make mapping
 - * decisions on a per-device or per-bus basis.
 - *
@@ -178,7 +143,8 @@ index 7eceaa1..56a9a9f 100644
 - */
 -int pci_mmap_page_range(struct pci_dev *dev, int bar,
 -			struct vm_area_struct *vma,
--			enum pci_mmap_state mmap_state, int write_combine)
+-			enum pci_mmap_state mmap_state,
+-			int write_combine)
 -{
 -	int ret;
 -
@@ -186,21 +152,14 @@ index 7eceaa1..56a9a9f 100644
 -	if (ret < 0)
 -		return ret;
 -
--	__pci_mmap_set_pgprot(dev, vma, mmap_state);
+-	vma->vm_page_prot = pgprot_device(vma->vm_page_prot);
 -
--	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
--	ret = io_remap_pfn_range(vma, vma->vm_start,
--				 vma->vm_pgoff,
--				 vma->vm_end - vma->vm_start,
--				 vma->vm_page_prot);
--	if (ret)
--		return ret;
+-	ret = io_remap_pfn_range(vma, vma->vm_start, vma->vm_pgoff,
+-			         vma->vm_end - vma->vm_start,vma->vm_page_prot);
 -
--	return 0;
--}
--
- #ifdef CONFIG_NUMA
- int pcibus_to_node(struct pci_bus *pbus)
- {
+-	return ret;
++	vma->vm_pgoff += (ioaddr + pci_ctrl->io_space.start) >> PAGE_SHIFT;
++	return 0;
+ }
 -- 
 2.9.3
