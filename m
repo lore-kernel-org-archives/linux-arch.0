@@ -1,39 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:47663 "EHLO gate.crashing.org"
+Received: from foss.arm.com ([217.140.101.70]:41326 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752433AbdDKXQg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 11 Apr 2017 19:16:36 -0400
-Message-ID: <1491952528.7236.26.camel@kernel.crashing.org>
-Subject: Re: [PATCH v3 21/32] powerpc: include default ioremap_nopost()
- implementation
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Date: Wed, 12 Apr 2017 09:15:28 +1000
-In-Reply-To: <20170411142456.GB6821@red-moon>
-References: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
-         <20170411122923.6285-22-lorenzo.pieralisi@arm.com>
-         <1491917928.7236.8.camel@kernel.crashing.org>
-         <20170411142456.GB6821@red-moon>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+        id S1751393AbdDLIeF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 12 Apr 2017 04:34:05 -0400
+Date: Wed, 12 Apr 2017 09:33:59 +0100
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: "Consolidate get_dma_ops" breaks Xen on ARM
+Message-ID: <20170412083359.GA19019@e104818-lin.cambridge.arm.com>
+References: <alpine.DEB.2.10.1704101713080.2759@sstabellini-ThinkPad-X260>
+ <CY1PR0401MB1536C1FF3C069BC88D1DB14581000@CY1PR0401MB1536.namprd04.prod.outlook.com>
+ <a758dfc6-2b00-e279-303c-ba1e27380e35@arm.com>
+ <20170411133649.GB27857@e104818-lin.cambridge.arm.com>
+ <alpine.DEB.2.10.1704111411350.2759@sstabellini-ThinkPad-X260>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <alpine.DEB.2.10.1704111411350.2759@sstabellini-ThinkPad-X260>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Michael Ellerman <mpe@ellerman.id.au>, Bjorn Helgaas <bhelgaas@google.com>, Paul Mackerras <paulus@samba.org>
-Message-ID: <20170411231528.SEENdpuWCXewDnsK1KjTOKBVPWEeByePuObBPvLnoCI@z>
+To: Stefano Stabellini <sstabellini@kernel.org>
+Cc: Julien Grall <julien.grall@arm.com>, Bart Van Assche <Bart.VanAssche@sandisk.com>, "boris.ostrovsky@oracle.com" <boris.ostrovsky@oracle.com>, "jgross@suse.com" <jgross@suse.com>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "dwmw2@infradead.org" <dwmw2@infradead.org>, "hpa@zytor.com" <hpa@zytor.com>, "mingo@redhat.com" <mingo@redhat.com>, "linux@armlinux.org.uk" <linux@armlinux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, linux-arm-kernel@lists.infradead.org
+Message-ID: <20170412083359.WkO1I2SZNbuucOadTHgr-3s4Dt_4JB0eypKXuhTxdhU@z>
 
-On Tue, 2017-04-11 at 15:24 +0100, Lorenzo Pieralisi wrote:
-> Ok, point taken. BTW, may I ask you guys to have a look into this
-> please ?
+On Tue, Apr 11, 2017 at 04:39:09PM -0700, Stefano Stabellini wrote:
+> On Tue, 11 Apr 2017, Catalin Marinas wrote:
+> > On Tue, Apr 11, 2017 at 01:43:28PM +0100, Julien Grall wrote:
+> > > On 11/04/17 02:14, Bart Van Assche wrote:
+> > > > On 04/10/17 17:31, Stefano Stabellini wrote:
+> > > >> I think the reason is that, as you can see, if (dev && dev->dma_ops),
+> > > >> dev->dma_ops is returned, while before this changes, xen_dma_ops was
+> > > >> returned on Xen on ARM.
+> > > >>
+> > > >> Unfortunately DMA cannot work properly without using the appropriate
+> > > >> xen_dma_ops. See drivers/xen/swiotlb-xen.c and arch/arm/xen/mm.c for
+> > > >> more details. (The problem is easy to spot, but I wasn't CC'ed on the
+> > > >> patch.)
+> > > >>
+> > > >> I don't know how to solve this problem without introducing some sort of
+> > > >> if (xen()) in include/linux/dma-mapping.h.
+> > > > 
+> > > > Sorry but I don't have access to an ARM development system. Does your 
+> > > > comment apply to dev == NULL only, dev != NULL only or perhaps to both? 
+> > > > If your comment applies to dev != NULL only, can you check whether 
+> > > > adding something like set_dma_ops(dev, get_arch_dma_ops(NULL)) to the 
+> > > > appropriate ARM arch_setup_dma_ops() function is sufficient?
+> > > 
+> > > If I understand correctly, set_dma_ops will replace dev->dma_ops with
+> > > Xen DMA ops.
+[...]
+> > Yet another way would be for dom0 to always set dev->dma_ops to
+> > xen_dma_ops and preserve the real dma_ops somewhere under dev->archdata.
+> > You could intercept the arch_setup_dma_ops() function for this or use
+> > bus_register_notifier() (though I think the former is easier). The Xen
+> > code making use of the real dma_ops would have to dig them out from
+> > dev->archdata.
 > 
-> https://lkml.org/lkml/2017/4/6/743
-> 
-> It is a side effect of this thread (v2), not sure why <asm/io.h>
-> on powerpc has to include <linux/io.h>.
+> This is a good suggestion, Catalin. Thank you. See below. Is that what
+> you have in mind? Julien could you test it, please? If it is the right
+> approach, I'll submit the patch properly and rename __generic_dma_ops to
+> xen_generic_dma_ops or something.
 
-Not sure how we ended up with that... it's odd indeed.
+It looks fine to me (subject to testing successfully).
 
-Michael ? Any reason we can't just remove it ?
-
-Cheers,
-Ben.
+-- 
+Catalin
