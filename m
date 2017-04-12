@@ -1,132 +1,104 @@
-From: "Kirill A. Shutemov" <kirill@shutemov.name>
-Subject: Re: [PATCH 8/8] x86/mm: Allow to have userspace mappings above
- 47-bits
-Date: Wed, 12 Apr 2017 14:11:57 +0300
-Message-ID: <20170412111157.h6tjryt7jbum4tfg@node.shutemov.name>
-References: <20170406140106.78087-1-kirill.shutemov@linux.intel.com>
- <20170406140106.78087-9-kirill.shutemov@linux.intel.com>
- <8d68093b-670a-7d7e-2216-bf64b19c7a48@linux.vnet.ibm.com>
- <20170407155945.7lyapjbwacg3ikw6@node.shutemov.name>
- <87wpap6h7q.fsf@concordia.ellerman.id.au>
+From: Russell King - ARM Linux <linux@armlinux.org.uk>
+Subject: Re: [PATCH v3 04/32] asm-generic: add ioremap_nopost() remap interface
+Date: Wed, 12 Apr 2017 12:20:22 +0100
+Message-ID: <20170412112022.GY17774@n2100.armlinux.org.uk>
+References: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
+ <20170411122923.6285-5-lorenzo.pieralisi@arm.com>
+ <1491917983.7236.9.camel@kernel.crashing.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 Content-Disposition: inline
-In-Reply-To: <87wpap6h7q.fsf@concordia.ellerman.id.au>
-Sender: owner-linux-mm@kvack.org
-To: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Anshuman Khandual <khandual@linux.vnet.ibm.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Dmitry Safonov <dsafonov@virtuozzo.com>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
+In-Reply-To: <1491917983.7236.9.camel@kernel.crashing.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Jonas Bonn <jonas@southpole.se>, Rich Felker <dalias@libc.org>, linux-pci@vger.kernel.org, Will Deacon <will.deacon@arm.com>, David Howells <dhowells@redhat.com>, Max Filippov <jcmvbkbc@gmail.com>, Paul Mackerras <paulus@samba.org>, Huacai Chen <chenhc@lemote.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, linux-arch@vger.kernel.org, Jesper Nilsson <jesper.nilsson@axis.com>, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Ingo Molnar <mingo@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Catalin Marinas <catalin.marinas@arm.com>, Matt Turner <mattst88@gmail.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Fenghua Yu <fenghua.yu>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Apr 12, 2017 at 08:41:29PM +1000, Michael Ellerman wrote:
-> Hi Kirill,
-> 
-> I'm interested in this because we're doing pretty much the same thing on
-> powerpc at the moment, and I want to make sure x86 & powerpc end up with
-> compatible behaviour.
-> 
-> "Kirill A. Shutemov" <kirill@shutemov.name> writes:
-> > On Fri, Apr 07, 2017 at 07:05:26PM +0530, Anshuman Khandual wrote:
-> >> On 04/06/2017 07:31 PM, Kirill A. Shutemov wrote:
-> >> > On x86, 5-level paging enables 56-bit userspace virtual address space.
-> >> > Not all user space is ready to handle wide addresses. It's known that
-> >> > at least some JIT compilers use higher bits in pointers to encode their
-> >> > information. It collides with valid pointers with 5-level paging and
-> >> > leads to crashes.
-> >> > 
-> >> > To mitigate this, we are not going to allocate virtual address space
-> >> > above 47-bit by default.
-> >> 
-> >> I am wondering if the commitment of virtual space range to the
-> >> user space is kind of an API which needs to be maintained there
-> >> after. If that is the case then we need to have some plans when
-> >> increasing it from the current level.
-> >
-> > I don't think we should ever enable full address space for all
-> > applications. There's no point.
-> >
-> > /bin/true doesn't need more than 64TB of virtual memory.
-> > And I hope never will.
-> >
-> > By increasing virtual address space for everybody we will pay (assuming
-> > current page table format) at least one extra page per process for moving
-> > stack at very end of address space.
-> 
-> That assumes the current layout though, it could be different.
+On Tue, Apr 11, 2017 at 11:39:43PM +1000, Benjamin Herrenschmidt wrote:
+> On Tue, 2017-04-11 at 13:28 +0100, Lorenzo Pieralisi wrote:
+> > +static inline void __iomem *ioremap_nopost(phys_addr_t offset,
+> > size_t size)
+> > +{
+> > +=A0=A0=A0=A0=A0=A0=A0return ioremap_nocache(offset, size);
+> > +}
+> > +
+> =
 
-True.
+> No this is wrong as I explained.
+> =
 
-> > Yes, you can gain something in security by having more bits for ASLR, but
-> > I don't think it worth the cost.
-> 
-> It may not be worth the cost now, for you, but that trade off will be
-> different for other people and at other times.
-> 
-> So I think it's quite likely some folks will be interested in the full
-> address range for ASLR.
+> This is a semantic that simply *cannot* be generically provided accross
+> architectures as a mapping attribute.
+> =
 
-We always can extend interface if/when userspace demand materialize.
+> The solution to your problem lies elsewhere.
 
-Let's not invent interfaces unless we're sure there's demand.
+I disagree.  Sure, it may not be supportable across all architectures,
+but we're not introducing something brand new here.
 
-> >> expanding the address range next time around. I think we need
-> >> to have a plan for this and particularly around 'hint' mechanism
-> >> and whether it should be decided per mmap() request or at the
-> >> task level.
-> >
-> > I think the reasonable way for an application to claim it's 63-bit clean
-> > is to make allocations with (void *)-1 as hint address.
-> 
-> I do like the simplicity of that.
-> 
-> But I wouldn't be surprised if some (crappy) code out there already
-> passes an address of -1. Probably it won't break if it starts getting
-> high addresses, but who knows.
+What we're trying to do is to fix some _existing_ drivers that are
+already using ioremap() to map the PCI IO and configuration spaces.
+Maybe it would help if those drivers were part of this patch set,
+rather than the patch set just introducing a whole new architecture
+interface without really showing where the problem drivers are.
 
-To make an application break we need two thing:
+The issue here is that if we make this new ioremap_nopost() fail by
+returning NULL if an architecture does not provide an implementation,
+then these drivers are going to start failing on such architectures.
 
- - it sets hint address to -1 by mistake;
- - it uses upper bit to encode its info;
+It is only safe to do that where we know for certain that the drivers
+are not used - but I don't think that's the case here (it's difficult
+to tell, because no drivers are updated in this series, so we don't
+know which are going to be affected.)
 
-I would be surprise if such combination exists in real world.
+So, the question is:
 
-But let me know if you have any particular code in mind.
+- is it better to provide a default implementation which provides the
+  functionality that existing drivers are _already_ using, albiet not
+  entirely correctly.
 
-> An alternative would be to only interpret the hint as requesting a large
-> address if it's >= 64TB && < TASK_SIZE_MAX.
+or:
 
-Nope. That doesn't work if you take into accounting further extension of the
-address space.
+- is it better to break drivers on architectures when they're converted
+  to fix up this issue.
 
-Consider extension x86 to 6-level page tables. User-space has 63-bit
-address space. TASK_SIZE_MAX is bumped to (1UL << 63) - PAGE_SIZE.
+What, I suppose, we could do is not bother with a default implementation,
+but instead litter drivers with:
 
-An application wants access to full address space. It gets recompiled
-using new TASK_SIZE_MAX as hint address. And everything works fine.
++#ifdef ioremap_post
++	base =3D ioremap_post(...);
++#else
+	base =3D ioremap(...);
++#endif
 
-But only on machine with 6-level paging enabled.
+which gets around your objection - not providing a default that's weaker
+than required, but also not breaking the drivers.  The problem is that
+we end up littering drivers with ifdefs.
 
-If we run the same application binary on machine with older kernel and
-5-level paging, the application will get access to only 47-bit address
-space, not 56-bit, as hint address is more than TASK_SIZE_MAX in this
-configuration.
+However, I'm willing to bet that the architectures that you're saying
+will not be able to support the weaker semantic won't have any need to
+use these drivers, or if they do, the drivers will need the method of
+accessing stuff like PCI IO and configuration spaces radically altered.
 
-> If we're really worried about breaking userspace then a new MMAP flag
-> seems like the safest option?
-> 
-> I don't feel particularly strongly about any option, but like I said my
-> main concern is that x86 & powerpc end up with the same behaviour.
-> 
-> And whatever we end up with someone will need to do an update to the man
-> page for mmap.
+So, maybe the best solution is to not provide any kind of default
+implementation, add a HAVE_IOREMAP_POST Kconfig symbol, have architectures
+select that when they do provide ioremap_post(), and make the drivers
+depend on that (so we don't end up trying to build these drivers on
+architectures where they can never work.)  Down side to that is reduced
+build coverage.
 
-Sure.
+-- =
 
--- 
- Kirill A. Shutemov
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
+FTTC broadband for 0.8mile line: currently at 9.6Mbps down 400kbps up
+according to speedtest.net.
