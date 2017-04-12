@@ -1,38 +1,63 @@
-From: Hoeun Ryu <hoeun.ryu@gmail.com>
-Subject: Re: [PATCH] mm: add VM_STATIC flag to vmalloc and prevent from removing the areas
-Date: Wed, 12 Apr 2017 20:42:08 +0900
-Message-ID: <AC5E3048-6E2B-4DBE-80BA-AAE2D3EED969@gmail.com>
-References: <1491973350-26816-1-git-send-email-hoeun.ryu@gmail.com> <20170412060218.GA16170@infradead.org>
-Mime-Version: 1.0 (1.0)
-Content-Type: text/plain;
-	charset=us-ascii
-Content-Transfer-Encoding: quoted-printable
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20170412060218.GA16170@infradead.org>
-Sender: owner-linux-mm@kvack.org
-To: Christoph Hellwig <hch@infradead.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Andreas Dilger <adilger@dilger.ca>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@suse.com>, Chris Wilson <chris@chris-wilson.co.uk>, Ingo Molnar <mingo@kernel.org>, zijun_hu <zijun_hu@htc.com>, Matthew Wilcox <mawilcox@microsoft.com>, Thomas Garnier <thgarnie@google.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+From: David Woodhouse <dwmw2@infradead.org>
+Subject: [PATCH v2 04/27] xtensa: Do not mmap PCI BARs to userspace as write-through
+Date: Wed, 12 Apr 2017 13:25:53 +0100
+Message-ID: <6816f5f6ecc8d862718d3b0f87a7916576f5cef5.1491999859.git.dwmw2@infradead.org>
+References: <cover.1491999859.git.dwmw2@infradead.org>
+Return-path: <linux-pci-owner@vger.kernel.org>
+In-Reply-To: <cover.1491999859.git.dwmw2@infradead.org>
+In-Reply-To: <cover.1491999859.git.dwmw2@infradead.org>
+References: <cover.1491999859.git.dwmw2@infradead.org>
+Sender: linux-pci-owner@vger.kernel.org
+To: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
+From: David Woodhouse <dwmw@amazon.co.uk>
 
-> On Apr 12, 2017, at 3:02 PM, Christoph Hellwig <hch@infradead.org> wrote:
->=20
->> On Wed, Apr 12, 2017 at 02:01:59PM +0900, Hoeun Ryu wrote:
->> vm_area_add_early/vm_area_register_early() are used to reserve vmalloc ar=
-ea
->> during boot process and those virtually mapped areas are never unmapped.
->> So `OR` VM_STATIC flag to the areas in vmalloc_init() when importing
->> existing vmlist entries and prevent those areas from being removed from t=
-he
->> rbtree by accident.
->=20
-> How would they be removed "by accident"?
+These should be uncached, not write-through.
 
-I don't mean actual use-cases, but I just want to make it robust against lik=
-e programming errors.
+Signed-off-by: David Woodhouse <dwmw@amazon.co.uk>
+---
+ arch/xtensa/kernel/pci.c | 21 +--------------------
+ 1 file changed, 1 insertion(+), 20 deletions(-)
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+diff --git a/arch/xtensa/kernel/pci.c b/arch/xtensa/kernel/pci.c
+index b848cc3..5b73fc2 100644
+--- a/arch/xtensa/kernel/pci.c
++++ b/arch/xtensa/kernel/pci.c
+@@ -334,25 +334,6 @@ __pci_mmap_make_offset(struct pci_dev *dev, struct vm_area_struct *vma,
+ }
+ 
+ /*
+- * Set vm_page_prot of VMA, as appropriate for this architecture, for a pci
+- * device mapping.
+- */
+-static __inline__ void
+-__pci_mmap_set_pgprot(struct pci_dev *dev, struct vm_area_struct *vma,
+-		      enum pci_mmap_state mmap_state, int write_combine)
+-{
+-	int prot = pgprot_val(vma->vm_page_prot);
+-
+-	/* Set to write-through */
+-	prot = (prot & _PAGE_CA_MASK) | _PAGE_CA_WT;
+-#if 0
+-	if (!write_combine)
+-		prot |= _PAGE_WRITETHRU;
+-#endif
+-	vma->vm_page_prot = __pgprot(prot);
+-}
+-
+-/*
+  * Perform the actual remap of the pages for a PCI device mapping, as
+  * appropriate for this architecture.  The region in the process to map
+  * is described by vm_start and vm_end members of VMA, the base physical
+@@ -372,7 +353,7 @@ int pci_mmap_page_range(struct pci_dev *dev, struct vm_area_struct *vma,
+ 	if (ret < 0)
+ 		return ret;
+ 
+-	__pci_mmap_set_pgprot(dev, vma, mmap_state, write_combine);
++	vma->vm_page_prot = pgprot_device(vma->vm_page_prot);
+ 
+ 	ret = io_remap_pfn_range(vma, vma->vm_start, vma->vm_pgoff,
+ 			         vma->vm_end - vma->vm_start,vma->vm_page_prot);
+-- 
+2.9.3
