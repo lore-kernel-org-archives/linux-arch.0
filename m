@@ -1,64 +1,71 @@
 From: David Woodhouse <dwmw2@infradead.org>
-Subject: [PATCH v2 24/27] ia64: Remove redundant checks for WC in pci_mmap_page_range()
-Date: Wed, 12 Apr 2017 13:26:13 +0100
-Message-ID: <9c83a007289d75decdb182afd0434dc517fe433b.1491999859.git.dwmw2@infradead.org>
+Subject: [PATCH v2 19/27] pci: Add I/O BAR support to generic pci_mmap_resource_range()
+Date: Wed, 12 Apr 2017 13:26:08 +0100
+Message-ID: <3218f933294a1a10e6e741fa05b714ff07bbac31.1491999859.git.dwmw2@infradead.org>
 References: <cover.1491999859.git.dwmw2@infradead.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-pci-owner@vger.kernel.org>
 In-Reply-To: <cover.1491999859.git.dwmw2@infradead.org>
 In-Reply-To: <cover.1491999859.git.dwmw2@infradead.org>
 References: <cover.1491999859.git.dwmw2@infradead.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-pci-owner@vger.kernel.org
 To: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 From: David Woodhouse <dwmw@amazon.co.uk>
 
-For a PCI MMIO BAR, phys_mem_access_prot() should always return UC or WC.
-And while a mixture of cached and uncached mappings is forbidden, we were
-already mixing WC and UC, which is OK. Just do as we're asked.
+This will need to call into an arch-provided pci_iobar_pfn() function.
 
 Signed-off-by: David Woodhouse <dwmw@amazon.co.uk>
 ---
- arch/ia64/pci/pci.c | 18 ++----------------
- 1 file changed, 2 insertions(+), 16 deletions(-)
+ drivers/pci/mmap.c  | 11 +++++++----
+ include/linux/pci.h |  4 ++++
+ 2 files changed, 11 insertions(+), 4 deletions(-)
 
-diff --git a/arch/ia64/pci/pci.c b/arch/ia64/pci/pci.c
-index 27020f3..7438e8c 100644
---- a/arch/ia64/pci/pci.c
-+++ b/arch/ia64/pci/pci.c
-@@ -423,9 +423,6 @@ pci_mmap_page_range (struct pci_dev *dev, int bar,
- 		     struct vm_area_struct *vma,
- 		     enum pci_mmap_state mmap_state, int write_combine)
+diff --git a/drivers/pci/mmap.c b/drivers/pci/mmap.c
+index 9ba720b..16e1d70 100644
+--- a/drivers/pci/mmap.c
++++ b/drivers/pci/mmap.c
+@@ -45,9 +45,6 @@ int pci_mmap_resource_range(struct pci_dev *pdev, int bar,
  {
--	unsigned long size = vma->vm_end - vma->vm_start;
--	pgprot_t prot;
+ 	unsigned long size;
+ 
+-	if (mmap_state == pci_mmap_io)
+-		return -EINVAL;
 -
- 	/*
- 	 * I/O space cannot be accessed via normal processor loads and
- 	 * stores on this platform.
-@@ -439,21 +436,10 @@ pci_mmap_page_range (struct pci_dev *dev, int bar,
- 		 */
+ 	size = ((pci_resource_len(pdev, bar) - 1) >> PAGE_SHIFT) + 1;
+ 	if (vma->vm_pgoff + vma_pages(vma) > size)
  		return -EINVAL;
- 
--	prot = phys_mem_access_prot(NULL, vma->vm_pgoff, size,
--				    vma->vm_page_prot);
--
--	/*
--	 * If the user requested WC, the kernel uses UC or WC for this region,
--	 * and the chipset supports WC, we can use WC. Otherwise, we have to
--	 * use the same attribute the kernel uses.
--	 */
--	if (write_combine &&
--	    ((pgprot_val(prot) & _PAGE_MA_MASK) == _PAGE_MA_UC ||
--	     (pgprot_val(prot) & _PAGE_MA_MASK) == _PAGE_MA_WC) &&
--	    efi_range_is_wc(vma->vm_start, vma->vm_end - vma->vm_start))
-+	if (write_combine)
- 		vma->vm_page_prot = pgprot_writecombine(vma->vm_page_prot);
+@@ -57,7 +54,13 @@ int pci_mmap_resource_range(struct pci_dev *pdev, int bar,
  	else
--		vma->vm_page_prot = prot;
-+		vma->vm_page_prot = pgprot_device(vma->vm_page_prot);
+ 		vma->vm_page_prot = pgprot_device(vma->vm_page_prot);
  
- 	if (remap_pfn_range(vma, vma->vm_start, vma->vm_pgoff,
- 			     vma->vm_end - vma->vm_start, vma->vm_page_prot))
+-	vma->vm_pgoff += (pci_resource_start(pdev, bar) >> PAGE_SHIFT);
++	if (mmap_state == pci_mmap_io) {
++		int ret = pci_iobar_pfn(pdev, bar, vma);
++		if (ret)
++			return ret;
++	} else
++		vma->vm_pgoff += (pci_resource_start(pdev, bar) >> PAGE_SHIFT);
++
+         vma->vm_ops = &pci_phys_vm_ops;
+ 
+ 	return io_remap_pfn_range(vma, vma->vm_start, vma->vm_pgoff,
+diff --git a/include/linux/pci.h b/include/linux/pci.h
+index ff1c818..0d40ddd 100644
+--- a/include/linux/pci.h
++++ b/include/linux/pci.h
+@@ -1648,8 +1648,12 @@ int pci_mmap_page_range(struct pci_dev *pdev, int bar,
+ #ifndef arch_can_pci_mmap_wc
+ #define arch_can_pci_mmap_wc()		0
+ #endif
++
+ #ifndef arch_can_pci_mmap_io
+ #define arch_can_pci_mmap_io()		0
++#define pci_iobar_pfn(pdev, bar, vma) (-EINVAL)
++#else
++int pci_iobar_pfn(struct pci_dev *pdev, int bar, struct vm_area_struct *vma);
+ #endif
+ 
+ #ifndef pci_root_bus_fwnode
 -- 
 2.9.3
