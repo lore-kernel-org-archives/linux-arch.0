@@ -1,39 +1,73 @@
 From: David Woodhouse <dwmw2@infradead.org>
-Subject: [PATCH v2 23/27] ia64: Remove redundant valid_mmap_phys_addr_range() from pci_mmap_page_range()
-Date: Wed, 12 Apr 2017 13:26:12 +0100
-Message-ID: <99e2b97a2cbf26b09b3317abe41605c6c3ed63ec.1491999859.git.dwmw2@infradead.org>
+Subject: [PATCH v2 12/27] cris: Use generic pci_mmap_resource_range()
+Date: Wed, 12 Apr 2017 13:26:01 +0100
+Message-ID: <828502b94cf12a278d4b1e43e98d0f4d3fd71ef2.1491999859.git.dwmw2@infradead.org>
 References: <cover.1491999859.git.dwmw2@infradead.org>
-Return-path: <linux-pci-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from merlin.infradead.org ([205.233.59.134]:38102 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753461AbdDLM0T (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Apr 2017 08:26:19 -0400
 In-Reply-To: <cover.1491999859.git.dwmw2@infradead.org>
 In-Reply-To: <cover.1491999859.git.dwmw2@infradead.org>
 References: <cover.1491999859.git.dwmw2@infradead.org>
-Sender: linux-pci-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
 
 From: David Woodhouse <dwmw@amazon.co.uk>
 
-We know we are within a valid MMIO BAR by the time this function gets called;
-there's no need to check.
-
 Signed-off-by: David Woodhouse <dwmw@amazon.co.uk>
 ---
- arch/ia64/pci/pci.c | 3 ---
- 1 file changed, 3 deletions(-)
+ arch/cris/arch-v32/drivers/pci/bios.c | 23 -----------------------
+ arch/cris/include/asm/pci.h           |  1 +
+ 2 files changed, 1 insertion(+), 23 deletions(-)
 
-diff --git a/arch/ia64/pci/pci.c b/arch/ia64/pci/pci.c
-index 053c688..27020f3 100644
---- a/arch/ia64/pci/pci.c
-+++ b/arch/ia64/pci/pci.c
-@@ -439,9 +439,6 @@ pci_mmap_page_range (struct pci_dev *dev, int bar,
- 		 */
- 		return -EINVAL;
+diff --git a/arch/cris/arch-v32/drivers/pci/bios.c b/arch/cris/arch-v32/drivers/pci/bios.c
+index a589686d..394c2a73 100644
+--- a/arch/cris/arch-v32/drivers/pci/bios.c
++++ b/arch/cris/arch-v32/drivers/pci/bios.c
+@@ -14,29 +14,6 @@ void pcibios_set_master(struct pci_dev *dev)
+ 	pci_write_config_byte(dev, PCI_LATENCY_TIMER, lat);
+ }
  
--	if (!valid_mmap_phys_addr_range(vma->vm_pgoff, size))
--		return -EINVAL;
+-int pci_mmap_page_range(struct pci_dev *dev, int bar,
+-			struct vm_area_struct *vma,
+-			enum pci_mmap_state mmap_state, int write_combine)
+-{
+-	unsigned long prot;
 -
- 	prot = phys_mem_access_prot(NULL, vma->vm_pgoff, size,
- 				    vma->vm_page_prot);
+-	/* Leave vm_pgoff as-is, the PCI space address is the physical
+-	 * address on this platform.
+-	 */
+-	prot = pgprot_val(vma->vm_page_prot);
+-	vma->vm_page_prot = __pgprot(prot);
+-
+-	/* Write-combine setting is ignored, it is changed via the mtrr
+-	 * interfaces on this platform.
+-	 */
+-	if (remap_pfn_range(vma, vma->vm_start, vma->vm_pgoff,
+-			     vma->vm_end - vma->vm_start,
+-			     vma->vm_page_prot))
+-		return -EAGAIN;
+-
+-	return 0;
+-}
+-
+ resource_size_t
+ pcibios_align_resource(void *data, const struct resource *res,
+ 		       resource_size_t size, resource_size_t align)
+diff --git a/arch/cris/include/asm/pci.h b/arch/cris/include/asm/pci.h
+index 65198cb..6e50533 100644
+--- a/arch/cris/include/asm/pci.h
++++ b/arch/cris/include/asm/pci.h
+@@ -42,6 +42,7 @@ struct pci_dev;
+ #define PCI_DMA_BUS_IS_PHYS	(1)
+ 
+ #define HAVE_PCI_MMAP
++#define ARCH_GENERIC_PCI_MMAP_RESOURCE
+ 
+ #endif /* __KERNEL__ */
  
 -- 
 2.9.3
