@@ -1,109 +1,162 @@
 From: David Woodhouse <dwmw2@infradead.org>
-Subject: [PATCH v2 08/27] pci: Use BAR index in sysfs attr->private instead of resource pointer
-Date: Wed, 12 Apr 2017 13:25:57 +0100
-Message-ID: <2325fe926807a7d4cde95c3cfd5d9b88ac4949b1.1491999859.git.dwmw2@infradead.org>
+Subject: [PATCH v2 05/27] pci: Add arch_can_pci_mmap_wc() macro
+Date: Wed, 12 Apr 2017 13:25:54 +0100
+Message-ID: <8536a58aa86a634c8ac53c54499351b3981ef20a.1491999859.git.dwmw2@infradead.org>
 References: <cover.1491999859.git.dwmw2@infradead.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-pci-owner@vger.kernel.org>
 In-Reply-To: <cover.1491999859.git.dwmw2@infradead.org>
 In-Reply-To: <cover.1491999859.git.dwmw2@infradead.org>
 References: <cover.1491999859.git.dwmw2@infradead.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-pci-owner@vger.kernel.org
 To: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 From: David Woodhouse <dwmw@amazon.co.uk>
 
-We store the pointer, and then on *every* use of it we loop over the
-device's resources to find out the index. That's kind of silly.
+Most of the almost-identical versions of pci_mmap_page_range() silently
+ignore the 'write_combine' argument and give uncached mappings.
+
+Yet we allow the PCIIOC_WRITE_COMBINE ioctl in /proc/bus/pci, expose the
+'resourceX_wc' file in sysfs, and allow an attempted mapping to apparently
+succeed.
+
+To fix this, introduce a macro arch_can_pci_mmap_wc() which indicates
+whether the platform can do a write-combining mapping. On x86 this ends
+up being pat_enabled(), while the few other platforms that support it
+can just set it to a literal '1'.
 
 Signed-off-by: David Woodhouse <dwmw@amazon.co.uk>
 ---
- drivers/pci/pci-sysfs.c | 38 ++++++++++++++------------------------
- 1 file changed, 14 insertions(+), 24 deletions(-)
+ Documentation/filesystems/sysfs-pci.txt |  4 ++++
+ arch/ia64/include/asm/pci.h             |  2 ++
+ arch/powerpc/include/asm/pci.h          |  5 +++--
+ arch/x86/include/asm/pci.h              |  2 ++
+ drivers/pci/pci-sysfs.c                 |  4 ++--
+ drivers/pci/proc.c                      | 15 ++++++++-------
+ include/linux/pci.h                     |  4 ++++
+ 7 files changed, 25 insertions(+), 11 deletions(-)
 
+diff --git a/Documentation/filesystems/sysfs-pci.txt b/Documentation/filesystems/sysfs-pci.txt
+index 6ea1ced..25b7f1c 100644
+--- a/Documentation/filesystems/sysfs-pci.txt
++++ b/Documentation/filesystems/sysfs-pci.txt
+@@ -117,6 +117,10 @@ code must define HAVE_PCI_MMAP and provide a pci_mmap_page_range function.
+ Platforms are free to only support subsets of the mmap functionality, but
+ useful return codes should be provided.
+ 
++Platforms which support write-combining maps of PCI resources must define
++arch_can_pci_mmap_wc() which shall evaluate to non-zero at runtime when
++write-combining is permitted.
++
+ Legacy resources are protected by the HAVE_PCI_LEGACY define.  Platforms
+ wishing to support legacy functionality should define it and provide
+ pci_legacy_read, pci_legacy_write and pci_mmap_legacy_page_range functions.
+diff --git a/arch/ia64/include/asm/pci.h b/arch/ia64/include/asm/pci.h
+index c0835b0..6283758 100644
+--- a/arch/ia64/include/asm/pci.h
++++ b/arch/ia64/include/asm/pci.h
+@@ -51,6 +51,8 @@ extern unsigned long ia64_max_iommu_merge_mask;
+ #define PCI_DMA_BUS_IS_PHYS	(ia64_max_iommu_merge_mask == ~0UL)
+ 
+ #define HAVE_PCI_MMAP
++#define arch_can_pci_mmap_wc()	1
++
+ extern int pci_mmap_page_range (struct pci_dev *dev, struct vm_area_struct *vma,
+ 				enum pci_mmap_state mmap_state, int write_combine);
+ #define HAVE_PCI_LEGACY
+diff --git a/arch/powerpc/include/asm/pci.h b/arch/powerpc/include/asm/pci.h
+index 93eded8..b5b68c6 100644
+--- a/arch/powerpc/include/asm/pci.h
++++ b/arch/powerpc/include/asm/pci.h
+@@ -81,8 +81,9 @@ struct vm_area_struct;
+ int pci_mmap_page_range(struct pci_dev *pdev, struct vm_area_struct *vma,
+ 			enum pci_mmap_state mmap_state, int write_combine);
+ 
+-/* Tell drivers/pci/proc.c that we have pci_mmap_page_range() */
+-#define HAVE_PCI_MMAP	1
++/* Tell drivers/pci/proc.c that we have pci_mmap_page_range() and it does WC */
++#define HAVE_PCI_MMAP		1
++#define arch_can_pci_mmap_wc()	1
+ 
+ extern int pci_legacy_read(struct pci_bus *bus, loff_t port, u32 *val,
+ 			   size_t count);
+diff --git a/arch/x86/include/asm/pci.h b/arch/x86/include/asm/pci.h
+index 1411dbe..f6e22c2 100644
+--- a/arch/x86/include/asm/pci.h
++++ b/arch/x86/include/asm/pci.h
+@@ -7,6 +7,7 @@
+ #include <linux/string.h>
+ #include <linux/scatterlist.h>
+ #include <asm/io.h>
++#include <asm/pat.h>
+ #include <asm/x86_init.h>
+ 
+ #ifdef __KERNEL__
+@@ -102,6 +103,7 @@ int pcibios_set_irq_routing(struct pci_dev *dev, int pin, int irq);
+ 
+ 
+ #define HAVE_PCI_MMAP
++#define arch_can_pci_mmap_wc()	pat_enabled()
+ extern int pci_mmap_page_range(struct pci_dev *dev, struct vm_area_struct *vma,
+ 			       enum pci_mmap_state mmap_state,
+ 			       int write_combine);
 diff --git a/drivers/pci/pci-sysfs.c b/drivers/pci/pci-sysfs.c
-index cb04bc2..534844d 100644
+index 7ac258f..7d494bd 100644
 --- a/drivers/pci/pci-sysfs.c
 +++ b/drivers/pci/pci-sysfs.c
-@@ -1017,26 +1017,20 @@ static int pci_mmap_resource(struct kobject *kobj, struct bin_attribute *attr,
- 			     struct vm_area_struct *vma, int write_combine)
- {
- 	struct pci_dev *pdev = to_pci_dev(kobj_to_dev(kobj));
--	struct resource *res = attr->private;
-+	int bar = (unsigned long)attr->private;
- 	enum pci_mmap_state mmap_type;
- 	resource_size_t start, end;
--	int i;
+@@ -1211,9 +1211,9 @@ static int pci_create_resource_files(struct pci_dev *pdev)
+ 
+ 		retval = pci_create_attr(pdev, i, 0);
+ 		/* for prefetchable resources, create a WC mappable file */
+-		if (!retval && pdev->resource[i].flags & IORESOURCE_PREFETCH)
++		if (!retval && arch_can_pci_mmap_wc() &&
++		    pdev->resource[i].flags & IORESOURCE_PREFETCH)
+ 			retval = pci_create_attr(pdev, i, 1);
 -
--	for (i = 0; i < PCI_ROM_RESOURCE; i++)
--		if (res == &pdev->resource[i])
--			break;
--	if (i >= PCI_ROM_RESOURCE)
--		return -ENODEV;
-+	struct resource *res = &pdev->resource[bar];
+ 		if (retval) {
+ 			pci_remove_resource_files(pdev);
+ 			return retval;
+diff --git a/drivers/pci/proc.c b/drivers/pci/proc.c
+index dc8912e..a2aa58a 100644
+--- a/drivers/pci/proc.c
++++ b/drivers/pci/proc.c
+@@ -210,14 +210,15 @@ static long proc_bus_pci_ioctl(struct file *file, unsigned int cmd,
+ 		break;
  
- 	if (res->flags & IORESOURCE_MEM && iomem_is_exclusive(res->start))
- 		return -EINVAL;
+ 	case PCIIOC_WRITE_COMBINE:
+-		if (arg)
+-			fpriv->write_combine = 1;
+-		else
+-			fpriv->write_combine = 0;
+-		break;
+-
++		if (arch_can_pci_mmap_wc()) {
++			if (arg)
++				fpriv->write_combine = 1;
++			else
++				fpriv->write_combine = 0;
++			break;
++		}
++		/* If arch decided it can't, fall through... */
+ #endif /* HAVE_PCI_MMAP */
+-
+ 	default:
+ 		ret = -EINVAL;
+ 		break;
+diff --git a/include/linux/pci.h b/include/linux/pci.h
+index eb3da1a..e614fb4 100644
+--- a/include/linux/pci.h
++++ b/include/linux/pci.h
+@@ -1626,6 +1626,10 @@ static inline int pci_get_new_domain_nr(void) { return -ENOSYS; }
  
--	if (!pci_mmap_fits(pdev, i, vma, PCI_MMAP_SYSFS)) {
-+	if (!pci_mmap_fits(pdev, bar, vma, PCI_MMAP_SYSFS)) {
- 		WARN(1, "process \"%s\" tried to map 0x%08lx bytes at page 0x%08lx on %s BAR %d (start 0x%16Lx, size 0x%16Lx)\n",
- 			current->comm, vma->vm_end-vma->vm_start, vma->vm_pgoff,
--			pci_name(pdev), i,
--			(u64)pci_resource_start(pdev, i),
--			(u64)pci_resource_len(pdev, i));
-+			pci_name(pdev), bar,
-+			(u64)pci_resource_start(pdev, bar),
-+			(u64)pci_resource_len(pdev, bar));
- 		return -EINVAL;
- 	}
+ #include <asm/pci.h>
  
-@@ -1044,7 +1038,7 @@ static int pci_mmap_resource(struct kobject *kobj, struct bin_attribute *attr,
- 	 * from /proc/bus/pci/ which is a "user visible" value. If this is
- 	 * different from the resource itself, arch will do necessary fixup.
- 	 */
--	pci_resource_to_user(pdev, i, res, &start, &end);
-+	pci_resource_to_user(pdev, bar, res, &start, &end);
- 	vma->vm_pgoff += start >> PAGE_SHIFT;
- 	mmap_type = res->flags & IORESOURCE_MEM ? pci_mmap_mem : pci_mmap_io;
- 	return pci_mmap_page_range(pdev, vma, mmap_type, write_combine);
-@@ -1069,22 +1063,18 @@ static ssize_t pci_resource_io(struct file *filp, struct kobject *kobj,
- 			       loff_t off, size_t count, bool write)
- {
- 	struct pci_dev *pdev = to_pci_dev(kobj_to_dev(kobj));
--	struct resource *res = attr->private;
-+	int bar = (unsigned long)attr->private;
-+	struct resource *res;
- 	unsigned long port = off;
--	int i;
- 
--	for (i = 0; i < PCI_ROM_RESOURCE; i++)
--		if (res == &pdev->resource[i])
--			break;
--	if (i >= PCI_ROM_RESOURCE)
--		return -ENODEV;
-+	res = &pdev->resource[bar];
- 
--	port += pci_resource_start(pdev, i);
-+	port += pci_resource_start(pdev, bar);
- 
--	if (port > pci_resource_end(pdev, i))
-+	if (port > pci_resource_end(pdev, bar))
- 		return 0;
- 
--	if (port + count - 1 > pci_resource_end(pdev, i))
-+	if (port + count - 1 > pci_resource_end(pdev, bar))
- 		return -EINVAL;
- 
- 	switch (count) {
-@@ -1186,7 +1176,7 @@ static int pci_create_attr(struct pci_dev *pdev, int num, int write_combine)
- 	res_attr->attr.name = res_attr_name;
- 	res_attr->attr.mode = S_IRUSR | S_IWUSR;
- 	res_attr->size = pci_resource_len(pdev, num);
--	res_attr->private = &pdev->resource[num];
-+	res_attr->private = (void *)(unsigned long)num;
- 	retval = sysfs_create_bin_file(&pdev->dev.kobj, res_attr);
- 	if (retval)
- 		kfree(res_attr);
++#ifndef arch_can_pci_mmap_wc
++#define arch_can_pci_mmap_wc()		0
++#endif
++
+ #ifndef pci_root_bus_fwnode
+ #define pci_root_bus_fwnode(bus)	NULL
+ #endif
 -- 
 2.9.3
