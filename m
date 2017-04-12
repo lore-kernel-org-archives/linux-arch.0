@@ -1,71 +1,74 @@
 From: David Woodhouse <dwmw2@infradead.org>
-Subject: [PATCH v2 19/27] pci: Add I/O BAR support to generic pci_mmap_resource_range()
-Date: Wed, 12 Apr 2017 13:26:08 +0100
-Message-ID: <3218f933294a1a10e6e741fa05b714ff07bbac31.1491999859.git.dwmw2@infradead.org>
+Subject: [PATCH v2 15/27] parisc: Use generic pci_mmap_resource_range()
+Date: Wed, 12 Apr 2017 13:26:04 +0100
+Message-ID: <db97d37ffb52c67a987ca9cfefd000da39a3bc6c.1491999859.git.dwmw2@infradead.org>
 References: <cover.1491999859.git.dwmw2@infradead.org>
-Return-path: <linux-pci-owner@vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1491999859.git.dwmw2@infradead.org>
 In-Reply-To: <cover.1491999859.git.dwmw2@infradead.org>
 References: <cover.1491999859.git.dwmw2@infradead.org>
-Sender: linux-pci-owner@vger.kernel.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 From: David Woodhouse <dwmw@amazon.co.uk>
 
-This will need to call into an arch-provided pci_iobar_pfn() function.
-
 Signed-off-by: David Woodhouse <dwmw@amazon.co.uk>
 ---
- drivers/pci/mmap.c  | 11 +++++++----
- include/linux/pci.h |  4 ++++
- 2 files changed, 11 insertions(+), 4 deletions(-)
+ arch/parisc/include/asm/pci.h |  1 +
+ arch/parisc/kernel/pci.c      | 29 -----------------------------
+ 2 files changed, 1 insertion(+), 29 deletions(-)
 
-diff --git a/drivers/pci/mmap.c b/drivers/pci/mmap.c
-index 9ba720b..16e1d70 100644
---- a/drivers/pci/mmap.c
-+++ b/drivers/pci/mmap.c
-@@ -45,9 +45,6 @@ int pci_mmap_resource_range(struct pci_dev *pdev, int bar,
- {
- 	unsigned long size;
+diff --git a/arch/parisc/include/asm/pci.h b/arch/parisc/include/asm/pci.h
+index bb9ea90..1de1a3f 100644
+--- a/arch/parisc/include/asm/pci.h
++++ b/arch/parisc/include/asm/pci.h
+@@ -200,5 +200,6 @@ static inline int pci_get_legacy_ide_irq(struct pci_dev *dev, int channel)
+ }
  
+ #define HAVE_PCI_MMAP
++#define ARCH_GENERIC_PCI_MMAP_RESOURCE
+ 
+ #endif /* __ASM_PARISC_PCI_H */
+diff --git a/arch/parisc/kernel/pci.c b/arch/parisc/kernel/pci.c
+index 6538775..13ee356 100644
+--- a/arch/parisc/kernel/pci.c
++++ b/arch/parisc/kernel/pci.c
+@@ -227,35 +227,6 @@ resource_size_t pcibios_align_resource(void *data, const struct resource *res,
+ 	return start;
+ }
+ 
+-
+-int pci_mmap_page_range(struct pci_dev *dev, int bar,
+-			struct vm_area_struct *vma,
+-			enum pci_mmap_state mmap_state, int write_combine)
+-{
+-	unsigned long prot;
+-
+-	/*
+-	 * I/O space can be accessed via normal processor loads and stores on
+-	 * this platform but for now we elect not to do this and portable
+-	 * drivers should not do this anyway.
+-	 */
 -	if (mmap_state == pci_mmap_io)
 -		return -EINVAL;
 -
- 	size = ((pci_resource_len(pdev, bar) - 1) >> PAGE_SHIFT) + 1;
- 	if (vma->vm_pgoff + vma_pages(vma) > size)
- 		return -EINVAL;
-@@ -57,7 +54,13 @@ int pci_mmap_resource_range(struct pci_dev *pdev, int bar,
- 	else
- 		vma->vm_page_prot = pgprot_device(vma->vm_page_prot);
- 
--	vma->vm_pgoff += (pci_resource_start(pdev, bar) >> PAGE_SHIFT);
-+	if (mmap_state == pci_mmap_io) {
-+		int ret = pci_iobar_pfn(pdev, bar, vma);
-+		if (ret)
-+			return ret;
-+	} else
-+		vma->vm_pgoff += (pci_resource_start(pdev, bar) >> PAGE_SHIFT);
-+
-         vma->vm_ops = &pci_phys_vm_ops;
- 
- 	return io_remap_pfn_range(vma, vma->vm_start, vma->vm_pgoff,
-diff --git a/include/linux/pci.h b/include/linux/pci.h
-index ff1c818..0d40ddd 100644
---- a/include/linux/pci.h
-+++ b/include/linux/pci.h
-@@ -1648,8 +1648,12 @@ int pci_mmap_page_range(struct pci_dev *pdev, int bar,
- #ifndef arch_can_pci_mmap_wc
- #define arch_can_pci_mmap_wc()		0
- #endif
-+
- #ifndef arch_can_pci_mmap_io
- #define arch_can_pci_mmap_io()		0
-+#define pci_iobar_pfn(pdev, bar, vma) (-EINVAL)
-+#else
-+int pci_iobar_pfn(struct pci_dev *pdev, int bar, struct vm_area_struct *vma);
- #endif
- 
- #ifndef pci_root_bus_fwnode
+-	if (write_combine)
+-		return -EINVAL;
+-
+-	/*
+-	 * Ignore write-combine; for now only return uncached mappings.
+-	 */
+-	prot = pgprot_val(vma->vm_page_prot);
+-	prot |= _PAGE_NO_CACHE;
+-	vma->vm_page_prot = __pgprot(prot);
+-
+-	return remap_pfn_range(vma, vma->vm_start, vma->vm_pgoff,
+-		vma->vm_end - vma->vm_start, vma->vm_page_prot);
+-}
+-
+ /*
+  * A driver is enabling the device.  We make sure that all the appropriate
+  * bits are set to allow the device to operate as the driver is expecting.
 -- 
 2.9.3
