@@ -1,73 +1,64 @@
 From: David Woodhouse <dwmw2@infradead.org>
-Subject: [PATCH v2 12/27] cris: Use generic pci_mmap_resource_range()
-Date: Wed, 12 Apr 2017 13:26:01 +0100
-Message-ID: <828502b94cf12a278d4b1e43e98d0f4d3fd71ef2.1491999859.git.dwmw2@infradead.org>
+Subject: [PATCH v2 24/27] ia64: Remove redundant checks for WC in pci_mmap_page_range()
+Date: Wed, 12 Apr 2017 13:26:13 +0100
+Message-ID: <9c83a007289d75decdb182afd0434dc517fe433b.1491999859.git.dwmw2@infradead.org>
 References: <cover.1491999859.git.dwmw2@infradead.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:38102 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753461AbdDLM0T (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Apr 2017 08:26:19 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1491999859.git.dwmw2@infradead.org>
 In-Reply-To: <cover.1491999859.git.dwmw2@infradead.org>
 References: <cover.1491999859.git.dwmw2@infradead.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
 From: David Woodhouse <dwmw@amazon.co.uk>
 
+For a PCI MMIO BAR, phys_mem_access_prot() should always return UC or WC.
+And while a mixture of cached and uncached mappings is forbidden, we were
+already mixing WC and UC, which is OK. Just do as we're asked.
+
 Signed-off-by: David Woodhouse <dwmw@amazon.co.uk>
 ---
- arch/cris/arch-v32/drivers/pci/bios.c | 23 -----------------------
- arch/cris/include/asm/pci.h           |  1 +
- 2 files changed, 1 insertion(+), 23 deletions(-)
+ arch/ia64/pci/pci.c | 18 ++----------------
+ 1 file changed, 2 insertions(+), 16 deletions(-)
 
-diff --git a/arch/cris/arch-v32/drivers/pci/bios.c b/arch/cris/arch-v32/drivers/pci/bios.c
-index a589686d..394c2a73 100644
---- a/arch/cris/arch-v32/drivers/pci/bios.c
-+++ b/arch/cris/arch-v32/drivers/pci/bios.c
-@@ -14,29 +14,6 @@ void pcibios_set_master(struct pci_dev *dev)
- 	pci_write_config_byte(dev, PCI_LATENCY_TIMER, lat);
- }
- 
--int pci_mmap_page_range(struct pci_dev *dev, int bar,
--			struct vm_area_struct *vma,
--			enum pci_mmap_state mmap_state, int write_combine)
--{
--	unsigned long prot;
+diff --git a/arch/ia64/pci/pci.c b/arch/ia64/pci/pci.c
+index 27020f3..7438e8c 100644
+--- a/arch/ia64/pci/pci.c
++++ b/arch/ia64/pci/pci.c
+@@ -423,9 +423,6 @@ pci_mmap_page_range (struct pci_dev *dev, int bar,
+ 		     struct vm_area_struct *vma,
+ 		     enum pci_mmap_state mmap_state, int write_combine)
+ {
+-	unsigned long size = vma->vm_end - vma->vm_start;
+-	pgprot_t prot;
 -
--	/* Leave vm_pgoff as-is, the PCI space address is the physical
--	 * address on this platform.
+ 	/*
+ 	 * I/O space cannot be accessed via normal processor loads and
+ 	 * stores on this platform.
+@@ -439,21 +436,10 @@ pci_mmap_page_range (struct pci_dev *dev, int bar,
+ 		 */
+ 		return -EINVAL;
+ 
+-	prot = phys_mem_access_prot(NULL, vma->vm_pgoff, size,
+-				    vma->vm_page_prot);
+-
+-	/*
+-	 * If the user requested WC, the kernel uses UC or WC for this region,
+-	 * and the chipset supports WC, we can use WC. Otherwise, we have to
+-	 * use the same attribute the kernel uses.
 -	 */
--	prot = pgprot_val(vma->vm_page_prot);
--	vma->vm_page_prot = __pgprot(prot);
--
--	/* Write-combine setting is ignored, it is changed via the mtrr
--	 * interfaces on this platform.
--	 */
--	if (remap_pfn_range(vma, vma->vm_start, vma->vm_pgoff,
--			     vma->vm_end - vma->vm_start,
--			     vma->vm_page_prot))
--		return -EAGAIN;
--
--	return 0;
--}
--
- resource_size_t
- pcibios_align_resource(void *data, const struct resource *res,
- 		       resource_size_t size, resource_size_t align)
-diff --git a/arch/cris/include/asm/pci.h b/arch/cris/include/asm/pci.h
-index 65198cb..6e50533 100644
---- a/arch/cris/include/asm/pci.h
-+++ b/arch/cris/include/asm/pci.h
-@@ -42,6 +42,7 @@ struct pci_dev;
- #define PCI_DMA_BUS_IS_PHYS	(1)
+-	if (write_combine &&
+-	    ((pgprot_val(prot) & _PAGE_MA_MASK) == _PAGE_MA_UC ||
+-	     (pgprot_val(prot) & _PAGE_MA_MASK) == _PAGE_MA_WC) &&
+-	    efi_range_is_wc(vma->vm_start, vma->vm_end - vma->vm_start))
++	if (write_combine)
+ 		vma->vm_page_prot = pgprot_writecombine(vma->vm_page_prot);
+ 	else
+-		vma->vm_page_prot = prot;
++		vma->vm_page_prot = pgprot_device(vma->vm_page_prot);
  
- #define HAVE_PCI_MMAP
-+#define ARCH_GENERIC_PCI_MMAP_RESOURCE
- 
- #endif /* __KERNEL__ */
- 
+ 	if (remap_pfn_range(vma, vma->vm_start, vma->vm_pgoff,
+ 			     vma->vm_end - vma->vm_start, vma->vm_page_prot))
 -- 
 2.9.3
