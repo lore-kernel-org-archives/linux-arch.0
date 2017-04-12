@@ -1,67 +1,38 @@
-From: Russell King - ARM Linux <linux@armlinux.org.uk>
-Subject: Re: [PATCH v3 00/32] PCI: fix config and I/O Address space memory
- mappings
-Date: Wed, 12 Apr 2017 12:31:24 +0100
-Message-ID: <20170412113124.GZ17774@n2100.armlinux.org.uk>
-References: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
- <1491917906.7236.7.camel@kernel.crashing.org>
- <20170411140857.GA6821@red-moon>
- <1491952371.7236.22.camel@kernel.crashing.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-Content-Disposition: inline
-In-Reply-To: <1491952371.7236.22.camel@kernel.crashing.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Jonas Bonn <jonas@southpole.se>, Rich Felker <dalias@libc.org>, linux-pci@vger.kernel.org, Will Deacon <will.deacon@arm.com>, David Howells <dhowells@redhat.com>, Max Filippov <jcmvbkbc@gmail.com>, Paul Mackerras <paulus@samba.org>, Huacai Chen <chenhc@lemote.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, linux-arch@vger.kernel.org, Jesper Nilsson <jesper.nilsson@axis.com>, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Ingo Molnar <mingo@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Catalin Marinas <catalin.marinas@arm.com>, Matt Turner <mattst88@gmail.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Fenghua Yu <fenghua.yu>
+From: Hoeun Ryu <hoeun.ryu@gmail.com>
+Subject: Re: [PATCH] mm: add VM_STATIC flag to vmalloc and prevent from removing the areas
+Date: Wed, 12 Apr 2017 20:42:08 +0900
+Message-ID: <AC5E3048-6E2B-4DBE-80BA-AAE2D3EED969@gmail.com>
+References: <1491973350-26816-1-git-send-email-hoeun.ryu@gmail.com> <20170412060218.GA16170@infradead.org>
+Mime-Version: 1.0 (1.0)
+Content-Type: text/plain;
+	charset=us-ascii
+Content-Transfer-Encoding: quoted-printable
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20170412060218.GA16170@infradead.org>
+Sender: owner-linux-mm@kvack.org
+To: Christoph Hellwig <hch@infradead.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Andreas Dilger <adilger@dilger.ca>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@suse.com>, Chris Wilson <chris@chris-wilson.co.uk>, Ingo Molnar <mingo@kernel.org>, zijun_hu <zijun_hu@htc.com>, Matthew Wilcox <mawilcox@microsoft.com>, Thomas Garnier <thgarnie@google.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Apr 12, 2017 at 09:12:51AM +1000, Benjamin Herrenschmidt wrote:
-> This is a problem to be solved by the bridge itself. If ARM has a
-> mapping attribute to make stores non-posted, keep this an ARM specific
-> attribute at this stage I'd say.
 
-So what you seem to be saying is to place drivers not in drivers/pci/host
-but in arch/arm, and a duplicate copy in arch/arm64.
+> On Apr 12, 2017, at 3:02 PM, Christoph Hellwig <hch@infradead.org> wrote:
+>=20
+>> On Wed, Apr 12, 2017 at 02:01:59PM +0900, Hoeun Ryu wrote:
+>> vm_area_add_early/vm_area_register_early() are used to reserve vmalloc ar=
+ea
+>> during boot process and those virtually mapped areas are never unmapped.
+>> So `OR` VM_STATIC flag to the areas in vmalloc_init() when importing
+>> existing vmlist entries and prevent those areas from being removed from t=
+he
+>> rbtree by accident.
+>=20
+> How would they be removed "by accident"?
 
-No.  We're way past that by popular concensus.  We're not going back to
-doing what we did in the 2000s.  Drivers go in the drivers subtree,
-period.  That means we require architecture interfaces that provide
-access to architecture specific details that may not be suitable for
-all architectures to support.
+I don't mean actual use-cases, but I just want to make it robust against lik=
+e programming errors.
 
-In the case of something brand new, then I agree with you that the
-default implementation should fail if it's not supportable on all
-architectures.  However, when we have existing drivers using an
-interface that doesn't provide the semantics they already require,
-then it makes no sense to effectively break these drivers on a range
-of existing architectures.
-
-The question really is - what's the best way to solve the problem with
-existing drivers without breaking them.  I suspect that, sadly, the
-only realistic way forward here is via the litter-drivers-with-ifdefs
-approach since you don't like providing a default implementation that
-is compatible with what these drivers are already doing.
-
-Drivers, such as:
-
-drivers/pci/host/pci-mvebu.c
-drivers/pci/host/pci-versatile.c
-drivers/pci/host/pci-xgene.c
-
-to name a few.
-
--- 
-RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
-FTTC broadband for 0.8mile line: currently at 9.6Mbps down 400kbps up
-according to speedtest.net.
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
