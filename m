@@ -1,118 +1,76 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([65.50.211.133]:42989 "EHLO
+Received: from bombadil.infradead.org ([65.50.211.133]:37634 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753447AbdDLM0S (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Apr 2017 08:26:18 -0400
+        with ESMTP id S1753571AbdDLM0T (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Apr 2017 08:26:19 -0400
 From: David Woodhouse <dwmw2@infradead.org>
-Subject: [PATCH v2 00/27] PCI resource mmap cleanup
-Date: Wed, 12 Apr 2017 13:25:49 +0100
-Message-ID: <cover.1491999859.git.dwmw2@infradead.org>
+Subject: [PATCH v2 19/27] pci: Add I/O BAR support to generic pci_mmap_resource_range()
+Date: Wed, 12 Apr 2017 13:26:08 +0100
+Message-ID: <3218f933294a1a10e6e741fa05b714ff07bbac31.1491999859.git.dwmw2@infradead.org>
+In-Reply-To: <cover.1491999859.git.dwmw2@infradead.org>
+References: <cover.1491999859.git.dwmw2@infradead.org>
+In-Reply-To: <cover.1491999859.git.dwmw2@infradead.org>
+References: <cover.1491999859.git.dwmw2@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20170412122549.2P6oMPVQf7fXvGgCDylnj7Iw0dlhOKbcMQMGSrIRdcM@z>
+Message-ID: <20170412122608.i1EcDLisDXlUs2E4m_gYla8Y1wpSvt8pdDID8pSqhDU@z>
 
-This pursues my previous patch set all the way to its logical conclusion.
+From: David Woodhouse <dwmw@amazon.co.uk>
 
-It kills off the legacy arch-provided pci_mmap_page_range() completely,
-along with its vile 'address converted by pci_resource_to_user()' API
-and the various bugs and other strange behaviour that various
-architectures had.
+This will need to call into an arch-provided pci_iobar_pfn() function.
 
-In some cases like IA64 I've killed off the odd behaviour *first* in
-separately reviewable patches, before the final switch over to the
-generic code which should then basically have no functional effect.
+Signed-off-by: David Woodhouse <dwmw@amazon.co.uk>
+---
+ drivers/pci/mmap.c  | 11 +++++++----
+ include/linux/pci.h |  4 ++++
+ 2 files changed, 11 insertions(+), 4 deletions(-)
 
-To accommodate the ARM64 maintainers' desire *not* to support mmap
-through /proc/bus/pci I have separated HAVE_PCI_MMAP from the sysfs
-implementation, which (as of the last patch in the series) ends up
-present on *all* platforms with an MMU. I still don't think that's a
-*good* idea though; it's a generic part of /proc, and nobody ever did
-answer my question about what *else* we can delete from /proc on ARM64
-"because it's a new platform"...
-
-I would very much like the interesting parts of this to go through the
-arch maintainers' trees. I'd suggest that we can pull everything up to
-and including patch 19 ("pci: Add I/O BAR support to generic
-pci_mmap_resource_range()") through the PCI tree, which includes the
-relatively trivial architectures. Then the others can go through the
-appropriate arch tree with more careful review and testing.
-
-Once everything's done, then we can apply something like the final
-patch ("pci: Kill ARCH_GENERIC_PCI_MMAP_RESOURCE"). But that's mostly
-just there for now as a demonstration of the intended end point.
-
-This is in
- git://git.infradead.org/users/dwmw2/random-2.6.git pcimmap
- http://git.infradead.org/users/dwmw2/random-2.6.git/shortlog/refs/heads/pcimmap
-
-David Woodhouse (27):
-  pci: Fix pci_mmap_fits() for HAVE_PCI_RESOURCE_TO_USER platforms
-  pci: Fix another sanity check bug in /proc/pci mmap
-  pci: Only allow WC mmap on prefetchable resources
-  xtensa: Do not mmap PCI BARs to userspace as write-through
-  pci: Add arch_can_pci_mmap_wc() macro
-  pci: Move multiple declarations of pci_mmap_page_range() to
-    <linux/pci.h>
-  pci: Add arch_can_pci_mmap_io() on architectures which can mmap() I/O
-    space
-  pci: Use BAR index in sysfs attr->private instead of resource pointer
-  pci: Add BAR index argument to pci_mmap_page_range()
-  pci: Add pci_mmap_resource_range() and use it for ARM64
-  arm: Use generic pci_mmap_resource_range()
-  cris: Use generic pci_mmap_resource_range()
-  mips: Use generic pci_mmap_resource_range()
-  mn10300: Use generic pci_mmap_resource_range()
-  parisc: Use generic pci_mmap_resource_range()
-  sh: Use generic pci_mmap_resource_range()
-  unicore: Use generic pci_mmap_resource_range()
-  x86: Use generic pci_mmap_resource_range()
-  pci: Add I/O BAR support to generic pci_mmap_resource_range()
-  powerpc: Use generic pci_mmap_resource_range()
-  microblaze: Use generic pci_mmap_resource_range()
-  xtensa: Use generic pci_mmap_resource_range()
-  ia64: Remove redundant valid_mmap_phys_addr_range() from
-    pci_mmap_page_range()
-  ia64: Remove redundant checks for WC in pci_mmap_page_range()
-  ia64: Use generic pci_mmap_resource_range()
-  sparc: Use generic pci_mmap_resource_range()
-  pci: Kill ARCH_GENERIC_PCI_MMAP_RESOURCE
-
- Documentation/filesystems/sysfs-pci.txt |  12 ++-
- arch/arm/include/asm/pci.h              |   2 -
- arch/arm/kernel/bios32.c                |  19 ----
- arch/cris/arch-v32/drivers/pci/bios.c   |  22 -----
- arch/cris/include/asm/pci.h             |   3 -
- arch/ia64/include/asm/pci.h             |   4 +-
- arch/ia64/pci/pci.c                     |  46 ----------
- arch/microblaze/include/asm/pci.h       |   8 +-
- arch/microblaze/pci/pci-common.c        |  99 ++------------------
- arch/mips/include/asm/pci.h             |   4 -
- arch/mips/pci/pci.c                     |  24 -----
- arch/mn10300/include/asm/pci.h          |   3 -
- arch/mn10300/unit-asb2305/pci-asb2305.c |  23 -----
- arch/parisc/include/asm/pci.h           |   3 -
- arch/parisc/kernel/pci.c                |  28 ------
- arch/powerpc/include/asm/pci.h          |   9 +-
- arch/powerpc/kernel/pci-common.c        | 105 +++-------------------
- arch/sh/drivers/pci/pci.c               |  21 -----
- arch/sh/include/asm/pci.h               |   3 +-
- arch/sparc/include/asm/pci_64.h         |   5 +-
- arch/sparc/kernel/pci.c                 | 155 --------------------------------
- arch/unicore32/include/asm/pci.h        |   2 -
- arch/unicore32/kernel/pci.c             |  23 -----
- arch/x86/include/asm/pci.h              |   6 +-
- arch/x86/pci/i386.c                     |  47 ----------
- arch/xtensa/include/asm/pci.h           |   9 +-
- arch/xtensa/kernel/pci.c                | 112 ++---------------------
- drivers/pci/Makefile                    |   1 +
- drivers/pci/mmap.c                      |  67 ++++++++++++++
- drivers/pci/pci-sysfs.c                 |  76 +++++++---------
- drivers/pci/pci.h                       |   4 +-
- drivers/pci/proc.c                      |  41 ++++++---
- include/linux/pci.h                     |  30 +++++++
- 33 files changed, 211 insertions(+), 805 deletions(-)
- create mode 100644 drivers/pci/mmap.c
-
+diff --git a/drivers/pci/mmap.c b/drivers/pci/mmap.c
+index 9ba720b..16e1d70 100644
+--- a/drivers/pci/mmap.c
++++ b/drivers/pci/mmap.c
+@@ -45,9 +45,6 @@ int pci_mmap_resource_range(struct pci_dev *pdev, int bar,
+ {
+ 	unsigned long size;
+ 
+-	if (mmap_state == pci_mmap_io)
+-		return -EINVAL;
+-
+ 	size = ((pci_resource_len(pdev, bar) - 1) >> PAGE_SHIFT) + 1;
+ 	if (vma->vm_pgoff + vma_pages(vma) > size)
+ 		return -EINVAL;
+@@ -57,7 +54,13 @@ int pci_mmap_resource_range(struct pci_dev *pdev, int bar,
+ 	else
+ 		vma->vm_page_prot = pgprot_device(vma->vm_page_prot);
+ 
+-	vma->vm_pgoff += (pci_resource_start(pdev, bar) >> PAGE_SHIFT);
++	if (mmap_state == pci_mmap_io) {
++		int ret = pci_iobar_pfn(pdev, bar, vma);
++		if (ret)
++			return ret;
++	} else
++		vma->vm_pgoff += (pci_resource_start(pdev, bar) >> PAGE_SHIFT);
++
+         vma->vm_ops = &pci_phys_vm_ops;
+ 
+ 	return io_remap_pfn_range(vma, vma->vm_start, vma->vm_pgoff,
+diff --git a/include/linux/pci.h b/include/linux/pci.h
+index ff1c818..0d40ddd 100644
+--- a/include/linux/pci.h
++++ b/include/linux/pci.h
+@@ -1648,8 +1648,12 @@ int pci_mmap_page_range(struct pci_dev *pdev, int bar,
+ #ifndef arch_can_pci_mmap_wc
+ #define arch_can_pci_mmap_wc()		0
+ #endif
++
+ #ifndef arch_can_pci_mmap_io
+ #define arch_can_pci_mmap_io()		0
++#define pci_iobar_pfn(pdev, bar, vma) (-EINVAL)
++#else
++int pci_iobar_pfn(struct pci_dev *pdev, int bar, struct vm_area_struct *vma);
+ #endif
+ 
+ #ifndef pci_root_bus_fwnode
 -- 
 2.9.3
