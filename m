@@ -1,133 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f66.google.com ([74.125.82.66]:36298 "EHLO
-        mail-wm0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753777AbdDLLVM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Apr 2017 07:21:12 -0400
-Received: by mail-wm0-f66.google.com with SMTP id q125so5731548wmd.3
-        for <linux-arch@vger.kernel.org>; Wed, 12 Apr 2017 04:21:11 -0700 (PDT)
-Date: Wed, 12 Apr 2017 14:11:57 +0300
-From: "Kirill A. Shutemov" <kirill@shutemov.name>
-Subject: Re: [PATCH 8/8] x86/mm: Allow to have userspace mappings above
- 47-bits
-Message-ID: <20170412111157.h6tjryt7jbum4tfg@node.shutemov.name>
-References: <20170406140106.78087-1-kirill.shutemov@linux.intel.com>
- <20170406140106.78087-9-kirill.shutemov@linux.intel.com>
- <8d68093b-670a-7d7e-2216-bf64b19c7a48@linux.vnet.ibm.com>
- <20170407155945.7lyapjbwacg3ikw6@node.shutemov.name>
- <87wpap6h7q.fsf@concordia.ellerman.id.au>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <87wpap6h7q.fsf@concordia.ellerman.id.au>
+Received: from mail-pg0-f67.google.com ([74.125.83.67]:33944 "EHLO
+        mail-pg0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752179AbdDLLmL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Apr 2017 07:42:11 -0400
+Content-Type: text/plain;
+        charset=us-ascii
+Mime-Version: 1.0 (1.0)
+Subject: Re: [PATCH] mm: add VM_STATIC flag to vmalloc and prevent from removing the areas
+From: Hoeun Ryu <hoeun.ryu@gmail.com>
+In-Reply-To: <20170412060218.GA16170@infradead.org>
+Date: Wed, 12 Apr 2017 20:42:08 +0900
+Content-Transfer-Encoding: quoted-printable
+Message-ID: <AC5E3048-6E2B-4DBE-80BA-AAE2D3EED969@gmail.com>
+References: <1491973350-26816-1-git-send-email-hoeun.ryu@gmail.com> <20170412060218.GA16170@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Anshuman Khandual <khandual@linux.vnet.ibm.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Dmitry Safonov <dsafonov@virtuozzo.com>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
-Message-ID: <20170412111157.XxfZ2dy5mbdOA6jX_m0wsuPQB3Ve-Cp4Bq5w23eC4gM@z>
+To: Christoph Hellwig <hch@infradead.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Andreas Dilger <adilger@dilger.ca>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@suse.com>, Chris Wilson <chris@chris-wilson.co.uk>, Ingo Molnar <mingo@kernel.org>, zijun_hu <zijun_hu@htc.com>, Matthew Wilcox <mawilcox@microsoft.com>, Thomas Garnier <thgarnie@google.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+Message-ID: <20170412114208.CV8yeX_HHOaGMDexBtNVaj0qHkDiDnJP-SoNRUjcrcY@z>
 
-On Wed, Apr 12, 2017 at 08:41:29PM +1000, Michael Ellerman wrote:
-> Hi Kirill,
-> 
-> I'm interested in this because we're doing pretty much the same thing on
-> powerpc at the moment, and I want to make sure x86 & powerpc end up with
-> compatible behaviour.
-> 
-> "Kirill A. Shutemov" <kirill@shutemov.name> writes:
-> > On Fri, Apr 07, 2017 at 07:05:26PM +0530, Anshuman Khandual wrote:
-> >> On 04/06/2017 07:31 PM, Kirill A. Shutemov wrote:
-> >> > On x86, 5-level paging enables 56-bit userspace virtual address space.
-> >> > Not all user space is ready to handle wide addresses. It's known that
-> >> > at least some JIT compilers use higher bits in pointers to encode their
-> >> > information. It collides with valid pointers with 5-level paging and
-> >> > leads to crashes.
-> >> > 
-> >> > To mitigate this, we are not going to allocate virtual address space
-> >> > above 47-bit by default.
-> >> 
-> >> I am wondering if the commitment of virtual space range to the
-> >> user space is kind of an API which needs to be maintained there
-> >> after. If that is the case then we need to have some plans when
-> >> increasing it from the current level.
-> >
-> > I don't think we should ever enable full address space for all
-> > applications. There's no point.
-> >
-> > /bin/true doesn't need more than 64TB of virtual memory.
-> > And I hope never will.
-> >
-> > By increasing virtual address space for everybody we will pay (assuming
-> > current page table format) at least one extra page per process for moving
-> > stack at very end of address space.
-> 
-> That assumes the current layout though, it could be different.
 
-True.
+> On Apr 12, 2017, at 3:02 PM, Christoph Hellwig <hch@infradead.org> wrote:
+>=20
+>> On Wed, Apr 12, 2017 at 02:01:59PM +0900, Hoeun Ryu wrote:
+>> vm_area_add_early/vm_area_register_early() are used to reserve vmalloc ar=
+ea
+>> during boot process and those virtually mapped areas are never unmapped.
+>> So `OR` VM_STATIC flag to the areas in vmalloc_init() when importing
+>> existing vmlist entries and prevent those areas from being removed from t=
+he
+>> rbtree by accident.
+>=20
+> How would they be removed "by accident"?
 
-> > Yes, you can gain something in security by having more bits for ASLR, but
-> > I don't think it worth the cost.
-> 
-> It may not be worth the cost now, for you, but that trade off will be
-> different for other people and at other times.
-> 
-> So I think it's quite likely some folks will be interested in the full
-> address range for ASLR.
-
-We always can extend interface if/when userspace demand materialize.
-
-Let's not invent interfaces unless we're sure there's demand.
-
-> >> expanding the address range next time around. I think we need
-> >> to have a plan for this and particularly around 'hint' mechanism
-> >> and whether it should be decided per mmap() request or at the
-> >> task level.
-> >
-> > I think the reasonable way for an application to claim it's 63-bit clean
-> > is to make allocations with (void *)-1 as hint address.
-> 
-> I do like the simplicity of that.
-> 
-> But I wouldn't be surprised if some (crappy) code out there already
-> passes an address of -1. Probably it won't break if it starts getting
-> high addresses, but who knows.
-
-To make an application break we need two thing:
-
- - it sets hint address to -1 by mistake;
- - it uses upper bit to encode its info;
-
-I would be surprise if such combination exists in real world.
-
-But let me know if you have any particular code in mind.
-
-> An alternative would be to only interpret the hint as requesting a large
-> address if it's >= 64TB && < TASK_SIZE_MAX.
-
-Nope. That doesn't work if you take into accounting further extension of the
-address space.
-
-Consider extension x86 to 6-level page tables. User-space has 63-bit
-address space. TASK_SIZE_MAX is bumped to (1UL << 63) - PAGE_SIZE.
-
-An application wants access to full address space. It gets recompiled
-using new TASK_SIZE_MAX as hint address. And everything works fine.
-
-But only on machine with 6-level paging enabled.
-
-If we run the same application binary on machine with older kernel and
-5-level paging, the application will get access to only 47-bit address
-space, not 56-bit, as hint address is more than TASK_SIZE_MAX in this
-configuration.
-
-> If we're really worried about breaking userspace then a new MMAP flag
-> seems like the safest option?
-> 
-> I don't feel particularly strongly about any option, but like I said my
-> main concern is that x86 & powerpc end up with the same behaviour.
-> 
-> And whatever we end up with someone will need to do an update to the man
-> page for mmap.
-
-Sure.
-
--- 
- Kirill A. Shutemov
+I don't mean actual use-cases, but I just want to make it robust against lik=
+e programming errors.
