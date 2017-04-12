@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:38094 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753379AbdDLM0S (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Apr 2017 08:26:18 -0400
+Received: from bombadil.infradead.org ([65.50.211.133]:48489 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753552AbdDLM0T (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Apr 2017 08:26:19 -0400
 From: David Woodhouse <dwmw2@infradead.org>
-Subject: [PATCH v2 03/27] pci: Only allow WC mmap on prefetchable resources
-Date: Wed, 12 Apr 2017 13:25:52 +0100
-Message-ID: <7a91b25e609ef31ca984370dc08158ece3784f79.1491999859.git.dwmw2@infradead.org>
+Subject: [PATCH v2 17/27] unicore: Use generic pci_mmap_resource_range()
+Date: Wed, 12 Apr 2017 13:26:06 +0100
+Message-ID: <96c9ec19826d30648041cf6de17e4ef62c4479a5.1491999859.git.dwmw2@infradead.org>
 In-Reply-To: <cover.1491999859.git.dwmw2@infradead.org>
 References: <cover.1491999859.git.dwmw2@infradead.org>
 In-Reply-To: <cover.1491999859.git.dwmw2@infradead.org>
@@ -14,49 +14,59 @@ References: <cover.1491999859.git.dwmw2@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20170412122552.qaBqgYXDuv54ISpkRBW7vOf5rV7QOtE9dG65ij6qx8s@z>
+Message-ID: <20170412122606.15IpzueR-HhE6n9wn3lN5gtHUHHuk7K1ZQhk_xwWRCM@z>
 
 From: David Woodhouse <dwmw@amazon.co.uk>
 
-The /proc/bus/pci mmap interface allows the user to specify whether they
-want WC or not. Don't let them do so on non-prefetchable BARs.
-
 Signed-off-by: David Woodhouse <dwmw@amazon.co.uk>
-Cc: stable@vger.kernel.org
 ---
- drivers/pci/proc.c | 13 ++++++++-----
- 1 file changed, 8 insertions(+), 5 deletions(-)
+ arch/unicore32/include/asm/pci.h |  1 +
+ arch/unicore32/kernel/pci.c      | 24 ------------------------
+ 2 files changed, 1 insertion(+), 24 deletions(-)
 
-diff --git a/drivers/pci/proc.c b/drivers/pci/proc.c
-index 62a0c3e..dc8912e 100644
---- a/drivers/pci/proc.c
-+++ b/drivers/pci/proc.c
-@@ -231,7 +231,7 @@ static int proc_bus_pci_mmap(struct file *file, struct vm_area_struct *vma)
- {
- 	struct pci_dev *dev = PDE_DATA(file_inode(file));
- 	struct pci_filp_private *fpriv = file->private_data;
--	int i, ret, write_combine, res_bit;
-+	int i, ret, write_combine = 0, res_bit;
+diff --git a/arch/unicore32/include/asm/pci.h b/arch/unicore32/include/asm/pci.h
+index a5129086..ac5acdf 100644
+--- a/arch/unicore32/include/asm/pci.h
++++ b/arch/unicore32/include/asm/pci.h
+@@ -17,6 +17,7 @@
+ #include <mach/hardware.h> /* for PCIBIOS_MIN_* */
  
- 	if (!capable(CAP_SYS_RAWIO))
- 		return -EPERM;
-@@ -251,10 +251,13 @@ static int proc_bus_pci_mmap(struct file *file, struct vm_area_struct *vma)
- 	if (i >= PCI_ROM_RESOURCE)
- 		return -ENODEV;
+ #define HAVE_PCI_MMAP
++#define ARCH_GENERIC_PCI_MMAP_RESOURCE
  
--	if (fpriv->mmap_state == pci_mmap_mem)
--		write_combine = fpriv->write_combine;
--	else
--		write_combine = 0;
-+	if (fpriv->mmap_state == pci_mmap_mem &&
-+	    fpriv->write_combine) {
-+		if (dev->resource[i].flags & IORESOURCE_PREFETCH)
-+			write_combine = 1;
-+		else
-+			return -EINVAL;
-+	}
- 	ret = pci_mmap_page_range(dev, vma,
- 				  fpriv->mmap_state, write_combine);
- 	if (ret < 0)
+ #endif /* __KERNEL__ */
+ #endif
+diff --git a/arch/unicore32/kernel/pci.c b/arch/unicore32/kernel/pci.c
+index 1b43885..1053bca 100644
+--- a/arch/unicore32/kernel/pci.c
++++ b/arch/unicore32/kernel/pci.c
+@@ -356,27 +356,3 @@ int pcibios_enable_device(struct pci_dev *dev, int mask)
+ 	}
+ 	return 0;
+ }
+-
+-int pci_mmap_page_range(struct pci_dev *dev, int bar,
+-			struct vm_area_struct *vma,
+-			enum pci_mmap_state mmap_state, int write_combine)
+-{
+-	unsigned long phys;
+-
+-	if (mmap_state == pci_mmap_io)
+-		return -EINVAL;
+-
+-	phys = vma->vm_pgoff;
+-
+-	/*
+-	 * Mark this as IO
+-	 */
+-	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
+-
+-	if (remap_pfn_range(vma, vma->vm_start, phys,
+-			     vma->vm_end - vma->vm_start,
+-			     vma->vm_page_prot))
+-		return -EAGAIN;
+-
+-	return 0;
+-}
 -- 
 2.9.3
