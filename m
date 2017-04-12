@@ -1,7 +1,7 @@
 From: David Woodhouse <dwmw2@infradead.org>
-Subject: [PATCH v2 15/27] parisc: Use generic pci_mmap_resource_range()
-Date: Wed, 12 Apr 2017 13:26:04 +0100
-Message-ID: <db97d37ffb52c67a987ca9cfefd000da39a3bc6c.1491999859.git.dwmw2@infradead.org>
+Subject: [PATCH v2 18/27] x86: Use generic pci_mmap_resource_range()
+Date: Wed, 12 Apr 2017 13:26:07 +0100
+Message-ID: <d56ef188d8769d84fb97e691222876772e209a54.1491999859.git.dwmw2@infradead.org>
 References: <cover.1491999859.git.dwmw2@infradead.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1491999859.git.dwmw2@infradead.org>
@@ -15,29 +15,34 @@ From: David Woodhouse <dwmw@amazon.co.uk>
 
 Signed-off-by: David Woodhouse <dwmw@amazon.co.uk>
 ---
- arch/parisc/include/asm/pci.h |  1 +
- arch/parisc/kernel/pci.c      | 29 -----------------------------
- 2 files changed, 1 insertion(+), 29 deletions(-)
+ arch/x86/include/asm/pci.h |  1 +
+ arch/x86/pci/i386.c        | 48 ----------------------------------------------
+ 2 files changed, 1 insertion(+), 48 deletions(-)
 
-diff --git a/arch/parisc/include/asm/pci.h b/arch/parisc/include/asm/pci.h
-index bb9ea90..1de1a3f 100644
---- a/arch/parisc/include/asm/pci.h
-+++ b/arch/parisc/include/asm/pci.h
-@@ -200,5 +200,6 @@ static inline int pci_get_legacy_ide_irq(struct pci_dev *dev, int channel)
- }
+diff --git a/arch/x86/include/asm/pci.h b/arch/x86/include/asm/pci.h
+index 734cc94..f513cc2 100644
+--- a/arch/x86/include/asm/pci.h
++++ b/arch/x86/include/asm/pci.h
+@@ -104,6 +104,7 @@ int pcibios_set_irq_routing(struct pci_dev *dev, int pin, int irq);
  
  #define HAVE_PCI_MMAP
+ #define arch_can_pci_mmap_wc()	pat_enabled()
 +#define ARCH_GENERIC_PCI_MMAP_RESOURCE
  
- #endif /* __ASM_PARISC_PCI_H */
-diff --git a/arch/parisc/kernel/pci.c b/arch/parisc/kernel/pci.c
-index 6538775..13ee356 100644
---- a/arch/parisc/kernel/pci.c
-+++ b/arch/parisc/kernel/pci.c
-@@ -227,35 +227,6 @@ resource_size_t pcibios_align_resource(void *data, const struct resource *res,
- 	return start;
+ #ifdef CONFIG_PCI
+ extern void early_quirks(void);
+diff --git a/arch/x86/pci/i386.c b/arch/x86/pci/i386.c
+index 8ca5e5d..68499cf 100644
+--- a/arch/x86/pci/i386.c
++++ b/arch/x86/pci/i386.c
+@@ -406,51 +406,3 @@ void __init pcibios_resource_survey(void)
+ 	 */
+ 	ioapic_insert_resources();
  }
- 
+-
+-static const struct vm_operations_struct pci_mmap_ops = {
+-	.access = generic_access_phys,
+-};
 -
 -int pci_mmap_page_range(struct pci_dev *dev, int bar,
 -			struct vm_area_struct *vma,
@@ -45,30 +50,42 @@ index 6538775..13ee356 100644
 -{
 -	unsigned long prot;
 -
--	/*
--	 * I/O space can be accessed via normal processor loads and stores on
--	 * this platform but for now we elect not to do this and portable
--	 * drivers should not do this anyway.
+-	/* I/O space cannot be accessed via normal processor loads and
+-	 * stores on this platform.
 -	 */
 -	if (mmap_state == pci_mmap_io)
 -		return -EINVAL;
 -
--	if (write_combine)
--		return -EINVAL;
+-	prot = pgprot_val(vma->vm_page_prot);
 -
 -	/*
--	 * Ignore write-combine; for now only return uncached mappings.
--	 */
--	prot = pgprot_val(vma->vm_page_prot);
--	prot |= _PAGE_NO_CACHE;
+- 	 * Return error if pat is not enabled and write_combine is requested.
+- 	 * Caller can followup with UC MINUS request and add a WC mtrr if there
+- 	 * is a free mtrr slot.
+- 	 */
+-	if (!pat_enabled() && write_combine)
+-		return -EINVAL;
+-
+-	if (pat_enabled() && write_combine)
+-		prot |= cachemode2protval(_PAGE_CACHE_MODE_WC);
+-	else if (pat_enabled() || boot_cpu_data.x86 > 3)
+-		/*
+-		 * ioremap() and ioremap_nocache() defaults to UC MINUS for now.
+-		 * To avoid attribute conflicts, request UC MINUS here
+-		 * as well.
+-		 */
+-		prot |= cachemode2protval(_PAGE_CACHE_MODE_UC_MINUS);
+-
 -	vma->vm_page_prot = __pgprot(prot);
 -
--	return remap_pfn_range(vma, vma->vm_start, vma->vm_pgoff,
--		vma->vm_end - vma->vm_start, vma->vm_page_prot);
--}
+-	if (io_remap_pfn_range(vma, vma->vm_start, vma->vm_pgoff,
+-			       vma->vm_end - vma->vm_start,
+-			       vma->vm_page_prot))
+-		return -EAGAIN;
 -
- /*
-  * A driver is enabling the device.  We make sure that all the appropriate
-  * bits are set to allow the device to operate as the driver is expecting.
+-	vma->vm_ops = &pci_mmap_ops;
+-
+-	return 0;
+-}
 -- 
 2.9.3
