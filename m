@@ -1,42 +1,81 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH v3 04/32] asm-generic: add ioremap_nopost() remap interface
-Date: Wed, 12 Apr 2017 09:14:07 +1000
-Message-ID: <1491952447.7236.24.camel@kernel.crashing.org>
-References: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
- <20170411122923.6285-5-lorenzo.pieralisi@arm.com>
- <1491917983.7236.9.camel@kernel.crashing.org>
- <20170411143138.GC6821@red-moon>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20170411143138.GC6821@red-moon>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Cc: Jonas Bonn <jonas@southpole.se>, Rich Felker <dalias@libc.org>, linux-pci@vger.kernel.org, Will Deacon <will.deacon@arm.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, David Howells <dhowells@redhat.com>, Max Filippov <jcmvbkbc@gmail.com>, Paul Mackerras <paulus@samba.org>, Huacai Chen <chenhc@lemote.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, linux-arch@vger.kernel.org, Jesper Nilsson <jesper.nilsson@axis.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, Russell King <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Catalin Marinas <catalin.marinas@arm.com>, Matt Turner <mattst88@gmail.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Fenghua Yu <fenghua.yu@intel.co>
-List-Id: linux-arch.vger.kernel.org
+From: Hoeun Ryu <hoeun.ryu@gmail.com>
+Subject: [PATCH] mm: add VM_STATIC flag to vmalloc and prevent from removing the areas
+Date: Wed, 12 Apr 2017 14:01:59 +0900
+Message-ID: <1491973350-26816-1-git-send-email-hoeun.ryu@gmail.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pf0-f194.google.com ([209.85.192.194]:33224 "EHLO
+        mail-pf0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751564AbdDLFDJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Apr 2017 01:03:09 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andrew Morton <akpm@linux-foundation.org>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Andreas Dilger <adilger@dilger.ca>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@suse.com>, Chris Wilson <chris@chris-wilson.co.uk>, Ingo Molnar <mingo@kernel.org>, zijun_hu <zijun_hu@htc.com>, Matthew Wilcox <mawilcox@microsoft.com>, Thomas Garnier <thgarnie@google.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: linux-arch@vger.kernel.org, Hoeun Ryu <hoeun.ryu@gmail.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org
 
-On Tue, 2017-04-11 at 15:31 +0100, Lorenzo Pieralisi wrote:
-> > This is a semantic that simply *cannot* be generically provided accross
-> > architectures as a mapping attribute.
-> 
-> I agree that a default implementation does not make much sense. The
-> only solution to this, if we want the ioremap_nopost to be made available
-> to generic code (and drivers - ie DT PCI host bridge drivers on ARM/ARM64
-> are not arch code), is to make the ioremap_nopost() call return NULL
-> unless overriden by arch code that can provide its semantics.
+vm_area_add_early/vm_area_register_early() are used to reserve vmalloc area
+during boot process and those virtually mapped areas are never unmapped.
+So `OR` VM_STATIC flag to the areas in vmalloc_init() when importing
+existing vmlist entries and prevent those areas from being removed from the
+rbtree by accident.
 
-That would be a better option.
+Signed-off-by: Hoeun Ryu <hoeun.ryu@gmail.com>
+---
+ include/linux/vmalloc.h | 1 +
+ mm/vmalloc.c            | 9 ++++++---
+ 2 files changed, 7 insertions(+), 3 deletions(-)
 
-You might be able to implement a fallback, for example by having the
-config ops do a read back from the bridge.
-
-Ben.
+diff --git a/include/linux/vmalloc.h b/include/linux/vmalloc.h
+index 46991ad..3df53fc 100644
+--- a/include/linux/vmalloc.h
++++ b/include/linux/vmalloc.h
+@@ -19,6 +19,7 @@ struct notifier_block;		/* in notifier.h */
+ #define VM_UNINITIALIZED	0x00000020	/* vm_struct is not fully initialized */
+ #define VM_NO_GUARD		0x00000040      /* don't add guard page */
+ #define VM_KASAN		0x00000080      /* has allocated kasan shadow memory */
++#define VM_STATIC		0x00000200
+ /* bits [20..32] reserved for arch specific ioremap internals */
+ 
+ /*
+diff --git a/mm/vmalloc.c b/mm/vmalloc.c
+index 8ef8ea1..fb5049a 100644
+--- a/mm/vmalloc.c
++++ b/mm/vmalloc.c
+@@ -1262,7 +1262,7 @@ void __init vmalloc_init(void)
+ 	/* Import existing vmlist entries. */
+ 	for (tmp = vmlist; tmp; tmp = tmp->next) {
+ 		va = kzalloc(sizeof(struct vmap_area), GFP_NOWAIT);
+-		va->flags = VM_VM_AREA;
++		va->flags = VM_VM_AREA | VM_STATIC;
+ 		va->va_start = (unsigned long)tmp->addr;
+ 		va->va_end = va->va_start + tmp->size;
+ 		va->vm = tmp;
+@@ -1480,7 +1480,7 @@ struct vm_struct *remove_vm_area(const void *addr)
+ 	might_sleep();
+ 
+ 	va = find_vmap_area((unsigned long)addr);
+-	if (va && va->flags & VM_VM_AREA) {
++	if (va && va->flags & VM_VM_AREA && likely(!(va->flags & VM_STATIC))) {
+ 		struct vm_struct *vm = va->vm;
+ 
+ 		spin_lock(&vmap_area_lock);
+@@ -1510,7 +1510,7 @@ static void __vunmap(const void *addr, int deallocate_pages)
+ 
+ 	area = remove_vm_area(addr);
+ 	if (unlikely(!area)) {
+-		WARN(1, KERN_ERR "Trying to vfree() nonexistent vm area (%p)\n",
++		WARN(1, KERN_ERR "Trying to vfree() nonexistent or static vm area (%p)\n",
+ 				addr);
+ 		return;
+ 	}
+@@ -2708,6 +2708,9 @@ static int s_show(struct seq_file *m, void *p)
+ 	if (v->phys_addr)
+ 		seq_printf(m, " phys=%pa", &v->phys_addr);
+ 
++	if (v->flags & VM_STATIC)
++		seq_puts(m, " static");
++
+ 	if (v->flags & VM_IOREMAP)
+ 		seq_puts(m, " ioremap");
+ 
+-- 
+2.7.4
