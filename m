@@ -1,27 +1,47 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [PATCH v2 10/27] pci: Add pci_mmap_resource_range() and use it for ARM64
-Date: Thu, 13 Apr 2017 10:22:43 +0100
-Message-ID: <16527.1492075363@warthog.procyon.org.uk>
-References: <7ca58472ed9ff750fd1b7432b1738573e782290b.1491999859.git.dwmw2@infradead.org> <cover.1491999859.git.dwmw2@infradead.org> <cover.1491999859.git.dwmw2@infradead.org>
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: Re: [RFC PATCH 0/3] arm64: queued spinlocks and rw-locks
+Date: Thu, 13 Apr 2017 13:33:09 +0300
+Message-ID: <20170413103309.GA1875@yury-N73SV>
+References: <1491860104-4103-1-git-send-email-ynorov@caviumnetworks.com>
+ <a4f067df-4c22-5c90-d70a-809903c60296@codeaurora.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:59396 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1755606AbdDMJWp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 13 Apr 2017 05:22:45 -0400
-In-Reply-To: <7ca58472ed9ff750fd1b7432b1738573e782290b.1491999859.git.dwmw2@infradead.org>
-Content-ID: <16526.1492075363.1@warthog.procyon.org.uk>
+Received: from mail-co1nam03on0085.outbound.protection.outlook.com ([104.47.40.85]:14752
+        "EHLO NAM03-CO1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1750746AbdDMKdX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 13 Apr 2017 06:33:23 -0400
+Content-Disposition: inline
+In-Reply-To: <a4f067df-4c22-5c90-d70a-809903c60296@codeaurora.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Woodhouse <dwmw2@infradead.org>
-Cc: dhowells@redhat.com, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Adam Wallis <awallis@codeaurora.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@redhat.com>, Jan Glauber <jglauber@cavium.com>, jason.low2@hp.com
 
-David Woodhouse <dwmw2@infradead.org> wrote:
+On Wed, Apr 12, 2017 at 01:04:55PM -0400, Adam Wallis wrote:
+> On 4/10/2017 5:35 PM, Yury Norov wrote:
+> > The patch of Jan Glauber enables queued spinlocks on arm64. I rebased it on
+> > latest kernel sources, and added a couple of fixes to headers to apply it 
+> > smoothly.
+> > 
+> > Though, locktourture test shows significant performance degradation in the
+> > acquisition of rw-lock for read on qemu:
+> > 
+> >                           Before           After
+> > spin_lock-torture:      38957034        37076367         -4.83
+> > rw_lock-torture W:       5369471        18971957        253.33
+> > rw_lock-torture R:       6413179         3668160        -42.80
+> > 
+> 
+> On our 48 core QDF2400 part, I am seeing huge improvements with these patches on
+> the torture tests. The improvements go up even further when I apply Jason Low's
+> MCS Spinlock patch: https://lkml.org/lkml/2016/4/20/725
 
-> +	vma->vm_pgoff += (pci_resource_start(pdev, bar) >> PAGE_SHIFT);
-> +        vma->vm_ops = &pci_phys_vm_ops;
+It sounds great. So performance issue is looking like my local
+problem, most probably because I ran tests on Qemu VM.
 
-Whitespace error.
+I don't see any problems with this series, other than performance,
+and if it looks fine now, I think it's good enough for upstream.
 
-David
+Yury.
