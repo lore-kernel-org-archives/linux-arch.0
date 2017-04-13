@@ -1,7 +1,7 @@
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv4 8/9] x86: Enable 5-level paging support
-Date: Thu, 13 Apr 2017 14:30:37 +0300
-Message-ID: <20170413113038.3167-9-kirill.shutemov@linux.intel.com>
+Subject: [PATCHv4 2/9] x86/boot/64: Rewrite startup_64 in C
+Date: Thu, 13 Apr 2017 14:30:31 +0300
+Message-ID: <20170413113038.3167-3-kirill.shutemov@linux.intel.com>
 References: <4c8cd9a9-2013-2a74-6bea-d7dc7207abb1@virtuozzo.com>
  <20170413113038.3167-1-kirill.shutemov@linux.intel.com>
 Return-path: <owner-linux-mm@kvack.org>
@@ -11,52 +11,218 @@ To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-fo
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-Most of things are in place and we can enable support of 5-level paging.
+The patch write most of startup_64 logic in C.
 
-Enabling XEN with 5-level paging requires more work. The patch makes XEN
-dependent on !X86_5LEVEL.
+This is preparation for 5-level paging enabling.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
- arch/x86/Kconfig     | 5 +++++
- arch/x86/xen/Kconfig | 1 +
- 2 files changed, 6 insertions(+)
+ arch/x86/kernel/head64.c  | 81 +++++++++++++++++++++++++++++++++++++++-
+ arch/x86/kernel/head_64.S | 95 ++---------------------------------------------
+ 2 files changed, 83 insertions(+), 93 deletions(-)
 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 4e153e93273f..7a76dcac357e 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -318,6 +318,7 @@ config FIX_EARLYCON_MEM
+diff --git a/arch/x86/kernel/head64.c b/arch/x86/kernel/head64.c
+index 43b7002f44fb..dbb5b29bf019 100644
+--- a/arch/x86/kernel/head64.c
++++ b/arch/x86/kernel/head64.c
+@@ -35,9 +35,88 @@
+  */
+ extern pgd_t early_level4_pgt[PTRS_PER_PGD];
+ extern pmd_t early_dynamic_pgts[EARLY_DYNAMIC_PAGE_TABLES][PTRS_PER_PMD];
+-static unsigned int __initdata next_early_pgt = 2;
++static unsigned int __initdata next_early_pgt;
+ pmdval_t early_pmd_flags = __PAGE_KERNEL_LARGE & ~(_PAGE_GLOBAL | _PAGE_NX);
  
- config PGTABLE_LEVELS
- 	int
-+	default 5 if X86_5LEVEL
- 	default 4 if X86_64
- 	default 3 if X86_PAE
- 	default 2
-@@ -1390,6 +1391,10 @@ config X86_PAE
- 	  has the cost of more pagetable lookup overhead, and also
- 	  consumes more pagetable space per process.
- 
-+config X86_5LEVEL
-+	bool "Enable 5-level page tables support"
-+	depends on X86_64
++static void __init *fixup_pointer(void *ptr, unsigned long physaddr)
++{
++	return ptr - (void *)_text + (void *)physaddr;
++}
 +
- config ARCH_PHYS_ADDR_T_64BIT
- 	def_bool y
- 	depends on X86_64 || X86_PAE
-diff --git a/arch/x86/xen/Kconfig b/arch/x86/xen/Kconfig
-index 76b6dbd627df..b90d481ce5a1 100644
---- a/arch/x86/xen/Kconfig
-+++ b/arch/x86/xen/Kconfig
-@@ -5,6 +5,7 @@
- config XEN
- 	bool "Xen guest support"
- 	depends on PARAVIRT
-+	depends on !X86_5LEVEL
- 	select PARAVIRT_CLOCK
- 	select XEN_HAVE_PVMMU
- 	select XEN_HAVE_VPMU
++void __init __startup_64(unsigned long physaddr)
++{
++	unsigned long load_delta, *p;
++	pgdval_t *pgd;
++	pudval_t *pud;
++	pmdval_t *pmd, pmd_entry;
++	int i;
++
++	/* Is the address too large? */
++	if (physaddr >> MAX_PHYSMEM_BITS)
++		for (;;);
++
++	/*
++	 * Compute the delta between the address I am compiled to run at
++	 * and the address I am actually running at.
++	 */
++	load_delta = physaddr - (unsigned long)(_text - __START_KERNEL_map);
++
++	/* Is the address not 2M aligned? */
++	if (load_delta & ~PMD_PAGE_MASK)
++		for (;;);
++
++	/* Fixup the physical addresses in the page table */
++
++	pgd = fixup_pointer(&early_level4_pgt, physaddr);
++	pgd[pgd_index(__START_KERNEL_map)] += load_delta;
++
++	pud = fixup_pointer(&level3_kernel_pgt, physaddr);
++	pud[510] += load_delta;
++	pud[511] += load_delta;
++
++	pmd = fixup_pointer(level2_fixmap_pgt, physaddr);
++	pmd[506] += load_delta;
++
++	/*
++	 * Set up the identity mapping for the switchover.  These
++	 * entries should *NOT* have the global bit set!  This also
++	 * creates a bunch of nonsense entries but that is fine --
++	 * it avoids problems around wraparound.
++	 */
++
++	pud = fixup_pointer(early_dynamic_pgts[next_early_pgt++], physaddr);
++	pmd = fixup_pointer(early_dynamic_pgts[next_early_pgt++], physaddr);
++
++	pgd[0] = (pgdval_t)pud + _KERNPG_TABLE;
++	pgd[1] = (pgdval_t)pud + _KERNPG_TABLE;
++
++	pud[0] = (pudval_t)pmd + _KERNPG_TABLE;
++	pud[1] = (pudval_t)pmd + _KERNPG_TABLE;
++
++	pmd_entry = __PAGE_KERNEL_LARGE_EXEC & ~_PAGE_GLOBAL;
++	pmd_entry +=  physaddr;
++
++	for (i = 0; i < DIV_ROUND_UP(_end - _text, PMD_SIZE); i++)
++		pmd[i + (physaddr >> PMD_SHIFT)] = pmd_entry + i * PMD_SIZE;
++
++	/*
++	 * Fixup the kernel text+data virtual addresses. Note that
++	 * we might write invalid pmds, when the kernel is relocated
++	 * cleanup_highmap() fixes this up along with the mappings
++	 * beyond _end.
++	 */
++
++	pmd = fixup_pointer(level2_kernel_pgt, physaddr);
++	for (i = 0; i < PTRS_PER_PMD; i++) {
++		if (pmd[i] & _PAGE_PRESENT)
++			pmd[i] += load_delta;
++	}
++
++	/* Fixup phys_base */
++	p = fixup_pointer(&phys_base, physaddr);
++	*p += load_delta;
++}
++
+ /* Wipe all early page tables except for the kernel symbol map */
+ static void __init reset_early_page_tables(void)
+ {
+diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
+index ac9d327d2e42..1432d530fa35 100644
+--- a/arch/x86/kernel/head_64.S
++++ b/arch/x86/kernel/head_64.S
+@@ -72,100 +72,11 @@ startup_64:
+ 	/* Sanitize CPU configuration */
+ 	call verify_cpu
+ 
+-	/*
+-	 * Compute the delta between the address I am compiled to run at and the
+-	 * address I am actually running at.
+-	 */
+-	leaq	_text(%rip), %rbp
+-	subq	$_text - __START_KERNEL_map, %rbp
+-
+-	/* Is the address not 2M aligned? */
+-	testl	$~PMD_PAGE_MASK, %ebp
+-	jnz	bad_address
+-
+-	/*
+-	 * Is the address too large?
+-	 */
+-	leaq	_text(%rip), %rax
+-	shrq	$MAX_PHYSMEM_BITS, %rax
+-	jnz	bad_address
+-
+-	/*
+-	 * Fixup the physical addresses in the page table
+-	 */
+-	addq	%rbp, early_level4_pgt + (L4_START_KERNEL*8)(%rip)
+-
+-	addq	%rbp, level3_kernel_pgt + (510*8)(%rip)
+-	addq	%rbp, level3_kernel_pgt + (511*8)(%rip)
+-
+-	addq	%rbp, level2_fixmap_pgt + (506*8)(%rip)
+-
+-	/*
+-	 * Set up the identity mapping for the switchover.  These
+-	 * entries should *NOT* have the global bit set!  This also
+-	 * creates a bunch of nonsense entries but that is fine --
+-	 * it avoids problems around wraparound.
+-	 */
+ 	leaq	_text(%rip), %rdi
+-	leaq	early_level4_pgt(%rip), %rbx
+-
+-	movq	%rdi, %rax
+-	shrq	$PGDIR_SHIFT, %rax
+-
+-	leaq	(PAGE_SIZE + _KERNPG_TABLE)(%rbx), %rdx
+-	movq	%rdx, 0(%rbx,%rax,8)
+-	movq	%rdx, 8(%rbx,%rax,8)
+-
+-	addq	$PAGE_SIZE, %rdx
+-	movq	%rdi, %rax
+-	shrq	$PUD_SHIFT, %rax
+-	andl	$(PTRS_PER_PUD-1), %eax
+-	movq	%rdx, PAGE_SIZE(%rbx,%rax,8)
+-	incl	%eax
+-	andl	$(PTRS_PER_PUD-1), %eax
+-	movq	%rdx, PAGE_SIZE(%rbx,%rax,8)
+-
+-	addq	$PAGE_SIZE * 2, %rbx
+-	movq	%rdi, %rax
+-	shrq	$PMD_SHIFT, %rdi
+-	addq	$(__PAGE_KERNEL_LARGE_EXEC & ~_PAGE_GLOBAL), %rax
+-	leaq	(_end - 1)(%rip), %rcx
+-	shrq	$PMD_SHIFT, %rcx
+-	subq	%rdi, %rcx
+-	incl	%ecx
++	pushq	%rsi
++	call	__startup_64
++	popq	%rsi
+ 
+-1:
+-	andq	$(PTRS_PER_PMD - 1), %rdi
+-	movq	%rax, (%rbx,%rdi,8)
+-	incq	%rdi
+-	addq	$PMD_SIZE, %rax
+-	decl	%ecx
+-	jnz	1b
+-
+-	test %rbp, %rbp
+-	jz .Lskip_fixup
+-
+-	/*
+-	 * Fixup the kernel text+data virtual addresses. Note that
+-	 * we might write invalid pmds, when the kernel is relocated
+-	 * cleanup_highmap() fixes this up along with the mappings
+-	 * beyond _end.
+-	 */
+-	leaq	level2_kernel_pgt(%rip), %rdi
+-	leaq	PAGE_SIZE(%rdi), %r8
+-	/* See if it is a valid page table entry */
+-1:	testb	$_PAGE_PRESENT, 0(%rdi)
+-	jz	2f
+-	addq	%rbp, 0(%rdi)
+-	/* Go to the next page */
+-2:	addq	$8, %rdi
+-	cmp	%r8, %rdi
+-	jne	1b
+-
+-	/* Fixup phys_base */
+-	addq	%rbp, phys_base(%rip)
+-
+-.Lskip_fixup:
+ 	movq	$(early_level4_pgt - __START_KERNEL_map), %rax
+ 	jmp 1f
+ ENTRY(secondary_startup_64)
 -- 
 2.11.0
 
