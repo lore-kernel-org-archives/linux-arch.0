@@ -1,60 +1,37 @@
 From: David Woodhouse <dwmw2@infradead.org>
-Subject: Re: [PATCH v2 25/27] ia64: Use generic pci_mmap_resource_range()
-Date: Thu, 13 Apr 2017 09:39:06 +0100
-Message-ID: <1492072746.17682.127.camel@infradead.org>
+Subject: Re: [PATCH v2 12/27] cris: Use generic pci_mmap_resource_range()
+Date: Thu, 13 Apr 2017 09:39:50 +0100
+Message-ID: <1492072790.17682.129.camel@infradead.org>
 References: <cover.1491999859.git.dwmw2@infradead.org>
-         <109e9ddbde4334d0da34f331797236309d789353.1491999859.git.dwmw2@infradead.org>
-         <CA+8MBbKwN=pBN17Msm-g=x-iEgvy6KNFkutKsw_pDboBHgMifA@mail.gmail.com>
+         <828502b94cf12a278d4b1e43e98d0f4d3fd71ef2.1491999859.git.dwmw2@infradead.org>
+         <20170413073747.GA26295@axis.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg="sha-256"; protocol="application/x-pkcs7-signature"; boundary="=-rC1aCLdLVa6Gu7zJrpwA"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from twosheds.infradead.org ([90.155.92.209]:35058 "EHLO
-        twosheds.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750811AbdDMIjK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 13 Apr 2017 04:39:10 -0400
-In-Reply-To: <CA+8MBbKwN=pBN17Msm-g=x-iEgvy6KNFkutKsw_pDboBHgMifA@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Tony Luck <tony.luck@gmail.com>
-Cc: "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Content-Type: multipart/signed; micalg="sha-256"; protocol="application/x-pkcs7-signature"; boundary="=-Q8ZMC+teL/wa1n1Xswgz"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20170413073747.GA26295@axis.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Jesper Nilsson <jesper.nilsson@axis.com>
+Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
 
---=-rC1aCLdLVa6Gu7zJrpwA
+--=-Q8ZMC+teL/wa1n1Xswgz
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: quoted-printable
 
-On Wed, 2017-04-12 at 14:47 -0700, Tony Luck wrote:
-> On Wed, Apr 12, 2017 at 5:26 AM, David Woodhouse <dwmw2@infradead.org> wr=
-ote:
+On Thu, 2017-04-13 at 09:37 +0200, Jesper Nilsson wrote:
+> On Wed, Apr 12, 2017 at 01:26:01PM +0100, David Woodhouse wrote:
 > >=20
 > > From: David Woodhouse <dwmw@amazon.co.uk>
 > >=20
-> > Now that we eliminated the different behaviour in separately-reviewable
-> > commits, we can switch IA64 to the generic implementation.
-> >=20
 > > Signed-off-by: David Woodhouse <dwmw@amazon.co.uk>
->
-> Well it builds and boots on my last remaining ia64 machine. No warnings
-> or weird stuff in the console log.=C2=A0=C2=A0So you can mark the three i=
-a64 patches
+> For the CRIS part:
+>=20
+> Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
 
-Thanks. The interesting test is whether you can correctly map PCI BARs
-through /proc/bus/pci and /sys/bus/pci?
-
-And if you find a prefetchable BAR you can scribble on, does the box
-explode if you do it both WC and UC at the same time?
-
-http://david.woodhou.se/pcimmap_copy.c=C2=A0should validate WC mappings and
-look something like this...
-
-[fedora@ip-172-31-55-194 ~]$ sudo ./pcimmap_copy /sys/bus/pci/devices/0000\=
-:00\:1e.0/resource4 0
-Copied 1000 loops in 0.354437301s
-[fedora@ip-172-31-55-194 ~]$ sudo ./pcimmap_copy /sys/bus/pci/devices/0000\=
-:00\:1e.0/resource4_wc 0
-Copied 1000 loops in 0.057309254s
-
---=-rC1aCLdLVa6Gu7zJrpwA
+Thanks. I actually had that once before but it had got lost in the
+refactoring. Added back now.
+--=-Q8ZMC+teL/wa1n1Xswgz
 Content-Type: application/x-pkcs7-signature; name="smime.p7s"
 Content-Disposition: attachment; filename="smime.p7s"
 Content-Transfer-Encoding: base64
@@ -132,8 +109,8 @@ GeE6+vmbHDFFQ9Ealsti3jGCA9MwggPPAgEBMIGwMIGbMQswCQYDVQQGEwJHQjEbMBkGA1UECBMS
 R3JlYXRlciBNYW5jaGVzdGVyMRAwDgYDVQQHEwdTYWxmb3JkMRowGAYDVQQKExFDT01PRE8gQ0Eg
 TGltaXRlZDFBMD8GA1UEAxM4Q09NT0RPIFNIQS0yNTYgQ2xpZW50IEF1dGhlbnRpY2F0aW9uIGFu
 ZCBTZWN1cmUgRW1haWwgQ0ECEGoLUFiVUy0EUE3iKBH+GjAwDQYJYIZIAWUDBAIBBQCgggHzMBgG
-CSqGSIb3DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTE3MDQxMzA4MzkwNlowLwYJ
-KoZIhvcNAQkEMSIEINPoNphRnr86DJ87+KTruVoUcvF8dHtiKhFHOLqTCrsfMIHBBgkrBgEEAYI3
+CSqGSIb3DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTE3MDQxMzA4Mzk1MFowLwYJ
+KoZIhvcNAQkEMSIEIOE2/nvtLB8lCzMcWHPME71Jl+Ti8OEWs1eJIMAbjRt6MIHBBgkrBgEEAYI3
 EAQxgbMwgbAwgZsxCzAJBgNVBAYTAkdCMRswGQYDVQQIExJHcmVhdGVyIE1hbmNoZXN0ZXIxEDAO
 BgNVBAcTB1NhbGZvcmQxGjAYBgNVBAoTEUNPTU9ETyBDQSBMaW1pdGVkMUEwPwYDVQQDEzhDT01P
 RE8gU0hBLTI1NiBDbGllbnQgQXV0aGVudGljYXRpb24gYW5kIFNlY3VyZSBFbWFpbCBDQQIQagtQ
@@ -141,11 +118,11 @@ WJVTLQRQTeIoEf4aMDCBwwYLKoZIhvcNAQkQAgsxgbOggbAwgZsxCzAJBgNVBAYTAkdCMRswGQYD
 VQQIExJHcmVhdGVyIE1hbmNoZXN0ZXIxEDAOBgNVBAcTB1NhbGZvcmQxGjAYBgNVBAoTEUNPTU9E
 TyBDQSBMaW1pdGVkMUEwPwYDVQQDEzhDT01PRE8gU0hBLTI1NiBDbGllbnQgQXV0aGVudGljYXRp
 b24gYW5kIFNlY3VyZSBFbWFpbCBDQQIQagtQWJVTLQRQTeIoEf4aMDANBgkqhkiG9w0BAQEFAASC
-AQCvAb4ZJwUAafXGs8EJkojKLq4zuoP7YlBN/divzGL609lmbkoA+idTQF8JGIHpBVdH754OO3zW
-o3uiTS1CYh2Wqc3Ja1RTXeIFhwCd+inqs6sQptkimEVmnzkIp0nAiyriQPSm4e/CaGeRA62zhlrI
-uCpN7FqpZkwObKh9aDVFWPYNBfZL5d2qSJP3V+q4QTJsVE8vDoALomvcMSJ8TYxue/loZsazhnyK
-YkZXSzZEnNfI7bpkUA3kBHtaxROCvYFDj9lfnV6qeV0Yhjw7czVr3z6h40CKlv00kEdUtbZHa995
-ZylwpJ3s56wgQ0smq5s4g8hjg91bGfHADdR9yuHFAAAAAAAA
+AQBLnhB9ILwW5h3WR0UhmF6ZMXNPf+n3uGgB+7jis+U3e053VlGvVwFK+UJH+Dp64DlIsGVb3sFR
+flMRLVFCX8Ui6NKddvJ7Z4pxDswZRhDhEDPq6BcbkLryoNEc5A4RaGE0zjjr8WA8yX4uzieD6/mE
+IvpK3/g9+z0k6eC20bJarEiyNTqINGVBXIcU0hVz0NRaYbJ22g2cxAlDBLquK9wPQXSlPJyT5vFI
+3LNTku04ipBX7mrfZmJ+tMbrQda6pgxLzsUn/T1RvERjynwYfEBn1vN5H8Tj8GQ72MsXv9Kggosn
+f2aiPUPUuBOcmUXu1CcV7V3Kr65jqhLTZwplvRWzAAAAAAAA
 
 
---=-rC1aCLdLVa6Gu7zJrpwA--
+--=-Q8ZMC+teL/wa1n1Xswgz--
