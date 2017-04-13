@@ -1,55 +1,86 @@
-From: Ho-Eun Ryu <hoeun.ryu@gmail.com>
-Subject: Re: [PATCH] mm: add VM_STATIC flag to vmalloc and prevent from
- removing the areas
-Date: Thu, 13 Apr 2017 10:03:14 +0900
-Message-ID: <3F99A1DC-3DEF-4EEB-AD6E-7848D7A6049D@gmail.com>
-References: <1491973350-26816-1-git-send-email-hoeun.ryu@gmail.com>
- <20170412060218.GA16170@infradead.org>
- <AC5E3048-6E2B-4DBE-80BA-AAE2D3EED969@gmail.com>
- <20170412173151.GA23054@infradead.org>
-Mime-Version: 1.0 (Mac OS X Mail 10.3 \(3273\))
-Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: quoted-printable
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20170412173151.GA23054@infradead.org>
-Sender: owner-linux-mm@kvack.org
-To: Christoph Hellwig <hch@infradead.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Andreas Dilger <adilger@dilger.ca>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@suse.com>, Chris Wilson <chris@chris-wilson.co.uk>, Ingo Molnar <mingo@kernel.org>, zijun_hu <zijun_hu@htc.com>, Matthew Wilcox <mawilcox@microsoft.com>, Thomas Garnier <thgarnie@google.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [PATCH v3 21/32] powerpc: include default ioremap_nopost() implementation
+Date: Thu, 13 Apr 2017 13:35:47 +1000
+Message-ID: <87shld9dyk.fsf@concordia.ellerman.id.au>
+References: <20170411122923.6285-1-lorenzo.pieralisi@arm.com> <20170411122923.6285-22-lorenzo.pieralisi@arm.com> <1491917928.7236.8.camel@kernel.crashing.org> <20170411142456.GB6821@red-moon> <1491952528.7236.26.camel@kernel.crashing.org>
+Mime-Version: 1.0
+Content-Type: text/plain
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from ozlabs.org ([103.22.144.67]:57597 "EHLO ozlabs.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1755254AbdDMDfx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 12 Apr 2017 23:35:53 -0400
+In-Reply-To: <1491952528.7236.26.camel@kernel.crashing.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Bjorn Helgaas <bhelgaas@google.com>, Paul Mackerras <paulus@samba.org>
+
+Benjamin Herrenschmidt <benh@kernel.crashing.org> writes:
+
+> On Tue, 2017-04-11 at 15:24 +0100, Lorenzo Pieralisi wrote:
+>> Ok, point taken. BTW, may I ask you guys to have a look into this
+>> please ?
+>> 
+>> https://lkml.org/lkml/2017/4/6/743
+>> 
+>> It is a side effect of this thread (v2), not sure why <asm/io.h>
+>> on powerpc has to include <linux/io.h>.
+>
+> Not sure how we ended up with that... it's odd indeed.
+>
+> Michael ? Any reason we can't just remove it ?
+
+No ... idea.
+
+Looks like it was added in:
+
+commit b41e5fffe8b81fc939067d8c1c195cc79115d5a3
+Author:     Emil Medve <Emilian.Medve@Freescale.com>
+AuthorDate: Sat May 3 06:34:04 2008 +1000
+Commit:     Paul Mackerras <paulus@samba.org>
+CommitDate: Mon May 5 16:47:14 2008 +1000
+
+    [POWERPC] devres: Add devm_ioremap_prot()
+    
+    We provide an ioremap_flags, so this provides a corresponding
+    devm_ioremap_prot.  The slight name difference is at Ben
+    Herrenschmidt's request as he plans on changing ioremap_flags to
+    ioremap_prot in the future.
+    
+    Signed-off-by: Emil Medve <Emilian.Medve@Freescale.com>
+    Signed-off-by: Kumar Gala <galak@kernel.crashing.org>
+    Acked-by: Tejun Heo <htejun@gmail.com>
+    Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+    Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+    Signed-off-by: Paul Mackerras <paulus@samba.org>
+
+diff --git a/include/asm-powerpc/io.h b/include/asm-powerpc/io.h
+index afae0697e8ce..e0062d73db1c 100644
+--- a/include/asm-powerpc/io.h
++++ b/include/asm-powerpc/io.h
+@@ -18,6 +18,9 @@ extern int check_legacy_ioport(unsigned long base_port);
+ #define _PNPWRP		0xa79
+ #define PNPBIOS_BASE	0xf000
+ 
++#include <linux/device.h>
++#include <linux/io.h>
++
+ #include <linux/compiler.h>
+ #include <asm/page.h>
+ #include <asm/byteorder.h>
+@@ -744,6 +747,9 @@ static inline void * bus_to_virt(unsigned long address)
+ 
+ #define clrsetbits_8(addr, clear, set) clrsetbits(8, addr, clear, set)
+ 
++void __iomem *devm_ioremap_prot(struct device *dev, resource_size_t offset,
++				size_t size, unsigned long flags);
++
+ #endif /* __KERNEL__ */
+ 
+ #endif /* _ASM_POWERPC_IO_H */
 
 
-> On 13 Apr 2017, at 2:31 AM, Christoph Hellwig <hch@infradead.org> =
-wrote:
->=20
-> On Wed, Apr 12, 2017 at 08:42:08PM +0900, Hoeun Ryu wrote:
->>=20
->>> On Apr 12, 2017, at 3:02 PM, Christoph Hellwig <hch@infradead.org> =
-wrote:
->>>=20
->>>> On Wed, Apr 12, 2017 at 02:01:59PM +0900, Hoeun Ryu wrote:
->>>> vm_area_add_early/vm_area_register_early() are used to reserve =
-vmalloc area
->>>> during boot process and those virtually mapped areas are never =
-unmapped.
->>>> So `OR` VM_STATIC flag to the areas in vmalloc_init() when =
-importing
->>>> existing vmlist entries and prevent those areas from being removed =
-from the
->>>> rbtree by accident.
->>>=20
->>> How would they be removed "by accident"?
->>=20
->> I don't mean actual use-cases, but I just want to make it robust =
-against like programming errors.
->=20
-> Oh, ok.  The patch makes sense then, although the changelog could use
-> a little update.
+I'll try removing it and see what breaks.
 
-OK, I will.
-Any other suggestions for code itself ?
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+cheers
