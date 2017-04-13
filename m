@@ -1,54 +1,87 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f68.google.com ([74.125.83.68]:33741 "EHLO
-        mail-pg0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752134AbdDMBDW (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Apr 2017 21:03:22 -0400
+Received: from bastet.se.axis.com ([195.60.68.11]:41095 "EHLO
+        bastet.se.axis.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1755953AbdDMHhu (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 13 Apr 2017 03:37:50 -0400
+Date: Thu, 13 Apr 2017 09:37:47 +0200
+From: Jesper Nilsson <jesper.nilsson@axis.com>
+Subject: Re: [PATCH v2 12/27] cris: Use generic pci_mmap_resource_range()
+Message-ID: <20170413073747.GA26295@axis.com>
+References: <cover.1491999859.git.dwmw2@infradead.org>
+ <828502b94cf12a278d4b1e43e98d0f4d3fd71ef2.1491999859.git.dwmw2@infradead.org>
+MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Mime-Version: 1.0 (Mac OS X Mail 10.3 \(3273\))
-Subject: Re: [PATCH] mm: add VM_STATIC flag to vmalloc and prevent from
- removing the areas
-From: Ho-Eun Ryu <hoeun.ryu@gmail.com>
-In-Reply-To: <20170412173151.GA23054@infradead.org>
-Date: Thu, 13 Apr 2017 10:03:14 +0900
-Content-Transfer-Encoding: quoted-printable
-Message-ID: <3F99A1DC-3DEF-4EEB-AD6E-7848D7A6049D@gmail.com>
-References: <1491973350-26816-1-git-send-email-hoeun.ryu@gmail.com>
- <20170412060218.GA16170@infradead.org>
- <AC5E3048-6E2B-4DBE-80BA-AAE2D3EED969@gmail.com>
- <20170412173151.GA23054@infradead.org>
+Content-Disposition: inline
+In-Reply-To: <828502b94cf12a278d4b1e43e98d0f4d3fd71ef2.1491999859.git.dwmw2@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@infradead.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Andreas Dilger <adilger@dilger.ca>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@suse.com>, Chris Wilson <chris@chris-wilson.co.uk>, Ingo Molnar <mingo@kernel.org>, zijun_hu <zijun_hu@htc.com>, Matthew Wilcox <mawilcox@microsoft.com>, Thomas Garnier <thgarnie@google.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>
-Message-ID: <20170413010314.b1caFi-v-HoG2ad3-LIl4RDheOZVFUbZ9bdjaP_gr3o@z>
+To: David Woodhouse <dwmw2@infradead.org>
+Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20170413073747.5QPOfaINVVfjU3KEdAq96MTyqaBvASxxJ3CjX02zQTI@z>
 
+On Wed, Apr 12, 2017 at 01:26:01PM +0100, David Woodhouse wrote:
+> From: David Woodhouse <dwmw@amazon.co.uk>
+> 
+> Signed-off-by: David Woodhouse <dwmw@amazon.co.uk>
 
-> On 13 Apr 2017, at 2:31 AM, Christoph Hellwig <hch@infradead.org> =
-wrote:
->=20
-> On Wed, Apr 12, 2017 at 08:42:08PM +0900, Hoeun Ryu wrote:
->>=20
->>> On Apr 12, 2017, at 3:02 PM, Christoph Hellwig <hch@infradead.org> =
-wrote:
->>>=20
->>>> On Wed, Apr 12, 2017 at 02:01:59PM +0900, Hoeun Ryu wrote:
->>>> vm_area_add_early/vm_area_register_early() are used to reserve =
-vmalloc area
->>>> during boot process and those virtually mapped areas are never =
-unmapped.
->>>> So `OR` VM_STATIC flag to the areas in vmalloc_init() when =
-importing
->>>> existing vmlist entries and prevent those areas from being removed =
-from the
->>>> rbtree by accident.
->>>=20
->>> How would they be removed "by accident"?
->>=20
->> I don't mean actual use-cases, but I just want to make it robust =
-against like programming errors.
->=20
-> Oh, ok.  The patch makes sense then, although the changelog could use
-> a little update.
+For the CRIS part:
 
-OK, I will.
-Any other suggestions for code itself ?
+Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
+
+> ---
+>  arch/cris/arch-v32/drivers/pci/bios.c | 23 -----------------------
+>  arch/cris/include/asm/pci.h           |  1 +
+>  2 files changed, 1 insertion(+), 23 deletions(-)
+> 
+> diff --git a/arch/cris/arch-v32/drivers/pci/bios.c b/arch/cris/arch-v32/drivers/pci/bios.c
+> index a589686d..394c2a73 100644
+> --- a/arch/cris/arch-v32/drivers/pci/bios.c
+> +++ b/arch/cris/arch-v32/drivers/pci/bios.c
+> @@ -14,29 +14,6 @@ void pcibios_set_master(struct pci_dev *dev)
+>  	pci_write_config_byte(dev, PCI_LATENCY_TIMER, lat);
+>  }
+>  
+> -int pci_mmap_page_range(struct pci_dev *dev, int bar,
+> -			struct vm_area_struct *vma,
+> -			enum pci_mmap_state mmap_state, int write_combine)
+> -{
+> -	unsigned long prot;
+> -
+> -	/* Leave vm_pgoff as-is, the PCI space address is the physical
+> -	 * address on this platform.
+> -	 */
+> -	prot = pgprot_val(vma->vm_page_prot);
+> -	vma->vm_page_prot = __pgprot(prot);
+> -
+> -	/* Write-combine setting is ignored, it is changed via the mtrr
+> -	 * interfaces on this platform.
+> -	 */
+> -	if (remap_pfn_range(vma, vma->vm_start, vma->vm_pgoff,
+> -			     vma->vm_end - vma->vm_start,
+> -			     vma->vm_page_prot))
+> -		return -EAGAIN;
+> -
+> -	return 0;
+> -}
+> -
+>  resource_size_t
+>  pcibios_align_resource(void *data, const struct resource *res,
+>  		       resource_size_t size, resource_size_t align)
+> diff --git a/arch/cris/include/asm/pci.h b/arch/cris/include/asm/pci.h
+> index 65198cb..6e50533 100644
+> --- a/arch/cris/include/asm/pci.h
+> +++ b/arch/cris/include/asm/pci.h
+> @@ -42,6 +42,7 @@ struct pci_dev;
+>  #define PCI_DMA_BUS_IS_PHYS	(1)
+>  
+>  #define HAVE_PCI_MMAP
+> +#define ARCH_GENERIC_PCI_MMAP_RESOURCE
+>  
+>  #endif /* __KERNEL__ */
+>  
+> -- 
+> 2.9.3
+
+/^JN - Jesper Nilsson
+-- 
+               Jesper Nilsson -- jesper.nilsson@axis.com
