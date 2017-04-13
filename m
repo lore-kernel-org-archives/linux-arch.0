@@ -1,86 +1,91 @@
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [PATCH v3 21/32] powerpc: include default ioremap_nopost() implementation
-Date: Thu, 13 Apr 2017 13:35:47 +1000
-Message-ID: <87shld9dyk.fsf@concordia.ellerman.id.au>
-References: <20170411122923.6285-1-lorenzo.pieralisi@arm.com> <20170411122923.6285-22-lorenzo.pieralisi@arm.com> <1491917928.7236.8.camel@kernel.crashing.org> <20170411142456.GB6821@red-moon> <1491952528.7236.26.camel@kernel.crashing.org>
+From: Anshuman Khandual <khandual@linux.vnet.ibm.com>
+Subject: Re: [PATCH] mm: add VM_STATIC flag to vmalloc and prevent from
+ removing the areas
+Date: Thu, 13 Apr 2017 09:47:03 +0530
+Message-ID: <c900f2f4-8b0c-cc0e-afb7-a03cd1458e4c@linux.vnet.ibm.com>
+References: <1491973350-26816-1-git-send-email-hoeun.ryu@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([103.22.144.67]:57597 "EHLO ozlabs.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1755254AbdDMDfx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 12 Apr 2017 23:35:53 -0400
-In-Reply-To: <1491952528.7236.26.camel@kernel.crashing.org>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:40260 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1750746AbdDMERQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 13 Apr 2017 00:17:16 -0400
+Received: from pps.filterd (m0098416.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.20/8.16.0.20) with SMTP id v3D48ebt069191
+        for <linux-arch@vger.kernel.org>; Thu, 13 Apr 2017 00:17:15 -0400
+Received: from e28smtp01.in.ibm.com (e28smtp01.in.ibm.com [125.16.236.1])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 29t1rj0vb4-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Thu, 13 Apr 2017 00:17:15 -0400
+Received: from localhost
+        by e28smtp01.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <khandual@linux.vnet.ibm.com>;
+        Thu, 13 Apr 2017 09:47:12 +0530
+In-Reply-To: <1491973350-26816-1-git-send-email-hoeun.ryu@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Bjorn Helgaas <bhelgaas@google.com>, Paul Mackerras <paulus@samba.org>
+To: Hoeun Ryu <hoeun.ryu@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Andreas Dilger <adilger@dilger.ca>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@suse.com>, Chris Wilson <chris@chris-wilson.co.uk>, Ingo Molnar <mingo@kernel.org>, zijun_hu <zijun_hu@htc.com>, Matthew Wilcox <mawilcox@microsoft.com>, Thomas Garnier <thgarnie@google.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
 
-Benjamin Herrenschmidt <benh@kernel.crashing.org> writes:
+On 04/12/2017 10:31 AM, Hoeun Ryu wrote:
+> vm_area_add_early/vm_area_register_early() are used to reserve vmalloc area
+> during boot process and those virtually mapped areas are never unmapped.
+> So `OR` VM_STATIC flag to the areas in vmalloc_init() when importing
+> existing vmlist entries and prevent those areas from being removed from the
+> rbtree by accident.
 
-> On Tue, 2017-04-11 at 15:24 +0100, Lorenzo Pieralisi wrote:
->> Ok, point taken. BTW, may I ask you guys to have a look into this
->> please ?
->> 
->> https://lkml.org/lkml/2017/4/6/743
->> 
->> It is a side effect of this thread (v2), not sure why <asm/io.h>
->> on powerpc has to include <linux/io.h>.
->
-> Not sure how we ended up with that... it's odd indeed.
->
-> Michael ? Any reason we can't just remove it ?
+I am wondering whether protection against accidental deletion
+of any vmap area should be done in remove_vm_area() function
+or the callers should take care of it. But I guess either way
+it works.
 
-No ... idea.
+> 
+> Signed-off-by: Hoeun Ryu <hoeun.ryu@gmail.com>
+> ---
+>  include/linux/vmalloc.h | 1 +
+>  mm/vmalloc.c            | 9 ++++++---
+>  2 files changed, 7 insertions(+), 3 deletions(-)
+> 
+> diff --git a/include/linux/vmalloc.h b/include/linux/vmalloc.h
+> index 46991ad..3df53fc 100644
+> --- a/include/linux/vmalloc.h
+> +++ b/include/linux/vmalloc.h
+> @@ -19,6 +19,7 @@ struct notifier_block;		/* in notifier.h */
+>  #define VM_UNINITIALIZED	0x00000020	/* vm_struct is not fully initialized */
+>  #define VM_NO_GUARD		0x00000040      /* don't add guard page */
+>  #define VM_KASAN		0x00000080      /* has allocated kasan shadow memory */
+> +#define VM_STATIC		0x00000200
 
-Looks like it was added in:
+You might want to add some description in the comment saying
+its a sticky VM area which will never go away or something.
 
-commit b41e5fffe8b81fc939067d8c1c195cc79115d5a3
-Author:     Emil Medve <Emilian.Medve@Freescale.com>
-AuthorDate: Sat May 3 06:34:04 2008 +1000
-Commit:     Paul Mackerras <paulus@samba.org>
-CommitDate: Mon May 5 16:47:14 2008 +1000
-
-    [POWERPC] devres: Add devm_ioremap_prot()
-    
-    We provide an ioremap_flags, so this provides a corresponding
-    devm_ioremap_prot.  The slight name difference is at Ben
-    Herrenschmidt's request as he plans on changing ioremap_flags to
-    ioremap_prot in the future.
-    
-    Signed-off-by: Emil Medve <Emilian.Medve@Freescale.com>
-    Signed-off-by: Kumar Gala <galak@kernel.crashing.org>
-    Acked-by: Tejun Heo <htejun@gmail.com>
-    Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-    Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
-    Signed-off-by: Paul Mackerras <paulus@samba.org>
-
-diff --git a/include/asm-powerpc/io.h b/include/asm-powerpc/io.h
-index afae0697e8ce..e0062d73db1c 100644
---- a/include/asm-powerpc/io.h
-+++ b/include/asm-powerpc/io.h
-@@ -18,6 +18,9 @@ extern int check_legacy_ioport(unsigned long base_port);
- #define _PNPWRP		0xa79
- #define PNPBIOS_BASE	0xf000
- 
-+#include <linux/device.h>
-+#include <linux/io.h>
-+
- #include <linux/compiler.h>
- #include <asm/page.h>
- #include <asm/byteorder.h>
-@@ -744,6 +747,9 @@ static inline void * bus_to_virt(unsigned long address)
- 
- #define clrsetbits_8(addr, clear, set) clrsetbits(8, addr, clear, set)
- 
-+void __iomem *devm_ioremap_prot(struct device *dev, resource_size_t offset,
-+				size_t size, unsigned long flags);
-+
- #endif /* __KERNEL__ */
- 
- #endif /* _ASM_POWERPC_IO_H */
+>  /* bits [20..32] reserved for arch specific ioremap internals */
+>  
+>  /*
+> diff --git a/mm/vmalloc.c b/mm/vmalloc.c
+> index 8ef8ea1..fb5049a 100644
+> --- a/mm/vmalloc.c
+> +++ b/mm/vmalloc.c
+> @@ -1262,7 +1262,7 @@ void __init vmalloc_init(void)
+>  	/* Import existing vmlist entries. */
+>  	for (tmp = vmlist; tmp; tmp = tmp->next) {
+>  		va = kzalloc(sizeof(struct vmap_area), GFP_NOWAIT);
+> -		va->flags = VM_VM_AREA;
+> +		va->flags = VM_VM_AREA | VM_STATIC;
+>  		va->va_start = (unsigned long)tmp->addr;
+>  		va->va_end = va->va_start + tmp->size;
+>  		va->vm = tmp;
+> @@ -1480,7 +1480,7 @@ struct vm_struct *remove_vm_area(const void *addr)
+>  	might_sleep();
+>  
+>  	va = find_vmap_area((unsigned long)addr);
+> -	if (va && va->flags & VM_VM_AREA) {
+> +	if (va && va->flags & VM_VM_AREA && likely(!(va->flags & VM_STATIC))) {
 
 
-I'll try removing it and see what breaks.
-
-cheers
+You might want to move the VM_STATIC check before the VM_VM_AREA
+check so in cases where the former is set we can save one more
+conditional check.
