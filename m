@@ -1,98 +1,86 @@
-From: Hoeun Ryu <hoeun.ryu@gmail.com>
-Subject: Re: [PATCH] mm: add VM_STATIC flag to vmalloc and prevent from removing the areas
-Date: Fri, 14 Apr 2017 09:25:54 +0900
-Message-ID: <A3946A32-F0DB-438C-B2E7-D8CB09B1C49F@gmail.com>
-References: <1491973350-26816-1-git-send-email-hoeun.ryu@gmail.com> <c900f2f4-8b0c-cc0e-afb7-a03cd1458e4c@linux.vnet.ibm.com>
-Mime-Version: 1.0 (1.0)
-Content-Type: text/plain;
-	charset=us-ascii
-Content-Transfer-Encoding: quoted-printable
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <c900f2f4-8b0c-cc0e-afb7-a03cd1458e4c@linux.vnet.ibm.com>
-Sender: owner-linux-mm@kvack.org
-To: Anshuman Khandual <khandual@linux.vnet.ibm.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Andreas Dilger <adilger@dilger.ca>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@suse.com>, Chris Wilson <chris@chris-wilson.co.uk>, Ingo Molnar <mingo@kernel.org>, zijun_hu <zijun_hu@htc.com>, Matthew Wilcox <mawilcox@microsoft.com>, Thomas Garnier <thgarnie@google.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: <christine_pomeranz@fitnyc.edu>
+Subject: 20985 linux-arch
+Date: Fri, 14 Apr 2017 18:54:58 -0000
+Message-ID: <149219609889.20709.11547637346344022388@rima-tde.net>
+Reply-To: <christine_pomeranz@fitnyc.edu>
+Mime-Version: 1.0
+Content-Type: application/zip; name="8933.zip"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from 211.red-81-43-117.staticip.rima-tde.net ([81.43.117.211]:37724
+        "HELO rima-tde.net" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+        with SMTP id S1753186AbdDNSzB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 14 Apr 2017 14:55:01 -0400
+Content-Disposition: attachment
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch <linux-arch@vger.kernel.org>
 
-
-> On Apr 13, 2017, at 1:17 PM, Anshuman Khandual <khandual@linux.vnet.ibm.co=
-m> wrote:
->=20
->> On 04/12/2017 10:31 AM, Hoeun Ryu wrote:
->> vm_area_add_early/vm_area_register_early() are used to reserve vmalloc ar=
-ea
->> during boot process and those virtually mapped areas are never unmapped.
->> So `OR` VM_STATIC flag to the areas in vmalloc_init() when importing
->> existing vmlist entries and prevent those areas from being removed from t=
-he
->> rbtree by accident.
->=20
-> I am wondering whether protection against accidental deletion
-> of any vmap area should be done in remove_vm_area() function
-> or the callers should take care of it. But I guess either way
-> it works.
->=20
->>=20
->> Signed-off-by: Hoeun Ryu <hoeun.ryu@gmail.com>
->> ---
->> include/linux/vmalloc.h | 1 +
->> mm/vmalloc.c            | 9 ++++++---
->> 2 files changed, 7 insertions(+), 3 deletions(-)
->>=20
->> diff --git a/include/linux/vmalloc.h b/include/linux/vmalloc.h
->> index 46991ad..3df53fc 100644
->> --- a/include/linux/vmalloc.h
->> +++ b/include/linux/vmalloc.h
->> @@ -19,6 +19,7 @@ struct notifier_block;        /* in notifier.h */
->> #define VM_UNINITIALIZED    0x00000020    /* vm_struct is not fully initi=
-alized */
->> #define VM_NO_GUARD        0x00000040      /* don't add guard page */
->> #define VM_KASAN        0x00000080      /* has allocated kasan shadow mem=
-ory */
->> +#define VM_STATIC        0x00000200
->=20
-> You might want to add some description in the comment saying
-> its a sticky VM area which will never go away or something.
->=20
-
-OK. I will add some description.
-
->> /* bits [20..32] reserved for arch specific ioremap internals */
->>=20
->> /*
->> diff --git a/mm/vmalloc.c b/mm/vmalloc.c
->> index 8ef8ea1..fb5049a 100644
->> --- a/mm/vmalloc.c
->> +++ b/mm/vmalloc.c
->> @@ -1262,7 +1262,7 @@ void __init vmalloc_init(void)
->>    /* Import existing vmlist entries. */
->>    for (tmp =3D vmlist; tmp; tmp =3D tmp->next) {
->>        va =3D kzalloc(sizeof(struct vmap_area), GFP_NOWAIT);
->> -        va->flags =3D VM_VM_AREA;
->> +        va->flags =3D VM_VM_AREA | VM_STATIC;
->>        va->va_start =3D (unsigned long)tmp->addr;
->>        va->va_end =3D va->va_start + tmp->size;
->>        va->vm =3D tmp;
->> @@ -1480,7 +1480,7 @@ struct vm_struct *remove_vm_area(const void *addr)
->>    might_sleep();
->>=20
->>    va =3D find_vmap_area((unsigned long)addr);
->> -    if (va && va->flags & VM_VM_AREA) {
->> +    if (va && va->flags & VM_VM_AREA && likely(!(va->flags & VM_STATIC))=
-) {
->=20
->=20
-> You might want to move the VM_STATIC check before the VM_VM_AREA
-> check so in cases where the former is set we can save one more
-> conditional check.
->=20
-
-OK, I'll fix this in the next version
-
-Thank you for the review.=
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+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
