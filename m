@@ -1,46 +1,98 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 3/3] arm64/locking: qspinlocks and qrwlocks support
-Date: Thu, 13 Apr 2017 20:12:12 +0200
-Message-ID: <20170413181212.y3ezah76qoztxhnn@hirez.programming.kicks-ass.net>
-References: <1491860104-4103-1-git-send-email-ynorov@caviumnetworks.com>
- <1491860104-4103-4-git-send-email-ynorov@caviumnetworks.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([65.50.211.133]:58584 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755282AbdDMSMU (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 13 Apr 2017 14:12:20 -0400
-Content-Disposition: inline
-In-Reply-To: <1491860104-4103-4-git-send-email-ynorov@caviumnetworks.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Yury Norov <ynorov@caviumnetworks.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Jan Glauber <jglauber@cavium.com>
+From: Hoeun Ryu <hoeun.ryu@gmail.com>
+Subject: Re: [PATCH] mm: add VM_STATIC flag to vmalloc and prevent from removing the areas
+Date: Fri, 14 Apr 2017 09:25:54 +0900
+Message-ID: <A3946A32-F0DB-438C-B2E7-D8CB09B1C49F@gmail.com>
+References: <1491973350-26816-1-git-send-email-hoeun.ryu@gmail.com> <c900f2f4-8b0c-cc0e-afb7-a03cd1458e4c@linux.vnet.ibm.com>
+Mime-Version: 1.0 (1.0)
+Content-Type: text/plain;
+	charset=us-ascii
+Content-Transfer-Encoding: quoted-printable
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <c900f2f4-8b0c-cc0e-afb7-a03cd1458e4c@linux.vnet.ibm.com>
+Sender: owner-linux-mm@kvack.org
+To: Anshuman Khandual <khandual@linux.vnet.ibm.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Andreas Dilger <adilger@dilger.ca>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@suse.com>, Chris Wilson <chris@chris-wilson.co.uk>, Ingo Molnar <mingo@kernel.org>, zijun_hu <zijun_hu@htc.com>, Matthew Wilcox <mawilcox@microsoft.com>, Thomas Garnier <thgarnie@google.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Apr 11, 2017 at 01:35:04AM +0400, Yury Norov wrote:
 
-> +++ b/arch/arm64/include/asm/qspinlock.h
-> @@ -0,0 +1,20 @@
-> +#ifndef _ASM_ARM64_QSPINLOCK_H
-> +#define _ASM_ARM64_QSPINLOCK_H
-> +
-> +#include <asm-generic/qspinlock_types.h>
-> +
-> +#define	queued_spin_unlock queued_spin_unlock
-> +/**
-> + * queued_spin_unlock - release a queued spinlock
-> + * @lock : Pointer to queued spinlock structure
-> + *
-> + * A smp_store_release() on the least-significant byte.
-> + */
-> +static inline void queued_spin_unlock(struct qspinlock *lock)
-> +{
-> +	smp_store_release((u8 *)lock, 0);
-> +}
+> On Apr 13, 2017, at 1:17 PM, Anshuman Khandual <khandual@linux.vnet.ibm.co=
+m> wrote:
+>=20
+>> On 04/12/2017 10:31 AM, Hoeun Ryu wrote:
+>> vm_area_add_early/vm_area_register_early() are used to reserve vmalloc ar=
+ea
+>> during boot process and those virtually mapped areas are never unmapped.
+>> So `OR` VM_STATIC flag to the areas in vmalloc_init() when importing
+>> existing vmlist entries and prevent those areas from being removed from t=
+he
+>> rbtree by accident.
+>=20
+> I am wondering whether protection against accidental deletion
+> of any vmap area should be done in remove_vm_area() function
+> or the callers should take care of it. But I guess either way
+> it works.
+>=20
+>>=20
+>> Signed-off-by: Hoeun Ryu <hoeun.ryu@gmail.com>
+>> ---
+>> include/linux/vmalloc.h | 1 +
+>> mm/vmalloc.c            | 9 ++++++---
+>> 2 files changed, 7 insertions(+), 3 deletions(-)
+>>=20
+>> diff --git a/include/linux/vmalloc.h b/include/linux/vmalloc.h
+>> index 46991ad..3df53fc 100644
+>> --- a/include/linux/vmalloc.h
+>> +++ b/include/linux/vmalloc.h
+>> @@ -19,6 +19,7 @@ struct notifier_block;        /* in notifier.h */
+>> #define VM_UNINITIALIZED    0x00000020    /* vm_struct is not fully initi=
+alized */
+>> #define VM_NO_GUARD        0x00000040      /* don't add guard page */
+>> #define VM_KASAN        0x00000080      /* has allocated kasan shadow mem=
+ory */
+>> +#define VM_STATIC        0x00000200
+>=20
+> You might want to add some description in the comment saying
+> its a sticky VM area which will never go away or something.
+>=20
 
-I'm afraid this isn't enough for arm64. I suspect you want your own
-variant of queued_spin_unlock_wait() and queued_spin_is_locked() as
-well.
+OK. I will add some description.
 
-Much memory ordering fun to be had there.
+>> /* bits [20..32] reserved for arch specific ioremap internals */
+>>=20
+>> /*
+>> diff --git a/mm/vmalloc.c b/mm/vmalloc.c
+>> index 8ef8ea1..fb5049a 100644
+>> --- a/mm/vmalloc.c
+>> +++ b/mm/vmalloc.c
+>> @@ -1262,7 +1262,7 @@ void __init vmalloc_init(void)
+>>    /* Import existing vmlist entries. */
+>>    for (tmp =3D vmlist; tmp; tmp =3D tmp->next) {
+>>        va =3D kzalloc(sizeof(struct vmap_area), GFP_NOWAIT);
+>> -        va->flags =3D VM_VM_AREA;
+>> +        va->flags =3D VM_VM_AREA | VM_STATIC;
+>>        va->va_start =3D (unsigned long)tmp->addr;
+>>        va->va_end =3D va->va_start + tmp->size;
+>>        va->vm =3D tmp;
+>> @@ -1480,7 +1480,7 @@ struct vm_struct *remove_vm_area(const void *addr)
+>>    might_sleep();
+>>=20
+>>    va =3D find_vmap_area((unsigned long)addr);
+>> -    if (va && va->flags & VM_VM_AREA) {
+>> +    if (va && va->flags & VM_VM_AREA && likely(!(va->flags & VM_STATIC))=
+) {
+>=20
+>=20
+> You might want to move the VM_STATIC check before the VM_VM_AREA
+> check so in cases where the former is set we can save one more
+> conditional check.
+>=20
+
+OK, I'll fix this in the next version
+
+Thank you for the review.=
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
