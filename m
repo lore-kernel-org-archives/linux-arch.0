@@ -1,103 +1,97 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:55322 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752866AbdDMOEx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 13 Apr 2017 10:04:53 -0400
-Subject: Re: "Consolidate get_dma_ops" breaks Xen on ARM
-References: <alpine.DEB.2.10.1704101713080.2759@sstabellini-ThinkPad-X260>
- <CY1PR0401MB1536C1FF3C069BC88D1DB14581000@CY1PR0401MB1536.namprd04.prod.outlook.com>
- <a758dfc6-2b00-e279-303c-ba1e27380e35@arm.com>
- <20170411133649.GB27857@e104818-lin.cambridge.arm.com>
- <alpine.DEB.2.10.1704111411350.2759@sstabellini-ThinkPad-X260>
-From: Julien Grall <julien.grall@arm.com>
-Message-ID: <47808787-8067-ccc0-0ec6-de5e0d7597c8@arm.com>
-Date: Thu, 13 Apr 2017 15:04:19 +0100
-MIME-Version: 1.0
-In-Reply-To: <alpine.DEB.2.10.1704111411350.2759@sstabellini-ThinkPad-X260>
-Content-Type: text/plain; charset=windows-1252; format=flowed
-Content-Transfer-Encoding: 7bit
+Received: from mail-pf0-f194.google.com ([209.85.192.194]:33274 "EHLO
+        mail-pf0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753201AbdDNAZ5 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 13 Apr 2017 20:25:57 -0400
+Content-Type: text/plain;
+        charset=us-ascii
+Mime-Version: 1.0 (1.0)
+Subject: Re: [PATCH] mm: add VM_STATIC flag to vmalloc and prevent from removing the areas
+From: Hoeun Ryu <hoeun.ryu@gmail.com>
+In-Reply-To: <c900f2f4-8b0c-cc0e-afb7-a03cd1458e4c@linux.vnet.ibm.com>
+Date: Fri, 14 Apr 2017 09:25:54 +0900
+Content-Transfer-Encoding: quoted-printable
+Message-ID: <A3946A32-F0DB-438C-B2E7-D8CB09B1C49F@gmail.com>
+References: <1491973350-26816-1-git-send-email-hoeun.ryu@gmail.com> <c900f2f4-8b0c-cc0e-afb7-a03cd1458e4c@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stefano Stabellini <sstabellini@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>
-Cc: Bart Van Assche <Bart.VanAssche@sandisk.com>, "boris.ostrovsky@oracle.com" <boris.ostrovsky@oracle.com>, "jgross@suse.com" <jgross@suse.com>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "dwmw2@infradead.org" <dwmw2@infradead.org>, "hpa@zytor.com" <hpa@zytor.com>, "mingo@redhat.com" <mingo@redhat.com>, "linux@armlinux.org.uk" <linux@armlinux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, linux-arm-kernel@lists.infradead.org
-Message-ID: <20170413140419.LqL2AMsdrfW3gOCxYIn-qjWclfn7W-LNk-5xeae4mDI@z>
+To: Anshuman Khandual <khandual@linux.vnet.ibm.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Andreas Dilger <adilger@dilger.ca>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@suse.com>, Chris Wilson <chris@chris-wilson.co.uk>, Ingo Molnar <mingo@kernel.org>, zijun_hu <zijun_hu@htc.com>, Matthew Wilcox <mawilcox@microsoft.com>, Thomas Garnier <thgarnie@google.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+Message-ID: <20170414002554.mRPdLTtSBGoCjnEG2N6oG6qdK3rz7OIIIg8moPVpOdI@z>
 
-Hi Stefano,
 
-Sorry for the late answer.
+> On Apr 13, 2017, at 1:17 PM, Anshuman Khandual <khandual@linux.vnet.ibm.co=
+m> wrote:
+>=20
+>> On 04/12/2017 10:31 AM, Hoeun Ryu wrote:
+>> vm_area_add_early/vm_area_register_early() are used to reserve vmalloc ar=
+ea
+>> during boot process and those virtually mapped areas are never unmapped.
+>> So `OR` VM_STATIC flag to the areas in vmalloc_init() when importing
+>> existing vmlist entries and prevent those areas from being removed from t=
+he
+>> rbtree by accident.
+>=20
+> I am wondering whether protection against accidental deletion
+> of any vmap area should be done in remove_vm_area() function
+> or the callers should take care of it. But I guess either way
+> it works.
+>=20
+>>=20
+>> Signed-off-by: Hoeun Ryu <hoeun.ryu@gmail.com>
+>> ---
+>> include/linux/vmalloc.h | 1 +
+>> mm/vmalloc.c            | 9 ++++++---
+>> 2 files changed, 7 insertions(+), 3 deletions(-)
+>>=20
+>> diff --git a/include/linux/vmalloc.h b/include/linux/vmalloc.h
+>> index 46991ad..3df53fc 100644
+>> --- a/include/linux/vmalloc.h
+>> +++ b/include/linux/vmalloc.h
+>> @@ -19,6 +19,7 @@ struct notifier_block;        /* in notifier.h */
+>> #define VM_UNINITIALIZED    0x00000020    /* vm_struct is not fully initi=
+alized */
+>> #define VM_NO_GUARD        0x00000040      /* don't add guard page */
+>> #define VM_KASAN        0x00000080      /* has allocated kasan shadow mem=
+ory */
+>> +#define VM_STATIC        0x00000200
+>=20
+> You might want to add some description in the comment saying
+> its a sticky VM area which will never go away or something.
+>=20
 
-On 12/04/17 00:39, Stefano Stabellini wrote:
-> On Tue, 11 Apr 2017, Catalin Marinas wrote:
->> On Tue, Apr 11, 2017 at 01:43:28PM +0100, Julien Grall wrote:
->>> On 11/04/17 02:14, Bart Van Assche wrote:
->>>> On 04/10/17 17:31, Stefano Stabellini wrote:
->>>>> I think the reason is that, as you can see, if (dev && dev->dma_ops),
->>>>> dev->dma_ops is returned, while before this changes, xen_dma_ops was
->>>>> returned on Xen on ARM.
->>>>>
->>>>> Unfortunately DMA cannot work properly without using the appropriate
->>>>> xen_dma_ops. See drivers/xen/swiotlb-xen.c and arch/arm/xen/mm.c for
->>>>> more details. (The problem is easy to spot, but I wasn't CC'ed on the
->>>>> patch.)
->>>>>
->>>>> I don't know how to solve this problem without introducing some sort of
->>>>> if (xen()) in include/linux/dma-mapping.h.
->>>>
->>>> Sorry but I don't have access to an ARM development system. Does your
->>>> comment apply to dev == NULL only, dev != NULL only or perhaps to both?
->>>> If your comment applies to dev != NULL only, can you check whether
->>>> adding something like set_dma_ops(dev, get_arch_dma_ops(NULL)) to the
->>>> appropriate ARM arch_setup_dma_ops() function is sufficient?
->>>
->>> If I understand correctly, set_dma_ops will replace dev->dma_ops with
->>> Xen DMA ops.
->>>
->>> However, Xen DMA ops will need in some places to call the device
->>> specific DMA ops (see __generic_dma_ops(...)). So I think replacing
->>> dev->dma_ops is not a solution here.
->>>
->>> The hackish patch below is fixing the problem for both ARM64 and ARM32.
->>>
->>> diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
->>> index 0977317c6835..43a73ddeec7a 100644
->>> --- a/include/linux/dma-mapping.h
->>> +++ b/include/linux/dma-mapping.h
->>> @@ -174,6 +174,8 @@ int dma_mmap_from_coherent(struct device *dev, struct vm_area_struct *vma,
->>>  #include <asm/dma-mapping.h>
->>>  static inline const struct dma_map_ops *get_dma_ops(struct device *dev)
->>>  {
->>> +       if (xen_initial_domain())
->>> +              return xen_dma_ops;
->>>         if (dev && dev->dma_ops)
->>>                 return dev->dma_ops;
->>>         return get_arch_dma_ops(dev ? dev->bus : NULL);
->>
->> If we do this, I guess there is no need to check for
->> xen_initial_domain() in the get_arch_dma_ops() function. Anyway, this
->> hunk would break the other architectures since xen_dma_ops is only
->> defined for arm and arm64.
->>
->>> It is not nice as this is common code, but I can't find a better solution
->>> so far. Any opinions?
->>
->> A different hack would be to avoid the generic get_dma_ops
->> implementation on arm with some #ifdef hacks above.
->>
->> Yet another way would be for dom0 to always set dev->dma_ops to
->> xen_dma_ops and preserve the real dma_ops somewhere under dev->archdata.
->> You could intercept the arch_setup_dma_ops() function for this or use
->> bus_register_notifier() (though I think the former is easier). The Xen
->> code making use of the real dma_ops would have to dig them out from
->> dev->archdata.
->
-> This is a good suggestion, Catalin. Thank you. See below. Is that what
-> you have in mind? Julien could you test it, please? If it is the right
-> approach, I'll submit the patch properly and rename __generic_dma_ops to
-> xen_generic_dma_ops or something.
+OK. I will add some description.
 
-This patch is fixing the bug I encountered.
+>> /* bits [20..32] reserved for arch specific ioremap internals */
+>>=20
+>> /*
+>> diff --git a/mm/vmalloc.c b/mm/vmalloc.c
+>> index 8ef8ea1..fb5049a 100644
+>> --- a/mm/vmalloc.c
+>> +++ b/mm/vmalloc.c
+>> @@ -1262,7 +1262,7 @@ void __init vmalloc_init(void)
+>>    /* Import existing vmlist entries. */
+>>    for (tmp =3D vmlist; tmp; tmp =3D tmp->next) {
+>>        va =3D kzalloc(sizeof(struct vmap_area), GFP_NOWAIT);
+>> -        va->flags =3D VM_VM_AREA;
+>> +        va->flags =3D VM_VM_AREA | VM_STATIC;
+>>        va->va_start =3D (unsigned long)tmp->addr;
+>>        va->va_end =3D va->va_start + tmp->size;
+>>        va->vm =3D tmp;
+>> @@ -1480,7 +1480,7 @@ struct vm_struct *remove_vm_area(const void *addr)
+>>    might_sleep();
+>>=20
+>>    va =3D find_vmap_area((unsigned long)addr);
+>> -    if (va && va->flags & VM_VM_AREA) {
+>> +    if (va && va->flags & VM_VM_AREA && likely(!(va->flags & VM_STATIC))=
+) {
+>=20
+>=20
+> You might want to move the VM_STATIC check before the VM_VM_AREA
+> check so in cases where the former is set we can save one more
+> conditional check.
+>=20
 
-Cheers,
+OK, I'll fix this in the next version
 
--- 
-Julien Grall
+Thank you for the review.=
