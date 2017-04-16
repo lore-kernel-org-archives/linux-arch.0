@@ -1,54 +1,120 @@
-From: <r67@yahoo.com>
-Subject: (unknown)
-Date: Sun, 16 Apr 2017 18:30:55 -0000
-Message-ID: <149236745536.20711.7953580354578710339@epm.net.co>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [RFC] minimum gcc version for kernel: raise to gcc-4.3 or 4.6?
+Date: Sun, 16 Apr 2017 12:52:33 -0700
+Message-ID: <CAGXu5jLPRYi+HK=07Zndc8szEKD4mZCqaHJFnHmmoYr7tA1xPw@mail.gmail.com>
+References: <20161216105634.235457-1-arnd@arndb.de> <3302470.IDcDrWa0u6@wuerfel>
 Mime-Version: 1.0
-Content-Type: application/zip; name="EMAIL_9461355_linux-arch.zip"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from Static-BAFibra190-0-36-138.epm.net.co ([190.0.36.138]:38523
-        "HELO epm.net.co" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org
-        with SMTP id S1756595AbdDPSbC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 16 Apr 2017 14:31:02 -0400
-Subject: 
-Content-Disposition: attachment
+Received: from mail-io0-f171.google.com ([209.85.223.171]:34792 "EHLO
+        mail-io0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1756642AbdDPTwf (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 16 Apr 2017 15:52:35 -0400
+Received: by mail-io0-f171.google.com with SMTP id a103so135892481ioj.1
+        for <linux-arch@vger.kernel.org>; Sun, 16 Apr 2017 12:52:35 -0700 (PDT)
+In-Reply-To: <3302470.IDcDrWa0u6@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch <linux-arch@vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch <linux-arch@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Russell King <rmk+kernel@armlinux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, kernel-build-reports@lists.linaro.org, kvmarm@lists.cs.columbia.edu
 
-UEsDBBQAAAAIACGTkEokKFtaaQcAAGwHAAAIAAAANjIyMy56aXB1VWk0EwAAXhKSpznKNebIUCyk
-RhpJReZYjsy1ZiVy5T7mylGOiMjRcgsj99wlNzkiMyxnrlzDhgpZd+/1Xu/1fe993/u+9/3/kIj9
-zLwAAIANIJYQp6N64vg8hQUASOEAAFh/tGcUFU9B7d1jrlm4k5DAQO+Ob0BXSMjzKoXKRHtwUpwx
-+ah0pkveSUtuQXZm7dql7SnGp1SyQNVhtVRLfa9Gxic8Ubio2NFQqN8CNpXdT1z/HLoq74w24xsW
-Hzc71z3jRHHgyJ+WPnGUFDvt6KVkd6aRrBWq3+BqJd0QtHtRlGXPt/HFiwwfeOPXAKFozutjsZpU
-0oDeOBWU6z1N7bnzsWEEHbTU7wBOmBBbVRIxdYodplcYXdd9GOLzIT9c6dBCl8ty7FlBqYdFM9eV
-tTQUhcIdgsD5Zuay0X137njTsanU0Xvxnq7WNit6qIpAfk7TFYPmkR7CO4IrXjLARfriSyHSy7Yx
-JniAIUYnO9qnV9P8UhuudCvVq5XslQa34Z3VP5McMM4T9enMC07TzranMoPQZZiWP3ggBQYUTy7A
-JiDW1HoGOpc8LglVWzH0QfKiKtk7415WY/Canra58jcP76jqmoxOB2iX9V1u7UIpx2kCPzphk4XF
-9PyO3hpiVdUVrcwh9JNBE6cuzcbIeSjJJVeaDN/az48qtutTyqUjyUmASo1JSfkQYRaxcMrIyDLn
-hq6Mcgu6AWHVWtQed0sLRKvieg0BrTabgB5F0B43RXxxudLybIimBvGvsEJqPitRZTjUVxT0QglX
-v+1GrUxAjXqGZ+IwyjEp6ad0fcuYfa4HEae/6nd2T/dBYuxqAVBe4In46GmZ4EG/SHwCq85U4WwM
-8oaLw0bEWvNtCahxm1TNstGgLUXx2kbvvABHrWZZLrHyLifb8oqKJc0xvizSk9VayI1dTTuFWnIs
-4ikK1Gm6PbOyF2x1f2tGxOMapCwE3oHnXKhFk9xEsjEkDvLxIEXsoudmsl05vrUN4n2qW3fG9QCM
-n+Yo55zhFkM1KgxOoRt0vw0V4ypa7PnowuOwCjADG14AxZNfX3APBwLFUG/GLmH1Fu5CEauL51Nz
-7peVXanHagDKm9MtRR8EkgrN2WT8TENDEnLqFgxR6VvhyIhF4FIlf7387EHvzmQMopPMFeaMsBV5
-lwURVOHKdmGBBnHUA/mkHCJqoJJmdBarOiZorWlwYEHzfHOKwKC8ZmIewlzuduRFkLatYgqEx1yw
-FBoe1iSbR4JjcUcG2begt5kCOzTA6/7Y5AGIFJLkxzTLno93zjx4eKHD577sqK/ko0ouyxWvApso
-6UVR3ivplUA8jkSro2AN8MyCRun8+wZZd7m6jyxZrFW7gdkkow3fcdvKemHe9h8yVGQTqFPJdDJM
-884mlzOgGQiR+sOCdh32rPeKYYN20qe5lQRk5M953DEO6627i2tp0iAaHmNojt57WV4vTwuwMT/P
-pFlXimFRKPN1QLdbKcIzy1H1XBhfH0meBo/6SA8NYw4fqxnpaoXgMd7m9aH4hGiJ2KSsozvOQBtx
-v5areeXf4hQ4BMOiA4WwMLsBRc3YZXpk0Rw88sqzoKOGWY1SynO5AI6ki4A+T0obRixX2OMmnppd
-wmVGmuft68+lTgcfjERNtjn6Ew4eeOJms3l4eurtw1ILs1iMQNR99Y2N91Fh+WcWbC6zVVRWeFGO
-xHBYxfa3paWIGyW4s28xgNbHnGAqeFQpjT1MmgUM1+2lDM0i+ZQz7UkQbu4nm9k5MLCg3pSwxc3k
-5xE8DPU5PHSPNXaSibInAV+tudG4mdHov5MVB1YYTg59poIQMnU9ue2v3rnOoG5R4Kqqqr6bNNok
-d/NaPu6LH83Vb+K6gVDVRCbON47YtL8vbcTyE+eqckoJbYrcyVyCA5er3Qioq2/Q4zFK2W2Egr1R
-oXvtF4OEJyfR1rAOQesJzOlRZfT7u+JjD+ihzhIjBsUH1KKot9JOhHXQC2uaENWJwrI7eOxQefwB
-CsgtBwdr3SjX7WCW5pJ44sPnzErE0tu9MoeTBNHo50pIuURC3nJBdWm1PTLWxCQm0TNL9jTSbc7I
-exk9n692hPDoLKF0VcIzpyXSkowpioqjG7sX4LYp11wz8+xzxd877mqtIOVs9y/ea4fVWJpMPu06
-gTjCXmhsqCXhyQpF6ouCKrqNr9pefcO7QcAOhXb1i8qb5n4+qQPYP6wd97iJl11She9y1+hxnQ+v
-TrOsit72dK4nvsmqswyKF1cO/Eb5Gt5oEKpFdFHoWhPhgbRwbUxt7LJae8BQfl3Kc0XbJ7W7cE5i
-c7ff6uAbqhsvEZ7PJs+75e59WF2iL3WN7d212BvrIz7Q2hqvSSTOzsLmE3g+b9fefFf9MQgn1WkX
-OgibH7yxQHU66Awf5fCwriJ6Rrv7VOp/QK8Nq0N01osz1PX6LUeWE6j2WzJ1O15ThywG+MK0TMck
-aPGKBAYTErGPSR3wv/s7BvgN0Z/y9wzZ/xT7APwAsJmjs0ANad+/jkQcYPm1+UGzH874lb4DUEsB
-Aj8AFAAAAAgAIZOQSiQoW1ppBwAAbAcAAAgAJAAAAAAAAAAgAAAAAAAAADYyMjMuemlwCgAgAAAA
-AAABABgANctubhm30gE1y25uGbfSATXLbm4Zt9IBUEsFBgAAAAABAAEAWgAAAI8HAAAAAA==
+Was there a conclusion to this discussion? I didn't see anything
+definitive in the thread...
+
+Notes below...
+
+On Fri, Dec 16, 2016 at 3:14 AM, Arnd Bergmann <arnd@arndb.de> wrote:
+> [Fixed linux-arm-kernel mailing list address, sorry for the duplicate,
+>  I'm not reposting all the ugly patches though, unless someone really
+>  wants them, https://lkml.org/lkml/2016/12/16/174 has a copy]
+>
+> On Friday, December 16, 2016 11:56:21 AM CET Arnd Bergmann wrote:
+>> I had some fun doing build testing with older gcc versions, building
+>> every release from 4.0 through 7.0 and running that on my randconfig
+>> setup to see what comes out.
+>>
+>> First of all, gcc-4.9 and higher is basically warning-free everywhere,
+>> although gcc-7 introduces some interesting new warnings (I have started
+>> doing patches for those as well). gcc-4.8 is probably good, too, and
+>> gcc-4.6 and 4.7 at least don't produce build failures in general, though
+>> the level of false-positive warnings increases (we could decide to turn
+>> those off for older compilers for build test purposes).
+>>
+>> In gcc-4.5 and below, dead code elimination is not as good as later,
+>> causing a couple of link errors, and some of them have no good workaround
+>> (see patch 1). It would be nice to declare that version too old, but
+>> several older distros that are still in wide use ship with compilers
+>> earlier than 4.6:
+>>
+>>  RHEL6:               gcc-4.4
+
+This appears to have support until July 31, 2018. (Though it's using a
+2.6 kernel.)
+
+>>  Debian 6:    gcc-4.4
+
+This went fully unsupported on Feb 29, 2016.
+
+>>  Ubuntu 10.04:        gcc-4.4
+
+This went fully unsupported on Apr 30, 2015.
+
+>>  SLES11:      gcc-4.3
+
+General support ends Mar 31 2019, fully unsupported 31 Mar 2022. (And
+like RHEL6 is using a 2.6 kernel.)
+
+>> With gcc-4.3, we need a couple of workaround patches beyond the problem
+>> mentioned above, more configuration options are unavailable and we get
+>> a significant number of false-positive warnings, but it's not much worse
+>> than gcc-4.5 otherwise.
+>>
+>> These are the options I had to disable to get gcc-4.3 randconfig builds
+>> working:
+>>
+>>  CONFIG_HAVE_GCC_PLUGINS
+
+This needs gcc 4.5, with 4.7 preferred.
+
+>>  CONFIG_CC_STACKPROTECTOR_STRONG
+
+Introduced in gcc 4.9.
+
+>>  CONFIG_ARM_SINGLE_ARMV7M
+>>  CONFIG_THUMB2_KERNEL
+>>  CONFIG_KERNEL_MODE_NEON
+>>  CONFIG_VDSO
+>>  CONFIG_FUNCTION_TRACER (with CONFIG_FRAME_POINTER=n)
+>>
+>> I have not checked in detail which version is required for
+>> each of the above.
+>>
+>> Specifically on ARM, going further makes things rather useless especially
+>> for build testing: with gcc-4.2, we lose support for ARMv7, EABI, and
+>> effectively ARMv6 (as it relies on EABI for building reliably). Also,
+>> the number of false-positive build warnings is so high that it is useless
+>> for finding actual bugs from the warnings.
+>>
+>> See the replies to this mail for 13 patches I needed to work around
+>> issues for each of the releases before 4.6. I have also submitted
+>> some separate patches for issues that I considered actual bugs
+>> uncovered by the older compilers and that should be applied regardless.
+>>
+>> The original gcc-4.3 release was in early 2008. If we decide to still
+>> support that, we probably want the first 10 quirks in this series,
+>> while gcc-4.6 (released in 2011) requires none of them.
+
+I'd be in support of raising the minimum to gcc 4.6. (I'd actually
+prefer 4.7, just to avoid some 4.6 packaging issues, and for better
+gcc plugin support.)
+
+I'm curious what gcc 4.6 binaries are common in the wild besides
+old-stable Debian (unsupported in maybe a year from now?) and 12.04
+Ubuntu (going fully unsupported in 2 weeks). It looks like 4.6 was
+used only in Fedora 15 and 16 (both EOL).
+
+-Kees
+
+-- 
+Kees Cook
+Pixel Security
