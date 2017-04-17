@@ -1,97 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f194.google.com ([209.85.192.194]:33274 "EHLO
-        mail-pf0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753201AbdDNAZ5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 13 Apr 2017 20:25:57 -0400
-Content-Type: text/plain;
-        charset=us-ascii
-Mime-Version: 1.0 (1.0)
-Subject: Re: [PATCH] mm: add VM_STATIC flag to vmalloc and prevent from removing the areas
-From: Hoeun Ryu <hoeun.ryu@gmail.com>
-In-Reply-To: <c900f2f4-8b0c-cc0e-afb7-a03cd1458e4c@linux.vnet.ibm.com>
-Date: Fri, 14 Apr 2017 09:25:54 +0900
-Content-Transfer-Encoding: quoted-printable
-Message-ID: <A3946A32-F0DB-438C-B2E7-D8CB09B1C49F@gmail.com>
-References: <1491973350-26816-1-git-send-email-hoeun.ryu@gmail.com> <c900f2f4-8b0c-cc0e-afb7-a03cd1458e4c@linux.vnet.ibm.com>
+Received: from mail-wm0-f67.google.com ([74.125.82.67]:34941 "EHLO
+        mail-wm0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750896AbdDQKc3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 17 Apr 2017 06:32:29 -0400
+Date: Mon, 17 Apr 2017 12:32:25 +0200
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH 3/8] x86/boot/64: Add support of additional page table
+ level during early boot
+Message-ID: <20170417103225.ycv73fdrfx33e5sd@gmail.com>
+References: <20170406140106.78087-1-kirill.shutemov@linux.intel.com>
+ <20170406140106.78087-4-kirill.shutemov@linux.intel.com>
+ <20170411070203.GA14621@gmail.com>
+ <20170411105106.4zgbzuu4s4267zyv@node.shutemov.name>
+ <20170411112845.GA15212@gmail.com>
+ <20170411114616.otx2f6aw5lcvfc2o@black.fi.intel.com>
+ <20170411140907.GD4021@tassilo.jf.intel.com>
+ <20170412101804.cxo6h472ns76ukgo@node.shutemov.name>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20170412101804.cxo6h472ns76ukgo@node.shutemov.name>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Anshuman Khandual <khandual@linux.vnet.ibm.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Andreas Dilger <adilger@dilger.ca>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@suse.com>, Chris Wilson <chris@chris-wilson.co.uk>, Ingo Molnar <mingo@kernel.org>, zijun_hu <zijun_hu@htc.com>, Matthew Wilcox <mawilcox@microsoft.com>, Thomas Garnier <thgarnie@google.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
-Message-ID: <20170414002554.mRPdLTtSBGoCjnEG2N6oG6qdK3rz7OIIIg8moPVpOdI@z>
+To: "Kirill A. Shutemov" <kirill@shutemov.name>
+Cc: Andi Kleen <ak@linux.intel.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andy Lutomirski <luto@amacapital.net>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@intel.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+Message-ID: <20170417103225.N1IINjOT-qx3mZheuZd_3rz2CwShbhhxTh6rcjCu6nU@z>
 
 
-> On Apr 13, 2017, at 1:17 PM, Anshuman Khandual <khandual@linux.vnet.ibm.co=
-m> wrote:
->=20
->> On 04/12/2017 10:31 AM, Hoeun Ryu wrote:
->> vm_area_add_early/vm_area_register_early() are used to reserve vmalloc ar=
-ea
->> during boot process and those virtually mapped areas are never unmapped.
->> So `OR` VM_STATIC flag to the areas in vmalloc_init() when importing
->> existing vmlist entries and prevent those areas from being removed from t=
-he
->> rbtree by accident.
->=20
-> I am wondering whether protection against accidental deletion
-> of any vmap area should be done in remove_vm_area() function
-> or the callers should take care of it. But I guess either way
-> it works.
->=20
->>=20
->> Signed-off-by: Hoeun Ryu <hoeun.ryu@gmail.com>
->> ---
->> include/linux/vmalloc.h | 1 +
->> mm/vmalloc.c            | 9 ++++++---
->> 2 files changed, 7 insertions(+), 3 deletions(-)
->>=20
->> diff --git a/include/linux/vmalloc.h b/include/linux/vmalloc.h
->> index 46991ad..3df53fc 100644
->> --- a/include/linux/vmalloc.h
->> +++ b/include/linux/vmalloc.h
->> @@ -19,6 +19,7 @@ struct notifier_block;        /* in notifier.h */
->> #define VM_UNINITIALIZED    0x00000020    /* vm_struct is not fully initi=
-alized */
->> #define VM_NO_GUARD        0x00000040      /* don't add guard page */
->> #define VM_KASAN        0x00000080      /* has allocated kasan shadow mem=
-ory */
->> +#define VM_STATIC        0x00000200
->=20
-> You might want to add some description in the comment saying
-> its a sticky VM area which will never go away or something.
->=20
+* Kirill A. Shutemov <kirill@shutemov.name> wrote:
 
-OK. I will add some description.
+> On Tue, Apr 11, 2017 at 07:09:07AM -0700, Andi Kleen wrote:
+> > > I'll look closer (building proccess it's rather complicated), but my
+> > > understanding is that VDSO is stand-alone binary and doesn't really links
+> > > with the rest of the kernel, rather included as blob, no?
+> > > 
+> > > Andy, may be you have an idea?
+> > 
+> > There isn't any way I know of to directly link them together. The ELF 
+> > format wasn't designed for that. You would need to merge blobs and then use
+> > manual jump vectors, like the 16bit startup code does. It would be likely
+> > complicated and ugly.
+> 
+> Ingo, can we proceed without coverting this assembly to C?
+> 
+> I'm committed to convert it to C later if we'll find reasonable solution
+> to the issue.
 
->> /* bits [20..32] reserved for arch specific ioremap internals */
->>=20
->> /*
->> diff --git a/mm/vmalloc.c b/mm/vmalloc.c
->> index 8ef8ea1..fb5049a 100644
->> --- a/mm/vmalloc.c
->> +++ b/mm/vmalloc.c
->> @@ -1262,7 +1262,7 @@ void __init vmalloc_init(void)
->>    /* Import existing vmlist entries. */
->>    for (tmp =3D vmlist; tmp; tmp =3D tmp->next) {
->>        va =3D kzalloc(sizeof(struct vmap_area), GFP_NOWAIT);
->> -        va->flags =3D VM_VM_AREA;
->> +        va->flags =3D VM_VM_AREA | VM_STATIC;
->>        va->va_start =3D (unsigned long)tmp->addr;
->>        va->va_end =3D va->va_start + tmp->size;
->>        va->vm =3D tmp;
->> @@ -1480,7 +1480,7 @@ struct vm_struct *remove_vm_area(const void *addr)
->>    might_sleep();
->>=20
->>    va =3D find_vmap_area((unsigned long)addr);
->> -    if (va && va->flags & VM_VM_AREA) {
->> +    if (va && va->flags & VM_VM_AREA && likely(!(va->flags & VM_STATIC))=
-) {
->=20
->=20
-> You might want to move the VM_STATIC check before the VM_VM_AREA
-> check so in cases where the former is set we can save one more
-> conditional check.
->=20
+So one way to do it would be to build it standalone as a .o, then add it not to 
+the regular kernel objects link target (as you found out it's not possible to link 
+32-bit and 64-bit objects), but to link it in a manual fashion, as part of 
+vmlinux.bin.all-y in arch/x86/boot/compressed/Makefile.
 
-OK, I'll fix this in the next version
+But there would be other complications with this approach, such as we'd have to 
+add a size field and there might be symbol linking problems ...
 
-Thank you for the review.=
+Another, pretty hacky way would be to generate a .S from the .c, then post-process 
+the .S and essentially generate today's 32-bit .S from it.
+
+Probably not worth the trouble.
+
+Thanks,
+
+	Ingo
