@@ -1,118 +1,127 @@
-From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: Re: [PATCH v3 04/32] asm-generic: add ioremap_nopost() remap interface
-Date: Tue, 18 Apr 2017 11:31:29 -0500
-Message-ID: <CAErSpo484QD+VD92vCHgDcPZFkC7YPyaCxmDpAwqRRF0wJrnfg@mail.gmail.com>
-References: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
- <20170411122923.6285-5-lorenzo.pieralisi@arm.com>
- <1491917983.7236.9.camel@kernel.crashing.org>
- <20170412112022.GY17774@n2100.armlinux.org.uk>
- <20170418154937.GA1006@red-moon>
+From: Bjorn Helgaas <helgaas@kernel.org>
+Subject: Re: [PATCH v2 00/27] PCI resource mmap cleanup
+Date: Tue, 18 Apr 2017 13:28:16 -0500
+Message-ID: <20170418182816.GB25295@bhelgaas-glaptop.roam.corp.google.com>
+References: <cover.1491999859.git.dwmw2@infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20170418154937.GA1006@red-moon>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Cc: Jonas Bonn <jonas@southpole.se>, Rich Felker <dalias@libc.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, David Howells <dhowells@redhat.com>, Max Filippov <jcmvbkbc@gmail.com>, Paul Mackerras <paulus@samba.org>, Huacai Chen <chenhc@lemote.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Linux-Arch <linux-arch@vger.kernel.org>, Jesper Nilsson <jesper.nilsson@axis.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, Russell King - ARM Linux <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Matt Turner <mattst88@gmail.com>, Haavard Skinnemoen <hskin>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-pci-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <cover.1491999859.git.dwmw2@infradead.org>
+Sender: linux-pci-owner@vger.kernel.org
+To: David Woodhouse <dwmw2@infradead.org>
+Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Apr 18, 2017 at 10:49 AM, Lorenzo Pieralisi
-<lorenzo.pieralisi@arm.com> wrote:
-> On Wed, Apr 12, 2017 at 12:20:22PM +0100, Russell King - ARM Linux wrote:
->> On Tue, Apr 11, 2017 at 11:39:43PM +1000, Benjamin Herrenschmidt wrote:
->> > On Tue, 2017-04-11 at 13:28 +0100, Lorenzo Pieralisi wrote:
->> > > +static inline void __iomem *ioremap_nopost(phys_addr_t offset,
->> > > size_t size)
->> > > +{
->> > > +       return ioremap_nocache(offset, size);
->> > > +}
->> > > +
->> >
->> > No this is wrong as I explained.
->> >
->> > This is a semantic that simply *cannot* be generically provided accross
->> > architectures as a mapping attribute.
->> >
->> > The solution to your problem lies elsewhere.
->>
->> I disagree.  Sure, it may not be supportable across all architectures,
->> but we're not introducing something brand new here.
->>
->> What we're trying to do is to fix some _existing_ drivers that are
->> already using ioremap() to map the PCI IO and configuration spaces.
->> Maybe it would help if those drivers were part of this patch set,
->> rather than the patch set just introducing a whole new architecture
->> interface without really showing where the problem drivers are.
->>
->> The issue here is that if we make this new ioremap_nopost() fail by
->> returning NULL if an architecture does not provide an implementation,
->> then these drivers are going to start failing on such architectures.
->>
->> It is only safe to do that where we know for certain that the drivers
->> are not used - but I don't think that's the case here (it's difficult
->> to tell, because no drivers are updated in this series, so we don't
->> know which are going to be affected.)
->>
->> So, the question is:
->>
->> - is it better to provide a default implementation which provides the
->>   functionality that existing drivers are _already_ using, albiet not
->>   entirely correctly.
->>
->> or:
->>
->> - is it better to break drivers on architectures when they're converted
->>   to fix up this issue.
->>
->> What, I suppose, we could do is not bother with a default implementation,
->> but instead litter drivers with:
->>
->> +#ifdef ioremap_post
->> +     base = ioremap_post(...);
->> +#else
->>       base = ioremap(...);
->> +#endif
->>
->> which gets around your objection - not providing a default that's weaker
->> than required, but also not breaking the drivers.  The problem is that
->> we end up littering drivers with ifdefs.
->>
->> However, I'm willing to bet that the architectures that you're saying
->> will not be able to support the weaker semantic won't have any need to
->> use these drivers, or if they do, the drivers will need the method of
->> accessing stuff like PCI IO and configuration spaces radically altered.
->>
->> So, maybe the best solution is to not provide any kind of default
->> implementation, add a HAVE_IOREMAP_POST Kconfig symbol, have architectures
->> select that when they do provide ioremap_post(), and make the drivers
->> depend on that (so we don't end up trying to build these drivers on
->> architectures where they can never work.)  Down side to that is reduced
->> build coverage.
->
-> I can do that yes, which already means I have to know if eg microblaze
-> (drivers/pci/host/pcie-xilinx.c) can provide a mapping with nonposted
-> writes semantics, otherwise it is a dead-end.
->
-> Another option would be going back to what v1 did, namely, to implement
-> a pci_remap_cfgspace() interface (it is the _nopost() suffix that stirred
-> debate - nobody would object to having a default pci_remap_cfgspace()
-> implementation that defaults to ioremap_nocache(), I know Bjorn does not
-> like it to be PCI specific, just adding an option on the table to make
-> progress).
+On Wed, Apr 12, 2017 at 01:25:49PM +0100, David Woodhouse wrote:
+> This pursues my previous patch set all the way to its logical conclusion.
+> 
+> It kills off the legacy arch-provided pci_mmap_page_range() completely,
+> along with its vile 'address converted by pci_resource_to_user()' API
+> and the various bugs and other strange behaviour that various
+> architectures had.
+> 
+> In some cases like IA64 I've killed off the odd behaviour *first* in
+> separately reviewable patches, before the final switch over to the
+> generic code which should then basically have no functional effect.
+> 
+> To accommodate the ARM64 maintainers' desire *not* to support mmap
+> through /proc/bus/pci I have separated HAVE_PCI_MMAP from the sysfs
+> implementation, which (as of the last patch in the series) ends up
+> present on *all* platforms with an MMU. I still don't think that's a
+> *good* idea though; it's a generic part of /proc, and nobody ever did
+> answer my question about what *else* we can delete from /proc on ARM64
+> "because it's a new platform"...
+> 
+> I would very much like the interesting parts of this to go through the
+> arch maintainers' trees. I'd suggest that we can pull everything up to
+> and including patch 19 ("pci: Add I/O BAR support to generic
+> pci_mmap_resource_range()") through the PCI tree, which includes the
+> relatively trivial architectures. Then the others can go through the
+> appropriate arch tree with more careful review and testing.
+> 
+> Once everything's done, then we can apply something like the final
+> patch ("pci: Kill ARCH_GENERIC_PCI_MMAP_RESOURCE"). But that's mostly
+> just there for now as a demonstration of the intended end point.
+> 
+> This is in
+>  git://git.infradead.org/users/dwmw2/random-2.6.git pcimmap
+>  http://git.infradead.org/users/dwmw2/random-2.6.git/shortlog/refs/heads/pcimmap
 
-The reason I objected to pci_remap_cfgspace() was that I thought
-ioremap_nopost() was implementable across arches.  That turned out not
-to be true, so I'm fine with calling it pci_remap_cfgspace().  Maybe
-it's worth a note in the default implementation that arches should
-override it with a non-postable version if they can.
+Applied to pci/resource-mmap for v4.12, thanks!
 
-Bjorn
+This consists of the email patches + the acks/etc so far.  It doesn't
+include any updates from your git branch (but it doesn't look like it's
+been updated recently).
+
+> David Woodhouse (27):
+>   pci: Fix pci_mmap_fits() for HAVE_PCI_RESOURCE_TO_USER platforms
+>   pci: Fix another sanity check bug in /proc/pci mmap
+>   pci: Only allow WC mmap on prefetchable resources
+>   xtensa: Do not mmap PCI BARs to userspace as write-through
+>   pci: Add arch_can_pci_mmap_wc() macro
+>   pci: Move multiple declarations of pci_mmap_page_range() to
+>     <linux/pci.h>
+>   pci: Add arch_can_pci_mmap_io() on architectures which can mmap() I/O
+>     space
+>   pci: Use BAR index in sysfs attr->private instead of resource pointer
+>   pci: Add BAR index argument to pci_mmap_page_range()
+>   pci: Add pci_mmap_resource_range() and use it for ARM64
+>   arm: Use generic pci_mmap_resource_range()
+>   cris: Use generic pci_mmap_resource_range()
+>   mips: Use generic pci_mmap_resource_range()
+>   mn10300: Use generic pci_mmap_resource_range()
+>   parisc: Use generic pci_mmap_resource_range()
+>   sh: Use generic pci_mmap_resource_range()
+>   unicore: Use generic pci_mmap_resource_range()
+>   x86: Use generic pci_mmap_resource_range()
+>   pci: Add I/O BAR support to generic pci_mmap_resource_range()
+>   powerpc: Use generic pci_mmap_resource_range()
+>   microblaze: Use generic pci_mmap_resource_range()
+>   xtensa: Use generic pci_mmap_resource_range()
+>   ia64: Remove redundant valid_mmap_phys_addr_range() from
+>     pci_mmap_page_range()
+>   ia64: Remove redundant checks for WC in pci_mmap_page_range()
+>   ia64: Use generic pci_mmap_resource_range()
+>   sparc: Use generic pci_mmap_resource_range()
+>   pci: Kill ARCH_GENERIC_PCI_MMAP_RESOURCE
+> 
+>  Documentation/filesystems/sysfs-pci.txt |  12 ++-
+>  arch/arm/include/asm/pci.h              |   2 -
+>  arch/arm/kernel/bios32.c                |  19 ----
+>  arch/cris/arch-v32/drivers/pci/bios.c   |  22 -----
+>  arch/cris/include/asm/pci.h             |   3 -
+>  arch/ia64/include/asm/pci.h             |   4 +-
+>  arch/ia64/pci/pci.c                     |  46 ----------
+>  arch/microblaze/include/asm/pci.h       |   8 +-
+>  arch/microblaze/pci/pci-common.c        |  99 ++------------------
+>  arch/mips/include/asm/pci.h             |   4 -
+>  arch/mips/pci/pci.c                     |  24 -----
+>  arch/mn10300/include/asm/pci.h          |   3 -
+>  arch/mn10300/unit-asb2305/pci-asb2305.c |  23 -----
+>  arch/parisc/include/asm/pci.h           |   3 -
+>  arch/parisc/kernel/pci.c                |  28 ------
+>  arch/powerpc/include/asm/pci.h          |   9 +-
+>  arch/powerpc/kernel/pci-common.c        | 105 +++-------------------
+>  arch/sh/drivers/pci/pci.c               |  21 -----
+>  arch/sh/include/asm/pci.h               |   3 +-
+>  arch/sparc/include/asm/pci_64.h         |   5 +-
+>  arch/sparc/kernel/pci.c                 | 155 --------------------------------
+>  arch/unicore32/include/asm/pci.h        |   2 -
+>  arch/unicore32/kernel/pci.c             |  23 -----
+>  arch/x86/include/asm/pci.h              |   6 +-
+>  arch/x86/pci/i386.c                     |  47 ----------
+>  arch/xtensa/include/asm/pci.h           |   9 +-
+>  arch/xtensa/kernel/pci.c                | 112 ++---------------------
+>  drivers/pci/Makefile                    |   1 +
+>  drivers/pci/mmap.c                      |  67 ++++++++++++++
+>  drivers/pci/pci-sysfs.c                 |  76 +++++++---------
+>  drivers/pci/pci.h                       |   4 +-
+>  drivers/pci/proc.c                      |  41 ++++++---
+>  include/linux/pci.h                     |  30 +++++++
+>  33 files changed, 211 insertions(+), 805 deletions(-)
+>  create mode 100644 drivers/pci/mmap.c
+> 
+> -- 
+> 2.9.3
+> 
