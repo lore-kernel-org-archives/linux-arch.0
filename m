@@ -1,117 +1,68 @@
-From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Subject: Re: [PATCH v3 00/32] PCI: fix config and I/O Address space memory
- mappings
-Date: Tue, 18 Apr 2017 09:57:32 +0100
-Message-ID: <20170418085732.GA23882@red-moon>
-References: <1491917906.7236.7.camel@kernel.crashing.org>
- <20170411140857.GA6821@red-moon>
- <1491952371.7236.22.camel@kernel.crashing.org>
- <20170412113124.GZ17774@n2100.armlinux.org.uk>
- <1492005119.7236.62.camel@kernel.crashing.org>
- <20170412141654.GA17774@n2100.armlinux.org.uk>
- <20170412144109.GB6842@red-moon>
- <1492036240.7236.80.camel@kernel.crashing.org>
- <20170412224555.GB17774@n2100.armlinux.org.uk>
- <1492044780.7236.87.camel@kernel.crashing.org>
+From: "Kirill A. Shutemov" <kirill@shutemov.name>
+Subject: Re: [PATCH 3/8] x86/boot/64: Add support of additional page table
+ level during early boot
+Date: Tue, 18 Apr 2017 11:59:26 +0300
+Message-ID: <20170418085926.bzdzs2wwxjmdxqxm@node.shutemov.name>
+References: <20170406140106.78087-1-kirill.shutemov@linux.intel.com>
+ <20170406140106.78087-4-kirill.shutemov@linux.intel.com>
+ <20170411070203.GA14621@gmail.com>
+ <20170411105106.4zgbzuu4s4267zyv@node.shutemov.name>
+ <20170411112845.GA15212@gmail.com>
+ <20170411114616.otx2f6aw5lcvfc2o@black.fi.intel.com>
+ <20170411140907.GD4021@tassilo.jf.intel.com>
+ <20170412101804.cxo6h472ns76ukgo@node.shutemov.name>
+ <20170417103225.ycv73fdrfx33e5sd@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="iso-8859-1"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <1492044780.7236.87.camel@kernel.crashing.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Jonas Bonn <jonas@southpole.se>, Rich Felker <dalias@libc.org>, linux-pci@vger.kernel.org, Will Deacon <will.deacon@arm.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, David Howells <dhowells@redhat.com>, Max Filippov <jcmvbkbc@gmail.com>, Paul Mackerras <paulus@samba.org>, Huacai Chen <chenhc@lemote.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, linux-arch@vger.kernel.org, Jesper Nilsson <jesper.nilsson@axis.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, Russell King - ARM Linux <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Catalin Marinas <catalin.marinas@arm.com>, Matt Turner <mattst88@gmail.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Fenghua Yu <fenghua>
+In-Reply-To: <20170417103225.ycv73fdrfx33e5sd@gmail.com>
+Sender: owner-linux-mm@kvack.org
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Andi Kleen <ak@linux.intel.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andy Lutomirski <luto@amacapital.net>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@intel.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Apr 13, 2017 at 10:53:00AM +1000, Benjamin Herrenschmidt wrote:
-> On Wed, 2017-04-12 at 23:45 +0100, Russell King - ARM Linux wrote:
-> > On Thu, Apr 13, 2017 at 08:30:40AM +1000, Benjamin Herrenschmidt wrote:
-> > > My point with nopost() is that it's never ok to silently downgrade it.
-> > > Code written with the assumption that there is no posting will be
-> > > *incorrect* if posting happens. We do live with that "bug" today inde=
-ed
-> > > but once we have that accessors we might start growing more code that
-> > > relies on the specific attribute that things aren't posted and will be
-> > > wrong on all the archs providing the default implementation.
-> > > =
+On Mon, Apr 17, 2017 at 12:32:25PM +0200, Ingo Molnar wrote:
+> 
+> * Kirill A. Shutemov <kirill@shutemov.name> wrote:
+> 
+> > On Tue, Apr 11, 2017 at 07:09:07AM -0700, Andi Kleen wrote:
+> > > > I'll look closer (building proccess it's rather complicated), but my
+> > > > understanding is that VDSO is stand-alone binary and doesn't really links
+> > > > with the rest of the kernel, rather included as blob, no?
+> > > > 
+> > > > Andy, may be you have an idea?
+> > > 
+> > > There isn't any way I know of to directly link them together. The ELF 
+> > > format wasn't designed for that. You would need to merge blobs and then use
+> > > manual jump vectors, like the 16bit startup code does. It would be likely
+> > > complicated and ugly.
+> > 
+> > Ingo, can we proceed without coverting this assembly to C?
+> > 
+> > I'm committed to convert it to C later if we'll find reasonable solution
+> > to the issue.
+> 
+> So one way to do it would be to build it standalone as a .o, then add it not to 
+> the regular kernel objects link target (as you found out it's not possible to link 
+> 32-bit and 64-bit objects), but to link it in a manual fashion, as part of 
+> vmlinux.bin.all-y in arch/x86/boot/compressed/Makefile.
+> 
+> But there would be other complications with this approach, such as we'd have to 
+> add a size field and there might be symbol linking problems ...
+> 
+> Another, pretty hacky way would be to generate a .S from the .c, then post-process 
+> the .S and essentially generate today's 32-bit .S from it.
+> 
+> Probably not worth the trouble.
 
-> > > This is why I insist that pgprot_nopost() if it exists globally, shou=
-ld
-> > > return NULL when the semantic cannot be provided.
-> > =
+So, do I need to do anything else to get part 4 applied?
 
-> > Now you're not talking sense.=A0=A0pgprot_nopost() does _not_ return a =
-pointer.
-> > You're talking here as if you're still talking about ioremap_nopost().
-> > So, I think you're confused.
-> =
+-- 
+ Kirill A. Shutemov
 
-> Nah, just "typo", I meant ioremap_nopost.
-> =
-
-> > > > > Just like the proposed ioremap_nopost(), pgprot_nonposted() is gi=
-ven a
-> > > > > default implementation that uses pgprot_noncached().=A0 Maybe we =
-should
-> > > > > also make pci_remap_iospace() fail if pgprot_nonposted() is not d=
-efined
-> > > > > by the architecture?
-> > > =
-
-> > > Or we *document* that mmap of IO space can result in something that is
-> > > partially non-posted.
-> > =
-
-> > Oh, so we _can_ provide an interface that has weaker semantics than it
-> > should provided we document it.
-> > =
-
-> > It's insane to have different behaviours from these two interfaces, yet
-> > you seem to have said exactly that in your reply.
-> >
-> > It's actually worse than that - what you've just said is that it's okay
-> > for userspace to map IO space with weaker semantics than the PCI
-> > specification states, but it's not okay for kernel space to do that.
-> =
-
-> That is not what I'm saying. What I'm saying is that it's not ok to
-> provide a generic mapping attribute that silently happens to be weaker
-> than documented on some architectures.
-> =
-
-> The PCI part is orthogonal. How do you handle PCI in absence of that
-> attribute is a separate problem (which is probably a matter of just
-> documenting things).
-
-I can add a defined(pgprot_nonposted) to pci_remap_iospace() if that's
-not too ugly (I suspect Bjorn is thrilled about it :)), that plus
-the Kconfig option for ioremap_nopost() should complete this series.
-
-int pci_remap_iospace(const struct resource *res, phys_addr_t phys_addr)
-{
-#if defined(PCI_IOBASE) && defined(CONFIG_MMU) && defined(pgprot_nonposted)
-	unsigned long vaddr =3D (unsigned long)PCI_IOBASE + res->start;
-
-	if (!(res->flags & IORESOURCE_IO))
-		return -EINVAL;
-
-	if (res->end > IO_SPACE_LIMIT)
-		return -EINVAL
-	return ioremap_page_range(vaddr, vaddr + resource_size(res), phys_addr,
-				  pgprot_nonposted(PAGE_KERNEL));
-#else
-	/* this architecture does not have memory mapped I/O space,
-	   so this function should never be called */
-	WARN_ONCE(1, "This architecture does not support memory mapped I/O\n");
-	return -ENODEV;
-#endif
-}
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
