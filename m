@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bl2nam02on0058.outbound.protection.outlook.com ([104.47.38.58]:13040
-        "EHLO NAM02-BL2-obe.outbound.protection.outlook.com"
+Received: from mail-co1nam03on0049.outbound.protection.outlook.com ([104.47.40.49]:51241
+        "EHLO NAM03-CO1-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1757811AbdDRVVG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 18 Apr 2017 17:21:06 -0400
+        id S1757886AbdDRVWM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 18 Apr 2017 17:22:12 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v5 25/32] x86,
- realmode: Check for memory encryption on the APs
-Date: Tue, 18 Apr 2017 16:20:44 -0500
-Message-ID: <20170418212044.10190.49261.stgit@tlendack-t1.amdoffice.net>
+Subject: [PATCH v5 30/32] x86/boot: Add early cmdline parsing for options
+ with arguments
+Date: Tue, 18 Apr 2017 16:22:00 -0500
+Message-ID: <20170418212200.10190.18044.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
 References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -18,117 +18,145 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Rik van Riel <riel@redhat.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170418212044.6qFqi-gkBYoHKU4-H_CrefVeJc83c6wH1ViNhjd2a3I@z>
+Message-ID: <20170418212200._4JmdzRpthy1PRgZOoip9KYkRSeYzk-x8laEVNxqqok@z>
 
-Add support to check if memory encryption is active in the kernel and that
-it has been enabled on the AP. If memory encryption is active in the kernel
-but has not been enabled on the AP, then set the memory encryption bit (bit
-23) of MSR_K8_SYSCFG to enable memory encryption on that AP and allow the
-AP to continue start up.
+Add a cmdline_find_option() function to look for cmdline options that
+take arguments. The argument is returned in a supplied buffer and the
+argument length (regardless of whether it fits in the supplied buffer)
+is returned, with -1 indicating not found.
 
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/include/asm/realmode.h      |   12 ++++++++++++
- arch/x86/realmode/init.c             |    4 ++++
- arch/x86/realmode/rm/trampoline_64.S |   24 ++++++++++++++++++++++++
- 3 files changed, 40 insertions(+)
+ arch/x86/include/asm/cmdline.h |    2 +
+ arch/x86/lib/cmdline.c         |  105 ++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 107 insertions(+)
 
-diff --git a/arch/x86/include/asm/realmode.h b/arch/x86/include/asm/realmode.h
-index 230e190..90d9152 100644
---- a/arch/x86/include/asm/realmode.h
-+++ b/arch/x86/include/asm/realmode.h
-@@ -1,6 +1,15 @@
- #ifndef _ARCH_X86_REALMODE_H
- #define _ARCH_X86_REALMODE_H
+diff --git a/arch/x86/include/asm/cmdline.h b/arch/x86/include/asm/cmdline.h
+index e01f7f7..84ae170 100644
+--- a/arch/x86/include/asm/cmdline.h
++++ b/arch/x86/include/asm/cmdline.h
+@@ -2,5 +2,7 @@
+ #define _ASM_X86_CMDLINE_H
+ 
+ int cmdline_find_option_bool(const char *cmdline_ptr, const char *option);
++int cmdline_find_option(const char *cmdline_ptr, const char *option,
++			char *buffer, int bufsize);
+ 
+ #endif /* _ASM_X86_CMDLINE_H */
+diff --git a/arch/x86/lib/cmdline.c b/arch/x86/lib/cmdline.c
+index 5cc78bf..3261abb 100644
+--- a/arch/x86/lib/cmdline.c
++++ b/arch/x86/lib/cmdline.c
+@@ -104,7 +104,112 @@ static inline int myisspace(u8 c)
+ 	return 0;	/* Buffer overrun */
+ }
  
 +/*
-+ * Flag bit definitions for use with the flags field of the trampoline header
-+ * in the CONFIG_X86_64 variant.
++ * Find a non-boolean option (i.e. option=argument). In accordance with
++ * standard Linux practice, if this option is repeated, this returns the
++ * last instance on the command line.
++ *
++ * @cmdline: the cmdline string
++ * @max_cmdline_size: the maximum size of cmdline
++ * @option: option string to look for
++ * @buffer: memory buffer to return the option argument
++ * @bufsize: size of the supplied memory buffer
++ *
++ * Returns the length of the argument (regardless of if it was
++ * truncated to fit in the buffer), or -1 on not found.
 + */
-+#define TH_FLAGS_SME_ACTIVE_BIT		0
-+#define TH_FLAGS_SME_ACTIVE		BIT(TH_FLAGS_SME_ACTIVE_BIT)
++static int
++__cmdline_find_option(const char *cmdline, int max_cmdline_size,
++		      const char *option, char *buffer, int bufsize)
++{
++	char c;
++	int pos = 0, len = -1;
++	const char *opptr = NULL;
++	char *bufptr = buffer;
++	enum {
++		st_wordstart = 0,	/* Start of word/after whitespace */
++		st_wordcmp,	/* Comparing this word */
++		st_wordskip,	/* Miscompare, skip */
++		st_bufcpy,	/* Copying this to buffer */
++	} state = st_wordstart;
 +
-+#ifndef __ASSEMBLY__
-+
- #include <linux/types.h>
- #include <asm/io.h>
- 
-@@ -38,6 +47,7 @@ struct trampoline_header {
- 	u64 start;
- 	u64 efer;
- 	u32 cr4;
-+	u32 flags;
- #endif
- };
- 
-@@ -69,4 +79,6 @@ static inline size_t real_mode_size_needed(void)
- void set_real_mode_mem(phys_addr_t mem, size_t size);
- void reserve_real_mode(void);
- 
-+#endif /* __ASSEMBLY__ */
-+
- #endif /* _ARCH_X86_REALMODE_H */
-diff --git a/arch/x86/realmode/init.c b/arch/x86/realmode/init.c
-index 21d7506..5010089 100644
---- a/arch/x86/realmode/init.c
-+++ b/arch/x86/realmode/init.c
-@@ -102,6 +102,10 @@ static void __init setup_real_mode(void)
- 	trampoline_cr4_features = &trampoline_header->cr4;
- 	*trampoline_cr4_features = mmu_cr4_features;
- 
-+	trampoline_header->flags = 0;
-+	if (sme_active())
-+		trampoline_header->flags |= TH_FLAGS_SME_ACTIVE;
-+
- 	trampoline_pgd = (u64 *) __va(real_mode_header->trampoline_pgd);
- 	trampoline_pgd[0] = trampoline_pgd_entry.pgd;
- 	trampoline_pgd[511] = init_level4_pgt[511].pgd;
-diff --git a/arch/x86/realmode/rm/trampoline_64.S b/arch/x86/realmode/rm/trampoline_64.S
-index dac7b20..614fd70 100644
---- a/arch/x86/realmode/rm/trampoline_64.S
-+++ b/arch/x86/realmode/rm/trampoline_64.S
-@@ -30,6 +30,7 @@
- #include <asm/msr.h>
- #include <asm/segment.h>
- #include <asm/processor-flags.h>
-+#include <asm/realmode.h>
- #include "realmode.h"
- 
- 	.text
-@@ -92,6 +93,28 @@ ENTRY(startup_32)
- 	movl	%edx, %fs
- 	movl	%edx, %gs
- 
-+	/*
-+	 * Check for memory encryption support. This is a safety net in
-+	 * case BIOS hasn't done the necessary step of setting the bit in
-+	 * the MSR for this AP. If SME is active and we've gotten this far
-+	 * then it is safe for us to set the MSR bit and continue. If we
-+	 * don't we'll eventually crash trying to execute encrypted
-+	 * instructions.
-+	 */
-+	bt	$TH_FLAGS_SME_ACTIVE_BIT, pa_tr_flags
-+	jnc	.Ldone
-+	movl	$MSR_K8_SYSCFG, %ecx
-+	rdmsr
-+	bts	$MSR_K8_SYSCFG_MEM_ENCRYPT_BIT, %eax
-+	jc	.Ldone
++	if (!cmdline)
++		return -1;      /* No command line */
 +
 +	/*
-+	 * Memory encryption is enabled but the SME enable bit for this
-+	 * CPU has has not been set.  It is safe to set it, so do so.
++	 * This 'pos' check ensures we do not overrun
++	 * a non-NULL-terminated 'cmdline'
 +	 */
-+	wrmsr
-+.Ldone:
++	while (pos++ < max_cmdline_size) {
++		c = *(char *)cmdline++;
++		if (!c)
++			break;
 +
- 	movl	pa_tr_cr4, %eax
- 	movl	%eax, %cr4		# Enable PAE mode
- 
-@@ -147,6 +170,7 @@ GLOBAL(trampoline_header)
- 	tr_start:		.space	8
- 	GLOBAL(tr_efer)		.space	8
- 	GLOBAL(tr_cr4)		.space	4
-+	GLOBAL(tr_flags)	.space	4
- END(trampoline_header)
- 
- #include "trampoline_common.S"
++		switch (state) {
++		case st_wordstart:
++			if (myisspace(c))
++				break;
++
++			state = st_wordcmp;
++			opptr = option;
++			/* fall through */
++
++		case st_wordcmp:
++			if ((c == '=') && !*opptr) {
++				/*
++				 * We matched all the way to the end of the
++				 * option we were looking for, prepare to
++				 * copy the argument.
++				 */
++				len = 0;
++				bufptr = buffer;
++				state = st_bufcpy;
++				break;
++			} else if (c == *opptr++) {
++				/*
++				 * We are currently matching, so continue
++				 * to the next character on the cmdline.
++				 */
++				break;
++			}
++			state = st_wordskip;
++			/* fall through */
++
++		case st_wordskip:
++			if (myisspace(c))
++				state = st_wordstart;
++			break;
++
++		case st_bufcpy:
++			if (myisspace(c)) {
++				state = st_wordstart;
++			} else {
++				/*
++				 * Increment len, but don't overrun the
++				 * supplied buffer and leave room for the
++				 * NULL terminator.
++				 */
++				if (++len < bufsize)
++					*bufptr++ = c;
++			}
++			break;
++		}
++	}
++
++	if (bufsize)
++		*bufptr = '\0';
++
++	return len;
++}
++
+ int cmdline_find_option_bool(const char *cmdline, const char *option)
+ {
+ 	return __cmdline_find_option_bool(cmdline, COMMAND_LINE_SIZE, option);
+ }
++
++int cmdline_find_option(const char *cmdline, const char *option, char *buffer,
++			int bufsize)
++{
++	return __cmdline_find_option(cmdline, COMMAND_LINE_SIZE, option,
++				     buffer, bufsize);
++}
