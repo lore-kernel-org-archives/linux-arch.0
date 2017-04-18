@@ -1,86 +1,127 @@
-From: "Kirill A. Shutemov" <kirill@shutemov.name>
-Subject: Re: [PATCH 3/8] x86/boot/64: Add support of additional page table
- level during early boot
-Date: Tue, 18 Apr 2017 14:10:31 +0300
-Message-ID: <20170418111030.5zc4zhxlrbpi4bwm@node.shutemov.name>
-References: <20170406140106.78087-4-kirill.shutemov@linux.intel.com>
- <20170411070203.GA14621@gmail.com>
- <20170411105106.4zgbzuu4s4267zyv@node.shutemov.name>
- <20170411112845.GA15212@gmail.com>
- <20170411114616.otx2f6aw5lcvfc2o@black.fi.intel.com>
- <20170411140907.GD4021@tassilo.jf.intel.com>
- <20170412101804.cxo6h472ns76ukgo@node.shutemov.name>
- <20170417103225.ycv73fdrfx33e5sd@gmail.com>
- <20170418085926.bzdzs2wwxjmdxqxm@node.shutemov.name>
- <20170418101534.oa3mchqyap2yvh7v@node.shutemov.name>
+From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+Subject: Re: [PATCH v3 04/32] asm-generic: add ioremap_nopost() remap interface
+Date: Tue, 18 Apr 2017 16:49:37 +0100
+Message-ID: <20170418154937.GA1006@red-moon>
+References: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
+ <20170411122923.6285-5-lorenzo.pieralisi@arm.com>
+ <1491917983.7236.9.camel@kernel.crashing.org>
+ <20170412112022.GY17774@n2100.armlinux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 Content-Disposition: inline
-In-Reply-To: <20170418101534.oa3mchqyap2yvh7v@node.shutemov.name>
-Sender: owner-linux-mm@kvack.org
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Andi Kleen <ak@linux.intel.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andy Lutomirski <luto@amacapital.net>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@intel.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+In-Reply-To: <20170412112022.GY17774@n2100.armlinux.org.uk>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Russell King - ARM Linux <linux@armlinux.org.uk>
+Cc: Jonas Bonn <jonas@southpole.se>, Rich Felker <dalias@libc.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, David Howells <dhowells@redhat.com>, Max Filippov <jcmvbkbc@gmail.com>, Paul Mackerras <paulus@samba.org>, Huacai Chen <chenhc@lemote.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, linux-arch@vger.kernel.org, Jesper Nilsson <jesper.nilsson@axis.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Ingo Molnar <mingo@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Matt Turner <mattst88@gmail.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Fenghua Yu <fenghua.yu@intel.com>James
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Apr 18, 2017 at 01:15:34PM +0300, Kirill A. Shutemov wrote:
-> On Tue, Apr 18, 2017 at 11:59:26AM +0300, Kirill A. Shutemov wrote:
-> > On Mon, Apr 17, 2017 at 12:32:25PM +0200, Ingo Molnar wrote:
-> > > 
-> > > * Kirill A. Shutemov <kirill@shutemov.name> wrote:
-> > > 
-> > > > On Tue, Apr 11, 2017 at 07:09:07AM -0700, Andi Kleen wrote:
-> > > > > > I'll look closer (building proccess it's rather complicated), but my
-> > > > > > understanding is that VDSO is stand-alone binary and doesn't really links
-> > > > > > with the rest of the kernel, rather included as blob, no?
-> > > > > > 
-> > > > > > Andy, may be you have an idea?
-> > > > > 
-> > > > > There isn't any way I know of to directly link them together. The ELF 
-> > > > > format wasn't designed for that. You would need to merge blobs and then use
-> > > > > manual jump vectors, like the 16bit startup code does. It would be likely
-> > > > > complicated and ugly.
-> > > > 
-> > > > Ingo, can we proceed without coverting this assembly to C?
-> > > > 
-> > > > I'm committed to convert it to C later if we'll find reasonable solution
-> > > > to the issue.
-> > > 
-> > > So one way to do it would be to build it standalone as a .o, then add it not to 
-> > > the regular kernel objects link target (as you found out it's not possible to link 
-> > > 32-bit and 64-bit objects), but to link it in a manual fashion, as part of 
-> > > vmlinux.bin.all-y in arch/x86/boot/compressed/Makefile.
-> > > 
-> > > But there would be other complications with this approach, such as we'd have to 
-> > > add a size field and there might be symbol linking problems ...
-> > > 
-> > > Another, pretty hacky way would be to generate a .S from the .c, then post-process 
-> > > the .S and essentially generate today's 32-bit .S from it.
-> > > 
-> > > Probably not worth the trouble.
-> > 
-> > So, do I need to do anything else to get part 4 applied?
-> 
-> Doh!
-> 
-> I've just realized we don't really need to enable 5-level paging in
-> decompression code. Leaving 4-level paging there works perfectly fine.
-> 
-> I'll drop changes to arch/x86/boot/compressed/head_64.S and resubmit the
-> patchset.
+On Wed, Apr 12, 2017 at 12:20:22PM +0100, Russell King - ARM Linux wrote:
+> On Tue, Apr 11, 2017 at 11:39:43PM +1000, Benjamin Herrenschmidt wrote:
+> > On Tue, 2017-04-11 at 13:28 +0100, Lorenzo Pieralisi wrote:
+> > > +static inline void __iomem *ioremap_nopost(phys_addr_t offset,
+> > > size_t size)
+> > > +{
+> > > +=A0=A0=A0=A0=A0=A0=A0return ioremap_nocache(offset, size);
+> > > +}
+> > > +
+> > =
 
-No. This breaks KASLR. Decompression code has to use 5-level paging to
-keep KASLR working.
+> > No this is wrong as I explained.
+> > =
 
-So, v4 of part 4 is up-to-date.
+> > This is a semantic that simply *cannot* be generically provided accross
+> > architectures as a mapping attribute.
+> > =
 
-Sorry for noise.
+> > The solution to your problem lies elsewhere.
+> =
 
--- 
- Kirill A. Shutemov
+> I disagree.  Sure, it may not be supportable across all architectures,
+> but we're not introducing something brand new here.
+> =
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+> What we're trying to do is to fix some _existing_ drivers that are
+> already using ioremap() to map the PCI IO and configuration spaces.
+> Maybe it would help if those drivers were part of this patch set,
+> rather than the patch set just introducing a whole new architecture
+> interface without really showing where the problem drivers are.
+> =
+
+> The issue here is that if we make this new ioremap_nopost() fail by
+> returning NULL if an architecture does not provide an implementation,
+> then these drivers are going to start failing on such architectures.
+> =
+
+> It is only safe to do that where we know for certain that the drivers
+> are not used - but I don't think that's the case here (it's difficult
+> to tell, because no drivers are updated in this series, so we don't
+> know which are going to be affected.)
+> =
+
+> So, the question is:
+> =
+
+> - is it better to provide a default implementation which provides the
+>   functionality that existing drivers are _already_ using, albiet not
+>   entirely correctly.
+> =
+
+> or:
+> =
+
+> - is it better to break drivers on architectures when they're converted
+>   to fix up this issue.
+> =
+
+> What, I suppose, we could do is not bother with a default implementation,
+> but instead litter drivers with:
+> =
+
+> +#ifdef ioremap_post
+> +	base =3D ioremap_post(...);
+> +#else
+> 	base =3D ioremap(...);
+> +#endif
+> =
+
+> which gets around your objection - not providing a default that's weaker
+> than required, but also not breaking the drivers.  The problem is that
+> we end up littering drivers with ifdefs.
+> =
+
+> However, I'm willing to bet that the architectures that you're saying
+> will not be able to support the weaker semantic won't have any need to
+> use these drivers, or if they do, the drivers will need the method of
+> accessing stuff like PCI IO and configuration spaces radically altered.
+> =
+
+> So, maybe the best solution is to not provide any kind of default
+> implementation, add a HAVE_IOREMAP_POST Kconfig symbol, have architectures
+> select that when they do provide ioremap_post(), and make the drivers
+> depend on that (so we don't end up trying to build these drivers on
+> architectures where they can never work.)  Down side to that is reduced
+> build coverage.
+
+I can do that yes, which already means I have to know if eg microblaze
+(drivers/pci/host/pcie-xilinx.c) can provide a mapping with nonposted
+writes semantics, otherwise it is a dead-end.
+
+Another option would be going back to what v1 did, namely, to implement
+a pci_remap_cfgspace() interface (it is the _nopost() suffix that stirred
+debate - nobody would object to having a default pci_remap_cfgspace()
+implementation that defaults to ioremap_nocache(), I know Bjorn does not
+like it to be PCI specific, just adding an option on the table to make
+progress).
+
+Thanks,
+Lorenzo
