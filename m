@@ -1,16 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-dm3nam03on0085.outbound.protection.outlook.com ([104.47.41.85]:31472
-        "EHLO NAM03-DM3-obe.outbound.protection.outlook.com"
+Received: from mail-sn1nam02on0056.outbound.protection.outlook.com ([104.47.36.56]:65072
+        "EHLO NAM02-SN1-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1756219AbdDRVOv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 18 Apr 2017 17:14:51 -0400
+        id S1757830AbdDRVQf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 18 Apr 2017 17:16:35 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v5 04/32] x86/CPU/AMD: Add the Secure Memory Encryption CPU
- feature
-Date: Tue, 18 Apr 2017 16:14:40 -0500
-Message-ID: <20170418211440.9689.24028.stgit@tlendack-t1.amdoffice.net>
-In-Reply-To: <20170418211400.9689.10175.stgit@tlendack-t1.amdoffice.net>
-References: <20170418211400.9689.10175.stgit@tlendack-t1.amdoffice.net>
+Subject: [PATCH v5 01/32] x86: Documentation for AMD Secure Memory
+ Encryption (SME)
+Date: Tue, 18 Apr 2017 16:16:25 -0500
+Message-ID: <20170418211625.10190.52568.stgit@tlendack-t1.amdoffice.net>
+In-Reply-To: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
+References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
@@ -18,82 +18,104 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Rik van Riel <riel@redhat.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170418211440.QQCeTGx26F4VfiNs3_KeLJLuxIlYw3e5wxTfaApZKII@z>
+Message-ID: <20170418211625.MMrgq799GtWLotddeoW98hHm_X2Yih9evlMWu_gUQcE@z>
 
-Update the CPU features to include identifying and reporting on the
-Secure Memory Encryption (SME) feature.  SME is identified by CPUID
-0x8000001f, but requires BIOS support to enable it (set bit 23 of
-MSR_K8_SYSCFG).  Only show the SME feature as available if reported by
-CPUID and enabled by BIOS.
+Create a Documentation entry to describe the AMD Secure Memory
+Encryption (SME) feature and add documentation for the mem_encrypt=
+kernel parameter.
 
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/include/asm/cpufeatures.h |    1 +
- arch/x86/include/asm/msr-index.h   |    2 ++
- arch/x86/kernel/cpu/amd.c          |   15 +++++++++++++++
- arch/x86/kernel/cpu/scattered.c    |    1 +
- 4 files changed, 19 insertions(+)
+ Documentation/admin-guide/kernel-parameters.txt |   11 ++++
+ Documentation/x86/amd-memory-encryption.txt     |   60 +++++++++++++++++++++++
+ 2 files changed, 71 insertions(+)
+ create mode 100644 Documentation/x86/amd-memory-encryption.txt
 
-diff --git a/arch/x86/include/asm/cpufeatures.h b/arch/x86/include/asm/cpufeatures.h
-index 2701e5f..2b692df 100644
---- a/arch/x86/include/asm/cpufeatures.h
-+++ b/arch/x86/include/asm/cpufeatures.h
-@@ -196,6 +196,7 @@
+diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
+index 3dd6d5d..84c5787 100644
+--- a/Documentation/admin-guide/kernel-parameters.txt
++++ b/Documentation/admin-guide/kernel-parameters.txt
+@@ -2165,6 +2165,17 @@
+ 			memory contents and reserves bad memory
+ 			regions that are detected.
  
- #define X86_FEATURE_HW_PSTATE	( 7*32+ 8) /* AMD HW-PState */
- #define X86_FEATURE_PROC_FEEDBACK ( 7*32+ 9) /* AMD ProcFeedbackInterface */
-+#define X86_FEATURE_SME		( 7*32+10) /* AMD Secure Memory Encryption */
- 
- #define X86_FEATURE_INTEL_PPIN	( 7*32+14) /* Intel Processor Inventory Number */
- #define X86_FEATURE_INTEL_PT	( 7*32+15) /* Intel Processor Trace */
-diff --git a/arch/x86/include/asm/msr-index.h b/arch/x86/include/asm/msr-index.h
-index 673f9ac..8ff4aaa 100644
---- a/arch/x86/include/asm/msr-index.h
-+++ b/arch/x86/include/asm/msr-index.h
-@@ -350,6 +350,8 @@
- #define MSR_K8_TOP_MEM1			0xc001001a
- #define MSR_K8_TOP_MEM2			0xc001001d
- #define MSR_K8_SYSCFG			0xc0010010
-+#define MSR_K8_SYSCFG_MEM_ENCRYPT_BIT	23
-+#define MSR_K8_SYSCFG_MEM_ENCRYPT	BIT_ULL(MSR_K8_SYSCFG_MEM_ENCRYPT_BIT)
- #define MSR_K8_INT_PENDING_MSG		0xc0010055
- /* C1E active bits in int pending message */
- #define K8_INTP_C1E_ACTIVE_MASK		0x18000000
-diff --git a/arch/x86/kernel/cpu/amd.c b/arch/x86/kernel/cpu/amd.c
-index c36140d..5fc5232 100644
---- a/arch/x86/kernel/cpu/amd.c
-+++ b/arch/x86/kernel/cpu/amd.c
-@@ -611,6 +611,21 @@ static void early_init_amd(struct cpuinfo_x86 *c)
- 	 */
- 	if (cpu_has_amd_erratum(c, amd_erratum_400))
- 		set_cpu_bug(c, X86_BUG_AMD_E400);
++	mem_encrypt=	[X86-64] AMD Secure Memory Encryption (SME) control
++			Valid arguments: on, off
++			Default (depends on kernel configuration option):
++			  on  (CONFIG_AMD_MEM_ENCRYPT_ACTIVE_BY_DEFAULT=y)
++			  off (CONFIG_AMD_MEM_ENCRYPT_ACTIVE_BY_DEFAULT=n)
++			mem_encrypt=on:		Activate SME
++			mem_encrypt=off:	Do not activate SME
 +
-+	/*
-+	 * BIOS support is required for SME. If BIOS has not enabled SME
-+	 * then don't advertise the feature (set in scattered.c)
-+	 */
-+	if (c->extended_cpuid_level >= 0x8000001f) {
-+		if (cpu_has(c, X86_FEATURE_SME)) {
-+			u64 msr;
++			Refer to Documentation/x86/amd-memory-encryption.txt
++			for details on when memory encryption can be activated.
 +
-+			/* Check if SME is enabled */
-+			rdmsrl(MSR_K8_SYSCFG, msr);
-+			if (!(msr & MSR_K8_SYSCFG_MEM_ENCRYPT))
-+				clear_cpu_cap(c, X86_FEATURE_SME);
-+		}
-+	}
- }
- 
- static void init_amd_k8(struct cpuinfo_x86 *c)
-diff --git a/arch/x86/kernel/cpu/scattered.c b/arch/x86/kernel/cpu/scattered.c
-index 23c2350..05459ad 100644
---- a/arch/x86/kernel/cpu/scattered.c
-+++ b/arch/x86/kernel/cpu/scattered.c
-@@ -31,6 +31,7 @@ struct cpuid_bit {
- 	{ X86_FEATURE_HW_PSTATE,	CPUID_EDX,  7, 0x80000007, 0 },
- 	{ X86_FEATURE_CPB,		CPUID_EDX,  9, 0x80000007, 0 },
- 	{ X86_FEATURE_PROC_FEEDBACK,    CPUID_EDX, 11, 0x80000007, 0 },
-+	{ X86_FEATURE_SME,		CPUID_EAX,  0, 0x8000001f, 0 },
- 	{ 0, 0, 0, 0, 0 }
- };
- 
+ 	mem_sleep_default=	[SUSPEND] Default system suspend mode:
+ 			s2idle  - Suspend-To-Idle
+ 			shallow - Power-On Suspend or equivalent (if supported)
+diff --git a/Documentation/x86/amd-memory-encryption.txt b/Documentation/x86/amd-memory-encryption.txt
+new file mode 100644
+index 0000000..0b72ff2
+--- /dev/null
++++ b/Documentation/x86/amd-memory-encryption.txt
+@@ -0,0 +1,60 @@
++Secure Memory Encryption (SME) is a feature found on AMD processors.
++
++SME provides the ability to mark individual pages of memory as encrypted using
++the standard x86 page tables.  A page that is marked encrypted will be
++automatically decrypted when read from DRAM and encrypted when written to
++DRAM.  SME can therefore be used to protect the contents of DRAM from physical
++attacks on the system.
++
++A page is encrypted when a page table entry has the encryption bit set (see
++below on how to determine its position).  The encryption bit can be specified
++in the cr3 register, allowing the PGD table to be encrypted. Each successive
++level of page tables can also be encrypted.
++
++Support for SME can be determined through the CPUID instruction. The CPUID
++function 0x8000001f reports information related to SME:
++
++	0x8000001f[eax]:
++		Bit[0] indicates support for SME
++	0x8000001f[ebx]:
++		Bits[5:0]  pagetable bit number used to activate memory
++			   encryption
++		Bits[11:6] reduction in physical address space, in bits, when
++			   memory encryption is enabled (this only affects
++			   system physical addresses, not guest physical
++			   addresses)
++
++If support for SME is present, MSR 0xc00100010 (MSR_K8_SYSCFG) can be used to
++determine if SME is enabled and/or to enable memory encryption:
++
++	0xc0010010:
++		Bit[23]   0 = memory encryption features are disabled
++			  1 = memory encryption features are enabled
++
++Linux relies on BIOS to set this bit if BIOS has determined that the reduction
++in the physical address space as a result of enabling memory encryption (see
++CPUID information above) will not conflict with the address space resource
++requirements for the system.  If this bit is not set upon Linux startup then
++Linux itself will not set it and memory encryption will not be possible.
++
++The state of SME in the Linux kernel can be documented as follows:
++	- Supported:
++	  The CPU supports SME (determined through CPUID instruction).
++
++	- Enabled:
++	  Supported and bit 23 of MSR_K8_SYSCFG is set.
++
++	- Active:
++	  Supported, Enabled and the Linux kernel is actively applying
++	  the encryption bit to page table entries (the SME mask in the
++	  kernel is non-zero).
++
++SME can also be enabled and activated in the BIOS. If SME is enabled and
++activated in the BIOS, then all memory accesses will be encrypted and it will
++not be necessary to activate the Linux memory encryption support.  If the BIOS
++merely enables SME (sets bit 23 of the MSR_K8_SYSCFG), then Linux can activate
++memory encryption by default (CONFIG_AMD_MEM_ENCRYPT_ACTIVE_BY_DEFAULT=y) or
++by supplying mem_encrypt=on on the kernel command line.  However, if BIOS does
++not enable SME, then Linux will not be able to activate memory encryption, even
++if configured to do so by default or the mem_encrypt=on command line parameter
++is specified.
