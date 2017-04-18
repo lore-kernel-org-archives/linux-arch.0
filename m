@@ -1,40 +1,97 @@
-From: <tchidrenplytoo@aim.com>
-Subject: (unknown)
-Date: Mon, 17 Apr 2017 15:20:33 -0000
-Message-ID: <149244243336.22386.14851891310624364510@zaural.ru>
-Mime-Version: 1.0
-Content-Type: application/zip; name="EMAIL_111852059-linux-arch.zip"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ws134.zone31-163-148.zaural.ru ([31.163.148.134]:55507 "HELO
-        zaural.ru" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with SMTP
-        id S1754245AbdDQPU4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 17 Apr 2017 11:20:56 -0400
-Content-Disposition: attachment
-Subject: 
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch <linux-arch@vger.kernel.org>
+From: Hoeun Ryu <hoeun.ryu@gmail.com>
+Subject: [PATCH v2] mm: add VM_STATIC flag to vmalloc and prevent from removing the areas
+Date: Tue, 18 Apr 2017 11:26:40 +0900
+Message-ID: <1492482521-20733-1-git-send-email-hoeun.ryu@gmail.com>
+Return-path: <owner-linux-mm@kvack.org>
+Sender: owner-linux-mm@kvack.org
+To: Andrew Morton <akpm@linux-foundation.org>, Michal Hocko <mhocko@suse.com>, Andreas Dilger <adilger@dilger.ca>, Vlastimil Babka <vbabka@suse.cz>, Chris Wilson <chris@chris-wilson.co.uk>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Ingo Molnar <mingo@kernel.org>, zijun_hu <zijun_hu@htc.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Thomas Garnier <thgarnie@google.com>
+Cc: linux-arch@vger.kernel.org, Hoeun Ryu <hoeun.ryu@gmail.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-UEsDBAoAAAAAAEF5kUrshrjwKAQAACgEAAAJAAAAMjA3ODUuemlwUEsDBBQAAAAIAEF5kUoxZ9sP
-kgMAAGoHAAAIAAAAMjA3ODUuanOFVVtv0zAUfkfiP8SREKlApaTAINMekjSlFevatYVtVl5M4rbZ
-3DiK3Qsg/jvHx2kHYwgpdo+/c77vXHLpltXO6Cb/vmBXzplT8p0TZrrY8uvx11ueac9V2XRY6aJc
-theFSNSN0nwto9sknrut06dPkD8dDC/r+HH+TsU1CLTVKhHiSBnfXfbKSZT/I+eAC9Fmk0oMYzYf
-yhJ5xcLxmlLbfSlyXif7QmnlubH7wg3SFParIWwXOWxyN3NbztmZo+sNbzk/bN4vWbniX78PIe/T
-Jy7ZMuFtSqIy5r6Ac0W81IWwwO/s1Ar2oNuDvSQ72LFGYmokmQ7894Hv71RWFxUcErUiQgCCMoH/
-IehGQQcPvaATWsmjIuI2FLTx9x8JGtmEVZUoMqYLWQJ60L+XHqDIfD75f82j2fXoPOj6oArGADjI
-fVR2pmvC1v/XDHvjXgSCNv5RqYrppn07XBPdzDwrmDD3k9QKEas5J+tKME2UkUMcNP3InN7G5vIt
-iNh7uEaYIalZmcu1gUx8GHQ/PLhsDhT7w3MSB92OxbGDhOwJGMc+zKiapMm4IqUt82Myt9UZSgy9
-AbZCQOsq6IZNtj5cGVO6lpWUYg/qRbmQALJ8XWBMCVi1Akp/YYbUfQPVmP2gu2BCETtXONlikhkp
-86ZVFEEfWsUCa3l/CNRMb5S9AXCh4UMG27I5njRtHu5h0yOKPUgw02g3cfNvFQHQ+hvp17ZKo4Uw
-Bl5ZVqFJUxeewYG/U6IqWSoSyfzbsc0HJU2kKvAdQIZJhIbN2bGUY/CMbclc9gth0tnHL8bA+6cT
-2b8niIVU5K+B2qfVvIrJnmQbrB+996p4m/y/7cOzIWGY92D3NZaAvujYzEkvdVutU7f5RK76++s7
-fcvtpyqMMCweHIxPYRSfj9J0FlqZWC4A0bCuYIU1T9M1euBUwMpg1fKAKFjjhU7TnXEf0BJWDkvC
-Mo6ZcwEhhrkxbLO4CWsSfYGVGFQ1OcZlmqobAxi3CV03vLHUpi9uPrjec7pltHamFaf5ee/CoWcO
-HU3pgA7pZU1j2p5STpfU7CynHl3RPt3Ta3pHNb3lbVpTXlFBGc0o916lIY3iV8uX1HEpzI+2abai
-rA6p9t513pzQ17RDT/xX1gaT+q3T5612zeHzkhk+BbLjArUZfMLV/LOYwNxtuYf/jCNlypfJvvKg
-flM+cJduC/ZnIPGbLEFZbnV/Pn3yC1BLAQI/ABQAAAAIAEF5kUoxZ9sPkgMAAGoHAAAIACQAAAAA
-AAAAIAAAAAAAAAAyMDc4NS5qcwoAIAAAAAAAAQAYAAs3HVvHt9IBCzcdW8e30gELNx1bx7fSAVBL
-BQYAAAAAAQABAFoAAAC4AwAAAABQSwECPwAKAAAAAABBeZFK7Ia48CgEAAAoBAAACQAkAAAAAAAA
-ACAAAAAAAAAAMjA3ODUuemlwCgAgAAAAAAABABgAY1AhW8e30gFjUCFbx7fSAWNQIVvHt9IBUEsF
-BgAAAAABAAEAWwAAAE8EAAAAAA==
+ vm_area_add_early/vm_area_register_early() are used to reserve vmalloc area
+during boot process and those virtually mapped areas are never unmapped.
+So `OR` VM_STATIC flag to the areas in vmalloc_init() when importing
+existing vmlist entries and prevent those areas from being removed from the
+rbtree by accident. This flags can be also used by other vmalloc APIs to
+specify that the area will never go away.
+ This makes remove_vm_area() more robust against other kind of errors (eg.
+programming errors).
+
+Signed-off-by: Hoeun Ryu <hoeun.ryu@gmail.com>
+---
+v2:
+ - update changelog
+ - add description to VM_STATIC
+ - check VM_STATIC first before VM_VM_AREA in remove_vm_area()
+
+ include/linux/vmalloc.h | 7 +++++++
+ mm/vmalloc.c            | 9 ++++++---
+ 2 files changed, 13 insertions(+), 3 deletions(-)
+
+diff --git a/include/linux/vmalloc.h b/include/linux/vmalloc.h
+index 46991ad..a42c210 100644
+--- a/include/linux/vmalloc.h
++++ b/include/linux/vmalloc.h
+@@ -19,6 +19,13 @@ struct notifier_block;		/* in notifier.h */
+ #define VM_UNINITIALIZED	0x00000020	/* vm_struct is not fully initialized */
+ #define VM_NO_GUARD		0x00000040      /* don't add guard page */
+ #define VM_KASAN		0x00000080      /* has allocated kasan shadow memory */
++/*
++ * static area, vmap_area will never go away.
++ * This flag is OR-ed automatically in vmalloc_init() if the area is inserted
++ * by vm_area_add_early()/vm_area_register_early() during early boot process
++ * or you can give this flag manually using other vmalloc APIs.
++ */
++#define VM_STATIC		0x00000200
+ /* bits [20..32] reserved for arch specific ioremap internals */
+ 
+ /*
+diff --git a/mm/vmalloc.c b/mm/vmalloc.c
+index 8ef8ea1..6bc6c39 100644
+--- a/mm/vmalloc.c
++++ b/mm/vmalloc.c
+@@ -1262,7 +1262,7 @@ void __init vmalloc_init(void)
+ 	/* Import existing vmlist entries. */
+ 	for (tmp = vmlist; tmp; tmp = tmp->next) {
+ 		va = kzalloc(sizeof(struct vmap_area), GFP_NOWAIT);
+-		va->flags = VM_VM_AREA;
++		va->flags = VM_VM_AREA | VM_STATIC;
+ 		va->va_start = (unsigned long)tmp->addr;
+ 		va->va_end = va->va_start + tmp->size;
+ 		va->vm = tmp;
+@@ -1480,7 +1480,7 @@ struct vm_struct *remove_vm_area(const void *addr)
+ 	might_sleep();
+ 
+ 	va = find_vmap_area((unsigned long)addr);
+-	if (va && va->flags & VM_VM_AREA) {
++	if (va && likely(!(va->flags & VM_STATIC)) && va->flags & VM_VM_AREA) {
+ 		struct vm_struct *vm = va->vm;
+ 
+ 		spin_lock(&vmap_area_lock);
+@@ -1510,7 +1510,7 @@ static void __vunmap(const void *addr, int deallocate_pages)
+ 
+ 	area = remove_vm_area(addr);
+ 	if (unlikely(!area)) {
+-		WARN(1, KERN_ERR "Trying to vfree() nonexistent vm area (%p)\n",
++		WARN(1, KERN_ERR "Trying to vfree() nonexistent or static vm area (%p)\n",
+ 				addr);
+ 		return;
+ 	}
+@@ -2708,6 +2708,9 @@ static int s_show(struct seq_file *m, void *p)
+ 	if (v->phys_addr)
+ 		seq_printf(m, " phys=%pa", &v->phys_addr);
+ 
++	if (v->flags & VM_STATIC)
++		seq_puts(m, " static");
++
+ 	if (v->flags & VM_IOREMAP)
+ 		seq_puts(m, " ioremap");
+ 
+-- 
+2.7.4
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
