@@ -1,10 +1,10 @@
 From: Hoeun Ryu <hoeun.ryu@gmail.com>
 Subject: [PATCH v2] mm: add VM_STATIC flag to vmalloc and prevent from removing the areas
-Date: Tue, 18 Apr 2017 11:26:40 +0900
-Message-ID: <1492482521-20733-1-git-send-email-hoeun.ryu@gmail.com>
+Date: Tue, 18 Apr 2017 14:48:39 +0900
+Message-ID: <1492494570-21068-1-git-send-email-hoeun.ryu@gmail.com>
 Return-path: <owner-linux-mm@kvack.org>
 Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>, Michal Hocko <mhocko@suse.com>, Andreas Dilger <adilger@dilger.ca>, Vlastimil Babka <vbabka@suse.cz>, Chris Wilson <chris@chris-wilson.co.uk>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Ingo Molnar <mingo@kernel.org>, zijun_hu <zijun_hu@htc.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Thomas Garnier <thgarnie@google.com>
+To: hch@infradead.org, khandual@linux.vnet.ibm.com, Andrew Morton <akpm@linux-foundation.org>, Roman Pen <r.peniaev@gmail.com>, Michal Hocko <mhocko@suse.com>, Andreas Dilger <adilger@dilger.ca>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Chris Wilson <chris@chris-wilson.co.uk>, Ingo Molnar <mingo@kernel.org>, zijun_hu <zijun_hu@htc.com>, Matthew Wilcox <mawilcox@microsoft.com>, Thomas Garnier <thgarnie@google.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 Cc: linux-arch@vger.kernel.org, Hoeun Ryu <hoeun.ryu@gmail.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
