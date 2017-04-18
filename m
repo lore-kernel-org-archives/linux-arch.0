@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f66.google.com ([74.125.83.66]:33050 "EHLO
+Received: from mail-pg0-f66.google.com ([74.125.83.66]:33909 "EHLO
         mail-pg0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753775AbdDRC3Z (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 17 Apr 2017 22:29:25 -0400
+        with ESMTP id S1751650AbdDRFtv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Apr 2017 01:49:51 -0400
 From: Hoeun Ryu <hoeun.ryu@gmail.com>
 Subject: [PATCH v2] mm: add VM_STATIC flag to vmalloc and prevent from removing the areas
-Date: Tue, 18 Apr 2017 11:26:40 +0900
-Message-ID: <1492482521-20733-1-git-send-email-hoeun.ryu@gmail.com>
+Date: Tue, 18 Apr 2017 14:48:39 +0900
+Message-ID: <1492494570-21068-1-git-send-email-hoeun.ryu@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, Michal Hocko <mhocko@suse.com>, Andreas Dilger <adilger@dilger.ca>, Vlastimil Babka <vbabka@suse.cz>, Chris Wilson <chris@chris-wilson.co.uk>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Ingo Molnar <mingo@kernel.org>, zijun_hu <zijun_hu@htc.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Thomas Garnier <thgarnie@google.com>
+To: hch@infradead.org, khandual@linux.vnet.ibm.com, Andrew Morton <akpm@linux-foundation.org>, Roman Pen <r.peniaev@gmail.com>, Michal Hocko <mhocko@suse.com>, Andreas Dilger <adilger@dilger.ca>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Chris Wilson <chris@chris-wilson.co.uk>, Ingo Molnar <mingo@kernel.org>, zijun_hu <zijun_hu@htc.com>, Matthew Wilcox <mawilcox@microsoft.com>, Thomas Garnier <thgarnie@google.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 Cc: linux-arch@vger.kernel.org, Hoeun Ryu <hoeun.ryu@gmail.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org
-Message-ID: <20170418022640.Sx2_FMT0RbfIZeGVX0bk0ZlCGwZfc7wIRkukSuOe5xU@z>
+Message-ID: <20170418054839.hn70Oti-5mOOMvNr1Ep1bmGfvQ2OuPXprQvE1juokDs@z>
 
  vm_area_add_early/vm_area_register_early() are used to reserve vmalloc area
 during boot process and those virtually mapped areas are never unmapped.
