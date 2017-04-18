@@ -1,87 +1,132 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f195.google.com ([209.85.128.195]:36157 "EHLO
-        mail-wr0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751564AbdDRLKe (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Apr 2017 07:10:34 -0400
-Received: by mail-wr0-f195.google.com with SMTP id o21so24267484wrb.3
-        for <linux-arch@vger.kernel.org>; Tue, 18 Apr 2017 04:10:34 -0700 (PDT)
-Date: Tue, 18 Apr 2017 14:10:31 +0300
-From: "Kirill A. Shutemov" <kirill@shutemov.name>
-Subject: Re: [PATCH 3/8] x86/boot/64: Add support of additional page table
- level during early boot
-Message-ID: <20170418111030.5zc4zhxlrbpi4bwm@node.shutemov.name>
-References: <20170406140106.78087-4-kirill.shutemov@linux.intel.com>
- <20170411070203.GA14621@gmail.com>
- <20170411105106.4zgbzuu4s4267zyv@node.shutemov.name>
- <20170411112845.GA15212@gmail.com>
- <20170411114616.otx2f6aw5lcvfc2o@black.fi.intel.com>
- <20170411140907.GD4021@tassilo.jf.intel.com>
- <20170412101804.cxo6h472ns76ukgo@node.shutemov.name>
- <20170417103225.ycv73fdrfx33e5sd@gmail.com>
- <20170418085926.bzdzs2wwxjmdxqxm@node.shutemov.name>
- <20170418101534.oa3mchqyap2yvh7v@node.shutemov.name>
+Received: from mail.kernel.org ([198.145.29.136]:58944 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S932512AbdDRS2U (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 18 Apr 2017 14:28:20 -0400
+Date: Tue, 18 Apr 2017 13:28:16 -0500
+From: Bjorn Helgaas <helgaas@kernel.org>
+Subject: Re: [PATCH v2 00/27] PCI resource mmap cleanup
+Message-ID: <20170418182816.GB25295@bhelgaas-glaptop.roam.corp.google.com>
+References: <cover.1491999859.git.dwmw2@infradead.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20170418101534.oa3mchqyap2yvh7v@node.shutemov.name>
+In-Reply-To: <cover.1491999859.git.dwmw2@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Andi Kleen <ak@linux.intel.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andy Lutomirski <luto@amacapital.net>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@intel.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
-Message-ID: <20170418111031.hmFRzvN4CQNs57vSKzmCrTnEcAM8Hs4VDTsZU1MXDR4@z>
+To: David Woodhouse <dwmw2@infradead.org>
+Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20170418182816.vw21GFNcfDQZC9wS9gbTgLUMofn7ip7t_ol0Z5PulB0@z>
 
-On Tue, Apr 18, 2017 at 01:15:34PM +0300, Kirill A. Shutemov wrote:
-> On Tue, Apr 18, 2017 at 11:59:26AM +0300, Kirill A. Shutemov wrote:
-> > On Mon, Apr 17, 2017 at 12:32:25PM +0200, Ingo Molnar wrote:
-> > > 
-> > > * Kirill A. Shutemov <kirill@shutemov.name> wrote:
-> > > 
-> > > > On Tue, Apr 11, 2017 at 07:09:07AM -0700, Andi Kleen wrote:
-> > > > > > I'll look closer (building proccess it's rather complicated), but my
-> > > > > > understanding is that VDSO is stand-alone binary and doesn't really links
-> > > > > > with the rest of the kernel, rather included as blob, no?
-> > > > > > 
-> > > > > > Andy, may be you have an idea?
-> > > > > 
-> > > > > There isn't any way I know of to directly link them together. The ELF 
-> > > > > format wasn't designed for that. You would need to merge blobs and then use
-> > > > > manual jump vectors, like the 16bit startup code does. It would be likely
-> > > > > complicated and ugly.
-> > > > 
-> > > > Ingo, can we proceed without coverting this assembly to C?
-> > > > 
-> > > > I'm committed to convert it to C later if we'll find reasonable solution
-> > > > to the issue.
-> > > 
-> > > So one way to do it would be to build it standalone as a .o, then add it not to 
-> > > the regular kernel objects link target (as you found out it's not possible to link 
-> > > 32-bit and 64-bit objects), but to link it in a manual fashion, as part of 
-> > > vmlinux.bin.all-y in arch/x86/boot/compressed/Makefile.
-> > > 
-> > > But there would be other complications with this approach, such as we'd have to 
-> > > add a size field and there might be symbol linking problems ...
-> > > 
-> > > Another, pretty hacky way would be to generate a .S from the .c, then post-process 
-> > > the .S and essentially generate today's 32-bit .S from it.
-> > > 
-> > > Probably not worth the trouble.
-> > 
-> > So, do I need to do anything else to get part 4 applied?
+On Wed, Apr 12, 2017 at 01:25:49PM +0100, David Woodhouse wrote:
+> This pursues my previous patch set all the way to its logical conclusion.
 > 
-> Doh!
+> It kills off the legacy arch-provided pci_mmap_page_range() completely,
+> along with its vile 'address converted by pci_resource_to_user()' API
+> and the various bugs and other strange behaviour that various
+> architectures had.
 > 
-> I've just realized we don't really need to enable 5-level paging in
-> decompression code. Leaving 4-level paging there works perfectly fine.
+> In some cases like IA64 I've killed off the odd behaviour *first* in
+> separately reviewable patches, before the final switch over to the
+> generic code which should then basically have no functional effect.
 > 
-> I'll drop changes to arch/x86/boot/compressed/head_64.S and resubmit the
-> patchset.
+> To accommodate the ARM64 maintainers' desire *not* to support mmap
+> through /proc/bus/pci I have separated HAVE_PCI_MMAP from the sysfs
+> implementation, which (as of the last patch in the series) ends up
+> present on *all* platforms with an MMU. I still don't think that's a
+> *good* idea though; it's a generic part of /proc, and nobody ever did
+> answer my question about what *else* we can delete from /proc on ARM64
+> "because it's a new platform"...
+> 
+> I would very much like the interesting parts of this to go through the
+> arch maintainers' trees. I'd suggest that we can pull everything up to
+> and including patch 19 ("pci: Add I/O BAR support to generic
+> pci_mmap_resource_range()") through the PCI tree, which includes the
+> relatively trivial architectures. Then the others can go through the
+> appropriate arch tree with more careful review and testing.
+> 
+> Once everything's done, then we can apply something like the final
+> patch ("pci: Kill ARCH_GENERIC_PCI_MMAP_RESOURCE"). But that's mostly
+> just there for now as a demonstration of the intended end point.
+> 
+> This is in
+>  git://git.infradead.org/users/dwmw2/random-2.6.git pcimmap
+>  http://git.infradead.org/users/dwmw2/random-2.6.git/shortlog/refs/heads/pcimmap
 
-No. This breaks KASLR. Decompression code has to use 5-level paging to
-keep KASLR working.
+Applied to pci/resource-mmap for v4.12, thanks!
 
-So, v4 of part 4 is up-to-date.
+This consists of the email patches + the acks/etc so far.  It doesn't
+include any updates from your git branch (but it doesn't look like it's
+been updated recently).
 
-Sorry for noise.
-
--- 
- Kirill A. Shutemov
+> David Woodhouse (27):
+>   pci: Fix pci_mmap_fits() for HAVE_PCI_RESOURCE_TO_USER platforms
+>   pci: Fix another sanity check bug in /proc/pci mmap
+>   pci: Only allow WC mmap on prefetchable resources
+>   xtensa: Do not mmap PCI BARs to userspace as write-through
+>   pci: Add arch_can_pci_mmap_wc() macro
+>   pci: Move multiple declarations of pci_mmap_page_range() to
+>     <linux/pci.h>
+>   pci: Add arch_can_pci_mmap_io() on architectures which can mmap() I/O
+>     space
+>   pci: Use BAR index in sysfs attr->private instead of resource pointer
+>   pci: Add BAR index argument to pci_mmap_page_range()
+>   pci: Add pci_mmap_resource_range() and use it for ARM64
+>   arm: Use generic pci_mmap_resource_range()
+>   cris: Use generic pci_mmap_resource_range()
+>   mips: Use generic pci_mmap_resource_range()
+>   mn10300: Use generic pci_mmap_resource_range()
+>   parisc: Use generic pci_mmap_resource_range()
+>   sh: Use generic pci_mmap_resource_range()
+>   unicore: Use generic pci_mmap_resource_range()
+>   x86: Use generic pci_mmap_resource_range()
+>   pci: Add I/O BAR support to generic pci_mmap_resource_range()
+>   powerpc: Use generic pci_mmap_resource_range()
+>   microblaze: Use generic pci_mmap_resource_range()
+>   xtensa: Use generic pci_mmap_resource_range()
+>   ia64: Remove redundant valid_mmap_phys_addr_range() from
+>     pci_mmap_page_range()
+>   ia64: Remove redundant checks for WC in pci_mmap_page_range()
+>   ia64: Use generic pci_mmap_resource_range()
+>   sparc: Use generic pci_mmap_resource_range()
+>   pci: Kill ARCH_GENERIC_PCI_MMAP_RESOURCE
+> 
+>  Documentation/filesystems/sysfs-pci.txt |  12 ++-
+>  arch/arm/include/asm/pci.h              |   2 -
+>  arch/arm/kernel/bios32.c                |  19 ----
+>  arch/cris/arch-v32/drivers/pci/bios.c   |  22 -----
+>  arch/cris/include/asm/pci.h             |   3 -
+>  arch/ia64/include/asm/pci.h             |   4 +-
+>  arch/ia64/pci/pci.c                     |  46 ----------
+>  arch/microblaze/include/asm/pci.h       |   8 +-
+>  arch/microblaze/pci/pci-common.c        |  99 ++------------------
+>  arch/mips/include/asm/pci.h             |   4 -
+>  arch/mips/pci/pci.c                     |  24 -----
+>  arch/mn10300/include/asm/pci.h          |   3 -
+>  arch/mn10300/unit-asb2305/pci-asb2305.c |  23 -----
+>  arch/parisc/include/asm/pci.h           |   3 -
+>  arch/parisc/kernel/pci.c                |  28 ------
+>  arch/powerpc/include/asm/pci.h          |   9 +-
+>  arch/powerpc/kernel/pci-common.c        | 105 +++-------------------
+>  arch/sh/drivers/pci/pci.c               |  21 -----
+>  arch/sh/include/asm/pci.h               |   3 +-
+>  arch/sparc/include/asm/pci_64.h         |   5 +-
+>  arch/sparc/kernel/pci.c                 | 155 --------------------------------
+>  arch/unicore32/include/asm/pci.h        |   2 -
+>  arch/unicore32/kernel/pci.c             |  23 -----
+>  arch/x86/include/asm/pci.h              |   6 +-
+>  arch/x86/pci/i386.c                     |  47 ----------
+>  arch/xtensa/include/asm/pci.h           |   9 +-
+>  arch/xtensa/kernel/pci.c                | 112 ++---------------------
+>  drivers/pci/Makefile                    |   1 +
+>  drivers/pci/mmap.c                      |  67 ++++++++++++++
+>  drivers/pci/pci-sysfs.c                 |  76 +++++++---------
+>  drivers/pci/pci.h                       |   4 +-
+>  drivers/pci/proc.c                      |  41 ++++++---
+>  include/linux/pci.h                     |  30 +++++++
+>  33 files changed, 211 insertions(+), 805 deletions(-)
+>  create mode 100644 drivers/pci/mmap.c
+> 
+> -- 
+> 2.9.3
+> 
