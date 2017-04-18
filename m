@@ -1,49 +1,117 @@
-From: Michal Hocko <mhocko@kernel.org>
-Subject: Re: [PATCH v2] mm: add VM_STATIC flag to vmalloc and prevent from
- removing the areas
-Date: Tue, 18 Apr 2017 08:59:46 +0200
-Message-ID: <20170418065946.GB22360@dhcp22.suse.cz>
-References: <1492494570-21068-1-git-send-email-hoeun.ryu@gmail.com>
+From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+Subject: Re: [PATCH v3 00/32] PCI: fix config and I/O Address space memory
+ mappings
+Date: Tue, 18 Apr 2017 09:57:32 +0100
+Message-ID: <20170418085732.GA23882@red-moon>
+References: <1491917906.7236.7.camel@kernel.crashing.org>
+ <20170411140857.GA6821@red-moon>
+ <1491952371.7236.22.camel@kernel.crashing.org>
+ <20170412113124.GZ17774@n2100.armlinux.org.uk>
+ <1492005119.7236.62.camel@kernel.crashing.org>
+ <20170412141654.GA17774@n2100.armlinux.org.uk>
+ <20170412144109.GB6842@red-moon>
+ <1492036240.7236.80.camel@kernel.crashing.org>
+ <20170412224555.GB17774@n2100.armlinux.org.uk>
+ <1492044780.7236.87.camel@kernel.crashing.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:40994 "EHLO mx1.suse.de"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751233AbdDRG7w (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 18 Apr 2017 02:59:52 -0400
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 Content-Disposition: inline
-In-Reply-To: <1492494570-21068-1-git-send-email-hoeun.ryu@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Hoeun Ryu <hoeun.ryu@gmail.com>
-Cc: hch@infradead.org, khandual@linux.vnet.ibm.com, Andrew Morton <akpm@linux-foundation.org>, Roman Pen <r.peniaev@gmail.com>, Andreas Dilger <adilger@dilger.ca>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Chris Wilson <chris@chris-wilson.co.uk>, Ingo Molnar <mingo@kernel.org>, zijun_hu <zijun_hu@htc.com>, Matthew Wilcox <mawilcox@microsoft.com>, Thomas Garnier <thgarnie@google.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+In-Reply-To: <1492044780.7236.87.camel@kernel.crashing.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Jonas Bonn <jonas@southpole.se>, Rich Felker <dalias@libc.org>, linux-pci@vger.kernel.org, Will Deacon <will.deacon@arm.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, David Howells <dhowells@redhat.com>, Max Filippov <jcmvbkbc@gmail.com>, Paul Mackerras <paulus@samba.org>, Huacai Chen <chenhc@lemote.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, linux-arch@vger.kernel.org, Jesper Nilsson <jesper.nilsson@axis.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, Russell King - ARM Linux <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Catalin Marinas <catalin.marinas@arm.com>, Matt Turner <mattst88@gmail.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Fenghua Yu <fenghua>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue 18-04-17 14:48:39, Hoeun Ryu wrote:
->  vm_area_add_early/vm_area_register_early() are used to reserve vmalloc area
-> during boot process and those virtually mapped areas are never unmapped.
-> So `OR` VM_STATIC flag to the areas in vmalloc_init() when importing
-> existing vmlist entries and prevent those areas from being removed from the
-> rbtree by accident.
+On Thu, Apr 13, 2017 at 10:53:00AM +1000, Benjamin Herrenschmidt wrote:
+> On Wed, 2017-04-12 at 23:45 +0100, Russell King - ARM Linux wrote:
+> > On Thu, Apr 13, 2017 at 08:30:40AM +1000, Benjamin Herrenschmidt wrote:
+> > > My point with nopost() is that it's never ok to silently downgrade it.
+> > > Code written with the assumption that there is no posting will be
+> > > *incorrect* if posting happens. We do live with that "bug" today inde=
+ed
+> > > but once we have that accessors we might start growing more code that
+> > > relies on the specific attribute that things aren't posted and will be
+> > > wrong on all the archs providing the default implementation.
+> > > =
 
-Has this been a problem in the past or currently so that it is worth
-handling?
+> > > This is why I insist that pgprot_nopost() if it exists globally, shou=
+ld
+> > > return NULL when the semantic cannot be provided.
+> > =
 
-> This flags can be also used by other vmalloc APIs to
-> specify that the area will never go away.
+> > Now you're not talking sense.=A0=A0pgprot_nopost() does _not_ return a =
+pointer.
+> > You're talking here as if you're still talking about ioremap_nopost().
+> > So, I think you're confused.
+> =
 
-Do we have a user for that?
+> Nah, just "typo", I meant ioremap_nopost.
+> =
 
-> This makes remove_vm_area() more robust against other kind of errors (eg.
-> programming errors).
+> > > > > Just like the proposed ioremap_nopost(), pgprot_nonposted() is gi=
+ven a
+> > > > > default implementation that uses pgprot_noncached().=A0 Maybe we =
+should
+> > > > > also make pci_remap_iospace() fail if pgprot_nonposted() is not d=
+efined
+> > > > > by the architecture?
+> > > =
 
-Well, yes it will help to prevent from vfree(early_mem) but we have 4
-users of vm_area_register_early so I am really wondering whether this is
-worth additional code. It would really help to understand your
-motivation for the patch if we were explicit about the problem you are
-trying to solve.
+> > > Or we *document* that mmap of IO space can result in something that is
+> > > partially non-posted.
+> > =
 
-Thanks
+> > Oh, so we _can_ provide an interface that has weaker semantics than it
+> > should provided we document it.
+> > =
 
--- 
-Michal Hocko
-SUSE Labs
+> > It's insane to have different behaviours from these two interfaces, yet
+> > you seem to have said exactly that in your reply.
+> >
+> > It's actually worse than that - what you've just said is that it's okay
+> > for userspace to map IO space with weaker semantics than the PCI
+> > specification states, but it's not okay for kernel space to do that.
+> =
+
+> That is not what I'm saying. What I'm saying is that it's not ok to
+> provide a generic mapping attribute that silently happens to be weaker
+> than documented on some architectures.
+> =
+
+> The PCI part is orthogonal. How do you handle PCI in absence of that
+> attribute is a separate problem (which is probably a matter of just
+> documenting things).
+
+I can add a defined(pgprot_nonposted) to pci_remap_iospace() if that's
+not too ugly (I suspect Bjorn is thrilled about it :)), that plus
+the Kconfig option for ioremap_nopost() should complete this series.
+
+int pci_remap_iospace(const struct resource *res, phys_addr_t phys_addr)
+{
+#if defined(PCI_IOBASE) && defined(CONFIG_MMU) && defined(pgprot_nonposted)
+	unsigned long vaddr =3D (unsigned long)PCI_IOBASE + res->start;
+
+	if (!(res->flags & IORESOURCE_IO))
+		return -EINVAL;
+
+	if (res->end > IO_SPACE_LIMIT)
+		return -EINVAL
+	return ioremap_page_range(vaddr, vaddr + resource_size(res), phys_addr,
+				  pgprot_nonposted(PAGE_KERNEL));
+#else
+	/* this architecture does not have memory mapped I/O space,
+	   so this function should never be called */
+	WARN_ONCE(1, "This architecture does not support memory mapped I/O\n");
+	return -ENODEV;
+#endif
+}
