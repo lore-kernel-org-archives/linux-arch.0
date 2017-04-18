@@ -1,78 +1,83 @@
-From: "Kirill A. Shutemov" <kirill@shutemov.name>
-Subject: Re: [PATCH 3/8] x86/boot/64: Add support of additional page table
- level during early boot
-Date: Tue, 18 Apr 2017 13:15:34 +0300
-Message-ID: <20170418101534.oa3mchqyap2yvh7v@node.shutemov.name>
-References: <20170406140106.78087-1-kirill.shutemov@linux.intel.com>
- <20170406140106.78087-4-kirill.shutemov@linux.intel.com>
- <20170411070203.GA14621@gmail.com>
- <20170411105106.4zgbzuu4s4267zyv@node.shutemov.name>
- <20170411112845.GA15212@gmail.com>
- <20170411114616.otx2f6aw5lcvfc2o@black.fi.intel.com>
- <20170411140907.GD4021@tassilo.jf.intel.com>
- <20170412101804.cxo6h472ns76ukgo@node.shutemov.name>
- <20170417103225.ycv73fdrfx33e5sd@gmail.com>
- <20170418085926.bzdzs2wwxjmdxqxm@node.shutemov.name>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: [PATCH v3 00/32] PCI: fix config and I/O Address space memory
+ mappings
+Date: Tue, 18 Apr 2017 20:36:48 +1000
+Message-ID: <1492511808.25766.91.camel@kernel.crashing.org>
+References: <1491917906.7236.7.camel@kernel.crashing.org>
+ <20170411140857.GA6821@red-moon>
+ <1491952371.7236.22.camel@kernel.crashing.org>
+ <20170412113124.GZ17774@n2100.armlinux.org.uk>
+ <1492005119.7236.62.camel@kernel.crashing.org>
+ <20170412141654.GA17774@n2100.armlinux.org.uk>
+ <20170412144109.GB6842@red-moon>
+ <1492036240.7236.80.camel@kernel.crashing.org>
+ <20170412224555.GB17774@n2100.armlinux.org.uk>
+ <1492044780.7236.87.camel@kernel.crashing.org>
+ <20170418085732.GA23882@red-moon>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f194.google.com ([209.85.128.194]:35399 "EHLO
-        mail-wr0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S932143AbdDRKPi (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Apr 2017 06:15:38 -0400
-Received: by mail-wr0-f194.google.com with SMTP id l44so24003327wrc.2
-        for <linux-arch@vger.kernel.org>; Tue, 18 Apr 2017 03:15:37 -0700 (PDT)
-Content-Disposition: inline
-In-Reply-To: <20170418085926.bzdzs2wwxjmdxqxm@node.shutemov.name>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Andi Kleen <ak@linux.intel.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andy Lutomirski <luto@amacapital.net>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@intel.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20170418085732.GA23882@red-moon>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+Cc: Jonas Bonn <jonas@southpole.se>, Rich Felker <dalias@libc.org>, linux-pci@vger.kernel.org, Will Deacon <will.deacon@arm.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, David Howells <dhowells@redhat.com>, Max Filippov <jcmvbkbc@gmail.com>, Paul Mackerras <paulus@samba.org>, Huacai Chen <chenhc@lemote.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, linux-arch@vger.kernel.org, Jesper Nilsson <jesper.nilsson@axis.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, Russell King - ARM Linux <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Catalin Marinas <catalin.marinas@arm.com>, Matt Turner <mattst88@gmail.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Fenghua Yu <fenghua>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Apr 18, 2017 at 11:59:26AM +0300, Kirill A. Shutemov wrote:
-> On Mon, Apr 17, 2017 at 12:32:25PM +0200, Ingo Molnar wrote:
-> > 
-> > * Kirill A. Shutemov <kirill@shutemov.name> wrote:
-> > 
-> > > On Tue, Apr 11, 2017 at 07:09:07AM -0700, Andi Kleen wrote:
-> > > > > I'll look closer (building proccess it's rather complicated), but my
-> > > > > understanding is that VDSO is stand-alone binary and doesn't really links
-> > > > > with the rest of the kernel, rather included as blob, no?
-> > > > > 
-> > > > > Andy, may be you have an idea?
-> > > > 
-> > > > There isn't any way I know of to directly link them together. The ELF 
-> > > > format wasn't designed for that. You would need to merge blobs and then use
-> > > > manual jump vectors, like the 16bit startup code does. It would be likely
-> > > > complicated and ugly.
-> > > 
-> > > Ingo, can we proceed without coverting this assembly to C?
-> > > 
-> > > I'm committed to convert it to C later if we'll find reasonable solution
-> > > to the issue.
-> > 
-> > So one way to do it would be to build it standalone as a .o, then add it not to 
-> > the regular kernel objects link target (as you found out it's not possible to link 
-> > 32-bit and 64-bit objects), but to link it in a manual fashion, as part of 
-> > vmlinux.bin.all-y in arch/x86/boot/compressed/Makefile.
-> > 
-> > But there would be other complications with this approach, such as we'd have to 
-> > add a size field and there might be symbol linking problems ...
-> > 
-> > Another, pretty hacky way would be to generate a .S from the .c, then post-process 
-> > the .S and essentially generate today's 32-bit .S from it.
-> > 
-> > Probably not worth the trouble.
-> 
-> So, do I need to do anything else to get part 4 applied?
-
-Doh!
-
-I've just realized we don't really need to enable 5-level paging in
-decompression code. Leaving 4-level paging there works perfectly fine.
-
-I'll drop changes to arch/x86/boot/compressed/head_64.S and resubmit the
-patchset.
-
--- 
- Kirill A. Shutemov
+T24gVHVlLCAyMDE3LTA0LTE4IGF0IDA5OjU3ICswMTAwLCBMb3JlbnpvIFBpZXJhbGlzaSB3cm90
+ZToKPiBJIGNhbiBhZGQgYSBkZWZpbmVkKHBncHJvdF9ub25wb3N0ZWQpIHRvIHBjaV9yZW1hcF9p
+b3NwYWNlKCkgaWYgdGhhdCdzCj4gbm90IHRvbyB1Z2x5IChJIHN1c3BlY3QgQmpvcm4gaXMgdGhy
+aWxsZWQgYWJvdXQgaXQgOikpLCB0aGF0IHBsdXMKPiB0aGUgS2NvbmZpZyBvcHRpb24gZm9yIGlv
+cmVtYXBfbm9wb3N0KCkgc2hvdWxkIGNvbXBsZXRlIHRoaXMgc2VyaWVzLgo+IAo+IGludCBwY2lf
+cmVtYXBfaW9zcGFjZShjb25zdCBzdHJ1Y3QgcmVzb3VyY2UgKnJlcywgcGh5c19hZGRyX3QgcGh5
+c19hZGRyKQo+IHsKPiAjaWYgZGVmaW5lZChQQ0lfSU9CQVNFKSAmJiBkZWZpbmVkKENPTkZJR19N
+TVUpICYmIGRlZmluZWQocGdwcm90X25vbnBvc3RlZCkKPiDCoMKgwqDCoMKgwqDCoMKgdW5zaWdu
+ZWQgbG9uZyB2YWRkciA9ICh1bnNpZ25lZCBsb25nKVBDSV9JT0JBU0UgKyByZXMtPnN0YXJ0Owo+
+IAo+IMKgwqDCoMKgwqDCoMKgwqBpZiAoIShyZXMtPmZsYWdzICYgSU9SRVNPVVJDRV9JTykpCj4g
+wqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqByZXR1cm4gLUVJTlZBTDsKPiAKPiDCoMKg
+wqDCoMKgwqDCoMKgaWYgKHJlcy0+ZW5kID4gSU9fU1BBQ0VfTElNSVQpCj4gwqDCoMKgwqDCoMKg
+wqDCoMKgwqDCoMKgwqDCoMKgwqByZXR1cm4gLUVJTlZBTAo+IMKgwqDCoMKgwqDCoMKgwqByZXR1
+cm4gaW9yZW1hcF9wYWdlX3JhbmdlKHZhZGRyLCB2YWRkciArIHJlc291cmNlX3NpemUocmVzKSwg
+cGh5c19hZGRyLAo+IMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKg
+wqDCoMKgwqDCoMKgwqDCoMKgwqDCoCBwZ3Byb3Rfbm9ucG9zdGVkKFBBR0VfS0VSTkVMKSk7Cj4g
+I2Vsc2UKPiDCoMKgwqDCoMKgwqDCoMKgLyogdGhpcyBhcmNoaXRlY3R1cmUgZG9lcyBub3QgaGF2
+ZSBtZW1vcnkgbWFwcGVkIEkvTyBzcGFjZSwKPiDCoMKgwqDCoMKgwqDCoMKgwqDCoCBzbyB0aGlz
+IGZ1bmN0aW9uIHNob3VsZCBuZXZlciBiZSBjYWxsZWQgKi8KPiDCoMKgwqDCoMKgwqDCoMKgV0FS
+Tl9PTkNFKDEsICJUaGlzIGFyY2hpdGVjdHVyZSBkb2VzIG5vdCBzdXBwb3J0IG1lbW9yeSBtYXBw
+ZWQgSS9PXG4iKTsKPiDCoMKgwqDCoMKgwqDCoMKgcmV0dXJuIC1FTk9ERVY7Cj4gI2VuZGlmCgpU
+aGUgYWJvdmUgd291bGQgZWZmZWN0aXZlbHkgZGlzYWJsZSBtbWFwJ2luZyBvZiBJTyBzcGFjZSBm
+b3IgYW55CmFyY2hpdGVjdHVyZSB0aGF0IGRvZXNuJ3QgaGF2ZSBwZ3Byb3Rfbm9ucG9zdGVkLi4u
+IHNvIGV2ZXJ5Ym9keSBleGNlcHQKQVJNLiBUaHVzIGJyZWFraW5nIGEgbnVtYmVyIG9mIHN5c3Rl
+bXMgdGhhdCBoYXZlIGJlZW4gd29ya2luZyBmaW5lIGZvcgp5ZWFycy4KCkkgZmFpbCB0byBzZWUg
+dGhlIHBvaW50Li4uLgoKSSB0aGluayB5b3UgYXJlIGdpdmluZyB0aGUgd2hvbGUgbm9uLXBvc3Rl
+ZCBzdHVmZiB3YXkgbW9yZSBpbXBvcnRhbmNlCnRoYW4gaXQgZGVzZXJ2ZXMuIEl0J3Mgb3JpZ2lu
+YWxseSBhIGtsdWRnZSBJbnRlbCBkaWQgdG8gUENJIGJlY2F1c2UgaXQKd2VsbCB3aXRoIHRoZWly
+IHN5bmNocm9ub3VzIElPIHNwYWNlLCB3aGljaCB3YXMgaXRzZWxmIGEgcmVtbmFudCBvZgpwcmUt
+aGlzdG9yeSB0aGF0IHNob3VsZCBoYXZlIGxvbmcgZGllZC4KCkluIHRoZSBzcGVjaWZpYyBjYXNl
+IG9mIFBDSSAoYWdhaW4gSSdtIG5vdCB0YWxraW5nIGFib3V0IHRoZSBnZW5lcmFsCmNhc2Ugb2Yg
+cGdwcm90L2lvcmVtYXBfbm9ucG9zdGVkKSwgd2UgaGF2ZSByb3V0aW5lbHkgYmVlbiAidmlvbGF0
+aW5nIgp0aGF0IHJ1bGUsIGF0IGxlYXN0IG9uIHRoZSBDUFUgLT4gUENJIEJyaWRnZSBwYXRoICh0
+aGUgUENJIGJyaWRnZQppdHNlbGYgdGVuZHMgdG8gcmVzcGVjdCBpdCB0aG91Z2ggSSd2ZSBzZWVu
+IGV4Y2VwdGlvbnMpIGZvciBkZWNhZGVzCndpdGhvdXQgYW55IGFkdmVyc2UgZWZmZWN0LgoKSSBk
+b24ndCB0aGluayB0aGVyZSdzIG11Y2ggY29kZSAoaWYgYW55KSBvdXQgdGhlcmUgd2hpY2ggYWN0
+dWFsbHkKcmVsaWVzIG9uIHRoZSBub24tcG9zdGVkIGNoYXJhY3RlcmlzdGljcyBvZiBJTyBzcGFj
+ZS4KCkkgZG9uJ3QgY2FyZSAqdGhhdCogbXVjaCBtaW5kIHlvdSwgd2UgZHJvcHBlZCBJTyBzcGFj
+ZSBvbiBQQ0kgd2l0aApQT1dFUjgsIGJ1dCBpdCB3b3VsZCBicmVhayBzdHVmZiBvbiBleGlzdGlu
+ZyBvbGRlciBtYWNoaW5lcyBzdWNoIGFzClBvd2VyTWFjcyBmb3Igbm8gZ29vZCByZWFzb24uCgpJ
+J2QgcmF0aGVyIHdlIGRvY3VtZW50IHRoYXQgbW1hcCdpbmcgSU8gc3BhY2UgdmlhIHN5c2ZzIGRv
+ZXNuJ3QgZnVsbHkKcmVzcGVjdCB0aGUgIm5vbi1wb3N0ZWQiIHNlbWFudGljcyBvZiBJTyBhbmQg
+YmUgZG9uZSB3aXRoIGl0LgoKSXMgdGhlcmUgYW55IG90aGVyIHByYWN0aWNhbCB1c2Ugb2Ygbm9u
+LXBvc3RlZCBtYXBwaW5ncyA/IENvbmZpZyBzcGFjZQpJIHN1cHBvc2UsIHRob3VnaCBoZXJlIG1v
+c3RseSBQQ0kgaG9zdCBicmlkZ2VzIGhhbmRsZSBpdCBieSBkb2luZyBhCnJlYWQgYmFjayBpbiB0
+aGUgY29uZmlnIG9wcy4uLgoKQ2hlZXJzLApCZW4uCgoKX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX18KbGludXgtYXJtLWtlcm5lbCBtYWlsaW5nIGxpc3QKbGlu
+dXgtYXJtLWtlcm5lbEBsaXN0cy5pbmZyYWRlYWQub3JnCmh0dHA6Ly9saXN0cy5pbmZyYWRlYWQu
+b3JnL21haWxtYW4vbGlzdGluZm8vbGludXgtYXJtLWtlcm5lbAo=
