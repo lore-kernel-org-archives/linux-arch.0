@@ -1,61 +1,100 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f66.google.com ([74.125.83.66]:34884 "EHLO
-        mail-pg0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1759596AbdDSFcX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Apr 2017 01:32:23 -0400
-Content-Type: text/plain;
-        charset=us-ascii
-Mime-Version: 1.0 (1.0)
-Subject: Re: [PATCH v2] mm: add VM_STATIC flag to vmalloc and prevent from removing the areas
-From: Hoeun Ryu <hoeun.ryu@gmail.com>
-In-Reply-To: <20170418065946.GB22360@dhcp22.suse.cz>
-Date: Wed, 19 Apr 2017 14:32:14 +0900
-Content-Transfer-Encoding: quoted-printable
-Message-ID: <CEE04495-95EF-4A98-A85F-5C3537072BCE@gmail.com>
-References: <1492494570-21068-1-git-send-email-hoeun.ryu@gmail.com> <20170418065946.GB22360@dhcp22.suse.cz>
+Received: from mail.skyhub.de ([5.9.137.197]:35832 "EHLO mail.skyhub.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1761350AbdDSJCl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 19 Apr 2017 05:02:41 -0400
+Date: Wed, 19 Apr 2017 11:02:24 +0200
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v5 01/32] x86: Documentation for AMD Secure Memory
+ Encryption (SME)
+Message-ID: <20170419090224.frmv2jhwfwoxvdie@pd.tnic>
+References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
+ <20170418211625.10190.52568.stgit@tlendack-t1.amdoffice.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20170418211625.10190.52568.stgit@tlendack-t1.amdoffice.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Hocko <mhocko@kernel.org>
-Cc: hch@infradead.org, khandual@linux.vnet.ibm.com, Andrew Morton <akpm@linux-foundation.org>, Roman Pen <r.peniaev@gmail.com>, Andreas Dilger <adilger@dilger.ca>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Chris Wilson <chris@chris-wilson.co.uk>, Ingo Molnar <mingo@kernel.org>, zijun_hu <zijun_hu@htc.com>, Matthew Wilcox <mawilcox@microsoft.com>, Thomas Garnier <thgarnie@google.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
-Message-ID: <20170419053214.69VaxcHWiLxaXOmVkZWjQjdtbf-JKVCJsCmxF9NvSOc@z>
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20170419090224.VcbKq1_erf47F3qURbbeeHlmJUDnESmGqmt2nK8MNLQ@z>
 
+Always have a verb in the Subject to form a "do this" or "do that"
+sentence to better explain what the patch does:
 
-> On Apr 18, 2017, at 3:59 PM, Michal Hocko <mhocko@kernel.org> wrote:
->=20
->> On Tue 18-04-17 14:48:39, Hoeun Ryu wrote:
->> vm_area_add_early/vm_area_register_early() are used to reserve vmalloc ar=
-ea
->> during boot process and those virtually mapped areas are never unmapped.
->> So `OR` VM_STATIC flag to the areas in vmalloc_init() when importing
->> existing vmlist entries and prevent those areas from being removed from t=
-he
->> rbtree by accident.
->=20
-> Has this been a problem in the past or currently so that it is worth
-> handling?
->=20
->> This flags can be also used by other vmalloc APIs to
->> specify that the area will never go away.
->=20
-> Do we have a user for that?
->=20
->> This makes remove_vm_area() more robust against other kind of errors (eg.=
+"Subject: [PATCH v5 01/32] x86: Add documentation for AMD Secure Memory Encryption (SME)"
 
->> programming errors).
->=20
-> Well, yes it will help to prevent from vfree(early_mem) but we have 4
-> users of vm_area_register_early so I am really wondering whether this is
-> worth additional code. It would really help to understand your
-> motivation for the patch if we were explicit about the problem you are
-> trying to solve.
+On Tue, Apr 18, 2017 at 04:16:25PM -0500, Tom Lendacky wrote:
+> Create a Documentation entry to describe the AMD Secure Memory
+> Encryption (SME) feature and add documentation for the mem_encrypt=
+> kernel parameter.
+> 
+> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+> ---
+>  Documentation/admin-guide/kernel-parameters.txt |   11 ++++
+>  Documentation/x86/amd-memory-encryption.txt     |   60 +++++++++++++++++++++++
+>  2 files changed, 71 insertions(+)
+>  create mode 100644 Documentation/x86/amd-memory-encryption.txt
+> 
+> diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
+> index 3dd6d5d..84c5787 100644
+> --- a/Documentation/admin-guide/kernel-parameters.txt
+> +++ b/Documentation/admin-guide/kernel-parameters.txt
+> @@ -2165,6 +2165,17 @@
+>  			memory contents and reserves bad memory
+>  			regions that are detected.
+>  
+> +	mem_encrypt=	[X86-64] AMD Secure Memory Encryption (SME) control
+> +			Valid arguments: on, off
+> +			Default (depends on kernel configuration option):
+> +			  on  (CONFIG_AMD_MEM_ENCRYPT_ACTIVE_BY_DEFAULT=y)
+> +			  off (CONFIG_AMD_MEM_ENCRYPT_ACTIVE_BY_DEFAULT=n)
+> +			mem_encrypt=on:		Activate SME
+> +			mem_encrypt=off:	Do not activate SME
+> +
+> +			Refer to Documentation/x86/amd-memory-encryption.txt
+> +			for details on when memory encryption can be activated.
+> +
+>  	mem_sleep_default=	[SUSPEND] Default system suspend mode:
+>  			s2idle  - Suspend-To-Idle
+>  			shallow - Power-On Suspend or equivalent (if supported)
+> diff --git a/Documentation/x86/amd-memory-encryption.txt b/Documentation/x86/amd-memory-encryption.txt
+> new file mode 100644
+> index 0000000..0b72ff2
+> --- /dev/null
+> +++ b/Documentation/x86/amd-memory-encryption.txt
+> @@ -0,0 +1,60 @@
+> +Secure Memory Encryption (SME) is a feature found on AMD processors.
+> +
+> +SME provides the ability to mark individual pages of memory as encrypted using
+> +the standard x86 page tables.  A page that is marked encrypted will be
+> +automatically decrypted when read from DRAM and encrypted when written to
+> +DRAM.  SME can therefore be used to protect the contents of DRAM from physical
+> +attacks on the system.
+> +
+> +A page is encrypted when a page table entry has the encryption bit set (see
+> +below on how to determine its position).  The encryption bit can be specified
+> +in the cr3 register, allowing the PGD table to be encrypted. Each successive
 
-I just think that it would be good to make it robust against various kind of=
- errors.
-You might think that's not an enough reason to do so though.
+I missed that the last time: do you mean here, "The encryption bit can
+be specified in the %cr3 register allowing for the page table hierarchy
+itself to be encrypted."?
 
->=20
-> Thanks
->=20
-> --=20
-> Michal Hocko
-> SUSE Labs
+> +level of page tables can also be encrypted.
+
+Right, judging by the next sentence, it looks like it.
+
+The rest looks and reads really nice to me, so feel free to add:
+
+Reviewed-by: Borislav Petkov <bp@suse.de>
+
+after addressing those minor nitpicks on your next submission.
+
+Thanks.
+
+-- 
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
