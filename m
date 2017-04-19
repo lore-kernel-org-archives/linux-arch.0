@@ -1,274 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bl2nam02on0067.outbound.protection.outlook.com ([104.47.38.67]:5088
-        "EHLO NAM02-BL2-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1758021AbdDRVTu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 18 Apr 2017 17:19:50 -0400
-From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v5 18/32] x86,
- mpparse: Use memremap to map the mpf and mpc data
-Date: Tue, 18 Apr 2017 16:19:30 -0500
-Message-ID: <20170418211930.10190.62640.stgit@tlendack-t1.amdoffice.net>
-In-Reply-To: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
-References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
-MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
+Received: from mail-pg0-f66.google.com ([74.125.83.66]:34884 "EHLO
+        mail-pg0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1759596AbdDSFcX (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Apr 2017 01:32:23 -0400
+Content-Type: text/plain;
+        charset=us-ascii
+Mime-Version: 1.0 (1.0)
+Subject: Re: [PATCH v2] mm: add VM_STATIC flag to vmalloc and prevent from removing the areas
+From: Hoeun Ryu <hoeun.ryu@gmail.com>
+In-Reply-To: <20170418065946.GB22360@dhcp22.suse.cz>
+Date: Wed, 19 Apr 2017 14:32:14 +0900
+Content-Transfer-Encoding: quoted-printable
+Message-ID: <CEE04495-95EF-4A98-A85F-5C3537072BCE@gmail.com>
+References: <1492494570-21068-1-git-send-email-hoeun.ryu@gmail.com> <20170418065946.GB22360@dhcp22.suse.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
-Cc: Rik van Riel <riel@redhat.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170418211930.62Xhl6ynnkkKZL6j9cI9fkEpxdX4JbgupgGYkr895Xg@z>
+To: Michal Hocko <mhocko@kernel.org>
+Cc: hch@infradead.org, khandual@linux.vnet.ibm.com, Andrew Morton <akpm@linux-foundation.org>, Roman Pen <r.peniaev@gmail.com>, Andreas Dilger <adilger@dilger.ca>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Chris Wilson <chris@chris-wilson.co.uk>, Ingo Molnar <mingo@kernel.org>, zijun_hu <zijun_hu@htc.com>, Matthew Wilcox <mawilcox@microsoft.com>, Thomas Garnier <thgarnie@google.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+Message-ID: <20170419053214.69VaxcHWiLxaXOmVkZWjQjdtbf-JKVCJsCmxF9NvSOc@z>
 
-The SMP MP-table is built by UEFI and placed in memory in a decrypted
-state. These tables are accessed using a mix of early_memremap(),
-early_memunmap(), phys_to_virt() and virt_to_phys(). Change all accesses
-to use early_memremap()/early_memunmap(). This allows for proper setting
-of the encryption mask so that the data can be successfully accessed when
-SME is active.
 
-Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
----
- arch/x86/kernel/mpparse.c |  102 +++++++++++++++++++++++++++++++--------------
- 1 file changed, 71 insertions(+), 31 deletions(-)
+> On Apr 18, 2017, at 3:59 PM, Michal Hocko <mhocko@kernel.org> wrote:
+>=20
+>> On Tue 18-04-17 14:48:39, Hoeun Ryu wrote:
+>> vm_area_add_early/vm_area_register_early() are used to reserve vmalloc ar=
+ea
+>> during boot process and those virtually mapped areas are never unmapped.
+>> So `OR` VM_STATIC flag to the areas in vmalloc_init() when importing
+>> existing vmlist entries and prevent those areas from being removed from t=
+he
+>> rbtree by accident.
+>=20
+> Has this been a problem in the past or currently so that it is worth
+> handling?
+>=20
+>> This flags can be also used by other vmalloc APIs to
+>> specify that the area will never go away.
+>=20
+> Do we have a user for that?
+>=20
+>> This makes remove_vm_area() more robust against other kind of errors (eg.=
 
-diff --git a/arch/x86/kernel/mpparse.c b/arch/x86/kernel/mpparse.c
-index fd37f39..afbda41d 100644
---- a/arch/x86/kernel/mpparse.c
-+++ b/arch/x86/kernel/mpparse.c
-@@ -429,7 +429,21 @@ static inline void __init construct_default_ISA_mptable(int mpc_default_type)
- 	}
- }
- 
--static struct mpf_intel *mpf_found;
-+static unsigned long mpf_base;
-+
-+static void __init unmap_mpf(struct mpf_intel *mpf)
-+{
-+	early_memunmap(mpf, sizeof(*mpf));
-+}
-+
-+static struct mpf_intel * __init map_mpf(unsigned long paddr)
-+{
-+	struct mpf_intel *mpf;
-+
-+	mpf = early_memremap(paddr, sizeof(*mpf));
-+
-+	return mpf;
-+}
- 
- static unsigned long __init get_mpc_size(unsigned long physptr)
- {
-@@ -444,13 +458,21 @@ static unsigned long __init get_mpc_size(unsigned long physptr)
- 	return size;
- }
- 
-+static void __init unmap_mpc(struct mpc_table *mpc)
-+{
-+	early_memunmap(mpc, mpc->length);
-+}
-+
-+static struct mpc_table * __init map_mpc(unsigned long paddr)
-+{
-+	return early_memremap(paddr, get_mpc_size(paddr));
-+}
-+
- static int __init check_physptr(struct mpf_intel *mpf, unsigned int early)
- {
- 	struct mpc_table *mpc;
--	unsigned long size;
- 
--	size = get_mpc_size(mpf->physptr);
--	mpc = early_memremap(mpf->physptr, size);
-+	mpc = map_mpc(mpf->physptr);
- 	/*
- 	 * Read the physical hardware table.  Anything here will
- 	 * override the defaults.
-@@ -461,10 +483,10 @@ static int __init check_physptr(struct mpf_intel *mpf, unsigned int early)
- #endif
- 		pr_err("BIOS bug, MP table errors detected!...\n");
- 		pr_cont("... disabling SMP support. (tell your hw vendor)\n");
--		early_memunmap(mpc, size);
-+		unmap_mpc(mpc);
- 		return -1;
- 	}
--	early_memunmap(mpc, size);
-+	unmap_mpc(mpc);
- 
- 	if (early)
- 		return -1;
-@@ -497,12 +519,12 @@ static int __init check_physptr(struct mpf_intel *mpf, unsigned int early)
-  */
- void __init default_get_smp_config(unsigned int early)
- {
--	struct mpf_intel *mpf = mpf_found;
-+	struct mpf_intel *mpf;
- 
- 	if (!smp_found_config)
- 		return;
- 
--	if (!mpf)
-+	if (!mpf_base)
- 		return;
- 
- 	if (acpi_lapic && early)
-@@ -515,6 +537,8 @@ void __init default_get_smp_config(unsigned int early)
- 	if (acpi_lapic && acpi_ioapic)
- 		return;
- 
-+	mpf = map_mpf(mpf_base);
-+
- 	pr_info("Intel MultiProcessor Specification v1.%d\n",
- 		mpf->specification);
- #if defined(CONFIG_X86_LOCAL_APIC) && defined(CONFIG_X86_32)
-@@ -542,8 +566,10 @@ void __init default_get_smp_config(unsigned int early)
- 		construct_default_ISA_mptable(mpf->feature1);
- 
- 	} else if (mpf->physptr) {
--		if (check_physptr(mpf, early))
-+		if (check_physptr(mpf, early)) {
-+			unmap_mpf(mpf);
- 			return;
-+		}
- 	} else
- 		BUG();
- 
-@@ -552,6 +578,8 @@ void __init default_get_smp_config(unsigned int early)
- 	/*
- 	 * Only use the first configuration found.
- 	 */
-+
-+	unmap_mpf(mpf);
- }
- 
- static void __init smp_reserve_memory(struct mpf_intel *mpf)
-@@ -561,15 +589,16 @@ static void __init smp_reserve_memory(struct mpf_intel *mpf)
- 
- static int __init smp_scan_config(unsigned long base, unsigned long length)
- {
--	unsigned int *bp = phys_to_virt(base);
-+	unsigned int *bp;
- 	struct mpf_intel *mpf;
--	unsigned long mem;
-+	int ret = 0;
- 
- 	apic_printk(APIC_VERBOSE, "Scan for SMP in [mem %#010lx-%#010lx]\n",
- 		    base, base + length - 1);
- 	BUILD_BUG_ON(sizeof(*mpf) != 16);
- 
- 	while (length > 0) {
-+		bp = early_memremap(base, length);
- 		mpf = (struct mpf_intel *)bp;
- 		if ((*bp == SMP_MAGIC_IDENT) &&
- 		    (mpf->length == 1) &&
-@@ -579,24 +608,26 @@ static int __init smp_scan_config(unsigned long base, unsigned long length)
- #ifdef CONFIG_X86_LOCAL_APIC
- 			smp_found_config = 1;
- #endif
--			mpf_found = mpf;
-+			mpf_base = base;
- 
--			pr_info("found SMP MP-table at [mem %#010llx-%#010llx] mapped at [%p]\n",
--				(unsigned long long) virt_to_phys(mpf),
--				(unsigned long long) virt_to_phys(mpf) +
--				sizeof(*mpf) - 1, mpf);
-+			pr_info("found SMP MP-table at [mem %#010lx-%#010lx] mapped at [%p]\n",
-+				base, base + sizeof(*mpf) - 1, mpf);
- 
--			mem = virt_to_phys(mpf);
--			memblock_reserve(mem, sizeof(*mpf));
-+			memblock_reserve(base, sizeof(*mpf));
- 			if (mpf->physptr)
- 				smp_reserve_memory(mpf);
- 
--			return 1;
-+			ret = 1;
- 		}
--		bp += 4;
-+		early_memunmap(bp, length);
-+
-+		if (ret)
-+			break;
-+
-+		base += 16;
- 		length -= 16;
- 	}
--	return 0;
-+	return ret;
- }
- 
- void __init default_find_smp_config(void)
-@@ -842,25 +873,26 @@ static int __init update_mp_table(void)
- 	if (!enable_update_mptable)
- 		return 0;
- 
--	mpf = mpf_found;
--	if (!mpf)
-+	if (!mpf_base)
- 		return 0;
- 
-+	mpf = map_mpf(mpf_base);
-+
- 	/*
- 	 * Now see if we need to go further.
- 	 */
- 	if (mpf->feature1 != 0)
--		return 0;
-+		goto do_unmap_mpf;
- 
- 	if (!mpf->physptr)
--		return 0;
-+		goto do_unmap_mpf;
- 
--	mpc = phys_to_virt(mpf->physptr);
-+	mpc = map_mpc(mpf->physptr);
- 
- 	if (!smp_check_mpc(mpc, oem, str))
--		return 0;
-+		goto do_unmap_mpc;
- 
--	pr_info("mpf: %llx\n", (u64)virt_to_phys(mpf));
-+	pr_info("mpf: %llx\n", (u64)mpf_base);
- 	pr_info("physptr: %x\n", mpf->physptr);
- 
- 	if (mpc_new_phys && mpc->length > mpc_new_length) {
-@@ -878,21 +910,23 @@ static int __init update_mp_table(void)
- 		new = mpf_checksum((unsigned char *)mpc, mpc->length);
- 		if (old == new) {
- 			pr_info("mpc is readonly, please try alloc_mptable instead\n");
--			return 0;
-+			goto do_unmap_mpc;
- 		}
- 		pr_info("use in-position replacing\n");
- 	} else {
- 		mpf->physptr = mpc_new_phys;
--		mpc_new = phys_to_virt(mpc_new_phys);
-+		mpc_new = map_mpc(mpc_new_phys);
- 		memcpy(mpc_new, mpc, mpc->length);
-+		unmap_mpc(mpc);
- 		mpc = mpc_new;
- 		/* check if we can modify that */
- 		if (mpc_new_phys - mpf->physptr) {
- 			struct mpf_intel *mpf_new;
- 			/* steal 16 bytes from [0, 1k) */
- 			pr_info("mpf new: %x\n", 0x400 - 16);
--			mpf_new = phys_to_virt(0x400 - 16);
-+			mpf_new = map_mpf(0x400 - 16);
- 			memcpy(mpf_new, mpf, 16);
-+			unmap_mpf(mpf);
- 			mpf = mpf_new;
- 			mpf->physptr = mpc_new_phys;
- 		}
-@@ -909,6 +943,12 @@ static int __init update_mp_table(void)
- 	 */
- 	replace_intsrc_all(mpc, mpc_new_phys, mpc_new_length);
- 
-+do_unmap_mpc:
-+	unmap_mpc(mpc);
-+
-+do_unmap_mpf:
-+	unmap_mpf(mpf);
-+
- 	return 0;
- }
- 
+>> programming errors).
+>=20
+> Well, yes it will help to prevent from vfree(early_mem) but we have 4
+> users of vm_area_register_early so I am really wondering whether this is
+> worth additional code. It would really help to understand your
+> motivation for the patch if we were explicit about the problem you are
+> trying to solve.
+
+I just think that it would be good to make it robust against various kind of=
+ errors.
+You might think that's not an enough reason to do so though.
+
+>=20
+> Thanks
+>=20
+> --=20
+> Michal Hocko
+> SUSE Labs
