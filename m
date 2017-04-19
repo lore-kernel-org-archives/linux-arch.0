@@ -1,50 +1,62 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH v3 04/32] asm-generic: add ioremap_nopost() remap interface
-Date: Wed, 19 Apr 2017 08:43:36 +1000
-Message-ID: <1492555416.25766.97.camel@kernel.crashing.org>
-References: <20170411122923.6285-1-lorenzo.pieralisi@arm.com>
- <20170411122923.6285-5-lorenzo.pieralisi@arm.com>
- <1491917983.7236.9.camel@kernel.crashing.org>
- <20170412112022.GY17774@n2100.armlinux.org.uk>
- <20170418154937.GA1006@red-moon>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20170418154937.GA1006@red-moon>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Russell King - ARM Linux <linux@armlinux.org.uk>
-Cc: Jonas Bonn <jonas@southpole.se>, Rich Felker <dalias@libc.org>, linux-pci@vger.kernel.org, Will Deacon <will.deacon@arm.com>, David Howells <dhowells@redhat.com>, Max Filippov <jcmvbkbc@gmail.com>, Paul Mackerras <paulus@samba.org>, Huacai Chen <chenhc@lemote.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, linux-arch@vger.kernel.org, Jesper Nilsson <jesper.nilsson@axis.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Ingo Molnar <mingo@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Catalin Marinas <catalin.marinas@arm.com>, Matt Turner <mattst88@gmail.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Fenghua Yu <fenghua.yu@intel.com>, James Hogan <james.hogan@imgtec.co>
+From: Hoeun Ryu <hoeun.ryu@gmail.com>
+Subject: Re: [PATCH v2] mm: add VM_STATIC flag to vmalloc and prevent from removing the areas
+Date: Wed, 19 Apr 2017 14:32:14 +0900
+Message-ID: <CEE04495-95EF-4A98-A85F-5C3537072BCE@gmail.com>
+References: <1492494570-21068-1-git-send-email-hoeun.ryu@gmail.com> <20170418065946.GB22360@dhcp22.suse.cz>
+Mime-Version: 1.0 (1.0)
+Content-Type: text/plain;
+	charset=us-ascii
+Content-Transfer-Encoding: quoted-printable
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20170418065946.GB22360@dhcp22.suse.cz>
+Sender: owner-linux-mm@kvack.org
+To: Michal Hocko <mhocko@kernel.org>
+Cc: hch@infradead.org, khandual@linux.vnet.ibm.com, Andrew Morton <akpm@linux-foundation.org>, Roman Pen <r.peniaev@gmail.com>, Andreas Dilger <adilger@dilger.ca>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Chris Wilson <chris@chris-wilson.co.uk>, Ingo Molnar <mingo@kernel.org>, zijun_hu <zijun_hu@htc.com>, Matthew Wilcox <mawilcox@microsoft.com>, Thomas Garnier <thgarnie@google.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 2017-04-18 at 16:49 +0100, Lorenzo Pieralisi wrote:
-> I can do that yes, which already means I have to know if eg microblaze
-> (drivers/pci/host/pcie-xilinx.c) can provide a mapping with nonposted
-> writes semantics, otherwise it is a dead-end.
-> 
-> Another option would be going back to what v1 did, namely, to implement
-> a pci_remap_cfgspace() interface (it is the _nopost() suffix that stirred
-> debate - nobody would object to having a default pci_remap_cfgspace()
-> implementation that defaults to ioremap_nocache(), I know Bjorn does not
-> like it to be PCI specific, just adding an option on the table to make
-> progress).
 
-Well, it boils down again to the fact that a mapping attribute isn't
-sufficient.
+> On Apr 18, 2017, at 3:59 PM, Michal Hocko <mhocko@kernel.org> wrote:
+>=20
+>> On Tue 18-04-17 14:48:39, Hoeun Ryu wrote:
+>> vm_area_add_early/vm_area_register_early() are used to reserve vmalloc ar=
+ea
+>> during boot process and those virtually mapped areas are never unmapped.
+>> So `OR` VM_STATIC flag to the areas in vmalloc_init() when importing
+>> existing vmlist entries and prevent those areas from being removed from t=
+he
+>> rbtree by accident.
+>=20
+> Has this been a problem in the past or currently so that it is worth
+> handling?
+>=20
+>> This flags can be also used by other vmalloc APIs to
+>> specify that the area will never go away.
+>=20
+> Do we have a user for that?
+>=20
+>> This makes remove_vm_area() more robust against other kind of errors (eg.=
 
-Let's say I'm microblaze and I can't do non-posted mapping. Then the
-Host Bridge driver needs to *know* that so it can implement a different
-workaround, such as reading back from some bridge register after every
-config write which ensures the previous write reached its destination
-for example, or whatever other IP specific mechanism.
+>> programming errors).
+>=20
+> Well, yes it will help to prevent from vfree(early_mem) but we have 4
+> users of vm_area_register_early so I am really wondering whether this is
+> worth additional code. It would really help to understand your
+> motivation for the patch if we were explicit about the problem you are
+> trying to solve.
 
-Cheers,
-Ben.
+I just think that it would be good to make it robust against various kind of=
+ errors.
+You might think that's not an enough reason to do so though.
+
+>=20
+> Thanks
+>=20
+> --=20
+> Michal Hocko
+> SUSE Labs
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
