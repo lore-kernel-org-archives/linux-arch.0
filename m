@@ -1,46 +1,42 @@
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH v5 01/32] x86: Documentation for AMD Secure Memory
- Encryption (SME)
-Date: Wed, 19 Apr 2017 17:38:19 +0200
-Message-ID: <20170419153818.3pl3gkdpe42lve44@pd.tnic>
-References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
- <20170418211625.10190.52568.stgit@tlendack-t1.amdoffice.net>
- <20170419090224.frmv2jhwfwoxvdie@pd.tnic>
- <bbda868c-9b34-4404-f563-98b000124ac5@amd.com>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Subject: Re: [PATCH v2 00/27] PCI resource mmap cleanup
+Date: Wed, 19 Apr 2017 13:37:53 -0500
+Message-ID: <CAErSpo4XzcDjd8pK_kFGgyiaCv8t1xyHMNcm2MQV3gAxKrFDfA@mail.gmail.com>
+References: <cover.1491999859.git.dwmw2@infradead.org> <20170418182816.GB25295@bhelgaas-glaptop.roam.corp.google.com>
+ <1492586617.17682.240.camel@infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([5.9.137.197]:54860 "EHLO mail.skyhub.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1764426AbdDSPig (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 19 Apr 2017 11:38:36 -0400
-Content-Disposition: inline
-In-Reply-To: <bbda868c-9b34-4404-f563-98b000124ac5@amd.com>
+Received: from mail-wr0-f177.google.com ([209.85.128.177]:35819 "EHLO
+        mail-wr0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S968950AbdDSSiP (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Apr 2017 14:38:15 -0400
+Received: by mail-wr0-f177.google.com with SMTP id o21so21318790wrb.2
+        for <linux-arch@vger.kernel.org>; Wed, 19 Apr 2017 11:38:15 -0700 (PDT)
+In-Reply-To: <1492586617.17682.240.camel@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy
+To: David Woodhouse <dwmw2@infradead.org>
+Cc: Bjorn Helgaas <helgaas@kernel.org>, "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 
-On Wed, Apr 19, 2017 at 09:23:47AM -0500, Tom Lendacky wrote:
-> Btw, I tried to update all the subjects and descriptions to be
-> more descriptive but I'm sure there is still room for improvement
-> so keep the comments on them coming.
+On Wed, Apr 19, 2017 at 2:23 AM, David Woodhouse <dwmw2@infradead.org> wrote:
+> On Tue, 2017-04-18 at 13:28 -0500, Bjorn Helgaas wrote:
+>>
+>> Applied to pci/resource-mmap for v4.12, thanks!
+>>
+>> This consists of the email patches + the acks/etc so far.  It doesn't
+>> include any updates from your git branch (but it doesn't look like it's
+>> been updated recently).
+>
+> Thanks. Aside from merging the acks, I had also fixed a typo in
+> include/linux/pci.h (s/aroudn/around) and re-ordered the later commits
+> to put the three IA64 changes immediately after the ones you already
+> merged. Tony said it was OK to take those through your tree too.
+>
+> I've taken your pci/resource-mmap branch, edited it to apply the typo
+> fix, and added the three IA64 commits at
+>
+>  git://git.infradead.org/users/dwmw2/random-2.6.git for-bjorn
+> http://git.infradead.org/users/dwmw2/random-2.6.git/shortlog/refs/heads/for-bjorn
 
-No worries there :)
-
-> Note, just because the bit is set in %cr3 doesn't mean the full
-> hierarchy is encrypted. Each level in the hierarchy needs to have the
-> encryption bit set. So, theoretically, you could have the encryption
-> bit set in %cr3 so that the PGD is encrypted, but not set the encryption
-> bit in the PGD entry for a PUD and so the PUD pointed to by that entry
-> would not be encrypted.
-
-Ha, that is a nice detail I didn't realize. You could add it to the text.
-
-Thanks.
-
--- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
+I pulled this branch; it's on my pci/resource-mmap branch for v4.12.
