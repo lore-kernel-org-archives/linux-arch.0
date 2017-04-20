@@ -1,42 +1,282 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 8bytes.org ([81.169.241.247]:38915 "EHLO theia.8bytes.org"
+Received: from mga07.intel.com ([134.134.136.100]:46791 "EHLO mga07.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S946325AbdDTOcF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 20 Apr 2017 10:32:05 -0400
-Date: Thu, 20 Apr 2017 16:31:57 +0200
-From: Joerg Roedel <joro@8bytes.org>
-Subject: Re: [PATCH V11 00/11] IOMMU probe deferral support
-Message-ID: <20170420143157.GG7266@8bytes.org>
-References: <1491823266-1209-1-git-send-email-sricharan@codeaurora.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1491823266-1209-1-git-send-email-sricharan@codeaurora.org>
+        id S971087AbdDTQWR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 20 Apr 2017 12:22:17 -0400
+From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Subject: [PATCHv5 4/9] x86/boot/64: Add support of additional page table level during early boot
+Date: Thu, 20 Apr 2017 19:21:42 +0300
+Message-ID: <20170420162147.86517-5-kirill.shutemov@linux.intel.com>
+In-Reply-To: <20170420162147.86517-1-kirill.shutemov@linux.intel.com>
+References: <20170420162147.86517-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sricharan R <sricharan@codeaurora.org>
-Cc: robin.murphy@arm.com, will.deacon@arm.com, lorenzo.pieralisi@arm.com, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arm-msm@vger.kernel.org, m.szyprowski@samsung.com, bhelgaas@google.com, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, tn@semihalf.com, hanjun.guo@linaro.org, okaya@codeaurora.org, robh+dt@kernel.org, frowand.list@gmail.com, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, sudeep.holla@arm.com, rjw@rjwysocki.net, lenb@kernel.org, catalin.marinas@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, gregkh@linuxfoundation.org
-Message-ID: <20170420143157.xF1CqtVtrKCaJG5jU-fBDp2MQLpadKMNkuyUYOfgEFs@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Message-ID: <20170420162142.1x4N019JV8m9xJq96WUJQvD5DFWrkBmi-P46fKaD5zI@z>
 
-On Mon, Apr 10, 2017 at 04:50:55PM +0530, Sricharan R wrote:
->  arch/arm64/mm/dma-mapping.c       | 142 +++++---------------------------------
->  drivers/acpi/arm64/iort.c         |  48 ++++++++++++-
->  drivers/acpi/glue.c               |   5 --
->  drivers/acpi/scan.c               |  11 ++-
->  drivers/base/dd.c                 |   9 +++
->  drivers/base/dma-mapping.c        |  41 +++++++++++
->  drivers/iommu/arm-smmu-v3.c       |  46 +-----------
->  drivers/iommu/arm-smmu.c          | 110 +++++++++++++----------------
->  drivers/iommu/of_iommu.c          | 126 ++++++++++++++++++++++++---------
->  drivers/of/device.c               |  23 +++++-
->  drivers/of/platform.c             |  10 +--
->  drivers/pci/probe.c               |  28 --------
->  include/acpi/acpi_bus.h           |   2 +-
->  include/asm-generic/vmlinux.lds.h |   1 -
->  include/linux/acpi.h              |   7 +-
->  include/linux/acpi_iort.h         |   3 -
->  include/linux/dma-mapping.h       |  12 ++++
->  include/linux/of_device.h         |  10 ++-
->  18 files changed, 312 insertions(+), 322 deletions(-)
+This patch adds support for 5-level paging during early boot.
+It generalizes boot for 4- and 5-level paging on 64-bit systems with
+compile-time switch between them.
 
-Applied, thanks.
+Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+---
+ arch/x86/boot/compressed/head_64.S          | 23 +++++++++++---
+ arch/x86/include/asm/pgtable_64.h           |  2 ++
+ arch/x86/include/uapi/asm/processor-flags.h |  2 ++
+ arch/x86/kernel/head64.c                    | 48 +++++++++++++++++++++++++----
+ arch/x86/kernel/head_64.S                   | 29 +++++++++++++----
+ 5 files changed, 88 insertions(+), 16 deletions(-)
+
+diff --git a/arch/x86/boot/compressed/head_64.S b/arch/x86/boot/compressed/head_64.S
+index d2ae1f821e0c..3ed26769810b 100644
+--- a/arch/x86/boot/compressed/head_64.S
++++ b/arch/x86/boot/compressed/head_64.S
+@@ -122,9 +122,12 @@ ENTRY(startup_32)
+ 	addl	%ebp, gdt+2(%ebp)
+ 	lgdt	gdt(%ebp)
+ 
+-	/* Enable PAE mode */
++	/* Enable PAE and LA57 mode */
+ 	movl	%cr4, %eax
+ 	orl	$X86_CR4_PAE, %eax
++#ifdef CONFIG_X86_5LEVEL
++	orl	$X86_CR4_LA57, %eax
++#endif
+ 	movl	%eax, %cr4
+ 
+  /*
+@@ -136,13 +139,24 @@ ENTRY(startup_32)
+ 	movl	$(BOOT_INIT_PGT_SIZE/4), %ecx
+ 	rep	stosl
+ 
++	xorl	%edx, %edx
++
++	/* Build Top Level */
++	leal	pgtable(%ebx,%edx,1), %edi
++	leal	0x1007 (%edi), %eax
++	movl	%eax, 0(%edi)
++
++#ifdef CONFIG_X86_5LEVEL
+ 	/* Build Level 4 */
+-	leal	pgtable + 0(%ebx), %edi
++	addl	$0x1000, %edx
++	leal	pgtable(%ebx,%edx), %edi
+ 	leal	0x1007 (%edi), %eax
+ 	movl	%eax, 0(%edi)
++#endif
+ 
+ 	/* Build Level 3 */
+-	leal	pgtable + 0x1000(%ebx), %edi
++	addl	$0x1000, %edx
++	leal	pgtable(%ebx,%edx), %edi
+ 	leal	0x1007(%edi), %eax
+ 	movl	$4, %ecx
+ 1:	movl	%eax, 0x00(%edi)
+@@ -152,7 +166,8 @@ ENTRY(startup_32)
+ 	jnz	1b
+ 
+ 	/* Build Level 2 */
+-	leal	pgtable + 0x2000(%ebx), %edi
++	addl	$0x1000, %edx
++	leal	pgtable(%ebx,%edx), %edi
+ 	movl	$0x00000183, %eax
+ 	movl	$2048, %ecx
+ 1:	movl	%eax, 0(%edi)
+diff --git a/arch/x86/include/asm/pgtable_64.h b/arch/x86/include/asm/pgtable_64.h
+index affcb2a9c563..2160c1fee920 100644
+--- a/arch/x86/include/asm/pgtable_64.h
++++ b/arch/x86/include/asm/pgtable_64.h
+@@ -14,6 +14,8 @@
+ #include <linux/bitops.h>
+ #include <linux/threads.h>
+ 
++extern p4d_t level4_kernel_pgt[512];
++extern p4d_t level4_ident_pgt[512];
+ extern pud_t level3_kernel_pgt[512];
+ extern pud_t level3_ident_pgt[512];
+ extern pmd_t level2_kernel_pgt[512];
+diff --git a/arch/x86/include/uapi/asm/processor-flags.h b/arch/x86/include/uapi/asm/processor-flags.h
+index 567de50a4c2a..185f3d10c194 100644
+--- a/arch/x86/include/uapi/asm/processor-flags.h
++++ b/arch/x86/include/uapi/asm/processor-flags.h
+@@ -104,6 +104,8 @@
+ #define X86_CR4_OSFXSR		_BITUL(X86_CR4_OSFXSR_BIT)
+ #define X86_CR4_OSXMMEXCPT_BIT	10 /* enable unmasked SSE exceptions */
+ #define X86_CR4_OSXMMEXCPT	_BITUL(X86_CR4_OSXMMEXCPT_BIT)
++#define X86_CR4_LA57_BIT	12 /* enable 5-level page tables */
++#define X86_CR4_LA57		_BITUL(X86_CR4_LA57_BIT)
+ #define X86_CR4_VMXE_BIT	13 /* enable VMX virtualization */
+ #define X86_CR4_VMXE		_BITUL(X86_CR4_VMXE_BIT)
+ #define X86_CR4_SMXE_BIT	14 /* enable safer mode (TXT) */
+diff --git a/arch/x86/kernel/head64.c b/arch/x86/kernel/head64.c
+index f8a2f34fa15d..9403633f4c7c 100644
+--- a/arch/x86/kernel/head64.c
++++ b/arch/x86/kernel/head64.c
+@@ -47,6 +47,7 @@ void __init __startup_64(unsigned long physaddr)
+ {
+ 	unsigned long load_delta, *p;
+ 	pgdval_t *pgd;
++	p4dval_t *p4d;
+ 	pudval_t *pud;
+ 	pmdval_t *pmd, pmd_entry;
+ 	int i;
+@@ -70,6 +71,11 @@ void __init __startup_64(unsigned long physaddr)
+ 	pgd = fixup_pointer(&early_top_pgt, physaddr);
+ 	pgd[pgd_index(__START_KERNEL_map)] += load_delta;
+ 
++	if (IS_ENABLED(CONFIG_X86_5LEVEL)) {
++		p4d = fixup_pointer(&level4_kernel_pgt, physaddr);
++		p4d[511] += load_delta;
++	}
++
+ 	pud = fixup_pointer(&level3_kernel_pgt, physaddr);
+ 	pud[510] += load_delta;
+ 	pud[511] += load_delta;
+@@ -87,9 +93,21 @@ void __init __startup_64(unsigned long physaddr)
+ 	pud = fixup_pointer(early_dynamic_pgts[next_early_pgt++], physaddr);
+ 	pmd = fixup_pointer(early_dynamic_pgts[next_early_pgt++], physaddr);
+ 
+-	i = (physaddr >> PGDIR_SHIFT) % PTRS_PER_PGD;
+-	pgd[i + 0] = (pgdval_t)pud + _KERNPG_TABLE;
+-	pgd[i + 1] = (pgdval_t)pud + _KERNPG_TABLE;
++	if (IS_ENABLED(CONFIG_X86_5LEVEL)) {
++		p4d = fixup_pointer(early_dynamic_pgts[next_early_pgt++], physaddr);
++
++		i = (physaddr >> PGDIR_SHIFT) % PTRS_PER_PGD;
++		pgd[i + 0] = (pgdval_t)p4d + _KERNPG_TABLE;
++		pgd[i + 1] = (pgdval_t)p4d + _KERNPG_TABLE;
++
++		i = (physaddr >> P4D_SHIFT) % PTRS_PER_P4D;
++		p4d[i + 0] = (pgdval_t)pud + _KERNPG_TABLE;
++		p4d[i + 1] = (pgdval_t)pud + _KERNPG_TABLE;
++	} else {
++		i = (physaddr >> PGDIR_SHIFT) % PTRS_PER_PGD;
++		pgd[i + 0] = (pgdval_t)pud + _KERNPG_TABLE;
++		pgd[i + 1] = (pgdval_t)pud + _KERNPG_TABLE;
++	}
+ 
+ 	i = (physaddr >> PUD_SHIFT) % PTRS_PER_PUD;
+ 	pud[i + 0] = (pudval_t)pmd + _KERNPG_TABLE;
+@@ -134,6 +152,7 @@ int __init early_make_pgtable(unsigned long address)
+ {
+ 	unsigned long physaddr = address - __PAGE_OFFSET;
+ 	pgdval_t pgd, *pgd_p;
++	p4dval_t p4d, *p4d_p;
+ 	pudval_t pud, *pud_p;
+ 	pmdval_t pmd, *pmd_p;
+ 
+@@ -150,8 +169,25 @@ int __init early_make_pgtable(unsigned long address)
+ 	 * critical -- __PAGE_OFFSET would point us back into the dynamic
+ 	 * range and we might end up looping forever...
+ 	 */
+-	if (pgd)
+-		pud_p = (pudval_t *)((pgd & PTE_PFN_MASK) + __START_KERNEL_map - phys_base);
++	if (!IS_ENABLED(CONFIG_X86_5LEVEL))
++		p4d_p = pgd_p;
++	else if (pgd)
++		p4d_p = (p4dval_t *)((pgd & PTE_PFN_MASK) + __START_KERNEL_map - phys_base);
++	else {
++		if (next_early_pgt >= EARLY_DYNAMIC_PAGE_TABLES) {
++			reset_early_page_tables();
++			goto again;
++		}
++
++		p4d_p = (p4dval_t *)early_dynamic_pgts[next_early_pgt++];
++		memset(p4d_p, 0, sizeof(*p4d_p) * PTRS_PER_P4D);
++		*pgd_p = (pgdval_t)p4d_p - __START_KERNEL_map + phys_base + _KERNPG_TABLE;
++	}
++	p4d_p += p4d_index(address);
++	p4d = *p4d_p;
++
++	if (p4d)
++		pud_p = (pudval_t *)((p4d & PTE_PFN_MASK) + __START_KERNEL_map - phys_base);
+ 	else {
+ 		if (next_early_pgt >= EARLY_DYNAMIC_PAGE_TABLES) {
+ 			reset_early_page_tables();
+@@ -160,7 +196,7 @@ int __init early_make_pgtable(unsigned long address)
+ 
+ 		pud_p = (pudval_t *)early_dynamic_pgts[next_early_pgt++];
+ 		memset(pud_p, 0, sizeof(*pud_p) * PTRS_PER_PUD);
+-		*pgd_p = (pgdval_t)pud_p - __START_KERNEL_map + phys_base + _KERNPG_TABLE;
++		*p4d_p = (p4dval_t)pud_p - __START_KERNEL_map + phys_base + _KERNPG_TABLE;
+ 	}
+ 	pud_p += pud_index(address);
+ 	pud = *pud_p;
+diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
+index 0ae0bad4d4d5..7b527fa47536 100644
+--- a/arch/x86/kernel/head_64.S
++++ b/arch/x86/kernel/head_64.S
+@@ -37,10 +37,14 @@
+  *
+  */
+ 
++#define p4d_index(x)	(((x) >> P4D_SHIFT) & (PTRS_PER_P4D-1))
+ #define pud_index(x)	(((x) >> PUD_SHIFT) & (PTRS_PER_PUD-1))
+ 
+-L4_PAGE_OFFSET = pgd_index(__PAGE_OFFSET_BASE)
+-L4_START_KERNEL = pgd_index(__START_KERNEL_map)
++PGD_PAGE_OFFSET = pgd_index(__PAGE_OFFSET_BASE)
++PGD_START_KERNEL = pgd_index(__START_KERNEL_map)
++#ifdef CONFIG_X86_5LEVEL
++L4_START_KERNEL = p4d_index(__START_KERNEL_map)
++#endif
+ L3_START_KERNEL = pud_index(__START_KERNEL_map)
+ 
+ 	.text
+@@ -100,11 +104,14 @@ ENTRY(secondary_startup_64)
+ 	movq	$(init_top_pgt - __START_KERNEL_map), %rax
+ 1:
+ 
+-	/* Enable PAE mode and PGE */
++	/* Enable PAE mode, PGE and LA57 */
+ 	movl	$(X86_CR4_PAE | X86_CR4_PGE), %ecx
++#ifdef CONFIG_X86_5LEVEL
++	orl	$X86_CR4_LA57, %ecx
++#endif
+ 	movq	%rcx, %cr4
+ 
+-	/* Setup early boot stage 4 level pagetables. */
++	/* Setup early boot stage 4-/5-level pagetables. */
+ 	addq	phys_base(%rip), %rax
+ 	movq	%rax, %cr3
+ 
+@@ -330,7 +337,11 @@ GLOBAL(name)
+ 	__INITDATA
+ NEXT_PAGE(early_top_pgt)
+ 	.fill	511,8,0
++#ifdef CONFIG_X86_5LEVEL
++	.quad	level4_kernel_pgt - __START_KERNEL_map + _PAGE_TABLE
++#else
+ 	.quad	level3_kernel_pgt - __START_KERNEL_map + _PAGE_TABLE
++#endif
+ 
+ NEXT_PAGE(early_dynamic_pgts)
+ 	.fill	512*EARLY_DYNAMIC_PAGE_TABLES,8,0
+@@ -343,9 +354,9 @@ NEXT_PAGE(init_top_pgt)
+ #else
+ NEXT_PAGE(init_top_pgt)
+ 	.quad   level3_ident_pgt - __START_KERNEL_map + _KERNPG_TABLE
+-	.org    init_top_pgt + L4_PAGE_OFFSET*8, 0
++	.org    init_top_pgt + PGD_PAGE_OFFSET*8, 0
+ 	.quad   level3_ident_pgt - __START_KERNEL_map + _KERNPG_TABLE
+-	.org    init_top_pgt + L4_START_KERNEL*8, 0
++	.org    init_top_pgt + PGD_START_KERNEL*8, 0
+ 	/* (2^48-(2*1024*1024*1024))/(2^39) = 511 */
+ 	.quad   level3_kernel_pgt - __START_KERNEL_map + _PAGE_TABLE
+ 
+@@ -359,6 +370,12 @@ NEXT_PAGE(level2_ident_pgt)
+ 	PMDS(0, __PAGE_KERNEL_IDENT_LARGE_EXEC, PTRS_PER_PMD)
+ #endif
+ 
++#ifdef CONFIG_X86_5LEVEL
++NEXT_PAGE(level4_kernel_pgt)
++	.fill	511,8,0
++	.quad	level3_kernel_pgt - __START_KERNEL_map + _PAGE_TABLE
++#endif
++
+ NEXT_PAGE(level3_kernel_pgt)
+ 	.fill	L3_START_KERNEL,8,0
+ 	/* (2^48-(2*1024*1024*1024)-((2^39)*511))/(2^30) = 510 */
+-- 
+2.11.0
