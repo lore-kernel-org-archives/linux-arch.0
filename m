@@ -1,124 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga07.intel.com ([134.134.136.100]:5602 "EHLO mga07.intel.com"
+Received: from mail.skyhub.de ([5.9.137.197]:55434 "EHLO mail.skyhub.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S971031AbdDTQW0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 20 Apr 2017 12:22:26 -0400
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv5 6/9] x86/mm: Make kernel_physical_mapping_init() support 5-level paging
-Date: Thu, 20 Apr 2017 19:21:44 +0300
-Message-ID: <20170420162147.86517-7-kirill.shutemov@linux.intel.com>
-In-Reply-To: <20170420162147.86517-1-kirill.shutemov@linux.intel.com>
-References: <20170420162147.86517-1-kirill.shutemov@linux.intel.com>
+        id S945357AbdDTRHE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 20 Apr 2017 13:07:04 -0400
+Date: Thu, 20 Apr 2017 18:59:22 +0200
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v5 05/32] x86/CPU/AMD: Handle SME reduction in physical
+ address size
+Message-ID: <20170420165922.j2inlwbchrs6senw@pd.tnic>
+References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
+ <20170418211711.10190.30861.stgit@tlendack-t1.amdoffice.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20170418211711.10190.30861.stgit@tlendack-t1.amdoffice.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20170420162144.U71YI2HMqmzZzv1xajQDhJNJz_7pLAQsPG5GxRpWeNU@z>
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20170420165922.Y_hMh0GhIf9vDnVv88DPEHcr7G27vtH7c7LLCHs50Yc@z>
 
-Populate additional page table level if CONFIG_X86_5LEVEL is enabled.
+On Tue, Apr 18, 2017 at 04:17:11PM -0500, Tom Lendacky wrote:
+> When System Memory Encryption (SME) is enabled, the physical address
+> space is reduced. Adjust the x86_phys_bits value to reflect this
+> reduction.
+> 
+> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+> ---
+>  arch/x86/kernel/cpu/amd.c |   14 +++++++++++---
+>  1 file changed, 11 insertions(+), 3 deletions(-)
 
-Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
----
- arch/x86/mm/init_64.c | 69 ++++++++++++++++++++++++++++++++++++++++++++-------
- 1 file changed, 60 insertions(+), 9 deletions(-)
+...
 
-diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
-index 0b62b13e8655..53cd9fb5027b 100644
---- a/arch/x86/mm/init_64.c
-+++ b/arch/x86/mm/init_64.c
-@@ -620,6 +620,57 @@ phys_pud_init(pud_t *pud_page, unsigned long paddr, unsigned long paddr_end,
- 	return paddr_last;
- }
- 
-+static unsigned long __meminit
-+phys_p4d_init(p4d_t *p4d_page, unsigned long paddr, unsigned long paddr_end,
-+	      unsigned long page_size_mask)
-+{
-+	unsigned long paddr_next, paddr_last = paddr_end;
-+	unsigned long vaddr = (unsigned long)__va(paddr);
-+	int i = p4d_index(vaddr);
-+
-+	if (!IS_ENABLED(CONFIG_X86_5LEVEL))
-+		return phys_pud_init((pud_t *) p4d_page, paddr, paddr_end, page_size_mask);
-+
-+	for (; i < PTRS_PER_P4D; i++, paddr = paddr_next) {
-+		p4d_t *p4d;
-+		pud_t *pud;
-+
-+		vaddr = (unsigned long)__va(paddr);
-+		p4d = p4d_page + p4d_index(vaddr);
-+		paddr_next = (paddr & P4D_MASK) + P4D_SIZE;
-+
-+		if (paddr >= paddr_end) {
-+			if (!after_bootmem &&
-+			    !e820__mapped_any(paddr & P4D_MASK, paddr_next,
-+					     E820_TYPE_RAM) &&
-+			    !e820__mapped_any(paddr & P4D_MASK, paddr_next,
-+					     E820_TYPE_RESERVED_KERN))
-+				set_p4d(p4d, __p4d(0));
-+			continue;
-+		}
-+
-+		if (!p4d_none(*p4d)) {
-+			pud = pud_offset(p4d, 0);
-+			paddr_last = phys_pud_init(pud, paddr,
-+					paddr_end,
-+					page_size_mask);
-+			__flush_tlb_all();
-+			continue;
-+		}
-+
-+		pud = alloc_low_page();
-+		paddr_last = phys_pud_init(pud, paddr, paddr_end,
-+					   page_size_mask);
-+
-+		spin_lock(&init_mm.page_table_lock);
-+		p4d_populate(&init_mm, p4d, pud);
-+		spin_unlock(&init_mm.page_table_lock);
-+	}
-+	__flush_tlb_all();
-+
-+	return paddr_last;
-+}
-+
- /*
-  * Create page table mapping for the physical memory for specific physical
-  * addresses. The virtual and physical addresses have to be aligned on PMD level
-@@ -641,26 +692,26 @@ kernel_physical_mapping_init(unsigned long paddr_start,
- 	for (; vaddr < vaddr_end; vaddr = vaddr_next) {
- 		pgd_t *pgd = pgd_offset_k(vaddr);
- 		p4d_t *p4d;
--		pud_t *pud;
- 
- 		vaddr_next = (vaddr & PGDIR_MASK) + PGDIR_SIZE;
- 
--		BUILD_BUG_ON(pgd_none(*pgd));
--		p4d = p4d_offset(pgd, vaddr);
--		if (p4d_val(*p4d)) {
--			pud = (pud_t *)p4d_page_vaddr(*p4d);
--			paddr_last = phys_pud_init(pud, __pa(vaddr),
-+		if (pgd_val(*pgd)) {
-+			p4d = (p4d_t *)pgd_page_vaddr(*pgd);
-+			paddr_last = phys_p4d_init(p4d, __pa(vaddr),
- 						   __pa(vaddr_end),
- 						   page_size_mask);
- 			continue;
- 		}
- 
--		pud = alloc_low_page();
--		paddr_last = phys_pud_init(pud, __pa(vaddr), __pa(vaddr_end),
-+		p4d = alloc_low_page();
-+		paddr_last = phys_p4d_init(p4d, __pa(vaddr), __pa(vaddr_end),
- 					   page_size_mask);
- 
- 		spin_lock(&init_mm.page_table_lock);
--		p4d_populate(&init_mm, p4d, pud);
-+		if (IS_ENABLED(CONFIG_X86_5LEVEL))
-+			pgd_populate(&init_mm, pgd, p4d);
-+		else
-+			p4d_populate(&init_mm, p4d_offset(pgd, vaddr), (pud_t *) p4d);
- 		spin_unlock(&init_mm.page_table_lock);
- 		pgd_changed = true;
- 	}
+> @@ -622,8 +624,14 @@ static void early_init_amd(struct cpuinfo_x86 *c)
+>  
+>  			/* Check if SME is enabled */
+>  			rdmsrl(MSR_K8_SYSCFG, msr);
+> -			if (!(msr & MSR_K8_SYSCFG_MEM_ENCRYPT))
+> +			if (msr & MSR_K8_SYSCFG_MEM_ENCRYPT) {
+> +				unsigned int ebx;
+> +
+> +				ebx = cpuid_ebx(0x8000001f);
+> +				c->x86_phys_bits -= (ebx >> 6) & 0x3f;
+> +			} else {
+>  				clear_cpu_cap(c, X86_FEATURE_SME);
+> +			}
+
+Lemme do some simplifying to save an indent level, get rid of local var
+ebx and kill some { }-brackets for a bit better readability:
+
+        if (c->extended_cpuid_level >= 0x8000001f) {
+                u64 msr;
+
+                if (!cpu_has(c, X86_FEATURE_SME))
+                        return;
+
+                /* Check if SME is enabled */
+                rdmsrl(MSR_K8_SYSCFG, msr);
+                if (msr & MSR_K8_SYSCFG_MEM_ENCRYPT)
+                        c->x86_phys_bits -= (cpuid_ebx(0x8000001f) >> 6) & 0x3f;
+                else
+                        clear_cpu_cap(c, X86_FEATURE_SME);
+        }
+
 -- 
-2.11.0
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
