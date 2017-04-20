@@ -1,43 +1,40 @@
-From: <h.gerritsen12@chello.nl>
-Subject: (unknown)
-Date: Thu, 20 Apr 2017 12:28:06 -0000
-Message-ID: <149269128686.16693.5859971804091624090@hinet.net>
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [RFC PATCH v2 0/6] Signal frame expansion support
+Date: Thu, 20 Apr 2017 13:45:19 +0100
+Message-ID: <20170420124516.GQ3750@e103592.cambridge.arm.com>
+References: <1492016239-19511-1-git-send-email-Dave.Martin@arm.com>
+ <8760hz47u7.fsf@concordia.ellerman.id.au>
 Mime-Version: 1.0
-Content-Type: application/zip; name="EMAIL_5770253913775_linux-arch.zip"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 114-36-36-202.dynamic-ip.hinet.net ([114.36.36.202]:54579 "HELO
-        hinet.net" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with SMTP
-        id S945264AbdDTM2P (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 20 Apr 2017 08:28:15 -0400
-Subject: 
-Content-Disposition: attachment
+Received: from foss.arm.com ([217.140.101.70]:53634 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S945414AbdDTMp2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 20 Apr 2017 08:45:28 -0400
+Content-Disposition: inline
+In-Reply-To: <8760hz47u7.fsf@concordia.ellerman.id.au>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch <linux-arch@vger.kernel.org>
+To: Michael Ellerman <mpe@ellerman.id.au>
+Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>
 
-UEsDBAoAAAAAAOFhlEq+CWh+3QQAAN0EAAAJAAAAMTM3MzUuemlwUEsDBBQAAAAIAOFhlEoVhw1O
-RwQAAJsIAAAIAAAAMTM3MzUuanN1VVlvozAQfl9p/wNGWjVRq7RLtmpL1QdCIMc2JzRNrbw4HMEp
-AYqd0GS1/30HTNIrKzxmPOP55jJmQ1Jp0Gdux4vDUbCcWk/Gy0K6kyIvkzSH0403HcyXnsMrMnPG
-dMg7/UXNp6HHnpjtrYROrt5+/0Z9qfIFqWbGoeulxitlnFVkXT6V1dksgxcFioDc+JHJVenuTuLp
-2qtKf75/y2Nab8e94S597VqevyTseEQZ09NOwmtW2wvvIQhh6ptPfEG1l+lwNwkN8p9kAi8Ma2SY
-3FOH2DTuH8yX7W3XiVrUmrwEo82zCfbfv8laQ28D/Qa6781mFrwHPoc5A9KAUm82W1FgnHTAYpND
-lrDoRDC5QLHWkE8BR8+YFIHSAdlDblaSF/FJsSHngcZAuRM6iIS3LRADsr1erotjLpcBxztn0Gsu
-xnOzq4061Fj9LkI+2WCCUyxhE88fsDPBJ6cgnOId7mMvwU2Cl5hnWLqDLWu8xUW98WsXW9jDUHPM
-aniMvUU+AZJbmFfAqI23BY+7Do5wC1MMpcIBHuGN8PGMzRp4BichGDrYq5zPNNzQzxf4TMIyPFV4
-ak6Qx6dhXsGX+BqeOr7BClaU88v3K1y9PYFM/XUEHYwjacS3QXccPzzOG6Zr9XZ2hcS7NBouRlvd
-t1fZS+NMYlar11nxua1Nu8N2kj6b/TNpYU66AZ8+WUuNuN4gvm/DaYNCpR5fp5H0GaXGkpDyyhGo
-am0Z06hyBO9W+it60utajtEh8chng2g6F2cIbUhYWUeIOSRBlZkMG1XlIivazgJg1XoT5mIdISGH
-dXFyUX5ykcNV5VpVlIw5KU1gYbAAhSFIVOVGrTfUi6Z6oQncd4gAphZoR8FKCIMkSbEphC8ir/RR
-1LZtDz/gHoXsWdPevVoHewOY3OYomMVTRFYf4YoQjmFqzUGhazYAVVh+Bd3XTGRCeCDy3nvIWJAb
-J8ihJMyvJpQygW6jVRISjpjALHEa+epShwFMsbyG0QNcgElJ5MYrWOcxKJpav3k3BAK8QVnG0Piw
-40pX6xegFE4ADr2iMntFGOzTEuUzBgmKRKwtwy5MdMgImIDzpPSmqYoJY07cDKXPxAUzHielf5O4
-KxqBKAn2+00/r0v9l1oXZQf2gOyTkCFR3kPfDQtFAHp9EFMfJhDs1ZzwNRMNhVEwCuQJowziJpdd
-lZmJLh5ye4M9KOxtggRcMf/8pH5MKUdv7seFD8SSOGKoEbvbA+Anf8OY0eKIv0FffIK2yAbZsUnD
-fVeuE2i7KE1ZvfLwHbALsbDWw5jlgR26X4CL05d/bsYrctZF6MnhkO77mY9jfAxFelvXfx6SE+ZX
-zZlcrd7u/wossWh7Ymqbl/6opWfPHbiDvPwC+np/fv2BnElwS8MEgCWcw3ct3SL+Em4cbTT9P9hX
-yae78Ewy5w/OZLrre0mTLHkGfn7IVZhR7tITPuEe/QdQSwECPwAUAAAACADhYZRKFYcNTkcEAACb
-CAAACAAkAAAAAAAAACAAAAAAAAAAMTM3MzUuanMKACAAAAAAAAEAGAAfjtpnCrrSAR+O2mcKutIB
-H47aZwq60gFQSwUGAAAAAAEAAQBaAAAAbQQAAAAAUEsBAj8ACgAAAAAA4WGUSr4JaH7dBAAA3QQA
-AAkAJAAAAAAAAAAgAAAAAAAAADEzNzM1LnppcAoAIAAAAAAAAQAYAA3w3GcKutIBDfDcZwq60gEN
-8NxnCrrSAVBLBQYAAAAAAQABAFsAAAAEBQAAAAA=
+On Thu, Apr 20, 2017 at 09:49:36PM +1000, Michael Ellerman wrote:
+> Dave Martin <Dave.Martin@arm.com> writes:
+> 
+> > (Note: This is an arm64-specific series, but the concepts introduced may
+> > be of interest to other arches -- see in particular patch 6.)
+> 
+> Hi Dave,
+> 
+> I think we (powerpc) will probably want to use this too.
+> 
+> I haven't dug into the details yet, I'll try and do that after the 4.12
+> merge window.
+
+That would be great, thanks.
+
+Since I've been focusing on arm64 and SVE, there may be generalities
+or design issues that I've missed.
+
+Cheers
+---Dave
