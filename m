@@ -1,105 +1,116 @@
-From: "dongbo (E)" <dongbo4@huawei.com>
-Subject: Re: [PATCH] fs: Preventing READ_IMPLIES_EXEC Propagation
-Date: Thu, 20 Apr 2017 11:50:38 +0800
-Message-ID: <edd83c82-7800-b1ca-2069-3b40cefa93d3@huawei.com>
-References: <1492088223-98232-1-git-send-email-zhangshaokun@hisilicon.com>
- <2414e3b3-03f6-bd6c-5aa4-ad58c66b5aa5@huawei.com>
- <20170418170118.GH27592@e104818-lin.cambridge.arm.com>
- <CAFEAcA_wH1dDbcjEEBaLX0q8pfWsfYUGGL-zOC4MuxySqa=uvA@mail.gmail.com>
- <20170419103313.GA3238@e104818-lin.cambridge.arm.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [RFC] minimum gcc version for kernel: raise to gcc-4.3 or 4.6?
+Date: Thu, 20 Apr 2017 12:15:19 +0200
+Message-ID: <CAK8P3a2C2WhWjzF=HrzU15Ncg0juR+nstZukBEpqCrVNW5pnDA@mail.gmail.com>
+References: <20161216105634.235457-1-arnd@arndb.de> <3302470.IDcDrWa0u6@wuerfel>
+ <CAGXu5jLPRYi+HK=07Zndc8szEKD4mZCqaHJFnHmmoYr7tA1xPw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="windows-1252"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20170419103313.GA3238@e104818-lin.cambridge.arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Catalin Marinas <catalin.marinas@arm.com>, Peter Maydell <peter.maydell@linaro.org>, linux@armlinux.org.uk
-Cc: Mark Rutland <mark.rutland@arm.com>, Peter Maydell <Peter.Maydell@arm.com>, Will Deacon <will.deacon@arm.com>, Linuxarm <linuxarm@huawei.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, linux-fsdevel@vger.kernel.org, arm-mail-list <linux-arm-kernel@lists.infradead.org>, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-oi0-f65.google.com ([209.85.218.65]:35340 "EHLO
+        mail-oi0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1031384AbdDTKPU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Apr 2017 06:15:20 -0400
+In-Reply-To: <CAGXu5jLPRYi+HK=07Zndc8szEKD4mZCqaHJFnHmmoYr7tA1xPw@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Kees Cook <keescook@chromium.org>
+Cc: linux-arch <linux-arch@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Russell King <rmk+kernel@armlinux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, kernel-build-reports@lists.linaro.org, kvmarm@lists.cs.columbia.edu
 
-On 2017/4/19 18:33, Catalin Marinas wrote:
-> On Tue, Apr 18, 2017 at 09:01:52PM +0100, Peter Maydell wrote:
->> On 18 April 2017 at 18:01, Catalin Marinas <catalin.marinas@arm.com> wrote:
->>> On Thu, Apr 13, 2017 at 08:33:52PM +0800, dongbo (E) wrote:
->>>> From: Dong Bo <dongbo4@huawei.com>
->>>>
->>>> In load_elf_binary(), once the READ_IMPLIES_EXEC flag is set,
->>>> the flag is propagated to its child processes, even the elf
->>>> files are marked as not requiring executable stack. It may
->>>> cause superfluous operations on some arch, e.g.
->>>> __sync_icache_dcache on aarch64 due to a PROT_READ mmap is
->>>> also marked as PROT_EXEC.
->>>>
->>>> Signed-off-by: Dong Bo <dongbo4@huawei.com>
->>>> ---
->>>>  fs/binfmt_elf.c       | 2 ++
->>>>  fs/binfmt_elf_fdpic.c | 2 ++
->>>>  2 files changed, 4 insertions(+)
->>>>
->>>> diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
->>>> index 5075fd5..c52e670 100644
->>>> --- a/fs/binfmt_elf.c
->>>> +++ b/fs/binfmt_elf.c
->>>> @@ -863,6 +863,8 @@ static int load_elf_binary(struct linux_binprm *bprm)
->>>>  	SET_PERSONALITY2(loc->elf_ex, &arch_state);
->>>>  	if (elf_read_implies_exec(loc->elf_ex, executable_stack))
->>>>  		current->personality |= READ_IMPLIES_EXEC;
->>>> +	else
->>>> +		current->personality &= ~READ_IMPLIES_EXEC;
->>>>   	if (!(current->personality & ADDR_NO_RANDOMIZE) && randomize_va_space)
->>>> 		current->flags |= PF_RANDOMIZE;
->>>> diff --git a/fs/binfmt_elf_fdpic.c b/fs/binfmt_elf_fdpic.c
->>>> index cf93a4f..c4bc4d0 100644
->>>> --- a/fs/binfmt_elf_fdpic.c
->>>> +++ b/fs/binfmt_elf_fdpic.c
->>>> @@ -354,6 +354,8 @@ static int load_elf_fdpic_binary(struct linux_binprm *bprm)
->>>>  		set_personality(PER_LINUX);
->>>>  	if (elf_read_implies_exec(&exec_params.hdr, executable_stack))
->>>>  		current->personality |= READ_IMPLIES_EXEC;
->>>> +	else
->>>> +		current->personality &= ~READ_IMPLIES_EXEC;
->>>>   	setup_new_exec(bprm);
+On Sun, Apr 16, 2017 at 9:52 PM, Kees Cook <keescook@chromium.org> wrote:
+> Was there a conclusion to this discussion? I didn't see anything
+> definitive in the thread...
+
+No definite answer, no. My personal view now is that we should probably
+merge the patches I sent, to help those that for one reason or another
+use one of those ancient toolchains, but we should not go actively looking
+for more problems with those compilers.
+
+> On Fri, Dec 16, 2016 at 3:14 AM, Arnd Bergmann <arnd@arndb.de> wrote:
+>> [Fixed linux-arm-kernel mailing list address, sorry for the duplicate,
+>>  I'm not reposting all the ugly patches though, unless someone really
+>>  wants them, https://lkml.org/lkml/2016/12/16/174 has a copy]
 >>
->>> That's affecting most architectures with a risk of ABI breakage. We
->>> could do it on arm64 only, though I'm not yet clear on the ABI
->>> implications (at a first look, there shouldn't be any).
->>
->> Is there a reason why it isn't just straightforwardly a bug
->> (which we could fix) to make READ_IMPLIES_EXEC propagate to
->> child processes?
-> 
-> While I agree that it looks like a bug, if there are user programs
-> relying on such bug we call it "ABI". On arm64, I don't think there is
-> anything relying on inheriting READ_IMPLIES_EXEC but I wouldn't change
-> the compat task handling without the corresponding change in arch/arm.
-> 
+>> On Friday, December 16, 2016 11:56:21 AM CET Arnd Bergmann wrote:
+>>> I had some fun doing build testing with older gcc versions, building
+>>> every release from 4.0 through 7.0 and running that on my randconfig
+>>> setup to see what comes out.
+>>>
+>>> First of all, gcc-4.9 and higher is basically warning-free everywhere,
+>>> although gcc-7 introduces some interesting new warnings (I have started
+>>> doing patches for those as well). gcc-4.8 is probably good, too, and
+>>> gcc-4.6 and 4.7 at least don't produce build failures in general, though
+>>> the level of false-positive warnings increases (we could decide to turn
+>>> those off for older compilers for build test purposes).
+>>>
+>>> In gcc-4.5 and below, dead code elimination is not as good as later,
+>>> causing a couple of link errors, and some of them have no good workaround
+>>> (see patch 1). It would be nice to declare that version too old, but
+>>> several older distros that are still in wide use ship with compilers
+>>> earlier than 4.6:
+>>>
+>>>  RHEL6:               gcc-4.4
+>
+> This appears to have support until July 31, 2018. (Though it's using a
+> 2.6 kernel.)
+>
+>>>  Debian 6:    gcc-4.4
+>
+> This went fully unsupported on Feb 29, 2016.
+>
+>>>  Ubuntu 10.04:        gcc-4.4
+>
+> This went fully unsupported on Apr 30, 2015.
+>
+>>>  SLES11:      gcc-4.3
+>
+> General support ends Mar 31 2019, fully unsupported 31 Mar 2022. (And
+> like RHEL6 is using a 2.6 kernel.)
 
-With READ_IMPLIES_EXEC propagation, several hundreds times of
-__sync_icache_dcache operations shows up than not READ_IMPLIES_EXEC
-propagation, which degenerating the system performance. Changing arm64
-only would settle our problem down, thanks for figuring out previously.
+Thanks for looking these up. This means we need to consider how important
+build testing on SLES11 is to us in the long run. The most important scenario
+I can think of for anyone would be someone that maintains an embedded
+system with an x86 CPU and uses a SLES11 setup to maintain their
+own distro.
 
-Seems that arch/arm had discussed the propagation of READ_IMPLIES_EXEC:
-http://lists.infradead.org/pipermail/linux-arm-kernel/2012-February/086490.html
-But the READ_IMPLIES_EXEC is still not cleared in elf_set_personality().
+In this case you typically don't want to modify your environment, but
+one might want to upgrade the target kernel, and would suffer if
+we break that.
 
->> AFAICT this should be per-process: just because
->> init happens not to have been (re)compiled to permit non-executable
->> stacks doesn't mean every process on the system needs to have
->> an executable stack.
-> 
-> I think this also affects the heap if brk(2) is used (via
-> VM_DATA_DEFAULT_FLAGS though I guess malloc mostly uses mmap these
-> days).
-> 
->> Behaviour shouldn't be variable across architectures either, I would
->> hope.
-> 
-> The behaviour has already been variable for a long time. Even on x86,
-> AFAICT x86_32 differs from x86_64 in this respect.
-> 
-> Anyway, the patch should be posted to linux-arch for a cross-arch
-> discussion.
-> 
+>>>
+>>> I have not checked in detail which version is required for
+>>> each of the above.
+>>>
+>>> Specifically on ARM, going further makes things rather useless especially
+>>> for build testing: with gcc-4.2, we lose support for ARMv7, EABI, and
+>>> effectively ARMv6 (as it relies on EABI for building reliably). Also,
+>>> the number of false-positive build warnings is so high that it is useless
+>>> for finding actual bugs from the warnings.
+>>>
+>>> See the replies to this mail for 13 patches I needed to work around
+>>> issues for each of the releases before 4.6. I have also submitted
+>>> some separate patches for issues that I considered actual bugs
+>>> uncovered by the older compilers and that should be applied regardless.
+>>>
+>>> The original gcc-4.3 release was in early 2008. If we decide to still
+>>> support that, we probably want the first 10 quirks in this series,
+>>> while gcc-4.6 (released in 2011) requires none of them.
+>
+> I'd be in support of raising the minimum to gcc 4.6. (I'd actually
+> prefer 4.7, just to avoid some 4.6 packaging issues, and for better
+> gcc plugin support.)
+>
+> I'm curious what gcc 4.6 binaries are common in the wild besides
+> old-stable Debian (unsupported in maybe a year from now?) and 12.04
+> Ubuntu (going fully unsupported in 2 weeks). It looks like 4.6 was
+> used only in Fedora 15 and 16 (both EOL).
 
-OK, this mail Cc to linux-arch. Thanks.
+I think we are better off defining two versions: One that we know
+a lot of people care about, and we actively try to make that work
+well in all configurations (e.g. 4.6, 4.7 or 4.8), fixing all warnings
+we run into, and an older version that we try not to break
+intentionally (e.g. 3.4, 4.1 or 4.3) but that we only fix when
+someone actually runs into a problem they can't work around
+by upgrading to a more modern compiler.
+
+      Arnd
