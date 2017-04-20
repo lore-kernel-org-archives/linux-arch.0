@@ -1,48 +1,60 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 3/3] arm64/locking: qspinlocks and qrwlocks support
-Date: Thu, 20 Apr 2017 21:05:30 +0200
-Message-ID: <20170420190530.GA6873@worktop>
-References: <1491860104-4103-1-git-send-email-ynorov@caviumnetworks.com>
- <1491860104-4103-4-git-send-email-ynorov@caviumnetworks.com>
- <20170413181212.y3ezah76qoztxhnn@hirez.programming.kicks-ass.net>
- <20170420182318.4ddtfiobxz6hgbo4@yury-N73SV>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [RFC] minimum gcc version for kernel: raise to gcc-4.3 or 4.6?
+Date: Thu, 20 Apr 2017 12:52:18 -0700
+Message-ID: <CAGXu5jLTR+dY_Ayyix5Tg0Yn9LBFAt=j56MQVdJVGue-R-CizA@mail.gmail.com>
+References: <20161216105634.235457-1-arnd@arndb.de>
+ <3302470.IDcDrWa0u6@wuerfel>
+ <CAGXu5jLPRYi+HK=07Zndc8szEKD4mZCqaHJFnHmmoYr7tA1xPw@mail.gmail.com>
+ <CAK8P3a2C2WhWjzF=HrzU15Ncg0juR+nstZukBEpqCrVNW5pnDA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:58222 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S946804AbdDTTRG (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Apr 2017 15:17:06 -0400
-Content-Disposition: inline
-In-Reply-To: <20170420182318.4ddtfiobxz6hgbo4@yury-N73SV>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Yury Norov <ynorov@caviumnetworks.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Jan Glauber <jglauber@cavium.com>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <kvmarm-bounces@lists.cs.columbia.edu>
+In-Reply-To: <CAK8P3a2C2WhWjzF=HrzU15Ncg0juR+nstZukBEpqCrVNW5pnDA@mail.gmail.com>
+List-Unsubscribe: <https://lists.cs.columbia.edu/mailman/options/kvmarm>,
+ <mailto:kvmarm-request@lists.cs.columbia.edu?subject=unsubscribe>
+List-Archive: <https://lists.cs.columbia.edu/pipermail/kvmarm>
+List-Post: <mailto:kvmarm@lists.cs.columbia.edu>
+List-Help: <mailto:kvmarm-request@lists.cs.columbia.edu?subject=help>
+List-Subscribe: <https://lists.cs.columbia.edu/mailman/listinfo/kvmarm>,
+ <mailto:kvmarm-request@lists.cs.columbia.edu?subject=subscribe>
+Errors-To: kvmarm-bounces@lists.cs.columbia.edu
+Sender: kvmarm-bounces@lists.cs.columbia.edu
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch <linux-arch@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, kernel-build-reports@lists.linaro.org, LKML <linux-kernel@vger.kernel.org>, Russell King <rmk+kernel@armlinux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, kvmarm@lists.cs.columbia.edu, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Apr 20, 2017 at 09:23:18PM +0300, Yury Norov wrote:
-> Is there some test to reproduce the locking failure for the case.
+On Thu, Apr 20, 2017 at 3:15 AM, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Sun, Apr 16, 2017 at 9:52 PM, Kees Cook <keescook@chromium.org> wrote:
+>>>> The original gcc-4.3 release was in early 2008. If we decide to still
+>>>> support that, we probably want the first 10 quirks in this series,
+>>>> while gcc-4.6 (released in 2011) requires none of them.
+>>
+>> I'd be in support of raising the minimum to gcc 4.6. (I'd actually
+>> prefer 4.7, just to avoid some 4.6 packaging issues, and for better
+>> gcc plugin support.)
+>>
+>> I'm curious what gcc 4.6 binaries are common in the wild besides
+>> old-stable Debian (unsupported in maybe a year from now?) and 12.04
+>> Ubuntu (going fully unsupported in 2 weeks). It looks like 4.6 was
+>> used only in Fedora 15 and 16 (both EOL).
+>
+> I think we are better off defining two versions: One that we know
+> a lot of people care about, and we actively try to make that work
+> well in all configurations (e.g. 4.6, 4.7 or 4.8), fixing all warnings
+> we run into, and an older version that we try not to break
+> intentionally (e.g. 3.4, 4.1 or 4.3) but that we only fix when
+> someone actually runs into a problem they can't work around
+> by upgrading to a more modern compiler.
 
-Possibly sysvsem stress before commit:
+For "working well everywhere" I feel like 4.8 is the better of those
+three (I'd prefer 4.9). I think we should avoid 4.6 -- it seems not
+widely used.
 
-  27d7be1801a4 ("ipc/sem.c: avoid using spin_unlock_wait()")
+For an old compiler... yikes. 3.4 sounds insane to me. :)
 
-Although a similar scheme is also used in nf_conntrack, see commit:
+-Kees
 
-  b316ff783d17 ("locking/spinlock, netfilter: Fix nf_conntrack_lock() barriers")
-
-> I
-> ask because I run loctorture for many hours on my qemu (emulating
-> cortex-a57), and I see no failures in the test reports. And Jan did it
-> on ThunderX, and Adam on QDF2400 without any problems. So even if I
-> rework those functions, how could I check them for correctness?
-
-Running them doesn't prove them correct. Memory ordering bugs have been
-in the kernel for many years without 'ever' triggering. This is stuff
-you have to think about.
-
-> Anyway, regarding the queued_spin_unlock_wait(), is my understanding
-> correct that you assume adding smp_mb() before entering the for(;;)
-> cycle, and using ldaxr/strxr instead of atomic_read()?
-
-You'll have to ask Will, I always forget the arm64 details.
+-- 
+Kees Cook
+Pixel Security
