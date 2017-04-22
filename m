@@ -1,34 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga01.intel.com ([192.55.52.88]:63840 "EHLO mga01.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1426104AbdDUVzP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 21 Apr 2017 17:55:15 -0400
-Subject: Re: [PATCH v5 31/32] x86: Add sysfs support for Secure Memory
- Encryption
-References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
- <20170418212212.10190.73484.stgit@tlendack-t1.amdoffice.net>
-From: Dave Hansen <dave.hansen@intel.com>
-Message-ID: <1498ec98-b19d-c47d-902b-a68870a3f860@intel.com>
-Date: Fri, 21 Apr 2017 14:55:13 -0700
+Received: from eddie.linux-mips.org ([148.251.95.138]:46524 "EHLO
+        cvs.linux-mips.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1043338AbdDVDKL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Apr 2017 23:10:11 -0400
+Date: Sat, 22 Apr 2017 04:10:08 +0100 (BST)
+From: "Maciej W. Rozycki" <macro@linux-mips.org>
+Subject: Re: [RFC] minimum gcc version for kernel: raise to gcc-4.3 or 4.6?
+In-Reply-To: <CAGXu5jJpofLF0qAf0-2iNTesZt-X704Q7L=DpQYdtHY5n2HD0w@mail.gmail.com>
+Message-ID: <alpine.LFD.2.20.1704220400380.32200@eddie.linux-mips.org>
+References: <20161216105634.235457-1-arnd@arndb.de> <3302470.IDcDrWa0u6@wuerfel> <CAGXu5jLPRYi+HK=07Zndc8szEKD4mZCqaHJFnHmmoYr7tA1xPw@mail.gmail.com> <CAK8P3a2C2WhWjzF=HrzU15Ncg0juR+nstZukBEpqCrVNW5pnDA@mail.gmail.com> <CAGXu5jLTR+dY_Ayyix5Tg0Yn9LBFAt=j56MQVdJVGue-R-CizA@mail.gmail.com>
+ <CAK8P3a114EVbnhbObfq-4pZp8XCT4fWzMXD+WkRi7iPXs1vFMA@mail.gmail.com> <CAGXu5jJpofLF0qAf0-2iNTesZt-X704Q7L=DpQYdtHY5n2HD0w@mail.gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <20170418212212.10190.73484.stgit@tlendack-t1.amdoffice.net>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tom Lendacky <thomas.lendacky@amd.com>, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
-Cc: Rik van Riel <riel@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170421215513.I_rXsZ2Gp5o1AcG2QAlt_lwmCMgZv_2ALYT0pyVWDBA@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Russell King <rmk+kernel@armlinux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, kernel-build-reports@lists.linaro.org, kvmarm@lists.cs.columbia.edu
+Message-ID: <20170422031008.8J_I6DW1Rr4LfGK98bBETtE09LLUtCOdC5_yEaUBqxo@z>
 
-On 04/18/2017 02:22 PM, Tom Lendacky wrote:
-> Add sysfs support for SME so that user-space utilities (kdump, etc.) can
-> determine if SME is active.
-> 
-> A new directory will be created:
->   /sys/kernel/mm/sme/
-> 
-> And two entries within the new directory:
->   /sys/kernel/mm/sme/active
->   /sys/kernel/mm/sme/encryption_mask
+On Fri, 21 Apr 2017, Kees Cook wrote:
 
-Why do they care, and what will they be doing with this information?
+> > The linux-4.2 x86 defconfig could still be built with gcc-4.0, but
+> > later kernels have several minor problems with that, and
+> > require at least gcc-4.3.
+> >
+> > If we are ok with this status quo, we could simply declare gcc-4.3
+> > the absolute minimum version for the kernel, make gcc-4.9
+> > the recommeded minimum version, and remove all workarounds
+> > for gcc-4.2 or older.
+> 
+> I think starting with this would be a good first step. I'm not sure
+> the best way to add "recommended minimum" to
+> Documentation/process/changes.rst hmmm
+
+ FWIW for some reasons (mainly the ability to avoid NPTL) I have stuck to 
+GCC 4.1.2 with some MIPS configurations and I've had no issues with that 
+compiler up to Linux 4.6.0, which is the last kernel version I have tried 
+with that compiler so far.  I could check if anything has regressed since 
+then I suppose.
+
+  Maciej
