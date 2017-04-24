@@ -1,77 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([65.50.211.133]:51510 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1171164AbdDXNdm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Apr 2017 09:33:42 -0400
-Date: Mon, 24 Apr 2017 15:33:23 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH] x86/refcount: Implement fast refcount_t handling
-Message-ID: <20170424133323.cf3xyd3mmwp6ixaz@hirez.programming.kicks-ass.net>
-References: <20170421220939.GA65363@beast>
- <58FDDAC2.11341.175B5A99@pageexec.freemail.hu>
- <20170424111553.p3kbyir4ztsldc56@hirez.programming.kicks-ass.net>
- <58FDF8C4.5120.17D092B7@pageexec.freemail.hu>
+Received: from mail-co1nam03on0059.outbound.protection.outlook.com ([104.47.40.59]:51456
+        "EHLO NAM03-CO1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1762845AbdDXPyJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 24 Apr 2017 11:54:09 -0400
+Subject: Re: [PATCH v5 09/32] x86/mm: Provide general kernel support for
+ memory encryption
+References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
+ <20170418211754.10190.25082.stgit@tlendack-t1.amdoffice.net>
+ <0106e3fc-9780-e872-2274-fecf79c28923@intel.com>
+From: Tom Lendacky <thomas.lendacky@amd.com>
+Message-ID: <9fc79e28-ad64-1c2f-4c46-a4efcdd550b0@amd.com>
+Date: Mon, 24 Apr 2017 10:53:58 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <58FDF8C4.5120.17D092B7@pageexec.freemail.hu>
+In-Reply-To: <0106e3fc-9780-e872-2274-fecf79c28923@intel.com>
+Content-Type: text/plain; charset="utf-8"; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: PaX Team <pageexec@freemail.hu>
-Cc: Kees Cook <keescook@chromium.org>, linux-kernel@vger.kernel.org, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, x86@kernel.org, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jann Horn <jann@thejh.net>, davem@davemloft.net, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com
-Message-ID: <20170424133323.L1M5IAqL-_G0eQzfRTlvCz1Q5ALBJrvTM_9QEWO77aU@z>
+To: Dave Hansen <dave.hansen@intel.com>, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
+Cc: Rik van Riel <riel@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20170424155358.M1cqBqM8gkahTYYnuwhmDKet71Ns2JiyE2OGZ1WNPzk@z>
 
-On Mon, Apr 24, 2017 at 03:08:20PM +0200, PaX Team wrote:
-> On 24 Apr 2017 at 13:15, Peter Zijlstra wrote:
-> 
-> > On Mon, Apr 24, 2017 at 01:00:18PM +0200, PaX Team wrote:
-> > > On 24 Apr 2017 at 10:32, Peter Zijlstra wrote:
-> > 
-> > > > Also, you forgot nr_cpus in your bound. Afaict the worst case here is
-> > > > O(nr_tasks + 3*nr_cpus).
-> > > 
-> > > what does nr_cpus have to do with winning the race?
-> > 
-> > The CPUs could each run nested softirq/hardirq/nmi context poking at the
-> > refcount, irrespective of the (preempted) task context.
-> 
-> that's fine but are you also assuming that the code executed in each of
-> those contexts leaks the same refcount? otherwise whatever they do to the
-> refcount is no more relevant than a non-leaking preemptible path that runs
-> to completion in a bounded amount of time (i.e., you get temporary bumps
-> and thus need to win yet another set of races to get their effects at once).
+On 4/21/2017 4:52 PM, Dave Hansen wrote:
+> On 04/18/2017 02:17 PM, Tom Lendacky wrote:
+>> @@ -55,7 +57,7 @@ static inline void copy_user_page(void *to, void *from, unsigned long vaddr,
+>>  	__phys_addr_symbol(__phys_reloc_hide((unsigned long)(x)))
+>>
+>>  #ifndef __va
+>> -#define __va(x)			((void *)((unsigned long)(x)+PAGE_OFFSET))
+>> +#define __va(x)			((void *)(__sme_clr(x) + PAGE_OFFSET))
+>>  #endif
+>
+> It seems wrong to be modifying __va().  It currently takes a physical
+> address, and this modifies it to take a physical address plus the SME bits.
 
-For worst case analysis we have to assume it does, unless we can proof
-it doesn't. And that proof is very very hard, and would need to be
-redone every time the kernel changes.
+This actually modifies it to be sure the encryption bit is not part of
+the physical address.
 
-> that was exactly my point: all this applies to you as well. so let me ask
-> the 3rd time: what is your "argument for correctness" for a 0 refcount
-> value check? how does it prevent exploitation?
+>
+> How does that end up ever happening?  If we are pulling physical
+> addresses out of the page tables, we use p??_phys().  I'd expect *those*
+> to be masking off the SME bits.
+>
+> Is it these cases?
+>
+> 	pgd_t *base = __va(read_cr3());
+>
+> For those, it seems like we really want to create two modes of reading
+> cr3.  One that truly reads CR3 and another that reads the pgd's physical
+> address out of CR3.  Then you only do the SME masking on the one
+> fetching a physical address, and the SME bits never leak into __va().
 
-What 0 count check are you talking about, the one that triggers when we
-want to increment 0 ?
+I'll investigate this and see if I can remove the mod to __va().
 
-I think I've explained that before; per reference count rules 0 means
-freed (or about to be freed when we talk RCU).
+Thanks,
+Tom
 
-The whole pattern:
-
-	if (dec_and_test(&obj->ref))
-		kfree(obj);
-
-expresses this etc.. Other reference counts also do this. No references
-means its getting freed.
-
-Can you agree with this?
-
-
-If so; any attempt to increase the reference count while its (being)
-freed() is a use-after-free.
-
-Therefore we disallow 0 increment.
-
-
-Yes, this is an annoyance when you consider usage-counts, where 0 means
-something else. But then, we were talking about reference counts, not
-something else.
+>
