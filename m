@@ -1,50 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from r00tworld.com ([212.85.137.150]:52139 "EHLO r00tworld.com"
+Received: from mga02.intel.com ([134.134.136.20]:1789 "EHLO mga02.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1169043AbdDXLkF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 24 Apr 2017 07:40:05 -0400
-From: "PaX Team" <pageexec@freemail.hu>
-Date: Mon, 24 Apr 2017 13:00:18 +0200
+        id S1170543AbdDXNDR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 24 Apr 2017 09:03:17 -0400
+Date: Mon, 24 Apr 2017 06:03:11 -0700
+From: Andi Kleen <ak@linux.intel.com>
+Subject: Re: Question on the five-level page table support patches
+Message-ID: <20170424130311.GR4021@tassilo.jf.intel.com>
+References: <030ea57b-5f6c-13d8-02f7-b245a754a87d@physik.fu-berlin.de>
+ <CALCETrUcB7STNjVw=WBZdFfz_H1DKcLnj3HHtnGaHGQ1UY8Zrw@mail.gmail.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH] x86/refcount: Implement fast refcount_t handling
-Reply-to: pageexec@freemail.hu
-Message-ID: <58FDDAC2.11341.175B5A99@pageexec.freemail.hu>
-In-reply-to: <20170424083250.h2wv2exbi4ytigac@hirez.programming.kicks-ass.net>
-References: <20170421220939.GA65363@beast>, <20170424083250.h2wv2exbi4ytigac@hirez.programming.kicks-ass.net>
-Content-type: text/plain; charset=US-ASCII
-Content-transfer-encoding: 7BIT
-Content-description: Mail message body
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CALCETrUcB7STNjVw=WBZdFfz_H1DKcLnj3HHtnGaHGQ1UY8Zrw@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>
-Cc: linux-kernel@vger.kernel.org, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, x86@kernel.org, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jann Horn <jann@thejh.net>, davem@davemloft.net, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com
-Message-ID: <20170424110018.nnu_XXwUl70a7ae5K5RZfoEbRtYlvxuKNdz0h2mb-DE@z>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Dave Hansen <dave.hansen@intel.com>, Michal Hocko <mhocko@suse.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>
+Message-ID: <20170424130311.EZrF-oOTHWREa9OxTlMeYhGdNqbizQlz86G9BBJESoo@z>
 
-On 24 Apr 2017 at 10:32, Peter Zijlstra wrote:
+> Can you explain what the issue is?  What used to work on Linux and
+> doesn't any more?  The man page is quite clear:
 
-> On Fri, Apr 21, 2017 at 03:09:39PM -0700, Kees Cook wrote:
-> > This patch ports the x86-specific atomic overflow handling from PaX's
-> > PAX_REFCOUNT to the upstream refcount_t API. This is an updated version
-> > from PaX that eliminates the saturation race condition by resetting the
-> > atomic counter back to the INT_MAX saturation value on both overflow and
-> > underflow. To win a race, a system would have to have INT_MAX threads
-> > simultaneously overflow before the saturation handler runs.
+In old Linux hint was a search hint, so if there isn't a hole
+at the hinted area it will search starting from there for a hole
+instead of giving up immediately.
 
-note that the above is wrong (and even contradicting itself and the code).
+Now it just gives up, which means every user has to implement
+their own search.
 
-> And is this impossible? Highly unlikely I'll grant you, but absolutely
-> impossible?
+Yes I ran into the same problem and it's annoying. It broke
+originally when top down mmap was added I believe
 
-here's my analysis from a while ago:
-http://www.openwall.com/lists/kernel-hardening/2017/01/05/19
+Before the augmented rbtree it was potentially very expensive, but now
+it should be cheap.
 
-> Also, you forgot nr_cpus in your bound. Afaict the worst case here is
-> O(nr_tasks + 3*nr_cpus).
-
-what does nr_cpus have to do with winning the race?
-
-> Because PaX does it, is not a correctness argument. And this really
-> wants one.
-
-heh, do you want to tell me about how checking for a 0 refcount prevents
-exploiting a bug?
+-Andi
