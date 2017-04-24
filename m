@@ -1,119 +1,83 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC] minimum gcc version for kernel: raise to gcc-4.3 or 4.6?
-Date: Mon, 24 Apr 2017 16:13:46 +0200
-Message-ID: <CAK8P3a3o_r6z25Sm5iceWTo4OopiKP8MdBSvSctRvtUp4UFaCQ@mail.gmail.com>
-References: <20161216105634.235457-1-arnd@arndb.de> <3302470.IDcDrWa0u6@wuerfel>
- <CAGXu5jLPRYi+HK=07Zndc8szEKD4mZCqaHJFnHmmoYr7tA1xPw@mail.gmail.com>
- <CAK8P3a2C2WhWjzF=HrzU15Ncg0juR+nstZukBEpqCrVNW5pnDA@mail.gmail.com>
- <CAGXu5jLTR+dY_Ayyix5Tg0Yn9LBFAt=j56MQVdJVGue-R-CizA@mail.gmail.com>
- <CAK8P3a114EVbnhbObfq-4pZp8XCT4fWzMXD+WkRi7iPXs1vFMA@mail.gmail.com>
- <CAGXu5jJpofLF0qAf0-2iNTesZt-X704Q7L=DpQYdtHY5n2HD0w@mail.gmail.com>
- <alpine.LFD.2.20.1704220400380.32200@eddie.linux-mips.org>
- <CAK8P3a28fi0GRcz1yLq+wRkaBBO_w74NnBCY7f3myg78JpaCCQ@mail.gmail.com>
- <CAMuHMdWTiurUSacddYXgW69=QwOrZDV3Zt2DezJauPy8j-GMHw@mail.gmail.com>
- <CAK8P3a32Y0AiKyVaotYb14uZZ1jM=nwhFD1vyP56epW1Y9KqSw@mail.gmail.com> <CAMuHMdUOv-sn9vDei0qPaRe19faYJGZ1zo1X==JDyFWJW3x5=A@mail.gmail.com>
+From: "PaX Team" <pageexec@freemail.hu>
+Subject: Re: [PATCH] x86/refcount: Implement fast refcount_t handling
+Date: Mon, 24 Apr 2017 17:15:19 +0200
+Message-ID: <58FE1687.5511.1844D4FC@pageexec.freemail.hu>
+References: <20170421220939.GA65363@beast>, <58FDF8C4.5120.17D092B7@pageexec.freemail.hu>, <20170424133323.cf3xyd3mmwp6ixaz@hirez.programming.kicks-ass.net>
+Reply-To: pageexec@freemail.hu
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f51.google.com ([209.85.214.51]:36582 "EHLO
-        mail-it0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1171570AbdDXONs (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Apr 2017 10:13:48 -0400
-In-Reply-To: <CAMuHMdUOv-sn9vDei0qPaRe19faYJGZ1zo1X==JDyFWJW3x5=A@mail.gmail.com>
+Received: from r00tworld.com ([212.85.137.150]:47906 "EHLO r00tworld.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S934531AbdDXPQe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 24 Apr 2017 11:16:34 -0400
+In-reply-to: <20170424133323.cf3xyd3mmwp6ixaz@hirez.programming.kicks-ass.net>
+Content-description: Mail message body
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: "Maciej W. Rozycki" <macro@linux-mips.org>, Kees Cook <keescook@chromium.org>, linux-arch <linux-arch@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Russell King <rmk+kernel@armlinux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, kernel-build-reports@lists.linaro.org, kvmarm@lists.cs.columbia.edu
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Kees Cook <keescook@chromium.org>, linux-kernel@vger.kernel.org, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, x86@kernel.org, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jann Horn <jann@thejh.net>, davem@davemloft.net, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com
 
-On Mon, Apr 24, 2017 at 12:17 PM, Geert Uytterhoeven
-<geert@linux-m68k.org> wrote:
-> On Mon, Apr 24, 2017 at 11:44 AM, Arnd Bergmann <arnd@arndb.de> wrote:
->> On Sun, Apr 23, 2017 at 10:13 PM, Geert Uytterhoeven
->> <geert@linux-m68k.org> wrote:
->>> On Sat, Apr 22, 2017 at 5:30 PM, Arnd Bergmann <arnd@arndb.de> wrote:
->>> My main motivation for keep on using gcc-4.1 is that it gives many warnings
->>> that were disabled in later gcc versions.  I do look at all new warnings, and
->>> send patches when they are real bugs, or are trivial to silence.
->>
->> What kind of warnings do you see that disappeared with later versions?
->> Do you know what caused them to disappear in later versions (different
->> optimization decisions, warning getting disabled by default but still available
->> for turning on manually, ...)? Do you know if the disabled warnings are
->> still there in gcc-4.3 (I can try it out if you give me examples)?
->
-> Mostly the "may be used uninitialized" warnings. I believe they were disabled
-> in gcc-4.3 (4.2?) and later due to too many false positives, which is not an
-> issue for me, as I look at differences.
-> They were re-enabled lately (with much less false-positives), that's why you
-> see them, and fix them.
+On 24 Apr 2017 at 15:33, Peter Zijlstra wrote:
 
-Linus added -Wno-maybe-uninitialized a while ago, and I think only gcc-4.8
-and higher were affected by that, as earlier versions only understand
--Wuninitialized (meaning both "definitely uninitialized" and "might be
-uninitialized". The latest state is that gcc-4.9 enables all uninitialized
-warnings and I try to fix them for all known compilers, gcc-4.8
-disables -Wmaybe-uninitialized unless you build with "make W=2".
+> On Mon, Apr 24, 2017 at 03:08:20PM +0200, PaX Team wrote:
+> > On 24 Apr 2017 at 13:15, Peter Zijlstra wrote:
+> > 
+> > > On Mon, Apr 24, 2017 at 01:00:18PM +0200, PaX Team wrote:
+> > > > On 24 Apr 2017 at 10:32, Peter Zijlstra wrote:
+> > > 
+> > > > > Also, you forgot nr_cpus in your bound. Afaict the worst case here is
+> > > > > O(nr_tasks + 3*nr_cpus).
+> > > > 
+> > > > what does nr_cpus have to do with winning the race?
+> > > 
+> > > The CPUs could each run nested softirq/hardirq/nmi context poking at the
+> > > refcount, irrespective of the (preempted) task context.
+> > 
+> > that's fine but are you also assuming that the code executed in each of
+> > those contexts leaks the same refcount? otherwise whatever they do to the
+> > refcount is no more relevant than a non-leaking preemptible path that runs
+> > to completion in a bounded amount of time (i.e., you get temporary bumps
+> > and thus need to win yet another set of races to get their effects at once).
+> 
+> For worst case analysis we have to assume it does, unless we can proof
+> it doesn't. And that proof is very very hard, and would need to be
+> redone every time the kernel changes.
 
-On gcc-4.9 and higher, we also don't enable -Wmaybe-unintialized when
-certain configuration options are set that cause extra false positives,
-but it's still enabled with W=2.
+for worst case analysis you need to show the existence of an amd64 system that
+can spawn 2G tasks. then you'll have to show the feasibility of making all of
+them get preempted (without a later reschedule) inside a 2 insn window.
 
-I actually think it would be a good idea to also disable -Wuninitialized
-for gcc-4.7 and earlier unless you ask for W2. That would get us
-much closer to a clean build, but still give you the chance to see the
-warnings if you really want to.
+> > that was exactly my point: all this applies to you as well. so let me ask
+> > the 3rd time: what is your "argument for correctness" for a 0 refcount
+> > value check? how does it prevent exploitation?
+> 
+> What 0 count check are you talking about, the one that triggers when we
+> want to increment 0 ?
 
-> For example, do you see the warning fixed by commit 1b8c1012142d8322
-> ("drivers: net: xgene: Simplify xgene_enet_setup_mss() to kill warning")
-> with gcc-4.3? Yes, that was a false positive.
+are there any other 0 checks in there?
 
-I see this one until gcc-4.8 if I build with W=2 to turn the warning back on.
+> I think I've explained that before; per reference count rules 0 means
+> freed (or about to be freed when we talk RCU).
 
-> Or see commit cc4a7ffe02c95f53 ("spi: fsl-lpspi: Pre-initialize ret in
-> fsl_lpspi_transfer_one_msg()"). That one was a real bug.
->
-> I don't see that in any of the kisskb build logs, and they use gcc-4.2.4 for
-> avr32. So having gcc-4.2 or gcc-4.3 in a farm won't help.
+you only said the same thing, what 0 means. you (still) didn't explain how
+checking for it prevents exploitation.
 
-Also here: I see the warning on ARM with all versions from gcc-4.1 through
-4.8 (with W=1), but not any higher versions including 7.0.1. If I mark
-fsl_lpspi_transfer_one as 'noinline', I see it on all versions, which is a bit
-odd. It might be worth opening a gcc bug report for that. I tried the
-'noinline' as I suspected gcc might be smart enough to figure out that
-the list is never empty, but I later noticed that it has no way of knowing
-that even without the 'noinline' flag.
+> The whole pattern:
+> 
+>  if (dec_and_test(&obj->ref))
+>   kfree(obj);
+> 
+> expresses this etc.. Other reference counts also do this. No references
+> means its getting freed.
+> 
+> Can you agree with this?
 
-> And as long as I find real bugs this way, I'd like to continue doing it.
+sure, so far so good.
 
-I've tested all the architectures I mentioned earlier that were around 10
-years ago (aside from ia64, I could not build gcc successfully) with
-linux-4.3 (arbitrarily picked, this was the version in which x86 and mips
-no longer built with gcc-4.1), and built a defconfig with both gcc-4.9
-(which I had around from earlier testing) and with gcc-4.1/4.3:
+> If so; any attempt to increase the reference count while its (being)
+> freed() is a use-after-free.
 
-          gcc-4.1  gcc-4.3  gcc-4.9
-alpha  failed    success success
-arm    failed     success success
-cris     failed     success success
-frv       failed     failed    success
-m32r  success success success
-m68k  success success success
-mips   failed     failed     success
-parisc success success success
-powerpc failed failed    success
-s390    failed    failed    success
-sh        failed    success success
-x86      failed    success success
-
-I'd conclude that nobody aside from you sends bugfixes for 4.1,
-or has done so in a while. I have the logs available if you want,
-but there isn't really much surprising: we get the same link error
-as on mips and x86 on some additional architectures, powerpc
-and s390 use features that weren't available and frv hits an ICE.
-
-We could define the minimum compiler to be gcc-4.3 on all architectures
-except m68k (and possibly parisc, certainly nobody cares about
-m32r enough), where it would be gcc-4.1, to reflect what is actually
-already the case.
-
-        Arnd
+why would ever be there such an attempt? a freed object with intact memory
+content is as useful for an attacker as a live one, that is, not at all.
