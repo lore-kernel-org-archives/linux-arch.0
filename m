@@ -1,34 +1,115 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: Question on the five-level page table support patches
-Date: Mon, 24 Apr 2017 18:09:48 -0400 (EDT)
-Message-ID: <20170424.180948.1311847745777709716.davem@davemloft.net>
-References: <030ea57b-5f6c-13d8-02f7-b245a754a87d@physik.fu-berlin.de>
-        <20170424161959.c5ba2nhnxyy57wxe@node.shutemov.name>
-        <fdc80e3c-6909-cf39-fe0b-6f1c012571e4@physik.fu-berlin.de>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH] x86/refcount: Implement fast refcount_t handling
+Date: Mon, 24 Apr 2017 15:37:32 -0700
+Message-ID: <CAGXu5j+tbPr04Jiv4yjJJO3h89fDxy-iWAeuoDZ2N+XDY58umw@mail.gmail.com>
+References: <20170421220939.GA65363@beast> <58FDF8C4.5120.17D092B7@pageexec.freemail.hu>
+ <20170424133323.cf3xyd3mmwp6ixaz@hirez.programming.kicks-ass.net>
+ <58FE1687.5511.1844D4FC@pageexec.freemail.hu> <CAGXu5jK5s0KBAfwHPhobiSCn6b0QA4Wb=w=eJG4KyukwbdHTzg@mail.gmail.com>
+ <20170424220128.j7nnhuohqdqbiki7@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([184.105.139.130]:58404 "EHLO
-        shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S977769AbdDXWJw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Apr 2017 18:09:52 -0400
-In-Reply-To: <fdc80e3c-6909-cf39-fe0b-6f1c012571e4@physik.fu-berlin.de>
+Received: from mail-it0-f42.google.com ([209.85.214.42]:37844 "EHLO
+        mail-it0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S937688AbdDXWhe (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Apr 2017 18:37:34 -0400
+Received: by mail-it0-f42.google.com with SMTP id x188so66058914itb.0
+        for <linux-arch@vger.kernel.org>; Mon, 24 Apr 2017 15:37:34 -0700 (PDT)
+In-Reply-To: <20170424220128.j7nnhuohqdqbiki7@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: glaubitz@physik.fu-berlin.de
-Cc: kirill@shutemov.name, kirill.shutemov@linux.intel.com, linux-kernel@vger.kernel.org, ak@linux.intel.com, dave.hansen@intel.com, luto@amacapital.net, mhocko@suse.com, linux-arch@vger.kernel.org, linux-mm@kvack.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: PaX Team <pageexec@freemail.hu>, LKML <linux-kernel@vger.kernel.org>, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jann Horn <jann@thejh.net>, "David S. Miller" <davem@davemloft.net>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
 
-From: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
-Date: Mon, 24 Apr 2017 22:37:40 +0200
+On Mon, Apr 24, 2017 at 3:01 PM, Peter Zijlstra <peterz@infradead.org> wrote:
+> On Mon, Apr 24, 2017 at 01:40:56PM -0700, Kees Cook wrote:
+>> I think we're way off in the weeds here. The "cannot inc from 0" check
+>> is about general sanity checks on refcounts.
+>
+> I disagree, although sanity check are good too.
+>
+>> It should never happen, and if it does, there's a bug.
+>
+> The very same is true of the overflow thing.
+>
+>> However, what the refcount hardening protection is trying to do is
+>> protect again the exploitable condition: overflow.
+>
+> Sure..
+>
+>> Inc-from-0 isn't an exploitable condition since in theory
+>> the memory suddenly becomes correctly managed again.
+>
+> It does not. It just got free'ed. Nothing will stop the free from
+> happening (or already having happened).
 
-> Would be really nice to able to have a canonical solution for this issue,
-> it's been biting us on SPARC for quite a while now due to the fact that
-> virtual address space has been 52 bits on SPARC for a while now.
+Well, yes, but that's kind of my point. Detecting inc-from-0 is "too
+late" to offer a protection. It offers notification of a bug, rather
+than stopping an exploit from happening.
 
-It's going to break again with things like ADI which encode protection
-keys in the high bits of the 64-bit virtual address.
+>> We're just discussing different things.
+>
+> No, both are bugs, neither overflow not inc-from-zero _should_ happen.
+> The whole point is that code is buggy. If it weren't for that, we'd not
+> be doing this.
+>
+> How is the below not useful fodder for an exploit? It might be a less
+> common bug, and perhaps a bit more fiddly to make work, but afaict its
+> still a full use-after-free and therefore useful.
+>
+> ---
+>
+> Thread-A                                        Thread-B
+>
+> if(dec_and_test(&obj->ref)) { // true, ref==0
+>
+>                                                 inc(&obj->ref) // ref: 0->1
+>
+>         kfree(obj);
+> }
+>
+>
+>
+>         ~~~/ Thread-C /~~~
+>
+>         obj = kmalloc(); // is obj from Thread-A
+>
+>         obj->ref = 1;
+>         obj->func = ....
+>
+>
+>                                                 obj->func();
+>
+>                                                         -- OR --
+>
+>                                                 put(obj);
+>                                                   if (dec_and_test(&obj->ref))
+>                                                     kfree(obj); // which was of Thread-C
 
-Reallly, it would be nice if these tags were instead encoded in the
-low bits of suitably aligned memory allocations but I am sure it's to
-late to do that now.
+Right, both are bugs, but the exploitable condition is "refcount hit
+zero and got freed while there were still things using it". Having too
+many put()s that cause the refcount to reach zero early can't be
+detected, but having too many get()s that wrap around, ultimately to
+zero, can be (the overflow condition). With overflow protection, the
+refcount can never (realistically) hit zero since the refcount will
+get saturated at INT_MAX, so no exploit is possible -- no memory is
+ever freed (it just leaks the allocation). The inc-from-zero case
+performing a notification is certainly nice, but the exploit already
+happened.
+
+I want the overflow protection to work everywhere the kernel uses
+refcounts, which means dealing with performance concerns from mm, net,
+block, etc. Since this is a 1 instruction change (which branch
+prediction should make almost no cost at all), this will easily
+address any performance concerns from the other subsystems.
+
+I'd rather have the overflow protection everywhere than only in some
+areas, and I want to break the deadlock of this catch-22 of subsystems
+not being able to say what benchmarks are important to them but
+refusing to switch to refcount_t due to performance concerns.
+
+-Kees
+
+-- 
+Kees Cook
+Pixel Security
