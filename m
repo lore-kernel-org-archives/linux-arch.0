@@ -1,119 +1,87 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [RFC] minimum gcc version for kernel: raise to gcc-4.3 or 4.6?
-Date: Sun, 23 Apr 2017 22:13:20 +0200
-Message-ID: <CAMuHMdWTiurUSacddYXgW69=QwOrZDV3Zt2DezJauPy8j-GMHw@mail.gmail.com>
-References: <20161216105634.235457-1-arnd@arndb.de>
- <3302470.IDcDrWa0u6@wuerfel>
- <CAGXu5jLPRYi+HK=07Zndc8szEKD4mZCqaHJFnHmmoYr7tA1xPw@mail.gmail.com>
- <CAK8P3a2C2WhWjzF=HrzU15Ncg0juR+nstZukBEpqCrVNW5pnDA@mail.gmail.com>
- <CAGXu5jLTR+dY_Ayyix5Tg0Yn9LBFAt=j56MQVdJVGue-R-CizA@mail.gmail.com>
- <CAK8P3a114EVbnhbObfq-4pZp8XCT4fWzMXD+WkRi7iPXs1vFMA@mail.gmail.com>
- <CAGXu5jJpofLF0qAf0-2iNTesZt-X704Q7L=DpQYdtHY5n2HD0w@mail.gmail.com>
- <alpine.LFD.2.20.1704220400380.32200@eddie.linux-mips.org>
- <CAK8P3a28fi0GRcz1yLq+wRkaBBO_w74NnBCY7f3myg78JpaCCQ@mail.gmail.com>
+From: Andy Lutomirski <luto@kernel.org>
+Subject: Re: Question on the five-level page table support patches
+Date: Sun, 23 Apr 2017 22:11:08 -0700
+Message-ID: <CALCETrUcB7STNjVw=WBZdFfz_H1DKcLnj3HHtnGaHGQ1UY8Zrw@mail.gmail.com>
+References: <030ea57b-5f6c-13d8-02f7-b245a754a87d@physik.fu-berlin.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <kvmarm-bounces@lists.cs.columbia.edu>
-In-Reply-To: <CAK8P3a28fi0GRcz1yLq+wRkaBBO_w74NnBCY7f3myg78JpaCCQ@mail.gmail.com>
-List-Unsubscribe: <https://lists.cs.columbia.edu/mailman/options/kvmarm>,
- <mailto:kvmarm-request@lists.cs.columbia.edu?subject=unsubscribe>
-List-Archive: <https://lists.cs.columbia.edu/pipermail/kvmarm>
-List-Post: <mailto:kvmarm@lists.cs.columbia.edu>
-List-Help: <mailto:kvmarm-request@lists.cs.columbia.edu?subject=help>
-List-Subscribe: <https://lists.cs.columbia.edu/mailman/listinfo/kvmarm>,
- <mailto:kvmarm-request@lists.cs.columbia.edu?subject=subscribe>
-Errors-To: kvmarm-bounces@lists.cs.columbia.edu
-Sender: kvmarm-bounces@lists.cs.columbia.edu
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Kees Cook <keescook@chromium.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, kernel-build-reports@lists.linaro.org, LKML <linux-kernel@vger.kernel.org>, Russell King <rmk+kernel@armlinux.org.uk>, "Maciej W. Rozycki" <macro@linux-mips.org>, Andrew Morton <akpm@linux-foundation.org>, kvmarm@lists.cs.columbia.edu, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <030ea57b-5f6c-13d8-02f7-b245a754a87d@physik.fu-berlin.de>
+Sender: owner-linux-mm@kvack.org
+To: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Michal Hocko <mhocko@suse.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Arnd,
-
-On Sat, Apr 22, 2017 at 5:30 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> Based on what I found so far, gcc-4 can be pretty much ruled out from
-> being the minimum version based on the number of failures I got.
-> It's much better than 3.4 but much worse than 4.1 or 4.2 which seem
-> fixable on MIPS and x86 at least, and may or may not work depending
-> on configuration. So the best two possible (but conflicting) answers I
-> have are
+On Sun, Apr 23, 2017 at 3:53 AM, John Paul Adrian Glaubitz
+<glaubitz@physik.fu-berlin.de> wrote:
+> Hi Kirill!
 >
-> a) There are known users on gcc-4.1, and we never break things that
->     work for users, so gcc-4.1 (or possibly 4.0 if a user shows up) would
->     be the minimum version.
-> b) gcc-4.1 and 4.2 have too many problems, so users are better off
->     when we tell them to upgrade to something newer, and a minimum
->     version of gcc-4.3 has fewer surprises. We should remove all
->     workarounds for pre-gcc-4.3 compilers and just force a build error
->     message.
+> I recently read the LWN article on your and your colleagues work to
+> add five-level page table support for x86 to the Linux kernel [1]
+> and I got your email address from the last patch of the series.
+>
+> Since this extends the address space beyond 48-bits, as you may know,
+> it will cause potential headaches with Javascript engines which use
+> tagged pointers. On SPARC, the virtual address space already extends
+> to 52 bits and we are running into these very issues with Javascript
+> engines on SPARC.
+>
+> Now, a possible way to mitigate this problem would be to pass the
+> "hint" parameter to mmap() in order to tell the kernel not to allocate
+> memory beyond the 48 bits address space. Unfortunately, on Linux this
+> will only work when the area pointed to by "hint" is unallocated which
+> means one cannot simply use a hardcoded "hint" to mitigate this problem.
+>
+> However, since this trick still works on NetBSD and used to work on
+> Linux [3], I was wondering whether there are plans to bring back
+> this behavior to mmap() in Linux.
+>
+> Currently, people are using ugly work-arounds [4] to address this
+> problem which involve a manual iteration over memory blocks and
+> basically implementing another allocator in the user space
+> application.
+>
+> Thanks,
+> Adrian
+>
+>> [1] https://lwn.net/Articles/717293/
+>> [2] https://lwn.net/Articles/717300/
+>> [3] https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=3D824449#22
+>> [4] https://hg.mozilla.org/mozilla-central/rev/dfaafbaaa291
+>
 
-If there's no real good reason (brokenness) to deprecate gcc-4.1, I would not
-do it.I guess most people using old compilers know what they're doing.
+Can you explain what the issue is?  What used to work on Linux and
+doesn't any more?  The man page is quite clear:
 
-My main motivation for keep on using gcc-4.1 is that it gives many warnings
-that were disabled in later gcc versions.  I do look at all new warnings, and
-send patches when they are real bugs, or are trivial to silence.
+       MAP_FIXED
+              Don't  interpret  addr  as  a hint: place the mapping at exac=
+tly
+              that address.  addr must be a multiple of the page size.  If =
+the
+              memory  region  specified  by addr and len overlaps pages of =
+any
+              existing mapping(s), then the overlapped part  of  the  exist=
+ing
+              mapping(s)  will  be discarded.  If the specified address can=
+not
+              be used, mmap() will fail.  Because requiring  a  fixed  addr=
+ess
+              for  a  mapping is less portable, the use of this option is d=
+is=E2=80=90
+              couraged.
 
-Lately the usefulness has been decreasing, as you've been too aggressively
-killing compiler warnings with recent gcc versions (which became better) ;-)
-Hence if I detected a new warning with a point or an rc release, it usually
-means the code was never in nex (ugh)t, or the maintainer ignored your patch.
+and AFAIK Linux works exactly as documented.
 
-I could easily switch to v4.9 from kernel.org crosstool, though, but then I
-would loose all those warnings.
+FWIW, a patch to add a new MAP_ mode to tell mmap(2) to use the hinted
+address if available and to *fail* if the hinted address is not
+available would very likely be accepted and would IMO be much nicer
+than the current behavior.
 
-BTW, below is the diff I use to avoid an ICE.
-After that, it builds and (test)boots fine on ARAnyM ;-)
-
-diff --git a/fs/gfs2/glock.c b/fs/gfs2/glock.c
-index ec0848fcca02d896..eb75b324ac0ac53d 100644
---- a/fs/gfs2/glock.c
-+++ b/fs/gfs2/glock.c
-@@ -650,13 +650,16 @@ int gfs2_glock_get(struct gfs2_sbd *sdp, u64 number,
-                   struct gfs2_glock **glp)
- {
-        struct super_block *s = sdp->sd_vfs;
--       struct lm_lockname name = { .ln_number = number,
-+       // FIXME Avoid gcc 4.1.2 20061115 (prerelease) (Ubuntu 4.1.1-21) ICE
-+       //struct lm_lockname name = { .ln_number = number,
-+       struct lm_lockname name = {
-                                    .ln_type = glops->go_type,
-                                    .ln_sbd = sdp };
-        struct gfs2_glock *gl, *tmp = NULL;
-        struct address_space *mapping;
-        struct kmem_cache *cachep;
-        int ret, tries = 0;
-+       name.ln_number = number;
-
-        rcu_read_lock();
-        gl = rhashtable_lookup_fast(&gl_hash_table, &name, ht_parms);
-diff --git a/fs/gfs2/rgrp.c b/fs/gfs2/rgrp.c
-index 86ccc01593937d93..8783b72df5fa3d0c 100644
---- a/fs/gfs2/rgrp.c
-+++ b/fs/gfs2/rgrp.c
-@@ -1767,7 +1767,11 @@ static void try_rgrp_unlink(struct gfs2_rgrpd
-*rgd, u64 *last_unlinked, u64 skip
-        struct gfs2_inode *ip;
-        int error;
-        int found = 0;
--       struct gfs2_rbm rbm = { .rgd = rgd, .bii = 0, .offset = 0 };
-+       // FIXME Avoid gcc 4.1.2 20061115 (prerelease) (Ubuntu 4.1.1-21) ICE
-+       // struct gfs2_rbm rbm = { .rgd = rgd, .bii = 0, .offset = 0 };
-+       struct gfs2_rbm rbm = { .bii = 0, .offset = 0 };
-+       rbm.rgd = rgd;
-+
-
-        while (1) {
-                down_write(&sdp->sd_log_flush_lock);
-
-Gr{oetje,eeting}s,
-
-                        Geert
+--Andy
 
 --
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
