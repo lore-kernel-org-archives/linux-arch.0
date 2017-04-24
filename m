@@ -1,55 +1,70 @@
-From: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
-Subject: Re: Question on the five-level page table support patches
-Date: Mon, 24 Apr 2017 22:37:40 +0200
-Message-ID: <fdc80e3c-6909-cf39-fe0b-6f1c012571e4@physik.fu-berlin.de>
-References: <030ea57b-5f6c-13d8-02f7-b245a754a87d@physik.fu-berlin.de>
- <20170424161959.c5ba2nhnxyy57wxe@node.shutemov.name>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH] x86/refcount: Implement fast refcount_t handling
+Date: Mon, 24 Apr 2017 13:40:56 -0700
+Message-ID: <CAGXu5jK5s0KBAfwHPhobiSCn6b0QA4Wb=w=eJG4KyukwbdHTzg@mail.gmail.com>
+References: <20170421220939.GA65363@beast> <58FDF8C4.5120.17D092B7@pageexec.freemail.hu>
+ <20170424133323.cf3xyd3mmwp6ixaz@hirez.programming.kicks-ass.net> <58FE1687.5511.1844D4FC@pageexec.freemail.hu>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20170424161959.c5ba2nhnxyy57wxe@node.shutemov.name>
-Sender: owner-linux-mm@kvack.org
-To: "Kirill A. Shutemov" <kirill@shutemov.name>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, linux-kernel@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, Michal Hocko <mhocko@suse.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-it0-f41.google.com ([209.85.214.41]:38723 "EHLO
+        mail-it0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S977728AbdDXUk5 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Apr 2017 16:40:57 -0400
+Received: by mail-it0-f41.google.com with SMTP id f187so2033196ite.1
+        for <linux-arch@vger.kernel.org>; Mon, 24 Apr 2017 13:40:57 -0700 (PDT)
+In-Reply-To: <58FE1687.5511.1844D4FC@pageexec.freemail.hu>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: PaX Team <pageexec@freemail.hu>
+Cc: Peter Zijlstra <peterz@infradead.org>, LKML <linux-kernel@vger.kernel.org>, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jann Horn <jann@thejh.net>, "David S. Miller" <davem@davemloft.net>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
 
-On 04/24/2017 06:19 PM, Kirill A. Shutemov wrote:
-> In proposed implementation, we also use hint address, but in different
-> way: by default, if hint address is NULL, kernel would not create mappings
-> above 47-bits, preserving compatibility.
+On Mon, Apr 24, 2017 at 8:15 AM, PaX Team <pageexec@freemail.hu> wrote:
+> On 24 Apr 2017 at 15:33, Peter Zijlstra wrote:
+>> On Mon, Apr 24, 2017 at 03:08:20PM +0200, PaX Team wrote:
+>> > On 24 Apr 2017 at 13:15, Peter Zijlstra wrote:
+>> > that was exactly my point: all this applies to you as well. so let me ask
+>> > the 3rd time: what is your "argument for correctness" for a 0 refcount
+>> > value check? how does it prevent exploitation?
+>>
+>> I think I've explained that before; per reference count rules 0 means
+>> freed (or about to be freed when we talk RCU).
+>
+> you only said the same thing, what 0 means. you (still) didn't explain how
+> checking for it prevents exploitation.
+>
+>> The whole pattern:
+>>
+>>  if (dec_and_test(&obj->ref))
+>>   kfree(obj);
+>>
+>> expresses this etc.. Other reference counts also do this. No references
+>> means its getting freed.
+>>
+>> Can you agree with this?
+>
+> sure, so far so good.
+>
+>> If so; any attempt to increase the reference count while its (being)
+>> freed() is a use-after-free.
+>
+> why would ever be there such an attempt? a freed object with intact memory
+> content is as useful for an attacker as a live one, that is, not at all.
 
-Ooooh, that would solve a lot of problems actually if it were to be available
-on all architectures. On SPARC, the situation is really annoying and I have
-been discussing a solution with the Qt developers and they suggested a
-similar approach, just one that would also apply to brk() [1].
+I think we're way off in the weeds here. The "cannot inc from 0" check
+is about general sanity checks on refcounts. It should never happen,
+and if it does, there's a bug. However, what the refcount hardening
+protection is trying to do is protect again the exploitable condition:
+overflow. Inc-from-0 isn't an exploitable condition since in theory
+the memory suddenly becomes correctly managed again. We're just
+discussing different things.
 
-> If an application wants to have access to larger address space, it has to
-> specify hint addess above 47-bits.
-> 
-> See details here:
-> 
-> http://lkml.kernel.org/r/20170420162147.86517-10-kirill.shutemov@linux.intel.com
+The point is to have very fast refcount_t that protects against
+overflow so the mm, net, and block subsystems aren't worried about
+making the atomic_t -> refcount_t changes there.
 
-Thanks. I'll have a read. Although from your message I'm reading out that
-this particular proposal got rejected.
-
-Would be really nice to able to have a canonical solution for this issue,
-it's been biting us on SPARC for quite a while now due to the fact that
-virtual address space has been 52 bits on SPARC for a while now.
-
-Adrian
-
-> [1] https://bugreports.qt.io/browse/QTBUG-56264
+-Kees
 
 -- 
- .''`.  John Paul Adrian Glaubitz
-: :' :  Debian Developer - glaubitz@debian.org
-`. `'   Freie Universitaet Berlin - glaubitz@physik.fu-berlin.de
-  `-    GPG: 62FF 8A75 84E0 2956 9546  0006 7426 3B37 F5B5 F913
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Kees Cook
+Pixel Security
