@@ -1,33 +1,50 @@
-From: Andi Kleen <ak@linux.intel.com>
-Subject: Re: Question on the five-level page table support patches
-Date: Mon, 24 Apr 2017 06:03:11 -0700
-Message-ID: <20170424130311.GR4021@tassilo.jf.intel.com>
-References: <030ea57b-5f6c-13d8-02f7-b245a754a87d@physik.fu-berlin.de>
- <CALCETrUcB7STNjVw=WBZdFfz_H1DKcLnj3HHtnGaHGQ1UY8Zrw@mail.gmail.com>
+From: "PaX Team" <pageexec@freemail.hu>
+Subject: Re: [PATCH] x86/refcount: Implement fast refcount_t handling
+Date: Mon, 24 Apr 2017 15:08:20 +0200
+Message-ID: <58FDF8C4.5120.17D092B7@pageexec.freemail.hu>
+References: <20170421220939.GA65363@beast>, <58FDDAC2.11341.175B5A99@pageexec.freemail.hu>, <20170424111553.p3kbyir4ztsldc56@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CALCETrUcB7STNjVw=WBZdFfz_H1DKcLnj3HHtnGaHGQ1UY8Zrw@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Andy Lutomirski <luto@kernel.org>
-Cc: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Dave Hansen <dave.hansen@intel.com>, Michal Hocko <mhocko@suse.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
+Return-path: <kernel-hardening-return-7511-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+In-reply-to: <20170424111553.p3kbyir4ztsldc56@hirez.programming.kicks-ass.net>
+Content-description: Mail message body
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Kees Cook <keescook@chromium.org>, linux-kernel@vger.kernel.org, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, x86@kernel.org, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jann Horn <jann@thejh.net>, davem@davemloft.net, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com
 List-Id: linux-arch.vger.kernel.org
 
-> Can you explain what the issue is?  What used to work on Linux and
-> doesn't any more?  The man page is quite clear:
+On 24 Apr 2017 at 13:15, Peter Zijlstra wrote:
 
-In old Linux hint was a search hint, so if there isn't a hole
-at the hinted area it will search starting from there for a hole
-instead of giving up immediately.
+> On Mon, Apr 24, 2017 at 01:00:18PM +0200, PaX Team wrote:
+> > On 24 Apr 2017 at 10:32, Peter Zijlstra wrote:
+> 
+> > > Also, you forgot nr_cpus in your bound. Afaict the worst case here is
+> > > O(nr_tasks + 3*nr_cpus).
+> > 
+> > what does nr_cpus have to do with winning the race?
+> 
+> The CPUs could each run nested softirq/hardirq/nmi context poking at the
+> refcount, irrespective of the (preempted) task context.
 
-Now it just gives up, which means every user has to implement
-their own search.
+that's fine but are you also assuming that the code executed in each of
+those contexts leaks the same refcount? otherwise whatever they do to the
+refcount is no more relevant than a non-leaking preemptible path that runs
+to completion in a bounded amount of time (i.e., you get temporary bumps
+and thus need to win yet another set of races to get their effects at once).
 
-Yes I ran into the same problem and it's annoying. It broke
-originally when top down mmap was added I believe
+> > > Because PaX does it, is not a correctness argument. And this really
+> > > wants one.
+> > 
+> > heh, do you want to tell me about how checking for a 0 refcount prevents
+> > exploiting a bug?
+> 
+> Not the point. All I said was that saying somebody else does it (anybody
+> else, doesn't matter it was you) isn't an argument for correctness.
 
-Before the augmented rbtree it was potentially very expensive, but now
-it should be cheap.
-
--Andi
+that was exactly my point: all this applies to you as well. so let me ask
+the 3rd time: what is your "argument for correctness" for a 0 refcount
+value check? how does it prevent exploitation?
