@@ -1,38 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga02.intel.com ([134.134.136.20]:1789 "EHLO mga02.intel.com"
+Received: from r00tworld.com ([212.85.137.150]:40981 "EHLO r00tworld.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1170543AbdDXNDR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 24 Apr 2017 09:03:17 -0400
-Date: Mon, 24 Apr 2017 06:03:11 -0700
-From: Andi Kleen <ak@linux.intel.com>
-Subject: Re: Question on the five-level page table support patches
-Message-ID: <20170424130311.GR4021@tassilo.jf.intel.com>
-References: <030ea57b-5f6c-13d8-02f7-b245a754a87d@physik.fu-berlin.de>
- <CALCETrUcB7STNjVw=WBZdFfz_H1DKcLnj3HHtnGaHGQ1UY8Zrw@mail.gmail.com>
+        id S1170727AbdDXNJj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 24 Apr 2017 09:09:39 -0400
+From: "PaX Team" <pageexec@freemail.hu>
+Date: Mon, 24 Apr 2017 15:08:20 +0200
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CALCETrUcB7STNjVw=WBZdFfz_H1DKcLnj3HHtnGaHGQ1UY8Zrw@mail.gmail.com>
+Subject: Re: [PATCH] x86/refcount: Implement fast refcount_t handling
+Reply-to: pageexec@freemail.hu
+Message-ID: <58FDF8C4.5120.17D092B7@pageexec.freemail.hu>
+In-reply-to: <20170424111553.p3kbyir4ztsldc56@hirez.programming.kicks-ass.net>
+References: <20170421220939.GA65363@beast>, <58FDDAC2.11341.175B5A99@pageexec.freemail.hu>, <20170424111553.p3kbyir4ztsldc56@hirez.programming.kicks-ass.net>
+Content-type: text/plain; charset=US-ASCII
+Content-transfer-encoding: 7BIT
+Content-description: Mail message body
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@kernel.org>
-Cc: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Dave Hansen <dave.hansen@intel.com>, Michal Hocko <mhocko@suse.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>
-Message-ID: <20170424130311.EZrF-oOTHWREa9OxTlMeYhGdNqbizQlz86G9BBJESoo@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Kees Cook <keescook@chromium.org>, linux-kernel@vger.kernel.org, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, x86@kernel.org, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jann Horn <jann@thejh.net>, davem@davemloft.net, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com
+Message-ID: <20170424130820.geHqLyyAiXrFuft0u-wchSPMDqstkttzuTgNnwr47AM@z>
 
-> Can you explain what the issue is?  What used to work on Linux and
-> doesn't any more?  The man page is quite clear:
+On 24 Apr 2017 at 13:15, Peter Zijlstra wrote:
 
-In old Linux hint was a search hint, so if there isn't a hole
-at the hinted area it will search starting from there for a hole
-instead of giving up immediately.
+> On Mon, Apr 24, 2017 at 01:00:18PM +0200, PaX Team wrote:
+> > On 24 Apr 2017 at 10:32, Peter Zijlstra wrote:
+> 
+> > > Also, you forgot nr_cpus in your bound. Afaict the worst case here is
+> > > O(nr_tasks + 3*nr_cpus).
+> > 
+> > what does nr_cpus have to do with winning the race?
+> 
+> The CPUs could each run nested softirq/hardirq/nmi context poking at the
+> refcount, irrespective of the (preempted) task context.
 
-Now it just gives up, which means every user has to implement
-their own search.
+that's fine but are you also assuming that the code executed in each of
+those contexts leaks the same refcount? otherwise whatever they do to the
+refcount is no more relevant than a non-leaking preemptible path that runs
+to completion in a bounded amount of time (i.e., you get temporary bumps
+and thus need to win yet another set of races to get their effects at once).
 
-Yes I ran into the same problem and it's annoying. It broke
-originally when top down mmap was added I believe
+> > > Because PaX does it, is not a correctness argument. And this really
+> > > wants one.
+> > 
+> > heh, do you want to tell me about how checking for a 0 refcount prevents
+> > exploiting a bug?
+> 
+> Not the point. All I said was that saying somebody else does it (anybody
+> else, doesn't matter it was you) isn't an argument for correctness.
 
-Before the augmented rbtree it was potentially very expensive, but now
-it should be cheap.
-
--Andi
+that was exactly my point: all this applies to you as well. so let me ask
+the 3rd time: what is your "argument for correctness" for a 0 refcount
+value check? how does it prevent exploitation?
