@@ -1,45 +1,56 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH] x86/refcount: Implement fast refcount_t handling
-Date: Mon, 24 Apr 2017 13:33:11 -0700
-Message-ID: <CAGXu5jLDybHn_K=vpXOhrsBE_-EtPA+jbXCqHmm3tUgbK24BOw@mail.gmail.com>
-References: <20170421220939.GA65363@beast> <20170424083250.h2wv2exbi4ytigac@hirez.programming.kicks-ass.net>
- <58FDDAC2.11341.175B5A99@pageexec.freemail.hu>
+From: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+Subject: Re: Question on the five-level page table support patches
+Date: Mon, 24 Apr 2017 22:33:22 +0200
+Message-ID: <8f8467b5-70e6-466b-f53b-1c64622ba82d@physik.fu-berlin.de>
+References: <030ea57b-5f6c-13d8-02f7-b245a754a87d@physik.fu-berlin.de>
+ <CALCETrUcB7STNjVw=WBZdFfz_H1DKcLnj3HHtnGaHGQ1UY8Zrw@mail.gmail.com>
+ <20170424130311.GR4021@tassilo.jf.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <kernel-hardening-return-7524-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-Sender: keescook@google.com
-In-Reply-To: <58FDDAC2.11341.175B5A99@pageexec.freemail.hu>
-To: PaX Team <pageexec@freemail.hu>
-Cc: Peter Zijlstra <peterz@infradead.org>, LKML <linux-kernel@vger.kernel.org>, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jann Horn <jann@thejh.net>, "David S. Miller" <davem@davemloft.net>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20170424130311.GR4021@tassilo.jf.intel.com>
+Sender: owner-linux-mm@kvack.org
+To: Andi Kleen <ak@linux.intel.com>, Andy Lutomirski <luto@kernel.org>
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Dave Hansen <dave.hansen@intel.com>, Michal Hocko <mhocko@suse.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Apr 24, 2017 at 4:00 AM, PaX Team <pageexec@freemail.hu> wrote:
-> On 24 Apr 2017 at 10:32, Peter Zijlstra wrote:
->
->> On Fri, Apr 21, 2017 at 03:09:39PM -0700, Kees Cook wrote:
->> > This patch ports the x86-specific atomic overflow handling from PaX's
->> > PAX_REFCOUNT to the upstream refcount_t API. This is an updated version
->> > from PaX that eliminates the saturation race condition by resetting the
->> > atomic counter back to the INT_MAX saturation value on both overflow and
->> > underflow. To win a race, a system would have to have INT_MAX threads
->> > simultaneously overflow before the saturation handler runs.
->
-> note that the above is wrong (and even contradicting itself and the code).
+On 04/24/2017 03:03 PM, Andi Kleen wrote:
+> In old Linux hint was a search hint, so if there isn't a hole
+> at the hinted area it will search starting from there for a hole
+> instead of giving up immediately.
 
-True, this changelog could be more accurate (it resets to INT_MAX on
-overflow and INT_MIN on underflow). I think I'm right in saying that a
-system would need INT_MAX threads running a refcount_inc() (and a
-refcount_dec_and_test() at exactly the right moment) before the reset
-handler got scheduled, though, yes?
+Yep, that's what I meant. It used to work like that and it still
+works like that on NetBSD, for example. Although it has apparently
+been a long time since it changed [1].
 
-I'll attempt to clarify this.
+> Now it just gives up, which means every user has to implement
+> their own search.
 
--Kees
+Correct. And the resulting code is usually ugly and inefficient [2].
+
+> Yes I ran into the same problem and it's annoying. It broke
+> originally when top down mmap was added I believe
+> 
+> Before the augmented rbtree it was potentially very expensive, but now
+> it should be cheap.
+
+I'm not sure whether I understand what that means.
+
+Thanks,
+Adrian
+
+> [1] http://lkml.iu.edu/hypermail/linux/kernel/0305.2/0828.html
+> [2] https://hg.mozilla.org/mozilla-central/rev/dfaafbaaa291
 
 -- 
-Kees Cook
-Pixel Security
+ .''`.  John Paul Adrian Glaubitz
+: :' :  Debian Developer - glaubitz@debian.org
+`. `'   Freie Universitaet Berlin - glaubitz@physik.fu-berlin.de
+  `-    GPG: 62FF 8A75 84E0 2956 9546  0006 7426 3B37 F5B5 F913
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
