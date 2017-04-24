@@ -1,63 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-sn1nam02on0044.outbound.protection.outlook.com ([104.47.36.44]:20871
-        "EHLO NAM02-SN1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S973053AbdDXQKu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 24 Apr 2017 12:10:50 -0400
-Subject: Re: [PATCH v5 09/32] x86/mm: Provide general kernel support for
- memory encryption
-References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
- <20170418211754.10190.25082.stgit@tlendack-t1.amdoffice.net>
- <0106e3fc-9780-e872-2274-fecf79c28923@intel.com>
- <9fc79e28-ad64-1c2f-4c46-a4efcdd550b0@amd.com>
- <67926f62-a068-6114-92ee-39bc08488b32@intel.com>
-From: Tom Lendacky <thomas.lendacky@amd.com>
-Message-ID: <8bb579a0-2855-f311-e087-d97cdd730922@amd.com>
-Date: Mon, 24 Apr 2017 11:10:31 -0500
+Received: from mail-io0-f194.google.com ([209.85.223.194]:35599 "EHLO
+        mail-io0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S976009AbdDXSQV (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Apr 2017 14:16:21 -0400
 MIME-Version: 1.0
-In-Reply-To: <67926f62-a068-6114-92ee-39bc08488b32@intel.com>
-Content-Type: text/plain; charset="utf-8"; format=flowed
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <CAK8P3a03BTEBgz87k_dhJuqzOYQm_S5FFDrFgcBAE5FCH-e=dQ@mail.gmail.com>
+References: <20161216105634.235457-1-arnd@arndb.de> <3302470.IDcDrWa0u6@wuerfel>
+ <CAGXu5jLPRYi+HK=07Zndc8szEKD4mZCqaHJFnHmmoYr7tA1xPw@mail.gmail.com>
+ <CAK8P3a2C2WhWjzF=HrzU15Ncg0juR+nstZukBEpqCrVNW5pnDA@mail.gmail.com>
+ <CAGXu5jLTR+dY_Ayyix5Tg0Yn9LBFAt=j56MQVdJVGue-R-CizA@mail.gmail.com>
+ <CAK8P3a114EVbnhbObfq-4pZp8XCT4fWzMXD+WkRi7iPXs1vFMA@mail.gmail.com>
+ <CAGXu5jJpofLF0qAf0-2iNTesZt-X704Q7L=DpQYdtHY5n2HD0w@mail.gmail.com>
+ <alpine.LFD.2.20.1704220400380.32200@eddie.linux-mips.org>
+ <CAK8P3a28fi0GRcz1yLq+wRkaBBO_w74NnBCY7f3myg78JpaCCQ@mail.gmail.com>
+ <CAMuHMdWTiurUSacddYXgW69=QwOrZDV3Zt2DezJauPy8j-GMHw@mail.gmail.com>
+ <CAK8P3a32Y0AiKyVaotYb14uZZ1jM=nwhFD1vyP56epW1Y9KqSw@mail.gmail.com>
+ <alpine.LFD.2.20.1704241249350.32200@eddie.linux-mips.org> <CAK8P3a03BTEBgz87k_dhJuqzOYQm_S5FFDrFgcBAE5FCH-e=dQ@mail.gmail.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Date: Mon, 24 Apr 2017 20:16:19 +0200
+Message-ID: <CAMuHMdWKngq9TAkjEAYscQRVzKpO63-XVcnjzEM0UNVX_1Ddhg@mail.gmail.com>
+Subject: Re: [RFC] minimum gcc version for kernel: raise to gcc-4.3 or 4.6?
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave.hansen@intel.com>, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
-Cc: Rik van Riel <riel@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170424161031.qTVYJXUPmfw1-o1FmT3Hhth5eCw4BbfZum0SifBlito@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: "Maciej W. Rozycki" <macro@linux-mips.org>, Kees Cook <keescook@chromium.org>, linux-arch <linux-arch@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Russell King <rmk+kernel@armlinux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, kernel-build-reports@lists.linaro.org, kvmarm@lists.cs.columbia.edu
+Message-ID: <20170424181619.zKR3Q8ZWl4_lYNW9DPdJELSDb_RZ8vuJJkzvO3GYYLs@z>
 
-On 4/24/2017 10:57 AM, Dave Hansen wrote:
-> On 04/24/2017 08:53 AM, Tom Lendacky wrote:
->> On 4/21/2017 4:52 PM, Dave Hansen wrote:
->>> On 04/18/2017 02:17 PM, Tom Lendacky wrote:
->>>> @@ -55,7 +57,7 @@ static inline void copy_user_page(void *to, void
->>>> *from, unsigned long vaddr,
->>>>      __phys_addr_symbol(__phys_reloc_hide((unsigned long)(x)))
->>>>
->>>>  #ifndef __va
->>>> -#define __va(x)            ((void *)((unsigned long)(x)+PAGE_OFFSET))
->>>> +#define __va(x)            ((void *)(__sme_clr(x) + PAGE_OFFSET))
->>>>  #endif
+Hi Arnd,
+
+On Mon, Apr 24, 2017 at 7:29 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Mon, Apr 24, 2017 at 6:53 PM, Maciej W. Rozycki <macro@linux-mips.org> wrote:
+>> On Mon, 24 Apr 2017, Arnd Bergmann wrote:
+>>> > If there's no real good reason (brokenness) to deprecate gcc-4.1, I would not
+>>> > do it.I guess most people using old compilers know what they're doing.
 >>>
->>> It seems wrong to be modifying __va().  It currently takes a physical
->>> address, and this modifies it to take a physical address plus the SME
->>> bits.
+>>> What I'm trying to find out first is whether "people regularly using 10+
+>>> year old compilers for the latest kernels" is a strict subset of "people in
+>>> Geert's household".
 >>
->> This actually modifies it to be sure the encryption bit is not part of
->> the physical address.
+>> Well I do not live with Geert TBH.
 >
-> If SME bits make it this far, we have a bug elsewhere.  Right?  Probably
-> best not to paper over it.
+> Sorry about that, you had mentioned that you had used it recently, which should
+> have weighed more than my own results.
 
-That all depends on the approach.  Currently that's not the case for
-the one situation that you mentioned with cr3.  But if we do take the
-approach that we should never feed physical addresses to __va() with
-the encryption bit set then, yes, it would imply a bug elsewhere - which
-is probably a good approach.
+If you prefer to consider everyone who's been sleeping in the same room
+at one of the Oldenburg Linux meetings as part of my household, that's
+fine for me ;-)
 
-I'll work on that. I could even add a debug config option that would
-issue a warning should __va() encounter the encryption bit if SME is
-enabled or active.
+> So it still fails, but only because of one compiler error that I can avoid by
+> disabling that driver, and you probably use a slightly patched compiler
+> version that doesn't have this particular bug, or it was a regression between
+> gcc-4.1.2 and 4.1.3.
 
-Thanks,
-Tom
+Mine is also some patched version of 4.1.1, built from Ubuntu sources:
 
->
+    gcc version 4.1.2 20061115 (prerelease) (Ubuntu 4.1.1-21)
+
+These sources probably even contained the fixes to make gcc-4.1.1
+usable on CELL.
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
