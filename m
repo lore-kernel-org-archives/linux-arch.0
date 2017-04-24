@@ -1,66 +1,53 @@
-From: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
-Subject: Re: [PATCH v5 09/32] x86/mm: Provide general kernel support for
-	memory encryption
-Date: Mon, 24 Apr 2017 11:10:31 -0500
-Message-ID: <8bb579a0-2855-f311-e087-d97cdd730922@amd.com>
-References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
-	<20170418211754.10190.25082.stgit@tlendack-t1.amdoffice.net>
-	<0106e3fc-9780-e872-2274-fecf79c28923@intel.com>
-	<9fc79e28-ad64-1c2f-4c46-a4efcdd550b0@amd.com>
-	<67926f62-a068-6114-92ee-39bc08488b32@intel.com>
+From: "Kirill A. Shutemov" <kirill@shutemov.name>
+Subject: Re: Question on the five-level page table support patches
+Date: Mon, 24 Apr 2017 19:19:59 +0300
+Message-ID: <20170424161959.c5ba2nhnxyy57wxe@node.shutemov.name>
+References: <030ea57b-5f6c-13d8-02f7-b245a754a87d@physik.fu-berlin.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <67926f62-a068-6114-92ee-39bc08488b32-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Dave Hansen <dave.hansen-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, kexec-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Cc: Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Rik van Riel <riel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Brijesh Singh <brijesh.singh-5C7GfCeVMHo@public.gmane.org>, Toshimitsu Kani <toshi.kani-ZPxbGqLxI0U@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrey Ryabinin <aryabinin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, "Michael S. Tsirkin" <mst-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, "H. Peter
-	Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>, Paolo Bonzini <pbonzini-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Dave Young <dyoung-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Larry Woodman <lwoodman-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wm0-f45.google.com ([74.125.82.45]:35825 "EHLO
+        mail-wm0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S973271AbdDXQUC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Apr 2017 12:20:02 -0400
+Received: by mail-wm0-f45.google.com with SMTP id w64so1116448wma.0
+        for <linux-arch@vger.kernel.org>; Mon, 24 Apr 2017 09:20:02 -0700 (PDT)
+Content-Disposition: inline
+In-Reply-To: <030ea57b-5f6c-13d8-02f7-b245a754a87d@physik.fu-berlin.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, linux-kernel@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, Michal Hocko <mhocko@suse.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org
 
-On 4/24/2017 10:57 AM, Dave Hansen wrote:
-> On 04/24/2017 08:53 AM, Tom Lendacky wrote:
->> On 4/21/2017 4:52 PM, Dave Hansen wrote:
->>> On 04/18/2017 02:17 PM, Tom Lendacky wrote:
->>>> @@ -55,7 +57,7 @@ static inline void copy_user_page(void *to, void
->>>> *from, unsigned long vaddr,
->>>>      __phys_addr_symbol(__phys_reloc_hide((unsigned long)(x)))
->>>>
->>>>  #ifndef __va
->>>> -#define __va(x)            ((void *)((unsigned long)(x)+PAGE_OFFSET))
->>>> +#define __va(x)            ((void *)(__sme_clr(x) + PAGE_OFFSET))
->>>>  #endif
->>>
->>> It seems wrong to be modifying __va().  It currently takes a physical
->>> address, and this modifies it to take a physical address plus the SME
->>> bits.
->>
->> This actually modifies it to be sure the encryption bit is not part of
->> the physical address.
->
-> If SME bits make it this far, we have a bug elsewhere.  Right?  Probably
-> best not to paper over it.
+On Sun, Apr 23, 2017 at 12:53:46PM +0200, John Paul Adrian Glaubitz wrote:
+> Hi Kirill!
+> 
+> I recently read the LWN article on your and your colleagues work to
+> add five-level page table support for x86 to the Linux kernel [1]
+> and I got your email address from the last patch of the series.
+> 
+> Since this extends the address space beyond 48-bits, as you may know,
+> it will cause potential headaches with Javascript engines which use
+> tagged pointers. On SPARC, the virtual address space already extends
+> to 52 bits and we are running into these very issues with Javascript
+> engines on SPARC.
+> 
+> Now, a possible way to mitigate this problem would be to pass the
+> "hint" parameter to mmap() in order to tell the kernel not to allocate
+> memory beyond the 48 bits address space. Unfortunately, on Linux this
+> will only work when the area pointed to by "hint" is unallocated which
+> means one cannot simply use a hardcoded "hint" to mitigate this problem.
 
-That all depends on the approach.  Currently that's not the case for
-the one situation that you mentioned with cr3.  But if we do take the
-approach that we should never feed physical addresses to __va() with
-the encryption bit set then, yes, it would imply a bug elsewhere - which
-is probably a good approach.
+In proposed implementation, we also use hint address, but in different
+way: by default, if hint address is NULL, kernel would not create mappings
+above 47-bits, preserving compatibility.
 
-I'll work on that. I could even add a debug config option that would
-issue a warning should __va() encounter the encryption bit if SME is
-enabled or active.
+If an application wants to have access to larger address space, it has to
+specify hint addess above 47-bits.
 
-Thanks,
-Tom
+See details here:
 
->
+http://lkml.kernel.org/r/20170420162147.86517-10-kirill.shutemov@linux.intel.com
+
+-- 
+ Kirill A. Shutemov
