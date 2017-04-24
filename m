@@ -1,50 +1,81 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [RFC] minimum gcc version for kernel: raise to gcc-4.3 or 4.6?
-Date: Mon, 24 Apr 2017 13:52:24 -0700
-Message-ID: <CAGXu5jKCSFVhGSD5mGLiAo6-G+k24g2Y=9p8Kr2-SffAY=uEBQ@mail.gmail.com>
-References: <20161216105634.235457-1-arnd@arndb.de> <3302470.IDcDrWa0u6@wuerfel>
- <CAGXu5jLPRYi+HK=07Zndc8szEKD4mZCqaHJFnHmmoYr7tA1xPw@mail.gmail.com>
- <CAK8P3a2C2WhWjzF=HrzU15Ncg0juR+nstZukBEpqCrVNW5pnDA@mail.gmail.com>
- <CAGXu5jLTR+dY_Ayyix5Tg0Yn9LBFAt=j56MQVdJVGue-R-CizA@mail.gmail.com>
- <CAK8P3a114EVbnhbObfq-4pZp8XCT4fWzMXD+WkRi7iPXs1vFMA@mail.gmail.com>
- <CAGXu5jJpofLF0qAf0-2iNTesZt-X704Q7L=DpQYdtHY5n2HD0w@mail.gmail.com>
- <alpine.LFD.2.20.1704220400380.32200@eddie.linux-mips.org>
- <CAK8P3a28fi0GRcz1yLq+wRkaBBO_w74NnBCY7f3myg78JpaCCQ@mail.gmail.com>
- <CAMuHMdWTiurUSacddYXgW69=QwOrZDV3Zt2DezJauPy8j-GMHw@mail.gmail.com>
- <CAK8P3a32Y0AiKyVaotYb14uZZ1jM=nwhFD1vyP56epW1Y9KqSw@mail.gmail.com>
- <alpine.LFD.2.20.1704241249350.32200@eddie.linux-mips.org>
- <CAK8P3a03BTEBgz87k_dhJuqzOYQm_S5FFDrFgcBAE5FCH-e=dQ@mail.gmail.com>
- <alpine.LFD.2.20.1704241908260.32200@eddie.linux-mips.org> <CAK8P3a0HQUqtL=9pgPEreQJaA0AksiR06B4oAwvbYnJeA-2i7w@mail.gmail.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH] x86/refcount: Implement fast refcount_t handling
+Date: Tue, 25 Apr 2017 00:01:28 +0200
+Message-ID: <20170424220128.j7nnhuohqdqbiki7@hirez.programming.kicks-ass.net>
+References: <20170421220939.GA65363@beast>
+ <58FDF8C4.5120.17D092B7@pageexec.freemail.hu>
+ <20170424133323.cf3xyd3mmwp6ixaz@hirez.programming.kicks-ass.net>
+ <58FE1687.5511.1844D4FC@pageexec.freemail.hu>
+ <CAGXu5jK5s0KBAfwHPhobiSCn6b0QA4Wb=w=eJG4KyukwbdHTzg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f172.google.com ([209.85.223.172]:33044 "EHLO
-        mail-io0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1172462AbdDXUw1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Apr 2017 16:52:27 -0400
-Received: by mail-io0-f172.google.com with SMTP id k87so204280275ioi.0
-        for <linux-arch@vger.kernel.org>; Mon, 24 Apr 2017 13:52:26 -0700 (PDT)
-In-Reply-To: <CAK8P3a0HQUqtL=9pgPEreQJaA0AksiR06B4oAwvbYnJeA-2i7w@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: "Maciej W. Rozycki" <macro@linux-mips.org>, Geert Uytterhoeven <geert@linux-m68k.org>, linux-arch <linux-arch@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Russell King <rmk+kernel@armlinux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, kernel-build-reports@lists.linaro.org, kvmarm@lists.cs.columbia.edu
+Content-Type: text/plain; charset=us-ascii
+Return-path: <kernel-hardening-return-7526-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+Content-Disposition: inline
+In-Reply-To: <CAGXu5jK5s0KBAfwHPhobiSCn6b0QA4Wb=w=eJG4KyukwbdHTzg@mail.gmail.com>
+To: Kees Cook <keescook@chromium.org>
+Cc: PaX Team <pageexec@freemail.hu>, LKML <linux-kernel@vger.kernel.org>, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jann Horn <jann@thejh.net>, "David S. Miller" <davem@davemloft.net>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Apr 24, 2017 at 1:30 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> How about this approach then:
->
-> - To keep it simple, we update the README.rst to say that a minimum
->   gcc-4.3 is required, while recommending gcc-4.9 for all architectures
-> - Support for gcc-4.0 and earlier gets removed from linux/compiler.h,
->   and instead we add a summary of what I found, explaining that
->   gcc-4.1 has active users on a few architectures.
-> - We make the Makefile show a warning once during compilation for
->   gcc earlier than 4.3.
+On Mon, Apr 24, 2017 at 01:40:56PM -0700, Kees Cook wrote:
+> I think we're way off in the weeds here. The "cannot inc from 0" check
+> is about general sanity checks on refcounts.
 
-This sounds good to me!
+I disagree, although sanity check are good too.
 
--Kees
+> It should never happen, and if it does, there's a bug.
 
--- 
-Kees Cook
-Pixel Security
+The very same is true of the overflow thing.
+
+> However, what the refcount hardening protection is trying to do is
+> protect again the exploitable condition: overflow.
+
+Sure..
+
+> Inc-from-0 isn't an exploitable condition since in theory
+> the memory suddenly becomes correctly managed again.
+
+It does not. It just got free'ed. Nothing will stop the free from
+happening (or already having happened).
+
+> We're just discussing different things.
+
+No, both are bugs, neither overflow not inc-from-zero _should_ happen.
+The whole point is that code is buggy. If it weren't for that, we'd not
+be doing this.
+
+How is the below not useful fodder for an exploit? It might be a less
+common bug, and perhaps a bit more fiddly to make work, but afaict its
+still a full use-after-free and therefore useful.
+
+---
+
+Thread-A                                        Thread-B
+
+if(dec_and_test(&obj->ref)) { // true, ref==0
+
+                                                inc(&obj->ref) // ref: 0->1
+
+        kfree(obj);
+}
+
+
+
+        ~~~/ Thread-C /~~~
+
+        obj = kmalloc(); // is obj from Thread-A
+
+	obj->ref = 1;
+        obj->func = ....
+
+
+                                                obj->func();
+
+                                                        -- OR --
+
+                                                put(obj);
+                                                  if (dec_and_test(&obj->ref))
+                                                    kfree(obj); // which was of Thread-C
