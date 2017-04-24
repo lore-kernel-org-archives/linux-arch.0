@@ -1,53 +1,45 @@
 From: Kees Cook <keescook@chromium.org>
 Subject: Re: [PATCH] x86/refcount: Implement fast refcount_t handling
-Date: Mon, 24 Apr 2017 13:19:24 -0700
-Message-ID: <CAGXu5jJY2cD=nTVdv9PsAgBaJ-9KMnR5NWFScWmc_KQSSWY01Q@mail.gmail.com>
-References: <20170421220939.GA65363@beast> <20170424104539.qa2jva2jytwboeam@hirez.programming.kicks-ass.net>
+Date: Mon, 24 Apr 2017 13:21:38 -0700
+Message-ID: <CAGXu5jLK9YwgaPSyykGoyXD1Ls=yZZ7b76Lns6pZY2+dpP+05w@mail.gmail.com>
+References: <20170421220939.GA65363@beast> <20170424104853.k6s2jjmcdbbghit4@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f174.google.com ([209.85.223.174]:33234 "EHLO
-        mail-io0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1174305AbdDXUTc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Apr 2017 16:19:32 -0400
-Received: by mail-io0-f174.google.com with SMTP id k87so203638152ioi.0
-        for <linux-arch@vger.kernel.org>; Mon, 24 Apr 2017 13:19:26 -0700 (PDT)
-In-Reply-To: <20170424104539.qa2jva2jytwboeam@hirez.programming.kicks-ass.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <kernel-hardening-return-7523-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+Sender: keescook@google.com
+In-Reply-To: <20170424104853.k6s2jjmcdbbghit4@hirez.programming.kicks-ass.net>
 To: Peter Zijlstra <peterz@infradead.org>
 Cc: LKML <linux-kernel@vger.kernel.org>, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jann Horn <jann@thejh.net>, "David S. Miller" <davem@davemloft.net>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, PaX Team <pageexec@freemail.hu>
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Apr 24, 2017 at 3:45 AM, Peter Zijlstra <peterz@infradead.org> wrote:
+On Mon, Apr 24, 2017 at 3:48 AM, Peter Zijlstra <peterz@infradead.org> wrote:
 > On Fri, Apr 21, 2017 at 03:09:39PM -0700, Kees Cook wrote:
->> +static __always_inline __must_check bool refcount_inc_not_zero(refcount_t *r)
->> +{
->> +     const int a = 1;
->> +     const int u = 0;
->> +     int c, old;
->> +
->> +     c = atomic_read(&(r->refs));
->> +     for (;;) {
->> +             if (unlikely(c == (u)))
->> +                     break;
->> +             old = atomic_cmpxchg(&(r->refs), c, c + (a));
+>> diff --git a/drivers/misc/lkdtm_bugs.c b/drivers/misc/lkdtm_bugs.c
+>> index e3f4cd8876b5..1bdafb29b802 100644
+>> --- a/drivers/misc/lkdtm_bugs.c
+>> +++ b/drivers/misc/lkdtm_bugs.c
+>> @@ -135,9 +135,15 @@ void lkdtm_HUNG_TASK(void)
+>>       schedule();
+>>  }
+>>
+>> +#ifdef CONFIG_FAST_REFCOUNT
+>> +#define REFCOUNT_MAX INT_MAX
+>> +#else
+>> +#define REFCOUNT_MAX UINT_MAX
+>> +#endif
 >
-> Please use atomic_try_cmpxchg(), that generates saner code.
+> That doesn't seem like a sensible place for this.
 
-Ah-ha, thanks. I actually copied this directly out of the existing
-atomic_t function, so we should probably update it there too.
+I'll drop the LKDTM changes from this particular patch. As for the
+define, I think it's only interesting to LKDTM since it's the only
+part interested in refcount_t internals. (i.e. nothing else would (or
+should) use this information.)
 
 -Kees
-
->
->> +             if (likely(old == c))
->> +                     break;
->> +             c = old;
->> +     }
->> +     return c != u;
->> +}
-
-
 
 -- 
 Kees Cook
