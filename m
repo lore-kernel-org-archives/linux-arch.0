@@ -1,83 +1,61 @@
-From: "PaX Team" <pageexec@freemail.hu>
-Subject: Re: [PATCH] x86/refcount: Implement fast refcount_t handling
-Date: Mon, 24 Apr 2017 17:15:19 +0200
-Message-ID: <58FE1687.5511.1844D4FC@pageexec.freemail.hu>
-References: <20170421220939.GA65363@beast>, <58FDF8C4.5120.17D092B7@pageexec.freemail.hu>, <20170424133323.cf3xyd3mmwp6ixaz@hirez.programming.kicks-ass.net>
-Reply-To: pageexec@freemail.hu
+From: Tom Lendacky <thomas.lendacky@amd.com>
+Subject: Re: [PATCH v5 09/32] x86/mm: Provide general kernel support for
+ memory encryption
+Date: Mon, 24 Apr 2017 10:53:58 -0500
+Message-ID: <9fc79e28-ad64-1c2f-4c46-a4efcdd550b0@amd.com>
+References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
+ <20170418211754.10190.25082.stgit@tlendack-t1.amdoffice.net>
+ <0106e3fc-9780-e872-2274-fecf79c28923@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from r00tworld.com ([212.85.137.150]:47906 "EHLO r00tworld.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S934531AbdDXPQe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 24 Apr 2017 11:16:34 -0400
-In-reply-to: <20170424133323.cf3xyd3mmwp6ixaz@hirez.programming.kicks-ass.net>
-Content-description: Mail message body
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Kees Cook <keescook@chromium.org>, linux-kernel@vger.kernel.org, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, x86@kernel.org, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jann Horn <jann@thejh.net>, davem@davemloft.net, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com
+Content-Type: text/plain; charset="utf-8"; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <0106e3fc-9780-e872-2274-fecf79c28923@intel.com>
+Sender: owner-linux-mm@kvack.org
+To: Dave Hansen <dave.hansen@intel.com>, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
+Cc: Rik van Riel <riel@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter
+ Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+List-Id: linux-arch.vger.kernel.org
 
-On 24 Apr 2017 at 15:33, Peter Zijlstra wrote:
+On 4/21/2017 4:52 PM, Dave Hansen wrote:
+> On 04/18/2017 02:17 PM, Tom Lendacky wrote:
+>> @@ -55,7 +57,7 @@ static inline void copy_user_page(void *to, void *from, unsigned long vaddr,
+>>  	__phys_addr_symbol(__phys_reloc_hide((unsigned long)(x)))
+>>
+>>  #ifndef __va
+>> -#define __va(x)			((void *)((unsigned long)(x)+PAGE_OFFSET))
+>> +#define __va(x)			((void *)(__sme_clr(x) + PAGE_OFFSET))
+>>  #endif
+>
+> It seems wrong to be modifying __va().  It currently takes a physical
+> address, and this modifies it to take a physical address plus the SME bits.
 
-> On Mon, Apr 24, 2017 at 03:08:20PM +0200, PaX Team wrote:
-> > On 24 Apr 2017 at 13:15, Peter Zijlstra wrote:
-> > 
-> > > On Mon, Apr 24, 2017 at 01:00:18PM +0200, PaX Team wrote:
-> > > > On 24 Apr 2017 at 10:32, Peter Zijlstra wrote:
-> > > 
-> > > > > Also, you forgot nr_cpus in your bound. Afaict the worst case here is
-> > > > > O(nr_tasks + 3*nr_cpus).
-> > > > 
-> > > > what does nr_cpus have to do with winning the race?
-> > > 
-> > > The CPUs could each run nested softirq/hardirq/nmi context poking at the
-> > > refcount, irrespective of the (preempted) task context.
-> > 
-> > that's fine but are you also assuming that the code executed in each of
-> > those contexts leaks the same refcount? otherwise whatever they do to the
-> > refcount is no more relevant than a non-leaking preemptible path that runs
-> > to completion in a bounded amount of time (i.e., you get temporary bumps
-> > and thus need to win yet another set of races to get their effects at once).
-> 
-> For worst case analysis we have to assume it does, unless we can proof
-> it doesn't. And that proof is very very hard, and would need to be
-> redone every time the kernel changes.
+This actually modifies it to be sure the encryption bit is not part of
+the physical address.
 
-for worst case analysis you need to show the existence of an amd64 system that
-can spawn 2G tasks. then you'll have to show the feasibility of making all of
-them get preempted (without a later reschedule) inside a 2 insn window.
+>
+> How does that end up ever happening?  If we are pulling physical
+> addresses out of the page tables, we use p??_phys().  I'd expect *those*
+> to be masking off the SME bits.
+>
+> Is it these cases?
+>
+> 	pgd_t *base = __va(read_cr3());
+>
+> For those, it seems like we really want to create two modes of reading
+> cr3.  One that truly reads CR3 and another that reads the pgd's physical
+> address out of CR3.  Then you only do the SME masking on the one
+> fetching a physical address, and the SME bits never leak into __va().
 
-> > that was exactly my point: all this applies to you as well. so let me ask
-> > the 3rd time: what is your "argument for correctness" for a 0 refcount
-> > value check? how does it prevent exploitation?
-> 
-> What 0 count check are you talking about, the one that triggers when we
-> want to increment 0 ?
+I'll investigate this and see if I can remove the mod to __va().
 
-are there any other 0 checks in there?
+Thanks,
+Tom
 
-> I think I've explained that before; per reference count rules 0 means
-> freed (or about to be freed when we talk RCU).
+>
 
-you only said the same thing, what 0 means. you (still) didn't explain how
-checking for it prevents exploitation.
-
-> The whole pattern:
-> 
->  if (dec_and_test(&obj->ref))
->   kfree(obj);
-> 
-> expresses this etc.. Other reference counts also do this. No references
-> means its getting freed.
-> 
-> Can you agree with this?
-
-sure, so far so good.
-
-> If so; any attempt to increase the reference count while its (being)
-> freed() is a use-after-free.
-
-why would ever be there such an attempt? a freed object with intact memory
-content is as useful for an attacker as a live one, that is, not at all.
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
