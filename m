@@ -1,36 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:50788 "EHLO
+Received: from merlin.infradead.org ([205.233.59.134]:51074 "EHLO
         merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1168702AbdDXKtC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Apr 2017 06:49:02 -0400
-Date: Mon, 24 Apr 2017 12:48:53 +0200
+        with ESMTP id S1169091AbdDXLQN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Apr 2017 07:16:13 -0400
+Date: Mon, 24 Apr 2017 13:15:53 +0200
 From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [PATCH] x86/refcount: Implement fast refcount_t handling
-Message-ID: <20170424104853.k6s2jjmcdbbghit4@hirez.programming.kicks-ass.net>
+Message-ID: <20170424111553.p3kbyir4ztsldc56@hirez.programming.kicks-ass.net>
 References: <20170421220939.GA65363@beast>
+ <20170424083250.h2wv2exbi4ytigac@hirez.programming.kicks-ass.net>
+ <58FDDAC2.11341.175B5A99@pageexec.freemail.hu>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20170421220939.GA65363@beast>
+In-Reply-To: <58FDDAC2.11341.175B5A99@pageexec.freemail.hu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: linux-kernel@vger.kernel.org, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, x86@kernel.org, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jann Horn <jann@thejh.net>, davem@davemloft.net, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, PaX Team <pageexec@freemail.hu>
-Message-ID: <20170424104853.tgpVB3WPG0ZR2us9jOjX45F9C8aDluukXQ2GLjx7yaA@z>
+To: PaX Team <pageexec@freemail.hu>
+Cc: Kees Cook <keescook@chromium.org>, linux-kernel@vger.kernel.org, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, x86@kernel.org, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jann Horn <jann@thejh.net>, davem@davemloft.net, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com
+Message-ID: <20170424111553.V_Tawvn4YqOehtEwIaWe4OpOpFVI_XTc4XzFq5n47nI@z>
 
-On Fri, Apr 21, 2017 at 03:09:39PM -0700, Kees Cook wrote:
-> diff --git a/drivers/misc/lkdtm_bugs.c b/drivers/misc/lkdtm_bugs.c
-> index e3f4cd8876b5..1bdafb29b802 100644
-> --- a/drivers/misc/lkdtm_bugs.c
-> +++ b/drivers/misc/lkdtm_bugs.c
-> @@ -135,9 +135,15 @@ void lkdtm_HUNG_TASK(void)
->  	schedule();
->  }
->  
-> +#ifdef CONFIG_FAST_REFCOUNT
-> +#define REFCOUNT_MAX	INT_MAX
-> +#else
-> +#define REFCOUNT_MAX	UINT_MAX
-> +#endif
+On Mon, Apr 24, 2017 at 01:00:18PM +0200, PaX Team wrote:
+> On 24 Apr 2017 at 10:32, Peter Zijlstra wrote:
 
-That doesn't seem like a sensible place for this.
+> > Also, you forgot nr_cpus in your bound. Afaict the worst case here is
+> > O(nr_tasks + 3*nr_cpus).
+> 
+> what does nr_cpus have to do with winning the race?
+
+The CPUs could each run nested softirq/hardirq/nmi context poking at the
+refcount, irrespective of the (preempted) task context.
+
+> > Because PaX does it, is not a correctness argument. And this really
+> > wants one.
+> 
+> heh, do you want to tell me about how checking for a 0 refcount prevents
+> exploiting a bug?
+
+Not the point. All I said was that saying somebody else does it (anybody
+else, doesn't matter it was you) isn't an argument for correctness.
