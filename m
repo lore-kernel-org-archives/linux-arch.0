@@ -1,89 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:37168 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751827AbdDXFLf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 24 Apr 2017 01:11:35 -0400
-Received: from mail.kernel.org (localhost [127.0.0.1])
-        by mail.kernel.org (Postfix) with ESMTP id D3B6820218
-        for <linux-arch@vger.kernel.org>; Mon, 24 Apr 2017 05:11:32 +0000 (UTC)
-Received: from mail-ua0-f181.google.com (mail-ua0-f181.google.com [209.85.217.181])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
-        (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 1A7C3201C7
-        for <linux-arch@vger.kernel.org>; Mon, 24 Apr 2017 05:11:30 +0000 (UTC)
-Received: by mail-ua0-f181.google.com with SMTP id j59so62408001uad.0
-        for <linux-arch@vger.kernel.org>; Sun, 23 Apr 2017 22:11:30 -0700 (PDT)
+Received: from mail-io0-f181.google.com ([209.85.223.181]:35537 "EHLO
+        mail-io0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1166408AbdDXIxv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Apr 2017 04:53:51 -0400
+Received: by mail-io0-f181.google.com with SMTP id r16so178340410ioi.2
+        for <linux-arch@vger.kernel.org>; Mon, 24 Apr 2017 01:53:51 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <030ea57b-5f6c-13d8-02f7-b245a754a87d@physik.fu-berlin.de>
-References: <030ea57b-5f6c-13d8-02f7-b245a754a87d@physik.fu-berlin.de>
-From: Andy Lutomirski <luto@kernel.org>
-Date: Sun, 23 Apr 2017 22:11:08 -0700
-Message-ID: <CALCETrUcB7STNjVw=WBZdFfz_H1DKcLnj3HHtnGaHGQ1UY8Zrw@mail.gmail.com>
-Subject: Re: Question on the five-level page table support patches
+In-Reply-To: <20170424083250.h2wv2exbi4ytigac@hirez.programming.kicks-ass.net>
+References: <20170421220939.GA65363@beast> <20170424083250.h2wv2exbi4ytigac@hirez.programming.kicks-ass.net>
+From: Jann Horn <jannh@google.com>
+Date: Mon, 24 Apr 2017 10:53:30 +0200
+Message-ID: <CAG48ez1z4F0sTBV3DCvkVJazQXxXGe=NyWKqYjKveEj-CQVy7w@mail.gmail.com>
+Subject: Re: [kernel-hardening] Re: [PATCH] x86/refcount: Implement fast
+ refcount_t handling
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Michal Hocko <mhocko@suse.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>
-Message-ID: <20170424051108.siLlX6UM0bOdNMTFlRhoIgkiFFLl1w9UkNDNt-RWW6U@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Kees Cook <keescook@chromium.org>, linux-kernel@vger.kernel.org, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, x86@kernel.org, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jann Horn <jann@thejh.net>, "David S. Miller" <davem@davemloft.net>, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, PaX Team <pageexec@freemail.hu>
+Message-ID: <20170424085330.wrxJpwktgk71v9uXHjih0yX3mA_ckf15rIe-OIa9RTk@z>
 
-On Sun, Apr 23, 2017 at 3:53 AM, John Paul Adrian Glaubitz
-<glaubitz@physik.fu-berlin.de> wrote:
-> Hi Kirill!
+On Mon, Apr 24, 2017 at 10:32 AM, Peter Zijlstra <peterz@infradead.org> wrote:
+> On Fri, Apr 21, 2017 at 03:09:39PM -0700, Kees Cook wrote:
+>> This patch ports the x86-specific atomic overflow handling from PaX's
+>> PAX_REFCOUNT to the upstream refcount_t API. This is an updated version
+>> from PaX that eliminates the saturation race condition by resetting the
+>> atomic counter back to the INT_MAX saturation value on both overflow and
+>> underflow. To win a race, a system would have to have INT_MAX threads
+>> simultaneously overflow before the saturation handler runs.
 >
-> I recently read the LWN article on your and your colleagues work to
-> add five-level page table support for x86 to the Linux kernel [1]
-> and I got your email address from the last patch of the series.
+> And is this impossible? Highly unlikely I'll grant you, but absolutely
+> impossible?
 >
-> Since this extends the address space beyond 48-bits, as you may know,
-> it will cause potential headaches with Javascript engines which use
-> tagged pointers. On SPARC, the virtual address space already extends
-> to 52 bits and we are running into these very issues with Javascript
-> engines on SPARC.
+> Also, you forgot nr_cpus in your bound. Afaict the worst case here is
+> O(nr_tasks + 3*nr_cpus).
 >
-> Now, a possible way to mitigate this problem would be to pass the
-> "hint" parameter to mmap() in order to tell the kernel not to allocate
-> memory beyond the 48 bits address space. Unfortunately, on Linux this
-> will only work when the area pointed to by "hint" is unallocated which
-> means one cannot simply use a hardcoded "hint" to mitigate this problem.
->
-> However, since this trick still works on NetBSD and used to work on
-> Linux [3], I was wondering whether there are plans to bring back
-> this behavior to mmap() in Linux.
->
-> Currently, people are using ugly work-arounds [4] to address this
-> problem which involve a manual iteration over memory blocks and
-> basically implementing another allocator in the user space
-> application.
->
-> Thanks,
-> Adrian
->
->> [1] https://lwn.net/Articles/717293/
->> [2] https://lwn.net/Articles/717300/
->> [3] https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=824449#22
->> [4] https://hg.mozilla.org/mozilla-central/rev/dfaafbaaa291
->
-
-Can you explain what the issue is?  What used to work on Linux and
-doesn't any more?  The man page is quite clear:
-
-       MAP_FIXED
-              Don't  interpret  addr  as  a hint: place the mapping at exactly
-              that address.  addr must be a multiple of the page size.  If the
-              memory  region  specified  by addr and len overlaps pages of any
-              existing mapping(s), then the overlapped part  of  the  existing
-              mapping(s)  will  be discarded.  If the specified address cannot
-              be used, mmap() will fail.  Because requiring  a  fixed  address
-              for  a  mapping is less portable, the use of this option is dis‐
-              couraged.
-
-and AFAIK Linux works exactly as documented.
-
-FWIW, a patch to add a new MAP_ mode to tell mmap(2) to use the hinted
-address if available and to *fail* if the hinted address is not
-available would very likely be accepted and would IMO be much nicer
-than the current behavior.
-
---Andy
+> Because PaX does it, is not a correctness argument. And this really
+> wants one.
