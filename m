@@ -1,75 +1,43 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH] x86/refcount: Implement fast refcount_t handling
-Date: Mon, 24 Apr 2017 15:33:23 +0200
-Message-ID: <20170424133323.cf3xyd3mmwp6ixaz@hirez.programming.kicks-ass.net>
-References: <20170421220939.GA65363@beast>
- <58FDDAC2.11341.175B5A99@pageexec.freemail.hu>
- <20170424111553.p3kbyir4ztsldc56@hirez.programming.kicks-ass.net>
- <58FDF8C4.5120.17D092B7@pageexec.freemail.hu>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [RFC PATCH 0/3] arm64: queued spinlocks and rw-locks
+Date: Mon, 24 Apr 2017 14:36:23 +0100
+Message-ID: <20170424133622.GB12323@arm.com>
+References: <1491860104-4103-1-git-send-email-ynorov@caviumnetworks.com>
+ <a4f067df-4c22-5c90-d70a-809903c60296@codeaurora.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <kernel-hardening-return-7512-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:57074 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1171615AbdDXNgZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 24 Apr 2017 09:36:25 -0400
 Content-Disposition: inline
-In-Reply-To: <58FDF8C4.5120.17D092B7@pageexec.freemail.hu>
-To: PaX Team <pageexec@freemail.hu>
-Cc: Kees Cook <keescook@chromium.org>, linux-kernel@vger.kernel.org, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, x86@kernel.org, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jann Horn <jann@thejh.net>, davem@davemloft.net, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <a4f067df-4c22-5c90-d70a-809903c60296@codeaurora.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Adam Wallis <awallis@codeaurora.org>
+Cc: Yury Norov <ynorov@caviumnetworks.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Jan Glauber <jglauber@cavium.com>, Ingo Molnar <mingo@redhat.com>, jason.low2@hp.com
 
-On Mon, Apr 24, 2017 at 03:08:20PM +0200, PaX Team wrote:
-> On 24 Apr 2017 at 13:15, Peter Zijlstra wrote:
-> 
-> > On Mon, Apr 24, 2017 at 01:00:18PM +0200, PaX Team wrote:
-> > > On 24 Apr 2017 at 10:32, Peter Zijlstra wrote:
+On Wed, Apr 12, 2017 at 01:04:55PM -0400, Adam Wallis wrote:
+> On 4/10/2017 5:35 PM, Yury Norov wrote:
+> > The patch of Jan Glauber enables queued spinlocks on arm64. I rebased it on
+> > latest kernel sources, and added a couple of fixes to headers to apply it 
+> > smoothly.
 > > 
-> > > > Also, you forgot nr_cpus in your bound. Afaict the worst case here is
-> > > > O(nr_tasks + 3*nr_cpus).
-> > > 
-> > > what does nr_cpus have to do with winning the race?
+> > Though, locktourture test shows significant performance degradation in the
+> > acquisition of rw-lock for read on qemu:
 > > 
-> > The CPUs could each run nested softirq/hardirq/nmi context poking at the
-> > refcount, irrespective of the (preempted) task context.
+> >                           Before           After
+> > spin_lock-torture:      38957034        37076367         -4.83
+> > rw_lock-torture W:       5369471        18971957        253.33
+> > rw_lock-torture R:       6413179         3668160        -42.80
+> > 
 > 
-> that's fine but are you also assuming that the code executed in each of
-> those contexts leaks the same refcount? otherwise whatever they do to the
-> refcount is no more relevant than a non-leaking preemptible path that runs
-> to completion in a bounded amount of time (i.e., you get temporary bumps
-> and thus need to win yet another set of races to get their effects at once).
+> On our 48 core QDF2400 part, I am seeing huge improvements with these patches on
+> the torture tests. The improvements go up even further when I apply Jason Low's
+> MCS Spinlock patch: https://lkml.org/lkml/2016/4/20/725
 
-For worst case analysis we have to assume it does, unless we can proof
-it doesn't. And that proof is very very hard, and would need to be
-redone every time the kernel changes.
+Does the QDF2400 implement the large system extensions? If so, how do the
+queued lock implementations compare to the LSE-based ticket locks?
 
-> that was exactly my point: all this applies to you as well. so let me ask
-> the 3rd time: what is your "argument for correctness" for a 0 refcount
-> value check? how does it prevent exploitation?
-
-What 0 count check are you talking about, the one that triggers when we
-want to increment 0 ?
-
-I think I've explained that before; per reference count rules 0 means
-freed (or about to be freed when we talk RCU).
-
-The whole pattern:
-
-	if (dec_and_test(&obj->ref))
-		kfree(obj);
-
-expresses this etc.. Other reference counts also do this. No references
-means its getting freed.
-
-Can you agree with this?
-
-
-If so; any attempt to increase the reference count while its (being)
-freed() is a use-after-free.
-
-Therefore we disallow 0 increment.
-
-
-Yes, this is an annoyance when you consider usage-counts, where 0 means
-something else. But then, we were talking about reference counts, not
-something else.
+Will
