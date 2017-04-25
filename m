@@ -1,56 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f41.google.com ([74.125.82.41]:36990 "EHLO
-        mail-wm0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1162318AbdDXWCE (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Apr 2017 18:02:04 -0400
-Received: by mail-wm0-f41.google.com with SMTP id m123so80307027wma.0
-        for <linux-arch@vger.kernel.org>; Mon, 24 Apr 2017 15:02:04 -0700 (PDT)
-Date: Tue, 25 Apr 2017 01:01:58 +0300
-From: "Kirill A. Shutemov" <kirill@shutemov.name>
-Subject: Re: Question on the five-level page table support patches
-Message-ID: <20170424220158.z67cir7sjfyn4wdt@node.shutemov.name>
-References: <030ea57b-5f6c-13d8-02f7-b245a754a87d@physik.fu-berlin.de>
- <20170424161959.c5ba2nhnxyy57wxe@node.shutemov.name>
- <fdc80e3c-6909-cf39-fe0b-6f1c012571e4@physik.fu-berlin.de>
+Received: from mail-io0-f194.google.com ([209.85.223.194]:35423 "EHLO
+        mail-io0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752996AbdDYHGi (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Apr 2017 03:06:38 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <fdc80e3c-6909-cf39-fe0b-6f1c012571e4@physik.fu-berlin.de>
+In-Reply-To: <CAGXu5jKCSFVhGSD5mGLiAo6-G+k24g2Y=9p8Kr2-SffAY=uEBQ@mail.gmail.com>
+References: <20161216105634.235457-1-arnd@arndb.de> <3302470.IDcDrWa0u6@wuerfel>
+ <CAGXu5jLPRYi+HK=07Zndc8szEKD4mZCqaHJFnHmmoYr7tA1xPw@mail.gmail.com>
+ <CAK8P3a2C2WhWjzF=HrzU15Ncg0juR+nstZukBEpqCrVNW5pnDA@mail.gmail.com>
+ <CAGXu5jLTR+dY_Ayyix5Tg0Yn9LBFAt=j56MQVdJVGue-R-CizA@mail.gmail.com>
+ <CAK8P3a114EVbnhbObfq-4pZp8XCT4fWzMXD+WkRi7iPXs1vFMA@mail.gmail.com>
+ <CAGXu5jJpofLF0qAf0-2iNTesZt-X704Q7L=DpQYdtHY5n2HD0w@mail.gmail.com>
+ <alpine.LFD.2.20.1704220400380.32200@eddie.linux-mips.org>
+ <CAK8P3a28fi0GRcz1yLq+wRkaBBO_w74NnBCY7f3myg78JpaCCQ@mail.gmail.com>
+ <CAMuHMdWTiurUSacddYXgW69=QwOrZDV3Zt2DezJauPy8j-GMHw@mail.gmail.com>
+ <CAK8P3a32Y0AiKyVaotYb14uZZ1jM=nwhFD1vyP56epW1Y9KqSw@mail.gmail.com>
+ <alpine.LFD.2.20.1704241249350.32200@eddie.linux-mips.org>
+ <CAK8P3a03BTEBgz87k_dhJuqzOYQm_S5FFDrFgcBAE5FCH-e=dQ@mail.gmail.com>
+ <alpine.LFD.2.20.1704241908260.32200@eddie.linux-mips.org>
+ <CAK8P3a0HQUqtL=9pgPEreQJaA0AksiR06B4oAwvbYnJeA-2i7w@mail.gmail.com> <CAGXu5jKCSFVhGSD5mGLiAo6-G+k24g2Y=9p8Kr2-SffAY=uEBQ@mail.gmail.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Date: Tue, 25 Apr 2017 09:06:36 +0200
+Message-ID: <CAMuHMdV+6O1CAb=+r2x=ANy_NkD3C6EzYCpawuXaf2ynvpsn2Q@mail.gmail.com>
+Subject: Re: [RFC] minimum gcc version for kernel: raise to gcc-4.3 or 4.6?
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, linux-kernel@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, Michal Hocko <mhocko@suse.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Message-ID: <20170424220158.hz4hCB4KhI8RBdJjisMXDCIA8iXjZielD31Sn04-jsg@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, "Maciej W. Rozycki" <macro@linux-mips.org>, linux-arch <linux-arch@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Russell King <rmk+kernel@armlinux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, kernel-build-reports@lists.linaro.org, kvmarm@lists.cs.columbia.edu
+Message-ID: <20170425070636.yQILoZ_I0pmne-MDpWAQUGvhZVKVUUz27zTYW6kG0mA@z>
 
-On Mon, Apr 24, 2017 at 10:37:40PM +0200, John Paul Adrian Glaubitz wrote:
-> On 04/24/2017 06:19 PM, Kirill A. Shutemov wrote:
-> > In proposed implementation, we also use hint address, but in different
-> > way: by default, if hint address is NULL, kernel would not create mappings
-> > above 47-bits, preserving compatibility.
-> 
-> Ooooh, that would solve a lot of problems actually if it were to be available
-> on all architectures. On SPARC, the situation is really annoying and I have
-> been discussing a solution with the Qt developers and they suggested a
-> similar approach, just one that would also apply to brk() [1].
-> 
-> > If an application wants to have access to larger address space, it has to
-> > specify hint addess above 47-bits.
-> > 
-> > See details here:
-> > 
-> > http://lkml.kernel.org/r/20170420162147.86517-10-kirill.shutemov@linux.intel.com
-> 
-> Thanks. I'll have a read. Although from your message I'm reading out that
-> this particular proposal got rejected.
+On Mon, Apr 24, 2017 at 10:52 PM, Kees Cook <keescook@chromium.org> wrote:
+> On Mon, Apr 24, 2017 at 1:30 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+>> How about this approach then:
+>>
+>> - To keep it simple, we update the README.rst to say that a minimum
+>>   gcc-4.3 is required, while recommending gcc-4.9 for all architectures
+>> - Support for gcc-4.0 and earlier gets removed from linux/compiler.h,
+>>   and instead we add a summary of what I found, explaining that
+>>   gcc-4.1 has active users on a few architectures.
+>> - We make the Makefile show a warning once during compilation for
+>>   gcc earlier than 4.3.
+>
+> This sounds good to me!
 
-No. I just wasn't applied yet, so situation may change.
++1
 
-> Would be really nice to able to have a canonical solution for this issue,
-> it's been biting us on SPARC for quite a while now due to the fact that
-> virtual address space has been 52 bits on SPARC for a while now.
+Gr{oetje,eeting}s,
 
-Power folks are going to implement similar approach. I don't see why Sparc
-can't go the same route.
+                        Geert
 
--- 
- Kirill A. Shutemov
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
