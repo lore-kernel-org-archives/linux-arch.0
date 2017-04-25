@@ -1,61 +1,64 @@
-From: Rik van Riel <riel@redhat.com>
-Subject: Re: [kernel-hardening] Re: [PATCH] x86/refcount: Implement fast
- refcount_t handling
-Date: Mon, 24 Apr 2017 21:11:20 -0400
-Message-ID: <1493082680.23190.1.camel@redhat.com>
-References: <20170421220939.GA65363@beast>
-         <58FDF8C4.5120.17D092B7@pageexec.freemail.hu>
-         <20170424133323.cf3xyd3mmwp6ixaz@hirez.programming.kicks-ass.net>
-         <58FE1687.5511.1844D4FC@pageexec.freemail.hu>
-         <CAGXu5jK5s0KBAfwHPhobiSCn6b0QA4Wb=w=eJG4KyukwbdHTzg@mail.gmail.com>
-         <20170424220128.j7nnhuohqdqbiki7@hirez.programming.kicks-ass.net>
-         <CAGXu5j+tbPr04Jiv4yjJJO3h89fDxy-iWAeuoDZ2N+XDY58umw@mail.gmail.com>
+From: "dongbo (E)" <dongbo4@huawei.com>
+Subject: [PATCH REPOST] fs: Preventing READ_IMPLIES_EXEC Propagation
+Date: Tue, 25 Apr 2017 14:58:01 +0800
+Message-ID: <481124c6-07ba-4cb8-ca56-fb228b05f796@huawei.com>
+References: <2414e3b3-03f6-bd6c-5aa4-ad58c66b5aa5@huawei.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset="windows-1252"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:34298 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S970007AbdDYBL0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 24 Apr 2017 21:11:26 -0400
-In-Reply-To: <CAGXu5j+tbPr04Jiv4yjJJO3h89fDxy-iWAeuoDZ2N+XDY58umw@mail.gmail.com>
+Received: from szxga01-in.huawei.com ([45.249.212.187]:5796 "EHLO
+        dggrg01-dlp.huawei.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+        with ESMTP id S941212AbdDYG6L (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Apr 2017 02:58:11 -0400
+In-Reply-To: <2414e3b3-03f6-bd6c-5aa4-ad58c66b5aa5@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>
-Cc: PaX Team <pageexec@freemail.hu>, LKML <linux-kernel@vger.kernel.org>, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jann Horn <jann@thejh.net>, "David S. Miller" <davem@davemloft.net>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
+To: linux-arch@vger.kernel.org
+Cc: linux-fsdevel@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, catalin.marinas@arm.com, will.deacon@arm.com, arm-mail-list <linux-arm-kernel@lists.infradead.org>, Mark Rutland <mark.rutland@arm.com>
 
-On Mon, 2017-04-24 at 15:37 -0700, Kees Cook wrote:
-> On Mon, Apr 24, 2017 at 3:01 PM, Peter Zijlstra <peterz@infradead.org
-> > wrote:
-> > On Mon, Apr 24, 2017 at 01:40:56PM -0700, Kees Cook wrote:
-> > > I think we're way off in the weeds here. The "cannot inc from 0"
-> > > check
-> > > is about general sanity checks on refcounts.
-> > 
-> > I disagree, although sanity check are good too.
-> > 
-> > > It should never happen, and if it does, there's a bug.
-> > 
-> > The very same is true of the overflow thing.
-> > 
-> > > However, what the refcount hardening protection is trying to do
-> > > is
-> > > protect again the exploitable condition: overflow.
-> > 
-> > Sure..
-> > 
-> > > Inc-from-0 isn't an exploitable condition since in theory
-> > > the memory suddenly becomes correctly managed again.
-> > 
-> > It does not. It just got free'ed. Nothing will stop the free from
-> > happening (or already having happened).
-> 
-> Well, yes, but that's kind of my point. Detecting inc-from-0 is "too
-> late" to offer a protection. It offers notification of a bug, rather
-> than stopping an exploit from happening.
+From: Dong Bo <dongbo4@huawei.com>
 
-inc-from-0 could allow the attacker to gain access to
-an object which gets allocated to a new user afterwards.
+In load_elf_binary(), once the READ_IMPLIES_EXEC flag is set,
+the flag is propagated to its child processes, even the elf
+files are marked as not requiring executable stack. It may
+cause superfluous operations on some arch, e.g.
+__sync_icache_dcache on aarch64 due to a PROT_READ mmap is
+also marked as PROT_EXEC.
 
-Certainly much less useful as an exploit, but still a
-potential privilege escalation.
+This patch was originally posted and discussed here:
+https://patchwork.kernel.org/patch/9685891/
+
+Signed-off-by: Dong Bo <dongbo4@huawei.com>
+---
+ fs/binfmt_elf.c       | 2 ++
+ fs/binfmt_elf_fdpic.c | 2 ++
+ 2 files changed, 4 insertions(+)
+
+diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
+index 5075fd5..c52e670 100644
+--- a/fs/binfmt_elf.c
++++ b/fs/binfmt_elf.c
+@@ -863,6 +863,8 @@ static int load_elf_binary(struct linux_binprm *bprm)
+ 	SET_PERSONALITY2(loc->elf_ex, &arch_state);
+ 	if (elf_read_implies_exec(loc->elf_ex, executable_stack))
+ 		current->personality |= READ_IMPLIES_EXEC;
++	else
++		current->personality &= ~READ_IMPLIES_EXEC;
+  	if (!(current->personality & ADDR_NO_RANDOMIZE) && randomize_va_space)
+ 		current->flags |= PF_RANDOMIZE;
+diff --git a/fs/binfmt_elf_fdpic.c b/fs/binfmt_elf_fdpic.c
+index cf93a4f..c4bc4d0 100644
+--- a/fs/binfmt_elf_fdpic.c
++++ b/fs/binfmt_elf_fdpic.c
+@@ -354,6 +354,8 @@ static int load_elf_fdpic_binary(struct linux_binprm *bprm)
+ 		set_personality(PER_LINUX);
+ 	if (elf_read_implies_exec(&exec_params.hdr, executable_stack))
+ 		current->personality |= READ_IMPLIES_EXEC;
++	else
++		current->personality &= ~READ_IMPLIES_EXEC;
+  	setup_new_exec(bprm);
+ -- 1.9.1
+
+
+.
