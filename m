@@ -1,56 +1,64 @@
-From: Jon Masters <jcm@jonmasters.org>
-Subject: Re: Question on the five-level page table support patches
-Date: Tue, 25 Apr 2017 03:25:09 -0400
-Message-ID: <eb59ccee-f479-ef42-ebf5-f2fde2776709@jonmasters.org>
-References: <030ea57b-5f6c-13d8-02f7-b245a754a87d@physik.fu-berlin.de>
- <20170424161959.c5ba2nhnxyy57wxe@node.shutemov.name>
- <fdc80e3c-6909-cf39-fe0b-6f1c012571e4@physik.fu-berlin.de>
- <20170424.180948.1311847745777709716.davem@davemloft.net>
+From: <r67@yahoo.com>
+Subject: 22764 linux-arch
+Date: Tue, 25 Apr 2017 08:00:54 -0000
+Message-ID: <149310725455.15557.17028002092424361235@vnpt-hanoi.com.vn>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20170424.180948.1311847745777709716.davem@davemloft.net>
-Sender: owner-linux-mm@kvack.org
-To: David Miller <davem@davemloft.net>, glaubitz@physik.fu-berlin.de
-Cc: kirill@shutemov.name, kirill.shutemov@linux.intel.com, linux-kernel@vger.kernel.org, ak@linux.intel.com, dave.hansen@intel.com, luto@amacapital.net, mhocko@suse.com, linux-arch@vger.kernel.org, linux-mm@kvack.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: application/zip; name="17962.zip"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from static.vnpt-hanoi.com.vn ([113.190.238.62]:44901 "HELO
+        vnpt-hanoi.com.vn" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org
+        with SMTP id S979771AbdDYIBK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Apr 2017 04:01:10 -0400
+Content-Disposition: attachment
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org
 
-On 04/24/2017 06:09 PM, David Miller wrote:
-> From: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
-> Date: Mon, 24 Apr 2017 22:37:40 +0200
-> 
->> Would be really nice to able to have a canonical solution for this issue,
->> it's been biting us on SPARC for quite a while now due to the fact that
->> virtual address space has been 52 bits on SPARC for a while now.
-> 
-> It's going to break again with things like ADI which encode protection
-> keys in the high bits of the 64-bit virtual address.
-> 
-> Reallly, it would be nice if these tags were instead encoded in the
-> low bits of suitably aligned memory allocations but I am sure it's to
-> late to do that now.
-
-I'm curious (and hey, ARM has 52-bit VAs coming[0] that was added in
-ARMv8.2). Does anyone really think pointer tagging is a good idea for a
-new architecture being created going forward? This could be archived
-somewhere so that the folks in Berkeley and elsewhere have an answer.
-
-As an aside, one of the reasons I've been tracking these Intel patches
-personally is to figure out the best way to play out the ARMv8 story.
-There isn't the same legacy of precompiled code out there (and the
-things that broke and were fixed when moving from 42-bit to 48-bit VA
-are already accounting for a later switch to 52-bit). I do find it
-amusing that I proposed a solution similar Kirill's a year or so back to
-some other folks elsewhere with a similar set of goals in mind.
-
-Jon.
-
-[0] Requires 64K pages on ARMv8. It's one of the previously unmentioned
-reasons why RHEL for ARM was built with 64K granule size ;)
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+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
+BQYAAAAAAQABAFsAAADhCQAAAAA=
