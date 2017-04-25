@@ -1,59 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f50.google.com ([209.85.214.50]:35757 "EHLO
-        mail-it0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1431857AbdDYQgY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Apr 2017 12:36:24 -0400
-Received: by mail-it0-f50.google.com with SMTP id 70so22165037ita.0
-        for <linux-arch@vger.kernel.org>; Tue, 25 Apr 2017 09:36:18 -0700 (PDT)
-MIME-Version: 1.0
-In-Reply-To: <58FF3273.2718.1C99E5A3@pageexec.freemail.hu>
-References: <20170421220939.GA65363@beast> <CAGXu5jK5s0KBAfwHPhobiSCn6b0QA4Wb=w=eJG4KyukwbdHTzg@mail.gmail.com>
- <20170424220128.j7nnhuohqdqbiki7@hirez.programming.kicks-ass.net> <58FF3273.2718.1C99E5A3@pageexec.freemail.hu>
+Received: from mail-it0-f52.google.com ([209.85.214.52]:35610 "EHLO
+        mail-it0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1953495AbdDYW4n (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Apr 2017 18:56:43 -0400
+Received: by mail-it0-f52.google.com with SMTP id 70so28682591ita.0
+        for <linux-arch@vger.kernel.org>; Tue, 25 Apr 2017 15:56:43 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Date: Tue, 25 Apr 2017 09:36:17 -0700
-Message-ID: <CAGXu5j+PrB73FW9eYAaK4v0QBN01-_WLzq+oX2nUB2uuA4jXPw@mail.gmail.com>
-Subject: Re: [PATCH] x86/refcount: Implement fast refcount_t handling
-Content-Type: text/plain; charset=UTF-8
+Subject: [PATCH v2 0/2] x86, refcount: Implement fast refcount overflow
+Date: Tue, 25 Apr 2017 15:56:35 -0700
+Message-ID: <1493160997-126108-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: PaX Team <pageexec@freemail.hu>
-Cc: Peter Zijlstra <peterz@infradead.org>, LKML <linux-kernel@vger.kernel.org>, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jann Horn <jann@thejh.net>, "David S. Miller" <davem@davemloft.net>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
-Message-ID: <20170425163617.OZxBc8l3b6xxvv1VnuxYC_9UT3dy493oOX8nqXOqNqo@z>
+To: linux-kernel@vger.kernel.org
+Cc: Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>, PaX Team <pageexec@freemail.hu>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
+Message-ID: <20170425225635.Yeooe2xfDTn3U8pmqUH8G96L4103SvFLehRlhAmj0wM@z>
 
-On Tue, Apr 25, 2017 at 4:26 AM, PaX Team <pageexec@freemail.hu> wrote:
-> On 25 Apr 2017 at 0:01, Peter Zijlstra wrote:
->> How is the below not useful fodder for an exploit? It might be a less
->> common bug, and perhaps a bit more fiddly to make work, but afaict its
->> still a full use-after-free and therefore useful.
->>
->> ---
->>
->> Thread-A                                        Thread-B
->>
->> if(dec_and_test(&obj->ref)) { // true, ref==0
->>
->>                                                 inc(&obj->ref) // ref: 0->1
->>
->>         kfree(obj);
->> }
->
-> ... and tell me why an attacker would let Thread-B do that increment
-> (that you're trying to detect) *before* the underlying memory gets
-> reused and thus the 0 changed to something else? hint: he'll do everything
-> in his power to prevent that, either by winning the race or if there's
-> no race (no refcount users outside his control), he'll win every time.
-> IOW, checking for 0 is pointless and you kinda proved it yourself now.
+This protection is a modified version of the x86 PAX_REFCOUNT
+implementation from PaX/grsecurity. This speeds up the refcount_t API by
+duplicating the existing atomic_t implementation with a single instruction
+added to detect if the refcount has wrapped past INT_MAX (or below 0)
+resulting in a signed value.
 
-Right, having a deterministic protection (checking for overflow) is
-best since it stops all exploits using that path. Hoping that an
-attacker is unlucky and hits a notification after they've already
-landed their corruption is not a very useful defense. It certainly has
-a non-zero value, but stopping overflow 100% is better. Especially
-when we can do it with no meaningful change in performance which lets
-us actually do the atomic_t -> refcount_t conversion everywhere.
+Note that this protection is only meaningful for the overflow case,
+as that can be detected and stopped before the reference is freed and
+left to be abused by an attacker. Catching the "inc from 0" case is
+nice to have, but only indicates that a use-after-free has already
+happened. Such notifications are likely avoidable by an attacker that
+has already exploited a use-after-free vulnerability. With this overflow
+protection, the use-after-free cannot happen in the first place, avoiding
+the vulnerability entirely.
+
+On overflow detection (actually "signed value" detection), the offending
+process is killed, a report is generated, and the refcount value is reset
+to INT_MAX. This allows the system to attempt to keep operating. Another
+option, not done in this patch, would be to reset the counter to (INT_MIN
+/ 2) to trap all future refcount inc or dec actions. Yet another option
+would be to choose (INT_MAX - N) with some small N to provide some
+headroom for legitimate users of the reference counter.
+
+On the matter of races, since the entire range beyond INT_MAX but before 0
+is signed, every inc will trap, leaving no overflow-only race condition.
+
+As for performance, this implementation adds a single "js" instruction to
+a copy of the regular atomic_t operations, making this comparable to the
+existing atomic_t operations. The detection routine uses a combination of an
+alternative section exception handler and trap to return back to C for
+handling the error condition with minimal increase in text size.
+
+Various differences from PaX:
+- applied only to refcount_t, not atomic_t
+- rebased to -next
+- reorganized refcount error handler and section declaration locations
+- uses "js" instead of "jo" to trap all signed results instead of just
+  under/overflow transitions
+
+v2:
+- fix instruction pointer decrement bug; thejh
+- switch to js; pax-team
+- improve commit log
+- extract rmwcc macro helpers for better readability
+- implemented checks in inc_not_zero interface
+- adjusted reset values
 
 -Kees
-
--- 
-Kees Cook
-Pixel Security
