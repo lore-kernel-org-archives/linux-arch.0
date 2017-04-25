@@ -1,71 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from r00tworld.com ([212.85.137.150]:58423 "EHLO r00tworld.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1946936AbdDYL1z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 25 Apr 2017 07:27:55 -0400
-From: "PaX Team" <pageexec@freemail.hu>
-Date: Tue, 25 Apr 2017 13:26:43 +0200
+Received: from mail-it0-f50.google.com ([209.85.214.50]:35757 "EHLO
+        mail-it0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1431857AbdDYQgY (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Apr 2017 12:36:24 -0400
+Received: by mail-it0-f50.google.com with SMTP id 70so22165037ita.0
+        for <linux-arch@vger.kernel.org>; Tue, 25 Apr 2017 09:36:18 -0700 (PDT)
 MIME-Version: 1.0
+In-Reply-To: <58FF3273.2718.1C99E5A3@pageexec.freemail.hu>
+References: <20170421220939.GA65363@beast> <CAGXu5jK5s0KBAfwHPhobiSCn6b0QA4Wb=w=eJG4KyukwbdHTzg@mail.gmail.com>
+ <20170424220128.j7nnhuohqdqbiki7@hirez.programming.kicks-ass.net> <58FF3273.2718.1C99E5A3@pageexec.freemail.hu>
+From: Kees Cook <keescook@chromium.org>
+Date: Tue, 25 Apr 2017 09:36:17 -0700
+Message-ID: <CAGXu5j+PrB73FW9eYAaK4v0QBN01-_WLzq+oX2nUB2uuA4jXPw@mail.gmail.com>
 Subject: Re: [PATCH] x86/refcount: Implement fast refcount_t handling
-Reply-to: pageexec@freemail.hu
-Message-ID: <58FF3273.2718.1C99E5A3@pageexec.freemail.hu>
-In-reply-to: <20170424220128.j7nnhuohqdqbiki7@hirez.programming.kicks-ass.net>
-References: <20170421220939.GA65363@beast>, <CAGXu5jK5s0KBAfwHPhobiSCn6b0QA4Wb=w=eJG4KyukwbdHTzg@mail.gmail.com>, <20170424220128.j7nnhuohqdqbiki7@hirez.programming.kicks-ass.net>
-Content-type: text/plain; charset=US-ASCII
-Content-transfer-encoding: 7BIT
-Content-description: Mail message body
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jann Horn <jann@thejh.net>, "David S. Miller" <davem@davemloft.net>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
-Message-ID: <20170425112643.sC6-g8biKYX6zCM4s_1fqFshtGarRJ_S8DLAkwJnhwE@z>
+To: PaX Team <pageexec@freemail.hu>
+Cc: Peter Zijlstra <peterz@infradead.org>, LKML <linux-kernel@vger.kernel.org>, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jann Horn <jann@thejh.net>, "David S. Miller" <davem@davemloft.net>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
+Message-ID: <20170425163617.OZxBc8l3b6xxvv1VnuxYC_9UT3dy493oOX8nqXOqNqo@z>
 
-On 25 Apr 2017 at 0:01, Peter Zijlstra wrote:
+On Tue, Apr 25, 2017 at 4:26 AM, PaX Team <pageexec@freemail.hu> wrote:
+> On 25 Apr 2017 at 0:01, Peter Zijlstra wrote:
+>> How is the below not useful fodder for an exploit? It might be a less
+>> common bug, and perhaps a bit more fiddly to make work, but afaict its
+>> still a full use-after-free and therefore useful.
+>>
+>> ---
+>>
+>> Thread-A                                        Thread-B
+>>
+>> if(dec_and_test(&obj->ref)) { // true, ref==0
+>>
+>>                                                 inc(&obj->ref) // ref: 0->1
+>>
+>>         kfree(obj);
+>> }
+>
+> ... and tell me why an attacker would let Thread-B do that increment
+> (that you're trying to detect) *before* the underlying memory gets
+> reused and thus the 0 changed to something else? hint: he'll do everything
+> in his power to prevent that, either by winning the race or if there's
+> no race (no refcount users outside his control), he'll win every time.
+> IOW, checking for 0 is pointless and you kinda proved it yourself now.
 
-> On Mon, Apr 24, 2017 at 01:40:56PM -0700, Kees Cook wrote:
-> > I think we're way off in the weeds here. The "cannot inc from 0" check
-> > is about general sanity checks on refcounts.
-> 
-> I disagree, although sanity check are good too.
+Right, having a deterministic protection (checking for overflow) is
+best since it stops all exploits using that path. Hoping that an
+attacker is unlucky and hits a notification after they've already
+landed their corruption is not a very useful defense. It certainly has
+a non-zero value, but stopping overflow 100% is better. Especially
+when we can do it with no meaningful change in performance which lets
+us actually do the atomic_t -> refcount_t conversion everywhere.
 
-exactly, an attacker doesn't care how a premature free occurs due
-to reaching a 0 refcount, afterwards it's memory corruption time for
-both old and new references regardless.
+-Kees
 
-> > However, what the refcount hardening protection is trying to do is
-> > protect again the exploitable condition: overflow.
-> 
-> Sure..
-
-underflow is also exploitable, it's just much harder to defend against
-(there're no known practical solutions).
-
-> > Inc-from-0 isn't an exploitable condition since in theory
-> > the memory suddenly becomes correctly managed again.
-> 
-> It does not. It just got free'ed. Nothing will stop the free from
-> happening (or already having happened).
-
-now hold this thought...
-
-> How is the below not useful fodder for an exploit? It might be a less
-> common bug, and perhaps a bit more fiddly to make work, but afaict its
-> still a full use-after-free and therefore useful.
-> 
-> ---
-> 
-> Thread-A                                        Thread-B
-> 
-> if(dec_and_test(&obj->ref)) { // true, ref==0
-> 
->                                                 inc(&obj->ref) // ref: 0->1
-> 
->         kfree(obj);
-> }
-
-... and tell me why an attacker would let Thread-B do that increment
-(that you're trying to detect) *before* the underlying memory gets
-reused and thus the 0 changed to something else? hint: he'll do everything
-in his power to prevent that, either by winning the race or if there's
-no race (no refcount users outside his control), he'll win every time.
-IOW, checking for 0 is pointless and you kinda proved it yourself now.
+-- 
+Kees Cook
+Pixel Security
