@@ -1,40 +1,70 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH] x86/refcount: Implement fast refcount_t handling
-Date: Tue, 25 Apr 2017 11:05:58 +0200
-Message-ID: <20170425090558.vi4ihaqedlmph7va@hirez.programming.kicks-ass.net>
-References: <20170421220939.GA65363@beast>
- <58FDF8C4.5120.17D092B7@pageexec.freemail.hu>
- <20170424133323.cf3xyd3mmwp6ixaz@hirez.programming.kicks-ass.net>
- <58FE1687.5511.1844D4FC@pageexec.freemail.hu>
- <CAGXu5jK5s0KBAfwHPhobiSCn6b0QA4Wb=w=eJG4KyukwbdHTzg@mail.gmail.com>
- <20170424220128.j7nnhuohqdqbiki7@hirez.programming.kicks-ass.net>
- <CAGXu5j+tbPr04Jiv4yjJJO3h89fDxy-iWAeuoDZ2N+XDY58umw@mail.gmail.com>
+From: Suzuki K Poulose <Suzuki.Poulose@arm.com>
+Subject: Re: [RFC] minimum gcc version for kernel: raise to gcc-4.3 or 4.6?
+Date: Tue, 25 Apr 2017 10:22:23 +0100
+Message-ID: <cd617c59-b922-3a61-1eb9-71144ce4c77a@arm.com>
+References: <20161216105634.235457-1-arnd@arndb.de>
+ <3302470.IDcDrWa0u6@wuerfel>
+ <CAGXu5jLPRYi+HK=07Zndc8szEKD4mZCqaHJFnHmmoYr7tA1xPw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([65.50.211.133]:38019 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S965460AbdDYJGW (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Apr 2017 05:06:22 -0400
-Content-Disposition: inline
-In-Reply-To: <CAGXu5j+tbPr04Jiv4yjJJO3h89fDxy-iWAeuoDZ2N+XDY58umw@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <CAGXu5jLPRYi+HK=07Zndc8szEKD4mZCqaHJFnHmmoYr7tA1xPw@mail.gmail.com>
+Sender: linux-kbuild-owner@vger.kernel.org
 To: Kees Cook <keescook@chromium.org>
-Cc: PaX Team <pageexec@freemail.hu>, LKML <linux-kernel@vger.kernel.org>, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jann Horn <jann@thejh.net>, "David S. Miller" <davem@davemloft.net>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, kernel-build-reports@lists.linaro.org, LKML <linux-kernel@vger.kernel.org>, Russell King <rmk+kernel@armlinux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, kvmarm@lists.cs.columbia.edu, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Apr 24, 2017 at 03:37:32PM -0700, Kees Cook wrote:
-> On Mon, Apr 24, 2017 at 3:01 PM, Peter Zijlstra <peterz@infradead.org> wrote:
+On 16/04/17 20:52, Kees Cook wrote:
+> Was there a conclusion to this discussion? I didn't see anything
+> definitive in the thread...
+>
+> Notes below...
+>
+> On Fri, Dec 16, 2016 at 3:14 AM, Arnd Bergmann <arnd@arndb.de> wrote:
+>> [Fixed linux-arm-kernel mailing list address, sorry for the duplicate,
+>>  I'm not reposting all the ugly patches though, unless someone really
+>>  wants them, https://lkml.org/lkml/2016/12/16/174 has a copy]
+>>
+>> On Friday, December 16, 2016 11:56:21 AM CET Arnd Bergmann wrote:
+>>> I had some fun doing build testing with older gcc versions, building
+>>> every release from 4.0 through 7.0 and running that on my randconfig
+>>> setup to see what comes out.
+>>>
+>>> First of all, gcc-4.9 and higher is basically warning-free everywhere,
+>>> although gcc-7 introduces some interesting new warnings (I have started
+>>> doing patches for those as well). gcc-4.8 is probably good, too, and
+>>> gcc-4.6 and 4.7 at least don't produce build failures in general, though
+>>> the level of false-positive warnings increases (we could decide to turn
+>>> those off for older compilers for build test purposes).
+>>>
+>>> In gcc-4.5 and below, dead code elimination is not as good as later,
+>>> causing a couple of link errors, and some of them have no good workaround
+>>> (see patch 1). It would be nice to declare that version too old, but
+>>> several older distros that are still in wide use ship with compilers
+>>> earlier than 4.6:
+>>>
+>>>  RHEL6:               gcc-4.4
+>
+> This appears to have support until July 31, 2018. (Though it's using a
+> 2.6 kernel.)
+>
+>>>  Debian 6:    gcc-4.4
+>
+> This went fully unsupported on Feb 29, 2016.
+>
+>>>  Ubuntu 10.04:        gcc-4.4
+>
+> This went fully unsupported on Apr 30, 2015.
+>
+>>>  SLES11:      gcc-4.3
+>
+> General support ends Mar 31 2019, fully unsupported 31 Mar 2022. (And
+> like RHEL6 is using a 2.6 kernel.)
 
-> > It does not. It just got free'ed. Nothing will stop the free from
-> > happening (or already having happened).
-> 
-> Well, yes, but that's kind of my point. Detecting inc-from-0 is "too
-> late" to offer a protection. It offers notification of a bug, rather
-> than stopping an exploit from happening.
+fyi, SLES11 upgraded to kernel 3.0, in SP2.
 
-Well, your setup (panic_on_warn et al) would have it panic the box. That
-will effectively stop the exploit by virtue of stopping everything.
+https://www.novell.com/support/kb/doc.php?id=3594951
 
-And warn/bug/panic etc.. are I think a better option that silently
-letting it happen.
+Cheers
+Suzuki
