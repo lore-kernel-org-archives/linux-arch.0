@@ -1,55 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from edison.jonmasters.org ([173.255.233.168]:60872 "EHLO
-        edison.jonmasters.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S941644AbdDYHyQ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Apr 2017 03:54:16 -0400
-References: <030ea57b-5f6c-13d8-02f7-b245a754a87d@physik.fu-berlin.de>
- <20170424161959.c5ba2nhnxyy57wxe@node.shutemov.name>
- <fdc80e3c-6909-cf39-fe0b-6f1c012571e4@physik.fu-berlin.de>
- <20170424.180948.1311847745777709716.davem@davemloft.net>
-From: Jon Masters <jcm@jonmasters.org>
-Message-ID: <eb59ccee-f479-ef42-ebf5-f2fde2776709@jonmasters.org>
-Date: Tue, 25 Apr 2017 03:25:09 -0400
+Received: from foss.arm.com ([217.140.101.70]:38258 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1177307AbdDYJW1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 25 Apr 2017 05:22:27 -0400
+Subject: Re: [RFC] minimum gcc version for kernel: raise to gcc-4.3 or 4.6?
+References: <20161216105634.235457-1-arnd@arndb.de>
+ <3302470.IDcDrWa0u6@wuerfel>
+ <CAGXu5jLPRYi+HK=07Zndc8szEKD4mZCqaHJFnHmmoYr7tA1xPw@mail.gmail.com>
+From: Suzuki K Poulose <Suzuki.Poulose@arm.com>
+Message-ID: <cd617c59-b922-3a61-1eb9-71144ce4c77a@arm.com>
+Date: Tue, 25 Apr 2017 10:22:23 +0100
 MIME-Version: 1.0
-In-Reply-To: <20170424.180948.1311847745777709716.davem@davemloft.net>
-Content-Type: text/plain; charset=windows-1252
+In-Reply-To: <CAGXu5jLPRYi+HK=07Zndc8szEKD4mZCqaHJFnHmmoYr7tA1xPw@mail.gmail.com>
+Content-Type: text/plain; charset=us-ascii; format=flowed
 Content-Transfer-Encoding: 7bit
-Subject: Re: Question on the five-level page table support patches
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>, glaubitz@physik.fu-berlin.de
-Cc: kirill@shutemov.name, kirill.shutemov@linux.intel.com, linux-kernel@vger.kernel.org, ak@linux.intel.com, dave.hansen@intel.com, luto@amacapital.net, mhocko@suse.com, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Message-ID: <20170425072509.cx4olWQROXCTDgppy57PP0JbtnRii80mfaGrG46Lcyg@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, kernel-build-reports@lists.linaro.org, LKML <linux-kernel@vger.kernel.org>, Russell King <rmk+kernel@armlinux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, kvmarm@lists.cs.columbia.edu, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20170425092223.GKBsOvGm690zw1vvy1YNJQO_NBN_TA7tZ6Zouf8UYFs@z>
 
-On 04/24/2017 06:09 PM, David Miller wrote:
-> From: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
-> Date: Mon, 24 Apr 2017 22:37:40 +0200
-> 
->> Would be really nice to able to have a canonical solution for this issue,
->> it's been biting us on SPARC for quite a while now due to the fact that
->> virtual address space has been 52 bits on SPARC for a while now.
-> 
-> It's going to break again with things like ADI which encode protection
-> keys in the high bits of the 64-bit virtual address.
-> 
-> Reallly, it would be nice if these tags were instead encoded in the
-> low bits of suitably aligned memory allocations but I am sure it's to
-> late to do that now.
+On 16/04/17 20:52, Kees Cook wrote:
+> Was there a conclusion to this discussion? I didn't see anything
+> definitive in the thread...
+>
+> Notes below...
+>
+> On Fri, Dec 16, 2016 at 3:14 AM, Arnd Bergmann <arnd@arndb.de> wrote:
+>> [Fixed linux-arm-kernel mailing list address, sorry for the duplicate,
+>>  I'm not reposting all the ugly patches though, unless someone really
+>>  wants them, https://lkml.org/lkml/2016/12/16/174 has a copy]
+>>
+>> On Friday, December 16, 2016 11:56:21 AM CET Arnd Bergmann wrote:
+>>> I had some fun doing build testing with older gcc versions, building
+>>> every release from 4.0 through 7.0 and running that on my randconfig
+>>> setup to see what comes out.
+>>>
+>>> First of all, gcc-4.9 and higher is basically warning-free everywhere,
+>>> although gcc-7 introduces some interesting new warnings (I have started
+>>> doing patches for those as well). gcc-4.8 is probably good, too, and
+>>> gcc-4.6 and 4.7 at least don't produce build failures in general, though
+>>> the level of false-positive warnings increases (we could decide to turn
+>>> those off for older compilers for build test purposes).
+>>>
+>>> In gcc-4.5 and below, dead code elimination is not as good as later,
+>>> causing a couple of link errors, and some of them have no good workaround
+>>> (see patch 1). It would be nice to declare that version too old, but
+>>> several older distros that are still in wide use ship with compilers
+>>> earlier than 4.6:
+>>>
+>>>  RHEL6:               gcc-4.4
+>
+> This appears to have support until July 31, 2018. (Though it's using a
+> 2.6 kernel.)
+>
+>>>  Debian 6:    gcc-4.4
+>
+> This went fully unsupported on Feb 29, 2016.
+>
+>>>  Ubuntu 10.04:        gcc-4.4
+>
+> This went fully unsupported on Apr 30, 2015.
+>
+>>>  SLES11:      gcc-4.3
+>
+> General support ends Mar 31 2019, fully unsupported 31 Mar 2022. (And
+> like RHEL6 is using a 2.6 kernel.)
 
-I'm curious (and hey, ARM has 52-bit VAs coming[0] that was added in
-ARMv8.2). Does anyone really think pointer tagging is a good idea for a
-new architecture being created going forward? This could be archived
-somewhere so that the folks in Berkeley and elsewhere have an answer.
+fyi, SLES11 upgraded to kernel 3.0, in SP2.
 
-As an aside, one of the reasons I've been tracking these Intel patches
-personally is to figure out the best way to play out the ARMv8 story.
-There isn't the same legacy of precompiled code out there (and the
-things that broke and were fixed when moving from 42-bit to 48-bit VA
-are already accounting for a later switch to 52-bit). I do find it
-amusing that I proposed a solution similar Kirill's a year or so back to
-some other folks elsewhere with a similar set of goals in mind.
+https://www.novell.com/support/kb/doc.php?id=3594951
 
-Jon.
-
-[0] Requires 64K pages on ARMv8. It's one of the previously unmentioned
-reasons why RHEL for ARM was built with 64K granule size ;)
+Cheers
+Suzuki
