@@ -1,94 +1,62 @@
-From: Peter Zijlstra <peterz@infradead.org>
+From: "PaX Team" <pageexec@freemail.hu>
 Subject: Re: [PATCH] x86/refcount: Implement fast refcount_t handling
-Date: Tue, 25 Apr 2017 12:23:37 +0200
-Message-ID: <20170425102337.ocdi2v7ivue7x7cc@hirez.programming.kicks-ass.net>
-References: <20170421220939.GA65363@beast>
+Date: Tue, 25 Apr 2017 13:26:43 +0200
+Message-ID: <58FF3273.8060.1C99E526@pageexec.freemail.hu>
+References: <20170421220939.GA65363@beast>, <58FDDAC2.11341.175B5A99@pageexec.freemail.hu>, <CAGXu5jLDybHn_K=vpXOhrsBE_-EtPA+jbXCqHmm3tUgbK24BOw@mail.gmail.com>
+Reply-To: pageexec@freemail.hu
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([65.50.211.133]:38749 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S943259AbdDYKX6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Apr 2017 06:23:58 -0400
-Content-Disposition: inline
-In-Reply-To: <20170421220939.GA65363@beast>
+Received: from r00tworld.com ([212.85.137.150]:58424 "EHLO r00tworld.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1946921AbdDYL1z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 25 Apr 2017 07:27:55 -0400
+In-reply-to: <CAGXu5jLDybHn_K=vpXOhrsBE_-EtPA+jbXCqHmm3tUgbK24BOw@mail.gmail.com>
+Content-description: Mail message body
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Kees Cook <keescook@chromium.org>
-Cc: linux-kernel@vger.kernel.org, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, x86@kernel.org, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jann Horn <jann@thejh.net>, davem@davemloft.net, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, PaX Team <pageexec@freemail.hu>
+Cc: Peter Zijlstra <peterz@infradead.org>, LKML <linux-kernel@vger.kernel.org>, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jann Horn <jann@thejh.net>, "David S. Miller" <davem@davemloft.net>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
 
-On Fri, Apr 21, 2017 at 03:09:39PM -0700, Kees Cook wrote:
-> +static __always_inline void refcount_inc(refcount_t *r)
-> +{
-> +	asm volatile(LOCK_PREFIX "incl %0\n\t"
-> +		REFCOUNT_CHECK_OVERFLOW(4)
-> +		: [counter] "+m" (r->refs.counter)
-> +		: : "cc", "cx");
-> +}
-> +
-> +static __always_inline void refcount_dec(refcount_t *r)
-> +{
-> +	asm volatile(LOCK_PREFIX "decl %0\n\t"
-> +		REFCOUNT_CHECK_UNDERFLOW(4)
-> +		: [counter] "+m" (r->refs.counter)
-> +		: : "cc", "cx");
-> +}
+On 24 Apr 2017 at 13:33, Kees Cook wrote:
 
-> +dotraplinkage void do_refcount_error(struct pt_regs *regs, long error_code)
-> +{
-> +	const char *str = NULL;
-> +
-> +	BUG_ON(!(regs->flags & X86_EFLAGS_OF));
-> +
-> +#define range_check(size, direction, type, value) \
-> +	if ((unsigned long)__##size##_##direction##_start <= regs->ip && \
-> +	    regs->ip < (unsigned long)__##size##_##direction##_end) { \
-> +		*(type *)regs->cx = value; \
-> +		str = #size " " #direction; \
-> +	}
-> +
-> +	range_check(refcount,   overflow,  int, INT_MAX)
-> +	range_check(refcount,   underflow, int, INT_MIN)
-> +
-> +#undef range_check
-> +
-> +	BUG_ON(!str);
-> +	do_error_trap(regs, error_code, (char *)str, X86_REFCOUNT_VECTOR,
-> +		      SIGILL);
-> +}
-> +#endif
+> On Mon, Apr 24, 2017 at 4:00 AM, PaX Team <pageexec@freemail.hu> wrote:
+> > On 24 Apr 2017 at 10:32, Peter Zijlstra wrote:
+> >
+> >> On Fri, Apr 21, 2017 at 03:09:39PM -0700, Kees Cook wrote:
+> >> > This patch ports the x86-specific atomic overflow handling from PaX's
+> >> > PAX_REFCOUNT to the upstream refcount_t API. This is an updated version
+> >> > from PaX that eliminates the saturation race condition by resetting the
+> >> > atomic counter back to the INT_MAX saturation value on both overflow and
+> >> > underflow. To win a race, a system would have to have INT_MAX threads
+> >> > simultaneously overflow before the saturation handler runs.
+> >
+> > note that the above is wrong (and even contradicting itself and the code).
+> 
+> True, this changelog could be more accurate (it resets to INT_MAX on
+> overflow and INT_MIN on underflow). I think I'm right in saying that a
+> system would need INT_MAX threads running a refcount_inc() (and a
+> refcount_dec_and_test() at exactly the right moment) before the reset
+> handler got scheduled, though, yes?
 
+there's no uniform answer to this as there're several conditions
+that can affect the effectiveness of the refcount protection.
 
-So what avoids this:
+e.g., how many independent leaking paths can the attacker exercise
+(typically one), are these paths under some kind of locks (would
+already prevent unbounded leaks/increments should the overflow
+detecting thread be preempted), are negative refcounts allowed and
+checked for or only signed overflow, etc.
 
-	CPU0				CPU1
-
-
-	lock inc %[val]; # 0x7fffffff
-	jo  2f
-1:	...
-
-					lock dec %[val]; # 0x80000000
-					jo  2f
-				1:	...
-
-
-
-
-2:	mov $0x7fffffff, %[val]
-	jmp 1b
-
-				2:	mov $0x80000000, %[val]
-					jmp 1b
-
-
-
-
-	~~~~//~~~~
-
-
-	lock inc %val; #0x80000000
-	....
-
-	lock inc %val; 0xffffffff
-	lock inc %val; 0x00000000
+INT_MAX threads would be needed when the leaking path is locked so
+that it can only be exercised once and you'll need to get normal
+(balanced) paths preempted just after the increment. if the leaking
+path is lockless (can be exercised in parallel without bounds) then
+2 threads are enough where the one triggering the signed overflow
+would have to be preempted while the other one does INT_MAX increments
+and trigger the UAF. this is where the other mechanisms i talked about
+in the past become relevant: preemption or interrupts can be disabled
+or negative refcount values can be detected and acted upon (your blind
+copy-pasting effort passed upon this latter opportunity by not
+specializing the 'jo' into 'js' for the refcount case).
