@@ -1,64 +1,40 @@
-From: <r67@yahoo.com>
-Subject: 22764 linux-arch
-Date: Tue, 25 Apr 2017 08:00:54 -0000
-Message-ID: <149310725455.15557.17028002092424361235@vnpt-hanoi.com.vn>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH] x86/refcount: Implement fast refcount_t handling
+Date: Tue, 25 Apr 2017 11:05:58 +0200
+Message-ID: <20170425090558.vi4ihaqedlmph7va@hirez.programming.kicks-ass.net>
+References: <20170421220939.GA65363@beast>
+ <58FDF8C4.5120.17D092B7@pageexec.freemail.hu>
+ <20170424133323.cf3xyd3mmwp6ixaz@hirez.programming.kicks-ass.net>
+ <58FE1687.5511.1844D4FC@pageexec.freemail.hu>
+ <CAGXu5jK5s0KBAfwHPhobiSCn6b0QA4Wb=w=eJG4KyukwbdHTzg@mail.gmail.com>
+ <20170424220128.j7nnhuohqdqbiki7@hirez.programming.kicks-ass.net>
+ <CAGXu5j+tbPr04Jiv4yjJJO3h89fDxy-iWAeuoDZ2N+XDY58umw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: application/zip; name="17962.zip"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from static.vnpt-hanoi.com.vn ([113.190.238.62]:44901 "HELO
-        vnpt-hanoi.com.vn" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org
-        with SMTP id S979771AbdDYIBK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Apr 2017 04:01:10 -0400
-Content-Disposition: attachment
+Received: from bombadil.infradead.org ([65.50.211.133]:38019 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S965460AbdDYJGW (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Apr 2017 05:06:22 -0400
+Content-Disposition: inline
+In-Reply-To: <CAGXu5j+tbPr04Jiv4yjJJO3h89fDxy-iWAeuoDZ2N+XDY58umw@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+To: Kees Cook <keescook@chromium.org>
+Cc: PaX Team <pageexec@freemail.hu>, LKML <linux-kernel@vger.kernel.org>, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jann Horn <jann@thejh.net>, "David S. Miller" <davem@davemloft.net>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
 
-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
-BQYAAAAAAQABAFsAAADhCQAAAAA=
+On Mon, Apr 24, 2017 at 03:37:32PM -0700, Kees Cook wrote:
+> On Mon, Apr 24, 2017 at 3:01 PM, Peter Zijlstra <peterz@infradead.org> wrote:
+
+> > It does not. It just got free'ed. Nothing will stop the free from
+> > happening (or already having happened).
+> 
+> Well, yes, but that's kind of my point. Detecting inc-from-0 is "too
+> late" to offer a protection. It offers notification of a bug, rather
+> than stopping an exploit from happening.
+
+Well, your setup (panic_on_warn et al) would have it panic the box. That
+will effectively stop the exploit by virtue of stopping everything.
+
+And warn/bug/panic etc.. are I think a better option that silently
+letting it happen.
