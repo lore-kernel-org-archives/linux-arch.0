@@ -1,75 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:38258 "EHLO foss.arm.com"
+Received: from r00tworld.com ([212.85.137.150]:58423 "EHLO r00tworld.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1177307AbdDYJW1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 25 Apr 2017 05:22:27 -0400
-Subject: Re: [RFC] minimum gcc version for kernel: raise to gcc-4.3 or 4.6?
-References: <20161216105634.235457-1-arnd@arndb.de>
- <3302470.IDcDrWa0u6@wuerfel>
- <CAGXu5jLPRYi+HK=07Zndc8szEKD4mZCqaHJFnHmmoYr7tA1xPw@mail.gmail.com>
-From: Suzuki K Poulose <Suzuki.Poulose@arm.com>
-Message-ID: <cd617c59-b922-3a61-1eb9-71144ce4c77a@arm.com>
-Date: Tue, 25 Apr 2017 10:22:23 +0100
+        id S1946936AbdDYL1z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 25 Apr 2017 07:27:55 -0400
+From: "PaX Team" <pageexec@freemail.hu>
+Date: Tue, 25 Apr 2017 13:26:43 +0200
 MIME-Version: 1.0
-In-Reply-To: <CAGXu5jLPRYi+HK=07Zndc8szEKD4mZCqaHJFnHmmoYr7tA1xPw@mail.gmail.com>
-Content-Type: text/plain; charset=us-ascii; format=flowed
-Content-Transfer-Encoding: 7bit
+Subject: Re: [PATCH] x86/refcount: Implement fast refcount_t handling
+Reply-to: pageexec@freemail.hu
+Message-ID: <58FF3273.2718.1C99E5A3@pageexec.freemail.hu>
+In-reply-to: <20170424220128.j7nnhuohqdqbiki7@hirez.programming.kicks-ass.net>
+References: <20170421220939.GA65363@beast>, <CAGXu5jK5s0KBAfwHPhobiSCn6b0QA4Wb=w=eJG4KyukwbdHTzg@mail.gmail.com>, <20170424220128.j7nnhuohqdqbiki7@hirez.programming.kicks-ass.net>
+Content-type: text/plain; charset=US-ASCII
+Content-transfer-encoding: 7BIT
+Content-description: Mail message body
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, kernel-build-reports@lists.linaro.org, LKML <linux-kernel@vger.kernel.org>, Russell King <rmk+kernel@armlinux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, kvmarm@lists.cs.columbia.edu, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20170425092223.GKBsOvGm690zw1vvy1YNJQO_NBN_TA7tZ6Zouf8UYFs@z>
+To: Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jann Horn <jann@thejh.net>, "David S. Miller" <davem@davemloft.net>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
+Message-ID: <20170425112643.sC6-g8biKYX6zCM4s_1fqFshtGarRJ_S8DLAkwJnhwE@z>
 
-On 16/04/17 20:52, Kees Cook wrote:
-> Was there a conclusion to this discussion? I didn't see anything
-> definitive in the thread...
->
-> Notes below...
->
-> On Fri, Dec 16, 2016 at 3:14 AM, Arnd Bergmann <arnd@arndb.de> wrote:
->> [Fixed linux-arm-kernel mailing list address, sorry for the duplicate,
->>  I'm not reposting all the ugly patches though, unless someone really
->>  wants them, https://lkml.org/lkml/2016/12/16/174 has a copy]
->>
->> On Friday, December 16, 2016 11:56:21 AM CET Arnd Bergmann wrote:
->>> I had some fun doing build testing with older gcc versions, building
->>> every release from 4.0 through 7.0 and running that on my randconfig
->>> setup to see what comes out.
->>>
->>> First of all, gcc-4.9 and higher is basically warning-free everywhere,
->>> although gcc-7 introduces some interesting new warnings (I have started
->>> doing patches for those as well). gcc-4.8 is probably good, too, and
->>> gcc-4.6 and 4.7 at least don't produce build failures in general, though
->>> the level of false-positive warnings increases (we could decide to turn
->>> those off for older compilers for build test purposes).
->>>
->>> In gcc-4.5 and below, dead code elimination is not as good as later,
->>> causing a couple of link errors, and some of them have no good workaround
->>> (see patch 1). It would be nice to declare that version too old, but
->>> several older distros that are still in wide use ship with compilers
->>> earlier than 4.6:
->>>
->>>  RHEL6:               gcc-4.4
->
-> This appears to have support until July 31, 2018. (Though it's using a
-> 2.6 kernel.)
->
->>>  Debian 6:    gcc-4.4
->
-> This went fully unsupported on Feb 29, 2016.
->
->>>  Ubuntu 10.04:        gcc-4.4
->
-> This went fully unsupported on Apr 30, 2015.
->
->>>  SLES11:      gcc-4.3
->
-> General support ends Mar 31 2019, fully unsupported 31 Mar 2022. (And
-> like RHEL6 is using a 2.6 kernel.)
+On 25 Apr 2017 at 0:01, Peter Zijlstra wrote:
 
-fyi, SLES11 upgraded to kernel 3.0, in SP2.
+> On Mon, Apr 24, 2017 at 01:40:56PM -0700, Kees Cook wrote:
+> > I think we're way off in the weeds here. The "cannot inc from 0" check
+> > is about general sanity checks on refcounts.
+> 
+> I disagree, although sanity check are good too.
 
-https://www.novell.com/support/kb/doc.php?id=3594951
+exactly, an attacker doesn't care how a premature free occurs due
+to reaching a 0 refcount, afterwards it's memory corruption time for
+both old and new references regardless.
 
-Cheers
-Suzuki
+> > However, what the refcount hardening protection is trying to do is
+> > protect again the exploitable condition: overflow.
+> 
+> Sure..
+
+underflow is also exploitable, it's just much harder to defend against
+(there're no known practical solutions).
+
+> > Inc-from-0 isn't an exploitable condition since in theory
+> > the memory suddenly becomes correctly managed again.
+> 
+> It does not. It just got free'ed. Nothing will stop the free from
+> happening (or already having happened).
+
+now hold this thought...
+
+> How is the below not useful fodder for an exploit? It might be a less
+> common bug, and perhaps a bit more fiddly to make work, but afaict its
+> still a full use-after-free and therefore useful.
+> 
+> ---
+> 
+> Thread-A                                        Thread-B
+> 
+> if(dec_and_test(&obj->ref)) { // true, ref==0
+> 
+>                                                 inc(&obj->ref) // ref: 0->1
+> 
+>         kfree(obj);
+> }
+
+... and tell me why an attacker would let Thread-B do that increment
+(that you're trying to detect) *before* the underlying memory gets
+reused and thus the 0 changed to something else? hint: he'll do everything
+in his power to prevent that, either by winning the race or if there's
+no race (no refcount users outside his control), he'll win every time.
+IOW, checking for 0 is pointless and you kinda proved it yourself now.
