@@ -1,47 +1,64 @@
-From: <christine_pomeranz@fitnyc.edu>
-Subject: 12074 linux-arch
-Date: Tue, 25 Apr 2017 18:23:58 -0000
-Message-ID: <149314463838.17249.13805707035935690821@vnpt.vn>
-Mime-Version: 1.0
-Content-Type: application/zip; name="9460094777553.zip"
-Content-Transfer-Encoding: base64
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH v2 0/2] x86, refcount: Implement fast refcount overflow
+Date: Tue, 25 Apr 2017 15:56:35 -0700
+Message-ID: <1493160997-126108-1-git-send-email-keescook@chromium.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from static.vnpt.vn ([14.228.130.149]:38676 "HELO vnpt.vn"
-        rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with SMTP
-        id S1952699AbdDYSYP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 25 Apr 2017 14:24:15 -0400
-Content-Disposition: attachment
+Received: from mail-it0-f52.google.com ([209.85.214.52]:35610 "EHLO
+        mail-it0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1953495AbdDYW4n (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Apr 2017 18:56:43 -0400
+Received: by mail-it0-f52.google.com with SMTP id 70so28682591ita.0
+        for <linux-arch@vger.kernel.org>; Tue, 25 Apr 2017 15:56:43 -0700 (PDT)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>, PaX Team <pageexec@freemail.hu>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.>
 
-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
+This protection is a modified version of the x86 PAX_REFCOUNT
+implementation from PaX/grsecurity. This speeds up the refcount_t API by
+duplicating the existing atomic_t implementation with a single instruction
+added to detect if the refcount has wrapped past INT_MAX (or below 0)
+resulting in a signed value.
+
+Note that this protection is only meaningful for the overflow case,
+as that can be detected and stopped before the reference is freed and
+left to be abused by an attacker. Catching the "inc from 0" case is
+nice to have, but only indicates that a use-after-free has already
+happened. Such notifications are likely avoidable by an attacker that
+has already exploited a use-after-free vulnerability. With this overflow
+protection, the use-after-free cannot happen in the first place, avoiding
+the vulnerability entirely.
+
+On overflow detection (actually "signed value" detection), the offending
+process is killed, a report is generated, and the refcount value is reset
+to INT_MAX. This allows the system to attempt to keep operating. Another
+option, not done in this patch, would be to reset the counter to (INT_MIN
+/ 2) to trap all future refcount inc or dec actions. Yet another option
+would be to choose (INT_MAX - N) with some small N to provide some
+headroom for legitimate users of the reference counter.
+
+On the matter of races, since the entire range beyond INT_MAX but before 0
+is signed, every inc will trap, leaving no overflow-only race condition.
+
+As for performance, this implementation adds a single "js" instruction to
+a copy of the regular atomic_t operations, making this comparable to the
+existing atomic_t operations. The detection routine uses a combination of an
+alternative section exception handler and trap to return back to C for
+handling the error condition with minimal increase in text size.
+
+Various differences from PaX:
+- applied only to refcount_t, not atomic_t
+- rebased to -next
+- reorganized refcount error handler and section declaration locations
+- uses "js" instead of "jo" to trap all signed results instead of just
+  under/overflow transitions
+
+v2:
+- fix instruction pointer decrement bug; thejh
+- switch to js; pax-team
+- improve commit log
+- extract rmwcc macro helpers for better readability
+- implemented checks in inc_not_zero interface
+- adjusted reset values
+
+-Kees
