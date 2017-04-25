@@ -1,60 +1,56 @@
-From: "PaX Team" <pageexec@freemail.hu>
+From: Kees Cook <keescook@chromium.org>
 Subject: Re: [PATCH] x86/refcount: Implement fast refcount_t handling
-Date: Tue, 25 Apr 2017 13:26:43 +0200
-Message-ID: <58FF3273.5306.1C99E565@pageexec.freemail.hu>
-References: <20170421220939.GA65363@beast>, <20170425102337.ocdi2v7ivue7x7cc@hirez.programming.kicks-ass.net>
-Reply-To: pageexec@freemail.hu
+Date: Tue, 25 Apr 2017 09:36:17 -0700
+Message-ID: <CAGXu5j+PrB73FW9eYAaK4v0QBN01-_WLzq+oX2nUB2uuA4jXPw@mail.gmail.com>
+References: <20170421220939.GA65363@beast> <CAGXu5jK5s0KBAfwHPhobiSCn6b0QA4Wb=w=eJG4KyukwbdHTzg@mail.gmail.com>
+ <20170424220128.j7nnhuohqdqbiki7@hirez.programming.kicks-ass.net> <58FF3273.2718.1C99E5A3@pageexec.freemail.hu>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from r00tworld.com ([212.85.137.150]:58426 "EHLO r00tworld.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1946939AbdDYL15 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 25 Apr 2017 07:27:57 -0400
-In-reply-to: <20170425102337.ocdi2v7ivue7x7cc@hirez.programming.kicks-ass.net>
-Content-description: Mail message body
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>
-Cc: linux-kernel@vger.kernel.org, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, x86@kernel.org, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jann Horn <jann@thejh.net>, davem@davemloft.net, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com
+Content-Type: text/plain; charset=UTF-8
+Return-path: <kernel-hardening-return-7570-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+Sender: keescook@google.com
+In-Reply-To: <58FF3273.2718.1C99E5A3@pageexec.freemail.hu>
+To: PaX Team <pageexec@freemail.hu>
+Cc: Peter Zijlstra <peterz@infradead.org>, LKML <linux-kernel@vger.kernel.org>, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jann Horn <jann@thejh.net>, "David S. Miller" <davem@davemloft.net>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
+List-Id: linux-arch.vger.kernel.org
 
-On 25 Apr 2017 at 12:23, Peter Zijlstra wrote:
-
-> So what avoids this:
-
-simple, you noted it yourself in your previous mail:
-
-> Well, your setup (panic_on_warn et al) would have it panic the box. That
-> will effectively stop the exploit by virtue of stopping everything.
-
-with that in mind the actual code looks like this:
-
->	CPU0				CPU1
+On Tue, Apr 25, 2017 at 4:26 AM, PaX Team <pageexec@freemail.hu> wrote:
+> On 25 Apr 2017 at 0:01, Peter Zijlstra wrote:
+>> How is the below not useful fodder for an exploit? It might be a less
+>> common bug, and perhaps a bit more fiddly to make work, but afaict its
+>> still a full use-after-free and therefore useful.
+>>
+>> ---
+>>
+>> Thread-A                                        Thread-B
+>>
+>> if(dec_and_test(&obj->ref)) { // true, ref==0
+>>
+>>                                                 inc(&obj->ref) // ref: 0->1
+>>
+>>         kfree(obj);
+>> }
 >
->
->	lock inc %[val]; # 0x7fffffff
->	jo  2f
->1:	...
->
->					lock dec %[val]; # 0x80000000
->					jo  2f
->				1:	...
->
->
->
->
->2:	mov $0x7fffffff, %[val]
+> ... and tell me why an attacker would let Thread-B do that increment
+> (that you're trying to detect) *before* the underlying memory gets
+> reused and thus the 0 changed to something else? hint: he'll do everything
+> in his power to prevent that, either by winning the race or if there's
+> no race (no refcount users outside his control), he'll win every time.
+> IOW, checking for 0 is pointless and you kinda proved it yourself now.
 
-	panic()
+Right, having a deterministic protection (checking for overflow) is
+best since it stops all exploits using that path. Hoping that an
+attacker is unlucky and hits a notification after they've already
+landed their corruption is not a very useful defense. It certainly has
+a non-zero value, but stopping overflow 100% is better. Especially
+when we can do it with no meaningful change in performance which lets
+us actually do the atomic_t -> refcount_t conversion everywhere.
 
->	jmp 1b
->
->				2:	mov $0x80000000, %[val]
+-Kees
 
-					panic()
-
->					jmp 1b
->
-
-... and we never get this far.
+-- 
+Kees Cook
+Pixel Security
