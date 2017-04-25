@@ -1,64 +1,53 @@
-From: "dongbo (E)" <dongbo4@huawei.com>
-Subject: [PATCH REPOST] fs: Preventing READ_IMPLIES_EXEC Propagation
-Date: Tue, 25 Apr 2017 14:58:01 +0800
-Message-ID: <481124c6-07ba-4cb8-ca56-fb228b05f796@huawei.com>
-References: <2414e3b3-03f6-bd6c-5aa4-ad58c66b5aa5@huawei.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [RFC] minimum gcc version for kernel: raise to gcc-4.3 or 4.6?
+Date: Tue, 25 Apr 2017 09:06:36 +0200
+Message-ID: <CAMuHMdV+6O1CAb=+r2x=ANy_NkD3C6EzYCpawuXaf2ynvpsn2Q@mail.gmail.com>
+References: <20161216105634.235457-1-arnd@arndb.de> <3302470.IDcDrWa0u6@wuerfel>
+ <CAGXu5jLPRYi+HK=07Zndc8szEKD4mZCqaHJFnHmmoYr7tA1xPw@mail.gmail.com>
+ <CAK8P3a2C2WhWjzF=HrzU15Ncg0juR+nstZukBEpqCrVNW5pnDA@mail.gmail.com>
+ <CAGXu5jLTR+dY_Ayyix5Tg0Yn9LBFAt=j56MQVdJVGue-R-CizA@mail.gmail.com>
+ <CAK8P3a114EVbnhbObfq-4pZp8XCT4fWzMXD+WkRi7iPXs1vFMA@mail.gmail.com>
+ <CAGXu5jJpofLF0qAf0-2iNTesZt-X704Q7L=DpQYdtHY5n2HD0w@mail.gmail.com>
+ <alpine.LFD.2.20.1704220400380.32200@eddie.linux-mips.org>
+ <CAK8P3a28fi0GRcz1yLq+wRkaBBO_w74NnBCY7f3myg78JpaCCQ@mail.gmail.com>
+ <CAMuHMdWTiurUSacddYXgW69=QwOrZDV3Zt2DezJauPy8j-GMHw@mail.gmail.com>
+ <CAK8P3a32Y0AiKyVaotYb14uZZ1jM=nwhFD1vyP56epW1Y9KqSw@mail.gmail.com>
+ <alpine.LFD.2.20.1704241249350.32200@eddie.linux-mips.org>
+ <CAK8P3a03BTEBgz87k_dhJuqzOYQm_S5FFDrFgcBAE5FCH-e=dQ@mail.gmail.com>
+ <alpine.LFD.2.20.1704241908260.32200@eddie.linux-mips.org>
+ <CAK8P3a0HQUqtL=9pgPEreQJaA0AksiR06B4oAwvbYnJeA-2i7w@mail.gmail.com> <CAGXu5jKCSFVhGSD5mGLiAo6-G+k24g2Y=9p8Kr2-SffAY=uEBQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="windows-1252"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga01-in.huawei.com ([45.249.212.187]:5796 "EHLO
-        dggrg01-dlp.huawei.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-        with ESMTP id S941212AbdDYG6L (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Apr 2017 02:58:11 -0400
-In-Reply-To: <2414e3b3-03f6-bd6c-5aa4-ad58c66b5aa5@huawei.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: linux-fsdevel@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, catalin.marinas@arm.com, will.deacon@arm.com, arm-mail-list <linux-arm-kernel@lists.infradead.org>, Mark Rutland <mark.rutland@arm.com>
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <CAGXu5jKCSFVhGSD5mGLiAo6-G+k24g2Y=9p8Kr2-SffAY=uEBQ@mail.gmail.com>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Kees Cook <keescook@chromium.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, "Maciej W. Rozycki" <macro@linux-mips.org>, linux-arch <linux-arch@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Russell King <rmk+kernel@armlinux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, kernel-build-reports@lists.linaro.org, kvmarm@lists.cs.columbia.edu
+List-Id: linux-arch.vger.kernel.org
 
-From: Dong Bo <dongbo4@huawei.com>
+On Mon, Apr 24, 2017 at 10:52 PM, Kees Cook <keescook@chromium.org> wrote:
+> On Mon, Apr 24, 2017 at 1:30 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+>> How about this approach then:
+>>
+>> - To keep it simple, we update the README.rst to say that a minimum
+>>   gcc-4.3 is required, while recommending gcc-4.9 for all architectures
+>> - Support for gcc-4.0 and earlier gets removed from linux/compiler.h,
+>>   and instead we add a summary of what I found, explaining that
+>>   gcc-4.1 has active users on a few architectures.
+>> - We make the Makefile show a warning once during compilation for
+>>   gcc earlier than 4.3.
+>
+> This sounds good to me!
 
-In load_elf_binary(), once the READ_IMPLIES_EXEC flag is set,
-the flag is propagated to its child processes, even the elf
-files are marked as not requiring executable stack. It may
-cause superfluous operations on some arch, e.g.
-__sync_icache_dcache on aarch64 due to a PROT_READ mmap is
-also marked as PROT_EXEC.
++1
 
-This patch was originally posted and discussed here:
-https://patchwork.kernel.org/patch/9685891/
+Gr{oetje,eeting}s,
 
-Signed-off-by: Dong Bo <dongbo4@huawei.com>
----
- fs/binfmt_elf.c       | 2 ++
- fs/binfmt_elf_fdpic.c | 2 ++
- 2 files changed, 4 insertions(+)
+                        Geert
 
-diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
-index 5075fd5..c52e670 100644
---- a/fs/binfmt_elf.c
-+++ b/fs/binfmt_elf.c
-@@ -863,6 +863,8 @@ static int load_elf_binary(struct linux_binprm *bprm)
- 	SET_PERSONALITY2(loc->elf_ex, &arch_state);
- 	if (elf_read_implies_exec(loc->elf_ex, executable_stack))
- 		current->personality |= READ_IMPLIES_EXEC;
-+	else
-+		current->personality &= ~READ_IMPLIES_EXEC;
-  	if (!(current->personality & ADDR_NO_RANDOMIZE) && randomize_va_space)
- 		current->flags |= PF_RANDOMIZE;
-diff --git a/fs/binfmt_elf_fdpic.c b/fs/binfmt_elf_fdpic.c
-index cf93a4f..c4bc4d0 100644
---- a/fs/binfmt_elf_fdpic.c
-+++ b/fs/binfmt_elf_fdpic.c
-@@ -354,6 +354,8 @@ static int load_elf_fdpic_binary(struct linux_binprm *bprm)
- 		set_personality(PER_LINUX);
- 	if (elf_read_implies_exec(&exec_params.hdr, executable_stack))
- 		current->personality |= READ_IMPLIES_EXEC;
-+	else
-+		current->personality &= ~READ_IMPLIES_EXEC;
-  	setup_new_exec(bprm);
- -- 1.9.1
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-
-.
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
