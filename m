@@ -1,53 +1,56 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [RFC] minimum gcc version for kernel: raise to gcc-4.3 or 4.6?
-Date: Tue, 25 Apr 2017 09:06:36 +0200
-Message-ID: <CAMuHMdV+6O1CAb=+r2x=ANy_NkD3C6EzYCpawuXaf2ynvpsn2Q@mail.gmail.com>
-References: <20161216105634.235457-1-arnd@arndb.de> <3302470.IDcDrWa0u6@wuerfel>
- <CAGXu5jLPRYi+HK=07Zndc8szEKD4mZCqaHJFnHmmoYr7tA1xPw@mail.gmail.com>
- <CAK8P3a2C2WhWjzF=HrzU15Ncg0juR+nstZukBEpqCrVNW5pnDA@mail.gmail.com>
- <CAGXu5jLTR+dY_Ayyix5Tg0Yn9LBFAt=j56MQVdJVGue-R-CizA@mail.gmail.com>
- <CAK8P3a114EVbnhbObfq-4pZp8XCT4fWzMXD+WkRi7iPXs1vFMA@mail.gmail.com>
- <CAGXu5jJpofLF0qAf0-2iNTesZt-X704Q7L=DpQYdtHY5n2HD0w@mail.gmail.com>
- <alpine.LFD.2.20.1704220400380.32200@eddie.linux-mips.org>
- <CAK8P3a28fi0GRcz1yLq+wRkaBBO_w74NnBCY7f3myg78JpaCCQ@mail.gmail.com>
- <CAMuHMdWTiurUSacddYXgW69=QwOrZDV3Zt2DezJauPy8j-GMHw@mail.gmail.com>
- <CAK8P3a32Y0AiKyVaotYb14uZZ1jM=nwhFD1vyP56epW1Y9KqSw@mail.gmail.com>
- <alpine.LFD.2.20.1704241249350.32200@eddie.linux-mips.org>
- <CAK8P3a03BTEBgz87k_dhJuqzOYQm_S5FFDrFgcBAE5FCH-e=dQ@mail.gmail.com>
- <alpine.LFD.2.20.1704241908260.32200@eddie.linux-mips.org>
- <CAK8P3a0HQUqtL=9pgPEreQJaA0AksiR06B4oAwvbYnJeA-2i7w@mail.gmail.com> <CAGXu5jKCSFVhGSD5mGLiAo6-G+k24g2Y=9p8Kr2-SffAY=uEBQ@mail.gmail.com>
+From: Jon Masters <jcm@jonmasters.org>
+Subject: Re: Question on the five-level page table support patches
+Date: Tue, 25 Apr 2017 03:25:09 -0400
+Message-ID: <eb59ccee-f479-ef42-ebf5-f2fde2776709@jonmasters.org>
+References: <030ea57b-5f6c-13d8-02f7-b245a754a87d@physik.fu-berlin.de>
+ <20170424161959.c5ba2nhnxyy57wxe@node.shutemov.name>
+ <fdc80e3c-6909-cf39-fe0b-6f1c012571e4@physik.fu-berlin.de>
+ <20170424.180948.1311847745777709716.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <CAGXu5jKCSFVhGSD5mGLiAo6-G+k24g2Y=9p8Kr2-SffAY=uEBQ@mail.gmail.com>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Kees Cook <keescook@chromium.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, "Maciej W. Rozycki" <macro@linux-mips.org>, linux-arch <linux-arch@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Russell King <rmk+kernel@armlinux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, kernel-build-reports@lists.linaro.org, kvmarm@lists.cs.columbia.edu
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20170424.180948.1311847745777709716.davem@davemloft.net>
+Sender: owner-linux-mm@kvack.org
+To: David Miller <davem@davemloft.net>, glaubitz@physik.fu-berlin.de
+Cc: kirill@shutemov.name, kirill.shutemov@linux.intel.com, linux-kernel@vger.kernel.org, ak@linux.intel.com, dave.hansen@intel.com, luto@amacapital.net, mhocko@suse.com, linux-arch@vger.kernel.org, linux-mm@kvack.org
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Apr 24, 2017 at 10:52 PM, Kees Cook <keescook@chromium.org> wrote:
-> On Mon, Apr 24, 2017 at 1:30 PM, Arnd Bergmann <arnd@arndb.de> wrote:
->> How about this approach then:
->>
->> - To keep it simple, we update the README.rst to say that a minimum
->>   gcc-4.3 is required, while recommending gcc-4.9 for all architectures
->> - Support for gcc-4.0 and earlier gets removed from linux/compiler.h,
->>   and instead we add a summary of what I found, explaining that
->>   gcc-4.1 has active users on a few architectures.
->> - We make the Makefile show a warning once during compilation for
->>   gcc earlier than 4.3.
->
-> This sounds good to me!
+On 04/24/2017 06:09 PM, David Miller wrote:
+> From: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+> Date: Mon, 24 Apr 2017 22:37:40 +0200
+> 
+>> Would be really nice to able to have a canonical solution for this issue,
+>> it's been biting us on SPARC for quite a while now due to the fact that
+>> virtual address space has been 52 bits on SPARC for a while now.
+> 
+> It's going to break again with things like ADI which encode protection
+> keys in the high bits of the 64-bit virtual address.
+> 
+> Reallly, it would be nice if these tags were instead encoded in the
+> low bits of suitably aligned memory allocations but I am sure it's to
+> late to do that now.
 
-+1
+I'm curious (and hey, ARM has 52-bit VAs coming[0] that was added in
+ARMv8.2). Does anyone really think pointer tagging is a good idea for a
+new architecture being created going forward? This could be archived
+somewhere so that the folks in Berkeley and elsewhere have an answer.
 
-Gr{oetje,eeting}s,
+As an aside, one of the reasons I've been tracking these Intel patches
+personally is to figure out the best way to play out the ARMv8 story.
+There isn't the same legacy of precompiled code out there (and the
+things that broke and were fixed when moving from 42-bit to 48-bit VA
+are already accounting for a later switch to 52-bit). I do find it
+amusing that I proposed a solution similar Kirill's a year or so back to
+some other folks elsewhere with a similar set of goals in mind.
 
-                        Geert
+Jon.
+
+[0] Requires 64K pages on ARMv8. It's one of the previously unmentioned
+reasons why RHEL for ARM was built with 64K granule size ;)
 
 --
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
