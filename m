@@ -1,63 +1,119 @@
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH v5 09/32] x86/mm: Provide general kernel support for
- memory encryption
-Date: Thu, 27 Apr 2017 18:12:27 +0200
-Message-ID: <20170427161227.c57dkvghz63pvmu2@pd.tnic>
-References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
- <20170418211754.10190.25082.stgit@tlendack-t1.amdoffice.net>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH v2 2/2] x86, refcount: Implement fast refcount overflow protection
+Date: Thu, 27 Apr 2017 13:22:05 -0700
+Message-ID: <CAGXu5jKyZ954aRHg_7xhXP0CJBiJ8TV7y-dH5viwzfEj8+D6_w@mail.gmail.com>
+References: <1493160997-126108-3-git-send-email-keescook@chromium.org> <201704270938.I52YmjxT%fengguang.wu@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([5.9.137.197]:40530 "EHLO mail.skyhub.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1755467AbdD0QMb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 27 Apr 2017 12:12:31 -0400
-Content-Disposition: inline
-In-Reply-To: <20170418211754.10190.25082.stgit@tlendack-t1.amdoffice.net>
+Received: from mail-io0-f181.google.com ([209.85.223.181]:34471 "EHLO
+        mail-io0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1422845AbdD0UWH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Apr 2017 16:22:07 -0400
+Received: by mail-io0-f181.google.com with SMTP id a103so34292812ioj.1
+        for <linux-arch@vger.kernel.org>; Thu, 27 Apr 2017 13:22:06 -0700 (PDT)
+In-Reply-To: <201704270938.I52YmjxT%fengguang.wu@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy
+To: Josh Poimboeuf <jpoimboe@redhat.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, PaX Team <pageexec@freemail.hu>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwal>
 
-On Tue, Apr 18, 2017 at 04:17:54PM -0500, Tom Lendacky wrote:
-> Changes to the existing page table macros will allow the SME support to
-> be enabled in a simple fashion with minimal changes to files that use these
-> macros.  Since the memory encryption mask will now be part of the regular
-> pagetable macros, we introduce two new macros (_PAGE_TABLE_NOENC and
-> _KERNPG_TABLE_NOENC) to allow for early pagetable creation/initialization
-> without the encryption mask before SME becomes active.  Two new pgprot()
-> macros are defined to allow setting or clearing the page encryption mask.
+On Wed, Apr 26, 2017 at 6:31 PM, kbuild test robot <lkp@intel.com> wrote:
+> Hi Kees,
+>
+> [auto build test WARNING on next-20170424]
+> [cannot apply to tip/x86/core linus/master linux/master v4.9-rc8 v4.9-rc7 v4.9-rc6 v4.11-rc8]
+> [if your patch is applied to the wrong git tree, please drop us a note to help improve the system]
+>
+> url:    https://github.com/0day-ci/linux/commits/Kees-Cook/x86-refcount-Implement-fast-refcount-overflow/20170426-210530
+> config: x86_64-allmodconfig (attached as .config)
+> compiler: gcc-6 (Debian 6.2.0-3) 6.2.0 20160901
+> reproduce:
+>         # save the attached .config to linux build tree
+>         make ARCH=x86_64
+>
+> All warnings (new ones prefixed by >>):
+>
+>>> drivers//scsi/scsi_scan.o: warning: objtool: .text.refcount_overflow+0x5: special: can't find orig instruction
 
-...
+Hi Josh,
 
-> @@ -55,7 +57,7 @@ static inline void copy_user_page(void *to, void *from, unsigned long vaddr,
->  	__phys_addr_symbol(__phys_reloc_hide((unsigned long)(x)))
->  
->  #ifndef __va
-> -#define __va(x)			((void *)((unsigned long)(x)+PAGE_OFFSET))
-> +#define __va(x)			((void *)(__sme_clr(x) + PAGE_OFFSET))
->  #endif
->  
->  #define __boot_va(x)		__va(x)
-> diff --git a/arch/x86/include/asm/page_types.h b/arch/x86/include/asm/page_types.h
-> index 7bd0099..fead0a5 100644
-> --- a/arch/x86/include/asm/page_types.h
-> +++ b/arch/x86/include/asm/page_types.h
-> @@ -15,7 +15,7 @@
->  #define PUD_PAGE_SIZE		(_AC(1, UL) << PUD_SHIFT)
->  #define PUD_PAGE_MASK		(~(PUD_PAGE_SIZE-1))
->  
-> -#define __PHYSICAL_MASK		((phys_addr_t)((1ULL << __PHYSICAL_MASK_SHIFT) - 1))
-> +#define __PHYSICAL_MASK		((phys_addr_t)(__sme_clr((1ULL << __PHYSICAL_MASK_SHIFT) - 1)))
+I'm seeing this error being generated on areas that are using a
+cross-section exception handler. I can't quite see why the .o checker
+is unhappy, so I figured I'd ask you first. :)
 
-That looks strange: poking SME mask hole into a mask...?
+The code is generated with calls to __REFCOUNT_CHECK() which is
+defined like this:
 
->  #define __VIRTUAL_MASK		((1UL << __VIRTUAL_MASK_SHIFT) - 1)
->  
->  /* Cast *PAGE_MASK to a signed type so that it is sign-extended if
++#define __REFCOUNT_EXCEPTION(size)                     \
++       ".if "__stringify(size)" == 4\n\t"              \
++       ".pushsection .text.refcount_overflow\n"        \
++       ".elseif "__stringify(size)" == -4\n\t"         \
++       ".pushsection .text.refcount_underflow\n"       \
++       ".else\n"                                       \
++       ".error \"invalid size\"\n"                     \
++       ".endif\n"                                      \
++       "111:\tlea %[counter],%%"_ASM_CX"\n\t"          \
++       "int $"__stringify(X86_REFCOUNT_VECTOR)"\n"     \
++       "222:\n\t"                                      \
++       ".popsection\n"                                 \
++       "333:\n"                                        \
++       _ASM_EXTABLE(222b, 333b)
++
++#define __REFCOUNT_CHECK(size)                         \
++       "js 111f\n"                                     \
++       __REFCOUNT_EXCEPTION(size)
++
++#define __REFCOUNT_ERROR(size)                         \
++       "jmp 111f\n"                                    \
++       __REFCOUNT_EXCEPTION(size)
+
+I assume it doesn't like seeing an exception split across .text and
+.text.refcount_overflow, but I haven't been able to figure out how
+that distinction would be made by the checker. :P
+
+Thanks!
+
+-Kees
+
+> --
+>    /kbuild/src/consumer/include/linux/compiler.h:264:8: sparse: attribute 'no_sanitize_address': unknown attribute
+>>> drivers/scsi/qla2xxx/qla_target.o: warning: objtool: .text.refcount_overflow+0x23: special: can't find orig instruction
+> --
+>    /kbuild/src/consumer/include/linux/compiler.h:264:8: sparse: attribute 'no_sanitize_address': unknown attribute
+>>> drivers/nvme/target/core.o: warning: objtool: .text.refcount_overflow+0x19: special: can't find orig instruction
+> --
+>    /kbuild/src/consumer/include/linux/compiler.h:264:8: sparse: attribute 'no_sanitize_address': unknown attribute
+>>> drivers/nvme/target/rdma.o: warning: objtool: .text.refcount_overflow+0x5: special: can't find orig instruction
+> --
+>    /kbuild/src/consumer/include/linux/compiler.h:264:8: sparse: attribute 'no_sanitize_address': unknown attribute
+>>> drivers/nvme/target/fcloop.o: warning: objtool: .text.refcount_overflow+0x6: special: can't find orig instruction
+> --
+>    /kbuild/src/consumer/include/linux/compiler.h:264:8: sparse: attribute 'no_sanitize_address': unknown attribute
+>>> net/batman-adv/bat_v.o: warning: objtool: .text.refcount_underflow+0xc: special: can't find orig instruction
+> --
+>    /kbuild/src/consumer/include/linux/compiler.h:264:8: sparse: attribute 'no_sanitize_address': unknown attribute
+>>> net/batman-adv/bat_v_elp.o: warning: objtool: .text.refcount_overflow+0xa: special: can't find orig instruction
+> --
+>    /kbuild/src/consumer/include/linux/compiler.h:264:8: sparse: attribute 'no_sanitize_address': unknown attribute
+>>> net/batman-adv/fragmentation.o: warning: objtool: .text.refcount_overflow+0xa: special: can't find orig instruction
+> --
+>    /kbuild/src/consumer/include/linux/compiler.h:264:8: sparse: attribute 'no_sanitize_address': unknown attribute
+>>> net/batman-adv/icmp_socket.o: warning: objtool: .text.refcount_overflow+0xb: special: can't find orig instruction
+> --
+>    /kbuild/src/consumer/include/linux/compiler.h:264:8: sparse: attribute 'no_sanitize_address': unknown attribute
+>>> net/batman-adv/main.o: warning: objtool: .text.refcount_overflow+0xb: special: can't find orig instruction
+> --
+>    /kbuild/src/consumer/include/linux/compiler.h:264:8: sparse: attribute 'no_sanitize_address': unknown attribute
+>>> net/batman-adv/multicast.o: warning: objtool: .text.refcount_overflow+0xf: special: can't find orig instruction
+> ..
+>
+> ---
+> 0-DAY kernel test infrastructure                Open Source Technology Center
+> https://lists.01.org/pipermail/kbuild-all                   Intel Corporation
+
+
 
 -- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
+Kees Cook
+Pixel Security
