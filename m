@@ -1,119 +1,68 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v2 2/2] x86, refcount: Implement fast refcount overflow protection
-Date: Thu, 27 Apr 2017 13:22:05 -0700
-Message-ID: <CAGXu5jKyZ954aRHg_7xhXP0CJBiJ8TV7y-dH5viwzfEj8+D6_w@mail.gmail.com>
-References: <1493160997-126108-3-git-send-email-keescook@chromium.org> <201704270938.I52YmjxT%fengguang.wu@intel.com>
+From: Dave Young <dyoung-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+Subject: Re: [PATCH v5 31/32] x86: Add sysfs support for Secure Memory
+	Encryption
+Date: Fri, 28 Apr 2017 13:32:33 +0800
+Message-ID: <20170428053233.GA6149@dhcp-128-65.nay.redhat.com>
+References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
+	<20170418212212.10190.73484.stgit@tlendack-t1.amdoffice.net>
+	<1498ec98-b19d-c47d-902b-a68870a3f860@intel.com>
+	<20170427072547.GB15297@dhcp-128-65.nay.redhat.com>
+	<1f034974-20e6-b5e9-e6ff-434b634e1522@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f181.google.com ([209.85.223.181]:34471 "EHLO
-        mail-io0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1422845AbdD0UWH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Apr 2017 16:22:07 -0400
-Received: by mail-io0-f181.google.com with SMTP id a103so34292812ioj.1
-        for <linux-arch@vger.kernel.org>; Thu, 27 Apr 2017 13:22:06 -0700 (PDT)
-In-Reply-To: <201704270938.I52YmjxT%fengguang.wu@intel.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Josh Poimboeuf <jpoimboe@redhat.com>
-Cc: LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, PaX Team <pageexec@freemail.hu>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwal>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <1f034974-20e6-b5e9-e6ff-434b634e1522-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: Dave Hansen <dave.hansen-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>
+Cc: linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Brijesh Singh <brijesh.singh-5C7GfCeVMHo@public.gmane.org>, Toshimitsu Kani <toshi.kani-ZPxbGqLxI0U@public.gmane.org>, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Larry Woodman <lwoodman-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrey Ryabinin <aryabinin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>, Rik van Riel <riel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, kexec-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEmw@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Apr 26, 2017 at 6:31 PM, kbuild test robot <lkp@intel.com> wrote:
-> Hi Kees,
->
-> [auto build test WARNING on next-20170424]
-> [cannot apply to tip/x86/core linus/master linux/master v4.9-rc8 v4.9-rc7 v4.9-rc6 v4.11-rc8]
-> [if your patch is applied to the wrong git tree, please drop us a note to help improve the system]
->
-> url:    https://github.com/0day-ci/linux/commits/Kees-Cook/x86-refcount-Implement-fast-refcount-overflow/20170426-210530
-> config: x86_64-allmodconfig (attached as .config)
-> compiler: gcc-6 (Debian 6.2.0-3) 6.2.0 20160901
-> reproduce:
->         # save the attached .config to linux build tree
->         make ARCH=x86_64
->
-> All warnings (new ones prefixed by >>):
->
->>> drivers//scsi/scsi_scan.o: warning: objtool: .text.refcount_overflow+0x5: special: can't find orig instruction
+On 04/27/17 at 08:52am, Dave Hansen wrote:
+> On 04/27/2017 12:25 AM, Dave Young wrote:
+> > On 04/21/17 at 02:55pm, Dave Hansen wrote:
+> >> On 04/18/2017 02:22 PM, Tom Lendacky wrote:
+> >>> Add sysfs support for SME so that user-space utilities (kdump, etc.) can
+> >>> determine if SME is active.
+> >>>
+> >>> A new directory will be created:
+> >>>   /sys/kernel/mm/sme/
+> >>>
+> >>> And two entries within the new directory:
+> >>>   /sys/kernel/mm/sme/active
+> >>>   /sys/kernel/mm/sme/encryption_mask
+> >>
+> >> Why do they care, and what will they be doing with this information?
+> > 
+> > Since kdump will copy old memory but need this to know if the old memory
+> > was encrypted or not. With this sysfs file we can know the previous SME
+> > status and pass to kdump kernel as like a kernel param.
+> > 
+> > Tom, have you got chance to try if it works or not?
+> 
+> What will the kdump kernel do with it though?  We kexec() into that
+> kernel so the SME keys will all be the same, right?  So, will the kdump
+> kernel be just setting the encryption bit in the PTE so it can copy the
+> old plaintext out?
 
-Hi Josh,
+I assume it is for active -> non active case, the new boot need to know
+the old memory is encrypted. But I think I did not read all the patches
+I may miss things.
 
-I'm seeing this error being generated on areas that are using a
-cross-section exception handler. I can't quite see why the .o checker
-is unhappy, so I figured I'd ask you first. :)
+> 
+> Why do we need both 'active' and 'encryption_mask'?  How could it be
+> that the hardware-enumerated 'encryption_mask' changes across a kexec()?
 
-The code is generated with calls to __REFCOUNT_CHECK() which is
-defined like this:
+Leave this question to Tom..
 
-+#define __REFCOUNT_EXCEPTION(size)                     \
-+       ".if "__stringify(size)" == 4\n\t"              \
-+       ".pushsection .text.refcount_overflow\n"        \
-+       ".elseif "__stringify(size)" == -4\n\t"         \
-+       ".pushsection .text.refcount_underflow\n"       \
-+       ".else\n"                                       \
-+       ".error \"invalid size\"\n"                     \
-+       ".endif\n"                                      \
-+       "111:\tlea %[counter],%%"_ASM_CX"\n\t"          \
-+       "int $"__stringify(X86_REFCOUNT_VECTOR)"\n"     \
-+       "222:\n\t"                                      \
-+       ".popsection\n"                                 \
-+       "333:\n"                                        \
-+       _ASM_EXTABLE(222b, 333b)
-+
-+#define __REFCOUNT_CHECK(size)                         \
-+       "js 111f\n"                                     \
-+       __REFCOUNT_EXCEPTION(size)
-+
-+#define __REFCOUNT_ERROR(size)                         \
-+       "jmp 111f\n"                                    \
-+       __REFCOUNT_EXCEPTION(size)
-
-I assume it doesn't like seeing an exception split across .text and
-.text.refcount_overflow, but I haven't been able to figure out how
-that distinction would be made by the checker. :P
-
-Thanks!
-
--Kees
-
-> --
->    /kbuild/src/consumer/include/linux/compiler.h:264:8: sparse: attribute 'no_sanitize_address': unknown attribute
->>> drivers/scsi/qla2xxx/qla_target.o: warning: objtool: .text.refcount_overflow+0x23: special: can't find orig instruction
-> --
->    /kbuild/src/consumer/include/linux/compiler.h:264:8: sparse: attribute 'no_sanitize_address': unknown attribute
->>> drivers/nvme/target/core.o: warning: objtool: .text.refcount_overflow+0x19: special: can't find orig instruction
-> --
->    /kbuild/src/consumer/include/linux/compiler.h:264:8: sparse: attribute 'no_sanitize_address': unknown attribute
->>> drivers/nvme/target/rdma.o: warning: objtool: .text.refcount_overflow+0x5: special: can't find orig instruction
-> --
->    /kbuild/src/consumer/include/linux/compiler.h:264:8: sparse: attribute 'no_sanitize_address': unknown attribute
->>> drivers/nvme/target/fcloop.o: warning: objtool: .text.refcount_overflow+0x6: special: can't find orig instruction
-> --
->    /kbuild/src/consumer/include/linux/compiler.h:264:8: sparse: attribute 'no_sanitize_address': unknown attribute
->>> net/batman-adv/bat_v.o: warning: objtool: .text.refcount_underflow+0xc: special: can't find orig instruction
-> --
->    /kbuild/src/consumer/include/linux/compiler.h:264:8: sparse: attribute 'no_sanitize_address': unknown attribute
->>> net/batman-adv/bat_v_elp.o: warning: objtool: .text.refcount_overflow+0xa: special: can't find orig instruction
-> --
->    /kbuild/src/consumer/include/linux/compiler.h:264:8: sparse: attribute 'no_sanitize_address': unknown attribute
->>> net/batman-adv/fragmentation.o: warning: objtool: .text.refcount_overflow+0xa: special: can't find orig instruction
-> --
->    /kbuild/src/consumer/include/linux/compiler.h:264:8: sparse: attribute 'no_sanitize_address': unknown attribute
->>> net/batman-adv/icmp_socket.o: warning: objtool: .text.refcount_overflow+0xb: special: can't find orig instruction
-> --
->    /kbuild/src/consumer/include/linux/compiler.h:264:8: sparse: attribute 'no_sanitize_address': unknown attribute
->>> net/batman-adv/main.o: warning: objtool: .text.refcount_overflow+0xb: special: can't find orig instruction
-> --
->    /kbuild/src/consumer/include/linux/compiler.h:264:8: sparse: attribute 'no_sanitize_address': unknown attribute
->>> net/batman-adv/multicast.o: warning: objtool: .text.refcount_overflow+0xf: special: can't find orig instruction
-> ..
->
-> ---
-> 0-DAY kernel test infrastructure                Open Source Technology Center
-> https://lists.01.org/pipermail/kbuild-all                   Intel Corporation
-
-
-
--- 
-Kees Cook
-Pixel Security
+Thanks
+Dave
