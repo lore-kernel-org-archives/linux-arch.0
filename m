@@ -1,68 +1,68 @@
-From: Dave Young <dyoung-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-Subject: Re: [PATCH v5 31/32] x86: Add sysfs support for Secure Memory
-	Encryption
-Date: Fri, 28 Apr 2017 13:32:33 +0800
-Message-ID: <20170428053233.GA6149@dhcp-128-65.nay.redhat.com>
-References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
-	<20170418212212.10190.73484.stgit@tlendack-t1.amdoffice.net>
-	<1498ec98-b19d-c47d-902b-a68870a3f860@intel.com>
-	<20170427072547.GB15297@dhcp-128-65.nay.redhat.com>
-	<1f034974-20e6-b5e9-e6ff-434b634e1522@intel.com>
+From: <r67@yahoo.com>
+Subject: 45002 linux-arch
+Date: Fri, 28 Apr 2017 07:32:03 -0000
+Message-ID: <149336472320.22262.16481545812668072602@static.ziggozakelijk.nl>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <1f034974-20e6-b5e9-e6ff-434b634e1522-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Dave Hansen <dave.hansen-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>
-Cc: linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Brijesh Singh <brijesh.singh-5C7GfCeVMHo@public.gmane.org>, Toshimitsu Kani <toshi.kani-ZPxbGqLxI0U@public.gmane.org>, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Larry Woodman <lwoodman-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrey Ryabinin <aryabinin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>, Rik van Riel <riel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, kexec-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEmw@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: application/zip; name="016247880405.zip"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from D522461D.static.ziggozakelijk.nl ([213.34.70.29]:60803 "HELO
+        static.ziggozakelijk.nl" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+        with SMTP id S1162215AbdD1HcL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 28 Apr 2017 03:32:11 -0400
+Content-Disposition: attachment
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org
 
-On 04/27/17 at 08:52am, Dave Hansen wrote:
-> On 04/27/2017 12:25 AM, Dave Young wrote:
-> > On 04/21/17 at 02:55pm, Dave Hansen wrote:
-> >> On 04/18/2017 02:22 PM, Tom Lendacky wrote:
-> >>> Add sysfs support for SME so that user-space utilities (kdump, etc.) can
-> >>> determine if SME is active.
-> >>>
-> >>> A new directory will be created:
-> >>>   /sys/kernel/mm/sme/
-> >>>
-> >>> And two entries within the new directory:
-> >>>   /sys/kernel/mm/sme/active
-> >>>   /sys/kernel/mm/sme/encryption_mask
-> >>
-> >> Why do they care, and what will they be doing with this information?
-> > 
-> > Since kdump will copy old memory but need this to know if the old memory
-> > was encrypted or not. With this sysfs file we can know the previous SME
-> > status and pass to kdump kernel as like a kernel param.
-> > 
-> > Tom, have you got chance to try if it works or not?
-> 
-> What will the kdump kernel do with it though?  We kexec() into that
-> kernel so the SME keys will all be the same, right?  So, will the kdump
-> kernel be just setting the encryption bit in the PTE so it can copy the
-> old plaintext out?
-
-I assume it is for active -> non active case, the new boot need to know
-the old memory is encrypted. But I think I did not read all the patches
-I may miss things.
-
-> 
-> Why do we need both 'active' and 'encryption_mask'?  How could it be
-> that the hardware-enumerated 'encryption_mask' changes across a kexec()?
-
-Leave this question to Tom..
-
-Thanks
-Dave
+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
