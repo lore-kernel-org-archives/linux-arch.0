@@ -1,68 +1,52 @@
-From: <r67@yahoo.com>
-Subject: 45002 linux-arch
-Date: Fri, 28 Apr 2017 07:32:03 -0000
-Message-ID: <149336472320.22262.16481545812668072602@static.ziggozakelijk.nl>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [RFC PATCH 0/3] arm64: queued spinlocks and rw-locks
+Date: Fri, 28 Apr 2017 16:37:58 +0100
+Message-ID: <20170428153758.GV13675@arm.com>
+References: <1491860104-4103-1-git-send-email-ynorov@caviumnetworks.com>
+ <a4f067df-4c22-5c90-d70a-809903c60296@codeaurora.org>
+ <20170413103309.GA1875@yury-N73SV>
 Mime-Version: 1.0
-Content-Type: application/zip; name="016247880405.zip"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from D522461D.static.ziggozakelijk.nl ([213.34.70.29]:60803 "HELO
-        static.ziggozakelijk.nl" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-        with SMTP id S1162215AbdD1HcL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 28 Apr 2017 03:32:11 -0400
-Content-Disposition: attachment
+Received: from foss.arm.com ([217.140.101.70]:50570 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1164711AbdD1Ph6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 28 Apr 2017 11:37:58 -0400
+Content-Disposition: inline
+In-Reply-To: <20170413103309.GA1875@yury-N73SV>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+To: Yury Norov <ynorov@caviumnetworks.com>
+Cc: Adam Wallis <awallis@codeaurora.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Ingo Molnar <mingo@redhat.com>, Jan Glauber <jglauber@cavium.com>, jason.low2@hp.com
 
-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
+On Thu, Apr 13, 2017 at 01:33:09PM +0300, Yury Norov wrote:
+> On Wed, Apr 12, 2017 at 01:04:55PM -0400, Adam Wallis wrote:
+> > On 4/10/2017 5:35 PM, Yury Norov wrote:
+> > > The patch of Jan Glauber enables queued spinlocks on arm64. I rebased it on
+> > > latest kernel sources, and added a couple of fixes to headers to apply it 
+> > > smoothly.
+> > > 
+> > > Though, locktourture test shows significant performance degradation in the
+> > > acquisition of rw-lock for read on qemu:
+> > > 
+> > >                           Before           After
+> > > spin_lock-torture:      38957034        37076367         -4.83
+> > > rw_lock-torture W:       5369471        18971957        253.33
+> > > rw_lock-torture R:       6413179         3668160        -42.80
+> > > 
+> > 
+> > On our 48 core QDF2400 part, I am seeing huge improvements with these patches on
+> > the torture tests. The improvements go up even further when I apply Jason Low's
+> > MCS Spinlock patch: https://lkml.org/lkml/2016/4/20/725
+> 
+> It sounds great. So performance issue is looking like my local
+> problem, most probably because I ran tests on Qemu VM.
+> 
+> I don't see any problems with this series, other than performance,
+> and if it looks fine now, I think it's good enough for upstream.
+
+I would still like to understand why you see such a significant performance
+degradation, and whether or not you also see that on native hardware (i.e.
+without Qemu involved).
+
+Will
