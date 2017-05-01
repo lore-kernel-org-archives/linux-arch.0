@@ -1,64 +1,97 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:53780 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:49623 "EHLO mx1.redhat.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753425AbdD1FdC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 28 Apr 2017 01:33:02 -0400
-Date: Fri, 28 Apr 2017 13:32:33 +0800
-From: Dave Young <dyoung@redhat.com>
-Subject: Re: [PATCH v5 31/32] x86: Add sysfs support for Secure Memory
- Encryption
-Message-ID: <20170428053233.GA6149@dhcp-128-65.nay.redhat.com>
-References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
- <20170418212212.10190.73484.stgit@tlendack-t1.amdoffice.net>
- <1498ec98-b19d-c47d-902b-a68870a3f860@intel.com>
- <20170427072547.GB15297@dhcp-128-65.nay.redhat.com>
- <1f034974-20e6-b5e9-e6ff-434b634e1522@intel.com>
+        id S1754986AbdEAPzA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 1 May 2017 11:55:00 -0400
+Date: Mon, 1 May 2017 10:54:54 -0500
+From: Josh Poimboeuf <jpoimboe@redhat.com>
+Subject: Re: [PATCH v2 2/2] x86, refcount: Implement fast refcount overflow
+ protection
+Message-ID: <20170501155454.iujra24k3f65xwkq@treble>
+References: <1493160997-126108-3-git-send-email-keescook@chromium.org>
+ <201704270938.I52YmjxT%fengguang.wu@intel.com>
+ <CAGXu5jKyZ954aRHg_7xhXP0CJBiJ8TV7y-dH5viwzfEj8+D6_w@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <1f034974-20e6-b5e9-e6ff-434b634e1522@intel.com>
+In-Reply-To: <CAGXu5jKyZ954aRHg_7xhXP0CJBiJ8TV7y-dH5viwzfEj8+D6_w@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave.hansen@intel.com>
-Cc: Tom Lendacky <thomas.lendacky@amd.com>, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Ingo Molnar <mingo@redhat.com>, "Michael S. Tsirkin" <mst@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Borislav Petkov <bp@alien8.de>, Paolo Bonzini <pbonzini@redhat.com>, Alexander Potapenko <glider@google.com>, Larry Woodman <lwoodman@redhat.com>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170428053233.6bdZ_agxrhPV-g-6tVLH2X6KbV2W8iURlpjsB70R1CM@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, PaX Team <pageexec@freemail.hu>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
+Message-ID: <20170501155454.KL4fdG6txP_CzFHV9lY4yJPUs3bMSXwnwrRf6IwWZQA@z>
 
-On 04/27/17 at 08:52am, Dave Hansen wrote:
-> On 04/27/2017 12:25 AM, Dave Young wrote:
-> > On 04/21/17 at 02:55pm, Dave Hansen wrote:
-> >> On 04/18/2017 02:22 PM, Tom Lendacky wrote:
-> >>> Add sysfs support for SME so that user-space utilities (kdump, etc.) can
-> >>> determine if SME is active.
-> >>>
-> >>> A new directory will be created:
-> >>>   /sys/kernel/mm/sme/
-> >>>
-> >>> And two entries within the new directory:
-> >>>   /sys/kernel/mm/sme/active
-> >>>   /sys/kernel/mm/sme/encryption_mask
-> >>
-> >> Why do they care, and what will they be doing with this information?
-> > 
-> > Since kdump will copy old memory but need this to know if the old memory
-> > was encrypted or not. With this sysfs file we can know the previous SME
-> > status and pass to kdump kernel as like a kernel param.
-> > 
-> > Tom, have you got chance to try if it works or not?
+On Thu, Apr 27, 2017 at 01:22:05PM -0700, Kees Cook wrote:
+> On Wed, Apr 26, 2017 at 6:31 PM, kbuild test robot <lkp@intel.com> wrote:
+> > Hi Kees,
+> >
+> > [auto build test WARNING on next-20170424]
+> > [cannot apply to tip/x86/core linus/master linux/master v4.9-rc8 v4.9-rc7 v4.9-rc6 v4.11-rc8]
+> > [if your patch is applied to the wrong git tree, please drop us a note to help improve the system]
+> >
+> > url:    https://github.com/0day-ci/linux/commits/Kees-Cook/x86-refcount-Implement-fast-refcount-overflow/20170426-210530
+> > config: x86_64-allmodconfig (attached as .config)
+> > compiler: gcc-6 (Debian 6.2.0-3) 6.2.0 20160901
+> > reproduce:
+> >         # save the attached .config to linux build tree
+> >         make ARCH=x86_64
+> >
+> > All warnings (new ones prefixed by >>):
+> >
+> >>> drivers//scsi/scsi_scan.o: warning: objtool: .text.refcount_overflow+0x5: special: can't find orig instruction
 > 
-> What will the kdump kernel do with it though?  We kexec() into that
-> kernel so the SME keys will all be the same, right?  So, will the kdump
-> kernel be just setting the encryption bit in the PTE so it can copy the
-> old plaintext out?
-
-I assume it is for active -> non active case, the new boot need to know
-the old memory is encrypted. But I think I did not read all the patches
-I may miss things.
-
+> Hi Josh,
 > 
-> Why do we need both 'active' and 'encryption_mask'?  How could it be
-> that the hardware-enumerated 'encryption_mask' changes across a kexec()?
+> I'm seeing this error being generated on areas that are using a
+> cross-section exception handler. I can't quite see why the .o checker
+> is unhappy, so I figured I'd ask you first. :)
+> 
+> The code is generated with calls to __REFCOUNT_CHECK() which is
+> defined like this:
+> 
+> +#define __REFCOUNT_EXCEPTION(size)                     \
+> +       ".if "__stringify(size)" == 4\n\t"              \
+> +       ".pushsection .text.refcount_overflow\n"        \
+> +       ".elseif "__stringify(size)" == -4\n\t"         \
+> +       ".pushsection .text.refcount_underflow\n"       \
+> +       ".else\n"                                       \
+> +       ".error \"invalid size\"\n"                     \
+> +       ".endif\n"                                      \
+> +       "111:\tlea %[counter],%%"_ASM_CX"\n\t"          \
+> +       "int $"__stringify(X86_REFCOUNT_VECTOR)"\n"     \
+> +       "222:\n\t"                                      \
+> +       ".popsection\n"                                 \
+> +       "333:\n"                                        \
+> +       _ASM_EXTABLE(222b, 333b)
+> +
+> +#define __REFCOUNT_CHECK(size)                         \
+> +       "js 111f\n"                                     \
+> +       __REFCOUNT_EXCEPTION(size)
+> +
+> +#define __REFCOUNT_ERROR(size)                         \
+> +       "jmp 111f\n"                                    \
+> +       __REFCOUNT_EXCEPTION(size)
+> 
+> I assume it doesn't like seeing an exception split across .text and
+> .text.refcount_overflow, but I haven't been able to figure out how
+> that distinction would be made by the checker. :P
 
-Leave this question to Tom..
+This code uses the exception table a little differently than normal.
+Usually it's used for catching page faults, where the exception table
+points to the faulting instruction.
 
-Thanks
-Dave
+But instead of a page fault, here it's doing a software interrupt.  So
+the __ex_table entry doesn't point to the 'int 0x81' instruction, it
+points to the instruction immediately after it.  In this case there
+isn't actually an instruction there, which is why objtool is
+complaining.
+
+Is it superfluous to use the exception table here, when a simple 'jmp
+333f' could be used instead after the 'int'?
+
+Also it looks like the handler sends a SIGKILL to the current task.  I
+wonder if something like BUG_ON() could be used instead of implementing
+a custom error interrupt.
+
+-- 
+Josh
