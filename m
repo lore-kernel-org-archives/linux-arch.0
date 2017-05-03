@@ -1,129 +1,55 @@
-From: pan xinhui <mnipxh@hotmail.com>
-Subject: =?gb2312?B?tPC4tDogW1BBVENIIDAvM10gYXJtNjQ6IHF1ZXVlZCBzcGlubG9ja3MgYW5k?=
- =?gb2312?Q?_rw-locks?=
-Date: Wed, 3 May 2017 18:59:19 +0000
-Message-ID: <SIXPR0199MB0604CF9C101455F7D7417FF7C5160@SIXPR0199MB0604.apcprd01.prod.exchangelabs.com>
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: Re: [PATCH 1/3] kernel/locking: #include <asm/spinlock.h> in
+ qrwlock.c
+Date: Wed, 3 May 2017 23:32:09 +0300
+Message-ID: <20170503203209.ilcifmyqxkv2igq3@yury-N73SV>
 References: <20170503145141.4966-1-ynorov@caviumnetworks.com>
+ <20170503145141.4966-2-ynorov@caviumnetworks.com>
+ <CAMuHMdXks7pXcg+MNvqYyRWHf-WUrNWLrG8GcPWy8ho49Wx7ug@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="gb2312"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20170503145141.4966-1-ynorov@caviumnetworks.com>
-Content-Language: zh-CN
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Yury Norov <ynorov@caviumnetworks.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
-Cc: Mark Rutland <mark.rutland@arm.com>, Andrew Pinski <Andrew.Pinski@cavium.com>, Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Adam Wallis <awallis@codeaurora.org>, Ingo Molnar <mingo@redhat.com>, Jan Glauber <jglauber@cavium.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-bn3nam01on0082.outbound.protection.outlook.com ([104.47.33.82]:10011
+        "EHLO NAM01-BN3-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1754030AbdECUcS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 3 May 2017 16:32:18 -0400
+Content-Disposition: inline
+In-Reply-To: <CAMuHMdXks7pXcg+MNvqYyRWHf-WUrNWLrG8GcPWy8ho49Wx7ug@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Adam Wallis <awallis@codeaurora.org>, Andrew Pinski <Andrew.Pinski@cavium.com>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Ingo Molnar <mingo@redhat.com>, Jan Glauber <jglauber@cavium.com>, Mark Rutland <mark.rutland@arm.com>, Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>
 
-1NogMjAxNy81LzMgMjI6NTEsIFl1cnkgTm9yb3Yg0LS1wDo+IFRoZSBwYXRjaCAzIGFkZHMgaW1w
-bGVtZW50YXRpb24gZm9yIHF1ZXVlZC1iYXNlZCBsb2NraW5nIG9uDQo+IEFSTTY0LCBhbmQgdGhl
-IG9wdGlvbiBpbiBrZXJuZWwgY29uZmlnIHRvIGVuYWJsZSBpdC4gUGF0Y2hlcw0KPiAxIGFuZCAy
-IGZpeCBzb21lIG1lc3MgaW4gaGVhZGVyIGZpbGVzIHRvIGFwcGx5IHBhdGNoIDMgc21vb3RobHku
-DQo+DQo+IFRlc3RlZCBvbiBRREYyNDAwIHdpdGggaHVnZSBpbXByb3ZlbWVudHMgd2l0aCB0aGVz
-ZSBwYXRjaGVzIG9uDQo+IHRoZSB0b3J0dXJlIHRlc3RzLCBieSBBZGFtIFdhbGxpcy4NCj4NCj4g
-VGVzdGVkIG9uIFRodW5kZXJYLCBieSBBbmRyZXcgUGluc2tpOg0KPiAxMjAgdGhyZWFkICgzMCBj
-b3JlIC0gNCB0aHJlYWQvY29yZSkgQ045OXh4IChzaW5nbGUgc29ja2V0KToNCj4NCj4gYmVuY2ht
-YXJrICAgICAgICAgICAgICAgVW5pdHMJcXNwaW5sb2NrcyB2cyB0aWNrZXQgbG9ja3MNCj4gc2No
-ZWQvbWVzc2FnaW5nCQlzCTczLjkxJQ0KPiBzY2hlZC9waXBlCQlvcHMvcwkxMDQuMTglDQo+IGZ1
-dGV4L2hhc2gJCW9wcy9zCTEwMy44NyUNCj4gZnV0ZXgvd2FrZQkJbXMJNzEuMDQlDQo+IGZ1dGV4
-L3dha2UtcGFyYWxsZWwJbXMJOTMuODglDQo+IGZ1dGV4L3JlcXVldWUJCW1zCTk2LjQ3JQ0KPiBm
-dXRleC9sb2NrLXBpCQlvcHMvcwkxMTguMzMlDQo+DQo+IE5vdGljZSwgdGhlcmUncyB0aGUgcXVl
-dWVkIGxvY2tzIGltcGxlbWVudGF0aW9uIGZvciB0aGUgUG93ZXIgUEMgaW50cm9kdWNlZA0KPiBi
-eSBQYW4gWGluaHVpLiBIZSBsYXJnZWx5IHRlc3RlZCBpdCBhbmQgYWxzbyBmb3VuZCBzaWduaWZp
-Y2FudCBwZXJmb3JtYW5jZQ0KPiBnYWluLiBJbiBhcmNoIHBhcnQgaXQgaXMgdmVyeSBzaW1pbGFy
-IHRvIHRoaXMgcGF0Y2ggdGhvdWdoLg0KPiBodHRwczovL2x3bi5uZXQvQXJ0aWNsZXMvNzAxMTM3
-L0hpLCBZdXJ5DQogICAgR2xhZCB0byBrbm93IHlvdSB3aWxsIGpvaW4gbG9ja2luZyBkZXZlbG9w
-bWVudCA6KQ0KSSBoYXZlIGxlZnQgSUJNLiBIb3dldmVyIEkgc3RpbGwgY2FyZSBhYm91dCB0aGUg
-cXVldWVkLXNwaW5sb2NrIGFueXdheS4NCg0KPiBSRkM6IGh0dHBzOi8vd3d3LnNwaW5pY3MubmV0
-L2xpc3RzL2FybS1rZXJuZWwvbXNnNTc1NTc1Lmh0bWxJIG5vdGljZSB5b3UgcmFpc2VkIG9uZSBx
-dWVzdGlvbiBhYm91dCB0aGUgcGVyZm9ybWFuY2UgZGVncmFkYXRpb24gaW4gdGhlIGFjcXVpc2l0
-aW9uIG9mIHJ3LWxvY2sgZm9yIHJlYWQgb24gcWVtdS4NClRoaXMgaXMgc3RyYW5nZSBpbmRlZWQu
-IEkgb25jZSBlbmFibGVkIHFyd2xvY2sgb24gcHBjIHRvby4NCg0KSSBwYXN0ZSB5b3VyIHRlc3Qg
-cmVzZXVsdHMgYmVsb3cuICBJcyB0aGlzIGEgcmVzdWx0IG9mDQpxc3BpbmxvY2sgKyBxcndsb2Nr
-IFZTIHFzcGlubG9jayArIG5vcm1hbCByd2xvY2sgb3INCnFzcGlubG9jayArIHFyd2xvY2sgVlMg
-bm9ybWFsIHNwaW5sb2NrICsgbm9ybWFsIHJ3bG9jaz8NCg0KICAgICAgICAgICAgICAgICAgICAg
-ICAgICBCZWZvcmUgICAgICAgICAgIEFmdGVyDQpzcGluX2xvY2stdG9ydHVyZTogICAgICAzODk1
-NzAzNCAgICAgICAgMzcwNzYzNjcgICAgICAgICAtNC44Mw0KcndfbG9jay10b3J0dXJlIFc6ICAg
-ICAgIDUzNjk0NzEgICAgICAgIDE4OTcxOTU3ICAgICAgICAyNTMuMzMNCnJ3X2xvY2stdG9ydHVy
-ZSBSOiAgICAgICA2NDEzMTc5ICAgICAgICAgMzY2ODE2MCAgICAgICAgLTQyLjgwDQoNCg0KSSBh
-bSBub3Qgc3VyZSBob3cgdGhhdCBzaG91bGQgaGFwcGVuLiBJIG1ha2Ugb25lIFJGQyBwYXRjaCBi
-ZWxvdyhub3QgYmFzZWQgb24gbGF0ZXN0IGtlcm5lbCksIHlvdSBjb3VsZCBhcHBseSBpdCB0byBj
-aGVjayBpZiB0aGVyIGlzIGFueSBwZXJmb3JtYW5jZSBpbXByb3ZlbWVudC4NClRoZSBpZGVhIGlz
-IHRoYXQuDQpJbiBxdWV1ZWRfd3JpdGVfbG9ja19zbG93cGF0aCgpLCB3ZSBkaWQgbm90IHVubG9j
-ayB0aGUgLT53YWl0X2xvY2suDQpCZWNhdXNlIHRoZSB3cml0ZXIgaG9sZCB0aGUgcndsb2NrLCBh
-bGwgcmVhZGVycyBhcmUgc3RpbGwgd2FpdGluZyBhbnl3YXkuDQpBbmQgaW4gcXVldWVkX3JlYWRf
-bG9ja19zbG93cGF0aCgpLCBjYWxsaW5nIHJzcGluX3VudGlsX3dyaXRlcl91bmxvY2soKSBsb29r
-cyBsaWtlIGludHJvZHVjZSBhIGxpdHRsZSBvdmVyaGVhZCwgc2F5LCBzcGlubmluZyBhdCB0aGUg
-cndsb2NrLg0KDQpCdXQgaW4gdGhlIGVuZCwgcXVldWVkX3JlYWRfbG9ja19zbG93cGF0aCgpIGlz
-IHRvbyBoZWF2eSwgY29tcGFyZWQgd2l0aCB0aGUgbm9ybWFsIHJ3bG9jay4gc3VjaCByZXN1bHQg
-bWF5YmUgaXMgc29tZWhvdyByZWFzb25hYmxlPw0KDQpkaWZmIC0tZ2l0IGEvaW5jbHVkZS9hc20t
-Z2VuZXJpYy9xcndsb2NrLmggYi9pbmNsdWRlL2FzbS1nZW5lcmljL3Fyd2xvY2suaA0KaW5kZXgg
-NTRhOGU2NS4uMjhlZTAxZCAxMDA2NDQNCi0tLSBhL2luY2x1ZGUvYXNtLWdlbmVyaWMvcXJ3bG9j
-ay5oDQorKysgYi9pbmNsdWRlL2FzbS1nZW5lcmljL3Fyd2xvY2suaA0KQEAgLTI4LDggKzI4LDkg
-QEANCiAgKiBXcml0ZXIgc3RhdGVzICYgcmVhZGVyIHNoaWZ0IGFuZCBiaWFzDQogICovDQogI2Rl
-ZmluZQlfUVdfV0FJVElORwkxCQkvKiBBIHdyaXRlciBpcyB3YWl0aW5nCSAgICovDQotI2RlZmlu
-ZQlfUVdfTE9DS0VECTB4ZmYJCS8qIEEgd3JpdGVyIGhvbGRzIHRoZSBsb2NrICovDQotI2RlZmlu
-ZQlfUVdfV01BU0sJMHhmZgkJLyogV3JpdGVyIG1hc2sJCSAgICovDQorI2RlZmluZSBfUVdfS0lD
-SwkweDgwCQkvKiBuZWVkIHVubG9jayB0aGUgc3BpbmxvY2sqLw0KKyNkZWZpbmUJX1FXX0xPQ0tF
-RAkweDdmCQkvKiBBIHdyaXRlciBob2xkcyB0aGUgbG9jayAqLw0KKyNkZWZpbmUJX1FXX1dNQVNL
-CTB4N2YJCS8qIFdyaXRlciBtYXNrCQkgICAqLw0KICNkZWZpbmUJX1FSX1NISUZUCTgJCS8qIFJl
-YWRlciBjb3VudCBzaGlmdAkgICAqLw0KICNkZWZpbmUgX1FSX0JJQVMJKDFVIDw8IF9RUl9TSElG
-VCkNCiANCkBAIC0xMzksNyArMTQwLDEwIEBAIHN0YXRpYyBpbmxpbmUgdm9pZCBxdWV1ZWRfcmVh
-ZF91bmxvY2soc3RydWN0IHFyd2xvY2sgKmxvY2spDQogICovDQogc3RhdGljIGlubGluZSB2b2lk
-IHF1ZXVlZF93cml0ZV91bmxvY2soc3RydWN0IHFyd2xvY2sgKmxvY2spDQogew0KLQlzbXBfc3Rv
-cmVfcmVsZWFzZSgodTggKikmbG9jay0+Y250cywgMCk7DQorCXUzMiB2ID0gYXRvbWljX3JlYWQo
-JmxvY2stPmNudHMpICYgKF9RV19XTUFTSyB8IF9RV19LSUNLKTsNCisJaWYgKHYgJiBfUVdfS0lD
-SykNCisJCWFyY2hfc3Bpbl91bmxvY2soJmxvY2stPndhaXRfbG9jayk7DQorCSh2b2lkKWF0b21p
-Y19zdWJfcmV0dXJuX3JlbGVhc2UodiwgJmxvY2stPmNudHMpOw0KIH0NCiANCiAvKg0KZGlmZiAt
-LWdpdCBhL2tlcm5lbC9sb2NraW5nL3Fyd2xvY2suYyBiL2tlcm5lbC9sb2NraW5nL3Fyd2xvY2su
-Yw0KaW5kZXggZmVjMDgyMy4uMWYwZWEwMiAxMDA2NDQNCi0tLSBhL2tlcm5lbC9sb2NraW5nL3Fy
-d2xvY2suYw0KKysrIGIva2VybmVsL2xvY2tpbmcvcXJ3bG9jay5jDQpAQCAtMTE2LDcgKzExNiw3
-IEBAIHZvaWQgcXVldWVkX3dyaXRlX2xvY2tfc2xvd3BhdGgoc3RydWN0IHFyd2xvY2sgKmxvY2sp
-DQogDQogCS8qIFRyeSB0byBhY3F1aXJlIHRoZSBsb2NrIGRpcmVjdGx5IGlmIG5vIHJlYWRlciBp
-cyBwcmVzZW50ICovDQogCWlmICghYXRvbWljX3JlYWQoJmxvY2stPmNudHMpICYmDQotCSAgICAo
-YXRvbWljX2NtcHhjaGdfYWNxdWlyZSgmbG9jay0+Y250cywgMCwgX1FXX0xPQ0tFRCkgPT0gMCkp
-DQorCSAgICAoYXRvbWljX2NtcHhjaGdfYWNxdWlyZSgmbG9jay0+Y250cywgMCwgX1FXX0xPQ0tF
-RHxfUVdfS0lDSykgPT0gMCkpDQogCQlnb3RvIHVubG9jazsNCiANCiAJLyoNCkBAIC0xMzgsMTIg
-KzEzOCwxMyBAQCB2b2lkIHF1ZXVlZF93cml0ZV9sb2NrX3Nsb3dwYXRoKHN0cnVjdCBxcndsb2Nr
-ICpsb2NrKQ0KIAkJY250cyA9IGF0b21pY19yZWFkKCZsb2NrLT5jbnRzKTsNCiAJCWlmICgoY250
-cyA9PSBfUVdfV0FJVElORykgJiYNCiAJCSAgICAoYXRvbWljX2NtcHhjaGdfYWNxdWlyZSgmbG9j
-ay0+Y250cywgX1FXX1dBSVRJTkcsDQotCQkJCQkgICAgX1FXX0xPQ0tFRCkgPT0gX1FXX1dBSVRJ
-TkcpKQ0KKwkJCQkJICAgIF9RV19MT0NLRUR8X1FXX0tJQ0spID09IF9RV19XQUlUSU5HKSkNCiAJ
-CQlicmVhazsNCiANCiAJCWNwdV9yZWxheF9sb3dsYXRlbmN5KCk7DQogCX0NCiB1bmxvY2s6DQot
-CWFyY2hfc3Bpbl91bmxvY2soJmxvY2stPndhaXRfbG9jayk7DQorCXJldHVybjsNCiB9DQogRVhQ
-T1JUX1NZTUJPTChxdWV1ZWRfd3JpdGVfbG9ja19zbG93cGF0aCk7DQotLSANCjIuNC4xMQ0KDQoN
-CnRoYW5rcw0KeGluaHVpDQoNCj4gdjE6DQo+ICAgLSBxdWV1ZWRfc3Bpbl91bmxvY2tfd2FpdCgp
-IGFuZCBxdWV1ZWRfc3Bpbl9pc19sb2NrZWQoKSBhcmUNCj4gICAgIHJlLWltcGxlbWVudGVkIGlu
-IGFyY2ggcGFydCB0byBhZGQgYWRkaXRpb25hbCBtZW1vcnkgYmFycmllcnM7DQo+ICAgLSBxdWV1
-ZWQgbG9ja3MgYXJlIG1hZGUgb3B0aW9uYWwsIHRpY2tldCBsb2NrcyBhcmUgZW5hYmxlZCBieSBk
-ZWZhdWx0Lg0KPg0KPiBKYW4gR2xhdWJlciAoMSk6DQo+ICAgIGFybTY0L2xvY2tpbmc6IHFzcGlu
-bG9ja3MgYW5kIHFyd2xvY2tzIHN1cHBvcnQNCj4NCj4gWXVyeSBOb3JvdiAoMik6DQo+ICAgIGtl
-cm5lbC9sb2NraW5nOiAjaW5jbHVkZSA8YXNtL3NwaW5sb2NrLmg+IGluIHFyd2xvY2suYw0KPiAg
-ICBhc20tZ2VuZXJpYzogZG9uJ3QgI2luY2x1ZGUgPGxpbnV4L2F0b21pYy5oPiBpbiBxc3Bpbmxv
-Y2tfdHlwZXMuaA0KPg0KPiAgIGFyY2gvYXJtNjQvS2NvbmZpZyAgICAgICAgICAgICAgICAgICAg
-ICB8IDI0ICsrKysrKysrKysrKysrKysrKysNCj4gICBhcmNoL2FybTY0L2luY2x1ZGUvYXNtL3Fy
-d2xvY2suaCAgICAgICAgfCAgNyArKysrKysNCj4gICBhcmNoL2FybTY0L2luY2x1ZGUvYXNtL3Fz
-cGlubG9jay5oICAgICAgfCA0MiArKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysNCj4g
-ICBhcmNoL2FybTY0L2luY2x1ZGUvYXNtL3NwaW5sb2NrLmggICAgICAgfCAxMiArKysrKysrKysr
-DQo+ICAgYXJjaC9hcm02NC9pbmNsdWRlL2FzbS9zcGlubG9ja190eXBlcy5oIHwgMTQgKysrKysr
-KystLS0NCj4gICBhcmNoL2FybTY0L2tlcm5lbC9NYWtlZmlsZSAgICAgICAgICAgICAgfCAgMSAr
-DQo+ICAgYXJjaC9hcm02NC9rZXJuZWwvcXNwaW5sb2NrLmMgICAgICAgICAgIHwgMzQgKysrKysr
-KysrKysrKysrKysrKysrKysrKysNCj4gICBpbmNsdWRlL2FzbS1nZW5lcmljL3FzcGlubG9jay5o
-ICAgICAgICAgfCAgMSArDQo+ICAgaW5jbHVkZS9hc20tZ2VuZXJpYy9xc3BpbmxvY2tfdHlwZXMu
-aCAgIHwgIDggLS0tLS0tLQ0KPiAgIGtlcm5lbC9sb2NraW5nL3Fyd2xvY2suYyAgICAgICAgICAg
-ICAgICB8ICAxICsNCj4gICAxMCBmaWxlcyBjaGFuZ2VkLCAxMzMgaW5zZXJ0aW9ucygrKSwgMTEg
-ZGVsZXRpb25zKC0pDQo+ICAgY3JlYXRlIG1vZGUgMTAwNjQ0IGFyY2gvYXJtNjQvaW5jbHVkZS9h
-c20vcXJ3bG9jay5oDQo+ICAgY3JlYXRlIG1vZGUgMTAwNjQ0IGFyY2gvYXJtNjQvaW5jbHVkZS9h
-c20vcXNwaW5sb2NrLmgNCj4gICBjcmVhdGUgbW9kZSAxMDA2NDQgYXJjaC9hcm02NC9rZXJuZWwv
-cXNwaW5sb2NrLmMNCj4NCl9fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
-X19fX19fCmxpbnV4LWFybS1rZXJuZWwgbWFpbGluZyBsaXN0CmxpbnV4LWFybS1rZXJuZWxAbGlz
-dHMuaW5mcmFkZWFkLm9yZwpodHRwOi8vbGlzdHMuaW5mcmFkZWFkLm9yZy9tYWlsbWFuL2xpc3Rp
-bmZvL2xpbnV4LWFybS1rZXJuZWwK
+On Wed, May 03, 2017 at 05:05:29PM +0200, Geert Uytterhoeven wrote:
+> On Wed, May 3, 2017 at 4:51 PM, Yury Norov <ynorov@caviumnetworks.com> wrote:
+> > --- a/kernel/locking/qrwlock.c
+> > +++ b/kernel/locking/qrwlock.c
+> > @@ -20,6 +20,7 @@
+> >  #include <linux/cpumask.h>
+> >  #include <linux/percpu.h>
+> >  #include <linux/hardirq.h>
+> > +#include <asm/spinlock.h>
+> 
+> linux/spinlock.h?
+
+Comment in include/linux/spinlock.h says:
+
+ * here's the role of the various spinlock/rwlock related include
+ * files:
+ *
+ * on SMP builds:
+ *
+ [...]
+ *  asm/spinlock.h:       contains the arch_spin_*()/etc.  lowlevel
+ *                        implementations, mostly inline assembly code
+ *
+
+This, and the fact that include/asm-generic/spinlock.h and
+arch/arm64/include/asm/spinlock.h doesn't prevent the direct
+inclusion means, for me, that I should include asm/spinlock.h,
+because of all that I need only arch_spin_lock() and arch_spin_unlock().
+
+Am I wrong?
+
+Yury
