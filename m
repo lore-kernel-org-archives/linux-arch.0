@@ -1,57 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:41428 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750730AbdEAWpq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 1 May 2017 18:45:46 -0400
-Date: Mon, 1 May 2017 17:45:42 -0500
-From: Josh Poimboeuf <jpoimboe@redhat.com>
-Subject: Re: [PATCH v2 2/2] x86, refcount: Implement fast refcount overflow
- protection
-Message-ID: <20170501224542.bbfhs7c4x2wibomz@treble>
-References: <1493160997-126108-1-git-send-email-keescook@chromium.org>
- <1493160997-126108-3-git-send-email-keescook@chromium.org>
- <20170501163009.kbemdhpsabdrsfex@treble>
- <CAGXu5jKoeB7tbxfcLC03tFnjYKYt+ZHtk_jruQJ887dPHJ-Gag@mail.gmail.com>
+Received: from mail-io0-f195.google.com ([209.85.223.195]:35357 "EHLO
+        mail-io0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751176AbdECPFa (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 3 May 2017 11:05:30 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <CAGXu5jKoeB7tbxfcLC03tFnjYKYt+ZHtk_jruQJ887dPHJ-Gag@mail.gmail.com>
+In-Reply-To: <20170503145141.4966-2-ynorov@caviumnetworks.com>
+References: <20170503145141.4966-1-ynorov@caviumnetworks.com> <20170503145141.4966-2-ynorov@caviumnetworks.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Date: Wed, 3 May 2017 17:05:29 +0200
+Message-ID: <CAMuHMdXks7pXcg+MNvqYyRWHf-WUrNWLrG8GcPWy8ho49Wx7ug@mail.gmail.com>
+Subject: Re: [PATCH 1/3] kernel/locking: #include <asm/spinlock.h> in qrwlock.c
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, PaX Team <pageexec@freemail.hu>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
-Message-ID: <20170501224542.RMEJw8tle4zN7vN5cT7kW4LIQ0TDRy9hBPtuQkvUtsw@z>
+To: Yury Norov <ynorov@caviumnetworks.com>
+Cc: Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Adam Wallis <awallis@codeaurora.org>, Andrew Pinski <Andrew.Pinski@cavium.com>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Ingo Molnar <mingo@redhat.com>, Jan Glauber <jglauber@cavium.com>, Mark Rutland <mark.rutland@arm.com>, Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>
+Message-ID: <20170503150529.h7HbgBX91YlZky-239vq1bOFERUj6IqI_7hZg-EmGU8@z>
 
-On Mon, May 01, 2017 at 10:36:59AM -0700, Kees Cook wrote:
-> >> +#ifdef CONFIG_FAST_REFCOUNT
-> >> +static DEFINE_RATELIMIT_STATE(refcount_ratelimit, 15 * HZ, 3);
-> >> +
-> >> +void refcount_error_report(struct pt_regs *regs, const char *kind)
-> >> +{
-> >> +     do_send_sig_info(SIGKILL, SEND_SIG_FORCED, current, true);
-> >> +
-> >> +     if (!__ratelimit(&refcount_ratelimit))
-> >> +             return;
-> >> +
-> >> +     pr_emerg("%s detected in: %s:%d, uid/euid: %u/%u\n",
-> >> +             kind ? kind : "refcount error",
-> >> +             current->comm, task_pid_nr(current),
-> >> +             from_kuid_munged(&init_user_ns, current_uid()),
-> >> +             from_kuid_munged(&init_user_ns, current_euid()));
-> >> +     print_symbol(KERN_EMERG "refcount error occurred at: %s\n",
-> >> +             instruction_pointer(regs));
-> >> +     preempt_disable();
-> >> +     show_regs(regs);
-> >> +     preempt_enable();
-> >> +}
-> >
-> > Why is preemption disabled before calling show_regs()?
-> 
-> I thought it was to avoid interleaving show_regs() output (I can't
-> think of a way regs would be externally modified).
+On Wed, May 3, 2017 at 4:51 PM, Yury Norov <ynorov@caviumnetworks.com> wrote:
+> --- a/kernel/locking/qrwlock.c
+> +++ b/kernel/locking/qrwlock.c
+> @@ -20,6 +20,7 @@
+>  #include <linux/cpumask.h>
+>  #include <linux/percpu.h>
+>  #include <linux/hardirq.h>
+> +#include <asm/spinlock.h>
 
-This code is running from interrupt context, so preemption shouldn't be
-an issue unless I'm missing something.
+linux/spinlock.h?
 
--- 
-Josh
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
