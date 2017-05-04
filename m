@@ -1,55 +1,34 @@
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: Re: [PATCH 1/3] kernel/locking: #include <asm/spinlock.h> in
- qrwlock.c
-Date: Wed, 3 May 2017 23:32:09 +0300
-Message-ID: <20170503203209.ilcifmyqxkv2igq3@yury-N73SV>
-References: <20170503145141.4966-1-ynorov@caviumnetworks.com>
- <20170503145141.4966-2-ynorov@caviumnetworks.com>
- <CAMuHMdXks7pXcg+MNvqYyRWHf-WUrNWLrG8GcPWy8ho49Wx7ug@mail.gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 2/3] asm-generic: don't #include <linux/atomic.h> in qspinlock_types.h
+Date: Thu, 4 May 2017 10:01:30 +0200
+Message-ID: <CAK8P3a01_4mZZbB74hyWO_OXmT-cOd4ezZQoeOA23xh7N-0MFw@mail.gmail.com>
+References: <20170503145141.4966-1-ynorov@caviumnetworks.com> <20170503145141.4966-3-ynorov@caviumnetworks.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn3nam01on0082.outbound.protection.outlook.com ([104.47.33.82]:10011
-        "EHLO NAM01-BN3-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1754030AbdECUcS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 3 May 2017 16:32:18 -0400
-Content-Disposition: inline
-In-Reply-To: <CAMuHMdXks7pXcg+MNvqYyRWHf-WUrNWLrG8GcPWy8ho49Wx7ug@mail.gmail.com>
+Received: from mail-io0-f196.google.com ([209.85.223.196]:33440 "EHLO
+        mail-io0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751929AbdEDIBb (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 4 May 2017 04:01:31 -0400
+In-Reply-To: <20170503145141.4966-3-ynorov@caviumnetworks.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Adam Wallis <awallis@codeaurora.org>, Andrew Pinski <Andrew.Pinski@cavium.com>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Ingo Molnar <mingo@redhat.com>, Jan Glauber <jglauber@cavium.com>, Mark Rutland <mark.rutland@arm.com>, Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>
+To: Yury Norov <ynorov@caviumnetworks.com>
+Cc: Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Adam Wallis <awallis@codeaurora.org>, Andrew Pinski <Andrew.Pinski@cavium.com>, Catalin Marinas <catalin.marinas@arm.com>, Ingo Molnar <mingo@redhat.com>, Jan Glauber <jglauber@cavium.com>, Mark Rutland <mark.rutland@arm.com>, Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>
 
-On Wed, May 03, 2017 at 05:05:29PM +0200, Geert Uytterhoeven wrote:
-> On Wed, May 3, 2017 at 4:51 PM, Yury Norov <ynorov@caviumnetworks.com> wrote:
-> > --- a/kernel/locking/qrwlock.c
-> > +++ b/kernel/locking/qrwlock.c
-> > @@ -20,6 +20,7 @@
-> >  #include <linux/cpumask.h>
-> >  #include <linux/percpu.h>
-> >  #include <linux/hardirq.h>
-> > +#include <asm/spinlock.h>
-> 
-> linux/spinlock.h?
+On Wed, May 3, 2017 at 4:51 PM, Yury Norov <ynorov@caviumnetworks.com> wrote:
+> The "qspinlock_types.h" doesn't need linux/atomic.h directly. So
+> because of this, and because including of it requires the protection
+> against recursive inclusion, it looks reasonable to move the
+> inclusion exactly where it is needed. This change affects the x86_64
+> arch, as the only user of qspinlocks at now. I have build-tested the
+> change on x86_64 with CONFIG_PARAVIRT enabled and disabled.
+>
+> Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
 
-Comment in include/linux/spinlock.h says:
+Acked-by: Arnd Bergmann <arnd@arndb.de>
 
- * here's the role of the various spinlock/rwlock related include
- * files:
- *
- * on SMP builds:
- *
- [...]
- *  asm/spinlock.h:       contains the arch_spin_*()/etc.  lowlevel
- *                        implementations, mostly inline assembly code
- *
+Please keep this together with the other patches as they get merged through
+the arm64 tree.
 
-This, and the fact that include/asm-generic/spinlock.h and
-arch/arm64/include/asm/spinlock.h doesn't prevent the direct
-inclusion means, for me, that I should include asm/spinlock.h,
-because of all that I need only arch_spin_lock() and arch_spin_unlock().
-
-Am I wrong?
-
-Yury
+       Arnd
