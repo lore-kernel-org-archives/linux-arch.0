@@ -1,40 +1,29 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([5.9.137.197]:36100 "EHLO mail.skyhub.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1755665AbdEDRB2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 4 May 2017 13:01:28 -0400
-Date: Thu, 4 May 2017 19:01:06 +0200
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH v5 09/32] x86/mm: Provide general kernel support for
- memory encryption
-Message-ID: <20170504170106.mocn2y6onm7eax3g@pd.tnic>
-References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
- <20170418211754.10190.25082.stgit@tlendack-t1.amdoffice.net>
- <20170427161227.c57dkvghz63pvmu2@pd.tnic>
- <0b6e4055-8e07-3a71-3d52-12b0395c8f04@amd.com>
+Received: from bombadil.infradead.org ([65.50.211.133]:57119 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751180AbdEELxO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 5 May 2017 07:53:14 -0400
+Date: Fri, 5 May 2017 13:53:03 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: =?utf-8?B?562U5aSN?= =?utf-8?Q?=3A?= [PATCH 0/3] arm64: queued
+ spinlocks and rw-locks
+Message-ID: <20170505115303.s3bsu4adfgkxrhh2@hirez.programming.kicks-ass.net>
+References: <20170503145141.4966-1-ynorov@caviumnetworks.com>
+ <SIXPR0199MB0604CF9C101455F7D7417FF7C5160@SIXPR0199MB0604.apcprd01.prod.exchangelabs.com>
+ <20170504202809.lv222a3oes54ijkj@yury-N73SV>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <0b6e4055-8e07-3a71-3d52-12b0395c8f04@amd.com>
+In-Reply-To: <20170504202809.lv222a3oes54ijkj@yury-N73SV>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170504170106.HU4a2NrmRtmFFAXwolyJm78Fr-_DPYWmhoGcWz_WCNQ@z>
+To: Yury Norov <ynorov@caviumnetworks.com>
+Cc: pan xinhui <mnipxh@hotmail.com>, Will Deacon <will.deacon@arm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Adam Wallis <awallis@codeaurora.org>, Andrew Pinski <Andrew.Pinski@cavium.com>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Ingo Molnar <mingo@redhat.com>, Jan Glauber <jglauber@cavium.com>, Mark Rutland <mark.rutland@arm.com>, Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>
+Message-ID: <20170505115303.cU75u8HAe_KIolAFISrPDcdm8JUP1EAdgvZrruENgP8@z>
 
-On Thu, May 04, 2017 at 09:34:09AM -0500, Tom Lendacky wrote:
-> I masked it out here based on a previous comment from Dave Hansen:
-> 
->   http://marc.info/?l=linux-kernel&m=148778719826905&w=2
-> 
-> I could move the __sme_clr into the individual defines of:
+On Thu, May 04, 2017 at 11:28:09PM +0300, Yury Norov wrote:
+> I don't think
+> it's a real use case to have ticket spinlocks and queued rwlocks
 
-Nah, it is fine as it is. I was just wondering...
-
-Thanks.
-
--- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
+There's nothing wrong with that combination. In fact, we merged qrwlock
+much earlier than qspinlock.
