@@ -1,182 +1,167 @@
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: Re: =?utf-8?B?562U5aSN?= =?utf-8?Q?=3A?= [PATCH 0/3] arm64: queued
- spinlocks and rw-locks
-Date: Thu, 4 May 2017 23:28:09 +0300
-Message-ID: <20170504202809.lv222a3oes54ijkj@yury-N73SV>
+From: pan xinhui <mnipxh@hotmail.com>
+Subject: =?gb2312?B?tPC4tDogtPC4tDogW1BBVENIIDAvM10gYXJtNjQ6IHF1ZXVlZCBzcGlubG9j?=
+ =?gb2312?Q?ks_and_rw-locks?=
+Date: Fri, 5 May 2017 11:37:11 +0000
+Message-ID: <SIXPR0199MB060442A87C42845BC9142E43C5EB0@SIXPR0199MB0604.apcprd01.prod.exchangelabs.com>
 References: <20170503145141.4966-1-ynorov@caviumnetworks.com>
- <SIXPR0199MB0604CF9C101455F7D7417FF7C5160@SIXPR0199MB0604.apcprd01.prod.exchangelabs.com>
+ <SIXPR0199MB0604CF9C101455F7D7417FF7C5160@SIXPR0199MB0604.apcprd01.prod.exchangelabs.com>,
+ <20170504202809.lv222a3oes54ijkj@yury-N73SV>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2nam01on0053.outbound.protection.outlook.com ([104.47.34.53]:60240
-        "EHLO NAM01-BY2-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751375AbdEDU20 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 4 May 2017 16:28:26 -0400
-Content-Disposition: inline
-In-Reply-To: <SIXPR0199MB0604CF9C101455F7D7417FF7C5160@SIXPR0199MB0604.apcprd01.prod.exchangelabs.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: pan xinhui <mnipxh@hotmail.com>
-Cc: Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Adam Wallis <awallis@codeaurora.org>, Andrew Pinski <Andrew.Pinski@cavium.com>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Ingo Molnar <mingo@redhat.com>, Jan Glauber <jglauber@cavium.com>, Mark Rutland <mark.rutland@arm.com>, Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>
+Content-Type: text/plain; charset="gb2312"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20170504202809.lv222a3oes54ijkj@yury-N73SV>
+Content-Language: zh-CN
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Yury Norov <ynorov@caviumnetworks.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Andrew Pinski <Andrew.Pinski@cavium.com>, Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Adam Wallis <awallis@codeaurora.org>, Will Deacon <will.deacon@arm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Jan Glauber <jglauber@cavium.com>, Mark Rutland <mark.rutland@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, May 03, 2017 at 06:59:19PM +0000, pan xinhui wrote:
-> 在 2017/5/3 22:51, Yury Norov 写道:> The patch 3 adds implementation for queued-based locking on
-> > ARM64, and the option in kernel config to enable it. Patches
-> > 1 and 2 fix some mess in header files to apply patch 3 smoothly.
-> >
-> > Tested on QDF2400 with huge improvements with these patches on
-> > the torture tests, by Adam Wallis.
-> >
-> > Tested on ThunderX, by Andrew Pinski:
-> > 120 thread (30 core - 4 thread/core) CN99xx (single socket):
-> >
-> > benchmark               Units	qspinlocks vs ticket locks
-> > sched/messaging		s	73.91%
-> > sched/pipe		ops/s	104.18%
-> > futex/hash		ops/s	103.87%
-> > futex/wake		ms	71.04%
-> > futex/wake-parallel	ms	93.88%
-> > futex/requeue		ms	96.47%
-> > futex/lock-pi		ops/s	118.33%
-> >
-> > Notice, there's the queued locks implementation for the Power PC introduced
-> > by Pan Xinhui. He largely tested it and also found significant performance
-> > gain. In arch part it is very similar to this patch though.
-> > https://lwn.net/Articles/701137/Hi, Yury
->     Glad to know you will join locking development :)
-> I have left IBM. However I still care about the queued-spinlock anyway.
-> 
-> > RFC: https://www.spinics.net/lists/arm-kernel/msg575575.htmlI notice you raised one question about the performance degradation in the acquisition of rw-lock for read on qemu.
-> This is strange indeed. I once enabled qrwlock on ppc too.
-> 
-> I paste your test reseults below.  Is this a result of
-> qspinlock + qrwlock VS qspinlock + normal rwlock or
-> qspinlock + qrwlock VS normal spinlock + normal rwlock?
-
-Initially it was VS normal spinlock + normal rwlock. But now I checked
-it vs qspinlock + normal rwlock, and results are the same. I don't think
-it's a real use case to have ticket spinlocks and queued rwlocks, or
-vice versa.
- 
-> I am not sure how that should happen.
-
-Either me. If I understand it correctly, qemu is not suitable for measuring
-performance, so I don't understand why slowing in qemu is important at all,
-if real hardware works better. If it matters, my host CPU is Core i7-2630QM
-
-> I make one RFC patch below(not based on latest kernel), you could apply it to
-> check if ther is any performance improvement.
-> The idea is that.
-> In queued_write_lock_slowpath(), we did not unlock the ->wait_lock.
-> Because the writer hold the rwlock, all readers are still waiting anyway.
-> And in queued_read_lock_slowpath(), calling rspin_until_writer_unlock() looks
-> like introduce a little overhead, say, spinning at the rwlock.
-> 
-> But in the end, queued_read_lock_slowpath() is too heavy, compared with the
-> normal rwlock. such result maybe is somehow reasonable?
-
-I tried this path, but kernel hangs on boot with it, in
-queued_write_lock_slowpath().
- 
-> diff --git a/include/asm-generic/qrwlock.h b/include/asm-generic/qrwlock.h
-> index 54a8e65..28ee01d 100644
-> --- a/include/asm-generic/qrwlock.h
-> +++ b/include/asm-generic/qrwlock.h
-> @@ -28,8 +28,9 @@
->   * Writer states & reader shift and bias
->   */
->  #define	_QW_WAITING	1		/* A writer is waiting	   */
-> -#define	_QW_LOCKED	0xff		/* A writer holds the lock */
-> -#define	_QW_WMASK	0xff		/* Writer mask		   */
-> +#define _QW_KICK	0x80		/* need unlock the spinlock*/
-> +#define	_QW_LOCKED	0x7f		/* A writer holds the lock */
-> +#define	_QW_WMASK	0x7f		/* Writer mask		   */
->  #define	_QR_SHIFT	8		/* Reader count shift	   */
->  #define _QR_BIAS	(1U << _QR_SHIFT)
->  
-> @@ -139,7 +140,10 @@ static inline void queued_read_unlock(struct qrwlock *lock)
->   */
->  static inline void queued_write_unlock(struct qrwlock *lock)
->  {
-> -	smp_store_release((u8 *)&lock->cnts, 0);
-> +	u32 v = atomic_read(&lock->cnts) & (_QW_WMASK | _QW_KICK);
-> +	if (v & _QW_KICK)
-> +		arch_spin_unlock(&lock->wait_lock);
-> +	(void)atomic_sub_return_release(v, &lock->cnts);
->  }
->  
->  /*
-> diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
-> index fec0823..1f0ea02 100644
-> --- a/kernel/locking/qrwlock.c
-> +++ b/kernel/locking/qrwlock.c
-> @@ -116,7 +116,7 @@ void queued_write_lock_slowpath(struct qrwlock *lock)
->  
->  	/* Try to acquire the lock directly if no reader is present */
->  	if (!atomic_read(&lock->cnts) &&
-> -	    (atomic_cmpxchg_acquire(&lock->cnts, 0, _QW_LOCKED) == 0))
-> +	    (atomic_cmpxchg_acquire(&lock->cnts, 0, _QW_LOCKED|_QW_KICK) == 0))
->  		goto unlock;
->  
->  	/*
-> @@ -138,12 +138,13 @@ void queued_write_lock_slowpath(struct qrwlock *lock)
->  		cnts = atomic_read(&lock->cnts);
->  		if ((cnts == _QW_WAITING) &&
->  		    (atomic_cmpxchg_acquire(&lock->cnts, _QW_WAITING,
-> -					    _QW_LOCKED) == _QW_WAITING))
-> +					    _QW_LOCKED|_QW_KICK) == _QW_WAITING))
->  			break;
->  
->  		cpu_relax_lowlatency();
-
-It hangs in this in this loop. It's because lock->cnts may now contain
-_QW_WAITING or _QW_WAITING | _QW_KICK. So the if() condition may never
-meet in 2nd case. To handle it, I changed it like this:
-    for (;;) {
-            cnts = atomic_read(&lock->cnts);
-            if (((cnts & _QW_WMASK) == _QW_WAITING) &&
-                (atomic_cmpxchg_acquire(&lock->cnts, cnts,
-                                        _QW_LOCKED|_QW_KICK) == cnts))
-                    break;
-
-            cpu_relax();
-    }
-
-
-But after that it hanged in queued_spin_lock_slowpath() at the line
-478             smp_cond_load_acquire(&lock->val.counter, !(VAL & _Q_LOCKED_MASK));
-
-Backtrace is below.
-
-Yury
-
->  	}
->  unlock:
-> -	arch_spin_unlock(&lock->wait_lock);
-> +	return;
->  }
->  EXPORT_SYMBOL(queued_write_lock_slowpath);
-> -- 
-> 2.4.11
-
-#0  queued_spin_lock_slowpath (lock=0xffff000008cb051c <proc_subdir_lock+4>, val=<optimized out>)
-    at kernel/locking/qspinlock.c:478
-#1  0xffff0000080ff158 in queued_spin_lock (lock=<optimized out>)
-    at ./include/asm-generic/qspinlock.h:104
-#2  queued_write_lock_slowpath (lock=0xffff000008cb0518 <proc_subdir_lock>)
-    at kernel/locking/qrwlock.c:116
-#3  0xffff000008815fc4 in queued_write_lock (lock=<optimized out>)
-    at ./include/asm-generic/qrwlock.h:135
-#4  __raw_write_lock (lock=<optimized out>) at ./include/linux/rwlock_api_smp.h:211
-#5  _raw_write_lock (lock=<optimized out>) at kernel/locking/spinlock.c:295
-#6  0xffff00000824c4c0 in proc_register (dir=0xffff000008bff2d0 <proc_root>, 
-    dp=0xffff80003d807300) at fs/proc/generic.c:342
-#7  0xffff00000824c628 in proc_symlink (name=<optimized out>, 
-    parent=0xffff000008b28e40 <proc_root_init+72>, dest=0xffff000008a331a8 "self/net")
-    at fs/proc/generic.c:413
-#8  0xffff000008b2927c in proc_net_init () at fs/proc/proc_net.c:244
-#9  0xffff000008b28e40 in proc_root_init () at fs/proc/root.c:137
-#10 0xffff000008b10b10 in start_kernel () at init/main.c:661
-#11 0xffff000008b101e0 in __primary_switched () at arch/arm64/kernel/head.S:347
+DQrU2iAyMDE3LzUvNSAwNDoyOCwgWXVyeSBOb3JvdiDQtLXAOj4gT24gV2VkLCBNYXkgMDMsIDIw
+MTcgYXQgMDY6NTk6MTlQTSArMDAwMCwgcGFuIHhpbmh1aSB3cm90ZToNCj4+INTaIDIwMTcvNS8z
+IDIyOjUxLCBZdXJ5IE5vcm92INC0tcA6PiBUaGUgcGF0Y2ggMyBhZGRzIGltcGxlbWVudGF0aW9u
+IGZvciBxdWV1ZWQtYmFzZWQgbG9ja2luZyBvbg0KPj4+IEFSTTY0LCBhbmQgdGhlIG9wdGlvbiBp
+biBrZXJuZWwgY29uZmlnIHRvIGVuYWJsZSBpdC4gUGF0Y2hlcw0KPj4+IDEgYW5kIDIgZml4IHNv
+bWUgbWVzcyBpbiBoZWFkZXIgZmlsZXMgdG8gYXBwbHkgcGF0Y2ggMyBzbW9vdGhseS4NCj4+Pg0K
+Pj4+IFRlc3RlZCBvbiBRREYyNDAwIHdpdGggaHVnZSBpbXByb3ZlbWVudHMgd2l0aCB0aGVzZSBw
+YXRjaGVzIG9uDQo+Pj4gdGhlIHRvcnR1cmUgdGVzdHMsIGJ5IEFkYW0gV2FsbGlzLg0KPj4+DQo+
+Pj4gVGVzdGVkIG9uIFRodW5kZXJYLCBieSBBbmRyZXcgUGluc2tpOg0KPj4+IDEyMCB0aHJlYWQg
+KDMwIGNvcmUgLSA0IHRocmVhZC9jb3JlKSBDTjk5eHggKHNpbmdsZSBzb2NrZXQpOg0KPj4+DQo+
+Pj4gYmVuY2htYXJrICAgICAgICAgICAgICAgVW5pdHMJcXNwaW5sb2NrcyB2cyB0aWNrZXQgbG9j
+a3MNCj4+PiBzY2hlZC9tZXNzYWdpbmcJCXMJNzMuOTElDQo+Pj4gc2NoZWQvcGlwZQkJb3BzL3MJ
+MTA0LjE4JQ0KPj4+IGZ1dGV4L2hhc2gJCW9wcy9zCTEwMy44NyUNCj4+PiBmdXRleC93YWtlCQlt
+cwk3MS4wNCUNCj4+PiBmdXRleC93YWtlLXBhcmFsbGVsCW1zCTkzLjg4JQ0KPj4+IGZ1dGV4L3Jl
+cXVldWUJCW1zCTk2LjQ3JQ0KPj4+IGZ1dGV4L2xvY2stcGkJCW9wcy9zCTExOC4zMyUNCj4+Pg0K
+Pj4+IE5vdGljZSwgdGhlcmUncyB0aGUgcXVldWVkIGxvY2tzIGltcGxlbWVudGF0aW9uIGZvciB0
+aGUgUG93ZXIgUEMgaW50cm9kdWNlZA0KPj4+IGJ5IFBhbiBYaW5odWkuIEhlIGxhcmdlbHkgdGVz
+dGVkIGl0IGFuZCBhbHNvIGZvdW5kIHNpZ25pZmljYW50IHBlcmZvcm1hbmNlDQo+Pj4gZ2Fpbi4g
+SW4gYXJjaCBwYXJ0IGl0IGlzIHZlcnkgc2ltaWxhciB0byB0aGlzIHBhdGNoIHRob3VnaC4NCj4+
+PiBodHRwczovL2x3bi5uZXQvQXJ0aWNsZXMvNzAxMTM3L0hpLCBZdXJ5DQo+PiAgICAgIEdsYWQg
+dG8ga25vdyB5b3Ugd2lsbCBqb2luIGxvY2tpbmcgZGV2ZWxvcG1lbnQgOikNCj4+IEkgaGF2ZSBs
+ZWZ0IElCTS4gSG93ZXZlciBJIHN0aWxsIGNhcmUgYWJvdXQgdGhlIHF1ZXVlZC1zcGlubG9jayBh
+bnl3YXkuDQo+Pg0KPj4+IFJGQzogaHR0cHM6Ly93d3cuc3Bpbmljcy5uZXQvbGlzdHMvYXJtLWtl
+cm5lbC9tc2c1NzU1NzUuaHRtbEkgbm90aWNlIHlvdSByYWlzZWQgb25lIHF1ZXN0aW9uIGFib3V0
+IHRoZSBwZXJmb3JtYW5jZSBkZWdyYWRhdGlvbiBpbiB0aGUgYWNxdWlzaXRpb24gb2YgcnctbG9j
+ayBmb3IgcmVhZCBvbiBxZW11Lg0KPj4gVGhpcyBpcyBzdHJhbmdlIGluZGVlZC4gSSBvbmNlIGVu
+YWJsZWQgcXJ3bG9jayBvbiBwcGMgdG9vLg0KPj4NCj4+IEkgcGFzdGUgeW91ciB0ZXN0IHJlc2V1
+bHRzIGJlbG93LiAgSXMgdGhpcyBhIHJlc3VsdCBvZg0KPj4gcXNwaW5sb2NrICsgcXJ3bG9jayBW
+UyBxc3BpbmxvY2sgKyBub3JtYWwgcndsb2NrIG9yDQo+PiBxc3BpbmxvY2sgKyBxcndsb2NrIFZT
+IG5vcm1hbCBzcGlubG9jayArIG5vcm1hbCByd2xvY2s/DQo+IA0KPiBJbml0aWFsbHkgaXQgd2Fz
+IFZTIG5vcm1hbCBzcGlubG9jayArIG5vcm1hbCByd2xvY2suIEJ1dCBub3cgSSBjaGVja2VkDQo+
+IGl0IHZzIHFzcGlubG9jayArIG5vcm1hbCByd2xvY2ssIGFuZCByZXN1bHRzIGFyZSB0aGUgc2Ft
+ZS4gSSBkb24ndCB0aGluaw0KPiBpdCdzIGEgcmVhbCB1c2UgY2FzZSB0byBoYXZlIHRpY2tldCBz
+cGlubG9ja3MgYW5kIHF1ZXVlZCByd2xvY2tzLCBvcg0KPiB2aWNlIHZlcnNhLg0KPiAgIA0KPj4g
+SSBhbSBub3Qgc3VyZSBob3cgdGhhdCBzaG91bGQgaGFwcGVuLg0KPiANCj4gRWl0aGVyIG1lLiBJ
+ZiBJIHVuZGVyc3RhbmQgaXQgY29ycmVjdGx5LCBxZW11IGlzIG5vdCBzdWl0YWJsZSBmb3IgbWVh
+c3VyaW5nDQpJIGRvIHRlc3RzIGluIGJvdGggcWVtdSB3aXRoIGt2bSBhbmQgYmFyZSBtZXRhbCA6
+KQ0KVXN1YWxseSB0aGUgcGVyZm9ybWFuY2UgcmVzdWx0cyBhcmUgc2FtZSBvbiB0aGUgdHdvIHBs
+YW1mb3Jtcy4NCg0KPiBwZXJmb3JtYW5jZSwgc28gSSBkb24ndCB1bmRlcnN0YW5kIHdoeSBzbG93
+aW5nIGluIHFlbXUgaXMgaW1wb3J0YW50IGF0IGFsbCwNCj4gaWYgcmVhbCBoYXJkd2FyZSB3b3Jr
+cyBiZXR0ZXIuIElmIGl0IG1hdHRlcnMsIG15IGhvc3QgQ1BVIGlzIENvcmUgaTctMjYzMFFNDQo+
+PiBJIG1ha2Ugb25lIFJGQyBwYXRjaCBiZWxvdyhub3QgYmFzZWQgb24gbGF0ZXN0IGtlcm5lbCks
+IHlvdSBjb3VsZCBhcHBseSBpdCB0bw0KPj4gY2hlY2sgaWYgdGhlciBpcyBhbnkgcGVyZm9ybWFu
+Y2UgaW1wcm92ZW1lbnQuDQo+PiBUaGUgaWRlYSBpcyB0aGF0Lg0KPj4gSW4gcXVldWVkX3dyaXRl
+X2xvY2tfc2xvd3BhdGgoKSwgd2UgZGlkIG5vdCB1bmxvY2sgdGhlIC0+d2FpdF9sb2NrLg0KPj4g
+QmVjYXVzZSB0aGUgd3JpdGVyIGhvbGQgdGhlIHJ3bG9jaywgYWxsIHJlYWRlcnMgYXJlIHN0aWxs
+IHdhaXRpbmcgYW55d2F5Lg0KPj4gQW5kIGluIHF1ZXVlZF9yZWFkX2xvY2tfc2xvd3BhdGgoKSwg
+Y2FsbGluZyByc3Bpbl91bnRpbF93cml0ZXJfdW5sb2NrKCkgbG9va3MNCj4+IGxpa2UgaW50cm9k
+dWNlIGEgbGl0dGxlIG92ZXJoZWFkLCBzYXksIHNwaW5uaW5nIGF0IHRoZSByd2xvY2suDQo+Pg0K
+Pj4gQnV0IGluIHRoZSBlbmQsIHF1ZXVlZF9yZWFkX2xvY2tfc2xvd3BhdGgoKSBpcyB0b28gaGVh
+dnksIGNvbXBhcmVkIHdpdGggdGhlDQo+PiBub3JtYWwgcndsb2NrLiBzdWNoIHJlc3VsdCBtYXli
+ZSBpcyBzb21laG93IHJlYXNvbmFibGU/DQo+IA0KPiBJIHRyaWVkIHRoaXMgcGF0aCwgYnV0IGtl
+cm5lbCBoYW5ncyBvbiBib290IHdpdGggaXQsIGluDQo+IHF1ZXVlZF93cml0ZV9sb2NrX3Nsb3dw
+YXRoKCkuDQo+Pj4gZGlmZiAtLWdpdCBhL2luY2x1ZGUvYXNtLWdlbmVyaWMvcXJ3bG9jay5oIGIv
+aW5jbHVkZS9hc20tZ2VuZXJpYy9xcndsb2NrLmgNCj4+IGluZGV4IDU0YThlNjUuLjI4ZWUwMWQg
+MTAwNjQ0DQo+PiAtLS0gYS9pbmNsdWRlL2FzbS1nZW5lcmljL3Fyd2xvY2suaA0KPj4gKysrIGIv
+aW5jbHVkZS9hc20tZ2VuZXJpYy9xcndsb2NrLmgNCj4+IEBAIC0yOCw4ICsyOCw5IEBADQo+PiAg
+ICAqIFdyaXRlciBzdGF0ZXMgJiByZWFkZXIgc2hpZnQgYW5kIGJpYXMNCj4+ICAgICovDQo+PiAg
+ICNkZWZpbmUJX1FXX1dBSVRJTkcJMQkJLyogQSB3cml0ZXIgaXMgd2FpdGluZwkgICAqLw0KPj4g
+LSNkZWZpbmUJX1FXX0xPQ0tFRAkweGZmCQkvKiBBIHdyaXRlciBob2xkcyB0aGUgbG9jayAqLw0K
+Pj4gLSNkZWZpbmUJX1FXX1dNQVNLCTB4ZmYJCS8qIFdyaXRlciBtYXNrCQkgICAqLw0KPj4gKyNk
+ZWZpbmUgX1FXX0tJQ0sJMHg4MAkJLyogbmVlZCB1bmxvY2sgdGhlIHNwaW5sb2NrKi8NCj4+ICsj
+ZGVmaW5lCV9RV19MT0NLRUQJMHg3ZgkJLyogQSB3cml0ZXIgaG9sZHMgdGhlIGxvY2sgKi8NCj4+
+ICsjZGVmaW5lCV9RV19XTUFTSwkweDdmCQkvKiBXcml0ZXIgbWFzawkJICAgKi8NCj4+ICAgI2Rl
+ZmluZQlfUVJfU0hJRlQJOAkJLyogUmVhZGVyIGNvdW50IHNoaWZ0CSAgICovDQo+PiAgICNkZWZp
+bmUgX1FSX0JJQVMJKDFVIDw8IF9RUl9TSElGVCkNCj4+ICAgDQo+PiBAQCAtMTM5LDcgKzE0MCwx
+MCBAQCBzdGF0aWMgaW5saW5lIHZvaWQgcXVldWVkX3JlYWRfdW5sb2NrKHN0cnVjdCBxcndsb2Nr
+ICpsb2NrKQ0KPj4gICAgKi8NCj4+ICAgc3RhdGljIGlubGluZSB2b2lkIHF1ZXVlZF93cml0ZV91
+bmxvY2soc3RydWN0IHFyd2xvY2sgKmxvY2spDQo+PiAgIHsNCj4+IC0Jc21wX3N0b3JlX3JlbGVh
+c2UoKHU4ICopJmxvY2stPmNudHMsIDApOw0KPj4gKwl1MzIgdiA9IGF0b21pY19yZWFkKCZsb2Nr
+LT5jbnRzKSAmIChfUVdfV01BU0sgfCBfUVdfS0lDSyk7DQo+PiArCWlmICh2ICYgX1FXX0tJQ0sp
+DQo+PiArCQlhcmNoX3NwaW5fdW5sb2NrKCZsb2NrLT53YWl0X2xvY2spOw0KPj4gKwkodm9pZClh
+dG9taWNfc3ViX3JldHVybl9yZWxlYXNlKHYsICZsb2NrLT5jbnRzKTsNCj4+ICAgfQ0KPj4gICAN
+Cj4+ICAgLyoNCj4+IGRpZmYgLS1naXQgYS9rZXJuZWwvbG9ja2luZy9xcndsb2NrLmMgYi9rZXJu
+ZWwvbG9ja2luZy9xcndsb2NrLmMNCj4+IGluZGV4IGZlYzA4MjMuLjFmMGVhMDIgMTAwNjQ0DQo+
+PiAtLS0gYS9rZXJuZWwvbG9ja2luZy9xcndsb2NrLmMNCj4+ICsrKyBiL2tlcm5lbC9sb2NraW5n
+L3Fyd2xvY2suYw0KPj4gQEAgLTExNiw3ICsxMTYsNyBAQCB2b2lkIHF1ZXVlZF93cml0ZV9sb2Nr
+X3Nsb3dwYXRoKHN0cnVjdCBxcndsb2NrICpsb2NrKQ0KPj4gICANCj4+ICAgCS8qIFRyeSB0byBh
+Y3F1aXJlIHRoZSBsb2NrIGRpcmVjdGx5IGlmIG5vIHJlYWRlciBpcyBwcmVzZW50ICovDQo+PiAg
+IAlpZiAoIWF0b21pY19yZWFkKCZsb2NrLT5jbnRzKSAmJg0KPj4gLQkgICAgKGF0b21pY19jbXB4
+Y2hnX2FjcXVpcmUoJmxvY2stPmNudHMsIDAsIF9RV19MT0NLRUQpID09IDApKQ0KPj4gKwkgICAg
+KGF0b21pY19jbXB4Y2hnX2FjcXVpcmUoJmxvY2stPmNudHMsIDAsIF9RV19MT0NLRUR8X1FXX0tJ
+Q0spID09IDApKQ0KPj4gICAJCWdvdG8gdW5sb2NrOw0KPj4gICANCj4+ICAgCS8qDQo+PiBAQCAt
+MTM4LDEyICsxMzgsMTMgQEAgdm9pZCBxdWV1ZWRfd3JpdGVfbG9ja19zbG93cGF0aChzdHJ1Y3Qg
+cXJ3bG9jayAqbG9jaykNCj4+ICAgCQljbnRzID0gYXRvbWljX3JlYWQoJmxvY2stPmNudHMpOw0K
+Pj4gICAJCWlmICgoY250cyA9PSBfUVdfV0FJVElORykgJiYNCj4+ICAgCQkgICAgKGF0b21pY19j
+bXB4Y2hnX2FjcXVpcmUoJmxvY2stPmNudHMsIF9RV19XQUlUSU5HLA0KPj4gLQkJCQkJICAgIF9R
+V19MT0NLRUQpID09IF9RV19XQUlUSU5HKSkNCj4+ICsJCQkJCSAgICBfUVdfTE9DS0VEfF9RV19L
+SUNLKSA9PSBfUVdfV0FJVElORykpDQo+PiAgIAkJCWJyZWFrOw0KPj4gICANCj4+ICAgCQljcHVf
+cmVsYXhfbG93bGF0ZW5jeSgpOw0KPiANCj4gSXQgaGFuZ3MgaW4gdGhpcyBpbiB0aGlzIGxvb3Au
+IEl0J3MgYmVjYXVzZSBsb2NrLT5jbnRzIG1heSBub3cgY29udGFpbg0KPiBfUVdfV0FJVElORyBv
+ciBfUVdfV0FJVElORyB8IF9RV19LSUNLLiBTbyB0aGUgaWYoKSBjb25kaXRpb24gbWF5IG5ldmVy
+DQo+IG1lZXQgaW4gMm5kIGNhc2UuIFRvIGhhbmRsZSBpdCwgSSBjaGFuZ2VkIGl0IGxpa2UgdGhp
+czpObywgdGhhdCBzaG91bGQgbm90IGhhcHBlbi4NCkJlY2F1c2Ugb25seSB3cml0ZXIgd2lsbCBz
+ZXQgLT53bW9kZShwYXJ0IG9mIC0+Y250cykgdG8gX1FXX1dBSVRJTkcgaW4gYW5vdGhlciBmb3It
+bG9vcCBiZWZvcmUuDQoNCj4gICAgICBmb3IgKDs7KSB7DQo+ICAgICAgICAgICAgICBjbnRzID0g
+YXRvbWljX3JlYWQoJmxvY2stPmNudHMpOw0KPiAgICAgICAgICAgICAgaWYgKCgoY250cyAmIF9R
+V19XTUFTSykgPT0gX1FXX1dBSVRJTkcpICYmDQo+ICAgICAgICAgICAgICAgICAgKGF0b21pY19j
+bXB4Y2hnX2FjcXVpcmUoJmxvY2stPmNudHMsIGNudHMsDQo+ICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgX1FXX0xPQ0tFRHxfUVdfS0lDSykgPT0gY250cykpVGhpcyBp
+cyB3cm9uZy4gT3JpZ2luYWxseSB3ZSBuZWVkIGNoZWNrIGlmIHRoZXJlIGlzIGFueSByZWFkZXIg
+aG9sZHMgdGhlIHJ3bG9jay4NCkJ1dCB0aGUgaWYgY29uZGl0aW9uIHlvdSB3cm90ZSBjb3VsZCBi
+ZSB0cnVlIGV2ZW4gdGhlcmUgYXJlIHJlYWRlcnMgaG9sZGluZyB0aGUgcndsb2NrLg0KDQpJIGhh
+dmUgbm8gaWRlYSB3aHkgbXkgcGF0Y2ggaGFuZ3MgdGhlIGtlcm5lbC4gSXQgd29ya3Mgb24gbXkg
+c2lkZS4gQWx0aG91Z2ggdGhlIHBlcmZyb21hbmNlIHJlc3VsdHMgb24geDg2IGhhdmUgbGl0dGxl
+IGRpZmZlcmVuY2UuDQpTbyBsZWF2ZSBteSBwYXRjaCBhbG9uZSBhbnl3YXkuDQoNCnRoYW5rcw0K
+eGluaHVpPiAgICAgICAgICAgICAgICAgICAgICBicmVhazsNCj4gDQo+ICAgICAgICAgICAgICBj
+cHVfcmVsYXgoKTsNCj4gICAgICB9DQo+IA0KPiANCj4gQnV0IGFmdGVyIHRoYXQgaXQgaGFuZ2Vk
+IGluIHF1ZXVlZF9zcGluX2xvY2tfc2xvd3BhdGgoKSBhdCB0aGUgbGluZQ0KPiA0NzggICAgICAg
+ICAgICAgc21wX2NvbmRfbG9hZF9hY3F1aXJlKCZsb2NrLT52YWwuY291bnRlciwgIShWQUwgJiBf
+UV9MT0NLRURfTUFTSykpOw0KPiANCj4gQmFja3RyYWNlIGlzIGJlbG93Lg0KPiANCj4gWXVyeQ0K
+PiANCj4+ICAgCX0NCj4+ICAgdW5sb2NrOg0KPj4gLQlhcmNoX3NwaW5fdW5sb2NrKCZsb2NrLT53
+YWl0X2xvY2spOw0KPj4gKwlyZXR1cm47DQo+PiAgIH0NCj4+ICAgRVhQT1JUX1NZTUJPTChxdWV1
+ZWRfd3JpdGVfbG9ja19zbG93cGF0aCk7DQo+PiAtLSANCj4+IDIuNC4xMQ0KPiANCj4gIzAgIHF1
+ZXVlZF9zcGluX2xvY2tfc2xvd3BhdGggKGxvY2s9MHhmZmZmMDAwMDA4Y2IwNTFjIDxwcm9jX3N1
+YmRpcl9sb2NrKzQ+LCB2YWw9PG9wdGltaXplZCBvdXQ+KQ0KPiAgICAgIGF0IGtlcm5lbC9sb2Nr
+aW5nL3FzcGlubG9jay5jOjQ3OA0KPiAjMSAgMHhmZmZmMDAwMDA4MGZmMTU4IGluIHF1ZXVlZF9z
+cGluX2xvY2sgKGxvY2s9PG9wdGltaXplZCBvdXQ+KQ0KPiAgICAgIGF0IC4vaW5jbHVkZS9hc20t
+Z2VuZXJpYy9xc3BpbmxvY2suaDoxMDQNCj4gIzIgIHF1ZXVlZF93cml0ZV9sb2NrX3Nsb3dwYXRo
+IChsb2NrPTB4ZmZmZjAwMDAwOGNiMDUxOCA8cHJvY19zdWJkaXJfbG9jaz4pDQo+ICAgICAgYXQg
+a2VybmVsL2xvY2tpbmcvcXJ3bG9jay5jOjExNg0KPiAjMyAgMHhmZmZmMDAwMDA4ODE1ZmM0IGlu
+IHF1ZXVlZF93cml0ZV9sb2NrIChsb2NrPTxvcHRpbWl6ZWQgb3V0PikNCj4gICAgICBhdCAuL2lu
+Y2x1ZGUvYXNtLWdlbmVyaWMvcXJ3bG9jay5oOjEzNQ0KPiAjNCAgX19yYXdfd3JpdGVfbG9jayAo
+bG9jaz08b3B0aW1pemVkIG91dD4pIGF0IC4vaW5jbHVkZS9saW51eC9yd2xvY2tfYXBpX3NtcC5o
+OjIxMQ0KPiAjNSAgX3Jhd193cml0ZV9sb2NrIChsb2NrPTxvcHRpbWl6ZWQgb3V0PikgYXQga2Vy
+bmVsL2xvY2tpbmcvc3BpbmxvY2suYzoyOTUNCj4gIzYgIDB4ZmZmZjAwMDAwODI0YzRjMCBpbiBw
+cm9jX3JlZ2lzdGVyIChkaXI9MHhmZmZmMDAwMDA4YmZmMmQwIDxwcm9jX3Jvb3Q+LA0KPiAgICAg
+IGRwPTB4ZmZmZjgwMDAzZDgwNzMwMCkgYXQgZnMvcHJvYy9nZW5lcmljLmM6MzQyDQo+ICM3ICAw
+eGZmZmYwMDAwMDgyNGM2MjggaW4gcHJvY19zeW1saW5rIChuYW1lPTxvcHRpbWl6ZWQgb3V0PiwN
+Cj4gICAgICBwYXJlbnQ9MHhmZmZmMDAwMDA4YjI4ZTQwIDxwcm9jX3Jvb3RfaW5pdCs3Mj4sIGRl
+c3Q9MHhmZmZmMDAwMDA4YTMzMWE4ICJzZWxmL25ldCIpDQo+ICAgICAgYXQgZnMvcHJvYy9nZW5l
+cmljLmM6NDEzDQo+ICM4ICAweGZmZmYwMDAwMDhiMjkyN2MgaW4gcHJvY19uZXRfaW5pdCAoKSBh
+dCBmcy9wcm9jL3Byb2NfbmV0LmM6MjQ0DQo+ICM5ICAweGZmZmYwMDAwMDhiMjhlNDAgaW4gcHJv
+Y19yb290X2luaXQgKCkgYXQgZnMvcHJvYy9yb290LmM6MTM3DQo+ICMxMCAweGZmZmYwMDAwMDhi
+MTBiMTAgaW4gc3RhcnRfa2VybmVsICgpIGF0IGluaXQvbWFpbi5jOjY2MQ0KPiAjMTEgMHhmZmZm
+MDAwMDA4YjEwMWUwIGluIF9fcHJpbWFyeV9zd2l0Y2hlZCAoKSBhdCBhcmNoL2FybTY0L2tlcm5l
+bC9oZWFkLlM6MzQ3DQo+IA0KPiAuDQo+IApfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fXwpsaW51eC1hcm0ta2VybmVsIG1haWxpbmcgbGlzdApsaW51eC1hcm0t
+a2VybmVsQGxpc3RzLmluZnJhZGVhZC5vcmcKaHR0cDovL2xpc3RzLmluZnJhZGVhZC5vcmcvbWFp
+bG1hbi9saXN0aW5mby9saW51eC1hcm0ta2VybmVsCg==
