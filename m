@@ -1,61 +1,73 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: asm/mmu.h using NR_CPUS (was Re: kisskb: FAILED
- linux-next/axs101_defconfig/arcompact Thu May 04, 18:53)
-Date: Fri, 5 May 2017 11:52:32 -0700
-Message-ID: <6aa3877c-9118-88d1-b662-49a455a66258@synopsys.com>
-References: <20170504085336.1.21586@5b4f83badeef>
+From: <nfrankiyamu@centrum.cz>
+Subject: 2753 linux-arch
+Date: Fri, 05 May 2017 22:28:16 -0000
+Message-ID: <149402329621.19571.13856616286746095995@hinet.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="windows-1252"
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20170504085336.1.21586@5b4f83badeef>
-Sender: owner-linux-mm@kvack.org
-To: linux-snps-arc@lists.infradead.org
-Cc: noreply@ellerman.id.au, lkml <linux-kernel@vger.kernel.org>, Alexey.Brodkin@synopsys.com, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Michal Hocko <mhocko@suse.cz>, Anton Kolesov <Anton.Kolesov@synopsys.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: application/zip; name="5559292059.zip"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from 1-174-224-109.dynamic-ip.hinet.net ([1.174.224.109]:39060 "HELO
+        hinet.net" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with SMTP
+        id S1751400AbdEEW2X (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 5 May 2017 18:28:23 -0400
+Content-Disposition: attachment
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org
 
-+CC Michal, linux-arch as it potentially affects other arches !
-
-Hi,
-
-On 05/04/2017 01:53 AM, noreply@ellerman.id.au wrote:
-> FAILED linux-next/axs101_defconfig/arcompact Thu May 04, 18:53
-> 
-> http://kisskb.ellerman.id.au/kisskb/buildresult/13022475/
-> 
-> Commit:   Add linux-next specific files for 20170504
->           ef57eb19c96fa099a578aeaed9b9d0dbcc4fe069
-> Compiler: arc-buildroot-linux-uclibc-gcc (Buildroot 2015.08.1) 4.8.4
-> 
-> Possible errors
-> ---------------
-> 
-> arch/arc/include/asm/mmu.h:75:21: error: 'NR_CPUS' undeclared here (not in a function)
-> make[3]: *** [arch/arc/mm/ioremap.o] Error 1
-> make[2]: *** [arch/arc/mm] Error 2
-> make[1]: *** [arch/arc] Error 2
-> arch/arc/include/asm/mmu.h:75:21: error: 'NR_CPUS' undeclared here (not in a function)
-> make[3]: *** [kernel/irq/generic-chip.o] Error 1
-> make[2]: *** [kernel/irq] Error 2
-> make[1]: *** [kernel] Error 2
-> arch/arc/include/asm/mmu.h:75:21: error: 'NR_CPUS' undeclared here (not in a function)
-> make[2]: *** [mm/vmalloc.o] Error 1
-> make[1]: *** [mm] Error 2
-> make: *** [sub-make] Error 2
-
-I bisected the linux-next ARC build failure (!SMP only) to a subtle side effect of
-a950a30220657d ("mm, vmalloc: properly track vmalloc users") which includes
-asm/pgtable.h causing the final include chain (for ARC ioremap.c) to have
-asm/mmu.h (using NR_CPUS) before linux/threads.h (defining it)
-
-The quick fix is to include linux/threads.h and this is just a heads up other
-arches might run into same - although xtensa and mips with similar mm_context_t
-seem to build just fine !
-
--Vineet
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+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
