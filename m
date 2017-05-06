@@ -1,60 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay.synopsys.com ([198.182.47.9]:53833 "EHLO
-        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753357AbdEESwp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 5 May 2017 14:52:45 -0400
-Subject: asm/mmu.h using NR_CPUS (was Re: kisskb: FAILED
- linux-next/axs101_defconfig/arcompact Thu May 04, 18:53)
-References: <20170504085336.1.21586@5b4f83badeef>
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Message-ID: <6aa3877c-9118-88d1-b662-49a455a66258@synopsys.com>
-Date: Fri, 5 May 2017 11:52:32 -0700
+Received: from mail-it0-f42.google.com ([209.85.214.42]:35503 "EHLO
+        mail-it0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754087AbdEFHsX (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 6 May 2017 03:48:23 -0400
+Received: by mail-it0-f42.google.com with SMTP id c15so42381692ith.0
+        for <linux-arch@vger.kernel.org>; Sat, 06 May 2017 00:48:23 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <20170504085336.1.21586@5b4f83badeef>
-Content-Type: text/plain; charset="windows-1252"
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <20170505171155.4fm22ks6m5j7lpjm@pd.tnic>
+References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
+ <20170418211831.10190.80158.stgit@tlendack-t1.amdoffice.net> <20170505171155.4fm22ks6m5j7lpjm@pd.tnic>
+From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Date: Sat, 6 May 2017 08:48:22 +0100
+Message-ID: <CAKv+Gu-h+1UWPCUwvJT2AD=JtPqYQRRrrUCFjWNiAOCKfHh7rg@mail.gmail.com>
+Subject: Re: [PATCH v5 13/32] x86/boot/e820: Add support to determine the E820
+ type of an address
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-snps-arc@lists.infradead.org
-Cc: noreply@ellerman.id.au, lkml <linux-kernel@vger.kernel.org>, Alexey.Brodkin@synopsys.com, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Michal Hocko <mhocko@suse.cz>, Anton Kolesov <Anton.Kolesov@synopsys.com>
-Message-ID: <20170505185232.VOM1jfnL2bJ0Hu6VVIbSB5kEZsup6HU-ovWlPasJ9OM@z>
+To: Borislav Petkov <bp@alien8.de>
+Cc: Tom Lendacky <thomas.lendacky@amd.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-efi@vger.kernel.org" <linux-efi@vger.kernel.org>, KVM devel mailing list <kvm@vger.kernel.org>, linux-doc@vger.kernel.org, "x86@kernel.org" <x86@kernel.org>, "kexec@lists.infradead.org" <kexec@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20170506074822.Rfi9eM5z3QjQJv52O8y4a3Z87BiRJIXIIbXI615nhtc@z>
 
-+CC Michal, linux-arch as it potentially affects other arches !
+On 5 May 2017 at 18:11, Borislav Petkov <bp@alien8.de> wrote:
+> On Tue, Apr 18, 2017 at 04:18:31PM -0500, Tom Lendacky wrote:
+>> Add a function that will return the E820 type associated with an address
+>> range.
+>
+> ...
+>
+>> @@ -110,9 +111,28 @@ bool __init e820__mapped_all(u64 start, u64 end, enum e820_type type)
+>>                * coverage of the desired range exists:
+>>                */
+>>               if (start >= end)
+>> -                     return 1;
+>> +                     return entry;
+>>       }
+>> -     return 0;
+>> +
+>> +     return NULL;
+>> +}
+>> +
+>> +/*
+>> + * This function checks if the entire range <start,end> is mapped with type.
+>> + */
+>> +bool __init e820__mapped_all(u64 start, u64 end, enum e820_type type)
+>> +{
+>> +     return __e820__mapped_all(start, end, type) ? 1 : 0;
+>
+>         return !!__e820__mapped_all(start, end, type);
+>
 
-Hi,
-
-On 05/04/2017 01:53 AM, noreply@ellerman.id.au wrote:
-> FAILED linux-next/axs101_defconfig/arcompact Thu May 04, 18:53
-> 
-> http://kisskb.ellerman.id.au/kisskb/buildresult/13022475/
-> 
-> Commit:   Add linux-next specific files for 20170504
->           ef57eb19c96fa099a578aeaed9b9d0dbcc4fe069
-> Compiler: arc-buildroot-linux-uclibc-gcc (Buildroot 2015.08.1) 4.8.4
-> 
-> Possible errors
-> ---------------
-> 
-> arch/arc/include/asm/mmu.h:75:21: error: 'NR_CPUS' undeclared here (not in a function)
-> make[3]: *** [arch/arc/mm/ioremap.o] Error 1
-> make[2]: *** [arch/arc/mm] Error 2
-> make[1]: *** [arch/arc] Error 2
-> arch/arc/include/asm/mmu.h:75:21: error: 'NR_CPUS' undeclared here (not in a function)
-> make[3]: *** [kernel/irq/generic-chip.o] Error 1
-> make[2]: *** [kernel/irq] Error 2
-> make[1]: *** [kernel] Error 2
-> arch/arc/include/asm/mmu.h:75:21: error: 'NR_CPUS' undeclared here (not in a function)
-> make[2]: *** [mm/vmalloc.o] Error 1
-> make[1]: *** [mm] Error 2
-> make: *** [sub-make] Error 2
-
-I bisected the linux-next ARC build failure (!SMP only) to a subtle side effect of
-a950a30220657d ("mm, vmalloc: properly track vmalloc users") which includes
-asm/pgtable.h causing the final include chain (for ARC ioremap.c) to have
-asm/mmu.h (using NR_CPUS) before linux/threads.h (defining it)
-
-The quick fix is to include linux/threads.h and this is just a heads up other
-arches might run into same - although xtensa and mips with similar mm_context_t
-seem to build just fine !
-
--Vineet
+Even the !! double negation is redundant, given that the function returns bool.
