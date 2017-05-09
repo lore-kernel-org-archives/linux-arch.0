@@ -1,45 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:47534 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751908AbdEIB6d (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 8 May 2017 21:58:33 -0400
-Date: Mon, 8 May 2017 20:58:29 -0500
-From: Josh Poimboeuf <jpoimboe@redhat.com>
-Subject: Re: [PATCH v3 2/2] x86/refcount: Implement fast refcount overflow
- protection
-Message-ID: <20170509015829.iycvxxbyblfgklsg@treble>
-References: <1494271972-140319-1-git-send-email-keescook@chromium.org>
- <1494271972-140319-3-git-send-email-keescook@chromium.org>
- <20170508225308.a6uznrhdm7pgyhcg@treble>
- <CAGXu5j+J=o7hHceQn6pFtCmQcfUtSrtZ9uP8fLo0gkDWNdetAA@mail.gmail.com>
+Received: from mx2.suse.de ([195.135.220.15]:46271 "EHLO mx1.suse.de"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1752586AbdEINlE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 9 May 2017 09:41:04 -0400
+Date: Tue, 9 May 2017 15:40:56 +0200
+From: Michal Hocko <mhocko@kernel.org>
+Subject: Re: [PATCH] asm-generic/io.h: remove unnecessary #include of
+ <linux/vmalloc.h>
+Message-ID: <20170509134056.GM6481@dhcp22.suse.cz>
+References: <20170509085045.7342-1-tklauser@distanz.ch>
+ <20170509090207.GE6481@dhcp22.suse.cz>
+ <20170509131620.GH10395@distanz.ch>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <CAGXu5j+J=o7hHceQn6pFtCmQcfUtSrtZ9uP8fLo0gkDWNdetAA@mail.gmail.com>
+In-Reply-To: <20170509131620.GH10395@distanz.ch>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, PaX Team <pageexec@freemail.hu>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
-Message-ID: <20170509015829.x6PKb1Yi3R2uwXrRJlF0qXu4tQ_dRGLOkOhwWh2cugI@z>
+To: Tobias Klauser <tklauser@distanz.ch>
+Cc: Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ley Foon Tan <lftan@altera.com>
+Message-ID: <20170509134056.IeBg8rZmXTu6CNTXTanIolJGMzW4M2F2GFJPDGItHmQ@z>
 
-On Mon, May 08, 2017 at 04:31:11PM -0700, Kees Cook wrote:
-> On Mon, May 8, 2017 at 3:53 PM, Josh Poimboeuf <jpoimboe@redhat.com> wrote:
-> > On Mon, May 08, 2017 at 12:32:52PM -0700, Kees Cook wrote:
-> >> +#define REFCOUNT_EXCEPTION                           \
-> >> +     "movl $0x7fffffff, %[counter]\n\t"              \
-> >> +     "int $"__stringify(X86_REFCOUNT_VECTOR)"\n"     \
-> >> +     "0:\n\t"                                        \
-> >> +     _ASM_EXTABLE(0b, 0b)
-> >
-> > Despite the objtool warnings going away, this still uses the exception
-> > table in a new way, which will confuse objtool.  I need to do some more
-> > thinking about the best way to fix it, either as a change to your patch
-> > or a change to objtool.
+On Tue 09-05-17 15:16:20, Tobias Klauser wrote:
+> On 2017-05-09 at 11:02:07 +0200, Michal Hocko <mhocko@kernel.org> wrote:
+> > On Tue 09-05-17 10:50:45, Tobias Klauser wrote:
+> > > After commit 1f5307b1e094 ("mm, vmalloc: properly track vmalloc users")
+> > > the build for ARCH=nios2 fails with:
+> > > 
+> > > In file included from ./include/asm-generic/io.h:767:0,
+> > >   		 from ./arch/nios2/include/asm/io.h:61,
+> > > 		 from ./include/linux/io.h:25,
+> > > 		 from ./arch/nios2/include/asm/pgtable.h:18,
+> > > 		 from ./include/linux/mm.h:70,
+> > > 		 from ./include/linux/pid_namespace.h:6,
+> > > 		 from ./include/linux/ptrace.h:9,
+> > > 		 from ./arch/nios2/include/uapi/asm/elf.h:23,
+> > > 		 from ./arch/nios2/include/asm/elf.h:22,
+> > > 		 from ./include/linux/elf.h:4,
+> > > 		 from ./include/linux/module.h:15,
+> > > 		 from init/main.c:16:
+> > > ./include/linux/vmalloc.h: In function '__vmalloc_node_flags':
+> > > ./include/linux/vmalloc.h:99:40: error: 'PAGE_KERNEL' undeclared (first use in this function); did you mean 'GFP_KERNEL'?
+> > > 
+> > > which is due to the newly added #include <asm/pgtable.h>, which on nios2
+> > > includes <linux/io.h> and thus <asm/io.h> and <asm-generic/io.h> which
+> > > again includes <linux/vmalloc.h>.
+> > > 
+> > > It turns out the #include <linux/vmalloc.h> in <asm-generic/io.h> isn't
+> > > necessary at all since none of it definitions are used there, so remove
+> > > it alltogether.
+> > 
+> > Thanks for your fix but I have already posted a different one [1] which
+> > doesn't include pgtable.h because this turned out to be a problem on
+> > m68k already. I am just waiting for Andrew to drop the previous patch
+> > and replace it with the one pointed out.
+> > 
+> > [1] http://lkml.kernel.org/r/20170503063750.GC1236@dhcp22.suse.cz
 > 
-> In that it's not a "true" exception?
+> Thanks for the info. Though it looks like your original patch already
+> made it into Linus' tree as commit 1f5307b1e094.
 
-Right.  And also that it doesn't need the "fixup" since it would return
-to the same address anyway.
+Ups! I though Andrew would leave it for later as it had compilation
+issues.
+ 
+> As for my patch, please disregard - it lead to several build regressions
+> with the kernel build bot.
 
+Yeah, I've learned that as well, so I've rather came with a different
+solution. I will poke Andrew to marge a fix ASAP.
 -- 
-Josh
+Michal Hocko
+SUSE Labs
