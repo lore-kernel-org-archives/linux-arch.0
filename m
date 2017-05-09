@@ -1,123 +1,101 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:52594 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751306AbdEIRoH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 9 May 2017 13:44:07 -0400
-Date: Tue, 9 May 2017 12:44:03 -0500
-From: Josh Poimboeuf <jpoimboe@redhat.com>
-Subject: Re: [PATCH v3 2/2] x86/refcount: Implement fast refcount overflow
- protection
-Message-ID: <20170509174403.etx64yozb7ctr4ur@treble>
-References: <1494271972-140319-1-git-send-email-keescook@chromium.org>
- <1494271972-140319-3-git-send-email-keescook@chromium.org>
- <20170508225308.a6uznrhdm7pgyhcg@treble>
- <CAGXu5j+J=o7hHceQn6pFtCmQcfUtSrtZ9uP8fLo0gkDWNdetAA@mail.gmail.com>
- <20170509015829.iycvxxbyblfgklsg@treble>
- <20170509170812.uyfkvblwofhxpk4e@treble>
- <CAGXu5j+_72Pv6dTZdaYN0N4TZG6G7aB=O+v3fv4xL9jgHHpJkA@mail.gmail.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <CAGXu5j+_72Pv6dTZdaYN0N4TZG6G7aB=O+v3fv4xL9jgHHpJkA@mail.gmail.com>
+Received: from mail-pg0-f46.google.com ([74.125.83.46]:33600 "EHLO
+        mail-pg0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753812AbdEITBd (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 May 2017 15:01:33 -0400
+Received: by mail-pg0-f46.google.com with SMTP id u187so4203758pgb.0
+        for <linux-arch@vger.kernel.org>; Tue, 09 May 2017 12:01:28 -0700 (PDT)
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH v4 0/2] x86/refcount: Implement fast refcount overflow protection
+Date: Tue,  9 May 2017 12:01:21 -0700
+Message-ID: <1494356483-81678-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, PaX Team <pageexec@freemail.hu>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
-Message-ID: <20170509174403.aIOESBe55DivJC-43PMZmzdr3BqlT6DeiYAI0qAa-Uc@z>
+To: linux-kernel@vger.kernel.org
+Cc: Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, PaX Team <pageexec@freemail.hu>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, kernel-hardening@lists.openwall.com
+Message-ID: <20170509190121.4sIp81lTDZFT8aKNOYwBSiVphLAWmsJ8DH9ZE3cMk2g@z>
 
-On Tue, May 09, 2017 at 10:29:16AM -0700, Kees Cook wrote:
-> On Tue, May 9, 2017 at 10:08 AM, Josh Poimboeuf <jpoimboe@redhat.com> wrote:
-> > On Mon, May 08, 2017 at 08:58:29PM -0500, Josh Poimboeuf wrote:
-> >> On Mon, May 08, 2017 at 04:31:11PM -0700, Kees Cook wrote:
-> >> > On Mon, May 8, 2017 at 3:53 PM, Josh Poimboeuf <jpoimboe@redhat.com> wrote:
-> >> > > On Mon, May 08, 2017 at 12:32:52PM -0700, Kees Cook wrote:
-> >> > >> +#define REFCOUNT_EXCEPTION                           \
-> >> > >> +     "movl $0x7fffffff, %[counter]\n\t"              \
-> >> > >> +     "int $"__stringify(X86_REFCOUNT_VECTOR)"\n"     \
-> >> > >> +     "0:\n\t"                                        \
-> >> > >> +     _ASM_EXTABLE(0b, 0b)
-> >> > >
-> >> > > Despite the objtool warnings going away, this still uses the exception
-> >> > > table in a new way, which will confuse objtool.  I need to do some more
-> >> > > thinking about the best way to fix it, either as a change to your patch
-> >> > > or a change to objtool.
-> >> >
-> >> > In that it's not a "true" exception?
-> >>
-> >> Right.  And also that it doesn't need the "fixup" since it would return
-> >> to the same address anyway.
-> >
-> > How about the following on top of your patch?  It uses #UD (invalid
-> > opcode).  Notice it's mostly code deletions :-)
-> 
-> Hah, I wrote this patch almost exactly last night, but hadn't had a
-> chance to send it out. :)
-> 
-> I ended up defining a new exception handler, which means nothing
-> special in the generic trap code. I didn't send it out because it was
-> still using a jns instead of js, and I was pondering if I wanted to
-> reintroduce the text section jump just to gain the initial benefit of
-> forward-branch-not-taken optimization...
-> 
-> > diff --git a/arch/x86/include/asm/refcount.h b/arch/x86/include/asm/refcount.h
-> > index 6e8bbd7..653a985 100644
-> > --- a/arch/x86/include/asm/refcount.h
-> > +++ b/arch/x86/include/asm/refcount.h
-> > @@ -8,15 +8,16 @@
-> >   */
-> >  #include <linux/refcount.h>
-> >  #include <asm/irq_vectors.h>
-> > +#include <asm/bug.h>
-> >
-> >  #define REFCOUNT_EXCEPTION                             \
-> >         "movl $0x7fffffff, %[counter]\n\t"              \
-> > -       "int $"__stringify(X86_REFCOUNT_VECTOR)"\n"     \
-> > -       "0:\n\t"                                        \
-> > -       _ASM_EXTABLE(0b, 0b)
-> > +       "1:\t" ASM_UD0 "\n"                             \
-> > +       "2:\n\t"                                        \
-> > +       _ASM_EXTABLE(1b, 2b)
-> 
-> I used _ASM_EXTABLE_REFCOUNT(1b, 2b) here, with
-> arch/x86/include/asm/asm.h adding:
-> 
-> +# define _ASM_EXTABLE_REFCOUNT(from, to)                       \
-> +       _ASM_EXTABLE_HANDLE(from, to, ex_handler_refcount)
-> 
-> > diff --git a/arch/x86/kernel/traps.c b/arch/x86/kernel/traps.c
-> > index 0b2dbcc..7de95b7 100644
-> > --- a/arch/x86/kernel/traps.c
-> > +++ b/arch/x86/kernel/traps.c
-> > @@ -220,8 +220,8 @@ do_trap_no_signal(struct task_struct *tsk, int trapnr, char *str,
-> >         if (!user_mode(regs)) {
-> >                 if (fixup_exception(regs, trapnr)) {
-> >                         if (IS_ENABLED(CONFIG_FAST_REFCOUNT) &&
-> > -                           trapnr == X86_REFCOUNT_VECTOR)
-> > -                               refcount_error_report(regs, str);
-> > +                           trapnr == X86_TRAP_UD)
-> > +                               refcount_error_report(regs);
-> >
-> >                         return 0;
-> >                 }
-> 
-> And then I could leave out this hunk, instead adding this to
-> arch/x86/mm/extable.c:
-> 
-> +bool ex_handler_refcount(const struct exception_table_entry *fixup,
-> +                        struct pt_regs *regs, int trapnr)
-> +{
-> +       regs->ip = ex_fixup_addr(fixup);
-> +       refcount_error_report(regs, "overflow");
-> +       return true;
-> +}
-> +EXPORT_SYMBOL_GPL(ex_handler_refcount);
-> 
-> After looking at the assembly output, the "movl" instructions can be
-> various sizes, depending on where %[counter] lives, so I'm also
-> considering returning to using PaX's "lea", but I'm not sure the
-> benefit would be very large.
+This protection is a modified version of the x86 PAX_REFCOUNT defense
+from PaX/grsecurity. This speeds up the refcount_t API by duplicating
+the existing atomic_t implementation with a single instruction added to
+detect if the refcount has wrapped past INT_MAX (or below 0) resulting
+in a negative value, where the handler then restores the refcount_t to
+INT_MAX. With this overflow protection, the use-after-free following a
+refcount_t wrap is blocked from happening, avoiding the vulnerability
+entirely.
 
-Good, your patch sounds better than mine :-)
+While this defense only perfectly protects the overflow case, as that
+can be detected and stopped before the reference is freed and left to be
+abused by an attacker, it also notices some of the "inc from 0" and "below
+0" cases. However, these only indicate that a use-after-free has already
+happened. Such notifications are likely avoidable by an attacker that has
+already exploited a use-after-free vulnerability, but it's better to have
+them than allow such conditions to remain universally silent.
 
--- 
-Josh
+On overflow detection (actually "negative value" detection), the refcount
+value is reset to INT_MAX, the offending process is killed, and a report
+and stack trace are generated. This allows the system to attempt to
+keep operating. Another option, though not done in this patch, would be
+to reset the counter to (INT_MIN / 2) to trap all future refcount inc
+or dec actions, but this would result in even legitimate uses getting
+blocked. Yet another option would be to choose (INT_MAX - N) with some
+small N to provide some headroom for legitimate users of the reference
+counter.
+
+On the matter of races, since the entire range beyond INT_MAX but before 0
+is negative, every inc will trap, leaving no overflow-only race condition.
+
+As for performance, this implementation adds a single "js" instruction to
+the regular execution flow of a copy of the regular atomic_t operations.
+Since this is a forward jump, it is by default the non-predicted path,
+which will be reinforced by dynamic branch prediction. The result is this
+protection having no measurable change in performance over standard
+atomic_t operations. The error path, located in .text.unlikely, uses
+UD0 to fire a refcount exception handler, which reports and returns to
+regular execution. This keeps the changes to .text size minimal, avoiding
+return jumps and open-coded calls to the error reporting routine.
+
+Assembly comparison:
+
+atomic_inc
+.text:
+ffffffff81546149:       f0 ff 45 f4             lock incl -0xc(%rbp)
+
+refcount_inc
+.text:
+ffffffff81546149:       f0 ff 45 f4             lock incl -0xc(%rbp)
+ffffffff8154614d:       0f 88 80 d5 17 00       js     ffffffff816c36d3
+...
+.text.unlikely:
+ffffffff816c36d3:       c7 45 f4 ff ff ff 7f    movl   $0x7fffffff,-0xc(%rbp)   
+ffffffff816c36da:       0f ff                   (bad)
+
+Various differences from PaX:
+- uses earlier value reset implementation in assembly
+- uses UD0 and refcount exception handler instead of new int vector
+- uses .text.unlikely instead of custom named text sections
+- applied only to refcount_t, not atomic_t (single size, only overflow)
+- reorganized refcount error handler
+- uses "js" instead of "jo" to trap all negative results instead of
+  just under/overflow transitions
+
+-Kees
+
+v4:
+- switch to js from jns to gain static branch prediction benefits
+- use .text.unlikely for js target, effectively making handler __cold
+- use UD0 with refcount exception handler instead of int 0x81
+- Kconfig defaults on when arch has support
+
+v3:
+- drop named text sections until we need to distinguish sizes/directions
+- reset value immediately instead of passing back to handler
+- drop needless export; josh
+
+v2:
+- fix instruction pointer decrement bug; thejh
+- switch to js; pax-team
+- improve commit log
+- extract rmwcc macro helpers for better readability
+- implemented checks in inc_not_zero interface
+- adjusted reset values
