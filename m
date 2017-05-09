@@ -1,92 +1,89 @@
-From: Josh Poimboeuf <jpoimboe@redhat.com>
-Subject: Re: [PATCH v4 2/2] x86/refcount: Implement fast refcount overflow
- protection
-Date: Tue, 9 May 2017 14:33:02 -0500
-Message-ID: <20170509193302.f4eqholma2tw2llj@treble>
-References: <1494356483-81678-1-git-send-email-keescook@chromium.org>
- <1494356483-81678-3-git-send-email-keescook@chromium.org>
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: Re: [PATCH 3/3] arm64/locking: qspinlocks and qrwlocks support
+Date: Tue, 9 May 2017 22:37:19 +0300
+Message-ID: <20170509193719.is3naupydwuytzdt@yury-N73SV>
+References: <20170503145141.4966-1-ynorov@caviumnetworks.com>
+ <20170503145141.4966-4-ynorov@caviumnetworks.com>
+ <20170509044708.vvwgzhvdrqyljy6s@tardis>
+ <20170509184829.scwjixgc2kxxxku7@yury-N73SV>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:58192 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750795AbdEITdH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 9 May 2017 15:33:07 -0400
+Received: from mail-cys01nam02on0041.outbound.protection.outlook.com ([104.47.37.41]:50400
+        "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1750858AbdEIThc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 9 May 2017 15:37:32 -0400
 Content-Disposition: inline
-In-Reply-To: <1494356483-81678-3-git-send-email-keescook@chromium.org>
+In-Reply-To: <20170509184829.scwjixgc2kxxxku7@yury-N73SV>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, PaX Team <pageexec@freemail.hu>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, kernel-hardening@lists.openwall.com
+To: Boqun Feng <boqun.feng@gmail.com>
+Cc: Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Adam Wallis <awallis@codeaurora.org>, Andrew Pinski <Andrew.Pinski@cavium.com>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Ingo Molnar <mingo@redhat.com>, Jan Glauber <jglauber@cavium.com>, Mark Rutland <mark.rutland@arm.com>, Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>
 
-On Tue, May 09, 2017 at 12:01:23PM -0700, Kees Cook wrote:
-> This protection is a modified version of the x86 PAX_REFCOUNT defense
-> from PaX/grsecurity. This speeds up the refcount_t API by duplicating
-> the existing atomic_t implementation with a single instruction added to
-> detect if the refcount has wrapped past INT_MAX (or below 0) resulting
-> in a negative value, where the handler then restores the refcount_t to
-> INT_MAX. With this overflow protection, the use-after-free following a
-> refcount_t wrap is blocked from happening, avoiding the vulnerability
-> entirely.
+On Tue, May 09, 2017 at 09:48:29PM +0300, Yury Norov wrote:
+> On Tue, May 09, 2017 at 12:47:08PM +0800, Boqun Feng wrote:
+> > On Wed, May 03, 2017 at 05:51:41PM +0300, Yury Norov wrote:
+> > > From: Jan Glauber <jglauber@cavium.com>
+> > > 
+> > > Ported from x86_64 with paravirtualization support removed.
+> > > 
+> > > Signed-off-by: Jan Glauber <jglauber@cavium.com>
+> > > 
+> > > Note. This patch removes protection from direct inclusion of
+> > > arch/arm64/include/asm/spinlock_types.h. It's done because
+> > > kernel/locking/qrwlock.c file does it thru the header
+> > > include/asm-generic/qrwlock_types.h. Until now the only user
+> > > of qrwlock.c was x86, and there's no such protection too.
+> > > 
+> > > I'm not happy to remove the protection, but if it's OK for x86,
+> > > it should be also OK for arm64. If not, I think we'd fix it
+> > > for x86, and add the protection there too.
+> > > 
+> > > Yury
+> > > 
+> > > Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
 > 
-> While this defense only perfectly protects the overflow case, as that
-> can be detected and stopped before the reference is freed and left to be
-> abused by an attacker, it also notices some of the "inc from 0" and "below
-> 0" cases. However, these only indicate that a use-after-free has already
-> happened. Such notifications are likely avoidable by an attacker that has
-> already exploited a use-after-free vulnerability, but it's better to have
-> them than allow such conditions to remain universally silent.
+> [...]
 > 
-> On overflow detection (actually "negative value" detection), the refcount
-> value is reset to INT_MAX, the offending process is killed, and a report
-> and stack trace are generated. This allows the system to attempt to
-> keep operating. Another option, though not done in this patch, would be
-> to reset the counter to (INT_MIN / 2) to trap all future refcount inc
-> or dec actions, but this would result in even legitimate uses getting
-> blocked. Yet another option would be to choose (INT_MAX - N) with some
-> small N to provide some headroom for legitimate users of the reference
-> counter.
+> > > +#define	queued_spin_unlock queued_spin_unlock
+> > > +/**
+> > > + * queued_spin_unlock - release a queued spinlock
+> > > + * @lock : Pointer to queued spinlock structure
+> > > + *
+> > > + * A smp_store_release() on the least-significant byte.
+> > > + */
+> > > +static inline void queued_spin_unlock(struct qspinlock *lock)
+> > > +{
+> > > +	smp_store_release((u8 *)lock, 0);
+> > 
+> > I think this part will cause endian issues, maybe you want something
+> > like what we do in queued_write_lock().
+> > 
+> > Have you tested this on an BE environment?
 > 
-> On the matter of races, since the entire range beyond INT_MAX but before 0
-> is negative, every inc will trap, leaving no overflow-only race condition.
+> No. I think I have to. Thanks for the pointing it.
 > 
-> As for performance, this implementation adds a single "js" instruction to
-> the regular execution flow of a copy of the regular atomic_t operations.
-> Since this is a forward jump, it is by default the non-predicted path,
-> which will be reinforced by dynamic branch prediction. The result is this
-> protection having no measurable change in performance over standard
-> atomic_t operations. The error path, located in .text.unlikely, uses
-> UD0 to fire a refcount exception handler, which reports and returns to
-> regular execution. This keeps the changes to .text size minimal, avoiding
-> return jumps and open-coded calls to the error reporting routine.
+> > 
+> > Regards,
+> > Boqun
 > 
-> Assembly comparison:
+> I think it's just the issue of copying from x86, and there's no any
+> specific need to cast to u8* type on arm64. So the correct version of
+> it would be like this, I believe: smp_store_release(&lock->val).
 > 
-> atomic_inc
-> .text:
-> ffffffff81546149:       f0 ff 45 f4             lock incl -0xc(%rbp)
-> 
-> refcount_inc
-> .text:
-> ffffffff81546149:       f0 ff 45 f4             lock incl -0xc(%rbp)
-> ffffffff8154614d:       0f 88 80 d5 17 00       js     ffffffff816c36d3
-> ...
-> .text.unlikely:
-> ffffffff816c36d3:       c7 45 f4 ff ff ff 7f    movl   $0x7fffffff,-0xc(%rbp)
-> ffffffff816c36da:       0f ff                   (bad)
-> 
-> Various differences from PaX:
-> - uses earlier value reset implementation in assembly
-> - uses UD0 and refcount exception handler instead of new int vector
-> - uses .text.unlikely instead of custom named text sections
-> - applied only to refcount_t, not atomic_t (single size, only overflow)
-> - reorganized refcount error handler
-> - uses "js" instead of "jo" to trap all negative results instead of
->   just under/overflow transitions
-> 
-> Signed-off-by: Kees Cook <keescook@chromium.org>
+> Yury
 
-Reviewed-by: Josh Poimboeuf <jpoimboe@redhat.com>
+Oops, it would rather be like this:
 
--- 
-Josh
+static inline void queued_spin_unlock(struct qspinlock *lock)
+{
+#if IS_BUILTIN(CONFIG_CPU_BIG_ENDIAN)
+       smp_store_release((u8 *) &lock->val + 3, 0);
+#else
+       smp_store_release((u8 *) &lock->val, 0);
+#endif
+}
+
+Or with the helper, like here in ppc port:
+https://www.spinics.net/lists/linux-virtualization/msg29390.html
