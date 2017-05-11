@@ -1,89 +1,95 @@
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH] spin loop primitives for busy waiting
-Date: Fri, 12 May 2017 05:26:35 +1000
-Message-ID: <20170512052613.55817b1a@roar.ozlabs.ibm.com>
-References: <20170511165727.17847-1-npiggin@gmail.com>
-        <CA+55aFzS9ENQnRoTbLMd_nFwwjuU+s9yj0tZcLSYDDjnwqTKrg@mail.gmail.com>
+From: Josh Poimboeuf <jpoimboe@redhat.com>
+Subject: Re: [PATCH v4 2/2] x86/refcount: Implement fast refcount overflow
+ protection
+Date: Thu, 11 May 2017 16:25:38 -0500
+Message-ID: <20170511212538.bjp4jbb7p4qipawo@treble>
+References: <1494356483-81678-1-git-send-email-keescook@chromium.org>
+ <1494356483-81678-3-git-send-email-keescook@chromium.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f193.google.com ([209.85.192.193]:34374 "EHLO
-        mail-pf0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S932518AbdEKT0w (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 May 2017 15:26:52 -0400
-Received: by mail-pf0-f193.google.com with SMTP id w69so4295718pfk.1
-        for <linux-arch@vger.kernel.org>; Thu, 11 May 2017 12:26:52 -0700 (PDT)
-In-Reply-To: <CA+55aFzS9ENQnRoTbLMd_nFwwjuU+s9yj0tZcLSYDDjnwqTKrg@mail.gmail.com>
+Received: from mx1.redhat.com ([209.132.183.28]:60664 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751370AbdEKVZo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 11 May 2017 17:25:44 -0400
+Content-Disposition: inline
+In-Reply-To: <1494356483-81678-3-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, ppc-dev <linuxppc-dev@lists.ozlabs.org>
+To: Kees Cook <keescook@chromium.org>
+Cc: linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, PaX Team <pageexec@freemail.hu>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, kernel-hardening@lists.openwall.com
 
-On Thu, 11 May 2017 11:47:47 -0700
-Linus Torvalds <torvalds@linux-foundation.org> wrote:
+On Tue, May 09, 2017 at 12:01:23PM -0700, Kees Cook wrote:
+> +#define _REFCOUNT_EXCEPTION				\
+> +	".pushsection .text.unlikely\n"			\
+> +	"111:\tmovl $0x7fffffff, %[counter]\n"		\
+> +	"112:\t" ASM_UD0 "\n"				\
+> +	".popsection\n"					\
+> +	"113:\n"					\
+> +	_ASM_EXTABLE_REFCOUNT(112b, 113b)
 
-> On Thu, May 11, 2017 at 9:57 AM, Nicholas Piggin <npiggin@gmail.com> wrote:
-> >
-> > If you find this acceptable, I'd like to start wiring in the powerpc
-> > and adding the annotations to some important core spin loops (there's
-> > not too many really). I'm hoping if you take this patch during this
-> > merge window, I'll be able to start sending small patches to maintainers
-> > for the next window. Unless you have a better suggestion for how to
-> > deal with this.  
-> 
-> This looks fine to me as an interface, and yes, I guess I can just
-> take this scaffolding as-is.
-> 
-> The one question I have is about "spin_on_cond()": since you
-> explicitly document that the "no spinning" case is expected to be the
-> default, I really think that the default implementation should be
-> along the lines if
-> 
->   #define spin_on_cond(cond) do { \
->     if (unlikely(!(cond))) { \
->         spin_begin(); do spin_cpu_relax(); while (!(cond)); spin_end(); \
->     } \
->   } while (0)
-> 
-> which will actually result in better code generation even if
-> spin_begin/end() are no-ops, and just generally optimizes for the
-> right behavior (ie do the spinning out-of-line, since by definition it
-> cannot be performance-critical after the first iteration).
-> 
-> So it's better even when you don't really have the begin/end overhead,
-> but that version of "spin_on_cond()" is then likely to work _much_
-> better if you actually do have it, when your version would seem to be
-> entirely unacceptable.
-> 
-> Hmm?
+This resulted in some new objtool warnings because the UD0 instruction
+is a dead end in the .text.unlikely section, but it's not annotated as
+such.  (As opposed to the WARN macros' use of UD0, which aren't dead
+ends since they resume execution immediately afterwards).
 
-I agree completely. But might it depend on architecture and so
-just be something they could do themselves?
+The below patch creates a UNREACHABLE_ASM macro, similar to the existing
+unreachable() macro for C code, which you can call right after the
+ASM_UD0 line above to fix the warnings.  Feel free to add the patch to
+your set.
 
-> In fact, do you even want to make that "spin_on_cond()" version
-> conditional? I don't see how an architecture can really improve on it.
-> If an architecture wants to use things like "wait on this particular
-> variable", then that generic "cond" version is too generic an
-> interface anyway.
+----
 
-So what I want is to be able to have architectures control the entire
-loop, and you can do some interesting things with goto labels and
-coding branches how you want them.
+From: Josh Poimboeuf <jpoimboe@redhat.com>
+Subject: [PATCH] objtool: create UNREACHABLE_ASM macro
 
-That was my motivation for doing the previous weird spin_do {} spin_while()
-interface. But since you didn't like it, and I realized that kind of
-control probably only matters for a very small subset of spin loops
-(e.g., bit spinlock/seqlock, some idle loops in the scheduler, etc. that
-do just tend to spin on a quite simple condition).
+Create an UNREACHABLE_ASM macro to enable inline asm to annotate dead
+end code paths.  This macro is analagous to the unreachable() macro for
+C code.
 
-For example, if you sent the branch prediction to statically predict
-the loop exits, then instead of taking a branch miss the first thing
-you do when your lock gets freed, you will be doing useful instructions.
+Also add a couple of comments.
 
-I haven't verified and done enough analysis yet to know if that's going
-to be worthwhile yet, but I thought for some of those simple spins, it's
-a nicer interface than the begin/relax/end.
+Signed-off-by: Josh Poimboeuf <jpoimboe@redhat.com>
+---
+ include/linux/compiler-gcc.h | 25 +++++++++++++++++++------
+ 1 file changed, 19 insertions(+), 6 deletions(-)
 
-Thanks,
-Nick
+diff --git a/include/linux/compiler-gcc.h b/include/linux/compiler-gcc.h
+index 0efef9c..08cdf9e 100644
+--- a/include/linux/compiler-gcc.h
++++ b/include/linux/compiler-gcc.h
+@@ -198,13 +198,26 @@
+ #endif
+ 
+ #ifdef CONFIG_STACK_VALIDATION
+-#define annotate_unreachable() ({					\
+-	asm("%c0:\t\n"							\
+-	    ".pushsection .discard.unreachable\t\n"			\
+-	    ".long %c0b - .\t\n"					\
+-	    ".popsection\t\n" : : "i" (__LINE__));			\
+-})
++/*
++ * This label needs to be unique to prevent GCC from removing what it sees as
++ * duplicate inline asm statements in a function.
++ */
++#define UNREACHABLE_ASM_LABEL __stringify(__LINE__)
++
++/*
++ * Annotate the previous instruction as unreachable.  This allows objtool to
++ * detect dead ends in the code flow.
++ */
++#define UNREACHABLE_ASM							\
++	UNREACHABLE_ASM_LABEL ":\n\t"					\
++	".pushsection .discard.unreachable\n\t"				\
++	".long " UNREACHABLE_ASM_LABEL "b - .\n\t"			\
++	".popsection\n"
++
++#define annotate_unreachable() asm(UNREACHABLE_ASM);
++
+ #else
++#define UNREACHABLE_ASM
+ #define annotate_unreachable()
+ #endif
+ 
+-- 
+2.7.4
