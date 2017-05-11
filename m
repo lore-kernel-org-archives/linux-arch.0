@@ -1,88 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f49.google.com ([74.125.83.49]:36055 "EHLO
-        mail-pg0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754149AbdEITB2 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 May 2017 15:01:28 -0400
-Received: by mail-pg0-f49.google.com with SMTP id 64so4178660pgb.3
-        for <linux-arch@vger.kernel.org>; Tue, 09 May 2017 12:01:28 -0700 (PDT)
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v4 1/2] x86/asm: Add suffix macro for GEN_*_RMWcc()
-Date: Tue,  9 May 2017 12:01:22 -0700
-Message-ID: <1494356483-81678-2-git-send-email-keescook@chromium.org>
-In-Reply-To: <1494356483-81678-1-git-send-email-keescook@chromium.org>
-References: <1494356483-81678-1-git-send-email-keescook@chromium.org>
+Received: from r00tworld.com ([212.85.137.150]:49532 "EHLO r00tworld.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1753822AbdEKBZs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 10 May 2017 21:25:48 -0400
+From: "PaX Team" <pageexec@freemail.hu>
+Date: Thu, 11 May 2017 03:24:34 +0200
+MIME-Version: 1.0
+Subject: Re: [PATCH v4 2/2] x86/refcount: Implement fast refcount overflow protection
+Reply-to: pageexec@freemail.hu
+Message-ID: <5913BD52.2305.3F7C9B7B@pageexec.freemail.hu>
+In-reply-to: <1494356483-81678-3-git-send-email-keescook@chromium.org>
+References: <1494356483-81678-1-git-send-email-keescook@chromium.org>, <1494356483-81678-3-git-send-email-keescook@chromium.org>
+Content-type: text/plain; charset=US-ASCII
+Content-transfer-encoding: 7BIT
+Content-description: Mail message body
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, PaX Team <pageexec@freemail.hu>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, kernel-hardening@lists.openwall.com
-Message-ID: <20170509190122.gyBT1Hnad_xu9oCZWfIJveKQGitWcPXtYyoHf1MI8w8@z>
+To: linux-kernel@vger.kernel.org, Kees Cook <keescook@chromium.org>
+Cc: Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, kernel-hardening@lists.openwall.com
+Message-ID: <20170511012434.0ij_fL-Si4Dq4T9EOJKlfjRM9iWlb0LBhEhHegaCeiI@z>
 
-The coming x86 refcount protection needs to be able to add trailing
-instructions to the GEN_*_RMWcc() operations. This extracts the
-difference between the goto/non-goto cases so the helper macros
-can be defined outside the #ifdef cases. Additionally adds argument
-naming to the resulting asm for referencing from suffixed
-instructions.
+On 9 May 2017 at 12:01, Kees Cook wrote:
+> Various differences from PaX:
+> - uses earlier value reset implementation in assembly
+> - uses UD0 and refcount exception handler instead of new int vector
+> - uses .text.unlikely instead of custom named text sections
 
-Signed-off-by: Kees Cook <keescook@chromium.org>
----
- arch/x86/include/asm/rmwcc.h | 22 ++++++++++++++--------
- 1 file changed, 14 insertions(+), 8 deletions(-)
+all the above together result in bloating .text.unlikely and thus the
+kernel image in general. the much bigger problem is that you introduced
+a vulnerability because now refcount underflow bugs can not only trigger
+a UAF but also a subsequent double-free since decrementing the saturation
+value will not trigger any checks until 0 is reached a second time.
 
-diff --git a/arch/x86/include/asm/rmwcc.h b/arch/x86/include/asm/rmwcc.h
-index 661dd305694a..3e96f9a56b6d 100644
---- a/arch/x86/include/asm/rmwcc.h
-+++ b/arch/x86/include/asm/rmwcc.h
-@@ -8,18 +8,15 @@
- #define __GEN_RMWcc(fullop, var, cc, ...)				\
- do {									\
- 	asm_volatile_goto (fullop "; j" #cc " %l[cc_label]"		\
--			: : "m" (var), ## __VA_ARGS__ 			\
-+			: : [counter] "m" (var), ## __VA_ARGS__		\
- 			: "memory" : cc_label);				\
- 	return 0;							\
- cc_label:								\
- 	return 1;							\
- } while (0)
- 
--#define GEN_UNARY_RMWcc(op, var, arg0, cc) 				\
--	__GEN_RMWcc(op " " arg0, var, cc)
-+#define __BINARY_RMWcc_ARG	" %1, "
- 
--#define GEN_BINARY_RMWcc(op, var, vcon, val, arg0, cc)			\
--	__GEN_RMWcc(op " %1, " arg0, var, cc, vcon (val))
- 
- #else /* defined(__GCC_ASM_FLAG_OUTPUTS__) || !defined(CC_HAVE_ASM_GOTO) */
- 
-@@ -29,17 +26,26 @@ cc_label:								\
- do {									\
- 	bool c;								\
- 	asm volatile (fullop ";" CC_SET(cc)				\
--			: "+m" (var), CC_OUT(cc) (c)			\
-+			: [counter] "+m" (var), CC_OUT(cc) (c)		\
- 			: __VA_ARGS__ : "memory");			\
- 	return c;							\
- } while (0)
- 
-+#define __BINARY_RMWcc_ARG	" %2, "
-+
-+#endif /* defined(__GCC_ASM_FLAG_OUTPUTS__) || !defined(CC_HAVE_ASM_GOTO) */
-+
- #define GEN_UNARY_RMWcc(op, var, arg0, cc)				\
- 	__GEN_RMWcc(op " " arg0, var, cc)
- 
-+#define GEN_UNARY_SUFFIXED_RMWcc(op, suffix, var, arg0, cc)		\
-+	__GEN_RMWcc(op " " arg0 "\n\t" suffix, var, cc)
-+
- #define GEN_BINARY_RMWcc(op, var, vcon, val, arg0, cc)			\
--	__GEN_RMWcc(op " %2, " arg0, var, cc, vcon (val))
-+	__GEN_RMWcc(op __BINARY_RMWcc_ARG arg0, var, cc, vcon (val))
- 
--#endif /* defined(__GCC_ASM_FLAG_OUTPUTS__) || !defined(CC_HAVE_ASM_GOTO) */
-+#define GEN_BINARY_SUFFIXED_RMWcc(op, suffix, var, vcon, val, arg0, cc)	\
-+	__GEN_RMWcc(op __BINARY_RMWcc_ARG arg0 "\n\t" suffix, var, cc,	\
-+		    vcon (val))
- 
- #endif /* _ASM_X86_RMWcc */
--- 
-2.7.4
+> - applied only to refcount_t, not atomic_t (single size, only overflow)
+
+this description doesn't seem to be in sync with the code as the refcount
+decrementing functions are also instrumented (and introduce the problem
+mentioned above).
+
+> - reorganized refcount error handler
+> - uses "js" instead of "jo" to trap all negative results instead of
+>   just under/overflow transitions
+
+if you're describing differences to PaX in such detail you might as well
+specify which version of PaX it is different from and credit the above idea
+to me lest someone get the impression that it was yours.
+
+> +static __always_inline __must_check bool refcount_inc_not_zero(refcount_t *r)
+> +{
+> +	int c;
+> +
+> +	c = atomic_read(&(r->refs));
+> +	do {
+> +		if (unlikely(c <= 0))
+> +			break;
+> +	} while (!atomic_try_cmpxchg(&(r->refs), &c, c + 1));
+> +
+> +	/* Did we start or finish in an undesirable state? */
+> +	if (unlikely(c <= 0 || c + 1 < 0)) {
+
+while -fno-strict-overflow should save you in linux it's still not
+prudent programming to rely on signed overflow, especially in security
+related checks. it's just too fragile and sets a bad example...
