@@ -1,52 +1,61 @@
-From: <tchidrenplytoo@aim.com>
-Subject: 2899
-Date: Wed, 10 May 2017 08:15:15 -0000
-Message-ID: <149440411588.31457.2279608736320470391@interra.ru>
+From: "PaX Team" <pageexec@freemail.hu>
+Subject: Re: [PATCH v4 2/2] x86/refcount: Implement fast refcount overflow protection
+Date: Thu, 11 May 2017 03:24:34 +0200
+Message-ID: <5913BD52.2305.3F7C9B7B@pageexec.freemail.hu>
+References: <1494356483-81678-1-git-send-email-keescook@chromium.org>, <1494356483-81678-3-git-send-email-keescook@chromium.org>
 Mime-Version: 1.0
-Content-Type: application/zip; name="351970933425.zip"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 217.31.190.94.interra.ru ([94.190.31.217]:44069 "HELO
-        interra.ru" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with SMTP
-        id S1752338AbdEJIPU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 10 May 2017 04:15:20 -0400
-Content-Disposition: attachment
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
+Return-path: <kernel-hardening-return-7850-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+In-reply-to: <1494356483-81678-3-git-send-email-keescook@chromium.org>
+Content-description: Mail message body
+To: linux-kernel@vger.kernel.org
+Cc: Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, kernel-hardening@lists.openwall.com
+List-Id: linux-arch.vger.kernel.org
 
-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
-AC0HAAAAAA==
+On 9 May 2017 at 12:01, Kees Cook wrote:
+> Various differences from PaX:
+> - uses earlier value reset implementation in assembly
+> - uses UD0 and refcount exception handler instead of new int vector
+> - uses .text.unlikely instead of custom named text sections
+
+all the above together result in bloating .text.unlikely and thus the
+kernel image in general. the much bigger problem is that you introduced
+a vulnerability because now refcount underflow bugs can not only trigger
+a UAF but also a subsequent double-free since decrementing the saturation
+value will not trigger any checks until 0 is reached a second time.
+
+> - applied only to refcount_t, not atomic_t (single size, only overflow)
+
+this description doesn't seem to be in sync with the code as the refcount
+decrementing functions are also instrumented (and introduce the problem
+mentioned above).
+
+> - reorganized refcount error handler
+> - uses "js" instead of "jo" to trap all negative results instead of
+>   just under/overflow transitions
+
+if you're describing differences to PaX in such detail you might as well
+specify which version of PaX it is different from and credit the above idea
+to me lest someone get the impression that it was yours.
+
+> +static __always_inline __must_check bool refcount_inc_not_zero(refcount_t *r)
+> +{
+> +	int c;
+> +
+> +	c = atomic_read(&(r->refs));
+> +	do {
+> +		if (unlikely(c <= 0))
+> +			break;
+> +	} while (!atomic_try_cmpxchg(&(r->refs), &c, c + 1));
+> +
+> +	/* Did we start or finish in an undesirable state? */
+> +	if (unlikely(c <= 0 || c + 1 < 0)) {
+
+while -fno-strict-overflow should save you in linux it's still not
+prudent programming to rely on signed overflow, especially in security
+related checks. it's just too fragile and sets a bad example...
