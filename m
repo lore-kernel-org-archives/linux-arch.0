@@ -1,139 +1,102 @@
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH] spin loop primitives for busy waiting
-Date: Fri, 12 May 2017 02:57:27 +1000
-Message-ID: <20170511165727.17847-1-npiggin@gmail.com>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH v4 2/2] x86/refcount: Implement fast refcount overflow protection
+Date: Thu, 11 May 2017 11:16:14 -0700
+Message-ID: <CAGXu5jJK-O91uei8bJeuS7jW5-h0QNsEeCvUXe0+RMuB4Ye7Vw@mail.gmail.com>
+References: <1494356483-81678-1-git-send-email-keescook@chromium.org>
+ <1494356483-81678-3-git-send-email-keescook@chromium.org> <5913BD52.2305.3F7C9B7B@pageexec.freemail.hu>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f194.google.com ([209.85.192.194]:36009 "EHLO
-        mail-pf0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751262AbdEKQ5m (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 May 2017 12:57:42 -0400
-Received: by mail-pf0-f194.google.com with SMTP id n23so2783550pfb.3
-        for <linux-arch@vger.kernel.org>; Thu, 11 May 2017 09:57:41 -0700 (PDT)
+Received: from mail-it0-f53.google.com ([209.85.214.53]:36658 "EHLO
+        mail-it0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751632AbdEKSQP (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 May 2017 14:16:15 -0400
+Received: by mail-it0-f53.google.com with SMTP id o5so48949306ith.1
+        for <linux-arch@vger.kernel.org>; Thu, 11 May 2017 11:16:15 -0700 (PDT)
+In-Reply-To: <5913BD52.2305.3F7C9B7B@pageexec.freemail.hu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Nicholas Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
+To: PaX Team <pageexec@freemail.hu>
+Cc: LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@>
 
-Current busy-wait loops are implemented by repeatedly calling cpu_relax()
-to give an arch option for a low-latency option to improve power and/or
-SMT resource contention.
+On Wed, May 10, 2017 at 6:24 PM, PaX Team <pageexec@freemail.hu> wrote:
+> On 9 May 2017 at 12:01, Kees Cook wrote:
+>> Various differences from PaX:
+>> - uses earlier value reset implementation in assembly
+>> - uses UD0 and refcount exception handler instead of new int vector
+>> - uses .text.unlikely instead of custom named text sections
+>
+> all the above together result in bloating .text.unlikely and thus the
+> kernel image in general.
 
-This poses some difficulties for powerpc, which has SMT priority setting
-instructions (priorities determine how ifetch cycles are apportioned).
-powerpc's cpu_relax() is implemented by setting a low priority then
-setting normal priority. This has several problems:
+O_o how is this any less of a problem than filling a different .text
+section with "lea" instructions?
 
- - Changing thread priority can have some execution cost and potential
-   impact to other threads in the core. It's inefficient to execute them
-   every time around a busy-wait loop.
+> the much bigger problem is that you introduced
+> a vulnerability because now refcount underflow bugs can not only trigger
+> a UAF but also a subsequent double-free since decrementing the saturation
+> value will not trigger any checks until 0 is reached a second time.
 
- - Depending on implementation details, a `low ; medium` sequence may
-   not have much if any affect. Some software with similar pattern
-   actually inserts a lot of nops between, in order to cause a few fetch
-   cycles with the low priority.
+This isn't an "introduced" vulnerability. With or without this patch,
+an atomic_t would never stop wrapping. Without a fast refcount_t, most
+of the critical parts of the kernel will not convert to refcount_t, so
+they'd still be atomic_t. Regardless, you have a valid point about
+this where it could be a _better_ protection, but it's not
+"introducing" a vulnerability.
 
- - The busy-wait loop runs with regular priority. This might only be a few
-   fetch cycles, but if there are several threads running such loops, they
-   could cause a noticable impact on a non-idle thread.
+>> - applied only to refcount_t, not atomic_t (single size, only overflow)
+>
+> this description doesn't seem to be in sync with the code as the refcount
+> decrementing functions are also instrumented (and introduce the problem
+> mentioned above).
 
-Implement spin_begin, spin_end primitives that can be used around busy
-wait loops, which default to no-ops. And spin_cpu_relax which defaults to
-cpu_relax.
+Hunh? Decrementing is instrumented to notice the "below 0" cases. It
+gives late notification of UAF. Without instrumentation there would be
+no notification at all. Neither case protects underflow, just as
+you've talked about underflow not be a bug class that can be protected
+against.
 
-This will allow architectures to hook the entry and exit of busy-wait
-loops, and will allow powerpc to set low SMT priority at entry, and
-normal priority at exit.
+>> - reorganized refcount error handler
+>> - uses "js" instead of "jo" to trap all negative results instead of
+>>   just under/overflow transitions
+>
+> if you're describing differences to PaX in such detail you might as well
+> specify which version of PaX it is different from and credit the above idea
+> to me lest someone get the impression that it was yours.
 
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
----
+I am in a constant no-win situation with regard to giving credit. If I
+give too much credit, it's still not specific enough, if I give too
+little credit, I'm "stealing". The "v2" delta history (go see the 0/2
+email) mentions where "js" came from:
 
-Hi Linus,
+v2:
+...
+- switch to js; pax-team
 
-Since last discussion of this, I changed the interface to match what you
-suggested (e.g., just start/end to be called as a pair from anywhere
-in control flow).
+>> +static __always_inline __must_check bool refcount_inc_not_zero(refcount_t *r)
+>> +{
+>> +     int c;
+>> +
+>> +     c = atomic_read(&(r->refs));
+>> +     do {
+>> +             if (unlikely(c <= 0))
+>> +                     break;
+>> +     } while (!atomic_try_cmpxchg(&(r->refs), &c, c + 1));
+>> +
+>> +     /* Did we start or finish in an undesirable state? */
+>> +     if (unlikely(c <= 0 || c + 1 < 0)) {
+>
+> while -fno-strict-overflow should save you in linux it's still not
+> prudent programming to rely on signed overflow, especially in security
+> related checks. it's just too fragile and sets a bad example...
 
-If you find this acceptable, I'd like to start wiring in the powerpc
-and adding the annotations to some important core spin loops (there's
-not too many really). I'm hoping if you take this patch during this
-merge window, I'll be able to start sending small patches to maintainers
-for the next window. Unless you have a better suggestion for how to
-deal with this.
+Now you're telling me your own suggestion was not prudent? What we
+have now and for the foreseeable future is refcount_t being
+implemented with int, and that we'll have signed overflow. If that
+ever changes, refcount_t would hardly be the only thing affected.
 
-Thanks,
-Nick
+-Kees
 
- include/linux/processor.h | 62 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 62 insertions(+)
- create mode 100644 include/linux/processor.h
-
-diff --git a/include/linux/processor.h b/include/linux/processor.h
-new file mode 100644
-index 000000000000..0a058aaa9bab
---- /dev/null
-+++ b/include/linux/processor.h
-@@ -0,0 +1,62 @@
-+/* Misc low level processor primitives */
-+#ifndef _LINUX_PROCESSOR_H
-+#define _LINUX_PROCESSOR_H
-+
-+#include <asm/processor.h>
-+
-+/*
-+ * spin_begin is used before beginning a busy-wait loop, and must be paired
-+ * with spin_end when the loop is exited. spin_cpu_relax must be called
-+ * within the loop.
-+ *
-+ * The loop body should be as small and fast as possible, on the order of
-+ * tens of instructions/cycles as a guide. It should and avoid calling
-+ * cpu_relax, or any "spin" or sleep type of primitive including nested uses
-+ * of these primitives. It should not lock or take any other resource.
-+ * Violations of these guidelies will not cause a bug, but may cause sub
-+ * optimal performance.
-+ *
-+ * These loops are optimized to be used where wait times are expected to be
-+ * less than the cost of a context switch (and associated overhead).
-+ *
-+ * Detection of resource owner and decision to spin or sleep or guest-yield
-+ * (e.g., spin lock holder vcpu preempted, or mutex owner not on CPU) can be
-+ * tested within the loop body.
-+ */
-+#ifndef spin_begin
-+#define spin_begin()
-+#endif
-+
-+#ifndef spin_cpu_relax
-+#define spin_cpu_relax() cpu_relax()
-+#endif
-+
-+/*
-+ * spin_cpu_yield may be called to yield (undirected) to the hypervisor if
-+ * necessary. This should be used if the wait is expected to take longer
-+ * than context switch overhead, but we can't sleep or do a directed yield.
-+ */
-+#ifndef spin_cpu_yield
-+#define spin_cpu_yield() cpu_relax_yield()
-+#endif
-+
-+#ifndef spin_end
-+#define spin_end()
-+#endif
-+
-+/*
-+ * spin_on_cond can be used to wait for a condition to become true. It
-+ * may be expected that the first iteration will true in the common case
-+ * (no spinning).
-+ */
-+#ifndef spin_on_cond
-+#define spin_on_cond(cond)					\
-+do {								\
-+	spin_begin();						\
-+	while (cond)						\
-+		spin_cpu_relax();				\
-+	spin_end();						\
-+} while (0)
-+#endif
-+
-+#endif /* _LINUX_PROCESSOR_H */
 -- 
-2.11.0
+Kees Cook
+Pixel Security
