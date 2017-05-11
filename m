@@ -1,102 +1,62 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v4 2/2] x86/refcount: Implement fast refcount overflow protection
-Date: Thu, 11 May 2017 11:16:14 -0700
-Message-ID: <CAGXu5jJK-O91uei8bJeuS7jW5-h0QNsEeCvUXe0+RMuB4Ye7Vw@mail.gmail.com>
-References: <1494356483-81678-1-git-send-email-keescook@chromium.org>
- <1494356483-81678-3-git-send-email-keescook@chromium.org> <5913BD52.2305.3F7C9B7B@pageexec.freemail.hu>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCH] spin loop primitives for busy waiting
+Date: Thu, 11 May 2017 11:47:47 -0700
+Message-ID: <CA+55aFzS9ENQnRoTbLMd_nFwwjuU+s9yj0tZcLSYDDjnwqTKrg@mail.gmail.com>
+References: <20170511165727.17847-1-npiggin@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f53.google.com ([209.85.214.53]:36658 "EHLO
-        mail-it0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751632AbdEKSQP (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 May 2017 14:16:15 -0400
-Received: by mail-it0-f53.google.com with SMTP id o5so48949306ith.1
-        for <linux-arch@vger.kernel.org>; Thu, 11 May 2017 11:16:15 -0700 (PDT)
-In-Reply-To: <5913BD52.2305.3F7C9B7B@pageexec.freemail.hu>
+Received: from mail-it0-f51.google.com ([209.85.214.51]:38289 "EHLO
+        mail-it0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752376AbdEKSrt (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 May 2017 14:47:49 -0400
+Received: by mail-it0-f51.google.com with SMTP id e65so25251212ita.1
+        for <linux-arch@vger.kernel.org>; Thu, 11 May 2017 11:47:49 -0700 (PDT)
+In-Reply-To: <20170511165727.17847-1-npiggin@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: PaX Team <pageexec@freemail.hu>
-Cc: LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@>
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, ppc-dev <linuxppc-dev@lists.ozlabs.org>
 
-On Wed, May 10, 2017 at 6:24 PM, PaX Team <pageexec@freemail.hu> wrote:
-> On 9 May 2017 at 12:01, Kees Cook wrote:
->> Various differences from PaX:
->> - uses earlier value reset implementation in assembly
->> - uses UD0 and refcount exception handler instead of new int vector
->> - uses .text.unlikely instead of custom named text sections
+On Thu, May 11, 2017 at 9:57 AM, Nicholas Piggin <npiggin@gmail.com> wrote:
 >
-> all the above together result in bloating .text.unlikely and thus the
-> kernel image in general.
+> If you find this acceptable, I'd like to start wiring in the powerpc
+> and adding the annotations to some important core spin loops (there's
+> not too many really). I'm hoping if you take this patch during this
+> merge window, I'll be able to start sending small patches to maintainers
+> for the next window. Unless you have a better suggestion for how to
+> deal with this.
 
-O_o how is this any less of a problem than filling a different .text
-section with "lea" instructions?
+This looks fine to me as an interface, and yes, I guess I can just
+take this scaffolding as-is.
 
-> the much bigger problem is that you introduced
-> a vulnerability because now refcount underflow bugs can not only trigger
-> a UAF but also a subsequent double-free since decrementing the saturation
-> value will not trigger any checks until 0 is reached a second time.
+The one question I have is about "spin_on_cond()": since you
+explicitly document that the "no spinning" case is expected to be the
+default, I really think that the default implementation should be
+along the lines if
 
-This isn't an "introduced" vulnerability. With or without this patch,
-an atomic_t would never stop wrapping. Without a fast refcount_t, most
-of the critical parts of the kernel will not convert to refcount_t, so
-they'd still be atomic_t. Regardless, you have a valid point about
-this where it could be a _better_ protection, but it's not
-"introducing" a vulnerability.
+  #define spin_on_cond(cond) do { \
+    if (unlikely(!(cond))) { \
+        spin_begin(); do spin_cpu_relax(); while (!(cond)); spin_end(); \
+    } \
+  } while (0)
 
->> - applied only to refcount_t, not atomic_t (single size, only overflow)
->
-> this description doesn't seem to be in sync with the code as the refcount
-> decrementing functions are also instrumented (and introduce the problem
-> mentioned above).
+which will actually result in better code generation even if
+spin_begin/end() are no-ops, and just generally optimizes for the
+right behavior (ie do the spinning out-of-line, since by definition it
+cannot be performance-critical after the first iteration).
 
-Hunh? Decrementing is instrumented to notice the "below 0" cases. It
-gives late notification of UAF. Without instrumentation there would be
-no notification at all. Neither case protects underflow, just as
-you've talked about underflow not be a bug class that can be protected
-against.
+So it's better even when you don't really have the begin/end overhead,
+but that version of "spin_on_cond()" is then likely to work _much_
+better if you actually do have it, when your version would seem to be
+entirely unacceptable.
 
->> - reorganized refcount error handler
->> - uses "js" instead of "jo" to trap all negative results instead of
->>   just under/overflow transitions
->
-> if you're describing differences to PaX in such detail you might as well
-> specify which version of PaX it is different from and credit the above idea
-> to me lest someone get the impression that it was yours.
+Hmm?
 
-I am in a constant no-win situation with regard to giving credit. If I
-give too much credit, it's still not specific enough, if I give too
-little credit, I'm "stealing". The "v2" delta history (go see the 0/2
-email) mentions where "js" came from:
+In fact, do you even want to make that "spin_on_cond()" version
+conditional? I don't see how an architecture can really improve on it.
+If an architecture wants to use things like "wait on this particular
+variable", then that generic "cond" version is too generic an
+interface anyway.
 
-v2:
-...
-- switch to js; pax-team
-
->> +static __always_inline __must_check bool refcount_inc_not_zero(refcount_t *r)
->> +{
->> +     int c;
->> +
->> +     c = atomic_read(&(r->refs));
->> +     do {
->> +             if (unlikely(c <= 0))
->> +                     break;
->> +     } while (!atomic_try_cmpxchg(&(r->refs), &c, c + 1));
->> +
->> +     /* Did we start or finish in an undesirable state? */
->> +     if (unlikely(c <= 0 || c + 1 < 0)) {
->
-> while -fno-strict-overflow should save you in linux it's still not
-> prudent programming to rely on signed overflow, especially in security
-> related checks. it's just too fragile and sets a bad example...
-
-Now you're telling me your own suggestion was not prudent? What we
-have now and for the foreseeable future is refcount_t being
-implemented with int, and that we'll have signed overflow. If that
-ever changes, refcount_t would hardly be the only thing affected.
-
--Kees
-
--- 
-Kees Cook
-Pixel Security
+                  Linus
