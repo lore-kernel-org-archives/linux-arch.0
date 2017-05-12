@@ -1,103 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f53.google.com ([209.85.214.53]:36658 "EHLO
-        mail-it0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751632AbdEKSQP (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 May 2017 14:16:15 -0400
-Received: by mail-it0-f53.google.com with SMTP id o5so48949306ith.1
-        for <linux-arch@vger.kernel.org>; Thu, 11 May 2017 11:16:15 -0700 (PDT)
+Received: from smtp-out6.electric.net ([192.162.217.193]:50121 "EHLO
+        smtp-out6.electric.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1756286AbdELNUE (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 12 May 2017 09:20:04 -0400
+From: David Laight <David.Laight@ACULAB.COM>
+Subject: RE: [PATCH] spin loop primitives for busy waiting
+Date: Fri, 12 May 2017 12:58:12 +0000
+Message-ID: <063D6719AE5E284EB5DD2968C1650D6DCFFE9D65@AcuExch.aculab.com>
+References: <20170511165727.17847-1-npiggin@gmail.com>
+ <CA+55aFzS9ENQnRoTbLMd_nFwwjuU+s9yj0tZcLSYDDjnwqTKrg@mail.gmail.com>
+In-Reply-To: <CA+55aFzS9ENQnRoTbLMd_nFwwjuU+s9yj0tZcLSYDDjnwqTKrg@mail.gmail.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
-In-Reply-To: <5913BD52.2305.3F7C9B7B@pageexec.freemail.hu>
-References: <1494356483-81678-1-git-send-email-keescook@chromium.org>
- <1494356483-81678-3-git-send-email-keescook@chromium.org> <5913BD52.2305.3F7C9B7B@pageexec.freemail.hu>
-From: Kees Cook <keescook@chromium.org>
-Date: Thu, 11 May 2017 11:16:14 -0700
-Message-ID: <CAGXu5jJK-O91uei8bJeuS7jW5-h0QNsEeCvUXe0+RMuB4Ye7Vw@mail.gmail.com>
-Subject: Re: [PATCH v4 2/2] x86/refcount: Implement fast refcount overflow protection
-Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: PaX Team <pageexec@freemail.hu>
-Cc: LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
-Message-ID: <20170511181614.ZS_h7_3mlAraV_83EQseSuou-ZiURmPntr1R35AMILo@z>
+To: 'Linus Torvalds' <torvalds@linux-foundation.org>, Nicholas Piggin <npiggin@gmail.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, ppc-dev <linuxppc-dev@lists.ozlabs.org>
+Message-ID: <20170512125812.X-XJ-Wsh9jomInHVtrnAp1W5isW5rCBeZjB7WZmHm6Q@z>
 
-On Wed, May 10, 2017 at 6:24 PM, PaX Team <pageexec@freemail.hu> wrote:
-> On 9 May 2017 at 12:01, Kees Cook wrote:
->> Various differences from PaX:
->> - uses earlier value reset implementation in assembly
->> - uses UD0 and refcount exception handler instead of new int vector
->> - uses .text.unlikely instead of custom named text sections
->
-> all the above together result in bloating .text.unlikely and thus the
-> kernel image in general.
-
-O_o how is this any less of a problem than filling a different .text
-section with "lea" instructions?
-
-> the much bigger problem is that you introduced
-> a vulnerability because now refcount underflow bugs can not only trigger
-> a UAF but also a subsequent double-free since decrementing the saturation
-> value will not trigger any checks until 0 is reached a second time.
-
-This isn't an "introduced" vulnerability. With or without this patch,
-an atomic_t would never stop wrapping. Without a fast refcount_t, most
-of the critical parts of the kernel will not convert to refcount_t, so
-they'd still be atomic_t. Regardless, you have a valid point about
-this where it could be a _better_ protection, but it's not
-"introducing" a vulnerability.
-
->> - applied only to refcount_t, not atomic_t (single size, only overflow)
->
-> this description doesn't seem to be in sync with the code as the refcount
-> decrementing functions are also instrumented (and introduce the problem
-> mentioned above).
-
-Hunh? Decrementing is instrumented to notice the "below 0" cases. It
-gives late notification of UAF. Without instrumentation there would be
-no notification at all. Neither case protects underflow, just as
-you've talked about underflow not be a bug class that can be protected
-against.
-
->> - reorganized refcount error handler
->> - uses "js" instead of "jo" to trap all negative results instead of
->>   just under/overflow transitions
->
-> if you're describing differences to PaX in such detail you might as well
-> specify which version of PaX it is different from and credit the above idea
-> to me lest someone get the impression that it was yours.
-
-I am in a constant no-win situation with regard to giving credit. If I
-give too much credit, it's still not specific enough, if I give too
-little credit, I'm "stealing". The "v2" delta history (go see the 0/2
-email) mentions where "js" came from:
-
-v2:
-...
-- switch to js; pax-team
-
->> +static __always_inline __must_check bool refcount_inc_not_zero(refcount_t *r)
->> +{
->> +     int c;
->> +
->> +     c = atomic_read(&(r->refs));
->> +     do {
->> +             if (unlikely(c <= 0))
->> +                     break;
->> +     } while (!atomic_try_cmpxchg(&(r->refs), &c, c + 1));
->> +
->> +     /* Did we start or finish in an undesirable state? */
->> +     if (unlikely(c <= 0 || c + 1 < 0)) {
->
-> while -fno-strict-overflow should save you in linux it's still not
-> prudent programming to rely on signed overflow, especially in security
-> related checks. it's just too fragile and sets a bad example...
-
-Now you're telling me your own suggestion was not prudent? What we
-have now and for the foreseeable future is refcount_t being
-implemented with int, and that we'll have signed overflow. If that
-ever changes, refcount_t would hardly be the only thing affected.
-
--Kees
-
--- 
-Kees Cook
-Pixel Security
+RnJvbTogTGludXMgVG9ydmFsZHMNCj4gU2VudDogMTEgTWF5IDIwMTcgMTk6NDgNCi4uLg0KPiBU
+aGUgb25lIHF1ZXN0aW9uIEkgaGF2ZSBpcyBhYm91dCAic3Bpbl9vbl9jb25kKCkiOiBzaW5jZSB5
+b3UNCj4gZXhwbGljaXRseSBkb2N1bWVudCB0aGF0IHRoZSAibm8gc3Bpbm5pbmciIGNhc2UgaXMg
+ZXhwZWN0ZWQgdG8gYmUgdGhlDQo+IGRlZmF1bHQsIEkgcmVhbGx5IHRoaW5rIHRoYXQgdGhlIGRl
+ZmF1bHQgaW1wbGVtZW50YXRpb24gc2hvdWxkIGJlDQo+IGFsb25nIHRoZSBsaW5lcyBpZg0KPiAN
+Cj4gICAjZGVmaW5lIHNwaW5fb25fY29uZChjb25kKSBkbyB7IFwNCj4gICAgIGlmICh1bmxpa2Vs
+eSghKGNvbmQpKSkgeyBcDQo+ICAgICAgICAgc3Bpbl9iZWdpbigpOyBkbyBzcGluX2NwdV9yZWxh
+eCgpOyB3aGlsZSAoIShjb25kKSk7IHNwaW5fZW5kKCk7IFwNCj4gICAgIH0gXA0KPiAgIH0gd2hp
+bGUgKDApDQo+IA0KPiB3aGljaCB3aWxsIGFjdHVhbGx5IHJlc3VsdCBpbiBiZXR0ZXIgY29kZSBn
+ZW5lcmF0aW9uIGV2ZW4gaWYNCj4gc3Bpbl9iZWdpbi9lbmQoKSBhcmUgbm8tb3BzLCBhbmQganVz
+dCBnZW5lcmFsbHkgb3B0aW1pemVzIGZvciB0aGUNCj4gcmlnaHQgYmVoYXZpb3IgKGllIGRvIHRo
+ZSBzcGlubmluZyBvdXQtb2YtbGluZSwgc2luY2UgYnkgZGVmaW5pdGlvbiBpdA0KPiBjYW5ub3Qg
+YmUgcGVyZm9ybWFuY2UtY3JpdGljYWwgYWZ0ZXIgdGhlIGZpcnN0IGl0ZXJhdGlvbikuDQoNCkF0
+IGxlYXN0IHNvbWUgdmVyc2lvbnMgb2YgZ2NjIGNvbnZlcnQgd2hpbGUgKGNvbmQpIGRvIHtib2R5
+fQ0KaW50byBpZiAoY29uZCkgZG8ge2JvZHl9IHdoaWxlIChjb25kKSBldmVuIHdoZW4gJ2NvbmQn
+DQppcyBhIG5vbi10cml2aWFsIGV4cHJlc3Npb24gYW5kICdib2R5JyBpcyB0cml2aWFsLg0KVGhl
+IGNvZGUtYmxvYXQgaXMgc2lsbHkuDQpObyBwb2ludCBlbmZvcmNpbmcgdGhlICdvcHRpbWlzYXRp
+b24nIGhlcmUuDQoNCglEYXZpZA0K
