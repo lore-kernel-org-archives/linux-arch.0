@@ -1,7 +1,7 @@
 From: Al Viro <viro@ZenIV.linux.org.uk>
 Subject: Re: [git pull] uaccess-related bits of vfs.git
-Date: Sat, 13 May 2017 19:04:13 +0100
-Message-ID: <20170513180413.GZ390@ZenIV.linux.org.uk>
+Date: Sat, 13 May 2017 19:26:56 +0100
+Message-ID: <20170513182656.GA390@ZenIV.linux.org.uk>
 References: <CA+55aFww=ZG0wPad3ELg+ibScr0eWuSxvhGLFaF+PO9kfkSkdw@mail.gmail.com>
  <20170501034536.GX29622@ZenIV.linux.org.uk>
  <CA+55aFwJXjvYQ7WLmh3z62KQ08XCR89Qh-koC=UTYW+enK6OPQ@mail.gmail.com>
@@ -9,81 +9,71 @@ References: <CA+55aFww=ZG0wPad3ELg+ibScr0eWuSxvhGLFaF+PO9kfkSkdw@mail.gmail.com>
  <CA+55aFzrcX=B-m5SN1ajEopKbTLj1WcpKZWgdDTwYqoOBPJwaQ@mail.gmail.com>
  <20170513170056.GX390@ZenIV.linux.org.uk>
  <CA+55aFwD+qC7MqSJVt4q91YEJ7CSzAZazWAJ-NpSz=B1k95AuA@mail.gmail.com>
+ <20170513180413.GZ390@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:40994 "EHLO
+Received: from zeniv.linux.org.uk ([195.92.253.2]:41304 "EHLO
         ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754052AbdEMSEP (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 13 May 2017 14:04:15 -0400
+        with ESMTP id S1752654AbdEMS06 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 13 May 2017 14:26:58 -0400
 Content-Disposition: inline
-In-Reply-To: <CA+55aFwD+qC7MqSJVt4q91YEJ7CSzAZazWAJ-NpSz=B1k95AuA@mail.gmail.com>
+In-Reply-To: <20170513180413.GZ390@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 
-On Sat, May 13, 2017 at 10:18:22AM -0700, Linus Torvalds wrote:
+On Sat, May 13, 2017 at 07:04:13PM +0100, Al Viro wrote:
 
-> > x86 actually tends to use get_user_ex/put_user_ex instead.
-> 
-> Yes. Because anybody who *really* cared about performance will have
-> converted already. The real cost has been stac/clac for a few years
-> now.
+> My point is, this stuff needs looking at.  Even this quick look in arch/x86
+> has shown several fairly different classes of that stuff, probably needing
+> different approaches.  And that - on an architecture that had tons of TLC
+> around signal delivery; I'm not saying that result is optimal (asm-goto sounds
+> potentially useful there), but it had a lot of attention given to it...
 
-On x86.  Which has (not counting arch/x86/um, which definitely needs
-a careful look - there __..._user() is the same as ..._user() and costly
-as hell) all of 12 callers of __get_user() and 31 callers of __put_user().
-More than a half of the latter - in cp_stat64() and I would at least try
-and see if "convert on stack, then copy_to_user" is better for that one.
-Other than that, all we have is:
+BTW, even in arch/* they tend to nest.  E.g. arch/alpha has 133 callers
+total.  Distribution by files:
+     35 arch/alpha/kernel/osf_sys.c
+     92 arch/alpha/kernel/signal.c
+      1 arch/alpha/kernel/traps.c
+      4 arch/alpha/lib/csum_partial_copy.c
+      1 arch/alpha/mm/fault.c
+Distribution by functions:
+      1 osf_getdomainname()	[1]
+      2 osf_sigstack()
+      2 get_tv32()
+      2 put_tv32()
+      4 get_it32()
+      4 put_it32()
+      2 osf_select()
+     18 osf_wait4()		[2]
+      6 osf_sigaction()
+     34 restore_sigcontext()
+      1 do_sigreturn()
+     42 setup_sigcontext()
+      3 setup_frame()
+      6 setup_rt_frame()
+      1 dik_show_code()		[3]
+      2 csum_partial_cfu_aligned()
+      2 csum_partial_cfu_src_aligned()
+      1 do_page_fault()		[4]
 
-arch/x86/entry/common.c:372:            __get_user(*(u32 *)&regs->bp,
-arch/x86/ia32/ia32_signal.c:124:        if (__get_user(set.sig[0], &frame->sc.oldmask)
-arch/x86/ia32/ia32_signal.c:275:        if (__put_user(sig, &frame->sig))
-arch/x86/include/asm/xen/page.h:86:     return __put_user(val, (unsigned long __user *)addr);
-arch/x86/include/asm/xen/page.h:91:     return __get_user(*val, (unsigned long __user *)addr);
-arch/x86/kernel/fpu/signal.c:100:       err |= __get_user(xfeatures, (__u32 *)&x->header.xfeatures);
-arch/x86/kernel/fpu/signal.c:115:       err |= __put_user(xfeatures, (__u32 *)&x->header.xfeatures);
-arch/x86/kernel/fpu/signal.c:46:        if (__get_user(magic2, (__u32 __user *)(fpstate + fx_sw->xstate_size))
-arch/x86/kernel/fpu/signal.c:66:                    __put_user(xsave->i387.swd, &fp->status) ||
-arch/x86/kernel/fpu/signal.c:67:                    __put_user(X86_FXSR_MAGIC, &fp->magic))
-arch/x86/kernel/fpu/signal.c:72:                if (__get_user(swd, &fp->swd) || __put_user(swd, &fp->status))
-arch/x86/kernel/fpu/signal.c:72:                if (__get_user(swd, &fp->swd) || __put_user(swd, &fp->status))
-arch/x86/kernel/fpu/signal.c:93:        err |= __put_user(FP_XSTATE_MAGIC2,
-arch/x86/kernel/ptrace.c:1043:                  if (__put_user(word, u++))
-arch/x86/kernel/ptrace.c:1070:                  ret = __get_user(word, u++);
-arch/x86/kernel/ptrace.c:472:                   if (__put_user(getreg(target, pos), u++))
-arch/x86/kernel/ptrace.c:499:                   ret = __get_user(word, u++);
-arch/x86/kernel/signal.c:326:   if (__put_user(sig, &frame->sig))
-arch/x86/kernel/signal.c:347:   err |= __put_user(restorer, &frame->pretcode);
-arch/x86/kernel/signal.c:356:   err |= __put_user(*((u64 *)&retcode), (u64 *)frame->retcode);
-arch/x86/kernel/signal.c:613:   if (__get_user(set.sig[0], &frame->sc.oldmask) || (_NSIG_WORDS > 1
-arch/x86/kernel/signal.c:647:   if (__get_user(uc_flags, &frame->uc.uc_flags))
-arch/x86/kernel/signal.c:870:   if (__get_user(uc_flags, &frame->uc.uc_flags))
-arch/x86/lib/csum-wrappers_64.c:103:                    *errp = __put_user(val16, (__u16 __user *)dst);
-arch/x86/lib/csum-wrappers_64.c:45:                     if (__get_user(val16, (const __u16 __user *)src))
-
-A bunch of strays in signal.c (extending ..._ex use might be a good idea)
-xen_safe_{write,read}_ulong() (might very well break from adding access_ok() -
-or be security holes; I'm not familiar enough with that code to tell) and
-csum_partial_copy_{to,from}_user() - those would need to extend stac/clac
-pairs already there and switch to unsafe_...
-
-Plus several loops in ptrace - might or might not be sensitive, no idea.
-
-Plus do_fast_syscall_32().  Might be sensitive, Andy would be the guy to
-talk to, AFAICS.
-
-> And some of the existing cases are just disgusting. There's no excuse
-> for compat code or for ioctl to use the "__" versions. That seems to
-> be the bulk of those uses too.
-
-Sure.
-
-My point is, this stuff needs looking at.  Even this quick look in arch/x86
-has shown several fairly different classes of that stuff, probably needing
-different approaches.  And that - on an architecture that had tons of TLC
-around signal delivery; I'm not saying that result is optimal (asm-goto sounds
-potentially useful there), but it had a lot of attention given to it...
+[1] insane, BTW - should be strnlen() + copy_to_user(); should report -EFAULT
+on failure, while we are at it.
+[2] with fairly disgusting use of set_fs() in the mix.
+[3] would break with get_user() - it's oopser fetching code to printk.
+[4] this:
+        /* As of EV6, a load into $31/$f31 is a prefetch, and never faults
+           (or is suppressed by the PALcode).  Support that for older CPUs
+           by ignoring such an instruction.  */
+        if (cause == 0) {
+                unsigned int insn;
+                __get_user(insn, (unsigned int __user *)regs->pc);
+                if ((insn >> 21 & 0x1f) == 0x1f &&
+                    /* ldq ldl ldt lds ldg ldf ldwu ldbu */
+                    (1ul << (insn >> 26) & 0x30f00001400ul)) {
+                        regs->pc += 4;
+                        return;
+                }
+        }
