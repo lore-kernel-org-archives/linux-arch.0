@@ -1,93 +1,91 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [git pull] uaccess-related bits of vfs.git
-Date: Sat, 13 May 2017 09:17:20 -0700
-Message-ID: <CA+55aFygN42JbLoSsjjiX9NFY4d1QitvSE8wPQES=JOJ448z8A@mail.gmail.com>
-References: <CA+55aFww=ZG0wPad3ELg+ibScr0eWuSxvhGLFaF+PO9kfkSkdw@mail.gmail.com>
- <20170501034536.GX29622@ZenIV.linux.org.uk> <CA+55aFwJXjvYQ7WLmh3z62KQ08XCR89Qh-koC=UTYW+enK6OPQ@mail.gmail.com>
- <20170513065745.GV390@ZenIV.linux.org.uk> <CA+55aFzrcX=B-m5SN1ajEopKbTLj1WcpKZWgdDTwYqoOBPJwaQ@mail.gmail.com>
+From: Heiko Stuebner <heiko@sntech.de>
+Subject: Re: [PATCH] devicetree: Move include prefixes from arch to separate
+ directory
+Date: Sat, 13 May 2017 18:18:23 +0200
+Message-ID: <5321739.niXTlG4pZX@phil>
+References: <1494646471-24624-1-git-send-email-olof@lixom.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f68.google.com ([209.85.214.68]:36790 "EHLO
-        mail-it0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752010AbdEMQRW (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 13 May 2017 12:17:22 -0400
-In-Reply-To: <CA+55aFzrcX=B-m5SN1ajEopKbTLj1WcpKZWgdDTwYqoOBPJwaQ@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@zeniv.linux.org.uk>, the arch/x86 maintainers <x86@kernel.org>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <1494646471-24624-1-git-send-email-olof@lixom.net>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Olof Johansson <olof@lixom.net>
+Cc: Mark Rutland <mark.rutland@arm.com>, devicetree@vger.kernel.org, Jesper Nilsson <jesper.nilsson@axis.com>, James Hogan <james.hogan@imgtec.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, Russell King <linux@armlinux.org.uk>, Mikael Starvik <starvik@axis.com>, Rob Herring <robh+dt@kernel.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-arch <linux-arch@vger.kernel.org>, Frank Rowand <frowand.list@gmail.com>, linux-arm-kernel@lists.infradead.org
+List-Id: linux-arch.vger.kernel.org
 
-Oops.
+Hi Olof,
 
-*Really* adding the x86 guys now.
+Am Freitag, 12. Mai 2017, 20:34:31 CEST schrieb Olof Johansson:
+> We use a directory under arch/$ARCH/boot/dts as an include path
+> that has links outside of the subtree to find dt-bindings from under
+> include/dt-bindings. That's been working well, but new DT architectures
+> haven't been adding them by default.
+> 
+> Recently there's been a desire to share some of the DT material between
+> arm and arm64, which originally caused developers to create symlinks or
+> relative includes between the subtrees. This isn't ideal -- it breaks
+> if the DT files aren't stored in the exact same hierarchy as the kernel
+> tree, and generally it's just icky.
+> 
+> As a somewhat cleaner solution we decided to add a $ARCH/ prefix link
+> once, and allow DTS files to reference dtsi (and dts) files in other
+> architectures that way.
+> 
+> Original approach was to create these links under each architecture,
+> but it lead to the problem of recursive symlinks.
+> 
+> As a remedy, move the include link directories out of the architecture
+> trees into a common location. At the same time, they can now share one
+> directory and one dt-bindings/ link as well.
+> 
+> Fixes: 4027494ae6e3 ('ARM: dts: add arm/arm64 include symlinks')
+> Reported-by: Russell King <linux@armlinux.org.uk>
+> Reported-by: Omar Sandoval <osandov@osandov.com>
+> Cc: Heiko Stuebner <heiko@sntech.de>
+> Cc: Rob Herring <robh+dt@kernel.org>
+> Cc: Mark Rutland <mark.rutland@arm.com>
+> Cc: Russell King <linux@armlinux.org.uk>
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Will Deacon <will.deacon@arm.com>
+> Cc: Mikael Starvik <starvik@axis.com>
+> Cc: Jesper Nilsson <jesper.nilsson@axis.com>
+> Cc: James Hogan <james.hogan@imgtec.com>
+> Cc: Ralf Baechle <ralf@linux-mips.org>
+> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+> Cc: Paul Mackerras <paulus@samba.org>
+> Cc: Michael Ellerman <mpe@ellerman.id.au>
+> Cc: Frank Rowand <frowand.list@gmail.com>
+> Cc: linux-arch <linux-arch@vger.kernel.org>
+> Signed-off-by: Olof Johansson <olof@lixom.net>
 
-Blush.
+change itself looks good to me and also works, so
 
-            Linus
+Reviewed-by: Heiko Stuebner <heiko@sntech.de>
+Tested-by: Heiko Stuebner <heiko@sntech.de>
 
-On Sat, May 13, 2017 at 9:15 AM, Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
-> On Fri, May 12, 2017 at 11:57 PM, Al Viro <viro@zeniv.linux.org.uk> wrote:
->>
->> First, some stats: there's a thousand-odd callers of __get_user().  Out of
->> those, about 70% are in arch/, mostly in sigframe-related code.
->
-> Sure. And they can be trivially converted, and none of them should care at all.
->
->> IOW, we have
->>         * most of users in arch/* (heavily dominated by signal-related code,
->> both loads and stores).  Those need careful massage; maybe unsafe-based
->> solution, maybe something else, but it's obviously per-architecture work
->> and these paths are sensitive.
->
-> Why are they sensitive?
->
-> Why not just do this:
->
->   git grep -l '\<__\(\(get\)\|\(put\)\)_user(' -- arch/x86
-> :^arch/x86/include/asm/uaccess.h
->         | xargs sed -i 's/__\(\(\(get\)\|\(put\)\)_user(\)/\1/g'
->
-> which converts all the x86 uses in one go.
->
-> Anybody who *relies* on not checking the address_limit is so broken as
-> to be not even funny. And anything that is so performance-sensitive
-> that anybody can even measure the effect of the above we can convert
-> later.
->
-> Sure, do it in pieces (eg each architecture separately, then
-> "drivers", then "networking", then whatever, until all done), just so
-> that *if* something actually depends on semantics (and that really
-> shouldn't be the case), we have at least some information from a
-> bisect.
->
-> But I don't see the excuse for not just doing it. If nobody notices,
-> it's an obvious improvement. And if somebody *does* notice, we know
-> how to do it properly with unsafe_xyz_user(), because "__xyz_user()"
-> most definitely isn't it.
->
-> An example of something that *should* be converted is
-> "csum_partial_copy_from_user()", but it really does need to use
-> "user_access_begin()" and friends, because right now it's using
-> stac/clac for each 16-bit word. That's *expensive*, and it's expensive
-> whether you use __get_user() or get_user().
->
-> Adding x86 people just to see how they react to the above "patch".
->
-> For me, in my fairly minimal personal config, the above cleanup patch
-> shrinks the text size of the resulting kernel by 1.7kB. Yes, most of
-> it is the out-of-line code, but still..
->
-> Interestingly, the signal handling code didn't change at all. It looks
-> like only the 32-bit code uses __put_user() for the frame setup. The
-> regular code uses put_user_try/put_user_catch, which is the
-> x86-specific early try at the unsafe versions, but it would actually
-> be improved by using "unsafe_put_user()" and my patch to make that use
-> "asm goto".
->
->                            Linus
->
-> PS. That "patch" depends on modern git - with older versions of git
-> you need to do the path negation with ":!pattern", and then you need
-> to quote it too since '!' is special for shell.
+But we also have an overlooked glitch in the new rk3399-gru devicetrees
+that surfaces with this patch applied.
+
+../arch/arm64/boot/dts/rockchip/rk3399-gru-kevin.dts:47:57: fatal error: include/dt-bindings/input/linux-event-codes.h: File or directory not found
+ #include <include/dt-bindings/input/linux-event-codes.h>
+
+so need the patch from Ian Campbell 
+"arm64: dts: rockchip: Drop explicit "include/" prefix from #include" [0]
+in front to not cause other build breakage.
+
+So if applicable, both patches should go in together, with the gru patch
+in front and I've added my Reviewed-by there if someone else is doing it.
+
+
+Heiko
+
+[0] https://www.spinics.net/lists/arm-kernel/msg580835.html
