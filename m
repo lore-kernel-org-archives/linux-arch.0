@@ -1,87 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gloria.sntech.de ([95.129.55.99]:35896 "EHLO gloria.sntech.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752031AbdEMQTO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 13 May 2017 12:19:14 -0400
-From: Heiko Stuebner <heiko@sntech.de>
-Subject: Re: [PATCH] devicetree: Move include prefixes from arch to separate directory
-Date: Sat, 13 May 2017 18:18:23 +0200
-Message-ID: <5321739.niXTlG4pZX@phil>
-In-Reply-To: <1494646471-24624-1-git-send-email-olof@lixom.net>
-References: <1494646471-24624-1-git-send-email-olof@lixom.net>
+Received: from mail-io0-f194.google.com ([209.85.223.194]:36316 "EHLO
+        mail-io0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753155AbdEMUcd (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 13 May 2017 16:32:33 -0400
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+In-Reply-To: <20170513200816.GF390@ZenIV.linux.org.uk>
+References: <CA+55aFww=ZG0wPad3ELg+ibScr0eWuSxvhGLFaF+PO9kfkSkdw@mail.gmail.com>
+ <20170501034536.GX29622@ZenIV.linux.org.uk> <CA+55aFwJXjvYQ7WLmh3z62KQ08XCR89Qh-koC=UTYW+enK6OPQ@mail.gmail.com>
+ <20170513065745.GV390@ZenIV.linux.org.uk> <CA+55aFzrcX=B-m5SN1ajEopKbTLj1WcpKZWgdDTwYqoOBPJwaQ@mail.gmail.com>
+ <20170513170056.GX390@ZenIV.linux.org.uk> <CA+55aFwD+qC7MqSJVt4q91YEJ7CSzAZazWAJ-NpSz=B1k95AuA@mail.gmail.com>
+ <20170513180413.GZ390@ZenIV.linux.org.uk> <CA+55aFw8RHphGi7kAZdot_PikJGaB=FthHn8Q=1EuCVz=0gd_g@mail.gmail.com>
+ <20170513195659.GE390@ZenIV.linux.org.uk> <20170513200816.GF390@ZenIV.linux.org.uk>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Date: Sat, 13 May 2017 22:32:31 +0200
+Message-ID: <CAMuHMdWOFci-VY6nAdgmRs+U92aoAdNakHzBNC2NBEY_W7uX6Q@mail.gmail.com>
+Subject: Re: [git pull] uaccess-related bits of vfs.git
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Olof Johansson <olof@lixom.net>
-Cc: linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, devicetree@vger.kernel.org, Rob Herring <robh+dt@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, James Hogan <james.hogan@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Frank Rowand <frowand.list@gmail.com>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20170513161823.h63MVFPoc_Tr8xRklOhwTFjmlzKB7ri1nEWHy5E1n6E@z>
+To: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20170513203231.W2DKlZ1GOScRaNPSTDr8hcLLAbBcUawmTCqaXrUCg58@z>
 
-Hi Olof,
+Hi Al,
 
-Am Freitag, 12. Mai 2017, 20:34:31 CEST schrieb Olof Johansson:
-> We use a directory under arch/$ARCH/boot/dts as an include path
-> that has links outside of the subtree to find dt-bindings from under
-> include/dt-bindings. That's been working well, but new DT architectures
-> haven't been adding them by default.
-> 
-> Recently there's been a desire to share some of the DT material between
-> arm and arm64, which originally caused developers to create symlinks or
-> relative includes between the subtrees. This isn't ideal -- it breaks
-> if the DT files aren't stored in the exact same hierarchy as the kernel
-> tree, and generally it's just icky.
-> 
-> As a somewhat cleaner solution we decided to add a $ARCH/ prefix link
-> once, and allow DTS files to reference dtsi (and dts) files in other
-> architectures that way.
-> 
-> Original approach was to create these links under each architecture,
-> but it lead to the problem of recursive symlinks.
-> 
-> As a remedy, move the include link directories out of the architecture
-> trees into a common location. At the same time, they can now share one
-> directory and one dt-bindings/ link as well.
-> 
-> Fixes: 4027494ae6e3 ('ARM: dts: add arm/arm64 include symlinks')
-> Reported-by: Russell King <linux@armlinux.org.uk>
-> Reported-by: Omar Sandoval <osandov@osandov.com>
-> Cc: Heiko Stuebner <heiko@sntech.de>
-> Cc: Rob Herring <robh+dt@kernel.org>
-> Cc: Mark Rutland <mark.rutland@arm.com>
-> Cc: Russell King <linux@armlinux.org.uk>
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Will Deacon <will.deacon@arm.com>
-> Cc: Mikael Starvik <starvik@axis.com>
-> Cc: Jesper Nilsson <jesper.nilsson@axis.com>
-> Cc: James Hogan <james.hogan@imgtec.com>
-> Cc: Ralf Baechle <ralf@linux-mips.org>
-> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-> Cc: Paul Mackerras <paulus@samba.org>
-> Cc: Michael Ellerman <mpe@ellerman.id.au>
-> Cc: Frank Rowand <frowand.list@gmail.com>
-> Cc: linux-arch <linux-arch@vger.kernel.org>
-> Signed-off-by: Olof Johansson <olof@lixom.net>
+On Sat, May 13, 2017 at 10:08 PM, Al Viro <viro@zeniv.linux.org.uk> wrote:
+> On Sat, May 13, 2017 at 08:56:59PM +0100, Al Viro wrote:
+>
+>> FWIW, just this cycle (this one I remembered off-hand, there might be
+>> more):
+>
+> And looking through my queue (will be pushed to -next as soon as -rc1 goes
+> out):
+>
+> commit 87fb4c8c103a4cdf17fead4aba58e96940a19a09
+> Author: Al Viro <viro@zeniv.linux.org.uk>
+> Date:   Thu Apr 20 15:47:34 2017 -0400
+>
+>     spidev: quit messing with access_ok()
+>
+>     Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+>
+> diff --git a/drivers/spi/spidev.c b/drivers/spi/spidev.c
+> index 9e2e099baf8c..8dd22de5e3b5 100644
+> --- a/drivers/spi/spidev.c
+> +++ b/drivers/spi/spidev.c
 
-change itself looks good to me and also works, so
+You better run that one through linux-spi, to avoid conflicts, cfr.
+https://patchwork.kernel.org/patch/9714993/
 
-Reviewed-by: Heiko Stuebner <heiko@sntech.de>
-Tested-by: Heiko Stuebner <heiko@sntech.de>
+Gr{oetje,eeting}s,
 
-But we also have an overlooked glitch in the new rk3399-gru devicetrees
-that surfaces with this patch applied.
+                        Geert
 
-../arch/arm64/boot/dts/rockchip/rk3399-gru-kevin.dts:47:57: fatal error: include/dt-bindings/input/linux-event-codes.h: File or directory not found
- #include <include/dt-bindings/input/linux-event-codes.h>
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-so need the patch from Ian Campbell 
-"arm64: dts: rockchip: Drop explicit "include/" prefix from #include" [0]
-in front to not cause other build breakage.
-
-So if applicable, both patches should go in together, with the gru patch
-in front and I've added my Reviewed-by there if someone else is doing it.
-
-
-Heiko
-
-[0] https://www.spinics.net/lists/arm-kernel/msg580835.html
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
