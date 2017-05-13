@@ -1,326 +1,196 @@
-From: Olof Johansson <olof@lixom.net>
-Subject: [PATCH] devicetree: Move include prefixes from arch to separate directory
-Date: Fri, 12 May 2017 20:34:31 -0700
-Message-ID: <1494646471-24624-1-git-send-email-olof@lixom.net>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: [git pull] uaccess-related bits of vfs.git
+Date: Sat, 13 May 2017 07:57:45 +0100
+Message-ID: <20170513065745.GV390@ZenIV.linux.org.uk>
+References: <CA+55aFww=ZG0wPad3ELg+ibScr0eWuSxvhGLFaF+PO9kfkSkdw@mail.gmail.com>
+ <20170501034536.GX29622@ZenIV.linux.org.uk>
+ <CA+55aFwJXjvYQ7WLmh3z62KQ08XCR89Qh-koC=UTYW+enK6OPQ@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f194.google.com ([209.85.192.194]:33002 "EHLO
-        mail-pf0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750778AbdEMDfG (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 12 May 2017 23:35:06 -0400
-Received: by mail-pf0-f194.google.com with SMTP id a23so8946180pfe.0
-        for <linux-arch@vger.kernel.org>; Fri, 12 May 2017 20:35:06 -0700 (PDT)
+Received: from zeniv.linux.org.uk ([195.92.253.2]:59118 "EHLO
+        ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750935AbdEMG5r (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 13 May 2017 02:57:47 -0400
+Content-Disposition: inline
+In-Reply-To: <CA+55aFwJXjvYQ7WLmh3z62KQ08XCR89Qh-koC=UTYW+enK6OPQ@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arm-kernel@lists.infradead.org, devicetree@vger.kernel.org, Olof Johansson <olof@lixom.net>, Heiko Stuebner <heiko@sntech.de>, Rob Herring <robh+dt@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, James Hogan <james.hogan@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Frank Rowand <frowand.list@gmail.com>, linux-arch <linux-arch@vger.kernel.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 
-We use a directory under arch/$ARCH/boot/dts as an include path
-that has links outside of the subtree to find dt-bindings from under
-include/dt-bindings. That's been working well, but new DT architectures
-haven't been adding them by default.
+On Fri, May 12, 2017 at 06:00:44PM -0700, Linus Torvalds wrote:
+> So I should have asked earlier, but I was feeling rather busy during
+> the early merge window..
 
-Recently there's been a desire to share some of the DT material between
-arm and arm64, which originally caused developers to create symlinks or
-relative includes between the subtrees. This isn't ideal -- it breaks
-if the DT files aren't stored in the exact same hierarchy as the kernel
-tree, and generally it's just icky.
+> So I'm actually more interested to hear if you have any pending work
+> on cleaning up the __get/put_user() mess we have. Is that on your
+> radar at all?
 
-As a somewhat cleaner solution we decided to add a $ARCH/ prefix link
-once, and allow DTS files to reference dtsi (and dts) files in other
-architectures that way.
+Yes, it is.
 
-Original approach was to create these links under each architecture,
-but it lead to the problem of recursive symlinks.
+> In particular, right now, both __get_user() and __put_user() are nasty
+> and broken interfaces.
+>
+> It *used* to be that they were designed to just generate a single
+> instruction. That's not what they currently do at all, due to the
+> whole SMAP/PAN on x86 and arm.
+> 
+> For example, on x86, right now a single __put_user() call ends up
+> generating something like
 
-As a remedy, move the include link directories out of the architecture
-trees into a common location. At the same time, they can now share one
-directory and one dt-bindings/ link as well.
-
-Fixes: 4027494ae6e3 ('ARM: dts: add arm/arm64 include symlinks')
-Reported-by: Russell King <linux@armlinux.org.uk>
-Reported-by: Omar Sandoval <osandov@osandov.com>
-Cc: Heiko Stuebner <heiko@sntech.de>
-Cc: Rob Herring <robh+dt@kernel.org>
-Cc: Mark Rutland <mark.rutland@arm.com>
-Cc: Russell King <linux@armlinux.org.uk>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: Mikael Starvik <starvik@axis.com>
-Cc: Jesper Nilsson <jesper.nilsson@axis.com>
-Cc: James Hogan <james.hogan@imgtec.com>
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Frank Rowand <frowand.list@gmail.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>
-Signed-off-by: Olof Johansson <olof@lixom.net>
----
- arch/arm/boot/dts/include/arm             | 1 -
- arch/arm/boot/dts/include/arm64           | 1 -
- arch/arm/boot/dts/include/dt-bindings     | 1 -
- arch/arm64/boot/dts/include/arm           | 1 -
- arch/arm64/boot/dts/include/arm64         | 1 -
- arch/arm64/boot/dts/include/dt-bindings   | 1 -
- arch/cris/boot/dts/include/dt-bindings    | 1 -
- arch/metag/boot/dts/include/dt-bindings   | 1 -
- arch/mips/boot/dts/include/dt-bindings    | 1 -
- arch/powerpc/boot/dts/include/dt-bindings | 1 -
- scripts/Makefile.lib                      | 2 +-
- scripts/dtc/include-prefixes/arc          | 1 +
- scripts/dtc/include-prefixes/arm          | 1 +
- scripts/dtc/include-prefixes/arm64        | 1 +
- scripts/dtc/include-prefixes/c6x          | 1 +
- scripts/dtc/include-prefixes/cris         | 1 +
- scripts/dtc/include-prefixes/dt-bindings  | 1 +
- scripts/dtc/include-prefixes/h8300        | 1 +
- scripts/dtc/include-prefixes/metag        | 1 +
- scripts/dtc/include-prefixes/microblaze   | 1 +
- scripts/dtc/include-prefixes/mips         | 1 +
- scripts/dtc/include-prefixes/nios2        | 1 +
- scripts/dtc/include-prefixes/openrisc     | 1 +
- scripts/dtc/include-prefixes/powerpc      | 1 +
- scripts/dtc/include-prefixes/sh           | 1 +
- scripts/dtc/include-prefixes/xtensa       | 1 +
- 26 files changed, 16 insertions(+), 11 deletions(-)
- delete mode 120000 arch/arm/boot/dts/include/arm
- delete mode 120000 arch/arm/boot/dts/include/arm64
- delete mode 120000 arch/arm/boot/dts/include/dt-bindings
- delete mode 120000 arch/arm64/boot/dts/include/arm
- delete mode 120000 arch/arm64/boot/dts/include/arm64
- delete mode 120000 arch/arm64/boot/dts/include/dt-bindings
- delete mode 120000 arch/cris/boot/dts/include/dt-bindings
- delete mode 120000 arch/metag/boot/dts/include/dt-bindings
- delete mode 120000 arch/mips/boot/dts/include/dt-bindings
- delete mode 120000 arch/powerpc/boot/dts/include/dt-bindings
- create mode 120000 scripts/dtc/include-prefixes/arc
- create mode 120000 scripts/dtc/include-prefixes/arm
- create mode 120000 scripts/dtc/include-prefixes/arm64
- create mode 120000 scripts/dtc/include-prefixes/c6x
- create mode 120000 scripts/dtc/include-prefixes/cris
- create mode 120000 scripts/dtc/include-prefixes/dt-bindings
- create mode 120000 scripts/dtc/include-prefixes/h8300
- create mode 120000 scripts/dtc/include-prefixes/metag
- create mode 120000 scripts/dtc/include-prefixes/microblaze
- create mode 120000 scripts/dtc/include-prefixes/mips
- create mode 120000 scripts/dtc/include-prefixes/nios2
- create mode 120000 scripts/dtc/include-prefixes/openrisc
- create mode 120000 scripts/dtc/include-prefixes/powerpc
- create mode 120000 scripts/dtc/include-prefixes/sh
- create mode 120000 scripts/dtc/include-prefixes/xtensa
-
-diff --git a/arch/arm/boot/dts/include/arm b/arch/arm/boot/dts/include/arm
-deleted file mode 120000
-index a96aa0e..0000000
---- a/arch/arm/boot/dts/include/arm
-+++ /dev/null
-@@ -1 +0,0 @@
--..
-\ No newline at end of file
-diff --git a/arch/arm/boot/dts/include/arm64 b/arch/arm/boot/dts/include/arm64
-deleted file mode 120000
-index 074a835..0000000
---- a/arch/arm/boot/dts/include/arm64
-+++ /dev/null
-@@ -1 +0,0 @@
--../../../../arm64/boot/dts
-\ No newline at end of file
-diff --git a/arch/arm/boot/dts/include/dt-bindings b/arch/arm/boot/dts/include/dt-bindings
-deleted file mode 120000
-index 08c00e4..0000000
---- a/arch/arm/boot/dts/include/dt-bindings
-+++ /dev/null
-@@ -1 +0,0 @@
--../../../../../include/dt-bindings
-\ No newline at end of file
-diff --git a/arch/arm64/boot/dts/include/arm b/arch/arm64/boot/dts/include/arm
-deleted file mode 120000
-index cf63d80..0000000
---- a/arch/arm64/boot/dts/include/arm
-+++ /dev/null
-@@ -1 +0,0 @@
--../../../../arm/boot/dts
-\ No newline at end of file
-diff --git a/arch/arm64/boot/dts/include/arm64 b/arch/arm64/boot/dts/include/arm64
-deleted file mode 120000
-index a96aa0e..0000000
---- a/arch/arm64/boot/dts/include/arm64
-+++ /dev/null
-@@ -1 +0,0 @@
--..
-\ No newline at end of file
-diff --git a/arch/arm64/boot/dts/include/dt-bindings b/arch/arm64/boot/dts/include/dt-bindings
-deleted file mode 120000
-index 08c00e4..0000000
---- a/arch/arm64/boot/dts/include/dt-bindings
-+++ /dev/null
-@@ -1 +0,0 @@
--../../../../../include/dt-bindings
-\ No newline at end of file
-diff --git a/arch/cris/boot/dts/include/dt-bindings b/arch/cris/boot/dts/include/dt-bindings
-deleted file mode 120000
-index 08c00e4..0000000
---- a/arch/cris/boot/dts/include/dt-bindings
-+++ /dev/null
-@@ -1 +0,0 @@
--../../../../../include/dt-bindings
-\ No newline at end of file
-diff --git a/arch/metag/boot/dts/include/dt-bindings b/arch/metag/boot/dts/include/dt-bindings
-deleted file mode 120000
-index 08c00e4..0000000
---- a/arch/metag/boot/dts/include/dt-bindings
-+++ /dev/null
-@@ -1 +0,0 @@
--../../../../../include/dt-bindings
-\ No newline at end of file
-diff --git a/arch/mips/boot/dts/include/dt-bindings b/arch/mips/boot/dts/include/dt-bindings
-deleted file mode 120000
-index 08c00e4..0000000
---- a/arch/mips/boot/dts/include/dt-bindings
-+++ /dev/null
-@@ -1 +0,0 @@
--../../../../../include/dt-bindings
-\ No newline at end of file
-diff --git a/arch/powerpc/boot/dts/include/dt-bindings b/arch/powerpc/boot/dts/include/dt-bindings
-deleted file mode 120000
-index 08c00e4..0000000
---- a/arch/powerpc/boot/dts/include/dt-bindings
-+++ /dev/null
-@@ -1 +0,0 @@
--../../../../../include/dt-bindings
-\ No newline at end of file
-diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
-index c9f975a..2c759b0 100644
---- a/scripts/Makefile.lib
-+++ b/scripts/Makefile.lib
-@@ -175,7 +175,7 @@ ld_flags       = $(LDFLAGS) $(ldflags-y)
+[snip]
  
- dtc_cpp_flags  = -Wp,-MD,$(depfile).pre.tmp -nostdinc                    \
- 		 -I$(srctree)/arch/$(SRCARCH)/boot/dts                   \
--		 -I$(srctree)/arch/$(SRCARCH)/boot/dts/include           \
-+		 -I$(srctree)/scripts/dtc/include-prefixes               \
- 		 -I$(srctree)/drivers/of/testcase-data                   \
- 		 -undef -D__DTS__
- 
-diff --git a/scripts/dtc/include-prefixes/arc b/scripts/dtc/include-prefixes/arc
-new file mode 120000
-index 0000000..5d21b5a
---- /dev/null
-+++ b/scripts/dtc/include-prefixes/arc
-@@ -0,0 +1 @@
-+../../../arch/arc/boot/dts
-\ No newline at end of file
-diff --git a/scripts/dtc/include-prefixes/arm b/scripts/dtc/include-prefixes/arm
-new file mode 120000
-index 0000000..eb14d45
---- /dev/null
-+++ b/scripts/dtc/include-prefixes/arm
-@@ -0,0 +1 @@
-+../../../arch/arm/boot/dts
-\ No newline at end of file
-diff --git a/scripts/dtc/include-prefixes/arm64 b/scripts/dtc/include-prefixes/arm64
-new file mode 120000
-index 0000000..275c42c
---- /dev/null
-+++ b/scripts/dtc/include-prefixes/arm64
-@@ -0,0 +1 @@
-+../../../arch/arm64/boot/dts
-\ No newline at end of file
-diff --git a/scripts/dtc/include-prefixes/c6x b/scripts/dtc/include-prefixes/c6x
-new file mode 120000
-index 0000000..49ded4c
---- /dev/null
-+++ b/scripts/dtc/include-prefixes/c6x
-@@ -0,0 +1 @@
-+../../../arch/c6x/boot/dts
-\ No newline at end of file
-diff --git a/scripts/dtc/include-prefixes/cris b/scripts/dtc/include-prefixes/cris
-new file mode 120000
-index 0000000..736d998
---- /dev/null
-+++ b/scripts/dtc/include-prefixes/cris
-@@ -0,0 +1 @@
-+../../../arch/cris/boot/dts
-\ No newline at end of file
-diff --git a/scripts/dtc/include-prefixes/dt-bindings b/scripts/dtc/include-prefixes/dt-bindings
-new file mode 120000
-index 0000000..04fdbb3
---- /dev/null
-+++ b/scripts/dtc/include-prefixes/dt-bindings
-@@ -0,0 +1 @@
-+../../../include/dt-bindings
-\ No newline at end of file
-diff --git a/scripts/dtc/include-prefixes/h8300 b/scripts/dtc/include-prefixes/h8300
-new file mode 120000
-index 0000000..3bdaa33
---- /dev/null
-+++ b/scripts/dtc/include-prefixes/h8300
-@@ -0,0 +1 @@
-+../../../arch/h8300/boot/dts
-\ No newline at end of file
-diff --git a/scripts/dtc/include-prefixes/metag b/scripts/dtc/include-prefixes/metag
-new file mode 120000
-index 0000000..87a3c84
---- /dev/null
-+++ b/scripts/dtc/include-prefixes/metag
-@@ -0,0 +1 @@
-+../../../arch/metag/boot/dts
-\ No newline at end of file
-diff --git a/scripts/dtc/include-prefixes/microblaze b/scripts/dtc/include-prefixes/microblaze
-new file mode 120000
-index 0000000..d983033
---- /dev/null
-+++ b/scripts/dtc/include-prefixes/microblaze
-@@ -0,0 +1 @@
-+../../../arch/microblaze/boot/dts
-\ No newline at end of file
-diff --git a/scripts/dtc/include-prefixes/mips b/scripts/dtc/include-prefixes/mips
-new file mode 120000
-index 0000000..ae8d494
---- /dev/null
-+++ b/scripts/dtc/include-prefixes/mips
-@@ -0,0 +1 @@
-+../../../arch/mips/boot/dts
-\ No newline at end of file
-diff --git a/scripts/dtc/include-prefixes/nios2 b/scripts/dtc/include-prefixes/nios2
-new file mode 120000
-index 0000000..5177233
---- /dev/null
-+++ b/scripts/dtc/include-prefixes/nios2
-@@ -0,0 +1 @@
-+../../../arch/nios2/boot/dts
-\ No newline at end of file
-diff --git a/scripts/dtc/include-prefixes/openrisc b/scripts/dtc/include-prefixes/openrisc
-new file mode 120000
-index 0000000..71c3bc7
---- /dev/null
-+++ b/scripts/dtc/include-prefixes/openrisc
-@@ -0,0 +1 @@
-+../../../arch/openrisc/boot/dts
-\ No newline at end of file
-diff --git a/scripts/dtc/include-prefixes/powerpc b/scripts/dtc/include-prefixes/powerpc
-new file mode 120000
-index 0000000..7cd6ec1
---- /dev/null
-+++ b/scripts/dtc/include-prefixes/powerpc
-@@ -0,0 +1 @@
-+../../../arch/powerpc/boot/dts
-\ No newline at end of file
-diff --git a/scripts/dtc/include-prefixes/sh b/scripts/dtc/include-prefixes/sh
-new file mode 120000
-index 0000000..67d3780
---- /dev/null
-+++ b/scripts/dtc/include-prefixes/sh
-@@ -0,0 +1 @@
-+../../../arch/sh/boot/dts
-\ No newline at end of file
-diff --git a/scripts/dtc/include-prefixes/xtensa b/scripts/dtc/include-prefixes/xtensa
-new file mode 120000
-index 0000000..d1eaf6e
---- /dev/null
-+++ b/scripts/dtc/include-prefixes/xtensa
-@@ -0,0 +1 @@
-+../../../arch/xtensa/boot/dts
-\ No newline at end of file
--- 
-2.1.4
+> But even that small thing is rather debatable from a performance
+> angle: the actual cost of __put_user() these days is not the function
+> call, but the clac/stac (on modern x86) and the PAN bit games (on
+> arm).
+> 
+> So I'm actually inclined to just say "We should make
+> __get_user/__put_user() just be aliases for the normal
+> get_user/put_user() model".
+
+> which is more boilerplate, but ends up generating much better code.
+> And for "unsafe_put_user()" in particular, we actually could teach gcc
+> to use "asm goto" to really improve code generation. I have patches
+> for that if you want to look.
+> 
+> I'm attaching an example patch for "filldir()" that does that modern
+> thing. It almost had the right form as-is anyway, and under some loads
+> (eg "find") filldir actually shows up in profiles too.\
+
+> But the *first* thing I'd like to do would be to just get rid of
+> __get_user/__put_user as a thing. It really does generate nasty code,
+> and we might as well just make it do that function call.
+> 
+> Because what we do now isn't right. If we care about performance, the
+> "__xyz_user" versions are wrong (use unsafe_xyz_user() instead). And
+> if you don't care about performance, you should use the regular
+> xyz_user() functions that do an ok job by just calling the right-sized
+> helper function instead of inlining the crud.
+> 
+> Hmm?
+
+First, some stats: there's a thousand-odd callers of __get_user().  Out of
+those, about 70% are in arch/, mostly in sigframe-related code.  Take
+a look at the output of
+git grep -n -w __get_user|grep -v '^arch' | sed -e 's/:.*//'|uniq -c|sort -nr
+     55 drivers/gpu/drm/drm_ioc32.c
+     43 drivers/staging/comedi/comedi_compat32.c
+     35 kernel/compat.c
+     27 net/compat.c
+     27 block/compat_ioctl.c
+     15 drivers/usb/core/devio.c
+     13 drivers/char/ipmi/ipmi_devintf.c
+     11 kernel/signal.c
+     10 fs/fcntl.c
+      8 ipc/compat.c
+      8 drivers/video/fbdev/sbuslib.c
+      7 net/socket.c
+      7 drivers/gpu/drm/mga/mga_ioc32.c
+      6 fs/select.c
+      6 drivers/tty/vt/vt_ioctl.c
+      5 drivers/tty/vt/selection.c
+      5 drivers/spi/spidev.c
+      5 drivers/pci/proc.c
+      4 kernel/ptrace.c
+      4 ipc/compat_mq.c
+      4 drivers/tty/vt/consolemap.c
+      3 sound/oss/sys_timer.c
+      3 drivers/media/usb/uvc/uvc_v4l2.c
+      3 drivers/macintosh/ans-lcd.c
+and then we have a smallish bunch of files with one or two callers.  For
+__put_user() we have ~1800 callers total, ~1100 of them in arch/* and
+the rest goes like this:
+     73 drivers/gpu/drm/drm_ioc32.c
+     66 ipc/compat.c
+     58 drivers/gpu/drm/radeon/radeon_ioc32.c
+     55 block/compat_ioctl.c
+     52 kernel/compat.c
+     49 kernel/signal.c
+     43 drivers/staging/comedi/comedi_compat32.c
+     31 drivers/gpu/drm/r128/r128_ioc32.c
+     30 drivers/gpu/drm/mga/mga_ioc32.c
+     27 fs/signalfd.c
+     25 fs/readdir.c
+     24 fs/statfs.c
+     19 kernel/sys.c
+     17 net/compat.c
+     11 drivers/scsi/sg.c
+     10 fs/fcntl.c
+      8 sound/core/pcm_native.c
+      8 fs/binfmt_flat.c
+      7 fs/binfmt_elf_fdpic.c
+      6 net/socket.c
+      6 drivers/char/ipmi/ipmi_devintf.c
+      5 sound/oss/sys_timer.c
+      5 fs/binfmt_elf.c
+      5 drivers/video/fbdev/sbuslib.c
+      5 drivers/tty/vt/consolemap.c
+      5 drivers/spi/spidev.c
+      5 drivers/pci/proc.c
+      4 kernel/ptrace.c
+      4 ipc/compat_mq.c
+      3 fs/select.c
+      3 drivers/tty/vt/vt.c
+      ...
+
+IOW, we have
+	* most of users in arch/* (heavily dominated by signal-related code,
+both loads and stores).  Those need careful massage; maybe unsafe-based
+solution, maybe something else, but it's obviously per-architecture work
+and these paths are sensitive.
+	* few places outside of arch/* where these are abused; absolute
+majority are in ioctl compat code and they are _bad_.  Bad on x86, bad on
+s390, etc.  I'm not sure if switch to unsafe is the right solution for
+those, actually - depends on how we end up dealing with compat ioctls of
+that sort.  Might be better to do bulk copy to/from userland, combined with
+conversion from 32bit to native kernel-side and passing pointers to kernel
+objects to functions doing actual work.  Really depends upon the details.
+	* some places in fairly common codepaths where __get_user() and
+__put_user() are being played with.  And I certainly agree that they are
+not good.
+
+But IMO the first step is not to convert __get_user()/__put_user() to
+aliases of get_user()/put_user() - it's to get rid of their infestations
+outside of arch/*.  They are concentrated in relatively few places, so
+we can deal with those individually and then just fucking ban their use
+outside of arch/*.  That's easy enough to watch for - simple git grep will do,
+so anything creeping back will be immediately spotted.  In -next, with
+subsequent explanation of the reasons Not To Do That Or Else(tm) to the
+people responsible.
+
+As for fs/readdir.c...  4 back-to-back stores like
+        if (__put_user(ino, &dirent->d_ino))
+                goto efault;
+        if (__put_user(0, &dirent->d_off))
+                goto efault;
+        if (__put_user(reclen, &dirent->d_reclen))
+                goto efault;
+        if (__put_user(d_type, &dirent->d_type))
+                goto efault;
+might be asking for copy_to_user().  Maybe that one is too small for that
+to be a win (on s390 it almost certainly would be a win, judging by what
+Martin and Heiko are saying); fs/statfs.c ones almost certainly are better
+off with 'convert, then copy_to_user()' approach.
+
+Another couple of places worth looking into are copy_siginfo_to_user() and
+signalfd_copyinfo().  Maybe unsafe is the best approach there as well,
+maybe not, but it's in the 'large enough for copy_to_user() be interesting,
+not too large for auto variable' range.
+
+I certainly want that shit gone from the common paths, no arguments here,
+but I want to avoid having to crawl through every architecture's sigframe
+handling first.  Fortunately, we have that crap outside of arch/* concentrated
+in a few places and they are far enough from each other to be dealt with
+independently.  There are interesting interplays with set_fs() stuff, BTW...
+
+There will be more than enough crap that _will_ require crawls through
+arch/* ;-/  I'm plotting that pile right now (basically, what pieces should
+go into never-rebased stem, so that per-architecture branches had what they
+need).  get_user()/put_user() are part of it, it's just that I don't want
+to bring arch/*/kernel/signal*.c into the mix ;-/
+
+Re asm-goto - which architectures would be able to use that?  IOW, which
+gcc versions are stable enough in that area?  I'd obviously like to see
+your patches...
