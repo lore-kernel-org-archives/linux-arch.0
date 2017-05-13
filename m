@@ -1,91 +1,103 @@
-From: Heiko Stuebner <heiko@sntech.de>
-Subject: Re: [PATCH] devicetree: Move include prefixes from arch to separate
- directory
-Date: Sat, 13 May 2017 18:18:23 +0200
-Message-ID: <5321739.niXTlG4pZX@phil>
-References: <1494646471-24624-1-git-send-email-olof@lixom.net>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: [git pull] uaccess-related bits of vfs.git
+Date: Sat, 13 May 2017 17:46:14 +0100
+Message-ID: <20170513164614.GW390@ZenIV.linux.org.uk>
+References: <CA+55aFww=ZG0wPad3ELg+ibScr0eWuSxvhGLFaF+PO9kfkSkdw@mail.gmail.com>
+ <20170501034536.GX29622@ZenIV.linux.org.uk>
+ <CA+55aFwJXjvYQ7WLmh3z62KQ08XCR89Qh-koC=UTYW+enK6OPQ@mail.gmail.com>
+ <20170513065745.GV390@ZenIV.linux.org.uk>
+ <20170513120527.sdmkwveoo2mq32hf@angband.pl>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <1494646471-24624-1-git-send-email-olof@lixom.net>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Olof Johansson <olof@lixom.net>
-Cc: Mark Rutland <mark.rutland@arm.com>, devicetree@vger.kernel.org, Jesper Nilsson <jesper.nilsson@axis.com>, James Hogan <james.hogan@imgtec.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, Russell King <linux@armlinux.org.uk>, Mikael Starvik <starvik@axis.com>, Rob Herring <robh+dt@kernel.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-arch <linux-arch@vger.kernel.org>, Frank Rowand <frowand.list@gmail.com>, linux-arm-kernel@lists.infradead.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:39728 "EHLO
+        ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754235AbdEMQqS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 13 May 2017 12:46:18 -0400
+Content-Disposition: inline
+In-Reply-To: <20170513120527.sdmkwveoo2mq32hf@angband.pl>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Adam Borowski <kilobyte@angband.pl>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 
-Hi Olof,
+On Sat, May 13, 2017 at 02:05:27PM +0200, Adam Borowski wrote:
 
-Am Freitag, 12. Mai 2017, 20:34:31 CEST schrieb Olof Johansson:
-> We use a directory under arch/$ARCH/boot/dts as an include path
-> that has links outside of the subtree to find dt-bindings from under
-> include/dt-bindings. That's been working well, but new DT architectures
-> haven't been adding them by default.
+> As someone from the peanuts gallery, I took a look for __put_user() in my
+> usual haunt, drivers/tty/vt/
 > 
-> Recently there's been a desire to share some of the DT material between
-> arm and arm64, which originally caused developers to create symlinks or
-> relative includes between the subtrees. This isn't ideal -- it breaks
-> if the DT files aren't stored in the exact same hierarchy as the kernel
-> tree, and generally it's just icky.
+> * use 1: con_[gs]et_trans_*():
+>   Copies a linear array of 256 bytes/shorts, one by one.
+>   The obvious patch has 9 insertions(+), 22 deletions(-).
 > 
-> As a somewhat cleaner solution we decided to add a $ARCH/ prefix link
-> once, and allow DTS files to reference dtsi (and dts) files in other
-> architectures that way.
+> * use 2: con_[gs]et_unimap():
+>   Ditto, up to 65535*2 shorts, also in a nice linear array.
 > 
-> Original approach was to create these links under each architecture,
-> but it lead to the problem of recursive symlinks.
-> 
-> As a remedy, move the include link directories out of the architecture
-> trees into a common location. At the same time, they can now share one
-> directory and one dt-bindings/ link as well.
-> 
-> Fixes: 4027494ae6e3 ('ARM: dts: add arm/arm64 include symlinks')
-> Reported-by: Russell King <linux@armlinux.org.uk>
-> Reported-by: Omar Sandoval <osandov@osandov.com>
-> Cc: Heiko Stuebner <heiko@sntech.de>
-> Cc: Rob Herring <robh+dt@kernel.org>
-> Cc: Mark Rutland <mark.rutland@arm.com>
-> Cc: Russell King <linux@armlinux.org.uk>
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Will Deacon <will.deacon@arm.com>
-> Cc: Mikael Starvik <starvik@axis.com>
-> Cc: Jesper Nilsson <jesper.nilsson@axis.com>
-> Cc: James Hogan <james.hogan@imgtec.com>
-> Cc: Ralf Baechle <ralf@linux-mips.org>
-> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-> Cc: Paul Mackerras <paulus@samba.org>
-> Cc: Michael Ellerman <mpe@ellerman.id.au>
-> Cc: Frank Rowand <frowand.list@gmail.com>
-> Cc: linux-arch <linux-arch@vger.kernel.org>
-> Signed-off-by: Olof Johansson <olof@lixom.net>
+> * use 3: tioclinux():
+>   Does a __put into a place that was checked only for read.  This got me
+>   frightened as it initially looked like something that can allow an user to
+>   write where they shouldn't.  Fortunately, it turns out the first argument
+>   to access_ok() is ignored on every single architecture -- why does it even
+>   exist then?  I imagined it's there for some odd arch that allows writes
+>   when in privileged mode, but unlike what the docs say, VERIFY_WRITE is
+>   exactly same as VERIFY_READ.
 
-change itself looks good to me and also works, so
+It's a remnant of old kludge that never properly worked in the first place.
+access_ok() should have been called userland_range() - that's all it
+checks and that's all it *can* check.
 
-Reviewed-by: Heiko Stuebner <heiko@sntech.de>
-Tested-by: Heiko Stuebner <heiko@sntech.de>
+As it is, each of those __get_user() can bloody well yield -EFAULT.  Despite
+having "passed" access_ok().  Again, the only thing access_ok() checks is
+that (on architecture with shared address space for userland and kernel)
+the addresses given are on the userland side.  That's _it_ - they can
+be unmapped, mmapped to broken floppy, whatever; you'll find out when
+you try to actually copy bytes from from it.
 
-But we also have an overlooked glitch in the new rk3399-gru devicetrees
-that surfaces with this patch applied.
+What the kludge used to attempt was "let's check that we are not trying
+to copy into read-only mmapped area - 80386 MMU is fucked in head and won't
+fault on such stores in ring 0".  It had always been racy.  Look:
+thread A: going to copy something to user-supplied address.  Do access_ok().
+thread A: looks like it's mapped writable, let's go ahead and copy
+thread A: do something blocking before actually doing __put_user() or
+__copy_to_user() or whatever it's going to be.
+thread B: munmap(), mmap() something read-only here.
+thread A: get to actual __put_user()/__copy_to_user().
+80386: hey, it's ring 0, no need to look at the write protect bit in page
+tables.  What can go wrong, anyway?
 
-../arch/arm64/boot/dts/rockchip/rk3399-gru-kevin.dts:47:57: fatal error: include/dt-bindings/input/linux-event-codes.h: File or directory not found
- #include <include/dt-bindings/input/linux-event-codes.h>
+You can't move any non-static checks to access_ok().  On any architecture.
+Anything that could change between access_ok() and actual copying can't
+be checked in access_ok().  As it is, access_ok() has actively misleading
+calling conventions:
+	* the name implies that having passed access_ok() you don't have
+to worry about EFAULT
+	* 'direction' argument of that thing reinforces that impression
+*and* has to be produced by the caller.  Most simply pass a constant,
+which immediately gets dropped (as an aside, take a look at 4b4554f6d - it's
+amusing), but in some cases it's calculated elsewhere and carefully passed
+through several levels of call chain.  Only to be discarded by access_ok(),
+of course...
 
-so need the patch from Ian Campbell 
-"arm64: dts: rockchip: Drop explicit "include/" prefix from #include" [0]
-in front to not cause other build breakage.
+> Ie, every use in this sample is wrong.  I suspect the rest of the kernel
+> should be similar.
 
-So if applicable, both patches should go in together, with the gru patch
-in front and I've added my Reviewed-by there if someone else is doing it.
+Looking through vt...
 
+* con_set_trans_old(): copy_from_user() + loop for doing or with
+  UNI_DIRECT_BASE.  Almost certainly will be faster that way - on *any*
+  architecture.
+* con_get_trans_old(): copy_to_user() would be an obvious optimization.
+* con_set_trans_new(): copy_from_user().
+* con_get_trans_new(): copy_to_user().
+* con_set_unimap(): memdup_user() instead of the entire kmalloc_array +
+loop copying the sucker member by member.  With ushort ct you don't need
+overflow-related logics of kmalloc_array() anyway...
+* con_get_unimap(): copy_to_user() + put_user() (for uct)
+* set_selection(): just copy_from_user() into local struct tiocl_selection.
+* tioclinux(): use put_user().  Yes, you will repeat the same check twice.
+Once per ioctl(), that involves enough work to make that "recalculate
+access_ok() once for no reason" non-issue on any architecture.
+* vt_ioctl(): turn that ushort ll,cc,vlin,clin,vcol,ccol; into
+  struct vt_consize size; or something like that and use copy_from_user()
 
-Heiko
-
-[0] https://www.spinics.net/lists/arm-kernel/msg580835.html
+And AFAICS you can lose each and every access_ok() call in there.
