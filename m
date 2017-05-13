@@ -1,40 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out6.electric.net ([192.162.217.193]:50121 "EHLO
-        smtp-out6.electric.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1756286AbdELNUE (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 12 May 2017 09:20:04 -0400
-From: David Laight <David.Laight@ACULAB.COM>
-Subject: RE: [PATCH] spin loop primitives for busy waiting
-Date: Fri, 12 May 2017 12:58:12 +0000
-Message-ID: <063D6719AE5E284EB5DD2968C1650D6DCFFE9D65@AcuExch.aculab.com>
-References: <20170511165727.17847-1-npiggin@gmail.com>
- <CA+55aFzS9ENQnRoTbLMd_nFwwjuU+s9yj0tZcLSYDDjnwqTKrg@mail.gmail.com>
-In-Reply-To: <CA+55aFzS9ENQnRoTbLMd_nFwwjuU+s9yj0tZcLSYDDjnwqTKrg@mail.gmail.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+Received: from mail-vk0-f66.google.com ([209.85.213.66]:35673 "EHLO
+        mail-vk0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752043AbdEMNrA (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 13 May 2017 09:47:00 -0400
 MIME-Version: 1.0
+In-Reply-To: <20170513120527.sdmkwveoo2mq32hf@angband.pl>
+References: <CA+55aFww=ZG0wPad3ELg+ibScr0eWuSxvhGLFaF+PO9kfkSkdw@mail.gmail.com>
+ <20170501034536.GX29622@ZenIV.linux.org.uk> <CA+55aFwJXjvYQ7WLmh3z62KQ08XCR89Qh-koC=UTYW+enK6OPQ@mail.gmail.com>
+ <20170513065745.GV390@ZenIV.linux.org.uk> <20170513120527.sdmkwveoo2mq32hf@angband.pl>
+From: Brian Gerst <brgerst@gmail.com>
+Date: Sat, 13 May 2017 09:46:59 -0400
+Message-ID: <CAMzpN2iFPQLWV3rH=FR0DVtd-RdXxyUvDLW5HOjt-KJN0Daemw@mail.gmail.com>
+Subject: Re: [git pull] uaccess-related bits of vfs.git
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: 'Linus Torvalds' <torvalds@linux-foundation.org>, Nicholas Piggin <npiggin@gmail.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, ppc-dev <linuxppc-dev@lists.ozlabs.org>
-Message-ID: <20170512125812.X-XJ-Wsh9jomInHVtrnAp1W5isW5rCBeZjB7WZmHm6Q@z>
+To: Adam Borowski <kilobyte@angband.pl>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20170513134659.8JxTI7UevHcVxz6NrcS8VZ3KGYfurLUsbEZd153X-XA@z>
 
-RnJvbTogTGludXMgVG9ydmFsZHMNCj4gU2VudDogMTEgTWF5IDIwMTcgMTk6NDgNCi4uLg0KPiBU
-aGUgb25lIHF1ZXN0aW9uIEkgaGF2ZSBpcyBhYm91dCAic3Bpbl9vbl9jb25kKCkiOiBzaW5jZSB5
-b3UNCj4gZXhwbGljaXRseSBkb2N1bWVudCB0aGF0IHRoZSAibm8gc3Bpbm5pbmciIGNhc2UgaXMg
-ZXhwZWN0ZWQgdG8gYmUgdGhlDQo+IGRlZmF1bHQsIEkgcmVhbGx5IHRoaW5rIHRoYXQgdGhlIGRl
-ZmF1bHQgaW1wbGVtZW50YXRpb24gc2hvdWxkIGJlDQo+IGFsb25nIHRoZSBsaW5lcyBpZg0KPiAN
-Cj4gICAjZGVmaW5lIHNwaW5fb25fY29uZChjb25kKSBkbyB7IFwNCj4gICAgIGlmICh1bmxpa2Vs
-eSghKGNvbmQpKSkgeyBcDQo+ICAgICAgICAgc3Bpbl9iZWdpbigpOyBkbyBzcGluX2NwdV9yZWxh
-eCgpOyB3aGlsZSAoIShjb25kKSk7IHNwaW5fZW5kKCk7IFwNCj4gICAgIH0gXA0KPiAgIH0gd2hp
-bGUgKDApDQo+IA0KPiB3aGljaCB3aWxsIGFjdHVhbGx5IHJlc3VsdCBpbiBiZXR0ZXIgY29kZSBn
-ZW5lcmF0aW9uIGV2ZW4gaWYNCj4gc3Bpbl9iZWdpbi9lbmQoKSBhcmUgbm8tb3BzLCBhbmQganVz
-dCBnZW5lcmFsbHkgb3B0aW1pemVzIGZvciB0aGUNCj4gcmlnaHQgYmVoYXZpb3IgKGllIGRvIHRo
-ZSBzcGlubmluZyBvdXQtb2YtbGluZSwgc2luY2UgYnkgZGVmaW5pdGlvbiBpdA0KPiBjYW5ub3Qg
-YmUgcGVyZm9ybWFuY2UtY3JpdGljYWwgYWZ0ZXIgdGhlIGZpcnN0IGl0ZXJhdGlvbikuDQoNCkF0
-IGxlYXN0IHNvbWUgdmVyc2lvbnMgb2YgZ2NjIGNvbnZlcnQgd2hpbGUgKGNvbmQpIGRvIHtib2R5
-fQ0KaW50byBpZiAoY29uZCkgZG8ge2JvZHl9IHdoaWxlIChjb25kKSBldmVuIHdoZW4gJ2NvbmQn
-DQppcyBhIG5vbi10cml2aWFsIGV4cHJlc3Npb24gYW5kICdib2R5JyBpcyB0cml2aWFsLg0KVGhl
-IGNvZGUtYmxvYXQgaXMgc2lsbHkuDQpObyBwb2ludCBlbmZvcmNpbmcgdGhlICdvcHRpbWlzYXRp
-b24nIGhlcmUuDQoNCglEYXZpZA0K
+On Sat, May 13, 2017 at 8:05 AM, Adam Borowski <kilobyte@angband.pl> wrote:
+> On Sat, May 13, 2017 at 07:57:45AM +0100, Al Viro wrote:
+>> On Fri, May 12, 2017 at 06:00:44PM -0700, Linus Torvalds wrote:
+>> > But the *first* thing I'd like to do would be to just get rid of
+>> > __get_user/__put_user as a thing. It really does generate nasty code,
+>> > and we might as well just make it do that function call.
+>>
+>> But IMO the first step is not to convert __get_user()/__put_user() to
+>> aliases of get_user()/put_user() - it's to get rid of their infestations
+>> outside of arch/*.  They are concentrated in relatively few places, so
+>> we can deal with those individually and then just fucking ban their use
+>> outside of arch/*.  That's easy enough to watch for - simple git grep will do,
+>> so anything creeping back will be immediately spotted.
+>
+> As someone from the peanuts gallery, I took a look for __put_user() in my
+> usual haunt, drivers/tty/vt/
+>
+> * use 1: con_[gs]et_trans_*():
+>   Copies a linear array of 256 bytes/shorts, one by one.
+>   The obvious patch has 9 insertions(+), 22 deletions(-).
+>
+> * use 2: con_[gs]et_unimap():
+>   Ditto, up to 65535*2 shorts, also in a nice linear array.
+>
+> * use 3: tioclinux():
+>   Does a __put into a place that was checked only for read.  This got me
+>   frightened as it initially looked like something that can allow an user to
+>   write where they shouldn't.  Fortunately, it turns out the first argument
+>   to access_ok() is ignored on every single architecture -- why does it even
+>   exist then?  I imagined it's there for some odd arch that allows writes
+>   when in privileged mode, but unlike what the docs say, VERIFY_WRITE is
+>   exactly same as VERIFY_READ.
+
+The original i386 (no longer supported) ignored the write-protect bit
+when in supervisor mode.
+
+--
+Brian Gerst
