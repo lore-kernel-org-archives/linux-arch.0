@@ -1,79 +1,62 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: [git pull] uaccess-related bits of vfs.git
-Date: Sat, 13 May 2017 19:26:56 +0100
-Message-ID: <20170513182656.GA390@ZenIV.linux.org.uk>
+Date: Sat, 13 May 2017 12:00:10 -0700
+Message-ID: <CA+55aFw8RHphGi7kAZdot_PikJGaB=FthHn8Q=1EuCVz=0gd_g@mail.gmail.com>
 References: <CA+55aFww=ZG0wPad3ELg+ibScr0eWuSxvhGLFaF+PO9kfkSkdw@mail.gmail.com>
- <20170501034536.GX29622@ZenIV.linux.org.uk>
- <CA+55aFwJXjvYQ7WLmh3z62KQ08XCR89Qh-koC=UTYW+enK6OPQ@mail.gmail.com>
- <20170513065745.GV390@ZenIV.linux.org.uk>
- <CA+55aFzrcX=B-m5SN1ajEopKbTLj1WcpKZWgdDTwYqoOBPJwaQ@mail.gmail.com>
- <20170513170056.GX390@ZenIV.linux.org.uk>
- <CA+55aFwD+qC7MqSJVt4q91YEJ7CSzAZazWAJ-NpSz=B1k95AuA@mail.gmail.com>
+ <20170501034536.GX29622@ZenIV.linux.org.uk> <CA+55aFwJXjvYQ7WLmh3z62KQ08XCR89Qh-koC=UTYW+enK6OPQ@mail.gmail.com>
+ <20170513065745.GV390@ZenIV.linux.org.uk> <CA+55aFzrcX=B-m5SN1ajEopKbTLj1WcpKZWgdDTwYqoOBPJwaQ@mail.gmail.com>
+ <20170513170056.GX390@ZenIV.linux.org.uk> <CA+55aFwD+qC7MqSJVt4q91YEJ7CSzAZazWAJ-NpSz=B1k95AuA@mail.gmail.com>
  <20170513180413.GZ390@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:41304 "EHLO
-        ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752654AbdEMS06 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 13 May 2017 14:26:58 -0400
-Content-Disposition: inline
+Received: from mail-it0-f49.google.com ([209.85.214.49]:36620 "EHLO
+        mail-it0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1757270AbdEMTAL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 13 May 2017 15:00:11 -0400
 In-Reply-To: <20170513180413.GZ390@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
+To: Al Viro <viro@zeniv.linux.org.uk>
 Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 
-On Sat, May 13, 2017 at 07:04:13PM +0100, Al Viro wrote:
+On Sat, May 13, 2017 at 11:04 AM, Al Viro <viro@zeniv.linux.org.uk> wrote:
+>
+>
+> My point is, this stuff needs looking at.
 
-> My point is, this stuff needs looking at.  Even this quick look in arch/x86
-> has shown several fairly different classes of that stuff, probably needing
-> different approaches.  And that - on an architecture that had tons of TLC
-> around signal delivery; I'm not saying that result is optimal (asm-goto sounds
-> potentially useful there), but it had a lot of attention given to it...
+No.
 
-BTW, even in arch/* they tend to nest.  E.g. arch/alpha has 133 callers
-total.  Distribution by files:
-     35 arch/alpha/kernel/osf_sys.c
-     92 arch/alpha/kernel/signal.c
-      1 arch/alpha/kernel/traps.c
-      4 arch/alpha/lib/csum_partial_copy.c
-      1 arch/alpha/mm/fault.c
-Distribution by functions:
-      1 osf_getdomainname()	[1]
-      2 osf_sigstack()
-      2 get_tv32()
-      2 put_tv32()
-      4 get_it32()
-      4 put_it32()
-      2 osf_select()
-     18 osf_wait4()		[2]
-      6 osf_sigaction()
-     34 restore_sigcontext()
-      1 do_sigreturn()
-     42 setup_sigcontext()
-      3 setup_frame()
-      6 setup_rt_frame()
-      1 dik_show_code()		[3]
-      2 csum_partial_cfu_aligned()
-      2 csum_partial_cfu_src_aligned()
-      1 do_page_fault()		[4]
+You don't have a point. I've tried to explain that there's no
+performance difference, and there is no way in hell that the current
+"__" versions are better.
 
-[1] insane, BTW - should be strnlen() + copy_to_user(); should report -EFAULT
-on failure, while we are at it.
-[2] with fairly disgusting use of set_fs() in the mix.
-[3] would break with get_user() - it's oopser fetching code to printk.
-[4] this:
-        /* As of EV6, a load into $31/$f31 is a prefetch, and never faults
-           (or is suppressed by the PALcode).  Support that for older CPUs
-           by ignoring such an instruction.  */
-        if (cause == 0) {
-                unsigned int insn;
-                __get_user(insn, (unsigned int __user *)regs->pc);
-                if ((insn >> 21 & 0x1f) == 0x1f &&
-                    /* ldq ldl ldt lds ldg ldf ldwu ldbu */
-                    (1ul << (insn >> 26) & 0x30f00001400ul)) {
-                        regs->pc += 4;
-                        return;
-                }
-        }
+So what's the point in looking? All you are ever going to come up with
+is theoretical "this might" cases.
+
+The only sane forward is to just get rid of them. At that point, you
+*may* end up actually noticing something, but if you do, it's not a
+"you might" issue.
+
+There's literally no upside to this "needs looking at". There are only
+downsides.
+
+And one major downside of your "needs looking at". is this one:
+
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Tue, 24 Mar 2015 10:42:18 -0700
+>
+> So I'd suggest we should just do a wholesale replacement of
+> __copy_to/from_user() with the non-underlined cases. Then, we could
+> switch insividual ones back - with reasoning of why they matter, and
+> with pointers to how it does access_ok() two lines before.
+>
+> We should probably even consider looking at __get_user/__put_user().
+> Few of them are actually performance-critical.
+
+Look at that date. It's over two years ago. In the intervening two
+years, how many of those conversions have happened?
+
+Here's a hint: it's a very very round number.
+
+                 Linus
