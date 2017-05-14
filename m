@@ -1,41 +1,64 @@
 From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH] sched: remove sched_find_first_bit()
-Date: Sun, 14 May 2017 20:09:17 +0200
-Message-ID: <20170514180917.bil7xr4bqtfk6fzj@gmail.com>
-References: <20170513010152.13986-1-ynorov@caviumnetworks.com>
+Subject: Re: [git pull] uaccess-related bits of vfs.git
+Date: Sun, 14 May 2017 20:13:56 +0200
+Message-ID: <20170514181356.whn26wtc7aorpxvc@gmail.com>
+References: <CA+55aFww=ZG0wPad3ELg+ibScr0eWuSxvhGLFaF+PO9kfkSkdw@mail.gmail.com>
+ <20170501034536.GX29622@ZenIV.linux.org.uk>
+ <CA+55aFwJXjvYQ7WLmh3z62KQ08XCR89Qh-koC=UTYW+enK6OPQ@mail.gmail.com>
+ <20170513065745.GV390@ZenIV.linux.org.uk>
+ <CA+55aFzrcX=B-m5SN1ajEopKbTLj1WcpKZWgdDTwYqoOBPJwaQ@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f67.google.com ([74.125.82.67]:36394 "EHLO
-        mail-wm0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754719AbdENSJW (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 14 May 2017 14:09:22 -0400
+Received: from mail-wr0-f193.google.com ([209.85.128.193]:36816 "EHLO
+        mail-wr0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751580AbdENSOA (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 14 May 2017 14:14:00 -0400
 Content-Disposition: inline
-In-Reply-To: <20170513010152.13986-1-ynorov@caviumnetworks.com>
+In-Reply-To: <CA+55aFzrcX=B-m5SN1ajEopKbTLj1WcpKZWgdDTwYqoOBPJwaQ@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yury Norov <ynorov@caviumnetworks.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Akinobu Mita <mita@miraclelinux.com>, Mike Galbraith <efault@gmx.de>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 
 
-* Yury Norov <ynorov@caviumnetworks.com> wrote:
+* Linus Torvalds <torvalds@linux-foundation.org> wrote:
 
-> sched_find_first_bit() is in fact the unrolled version of
-> find_first_bit(), which is theoretically faster in some cases.
-> But in the kernel it is called only in couple places in 
-> kernel/sched/rt.c, and both of them are not looking like hot
-> paths [...]
+> On Fri, May 12, 2017 at 11:57 PM, Al Viro <viro@zeniv.linux.org.uk> wrote:
+> >
+> > First, some stats: there's a thousand-odd callers of __get_user().  Out of
+> > those, about 70% are in arch/, mostly in sigframe-related code.
+> 
+> Sure. And they can be trivially converted, and none of them should care at all.
+> 
+> > IOW, we have
+> >         * most of users in arch/* (heavily dominated by signal-related code,
+> > both loads and stores).  Those need careful massage; maybe unsafe-based
+> > solution, maybe something else, but it's obviously per-architecture work
+> > and these paths are sensitive.
+> 
+> Why are they sensitive?
+> 
+> Why not just do this:
+> 
+>   git grep -l '\<__\(\(get\)\|\(put\)\)_user(' -- arch/x86
+> :^arch/x86/include/asm/uaccess.h
+>         | xargs sed -i 's/__\(\(\(get\)\|\(put\)\)_user(\)/\1/g'
+> 
+> which converts all the x86 uses in one go.
+> 
+> Anybody who *relies* on not checking the address_limit is so broken as
+> to be not even funny. And anything that is so performance-sensitive
+> that anybody can even measure the effect of the above we can convert
+> later.
 
-They are in terms of scheduling: pick_next_rt_entity() is in the RT scheduling 
-fastpath.
+I'd say that the CLAC/STAC addition pretty much killed any argument in favor of 
+"optimized" __get_user() code, so I'd be very happy to see these interfaces gone 
+altogether.
 
-Which makes me just suspicious of how careful this patch really is:
+So as far as x86 usage goes:
 
-> that will doubtly achieve measurable benefit from using unrolled version of 
-> find_first_bit() - there's no hard loops, and the execution path is not really 
-> short.
-
-... that's really just handwaving. Numbers please.
+  Acked-by: Ingo Molnar <mingo@kernel.org>
 
 Thanks,
 
