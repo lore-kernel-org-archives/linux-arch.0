@@ -1,43 +1,119 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH 1/1] futex: remove duplicated code
-Date: Mon, 15 May 2017 14:16:45 +0100
-Message-ID: <20170515131644.GA3605@arm.com>
-References: <20170515130742.18357-1-jslaby@suse.cz>
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [RFC PATCH v2 4/6] arm64: signal: Allocate extra sigcontext
+ space as needed
+Date: Mon, 15 May 2017 14:24:45 +0100
+Message-ID: <20170515132442.GB3559@e103592.cambridge.arm.com>
+References: <1492016239-19511-1-git-send-email-Dave.Martin@arm.com>
+ <1492016495-19689-1-git-send-email-Dave.Martin@arm.com>
+ <1492016495-19689-4-git-send-email-Dave.Martin@arm.com>
+ <20170512165724.GB8387@e104818-lin.cambridge.arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-hexagon-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:52506 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S933799AbdEONYt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 15 May 2017 09:24:49 -0400
 Content-Disposition: inline
-In-Reply-To: <20170515130742.18357-1-jslaby@suse.cz>
-Sender: linux-hexagon-owner@vger.kernel.org
-To: Jiri Slaby <jslaby@suse.cz>
-Cc: tglx@linutronix.de, linux-kernel@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20170512165724.GB8387@e104818-lin.cambridge.arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org
 
-Hi Jiri,
-
-On Mon, May 15, 2017 at 03:07:42PM +0200, Jiri Slaby wrote:
-> There is code duplicated over all architecture's headers for
-> futex_atomic_op_inuser. Namely op decoding, access_ok check for uaddr,
-> and comparison of the result.
+On Fri, May 12, 2017 at 05:57:24PM +0100, Catalin Marinas wrote:
+> Hi Dave,
 > 
-> Remove this duplication and leave up to the arches only the needed
-> assembly which is now in arch_futex_atomic_op_inuser.
+> On Wed, Apr 12, 2017 at 06:01:13PM +0100, Dave P Martin wrote:
+> > --- a/arch/arm64/include/uapi/asm/sigcontext.h
+> > +++ b/arch/arm64/include/uapi/asm/sigcontext.h
+> > @@ -80,4 +80,31 @@ struct esr_context {
+> >  	__u64 esr;
+> >  };
+> >  
+> > +/*
+> > + * Pointer to extra space for additional structures that don't fit in
+> > + * sigcontext.__reserved[].  Note:
+> > + *
+> > + * 1) fpsimd_context, esr_context and extra_context must be placed in
+> > + * sigcontext.__reserved[] if present.  They cannot be placed in the
+> > + * extra space.  Any other record can be placed either in the extra
+> > + * space or in sigcontext.__reserved[].
+> > + *
+> > + * 2) There must not be more than one extra_context.
+> > + *
+> > + * 3) If extra_context is present, it must be followed immediately in
+> > + * sigcontext.__reserved[] by the terminating null _aarch64_ctx (i.e.,
+> > + * extra_context must be the last record in sigcontext.__reserved[]
+> > + * except for the terminator).
+> > + *
+> > + * 4) The extra space must itself be terminated with a null
+> > + * _aarch64_ctx.
+> > + */
 > 
-> Note that s390 removed access_ok check in d12a29703 ("s390/uaccess:
-> remove pointless access_ok() checks") as access_ok there returns true.
-> We introduce it back to the helper for the sake of simplicity (it gets
-> optimized away anyway).
+> IIUC, if we need to save some state that doesn't fit in what's left of
+> sigcontext.__reserved[] (e.g. SVE with 1024-bit vector length), we
+> ignore the available space and go for a memory block following the end
+> of sigcontext.__reserved[] + 16. Is there a reason we can't store the
+> new state across the end of sigcontext.__reserved[] and move fp/lr at
+> the end of the new frame? I'm not sure the fp/lr position immediately
+> after __reserved[] counts as ABI.
 
-Whilst I think this is a good idea, the code in question actually results
-in undefined behaviour per the C spec and is reported by UBSAN. See my
-patch fixing arm64 here (which I'd forgotten about):
+This was my original view.
 
-https://www.spinics.net/lists/linux-arch/msg38564.html
+Originally I preferred not to waste the space and did move fp/lr to the
+end, but someone (I think you or Will) expressed concern that the fp/lr
+position relative to the signal frame _might_ count as ABI.
 
-But, as stated in the thread above, I think we should go a step further
-and remove FUTEX_OP_{OR,ANDN,XOR,OPARG_SHIFT} altogether. They don't
-appear to be used by userspace, and this whole thing is a total mess.
+I think it's not that likely that software will be relying on this,
+since it appears easier just to follow the frame chain than to treat
+this as a special case.
 
-Any thoughts?
+But it's hard to be certain.  It comes down to a judgement call.
 
-Will
+We could also move fp/lr later, if we require sigframe parsers to be
+a bit more permissive about where extra_context starts.
+
+> > +#define EXTRA_MAGIC	0x45585401
+> > +
+> > +struct extra_context {
+> > +	struct _aarch64_ctx head;
+> > +	void __user *data;	/* 16-byte aligned pointer to extra space */
+> "__user" is a kernel-only attribute, we shouldn't expose it in a uapi
+> header.
+
+This is filtered out by headers_install, just like #ifdef __KERNEL__.
+
+data really is a pointer to a user address.  Compare for example struct
+iovec in include/uapi/linux/uio.h.
+
+I think the __user is required to keep sparse happy, otherwise some
+additional casting is needed to bless a valid read from this field
+before passing it to get/put_user.  Or there may be some other reason
+I've forgotten...
+
+> 
+> > +	__u32 size;		/* size in bytes of the extra space */
+> > +};
+> 
+> Do we need the size of the extra space? Can we not infer it anyway by
+> walking the contexts save there? Surely we don't expect more than one
+> extra context.
+
+Strictly speaking we don't need it.  When userspace parses a signal
+frame generated by the kernel, it can trust the kernel to write a well-
+formed signal frame.
+
+In sigreturn it allows us to retain a sanity-check on overall size
+similar to what sizeof(__reserved) gives us.  This "feels cleaner"
+to me, but the value of it is debatable, since we can still apply
+SIGFRAME_MAXSZ and uaccess should protect us against gross overruns.
+
+The size parameter *may* provide some limited defence against
+sigreturn-mediated stack smashing in userspace, but it wasn't designed
+for this purpose and again the value is debatable.
+
+We can likely live without it if you're not keen on it.
+
+Cheers
+---Dave
