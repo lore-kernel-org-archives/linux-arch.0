@@ -1,76 +1,92 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from condef-10.nifty.com ([202.248.20.75]:51543 "EHLO
-        condef-10.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S932309AbdEOL3N (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 May 2017 07:29:13 -0400
-Received: from conuserg-08.nifty.com ([10.126.8.71])by condef-10.nifty.com with ESMTP id v4FBIf8X001465
-        for <linux-arch@vger.kernel.org>; Mon, 15 May 2017 20:18:41 +0900
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH 2/5] ARM: dts: use #include "..." to include DT in the same directory
-Date: Mon, 15 May 2017 20:14:45 +0900
-Message-ID: <1494846888-18966-3-git-send-email-yamada.masahiro@socionext.com>
-In-Reply-To: <1494846888-18966-1-git-send-email-yamada.masahiro@socionext.com>
-References: <1494846888-18966-1-git-send-email-yamada.masahiro@socionext.com>
+Received: from mail.kernel.org ([198.145.29.99]:48634 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1753765AbdEONBa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 15 May 2017 09:01:30 -0400
+MIME-Version: 1.0
+From: Rob Herring <robh+dt@kernel.org>
+Date: Mon, 15 May 2017 08:01:07 -0500
+Message-ID: <CAL_JsqKLxA8K8378z4nDBkDWnwM_zBbbf9D7EPtwQ1782dydTw@mail.gmail.com>
+Subject: Re: [PATCH] devicetree: Move include prefixes from arch to separate directory
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: devicetree@vger.kernel.org
-Cc: linux-arch <linux-arch@vger.kernel.org>, Omar Sandoval <osandov@osandov.com>, Gaurav Minocha <gaurav.minocha.os@gmail.com>, Grant Likely <grant.likely@linaro.org>, Frank Rowand <frowand.list@gmail.com>, Mark Rutland <mark.rutland@arm.com>, Olof Johansson <olof@lixom.net>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <yamada.masahiro@socionext.com>, Fabio Estevam <fabio.estevam@nxp.com>, Sascha Hauer <kernel@pengutronix.de>, linux-kernel@vger.kernel.org, Rob Herring <robh+dt@kernel.org>, linux-arm-kernel@lists.infradead.org, Shawn Guo <shawnguo@kernel.org>
-Message-ID: <20170515111445.zK31zkjEAGjxmhWvFLEfKq10Qtik9tM4fXskmp0md6o@z>
+To: Olof Johansson <olof@lixom.net>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, Heiko Stuebner <heiko@sntech.de>, Mark Rutland <mark.rutland@arm.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, James Hogan <james.hogan@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Frank Rowand <frowand.list@gmail.com>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20170515130107.6zhfuF-jtnU1dSeUekW4i1yuADMR6Xz-jTdHXIC1zmc@z>
 
-Most of DT files in ARM use #include "..." to make pre-processor
-include DT in the same directory, but we have 3 exceptional files
-that use #include <...> for that.
+On Fri, May 12, 2017 at 10:34 PM, Olof Johansson <olof@lixom.net> wrote:
+> We use a directory under arch/$ARCH/boot/dts as an include path
+> that has links outside of the subtree to find dt-bindings from under
+> include/dt-bindings. That's been working well, but new DT architectures
+> haven't been adding them by default.
+>
+> Recently there's been a desire to share some of the DT material between
+> arm and arm64, which originally caused developers to create symlinks or
+> relative includes between the subtrees. This isn't ideal -- it breaks
+> if the DT files aren't stored in the exact same hierarchy as the kernel
+> tree, and generally it's just icky.
+>
+> As a somewhat cleaner solution we decided to add a $ARCH/ prefix link
+> once, and allow DTS files to reference dtsi (and dts) files in other
+> architectures that way.
+>
+> Original approach was to create these links under each architecture,
+> but it lead to the problem of recursive symlinks.
+>
+> As a remedy, move the include link directories out of the architecture
+> trees into a common location. At the same time, they can now share one
+> directory and one dt-bindings/ link as well.
+>
+> Fixes: 4027494ae6e3 ('ARM: dts: add arm/arm64 include symlinks')
+> Reported-by: Russell King <linux@armlinux.org.uk>
+> Reported-by: Omar Sandoval <osandov@osandov.com>
+> Cc: Heiko Stuebner <heiko@sntech.de>
+> Cc: Rob Herring <robh+dt@kernel.org>
+> Cc: Mark Rutland <mark.rutland@arm.com>
+> Cc: Russell King <linux@armlinux.org.uk>
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Will Deacon <will.deacon@arm.com>
+> Cc: Mikael Starvik <starvik@axis.com>
+> Cc: Jesper Nilsson <jesper.nilsson@axis.com>
+> Cc: James Hogan <james.hogan@imgtec.com>
+> Cc: Ralf Baechle <ralf@linux-mips.org>
+> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+> Cc: Paul Mackerras <paulus@samba.org>
+> Cc: Michael Ellerman <mpe@ellerman.id.au>
+> Cc: Frank Rowand <frowand.list@gmail.com>
+> Cc: linux-arch <linux-arch@vger.kernel.org>
+> Signed-off-by: Olof Johansson <olof@lixom.net>
+> ---
+>  arch/arm/boot/dts/include/arm             | 1 -
+>  arch/arm/boot/dts/include/arm64           | 1 -
+>  arch/arm/boot/dts/include/dt-bindings     | 1 -
+>  arch/arm64/boot/dts/include/arm           | 1 -
+>  arch/arm64/boot/dts/include/arm64         | 1 -
+>  arch/arm64/boot/dts/include/dt-bindings   | 1 -
+>  arch/cris/boot/dts/include/dt-bindings    | 1 -
+>  arch/metag/boot/dts/include/dt-bindings   | 1 -
+>  arch/mips/boot/dts/include/dt-bindings    | 1 -
+>  arch/powerpc/boot/dts/include/dt-bindings | 1 -
+>  scripts/Makefile.lib                      | 2 +-
+>  scripts/dtc/include-prefixes/arc          | 1 +
+>  scripts/dtc/include-prefixes/arm          | 1 +
+>  scripts/dtc/include-prefixes/arm64        | 1 +
+>  scripts/dtc/include-prefixes/c6x          | 1 +
+>  scripts/dtc/include-prefixes/cris         | 1 +
+>  scripts/dtc/include-prefixes/dt-bindings  | 1 +
+>  scripts/dtc/include-prefixes/h8300        | 1 +
+>  scripts/dtc/include-prefixes/metag        | 1 +
+>  scripts/dtc/include-prefixes/microblaze   | 1 +
+>  scripts/dtc/include-prefixes/mips         | 1 +
+>  scripts/dtc/include-prefixes/nios2        | 1 +
+>  scripts/dtc/include-prefixes/openrisc     | 1 +
+>  scripts/dtc/include-prefixes/powerpc      | 1 +
+>  scripts/dtc/include-prefixes/sh           | 1 +
+>  scripts/dtc/include-prefixes/xtensa       | 1 +
 
-They must be fixed to remove -I$(srctree)/arch/$(SRCARCH)/boot/dts
-path from dtc_cpp_flags.
+I'd prefer not to mix things in scripts/dtc that aren't the import of
+dtc (yes, we do have a few other things already, but they are at least
+scripts). Couldn't this go in include/dt-bindings/ instead?
 
-Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
----
-
- arch/arm/boot/dts/imx6q-zii-rdu2.dts  | 4 ++--
- arch/arm/boot/dts/imx6qp-zii-rdu2.dts | 4 ++--
- arch/arm/boot/dts/versatile-pb.dts    | 2 +-
- 3 files changed, 5 insertions(+), 5 deletions(-)
-
-diff --git a/arch/arm/boot/dts/imx6q-zii-rdu2.dts b/arch/arm/boot/dts/imx6q-zii-rdu2.dts
-index b2d3466..6be8a1e 100644
---- a/arch/arm/boot/dts/imx6q-zii-rdu2.dts
-+++ b/arch/arm/boot/dts/imx6q-zii-rdu2.dts
-@@ -41,8 +41,8 @@
- 
- /dts-v1/;
- 
--#include <imx6q.dtsi>
--#include <imx6qdl-zii-rdu2.dtsi>
-+#include "imx6q.dtsi"
-+#include "imx6qdl-zii-rdu2.dtsi"
- 
- / {
- 	model = "ZII RDU2 Board";
-diff --git a/arch/arm/boot/dts/imx6qp-zii-rdu2.dts b/arch/arm/boot/dts/imx6qp-zii-rdu2.dts
-index 882b3bd..547a766 100644
---- a/arch/arm/boot/dts/imx6qp-zii-rdu2.dts
-+++ b/arch/arm/boot/dts/imx6qp-zii-rdu2.dts
-@@ -41,8 +41,8 @@
- 
- /dts-v1/;
- 
--#include <imx6qp.dtsi>
--#include <imx6qdl-zii-rdu2.dtsi>
-+#include "imx6qp.dtsi"
-+#include "imx6qdl-zii-rdu2.dtsi"
- 
- / {
- 	model = "ZII RDU2+ Board";
-diff --git a/arch/arm/boot/dts/versatile-pb.dts b/arch/arm/boot/dts/versatile-pb.dts
-index 33a8eb2..06e2331 100644
---- a/arch/arm/boot/dts/versatile-pb.dts
-+++ b/arch/arm/boot/dts/versatile-pb.dts
-@@ -1,4 +1,4 @@
--#include <versatile-ab.dts>
-+#include "versatile-ab.dts"
- 
- / {
- 	model = "ARM Versatile PB";
--- 
-2.7.4
+Rob
