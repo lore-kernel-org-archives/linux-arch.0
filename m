@@ -1,71 +1,73 @@
-From: Olof Johansson <olof-nZhT3qVonbNeoWH0uzbU5w@public.gmane.org>
-Subject: Re: [PATCH] devicetree: Move include prefixes from arch to separate directory
-Date: Mon, 15 May 2017 10:04:08 -0700
-Message-ID: <CAOesGMjrjRTBTxN8_DGp6WUJk8hy5WnzCcxi+fUz446_Uk5JwQ@mail.gmail.com>
-References: <CAL_JsqKLxA8K8378z4nDBkDWnwM_zBbbf9D7EPtwQ1782dydTw@mail.gmail.com>
- <20170515142641.GU22219@n2100.armlinux.org.uk> <CAL_JsqJzoe_xNxMOZ88+k+bZ+bSK6-j30HXk0ZsFxHUqVDzwzw@mail.gmail.com>
- <CAOesGMgYDq5Sdk6OaK-mTyfdNGwcbgOVeKbeMSCOmwqd9k8TGQ@mail.gmail.com> <20170515154845.GW22219@n2100.armlinux.org.uk>
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v5 14/32] efi: Add an EFI table address match function
+Date: Mon, 15 May 2017 20:09:13 +0200
+Message-ID: <20170515180913.lhma7xw52irrdtvr@pd.tnic>
+References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
+ <20170418211848.10190.65062.stgit@tlendack-t1.amdoffice.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <20170515154845.GW22219-l+eeeJia6m9URfEZ8mYm6t73F7V6hmMc@public.gmane.org>
-Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Russell King - ARM Linux <linux-I+IVW8TIWO2tmTQ+vhA3Yw@public.gmane.org>
-Cc: Rob Herring <robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org" <linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>, "devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Heiko Stuebner <heiko-4mtYJXux2i+zQB+pC5nmwQ@public.gmane.org>, Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>, Catalin Marinas <catalin.marinas-5wv7dgnIgG8@public.gmane.org>, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, Mikael Starvik <starvik-VrBV9hrLPhE@public.gmane.org>, Jesper Nilsson <jesper.nilsson-VrBV9hrLPhE@public.gmane.org>, James Hogan <james.hogan-1AXoQHu6uovQT0dZR+AlfA@public.gmane.org>, Ralf Baechle <ralf-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, Paul Mackerras <paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>, Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>, Frank Rowand <frowand.list-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=utf-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.skyhub.de ([5.9.137.197]:35076 "EHLO mail.skyhub.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1754515AbdEOSJY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 15 May 2017 14:09:24 -0400
+Content-Disposition: inline
+In-Reply-To: <20170418211848.10190.65062.stgit@tlendack-t1.amdoffice.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy
 
-On Mon, May 15, 2017 at 8:48 AM, Russell King - ARM Linux
-<linux-I+IVW8TIWO2tmTQ+vhA3Yw@public.gmane.org> wrote:
-> On Mon, May 15, 2017 at 08:27:54AM -0700, Olof Johansson wrote:
->> On Mon, May 15, 2017 at 7:47 AM, Rob Herring <robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org> wrote:
->> > On Mon, May 15, 2017 at 9:26 AM, Russell King - ARM Linux
->> > <linux-I+IVW8TIWO2tmTQ+vhA3Yw@public.gmane.org> wrote:
->> >> Maybe what we should do is:
->> >>
->> >> mkdir include/dt
->> >> git mv include/dt-bindings include/dt
->> >> for arch in arch/*; do
->> >>   dts=$arch/boot/dts
->> >>   if [ -d $dts ]; then
->> >>      a=include/dt/$(basename $arch)
->> >>      ln -s $dts $a
->> >>      git add $a
->> >>   fi
->> >> done
->> >> ... fixup scripts/Makefile.lib ...
->> >> git commit
->> >
->> > That would just break every existing include in dts files.
->>
->> It doesn't break dts includes if done together with a change in -I,
->> but it might break includes from the driver side (or needs another -I
->> there).
->
-> Good point.
->
-> We could leave include/dt-bindings where it is, and just do the rest of
-> it for the cross-arch includes.  Slightly less tidy but should have a
-> lower impact.
+On Tue, Apr 18, 2017 at 04:18:48PM -0500, Tom Lendacky wrote:
+> Add a function that will determine if a supplied physical address matches
+> the address of an EFI table.
+> 
+> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+> ---
+>  drivers/firmware/efi/efi.c |   33 +++++++++++++++++++++++++++++++++
+>  include/linux/efi.h        |    7 +++++++
+>  2 files changed, 40 insertions(+)
+> 
+> diff --git a/drivers/firmware/efi/efi.c b/drivers/firmware/efi/efi.c
+> index b372aad..8f606a3 100644
+> --- a/drivers/firmware/efi/efi.c
+> +++ b/drivers/firmware/efi/efi.c
+> @@ -55,6 +55,25 @@ struct efi __read_mostly efi = {
+>  };
+>  EXPORT_SYMBOL(efi);
+>  
+> +static unsigned long *efi_tables[] = {
+> +	&efi.mps,
+> +	&efi.acpi,
+> +	&efi.acpi20,
+> +	&efi.smbios,
+> +	&efi.smbios3,
+> +	&efi.sal_systab,
+> +	&efi.boot_info,
+> +	&efi.hcdp,
+> +	&efi.uga,
+> +	&efi.uv_systab,
+> +	&efi.fw_vendor,
+> +	&efi.runtime,
+> +	&efi.config_table,
+> +	&efi.esrt,
+> +	&efi.properties_table,
+> +	&efi.mem_attr_table,
+> +};
+> +
+>  static bool disable_runtime;
+>  static int __init setup_noefi(char *arg)
+>  {
+> @@ -854,6 +873,20 @@ int efi_status_to_err(efi_status_t status)
+>  	return err;
+>  }
+>  
+> +bool efi_table_address_match(unsigned long phys_addr)
 
-I think you're proposing this?
-include/dt-bindings
-include/dt/$arch -> ../../arch/$arch/boot/dts/
+efi_is_table_address() reads easier/better in the code.
 
-And then having -I$(srctree)include/dt as argument to dtc?
+-- 
+Regards/Gruss,
+    Boris.
 
-That'd work but have the same drawback as I mentioned to Rob about
-having several -I statements at different levels of the include
-hierarchy, the same file could be reached through <dt/$arch/> and
-<$arch/>. Not a showstopper but since Rob seems to be OK with the link
-hierarchy living under scripts/dtc, I'd prefer to just stick to that.
-
-This is all pretty isolated, and if we want to move it somewhere else
-later for some reason, we should be able to do so without impacting
-DTS and drivers.
-
-
--Olof
---
-To unsubscribe from this list: send the line "unsubscribe devicetree" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+Good mailing practices for 400: avoid top-posting and trim the reply.
