@@ -1,75 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from condef-01.nifty.com ([202.248.20.66]:51190 "EHLO
-        condef-01.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S932309AbdEOL1T (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 May 2017 07:27:19 -0400
-Received: from conuserg-08.nifty.com ([10.126.8.71])by condef-01.nifty.com with ESMTP id v4FBGIna005306
-        for <linux-arch@vger.kernel.org>; Mon, 15 May 2017 20:17:31 +0900
+Received: from condef-07.nifty.com ([202.248.20.72]:35505 "EHLO
+        condef-07.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S932309AbdEOL1d (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 May 2017 07:27:33 -0400
+Received: from conuserg-08.nifty.com ([10.126.8.71])by condef-07.nifty.com with ESMTP id v4FBGeWc010177
+        for <linux-arch@vger.kernel.org>; Mon, 15 May 2017 20:16:40 +0900
 From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH 3/5] powerpc: dts: use #include "..." to include DT in the same directory
-Date: Mon, 15 May 2017 20:14:46 +0900
-Message-ID: <1494846888-18966-4-git-send-email-yamada.masahiro@socionext.com>
+Subject: [PATCH 1/5] of: remove drivers/of/testcase-data from include search path for CPP
+Date: Mon, 15 May 2017 20:14:44 +0900
+Message-ID: <1494846888-18966-2-git-send-email-yamada.masahiro@socionext.com>
 In-Reply-To: <1494846888-18966-1-git-send-email-yamada.masahiro@socionext.com>
 References: <1494846888-18966-1-git-send-email-yamada.masahiro@socionext.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: devicetree@vger.kernel.org
-Cc: linux-arch <linux-arch@vger.kernel.org>, Omar Sandoval <osandov@osandov.com>, Gaurav Minocha <gaurav.minocha.os@gmail.com>, Grant Likely <grant.likely@linaro.org>, Frank Rowand <frowand.list@gmail.com>, Mark Rutland <mark.rutland@arm.com>, Olof Johansson <olof@lixom.net>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <yamada.masahiro@socionext.com>, Michael Ellerman <mpe@ellerman.id.au>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-kernel@vger.kernel.org, Paul Mackerras <paulus@samba.org>, Rob Herring <robh+dt@kernel.org>, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20170515111446.dDgTc6_J0tGM1ulNdEjOHFJYwwYBNGeM5sqW7CYn_9k@z>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Omar Sandoval <osandov@osandov.com>, Gaurav Minocha <gaurav.minocha.os@gmail.com>, Grant Likely <grant.likely@linaro.org>, Frank Rowand <frowand.list@gmail.com>, Mark Rutland <mark.rutland@arm.com>, Olof Johansson <olof@lixom.net>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <yamada.masahiro@socionext.com>, Michal Marek <mmarek@suse.com>, linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org
+Message-ID: <20170515111444.I4jW0uLNZ9crA7s-7yc14i5_YAuiCTsFJEsuZW7PlqA@z>
 
-Most of DT files in PowerPC use #include "..." to make pre-processor
-include DT in the same directory, but we have 3 exceptional files
-that use #include <...> for that.
+This search path was added by commit b5190516b282 ("of: Move testcase
+FDT data into drivers/of").  At that time, it was needed for platform
+DT files to include testcase data.
 
-They must be fixed to remove -I$(srctree)/arch/$(SRCARCH)/boot/dts
-path from dtc_cpp_flags.
+It became unnecessary when commit ae9304c9d311 ("Adding selftest
+testdata dynamically into live tree") introduced dynamic addition of
+testcase data, but it missed to delete this search path.
+
+Moreover, the directory drivers/of/testcase-data does not exist since
+commit 19fd74879a32 ("of/unittest: Rename selftest.c to unittest.c").
 
 Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
 ---
 
- arch/powerpc/boot/dts/ac14xx.dts     | 2 +-
- arch/powerpc/boot/dts/mpc5121ads.dts | 2 +-
- arch/powerpc/boot/dts/pdm360ng.dts   | 2 +-
- 3 files changed, 3 insertions(+), 3 deletions(-)
+ scripts/Makefile.lib | 1 -
+ 1 file changed, 1 deletion(-)
 
-diff --git a/arch/powerpc/boot/dts/ac14xx.dts b/arch/powerpc/boot/dts/ac14xx.dts
-index 27fcabc..83bcfd8 100644
---- a/arch/powerpc/boot/dts/ac14xx.dts
-+++ b/arch/powerpc/boot/dts/ac14xx.dts
-@@ -10,7 +10,7 @@
-  */
+diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
+index 58c05e5..011d464 100644
+--- a/scripts/Makefile.lib
++++ b/scripts/Makefile.lib
+@@ -176,7 +176,6 @@ ld_flags       = $(LDFLAGS) $(ldflags-y)
+ dtc_cpp_flags  = -Wp,-MD,$(depfile).pre.tmp -nostdinc                    \
+ 		 -I$(srctree)/arch/$(SRCARCH)/boot/dts                   \
+ 		 -I$(srctree)/scripts/dtc/include-prefixes               \
+-		 -I$(srctree)/drivers/of/testcase-data                   \
+ 		 -undef -D__DTS__
  
- 
--#include <mpc5121.dtsi>
-+#include "mpc5121.dtsi"
- 
- / {
- 	model = "ac14xx";
-diff --git a/arch/powerpc/boot/dts/mpc5121ads.dts b/arch/powerpc/boot/dts/mpc5121ads.dts
-index 75888ce..73c3062 100644
---- a/arch/powerpc/boot/dts/mpc5121ads.dts
-+++ b/arch/powerpc/boot/dts/mpc5121ads.dts
-@@ -9,7 +9,7 @@
-  * option) any later version.
-  */
- 
--#include <mpc5121.dtsi>
-+#include "mpc5121.dtsi"
- 
- / {
- 	model = "mpc5121ads";
-diff --git a/arch/powerpc/boot/dts/pdm360ng.dts b/arch/powerpc/boot/dts/pdm360ng.dts
-index 0cec724..445b881 100644
---- a/arch/powerpc/boot/dts/pdm360ng.dts
-+++ b/arch/powerpc/boot/dts/pdm360ng.dts
-@@ -13,7 +13,7 @@
-  * option) any later version.
-  */
- 
--#include <mpc5121.dtsi>
-+#include "mpc5121.dtsi"
- 
- / {
- 	model = "pdm360ng";
+ # Finds the multi-part object the current object will be linked into
 -- 
 2.7.4
