@@ -1,98 +1,43 @@
-From: Shawn Guo <shawnguo@kernel.org>
-Subject: Re: [PATCH 2/5] ARM: dts: use #include "..." to include DT in the
- same directory
-Date: Mon, 15 May 2017 21:10:49 +0800
-Message-ID: <20170515131048.GW8471@dragon>
-References: <1494846888-18966-1-git-send-email-yamada.masahiro@socionext.com>
- <1494846888-18966-3-git-send-email-yamada.masahiro@socionext.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH 1/1] futex: remove duplicated code
+Date: Mon, 15 May 2017 14:16:45 +0100
+Message-ID: <20170515131644.GA3605@arm.com>
+References: <20170515130742.18357-1-jslaby@suse.cz>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:49288 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1756265AbdEONLO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 15 May 2017 09:11:14 -0400
+Return-path: <linux-hexagon-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <1494846888-18966-3-git-send-email-yamada.masahiro@socionext.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Masahiro Yamada <yamada.masahiro@socionext.com>
-Cc: devicetree@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, linux-kernel@vger.kernel.org, Russell King <linux@armlinux.org.uk>, Gaurav Minocha <gaurav.minocha.os@gmail.com>, Olof Johansson <olof@lixom.net>, Rob Herring <robh+dt@kernel.org>, Sascha Hauer <kernel@pengutronix.de>, Grant Likely <grant.likely@linaro.org>, Omar Sandoval <osandov@osandov.com>, Frank Rowand <frowand.list@gmail.com>, Fabio Estevam <fabio.estevam@nxp.com>, linux-arm-kernel@lists.infradead.org
+In-Reply-To: <20170515130742.18357-1-jslaby@suse.cz>
+Sender: linux-hexagon-owner@vger.kernel.org
+To: Jiri Slaby <jslaby@suse.cz>
+Cc: tglx@linutronix.de, linux-kernel@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>
+List-Id: linux-arch.vger.kernel.org
 
-Hi Masahiro,
+Hi Jiri,
 
-On Mon, May 15, 2017 at 08:14:45PM +0900, Masahiro Yamada wrote:
-> Most of DT files in ARM use #include "..." to make pre-processor
-> include DT in the same directory, but we have 3 exceptional files
-> that use #include <...> for that.
+On Mon, May 15, 2017 at 03:07:42PM +0200, Jiri Slaby wrote:
+> There is code duplicated over all architecture's headers for
+> futex_atomic_op_inuser. Namely op decoding, access_ok check for uaddr,
+> and comparison of the result.
 > 
-> They must be fixed to remove -I$(srctree)/arch/$(SRCARCH)/boot/dts
-> path from dtc_cpp_flags.
+> Remove this duplication and leave up to the arches only the needed
+> assembly which is now in arch_futex_atomic_op_inuser.
 > 
-> Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
-> ---
-> 
->  arch/arm/boot/dts/imx6q-zii-rdu2.dts  | 4 ++--
->  arch/arm/boot/dts/imx6qp-zii-rdu2.dts | 4 ++--
+> Note that s390 removed access_ok check in d12a29703 ("s390/uaccess:
+> remove pointless access_ok() checks") as access_ok there returns true.
+> We introduce it back to the helper for the sake of simplicity (it gets
+> optimized away anyway).
 
-I see this patch depends on nothing and can be applied immediately.  But
-versatile-pb.dts is not really in my charge.  In case you want to get
-this series merged by arm-soc folks, here is my ACK:
+Whilst I think this is a good idea, the code in question actually results
+in undefined behaviour per the C spec and is reported by UBSAN. See my
+patch fixing arm64 here (which I'd forgotten about):
 
-Acked-by: Shawn Guo <shawnguo@kernel.org>
+https://www.spinics.net/lists/linux-arch/msg38564.html
 
-Or you need to split versatile-pb.dts out, and then I can take it.
+But, as stated in the thread above, I think we should go a step further
+and remove FUTEX_OP_{OR,ANDN,XOR,OPARG_SHIFT} altogether. They don't
+appear to be used by userspace, and this whole thing is a total mess.
 
-Shawn
+Any thoughts?
 
->  arch/arm/boot/dts/versatile-pb.dts    | 2 +-
->  3 files changed, 5 insertions(+), 5 deletions(-)
-> 
-> diff --git a/arch/arm/boot/dts/imx6q-zii-rdu2.dts b/arch/arm/boot/dts/imx6q-zii-rdu2.dts
-> index b2d3466..6be8a1e 100644
-> --- a/arch/arm/boot/dts/imx6q-zii-rdu2.dts
-> +++ b/arch/arm/boot/dts/imx6q-zii-rdu2.dts
-> @@ -41,8 +41,8 @@
->  
->  /dts-v1/;
->  
-> -#include <imx6q.dtsi>
-> -#include <imx6qdl-zii-rdu2.dtsi>
-> +#include "imx6q.dtsi"
-> +#include "imx6qdl-zii-rdu2.dtsi"
->  
->  / {
->  	model = "ZII RDU2 Board";
-> diff --git a/arch/arm/boot/dts/imx6qp-zii-rdu2.dts b/arch/arm/boot/dts/imx6qp-zii-rdu2.dts
-> index 882b3bd..547a766 100644
-> --- a/arch/arm/boot/dts/imx6qp-zii-rdu2.dts
-> +++ b/arch/arm/boot/dts/imx6qp-zii-rdu2.dts
-> @@ -41,8 +41,8 @@
->  
->  /dts-v1/;
->  
-> -#include <imx6qp.dtsi>
-> -#include <imx6qdl-zii-rdu2.dtsi>
-> +#include "imx6qp.dtsi"
-> +#include "imx6qdl-zii-rdu2.dtsi"
->  
->  / {
->  	model = "ZII RDU2+ Board";
-> diff --git a/arch/arm/boot/dts/versatile-pb.dts b/arch/arm/boot/dts/versatile-pb.dts
-> index 33a8eb2..06e2331 100644
-> --- a/arch/arm/boot/dts/versatile-pb.dts
-> +++ b/arch/arm/boot/dts/versatile-pb.dts
-> @@ -1,4 +1,4 @@
-> -#include <versatile-ab.dts>
-> +#include "versatile-ab.dts"
->  
->  / {
->  	model = "ARM Versatile PB";
-> -- 
-> 2.7.4
-> 
-> 
-> _______________________________________________
-> linux-arm-kernel mailing list
-> linux-arm-kernel@lists.infradead.org
-> http://lists.infradead.org/mailman/listinfo/linux-arm-kernel
+Will
