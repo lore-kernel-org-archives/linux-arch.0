@@ -1,59 +1,81 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [git pull] uaccess-related bits of vfs.git
-Date: Sun, 14 May 2017 19:57:34 +0100
-Message-ID: <20170514185734.GL390@ZenIV.linux.org.uk>
-References: <CA+55aFww=ZG0wPad3ELg+ibScr0eWuSxvhGLFaF+PO9kfkSkdw@mail.gmail.com>
- <20170501034536.GX29622@ZenIV.linux.org.uk>
- <CA+55aFwJXjvYQ7WLmh3z62KQ08XCR89Qh-koC=UTYW+enK6OPQ@mail.gmail.com>
- <20170513065745.GV390@ZenIV.linux.org.uk>
- <CA+55aFzrcX=B-m5SN1ajEopKbTLj1WcpKZWgdDTwYqoOBPJwaQ@mail.gmail.com>
- <20170514181356.whn26wtc7aorpxvc@gmail.com>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Subject: [PATCH 2/5] ARM: dts: use #include "..." to include DT in the same
+ directory
+Date: Mon, 15 May 2017 20:14:45 +0900
+Message-ID: <1494846888-18966-3-git-send-email-yamada.masahiro@socionext.com>
+References: <1494846888-18966-1-git-send-email-yamada.masahiro@socionext.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:59276 "EHLO
-        ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751451AbdENS5g (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 14 May 2017 14:57:36 -0400
-Content-Disposition: inline
-In-Reply-To: <20170514181356.whn26wtc7aorpxvc@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <1494846888-18966-1-git-send-email-yamada.masahiro@socionext.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: devicetree@vger.kernel.org
+Cc: linux-arch <linux-arch@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, Masahiro Yamada <yamada.masahiro@socionext.com>, linux-kernel@vger.kernel.org, Russell King <linux@armlinux.org.uk>, Gaurav Minocha <gaurav.minocha.os@gmail.com>, Olof Johansson <olof@lixom.net>, Rob Herring <robh+dt@kernel.org>, Sascha Hauer <kernel@pengutronix.de>, Grant Likely <grant.likely@linaro.org>, Shawn Guo <shawnguo@kernel.org>, Omar Sandoval <osandov@osandov.com>, Frank Rowand <frowand.list@gmail.com>, Fabio Estevam <fabio.estevam@nxp.com>, linux-arm-kernel@lists.infradead.org
+List-Id: linux-arch.vger.kernel.org
 
-On Sun, May 14, 2017 at 08:13:56PM +0200, Ingo Molnar wrote:
+Most of DT files in ARM use #include "..." to make pre-processor
+include DT in the same directory, but we have 3 exceptional files
+that use #include <...> for that.
 
-> I'd say that the CLAC/STAC addition pretty much killed any argument in favor of 
-> "optimized" __get_user() code, so I'd be very happy to see these interfaces gone 
-> altogether.
+They must be fixed to remove -I$(srctree)/arch/$(SRCARCH)/boot/dts
+path from dtc_cpp_flags.
 
-You and everybody else - these interfaces suck.  If anything, we want paired
-brackets around a series of accesses instead of a single check in front of it.
+Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+---
 
-> So as far as x86 usage goes:
-> 
->   Acked-by: Ingo Molnar <mingo@kernel.org>
+ arch/arm/boot/dts/imx6q-zii-rdu2.dts  | 4 ++--
+ arch/arm/boot/dts/imx6qp-zii-rdu2.dts | 4 ++--
+ arch/arm/boot/dts/versatile-pb.dts    | 2 +-
+ 3 files changed, 5 insertions(+), 5 deletions(-)
 
-Umm...  Could you elaborate the situation with xen/page.h stuff?  I don't
-see any obvious reasons that would guaratee that addresses passed to
-__get_user() and __put_user() there would match the set_fs() state.
-
-It might very well be true, but it's not obvious from that code...
-
-BTW, does anybody have a suggestion regarding a test load that would hit
-wait4/waitid as hard as possible?  I've turned sys_wait4/sys_waitid into
-long kernel_wait4(pid_t upid, int *stat_addr, int options, struct rusage *ru)
-and
-static long kernel_waitid(int which, pid_t upid, struct waitid_info *infop,
-                int options, struct rusage *ru)
-(with struct waitid_info {
-        pid_t pid;
-        uid_t uid;
-        int status;   
-        int why;
-};), so that all copying to userland is done in sys_wait4() and friends.
-It seems to survive testing without any noticable slowdowns, but that's
-just LTP and xfstests - and a bug in my earlier version of that was _not_
-caught by the LTP side; xfstests caught it...  So any extra tests (both
-for correctness and timing) would be very much appreciated...
+diff --git a/arch/arm/boot/dts/imx6q-zii-rdu2.dts b/arch/arm/boot/dts/imx6q-zii-rdu2.dts
+index b2d3466..6be8a1e 100644
+--- a/arch/arm/boot/dts/imx6q-zii-rdu2.dts
++++ b/arch/arm/boot/dts/imx6q-zii-rdu2.dts
+@@ -41,8 +41,8 @@
+ 
+ /dts-v1/;
+ 
+-#include <imx6q.dtsi>
+-#include <imx6qdl-zii-rdu2.dtsi>
++#include "imx6q.dtsi"
++#include "imx6qdl-zii-rdu2.dtsi"
+ 
+ / {
+ 	model = "ZII RDU2 Board";
+diff --git a/arch/arm/boot/dts/imx6qp-zii-rdu2.dts b/arch/arm/boot/dts/imx6qp-zii-rdu2.dts
+index 882b3bd..547a766 100644
+--- a/arch/arm/boot/dts/imx6qp-zii-rdu2.dts
++++ b/arch/arm/boot/dts/imx6qp-zii-rdu2.dts
+@@ -41,8 +41,8 @@
+ 
+ /dts-v1/;
+ 
+-#include <imx6qp.dtsi>
+-#include <imx6qdl-zii-rdu2.dtsi>
++#include "imx6qp.dtsi"
++#include "imx6qdl-zii-rdu2.dtsi"
+ 
+ / {
+ 	model = "ZII RDU2+ Board";
+diff --git a/arch/arm/boot/dts/versatile-pb.dts b/arch/arm/boot/dts/versatile-pb.dts
+index 33a8eb2..06e2331 100644
+--- a/arch/arm/boot/dts/versatile-pb.dts
++++ b/arch/arm/boot/dts/versatile-pb.dts
+@@ -1,4 +1,4 @@
+-#include <versatile-ab.dts>
++#include "versatile-ab.dts"
+ 
+ / {
+ 	model = "ARM Versatile PB";
+-- 
+2.7.4
