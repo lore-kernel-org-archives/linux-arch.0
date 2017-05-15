@@ -1,116 +1,93 @@
-From: Rob Herring <robh+dt@kernel.org>
-Subject: Re: [PATCH] devicetree: Move include prefixes from arch to separate directory
-Date: Mon, 15 May 2017 10:52:18 -0500
-Message-ID: <CAL_JsqJCjwvvta0n7dNpyVZkK5hp25fYO78q_pQZzUAPRDq+-w@mail.gmail.com>
-References: <CAL_JsqKLxA8K8378z4nDBkDWnwM_zBbbf9D7EPtwQ1782dydTw@mail.gmail.com>
- <20170515142641.GU22219@n2100.armlinux.org.uk> <CAL_JsqJzoe_xNxMOZ88+k+bZ+bSK6-j30HXk0ZsFxHUqVDzwzw@mail.gmail.com>
- <CAOesGMgYDq5Sdk6OaK-mTyfdNGwcbgOVeKbeMSCOmwqd9k8TGQ@mail.gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] sched: remove sched_find_first_bit()
+Date: Mon, 15 May 2017 18:06:18 +0200
+Message-ID: <CAK8P3a3vLW+bX4PcZ6J6At49ptFnyqEM8FxCRKVDBD9wv2YyKQ@mail.gmail.com>
+References: <20170513010152.13986-1-ynorov@caviumnetworks.com>
+ <20170514180917.bil7xr4bqtfk6fzj@gmail.com> <20170515154728.amzw3d67tw722wmu@yury-N73SV>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAOesGMgYDq5Sdk6OaK-mTyfdNGwcbgOVeKbeMSCOmwqd9k8TGQ@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Olof Johansson <olof@lixom.net>
-Cc: Russell King - ARM Linux <linux@armlinux.org.uk>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, Heiko Stuebner <heiko@sntech.de>, Mark Rutland <mark.rutland@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, James Hogan <james.hogan@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Frank Rowand <frowand.list@gmail.com>, linux-arch <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-oi0-f68.google.com ([209.85.218.68]:33993 "EHLO
+        mail-oi0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1756665AbdEOQGT (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 May 2017 12:06:19 -0400
+In-Reply-To: <20170515154728.amzw3d67tw722wmu@yury-N73SV>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Yury Norov <ynorov@caviumnetworks.com>
+Cc: Ingo Molnar <mingo@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Akinobu Mita <mita@miraclelinux.com>, Mike Galbraith <efault@gmx.de>
 
-On Mon, May 15, 2017 at 10:27 AM, Olof Johansson <olof@lixom.net> wrote:
-> On Mon, May 15, 2017 at 7:47 AM, Rob Herring <robh+dt@kernel.org> wrote:
->> On Mon, May 15, 2017 at 9:26 AM, Russell King - ARM Linux
->> <linux@armlinux.org.uk> wrote:
->>> On Mon, May 15, 2017 at 08:01:07AM -0500, Rob Herring wrote:
->>>> I'd prefer not to mix things in scripts/dtc that aren't the import of
->>>> dtc (yes, we do have a few other things already, but they are at least
->>>> scripts). Couldn't this go in include/dt-bindings/ instead?
->>>
->>> I don't think that works.
->>>
->>> The include path used is "include", which means that we force people
->>> to use:
->>>
->>> #include <dt-bindings/foo.dtsi>
+On Mon, May 15, 2017 at 5:47 PM, Yury Norov <ynorov@caviumnetworks.com> wrote:
+> On Sun, May 14, 2017 at 08:09:17PM +0200, Ingo Molnar wrote:
 >>
->> No, I was thinking you'd add include/dt-bindings/include-prefix/ to
->> the include path instead of scripts/dtc/include-prefix/. The only
->> downside I can see is people could mistakenly do:
+>> * Yury Norov <ynorov@caviumnetworks.com> wrote:
 >>
->> #include <dt-bindings/include-prefix/$arch/foo.dtsi>
->
-> I considered that but thought it was a worse solution than the one I
-> ended up with. It's just confusing to have -I paths that enter an
-> include hierarchy at different levels like that.
->
-> Just see what already happened with the mistake on rockchip, where
-> Heiko accidentally included <include/dt-include/...> instead -- it'd
-> be nice to catch that when it happens through tools
->
->>>
->>> in their DT files.  This means that we'd need to populate $topdir/include
->>> with per-architecture symlinks on top of the 26 or so directories already
->>> there, so that:
->>>
->>> #include <arch/foo.dtsi>
->>>
->>> would work.  That's quite horrible, since $topdir/include is the main
->>> include path for C headers.
->>>
->>> I guess we could have symlinks inside include/dt-bindings, but that
->>> makes the includes:
->>>
->>> #include <dt-bindings/arch/foo.dtsi>
->>>
->>> but that's rather absurd because these _aren't_ dt-binding definitions.
+>> > sched_find_first_bit() is in fact the unrolled version of
+>> > find_first_bit(), which is theoretically faster in some cases.
+>> > But in the kernel it is called only in couple places in
+>> > kernel/sched/rt.c, and both of them are not looking like hot
+>> > paths [...]
 >>
->> True, but the same can be said that "scripts/dtc" is not includes nor
->> kernel build infrastructure.
+>> They are in terms of scheduling: pick_next_rt_entity() is in the RT scheduling
+>> fastpath.
+>
+> Sorry that. I'll be more specific. I was only saying that pick_next_rt_entity()
+> is big enough to feel any difference, and it's still true for me. Please
+> forget about hot paths.
+>
+>> Which makes me just suspicious of how careful this patch really is:
 >>
->>> Maybe what we should do is:
->>>
->>> mkdir include/dt
->>> git mv include/dt-bindings include/dt
->>> for arch in arch/*; do
->>>   dts=$arch/boot/dts
->>>   if [ -d $dts ]; then
->>>      a=include/dt/$(basename $arch)
->>>      ln -s $dts $a
->>>      git add $a
->>>   fi
->>> done
->>> ... fixup scripts/Makefile.lib ...
->>> git commit
+>> > that will doubtly achieve measurable benefit from using unrolled version of
+>> > find_first_bit() - there's no hard loops, and the execution path is not really
+>> > short.
 >>
->> That would just break every existing include in dts files.
+>> ... that's really just handwaving. Numbers please.
 >
-> It doesn't break dts includes if done together with a change in -I,
-> but it might break includes from the driver side (or needs another -I
-> there).
-
-Ah yes, I should have paid attention to the mkdir.
-
->> Another idea. Could kbuild create all the symlinks at build time instead?
+> I use qemu running arm64 as my testing environment. It's not the best
+> for performance measurements, but allows estimate something... So,
 >
-> I considered that, but given that we're talking about a few soft links
-> that we need to find a good home for, it seemed like overkill that
-> adds magic to the build process. Having somehting that is easily
-> discovered when looking around the source tree is a lot better.
+> This patch shows the time (in cycles) that kernel spends running the
+> pick_next_rt_entity() code:
 >
-> I looked around the tree for suitable homes for this directory of
-> links, and the least out-of-place I could find was under scripts/dtc.
-> You even have a script for uprevving the imported dtc sources, so it's
-> not like it's causing any problems from that point of view. But I do
-> agree that it's not ideal -- it was just the least bad option I could
-> find at the time. Better suggestions are welcome.
+> diff --git a/kernel/sched/rt.c b/kernel/sched/rt.c
+> index f04346329204..7c6194e30230 100644
+> --- a/kernel/sched/rt.c
+> +++ b/kernel/sched/rt.c
+> @@ -1529,6 +1529,8 @@ pick_next_task_rt(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
+>         struct task_struct *p;
+>         struct rt_rq *rt_rq = &rq->rt;
+>
+> +       u64 cycles = get_cycles();
+> +
+>         if (need_pull_rt_task(rq, prev)) {
+>                 /*
+>                  * This is OK, because current is on_cpu, which avoids it being
+> @@ -1568,6 +1570,8 @@ pick_next_task_rt(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
+>
+>         queue_push_tasks(rq);
+>
+> +       pr_err("cycles: %lld\n", get_cycles() - cycles);
+> +
+>         return p;
+>  }
+>
+> I collected about 700 results in dmesg, and took 600 fastest.
+> For the vanilla kernel, the average value is 368, and for patched
+> kernel it is 388. It's 5% slower. But the standard deviation is
+> really big for both series' - 131 and 106 cycles respectively, which
+> is ~ 30%. And so, my conclusion is: there's no benefit in using
+> sched_find_first_bit() comparing to find_first_bit().
+>
+> I also think that sched_find_first_bit() may be faster that find_first_bit()
+> because it's inlined in the caller. We can do so for find_first_bit() if
+> it takes small sizes at compile time, and so all parts of kernel will
+> use fast find_first_bit, not only sched.
 
-Fair enough. Like I said, it was only a preference and certainly not
-unprecedented. I'll just get less receptive with each addition. :)
+I suspect the first step would be to 'select GENERIC_FIND_FIRST_BIT'
+on ARM64, which should already improve the performance for those
+files that never call the 'next' variants.
 
-When and by whom do you propose merging this?
+Adding an inline version of find_first_{,zero_}bit could also help, but
+is harder to quantify.
 
-The only other comment I would have is at some point, we're going to
-have overlays that aren't tied to any arch. Where are we going to put
-those? Maybe they are tied to some vendor which tends to have most
-stuff in $arch and we just continue this band-aid. Or we define some
-common location. I bring this up now only because both could use that
-location.
-
-Rob
+        Arnd
