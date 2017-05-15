@@ -1,51 +1,48 @@
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH 0/5] devicetree: cleanup and improve DT cross-arch reference
-Date: Mon, 15 May 2017 20:14:43 +0900
-Message-ID: <1494846888-18966-1-git-send-email-yamada.masahiro@socionext.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: devicetree@vger.kernel.org
-Cc: linux-arch <linux-arch@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, linuxppc-dev@lists.ozlabs.org, Masahiro Yamada <yamada.masahiro@socionext.com>, Michael Ellerman <mpe@ellerman.id.au>, linux-kbuild@vger.kernel.org, Russell King <linux@armlinux.org.uk>, Rob Herring <robh+dt@kernel.org>, Gaurav Minocha <gaurav.minocha.os@gmail.com>, Olof Johansson <olof@lixom.net>, Michal Marek <mmarek@suse.com>, Paul Mackerras <paulus@samba.org>, linux-arm-kernel@lists.infradead.org, Sascha Hauer <kernel@pengutronix.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Grant Likely <grant.likely@linaro.org>, Shawn Guo <shawnguo@kernel.org>, Omar Sandoval <osandov@osandov.com>, Frank Rowand <frowand.list@gmail.com>, Fabio Estevam <fabio.estevam@nxp.com>, linux-kernel@vger.kernel.org
+From: Masahiro Yamada <yamada.masahiro-uWyLwvC0a2jby3iVrkZq2A@public.gmane.org>
+Subject: [PATCH 1/5] of: remove drivers/of/testcase-data from include search path for CPP
+Date: Mon, 15 May 2017 20:14:44 +0900
+Message-ID: <1494846888-18966-2-git-send-email-yamada.masahiro@socionext.com>
+References: <1494846888-18966-1-git-send-email-yamada.masahiro@socionext.com>
+Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <1494846888-18966-1-git-send-email-yamada.masahiro-uWyLwvC0a2jby3iVrkZq2A@public.gmane.org>
+Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Cc: linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Omar Sandoval <osandov-nWWhXC5lh1RBDgjK7y7TUQ@public.gmane.org>, Gaurav Minocha <gaurav.minocha.os-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Grant Likely <grant.likely-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Frank Rowand <frowand.list-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>, Olof Johansson <olof-nZhT3qVonbNeoWH0uzbU5w@public.gmane.org>, Russell King <linux-I+IVW8TIWO2tmTQ+vhA3Yw@public.gmane.org>, Masahiro Yamada <yamada.masahiro-uWyLwvC0a2jby3iVrkZq2A@public.gmane.org>, Michal Marek <mmarek-IBi9RG/b67k@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kbuild-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-This series depends on Olof's
-"devicetree: Move include prefixes from arch to separate directory"
-https://patchwork.kernel.org/patch/9724995/
+This search path was added by commit b5190516b282 ("of: Move testcase
+FDT data into drivers/of").  At that time, it was needed for platform
+DT files to include testcase data.
 
-1/5: clean-up of unused include path
-2/5: Fixup of last three DT files in ARM (needed for 4/5)
-3/5: Fixup of last three DT files in PowerPC (needed for 4/5)
-4/5: Remove arch/$(SRCARCH)/boot/dts include path
-5/5: Make DT cross-arch reference available for /include/ directive
+It became unnecessary when commit ae9304c9d311 ("Adding selftest
+testdata dynamically into live tree") introduced dynamic addition of
+testcase data, but it missed to delete this search path.
 
+Moreover, the directory drivers/of/testcase-data does not exist since
+commit 19fd74879a32 ("of/unittest: Rename selftest.c to unittest.c").
 
-Masahiro Yamada (5):
-  of: remove drivers/of/testcase-data from include search path for CPP
-  ARM: dts: use #include "..." to include DT in the same directory
-  powerpc: dts: use #include "..." to include DT in the same directory
-  of: remove arch/$(SRCARCH)/boot/dts from include search path for CPP
-  of: add scripts/dtc/include-prefixes to search path for both CPP and
-    DTC
+Signed-off-by: Masahiro Yamada <yamada.masahiro-uWyLwvC0a2jby3iVrkZq2A@public.gmane.org>
+---
 
- arch/arm/boot/dts/imx6q-zii-rdu2.dts  | 4 ++--
- arch/arm/boot/dts/imx6qp-zii-rdu2.dts | 4 ++--
- arch/arm/boot/dts/versatile-pb.dts    | 2 +-
- arch/powerpc/boot/dts/ac14xx.dts      | 2 +-
- arch/powerpc/boot/dts/mpc5121ads.dts  | 2 +-
- arch/powerpc/boot/dts/pdm360ng.dts    | 2 +-
- scripts/Makefile.lib                  | 8 ++++----
- 7 files changed, 12 insertions(+), 12 deletions(-)
+ scripts/Makefile.lib | 1 -
+ 1 file changed, 1 deletion(-)
 
+diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
+index 58c05e5..011d464 100644
+--- a/scripts/Makefile.lib
++++ b/scripts/Makefile.lib
+@@ -176,7 +176,6 @@ ld_flags       = $(LDFLAGS) $(ldflags-y)
+ dtc_cpp_flags  = -Wp,-MD,$(depfile).pre.tmp -nostdinc                    \
+ 		 -I$(srctree)/arch/$(SRCARCH)/boot/dts                   \
+ 		 -I$(srctree)/scripts/dtc/include-prefixes               \
+-		 -I$(srctree)/drivers/of/testcase-data                   \
+ 		 -undef -D__DTS__
+ 
+ # Finds the multi-part object the current object will be linked into
 -- 
 2.7.4
+
+--
+To unsubscribe from this list: send the line "unsubscribe devicetree" in
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
