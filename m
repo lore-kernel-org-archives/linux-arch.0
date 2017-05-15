@@ -1,119 +1,39 @@
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [RFC PATCH v2 4/6] arm64: signal: Allocate extra sigcontext
- space as needed
-Date: Mon, 15 May 2017 14:24:45 +0100
-Message-ID: <20170515132442.GB3559@e103592.cambridge.arm.com>
-References: <1492016239-19511-1-git-send-email-Dave.Martin@arm.com>
- <1492016495-19689-1-git-send-email-Dave.Martin@arm.com>
- <1492016495-19689-4-git-send-email-Dave.Martin@arm.com>
- <20170512165724.GB8387@e104818-lin.cambridge.arm.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] sched: remove sched_find_first_bit()
+Date: Mon, 15 May 2017 16:18:49 +0200
+Message-ID: <CAK8P3a18vzO2AigK3FiTHL33SjXcHGL4dxB3qASrLFm7bJN7ww@mail.gmail.com>
+References: <20170513010152.13986-1-ynorov@caviumnetworks.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:52506 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S933799AbdEONYt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 15 May 2017 09:24:49 -0400
-Content-Disposition: inline
-In-Reply-To: <20170512165724.GB8387@e104818-lin.cambridge.arm.com>
+Received: from mail-oi0-f67.google.com ([209.85.218.67]:36054 "EHLO
+        mail-oi0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S934356AbdEOOSu (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 May 2017 10:18:50 -0400
+In-Reply-To: <20170513010152.13986-1-ynorov@caviumnetworks.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org
+To: Yury Norov <ynorov@caviumnetworks.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Akinobu Mita <mita@miraclelinux.com>, Mike Galbraith <efault@gmx.de>
 
-On Fri, May 12, 2017 at 05:57:24PM +0100, Catalin Marinas wrote:
-> Hi Dave,
-> 
-> On Wed, Apr 12, 2017 at 06:01:13PM +0100, Dave P Martin wrote:
-> > --- a/arch/arm64/include/uapi/asm/sigcontext.h
-> > +++ b/arch/arm64/include/uapi/asm/sigcontext.h
-> > @@ -80,4 +80,31 @@ struct esr_context {
-> >  	__u64 esr;
-> >  };
-> >  
-> > +/*
-> > + * Pointer to extra space for additional structures that don't fit in
-> > + * sigcontext.__reserved[].  Note:
-> > + *
-> > + * 1) fpsimd_context, esr_context and extra_context must be placed in
-> > + * sigcontext.__reserved[] if present.  They cannot be placed in the
-> > + * extra space.  Any other record can be placed either in the extra
-> > + * space or in sigcontext.__reserved[].
-> > + *
-> > + * 2) There must not be more than one extra_context.
-> > + *
-> > + * 3) If extra_context is present, it must be followed immediately in
-> > + * sigcontext.__reserved[] by the terminating null _aarch64_ctx (i.e.,
-> > + * extra_context must be the last record in sigcontext.__reserved[]
-> > + * except for the terminator).
-> > + *
-> > + * 4) The extra space must itself be terminated with a null
-> > + * _aarch64_ctx.
-> > + */
-> 
-> IIUC, if we need to save some state that doesn't fit in what's left of
-> sigcontext.__reserved[] (e.g. SVE with 1024-bit vector length), we
-> ignore the available space and go for a memory block following the end
-> of sigcontext.__reserved[] + 16. Is there a reason we can't store the
-> new state across the end of sigcontext.__reserved[] and move fp/lr at
-> the end of the new frame? I'm not sure the fp/lr position immediately
-> after __reserved[] counts as ABI.
+On Sat, May 13, 2017 at 3:01 AM, Yury Norov <ynorov@caviumnetworks.com> wrote:
 
-This was my original view.
+> include/asm-generic/bitops/sched.h as it declares only this
+> function.  Alpha has it's own implementation, very similar to
+> generic one, so it is also removed.
 
-Originally I preferred not to waste the space and did move fp/lr to the
-end, but someone (I think you or Will) expressed concern that the fp/lr
-position relative to the signal frame _might_ count as ABI.
+Nice consolidation, I see that every architecture once had a copy of
+this function, and they were all removed at one point long ago,
+except for Alpha, and there is no reason to leave that one in the tree.
 
-I think it's not that likely that software will be relying on this,
-since it appears easier just to follow the frame chain than to treat
-this as a special case.
+I'll leave it to you and Ingo to figure out what the two callers should
+do, but for removing function from asm-generic:
 
-But it's hard to be certain.  It comes down to a judgement call.
+Acked-by: Arnd Bergmann <arnd@arndb.de>
 
-We could also move fp/lr later, if we require sigframe parsers to be
-a bit more permissive about where extra_context starts.
+Maybe you could split the patch into two changesets, and make the
+first of them move the function to kernel/sched/rt.c, and the second
+one (if we still want it then) can change the implementation to whatever
+you conclude is ideal.
 
-> > +#define EXTRA_MAGIC	0x45585401
-> > +
-> > +struct extra_context {
-> > +	struct _aarch64_ctx head;
-> > +	void __user *data;	/* 16-byte aligned pointer to extra space */
-> "__user" is a kernel-only attribute, we shouldn't expose it in a uapi
-> header.
-
-This is filtered out by headers_install, just like #ifdef __KERNEL__.
-
-data really is a pointer to a user address.  Compare for example struct
-iovec in include/uapi/linux/uio.h.
-
-I think the __user is required to keep sparse happy, otherwise some
-additional casting is needed to bless a valid read from this field
-before passing it to get/put_user.  Or there may be some other reason
-I've forgotten...
-
-> 
-> > +	__u32 size;		/* size in bytes of the extra space */
-> > +};
-> 
-> Do we need the size of the extra space? Can we not infer it anyway by
-> walking the contexts save there? Surely we don't expect more than one
-> extra context.
-
-Strictly speaking we don't need it.  When userspace parses a signal
-frame generated by the kernel, it can trust the kernel to write a well-
-formed signal frame.
-
-In sigreturn it allows us to retain a sanity-check on overall size
-similar to what sizeof(__reserved) gives us.  This "feels cleaner"
-to me, but the value of it is debatable, since we can still apply
-SIGFRAME_MAXSZ and uaccess should protect us against gross overruns.
-
-The size parameter *may* provide some limited defence against
-sigreturn-mediated stack smashing in userspace, but it wasn't designed
-for this purpose and again the value is debatable.
-
-We can likely live without it if you're not keen on it.
-
-Cheers
----Dave
+      Arnd
