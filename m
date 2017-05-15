@@ -1,80 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:58594 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S934356AbdEOOsD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 15 May 2017 10:48:03 -0400
-MIME-Version: 1.0
-In-Reply-To: <20170515142641.GU22219@n2100.armlinux.org.uk>
+Received: from pandora.armlinux.org.uk ([78.32.30.218]:60584 "EHLO
+        pandora.armlinux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753322AbdEOP13 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 May 2017 11:27:29 -0400
+Date: Mon, 15 May 2017 16:27:14 +0100
+From: Russell King - ARM Linux <linux@armlinux.org.uk>
+Subject: Re: [PATCH] devicetree: Move include prefixes from arch to separate
+ directory
+Message-ID: <20170515152713.GV22219@n2100.armlinux.org.uk>
 References: <CAL_JsqKLxA8K8378z4nDBkDWnwM_zBbbf9D7EPtwQ1782dydTw@mail.gmail.com>
  <20170515142641.GU22219@n2100.armlinux.org.uk>
-From: Rob Herring <robh+dt@kernel.org>
-Date: Mon, 15 May 2017 09:47:40 -0500
-Message-ID: <CAL_JsqJzoe_xNxMOZ88+k+bZ+bSK6-j30HXk0ZsFxHUqVDzwzw@mail.gmail.com>
-Subject: Re: [PATCH] devicetree: Move include prefixes from arch to separate directory
-Content-Type: text/plain; charset="UTF-8"
+ <CAL_JsqJzoe_xNxMOZ88+k+bZ+bSK6-j30HXk0ZsFxHUqVDzwzw@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAL_JsqJzoe_xNxMOZ88+k+bZ+bSK6-j30HXk0ZsFxHUqVDzwzw@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@armlinux.org.uk>
+To: Rob Herring <robh+dt@kernel.org>
 Cc: Olof Johansson <olof@lixom.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, Heiko Stuebner <heiko@sntech.de>, Mark Rutland <mark.rutland@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, James Hogan <james.hogan@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Frank Rowand <frowand.list@gmail.com>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20170515144740.aEI9rLNHMvabWjOAG2ou6DFNKMfqYQB-koSsgEfUOso@z>
+Message-ID: <20170515152714.3ni1Udzn85U7EnJQqdJW9zChsCl3snZKmDKmlV-hDF4@z>
 
-On Mon, May 15, 2017 at 9:26 AM, Russell King - ARM Linux
-<linux@armlinux.org.uk> wrote:
-> On Mon, May 15, 2017 at 08:01:07AM -0500, Rob Herring wrote:
->> I'd prefer not to mix things in scripts/dtc that aren't the import of
->> dtc (yes, we do have a few other things already, but they are at least
->> scripts). Couldn't this go in include/dt-bindings/ instead?
->
-> I don't think that works.
->
-> The include path used is "include", which means that we force people
-> to use:
->
-> #include <dt-bindings/foo.dtsi>
+On Mon, May 15, 2017 at 09:47:40AM -0500, Rob Herring wrote:
+> On Mon, May 15, 2017 at 9:26 AM, Russell King - ARM Linux
+> <linux@armlinux.org.uk> wrote:
+> > Maybe what we should do is:
+> >
+> > mkdir include/dt
+> > git mv include/dt-bindings include/dt
+> > for arch in arch/*; do
+> >   dts=$arch/boot/dts
+> >   if [ -d $dts ]; then
+> >      a=include/dt/$(basename $arch)
+> >      ln -s $dts $a
+> >      git add $a
+> >   fi
+> > done
+> > ... fixup scripts/Makefile.lib ...
+> > git commit
+> 
+> That would just break every existing include in dts files.
 
-No, I was thinking you'd add include/dt-bindings/include-prefix/ to
-the include path instead of scripts/dtc/include-prefix/. The only
-downside I can see is people could mistakenly do:
+Are you sure about that - the existing:
 
-#include <dt-bindings/include-prefix/$arch/foo.dtsi>
+#include <dt-bindings/foo.dtsi>
 
->
-> in their DT files.  This means that we'd need to populate $topdir/include
-> with per-architecture symlinks on top of the 26 or so directories already
-> there, so that:
->
-> #include <arch/foo.dtsi>
->
-> would work.  That's quite horrible, since $topdir/include is the main
-> include path for C headers.
->
-> I guess we could have symlinks inside include/dt-bindings, but that
-> makes the includes:
->
-> #include <dt-bindings/arch/foo.dtsi>
->
-> but that's rather absurd because these _aren't_ dt-binding definitions.
+would still work.  Maybe you haven't parsed the shell code properly...
 
-True, but the same can be said that "scripts/dtc" is not includes nor
-kernel build infrastructure.
-
-> Maybe what we should do is:
->
-> mkdir include/dt
-> git mv include/dt-bindings include/dt
-> for arch in arch/*; do
->   dts=$arch/boot/dts
->   if [ -d $dts ]; then
->      a=include/dt/$(basename $arch)
->      ln -s $dts $a
->      git add $a
->   fi
-> done
-> ... fixup scripts/Makefile.lib ...
-> git commit
-
-That would just break every existing include in dts files.
-
-Another idea. Could kbuild create all the symlinks at build time instead?
-
-Rob
+-- 
+RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
+FTTC broadband for 0.8mile line: currently at 9.6Mbps down 400kbps up
+according to speedtest.net.
