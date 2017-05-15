@@ -1,47 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from condef-05.nifty.com ([202.248.20.70]:18980 "EHLO
-        condef-05.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S932309AbdEOL1g (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 May 2017 07:27:36 -0400
-Received: from conuserg-08.nifty.com ([10.126.8.71])by condef-05.nifty.com with ESMTP id v4FBJY8X013803
-        for <linux-arch@vger.kernel.org>; Mon, 15 May 2017 20:19:34 +0900
+Received: from condef-02.nifty.com ([202.248.20.67]:17909 "EHLO
+        condef-02.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S932309AbdEOL2c (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 May 2017 07:28:32 -0400
+Received: from conuserg-08.nifty.com ([10.126.8.71])by condef-02.nifty.com with ESMTP id v4FBGfU1002525
+        for <linux-arch@vger.kernel.org>; Mon, 15 May 2017 20:16:41 +0900
 From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH 0/5] devicetree: cleanup and improve DT cross-arch reference
-Date: Mon, 15 May 2017 20:14:43 +0900
-Message-ID: <1494846888-18966-1-git-send-email-yamada.masahiro@socionext.com>
+Subject: [PATCH 5/5] of: add scripts/dtc/include-prefixes to search path for both CPP and DTC
+Date: Mon, 15 May 2017 20:14:48 +0900
+Message-ID: <1494846888-18966-6-git-send-email-yamada.masahiro@socionext.com>
+In-Reply-To: <1494846888-18966-1-git-send-email-yamada.masahiro@socionext.com>
+References: <1494846888-18966-1-git-send-email-yamada.masahiro@socionext.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: devicetree@vger.kernel.org
-Cc: linux-arch <linux-arch@vger.kernel.org>, Omar Sandoval <osandov@osandov.com>, Gaurav Minocha <gaurav.minocha.os@gmail.com>, Grant Likely <grant.likely@linaro.org>, Frank Rowand <frowand.list@gmail.com>, Mark Rutland <mark.rutland@arm.com>, Olof Johansson <olof@lixom.net>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <yamada.masahiro@socionext.com>, Fabio Estevam <fabio.estevam@nxp.com>, Sascha Hauer <kernel@pengutronix.de>, linux-kbuild@vger.kernel.org, Michal Marek <mmarek@suse.com>, Michael Ellerman <mpe@ellerman.id.au>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-kernel@vger.kernel.org, Paul Mackerras <paulus@samba.org>, Rob Herring <robh+dt@kernel.org>, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, Shawn Guo <shawnguo@kernel.org>
-Message-ID: <20170515111443.Tq8HFwwtKyiIwUB70Bq63v6i-fc2JFcT4xRK-MMadWw@z>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Omar Sandoval <osandov@osandov.com>, Gaurav Minocha <gaurav.minocha.os@gmail.com>, Grant Likely <grant.likely@linaro.org>, Frank Rowand <frowand.list@gmail.com>, Mark Rutland <mark.rutland@arm.com>, Olof Johansson <olof@lixom.net>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <yamada.masahiro@socionext.com>, Michal Marek <mmarek@suse.com>, linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org
+Message-ID: <20170515111448.sSkuDunQ_wfVuqEuL8ff4z3mEhTDNZzsRbxZaEcjvHg@z>
 
-This series depends on Olof's
-"devicetree: Move include prefixes from arch to separate directory"
-https://patchwork.kernel.org/patch/9724995/
+We had include/dt-bindings as an include path only for CPP, and this
+makes sense because header files in dt-bindings contain useful macros
+that parsed by pre-processor.
 
-1/5: clean-up of unused include path
-2/5: Fixup of last three DT files in ARM (needed for 4/5)
-3/5: Fixup of last three DT files in PowerPC (needed for 4/5)
-4/5: Remove arch/$(SRCARCH)/boot/dts include path
-5/5: Make DT cross-arch reference available for /include/ directive
+Commit 4027494ae6e3 ("ARM: dts: add arm/arm64 include symlinks") and
+commit 0a6081b673bb ("arm64: dts: add arm/arm64 include symlinks")
+allow us cross-arch DT reference, but this is only available for
+CPP's include directives, like
+    #include <arm/foo.dtsi>
 
+It makes as much sense to include DT from another architecture by
+DTC's builtin include directive, like
+    /include/ "arm/foo.dtsi"
 
-Masahiro Yamada (5):
-  of: remove drivers/of/testcase-data from include search path for CPP
-  ARM: dts: use #include "..." to include DT in the same directory
-  powerpc: dts: use #include "..." to include DT in the same directory
-  of: remove arch/$(SRCARCH)/boot/dts from include search path for CPP
-  of: add scripts/dtc/include-prefixes to search path for both CPP and
-    DTC
+To achieve this, scripts/dtc/include-prefixes should be passed to
+both CPP and DTC.  I refactored Makefile.lib a bit to not repeat the
+same path.
 
- arch/arm/boot/dts/imx6q-zii-rdu2.dts  | 4 ++--
- arch/arm/boot/dts/imx6qp-zii-rdu2.dts | 4 ++--
- arch/arm/boot/dts/versatile-pb.dts    | 2 +-
- arch/powerpc/boot/dts/ac14xx.dts      | 2 +-
- arch/powerpc/boot/dts/mpc5121ads.dts  | 2 +-
- arch/powerpc/boot/dts/pdm360ng.dts    | 2 +-
- scripts/Makefile.lib                  | 8 ++++----
- 7 files changed, 12 insertions(+), 12 deletions(-)
+Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+---
 
+ scripts/Makefile.lib | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
+index 9c8f38a..dcc0d5f 100644
+--- a/scripts/Makefile.lib
++++ b/scripts/Makefile.lib
+@@ -173,8 +173,10 @@ cpp_flags      = -Wp,-MD,$(depfile) $(NOSTDINC_FLAGS) $(LINUXINCLUDE)     \
+ 
+ ld_flags       = $(LDFLAGS) $(ldflags-y)
+ 
++DTC_INCLUDE    := $(srctree)/scripts/dtc/include-prefixes
++
+ dtc_cpp_flags  = -Wp,-MD,$(depfile).pre.tmp -nostdinc                    \
+-		 -I$(srctree)/scripts/dtc/include-prefixes               \
++		 $(addprefix -I,$(DTC_INCLUDE))                          \
+ 		 -undef -D__DTS__
+ 
+ # Finds the multi-part object the current object will be linked into
+@@ -315,7 +317,7 @@ quiet_cmd_dtc = DTC     $@
+ cmd_dtc = mkdir -p $(dir ${dtc-tmp}) ; \
+ 	$(CPP) $(dtc_cpp_flags) -x assembler-with-cpp -o $(dtc-tmp) $< ; \
+ 	$(DTC) -O dtb -o $@ -b 0 \
+-		-i $(dir $<) $(DTC_FLAGS) \
++		$(addprefix -i,$(dir $<) $(DTC_INCLUDE)) $(DTC_FLAGS) \
+ 		-d $(depfile).dtc.tmp $(dtc-tmp) ; \
+ 	cat $(depfile).pre.tmp $(depfile).dtc.tmp > $(depfile)
+ 
 -- 
 2.7.4
