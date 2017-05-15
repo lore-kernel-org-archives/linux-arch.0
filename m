@@ -1,63 +1,68 @@
 From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH 5/5] of: add scripts/dtc/include-prefixes to search path for both CPP and DTC
-Date: Mon, 15 May 2017 20:14:48 +0900
-Message-ID: <1494846888-18966-6-git-send-email-yamada.masahiro@socionext.com>
+Subject: [PATCH 3/5] powerpc: dts: use #include "..." to include DT in the same directory
+Date: Mon, 15 May 2017 20:14:46 +0900
+Message-ID: <1494846888-18966-4-git-send-email-yamada.masahiro@socionext.com>
 References: <1494846888-18966-1-git-send-email-yamada.masahiro@socionext.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1494846888-18966-1-git-send-email-yamada.masahiro@socionext.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: devicetree@vger.kernel.org
-Cc: linux-arch <linux-arch@vger.kernel.org>, Omar Sandoval <osandov@osandov.com>, Gaurav Minocha <gaurav.minocha.os@gmail.com>, Grant Likely <grant.likely@linaro.org>, Frank Rowand <frowand.list@gmail.com>, Mark Rutland <mark.rutland@arm.com>, Olof Johansson <olof@lixom.net>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <yamada.masahiro@socionext.com>, Michal Marek <mmarek@suse.com>, linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org
+Cc: linux-arch <linux-arch@vger.kernel.org>, Omar Sandoval <osandov@osandov.com>, Gaurav Minocha <gaurav.minocha.os@gmail.com>, Grant Likely <grant.likely@linaro.org>, Frank Rowand <frowand.list@gmail.com>, Mark Rutland <mark.rutland@arm.com>, Olof Johansson <olof@lixom.net>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <yamada.masahiro@socionext.com>, Michael Ellerman <mpe@ellerman.id.au>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-kernel@vger.kernel.org, Paul Mackerras <paulus@samba.org>, Rob Herring <robh+dt@kernel.org>, linuxppc-dev@lists.ozlabs.org
 List-Id: linux-arch.vger.kernel.org
 
-We had include/dt-bindings as an include path only for CPP, and this
-makes sense because header files in dt-bindings contain useful macros
-that parsed by pre-processor.
+Most of DT files in PowerPC use #include "..." to make pre-processor
+include DT in the same directory, but we have 3 exceptional files
+that use #include <...> for that.
 
-Commit 4027494ae6e3 ("ARM: dts: add arm/arm64 include symlinks") and
-commit 0a6081b673bb ("arm64: dts: add arm/arm64 include symlinks")
-allow us cross-arch DT reference, but this is only available for
-CPP's include directives, like
-    #include <arm/foo.dtsi>
-
-It makes as much sense to include DT from another architecture by
-DTC's builtin include directive, like
-    /include/ "arm/foo.dtsi"
-
-To achieve this, scripts/dtc/include-prefixes should be passed to
-both CPP and DTC.  I refactored Makefile.lib a bit to not repeat the
-same path.
+They must be fixed to remove -I$(srctree)/arch/$(SRCARCH)/boot/dts
+path from dtc_cpp_flags.
 
 Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
 ---
 
- scripts/Makefile.lib | 6 ++++--
- 1 file changed, 4 insertions(+), 2 deletions(-)
+ arch/powerpc/boot/dts/ac14xx.dts     | 2 +-
+ arch/powerpc/boot/dts/mpc5121ads.dts | 2 +-
+ arch/powerpc/boot/dts/pdm360ng.dts   | 2 +-
+ 3 files changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
-index 9c8f38a..dcc0d5f 100644
---- a/scripts/Makefile.lib
-+++ b/scripts/Makefile.lib
-@@ -173,8 +173,10 @@ cpp_flags      = -Wp,-MD,$(depfile) $(NOSTDINC_FLAGS) $(LINUXINCLUDE)     \
+diff --git a/arch/powerpc/boot/dts/ac14xx.dts b/arch/powerpc/boot/dts/ac14xx.dts
+index 27fcabc..83bcfd8 100644
+--- a/arch/powerpc/boot/dts/ac14xx.dts
++++ b/arch/powerpc/boot/dts/ac14xx.dts
+@@ -10,7 +10,7 @@
+  */
  
- ld_flags       = $(LDFLAGS) $(ldflags-y)
  
-+DTC_INCLUDE    := $(srctree)/scripts/dtc/include-prefixes
-+
- dtc_cpp_flags  = -Wp,-MD,$(depfile).pre.tmp -nostdinc                    \
--		 -I$(srctree)/scripts/dtc/include-prefixes               \
-+		 $(addprefix -I,$(DTC_INCLUDE))                          \
- 		 -undef -D__DTS__
+-#include <mpc5121.dtsi>
++#include "mpc5121.dtsi"
  
- # Finds the multi-part object the current object will be linked into
-@@ -315,7 +317,7 @@ quiet_cmd_dtc = DTC     $@
- cmd_dtc = mkdir -p $(dir ${dtc-tmp}) ; \
- 	$(CPP) $(dtc_cpp_flags) -x assembler-with-cpp -o $(dtc-tmp) $< ; \
- 	$(DTC) -O dtb -o $@ -b 0 \
--		-i $(dir $<) $(DTC_FLAGS) \
-+		$(addprefix -i,$(dir $<) $(DTC_INCLUDE)) $(DTC_FLAGS) \
- 		-d $(depfile).dtc.tmp $(dtc-tmp) ; \
- 	cat $(depfile).pre.tmp $(depfile).dtc.tmp > $(depfile)
+ / {
+ 	model = "ac14xx";
+diff --git a/arch/powerpc/boot/dts/mpc5121ads.dts b/arch/powerpc/boot/dts/mpc5121ads.dts
+index 75888ce..73c3062 100644
+--- a/arch/powerpc/boot/dts/mpc5121ads.dts
++++ b/arch/powerpc/boot/dts/mpc5121ads.dts
+@@ -9,7 +9,7 @@
+  * option) any later version.
+  */
  
+-#include <mpc5121.dtsi>
++#include "mpc5121.dtsi"
+ 
+ / {
+ 	model = "mpc5121ads";
+diff --git a/arch/powerpc/boot/dts/pdm360ng.dts b/arch/powerpc/boot/dts/pdm360ng.dts
+index 0cec724..445b881 100644
+--- a/arch/powerpc/boot/dts/pdm360ng.dts
++++ b/arch/powerpc/boot/dts/pdm360ng.dts
+@@ -13,7 +13,7 @@
+  * option) any later version.
+  */
+ 
+-#include <mpc5121.dtsi>
++#include "mpc5121.dtsi"
+ 
+ / {
+ 	model = "pdm360ng";
 -- 
 2.7.4
