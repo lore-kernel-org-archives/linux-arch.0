@@ -1,42 +1,151 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.codeaurora.org ([198.145.29.96]:51524 "EHLO
-        smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751363AbdEPFYf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 16 May 2017 01:24:35 -0400
-From: Sricharan R <sricharan@codeaurora.org>
-Subject: [PATCH] iommu: of: Fix check for returning EPROBE_DEFER
-Date: Tue, 16 May 2017 10:54:13 +0530
-Message-ID: <1494912253-25957-1-git-send-email-sricharan@codeaurora.org>
+Received: from mail.skyhub.de ([5.9.137.197]:60176 "EHLO mail.skyhub.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751694AbdEPIhK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 16 May 2017 04:37:10 -0400
+Date: Tue, 16 May 2017 10:36:58 +0200
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v5 18/32] x86, mpparse: Use memremap to map the mpf and
+ mpc data
+Message-ID: <20170516083658.fq2h4ysmrbgn23cs@pd.tnic>
+References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
+ <20170418211930.10190.62640.stgit@tlendack-t1.amdoffice.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20170418211930.10190.62640.stgit@tlendack-t1.amdoffice.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: robin.murphy@arm.com, will.deacon@arm.com, joro@8bytes.org, lorenzo.pieralisi@arm.com, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arm-msm@vger.kernel.org, m.szyprowski@samsung.com, bhelgaas@google.com, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, tn@semihalf.com, hanjun.guo@linaro.org, okaya@codeaurora.org, robh+dt@kernel.org, frowand.list@gmail.com, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, sudeep.holla@arm.com, rjw@rjwysocki.net, lenb@kernel.org, catalin.marinas@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, gregkh@linuxfoundation.org
-Cc: sricharan@codeaurora.org
-Message-ID: <20170516052413.PbQNwob44a-PghVJcOzF417vq0Lsg-16OHe9rZSaekQ@z>
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20170516083658.5AFx4YDFVwjk92vwK0UtC6bwHqIrbcXavjBsv4KxM9Y@z>
 
-While returning EPROBE_DEFER for iommu masters
-take in to account of iommu nodes that could be
-marked in DT as 'status=disabled', in which case
-simply return NULL and let the master's probe
-continue rather than deferring.
+On Tue, Apr 18, 2017 at 04:19:30PM -0500, Tom Lendacky wrote:
+> The SMP MP-table is built by UEFI and placed in memory in a decrypted
+> state. These tables are accessed using a mix of early_memremap(),
+> early_memunmap(), phys_to_virt() and virt_to_phys(). Change all accesses
+> to use early_memremap()/early_memunmap(). This allows for proper setting
+> of the encryption mask so that the data can be successfully accessed when
+> SME is active.
+> 
+> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+> ---
+>  arch/x86/kernel/mpparse.c |  102 +++++++++++++++++++++++++++++++--------------
+>  1 file changed, 71 insertions(+), 31 deletions(-)
+> 
+> diff --git a/arch/x86/kernel/mpparse.c b/arch/x86/kernel/mpparse.c
+> index fd37f39..afbda41d 100644
+> --- a/arch/x86/kernel/mpparse.c
+> +++ b/arch/x86/kernel/mpparse.c
+> @@ -429,7 +429,21 @@ static inline void __init construct_default_ISA_mptable(int mpc_default_type)
+>  	}
+>  }
+>  
+> -static struct mpf_intel *mpf_found;
+> +static unsigned long mpf_base;
+> +
+> +static void __init unmap_mpf(struct mpf_intel *mpf)
+> +{
+> +	early_memunmap(mpf, sizeof(*mpf));
+> +}
+> +
+> +static struct mpf_intel * __init map_mpf(unsigned long paddr)
+> +{
+> +	struct mpf_intel *mpf;
+> +
+> +	mpf = early_memremap(paddr, sizeof(*mpf));
+> +
+> +	return mpf;
 
-Signed-off-by: Sricharan R <sricharan@codeaurora.org>
-Tested-by: Will Deacon <will.deacon@arm.com>
-Acked-by: Will Deacon <will.deacon@arm.com>
----
- drivers/iommu/of_iommu.c | 1 +
- 1 file changed, 1 insertion(+)
+	return early_memremap(paddr, sizeof(*mpf));
 
-diff --git a/drivers/iommu/of_iommu.c b/drivers/iommu/of_iommu.c
-index 9f44ee8..e6e9bec 100644
---- a/drivers/iommu/of_iommu.c
-+++ b/drivers/iommu/of_iommu.c
-@@ -118,6 +118,7 @@ static bool of_iommu_driver_present(struct device_node *np)
- 
- 	ops = iommu_ops_from_fwnode(fwnode);
- 	if ((ops && !ops->of_xlate) ||
-+	    !of_device_is_available(iommu_spec->np) ||
- 	    (!ops && !of_iommu_driver_present(iommu_spec->np)))
- 		return NULL;
- 
+...
+
+> @@ -842,25 +873,26 @@ static int __init update_mp_table(void)
+>  	if (!enable_update_mptable)
+>  		return 0;
+>  
+> -	mpf = mpf_found;
+> -	if (!mpf)
+> +	if (!mpf_base)
+>  		return 0;
+>  
+> +	mpf = map_mpf(mpf_base);
+> +
+>  	/*
+>  	 * Now see if we need to go further.
+>  	 */
+>  	if (mpf->feature1 != 0)
+
+You're kidding, right? map_mpf() *can* return NULL.
+
+Also, simplify that test:
+
+	if (mpf->feature1)
+		...
+
+
+> -		return 0;
+> +		goto do_unmap_mpf;
+>  
+>  	if (!mpf->physptr)
+> -		return 0;
+> +		goto do_unmap_mpf;
+>  
+> -	mpc = phys_to_virt(mpf->physptr);
+> +	mpc = map_mpc(mpf->physptr);
+
+Again: error checking !!!
+
+You have other calls to early_memremap()/map_mpf() in this patch. Please
+add error checking everywhere.
+
+>  
+>  	if (!smp_check_mpc(mpc, oem, str))
+> -		return 0;
+> +		goto do_unmap_mpc;
+>  
+> -	pr_info("mpf: %llx\n", (u64)virt_to_phys(mpf));
+> +	pr_info("mpf: %llx\n", (u64)mpf_base);
+>  	pr_info("physptr: %x\n", mpf->physptr);
+>  
+>  	if (mpc_new_phys && mpc->length > mpc_new_length) {
+> @@ -878,21 +910,23 @@ static int __init update_mp_table(void)
+>  		new = mpf_checksum((unsigned char *)mpc, mpc->length);
+>  		if (old == new) {
+>  			pr_info("mpc is readonly, please try alloc_mptable instead\n");
+> -			return 0;
+> +			goto do_unmap_mpc;
+>  		}
+>  		pr_info("use in-position replacing\n");
+>  	} else {
+>  		mpf->physptr = mpc_new_phys;
+> -		mpc_new = phys_to_virt(mpc_new_phys);
+> +		mpc_new = map_mpc(mpc_new_phys);
+
+Ditto.
+
+>  		memcpy(mpc_new, mpc, mpc->length);
+> +		unmap_mpc(mpc);
+>  		mpc = mpc_new;
+>  		/* check if we can modify that */
+>  		if (mpc_new_phys - mpf->physptr) {
+>  			struct mpf_intel *mpf_new;
+>  			/* steal 16 bytes from [0, 1k) */
+>  			pr_info("mpf new: %x\n", 0x400 - 16);
+> -			mpf_new = phys_to_virt(0x400 - 16);
+> +			mpf_new = map_mpf(0x400 - 16);
+
+Ditto.
+
+>  			memcpy(mpf_new, mpf, 16);
+> +			unmap_mpf(mpf);
+>  			mpf = mpf_new;
+>  			mpf->physptr = mpc_new_phys;
+>  		}
+
 -- 
-QUALCOMM INDIA, on behalf of Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum, hosted by The Linux Foundation
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
