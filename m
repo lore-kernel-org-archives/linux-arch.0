@@ -1,86 +1,76 @@
 From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH v5 23/32] swiotlb: Add warnings for use of bounce buffers
- with SME
-Date: Tue, 16 May 2017 16:52:09 +0200
-Message-ID: <20170516145209.ltbmaq3a2teqr2uv@pd.tnic>
+Subject: Re: [PATCH v5 26/32] x86, drm, fbdev: Do not specify encrypted
+ memory for video mappings
+Date: Tue, 16 May 2017 19:35:41 +0200
+Message-ID: <20170516173541.q2rbh5dhkluzsjae@pd.tnic>
 References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
- <20170418212019.10190.24034.stgit@tlendack-t1.amdoffice.net>
+ <20170418212056.10190.25468.stgit@tlendack-t1.amdoffice.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <20170418212019.10190.24034.stgit@tlendack-t1.amdoffice.net>
+In-Reply-To: <20170418212056.10190.25468.stgit@tlendack-t1.amdoffice.net>
 Sender: owner-linux-mm@kvack.org
 To: Tom Lendacky <thomas.lendacky@amd.com>
 Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Apr 18, 2017 at 04:20:19PM -0500, Tom Lendacky wrote:
-> Add warnings to let the user know when bounce buffers are being used for
-> DMA when SME is active.  Since the bounce buffers are not in encrypted
-> memory, these notifications are to allow the user to determine some
-> appropriate action - if necessary.
+On Tue, Apr 18, 2017 at 04:20:56PM -0500, Tom Lendacky wrote:
+> Since video memory needs to be accessed decrypted, be sure that the
+> memory encryption mask is not set for the video ranges.
 > 
 > Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 > ---
->  arch/x86/include/asm/mem_encrypt.h |   11 +++++++++++
->  include/linux/dma-mapping.h        |   11 +++++++++++
->  include/linux/mem_encrypt.h        |    6 ++++++
->  lib/swiotlb.c                      |    3 +++
->  4 files changed, 31 insertions(+)
+>  arch/x86/include/asm/vga.h       |   13 +++++++++++++
+>  arch/x86/mm/pageattr.c           |    2 ++
+>  drivers/gpu/drm/drm_gem.c        |    2 ++
+>  drivers/gpu/drm/drm_vm.c         |    4 ++++
+>  drivers/gpu/drm/ttm/ttm_bo_vm.c  |    7 +++++--
+>  drivers/gpu/drm/udl/udl_fb.c     |    4 ++++
+>  drivers/video/fbdev/core/fbmem.c |   12 ++++++++++++
+>  7 files changed, 42 insertions(+), 2 deletions(-)
 > 
-> diff --git a/arch/x86/include/asm/mem_encrypt.h b/arch/x86/include/asm/mem_encrypt.h
-> index 0637b4b..b406df2 100644
-> --- a/arch/x86/include/asm/mem_encrypt.h
-> +++ b/arch/x86/include/asm/mem_encrypt.h
-> @@ -26,6 +26,11 @@ static inline bool sme_active(void)
->  	return !!sme_me_mask;
->  }
+> diff --git a/arch/x86/include/asm/vga.h b/arch/x86/include/asm/vga.h
+> index c4b9dc2..5c7567a 100644
+> --- a/arch/x86/include/asm/vga.h
+> +++ b/arch/x86/include/asm/vga.h
+> @@ -7,12 +7,25 @@
+>  #ifndef _ASM_X86_VGA_H
+>  #define _ASM_X86_VGA_H
 >  
-> +static inline u64 sme_dma_mask(void)
-> +{
-> +	return ((u64)sme_me_mask << 1) - 1;
-> +}
+> +#include <asm/cacheflush.h>
 > +
->  void __init sme_early_encrypt(resource_size_t paddr,
->  			      unsigned long size);
->  void __init sme_early_decrypt(resource_size_t paddr,
-> @@ -50,6 +55,12 @@ static inline bool sme_active(void)
->  {
->  	return false;
->  }
-> +
-> +static inline u64 sme_dma_mask(void)
-> +{
-> +	return 0ULL;
-> +}
-> +
->  #endif
+>  /*
+>   *	On the PC, we can just recalculate addresses and then
+>   *	access the videoram directly without any black magic.
+> + *	To support memory encryption however, we need to access
+> + *	the videoram as decrypted memory.
+>   */
 >  
->  static inline void __init sme_early_encrypt(resource_size_t paddr,
-> diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
-> index 0977317..f825870 100644
-> --- a/include/linux/dma-mapping.h
-> +++ b/include/linux/dma-mapping.h
-> @@ -10,6 +10,7 @@
->  #include <linux/scatterlist.h>
->  #include <linux/kmemcheck.h>
->  #include <linux/bug.h>
-> +#include <linux/mem_encrypt.h>
->  
->  /**
->   * List of possible attributes associated with a DMA mapping. The semantics
-> @@ -577,6 +578,11 @@ static inline int dma_set_mask(struct device *dev, u64 mask)
->  
->  	if (!dev->dma_mask || !dma_supported(dev, mask))
->  		return -EIO;
-> +
-> +	if (sme_active() && (mask < sme_dma_mask()))
-> +		dev_warn_ratelimited(dev,
-> +				     "SME is active, device will require DMA bounce buffers\n");
+> +#ifdef CONFIG_AMD_MEM_ENCRYPT
+> +#define VGA_MAP_MEM(x, s)					\
+> +({								\
+> +	unsigned long start = (unsigned long)phys_to_virt(x);	\
+> +	set_memory_decrypted(start, (s) >> PAGE_SHIFT);		\
+> +	start;							\
+> +})
+> +#else
+>  #define VGA_MAP_MEM(x, s) (unsigned long)phys_to_virt(x)
+> +#endif
 
-Bah, no need to break that line - just let it stick out. Ditto for the
-others.
+Can we push the check in and save us the ifdeffery?
+
+#define VGA_MAP_MEM(x, s)                                       \
+({                                                              \
+        unsigned long start = (unsigned long)phys_to_virt(x);   \
+                                                                \
+        if (IS_ENABLED(CONFIG_AMD_MEM_ENCRYPT))                 \
+                set_memory_decrypted(start, (s) >> PAGE_SHIFT); \
+                                                                \
+        start;                                                  \
+})
+
+It does build here. :)
 
 -- 
 Regards/Gruss,
