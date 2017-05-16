@@ -1,54 +1,47 @@
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: Re: [PATCH v11 11/12] uapi: export all arch specifics directories
-Date: Tue, 16 May 2017 13:59:27 +0900
-Message-ID: <CAK7LNATBNU-2-+bkghurOHyU5CsC9JqqJD3b_nWVcJ_SYQ-xyQ@mail.gmail.com>
-References: <CAK7LNAR_yp+O9jUZC8mKdaHgTiCkE7p2-ZbA9YZ8OGyp+uxhBQ@mail.gmail.com>
- <1490617217-30192-1-git-send-email-nicolas.dichtel@6wind.com>
- <1490617217-30192-12-git-send-email-nicolas.dichtel@6wind.com>
- <CAA9_cmf1LXqYmOwad0sRjGyLRyhVOo8W-bcLkp-XFK9sQiFuhg@mail.gmail.com> <CAA9_cmfm64EADryVO7YcdZG_steYbpjij8LNoyQNyiXZs_WJNQ@mail.gmail.com>
+From: Sricharan R <sricharan-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>
+Subject: [PATCH] iommu: of: Fix check for returning EPROBE_DEFER
+Date: Tue, 16 May 2017 10:54:13 +0530
+Message-ID: <1494912253-25957-1-git-send-email-sricharan@codeaurora.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <CAA9_cmfm64EADryVO7YcdZG_steYbpjij8LNoyQNyiXZs_WJNQ@mail.gmail.com>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: Nicolas Dichtel <nicolas.dichtel@6wind.com>, Arnd Bergmann <arnd@arndb.de>, Michal Marek <mmarek@suse.com>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, David Airlie <airlied@linux.ie>, David Miller <davem@davemloft.net>, Russell King <linux@armlinux.org.uk>, Borislav Petkov <bp@alien8.de>, slash.tmp@free.fr, Daniel Vetter <daniel.vetter@ffwll.ch>, Russell King <rmk+kernel@armlinux.org.uk>, msalter@redhat.com, jengelh@inai.de, Christoph Hellwig <hch@infradead.org>, Tobias Klauser <tklauser@distanz.ch>, Michael Ellerman <mpe@ellerman.id.au>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, "Dmitry V. Levin" <ldv@altlinux.org>, Herbert Xu <he>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: robin.murphy-5wv7dgnIgG8@public.gmane.org, will.deacon-5wv7dgnIgG8@public.gmane.org, joro-zLv9SwRftAIdnm+yROfE0A@public.gmane.org, lorenzo.pieralisi-5wv7dgnIgG8@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-arm-msm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, m.szyprowski-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org, bhelgaas-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org, linux-pci-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-acpi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, tn-nYOzD4b6Jr9Wk0Htik3J/w@public.gmane.org, hanjun.guo-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org, okaya-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org, robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, frowand.list-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, sudeep.holla-5wv7dgnIgG8@public.gmane.org, rjw-LthD3rsA81gm4RdzfppkhA@public.gmane.org, lenb-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, catalin.marinas-5wv7dgnIgG8@public.gmane.org, arnd-r2nGTMty4D4@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi Dan,
+While returning EPROBE_DEFER for iommu masters
+take in to account of iommu nodes that could be
+marked in DT as 'status=disabled', in which case
+simply return NULL and let the master's probe
+continue rather than deferring.
 
+Signed-off-by: Sricharan R <sricharan-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>
+Tested-by: Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>
+Acked-by: Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>
+---
+ drivers/iommu/of_iommu.c | 1 +
+ 1 file changed, 1 insertion(+)
 
-2017-05-16 10:15 GMT+09:00 Dan Williams <dan.j.williams@intel.com>:
-> On Mon, May 15, 2017 at 6:02 PM, Dan Williams <dan.j.williams@intel.com> wrote:
->> On Mon, Mar 27, 2017 at 5:20 AM, Nicolas Dichtel
->> <nicolas.dichtel@6wind.com> wrote:
->>> This patch removes the need of subdir-y. Now all files/directories under
->>> arch/<arch>/include/uapi/ are exported.
->>>
->>> The only change for userland is the layout of the command 'make
->>> headers_install_all': directories asm-<arch> are replaced by arch-<arch>/.
->>> Those new directories contains all files/directories of the specified arch.
->>>
->>> Note that only cris and tile have more directories than only asm:
->>>  - arch-v[10|32] for cris;
->>>  - arch for tile.
->>>
->>> Signed-off-by: Nicolas Dichtel <nicolas.dichtel@6wind.com>
->>
->> Starting with commit 61562f981e92 "uapi: export all arch specifics
->> directories", a "make INSTALL_HDR_PATH=$root/usr headers_install"
->> operation will delete standard glibc headers and others in
->> $root/usr/include.
->
-> Reverting commit 61562f981e92 fixes the problem for me.
-
-Thank you for your bug report.
-
-Could you check this?
-https://patchwork.kernel.org/patch/9728323/
-
-
-
+diff --git a/drivers/iommu/of_iommu.c b/drivers/iommu/of_iommu.c
+index 9f44ee8..e6e9bec 100644
+--- a/drivers/iommu/of_iommu.c
++++ b/drivers/iommu/of_iommu.c
+@@ -118,6 +118,7 @@ static bool of_iommu_driver_present(struct device_node *np)
+ 
+ 	ops = iommu_ops_from_fwnode(fwnode);
+ 	if ((ops && !ops->of_xlate) ||
++	    !of_device_is_available(iommu_spec->np) ||
+ 	    (!ops && !of_iommu_driver_present(iommu_spec->np)))
+ 		return NULL;
+ 
 -- 
-Best Regards
-Masahiro Yamada
+QUALCOMM INDIA, on behalf of Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum, hosted by The Linux Foundation
