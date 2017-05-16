@@ -1,47 +1,41 @@
-From: Sricharan R <sricharan-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>
-Subject: [PATCH] iommu: of: Fix check for returning EPROBE_DEFER
-Date: Tue, 16 May 2017 10:54:13 +0530
-Message-ID: <1494912253-25957-1-git-send-email-sricharan@codeaurora.org>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH] sched: remove sched_find_first_bit()
+Date: Tue, 16 May 2017 10:30:42 +0200
+Message-ID: <20170516083042.ybenukaiiwevgqph@gmail.com>
+References: <20170513010152.13986-1-ynorov@caviumnetworks.com>
+ <20170514180917.bil7xr4bqtfk6fzj@gmail.com>
+ <20170515154728.amzw3d67tw722wmu@yury-N73SV>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: robin.murphy-5wv7dgnIgG8@public.gmane.org, will.deacon-5wv7dgnIgG8@public.gmane.org, joro-zLv9SwRftAIdnm+yROfE0A@public.gmane.org, lorenzo.pieralisi-5wv7dgnIgG8@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-arm-msm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, m.szyprowski-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org, bhelgaas-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org, linux-pci-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-acpi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, tn-nYOzD4b6Jr9Wk0Htik3J/w@public.gmane.org, hanjun.guo-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org, okaya-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org, robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, frowand.list-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, sudeep.holla-5wv7dgnIgG8@public.gmane.org, rjw-LthD3rsA81gm4RdzfppkhA@public.gmane.org, lenb-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, catalin.marinas-5wv7dgnIgG8@public.gmane.org, arnd-r2nGTMty4D4@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wm0-f65.google.com ([74.125.82.65]:33273 "EHLO
+        mail-wm0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751550AbdEPIaq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 16 May 2017 04:30:46 -0400
+Content-Disposition: inline
+In-Reply-To: <20170515154728.amzw3d67tw722wmu@yury-N73SV>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Yury Norov <ynorov@caviumnetworks.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Akinobu Mita <mita@miraclelinux.com>, Mike Galbraith <efault@gmx.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>
 
-While returning EPROBE_DEFER for iommu masters
-take in to account of iommu nodes that could be
-marked in DT as 'status=disabled', in which case
-simply return NULL and let the master's probe
-continue rather than deferring.
 
-Signed-off-by: Sricharan R <sricharan-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>
-Tested-by: Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>
-Acked-by: Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>
----
- drivers/iommu/of_iommu.c | 1 +
- 1 file changed, 1 insertion(+)
+* Yury Norov <ynorov@caviumnetworks.com> wrote:
 
-diff --git a/drivers/iommu/of_iommu.c b/drivers/iommu/of_iommu.c
-index 9f44ee8..e6e9bec 100644
---- a/drivers/iommu/of_iommu.c
-+++ b/drivers/iommu/of_iommu.c
-@@ -118,6 +118,7 @@ static bool of_iommu_driver_present(struct device_node *np)
- 
- 	ops = iommu_ops_from_fwnode(fwnode);
- 	if ((ops && !ops->of_xlate) ||
-+	    !of_device_is_available(iommu_spec->np) ||
- 	    (!ops && !of_iommu_driver_present(iommu_spec->np)))
- 		return NULL;
- 
--- 
-QUALCOMM INDIA, on behalf of Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum, hosted by The Linux Foundation
+> I collected about 700 results in dmesg, and took 600 fastest.
+> For the vanilla kernel, the average value is 368, and for patched
+> kernel it is 388. It's 5% slower. But the standard deviation is 
+> really big for both series' - 131 and 106 cycles respectively, which
+> is ~ 30%. And so, my conclusion is: there's no benefit in using
+> sched_find_first_bit() comparing to find_first_bit().
+
+Erm, so you in essence claim:
+
+	"according to measurements the new code is 5% slower, with a high, 30% 
+	 stddev, hence the new code is better!"
+
+Basic logic fail...
+
+Thanks,
+
+	Ingo
