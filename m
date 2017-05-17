@@ -1,59 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.codeaurora.org ([198.145.29.96]:45426 "EHLO
-        smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751293AbdEQFRr (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 17 May 2017 01:17:47 -0400
-Subject: Re: [PATCH] iommu: of: Fix check for returning EPROBE_DEFER
-References: <1494912253-25957-1-git-send-email-sricharan@codeaurora.org>
- <20170516140943.ps2yufiukz6iurpl@latitude>
-From: Sricharan R <sricharan@codeaurora.org>
-Message-ID: <f5f8de4a-73a1-a32f-2736-2a7e64bfaa1a@codeaurora.org>
-Date: Wed, 17 May 2017 10:47:30 +0530
+Received: from mail.skyhub.de ([5.9.137.197]:44912 "EHLO mail.skyhub.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1753453AbdEQHGJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 17 May 2017 03:06:09 -0400
+Date: Wed, 17 May 2017 09:05:56 +0200
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v5 06/32] x86/mm: Add Secure Memory Encryption (SME)
+ support
+Message-ID: <20170517070556.2lwwnfbre34xqr7s@pd.tnic>
+References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
+ <20170418211727.10190.18774.stgit@tlendack-t1.amdoffice.net>
+ <20170427154631.2tsqgax4kqcvydnx@pd.tnic>
+ <d9d9f10a-0ce5-53e8-41f5-f8690dbd7362@amd.com>
+ <20170504143622.zy2f66e4mkm6xvsq@pd.tnic>
+ <6d266f5b-c28d-fe19-24b5-5133532f9eea@amd.com>
 MIME-Version: 1.0
-In-Reply-To: <20170516140943.ps2yufiukz6iurpl@latitude>
 Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 8bit
+Content-Disposition: inline
+In-Reply-To: <6d266f5b-c28d-fe19-24b5-5133532f9eea@amd.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: =?UTF-8?Q?Jonathan_Neusch=c3=a4fer?= <j.neuschaefer@gmx.net>
-Cc: robin.murphy@arm.com, will.deacon@arm.com, joro@8bytes.org, lorenzo.pieralisi@arm.com, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arm-msm@vger.kernel.org, m.szyprowski@samsung.com, bhelgaas@google.com, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, tn@semihalf.com, hanjun.guo@linaro.org, okaya@codeaurora.org, robh+dt@kernel.org, frowand.list@gmail.com, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, sudeep.holla@arm.com, rjw@rjwysocki.net, lenb@kernel.org, catalin.marinas@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, gregkh@linuxfoundation.org
-Message-ID: <20170517051730.hcw5NClntVwkwVOXi6gu7Ptnb1i6yPPwbtesO9qK3Ts@z>
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20170517070556.EBS9RZensKRbbmtwXIroMsrUEh2To7ibqy1Qh2z2r1Q@z>
 
-Hi,
+On Tue, May 16, 2017 at 02:28:42PM -0500, Tom Lendacky wrote:
+> It's most problematic when CONFIG_AMD_MEM_ENCRYPT is not defined since
+> we never include an asm/ version from the linux/ path.  I could create
+> a mem_encrypt.h in include/asm-generic/ that contains the info that
+> is in the !CONFIG_AMD_MEM_ENCRYPT path of the linux/ version. Let me
+> look into that.
 
-On 5/16/2017 7:39 PM, Jonathan Neuschäfer wrote:
-> Hi, I have a few suggestions on how to make this commit message more
-> readable:
-> 
-> On Tue, May 16, 2017 at 10:54:13AM +0530, Sricharan R wrote:
->> While returning EPROBE_DEFER for iommu masters
-> 
-> Add a comma at the end of this line
-> 
->> take in to account of iommu nodes that could be
-> 
-> s/in to/into/
-> s/of iommu/of_iommu/
-> 
+So we need to keep asm/ and linux/ apart. The linux/ stuff is generic,
+global, more or less. The asm/ is arch-specific. So they shouldn't be
+overlapping wrt definitions, IMHO.
 
-ok, will correct the above.
+So asm-generic is the proper approach here because then you won't need
+the ifndef fun.
 
-Regards,
- Sricharan
-
->> marked in DT as 'status=disabled', in which case
->> simply return NULL and let the master's probe
->> continue rather than deferring.
->>
->> Signed-off-by: Sricharan R <sricharan@codeaurora.org>
->> Tested-by: Will Deacon <will.deacon@arm.com>
->> Acked-by: Will Deacon <will.deacon@arm.com>
-> 
-> 
-> Thanks,
-> Jonathan Neuschäfer
-> 
+Thanks.
 
 -- 
-"QUALCOMM INDIA, on behalf of Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum, hosted by The Linux Foundation
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
