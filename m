@@ -1,80 +1,44 @@
-From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: Re: [PATCH v5 14/32] efi: Add an EFI table address match function
-Date: Tue, 16 May 2017 16:53:33 -0500
-Message-ID: <2364b148-5168-1583-51c2-0beaa7230235@amd.com>
-References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
- <20170418211848.10190.65062.stgit@tlendack-t1.amdoffice.net>
- <20170515180913.lhma7xw52irrdtvr@pd.tnic>
+From: Sricharan R <sricharan-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>
+Subject: Re: [PATCH] iommu: of: Fix check for returning EPROBE_DEFER
+Date: Wed, 17 May 2017 10:47:30 +0530
+Message-ID: <f5f8de4a-73a1-a32f-2736-2a7e64bfaa1a@codeaurora.org>
+References: <1494912253-25957-1-git-send-email-sricharan@codeaurora.org>
+	<20170516140943.ps2yufiukz6iurpl@latitude>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20170515180913.lhma7xw52irrdtvr@pd.tnic>
-Sender: owner-linux-mm@kvack.org
-To: Borislav Petkov <bp@alien8.de>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S.
- Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter
- Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+In-Reply-To: <20170516140943.ps2yufiukz6iurpl@latitude>
+Content-Language: en-US
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: =?UTF-8?Q?Jonathan_Neusch=c3=a4fer?= <j.neuschaefer-hi6Y0CQ0nG0@public.gmane.org>
+Cc: catalin.marinas-5wv7dgnIgG8@public.gmane.org, will.deacon-5wv7dgnIgG8@public.gmane.org, okaya-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org, frowand.list-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, tn-nYOzD4b6Jr9Wk0Htik3J/w@public.gmane.org, linux-acpi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-pci-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, lenb-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, arnd-r2nGTMty4D4@public.gmane.org, linux-arm-msm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, bhelgaas-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org, rjw-LthD3rsA81gm4RdzfppkhA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, sudeep.holla-5wv7dgnIgG8@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-On 5/15/2017 1:09 PM, Borislav Petkov wrote:
-> On Tue, Apr 18, 2017 at 04:18:48PM -0500, Tom Lendacky wrote:
->> Add a function that will determine if a supplied physical address matches
->> the address of an EFI table.
->>
->> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
->> ---
->>  drivers/firmware/efi/efi.c |   33 +++++++++++++++++++++++++++++++++
->>  include/linux/efi.h        |    7 +++++++
->>  2 files changed, 40 insertions(+)
->>
->> diff --git a/drivers/firmware/efi/efi.c b/drivers/firmware/efi/efi.c
->> index b372aad..8f606a3 100644
->> --- a/drivers/firmware/efi/efi.c
->> +++ b/drivers/firmware/efi/efi.c
->> @@ -55,6 +55,25 @@ struct efi __read_mostly efi = {
->>  };
->>  EXPORT_SYMBOL(efi);
->>
->> +static unsigned long *efi_tables[] = {
->> +	&efi.mps,
->> +	&efi.acpi,
->> +	&efi.acpi20,
->> +	&efi.smbios,
->> +	&efi.smbios3,
->> +	&efi.sal_systab,
->> +	&efi.boot_info,
->> +	&efi.hcdp,
->> +	&efi.uga,
->> +	&efi.uv_systab,
->> +	&efi.fw_vendor,
->> +	&efi.runtime,
->> +	&efi.config_table,
->> +	&efi.esrt,
->> +	&efi.properties_table,
->> +	&efi.mem_attr_table,
->> +};
->> +
->>  static bool disable_runtime;
->>  static int __init setup_noefi(char *arg)
->>  {
->> @@ -854,6 +873,20 @@ int efi_status_to_err(efi_status_t status)
->>  	return err;
->>  }
->>
->> +bool efi_table_address_match(unsigned long phys_addr)
->
-> efi_is_table_address() reads easier/better in the code.
-
-Will do.
-
-Thanks,
-Tom
-
->
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+SGksCgpPbiA1LzE2LzIwMTcgNzozOSBQTSwgSm9uYXRoYW4gTmV1c2Now6RmZXIgd3JvdGU6Cj4g
+SGksIEkgaGF2ZSBhIGZldyBzdWdnZXN0aW9ucyBvbiBob3cgdG8gbWFrZSB0aGlzIGNvbW1pdCBt
+ZXNzYWdlIG1vcmUKPiByZWFkYWJsZToKPiAKPiBPbiBUdWUsIE1heSAxNiwgMjAxNyBhdCAxMDo1
+NDoxM0FNICswNTMwLCBTcmljaGFyYW4gUiB3cm90ZToKPj4gV2hpbGUgcmV0dXJuaW5nIEVQUk9C
+RV9ERUZFUiBmb3IgaW9tbXUgbWFzdGVycwo+IAo+IEFkZCBhIGNvbW1hIGF0IHRoZSBlbmQgb2Yg
+dGhpcyBsaW5lCj4gCj4+IHRha2UgaW4gdG8gYWNjb3VudCBvZiBpb21tdSBub2RlcyB0aGF0IGNv
+dWxkIGJlCj4gCj4gcy9pbiB0by9pbnRvLwo+IHMvb2YgaW9tbXUvb2ZfaW9tbXUvCj4gCgpvaywg
+d2lsbCBjb3JyZWN0IHRoZSBhYm92ZS4KClJlZ2FyZHMsCiBTcmljaGFyYW4KCj4+IG1hcmtlZCBp
+biBEVCBhcyAnc3RhdHVzPWRpc2FibGVkJywgaW4gd2hpY2ggY2FzZQo+PiBzaW1wbHkgcmV0dXJu
+IE5VTEwgYW5kIGxldCB0aGUgbWFzdGVyJ3MgcHJvYmUKPj4gY29udGludWUgcmF0aGVyIHRoYW4g
+ZGVmZXJyaW5nLgo+Pgo+PiBTaWduZWQtb2ZmLWJ5OiBTcmljaGFyYW4gUiA8c3JpY2hhcmFuQGNv
+ZGVhdXJvcmEub3JnPgo+PiBUZXN0ZWQtYnk6IFdpbGwgRGVhY29uIDx3aWxsLmRlYWNvbkBhcm0u
+Y29tPgo+PiBBY2tlZC1ieTogV2lsbCBEZWFjb24gPHdpbGwuZGVhY29uQGFybS5jb20+Cj4gCj4g
+Cj4gVGhhbmtzLAo+IEpvbmF0aGFuIE5ldXNjaMOkZmVyCj4gCgotLSAKIlFVQUxDT01NIElORElB
+LCBvbiBiZWhhbGYgb2YgUXVhbGNvbW0gSW5ub3ZhdGlvbiBDZW50ZXIsIEluYy4gaXMgYSBtZW1i
+ZXIgb2YgQ29kZSBBdXJvcmEgRm9ydW0sIGhvc3RlZCBieSBUaGUgTGludXggRm91bmRhdGlvbgpf
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwppb21tdSBtYWls
+aW5nIGxpc3QKaW9tbXVAbGlzdHMubGludXgtZm91bmRhdGlvbi5vcmcKaHR0cHM6Ly9saXN0cy5s
+aW51eGZvdW5kYXRpb24ub3JnL21haWxtYW4vbGlzdGluZm8vaW9tbXU=
