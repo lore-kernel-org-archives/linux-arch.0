@@ -1,93 +1,91 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.codeaurora.org ([198.145.29.96]:34916 "EHLO
-        smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751521AbdEQLas (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 17 May 2017 07:30:48 -0400
-From: Sricharan R <sricharan@codeaurora.org>
-Subject: [PATCH 3/3] ARM: dma-mapping: Don't tear third-party mappings
-Date: Wed, 17 May 2017 17:00:09 +0530
-Message-ID: <1495020609-13397-3-git-send-email-sricharan@codeaurora.org>
-In-Reply-To: <1495020609-13397-1-git-send-email-sricharan@codeaurora.org>
-References: <1495020609-13397-1-git-send-email-sricharan@codeaurora.org>
+Received: from conssluserg-06.nifty.com ([210.131.2.91]:23419 "EHLO
+        conssluserg-06.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750969AbdEQNy6 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 17 May 2017 09:54:58 -0400
+MIME-Version: 1.0
+In-Reply-To: <CAOesGMjrjRTBTxN8_DGp6WUJk8hy5WnzCcxi+fUz446_Uk5JwQ@mail.gmail.com>
+References: <CAL_JsqKLxA8K8378z4nDBkDWnwM_zBbbf9D7EPtwQ1782dydTw@mail.gmail.com>
+ <20170515142641.GU22219@n2100.armlinux.org.uk> <CAL_JsqJzoe_xNxMOZ88+k+bZ+bSK6-j30HXk0ZsFxHUqVDzwzw@mail.gmail.com>
+ <CAOesGMgYDq5Sdk6OaK-mTyfdNGwcbgOVeKbeMSCOmwqd9k8TGQ@mail.gmail.com>
+ <20170515154845.GW22219@n2100.armlinux.org.uk> <CAOesGMjrjRTBTxN8_DGp6WUJk8hy5WnzCcxi+fUz446_Uk5JwQ@mail.gmail.com>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Date: Wed, 17 May 2017 22:54:34 +0900
+Message-ID: <CAK7LNAQ2g1zTWAwDq+GyvzHATP0AneE5XXp3Wh11Y7ZZUkNKmg@mail.gmail.com>
+Subject: Re: [PATCH] devicetree: Move include prefixes from arch to separate directory
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: robin.murphy@arm.com, will.deacon@arm.com, joro@8bytes.org, lorenzo.pieralisi@arm.com, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arm-msm@vger.kernel.org, m.szyprowski@samsung.com, bhelgaas@google.com, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, tn@semihalf.com, hanjun.guo@linaro.org, okaya@codeaurora.org, robh+dt@kernel.org, frowand.list@gmail.com, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, sudeep.holla@arm.com, rjw@rjwysocki.net, lenb@kernel.org, catalin.marinas@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, magnus.damm@gmail.com, geert@linux-m68k.org, j.neuschaefer@gmx.net
-Cc: sricharan@codeaurora.org
-Message-ID: <20170517113009.v4_J4klRdq3jTaSGboQi2uOBmcF5KEJIk-Rz6Y2r4DU@z>
+To: Olof Johansson <olof@lixom.net>
+Cc: Russell King - ARM Linux <linux@armlinux.org.uk>, Rob Herring <robh+dt@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, Heiko Stuebner <heiko@sntech.de>, Mark Rutland <mark.rutland@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, James Hogan <james.hogan@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Frank Rowand <frowand.list@gmail.com>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20170517135434.Fj-Xwa1x2a1YxQlLFQLTg3OPbBlz92mvu_qIR79N3Aw@z>
 
-From: Laurent Pinchart <laurent.pinchart+renesas@ideasonboard.com>
+2017-05-16 2:04 GMT+09:00 Olof Johansson <olof@lixom.net>:
+> On Mon, May 15, 2017 at 8:48 AM, Russell King - ARM Linux
+> <linux@armlinux.org.uk> wrote:
+>> On Mon, May 15, 2017 at 08:27:54AM -0700, Olof Johansson wrote:
+>>> On Mon, May 15, 2017 at 7:47 AM, Rob Herring <robh+dt@kernel.org> wrote:
+>>> > On Mon, May 15, 2017 at 9:26 AM, Russell King - ARM Linux
+>>> > <linux@armlinux.org.uk> wrote:
+>>> >> Maybe what we should do is:
+>>> >>
+>>> >> mkdir include/dt
+>>> >> git mv include/dt-bindings include/dt
+>>> >> for arch in arch/*; do
+>>> >>   dts=$arch/boot/dts
+>>> >>   if [ -d $dts ]; then
+>>> >>      a=include/dt/$(basename $arch)
+>>> >>      ln -s $dts $a
+>>> >>      git add $a
+>>> >>   fi
+>>> >> done
+>>> >> ... fixup scripts/Makefile.lib ...
+>>> >> git commit
+>>> >
+>>> > That would just break every existing include in dts files.
+>>>
+>>> It doesn't break dts includes if done together with a change in -I,
+>>> but it might break includes from the driver side (or needs another -I
+>>> there).
+>>
+>> Good point.
+>>
+>> We could leave include/dt-bindings where it is, and just do the rest of
+>> it for the cross-arch includes.  Slightly less tidy but should have a
+>> lower impact.
+>
+> I think you're proposing this?
+> include/dt-bindings
+> include/dt/$arch -> ../../arch/$arch/boot/dts/
+>
+> And then having -I$(srctree)include/dt as argument to dtc?
+>
+> That'd work but have the same drawback as I mentioned to Rob about
+> having several -I statements at different levels of the include
+> hierarchy, the same file could be reached through <dt/$arch/> and
+> <$arch/>. Not a showstopper but since Rob seems to be OK with the link
+> hierarchy living under scripts/dtc, I'd prefer to just stick to that.
+>
+> This is all pretty isolated, and if we want to move it somewhere else
+> later for some reason, we should be able to do so without impacting
+> DTS and drivers.
+>
 
-arch_setup_dma_ops() is used in device probe code paths to create an
-IOMMU mapping and attach it to the device. The function assumes that the
-device is attached to a device-specific IOMMU instance (or at least a
-device-specific TLB in a shared IOMMU instance) and thus creates a
-separate mapping for every device.
 
-On several systems (Renesas R-Car Gen2 being one of them), that
-assumption is not true, and IOMMU mappings must be shared between
-multiple devices. In those cases the IOMMU driver knows better than the
-generic ARM dma-mapping layer and attaches mapping to devices manually
-with arm_iommu_attach_device(), which sets the DMA ops for the device.
 
-The arch_setup_dma_ops() function takes this into account and bails out
-immediately if the device already has DMA ops assigned. However, the
-corresponding arch_teardown_dma_ops() function, called from driver
-unbind code paths (including probe deferral), will tear the mapping down
-regardless of who created it. When the device is reprobed
-arch_setup_dma_ops() will be called again but won't perform any
-operation as the DMA ops will still be set.
 
-We need to reset the DMA ops in arch_teardown_dma_ops() to fix this.
-However, we can't do so unconditionally, as then a new mapping would be
-created by arch_setup_dma_ops() when the device is reprobed, regardless
-of whether the device needs to share a mapping or not. We must thus keep
-track of whether arch_setup_dma_ops() created the mapping, and only in
-that case tear it down in arch_teardown_dma_ops().
+As I pointed out in
+https://patchwork.kernel.org/patch/9726699/
 
-Keep track of that information in the dev_archdata structure. As the
-structure is embedded in all instances of struct device let's not grow
-it, but turn the existing dma_coherent bool field into a bitfield that
-can be used for other purposes.
+/include/ "arm/foo.dtsi"
+will make sense, so I'd like to to improve it some time later.
 
-Fixes: 09515ef5ddad ("of/acpi: Configure dma operations at probe time for platform/amba/pci bus devices")
-Reviewed-by: Robin Murphy <robin.murphy@arm.com>
-Signed-off-by: Laurent Pinchart <laurent.pinchart+renesas@ideasonboard.com>
----
- arch/arm/include/asm/device.h | 3 ++-
- arch/arm/mm/dma-mapping.c     | 4 ++++
- 2 files changed, 6 insertions(+), 1 deletion(-)
 
-diff --git a/arch/arm/include/asm/device.h b/arch/arm/include/asm/device.h
-index 36ec9c8..3234fe9 100644
---- a/arch/arm/include/asm/device.h
-+++ b/arch/arm/include/asm/device.h
-@@ -19,7 +19,8 @@ struct dev_archdata {
- #ifdef CONFIG_XEN
- 	const struct dma_map_ops *dev_dma_ops;
- #endif
--	bool dma_coherent;
-+	unsigned int dma_coherent:1;
-+	unsigned int dma_ops_setup:1;
- };
- 
- struct omap_device;
-diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
-index cb57f59..b5099d0 100644
---- a/arch/arm/mm/dma-mapping.c
-+++ b/arch/arm/mm/dma-mapping.c
-@@ -2431,9 +2431,13 @@ void arch_setup_dma_ops(struct device *dev, u64 dma_base, u64 size,
- 		dev->dma_ops = xen_dma_ops;
- 	}
- #endif
-+	dev->archdata.dma_ops_setup = true;
- }
- 
- void arch_teardown_dma_ops(struct device *dev)
- {
-+	if (!dev->archdata.dma_ops_setup)
-+		return;
-+
- 	arm_teardown_iommu_dma_ops(dev);
- }
+Anyway, this patch fixes the circular symlinks.
+
+Reviewed-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+
+
 -- 
-QUALCOMM INDIA, on behalf of Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum, hosted by The Linux Foundation
+Best Regards
+Masahiro Yamada
