@@ -1,44 +1,48 @@
-From: Sricharan R <sricharan-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>
-Subject: Re: [PATCH] iommu: of: Fix check for returning EPROBE_DEFER
-Date: Wed, 17 May 2017 10:47:30 +0530
-Message-ID: <f5f8de4a-73a1-a32f-2736-2a7e64bfaa1a@codeaurora.org>
-References: <1494912253-25957-1-git-send-email-sricharan@codeaurora.org>
-	<20170516140943.ps2yufiukz6iurpl@latitude>
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v5 06/32] x86/mm: Add Secure Memory Encryption (SME)
+ support
+Date: Wed, 17 May 2017 09:05:56 +0200
+Message-ID: <20170517070556.2lwwnfbre34xqr7s@pd.tnic>
+References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
+ <20170418211727.10190.18774.stgit@tlendack-t1.amdoffice.net>
+ <20170427154631.2tsqgax4kqcvydnx@pd.tnic>
+ <d9d9f10a-0ce5-53e8-41f5-f8690dbd7362@amd.com>
+ <20170504143622.zy2f66e4mkm6xvsq@pd.tnic>
+ <6d266f5b-c28d-fe19-24b5-5133532f9eea@amd.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <20170516140943.ps2yufiukz6iurpl@latitude>
-Content-Language: en-US
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: =?UTF-8?Q?Jonathan_Neusch=c3=a4fer?= <j.neuschaefer-hi6Y0CQ0nG0@public.gmane.org>
-Cc: catalin.marinas-5wv7dgnIgG8@public.gmane.org, will.deacon-5wv7dgnIgG8@public.gmane.org, okaya-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org, frowand.list-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, tn-nYOzD4b6Jr9Wk0Htik3J/w@public.gmane.org, linux-acpi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-pci-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, lenb-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, arnd-r2nGTMty4D4@public.gmane.org, linux-arm-msm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, bhelgaas-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org, rjw-LthD3rsA81gm4RdzfppkhA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, sudeep.holla-5wv7dgnIgG8@public.gmane.org
+Content-Type: text/plain; charset=utf-8
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <6d266f5b-c28d-fe19-24b5-5133532f9eea@amd.com>
+Sender: owner-linux-mm@kvack.org
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander
 List-Id: linux-arch.vger.kernel.org
 
-SGksCgpPbiA1LzE2LzIwMTcgNzozOSBQTSwgSm9uYXRoYW4gTmV1c2Now6RmZXIgd3JvdGU6Cj4g
-SGksIEkgaGF2ZSBhIGZldyBzdWdnZXN0aW9ucyBvbiBob3cgdG8gbWFrZSB0aGlzIGNvbW1pdCBt
-ZXNzYWdlIG1vcmUKPiByZWFkYWJsZToKPiAKPiBPbiBUdWUsIE1heSAxNiwgMjAxNyBhdCAxMDo1
-NDoxM0FNICswNTMwLCBTcmljaGFyYW4gUiB3cm90ZToKPj4gV2hpbGUgcmV0dXJuaW5nIEVQUk9C
-RV9ERUZFUiBmb3IgaW9tbXUgbWFzdGVycwo+IAo+IEFkZCBhIGNvbW1hIGF0IHRoZSBlbmQgb2Yg
-dGhpcyBsaW5lCj4gCj4+IHRha2UgaW4gdG8gYWNjb3VudCBvZiBpb21tdSBub2RlcyB0aGF0IGNv
-dWxkIGJlCj4gCj4gcy9pbiB0by9pbnRvLwo+IHMvb2YgaW9tbXUvb2ZfaW9tbXUvCj4gCgpvaywg
-d2lsbCBjb3JyZWN0IHRoZSBhYm92ZS4KClJlZ2FyZHMsCiBTcmljaGFyYW4KCj4+IG1hcmtlZCBp
-biBEVCBhcyAnc3RhdHVzPWRpc2FibGVkJywgaW4gd2hpY2ggY2FzZQo+PiBzaW1wbHkgcmV0dXJu
-IE5VTEwgYW5kIGxldCB0aGUgbWFzdGVyJ3MgcHJvYmUKPj4gY29udGludWUgcmF0aGVyIHRoYW4g
-ZGVmZXJyaW5nLgo+Pgo+PiBTaWduZWQtb2ZmLWJ5OiBTcmljaGFyYW4gUiA8c3JpY2hhcmFuQGNv
-ZGVhdXJvcmEub3JnPgo+PiBUZXN0ZWQtYnk6IFdpbGwgRGVhY29uIDx3aWxsLmRlYWNvbkBhcm0u
-Y29tPgo+PiBBY2tlZC1ieTogV2lsbCBEZWFjb24gPHdpbGwuZGVhY29uQGFybS5jb20+Cj4gCj4g
-Cj4gVGhhbmtzLAo+IEpvbmF0aGFuIE5ldXNjaMOkZmVyCj4gCgotLSAKIlFVQUxDT01NIElORElB
-LCBvbiBiZWhhbGYgb2YgUXVhbGNvbW0gSW5ub3ZhdGlvbiBDZW50ZXIsIEluYy4gaXMgYSBtZW1i
-ZXIgb2YgQ29kZSBBdXJvcmEgRm9ydW0sIGhvc3RlZCBieSBUaGUgTGludXggRm91bmRhdGlvbgpf
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwppb21tdSBtYWls
-aW5nIGxpc3QKaW9tbXVAbGlzdHMubGludXgtZm91bmRhdGlvbi5vcmcKaHR0cHM6Ly9saXN0cy5s
-aW51eGZvdW5kYXRpb24ub3JnL21haWxtYW4vbGlzdGluZm8vaW9tbXU=
+On Tue, May 16, 2017 at 02:28:42PM -0500, Tom Lendacky wrote:
+> It's most problematic when CONFIG_AMD_MEM_ENCRYPT is not defined since
+> we never include an asm/ version from the linux/ path.  I could create
+> a mem_encrypt.h in include/asm-generic/ that contains the info that
+> is in the !CONFIG_AMD_MEM_ENCRYPT path of the linux/ version. Let me
+> look into that.
+
+So we need to keep asm/ and linux/ apart. The linux/ stuff is generic,
+global, more or less. The asm/ is arch-specific. So they shouldn't be
+overlapping wrt definitions, IMHO.
+
+So asm-generic is the proper approach here because then you won't need
+the ifndef fun.
+
+Thanks.
+
+-- 
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
