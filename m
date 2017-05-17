@@ -1,64 +1,90 @@
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: Re: [PATCH] sched: remove sched_find_first_bit()
-Date: Wed, 17 May 2017 15:16:36 +0300
-Message-ID: <20170517121636.3p75k77dxppfzaxg@yury-N73SV>
-References: <20170513010152.13986-1-ynorov@caviumnetworks.com>
- <20170514180917.bil7xr4bqtfk6fzj@gmail.com>
- <20170515154728.amzw3d67tw722wmu@yury-N73SV>
- <20170516083042.ybenukaiiwevgqph@gmail.com>
+From: Masahiro Yamada <yamada.masahiro-uWyLwvC0a2jby3iVrkZq2A@public.gmane.org>
+Subject: Re: [PATCH] devicetree: Move include prefixes from arch to separate directory
+Date: Wed, 17 May 2017 22:54:34 +0900
+Message-ID: <CAK7LNAQ2g1zTWAwDq+GyvzHATP0AneE5XXp3Wh11Y7ZZUkNKmg@mail.gmail.com>
+References: <CAL_JsqKLxA8K8378z4nDBkDWnwM_zBbbf9D7EPtwQ1782dydTw@mail.gmail.com>
+ <20170515142641.GU22219@n2100.armlinux.org.uk> <CAL_JsqJzoe_xNxMOZ88+k+bZ+bSK6-j30HXk0ZsFxHUqVDzwzw@mail.gmail.com>
+ <CAOesGMgYDq5Sdk6OaK-mTyfdNGwcbgOVeKbeMSCOmwqd9k8TGQ@mail.gmail.com>
+ <20170515154845.GW22219@n2100.armlinux.org.uk> <CAOesGMjrjRTBTxN8_DGp6WUJk8hy5WnzCcxi+fUz446_Uk5JwQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2nam03on0077.outbound.protection.outlook.com ([104.47.42.77]:64342
-        "EHLO NAM03-BY2-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1750795AbdEQMQr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 17 May 2017 08:16:47 -0400
-Content-Disposition: inline
-In-Reply-To: <20170516083042.ybenukaiiwevgqph@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Akinobu Mita <mita@miraclelinux.com>, Mike Galbraith <efault@gmx.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <CAOesGMjrjRTBTxN8_DGp6WUJk8hy5WnzCcxi+fUz446_Uk5JwQ-JsoAwUIsXosN+BqQ9rBEUg@public.gmane.org>
+Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Olof Johansson <olof-nZhT3qVonbNeoWH0uzbU5w@public.gmane.org>
+Cc: Russell King - ARM Linux <linux-I+IVW8TIWO2tmTQ+vhA3Yw@public.gmane.org>, Rob Herring <robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org" <linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>, "devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Heiko Stuebner <heiko-4mtYJXux2i+zQB+pC5nmwQ@public.gmane.org>, Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>, Catalin Marinas <catalin.marinas-5wv7dgnIgG8@public.gmane.org>, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, Mikael Starvik <starvik-VrBV9hrLPhE@public.gmane.org>, Jesper Nilsson <jesper.nilsson-VrBV9hrLPhE@public.gmane.org>, James Hogan <james.hogan-1AXoQHu6uovQT0dZR+AlfA@public.gmane.org>, Ralf Baechle <ralf-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, Paul Mackerras <paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>, Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>, Frank Rowand <frowand.list-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>li
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, May 16, 2017 at 10:30:42AM +0200, Ingo Molnar wrote:
-> 
-> * Yury Norov <ynorov@caviumnetworks.com> wrote:
-> 
-> > I collected about 700 results in dmesg, and took 600 fastest.
-> > For the vanilla kernel, the average value is 368, and for patched
-> > kernel it is 388. It's 5% slower. But the standard deviation is 
-> > really big for both series' - 131 and 106 cycles respectively, which
-> > is ~ 30%. And so, my conclusion is: there's no benefit in using
-> > sched_find_first_bit() comparing to find_first_bit().
-> 
-> Erm, so you in essence claim:
-> 
-> 	"according to measurements the new code is 5% slower, with a high, 30% 
-> 	 stddev, hence the new code is better!"
-> 
-> Basic logic fail...
-> 
-> Thanks,
-> 
-> 	Ingo
+2017-05-16 2:04 GMT+09:00 Olof Johansson <olof-nZhT3qVonbNeoWH0uzbU5w@public.gmane.org>:
+> On Mon, May 15, 2017 at 8:48 AM, Russell King - ARM Linux
+> <linux-I+IVW8TIWO2tmTQ+vhA3Yw@public.gmane.org> wrote:
+>> On Mon, May 15, 2017 at 08:27:54AM -0700, Olof Johansson wrote:
+>>> On Mon, May 15, 2017 at 7:47 AM, Rob Herring <robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org> wrote:
+>>> > On Mon, May 15, 2017 at 9:26 AM, Russell King - ARM Linux
+>>> > <linux-I+IVW8TIWO2tmTQ+vhA3Yw@public.gmane.org> wrote:
+>>> >> Maybe what we should do is:
+>>> >>
+>>> >> mkdir include/dt
+>>> >> git mv include/dt-bindings include/dt
+>>> >> for arch in arch/*; do
+>>> >>   dts=$arch/boot/dts
+>>> >>   if [ -d $dts ]; then
+>>> >>      a=include/dt/$(basename $arch)
+>>> >>      ln -s $dts $a
+>>> >>      git add $a
+>>> >>   fi
+>>> >> done
+>>> >> ... fixup scripts/Makefile.lib ...
+>>> >> git commit
+>>> >
+>>> > That would just break every existing include in dts files.
+>>>
+>>> It doesn't break dts includes if done together with a change in -I,
+>>> but it might break includes from the driver side (or needs another -I
+>>> there).
+>>
+>> Good point.
+>>
+>> We could leave include/dt-bindings where it is, and just do the rest of
+>> it for the cross-arch includes.  Slightly less tidy but should have a
+>> lower impact.
+>
+> I think you're proposing this?
+> include/dt-bindings
+> include/dt/$arch -> ../../arch/$arch/boot/dts/
+>
+> And then having -I$(srctree)include/dt as argument to dtc?
+>
+> That'd work but have the same drawback as I mentioned to Rob about
+> having several -I statements at different levels of the include
+> hierarchy, the same file could be reached through <dt/$arch/> and
+> <$arch/>. Not a showstopper but since Rob seems to be OK with the link
+> hierarchy living under scripts/dtc, I'd prefer to just stick to that.
+>
+> This is all pretty isolated, and if we want to move it somewhere else
+> later for some reason, we should be able to do so without impacting
+> DTS and drivers.
+>
 
-No, in essence I claim that scatter is so big (in both cases, and in
-case of vanilla kernel even bigger) that 5% is not a meaningful
-difference. To be specific - new measured value is inside the
-confidence interval of previous one.
 
-In fact I repeated measurements many times, and results always
-different. Even 2 consequent measurements in the same configuration
-may show difference ~10-15%. Arnd's unrolled version generates almost
-identical assembler code, but also slower.
 
-After all that fun, I think that measuring average value of the
-function execution time is not the suitable approach. Maybe in this
-case it would be better to compare fastest runs.
 
-Anyway, are you OK if I drop alpha's implementation of sched_find_first_bit(),
-move it to kernel/sched/rt.c and remove include/asm-generic/bitops/sched.h,
-as Arnd suggested?
+As I pointed out in
+https://patchwork.kernel.org/patch/9726699/
 
-Yury
+/include/ "arm/foo.dtsi"
+will make sense, so I'd like to to improve it some time later.
+
+
+Anyway, this patch fixes the circular symlinks.
+
+Reviewed-by: Masahiro Yamada <yamada.masahiro-uWyLwvC0a2jby3iVrkZq2A@public.gmane.org>
+
+
+-- 
+Best Regards
+Masahiro Yamada
+--
+To unsubscribe from this list: send the line "unsubscribe devicetree" in
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
