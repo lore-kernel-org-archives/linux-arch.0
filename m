@@ -1,162 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-sn1nam01on0051.outbound.protection.outlook.com ([104.47.32.51]:47329
-        "EHLO NAM01-SN1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1754514AbdEQU1I (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 17 May 2017 16:27:08 -0400
-Subject: Re: [PATCH v5 18/32] x86, mpparse: Use memremap to map the mpf and
- mpc data
+Received: from mail.skyhub.de ([5.9.137.197]:41818 "EHLO mail.skyhub.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1754236AbdERJC1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 18 May 2017 05:02:27 -0400
+Date: Thu, 18 May 2017 11:02:12 +0200
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v5 17/32] x86/mm: Add support to access boot related data
+ in the clear
+Message-ID: <20170518090212.kebstmnjv4h3cjf2@pd.tnic>
 References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
- <20170418211930.10190.62640.stgit@tlendack-t1.amdoffice.net>
- <20170516083658.fq2h4ysmrbgn23cs@pd.tnic>
-From: Tom Lendacky <thomas.lendacky@amd.com>
-Message-ID: <6e155b8f-b691-2ee0-8977-969aaab6199a@amd.com>
-Date: Wed, 17 May 2017 15:26:58 -0500
+ <20170418211921.10190.1537.stgit@tlendack-t1.amdoffice.net>
+ <20170515183517.mb4k2gp2qobbuvtm@pd.tnic>
+ <4845df29-bae7-9b78-0428-ff96dbef2128@amd.com>
 MIME-Version: 1.0
-In-Reply-To: <20170516083658.fq2h4ysmrbgn23cs@pd.tnic>
-Content-Type: text/plain; charset="utf-8"; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <4845df29-bae7-9b78-0428-ff96dbef2128@amd.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170517202658.YkNFz0ZkjVEnq6dwVfaUJS9Fd5Rq8S_iAud5Z0B8cVQ@z>
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20170518090212.22Y8InVVgghsWmeEuwyJmpD86BNQ2Fhv4ICu06RhkwE@z>
 
-On 5/16/2017 3:36 AM, Borislav Petkov wrote:
-> On Tue, Apr 18, 2017 at 04:19:30PM -0500, Tom Lendacky wrote:
->> The SMP MP-table is built by UEFI and placed in memory in a decrypted
->> state. These tables are accessed using a mix of early_memremap(),
->> early_memunmap(), phys_to_virt() and virt_to_phys(). Change all accesses
->> to use early_memremap()/early_memunmap(). This allows for proper setting
->> of the encryption mask so that the data can be successfully accessed when
->> SME is active.
->>
->> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
->> ---
->>  arch/x86/kernel/mpparse.c |  102 +++++++++++++++++++++++++++++++--------------
->>  1 file changed, 71 insertions(+), 31 deletions(-)
->>
->> diff --git a/arch/x86/kernel/mpparse.c b/arch/x86/kernel/mpparse.c
->> index fd37f39..afbda41d 100644
->> --- a/arch/x86/kernel/mpparse.c
->> +++ b/arch/x86/kernel/mpparse.c
->> @@ -429,7 +429,21 @@ static inline void __init construct_default_ISA_mptable(int mpc_default_type)
->>  	}
->>  }
->>
->> -static struct mpf_intel *mpf_found;
->> +static unsigned long mpf_base;
->> +
->> +static void __init unmap_mpf(struct mpf_intel *mpf)
->> +{
->> +	early_memunmap(mpf, sizeof(*mpf));
->> +}
->> +
->> +static struct mpf_intel * __init map_mpf(unsigned long paddr)
->> +{
->> +	struct mpf_intel *mpf;
->> +
->> +	mpf = early_memremap(paddr, sizeof(*mpf));
->> +
->> +	return mpf;
->
-> 	return early_memremap(paddr, sizeof(*mpf));
->
+On Wed, May 17, 2017 at 01:54:39PM -0500, Tom Lendacky wrote:
+> I was worried what the compiler might do when CONFIG_EFI is not set,
+> but it appears to take care of it. I'll double check though.
 
-Ok.
+There's a efi_enabled() !CONFIG_EFI version too, so should be fine.
 
-> ...
->
->> @@ -842,25 +873,26 @@ static int __init update_mp_table(void)
->>  	if (!enable_update_mptable)
->>  		return 0;
->>
->> -	mpf = mpf_found;
->> -	if (!mpf)
->> +	if (!mpf_base)
->>  		return 0;
->>
->> +	mpf = map_mpf(mpf_base);
->> +
->>  	/*
->>  	 * Now see if we need to go further.
->>  	 */
->>  	if (mpf->feature1 != 0)
->
-> You're kidding, right? map_mpf() *can* return NULL.
+> I may introduce a length variable to capture data->len right after
+> paddr_next is set and then have just a single memunmap() call before
+> the if check.
 
-Ugh...  don't know how I forgot about that. Will fix everywhere.
+Yap.
 
->
-> Also, simplify that test:
->
-> 	if (mpf->feature1)
-> 		...
+> I tried that, but calling an "__init" function (early_memremap()) from
+> a non "__init" function generated warnings. I suppose I can pass in a
+> function for the map and unmap but that looks worse to me (also the
+> unmap functions take different arguments).
 
-Ok, I can do that but I hope no one says anything about it being
-unrelated to the patch. :)
+No, the other way around: the __init function should call the non-init
+one and you need the non-init one anyway for memremap_is_setup_data().
 
->
->
->> -		return 0;
->> +		goto do_unmap_mpf;
->>
->>  	if (!mpf->physptr)
->> -		return 0;
->> +		goto do_unmap_mpf;
->>
->> -	mpc = phys_to_virt(mpf->physptr);
->> +	mpc = map_mpc(mpf->physptr);
->
-> Again: error checking !!!
->
-> You have other calls to early_memremap()/map_mpf() in this patch. Please
-> add error checking everywhere.
+> This is like the chicken and the egg scenario. In order to determine if
+> an address is setup data I have to explicitly map the setup data chain
+> as decrypted. In order to do that I have to supply a flag to explicitly
+> map the data decrypted otherwise I wind up back in the
+> memremap_is_setup_data() function again and again and again...
 
-Yup.
+Oh, fun.
 
->
->>
->>  	if (!smp_check_mpc(mpc, oem, str))
->> -		return 0;
->> +		goto do_unmap_mpc;
->>
->> -	pr_info("mpf: %llx\n", (u64)virt_to_phys(mpf));
->> +	pr_info("mpf: %llx\n", (u64)mpf_base);
->>  	pr_info("physptr: %x\n", mpf->physptr);
->>
->>  	if (mpc_new_phys && mpc->length > mpc_new_length) {
->> @@ -878,21 +910,23 @@ static int __init update_mp_table(void)
->>  		new = mpf_checksum((unsigned char *)mpc, mpc->length);
->>  		if (old == new) {
->>  			pr_info("mpc is readonly, please try alloc_mptable instead\n");
->> -			return 0;
->> +			goto do_unmap_mpc;
->>  		}
->>  		pr_info("use in-position replacing\n");
->>  	} else {
->>  		mpf->physptr = mpc_new_phys;
->> -		mpc_new = phys_to_virt(mpc_new_phys);
->> +		mpc_new = map_mpc(mpc_new_phys);
->
-> Ditto.
->
->>  		memcpy(mpc_new, mpc, mpc->length);
->> +		unmap_mpc(mpc);
->>  		mpc = mpc_new;
->>  		/* check if we can modify that */
->>  		if (mpc_new_phys - mpf->physptr) {
->>  			struct mpf_intel *mpf_new;
->>  			/* steal 16 bytes from [0, 1k) */
->>  			pr_info("mpf new: %x\n", 0x400 - 16);
->> -			mpf_new = phys_to_virt(0x400 - 16);
->> +			mpf_new = map_mpf(0x400 - 16);
->
-> Ditto.
->
->>  			memcpy(mpf_new, mpf, 16);
->> +			unmap_mpf(mpf);
->>  			mpf = mpf_new;
->>  			mpf->physptr = mpc_new_phys;
->>  		}
->
+-- 
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
