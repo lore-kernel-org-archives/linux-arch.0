@@ -1,50 +1,54 @@
-From: Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>
-Subject: Re: [PATCH v5 31/32] x86: Add sysfs support for Secure Memory
-	Encryption
-Date: Thu, 18 May 2017 19:01:53 +0200
-Message-ID: <20170518170153.eqiyat5s6q3yeejl@pd.tnic>
-References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
-	<20170418212212.10190.73484.stgit@tlendack-t1.amdoffice.net>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH 1/1] futex: remove duplicated code
+Date: Thu, 18 May 2017 18:30:10 +0100
+Message-ID: <20170518173010.GK21359@arm.com>
+References: <20170515130742.18357-1-jslaby@suse.cz>
+ <20170515131644.GA3605@arm.com>
+ <14580dfc-9721-38ab-a1e0-6b4aba13b406@suse.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:34896 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1754853AbdERRaL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 18 May 2017 13:30:11 -0400
 Content-Disposition: inline
-In-Reply-To: <20170418212212.10190.73484.stgit-qCXWGYdRb2BnqfbPTmsdiZQ+2ll4COg0XqFh9Ls21Oc@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
-Cc: linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Brijesh Singh <brijesh.singh-5C7GfCeVMHo@public.gmane.org>, Toshimitsu Kani <toshi.kani-ZPxbGqLxI0U@public.gmane.org>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Larry Woodman <lwoodman-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrey Ryabinin <aryabinin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Dave Young <dyoung-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Rik van Riel <riel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, kexec-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, "Michael S. Tsirkin" <mst@r>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <14580dfc-9721-38ab-a1e0-6b4aba13b406@suse.cz>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Jiri Slaby <jslaby@suse.cz>
+Cc: tglx@linutronix.de, linux-kernel@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>
 
-On Tue, Apr 18, 2017 at 04:22:12PM -0500, Tom Lendacky wrote:
-> Add sysfs support for SME so that user-space utilities (kdump, etc.) can
-> determine if SME is active.
+On Wed, May 17, 2017 at 10:01:29AM +0200, Jiri Slaby wrote:
+> On 05/15/2017, 03:16 PM, Will Deacon wrote:
+> > Whilst I think this is a good idea, the code in question actually results
+> > in undefined behaviour per the C spec and is reported by UBSAN.
+> 
+> Hi, yes, I know -- this patch was the 1st from the series of 3 which I
+> sent a long time ago to fix that up too. But I remember your patch, so I
+> sent only this one this time.
+> 
+> > See my
+> > patch fixing arm64 here (which I'd forgotten about):
+> > 
+> > https://www.spinics.net/lists/linux-arch/msg38564.html
+> > 
+> > But, as stated in the thread above, I think we should go a step further
+> > and remove FUTEX_OP_{OR,ANDN,XOR,OPARG_SHIFT} altogether. They don't
+> > appear to be used by userspace, and this whole thing is a total mess.
+> > 
+> > Any thoughts?
+> 
+> Ok, I am all for that. I think the only question is who is going to do
+> the work and submit it :)? Do I understand correctly to eliminate all
+> these functions and the path into the kernel? But won't this break API
+> -- are there really no users of this interface?
 
-But why do user-space tools need to know that?
+That's the million-dollar question, really. I don't know of any code using
+it, and I couldn't find any when I looked (also nothing reported by Debian
+Codesearch afaict), but I was hoping linux-arch might have some thoughts
+on this too.
 
-I mean, when we load the kdump kernel, we do it with the first kernel,
-with the kexec_load() syscall, AFAICT. And that code does a lot of
-things during that init, like machine_kexec_prepare()->init_pgtable() to
-prepare the ident mapping of the second kernel, for example.
+For now, I'll queue my arm64 patch before I forget about it again!
 
-What I'm aiming at is that the first kernel knows *exactly* whether SME
-is enabled or not and doesn't need to tell the second one through some
-sysfs entries - it can do that during loading.
-
-So I don't think we need any userspace things at all...
-
-Or?
-
--- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
+Will
