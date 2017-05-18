@@ -1,150 +1,404 @@
-From: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
-Subject: Re: [PATCH V2 2/3] iommu: of: Ignore all errors except EPROBE_DEFER
-Date: Thu, 18 May 2017 15:30:59 +0300
-Message-ID: <2111512.n9LmSLnVgL@avalon>
-References: <1495102030-10548-1-git-send-email-sricharan@codeaurora.org> <6863998.WsTHer29ZI@avalon> <2c3babb3-7bee-340c-d474-267a55f23cd5@codeaurora.org>
+From: Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>
+Subject: Re: [PATCH v5 29/32] x86/mm: Add support to encrypt the kernel
+ in-place
+Date: Thu, 18 May 2017 14:46:27 +0200
+Message-ID: <20170518124626.hqyqqbjpy7hmlpqc@pd.tnic>
+References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
+ <20170418212149.10190.70894.stgit@tlendack-t1.amdoffice.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-acpi-owner@vger.kernel.org>
-In-Reply-To: <2c3babb3-7bee-340c-d474-267a55f23cd5@codeaurora.org>
-Sender: linux-acpi-owner@vger.kernel.org
-To: Sricharan R <sricharan@codeaurora.org>
-Cc: catalin.marinas@arm.com, will.deacon@arm.com, okaya@codeaurora.org, frowand.list@gmail.com, m.szyprowski@samsung.com, linux-arch@vger.kernel.org, lorenzo.pieralisi@arm.com, tn@semihalf.com, joro@8bytes.org, magnus.damm@gmail.com, linux-acpi@vger.kernel.org, geert@linux-m68k.org, linux-pci@vger.kernel.org, lenb@kernel.org, devicetree@vger.kernel.org, arnd@arndb.de, linux-arm-msm@vger.kernel.org, j.neuschaefer@gmx.net, robh+dt@kernel.org, bhelgaas@google.com, laurent.pinchart+renesas@ideasonboard.com, linux-arm-kernel@lists.infradead.org, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, iommu@lists.linux-foundation.org, hanjun.guo@linaro.org, sudeep.holla@arm.com, robin.murphy@arm.com
+Content-Type: text/plain; charset=utf-8
+Return-path: <linux-efi-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <20170418212149.10190.70894.stgit-qCXWGYdRb2BnqfbPTmsdiZQ+2ll4COg0XqFh9Ls21Oc@public.gmane.org>
+Sender: linux-efi-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, kexec-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Rik van Riel <riel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Toshimitsu Kani <toshi.kani-ZPxbGqLxI0U@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, "Michael S. Tsirkin" <mst-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Joerg Roedel <joro-zLv9SwRftAIdnm+yROfE0A@public.gmane.org>, Konrad Rzeszutek Wilk <konrad.wilk-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>, Paolo Bonzini <pbonzini-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Larry Woodman <lwoodman-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Brijesh Singh <brijesh.singh-5C7GfCeVMHo@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andy
 List-Id: linux-arch.vger.kernel.org
 
-Hi Sricharan,
-
-On Thursday 18 May 2017 17:26:14 Sricharan R wrote:
-> On 5/18/2017 4:09 PM, Laurent Pinchart wrote:
-> > On Thursday 18 May 2017 15:37:09 Sricharan R wrote:
-> >> While deferring the probe of IOMMU masters,
-> >> xlate and add_device callback can pass back error values
-> >> like -ENODEV, which means IOMMU cannot be connected
-> >> with that master for real reasons. So rather than
-> >> killing the master's probe for such errors, just
-> >> ignore the errors and let the master work without
-> >> an IOMMU.
-> > 
-> > I don't think this is a good idea. Why should we allow IOMMU drivers to
-> > return an error if we're always going to ignore the error value ? That
-> > will lead to drivers implementing slightly different behaviours, which
-> > will be painful the day we'll need to start acting based on the error
-> > value.
+On Tue, Apr 18, 2017 at 04:21:49PM -0500, Tom Lendacky wrote:
+> Add the support to encrypt the kernel in-place. This is done by creating
+> new page mappings for the kernel - a decrypted write-protected mapping
+> and an encrypted mapping. The kernel is encrypted by copying it through
+> a temporary buffer.
 > 
-> The of_iommu_configure interface, before this series, was returning either
-> correct 'iommu_ops' or NULL. Also there was no return value from
-> of_dma_configure which calls of_iommu_configure. This means that if we block
-> only -ENODEV now and let the other errors, the probe of the master devices
-> can be killed for reasons apart from deferring. This would be a change in
-> behavior introduced. All of xlate, add_device, of_pci_map_rid and others
-> can return values apart from -ENODEV. So was thinking that restoring the
-> old behavior, except for returning EPROBE_DEFER was the better thing to do
-> ?
+> Signed-off-by: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
+> ---
+>  arch/x86/include/asm/mem_encrypt.h |    6 +
+>  arch/x86/mm/Makefile               |    2 
+>  arch/x86/mm/mem_encrypt.c          |  262 ++++++++++++++++++++++++++++++++++++
+>  arch/x86/mm/mem_encrypt_boot.S     |  151 +++++++++++++++++++++
+>  4 files changed, 421 insertions(+)
+>  create mode 100644 arch/x86/mm/mem_encrypt_boot.S
+> 
+> diff --git a/arch/x86/include/asm/mem_encrypt.h b/arch/x86/include/asm/mem_encrypt.h
+> index b406df2..8f6f9b4 100644
+> --- a/arch/x86/include/asm/mem_encrypt.h
+> +++ b/arch/x86/include/asm/mem_encrypt.h
+> @@ -31,6 +31,12 @@ static inline u64 sme_dma_mask(void)
+>  	return ((u64)sme_me_mask << 1) - 1;
+>  }
+>  
+> +void sme_encrypt_execute(unsigned long encrypted_kernel_vaddr,
+> +			 unsigned long decrypted_kernel_vaddr,
+> +			 unsigned long kernel_len,
+> +			 unsigned long encryption_wa,
+> +			 unsigned long encryption_pgd);
+> +
+>  void __init sme_early_encrypt(resource_size_t paddr,
+>  			      unsigned long size);
+>  void __init sme_early_decrypt(resource_size_t paddr,
+> diff --git a/arch/x86/mm/Makefile b/arch/x86/mm/Makefile
+> index 9e13841..0633142 100644
+> --- a/arch/x86/mm/Makefile
+> +++ b/arch/x86/mm/Makefile
+> @@ -38,3 +38,5 @@ obj-$(CONFIG_NUMA_EMU)		+= numa_emulation.o
+>  obj-$(CONFIG_X86_INTEL_MPX)	+= mpx.o
+>  obj-$(CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS) += pkeys.o
+>  obj-$(CONFIG_RANDOMIZE_MEMORY) += kaslr.o
+> +
+> +obj-$(CONFIG_AMD_MEM_ENCRYPT)	+= mem_encrypt_boot.o
+> diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
+> index 30b07a3..0ff41a4 100644
+> --- a/arch/x86/mm/mem_encrypt.c
+> +++ b/arch/x86/mm/mem_encrypt.c
+> @@ -24,6 +24,7 @@
+>  #include <asm/setup.h>
+>  #include <asm/bootparam.h>
+>  #include <asm/cacheflush.h>
+> +#include <asm/sections.h>
+>  
+>  /*
+>   * Since SME related variables are set early in the boot process they must
+> @@ -216,8 +217,269 @@ void swiotlb_set_mem_attributes(void *vaddr, unsigned long size)
+>  	set_memory_decrypted((unsigned long)vaddr, size >> PAGE_SHIFT);
+>  }
+>  
+> +void __init sme_clear_pgd(pgd_t *pgd_base, unsigned long start,
 
-We went from a situation where of_iommu_configure() could return either valid 
-operations in the case the device was to be handled by the IOMMU or NULL 
-otherwise, to a situation where we needed a third option for probe deferral. 
-The way we've done this, through error pointers, allows lots of other errors 
-to be returned as well from the of_xlate and add_device operations.
+static
 
-There is currently no use for returning error codes other than -EPROBE_DEFFER 
-from of_iommu_configure(), so your proposal is to block errors returned from 
-the of_xlate and add_device operations inside of_iommu_configure(). My point 
-is that, by doing so, we allow IOMMU drivers to return random error codes that 
-are then ignored. I believe this can cause problems in the future when we will 
-need to extend the API and standardize more error codes, as by then IOMMU 
-drivers will return random errors (they actually do so already to some 
-extent).
+> +			  unsigned long end)
+> +{
+> +	unsigned long addr = start;
+> +	pgdval_t *pgd_p;
+> +
+> +	while (addr < end) {
+> +		unsigned long pgd_end;
+> +
+> +		pgd_end = (addr & PGDIR_MASK) + PGDIR_SIZE;
+> +		if (pgd_end > end)
+> +			pgd_end = end;
+> +
+> +		pgd_p = (pgdval_t *)pgd_base + pgd_index(addr);
+> +		*pgd_p = 0;
 
-For of_xlate I agree with you to some extent. v4.11 just checked whether 
-of_xlate succeeded or not, and just didn't use the IOMMU in case it failed. 
-The exact error value was ignored, and drivers already return random errors. 
-Going back to the v4.11 behaviour is what we need to do in the short-term, 
-even if I believe we should standardize the error values returned from 
-of_xlate after v4.12.
+Hmm, so this is a contiguous range from [start:end] which translates to
+8-byte PGD pointers in the PGD page so you can simply memset that range,
+no?
 
-For add_device, however, the situation is a bit different. The add_device 
-operation is called from the IOMMU bus notifier, and the -ENODEV error is 
-ignored by add_iommu_group(). Any other error will cause bus_set_iommu() to 
-fail, which makes IOMMU probing fail for the drivers that check the return 
-value of bus_set_iommu() (some of them don't :-/).
+Instead of iterating over each one?
 
-Fixing all this properly requires standardizing the error codes, and going 
-through the existing IOMMU drivers to comply with the standardized behaviour. 
-While this shouldn't be very difficult, it's likely not material for a v4.12-
-rc fix. We will thus likely need to merge this patch (or something very 
-similar to it), but I'd really like to see this fixed properly for v4.13.
+> +
+> +		addr = pgd_end;
+> +	}
+> +}
+> +
+> +#define PGD_FLAGS	_KERNPG_TABLE_NOENC
+> +#define PUD_FLAGS	_KERNPG_TABLE_NOENC
+> +#define PMD_FLAGS	(__PAGE_KERNEL_LARGE_EXEC & ~_PAGE_GLOBAL)
+> +
+> +static void __init *sme_populate_pgd(pgd_t *pgd_base, void *pgtable_area,
+> +				     unsigned long vaddr, pmdval_t pmd_val)
+> +{
+> +	pgdval_t pgd, *pgd_p;
+> +	pudval_t pud, *pud_p;
+> +	pmdval_t pmd, *pmd_p;
 
-> > At the very least, if you want to give a specific meaning to -ENODEV, you
-> > should check for that value specifically and not ignore all errors other
-> > than -EPROBE_DEFER. You also need to document the meaning of the error
-> > value. This can be done in the documentation of the of_xlate operation in
-> > include/linux/iommu.h:
-> > 
-> > diff --git a/include/linux/iommu.h b/include/linux/iommu.h
-> > index 2cb54adc4a33..6ba553e7384a 100644
-> > --- a/include/linux/iommu.h
-> > +++ b/include/linux/iommu.h
-> > @@ -181,7 +181,6 @@ struct iommu_resv_region {
-> >   * @domain_window_disable: Disable a particular window for a domain
-> >   * @domain_set_windows: Set the number of windows for a domain
-> >   * @domain_get_windows: Return the number of windows for a domain
-> > - * @of_xlate: add OF master IDs to iommu grouping
-> >   * @pgsize_bitmap: bitmap of all possible supported page sizes
-> >   */
-> >  
-> >  struct iommu_ops {
-> > @@ -224,6 +223,11 @@ struct iommu_ops {
-> >  	/* Get the number of windows per domain */
-> >  	u32 (*domain_get_windows)(struct iommu_domain *domain);
-> > 
-> > +	/**
-> > +	 * @of_xlate:
-> > +	 *
-> > +	 * Add OF master IDs to iommu grouping.
-> > +	 */
-> >  	int (*of_xlate)(struct device *dev, struct of_phandle_args *args);
-> >  	
-> >  	unsigned long pgsize_bitmap;
-> > 
-> > And add documentation for the error codes there.
-> > 
-> > If you want to ignore some errors returned from the add_device operation
-> > you should document it similarly, and in particular document which error
-> > check(s) need to be performed by of_xlate and which are the
-> > responsibility of add_device.
-> > 
-> >> Fixes: 7b07cbefb68d ("iommu: of: Handle IOMMU lookup failure with
-> >> deferred probing or error")
-> >> Reported-by: Geert Uytterhoeven <geert@linux-m68k.org>
-> >> Tested-by: Magnus Damn <magnus.damn@gmail.com>
-> >> Signed-off-by: Sricharan R <sricharan@codeaurora.org>
-> >> ---
-> >> [V2] Corrected spelling/case in commit log
-> >> 
-> >>  drivers/iommu/of_iommu.c | 6 ++++++
-> >>  1 file changed, 6 insertions(+)
-> >> 
-> >> diff --git a/drivers/iommu/of_iommu.c b/drivers/iommu/of_iommu.c
-> >> index e6e9bec..f0d22c0 100644
-> >> --- a/drivers/iommu/of_iommu.c
-> >> +++ b/drivers/iommu/of_iommu.c
-> >> @@ -237,6 +237,12 @@ const struct iommu_ops *of_iommu_configure(struct
-> >> device *dev, ops = ERR_PTR(err);
-> >>  	}
-> >> 
-> >> +	/* Ignore all other errors apart from EPROBE_DEFER */
-> >> +	if (IS_ERR(ops) && (PTR_ERR(ops) != -EPROBE_DEFER)) {
-> >> +		dev_info(dev, "Adding to IOMMU failed: %ld\n", PTR_ERR(ops));
-> >> +		ops = NULL;
-> >> +	}
-> >> +
-> >>  	return ops;
-> >>  }
+You should use the enclosing type, not the underlying one. I.e.,
+
+	pgd_t *pgd;
+	pud_t *pud;
+	...
+
+and then the macros native_p*d_val(), p*d_offset() and so on. I say
+native_* because we don't want to have any paravirt nastyness here.
+I believe your previous version was using the proper interfaces.
+
+And the kernel has gotten 5-level pagetables support in
+the meantime, so this'll need to start at p4d AFAICT.
+arch/x86/mm/fault.c::dump_pagetable() looks like a good example to stare
+at.
+
+> +	pgd_p = (pgdval_t *)pgd_base + pgd_index(vaddr);
+> +	pgd = *pgd_p;
+> +	if (pgd) {
+> +		pud_p = (pudval_t *)(pgd & ~PTE_FLAGS_MASK);
+> +	} else {
+> +		pud_p = pgtable_area;
+> +		memset(pud_p, 0, sizeof(*pud_p) * PTRS_PER_PUD);
+> +		pgtable_area += sizeof(*pud_p) * PTRS_PER_PUD;
+> +
+> +		*pgd_p = (pgdval_t)pud_p + PGD_FLAGS;
+> +	}
+> +
+> +	pud_p += pud_index(vaddr);
+> +	pud = *pud_p;
+> +	if (pud) {
+> +		if (pud & _PAGE_PSE)
+> +			goto out;
+> +
+> +		pmd_p = (pmdval_t *)(pud & ~PTE_FLAGS_MASK);
+> +	} else {
+> +		pmd_p = pgtable_area;
+> +		memset(pmd_p, 0, sizeof(*pmd_p) * PTRS_PER_PMD);
+> +		pgtable_area += sizeof(*pmd_p) * PTRS_PER_PMD;
+> +
+> +		*pud_p = (pudval_t)pmd_p + PUD_FLAGS;
+> +	}
+> +
+> +	pmd_p += pmd_index(vaddr);
+> +	pmd = *pmd_p;
+> +	if (!pmd || !(pmd & _PAGE_PSE))
+> +		*pmd_p = pmd_val;
+> +
+> +out:
+> +	return pgtable_area;
+> +}
+> +
+> +static unsigned long __init sme_pgtable_calc(unsigned long len)
+> +{
+> +	unsigned long pud_tables, pmd_tables;
+> +	unsigned long total = 0;
+> +
+> +	/*
+> +	 * Perform a relatively simplistic calculation of the pagetable
+> +	 * entries that are needed. That mappings will be covered by 2MB
+> +	 * PMD entries so we can conservatively calculate the required
+> +	 * number of PUD and PMD structures needed to perform the mappings.
+> +	 * Incrementing the count for each covers the case where the
+> +	 * addresses cross entries.
+> +	 */
+> +	pud_tables = ALIGN(len, PGDIR_SIZE) / PGDIR_SIZE;
+> +	pud_tables++;
+> +	pmd_tables = ALIGN(len, PUD_SIZE) / PUD_SIZE;
+> +	pmd_tables++;
+> +
+> +	total += pud_tables * sizeof(pud_t) * PTRS_PER_PUD;
+> +	total += pmd_tables * sizeof(pmd_t) * PTRS_PER_PMD;
+> +
+> +	/*
+> +	 * Now calculate the added pagetable structures needed to populate
+> +	 * the new pagetables.
+> +	 */
+
+Nice commenting, helps following what's going on.
+
+> +	pud_tables = ALIGN(total, PGDIR_SIZE) / PGDIR_SIZE;
+> +	pmd_tables = ALIGN(total, PUD_SIZE) / PUD_SIZE;
+> +
+> +	total += pud_tables * sizeof(pud_t) * PTRS_PER_PUD;
+> +	total += pmd_tables * sizeof(pmd_t) * PTRS_PER_PMD;
+> +
+> +	return total;
+> +}
+> +
+>  void __init sme_encrypt_kernel(void)
+>  {
+> +	pgd_t *pgd;
+> +	void *pgtable_area;
+> +	unsigned long kernel_start, kernel_end, kernel_len;
+> +	unsigned long workarea_start, workarea_end, workarea_len;
+> +	unsigned long execute_start, execute_end, execute_len;
+> +	unsigned long pgtable_area_len;
+> +	unsigned long decrypted_base;
+> +	unsigned long paddr, pmd_flags;
+
+
+Please sort function local variables declaration in a reverse christmas
+tree order:
+
+	<type> longest_variable_name;
+	<type> shorter_var_name;
+	<type> even_shorter;
+	<type> i;
+
+> +
+> +	if (!sme_active())
+> +		return;
+
+...
+
+> diff --git a/arch/x86/mm/mem_encrypt_boot.S b/arch/x86/mm/mem_encrypt_boot.S
+> new file mode 100644
+> index 0000000..fb58f9f
+> --- /dev/null
+> +++ b/arch/x86/mm/mem_encrypt_boot.S
+> @@ -0,0 +1,151 @@
+> +/*
+> + * AMD Memory Encryption Support
+> + *
+> + * Copyright (C) 2016 Advanced Micro Devices, Inc.
+> + *
+> + * Author: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
+> + *
+> + * This program is free software; you can redistribute it and/or modify
+> + * it under the terms of the GNU General Public License version 2 as
+> + * published by the Free Software Foundation.
+> + */
+> +
+> +#include <linux/linkage.h>
+> +#include <asm/pgtable.h>
+> +#include <asm/page.h>
+> +#include <asm/processor-flags.h>
+> +#include <asm/msr-index.h>
+> +
+> +	.text
+> +	.code64
+> +ENTRY(sme_encrypt_execute)
+> +
+> +	/*
+> +	 * Entry parameters:
+> +	 *   RDI - virtual address for the encrypted kernel mapping
+> +	 *   RSI - virtual address for the decrypted kernel mapping
+> +	 *   RDX - length of kernel
+> +	 *   RCX - virtual address of the encryption workarea, including:
+> +	 *     - stack page (PAGE_SIZE)
+> +	 *     - encryption routine page (PAGE_SIZE)
+> +	 *     - intermediate copy buffer (PMD_PAGE_SIZE)
+> +	 *    R8 - physcial address of the pagetables to use for encryption
+> +	 */
+> +
+> +	push	%rbp
+> +	push	%r12
+> +
+> +	/* Set up a one page stack in the non-encrypted memory area */
+> +	movq	%rsp, %rbp		/* Save current stack pointer */
+> +	movq	%rcx, %rax		/* Workarea stack page */
+> +	movq	%rax, %rsp		/* Set new stack pointer */
+> +	addq	$PAGE_SIZE, %rsp	/* Stack grows from the bottom */
+> +	addq	$PAGE_SIZE, %rax	/* Workarea encryption routine */
+> +
+> +	movq	%rdi, %r10		/* Encrypted kernel */
+> +	movq	%rsi, %r11		/* Decrypted kernel */
+> +	movq	%rdx, %r12		/* Kernel length */
+> +
+> +	/* Copy encryption routine into the workarea */
+> +	movq	%rax, %rdi		/* Workarea encryption routine */
+> +	leaq	.Lenc_start(%rip), %rsi	/* Encryption routine */
+> +	movq	$(.Lenc_stop - .Lenc_start), %rcx	/* Encryption routine length */
+> +	rep	movsb
+> +
+> +	/* Setup registers for call */
+> +	movq	%r10, %rdi		/* Encrypted kernel */
+> +	movq	%r11, %rsi		/* Decrypted kernel */
+> +	movq	%r8, %rdx		/* Pagetables used for encryption */
+> +	movq	%r12, %rcx		/* Kernel length */
+> +	movq	%rax, %r8		/* Workarea encryption routine */
+> +	addq	$PAGE_SIZE, %r8		/* Workarea intermediate copy buffer */
+> +
+> +	call	*%rax			/* Call the encryption routine */
+> +
+> +	movq	%rbp, %rsp		/* Restore original stack pointer */
+> +
+> +	pop	%r12
+> +	pop	%rbp
+> +
+> +	ret
+> +ENDPROC(sme_encrypt_execute)
+> +
+> +.Lenc_start:
+> +ENTRY(sme_enc_routine)
+
+A function called a "routine"? Why do we need the global symbol?
+Nothing's referencing it AFAICT.
+
+> +/*
+> + * Routine used to encrypt kernel.
+> + *   This routine must be run outside of the kernel proper since
+> + *   the kernel will be encrypted during the process. So this
+> + *   routine is defined here and then copied to an area outside
+> + *   of the kernel where it will remain and run decrypted
+> + *   during execution.
+> + *
+> + *   On entry the registers must be:
+> + *     RDI - virtual address for the encrypted kernel mapping
+> + *     RSI - virtual address for the decrypted kernel mapping
+> + *     RDX - address of the pagetables to use for encryption
+> + *     RCX - length of kernel
+> + *      R8 - intermediate copy buffer
+> + *
+> + *     RAX - points to this routine
+> + *
+> + * The kernel will be encrypted by copying from the non-encrypted
+> + * kernel space to an intermediate buffer and then copying from the
+> + * intermediate buffer back to the encrypted kernel space. The physical
+> + * addresses of the two kernel space mappings are the same which
+> + * results in the kernel being encrypted "in place".
+> + */
+> +	/* Enable the new page tables */
+> +	mov	%rdx, %cr3
+> +
+> +	/* Flush any global TLBs */
+> +	mov	%cr4, %rdx
+> +	andq	$~X86_CR4_PGE, %rdx
+> +	mov	%rdx, %cr4
+> +	orq	$X86_CR4_PGE, %rdx
+> +	mov	%rdx, %cr4
+> +
+> +	/* Set the PAT register PA5 entry to write-protect */
+> +	push	%rcx
+> +	movl	$MSR_IA32_CR_PAT, %ecx
+> +	rdmsr
+> +	push	%rdx			/* Save original PAT value */
+> +	andl	$0xffff00ff, %edx	/* Clear PA5 */
+> +	orl	$0x00000500, %edx	/* Set PA5 to WP */
+
+Maybe check first whether PA5 is already set correctly and avoid the
+WRMSR and the restoring below too?
+
+> +	wrmsr
+> +	pop	%rdx			/* RDX contains original PAT value */
+> +	pop	%rcx
+> +
+> +	movq	%rcx, %r9		/* Save kernel length */
+> +	movq	%rdi, %r10		/* Save encrypted kernel address */
+> +	movq	%rsi, %r11		/* Save decrypted kernel address */
+> +
+> +	wbinvd				/* Invalidate any cache entries */
+> +
+> +	/* Copy/encrypt 2MB at a time */
+> +1:
+> +	movq	%r11, %rsi		/* Source - decrypted kernel */
+> +	movq	%r8, %rdi		/* Dest   - intermediate copy buffer */
+> +	movq	$PMD_PAGE_SIZE, %rcx	/* 2MB length */
+> +	rep	movsb
+
+not movsQ?
+
+> +	movq	%r8, %rsi		/* Source - intermediate copy buffer */
+> +	movq	%r10, %rdi		/* Dest   - encrypted kernel */
+> +	movq	$PMD_PAGE_SIZE, %rcx	/* 2MB length */
+> +	rep	movsb
+> +
+> +	addq	$PMD_PAGE_SIZE, %r11
+> +	addq	$PMD_PAGE_SIZE, %r10
+> +	subq	$PMD_PAGE_SIZE, %r9	/* Kernel length decrement */
+> +	jnz	1b			/* Kernel length not zero? */
+> +
+> +	/* Restore PAT register */
+> +	push	%rdx			/* Save original PAT value */
+> +	movl	$MSR_IA32_CR_PAT, %ecx
+> +	rdmsr
+> +	pop	%rdx			/* Restore original PAT value */
+> +	wrmsr
+> +
+> +	ret
+> +ENDPROC(sme_enc_routine)
+> +.Lenc_stop:
+> 
 
 -- 
-Regards,
+Regards/Gruss,
+    Boris.
 
-Laurent Pinchart
-
+Good mailing practices for 400: avoid top-posting and trim the reply.
