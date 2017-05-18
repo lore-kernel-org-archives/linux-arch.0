@@ -1,52 +1,60 @@
-From: Matt Fleming <matt@codeblueprint.co.uk>
-Subject: Re: [PATCH v5 17/32] x86/mm: Add support to access boot related data
- in the clear
-Date: Thu, 18 May 2017 20:50:51 +0100
-Message-ID: <20170518195051.GA5651@codeblueprint.co.uk>
-References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
- <20170418211921.10190.1537.stgit@tlendack-t1.amdoffice.net>
- <20170515183517.mb4k2gp2qobbuvtm@pd.tnic>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [RFC] arch hardlockup detector interfaces improvement
+Date: Fri, 19 May 2017 09:07:31 +1000
+Message-ID: <20170519090731.1e49cd0d@roar.ozlabs.ibm.com>
+References: <20170518155026.23799-1-npiggin@gmail.com>
+        <20170518163028.tf2llimuo4l4l5nv@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20170515183517.mb4k2gp2qobbuvtm@pd.tnic>
-Sender: owner-linux-mm@kvack.org
-To: Borislav Petkov <bp@alien8.de>
-Cc: Tom Lendacky <thomas.lendacky@amd.com>, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pg0-f68.google.com ([74.125.83.68]:34855 "EHLO
+        mail-pg0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753621AbdERXHq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 May 2017 19:07:46 -0400
+In-Reply-To: <20170518163028.tf2llimuo4l4l5nv@redhat.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Don Zickus <dzickus@redhat.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, adi-buildroot-devel@lists.sourceforge.net, linux-am33-list@redhat.com, sparclinux@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, uobergfe@redhat.com
 
-On Mon, 15 May, at 08:35:17PM, Borislav Petkov wrote:
-> On Tue, Apr 18, 2017 at 04:19:21PM -0500, Tom Lendacky wrote:
->
-> > +		paddr = boot_params.efi_info.efi_memmap_hi;
-> > +		paddr <<= 32;
-> > +		paddr |= boot_params.efi_info.efi_memmap;
-> > +		if (phys_addr == paddr)
-> > +			return true;
-> > +
-> > +		paddr = boot_params.efi_info.efi_systab_hi;
-> > +		paddr <<= 32;
-> > +		paddr |= boot_params.efi_info.efi_systab;
-> 
-> So those two above look like could be two global vars which are
-> initialized somewhere in the EFI init path:
-> 
-> efi_memmap_phys and efi_systab_phys or so.
-> 
-> Matt ?
-> 
-> And then you won't need to create that paddr each time on the fly. I
-> mean, it's not a lot of instructions but still...
- 
-We should already have the physical memmap address available in
-'efi.memmap.phys_map'.
+On Thu, 18 May 2017 12:30:28 -0400
+Don Zickus <dzickus@redhat.com> wrote:
 
-And the physical address of the system table should be in
-'efi_phys.systab'. See efi_init().
+> (adding Uli)
+> 
+> On Fri, May 19, 2017 at 01:50:26AM +1000, Nicholas Piggin wrote:
+> > I'd like to make it easier for architectures that have their own NMI /
+> > hard lockup detector to reuse various configuration interfaces that are
+> > provided by generic detectors (cmdline, sysctl, suspend/resume calls).
+> > 
+> > I'd also like to remove the dependency of arch hard lockup detectors
+> > on the softlockup detector. The reason being these watchdogs can be
+> > very small (sparc's is like a page of core code that does not use any
+> > big subsystem like kthreads or timers).
+> > 
+> > So I do this by adding a separate CONFIG_SOFTLOCKUP_DETECTOR, and
+> > juggling around what goes under config options. HAVE_NMI_WATCHDOG
+> > continues to be the config for arch to override the hard lockup
+> > detector, which is expanded to cover a few more cases.  
+> 
+> Basically you are trying to remove the heavy HARDLOCKUP pieces to minimize
+> the SOFTLOCKUP piece and use your own NMI detector, right?
+> 
+> I am guessing you would then disable SOFTLOCKUP to remove all the kthread
+> and timer stuff but continue to use the generic infrastructure to help
+> manager your own NMI detector?
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Yes that's right.
+
+> A lot of the code is just re-organizing things and adding an explicit
+> ifdef on SOFTLOCKUP, which seems fine to me.
+> 
+> I just need to spend some time on some of your #else clauses to see what
+> functionality is dropped when you use your approach.
+
+Okay, appreciated. I can trim down cc lists and send you my powerpc
+WIP if you'd like to have a look.
+
+Thanks,
+Nick
