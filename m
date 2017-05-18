@@ -1,54 +1,52 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH 1/1] futex: remove duplicated code
-Date: Thu, 18 May 2017 18:30:10 +0100
-Message-ID: <20170518173010.GK21359@arm.com>
-References: <20170515130742.18357-1-jslaby@suse.cz>
- <20170515131644.GA3605@arm.com>
- <14580dfc-9721-38ab-a1e0-6b4aba13b406@suse.cz>
+From: Matt Fleming <matt@codeblueprint.co.uk>
+Subject: Re: [PATCH v5 17/32] x86/mm: Add support to access boot related data
+ in the clear
+Date: Thu, 18 May 2017 20:50:51 +0100
+Message-ID: <20170518195051.GA5651@codeblueprint.co.uk>
+References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
+ <20170418211921.10190.1537.stgit@tlendack-t1.amdoffice.net>
+ <20170515183517.mb4k2gp2qobbuvtm@pd.tnic>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:34896 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1754853AbdERRaL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 18 May 2017 13:30:11 -0400
+Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <14580dfc-9721-38ab-a1e0-6b4aba13b406@suse.cz>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Jiri Slaby <jslaby@suse.cz>
-Cc: tglx@linutronix.de, linux-kernel@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>
+In-Reply-To: <20170515183517.mb4k2gp2qobbuvtm@pd.tnic>
+Sender: owner-linux-mm@kvack.org
+To: Borislav Petkov <bp@alien8.de>
+Cc: Tom Lendacky <thomas.lendacky@amd.com>, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, May 17, 2017 at 10:01:29AM +0200, Jiri Slaby wrote:
-> On 05/15/2017, 03:16 PM, Will Deacon wrote:
-> > Whilst I think this is a good idea, the code in question actually results
-> > in undefined behaviour per the C spec and is reported by UBSAN.
+On Mon, 15 May, at 08:35:17PM, Borislav Petkov wrote:
+> On Tue, Apr 18, 2017 at 04:19:21PM -0500, Tom Lendacky wrote:
+>
+> > +		paddr = boot_params.efi_info.efi_memmap_hi;
+> > +		paddr <<= 32;
+> > +		paddr |= boot_params.efi_info.efi_memmap;
+> > +		if (phys_addr == paddr)
+> > +			return true;
+> > +
+> > +		paddr = boot_params.efi_info.efi_systab_hi;
+> > +		paddr <<= 32;
+> > +		paddr |= boot_params.efi_info.efi_systab;
 > 
-> Hi, yes, I know -- this patch was the 1st from the series of 3 which I
-> sent a long time ago to fix that up too. But I remember your patch, so I
-> sent only this one this time.
+> So those two above look like could be two global vars which are
+> initialized somewhere in the EFI init path:
 > 
-> > See my
-> > patch fixing arm64 here (which I'd forgotten about):
-> > 
-> > https://www.spinics.net/lists/linux-arch/msg38564.html
-> > 
-> > But, as stated in the thread above, I think we should go a step further
-> > and remove FUTEX_OP_{OR,ANDN,XOR,OPARG_SHIFT} altogether. They don't
-> > appear to be used by userspace, and this whole thing is a total mess.
-> > 
-> > Any thoughts?
+> efi_memmap_phys and efi_systab_phys or so.
 > 
-> Ok, I am all for that. I think the only question is who is going to do
-> the work and submit it :)? Do I understand correctly to eliminate all
-> these functions and the path into the kernel? But won't this break API
-> -- are there really no users of this interface?
+> Matt ?
+> 
+> And then you won't need to create that paddr each time on the fly. I
+> mean, it's not a lot of instructions but still...
+ 
+We should already have the physical memmap address available in
+'efi.memmap.phys_map'.
 
-That's the million-dollar question, really. I don't know of any code using
-it, and I couldn't find any when I looked (also nothing reported by Debian
-Codesearch afaict), but I was hoping linux-arch might have some thoughts
-on this too.
+And the physical address of the system table should be in
+'efi_phys.systab'. See efi_init().
 
-For now, I'll queue my arm64 patch before I forget about it again!
-
-Will
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
