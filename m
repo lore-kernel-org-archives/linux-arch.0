@@ -1,22 +1,22 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.codeaurora.org ([198.145.29.96]:33668 "EHLO
+Received: from smtp.codeaurora.org ([198.145.29.96]:34080 "EHLO
         smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S932282AbdEROym (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 May 2017 10:54:42 -0400
+        with ESMTP id S932282AbdEROyt (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 May 2017 10:54:49 -0400
 From: Sricharan R <sricharan@codeaurora.org>
-Subject: [PATCH V4 2/4] iommu: of: Ignore all errors except EPROBE_DEFER
-Date: Thu, 18 May 2017 20:24:15 +0530
-Message-ID: <1495119257-26724-2-git-send-email-sricharan@codeaurora.org>
+Subject: [PATCH V4 3/4] ACPI/IORT: Ignore all errors except EPROBE_DEFER
+Date: Thu, 18 May 2017 20:24:16 +0530
+Message-ID: <1495119257-26724-3-git-send-email-sricharan@codeaurora.org>
 In-Reply-To: <1495119257-26724-1-git-send-email-sricharan@codeaurora.org>
 References: <1495119257-26724-1-git-send-email-sricharan@codeaurora.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: robin.murphy@arm.com, will.deacon@arm.com, joro@8bytes.org, lorenzo.pieralisi@arm.com, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arm-msm@vger.kernel.org, m.szyprowski@samsung.com, bhelgaas@google.com, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, tn@semihalf.com, hanjun.guo@linaro.org, okaya@codeaurora.org, robh+dt@kernel.org, frowand.list@gmail.com, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, sudeep.holla@arm.com, rjw@rjwysocki.net, lenb@kernel.org, catalin.marinas@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, laurent.pinchart@ideasonboard.com, j.neuschaefer@gmx.net, geert@linux-m68k.org, magnus.damm@gmail.com
 Cc: sricharan@codeaurora.org
-Message-ID: <20170518145415.XYfvdnyV6CC73OqWw2toVWGSJX00jbJRTY_2a_ScgZk@z>
+Message-ID: <20170518145416.cwmvNEvhrqYOQs_825FMqiYAgN6MAnWd2R2kxuk3E3o@z>
 
 While deferring the probe of IOMMU masters, xlate and
-add_device callbacks called from of_iommu_configure
+add_device callbacks called from iort_iommu_configure
 can pass back error values like -ENODEV, which means
 the IOMMU cannot be connected with that master for real
 reasons. Before the IOMMU probe deferral, all such errors
@@ -26,23 +26,21 @@ all the errors except EPROBE_DEFER, which is the only one
 of concern and let the master work without IOMMU, thus
 restoring the old behavior.
 
-Fixes: 7b07cbefb68d ("iommu: of: Handle IOMMU lookup failure with deferred probing or error")
-Reported-by: Geert Uytterhoeven <geert@linux-m68k.org>
-Tested-by: Magnus Damn <magnus.damn@gmail.com>
+Fixes: 5a1bb638d567 ("drivers: acpi: Handle IOMMU lookup failure with deferred probing or error")
 Signed-off-by: Sricharan R <sricharan@codeaurora.org>
 ---
-[V4] Reworded commit log and changed dev_info to dev_dbg
+[V4] Added this patch newly.
 
- drivers/iommu/of_iommu.c | 6 ++++++
+ drivers/acpi/arm64/iort.c | 6 ++++++
  1 file changed, 6 insertions(+)
 
-diff --git a/drivers/iommu/of_iommu.c b/drivers/iommu/of_iommu.c
-index e6e9bec..19779b8 100644
---- a/drivers/iommu/of_iommu.c
-+++ b/drivers/iommu/of_iommu.c
-@@ -237,6 +237,12 @@ const struct iommu_ops *of_iommu_configure(struct device *dev,
- 			ops = ERR_PTR(err);
- 	}
+diff --git a/drivers/acpi/arm64/iort.c b/drivers/acpi/arm64/iort.c
+index c5fecf9..16e101f 100644
+--- a/drivers/acpi/arm64/iort.c
++++ b/drivers/acpi/arm64/iort.c
+@@ -782,6 +782,12 @@ const struct iommu_ops *iort_iommu_configure(struct device *dev)
+ 	if (err)
+ 		ops = ERR_PTR(err);
  
 +	/* Ignore all other errors apart from EPROBE_DEFER */
 +	if (IS_ERR(ops) && (PTR_ERR(ops) != -EPROBE_DEFER)) {
