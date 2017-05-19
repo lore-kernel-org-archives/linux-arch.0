@@ -1,42 +1,115 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([184.105.139.130]:49672 "EHLO
-        shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755210AbdESCbP (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 May 2017 22:31:15 -0400
-Date: Thu, 18 May 2017 22:31:13 -0400 (EDT)
-Message-ID: <20170518.223113.1783186374793423172.davem@davemloft.net>
-Subject: Re: [PATCH 4/6] arch/sparc: Enable queued rwlocks for SPARC
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <1495154170-854693-5-git-send-email-babu.moger@oracle.com>
-References: <1495154170-854693-1-git-send-email-babu.moger@oracle.com>
-        <1495154170-854693-5-git-send-email-babu.moger@oracle.com>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Received: from mail.skyhub.de ([5.9.137.197]:44404 "EHLO mail.skyhub.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1755122AbdESL1L (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 19 May 2017 07:27:11 -0400
+Date: Fri, 19 May 2017 13:27:03 +0200
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v5 32/32] x86/mm: Add support to make use of Secure
+ Memory Encryption
+Message-ID: <20170519112703.voajtn4t7uy6nwa3@pd.tnic>
+References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
+ <20170418212223.10190.85121.stgit@tlendack-t1.amdoffice.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20170418212223.10190.85121.stgit@tlendack-t1.amdoffice.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: babu.moger@oracle.com
-Cc: peterz@infradead.org, mingo@redhat.com, arnd@arndb.de, shannon.nelson@oracle.com, haakon.bugge@oracle.com, steven.sistare@oracle.com, vijay.ac.kumar@oracle.com, jane.chu@oracle.com, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20170519023113.HB-zhYQyamkl6KAbuphqMVEe_DObRAT3074lnwmvKcw@z>
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20170519112703.7ecT-6IiTKAAq3BGzhBw9qq5DMgpZu9kRDky1fGCFNU@z>
 
-From: Babu Moger <babu.moger@oracle.com>
-Date: Thu, 18 May 2017 18:36:08 -0600
+On Tue, Apr 18, 2017 at 04:22:23PM -0500, Tom Lendacky wrote:
+> Add support to check if SME has been enabled and if memory encryption
+> should be activated (checking of command line option based on the
+> configuration of the default state).  If memory encryption is to be
+> activated, then the encryption mask is set and the kernel is encrypted
+> "in place."
+> 
+> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+> ---
+>  arch/x86/kernel/head_64.S |    1 +
+>  arch/x86/mm/mem_encrypt.c |   83 +++++++++++++++++++++++++++++++++++++++++++--
+>  2 files changed, 80 insertions(+), 4 deletions(-)
 
-> @@ -82,6 +82,7 @@ config SPARC64
->  	select HAVE_ARCH_AUDITSYSCALL
->  	select ARCH_SUPPORTS_ATOMIC_RMW
->  	select HAVE_NMI
-> +	select ARCH_USE_QUEUED_RWLOCKS
->  
+...
 
-If you are selecting this on SPARC64 all the time, then:
+> +unsigned long __init sme_enable(struct boot_params *bp)
+>  {
+> +	const char *cmdline_ptr, *cmdline_arg, *cmdline_on, *cmdline_off;
+> +	unsigned int eax, ebx, ecx, edx;
+> +	unsigned long me_mask;
+> +	bool active_by_default;
+> +	char buffer[16];
+> +	u64 msr;
+> +
+> +	/* Check for the SME support leaf */
+> +	eax = 0x80000000;
+> +	ecx = 0;
+> +	native_cpuid(&eax, &ebx, &ecx, &edx);
+> +	if (eax < 0x8000001f)
+> +		goto out;
+> +
+> +	/*
+> +	 * Check for the SME feature:
+> +	 *   CPUID Fn8000_001F[EAX] - Bit 0
+> +	 *     Secure Memory Encryption support
+> +	 *   CPUID Fn8000_001F[EBX] - Bits 5:0
+> +	 *     Pagetable bit position used to indicate encryption
+> +	 */
+> +	eax = 0x8000001f;
+> +	ecx = 0;
+> +	native_cpuid(&eax, &ebx, &ecx, &edx);
+> +	if (!(eax & 1))
+> +		goto out;
 
-> @@ -94,6 +94,7 @@ static inline void arch_spin_lock_flags(arch_spinlock_t *lock, unsigned long fla
->  	: "memory");
->  }
->  
-> +#ifndef CONFIG_QUEUED_RWLOCKS
->  /* Multi-reader locks, these are much saner than the 32-bit Sparc ones... */
+<---- newline here.
 
-You can remove this segment of ifdef'd code altogether since it is in
-a sparc64 specific header file.
+> +	me_mask = 1UL << (ebx & 0x3f);
+> +
+> +	/* Check if SME is enabled */
+> +	msr = __rdmsr(MSR_K8_SYSCFG);
+> +	if (!(msr & MSR_K8_SYSCFG_MEM_ENCRYPT))
+> +		goto out;
+> +
+> +	/*
+> +	 * Fixups have not been applied to phys_base yet, so we must obtain
+> +	 * the address to the SME command line option data in the following
+> +	 * way.
+> +	 */
+> +	asm ("lea sme_cmdline_arg(%%rip), %0"
+> +	     : "=r" (cmdline_arg)
+> +	     : "p" (sme_cmdline_arg));
+> +	asm ("lea sme_cmdline_on(%%rip), %0"
+> +	     : "=r" (cmdline_on)
+> +	     : "p" (sme_cmdline_on));
+> +	asm ("lea sme_cmdline_off(%%rip), %0"
+> +	     : "=r" (cmdline_off)
+> +	     : "p" (sme_cmdline_off));
+> +
+> +	if (IS_ENABLED(CONFIG_AMD_MEM_ENCRYPT_ACTIVE_BY_DEFAULT))
+> +		active_by_default = true;
+> +	else
+> +		active_by_default = false;
+> +
+> +	cmdline_ptr = (const char *)((u64)bp->hdr.cmd_line_ptr |
+> +				     ((u64)bp->ext_cmd_line_ptr << 32));
+> +
+> +	cmdline_find_option(cmdline_ptr, cmdline_arg, buffer, sizeof(buffer));
+> +
+> +	if (strncmp(buffer, cmdline_on, sizeof(buffer)) == 0)
+> +		sme_me_mask = me_mask;
+
+Why doesn't simply
+
+	if (!strncmp(buffer, "on", 2))
+		...
+
+work?
+
+-- 
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
