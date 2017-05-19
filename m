@@ -1,116 +1,65 @@
 From: Babu Moger <babu.moger@oracle.com>
-Subject: [PATCH 5/6] arch/sparc: Introduce xchg16 for SPARC
-Date: Thu, 18 May 2017 18:36:09 -0600
-Message-ID: <1495154170-854693-6-git-send-email-babu.moger@oracle.com>
-References: <1495154170-854693-1-git-send-email-babu.moger@oracle.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from aserp1040.oracle.com ([141.146.126.69]:32208 "EHLO
-        aserp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753606AbdESAhA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 May 2017 20:37:00 -0400
-In-Reply-To: <1495154170-854693-1-git-send-email-babu.moger@oracle.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Subject: [PATCH 0/6] Enable queued rwlock and queued spinlock for SPARC
+Date: Thu, 18 May 2017 18:36:04 -0600
+Message-ID: <1495154170-854693-1-git-send-email-babu.moger@oracle.com>
+Return-path: <sparclinux-owner@vger.kernel.org>
+Sender: sparclinux-owner@vger.kernel.org
 To: davem@davemloft.net, peterz@infradead.org, mingo@redhat.com, arnd@arndb.de
 Cc: babu.moger@oracle.com, shannon.nelson@oracle.com, haakon.bugge@oracle.com, steven.sistare@oracle.com, vijay.ac.kumar@oracle.com, jane.chu@oracle.com, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-SPARC supports 32 bit and 64 bit xchg right now. Add the support
-for 16 bit (2 byte) xchg. This is required to support queued spinlock
-feature which uses 2 byte xchg. This is achieved using 4 byte cas
-instructions with byte manipulations.
+This series of patches enables queued rwlock and queued spinlock support
+for SPARC. These features were introduced some time ago in upstream.
+Here are some of the earlier discussions.
+https://lwn.net/Articles/572765/
+https://lwn.net/Articles/582200/
+https://lwn.net/Articles/561775/
+https://lwn.net/Articles/590243/
 
-Also re-arranged the code to call __cmpxchg_u32 inside xchg16.
+Tests: Ran AIM7 benchmark to verify the performance on various workloads.
+https://github.com/davidlohr/areaim. Same benchmark was used when this
+feature was introduced and enabled on x86. Here are the test results.
 
-Signed-off-by: Babu Moger <babu.moger@oracle.com>
-Reviewed-by: Håkon Bugge <haakon.bugge@oracle.com>
-Reviewed-by: Steven Sistare <steven.sistare@oracle.com>
-Reviewed-by: Shannon Nelson <shannon.nelson@oracle.com>
-Reviewed-by: Jane Chu <jane.chu@oracle.com>
-Reviewed-by: Vijay Kumar <vijay.ac.kumar@oracle.com>
----
- arch/sparc/include/asm/cmpxchg_64.h |   49 +++++++++++++++++++++++++++-------
- 1 files changed, 39 insertions(+), 10 deletions(-)
+Kernel				4.11.0-rc6     4.11.0-rc6 + 	Change
+				baseline	queued locks
+			      (Avg No.of jobs) (Avg No.of jobs)
+Workload
+High systime 10-100 user	 17290.48	 17295.18	+0.02
+High systime 200-1000 users	109814.95	110248.87	+0.39
+High systime 1200-2000 users	107912.40	127923.16	+18.54
 
-diff --git a/arch/sparc/include/asm/cmpxchg_64.h b/arch/sparc/include/asm/cmpxchg_64.h
-index 65bfae0..a6c9fe3 100644
---- a/arch/sparc/include/asm/cmpxchg_64.h
-+++ b/arch/sparc/include/asm/cmpxchg_64.h
-@@ -6,6 +6,17 @@
- #ifndef __ARCH_SPARC64_CMPXCHG__
- #define __ARCH_SPARC64_CMPXCHG__
- 
-+static inline unsigned long
-+__cmpxchg_u32(volatile int *m, int old, int new)
-+{
-+	__asm__ __volatile__("cas [%2], %3, %0"
-+			     : "=&r" (new)
-+			     : "0" (new), "r" (m), "r" (old)
-+			     : "memory");
-+
-+	return new;
-+}
-+
- static inline unsigned long xchg32(__volatile__ unsigned int *m, unsigned int val)
- {
- 	unsigned long tmp1, tmp2;
-@@ -44,10 +55,38 @@ static inline unsigned long xchg64(__volatile__ unsigned long *m, unsigned long 
- 
- void __xchg_called_with_bad_pointer(void);
- 
-+/*
-+ * Use 4 byte cas instruction to achieve 2 byte xchg. Main logic
-+ * here is to get the bit shift of the byte we are interested in.
-+ * The XOR is handy for reversing the bits for big-endian byte order.
-+ */
-+static inline unsigned long
-+xchg16(__volatile__ unsigned short *m, unsigned int val)
-+{
-+	unsigned long maddr = (unsigned long)m;
-+	int bit_shift = (((unsigned long)m & 2) ^ 2) << 3;
-+	unsigned int mask = 0xffff << bit_shift;
-+	unsigned int *ptr = (unsigned int  *) (maddr & ~2);
-+	unsigned int old32, new32, load32;
-+
-+	/* Read the old value */
-+	load32 = *ptr;
-+
-+	do {
-+		old32 = load32;
-+		new32 = (load32 & (~mask)) | val << bit_shift;
-+		load32 = __cmpxchg_u32(ptr, old32, new32);
-+	} while (load32 != old32);
-+
-+	return (load32 & mask) >> bit_shift;
-+}
-+
- static inline unsigned long __xchg(unsigned long x, __volatile__ void * ptr,
- 				       int size)
- {
- 	switch (size) {
-+	case 2:
-+		return xchg16(ptr, x);
- 	case 4:
- 		return xchg32(ptr, x);
- 	case 8:
-@@ -65,16 +104,6 @@ static inline unsigned long __xchg(unsigned long x, __volatile__ void * ptr,
- 
- #include <asm-generic/cmpxchg-local.h>
- 
--static inline unsigned long
--__cmpxchg_u32(volatile int *m, int old, int new)
--{
--	__asm__ __volatile__("cas [%2], %3, %0"
--			     : "=&r" (new)
--			     : "0" (new), "r" (m), "r" (old)
--			     : "memory");
--
--	return new;
--}
- 
- static inline unsigned long
- __cmpxchg_u64(volatile long *m, unsigned long old, unsigned long new)
--- 
-1.7.1
+Disk IO 10-100 users		168910.16	158834.17	-5.96
+Disk IO 200-1000 users		242781.74	281285.80	+15.85
+Disk IO 1200-2000 users		228518.23	218421.23	-4.41
+
+Disk IO 10-100 users		183933.77	207928.67	+13.04
+Disk IO 200-1000 users		491981.56	500162.33	+1.66
+Disk IO 1200-2000 users		463395.66	467312.70	+0.84
+
+fserver 10-100 users		254177.53	270283.08	+6.33
+fserver IO 200-1000 users	269017.35	324812.2	+20.74
+fserver IO 1200-2000 users	229538.87	284713.77	+24.03
+
+Disk I/O results are little bit in negative territory. But majority of the 
+performance changes are in positive and it is significant in some cases.
+
+Babu Moger (6):
+  kernel/locking: Fix compile error with qrwlock.c
+  arch/sparc: Define config parameter CPU_BIG_ENDIAN
+  arch/sparc: Introduce cmpxchg_u8 SPARC
+  arch/sparc: Enable queued rwlocks for SPARC
+  arch/sparc: Introduce xchg16 for SPARC
+  arch/sparc: Enable queued spinlock support for SPARC
+
+ arch/sparc/Kconfig                      |    6 +++
+ arch/sparc/include/asm/cmpxchg_64.h     |   76 +++++++++++++++++++++++++++----
+ arch/sparc/include/asm/qrwlock.h        |    7 +++
+ arch/sparc/include/asm/qspinlock.h      |    7 +++
+ arch/sparc/include/asm/spinlock_64.h    |   13 ++++-
+ arch/sparc/include/asm/spinlock_types.h |   10 ++++-
+ include/asm-generic/qrwlock_types.h     |    6 +-
+ kernel/locking/qrwlock.c                |    1 +
+ 8 files changed, 110 insertions(+), 16 deletions(-)
+ create mode 100644 arch/sparc/include/asm/qrwlock.h
+ create mode 100644 arch/sparc/include/asm/qspinlock.h
+
