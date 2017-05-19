@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from userp1040.oracle.com ([156.151.31.81]:46440 "EHLO
-        userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755027AbdESAhR (ORCPT
+Received: from aserp1040.oracle.com ([141.146.126.69]:32277 "EHLO
+        aserp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1755026AbdESAhR (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Thu, 18 May 2017 20:37:17 -0400
 From: Babu Moger <babu.moger@oracle.com>
-Subject: [PATCH 1/6] kernel/locking: Fix compile error with qrwlock.c
-Date: Thu, 18 May 2017 18:36:05 -0600
-Message-ID: <1495154170-854693-2-git-send-email-babu.moger@oracle.com>
+Subject: [PATCH 2/6] arch/sparc: Define config parameter CPU_BIG_ENDIAN
+Date: Thu, 18 May 2017 18:36:06 -0600
+Message-ID: <1495154170-854693-3-git-send-email-babu.moger@oracle.com>
 In-Reply-To: <1495154170-854693-1-git-send-email-babu.moger@oracle.com>
 References: <1495154170-854693-1-git-send-email-babu.moger@oracle.com>
 MIME-Version: 1.0
@@ -16,20 +16,19 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: davem@davemloft.net, peterz@infradead.org, mingo@redhat.com, arnd@arndb.de
 Cc: babu.moger@oracle.com, shannon.nelson@oracle.com, haakon.bugge@oracle.com, steven.sistare@oracle.com, vijay.ac.kumar@oracle.com, jane.chu@oracle.com, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20170519003605.RSrXusZDWeE_pzKOc7B26uqlzJwiZSVbJrn3QJ2RrXk@z>
+Message-ID: <20170519003606.YznmmLdLoWJsBXx-yBPhW6GwuFzJfn3h14DdGNmAJjA@z>
 
-Seeing this error on SPARC while compiling qrwlock.c.
+Found this problem while enabling queued rwlock on SPARC.
+The parameter CONFIG_CPU_BIG_ENDIAN is used to clear the
+specific byte in qrwlock structure. Without this parameter,
+we clear the wrong byte. Here is the code.
 
-  CC      kernel/locking/qrwlock.o
-In file included from ./include/asm-generic/qrwlock_types.h:5,
-                 from ./arch/sparc/include/asm/qrwlock.h:4,
-                 from kernel/locking/qrwlock.c:24:
-./arch/sparc/include/asm/spinlock_types.h:5:3: error:
-        #error "please don't include this file directly"
+static inline u8 *__qrwlock_write_byte(struct qrwlock *lock)
+ {
+	return (u8 *)lock + 3 * IS_BUILTIN(CONFIG_CPU_BIG_ENDIAN);
+ }
 
-Re-arrange the includes in qrwlock_types.h and also include spinlock.h
-in qrwlock.c to fix it. This should also help other architectures when
-queued rwlock is enabled.
+Define CPU_BIG_ENDIAN for SPARC to fix it.
 
 Signed-off-by: Babu Moger <babu.moger@oracle.com>
 Reviewed-by: Håkon Bugge <haakon.bugge@oracle.com>
@@ -37,43 +36,23 @@ Reviewed-by: Jane Chu <jane.chu@oracle.com>
 Reviewed-by: Shannon Nelson <shannon.nelson@oracle.com>
 Reviewed-by: Vijay Kumar <vijay.ac.kumar@oracle.com>
 ---
- include/asm-generic/qrwlock_types.h |    6 +++---
- kernel/locking/qrwlock.c            |    1 +
- 2 files changed, 4 insertions(+), 3 deletions(-)
+ arch/sparc/Kconfig |    4 ++++
+ 1 files changed, 4 insertions(+), 0 deletions(-)
 
-diff --git a/include/asm-generic/qrwlock_types.h b/include/asm-generic/qrwlock_types.h
-index 0abc6b6..3988c7d 100644
---- a/include/asm-generic/qrwlock_types.h
-+++ b/include/asm-generic/qrwlock_types.h
-@@ -1,9 +1,6 @@
- #ifndef __ASM_GENERIC_QRWLOCK_TYPES_H
- #define __ASM_GENERIC_QRWLOCK_TYPES_H
+diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
+index a2ad946..8787fc4 100644
+--- a/arch/sparc/Kconfig
++++ b/arch/sparc/Kconfig
+@@ -91,6 +91,10 @@ config ARCH_DEFCONFIG
+ config ARCH_PROC_KCORE_TEXT
+ 	def_bool y
  
--#include <linux/types.h>
--#include <asm/spinlock_types.h>
--
- /*
-  * The queue read/write lock data structure
-  */
-@@ -18,4 +15,7 @@
- 	.wait_lock = __ARCH_SPIN_LOCK_UNLOCKED,	\
- }
- 
-+#include <linux/types.h>
-+#include <linux/spinlock_types.h>
++config CPU_BIG_ENDIAN
++	bool
++	default y if SPARC64
 +
- #endif /* __ASM_GENERIC_QRWLOCK_TYPES_H */
-diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
-index cc3ed0c..2655f26 100644
---- a/kernel/locking/qrwlock.c
-+++ b/kernel/locking/qrwlock.c
-@@ -20,6 +20,7 @@
- #include <linux/cpumask.h>
- #include <linux/percpu.h>
- #include <linux/hardirq.h>
-+#include <linux/spinlock.h>
- #include <asm/qrwlock.h>
- 
- /*
+ config ARCH_ATU
+ 	bool
+ 	default y if SPARC64
 -- 
 1.7.1
