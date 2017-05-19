@@ -1,44 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-cys01nam02on0061.outbound.protection.outlook.com ([104.47.37.61]:19168
-        "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S932518AbdESVHm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 19 May 2017 17:07:42 -0400
+Received: from mail.skyhub.de ([5.9.137.197]:38632 "EHLO mail.skyhub.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1756080AbdESV3F (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 19 May 2017 17:29:05 -0400
+Date: Fri, 19 May 2017 23:28:54 +0200
+From: Borislav Petkov <bp@alien8.de>
 Subject: Re: [PATCH v5 28/32] x86/mm, kexec: Allow kexec to be used with SME
+Message-ID: <20170519212854.3dvtt3lawzij5cae@pd.tnic>
 References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
  <20170418212121.10190.94885.stgit@tlendack-t1.amdoffice.net>
  <20170517191755.h2xluopk2p6suw32@pd.tnic>
  <1b74e0e6-3dda-f638-461b-f73af9904360@amd.com>
  <20170519205836.3wvl3nztqyyouje3@pd.tnic>
-From: Tom Lendacky <thomas.lendacky@amd.com>
-Message-ID: <5ef96f3a-6ebd-1d4d-7ac9-05dbed45d998@amd.com>
-Date: Fri, 19 May 2017 16:07:24 -0500
+ <5ef96f3a-6ebd-1d4d-7ac9-05dbed45d998@amd.com>
 MIME-Version: 1.0
-In-Reply-To: <20170519205836.3wvl3nztqyyouje3@pd.tnic>
-Content-Type: text/plain; charset="utf-8"; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <5ef96f3a-6ebd-1d4d-7ac9-05dbed45d998@amd.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170519210724.XH2O-ocQ_FiwnjKL_Bv6jlQppQZAe-i3wo9d3YPF1-g@z>
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20170519212854.lrVrdJdcK0DkpeZgAe1EaRTEhY5MU5qZaYIGSRvNgH0@z>
 
-On 5/19/2017 3:58 PM, Borislav Petkov wrote:
-> On Fri, May 19, 2017 at 03:45:28PM -0500, Tom Lendacky wrote:
->> Actually there is.  The above will result in data in the cache because
->> halt() turns into a function call if CONFIG_PARAVIRT is defined (refer
->> to the comment above where do_wbinvd_halt is set to true). I could make
->> this a native_wbinvd() and native_halt()
->
-> That's why we have the native_* versions - to bypass paravirt crap.
+On Fri, May 19, 2017 at 04:07:24PM -0500, Tom Lendacky wrote:
+> As long as those never change from static inline everything will be
+> fine. I can change it, but I really like how it explicitly indicates
 
-As long as those never change from static inline everything will be
-fine. I can change it, but I really like how it explicitly indicates
-what is needed in this case. Even if the function gets changed from
-static inline the fact that the instructions are sequential in the
-function covers that case.
+I know what you want to do. But you're practically defining a helper
+which contains two arbitrary instructions which probably no one else
+will need.
 
-Thanks,
-Tom
+So how about we simplify this function even more. We don't need to pay
+attention to kexec being in progress because we're halting anyway so who
+cares how fast we halt.
 
->
+Might have to state that in the comment below though, instead of what's
+there now.
+
+And for the exact same moot reason, we don't need to look at SME CPUID
+feature - we can just as well WBINVD unconditionally.
+
+void stop_this_cpu(void *dummy)
+{
+        local_irq_disable();
+        /*
+         * Remove this CPU:
+         */
+        set_cpu_online(smp_processor_id(), false);
+        disable_local_APIC();
+        mcheck_cpu_clear(this_cpu_ptr(&cpu_info));
+
+        for (;;) {
+                /*
+                 * If we are performing a kexec and the processor supports
+                 * SME then we need to clear out cache information before
+                 * halting. With kexec, going from SME inactive to SME active
+                 * requires clearing cache entries so that addresses without
+                 * the encryption bit set don't corrupt the same physical
+                 * address that has the encryption bit set when caches are
+                 * flushed. Perform a wbinvd followed by a halt to achieve
+                 * this.
+                 */
+                asm volatile("wbinvd; hlt" ::: "memory");
+        }
+}
+
+How's that?
+
+-- 
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
