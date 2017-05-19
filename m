@@ -1,60 +1,116 @@
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [RFC] arch hardlockup detector interfaces improvement
-Date: Fri, 19 May 2017 09:07:31 +1000
-Message-ID: <20170519090731.1e49cd0d@roar.ozlabs.ibm.com>
-References: <20170518155026.23799-1-npiggin@gmail.com>
-        <20170518163028.tf2llimuo4l4l5nv@redhat.com>
+From: Babu Moger <babu.moger@oracle.com>
+Subject: [PATCH 5/6] arch/sparc: Introduce xchg16 for SPARC
+Date: Thu, 18 May 2017 18:36:09 -0600
+Message-ID: <1495154170-854693-6-git-send-email-babu.moger@oracle.com>
+References: <1495154170-854693-1-git-send-email-babu.moger@oracle.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f68.google.com ([74.125.83.68]:34855 "EHLO
-        mail-pg0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753621AbdERXHq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 May 2017 19:07:46 -0400
-In-Reply-To: <20170518163028.tf2llimuo4l4l5nv@redhat.com>
+Received: from aserp1040.oracle.com ([141.146.126.69]:32208 "EHLO
+        aserp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753606AbdESAhA (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 May 2017 20:37:00 -0400
+In-Reply-To: <1495154170-854693-1-git-send-email-babu.moger@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Don Zickus <dzickus@redhat.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, adi-buildroot-devel@lists.sourceforge.net, linux-am33-list@redhat.com, sparclinux@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, uobergfe@redhat.com
+To: davem@davemloft.net, peterz@infradead.org, mingo@redhat.com, arnd@arndb.de
+Cc: babu.moger@oracle.com, shannon.nelson@oracle.com, haakon.bugge@oracle.com, steven.sistare@oracle.com, vijay.ac.kumar@oracle.com, jane.chu@oracle.com, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Thu, 18 May 2017 12:30:28 -0400
-Don Zickus <dzickus@redhat.com> wrote:
+SPARC supports 32 bit and 64 bit xchg right now. Add the support
+for 16 bit (2 byte) xchg. This is required to support queued spinlock
+feature which uses 2 byte xchg. This is achieved using 4 byte cas
+instructions with byte manipulations.
 
-> (adding Uli)
-> 
-> On Fri, May 19, 2017 at 01:50:26AM +1000, Nicholas Piggin wrote:
-> > I'd like to make it easier for architectures that have their own NMI /
-> > hard lockup detector to reuse various configuration interfaces that are
-> > provided by generic detectors (cmdline, sysctl, suspend/resume calls).
-> > 
-> > I'd also like to remove the dependency of arch hard lockup detectors
-> > on the softlockup detector. The reason being these watchdogs can be
-> > very small (sparc's is like a page of core code that does not use any
-> > big subsystem like kthreads or timers).
-> > 
-> > So I do this by adding a separate CONFIG_SOFTLOCKUP_DETECTOR, and
-> > juggling around what goes under config options. HAVE_NMI_WATCHDOG
-> > continues to be the config for arch to override the hard lockup
-> > detector, which is expanded to cover a few more cases.  
-> 
-> Basically you are trying to remove the heavy HARDLOCKUP pieces to minimize
-> the SOFTLOCKUP piece and use your own NMI detector, right?
-> 
-> I am guessing you would then disable SOFTLOCKUP to remove all the kthread
-> and timer stuff but continue to use the generic infrastructure to help
-> manager your own NMI detector?
+Also re-arranged the code to call __cmpxchg_u32 inside xchg16.
 
-Yes that's right.
+Signed-off-by: Babu Moger <babu.moger@oracle.com>
+Reviewed-by: Håkon Bugge <haakon.bugge@oracle.com>
+Reviewed-by: Steven Sistare <steven.sistare@oracle.com>
+Reviewed-by: Shannon Nelson <shannon.nelson@oracle.com>
+Reviewed-by: Jane Chu <jane.chu@oracle.com>
+Reviewed-by: Vijay Kumar <vijay.ac.kumar@oracle.com>
+---
+ arch/sparc/include/asm/cmpxchg_64.h |   49 +++++++++++++++++++++++++++-------
+ 1 files changed, 39 insertions(+), 10 deletions(-)
 
-> A lot of the code is just re-organizing things and adding an explicit
-> ifdef on SOFTLOCKUP, which seems fine to me.
-> 
-> I just need to spend some time on some of your #else clauses to see what
-> functionality is dropped when you use your approach.
-
-Okay, appreciated. I can trim down cc lists and send you my powerpc
-WIP if you'd like to have a look.
-
-Thanks,
-Nick
+diff --git a/arch/sparc/include/asm/cmpxchg_64.h b/arch/sparc/include/asm/cmpxchg_64.h
+index 65bfae0..a6c9fe3 100644
+--- a/arch/sparc/include/asm/cmpxchg_64.h
++++ b/arch/sparc/include/asm/cmpxchg_64.h
+@@ -6,6 +6,17 @@
+ #ifndef __ARCH_SPARC64_CMPXCHG__
+ #define __ARCH_SPARC64_CMPXCHG__
+ 
++static inline unsigned long
++__cmpxchg_u32(volatile int *m, int old, int new)
++{
++	__asm__ __volatile__("cas [%2], %3, %0"
++			     : "=&r" (new)
++			     : "0" (new), "r" (m), "r" (old)
++			     : "memory");
++
++	return new;
++}
++
+ static inline unsigned long xchg32(__volatile__ unsigned int *m, unsigned int val)
+ {
+ 	unsigned long tmp1, tmp2;
+@@ -44,10 +55,38 @@ static inline unsigned long xchg64(__volatile__ unsigned long *m, unsigned long 
+ 
+ void __xchg_called_with_bad_pointer(void);
+ 
++/*
++ * Use 4 byte cas instruction to achieve 2 byte xchg. Main logic
++ * here is to get the bit shift of the byte we are interested in.
++ * The XOR is handy for reversing the bits for big-endian byte order.
++ */
++static inline unsigned long
++xchg16(__volatile__ unsigned short *m, unsigned int val)
++{
++	unsigned long maddr = (unsigned long)m;
++	int bit_shift = (((unsigned long)m & 2) ^ 2) << 3;
++	unsigned int mask = 0xffff << bit_shift;
++	unsigned int *ptr = (unsigned int  *) (maddr & ~2);
++	unsigned int old32, new32, load32;
++
++	/* Read the old value */
++	load32 = *ptr;
++
++	do {
++		old32 = load32;
++		new32 = (load32 & (~mask)) | val << bit_shift;
++		load32 = __cmpxchg_u32(ptr, old32, new32);
++	} while (load32 != old32);
++
++	return (load32 & mask) >> bit_shift;
++}
++
+ static inline unsigned long __xchg(unsigned long x, __volatile__ void * ptr,
+ 				       int size)
+ {
+ 	switch (size) {
++	case 2:
++		return xchg16(ptr, x);
+ 	case 4:
+ 		return xchg32(ptr, x);
+ 	case 8:
+@@ -65,16 +104,6 @@ static inline unsigned long __xchg(unsigned long x, __volatile__ void * ptr,
+ 
+ #include <asm-generic/cmpxchg-local.h>
+ 
+-static inline unsigned long
+-__cmpxchg_u32(volatile int *m, int old, int new)
+-{
+-	__asm__ __volatile__("cas [%2], %3, %0"
+-			     : "=&r" (new)
+-			     : "0" (new), "r" (m), "r" (old)
+-			     : "memory");
+-
+-	return new;
+-}
+ 
+ static inline unsigned long
+ __cmpxchg_u64(volatile long *m, unsigned long old, unsigned long new)
+-- 
+1.7.1
