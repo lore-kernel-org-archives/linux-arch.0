@@ -1,70 +1,107 @@
-From: Don Zickus <dzickus@redhat.com>
-Subject: Re: [RFC] arch hardlockup detector interfaces improvement
-Date: Fri, 19 May 2017 15:43:45 -0400
-Message-ID: <20170519194345.gfwtuprrolk7sgwm@redhat.com>
-References: <20170518155026.23799-1-npiggin@gmail.com>
- <20170518163028.tf2llimuo4l4l5nv@redhat.com>
- <20170519090731.1e49cd0d@roar.ozlabs.ibm.com>
- <20170519131753.sccuu7mksjertzni@redhat.com>
- <20170520005306.13172dc7@roar.ozlabs.ibm.com>
+From: Tom Lendacky <thomas.lendacky@amd.com>
+Subject: Re: [PATCH v5 19/32] x86/mm: Add support to access persistent memory
+ in the clear
+Date: Fri, 19 May 2017 14:52:58 -0500
+Message-ID: <adce040c-66ba-55ad-4431-780b9c8d1d72@amd.com>
+References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
+ <20170418211941.10190.19751.stgit@tlendack-t1.amdoffice.net>
+ <20170516140449.zmp3sm4krro55bbi@pd.tnic>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <sparclinux-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20170520005306.13172dc7@roar.ozlabs.ibm.com>
-Sender: sparclinux-owner@vger.kernel.org
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, adi-buildroot-devel@lists.sourceforge.net, linux-am33-list@redhat.com, sparclinux@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, uobergfe@redhat.com
+Content-Type: text/plain; charset="utf-8"; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20170516140449.zmp3sm4krro55bbi@pd.tnic>
+Sender: owner-linux-mm@kvack.org
+To: Borislav Petkov <bp@alien8.de>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S.
+ Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter
+ Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Sat, May 20, 2017 at 12:53:06AM +1000, Nicholas Piggin wrote:
-> > I am curious to know what IBM thinks there.  Currently the HARDLOCKUP
-> > detector sits on top of perf.  I get the impression, you are removing that
-> > dependency.  Is that a permanent thing or are you thinking of switching back
-> > and forth depending on if SOFTLOCKUP is enabled or not?
-> 
-> We want to get away from perf permanently.
-> 
-> The PMU interrupts are not specially non-maskable from a hardware
-> POV, everything gets masked when you turn off interrupts in hardware.
-> powerpc arch code implements a software disable layer, and PMU
-> interrupts are differentiated there by being allowed to run even
-> under local_irq_disable();
-> 
-> We have a few issues with using perf for it. We disable it by
-> default because using it for that breaks another PMU feature.
-> 
-> But PMU interupts are not special, so it would be possible to e.g.,
-> take the timer interrupt before soft disable and have it touch the
-> watchdog if it fires while under local_irq_disable(). That give
-> exact same kind of pseudo-NMI as perf interrupts, without using PMU.
-> 
-> Further, we now want to introduce a local_pmu_disable() type of
-> interface that extends this soft disable layer to perf interrupts
-> as well for some cases. Once we start doing that, more code will
-> be exempt from the hardlockup watchdog, whereas a watchdog specific
-> hook from the timer interrupt would still cover it.
+On 5/16/2017 9:04 AM, Borislav Petkov wrote:
+> On Tue, Apr 18, 2017 at 04:19:42PM -0500, Tom Lendacky wrote:
+>> Persistent memory is expected to persist across reboots. The encryption
+>> key used by SME will change across reboots which will result in corrupted
+>> persistent memory.  Persistent memory is handed out by block devices
+>> through memory remapping functions, so be sure not to map this memory as
+>> encrypted.
+>>
+>> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+>> ---
+>>  arch/x86/mm/ioremap.c |   31 ++++++++++++++++++++++++++++++-
+>>  1 file changed, 30 insertions(+), 1 deletion(-)
+>>
+>> diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
+>> index bce0604..55317ba 100644
+>> --- a/arch/x86/mm/ioremap.c
+>> +++ b/arch/x86/mm/ioremap.c
+>> @@ -425,17 +425,46 @@ void unxlate_dev_mem_ptr(phys_addr_t phys, void *addr)
+>>   * Examine the physical address to determine if it is an area of memory
+>>   * that should be mapped decrypted.  If the memory is not part of the
+>>   * kernel usable area it was accessed and created decrypted, so these
+>> - * areas should be mapped decrypted.
+>> + * areas should be mapped decrypted. And since the encryption key can
+>> + * change across reboots, persistent memory should also be mapped
+>> + * decrypted.
+>>   */
+>>  static bool memremap_should_map_decrypted(resource_size_t phys_addr,
+>>  					  unsigned long size)
+>>  {
+>> +	int is_pmem;
+>> +
+>> +	/*
+>> +	 * Check if the address is part of a persistent memory region.
+>> +	 * This check covers areas added by E820, EFI and ACPI.
+>> +	 */
+>> +	is_pmem = region_intersects(phys_addr, size, IORESOURCE_MEM,
+>> +				    IORES_DESC_PERSISTENT_MEMORY);
+>> +	if (is_pmem != REGION_DISJOINT)
+>> +		return true;
+>> +
+>> +	/*
+>> +	 * Check if the non-volatile attribute is set for an EFI
+>> +	 * reserved area.
+>> +	 */
+>> +	if (efi_enabled(EFI_BOOT)) {
+>> +		switch (efi_mem_type(phys_addr)) {
+>> +		case EFI_RESERVED_TYPE:
+>> +			if (efi_mem_attributes(phys_addr) & EFI_MEMORY_NV)
+>> +				return true;
+>> +			break;
+>> +		default:
+>> +			break;
+>> +		}
+>> +	}
+>> +
+>>  	/* Check if the address is outside kernel usable area */
+>>  	switch (e820__get_entry_type(phys_addr, phys_addr + size - 1)) {
+>>  	case E820_TYPE_RESERVED:
+>>  	case E820_TYPE_ACPI:
+>>  	case E820_TYPE_NVS:
+>>  	case E820_TYPE_UNUSABLE:
+>> +	case E820_TYPE_PRAM:
+>
+> Can't you simply add:
+>
+> 	case E820_TYPE_PMEM:
+>
+> here too and thus get rid of the region_intersects() thing above?
+>
+> Because, for example, e820_type_to_iores_desc() maps E820_TYPE_PMEM to
+> IORES_DESC_PERSISTENT_MEMORY so those should be equivalent...
 
-Interesting.  Thanks for that info.
+I'll have to double-check this, but I believe that when persistent
+memory is identified through the NFIT table it adds it as a resource
+but doesn't add it as an e820 entry so I can't rely on the type being
+returned as E820_TYPE_PMEM by e820__get_entry_type().
 
-Do you think you can split the patch in half for me?  You are shuffling code
-around and making subtle changes in the shuffled code.  It is hard to double
-check everything.  Namely watchdog_nmi_reconfigure and watchdog_update_cpus
-suddenly appear.
+Thanks,
+Tom
 
-The first patch would be straight code movement, the second the real
-changes.  I almost don't care if you throw in the LOCKUP->SOFTLOCKUP changes
-in the first patch either.
+>
 
-I am really interested in the subtle changes to make sure you covered the
-various race conditions that we have uncovered over the years.
-
-I also would like to see a sample of the watchdog_nmi_reconfigure() you had
-in mind.  Usually we hide all the nmi stuff underneath the watchdog
-functions.  But those are threaded, which is what you are trying to avoid,
-so the placement of the function makes sense but looks odd.
-
-Thanks!
-
-Cheers,
-Don
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
