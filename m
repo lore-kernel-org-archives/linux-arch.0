@@ -1,81 +1,82 @@
-From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: Re: [PATCH v5 28/32] x86/mm, kexec: Allow kexec to be used with SME
-Date: Fri, 19 May 2017 16:38:07 -0500
-Message-ID: <8baa170c-f0bd-3e5d-17d9-a031f4ff943c@amd.com>
-References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
- <20170418212121.10190.94885.stgit@tlendack-t1.amdoffice.net>
- <20170517191755.h2xluopk2p6suw32@pd.tnic>
- <1b74e0e6-3dda-f638-461b-f73af9904360@amd.com>
- <20170519205836.3wvl3nztqyyouje3@pd.tnic>
- <5ef96f3a-6ebd-1d4d-7ac9-05dbed45d998@amd.com>
- <20170519212854.3dvtt3lawzij5cae@pd.tnic>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [RFC] arch hardlockup detector interfaces improvement
+Date: Sat, 20 May 2017 08:53:57 +1000
+Message-ID: <20170520085357.245c62af@roar.ozlabs.ibm.com>
+References: <20170518155026.23799-1-npiggin@gmail.com>
+        <20170518163028.tf2llimuo4l4l5nv@redhat.com>
+        <20170519090731.1e49cd0d@roar.ozlabs.ibm.com>
+        <20170519131753.sccuu7mksjertzni@redhat.com>
+        <20170520005306.13172dc7@roar.ozlabs.ibm.com>
+        <20170519194345.gfwtuprrolk7sgwm@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"; format=flowed
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20170519212854.3dvtt3lawzij5cae@pd.tnic>
-Sender: owner-linux-mm@kvack.org
-To: Borislav Petkov <bp@alien8.de>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S.
- Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter
- Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>
+Return-path: <sparclinux-owner@vger.kernel.org>
+In-Reply-To: <20170519194345.gfwtuprrolk7sgwm@redhat.com>
+Sender: sparclinux-owner@vger.kernel.org
+To: Don Zickus <dzickus@redhat.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, adi-buildroot-devel@lists.sourceforge.net, linux-am33-list@redhat.com, sparclinux@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, uobergfe@redhat.com
 List-Id: linux-arch.vger.kernel.org
 
-On 5/19/2017 4:28 PM, Borislav Petkov wrote:
-> On Fri, May 19, 2017 at 04:07:24PM -0500, Tom Lendacky wrote:
->> As long as those never change from static inline everything will be
->> fine. I can change it, but I really like how it explicitly indicates
->
-> I know what you want to do. But you're practically defining a helper
-> which contains two arbitrary instructions which probably no one else
-> will need.
->
-> So how about we simplify this function even more. We don't need to pay
-> attention to kexec being in progress because we're halting anyway so who
-> cares how fast we halt.
->
-> Might have to state that in the comment below though, instead of what's
-> there now.
->
-> And for the exact same moot reason, we don't need to look at SME CPUID
-> feature - we can just as well WBINVD unconditionally.
->
-> void stop_this_cpu(void *dummy)
-> {
->         local_irq_disable();
->         /*
->          * Remove this CPU:
->          */
->         set_cpu_online(smp_processor_id(), false);
->         disable_local_APIC();
->         mcheck_cpu_clear(this_cpu_ptr(&cpu_info));
->
->         for (;;) {
->                 /*
->                  * If we are performing a kexec and the processor supports
->                  * SME then we need to clear out cache information before
->                  * halting. With kexec, going from SME inactive to SME active
->                  * requires clearing cache entries so that addresses without
->                  * the encryption bit set don't corrupt the same physical
->                  * address that has the encryption bit set when caches are
->                  * flushed. Perform a wbinvd followed by a halt to achieve
->                  * this.
->                  */
->                 asm volatile("wbinvd; hlt" ::: "memory");
->         }
-> }
->
-> How's that?
+On Fri, 19 May 2017 15:43:45 -0400
+Don Zickus <dzickus@redhat.com> wrote:
 
-I can live with that!
+> On Sat, May 20, 2017 at 12:53:06AM +1000, Nicholas Piggin wrote:
+> > > I am curious to know what IBM thinks there.  Currently the HARDLOCKUP
+> > > detector sits on top of perf.  I get the impression, you are removing that
+> > > dependency.  Is that a permanent thing or are you thinking of switching back
+> > > and forth depending on if SOFTLOCKUP is enabled or not?  
+> > 
+> > We want to get away from perf permanently.
+> > 
+> > The PMU interrupts are not specially non-maskable from a hardware
+> > POV, everything gets masked when you turn off interrupts in hardware.
+> > powerpc arch code implements a software disable layer, and PMU
+> > interrupts are differentiated there by being allowed to run even
+> > under local_irq_disable();
+> > 
+> > We have a few issues with using perf for it. We disable it by
+> > default because using it for that breaks another PMU feature.
+> > 
+> > But PMU interupts are not special, so it would be possible to e.g.,
+> > take the timer interrupt before soft disable and have it touch the
+> > watchdog if it fires while under local_irq_disable(). That give
+> > exact same kind of pseudo-NMI as perf interrupts, without using PMU.
+> > 
+> > Further, we now want to introduce a local_pmu_disable() type of
+> > interface that extends this soft disable layer to perf interrupts
+> > as well for some cases. Once we start doing that, more code will
+> > be exempt from the hardlockup watchdog, whereas a watchdog specific
+> > hook from the timer interrupt would still cover it.  
+> 
+> Interesting.  Thanks for that info.
+> 
+> Do you think you can split the patch in half for me?  You are shuffling code
+> around and making subtle changes in the shuffled code.  It is hard to double
+> check everything.  Namely watchdog_nmi_reconfigure and watchdog_update_cpus
+> suddenly appear.
+> 
+> The first patch would be straight code movement, the second the real
+> changes.  I almost don't care if you throw in the LOCKUP->SOFTLOCKUP changes
+> in the first patch either.
+> 
+> I am really interested in the subtle changes to make sure you covered the
+> various race conditions that we have uncovered over the years.
+
+Yes that makes sense, I'll do that.
+
+> I also would like to see a sample of the watchdog_nmi_reconfigure() you had
+> in mind.  Usually we hide all the nmi stuff underneath the watchdog
+> functions.  But those are threaded, which is what you are trying to avoid,
+> so the placement of the function makes sense but looks odd.
+
+I'm just calling it after any sysctl changes or suspend/resume etc, and
+the lockup detector I have basically just shuts down everything and
+then re-starts with the new parameters (could be made much fancier but
+I didn't see a need.
+
+I will split out this patch and re-post to you with the powerpc patch in
+the series that you can take a look at.
 
 Thanks,
-Tom
-
->
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Nick
