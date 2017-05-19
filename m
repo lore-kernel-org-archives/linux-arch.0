@@ -1,93 +1,39 @@
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [RFC] arch hardlockup detector interfaces improvement
-Date: Sat, 20 May 2017 00:53:06 +1000
-Message-ID: <20170520005306.13172dc7@roar.ozlabs.ibm.com>
-References: <20170518155026.23799-1-npiggin@gmail.com>
-        <20170518163028.tf2llimuo4l4l5nv@redhat.com>
-        <20170519090731.1e49cd0d@roar.ozlabs.ibm.com>
-        <20170519131753.sccuu7mksjertzni@redhat.com>
+From: Babu Moger <babu.moger@oracle.com>
+Subject: Re: [PATCH 2/6] arch/sparc: Define config parameter CPU_BIG_ENDIAN
+Date: Fri, 19 May 2017 11:26:26 -0500
+Message-ID: <a73ea688-ea81-7423-0b71-c00fe1162cc4@oracle.com>
+References: <1495154170-854693-1-git-send-email-babu.moger@oracle.com>
+ <1495154170-854693-3-git-send-email-babu.moger@oracle.com>
+ <20170518.222629.750013339888739217.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset=windows-1252; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f196.google.com ([209.85.192.196]:36567 "EHLO
-        mail-pf0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751487AbdESOxZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 May 2017 10:53:25 -0400
-In-Reply-To: <20170519131753.sccuu7mksjertzni@redhat.com>
+Received: from aserp1040.oracle.com ([141.146.126.69]:41291 "EHLO
+        aserp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750771AbdESQ1I (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 May 2017 12:27:08 -0400
+In-Reply-To: <20170518.222629.750013339888739217.davem@davemloft.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Don Zickus <dzickus@redhat.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, adi-buildroot-devel@lists.sourceforge.net, linux-am33-list@redhat.com, sparclinux@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, uobergfe@redhat.com
+To: David Miller <davem@davemloft.net>
+Cc: peterz@infradead.org, mingo@redhat.com, arnd@arndb.de, shannon.nelson@oracle.com, haakon.bugge@oracle.com, steven.sistare@oracle.com, vijay.ac.kumar@oracle.com, jane.chu@oracle.com, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Fri, 19 May 2017 09:17:53 -0400
-Don Zickus <dzickus@redhat.com> wrote:
 
-> On Fri, May 19, 2017 at 09:07:31AM +1000, Nicholas Piggin wrote:
-> > On Thu, 18 May 2017 12:30:28 -0400
-> > Don Zickus <dzickus@redhat.com> wrote:
-> >   
-> > > (adding Uli)
-> > > 
-> > > On Fri, May 19, 2017 at 01:50:26AM +1000, Nicholas Piggin wrote:  
-> > > > I'd like to make it easier for architectures that have their own NMI /
-> > > > hard lockup detector to reuse various configuration interfaces that are
-> > > > provided by generic detectors (cmdline, sysctl, suspend/resume calls).
-> > > > 
-> > > > I'd also like to remove the dependency of arch hard lockup detectors
-> > > > on the softlockup detector. The reason being these watchdogs can be
-> > > > very small (sparc's is like a page of core code that does not use any
-> > > > big subsystem like kthreads or timers).
-> > > > 
-> > > > So I do this by adding a separate CONFIG_SOFTLOCKUP_DETECTOR, and
-> > > > juggling around what goes under config options. HAVE_NMI_WATCHDOG
-> > > > continues to be the config for arch to override the hard lockup
-> > > > detector, which is expanded to cover a few more cases.    
-> > > 
-> > > Basically you are trying to remove the heavy HARDLOCKUP pieces to minimize
-> > > the SOFTLOCKUP piece and use your own NMI detector, right?
-> > > 
-> > > I am guessing you would then disable SOFTLOCKUP to remove all the kthread
-> > > and timer stuff but continue to use the generic infrastructure to help
-> > > manager your own NMI detector?  
-> > 
-> > Yes that's right.
-> >   
-> > > A lot of the code is just re-organizing things and adding an explicit
-> > > ifdef on SOFTLOCKUP, which seems fine to me.
-> > > 
-> > > I just need to spend some time on some of your #else clauses to see what
-> > > functionality is dropped when you use your approach.  
-> > 
-> > Okay, appreciated. I can trim down cc lists and send you my powerpc
-> > WIP if you'd like to have a look.  
-> 
-> I am curious to know what IBM thinks there.  Currently the HARDLOCKUP
-> detector sits on top of perf.  I get the impression, you are removing that
-> dependency.  Is that a permanent thing or are you thinking of switching back
-> and forth depending on if SOFTLOCKUP is enabled or not?
+On 5/18/2017 9:26 PM, David Miller wrote:
+> From: Babu Moger <babu.moger@oracle.com>
+> Date: Thu, 18 May 2017 18:36:06 -0600
+>
+>> @@ -91,6 +91,10 @@ config ARCH_DEFCONFIG
+>>   config ARCH_PROC_KCORE_TEXT
+>>   	def_bool y
+>>   
+>> +config CPU_BIG_ENDIAN
+>> +	bool
+>> +	default y if SPARC64
+>> +
+> 32-bit sparc is big-endian too :-)
+>
+> So please don't use SPARC64 for the setting, use plain SPARC instead.
 
-We want to get away from perf permanently.
-
-The PMU interrupts are not specially non-maskable from a hardware
-POV, everything gets masked when you turn off interrupts in hardware.
-powerpc arch code implements a software disable layer, and PMU
-interrupts are differentiated there by being allowed to run even
-under local_irq_disable();
-
-We have a few issues with using perf for it. We disable it by
-default because using it for that breaks another PMU feature.
-
-But PMU interupts are not special, so it would be possible to e.g.,
-take the timer interrupt before soft disable and have it touch the
-watchdog if it fires while under local_irq_disable(). That give
-exact same kind of pseudo-NMI as perf interrupts, without using PMU.
-
-Further, we now want to introduce a local_pmu_disable() type of
-interface that extends this soft disable layer to perf interrupts
-as well for some cases. Once we start doing that, more code will
-be exempt from the hardlockup watchdog, whereas a watchdog specific
-hook from the timer interrupt would still cover it.
-
-Thanks,
-Nick
+Ok. Sure. Will do.
