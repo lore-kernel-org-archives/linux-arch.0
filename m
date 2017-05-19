@@ -1,40 +1,96 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2nam01on0054.outbound.protection.outlook.com ([104.47.34.54]:15797
-        "EHLO NAM01-BY2-obe.outbound.protection.outlook.com"
+Received: from mail-sn1nam02on0058.outbound.protection.outlook.com ([104.47.36.58]:49568
+        "EHLO NAM02-SN1-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752846AbdESTyR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 19 May 2017 15:54:17 -0400
-Subject: Re: [PATCH v5 22/32] x86, swiotlb: DMA support for memory encryption
+        id S1750810AbdESTzi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 19 May 2017 15:55:38 -0400
+Subject: Re: [PATCH v5 23/32] swiotlb: Add warnings for use of bounce buffers
+ with SME
 References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
- <20170418212010.10190.78119.stgit@tlendack-t1.amdoffice.net>
- <20170516142740.sxfzkvghxubj2okr@pd.tnic>
+ <20170418212019.10190.24034.stgit@tlendack-t1.amdoffice.net>
+ <20170516145209.ltbmaq3a2teqr2uv@pd.tnic>
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Message-ID: <af97ac86-bfa8-2bd3-f785-fe5cb1b95f8f@amd.com>
-Date: Fri, 19 May 2017 14:54:08 -0500
+Message-ID: <64f72c46-75df-ce67-e81a-3b85cfe4c7d1@amd.com>
+Date: Fri, 19 May 2017 14:55:29 -0500
 MIME-Version: 1.0
-In-Reply-To: <20170516142740.sxfzkvghxubj2okr@pd.tnic>
+In-Reply-To: <20170516145209.ltbmaq3a2teqr2uv@pd.tnic>
 Content-Type: text/plain; charset="utf-8"; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Borislav Petkov <bp@alien8.de>
 Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170519195408.BpmqX_UNEHpnoSvIYqg7EiIyCS2R_zdvVh5SLd0NLcs@z>
+Message-ID: <20170519195529.JrekyWXa-TLQ3xpulbutezG2kz30exLNTYyFgM9zKzQ@z>
 
-On 5/16/2017 9:27 AM, Borislav Petkov wrote:
-> On Tue, Apr 18, 2017 at 04:20:10PM -0500, Tom Lendacky wrote:
->> Since DMA addresses will effectively look like 48-bit addresses when the
->> memory encryption mask is set, SWIOTLB is needed if the DMA mask of the
->> device performing the DMA does not support 48-bits. SWIOTLB will be
->> initialized to create decrypted bounce buffers for use by these devices.
+On 5/16/2017 9:52 AM, Borislav Petkov wrote:
+> On Tue, Apr 18, 2017 at 04:20:19PM -0500, Tom Lendacky wrote:
+>> Add warnings to let the user know when bounce buffers are being used for
+>> DMA when SME is active.  Since the bounce buffers are not in encrypted
+>> memory, these notifications are to allow the user to determine some
+>> appropriate action - if necessary.
+>>
+>> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+>> ---
+>>  arch/x86/include/asm/mem_encrypt.h |   11 +++++++++++
+>>  include/linux/dma-mapping.h        |   11 +++++++++++
+>>  include/linux/mem_encrypt.h        |    6 ++++++
+>>  lib/swiotlb.c                      |    3 +++
+>>  4 files changed, 31 insertions(+)
+>>
+>> diff --git a/arch/x86/include/asm/mem_encrypt.h b/arch/x86/include/asm/mem_encrypt.h
+>> index 0637b4b..b406df2 100644
+>> --- a/arch/x86/include/asm/mem_encrypt.h
+>> +++ b/arch/x86/include/asm/mem_encrypt.h
+>> @@ -26,6 +26,11 @@ static inline bool sme_active(void)
+>>  	return !!sme_me_mask;
+>>  }
+>>
+>> +static inline u64 sme_dma_mask(void)
+>> +{
+>> +	return ((u64)sme_me_mask << 1) - 1;
+>> +}
+>> +
+>>  void __init sme_early_encrypt(resource_size_t paddr,
+>>  			      unsigned long size);
+>>  void __init sme_early_decrypt(resource_size_t paddr,
+>> @@ -50,6 +55,12 @@ static inline bool sme_active(void)
+>>  {
+>>  	return false;
+>>  }
+>> +
+>> +static inline u64 sme_dma_mask(void)
+>> +{
+>> +	return 0ULL;
+>> +}
+>> +
+>>  #endif
+>>
+>>  static inline void __init sme_early_encrypt(resource_size_t paddr,
+>> diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
+>> index 0977317..f825870 100644
+>> --- a/include/linux/dma-mapping.h
+>> +++ b/include/linux/dma-mapping.h
+>> @@ -10,6 +10,7 @@
+>>  #include <linux/scatterlist.h>
+>>  #include <linux/kmemcheck.h>
+>>  #include <linux/bug.h>
+>> +#include <linux/mem_encrypt.h>
+>>
+>>  /**
+>>   * List of possible attributes associated with a DMA mapping. The semantics
+>> @@ -577,6 +578,11 @@ static inline int dma_set_mask(struct device *dev, u64 mask)
+>>
+>>  	if (!dev->dma_mask || !dma_supported(dev, mask))
+>>  		return -EIO;
+>> +
+>> +	if (sme_active() && (mask < sme_dma_mask()))
+>> +		dev_warn_ratelimited(dev,
+>> +				     "SME is active, device will require DMA bounce buffers\n");
 >
-> Use a verb in the subject:
->
-> Subject: x86, swiotlb: Add memory encryption support
->
-> or similar.
+> Bah, no need to break that line - just let it stick out. Ditto for the
+> others.
 
-Will do.
+Ok.
 
 Thanks,
 Tom
