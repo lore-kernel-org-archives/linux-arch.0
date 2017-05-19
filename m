@@ -1,53 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f52.google.com ([74.125.82.52]:37978 "EHLO
-        mail-wm0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753509AbdERTuy (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 May 2017 15:50:54 -0400
-Received: by mail-wm0-f52.google.com with SMTP id v15so64322109wmv.1
-        for <linux-arch@vger.kernel.org>; Thu, 18 May 2017 12:50:53 -0700 (PDT)
-Date: Thu, 18 May 2017 20:50:51 +0100
-From: Matt Fleming <matt@codeblueprint.co.uk>
-Subject: Re: [PATCH v5 17/32] x86/mm: Add support to access boot related data
- in the clear
-Message-ID: <20170518195051.GA5651@codeblueprint.co.uk>
-References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
- <20170418211921.10190.1537.stgit@tlendack-t1.amdoffice.net>
- <20170515183517.mb4k2gp2qobbuvtm@pd.tnic>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20170515183517.mb4k2gp2qobbuvtm@pd.tnic>
+Received: from userp1040.oracle.com ([156.151.31.81]:46438 "EHLO
+        userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1755025AbdESAhQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 May 2017 20:37:16 -0400
+From: Babu Moger <babu.moger@oracle.com>
+Subject: [PATCH 0/6] Enable queued rwlock and queued spinlock for SPARC
+Date: Thu, 18 May 2017 18:36:04 -0600
+Message-ID: <1495154170-854693-1-git-send-email-babu.moger@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>
-Cc: Tom Lendacky <thomas.lendacky@amd.com>, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Message-ID: <20170518195051.ictiEWbJpCiA5Wlqo1_L1Q_j_R3naJfz1Pdt1KGX2IE@z>
+To: davem@davemloft.net, peterz@infradead.org, mingo@redhat.com, arnd@arndb.de
+Cc: babu.moger@oracle.com, shannon.nelson@oracle.com, haakon.bugge@oracle.com, steven.sistare@oracle.com, vijay.ac.kumar@oracle.com, jane.chu@oracle.com, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20170519003604.tRWoBNgvZTK4kqoc9DOTqDI20EVEMAST0AHkf2eGI7Q@z>
 
-On Mon, 15 May, at 08:35:17PM, Borislav Petkov wrote:
-> On Tue, Apr 18, 2017 at 04:19:21PM -0500, Tom Lendacky wrote:
->
-> > +		paddr = boot_params.efi_info.efi_memmap_hi;
-> > +		paddr <<= 32;
-> > +		paddr |= boot_params.efi_info.efi_memmap;
-> > +		if (phys_addr == paddr)
-> > +			return true;
-> > +
-> > +		paddr = boot_params.efi_info.efi_systab_hi;
-> > +		paddr <<= 32;
-> > +		paddr |= boot_params.efi_info.efi_systab;
-> 
-> So those two above look like could be two global vars which are
-> initialized somewhere in the EFI init path:
-> 
-> efi_memmap_phys and efi_systab_phys or so.
-> 
-> Matt ?
-> 
-> And then you won't need to create that paddr each time on the fly. I
-> mean, it's not a lot of instructions but still...
- 
-We should already have the physical memmap address available in
-'efi.memmap.phys_map'.
+This series of patches enables queued rwlock and queued spinlock support
+for SPARC. These features were introduced some time ago in upstream.
+Here are some of the earlier discussions.
+https://lwn.net/Articles/572765/
+https://lwn.net/Articles/582200/
+https://lwn.net/Articles/561775/
+https://lwn.net/Articles/590243/
 
-And the physical address of the system table should be in
-'efi_phys.systab'. See efi_init().
+Tests: Ran AIM7 benchmark to verify the performance on various workloads.
+https://github.com/davidlohr/areaim. Same benchmark was used when this
+feature was introduced and enabled on x86. Here are the test results.
+
+Kernel				4.11.0-rc6     4.11.0-rc6 + 	Change
+				baseline	queued locks
+			      (Avg No.of jobs) (Avg No.of jobs)
+Workload
+High systime 10-100 user	 17290.48	 17295.18	+0.02
+High systime 200-1000 users	109814.95	110248.87	+0.39
+High systime 1200-2000 users	107912.40	127923.16	+18.54
+
+Disk IO 10-100 users		168910.16	158834.17	-5.96
+Disk IO 200-1000 users		242781.74	281285.80	+15.85
+Disk IO 1200-2000 users		228518.23	218421.23	-4.41
+
+Disk IO 10-100 users		183933.77	207928.67	+13.04
+Disk IO 200-1000 users		491981.56	500162.33	+1.66
+Disk IO 1200-2000 users		463395.66	467312.70	+0.84
+
+fserver 10-100 users		254177.53	270283.08	+6.33
+fserver IO 200-1000 users	269017.35	324812.2	+20.74
+fserver IO 1200-2000 users	229538.87	284713.77	+24.03
+
+Disk I/O results are little bit in negative territory. But majority of the 
+performance changes are in positive and it is significant in some cases.
+
+Babu Moger (6):
+  kernel/locking: Fix compile error with qrwlock.c
+  arch/sparc: Define config parameter CPU_BIG_ENDIAN
+  arch/sparc: Introduce cmpxchg_u8 SPARC
+  arch/sparc: Enable queued rwlocks for SPARC
+  arch/sparc: Introduce xchg16 for SPARC
+  arch/sparc: Enable queued spinlock support for SPARC
+
+ arch/sparc/Kconfig                      |    6 +++
+ arch/sparc/include/asm/cmpxchg_64.h     |   76 +++++++++++++++++++++++++++----
+ arch/sparc/include/asm/qrwlock.h        |    7 +++
+ arch/sparc/include/asm/qspinlock.h      |    7 +++
+ arch/sparc/include/asm/spinlock_64.h    |   13 ++++-
+ arch/sparc/include/asm/spinlock_types.h |   10 ++++-
+ include/asm-generic/qrwlock_types.h     |    6 +-
+ kernel/locking/qrwlock.c                |    1 +
+ 8 files changed, 110 insertions(+), 16 deletions(-)
+ create mode 100644 arch/sparc/include/asm/qrwlock.h
+ create mode 100644 arch/sparc/include/asm/qspinlock.h
