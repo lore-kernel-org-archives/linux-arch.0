@@ -1,68 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:35333 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751557AbdESNR5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 19 May 2017 09:17:57 -0400
-Date: Fri, 19 May 2017 09:17:53 -0400
-From: Don Zickus <dzickus@redhat.com>
-Subject: Re: [RFC] arch hardlockup detector interfaces improvement
-Message-ID: <20170519131753.sccuu7mksjertzni@redhat.com>
-References: <20170518155026.23799-1-npiggin@gmail.com>
- <20170518163028.tf2llimuo4l4l5nv@redhat.com>
- <20170519090731.1e49cd0d@roar.ozlabs.ibm.com>
+Received: from aserp1040.oracle.com ([141.146.126.69]:46430 "EHLO
+        aserp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754818AbdESQhh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 May 2017 12:37:37 -0400
+Subject: Re: [PATCH 6/6] arch/sparc: Enable queued spinlock support for SPARC
+References: <1495154170-854693-1-git-send-email-babu.moger@oracle.com>
+ <1495154170-854693-7-git-send-email-babu.moger@oracle.com>
+ <20170518.223220.105988940116687879.davem@davemloft.net>
+From: Babu Moger <babu.moger@oracle.com>
+Message-ID: <8e402c6d-7912-afb0-7be7-76dd9b06cf57@oracle.com>
+Date: Fri, 19 May 2017 11:37:06 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20170519090731.1e49cd0d@roar.ozlabs.ibm.com>
+In-Reply-To: <20170518.223220.105988940116687879.davem@davemloft.net>
+Content-Type: text/plain; charset=windows-1252; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, adi-buildroot-devel@lists.sourceforge.net, linux-am33-list@redhat.com, sparclinux@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, uobergfe@redhat.com
-Message-ID: <20170519131753.ei9K2tZ-RowJvSjYKI3F63_EH8EPFiCknEEH9ltjfMs@z>
+To: David Miller <davem@davemloft.net>
+Cc: peterz@infradead.org, mingo@redhat.com, arnd@arndb.de, shannon.nelson@oracle.com, haakon.bugge@oracle.com, steven.sistare@oracle.com, vijay.ac.kumar@oracle.com, jane.chu@oracle.com, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20170519163706.4T-toUtffw_XXx2L7H3_-5pWLFucNFept7tUqIXpY0Q@z>
 
-On Fri, May 19, 2017 at 09:07:31AM +1000, Nicholas Piggin wrote:
-> On Thu, 18 May 2017 12:30:28 -0400
-> Don Zickus <dzickus@redhat.com> wrote:
-> 
-> > (adding Uli)
-> > 
-> > On Fri, May 19, 2017 at 01:50:26AM +1000, Nicholas Piggin wrote:
-> > > I'd like to make it easier for architectures that have their own NMI /
-> > > hard lockup detector to reuse various configuration interfaces that are
-> > > provided by generic detectors (cmdline, sysctl, suspend/resume calls).
-> > > 
-> > > I'd also like to remove the dependency of arch hard lockup detectors
-> > > on the softlockup detector. The reason being these watchdogs can be
-> > > very small (sparc's is like a page of core code that does not use any
-> > > big subsystem like kthreads or timers).
-> > > 
-> > > So I do this by adding a separate CONFIG_SOFTLOCKUP_DETECTOR, and
-> > > juggling around what goes under config options. HAVE_NMI_WATCHDOG
-> > > continues to be the config for arch to override the hard lockup
-> > > detector, which is expanded to cover a few more cases.  
-> > 
-> > Basically you are trying to remove the heavy HARDLOCKUP pieces to minimize
-> > the SOFTLOCKUP piece and use your own NMI detector, right?
-> > 
-> > I am guessing you would then disable SOFTLOCKUP to remove all the kthread
-> > and timer stuff but continue to use the generic infrastructure to help
-> > manager your own NMI detector?
-> 
-> Yes that's right.
-> 
-> > A lot of the code is just re-organizing things and adding an explicit
-> > ifdef on SOFTLOCKUP, which seems fine to me.
-> > 
-> > I just need to spend some time on some of your #else clauses to see what
-> > functionality is dropped when you use your approach.
-> 
-> Okay, appreciated. I can trim down cc lists and send you my powerpc
-> WIP if you'd like to have a look.
 
-I am curious to know what IBM thinks there.  Currently the HARDLOCKUP
-detector sits on top of perf.  I get the impression, you are removing that
-dependency.  Is that a permanent thing or are you thinking of switching back
-and forth depending on if SOFTLOCKUP is enabled or not?
+On 5/18/2017 9:32 PM, David Miller wrote:
+> From: Babu Moger <babu.moger@oracle.com>
+> Date: Thu, 18 May 2017 18:36:10 -0600
+>
+>> @@ -83,6 +83,7 @@ config SPARC64
+>>   	select ARCH_SUPPORTS_ATOMIC_RMW
+>>   	select HAVE_NMI
+>>   	select ARCH_USE_QUEUED_RWLOCKS
+>> +	select ARCH_USE_QUEUED_SPINLOCKS
+>>   
+>>   config ARCH_DEFCONFIG
+>>   	string
+> Like the queued spinlock enabling patch, if this will be on
+> all the time for SPARC64 then:
+>
+>> diff --git a/arch/sparc/include/asm/spinlock_64.h b/arch/sparc/include/asm/spinlock_64.h
+>> index 562dbd8..e2044e3 100644
+>> --- a/arch/sparc/include/asm/spinlock_64.h
+>> +++ b/arch/sparc/include/asm/spinlock_64.h
+>> @@ -11,6 +11,9 @@
+>>   #include <asm/processor.h>
+>>   #include <asm/barrier.h>
+>>   
+>> +#ifdef CONFIG_QUEUED_SPINLOCKS
+>> +#include <asm/qspinlock.h>
+>> +#else
+> This ifdef doesn't make any sense, by definition it will always be on.
 
-Cheers,
-Don
+Ok. Will do. thanks
