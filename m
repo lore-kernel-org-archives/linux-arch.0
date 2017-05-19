@@ -1,52 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from aserp1040.oracle.com ([141.146.126.69]:46430 "EHLO
-        aserp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754818AbdESQhh (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 May 2017 12:37:37 -0400
-Subject: Re: [PATCH 6/6] arch/sparc: Enable queued spinlock support for SPARC
-References: <1495154170-854693-1-git-send-email-babu.moger@oracle.com>
- <1495154170-854693-7-git-send-email-babu.moger@oracle.com>
- <20170518.223220.105988940116687879.davem@davemloft.net>
-From: Babu Moger <babu.moger@oracle.com>
-Message-ID: <8e402c6d-7912-afb0-7be7-76dd9b06cf57@oracle.com>
-Date: Fri, 19 May 2017 11:37:06 -0500
-MIME-Version: 1.0
-In-Reply-To: <20170518.223220.105988940116687879.davem@davemloft.net>
-Content-Type: text/plain; charset=windows-1252; format=flowed
+Received: from shards.monkeyblade.net ([184.105.139.130]:56500 "EHLO
+        shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751049AbdESTP6 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 May 2017 15:15:58 -0400
+Date: Fri, 19 May 2017 15:15:53 -0400 (EDT)
+Message-ID: <20170519.151553.928484900690074462.davem@davemloft.net>
+Subject: Re: [PATCH 4/6] arch/sparc: Enable queued rwlocks for SPARC
+From: David Miller <davem@davemloft.net>
+In-Reply-To: <20170519090302.ph6jnqzlxxqzrvnu@hirez.programming.kicks-ass.net>
+References: <1495154170-854693-5-git-send-email-babu.moger@oracle.com>
+        <20170518.223113.1783186374793423172.davem@davemloft.net>
+        <20170519090302.ph6jnqzlxxqzrvnu@hirez.programming.kicks-ass.net>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
-Cc: peterz@infradead.org, mingo@redhat.com, arnd@arndb.de, shannon.nelson@oracle.com, haakon.bugge@oracle.com, steven.sistare@oracle.com, vijay.ac.kumar@oracle.com, jane.chu@oracle.com, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20170519163706.4T-toUtffw_XXx2L7H3_-5pWLFucNFept7tUqIXpY0Q@z>
+To: peterz@infradead.org
+Cc: babu.moger@oracle.com, mingo@redhat.com, arnd@arndb.de, shannon.nelson@oracle.com, haakon.bugge@oracle.com, steven.sistare@oracle.com, vijay.ac.kumar@oracle.com, jane.chu@oracle.com, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20170519191553.UT8T4O1kykFGVWWVy-xUUjDIwUbK9M1Yh1Q2Oiv6P1o@z>
 
+From: Peter Zijlstra <peterz@infradead.org>
+Date: Fri, 19 May 2017 11:03:02 +0200
 
-On 5/18/2017 9:32 PM, David Miller wrote:
-> From: Babu Moger <babu.moger@oracle.com>
-> Date: Thu, 18 May 2017 18:36:10 -0600
->
->> @@ -83,6 +83,7 @@ config SPARC64
->>   	select ARCH_SUPPORTS_ATOMIC_RMW
->>   	select HAVE_NMI
->>   	select ARCH_USE_QUEUED_RWLOCKS
->> +	select ARCH_USE_QUEUED_SPINLOCKS
->>   
->>   config ARCH_DEFCONFIG
->>   	string
-> Like the queued spinlock enabling patch, if this will be on
-> all the time for SPARC64 then:
->
->> diff --git a/arch/sparc/include/asm/spinlock_64.h b/arch/sparc/include/asm/spinlock_64.h
->> index 562dbd8..e2044e3 100644
->> --- a/arch/sparc/include/asm/spinlock_64.h
->> +++ b/arch/sparc/include/asm/spinlock_64.h
->> @@ -11,6 +11,9 @@
->>   #include <asm/processor.h>
->>   #include <asm/barrier.h>
->>   
->> +#ifdef CONFIG_QUEUED_SPINLOCKS
->> +#include <asm/qspinlock.h>
->> +#else
-> This ifdef doesn't make any sense, by definition it will always be on.
+> On Thu, May 18, 2017 at 10:31:13PM -0400, David Miller wrote:
+>> From: Babu Moger <babu.moger@oracle.com>
+>> Date: Thu, 18 May 2017 18:36:08 -0600
+>> 
+>> > @@ -82,6 +82,7 @@ config SPARC64
+>> >  	select HAVE_ARCH_AUDITSYSCALL
+>> >  	select ARCH_SUPPORTS_ATOMIC_RMW
+>> >  	select HAVE_NMI
+>> > +	select ARCH_USE_QUEUED_RWLOCKS
+>> >  
+>> 
+>> If you are selecting this on SPARC64 all the time, then:
+>> 
+>> > @@ -94,6 +94,7 @@ static inline void arch_spin_lock_flags(arch_spinlock_t *lock, unsigned long fla
+>> >  	: "memory");
+>> >  }
+>> >  
+>> > +#ifndef CONFIG_QUEUED_RWLOCKS
+>> >  /* Multi-reader locks, these are much saner than the 32-bit Sparc ones... */
+>> 
+>> You can remove this segment of ifdef'd code altogether since it is in
+>> a sparc64 specific header file.
+> 
+> 
+> So IIRC Sparc v8 only has that single byte load-and-set (or swap)
+> instruction, right? That means you can only make test-and-set spinlocks
+> and then have to build the world on top of that.
+> 
+> I don't see qrwlock -- which assumes the spinlock implementation is fair
+> -- making much sense for that.
+> 
+> Also, IIRC Sparc-v8 didn't really have very big SMP systems, those came
+> with v9. And qspinlock only really makes sense on the bigger systems
+> (not to mention that building the qspinlock on top of atomic operations
+> build on test-and-set spinlocks just seems extremely dysfunctional).
+> 
+> 
+> In any case, I think what I'm saying is that it makes sense to make this
+> a Sparcv9 only feature.
 
-Ok. Will do. thanks
+I agree with you, there is no reason to try and support
+queued locks on 32-bit sparc.
+
+However, I don't see what any of this has to do with the feedback
+I was giving the patch author :-)
