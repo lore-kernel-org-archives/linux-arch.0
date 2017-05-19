@@ -1,70 +1,63 @@
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH v5 32/32] x86/mm: Add support to make use of Secure
- Memory Encryption
-Date: Fri, 19 May 2017 13:30:05 +0200
-Message-ID: <20170519113005.3f5kwzg4pgh7j6a5@pd.tnic>
-References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
- <20170418212223.10190.85121.stgit@tlendack-t1.amdoffice.net>
- <c29edaff-24f2-ee9b-4142-bdbf8c42083f@amd.com>
+From: Don Zickus <dzickus@redhat.com>
+Subject: Re: [RFC] arch hardlockup detector interfaces improvement
+Date: Fri, 19 May 2017 09:17:53 -0400
+Message-ID: <20170519131753.sccuu7mksjertzni@redhat.com>
+References: <20170518155026.23799-1-npiggin@gmail.com>
+ <20170518163028.tf2llimuo4l4l5nv@redhat.com>
+ <20170519090731.1e49cd0d@roar.ozlabs.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([5.9.137.197]:44596 "EHLO mail.skyhub.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750818AbdESLaI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 19 May 2017 07:30:08 -0400
+Content-Type: text/plain; charset=us-ascii
+Return-path: <sparclinux-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <c29edaff-24f2-ee9b-4142-bdbf8c42083f@amd.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Tom Lendacky <thomas.lendacky@amd.com>, Josh Poimboeuf <jpoimboe@redhat.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy
+In-Reply-To: <20170519090731.1e49cd0d@roar.ozlabs.ibm.com>
+Sender: sparclinux-owner@vger.kernel.org
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, adi-buildroot-devel@lists.sourceforge.net, linux-am33-list@redhat.com, sparclinux@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, uobergfe@redhat.com
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Apr 21, 2017 at 01:56:13PM -0500, Tom Lendacky wrote:
-> On 4/18/2017 4:22 PM, Tom Lendacky wrote:
-> > Add support to check if SME has been enabled and if memory encryption
-> > should be activated (checking of command line option based on the
-> > configuration of the default state).  If memory encryption is to be
-> > activated, then the encryption mask is set and the kernel is encrypted
-> > "in place."
+On Fri, May 19, 2017 at 09:07:31AM +1000, Nicholas Piggin wrote:
+> On Thu, 18 May 2017 12:30:28 -0400
+> Don Zickus <dzickus@redhat.com> wrote:
+> 
+> > (adding Uli)
 > > 
-> > Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
-> > ---
-> >  arch/x86/kernel/head_64.S |    1 +
-> >  arch/x86/mm/mem_encrypt.c |   83 +++++++++++++++++++++++++++++++++++++++++++--
-> >  2 files changed, 80 insertions(+), 4 deletions(-)
+> > On Fri, May 19, 2017 at 01:50:26AM +1000, Nicholas Piggin wrote:
+> > > I'd like to make it easier for architectures that have their own NMI /
+> > > hard lockup detector to reuse various configuration interfaces that are
+> > > provided by generic detectors (cmdline, sysctl, suspend/resume calls).
+> > > 
+> > > I'd also like to remove the dependency of arch hard lockup detectors
+> > > on the softlockup detector. The reason being these watchdogs can be
+> > > very small (sparc's is like a page of core code that does not use any
+> > > big subsystem like kthreads or timers).
+> > > 
+> > > So I do this by adding a separate CONFIG_SOFTLOCKUP_DETECTOR, and
+> > > juggling around what goes under config options. HAVE_NMI_WATCHDOG
+> > > continues to be the config for arch to override the hard lockup
+> > > detector, which is expanded to cover a few more cases.  
 > > 
-> 
-> ...
-> 
+> > Basically you are trying to remove the heavy HARDLOCKUP pieces to minimize
+> > the SOFTLOCKUP piece and use your own NMI detector, right?
 > > 
-> > -unsigned long __init sme_enable(void)
-> > +unsigned long __init sme_enable(struct boot_params *bp)
-> >  {
-> > +	const char *cmdline_ptr, *cmdline_arg, *cmdline_on, *cmdline_off;
-> > +	unsigned int eax, ebx, ecx, edx;
-> > +	unsigned long me_mask;
-> > +	bool active_by_default;
-> > +	char buffer[16];
+> > I am guessing you would then disable SOFTLOCKUP to remove all the kthread
+> > and timer stuff but continue to use the generic infrastructure to help
+> > manager your own NMI detector?
 > 
-> So it turns out that when KASLR is enabled (CONFIG_RAMDOMIZE_BASE=y)
-> the stack-protector support causes issues with this function because
-
-What issues?
-
-> it is called so early. I can get past it by adding:
+> Yes that's right.
 > 
-> CFLAGS_mem_encrypt.o := $(nostackp)
+> > A lot of the code is just re-organizing things and adding an explicit
+> > ifdef on SOFTLOCKUP, which seems fine to me.
+> > 
+> > I just need to spend some time on some of your #else clauses to see what
+> > functionality is dropped when you use your approach.
 > 
-> in the arch/x86/mm/Makefile, but that obviously eliminates the support
-> for the whole file.  Would it be better to split out the sme_enable()
-> and other boot routines into a separate file or just apply the
-> $(nostackp) to the whole file?
+> Okay, appreciated. I can trim down cc lists and send you my powerpc
+> WIP if you'd like to have a look.
 
-Josh might have a better idea here... CCed.
+I am curious to know what IBM thinks there.  Currently the HARDLOCKUP
+detector sits on top of perf.  I get the impression, you are removing that
+dependency.  Is that a permanent thing or are you thinking of switching back
+and forth depending on if SOFTLOCKUP is enabled or not?
 
--- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
+Cheers,
+Don
