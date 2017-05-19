@@ -1,15 +1,15 @@
 From: Babu Moger <babu.moger@oracle.com>
-Subject: [PATCH 6/6] arch/sparc: Enable queued spinlock support for SPARC
-Date: Thu, 18 May 2017 18:36:10 -0600
-Message-ID: <1495154170-854693-7-git-send-email-babu.moger@oracle.com>
+Subject: [PATCH 3/6] arch/sparc: Introduce cmpxchg_u8 SPARC
+Date: Thu, 18 May 2017 18:36:07 -0600
+Message-ID: <1495154170-854693-4-git-send-email-babu.moger@oracle.com>
 References: <1495154170-854693-1-git-send-email-babu.moger@oracle.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from userp1040.oracle.com ([156.151.31.81]:46441 "EHLO
-        userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755036AbdESAhR (ORCPT
+Received: from aserp1040.oracle.com ([141.146.126.69]:32279 "EHLO
+        aserp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1755030AbdESAhR (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Thu, 18 May 2017 20:37:17 -0400
 In-Reply-To: <1495154170-854693-1-git-send-email-babu.moger@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
@@ -17,92 +17,69 @@ List-ID: <linux-arch.vger.kernel.org>
 To: davem@davemloft.net, peterz@infradead.org, mingo@redhat.com, arnd@arndb.de
 Cc: babu.moger@oracle.com, shannon.nelson@oracle.com, haakon.bugge@oracle.com, steven.sistare@oracle.com, vijay.ac.kumar@oracle.com, jane.chu@oracle.com, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-This patch makes the necessary changes in SPARC architecture to enable
-queued spinlock support. Here are some of the earlier discussions about
-this feature.
-https://lwn.net/Articles/561775/
-https://lwn.net/Articles/590243/
+SPARC supports 32 bit and 64 bit cmpxchg right now. Add support
+for 8 bit (1 byte) cmpxchg. This is required to support queued
+rwlocks feature  which uses 1 byte cmpxchg.
+
+The function __cmpxchg_u8 here uses the 4 byte cas instruction with a
+byte manipulation to achieve 1 byte cmpxchg.
 
 Signed-off-by: Babu Moger <babu.moger@oracle.com>
 Reviewed-by: Håkon Bugge <haakon.bugge@oracle.com>
-Reviewed-by: Jane Chu <jane.chu@oracle.com>
+Reviewed-by: Steve Sistare <steven.sistare@oracle.com>
 Reviewed-by: Shannon Nelson <shannon.nelson@oracle.com>
+Reviewed-by: Jane Chu <jane.chu@oracle.com>
 Reviewed-by: Vijay Kumar <vijay.ac.kumar@oracle.com>
 ---
- arch/sparc/Kconfig                      |    1 +
- arch/sparc/include/asm/qspinlock.h      |    7 +++++++
- arch/sparc/include/asm/spinlock_64.h    |    4 ++++
- arch/sparc/include/asm/spinlock_types.h |    5 +++++
- 4 files changed, 17 insertions(+), 0 deletions(-)
- create mode 100644 arch/sparc/include/asm/qspinlock.h
+ arch/sparc/include/asm/cmpxchg_64.h |   29 +++++++++++++++++++++++++++++
+ 1 files changed, 29 insertions(+), 0 deletions(-)
 
-diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
-index caeda1c..785bf3e 100644
---- a/arch/sparc/Kconfig
-+++ b/arch/sparc/Kconfig
-@@ -83,6 +83,7 @@ config SPARC64
- 	select ARCH_SUPPORTS_ATOMIC_RMW
- 	select HAVE_NMI
- 	select ARCH_USE_QUEUED_RWLOCKS
-+	select ARCH_USE_QUEUED_SPINLOCKS
- 
- config ARCH_DEFCONFIG
- 	string
-diff --git a/arch/sparc/include/asm/qspinlock.h b/arch/sparc/include/asm/qspinlock.h
-new file mode 100644
-index 0000000..5ae9a28
---- /dev/null
-+++ b/arch/sparc/include/asm/qspinlock.h
-@@ -0,0 +1,7 @@
-+#ifndef _ASM_SPARC_QSPINLOCK_H
-+#define _ASM_SPARC_QSPINLOCK_H
-+
-+#include <asm-generic/qspinlock_types.h>
-+#include <asm-generic/qspinlock.h>
-+
-+#endif /* _ASM_SPARC_QSPINLOCK_H */
-diff --git a/arch/sparc/include/asm/spinlock_64.h b/arch/sparc/include/asm/spinlock_64.h
-index 562dbd8..e2044e3 100644
---- a/arch/sparc/include/asm/spinlock_64.h
-+++ b/arch/sparc/include/asm/spinlock_64.h
-@@ -11,6 +11,9 @@
- #include <asm/processor.h>
- #include <asm/barrier.h>
- 
-+#ifdef CONFIG_QUEUED_SPINLOCKS
-+#include <asm/qspinlock.h>
-+#else
- /* To get debugging spinlocks which detect and catch
-  * deadlock situations, set CONFIG_DEBUG_SPINLOCK
-  * and rebuild your kernel.
-@@ -93,6 +96,7 @@ static inline void arch_spin_lock_flags(arch_spinlock_t *lock, unsigned long fla
- 	: "r"(lock), "r"(flags)
- 	: "memory");
+diff --git a/arch/sparc/include/asm/cmpxchg_64.h b/arch/sparc/include/asm/cmpxchg_64.h
+index faa2f61..65bfae0 100644
+--- a/arch/sparc/include/asm/cmpxchg_64.h
++++ b/arch/sparc/include/asm/cmpxchg_64.h
+@@ -87,6 +87,33 @@ static inline unsigned long __xchg(unsigned long x, __volatile__ void * ptr,
+ 	return new;
  }
-+#endif /*ifdef CONFIG_QUEUED_SPINLOCKS */
  
- #ifndef CONFIG_QUEUED_RWLOCKS
- /* Multi-reader locks, these are much saner than the 32-bit Sparc ones... */
-diff --git a/arch/sparc/include/asm/spinlock_types.h b/arch/sparc/include/asm/spinlock_types.h
-index e052d28..93c8c5a 100644
---- a/arch/sparc/include/asm/spinlock_types.h
-+++ b/arch/sparc/include/asm/spinlock_types.h
-@@ -5,11 +5,16 @@
- # error "please don't include this file directly"
- #endif
- 
-+#ifdef CONFIG_QUEUED_SPINLOCKS
-+#include <asm-generic/qspinlock_types.h>
-+#else
++/*
++ * Use 4 byte cas instruction to achieve 1 byte cmpxchg. Main logic
++ * here is to get the bit shift of the byte we are interested in.
++ * The XOR is handy for reversing the bits for big-endian byte order
++ */
++static inline unsigned long
++__cmpxchg_u8(volatile unsigned char *m, unsigned int old, unsigned int new)
++{
++	unsigned long maddr = (unsigned long)m;
++	int bit_shift = (((unsigned long)m & 3) ^ 3) << 3;
++	unsigned int mask = 0xff << bit_shift;
++	unsigned int *ptr = (unsigned int *) (maddr & ~3);
++	unsigned int old32, new32, load;
++	unsigned int load32 = *ptr;
 +
- typedef struct {
- 	volatile unsigned char lock;
- } arch_spinlock_t;
- 
- #define __ARCH_SPIN_LOCK_UNLOCKED	{ 0 }
-+#endif /* CONFIG_QUEUED_SPINLOCKS */
- 
- #ifdef CONFIG_QUEUED_RWLOCKS
- #include <asm-generic/qrwlock_types.h>
++	do {
++		new32 = (load32 & ~mask) | (new << bit_shift);
++		old32 = (load32 & ~mask) | (old << bit_shift);
++		load32 = __cmpxchg_u32(ptr, old32, new32);
++		if (load32 == old32)
++			return old;
++		load = (load32 & mask) >> bit_shift;
++	} while (load == old);
++
++	return load;
++}
++
+ /* This function doesn't exist, so you'll get a linker error
+    if something tries to do an invalid cmpxchg().  */
+ void __cmpxchg_called_with_bad_pointer(void);
+@@ -95,6 +122,8 @@ static inline unsigned long __xchg(unsigned long x, __volatile__ void * ptr,
+ __cmpxchg(volatile void *ptr, unsigned long old, unsigned long new, int size)
+ {
+ 	switch (size) {
++		case 1:
++			return __cmpxchg_u8(ptr, old, new);
+ 		case 4:
+ 			return __cmpxchg_u32(ptr, old, new);
+ 		case 8:
 -- 
 1.7.1
