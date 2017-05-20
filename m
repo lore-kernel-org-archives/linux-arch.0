@@ -1,7 +1,7 @@
 From: Babu Moger <babu.moger@oracle.com>
-Subject: [PATCH v2 1/7] kernel/locking: Fix compile error with qrwlock.c
-Date: Fri, 19 May 2017 18:16:55 -0600
-Message-ID: <1495239421-441642-2-git-send-email-babu.moger@oracle.com>
+Subject: [PATCH v2 5/7] arch/sparc: Enable queued rwlocks for SPARC
+Date: Fri, 19 May 2017 18:16:59 -0600
+Message-ID: <1495239421-441642-6-git-send-email-babu.moger@oracle.com>
 References: <1495239421-441642-1-git-send-email-babu.moger@oracle.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -13,22 +13,13 @@ To: davem@davemloft.net, peterz@infradead.org, mingo@redhat.com, arnd@arndb.de
 Cc: babu.moger@oracle.com, shannon.nelson@oracle.com, haakon.bugge@oracle.com, steven.sistare@oracle.com, vijay.ac.kumar@oracle.com, jane.chu@oracle.com, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Some architectures use the following guard in include file
- "asm/spinlock_types.h" to discourage including the file directly.
+Enable queued rwlocks for SPARC. Here are the discussions on this feature
+when this was introduced.
+https://lwn.net/Articles/572765/
+https://lwn.net/Articles/582200/
 
-Saw these compile errors on SPARC when queued rwlock feature is enabled.
-
-  CC      kernel/locking/qrwlock.o
-In file included from ./include/asm-generic/qrwlock_types.h:5,
-                 from ./arch/sparc/include/asm/qrwlock.h:4,
-                 from kernel/locking/qrwlock.c:24:
-./arch/sparc/include/asm/spinlock_types.h:5:3: error:
-        #error "please don't include this file directly"
-
-Re-arrange the includes in qrwlock_types.h and include spinlock.h
-in qrwlock.c to fix it.
-
-Also will be removing this stanza from SPARC. Stay tuned.
+Cleaned-up the arch_read_xxx and arch_write_xxx definitions in spinlock_64.h.
+These routines are replaced by the functions in include/asm-generic/qrwlock.h
 
 Signed-off-by: Babu Moger <babu.moger@oracle.com>
 Reviewed-by: Håkon Bugge <haakon.bugge@oracle.com>
@@ -36,43 +27,201 @@ Reviewed-by: Jane Chu <jane.chu@oracle.com>
 Reviewed-by: Shannon Nelson <shannon.nelson@oracle.com>
 Reviewed-by: Vijay Kumar <vijay.ac.kumar@oracle.com>
 ---
- include/asm-generic/qrwlock_types.h |    6 +++---
- kernel/locking/qrwlock.c            |    1 +
- 2 files changed, 4 insertions(+), 3 deletions(-)
+ arch/sparc/Kconfig                      |    1 +
+ arch/sparc/include/asm/qrwlock.h        |    7 ++
+ arch/sparc/include/asm/spinlock_64.h    |  124 +------------------------------
+ arch/sparc/include/asm/spinlock_types.h |    5 +-
+ 4 files changed, 13 insertions(+), 124 deletions(-)
+ create mode 100644 arch/sparc/include/asm/qrwlock.h
 
-diff --git a/include/asm-generic/qrwlock_types.h b/include/asm-generic/qrwlock_types.h
-index 0abc6b6..3988c7d 100644
---- a/include/asm-generic/qrwlock_types.h
-+++ b/include/asm-generic/qrwlock_types.h
-@@ -1,9 +1,6 @@
- #ifndef __ASM_GENERIC_QRWLOCK_TYPES_H
- #define __ASM_GENERIC_QRWLOCK_TYPES_H
+diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
+index 0f5813b..9ec1d2f 100644
+--- a/arch/sparc/Kconfig
++++ b/arch/sparc/Kconfig
+@@ -82,6 +82,7 @@ config SPARC64
+ 	select HAVE_ARCH_AUDITSYSCALL
+ 	select ARCH_SUPPORTS_ATOMIC_RMW
+ 	select HAVE_NMI
++	select ARCH_USE_QUEUED_RWLOCKS
  
--#include <linux/types.h>
--#include <asm/spinlock_types.h>
--
- /*
-  * The queue read/write lock data structure
-  */
-@@ -18,4 +15,7 @@
- 	.wait_lock = __ARCH_SPIN_LOCK_UNLOCKED,	\
+ config ARCH_DEFCONFIG
+ 	string
+diff --git a/arch/sparc/include/asm/qrwlock.h b/arch/sparc/include/asm/qrwlock.h
+new file mode 100644
+index 0000000..d68a4b1
+--- /dev/null
++++ b/arch/sparc/include/asm/qrwlock.h
+@@ -0,0 +1,7 @@
++#ifndef _ASM_SPARC_QRWLOCK_H
++#define _ASM_SPARC_QRWLOCK_H
++
++#include <asm-generic/qrwlock_types.h>
++#include <asm-generic/qrwlock.h>
++
++#endif /* _ASM_SPARC_QRWLOCK_H */
+diff --git a/arch/sparc/include/asm/spinlock_64.h b/arch/sparc/include/asm/spinlock_64.h
+index 07c9f2e..8901c2d 100644
+--- a/arch/sparc/include/asm/spinlock_64.h
++++ b/arch/sparc/include/asm/spinlock_64.h
+@@ -10,6 +10,7 @@
+ 
+ #include <asm/processor.h>
+ #include <asm/barrier.h>
++#include <asm/qrwlock.h>
+ 
+ /* To get debugging spinlocks which detect and catch
+  * deadlock situations, set CONFIG_DEBUG_SPINLOCK
+@@ -94,132 +95,9 @@ static inline void arch_spin_lock_flags(arch_spinlock_t *lock, unsigned long fla
+ 	: "memory");
  }
  
-+#include <linux/types.h>
-+#include <linux/spinlock_types.h>
-+
- #endif /* __ASM_GENERIC_QRWLOCK_TYPES_H */
-diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
-index cc3ed0c..2655f26 100644
---- a/kernel/locking/qrwlock.c
-+++ b/kernel/locking/qrwlock.c
-@@ -20,6 +20,7 @@
- #include <linux/cpumask.h>
- #include <linux/percpu.h>
- #include <linux/hardirq.h>
-+#include <linux/spinlock.h>
- #include <asm/qrwlock.h>
+-/* Multi-reader locks, these are much saner than the 32-bit Sparc ones... */
+-
+-static inline void arch_read_lock(arch_rwlock_t *lock)
+-{
+-	unsigned long tmp1, tmp2;
+-
+-	__asm__ __volatile__ (
+-"1:	ldsw		[%2], %0\n"
+-"	brlz,pn		%0, 2f\n"
+-"4:	 add		%0, 1, %1\n"
+-"	cas		[%2], %0, %1\n"
+-"	cmp		%0, %1\n"
+-"	bne,pn		%%icc, 1b\n"
+-"	 nop\n"
+-"	.subsection	2\n"
+-"2:	ldsw		[%2], %0\n"
+-"	brlz,pt		%0, 2b\n"
+-"	 nop\n"
+-"	ba,a,pt		%%xcc, 4b\n"
+-"	.previous"
+-	: "=&r" (tmp1), "=&r" (tmp2)
+-	: "r" (lock)
+-	: "memory");
+-}
+-
+-static inline int arch_read_trylock(arch_rwlock_t *lock)
+-{
+-	int tmp1, tmp2;
+-
+-	__asm__ __volatile__ (
+-"1:	ldsw		[%2], %0\n"
+-"	brlz,a,pn	%0, 2f\n"
+-"	 mov		0, %0\n"
+-"	add		%0, 1, %1\n"
+-"	cas		[%2], %0, %1\n"
+-"	cmp		%0, %1\n"
+-"	bne,pn		%%icc, 1b\n"
+-"	 mov		1, %0\n"
+-"2:"
+-	: "=&r" (tmp1), "=&r" (tmp2)
+-	: "r" (lock)
+-	: "memory");
+-
+-	return tmp1;
+-}
+-
+-static inline void arch_read_unlock(arch_rwlock_t *lock)
+-{
+-	unsigned long tmp1, tmp2;
+-
+-	__asm__ __volatile__(
+-"1:	lduw	[%2], %0\n"
+-"	sub	%0, 1, %1\n"
+-"	cas	[%2], %0, %1\n"
+-"	cmp	%0, %1\n"
+-"	bne,pn	%%xcc, 1b\n"
+-"	 nop"
+-	: "=&r" (tmp1), "=&r" (tmp2)
+-	: "r" (lock)
+-	: "memory");
+-}
+-
+-static inline void arch_write_lock(arch_rwlock_t *lock)
+-{
+-	unsigned long mask, tmp1, tmp2;
+-
+-	mask = 0x80000000UL;
+-
+-	__asm__ __volatile__(
+-"1:	lduw		[%2], %0\n"
+-"	brnz,pn		%0, 2f\n"
+-"4:	 or		%0, %3, %1\n"
+-"	cas		[%2], %0, %1\n"
+-"	cmp		%0, %1\n"
+-"	bne,pn		%%icc, 1b\n"
+-"	 nop\n"
+-"	.subsection	2\n"
+-"2:	lduw		[%2], %0\n"
+-"	brnz,pt		%0, 2b\n"
+-"	 nop\n"
+-"	ba,a,pt		%%xcc, 4b\n"
+-"	.previous"
+-	: "=&r" (tmp1), "=&r" (tmp2)
+-	: "r" (lock), "r" (mask)
+-	: "memory");
+-}
+-
+-static inline void arch_write_unlock(arch_rwlock_t *lock)
+-{
+-	__asm__ __volatile__(
+-"	stw		%%g0, [%0]"
+-	: /* no outputs */
+-	: "r" (lock)
+-	: "memory");
+-}
+-
+-static inline int arch_write_trylock(arch_rwlock_t *lock)
+-{
+-	unsigned long mask, tmp1, tmp2, result;
+-
+-	mask = 0x80000000UL;
+-
+-	__asm__ __volatile__(
+-"	mov		0, %2\n"
+-"1:	lduw		[%3], %0\n"
+-"	brnz,pn		%0, 2f\n"
+-"	 or		%0, %4, %1\n"
+-"	cas		[%3], %0, %1\n"
+-"	cmp		%0, %1\n"
+-"	bne,pn		%%icc, 1b\n"
+-"	 nop\n"
+-"	mov		1, %2\n"
+-"2:"
+-	: "=&r" (tmp1), "=&r" (tmp2), "=&r" (result)
+-	: "r" (lock), "r" (mask)
+-	: "memory");
+-
+-	return result;
+-}
+-
+ #define arch_read_lock_flags(p, f) arch_read_lock(p)
+ #define arch_write_lock_flags(p, f) arch_write_lock(p)
  
- /*
+-#define arch_read_can_lock(rw)		(!((rw)->lock & 0x80000000UL))
+-#define arch_write_can_lock(rw)	(!(rw)->lock)
+-
+ #define arch_spin_relax(lock)	cpu_relax()
+ #define arch_read_relax(lock)	cpu_relax()
+ #define arch_write_relax(lock)	cpu_relax()
+diff --git a/arch/sparc/include/asm/spinlock_types.h b/arch/sparc/include/asm/spinlock_types.h
+index 019c085..64fce21 100644
+--- a/arch/sparc/include/asm/spinlock_types.h
++++ b/arch/sparc/include/asm/spinlock_types.h
+@@ -7,10 +7,13 @@
+ 
+ #define __ARCH_SPIN_LOCK_UNLOCKED	{ 0 }
+ 
++#ifdef CONFIG_QUEUED_RWLOCKS
++#include <asm-generic/qrwlock_types.h>
++#else
+ typedef struct {
+ 	volatile unsigned int lock;
+ } arch_rwlock_t;
+ 
+ #define __ARCH_RW_LOCK_UNLOCKED		{ 0 }
+-
++#endif /* CONFIG_QUEUED_RWLOCKS */
+ #endif
 -- 
 1.7.1
