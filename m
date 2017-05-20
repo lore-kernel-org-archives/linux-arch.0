@@ -1,87 +1,185 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f67.google.com ([74.125.83.67]:35695 "EHLO
-        mail-pg0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755167AbdESWyS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 May 2017 18:54:18 -0400
-Date: Sat, 20 May 2017 08:53:57 +1000
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [RFC] arch hardlockup detector interfaces improvement
-Message-ID: <20170520085357.245c62af@roar.ozlabs.ibm.com>
-In-Reply-To: <20170519194345.gfwtuprrolk7sgwm@redhat.com>
-References: <20170518155026.23799-1-npiggin@gmail.com>
-        <20170518163028.tf2llimuo4l4l5nv@redhat.com>
-        <20170519090731.1e49cd0d@roar.ozlabs.ibm.com>
-        <20170519131753.sccuu7mksjertzni@redhat.com>
-        <20170520005306.13172dc7@roar.ozlabs.ibm.com>
-        <20170519194345.gfwtuprrolk7sgwm@redhat.com>
+Received: from userp1040.oracle.com ([156.151.31.81]:17643 "EHLO
+        userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1756633AbdETARv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 May 2017 20:17:51 -0400
+From: Babu Moger <babu.moger@oracle.com>
+Subject: [PATCH v2 7/7] arch/sparc: Enable queued spinlock support for SPARC
+Date: Fri, 19 May 2017 18:17:01 -0600
+Message-ID: <1495239421-441642-8-git-send-email-babu.moger@oracle.com>
+In-Reply-To: <1495239421-441642-1-git-send-email-babu.moger@oracle.com>
+References: <1495239421-441642-1-git-send-email-babu.moger@oracle.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Don Zickus <dzickus@redhat.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, adi-buildroot-devel@lists.sourceforge.net, linux-am33-list@redhat.com, sparclinux@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, uobergfe@redhat.com
-Message-ID: <20170519225357.Q_hFWdr10SRANgEILV6kgo1g_nIwQljgCnfywa8mR8s@z>
+To: davem@davemloft.net, peterz@infradead.org, mingo@redhat.com, arnd@arndb.de
+Cc: babu.moger@oracle.com, shannon.nelson@oracle.com, haakon.bugge@oracle.com, steven.sistare@oracle.com, vijay.ac.kumar@oracle.com, jane.chu@oracle.com, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20170520001701.oecqopMUTi7wpIGJ3nLEYZnvS4NPpEve7nqTuX_iPE0@z>
 
-On Fri, 19 May 2017 15:43:45 -0400
-Don Zickus <dzickus@redhat.com> wrote:
+This patch makes the necessary changes in SPARC architecture to enable
+queued spinlock support. Here are some of the earlier discussions about
+this feature.
+https://lwn.net/Articles/561775/
+https://lwn.net/Articles/590243/
 
-> On Sat, May 20, 2017 at 12:53:06AM +1000, Nicholas Piggin wrote:
-> > > I am curious to know what IBM thinks there.  Currently the HARDLOCKUP
-> > > detector sits on top of perf.  I get the impression, you are removing that
-> > > dependency.  Is that a permanent thing or are you thinking of switching back
-> > > and forth depending on if SOFTLOCKUP is enabled or not?  
-> > 
-> > We want to get away from perf permanently.
-> > 
-> > The PMU interrupts are not specially non-maskable from a hardware
-> > POV, everything gets masked when you turn off interrupts in hardware.
-> > powerpc arch code implements a software disable layer, and PMU
-> > interrupts are differentiated there by being allowed to run even
-> > under local_irq_disable();
-> > 
-> > We have a few issues with using perf for it. We disable it by
-> > default because using it for that breaks another PMU feature.
-> > 
-> > But PMU interupts are not special, so it would be possible to e.g.,
-> > take the timer interrupt before soft disable and have it touch the
-> > watchdog if it fires while under local_irq_disable(). That give
-> > exact same kind of pseudo-NMI as perf interrupts, without using PMU.
-> > 
-> > Further, we now want to introduce a local_pmu_disable() type of
-> > interface that extends this soft disable layer to perf interrupts
-> > as well for some cases. Once we start doing that, more code will
-> > be exempt from the hardlockup watchdog, whereas a watchdog specific
-> > hook from the timer interrupt would still cover it.  
-> 
-> Interesting.  Thanks for that info.
-> 
-> Do you think you can split the patch in half for me?  You are shuffling code
-> around and making subtle changes in the shuffled code.  It is hard to double
-> check everything.  Namely watchdog_nmi_reconfigure and watchdog_update_cpus
-> suddenly appear.
-> 
-> The first patch would be straight code movement, the second the real
-> changes.  I almost don't care if you throw in the LOCKUP->SOFTLOCKUP changes
-> in the first patch either.
-> 
-> I am really interested in the subtle changes to make sure you covered the
-> various race conditions that we have uncovered over the years.
+Cleaned-up the spinlock_64.h. The definitions of arch_spin_xxx are
+replaced by the function in <asm-generic/qspinlock.h>
 
-Yes that makes sense, I'll do that.
+Signed-off-by: Babu Moger <babu.moger@oracle.com>
+Reviewed-by: Håkon Bugge <haakon.bugge@oracle.com>
+Reviewed-by: Jane Chu <jane.chu@oracle.com>
+Reviewed-by: Shannon Nelson <shannon.nelson@oracle.com>
+Reviewed-by: Vijay Kumar <vijay.ac.kumar@oracle.com>
+---
+ arch/sparc/Kconfig                      |    1 +
+ arch/sparc/include/asm/qspinlock.h      |    7 +++
+ arch/sparc/include/asm/spinlock_64.h    |   84 +------------------------------
+ arch/sparc/include/asm/spinlock_types.h |    5 ++
+ 4 files changed, 14 insertions(+), 83 deletions(-)
+ create mode 100644 arch/sparc/include/asm/qspinlock.h
 
-> I also would like to see a sample of the watchdog_nmi_reconfigure() you had
-> in mind.  Usually we hide all the nmi stuff underneath the watchdog
-> functions.  But those are threaded, which is what you are trying to avoid,
-> so the placement of the function makes sense but looks odd.
-
-I'm just calling it after any sysctl changes or suspend/resume etc, and
-the lockup detector I have basically just shuts down everything and
-then re-starts with the new parameters (could be made much fancier but
-I didn't see a need.
-
-I will split out this patch and re-post to you with the powerpc patch in
-the series that you can take a look at.
-
-Thanks,
-Nick
+diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
+index 9ec1d2f..d4a24ea 100644
+--- a/arch/sparc/Kconfig
++++ b/arch/sparc/Kconfig
+@@ -83,6 +83,7 @@ config SPARC64
+ 	select ARCH_SUPPORTS_ATOMIC_RMW
+ 	select HAVE_NMI
+ 	select ARCH_USE_QUEUED_RWLOCKS
++	select ARCH_USE_QUEUED_SPINLOCKS
+ 
+ config ARCH_DEFCONFIG
+ 	string
+diff --git a/arch/sparc/include/asm/qspinlock.h b/arch/sparc/include/asm/qspinlock.h
+new file mode 100644
+index 0000000..5ae9a28
+--- /dev/null
++++ b/arch/sparc/include/asm/qspinlock.h
+@@ -0,0 +1,7 @@
++#ifndef _ASM_SPARC_QSPINLOCK_H
++#define _ASM_SPARC_QSPINLOCK_H
++
++#include <asm-generic/qspinlock_types.h>
++#include <asm-generic/qspinlock.h>
++
++#endif /* _ASM_SPARC_QSPINLOCK_H */
+diff --git a/arch/sparc/include/asm/spinlock_64.h b/arch/sparc/include/asm/spinlock_64.h
+index 8901c2d..f7028f5 100644
+--- a/arch/sparc/include/asm/spinlock_64.h
++++ b/arch/sparc/include/asm/spinlock_64.h
+@@ -11,89 +11,7 @@
+ #include <asm/processor.h>
+ #include <asm/barrier.h>
+ #include <asm/qrwlock.h>
+-
+-/* To get debugging spinlocks which detect and catch
+- * deadlock situations, set CONFIG_DEBUG_SPINLOCK
+- * and rebuild your kernel.
+- */
+-
+-/* Because we play games to save cycles in the non-contention case, we
+- * need to be extra careful about branch targets into the "spinning"
+- * code.  They live in their own section, but the newer V9 branches
+- * have a shorter range than the traditional 32-bit sparc branch
+- * variants.  The rule is that the branches that go into and out of
+- * the spinner sections must be pre-V9 branches.
+- */
+-
+-#define arch_spin_is_locked(lp)	((lp)->lock != 0)
+-
+-static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
+-{
+-	smp_cond_load_acquire(&lock->lock, !VAL);
+-}
+-
+-static inline void arch_spin_lock(arch_spinlock_t *lock)
+-{
+-	unsigned long tmp;
+-
+-	__asm__ __volatile__(
+-"1:	ldstub		[%1], %0\n"
+-"	brnz,pn		%0, 2f\n"
+-"	 nop\n"
+-"	.subsection	2\n"
+-"2:	ldub		[%1], %0\n"
+-"	brnz,pt		%0, 2b\n"
+-"	 nop\n"
+-"	ba,a,pt		%%xcc, 1b\n"
+-"	.previous"
+-	: "=&r" (tmp)
+-	: "r" (lock)
+-	: "memory");
+-}
+-
+-static inline int arch_spin_trylock(arch_spinlock_t *lock)
+-{
+-	unsigned long result;
+-
+-	__asm__ __volatile__(
+-"	ldstub		[%1], %0\n"
+-	: "=r" (result)
+-	: "r" (lock)
+-	: "memory");
+-
+-	return (result == 0UL);
+-}
+-
+-static inline void arch_spin_unlock(arch_spinlock_t *lock)
+-{
+-	__asm__ __volatile__(
+-"	stb		%%g0, [%0]"
+-	: /* No outputs */
+-	: "r" (lock)
+-	: "memory");
+-}
+-
+-static inline void arch_spin_lock_flags(arch_spinlock_t *lock, unsigned long flags)
+-{
+-	unsigned long tmp1, tmp2;
+-
+-	__asm__ __volatile__(
+-"1:	ldstub		[%2], %0\n"
+-"	brnz,pn		%0, 2f\n"
+-"	 nop\n"
+-"	.subsection	2\n"
+-"2:	rdpr		%%pil, %1\n"
+-"	wrpr		%3, %%pil\n"
+-"3:	ldub		[%2], %0\n"
+-"	brnz,pt		%0, 3b\n"
+-"	 nop\n"
+-"	ba,pt		%%xcc, 1b\n"
+-"	 wrpr		%1, %%pil\n"
+-"	.previous"
+-	: "=&r" (tmp1), "=&r" (tmp2)
+-	: "r"(lock), "r"(flags)
+-	: "memory");
+-}
++#include <asm/qspinlock.h>
+ 
+ #define arch_read_lock_flags(p, f) arch_read_lock(p)
+ #define arch_write_lock_flags(p, f) arch_write_lock(p)
+diff --git a/arch/sparc/include/asm/spinlock_types.h b/arch/sparc/include/asm/spinlock_types.h
+index 64fce21..bce8ef4 100644
+--- a/arch/sparc/include/asm/spinlock_types.h
++++ b/arch/sparc/include/asm/spinlock_types.h
+@@ -1,11 +1,16 @@
+ #ifndef __SPARC_SPINLOCK_TYPES_H
+ #define __SPARC_SPINLOCK_TYPES_H
+ 
++#ifdef CONFIG_QUEUED_SPINLOCKS
++#include <asm-generic/qspinlock_types.h>
++#else
++
+ typedef struct {
+ 	volatile unsigned char lock;
+ } arch_spinlock_t;
+ 
+ #define __ARCH_SPIN_LOCK_UNLOCKED	{ 0 }
++#endif /* CONFIG_QUEUED_SPINLOCKS */
+ 
+ #ifdef CONFIG_QUEUED_RWLOCKS
+ #include <asm-generic/qrwlock_types.h>
+-- 
+1.7.1
