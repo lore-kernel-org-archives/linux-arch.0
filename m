@@ -1,83 +1,84 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from userp1040.oracle.com ([156.151.31.81]:17655 "EHLO
-        userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1757489AbdETARz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 May 2017 20:17:55 -0400
+Received: from aserp1040.oracle.com ([141.146.126.69]:36902 "EHLO
+        aserp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1756788AbdETARv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 May 2017 20:17:51 -0400
 From: Babu Moger <babu.moger@oracle.com>
-Subject: [PATCH v2 1/7] kernel/locking: Fix compile error with qrwlock.c
-Date: Fri, 19 May 2017 18:16:55 -0600
-Message-ID: <1495239421-441642-2-git-send-email-babu.moger@oracle.com>
-In-Reply-To: <1495239421-441642-1-git-send-email-babu.moger@oracle.com>
-References: <1495239421-441642-1-git-send-email-babu.moger@oracle.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Subject: [PATCH v2 0/7] Enable queued rwlock and queued spinlock for SPARC
+Date: Fri, 19 May 2017 18:16:54 -0600
+Message-ID: <1495239421-441642-1-git-send-email-babu.moger@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: davem@davemloft.net, peterz@infradead.org, mingo@redhat.com, arnd@arndb.de
 Cc: babu.moger@oracle.com, shannon.nelson@oracle.com, haakon.bugge@oracle.com, steven.sistare@oracle.com, vijay.ac.kumar@oracle.com, jane.chu@oracle.com, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20170520001655.XtGgE_bG1CohLszWBydt4B1-wHAOe-Q7RcnI6569eeA@z>
+Message-ID: <20170520001654.iVY974Pn8xZz4Lll8LFhV-BLt5LF9tYhMyzcK4u28kc@z>
 
-Some architectures use the following guard in include file
- "asm/spinlock_types.h" to discourage including the file directly.
+This series of patches enables queued rwlock and queued spinlock support
+for SPARC. These features were introduced some time ago in upstream.
+Here are some of the earlier discussions.
+https://lwn.net/Articles/572765/
+https://lwn.net/Articles/582200/
+https://lwn.net/Articles/561775/
+https://lwn.net/Articles/590243/
 
-Saw these compile errors on SPARC when queued rwlock feature is enabled.
+Tests: Ran AIM7 benchmark to verify the performance on various workloads.
+https://github.com/davidlohr/areaim. Same benchmark was used when this
+feature was introduced and enabled on x86. Here are the test results.
 
-  CC      kernel/locking/qrwlock.o
-In file included from ./include/asm-generic/qrwlock_types.h:5,
-                 from ./arch/sparc/include/asm/qrwlock.h:4,
-                 from kernel/locking/qrwlock.c:24:
-./arch/sparc/include/asm/spinlock_types.h:5:3: error:
-        #error "please don't include this file directly"
+Kernel				4.11.0-rc6     4.11.0-rc6 + 	Change
+				baseline	queued locks
+			      (Avg No.of jobs) (Avg No.of jobs)
+Workload
+High systime 10-100 user	 17290.48	 17295.18	+0.02
+High systime 200-1000 users	109814.95	110248.87	+0.39
+High systime 1200-2000 users	107912.40	127923.16	+18.54
 
-Re-arrange the includes in qrwlock_types.h and include spinlock.h
-in qrwlock.c to fix it.
+Disk IO 10-100 users		168910.16	158834.17	-5.96
+Disk IO 200-1000 users		242781.74	281285.80	+15.85
+Disk IO 1200-2000 users		228518.23	218421.23	-4.41
 
-Also will be removing this stanza from SPARC. Stay tuned.
+Disk IO 10-100 users		183933.77	207928.67	+13.04
+Disk IO 200-1000 users		491981.56	500162.33	+1.66
+Disk IO 1200-2000 users		463395.66	467312.70	+0.84
 
-Signed-off-by: Babu Moger <babu.moger@oracle.com>
-Reviewed-by: Håkon Bugge <haakon.bugge@oracle.com>
-Reviewed-by: Jane Chu <jane.chu@oracle.com>
-Reviewed-by: Shannon Nelson <shannon.nelson@oracle.com>
-Reviewed-by: Vijay Kumar <vijay.ac.kumar@oracle.com>
----
- include/asm-generic/qrwlock_types.h |    6 +++---
- kernel/locking/qrwlock.c            |    1 +
- 2 files changed, 4 insertions(+), 3 deletions(-)
+fserver 10-100 users		254177.53	270283.08	+6.33
+fserver IO 200-1000 users	269017.35	324812.2	+20.74
+fserver IO 1200-2000 users	229538.87	284713.77	+24.03
 
-diff --git a/include/asm-generic/qrwlock_types.h b/include/asm-generic/qrwlock_types.h
-index 0abc6b6..3988c7d 100644
---- a/include/asm-generic/qrwlock_types.h
-+++ b/include/asm-generic/qrwlock_types.h
-@@ -1,9 +1,6 @@
- #ifndef __ASM_GENERIC_QRWLOCK_TYPES_H
- #define __ASM_GENERIC_QRWLOCK_TYPES_H
- 
--#include <linux/types.h>
--#include <asm/spinlock_types.h>
--
- /*
-  * The queue read/write lock data structure
-  */
-@@ -18,4 +15,7 @@
- 	.wait_lock = __ARCH_SPIN_LOCK_UNLOCKED,	\
- }
- 
-+#include <linux/types.h>
-+#include <linux/spinlock_types.h>
-+
- #endif /* __ASM_GENERIC_QRWLOCK_TYPES_H */
-diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
-index cc3ed0c..2655f26 100644
---- a/kernel/locking/qrwlock.c
-+++ b/kernel/locking/qrwlock.c
-@@ -20,6 +20,7 @@
- #include <linux/cpumask.h>
- #include <linux/percpu.h>
- #include <linux/hardirq.h>
-+#include <linux/spinlock.h>
- #include <asm/qrwlock.h>
- 
- /*
--- 
-1.7.1
+Disk I/O results are little bit in negative territory. But majority of the 
+performance changes are in positive and it is significant in some cases.
+
+Changes:
+v1->v2:
+Addressed the comments from David Miller.
+1. Added CPU_BIG_ENDIAN for all SPARC
+2. Removed #ifndef __LINUX_SPINLOCK_TYPES_H guard from spinlock_types.h
+3. Removed check for CONFIG_QUEUED_RWLOCKS in SPARC64 as it is the 
+   default definition for SPARC64 now. Cleaned-up the previous arch_read_xxx
+   and arch_write_xxx definitions as it is defined now in qrwlock.h.
+4. Removed check for CONFIG_QUEUED_SPINLOCKS in SPARC64 as it is the default
+   definition now for SPARC64 now. Cleaned-up the previous arch_spin_xxx
+   definitions as it is defined in qspinlock.h. 
+
+v1: Initial version
+
+Babu Moger (7):
+  kernel/locking: Fix compile error with qrwlock.c
+  arch/sparc: Remove the check #ifndef __LINUX_SPINLOCK_TYPES_H
+  arch/sparc: Define config parameter CPU_BIG_ENDIAN
+  arch/sparc: Introduce cmpxchg_u8 SPARC
+  arch/sparc: Enable queued rwlocks for SPARC
+  arch/sparc: Introduce xchg16 for SPARC
+  arch/sparc: Enable queued spinlock support for SPARC
+
+ arch/sparc/Kconfig                      |    6 +
+ arch/sparc/include/asm/cmpxchg_64.h     |   76 ++++++++++--
+ arch/sparc/include/asm/qrwlock.h        |    7 +
+ arch/sparc/include/asm/qspinlock.h      |    7 +
+ arch/sparc/include/asm/spinlock_64.h    |  208 +------------------------------
+ arch/sparc/include/asm/spinlock_types.h |   12 ++-
+ include/asm-generic/qrwlock_types.h     |    6 +-
+ kernel/locking/qrwlock.c                |    1 +
+ 8 files changed, 101 insertions(+), 222 deletions(-)
+ create mode 100644 arch/sparc/include/asm/qrwlock.h
+ create mode 100644 arch/sparc/include/asm/qspinlock.h
