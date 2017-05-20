@@ -1,82 +1,41 @@
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [RFC] arch hardlockup detector interfaces improvement
-Date: Sat, 20 May 2017 08:53:57 +1000
-Message-ID: <20170520085357.245c62af@roar.ozlabs.ibm.com>
-References: <20170518155026.23799-1-npiggin@gmail.com>
-        <20170518163028.tf2llimuo4l4l5nv@redhat.com>
-        <20170519090731.1e49cd0d@roar.ozlabs.ibm.com>
-        <20170519131753.sccuu7mksjertzni@redhat.com>
-        <20170520005306.13172dc7@roar.ozlabs.ibm.com>
-        <20170519194345.gfwtuprrolk7sgwm@redhat.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <sparclinux-owner@vger.kernel.org>
-In-Reply-To: <20170519194345.gfwtuprrolk7sgwm@redhat.com>
-Sender: sparclinux-owner@vger.kernel.org
-To: Don Zickus <dzickus@redhat.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, adi-buildroot-devel@lists.sourceforge.net, linux-am33-list@redhat.com, sparclinux@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, uobergfe@redhat.com
-List-Id: linux-arch.vger.kernel.org
+From: Babu Moger <babu.moger@oracle.com>
+Subject: [PATCH v2 2/7] arch/sparc: Remove the check #ifndef __LINUX_SPINLOCK_TYPES_H
+Date: Fri, 19 May 2017 18:16:56 -0600
+Message-ID: <1495239421-441642-3-git-send-email-babu.moger@oracle.com>
+References: <1495239421-441642-1-git-send-email-babu.moger@oracle.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from userp1040.oracle.com ([156.151.31.81]:17639 "EHLO
+        userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751457AbdETARt (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 May 2017 20:17:49 -0400
+In-Reply-To: <1495239421-441642-1-git-send-email-babu.moger@oracle.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: davem@davemloft.net, peterz@infradead.org, mingo@redhat.com, arnd@arndb.de
+Cc: babu.moger@oracle.com, shannon.nelson@oracle.com, haakon.bugge@oracle.com, steven.sistare@oracle.com, vijay.ac.kumar@oracle.com, jane.chu@oracle.com, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Fri, 19 May 2017 15:43:45 -0400
-Don Zickus <dzickus@redhat.com> wrote:
+Remove the un-necessary "ifndef __LINUX_SPINLOCK_TYPES_H" stanza from SPARC.
 
-> On Sat, May 20, 2017 at 12:53:06AM +1000, Nicholas Piggin wrote:
-> > > I am curious to know what IBM thinks there.  Currently the HARDLOCKUP
-> > > detector sits on top of perf.  I get the impression, you are removing that
-> > > dependency.  Is that a permanent thing or are you thinking of switching back
-> > > and forth depending on if SOFTLOCKUP is enabled or not?  
-> > 
-> > We want to get away from perf permanently.
-> > 
-> > The PMU interrupts are not specially non-maskable from a hardware
-> > POV, everything gets masked when you turn off interrupts in hardware.
-> > powerpc arch code implements a software disable layer, and PMU
-> > interrupts are differentiated there by being allowed to run even
-> > under local_irq_disable();
-> > 
-> > We have a few issues with using perf for it. We disable it by
-> > default because using it for that breaks another PMU feature.
-> > 
-> > But PMU interupts are not special, so it would be possible to e.g.,
-> > take the timer interrupt before soft disable and have it touch the
-> > watchdog if it fires while under local_irq_disable(). That give
-> > exact same kind of pseudo-NMI as perf interrupts, without using PMU.
-> > 
-> > Further, we now want to introduce a local_pmu_disable() type of
-> > interface that extends this soft disable layer to perf interrupts
-> > as well for some cases. Once we start doing that, more code will
-> > be exempt from the hardlockup watchdog, whereas a watchdog specific
-> > hook from the timer interrupt would still cover it.  
-> 
-> Interesting.  Thanks for that info.
-> 
-> Do you think you can split the patch in half for me?  You are shuffling code
-> around and making subtle changes in the shuffled code.  It is hard to double
-> check everything.  Namely watchdog_nmi_reconfigure and watchdog_update_cpus
-> suddenly appear.
-> 
-> The first patch would be straight code movement, the second the real
-> changes.  I almost don't care if you throw in the LOCKUP->SOFTLOCKUP changes
-> in the first patch either.
-> 
-> I am really interested in the subtle changes to make sure you covered the
-> various race conditions that we have uncovered over the years.
+Signed-off-by: Babu Moger <babu.moger@oracle.com>
+Suggested-by: David Miller <davem@davemloft.net>
+---
+ arch/sparc/include/asm/spinlock_types.h |    4 ----
+ 1 files changed, 0 insertions(+), 4 deletions(-)
 
-Yes that makes sense, I'll do that.
-
-> I also would like to see a sample of the watchdog_nmi_reconfigure() you had
-> in mind.  Usually we hide all the nmi stuff underneath the watchdog
-> functions.  But those are threaded, which is what you are trying to avoid,
-> so the placement of the function makes sense but looks odd.
-
-I'm just calling it after any sysctl changes or suspend/resume etc, and
-the lockup detector I have basically just shuts down everything and
-then re-starts with the new parameters (could be made much fancier but
-I didn't see a need.
-
-I will split out this patch and re-post to you with the powerpc patch in
-the series that you can take a look at.
-
-Thanks,
-Nick
+diff --git a/arch/sparc/include/asm/spinlock_types.h b/arch/sparc/include/asm/spinlock_types.h
+index 9c454fd..019c085 100644
+--- a/arch/sparc/include/asm/spinlock_types.h
++++ b/arch/sparc/include/asm/spinlock_types.h
+@@ -1,10 +1,6 @@
+ #ifndef __SPARC_SPINLOCK_TYPES_H
+ #define __SPARC_SPINLOCK_TYPES_H
+ 
+-#ifndef __LINUX_SPINLOCK_TYPES_H
+-# error "please don't include this file directly"
+-#endif
+-
+ typedef struct {
+ 	volatile unsigned char lock;
+ } arch_spinlock_t;
+-- 
+1.7.1
