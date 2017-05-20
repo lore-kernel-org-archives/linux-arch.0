@@ -1,85 +1,78 @@
 From: Babu Moger <babu.moger@oracle.com>
-Subject: [PATCH v2 4/7] arch/sparc: Introduce cmpxchg_u8 SPARC
-Date: Fri, 19 May 2017 18:16:58 -0600
-Message-ID: <1495239421-441642-5-git-send-email-babu.moger@oracle.com>
+Subject: [PATCH v2 1/7] kernel/locking: Fix compile error with qrwlock.c
+Date: Fri, 19 May 2017 18:16:55 -0600
+Message-ID: <1495239421-441642-2-git-send-email-babu.moger@oracle.com>
 References: <1495239421-441642-1-git-send-email-babu.moger@oracle.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from userp1040.oracle.com ([156.151.31.81]:17679 "EHLO
-        userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1757544AbdETASH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 May 2017 20:18:07 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1495239421-441642-1-git-send-email-babu.moger@oracle.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: davem@davemloft.net, peterz@infradead.org, mingo@redhat.com, arnd@arndb.de
 Cc: babu.moger@oracle.com, shannon.nelson@oracle.com, haakon.bugge@oracle.com, steven.sistare@oracle.com, vijay.ac.kumar@oracle.com, jane.chu@oracle.com, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-SPARC supports 32 bit and 64 bit cmpxchg right now. Add support
-for 8 bit (1 byte) cmpxchg. This is required to support queued
-rwlocks feature  which uses 1 byte cmpxchg.
+Some architectures use the following guard in include file
+ "asm/spinlock_types.h" to discourage including the file directly.
 
-The function __cmpxchg_u8 here uses the 4 byte cas instruction with a
-byte manipulation to achieve 1 byte cmpxchg.
+Saw these compile errors on SPARC when queued rwlock feature is enabled.
+
+  CC      kernel/locking/qrwlock.o
+In file included from ./include/asm-generic/qrwlock_types.h:5,
+                 from ./arch/sparc/include/asm/qrwlock.h:4,
+                 from kernel/locking/qrwlock.c:24:
+./arch/sparc/include/asm/spinlock_types.h:5:3: error:
+        #error "please don't include this file directly"
+
+Re-arrange the includes in qrwlock_types.h and include spinlock.h
+in qrwlock.c to fix it.
+
+Also will be removing this stanza from SPARC. Stay tuned.
 
 Signed-off-by: Babu Moger <babu.moger@oracle.com>
 Reviewed-by: Håkon Bugge <haakon.bugge@oracle.com>
-Reviewed-by: Steve Sistare <steven.sistare@oracle.com>
-Reviewed-by: Shannon Nelson <shannon.nelson@oracle.com>
 Reviewed-by: Jane Chu <jane.chu@oracle.com>
+Reviewed-by: Shannon Nelson <shannon.nelson@oracle.com>
 Reviewed-by: Vijay Kumar <vijay.ac.kumar@oracle.com>
 ---
- arch/sparc/include/asm/cmpxchg_64.h |   29 +++++++++++++++++++++++++++++
- 1 files changed, 29 insertions(+), 0 deletions(-)
+ include/asm-generic/qrwlock_types.h |    6 +++---
+ kernel/locking/qrwlock.c            |    1 +
+ 2 files changed, 4 insertions(+), 3 deletions(-)
 
-diff --git a/arch/sparc/include/asm/cmpxchg_64.h b/arch/sparc/include/asm/cmpxchg_64.h
-index faa2f61..000f7d7 100644
---- a/arch/sparc/include/asm/cmpxchg_64.h
-+++ b/arch/sparc/include/asm/cmpxchg_64.h
-@@ -87,6 +87,33 @@ static inline unsigned long __xchg(unsigned long x, __volatile__ void * ptr,
- 	return new;
+diff --git a/include/asm-generic/qrwlock_types.h b/include/asm-generic/qrwlock_types.h
+index 0abc6b6..3988c7d 100644
+--- a/include/asm-generic/qrwlock_types.h
++++ b/include/asm-generic/qrwlock_types.h
+@@ -1,9 +1,6 @@
+ #ifndef __ASM_GENERIC_QRWLOCK_TYPES_H
+ #define __ASM_GENERIC_QRWLOCK_TYPES_H
+ 
+-#include <linux/types.h>
+-#include <asm/spinlock_types.h>
+-
+ /*
+  * The queue read/write lock data structure
+  */
+@@ -18,4 +15,7 @@
+ 	.wait_lock = __ARCH_SPIN_LOCK_UNLOCKED,	\
  }
  
-+/*
-+ * Use 4 byte cas instruction to achieve 1 byte cmpxchg. Main logic
-+ * here is to get the bit shift of the byte we are interested in.
-+ * The XOR is handy for reversing the bits for big-endian byte order
-+ */
-+static inline unsigned long
-+__cmpxchg_u8(volatile unsigned char *m, unsigned char old, unsigned char new)
-+{
-+	unsigned long maddr = (unsigned long)m;
-+	int bit_shift = (((unsigned long)m & 3) ^ 3) << 3;
-+	unsigned int mask = 0xff << bit_shift;
-+	unsigned int *ptr = (unsigned int *) (maddr & ~3);
-+	unsigned int old32, new32, load;
-+	unsigned int load32 = *ptr;
++#include <linux/types.h>
++#include <linux/spinlock_types.h>
 +
-+	do {
-+		new32 = (load32 & ~mask) | (new << bit_shift);
-+		old32 = (load32 & ~mask) | (old << bit_shift);
-+		load32 = __cmpxchg_u32(ptr, old32, new32);
-+		if (load32 == old32)
-+			return old;
-+		load = (load32 & mask) >> bit_shift;
-+	} while (load == old);
-+
-+	return load;
-+}
-+
- /* This function doesn't exist, so you'll get a linker error
-    if something tries to do an invalid cmpxchg().  */
- void __cmpxchg_called_with_bad_pointer(void);
-@@ -95,6 +122,8 @@ static inline unsigned long __xchg(unsigned long x, __volatile__ void * ptr,
- __cmpxchg(volatile void *ptr, unsigned long old, unsigned long new, int size)
- {
- 	switch (size) {
-+		case 1:
-+			return __cmpxchg_u8(ptr, old, new);
- 		case 4:
- 			return __cmpxchg_u32(ptr, old, new);
- 		case 8:
+ #endif /* __ASM_GENERIC_QRWLOCK_TYPES_H */
+diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
+index cc3ed0c..2655f26 100644
+--- a/kernel/locking/qrwlock.c
++++ b/kernel/locking/qrwlock.c
+@@ -20,6 +20,7 @@
+ #include <linux/cpumask.h>
+ #include <linux/percpu.h>
+ #include <linux/hardirq.h>
++#include <linux/spinlock.h>
+ #include <asm/qrwlock.h>
+ 
+ /*
 -- 
 1.7.1
