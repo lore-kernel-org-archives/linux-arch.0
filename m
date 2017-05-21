@@ -1,70 +1,31 @@
-From: <jacqueline.pike@gmail.com>
-Subject: (unknown)
-Date: Sun, 21 May 2017 09:17:43 -0000
-Message-ID: <149535826385.6152.7908969368651428414@nojabrsk.ru>
+From: Bob Tracy <rct@gherkin.frus.com>
+Subject: Re: is alpha jensen support dead?
+Date: Sun, 21 May 2017 13:11:28 -0500
+Message-ID: <20170521181128.GA13376@gherkin.frus.com>
+References: <20170521085848.GA14559@lst.de>
 Mime-Version: 1.0
-Content-Type: application/zip; name="544961.zip"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from adsl-178-46-15-117.nojabrsk.ru ([178.46.15.117]:41080 "HELO
-        nojabrsk.ru" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with SMTP
-        id S1750824AbdEUJRs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 21 May 2017 05:17:48 -0400
-Content-Disposition: attachment
-Subject: 
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-alpha-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20170521085848.GA14559@lst.de>
+Sender: linux-alpha-owner@vger.kernel.org
+To: Christoph Hellwig <hch@lst.de>
+Cc: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Christian Borntraeger <borntraeger@de.ibm.com>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-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
-WgAAAPUKAAAAAA==
+On Sun, May 21, 2017 at 10:58:48AM +0200, Christoph Hellwig wrote:
+> Btw, how well is alpha working these days?  It looks like there hasn't
+> been any maintainer activity for about two years.
+
+Speaking for myself, the PWS 433au I've got continues to function
+admirably as my IPv6 gateway.  Debian unstable and experimental updates
+continue to apply and work within the limits of my ability to test them.
+I'm building and running the release candidates and final versions of
+the kernel.org tree with the unstable tool chain.  Recently there was a
+FTBFS due to relocation issues during the final vmlinux link on alpha:
+that has been fixed, and what's left of the alpha community is pretty
+quick to respond and identify what's going on.
+
+In summary, alpha is still a viable platform for *me*.
+
+--Bob
