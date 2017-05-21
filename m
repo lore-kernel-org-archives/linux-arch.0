@@ -1,117 +1,136 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from userp1040.oracle.com ([156.151.31.81]:17648 "EHLO
-        userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1757182AbdETARy (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 May 2017 20:17:54 -0400
-From: Babu Moger <babu.moger@oracle.com>
-Subject: [PATCH v2 6/7] arch/sparc: Introduce xchg16 for SPARC
-Date: Fri, 19 May 2017 18:17:00 -0600
-Message-ID: <1495239421-441642-7-git-send-email-babu.moger@oracle.com>
-In-Reply-To: <1495239421-441642-1-git-send-email-babu.moger@oracle.com>
-References: <1495239421-441642-1-git-send-email-babu.moger@oracle.com>
+Received: from mail.skyhub.de ([5.9.137.197]:55530 "EHLO mail.skyhub.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1750998AbdEUHRD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 21 May 2017 03:17:03 -0400
+Date: Sun, 21 May 2017 09:16:50 +0200
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v5 17/32] x86/mm: Add support to access boot related data
+ in the clear
+Message-ID: <20170521071650.pwwmw4agggaazfrh@pd.tnic>
+References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
+ <20170418211921.10190.1537.stgit@tlendack-t1.amdoffice.net>
+ <20170515183517.mb4k2gp2qobbuvtm@pd.tnic>
+ <4845df29-bae7-9b78-0428-ff96dbef2128@amd.com>
+ <20170518090212.kebstmnjv4h3cjf2@pd.tnic>
+ <c0cb8a50-e860-169b-ee0c-7eb4db7c3fda@amd.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <c0cb8a50-e860-169b-ee0c-7eb4db7c3fda@amd.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: davem@davemloft.net, peterz@infradead.org, mingo@redhat.com, arnd@arndb.de
-Cc: babu.moger@oracle.com, shannon.nelson@oracle.com, haakon.bugge@oracle.com, steven.sistare@oracle.com, vijay.ac.kumar@oracle.com, jane.chu@oracle.com, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20170520001700.VIS_wWhzQ9LkdbzHSobyqFy3cORtDU00AWlES1Ke9T0@z>
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20170521071650.U_pJn88ntkdVQxjDCuD3_oSHpckMmYB8X5DkRwvY0-Q@z>
 
-SPARC supports 32 bit and 64 bit xchg right now. Add the support
-for 16 bit (2 byte) xchg. This is required to support queued spinlock
-feature which uses 2 byte xchg. This is achieved using 4 byte cas
-instructions with byte manipulations.
+On Fri, May 19, 2017 at 03:50:32PM -0500, Tom Lendacky wrote:
+> The "worker" function would be doing the loop through the setup data,
+> but since the setup data is mapped inside the loop I can't do the __init
+> calling the non-init function and still hope to consolidate the code.
+> Maybe I'm missing something here...
 
-Also re-arranged the code to call __cmpxchg_u32 inside xchg16.
+Hmm, I see what you mean. But the below change ontop doesn't fire any
+warnings here. Maybe your .config has something set which I don't...
 
-Signed-off-by: Babu Moger <babu.moger@oracle.com>
-Reviewed-by: Håkon Bugge <haakon.bugge@oracle.com>
-Reviewed-by: Steven Sistare <steven.sistare@oracle.com>
-Reviewed-by: Shannon Nelson <shannon.nelson@oracle.com>
-Reviewed-by: Jane Chu <jane.chu@oracle.com>
-Reviewed-by: Vijay Kumar <vijay.ac.kumar@oracle.com>
 ---
- arch/sparc/include/asm/cmpxchg_64.h |   49 +++++++++++++++++++++++++++-------
- 1 files changed, 39 insertions(+), 10 deletions(-)
-
-diff --git a/arch/sparc/include/asm/cmpxchg_64.h b/arch/sparc/include/asm/cmpxchg_64.h
-index 000f7d7..4028f4f 100644
---- a/arch/sparc/include/asm/cmpxchg_64.h
-+++ b/arch/sparc/include/asm/cmpxchg_64.h
-@@ -6,6 +6,17 @@
- #ifndef __ARCH_SPARC64_CMPXCHG__
- #define __ARCH_SPARC64_CMPXCHG__
- 
-+static inline unsigned long
-+__cmpxchg_u32(volatile int *m, int old, int new)
-+{
-+	__asm__ __volatile__("cas [%2], %3, %0"
-+			     : "=&r" (new)
-+			     : "0" (new), "r" (m), "r" (old)
-+			     : "memory");
-+
-+	return new;
-+}
-+
- static inline unsigned long xchg32(__volatile__ unsigned int *m, unsigned int val)
+diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
+index 55317ba3b6dc..199c983192ae 100644
+--- a/arch/x86/mm/ioremap.c
++++ b/arch/x86/mm/ioremap.c
+@@ -515,71 +515,50 @@ static bool memremap_is_efi_data(resource_size_t phys_addr,
+  * Examine the physical address to determine if it is boot data by checking
+  * it against the boot params setup_data chain.
+  */
+-static bool memremap_is_setup_data(resource_size_t phys_addr,
+-				   unsigned long size)
++static bool
++__memremap_is_setup_data(resource_size_t phys_addr, unsigned long size, bool early)
  {
- 	unsigned long tmp1, tmp2;
-@@ -44,10 +55,38 @@ static inline unsigned long xchg64(__volatile__ unsigned long *m, unsigned long 
+ 	struct setup_data *data;
+ 	u64 paddr, paddr_next;
++	u32 len;
  
- void __xchg_called_with_bad_pointer(void);
+ 	paddr = boot_params.hdr.setup_data;
+ 	while (paddr) {
+-		bool is_setup_data = false;
  
-+/*
-+ * Use 4 byte cas instruction to achieve 2 byte xchg. Main logic
-+ * here is to get the bit shift of the byte we are interested in.
-+ * The XOR is handy for reversing the bits for big-endian byte order.
-+ */
-+static inline unsigned long
-+xchg16(__volatile__ unsigned short *m, unsigned short val)
-+{
-+	unsigned long maddr = (unsigned long)m;
-+	int bit_shift = (((unsigned long)m & 2) ^ 2) << 3;
-+	unsigned int mask = 0xffff << bit_shift;
-+	unsigned int *ptr = (unsigned int  *) (maddr & ~2);
-+	unsigned int old32, new32, load32;
-+
-+	/* Read the old value */
-+	load32 = *ptr;
-+
-+	do {
-+		old32 = load32;
-+		new32 = (load32 & (~mask)) | val << bit_shift;
-+		load32 = __cmpxchg_u32(ptr, old32, new32);
-+	} while (load32 != old32);
-+
-+	return (load32 & mask) >> bit_shift;
-+}
-+
- static inline unsigned long __xchg(unsigned long x, __volatile__ void * ptr,
- 				       int size)
- {
- 	switch (size) {
-+	case 2:
-+		return xchg16(ptr, x);
- 	case 4:
- 		return xchg32(ptr, x);
- 	case 8:
-@@ -65,16 +104,6 @@ static inline unsigned long __xchg(unsigned long x, __volatile__ void * ptr,
+ 		if (phys_addr == paddr)
+ 			return true;
  
- #include <asm-generic/cmpxchg-local.h>
+-		data = memremap(paddr, sizeof(*data),
+-				MEMREMAP_WB | MEMREMAP_DEC);
++		if (early)
++			data = early_memremap_decrypted(paddr, sizeof(*data));
++		else
++			data = memremap(paddr, sizeof(*data), MEMREMAP_WB | MEMREMAP_DEC);
  
--static inline unsigned long
--__cmpxchg_u32(volatile int *m, int old, int new)
--{
--	__asm__ __volatile__("cas [%2], %3, %0"
--			     : "=&r" (new)
--			     : "0" (new), "r" (m), "r" (old)
--			     : "memory");
+ 		paddr_next = data->next;
++		len = data->len;
+ 
+-		if ((phys_addr > paddr) && (phys_addr < (paddr + data->len)))
+-			is_setup_data = true;
++		if (early)
++			early_memunmap(data, sizeof(*data));
++		else
++			memunmap(data);
+ 
+-		memunmap(data);
+ 
+-		if (is_setup_data)
++		if ((phys_addr > paddr) && (phys_addr < (paddr + data->len)))
+ 			return true;
+ 
+ 		paddr = paddr_next;
+ 	}
 -
--	return new;
--}
+ 	return false;
+ }
  
- static inline unsigned long
- __cmpxchg_u64(volatile long *m, unsigned long old, unsigned long new)
+-/*
+- * Examine the physical address to determine if it is boot data by checking
+- * it against the boot params setup_data chain (early boot version).
+- */
+ static bool __init early_memremap_is_setup_data(resource_size_t phys_addr,
+ 						unsigned long size)
+ {
+-	struct setup_data *data;
+-	u64 paddr, paddr_next;
+-
+-	paddr = boot_params.hdr.setup_data;
+-	while (paddr) {
+-		bool is_setup_data = false;
+-
+-		if (phys_addr == paddr)
+-			return true;
+-
+-		data = early_memremap_decrypted(paddr, sizeof(*data));
+-
+-		paddr_next = data->next;
+-
+-		if ((phys_addr > paddr) && (phys_addr < (paddr + data->len)))
+-			is_setup_data = true;
+-
+-		early_memunmap(data, sizeof(*data));
+-
+-		if (is_setup_data)
+-			return true;
+-
+-		paddr = paddr_next;
+-	}
++	return __memremap_is_setup_data(phys_addr, size, true);
++}
+ 
+-	return false;
++static bool memremap_is_setup_data(resource_size_t phys_addr, unsigned long size)
++{
++	return __memremap_is_setup_data(phys_addr, size, false);
+ }
+ 
+ /*
+
 -- 
-1.7.1
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
