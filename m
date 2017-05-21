@@ -1,69 +1,137 @@
-From: <h.gerritsen12@chello.nl>
-Subject: (unknown)
-Date: Sat, 20 May 2017 21:16:01 -0000
-Message-ID: <149531496153.31455.1529717965827214448@is74.ru>
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v5 17/32] x86/mm: Add support to access boot related data
+ in the clear
+Date: Sun, 21 May 2017 09:16:50 +0200
+Message-ID: <20170521071650.pwwmw4agggaazfrh@pd.tnic>
+References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
+ <20170418211921.10190.1537.stgit@tlendack-t1.amdoffice.net>
+ <20170515183517.mb4k2gp2qobbuvtm@pd.tnic>
+ <4845df29-bae7-9b78-0428-ff96dbef2128@amd.com>
+ <20170518090212.kebstmnjv4h3cjf2@pd.tnic>
+ <c0cb8a50-e860-169b-ee0c-7eb4db7c3fda@amd.com>
 Mime-Version: 1.0
-Content-Type: application/zip; name="31217786072134.zip"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from pool-109-191-43-125.is74.ru ([109.191.43.125]:53708 "HELO
-        is74.ru" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with SMTP
-        id S1753856AbdETVQG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 20 May 2017 17:16:06 -0400
-Content-Disposition: attachment
-Subject: 
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=utf-8
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <c0cb8a50-e860-169b-ee0c-7eb4db7c3fda@amd.com>
+Sender: owner-linux-mm@kvack.org
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander
+List-Id: linux-arch.vger.kernel.org
 
-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
+On Fri, May 19, 2017 at 03:50:32PM -0500, Tom Lendacky wrote:
+> The "worker" function would be doing the loop through the setup data,
+> but since the setup data is mapped inside the loop I can't do the __init
+> calling the non-init function and still hope to consolidate the code.
+> Maybe I'm missing something here...
+
+Hmm, I see what you mean. But the below change ontop doesn't fire any
+warnings here. Maybe your .config has something set which I don't...
+
+---
+diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
+index 55317ba3b6dc..199c983192ae 100644
+--- a/arch/x86/mm/ioremap.c
++++ b/arch/x86/mm/ioremap.c
+@@ -515,71 +515,50 @@ static bool memremap_is_efi_data(resource_size_t phys_addr,
+  * Examine the physical address to determine if it is boot data by checking
+  * it against the boot params setup_data chain.
+  */
+-static bool memremap_is_setup_data(resource_size_t phys_addr,
+-				   unsigned long size)
++static bool
++__memremap_is_setup_data(resource_size_t phys_addr, unsigned long size, bool early)
+ {
+ 	struct setup_data *data;
+ 	u64 paddr, paddr_next;
++	u32 len;
+ 
+ 	paddr = boot_params.hdr.setup_data;
+ 	while (paddr) {
+-		bool is_setup_data = false;
+ 
+ 		if (phys_addr == paddr)
+ 			return true;
+ 
+-		data = memremap(paddr, sizeof(*data),
+-				MEMREMAP_WB | MEMREMAP_DEC);
++		if (early)
++			data = early_memremap_decrypted(paddr, sizeof(*data));
++		else
++			data = memremap(paddr, sizeof(*data), MEMREMAP_WB | MEMREMAP_DEC);
+ 
+ 		paddr_next = data->next;
++		len = data->len;
+ 
+-		if ((phys_addr > paddr) && (phys_addr < (paddr + data->len)))
+-			is_setup_data = true;
++		if (early)
++			early_memunmap(data, sizeof(*data));
++		else
++			memunmap(data);
+ 
+-		memunmap(data);
+ 
+-		if (is_setup_data)
++		if ((phys_addr > paddr) && (phys_addr < (paddr + data->len)))
+ 			return true;
+ 
+ 		paddr = paddr_next;
+ 	}
+-
+ 	return false;
+ }
+ 
+-/*
+- * Examine the physical address to determine if it is boot data by checking
+- * it against the boot params setup_data chain (early boot version).
+- */
+ static bool __init early_memremap_is_setup_data(resource_size_t phys_addr,
+ 						unsigned long size)
+ {
+-	struct setup_data *data;
+-	u64 paddr, paddr_next;
+-
+-	paddr = boot_params.hdr.setup_data;
+-	while (paddr) {
+-		bool is_setup_data = false;
+-
+-		if (phys_addr == paddr)
+-			return true;
+-
+-		data = early_memremap_decrypted(paddr, sizeof(*data));
+-
+-		paddr_next = data->next;
+-
+-		if ((phys_addr > paddr) && (phys_addr < (paddr + data->len)))
+-			is_setup_data = true;
+-
+-		early_memunmap(data, sizeof(*data));
+-
+-		if (is_setup_data)
+-			return true;
+-
+-		paddr = paddr_next;
+-	}
++	return __memremap_is_setup_data(phys_addr, size, true);
++}
+ 
+-	return false;
++static bool memremap_is_setup_data(resource_size_t phys_addr, unsigned long size)
++{
++	return __memremap_is_setup_data(phys_addr, size, false);
+ }
+ 
+ /*
+
+-- 
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
