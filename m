@@ -1,62 +1,91 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH 1/1] futex: remove duplicated code
-Date: Mon, 22 May 2017 23:11:33 +0200 (CEST)
-Message-ID: <alpine.DEB.2.20.1705222259580.2407@nanos>
-References: <20170515130742.18357-1-jslaby@suse.cz>
- <20170515131644.GA3605@arm.com>
+From: Babu Moger <babu.moger@oracle.com>
+Subject: Re: [PATCH v2 1/7] kernel/locking: Fix compile error with qrwlock.c
+Date: Mon, 22 May 2017 16:57:39 -0500
+Message-ID: <9cf41ab6-0aea-4c63-9577-65a06f661312@oracle.com>
+References: <1495239421-441642-1-git-send-email-babu.moger@oracle.com>
+ <1495239421-441642-2-git-send-email-babu.moger@oracle.com>
+ <20170522.150328.1597262115447284483.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20170515131644.GA3605@arm.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
- <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
-List-Post: <mailto:linux-snps-arc@lists.infradead.org>
-List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
- <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
-Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
-To: Will Deacon <will.deacon@arm.com>
-Cc: linux-mips@linux-mips.org, Rich Felker <dalias@libc.org>, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Max Filippov <jcmvbkbc@gmail.com>, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, sparclinux@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Jonas Bonn <jonas@southpole.se>, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, linux-hexagon@vger.kernel.org, Helge Deller <deller@gmx.de>, x86@kernel.org, "James E.J. Bottomley" <jejb@parisc-linux.org>, Ingo Molnar <mingo@redhat.com>, Catalin Marinas <catalin.marinas@arm.com>, Matt Turner <mattst88@gmail.com>, linux-snps-arc@lists.infradead.org, Fenghua Yu <fenghua.yu@intel.com>, Arnd Bergmann <arnd@arndb.de>, linux-xtensa@linux-xtensa.org, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from userp1040.oracle.com ([156.151.31.81]:42320 "EHLO
+        userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S934403AbdEVV6f (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 May 2017 17:58:35 -0400
+In-Reply-To: <20170522.150328.1597262115447284483.davem@davemloft.net>
+Content-Language: en-US
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Miller <davem@davemloft.net>
+Cc: peterz@infradead.org, mingo@redhat.com, arnd@arndb.de, shannon.nelson@oracle.com, haakon.bugge@oracle.com, steven.sistare@oracle.com, vijay.ac.kumar@oracle.com, jane.chu@oracle.com, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Mon, 15 May 2017, Will Deacon wrote:
-> Hi Jiri,
-> 
-> On Mon, May 15, 2017 at 03:07:42PM +0200, Jiri Slaby wrote:
-> > There is code duplicated over all architecture's headers for
-> > futex_atomic_op_inuser. Namely op decoding, access_ok check for uaddr,
-> > and comparison of the result.
-> > 
-> > Remove this duplication and leave up to the arches only the needed
-> > assembly which is now in arch_futex_atomic_op_inuser.
-> > 
-> > Note that s390 removed access_ok check in d12a29703 ("s390/uaccess:
-> > remove pointless access_ok() checks") as access_ok there returns true.
-> > We introduce it back to the helper for the sake of simplicity (it gets
-> > optimized away anyway).
-> 
-> Whilst I think this is a good idea, the code in question actually results
-> in undefined behaviour per the C spec and is reported by UBSAN. See my
-> patch fixing arm64 here (which I'd forgotten about):
-> 
-> https://www.spinics.net/lists/linux-arch/msg38564.html
-> 
-> But, as stated in the thread above, I think we should go a step further
-> and remove FUTEX_OP_{OR,ANDN,XOR,OPARG_SHIFT} altogether. They don't
-> appear to be used by userspace, and this whole thing is a total mess.
 
-You wish. The constants are not used, but FUTEX_WAKE_OP _IS_ used by
-glibc. They only have one argument it seems:
+On 5/22/2017 2:03 PM, David Miller wrote:
+> From: Babu Moger <babu.moger@oracle.com>
+> Date: Fri, 19 May 2017 18:16:55 -0600
+>
+>> Some architectures use the following guard in include file
+>>   "asm/spinlock_types.h" to discourage including the file directly.
+>>
+>> Saw these compile errors on SPARC when queued rwlock feature is enabled.
+>>
+>>    CC      kernel/locking/qrwlock.o
+>> In file included from ./include/asm-generic/qrwlock_types.h:5,
+>>                   from ./arch/sparc/include/asm/qrwlock.h:4,
+>>                   from kernel/locking/qrwlock.c:24:
+>> ./arch/sparc/include/asm/spinlock_types.h:5:3: error:
+>>          #error "please don't include this file directly"
+>>
+>> Re-arrange the includes in qrwlock_types.h and include spinlock.h
+>> in qrwlock.c to fix it.
+>>
+>> Also will be removing this stanza from SPARC. Stay tuned.
+>>
+>> Signed-off-by: Babu Moger <babu.moger@oracle.com>
+>> Reviewed-by: Håkon Bugge <haakon.bugge@oracle.com>
+>> Reviewed-by: Jane Chu <jane.chu@oracle.com>
+>> Reviewed-by: Shannon Nelson <shannon.nelson@oracle.com>
+>> Reviewed-by: Vijay Kumar <vijay.ac.kumar@oracle.com>
+> In my feedback I said to remove that check from
+> sparc's asm/spinlock_types.h header.
+>
+> Which you do in patch #2
+>
+> But that means this patch #1 here is no longer necessary, since we
+> conform to the hearder scheme used by other architectures using queued
+> locks.
+>
+> So please remove this patch from the series.
+Sorry. I did not make it clear. Patch #2 addresses this following problem.
 
-   #define FUTEX_OP_CLEAR_WAKE_IF_GT_ONE      ((4 << 24) | 1)
+./arch/sparc/include/asm/spinlock_types.h:5:3: error:
+#error "please don't include this file directly"
 
-but I'm pretty sure that there is enough (probably horrible) code (think
-java) out there using FUTEX_WAKE_OP for whatever (non)sensical reasons in
-any available combination.
+But we still have this following problem. So we needed part of the patch #1.
 
-Thanks,
+   CC      kernel/locking/qrwlock.o
+kernel/locking/qrwlock.c: In function ‘queued_read_lock_slowpath’:
+kernel/locking/qrwlock.c:89: error: implicit declaration of function 
+‘arch_spin_lock’
+kernel/locking/qrwlock.c:102: error: implicit declaration of function 
+‘arch_spin_unlock’
+make[4]: *** [kernel/locking/qrwlock.o] Error 1
 
-	tglx
+To address this we need following change.
+============================================
+diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
+index cc3ed0c..2655f26 100644
+--- a/kernel/locking/qrwlock.c
++++ b/kernel/locking/qrwlock.c
+@@ -20,6 +20,7 @@
+  #include <linux/cpumask.h>
+  #include <linux/percpu.h>
+  #include <linux/hardirq.h>
++#include <linux/spinlock.h>
+  #include <asm/qrwlock.h>
+
+  /*
+I will update the patch set with the above information. Does that work?
+
+> Thank you.
