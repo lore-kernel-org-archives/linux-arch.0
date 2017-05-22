@@ -1,42 +1,62 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v3.1 4/6] mm/hugetlb: Allow architectures to override huge_pte_clear()
-Date: Mon, 22 May 2017 22:34:45 +0200
-Message-ID: <CAK8P3a0WppXFJ5==nymNHeqrKvixpLQ1AetFRGVv9Y3q8kT9Ew@mail.gmail.com>
-References: <20170522133604.11392-5-punit.agrawal@arm.com> <20170522162555.4313-1-punit.agrawal@arm.com>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH 1/1] futex: remove duplicated code
+Date: Mon, 22 May 2017 23:11:33 +0200 (CEST)
+Message-ID: <alpine.DEB.2.20.1705222259580.2407@nanos>
+References: <20170515130742.18357-1-jslaby@suse.cz>
+ <20170515131644.GA3605@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20170522162555.4313-1-punit.agrawal@arm.com>
-Sender: owner-linux-mm@kvack.org
-To: Punit Agrawal <punit.agrawal@arm.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Linux-MM <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, n-horiguchi@ah.jp.nec.com, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, mike.kravetz@oracle.com, steve.capper@arm.com, Mark Rutland <mark.rutland@arm.com>, linux-arch <linux-arch@vger.kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20170515131644.GA3605@arm.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
+List-Post: <mailto:linux-snps-arc@lists.infradead.org>
+List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
+Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
+To: Will Deacon <will.deacon@arm.com>
+Cc: linux-mips@linux-mips.org, Rich Felker <dalias@libc.org>, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Max Filippov <jcmvbkbc@gmail.com>, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, sparclinux@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Jonas Bonn <jonas@southpole.se>, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, linux-hexagon@vger.kernel.org, Helge Deller <deller@gmx.de>, x86@kernel.org, "James E.J. Bottomley" <jejb@parisc-linux.org>, Ingo Molnar <mingo@redhat.com>, Catalin Marinas <catalin.marinas@arm.com>, Matt Turner <mattst88@gmail.com>, linux-snps-arc@lists.infradead.org, Fenghua Yu <fenghua.yu@intel.com>, Arnd Bergmann <arnd@arndb.de>, linux-xtensa@linux-xtensa.org, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, May 22, 2017 at 6:25 PM, Punit Agrawal <punit.agrawal@arm.com> wrote:
-> When unmapping a hugepage range, huge_pte_clear() is used to clear the
-> page table entries that are marked as not present. huge_pte_clear()
-> internally just ends up calling pte_clear() which does not correctly
-> deal with hugepages consisting of contiguous page table entries.
->
-> Add a size argument to address this issue and allow architectures to
-> override huge_pte_clear() by wrapping it in a #ifndef block.
->
-> Update s390 implementation with the size parameter as well.
->
-> Note that the change only affects huge_pte_clear() - the other generic
-> hugetlb functions don't need any change.
->
-> Signed-off-by: Punit Agrawal <punit.agrawal@arm.com>
-> Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-> Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
-> Cc: Mike Kravetz <mike.kravetz@oracle.com>
+On Mon, 15 May 2017, Will Deacon wrote:
+> Hi Jiri,
+> 
+> On Mon, May 15, 2017 at 03:07:42PM +0200, Jiri Slaby wrote:
+> > There is code duplicated over all architecture's headers for
+> > futex_atomic_op_inuser. Namely op decoding, access_ok check for uaddr,
+> > and comparison of the result.
+> > 
+> > Remove this duplication and leave up to the arches only the needed
+> > assembly which is now in arch_futex_atomic_op_inuser.
+> > 
+> > Note that s390 removed access_ok check in d12a29703 ("s390/uaccess:
+> > remove pointless access_ok() checks") as access_ok there returns true.
+> > We introduce it back to the helper for the sake of simplicity (it gets
+> > optimized away anyway).
+> 
+> Whilst I think this is a good idea, the code in question actually results
+> in undefined behaviour per the C spec and is reported by UBSAN. See my
+> patch fixing arm64 here (which I'd forgotten about):
+> 
+> https://www.spinics.net/lists/linux-arch/msg38564.html
+> 
+> But, as stated in the thread above, I think we should go a step further
+> and remove FUTEX_OP_{OR,ANDN,XOR,OPARG_SHIFT} altogether. They don't
+> appear to be used by userspace, and this whole thing is a total mess.
 
-Acked-by: Arnd Bergmann <arnd@arndb.de>
+You wish. The constants are not used, but FUTEX_WAKE_OP _IS_ used by
+glibc. They only have one argument it seems:
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+   #define FUTEX_OP_CLEAR_WAKE_IF_GT_ONE      ((4 << 24) | 1)
+
+but I'm pretty sure that there is enough (probably horrible) code (think
+java) out there using FUTEX_WAKE_OP for whatever (non)sensical reasons in
+any available combination.
+
+Thanks,
+
+	tglx
