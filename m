@@ -1,18 +1,19 @@
-From: Matt Turner <mattst88@gmail.com>
+From: Michael Ellerman <mpe@ellerman.id.au>
 Subject: Re: is alpha jensen support dead?
-Date: Sun, 21 May 2017 22:33:33 -0700
-Message-ID: <CAEdQ38F4aKXX4aDStWB5GEfCUfQ1Aige7i1_Pev8CMUtN02faw@mail.gmail.com>
+Date: Mon, 22 May 2017 15:50:02 +1000
+Message-ID: <87lgppsanp.fsf@concordia.ellerman.id.au>
 References: <20170521085848.GA14559@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain
 Return-path: <linux-alpha-owner@vger.kernel.org>
 In-Reply-To: <20170521085848.GA14559@lst.de>
 Sender: linux-alpha-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Christian Borntraeger <borntraeger@de.ibm.com>, linux-alpha <linux-alpha@vger.kernel.org>, linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>
+To: Christoph Hellwig <hch@lst.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>
+Cc: Christian Borntraeger <borntraeger@de.ibm.com>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Sun, May 21, 2017 at 1:58 AM, Christoph Hellwig <hch@lst.de> wrote:
+Christoph Hellwig <hch@lst.de> writes:
+
 > Hi all,
 >
 > it seems like the Alpha Jense build (the only one using pci-noop.c)
@@ -30,10 +31,10 @@ On Sun, May 21, 2017 at 1:58 AM, Christoph Hellwig <hch@lst.de> wrote:
 >
 > Is there any value in keeping it alive?  Especially as there probably
 > isn't any build coverage..
->
-> Btw, how well is alpha working these days?  It looks like there hasn't
-> been any maintainer activity for about two years.
 
-I haven't had time for alpha stuff in quite a while.
+We still build the defconfig FWIW:
 
-I've never even had a Jensen, so it's never been important to me personally.
+  http://kisskb.ellerman.id.au/kisskb/target/2499/
+  http://kisskb.ellerman.id.au/kisskb/target/2494/
+
+cheers
