@@ -1,107 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:35158 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753131AbdEVLaQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 22 May 2017 07:30:16 -0400
-Date: Mon, 22 May 2017 12:31:16 +0100
-From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Subject: Re: [PATCH V4 3/4] ACPI/IORT: Ignore all errors except EPROBE_DEFER
-Message-ID: <20170522113116.GB10449@red-moon>
-References: <1495119257-26724-1-git-send-email-sricharan@codeaurora.org>
- <1495119257-26724-3-git-send-email-sricharan@codeaurora.org>
- <20170522103730.GB7553@red-moon>
- <ffb088d6-e40f-7a7d-dafb-e52dc86704fc@codeaurora.org>
+Received: from mail-it0-f42.google.com ([209.85.214.42]:33163 "EHLO
+        mail-it0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751318AbdEVLoh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 May 2017 07:44:37 -0400
+Received: by mail-it0-f42.google.com with SMTP id w68so3509197itc.0
+        for <linux-arch@vger.kernel.org>; Mon, 22 May 2017 04:44:37 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <ffb088d6-e40f-7a7d-dafb-e52dc86704fc@codeaurora.org>
+In-Reply-To: <20170519193455.GA24206@localhost>
+References: <20170519193455.GA24206@localhost>
+From: Linus Walleij <linus.walleij@linaro.org>
+Date: Mon, 22 May 2017 13:44:35 +0200
+Message-ID: <CACRpkdaRdZTB39-=sAojO+OyHtP02KaFChqGcxy+fWA8qaB2bw@mail.gmail.com>
+Subject: Re: [GIT PULL] ARM: SoC fixes (and a cross-arch dt-include fix)
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sricharan R <sricharan@codeaurora.org>
-Cc: robin.murphy@arm.com, will.deacon@arm.com, joro@8bytes.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arm-msm@vger.kernel.org, m.szyprowski@samsung.com, bhelgaas@google.com, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, tn@semihalf.com, hanjun.guo@linaro.org, okaya@codeaurora.org, robh+dt@kernel.org, frowand.list@gmail.com, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, sudeep.holla@arm.com, rjw@rjwysocki.net, lenb@kernel.org, catalin.marinas@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, laurent.pinchart@ideasonboard.com, j.neuschaefer@gmx.net, geert@linux-m68k.org, magnus.damm@gmail.com
-Message-ID: <20170522113116.Crozdz1FiHIKbM_W_QGArFlraHCbCJCIuOo234Z3tTo@z>
+To: Olof Johansson <olof@lixom.net>, Rob Herring <robh+dt@kernel.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "arm@kernel.org" <arm@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20170522114435.T6apcw4ano2QYBpG0-b7RnT4Fl6BfzF8vo89ERmDeVM@z>
 
-On Mon, May 22, 2017 at 04:35:43PM +0530, Sricharan R wrote:
-> Hi Lorenzo,
-> 
-> On 5/22/2017 4:07 PM, Lorenzo Pieralisi wrote:
-> > Hi Sricharan,
-> > 
-> > On Thu, May 18, 2017 at 08:24:16PM +0530, Sricharan R wrote:
-> >> While deferring the probe of IOMMU masters, xlate and
-> >> add_device callbacks called from iort_iommu_configure
-> >> can pass back error values like -ENODEV, which means
-> >> the IOMMU cannot be connected with that master for real
-> >> reasons. Before the IOMMU probe deferral, all such errors
-> >> were ignored. Now all those errors are propagated back,
-> >> killing the master's probe for such errors. Instead ignore
-> >> all the errors except EPROBE_DEFER, which is the only one
-> >> of concern and let the master work without IOMMU, thus
-> >> restoring the old behavior.
-> >>
-> >> Fixes: 5a1bb638d567 ("drivers: acpi: Handle IOMMU lookup failure with deferred probing or error")
-> >> Signed-off-by: Sricharan R <sricharan@codeaurora.org>
-> >> ---
-> >> [V4] Added this patch newly.
-> >>
-> >>  drivers/acpi/arm64/iort.c | 6 ++++++
-> >>  1 file changed, 6 insertions(+)
-> >>
-> >> diff --git a/drivers/acpi/arm64/iort.c b/drivers/acpi/arm64/iort.c
-> >> index c5fecf9..16e101f 100644
-> >> --- a/drivers/acpi/arm64/iort.c
-> >> +++ b/drivers/acpi/arm64/iort.c
-> >> @@ -782,6 +782,12 @@ const struct iommu_ops *iort_iommu_configure(struct device *dev)
-> >>  	if (err)
-> >>  		ops = ERR_PTR(err);
-> >>  
-> >> +	/* Ignore all other errors apart from EPROBE_DEFER */
-> >> +	if (IS_ERR(ops) && (PTR_ERR(ops) != -EPROBE_DEFER)) {
-> >> +		dev_dbg(dev, "Adding to IOMMU failed: %ld\n", PTR_ERR(ops));
-> >> +		ops = NULL;
-> >> +	}
-> >> +
-> >>  	return ops;
-> >>  }
-> >>  
-> > 
-> > It is getting a bit convoluted. Is not it better to propagate the
-> > error back and let acpi_dma_configure() make a decision accordingly ?
-> > 
-> 
-> ok, I was trying to keep it in same way as DT, where of_dma_configure
-> (here acpi_dma_configure) calls of_iommu_configure(here iort_iommu_configure)
-> which ends up doing the check. So will have to be changed in both places
-> for symmetry.
-> 
-> > Something like:
-> > 
-> > -- >8 --
-> > diff --git a/drivers/acpi/scan.c b/drivers/acpi/scan.c
-> > index e39ec7b..3a10d757 100644
-> > --- a/drivers/acpi/scan.c
-> > +++ b/drivers/acpi/scan.c
-> > @@ -1371,8 +1371,8 @@ int acpi_dma_configure(struct device *dev, enum dev_dma_attr attr)
-> >  	iort_set_dma_mask(dev);
-> >  
-> >  	iommu = iort_iommu_configure(dev);
-> > -	if (IS_ERR(iommu))
-> > -		return PTR_ERR(iommu);
-> > +	if (IS_ERR(iommu) && PTR_ERR(iommu) == -EPROBE_DEFER)
-> > +		return -EPROBE_DEFER;
-> 
-> In case of other errors apart from EPROBE_DEFER,
-> iommu = NULL should be set, before passing it on to
-> arch_setup_dma_ops.
+On Fri, May 19, 2017 at 9:34 PM, Olof Johansson <olof@lixom.net> wrote:
 
-Ah yes, sorry, that makes it uglier :(
+>  - We've started telling people to avoid cross-tree shared branches if all
+>    they're doing is picking up one or two DT-used constants from a
+>    shared include file, and instead to use the numeric values on first
+>    submission. Follow-up moving over to symbolic names are sent in right
+>    after -rc1, i.e. here. It's only a few minor patches of this type.
 
-Point is, it does not make sense to me to have of/acpi_dma_configure()
-check a return code with (IS_ERR()) whilst we know the only error
-code you are allowed to handle is -EPROBE_DEFER, while at it it is
-better to make the -EPROBE_DEFER check explicit (otherwise it may
-seem that of/acpi_dma_configure() can handle an error code that
-is different from -EPROBE_DEFER - but they don't), no big deal either
-way though.
+OK it seems like a reasonable process.
 
-Lorenzo
+It's not like I can think about anything better.
+
+I was more opting for doing things this way:
+
+- Create bindings and <dt-bindings/foo/bar.h> merge it into the
+  foo subsystem.
+
+- Merge driver into drivers/foo/bar.c that use <dt-bindings/foo/bar.h>
+
+- Submit DTS patch to ARM SoC (or whetever) using only numerical
+  values.
+
+- After the merge window, follow up with a patch replacing the
+  numerical constants with #defines from <dt-bindings/foo/bar.h>
+
+An alternative would obviously be to wait for the next merge window
+after merging the driver patch but I guess people are too impatient
+to do that (including me).
+
+We discussed cross-tree dependencies a bit on ksummit-discuss
+but this solution was not mentioned back then.
+
+Yours,
+Linus Walleij
