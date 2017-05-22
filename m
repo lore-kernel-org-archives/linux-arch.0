@@ -1,82 +1,92 @@
 From: Punit Agrawal <punit.agrawal@arm.com>
-Subject: Re: [PATCH v3 4/6] mm/hugetlb: Allow architectures to override huge_pte_clear()
-Date: Mon, 22 May 2017 16:40:26 +0100
-Message-ID: <87vaosj3x1.fsf@e105922-lin.cambridge.arm.com>
-References: <20170522133604.11392-1-punit.agrawal@arm.com>
-	<20170522133604.11392-5-punit.agrawal@arm.com>
-	<CAK8P3a3d=Yx3_stYiz25Qeh8wfFr5EGuGYGfCoXqrQPxz6oUAQ@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain
+Subject: [PATCH v3.1 4/6] mm/hugetlb: Allow architectures to override huge_pte_clear()
+Date: Mon, 22 May 2017 17:25:55 +0100
+Message-ID: <20170522162555.4313-1-punit.agrawal@arm.com>
+References: <20170522133604.11392-5-punit.agrawal@arm.com>
 Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <CAK8P3a3d=Yx3_stYiz25Qeh8wfFr5EGuGYGfCoXqrQPxz6oUAQ@mail.gmail.com>
-	(Arnd Bergmann's message of "Mon, 22 May 2017 15:59:43 +0200")
+In-Reply-To: <20170522133604.11392-5-punit.agrawal@arm.com>
 Sender: owner-linux-mm@kvack.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Linux-MM <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, n-horiguchi@ah.jp.nec.com, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, mike.kravetz@oracle.com, steve.capper@arm.com, Mark Rutland <mark.rutland@arm.com>, Hillf Danton <hillf.zj@alibaba-inc.com>, linux-arch <linux-arch@vger.kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>
+To: akpm@linux-foundation.org
+Cc: Punit Agrawal <punit.agrawal@arm.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, will.deacon@arm.com, n-horiguchi@ah.jp.nec.com, kirill.shutemov@linux.intel.com, mike.kravetz@oracle.com, steve.capper@arm.com, mark.rutland@arm.com, linux-arch@vger.kernel.org, aneesh.kumar@linux.vnet.ibm.com, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Arnd Bergmann <arnd@arndb.de>
 List-Id: linux-arch.vger.kernel.org
 
-Arnd Bergmann <arnd@arndb.de> writes:
+When unmapping a hugepage range, huge_pte_clear() is used to clear the
+page table entries that are marked as not present. huge_pte_clear()
+internally just ends up calling pte_clear() which does not correctly
+deal with hugepages consisting of contiguous page table entries.
 
-> On Mon, May 22, 2017 at 3:36 PM, Punit Agrawal <punit.agrawal@arm.com> wrote:
->> diff --git a/include/asm-generic/hugetlb.h b/include/asm-generic/hugetlb.h
->> index 99b490b4d05a..3138e126f43b 100644
->> --- a/include/asm-generic/hugetlb.h
->> +++ b/include/asm-generic/hugetlb.h
->> @@ -31,10 +31,7 @@ static inline pte_t huge_pte_modify(pte_t pte, pgprot_t newprot)
->>         return pte_modify(pte, newprot);
->>  }
->>
->> -static inline void huge_pte_clear(struct mm_struct *mm, unsigned long addr,
->> -                                 pte_t *ptep)
->> -{
->> -       pte_clear(mm, addr, ptep);
->> -}
->> +void huge_pte_clear(struct mm_struct *mm, unsigned long addr,
->> +                   pte_t *ptep, unsigned long sz);
->>
->>  #endif /* _ASM_GENERIC_HUGETLB_H */
->> diff --git a/mm/hugetlb.c b/mm/hugetlb.c
->> index 0e4d1fb3122f..2b0f6f96f2c1 100644
->> --- a/mm/hugetlb.c
->> +++ b/mm/hugetlb.c
->> @@ -3289,6 +3289,12 @@ int copy_hugetlb_page_range(struct mm_struct *dst, struct mm_struct *src,
->>         return ret;
->>  }
->>
->> +void __weak huge_pte_clear(struct mm_struct *mm, unsigned long addr,
->> +                          pte_t *ptep, unsigned long sz)
->> +{
->> +       pte_clear(mm, addr, ptep);
->> +}
->> +
->>  void __unmap_hugepage_range(struct mmu_gather *tlb, struct vm_area_struct *vma,
->>                             unsigned long start, unsigned long end,
->>                             struct page *ref_page)
->
-> I don't really like how this moves the inline version from asm-generic into
-> a __weak function here. I think it would be better to either stop
-> using asm-generic/hugetlb.h
-> on s390, or enclose the generic definition in
->
-> #ifndef huge_pte_clear
->
-> and then override by defining a macro in s390 as we do in other files
-> in asm-generic.
+Add a size argument to address this issue and allow architectures to
+override huge_pte_clear() by wrapping it in a #ifndef block.
 
-Nice! I wasn't aware asm-generic follows this as a standard pattern.
+Update s390 implementation with the size parameter as well.
 
-s390 doesn't use asm-generic, but I needed to update the prototype with
-an additional parameter (size) and needlessly moved the function. I'll
-update the patch.
+Note that the change only affects huge_pte_clear() - the other generic
+hugetlb functions don't need any change.
 
-The changes is needed to enable contiguous pte hugepage support on arm64
-[0].
+Signed-off-by: Punit Agrawal <punit.agrawal@arm.com>
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
+Cc: Mike Kravetz <mike.kravetz@oracle.com>
+---
 
-Thanks for taking a look.
+Changes since v3
 
-Punit
+* Drop weak function and use #ifndef block to allow architecture override
+* Drop unnecessary move of s390 function definition
 
-[0] https://www.spinics.net/lists/arm-kernel/msg582758.html
+ arch/s390/include/asm/hugetlb.h | 2 +-
+ include/asm-generic/hugetlb.h   | 4 +++-
+ mm/hugetlb.c                    | 2 +-
+ 3 files changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/arch/s390/include/asm/hugetlb.h b/arch/s390/include/asm/hugetlb.h
+index cd546a245c68..c0443500baec 100644
+--- a/arch/s390/include/asm/hugetlb.h
++++ b/arch/s390/include/asm/hugetlb.h
+@@ -39,7 +39,7 @@ static inline int prepare_hugepage_range(struct file *file,
+ #define arch_clear_hugepage_flags(page)		do { } while (0)
+ 
+ static inline void huge_pte_clear(struct mm_struct *mm, unsigned long addr,
+-				  pte_t *ptep)
++				  pte_t *ptep, unsigned long sz)
+ {
+ 	if ((pte_val(*ptep) & _REGION_ENTRY_TYPE_MASK) == _REGION_ENTRY_TYPE_R3)
+ 		pte_val(*ptep) = _REGION3_ENTRY_EMPTY;
+diff --git a/include/asm-generic/hugetlb.h b/include/asm-generic/hugetlb.h
+index 99b490b4d05a..540354f94f83 100644
+--- a/include/asm-generic/hugetlb.h
++++ b/include/asm-generic/hugetlb.h
+@@ -31,10 +31,12 @@ static inline pte_t huge_pte_modify(pte_t pte, pgprot_t newprot)
+ 	return pte_modify(pte, newprot);
+ }
+ 
++#ifndef huge_pte_clear
+ static inline void huge_pte_clear(struct mm_struct *mm, unsigned long addr,
+-				  pte_t *ptep)
++		    pte_t *ptep, unsigned long sz)
+ {
+ 	pte_clear(mm, addr, ptep);
+ }
++#endif
+ 
+ #endif /* _ASM_GENERIC_HUGETLB_H */
+diff --git a/mm/hugetlb.c b/mm/hugetlb.c
+index 0e4d1fb3122f..ddfed20cd637 100644
+--- a/mm/hugetlb.c
++++ b/mm/hugetlb.c
+@@ -3338,7 +3338,7 @@ void __unmap_hugepage_range(struct mmu_gather *tlb, struct vm_area_struct *vma,
+ 		 * unmapped and its refcount is dropped, so just clear pte here.
+ 		 */
+ 		if (unlikely(!pte_present(pte))) {
+-			huge_pte_clear(mm, address, ptep);
++			huge_pte_clear(mm, address, ptep, sz);
+ 			spin_unlock(ptl);
+ 			continue;
+ 		}
+-- 
+2.11.0
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
