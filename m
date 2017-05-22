@@ -1,45 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([103.22.144.67]:39399 "EHLO ozlabs.org"
+Received: from foss.arm.com ([217.140.101.70]:34606 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751127AbdEVFuF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 22 May 2017 01:50:05 -0400
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: is alpha jensen support dead?
-In-Reply-To: <20170521085848.GA14559@lst.de>
-References: <20170521085848.GA14559@lst.de>
-Date: Mon, 22 May 2017 15:50:02 +1000
-Message-ID: <87lgppsanp.fsf@concordia.ellerman.id.au>
+        id S1757326AbdEVKga (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 22 May 2017 06:36:30 -0400
+Date: Mon, 22 May 2017 11:37:31 +0100
+From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+Subject: Re: [PATCH V4 3/4] ACPI/IORT: Ignore all errors except EPROBE_DEFER
+Message-ID: <20170522103730.GB7553@red-moon>
+References: <1495119257-26724-1-git-send-email-sricharan@codeaurora.org>
+ <1495119257-26724-3-git-send-email-sricharan@codeaurora.org>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1495119257-26724-3-git-send-email-sricharan@codeaurora.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>
-Cc: Christian Borntraeger <borntraeger@de.ibm.com>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20170522055002.q4F4lep0WGZYvLdMRx2V7Q5pXcD7pbfoMzRKPP34dMo@z>
+To: Sricharan R <sricharan@codeaurora.org>
+Cc: robin.murphy@arm.com, will.deacon@arm.com, joro@8bytes.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arm-msm@vger.kernel.org, m.szyprowski@samsung.com, bhelgaas@google.com, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, tn@semihalf.com, hanjun.guo@linaro.org, okaya@codeaurora.org, robh+dt@kernel.org, frowand.list@gmail.com, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, sudeep.holla@arm.com, rjw@rjwysocki.net, lenb@kernel.org, catalin.marinas@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, laurent.pinchart@ideasonboard.com, j.neuschaefer@gmx.net, geert@linux-m68k.org, magnus.damm@gmail.com
+Message-ID: <20170522103731.E1oHFPtY-Ew8eqTtrccOjz8VxLlnmF4xvzphR6yAIqI@z>
 
-Christoph Hellwig <hch@lst.de> writes:
+Hi Sricharan,
 
-> Hi all,
->
-> it seems like the Alpha Jense build (the only one using pci-noop.c)
-> and thus being a different build than all the later PCI capable
-> system has been broken since at least:
->
-> commit 6aca0503847f6329460b15b3ab2b0e30bb752793
-> Author: Christian Borntraeger <borntraeger@de.ibm.com>
-> Date:   Tue Feb 2 21:46:33 2016 -0800
->
->     alpha/dma: use common noop dma ops
->
-> which switches pci-noop.c to use generic code, but fat fingered a symbol
-> and didn't wire up the Kconfig.
->
-> Is there any value in keeping it alive?  Especially as there probably
-> isn't any build coverage..
+On Thu, May 18, 2017 at 08:24:16PM +0530, Sricharan R wrote:
+> While deferring the probe of IOMMU masters, xlate and
+> add_device callbacks called from iort_iommu_configure
+> can pass back error values like -ENODEV, which means
+> the IOMMU cannot be connected with that master for real
+> reasons. Before the IOMMU probe deferral, all such errors
+> were ignored. Now all those errors are propagated back,
+> killing the master's probe for such errors. Instead ignore
+> all the errors except EPROBE_DEFER, which is the only one
+> of concern and let the master work without IOMMU, thus
+> restoring the old behavior.
+> 
+> Fixes: 5a1bb638d567 ("drivers: acpi: Handle IOMMU lookup failure with deferred probing or error")
+> Signed-off-by: Sricharan R <sricharan@codeaurora.org>
+> ---
+> [V4] Added this patch newly.
+> 
+>  drivers/acpi/arm64/iort.c | 6 ++++++
+>  1 file changed, 6 insertions(+)
+> 
+> diff --git a/drivers/acpi/arm64/iort.c b/drivers/acpi/arm64/iort.c
+> index c5fecf9..16e101f 100644
+> --- a/drivers/acpi/arm64/iort.c
+> +++ b/drivers/acpi/arm64/iort.c
+> @@ -782,6 +782,12 @@ const struct iommu_ops *iort_iommu_configure(struct device *dev)
+>  	if (err)
+>  		ops = ERR_PTR(err);
+>  
+> +	/* Ignore all other errors apart from EPROBE_DEFER */
+> +	if (IS_ERR(ops) && (PTR_ERR(ops) != -EPROBE_DEFER)) {
+> +		dev_dbg(dev, "Adding to IOMMU failed: %ld\n", PTR_ERR(ops));
+> +		ops = NULL;
+> +	}
+> +
+>  	return ops;
+>  }
+>  
 
-We still build the defconfig FWIW:
+It is getting a bit convoluted. Is not it better to propagate the
+error back and let acpi_dma_configure() make a decision accordingly ?
 
-  http://kisskb.ellerman.id.au/kisskb/target/2499/
-  http://kisskb.ellerman.id.au/kisskb/target/2494/
+Something like:
 
-cheers
+-- >8 --
+diff --git a/drivers/acpi/scan.c b/drivers/acpi/scan.c
+index e39ec7b..3a10d757 100644
+--- a/drivers/acpi/scan.c
++++ b/drivers/acpi/scan.c
+@@ -1371,8 +1371,8 @@ int acpi_dma_configure(struct device *dev, enum dev_dma_attr attr)
+ 	iort_set_dma_mask(dev);
+ 
+ 	iommu = iort_iommu_configure(dev);
+-	if (IS_ERR(iommu))
+-		return PTR_ERR(iommu);
++	if (IS_ERR(iommu) && PTR_ERR(iommu) == -EPROBE_DEFER)
++		return -EPROBE_DEFER;
+ 
+ 	size = max(dev->coherent_dma_mask, dev->coherent_dma_mask + 1);
+ 	/*
