@@ -1,58 +1,42 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH v2 1/7] kernel/locking: Fix compile error with qrwlock.c
-Date: Mon, 22 May 2017 15:03:28 -0400 (EDT)
-Message-ID: <20170522.150328.1597262115447284483.davem@davemloft.net>
-References: <1495239421-441642-1-git-send-email-babu.moger@oracle.com>
-        <1495239421-441642-2-git-send-email-babu.moger@oracle.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v3.1 4/6] mm/hugetlb: Allow architectures to override huge_pte_clear()
+Date: Mon, 22 May 2017 22:34:45 +0200
+Message-ID: <CAK8P3a0WppXFJ5==nymNHeqrKvixpLQ1AetFRGVv9Y3q8kT9Ew@mail.gmail.com>
+References: <20170522133604.11392-5-punit.agrawal@arm.com> <20170522162555.4313-1-punit.agrawal@arm.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=iso-8859-1
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([184.105.139.130]:55230 "EHLO
-        shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1761028AbdEVTDf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 May 2017 15:03:35 -0400
-In-Reply-To: <1495239421-441642-2-git-send-email-babu.moger@oracle.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: babu.moger@oracle.com
-Cc: peterz@infradead.org, mingo@redhat.com, arnd@arndb.de, shannon.nelson@oracle.com, haakon.bugge@oracle.com, steven.sistare@oracle.com, vijay.ac.kumar@oracle.com, jane.chu@oracle.com, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20170522162555.4313-1-punit.agrawal@arm.com>
+Sender: owner-linux-mm@kvack.org
+To: Punit Agrawal <punit.agrawal@arm.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Linux-MM <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, n-horiguchi@ah.jp.nec.com, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, mike.kravetz@oracle.com, steve.capper@arm.com, Mark Rutland <mark.rutland@arm.com>, linux-arch <linux-arch@vger.kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>
+List-Id: linux-arch.vger.kernel.org
 
-From: Babu Moger <babu.moger@oracle.com>
-Date: Fri, 19 May 2017 18:16:55 -0600
+On Mon, May 22, 2017 at 6:25 PM, Punit Agrawal <punit.agrawal@arm.com> wrote:
+> When unmapping a hugepage range, huge_pte_clear() is used to clear the
+> page table entries that are marked as not present. huge_pte_clear()
+> internally just ends up calling pte_clear() which does not correctly
+> deal with hugepages consisting of contiguous page table entries.
+>
+> Add a size argument to address this issue and allow architectures to
+> override huge_pte_clear() by wrapping it in a #ifndef block.
+>
+> Update s390 implementation with the size parameter as well.
+>
+> Note that the change only affects huge_pte_clear() - the other generic
+> hugetlb functions don't need any change.
+>
+> Signed-off-by: Punit Agrawal <punit.agrawal@arm.com>
+> Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+> Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
+> Cc: Mike Kravetz <mike.kravetz@oracle.com>
 
-> Some architectures use the following guard in include file
->  "asm/spinlock_types.h" to discourage including the file directly.
-> 
-> Saw these compile errors on SPARC when queued rwlock feature is enabled.
-> 
->   CC      kernel/locking/qrwlock.o
-> In file included from ./include/asm-generic/qrwlock_types.h:5,
->                  from ./arch/sparc/include/asm/qrwlock.h:4,
->                  from kernel/locking/qrwlock.c:24:
-> ./arch/sparc/include/asm/spinlock_types.h:5:3: error:
->         #error "please don't include this file directly"
-> 
-> Re-arrange the includes in qrwlock_types.h and include spinlock.h
-> in qrwlock.c to fix it.
-> 
-> Also will be removing this stanza from SPARC. Stay tuned.
-> 
-> Signed-off-by: Babu Moger <babu.moger@oracle.com>
-> Reviewed-by: Håkon Bugge <haakon.bugge@oracle.com>
-> Reviewed-by: Jane Chu <jane.chu@oracle.com>
-> Reviewed-by: Shannon Nelson <shannon.nelson@oracle.com>
-> Reviewed-by: Vijay Kumar <vijay.ac.kumar@oracle.com>
+Acked-by: Arnd Bergmann <arnd@arndb.de>
 
-In my feedback I said to remove that check from
-sparc's asm/spinlock_types.h header.
-
-Which you do in patch #2
-
-But that means this patch #1 here is no longer necessary, since we
-conform to the hearder scheme used by other architectures using queued
-locks.
-
-So please remove this patch from the series.
-
-Thank you.
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
