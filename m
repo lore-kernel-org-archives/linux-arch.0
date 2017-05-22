@@ -1,123 +1,95 @@
-From: Sricharan R <sricharan-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>
-Subject: Re: [PATCH V4 3/4] ACPI/IORT: Ignore all errors except EPROBE_DEFER
-Date: Mon, 22 May 2017 18:32:29 +0530
-Message-ID: <0c599944-5815-778b-57ae-5b3a6105c8d4@codeaurora.org>
-References: <1495119257-26724-1-git-send-email-sricharan@codeaurora.org>
-	<1495119257-26724-3-git-send-email-sricharan@codeaurora.org>
-	<20170522103730.GB7553@red-moon>
-	<ffb088d6-e40f-7a7d-dafb-e52dc86704fc@codeaurora.org>
-	<20170522113116.GB10449@red-moon>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <20170522113116.GB10449@red-moon>
-Content-Language: en-US
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Lorenzo Pieralisi <lorenzo.pieralisi-5wv7dgnIgG8@public.gmane.org>
-Cc: catalin.marinas-5wv7dgnIgG8@public.gmane.org, will.deacon-5wv7dgnIgG8@public.gmane.org, okaya-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org, laurent.pinchart-ryLnwIuWjnjg/C1BVhZhaw@public.gmane.org, frowand.list-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, tn-nYOzD4b6Jr9Wk0Htik3J/w@public.gmane.org, magnus.damm-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, linux-acpi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org, linux-pci-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, lenb-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, arnd-r2nGTMty4D4@public.gmane.org, linux-arm-msm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, j.neuschaefer-hi6Y0CQ0nG0@public.gmane.org, robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, bhelgaas-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, rjw-LthD3rsA81gm4RdzfppkhA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, sudeep.holla-5wv7dgnIgG8@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+From: Punit Agrawal <punit.agrawal@arm.com>
+Subject: [PATCH v3 0/6] Support for contiguous pte hugepages
+Date: Mon, 22 May 2017 14:35:58 +0100
+Message-ID: <20170522133604.11392-1-punit.agrawal@arm.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:37222 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S933654AbdEVNg0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 22 May 2017 09:36:26 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: akpm@linux-foundation.org
+Cc: Punit Agrawal <punit.agrawal@arm.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, will.deacon@arm.com, n-horiguchi@ah.jp.nec.com, kirill.shutemov@linux.intel.com, mike.kravetz@oracle.com, steve.capper@arm.com, mark.rutland@arm.com, hillf.zj@alibaba-inc.com, linux-arch@vger.kernel.org, aneesh.kumar@linux.vnet.ibm.com
 
-Hi Lorenzo,
+Hi,
 
-On 5/22/2017 5:01 PM, Lorenzo Pieralisi wrote:
-> On Mon, May 22, 2017 at 04:35:43PM +0530, Sricharan R wrote:
->> Hi Lorenzo,
->>
->> On 5/22/2017 4:07 PM, Lorenzo Pieralisi wrote:
->>> Hi Sricharan,
->>>
->>> On Thu, May 18, 2017 at 08:24:16PM +0530, Sricharan R wrote:
->>>> While deferring the probe of IOMMU masters, xlate and
->>>> add_device callbacks called from iort_iommu_configure
->>>> can pass back error values like -ENODEV, which means
->>>> the IOMMU cannot be connected with that master for real
->>>> reasons. Before the IOMMU probe deferral, all such errors
->>>> were ignored. Now all those errors are propagated back,
->>>> killing the master's probe for such errors. Instead ignore
->>>> all the errors except EPROBE_DEFER, which is the only one
->>>> of concern and let the master work without IOMMU, thus
->>>> restoring the old behavior.
->>>>
->>>> Fixes: 5a1bb638d567 ("drivers: acpi: Handle IOMMU lookup failure with deferred probing or error")
->>>> Signed-off-by: Sricharan R <sricharan-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>
->>>> ---
->>>> [V4] Added this patch newly.
->>>>
->>>>  drivers/acpi/arm64/iort.c | 6 ++++++
->>>>  1 file changed, 6 insertions(+)
->>>>
->>>> diff --git a/drivers/acpi/arm64/iort.c b/drivers/acpi/arm64/iort.c
->>>> index c5fecf9..16e101f 100644
->>>> --- a/drivers/acpi/arm64/iort.c
->>>> +++ b/drivers/acpi/arm64/iort.c
->>>> @@ -782,6 +782,12 @@ const struct iommu_ops *iort_iommu_configure(struct device *dev)
->>>>  	if (err)
->>>>  		ops = ERR_PTR(err);
->>>>  
->>>> +	/* Ignore all other errors apart from EPROBE_DEFER */
->>>> +	if (IS_ERR(ops) && (PTR_ERR(ops) != -EPROBE_DEFER)) {
->>>> +		dev_dbg(dev, "Adding to IOMMU failed: %ld\n", PTR_ERR(ops));
->>>> +		ops = NULL;
->>>> +	}
->>>> +
->>>>  	return ops;
->>>>  }
->>>>  
->>>
->>> It is getting a bit convoluted. Is not it better to propagate the
->>> error back and let acpi_dma_configure() make a decision accordingly ?
->>>
->>
->> ok, I was trying to keep it in same way as DT, where of_dma_configure
->> (here acpi_dma_configure) calls of_iommu_configure(here iort_iommu_configure)
->> which ends up doing the check. So will have to be changed in both places
->> for symmetry.
->>
->>> Something like:
->>>
->>> -- >8 --
->>> diff --git a/drivers/acpi/scan.c b/drivers/acpi/scan.c
->>> index e39ec7b..3a10d757 100644
->>> --- a/drivers/acpi/scan.c
->>> +++ b/drivers/acpi/scan.c
->>> @@ -1371,8 +1371,8 @@ int acpi_dma_configure(struct device *dev, enum dev_dma_attr attr)
->>>  	iort_set_dma_mask(dev);
->>>  
->>>  	iommu = iort_iommu_configure(dev);
->>> -	if (IS_ERR(iommu))
->>> -		return PTR_ERR(iommu);
->>> +	if (IS_ERR(iommu) && PTR_ERR(iommu) == -EPROBE_DEFER)
->>> +		return -EPROBE_DEFER;
->>
->> In case of other errors apart from EPROBE_DEFER,
->> iommu = NULL should be set, before passing it on to
->> arch_setup_dma_ops.
-> 
-> Ah yes, sorry, that makes it uglier :(
-> 
-> Point is, it does not make sense to me to have of/acpi_dma_configure()
-> check a return code with (IS_ERR()) whilst we know the only error
-> code you are allowed to handle is -EPROBE_DEFER, while at it it is
-> better to make the -EPROBE_DEFER check explicit (otherwise it may
-> seem that of/acpi_dma_configure() can handle an error code that
-> is different from -EPROBE_DEFER - but they don't), no big deal either
-> way though.
-> 
+This patchset updates the hugetlb code to fix issues arising from
+contiguous pte hugepages (such as on arm64). These are the generic
+code changes and the arm64 support based on these patches will be
+posted separately. The patches are based on v4.12-rc2. Previous
+related postings can be found at [0], [1] and [2].
 
-ok, in which case, the above check that you have shown
-to be added additionally to the original patch.
+The patches fall into two categories -
 
-Regards,
- Sricharan
+* Patches 1-2 address issues with gup
+
+* Patches 3-6 relate to passing a size argument to hugepage helpers to
+  disambiguate the size of the referred page. These changes are
+  required to enable arch code to properly handle swap entries for
+  contiguous pte hugepages.
+
+  The changes to huge_pte_offset() (patch 3) touch multiple
+  architectures but I've managed to minimise these changes for the
+  other affected functions - huge_pte_clear() and set_huge_pte_at().
+
+These patches gate the enabling of contiguous hugepages support on
+arm64 which has been requested for systems using !4k page granule.
+
+Feedback welcome.
+
+Thanks,
+Punit
+
+v2 -> v3
+* Added gup fixes
+
+v1 -> v2
+
+* switch huge_pte_offset() to use size instead of hstate for
+  consistency with the rest of the api
+* Expand the series to address huge_pte_clear() and set_huge_pte_at()
+
+RFC -> v1
+
+* Fixed a missing conversion of huge_pte_offset() prototype to add
+  hstate parameter. Reported by 0-day.
+
+[0] https://lkml.org/lkml/2017/3/23/293
+[1] https://lkml.org/lkml/2017/3/30/770
+[2] http://www.mail-archive.com/linux-kernel@vger.kernel.org/msg1370686.html
+
+Punit Agrawal (5):
+  mm, gup: Ensure real head page is ref-counted when using hugepages
+  mm/hugetlb: add size parameter to huge_pte_offset()
+  mm/hugetlb: Allow architectures to override huge_pte_clear()
+  mm/hugetlb: Introduce set_huge_swap_pte_at() helper
+  mm: rmap: Use correct helper when poisoning hugepages
+
+Will Deacon (1):
+  mm, gup: Remove broken VM_BUG_ON_PAGE compound check for hugepages
+
+ arch/arm64/mm/hugetlbpage.c     |  3 ++-
+ arch/ia64/mm/hugetlbpage.c      |  4 ++--
+ arch/metag/mm/hugetlbpage.c     |  3 ++-
+ arch/mips/mm/hugetlbpage.c      |  3 ++-
+ arch/parisc/mm/hugetlbpage.c    |  3 ++-
+ arch/powerpc/mm/hugetlbpage.c   |  2 +-
+ arch/s390/include/asm/hugetlb.h | 10 ++-------
+ arch/s390/mm/hugetlbpage.c      | 12 ++++++++++-
+ arch/sh/mm/hugetlbpage.c        |  3 ++-
+ arch/sparc/mm/hugetlbpage.c     |  3 ++-
+ arch/tile/mm/hugetlbpage.c      |  3 ++-
+ arch/x86/mm/hugetlbpage.c       |  2 +-
+ fs/userfaultfd.c                |  7 +++++--
+ include/asm-generic/hugetlb.h   |  7 ++-----
+ include/linux/hugetlb.h         |  7 +++++--
+ mm/gup.c                        | 15 ++++++--------
+ mm/hugetlb.c                    | 45 +++++++++++++++++++++++++++++------------
+ mm/page_vma_mapped.c            |  3 ++-
+ mm/pagewalk.c                   |  3 ++-
+ mm/rmap.c                       |  7 +++++--
+ 20 files changed, 90 insertions(+), 55 deletions(-)
 
 -- 
-"QUALCOMM INDIA, on behalf of Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum, hosted by The Linux Foundation
+2.11.0
