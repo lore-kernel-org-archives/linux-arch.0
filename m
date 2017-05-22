@@ -1,90 +1,58 @@
-From: Punit Agrawal <punit.agrawal@arm.com>
-Subject: [PATCH v3.1 5/6] mm/hugetlb: Introduce set_huge_swap_pte_at() helper
-Date: Mon, 22 May 2017 17:30:31 +0100
-Message-ID: <20170522163031.4480-1-punit.agrawal@arm.com>
-References: <20170522133604.11392-6-punit.agrawal@arm.com>
+From: David Miller <davem@davemloft.net>
+Subject: Re: [PATCH v2 1/7] kernel/locking: Fix compile error with qrwlock.c
+Date: Mon, 22 May 2017 15:03:28 -0400 (EDT)
+Message-ID: <20170522.150328.1597262115447284483.davem@davemloft.net>
+References: <1495239421-441642-1-git-send-email-babu.moger@oracle.com>
+        <1495239421-441642-2-git-send-email-babu.moger@oracle.com>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=iso-8859-1
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:41172 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S933650AbdEVQbQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 22 May 2017 12:31:16 -0400
-In-Reply-To: <20170522133604.11392-6-punit.agrawal@arm.com>
+Received: from shards.monkeyblade.net ([184.105.139.130]:55230 "EHLO
+        shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1761028AbdEVTDf (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 May 2017 15:03:35 -0400
+In-Reply-To: <1495239421-441642-2-git-send-email-babu.moger@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org
-Cc: Punit Agrawal <punit.agrawal@arm.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, will.deacon@arm.com, n-horiguchi@ah.jp.nec.com, kirill.shutemov@linux.intel.com, mike.kravetz@oracle.com, steve.capper@arm.com, mark.rutland@arm.com, linux-arch@vger.kernel.org, aneesh.kumar@linux.vnet.ibm.com
+To: babu.moger@oracle.com
+Cc: peterz@infradead.org, mingo@redhat.com, arnd@arndb.de, shannon.nelson@oracle.com, haakon.bugge@oracle.com, steven.sistare@oracle.com, vijay.ac.kumar@oracle.com, jane.chu@oracle.com, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-set_huge_pte_at(), an architecture callback to populate hugepage ptes,
-does not provide the range of virtual memory that is targeted. This
-leads to ambiguity when dealing with swap entries on architectures that
-support hugepages consisting of contiguous ptes.
+From: Babu Moger <babu.moger@oracle.com>
+Date: Fri, 19 May 2017 18:16:55 -0600
 
-Fix the problem by introducing an overridable helper for architectures
-needing this support. The helper is called when populating the page
-tables with swap entries. The size of the targeted region is provided to
-the helper to help determine the number of entries to be updated.
+> Some architectures use the following guard in include file
+>  "asm/spinlock_types.h" to discourage including the file directly.
+> 
+> Saw these compile errors on SPARC when queued rwlock feature is enabled.
+> 
+>   CC      kernel/locking/qrwlock.o
+> In file included from ./include/asm-generic/qrwlock_types.h:5,
+>                  from ./arch/sparc/include/asm/qrwlock.h:4,
+>                  from kernel/locking/qrwlock.c:24:
+> ./arch/sparc/include/asm/spinlock_types.h:5:3: error:
+>         #error "please don't include this file directly"
+> 
+> Re-arrange the includes in qrwlock_types.h and include spinlock.h
+> in qrwlock.c to fix it.
+> 
+> Also will be removing this stanza from SPARC. Stay tuned.
+> 
+> Signed-off-by: Babu Moger <babu.moger@oracle.com>
+> Reviewed-by: Håkon Bugge <haakon.bugge@oracle.com>
+> Reviewed-by: Jane Chu <jane.chu@oracle.com>
+> Reviewed-by: Shannon Nelson <shannon.nelson@oracle.com>
+> Reviewed-by: Vijay Kumar <vijay.ac.kumar@oracle.com>
 
-Provide a default implementation that maintains the current behaviour.
+In my feedback I said to remove that check from
+sparc's asm/spinlock_types.h header.
 
-Signed-off-by: Punit Agrawal <punit.agrawal@arm.com>
-Acked-by: Steve Capper <steve.capper@arm.com>
-Cc: Mike Kravetz <mike.kravetz@oracle.com>
-Cc: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
----
+Which you do in patch #2
 
-Changes since v3:
+But that means this patch #1 here is no longer necessary, since we
+conform to the hearder scheme used by other architectures using queued
+locks.
 
-* Use #ifndef block instead of weak function
+So please remove this patch from the series.
 
- include/linux/hugetlb.h | 8 ++++++++
- mm/hugetlb.c            | 8 +++++---
- 2 files changed, 13 insertions(+), 3 deletions(-)
-
-diff --git a/include/linux/hugetlb.h b/include/linux/hugetlb.h
-index 23010a3b2047..879eb063fb95 100644
---- a/include/linux/hugetlb.h
-+++ b/include/linux/hugetlb.h
-@@ -435,6 +435,14 @@ static inline pte_t arch_make_huge_pte(pte_t entry, struct vm_area_struct *vma,
- }
- #endif
- 
-+#ifndef set_huge_swap_pte_at
-+static inline void set_huge_swap_pte_at(struct mm_struct *mm, unsigned long addr,
-+					pte_t *ptep, pte_t pte, unsigned long sz)
-+{
-+	set_huge_pte_at(mm, addr, ptep, pte);
-+}
-+#endif
-+
- static inline struct hstate *page_hstate(struct page *page)
- {
- 	VM_BUG_ON_PAGE(!PageHuge(page), page);
-diff --git a/mm/hugetlb.c b/mm/hugetlb.c
-index ddfed20cd637..e3052c16d29a 100644
---- a/mm/hugetlb.c
-+++ b/mm/hugetlb.c
-@@ -3263,9 +3263,10 @@ int copy_hugetlb_page_range(struct mm_struct *dst, struct mm_struct *src,
- 				 */
- 				make_migration_entry_read(&swp_entry);
- 				entry = swp_entry_to_pte(swp_entry);
--				set_huge_pte_at(src, addr, src_pte, entry);
-+				set_huge_swap_pte_at(src, addr, src_pte,
-+						     entry, sz);
- 			}
--			set_huge_pte_at(dst, addr, dst_pte, entry);
-+			set_huge_swap_pte_at(dst, addr, dst_pte, entry, sz);
- 		} else {
- 			if (cow) {
- 				huge_ptep_set_wrprotect(src, addr, src_pte);
-@@ -4277,7 +4278,8 @@ unsigned long hugetlb_change_protection(struct vm_area_struct *vma,
- 
- 				make_migration_entry_read(&entry);
- 				newpte = swp_entry_to_pte(entry);
--				set_huge_pte_at(mm, address, ptep, newpte);
-+				set_huge_swap_pte_at(mm, address, ptep,
-+						     newpte, huge_page_size(h));
- 				pages++;
- 			}
- 			spin_unlock(ptl);
--- 
-2.11.0
+Thank you.
