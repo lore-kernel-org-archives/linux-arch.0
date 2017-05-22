@@ -1,120 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.codeaurora.org ([198.145.29.96]:50708 "EHLO
-        smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1757311AbdEVNCq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 May 2017 09:02:46 -0400
-Subject: Re: [PATCH V4 3/4] ACPI/IORT: Ignore all errors except EPROBE_DEFER
-References: <1495119257-26724-1-git-send-email-sricharan@codeaurora.org>
- <1495119257-26724-3-git-send-email-sricharan@codeaurora.org>
- <20170522103730.GB7553@red-moon>
- <ffb088d6-e40f-7a7d-dafb-e52dc86704fc@codeaurora.org>
- <20170522113116.GB10449@red-moon>
-From: Sricharan R <sricharan@codeaurora.org>
-Message-ID: <0c599944-5815-778b-57ae-5b3a6105c8d4@codeaurora.org>
-Date: Mon, 22 May 2017 18:32:29 +0530
-MIME-Version: 1.0
-In-Reply-To: <20170522113116.GB10449@red-moon>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Received: from foss.arm.com ([217.140.101.70]:37262 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1759279AbdEVNgo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 22 May 2017 09:36:44 -0400
+From: Punit Agrawal <punit.agrawal@arm.com>
+Subject: [PATCH v3 1/6] mm, gup: Remove broken VM_BUG_ON_PAGE compound check for hugepages
+Date: Mon, 22 May 2017 14:35:59 +0100
+Message-ID: <20170522133604.11392-2-punit.agrawal@arm.com>
+In-Reply-To: <20170522133604.11392-1-punit.agrawal@arm.com>
+References: <20170522133604.11392-1-punit.agrawal@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Cc: robin.murphy@arm.com, will.deacon@arm.com, joro@8bytes.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arm-msm@vger.kernel.org, m.szyprowski@samsung.com, bhelgaas@google.com, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, tn@semihalf.com, hanjun.guo@linaro.org, okaya@codeaurora.org, robh+dt@kernel.org, frowand.list@gmail.com, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, sudeep.holla@arm.com, rjw@rjwysocki.net, lenb@kernel.org, catalin.marinas@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, laurent.pinchart@ideasonboard.com, j.neuschaefer@gmx.net, geert@linux-m68k.org, magnus.damm@gmail.com
-Message-ID: <20170522130229.LGfDTOEazW4ukNghitfhPC2SB5u4nSsnG62DJ9C-2Do@z>
+To: akpm@linux-foundation.org
+Cc: Will Deacon <will.deacon@arm.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, n-horiguchi@ah.jp.nec.com, kirill.shutemov@linux.intel.com, mike.kravetz@oracle.com, steve.capper@arm.com, mark.rutland@arm.com, hillf.zj@alibaba-inc.com, linux-arch@vger.kernel.org, aneesh.kumar@linux.vnet.ibm.com, Punit Agrawal <punit.agrawal@arm.com>
+Message-ID: <20170522133559.CJ4C5Wf8Itkf4ViqFgGM3W4vldD2NLoJMCyMXE3jpu8@z>
 
-Hi Lorenzo,
+From: Will Deacon <will.deacon@arm.com>
 
-On 5/22/2017 5:01 PM, Lorenzo Pieralisi wrote:
-> On Mon, May 22, 2017 at 04:35:43PM +0530, Sricharan R wrote:
->> Hi Lorenzo,
->>
->> On 5/22/2017 4:07 PM, Lorenzo Pieralisi wrote:
->>> Hi Sricharan,
->>>
->>> On Thu, May 18, 2017 at 08:24:16PM +0530, Sricharan R wrote:
->>>> While deferring the probe of IOMMU masters, xlate and
->>>> add_device callbacks called from iort_iommu_configure
->>>> can pass back error values like -ENODEV, which means
->>>> the IOMMU cannot be connected with that master for real
->>>> reasons. Before the IOMMU probe deferral, all such errors
->>>> were ignored. Now all those errors are propagated back,
->>>> killing the master's probe for such errors. Instead ignore
->>>> all the errors except EPROBE_DEFER, which is the only one
->>>> of concern and let the master work without IOMMU, thus
->>>> restoring the old behavior.
->>>>
->>>> Fixes: 5a1bb638d567 ("drivers: acpi: Handle IOMMU lookup failure with deferred probing or error")
->>>> Signed-off-by: Sricharan R <sricharan@codeaurora.org>
->>>> ---
->>>> [V4] Added this patch newly.
->>>>
->>>>  drivers/acpi/arm64/iort.c | 6 ++++++
->>>>  1 file changed, 6 insertions(+)
->>>>
->>>> diff --git a/drivers/acpi/arm64/iort.c b/drivers/acpi/arm64/iort.c
->>>> index c5fecf9..16e101f 100644
->>>> --- a/drivers/acpi/arm64/iort.c
->>>> +++ b/drivers/acpi/arm64/iort.c
->>>> @@ -782,6 +782,12 @@ const struct iommu_ops *iort_iommu_configure(struct device *dev)
->>>>  	if (err)
->>>>  		ops = ERR_PTR(err);
->>>>  
->>>> +	/* Ignore all other errors apart from EPROBE_DEFER */
->>>> +	if (IS_ERR(ops) && (PTR_ERR(ops) != -EPROBE_DEFER)) {
->>>> +		dev_dbg(dev, "Adding to IOMMU failed: %ld\n", PTR_ERR(ops));
->>>> +		ops = NULL;
->>>> +	}
->>>> +
->>>>  	return ops;
->>>>  }
->>>>  
->>>
->>> It is getting a bit convoluted. Is not it better to propagate the
->>> error back and let acpi_dma_configure() make a decision accordingly ?
->>>
->>
->> ok, I was trying to keep it in same way as DT, where of_dma_configure
->> (here acpi_dma_configure) calls of_iommu_configure(here iort_iommu_configure)
->> which ends up doing the check. So will have to be changed in both places
->> for symmetry.
->>
->>> Something like:
->>>
->>> -- >8 --
->>> diff --git a/drivers/acpi/scan.c b/drivers/acpi/scan.c
->>> index e39ec7b..3a10d757 100644
->>> --- a/drivers/acpi/scan.c
->>> +++ b/drivers/acpi/scan.c
->>> @@ -1371,8 +1371,8 @@ int acpi_dma_configure(struct device *dev, enum dev_dma_attr attr)
->>>  	iort_set_dma_mask(dev);
->>>  
->>>  	iommu = iort_iommu_configure(dev);
->>> -	if (IS_ERR(iommu))
->>> -		return PTR_ERR(iommu);
->>> +	if (IS_ERR(iommu) && PTR_ERR(iommu) == -EPROBE_DEFER)
->>> +		return -EPROBE_DEFER;
->>
->> In case of other errors apart from EPROBE_DEFER,
->> iommu = NULL should be set, before passing it on to
->> arch_setup_dma_ops.
-> 
-> Ah yes, sorry, that makes it uglier :(
-> 
-> Point is, it does not make sense to me to have of/acpi_dma_configure()
-> check a return code with (IS_ERR()) whilst we know the only error
-> code you are allowed to handle is -EPROBE_DEFER, while at it it is
-> better to make the -EPROBE_DEFER check explicit (otherwise it may
-> seem that of/acpi_dma_configure() can handle an error code that
-> is different from -EPROBE_DEFER - but they don't), no big deal either
-> way though.
-> 
+When operating on hugepages with DEBUG_VM enabled, the GUP code checks the
+compound head for each tail page prior to calling page_cache_add_speculative.
+This is broken, because on the fast-GUP path (where we don't hold any page
+table locks) we can be racing with a concurrent invocation of
+split_huge_page_to_list.
 
-ok, in which case, the above check that you have shown
-to be added additionally to the original patch.
+split_huge_page_to_list deals with this race by using page_ref_freeze to
+freeze the page and force concurrent GUPs to fail whilst the component
+pages are modified. This modification includes clearing the compound_head
+field for the tail pages, so checking this prior to a successful call
+to page_cache_add_speculative can lead to false positives: In fact,
+page_cache_add_speculative *already* has this check once the page refcount
+has been successfully updated, so we can simply remove the broken calls
+to VM_BUG_ON_PAGE.
 
-Regards,
- Sricharan
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: Aneesh Kumar K.V <aneesh.kumar@linux.vnet.ibm.com>
+Signed-off-by: Will Deacon <will.deacon@arm.com>
+Acked-by: Steve Capper <steve.capper@arm.com>
+Signed-off-by: Punit Agrawal <punit.agrawal@arm.com>
+---
+ mm/gup.c | 3 ---
+ 1 file changed, 3 deletions(-)
 
+diff --git a/mm/gup.c b/mm/gup.c
+index d9e6fddcc51f..ccf8cb38234f 100644
+--- a/mm/gup.c
++++ b/mm/gup.c
+@@ -1361,7 +1361,6 @@ static int gup_huge_pmd(pmd_t orig, pmd_t *pmdp, unsigned long addr,
+ 	head = pmd_page(orig);
+ 	page = head + ((addr & ~PMD_MASK) >> PAGE_SHIFT);
+ 	do {
+-		VM_BUG_ON_PAGE(compound_head(page) != head, page);
+ 		pages[*nr] = page;
+ 		(*nr)++;
+ 		page++;
+@@ -1400,7 +1399,6 @@ static int gup_huge_pud(pud_t orig, pud_t *pudp, unsigned long addr,
+ 	head = pud_page(orig);
+ 	page = head + ((addr & ~PUD_MASK) >> PAGE_SHIFT);
+ 	do {
+-		VM_BUG_ON_PAGE(compound_head(page) != head, page);
+ 		pages[*nr] = page;
+ 		(*nr)++;
+ 		page++;
+@@ -1438,7 +1436,6 @@ static int gup_huge_pgd(pgd_t orig, pgd_t *pgdp, unsigned long addr,
+ 	head = pgd_page(orig);
+ 	page = head + ((addr & ~PGDIR_MASK) >> PAGE_SHIFT);
+ 	do {
+-		VM_BUG_ON_PAGE(compound_head(page) != head, page);
+ 		pages[*nr] = page;
+ 		(*nr)++;
+ 		page++;
 -- 
-"QUALCOMM INDIA, on behalf of Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum, hosted by The Linux Foundation
+2.11.0
