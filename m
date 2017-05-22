@@ -1,23 +1,24 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yb0-f179.google.com ([209.85.213.179]:36167 "EHLO
-        mail-yb0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751120AbdEVFdy (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 May 2017 01:33:54 -0400
-MIME-Version: 1.0
+Received: from ozlabs.org ([103.22.144.67]:39399 "EHLO ozlabs.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751127AbdEVFuF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 22 May 2017 01:50:05 -0400
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: is alpha jensen support dead?
 In-Reply-To: <20170521085848.GA14559@lst.de>
 References: <20170521085848.GA14559@lst.de>
-From: Matt Turner <mattst88@gmail.com>
-Date: Sun, 21 May 2017 22:33:33 -0700
-Message-ID: <CAEdQ38F4aKXX4aDStWB5GEfCUfQ1Aige7i1_Pev8CMUtN02faw@mail.gmail.com>
-Subject: Re: is alpha jensen support dead?
-Content-Type: text/plain; charset="UTF-8"
+Date: Mon, 22 May 2017 15:50:02 +1000
+Message-ID: <87lgppsanp.fsf@concordia.ellerman.id.au>
+MIME-Version: 1.0
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Christian Borntraeger <borntraeger@de.ibm.com>, linux-alpha <linux-alpha@vger.kernel.org>, linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>
-Message-ID: <20170522053333.nM5QDtSjMWowXnV5nThIchdZTMy6vHRWAppQcrOkohY@z>
+To: Christoph Hellwig <hch@lst.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>
+Cc: Christian Borntraeger <borntraeger@de.ibm.com>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20170522055002.q4F4lep0WGZYvLdMRx2V7Q5pXcD7pbfoMzRKPP34dMo@z>
 
-On Sun, May 21, 2017 at 1:58 AM, Christoph Hellwig <hch@lst.de> wrote:
+Christoph Hellwig <hch@lst.de> writes:
+
 > Hi all,
 >
 > it seems like the Alpha Jense build (the only one using pci-noop.c)
@@ -35,10 +36,10 @@ On Sun, May 21, 2017 at 1:58 AM, Christoph Hellwig <hch@lst.de> wrote:
 >
 > Is there any value in keeping it alive?  Especially as there probably
 > isn't any build coverage..
->
-> Btw, how well is alpha working these days?  It looks like there hasn't
-> been any maintainer activity for about two years.
 
-I haven't had time for alpha stuff in quite a while.
+We still build the defconfig FWIW:
 
-I've never even had a Jensen, so it's never been important to me personally.
+  http://kisskb.ellerman.id.au/kisskb/target/2499/
+  http://kisskb.ellerman.id.au/kisskb/target/2494/
+
+cheers
