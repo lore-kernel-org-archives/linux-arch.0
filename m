@@ -1,78 +1,53 @@
-From: Sricharan R <sricharan-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>
-Subject: [PATCH v5 5/5] ACPI/IORT: Move the check to get iommu_ops from
-	translated fwspec
-Date: Tue, 23 May 2017 18:31:33 +0530
-Message-ID: <1495544493-14219-5-git-send-email-sricharan@codeaurora.org>
-References: <1495544493-14219-1-git-send-email-sricharan@codeaurora.org>
+From: "Kirill A. Shutemov" <kirill@shutemov.name>
+Subject: Re: [PATCH v3 1/6] mm, gup: Remove broken VM_BUG_ON_PAGE compound
+ check for hugepages
+Date: Tue, 23 May 2017 16:09:47 +0300
+Message-ID: <20170523130947.cv3bbjxa2l4ifj55@node.shutemov.name>
+References: <20170522133604.11392-1-punit.agrawal@arm.com>
+ <20170522133604.11392-2-punit.agrawal@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <1495544493-14219-1-git-send-email-sricharan-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: robin.murphy-5wv7dgnIgG8@public.gmane.org, will.deacon-5wv7dgnIgG8@public.gmane.org, joro-zLv9SwRftAIdnm+yROfE0A@public.gmane.org, lorenzo.pieralisi-5wv7dgnIgG8@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-arm-msm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, m.szyprowski-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org, bhelgaas-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org, linux-pci-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-acpi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, tn-nYOzD4b6Jr9Wk0Htik3J/w@public.gmane.org, hanjun.guo-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org, okaya-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org, robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, frowand.list-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, sudeep.holla-5wv7dgnIgG8@public.gmane.org, rjw-LthD3rsA81gm4RdzfppkhA@public.gmane.org, lenb-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, catalin.marinas-5wv7dgnIgG8@public.gmane.org, arnd-r2nGTMty4D4@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, laurent.pinchart-ryLnwIuWjnjg/C1BVhZhaw@public.gmane.org, j.neuschaefer-hi6Y0CQ0nG0@public.gmane.org, geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org, magnus.damm-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, nwatters-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <20170522133604.11392-2-punit.agrawal@arm.com>
+Sender: owner-linux-mm@kvack.org
+To: Punit Agrawal <punit.agrawal@arm.com>
+Cc: akpm@linux-foundation.org, Will Deacon <will.deacon@arm.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, n-horiguchi@ah.jp.nec.com, kirill.shutemov@linux.intel.com, mike.kravetz@oracle.com, steve.capper@arm.com, mark.rutland@arm.com, hillf.zj@alibaba-inc.com, linux-arch@vger.kernel.org, aneesh.kumar@linux.vnet.ibm.com
 List-Id: linux-arch.vger.kernel.org
 
-From: Lorenzo Pieralisi <lorenzo.pieralisi-5wv7dgnIgG8@public.gmane.org>
+On Mon, May 22, 2017 at 02:35:59PM +0100, Punit Agrawal wrote:
+> From: Will Deacon <will.deacon@arm.com>
+> 
+> When operating on hugepages with DEBUG_VM enabled, the GUP code checks the
+> compound head for each tail page prior to calling page_cache_add_speculative.
+> This is broken, because on the fast-GUP path (where we don't hold any page
+> table locks) we can be racing with a concurrent invocation of
+> split_huge_page_to_list.
+> 
+> split_huge_page_to_list deals with this race by using page_ref_freeze to
+> freeze the page and force concurrent GUPs to fail whilst the component
+> pages are modified. This modification includes clearing the compound_head
+> field for the tail pages, so checking this prior to a successful call
+> to page_cache_add_speculative can lead to false positives: In fact,
+> page_cache_add_speculative *already* has this check once the page refcount
+> has been successfully updated, so we can simply remove the broken calls
+> to VM_BUG_ON_PAGE.
+> 
+> Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+> Cc: Aneesh Kumar K.V <aneesh.kumar@linux.vnet.ibm.com>
+> Signed-off-by: Will Deacon <will.deacon@arm.com>
+> Acked-by: Steve Capper <steve.capper@arm.com>
+> Signed-off-by: Punit Agrawal <punit.agrawal@arm.com>
 
-With IOMMU probe deferral, iort_iommu_configure can be called
-multiple times for the same device. Hence we have a check
-to see if the device's fwspec is already translated and return
-the iommu_ops from that directly. But the check is wrongly
-placed in iort_iommu_xlate, which breaks devices with multiple
-sids. Move the check to iort_iommu_configure.
+Looks reasonable to me:
 
-Fixes: 5a1bb638d567 ("drivers: acpi: Handle IOMMU lookup failure with deferred probing or error")
-Tested-by: Nate Watterson <nwatters-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>
-Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi-5wv7dgnIgG8@public.gmane.org>
----
+Acked-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 
-[v5] new patch
-
- drivers/acpi/arm64/iort.c | 16 ++++++++--------
- 1 file changed, 8 insertions(+), 8 deletions(-)
-
-diff --git a/drivers/acpi/arm64/iort.c b/drivers/acpi/arm64/iort.c
-index 16e101f..797b28d 100644
---- a/drivers/acpi/arm64/iort.c
-+++ b/drivers/acpi/arm64/iort.c
-@@ -666,14 +666,6 @@ static const struct iommu_ops *iort_iommu_xlate(struct device *dev,
- 	int ret = -ENODEV;
- 	struct fwnode_handle *iort_fwnode;
- 
--	/*
--	 * If we already translated the fwspec there
--	 * is nothing left to do, return the iommu_ops.
--	 */
--	ops = iort_fwspec_iommu_ops(dev->iommu_fwspec);
--	if (ops)
--		return ops;
--
- 	if (node) {
- 		iort_fwnode = iort_get_fwnode(node);
- 		if (!iort_fwnode)
-@@ -735,6 +727,14 @@ const struct iommu_ops *iort_iommu_configure(struct device *dev)
- 	u32 streamid = 0;
- 	int err;
- 
-+	/*
-+	 * If we already translated the fwspec there
-+	 * is nothing left to do, return the iommu_ops.
-+	 */
-+	ops = iort_fwspec_iommu_ops(dev->iommu_fwspec);
-+	if (ops)
-+		return ops;
-+
- 	if (dev_is_pci(dev)) {
- 		struct pci_bus *bus = to_pci_dev(dev)->bus;
- 		u32 rid;
 -- 
-QUALCOMM INDIA, on behalf of Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum, hosted by The Linux Foundation
+ Kirill A. Shutemov
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
