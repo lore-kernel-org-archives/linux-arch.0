@@ -1,53 +1,335 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from userp1040.oracle.com ([156.151.31.81]:33810 "EHLO
-        userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1758520AbdEWVqm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 May 2017 17:46:42 -0400
-From: Babu Moger <babu.moger@oracle.com>
-Subject: [PATCH v3 2/7] kernel/locking: Fix compile error with qrwlock.c
-Date: Tue, 23 May 2017 15:45:53 -0600
-Message-ID: <1495575958-1022566-3-git-send-email-babu.moger@oracle.com>
-In-Reply-To: <1495575958-1022566-1-git-send-email-babu.moger@oracle.com>
-References: <1495575958-1022566-1-git-send-email-babu.moger@oracle.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Received: from mail-pf0-f193.google.com ([209.85.192.193]:36395 "EHLO
+        mail-pf0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1034803AbdEWWGs (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 May 2017 18:06:48 -0400
+Received: by mail-pf0-f193.google.com with SMTP id n23so30173854pfb.3
+        for <linux-arch@vger.kernel.org>; Tue, 23 May 2017 15:06:47 -0700 (PDT)
+From: Palmer Dabbelt <palmer@dabbelt.com>
+Subject: [PATCH 3/7] microblaze: Use libgcc files from lib/
+Date: Tue, 23 May 2017 15:05:42 -0700
+Message-ID: <20170523220546.16758-4-palmer@dabbelt.com>
+In-Reply-To: <20170523220546.16758-1-palmer@dabbelt.com>
+References: <20170523220546.16758-1-palmer@dabbelt.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: davem@davemloft.net, peterz@infradead.org, mingo@redhat.com, arnd@arndb.de
-Cc: babu.moger@oracle.com, shannon.nelson@oracle.com, haakon.bugge@oracle.com, steven.sistare@oracle.com, vijay.ac.kumar@oracle.com, jane.chu@oracle.com, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20170523214553.iQIrUup7RHgoHbFSUDQIci7Ecru0HTqV314frTrPsRk@z>
+To: monstr@monstr.eu, ralf@linux-mips.org, liqin.linux@gmail.com, lennox.wu@gmail.com, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, linux-mips@linux-mips.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, geert@linux-m68k.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Palmer Dabbelt <palmer@dabbelt.com>
+Message-ID: <20170523220542.mUWbFZ4trL7BxJfj6dkSUwEgMk6haghIX1UPjrSlBRw@z>
 
-Saw these compile errors on SPARC when queued rwlock feature is enabled.
+These files are functionally identical to the shared copies that I
+recently added.
 
- CC      kernel/locking/qrwlock.o
-kernel/locking/qrwlock.c: In function ‘queued_read_lock_slowpath’:
-kernel/locking/qrwlock.c:89: error: implicit declaration of function ‘arch_spin_lock’
-kernel/locking/qrwlock.c:102: error: implicit declaration of function ‘arch_spin_unlock’
-make[4]: *** [kernel/locking/qrwlock.o] Error 1
-
-Include spinlock.h in qrwlock.c to fix it.
-
-Signed-off-by: Babu Moger <babu.moger@oracle.com>
-Reviewed-by: Håkon Bugge <haakon.bugge@oracle.com>
-Reviewed-by: Jane Chu <jane.chu@oracle.com>
-Reviewed-by: Shannon Nelson <shannon.nelson@oracle.com>
-Reviewed-by: Vijay Kumar <vijay.ac.kumar@oracle.com>
+Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
 ---
- kernel/locking/qrwlock.c |    1 +
- 1 files changed, 1 insertions(+), 0 deletions(-)
+ arch/microblaze/Kconfig       |  6 +++++
+ arch/microblaze/lib/Makefile  |  3 +--
+ arch/microblaze/lib/ashldi3.c | 28 ---------------------
+ arch/microblaze/lib/ashrdi3.c | 30 -----------------------
+ arch/microblaze/lib/cmpdi2.c  | 26 --------------------
+ arch/microblaze/lib/libgcc.h  | 32 ------------------------
+ arch/microblaze/lib/lshrdi3.c | 28 ---------------------
+ arch/microblaze/lib/muldi3.c  | 57 -------------------------------------------
+ arch/microblaze/lib/ucmpdi2.c | 20 ---------------
+ 9 files changed, 7 insertions(+), 223 deletions(-)
+ delete mode 100644 arch/microblaze/lib/ashldi3.c
+ delete mode 100644 arch/microblaze/lib/ashrdi3.c
+ delete mode 100644 arch/microblaze/lib/cmpdi2.c
+ delete mode 100644 arch/microblaze/lib/libgcc.h
+ delete mode 100644 arch/microblaze/lib/lshrdi3.c
+ delete mode 100644 arch/microblaze/lib/muldi3.c
+ delete mode 100644 arch/microblaze/lib/ucmpdi2.c
 
-diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
-index cc3ed0c..2655f26 100644
---- a/kernel/locking/qrwlock.c
-+++ b/kernel/locking/qrwlock.c
-@@ -20,6 +20,7 @@
- #include <linux/cpumask.h>
- #include <linux/percpu.h>
- #include <linux/hardirq.h>
-+#include <linux/spinlock.h>
- #include <asm/qrwlock.h>
+diff --git a/arch/microblaze/Kconfig b/arch/microblaze/Kconfig
+index 85885a501dce..cc88ea3d18a7 100644
+--- a/arch/microblaze/Kconfig
++++ b/arch/microblaze/Kconfig
+@@ -34,6 +34,12 @@ config MICROBLAZE
+ 	select TRACING_SUPPORT
+ 	select VIRT_TO_BUS
+ 	select CPU_NO_EFFICIENT_FFS
++	select LIB_ASHLDI3
++	select LIB_ASHRDI3
++	select LIB_CMPDI2
++	select LIB_LSHRDI3
++	select LIB_MULDI3
++	select LIB_UCMPDI3
  
- /*
+ config SWAP
+ 	def_bool n
+diff --git a/arch/microblaze/lib/Makefile b/arch/microblaze/lib/Makefile
+index 70c7ae6a3fb5..c9a4d537e2fd 100644
+--- a/arch/microblaze/lib/Makefile
++++ b/arch/microblaze/lib/Makefile
+@@ -19,5 +19,4 @@ endif
+ lib-y += uaccess_old.o
+ 
+ # libgcc-style stuff needed in the kernel
+-obj-y += ashldi3.o ashrdi3.o cmpdi2.o divsi3.o lshrdi3.o modsi3.o
+-obj-y += muldi3.o mulsi3.o ucmpdi2.o udivsi3.o umodsi3.o
++obj-y += divsi3.o modsi3.o mulsi3.o udivsi3.o umodsi3.o
+diff --git a/arch/microblaze/lib/ashldi3.c b/arch/microblaze/lib/ashldi3.c
+deleted file mode 100644
+index 1af904cd972d..000000000000
+--- a/arch/microblaze/lib/ashldi3.c
++++ /dev/null
+@@ -1,28 +0,0 @@
+-#include <linux/export.h>
+-
+-#include "libgcc.h"
+-
+-long long __ashldi3(long long u, word_type b)
+-{
+-	DWunion uu, w;
+-	word_type bm;
+-
+-	if (b == 0)
+-		return u;
+-
+-	uu.ll = u;
+-	bm = 32 - b;
+-
+-	if (bm <= 0) {
+-		w.s.low = 0;
+-		w.s.high = (unsigned int) uu.s.low << -bm;
+-	} else {
+-		const unsigned int carries = (unsigned int) uu.s.low >> bm;
+-
+-		w.s.low = (unsigned int) uu.s.low << b;
+-		w.s.high = ((unsigned int) uu.s.high << b) | carries;
+-	}
+-
+-	return w.ll;
+-}
+-EXPORT_SYMBOL(__ashldi3);
+diff --git a/arch/microblaze/lib/ashrdi3.c b/arch/microblaze/lib/ashrdi3.c
+deleted file mode 100644
+index 32c334c05d04..000000000000
+--- a/arch/microblaze/lib/ashrdi3.c
++++ /dev/null
+@@ -1,30 +0,0 @@
+-#include <linux/export.h>
+-
+-#include "libgcc.h"
+-
+-long long __ashrdi3(long long u, word_type b)
+-{
+-	DWunion uu, w;
+-	word_type bm;
+-
+-	if (b == 0)
+-		return u;
+-
+-	uu.ll = u;
+-	bm = 32 - b;
+-
+-	if (bm <= 0) {
+-		/* w.s.high = 1..1 or 0..0 */
+-		w.s.high =
+-		    uu.s.high >> 31;
+-		w.s.low = uu.s.high >> -bm;
+-	} else {
+-		const unsigned int carries = (unsigned int) uu.s.high << bm;
+-
+-		w.s.high = uu.s.high >> b;
+-		w.s.low = ((unsigned int) uu.s.low >> b) | carries;
+-	}
+-
+-	return w.ll;
+-}
+-EXPORT_SYMBOL(__ashrdi3);
+diff --git a/arch/microblaze/lib/cmpdi2.c b/arch/microblaze/lib/cmpdi2.c
+deleted file mode 100644
+index 67abc9ac1bd4..000000000000
+--- a/arch/microblaze/lib/cmpdi2.c
++++ /dev/null
+@@ -1,26 +0,0 @@
+-#include <linux/export.h>
+-
+-#include "libgcc.h"
+-
+-word_type __cmpdi2(long long a, long long b)
+-{
+-	const DWunion au = {
+-		.ll = a
+-	};
+-	const DWunion bu = {
+-		.ll = b
+-	};
+-
+-	if (au.s.high < bu.s.high)
+-		return 0;
+-	else if (au.s.high > bu.s.high)
+-		return 2;
+-
+-	if ((unsigned int) au.s.low < (unsigned int) bu.s.low)
+-		return 0;
+-	else if ((unsigned int) au.s.low > (unsigned int) bu.s.low)
+-		return 2;
+-
+-	return 1;
+-}
+-EXPORT_SYMBOL(__cmpdi2);
+diff --git a/arch/microblaze/lib/libgcc.h b/arch/microblaze/lib/libgcc.h
+deleted file mode 100644
+index ab077ef7e14b..000000000000
+--- a/arch/microblaze/lib/libgcc.h
++++ /dev/null
+@@ -1,32 +0,0 @@
+-#ifndef __ASM_LIBGCC_H
+-#define __ASM_LIBGCC_H
+-
+-#include <asm/byteorder.h>
+-
+-typedef int word_type __attribute__ ((mode (__word__)));
+-
+-#ifdef __BIG_ENDIAN
+-struct DWstruct {
+-	int high, low;
+-};
+-#elif defined(__LITTLE_ENDIAN)
+-struct DWstruct {
+-	int low, high;
+-};
+-#else
+-#error I feel sick.
+-#endif
+-
+-typedef union {
+-	struct DWstruct s;
+-	long long ll;
+-} DWunion;
+-
+-extern long long __ashldi3(long long u, word_type b);
+-extern long long __ashrdi3(long long u, word_type b);
+-extern word_type __cmpdi2(long long a, long long b);
+-extern long long __lshrdi3(long long u, word_type b);
+-extern long long __muldi3(long long u, long long v);
+-extern word_type __ucmpdi2(unsigned long long a, unsigned long long b);
+-
+-#endif /* __ASM_LIBGCC_H */
+diff --git a/arch/microblaze/lib/lshrdi3.c b/arch/microblaze/lib/lshrdi3.c
+deleted file mode 100644
+index adcb253f11c8..000000000000
+--- a/arch/microblaze/lib/lshrdi3.c
++++ /dev/null
+@@ -1,28 +0,0 @@
+-#include <linux/export.h>
+-
+-#include "libgcc.h"
+-
+-long long __lshrdi3(long long u, word_type b)
+-{
+-	DWunion uu, w;
+-	word_type bm;
+-
+-	if (b == 0)
+-		return u;
+-
+-	uu.ll = u;
+-	bm = 32 - b;
+-
+-	if (bm <= 0) {
+-		w.s.high = 0;
+-		w.s.low = (unsigned int) uu.s.high >> -bm;
+-	} else {
+-		const unsigned int carries = (unsigned int) uu.s.high << bm;
+-
+-		w.s.high = (unsigned int) uu.s.high >> b;
+-		w.s.low = ((unsigned int) uu.s.low >> b) | carries;
+-	}
+-
+-	return w.ll;
+-}
+-EXPORT_SYMBOL(__lshrdi3);
+diff --git a/arch/microblaze/lib/muldi3.c b/arch/microblaze/lib/muldi3.c
+deleted file mode 100644
+index a3f9a03acdcd..000000000000
+--- a/arch/microblaze/lib/muldi3.c
++++ /dev/null
+@@ -1,57 +0,0 @@
+-#include <linux/export.h>
+-
+-#include "libgcc.h"
+-
+-#define W_TYPE_SIZE 32
+-
+-#define __ll_B ((unsigned long) 1 << (W_TYPE_SIZE / 2))
+-#define __ll_lowpart(t) ((unsigned long) (t) & (__ll_B - 1))
+-#define __ll_highpart(t) ((unsigned long) (t) >> (W_TYPE_SIZE / 2))
+-
+-/* If we still don't have umul_ppmm, define it using plain C.  */
+-#if !defined(umul_ppmm)
+-#define umul_ppmm(w1, w0, u, v)						\
+-	do {								\
+-		unsigned long __x0, __x1, __x2, __x3;			\
+-		unsigned short __ul, __vl, __uh, __vh;			\
+-									\
+-		__ul = __ll_lowpart(u);					\
+-		__uh = __ll_highpart(u);				\
+-		__vl = __ll_lowpart(v);					\
+-		__vh = __ll_highpart(v);				\
+-									\
+-		__x0 = (unsigned long) __ul * __vl;			\
+-		__x1 = (unsigned long) __ul * __vh;			\
+-		__x2 = (unsigned long) __uh * __vl;			\
+-		__x3 = (unsigned long) __uh * __vh;			\
+-									\
+-		__x1 += __ll_highpart(__x0); /* this can't give carry */\
+-		__x1 += __x2; /* but this indeed can */			\
+-		if (__x1 < __x2) /* did we get it? */			\
+-		__x3 += __ll_B; /* yes, add it in the proper pos */	\
+-									\
+-		(w1) = __x3 + __ll_highpart(__x1);			\
+-		(w0) = __ll_lowpart(__x1) * __ll_B + __ll_lowpart(__x0);\
+-	} while (0)
+-#endif
+-
+-#if !defined(__umulsidi3)
+-#define __umulsidi3(u, v) ({				\
+-	DWunion __w;					\
+-	umul_ppmm(__w.s.high, __w.s.low, u, v);		\
+-	__w.ll;						\
+-	})
+-#endif
+-
+-long long __muldi3(long long u, long long v)
+-{
+-	const DWunion uu = {.ll = u};
+-	const DWunion vv = {.ll = v};
+-	DWunion w = {.ll = __umulsidi3(uu.s.low, vv.s.low)};
+-
+-	w.s.high += ((unsigned long) uu.s.low * (unsigned long) vv.s.high
+-		+ (unsigned long) uu.s.high * (unsigned long) vv.s.low);
+-
+-	return w.ll;
+-}
+-EXPORT_SYMBOL(__muldi3);
+diff --git a/arch/microblaze/lib/ucmpdi2.c b/arch/microblaze/lib/ucmpdi2.c
+deleted file mode 100644
+index d05f1585121c..000000000000
+--- a/arch/microblaze/lib/ucmpdi2.c
++++ /dev/null
+@@ -1,20 +0,0 @@
+-#include <linux/export.h>
+-
+-#include "libgcc.h"
+-
+-word_type __ucmpdi2(unsigned long long a, unsigned long long b)
+-{
+-	const DWunion au = {.ll = a};
+-	const DWunion bu = {.ll = b};
+-
+-	if ((unsigned int) au.s.high < (unsigned int) bu.s.high)
+-		return 0;
+-	else if ((unsigned int) au.s.high > (unsigned int) bu.s.high)
+-		return 2;
+-	if ((unsigned int) au.s.low < (unsigned int) bu.s.low)
+-		return 0;
+-	else if ((unsigned int) au.s.low > (unsigned int) bu.s.low)
+-		return 2;
+-	return 1;
+-}
+-EXPORT_SYMBOL(__ucmpdi2);
 -- 
-1.7.1
+2.13.0
