@@ -1,214 +1,137 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.codeaurora.org ([198.145.29.96]:33564 "EHLO
+Received: from smtp.codeaurora.org ([198.145.29.96]:35314 "EHLO
         smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S967135AbdEWI71 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 May 2017 04:59:27 -0400
+        with ESMTP id S1762469AbdEWJBg (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 May 2017 05:01:36 -0400
 Subject: Re: [PATCH V11 08/11] drivers: acpi: Handle IOMMU lookup failure with
  deferred probing or error
 References: <1491823266-1209-1-git-send-email-sricharan@codeaurora.org>
  <1491823266-1209-9-git-send-email-sricharan@codeaurora.org>
  <41668eff-271c-1c4c-7665-3bf0faa74669@codeaurora.org>
+ <20170523085241.GA18204@red-moon>
 From: Sricharan R <sricharan@codeaurora.org>
-Message-ID: <27a66424-472e-0709-a46f-74b401bca342@codeaurora.org>
-Date: Tue, 23 May 2017 14:29:05 +0530
+Message-ID: <c6d5c033-a8f9-03e3-9963-cd291ae2d7e1@codeaurora.org>
+Date: Tue, 23 May 2017 14:31:17 +0530
 MIME-Version: 1.0
-In-Reply-To: <41668eff-271c-1c4c-7665-3bf0faa74669@codeaurora.org>
+In-Reply-To: <20170523085241.GA18204@red-moon>
 Content-Type: text/plain; charset=utf-8
 Content-Language: en-US
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nate Watterson <nwatters@codeaurora.org>, robin.murphy@arm.com, will.deacon@arm.com, joro@8bytes.org, lorenzo.pieralisi@arm.com, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arm-msm@vger.kernel.org, m.szyprowski@samsung.com, bhelgaas@google.com, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, tn@semihalf.com, hanjun.guo@linaro.org, okaya@codeaurora.org, robh+dt@kernel.org, frowand.list@gmail.com, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, sudeep.holla@arm.com, rjw@rjwysocki.net, lenb@kernel.org, catalin.marinas@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, gregkh@linuxfoundation.org
-Message-ID: <20170523085905.vQyGMABtKFczvxt8Me_WKatkm0hxlAo5HGzjpPEL3ug@z>
+To: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Nate Watterson <nwatters@codeaurora.org>
+Cc: robin.murphy@arm.com, will.deacon@arm.com, joro@8bytes.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arm-msm@vger.kernel.org, m.szyprowski@samsung.com, bhelgaas@google.com, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, tn@semihalf.com, hanjun.guo@linaro.org, okaya@codeaurora.org, robh+dt@kernel.org, frowand.list@gmail.com, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, sudeep.holla@arm.com, rjw@rjwysocki.net, lenb@kernel.org, catalin.marinas@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, gregkh@linuxfoundation.org
+Message-ID: <20170523090117.SDPnAJuMx5jxSi8LhncZ9RuUu_1003mYCgitAgpZc6U@z>
 
-Hi,
+Hi Lorenzo,
 
-On 5/23/2017 11:56 AM, Nate Watterson wrote:
-> Hi Sricharan,
+On 5/23/2017 2:22 PM, Lorenzo Pieralisi wrote:
+> On Tue, May 23, 2017 at 02:26:10AM -0400, Nate Watterson wrote:
+>> Hi Sricharan,
+>>
+>> On 4/10/2017 7:21 AM, Sricharan R wrote:
+>>> This is an equivalent to the DT's handling of the iommu master's probe
+>>> with deferred probing when the corrsponding iommu is not probed yet.
+>>> The lack of a registered IOMMU can be caused by the lack of a driver for
+>>> the IOMMU, the IOMMU device probe not having been performed yet, having
+>>> been deferred, or having failed.
+>>>
+>>> The first case occurs when the firmware describes the bus master and
+>>> IOMMU topology correctly but no device driver exists for the IOMMU yet
+>>> or the device driver has not been compiled in. Return NULL, the caller
+>>> will configure the device without an IOMMU.
+>>>
+>>> The second and third cases are handled by deferring the probe of the bus
+>>> master device which will eventually get reprobed after the IOMMU.
+>>>
+>>> The last case is currently handled by deferring the probe of the bus
+>>> master device as well. A mechanism to either configure the bus master
+>>> device without an IOMMU or to fail the bus master device probe depending
+>>> on whether the IOMMU is optional or mandatory would be a good
+>>> enhancement.
+>>>
+>>> Tested-by: Hanjun Guo <hanjun.guo@linaro.org>
+>>> Reviewed-by: Robin Murphy <robin.murphy@arm.com>
+>>> [Lorenzo: Added fixes for dma_coherent_mask overflow, acpi_dma_configure
+>>>           called multiple times for same device]
+>>> Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+>>> Signed-off-by: Sricharan R <sricharan@codeaurora.org>
+>>> ---
+>>>  drivers/acpi/arm64/iort.c  | 33 ++++++++++++++++++++++++++++++++-
+>>>  drivers/acpi/scan.c        | 11 ++++++++---
+>>>  drivers/base/dma-mapping.c |  2 +-
+>>>  include/acpi/acpi_bus.h    |  2 +-
+>>>  include/linux/acpi.h       |  7 +++++--
+>>>  5 files changed, 47 insertions(+), 8 deletions(-)
+>>>
+>>> diff --git a/drivers/acpi/arm64/iort.c b/drivers/acpi/arm64/iort.c
+>>> index 3dd9ec3..e323ece 100644
+>>> --- a/drivers/acpi/arm64/iort.c
+>>> +++ b/drivers/acpi/arm64/iort.c
+>>> @@ -543,6 +543,14 @@ static const struct iommu_ops *iort_iommu_xlate(struct device *dev,
+>>>  	const struct iommu_ops *ops = NULL;
+>>>  	int ret = -ENODEV;
+>>>  	struct fwnode_handle *iort_fwnode;
+>>> +	struct iommu_fwspec *fwspec = dev->iommu_fwspec;
+>>> +
+>>> +	/*
+>>> +	 * If we already translated the fwspec there
+>>> +	 * is nothing left to do, return the iommu_ops.
+>>> +	 */
+>>> +	if (fwspec && fwspec->ops)
+>>> +		return fwspec->ops;
+>>
+>> Is this logic strictly required? It breaks masters with multiple SIDs
+>> as only the first SID is actually added to the master's fwspec.
 > 
-> On 4/10/2017 7:21 AM, Sricharan R wrote:
->> This is an equivalent to the DT's handling of the iommu master's probe
->> with deferred probing when the corrsponding iommu is not probed yet.
->> The lack of a registered IOMMU can be caused by the lack of a driver for
->> the IOMMU, the IOMMU device probe not having been performed yet, having
->> been deferred, or having failed.
->>
->> The first case occurs when the firmware describes the bus master and
->> IOMMU topology correctly but no device driver exists for the IOMMU yet
->> or the device driver has not been compiled in. Return NULL, the caller
->> will configure the device without an IOMMU.
->>
->> The second and third cases are handled by deferring the probe of the bus
->> master device which will eventually get reprobed after the IOMMU.
->>
->> The last case is currently handled by deferring the probe of the bus
->> master device as well. A mechanism to either configure the bus master
->> device without an IOMMU or to fail the bus master device probe depending
->> on whether the IOMMU is optional or mandatory would be a good
->> enhancement.
->>
->> Tested-by: Hanjun Guo <hanjun.guo@linaro.org>
->> Reviewed-by: Robin Murphy <robin.murphy@arm.com>
->> [Lorenzo: Added fixes for dma_coherent_mask overflow, acpi_dma_configure
->>            called multiple times for same device]
->> Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
->> Signed-off-by: Sricharan R <sricharan@codeaurora.org>
->> ---
->>   drivers/acpi/arm64/iort.c  | 33 ++++++++++++++++++++++++++++++++-
->>   drivers/acpi/scan.c        | 11 ++++++++---
->>   drivers/base/dma-mapping.c |  2 +-
->>   include/acpi/acpi_bus.h    |  2 +-
->>   include/linux/acpi.h       |  7 +++++--
->>   5 files changed, 47 insertions(+), 8 deletions(-)
->>
->> diff --git a/drivers/acpi/arm64/iort.c b/drivers/acpi/arm64/iort.c
->> index 3dd9ec3..e323ece 100644
->> --- a/drivers/acpi/arm64/iort.c
->> +++ b/drivers/acpi/arm64/iort.c
->> @@ -543,6 +543,14 @@ static const struct iommu_ops *iort_iommu_xlate(struct device *dev,
->>       const struct iommu_ops *ops = NULL;
->>       int ret = -ENODEV;
->>       struct fwnode_handle *iort_fwnode;
->> +    struct iommu_fwspec *fwspec = dev->iommu_fwspec;
->> +
->> +    /*
->> +     * If we already translated the fwspec there
->> +     * is nothing left to do, return the iommu_ops.
->> +     */
->> +    if (fwspec && fwspec->ops)
->> +        return fwspec->ops;
-> 
-> Is this logic strictly required? It breaks masters with multiple SIDs
-> as only the first SID is actually added to the master's fwspec.
+> My bad, that's indeed a silly bug I introduced. Please let me know if the
+> patch below fixes it, we will send it upstream shortly.
 > 
 
-The logic here is same as what is done in DT, in of_iommu_configure.
-This is to pullback the iommu_ops that was set for the device from the
-previous run. (when the device probe is deferred and called again).
-Infact this piece of hunk was initially missing in ACPI, later added
-since a bug was reported [1] on V9 and then this came in as a fix in V10.
-But looks like this check should be in iort_iommu_configure.
-Lorenzo, is that correct ?
-
-
-[1] https://www.spinics.net/lists/arm-kernel/msg572069.html
-
-If yes i will add this in the fixes that i have already posted.
+oops, i think emails crossed. Please let me know if you are ok to add this
+to the other fixes.
 
 Regards,
  Sricharan
 
-
->>         if (node) {
->>           iort_fwnode = iort_get_fwnode(node);
->> @@ -550,8 +558,17 @@ static const struct iommu_ops *iort_iommu_xlate(struct device *dev,
->>               return NULL;
->>             ops = iommu_ops_from_fwnode(iort_fwnode);
->> +        /*
->> +         * If the ops look-up fails, this means that either
->> +         * the SMMU drivers have not been probed yet or that
->> +         * the SMMU drivers are not built in the kernel;
->> +         * Depending on whether the SMMU drivers are built-in
->> +         * in the kernel or not, defer the IOMMU configuration
->> +         * or just abort it.
->> +         */
->>           if (!ops)
->> -            return NULL;
->> +            return iort_iommu_driver_enabled(node->type) ?
->> +                   ERR_PTR(-EPROBE_DEFER) : NULL;
->>             ret = arm_smmu_iort_xlate(dev, streamid, iort_fwnode, ops);
->>       }
->> @@ -625,12 +642,26 @@ const struct iommu_ops *iort_iommu_configure(struct device *dev)
->>             while (parent) {
->>               ops = iort_iommu_xlate(dev, parent, streamid);
->> +            if (IS_ERR_OR_NULL(ops))
->> +                return ops;
->>                 parent = iort_node_get_id(node, &streamid,
->>                             IORT_IOMMU_TYPE, i++);
->>           }
->>       }
->>   +    /*
->> +     * If we have reason to believe the IOMMU driver missed the initial
->> +     * add_device callback for dev, replay it to get things in order.
->> +     */
->> +    if (!IS_ERR_OR_NULL(ops) && ops->add_device &&
->> +        dev->bus && !dev->iommu_group) {
->> +        int err = ops->add_device(dev);
->> +
->> +        if (err)
->> +            ops = ERR_PTR(err);
->> +    }
->> +
->>       return ops;
->>   }
->>   diff --git a/drivers/acpi/scan.c b/drivers/acpi/scan.c
->> index 1926918..2a513cc 100644
->> --- a/drivers/acpi/scan.c
->> +++ b/drivers/acpi/scan.c
->> @@ -1373,20 +1373,25 @@ enum dev_dma_attr acpi_get_dma_attr(struct acpi_device *adev)
->>    * @dev: The pointer to the device
->>    * @attr: device dma attributes
->>    */
->> -void acpi_dma_configure(struct device *dev, enum dev_dma_attr attr)
->> +int acpi_dma_configure(struct device *dev, enum dev_dma_attr attr)
->>   {
->>       const struct iommu_ops *iommu;
->> +    u64 size;
->>         iort_set_dma_mask(dev);
->>         iommu = iort_iommu_configure(dev);
->> +    if (IS_ERR(iommu))
->> +        return PTR_ERR(iommu);
->>   +    size = max(dev->coherent_dma_mask, dev->coherent_dma_mask + 1);
->>       /*
->>        * Assume dma valid range starts at 0 and covers the whole
->>        * coherent_dma_mask.
->>        */
->> -    arch_setup_dma_ops(dev, 0, dev->coherent_dma_mask + 1, iommu,
->> -               attr == DEV_DMA_COHERENT);
->> +    arch_setup_dma_ops(dev, 0, size, iommu, attr == DEV_DMA_COHERENT);
->> +
->> +    return 0;
->>   }
->>   EXPORT_SYMBOL_GPL(acpi_dma_configure);
->>   diff --git a/drivers/base/dma-mapping.c b/drivers/base/dma-mapping.c
->> index 82bd45c..755a2b5 100644
->> --- a/drivers/base/dma-mapping.c
->> +++ b/drivers/base/dma-mapping.c
->> @@ -368,7 +368,7 @@ int dma_configure(struct device *dev)
->>       } else if (has_acpi_companion(dma_dev)) {
->>           attr = acpi_get_dma_attr(to_acpi_device_node(dma_dev->fwnode));
->>           if (attr != DEV_DMA_NOT_SUPPORTED)
->> -            acpi_dma_configure(dev, attr);
->> +            ret = acpi_dma_configure(dev, attr);
->>       }
->>         if (bridge)
->> diff --git a/include/acpi/acpi_bus.h b/include/acpi/acpi_bus.h
->> index ef0ae8a..2a9a5de 100644
->> --- a/include/acpi/acpi_bus.h
->> +++ b/include/acpi/acpi_bus.h
->> @@ -575,7 +575,7 @@ struct acpi_pci_root {
->>     bool acpi_dma_supported(struct acpi_device *adev);
->>   enum dev_dma_attr acpi_get_dma_attr(struct acpi_device *adev);
->> -void acpi_dma_configure(struct device *dev, enum dev_dma_attr attr);
->> +int acpi_dma_configure(struct device *dev, enum dev_dma_attr attr);
->>   void acpi_dma_deconfigure(struct device *dev);
->>     struct acpi_device *acpi_find_child_device(struct acpi_device *parent,
->> diff --git a/include/linux/acpi.h b/include/linux/acpi.h
->> index 9b05886..79d06ef6 100644
->> --- a/include/linux/acpi.h
->> +++ b/include/linux/acpi.h
->> @@ -762,8 +762,11 @@ static inline enum dev_dma_attr acpi_get_dma_attr(struct acpi_device *adev)
->>       return DEV_DMA_NOT_SUPPORTED;
->>   }
->>   -static inline void acpi_dma_configure(struct device *dev,
->> -                      enum dev_dma_attr attr) { }
->> +static inline int acpi_dma_configure(struct device *dev,
->> +                     enum dev_dma_attr attr)
->> +{
->> +    return 0;
->> +}
->>     static inline void acpi_dma_deconfigure(struct device *dev) { }
->>  
+> Lorenzo
+> 
+> -- >8 --
+> diff --git a/drivers/acpi/arm64/iort.c b/drivers/acpi/arm64/iort.c
+> index c5fecf9..e326f2a 100644
+> --- a/drivers/acpi/arm64/iort.c
+> +++ b/drivers/acpi/arm64/iort.c
+> @@ -666,14 +666,6 @@ static const struct iommu_ops *iort_iommu_xlate(struct device *dev,
+>  	int ret = -ENODEV;
+>  	struct fwnode_handle *iort_fwnode;
+>  
+> -	/*
+> -	 * If we already translated the fwspec there
+> -	 * is nothing left to do, return the iommu_ops.
+> -	 */
+> -	ops = iort_fwspec_iommu_ops(dev->iommu_fwspec);
+> -	if (ops)
+> -		return ops;
+> -
+>  	if (node) {
+>  		iort_fwnode = iort_get_fwnode(node);
+>  		if (!iort_fwnode)
+> @@ -735,6 +727,14 @@ const struct iommu_ops *iort_iommu_configure(struct device *dev)
+>  	u32 streamid = 0;
+>  	int err;
+>  
+> +	/*
+> +	 * If we already translated the fwspec there
+> +	 * is nothing left to do, return the iommu_ops.
+> +	 */
+> +	ops = iort_fwspec_iommu_ops(dev->iommu_fwspec);
+> +	if (ops)
+> +		return ops;
+> +
+>  	if (dev_is_pci(dev)) {
+>  		struct pci_bus *bus = to_pci_dev(dev)->bus;
+>  		u32 rid;
+> 
 > 
 
 -- 
