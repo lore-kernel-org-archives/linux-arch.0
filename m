@@ -1,8 +1,11 @@
 From: Babu Moger <babu.moger@oracle.com>
-Subject: [PATCH v3 1/7] arch/sparc: Remove the check #ifndef __LINUX_SPINLOCK_TYPES_H
-Date: Tue, 23 May 2017 15:45:52 -0600
-Message-ID: <1495575958-1022566-2-git-send-email-babu.moger@oracle.com>
+Subject: [PATCH v3 2/7] kernel/locking: Fix compile error with qrwlock.c
+Date: Tue, 23 May 2017 15:45:53 -0600
+Message-ID: <1495575958-1022566-3-git-send-email-babu.moger@oracle.com>
 References: <1495575958-1022566-1-git-send-email-babu.moger@oracle.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1495575958-1022566-1-git-send-email-babu.moger@oracle.com>
 Sender: linux-kernel-owner@vger.kernel.org
@@ -12,41 +15,34 @@ List-Id: linux-arch.vger.kernel.org
 
 Saw these compile errors on SPARC when queued rwlock feature is enabled.
 
-   CC      kernel/locking/qrwlock.o
-In file included from ./include/asm-generic/qrwlock_types.h:5,
-                  from ./arch/sparc/include/asm/qrwlock.h:4,
-                  from kernel/locking/qrwlock.c:24:
-./arch/sparc/include/asm/spinlock_types.h:5:3: error:
-         #error "please don't include this file directly"
+ CC      kernel/locking/qrwlock.o
+kernel/locking/qrwlock.c: In function ‘queued_read_lock_slowpath’:
+kernel/locking/qrwlock.c:89: error: implicit declaration of function ‘arch_spin_lock’
+kernel/locking/qrwlock.c:102: error: implicit declaration of function ‘arch_spin_unlock’
+make[4]: *** [kernel/locking/qrwlock.o] Error 1
 
-SPARC has this guard which causes compile error when spinlock_types.h
-is included directly.
-@ifndef __LINUX_SPINLOCK_TYPES_H
-@ error "please don't include this file directly"
-@endif
-
-Remove this un-necessary "ifndef __LINUX_SPINLOCK_TYPES_H" stanza from SPARC.
+Include spinlock.h in qrwlock.c to fix it.
 
 Signed-off-by: Babu Moger <babu.moger@oracle.com>
-Suggested-by: David Miller <davem@davemloft.net>
+Reviewed-by: Håkon Bugge <haakon.bugge@oracle.com>
+Reviewed-by: Jane Chu <jane.chu@oracle.com>
+Reviewed-by: Shannon Nelson <shannon.nelson@oracle.com>
+Reviewed-by: Vijay Kumar <vijay.ac.kumar@oracle.com>
 ---
- arch/sparc/include/asm/spinlock_types.h |    4 ----
- 1 files changed, 0 insertions(+), 4 deletions(-)
+ kernel/locking/qrwlock.c |    1 +
+ 1 files changed, 1 insertions(+), 0 deletions(-)
 
-diff --git a/arch/sparc/include/asm/spinlock_types.h b/arch/sparc/include/asm/spinlock_types.h
-index 9c454fd..019c085 100644
---- a/arch/sparc/include/asm/spinlock_types.h
-+++ b/arch/sparc/include/asm/spinlock_types.h
-@@ -1,10 +1,6 @@
- #ifndef __SPARC_SPINLOCK_TYPES_H
- #define __SPARC_SPINLOCK_TYPES_H
+diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
+index cc3ed0c..2655f26 100644
+--- a/kernel/locking/qrwlock.c
++++ b/kernel/locking/qrwlock.c
+@@ -20,6 +20,7 @@
+ #include <linux/cpumask.h>
+ #include <linux/percpu.h>
+ #include <linux/hardirq.h>
++#include <linux/spinlock.h>
+ #include <asm/qrwlock.h>
  
--#ifndef __LINUX_SPINLOCK_TYPES_H
--# error "please don't include this file directly"
--#endif
--
- typedef struct {
- 	volatile unsigned char lock;
- } arch_spinlock_t;
+ /*
 -- 
 1.7.1
