@@ -1,11 +1,11 @@
 From: Palmer Dabbelt <palmer@dabbelt.com>
 Subject: [PATCH 7/7] sparc: Use lib/{cmpdi2,ucmpdi2}.c
 Date: Tue, 23 May 2017 15:05:46 -0700
-Message-ID: <20170523220546.16758-8-palmer__24809.3141745359$1495577322$gmane$org@dabbelt.com>
+Message-ID: <20170523220546.16758-8-palmer__21337.6076463193$1495577325$gmane$org@dabbelt.com>
 References: <20170523220546.16758-1-palmer@dabbelt.com>
-Return-path: <sparclinux-owner@vger.kernel.org>
+Return-path: <linux-sh-owner@vger.kernel.org>
 In-Reply-To: <20170523220546.16758-1-palmer@dabbelt.com>
-Sender: sparclinux-owner@vger.kernel.org
+Sender: linux-sh-owner@vger.kernel.org
 To: monstr@monstr.eu, ralf@linux-mips.org, liqin.linux@gmail.com, lennox.wu@gmail.com, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, linux-mips@linux-mips.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, geert@linux-m68k.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Palmer Dabbelt <palmer@dabbelt.com>
 List-Id: linux-arch.vger.kernel.org
