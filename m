@@ -1,20 +1,14 @@
 From: Palmer Dabbelt <palmer@dabbelt.com>
 Subject: [PATCH 4/7] mips: Use lib/{ashldi3,ashrdi3,cmpdi2,lshrdi3,ucmpdi2}.c
 Date: Tue, 23 May 2017 15:05:43 -0700
-Message-ID: <20170523220546.16758-5-palmer__32069.2629008137$1495577341$gmane$org@dabbelt.com>
+Message-ID: <20170523220546.16758-5-palmer__27616.3832903423$1495577342$gmane$org@dabbelt.com>
 References: <20170523220546.16758-1-palmer@dabbelt.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f195.google.com ([209.85.192.195]:35081 "EHLO
-        mail-pf0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1034805AbdEWWGo (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 May 2017 18:06:44 -0400
-Received: by mail-pf0-f195.google.com with SMTP id u26so30209869pfd.2
-        for <linux-arch@vger.kernel.org>; Tue, 23 May 2017 15:06:43 -0700 (PDT)
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20170523220546.16758-1-palmer@dabbelt.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: monstr@monstr.eu, ralf@linux-mips.org, liqin.linux@gmail.com, lennox.wu@gmail.com, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, linux-mips@linux-mips.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, geert@linux-m68k.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Palmer Dabbelt <palmer@dabbelt.com>
+List-Id: linux-arch.vger.kernel.org
 
 These files are functionally identical to the shared copies that I
 recently added.
