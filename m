@@ -1,85 +1,125 @@
-From: Daniel Vetter <daniel.vetter@ffwll.ch>
-Subject: Re: [Ksummit-discuss] [GIT PULL] ARM: SoC fixes (and a cross-arch
- dt-include fix)
-Date: Tue, 23 May 2017 10:27:02 +0200
-Message-ID: <CAKMK7uGz0vFiA1sRAbQ0ECdRq0pKWZRd=-RbmD_CcPVhTPF18w@mail.gmail.com>
-References: <20170519193455.GA24206@localhost> <CACRpkdaRdZTB39-=sAojO+OyHtP02KaFChqGcxy+fWA8qaB2bw@mail.gmail.com>
- <CAOesGMhfrWSvLtDtGRWBTJiAoeSwzGgsdUTm26j1mpoVu0ghDg@mail.gmail.com>
+From: Lorenzo Pieralisi <lorenzo.pieralisi-5wv7dgnIgG8@public.gmane.org>
+Subject: Re: [PATCH V11 08/11] drivers: acpi: Handle IOMMU lookup failure
+	with deferred probing or error
+Date: Tue, 23 May 2017 09:52:41 +0100
+Message-ID: <20170523085241.GA18204@red-moon>
+References: <1491823266-1209-1-git-send-email-sricharan@codeaurora.org>
+	<1491823266-1209-9-git-send-email-sricharan@codeaurora.org>
+	<41668eff-271c-1c4c-7665-3bf0faa74669@codeaurora.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f193.google.com ([209.85.223.193]:34737 "EHLO
-        mail-io0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S966589AbdEWI1E (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 May 2017 04:27:04 -0400
-Received: by mail-io0-f193.google.com with SMTP id 12so14928152iol.1
-        for <linux-arch@vger.kernel.org>; Tue, 23 May 2017 01:27:04 -0700 (PDT)
-In-Reply-To: <CAOesGMhfrWSvLtDtGRWBTJiAoeSwzGgsdUTm26j1mpoVu0ghDg@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Olof Johansson <olof@lixom.net>
-Cc: Linus Walleij <linus.walleij@linaro.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "arm@kernel.org" <arm@kernel.org>, "ksummit-discuss@lists.linuxfoundation.org" <ksummit-discuss@lists.linuxfoundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Rob Herring <robh+dt@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <41668eff-271c-1c4c-7665-3bf0faa74669-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: Nate Watterson <nwatters-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>
+Cc: gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org, catalin.marinas-5wv7dgnIgG8@public.gmane.org, will.deacon-5wv7dgnIgG8@public.gmane.org, okaya-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org, frowand.list-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, tn-nYOzD4b6Jr9Wk0Htik3J/w@public.gmane.org, linux-acpi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-pci-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, lenb-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, arnd-r2nGTMty4D4@public.gmane.org, linux-arm-msm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, bhelgaas-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, rjw-LthD3rsA81gm4RdzfppkhA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, sudeep.holla-5wv7dgnIgG8@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, May 22, 2017 at 5:11 PM, Olof Johansson <olof@lixom.net> wrote:
-> [adding ksummit-discuss]
->
-> On Mon, May 22, 2017 at 4:44 AM, Linus Walleij <linus.walleij@linaro.org> wrote:
->> On Fri, May 19, 2017 at 9:34 PM, Olof Johansson <olof@lixom.net> wrote:
->>
->>>  - We've started telling people to avoid cross-tree shared branches if all
->>>    they're doing is picking up one or two DT-used constants from a
->>>    shared include file, and instead to use the numeric values on first
->>>    submission. Follow-up moving over to symbolic names are sent in right
->>>    after -rc1, i.e. here. It's only a few minor patches of this type.
->>
->> OK it seems like a reasonable process.
->>
->> It's not like I can think about anything better.
->>
->> I was more opting for doing things this way:
->>
->> - Create bindings and <dt-bindings/foo/bar.h> merge it into the
->>   foo subsystem.
->>
->> - Merge driver into drivers/foo/bar.c that use <dt-bindings/foo/bar.h>
->>
->> - Submit DTS patch to ARM SoC (or whetever) using only numerical
->>   values.
->>
->> - After the merge window, follow up with a patch replacing the
->>   numerical constants with #defines from <dt-bindings/foo/bar.h>
->
-> You're describing exactly what we've been pushing people towards.
->
-> If it's just a few simple references it's not significantly more
-> awkward, and decouples merges and removes need for stable branches.
-> Essentially we've become slightly more lax in what we're willing to
-> consider _right after_ -rc1 to include these tweaks (and often patches
-> to turn on new drivers in defconfigs).
->
-> If the amount of contents grows too large we might need to tweak
-> things further, maybe with something pre-rc1 but that's more awkward.
->
->> An alternative would obviously be to wait for the next merge window
->> after merging the driver patch but I guess people are too impatient
->> to do that (including me).
->
-> Yeah, asking people to spread out across releases would remove
-> dependencies a lot, but it would also slow down progress and frustrate
-> a lot of contributors so we don't do that.
->
->> We discussed cross-tree dependencies a bit on ksummit-discuss
->> but this solution was not mentioned back then.
->
-> I thought it was, but I wasn't fully engaged in the discussion. We've
-> also only started this over the last release or two so it's early to
-> tell just how well it'll work in reality. Cc:ing the list.
+On Tue, May 23, 2017 at 02:26:10AM -0400, Nate Watterson wrote:
+> Hi Sricharan,
+> 
+> On 4/10/2017 7:21 AM, Sricharan R wrote:
+> >This is an equivalent to the DT's handling of the iommu master's probe
+> >with deferred probing when the corrsponding iommu is not probed yet.
+> >The lack of a registered IOMMU can be caused by the lack of a driver for
+> >the IOMMU, the IOMMU device probe not having been performed yet, having
+> >been deferred, or having failed.
+> >
+> >The first case occurs when the firmware describes the bus master and
+> >IOMMU topology correctly but no device driver exists for the IOMMU yet
+> >or the device driver has not been compiled in. Return NULL, the caller
+> >will configure the device without an IOMMU.
+> >
+> >The second and third cases are handled by deferring the probe of the bus
+> >master device which will eventually get reprobed after the IOMMU.
+> >
+> >The last case is currently handled by deferring the probe of the bus
+> >master device as well. A mechanism to either configure the bus master
+> >device without an IOMMU or to fail the bus master device probe depending
+> >on whether the IOMMU is optional or mandatory would be a good
+> >enhancement.
+> >
+> >Tested-by: Hanjun Guo <hanjun.guo-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>
+> >Reviewed-by: Robin Murphy <robin.murphy-5wv7dgnIgG8@public.gmane.org>
+> >[Lorenzo: Added fixes for dma_coherent_mask overflow, acpi_dma_configure
+> >           called multiple times for same device]
+> >Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi-5wv7dgnIgG8@public.gmane.org>
+> >Signed-off-by: Sricharan R <sricharan-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>
+> >---
+> >  drivers/acpi/arm64/iort.c  | 33 ++++++++++++++++++++++++++++++++-
+> >  drivers/acpi/scan.c        | 11 ++++++++---
+> >  drivers/base/dma-mapping.c |  2 +-
+> >  include/acpi/acpi_bus.h    |  2 +-
+> >  include/linux/acpi.h       |  7 +++++--
+> >  5 files changed, 47 insertions(+), 8 deletions(-)
+> >
+> >diff --git a/drivers/acpi/arm64/iort.c b/drivers/acpi/arm64/iort.c
+> >index 3dd9ec3..e323ece 100644
+> >--- a/drivers/acpi/arm64/iort.c
+> >+++ b/drivers/acpi/arm64/iort.c
+> >@@ -543,6 +543,14 @@ static const struct iommu_ops *iort_iommu_xlate(struct device *dev,
+> >  	const struct iommu_ops *ops = NULL;
+> >  	int ret = -ENODEV;
+> >  	struct fwnode_handle *iort_fwnode;
+> >+	struct iommu_fwspec *fwspec = dev->iommu_fwspec;
+> >+
+> >+	/*
+> >+	 * If we already translated the fwspec there
+> >+	 * is nothing left to do, return the iommu_ops.
+> >+	 */
+> >+	if (fwspec && fwspec->ops)
+> >+		return fwspec->ops;
+> 
+> Is this logic strictly required? It breaks masters with multiple SIDs
+> as only the first SID is actually added to the master's fwspec.
 
-Yeah, this sounds like a good step towards improving what I've
-complained about, while still keeping topic/shared stable branch
-proliferation under control.
--Daniel
--- 
-Daniel Vetter
-Software Engineer, Intel Corporation
-+41 (0) 79 365 57 48 - http://blog.ffwll.ch
+My bad, that's indeed a silly bug I introduced. Please let me know if the
+patch below fixes it, we will send it upstream shortly.
+
+Lorenzo
+
+-- >8 --
+diff --git a/drivers/acpi/arm64/iort.c b/drivers/acpi/arm64/iort.c
+index c5fecf9..e326f2a 100644
+--- a/drivers/acpi/arm64/iort.c
++++ b/drivers/acpi/arm64/iort.c
+@@ -666,14 +666,6 @@ static const struct iommu_ops *iort_iommu_xlate(struct device *dev,
+ 	int ret = -ENODEV;
+ 	struct fwnode_handle *iort_fwnode;
+ 
+-	/*
+-	 * If we already translated the fwspec there
+-	 * is nothing left to do, return the iommu_ops.
+-	 */
+-	ops = iort_fwspec_iommu_ops(dev->iommu_fwspec);
+-	if (ops)
+-		return ops;
+-
+ 	if (node) {
+ 		iort_fwnode = iort_get_fwnode(node);
+ 		if (!iort_fwnode)
+@@ -735,6 +727,14 @@ const struct iommu_ops *iort_iommu_configure(struct device *dev)
+ 	u32 streamid = 0;
+ 	int err;
+ 
++	/*
++	 * If we already translated the fwspec there
++	 * is nothing left to do, return the iommu_ops.
++	 */
++	ops = iort_fwspec_iommu_ops(dev->iommu_fwspec);
++	if (ops)
++		return ops;
++
+ 	if (dev_is_pci(dev)) {
+ 		struct pci_bus *bus = to_pci_dev(dev)->bus;
+ 		u32 rid;
