@@ -1,30 +1,75 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH v2 1/7] kernel/locking: Fix compile error with qrwlock.c
-Date: Mon, 22 May 2017 19:00:34 -0400 (EDT)
-Message-ID: <20170522.190034.1567502225475214778.davem@davemloft.net>
-References: <1495239421-441642-2-git-send-email-babu.moger@oracle.com>
-        <20170522.150328.1597262115447284483.davem@davemloft.net>
-        <9cf41ab6-0aea-4c63-9577-65a06f661312@oracle.com>
+From: <nfrankiyamu@centrum.cz>
+Subject: (unknown)
+Date: Tue, 23 May 2017 04:53:43 -0000
+Message-ID: <149551522345.15597.15412339946553427486@zaural.ru>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Content-Type: application/zip; name="002602599.zip"
+Content-Transfer-Encoding: base64
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([184.105.139.130]:56950 "EHLO
-        shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1757989AbdEVXAg (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 May 2017 19:00:36 -0400
-In-Reply-To: <9cf41ab6-0aea-4c63-9577-65a06f661312@oracle.com>
+Received: from ws230.251.50.zone94.zaural.ru ([94.50.251.230]:34591 "HELO
+        zaural.ru" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with SMTP
+        id S1750842AbdEWExs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 23 May 2017 00:53:48 -0400
+Subject: 
+Content-Disposition: attachment
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: babu.moger@oracle.com
-Cc: peterz@infradead.org, mingo@redhat.com, arnd@arndb.de, shannon.nelson@oracle.com, haakon.bugge@oracle.com, steven.sistare@oracle.com, vijay.ac.kumar@oracle.com, jane.chu@oracle.com, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: linux-arch@vger.kernel.org
 
-From: Babu Moger <babu.moger@oracle.com>
-Date: Mon, 22 May 2017 16:57:39 -0500
-
-> I will update the patch set with the above information. Does that
-> work?
-
-Yes it does, I didn't realize there were multiple problems.
-
-Thanks.
+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
+AFBLBQYAAAAAAQABAE4AAAArDAAAAAA=
