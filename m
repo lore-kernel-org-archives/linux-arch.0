@@ -1,26 +1,41 @@
 From: Ian Abbott <abbotti@mev.co.uk>
-Subject: [PATCH v3 0/2] kernel.h: container_of() pointer checking
-Date: Tue, 23 May 2017 16:53:40 +0100
-Message-ID: <20170523155342.3244-1-abbotti@mev.co.uk>
+Subject: [PATCH v3 1/2] asm-generic/bug.h: declare struct pt_regs; before function prototype
+Date: Tue, 23 May 2017 16:53:41 +0100
+Message-ID: <20170523155342.3244-2-abbotti@mev.co.uk>
+References: <20170523155342.3244-1-abbotti@mev.co.uk>
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20170523155342.3244-1-abbotti@mev.co.uk>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Michal Nazarewicz <mina86@mina86.com>, Hidehiro Kawai <hidehiro.kawai.ez@hitachi.com>, Borislav Petkov <bp@suse.de>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Johannes Berg <johannes.berg@intel.com>, Peter Zijlstra <peterz@infradead.org>, Alexander Potapenko <glider@google.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Michal Nazarewicz <mina86@mina86.com>, Hidehiro Kawai <hidehiro.kawai.ez@hitachi.com>, Borislav Petkov <bp@suse.de>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Johannes Berg <johannes.berg@intel.com>, Peter Zijlstra <peterz@infradead.org>, Alexander Potapenko <glider@google.com>, Ian Abbott <abbotti@mev.co.uk>
 List-Id: linux-arch.vger.kernel.org
 
-[Apologies for the resend.  I got both mailing list addresses wrong!]
+The declaration of `__warn()` has `struct pt_regs *regs` as one of its
+parameters.  This can result in compiler warnings if `struct regs` is
+not already declared.  Add an empty declaration of `struct pt_regs` to
+avoid the warnings.
 
-Patch 2 changes the container_of() macro to improve the compatibility
-checking when the member has array type.  As a bonus (?), if the pointer
-neither points to a type compatible with the member nor points to a type
-compatible with void, compiler errors are produced instead of warnings.
-
-Patch 1 is a prerequisite to avoid a lot of warnings when <linux/bug.h>
-is included by <linux/kernel.h>.
-
-1) asm-generic/bug.h: declare struct pt_regs; before function prototype
-2) kernel.h: handle pointers to arrays better in container_of()
-
+Signed-off-by: Ian Abbott <abbotti@mev.co.uk>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Acked-by: Acked-by: Arnd Bergmann <arnd@arndb.de>
+---
+v3: Actually, there was no v1 or v2.  I called this v3 to match the
+series.
+---
  include/asm-generic/bug.h | 1 +
- include/linux/kernel.h    | 9 ++++++---
- 2 files changed, 7 insertions(+), 3 deletions(-)
+ 1 file changed, 1 insertion(+)
+
+diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
+index d6f4aed479a1..87191357d303 100644
+--- a/include/asm-generic/bug.h
++++ b/include/asm-generic/bug.h
+@@ -97,6 +97,7 @@ extern void warn_slowpath_null(const char *file, const int line);
+ 
+ /* used internally by panic.c */
+ struct warn_args;
++struct pt_regs;
+ 
+ void __warn(const char *file, int line, void *caller, unsigned taint,
+ 	    struct pt_regs *regs, struct warn_args *args);
+-- 
+2.11.0
