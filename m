@@ -1,133 +1,100 @@
-From: Ian Abbott <abbotti@mev.co.uk>
-Subject: [PATCH v4 2/2] kernel.h: handle pointers to arrays better in container_of()
-Date: Tue, 23 May 2017 17:01:12 +0100
-Message-ID: <20170523160112.3446-3-abbotti@mev.co.uk>
-References: <20170523160112.3446-1-abbotti@mev.co.uk>
+From: Punit Agrawal <punit.agrawal@arm.com>
+Subject: Re: [PATCH v3 3/6] mm/hugetlb: add size parameter to huge_pte_offset()
+Date: Tue, 23 May 2017 17:13:52 +0100
+Message-ID: <87wp97ft4v.fsf@e105922-lin.cambridge.arm.com>
+References: <201705231817.OSRI6iib%fengguang.wu@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp64.iad3a.emailsrvr.com ([173.203.187.64]:52436 "EHLO
-        smtp64.iad3a.emailsrvr.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1763733AbdEWQB0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 23 May 2017 12:01:26 -0400
-In-Reply-To: <20170523160112.3446-1-abbotti@mev.co.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Michal Nazarewicz <mina86@mina86.com>, Hidehiro Kawai <hidehiro.kawai.ez@hitachi.com>, Borislav Petkov <bp@suse.de>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Johannes Berg <johannes.berg@intel.com>, Peter Zijlstra <peterz@infradead.org>, Alexander Potapenko <glider@google.com>, Ian Abbott <abbotti@mev.co.uk>
+Content-Type: text/plain
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <201705231817.OSRI6iib%fengguang.wu@intel.com> (kbuild test
+	robot's message of "Tue, 23 May 2017 18:04:42 +0800")
+Sender: owner-linux-mm@kvack.org
+To: kbuild test robot <lkp@intel.com>
+Cc: kbuild-all@01.org, akpm@linux-foundation.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, will.deacon@arm.com, n-horiguchi@ah.jp.nec.com, kirill.shutemov@linux.intel.com, mike.kravetz@oracle.com, steve.capper@arm.com, mark.rutland@arm.com, hillf.zj@alibaba-inc.com, linux-arch@vger.kernel.org, aneesh.kumar@linux.vnet.ibm.com, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, James Hogan <james.hogan@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Ric
+List-Id: linux-arch.vger.kernel.org
 
-If the first parameter of container_of() is a pointer to a
-non-const-qualified array type (and the third parameter names a
-non-const-qualified array member), the local variable __mptr will be
-defined with a const-qualified array type.  In ISO C, these types are
-incompatible.  They work as expected in GNU C, but some versions will
-issue warnings.  For example, GCC 4.9 produces the warning
-"initialization from incompatible pointer type".
+kbuild test robot <lkp@intel.com> writes:
 
-Here is an example of where the problem occurs:
+> Hi Punit,
+>
+> [auto build test ERROR on linus/master]
+> [also build test ERROR on v4.12-rc2 next-20170523]
+> [cannot apply to mmotm/master]
+> [if your patch is applied to the wrong git tree, please drop us a note to help improve the system]
+>
+> url:    https://github.com/0day-ci/linux/commits/Punit-Agrawal/Support-for-contiguous-pte-hugepages/20170523-142407
+> config: arm64-defconfig (attached as .config)
+> compiler: aarch64-linux-gnu-gcc (Debian 6.1.1-9) 6.1.1 20160705
+> reproduce:
+>         wget https://raw.githubusercontent.com/01org/lkp-tests/master/sbin/make.cross -O ~/bin/make.cross
+>         chmod +x ~/bin/make.cross
+>         # save the attached .config to linux build tree
+>         make.cross ARCH=arm64 
+>
+> All errors (new ones prefixed by >>):
+>
+>    arch/arm64/mm/hugetlbpage.c: In function 'huge_ptep_get_and_clear':
+>>> arch/arm64/mm/hugetlbpage.c:200:10: error: too few arguments to function 'huge_pte_offset'
+>       cpte = huge_pte_offset(mm, addr);
+>              ^~~~~~~~~~~~~~~
+>    arch/arm64/mm/hugetlbpage.c:135:8: note: declared here
+>     pte_t *huge_pte_offset(struct mm_struct *mm,
+>            ^~~~~~~~~~~~~~~
+>    arch/arm64/mm/hugetlbpage.c: In function 'huge_ptep_set_access_flags':
+>    arch/arm64/mm/hugetlbpage.c:238:10: error: too few arguments to function 'huge_pte_offset'
+>       cpte = huge_pte_offset(vma->vm_mm, addr);
+>              ^~~~~~~~~~~~~~~
+>    arch/arm64/mm/hugetlbpage.c:135:8: note: declared here
+>     pte_t *huge_pte_offset(struct mm_struct *mm,
+>            ^~~~~~~~~~~~~~~
+>    arch/arm64/mm/hugetlbpage.c: In function 'huge_ptep_set_wrprotect':
+>    arch/arm64/mm/hugetlbpage.c:263:10: error: too few arguments to function 'huge_pte_offset'
+>       cpte = huge_pte_offset(mm, addr);
+>              ^~~~~~~~~~~~~~~
+>    arch/arm64/mm/hugetlbpage.c:135:8: note: declared here
+>     pte_t *huge_pte_offset(struct mm_struct *mm,
+>            ^~~~~~~~~~~~~~~
+>    arch/arm64/mm/hugetlbpage.c: In function 'huge_ptep_clear_flush':
+>    arch/arm64/mm/hugetlbpage.c:280:10: error: too few arguments to function 'huge_pte_offset'
+>       cpte = huge_pte_offset(vma->vm_mm, addr);
+>              ^~~~~~~~~~~~~~~
+>    arch/arm64/mm/hugetlbpage.c:135:8: note: declared here
+>     pte_t *huge_pte_offset(struct mm_struct *mm,
+>            ^~~~~~~~~~~~~~~
 
--------------------------------------------------------
- #include <linux/kernel.h>
- #include <linux/module.h>
+Ok, so we haven't quite managed to remove the dependency of this patch
+on the following arm64 changes[0].
 
-MODULE_LICENSE("GPL");
+I'll post a new version fixing this failure soon.
 
-struct st {
-	int a;
-	char b[16];
-};
+[0] https://www.spinics.net/lists/arm-kernel/msg582758.html
 
-static int __init example_init(void) {
-	struct st t = { .a = 101, .b = "hello" };
-	char (*p)[16] = &t.b;
-	struct st *x = container_of(p, struct st, b);
-	printk(KERN_DEBUG "%p %p\n", (void *)&t, (void *)x);
-	return 0;
-}
+>
+> vim +/huge_pte_offset +200 arch/arm64/mm/hugetlbpage.c
+>
+> 66b3923a David Woods 2015-12-17  194  	if (pte_cont(*ptep)) {
+> 66b3923a David Woods 2015-12-17  195  		int ncontig, i;
+> 66b3923a David Woods 2015-12-17  196  		size_t pgsize;
+> 66b3923a David Woods 2015-12-17  197  		pte_t *cpte;
+> 66b3923a David Woods 2015-12-17  198  		bool is_dirty = false;
+> 66b3923a David Woods 2015-12-17  199  
+> 66b3923a David Woods 2015-12-17 @200  		cpte = huge_pte_offset(mm, addr);
+> 66b3923a David Woods 2015-12-17  201  		ncontig = find_num_contig(mm, addr, cpte, *cpte, &pgsize);
+> 66b3923a David Woods 2015-12-17  202  		/* save the 1st pte to return */
+> 66b3923a David Woods 2015-12-17  203  		pte = ptep_get_and_clear(mm, addr, cpte);
+>
+> :::::: The code at line 200 was first introduced by commit
+> :::::: 66b3923a1a0f77a563b43f43f6ad091354abbfe9 arm64: hugetlb: add support for PTE contiguous bit
+>
+> :::::: TO: David Woods <dwoods@ezchip.com>
+> :::::: CC: Will Deacon <will.deacon@arm.com>
+>
+> ---
+> 0-DAY kernel test infrastructure                Open Source Technology Center
+> https://lists.01.org/pipermail/kbuild-all                   Intel Corporation
 
-static void __exit example_exit(void) {
-}
-
-module_init(example_init);
-module_exit(example_exit);
--------------------------------------------------------
-
-Building the module with gcc-4.9 results in these warnings (where '{m}'
-is the module source and '{k}' is the kernel source):
-
--------------------------------------------------------
-In file included from {m}/example.c:1:0:
-{m}/example.c: In function ‘example_init’:
-{k}/include/linux/kernel.h:854:48: warning: initialization from
-incompatible pointer type
-  const typeof( ((type *)0)->member ) *__mptr = (ptr); \
-                                                ^
-{m}/example.c:14:17: note: in expansion of macro ‘container_of’
-  struct st *x = container_of(p, struct st, b);
-                 ^
-{k}/include/linux/kernel.h:854:48: warning: (near initialization for
-‘x’)
-  const typeof( ((type *)0)->member ) *__mptr = (ptr); \
-                                                ^
-{m}/example.c:14:17: note: in expansion of macro ‘container_of’
-  struct st *x = container_of(p, struct st, b);
-                 ^
--------------------------------------------------------
-
-Replace the type checking performed by the macro to avoid these
-warnings.  Make sure `*(ptr)` either has type compatible with the
-member, or has type compatible with `void`, ignoring qualifiers.  Raise
-compiler errors if this is not true.  This is stronger than the previous
-behaviour, which only resulted in compiler warnings for a type mismatch.
-
-Signed-off-by: Ian Abbott <abbotti@mev.co.uk>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Michal Nazarewicz <mina86@mina86.com>
-Cc: Hidehiro Kawai <hidehiro.kawai.ez@hitachi.com>
-Cc: Borislav Petkov <bp@suse.de>
-Cc: Rasmus Villemoes <linux@rasmusvillemoes.dk>
-Cc: Johannes Berg <johannes.berg@intel.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Alexander Potapenko <glider@google.com>
----
-v2: Rebased and altered description to provide an example of when the
-compiler warnings occur.  v1 (from 2016-10-10) also modified a
-'container_of_safe()' macro that never made it out of "linux-next".
-v3: Added back some type checking at the suggestion of Michal
-Nazarewicz with some helpful hints by Peter Zijlstra.
-v4: No change.
----
- include/linux/kernel.h | 9 ++++++---
- 1 file changed, 6 insertions(+), 3 deletions(-)
-
-diff --git a/include/linux/kernel.h b/include/linux/kernel.h
-index 13bc08aba704..f5dba37aaa60 100644
---- a/include/linux/kernel.h
-+++ b/include/linux/kernel.h
-@@ -11,6 +11,7 @@
- #include <linux/log2.h>
- #include <linux/typecheck.h>
- #include <linux/printk.h>
-+#include <linux/bug.h>
- #include <asm/byteorder.h>
- #include <uapi/linux/kernel.h>
- 
-@@ -850,9 +851,11 @@ static inline void ftrace_dump(enum ftrace_dump_mode oops_dump_mode) { }
-  * @member:	the name of the member within the struct.
-  *
-  */
--#define container_of(ptr, type, member) ({			\
--	const typeof( ((type *)0)->member ) *__mptr = (ptr);	\
--	(type *)( (char *)__mptr - offsetof(type,member) );})
-+#define container_of(ptr, type, member) ({				\
-+	BUILD_BUG_ON_MSG(!__same_type(*(ptr), ((type *)0)->member) &&	\
-+			 !__same_type(*(ptr), void),			\
-+			 "pointer type mismatch in container_of()");	\
-+	((type *)((char *)(ptr) - offsetof(type, member))); })
- 
- /* Rebuild everything on CONFIG_FTRACE_MCOUNT_RECORD */
- #ifdef CONFIG_FTRACE_MCOUNT_RECORD
--- 
-2.11.0
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
