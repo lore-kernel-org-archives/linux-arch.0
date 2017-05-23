@@ -1,120 +1,111 @@
-From: Nate Watterson <nwatters-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>
-Subject: Re: [PATCH V11 08/11] drivers: acpi: Handle IOMMU lookup failure with
-	deferred probing or error
-Date: Tue, 23 May 2017 07:27:38 -0400
-Message-ID: <647cbf74-d171-365c-7ef5-9f1e5986716c@codeaurora.org>
-References: <1491823266-1209-1-git-send-email-sricharan@codeaurora.org>
-	<1491823266-1209-9-git-send-email-sricharan@codeaurora.org>
-	<41668eff-271c-1c4c-7665-3bf0faa74669@codeaurora.org>
-	<20170523085241.GA18204@red-moon>
-	<c6d5c033-a8f9-03e3-9963-cd291ae2d7e1@codeaurora.org>
-	<20170523092659.GA19999@red-moon>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [RFC PATCH v2 4/6] arm64: signal: Allocate extra sigcontext
+ space as needed
+Date: Tue, 23 May 2017 12:30:19 +0100
+Message-ID: <20170523113019.GB5948@e104818-lin.cambridge.arm.com>
+References: <1492016239-19511-1-git-send-email-Dave.Martin@arm.com>
+ <1492016495-19689-1-git-send-email-Dave.Martin@arm.com>
+ <1492016495-19689-4-git-send-email-Dave.Martin@arm.com>
+ <20170512165724.GB8387@e104818-lin.cambridge.arm.com>
+ <20170515132442.GB3559@e103592.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <20170523092659.GA19999@red-moon>
-Content-Language: en-US
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Lorenzo Pieralisi <lorenzo.pieralisi-5wv7dgnIgG8@public.gmane.org>, Sricharan R <sricharan-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>
-Cc: catalin.marinas-5wv7dgnIgG8@public.gmane.org, will.deacon-5wv7dgnIgG8@public.gmane.org, okaya-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org, frowand.list-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, tn-nYOzD4b6Jr9Wk0Htik3J/w@public.gmane.org, linux-acpi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-pci-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, lenb-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, arnd-r2nGTMty4D4@public.gmane.org, linux-arm-msm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, bhelgaas-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org, rjw-LthD3rsA81gm4RdzfppkhA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, sudeep.holla-5wv7dgnIgG8@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:50276 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S965749AbdEWLaX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 23 May 2017 07:30:23 -0400
+Content-Disposition: inline
+In-Reply-To: <20170515132442.GB3559@e103592.cambridge.arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org
 
-Hi Lorenzo,
+On Mon, May 15, 2017 at 02:24:45PM +0100, Dave P Martin wrote:
+> On Fri, May 12, 2017 at 05:57:24PM +0100, Catalin Marinas wrote:
+> > On Wed, Apr 12, 2017 at 06:01:13PM +0100, Dave P Martin wrote:
+> > > --- a/arch/arm64/include/uapi/asm/sigcontext.h
+> > > +++ b/arch/arm64/include/uapi/asm/sigcontext.h
+> > > @@ -80,4 +80,31 @@ struct esr_context {
+> > >  	__u64 esr;
+> > >  };
+> > >  
+> > > +/*
+> > > + * Pointer to extra space for additional structures that don't fit in
+> > > + * sigcontext.__reserved[].  Note:
+> > > + *
+> > > + * 1) fpsimd_context, esr_context and extra_context must be placed in
+> > > + * sigcontext.__reserved[] if present.  They cannot be placed in the
+> > > + * extra space.  Any other record can be placed either in the extra
+> > > + * space or in sigcontext.__reserved[].
+> > > + *
+> > > + * 2) There must not be more than one extra_context.
+> > > + *
+> > > + * 3) If extra_context is present, it must be followed immediately in
+> > > + * sigcontext.__reserved[] by the terminating null _aarch64_ctx (i.e.,
+> > > + * extra_context must be the last record in sigcontext.__reserved[]
+> > > + * except for the terminator).
+> > > + *
+> > > + * 4) The extra space must itself be terminated with a null
+> > > + * _aarch64_ctx.
+> > > + */
+> > 
+> > IIUC, if we need to save some state that doesn't fit in what's left of
+> > sigcontext.__reserved[] (e.g. SVE with 1024-bit vector length), we
+> > ignore the available space and go for a memory block following the end
+> > of sigcontext.__reserved[] + 16. Is there a reason we can't store the
+> > new state across the end of sigcontext.__reserved[] and move fp/lr at
+> > the end of the new frame? I'm not sure the fp/lr position immediately
+> > after __reserved[] counts as ABI.
+> 
+> This was my original view.
+> 
+> Originally I preferred not to waste the space and did move fp/lr to the
+> end, but someone (I think you or Will) expressed concern that the fp/lr
+> position relative to the signal frame _might_ count as ABI.
+> 
+> I think it's not that likely that software will be relying on this,
+> since it appears easier just to follow the frame chain than to treat
+> this as a special case.
+> 
+> But it's hard to be certain.  It comes down to a judgement call.
 
-On 5/23/2017 5:26 AM, Lorenzo Pieralisi wrote:
-> On Tue, May 23, 2017 at 02:31:17PM +0530, Sricharan R wrote:
->> Hi Lorenzo,
->>
->> On 5/23/2017 2:22 PM, Lorenzo Pieralisi wrote:
->>> On Tue, May 23, 2017 at 02:26:10AM -0400, Nate Watterson wrote:
->>>> Hi Sricharan,
->>>>
->>>> On 4/10/2017 7:21 AM, Sricharan R wrote:
->>>>> This is an equivalent to the DT's handling of the iommu master's probe
->>>>> with deferred probing when the corrsponding iommu is not probed yet.
->>>>> The lack of a registered IOMMU can be caused by the lack of a driver for
->>>>> the IOMMU, the IOMMU device probe not having been performed yet, having
->>>>> been deferred, or having failed.
->>>>>
->>>>> The first case occurs when the firmware describes the bus master and
->>>>> IOMMU topology correctly but no device driver exists for the IOMMU yet
->>>>> or the device driver has not been compiled in. Return NULL, the caller
->>>>> will configure the device without an IOMMU.
->>>>>
->>>>> The second and third cases are handled by deferring the probe of the bus
->>>>> master device which will eventually get reprobed after the IOMMU.
->>>>>
->>>>> The last case is currently handled by deferring the probe of the bus
->>>>> master device as well. A mechanism to either configure the bus master
->>>>> device without an IOMMU or to fail the bus master device probe depending
->>>>> on whether the IOMMU is optional or mandatory would be a good
->>>>> enhancement.
->>>>>
->>>>> Tested-by: Hanjun Guo <hanjun.guo-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>
->>>>> Reviewed-by: Robin Murphy <robin.murphy-5wv7dgnIgG8@public.gmane.org>
->>>>> [Lorenzo: Added fixes for dma_coherent_mask overflow, acpi_dma_configure
->>>>>            called multiple times for same device]
->>>>> Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi-5wv7dgnIgG8@public.gmane.org>
->>>>> Signed-off-by: Sricharan R <sricharan-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>
->>>>> ---
->>>>>   drivers/acpi/arm64/iort.c  | 33 ++++++++++++++++++++++++++++++++-
->>>>>   drivers/acpi/scan.c        | 11 ++++++++---
->>>>>   drivers/base/dma-mapping.c |  2 +-
->>>>>   include/acpi/acpi_bus.h    |  2 +-
->>>>>   include/linux/acpi.h       |  7 +++++--
->>>>>   5 files changed, 47 insertions(+), 8 deletions(-)
->>>>>
->>>>> diff --git a/drivers/acpi/arm64/iort.c b/drivers/acpi/arm64/iort.c
->>>>> index 3dd9ec3..e323ece 100644
->>>>> --- a/drivers/acpi/arm64/iort.c
->>>>> +++ b/drivers/acpi/arm64/iort.c
->>>>> @@ -543,6 +543,14 @@ static const struct iommu_ops *iort_iommu_xlate(struct device *dev,
->>>>>   	const struct iommu_ops *ops = NULL;
->>>>>   	int ret = -ENODEV;
->>>>>   	struct fwnode_handle *iort_fwnode;
->>>>> +	struct iommu_fwspec *fwspec = dev->iommu_fwspec;
->>>>> +
->>>>> +	/*
->>>>> +	 * If we already translated the fwspec there
->>>>> +	 * is nothing left to do, return the iommu_ops.
->>>>> +	 */
->>>>> +	if (fwspec && fwspec->ops)
->>>>> +		return fwspec->ops;
->>>>
->>>> Is this logic strictly required? It breaks masters with multiple SIDs
->>>> as only the first SID is actually added to the master's fwspec.
->>>
->>> My bad, that's indeed a silly bug I introduced. Please let me know if the
->>> patch below fixes it, we will send it upstream shortly.
->>>
->>
->> oops, i think emails crossed. Please let me know if you are ok to add
->> this to the other fixes.
-> 
-> No worries, yes I am ok thanks but please give Nate some time to report
-> back to make sure the diff I sent actually fixes the problem.
+I would not consider this ABI. The ABI part is that the fp register
+points to where fp/lr were saved.
 
-The patch you sent fixes the problem. Thanks for the quick turnaround.
+> > > +#define EXTRA_MAGIC	0x45585401
+> > > +
+> > > +struct extra_context {
+> > > +	struct _aarch64_ctx head;
+> > > +	void __user *data;	/* 16-byte aligned pointer to extra space */
+> > "__user" is a kernel-only attribute, we shouldn't expose it in a uapi
+> > header.
+> 
+> This is filtered out by headers_install, just like #ifdef __KERNEL__.
 
+Ah, ok, I missed this.
+
+> > > +	__u32 size;		/* size in bytes of the extra space */
+> > > +};
+> > 
+> > Do we need the size of the extra space? Can we not infer it anyway by
+> > walking the contexts save there? Surely we don't expect more than one
+> > extra context.
 > 
-> Apologies for the breakage.
+> Strictly speaking we don't need it.  When userspace parses a signal
+> frame generated by the kernel, it can trust the kernel to write a well-
+> formed signal frame.
 > 
-> Lorenzo
-> 
->>
->> Regards,
->>   Sricharan
->>
+> In sigreturn it allows us to retain a sanity-check on overall size
+> similar to what sizeof(__reserved) gives us.  This "feels cleaner"
+> to me, but the value of it is debatable, since we can still apply
+> SIGFRAME_MAXSZ and uaccess should protect us against gross overruns.
+
+I'm not keen on the size information, it seems superfluous.
+
+BTW, does SIGFRAME_MAXSZ now become ABI? Or the user only needs to
+interrogate the frame size and we keep this internal to the kernel?
 
 -- 
-Qualcomm Datacenter Technologies as an affiliate of Qualcomm Technologies, Inc.
-Qualcomm Technologies, Inc. is a member of the Code Aurora Forum, a Linux Foundation Collaborative Project.
+Catalin
