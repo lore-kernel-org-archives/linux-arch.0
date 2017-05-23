@@ -1,96 +1,108 @@
 From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: [PATCH 4/7] mips: Use lib/{ashldi3,ashrdi3,cmpdi2,lshrdi3,ucmpdi2}.c
-Date: Tue, 23 May 2017 15:05:43 -0700
-Message-ID: <20170523220546.16758-5-palmer__28421.4736581363$1495577325$gmane$org@dabbelt.com>
+Subject: [PATCH 7/7] sparc: Use lib/{cmpdi2,ucmpdi2}.c
+Date: Tue, 23 May 2017 15:05:46 -0700
+Message-ID: <20170523220546.16758-8-palmer__40820.4997693703$1495577325$gmane$org@dabbelt.com>
 References: <20170523220546.16758-1-palmer@dabbelt.com>
-Return-path: <sparclinux-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pf0-f193.google.com ([209.85.192.193]:35118 "EHLO
+        mail-pf0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1162870AbdEWWGq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 May 2017 18:06:46 -0400
+Received: by mail-pf0-f193.google.com with SMTP id u26so30210135pfd.2
+        for <linux-arch@vger.kernel.org>; Tue, 23 May 2017 15:06:46 -0700 (PDT)
 In-Reply-To: <20170523220546.16758-1-palmer@dabbelt.com>
-Sender: sparclinux-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: monstr@monstr.eu, ralf@linux-mips.org, liqin.linux@gmail.com, lennox.wu@gmail.com, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, linux-mips@linux-mips.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, geert@linux-m68k.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Palmer Dabbelt <palmer@dabbelt.com>
-List-Id: linux-arch.vger.kernel.org
 
 These files are functionally identical to the shared copies that I
 recently added.
 
 Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
 ---
- arch/mips/Kconfig       |  1 +
- arch/mips/lib/Makefile  |  2 +-
- arch/mips/lib/ashldi3.c |  2 +-
- arch/mips/lib/ashrdi3.c |  2 +-
- arch/mips/lib/cmpdi2.c  |  2 +-
- arch/mips/lib/libgcc.h  | 25 -------------------------
- arch/mips/lib/lshrdi3.c |  2 +-
- arch/mips/lib/ucmpdi2.c | 21 ---------------------
- 8 files changed, 6 insertions(+), 51 deletions(-)
- delete mode 100644 arch/mips/lib/libgcc.h
- delete mode 100644 arch/mips/lib/ucmpdi2.c
+ arch/sparc/Kconfig       |  2 ++
+ arch/sparc/lib/Makefile  |  4 ++--
+ arch/sparc/lib/cmpdi2.c  | 27 ---------------------------
+ arch/sparc/lib/libgcc.h  | 18 ------------------
+ arch/sparc/lib/ucmpdi2.c | 19 -------------------
+ 5 files changed, 4 insertions(+), 66 deletions(-)
+ delete mode 100644 arch/sparc/lib/cmpdi2.c
+ delete mode 100644 arch/sparc/lib/libgcc.h
+ delete mode 100644 arch/sparc/lib/ucmpdi2.c
 
-diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
-index 2828ecde133d..b106e6165db0 100644
---- a/arch/mips/Kconfig
-+++ b/arch/mips/Kconfig
-@@ -70,6 +70,7 @@ config MIPS
- 	select HAVE_EXIT_THREAD
- 	select HAVE_REGS_AND_STACK_ACCESS_API
- 	select HAVE_COPY_THREAD_TLS
-+	select LIB_UCMPDI3
+diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
+index 58243b0d21c0..80ed2338812b 100644
+--- a/arch/sparc/Kconfig
++++ b/arch/sparc/Kconfig
+@@ -52,6 +52,8 @@ config SPARC32
+ 	select CLZ_TAB
+ 	select HAVE_UID16
+ 	select OLD_SIGACTION
++	select LIB_CMPDI2
++	select LIB_UCMPDI2
  
- menu "Machine selection"
+ config SPARC64
+ 	def_bool 64BIT
+diff --git a/arch/sparc/lib/Makefile b/arch/sparc/lib/Makefile
+index 69912d2f8b54..815b4a336aa8 100644
+--- a/arch/sparc/lib/Makefile
++++ b/arch/sparc/lib/Makefile
+@@ -14,7 +14,7 @@ lib-$(CONFIG_SPARC32) += divdi3.o udivdi3.o
+ lib-$(CONFIG_SPARC32) += copy_user.o locks.o
+ lib-$(CONFIG_SPARC64) += atomic_64.o
+ lib-$(CONFIG_SPARC32) += lshrdi3.o ashldi3.o
+-lib-$(CONFIG_SPARC32) += muldi3.o bitext.o cmpdi2.o
++lib-$(CONFIG_SPARC32) += muldi3.o bitext.o
  
-diff --git a/arch/mips/lib/Makefile b/arch/mips/lib/Makefile
-index 0344e575f522..e38dbafea074 100644
---- a/arch/mips/lib/Makefile
-+++ b/arch/mips/lib/Makefile
-@@ -15,4 +15,4 @@ obj-$(CONFIG_CPU_R3000)		+= r3k_dump_tlb.o
- obj-$(CONFIG_CPU_TX39XX)	+= r3k_dump_tlb.o
+ lib-$(CONFIG_SPARC64) += copy_page.o clear_page.o bzero.o
+ lib-$(CONFIG_SPARC64) += csum_copy.o csum_copy_from_user.o csum_copy_to_user.o
+@@ -42,5 +42,5 @@ lib-$(CONFIG_SPARC64) += copy_in_user.o memmove.o
+ lib-$(CONFIG_SPARC64) += mcount.o ipcsum.o xor.o hweight.o ffs.o
  
- # libgcc-style stuff needed in the kernel
--obj-y += ashldi3.o ashrdi3.o bswapsi.o bswapdi.o cmpdi2.o lshrdi3.o ucmpdi2.o
-+obj-y += ashldi3.o ashrdi3.o bswapsi.o bswapdi.o cmpdi2.o lshrdi3.o
-diff --git a/arch/mips/lib/ashldi3.c b/arch/mips/lib/ashldi3.c
-index c3e22053d13e..b3d706155fce 100644
---- a/arch/mips/lib/ashldi3.c
-+++ b/arch/mips/lib/ashldi3.c
-@@ -1,6 +1,6 @@
- #include <linux/export.h>
- 
--#include "libgcc.h"
-+#include <lib/libgcc.h>
- 
- long long notrace __ashldi3(long long u, word_type b)
- {
-diff --git a/arch/mips/lib/ashrdi3.c b/arch/mips/lib/ashrdi3.c
-index 17456024873d..bca87aca6f5c 100644
---- a/arch/mips/lib/ashrdi3.c
-+++ b/arch/mips/lib/ashrdi3.c
-@@ -1,6 +1,6 @@
- #include <linux/export.h>
- 
--#include "libgcc.h"
-+#include <lib/libgcc.h>
- 
- long long notrace __ashrdi3(long long u, word_type b)
- {
-diff --git a/arch/mips/lib/cmpdi2.c b/arch/mips/lib/cmpdi2.c
-index 9d849d8743c9..774b109921b5 100644
---- a/arch/mips/lib/cmpdi2.c
-+++ b/arch/mips/lib/cmpdi2.c
-@@ -1,6 +1,6 @@
- #include <linux/export.h>
- 
--#include "libgcc.h"
-+#include <lib/libgcc.h>
- 
- word_type notrace __cmpdi2(long long a, long long b)
- {
-diff --git a/arch/mips/lib/libgcc.h b/arch/mips/lib/libgcc.h
+ obj-$(CONFIG_SPARC64) += iomap.o
+-obj-$(CONFIG_SPARC32) += atomic32.o ucmpdi2.o
++obj-$(CONFIG_SPARC32) += atomic32.o
+ obj-$(CONFIG_SPARC64) += PeeCeeI.o
+diff --git a/arch/sparc/lib/cmpdi2.c b/arch/sparc/lib/cmpdi2.c
 deleted file mode 100644
-index 05909d58e2fe..000000000000
---- a/arch/mips/lib/libgcc.h
+index 8c1306437ed1..000000000000
+--- a/arch/sparc/lib/cmpdi2.c
 +++ /dev/null
-@@ -1,25 +0,0 @@
+@@ -1,27 +0,0 @@
+-#include <linux/module.h>
+-
+-#include "libgcc.h"
+-
+-word_type __cmpdi2(long long a, long long b)
+-{
+-	const DWunion au = {
+-		.ll = a
+-	};
+-	const DWunion bu = {
+-		.ll = b
+-	};
+-
+-	if (au.s.high < bu.s.high)
+-		return 0;
+-	else if (au.s.high > bu.s.high)
+-		return 2;
+-
+-	if ((unsigned int) au.s.low < (unsigned int) bu.s.low)
+-		return 0;
+-	else if ((unsigned int) au.s.low > (unsigned int) bu.s.low)
+-		return 2;
+-
+-	return 1;
+-}
+-
+-EXPORT_SYMBOL(__cmpdi2);
+diff --git a/arch/sparc/lib/libgcc.h b/arch/sparc/lib/libgcc.h
+deleted file mode 100644
+index b84fd797f3ea..000000000000
+--- a/arch/sparc/lib/libgcc.h
++++ /dev/null
+@@ -1,18 +0,0 @@
 -#ifndef __ASM_LIBGCC_H
 -#define __ASM_LIBGCC_H
 -
@@ -98,47 +110,27 @@ index 05909d58e2fe..000000000000
 -
 -typedef int word_type __attribute__ ((mode (__word__)));
 -
--#ifdef __BIG_ENDIAN
 -struct DWstruct {
 -	int high, low;
 -};
--#elif defined(__LITTLE_ENDIAN)
--struct DWstruct {
--	int low, high;
--};
--#else
--#error I feel sick.
--#endif
 -
--typedef union {
+-typedef union
+-{
 -	struct DWstruct s;
 -	long long ll;
 -} DWunion;
 -
 -#endif /* __ASM_LIBGCC_H */
-diff --git a/arch/mips/lib/lshrdi3.c b/arch/mips/lib/lshrdi3.c
-index 221167c1be55..ceb1a5c14bc8 100644
---- a/arch/mips/lib/lshrdi3.c
-+++ b/arch/mips/lib/lshrdi3.c
-@@ -1,6 +1,6 @@
- #include <linux/export.h>
- 
--#include "libgcc.h"
-+#include <lib/libgcc.h>
- 
- long long notrace __lshrdi3(long long u, word_type b)
- {
-diff --git a/arch/mips/lib/ucmpdi2.c b/arch/mips/lib/ucmpdi2.c
+diff --git a/arch/sparc/lib/ucmpdi2.c b/arch/sparc/lib/ucmpdi2.c
 deleted file mode 100644
-index 08067fa538f2..000000000000
---- a/arch/mips/lib/ucmpdi2.c
+index 1e06ed500682..000000000000
+--- a/arch/sparc/lib/ucmpdi2.c
 +++ /dev/null
-@@ -1,21 +0,0 @@
--#include <linux/export.h>
--
+@@ -1,19 +0,0 @@
+-#include <linux/module.h>
 -#include "libgcc.h"
 -
--word_type notrace __ucmpdi2(unsigned long long a, unsigned long long b)
+-word_type __ucmpdi2(unsigned long long a, unsigned long long b)
 -{
 -	const DWunion au = {.ll = a};
 -	const DWunion bu = {.ll = b};
@@ -153,8 +145,6 @@ index 08067fa538f2..000000000000
 -		return 2;
 -	return 1;
 -}
--
 -EXPORT_SYMBOL(__ucmpdi2);
 -- 
 2.13.0
-
