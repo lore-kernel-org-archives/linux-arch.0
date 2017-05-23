@@ -1,146 +1,113 @@
-From: Michal Nazarewicz <mina86@mina86.com>
-Subject: Re: [PATCH v4 2/2] kernel.h: handle pointers to arrays better in container_of()
-Date: Tue, 23 May 2017 20:44:59 +0200
-Message-ID: <xa1ttw4b2z10.fsf@mina86.com>
-References: <20170523160112.3446-1-abbotti@mev.co.uk> <20170523160112.3446-3-abbotti@mev.co.uk>
+From: Babu Moger <babu.moger@oracle.com>
+Subject: [PATCH v3 6/7] arch/sparc: Introduce xchg16 for SPARC
+Date: Tue, 23 May 2017 15:45:57 -0600
+Message-ID: <1495575958-1022566-7-git-send-email-babu.moger@oracle.com>
+References: <1495575958-1022566-1-git-send-email-babu.moger@oracle.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f49.google.com ([74.125.82.49]:38332 "EHLO
-        mail-wm0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S934085AbdEWSpD (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 May 2017 14:45:03 -0400
-Received: by mail-wm0-f49.google.com with SMTP id e127so42064170wmg.1
-        for <linux-arch@vger.kernel.org>; Tue, 23 May 2017 11:45:02 -0700 (PDT)
-In-Reply-To: <20170523160112.3446-3-abbotti@mev.co.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Hidehiro Kawai <hidehiro.kawai.ez@hitachi.com>, Borislav Petkov <bp@suse.de>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Johannes Berg <johannes.berg@intel.com>, Peter Zijlstra <peterz@infradead.org>, Alexander Potapenko <glider@google.com>, Ian Abbott <abbotti@mev.co.uk>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Return-path: <sparclinux-owner@vger.kernel.org>
+In-Reply-To: <1495575958-1022566-1-git-send-email-babu.moger@oracle.com>
+Sender: sparclinux-owner@vger.kernel.org
+To: davem@davemloft.net, peterz@infradead.org, mingo@redhat.com, arnd@arndb.de
+Cc: babu.moger@oracle.com, shannon.nelson@oracle.com, haakon.bugge@oracle.com, steven.sistare@oracle.com, vijay.ac.kumar@oracle.com, jane.chu@oracle.com, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, May 23 2017, Ian Abbott wrote:
-> If the first parameter of container_of() is a pointer to a
-> non-const-qualified array type (and the third parameter names a
-> non-const-qualified array member), the local variable __mptr will be
-> defined with a const-qualified array type.  In ISO C, these types are
-> incompatible.  They work as expected in GNU C, but some versions will
-> issue warnings.  For example, GCC 4.9 produces the warning
-> "initialization from incompatible pointer type".
->
-> Here is an example of where the problem occurs:
->
-> -------------------------------------------------------
->  #include <linux/kernel.h>
->  #include <linux/module.h>
->
-> MODULE_LICENSE("GPL");
->
-> struct st {
-> 	int a;
-> 	char b[16];
-> };
->
-> static int __init example_init(void) {
-> 	struct st t =3D { .a =3D 101, .b =3D "hello" };
-> 	char (*p)[16] =3D &t.b;
-> 	struct st *x =3D container_of(p, struct st, b);
-> 	printk(KERN_DEBUG "%p %p\n", (void *)&t, (void *)x);
-> 	return 0;
-> }
->
-> static void __exit example_exit(void) {
-> }
->
-> module_init(example_init);
-> module_exit(example_exit);
-> -------------------------------------------------------
->
-> Building the module with gcc-4.9 results in these warnings (where '{m}'
-> is the module source and '{k}' is the kernel source):
->
-> -------------------------------------------------------
-> In file included from {m}/example.c:1:0:
-> {m}/example.c: In function =E2=80=98example_init=E2=80=99:
-> {k}/include/linux/kernel.h:854:48: warning: initialization from
-> incompatible pointer type
->   const typeof( ((type *)0)->member ) *__mptr =3D (ptr); \
->                                                 ^
-> {m}/example.c:14:17: note: in expansion of macro =E2=80=98container_of=E2=
-=80=99
->   struct st *x =3D container_of(p, struct st, b);
->                  ^
-> {k}/include/linux/kernel.h:854:48: warning: (near initialization for
-> =E2=80=98x=E2=80=99)
->   const typeof( ((type *)0)->member ) *__mptr =3D (ptr); \
->                                                 ^
-> {m}/example.c:14:17: note: in expansion of macro =E2=80=98container_of=E2=
-=80=99
->   struct st *x =3D container_of(p, struct st, b);
->                  ^
-> -------------------------------------------------------
->
-> Replace the type checking performed by the macro to avoid these
-> warnings.  Make sure `*(ptr)` either has type compatible with the
-> member, or has type compatible with `void`, ignoring qualifiers.  Raise
-> compiler errors if this is not true.  This is stronger than the previous
-> behaviour, which only resulted in compiler warnings for a type mismatch.
->
-> Signed-off-by: Ian Abbott <abbotti@mev.co.uk>
-> Cc: Andrew Morton <akpm@linux-foundation.org>
-> Cc: Michal Nazarewicz <mina86@mina86.com>
+SPARC supports 32 bit and 64 bit xchg right now. Add the support
+for 16 bit (2 byte) xchg. This is required to support queued spinlock
+feature which uses 2 byte xchg. This is achieved using 4 byte cas
+instructions with byte manipulations.
 
-Acked-by: Michal Nazarewicz <mina86@mina86.com>
+Also re-arranged the code to call __cmpxchg_u32 inside xchg16.
 
-> Cc: Hidehiro Kawai <hidehiro.kawai.ez@hitachi.com>
-> Cc: Borislav Petkov <bp@suse.de>
-> Cc: Rasmus Villemoes <linux@rasmusvillemoes.dk>
-> Cc: Johannes Berg <johannes.berg@intel.com>
-> Cc: Peter Zijlstra <peterz@infradead.org>
-> Cc: Alexander Potapenko <glider@google.com>
-> ---
-> v2: Rebased and altered description to provide an example of when the
-> compiler warnings occur.  v1 (from 2016-10-10) also modified a
-> 'container_of_safe()' macro that never made it out of "linux-next".
-> v3: Added back some type checking at the suggestion of Michal
-> Nazarewicz with some helpful hints by Peter Zijlstra.
-> v4: No change.
-> ---
->  include/linux/kernel.h | 9 ++++++---
->  1 file changed, 6 insertions(+), 3 deletions(-)
->
-> diff --git a/include/linux/kernel.h b/include/linux/kernel.h
-> index 13bc08aba704..f5dba37aaa60 100644
-> --- a/include/linux/kernel.h
-> +++ b/include/linux/kernel.h
-> @@ -11,6 +11,7 @@
->  #include <linux/log2.h>
->  #include <linux/typecheck.h>
->  #include <linux/printk.h>
-> +#include <linux/bug.h>
->  #include <asm/byteorder.h>
->  #include <uapi/linux/kernel.h>
->=20=20
-> @@ -850,9 +851,11 @@ static inline void ftrace_dump(enum ftrace_dump_mode=
- oops_dump_mode) { }
->   * @member:	the name of the member within the struct.
->   *
->   */
-> -#define container_of(ptr, type, member) ({			\
-> -	const typeof( ((type *)0)->member ) *__mptr =3D (ptr);	\
-> -	(type *)( (char *)__mptr - offsetof(type,member) );})
-> +#define container_of(ptr, type, member) ({				\
-> +	BUILD_BUG_ON_MSG(!__same_type(*(ptr), ((type *)0)->member) &&	\
-> +			 !__same_type(*(ptr), void),			\
-> +			 "pointer type mismatch in container_of()");	\
-> +	((type *)((char *)(ptr) - offsetof(type, member))); })
->=20=20
->  /* Rebuild everything on CONFIG_FTRACE_MCOUNT_RECORD */
->  #ifdef CONFIG_FTRACE_MCOUNT_RECORD
+Signed-off-by: Babu Moger <babu.moger@oracle.com>
+Reviewed-by: Håkon Bugge <haakon.bugge@oracle.com>
+Reviewed-by: Steven Sistare <steven.sistare@oracle.com>
+Reviewed-by: Shannon Nelson <shannon.nelson@oracle.com>
+Reviewed-by: Jane Chu <jane.chu@oracle.com>
+Reviewed-by: Vijay Kumar <vijay.ac.kumar@oracle.com>
+---
+ arch/sparc/include/asm/cmpxchg_64.h |   49 +++++++++++++++++++++++++++-------
+ 1 files changed, 39 insertions(+), 10 deletions(-)
 
---=20
-Best regards
-=E3=83=9F=E3=83=8F=E3=82=A6 =E2=80=9C=F0=9D=93=B6=F0=9D=93=B2=F0=9D=93=B7=
-=F0=9D=93=AA86=E2=80=9D =E3=83=8A=E3=82=B6=E3=83=AC=E3=83=B4=E3=82=A4=E3=83=
-=84
-=C2=ABIf at first you don=E2=80=99t succeed, give up skydiving=C2=BB
+diff --git a/arch/sparc/include/asm/cmpxchg_64.h b/arch/sparc/include/asm/cmpxchg_64.h
+index 000f7d7..4028f4f 100644
+--- a/arch/sparc/include/asm/cmpxchg_64.h
++++ b/arch/sparc/include/asm/cmpxchg_64.h
+@@ -6,6 +6,17 @@
+ #ifndef __ARCH_SPARC64_CMPXCHG__
+ #define __ARCH_SPARC64_CMPXCHG__
+ 
++static inline unsigned long
++__cmpxchg_u32(volatile int *m, int old, int new)
++{
++	__asm__ __volatile__("cas [%2], %3, %0"
++			     : "=&r" (new)
++			     : "0" (new), "r" (m), "r" (old)
++			     : "memory");
++
++	return new;
++}
++
+ static inline unsigned long xchg32(__volatile__ unsigned int *m, unsigned int val)
+ {
+ 	unsigned long tmp1, tmp2;
+@@ -44,10 +55,38 @@ static inline unsigned long xchg64(__volatile__ unsigned long *m, unsigned long 
+ 
+ void __xchg_called_with_bad_pointer(void);
+ 
++/*
++ * Use 4 byte cas instruction to achieve 2 byte xchg. Main logic
++ * here is to get the bit shift of the byte we are interested in.
++ * The XOR is handy for reversing the bits for big-endian byte order.
++ */
++static inline unsigned long
++xchg16(__volatile__ unsigned short *m, unsigned short val)
++{
++	unsigned long maddr = (unsigned long)m;
++	int bit_shift = (((unsigned long)m & 2) ^ 2) << 3;
++	unsigned int mask = 0xffff << bit_shift;
++	unsigned int *ptr = (unsigned int  *) (maddr & ~2);
++	unsigned int old32, new32, load32;
++
++	/* Read the old value */
++	load32 = *ptr;
++
++	do {
++		old32 = load32;
++		new32 = (load32 & (~mask)) | val << bit_shift;
++		load32 = __cmpxchg_u32(ptr, old32, new32);
++	} while (load32 != old32);
++
++	return (load32 & mask) >> bit_shift;
++}
++
+ static inline unsigned long __xchg(unsigned long x, __volatile__ void * ptr,
+ 				       int size)
+ {
+ 	switch (size) {
++	case 2:
++		return xchg16(ptr, x);
+ 	case 4:
+ 		return xchg32(ptr, x);
+ 	case 8:
+@@ -65,16 +104,6 @@ static inline unsigned long __xchg(unsigned long x, __volatile__ void * ptr,
+ 
+ #include <asm-generic/cmpxchg-local.h>
+ 
+-static inline unsigned long
+-__cmpxchg_u32(volatile int *m, int old, int new)
+-{
+-	__asm__ __volatile__("cas [%2], %3, %0"
+-			     : "=&r" (new)
+-			     : "0" (new), "r" (m), "r" (old)
+-			     : "memory");
+-
+-	return new;
+-}
+ 
+ static inline unsigned long
+ __cmpxchg_u64(volatile long *m, unsigned long old, unsigned long new)
+-- 
+1.7.1
+
