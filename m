@@ -1,262 +1,121 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f193.google.com ([209.85.192.193]:35093 "EHLO
-        mail-pf0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1034807AbdEWWGp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 May 2017 18:06:45 -0400
-Received: by mail-pf0-f193.google.com with SMTP id u26so30209936pfd.2
-        for <linux-arch@vger.kernel.org>; Tue, 23 May 2017 15:06:44 -0700 (PDT)
+Received: from mail-pf0-f195.google.com ([209.85.192.195]:35081 "EHLO
+        mail-pf0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1034805AbdEWWGo (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 May 2017 18:06:44 -0400
+Received: by mail-pf0-f195.google.com with SMTP id u26so30209869pfd.2
+        for <linux-arch@vger.kernel.org>; Tue, 23 May 2017 15:06:43 -0700 (PDT)
 From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: [PATCH 5/7] score: Use lib/{ashldi3,ashrdi3,cmpdi2,lshrdi3,ucmpdi2}.c
-Date: Tue, 23 May 2017 15:05:44 -0700
-Message-ID: <20170523220546.16758-6-palmer@dabbelt.com>
+Subject: [PATCH 4/7] mips: Use lib/{ashldi3,ashrdi3,cmpdi2,lshrdi3,ucmpdi2}.c
+Date: Tue, 23 May 2017 15:05:43 -0700
+Message-ID: <20170523220546.16758-5-palmer@dabbelt.com>
 In-Reply-To: <20170523220546.16758-1-palmer@dabbelt.com>
 References: <20170523220546.16758-1-palmer@dabbelt.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: monstr@monstr.eu, ralf@linux-mips.org, liqin.linux@gmail.com, lennox.wu@gmail.com, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, linux-mips@linux-mips.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, geert@linux-m68k.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Palmer Dabbelt <palmer@dabbelt.com>
-Message-ID: <20170523220544.kBt2b60G9I9fvnE7CuprJU6bU_zb_ZRkg90l-DOD3B4@z>
+Message-ID: <20170523220543.j-a7yRVvK2s0891PAxTn2jgkUnh_r-PVh6xTEYFcsDo@z>
 
 These files are functionally identical to the shared copies that I
 recently added.
 
 Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
 ---
- arch/score/Kconfig       |  5 +++++
- arch/score/lib/Makefile  |  3 ---
- arch/score/lib/ashldi3.c | 46 ----------------------------------------------
- arch/score/lib/ashrdi3.c | 48 ------------------------------------------------
- arch/score/lib/cmpdi2.c  | 44 --------------------------------------------
- arch/score/lib/libgcc.h  | 37 -------------------------------------
- arch/score/lib/lshrdi3.c | 47 -----------------------------------------------
- arch/score/lib/ucmpdi2.c | 38 --------------------------------------
- 8 files changed, 5 insertions(+), 263 deletions(-)
- delete mode 100644 arch/score/lib/ashldi3.c
- delete mode 100644 arch/score/lib/ashrdi3.c
- delete mode 100644 arch/score/lib/cmpdi2.c
- delete mode 100644 arch/score/lib/libgcc.h
- delete mode 100644 arch/score/lib/lshrdi3.c
- delete mode 100644 arch/score/lib/ucmpdi2.c
+ arch/mips/Kconfig       |  1 +
+ arch/mips/lib/Makefile  |  2 +-
+ arch/mips/lib/ashldi3.c |  2 +-
+ arch/mips/lib/ashrdi3.c |  2 +-
+ arch/mips/lib/cmpdi2.c  |  2 +-
+ arch/mips/lib/libgcc.h  | 25 -------------------------
+ arch/mips/lib/lshrdi3.c |  2 +-
+ arch/mips/lib/ucmpdi2.c | 21 ---------------------
+ 8 files changed, 6 insertions(+), 51 deletions(-)
+ delete mode 100644 arch/mips/lib/libgcc.h
+ delete mode 100644 arch/mips/lib/ucmpdi2.c
 
-diff --git a/arch/score/Kconfig b/arch/score/Kconfig
-index 507d63181389..5959a981061c 100644
---- a/arch/score/Kconfig
-+++ b/arch/score/Kconfig
-@@ -15,6 +15,11 @@ config SCORE
- 	select MODULES_USE_ELF_REL
- 	select CLONE_BACKWARDS
- 	select CPU_NO_EFFICIENT_FFS
-+	select LIB_ASHLDI3
-+	select LIB_ASHRDI3
-+	select LIB_CMPDI2
-+	select LIB_LSHRDI3
-+	select LIB_UCMPDI2
+diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
+index 2828ecde133d..b106e6165db0 100644
+--- a/arch/mips/Kconfig
++++ b/arch/mips/Kconfig
+@@ -70,6 +70,7 @@ config MIPS
+ 	select HAVE_EXIT_THREAD
+ 	select HAVE_REGS_AND_STACK_ACCESS_API
+ 	select HAVE_COPY_THREAD_TLS
++	select LIB_UCMPDI3
  
- choice
- 	prompt "System type"
-diff --git a/arch/score/lib/Makefile b/arch/score/lib/Makefile
-index 553e30e81faf..ea3f3aba8c71 100644
---- a/arch/score/lib/Makefile
-+++ b/arch/score/lib/Makefile
-@@ -3,6 +3,3 @@
- #
+ menu "Machine selection"
  
- lib-y += string.o checksum.o checksum_copy.o
--
--# libgcc-style stuff needed in the kernel
--obj-y += ashldi3.o ashrdi3.o cmpdi2.o lshrdi3.o ucmpdi2.o
-diff --git a/arch/score/lib/ashldi3.c b/arch/score/lib/ashldi3.c
-deleted file mode 100644
-index 15691a910431..000000000000
---- a/arch/score/lib/ashldi3.c
-+++ /dev/null
-@@ -1,46 +0,0 @@
--/*
-- * arch/score/lib/ashldi3.c
-- *
-- * This program is free software; you can redistribute it and/or modify
-- * it under the terms of the GNU General Public License as published by
-- * the Free Software Foundation; either version 2 of the License, or
-- * (at your option) any later version.
-- *
-- * This program is distributed in the hope that it will be useful,
-- * but WITHOUT ANY WARRANTY; without even the implied warranty of
-- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-- * GNU General Public License for more details.
-- *
-- * You should have received a copy of the GNU General Public License
-- * along with this program; if not, see the file COPYING, or write
-- * to the Free Software Foundation, Inc.,
-- * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-- */
--
--#include <linux/module.h>
+diff --git a/arch/mips/lib/Makefile b/arch/mips/lib/Makefile
+index 0344e575f522..e38dbafea074 100644
+--- a/arch/mips/lib/Makefile
++++ b/arch/mips/lib/Makefile
+@@ -15,4 +15,4 @@ obj-$(CONFIG_CPU_R3000)		+= r3k_dump_tlb.o
+ obj-$(CONFIG_CPU_TX39XX)	+= r3k_dump_tlb.o
+ 
+ # libgcc-style stuff needed in the kernel
+-obj-y += ashldi3.o ashrdi3.o bswapsi.o bswapdi.o cmpdi2.o lshrdi3.o ucmpdi2.o
++obj-y += ashldi3.o ashrdi3.o bswapsi.o bswapdi.o cmpdi2.o lshrdi3.o
+diff --git a/arch/mips/lib/ashldi3.c b/arch/mips/lib/ashldi3.c
+index c3e22053d13e..b3d706155fce 100644
+--- a/arch/mips/lib/ashldi3.c
++++ b/arch/mips/lib/ashldi3.c
+@@ -1,6 +1,6 @@
+ #include <linux/export.h>
+ 
 -#include "libgcc.h"
--
--long long __ashldi3(long long u, word_type b)
--{
--	DWunion uu, w;
--	word_type bm;
--
--	if (b == 0)
--		return u;
--
--	uu.ll = u;
--	bm = 32 - b;
--
--	if (bm <= 0) {
--		w.s.low = 0;
--		w.s.high = (unsigned int) uu.s.low << -bm;
--	} else {
--		const unsigned int carries = (unsigned int) uu.s.low >> bm;
--
--		w.s.low = (unsigned int) uu.s.low << b;
--		w.s.high = ((unsigned int) uu.s.high << b) | carries;
--	}
--
--	return w.ll;
--}
--EXPORT_SYMBOL(__ashldi3);
-diff --git a/arch/score/lib/ashrdi3.c b/arch/score/lib/ashrdi3.c
-deleted file mode 100644
-index d9814a5d8d30..000000000000
---- a/arch/score/lib/ashrdi3.c
-+++ /dev/null
-@@ -1,48 +0,0 @@
--/*
-- * arch/score/lib/ashrdi3.c
-- *
-- * This program is free software; you can redistribute it and/or modify
-- * it under the terms of the GNU General Public License as published by
-- * the Free Software Foundation; either version 2 of the License, or
-- * (at your option) any later version.
-- *
-- * This program is distributed in the hope that it will be useful,
-- * but WITHOUT ANY WARRANTY; without even the implied warranty of
-- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-- * GNU General Public License for more details.
-- *
-- * You should have received a copy of the GNU General Public License
-- * along with this program; if not, see the file COPYING, or write
-- * to the Free Software Foundation, Inc.,
-- * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-- */
--
--#include <linux/module.h>
++#include <lib/libgcc.h>
+ 
+ long long notrace __ashldi3(long long u, word_type b)
+ {
+diff --git a/arch/mips/lib/ashrdi3.c b/arch/mips/lib/ashrdi3.c
+index 17456024873d..bca87aca6f5c 100644
+--- a/arch/mips/lib/ashrdi3.c
++++ b/arch/mips/lib/ashrdi3.c
+@@ -1,6 +1,6 @@
+ #include <linux/export.h>
+ 
 -#include "libgcc.h"
--
--long long __ashrdi3(long long u, word_type b)
--{
--	DWunion uu, w;
--	word_type bm;
--
--	if (b == 0)
--		return u;
--
--	uu.ll = u;
--	bm = 32 - b;
--
--	if (bm <= 0) {
--		/* w.s.high = 1..1 or 0..0 */
--		w.s.high =
--		    uu.s.high >> 31;
--		w.s.low = uu.s.high >> -bm;
--	} else {
--		const unsigned int carries = (unsigned int) uu.s.high << bm;
--
--		w.s.high = uu.s.high >> b;
--		w.s.low = ((unsigned int) uu.s.low >> b) | carries;
--	}
--
--	return w.ll;
--}
--EXPORT_SYMBOL(__ashrdi3);
-diff --git a/arch/score/lib/cmpdi2.c b/arch/score/lib/cmpdi2.c
-deleted file mode 100644
-index 1ed5290c66ed..000000000000
---- a/arch/score/lib/cmpdi2.c
-+++ /dev/null
-@@ -1,44 +0,0 @@
--/*
-- * arch/score/lib/cmpdi2.c
-- *
-- * This program is free software; you can redistribute it and/or modify
-- * it under the terms of the GNU General Public License as published by
-- * the Free Software Foundation; either version 2 of the License, or
-- * (at your option) any later version.
-- *
-- * This program is distributed in the hope that it will be useful,
-- * but WITHOUT ANY WARRANTY; without even the implied warranty of
-- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-- * GNU General Public License for more details.
-- *
-- * You should have received a copy of the GNU General Public License
-- * along with this program; if not, see the file COPYING, or write
-- * to the Free Software Foundation, Inc.,
-- * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-- */
--
--#include <linux/module.h>
++#include <lib/libgcc.h>
+ 
+ long long notrace __ashrdi3(long long u, word_type b)
+ {
+diff --git a/arch/mips/lib/cmpdi2.c b/arch/mips/lib/cmpdi2.c
+index 9d849d8743c9..774b109921b5 100644
+--- a/arch/mips/lib/cmpdi2.c
++++ b/arch/mips/lib/cmpdi2.c
+@@ -1,6 +1,6 @@
+ #include <linux/export.h>
+ 
 -#include "libgcc.h"
--
--word_type __cmpdi2(long long a, long long b)
--{
--	const DWunion au = {
--		.ll = a
--	};
--	const DWunion bu = {
--		.ll = b
--	};
--
--	if (au.s.high < bu.s.high)
--		return 0;
--	else if (au.s.high > bu.s.high)
--		return 2;
--
--	if ((unsigned int) au.s.low < (unsigned int) bu.s.low)
--		return 0;
--	else if ((unsigned int) au.s.low > (unsigned int) bu.s.low)
--		return 2;
--
--	return 1;
--}
--EXPORT_SYMBOL(__cmpdi2);
-diff --git a/arch/score/lib/libgcc.h b/arch/score/lib/libgcc.h
++#include <lib/libgcc.h>
+ 
+ word_type notrace __cmpdi2(long long a, long long b)
+ {
+diff --git a/arch/mips/lib/libgcc.h b/arch/mips/lib/libgcc.h
 deleted file mode 100644
-index 0f12543d9f31..000000000000
---- a/arch/score/lib/libgcc.h
+index 05909d58e2fe..000000000000
+--- a/arch/mips/lib/libgcc.h
 +++ /dev/null
-@@ -1,37 +0,0 @@
--/*
-- * arch/score/lib/libgcc.h
-- *
-- * This program is free software; you can redistribute it and/or modify
-- * it under the terms of the GNU General Public License as published by
-- * the Free Software Foundation; either version 2 of the License, or
-- * (at your option) any later version.
-- *
-- * This program is distributed in the hope that it will be useful,
-- * but WITHOUT ANY WARRANTY; without even the implied warranty of
-- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-- * GNU General Public License for more details.
-- *
-- * You should have received a copy of the GNU General Public License
-- * along with this program; if not, see the file COPYING, or write
-- * to the Free Software Foundation, Inc.,
-- * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-- */
--
--
+@@ -1,25 +0,0 @@
 -#ifndef __ASM_LIBGCC_H
 -#define __ASM_LIBGCC_H
 -
 -#include <asm/byteorder.h>
 -
--typedef int word_type __attribute__((mode(__word__)));
+-typedef int word_type __attribute__ ((mode (__word__)));
 -
+-#ifdef __BIG_ENDIAN
+-struct DWstruct {
+-	int high, low;
+-};
+-#elif defined(__LITTLE_ENDIAN)
 -struct DWstruct {
 -	int low, high;
 -};
+-#else
+-#error I feel sick.
+-#endif
 -
 -typedef union {
 -	struct DWstruct s;
@@ -264,88 +123,29 @@ index 0f12543d9f31..000000000000
 -} DWunion;
 -
 -#endif /* __ASM_LIBGCC_H */
-diff --git a/arch/score/lib/lshrdi3.c b/arch/score/lib/lshrdi3.c
+diff --git a/arch/mips/lib/lshrdi3.c b/arch/mips/lib/lshrdi3.c
+index 221167c1be55..ceb1a5c14bc8 100644
+--- a/arch/mips/lib/lshrdi3.c
++++ b/arch/mips/lib/lshrdi3.c
+@@ -1,6 +1,6 @@
+ #include <linux/export.h>
+ 
+-#include "libgcc.h"
++#include <lib/libgcc.h>
+ 
+ long long notrace __lshrdi3(long long u, word_type b)
+ {
+diff --git a/arch/mips/lib/ucmpdi2.c b/arch/mips/lib/ucmpdi2.c
 deleted file mode 100644
-index ce21175fd791..000000000000
---- a/arch/score/lib/lshrdi3.c
+index 08067fa538f2..000000000000
+--- a/arch/mips/lib/ucmpdi2.c
 +++ /dev/null
-@@ -1,47 +0,0 @@
--/*
-- * arch/score/lib/lshrdi3.c
-- *
-- * This program is free software; you can redistribute it and/or modify
-- * it under the terms of the GNU General Public License as published by
-- * the Free Software Foundation; either version 2 of the License, or
-- * (at your option) any later version.
-- *
-- * This program is distributed in the hope that it will be useful,
-- * but WITHOUT ANY WARRANTY; without even the implied warranty of
-- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-- * GNU General Public License for more details.
-- *
-- * You should have received a copy of the GNU General Public License
-- * along with this program; if not, see the file COPYING, or write
-- * to the Free Software Foundation, Inc.,
-- * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-- */
+@@ -1,21 +0,0 @@
+-#include <linux/export.h>
 -
--
--#include <linux/module.h>
 -#include "libgcc.h"
 -
--long long __lshrdi3(long long u, word_type b)
--{
--	DWunion uu, w;
--	word_type bm;
--
--	if (b == 0)
--		return u;
--
--	uu.ll = u;
--	bm = 32 - b;
--
--	if (bm <= 0) {
--		w.s.high = 0;
--		w.s.low = (unsigned int) uu.s.high >> -bm;
--	} else {
--		const unsigned int carries = (unsigned int) uu.s.high << bm;
--
--		w.s.high = (unsigned int) uu.s.high >> b;
--		w.s.low = ((unsigned int) uu.s.low >> b) | carries;
--	}
--
--	return w.ll;
--}
--EXPORT_SYMBOL(__lshrdi3);
-diff --git a/arch/score/lib/ucmpdi2.c b/arch/score/lib/ucmpdi2.c
-deleted file mode 100644
-index b15241e0b079..000000000000
---- a/arch/score/lib/ucmpdi2.c
-+++ /dev/null
-@@ -1,38 +0,0 @@
--/*
-- * arch/score/lib/ucmpdi2.c
-- *
-- * This program is free software; you can redistribute it and/or modify
-- * it under the terms of the GNU General Public License as published by
-- * the Free Software Foundation; either version 2 of the License, or
-- * (at your option) any later version.
-- *
-- * This program is distributed in the hope that it will be useful,
-- * but WITHOUT ANY WARRANTY; without even the implied warranty of
-- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-- * GNU General Public License for more details.
-- *
-- * You should have received a copy of the GNU General Public License
-- * along with this program; if not, see the file COPYING, or write
-- * to the Free Software Foundation, Inc.,
-- * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-- */
--
--#include <linux/module.h>
--#include "libgcc.h"
--
--word_type __ucmpdi2(unsigned long long a, unsigned long long b)
+-word_type notrace __ucmpdi2(unsigned long long a, unsigned long long b)
 -{
 -	const DWunion au = {.ll = a};
 -	const DWunion bu = {.ll = b};
@@ -360,6 +160,7 @@ index b15241e0b079..000000000000
 -		return 2;
 -	return 1;
 -}
+-
 -EXPORT_SYMBOL(__ucmpdi2);
 -- 
 2.13.0
