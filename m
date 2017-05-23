@@ -1,11 +1,19 @@
 From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: [PATCH 6/7] sh: Use lib/ashldi3,ashrdi3,lshrdi3}.c
-Date: Tue, 23 May 2017 15:05:45 -0700
-Message-ID: <20170523220546.16758-7-palmer__38465.1508568369$1495577250$gmane$org@dabbelt.com>
+Subject: [PATCH 2/7] m32r: Use lib/ucmpdi2.c
+Date: Tue, 23 May 2017 15:05:41 -0700
+Message-ID: <20170523220546.16758-3-palmer__18237.3265074149$1495577271$gmane$org@dabbelt.com>
 References: <20170523220546.16758-1-palmer@dabbelt.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-mips-bounce@linux-mips.org>
 In-Reply-To: <20170523220546.16758-1-palmer@dabbelt.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-mips-bounce@linux-mips.org
+Errors-to: linux-mips-bounce@linux-mips.org
+List-help: <mailto:ecartis@linux-mips.org?Subject=help>
+List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
+List-software: Ecartis version 1.0.0
+List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
+List-owner: <mailto:ralf@linux-mips.org>
+List-post: <mailto:linux-mips@linux-mips.org>
+List-archive: <http://www.linux-mips.org/archives/linux-mips/>
 To: monstr@monstr.eu, ralf@linux-mips.org, liqin.linux@gmail.com, lennox.wu@gmail.com, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, linux-mips@linux-mips.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, geert@linux-m68k.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Palmer Dabbelt <palmer@dabbelt.com>
 List-Id: linux-arch.vger.kernel.org
@@ -15,131 +23,47 @@ recently added.
 
 Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
 ---
- arch/sh/Kconfig       |  3 +++
- arch/sh/lib/Makefile  |  4 +---
- arch/sh/lib/ashldi3.c | 29 -----------------------------
- arch/sh/lib/ashrdi3.c | 31 -------------------------------
- arch/sh/lib/libgcc.h  | 25 -------------------------
- arch/sh/lib/lshrdi3.c | 29 -----------------------------
- 6 files changed, 4 insertions(+), 117 deletions(-)
- delete mode 100644 arch/sh/lib/ashldi3.c
- delete mode 100644 arch/sh/lib/ashrdi3.c
- delete mode 100644 arch/sh/lib/libgcc.h
- delete mode 100644 arch/sh/lib/lshrdi3.c
+ arch/m32r/Kconfig       |  1 +
+ arch/m32r/lib/Makefile  |  3 +--
+ arch/m32r/lib/libgcc.h  | 23 -----------------------
+ arch/m32r/lib/ucmpdi2.c | 17 -----------------
+ 4 files changed, 2 insertions(+), 42 deletions(-)
+ delete mode 100644 arch/m32r/lib/libgcc.h
+ delete mode 100644 arch/m32r/lib/ucmpdi2.c
 
-diff --git a/arch/sh/Kconfig b/arch/sh/Kconfig
-index ee086958b2b2..f991632f31ba 100644
---- a/arch/sh/Kconfig
-+++ b/arch/sh/Kconfig
-@@ -48,6 +48,9 @@ config SUPERH
- 	select HAVE_ARCH_AUDITSYSCALL
- 	select HAVE_FUTEX_CMPXCHG if FUTEX
- 	select HAVE_NMI
-+	select LIB_ASHLDI3
-+	select LIB_ASHRDI3
-+	select LIB_LSHRDI3
- 	help
- 	  The SuperH is a RISC processor targeted for use in embedded systems
- 	  and consumer electronics; it was also used in the Sega Dreamcast
-diff --git a/arch/sh/lib/Makefile b/arch/sh/lib/Makefile
-index 3baff31e58cf..8caae109a728 100644
---- a/arch/sh/lib/Makefile
-+++ b/arch/sh/lib/Makefile
-@@ -6,9 +6,7 @@ lib-y  = delay.o memmove.o memchr.o \
- 	 checksum.o strlen.o div64.o div64-generic.o
+diff --git a/arch/m32r/Kconfig b/arch/m32r/Kconfig
+index 95474460b367..2fbe3aa3e0c4 100644
+--- a/arch/m32r/Kconfig
++++ b/arch/m32r/Kconfig
+@@ -19,6 +19,7 @@ config M32R
+ 	select HAVE_DEBUG_STACKOVERFLOW
+ 	select CPU_NO_EFFICIENT_FFS
+ 	select DMA_NOOP_OPS
++	select LIB_UCMPDI3
  
- # Extracted from libgcc
--obj-y += movmem.o ashldi3.o ashrdi3.o lshrdi3.o \
--	 ashlsi3.o ashrsi3.o ashiftrt.o lshrsi3.o \
--	 udiv_qrnnd.o
-+obj-y += movmem.o ashlsi3.o ashrsi3.o ashiftrt.o udiv_qrnnd.o
+ config SBUS
+ 	bool
+diff --git a/arch/m32r/lib/Makefile b/arch/m32r/lib/Makefile
+index 5889eb9610b5..0a753a833bbf 100644
+--- a/arch/m32r/lib/Makefile
++++ b/arch/m32r/lib/Makefile
+@@ -3,5 +3,4 @@
+ #
  
- udivsi3-y			:= udivsi3_i4i-Os.o
- 
-diff --git a/arch/sh/lib/ashldi3.c b/arch/sh/lib/ashldi3.c
+ lib-y  := checksum.o ashxdi3.o memset.o memcpy.o \
+-	  delay.o strlen.o usercopy.o csum_partial_copy.o \
+-	  ucmpdi2.o
++	  delay.o strlen.o usercopy.o csum_partial_copy.o
+diff --git a/arch/m32r/lib/libgcc.h b/arch/m32r/lib/libgcc.h
 deleted file mode 100644
-index beb80f316095..000000000000
---- a/arch/sh/lib/ashldi3.c
+index 267aa435bc35..000000000000
+--- a/arch/m32r/lib/libgcc.h
 +++ /dev/null
-@@ -1,29 +0,0 @@
--#include <linux/module.h>
--
--#include "libgcc.h"
--
--long long __ashldi3(long long u, word_type b)
--{
--	DWunion uu, w;
--	word_type bm;
--
--	if (b == 0)
--		return u;
--
--	uu.ll = u;
--	bm = 32 - b;
--
--	if (bm <= 0) {
--		w.s.low = 0;
--		w.s.high = (unsigned int) uu.s.low << -bm;
--	} else {
--		const unsigned int carries = (unsigned int) uu.s.low >> bm;
--
--		w.s.low = (unsigned int) uu.s.low << b;
--		w.s.high = ((unsigned int) uu.s.high << b) | carries;
--	}
--
--	return w.ll;
--}
--
--EXPORT_SYMBOL(__ashldi3);
-diff --git a/arch/sh/lib/ashrdi3.c b/arch/sh/lib/ashrdi3.c
-deleted file mode 100644
-index c884a912b660..000000000000
---- a/arch/sh/lib/ashrdi3.c
-+++ /dev/null
-@@ -1,31 +0,0 @@
--#include <linux/module.h>
--
--#include "libgcc.h"
--
--long long __ashrdi3(long long u, word_type b)
--{
--	DWunion uu, w;
--	word_type bm;
--
--	if (b == 0)
--		return u;
--
--	uu.ll = u;
--	bm = 32 - b;
--
--	if (bm <= 0) {
--		/* w.s.high = 1..1 or 0..0 */
--		w.s.high =
--		    uu.s.high >> 31;
--		w.s.low = uu.s.high >> -bm;
--	} else {
--		const unsigned int carries = (unsigned int) uu.s.high << bm;
--
--		w.s.high = uu.s.high >> b;
--		w.s.low = ((unsigned int) uu.s.low >> b) | carries;
--	}
--
--	return w.ll;
--}
--
--EXPORT_SYMBOL(__ashrdi3);
-diff --git a/arch/sh/lib/libgcc.h b/arch/sh/lib/libgcc.h
-deleted file mode 100644
-index 05909d58e2fe..000000000000
---- a/arch/sh/lib/libgcc.h
-+++ /dev/null
-@@ -1,25 +0,0 @@
+@@ -1,23 +0,0 @@
 -#ifndef __ASM_LIBGCC_H
 -#define __ASM_LIBGCC_H
 -
 -#include <asm/byteorder.h>
--
--typedef int word_type __attribute__ ((mode (__word__)));
 -
 -#ifdef __BIG_ENDIAN
 -struct DWstruct {
@@ -159,40 +83,28 @@ index 05909d58e2fe..000000000000
 -} DWunion;
 -
 -#endif /* __ASM_LIBGCC_H */
-diff --git a/arch/sh/lib/lshrdi3.c b/arch/sh/lib/lshrdi3.c
+diff --git a/arch/m32r/lib/ucmpdi2.c b/arch/m32r/lib/ucmpdi2.c
 deleted file mode 100644
-index dcf8d6810b7c..000000000000
---- a/arch/sh/lib/lshrdi3.c
+index 9d3c682c89b5..000000000000
+--- a/arch/m32r/lib/ucmpdi2.c
 +++ /dev/null
-@@ -1,29 +0,0 @@
--#include <linux/module.h>
--
+@@ -1,17 +0,0 @@
 -#include "libgcc.h"
 -
--long long __lshrdi3(long long u, word_type b)
+-int __ucmpdi2(unsigned long long a, unsigned long long b)
 -{
--	DWunion uu, w;
--	word_type bm;
+-	const DWunion au = {.ll = a};
+-	const DWunion bu = {.ll = b};
 -
--	if (b == 0)
--		return u;
--
--	uu.ll = u;
--	bm = 32 - b;
--
--	if (bm <= 0) {
--		w.s.high = 0;
--		w.s.low = (unsigned int) uu.s.high >> -bm;
--	} else {
--		const unsigned int carries = (unsigned int) uu.s.high << bm;
--
--		w.s.high = (unsigned int) uu.s.high >> b;
--		w.s.low = ((unsigned int) uu.s.low >> b) | carries;
--	}
--
--	return w.ll;
+-	if ((unsigned int)au.s.high < (unsigned int)bu.s.high)
+-		return 0;
+-	else if ((unsigned int)au.s.high > (unsigned int)bu.s.high)
+-		return 2;
+-	if ((unsigned int)au.s.low < (unsigned int)bu.s.low)
+-		return 0;
+-	else if ((unsigned int)au.s.low > (unsigned int)bu.s.low)
+-		return 2;
+-	return 1;
 -}
--
--EXPORT_SYMBOL(__lshrdi3);
 -- 
 2.13.0
