@@ -1,111 +1,48 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [RFC PATCH v2 4/6] arm64: signal: Allocate extra sigcontext
- space as needed
-Date: Tue, 23 May 2017 12:30:19 +0100
-Message-ID: <20170523113019.GB5948@e104818-lin.cambridge.arm.com>
-References: <1492016239-19511-1-git-send-email-Dave.Martin@arm.com>
- <1492016495-19689-1-git-send-email-Dave.Martin@arm.com>
- <1492016495-19689-4-git-send-email-Dave.Martin@arm.com>
- <20170512165724.GB8387@e104818-lin.cambridge.arm.com>
- <20170515132442.GB3559@e103592.cambridge.arm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Sricharan R <sricharan@codeaurora.org>
+Subject: [PATCH v5 1/5] iommu: of: Fix check for returning EPROBE_DEFER
+Date: Tue, 23 May 2017 18:31:29 +0530
+Message-ID: <1495544493-14219-1-git-send-email-sricharan@codeaurora.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:50276 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S965749AbdEWLaX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 23 May 2017 07:30:23 -0400
-Content-Disposition: inline
-In-Reply-To: <20170515132442.GB3559@e103592.cambridge.arm.com>
+Received: from smtp.codeaurora.org ([198.145.29.96]:35046 "EHLO
+        smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1762475AbdEWNBw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 May 2017 09:01:52 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org
+To: robin.murphy@arm.com, will.deacon@arm.com, joro@8bytes.org, lorenzo.pieralisi@arm.com, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arm-msm@vger.kernel.org, m.szyprowski@samsung.com, bhelgaas@google.com, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, tn@semihalf.com, hanjun.guo@linaro.org, okaya@codeaurora.org, robh+dt@kernel.org, frowand.list@gmail.com, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, sudeep.holla@arm.com, rjw@rjwysocki.net, lenb@kernel.org, catalin.marinas@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, laurent.pinchart@ideasonboard.com, j.neuschaefer@gmx.net, geert@linux-m68k.org, magnus.damm@gmail.com, nwatters@codeaurora.org
+Cc: sricharan@codeaurora.org
 
-On Mon, May 15, 2017 at 02:24:45PM +0100, Dave P Martin wrote:
-> On Fri, May 12, 2017 at 05:57:24PM +0100, Catalin Marinas wrote:
-> > On Wed, Apr 12, 2017 at 06:01:13PM +0100, Dave P Martin wrote:
-> > > --- a/arch/arm64/include/uapi/asm/sigcontext.h
-> > > +++ b/arch/arm64/include/uapi/asm/sigcontext.h
-> > > @@ -80,4 +80,31 @@ struct esr_context {
-> > >  	__u64 esr;
-> > >  };
-> > >  
-> > > +/*
-> > > + * Pointer to extra space for additional structures that don't fit in
-> > > + * sigcontext.__reserved[].  Note:
-> > > + *
-> > > + * 1) fpsimd_context, esr_context and extra_context must be placed in
-> > > + * sigcontext.__reserved[] if present.  They cannot be placed in the
-> > > + * extra space.  Any other record can be placed either in the extra
-> > > + * space or in sigcontext.__reserved[].
-> > > + *
-> > > + * 2) There must not be more than one extra_context.
-> > > + *
-> > > + * 3) If extra_context is present, it must be followed immediately in
-> > > + * sigcontext.__reserved[] by the terminating null _aarch64_ctx (i.e.,
-> > > + * extra_context must be the last record in sigcontext.__reserved[]
-> > > + * except for the terminator).
-> > > + *
-> > > + * 4) The extra space must itself be terminated with a null
-> > > + * _aarch64_ctx.
-> > > + */
-> > 
-> > IIUC, if we need to save some state that doesn't fit in what's left of
-> > sigcontext.__reserved[] (e.g. SVE with 1024-bit vector length), we
-> > ignore the available space and go for a memory block following the end
-> > of sigcontext.__reserved[] + 16. Is there a reason we can't store the
-> > new state across the end of sigcontext.__reserved[] and move fp/lr at
-> > the end of the new frame? I'm not sure the fp/lr position immediately
-> > after __reserved[] counts as ABI.
-> 
-> This was my original view.
-> 
-> Originally I preferred not to waste the space and did move fp/lr to the
-> end, but someone (I think you or Will) expressed concern that the fp/lr
-> position relative to the signal frame _might_ count as ABI.
-> 
-> I think it's not that likely that software will be relying on this,
-> since it appears easier just to follow the frame chain than to treat
-> this as a special case.
-> 
-> But it's hard to be certain.  It comes down to a judgement call.
+Now with IOMMU probe deferral, we return -EPROBE_DEFER
+for masters that are connected to an IOMMU which is not
+probed yet, but going to get probed, so that we can attach
+the correct dma_ops. So while trying to defer the probe of
+the master, check if the of_iommu node that it is connected
+to is marked in DT as 'status=disabled', then the IOMMU is never
+is going to get probed. So simply return NULL and let the master
+work without an IOMMU.
 
-I would not consider this ABI. The ABI part is that the fp register
-points to where fp/lr were saved.
+Fixes: 7b07cbefb68d ("iommu: of: Handle IOMMU lookup failure with deferred probing or error")
+Signed-off-by: Sricharan R <sricharan@codeaurora.org>
+Reported-by: Geert Uytterhoeven <geert@linux-m68k.org>
+Reviewed-by: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
+Tested-by: Will Deacon <will.deacon@arm.com>
+Tested-by: Magnus Damn <magnus.damn@gmail.com>
+Acked-by: Will Deacon <will.deacon@arm.com>
+---
+ drivers/iommu/of_iommu.c | 1 +
+ 1 file changed, 1 insertion(+)
 
-> > > +#define EXTRA_MAGIC	0x45585401
-> > > +
-> > > +struct extra_context {
-> > > +	struct _aarch64_ctx head;
-> > > +	void __user *data;	/* 16-byte aligned pointer to extra space */
-> > "__user" is a kernel-only attribute, we shouldn't expose it in a uapi
-> > header.
-> 
-> This is filtered out by headers_install, just like #ifdef __KERNEL__.
-
-Ah, ok, I missed this.
-
-> > > +	__u32 size;		/* size in bytes of the extra space */
-> > > +};
-> > 
-> > Do we need the size of the extra space? Can we not infer it anyway by
-> > walking the contexts save there? Surely we don't expect more than one
-> > extra context.
-> 
-> Strictly speaking we don't need it.  When userspace parses a signal
-> frame generated by the kernel, it can trust the kernel to write a well-
-> formed signal frame.
-> 
-> In sigreturn it allows us to retain a sanity-check on overall size
-> similar to what sizeof(__reserved) gives us.  This "feels cleaner"
-> to me, but the value of it is debatable, since we can still apply
-> SIGFRAME_MAXSZ and uaccess should protect us against gross overruns.
-
-I'm not keen on the size information, it seems superfluous.
-
-BTW, does SIGFRAME_MAXSZ now become ABI? Or the user only needs to
-interrogate the frame size and we keep this internal to the kernel?
-
+diff --git a/drivers/iommu/of_iommu.c b/drivers/iommu/of_iommu.c
+index 9f44ee8..e6e9bec 100644
+--- a/drivers/iommu/of_iommu.c
++++ b/drivers/iommu/of_iommu.c
+@@ -118,6 +118,7 @@ static bool of_iommu_driver_present(struct device_node *np)
+ 
+ 	ops = iommu_ops_from_fwnode(fwnode);
+ 	if ((ops && !ops->of_xlate) ||
++	    !of_device_is_available(iommu_spec->np) ||
+ 	    (!ops && !of_iommu_driver_present(iommu_spec->np)))
+ 		return NULL;
+ 
 -- 
-Catalin
+QUALCOMM INDIA, on behalf of Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum, hosted by The Linux Foundation
