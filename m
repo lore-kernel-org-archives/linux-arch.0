@@ -1,83 +1,61 @@
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH 0/6] {sched_,}find_first{_zero}_bit optimizations
-Date: Tue, 23 May 2017 21:43:15 +0300
-Message-ID: <20170523184321.11452-1-ynorov@caviumnetworks.com>
+From: Michal Nazarewicz <mina86@mina86.com>
+Subject: Re: [PATCH v4 1/2] asm-generic/bug.h: declare struct pt_regs; before function prototype
+Date: Tue, 23 May 2017 20:44:43 +0200
+Message-ID: <xa1twp972z1g.fsf@mina86.com>
+References: <20170523160112.3446-1-abbotti@mev.co.uk> <20170523160112.3446-2-abbotti@mev.co.uk>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-sn1nam02on0068.outbound.protection.outlook.com ([104.47.36.68]:38592
-        "EHLO NAM02-SN1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751623AbdEWSnh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 23 May 2017 14:43:37 -0400
+Received: from mail-wm0-f47.google.com ([74.125.82.47]:37006 "EHLO
+        mail-wm0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S933479AbdEWSor (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 May 2017 14:44:47 -0400
+Received: by mail-wm0-f47.google.com with SMTP id d127so37908606wmf.0
+        for <linux-arch@vger.kernel.org>; Tue, 23 May 2017 11:44:46 -0700 (PDT)
+In-Reply-To: <20170523160112.3446-2-abbotti@mev.co.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Yury Norov <ynorov@caviumnetworks.com>, Akinobu Mita <mita@miraclelinux.com>, Mike Galbraith <efault@gmx.de>, Paul Bolle <pebolle@tiscali.nl>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Hidehiro Kawai <hidehiro.kawai.ez@hitachi.com>, Borislav Petkov <bp@suse.de>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Johannes Berg <johannes.berg@intel.com>, Peter Zijlstra <peterz@infradead.org>, Alexander Potapenko <glider@google.com>, Ian Abbott <abbotti@mev.co.uk>
 
-The series is the result of this discussion: https://lkml.org/lkml/2017/5/12/665
-plus this patch: https://lkml.org/lkml/2017/5/13/137
-(I'd like to have it together with others.)
+On Tue, May 23 2017, Ian Abbott wrote:
+> The declaration of `__warn()` has `struct pt_regs *regs` as one of its
+> parameters.  This can result in compiler warnings if `struct regs` is
+> not already declared.  Add an empty declaration of `struct pt_regs` to
+> avoid the warnings.
+>
+> Signed-off-by: Ian Abbott <abbotti@mev.co.uk>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Acked-by: Arnd Bergmann <arnd@arndb.de>
 
-Patch 1 remove useless GENERIC_FIND_FIRST_BIT option.  Patches 2 and 3 change
-the order of macros definition and/or headers inclusion for frv and m86k, as
-it's needed in patch 4. Patch 4 adds the optimization for find_first_bit() and
-find_first_zero_bit(). Patches 5 and 6 consolidate the implementation of
-sched_find_first_bit(), and make it local.
+Acked-by: Michal Nazarewicz <mina86@mina86.com>
 
-According to previous discussion, I added Arnd's ack to patches 5 and 6.
-https://lkml.org/lkml/2017/5/15/514 and suggested-by to patch 4.
-Arnd, are you OK with it?
+> ---
+> v3: Actually, there was no v1 or v2.  I called this v3 to match the
+> series.
+> v4: Corrected 'Acked-by:' line in patch description.
+> ---
+>  include/asm-generic/bug.h | 1 +
+>  1 file changed, 1 insertion(+)
+>
+> diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
+> index d6f4aed479a1..87191357d303 100644
+> --- a/include/asm-generic/bug.h
+> +++ b/include/asm-generic/bug.h
+> @@ -97,6 +97,7 @@ extern void warn_slowpath_null(const char *file, const =
+int line);
+>=20=20
+>  /* used internally by panic.c */
+>  struct warn_args;
+> +struct pt_regs;
+>=20=20
+>  void __warn(const char *file, int line, void *caller, unsigned taint,
+>  	    struct pt_regs *regs, struct warn_args *args);
 
-Yury Norov (6):
-  arch: remove GENERIC_FIND_FIRST_BIT
-  m68k: make __ffs and ffz defined prior to including find.h
-  frv: make __ffs() visible for find.h
-  find_first{,_zero}_bit: unroll search cycle for small bitmaps
-  alpha: drop custom implementation for sched_find_first_bit()
-  sched: move sched_find_first_bit() from bitops.h to
-    kernel/sched/sched.h
-
- arch/alpha/include/asm/bitops.h    |  18 -----
- arch/arc/Kconfig                   |   1 -
- arch/arc/include/asm/bitops.h      |   1 -
- arch/arm/include/asm/bitops.h      |   1 -
- arch/arm64/include/asm/bitops.h    |   1 -
- arch/blackfin/include/asm/bitops.h |   1 -
- arch/c6x/include/asm/bitops.h      |   1 -
- arch/cris/include/asm/bitops.h     |   2 -
- arch/frv/include/asm/bitops.h      |   4 +-
- arch/h8300/include/asm/bitops.h    |   1 -
- arch/hexagon/include/asm/bitops.h  |   1 -
- arch/ia64/include/asm/bitops.h     |   2 -
- arch/m32r/include/asm/bitops.h     |   1 -
- arch/m68k/include/asm/bitops.h     | 162 ++++++++++++++++++-------------------
- arch/metag/include/asm/bitops.h    |   1 -
- arch/mips/include/asm/bitops.h     |   2 -
- arch/mn10300/include/asm/bitops.h  |   1 -
- arch/openrisc/include/asm/bitops.h |   1 -
- arch/parisc/include/asm/bitops.h   |   1 -
- arch/powerpc/include/asm/bitops.h  |   2 -
- arch/s390/Kconfig                  |   1 -
- arch/s390/include/asm/bitops.h     |   1 -
- arch/sh/include/asm/bitops.h       |   1 -
- arch/sparc/include/asm/bitops_32.h |   1 -
- arch/sparc/include/asm/bitops_64.h |   1 -
- arch/tile/Kconfig                  |   1 -
- arch/tile/include/asm/bitops.h     |   1 -
- arch/unicore32/Kconfig             |   1 -
- arch/x86/Kconfig                   |   1 -
- arch/x86/include/asm/bitops.h      |   2 -
- arch/x86/um/Kconfig                |   1 -
- arch/xtensa/include/asm/bitops.h   |   1 -
- include/asm-generic/bitops.h       |   1 -
- include/asm-generic/bitops/find.h  |  82 +++++++++++++++++--
- include/asm-generic/bitops/sched.h |  31 -------
- kernel/sched/sched.h               |  23 ++++++
- lib/Kconfig                        |   3 -
- lib/find_bit.c                     |   8 +-
- 38 files changed, 182 insertions(+), 184 deletions(-)
- delete mode 100644 include/asm-generic/bitops/sched.h
-
--- 
-2.11.0
+--=20
+Best regards
+=E3=83=9F=E3=83=8F=E3=82=A6 =E2=80=9C=F0=9D=93=B6=F0=9D=93=B2=F0=9D=93=B7=
+=F0=9D=93=AA86=E2=80=9D =E3=83=8A=E3=82=B6=E3=83=AC=E3=83=B4=E3=82=A4=E3=83=
+=84
+=C2=ABIf at first you don=E2=80=99t succeed, give up skydiving=C2=BB
