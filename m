@@ -1,101 +1,83 @@
-From: Olof Johansson <olof@lixom.net>
-Subject: Re: [GIT PULL] ARM: SoC fixes (and a cross-arch dt-include fix)
-Date: Tue, 23 May 2017 09:42:18 -0700
-Message-ID: <CAOesGMi98hJnUYVLkgcbBpXsi-Xe6QPh-gtLaPWPO-EW+KcGuQ@mail.gmail.com>
-References: <20170519193455.GA24206@localhost> <CACRpkdaRdZTB39-=sAojO+OyHtP02KaFChqGcxy+fWA8qaB2bw@mail.gmail.com>
- <CAOesGMhfrWSvLtDtGRWBTJiAoeSwzGgsdUTm26j1mpoVu0ghDg@mail.gmail.com> <CAMuHMdUivf9cw+LTn7UMueH=MMKi6i3wcOdgM6zbZBoxmkTZGQ@mail.gmail.com>
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: [PATCH 0/6] {sched_,}find_first{_zero}_bit optimizations
+Date: Tue, 23 May 2017 21:43:15 +0300
+Message-ID: <20170523184321.11452-1-ynorov@caviumnetworks.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ua0-f195.google.com ([209.85.217.195]:33812 "EHLO
-        mail-ua0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750762AbdEWQmV (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 May 2017 12:42:21 -0400
-Received: by mail-ua0-f195.google.com with SMTP id j17so10261097uag.1
-        for <linux-arch@vger.kernel.org>; Tue, 23 May 2017 09:42:20 -0700 (PDT)
-In-Reply-To: <CAMuHMdUivf9cw+LTn7UMueH=MMKi6i3wcOdgM6zbZBoxmkTZGQ@mail.gmail.com>
+Received: from mail-sn1nam02on0068.outbound.protection.outlook.com ([104.47.36.68]:38592
+        "EHLO NAM02-SN1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1751623AbdEWSnh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 23 May 2017 14:43:37 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Linus Walleij <linus.walleij@linaro.org>, Rob Herring <robh+dt@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "arm@kernel.org" <arm@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "ksummit-discuss@lists.linuxfoundation.org" <ksummit-discuss@lists.linuxfoundation.org>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Yury Norov <ynorov@caviumnetworks.com>, Akinobu Mita <mita@miraclelinux.com>, Mike Galbraith <efault@gmx.de>, Paul Bolle <pebolle@tiscali.nl>
 
-On Tue, May 23, 2017 at 2:49 AM, Geert Uytterhoeven
-<geert@linux-m68k.org> wrote:
-> Hi Olof,
->
-> On Mon, May 22, 2017 at 5:11 PM, Olof Johansson <olof@lixom.net> wrote:
->> On Mon, May 22, 2017 at 4:44 AM, Linus Walleij <linus.walleij@linaro.org> wrote:
->>> On Fri, May 19, 2017 at 9:34 PM, Olof Johansson <olof@lixom.net> wrote:
->>>>  - We've started telling people to avoid cross-tree shared branches if all
->>>>    they're doing is picking up one or two DT-used constants from a
->>>>    shared include file, and instead to use the numeric values on first
->>>>    submission. Follow-up moving over to symbolic names are sent in right
->>>>    after -rc1, i.e. here. It's only a few minor patches of this type.
->>>
->>> OK it seems like a reasonable process.
->>>
->>> It's not like I can think about anything better.
->>>
->>> I was more opting for doing things this way:
->>>
->>> - Create bindings and <dt-bindings/foo/bar.h> merge it into the
->>>   foo subsystem.
->>>
->>> - Merge driver into drivers/foo/bar.c that use <dt-bindings/foo/bar.h>
->>>
->>> - Submit DTS patch to ARM SoC (or whetever) using only numerical
->>>   values.
->>>
->>> - After the merge window, follow up with a patch replacing the
->>>   numerical constants with #defines from <dt-bindings/foo/bar.h>
->>
->> You're describing exactly what we've been pushing people towards.
->>
->> If it's just a few simple references it's not significantly more
->> awkward, and decouples merges and removes need for stable branches.
->> Essentially we've become slightly more lax in what we're willing to
->> consider _right after_ -rc1 to include these tweaks (and often patches
->> to turn on new drivers in defconfigs).
->>
->> If the amount of contents grows too large we might need to tweak
->> things further, maybe with something pre-rc1 but that's more awkward.
->>
->>> An alternative would obviously be to wait for the next merge window
->>> after merging the driver patch but I guess people are too impatient
->>> to do that (including me).
->>
->> Yeah, asking people to spread out across releases would remove
->> dependencies a lot, but it would also slow down progress and frustrate
->> a lot of contributors so we don't do that.
->
-> The above works fine for new support, or for new platforms.
->
-> There's still support being migrated from platform code to DT, which
-> requires three steps:
->   1. New DT-aware driver support,
->   2. DT update to use the new driver support,
->   3. Clean up platform code after optional DTB backwards compatibility
->      grace period,
-> To make matters worse, 1 may conflict with the existing platform code,
-> and 2 must sometimes not be done before 1. Hence you may need three kernel
-> releases.
-> So we're already planning now what to clean up for v4.15 ;-)
->
-> Would it be acceptable to do step 2 in the same release, after the driver
-> support has entered in -rc1? I know this is more than just replacing
-> numbers by symbolic values.
+The series is the result of this discussion: https://lkml.org/lkml/2017/5/12/665
+plus this patch: https://lkml.org/lkml/2017/5/13/137
+(I'd like to have it together with others.)
 
-Part of why we encouraged a more stretched-out approach in your case
-was that we used to get quite a few dependent branches for Renesas
-platforms, and when there were things to fixup, a lot of respins and
-churn. So we asked to move a little slower to avoid DoS:ing ourselves.
+Patch 1 remove useless GENERIC_FIND_FIRST_BIT option.  Patches 2 and 3 change
+the order of macros definition and/or headers inclusion for frv and m86k, as
+it's needed in patch 4. Patch 4 adds the optimization for find_first_bit() and
+find_first_zero_bit(). Patches 5 and 6 consolidate the implementation of
+sched_find_first_bit(), and make it local.
 
-As far as the above process goes: 1+2 is exactly what we're
-encouraging others to do. The main discussion point here is when
-there's substantial shared dt-includes between driver and the DTS
-contents. Most of the time, for most drivers, that's usually not the
-case. As Arnd suggested, it might be helpful to have specific examples
-to discuss here.
+According to previous discussion, I added Arnd's ack to patches 5 and 6.
+https://lkml.org/lkml/2017/5/15/514 and suggested-by to patch 4.
+Arnd, are you OK with it?
 
+Yury Norov (6):
+  arch: remove GENERIC_FIND_FIRST_BIT
+  m68k: make __ffs and ffz defined prior to including find.h
+  frv: make __ffs() visible for find.h
+  find_first{,_zero}_bit: unroll search cycle for small bitmaps
+  alpha: drop custom implementation for sched_find_first_bit()
+  sched: move sched_find_first_bit() from bitops.h to
+    kernel/sched/sched.h
 
--Olof
+ arch/alpha/include/asm/bitops.h    |  18 -----
+ arch/arc/Kconfig                   |   1 -
+ arch/arc/include/asm/bitops.h      |   1 -
+ arch/arm/include/asm/bitops.h      |   1 -
+ arch/arm64/include/asm/bitops.h    |   1 -
+ arch/blackfin/include/asm/bitops.h |   1 -
+ arch/c6x/include/asm/bitops.h      |   1 -
+ arch/cris/include/asm/bitops.h     |   2 -
+ arch/frv/include/asm/bitops.h      |   4 +-
+ arch/h8300/include/asm/bitops.h    |   1 -
+ arch/hexagon/include/asm/bitops.h  |   1 -
+ arch/ia64/include/asm/bitops.h     |   2 -
+ arch/m32r/include/asm/bitops.h     |   1 -
+ arch/m68k/include/asm/bitops.h     | 162 ++++++++++++++++++-------------------
+ arch/metag/include/asm/bitops.h    |   1 -
+ arch/mips/include/asm/bitops.h     |   2 -
+ arch/mn10300/include/asm/bitops.h  |   1 -
+ arch/openrisc/include/asm/bitops.h |   1 -
+ arch/parisc/include/asm/bitops.h   |   1 -
+ arch/powerpc/include/asm/bitops.h  |   2 -
+ arch/s390/Kconfig                  |   1 -
+ arch/s390/include/asm/bitops.h     |   1 -
+ arch/sh/include/asm/bitops.h       |   1 -
+ arch/sparc/include/asm/bitops_32.h |   1 -
+ arch/sparc/include/asm/bitops_64.h |   1 -
+ arch/tile/Kconfig                  |   1 -
+ arch/tile/include/asm/bitops.h     |   1 -
+ arch/unicore32/Kconfig             |   1 -
+ arch/x86/Kconfig                   |   1 -
+ arch/x86/include/asm/bitops.h      |   2 -
+ arch/x86/um/Kconfig                |   1 -
+ arch/xtensa/include/asm/bitops.h   |   1 -
+ include/asm-generic/bitops.h       |   1 -
+ include/asm-generic/bitops/find.h  |  82 +++++++++++++++++--
+ include/asm-generic/bitops/sched.h |  31 -------
+ kernel/sched/sched.h               |  23 ++++++
+ lib/Kconfig                        |   3 -
+ lib/find_bit.c                     |   8 +-
+ 38 files changed, 182 insertions(+), 184 deletions(-)
+ delete mode 100644 include/asm-generic/bitops/sched.h
+
+-- 
+2.11.0
