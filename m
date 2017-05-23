@@ -1,48 +1,54 @@
-From: "Kirill A. Shutemov" <kirill@shutemov.name>
-Subject: Re: [PATCH v3 2/6] mm, gup: Ensure real head page is ref-counted
- when using hugepages
-Date: Tue, 23 May 2017 16:13:12 +0300
-Message-ID: <20170523131312.aim6obne2t5sxtdr@node.shutemov.name>
-References: <20170522133604.11392-1-punit.agrawal@arm.com>
- <20170522133604.11392-3-punit.agrawal@arm.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [GIT PULL] ARM: SoC fixes (and a cross-arch dt-include fix)
+Date: Tue, 23 May 2017 16:17:07 +0200
+Message-ID: <CAK8P3a2E1LtCNoGkAuzwJJdQdUTB_+8d=FM2asEGkXJprvm8oQ@mail.gmail.com>
+References: <20170519193455.GA24206@localhost> <CACRpkdaRdZTB39-=sAojO+OyHtP02KaFChqGcxy+fWA8qaB2bw@mail.gmail.com>
+ <CAOesGMhfrWSvLtDtGRWBTJiAoeSwzGgsdUTm26j1mpoVu0ghDg@mail.gmail.com> <CAMuHMdUivf9cw+LTn7UMueH=MMKi6i3wcOdgM6zbZBoxmkTZGQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20170522133604.11392-3-punit.agrawal@arm.com>
-Sender: owner-linux-mm@kvack.org
-To: Punit Agrawal <punit.agrawal@arm.com>
-Cc: akpm@linux-foundation.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, will.deacon@arm.com, n-horiguchi@ah.jp.nec.com, kirill.shutemov@linux.intel.com, mike.kravetz@oracle.com, steve.capper@arm.com, mark.rutland@arm.com, hillf.zj@alibaba-inc.com, linux-arch@vger.kernel.org, aneesh.kumar@linux.vnet.ibm.com, Michal Hocko <mhocko@suse.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-oi0-f67.google.com ([209.85.218.67]:35046 "EHLO
+        mail-oi0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1030395AbdEWORT (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 May 2017 10:17:19 -0400
+In-Reply-To: <CAMuHMdUivf9cw+LTn7UMueH=MMKi6i3wcOdgM6zbZBoxmkTZGQ@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Olof Johansson <olof@lixom.net>, Linus Walleij <linus.walleij@linaro.org>, Rob Herring <robh+dt@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "arm@kernel.org" <arm@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "ksummit-discuss@lists.linuxfoundation.org" <ksummit-discuss@lists.linuxfoundation.org>
 
-On Mon, May 22, 2017 at 02:36:00PM +0100, Punit Agrawal wrote:
-> When speculatively taking references to a hugepage using
-> page_cache_add_speculative() in gup_huge_pmd(), it is assumed that the
-> page returned by pmd_page() is the head page. Although normally true,
-> this assumption doesn't hold when the hugepage comprises of successive
-> page table entries such as when using contiguous bit on arm64 at PTE or
-> PMD levels.
-> 
-> This can be addressed by ensuring that the page passed to
-> page_cache_add_speculative() is the real head or by de-referencing the
-> head page within the function.
-> 
-> We take the first approach to keep the usage pattern aligned with
-> page_cache_get_speculative() where users already pass the appropriate
-> page, i.e., the de-referenced head.
-> 
-> Apply the same logic to fix gup_huge_[pud|pgd]() as well.
+On Tue, May 23, 2017 at 11:49 AM, Geert Uytterhoeven
+<geert@linux-m68k.org> wrote:
+>
+> On Mon, May 22, 2017 at 5:11 PM, Olof Johansson <olof@lixom.net> wrote:
+>> On Mon, May 22, 2017 at 4:44 AM, Linus Walleij <linus.walleij@linaro.org> wrote:
+>>> On Fri, May 19, 2017 at 9:34 PM, Olof Johansson <olof@lixom.net> wrote:
+>>
+>> Yeah, asking people to spread out across releases would remove
+>> dependencies a lot, but it would also slow down progress and frustrate
+>> a lot of contributors so we don't do that.
+>
+> The above works fine for new support, or for new platforms.
+>
+> There's still support being migrated from platform code to DT, which
+> requires three steps:
+>   1. New DT-aware driver support,
+>   2. DT update to use the new driver support,
+>   3. Clean up platform code after optional DTB backwards compatibility
+>      grace period,
+> To make matters worse, 1 may conflict with the existing platform code,
+> and 2 must sometimes not be done before 1. Hence you may need three kernel
+> releases.
+> So we're already planning now what to clean up for v4.15 ;-)
+>
+> Would it be acceptable to do step 2 in the same release, after the driver
+> support has entered in -rc1? I know this is more than just replacing
+> numbers by symbolic values.
 
-Hm. Okay. But I'm kinda surprise that this is the only place that need to
-be adjusted.
+I'd say it really depends on the individual case. Do you have a particular
+platform in mind? E.g. For some of the more obsolete platforms that
+Linus Walleij has worked on over time, we have sometimes relaxed the
+rules about clean bisection and just merged everything in parallel, knowing
+that nobody else was likely to run that code on a vanilla kernel anyway.
 
-Have you validated all other pmd_page() use-cases?
-
--- 
- Kirill A. Shutemov
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+       Arnd
