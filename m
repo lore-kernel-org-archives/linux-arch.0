@@ -1,100 +1,101 @@
-From: Punit Agrawal <punit.agrawal@arm.com>
-Subject: Re: [PATCH v3 3/6] mm/hugetlb: add size parameter to huge_pte_offset()
-Date: Tue, 23 May 2017 17:13:52 +0100
-Message-ID: <87wp97ft4v.fsf@e105922-lin.cambridge.arm.com>
-References: <201705231817.OSRI6iib%fengguang.wu@intel.com>
+From: Olof Johansson <olof@lixom.net>
+Subject: Re: [GIT PULL] ARM: SoC fixes (and a cross-arch dt-include fix)
+Date: Tue, 23 May 2017 09:42:18 -0700
+Message-ID: <CAOesGMi98hJnUYVLkgcbBpXsi-Xe6QPh-gtLaPWPO-EW+KcGuQ@mail.gmail.com>
+References: <20170519193455.GA24206@localhost> <CACRpkdaRdZTB39-=sAojO+OyHtP02KaFChqGcxy+fWA8qaB2bw@mail.gmail.com>
+ <CAOesGMhfrWSvLtDtGRWBTJiAoeSwzGgsdUTm26j1mpoVu0ghDg@mail.gmail.com> <CAMuHMdUivf9cw+LTn7UMueH=MMKi6i3wcOdgM6zbZBoxmkTZGQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <201705231817.OSRI6iib%fengguang.wu@intel.com> (kbuild test
-	robot's message of "Tue, 23 May 2017 18:04:42 +0800")
-Sender: owner-linux-mm@kvack.org
-To: kbuild test robot <lkp@intel.com>
-Cc: kbuild-all@01.org, akpm@linux-foundation.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, will.deacon@arm.com, n-horiguchi@ah.jp.nec.com, kirill.shutemov@linux.intel.com, mike.kravetz@oracle.com, steve.capper@arm.com, mark.rutland@arm.com, hillf.zj@alibaba-inc.com, linux-arch@vger.kernel.org, aneesh.kumar@linux.vnet.ibm.com, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, James Hogan <james.hogan@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Ric
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ua0-f195.google.com ([209.85.217.195]:33812 "EHLO
+        mail-ua0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750762AbdEWQmV (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 May 2017 12:42:21 -0400
+Received: by mail-ua0-f195.google.com with SMTP id j17so10261097uag.1
+        for <linux-arch@vger.kernel.org>; Tue, 23 May 2017 09:42:20 -0700 (PDT)
+In-Reply-To: <CAMuHMdUivf9cw+LTn7UMueH=MMKi6i3wcOdgM6zbZBoxmkTZGQ@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Linus Walleij <linus.walleij@linaro.org>, Rob Herring <robh+dt@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "arm@kernel.org" <arm@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "ksummit-discuss@lists.linuxfoundation.org" <ksummit-discuss@lists.linuxfoundation.org>
 
-kbuild test robot <lkp@intel.com> writes:
+On Tue, May 23, 2017 at 2:49 AM, Geert Uytterhoeven
+<geert@linux-m68k.org> wrote:
+> Hi Olof,
+>
+> On Mon, May 22, 2017 at 5:11 PM, Olof Johansson <olof@lixom.net> wrote:
+>> On Mon, May 22, 2017 at 4:44 AM, Linus Walleij <linus.walleij@linaro.org> wrote:
+>>> On Fri, May 19, 2017 at 9:34 PM, Olof Johansson <olof@lixom.net> wrote:
+>>>>  - We've started telling people to avoid cross-tree shared branches if all
+>>>>    they're doing is picking up one or two DT-used constants from a
+>>>>    shared include file, and instead to use the numeric values on first
+>>>>    submission. Follow-up moving over to symbolic names are sent in right
+>>>>    after -rc1, i.e. here. It's only a few minor patches of this type.
+>>>
+>>> OK it seems like a reasonable process.
+>>>
+>>> It's not like I can think about anything better.
+>>>
+>>> I was more opting for doing things this way:
+>>>
+>>> - Create bindings and <dt-bindings/foo/bar.h> merge it into the
+>>>   foo subsystem.
+>>>
+>>> - Merge driver into drivers/foo/bar.c that use <dt-bindings/foo/bar.h>
+>>>
+>>> - Submit DTS patch to ARM SoC (or whetever) using only numerical
+>>>   values.
+>>>
+>>> - After the merge window, follow up with a patch replacing the
+>>>   numerical constants with #defines from <dt-bindings/foo/bar.h>
+>>
+>> You're describing exactly what we've been pushing people towards.
+>>
+>> If it's just a few simple references it's not significantly more
+>> awkward, and decouples merges and removes need for stable branches.
+>> Essentially we've become slightly more lax in what we're willing to
+>> consider _right after_ -rc1 to include these tweaks (and often patches
+>> to turn on new drivers in defconfigs).
+>>
+>> If the amount of contents grows too large we might need to tweak
+>> things further, maybe with something pre-rc1 but that's more awkward.
+>>
+>>> An alternative would obviously be to wait for the next merge window
+>>> after merging the driver patch but I guess people are too impatient
+>>> to do that (including me).
+>>
+>> Yeah, asking people to spread out across releases would remove
+>> dependencies a lot, but it would also slow down progress and frustrate
+>> a lot of contributors so we don't do that.
+>
+> The above works fine for new support, or for new platforms.
+>
+> There's still support being migrated from platform code to DT, which
+> requires three steps:
+>   1. New DT-aware driver support,
+>   2. DT update to use the new driver support,
+>   3. Clean up platform code after optional DTB backwards compatibility
+>      grace period,
+> To make matters worse, 1 may conflict with the existing platform code,
+> and 2 must sometimes not be done before 1. Hence you may need three kernel
+> releases.
+> So we're already planning now what to clean up for v4.15 ;-)
+>
+> Would it be acceptable to do step 2 in the same release, after the driver
+> support has entered in -rc1? I know this is more than just replacing
+> numbers by symbolic values.
 
-> Hi Punit,
->
-> [auto build test ERROR on linus/master]
-> [also build test ERROR on v4.12-rc2 next-20170523]
-> [cannot apply to mmotm/master]
-> [if your patch is applied to the wrong git tree, please drop us a note to help improve the system]
->
-> url:    https://github.com/0day-ci/linux/commits/Punit-Agrawal/Support-for-contiguous-pte-hugepages/20170523-142407
-> config: arm64-defconfig (attached as .config)
-> compiler: aarch64-linux-gnu-gcc (Debian 6.1.1-9) 6.1.1 20160705
-> reproduce:
->         wget https://raw.githubusercontent.com/01org/lkp-tests/master/sbin/make.cross -O ~/bin/make.cross
->         chmod +x ~/bin/make.cross
->         # save the attached .config to linux build tree
->         make.cross ARCH=arm64 
->
-> All errors (new ones prefixed by >>):
->
->    arch/arm64/mm/hugetlbpage.c: In function 'huge_ptep_get_and_clear':
->>> arch/arm64/mm/hugetlbpage.c:200:10: error: too few arguments to function 'huge_pte_offset'
->       cpte = huge_pte_offset(mm, addr);
->              ^~~~~~~~~~~~~~~
->    arch/arm64/mm/hugetlbpage.c:135:8: note: declared here
->     pte_t *huge_pte_offset(struct mm_struct *mm,
->            ^~~~~~~~~~~~~~~
->    arch/arm64/mm/hugetlbpage.c: In function 'huge_ptep_set_access_flags':
->    arch/arm64/mm/hugetlbpage.c:238:10: error: too few arguments to function 'huge_pte_offset'
->       cpte = huge_pte_offset(vma->vm_mm, addr);
->              ^~~~~~~~~~~~~~~
->    arch/arm64/mm/hugetlbpage.c:135:8: note: declared here
->     pte_t *huge_pte_offset(struct mm_struct *mm,
->            ^~~~~~~~~~~~~~~
->    arch/arm64/mm/hugetlbpage.c: In function 'huge_ptep_set_wrprotect':
->    arch/arm64/mm/hugetlbpage.c:263:10: error: too few arguments to function 'huge_pte_offset'
->       cpte = huge_pte_offset(mm, addr);
->              ^~~~~~~~~~~~~~~
->    arch/arm64/mm/hugetlbpage.c:135:8: note: declared here
->     pte_t *huge_pte_offset(struct mm_struct *mm,
->            ^~~~~~~~~~~~~~~
->    arch/arm64/mm/hugetlbpage.c: In function 'huge_ptep_clear_flush':
->    arch/arm64/mm/hugetlbpage.c:280:10: error: too few arguments to function 'huge_pte_offset'
->       cpte = huge_pte_offset(vma->vm_mm, addr);
->              ^~~~~~~~~~~~~~~
->    arch/arm64/mm/hugetlbpage.c:135:8: note: declared here
->     pte_t *huge_pte_offset(struct mm_struct *mm,
->            ^~~~~~~~~~~~~~~
+Part of why we encouraged a more stretched-out approach in your case
+was that we used to get quite a few dependent branches for Renesas
+platforms, and when there were things to fixup, a lot of respins and
+churn. So we asked to move a little slower to avoid DoS:ing ourselves.
 
-Ok, so we haven't quite managed to remove the dependency of this patch
-on the following arm64 changes[0].
+As far as the above process goes: 1+2 is exactly what we're
+encouraging others to do. The main discussion point here is when
+there's substantial shared dt-includes between driver and the DTS
+contents. Most of the time, for most drivers, that's usually not the
+case. As Arnd suggested, it might be helpful to have specific examples
+to discuss here.
 
-I'll post a new version fixing this failure soon.
 
-[0] https://www.spinics.net/lists/arm-kernel/msg582758.html
-
->
-> vim +/huge_pte_offset +200 arch/arm64/mm/hugetlbpage.c
->
-> 66b3923a David Woods 2015-12-17  194  	if (pte_cont(*ptep)) {
-> 66b3923a David Woods 2015-12-17  195  		int ncontig, i;
-> 66b3923a David Woods 2015-12-17  196  		size_t pgsize;
-> 66b3923a David Woods 2015-12-17  197  		pte_t *cpte;
-> 66b3923a David Woods 2015-12-17  198  		bool is_dirty = false;
-> 66b3923a David Woods 2015-12-17  199  
-> 66b3923a David Woods 2015-12-17 @200  		cpte = huge_pte_offset(mm, addr);
-> 66b3923a David Woods 2015-12-17  201  		ncontig = find_num_contig(mm, addr, cpte, *cpte, &pgsize);
-> 66b3923a David Woods 2015-12-17  202  		/* save the 1st pte to return */
-> 66b3923a David Woods 2015-12-17  203  		pte = ptep_get_and_clear(mm, addr, cpte);
->
-> :::::: The code at line 200 was first introduced by commit
-> :::::: 66b3923a1a0f77a563b43f43f6ad091354abbfe9 arm64: hugetlb: add support for PTE contiguous bit
->
-> :::::: TO: David Woods <dwoods@ezchip.com>
-> :::::: CC: Will Deacon <will.deacon@arm.com>
->
-> ---
-> 0-DAY kernel test infrastructure                Open Source Technology Center
-> https://lists.01.org/pipermail/kbuild-all                   Intel Corporation
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+-Olof
