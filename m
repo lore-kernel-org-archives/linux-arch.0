@@ -1,90 +1,210 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:32961 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1761361AbdEWF0q (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 23 May 2017 01:26:46 -0400
-Received: from pps.filterd (m0098410.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.20/8.16.0.20) with SMTP id v4N5IZdR077449
-        for <linux-arch@vger.kernel.org>; Tue, 23 May 2017 01:26:40 -0400
-Received: from e06smtp14.uk.ibm.com (e06smtp14.uk.ibm.com [195.75.94.110])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2am8pcvsve-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Tue, 23 May 2017 01:26:40 -0400
-Received: from localhost
-        by e06smtp14.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <schwidefsky@de.ibm.com>;
-        Tue, 23 May 2017 06:26:37 +0100
-Date: Tue, 23 May 2017 07:26:29 +0200
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: Re: [PATCH v3.1 4/6] mm/hugetlb: Allow architectures to override
- huge_pte_clear()
-In-Reply-To: <20170522162555.4313-1-punit.agrawal@arm.com>
-References: <20170522133604.11392-5-punit.agrawal@arm.com>
-        <20170522162555.4313-1-punit.agrawal@arm.com>
+Received: from smtp.codeaurora.org ([198.145.29.96]:54300 "EHLO
+        smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752136AbdEWG0Q (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 May 2017 02:26:16 -0400
+Subject: Re: [PATCH V11 08/11] drivers: acpi: Handle IOMMU lookup failure with
+ deferred probing or error
+References: <1491823266-1209-1-git-send-email-sricharan@codeaurora.org>
+ <1491823266-1209-9-git-send-email-sricharan@codeaurora.org>
+From: Nate Watterson <nwatters@codeaurora.org>
+Message-ID: <41668eff-271c-1c4c-7665-3bf0faa74669@codeaurora.org>
+Date: Tue, 23 May 2017 02:26:10 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+In-Reply-To: <1491823266-1209-9-git-send-email-sricharan@codeaurora.org>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
 Content-Transfer-Encoding: 7bit
-Message-ID: <20170523072629.06163fa6@mschwideX1>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Punit Agrawal <punit.agrawal@arm.com>
-Cc: akpm@linux-foundation.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, will.deacon@arm.com, n-horiguchi@ah.jp.nec.com, kirill.shutemov@linux.intel.com, mike.kravetz@oracle.com, steve.capper@arm.com, mark.rutland@arm.com, linux-arch@vger.kernel.org, aneesh.kumar@linux.vnet.ibm.com, Heiko Carstens <heiko.carstens@de.ibm.com>, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20170523052629.Xkz5kFy36furEb0Nvt1anttYq5vVtm9e-0PLZwfHsjA@z>
+To: Sricharan R <sricharan@codeaurora.org>, robin.murphy@arm.com, will.deacon@arm.com, joro@8bytes.org, lorenzo.pieralisi@arm.com, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arm-msm@vger.kernel.org, m.szyprowski@samsung.com, bhelgaas@google.com, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, tn@semihalf.com, hanjun.guo@linaro.org, okaya@codeaurora.org, robh+dt@kernel.org, frowand.list@gmail.com, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, sudeep.holla@arm.com, rjw@rjwysocki.net, lenb@kernel.org, catalin.marinas@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, gregkh@linuxfoundation.org
+Message-ID: <20170523062610._JM21fmg3xpTjdmSt5fjKUM76IY24Hp22oeutS4NXu8@z>
 
-On Mon, 22 May 2017 17:25:55 +0100
-Punit Agrawal <punit.agrawal@arm.com> wrote:
+Hi Sricharan,
 
-> When unmapping a hugepage range, huge_pte_clear() is used to clear the
-> page table entries that are marked as not present. huge_pte_clear()
-> internally just ends up calling pte_clear() which does not correctly
-> deal with hugepages consisting of contiguous page table entries.
+On 4/10/2017 7:21 AM, Sricharan R wrote:
+> This is an equivalent to the DT's handling of the iommu master's probe
+> with deferred probing when the corrsponding iommu is not probed yet.
+> The lack of a registered IOMMU can be caused by the lack of a driver for
+> the IOMMU, the IOMMU device probe not having been performed yet, having
+> been deferred, or having failed.
 > 
-> Add a size argument to address this issue and allow architectures to
-> override huge_pte_clear() by wrapping it in a #ifndef block.
+> The first case occurs when the firmware describes the bus master and
+> IOMMU topology correctly but no device driver exists for the IOMMU yet
+> or the device driver has not been compiled in. Return NULL, the caller
+> will configure the device without an IOMMU.
 > 
-> Update s390 implementation with the size parameter as well.
+> The second and third cases are handled by deferring the probe of the bus
+> master device which will eventually get reprobed after the IOMMU.
 > 
-> Note that the change only affects huge_pte_clear() - the other generic
-> hugetlb functions don't need any change.
+> The last case is currently handled by deferring the probe of the bus
+> master device as well. A mechanism to either configure the bus master
+> device without an IOMMU or to fail the bus master device probe depending
+> on whether the IOMMU is optional or mandatory would be a good
+> enhancement.
 > 
-> Signed-off-by: Punit Agrawal <punit.agrawal@arm.com>
-> Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-> Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
-> Cc: Mike Kravetz <mike.kravetz@oracle.com>
+> Tested-by: Hanjun Guo <hanjun.guo@linaro.org>
+> Reviewed-by: Robin Murphy <robin.murphy@arm.com>
+> [Lorenzo: Added fixes for dma_coherent_mask overflow, acpi_dma_configure
+>            called multiple times for same device]
+> Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+> Signed-off-by: Sricharan R <sricharan@codeaurora.org>
 > ---
+>   drivers/acpi/arm64/iort.c  | 33 ++++++++++++++++++++++++++++++++-
+>   drivers/acpi/scan.c        | 11 ++++++++---
+>   drivers/base/dma-mapping.c |  2 +-
+>   include/acpi/acpi_bus.h    |  2 +-
+>   include/linux/acpi.h       |  7 +++++--
+>   5 files changed, 47 insertions(+), 8 deletions(-)
 > 
-> Changes since v3
-> 
-> * Drop weak function and use #ifndef block to allow architecture override
-> * Drop unnecessary move of s390 function definition
-> 
->  arch/s390/include/asm/hugetlb.h | 2 +-
->  include/asm-generic/hugetlb.h   | 4 +++-
->  mm/hugetlb.c                    | 2 +-
->  3 files changed, 5 insertions(+), 3 deletions(-)
-> 
-> diff --git a/arch/s390/include/asm/hugetlb.h b/arch/s390/include/asm/hugetlb.h
-> index cd546a245c68..c0443500baec 100644
-> --- a/arch/s390/include/asm/hugetlb.h
-> +++ b/arch/s390/include/asm/hugetlb.h
-> @@ -39,7 +39,7 @@ static inline int prepare_hugepage_range(struct file *file,
->  #define arch_clear_hugepage_flags(page)		do { } while (0)
-> 
->  static inline void huge_pte_clear(struct mm_struct *mm, unsigned long addr,
-> -				  pte_t *ptep)
-> +				  pte_t *ptep, unsigned long sz)
->  {
->  	if ((pte_val(*ptep) & _REGION_ENTRY_TYPE_MASK) == _REGION_ENTRY_TYPE_R3)
->  		pte_val(*ptep) = _REGION3_ENTRY_EMPTY;
+> diff --git a/drivers/acpi/arm64/iort.c b/drivers/acpi/arm64/iort.c
+> index 3dd9ec3..e323ece 100644
+> --- a/drivers/acpi/arm64/iort.c
+> +++ b/drivers/acpi/arm64/iort.c
+> @@ -543,6 +543,14 @@ static const struct iommu_ops *iort_iommu_xlate(struct device *dev,
+>   	const struct iommu_ops *ops = NULL;
+>   	int ret = -ENODEV;
+>   	struct fwnode_handle *iort_fwnode;
+> +	struct iommu_fwspec *fwspec = dev->iommu_fwspec;
+> +
+> +	/*
+> +	 * If we already translated the fwspec there
+> +	 * is nothing left to do, return the iommu_ops.
+> +	 */
+> +	if (fwspec && fwspec->ops)
+> +		return fwspec->ops;
 
-For the nop-change for s390:
-Acked-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Is this logic strictly required? It breaks masters with multiple SIDs
+as only the first SID is actually added to the master's fwspec.
+
+>   
+>   	if (node) {
+>   		iort_fwnode = iort_get_fwnode(node);
+> @@ -550,8 +558,17 @@ static const struct iommu_ops *iort_iommu_xlate(struct device *dev,
+>   			return NULL;
+>   
+>   		ops = iommu_ops_from_fwnode(iort_fwnode);
+> +		/*
+> +		 * If the ops look-up fails, this means that either
+> +		 * the SMMU drivers have not been probed yet or that
+> +		 * the SMMU drivers are not built in the kernel;
+> +		 * Depending on whether the SMMU drivers are built-in
+> +		 * in the kernel or not, defer the IOMMU configuration
+> +		 * or just abort it.
+> +		 */
+>   		if (!ops)
+> -			return NULL;
+> +			return iort_iommu_driver_enabled(node->type) ?
+> +			       ERR_PTR(-EPROBE_DEFER) : NULL;
+>   
+>   		ret = arm_smmu_iort_xlate(dev, streamid, iort_fwnode, ops);
+>   	}
+> @@ -625,12 +642,26 @@ const struct iommu_ops *iort_iommu_configure(struct device *dev)
+>   
+>   		while (parent) {
+>   			ops = iort_iommu_xlate(dev, parent, streamid);
+> +			if (IS_ERR_OR_NULL(ops))
+> +				return ops;
+>   
+>   			parent = iort_node_get_id(node, &streamid,
+>   						  IORT_IOMMU_TYPE, i++);
+>   		}
+>   	}
+>   
+> +	/*
+> +	 * If we have reason to believe the IOMMU driver missed the initial
+> +	 * add_device callback for dev, replay it to get things in order.
+> +	 */
+> +	if (!IS_ERR_OR_NULL(ops) && ops->add_device &&
+> +	    dev->bus && !dev->iommu_group) {
+> +		int err = ops->add_device(dev);
+> +
+> +		if (err)
+> +			ops = ERR_PTR(err);
+> +	}
+> +
+>   	return ops;
+>   }
+>   
+> diff --git a/drivers/acpi/scan.c b/drivers/acpi/scan.c
+> index 1926918..2a513cc 100644
+> --- a/drivers/acpi/scan.c
+> +++ b/drivers/acpi/scan.c
+> @@ -1373,20 +1373,25 @@ enum dev_dma_attr acpi_get_dma_attr(struct acpi_device *adev)
+>    * @dev: The pointer to the device
+>    * @attr: device dma attributes
+>    */
+> -void acpi_dma_configure(struct device *dev, enum dev_dma_attr attr)
+> +int acpi_dma_configure(struct device *dev, enum dev_dma_attr attr)
+>   {
+>   	const struct iommu_ops *iommu;
+> +	u64 size;
+>   
+>   	iort_set_dma_mask(dev);
+>   
+>   	iommu = iort_iommu_configure(dev);
+> +	if (IS_ERR(iommu))
+> +		return PTR_ERR(iommu);
+>   
+> +	size = max(dev->coherent_dma_mask, dev->coherent_dma_mask + 1);
+>   	/*
+>   	 * Assume dma valid range starts at 0 and covers the whole
+>   	 * coherent_dma_mask.
+>   	 */
+> -	arch_setup_dma_ops(dev, 0, dev->coherent_dma_mask + 1, iommu,
+> -			   attr == DEV_DMA_COHERENT);
+> +	arch_setup_dma_ops(dev, 0, size, iommu, attr == DEV_DMA_COHERENT);
+> +
+> +	return 0;
+>   }
+>   EXPORT_SYMBOL_GPL(acpi_dma_configure);
+>   
+> diff --git a/drivers/base/dma-mapping.c b/drivers/base/dma-mapping.c
+> index 82bd45c..755a2b5 100644
+> --- a/drivers/base/dma-mapping.c
+> +++ b/drivers/base/dma-mapping.c
+> @@ -368,7 +368,7 @@ int dma_configure(struct device *dev)
+>   	} else if (has_acpi_companion(dma_dev)) {
+>   		attr = acpi_get_dma_attr(to_acpi_device_node(dma_dev->fwnode));
+>   		if (attr != DEV_DMA_NOT_SUPPORTED)
+> -			acpi_dma_configure(dev, attr);
+> +			ret = acpi_dma_configure(dev, attr);
+>   	}
+>   
+>   	if (bridge)
+> diff --git a/include/acpi/acpi_bus.h b/include/acpi/acpi_bus.h
+> index ef0ae8a..2a9a5de 100644
+> --- a/include/acpi/acpi_bus.h
+> +++ b/include/acpi/acpi_bus.h
+> @@ -575,7 +575,7 @@ struct acpi_pci_root {
+>   
+>   bool acpi_dma_supported(struct acpi_device *adev);
+>   enum dev_dma_attr acpi_get_dma_attr(struct acpi_device *adev);
+> -void acpi_dma_configure(struct device *dev, enum dev_dma_attr attr);
+> +int acpi_dma_configure(struct device *dev, enum dev_dma_attr attr);
+>   void acpi_dma_deconfigure(struct device *dev);
+>   
+>   struct acpi_device *acpi_find_child_device(struct acpi_device *parent,
+> diff --git a/include/linux/acpi.h b/include/linux/acpi.h
+> index 9b05886..79d06ef6 100644
+> --- a/include/linux/acpi.h
+> +++ b/include/linux/acpi.h
+> @@ -762,8 +762,11 @@ static inline enum dev_dma_attr acpi_get_dma_attr(struct acpi_device *adev)
+>   	return DEV_DMA_NOT_SUPPORTED;
+>   }
+>   
+> -static inline void acpi_dma_configure(struct device *dev,
+> -				      enum dev_dma_attr attr) { }
+> +static inline int acpi_dma_configure(struct device *dev,
+> +				     enum dev_dma_attr attr)
+> +{
+> +	return 0;
+> +}
+>   
+>   static inline void acpi_dma_deconfigure(struct device *dev) { }
+>   
+> 
 
 -- 
-blue skies,
-   Martin.
-
-"Reality continues to ruin my life." - Calvin.
+Qualcomm Datacenter Technologies as an affiliate of Qualcomm Technologies, Inc.
+Qualcomm Technologies, Inc. is a member of the Code Aurora Forum, a Linux Foundation Collaborative Project.
