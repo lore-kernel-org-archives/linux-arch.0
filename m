@@ -1,11 +1,11 @@
 From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: [PATCH 2/7] m32r: Use lib/ucmpdi2.c
-Date: Tue, 23 May 2017 15:05:41 -0700
-Message-ID: <20170523220546.16758-3-palmer__20646.1676782512$1495577232$gmane$org@dabbelt.com>
+Subject: [PATCH 5/7] score: Use lib/{ashldi3,ashrdi3,cmpdi2,lshrdi3,ucmpdi2}.c
+Date: Tue, 23 May 2017 15:05:44 -0700
+Message-ID: <20170523220546.16758-6-palmer@dabbelt.com>
 References: <20170523220546.16758-1-palmer@dabbelt.com>
-Return-path: <linux-sh-owner@vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20170523220546.16758-1-palmer@dabbelt.com>
-Sender: linux-sh-owner@vger.kernel.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: monstr@monstr.eu, ralf@linux-mips.org, liqin.linux@gmail.com, lennox.wu@gmail.com, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, linux-mips@linux-mips.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, geert@linux-m68k.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Palmer Dabbelt <palmer@dabbelt.com>
 List-Id: linux-arch.vger.kernel.org
@@ -15,59 +15,241 @@ recently added.
 
 Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
 ---
- arch/m32r/Kconfig       |  1 +
- arch/m32r/lib/Makefile  |  3 +--
- arch/m32r/lib/libgcc.h  | 23 -----------------------
- arch/m32r/lib/ucmpdi2.c | 17 -----------------
- 4 files changed, 2 insertions(+), 42 deletions(-)
- delete mode 100644 arch/m32r/lib/libgcc.h
- delete mode 100644 arch/m32r/lib/ucmpdi2.c
+ arch/score/Kconfig       |  5 +++++
+ arch/score/lib/Makefile  |  3 ---
+ arch/score/lib/ashldi3.c | 46 ----------------------------------------------
+ arch/score/lib/ashrdi3.c | 48 ------------------------------------------------
+ arch/score/lib/cmpdi2.c  | 44 --------------------------------------------
+ arch/score/lib/libgcc.h  | 37 -------------------------------------
+ arch/score/lib/lshrdi3.c | 47 -----------------------------------------------
+ arch/score/lib/ucmpdi2.c | 38 --------------------------------------
+ 8 files changed, 5 insertions(+), 263 deletions(-)
+ delete mode 100644 arch/score/lib/ashldi3.c
+ delete mode 100644 arch/score/lib/ashrdi3.c
+ delete mode 100644 arch/score/lib/cmpdi2.c
+ delete mode 100644 arch/score/lib/libgcc.h
+ delete mode 100644 arch/score/lib/lshrdi3.c
+ delete mode 100644 arch/score/lib/ucmpdi2.c
 
-diff --git a/arch/m32r/Kconfig b/arch/m32r/Kconfig
-index 95474460b367..2fbe3aa3e0c4 100644
---- a/arch/m32r/Kconfig
-+++ b/arch/m32r/Kconfig
-@@ -19,6 +19,7 @@ config M32R
- 	select HAVE_DEBUG_STACKOVERFLOW
+diff --git a/arch/score/Kconfig b/arch/score/Kconfig
+index 507d63181389..5959a981061c 100644
+--- a/arch/score/Kconfig
++++ b/arch/score/Kconfig
+@@ -15,6 +15,11 @@ config SCORE
+ 	select MODULES_USE_ELF_REL
+ 	select CLONE_BACKWARDS
  	select CPU_NO_EFFICIENT_FFS
- 	select DMA_NOOP_OPS
-+	select LIB_UCMPDI3
++	select LIB_ASHLDI3
++	select LIB_ASHRDI3
++	select LIB_CMPDI2
++	select LIB_LSHRDI3
++	select LIB_UCMPDI2
  
- config SBUS
- 	bool
-diff --git a/arch/m32r/lib/Makefile b/arch/m32r/lib/Makefile
-index 5889eb9610b5..0a753a833bbf 100644
---- a/arch/m32r/lib/Makefile
-+++ b/arch/m32r/lib/Makefile
-@@ -3,5 +3,4 @@
+ choice
+ 	prompt "System type"
+diff --git a/arch/score/lib/Makefile b/arch/score/lib/Makefile
+index 553e30e81faf..ea3f3aba8c71 100644
+--- a/arch/score/lib/Makefile
++++ b/arch/score/lib/Makefile
+@@ -3,6 +3,3 @@
  #
  
- lib-y  := checksum.o ashxdi3.o memset.o memcpy.o \
--	  delay.o strlen.o usercopy.o csum_partial_copy.o \
--	  ucmpdi2.o
-+	  delay.o strlen.o usercopy.o csum_partial_copy.o
-diff --git a/arch/m32r/lib/libgcc.h b/arch/m32r/lib/libgcc.h
+ lib-y += string.o checksum.o checksum_copy.o
+-
+-# libgcc-style stuff needed in the kernel
+-obj-y += ashldi3.o ashrdi3.o cmpdi2.o lshrdi3.o ucmpdi2.o
+diff --git a/arch/score/lib/ashldi3.c b/arch/score/lib/ashldi3.c
 deleted file mode 100644
-index 267aa435bc35..000000000000
---- a/arch/m32r/lib/libgcc.h
+index 15691a910431..000000000000
+--- a/arch/score/lib/ashldi3.c
 +++ /dev/null
-@@ -1,23 +0,0 @@
+@@ -1,46 +0,0 @@
+-/*
+- * arch/score/lib/ashldi3.c
+- *
+- * This program is free software; you can redistribute it and/or modify
+- * it under the terms of the GNU General Public License as published by
+- * the Free Software Foundation; either version 2 of the License, or
+- * (at your option) any later version.
+- *
+- * This program is distributed in the hope that it will be useful,
+- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+- * GNU General Public License for more details.
+- *
+- * You should have received a copy of the GNU General Public License
+- * along with this program; if not, see the file COPYING, or write
+- * to the Free Software Foundation, Inc.,
+- * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+- */
+-
+-#include <linux/module.h>
+-#include "libgcc.h"
+-
+-long long __ashldi3(long long u, word_type b)
+-{
+-	DWunion uu, w;
+-	word_type bm;
+-
+-	if (b == 0)
+-		return u;
+-
+-	uu.ll = u;
+-	bm = 32 - b;
+-
+-	if (bm <= 0) {
+-		w.s.low = 0;
+-		w.s.high = (unsigned int) uu.s.low << -bm;
+-	} else {
+-		const unsigned int carries = (unsigned int) uu.s.low >> bm;
+-
+-		w.s.low = (unsigned int) uu.s.low << b;
+-		w.s.high = ((unsigned int) uu.s.high << b) | carries;
+-	}
+-
+-	return w.ll;
+-}
+-EXPORT_SYMBOL(__ashldi3);
+diff --git a/arch/score/lib/ashrdi3.c b/arch/score/lib/ashrdi3.c
+deleted file mode 100644
+index d9814a5d8d30..000000000000
+--- a/arch/score/lib/ashrdi3.c
++++ /dev/null
+@@ -1,48 +0,0 @@
+-/*
+- * arch/score/lib/ashrdi3.c
+- *
+- * This program is free software; you can redistribute it and/or modify
+- * it under the terms of the GNU General Public License as published by
+- * the Free Software Foundation; either version 2 of the License, or
+- * (at your option) any later version.
+- *
+- * This program is distributed in the hope that it will be useful,
+- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+- * GNU General Public License for more details.
+- *
+- * You should have received a copy of the GNU General Public License
+- * along with this program; if not, see the file COPYING, or write
+- * to the Free Software Foundation, Inc.,
+- * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+- */
+-
+-#include <linux/module.h>
+-#include "libgcc.h"
+-
+-long long __ashrdi3(long long u, word_type b)
+-{
+-	DWunion uu, w;
+-	word_type bm;
+-
+-	if (b == 0)
+-		return u;
+-
+-	uu.ll = u;
+-	bm = 32 - b;
+-
+-	if (bm <= 0) {
+-		/* w.s.high = 1..1 or 0..0 */
+-		w.s.high =
+-		    uu.s.high >> 31;
+-		w.s.low = uu.s.high >> -bm;
+-	} else {
+-		const unsigned int carries = (unsigned int) uu.s.high << bm;
+-
+-		w.s.high = uu.s.high >> b;
+-		w.s.low = ((unsigned int) uu.s.low >> b) | carries;
+-	}
+-
+-	return w.ll;
+-}
+-EXPORT_SYMBOL(__ashrdi3);
+diff --git a/arch/score/lib/cmpdi2.c b/arch/score/lib/cmpdi2.c
+deleted file mode 100644
+index 1ed5290c66ed..000000000000
+--- a/arch/score/lib/cmpdi2.c
++++ /dev/null
+@@ -1,44 +0,0 @@
+-/*
+- * arch/score/lib/cmpdi2.c
+- *
+- * This program is free software; you can redistribute it and/or modify
+- * it under the terms of the GNU General Public License as published by
+- * the Free Software Foundation; either version 2 of the License, or
+- * (at your option) any later version.
+- *
+- * This program is distributed in the hope that it will be useful,
+- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+- * GNU General Public License for more details.
+- *
+- * You should have received a copy of the GNU General Public License
+- * along with this program; if not, see the file COPYING, or write
+- * to the Free Software Foundation, Inc.,
+- * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+- */
+-
+-#include <linux/module.h>
+-#include "libgcc.h"
+-
+-word_type __cmpdi2(long long a, long long b)
+-{
+-	const DWunion au = {
+-		.ll = a
+-	};
+-	const DWunion bu = {
+-		.ll = b
+-	};
+-
+-	if (au.s.high < bu.s.high)
+-		return 0;
+-	else if (au.s.high > bu.s.high)
+-		return 2;
+-
+-	if ((unsigned int) au.s.low < (unsigned int) bu.s.low)
+-		return 0;
+-	else if ((unsigned int) au.s.low > (unsigned int) bu.s.low)
+-		return 2;
+-
+-	return 1;
+-}
+-EXPORT_SYMBOL(__cmpdi2);
+diff --git a/arch/score/lib/libgcc.h b/arch/score/lib/libgcc.h
+deleted file mode 100644
+index 0f12543d9f31..000000000000
+--- a/arch/score/lib/libgcc.h
++++ /dev/null
+@@ -1,37 +0,0 @@
+-/*
+- * arch/score/lib/libgcc.h
+- *
+- * This program is free software; you can redistribute it and/or modify
+- * it under the terms of the GNU General Public License as published by
+- * the Free Software Foundation; either version 2 of the License, or
+- * (at your option) any later version.
+- *
+- * This program is distributed in the hope that it will be useful,
+- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+- * GNU General Public License for more details.
+- *
+- * You should have received a copy of the GNU General Public License
+- * along with this program; if not, see the file COPYING, or write
+- * to the Free Software Foundation, Inc.,
+- * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+- */
+-
+-
 -#ifndef __ASM_LIBGCC_H
 -#define __ASM_LIBGCC_H
 -
 -#include <asm/byteorder.h>
 -
--#ifdef __BIG_ENDIAN
--struct DWstruct {
--	int high, low;
--};
--#elif defined(__LITTLE_ENDIAN)
+-typedef int word_type __attribute__((mode(__word__)));
+-
 -struct DWstruct {
 -	int low, high;
 -};
--#else
--#error I feel sick.
--#endif
 -
 -typedef union {
 -	struct DWstruct s;
@@ -75,29 +257,102 @@ index 267aa435bc35..000000000000
 -} DWunion;
 -
 -#endif /* __ASM_LIBGCC_H */
-diff --git a/arch/m32r/lib/ucmpdi2.c b/arch/m32r/lib/ucmpdi2.c
+diff --git a/arch/score/lib/lshrdi3.c b/arch/score/lib/lshrdi3.c
 deleted file mode 100644
-index 9d3c682c89b5..000000000000
---- a/arch/m32r/lib/ucmpdi2.c
+index ce21175fd791..000000000000
+--- a/arch/score/lib/lshrdi3.c
 +++ /dev/null
-@@ -1,17 +0,0 @@
+@@ -1,47 +0,0 @@
+-/*
+- * arch/score/lib/lshrdi3.c
+- *
+- * This program is free software; you can redistribute it and/or modify
+- * it under the terms of the GNU General Public License as published by
+- * the Free Software Foundation; either version 2 of the License, or
+- * (at your option) any later version.
+- *
+- * This program is distributed in the hope that it will be useful,
+- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+- * GNU General Public License for more details.
+- *
+- * You should have received a copy of the GNU General Public License
+- * along with this program; if not, see the file COPYING, or write
+- * to the Free Software Foundation, Inc.,
+- * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+- */
+-
+-
+-#include <linux/module.h>
 -#include "libgcc.h"
 -
--int __ucmpdi2(unsigned long long a, unsigned long long b)
+-long long __lshrdi3(long long u, word_type b)
+-{
+-	DWunion uu, w;
+-	word_type bm;
+-
+-	if (b == 0)
+-		return u;
+-
+-	uu.ll = u;
+-	bm = 32 - b;
+-
+-	if (bm <= 0) {
+-		w.s.high = 0;
+-		w.s.low = (unsigned int) uu.s.high >> -bm;
+-	} else {
+-		const unsigned int carries = (unsigned int) uu.s.high << bm;
+-
+-		w.s.high = (unsigned int) uu.s.high >> b;
+-		w.s.low = ((unsigned int) uu.s.low >> b) | carries;
+-	}
+-
+-	return w.ll;
+-}
+-EXPORT_SYMBOL(__lshrdi3);
+diff --git a/arch/score/lib/ucmpdi2.c b/arch/score/lib/ucmpdi2.c
+deleted file mode 100644
+index b15241e0b079..000000000000
+--- a/arch/score/lib/ucmpdi2.c
++++ /dev/null
+@@ -1,38 +0,0 @@
+-/*
+- * arch/score/lib/ucmpdi2.c
+- *
+- * This program is free software; you can redistribute it and/or modify
+- * it under the terms of the GNU General Public License as published by
+- * the Free Software Foundation; either version 2 of the License, or
+- * (at your option) any later version.
+- *
+- * This program is distributed in the hope that it will be useful,
+- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+- * GNU General Public License for more details.
+- *
+- * You should have received a copy of the GNU General Public License
+- * along with this program; if not, see the file COPYING, or write
+- * to the Free Software Foundation, Inc.,
+- * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+- */
+-
+-#include <linux/module.h>
+-#include "libgcc.h"
+-
+-word_type __ucmpdi2(unsigned long long a, unsigned long long b)
 -{
 -	const DWunion au = {.ll = a};
 -	const DWunion bu = {.ll = b};
 -
--	if ((unsigned int)au.s.high < (unsigned int)bu.s.high)
+-	if ((unsigned int) au.s.high < (unsigned int) bu.s.high)
 -		return 0;
--	else if ((unsigned int)au.s.high > (unsigned int)bu.s.high)
+-	else if ((unsigned int) au.s.high > (unsigned int) bu.s.high)
 -		return 2;
--	if ((unsigned int)au.s.low < (unsigned int)bu.s.low)
+-	if ((unsigned int) au.s.low < (unsigned int) bu.s.low)
 -		return 0;
--	else if ((unsigned int)au.s.low > (unsigned int)bu.s.low)
+-	else if ((unsigned int) au.s.low > (unsigned int) bu.s.low)
 -		return 2;
 -	return 1;
 -}
+-EXPORT_SYMBOL(__ucmpdi2);
 -- 
 2.13.0
-
