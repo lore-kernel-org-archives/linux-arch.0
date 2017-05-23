@@ -1,109 +1,146 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f193.google.com ([209.85.192.193]:35118 "EHLO
+Received: from mail-pf0-f193.google.com ([209.85.192.193]:35106 "EHLO
         mail-pf0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1162870AbdEWWGq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 May 2017 18:06:46 -0400
-Received: by mail-pf0-f193.google.com with SMTP id u26so30210135pfd.2
-        for <linux-arch@vger.kernel.org>; Tue, 23 May 2017 15:06:46 -0700 (PDT)
+        with ESMTP id S1031701AbdEWWHA (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 May 2017 18:07:00 -0400
+Received: by mail-pf0-f193.google.com with SMTP id u26so30210034pfd.2
+        for <linux-arch@vger.kernel.org>; Tue, 23 May 2017 15:07:00 -0700 (PDT)
 From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: [PATCH 7/7] sparc: Use lib/{cmpdi2,ucmpdi2}.c
-Date: Tue, 23 May 2017 15:05:46 -0700
-Message-ID: <20170523220546.16758-8-palmer@dabbelt.com>
+Subject: [PATCH 6/7] sh: Use lib/ashldi3,ashrdi3,lshrdi3}.c
+Date: Tue, 23 May 2017 15:05:45 -0700
+Message-ID: <20170523220546.16758-7-palmer@dabbelt.com>
 In-Reply-To: <20170523220546.16758-1-palmer@dabbelt.com>
 References: <20170523220546.16758-1-palmer@dabbelt.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: monstr@monstr.eu, ralf@linux-mips.org, liqin.linux@gmail.com, lennox.wu@gmail.com, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, linux-mips@linux-mips.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, geert@linux-m68k.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Palmer Dabbelt <palmer@dabbelt.com>
-Message-ID: <20170523220546.O3hFLdFbN-6B5jx7AJf6eM6q8t4TiY5wwG_VT7wkftA@z>
+Message-ID: <20170523220545.oT5yJcUcydUaVcfMc1FEsKsZewkq7Z7pMDOFi0v6aN0@z>
 
 These files are functionally identical to the shared copies that I
 recently added.
 
 Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
 ---
- arch/sparc/Kconfig       |  2 ++
- arch/sparc/lib/Makefile  |  4 ++--
- arch/sparc/lib/cmpdi2.c  | 27 ---------------------------
- arch/sparc/lib/libgcc.h  | 18 ------------------
- arch/sparc/lib/ucmpdi2.c | 19 -------------------
- 5 files changed, 4 insertions(+), 66 deletions(-)
- delete mode 100644 arch/sparc/lib/cmpdi2.c
- delete mode 100644 arch/sparc/lib/libgcc.h
- delete mode 100644 arch/sparc/lib/ucmpdi2.c
+ arch/sh/Kconfig       |  3 +++
+ arch/sh/lib/Makefile  |  4 +---
+ arch/sh/lib/ashldi3.c | 29 -----------------------------
+ arch/sh/lib/ashrdi3.c | 31 -------------------------------
+ arch/sh/lib/libgcc.h  | 25 -------------------------
+ arch/sh/lib/lshrdi3.c | 29 -----------------------------
+ 6 files changed, 4 insertions(+), 117 deletions(-)
+ delete mode 100644 arch/sh/lib/ashldi3.c
+ delete mode 100644 arch/sh/lib/ashrdi3.c
+ delete mode 100644 arch/sh/lib/libgcc.h
+ delete mode 100644 arch/sh/lib/lshrdi3.c
 
-diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
-index 58243b0d21c0..80ed2338812b 100644
---- a/arch/sparc/Kconfig
-+++ b/arch/sparc/Kconfig
-@@ -52,6 +52,8 @@ config SPARC32
- 	select CLZ_TAB
- 	select HAVE_UID16
- 	select OLD_SIGACTION
-+	select LIB_CMPDI2
-+	select LIB_UCMPDI2
+diff --git a/arch/sh/Kconfig b/arch/sh/Kconfig
+index ee086958b2b2..f991632f31ba 100644
+--- a/arch/sh/Kconfig
++++ b/arch/sh/Kconfig
+@@ -48,6 +48,9 @@ config SUPERH
+ 	select HAVE_ARCH_AUDITSYSCALL
+ 	select HAVE_FUTEX_CMPXCHG if FUTEX
+ 	select HAVE_NMI
++	select LIB_ASHLDI3
++	select LIB_ASHRDI3
++	select LIB_LSHRDI3
+ 	help
+ 	  The SuperH is a RISC processor targeted for use in embedded systems
+ 	  and consumer electronics; it was also used in the Sega Dreamcast
+diff --git a/arch/sh/lib/Makefile b/arch/sh/lib/Makefile
+index 3baff31e58cf..8caae109a728 100644
+--- a/arch/sh/lib/Makefile
++++ b/arch/sh/lib/Makefile
+@@ -6,9 +6,7 @@ lib-y  = delay.o memmove.o memchr.o \
+ 	 checksum.o strlen.o div64.o div64-generic.o
  
- config SPARC64
- 	def_bool 64BIT
-diff --git a/arch/sparc/lib/Makefile b/arch/sparc/lib/Makefile
-index 69912d2f8b54..815b4a336aa8 100644
---- a/arch/sparc/lib/Makefile
-+++ b/arch/sparc/lib/Makefile
-@@ -14,7 +14,7 @@ lib-$(CONFIG_SPARC32) += divdi3.o udivdi3.o
- lib-$(CONFIG_SPARC32) += copy_user.o locks.o
- lib-$(CONFIG_SPARC64) += atomic_64.o
- lib-$(CONFIG_SPARC32) += lshrdi3.o ashldi3.o
--lib-$(CONFIG_SPARC32) += muldi3.o bitext.o cmpdi2.o
-+lib-$(CONFIG_SPARC32) += muldi3.o bitext.o
+ # Extracted from libgcc
+-obj-y += movmem.o ashldi3.o ashrdi3.o lshrdi3.o \
+-	 ashlsi3.o ashrsi3.o ashiftrt.o lshrsi3.o \
+-	 udiv_qrnnd.o
++obj-y += movmem.o ashlsi3.o ashrsi3.o ashiftrt.o udiv_qrnnd.o
  
- lib-$(CONFIG_SPARC64) += copy_page.o clear_page.o bzero.o
- lib-$(CONFIG_SPARC64) += csum_copy.o csum_copy_from_user.o csum_copy_to_user.o
-@@ -42,5 +42,5 @@ lib-$(CONFIG_SPARC64) += copy_in_user.o memmove.o
- lib-$(CONFIG_SPARC64) += mcount.o ipcsum.o xor.o hweight.o ffs.o
+ udivsi3-y			:= udivsi3_i4i-Os.o
  
- obj-$(CONFIG_SPARC64) += iomap.o
--obj-$(CONFIG_SPARC32) += atomic32.o ucmpdi2.o
-+obj-$(CONFIG_SPARC32) += atomic32.o
- obj-$(CONFIG_SPARC64) += PeeCeeI.o
-diff --git a/arch/sparc/lib/cmpdi2.c b/arch/sparc/lib/cmpdi2.c
+diff --git a/arch/sh/lib/ashldi3.c b/arch/sh/lib/ashldi3.c
 deleted file mode 100644
-index 8c1306437ed1..000000000000
---- a/arch/sparc/lib/cmpdi2.c
+index beb80f316095..000000000000
+--- a/arch/sh/lib/ashldi3.c
 +++ /dev/null
-@@ -1,27 +0,0 @@
+@@ -1,29 +0,0 @@
 -#include <linux/module.h>
 -
 -#include "libgcc.h"
 -
--word_type __cmpdi2(long long a, long long b)
+-long long __ashldi3(long long u, word_type b)
 -{
--	const DWunion au = {
--		.ll = a
--	};
--	const DWunion bu = {
--		.ll = b
--	};
+-	DWunion uu, w;
+-	word_type bm;
 -
--	if (au.s.high < bu.s.high)
--		return 0;
--	else if (au.s.high > bu.s.high)
--		return 2;
+-	if (b == 0)
+-		return u;
 -
--	if ((unsigned int) au.s.low < (unsigned int) bu.s.low)
--		return 0;
--	else if ((unsigned int) au.s.low > (unsigned int) bu.s.low)
--		return 2;
+-	uu.ll = u;
+-	bm = 32 - b;
 -
--	return 1;
+-	if (bm <= 0) {
+-		w.s.low = 0;
+-		w.s.high = (unsigned int) uu.s.low << -bm;
+-	} else {
+-		const unsigned int carries = (unsigned int) uu.s.low >> bm;
+-
+-		w.s.low = (unsigned int) uu.s.low << b;
+-		w.s.high = ((unsigned int) uu.s.high << b) | carries;
+-	}
+-
+-	return w.ll;
 -}
 -
--EXPORT_SYMBOL(__cmpdi2);
-diff --git a/arch/sparc/lib/libgcc.h b/arch/sparc/lib/libgcc.h
+-EXPORT_SYMBOL(__ashldi3);
+diff --git a/arch/sh/lib/ashrdi3.c b/arch/sh/lib/ashrdi3.c
 deleted file mode 100644
-index b84fd797f3ea..000000000000
---- a/arch/sparc/lib/libgcc.h
+index c884a912b660..000000000000
+--- a/arch/sh/lib/ashrdi3.c
 +++ /dev/null
-@@ -1,18 +0,0 @@
+@@ -1,31 +0,0 @@
+-#include <linux/module.h>
+-
+-#include "libgcc.h"
+-
+-long long __ashrdi3(long long u, word_type b)
+-{
+-	DWunion uu, w;
+-	word_type bm;
+-
+-	if (b == 0)
+-		return u;
+-
+-	uu.ll = u;
+-	bm = 32 - b;
+-
+-	if (bm <= 0) {
+-		/* w.s.high = 1..1 or 0..0 */
+-		w.s.high =
+-		    uu.s.high >> 31;
+-		w.s.low = uu.s.high >> -bm;
+-	} else {
+-		const unsigned int carries = (unsigned int) uu.s.high << bm;
+-
+-		w.s.high = uu.s.high >> b;
+-		w.s.low = ((unsigned int) uu.s.low >> b) | carries;
+-	}
+-
+-	return w.ll;
+-}
+-
+-EXPORT_SYMBOL(__ashrdi3);
+diff --git a/arch/sh/lib/libgcc.h b/arch/sh/lib/libgcc.h
+deleted file mode 100644
+index 05909d58e2fe..000000000000
+--- a/arch/sh/lib/libgcc.h
++++ /dev/null
+@@ -1,25 +0,0 @@
 -#ifndef __ASM_LIBGCC_H
 -#define __ASM_LIBGCC_H
 -
@@ -111,41 +148,58 @@ index b84fd797f3ea..000000000000
 -
 -typedef int word_type __attribute__ ((mode (__word__)));
 -
+-#ifdef __BIG_ENDIAN
 -struct DWstruct {
 -	int high, low;
 -};
+-#elif defined(__LITTLE_ENDIAN)
+-struct DWstruct {
+-	int low, high;
+-};
+-#else
+-#error I feel sick.
+-#endif
 -
--typedef union
--{
+-typedef union {
 -	struct DWstruct s;
 -	long long ll;
 -} DWunion;
 -
 -#endif /* __ASM_LIBGCC_H */
-diff --git a/arch/sparc/lib/ucmpdi2.c b/arch/sparc/lib/ucmpdi2.c
+diff --git a/arch/sh/lib/lshrdi3.c b/arch/sh/lib/lshrdi3.c
 deleted file mode 100644
-index 1e06ed500682..000000000000
---- a/arch/sparc/lib/ucmpdi2.c
+index dcf8d6810b7c..000000000000
+--- a/arch/sh/lib/lshrdi3.c
 +++ /dev/null
-@@ -1,19 +0,0 @@
+@@ -1,29 +0,0 @@
 -#include <linux/module.h>
+-
 -#include "libgcc.h"
 -
--word_type __ucmpdi2(unsigned long long a, unsigned long long b)
+-long long __lshrdi3(long long u, word_type b)
 -{
--	const DWunion au = {.ll = a};
--	const DWunion bu = {.ll = b};
+-	DWunion uu, w;
+-	word_type bm;
 -
--	if ((unsigned int) au.s.high < (unsigned int) bu.s.high)
--		return 0;
--	else if ((unsigned int) au.s.high > (unsigned int) bu.s.high)
--		return 2;
--	if ((unsigned int) au.s.low < (unsigned int) bu.s.low)
--		return 0;
--	else if ((unsigned int) au.s.low > (unsigned int) bu.s.low)
--		return 2;
--	return 1;
+-	if (b == 0)
+-		return u;
+-
+-	uu.ll = u;
+-	bm = 32 - b;
+-
+-	if (bm <= 0) {
+-		w.s.high = 0;
+-		w.s.low = (unsigned int) uu.s.high >> -bm;
+-	} else {
+-		const unsigned int carries = (unsigned int) uu.s.high << bm;
+-
+-		w.s.high = (unsigned int) uu.s.high >> b;
+-		w.s.low = ((unsigned int) uu.s.low >> b) | carries;
+-	}
+-
+-	return w.ll;
 -}
--EXPORT_SYMBOL(__ucmpdi2);
+-
+-EXPORT_SYMBOL(__lshrdi3);
 -- 
 2.13.0
