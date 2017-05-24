@@ -1,86 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:37152 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:37002 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S939996AbdEXL4P (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 24 May 2017 07:56:15 -0400
+        id S939993AbdEXLzZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 24 May 2017 07:55:25 -0400
 From: Punit Agrawal <punit.agrawal@arm.com>
-Subject: [PATCH v4 7/8] mm/hugetlb: Introduce set_huge_swap_pte_at() helper
-Date: Wed, 24 May 2017 12:54:08 +0100
-Message-ID: <20170524115409.31309-8-punit.agrawal@arm.com>
+Subject: [PATCH v4 3/8] mm, gup: Remove broken VM_BUG_ON_PAGE compound check for hugepages
+Date: Wed, 24 May 2017 12:54:04 +0100
+Message-ID: <20170524115409.31309-4-punit.agrawal@arm.com>
 In-Reply-To: <20170524115409.31309-1-punit.agrawal@arm.com>
 References: <20170524115409.31309-1-punit.agrawal@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org
-Cc: Punit Agrawal <punit.agrawal@arm.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, will.deacon@arm.com, n-horiguchi@ah.jp.nec.com, kirill.shutemov@linux.intel.com, mike.kravetz@oracle.com, steve.capper@arm.com, mark.rutland@arm.com, linux-arch@vger.kernel.org, aneesh.kumar@linux.vnet.ibm.com
-Message-ID: <20170524115408.3Kk_22nsL-1OoRHrgbbSEIlr5U5CN43RMg7IvcUoPWA@z>
+Cc: Will Deacon <will.deacon@arm.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, n-horiguchi@ah.jp.nec.com, kirill.shutemov@linux.intel.com, mike.kravetz@oracle.com, steve.capper@arm.com, mark.rutland@arm.com, linux-arch@vger.kernel.org, aneesh.kumar@linux.vnet.ibm.com, Punit Agrawal <punit.agrawal@arm.com>
+Message-ID: <20170524115404._Jp1dUT29Y-UHhVIhO7xS6-TijbqfKqt0p9LEGYWTu4@z>
 
-set_huge_pte_at(), an architecture callback to populate hugepage ptes,
-does not provide the range of virtual memory that is targeted. This
-leads to ambiguity when dealing with swap entries on architectures that
-support hugepages consisting of contiguous ptes.
+From: Will Deacon <will.deacon@arm.com>
 
-Fix the problem by introducing an overridable helper for architectures
-needing this support. The helper is called when populating the page
-tables with swap entries. The size of the targeted region is provided to
-the helper to help determine the number of entries to be updated.
+When operating on hugepages with DEBUG_VM enabled, the GUP code checks the
+compound head for each tail page prior to calling page_cache_add_speculative.
+This is broken, because on the fast-GUP path (where we don't hold any page
+table locks) we can be racing with a concurrent invocation of
+split_huge_page_to_list.
 
-Provide a default implementation that maintains the current behaviour.
+split_huge_page_to_list deals with this race by using page_ref_freeze to
+freeze the page and force concurrent GUPs to fail whilst the component
+pages are modified. This modification includes clearing the compound_head
+field for the tail pages, so checking this prior to a successful call
+to page_cache_add_speculative can lead to false positives: In fact,
+page_cache_add_speculative *already* has this check once the page refcount
+has been successfully updated, so we can simply remove the broken calls
+to VM_BUG_ON_PAGE.
 
-Signed-off-by: Punit Agrawal <punit.agrawal@arm.com>
+Signed-off-by: Will Deacon <will.deacon@arm.com>
 Acked-by: Steve Capper <steve.capper@arm.com>
-Cc: Mike Kravetz <mike.kravetz@oracle.com>
-Cc: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
+Signed-off-by: Punit Agrawal <punit.agrawal@arm.com>
+Acked-by: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: Aneesh Kumar K.V <aneesh.kumar@linux.vnet.ibm.com>
 ---
- include/linux/hugetlb.h | 8 ++++++++
- mm/hugetlb.c            | 8 +++++---
- 2 files changed, 13 insertions(+), 3 deletions(-)
+ mm/gup.c | 3 ---
+ 1 file changed, 3 deletions(-)
 
-diff --git a/include/linux/hugetlb.h b/include/linux/hugetlb.h
-index 23010a3b2047..879eb063fb95 100644
---- a/include/linux/hugetlb.h
-+++ b/include/linux/hugetlb.h
-@@ -435,6 +435,14 @@ static inline pte_t arch_make_huge_pte(pte_t entry, struct vm_area_struct *vma,
- }
- #endif
- 
-+#ifndef set_huge_swap_pte_at
-+static inline void set_huge_swap_pte_at(struct mm_struct *mm, unsigned long addr,
-+					pte_t *ptep, pte_t pte, unsigned long sz)
-+{
-+	set_huge_pte_at(mm, addr, ptep, pte);
-+}
-+#endif
-+
- static inline struct hstate *page_hstate(struct page *page)
- {
- 	VM_BUG_ON_PAGE(!PageHuge(page), page);
-diff --git a/mm/hugetlb.c b/mm/hugetlb.c
-index ddfed20cd637..e3052c16d29a 100644
---- a/mm/hugetlb.c
-+++ b/mm/hugetlb.c
-@@ -3263,9 +3263,10 @@ int copy_hugetlb_page_range(struct mm_struct *dst, struct mm_struct *src,
- 				 */
- 				make_migration_entry_read(&swp_entry);
- 				entry = swp_entry_to_pte(swp_entry);
--				set_huge_pte_at(src, addr, src_pte, entry);
-+				set_huge_swap_pte_at(src, addr, src_pte,
-+						     entry, sz);
- 			}
--			set_huge_pte_at(dst, addr, dst_pte, entry);
-+			set_huge_swap_pte_at(dst, addr, dst_pte, entry, sz);
- 		} else {
- 			if (cow) {
- 				huge_ptep_set_wrprotect(src, addr, src_pte);
-@@ -4277,7 +4278,8 @@ unsigned long hugetlb_change_protection(struct vm_area_struct *vma,
- 
- 				make_migration_entry_read(&entry);
- 				newpte = swp_entry_to_pte(entry);
--				set_huge_pte_at(mm, address, ptep, newpte);
-+				set_huge_swap_pte_at(mm, address, ptep,
-+						     newpte, huge_page_size(h));
- 				pages++;
- 			}
- 			spin_unlock(ptl);
+diff --git a/mm/gup.c b/mm/gup.c
+index d9e6fddcc51f..ccf8cb38234f 100644
+--- a/mm/gup.c
++++ b/mm/gup.c
+@@ -1361,7 +1361,6 @@ static int gup_huge_pmd(pmd_t orig, pmd_t *pmdp, unsigned long addr,
+ 	head = pmd_page(orig);
+ 	page = head + ((addr & ~PMD_MASK) >> PAGE_SHIFT);
+ 	do {
+-		VM_BUG_ON_PAGE(compound_head(page) != head, page);
+ 		pages[*nr] = page;
+ 		(*nr)++;
+ 		page++;
+@@ -1400,7 +1399,6 @@ static int gup_huge_pud(pud_t orig, pud_t *pudp, unsigned long addr,
+ 	head = pud_page(orig);
+ 	page = head + ((addr & ~PUD_MASK) >> PAGE_SHIFT);
+ 	do {
+-		VM_BUG_ON_PAGE(compound_head(page) != head, page);
+ 		pages[*nr] = page;
+ 		(*nr)++;
+ 		page++;
+@@ -1438,7 +1436,6 @@ static int gup_huge_pgd(pgd_t orig, pgd_t *pgdp, unsigned long addr,
+ 	head = pgd_page(orig);
+ 	page = head + ((addr & ~PGDIR_MASK) >> PAGE_SHIFT);
+ 	do {
+-		VM_BUG_ON_PAGE(compound_head(page) != head, page);
+ 		pages[*nr] = page;
+ 		(*nr)++;
+ 		page++;
 -- 
 2.11.0
