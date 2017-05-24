@@ -1,127 +1,84 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: CPU_BIG_ENDIAN in generic code (was: Re: [PATCH v3 3/7]
- arch/sparc: Define config parameter CPU_BIG_ENDIAN)
-Date: Wed, 24 May 2017 12:18:36 +0200
-Message-ID: <CAK8P3a1XZGQk3b3q+JFJ+mLgw_upUdAtTM1VBjHZq5f2m-YdUg@mail.gmail.com>
-References: <CAMuHMdVjh+1TR19mUUQYHSazHnBHa4uxn7KyHUO+jAh7WDxy5Q@mail.gmail.com>
+From: Ian Abbott <abbotti@mev.co.uk>
+Subject: Re: [PATCH v4 2/2] kernel.h: handle pointers to arrays better in
+ container_of()
+Date: Wed, 24 May 2017 11:46:17 +0100
+Message-ID: <7dbdfa72-e168-3b50-90dc-bca8239e8081@mev.co.uk>
+References: <201705240824.8lrwsHKo%fengguang.wu@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAMuHMdVjh+1TR19mUUQYHSazHnBHa4uxn7KyHUO+jAh7WDxy5Q@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Babu Moger <babu.moger@oracle.com>, "David S. Miller" <davem@davemloft.net>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, sparclinux <sparclinux@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=windows-1252; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp104.iad3a.emailsrvr.com ([173.203.187.104]:55197 "EHLO
+        smtp104.iad3a.emailsrvr.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1760703AbdEXKqV (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 24 May 2017 06:46:21 -0400
+In-Reply-To: <201705240824.8lrwsHKo%fengguang.wu@intel.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: kbuild test robot <lkp@intel.com>
+Cc: kbuild-all@01.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Michal Nazarewicz <mina86@mina86.com>, Hidehiro Kawai <hidehiro.kawai.ez@hitachi.com>, Borislav Petkov <bp@suse.de>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Johannes Berg <johannes.berg@intel.com>, Peter Zijlstra <peterz@infradead.org>, Alexander Potapenko <glider@google.com>
 
-On Wed, May 24, 2017 at 11:59 AM, Geert Uytterhoeven
-<geert@linux-m68k.org> wrote:
-> On Tue, May 23, 2017 at 11:45 PM, Babu Moger <babu.moger@oracle.com> wrote:
->> Found this problem while enabling queued rwlock on SPARC.
->> The parameter CONFIG_CPU_BIG_ENDIAN is used to clear the
->> specific byte in qrwlock structure. Without this parameter,
->> we clear the wrong byte. Here is the code.
->>
->> static inline u8 *__qrwlock_write_byte(struct qrwlock *lock)
->>  {
->>         return (u8 *)lock + 3 * IS_BUILTIN(CONFIG_CPU_BIG_ENDIAN);
->>  }
->>
->> Define CPU_BIG_ENDIAN for SPARC to fix it.
+On 24/05/17 01:54, kbuild test robot wrote:
+> Hi Ian,
 >
->> --- a/arch/sparc/Kconfig
->> +++ b/arch/sparc/Kconfig
->> @@ -92,6 +92,10 @@ config ARCH_DEFCONFIG
->>  config ARCH_PROC_KCORE_TEXT
->>         def_bool y
->>
->> +config CPU_BIG_ENDIAN
->> +       bool
->> +       default y if SPARC
+> [auto build test ERROR on linus/master]
+> [also build test ERROR on v4.12-rc2 next-20170523]
+> [if your patch is applied to the wrong git tree, please drop us a note to help improve the system]
 >
-> Nice catch!
+> url:    https://github.com/0day-ci/linux/commits/Ian-Abbott/asm-generic-bug-h-declare-struct-pt_regs-before-function-prototype/20170524-070310
+> config: i386-allmodconfig (attached as .config)
+> compiler: gcc-6 (Debian 6.2.0-3) 6.2.0 20160901
+> reproduce:
+>         # save the attached .config to linux build tree
+>         make ARCH=i386
 >
-> Traditionally, CPU_BIG_ENDIAN and CPU_LITTLE_ENDIAN were defined only on
-> architectures that may support both.  And it was checked in platform code
-> and drivers only.
-> Hence the symbol is lacking from most architectures. Heck, even
-> architectures that support both may default to one endiannes, and declare
-> only the symbol for the other endianness:
+> All error/warnings (new ones prefixed by >>):
 >
-> --- arch/alpha ---
-> --- arch/arc ---
-> arch/arc/Kconfig:config CPU_BIG_ENDIAN
-> --- arch/arm ---
-> arch/arm/mm/Kconfig:config CPU_BIG_ENDIAN
-> --- arch/arm64 ---
-> arch/arm64/Kconfig:config CPU_BIG_ENDIAN
-> --- arch/blackfin ---
-> --- arch/c6x ---
-> arch/c6x/Kconfig:config CPU_BIG_ENDIAN
-> --- arch/cris ---
-> --- arch/frv ---
-> --- arch/h8300 ---
-> --- arch/hexagon ---
-> --- arch/ia64 ---
-> --- arch/Kconfig ---
-> --- arch/m32r ---
-> arch/m32r/Kconfig:config CPU_LITTLE_ENDIAN
-> --- arch/m68k ---
-> --- arch/metag ---
-> --- arch/microblaze ---
-> --- arch/mips ---
-> arch/mips/Kconfig:config CPU_BIG_ENDIAN
-> arch/mips/Kconfig:config CPU_LITTLE_ENDIAN
-> --- arch/mn10300 ---
-> --- arch/nios2 ---
-> --- arch/openrisc ---
-> --- arch/parisc ---
-> --- arch/powerpc ---
-> arch/powerpc/platforms/Kconfig.cputype:config CPU_BIG_ENDIAN
-> arch/powerpc/platforms/Kconfig.cputype:config CPU_LITTLE_ENDIAN
-> --- arch/s390 ---
-> arch/s390/Kconfig:config CPU_BIG_ENDIAN
-> --- arch/score ---
-> --- arch/sh ---
-> arch/sh/Kconfig.cpu:config CPU_LITTLE_ENDIAN
-> arch/sh/Kconfig.cpu:config CPU_BIG_ENDIAN
-> --- arch/sparc ---
-> --- arch/tile ---
-> --- arch/um ---
-> --- arch/unicore32 ---
-> --- arch/x86 ---
-> --- arch/xtensa ---
+>    In file included from include/linux/kernel.h:14:0,
+>                     from include/asm-generic/bug.h:15,
+>                     from arch/x86/include/asm/bug.h:81,
+>                     from drivers/block/drbd/drbd_interval.c:1:
+>>> include/linux/bug.h:103:47: warning: 'struct bug_entry' declared inside parameter list will not be visible outside of this definition or declaration
+>     static inline int is_warning_bug(const struct bug_entry *bug)
+>                                                   ^~~~~~~~~
+>    include/linux/bug.h: In function 'is_warning_bug':
+>>> include/linux/bug.h:105:12: error: dereferencing pointer to incomplete type 'const struct bug_entry'
+>      return bug->flags & BUGFLAG_WARNING;
+>                ^~
 >
-> However, there are already a few users in generic code, which are thus
-> broken on many platforms:
+> vim +105 include/linux/bug.h
 >
->     drivers/of/base.c
->     drivers/of/fdt.c
->     drivers/tty/serial/earlycon.c
->     drivers/tty/serial/serial_core.c
+> ff20c2e0 Kirill A. Shutemov  2016-03-01   97
+> 35edd910 Paul Gortmaker      2011-11-16   98  #endif	/* __CHECKER__ */
+> 35edd910 Paul Gortmaker      2011-11-16   99
+> 7664c5a1 Jeremy Fitzhardinge 2006-12-08  100  #ifdef CONFIG_GENERIC_BUG
+> 7664c5a1 Jeremy Fitzhardinge 2006-12-08  101  #include <asm-generic/bug.h>
+> 7664c5a1 Jeremy Fitzhardinge 2006-12-08  102
+> 7664c5a1 Jeremy Fitzhardinge 2006-12-08 @103  static inline int is_warning_bug(const struct bug_entry *bug)
+> 7664c5a1 Jeremy Fitzhardinge 2006-12-08  104  {
+> 7664c5a1 Jeremy Fitzhardinge 2006-12-08 @105  	return bug->flags & BUGFLAG_WARNING;
+> 7664c5a1 Jeremy Fitzhardinge 2006-12-08  106  }
+> 7664c5a1 Jeremy Fitzhardinge 2006-12-08  107
+> 19d43626 Peter Zijlstra      2017-02-25  108  struct bug_entry *find_bug(unsigned long bugaddr);
 >
-> include/asm-generic/qrwlock.h is also generic, but depends on the
-> architecture to select ARCH_USE_QUEUED_RWLOCKS, which only very few do
-> (x86, and now sparc).
+> :::::: The code at line 105 was first introduced by commit
+> :::::: 7664c5a1da4711bb6383117f51b94c8dc8f3f1cd [PATCH] Generic BUG implementation
 >
-> I guess the time is ripe for adding (both) symbols to all architectures?
+> :::::: TO: Jeremy Fitzhardinge <jeremy@goop.org>
+> :::::: CC: Linus Torvalds <torvalds@woody.osdl.org>
 
-Good idea. I think we can do most of this by adding a few lines to
-arch/Kconfig:
+This breakage occurs when <asm-generic/bug.h> is included before 
+<include/linux.h> due to a circular dependancy I introduced with this 
+commit.
 
-config CPU_BIG_ENDIAN
-        bool
+It can be fixed by replacing the `#include <linux/kernel.h>` with 
+`#include <linux/types.h>` in "include/asm-generic/bug.h".  I can send a 
+patch to fix that, but ideally, it should be committed before this 
+commit to avoid breakage during git bisect builds.  So my question is, 
+should I send a single patch to fix this breakage, or resend the series 
+of patches to incorporate this fix before the current commit?
 
-config CPU_LITTLE_ENDIAN
-       def_bool !CPU_BIG_ENDIAN
-
-This way, we only need to add 'select CPU_BIG_ENDIAN' to the
-architectures that are always big-endian, and we don't need to
-change anything for the ones that have a single 'CPU_BIG_ENDIAN'
-option.
-
-The three architectures that have a 'choice' statement (mips, ppc and
-sh) will have to convert, and m32r will have to replace the
-option with the opposite one, which could break 'make oldconfig',
-but nobody really cares about m32r any more.
-
-       Arnd
+-- 
+-=( Ian Abbott @ MEV Ltd.    E-mail: <abbotti@mev.co.uk> )=-
+-=(                          Web: http://www.mev.co.uk/  )=-
