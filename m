@@ -1,69 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f68.google.com ([209.85.214.68]:35618 "EHLO
-        mail-it0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S934576AbdEXJVY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 May 2017 05:21:24 -0400
+Received: from mail-it0-f66.google.com ([209.85.214.66]:33743 "EHLO
+        mail-it0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751643AbdEXJsr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 May 2017 05:48:47 -0400
 MIME-Version: 1.0
-In-Reply-To: <20170523220546.16758-1-palmer@dabbelt.com>
-References: <20170523220546.16758-1-palmer@dabbelt.com>
+In-Reply-To: <1495575958-1022566-4-git-send-email-babu.moger@oracle.com>
+References: <1495575958-1022566-1-git-send-email-babu.moger@oracle.com> <1495575958-1022566-4-git-send-email-babu.moger@oracle.com>
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Wed, 24 May 2017 11:21:22 +0200
-Message-ID: <CAMuHMdUP2RbjV+09UGkzjJcRrsoyy9F6XT8fbCPEd0mQCDFvFw@mail.gmail.com>
-Subject: Re: Unify the various copies of libgcc into lib
+Date: Wed, 24 May 2017 11:48:44 +0200
+Message-ID: <CAMuHMdV0fRdcbDWfafT0_cFSWikfgHghCJ+VkropPW_1wC7hRg@mail.gmail.com>
+Subject: Re: [PATCH v3 3/7] arch/sparc: Define config parameter CPU_BIG_ENDIAN
 Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Palmer Dabbelt <palmer@dabbelt.com>
-Cc: Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, Chen Liqin <liqin.linux@gmail.com>, Lennox Wu <lennox.wu@gmail.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, Linux-sh list <linux-sh@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
-Message-ID: <20170524092122.clYGoKdGWQl3uGW8E32fvz26hrnL0Wd2MV0S3WWeLpk@z>
+To: Babu Moger <babu.moger@oracle.com>
+Cc: "David S. Miller" <davem@davemloft.net>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, shannon.nelson@oracle.com, haakon.bugge@oracle.com, steven.sistare@oracle.com, vijay.ac.kumar@oracle.com, jane.chu@oracle.com, sparclinux <sparclinux@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Message-ID: <20170524094844.HgC5ghfzri4gFhEWuoK-XxPs4-niaGUX62MY4c62xZA@z>
 
-Hi Palmer,
-
-On Wed, May 24, 2017 at 12:05 AM, Palmer Dabbelt <palmer@dabbelt.com> wrote:
-> I'm in the process of submitting the RISC-V Linux port, and someone noticed
-> that we were adding copies of some libgcc emulation routines that were the same
-> as some of the other ports.  This prompted me to go through and check all the
-> ports for libgcc.h and to merge the versions that were functionally identical.
+On Tue, May 23, 2017 at 11:45 PM, Babu Moger <babu.moger@oracle.com> wrote:
+> Found this problem while enabling queued rwlock on SPARC.
+> The parameter CONFIG_CPU_BIG_ENDIAN is used to clear the
+> specific byte in qrwlock structure. Without this parameter,
+> we clear the wrong byte. Here is the code.
 >
-> The only difference in libgcc.h was that there was a #define for little vs big
-> endian.  The differences in the emulation routines were all just whitespace.
+> static inline u8 *__qrwlock_write_byte(struct qrwlock *lock)
+>  {
+>         return (u8 *)lock + 3 * IS_BUILTIN(CONFIG_CPU_BIG_ENDIAN);
+>  }
 >
-> This patch set comes in two parts:
+> Define CPU_BIG_ENDIAN for SPARC to fix it.
 >
->  * Patch 1 adds new copies of all the C files copied from libgcc, as well as
->    moving libgcc.h to include/lib (that's a new folder, which probably means
->    it's the wrong place to put it, but I couldn't find anything better).  There
->    are Kconfig entries for each of these library functions so architectures can
->    select them one at a time.
+> Signed-off-by: Babu Moger <babu.moger@oracle.com>
+> Reviewed-by: H=C3=A5kon Bugge <haakon.bugge@oracle.com>
+> Reviewed-by: Jane Chu <jane.chu@oracle.com>
+> Reviewed-by: Shannon Nelson <shannon.nelson@oracle.com>
+> Reviewed-by: Vijay Kumar <vijay.ac.kumar@oracle.com>
+> ---
+>  arch/sparc/Kconfig |    4 ++++
+>  1 files changed, 4 insertions(+), 0 deletions(-)
+>
+> diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
+> index 908f019..2f58c16 100644
+> --- a/arch/sparc/Kconfig
+> +++ b/arch/sparc/Kconfig
+> @@ -92,6 +92,10 @@ config ARCH_DEFCONFIG
+>  config ARCH_PROC_KCORE_TEXT
+>         def_bool y
+>
+> +config CPU_BIG_ENDIAN
+> +       bool
+> +       default y if SPARC
 
-I would call the Kconfig symbols GENERIC_* instead of LIB_*, for consistency
-with other generic implementations.
-
->  * The rest of the patches convert each architecture over to the new system.
-
-Thanks! For all but "[PATCH 4/7] mips: ...":
-
-Reviewed-by: Geert Uytterhoeven <geert@linux-m68k.org>
-
-> Unless I screwed something up, this patch set shouldn't actually change any
-> functionality.  Unfortunately I don't actually have all these cross compilers
-> setup so I can't actually test any of this, but I did convert the RISC-V port
-> over to using this system and it appears to be OK there so at least this isn't
-> completely broken.
-
-https://www.kernel.org/pub/tools/crosstool/
-
-BTW, blackfin, h8300, m68k, and parisc have their own implementations, too.
-They look different, but I believe their functionality is identical.
-They can be converted later, though.
+def_bool y?
 
 Gr{oetje,eeting}s,
 
                         Geert
 
 --
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k=
+.org
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
+In personal conversations with technical people, I call myself a hacker. Bu=
+t
+when I'm talking to journalists I just say "programmer" or something like t=
+hat.
                                 -- Linus Torvalds
