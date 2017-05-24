@@ -1,71 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp88.iad3a.emailsrvr.com ([173.203.187.88]:52501 "EHLO
-        smtp88.iad3a.emailsrvr.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1030240AbdEXNVU (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 24 May 2017 09:21:20 -0400
-From: Ian Abbott <abbotti@mev.co.uk>
-Subject: [PATCH 1/1] bug: fix problem including <linux.bug.h> from linux/kernel.h
-Date: Wed, 24 May 2017 14:21:07 +0100
-Message-ID: <20170524132107.6919-2-abbotti@mev.co.uk>
-In-Reply-To: <20170524132107.6919-1-abbotti@mev.co.uk>
-References: <20170524132107.6919-1-abbotti@mev.co.uk>
+Received: from mx1.redhat.com ([209.132.183.28]:60694 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1164077AbdEXNtf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 24 May 2017 09:49:35 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <20170523220546.16758-1-palmer@dabbelt.com>
+References: <20170523220546.16758-1-palmer@dabbelt.com>
+Subject: Re: Unify the various copies of libgcc into lib
+MIME-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-ID: <23395.1495633764.1@warthog.procyon.org.uk>
+Date: Wed, 24 May 2017 14:49:24 +0100
+Message-ID: <23396.1495633764@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Michal Nazarewicz <mina86@mina86.com>, Hidehiro Kawai <hidehiro.kawai.ez@hitachi.com>, Borislav Petkov <bp@suse.de>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Johannes Berg <johannes.berg@intel.com>, Peter Zijlstra <peterz@infradead.org>, Alexander Potapenko <glider@google.com>, Ian Abbott <abbotti@mev.co.uk>
-Message-ID: <20170524132107.kSXy0GRPO_Ce9uPWNJ3mnurR7picoUsd5eyIVV13UEs@z>
+To: Palmer Dabbelt <palmer@dabbelt.com>
+Cc: dhowells@redhat.com, monstr@monstr.eu, ralf@linux-mips.org, liqin.linux@gmail.com, lennox.wu@gmail.com, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, linux-mips@linux-mips.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, geert@linux-m68k.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20170524134924.F_pRjZd0a_8AM-UqzrxaoCAQpuUGz52C_xU0LXWUTa4@z>
 
-If "include/linux/kernel.h" includes <linux/bug.h>, a circular
-dependency is introduced when "include/asm-generic/bug.h" includes
-<linux/kernel.h>.  This results in build breakage when something
-includes <asm/bug.h> before <linux/kernel.h> for architectures that
-select `CONFIG_GENERIC_BUG` because `struct bug_entry` is not fully
-declared (not declared at all in fact) before its members are accessed
-by `is_warning_bug()`.
+Palmer Dabbelt <palmer@dabbelt.com> wrote:
 
-To avoid this problem, remove the inclusion of <linux/kernel.h> from
-"include/asm-generic/bug.h", but include <linux/types.h> from
-"include/linux/bug.h" because it needs the `bool` type.
+> ... Unfortunately I don't actually have all these cross compilers setup...
 
-A consequence of this change is that since most bug-related,
-function-link macros (`BUG()`, `WARN()` etc.) make use of facilities
-provided by <linux/kernel.h>, something else needs to include that
-before those macros are called.
+If you have Fedora, you have the following available as standard RPMs:
 
-Signed-off-by: Ian Abbott <abbotti@mev.co.uk>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Michal Nazarewicz <mina86@mina86.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
----
- include/asm-generic/bug.h | 1 -
- include/linux/bug.h       | 1 +
- 2 files changed, 1 insertion(+), 1 deletion(-)
+	gcc-aarch64-linux-gnu
+	gcc-alpha-linux-gnu
+	gcc-arm-linux-gnu
+	gcc-avr32-linux-gnu
+	gcc-bfin-linux-gnu
+	gcc-c6x-linux-gnu
+	gcc-cris-linux-gnu
+	gcc-frv-linux-gnu
+	gcc-h8300-linux-gnu
+	gcc-hppa-linux-gnu
+	gcc-hppa64-linux-gnu
+	gcc-ia64-linux-gnu
+	gcc-m32r-linux-gnu
+	gcc-m68k-linux-gnu
+	gcc-microblaze-linux-gnu
+	gcc-mips64-linux-gnu
+	gcc-mn10300-linux-gnu
+	gcc-nios2-linux-gnu
+	gcc-powerpc64-linux-gnu
+	gcc-ppc64-linux-gnu
+	gcc-s390x-linux-gnu
+	gcc-sh-linux-gnu
+	gcc-sparc64-linux-gnu
+	gcc-tile-linux-gnu
+	gcc-xtensa-linux-gnu
 
-diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
-index 87191357d303..074a66de47f6 100644
---- a/include/asm-generic/bug.h
-+++ b/include/asm-generic/bug.h
-@@ -12,7 +12,6 @@
- #endif
- 
- #ifndef __ASSEMBLY__
--#include <linux/kernel.h>
- 
- #ifdef CONFIG_BUG
- 
-diff --git a/include/linux/bug.h b/include/linux/bug.h
-index 687b557fc5eb..68692b775343 100644
---- a/include/linux/bug.h
-+++ b/include/linux/bug.h
-@@ -3,6 +3,7 @@
- 
- #include <asm/bug.h>
- #include <linux/compiler.h>
-+#include <linux/types.h>
- 
- enum bug_trap_type {
- 	BUG_TRAP_TYPE_NONE = 0,
--- 
-2.11.0
+They're built from the same sources as the gcc rpm (and the matching binutils
+cross rpms are built from the same sources as the binutils rpm) - it's only
+the spec file that's different, and they lag a bit behind the core
+gcc/binutils as they only get updated after those change.
+
+So in Fedora 25 these are all gcc-6 and in Fedora 26 they're all gcc-7.
+
+David
