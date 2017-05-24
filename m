@@ -1,44 +1,72 @@
 From: Ian Abbott <abbotti@mev.co.uk>
-Subject: Re: [PATCH 1/1] bug: fix problem including <linux.bug.h> from
- linux/kernel.h
-Date: Wed, 24 May 2017 16:55:15 +0100
-Message-ID: <82f67357-541d-8e08-3380-e485ea3e8764@mev.co.uk>
-References: <20170524132107.6919-1-abbotti@mev.co.uk>
- <20170524132107.6919-2-abbotti@mev.co.uk>
- <CAKwiHFgm2AmSmcWPO+-apH+7SW9Mjh_-jRUNepdx5FUiWukGRQ@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Subject: [PATCH v2] bug: fix problem including <linux/bug.h> from linux/kernel.h
+Date: Wed, 24 May 2017 17:06:27 +0100
+Message-ID: <20170524160627.14322-1-abbotti@mev.co.uk>
+References: <20170524132107.6919-2-abbotti@mev.co.uk>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp64.ord1c.emailsrvr.com ([108.166.43.64]:59508 "EHLO
-        smtp64.ord1c.emailsrvr.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1761286AbdEXQBl (ORCPT
+Received: from smtp72.iad3a.emailsrvr.com ([173.203.187.72]:46024 "EHLO
+        smtp72.iad3a.emailsrvr.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1762086AbdEXQGi (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 24 May 2017 12:01:41 -0400
-In-Reply-To: <CAKwiHFgm2AmSmcWPO+-apH+7SW9Mjh_-jRUNepdx5FUiWukGRQ@mail.gmail.com>
+        Wed, 24 May 2017 12:06:38 -0400
+In-Reply-To: <20170524132107.6919-2-abbotti@mev.co.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Rasmus Villemoes <linux@rasmusvillemoes.dk>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Michal Nazarewicz <mina86@mina86.com>, Hidehiro Kawai <hidehiro.kawai.ez@hitachi.com>, Borislav Petkov <bp@suse.de>, Johannes Berg <johannes.berg@intel.com>, Peter Zijlstra <peterz@infradead.org>, Alexander Potapenko <glider@google.com>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Michal Nazarewicz <mina86@mina86.com>, Hidehiro Kawai <hidehiro.kawai.ez@hitachi.com>, Borislav Petkov <bp@suse.de>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Johannes Berg <johannes.berg@intel.com>, Peter Zijlstra <peterz@infradead.org>, Alexander Potapenko <glider@google.com>, Ian Abbott <abbotti@mev.co.uk>
 
-On 24/05/17 14:37, Rasmus Villemoes wrote:
-> On 24 May 2017 at 15:21, Ian Abbott <abbotti@mev.co.uk> wrote:
->> If "include/linux/kernel.h" includes <linux/bug.h>, a circular
->> dependency is introduced
->
-> Then don't. Can't we just create linux/build_bug.h and have that
-> contain the BUILD_BUG related macros - they're really completely
-> unrelated to all the asm-cruft bug.h needs to know about. build_bug.h
-> can then include compiler.h and not much else to figure out how it may
-> implement its macros. Then kernel.h can include build_bug.h, and we
-> don't force each and every translation unit to include bug.h and
-> everything that then pulls in. We just got rid of a lot of header
-> bloat, let's try to keep it that way.
+If "include/linux/kernel.h" includes <linux/bug.h>, a circular
+dependency is introduced when "include/asm-generic/bug.h" includes
+<linux/kernel.h>.  This results in build breakage when something
+includes <asm/bug.h> before <linux/kernel.h> for architectures that
+select `CONFIG_GENERIC_BUG` because `struct bug_entry` is not fully
+declared (not declared at all in fact) before its members are accessed
+by `is_warning_bug()`.
 
-Thanks, I'll take a look at that.  In the meantime, I noticed the title 
-line of this patch contains a nasty typo, so I'll send a v2 patch to fix 
-that.
+To avoid this problem, remove the inclusion of <linux/kernel.h> from
+"include/asm-generic/bug.h", but include <linux/types.h> from
+"include/linux/bug.h" because it needs the `bool` type.
 
+A consequence of this change is that since most bug-related,
+function-link macros (`BUG()`, `WARN()` etc.) make use of facilities
+provided by <linux/kernel.h>, something else needs to include that
+before those macros are called.
+
+Signed-off-by: Ian Abbott <abbotti@mev.co.uk>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Michal Nazarewicz <mina86@mina86.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+---
+v2: Fix typo in patch subject line.
+---
+ include/asm-generic/bug.h | 1 -
+ include/linux/bug.h       | 1 +
+ 2 files changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
+index 87191357d303..074a66de47f6 100644
+--- a/include/asm-generic/bug.h
++++ b/include/asm-generic/bug.h
+@@ -12,7 +12,6 @@
+ #endif
+ 
+ #ifndef __ASSEMBLY__
+-#include <linux/kernel.h>
+ 
+ #ifdef CONFIG_BUG
+ 
+diff --git a/include/linux/bug.h b/include/linux/bug.h
+index 687b557fc5eb..68692b775343 100644
+--- a/include/linux/bug.h
++++ b/include/linux/bug.h
+@@ -3,6 +3,7 @@
+ 
+ #include <asm/bug.h>
+ #include <linux/compiler.h>
++#include <linux/types.h>
+ 
+ enum bug_trap_type {
+ 	BUG_TRAP_TYPE_NONE = 0,
 -- 
--=( Ian Abbott @ MEV Ltd.    E-mail: <abbotti@mev.co.uk> )=-
--=(                          Web: http://www.mev.co.uk/  )=-
+2.11.0
