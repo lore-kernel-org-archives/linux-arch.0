@@ -1,88 +1,108 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:37122 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:36952 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S939955AbdEXL4K (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 24 May 2017 07:56:10 -0400
+        id S939989AbdEXLzB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 24 May 2017 07:55:01 -0400
 From: Punit Agrawal <punit.agrawal@arm.com>
-Subject: [PATCH v4 6/8] mm/hugetlb: Allow architectures to override huge_pte_clear()
-Date: Wed, 24 May 2017 12:54:07 +0100
-Message-ID: <20170524115409.31309-7-punit.agrawal@arm.com>
+Subject: [PATCH v4 1/8] arm64: hugetlb: Refactor find_num_contig
+Date: Wed, 24 May 2017 12:54:02 +0100
+Message-ID: <20170524115409.31309-2-punit.agrawal@arm.com>
 In-Reply-To: <20170524115409.31309-1-punit.agrawal@arm.com>
 References: <20170524115409.31309-1-punit.agrawal@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org
-Cc: Punit Agrawal <punit.agrawal@arm.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, will.deacon@arm.com, n-horiguchi@ah.jp.nec.com, kirill.shutemov@linux.intel.com, mike.kravetz@oracle.com, steve.capper@arm.com, mark.rutland@arm.com, linux-arch@vger.kernel.org, aneesh.kumar@linux.vnet.ibm.com, Heiko Carstens <heiko.carstens@de.ibm.com>
-Message-ID: <20170524115407.VhHi0tXK4RLT_13VZCrmv_TpV45P8K8TUM4Ry0Odd0Q@z>
+Cc: Steve Capper <steve.capper@arm.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, will.deacon@arm.com, mark.rutland@arm.com, linux-arch@vger.kernel.org, David Woods <dwoods@mellanox.com>, Punit Agrawal <punit.agrawal@arm.com>
+Message-ID: <20170524115402.fxwOJZU6cfw5MSIlnohDuhzBxX1OdMdVpuXZdGolChY@z>
 
-When unmapping a hugepage range, huge_pte_clear() is used to clear the
-page table entries that are marked as not present. huge_pte_clear()
-internally just ends up calling pte_clear() which does not correctly
-deal with hugepages consisting of contiguous page table entries.
+From: Steve Capper <steve.capper@arm.com>
 
-Add a size argument to address this issue and allow architectures to
-override huge_pte_clear() by wrapping it in a #ifndef block.
+As we regularly check for contiguous pte's in the huge accessors, remove
+this extra check from find_num_contig.
 
-Update s390 implementation with the size parameter as well.
-
-Note that the change only affects huge_pte_clear() - the other generic
-hugetlb functions don't need any change.
-
+Cc: David Woods <dwoods@mellanox.com>
+Signed-off-by: Steve Capper <steve.capper@arm.com>
+[ Resolved rebase conflicts due to patch re-ordering ]
 Signed-off-by: Punit Agrawal <punit.agrawal@arm.com>
-Acked-by: Arnd Bergmann <arnd@arndb.de>
-Acked-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
-Cc: Mike Kravetz <mike.kravetz@oracle.com>
 ---
- arch/s390/include/asm/hugetlb.h | 2 +-
- include/asm-generic/hugetlb.h   | 4 +++-
- mm/hugetlb.c                    | 2 +-
- 3 files changed, 5 insertions(+), 3 deletions(-)
+ arch/arm64/mm/hugetlbpage.c | 17 ++++++++---------
+ 1 file changed, 8 insertions(+), 9 deletions(-)
 
-diff --git a/arch/s390/include/asm/hugetlb.h b/arch/s390/include/asm/hugetlb.h
-index cd546a245c68..c0443500baec 100644
---- a/arch/s390/include/asm/hugetlb.h
-+++ b/arch/s390/include/asm/hugetlb.h
-@@ -39,7 +39,7 @@ static inline int prepare_hugepage_range(struct file *file,
- #define arch_clear_hugepage_flags(page)		do { } while (0)
- 
- static inline void huge_pte_clear(struct mm_struct *mm, unsigned long addr,
--				  pte_t *ptep)
-+				  pte_t *ptep, unsigned long sz)
- {
- 	if ((pte_val(*ptep) & _REGION_ENTRY_TYPE_MASK) == _REGION_ENTRY_TYPE_R3)
- 		pte_val(*ptep) = _REGION3_ENTRY_EMPTY;
-diff --git a/include/asm-generic/hugetlb.h b/include/asm-generic/hugetlb.h
-index 99b490b4d05a..540354f94f83 100644
---- a/include/asm-generic/hugetlb.h
-+++ b/include/asm-generic/hugetlb.h
-@@ -31,10 +31,12 @@ static inline pte_t huge_pte_modify(pte_t pte, pgprot_t newprot)
- 	return pte_modify(pte, newprot);
+diff --git a/arch/arm64/mm/hugetlbpage.c b/arch/arm64/mm/hugetlbpage.c
+index 69b8200b1cfd..710bf935a473 100644
+--- a/arch/arm64/mm/hugetlbpage.c
++++ b/arch/arm64/mm/hugetlbpage.c
+@@ -42,15 +42,13 @@ int pud_huge(pud_t pud)
  }
  
-+#ifndef huge_pte_clear
- static inline void huge_pte_clear(struct mm_struct *mm, unsigned long addr,
--				  pte_t *ptep)
-+		    pte_t *ptep, unsigned long sz)
+ static int find_num_contig(struct mm_struct *mm, unsigned long addr,
+-			   pte_t *ptep, pte_t pte, size_t *pgsize)
++			   pte_t *ptep, size_t *pgsize)
  {
- 	pte_clear(mm, addr, ptep);
- }
-+#endif
+ 	pgd_t *pgd = pgd_offset(mm, addr);
+ 	pud_t *pud;
+ 	pmd_t *pmd;
  
- #endif /* _ASM_GENERIC_HUGETLB_H */
-diff --git a/mm/hugetlb.c b/mm/hugetlb.c
-index 0e4d1fb3122f..ddfed20cd637 100644
---- a/mm/hugetlb.c
-+++ b/mm/hugetlb.c
-@@ -3338,7 +3338,7 @@ void __unmap_hugepage_range(struct mmu_gather *tlb, struct vm_area_struct *vma,
- 		 * unmapped and its refcount is dropped, so just clear pte here.
- 		 */
- 		if (unlikely(!pte_present(pte))) {
--			huge_pte_clear(mm, address, ptep);
-+			huge_pte_clear(mm, address, ptep, sz);
- 			spin_unlock(ptl);
- 			continue;
- 		}
+ 	*pgsize = PAGE_SIZE;
+-	if (!pte_cont(pte))
+-		return 1;
+ 	pud = pud_offset(pgd, addr);
+ 	pmd = pmd_offset(pud, addr);
+ 	if ((pte_t *)pmd == ptep) {
+@@ -65,15 +63,16 @@ void set_huge_pte_at(struct mm_struct *mm, unsigned long addr,
+ {
+ 	size_t pgsize;
+ 	int i;
+-	int ncontig = find_num_contig(mm, addr, ptep, pte, &pgsize);
++	int ncontig;
+ 	unsigned long pfn;
+ 	pgprot_t hugeprot;
+ 
+-	if (ncontig == 1) {
++	if (!pte_cont(pte)) {
+ 		set_pte_at(mm, addr, ptep, pte);
+ 		return;
+ 	}
+ 
++	ncontig = find_num_contig(mm, addr, ptep, &pgsize);
+ 	pfn = pte_pfn(pte);
+ 	hugeprot = __pgprot(pte_val(pfn_pte(pfn, __pgprot(0))) ^ pte_val(pte));
+ 	for (i = 0; i < ncontig; i++) {
+@@ -188,7 +187,7 @@ pte_t huge_ptep_get_and_clear(struct mm_struct *mm,
+ 		bool is_dirty = false;
+ 
+ 		cpte = huge_pte_offset(mm, addr);
+-		ncontig = find_num_contig(mm, addr, cpte, *cpte, &pgsize);
++		ncontig = find_num_contig(mm, addr, cpte, &pgsize);
+ 		/* save the 1st pte to return */
+ 		pte = ptep_get_and_clear(mm, addr, cpte);
+ 		for (i = 1, addr += pgsize; i < ncontig; ++i, addr += pgsize) {
+@@ -228,7 +227,7 @@ int huge_ptep_set_access_flags(struct vm_area_struct *vma,
+ 		cpte = huge_pte_offset(vma->vm_mm, addr);
+ 		pfn = pte_pfn(*cpte);
+ 		ncontig = find_num_contig(vma->vm_mm, addr, cpte,
+-					  *cpte, &pgsize);
++					  &pgsize);
+ 		for (i = 0; i < ncontig; ++i, ++cpte, addr += pgsize) {
+ 			changed |= ptep_set_access_flags(vma, addr, cpte,
+ 							pfn_pte(pfn,
+@@ -251,7 +250,7 @@ void huge_ptep_set_wrprotect(struct mm_struct *mm,
+ 		size_t pgsize = 0;
+ 
+ 		cpte = huge_pte_offset(mm, addr);
+-		ncontig = find_num_contig(mm, addr, cpte, *cpte, &pgsize);
++		ncontig = find_num_contig(mm, addr, cpte, &pgsize);
+ 		for (i = 0; i < ncontig; ++i, ++cpte, addr += pgsize)
+ 			ptep_set_wrprotect(mm, addr, cpte);
+ 	} else {
+@@ -269,7 +268,7 @@ void huge_ptep_clear_flush(struct vm_area_struct *vma,
+ 
+ 		cpte = huge_pte_offset(vma->vm_mm, addr);
+ 		ncontig = find_num_contig(vma->vm_mm, addr, cpte,
+-					  *cpte, &pgsize);
++					  &pgsize);
+ 		for (i = 0; i < ncontig; ++i, ++cpte, addr += pgsize)
+ 			ptep_clear_flush(vma, addr, cpte);
+ 	} else {
 -- 
 2.11.0
