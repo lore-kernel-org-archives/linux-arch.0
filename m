@@ -1,103 +1,123 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:37030 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:36972 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S939994AbdEXLzh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 24 May 2017 07:55:37 -0400
+        id S939992AbdEXLzQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 24 May 2017 07:55:16 -0400
 From: Punit Agrawal <punit.agrawal@arm.com>
-Subject: [PATCH v4 4/8] mm, gup: Ensure real head page is ref-counted when using hugepages
-Date: Wed, 24 May 2017 12:54:05 +0100
-Message-ID: <20170524115409.31309-5-punit.agrawal@arm.com>
+Subject: [PATCH v4 2/8] arm64: hugetlb: Remove spurious calls to huge_ptep_offset
+Date: Wed, 24 May 2017 12:54:03 +0100
+Message-ID: <20170524115409.31309-3-punit.agrawal@arm.com>
 In-Reply-To: <20170524115409.31309-1-punit.agrawal@arm.com>
 References: <20170524115409.31309-1-punit.agrawal@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org
-Cc: Punit Agrawal <punit.agrawal@arm.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, will.deacon@arm.com, n-horiguchi@ah.jp.nec.com, kirill.shutemov@linux.intel.com, mike.kravetz@oracle.com, steve.capper@arm.com, mark.rutland@arm.com, linux-arch@vger.kernel.org, aneesh.kumar@linux.vnet.ibm.com, Michal Hocko <mhocko@suse.com>
-Message-ID: <20170524115405.xuklI9wd6iKZ-q4TbnQvWVIhW4Erawr1mjn_ngUuJBU@z>
+Cc: Steve Capper <steve.capper@arm.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, will.deacon@arm.com, mark.rutland@arm.com, linux-arch@vger.kernel.org, David Woods <dwoods@mellanox.com>, Punit Agrawal <punit.agrawal@arm.com>
+Message-ID: <20170524115403.kkxMFJRIz9GZsKrrr7ARE5Yf-vkKrnJvSxQMAtehXk8@z>
 
-When speculatively taking references to a hugepage using
-page_cache_add_speculative() in gup_huge_pmd(), it is assumed that the
-page returned by pmd_page() is the head page. Although normally true,
-this assumption doesn't hold when the hugepage comprises of successive
-page table entries such as when using contiguous bit on arm64 at PTE or
-PMD levels.
+From: Steve Capper <steve.capper@arm.com>
 
-This can be addressed by ensuring that the page passed to
-page_cache_add_speculative() is the real head or by de-referencing the
-head page within the function.
+We don't need to call huge_ptep_offset as our accessors are already
+supplied with the pte_t *. This patch removes those spurious calls.
 
-We take the first approach to keep the usage pattern aligned with
-page_cache_get_speculative() where users already pass the appropriate
-page, i.e., the de-referenced head.
-
-Apply the same logic to fix gup_huge_[pud|pgd]() as well.
-
+Cc: David Woods <dwoods@mellanox.com>
+Signed-off-by: Steve Capper <steve.capper@arm.com>
+[ Resolved rebase conflicts due to patch re-ordering ]
 Signed-off-by: Punit Agrawal <punit.agrawal@arm.com>
-Acked-by: Steve Capper <steve.capper@arm.com>
-Cc: Michal Hocko <mhocko@suse.com>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Cc: Aneesh Kumar K.V <aneesh.kumar@linux.vnet.ibm.com>
 ---
- mm/gup.c | 12 ++++++------
- 1 file changed, 6 insertions(+), 6 deletions(-)
+ arch/arm64/mm/hugetlbpage.c | 37 ++++++++++++++-----------------------
+ 1 file changed, 14 insertions(+), 23 deletions(-)
 
-diff --git a/mm/gup.c b/mm/gup.c
-index ccf8cb38234f..be67996513be 100644
---- a/mm/gup.c
-+++ b/mm/gup.c
-@@ -1358,8 +1358,7 @@ static int gup_huge_pmd(pmd_t orig, pmd_t *pmdp, unsigned long addr,
- 		return __gup_device_huge_pmd(orig, addr, end, pages, nr);
+diff --git a/arch/arm64/mm/hugetlbpage.c b/arch/arm64/mm/hugetlbpage.c
+index 710bf935a473..f89aa8fa5855 100644
+--- a/arch/arm64/mm/hugetlbpage.c
++++ b/arch/arm64/mm/hugetlbpage.c
+@@ -183,21 +183,19 @@ pte_t huge_ptep_get_and_clear(struct mm_struct *mm,
+ 	if (pte_cont(*ptep)) {
+ 		int ncontig, i;
+ 		size_t pgsize;
+-		pte_t *cpte;
+ 		bool is_dirty = false;
  
- 	refs = 0;
--	head = pmd_page(orig);
--	page = head + ((addr & ~PMD_MASK) >> PAGE_SHIFT);
-+	page = pmd_page(orig) + ((addr & ~PMD_MASK) >> PAGE_SHIFT);
- 	do {
- 		pages[*nr] = page;
- 		(*nr)++;
-@@ -1367,6 +1366,7 @@ static int gup_huge_pmd(pmd_t orig, pmd_t *pmdp, unsigned long addr,
- 		refs++;
- 	} while (addr += PAGE_SIZE, addr != end);
+-		cpte = huge_pte_offset(mm, addr);
+-		ncontig = find_num_contig(mm, addr, cpte, &pgsize);
++		ncontig = find_num_contig(mm, addr, ptep, &pgsize);
+ 		/* save the 1st pte to return */
+-		pte = ptep_get_and_clear(mm, addr, cpte);
++		pte = ptep_get_and_clear(mm, addr, ptep);
+ 		for (i = 1, addr += pgsize; i < ncontig; ++i, addr += pgsize) {
+ 			/*
+ 			 * If HW_AFDBM is enabled, then the HW could
+ 			 * turn on the dirty bit for any of the page
+ 			 * in the set, so check them all.
+ 			 */
+-			++cpte;
+-			if (pte_dirty(ptep_get_and_clear(mm, addr, cpte)))
++			++ptep;
++			if (pte_dirty(ptep_get_and_clear(mm, addr, ptep)))
+ 				is_dirty = true;
+ 		}
+ 		if (is_dirty)
+@@ -213,8 +211,6 @@ int huge_ptep_set_access_flags(struct vm_area_struct *vma,
+ 			       unsigned long addr, pte_t *ptep,
+ 			       pte_t pte, int dirty)
+ {
+-	pte_t *cpte;
+-
+ 	if (pte_cont(pte)) {
+ 		int ncontig, i, changed = 0;
+ 		size_t pgsize = 0;
+@@ -224,12 +220,11 @@ int huge_ptep_set_access_flags(struct vm_area_struct *vma,
+ 			__pgprot(pte_val(pfn_pte(pfn, __pgprot(0))) ^
+ 				 pte_val(pte));
  
-+	head = compound_head(page);
- 	if (!page_cache_add_speculative(head, refs)) {
- 		*nr -= refs;
- 		return 0;
-@@ -1396,8 +1396,7 @@ static int gup_huge_pud(pud_t orig, pud_t *pudp, unsigned long addr,
- 		return __gup_device_huge_pud(orig, addr, end, pages, nr);
+-		cpte = huge_pte_offset(vma->vm_mm, addr);
+-		pfn = pte_pfn(*cpte);
+-		ncontig = find_num_contig(vma->vm_mm, addr, cpte,
++		pfn = pte_pfn(pte);
++		ncontig = find_num_contig(vma->vm_mm, addr, ptep,
+ 					  &pgsize);
+-		for (i = 0; i < ncontig; ++i, ++cpte, addr += pgsize) {
+-			changed |= ptep_set_access_flags(vma, addr, cpte,
++		for (i = 0; i < ncontig; ++i, ++ptep, addr += pgsize) {
++			changed |= ptep_set_access_flags(vma, addr, ptep,
+ 							pfn_pte(pfn,
+ 								hugeprot),
+ 							dirty);
+@@ -246,13 +241,11 @@ void huge_ptep_set_wrprotect(struct mm_struct *mm,
+ {
+ 	if (pte_cont(*ptep)) {
+ 		int ncontig, i;
+-		pte_t *cpte;
+ 		size_t pgsize = 0;
  
- 	refs = 0;
--	head = pud_page(orig);
--	page = head + ((addr & ~PUD_MASK) >> PAGE_SHIFT);
-+	page = pud_page(orig) + ((addr & ~PUD_MASK) >> PAGE_SHIFT);
- 	do {
- 		pages[*nr] = page;
- 		(*nr)++;
-@@ -1405,6 +1404,7 @@ static int gup_huge_pud(pud_t orig, pud_t *pudp, unsigned long addr,
- 		refs++;
- 	} while (addr += PAGE_SIZE, addr != end);
+-		cpte = huge_pte_offset(mm, addr);
+-		ncontig = find_num_contig(mm, addr, cpte, &pgsize);
+-		for (i = 0; i < ncontig; ++i, ++cpte, addr += pgsize)
+-			ptep_set_wrprotect(mm, addr, cpte);
++		ncontig = find_num_contig(mm, addr, ptep, &pgsize);
++		for (i = 0; i < ncontig; ++i, ++ptep, addr += pgsize)
++			ptep_set_wrprotect(mm, addr, ptep);
+ 	} else {
+ 		ptep_set_wrprotect(mm, addr, ptep);
+ 	}
+@@ -263,14 +256,12 @@ void huge_ptep_clear_flush(struct vm_area_struct *vma,
+ {
+ 	if (pte_cont(*ptep)) {
+ 		int ncontig, i;
+-		pte_t *cpte;
+ 		size_t pgsize = 0;
  
-+	head = compound_head(page);
- 	if (!page_cache_add_speculative(head, refs)) {
- 		*nr -= refs;
- 		return 0;
-@@ -1433,8 +1433,7 @@ static int gup_huge_pgd(pgd_t orig, pgd_t *pgdp, unsigned long addr,
- 
- 	BUILD_BUG_ON(pgd_devmap(orig));
- 	refs = 0;
--	head = pgd_page(orig);
--	page = head + ((addr & ~PGDIR_MASK) >> PAGE_SHIFT);
-+	page = pgd_page(orig) + ((addr & ~PGDIR_MASK) >> PAGE_SHIFT);
- 	do {
- 		pages[*nr] = page;
- 		(*nr)++;
-@@ -1442,6 +1441,7 @@ static int gup_huge_pgd(pgd_t orig, pgd_t *pgdp, unsigned long addr,
- 		refs++;
- 	} while (addr += PAGE_SIZE, addr != end);
- 
-+	head = compound_head(page);
- 	if (!page_cache_add_speculative(head, refs)) {
- 		*nr -= refs;
- 		return 0;
+-		cpte = huge_pte_offset(vma->vm_mm, addr);
+-		ncontig = find_num_contig(vma->vm_mm, addr, cpte,
++		ncontig = find_num_contig(vma->vm_mm, addr, ptep,
+ 					  &pgsize);
+-		for (i = 0; i < ncontig; ++i, ++cpte, addr += pgsize)
+-			ptep_clear_flush(vma, addr, cpte);
++		for (i = 0; i < ncontig; ++i, ++ptep, addr += pgsize)
++			ptep_clear_flush(vma, addr, ptep);
+ 	} else {
+ 		ptep_clear_flush(vma, addr, ptep);
+ 	}
 -- 
 2.11.0
