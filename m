@@ -1,93 +1,180 @@
 From: Babu Moger <babu.moger@oracle.com>
-Subject: [PATCH v4 0/7] Enable queued rwlock and queued spinlock for SPARC
-Date: Wed, 24 May 2017 17:55:08 -0600
-Message-ID: <1495670115-63960-1-git-send-email-babu.moger@oracle.com>
+Subject: [PATCH v4 7/7] arch/sparc: Enable queued spinlock support for SPARC
+Date: Wed, 24 May 2017 17:55:15 -0600
+Message-ID: <1495670115-63960-8-git-send-email-babu.moger@oracle.com>
+References: <1495670115-63960-1-git-send-email-babu.moger@oracle.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1495670115-63960-1-git-send-email-babu.moger@oracle.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: peterz@infradead.org, mingo@redhat.com, arnd@arndb.de, davem@davemloft.net
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, sparclinux@vger.kernel.org, geert@linux-m68k.org, babu.moger@oracle.com, shannon.nelson@oracle.com, haakon.bugge@oracle.com, steven.sistare@oracle.com, vijay.ac.kumar@oracle.com, jane.chu@oracle.com
 List-Id: linux-arch.vger.kernel.org
 
-This series of patches enables queued rwlock and queued spinlock support
-for SPARC. These features were introduced some time ago in upstream.
-Here are some of the earlier discussions.
-https://lwn.net/Articles/572765/
-https://lwn.net/Articles/582200/
+This patch makes the necessary changes in SPARC architecture to enable
+queued spinlock support. Here are some of the earlier discussions about
+this feature.
 https://lwn.net/Articles/561775/
 https://lwn.net/Articles/590243/
 
-Tests: Ran AIM7 benchmark to verify the performance on various workloads.
-https://github.com/davidlohr/areaim. Same benchmark was used when this
-feature was introduced and enabled on x86. Here are the test results.
+Cleaned-up the spinlock_64.h. The definitions of arch_spin_xxx are
+replaced by the function in <asm-generic/qspinlock.h>
 
-Kernel				4.11.0-rc6     4.11.0-rc6 + 	Change
-				baseline	queued locks
-			      (Avg No.of jobs) (Avg No.of jobs)
-Workload
-High systime 10-100 user	 17290.48	 17295.18	+0.02
-High systime 200-1000 users	109814.95	110248.87	+0.39
-High systime 1200-2000 users	107912.40	127923.16	+18.54
-
-Disk IO 10-100 users		168910.16	158834.17	-5.96
-Disk IO 200-1000 users		242781.74	281285.80	+15.85
-Disk IO 1200-2000 users		228518.23	218421.23	-4.41
-
-Disk IO 10-100 users		183933.77	207928.67	+13.04
-Disk IO 200-1000 users		491981.56	500162.33	+1.66
-Disk IO 1200-2000 users		463395.66	467312.70	+0.84
-
-fserver 10-100 users		254177.53	270283.08	+6.33
-fserver IO 200-1000 users	269017.35	324812.2	+20.74
-fserver IO 1200-2000 users	229538.87	284713.77	+24.03
-
-Disk I/O results are little bit in negative territory. But majority of the 
-performance changes are in positive and it is significant in some cases.
-
-Changes:
-v3 -> v4:
- 1. Took care of Geert Uytterhoeven's comment about patch #3(def_bool y)
- 2. Working on separate patch sets to define CPU_BIG_ENDIAN for all the 
-    default big endian architectures based on feedback from Geert and Arnd.
-
-v2 -> v3:
- 1. Rebased the patches on top of 4.12-rc2.
- 2. Re-ordered the patch #1 and patch #2. That is the same order I have seen 
-    the issues. So, it should be addressed in the same order. Patch #1 removes
-    the check __LINUX_SPINLOCK_TYPES_H. Patch #2 addreses the compile error
-    with qrwlock.c. This addresses the comments from Dave Miller on v2.
-
-v1 -> v2:
-Addressed the comments from David Miller.
-1. Added CPU_BIG_ENDIAN for all SPARC
-2. Removed #ifndef __LINUX_SPINLOCK_TYPES_H guard from spinlock_types.h
-3. Removed check for CONFIG_QUEUED_RWLOCKS in SPARC64 as it is the 
-   default definition for SPARC64 now. Cleaned-up the previous arch_read_xxx
-   and arch_write_xxx definitions as it is defined now in qrwlock.h.
-4. Removed check for CONFIG_QUEUED_SPINLOCKS in SPARC64 as it is the default
-   definition now for SPARC64 now. Cleaned-up the previous arch_spin_xxx
-   definitions as it is defined in qspinlock.h. 
-
-v1: Initial version
-
-Babu Moger (7):
-  arch/sparc: Remove the check #ifndef __LINUX_SPINLOCK_TYPES_H
-  kernel/locking: Fix compile error with qrwlock.c
-  arch/sparc: Define config parameter CPU_BIG_ENDIAN
-  arch/sparc: Introduce cmpxchg_u8 SPARC
-  arch/sparc: Enable queued rwlocks for SPARC
-  arch/sparc: Introduce xchg16 for SPARC
-  arch/sparc: Enable queued spinlock support for SPARC
-
- arch/sparc/Kconfig                      |    5 +
- arch/sparc/include/asm/cmpxchg_64.h     |   76 ++++++++++--
- arch/sparc/include/asm/qrwlock.h        |    7 +
- arch/sparc/include/asm/qspinlock.h      |    7 +
- arch/sparc/include/asm/spinlock_64.h    |  208 +------------------------------
- arch/sparc/include/asm/spinlock_types.h |   12 ++-
- kernel/locking/qrwlock.c                |    1 +
- 7 files changed, 97 insertions(+), 219 deletions(-)
- create mode 100644 arch/sparc/include/asm/qrwlock.h
+Signed-off-by: Babu Moger <babu.moger@oracle.com>
+Reviewed-by: Håkon Bugge <haakon.bugge@oracle.com>
+Reviewed-by: Jane Chu <jane.chu@oracle.com>
+Reviewed-by: Shannon Nelson <shannon.nelson@oracle.com>
+Reviewed-by: Vijay Kumar <vijay.ac.kumar@oracle.com>
+---
+ arch/sparc/Kconfig                      |    1 +
+ arch/sparc/include/asm/qspinlock.h      |    7 +++
+ arch/sparc/include/asm/spinlock_64.h    |   84 +------------------------------
+ arch/sparc/include/asm/spinlock_types.h |    5 ++
+ 4 files changed, 14 insertions(+), 83 deletions(-)
  create mode 100644 arch/sparc/include/asm/qspinlock.h
+
+diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
+index c3a147c..c5b5a7b 100644
+--- a/arch/sparc/Kconfig
++++ b/arch/sparc/Kconfig
+@@ -84,6 +84,7 @@ config SPARC64
+ 	select HAVE_NMI
+ 	select HAVE_REGS_AND_STACK_ACCESS_API
+ 	select ARCH_USE_QUEUED_RWLOCKS
++	select ARCH_USE_QUEUED_SPINLOCKS
+ 
+ config ARCH_DEFCONFIG
+ 	string
+diff --git a/arch/sparc/include/asm/qspinlock.h b/arch/sparc/include/asm/qspinlock.h
+new file mode 100644
+index 0000000..5ae9a28
+--- /dev/null
++++ b/arch/sparc/include/asm/qspinlock.h
+@@ -0,0 +1,7 @@
++#ifndef _ASM_SPARC_QSPINLOCK_H
++#define _ASM_SPARC_QSPINLOCK_H
++
++#include <asm-generic/qspinlock_types.h>
++#include <asm-generic/qspinlock.h>
++
++#endif /* _ASM_SPARC_QSPINLOCK_H */
+diff --git a/arch/sparc/include/asm/spinlock_64.h b/arch/sparc/include/asm/spinlock_64.h
+index 8901c2d..f7028f5 100644
+--- a/arch/sparc/include/asm/spinlock_64.h
++++ b/arch/sparc/include/asm/spinlock_64.h
+@@ -11,89 +11,7 @@
+ #include <asm/processor.h>
+ #include <asm/barrier.h>
+ #include <asm/qrwlock.h>
+-
+-/* To get debugging spinlocks which detect and catch
+- * deadlock situations, set CONFIG_DEBUG_SPINLOCK
+- * and rebuild your kernel.
+- */
+-
+-/* Because we play games to save cycles in the non-contention case, we
+- * need to be extra careful about branch targets into the "spinning"
+- * code.  They live in their own section, but the newer V9 branches
+- * have a shorter range than the traditional 32-bit sparc branch
+- * variants.  The rule is that the branches that go into and out of
+- * the spinner sections must be pre-V9 branches.
+- */
+-
+-#define arch_spin_is_locked(lp)	((lp)->lock != 0)
+-
+-static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
+-{
+-	smp_cond_load_acquire(&lock->lock, !VAL);
+-}
+-
+-static inline void arch_spin_lock(arch_spinlock_t *lock)
+-{
+-	unsigned long tmp;
+-
+-	__asm__ __volatile__(
+-"1:	ldstub		[%1], %0\n"
+-"	brnz,pn		%0, 2f\n"
+-"	 nop\n"
+-"	.subsection	2\n"
+-"2:	ldub		[%1], %0\n"
+-"	brnz,pt		%0, 2b\n"
+-"	 nop\n"
+-"	ba,a,pt		%%xcc, 1b\n"
+-"	.previous"
+-	: "=&r" (tmp)
+-	: "r" (lock)
+-	: "memory");
+-}
+-
+-static inline int arch_spin_trylock(arch_spinlock_t *lock)
+-{
+-	unsigned long result;
+-
+-	__asm__ __volatile__(
+-"	ldstub		[%1], %0\n"
+-	: "=r" (result)
+-	: "r" (lock)
+-	: "memory");
+-
+-	return (result == 0UL);
+-}
+-
+-static inline void arch_spin_unlock(arch_spinlock_t *lock)
+-{
+-	__asm__ __volatile__(
+-"	stb		%%g0, [%0]"
+-	: /* No outputs */
+-	: "r" (lock)
+-	: "memory");
+-}
+-
+-static inline void arch_spin_lock_flags(arch_spinlock_t *lock, unsigned long flags)
+-{
+-	unsigned long tmp1, tmp2;
+-
+-	__asm__ __volatile__(
+-"1:	ldstub		[%2], %0\n"
+-"	brnz,pn		%0, 2f\n"
+-"	 nop\n"
+-"	.subsection	2\n"
+-"2:	rdpr		%%pil, %1\n"
+-"	wrpr		%3, %%pil\n"
+-"3:	ldub		[%2], %0\n"
+-"	brnz,pt		%0, 3b\n"
+-"	 nop\n"
+-"	ba,pt		%%xcc, 1b\n"
+-"	 wrpr		%1, %%pil\n"
+-"	.previous"
+-	: "=&r" (tmp1), "=&r" (tmp2)
+-	: "r"(lock), "r"(flags)
+-	: "memory");
+-}
++#include <asm/qspinlock.h>
+ 
+ #define arch_read_lock_flags(p, f) arch_read_lock(p)
+ #define arch_write_lock_flags(p, f) arch_write_lock(p)
+diff --git a/arch/sparc/include/asm/spinlock_types.h b/arch/sparc/include/asm/spinlock_types.h
+index 64fce21..bce8ef4 100644
+--- a/arch/sparc/include/asm/spinlock_types.h
++++ b/arch/sparc/include/asm/spinlock_types.h
+@@ -1,11 +1,16 @@
+ #ifndef __SPARC_SPINLOCK_TYPES_H
+ #define __SPARC_SPINLOCK_TYPES_H
+ 
++#ifdef CONFIG_QUEUED_SPINLOCKS
++#include <asm-generic/qspinlock_types.h>
++#else
++
+ typedef struct {
+ 	volatile unsigned char lock;
+ } arch_spinlock_t;
+ 
+ #define __ARCH_SPIN_LOCK_UNLOCKED	{ 0 }
++#endif /* CONFIG_QUEUED_SPINLOCKS */
+ 
+ #ifdef CONFIG_QUEUED_RWLOCKS
+ #include <asm-generic/qrwlock_types.h>
+-- 
+1.7.1
