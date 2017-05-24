@@ -1,117 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:36914 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S939969AbdEXLy2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 24 May 2017 07:54:28 -0400
-From: Punit Agrawal <punit.agrawal@arm.com>
-Subject: [PATCH v4 0/8] Support for contiguous pte hugepages
-Date: Wed, 24 May 2017 12:54:01 +0100
-Message-ID: <20170524115409.31309-1-punit.agrawal@arm.com>
+Received: from smtp88.iad3a.emailsrvr.com ([173.203.187.88]:52501 "EHLO
+        smtp88.iad3a.emailsrvr.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1030240AbdEXNVU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 24 May 2017 09:21:20 -0400
+From: Ian Abbott <abbotti@mev.co.uk>
+Subject: [PATCH 1/1] bug: fix problem including <linux.bug.h> from linux/kernel.h
+Date: Wed, 24 May 2017 14:21:07 +0100
+Message-ID: <20170524132107.6919-2-abbotti@mev.co.uk>
+In-Reply-To: <20170524132107.6919-1-abbotti@mev.co.uk>
+References: <20170524132107.6919-1-abbotti@mev.co.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org
-Cc: Punit Agrawal <punit.agrawal@arm.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, will.deacon@arm.com, n-horiguchi@ah.jp.nec.com, kirill.shutemov@linux.intel.com, mike.kravetz@oracle.com, steve.capper@arm.com, mark.rutland@arm.com, linux-arch@vger.kernel.org, aneesh.kumar@linux.vnet.ibm.com
-Message-ID: <20170524115401.G2rR-V0t09VIYLCc9H4LrVs390jcwXnZLu_0ifEmQM4@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Michal Nazarewicz <mina86@mina86.com>, Hidehiro Kawai <hidehiro.kawai.ez@hitachi.com>, Borislav Petkov <bp@suse.de>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Johannes Berg <johannes.berg@intel.com>, Peter Zijlstra <peterz@infradead.org>, Alexander Potapenko <glider@google.com>, Ian Abbott <abbotti@mev.co.uk>
+Message-ID: <20170524132107.kSXy0GRPO_Ce9uPWNJ3mnurR7picoUsd5eyIVV13UEs@z>
 
-Hi,
+If "include/linux/kernel.h" includes <linux/bug.h>, a circular
+dependency is introduced when "include/asm-generic/bug.h" includes
+<linux/kernel.h>.  This results in build breakage when something
+includes <asm/bug.h> before <linux/kernel.h> for architectures that
+select `CONFIG_GENERIC_BUG` because `struct bug_entry` is not fully
+declared (not declared at all in fact) before its members are accessed
+by `is_warning_bug()`.
 
-This patchset updates the hugetlb code to fix issues arising from
-contiguous pte hugepages (such as on arm64). Compared to v3, This
-version addresses a build failure on arm64 by including two cleanup
-patches. Other than the arm64 cleanups, the rest are generic code
-changes. The remaining arm64 support based on these patches will be
-posted separately. The patches are based on v4.12-rc2. Previous
-related postings can be found at [0], [1], [2], and [3].
+To avoid this problem, remove the inclusion of <linux/kernel.h> from
+"include/asm-generic/bug.h", but include <linux/types.h> from
+"include/linux/bug.h" because it needs the `bool` type.
 
-The patches fall into three categories -
+A consequence of this change is that since most bug-related,
+function-link macros (`BUG()`, `WARN()` etc.) make use of facilities
+provided by <linux/kernel.h>, something else needs to include that
+before those macros are called.
 
-* Patch 1-2 - arm64 cleanups required to greatly simplify changing
-  huge_pte_offset() prototype in Patch 5.
+Signed-off-by: Ian Abbott <abbotti@mev.co.uk>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Michal Nazarewicz <mina86@mina86.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+---
+ include/asm-generic/bug.h | 1 -
+ include/linux/bug.h       | 1 +
+ 2 files changed, 1 insertion(+), 1 deletion(-)
 
-  Catalin, Will - are you happy for these patches to go via mm?
-
-* Patches 3-4 address issues with gup
-
-* Patches 5-8 relate to passing a size argument to hugepage helpers to
-  disambiguate the size of the referred page. These changes are
-  required to enable arch code to properly handle swap entries for
-  contiguous pte hugepages.
-
-  The changes to huge_pte_offset() (patch 5) touch multiple
-  architectures but I've managed to minimise these changes for the
-  other affected functions - huge_pte_clear() and set_huge_pte_at().
-
-These patches gate the enabling of contiguous hugepages support on
-arm64 which has been requested for systems using !4k page granule.
-
-Feedback welcome.
-
-Thanks,
-Punit
-
-v3 -> v4
-
-* Reworked huge_pte_clear() and set_huge_swap_pte_at() to use #ifndef
-  block pattern
-* Included two arm64 hugetlb patches to address build failure
-* Updated tags
-
-v2 -> v3
-
-* Added gup fixes
-
-v1 -> v2
-
-* switch huge_pte_offset() to use size instead of hstate for
-  consistency with the rest of the api
-* Expand the series to address huge_pte_clear() and set_huge_pte_at()
-
-RFC -> v1
-
-* Fixed a missing conversion of huge_pte_offset() prototype to add
-  hstate parameter. Reported by 0-day.
-
-[0] https://www.spinics.net/lists/arm-kernel/msg582682.html
-[1] http://www.mail-archive.com/linux-kernel@vger.kernel.org/msg1370686.html
-[2] https://lkml.org/lkml/2017/3/30/770
-[3] https://lkml.org/lkml/2017/3/23/293
-
-
-Punit Agrawal (5):
-  mm, gup: Ensure real head page is ref-counted when using hugepages
-  mm/hugetlb: add size parameter to huge_pte_offset()
-  mm/hugetlb: Allow architectures to override huge_pte_clear()
-  mm/hugetlb: Introduce set_huge_swap_pte_at() helper
-  mm: rmap: Use correct helper when poisoning hugepages
-
-Steve Capper (2):
-  arm64: hugetlb: Refactor find_num_contig
-  arm64: hugetlb: Remove spurious calls to huge_ptep_offset
-
-Will Deacon (1):
-  mm, gup: Remove broken VM_BUG_ON_PAGE compound check for hugepages
-
- arch/arm64/mm/hugetlbpage.c     | 53 +++++++++++++++++------------------------
- arch/ia64/mm/hugetlbpage.c      |  4 ++--
- arch/metag/mm/hugetlbpage.c     |  3 ++-
- arch/mips/mm/hugetlbpage.c      |  3 ++-
- arch/parisc/mm/hugetlbpage.c    |  3 ++-
- arch/powerpc/mm/hugetlbpage.c   |  2 +-
- arch/s390/include/asm/hugetlb.h |  2 +-
- arch/s390/mm/hugetlbpage.c      |  3 ++-
- arch/sh/mm/hugetlbpage.c        |  3 ++-
- arch/sparc/mm/hugetlbpage.c     |  3 ++-
- arch/tile/mm/hugetlbpage.c      |  3 ++-
- arch/x86/mm/hugetlbpage.c       |  2 +-
- fs/userfaultfd.c                |  7 ++++--
- include/asm-generic/hugetlb.h   |  4 +++-
- include/linux/hugetlb.h         | 13 ++++++++--
- mm/gup.c                        | 15 +++++-------
- mm/hugetlb.c                    | 33 +++++++++++++++----------
- mm/page_vma_mapped.c            |  3 ++-
- mm/pagewalk.c                   |  3 ++-
- mm/rmap.c                       |  7 ++++--
- 20 files changed, 95 insertions(+), 74 deletions(-)
-
+diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
+index 87191357d303..074a66de47f6 100644
+--- a/include/asm-generic/bug.h
++++ b/include/asm-generic/bug.h
+@@ -12,7 +12,6 @@
+ #endif
+ 
+ #ifndef __ASSEMBLY__
+-#include <linux/kernel.h>
+ 
+ #ifdef CONFIG_BUG
+ 
+diff --git a/include/linux/bug.h b/include/linux/bug.h
+index 687b557fc5eb..68692b775343 100644
+--- a/include/linux/bug.h
++++ b/include/linux/bug.h
+@@ -3,6 +3,7 @@
+ 
+ #include <asm/bug.h>
+ #include <linux/compiler.h>
++#include <linux/types.h>
+ 
+ enum bug_trap_type {
+ 	BUG_TRAP_TYPE_NONE = 0,
 -- 
 2.11.0
