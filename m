@@ -1,52 +1,53 @@
 From: Babu Moger <babu.moger@oracle.com>
-Subject: [PATCH v4 1/7] arch/sparc: Remove the check #ifndef __LINUX_SPINLOCK_TYPES_H
-Date: Wed, 24 May 2017 17:55:09 -0600
-Message-ID: <1495670115-63960-2-git-send-email-babu.moger@oracle.com>
+Subject: [PATCH v4 3/7] arch/sparc: Define config parameter CPU_BIG_ENDIAN
+Date: Wed, 24 May 2017 17:55:11 -0600
+Message-ID: <1495670115-63960-4-git-send-email-babu.moger@oracle.com>
 References: <1495670115-63960-1-git-send-email-babu.moger@oracle.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Return-path: <sparclinux-owner@vger.kernel.org>
 In-Reply-To: <1495670115-63960-1-git-send-email-babu.moger@oracle.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: sparclinux-owner@vger.kernel.org
 To: peterz@infradead.org, mingo@redhat.com, arnd@arndb.de, davem@davemloft.net
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, sparclinux@vger.kernel.org, geert@linux-m68k.org, babu.moger@oracle.com, shannon.nelson@oracle.com, haakon.bugge@oracle.com, steven.sistare@oracle.com, vijay.ac.kumar@oracle.com, jane.chu@oracle.com
 List-Id: linux-arch.vger.kernel.org
 
-Saw these compile errors on SPARC when queued rwlock feature is enabled.
+Found this problem while enabling queued rwlock on SPARC.
+The parameter CONFIG_CPU_BIG_ENDIAN is used to clear the
+specific byte in qrwlock structure. Without this parameter,
+we clear the wrong byte. Here is the code.
 
-   CC      kernel/locking/qrwlock.o
-In file included from ./include/asm-generic/qrwlock_types.h:5,
-                  from ./arch/sparc/include/asm/qrwlock.h:4,
-                  from kernel/locking/qrwlock.c:24:
-./arch/sparc/include/asm/spinlock_types.h:5:3: error:
-         #error "please don't include this file directly"
+static inline u8 *__qrwlock_write_byte(struct qrwlock *lock)
+ {
+	return (u8 *)lock + 3 * IS_BUILTIN(CONFIG_CPU_BIG_ENDIAN);
+ }
 
-SPARC has this guard which causes compile error when spinlock_types.h
-is included directly.
-@ifndef __LINUX_SPINLOCK_TYPES_H
-@ error "please don't include this file directly"
-@endif
-
-Remove this un-necessary "ifndef __LINUX_SPINLOCK_TYPES_H" stanza from SPARC.
+Define CPU_BIG_ENDIAN for SPARC to fix it.
 
 Signed-off-by: Babu Moger <babu.moger@oracle.com>
-Suggested-by: David Miller <davem@davemloft.net>
+Reviewed-by: Håkon Bugge <haakon.bugge@oracle.com>
+Reviewed-by: Jane Chu <jane.chu@oracle.com>
+Reviewed-by: Shannon Nelson <shannon.nelson@oracle.com>
+Reviewed-by: Vijay Kumar <vijay.ac.kumar@oracle.com>
 ---
- arch/sparc/include/asm/spinlock_types.h |    4 ----
- 1 files changed, 0 insertions(+), 4 deletions(-)
+ arch/sparc/Kconfig |    3 +++
+ 1 files changed, 3 insertions(+), 0 deletions(-)
 
-diff --git a/arch/sparc/include/asm/spinlock_types.h b/arch/sparc/include/asm/spinlock_types.h
-index 9c454fd..019c085 100644
---- a/arch/sparc/include/asm/spinlock_types.h
-+++ b/arch/sparc/include/asm/spinlock_types.h
-@@ -1,10 +1,6 @@
- #ifndef __SPARC_SPINLOCK_TYPES_H
- #define __SPARC_SPINLOCK_TYPES_H
+diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
+index 908f019..0d9dc49 100644
+--- a/arch/sparc/Kconfig
++++ b/arch/sparc/Kconfig
+@@ -92,6 +92,9 @@ config ARCH_DEFCONFIG
+ config ARCH_PROC_KCORE_TEXT
+ 	def_bool y
  
--#ifndef __LINUX_SPINLOCK_TYPES_H
--# error "please don't include this file directly"
--#endif
--
- typedef struct {
- 	volatile unsigned char lock;
- } arch_spinlock_t;
++config CPU_BIG_ENDIAN
++	def_bool y
++
+ config ARCH_ATU
+ 	bool
+ 	default y if SPARC64
 -- 
 1.7.1
+
