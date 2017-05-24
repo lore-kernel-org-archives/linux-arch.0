@@ -1,34 +1,55 @@
-From: Rasmus Villemoes <linux@rasmusvillemoes.dk>
-Subject: Re: [PATCH 1/1] bug: fix problem including <linux.bug.h> from linux/kernel.h
-Date: Wed, 24 May 2017 15:37:59 +0200
-Message-ID: <CAKwiHFgm2AmSmcWPO+-apH+7SW9Mjh_-jRUNepdx5FUiWukGRQ@mail.gmail.com>
-References: <20170524132107.6919-1-abbotti@mev.co.uk> <20170524132107.6919-2-abbotti@mev.co.uk>
+From: David Howells <dhowells@redhat.com>
+Subject: Re: Unify the various copies of libgcc into lib
+Date: Wed, 24 May 2017 14:49:24 +0100
+Message-ID: <23396.1495633764@warthog.procyon.org.uk>
+References: <20170523220546.16758-1-palmer@dabbelt.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ua0-f181.google.com ([209.85.217.181]:36104 "EHLO
-        mail-ua0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1758294AbdEXNiB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 May 2017 09:38:01 -0400
-Received: by mail-ua0-f181.google.com with SMTP id j17so96870150uag.3
-        for <linux-arch@vger.kernel.org>; Wed, 24 May 2017 06:38:01 -0700 (PDT)
-In-Reply-To: <20170524132107.6919-2-abbotti@mev.co.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ian Abbott <abbotti@mev.co.uk>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Michal Nazarewicz <mina86@mina86.com>, Hidehiro Kawai <hidehiro.kawai.ez@hitachi.com>, Borislav Petkov <bp@suse.de>, Johannes Berg <johannes.berg@intel.com>, Peter Zijlstra <peterz@infradead.org>, Alexander Potapenko <glider@google.com>
+Content-Type: text/plain; charset="us-ascii"
+Return-path: <linux-sh-owner@vger.kernel.org>
+In-Reply-To: <20170523220546.16758-1-palmer@dabbelt.com>
+Content-ID: <23395.1495633764.1@warthog.procyon.org.uk>
+Sender: linux-sh-owner@vger.kernel.org
+To: Palmer Dabbelt <palmer@dabbelt.com>
+Cc: dhowells@redhat.com, monstr@monstr.eu, ralf@linux-mips.org, liqin.linux@gmail.com, lennox.wu@gmail.com, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, linux-mips@linux-mips.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, geert@linux-m68k.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On 24 May 2017 at 15:21, Ian Abbott <abbotti@mev.co.uk> wrote:
-> If "include/linux/kernel.h" includes <linux/bug.h>, a circular
-> dependency is introduced
+Palmer Dabbelt <palmer@dabbelt.com> wrote:
 
-Then don't. Can't we just create linux/build_bug.h and have that
-contain the BUILD_BUG related macros - they're really completely
-unrelated to all the asm-cruft bug.h needs to know about. build_bug.h
-can then include compiler.h and not much else to figure out how it may
-implement its macros. Then kernel.h can include build_bug.h, and we
-don't force each and every translation unit to include bug.h and
-everything that then pulls in. We just got rid of a lot of header
-bloat, let's try to keep it that way.
+> ... Unfortunately I don't actually have all these cross compilers setup...
 
-Rasmus
+If you have Fedora, you have the following available as standard RPMs:
+
+	gcc-aarch64-linux-gnu
+	gcc-alpha-linux-gnu
+	gcc-arm-linux-gnu
+	gcc-avr32-linux-gnu
+	gcc-bfin-linux-gnu
+	gcc-c6x-linux-gnu
+	gcc-cris-linux-gnu
+	gcc-frv-linux-gnu
+	gcc-h8300-linux-gnu
+	gcc-hppa-linux-gnu
+	gcc-hppa64-linux-gnu
+	gcc-ia64-linux-gnu
+	gcc-m32r-linux-gnu
+	gcc-m68k-linux-gnu
+	gcc-microblaze-linux-gnu
+	gcc-mips64-linux-gnu
+	gcc-mn10300-linux-gnu
+	gcc-nios2-linux-gnu
+	gcc-powerpc64-linux-gnu
+	gcc-ppc64-linux-gnu
+	gcc-s390x-linux-gnu
+	gcc-sh-linux-gnu
+	gcc-sparc64-linux-gnu
+	gcc-tile-linux-gnu
+	gcc-xtensa-linux-gnu
+
+They're built from the same sources as the gcc rpm (and the matching binutils
+cross rpms are built from the same sources as the binutils rpm) - it's only
+the spec file that's different, and they lag a bit behind the core
+gcc/binutils as they only get updated after those change.
+
+So in Fedora 25 these are all gcc-6 and in Fedora 26 they're all gcc-7.
+
+David
