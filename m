@@ -1,99 +1,84 @@
 From: Punit Agrawal <punit.agrawal@arm.com>
-Subject: [PATCH v4 4/8] mm, gup: Ensure real head page is ref-counted when using hugepages
-Date: Wed, 24 May 2017 12:54:05 +0100
-Message-ID: <20170524115409.31309-5-punit.agrawal@arm.com>
+Subject: [PATCH v4 6/8] mm/hugetlb: Allow architectures to override huge_pte_clear()
+Date: Wed, 24 May 2017 12:54:07 +0100
+Message-ID: <20170524115409.31309-7-punit.agrawal@arm.com>
 References: <20170524115409.31309-1-punit.agrawal@arm.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <20170524115409.31309-1-punit.agrawal@arm.com>
 Sender: owner-linux-mm@kvack.org
 To: akpm@linux-foundation.org
-Cc: Punit Agrawal <punit.agrawal@arm.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, will.deacon@arm.com, n-horiguchi@ah.jp.nec.com, kirill.shutemov@linux.intel.com, mike.kravetz@oracle.com, steve.capper@arm.com, mark.rutland@arm.com, linux-arch@vger.kernel.org, aneesh.kumar@linux.vnet.ibm.com, Michal Hocko <mhocko@suse.com>
+Cc: Punit Agrawal <punit.agrawal@arm.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, will.deacon@arm.com, n-horiguchi@ah.jp.nec.com, kirill.shutemov@linux.intel.com, mike.kravetz@oracle.com, steve.capper@arm.com, mark.rutland@arm.com, linux-arch@vger.kernel.org, aneesh.kumar@linux.vnet.ibm.com, Heiko Carstens <heiko.carstens@de.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-When speculatively taking references to a hugepage using
-page_cache_add_speculative() in gup_huge_pmd(), it is assumed that the
-page returned by pmd_page() is the head page. Although normally true,
-this assumption doesn't hold when the hugepage comprises of successive
-page table entries such as when using contiguous bit on arm64 at PTE or
-PMD levels.
+When unmapping a hugepage range, huge_pte_clear() is used to clear the
+page table entries that are marked as not present. huge_pte_clear()
+internally just ends up calling pte_clear() which does not correctly
+deal with hugepages consisting of contiguous page table entries.
 
-This can be addressed by ensuring that the page passed to
-page_cache_add_speculative() is the real head or by de-referencing the
-head page within the function.
+Add a size argument to address this issue and allow architectures to
+override huge_pte_clear() by wrapping it in a #ifndef block.
 
-We take the first approach to keep the usage pattern aligned with
-page_cache_get_speculative() where users already pass the appropriate
-page, i.e., the de-referenced head.
+Update s390 implementation with the size parameter as well.
 
-Apply the same logic to fix gup_huge_[pud|pgd]() as well.
+Note that the change only affects huge_pte_clear() - the other generic
+hugetlb functions don't need any change.
 
 Signed-off-by: Punit Agrawal <punit.agrawal@arm.com>
-Acked-by: Steve Capper <steve.capper@arm.com>
-Cc: Michal Hocko <mhocko@suse.com>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Cc: Aneesh Kumar K.V <aneesh.kumar@linux.vnet.ibm.com>
+Acked-by: Arnd Bergmann <arnd@arndb.de>
+Acked-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
+Cc: Mike Kravetz <mike.kravetz@oracle.com>
 ---
- mm/gup.c | 12 ++++++------
- 1 file changed, 6 insertions(+), 6 deletions(-)
+ arch/s390/include/asm/hugetlb.h | 2 +-
+ include/asm-generic/hugetlb.h   | 4 +++-
+ mm/hugetlb.c                    | 2 +-
+ 3 files changed, 5 insertions(+), 3 deletions(-)
 
-diff --git a/mm/gup.c b/mm/gup.c
-index ccf8cb38234f..be67996513be 100644
---- a/mm/gup.c
-+++ b/mm/gup.c
-@@ -1358,8 +1358,7 @@ static int gup_huge_pmd(pmd_t orig, pmd_t *pmdp, unsigned long addr,
- 		return __gup_device_huge_pmd(orig, addr, end, pages, nr);
+diff --git a/arch/s390/include/asm/hugetlb.h b/arch/s390/include/asm/hugetlb.h
+index cd546a245c68..c0443500baec 100644
+--- a/arch/s390/include/asm/hugetlb.h
++++ b/arch/s390/include/asm/hugetlb.h
+@@ -39,7 +39,7 @@ static inline int prepare_hugepage_range(struct file *file,
+ #define arch_clear_hugepage_flags(page)		do { } while (0)
  
- 	refs = 0;
--	head = pmd_page(orig);
--	page = head + ((addr & ~PMD_MASK) >> PAGE_SHIFT);
-+	page = pmd_page(orig) + ((addr & ~PMD_MASK) >> PAGE_SHIFT);
- 	do {
- 		pages[*nr] = page;
- 		(*nr)++;
-@@ -1367,6 +1366,7 @@ static int gup_huge_pmd(pmd_t orig, pmd_t *pmdp, unsigned long addr,
- 		refs++;
- 	} while (addr += PAGE_SIZE, addr != end);
+ static inline void huge_pte_clear(struct mm_struct *mm, unsigned long addr,
+-				  pte_t *ptep)
++				  pte_t *ptep, unsigned long sz)
+ {
+ 	if ((pte_val(*ptep) & _REGION_ENTRY_TYPE_MASK) == _REGION_ENTRY_TYPE_R3)
+ 		pte_val(*ptep) = _REGION3_ENTRY_EMPTY;
+diff --git a/include/asm-generic/hugetlb.h b/include/asm-generic/hugetlb.h
+index 99b490b4d05a..540354f94f83 100644
+--- a/include/asm-generic/hugetlb.h
++++ b/include/asm-generic/hugetlb.h
+@@ -31,10 +31,12 @@ static inline pte_t huge_pte_modify(pte_t pte, pgprot_t newprot)
+ 	return pte_modify(pte, newprot);
+ }
  
-+	head = compound_head(page);
- 	if (!page_cache_add_speculative(head, refs)) {
- 		*nr -= refs;
- 		return 0;
-@@ -1396,8 +1396,7 @@ static int gup_huge_pud(pud_t orig, pud_t *pudp, unsigned long addr,
- 		return __gup_device_huge_pud(orig, addr, end, pages, nr);
++#ifndef huge_pte_clear
+ static inline void huge_pte_clear(struct mm_struct *mm, unsigned long addr,
+-				  pte_t *ptep)
++		    pte_t *ptep, unsigned long sz)
+ {
+ 	pte_clear(mm, addr, ptep);
+ }
++#endif
  
- 	refs = 0;
--	head = pud_page(orig);
--	page = head + ((addr & ~PUD_MASK) >> PAGE_SHIFT);
-+	page = pud_page(orig) + ((addr & ~PUD_MASK) >> PAGE_SHIFT);
- 	do {
- 		pages[*nr] = page;
- 		(*nr)++;
-@@ -1405,6 +1404,7 @@ static int gup_huge_pud(pud_t orig, pud_t *pudp, unsigned long addr,
- 		refs++;
- 	} while (addr += PAGE_SIZE, addr != end);
- 
-+	head = compound_head(page);
- 	if (!page_cache_add_speculative(head, refs)) {
- 		*nr -= refs;
- 		return 0;
-@@ -1433,8 +1433,7 @@ static int gup_huge_pgd(pgd_t orig, pgd_t *pgdp, unsigned long addr,
- 
- 	BUILD_BUG_ON(pgd_devmap(orig));
- 	refs = 0;
--	head = pgd_page(orig);
--	page = head + ((addr & ~PGDIR_MASK) >> PAGE_SHIFT);
-+	page = pgd_page(orig) + ((addr & ~PGDIR_MASK) >> PAGE_SHIFT);
- 	do {
- 		pages[*nr] = page;
- 		(*nr)++;
-@@ -1442,6 +1441,7 @@ static int gup_huge_pgd(pgd_t orig, pgd_t *pgdp, unsigned long addr,
- 		refs++;
- 	} while (addr += PAGE_SIZE, addr != end);
- 
-+	head = compound_head(page);
- 	if (!page_cache_add_speculative(head, refs)) {
- 		*nr -= refs;
- 		return 0;
+ #endif /* _ASM_GENERIC_HUGETLB_H */
+diff --git a/mm/hugetlb.c b/mm/hugetlb.c
+index 0e4d1fb3122f..ddfed20cd637 100644
+--- a/mm/hugetlb.c
++++ b/mm/hugetlb.c
+@@ -3338,7 +3338,7 @@ void __unmap_hugepage_range(struct mmu_gather *tlb, struct vm_area_struct *vma,
+ 		 * unmapped and its refcount is dropped, so just clear pte here.
+ 		 */
+ 		if (unlikely(!pte_present(pte))) {
+-			huge_pte_clear(mm, address, ptep);
++			huge_pte_clear(mm, address, ptep, sz);
+ 			spin_unlock(ptl);
+ 			continue;
+ 		}
 -- 
 2.11.0
 
