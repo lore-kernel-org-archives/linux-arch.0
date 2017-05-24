@@ -1,101 +1,44 @@
-From: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
-Subject: Re: CPU_BIG_ENDIAN in generic code (was: Re: [PATCH v3 3/7]
- arch/sparc: Define config parameter CPU_BIG_ENDIAN)
-Date: Wed, 24 May 2017 17:09:01 +0200
-Message-ID: <CAK8P3a2gk07SW2nGZdNXSzRwx5+Ap5hDf4wDksunLtYkpC5WOg@mail.gmail.com>
-References: <CAMuHMdVjh+1TR19mUUQYHSazHnBHa4uxn7KyHUO+jAh7WDxy5Q@mail.gmail.com>
- <CAK8P3a1XZGQk3b3q+JFJ+mLgw_upUdAtTM1VBjHZq5f2m-YdUg@mail.gmail.com> <8ec12d9b-30da-6088-e340-93cc92245ed4@oracle.com>
+From: Ian Abbott <abbotti@mev.co.uk>
+Subject: Re: [PATCH 1/1] bug: fix problem including <linux.bug.h> from
+ linux/kernel.h
+Date: Wed, 24 May 2017 16:55:15 +0100
+Message-ID: <82f67357-541d-8e08-3380-e485ea3e8764@mev.co.uk>
+References: <20170524132107.6919-1-abbotti@mev.co.uk>
+ <20170524132107.6919-2-abbotti@mev.co.uk>
+ <CAKwiHFgm2AmSmcWPO+-apH+7SW9Mjh_-jRUNepdx5FUiWukGRQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <8ec12d9b-30da-6088-e340-93cc92245ed4-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
-Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Babu Moger <babu.moger-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
-Cc: Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>, "David S. Miller" <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, sparclinux <sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux-Arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-serial-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-serial-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp64.ord1c.emailsrvr.com ([108.166.43.64]:59508 "EHLO
+        smtp64.ord1c.emailsrvr.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1761286AbdEXQBl (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 24 May 2017 12:01:41 -0400
+In-Reply-To: <CAKwiHFgm2AmSmcWPO+-apH+7SW9Mjh_-jRUNepdx5FUiWukGRQ@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Rasmus Villemoes <linux@rasmusvillemoes.dk>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Michal Nazarewicz <mina86@mina86.com>, Hidehiro Kawai <hidehiro.kawai.ez@hitachi.com>, Borislav Petkov <bp@suse.de>, Johannes Berg <johannes.berg@intel.com>, Peter Zijlstra <peterz@infradead.org>, Alexander Potapenko <glider@google.com>
 
-On Wed, May 24, 2017 at 4:45 PM, Babu Moger <babu.moger-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org> wrote:
-> On 5/24/2017 5:18 AM, Arnd Bergmann wrote:
->> On Wed, May 24, 2017 at 11:59 AM, Geert Uytterhoeven
->> <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org> wrote:
->>> On Tue, May 23, 2017 at 11:45 PM, Babu Moger <babu.moger-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
->>> wrote:
->>> include/asm-generic/qrwlock.h is also generic, but depends on the
->>> architecture to select ARCH_USE_QUEUED_RWLOCKS, which only very few do
->>> (x86, and now sparc).
->>>
->>> I guess the time is ripe for adding (both) symbols to all architectures?
->>
->> Good idea. I think we can do most of this by adding a few lines to
->> arch/Kconfig:
->>
->> config CPU_BIG_ENDIAN
->>          bool
->>
->> config CPU_LITTLE_ENDIAN
->>         def_bool !CPU_BIG_ENDIAN
+On 24/05/17 14:37, Rasmus Villemoes wrote:
+> On 24 May 2017 at 15:21, Ian Abbott <abbotti@mev.co.uk> wrote:
+>> If "include/linux/kernel.h" includes <linux/bug.h>, a circular
+>> dependency is introduced
 >
-> I noticed that even x86 does not define CPU_LITTLE_ENDIAN.  Strange.
+> Then don't. Can't we just create linux/build_bug.h and have that
+> contain the BUILD_BUG related macros - they're really completely
+> unrelated to all the asm-cruft bug.h needs to know about. build_bug.h
+> can then include compiler.h and not much else to figure out how it may
+> implement its macros. Then kernel.h can include build_bug.h, and we
+> don't force each and every translation unit to include bug.h and
+> everything that then pulls in. We just got rid of a lot of header
+> bloat, let's try to keep it that way.
 
-There is no architecture-independent code that tests for
-CONFIG_CPU_LITTLE_ENDIAN, unlike CONFIG_CPU_BIG_ENDIAN,
-so that's not very suprising.
+Thanks, I'll take a look at that.  In the meantime, I noticed the title 
+line of this patch contains a nasty typo, so I'll send a v2 patch to fix 
+that.
 
-> With this code all the architecture will default to
-> CONFIG_CPU_LITTLE_ENDIAN.
-
-What I meant is that we have to 'select CPU_BIG_ENDIAN' on all architectures
-that actually are big-endian:
-
-These are all configurable:
-$ git grep -l linux/byteorder/big_endian.h | xargs grep -l
-linux/byteorder/little_endian.h
-arch/arc/include/uapi/asm/byteorder.h
-arch/arm/include/uapi/asm/byteorder.h
-arch/arm64/include/uapi/asm/byteorder.h
-arch/c6x/include/uapi/asm/byteorder.h
-arch/m32r/include/uapi/asm/byteorder.h
-arch/microblaze/include/uapi/asm/byteorder.h
-arch/mips/include/uapi/asm/byteorder.h
-arch/powerpc/include/uapi/asm/byteorder.h
-arch/sh/include/uapi/asm/byteorder.h
-arch/tile/include/uapi/asm/byteorder.h
-
-These are always big-endian:
-$ git grep -l linux/byteorder/big_endian.h | xargs grep -L
-linux/byteorder/little_endian.h
-arch/avr32/include/uapi/asm/byteorder.h
-arch/frv/include/uapi/asm/byteorder.h
-arch/m68k/include/uapi/asm/byteorder.h
-arch/openrisc/include/uapi/asm/byteorder.h
-arch/parisc/include/uapi/asm/byteorder.h
-arch/s390/include/uapi/asm/byteorder.h
-arch/sparc/include/uapi/asm/byteorder.h
-
-And these are always little-endian:
-arch/alpha/include/uapi/asm/byteorder.h
-arch/blackfin/include/uapi/asm/byteorder.h
-arch/cris/include/uapi/asm/byteorder.h
-arch/hexagon/include/uapi/asm/byteorder.h
-arch/ia64/include/uapi/asm/byteorder.h
-arch/metag/include/uapi/asm/byteorder.h
-arch/mn10300/include/uapi/asm/byteorder.h
-arch/score/include/uapi/asm/byteorder.h
-arch/unicore32/include/uapi/asm/byteorder.h
-arch/x86/include/uapi/asm/byteorder.h
-
-So if we 'select CPU_BIG_ENDIAN' from avr32, frv, m68k, openrisc, parisc,
-s390 and sparc, this covers all the fixed-endian architectures, and the
-other ones are those that already have either CPU_BIG_ENDIAN
-as a 'bool' option, or both as a 'choice'.
-
-> I can make it as a separate patch. But I can only test SPARC and little bit
-> of x86. Is that ok?
-
-I think that's ok.
-
-        Arnd
---
-To unsubscribe from this list: send the line "unsubscribe devicetree" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+-- 
+-=( Ian Abbott @ MEV Ltd.    E-mail: <abbotti@mev.co.uk> )=-
+-=(                          Web: http://www.mev.co.uk/  )=-
