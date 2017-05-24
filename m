@@ -1,60 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:59382 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S937631AbdEXJQH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 24 May 2017 05:16:07 -0400
-Received: from pps.filterd (m0098420.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.20/8.16.0.20) with SMTP id v4O98bk6116043
-        for <linux-arch@vger.kernel.org>; Wed, 24 May 2017 05:16:07 -0400
-Received: from e38.co.us.ibm.com (e38.co.us.ibm.com [32.97.110.159])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 2an78mrckg-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Wed, 24 May 2017 05:16:06 -0400
-Received: from localhost
-        by e38.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
-        Wed, 24 May 2017 03:16:05 -0600
-Subject: Re: is alpha jensen support dead?
-References: <20170521085848.GA14559@lst.de>
-From: Christian Borntraeger <borntraeger@de.ibm.com>
-Date: Wed, 24 May 2017 11:16:01 +0200
+Received: from mail-it0-f68.google.com ([209.85.214.68]:35618 "EHLO
+        mail-it0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S934576AbdEXJVY (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 May 2017 05:21:24 -0400
 MIME-Version: 1.0
-In-Reply-To: <20170521085848.GA14559@lst.de>
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
-Message-ID: <11c44626-d496-ec77-c294-1d734d6125aa@de.ibm.com>
+In-Reply-To: <20170523220546.16758-1-palmer@dabbelt.com>
+References: <20170523220546.16758-1-palmer@dabbelt.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Date: Wed, 24 May 2017 11:21:22 +0200
+Message-ID: <CAMuHMdUP2RbjV+09UGkzjJcRrsoyy9F6XT8fbCPEd0mQCDFvFw@mail.gmail.com>
+Subject: Re: Unify the various copies of libgcc into lib
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>
-Cc: linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20170524091601.jxiH-j7a7pKdif6KvDPLC-6gDGhvCZuJS0mvIyKJ_jg@z>
+To: Palmer Dabbelt <palmer@dabbelt.com>
+Cc: Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, Chen Liqin <liqin.linux@gmail.com>, Lennox Wu <lennox.wu@gmail.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, Linux-sh list <linux-sh@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Message-ID: <20170524092122.clYGoKdGWQl3uGW8E32fvz26hrnL0Wd2MV0S3WWeLpk@z>
 
-On 05/21/2017 10:58 AM, Christoph Hellwig wrote:
-> Hi all,
-> 
-> it seems like the Alpha Jense build (the only one using pci-noop.c)
-> and thus being a different build than all the later PCI capable
-> system has been broken since at least:
-> 
-> commit 6aca0503847f6329460b15b3ab2b0e30bb752793
-> Author: Christian Borntraeger <borntraeger@de.ibm.com>
-> Date:   Tue Feb 2 21:46:33 2016 -0800
-> 
->     alpha/dma: use common noop dma ops
-> 
+Hi Palmer,
 
-Hi Christoph,
+On Wed, May 24, 2017 at 12:05 AM, Palmer Dabbelt <palmer@dabbelt.com> wrote:
+> I'm in the process of submitting the RISC-V Linux port, and someone noticed
+> that we were adding copies of some libgcc emulation routines that were the same
+> as some of the other ports.  This prompted me to go through and check all the
+> ports for libgcc.h and to merge the versions that were functionally identical.
+>
+> The only difference in libgcc.h was that there was a #define for little vs big
+> endian.  The differences in the emulation routines were all just whitespace.
+>
+> This patch set comes in two parts:
+>
+>  * Patch 1 adds new copies of all the C files copied from libgcc, as well as
+>    moving libgcc.h to include/lib (that's a new folder, which probably means
+>    it's the wrong place to put it, but I couldn't find anything better).  There
+>    are Kconfig entries for each of these library functions so architectures can
+>    select them one at a time.
 
-are you providing a fix (or a jensen removal) or do you expect a fix from me?
+I would call the Kconfig symbols GENERIC_* instead of LIB_*, for consistency
+with other generic implementations.
 
+>  * The rest of the patches convert each architecture over to the new system.
 
-> which switches pci-noop.c to use generic code, but fat fingered a symbol
-> and didn't wire up the Kconfig.
-> 
-> Is there any value in keeping it alive?  Especially as there probably
-> isn't any build coverage..
-> 
-> Btw, how well is alpha working these days?  It looks like there hasn't
-> been any maintainer activity for about two years.
-> 
+Thanks! For all but "[PATCH 4/7] mips: ...":
+
+Reviewed-by: Geert Uytterhoeven <geert@linux-m68k.org>
+
+> Unless I screwed something up, this patch set shouldn't actually change any
+> functionality.  Unfortunately I don't actually have all these cross compilers
+> setup so I can't actually test any of this, but I did convert the RISC-V port
+> over to using this system and it appears to be OK there so at least this isn't
+> completely broken.
+
+https://www.kernel.org/pub/tools/crosstool/
+
+BTW, blackfin, h8300, m68k, and parisc have their own implementations, too.
+They look different, but I believe their functionality is identical.
+They can be converted later, though.
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
