@@ -1,21 +1,19 @@
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH v3 3/7] arch/sparc: Define config parameter CPU_BIG_ENDIAN
-Date: Wed, 24 May 2017 11:48:44 +0200
-Message-ID: <CAMuHMdV0fRdcbDWfafT0_cFSWikfgHghCJ+VkropPW_1wC7hRg@mail.gmail.com>
-References: <1495575958-1022566-1-git-send-email-babu.moger@oracle.com> <1495575958-1022566-4-git-send-email-babu.moger@oracle.com>
+Subject: CPU_BIG_ENDIAN in generic code (was: Re: [PATCH v3 3/7] arch/sparc:
+ Define config parameter CPU_BIG_ENDIAN)
+Date: Wed, 24 May 2017 11:59:21 +0200
+Message-ID: <CAMuHMdVjh+1TR19mUUQYHSazHnBHa4uxn7KyHUO+jAh7WDxy5Q@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f66.google.com ([209.85.214.66]:33743 "EHLO
-        mail-it0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751643AbdEXJsr (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 May 2017 05:48:47 -0400
-In-Reply-To: <1495575958-1022566-4-git-send-email-babu.moger@oracle.com>
+Received: from mail-io0-f195.google.com ([209.85.223.195]:35560 "EHLO
+        mail-io0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1034800AbdEXJ7X (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 May 2017 05:59:23 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Babu Moger <babu.moger@oracle.com>
-Cc: "David S. Miller" <davem@davemloft.net>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, shannon.nelson@oracle.com, haakon.bugge@oracle.com, steven.sistare@oracle.com, vijay.ac.kumar@oracle.com, jane.chu@oracle.com, sparclinux <sparclinux@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Cc: "David S. Miller" <davem@davemloft.net>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, sparclinux <sparclinux@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>
 
 On Tue, May 23, 2017 at 11:45 PM, Babu Moger <babu.moger@oracle.com> wrote:
 > Found this problem while enabling queued rwlock on SPARC.
@@ -29,18 +27,7 @@ On Tue, May 23, 2017 at 11:45 PM, Babu Moger <babu.moger@oracle.com> wrote:
 >  }
 >
 > Define CPU_BIG_ENDIAN for SPARC to fix it.
->
-> Signed-off-by: Babu Moger <babu.moger@oracle.com>
-> Reviewed-by: H=C3=A5kon Bugge <haakon.bugge@oracle.com>
-> Reviewed-by: Jane Chu <jane.chu@oracle.com>
-> Reviewed-by: Shannon Nelson <shannon.nelson@oracle.com>
-> Reviewed-by: Vijay Kumar <vijay.ac.kumar@oracle.com>
-> ---
->  arch/sparc/Kconfig |    4 ++++
->  1 files changed, 4 insertions(+), 0 deletions(-)
->
-> diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
-> index 908f019..2f58c16 100644
+
 > --- a/arch/sparc/Kconfig
 > +++ b/arch/sparc/Kconfig
 > @@ -92,6 +92,10 @@ config ARCH_DEFCONFIG
@@ -51,7 +38,72 @@ On Tue, May 23, 2017 at 11:45 PM, Babu Moger <babu.moger@oracle.com> wrote:
 > +       bool
 > +       default y if SPARC
 
-def_bool y?
+Nice catch!
+
+Traditionally, CPU_BIG_ENDIAN and CPU_LITTLE_ENDIAN were defined only on
+architectures that may support both.  And it was checked in platform code
+and drivers only.
+Hence the symbol is lacking from most architectures. Heck, even
+architectures that support both may default to one endiannes, and declare
+only the symbol for the other endianness:
+
+--- arch/alpha ---
+--- arch/arc ---
+arch/arc/Kconfig:config CPU_BIG_ENDIAN
+--- arch/arm ---
+arch/arm/mm/Kconfig:config CPU_BIG_ENDIAN
+--- arch/arm64 ---
+arch/arm64/Kconfig:config CPU_BIG_ENDIAN
+--- arch/blackfin ---
+--- arch/c6x ---
+arch/c6x/Kconfig:config CPU_BIG_ENDIAN
+--- arch/cris ---
+--- arch/frv ---
+--- arch/h8300 ---
+--- arch/hexagon ---
+--- arch/ia64 ---
+--- arch/Kconfig ---
+--- arch/m32r ---
+arch/m32r/Kconfig:config CPU_LITTLE_ENDIAN
+--- arch/m68k ---
+--- arch/metag ---
+--- arch/microblaze ---
+--- arch/mips ---
+arch/mips/Kconfig:config CPU_BIG_ENDIAN
+arch/mips/Kconfig:config CPU_LITTLE_ENDIAN
+--- arch/mn10300 ---
+--- arch/nios2 ---
+--- arch/openrisc ---
+--- arch/parisc ---
+--- arch/powerpc ---
+arch/powerpc/platforms/Kconfig.cputype:config CPU_BIG_ENDIAN
+arch/powerpc/platforms/Kconfig.cputype:config CPU_LITTLE_ENDIAN
+--- arch/s390 ---
+arch/s390/Kconfig:config CPU_BIG_ENDIAN
+--- arch/score ---
+--- arch/sh ---
+arch/sh/Kconfig.cpu:config CPU_LITTLE_ENDIAN
+arch/sh/Kconfig.cpu:config CPU_BIG_ENDIAN
+--- arch/sparc ---
+--- arch/tile ---
+--- arch/um ---
+--- arch/unicore32 ---
+--- arch/x86 ---
+--- arch/xtensa ---
+
+However, there are already a few users in generic code, which are thus
+broken on many platforms:
+
+    drivers/of/base.c
+    drivers/of/fdt.c
+    drivers/tty/serial/earlycon.c
+    drivers/tty/serial/serial_core.c
+
+include/asm-generic/qrwlock.h is also generic, but depends on the
+architecture to select ARCH_USE_QUEUED_RWLOCKS, which only very few do
+(x86, and now sparc).
+
+I guess the time is ripe for adding (both) symbols to all architectures?
 
 Gr{oetje,eeting}s,
 
