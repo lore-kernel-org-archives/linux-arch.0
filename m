@@ -1,16 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f45.google.com ([74.125.82.45]:35518 "EHLO
-        mail-wm0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751754AbdEYOB0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 May 2017 10:01:26 -0400
-Received: by mail-wm0-f45.google.com with SMTP id b84so93685246wmh.0
-        for <linux-arch@vger.kernel.org>; Thu, 25 May 2017 07:01:25 -0700 (PDT)
+Received: from mail-wm0-f49.google.com ([74.125.82.49]:37068 "EHLO
+        mail-wm0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S966014AbdEYOCz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 May 2017 10:02:55 -0400
+Received: by mail-wm0-f49.google.com with SMTP id d127so98919706wmf.0
+        for <linux-arch@vger.kernel.org>; Thu, 25 May 2017 07:02:53 -0700 (PDT)
 From: Michal Nazarewicz <mina86@mina86.com>
 Subject: Re: [PATCH v5 4/6] linux/bug.h: correct "space required before that '-'"
 In-Reply-To: <20170525120316.24473-5-abbotti@mev.co.uk>
 References: <20170525120316.24473-1-abbotti@mev.co.uk> <20170525120316.24473-5-abbotti@mev.co.uk>
-Date: Thu, 25 May 2017 16:01:21 +0200
-Message-ID: <xa1t7f15hw7i.fsf@mina86.com>
+Date: Thu, 25 May 2017 16:02:46 +0200
+Message-ID: <xa1t4lw9hw55.fsf@mina86.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: quoted-printable
@@ -18,7 +18,7 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ian Abbott <abbotti@mev.co.uk>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Alexander Potapenko <glider@google.com>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@suse.de>, Hidehiro Kawai <hidehiro.kawai.ez@hitachi.com>, Jakub Kicinski <jakub.kicinski@netronome.com>, Johannes Berg <johannes.berg@intel.com>, Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Steven Rostedt <rostedt@goodmis.org>
-Message-ID: <20170525140121.YL7Y3QnX04PNawXahpjOUQJ4-gMA3G7OIZQA4-MaY4k@z>
+Message-ID: <20170525140246.KbdFDw7ca0sOMyIh5ipCBzAbz1tqjGQW_8-NHktXG6w@z>
 
 On Thu, May 25 2017, Ian Abbott wrote:
 > Correct these checkpatch.pl errors:
@@ -42,7 +42,7 @@ On Thu, May 25 2017, Ian Abbott wrote:
 > Cc: Jakub Kicinski <jakub.kicinski@netronome.com>
 > Cc: Rasmus Villemoes <linux@rasmusvillemoes.dk>
 
-Acked-by: Michal Nazarewicz <mina86@mina86.com>
+To be honest though, I would squash the fixes with the rename.
 
 > ---
 > v5: Actually, there was no v1 thru v4.  I called this v5 to match the
