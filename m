@@ -1,29 +1,57 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH v4 0/7] Enable queued rwlock and queued spinlock for
- SPARC
-Date: Thu, 25 May 2017 15:18:57 -0400 (EDT)
-Message-ID: <20170525.151857.1037705639569909590.davem@davemloft.net>
-References: <1495670115-63960-1-git-send-email-babu.moger@oracle.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: CPU_BIG_ENDIAN in generic code (was: Re: [PATCH v3 3/7]
+ arch/sparc: Define config parameter CPU_BIG_ENDIAN)
+Date: Thu, 25 May 2017 22:09:24 +0200
+Message-ID: <CAK8P3a0MEkZ0wpsrit+sS8A0Z5T_jFWF5vFq_BqF2A1tReb7tQ@mail.gmail.com>
+References: <CAMuHMdVjh+1TR19mUUQYHSazHnBHa4uxn7KyHUO+jAh7WDxy5Q@mail.gmail.com>
+ <CAK8P3a1XZGQk3b3q+JFJ+mLgw_upUdAtTM1VBjHZq5f2m-YdUg@mail.gmail.com> <8ddc7276-6296-2284-51d3-01093ccbeccb@oracle.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([184.105.139.130]:60804 "EHLO
-        shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1036569AbdEYTTB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 May 2017 15:19:01 -0400
-In-Reply-To: <1495670115-63960-1-git-send-email-babu.moger@oracle.com>
+Received: from mail-oi0-f68.google.com ([209.85.218.68]:36536 "EHLO
+        mail-oi0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1162743AbdEYUJZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 May 2017 16:09:25 -0400
+In-Reply-To: <8ddc7276-6296-2284-51d3-01093ccbeccb@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: babu.moger@oracle.com
-Cc: peterz@infradead.org, mingo@redhat.com, arnd@arndb.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, sparclinux@vger.kernel.org, geert@linux-m68k.org, shannon.nelson@oracle.com, haakon.bugge@oracle.com, steven.sistare@oracle.com, vijay.ac.kumar@oracle.com, jane.chu@oracle.com
+To: Babu Moger <babu.moger@oracle.com>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, "David S. Miller" <davem@davemloft.net>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, sparclinux <sparclinux@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>
 
-From: Babu Moger <babu.moger@oracle.com>
-Date: Wed, 24 May 2017 17:55:08 -0600
+On Thu, May 25, 2017 at 4:51 PM, Babu Moger <babu.moger@oracle.com> wrote:
+> On 5/24/2017 5:18 AM, Arnd Bergmann wrote:
 
-> This series of patches enables queued rwlock and queued spinlock support
-> for SPARC. These features were introduced some time ago in upstream.
+>>> I guess the time is ripe for adding (both) symbols to all architectures?
+>>
+>> Good idea. I think we can do most of this by adding a few lines to
+>> arch/Kconfig:
+>>
+>> config CPU_BIG_ENDIAN
+>>          bool
+>>
+>> config CPU_LITTLE_ENDIAN
+>>         def_bool !CPU_BIG_ENDIAN
+>>
+>> This way, we only need to add 'select CPU_BIG_ENDIAN' to the
+>> architectures that are always big-endian, and we don't need to
+>> change anything for the ones that have a single 'CPU_BIG_ENDIAN'
+>> option.
+>>
+>> The three architectures that have a 'choice' statement (mips, ppc and
+>> sh) will have to convert, and m32r will have to replace the
+>
+>
+> what to you mean by "(mips, ppc andsh) will have to convert"?  Do you expect
+> any changes here?
+>
 
-Looks great, all applied to sparc-next.
+Kconfig does not allow you to have the same symbol as both a regular
+'bool' and also 'bool within choice', so those three have to replace the
+choice with a user-visible 'config CPU_BIG_ENDIAN' option like the
+other ones have.
 
-Thanks!
+I also notice that  for arch/s390/Kconfig you now have both the
+'select CPU_BIG_ENDIAN' and the 'config CPU_BIG_ENDIAN
+def_bool y', I'd remove the second one in the same patch.
+
+       Arnd
