@@ -1,46 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yb0-f196.google.com ([209.85.213.196]:34099 "EHLO
-        mail-yb0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1760337AbdEYWwV (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 May 2017 18:52:21 -0400
+Received: from mail-it0-f43.google.com ([209.85.214.43]:37310 "EHLO
+        mail-it0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1165995AbdEYXY0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 May 2017 19:24:26 -0400
 MIME-Version: 1.0
-In-Reply-To: <116e7ba5-cb5e-8e96-ea74-bf91b4818d69@oracle.com>
-References: <CAMuHMdVjh+1TR19mUUQYHSazHnBHa4uxn7KyHUO+jAh7WDxy5Q@mail.gmail.com>
- <CAK8P3a1XZGQk3b3q+JFJ+mLgw_upUdAtTM1VBjHZq5f2m-YdUg@mail.gmail.com>
- <CAMo8BfL8G0Fzn2SZ1356yaoxGgm8tpTDmFJ8cCxEEEgyObMwCQ@mail.gmail.com> <116e7ba5-cb5e-8e96-ea74-bf91b4818d69@oracle.com>
-From: Max Filippov <jcmvbkbc@gmail.com>
-Date: Thu, 25 May 2017 15:52:14 -0700
-Message-ID: <CAMo8Bf+m0mqnrpC=b+3sGq0iMfqUj2uVtQxtLU6+5pNc_4fWNw@mail.gmail.com>
-Subject: Re: CPU_BIG_ENDIAN in generic code (was: Re: [PATCH v3 3/7]
- arch/sparc: Define config parameter CPU_BIG_ENDIAN)
+In-Reply-To: <20170525203334.867-1-kirill.shutemov@linux.intel.com>
+References: <20170525203334.867-1-kirill.shutemov@linux.intel.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Thu, 25 May 2017 16:24:24 -0700
+Message-ID: <CA+55aFznnXPDxYy5CN6qVU7QJ3Y9hbSf-s2-w0QkaNJuTspGcQ@mail.gmail.com>
+Subject: Re: [PATCHv1, RFC 0/8] Boot-time switching between 4- and 5-level paging
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Babu Moger <babu.moger@oracle.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Geert Uytterhoeven <geert@linux-m68k.org>, "David S. Miller" <davem@davemloft.net>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, sparclinux <sparclinux@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>
-Message-ID: <20170525225214.KNGhHZElOdvigwtEh0eAawPo-AVtp2faNyJuFPTTYGw@z>
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, the arch/x86 maintainers <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20170525232424.1zalLdyvnVxqwc9ZFiZxLnCEpvFQms1ZTtk2LX0TdCs@z>
 
-On Thu, May 25, 2017 at 3:41 PM, Babu Moger <babu.moger@oracle.com> wrote:
-> On 5/25/2017 5:27 PM, Max Filippov wrote:
->> Xtensa may have either endianness and for xtensa we define
->> CONFIG_CPU_BIG_ENDIAN or CONFIG_CPU_LITTLE_ENDIAN
->> in the arch/xtensa/Makefile based on the value of the compiler builtin
->> macro.
->
-> Hmm.. That means defining  CPU_LITTLE_ENDIAN  based on "def_bool
-> !CPU_BIG_ENDIAN" will
->  be a problem for Xtensa because menuconfig does not have the knowledge of
-> compiler builtin macro.
-> Is that correct?
+On Thu, May 25, 2017 at 1:33 PM, Kirill A. Shutemov
+<kirill.shutemov@linux.intel.com> wrote:
+> Here' my first attempt to bring boot-time between 4- and 5-level paging.
+> It looks not too terrible to me. I've expected it to be worse.
 
-I think so. OTOH outside the arch/ CPU_LITTLE_ENDIAN is only used in
-two Kconfig files:
+If I read this right, you just made it a global on/off thing.
 
-drivers/crypto/nx/Kconfig
-drivers/isdn/hisax/Kconfig
+May I suggest possibly a different model entirely? Can you make it a
+per-mm flag instead?
 
-both of which are irrelevant for xtensa.
+And then we
 
--- 
-Thanks.
--- Max
+ (a) make all kthreads use the 4-level page tables
+
+ (b) which means that all the init code uses the 4-level page tables
+
+ (c) which means that all those checks for "start_secondary" etc can
+just go away, because those all run with 4-level page tables.
+
+Or is it just much too expensive to switch between 4-level and 5-level
+paging at run-time?
+
+              Linus
