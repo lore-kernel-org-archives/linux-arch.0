@@ -1,104 +1,111 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga06.intel.com ([134.134.136.31]:37726 "EHLO mga06.intel.com"
+Received: from mga14.intel.com ([192.55.52.115]:34495 "EHLO mga14.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S967544AbdEYUe0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 25 May 2017 16:34:26 -0400
+        id S1165602AbdEYUef (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 25 May 2017 16:34:35 -0400
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv1, RFC 1/8] x86/boot/compressed/64: Detect and handle 5-level paging at boot-time
-Date: Thu, 25 May 2017 23:33:27 +0300
-Message-ID: <20170525203334.867-2-kirill.shutemov@linux.intel.com>
+Subject: [PATCHv1, RFC 5/8] x86/mm: Fold p4d page table layer at runtime
+Date: Thu, 25 May 2017 23:33:31 +0300
+Message-ID: <20170525203334.867-6-kirill.shutemov@linux.intel.com>
 In-Reply-To: <20170525203334.867-1-kirill.shutemov@linux.intel.com>
 References: <20170525203334.867-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20170525203327.qnotQa3NgF0hIzng6gTLYiu3lNNPvyLp-oKlO5ouPEI@z>
+Message-ID: <20170525203331.I-OtQFYNyew0gUMYdPPmDdvAYQcaMzpKKomaAdYg1HY@z>
 
-This patch prepare decompression code to boot-time switching between 4-
-and 5-level paging.
+This patch changes page table helpers to fold p4d at runtime.
+The logic is the same as in <asm-generic/pgtable-nop4d.h>.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
- arch/x86/boot/compressed/head_64.S | 37 +++++++++++++++++++++++++++++++++++++
- 1 file changed, 37 insertions(+)
+ arch/x86/include/asm/paravirt.h |  3 ++-
+ arch/x86/include/asm/pgalloc.h  |  5 ++++-
+ arch/x86/include/asm/pgtable.h  | 10 +++++++++-
+ 3 files changed, 15 insertions(+), 3 deletions(-)
 
-diff --git a/arch/x86/boot/compressed/head_64.S b/arch/x86/boot/compressed/head_64.S
-index 3ed26769810b..89d886c95afc 100644
---- a/arch/x86/boot/compressed/head_64.S
-+++ b/arch/x86/boot/compressed/head_64.S
-@@ -109,6 +109,31 @@ ENTRY(startup_32)
- 	movl	$LOAD_PHYSICAL_ADDR, %ebx
- 1:
+diff --git a/arch/x86/include/asm/paravirt.h b/arch/x86/include/asm/paravirt.h
+index 55fa56fe4e45..e934ed6dc036 100644
+--- a/arch/x86/include/asm/paravirt.h
++++ b/arch/x86/include/asm/paravirt.h
+@@ -615,7 +615,8 @@ static inline void set_pgd(pgd_t *pgdp, pgd_t pgd)
  
-+#ifdef CONFIG_X86_5LEVEL
-+	pushl	%ebx
-+
-+	/* Check if leaf 7 is supported*/
-+	movl	$0, %eax
-+	cpuid
-+	cmpl	$7, %eax
-+	jb	1f
-+
-+	/*
-+	 * Check if la57 is supported.
-+	 * The feature is enumerated with CPUID.(EAX=07H, ECX=0):ECX[bit 16]
-+	 */
-+	movl	$7, %eax
-+	movl	$0, %ecx
-+	cpuid
-+	andl	$(1 << 16), %ecx
-+	jz	1f
-+
-+	/* p4d page table is not folded if la57 is present */
-+	movl	$0, p4d_folded(%ebp)
-+1:
-+	popl %ebx
-+#endif
-+
- 	/* Target address to relocate to for decompression */
- 	movl	BP_init_size(%esi), %eax
- 	subl	$_end, %eax
-@@ -125,9 +150,14 @@ ENTRY(startup_32)
- 	/* Enable PAE and LA57 mode */
- 	movl	%cr4, %eax
- 	orl	$X86_CR4_PAE, %eax
-+
- #ifdef CONFIG_X86_5LEVEL
-+	testl	$1, p4d_folded(%ebp)
-+	jnz	1f
- 	orl	$X86_CR4_LA57, %eax
-+1:
- #endif
-+
- 	movl	%eax, %cr4
+ static inline void pgd_clear(pgd_t *pgdp)
+ {
+-	set_pgd(pgdp, __pgd(0));
++	if (!p4d_folded)
++		set_pgd(pgdp, __pgd(0));
+ }
  
-  /*
-@@ -147,11 +177,15 @@ ENTRY(startup_32)
- 	movl	%eax, 0(%edi)
+ #endif  /* CONFIG_PGTABLE_LEVELS == 5 */
+diff --git a/arch/x86/include/asm/pgalloc.h b/arch/x86/include/asm/pgalloc.h
+index b2d0cd8288aa..5c42262169d0 100644
+--- a/arch/x86/include/asm/pgalloc.h
++++ b/arch/x86/include/asm/pgalloc.h
+@@ -155,6 +155,8 @@ static inline void __pud_free_tlb(struct mmu_gather *tlb, pud_t *pud,
+ #if CONFIG_PGTABLE_LEVELS > 4
+ static inline void pgd_populate(struct mm_struct *mm, pgd_t *pgd, p4d_t *p4d)
+ {
++	if (p4d_folded)
++		return;
+ 	paravirt_alloc_p4d(mm, __pa(p4d) >> PAGE_SHIFT);
+ 	set_pgd(pgd, __pgd(_PAGE_TABLE | __pa(p4d)));
+ }
+@@ -179,7 +181,8 @@ extern void ___p4d_free_tlb(struct mmu_gather *tlb, p4d_t *p4d);
+ static inline void __p4d_free_tlb(struct mmu_gather *tlb, p4d_t *p4d,
+ 				  unsigned long address)
+ {
+-	___p4d_free_tlb(tlb, p4d);
++	if (!p4d_folded)
++		___p4d_free_tlb(tlb, p4d);
+ }
  
- #ifdef CONFIG_X86_5LEVEL
-+	testl	$1, p4d_folded(%ebp)
-+	jnz	1f
-+
- 	/* Build Level 4 */
- 	addl	$0x1000, %edx
- 	leal	pgtable(%ebx,%edx), %edi
- 	leal	0x1007 (%edi), %eax
- 	movl	%eax, 0(%edi)
-+1:
+ #endif	/* CONFIG_PGTABLE_LEVELS > 4 */
+diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
+index 77037b6f1caa..4516a1bdcc31 100644
+--- a/arch/x86/include/asm/pgtable.h
++++ b/arch/x86/include/asm/pgtable.h
+@@ -53,7 +53,7 @@ extern struct mm_struct *pgd_page_get_mm(struct page *page);
+ 
+ #ifndef __PAGETABLE_P4D_FOLDED
+ #define set_pgd(pgdp, pgd)		native_set_pgd(pgdp, pgd)
+-#define pgd_clear(pgd)			native_pgd_clear(pgd)
++#define pgd_clear(pgd)			(!p4d_folded ? native_pgd_clear(pgd) : 0)
  #endif
  
- 	/* Build Level 3 */
-@@ -464,6 +498,9 @@ gdt:
- 	.quad   0x0000000000000000	/* TS continued */
- gdt_end:
+ #ifndef set_p4d
+@@ -847,6 +847,8 @@ static inline unsigned long p4d_index(unsigned long address)
+ #if CONFIG_PGTABLE_LEVELS > 4
+ static inline int pgd_present(pgd_t pgd)
+ {
++	if (p4d_folded)
++		return 1;
+ 	return pgd_flags(pgd) & _PAGE_PRESENT;
+ }
  
-+p4d_folded:
-+	.word	1
-+
- #ifdef CONFIG_EFI_STUB
- efi_config:
- 	.quad	0
+@@ -864,16 +866,22 @@ static inline unsigned long pgd_page_vaddr(pgd_t pgd)
+ /* to find an entry in a page-table-directory. */
+ static inline p4d_t *p4d_offset(pgd_t *pgd, unsigned long address)
+ {
++	if (p4d_folded)
++		return (p4d_t *)pgd;
+ 	return (p4d_t *)pgd_page_vaddr(*pgd) + p4d_index(address);
+ }
+ 
+ static inline int pgd_bad(pgd_t pgd)
+ {
++	if (p4d_folded)
++		return 0;
+ 	return (pgd_flags(pgd) & ~_PAGE_USER) != _KERNPG_TABLE;
+ }
+ 
+ static inline int pgd_none(pgd_t pgd)
+ {
++	if (p4d_folded)
++		return 0;
+ 	/*
+ 	 * There is no need to do a workaround for the KNL stray
+ 	 * A/D bit erratum here.  PGDs only point to page tables
 -- 
 2.11.0
