@@ -1,112 +1,65 @@
 From: Punit Agrawal <punit.agrawal@arm.com>
-Subject: [PATCH v4.1 7/8] mm/hugetlb: Introduce set_huge_swap_pte_at() helper
-Date: Thu, 25 May 2017 18:13:31 +0100
-Message-ID: <20170525171331.31469-1-punit.agrawal@arm.com>
-References: <20170524115409.31309-8-punit.agrawal@arm.com>
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20170524115409.31309-8-punit.agrawal@arm.com>
-Sender: owner-linux-mm@kvack.org
-To: akpm@linux-foundation.org
-Cc: Punit Agrawal <punit.agrawal@arm.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, will.deacon@arm.com, n-horiguchi@ah.jp.nec.com, kirill.shutemov@linux.intel.com, mike.kravetz@oracle.com, steve.capper@arm.com, mark.rutland@arm.com, linux-arch@vger.kernel.org, aneesh.kumar@linux.vnet.ibm.com
-List-Id: linux-arch.vger.kernel.org
+Subject: Re: [PATCH v4 8/8] mm: rmap: Use correct helper when poisoning hugepages
+Date: Thu, 25 May 2017 18:22:04 +0100
+Message-ID: <878tlkets3.fsf@e105922-lin.cambridge.arm.com>
+References: <201705250342.fHpDVCsZ%fengguang.wu@intel.com>
+Mime-Version: 1.0
+Content-Type: text/plain
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:52496 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1753595AbdEYRWG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 25 May 2017 13:22:06 -0400
+In-Reply-To: <201705250342.fHpDVCsZ%fengguang.wu@intel.com> (kbuild test
+        robot's message of "Thu, 25 May 2017 03:20:35 +0800")
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: kbuild test robot <lkp@intel.com>
+Cc: kbuild-all@01.org, akpm@linux-foundation.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, will.deacon@arm.com, n-horiguchi@ah.jp.nec.com, kirill.shutemov@linux.intel.com, mike.kravetz@oracle.com, steve.capper@arm.com, mark.rutland@arm.com, linux-arch@vger.kernel.org, aneesh.kumar@linux.vnet.ibm.com
 
-set_huge_pte_at(), an architecture callback to populate hugepage ptes,
-does not provide the range of virtual memory that is targeted. This
-leads to ambiguity when dealing with swap entries on architectures that
-support hugepages consisting of contiguous ptes.
+kbuild test robot <lkp@intel.com> writes:
 
-Fix the problem by introducing an overridable helper for architectures
-needing this support. The helper is called when populating the page
-tables with swap entries. The size of the targeted region is provided to
-the helper to help determine the number of entries to be updated.
+> Hi Punit,
+>
+> [auto build test ERROR on linus/master]
+> [also build test ERROR on v4.12-rc2 next-20170524]
+> [cannot apply to mmotm/master]
+> [if your patch is applied to the wrong git tree, please drop us a note to help improve the system]
+>
+> url:    https://github.com/0day-ci/linux/commits/Punit-Agrawal/Support-for-contiguous-pte-hugepages/20170524-221905
+> config: x86_64-kexec (attached as .config)
+> compiler: gcc-6 (Debian 6.2.0-3) 6.2.0 20160901
+> reproduce:
+>         # save the attached .config to linux build tree
+>         make ARCH=x86_64 
+>
+> All errors (new ones prefixed by >>):
+>
+>    mm/rmap.c: In function 'try_to_unmap_one':
+>>> mm/rmap.c:1386:5: error: implicit declaration of function 'set_huge_swap_pte_at' [-Werror=implicit-function-declaration]
+>         set_huge_swap_pte_at(mm, address,
+>         ^~~~~~~~~~~~~~~~~~~~
+>    cc1: some warnings being treated as errors
+>
+> vim +/set_huge_swap_pte_at +1386 mm/rmap.c
+>
+>   1380	
+>   1381			if (PageHWPoison(page) && !(flags & TTU_IGNORE_HWPOISON)) {
+>   1382				pteval = swp_entry_to_pte(make_hwpoison_entry(subpage));
+>   1383				if (PageHuge(page)) {
+>   1384					int nr = 1 << compound_order(page);
+>   1385					hugetlb_count_sub(nr, mm);
+>> 1386					set_huge_swap_pte_at(mm, address,
+>   1387							     pvmw.pte, pteval,
+>   1388							     vma_mmu_pagesize(vma));
+>   1389				} else {
+>
 
-Provide a default implementation that maintains the current behaviour.
+Thanks for the report. The build failure is caused due to missing
+function definition for set_huge_swap_pte_at() when CONFIG_HUGETLB_PAGE
+is disabled. I've posted an update to Patch 7 where the function is
+introduced to fix this issue.
 
-Signed-off-by: Punit Agrawal <punit.agrawal@arm.com>
-Acked-by: Steve Capper <steve.capper@arm.com>
-Cc: Mike Kravetz <mike.kravetz@oracle.com>
-Cc: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
----
-Hi Andrew,
-
-This update fixes the build failure reported by 0-day when
-CONFIG_HUGETLB_PAGE is disabled.
-
-Thanks,
-Punit
-
-Change from v4:
-
-* Added an empty definition for set_huge_swap_pte_at() when
-  CONFIG_HUGETLB_PAGE is disabled
-
- include/linux/hugetlb.h | 13 +++++++++++++
- mm/hugetlb.c            |  8 +++++---
- 2 files changed, 18 insertions(+), 3 deletions(-)
-
-diff --git a/include/linux/hugetlb.h b/include/linux/hugetlb.h
-index 23010a3b2047..af859564509e 100644
---- a/include/linux/hugetlb.h
-+++ b/include/linux/hugetlb.h
-@@ -502,6 +502,14 @@ static inline void hugetlb_count_sub(long l, struct mm_struct *mm)
- {
- 	atomic_long_sub(l, &mm->hugetlb_usage);
- }
-+
-+#ifndef set_huge_swap_pte_at
-+static inline void set_huge_swap_pte_at(struct mm_struct *mm, unsigned long addr,
-+					pte_t *ptep, pte_t pte, unsigned long sz)
-+{
-+	set_huge_pte_at(mm, addr, ptep, pte);
-+}
-+#endif
- #else	/* CONFIG_HUGETLB_PAGE */
- struct hstate {};
- #define alloc_huge_page(v, a, r) NULL
-@@ -546,6 +554,11 @@ static inline void hugetlb_report_usage(struct seq_file *f, struct mm_struct *m)
- static inline void hugetlb_count_sub(long l, struct mm_struct *mm)
- {
- }
-+
-+static inline void set_huge_swap_pte_at(struct mm_struct *mm, unsigned long addr,
-+					pte_t *ptep, pte_t pte, unsigned long sz)
-+{
-+}
- #endif	/* CONFIG_HUGETLB_PAGE */
- 
- static inline spinlock_t *huge_pte_lock(struct hstate *h,
-diff --git a/mm/hugetlb.c b/mm/hugetlb.c
-index ddfed20cd637..e3052c16d29a 100644
---- a/mm/hugetlb.c
-+++ b/mm/hugetlb.c
-@@ -3263,9 +3263,10 @@ int copy_hugetlb_page_range(struct mm_struct *dst, struct mm_struct *src,
- 				 */
- 				make_migration_entry_read(&swp_entry);
- 				entry = swp_entry_to_pte(swp_entry);
--				set_huge_pte_at(src, addr, src_pte, entry);
-+				set_huge_swap_pte_at(src, addr, src_pte,
-+						     entry, sz);
- 			}
--			set_huge_pte_at(dst, addr, dst_pte, entry);
-+			set_huge_swap_pte_at(dst, addr, dst_pte, entry, sz);
- 		} else {
- 			if (cow) {
- 				huge_ptep_set_wrprotect(src, addr, src_pte);
-@@ -4277,7 +4278,8 @@ unsigned long hugetlb_change_protection(struct vm_area_struct *vma,
- 
- 				make_migration_entry_read(&entry);
- 				newpte = swp_entry_to_pte(entry);
--				set_huge_pte_at(mm, address, ptep, newpte);
-+				set_huge_swap_pte_at(mm, address, ptep,
-+						     newpte, huge_page_size(h));
- 				pages++;
- 			}
- 			spin_unlock(ptl);
--- 
-2.11.0
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+> ---
+> 0-DAY kernel test infrastructure                Open Source Technology Center
+> https://lists.01.org/pipermail/kbuild-all                   Intel Corporation
