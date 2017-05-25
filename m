@@ -1,111 +1,159 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:52426 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1424658AbdEYRNy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 25 May 2017 13:13:54 -0400
-From: Punit Agrawal <punit.agrawal@arm.com>
-Subject: [PATCH v4.1 7/8] mm/hugetlb: Introduce set_huge_swap_pte_at() helper
-Date: Thu, 25 May 2017 18:13:31 +0100
-Message-ID: <20170525171331.31469-1-punit.agrawal@arm.com>
-In-Reply-To: <20170524115409.31309-8-punit.agrawal@arm.com>
-References: <20170524115409.31309-8-punit.agrawal@arm.com>
+Received: from mail-io0-f173.google.com ([209.85.223.173]:34016 "EHLO
+        mail-io0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1036404AbdEYSft (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 May 2017 14:35:49 -0400
+Received: by mail-io0-f173.google.com with SMTP id k91so141981645ioi.1
+        for <linux-arch@vger.kernel.org>; Thu, 25 May 2017 11:35:48 -0700 (PDT)
+MIME-Version: 1.0
+In-Reply-To: <20170525120316.24473-7-abbotti@mev.co.uk>
+References: <20170525120316.24473-1-abbotti@mev.co.uk> <20170525120316.24473-7-abbotti@mev.co.uk>
+From: Kees Cook <keescook@chromium.org>
+Date: Thu, 25 May 2017 11:35:42 -0700
+Message-ID: <CAGXu5jJvNBEi07=VDtvhC4+p6NAv21y09DCUuxry7o-9=JzcrQ@mail.gmail.com>
+Subject: Re: [PATCH v5 6/6] kernel.h: handle pointers to arrays better in container_of()
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org
-Cc: Punit Agrawal <punit.agrawal@arm.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, will.deacon@arm.com, n-horiguchi@ah.jp.nec.com, kirill.shutemov@linux.intel.com, mike.kravetz@oracle.com, steve.capper@arm.com, mark.rutland@arm.com, linux-arch@vger.kernel.org, aneesh.kumar@linux.vnet.ibm.com
-Message-ID: <20170525171331.c1nOUW8ve7lyyIxoo4fPlqZkkXZtHFmOMhnPcrEypEc@z>
+To: Ian Abbott <abbotti@mev.co.uk>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Alexander Potapenko <glider@google.com>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@suse.de>, Hidehiro Kawai <hidehiro.kawai.ez@hitachi.com>, Jakub Kicinski <jakub.kicinski@netronome.com>, Johannes Berg <johannes.berg@intel.com>, Michal Nazarewicz <mina86@mina86.com>, Peter Zijlstra <peterz@infradead.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Steven Rostedt <rostedt@goodmis.org>
+Message-ID: <20170525183542.SgrFSYXa_cqPY4F5GsIuN4uwhcGaIXic9uLrklADduo@z>
 
-set_huge_pte_at(), an architecture callback to populate hugepage ptes,
-does not provide the range of virtual memory that is targeted. This
-leads to ambiguity when dealing with swap entries on architectures that
-support hugepages consisting of contiguous ptes.
+On Thu, May 25, 2017 at 5:03 AM, Ian Abbott <abbotti@mev.co.uk> wrote:
+> If the first parameter of container_of() is a pointer to a
+> non-const-qualified array type (and the third parameter names a
+> non-const-qualified array member), the local variable __mptr will be
+> defined with a const-qualified array type.  In ISO C, these types are
+> incompatible.  They work as expected in GNU C, but some versions will
+> issue warnings.  For example, GCC 4.9 produces the warning
+> "initialization from incompatible pointer type".
+>
+> Here is an example of where the problem occurs:
+>
+> -------------------------------------------------------
+>  #include <linux/kernel.h>
+>  #include <linux/module.h>
+>
+> MODULE_LICENSE("GPL");
+>
+> struct st {
+>         int a;
+>         char b[16];
+> };
+>
+> static int __init example_init(void) {
+>         struct st t =3D { .a =3D 101, .b =3D "hello" };
+>         char (*p)[16] =3D &t.b;
+>         struct st *x =3D container_of(p, struct st, b);
+>         printk(KERN_DEBUG "%p %p\n", (void *)&t, (void *)x);
+>         return 0;
+> }
+>
+> static void __exit example_exit(void) {
+> }
+>
+> module_init(example_init);
+> module_exit(example_exit);
+> -------------------------------------------------------
+>
+> Building the module with gcc-4.9 results in these warnings (where '{m}'
+> is the module source and '{k}' is the kernel source):
+>
+> -------------------------------------------------------
+> In file included from {m}/example.c:1:0:
+> {m}/example.c: In function =E2=80=98example_init=E2=80=99:
+> {k}/include/linux/kernel.h:854:48: warning: initialization from
+> incompatible pointer type
+>   const typeof( ((type *)0)->member ) *__mptr =3D (ptr); \
+>                                                 ^
+> {m}/example.c:14:17: note: in expansion of macro =E2=80=98container_of=E2=
+=80=99
+>   struct st *x =3D container_of(p, struct st, b);
+>                  ^
+> {k}/include/linux/kernel.h:854:48: warning: (near initialization for
+> =E2=80=98x=E2=80=99)
+>   const typeof( ((type *)0)->member ) *__mptr =3D (ptr); \
+>                                                 ^
+> {m}/example.c:14:17: note: in expansion of macro =E2=80=98container_of=E2=
+=80=99
+>   struct st *x =3D container_of(p, struct st, b);
+>                  ^
+> -------------------------------------------------------
+>
+> Replace the type checking performed by the macro to avoid these
+> warnings.  Make sure `*(ptr)` either has type compatible with the
+> member, or has type compatible with `void`, ignoring qualifiers.  Raise
+> compiler errors if this is not true.  This is stronger than the previous
+> behaviour, which only resulted in compiler warnings for a type mismatch.
+>
+> Signed-off-by: Ian Abbott <abbotti@mev.co.uk>
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+> Cc: Michal Nazarewicz <mina86@mina86.com>
+> Cc: Hidehiro Kawai <hidehiro.kawai.ez@hitachi.com>
+> Cc: Borislav Petkov <bp@suse.de>
+> Cc: Rasmus Villemoes <linux@rasmusvillemoes.dk>
+> Cc: Johannes Berg <johannes.berg@intel.com>
+> Cc: Peter Zijlstra <peterz@infradead.org>
+> Cc: Alexander Potapenko <glider@google.com>
+> Acked-by: Michal Nazarewicz <mina86@mina86.com>
 
-Fix the problem by introducing an overridable helper for architectures
-needing this support. The helper is called when populating the page
-tables with swap entries. The size of the targeted region is provided to
-the helper to help determine the number of entries to be updated.
+Seems reasonable to me. I think this actually improves the errors
+reported when something is mismatched in container_of(). Silly
+question: does this pass an allyesconfig?
 
-Provide a default implementation that maintains the current behaviour.
+Acked-by: Kees Cook <keescook@chromium.org>
 
-Signed-off-by: Punit Agrawal <punit.agrawal@arm.com>
-Acked-by: Steve Capper <steve.capper@arm.com>
-Cc: Mike Kravetz <mike.kravetz@oracle.com>
-Cc: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
----
-Hi Andrew,
+-Kees
 
-This update fixes the build failure reported by 0-day when
-CONFIG_HUGETLB_PAGE is disabled.
+> ---
+> v2: Rebased and altered description to provide an example of when the
+> compiler warnings occur.  v1 (from 2016-10-10) also modified a
+> 'container_of_safe()' macro that never made it out of "linux-next".
+> v3: Added back some type checking at the suggestion of Michal
+> Nazarewicz with some helpful hints by Peter Zijlstra.
+> v4: No change.
+> v5: Added Acked-by for Michal Nazarewicz.  Included <linux/build_bug.h>
+> instead of <linux/bug.h> to avoid a circular dependency that resulted in
+> build failures when <asm/bug.h> was included before <linux/kernel.h>.
+> ---
+>  include/linux/kernel.h | 9 ++++++---
+>  1 file changed, 6 insertions(+), 3 deletions(-)
+>
+> diff --git a/include/linux/kernel.h b/include/linux/kernel.h
+> index 13bc08aba704..1c9c11c9f1a8 100644
+> --- a/include/linux/kernel.h
+> +++ b/include/linux/kernel.h
+> @@ -11,6 +11,7 @@
+>  #include <linux/log2.h>
+>  #include <linux/typecheck.h>
+>  #include <linux/printk.h>
+> +#include <linux/build_bug.h>
+>  #include <asm/byteorder.h>
+>  #include <uapi/linux/kernel.h>
+>
+> @@ -850,9 +851,11 @@ static inline void ftrace_dump(enum ftrace_dump_mode=
+ oops_dump_mode) { }
+>   * @member:    the name of the member within the struct.
+>   *
+>   */
+> -#define container_of(ptr, type, member) ({                     \
+> -       const typeof( ((type *)0)->member ) *__mptr =3D (ptr);    \
+> -       (type *)( (char *)__mptr - offsetof(type,member) );})
+> +#define container_of(ptr, type, member) ({                             \
+> +       BUILD_BUG_ON_MSG(!__same_type(*(ptr), ((type *)0)->member) &&   \
+> +                        !__same_type(*(ptr), void),                    \
+> +                        "pointer type mismatch in container_of()");    \
+> +       ((type *)((char *)(ptr) - offsetof(type, member))); })
+>
+>  /* Rebuild everything on CONFIG_FTRACE_MCOUNT_RECORD */
+>  #ifdef CONFIG_FTRACE_MCOUNT_RECORD
+> --
+> 2.11.0
+>
 
-Thanks,
-Punit
 
-Change from v4:
 
-* Added an empty definition for set_huge_swap_pte_at() when
-  CONFIG_HUGETLB_PAGE is disabled
-
- include/linux/hugetlb.h | 13 +++++++++++++
- mm/hugetlb.c            |  8 +++++---
- 2 files changed, 18 insertions(+), 3 deletions(-)
-
-diff --git a/include/linux/hugetlb.h b/include/linux/hugetlb.h
-index 23010a3b2047..af859564509e 100644
---- a/include/linux/hugetlb.h
-+++ b/include/linux/hugetlb.h
-@@ -502,6 +502,14 @@ static inline void hugetlb_count_sub(long l, struct mm_struct *mm)
- {
- 	atomic_long_sub(l, &mm->hugetlb_usage);
- }
-+
-+#ifndef set_huge_swap_pte_at
-+static inline void set_huge_swap_pte_at(struct mm_struct *mm, unsigned long addr,
-+					pte_t *ptep, pte_t pte, unsigned long sz)
-+{
-+	set_huge_pte_at(mm, addr, ptep, pte);
-+}
-+#endif
- #else	/* CONFIG_HUGETLB_PAGE */
- struct hstate {};
- #define alloc_huge_page(v, a, r) NULL
-@@ -546,6 +554,11 @@ static inline void hugetlb_report_usage(struct seq_file *f, struct mm_struct *m)
- static inline void hugetlb_count_sub(long l, struct mm_struct *mm)
- {
- }
-+
-+static inline void set_huge_swap_pte_at(struct mm_struct *mm, unsigned long addr,
-+					pte_t *ptep, pte_t pte, unsigned long sz)
-+{
-+}
- #endif	/* CONFIG_HUGETLB_PAGE */
- 
- static inline spinlock_t *huge_pte_lock(struct hstate *h,
-diff --git a/mm/hugetlb.c b/mm/hugetlb.c
-index ddfed20cd637..e3052c16d29a 100644
---- a/mm/hugetlb.c
-+++ b/mm/hugetlb.c
-@@ -3263,9 +3263,10 @@ int copy_hugetlb_page_range(struct mm_struct *dst, struct mm_struct *src,
- 				 */
- 				make_migration_entry_read(&swp_entry);
- 				entry = swp_entry_to_pte(swp_entry);
--				set_huge_pte_at(src, addr, src_pte, entry);
-+				set_huge_swap_pte_at(src, addr, src_pte,
-+						     entry, sz);
- 			}
--			set_huge_pte_at(dst, addr, dst_pte, entry);
-+			set_huge_swap_pte_at(dst, addr, dst_pte, entry, sz);
- 		} else {
- 			if (cow) {
- 				huge_ptep_set_wrprotect(src, addr, src_pte);
-@@ -4277,7 +4278,8 @@ unsigned long hugetlb_change_protection(struct vm_area_struct *vma,
- 
- 				make_migration_entry_read(&entry);
- 				newpte = swp_entry_to_pte(entry);
--				set_huge_pte_at(mm, address, ptep, newpte);
-+				set_huge_swap_pte_at(mm, address, ptep,
-+						     newpte, huge_page_size(h));
- 				pages++;
- 			}
- 			spin_unlock(ptl);
--- 
-2.11.0
+--=20
+Kees Cook
+Pixel Security
