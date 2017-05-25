@@ -1,23 +1,17 @@
 From: Michal Nazarewicz <mina86@mina86.com>
 Subject: Re: [PATCH v5 4/6] linux/bug.h: correct "space required before that '-'"
-Date: Thu, 25 May 2017 16:01:21 +0200
-Message-ID: <xa1t7f15hw7i.fsf@mina86.com>
+Date: Thu, 25 May 2017 16:02:46 +0200
+Message-ID: <xa1t4lw9hw55.fsf@mina86.com>
 References: <20170525120316.24473-1-abbotti@mev.co.uk> <20170525120316.24473-5-abbotti@mev.co.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f45.google.com ([74.125.82.45]:35518 "EHLO
-        mail-wm0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751754AbdEYOB0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 May 2017 10:01:26 -0400
-Received: by mail-wm0-f45.google.com with SMTP id b84so93685246wmh.0
-        for <linux-arch@vger.kernel.org>; Thu, 25 May 2017 07:01:25 -0700 (PDT)
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20170525120316.24473-5-abbotti@mev.co.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Alexander Potapenko <glider@google.com>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@suse.de>, Hidehiro Kawai <hidehiro.kawai.ez@hitachi.com>, Ian Abbott <abbotti@mev.co.uk>, Jakub Kicinski <jakub.kicinski@netronome.com>, Johannes Berg <johannes.berg@intel.com>, Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Steven Rostedt <rostedt@goodmis.org>
+List-Id: linux-arch.vger.kernel.org
 
 On Thu, May 25 2017, Ian Abbott wrote:
 > Correct these checkpatch.pl errors:
@@ -41,7 +35,7 @@ On Thu, May 25 2017, Ian Abbott wrote:
 > Cc: Jakub Kicinski <jakub.kicinski@netronome.com>
 > Cc: Rasmus Villemoes <linux@rasmusvillemoes.dk>
 
-Acked-by: Michal Nazarewicz <mina86@mina86.com>
+To be honest though, I would squash the fixes with the rename.
 
 > ---
 > v5: Actually, there was no v1 thru v4.  I called this v5 to match the
