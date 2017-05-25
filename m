@@ -1,150 +1,135 @@
-From: Michal Nazarewicz <mina86@mina86.com>
-Subject: Re: [PATCH v5 6/6] kernel.h: handle pointers to arrays better in container_of()
-Date: Thu, 25 May 2017 16:07:12 +0200
-Message-ID: <xa1ty3tlghdb.fsf@mina86.com>
-References: <20170525120316.24473-1-abbotti@mev.co.uk> <20170525120316.24473-7-abbotti@mev.co.uk>
+From: Don Zickus <dzickus@redhat.com>
+Subject: Re: [PATCH 4/4] watchdog: provide watchdog_reconfigure() for arch
+ watchdogs
+Date: Thu, 25 May 2017 10:08:33 -0400
+Message-ID: <20170525140833.3qkuvoiavlf5ra6d@redhat.com>
+References: <20170525082856.21685-1-npiggin@gmail.com>
+ <20170525082856.21685-5-npiggin@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f41.google.com ([74.125.82.41]:36706 "EHLO
-        mail-wm0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S935611AbdEYOHQ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 May 2017 10:07:16 -0400
-Received: by mail-wm0-f41.google.com with SMTP id 7so93096183wmo.1
-        for <linux-arch@vger.kernel.org>; Thu, 25 May 2017 07:07:15 -0700 (PDT)
-In-Reply-To: <20170525120316.24473-7-abbotti@mev.co.uk>
+Received: from mx1.redhat.com ([209.132.183.28]:52836 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S934257AbdEYOIf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 25 May 2017 10:08:35 -0400
+Content-Disposition: inline
+In-Reply-To: <20170525082856.21685-5-npiggin@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Alexander Potapenko <glider@google.com>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@suse.de>, Hidehiro Kawai <hidehiro.kawai.ez@hitachi.com>, Ian Abbott <abbotti@mev.co.uk>, Jakub Kicinski <jakub.kicinski@netronome.com>, Johannes Berg <johannes.berg@intel.com>, Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Steven Rostedt <rostedt@goodmis.org>
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Thu, May 25 2017, Ian Abbott wrote:
-> If the first parameter of container_of() is a pointer to a
-> non-const-qualified array type (and the third parameter names a
-> non-const-qualified array member), the local variable __mptr will be
-> defined with a const-qualified array type.  In ISO C, these types are
-> incompatible.  They work as expected in GNU C, but some versions will
-> issue warnings.  For example, GCC 4.9 produces the warning
-> "initialization from incompatible pointer type".
->
-> Here is an example of where the problem occurs:
->
-> -------------------------------------------------------
->  #include <linux/kernel.h>
->  #include <linux/module.h>
->
-> MODULE_LICENSE("GPL");
->
-> struct st {
-> 	int a;
-> 	char b[16];
-> };
->
-> static int __init example_init(void) {
-> 	struct st t =3D { .a =3D 101, .b =3D "hello" };
-> 	char (*p)[16] =3D &t.b;
-> 	struct st *x =3D container_of(p, struct st, b);
-> 	printk(KERN_DEBUG "%p %p\n", (void *)&t, (void *)x);
-> 	return 0;
-> }
->
-> static void __exit example_exit(void) {
-> }
->
-> module_init(example_init);
-> module_exit(example_exit);
-> -------------------------------------------------------
->
-> Building the module with gcc-4.9 results in these warnings (where '{m}'
-> is the module source and '{k}' is the kernel source):
->
-> -------------------------------------------------------
-> In file included from {m}/example.c:1:0:
-> {m}/example.c: In function =E2=80=98example_init=E2=80=99:
-> {k}/include/linux/kernel.h:854:48: warning: initialization from
-> incompatible pointer type
->   const typeof( ((type *)0)->member ) *__mptr =3D (ptr); \
->                                                 ^
-> {m}/example.c:14:17: note: in expansion of macro =E2=80=98container_of=E2=
-=80=99
->   struct st *x =3D container_of(p, struct st, b);
->                  ^
-> {k}/include/linux/kernel.h:854:48: warning: (near initialization for
-> =E2=80=98x=E2=80=99)
->   const typeof( ((type *)0)->member ) *__mptr =3D (ptr); \
->                                                 ^
-> {m}/example.c:14:17: note: in expansion of macro =E2=80=98container_of=E2=
-=80=99
->   struct st *x =3D container_of(p, struct st, b);
->                  ^
-> -------------------------------------------------------
->
-> Replace the type checking performed by the macro to avoid these
-> warnings.  Make sure `*(ptr)` either has type compatible with the
-> member, or has type compatible with `void`, ignoring qualifiers.  Raise
-> compiler errors if this is not true.  This is stronger than the previous
-> behaviour, which only resulted in compiler warnings for a type mismatch.
->
-> Signed-off-by: Ian Abbott <abbotti@mev.co.uk>
-> Cc: Andrew Morton <akpm@linux-foundation.org>
-> Cc: Michal Nazarewicz <mina86@mina86.com>
+On Thu, May 25, 2017 at 06:28:56PM +1000, Nicholas Piggin wrote:
+> After reconfiguring watchdog sysctls etc., architecture specific
+> watchdogs may not get all their parameters updated.
+> 
+> watchdog_reconfigure() can be implemented to pull the new values
+> in and set the arch NMI watchdog.
 
-Acked-by: Michal Nazarewicz <mina86@mina86.com>
+I understand the reason for this patch and I don't have any real objection
+on how it was implemented within the constraints of all the current logic.
 
-> Cc: Hidehiro Kawai <hidehiro.kawai.ez@hitachi.com>
-> Cc: Borislav Petkov <bp@suse.de>
-> Cc: Rasmus Villemoes <linux@rasmusvillemoes.dk>
-> Cc: Johannes Berg <johannes.berg@intel.com>
-> Cc: Peter Zijlstra <peterz@infradead.org>
-> Cc: Alexander Potapenko <glider@google.com>
-> Acked-by: Michal Nazarewicz <mina86@mina86.com>
+I just wonder if the current logic should be adjusted to make the hardlockup
+detector, namely the perf implementation more separate so it can handle what
+you would like more cleanly.
+
+The watchdog_nmi_reconfigure is sort of hackish, but it is hard to fault you
+based on how things are designed.  I am going to poke at it a little bit,
+but I will probably not find time to do much and accept what you have for
+now.
+
+Cheers,
+Don
+
+> 
+> Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 > ---
-> v2: Rebased and altered description to provide an example of when the
-> compiler warnings occur.  v1 (from 2016-10-10) also modified a
-> 'container_of_safe()' macro that never made it out of "linux-next".
-> v3: Added back some type checking at the suggestion of Michal
-> Nazarewicz with some helpful hints by Peter Zijlstra.
-> v4: No change.
-> v5: Added Acked-by for Michal Nazarewicz.  Included <linux/build_bug.h>
-> instead of <linux/bug.h> to avoid a circular dependency that resulted in
-> build failures when <asm/bug.h> was included before <linux/kernel.h>.
-> ---
->  include/linux/kernel.h | 9 ++++++---
->  1 file changed, 6 insertions(+), 3 deletions(-)
->
-> diff --git a/include/linux/kernel.h b/include/linux/kernel.h
-> index 13bc08aba704..1c9c11c9f1a8 100644
-> --- a/include/linux/kernel.h
-> +++ b/include/linux/kernel.h
-> @@ -11,6 +11,7 @@
->  #include <linux/log2.h>
->  #include <linux/typecheck.h>
->  #include <linux/printk.h>
-> +#include <linux/build_bug.h>
->  #include <asm/byteorder.h>
->  #include <uapi/linux/kernel.h>
->=20=20
-> @@ -850,9 +851,11 @@ static inline void ftrace_dump(enum ftrace_dump_mode=
- oops_dump_mode) { }
->   * @member:	the name of the member within the struct.
->   *
->   */
-> -#define container_of(ptr, type, member) ({			\
-> -	const typeof( ((type *)0)->member ) *__mptr =3D (ptr);	\
-> -	(type *)( (char *)__mptr - offsetof(type,member) );})
-> +#define container_of(ptr, type, member) ({				\
-> +	BUILD_BUG_ON_MSG(!__same_type(*(ptr), ((type *)0)->member) &&	\
-> +			 !__same_type(*(ptr), void),			\
-> +			 "pointer type mismatch in container_of()");	\
-> +	((type *)((char *)(ptr) - offsetof(type, member))); })
->=20=20
->  /* Rebuild everything on CONFIG_FTRACE_MCOUNT_RECORD */
->  #ifdef CONFIG_FTRACE_MCOUNT_RECORD
-
---=20
-Best regards
-=E3=83=9F=E3=83=8F=E3=82=A6 =E2=80=9C=F0=9D=93=B6=F0=9D=93=B2=F0=9D=93=B7=
-=F0=9D=93=AA86=E2=80=9D =E3=83=8A=E3=82=B6=E3=83=AC=E3=83=B4=E3=82=A4=E3=83=
-=84
-=C2=ABIf at first you don=E2=80=99t succeed, give up skydiving=C2=BB
+>  kernel/watchdog.c | 28 ++++++++++++++++++++++++----
+>  1 file changed, 24 insertions(+), 4 deletions(-)
+> 
+> diff --git a/kernel/watchdog.c b/kernel/watchdog.c
+> index deb010505646..d2996f5bf551 100644
+> --- a/kernel/watchdog.c
+> +++ b/kernel/watchdog.c
+> @@ -120,6 +120,11 @@ void __weak watchdog_nmi_disable(unsigned int cpu)
+>  {
+>  }
+>  
+> +void __weak watchdog_nmi_reconfigure(void)
+> +{
+> +}
+> +
+> +
+>  #ifdef CONFIG_SOFTLOCKUP_DETECTOR
+>  
+>  /* Helper for online, unparked cpus. */
+> @@ -597,6 +602,12 @@ static void watchdog_disable_all_cpus(void)
+>  	}
+>  }
+>  
+> +static int watchdog_update_cpus(void)
+> +{
+> +	return smpboot_update_cpumask_percpu_thread(
+> +		    &watchdog_threads, &watchdog_cpumask);
+> +}
+> +
+>  #else /* SOFTLOCKUP */
+>  static int watchdog_park_threads(void)
+>  {
+> @@ -616,6 +627,10 @@ static void watchdog_disable_all_cpus(void)
+>  {
+>  }
+>  
+> +static int watchdog_update_cpus(void)
+> +{
+> +}
+> +
+>  static void set_sample_period(void)
+>  {
+>  }
+> @@ -648,6 +663,8 @@ int lockup_detector_suspend(void)
+>  		watchdog_enabled = 0;
+>  	}
+>  
+> +	watchdog_nmi_reconfigure();
+> +
+>  	mutex_unlock(&watchdog_proc_mutex);
+>  
+>  	return ret;
+> @@ -668,6 +685,8 @@ void lockup_detector_resume(void)
+>  	if (watchdog_running && !watchdog_suspended)
+>  		watchdog_unpark_threads();
+>  
+> +	watchdog_nmi_reconfigure();
+> +
+>  	mutex_unlock(&watchdog_proc_mutex);
+>  	put_online_cpus();
+>  }
+> @@ -693,6 +712,8 @@ static int proc_watchdog_update(void)
+>  	else
+>  		watchdog_disable_all_cpus();
+>  
+> +	watchdog_nmi_reconfigure();
+> +
+>  	return err;
+>  
+>  }
+> @@ -878,12 +899,11 @@ int proc_watchdog_cpumask(struct ctl_table *table, int write,
+>  			 * a temporary cpumask, so we are likely not in a
+>  			 * position to do much else to make things better.
+>  			 */
+> -#ifdef CONFIG_SOFTLOCKUP_DETECTOR
+> -			if (smpboot_update_cpumask_percpu_thread(
+> -				    &watchdog_threads, &watchdog_cpumask) != 0)
+> +			if (watchdog_update_cpus() != 0)
+>  				pr_err("cpumask update failed\n");
+> -#endif
+>  		}
+> +
+> +		watchdog_nmi_reconfigure();
+>  	}
+>  out:
+>  	mutex_unlock(&watchdog_proc_mutex);
+> -- 
+> 2.11.0
+> 
