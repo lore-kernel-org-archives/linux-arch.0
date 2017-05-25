@@ -1,45 +1,43 @@
-From: Max Filippov <jcmvbkbc-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Subject: Re: CPU_BIG_ENDIAN in generic code (was: Re: [PATCH v3 3/7]
- arch/sparc: Define config parameter CPU_BIG_ENDIAN)
-Date: Thu, 25 May 2017 15:52:14 -0700
-Message-ID: <CAMo8Bf+m0mqnrpC=b+3sGq0iMfqUj2uVtQxtLU6+5pNc_4fWNw@mail.gmail.com>
-References: <CAMuHMdVjh+1TR19mUUQYHSazHnBHa4uxn7KyHUO+jAh7WDxy5Q@mail.gmail.com>
- <CAK8P3a1XZGQk3b3q+JFJ+mLgw_upUdAtTM1VBjHZq5f2m-YdUg@mail.gmail.com>
- <CAMo8BfL8G0Fzn2SZ1356yaoxGgm8tpTDmFJ8cCxEEEgyObMwCQ@mail.gmail.com> <116e7ba5-cb5e-8e96-ea74-bf91b4818d69@oracle.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCHv1, RFC 0/8] Boot-time switching between 4- and 5-level paging
+Date: Thu, 25 May 2017 16:24:24 -0700
+Message-ID: <CA+55aFznnXPDxYy5CN6qVU7QJ3Y9hbSf-s2-w0QkaNJuTspGcQ@mail.gmail.com>
+References: <20170525203334.867-1-kirill.shutemov@linux.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <116e7ba5-cb5e-8e96-ea74-bf91b4818d69-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
-Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Babu Moger <babu.moger-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
-Cc: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>, "David S. Miller" <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, sparclinux <sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux-Arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-serial-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-serial-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20170525203334.867-1-kirill.shutemov@linux.intel.com>
+Sender: owner-linux-mm@kvack.org
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, the arch/x86 maintainers <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, May 25, 2017 at 3:41 PM, Babu Moger <babu.moger-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org> wrote:
-> On 5/25/2017 5:27 PM, Max Filippov wrote:
->> Xtensa may have either endianness and for xtensa we define
->> CONFIG_CPU_BIG_ENDIAN or CONFIG_CPU_LITTLE_ENDIAN
->> in the arch/xtensa/Makefile based on the value of the compiler builtin
->> macro.
->
-> Hmm.. That means defining  CPU_LITTLE_ENDIAN  based on "def_bool
-> !CPU_BIG_ENDIAN" will
->  be a problem for Xtensa because menuconfig does not have the knowledge of
-> compiler builtin macro.
-> Is that correct?
+On Thu, May 25, 2017 at 1:33 PM, Kirill A. Shutemov
+<kirill.shutemov@linux.intel.com> wrote:
+> Here' my first attempt to bring boot-time between 4- and 5-level paging.
+> It looks not too terrible to me. I've expected it to be worse.
 
-I think so. OTOH outside the arch/ CPU_LITTLE_ENDIAN is only used in
-two Kconfig files:
+If I read this right, you just made it a global on/off thing.
 
-drivers/crypto/nx/Kconfig
-drivers/isdn/hisax/Kconfig
+May I suggest possibly a different model entirely? Can you make it a
+per-mm flag instead?
 
-both of which are irrelevant for xtensa.
+And then we
 
--- 
-Thanks.
--- Max
+ (a) make all kthreads use the 4-level page tables
+
+ (b) which means that all the init code uses the 4-level page tables
+
+ (c) which means that all those checks for "start_secondary" etc can
+just go away, because those all run with 4-level page tables.
+
+Or is it just much too expensive to switch between 4-level and 5-level
+paging at run-time?
+
+              Linus
+
 --
-To unsubscribe from this list: send the line "unsubscribe devicetree" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
