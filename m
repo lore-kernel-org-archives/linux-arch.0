@@ -1,65 +1,247 @@
-From: Punit Agrawal <punit.agrawal@arm.com>
-Subject: Re: [PATCH v4 8/8] mm: rmap: Use correct helper when poisoning hugepages
-Date: Thu, 25 May 2017 18:22:04 +0100
-Message-ID: <878tlkets3.fsf@e105922-lin.cambridge.arm.com>
-References: <201705250342.fHpDVCsZ%fengguang.wu@intel.com>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH v5 5/6] bug: split BUILD_BUG stuff out into <linux/build_bug.h>
+Date: Thu, 25 May 2017 11:30:01 -0700
+Message-ID: <CAGXu5jKukZxGK_hk77Acq0omtTEnRp-YXF+Y58db5AyZjD5t2Q@mail.gmail.com>
+References: <20170525120316.24473-1-abbotti@mev.co.uk> <20170525120316.24473-6-abbotti@mev.co.uk>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:52496 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753595AbdEYRWG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 25 May 2017 13:22:06 -0400
-In-Reply-To: <201705250342.fHpDVCsZ%fengguang.wu@intel.com> (kbuild test
-        robot's message of "Thu, 25 May 2017 03:20:35 +0800")
+Received: from mail-it0-f41.google.com ([209.85.214.41]:36593 "EHLO
+        mail-it0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1033376AbdEYSaD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 May 2017 14:30:03 -0400
+Received: by mail-it0-f41.google.com with SMTP id o5so61415854ith.1
+        for <linux-arch@vger.kernel.org>; Thu, 25 May 2017 11:30:02 -0700 (PDT)
+In-Reply-To: <20170525120316.24473-6-abbotti@mev.co.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: kbuild test robot <lkp@intel.com>
-Cc: kbuild-all@01.org, akpm@linux-foundation.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, will.deacon@arm.com, n-horiguchi@ah.jp.nec.com, kirill.shutemov@linux.intel.com, mike.kravetz@oracle.com, steve.capper@arm.com, mark.rutland@arm.com, linux-arch@vger.kernel.org, aneesh.kumar@linux.vnet.ibm.com
+To: Ian Abbott <abbotti@mev.co.uk>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Alexander Potapenko <glider@google.com>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@suse.de>, Hidehiro Kawai <hidehiro.kawai.ez@hitachi.com>, Jakub Kicinski <jakub.kicinski@netronome.com>, Johannes Berg <johannes.berg@intel.com>, Michal Nazarewicz <mina86@mina86.com>, Peter Zijlstra <peterz@infradead.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Steven Rostedt <rostedt@goodmis.org>
 
-kbuild test robot <lkp@intel.com> writes:
+On Thu, May 25, 2017 at 5:03 AM, Ian Abbott <abbotti@mev.co.uk> wrote:
+> Including <linux/bug.h> pulls in a lot of bloat from <asm/bug.h> and
+> <asm-generic/bug.h> that is not needed to call the BUILD_BUG() family of
+> macros.  Split them out into their own header, <linux/build_bug.h>.
+>
+> Also correct some checkpatch.pl errors for the BUILD_BUG_ON_ZERO() and
+> BUILD_BUG_ON_NULL() macros by adding parentheses around the bitfield
+> widths that begin with a minus sign.
+>
+> Signed-off-by: Ian Abbott <abbotti@mev.co.uk>
 
-> Hi Punit,
->
-> [auto build test ERROR on linus/master]
-> [also build test ERROR on v4.12-rc2 next-20170524]
-> [cannot apply to mmotm/master]
-> [if your patch is applied to the wrong git tree, please drop us a note to help improve the system]
->
-> url:    https://github.com/0day-ci/linux/commits/Punit-Agrawal/Support-for-contiguous-pte-hugepages/20170524-221905
-> config: x86_64-kexec (attached as .config)
-> compiler: gcc-6 (Debian 6.2.0-3) 6.2.0 20160901
-> reproduce:
->         # save the attached .config to linux build tree
->         make ARCH=x86_64 
->
-> All errors (new ones prefixed by >>):
->
->    mm/rmap.c: In function 'try_to_unmap_one':
->>> mm/rmap.c:1386:5: error: implicit declaration of function 'set_huge_swap_pte_at' [-Werror=implicit-function-declaration]
->         set_huge_swap_pte_at(mm, address,
->         ^~~~~~~~~~~~~~~~~~~~
->    cc1: some warnings being treated as errors
->
-> vim +/set_huge_swap_pte_at +1386 mm/rmap.c
->
->   1380	
->   1381			if (PageHWPoison(page) && !(flags & TTU_IGNORE_HWPOISON)) {
->   1382				pteval = swp_entry_to_pte(make_hwpoison_entry(subpage));
->   1383				if (PageHuge(page)) {
->   1384					int nr = 1 << compound_order(page);
->   1385					hugetlb_count_sub(nr, mm);
->> 1386					set_huge_swap_pte_at(mm, address,
->   1387							     pvmw.pte, pteval,
->   1388							     vma_mmu_pagesize(vma));
->   1389				} else {
->
+Oh yes, thank you. I've had a few places where I would have liked to
+use BUILD_BUG_ON() but avoided it due to the header soup. :)
 
-Thanks for the report. The build failure is caused due to missing
-function definition for set_huge_swap_pte_at() when CONFIG_HUGETLB_PAGE
-is disabled. I've posted an update to Patch 7 where the function is
-introduced to fix this issue.
+Acked-by: Kees Cook <keescook@chromium.org>
 
+-Kees
+
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+> Cc: Kees Cook <keescook@chromium.org>
+> Cc: Steven Rostedt <rostedt@goodmis.org>
+> Cc: Peter Zijlstra <peterz@infradead.org>
+> Cc: Jakub Kicinski <jakub.kicinski@netronome.com>
+> Cc: Rasmus Villemoes <linux@rasmusvillemoes.dk>
 > ---
-> 0-DAY kernel test infrastructure                Open Source Technology Center
-> https://lists.01.org/pipermail/kbuild-all                   Intel Corporation
+> v5: Actually, there was no v1 thru v4.  I called this v5 to match the
+> series.
+> ---
+>  include/linux/bug.h       | 74 +----------------------------------------
+>  include/linux/build_bug.h | 84 +++++++++++++++++++++++++++++++++++++++++++++++
+>  2 files changed, 85 insertions(+), 73 deletions(-)
+>  create mode 100644 include/linux/build_bug.h
+>
+> diff --git a/include/linux/bug.h b/include/linux/bug.h
+> index 483207cb99fb..5d5554c874fd 100644
+> --- a/include/linux/bug.h
+> +++ b/include/linux/bug.h
+> @@ -3,6 +3,7 @@
+>
+>  #include <asm/bug.h>
+>  #include <linux/compiler.h>
+> +#include <linux/build_bug.h>
+>
+>  enum bug_trap_type {
+>         BUG_TRAP_TYPE_NONE = 0,
+> @@ -13,82 +14,9 @@ enum bug_trap_type {
+>  struct pt_regs;
+>
+>  #ifdef __CHECKER__
+> -#define __BUILD_BUG_ON_NOT_POWER_OF_2(n) (0)
+> -#define BUILD_BUG_ON_NOT_POWER_OF_2(n) (0)
+> -#define BUILD_BUG_ON_ZERO(e) (0)
+> -#define BUILD_BUG_ON_NULL(e) ((void *)0)
+> -#define BUILD_BUG_ON_INVALID(e) (0)
+> -#define BUILD_BUG_ON_MSG(cond, msg) (0)
+> -#define BUILD_BUG_ON(condition) (0)
+> -#define BUILD_BUG() (0)
+>  #define MAYBE_BUILD_BUG_ON(cond) (0)
+>  #else /* __CHECKER__ */
+>
+> -/* Force a compilation error if a constant expression is not a power of 2 */
+> -#define __BUILD_BUG_ON_NOT_POWER_OF_2(n)       \
+> -       BUILD_BUG_ON(((n) & ((n) - 1)) != 0)
+> -#define BUILD_BUG_ON_NOT_POWER_OF_2(n)                 \
+> -       BUILD_BUG_ON((n) == 0 || (((n) & ((n) - 1)) != 0))
+> -
+> -/*
+> - * Force a compilation error if condition is true, but also produce a
+> - * result (of value 0 and type size_t), so the expression can be used
+> - * e.g. in a structure initializer (or where-ever else comma expressions
+> - * aren't permitted).
+> - */
+> -#define BUILD_BUG_ON_ZERO(e) (sizeof(struct { int:(-!!(e)); }))
+> -#define BUILD_BUG_ON_NULL(e) ((void *)sizeof(struct { int:(-!!(e)); }))
+> -
+> -/*
+> - * BUILD_BUG_ON_INVALID() permits the compiler to check the validity of the
+> - * expression but avoids the generation of any code, even if that expression
+> - * has side-effects.
+> - */
+> -#define BUILD_BUG_ON_INVALID(e) ((void)(sizeof((__force long)(e))))
+> -
+> -/**
+> - * BUILD_BUG_ON_MSG - break compile if a condition is true & emit supplied
+> - *                   error message.
+> - * @condition: the condition which the compiler should know is false.
+> - *
+> - * See BUILD_BUG_ON for description.
+> - */
+> -#define BUILD_BUG_ON_MSG(cond, msg) compiletime_assert(!(cond), msg)
+> -
+> -/**
+> - * BUILD_BUG_ON - break compile if a condition is true.
+> - * @condition: the condition which the compiler should know is false.
+> - *
+> - * If you have some code which relies on certain constants being equal, or
+> - * some other compile-time-evaluated condition, you should use BUILD_BUG_ON to
+> - * detect if someone changes it.
+> - *
+> - * The implementation uses gcc's reluctance to create a negative array, but gcc
+> - * (as of 4.4) only emits that error for obvious cases (e.g. not arguments to
+> - * inline functions).  Luckily, in 4.3 they added the "error" function
+> - * attribute just for this type of case.  Thus, we use a negative sized array
+> - * (should always create an error on gcc versions older than 4.4) and then call
+> - * an undefined function with the error attribute (should always create an
+> - * error on gcc 4.3 and later).  If for some reason, neither creates a
+> - * compile-time error, we'll still have a link-time error, which is harder to
+> - * track down.
+> - */
+> -#ifndef __OPTIMIZE__
+> -#define BUILD_BUG_ON(condition) ((void)sizeof(char[1 - 2*!!(condition)]))
+> -#else
+> -#define BUILD_BUG_ON(condition) \
+> -       BUILD_BUG_ON_MSG(condition, "BUILD_BUG_ON failed: " #condition)
+> -#endif
+> -
+> -/**
+> - * BUILD_BUG - break compile if used.
+> - *
+> - * If you have some code that you expect the compiler to eliminate at
+> - * build time, you should use BUILD_BUG to detect if it is
+> - * unexpectedly used.
+> - */
+> -#define BUILD_BUG() BUILD_BUG_ON_MSG(1, "BUILD_BUG failed")
+> -
+>  #define MAYBE_BUILD_BUG_ON(cond)                       \
+>         do {                                            \
+>                 if (__builtin_constant_p((cond)))       \
+> diff --git a/include/linux/build_bug.h b/include/linux/build_bug.h
+> new file mode 100644
+> index 000000000000..b7d22d60008a
+> --- /dev/null
+> +++ b/include/linux/build_bug.h
+> @@ -0,0 +1,84 @@
+> +#ifndef _LINUX_BUILD_BUG_H
+> +#define _LINUX_BUILD_BUG_H
+> +
+> +#include <linux/compiler.h>
+> +
+> +#ifdef __CHECKER__
+> +#define __BUILD_BUG_ON_NOT_POWER_OF_2(n) (0)
+> +#define BUILD_BUG_ON_NOT_POWER_OF_2(n) (0)
+> +#define BUILD_BUG_ON_ZERO(e) (0)
+> +#define BUILD_BUG_ON_NULL(e) ((void *)0)
+> +#define BUILD_BUG_ON_INVALID(e) (0)
+> +#define BUILD_BUG_ON_MSG(cond, msg) (0)
+> +#define BUILD_BUG_ON(condition) (0)
+> +#define BUILD_BUG() (0)
+> +#else /* __CHECKER__ */
+> +
+> +/* Force a compilation error if a constant expression is not a power of 2 */
+> +#define __BUILD_BUG_ON_NOT_POWER_OF_2(n)       \
+> +       BUILD_BUG_ON(((n) & ((n) - 1)) != 0)
+> +#define BUILD_BUG_ON_NOT_POWER_OF_2(n)                 \
+> +       BUILD_BUG_ON((n) == 0 || (((n) & ((n) - 1)) != 0))
+> +
+> +/*
+> + * Force a compilation error if condition is true, but also produce a
+> + * result (of value 0 and type size_t), so the expression can be used
+> + * e.g. in a structure initializer (or where-ever else comma expressions
+> + * aren't permitted).
+> + */
+> +#define BUILD_BUG_ON_ZERO(e) (sizeof(struct { int:(-!!(e)); }))
+> +#define BUILD_BUG_ON_NULL(e) ((void *)sizeof(struct { int:(-!!(e)); }))
+> +
+> +/*
+> + * BUILD_BUG_ON_INVALID() permits the compiler to check the validity of the
+> + * expression but avoids the generation of any code, even if that expression
+> + * has side-effects.
+> + */
+> +#define BUILD_BUG_ON_INVALID(e) ((void)(sizeof((__force long)(e))))
+> +
+> +/**
+> + * BUILD_BUG_ON_MSG - break compile if a condition is true & emit supplied
+> + *                   error message.
+> + * @condition: the condition which the compiler should know is false.
+> + *
+> + * See BUILD_BUG_ON for description.
+> + */
+> +#define BUILD_BUG_ON_MSG(cond, msg) compiletime_assert(!(cond), msg)
+> +
+> +/**
+> + * BUILD_BUG_ON - break compile if a condition is true.
+> + * @condition: the condition which the compiler should know is false.
+> + *
+> + * If you have some code which relies on certain constants being equal, or
+> + * some other compile-time-evaluated condition, you should use BUILD_BUG_ON to
+> + * detect if someone changes it.
+> + *
+> + * The implementation uses gcc's reluctance to create a negative array, but gcc
+> + * (as of 4.4) only emits that error for obvious cases (e.g. not arguments to
+> + * inline functions).  Luckily, in 4.3 they added the "error" function
+> + * attribute just for this type of case.  Thus, we use a negative sized array
+> + * (should always create an error on gcc versions older than 4.4) and then call
+> + * an undefined function with the error attribute (should always create an
+> + * error on gcc 4.3 and later).  If for some reason, neither creates a
+> + * compile-time error, we'll still have a link-time error, which is harder to
+> + * track down.
+> + */
+> +#ifndef __OPTIMIZE__
+> +#define BUILD_BUG_ON(condition) ((void)sizeof(char[1 - 2*!!(condition)]))
+> +#else
+> +#define BUILD_BUG_ON(condition) \
+> +       BUILD_BUG_ON_MSG(condition, "BUILD_BUG_ON failed: " #condition)
+> +#endif
+> +
+> +/**
+> + * BUILD_BUG - break compile if used.
+> + *
+> + * If you have some code that you expect the compiler to eliminate at
+> + * build time, you should use BUILD_BUG to detect if it is
+> + * unexpectedly used.
+> + */
+> +#define BUILD_BUG() BUILD_BUG_ON_MSG(1, "BUILD_BUG failed")
+> +
+> +#endif /* __CHECKER__ */
+> +
+> +#endif /* _LINUX_BUILD_BUG_H */
+> --
+> 2.11.0
+>
+
+
+
+-- 
+Kees Cook
+Pixel Security
