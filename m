@@ -1,177 +1,104 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga04.intel.com ([192.55.52.120]:9446 "EHLO mga04.intel.com"
+Received: from mga06.intel.com ([134.134.136.31]:37726 "EHLO mga06.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1165606AbdEYUef (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 25 May 2017 16:34:35 -0400
+        id S967544AbdEYUe0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 25 May 2017 16:34:26 -0400
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv1, RFC 6/8] x86/mm: Replace compile-time checks for 5-level with runtime-time
-Date: Thu, 25 May 2017 23:33:32 +0300
-Message-ID: <20170525203334.867-7-kirill.shutemov@linux.intel.com>
+Subject: [PATCHv1, RFC 1/8] x86/boot/compressed/64: Detect and handle 5-level paging at boot-time
+Date: Thu, 25 May 2017 23:33:27 +0300
+Message-ID: <20170525203334.867-2-kirill.shutemov@linux.intel.com>
 In-Reply-To: <20170525203334.867-1-kirill.shutemov@linux.intel.com>
 References: <20170525203334.867-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20170525203332.zXxeUW6b4aClyqpWQYhk4sQMXwnYsInq1LGnd4TOo18@z>
+Message-ID: <20170525203327.qnotQa3NgF0hIzng6gTLYiu3lNNPvyLp-oKlO5ouPEI@z>
 
-This patch converts the of CONFIG_X86_5LEVEL check to runtime checks for
-p4d folding.
+This patch prepare decompression code to boot-time switching between 4-
+and 5-level paging.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
- arch/x86/mm/ident_map.c       |  2 +-
- arch/x86/mm/init_64.c         | 28 +++++++++++++++++-----------
- arch/x86/mm/kaslr.c           |  6 +++---
- arch/x86/power/hibernate_64.c |  4 ++--
- arch/x86/xen/mmu_pv.c         |  2 +-
- 5 files changed, 24 insertions(+), 18 deletions(-)
+ arch/x86/boot/compressed/head_64.S | 37 +++++++++++++++++++++++++++++++++++++
+ 1 file changed, 37 insertions(+)
 
-diff --git a/arch/x86/mm/ident_map.c b/arch/x86/mm/ident_map.c
-index adab1595f4bd..d2df33a2cbfb 100644
---- a/arch/x86/mm/ident_map.c
-+++ b/arch/x86/mm/ident_map.c
-@@ -115,7 +115,7 @@ int kernel_ident_mapping_init(struct x86_mapping_info *info, pgd_t *pgd_page,
- 		result = ident_p4d_init(info, p4d, addr, next);
- 		if (result)
- 			return result;
--		if (IS_ENABLED(CONFIG_X86_5LEVEL)) {
-+		if (!p4d_folded) {
- 			set_pgd(pgd, __pgd(__pa(p4d) | _KERNPG_TABLE));
- 		} else {
- 			/*
-diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
-index d135c613bf7b..b1b70a79fa14 100644
---- a/arch/x86/mm/init_64.c
-+++ b/arch/x86/mm/init_64.c
-@@ -88,12 +88,7 @@ static int __init nonx32_setup(char *str)
- }
- __setup("noexec32=", nonx32_setup);
+diff --git a/arch/x86/boot/compressed/head_64.S b/arch/x86/boot/compressed/head_64.S
+index 3ed26769810b..89d886c95afc 100644
+--- a/arch/x86/boot/compressed/head_64.S
++++ b/arch/x86/boot/compressed/head_64.S
+@@ -109,6 +109,31 @@ ENTRY(startup_32)
+ 	movl	$LOAD_PHYSICAL_ADDR, %ebx
+ 1:
  
--/*
-- * When memory was added make sure all the processes MM have
-- * suitable PGD entries in the local PGD level page.
-- */
--#ifdef CONFIG_X86_5LEVEL
--void sync_global_pgds(unsigned long start, unsigned long end)
-+static void sync_global_pgds_57(unsigned long start, unsigned long end)
- {
- 	unsigned long addr;
- 
-@@ -129,8 +124,8 @@ void sync_global_pgds(unsigned long start, unsigned long end)
- 		spin_unlock(&pgd_lock);
- 	}
- }
--#else
--void sync_global_pgds(unsigned long start, unsigned long end)
++#ifdef CONFIG_X86_5LEVEL
++	pushl	%ebx
 +
-+static void sync_global_pgds_48(unsigned long start, unsigned long end)
- {
- 	unsigned long addr;
- 
-@@ -173,7 +168,18 @@ void sync_global_pgds(unsigned long start, unsigned long end)
- 		spin_unlock(&pgd_lock);
- 	}
- }
--#endif
++	/* Check if leaf 7 is supported*/
++	movl	$0, %eax
++	cpuid
++	cmpl	$7, %eax
++	jb	1f
 +
-+/*
-+ * When memory was added make sure all the processes MM have
-+ * suitable PGD entries in the local PGD level page.
-+ */
-+void sync_global_pgds(unsigned long start, unsigned long end)
-+{
-+	if (!p4d_folded)
-+		sync_global_pgds_57(start, end);
-+	else
-+		sync_global_pgds_48(start, end);
-+}
++	/*
++	 * Check if la57 is supported.
++	 * The feature is enumerated with CPUID.(EAX=07H, ECX=0):ECX[bit 16]
++	 */
++	movl	$7, %eax
++	movl	$0, %ecx
++	cpuid
++	andl	$(1 << 16), %ecx
++	jz	1f
++
++	/* p4d page table is not folded if la57 is present */
++	movl	$0, p4d_folded(%ebp)
++1:
++	popl %ebx
++#endif
++
+ 	/* Target address to relocate to for decompression */
+ 	movl	BP_init_size(%esi), %eax
+ 	subl	$_end, %eax
+@@ -125,9 +150,14 @@ ENTRY(startup_32)
+ 	/* Enable PAE and LA57 mode */
+ 	movl	%cr4, %eax
+ 	orl	$X86_CR4_PAE, %eax
++
+ #ifdef CONFIG_X86_5LEVEL
++	testl	$1, p4d_folded(%ebp)
++	jnz	1f
+ 	orl	$X86_CR4_LA57, %eax
++1:
+ #endif
++
+ 	movl	%eax, %cr4
  
- /*
-  * NOTE: This function is marked __ref because it calls __init function
-@@ -632,7 +638,7 @@ phys_p4d_init(p4d_t *p4d_page, unsigned long paddr, unsigned long paddr_end,
- 	unsigned long vaddr = (unsigned long)__va(paddr);
- 	int i = p4d_index(vaddr);
+  /*
+@@ -147,11 +177,15 @@ ENTRY(startup_32)
+ 	movl	%eax, 0(%edi)
  
--	if (!IS_ENABLED(CONFIG_X86_5LEVEL))
-+	if (p4d_folded)
- 		return phys_pud_init((pud_t *) p4d_page, paddr, paddr_end, page_size_mask);
+ #ifdef CONFIG_X86_5LEVEL
++	testl	$1, p4d_folded(%ebp)
++	jnz	1f
++
+ 	/* Build Level 4 */
+ 	addl	$0x1000, %edx
+ 	leal	pgtable(%ebx,%edx), %edi
+ 	leal	0x1007 (%edi), %eax
+ 	movl	%eax, 0(%edi)
++1:
+ #endif
  
- 	for (; i < PTRS_PER_P4D; i++, paddr = paddr_next) {
-@@ -712,7 +718,7 @@ kernel_physical_mapping_init(unsigned long paddr_start,
- 					   page_size_mask);
+ 	/* Build Level 3 */
+@@ -464,6 +498,9 @@ gdt:
+ 	.quad   0x0000000000000000	/* TS continued */
+ gdt_end:
  
- 		spin_lock(&init_mm.page_table_lock);
--		if (IS_ENABLED(CONFIG_X86_5LEVEL))
-+		if (!p4d_folded)
- 			pgd_populate(&init_mm, pgd, p4d);
- 		else
- 			p4d_populate(&init_mm, p4d_offset(pgd, vaddr), (pud_t *) p4d);
-diff --git a/arch/x86/mm/kaslr.c b/arch/x86/mm/kaslr.c
-index 55433f2d1957..a691ff07d825 100644
---- a/arch/x86/mm/kaslr.c
-+++ b/arch/x86/mm/kaslr.c
-@@ -134,7 +134,7 @@ void __init kernel_randomize_memory(void)
- 		 */
- 		entropy = remain_entropy / (ARRAY_SIZE(kaslr_regions) - i);
- 		prandom_bytes_state(&rand_state, &rand, sizeof(rand));
--		if (IS_ENABLED(CONFIG_X86_5LEVEL))
-+		if (!p4d_folded)
- 			entropy = (rand % (entropy + 1)) & P4D_MASK;
- 		else
- 			entropy = (rand % (entropy + 1)) & PUD_MASK;
-@@ -146,7 +146,7 @@ void __init kernel_randomize_memory(void)
- 		 * randomization alignment.
- 		 */
- 		vaddr += get_padding(&kaslr_regions[i]);
--		if (IS_ENABLED(CONFIG_X86_5LEVEL))
-+		if (!p4d_folded)
- 			vaddr = round_up(vaddr + 1, P4D_SIZE);
- 		else
- 			vaddr = round_up(vaddr + 1, PUD_SIZE);
-@@ -222,7 +222,7 @@ void __meminit init_trampoline(void)
- 		return;
- 	}
- 
--	if (IS_ENABLED(CONFIG_X86_5LEVEL))
-+	if (!p4d_folded)
- 		init_trampoline_p4d();
- 	else
- 		init_trampoline_pud();
-diff --git a/arch/x86/power/hibernate_64.c b/arch/x86/power/hibernate_64.c
-index a6e21fee22ea..86696ff275b9 100644
---- a/arch/x86/power/hibernate_64.c
-+++ b/arch/x86/power/hibernate_64.c
-@@ -66,7 +66,7 @@ static int set_up_temporary_text_mapping(pgd_t *pgd)
- 	 * tables used by the image kernel.
- 	 */
- 
--	if (IS_ENABLED(CONFIG_X86_5LEVEL)) {
-+	if (!p4d_folded) {
- 		p4d = (p4d_t *)get_safe_page(GFP_ATOMIC);
- 		if (!p4d)
- 			return -ENOMEM;
-@@ -84,7 +84,7 @@ static int set_up_temporary_text_mapping(pgd_t *pgd)
- 		__pmd((jump_address_phys & PMD_MASK) | __PAGE_KERNEL_LARGE_EXEC));
- 	set_pud(pud + pud_index(restore_jump_address),
- 		__pud(__pa(pmd) | _KERNPG_TABLE));
--	if (IS_ENABLED(CONFIG_X86_5LEVEL)) {
-+	if (!p4d_folded) {
- 		set_p4d(p4d + p4d_index(restore_jump_address), __p4d(__pa(pud) | _KERNPG_TABLE));
- 		set_pgd(pgd + pgd_index(restore_jump_address), __pgd(__pa(p4d) | _KERNPG_TABLE));
- 	} else {
-diff --git a/arch/x86/xen/mmu_pv.c b/arch/x86/xen/mmu_pv.c
-index d9ee946559c9..e39054fca812 100644
---- a/arch/x86/xen/mmu_pv.c
-+++ b/arch/x86/xen/mmu_pv.c
-@@ -1214,7 +1214,7 @@ static void __init xen_cleanmfnmap(unsigned long vaddr)
- 			continue;
- 		xen_cleanmfnmap_p4d(p4d + i, unpin);
- 	}
--	if (IS_ENABLED(CONFIG_X86_5LEVEL)) {
-+	if (!p4d_folded) {
- 		set_pgd(pgd, __pgd(0));
- 		xen_cleanmfnmap_free_pgtbl(p4d, unpin);
- 	}
++p4d_folded:
++	.word	1
++
+ #ifdef CONFIG_EFI_STUB
+ efi_config:
+ 	.quad	0
 -- 
 2.11.0
