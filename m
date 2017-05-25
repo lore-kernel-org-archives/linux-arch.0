@@ -1,243 +1,77 @@
-From: Don Zickus <dzickus@redhat.com>
-Subject: Re: [PATCH 2/4] watchdog: introduce arch_touch_nmi_watchdog()
-Date: Thu, 25 May 2017 09:55:59 -0400
-Message-ID: <20170525135559.ltu4coxjghx2ovce@redhat.com>
-References: <20170525082856.21685-1-npiggin@gmail.com>
- <20170525082856.21685-3-npiggin@gmail.com>
+From: Michal Nazarewicz <mina86@mina86.com>
+Subject: Re: [PATCH v5 2/6] linux/bug.h: correct formatting of block comment
+Date: Thu, 25 May 2017 15:58:58 +0200
+Message-ID: <xa1td1axhwbh.fsf@mina86.com>
+References: <20170525120316.24473-1-abbotti@mev.co.uk> <20170525120316.24473-3-abbotti@mev.co.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:37276 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S965991AbdEYN4B (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 25 May 2017 09:56:01 -0400
-Content-Disposition: inline
-In-Reply-To: <20170525082856.21685-3-npiggin@gmail.com>
+Received: from mail-wm0-f46.google.com ([74.125.82.46]:37990 "EHLO
+        mail-wm0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751012AbdEYN7I (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 May 2017 09:59:08 -0400
+Received: by mail-wm0-f46.google.com with SMTP id e127so106401651wmg.1
+        for <linux-arch@vger.kernel.org>; Thu, 25 May 2017 06:59:07 -0700 (PDT)
+In-Reply-To: <20170525120316.24473-3-abbotti@mev.co.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Alexander Potapenko <glider@google.com>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@suse.de>, Hidehiro Kawai <hidehiro.kawai.ez@hitachi.com>, Ian Abbott <abbotti@mev.co.uk>, Jakub Kicinski <jakub.kicinski@netronome.com>, Johannes Berg <johannes.berg@intel.com>, Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Steven Rostedt <rostedt@goodmis.org>
 
-On Thu, May 25, 2017 at 06:28:54PM +1000, Nicholas Piggin wrote:
-> For architectures that define HAVE_NMI_WATCHDOG, instead of having
-> them provide the complete touch_nmi_watchdog() function, just have
-> them provide arch_touch_nmi_watchdog().
-> 
-> This gives the generic code more flexibility in implementing this
-> function, and arch implementations don't miss out on touching the
-> softlockup watchdog or other generic details.
+On Thu, May 25 2017, Ian Abbott wrote:
+> Correct these checkpatch.pl warnings:
+>
+> |WARNING: Block comments use * on subsequent lines
+> |#34: FILE: include/linux/bug.h:34:
+> |+/* Force a compilation error if condition is true, but also produce a
+> |+   result (of value 0 and type size_t), so the expression can be used
+>
+> |WARNING: Block comments use a trailing */ on a separate line
+> |#36: FILE: include/linux/bug.h:36:
+> |+   aren't permitted). */
+>
+> Signed-off-by: Ian Abbott <abbotti@mev.co.uk>
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+> Cc: Kees Cook <keescook@chromium.org>
+> Cc: Steven Rostedt <rostedt@goodmis.org>
+> Cc: Peter Zijlstra <peterz@infradead.org>
+> Cc: Jakub Kicinski <jakub.kicinski@netronome.com>
+> Cc: Rasmus Villemoes <linux@rasmusvillemoes.dk>
 
-The idea makes sense.  I don't think you can have hld_touch_nmi_watchdog
-defined with arch_touch_nmi_watchdog, so I am wondering if it makes sense to
-combine them somehow.  Though renaming hld_touch_nmi_watchdog to
-arch_touch_nmi_watchdog sounds odd, I think it mimics the idea.
+Acked-by: Michal Nazarewicz <mina86@mina86.com>
 
-Cheers,
-Don
-
-> 
-> Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 > ---
->  arch/blackfin/include/asm/nmi.h            |  2 ++
->  arch/blackfin/kernel/nmi.c                 |  2 +-
->  arch/mn10300/include/asm/nmi.h             |  2 ++
->  arch/mn10300/kernel/mn10300-watchdog-low.S |  8 ++++----
->  arch/mn10300/kernel/mn10300-watchdog.c     |  2 +-
->  arch/sparc/include/asm/nmi.h               |  1 +
->  arch/sparc/kernel/nmi.c                    |  6 ++----
->  include/linux/nmi.h                        | 26 +++++++++++++++-----------
->  kernel/watchdog_hld.c                      |  5 ++---
->  9 files changed, 30 insertions(+), 24 deletions(-)
-> 
-> diff --git a/arch/blackfin/include/asm/nmi.h b/arch/blackfin/include/asm/nmi.h
-> index b9caac4fcfd8..6e7047ceec79 100644
-> --- a/arch/blackfin/include/asm/nmi.h
-> +++ b/arch/blackfin/include/asm/nmi.h
-> @@ -7,6 +7,8 @@
->  #ifndef _BFIN_NMI_H_
->  #define _BFIN_NMI_H_
->  
-> +void arch_touch_nmi_watchdog(void);
-> +
->  #include <linux/nmi.h>
->  
->  #endif
-> diff --git a/arch/blackfin/kernel/nmi.c b/arch/blackfin/kernel/nmi.c
-> index 633c37083e87..1e714329fe8a 100644
-> --- a/arch/blackfin/kernel/nmi.c
-> +++ b/arch/blackfin/kernel/nmi.c
-> @@ -190,7 +190,7 @@ static int __init init_nmi_wdt(void)
->  }
->  device_initcall(init_nmi_wdt);
->  
-> -void touch_nmi_watchdog(void)
-> +void arch_touch_nmi_watchdog(void)
->  {
->  	atomic_set(&nmi_touched[smp_processor_id()], 1);
->  }
-> diff --git a/arch/mn10300/include/asm/nmi.h b/arch/mn10300/include/asm/nmi.h
-> index f3671cbbc117..aee8aa22d9ee 100644
-> --- a/arch/mn10300/include/asm/nmi.h
-> +++ b/arch/mn10300/include/asm/nmi.h
-> @@ -11,4 +11,6 @@
->  #ifndef _ASM_NMI_H
->  #define _ASM_NMI_H
->  
-> +void arch_touch_nmi_watchdog(void);
-> +
->  #endif /* _ASM_NMI_H */
-> diff --git a/arch/mn10300/kernel/mn10300-watchdog-low.S b/arch/mn10300/kernel/mn10300-watchdog-low.S
-> index f2f5c9cfaabd..34f8773de7d0 100644
-> --- a/arch/mn10300/kernel/mn10300-watchdog-low.S
-> +++ b/arch/mn10300/kernel/mn10300-watchdog-low.S
-> @@ -50,9 +50,9 @@ watchdog_handler:
->  #   we can't inline it)
->  #
->  ###############################################################################
-> -	.globl	touch_nmi_watchdog
-> -	.type	touch_nmi_watchdog,@function
-> -touch_nmi_watchdog:
-> +	.globl	arch_touch_nmi_watchdog
-> +	.type	arch_touch_nmi_watchdog,@function
-> +arch_touch_nmi_watchdog:
->  	clr	d0
->  	clr	d1
->  	mov	watchdog_alert_counter, a0
-> @@ -63,4 +63,4 @@ touch_nmi_watchdog:
->  	lne
->  	ret	[],0
->  
-> -	.size	touch_nmi_watchdog,.-touch_nmi_watchdog
-> +	.size	arch_touch_nmi_watchdog,.-arch_touch_nmi_watchdog
-> diff --git a/arch/mn10300/kernel/mn10300-watchdog.c b/arch/mn10300/kernel/mn10300-watchdog.c
-> index a2d8e6938d67..0d5641beadf5 100644
-> --- a/arch/mn10300/kernel/mn10300-watchdog.c
-> +++ b/arch/mn10300/kernel/mn10300-watchdog.c
-> @@ -31,7 +31,7 @@ static unsigned int watchdog;
->  static unsigned int watchdog_hz = 1;
->  unsigned int watchdog_alert_counter[NR_CPUS];
->  
-> -EXPORT_SYMBOL(touch_nmi_watchdog);
-> +EXPORT_SYMBOL(arch_touch_nmi_watchdog);
->  
->  /*
->   * the best way to detect whether a CPU has a 'hard lockup' problem
-> diff --git a/arch/sparc/include/asm/nmi.h b/arch/sparc/include/asm/nmi.h
-> index 26ad2b2607c6..284eac3ffaf2 100644
-> --- a/arch/sparc/include/asm/nmi.h
-> +++ b/arch/sparc/include/asm/nmi.h
-> @@ -7,6 +7,7 @@ void nmi_adjust_hz(unsigned int new_hz);
->  
->  extern atomic_t nmi_active;
->  
-> +void arch_touch_nmi_watchdog(void);
->  void start_nmi_watchdog(void *unused);
->  void stop_nmi_watchdog(void *unused);
->  
-> diff --git a/arch/sparc/kernel/nmi.c b/arch/sparc/kernel/nmi.c
-> index 95e73c63c99d..048ad783ea3f 100644
-> --- a/arch/sparc/kernel/nmi.c
-> +++ b/arch/sparc/kernel/nmi.c
-> @@ -51,7 +51,7 @@ static DEFINE_PER_CPU(unsigned int, last_irq_sum);
->  static DEFINE_PER_CPU(long, alert_counter);
->  static DEFINE_PER_CPU(int, nmi_touch);
->  
-> -void touch_nmi_watchdog(void)
-> +void arch_touch_nmi_watchdog(void)
->  {
->  	if (atomic_read(&nmi_active)) {
->  		int cpu;
-> @@ -61,10 +61,8 @@ void touch_nmi_watchdog(void)
->  				per_cpu(nmi_touch, cpu) = 1;
->  		}
->  	}
-> -
-> -	touch_softlockup_watchdog();
->  }
-> -EXPORT_SYMBOL(touch_nmi_watchdog);
-> +EXPORT_SYMBOL(arch_touch_nmi_watchdog);
->  
->  static void die_nmi(const char *str, struct pt_regs *regs, int do_panic)
->  {
-> diff --git a/include/linux/nmi.h b/include/linux/nmi.h
-> index 5e2e57536d98..6ea465a842a1 100644
-> --- a/include/linux/nmi.h
-> +++ b/include/linux/nmi.h
-> @@ -6,6 +6,9 @@
->  
->  #include <linux/sched.h>
->  #include <asm/irq.h>
-> +#if defined(CONFIG_HAVE_NMI_WATCHDOG)
-> +#include <asm/nmi.h>
-> +#endif
->  
->  #ifdef CONFIG_LOCKUP_DETECTOR
->  extern void touch_softlockup_watchdog_sched(void);
-> @@ -58,6 +61,14 @@ static inline void reset_hung_task_detector(void)
->  #define NMI_WATCHDOG_ENABLED      (1 << NMI_WATCHDOG_ENABLED_BIT)
->  #define SOFT_WATCHDOG_ENABLED     (1 << SOFT_WATCHDOG_ENABLED_BIT)
->  
-> +#if defined(CONFIG_HARDLOCKUP_DETECTOR)
-> +extern void hld_touch_nmi_watchdog(void);
-> +extern void hardlockup_detector_disable(void);
-> +#else
-> +static inline void hld_touch_nmi_watchdog(void) {}
-> +static inline void hardlockup_detector_disable(void) {}
-> +#endif
-> +
->  /**
->   * touch_nmi_watchdog - restart NMI watchdog timeout.
->   * 
-> @@ -65,21 +76,14 @@ static inline void reset_hung_task_detector(void)
->   * may be used to reset the timeout - for code which intentionally
->   * disables interrupts for a long time. This call is stateless.
->   */
-> -#if defined(CONFIG_HAVE_NMI_WATCHDOG) || defined(CONFIG_HARDLOCKUP_DETECTOR)
-> -#include <asm/nmi.h>
-> -extern void touch_nmi_watchdog(void);
-> -#else
->  static inline void touch_nmi_watchdog(void)
->  {
-> +#if defined(CONFIG_HAVE_NMI_WATCHDOG)
-> +	arch_touch_nmi_watchdog();
-> +#endif
-> +	hld_touch_nmi_watchdog();
->  	touch_softlockup_watchdog();
->  }
-> -#endif
-> -
-> -#if defined(CONFIG_HARDLOCKUP_DETECTOR)
-> -extern void hardlockup_detector_disable(void);
-> -#else
-> -static inline void hardlockup_detector_disable(void) {}
-> -#endif
->  
->  /*
->   * Create trigger_all_cpu_backtrace() out of the arch-provided
-> diff --git a/kernel/watchdog_hld.c b/kernel/watchdog_hld.c
-> index 54a427d1f344..e0d7a7c43fb5 100644
-> --- a/kernel/watchdog_hld.c
-> +++ b/kernel/watchdog_hld.c
-> @@ -56,7 +56,7 @@ static int __init hardlockup_panic_setup(char *str)
->  }
->  __setup("nmi_watchdog=", hardlockup_panic_setup);
->  
-> -void touch_nmi_watchdog(void)
-> +void hld_touch_nmi_watchdog(void)
->  {
->  	/*
->  	 * Using __raw here because some code paths have
-> @@ -66,9 +66,8 @@ void touch_nmi_watchdog(void)
->  	 * going off.
->  	 */
->  	raw_cpu_write(watchdog_nmi_touch, true);
-> -	touch_softlockup_watchdog();
->  }
-> -EXPORT_SYMBOL(touch_nmi_watchdog);
-> +EXPORT_SYMBOL(hld_touch_nmi_watchdog);
->  
->  static struct perf_event_attr wd_hw_attr = {
->  	.type		= PERF_TYPE_HARDWARE,
-> -- 
-> 2.11.0
-> 
+> v5: Actually, there was no v1 thru v4.  I called this v5 to match the
+> series.
+> ---
+>  include/linux/bug.h | 10 ++++++----
+>  1 file changed, 6 insertions(+), 4 deletions(-)
+>
+> diff --git a/include/linux/bug.h b/include/linux/bug.h
+> index 687b557fc5eb..ca24007e2dc3 100644
+> --- a/include/linux/bug.h
+> +++ b/include/linux/bug.h
+> @@ -30,10 +30,12 @@ struct pt_regs;
+>  #define BUILD_BUG_ON_NOT_POWER_OF_2(n)			\
+>  	BUILD_BUG_ON((n) =3D=3D 0 || (((n) & ((n) - 1)) !=3D 0))
+>=20=20
+> -/* Force a compilation error if condition is true, but also produce a
+> -   result (of value 0 and type size_t), so the expression can be used
+> -   e.g. in a structure initializer (or where-ever else comma expressions
+> -   aren't permitted). */
+> +/*
+> + * Force a compilation error if condition is true, but also produce a
+> + * result (of value 0 and type size_t), so the expression can be used
+> + * e.g. in a structure initializer (or where-ever else comma expressions
+> + * aren't permitted).
+> + */
+>  #define BUILD_BUG_ON_ZERO(e) (sizeof(struct { int:-!!(e); }))
+>  #define BUILD_BUG_ON_NULL(e) ((void *)sizeof(struct { int:-!!(e); }))
+
+--=20
+Best regards
+=E3=83=9F=E3=83=8F=E3=82=A6 =E2=80=9C=F0=9D=93=B6=F0=9D=93=B2=F0=9D=93=B7=
+=F0=9D=93=AA86=E2=80=9D =E3=83=8A=E3=82=B6=E3=83=AC=E3=83=B4=E3=82=A4=E3=83=
+=84
+=C2=ABIf at first you don=E2=80=99t succeed, give up skydiving=C2=BB
