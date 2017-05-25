@@ -1,53 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp120.ord1c.emailsrvr.com ([108.166.43.120]:56425 "EHLO
+Received: from smtp120.ord1c.emailsrvr.com ([108.166.43.120]:33281 "EHLO
         smtp120.ord1c.emailsrvr.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1423956AbdEYMDt (ORCPT
+        by vger.kernel.org with ESMTP id S1760891AbdEYMDk (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 25 May 2017 08:03:49 -0400
+        Thu, 25 May 2017 08:03:40 -0400
 From: Ian Abbott <abbotti@mev.co.uk>
-Subject: [PATCH v5 3/6] linux/bug.h: correct "(foo*)" should be "(foo *)"
-Date: Thu, 25 May 2017 13:03:13 +0100
-Message-ID: <20170525120316.24473-4-abbotti@mev.co.uk>
+Subject: [PATCH v5 1/6] asm-generic/bug.h: declare struct pt_regs; before function prototype
+Date: Thu, 25 May 2017 13:03:11 +0100
+Message-ID: <20170525120316.24473-2-abbotti@mev.co.uk>
 In-Reply-To: <20170525120316.24473-1-abbotti@mev.co.uk>
 References: <20170525120316.24473-1-abbotti@mev.co.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Alexander Potapenko <glider@google.com>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@suse.de>, Hidehiro Kawai <hidehiro.kawai.ez@hitachi.com>, Ian Abbott <abbotti@mev.co.uk>, Jakub Kicinski <jakub.kicinski@netronome.com>, Johannes Berg <johannes.berg@intel.com>, Kees Cook <keescook@chromium.org>, Michal Nazarewicz <mina86@mina86.com>, Peter Zijlstra <peterz@infradead.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Steven Rostedt <rostedt@goodmis.org>
-Message-ID: <20170525120313.6Wklj1nFOasU1C1IVL_r3Ff7obIK07QgCztbNZKIb14@z>
+Message-ID: <20170525120311.momaAPSIX5CSgjeDVMa0LHwfCn841IL0Y6Gwu4L3WkI@z>
 
-Correct this checkpatch.pl error:
-
-|ERROR: "(foo*)" should be "(foo *)"
-|#19: FILE: include/linux/bug.h:19:
-|+#define BUILD_BUG_ON_NULL(e) ((void*)0)
+The declaration of `__warn()` has `struct pt_regs *regs` as one of its
+parameters.  This can result in compiler warnings if `struct regs` is
+not already declared.  Add an empty declaration of `struct pt_regs` to
+avoid the warnings.
 
 Signed-off-by: Ian Abbott <abbotti@mev.co.uk>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Kees Cook <keescook@chromium.org>
-Cc: Steven Rostedt <rostedt@goodmis.org>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Jakub Kicinski <jakub.kicinski@netronome.com>
-Cc: Rasmus Villemoes <linux@rasmusvillemoes.dk>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Acked-by: Arnd Bergmann <arnd@arndb.de>
+Acked-by: Michal Nazarewicz <mina86@mina86.com>
 ---
-v5: Actually, there was no v1 thru v4.  I called this v5 to match the
+v3: Actually, there was no v1 or v2.  I called this v3 to match the
 series.
+v4: Corrected 'Acked-by:' line in patch description.
+v5: Added Acked-by for Michal Nazarewicz.
 ---
- include/linux/bug.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ include/asm-generic/bug.h | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/include/linux/bug.h b/include/linux/bug.h
-index ca24007e2dc3..216a1b79653d 100644
---- a/include/linux/bug.h
-+++ b/include/linux/bug.h
-@@ -16,7 +16,7 @@ struct pt_regs;
- #define __BUILD_BUG_ON_NOT_POWER_OF_2(n) (0)
- #define BUILD_BUG_ON_NOT_POWER_OF_2(n) (0)
- #define BUILD_BUG_ON_ZERO(e) (0)
--#define BUILD_BUG_ON_NULL(e) ((void*)0)
-+#define BUILD_BUG_ON_NULL(e) ((void *)0)
- #define BUILD_BUG_ON_INVALID(e) (0)
- #define BUILD_BUG_ON_MSG(cond, msg) (0)
- #define BUILD_BUG_ON(condition) (0)
+diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
+index d6f4aed479a1..87191357d303 100644
+--- a/include/asm-generic/bug.h
++++ b/include/asm-generic/bug.h
+@@ -97,6 +97,7 @@ extern void warn_slowpath_null(const char *file, const int line);
+ 
+ /* used internally by panic.c */
+ struct warn_args;
++struct pt_regs;
+ 
+ void __warn(const char *file, int line, void *caller, unsigned taint,
+ 	    struct pt_regs *regs, struct warn_args *args);
 -- 
 2.11.0
