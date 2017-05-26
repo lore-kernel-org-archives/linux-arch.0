@@ -1,52 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:35558 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1758833AbdEZFDQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 26 May 2017 01:03:16 -0400
-Reply-To: xlpang@redhat.com
-Subject: Re: [PATCH v5 31/32] x86: Add sysfs support for Secure Memory
- Encryption
-References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
- <20170418212212.10190.73484.stgit@tlendack-t1.amdoffice.net>
- <20170518170153.eqiyat5s6q3yeejl@pd.tnic>
- <20170526024933.GA3228@dhcp-128-65.nay.redhat.com>
-From: Xunlei Pang <xpang@redhat.com>
-Message-ID: <5927B767.3010701@redhat.com>
-Date: Fri, 26 May 2017 13:04:39 +0800
+Received: from Galois.linutronix.de ([146.0.238.70]:39698 "EHLO
+        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1947042AbdEZG4B (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 26 May 2017 02:56:01 -0400
+Date: Fri, 26 May 2017 08:54:31 +0200 (CEST)
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH 1/1] futex: remove duplicated code
+In-Reply-To: <20170525142829.GO2859@arm.com>
+Message-ID: <alpine.DEB.2.20.1705260849520.1902@nanos>
+References: <20170515130742.18357-1-jslaby@suse.cz> <20170515131644.GA3605@arm.com> <alpine.DEB.2.20.1705222259580.2407@nanos> <20170525142829.GO2859@arm.com>
 MIME-Version: 1.0
-In-Reply-To: <20170526024933.GA3228@dhcp-128-65.nay.redhat.com>
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Young <dyoung@redhat.com>, Borislav Petkov <bp@alien8.de>
-Cc: linux-efi@vger.kernel.org, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, x86@kernel.org, linux-mm@kvack.org, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, linux-arch@vger.kernel.org, kvm@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, linux-doc@vger.kernel.org, kasan-dev@googlegroups.com, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Tom Lendacky <thomas.lendacky@amd.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xlpang@redhat.com, Andy Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, iommu@lists.linux-foundation.org, "Michael S. Tsirkin" <mst@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>
-Message-ID: <20170526050439.IvIVr-AOUHDtwvhLs62NGb0mCtaiq9r9bDYATeDLP1g@z>
+To: Will Deacon <will.deacon@arm.com>
+Cc: Jiri Slaby <jslaby@suse.cz>, linux-kernel@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org
+Message-ID: <20170526065431.RKBxBqhK84JisBCTpozvlTAMON5lwxssUm1aad2EIoU@z>
 
-On 05/26/2017 at 10:49 AM, Dave Young wrote:
-> Ccing Xunlei he is reading the patches see what need to be done for
-> kdump. There should still be several places to handle to make kdump work.
->
-> On 05/18/17 at 07:01pm, Borislav Petkov wrote:
->> On Tue, Apr 18, 2017 at 04:22:12PM -0500, Tom Lendacky wrote:
->>> Add sysfs support for SME so that user-space utilities (kdump, etc.) can
->>> determine if SME is active.
->> But why do user-space tools need to know that?
->>
->> I mean, when we load the kdump kernel, we do it with the first kernel,
->> with the kexec_load() syscall, AFAICT. And that code does a lot of
->> things during that init, like machine_kexec_prepare()->init_pgtable() to
->> prepare the ident mapping of the second kernel, for example.
->>
->> What I'm aiming at is that the first kernel knows *exactly* whether SME
->> is enabled or not and doesn't need to tell the second one through some
->> sysfs entries - it can do that during loading.
->>
->> So I don't think we need any userspace things at all...
-> If kdump kernel can get the SME status from hardware register then this
-> should be not necessary and this patch can be dropped.
+On Thu, 25 May 2017, Will Deacon wrote:
+> On Mon, May 22, 2017 at 11:11:33PM +0200, Thomas Gleixner wrote:
+> > On Mon, 15 May 2017, Will Deacon wrote:
+> > > On Mon, May 15, 2017 at 03:07:42PM +0200, Jiri Slaby wrote:
+> > > > There is code duplicated over all architecture's headers for
+> > > > futex_atomic_op_inuser. Namely op decoding, access_ok check for uaddr,
+> > > > and comparison of the result.
+> > > > 
+> > > > Remove this duplication and leave up to the arches only the needed
+> > > > assembly which is now in arch_futex_atomic_op_inuser.
+> > > > 
+> > > > Note that s390 removed access_ok check in d12a29703 ("s390/uaccess:
+> > > > remove pointless access_ok() checks") as access_ok there returns true.
+> > > > We introduce it back to the helper for the sake of simplicity (it gets
+> > > > optimized away anyway).
+> > > 
+> > > Whilst I think this is a good idea, the code in question actually results
+> > > in undefined behaviour per the C spec and is reported by UBSAN. See my
+> > > patch fixing arm64 here (which I'd forgotten about):
+> > > 
+> > > https://www.spinics.net/lists/linux-arch/msg38564.html
+> > > 
+> > > But, as stated in the thread above, I think we should go a step further
+> > > and remove FUTEX_OP_{OR,ANDN,XOR,OPARG_SHIFT} altogether. They don't
+> > > appear to be used by userspace, and this whole thing is a total mess.
+> > 
+> > You wish. The constants are not used, but FUTEX_WAKE_OP _IS_ used by
+> > glibc. They only have one argument it seems:
+> > 
+> >    #define FUTEX_OP_CLEAR_WAKE_IF_GT_ONE      ((4 << 24) | 1)
+> > 
+> > but I'm pretty sure that there is enough (probably horrible) code (think
+> > java) out there using FUTEX_WAKE_OP for whatever (non)sensical reasons in
+> > any available combination.
+> 
+> Indeed, and I'm not proposing to get rid of that. It's the grossly
+> over-engineered array of operations and the FUTEX_OP_OPARG_SHIFT modifier
+> that I think we should kill. The latter likely behaves differently across
+> different architectures and potentially depending on the toolchain you used
+> to build the kernel.
+> 
+> Does anybody know the history behind the interface design?
 
-Yes, I also agree with dropping this one.
+Which design?
 
-Regards,
-Xunlei
+4732efbeb997 ("[PATCH] FUTEX_WAKE_OP: pthread_cond_signal() speedup")
+
+Thanks,
+
+	tglx
