@@ -1,34 +1,80 @@
 From: hpa@zytor.com
 Subject: Re: [PATCHv1, RFC 0/8] Boot-time switching between 4- and 5-level paging
-Date: Fri, 26 May 2017 12:36:31 -0700
-Message-ID: <B4C5A54B-FC84-4B73-8ECC-CD14532CBA2C@zytor.com>
-References: <20170525203334.867-1-kirill.shutemov@linux.intel.com> <CA+55aFznnXPDxYy5CN6qVU7QJ3Y9hbSf-s2-w0QkaNJuTspGcQ@mail.gmail.com> <20170526130057.t7zsynihkdtsepkf@node.shutemov.name> <CA+55aFw2HDHRZTYss2xbSTRAZuS1qAFmKrAXsiMp34ngNapTiw@mail.gmail.com> <83F4880B-5D1F-4576-A9B6-7DDF4173E2E5@zytor.com> <40d58ba7-277c-6f4e-a4d7-15425d675dbf@intel.com>
+Date: Fri, 26 May 2017 12:40:17 -0700
+Message-ID: <91E86DF1-9814-444B-AD43-706246D768EC@zytor.com>
+References: <20170525203334.867-1-kirill.shutemov@linux.intel.com> <CA+55aFznnXPDxYy5CN6qVU7QJ3Y9hbSf-s2-w0QkaNJuTspGcQ@mail.gmail.com> <20170526130057.t7zsynihkdtsepkf@node.shutemov.name>
 Mime-Version: 1.0
 Content-Type: text/plain;
  charset=utf-8
 Content-Transfer-Encoding: quoted-printable
 Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <40d58ba7-277c-6f4e-a4d7-15425d675dbf@intel.com>
+In-Reply-To: <20170526130057.t7zsynihkdtsepkf@node.shutemov.name>
 Sender: owner-linux-mm@kvack.org
-To: Dave Hansen <dave.hansen@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, "Kirill A. Shutemov" <kirill@shutemov.name>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, the arch/x86 maintainers <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Andi Kleen <ak@linux.intel.com>, Andy Lutomirski <luto@amacapital.net>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+To: "Kirill A. Shutemov" <kirill@shutemov.name>, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, the arch/x86 maintainers <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On May 26, 2017 12:23:18 PM PDT, Dave Hansen <dave=2Ehansen@intel=2Ecom> wr=
-ote:
->On 05/26/2017 11:24 AM, hpa@zytor=2Ecom wrote:
->> The only case where that even has any utility is for an application
->> to want more than 128 TiB address space on a machine with no more
->> than 64 TiB of RAM=2E  It is kind of a narrow use case, I think=2E
+On May 26, 2017 6:00:57 AM PDT, "Kirill A=2E Shutemov" <kirill@shutemov=2En=
+ame> wrote:
+>On Thu, May 25, 2017 at 04:24:24PM -0700, Linus Torvalds wrote:
+>> On Thu, May 25, 2017 at 1:33 PM, Kirill A=2E Shutemov
+>> <kirill=2Eshutemov@linux=2Eintel=2Ecom> wrote:
+>> > Here' my first attempt to bring boot-time between 4- and 5-level
+>paging=2E
+>> > It looks not too terrible to me=2E I've expected it to be worse=2E
+>>=20
+>> If I read this right, you just made it a global on/off thing=2E
+>>=20
+>> May I suggest possibly a different model entirely? Can you make it a
+>> per-mm flag instead?
+>>=20
+>> And then we
+>>=20
+>>  (a) make all kthreads use the 4-level page tables
+>>=20
+>>  (b) which means that all the init code uses the 4-level page tables
+>>=20
+>>  (c) which means that all those checks for "start_secondary" etc can
+>> just go away, because those all run with 4-level page tables=2E
+>>=20
+>> Or is it just much too expensive to switch between 4-level and
+>5-level
+>> paging at run-time?
 >
->Doesn't more address space increase the effectiveness of ASLR?  I
->thought KASLR, especially, was limited in its effectiveness because of
->a
->lack of address space=2E
+>Hm=2E=2E
+>
+>I don't see how kernel threads can use 4-level paging=2E It doesn't work
+>from virtual memory layout POV=2E Kernel claims half of full virtual
+>address
+>space for itself -- 256 PGD entries, not one as we would effectively
+>have
+>in case of switching to 4-level paging=2E For instance, addresses, where
+>vmalloc and vmemmap are mapped, are not canonical with 4-level paging=2E
+>
+>And you cannot see whole direct mapping of physical memory=2E Back to
+>highmem? (Please, no, please)=2E
+>
+>We could possible reduce number of PGD required by kernel=2E Currently,
+>layout for 5-level paging allows up-to 55-bit physical memory=2E It's
+>redundant as SDM claim that we never will get more than 52=2E So we could
+>reduce size of kernel part of layout by few bits, but not definitely to
+>1=2E
+>
+>I don't see how it can possibly work=2E
+>
+>Besides difficulties of getting switching between paging modes correct,
+>that Andy mentioned, it will also hurt performance=2E You cannot switch
+>between paging modes directly=2E It would require disabling paging
+>completely=2E It means we loose benefit from global page table entries on
+>such switching=2E More page-walks=2E
+>
+>Even ignoring all of above, I don't see much benefit of having per-mm
+>switching=2E It adds complexity without much benefit -- saving few lines
+>of
+>logic during early boot doesn't look as huge win to me=2E
 
-The shortage of address space for KASLR is not addressable by LA57; rather=
-, it would have to be addressed by compiling the kernel using a different (=
-less efficient) memory model, presumably the "medium" memory model=2E
+It also makes no sense =E2=80=93 the kernel threads only need one common p=
+age table anyway=2E
 --=20
 Sent from my Android device with K-9 Mail=2E Please excuse my brevity=2E
 
