@@ -1,114 +1,61 @@
-From: Ian Abbott <abbotti@mev.co.uk>
-Subject: Re: [PATCH v5 6/6] kernel.h: handle pointers to arrays better in
- container_of()
-Date: Fri, 26 May 2017 14:57:31 +0100
-Message-ID: <914b2a30-f466-ac5e-fd89-dad4fb1cee80@mev.co.uk>
-References: <20170525120316.24473-1-abbotti@mev.co.uk>
- <20170525120316.24473-7-abbotti@mev.co.uk>
- <CAGXu5jJvNBEi07=VDtvhC4+p6NAv21y09DCUuxry7o-9=JzcrQ@mail.gmail.com>
+From: Don Zickus <dzickus@redhat.com>
+Subject: Re: [PATCH 2/4] watchdog: introduce arch_touch_nmi_watchdog()
+Date: Fri, 26 May 2017 10:05:30 -0400
+Message-ID: <20170526140530.s2rvwklbzoygppkm@redhat.com>
+References: <20170525082856.21685-1-npiggin@gmail.com>
+ <20170525082856.21685-3-npiggin@gmail.com>
+ <20170525135559.ltu4coxjghx2ovce@redhat.com>
+ <20170526103103.31fd6801@roar.ozlabs.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp72.iad3a.emailsrvr.com ([173.203.187.72]:37791 "EHLO
-        smtp72.iad3a.emailsrvr.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S940577AbdEZN5e (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 26 May 2017 09:57:34 -0400
-In-Reply-To: <CAGXu5jJvNBEi07=VDtvhC4+p6NAv21y09DCUuxry7o-9=JzcrQ@mail.gmail.com>
+Received: from mx1.redhat.com ([209.132.183.28]:53278 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S936276AbdEZOFc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 26 May 2017 10:05:32 -0400
+Content-Disposition: inline
+In-Reply-To: <20170526103103.31fd6801@roar.ozlabs.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Alexander Potapenko <glider@google.com>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@suse.de>, Hidehiro Kawai <hidehiro.kawai.ez@hitachi.com>, Jakub Kicinski <jakub.kicinski@netronome.com>, Johannes Berg <johannes.berg@intel.com>, Michal Nazarewicz <mina86@mina86.com>, Peter Zijlstra <peterz@infradead.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Steven Rostedt <rostedt@goodmis.org>
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On 25/05/17 19:35, Kees Cook wrote:
-> On Thu, May 25, 2017 at 5:03 AM, Ian Abbott <abbotti@mev.co.uk> wrote:
->> If the first parameter of container_of() is a pointer to a
->> non-const-qualified array type (and the third parameter names a
->> non-const-qualified array member), the local variable __mptr will be
->> defined with a const-qualified array type.  In ISO C, these types are
->> incompatible.  They work as expected in GNU C, but some versions will
->> issue warnings.  For example, GCC 4.9 produces the warning
->> "initialization from incompatible pointer type".
->>
->> Here is an example of where the problem occurs:
->>
->> -------------------------------------------------------
->>  #include <linux/kernel.h>
->>  #include <linux/module.h>
->>
->> MODULE_LICENSE("GPL");
->>
->> struct st {
->>         int a;
->>         char b[16];
->> };
->>
->> static int __init example_init(void) {
->>         struct st t = { .a = 101, .b = "hello" };
->>         char (*p)[16] = &t.b;
->>         struct st *x = container_of(p, struct st, b);
->>         printk(KERN_DEBUG "%p %p\n", (void *)&t, (void *)x);
->>         return 0;
->> }
->>
->> static void __exit example_exit(void) {
->> }
->>
->> module_init(example_init);
->> module_exit(example_exit);
->> -------------------------------------------------------
->>
->> Building the module with gcc-4.9 results in these warnings (where '{m}'
->> is the module source and '{k}' is the kernel source):
->>
->> -------------------------------------------------------
->> In file included from {m}/example.c:1:0:
->> {m}/example.c: In function ‘example_init’:
->> {k}/include/linux/kernel.h:854:48: warning: initialization from
->> incompatible pointer type
->>   const typeof( ((type *)0)->member ) *__mptr = (ptr); \
->>                                                 ^
->> {m}/example.c:14:17: note: in expansion of macro ‘container_of’
->>   struct st *x = container_of(p, struct st, b);
->>                  ^
->> {k}/include/linux/kernel.h:854:48: warning: (near initialization for
->> ‘x’)
->>   const typeof( ((type *)0)->member ) *__mptr = (ptr); \
->>                                                 ^
->> {m}/example.c:14:17: note: in expansion of macro ‘container_of’
->>   struct st *x = container_of(p, struct st, b);
->>                  ^
->> -------------------------------------------------------
->>
->> Replace the type checking performed by the macro to avoid these
->> warnings.  Make sure `*(ptr)` either has type compatible with the
->> member, or has type compatible with `void`, ignoring qualifiers.  Raise
->> compiler errors if this is not true.  This is stronger than the previous
->> behaviour, which only resulted in compiler warnings for a type mismatch.
->>
->> Signed-off-by: Ian Abbott <abbotti@mev.co.uk>
->> Cc: Andrew Morton <akpm@linux-foundation.org>
->> Cc: Michal Nazarewicz <mina86@mina86.com>
->> Cc: Hidehiro Kawai <hidehiro.kawai.ez@hitachi.com>
->> Cc: Borislav Petkov <bp@suse.de>
->> Cc: Rasmus Villemoes <linux@rasmusvillemoes.dk>
->> Cc: Johannes Berg <johannes.berg@intel.com>
->> Cc: Peter Zijlstra <peterz@infradead.org>
->> Cc: Alexander Potapenko <glider@google.com>
->> Acked-by: Michal Nazarewicz <mina86@mina86.com>
->
-> Seems reasonable to me. I think this actually improves the errors
-> reported when something is mismatched in container_of(). Silly
-> question: does this pass an allyesconfig?
+On Fri, May 26, 2017 at 10:31:03AM +1000, Nicholas Piggin wrote:
+> On Thu, 25 May 2017 09:55:59 -0400
+> Don Zickus <dzickus@redhat.com> wrote:
+> 
+> > On Thu, May 25, 2017 at 06:28:54PM +1000, Nicholas Piggin wrote:
+> > > For architectures that define HAVE_NMI_WATCHDOG, instead of having
+> > > them provide the complete touch_nmi_watchdog() function, just have
+> > > them provide arch_touch_nmi_watchdog().
+> > > 
+> > > This gives the generic code more flexibility in implementing this
+> > > function, and arch implementations don't miss out on touching the
+> > > softlockup watchdog or other generic details.  
+> > 
+> > The idea makes sense.  I don't think you can have hld_touch_nmi_watchdog
+> > defined with arch_touch_nmi_watchdog, so I am wondering if it makes sense to
+> > combine them somehow.  Though renaming hld_touch_nmi_watchdog to
+> > arch_touch_nmi_watchdog sounds odd, I think it mimics the idea.
+> 
+> Yeah I agree it's not quite right, and I think using
+> arch_touch_nmi_watchdog would be fine for the hld, which makes sense
+> if you think of it as a utility or library function for architectures
+> that want a hardlockup watchdog and can use perf for it.
 
-Yes for ARCH=i386 at least.
+Yeah, if you wouldn't mind trying that.  Over the last year it seems there
+is a push to make the hld more of a separate thing if folks want to use
+perf.  I have been trying to tweak it so it can be used in-place of the arch
+solution or just use the arch solution.  And still retain the same function
+calls.
 
->
-> Acked-by: Kees Cook <keescook@chromium.org>
+Cheers,
+Don
 
-Thanks!
-
--- 
--=( Ian Abbott @ MEV Ltd.    E-mail: <abbotti@mev.co.uk> )=-
--=(                          Web: http://www.mev.co.uk/  )=-
+> 
+> I can change that if you prefer. BTW the 0day picked up another
+> Kconfig compile bug, so I'll respin the series and include any changes
+> you like.
+> 
+> Thanks,
+> Nick
