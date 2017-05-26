@@ -1,60 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:36070 "EHLO mail.kernel.org"
+Received: from mx1.redhat.com ([209.132.183.28]:59954 "EHLO mx1.redhat.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S935757AbdEZAki (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 25 May 2017 20:40:38 -0400
-Received: from mail-ua0-f174.google.com (mail-ua0-f174.google.com [209.85.217.174])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
-        (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 859AB23A01
-        for <linux-arch@vger.kernel.org>; Fri, 26 May 2017 00:40:37 +0000 (UTC)
-Received: by mail-ua0-f174.google.com with SMTP id e28so124806825uah.0
-        for <linux-arch@vger.kernel.org>; Thu, 25 May 2017 17:40:37 -0700 (PDT)
+        id S932649AbdEZCt4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 25 May 2017 22:49:56 -0400
+Date: Fri, 26 May 2017 10:49:33 +0800
+From: Dave Young <dyoung@redhat.com>
+Subject: Re: [PATCH v5 31/32] x86: Add sysfs support for Secure Memory
+ Encryption
+Message-ID: <20170526024933.GA3228@dhcp-128-65.nay.redhat.com>
+References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
+ <20170418212212.10190.73484.stgit@tlendack-t1.amdoffice.net>
+ <20170518170153.eqiyat5s6q3yeejl@pd.tnic>
 MIME-Version: 1.0
-In-Reply-To: <CA+55aFznnXPDxYy5CN6qVU7QJ3Y9hbSf-s2-w0QkaNJuTspGcQ@mail.gmail.com>
-References: <20170525203334.867-1-kirill.shutemov@linux.intel.com> <CA+55aFznnXPDxYy5CN6qVU7QJ3Y9hbSf-s2-w0QkaNJuTspGcQ@mail.gmail.com>
-From: Andy Lutomirski <luto@kernel.org>
-Date: Thu, 25 May 2017 17:40:16 -0700
-Message-ID: <CALCETrWACTFPDrpuZgoPqeRLU4ZooDjHOpQaNCFmCfVCHM-sHQ@mail.gmail.com>
-Subject: Re: [PATCHv1, RFC 0/8] Boot-time switching between 4- and 5-level paging
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20170518170153.eqiyat5s6q3yeejl@pd.tnic>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, the arch/x86 maintainers <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Message-ID: <20170526004016._1B29lpH0mfSbzHV2JlCSmQXyLNl7xkbkUy4jlELnbw@z>
+To: Borislav Petkov <bp@alien8.de>
+Cc: Tom Lendacky <thomas.lendacky@amd.com>, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>, xlpang@redhat.com
+Message-ID: <20170526024933.WtHOEDm_WBaa5mvoYjrA89Q9wSI8Q0pHM1lbVFtyq6U@z>
 
-On Thu, May 25, 2017 at 4:24 PM, Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
-> On Thu, May 25, 2017 at 1:33 PM, Kirill A. Shutemov
-> <kirill.shutemov@linux.intel.com> wrote:
->> Here' my first attempt to bring boot-time between 4- and 5-level paging.
->> It looks not too terrible to me. I've expected it to be worse.
->
-> If I read this right, you just made it a global on/off thing.
->
-> May I suggest possibly a different model entirely? Can you make it a
-> per-mm flag instead?
->
-> And then we
->
->  (a) make all kthreads use the 4-level page tables
->
->  (b) which means that all the init code uses the 4-level page tables
->
->  (c) which means that all those checks for "start_secondary" etc can
-> just go away, because those all run with 4-level page tables.
->
-> Or is it just much too expensive to switch between 4-level and 5-level
-> paging at run-time?
->
+Ccing Xunlei he is reading the patches see what need to be done for
+kdump. There should still be several places to handle to make kdump work.
 
-Even ignoring expensiveness, I'm not convinced it's practical.  AFAICT
-you can't atomically switch the paging mode and CR3, so either you
-need some magic page table with trampoline that works in both modes
-(which is presumably doable with some trickery) or you need to flip
-paging off.  Good luck if an NMI hits in the mean time.  There was
-code like that once upon a time for EFI mixed mode, but it got deleted
-due to triple-faults.
+On 05/18/17 at 07:01pm, Borislav Petkov wrote:
+> On Tue, Apr 18, 2017 at 04:22:12PM -0500, Tom Lendacky wrote:
+> > Add sysfs support for SME so that user-space utilities (kdump, etc.) can
+> > determine if SME is active.
+> 
+> But why do user-space tools need to know that?
+> 
+> I mean, when we load the kdump kernel, we do it with the first kernel,
+> with the kexec_load() syscall, AFAICT. And that code does a lot of
+> things during that init, like machine_kexec_prepare()->init_pgtable() to
+> prepare the ident mapping of the second kernel, for example.
+> 
+> What I'm aiming at is that the first kernel knows *exactly* whether SME
+> is enabled or not and doesn't need to tell the second one through some
+> sysfs entries - it can do that during loading.
+> 
+> So I don't think we need any userspace things at all...
 
-Doing this in switch_mm() sounds painful.
+If kdump kernel can get the SME status from hardware register then this
+should be not necessary and this patch can be dropped.
+
+Thanks
+Dave
