@@ -1,111 +1,79 @@
-From: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
-Subject: Re: [PATCH v2] arm: dma-mapping: Reset the device's dma_ops
-Date: Fri, 26 May 2017 17:14:28 +0300
-Message-ID: <2754945.XA69I2mJdj@avalon>
-References: <1495795417-15177-1-git-send-email-sricharan@codeaurora.org>
+From: Don Zickus <dzickus@redhat.com>
+Subject: Re: [PATCH 4/4] watchdog: provide watchdog_reconfigure() for arch
+ watchdogs
+Date: Fri, 26 May 2017 10:21:53 -0400
+Message-ID: <20170526142153.wmalzlgbdwutomdj@redhat.com>
+References: <20170525082856.21685-1-npiggin@gmail.com>
+ <20170525082856.21685-5-npiggin@gmail.com>
+ <20170525140833.3qkuvoiavlf5ra6d@redhat.com>
+ <20170526103909.04f7710c@roar.ozlabs.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from galahad.ideasonboard.com ([185.26.127.97]:36530 "EHLO
-        galahad.ideasonboard.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751170AbdEZOOJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 26 May 2017 10:14:09 -0400
-In-Reply-To: <1495795417-15177-1-git-send-email-sricharan@codeaurora.org>
+Received: from mx1.redhat.com ([209.132.183.28]:34504 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S935653AbdEZOVy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 26 May 2017 10:21:54 -0400
+Content-Disposition: inline
+In-Reply-To: <20170526103909.04f7710c@roar.ozlabs.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sricharan R <sricharan@codeaurora.org>
-Cc: robin.murphy@arm.com, will.deacon@arm.com, joro@8bytes.org, lorenzo.pieralisi@arm.com, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arm-msm@vger.kernel.org, m.szyprowski@samsung.com, linux-kernel@vger.kernel.org, catalin.marinas@arm.com, linux-arch@vger.kernel.org, linux@armlinux.org.uk
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-Hi Sricharan,
-
-Thank you for the patch.
-
-On Friday 26 May 2017 16:13:37 Sricharan R wrote:
-> arch_teardown_dma_ops() being the inverse of arch_setup_dma_ops()
-> ,dma_ops should be cleared in the teardown path. Currently, only the
-> device's iommu mapping structures are cleared in arch_teardown_dma_ops,
-> but not the dma_ops. So on the next reprobe, dma_ops left in place is
-> stale from the first IOMMU setup, but iommu mappings has been disposed
-> of. This is a problem when the probe of the device is deferred and
-> recalled with the IOMMU probe deferral.
+On Fri, May 26, 2017 at 10:39:09AM +1000, Nicholas Piggin wrote:
+> On Thu, 25 May 2017 10:08:33 -0400
+> Don Zickus <dzickus@redhat.com> wrote:
 > 
-> So for fixing this, slightly refactor by moving the code from
-> __arm_iommu_detach_device to arm_iommu_detach_device and cleanup
-> the former. This takes care of resetting the dma_ops in the teardown
-> path.
+> > On Thu, May 25, 2017 at 06:28:56PM +1000, Nicholas Piggin wrote:
+> > > After reconfiguring watchdog sysctls etc., architecture specific
+> > > watchdogs may not get all their parameters updated.
+> > > 
+> > > watchdog_reconfigure() can be implemented to pull the new values
+> > > in and set the arch NMI watchdog.  
+> > 
+> > I understand the reason for this patch and I don't have any real objection
+> > on how it was implemented within the constraints of all the current logic.
+> > 
+> > I just wonder if the current logic should be adjusted to make the hardlockup
+> > detector, namely the perf implementation more separate so it can handle what
+> > you would like more cleanly.
+> > 
+> > The watchdog_nmi_reconfigure is sort of hackish, but it is hard to fault you
+> > based on how things are designed.  I am going to poke at it a little bit,
+> > but I will probably not find time to do much and accept what you have for
+> > now.
 > 
-> Signed-off-by: Sricharan R <sricharan@codeaurora.org>
-> Fixes: 09515ef5ddad ("of/acpi: Configure dma operations at probe time for
-> platform/amba/pci bus devices")
+> I actually agree with you. These patches are basically an initial bridge
+> to get us to decoupling hld-perf from hld-arch, but the code could
+> definitely use several more passes to clean things up.
 
-Reviewed-by: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
+Makes sense. :-)
 
-Could you please push this upstream along with "[PATCH] ARM: dma-mapping: 
-Don't tear third-party mappings" ?
+> 
+> One thing we want to be mindful of is some watchdogs are very light weight,
+> minimal, and some may not even want to call C code (at least from the NMI
 
-(And feel free to s/tear/tear down/ in the subject of that patch, I've only 
-noticed now that I forgot one word)
+Agreed.
 
-> ---
->  arch/arm/mm/dma-mapping.c | 25 ++++++++++---------------
->  1 file changed, 10 insertions(+), 15 deletions(-)
-> 
-> diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
-> index c742dfd..6e82e87 100644
-> --- a/arch/arm/mm/dma-mapping.c
-> +++ b/arch/arm/mm/dma-mapping.c
-> @@ -2311,7 +2311,14 @@ int arm_iommu_attach_device(struct device *dev,
->  }
->  EXPORT_SYMBOL_GPL(arm_iommu_attach_device);
-> 
-> -static void __arm_iommu_detach_device(struct device *dev)
-> +/**
-> + * arm_iommu_detach_device
-> + * @dev: valid struct device pointer
-> + *
-> + * Detaches the provided device from a previously attached map.
-> + * This voids the dma operations (dma_map_ops pointer)
-> + */
-> +void arm_iommu_detach_device(struct device *dev)
->  {
->  	struct dma_iommu_mapping *mapping;
-> 
-> @@ -2324,22 +2331,10 @@ static void __arm_iommu_detach_device(struct device
-> *dev) iommu_detach_device(mapping->domain, dev);
->  	kref_put(&mapping->kref, release_iommu_mapping);
->  	to_dma_iommu_mapping(dev) = NULL;
-> +	set_dma_ops(dev, NULL);
-> 
->  	pr_debug("Detached IOMMU controller from %s device.\n", 
-dev_name(dev));
->  }
-> -
-> -/**
-> - * arm_iommu_detach_device
-> - * @dev: valid struct device pointer
-> - *
-> - * Detaches the provided device from a previously attached map.
-> - * This voids the dma operations (dma_map_ops pointer)
-> - */
-> -void arm_iommu_detach_device(struct device *dev)
-> -{
-> -	__arm_iommu_detach_device(dev);
-> -	set_dma_ops(dev, NULL);
-> -}
->  EXPORT_SYMBOL_GPL(arm_iommu_detach_device);
-> 
->  static const struct dma_map_ops *arm_get_iommu_dma_map_ops(bool coherent)
-> @@ -2379,7 +2374,7 @@ static void arm_teardown_iommu_dma_ops(struct device
-> *dev) if (!mapping)
->  		return;
-> 
-> -	__arm_iommu_detach_device(dev);
-> +	arm_iommu_detach_device(dev);
->  	arm_iommu_release_mapping(mapping);
->  }
+> and touch-watchdog paths). But having said that, it may not be a bad idea
+> to have implementations provide a watchdog driver struct with some of the
+> methods and reconfiguration they support. E.g., suspend/resume, stop/start
+> on CPUs, adjust timeouts, etc.).
 
--- 
-Regards,
+Hehe.  I was hoping to avoid doing that, but it may lead there over time.
 
-Laurent Pinchart
+> 
+> I didn't want to go the whole hog and over-engineer something that doesn't
+> work though, so I'm hoping we can get the powerpc watchdog in, and then
+> keep working on the apis.
+
+Agreed. 
+
+> 
+> Let me know what you think after you poke at it though.
+
+I will.
+
+Cheers,
+Don
