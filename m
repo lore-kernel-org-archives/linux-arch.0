@@ -1,42 +1,59 @@
-From: Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>
-Subject: Re: [PATCH v5 17/32] x86/mm: Add support to access boot related data
-	in the clear
-Date: Fri, 26 May 2017 18:35:17 +0200
-Message-ID: <20170526163517.nrweesvse24dszkz@pd.tnic>
-References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
-	<20170418211921.10190.1537.stgit@tlendack-t1.amdoffice.net>
-	<20170515183517.mb4k2gp2qobbuvtm@pd.tnic>
-	<20170518195051.GA5651@codeblueprint.co.uk>
-	<4c2ef3ba-2940-3330-d362-5b2b0d812c6f@amd.com>
+From: hpa@zytor.com
+Subject: Re: [PATCHv1, RFC 0/8] Boot-time switching between 4- and 5-level paging
+Date: Fri, 26 May 2017 11:24:39 -0700
+Message-ID: <83F4880B-5D1F-4576-A9B6-7DDF4173E2E5@zytor.com>
+References: <20170525203334.867-1-kirill.shutemov@linux.intel.com> <CA+55aFznnXPDxYy5CN6qVU7QJ3Y9hbSf-s2-w0QkaNJuTspGcQ@mail.gmail.com> <20170526130057.t7zsynihkdtsepkf@node.shutemov.name> <CA+55aFw2HDHRZTYss2xbSTRAZuS1qAFmKrAXsiMp34ngNapTiw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <4c2ef3ba-2940-3330-d362-5b2b0d812c6f-5C7GfCeVMHo@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
-Cc: linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Brijesh Singh <brijesh.singh-5C7GfCeVMHo@public.gmane.org>, Toshimitsu Kani <toshi.kani-ZPxbGqLxI0U@public.gmane.org>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Larry Woodman <lwoodman-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrey Ryabinin <aryabinin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Dave Young <dyoung-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Rik van Riel <riel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Ard Biesheuvel <ard.biesheuvel-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, kexec-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9kibMonLAN/Q@public.gmane.org
+Content-Type: text/plain;
+ charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <CA+55aFw2HDHRZTYss2xbSTRAZuS1qAFmKrAXsiMp34ngNapTiw@mail.gmail.com>
+Sender: owner-linux-mm@kvack.org
+To: Linus Torvalds <torvalds@linux-foundation.org>, "Kirill A. Shutemov" <kirill@shutemov.name>
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, the arch/x86 maintainers <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, May 26, 2017 at 11:22:36AM -0500, Tom Lendacky wrote:
-> In addition to the same issue as efi.memmap.phys_map, efi_phys has
-> the __initdata attribute so it will be released/freed which will cause
-> problems in checks performed afterwards.
+On May 26, 2017 8:51:48 AM PDT, Linus Torvalds <torvalds@linux-foundation=
+=2Eorg> wrote:
+>On Fri, May 26, 2017 at 6:00 AM, Kirill A=2E Shutemov
+><kirill@shutemov=2Ename> wrote:
+>>
+>> I don't see how kernel threads can use 4-level paging=2E It doesn't
+>work
+>> from virtual memory layout POV=2E Kernel claims half of full virtual
+>address
+>> space for itself -- 256 PGD entries, not one as we would effectively
+>have
+>> in case of switching to 4-level paging=2E For instance, addresses,
+>where
+>> vmalloc and vmemmap are mapped, are not canonical with 4-level
+>paging=2E
+>
+>I would have just assumed we'd map the kernel in the shared part that
+>fits in the top 47 bits=2E
+>
+>But it sounds like you can't switch back and forth anyway, so I guess
+>it's moot=2E
+>
+>Where *is* the LA57 documentation, btw? I had an old x86 architecture
+>manual, so I updated it, but LA57 isn't mentioned in the new one
+>either=2E
+>
+>                       Linus
 
-Sounds to me like we should drop the __initdata attr and prepare them
-much earlier for use by the SME code.
+As one of the major motivations for LA57 is that we expect that we will ha=
+ve machines with more than 2^46 bytes of memory in the near future, it isn'=
+t feasible in most cases to do per-VM LA57=2E
 
--- 
-Regards/Gruss,
-    Boris.
+The only case where that even has any utility is for an application to wan=
+t more than 128 TiB address space on a machine with no more than 64 TiB of =
+RAM=2E  It is kind of a narrow use case, I think=2E
+--=20
+Sent from my Android device with K-9 Mail=2E Please excuse my brevity=2E
 
-Good mailing practices for 400: avoid top-posting and trim the reply.
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
