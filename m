@@ -1,77 +1,122 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f65.google.com ([74.125.82.65]:33275 "EHLO
-        mail-wm0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S940580AbdEZNBd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 26 May 2017 09:01:33 -0400
-Received: by mail-wm0-f65.google.com with SMTP id b84so3913962wmh.0
-        for <linux-arch@vger.kernel.org>; Fri, 26 May 2017 06:01:05 -0700 (PDT)
-Date: Fri, 26 May 2017 16:00:57 +0300
-From: "Kirill A. Shutemov" <kirill@shutemov.name>
-Subject: Re: [PATCHv1, RFC 0/8] Boot-time switching between 4- and 5-level
- paging
-Message-ID: <20170526130057.t7zsynihkdtsepkf@node.shutemov.name>
-References: <20170525203334.867-1-kirill.shutemov@linux.intel.com>
- <CA+55aFznnXPDxYy5CN6qVU7QJ3Y9hbSf-s2-w0QkaNJuTspGcQ@mail.gmail.com>
+Received: from smtp.codeaurora.org ([198.145.29.96]:49378 "EHLO
+        smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S939021AbdEZOzU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 26 May 2017 10:55:20 -0400
+Subject: Re: [PATCH v2] arm: dma-mapping: Reset the device's dma_ops
+References: <1495795417-15177-1-git-send-email-sricharan@codeaurora.org>
+ <2754945.XA69I2mJdj@avalon>
+From: Sricharan R <sricharan@codeaurora.org>
+Message-ID: <f625ecf5-45ac-95bb-6d3d-6d02f6658711@codeaurora.org>
+Date: Fri, 26 May 2017 20:25:12 +0530
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CA+55aFznnXPDxYy5CN6qVU7QJ3Y9hbSf-s2-w0QkaNJuTspGcQ@mail.gmail.com>
+In-Reply-To: <2754945.XA69I2mJdj@avalon>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, the arch/x86 maintainers <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Message-ID: <20170526130057.Z53IXbENMyADqrd30sbe8rA4W50r-IWdOLGxNy6U2L0@z>
+To: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
+Cc: robin.murphy@arm.com, will.deacon@arm.com, joro@8bytes.org, lorenzo.pieralisi@arm.com, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arm-msm@vger.kernel.org, m.szyprowski@samsung.com, linux-kernel@vger.kernel.org, catalin.marinas@arm.com, linux-arch@vger.kernel.org, linux@armlinux.org.uk
+Message-ID: <20170526145512.1ROAjp2P7KadJo8YiXbYhI8M-YjsuXnLEAz1STqclAk@z>
 
-On Thu, May 25, 2017 at 04:24:24PM -0700, Linus Torvalds wrote:
-> On Thu, May 25, 2017 at 1:33 PM, Kirill A. Shutemov
-> <kirill.shutemov@linux.intel.com> wrote:
-> > Here' my first attempt to bring boot-time between 4- and 5-level paging.
-> > It looks not too terrible to me. I've expected it to be worse.
+Hi Laurent,
+
+On 5/26/2017 7:44 PM, Laurent Pinchart wrote:
+> Hi Sricharan,
 > 
-> If I read this right, you just made it a global on/off thing.
+> Thank you for the patch.
 > 
-> May I suggest possibly a different model entirely? Can you make it a
-> per-mm flag instead?
+> On Friday 26 May 2017 16:13:37 Sricharan R wrote:
+>> arch_teardown_dma_ops() being the inverse of arch_setup_dma_ops()
+>> ,dma_ops should be cleared in the teardown path. Currently, only the
+>> device's iommu mapping structures are cleared in arch_teardown_dma_ops,
+>> but not the dma_ops. So on the next reprobe, dma_ops left in place is
+>> stale from the first IOMMU setup, but iommu mappings has been disposed
+>> of. This is a problem when the probe of the device is deferred and
+>> recalled with the IOMMU probe deferral.
+>>
+>> So for fixing this, slightly refactor by moving the code from
+>> __arm_iommu_detach_device to arm_iommu_detach_device and cleanup
+>> the former. This takes care of resetting the dma_ops in the teardown
+>> path.
+>>
+>> Signed-off-by: Sricharan R <sricharan@codeaurora.org>
+>> Fixes: 09515ef5ddad ("of/acpi: Configure dma operations at probe time for
+>> platform/amba/pci bus devices")
 > 
-> And then we
+> Reviewed-by: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
 > 
->  (a) make all kthreads use the 4-level page tables
+> Could you please push this upstream along with "[PATCH] ARM: dma-mapping: 
+> Don't tear third-party mappings" ?
 > 
->  (b) which means that all the init code uses the 4-level page tables
+> (And feel free to s/tear/tear down/ in the subject of that patch, I've only 
+> noticed now that I forgot one word)
+
+ok, will change the above and post it with the other patches.
+
+Regards,
+ Sricharan
+
 > 
->  (c) which means that all those checks for "start_secondary" etc can
-> just go away, because those all run with 4-level page tables.
+>> ---
+>>  arch/arm/mm/dma-mapping.c | 25 ++++++++++---------------
+>>  1 file changed, 10 insertions(+), 15 deletions(-)
+>>
+>> diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
+>> index c742dfd..6e82e87 100644
+>> --- a/arch/arm/mm/dma-mapping.c
+>> +++ b/arch/arm/mm/dma-mapping.c
+>> @@ -2311,7 +2311,14 @@ int arm_iommu_attach_device(struct device *dev,
+>>  }
+>>  EXPORT_SYMBOL_GPL(arm_iommu_attach_device);
+>>
+>> -static void __arm_iommu_detach_device(struct device *dev)
+>> +/**
+>> + * arm_iommu_detach_device
+>> + * @dev: valid struct device pointer
+>> + *
+>> + * Detaches the provided device from a previously attached map.
+>> + * This voids the dma operations (dma_map_ops pointer)
+>> + */
+>> +void arm_iommu_detach_device(struct device *dev)
+>>  {
+>>  	struct dma_iommu_mapping *mapping;
+>>
+>> @@ -2324,22 +2331,10 @@ static void __arm_iommu_detach_device(struct device
+>> *dev) iommu_detach_device(mapping->domain, dev);
+>>  	kref_put(&mapping->kref, release_iommu_mapping);
+>>  	to_dma_iommu_mapping(dev) = NULL;
+>> +	set_dma_ops(dev, NULL);
+>>
+>>  	pr_debug("Detached IOMMU controller from %s device.\n", 
+> dev_name(dev));
+>>  }
+>> -
+>> -/**
+>> - * arm_iommu_detach_device
+>> - * @dev: valid struct device pointer
+>> - *
+>> - * Detaches the provided device from a previously attached map.
+>> - * This voids the dma operations (dma_map_ops pointer)
+>> - */
+>> -void arm_iommu_detach_device(struct device *dev)
+>> -{
+>> -	__arm_iommu_detach_device(dev);
+>> -	set_dma_ops(dev, NULL);
+>> -}
+>>  EXPORT_SYMBOL_GPL(arm_iommu_detach_device);
+>>
+>>  static const struct dma_map_ops *arm_get_iommu_dma_map_ops(bool coherent)
+>> @@ -2379,7 +2374,7 @@ static void arm_teardown_iommu_dma_ops(struct device
+>> *dev) if (!mapping)
+>>  		return;
+>>
+>> -	__arm_iommu_detach_device(dev);
+>> +	arm_iommu_detach_device(dev);
+>>  	arm_iommu_release_mapping(mapping);
+>>  }
 > 
-> Or is it just much too expensive to switch between 4-level and 5-level
-> paging at run-time?
-
-Hm..
-
-I don't see how kernel threads can use 4-level paging. It doesn't work
-from virtual memory layout POV. Kernel claims half of full virtual address
-space for itself -- 256 PGD entries, not one as we would effectively have
-in case of switching to 4-level paging. For instance, addresses, where
-vmalloc and vmemmap are mapped, are not canonical with 4-level paging.
-
-And you cannot see whole direct mapping of physical memory. Back to
-highmem? (Please, no, please).
-
-We could possible reduce number of PGD required by kernel. Currently,
-layout for 5-level paging allows up-to 55-bit physical memory. It's
-redundant as SDM claim that we never will get more than 52. So we could
-reduce size of kernel part of layout by few bits, but not definitely to 1.
-
-I don't see how it can possibly work.
-
-Besides difficulties of getting switching between paging modes correct,
-that Andy mentioned, it will also hurt performance. You cannot switch
-between paging modes directly. It would require disabling paging
-completely. It means we loose benefit from global page table entries on
-such switching. More page-walks.
-
-Even ignoring all of above, I don't see much benefit of having per-mm
-switching. It adds complexity without much benefit -- saving few lines of
-logic during early boot doesn't look as huge win to me.
 
 -- 
- Kirill A. Shutemov
+"QUALCOMM INDIA, on behalf of Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum, hosted by The Linux Foundation
