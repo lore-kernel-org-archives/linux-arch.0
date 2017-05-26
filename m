@@ -1,49 +1,59 @@
 From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH 2/4] watchdog: introduce arch_touch_nmi_watchdog()
-Date: Fri, 26 May 2017 10:31:03 +1000
-Message-ID: <20170526103103.31fd6801@roar.ozlabs.ibm.com>
+Subject: Re: [PATCH 4/4] watchdog: provide watchdog_reconfigure() for arch
+ watchdogs
+Date: Fri, 26 May 2017 10:39:09 +1000
+Message-ID: <20170526103909.04f7710c@roar.ozlabs.ibm.com>
 References: <20170525082856.21685-1-npiggin@gmail.com>
-        <20170525082856.21685-3-npiggin@gmail.com>
-        <20170525135559.ltu4coxjghx2ovce@redhat.com>
+        <20170525082856.21685-5-npiggin@gmail.com>
+        <20170525140833.3qkuvoiavlf5ra6d@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f195.google.com ([209.85.192.195]:33914 "EHLO
-        mail-pf0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1163310AbdEZAbV (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 May 2017 20:31:21 -0400
-In-Reply-To: <20170525135559.ltu4coxjghx2ovce@redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20170525140833.3qkuvoiavlf5ra6d@redhat.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Don Zickus <dzickus@redhat.com>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, 25 May 2017 09:55:59 -0400
+On Thu, 25 May 2017 10:08:33 -0400
 Don Zickus <dzickus@redhat.com> wrote:
 
-> On Thu, May 25, 2017 at 06:28:54PM +1000, Nicholas Piggin wrote:
-> > For architectures that define HAVE_NMI_WATCHDOG, instead of having
-> > them provide the complete touch_nmi_watchdog() function, just have
-> > them provide arch_touch_nmi_watchdog().
+> On Thu, May 25, 2017 at 06:28:56PM +1000, Nicholas Piggin wrote:
+> > After reconfiguring watchdog sysctls etc., architecture specific
+> > watchdogs may not get all their parameters updated.
 > > 
-> > This gives the generic code more flexibility in implementing this
-> > function, and arch implementations don't miss out on touching the
-> > softlockup watchdog or other generic details.  
+> > watchdog_reconfigure() can be implemented to pull the new values
+> > in and set the arch NMI watchdog.  
 > 
-> The idea makes sense.  I don't think you can have hld_touch_nmi_watchdog
-> defined with arch_touch_nmi_watchdog, so I am wondering if it makes sense to
-> combine them somehow.  Though renaming hld_touch_nmi_watchdog to
-> arch_touch_nmi_watchdog sounds odd, I think it mimics the idea.
+> I understand the reason for this patch and I don't have any real objection
+> on how it was implemented within the constraints of all the current logic.
+> 
+> I just wonder if the current logic should be adjusted to make the hardlockup
+> detector, namely the perf implementation more separate so it can handle what
+> you would like more cleanly.
+> 
+> The watchdog_nmi_reconfigure is sort of hackish, but it is hard to fault you
+> based on how things are designed.  I am going to poke at it a little bit,
+> but I will probably not find time to do much and accept what you have for
+> now.
 
-Yeah I agree it's not quite right, and I think using
-arch_touch_nmi_watchdog would be fine for the hld, which makes sense
-if you think of it as a utility or library function for architectures
-that want a hardlockup watchdog and can use perf for it.
+I actually agree with you. These patches are basically an initial bridge
+to get us to decoupling hld-perf from hld-arch, but the code could
+definitely use several more passes to clean things up.
 
-I can change that if you prefer. BTW the 0day picked up another
-Kconfig compile bug, so I'll respin the series and include any changes
-you like.
+One thing we want to be mindful of is some watchdogs are very light weight,
+minimal, and some may not even want to call C code (at least from the NMI
+and touch-watchdog paths). But having said that, it may not be a bad idea
+to have implementations provide a watchdog driver struct with some of the
+methods and reconfiguration they support. E.g., suspend/resume, stop/start
+on CPUs, adjust timeouts, etc.).
+
+I didn't want to go the whole hog and over-engineer something that doesn't
+work though, so I'm hoping we can get the powerpc watchdog in, and then
+keep working on the apis.
+
+Let me know what you think after you poke at it though.
 
 Thanks,
 Nick
