@@ -1,59 +1,54 @@
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH 4/4] watchdog: provide watchdog_reconfigure() for arch
- watchdogs
-Date: Fri, 26 May 2017 10:39:09 +1000
-Message-ID: <20170526103909.04f7710c@roar.ozlabs.ibm.com>
-References: <20170525082856.21685-1-npiggin@gmail.com>
-        <20170525082856.21685-5-npiggin@gmail.com>
-        <20170525140833.3qkuvoiavlf5ra6d@redhat.com>
+From: Andy Lutomirski <luto@kernel.org>
+Subject: Re: [PATCHv1, RFC 0/8] Boot-time switching between 4- and 5-level paging
+Date: Thu, 25 May 2017 17:40:16 -0700
+Message-ID: <CALCETrWACTFPDrpuZgoPqeRLU4ZooDjHOpQaNCFmCfVCHM-sHQ@mail.gmail.com>
+References: <20170525203334.867-1-kirill.shutemov@linux.intel.com> <CA+55aFznnXPDxYy5CN6qVU7QJ3Y9hbSf-s2-w0QkaNJuTspGcQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20170525140833.3qkuvoiavlf5ra6d@redhat.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Don Zickus <dzickus@redhat.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <CA+55aFznnXPDxYy5CN6qVU7QJ3Y9hbSf-s2-w0QkaNJuTspGcQ@mail.gmail.com>
+Sender: owner-linux-mm@kvack.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, the arch/x86 maintainers <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, 25 May 2017 10:08:33 -0400
-Don Zickus <dzickus@redhat.com> wrote:
+On Thu, May 25, 2017 at 4:24 PM, Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
+> On Thu, May 25, 2017 at 1:33 PM, Kirill A. Shutemov
+> <kirill.shutemov@linux.intel.com> wrote:
+>> Here' my first attempt to bring boot-time between 4- and 5-level paging.
+>> It looks not too terrible to me. I've expected it to be worse.
+>
+> If I read this right, you just made it a global on/off thing.
+>
+> May I suggest possibly a different model entirely? Can you make it a
+> per-mm flag instead?
+>
+> And then we
+>
+>  (a) make all kthreads use the 4-level page tables
+>
+>  (b) which means that all the init code uses the 4-level page tables
+>
+>  (c) which means that all those checks for "start_secondary" etc can
+> just go away, because those all run with 4-level page tables.
+>
+> Or is it just much too expensive to switch between 4-level and 5-level
+> paging at run-time?
+>
 
-> On Thu, May 25, 2017 at 06:28:56PM +1000, Nicholas Piggin wrote:
-> > After reconfiguring watchdog sysctls etc., architecture specific
-> > watchdogs may not get all their parameters updated.
-> > 
-> > watchdog_reconfigure() can be implemented to pull the new values
-> > in and set the arch NMI watchdog.  
-> 
-> I understand the reason for this patch and I don't have any real objection
-> on how it was implemented within the constraints of all the current logic.
-> 
-> I just wonder if the current logic should be adjusted to make the hardlockup
-> detector, namely the perf implementation more separate so it can handle what
-> you would like more cleanly.
-> 
-> The watchdog_nmi_reconfigure is sort of hackish, but it is hard to fault you
-> based on how things are designed.  I am going to poke at it a little bit,
-> but I will probably not find time to do much and accept what you have for
-> now.
+Even ignoring expensiveness, I'm not convinced it's practical.  AFAICT
+you can't atomically switch the paging mode and CR3, so either you
+need some magic page table with trampoline that works in both modes
+(which is presumably doable with some trickery) or you need to flip
+paging off.  Good luck if an NMI hits in the mean time.  There was
+code like that once upon a time for EFI mixed mode, but it got deleted
+due to triple-faults.
 
-I actually agree with you. These patches are basically an initial bridge
-to get us to decoupling hld-perf from hld-arch, but the code could
-definitely use several more passes to clean things up.
+Doing this in switch_mm() sounds painful.
 
-One thing we want to be mindful of is some watchdogs are very light weight,
-minimal, and some may not even want to call C code (at least from the NMI
-and touch-watchdog paths). But having said that, it may not be a bad idea
-to have implementations provide a watchdog driver struct with some of the
-methods and reconfiguration they support. E.g., suspend/resume, stop/start
-on CPUs, adjust timeouts, etc.).
-
-I didn't want to go the whole hog and over-engineer something that doesn't
-work though, so I'm hoping we can get the powerpc watchdog in, and then
-keep working on the apis.
-
-Let me know what you think after you poke at it though.
-
-Thanks,
-Nick
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
