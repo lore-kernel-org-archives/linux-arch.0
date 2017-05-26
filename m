@@ -1,43 +1,49 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCHv1, RFC 0/8] Boot-time switching between 4- and 5-level paging
-Date: Thu, 25 May 2017 16:24:24 -0700
-Message-ID: <CA+55aFznnXPDxYy5CN6qVU7QJ3Y9hbSf-s2-w0QkaNJuTspGcQ@mail.gmail.com>
-References: <20170525203334.867-1-kirill.shutemov@linux.intel.com>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH 2/4] watchdog: introduce arch_touch_nmi_watchdog()
+Date: Fri, 26 May 2017 10:31:03 +1000
+Message-ID: <20170526103103.31fd6801@roar.ozlabs.ibm.com>
+References: <20170525082856.21685-1-npiggin@gmail.com>
+        <20170525082856.21685-3-npiggin@gmail.com>
+        <20170525135559.ltu4coxjghx2ovce@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20170525203334.867-1-kirill.shutemov@linux.intel.com>
-Sender: owner-linux-mm@kvack.org
-To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, the arch/x86 maintainers <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pf0-f195.google.com ([209.85.192.195]:33914 "EHLO
+        mail-pf0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1163310AbdEZAbV (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 May 2017 20:31:21 -0400
+In-Reply-To: <20170525135559.ltu4coxjghx2ovce@redhat.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Don Zickus <dzickus@redhat.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Thu, May 25, 2017 at 1:33 PM, Kirill A. Shutemov
-<kirill.shutemov@linux.intel.com> wrote:
-> Here' my first attempt to bring boot-time between 4- and 5-level paging.
-> It looks not too terrible to me. I've expected it to be worse.
+On Thu, 25 May 2017 09:55:59 -0400
+Don Zickus <dzickus@redhat.com> wrote:
 
-If I read this right, you just made it a global on/off thing.
+> On Thu, May 25, 2017 at 06:28:54PM +1000, Nicholas Piggin wrote:
+> > For architectures that define HAVE_NMI_WATCHDOG, instead of having
+> > them provide the complete touch_nmi_watchdog() function, just have
+> > them provide arch_touch_nmi_watchdog().
+> > 
+> > This gives the generic code more flexibility in implementing this
+> > function, and arch implementations don't miss out on touching the
+> > softlockup watchdog or other generic details.  
+> 
+> The idea makes sense.  I don't think you can have hld_touch_nmi_watchdog
+> defined with arch_touch_nmi_watchdog, so I am wondering if it makes sense to
+> combine them somehow.  Though renaming hld_touch_nmi_watchdog to
+> arch_touch_nmi_watchdog sounds odd, I think it mimics the idea.
 
-May I suggest possibly a different model entirely? Can you make it a
-per-mm flag instead?
+Yeah I agree it's not quite right, and I think using
+arch_touch_nmi_watchdog would be fine for the hld, which makes sense
+if you think of it as a utility or library function for architectures
+that want a hardlockup watchdog and can use perf for it.
 
-And then we
+I can change that if you prefer. BTW the 0day picked up another
+Kconfig compile bug, so I'll respin the series and include any changes
+you like.
 
- (a) make all kthreads use the 4-level page tables
-
- (b) which means that all the init code uses the 4-level page tables
-
- (c) which means that all those checks for "start_secondary" etc can
-just go away, because those all run with 4-level page tables.
-
-Or is it just much too expensive to switch between 4-level and 5-level
-paging at run-time?
-
-              Linus
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Thanks,
+Nick
