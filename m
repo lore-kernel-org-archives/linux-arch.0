@@ -1,117 +1,61 @@
-From: Sricharan R <sricharan@codeaurora.org>
-Subject: Re: [PATCH v2] arm: dma-mapping: Reset the device's dma_ops
-Date: Fri, 26 May 2017 20:25:12 +0530
-Message-ID: <f625ecf5-45ac-95bb-6d3d-6d02f6658711@codeaurora.org>
-References: <1495795417-15177-1-git-send-email-sricharan@codeaurora.org>
- <2754945.XA69I2mJdj@avalon>
+From: Tom Lendacky <thomas.lendacky@amd.com>
+Subject: Re: [PATCH v5 31/32] x86: Add sysfs support for Secure Memory
+ Encryption
+Date: Fri, 26 May 2017 10:47:39 -0500
+Message-ID: <d05fa3d2-54d7-f317-b31f-3123f638dd25@amd.com>
+References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
+ <20170418212212.10190.73484.stgit@tlendack-t1.amdoffice.net>
+ <20170518170153.eqiyat5s6q3yeejl@pd.tnic>
+ <20170526024933.GA3228@dhcp-128-65.nay.redhat.com>
+ <5927B767.3010701@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset="windows-1252"; format=flowed
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <2754945.XA69I2mJdj@avalon>
-Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
-Cc: robin.murphy@arm.com, will.deacon@arm.com, joro@8bytes.org, lorenzo.pieralisi@arm.com, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arm-msm@vger.kernel.org, m.szyprowski@samsung.com, linux-kernel@vger.kernel.org, catalin.marinas@arm.com, linux-arch@vger.kernel.org, linux@armlinux.org.uk
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <5927B767.3010701@redhat.com>
+Sender: owner-linux-mm@kvack.org
+To: xlpang@redhat.com, Dave Young <dyoung@redhat.com>, Borislav Petkov <bp@alien8.de>
+Cc: linux-efi@vger.kernel.org, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, x86@kernel.org, linux-mm@kvack.org, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, linux-arch@vger.kernel.org, kvm@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, linux-doc@vger.kernel.org, kasan-dev@googlegroups.com, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Andy Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>, kexec@lists.infradead.org, linux-kernel@vger.kernel.or
 List-Id: linux-arch.vger.kernel.org
 
-Hi Laurent,
+On 5/26/2017 12:04 AM, Xunlei Pang wrote:
+> On 05/26/2017 at 10:49 AM, Dave Young wrote:
+>> Ccing Xunlei he is reading the patches see what need to be done for
+>> kdump. There should still be several places to handle to make kdump work.
+>>
+>> On 05/18/17 at 07:01pm, Borislav Petkov wrote:
+>>> On Tue, Apr 18, 2017 at 04:22:12PM -0500, Tom Lendacky wrote:
+>>>> Add sysfs support for SME so that user-space utilities (kdump, etc.) can
+>>>> determine if SME is active.
+>>> But why do user-space tools need to know that?
+>>>
+>>> I mean, when we load the kdump kernel, we do it with the first kernel,
+>>> with the kexec_load() syscall, AFAICT. And that code does a lot of
+>>> things during that init, like machine_kexec_prepare()->init_pgtable() to
+>>> prepare the ident mapping of the second kernel, for example.
+>>>
+>>> What I'm aiming at is that the first kernel knows *exactly* whether SME
+>>> is enabled or not and doesn't need to tell the second one through some
+>>> sysfs entries - it can do that during loading.
+>>>
+>>> So I don't think we need any userspace things at all...
+>> If kdump kernel can get the SME status from hardware register then this
+>> should be not necessary and this patch can be dropped.
+>
+> Yes, I also agree with dropping this one.
 
-On 5/26/2017 7:44 PM, Laurent Pinchart wrote:
-> Hi Sricharan,
-> 
-> Thank you for the patch.
-> 
-> On Friday 26 May 2017 16:13:37 Sricharan R wrote:
->> arch_teardown_dma_ops() being the inverse of arch_setup_dma_ops()
->> ,dma_ops should be cleared in the teardown path. Currently, only the
->> device's iommu mapping structures are cleared in arch_teardown_dma_ops,
->> but not the dma_ops. So on the next reprobe, dma_ops left in place is
->> stale from the first IOMMU setup, but iommu mappings has been disposed
->> of. This is a problem when the probe of the device is deferred and
->> recalled with the IOMMU probe deferral.
->>
->> So for fixing this, slightly refactor by moving the code from
->> __arm_iommu_detach_device to arm_iommu_detach_device and cleanup
->> the former. This takes care of resetting the dma_ops in the teardown
->> path.
->>
->> Signed-off-by: Sricharan R <sricharan@codeaurora.org>
->> Fixes: 09515ef5ddad ("of/acpi: Configure dma operations at probe time for
->> platform/amba/pci bus devices")
-> 
-> Reviewed-by: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
-> 
-> Could you please push this upstream along with "[PATCH] ARM: dma-mapping: 
-> Don't tear third-party mappings" ?
-> 
-> (And feel free to s/tear/tear down/ in the subject of that patch, I've only 
-> noticed now that I forgot one word)
+Consensus is to drop, so it will be.
 
-ok, will change the above and post it with the other patches.
+Thanks,
+Tom
 
-Regards,
- Sricharan
+>
+> Regards,
+> Xunlei
+>
 
-> 
->> ---
->>  arch/arm/mm/dma-mapping.c | 25 ++++++++++---------------
->>  1 file changed, 10 insertions(+), 15 deletions(-)
->>
->> diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
->> index c742dfd..6e82e87 100644
->> --- a/arch/arm/mm/dma-mapping.c
->> +++ b/arch/arm/mm/dma-mapping.c
->> @@ -2311,7 +2311,14 @@ int arm_iommu_attach_device(struct device *dev,
->>  }
->>  EXPORT_SYMBOL_GPL(arm_iommu_attach_device);
->>
->> -static void __arm_iommu_detach_device(struct device *dev)
->> +/**
->> + * arm_iommu_detach_device
->> + * @dev: valid struct device pointer
->> + *
->> + * Detaches the provided device from a previously attached map.
->> + * This voids the dma operations (dma_map_ops pointer)
->> + */
->> +void arm_iommu_detach_device(struct device *dev)
->>  {
->>  	struct dma_iommu_mapping *mapping;
->>
->> @@ -2324,22 +2331,10 @@ static void __arm_iommu_detach_device(struct device
->> *dev) iommu_detach_device(mapping->domain, dev);
->>  	kref_put(&mapping->kref, release_iommu_mapping);
->>  	to_dma_iommu_mapping(dev) = NULL;
->> +	set_dma_ops(dev, NULL);
->>
->>  	pr_debug("Detached IOMMU controller from %s device.\n", 
-> dev_name(dev));
->>  }
->> -
->> -/**
->> - * arm_iommu_detach_device
->> - * @dev: valid struct device pointer
->> - *
->> - * Detaches the provided device from a previously attached map.
->> - * This voids the dma operations (dma_map_ops pointer)
->> - */
->> -void arm_iommu_detach_device(struct device *dev)
->> -{
->> -	__arm_iommu_detach_device(dev);
->> -	set_dma_ops(dev, NULL);
->> -}
->>  EXPORT_SYMBOL_GPL(arm_iommu_detach_device);
->>
->>  static const struct dma_map_ops *arm_get_iommu_dma_map_ops(bool coherent)
->> @@ -2379,7 +2374,7 @@ static void arm_teardown_iommu_dma_ops(struct device
->> *dev) if (!mapping)
->>  		return;
->>
->> -	__arm_iommu_detach_device(dev);
->> +	arm_iommu_detach_device(dev);
->>  	arm_iommu_release_mapping(mapping);
->>  }
-> 
-
--- 
-"QUALCOMM INDIA, on behalf of Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum, hosted by The Linux Foundation
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
