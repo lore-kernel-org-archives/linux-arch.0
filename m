@@ -1,94 +1,132 @@
-From: Sricharan R <sricharan-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>
-Subject: [PATCH v2] arm: dma-mapping: Reset the device's dma_ops
-Date: Fri, 26 May 2017 16:13:37 +0530
-Message-ID: <1495795417-15177-1-git-send-email-sricharan@codeaurora.org>
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [RFC PATCH v2 4/6] arm64: signal: Allocate extra sigcontext
+ space as needed
+Date: Fri, 26 May 2017 12:37:32 +0100
+Message-ID: <20170526113729.GO3559@e103592.cambridge.arm.com>
+References: <1492016239-19511-1-git-send-email-Dave.Martin@arm.com>
+ <1492016495-19689-1-git-send-email-Dave.Martin@arm.com>
+ <1492016495-19689-4-git-send-email-Dave.Martin@arm.com>
+ <20170512165724.GB8387@e104818-lin.cambridge.arm.com>
+ <20170515132442.GB3559@e103592.cambridge.arm.com>
+ <20170523113019.GB5948@e104818-lin.cambridge.arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: robin.murphy-5wv7dgnIgG8@public.gmane.org, will.deacon-5wv7dgnIgG8@public.gmane.org, joro-zLv9SwRftAIdnm+yROfE0A@public.gmane.org, lorenzo.pieralisi-5wv7dgnIgG8@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-arm-msm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, m.szyprowski-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, catalin.marinas-5wv7dgnIgG8@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, laurent.pinchart-ryLnwIuWjnjg/C1BVhZhaw@public.gmane.org, linux-I+IVW8TIWO2tmTQ+vhA3Yw@public.gmane.org
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Disposition: inline
+In-Reply-To: <20170523113019.GB5948@e104818-lin.cambridge.arm.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-arch_teardown_dma_ops() being the inverse of arch_setup_dma_ops()
-,dma_ops should be cleared in the teardown path. Currently, only the
-device's iommu mapping structures are cleared in arch_teardown_dma_ops,
-but not the dma_ops. So on the next reprobe, dma_ops left in place is
-stale from the first IOMMU setup, but iommu mappings has been disposed
-of. This is a problem when the probe of the device is deferred and
-recalled with the IOMMU probe deferral.
+On Tue, May 23, 2017 at 12:30:19PM +0100, Catalin Marinas wrote:
+> On Mon, May 15, 2017 at 02:24:45PM +0100, Dave P Martin wrote:
+> > On Fri, May 12, 2017 at 05:57:24PM +0100, Catalin Marinas wrote:
+> > > On Wed, Apr 12, 2017 at 06:01:13PM +0100, Dave P Martin wrote:
 
-So for fixing this, slightly refactor by moving the code from
-__arm_iommu_detach_device to arm_iommu_detach_device and cleanup
-the former. This takes care of resetting the dma_ops in the teardown
-path.
+[...]
 
-Signed-off-by: Sricharan R <sricharan-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>
-Fixes: 09515ef5ddad ("of/acpi: Configure dma operations at probe time for platform/amba/pci bus devices")
----
- arch/arm/mm/dma-mapping.c | 25 ++++++++++---------------
- 1 file changed, 10 insertions(+), 15 deletions(-)
+> > Originally I preferred not to waste the space and did move fp/lr to the
+> > end, but someone (I think you or Will) expressed concern that the fp/lr
+> > position relative to the signal frame _might_ count as ABI.
+> > 
+> > I think it's not that likely that software will be relying on this,
+> > since it appears easier just to follow the frame chain than to treat
+> > this as a special case.
+> > 
+> > But it's hard to be certain.  It comes down to a judgement call.
+> 
+> I would not consider this ABI. The ABI part is that the fp register
+> points to where fp/lr were saved.
 
-diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
-index c742dfd..6e82e87 100644
---- a/arch/arm/mm/dma-mapping.c
-+++ b/arch/arm/mm/dma-mapping.c
-@@ -2311,7 +2311,14 @@ int arm_iommu_attach_device(struct device *dev,
- }
- EXPORT_SYMBOL_GPL(arm_iommu_attach_device);
- 
--static void __arm_iommu_detach_device(struct device *dev)
-+/**
-+ * arm_iommu_detach_device
-+ * @dev: valid struct device pointer
-+ *
-+ * Detaches the provided device from a previously attached map.
-+ * This voids the dma operations (dma_map_ops pointer)
-+ */
-+void arm_iommu_detach_device(struct device *dev)
- {
- 	struct dma_iommu_mapping *mapping;
- 
-@@ -2324,22 +2331,10 @@ static void __arm_iommu_detach_device(struct device *dev)
- 	iommu_detach_device(mapping->domain, dev);
- 	kref_put(&mapping->kref, release_iommu_mapping);
- 	to_dma_iommu_mapping(dev) = NULL;
-+	set_dma_ops(dev, NULL);
- 
- 	pr_debug("Detached IOMMU controller from %s device.\n", dev_name(dev));
- }
--
--/**
-- * arm_iommu_detach_device
-- * @dev: valid struct device pointer
-- *
-- * Detaches the provided device from a previously attached map.
-- * This voids the dma operations (dma_map_ops pointer)
-- */
--void arm_iommu_detach_device(struct device *dev)
--{
--	__arm_iommu_detach_device(dev);
--	set_dma_ops(dev, NULL);
--}
- EXPORT_SYMBOL_GPL(arm_iommu_detach_device);
- 
- static const struct dma_map_ops *arm_get_iommu_dma_map_ops(bool coherent)
-@@ -2379,7 +2374,7 @@ static void arm_teardown_iommu_dma_ops(struct device *dev)
- 	if (!mapping)
- 		return;
- 
--	__arm_iommu_detach_device(dev);
-+	arm_iommu_detach_device(dev);
- 	arm_iommu_release_mapping(mapping);
- }
- 
--- 
-QUALCOMM INDIA, on behalf of Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum, hosted by The Linux Foundation
+Fair enough, I'm happy to move it back.  (That was my preferred design
+in the first place anyway).
+
+> > > > +#define EXTRA_MAGIC	0x45585401
+> > > > +
+> > > > +struct extra_context {
+> > > > +	struct _aarch64_ctx head;
+> > > > +	void __user *data;	/* 16-byte aligned pointer to extra space */
+> > > "__user" is a kernel-only attribute, we shouldn't expose it in a uapi
+> > > header.
+> > 
+> > This is filtered out by headers_install, just like #ifdef __KERNEL__.
+> 
+> Ah, ok, I missed this.
+
+It was a surprise to me too...
+
+> > > > +	__u32 size;		/* size in bytes of the extra space */
+> > > > +};
+> > > 
+> > > Do we need the size of the extra space? Can we not infer it anyway by
+> > > walking the contexts save there? Surely we don't expect more than one
+> > > extra context.
+> > 
+> > Strictly speaking we don't need it.  When userspace parses a signal
+> > frame generated by the kernel, it can trust the kernel to write a well-
+> > formed signal frame.
+> > 
+> > In sigreturn it allows us to retain a sanity-check on overall size
+> > similar to what sizeof(__reserved) gives us.  This "feels cleaner"
+> > to me, but the value of it is debatable, since we can still apply
+> > SIGFRAME_MAXSZ and uaccess should protect us against gross overruns.
+> 
+> I'm not keen on the size information, it seems superfluous.
+
+Are you referring to the fact that fp will point to the end of
+extra_context, or simply that we don't really need to know the size?
+
+
+The first is only true of the signal frame.  For a sigcontext on the
+heap (e.g., getcontext/setcontext) the frame record has no role and
+nothing would point to it, so it's no use for locating the end of
+extra_context.  In practice there won't be a frame record in this
+situation.
+
+The second is a valid point, just as we don't need to know the size of
+the destination buffer of strcpy() or sprintf().  The programmer can
+ensure that it's big enough.  Moreover, from the kernel we're also
+protected by uaccess.
+
+It's easy to screw up here though.  setcontext assumes that mcontext_t
+is fixed-size, so if there is no embedded size information then there
+is no way to protect against overruns.  In userspace, there is no
+uaccess protection and we can simply walk across the end of a heap
+block etc.
+
+> BTW, does SIGFRAME_MAXSZ now become ABI? Or the user only needs to
+> interrogate the frame size and we keep this internal to the kernel?
+
+If the kernel rejects extra_contexts that cause this limit to be
+exceeded, then yes -- though it will rarely be relevant except in the
+case of memory corruption, or if architecture extensions eventually
+require a larger frame.
+
+(sve_context could theoretically grow larger then SIGFRAME_MAXSZ all by
+itself, but that's unlikely to happen any time soon.)
+
+
+Userspace could hit SIGFRAME_MAXSZ by constructing a valid sequence of
+records that is ridiculously large, by padding out the records: common
+sense suggests not to do this, but it's never been documented or
+enforced.  I didn't feel comfortable changing the behaviour here to be
+more strict.
+
+
+So, SIGFRAME_MAXSZ should either be given a larger, more future-proof
+value ... or otherwise we should perhaps get rid of it entirely.
+
+?
+
+Cheers
+---Dave
