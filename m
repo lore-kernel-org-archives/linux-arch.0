@@ -1,33 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f180.google.com ([209.85.223.180]:35005 "EHLO
-        mail-io0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S944049AbdEZQNW (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 26 May 2017 12:13:22 -0400
+Received: from mail-sn1nam02on0065.outbound.protection.outlook.com ([104.47.36.65]:34528
+        "EHLO NAM02-SN1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S933114AbdEZQWm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 26 May 2017 12:22:42 -0400
+Subject: Re: [PATCH v5 17/32] x86/mm: Add support to access boot related data
+ in the clear
+References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
+ <20170418211921.10190.1537.stgit@tlendack-t1.amdoffice.net>
+ <20170515183517.mb4k2gp2qobbuvtm@pd.tnic>
+ <20170518195051.GA5651@codeblueprint.co.uk>
+From: Tom Lendacky <thomas.lendacky@amd.com>
+Message-ID: <4c2ef3ba-2940-3330-d362-5b2b0d812c6f@amd.com>
+Date: Fri, 26 May 2017 11:22:36 -0500
 MIME-Version: 1.0
-In-Reply-To: <20170526155812.gdc6x6pz2howdpjb@node.shutemov.name>
-References: <20170525203334.867-1-kirill.shutemov@linux.intel.com>
- <CA+55aFznnXPDxYy5CN6qVU7QJ3Y9hbSf-s2-w0QkaNJuTspGcQ@mail.gmail.com>
- <20170526130057.t7zsynihkdtsepkf@node.shutemov.name> <CA+55aFw2HDHRZTYss2xbSTRAZuS1qAFmKrAXsiMp34ngNapTiw@mail.gmail.com>
- <20170526155812.gdc6x6pz2howdpjb@node.shutemov.name>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Fri, 26 May 2017 09:13:20 -0700
-Message-ID: <CA+55aFz=S=085qe=a2qBWKLXwD1NC4sxjR_xUd9knVv_a3tSiA@mail.gmail.com>
-Subject: Re: [PATCHv1, RFC 0/8] Boot-time switching between 4- and 5-level paging
-Content-Type: text/plain; charset="UTF-8"
+In-Reply-To: <20170518195051.GA5651@codeblueprint.co.uk>
+Content-Type: text/plain; charset="windows-1252"; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Kirill A. Shutemov" <kirill@shutemov.name>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, the arch/x86 maintainers <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Message-ID: <20170526161320.K1Jq9tYQK8tPFrhqVOcP7SqQrfiKnK6eEffvsBltjaI@z>
+To: Matt Fleming <matt@codeblueprint.co.uk>, Borislav Petkov <bp@alien8.de>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Message-ID: <20170526162236.0EgBoIaR5-iD3rKENjqs050aMZla_t2PsG-V2yOBnlc@z>
 
-On Fri, May 26, 2017 at 8:58 AM, Kirill A. Shutemov
-<kirill@shutemov.name> wrote:
+On 5/18/2017 2:50 PM, Matt Fleming wrote:
+> On Mon, 15 May, at 08:35:17PM, Borislav Petkov wrote:
+>> On Tue, Apr 18, 2017 at 04:19:21PM -0500, Tom Lendacky wrote:
+>>
+>>> +		paddr = boot_params.efi_info.efi_memmap_hi;
+>>> +		paddr <<= 32;
+>>> +		paddr |= boot_params.efi_info.efi_memmap;
+>>> +		if (phys_addr == paddr)
+>>> +			return true;
+>>> +
+>>> +		paddr = boot_params.efi_info.efi_systab_hi;
+>>> +		paddr <<= 32;
+>>> +		paddr |= boot_params.efi_info.efi_systab;
+>>
+>> So those two above look like could be two global vars which are
+>> initialized somewhere in the EFI init path:
+>>
+>> efi_memmap_phys and efi_systab_phys or so.
+>>
+>> Matt ?
+>>
+>> And then you won't need to create that paddr each time on the fly. I
+>> mean, it's not a lot of instructions but still...
 >
-> It's in a separate white paper for now:
+> We should already have the physical memmap address available in
+> 'efi.memmap.phys_map'.
+
+Unfortunately memremap_is_efi_data() is called before the efi structure
+gets initialized, so I can't use that value.
+
 >
-> https://software.intel.com/sites/default/files/managed/2b/80/5-level_paging_white_paper.pdf
+> And the physical address of the system table should be in
+> 'efi_phys.systab'. See efi_init().
 
-Thanks. It didn't show up with "LA57 site:intel.com" with google,
-which is how I tried to find it ;)
+In addition to the same issue as efi.memmap.phys_map, efi_phys has
+the __initdata attribute so it will be released/freed which will cause
+problems in checks performed afterwards.
 
-                 Linus
+Thanks,
+Tom
+
+>
