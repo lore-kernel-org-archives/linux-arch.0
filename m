@@ -1,128 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:59624 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1426186AbdEZLhg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 26 May 2017 07:37:36 -0400
-Date: Fri, 26 May 2017 12:37:32 +0100
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [RFC PATCH v2 4/6] arm64: signal: Allocate extra sigcontext
- space as needed
-Message-ID: <20170526113729.GO3559@e103592.cambridge.arm.com>
-References: <1492016239-19511-1-git-send-email-Dave.Martin@arm.com>
- <1492016495-19689-1-git-send-email-Dave.Martin@arm.com>
- <1492016495-19689-4-git-send-email-Dave.Martin@arm.com>
- <20170512165724.GB8387@e104818-lin.cambridge.arm.com>
- <20170515132442.GB3559@e103592.cambridge.arm.com>
- <20170523113019.GB5948@e104818-lin.cambridge.arm.com>
+Received: from mail-wm0-f65.google.com ([74.125.82.65]:33275 "EHLO
+        mail-wm0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S940580AbdEZNBd (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 26 May 2017 09:01:33 -0400
+Received: by mail-wm0-f65.google.com with SMTP id b84so3913962wmh.0
+        for <linux-arch@vger.kernel.org>; Fri, 26 May 2017 06:01:05 -0700 (PDT)
+Date: Fri, 26 May 2017 16:00:57 +0300
+From: "Kirill A. Shutemov" <kirill@shutemov.name>
+Subject: Re: [PATCHv1, RFC 0/8] Boot-time switching between 4- and 5-level
+ paging
+Message-ID: <20170526130057.t7zsynihkdtsepkf@node.shutemov.name>
+References: <20170525203334.867-1-kirill.shutemov@linux.intel.com>
+ <CA+55aFznnXPDxYy5CN6qVU7QJ3Y9hbSf-s2-w0QkaNJuTspGcQ@mail.gmail.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20170523113019.GB5948@e104818-lin.cambridge.arm.com>
+In-Reply-To: <CA+55aFznnXPDxYy5CN6qVU7QJ3Y9hbSf-s2-w0QkaNJuTspGcQ@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org
-Message-ID: <20170526113732.14CToU6Vf4p9V6JlbK6runn_uxMU7UM2mCw7fK7YWQI@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, the arch/x86 maintainers <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20170526130057.Z53IXbENMyADqrd30sbe8rA4W50r-IWdOLGxNy6U2L0@z>
 
-On Tue, May 23, 2017 at 12:30:19PM +0100, Catalin Marinas wrote:
-> On Mon, May 15, 2017 at 02:24:45PM +0100, Dave P Martin wrote:
-> > On Fri, May 12, 2017 at 05:57:24PM +0100, Catalin Marinas wrote:
-> > > On Wed, Apr 12, 2017 at 06:01:13PM +0100, Dave P Martin wrote:
-
-[...]
-
-> > Originally I preferred not to waste the space and did move fp/lr to the
-> > end, but someone (I think you or Will) expressed concern that the fp/lr
-> > position relative to the signal frame _might_ count as ABI.
-> > 
-> > I think it's not that likely that software will be relying on this,
-> > since it appears easier just to follow the frame chain than to treat
-> > this as a special case.
-> > 
-> > But it's hard to be certain.  It comes down to a judgement call.
+On Thu, May 25, 2017 at 04:24:24PM -0700, Linus Torvalds wrote:
+> On Thu, May 25, 2017 at 1:33 PM, Kirill A. Shutemov
+> <kirill.shutemov@linux.intel.com> wrote:
+> > Here' my first attempt to bring boot-time between 4- and 5-level paging.
+> > It looks not too terrible to me. I've expected it to be worse.
 > 
-> I would not consider this ABI. The ABI part is that the fp register
-> points to where fp/lr were saved.
-
-Fair enough, I'm happy to move it back.  (That was my preferred design
-in the first place anyway).
-
-> > > > +#define EXTRA_MAGIC	0x45585401
-> > > > +
-> > > > +struct extra_context {
-> > > > +	struct _aarch64_ctx head;
-> > > > +	void __user *data;	/* 16-byte aligned pointer to extra space */
-> > > "__user" is a kernel-only attribute, we shouldn't expose it in a uapi
-> > > header.
-> > 
-> > This is filtered out by headers_install, just like #ifdef __KERNEL__.
+> If I read this right, you just made it a global on/off thing.
 > 
-> Ah, ok, I missed this.
-
-It was a surprise to me too...
-
-> > > > +	__u32 size;		/* size in bytes of the extra space */
-> > > > +};
-> > > 
-> > > Do we need the size of the extra space? Can we not infer it anyway by
-> > > walking the contexts save there? Surely we don't expect more than one
-> > > extra context.
-> > 
-> > Strictly speaking we don't need it.  When userspace parses a signal
-> > frame generated by the kernel, it can trust the kernel to write a well-
-> > formed signal frame.
-> > 
-> > In sigreturn it allows us to retain a sanity-check on overall size
-> > similar to what sizeof(__reserved) gives us.  This "feels cleaner"
-> > to me, but the value of it is debatable, since we can still apply
-> > SIGFRAME_MAXSZ and uaccess should protect us against gross overruns.
+> May I suggest possibly a different model entirely? Can you make it a
+> per-mm flag instead?
 > 
-> I'm not keen on the size information, it seems superfluous.
+> And then we
+> 
+>  (a) make all kthreads use the 4-level page tables
+> 
+>  (b) which means that all the init code uses the 4-level page tables
+> 
+>  (c) which means that all those checks for "start_secondary" etc can
+> just go away, because those all run with 4-level page tables.
+> 
+> Or is it just much too expensive to switch between 4-level and 5-level
+> paging at run-time?
 
-Are you referring to the fact that fp will point to the end of
-extra_context, or simply that we don't really need to know the size?
+Hm..
 
+I don't see how kernel threads can use 4-level paging. It doesn't work
+from virtual memory layout POV. Kernel claims half of full virtual address
+space for itself -- 256 PGD entries, not one as we would effectively have
+in case of switching to 4-level paging. For instance, addresses, where
+vmalloc and vmemmap are mapped, are not canonical with 4-level paging.
 
-The first is only true of the signal frame.  For a sigcontext on the
-heap (e.g., getcontext/setcontext) the frame record has no role and
-nothing would point to it, so it's no use for locating the end of
-extra_context.  In practice there won't be a frame record in this
-situation.
+And you cannot see whole direct mapping of physical memory. Back to
+highmem? (Please, no, please).
 
-The second is a valid point, just as we don't need to know the size of
-the destination buffer of strcpy() or sprintf().  The programmer can
-ensure that it's big enough.  Moreover, from the kernel we're also
-protected by uaccess.
+We could possible reduce number of PGD required by kernel. Currently,
+layout for 5-level paging allows up-to 55-bit physical memory. It's
+redundant as SDM claim that we never will get more than 52. So we could
+reduce size of kernel part of layout by few bits, but not definitely to 1.
 
-It's easy to screw up here though.  setcontext assumes that mcontext_t
-is fixed-size, so if there is no embedded size information then there
-is no way to protect against overruns.  In userspace, there is no
-uaccess protection and we can simply walk across the end of a heap
-block etc.
+I don't see how it can possibly work.
 
-> BTW, does SIGFRAME_MAXSZ now become ABI? Or the user only needs to
-> interrogate the frame size and we keep this internal to the kernel?
+Besides difficulties of getting switching between paging modes correct,
+that Andy mentioned, it will also hurt performance. You cannot switch
+between paging modes directly. It would require disabling paging
+completely. It means we loose benefit from global page table entries on
+such switching. More page-walks.
 
-If the kernel rejects extra_contexts that cause this limit to be
-exceeded, then yes -- though it will rarely be relevant except in the
-case of memory corruption, or if architecture extensions eventually
-require a larger frame.
+Even ignoring all of above, I don't see much benefit of having per-mm
+switching. It adds complexity without much benefit -- saving few lines of
+logic during early boot doesn't look as huge win to me.
 
-(sve_context could theoretically grow larger then SIGFRAME_MAXSZ all by
-itself, but that's unlikely to happen any time soon.)
-
-
-Userspace could hit SIGFRAME_MAXSZ by constructing a valid sequence of
-records that is ridiculously large, by padding out the records: common
-sense suggests not to do this, but it's never been documented or
-enforced.  I didn't feel comfortable changing the behaviour here to be
-more strict.
-
-
-So, SIGFRAME_MAXSZ should either be given a larger, more future-proof
-value ... or otherwise we should perhaps get rid of it entirely.
-
-?
-
-Cheers
----Dave
+-- 
+ Kirill A. Shutemov
