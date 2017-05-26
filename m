@@ -1,42 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f43.google.com ([209.85.214.43]:37310 "EHLO
-        mail-it0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1165995AbdEYXY0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 May 2017 19:24:26 -0400
+Received: from mail-pf0-f196.google.com ([209.85.192.196]:33982 "EHLO
+        mail-pf0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1163357AbdEZAje (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 May 2017 20:39:34 -0400
+Date: Fri, 26 May 2017 10:39:09 +1000
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH 4/4] watchdog: provide watchdog_reconfigure() for arch
+ watchdogs
+Message-ID: <20170526103909.04f7710c@roar.ozlabs.ibm.com>
+In-Reply-To: <20170525140833.3qkuvoiavlf5ra6d@redhat.com>
+References: <20170525082856.21685-1-npiggin@gmail.com>
+        <20170525082856.21685-5-npiggin@gmail.com>
+        <20170525140833.3qkuvoiavlf5ra6d@redhat.com>
 MIME-Version: 1.0
-In-Reply-To: <20170525203334.867-1-kirill.shutemov@linux.intel.com>
-References: <20170525203334.867-1-kirill.shutemov@linux.intel.com>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Thu, 25 May 2017 16:24:24 -0700
-Message-ID: <CA+55aFznnXPDxYy5CN6qVU7QJ3Y9hbSf-s2-w0QkaNJuTspGcQ@mail.gmail.com>
-Subject: Re: [PATCHv1, RFC 0/8] Boot-time switching between 4- and 5-level paging
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, the arch/x86 maintainers <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Message-ID: <20170525232424.1zalLdyvnVxqwc9ZFiZxLnCEpvFQms1ZTtk2LX0TdCs@z>
+To: Don Zickus <dzickus@redhat.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20170526003909.83kI-R-hwP6faqehD76-ZChTAEK1tuwI-EHuxqMy-to@z>
 
-On Thu, May 25, 2017 at 1:33 PM, Kirill A. Shutemov
-<kirill.shutemov@linux.intel.com> wrote:
-> Here' my first attempt to bring boot-time between 4- and 5-level paging.
-> It looks not too terrible to me. I've expected it to be worse.
+On Thu, 25 May 2017 10:08:33 -0400
+Don Zickus <dzickus@redhat.com> wrote:
 
-If I read this right, you just made it a global on/off thing.
+> On Thu, May 25, 2017 at 06:28:56PM +1000, Nicholas Piggin wrote:
+> > After reconfiguring watchdog sysctls etc., architecture specific
+> > watchdogs may not get all their parameters updated.
+> > 
+> > watchdog_reconfigure() can be implemented to pull the new values
+> > in and set the arch NMI watchdog.  
+> 
+> I understand the reason for this patch and I don't have any real objection
+> on how it was implemented within the constraints of all the current logic.
+> 
+> I just wonder if the current logic should be adjusted to make the hardlockup
+> detector, namely the perf implementation more separate so it can handle what
+> you would like more cleanly.
+> 
+> The watchdog_nmi_reconfigure is sort of hackish, but it is hard to fault you
+> based on how things are designed.  I am going to poke at it a little bit,
+> but I will probably not find time to do much and accept what you have for
+> now.
 
-May I suggest possibly a different model entirely? Can you make it a
-per-mm flag instead?
+I actually agree with you. These patches are basically an initial bridge
+to get us to decoupling hld-perf from hld-arch, but the code could
+definitely use several more passes to clean things up.
 
-And then we
+One thing we want to be mindful of is some watchdogs are very light weight,
+minimal, and some may not even want to call C code (at least from the NMI
+and touch-watchdog paths). But having said that, it may not be a bad idea
+to have implementations provide a watchdog driver struct with some of the
+methods and reconfiguration they support. E.g., suspend/resume, stop/start
+on CPUs, adjust timeouts, etc.).
 
- (a) make all kthreads use the 4-level page tables
+I didn't want to go the whole hog and over-engineer something that doesn't
+work though, so I'm hoping we can get the powerpc watchdog in, and then
+keep working on the apis.
 
- (b) which means that all the init code uses the 4-level page tables
+Let me know what you think after you poke at it though.
 
- (c) which means that all those checks for "start_secondary" etc can
-just go away, because those all run with 4-level page tables.
-
-Or is it just much too expensive to switch between 4-level and 5-level
-paging at run-time?
-
-              Linus
+Thanks,
+Nick
