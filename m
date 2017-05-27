@@ -1,49 +1,119 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.codeaurora.org ([198.145.29.96]:38762 "EHLO
-        smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1757037AbdE0NsY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 27 May 2017 09:48:24 -0400
-From: Sricharan R <sricharan@codeaurora.org>
-Subject: [PATCH v6 1/6] iommu: of: Fix check for returning EPROBE_DEFER
-Date: Sat, 27 May 2017 19:17:40 +0530
-Message-ID: <1495892865-9506-1-git-send-email-sricharan@codeaurora.org>
+Received: from mail-ua0-f196.google.com ([209.85.217.196]:33683 "EHLO
+        mail-ua0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750737AbdE0PJz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 27 May 2017 11:09:55 -0400
+MIME-Version: 1.0
+In-Reply-To: <20170525203334.867-6-kirill.shutemov@linux.intel.com>
+References: <20170525203334.867-1-kirill.shutemov@linux.intel.com> <20170525203334.867-6-kirill.shutemov@linux.intel.com>
+From: Brian Gerst <brgerst@gmail.com>
+Date: Sat, 27 May 2017 11:09:54 -0400
+Message-ID: <CAMzpN2j+CMCn-5pgEVZBNm9JMK1GEodvXqEtpAB2NXwTTHSM6g@mail.gmail.com>
+Subject: Re: [PATCHv1, RFC 5/8] x86/mm: Fold p4d page table layer at runtime
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: robin.murphy@arm.com, will.deacon@arm.com, joro@8bytes.org, lorenzo.pieralisi@arm.com, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arm-msm@vger.kernel.org, m.szyprowski@samsung.com, bhelgaas@google.com, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, tn@semihalf.com, hanjun.guo@linaro.org, okaya@codeaurora.org, robh+dt@kernel.org, frowand.list@gmail.com, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, sudeep.holla@arm.com, rjw@rjwysocki.net, lenb@kernel.org, catalin.marinas@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, laurent.pinchart@ideasonboard.com, j.neuschaefer@gmx.net, geert@linux-m68k.org, magnus.damm@gmail.com, nwatters@codeaurora.org, linux@armlinux.org.uk
-Cc: sricharan@codeaurora.org
-Message-ID: <20170527134740.J0-R5aybaGFXB7UkX8fGNVBysdCS8UcKlVEqRFMTME0@z>
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, the arch/x86 maintainers <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch <linux-arch@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20170527150954.-2oEoWFgAC89JQ2FjpPdJbZrMxgxhT5VWC-FkqYIjhc@z>
 
-Now with IOMMU probe deferral, we return -EPROBE_DEFER
-for masters that are connected to an IOMMU which is not
-probed yet, but going to get probed, so that we can attach
-the correct dma_ops. So while trying to defer the probe of
-the master, check if the of_iommu node that it is connected
-to is marked in DT as 'status=disabled', then the IOMMU is never
-is going to get probed. So simply return NULL and let the master
-work without an IOMMU.
+On Thu, May 25, 2017 at 4:33 PM, Kirill A. Shutemov
+<kirill.shutemov@linux.intel.com> wrote:
+> This patch changes page table helpers to fold p4d at runtime.
+> The logic is the same as in <asm-generic/pgtable-nop4d.h>.
+>
+> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+> ---
+>  arch/x86/include/asm/paravirt.h |  3 ++-
+>  arch/x86/include/asm/pgalloc.h  |  5 ++++-
+>  arch/x86/include/asm/pgtable.h  | 10 +++++++++-
+>  3 files changed, 15 insertions(+), 3 deletions(-)
+>
+> diff --git a/arch/x86/include/asm/paravirt.h b/arch/x86/include/asm/paravirt.h
+> index 55fa56fe4e45..e934ed6dc036 100644
+> --- a/arch/x86/include/asm/paravirt.h
+> +++ b/arch/x86/include/asm/paravirt.h
+> @@ -615,7 +615,8 @@ static inline void set_pgd(pgd_t *pgdp, pgd_t pgd)
+>
+>  static inline void pgd_clear(pgd_t *pgdp)
+>  {
+> -       set_pgd(pgdp, __pgd(0));
+> +       if (!p4d_folded)
+> +               set_pgd(pgdp, __pgd(0));
+>  }
+>
+>  #endif  /* CONFIG_PGTABLE_LEVELS == 5 */
+> diff --git a/arch/x86/include/asm/pgalloc.h b/arch/x86/include/asm/pgalloc.h
+> index b2d0cd8288aa..5c42262169d0 100644
+> --- a/arch/x86/include/asm/pgalloc.h
+> +++ b/arch/x86/include/asm/pgalloc.h
+> @@ -155,6 +155,8 @@ static inline void __pud_free_tlb(struct mmu_gather *tlb, pud_t *pud,
+>  #if CONFIG_PGTABLE_LEVELS > 4
+>  static inline void pgd_populate(struct mm_struct *mm, pgd_t *pgd, p4d_t *p4d)
+>  {
+> +       if (p4d_folded)
+> +               return;
+>         paravirt_alloc_p4d(mm, __pa(p4d) >> PAGE_SHIFT);
+>         set_pgd(pgd, __pgd(_PAGE_TABLE | __pa(p4d)));
+>  }
+> @@ -179,7 +181,8 @@ extern void ___p4d_free_tlb(struct mmu_gather *tlb, p4d_t *p4d);
+>  static inline void __p4d_free_tlb(struct mmu_gather *tlb, p4d_t *p4d,
+>                                   unsigned long address)
+>  {
+> -       ___p4d_free_tlb(tlb, p4d);
+> +       if (!p4d_folded)
+> +               ___p4d_free_tlb(tlb, p4d);
+>  }
+>
+>  #endif /* CONFIG_PGTABLE_LEVELS > 4 */
+> diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
+> index 77037b6f1caa..4516a1bdcc31 100644
+> --- a/arch/x86/include/asm/pgtable.h
+> +++ b/arch/x86/include/asm/pgtable.h
+> @@ -53,7 +53,7 @@ extern struct mm_struct *pgd_page_get_mm(struct page *page);
+>
+>  #ifndef __PAGETABLE_P4D_FOLDED
+>  #define set_pgd(pgdp, pgd)             native_set_pgd(pgdp, pgd)
+> -#define pgd_clear(pgd)                 native_pgd_clear(pgd)
+> +#define pgd_clear(pgd)                 (!p4d_folded ? native_pgd_clear(pgd) : 0)
+>  #endif
+>
+>  #ifndef set_p4d
+> @@ -847,6 +847,8 @@ static inline unsigned long p4d_index(unsigned long address)
+>  #if CONFIG_PGTABLE_LEVELS > 4
+>  static inline int pgd_present(pgd_t pgd)
+>  {
+> +       if (p4d_folded)
+> +               return 1;
+>         return pgd_flags(pgd) & _PAGE_PRESENT;
+>  }
+>
+> @@ -864,16 +866,22 @@ static inline unsigned long pgd_page_vaddr(pgd_t pgd)
+>  /* to find an entry in a page-table-directory. */
+>  static inline p4d_t *p4d_offset(pgd_t *pgd, unsigned long address)
+>  {
+> +       if (p4d_folded)
+> +               return (p4d_t *)pgd;
+>         return (p4d_t *)pgd_page_vaddr(*pgd) + p4d_index(address);
+>  }
+>
+>  static inline int pgd_bad(pgd_t pgd)
+>  {
+> +       if (p4d_folded)
+> +               return 0;
+>         return (pgd_flags(pgd) & ~_PAGE_USER) != _KERNPG_TABLE;
+>  }
+>
+>  static inline int pgd_none(pgd_t pgd)
+>  {
+> +       if (p4d_folded)
+> +               return 0;
+>         /*
+>          * There is no need to do a workaround for the KNL stray
+>          * A/D bit erratum here.  PGDs only point to page tables
 
-Fixes: 7b07cbefb68d ("iommu: of: Handle IOMMU lookup failure with deferred probing or error")
-Reported-by: Geert Uytterhoeven <geert@linux-m68k.org>
-Reviewed-by: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
-Tested-by: Will Deacon <will.deacon@arm.com>
-Tested-by: Magnus Damn <magnus.damn@gmail.com>
-Acked-by: Will Deacon <will.deacon@arm.com>
-Signed-off-by: Sricharan R <sricharan@codeaurora.org>
----
- drivers/iommu/of_iommu.c | 1 +
- 1 file changed, 1 insertion(+)
+These should use static_cpu_has(X86_FEATURE_LA57), so that it gets
+patched by alternatives.
 
-diff --git a/drivers/iommu/of_iommu.c b/drivers/iommu/of_iommu.c
-index 9f44ee8..e6e9bec 100644
---- a/drivers/iommu/of_iommu.c
-+++ b/drivers/iommu/of_iommu.c
-@@ -118,6 +118,7 @@ static bool of_iommu_driver_present(struct device_node *np)
- 
- 	ops = iommu_ops_from_fwnode(fwnode);
- 	if ((ops && !ops->of_xlate) ||
-+	    !of_device_is_available(iommu_spec->np) ||
- 	    (!ops && !of_iommu_driver_present(iommu_spec->np)))
- 		return NULL;
- 
--- 
-QUALCOMM INDIA, on behalf of Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum, hosted by The Linux Foundation
+--
+Brian Gerst
