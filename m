@@ -1,71 +1,93 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.codeaurora.org ([198.145.29.96]:39054 "EHLO
+Received: from smtp.codeaurora.org ([198.145.29.96]:39488 "EHLO
         smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1757107AbdE0Nsg (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 27 May 2017 09:48:36 -0400
+        with ESMTP id S1757151AbdE0Nsp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 27 May 2017 09:48:45 -0400
 From: Sricharan R <sricharan@codeaurora.org>
-Subject: [PATCH v6 3/6] ACPI/IORT: Ignore all errors except EPROBE_DEFER
-Date: Sat, 27 May 2017 19:17:42 +0530
-Message-ID: <1495892865-9506-3-git-send-email-sricharan@codeaurora.org>
+Subject: [PATCH v6 4/6] ARM: dma-mapping: Don't tear down third-party mappings
+Date: Sat, 27 May 2017 19:17:43 +0530
+Message-ID: <1495892865-9506-4-git-send-email-sricharan@codeaurora.org>
 In-Reply-To: <1495892865-9506-1-git-send-email-sricharan@codeaurora.org>
 References: <1495892865-9506-1-git-send-email-sricharan@codeaurora.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: robin.murphy@arm.com, will.deacon@arm.com, joro@8bytes.org, lorenzo.pieralisi@arm.com, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arm-msm@vger.kernel.org, m.szyprowski@samsung.com, bhelgaas@google.com, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, tn@semihalf.com, hanjun.guo@linaro.org, okaya@codeaurora.org, robh+dt@kernel.org, frowand.list@gmail.com, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, sudeep.holla@arm.com, rjw@rjwysocki.net, lenb@kernel.org, catalin.marinas@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, laurent.pinchart@ideasonboard.com, j.neuschaefer@gmx.net, geert@linux-m68k.org, magnus.damm@gmail.com, nwatters@codeaurora.org, linux@armlinux.org.uk
 Cc: sricharan@codeaurora.org
-Message-ID: <20170527134742.1t2-Db5Bn-IqOvnEPPFmBHj9a-rb6BeOOd-X7rdifao@z>
+Message-ID: <20170527134743.yQVMQY3RmftSG73j_bmN_pEXdioX4mdI8r6rqKt8-bQ@z>
 
-While deferring the probe of IOMMU masters, xlate and
-add_device callbacks called from iort_iommu_configure
-can pass back error values like -ENODEV, which means
-the IOMMU cannot be connected with that master for real
-reasons. Before the IOMMU probe deferral, all such errors
-were ignored. Now all those errors are propagated back,
-killing the master's probe for such errors. Instead ignore
-all the errors except EPROBE_DEFER, which is the only one
-of concern and let the master work without IOMMU, thus
-restoring the old behavior. Also make explicit that
-acpi_dma_configure handles only -EPROBE_DEFER from
-iort_iommu_configure.
+From: Laurent Pinchart <laurent.pinchart+renesas@ideasonboard.com>
 
-Fixes: 5a1bb638d567 ("drivers: acpi: Handle IOMMU lookup failure with deferred probing or error")
-Signed-off-by: Sricharan R <sricharan@codeaurora.org>
+arch_setup_dma_ops() is used in device probe code paths to create an
+IOMMU mapping and attach it to the device. The function assumes that the
+device is attached to a device-specific IOMMU instance (or at least a
+device-specific TLB in a shared IOMMU instance) and thus creates a
+separate mapping for every device.
+
+On several systems (Renesas R-Car Gen2 being one of them), that
+assumption is not true, and IOMMU mappings must be shared between
+multiple devices. In those cases the IOMMU driver knows better than the
+generic ARM dma-mapping layer and attaches mapping to devices manually
+with arm_iommu_attach_device(), which sets the DMA ops for the device.
+
+The arch_setup_dma_ops() function takes this into account and bails out
+immediately if the device already has DMA ops assigned. However, the
+corresponding arch_teardown_dma_ops() function, called from driver
+unbind code paths (including probe deferral), will tear the mapping down
+regardless of who created it. When the device is reprobed
+arch_setup_dma_ops() will be called again but won't perform any
+operation as the DMA ops will still be set.
+
+We need to reset the DMA ops in arch_teardown_dma_ops() to fix this.
+However, we can't do so unconditionally, as then a new mapping would be
+created by arch_setup_dma_ops() when the device is reprobed, regardless
+of whether the device needs to share a mapping or not. We must thus keep
+track of whether arch_setup_dma_ops() created the mapping, and only in
+that case tear it down in arch_teardown_dma_ops().
+
+Keep track of that information in the dev_archdata structure. As the
+structure is embedded in all instances of struct device let's not grow
+it, but turn the existing dma_coherent bool field into a bitfield that
+can be used for other purposes.
+
+Fixes: 09515ef5ddad ("of/acpi: Configure dma operations at probe time for platform/amba/pci bus devices")
+Reviewed-by: Robin Murphy <robin.murphy@arm.com>
+Signed-off-by: Laurent Pinchart <laurent.pinchart+renesas@ideasonboard.com>
 ---
- drivers/acpi/arm64/iort.c | 6 ++++++
- drivers/acpi/scan.c       | 4 ++--
- 2 files changed, 8 insertions(+), 2 deletions(-)
+ arch/arm/include/asm/device.h | 3 ++-
+ arch/arm/mm/dma-mapping.c     | 4 ++++
+ 2 files changed, 6 insertions(+), 1 deletion(-)
 
-diff --git a/drivers/acpi/arm64/iort.c b/drivers/acpi/arm64/iort.c
-index c5fecf9..16e101f 100644
---- a/drivers/acpi/arm64/iort.c
-+++ b/drivers/acpi/arm64/iort.c
-@@ -782,6 +782,12 @@ const struct iommu_ops *iort_iommu_configure(struct device *dev)
- 	if (err)
- 		ops = ERR_PTR(err);
+diff --git a/arch/arm/include/asm/device.h b/arch/arm/include/asm/device.h
+index 36ec9c8..3234fe9 100644
+--- a/arch/arm/include/asm/device.h
++++ b/arch/arm/include/asm/device.h
+@@ -19,7 +19,8 @@ struct dev_archdata {
+ #ifdef CONFIG_XEN
+ 	const struct dma_map_ops *dev_dma_ops;
+ #endif
+-	bool dma_coherent;
++	unsigned int dma_coherent:1;
++	unsigned int dma_ops_setup:1;
+ };
  
-+	/* Ignore all other errors apart from EPROBE_DEFER */
-+	if (IS_ERR(ops) && (PTR_ERR(ops) != -EPROBE_DEFER)) {
-+		dev_dbg(dev, "Adding to IOMMU failed: %ld\n", PTR_ERR(ops));
-+		ops = NULL;
-+	}
-+
- 	return ops;
+ struct omap_device;
+diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
+index c742dfd..b48998f 100644
+--- a/arch/arm/mm/dma-mapping.c
++++ b/arch/arm/mm/dma-mapping.c
+@@ -2430,9 +2430,13 @@ void arch_setup_dma_ops(struct device *dev, u64 dma_base, u64 size,
+ 		dev->dma_ops = xen_dma_ops;
+ 	}
+ #endif
++	dev->archdata.dma_ops_setup = true;
  }
  
-diff --git a/drivers/acpi/scan.c b/drivers/acpi/scan.c
-index e39ec7b..3a10d757 100644
---- a/drivers/acpi/scan.c
-+++ b/drivers/acpi/scan.c
-@@ -1371,8 +1371,8 @@ int acpi_dma_configure(struct device *dev, enum dev_dma_attr attr)
- 	iort_set_dma_mask(dev);
- 
- 	iommu = iort_iommu_configure(dev);
--	if (IS_ERR(iommu))
--		return PTR_ERR(iommu);
-+	if (IS_ERR(iommu) && PTR_ERR(iommu) == -EPROBE_DEFER)
-+		return -EPROBE_DEFER;
- 
- 	size = max(dev->coherent_dma_mask, dev->coherent_dma_mask + 1);
- 	/*
+ void arch_teardown_dma_ops(struct device *dev)
+ {
++	if (!dev->archdata.dma_ops_setup)
++		return;
++
+ 	arm_teardown_iommu_dma_ops(dev);
+ }
 -- 
 QUALCOMM INDIA, on behalf of Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum, hosted by The Linux Foundation
