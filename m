@@ -1,77 +1,48 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH 0/3] ipc subsystem refcounter conversions
-Date: Sat, 27 May 2017 12:58:14 -0700
-Message-ID: <CAGXu5jKNChaVdfbM171FYkvY1hUMXG6cp-=WAdXBP0eTOO5RAA@mail.gmail.com>
-References: <1487590189-18151-1-git-send-email-elena.reshetova@intel.com> <20170303162352.b6af1c0c3115b3f5f1e7aed3@linux-foundation.org>
+From: "Kirill A. Shutemov" <kirill@shutemov.name>
+Subject: Re: [PATCHv1, RFC 5/8] x86/mm: Fold p4d page table layer at runtime
+Date: Sun, 28 May 2017 01:46:24 +0300
+Message-ID: <20170527224624.opc4yg4m7irvwbjl@node.shutemov.name>
+References: <20170525203334.867-1-kirill.shutemov@linux.intel.com>
+ <20170525203334.867-6-kirill.shutemov@linux.intel.com>
+ <CAMzpN2j+CMCn-5pgEVZBNm9JMK1GEodvXqEtpAB2NXwTTHSM6g@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f43.google.com ([209.85.214.43]:38467 "EHLO
-        mail-it0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750737AbdE0T6Q (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 27 May 2017 15:58:16 -0400
-Received: by mail-it0-f43.google.com with SMTP id r63so11484352itc.1
-        for <linux-arch@vger.kernel.org>; Sat, 27 May 2017 12:58:15 -0700 (PDT)
-In-Reply-To: <20170303162352.b6af1c0c3115b3f5f1e7aed3@linux-foundation.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Elena Reshetova <elena.reshetova@intel.com>, Peter Zijlstra <peterz@infradead.org>, Greg KH <gregkh@linuxfoundation.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Ingo Molnar <mingo@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, kernel-hardening@lists.openwall.com
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <CAMzpN2j+CMCn-5pgEVZBNm9JMK1GEodvXqEtpAB2NXwTTHSM6g@mail.gmail.com>
+Sender: owner-linux-mm@kvack.org
+To: Brian Gerst <brgerst@gmail.com>
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, the arch/x86 maintainers <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch <linux-arch@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Mar 3, 2017 at 4:23 PM, Andrew Morton <akpm@linux-foundation.org> wrote:
-> On Mon, 20 Feb 2017 13:29:46 +0200 Elena Reshetova <elena.reshetova@intel.com> wrote:
->
->> Now when new refcount_t type and API are finally merged
->> (see include/linux/refcount.h), the following
->> patches convert various refcounters in the ipc susystem from atomic_t
->> to refcount_t. By doing this we prevent intentional or accidental
->> underflows or overflows that can led to use-after-free vulnerabilities.
->>
->> The below patches are fully independent and can be cherry-picked separately.
->> Since we convert all kernel subsystems in the same fashion, resulting
->> in about 300 patches, we have to group them for sending at least in some
->> fashion to be manageable. Please excuse the long cc list.
->
-> Again, the refcount_t operations are much more expensive than the bare
-> atomic_t operations.  I'm reluctant to merge any of these conversions
+On Sat, May 27, 2017 at 11:09:54AM -0400, Brian Gerst wrote:
+> >  static inline int pgd_none(pgd_t pgd)
+> >  {
+> > +       if (p4d_folded)
+> > +               return 0;
+> >         /*
+> >          * There is no need to do a workaround for the KNL stray
+> >          * A/D bit erratum here.  PGDs only point to page tables
+> 
+> These should use static_cpu_has(X86_FEATURE_LA57), so that it gets
+> patched by alternatives.
 
-Since Manfred did a recent refactor of IPC RCU, and the refcount usage
-is minimal, it seemed a good time to ask after these patches again.
-(And send an updated one for the refactor.)
+Right, eventually we would likely need something like this. But at this
+point I'm more worried about correctness than performance. Performance
+will be the next step.
 
-> without either
->
-> a) a convincing demonstration that the performance impact is
->    sufficiently small (ie: unmeasurable) or
+And I haven't tried it yet, but I would expect direct use of alternatives
+wouldn't be possible. If I read code correctly, we enable paging way
+before we apply alternatives. But we need to have something functional in
+between.
 
-I've sent a few versions of a much faster refcount implementation
-which has no measurable difference to atomic_t operations (based on
-the PaX implementation). Getting more eyes on that would be nice; I'll
-include you on CC when I send the next version.
-
-> b) a compile-time option to disable the refcount_t operations (make
->    them generate the same code as the bare atomic_t ops).  Along with
->    some suitably reliable means of preventing people from accidentally
->    enabling the debug code in production builds.
-
-Since the speed-ups will likely be arch-specific, should my proposed
-CONFIG_FAST_REFCOUNT be made arch-indep when no arch-specific
-implementation available (via totally unchecked atomic_t ops)? i.e.:
-
-FAST_REFCOUNT=n: use function-based refcount_t with cmpxvhg and
-full-verification
-FAST_REFCOUNT=y without arch-specific implementation: use atomic_t
-with no verification (i.e. no functional change from now)
-FAST_REFCOUNT=y with arch-specific implementation: use atomic_t with
-overflow protection
-
-which means FAST_REFCOUNT would need to be default-on so that mm,
-block, net users will remain happy.
-
-Does that sound reasonable?
-
--Kees
+I guess it will be fun :)
 
 -- 
-Kees Cook
-Pixel Security
+ Kirill A. Shutemov
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
