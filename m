@@ -1,83 +1,77 @@
-From: "Rafael J. Wysocki" <rjw-LthD3rsA81gm4RdzfppkhA@public.gmane.org>
-Subject: Re: [PATCH v6 3/6] ACPI/IORT: Ignore all errors except EPROBE_DEFER
-Date: Sat, 27 May 2017 21:18:39 +0200
-Message-ID: <1564836.5iBbgoacpH@aspire.rjw.lan>
-References: <1495892865-9506-1-git-send-email-sricharan@codeaurora.org>
-	<1495892865-9506-3-git-send-email-sricharan@codeaurora.org>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH 0/3] ipc subsystem refcounter conversions
+Date: Sat, 27 May 2017 12:58:14 -0700
+Message-ID: <CAGXu5jKNChaVdfbM171FYkvY1hUMXG6cp-=WAdXBP0eTOO5RAA@mail.gmail.com>
+References: <1487590189-18151-1-git-send-email-elena.reshetova@intel.com> <20170303162352.b6af1c0c3115b3f5f1e7aed3@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <1495892865-9506-3-git-send-email-sricharan-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Sricharan R <sricharan-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>
-Cc: catalin.marinas-5wv7dgnIgG8@public.gmane.org, will.deacon-5wv7dgnIgG8@public.gmane.org, okaya-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org, laurent.pinchart-ryLnwIuWjnjg/C1BVhZhaw@public.gmane.org, frowand.list-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, tn-nYOzD4b6Jr9Wk0Htik3J/w@public.gmane.org, magnus.damm-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, linux-I+IVW8TIWO2tmTQ+vhA3Yw@public.gmane.org, linux-acpi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org, linux-pci-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, lenb-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, arnd-r2nGTMty4D4@public.gmane.org, linux-arm-msm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, j.neuschaefer-hi6Y0CQ0nG0@public.gmane.org, robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, bhelgaas-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, sudeep.holla-5wv7dgnIgG8@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-it0-f43.google.com ([209.85.214.43]:38467 "EHLO
+        mail-it0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750737AbdE0T6Q (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 27 May 2017 15:58:16 -0400
+Received: by mail-it0-f43.google.com with SMTP id r63so11484352itc.1
+        for <linux-arch@vger.kernel.org>; Sat, 27 May 2017 12:58:15 -0700 (PDT)
+In-Reply-To: <20170303162352.b6af1c0c3115b3f5f1e7aed3@linux-foundation.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Elena Reshetova <elena.reshetova@intel.com>, Peter Zijlstra <peterz@infradead.org>, Greg KH <gregkh@linuxfoundation.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Ingo Molnar <mingo@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, kernel-hardening@lists.openwall.com
 
-On Saturday, May 27, 2017 07:17:42 PM Sricharan R wrote:
-> While deferring the probe of IOMMU masters, xlate and
-> add_device callbacks called from iort_iommu_configure
-> can pass back error values like -ENODEV, which means
-> the IOMMU cannot be connected with that master for real
-> reasons. Before the IOMMU probe deferral, all such errors
-> were ignored. Now all those errors are propagated back,
-> killing the master's probe for such errors. Instead ignore
-> all the errors except EPROBE_DEFER, which is the only one
-> of concern and let the master work without IOMMU, thus
-> restoring the old behavior. Also make explicit that
-> acpi_dma_configure handles only -EPROBE_DEFER from
-> iort_iommu_configure.
-> 
-> Fixes: 5a1bb638d567 ("drivers: acpi: Handle IOMMU lookup failure with deferred probing or error")
-> Signed-off-by: Sricharan R <sricharan-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>
-> ---
->  drivers/acpi/arm64/iort.c | 6 ++++++
->  drivers/acpi/scan.c       | 4 ++--
->  2 files changed, 8 insertions(+), 2 deletions(-)
-> 
-> diff --git a/drivers/acpi/arm64/iort.c b/drivers/acpi/arm64/iort.c
-> index c5fecf9..16e101f 100644
-> --- a/drivers/acpi/arm64/iort.c
-> +++ b/drivers/acpi/arm64/iort.c
-> @@ -782,6 +782,12 @@ const struct iommu_ops *iort_iommu_configure(struct device *dev)
->  	if (err)
->  		ops = ERR_PTR(err);
->  
-> +	/* Ignore all other errors apart from EPROBE_DEFER */
-> +	if (IS_ERR(ops) && (PTR_ERR(ops) != -EPROBE_DEFER)) {
-> +		dev_dbg(dev, "Adding to IOMMU failed: %ld\n", PTR_ERR(ops));
-> +		ops = NULL;
-> +	}
-> +
->  	return ops;
->  }
->  
-> diff --git a/drivers/acpi/scan.c b/drivers/acpi/scan.c
-> index e39ec7b..3a10d757 100644
-> --- a/drivers/acpi/scan.c
-> +++ b/drivers/acpi/scan.c
-> @@ -1371,8 +1371,8 @@ int acpi_dma_configure(struct device *dev, enum dev_dma_attr attr)
->  	iort_set_dma_mask(dev);
->  
->  	iommu = iort_iommu_configure(dev);
-> -	if (IS_ERR(iommu))
-> -		return PTR_ERR(iommu);
-> +	if (IS_ERR(iommu) && PTR_ERR(iommu) == -EPROBE_DEFER)
-> +		return -EPROBE_DEFER;
->  
->  	size = max(dev->coherent_dma_mask, dev->coherent_dma_mask + 1);
->  	/*
-> 
+On Fri, Mar 3, 2017 at 4:23 PM, Andrew Morton <akpm@linux-foundation.org> wrote:
+> On Mon, 20 Feb 2017 13:29:46 +0200 Elena Reshetova <elena.reshetova@intel.com> wrote:
+>
+>> Now when new refcount_t type and API are finally merged
+>> (see include/linux/refcount.h), the following
+>> patches convert various refcounters in the ipc susystem from atomic_t
+>> to refcount_t. By doing this we prevent intentional or accidental
+>> underflows or overflows that can led to use-after-free vulnerabilities.
+>>
+>> The below patches are fully independent and can be cherry-picked separately.
+>> Since we convert all kernel subsystems in the same fashion, resulting
+>> in about 300 patches, we have to group them for sending at least in some
+>> fashion to be manageable. Please excuse the long cc list.
+>
+> Again, the refcount_t operations are much more expensive than the bare
+> atomic_t operations.  I'm reluctant to merge any of these conversions
 
-ACK for the scan.c change and I'm assuming this to go in via ARM64.
+Since Manfred did a recent refactor of IPC RCU, and the refcount usage
+is minimal, it seemed a good time to ask after these patches again.
+(And send an updated one for the refactor.)
 
-Thanks,
-Rafael
+> without either
+>
+> a) a convincing demonstration that the performance impact is
+>    sufficiently small (ie: unmeasurable) or
+
+I've sent a few versions of a much faster refcount implementation
+which has no measurable difference to atomic_t operations (based on
+the PaX implementation). Getting more eyes on that would be nice; I'll
+include you on CC when I send the next version.
+
+> b) a compile-time option to disable the refcount_t operations (make
+>    them generate the same code as the bare atomic_t ops).  Along with
+>    some suitably reliable means of preventing people from accidentally
+>    enabling the debug code in production builds.
+
+Since the speed-ups will likely be arch-specific, should my proposed
+CONFIG_FAST_REFCOUNT be made arch-indep when no arch-specific
+implementation available (via totally unchecked atomic_t ops)? i.e.:
+
+FAST_REFCOUNT=n: use function-based refcount_t with cmpxvhg and
+full-verification
+FAST_REFCOUNT=y without arch-specific implementation: use atomic_t
+with no verification (i.e. no functional change from now)
+FAST_REFCOUNT=y with arch-specific implementation: use atomic_t with
+overflow protection
+
+which means FAST_REFCOUNT would need to be default-on so that mm,
+block, net users will remain happy.
+
+Does that sound reasonable?
+
+-Kees
+
+-- 
+Kees Cook
+Pixel Security
