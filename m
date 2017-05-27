@@ -1,127 +1,78 @@
-From: Daniel Lezcano <daniel.lezcano@linaro.org>
-Subject: [PATCH 5/7] clocksource: Rename clksrc
-Date: Sat, 27 May 2017 11:58:46 +0200
-Message-ID: <1495879129-28109-5-git-send-email-daniel.lezcano@linaro.org>
-References: <1495879129-28109-1-git-send-email-daniel.lezcano@linaro.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f169.google.com ([209.85.128.169]:34401 "EHLO
-        mail-wr0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755253AbdE0J7k (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 27 May 2017 05:59:40 -0400
-Received: by mail-wr0-f169.google.com with SMTP id j27so12809912wre.1
-        for <linux-arch@vger.kernel.org>; Sat, 27 May 2017 02:59:39 -0700 (PDT)
-In-Reply-To: <1495879129-28109-1-git-send-email-daniel.lezcano@linaro.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: tglx@linutronix.de, daniel.lezcano@linaro.org
-Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, John Stultz <john.stultz@linaro.org>, Stephen Boyd <sboyd@codeaurora.org>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>
+From: Sricharan R <sricharan-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>
+Subject: [PATCH v6 2/6] iommu: of: Ignore all errors except EPROBE_DEFER
+Date: Sat, 27 May 2017 19:17:41 +0530
+Message-ID: <1495892865-9506-2-git-send-email-sricharan@codeaurora.org>
+References: <1495892865-9506-1-git-send-email-sricharan@codeaurora.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+In-Reply-To: <1495892865-9506-1-git-send-email-sricharan-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: robin.murphy-5wv7dgnIgG8@public.gmane.org, will.deacon-5wv7dgnIgG8@public.gmane.org, joro-zLv9SwRftAIdnm+yROfE0A@public.gmane.org, lorenzo.pieralisi-5wv7dgnIgG8@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-arm-msm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, m.szyprowski-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org, bhelgaas-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org, linux-pci-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-acpi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, tn-nYOzD4b6Jr9Wk0Htik3J/w@public.gmane.org, hanjun.guo-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org, okaya-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org, robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, frowand.list-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, sudeep.holla-5wv7dgnIgG8@public.gmane.org, rjw-LthD3rsA81gm4RdzfppkhA@public.gmane.org, lenb-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, catalin.marinas-5wv7dgnIgG8@public.gmane.org, arnd-r2nGTMty4D4@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, laurent.pinchart-ryLnwIuWjnjg/C1BVhZhaw@public.gmane.org, j.neuschaefer-hi6Y0CQ0nG0@public.gmane.org, geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org, magnus.damm-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, nwatters-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org, linux-I+IVW8TIWO2tmTQ+vhA3Yw@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
-The table name is now renamed to 'timer' for consistency with
-the CLOCKSOURCE_OF_DECLARE => TIMER_OF_DECLARE change.
+While deferring the probe of IOMMU masters, xlate and
+add_device callbacks called from of_iommu_configure
+can pass back error values like -ENODEV, which means
+the IOMMU cannot be connected with that master for real
+reasons. Before the IOMMU probe deferral, all such errors
+were ignored. Now all those errors are propagated back,
+killing the master's probe for such errors. Instead ignore
+all the errors except EPROBE_DEFER, which is the only one
+of concern and let the master work without IOMMU, thus
+restoring the old behavior. Also make explicit that
+of_dma_configure handles only -EPROBE_DEFER from
+of_iommu_configure.
 
-Signed-off-by: Daniel Lezcano <daniel.lezcano@linaro.org>
+Fixes: 7b07cbefb68d ("iommu: of: Handle IOMMU lookup failure with deferred probing or error")
+Reported-by: Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>
+Tested-by: Magnus Damn <magnus.damn-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Signed-off-by: Sricharan R <sricharan-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>
 ---
- drivers/clocksource/clksrc-probe.c | 18 +++++++++---------
- include/asm-generic/vmlinux.lds.h  |  6 +++---
- include/linux/clocksource.h        |  4 ++--
- 3 files changed, 14 insertions(+), 14 deletions(-)
+ drivers/iommu/of_iommu.c | 6 ++++++
+ drivers/of/device.c      | 4 ++--
+ 2 files changed, 8 insertions(+), 2 deletions(-)
 
-diff --git a/drivers/clocksource/clksrc-probe.c b/drivers/clocksource/clksrc-probe.c
-index 5d549c2..da81e5d 100644
---- a/drivers/clocksource/clksrc-probe.c
-+++ b/drivers/clocksource/clksrc-probe.c
-@@ -19,20 +19,20 @@
- #include <linux/of.h>
- #include <linux/clocksource.h>
- 
--extern struct of_device_id __clksrc_of_table[];
-+extern struct of_device_id __timer_of_table[];
- 
--static const struct of_device_id __clksrc_of_table_sentinel
--	__used __section(__clksrc_of_table_end);
-+static const struct of_device_id __timer_of_table_sentinel
-+	__used __section(__timer_of_table_end);
- 
- void __init timer_probe(void)
- {
- 	struct device_node *np;
- 	const struct of_device_id *match;
- 	of_init_fn_1_ret init_func_ret;
--	unsigned clocksources = 0;
-+	unsigned timers = 0;
- 	int ret;
- 
--	for_each_matching_node_and_match(np, __clksrc_of_table, &match) {
-+	for_each_matching_node_and_match(np, __timer_of_table, &match) {
- 		if (!of_device_is_available(np))
- 			continue;
- 
-@@ -45,11 +45,11 @@ void __init timer_probe(void)
- 			continue;
- 		}
- 
--		clocksources++;
-+		timers++;
+diff --git a/drivers/iommu/of_iommu.c b/drivers/iommu/of_iommu.c
+index e6e9bec..19779b8 100644
+--- a/drivers/iommu/of_iommu.c
++++ b/drivers/iommu/of_iommu.c
+@@ -237,6 +237,12 @@ const struct iommu_ops *of_iommu_configure(struct device *dev,
+ 			ops = ERR_PTR(err);
  	}
  
--	clocksources += acpi_probe_device_table(clksrc);
-+	timers += acpi_probe_device_table(timer);
- 
--	if (!clocksources)
--		pr_crit("%s: no matching clocksources found\n", __func__);
-+	if (!timers)
-+		pr_crit("%s: no matching timers found\n", __func__);
++	/* Ignore all other errors apart from EPROBE_DEFER */
++	if (IS_ERR(ops) && (PTR_ERR(ops) != -EPROBE_DEFER)) {
++		dev_dbg(dev, "Adding to IOMMU failed: %ld\n", PTR_ERR(ops));
++		ops = NULL;
++	}
++
+ 	return ops;
  }
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 0968d13..ca922ae 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -172,7 +172,7 @@
- 	KEEP(*(__##name##_of_table))					\
- 	KEEP(*(__##name##_of_table_end))
  
--#define CLKSRC_OF_TABLES()	OF_TABLE(CONFIG_CLKSRC_OF, clksrc)
-+#define TIMER_OF_TABLES()	OF_TABLE(CONFIG_CLKSRC_OF, timer)
- #define IRQCHIP_OF_MATCH_TABLE() OF_TABLE(CONFIG_IRQCHIP, irqchip)
- #define CLK_OF_TABLES()		OF_TABLE(CONFIG_COMMON_CLK, clk)
- #define IOMMU_OF_TABLES()	OF_TABLE(CONFIG_OF_IOMMU, iommu)
-@@ -558,14 +558,14 @@
- 	MEM_DISCARD(init.rodata)					\
- 	CLK_OF_TABLES()							\
- 	RESERVEDMEM_OF_TABLES()						\
--	CLKSRC_OF_TABLES()						\
-+	TIMER_OF_TABLES()						\
- 	IOMMU_OF_TABLES()						\
- 	CPU_METHOD_OF_TABLES()						\
- 	CPUIDLE_METHOD_OF_TABLES()					\
- 	KERNEL_DTB()							\
- 	IRQCHIP_OF_MATCH_TABLE()					\
- 	ACPI_PROBE_TABLE(irqchip)					\
--	ACPI_PROBE_TABLE(clksrc)					\
-+	ACPI_PROBE_TABLE(timer)						\
- 	ACPI_PROBE_TABLE(iort)						\
- 	EARLYCON_TABLE()
+diff --git a/drivers/of/device.c b/drivers/of/device.c
+index 9416d05..28c38c7 100644
+--- a/drivers/of/device.c
++++ b/drivers/of/device.c
+@@ -144,8 +144,8 @@ int of_dma_configure(struct device *dev, struct device_node *np)
+ 		coherent ? " " : " not ");
  
-diff --git a/include/linux/clocksource.h b/include/linux/clocksource.h
-index e43f37f..7cd38b2 100644
---- a/include/linux/clocksource.h
-+++ b/include/linux/clocksource.h
-@@ -250,7 +250,7 @@ extern int clocksource_mmio_init(void __iomem *, const char *,
- extern int clocksource_i8253_init(void);
+ 	iommu = of_iommu_configure(dev, np);
+-	if (IS_ERR(iommu))
+-		return PTR_ERR(iommu);
++	if (IS_ERR(iommu) && PTR_ERR(iommu) == -EPROBE_DEFER)
++		return -EPROBE_DEFER;
  
- #define TIMER_OF_DECLARE(name, compat, fn) \
--	OF_DECLARE_1_RET(clksrc, name, compat, fn)
-+	OF_DECLARE_1_RET(timer, name, compat, fn)
- 
- #ifdef CONFIG_CLKSRC_PROBE
- extern void timer_probe(void);
-@@ -259,6 +259,6 @@ static inline void timer_probe(void) {}
- #endif
- 
- #define TIMER_ACPI_DECLARE(name, table_id, fn)		\
--	ACPI_DECLARE_PROBE_ENTRY(clksrc, name, table_id, 0, NULL, 0, fn)
-+	ACPI_DECLARE_PROBE_ENTRY(timer, name, table_id, 0, NULL, 0, fn)
- 
- #endif /* _LINUX_CLOCKSOURCE_H */
+ 	dev_dbg(dev, "device is%sbehind an iommu\n",
+ 		iommu ? " " : " not ");
 -- 
-2.7.4
+QUALCOMM INDIA, on behalf of Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum, hosted by The Linux Foundation
