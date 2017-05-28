@@ -1,52 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f169.google.com ([209.85.128.169]:32999 "EHLO
-        mail-wr0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751075AbdE1JSp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 28 May 2017 05:18:45 -0400
-Received: by mail-wr0-f169.google.com with SMTP id w50so21023355wrc.0
-        for <linux-arch@vger.kernel.org>; Sun, 28 May 2017 02:18:44 -0700 (PDT)
-Subject: Re: [PATCH 6/7] clocksource: Rename CLKSRC_OF to TIMER_OF
-References: <1495879129-28109-1-git-send-email-daniel.lezcano@linaro.org>
- <1495879129-28109-6-git-send-email-daniel.lezcano@linaro.org>
- <20170528030058.GC4528@dragon>
-From: Daniel Lezcano <daniel.lezcano@linaro.org>
-Message-ID: <3bea2d43-e582-5b62-03df-3557028cc4b8@linaro.org>
-Date: Sun, 28 May 2017 11:18:40 +0200
+Received: from mail-it0-f53.google.com ([209.85.214.53]:35265 "EHLO
+        mail-it0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750801AbdE1Nw3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 28 May 2017 09:52:29 -0400
+Received: by mail-it0-f53.google.com with SMTP id c15so16280523ith.0
+        for <linux-arch@vger.kernel.org>; Sun, 28 May 2017 06:52:29 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <20170528030058.GC4528@dragon>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <1495879129-28109-6-git-send-email-daniel.lezcano@linaro.org>
+References: <1495879129-28109-1-git-send-email-daniel.lezcano@linaro.org> <1495879129-28109-6-git-send-email-daniel.lezcano@linaro.org>
+From: Linus Walleij <linus.walleij@linaro.org>
+Date: Sun, 28 May 2017 15:52:27 +0200
+Message-ID: <CACRpkda5za9vPJAsvD0FfgWLNep0hLpbhSZyuMgrT6QEGYQ-yA@mail.gmail.com>
+Subject: Re: [PATCH 6/7] clocksource: Rename CLKSRC_OF to TIMER_OF
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Shawn Guo <shawnguo@kernel.org>
-Cc: tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Russell King <linux@armlinux.org.uk>, Florian Fainelli <f.fainelli@gmail.com>, Ray Jui <rjui@broadcom.com>, Scott Branden <sbranden@broadcom.com>, "maintainer:BROADCOM BCM281XX/BCM11XXX/BCM216XX ARM ARCHITE..." <bcm-kernel-feedback-list@broadcom.com>, Alexander Shiyan <shc_work@mail.ru>, Sascha Hauer <kernel@pengutronix.de>, Fabio Estevam <fabio.estevam@nxp.com>, Kukjin Kim <kgene@kernel.org>, Krzysztof Kozlowski <krzk@kernel.org>, Javier Martinez Canillas <javier@osg.samsung.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Michal Simek <monstr@monstr.eu>, John Crispin <john@phrozen.org>, Ralf Baechle <ralf@linux-mips.org>, Ley Foon Tan <lftan@altera.com>, Rich Felker <dalias@libc.org>, Arnd Bergmann <arnd@arndb.de>, John Stultz <john.stultz@linaro.org>, Stephen Boyd <sboyd@codeaurora.org>, Linus Walleij <linus.walleij@linaro.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Olof Johansson <olof@lixom.net>, "moderated list:ARM/SAMSUNG EXYNOS ARM ARCHITECTURES" <linux-samsung-soc@vger.kernel.org>, "moderated list:H8/300 ARCHITECTURE" <uclinux-h8-devel@lists.sourceforge.jp>, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, "moderated list:NIOS2 ARCHITECTURE" <nios2-dev@lists.rocketboards.org>, "open list:SUPERH" <linux-sh@vger.kernel.org>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>
-Message-ID: <20170528091840.dPLkzQQO_QTaNvHBhE1gu4G-k8ftj5wXIV_Cbm_bIQk@z>
+To: Daniel Lezcano <daniel.lezcano@linaro.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Russell King <linux@armlinux.org.uk>, Florian Fainelli <f.fainelli@gmail.com>, Ray Jui <rjui@broadcom.com>, Scott Branden <sbranden@broadcom.com>, "maintainer:BROADCOM BCM281XX/BCM11XXX/BCM216XX ARM ARCHITE..." <bcm-kernel-feedback-list@broadcom.com>, Alexander Shiyan <shc_work@mail.ru>, Shawn Guo <shawnguo@kernel.org>, Sascha Hauer <kernel@pengutronix.de>, Fabio Estevam <fabio.estevam@nxp.com>, Kukjin Kim <kgene@kernel.org>, Krzysztof Kozlowski <krzk@kernel.org>, Javier Martinez Canillas <javier@osg.samsung.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Michal Simek <monstr@monstr.eu>, John Crispin <john@phrozen.org>, Ralf Baechle <ralf@linux-mips.org>, Ley Foon Tan <lftan@altera.com>, Rich Felker <dalias@libc.org>, Arnd Bergmann <arnd@arndb.de>, John Stultz <john.stultz@linaro.org>, Stephen Boyd <sboyd@codeaurora.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Olof Johansson <olof@lixom.net>, "moderated list:ARM/SAMSUNG EXYNOS ARM ARCHITECTURES" <linux-samsung-soc@vger.kernel.org>, "moderated list:H8/300 ARCHITECTURE" <uclinux-h8-devel@lists.sourceforge.jp>, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, "moderated list:NIOS2 ARCHITECTURE" <nios2-dev@lists.rocketboards.org>, "open list:SUPERH" <linux-sh@vger.kernel.org>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>
+Message-ID: <20170528135227.6ZPzTj4aTanm7n2jgsB_yUugxQOy9RfffRXT8-ev5RU@z>
 
-On 28/05/2017 05:00, Shawn Guo wrote:
-> On Sat, May 27, 2017 at 11:58:47AM +0200, Daniel Lezcano wrote:
->> diff --git a/arch/arm/mach-imx/epit.c b/arch/arm/mach-imx/epit.c
->> index fb9a73a..4a4d2e2 100644
->> --- a/arch/arm/mach-imx/epit.c
->> +++ b/arch/arm/mach-imx/epit.c
->> @@ -39,7 +39,7 @@
->>  #define EPITCR_OM_TOGGLE		(1 << 22)
->>  #define EPITCR_OM_CLEAR			(2 << 22)
->>  #define EPITCR_OM_SET			(3 << 22)
->> -#define EPITCR_CLKSRC_OFF		(0 << 24)
->> +#define EPITCR_TIMER_OFF		(0 << 24)
->>  #define EPITCR_CLKSRC_PERIPHERAL	(1 << 24)
->>  #define EPITCR_CLKSRC_REF_HIGH		(1 << 24)
->>  #define EPITCR_CLKSRC_REF_LOW		(3 << 24)
-> 
-> I do not think this change should be there.
+On Sat, May 27, 2017 at 11:58 AM, Daniel Lezcano
+<daniel.lezcano@linaro.org> wrote:
 
-Right. Thanks!
+> The config option name is now renamed to 'TIMER_OF' for consistency with
+> the CLOCKSOURCE_OF_DECLARE => TIMER_OF_DECLARE change.
+>
+> Signed-off-by: Daniel Lezcano <daniel.lezcano@linaro.org>
 
+After fixing the offset thing found by Shawn:
+Reviewed-by: Linus Walleij <linus.walleij@linaro.org>
 
--- 
- <http://www.linaro.org/> Linaro.org │ Open source software for ARM SoCs
-
-Follow Linaro:  <http://www.facebook.com/pages/Linaro> Facebook |
-<http://twitter.com/#!/linaroorg> Twitter |
-<http://www.linaro.org/linaro-blog/> Blog
+Yours,
+Linus Walleij
