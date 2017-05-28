@@ -1,31 +1,26 @@
 From: Linus Walleij <linus.walleij@linaro.org>
-Subject: Re: [PATCH 5/7] clocksource: Rename clksrc
-Date: Sun, 28 May 2017 15:51:04 +0200
-Message-ID: <CACRpkdYqs8+5X7FZ0LKWQ11-nmH0UaqTUrav7argE8cgpEE+uQ@mail.gmail.com>
-References: <1495879129-28109-1-git-send-email-daniel.lezcano@linaro.org> <1495879129-28109-5-git-send-email-daniel.lezcano@linaro.org>
+Subject: Re: [PATCH 6/7] clocksource: Rename CLKSRC_OF to TIMER_OF
+Date: Sun, 28 May 2017 15:52:27 +0200
+Message-ID: <CACRpkda5za9vPJAsvD0FfgWLNep0hLpbhSZyuMgrT6QEGYQ-yA@mail.gmail.com>
+References: <1495879129-28109-1-git-send-email-daniel.lezcano@linaro.org> <1495879129-28109-6-git-send-email-daniel.lezcano@linaro.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f169.google.com ([209.85.223.169]:36828 "EHLO
-        mail-io0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750825AbdE1NvG (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 28 May 2017 09:51:06 -0400
-Received: by mail-io0-f169.google.com with SMTP id o12so29867529iod.3
-        for <linux-arch@vger.kernel.org>; Sun, 28 May 2017 06:51:05 -0700 (PDT)
-In-Reply-To: <1495879129-28109-5-git-send-email-daniel.lezcano@linaro.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-samsung-soc-owner@vger.kernel.org>
+In-Reply-To: <1495879129-28109-6-git-send-email-daniel.lezcano@linaro.org>
+Sender: linux-samsung-soc-owner@vger.kernel.org
 To: Daniel Lezcano <daniel.lezcano@linaro.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, John Stultz <john.stultz@linaro.org>, Stephen Boyd <sboyd@codeaurora.org>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Russell King <linux@armlinux.org.uk>, Florian Fainelli <f.fainelli@gmail.com>, Ray Jui <rjui@broadcom.com>, Scott Branden <sbranden@broadcom.com>, "maintainer:BROADCOM BCM281XX/BCM11XXX/BCM216XX ARM ARCHITE..." <bcm-kernel-feedback-list@broadcom.com>, Alexander Shiyan <shc_work@mail.ru>, Shawn Guo <shawnguo@kernel.org>, Sascha Hauer <kernel@pengutronix.de>, Fabio Estevam <fabio.estevam@nxp.com>, Kukjin Kim <kgene@kernel.org>, Krzysztof Kozlowski <krzk@kernel.org>, Javier Martinez Canillas <javier@osg.samsung.com>, Catalin Marinas <catalin.marinas@arm.com>, Will
+List-Id: linux-arch.vger.kernel.org
 
 On Sat, May 27, 2017 at 11:58 AM, Daniel Lezcano
 <daniel.lezcano@linaro.org> wrote:
 
-> The table name is now renamed to 'timer' for consistency with
+> The config option name is now renamed to 'TIMER_OF' for consistency with
 > the CLOCKSOURCE_OF_DECLARE => TIMER_OF_DECLARE change.
 >
 > Signed-off-by: Daniel Lezcano <daniel.lezcano@linaro.org>
 
+After fixing the offset thing found by Shawn:
 Reviewed-by: Linus Walleij <linus.walleij@linaro.org>
 
 Yours,
