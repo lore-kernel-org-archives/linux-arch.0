@@ -1,64 +1,74 @@
-From: Andrey Ryabinin <aryabinin@virtuozzo.com>
-Subject: Re: KASAN vs. boot-time switching between 4- and 5-level paging
-Date: Mon, 29 May 2017 15:46:47 +0300
-Message-ID: <75acbed7-6a08-692f-61b5-2b44f66ec0d8@virtuozzo.com>
-References: <20170525203334.867-1-kirill.shutemov@linux.intel.com>
- <20170525203334.867-8-kirill.shutemov@linux.intel.com>
- <20170526221059.o4kyt3ijdweurz6j@node.shutemov.name>
- <CACT4Y+YyFWg3fbj4ta3tSKoeBaw7hbL2YoBatAFiFB1_cMg9=Q@mail.gmail.com>
- <71e11033-f95c-887f-4e4e-351bcc3df71e@virtuozzo.com>
- <CACT4Y+bSTOeJtDDZVmkff=qqJFesA_b6uTG__EAn4AvDLw0jzQ@mail.gmail.com>
- <c4f11000-6138-c6ab-d075-2c4bd6a14943@virtuozzo.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: CPU_BIG_ENDIAN in generic code (was: Re: [PATCH v3 3/7]
+ arch/sparc: Define config parameter CPU_BIG_ENDIAN)
+Date: Mon, 29 May 2017 14:54:16 +0200
+Message-ID: <CAK8P3a0GEzj16=M5jV=u6ACE8K3_QMPk142AhFDLSp9MgpFTeQ@mail.gmail.com>
+References: <CAMuHMdVjh+1TR19mUUQYHSazHnBHa4uxn7KyHUO+jAh7WDxy5Q@mail.gmail.com>
+ <CAK8P3a1XZGQk3b3q+JFJ+mLgw_upUdAtTM1VBjHZq5f2m-YdUg@mail.gmail.com>
+ <CAMo8BfL8G0Fzn2SZ1356yaoxGgm8tpTDmFJ8cCxEEEgyObMwCQ@mail.gmail.com> <CAMo8BfJDRStMDGThMQhmZBQs2LLwxFOthuqQaC1qyws14gwhRA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <c4f11000-6138-c6ab-d075-2c4bd6a14943@virtuozzo.com>
-Sender: owner-linux-mm@kvack.org
-To: Dmitry Vyukov <dvyukov@google.com>
-Cc: "Kirill A. Shutemov" <kirill@shutemov.name>, Alexander Potapenko <glider@google.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, "x86@kernel.org" <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter
- Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, "linux-mm@kvack.org" <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CAMo8BfJDRStMDGThMQhmZBQs2LLwxFOthuqQaC1qyws14gwhRA@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Max Filippov <jcmvbkbc@gmail.com>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Babu Moger <babu.moger@oracle.com>, "David S. Miller" <davem@davemloft.net>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, sparclinux <sparclinux@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 05/29/2017 02:45 PM, Andrey Ryabinin wrote:
->>>>> Looks like KASAN will be a problem for boot-time paging mode switching.
->>>>> It wants to know CONFIG_KASAN_SHADOW_OFFSET at compile-time to pass to
->>>>> gcc -fasan-shadow-offset=. But this value varies between paging modes...
->>>>>
->>>>> I don't see how to solve it. Folks, any ideas?
->>>>
->>>> +kasan-dev
->>>>
->>>> I wonder if we can use the same offset for both modes. If we use
->>>> 0xFFDFFC0000000000 as start of shadow for 5 levels, then the same
->>>> offset that we use for 4 levels (0xdffffc0000000000) will also work
->>>> for 5 levels. Namely, ending of 5 level shadow will overlap with 4
->>>> level mapping (both end at 0xfffffbffffffffff), but 5 level mapping
->>>> extends towards lower addresses. The current 5 level start of shadow
->>>> is actually close -- 0xffd8000000000000 and it seems that the required
->>>> space after it is unused at the moment (at least looking at mm.txt).
->>>> So just try to move it to 0xFFDFFC0000000000?
->>>>
+On Fri, May 26, 2017 at 12:43 AM, Max Filippov <jcmvbkbc@gmail.com> wrote:
+> On Thu, May 25, 2017 at 3:27 PM, Max Filippov <jcmvbkbc@gmail.com> wrote:
+>> On Wed, May 24, 2017 at 3:18 AM, Arnd Bergmann <arnd@arndb.de> wrote:
+>>> On Wed, May 24, 2017 at 11:59 AM, Geert Uytterhoeven
+>>> <geert@linux-m68k.org> wrote:
+>>>> I guess the time is ripe for adding (both) symbols to all architectures?
 >>>
->>> Yeah, this should work, but note that 0xFFDFFC0000000000 is not PGDIR aligned address. Our init code
->>> assumes that kasan shadow stars and ends on the PGDIR aligned address.
->>> Fortunately this is fixable, we'd need two more pages for page tables to map unaligned start/end
->>> of the shadow.
+>>> Good idea. I think we can do most of this by adding a few lines to
+>>> arch/Kconfig:
+>>>
+>>> config CPU_BIG_ENDIAN
+>>>         bool
+>>>
+>>> config CPU_LITTLE_ENDIAN
+>>>        def_bool !CPU_BIG_ENDIAN
+>>>
+>>> This way, we only need to add 'select CPU_BIG_ENDIAN' to the
+>>> architectures that are always big-endian, and we don't need to
+>>> change anything for the ones that have a single 'CPU_BIG_ENDIAN'
+>>> option.
+>>>
+>>> The three architectures that have a 'choice' statement (mips, ppc and
+>>> sh) will have to convert, and m32r will have to replace the
+>>> option with the opposite one, which could break 'make oldconfig',
+>>> but nobody really cares about m32r any more.
 >>
->> I think we can extend the shadow backwards (to the current address),
->> provided that it does not affect shadow offset that we pass to
->> compiler.
-> 
-> I thought about this. We can round down shadow start to 0xffdf000000000000, but we can't
-> round up shadow end, because in that case shadow would end at 0xffffffffffffffff.
-> So we still need at least one more page to cover unaligned end.
+>> Xtensa may have either endianness and for xtensa we define
+>> CONFIG_CPU_BIG_ENDIAN or CONFIG_CPU_LITTLE_ENDIAN
+>> in the arch/xtensa/Makefile based on the value of the compiler builtin
+>> macro.
 
-Actually, I'm wrong here. I assumed that we would need an additional page to store p4d entries,
-but in fact we don't need it, as such page should already exist. It's the same last pgd where kernel image
-is mapped.
+I can sort of see why xtensa did it the other way round from everyone
+else (letting the toolchain decide what the kernel is, rather than letting
+the kernel pass the respective flags to gcc), but I'd argue that it would
+be better overall for xtensa to change over so we do it consistently
+on all architectures.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+> Also, in outside the Kconfig files there's much more instances of
+> __{BIG,LITTLE}_ENDIAN than CONFIG_CPU_{BIG,LITTLE}_ENDIAN:
+>
+> $ git grep '__\(BIG\|LITTLE\)_ENDIAN' | wc -l
+> 4537
+> $ git grep 'CONFIG_CPU_\(BIG\|LITTLE\)_ENDIAN' | wc -l
+> 247
+>
+> My understanding is that CONFIG_CPU_{BIG,LITTLE}_ENDIAN was
+> intended to be used only in Kconfig files, and perhaps all of its uses
+> outside should be replaced with __{BIG,LITTLE}_ENDIAN.
+
+Right, but I also think that using the CONFIG_CPU_* symbols in
+code makes sense because it is less ambiguous: the way we use
+__{BIG,LITTLE}_ENDIAN in the kernel is different from how user
+space uses them in glibc, and this confuses everyone when they
+try to use them in the kernel after being familiar with the traditional
+way. The Kconfig symbols don't have this problem.
+
+       Arnd
