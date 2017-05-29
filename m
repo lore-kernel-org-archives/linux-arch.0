@@ -1,50 +1,62 @@
 From: Nicholas Piggin <npiggin@gmail.com>
 Subject: Re: [PATCH] kbuild: provide THIN_ARCHIVES option for all
  architectures
-Date: Tue, 30 May 2017 09:13:43 +1000
-Message-ID: <20170530091343.1f98b24b@roar.ozlabs.ibm.com>
+Date: Tue, 30 May 2017 09:49:05 +1000
+Message-ID: <20170530094905.03ecc254@roar.ozlabs.ibm.com>
 References: <20170529081103.29999-1-npiggin@gmail.com>
-        <CA+55aFyM8c1h7S+x95qvv84jphu9=XSXZop=gVp7xc5tf3JJMQ@mail.gmail.com>
-        <CA+55aFwofV0DZhh+yGH_=ceBzFcSr_tGexuGV4Wioao096R-uQ@mail.gmail.com>
+        <20170529185251.GA3359@ravnborg.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <CA+55aFwofV0DZhh+yGH_=ceBzFcSr_tGexuGV4Wioao096R-uQ@mail.gmail.com>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Stephen Rothwell <sfr@canb.auug.org.au>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pf0-f196.google.com ([209.85.192.196]:35968 "EHLO
+        mail-pf0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750864AbdE2XtV (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 May 2017 19:49:21 -0400
+In-Reply-To: <20170529185251.GA3359@ravnborg.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: Alan Modra <amodra@gmail.com>, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>
 
-On Mon, 29 May 2017 10:14:50 -0700
-Linus Torvalds <torvalds@linux-foundation.org> wrote:
+On Mon, 29 May 2017 20:52:51 +0200
+Sam Ravnborg <sam@ravnborg.org> wrote:
 
-> On Mon, May 29, 2017 at 10:03 AM, Linus Torvalds
-> <torvalds@linux-foundation.org> wrote:
-> >
-> > So either thin archives work or they don't. Don't make it some painful
-> > drawn-out process that actually makes it harder to test rather than
-> > easier.  
->
-> Side note: what would make them not work? Are there known bugs in 'ar'
-> wrt thin archives, versioning issues, or other issues?
+> Hi Nicholas.
+> 
+> > Supporting two different intermediate-artifact packaging schemes
+> > was only ever intended as a temporary transition.
+> > 
+> > This has so far caused no problems for powerpc, after a small fix
+> > for how the arch invoked ar. So now allow any arch to select the
+> > option, continue defaulting to N.  
+> 
+> Alan Modra recommended this approach several years ago, and I think
+> Stephen was the first to implement this for the kernel.
+> It would be good to have the rational whay ar is better than ld -r
+> included in the commit message for later reference.
 
-We haven't run into any bugs AFAIK. It's been pretty solid.
+We *are* using Stephen's thin archives build infrastructure in the
+kernel already. Only powerpc is using it so far: a5967db9af
 
-*thin* archives does require binutils 2.19. That's nearly 10 years
-old, but we advertise 2.12 minimum at the moment. We'd have make "T"
-an optional argument if we turn it on unconditionally. Regular
-archives shouldn't be significantly worse than ld -r though, so yeah
-maybe we could do that.
+The big one for powerpc build is that  the linker keeps relative
+location of input sections the same, so as you link into larger
+built-in.o files, there is less opportunity to place code optimally.
+x86 may not care so much, but some other archs will.
 
-powerpc required a build fix:
+The build output size improvement is nice for everyone though.
 
-43c9127d94d
+> I also recall that using ar gave some small kernel size reductions
+> from last time we played with this.
+> This info could also be nice to give a rough idea of the impact.
 
--override AR    := GNUTARGET=elf$(BITS)-$(GNUTARGET) $(AR)
-+KBUILD_ARFLAGS += --target=elf$(BITS)-$(GNUTARGET)
+There is some explanation in sfr's patch. It's not thin archives
+as such, but rather we have to link with --whole-archive, but it
+was a very small impact.
 
-So there could be a couple of small things like this.
+IIRC today's final link is technically buggy without that option,
+it's just that in practice the top-level built-in.o files pull in
+so much that the linker will never discard one.
 
 Thanks,
 Nick
