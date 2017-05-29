@@ -1,76 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f65.google.com ([209.85.214.65]:35659 "EHLO
-        mail-it0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750925AbdE2MPh (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 May 2017 08:15:37 -0400
+Received: from bombadil.infradead.org ([65.50.211.133]:46689 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750925AbdE2MXa (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 May 2017 08:23:30 -0400
+Date: Mon, 29 May 2017 14:23:16 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 0/3] ipc subsystem refcounter conversions
+Message-ID: <20170529122316.giceifwjnuz6djr4@hirez.programming.kicks-ass.net>
+References: <1487590189-18151-1-git-send-email-elena.reshetova@intel.com>
+ <20170303162352.b6af1c0c3115b3f5f1e7aed3@linux-foundation.org>
+ <CAGXu5jKNChaVdfbM171FYkvY1hUMXG6cp-=WAdXBP0eTOO5RAA@mail.gmail.com>
+ <20170529083903.GA17735@infradead.org>
+ <87h904xc26.fsf@xmission.com>
+ <20170529102442.gerbzxzixllen46q@hirez.programming.kicks-ass.net>
+ <87a85wvsxa.fsf@xmission.com>
+ <87o9ubvr0t.fsf@xmission.com>
+ <8760gjvqm7.fsf@xmission.com>
 MIME-Version: 1.0
-In-Reply-To: <87a85v7to2.fsf@concordia.ellerman.id.au>
-References: <CAMuHMdVjh+1TR19mUUQYHSazHnBHa4uxn7KyHUO+jAh7WDxy5Q@mail.gmail.com>
- <87a85v7to2.fsf@concordia.ellerman.id.au>
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Mon, 29 May 2017 14:15:35 +0200
-Message-ID: <CAMuHMdU1kne4tKRfyx0hr1LXh_c75bYMs0b=vncHqrhB69jqYg@mail.gmail.com>
-Subject: Re: CPU_BIG_ENDIAN in generic code (was: Re: [PATCH v3 3/7]
- arch/sparc: Define config parameter CPU_BIG_ENDIAN)
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <8760gjvqm7.fsf@xmission.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Babu Moger <babu.moger@oracle.com>, "David S. Miller" <davem@davemloft.net>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, sparclinux <sparclinux@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>
-Message-ID: <20170529121535.AOQizySIhqWyNM1Nv_cnnqipgdTjwcmsJAO-w1gyrhA@z>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: Christoph Hellwig <hch@infradead.org>, Kees Cook <keescook@chromium.org>, Andrew Morton <akpm@linux-foundation.org>, Elena Reshetova <elena.reshetova@intel.com>, Greg KH <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, LKML <linux-kernel@vger.kernel.org>
+Message-ID: <20170529122316.EBrGo6YXIpj0me61EB72aV4Qqv04qbEZXS5c5oXfL1A@z>
 
-Hi Michael,
+On Mon, May 29, 2017 at 06:39:44AM -0500, Eric W. Biederman wrote:
+> I failed to see that there is a refcount_inc.  Too much noise in
+> the header file I suppose.
+> 
+> But implementing refcount_inc in terms of refcount_inc_not_zero is
+> totally broken.  The two operations are not the same and the go to
+> different assumptions the code is making.
+> 
+> That explains why you think refcount_inc_not_zero should lie because
+> you are implementing refcount_inc with it.  They are semantically very
+> different operations.  Please separate them.
 
-On Mon, May 29, 2017 at 2:07 PM, Michael Ellerman <mpe@ellerman.id.au> wrote:
-> Geert Uytterhoeven <geert@linux-m68k.org> writes:
->> On Tue, May 23, 2017 at 11:45 PM, Babu Moger <babu.moger@oracle.com> wrote:
->>> Found this problem while enabling queued rwlock on SPARC.
->>> The parameter CONFIG_CPU_BIG_ENDIAN is used to clear the
->>> specific byte in qrwlock structure. Without this parameter,
->>> we clear the wrong byte. Here is the code.
->>>
->>> static inline u8 *__qrwlock_write_byte(struct qrwlock *lock)
->>>  {
->>>         return (u8 *)lock + 3 * IS_BUILTIN(CONFIG_CPU_BIG_ENDIAN);
->>>  }
->>>
->>> Define CPU_BIG_ENDIAN for SPARC to fix it.
->>
->>> --- a/arch/sparc/Kconfig
->>> +++ b/arch/sparc/Kconfig
->>> @@ -92,6 +92,10 @@ config ARCH_DEFCONFIG
->>>  config ARCH_PROC_KCORE_TEXT
->>>         def_bool y
->>>
->>> +config CPU_BIG_ENDIAN
->>> +       bool
->>> +       default y if SPARC
->>
->> Nice catch!
->>
->> Traditionally, CPU_BIG_ENDIAN and CPU_LITTLE_ENDIAN were defined only on
->> architectures that may support both.  And it was checked in platform code
->> and drivers only.
->> Hence the symbol is lacking from most architectures. Heck, even
->> architectures that support both may default to one endiannes, and declare
->> only the symbol for the other endianness:
->
-> I guess there's a reason we can't use __BIG_ENDIAN__ / __LITTLE_ENDIAN__ ?
+There has been much debate about this. And the best I'll do is add a
+comment and/or retain these exact semantics.
 
-I (C/asm) code we can, in Kconfig we cannot.
+What is done is:
 
-So far we tried always doing that, but a few checks for the semi-existing
-Kconfig symbol crept in in generic code. Those could be replaced by the __*__
-variants, but consistently having the Kconfig symbols would be useful anyway
-(e.g. to avoid building the broken-on-big-endian ISDN drivers).
+	refcount_inc() := WARN_ON(!refcount_inc_not_zero())
 
-Gr{oetje,eeting}s,
+Because incrementing a zero reference count is a use-after-free and
+something we should not do ever.
 
-                        Geert
+This is where the whole usage count vs reference count pain comes from.
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+Once there are no more _references_ to an object, a reference count
+frees the object. Therefore a zero reference count means a dead object
+and incrementing from that is fail.
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+The usage count model otoh counts how many (active) users there are of
+an object, and no active users is a good and expected situation. But it
+is very explicitly not a reference count. Because even in the no users
+case do we have a reference to the object (we've not leaked it after
+all, we just don't track all references).
+
+
+Similarly, refcount_dec() is implemented using dec_and_test() and will
+WARN when it hits 0, because this is a leak and we don't want those
+either.
+
+A usage count variant otoh would be fine with hitting 0.
