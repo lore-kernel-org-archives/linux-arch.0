@@ -1,42 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from asavdk3.altibox.net ([109.247.116.14]:55202 "EHLO
-        asavdk3.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750886AbdE2TCA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 May 2017 15:02:00 -0400
-Date: Mon, 29 May 2017 20:52:51 +0200
-From: Sam Ravnborg <sam@ravnborg.org>
+Received: from mail-pf0-f193.google.com ([209.85.192.193]:33612 "EHLO
+        mail-pf0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750994AbdE2XN6 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 May 2017 19:13:58 -0400
+Date: Tue, 30 May 2017 09:13:43 +1000
+From: Nicholas Piggin <npiggin@gmail.com>
 Subject: Re: [PATCH] kbuild: provide THIN_ARCHIVES option for all
  architectures
-Message-ID: <20170529185251.GA3359@ravnborg.org>
+Message-ID: <20170530091343.1f98b24b@roar.ozlabs.ibm.com>
+In-Reply-To: <CA+55aFwofV0DZhh+yGH_=ceBzFcSr_tGexuGV4Wioao096R-uQ@mail.gmail.com>
 References: <20170529081103.29999-1-npiggin@gmail.com>
+        <CA+55aFyM8c1h7S+x95qvv84jphu9=XSXZop=gVp7xc5tf3JJMQ@mail.gmail.com>
+        <CA+55aFwofV0DZhh+yGH_=ceBzFcSr_tGexuGV4Wioao096R-uQ@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20170529081103.29999-1-npiggin@gmail.com>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>, Alan Modra <amodra@gmail.com>
-Cc: linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>
-Message-ID: <20170529185251.rR9AQ2Y95EvlT6itDmo2RcSXLrIY3PyeN1heLZSVTT8@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Stephen Rothwell <sfr@canb.auug.org.au>
+Message-ID: <20170529231343.MYtsd8jhtcyq7A1dS5Fz62WLKQXv19upYixooJ_IoL8@z>
 
-Hi Nicholas.
+On Mon, 29 May 2017 10:14:50 -0700
+Linus Torvalds <torvalds@linux-foundation.org> wrote:
 
-> Supporting two different intermediate-artifact packaging schemes
-> was only ever intended as a temporary transition.
-> 
-> This has so far caused no problems for powerpc, after a small fix
-> for how the arch invoked ar. So now allow any arch to select the
-> option, continue defaulting to N.
+> On Mon, May 29, 2017 at 10:03 AM, Linus Torvalds
+> <torvalds@linux-foundation.org> wrote:
+> >
+> > So either thin archives work or they don't. Don't make it some painful
+> > drawn-out process that actually makes it harder to test rather than
+> > easier.  
+>
+> Side note: what would make them not work? Are there known bugs in 'ar'
+> wrt thin archives, versioning issues, or other issues?
 
-Alan Modra recommended this approach several years ago, and I think
-Stephen was the first to implement this for the kernel.
-It would be good to have the rational whay ar is better than ld -r
-included in the commit message for later reference.
+We haven't run into any bugs AFAIK. It's been pretty solid.
 
-I also recall that using ar gave some small kernel size reductions
-from last time we played with this.
-This info could also be nice to give a rough idea of the impact.
+*thin* archives does require binutils 2.19. That's nearly 10 years
+old, but we advertise 2.12 minimum at the moment. We'd have make "T"
+an optional argument if we turn it on unconditionally. Regular
+archives shouldn't be significantly worse than ld -r though, so yeah
+maybe we could do that.
 
-Added Alan to list of receivers.
+powerpc required a build fix:
 
-	Sam
+43c9127d94d
+
+-override AR    := GNUTARGET=elf$(BITS)-$(GNUTARGET) $(AR)
++KBUILD_ARFLAGS += --target=elf$(BITS)-$(GNUTARGET)
+
+So there could be a couple of small things like this.
+
+Thanks,
+Nick
