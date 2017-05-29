@@ -1,150 +1,71 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 0/3] ipc subsystem refcounter conversions
-Date: Mon, 29 May 2017 14:13:35 +0200
-Message-ID: <20170529121335.wwt4ijuiabjhtjc3@hirez.programming.kicks-ass.net>
-References: <1487590189-18151-1-git-send-email-elena.reshetova@intel.com>
- <20170303162352.b6af1c0c3115b3f5f1e7aed3@linux-foundation.org>
- <CAGXu5jKNChaVdfbM171FYkvY1hUMXG6cp-=WAdXBP0eTOO5RAA@mail.gmail.com>
- <20170529083903.GA17735@infradead.org>
- <87h904xc26.fsf@xmission.com>
- <20170529102442.gerbzxzixllen46q@hirez.programming.kicks-ass.net>
- <87a85wvsxa.fsf@xmission.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: CPU_BIG_ENDIAN in generic code (was: Re: [PATCH v3 3/7]
+ arch/sparc: Define config parameter CPU_BIG_ENDIAN)
+Date: Mon, 29 May 2017 14:15:35 +0200
+Message-ID: <CAMuHMdU1kne4tKRfyx0hr1LXh_c75bYMs0b=vncHqrhB69jqYg@mail.gmail.com>
+References: <CAMuHMdVjh+1TR19mUUQYHSazHnBHa4uxn7KyHUO+jAh7WDxy5Q@mail.gmail.com>
+ <87a85v7to2.fsf@concordia.ellerman.id.au>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:38274 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751053AbdE2MN5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 May 2017 08:13:57 -0400
-Content-Disposition: inline
-In-Reply-To: <87a85wvsxa.fsf@xmission.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: Christoph Hellwig <hch@infradead.org>, Kees Cook <keescook@chromium.org>, Andrew Morton <akpm@linux-foundation.org>, Elena Reshetova <elena.reshetova@intel.com>, Greg KH <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, kernel-hardening@lists.openwall.com
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <sparclinux-owner@vger.kernel.org>
+In-Reply-To: <87a85v7to2.fsf@concordia.ellerman.id.au>
+Sender: sparclinux-owner@vger.kernel.org
+To: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Babu Moger <babu.moger@oracle.com>, "David S. Miller" <davem@davemloft.net>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, sparclinux <sparclinux@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, May 29, 2017 at 05:49:53AM -0500, Eric W. Biederman wrote:
+Hi Michael,
 
-> > It changes the semantics between inc_not_zero() and inc(). It also
-> > complicates the semantics of inc_not_zero(), where currently the failure
-> > implies the count is 0 and means no-such-object, you complicate matters
-> > by basically returning 'busy'.
-> 
-> Busy is not a state of a reference count.
-> 
-> It is true I am suggesting treating something with a saturated reference
-> as not available.  If that is what you mean by busy.  But if it's
-> reference is zero it is also not available.  So there is no practical
-> difference.
+On Mon, May 29, 2017 at 2:07 PM, Michael Ellerman <mpe@ellerman.id.au> wrote:
+> Geert Uytterhoeven <geert@linux-m68k.org> writes:
+>> On Tue, May 23, 2017 at 11:45 PM, Babu Moger <babu.moger@oracle.com> wrote:
+>>> Found this problem while enabling queued rwlock on SPARC.
+>>> The parameter CONFIG_CPU_BIG_ENDIAN is used to clear the
+>>> specific byte in qrwlock structure. Without this parameter,
+>>> we clear the wrong byte. Here is the code.
+>>>
+>>> static inline u8 *__qrwlock_write_byte(struct qrwlock *lock)
+>>>  {
+>>>         return (u8 *)lock + 3 * IS_BUILTIN(CONFIG_CPU_BIG_ENDIAN);
+>>>  }
+>>>
+>>> Define CPU_BIG_ENDIAN for SPARC to fix it.
+>>
+>>> --- a/arch/sparc/Kconfig
+>>> +++ b/arch/sparc/Kconfig
+>>> @@ -92,6 +92,10 @@ config ARCH_DEFCONFIG
+>>>  config ARCH_PROC_KCORE_TEXT
+>>>         def_bool y
+>>>
+>>> +config CPU_BIG_ENDIAN
+>>> +       bool
+>>> +       default y if SPARC
+>>
+>> Nice catch!
+>>
+>> Traditionally, CPU_BIG_ENDIAN and CPU_LITTLE_ENDIAN were defined only on
+>> architectures that may support both.  And it was checked in platform code
+>> and drivers only.
+>> Hence the symbol is lacking from most architectures. Heck, even
+>> architectures that support both may default to one endiannes, and declare
+>> only the symbol for the other endianness:
+>
+> I guess there's a reason we can't use __BIG_ENDIAN__ / __LITTLE_ENDIAN__ ?
 
-There is. Previously when inc_not_zero() failed, you _knew_ it was 0 and
-therefore know the object no longer 'exists'.
+I (C/asm) code we can, in Kconfig we cannot.
 
-Similarly, if you know you're serialized against 1->0 you can then
-assume it will not fail.
+So far we tried always doing that, but a few checks for the semi-existing
+Kconfig symbol crept in in generic code. Those could be replaced by the __*__
+variants, but consistently having the Kconfig symbols would be useful anyway
+(e.g. to avoid building the broken-on-big-endian ISDN drivers).
 
-That goes out the window the moment you fail for any other condition.
+Gr{oetje,eeting}s,
 
-> > That is a completely new class of failure that is actually hard to deal
-> > with, not to mention that it completely destroys refcount_inc_not_zero()
-> > being a 'simple' replacement for atomic_inc_not_zero().
-> >
-> > In case of the current failure, the no-such-object, we can fix that by
-> > creating said object. But what to do on 'busy' ? Surely you don't want
-> > to create another. You'd have to somehow retrofit something to wait on
-> > in every user.
-> 
-> Using little words.
-> 
-> A return of true from inc_not_zero means we took a reference.
-> A return of false means we did not take a reference.
-> 
-> The code already handles I took a reference or I did not take a
-> reference.
+                        Geert
 
-I can well imagine code relying on the fact that failing to take a
-reference means 0, see below. And once you start to fail for more
-conditions, the actual value you failed on becomes interesting in order
-to determine how to deal with it.
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-> Therefore lying with refcount_t is not helpful.
-
-It is _NOT_ lying. It does as promised, it increments when it is not
-zero. The fact that that increment can saturate is irrelevant. A
-saturated reference is still a valid reference. Sure it causes a leak,
-but who bloody cares, it shouldn't happen in the first place.
-
-> It takes failures
-> the code could easily handle and turns them into leaks.
-
-That is the 'feature', we get to have leaks. Also those leaks _should_
-not happen. They are a result of 'broken' code. So I don't see how
-exposing them to the wider world helps anything but spread the pain of
-the failure.
-
-Please explain how the below is not subtly broken by changing
-inc_not_zero.
-
-struct obj *__obj_lookup(key)
-{
-	obj = rcu_based_lookup(key);
-	if (refcount_inc_not_zero(&obj->ref))
-		return obj;
-
-	return NULL;
-}
-
-struct obj *obj_find_acquire(key)
-{
-	/* fast path, lockless lookup */
-
-	rcu_read_lock()
-	obj = __obj_lookup(key);
-	rcu_read_unlock();
-
-	if (obj)
-		return obj;
-
-	/* slow path, serialize */
-
-	lock(&obj_lock);
-	/* we're serialized, if it exists we must get a ref */
-	obj = __obj_lookup(key);
-	if (obj)
-		goto unlock;
-
-	/* allocate a new object and insert it */
-	obj = obj_alloc();
-	obj_init(obj, key);
-
-unlock:
-	unlock(&obj_lock);
-
-	return obj;
-}
-
-> At least that is how I have seen reference counts used.  And those
-> are definitely the plane obivous semantics.
-
-I very strongly disagree. The one thing this primitive does is change
-add/sub to be saturating, *consistently*.
-
-You argue to expose the failure case, leading to more error paths
-leading to more complication. I'll argue that nobody wants more error
-handling, esp. for something that should not happen to begin with.
-
-> Your changes are definitely not drop in replacements for atomic_t in my
-> code.
-
-refcount_t was never meant to be a drop-in replacement for atomic_t.
-It is meant to be a fairly painless replacement for reference
-counts that were previously implemented using atomic_t.
-
-There is also the fairly common usage count scenario, that does not fit
-well with refcount_t. I'm not sure we want to shoehorn that into
-refcount_t either, we could create yet another type for that.
-
-And there are of course a lot of less common things we're not wanting to
-replace at all. atomic_t isn't broken we don't need to fix it.
-
-I have no idea what you do so I cannot comment further.
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
