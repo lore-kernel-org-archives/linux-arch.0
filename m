@@ -1,101 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.codeaurora.org ([198.145.29.96]:40410 "EHLO
-        smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750837AbdE2FGy (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 May 2017 01:06:54 -0400
-Subject: Re: [PATCH v6 3/6] ACPI/IORT: Ignore all errors except EPROBE_DEFER
-References: <1495892865-9506-1-git-send-email-sricharan@codeaurora.org>
- <1495892865-9506-3-git-send-email-sricharan@codeaurora.org>
- <1564836.5iBbgoacpH@aspire.rjw.lan>
-From: Sricharan R <sricharan@codeaurora.org>
-Message-ID: <68bc9be5-22df-e7af-3fcd-182e935e681c@codeaurora.org>
-Date: Mon, 29 May 2017 10:36:42 +0530
+Received: from bombadil.infradead.org ([65.50.211.133]:36049 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750886AbdE2Ije (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 May 2017 04:39:34 -0400
+Date: Mon, 29 May 2017 01:39:04 -0700
+From: Christoph Hellwig <hch@infradead.org>
+Subject: Re: [PATCH 0/3] ipc subsystem refcounter conversions
+Message-ID: <20170529083903.GA17735@infradead.org>
+References: <1487590189-18151-1-git-send-email-elena.reshetova@intel.com>
+ <20170303162352.b6af1c0c3115b3f5f1e7aed3@linux-foundation.org>
+ <CAGXu5jKNChaVdfbM171FYkvY1hUMXG6cp-=WAdXBP0eTOO5RAA@mail.gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <1564836.5iBbgoacpH@aspire.rjw.lan>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAGXu5jKNChaVdfbM171FYkvY1hUMXG6cp-=WAdXBP0eTOO5RAA@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Rafael J. Wysocki" <rjw@rjwysocki.net>
-Cc: robin.murphy@arm.com, will.deacon@arm.com, joro@8bytes.org, lorenzo.pieralisi@arm.com, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arm-msm@vger.kernel.org, m.szyprowski@samsung.com, bhelgaas@google.com, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, tn@semihalf.com, hanjun.guo@linaro.org, okaya@codeaurora.org, robh+dt@kernel.org, frowand.list@gmail.com, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, sudeep.holla@arm.com, lenb@kernel.org, catalin.marinas@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, laurent.pinchart@ideasonboard.com, j.neuschaefer@gmx.net, geert@linux-m68k.org, magnus.damm@gmail.com, nwatters@codeaurora.org, linux@armlinux.org.uk
-Message-ID: <20170529050642.-L_bxiBeDzgpmY4J1gzea6rNjp8wsGsNTQtvvuxYXho@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Elena Reshetova <elena.reshetova@intel.com>, Peter Zijlstra <peterz@infradead.org>, Greg KH <gregkh@linuxfoundation.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Ingo Molnar <mingo@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, Christoph Hellwig <hch@infradead.org>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, LKML <linux-kernel@vger.kernel.org>
+Message-ID: <20170529083904.Tca6sWwcBeZbdSI_omMalQXiSXAoZLxod-c96OFV0n8@z>
 
-Hi Rafael,
-
-On 5/28/2017 12:48 AM, Rafael J. Wysocki wrote:
-> On Saturday, May 27, 2017 07:17:42 PM Sricharan R wrote:
->> While deferring the probe of IOMMU masters, xlate and
->> add_device callbacks called from iort_iommu_configure
->> can pass back error values like -ENODEV, which means
->> the IOMMU cannot be connected with that master for real
->> reasons. Before the IOMMU probe deferral, all such errors
->> were ignored. Now all those errors are propagated back,
->> killing the master's probe for such errors. Instead ignore
->> all the errors except EPROBE_DEFER, which is the only one
->> of concern and let the master work without IOMMU, thus
->> restoring the old behavior. Also make explicit that
->> acpi_dma_configure handles only -EPROBE_DEFER from
->> iort_iommu_configure.
->>
->> Fixes: 5a1bb638d567 ("drivers: acpi: Handle IOMMU lookup failure with deferred probing or error")
->> Signed-off-by: Sricharan R <sricharan@codeaurora.org>
->> ---
->>  drivers/acpi/arm64/iort.c | 6 ++++++
->>  drivers/acpi/scan.c       | 4 ++--
->>  2 files changed, 8 insertions(+), 2 deletions(-)
->>
->> diff --git a/drivers/acpi/arm64/iort.c b/drivers/acpi/arm64/iort.c
->> index c5fecf9..16e101f 100644
->> --- a/drivers/acpi/arm64/iort.c
->> +++ b/drivers/acpi/arm64/iort.c
->> @@ -782,6 +782,12 @@ const struct iommu_ops *iort_iommu_configure(struct device *dev)
->>  	if (err)
->>  		ops = ERR_PTR(err);
->>  
->> +	/* Ignore all other errors apart from EPROBE_DEFER */
->> +	if (IS_ERR(ops) && (PTR_ERR(ops) != -EPROBE_DEFER)) {
->> +		dev_dbg(dev, "Adding to IOMMU failed: %ld\n", PTR_ERR(ops));
->> +		ops = NULL;
->> +	}
->> +
->>  	return ops;
->>  }
->>  
->> diff --git a/drivers/acpi/scan.c b/drivers/acpi/scan.c
->> index e39ec7b..3a10d757 100644
->> --- a/drivers/acpi/scan.c
->> +++ b/drivers/acpi/scan.c
->> @@ -1371,8 +1371,8 @@ int acpi_dma_configure(struct device *dev, enum dev_dma_attr attr)
->>  	iort_set_dma_mask(dev);
->>  
->>  	iommu = iort_iommu_configure(dev);
->> -	if (IS_ERR(iommu))
->> -		return PTR_ERR(iommu);
->> +	if (IS_ERR(iommu) && PTR_ERR(iommu) == -EPROBE_DEFER)
->> +		return -EPROBE_DEFER;
->>  
->>  	size = max(dev->coherent_dma_mask, dev->coherent_dma_mask + 1);
->>  	/*
->>
+On Sat, May 27, 2017 at 12:58:14PM -0700, Kees Cook wrote:
+> FAST_REFCOUNT=n: use function-based refcount_t with cmpxvhg and
+> full-verification
+> FAST_REFCOUNT=y without arch-specific implementation: use atomic_t
+> with no verification (i.e. no functional change from now)
+> FAST_REFCOUNT=y with arch-specific implementation: use atomic_t with
+> overflow protection
 > 
-> ACK for the scan.c change and I'm assuming this to go in via ARM64.
+> which means FAST_REFCOUNT would need to be default-on so that mm,
+> block, net users will remain happy.
 > 
+> Does that sound reasonable?
 
-Thanks for the ACK, should go through the IOMMU tree, since this fixes the IOMMU probe deferral
-that got merged through it.
-
-Regards,
- Sricharan
-
-> Thanks,
-> Rafael
-> 
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-arm-msm" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> 
-
--- 
-"QUALCOMM INDIA, on behalf of Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum, hosted by The Linux Foundation
+I'd rather turn the options around so that the atomic_t or fast
+arch implementations are the defaul.  But either way it needs to
+be configurable.  Once that is done we can spread refcount_t everywhere
+and everyone will be better off, if only for the documentation value
+of the type when they use the atomic_t based implementation.
