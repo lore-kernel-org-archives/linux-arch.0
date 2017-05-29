@@ -1,134 +1,96 @@
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH v2] spin loop primitives for busy waiting
-Date: Mon, 29 May 2017 12:22:23 +1000
-Message-ID: <20170529022223.14793-1-npiggin@gmail.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f68.google.com ([74.125.83.68]:34414 "EHLO
-        mail-pg0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750837AbdE2CWf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 28 May 2017 22:22:35 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Nicholas Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
+From: Sricharan R <sricharan@codeaurora.org>
+Subject: Re: [PATCH v6 3/6] ACPI/IORT: Ignore all errors except EPROBE_DEFER
+Date: Mon, 29 May 2017 10:36:42 +0530
+Message-ID: <68bc9be5-22df-e7af-3fcd-182e935e681c@codeaurora.org>
+References: <1495892865-9506-1-git-send-email-sricharan@codeaurora.org>
+ <1495892865-9506-3-git-send-email-sricharan@codeaurora.org>
+ <1564836.5iBbgoacpH@aspire.rjw.lan>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-acpi-owner@vger.kernel.org>
+In-Reply-To: <1564836.5iBbgoacpH@aspire.rjw.lan>
+Content-Language: en-US
+Sender: linux-acpi-owner@vger.kernel.org
+To: "Rafael J. Wysocki" <rjw@rjwysocki.net>
+Cc: robin.murphy@arm.com, will.deacon@arm.com, joro@8bytes.org, lorenzo.pieralisi@arm.com, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arm-msm@vger.kernel.org, m.szyprowski@samsung.com, bhelgaas@google.com, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, tn@semihalf.com, hanjun.guo@linaro.org, okaya@codeaurora.org, robh+dt@kernel.org, frowand.list@gmail.com, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, sudeep.holla@arm.com, lenb@kernel.org, catalin.marinas@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, laurent.pinchart@ideasonboard.com, j.neuschaefer@gmx.net, geert@linux-m68k.org, magnus.damm@gmail.com, nwatters@codeaurora.org, linux@armlinux.org.uk
+List-Id: linux-arch.vger.kernel.org
 
-Current busy-wait loops are implemented by repeatedly calling cpu_relax()
-to give an arch option for a low-latency option to improve power and/or
-SMT resource contention.
+Hi Rafael,
 
-This poses some difficulties for powerpc, which has SMT priority setting
-instructions (priorities determine how ifetch cycles are apportioned).
-powerpc's cpu_relax() is implemented by setting a low priority then
-setting normal priority. This has several problems:
+On 5/28/2017 12:48 AM, Rafael J. Wysocki wrote:
+> On Saturday, May 27, 2017 07:17:42 PM Sricharan R wrote:
+>> While deferring the probe of IOMMU masters, xlate and
+>> add_device callbacks called from iort_iommu_configure
+>> can pass back error values like -ENODEV, which means
+>> the IOMMU cannot be connected with that master for real
+>> reasons. Before the IOMMU probe deferral, all such errors
+>> were ignored. Now all those errors are propagated back,
+>> killing the master's probe for such errors. Instead ignore
+>> all the errors except EPROBE_DEFER, which is the only one
+>> of concern and let the master work without IOMMU, thus
+>> restoring the old behavior. Also make explicit that
+>> acpi_dma_configure handles only -EPROBE_DEFER from
+>> iort_iommu_configure.
+>>
+>> Fixes: 5a1bb638d567 ("drivers: acpi: Handle IOMMU lookup failure with deferred probing or error")
+>> Signed-off-by: Sricharan R <sricharan@codeaurora.org>
+>> ---
+>>  drivers/acpi/arm64/iort.c | 6 ++++++
+>>  drivers/acpi/scan.c       | 4 ++--
+>>  2 files changed, 8 insertions(+), 2 deletions(-)
+>>
+>> diff --git a/drivers/acpi/arm64/iort.c b/drivers/acpi/arm64/iort.c
+>> index c5fecf9..16e101f 100644
+>> --- a/drivers/acpi/arm64/iort.c
+>> +++ b/drivers/acpi/arm64/iort.c
+>> @@ -782,6 +782,12 @@ const struct iommu_ops *iort_iommu_configure(struct device *dev)
+>>  	if (err)
+>>  		ops = ERR_PTR(err);
+>>  
+>> +	/* Ignore all other errors apart from EPROBE_DEFER */
+>> +	if (IS_ERR(ops) && (PTR_ERR(ops) != -EPROBE_DEFER)) {
+>> +		dev_dbg(dev, "Adding to IOMMU failed: %ld\n", PTR_ERR(ops));
+>> +		ops = NULL;
+>> +	}
+>> +
+>>  	return ops;
+>>  }
+>>  
+>> diff --git a/drivers/acpi/scan.c b/drivers/acpi/scan.c
+>> index e39ec7b..3a10d757 100644
+>> --- a/drivers/acpi/scan.c
+>> +++ b/drivers/acpi/scan.c
+>> @@ -1371,8 +1371,8 @@ int acpi_dma_configure(struct device *dev, enum dev_dma_attr attr)
+>>  	iort_set_dma_mask(dev);
+>>  
+>>  	iommu = iort_iommu_configure(dev);
+>> -	if (IS_ERR(iommu))
+>> -		return PTR_ERR(iommu);
+>> +	if (IS_ERR(iommu) && PTR_ERR(iommu) == -EPROBE_DEFER)
+>> +		return -EPROBE_DEFER;
+>>  
+>>  	size = max(dev->coherent_dma_mask, dev->coherent_dma_mask + 1);
+>>  	/*
+>>
+> 
+> ACK for the scan.c change and I'm assuming this to go in via ARM64.
+> 
 
- - Changing thread priority can have some execution cost and potential
-   impact to other threads in the core. It's inefficient to execute them
-   every time around a busy-wait loop.
+Thanks for the ACK, should go through the IOMMU tree, since this fixes the IOMMU probe deferral
+that got merged through it.
 
- - Depending on implementation details, a `low ; medium` sequence may
-   not have much if any affect. Some software with similar pattern
-   actually inserts a lot of nops between, in order to cause a few fetch
-   cycles with the low priority.
+Regards,
+ Sricharan
 
- - The busy-wait loop runs with regular priority. This might only be a few
-   fetch cycles, but if there are several threads running such loops, they
-   could cause a noticable impact on a non-idle thread.
+> Thanks,
+> Rafael
+> 
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-arm-msm" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> 
 
-Implement spin_begin, spin_end primitives that can be used around busy
-wait loops, which default to no-ops. And spin_cpu_relax which defaults to
-cpu_relax.
-
-This will allow architectures to hook the entry and exit of busy-wait
-loops, and will allow powerpc to set low SMT priority at entry, and
-normal priority at exit.
-
-Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
----
-
-Since last time:
-- Fixed spin_do_cond with initial test as suggested by Linus.
-- Renamed it to spin_until_cond, which reads a little better.
-
- include/linux/processor.h | 70 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 70 insertions(+)
- create mode 100644 include/linux/processor.h
-
-diff --git a/include/linux/processor.h b/include/linux/processor.h
-new file mode 100644
-index 000000000000..da0c5e56ca02
---- /dev/null
-+++ b/include/linux/processor.h
-@@ -0,0 +1,70 @@
-+/* Misc low level processor primitives */
-+#ifndef _LINUX_PROCESSOR_H
-+#define _LINUX_PROCESSOR_H
-+
-+#include <asm/processor.h>
-+
-+/*
-+ * spin_begin is used before beginning a busy-wait loop, and must be paired
-+ * with spin_end when the loop is exited. spin_cpu_relax must be called
-+ * within the loop.
-+ *
-+ * The loop body should be as small and fast as possible, on the order of
-+ * tens of instructions/cycles as a guide. It should and avoid calling
-+ * cpu_relax, or any "spin" or sleep type of primitive including nested uses
-+ * of these primitives. It should not lock or take any other resource.
-+ * Violations of these guidelies will not cause a bug, but may cause sub
-+ * optimal performance.
-+ *
-+ * These loops are optimized to be used where wait times are expected to be
-+ * less than the cost of a context switch (and associated overhead).
-+ *
-+ * Detection of resource owner and decision to spin or sleep or guest-yield
-+ * (e.g., spin lock holder vcpu preempted, or mutex owner not on CPU) can be
-+ * tested within the loop body.
-+ */
-+#ifndef spin_begin
-+#define spin_begin()
-+#endif
-+
-+#ifndef spin_cpu_relax
-+#define spin_cpu_relax() cpu_relax()
-+#endif
-+
-+/*
-+ * spin_cpu_yield may be called to yield (undirected) to the hypervisor if
-+ * necessary. This should be used if the wait is expected to take longer
-+ * than context switch overhead, but we can't sleep or do a directed yield.
-+ */
-+#ifndef spin_cpu_yield
-+#define spin_cpu_yield() cpu_relax_yield()
-+#endif
-+
-+#ifndef spin_end
-+#define spin_end()
-+#endif
-+
-+/*
-+ * spin_until_cond can be used to wait for a condition to become true. It
-+ * may be expected that the first iteration will true in the common case
-+ * (no spinning), so that callers should not require a first "likely" test
-+ * for the uncontended case before using this primitive.
-+ *
-+ * Usage and implementation guidelines are the same as for the spin_begin
-+ * primitives, above.
-+ */
-+#ifndef spin_until_cond
-+#define spin_until_cond(cond)					\
-+do {								\
-+	if (unlikely(!(cond))) {				\
-+		spin_begin();					\
-+		do {						\
-+			spin_cpu_relax();			\
-+		} while (!(cond));				\
-+		spin_end();					\
-+	}							\
-+} while (0)
-+
-+#endif
-+
-+#endif /* _LINUX_PROCESSOR_H */
 -- 
-2.11.0
+"QUALCOMM INDIA, on behalf of Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum, hosted by The Linux Foundation
