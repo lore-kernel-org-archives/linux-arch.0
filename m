@@ -1,63 +1,64 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 0/3] ipc subsystem refcounter conversions
-Date: Mon, 29 May 2017 14:23:16 +0200
-Message-ID: <20170529122316.giceifwjnuz6djr4@hirez.programming.kicks-ass.net>
-References: <1487590189-18151-1-git-send-email-elena.reshetova@intel.com>
- <20170303162352.b6af1c0c3115b3f5f1e7aed3@linux-foundation.org>
- <CAGXu5jKNChaVdfbM171FYkvY1hUMXG6cp-=WAdXBP0eTOO5RAA@mail.gmail.com>
- <20170529083903.GA17735@infradead.org>
- <87h904xc26.fsf@xmission.com>
- <20170529102442.gerbzxzixllen46q@hirez.programming.kicks-ass.net>
- <87a85wvsxa.fsf@xmission.com>
- <87o9ubvr0t.fsf@xmission.com>
- <8760gjvqm7.fsf@xmission.com>
+From: Andrey Ryabinin <aryabinin@virtuozzo.com>
+Subject: Re: KASAN vs. boot-time switching between 4- and 5-level paging
+Date: Mon, 29 May 2017 15:46:47 +0300
+Message-ID: <75acbed7-6a08-692f-61b5-2b44f66ec0d8@virtuozzo.com>
+References: <20170525203334.867-1-kirill.shutemov@linux.intel.com>
+ <20170525203334.867-8-kirill.shutemov@linux.intel.com>
+ <20170526221059.o4kyt3ijdweurz6j@node.shutemov.name>
+ <CACT4Y+YyFWg3fbj4ta3tSKoeBaw7hbL2YoBatAFiFB1_cMg9=Q@mail.gmail.com>
+ <71e11033-f95c-887f-4e4e-351bcc3df71e@virtuozzo.com>
+ <CACT4Y+bSTOeJtDDZVmkff=qqJFesA_b6uTG__EAn4AvDLw0jzQ@mail.gmail.com>
+ <c4f11000-6138-c6ab-d075-2c4bd6a14943@virtuozzo.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <8760gjvqm7.fsf@xmission.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: Christoph Hellwig <hch@infradead.org>, Kees Cook <keescook@chromium.org>, Andrew Morton <akpm@linux-foundation.org>, Elena Reshetova <elena.reshetova@intel.com>, Greg KH <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, kernel-hardening@lists.openwall.com
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <c4f11000-6138-c6ab-d075-2c4bd6a14943@virtuozzo.com>
+Sender: owner-linux-mm@kvack.org
+To: Dmitry Vyukov <dvyukov@google.com>
+Cc: "Kirill A. Shutemov" <kirill@shutemov.name>, Alexander Potapenko <glider@google.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, "x86@kernel.org" <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter
+ Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, "linux-mm@kvack.org" <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, May 29, 2017 at 06:39:44AM -0500, Eric W. Biederman wrote:
-> I failed to see that there is a refcount_inc.  Too much noise in
-> the header file I suppose.
+On 05/29/2017 02:45 PM, Andrey Ryabinin wrote:
+>>>>> Looks like KASAN will be a problem for boot-time paging mode switching.
+>>>>> It wants to know CONFIG_KASAN_SHADOW_OFFSET at compile-time to pass to
+>>>>> gcc -fasan-shadow-offset=. But this value varies between paging modes...
+>>>>>
+>>>>> I don't see how to solve it. Folks, any ideas?
+>>>>
+>>>> +kasan-dev
+>>>>
+>>>> I wonder if we can use the same offset for both modes. If we use
+>>>> 0xFFDFFC0000000000 as start of shadow for 5 levels, then the same
+>>>> offset that we use for 4 levels (0xdffffc0000000000) will also work
+>>>> for 5 levels. Namely, ending of 5 level shadow will overlap with 4
+>>>> level mapping (both end at 0xfffffbffffffffff), but 5 level mapping
+>>>> extends towards lower addresses. The current 5 level start of shadow
+>>>> is actually close -- 0xffd8000000000000 and it seems that the required
+>>>> space after it is unused at the moment (at least looking at mm.txt).
+>>>> So just try to move it to 0xFFDFFC0000000000?
+>>>>
+>>>
+>>> Yeah, this should work, but note that 0xFFDFFC0000000000 is not PGDIR aligned address. Our init code
+>>> assumes that kasan shadow stars and ends on the PGDIR aligned address.
+>>> Fortunately this is fixable, we'd need two more pages for page tables to map unaligned start/end
+>>> of the shadow.
+>>
+>> I think we can extend the shadow backwards (to the current address),
+>> provided that it does not affect shadow offset that we pass to
+>> compiler.
 > 
-> But implementing refcount_inc in terms of refcount_inc_not_zero is
-> totally broken.  The two operations are not the same and the go to
-> different assumptions the code is making.
-> 
-> That explains why you think refcount_inc_not_zero should lie because
-> you are implementing refcount_inc with it.  They are semantically very
-> different operations.  Please separate them.
+> I thought about this. We can round down shadow start to 0xffdf000000000000, but we can't
+> round up shadow end, because in that case shadow would end at 0xffffffffffffffff.
+> So we still need at least one more page to cover unaligned end.
 
-There has been much debate about this. And the best I'll do is add a
-comment and/or retain these exact semantics.
+Actually, I'm wrong here. I assumed that we would need an additional page to store p4d entries,
+but in fact we don't need it, as such page should already exist. It's the same last pgd where kernel image
+is mapped.
 
-What is done is:
-
-	refcount_inc() := WARN_ON(!refcount_inc_not_zero())
-
-Because incrementing a zero reference count is a use-after-free and
-something we should not do ever.
-
-This is where the whole usage count vs reference count pain comes from.
-
-Once there are no more _references_ to an object, a reference count
-frees the object. Therefore a zero reference count means a dead object
-and incrementing from that is fail.
-
-The usage count model otoh counts how many (active) users there are of
-an object, and no active users is a good and expected situation. But it
-is very explicitly not a reference count. Because even in the no users
-case do we have a reference to the object (we've not leaked it after
-all, we just don't track all references).
-
-
-Similarly, refcount_dec() is implemented using dec_and_test() and will
-WARN when it hits 0, because this is a leak and we don't want those
-either.
-
-A usage count variant otoh would be fine with hitting 0.
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
