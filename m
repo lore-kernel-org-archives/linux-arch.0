@@ -1,37 +1,50 @@
-From: Sam Ravnborg <sam@ravnborg.org>
+From: Nicholas Piggin <npiggin@gmail.com>
 Subject: Re: [PATCH] kbuild: provide THIN_ARCHIVES option for all
  architectures
-Date: Mon, 29 May 2017 20:52:51 +0200
-Message-ID: <20170529185251.GA3359@ravnborg.org>
+Date: Tue, 30 May 2017 09:13:43 +1000
+Message-ID: <20170530091343.1f98b24b@roar.ozlabs.ibm.com>
 References: <20170529081103.29999-1-npiggin@gmail.com>
+        <CA+55aFyM8c1h7S+x95qvv84jphu9=XSXZop=gVp7xc5tf3JJMQ@mail.gmail.com>
+        <CA+55aFwofV0DZhh+yGH_=ceBzFcSr_tGexuGV4Wioao096R-uQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kbuild-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20170529081103.29999-1-npiggin@gmail.com>
+In-Reply-To: <CA+55aFwofV0DZhh+yGH_=ceBzFcSr_tGexuGV4Wioao096R-uQ@mail.gmail.com>
 Sender: linux-kbuild-owner@vger.kernel.org
-To: Nicholas Piggin <npiggin@gmail.com>, Alan Modra <amodra@gmail.com>
-Cc: linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Stephen Rothwell <sfr@canb.auug.org.au>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Nicholas.
+On Mon, 29 May 2017 10:14:50 -0700
+Linus Torvalds <torvalds@linux-foundation.org> wrote:
 
-> Supporting two different intermediate-artifact packaging schemes
-> was only ever intended as a temporary transition.
-> 
-> This has so far caused no problems for powerpc, after a small fix
-> for how the arch invoked ar. So now allow any arch to select the
-> option, continue defaulting to N.
+> On Mon, May 29, 2017 at 10:03 AM, Linus Torvalds
+> <torvalds@linux-foundation.org> wrote:
+> >
+> > So either thin archives work or they don't. Don't make it some painful
+> > drawn-out process that actually makes it harder to test rather than
+> > easier.  
+>
+> Side note: what would make them not work? Are there known bugs in 'ar'
+> wrt thin archives, versioning issues, or other issues?
 
-Alan Modra recommended this approach several years ago, and I think
-Stephen was the first to implement this for the kernel.
-It would be good to have the rational whay ar is better than ld -r
-included in the commit message for later reference.
+We haven't run into any bugs AFAIK. It's been pretty solid.
 
-I also recall that using ar gave some small kernel size reductions
-from last time we played with this.
-This info could also be nice to give a rough idea of the impact.
+*thin* archives does require binutils 2.19. That's nearly 10 years
+old, but we advertise 2.12 minimum at the moment. We'd have make "T"
+an optional argument if we turn it on unconditionally. Regular
+archives shouldn't be significantly worse than ld -r though, so yeah
+maybe we could do that.
 
-Added Alan to list of receivers.
+powerpc required a build fix:
 
-	Sam
+43c9127d94d
+
+-override AR    := GNUTARGET=elf$(BITS)-$(GNUTARGET) $(AR)
++KBUILD_ARFLAGS += --target=elf$(BITS)-$(GNUTARGET)
+
+So there could be a couple of small things like this.
+
+Thanks,
+Nick
