@@ -1,79 +1,87 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f68.google.com ([209.85.218.68]:34889 "EHLO
-        mail-oi0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750966AbdE2MyS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 May 2017 08:54:18 -0400
+Received: from bombadil.infradead.org ([65.50.211.133]:34958 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750811AbdE2PoD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 May 2017 11:44:03 -0400
+Date: Mon, 29 May 2017 17:43:47 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 0/3] ipc subsystem refcounter conversions
+Message-ID: <20170529154347.5ckn26uupkuar6nb@hirez.programming.kicks-ass.net>
+References: <1487590189-18151-1-git-send-email-elena.reshetova@intel.com>
+ <20170303162352.b6af1c0c3115b3f5f1e7aed3@linux-foundation.org>
+ <CAGXu5jKNChaVdfbM171FYkvY1hUMXG6cp-=WAdXBP0eTOO5RAA@mail.gmail.com>
+ <20170529083903.GA17735@infradead.org>
+ <87h904xc26.fsf@xmission.com>
+ <20170529102442.gerbzxzixllen46q@hirez.programming.kicks-ass.net>
+ <87a85wvsxa.fsf@xmission.com>
+ <87o9ubvr0t.fsf@xmission.com>
+ <8760gjvqm7.fsf@xmission.com>
+ <20170529122316.giceifwjnuz6djr4@hirez.programming.kicks-ass.net>
 MIME-Version: 1.0
-In-Reply-To: <CAMo8BfJDRStMDGThMQhmZBQs2LLwxFOthuqQaC1qyws14gwhRA@mail.gmail.com>
-References: <CAMuHMdVjh+1TR19mUUQYHSazHnBHa4uxn7KyHUO+jAh7WDxy5Q@mail.gmail.com>
- <CAK8P3a1XZGQk3b3q+JFJ+mLgw_upUdAtTM1VBjHZq5f2m-YdUg@mail.gmail.com>
- <CAMo8BfL8G0Fzn2SZ1356yaoxGgm8tpTDmFJ8cCxEEEgyObMwCQ@mail.gmail.com> <CAMo8BfJDRStMDGThMQhmZBQs2LLwxFOthuqQaC1qyws14gwhRA@mail.gmail.com>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Mon, 29 May 2017 14:54:16 +0200
-Message-ID: <CAK8P3a0GEzj16=M5jV=u6ACE8K3_QMPk142AhFDLSp9MgpFTeQ@mail.gmail.com>
-Subject: Re: CPU_BIG_ENDIAN in generic code (was: Re: [PATCH v3 3/7]
- arch/sparc: Define config parameter CPU_BIG_ENDIAN)
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20170529122316.giceifwjnuz6djr4@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Max Filippov <jcmvbkbc@gmail.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Babu Moger <babu.moger@oracle.com>, "David S. Miller" <davem@davemloft.net>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, sparclinux <sparclinux@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>
-Message-ID: <20170529125416.xP-zc3ilfjF95MJqj2SZWyLpHVw2ackWLAEJ-qDC7rA@z>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: Christoph Hellwig <hch@infradead.org>, Kees Cook <keescook@chromium.org>, Andrew Morton <akpm@linux-foundation.org>, Elena Reshetova <elena.reshetova@intel.com>, Greg KH <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, LKML <linux-kernel@vger.kernel.org>
+Message-ID: <20170529154347.TOfaB828EAqmSoGwDDihIf2F7QTWVU56b2sUPffDy5k@z>
 
-On Fri, May 26, 2017 at 12:43 AM, Max Filippov <jcmvbkbc@gmail.com> wrote:
-> On Thu, May 25, 2017 at 3:27 PM, Max Filippov <jcmvbkbc@gmail.com> wrote:
->> On Wed, May 24, 2017 at 3:18 AM, Arnd Bergmann <arnd@arndb.de> wrote:
->>> On Wed, May 24, 2017 at 11:59 AM, Geert Uytterhoeven
->>> <geert@linux-m68k.org> wrote:
->>>> I guess the time is ripe for adding (both) symbols to all architectures?
->>>
->>> Good idea. I think we can do most of this by adding a few lines to
->>> arch/Kconfig:
->>>
->>> config CPU_BIG_ENDIAN
->>>         bool
->>>
->>> config CPU_LITTLE_ENDIAN
->>>        def_bool !CPU_BIG_ENDIAN
->>>
->>> This way, we only need to add 'select CPU_BIG_ENDIAN' to the
->>> architectures that are always big-endian, and we don't need to
->>> change anything for the ones that have a single 'CPU_BIG_ENDIAN'
->>> option.
->>>
->>> The three architectures that have a 'choice' statement (mips, ppc and
->>> sh) will have to convert, and m32r will have to replace the
->>> option with the opposite one, which could break 'make oldconfig',
->>> but nobody really cares about m32r any more.
->>
->> Xtensa may have either endianness and for xtensa we define
->> CONFIG_CPU_BIG_ENDIAN or CONFIG_CPU_LITTLE_ENDIAN
->> in the arch/xtensa/Makefile based on the value of the compiler builtin
->> macro.
+On Mon, May 29, 2017 at 02:23:16PM +0200, Peter Zijlstra wrote:
+> On Mon, May 29, 2017 at 06:39:44AM -0500, Eric W. Biederman wrote:
+> > I failed to see that there is a refcount_inc.  Too much noise in
+> > the header file I suppose.
+> > 
+> > But implementing refcount_inc in terms of refcount_inc_not_zero is
+> > totally broken.  The two operations are not the same and the go to
+> > different assumptions the code is making.
+> > 
+> > That explains why you think refcount_inc_not_zero should lie because
+> > you are implementing refcount_inc with it.  They are semantically very
+> > different operations.  Please separate them.
+> 
+> There has been much debate about this. And the best I'll do is add a
+> comment and/or retain these exact semantics.
+> 
+> What is done is:
+> 
+> 	refcount_inc() := WARN_ON(!refcount_inc_not_zero())
+> 
+> Because incrementing a zero reference count is a use-after-free and
+> something we should not do ever.
+> 
+> This is where the whole usage count vs reference count pain comes from.
+> 
+> Once there are no more _references_ to an object, a reference count
+> frees the object. Therefore a zero reference count means a dead object
+> and incrementing from that is fail.
+> 
+> The usage count model otoh counts how many (active) users there are of
+> an object, and no active users is a good and expected situation. But it
+> is very explicitly not a reference count. Because even in the no users
+> case do we have a reference to the object (we've not leaked it after
+> all, we just don't track all references).
+> 
+> 
+> Similarly, refcount_dec() is implemented using dec_and_test() and will
+> WARN when it hits 0, because this is a leak and we don't want those
+> either.
+> 
+> A usage count variant otoh would be fine with hitting 0.
 
-I can sort of see why xtensa did it the other way round from everyone
-else (letting the toolchain decide what the kernel is, rather than letting
-the kernel pass the respective flags to gcc), but I'd argue that it would
-be better overall for xtensa to change over so we do it consistently
-on all architectures.
+A typical pattern for the usage count is caches, where objects are kept
+in a data structure (hash/tree and/or list) and we count how many users
+there are of said objects. A GC or shrinker will then iterate the
+structure and prune those objects that have 0 users.
 
-> Also, in outside the Kconfig files there's much more instances of
-> __{BIG,LITTLE}_ENDIAN than CONFIG_CPU_{BIG,LITTLE}_ENDIAN:
->
-> $ git grep '__\(BIG\|LITTLE\)_ENDIAN' | wc -l
-> 4537
-> $ git grep 'CONFIG_CPU_\(BIG\|LITTLE\)_ENDIAN' | wc -l
-> 247
->
-> My understanding is that CONFIG_CPU_{BIG,LITTLE}_ENDIAN was
-> intended to be used only in Kconfig files, and perhaps all of its uses
-> outside should be replaced with __{BIG,LITTLE}_ENDIAN.
+It is fairly straight forward to convert those to refcount_t by adding
+one reference for the data structure itself. The GC/shrinker will then
+have to use something like refcount_dec_if_one() to drop the reference
+from 1->0 (and we could easily add something like dec_and_lock_if_one if
+so desired).
 
-Right, but I also think that using the CONFIG_CPU_* symbols in
-code makes sense because it is less ambiguous: the way we use
-__{BIG,LITTLE}_ENDIAN in the kernel is different from how user
-space uses them in glibc, and this confuses everyone when they
-try to use them in the kernel after being familiar with the traditional
-way. The Kconfig symbols don't have this problem.
+Not all of them mind you, but simple cases can certainly be done without
+too much pain.
 
-       Arnd
+But clearly there have been conversions of less than desired quality /
+clarity though ...
