@@ -1,74 +1,50 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: CPU_BIG_ENDIAN in generic code (was: Re: [PATCH v3 3/7]
- arch/sparc: Define config parameter CPU_BIG_ENDIAN)
-Date: Mon, 29 May 2017 14:54:16 +0200
-Message-ID: <CAK8P3a0GEzj16=M5jV=u6ACE8K3_QMPk142AhFDLSp9MgpFTeQ@mail.gmail.com>
-References: <CAMuHMdVjh+1TR19mUUQYHSazHnBHa4uxn7KyHUO+jAh7WDxy5Q@mail.gmail.com>
- <CAK8P3a1XZGQk3b3q+JFJ+mLgw_upUdAtTM1VBjHZq5f2m-YdUg@mail.gmail.com>
- <CAMo8BfL8G0Fzn2SZ1356yaoxGgm8tpTDmFJ8cCxEEEgyObMwCQ@mail.gmail.com> <CAMo8BfJDRStMDGThMQhmZBQs2LLwxFOthuqQaC1qyws14gwhRA@mail.gmail.com>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH] kbuild: provide THIN_ARCHIVES option for all
+ architectures
+Date: Tue, 30 May 2017 00:34:34 +1000
+Message-ID: <20170530003434.5099e7b3@roar.ozlabs.ibm.com>
+References: <20170529081103.29999-1-npiggin@gmail.com>
+        <20170529203355.4ebd1062@canb.auug.org.au>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAMo8BfJDRStMDGThMQhmZBQs2LLwxFOthuqQaC1qyws14gwhRA@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Max Filippov <jcmvbkbc@gmail.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Babu Moger <babu.moger@oracle.com>, "David S. Miller" <davem@davemloft.net>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, sparclinux <sparclinux@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pg0-f65.google.com ([74.125.83.65]:35197 "EHLO
+        mail-pg0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751187AbdE2Oev (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 May 2017 10:34:51 -0400
+In-Reply-To: <20170529203355.4ebd1062@canb.auug.org.au>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>
 
-On Fri, May 26, 2017 at 12:43 AM, Max Filippov <jcmvbkbc@gmail.com> wrote:
-> On Thu, May 25, 2017 at 3:27 PM, Max Filippov <jcmvbkbc@gmail.com> wrote:
->> On Wed, May 24, 2017 at 3:18 AM, Arnd Bergmann <arnd@arndb.de> wrote:
->>> On Wed, May 24, 2017 at 11:59 AM, Geert Uytterhoeven
->>> <geert@linux-m68k.org> wrote:
->>>> I guess the time is ripe for adding (both) symbols to all architectures?
->>>
->>> Good idea. I think we can do most of this by adding a few lines to
->>> arch/Kconfig:
->>>
->>> config CPU_BIG_ENDIAN
->>>         bool
->>>
->>> config CPU_LITTLE_ENDIAN
->>>        def_bool !CPU_BIG_ENDIAN
->>>
->>> This way, we only need to add 'select CPU_BIG_ENDIAN' to the
->>> architectures that are always big-endian, and we don't need to
->>> change anything for the ones that have a single 'CPU_BIG_ENDIAN'
->>> option.
->>>
->>> The three architectures that have a 'choice' statement (mips, ppc and
->>> sh) will have to convert, and m32r will have to replace the
->>> option with the opposite one, which could break 'make oldconfig',
->>> but nobody really cares about m32r any more.
->>
->> Xtensa may have either endianness and for xtensa we define
->> CONFIG_CPU_BIG_ENDIAN or CONFIG_CPU_LITTLE_ENDIAN
->> in the arch/xtensa/Makefile based on the value of the compiler builtin
->> macro.
+On Mon, 29 May 2017 20:33:55 +1000
+Stephen Rothwell <sfr@canb.auug.org.au> wrote:
 
-I can sort of see why xtensa did it the other way round from everyone
-else (letting the toolchain decide what the kernel is, rather than letting
-the kernel pass the respective flags to gcc), but I'd argue that it would
-be better overall for xtensa to change over so we do it consistently
-on all architectures.
+> Hi Nick,
+> 
+> On Mon, 29 May 2017 18:11:03 +1000 Nicholas Piggin <npiggin@gmail.com> wrote:
+> >
+> > diff --git a/arch/Kconfig b/arch/Kconfig
+> > index 6c00e5b00f8b..28e64cb65dd5 100644
+> > --- a/arch/Kconfig
+> > +++ b/arch/Kconfig
+> > @@ -511,10 +511,23 @@ config CC_STACKPROTECTOR_STRONG
+> >  endchoice
+> >  
+> >  config THIN_ARCHIVES
+> > -	bool
+> > +	bool "Build the kernel using thin archives"
+> > +	default n  
+> 
+> Of course, this will be enabled by allmodconfig, etc builds ...
+> 
 
-> Also, in outside the Kconfig files there's much more instances of
-> __{BIG,LITTLE}_ENDIAN than CONFIG_CPU_{BIG,LITTLE}_ENDIAN:
->
-> $ git grep '__\(BIG\|LITTLE\)_ENDIAN' | wc -l
-> 4537
-> $ git grep 'CONFIG_CPU_\(BIG\|LITTLE\)_ENDIAN' | wc -l
-> 247
->
-> My understanding is that CONFIG_CPU_{BIG,LITTLE}_ENDIAN was
-> intended to be used only in Kconfig files, and perhaps all of its uses
-> outside should be replaced with __{BIG,LITTLE}_ENDIAN.
+Yes that is true. Thanks for making a note of it -- I guess the
+changelog could be interpreted as implying no change to any
+existing build without arch enablement. I didn't intend to mislead
+there.
 
-Right, but I also think that using the CONFIG_CPU_* symbols in
-code makes sense because it is less ambiguous: the way we use
-__{BIG,LITTLE}_ENDIAN in the kernel is different from how user
-space uses them in glibc, and this confuses everyone when they
-try to use them in the kernel after being familiar with the traditional
-way. The Kconfig symbols don't have this problem.
-
-       Arnd
+Thanks,
+Nick
