@@ -1,96 +1,85 @@
-From: Sricharan R <sricharan@codeaurora.org>
-Subject: Re: [PATCH v6 3/6] ACPI/IORT: Ignore all errors except EPROBE_DEFER
-Date: Mon, 29 May 2017 10:36:42 +0530
-Message-ID: <68bc9be5-22df-e7af-3fcd-182e935e681c@codeaurora.org>
-References: <1495892865-9506-1-git-send-email-sricharan@codeaurora.org>
- <1495892865-9506-3-git-send-email-sricharan@codeaurora.org>
- <1564836.5iBbgoacpH@aspire.rjw.lan>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-acpi-owner@vger.kernel.org>
-In-Reply-To: <1564836.5iBbgoacpH@aspire.rjw.lan>
-Content-Language: en-US
-Sender: linux-acpi-owner@vger.kernel.org
-To: "Rafael J. Wysocki" <rjw@rjwysocki.net>
-Cc: robin.murphy@arm.com, will.deacon@arm.com, joro@8bytes.org, lorenzo.pieralisi@arm.com, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arm-msm@vger.kernel.org, m.szyprowski@samsung.com, bhelgaas@google.com, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, tn@semihalf.com, hanjun.guo@linaro.org, okaya@codeaurora.org, robh+dt@kernel.org, frowand.list@gmail.com, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, sudeep.holla@arm.com, lenb@kernel.org, catalin.marinas@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, laurent.pinchart@ideasonboard.com, j.neuschaefer@gmx.net, geert@linux-m68k.org, magnus.damm@gmail.com, nwatters@codeaurora.org, linux@armlinux.org.uk
-List-Id: linux-arch.vger.kernel.org
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: [PATCH] kbuild: provide THIN_ARCHIVES option for all architectures
+Date: Mon, 29 May 2017 18:11:03 +1000
+Message-ID: <20170529081103.29999-1-npiggin@gmail.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pg0-f66.google.com ([74.125.83.66]:35982 "EHLO
+        mail-pg0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750921AbdE2ILU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 May 2017 04:11:20 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org
+Cc: Nicholas Piggin <npiggin@gmail.com>, linux-kbuild@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>
 
-Hi Rafael,
+Supporting two different intermediate-artifact packaging schemes
+was only ever intended as a temporary transition.
 
-On 5/28/2017 12:48 AM, Rafael J. Wysocki wrote:
-> On Saturday, May 27, 2017 07:17:42 PM Sricharan R wrote:
->> While deferring the probe of IOMMU masters, xlate and
->> add_device callbacks called from iort_iommu_configure
->> can pass back error values like -ENODEV, which means
->> the IOMMU cannot be connected with that master for real
->> reasons. Before the IOMMU probe deferral, all such errors
->> were ignored. Now all those errors are propagated back,
->> killing the master's probe for such errors. Instead ignore
->> all the errors except EPROBE_DEFER, which is the only one
->> of concern and let the master work without IOMMU, thus
->> restoring the old behavior. Also make explicit that
->> acpi_dma_configure handles only -EPROBE_DEFER from
->> iort_iommu_configure.
->>
->> Fixes: 5a1bb638d567 ("drivers: acpi: Handle IOMMU lookup failure with deferred probing or error")
->> Signed-off-by: Sricharan R <sricharan@codeaurora.org>
->> ---
->>  drivers/acpi/arm64/iort.c | 6 ++++++
->>  drivers/acpi/scan.c       | 4 ++--
->>  2 files changed, 8 insertions(+), 2 deletions(-)
->>
->> diff --git a/drivers/acpi/arm64/iort.c b/drivers/acpi/arm64/iort.c
->> index c5fecf9..16e101f 100644
->> --- a/drivers/acpi/arm64/iort.c
->> +++ b/drivers/acpi/arm64/iort.c
->> @@ -782,6 +782,12 @@ const struct iommu_ops *iort_iommu_configure(struct device *dev)
->>  	if (err)
->>  		ops = ERR_PTR(err);
->>  
->> +	/* Ignore all other errors apart from EPROBE_DEFER */
->> +	if (IS_ERR(ops) && (PTR_ERR(ops) != -EPROBE_DEFER)) {
->> +		dev_dbg(dev, "Adding to IOMMU failed: %ld\n", PTR_ERR(ops));
->> +		ops = NULL;
->> +	}
->> +
->>  	return ops;
->>  }
->>  
->> diff --git a/drivers/acpi/scan.c b/drivers/acpi/scan.c
->> index e39ec7b..3a10d757 100644
->> --- a/drivers/acpi/scan.c
->> +++ b/drivers/acpi/scan.c
->> @@ -1371,8 +1371,8 @@ int acpi_dma_configure(struct device *dev, enum dev_dma_attr attr)
->>  	iort_set_dma_mask(dev);
->>  
->>  	iommu = iort_iommu_configure(dev);
->> -	if (IS_ERR(iommu))
->> -		return PTR_ERR(iommu);
->> +	if (IS_ERR(iommu) && PTR_ERR(iommu) == -EPROBE_DEFER)
->> +		return -EPROBE_DEFER;
->>  
->>  	size = max(dev->coherent_dma_mask, dev->coherent_dma_mask + 1);
->>  	/*
->>
-> 
-> ACK for the scan.c change and I'm assuming this to go in via ARM64.
-> 
+This has so far caused no problems for powerpc, after a small fix
+for how the arch invoked ar. So now allow any arch to select the
+option, continue defaulting to N.
 
-Thanks for the ACK, should go through the IOMMU tree, since this fixes the IOMMU probe deferral
-that got merged through it.
+Cc: Stephen Rothwell <sfr@canb.auug.org.au>
+Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+---
+The next step will be to have archs always select THIN_ARCHIVES
+when they are known to work. Then remove the option entirely.
 
-Regards,
- Sricharan
+x86 has always just worked for me, so that should be easy.
 
-> Thanks,
-> Rafael
-> 
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-arm-msm" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> 
+ arch/Kconfig         | 19 ++++++++++++++++---
+ arch/powerpc/Kconfig |  8 --------
+ 2 files changed, 16 insertions(+), 11 deletions(-)
 
+diff --git a/arch/Kconfig b/arch/Kconfig
+index 6c00e5b00f8b..28e64cb65dd5 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -511,10 +511,23 @@ config CC_STACKPROTECTOR_STRONG
+ endchoice
+ 
+ config THIN_ARCHIVES
+-	bool
++	bool "Build the kernel using thin archives"
++	default n
+ 	help
+-	  Select this if the architecture wants to use thin archives
+-	  instead of ld -r to create the built-in.o files.
++	  Enable this if you want to use thin archives (binutils `ar` thin
++	  archive format) rather than `ld -r`, to create the built-in.o and
++	  other intermediate packaging steps in the kernel build.
++
++	  This option reduces disk space for builds, especially important for
++	  debug builds and IO-constrained environments. It gives the linker
++	  more flexibility in assembling sections. And it is more amenable to
++	  link-time-optimization that may be implemented in future.
++
++	  The intention is for all architectures to move to thin archives
++	  soon, and the ld -r support code removed.
++
++	  If unsure, say N.
++	  Kernel hackers, say Y and test/fix your arch!
+ 
+ config LD_DEAD_CODE_DATA_ELIMINATION
+ 	bool
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 6eb70c96ec5e..9274d9faf122 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -483,14 +483,6 @@ config MPROFILE_KERNEL
+ 	depends on PPC64 && CPU_LITTLE_ENDIAN
+ 	def_bool !DISABLE_MPROFILE_KERNEL
+ 
+-config USE_THIN_ARCHIVES
+-	bool "Build the kernel using thin archives"
+-	default n
+-	select THIN_ARCHIVES
+-	help
+-	  Build the kernel using thin archives.
+-	  If you're unsure say N.
+-
+ config IOMMU_HELPER
+ 	def_bool PPC64
+ 
 -- 
-"QUALCOMM INDIA, on behalf of Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum, hosted by The Linux Foundation
+2.11.0
