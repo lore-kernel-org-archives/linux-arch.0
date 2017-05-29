@@ -1,50 +1,86 @@
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH] kbuild: provide THIN_ARCHIVES option for all
- architectures
-Date: Tue, 30 May 2017 00:34:34 +1000
-Message-ID: <20170530003434.5099e7b3@roar.ozlabs.ibm.com>
-References: <20170529081103.29999-1-npiggin@gmail.com>
-        <20170529203355.4ebd1062@canb.auug.org.au>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 0/3] ipc subsystem refcounter conversions
+Date: Mon, 29 May 2017 17:43:47 +0200
+Message-ID: <20170529154347.5ckn26uupkuar6nb@hirez.programming.kicks-ass.net>
+References: <1487590189-18151-1-git-send-email-elena.reshetova@intel.com>
+ <20170303162352.b6af1c0c3115b3f5f1e7aed3@linux-foundation.org>
+ <CAGXu5jKNChaVdfbM171FYkvY1hUMXG6cp-=WAdXBP0eTOO5RAA@mail.gmail.com>
+ <20170529083903.GA17735@infradead.org>
+ <87h904xc26.fsf@xmission.com>
+ <20170529102442.gerbzxzixllen46q@hirez.programming.kicks-ass.net>
+ <87a85wvsxa.fsf@xmission.com>
+ <87o9ubvr0t.fsf@xmission.com>
+ <8760gjvqm7.fsf@xmission.com>
+ <20170529122316.giceifwjnuz6djr4@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f65.google.com ([74.125.83.65]:35197 "EHLO
-        mail-pg0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751187AbdE2Oev (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 May 2017 10:34:51 -0400
-In-Reply-To: <20170529203355.4ebd1062@canb.auug.org.au>
+Received: from bombadil.infradead.org ([65.50.211.133]:34958 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750811AbdE2PoD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 May 2017 11:44:03 -0400
+Content-Disposition: inline
+In-Reply-To: <20170529122316.giceifwjnuz6djr4@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: Christoph Hellwig <hch@infradead.org>, Kees Cook <keescook@chromium.org>, Andrew Morton <akpm@linux-foundation.org>, Elena Reshetova <elena.reshetova@intel.com>, Greg KH <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, kernel-hardening@lists.openwall.com
 
-On Mon, 29 May 2017 20:33:55 +1000
-Stephen Rothwell <sfr@canb.auug.org.au> wrote:
-
-> Hi Nick,
+On Mon, May 29, 2017 at 02:23:16PM +0200, Peter Zijlstra wrote:
+> On Mon, May 29, 2017 at 06:39:44AM -0500, Eric W. Biederman wrote:
+> > I failed to see that there is a refcount_inc.  Too much noise in
+> > the header file I suppose.
+> > 
+> > But implementing refcount_inc in terms of refcount_inc_not_zero is
+> > totally broken.  The two operations are not the same and the go to
+> > different assumptions the code is making.
+> > 
+> > That explains why you think refcount_inc_not_zero should lie because
+> > you are implementing refcount_inc with it.  They are semantically very
+> > different operations.  Please separate them.
 > 
-> On Mon, 29 May 2017 18:11:03 +1000 Nicholas Piggin <npiggin@gmail.com> wrote:
-> >
-> > diff --git a/arch/Kconfig b/arch/Kconfig
-> > index 6c00e5b00f8b..28e64cb65dd5 100644
-> > --- a/arch/Kconfig
-> > +++ b/arch/Kconfig
-> > @@ -511,10 +511,23 @@ config CC_STACKPROTECTOR_STRONG
-> >  endchoice
-> >  
-> >  config THIN_ARCHIVES
-> > -	bool
-> > +	bool "Build the kernel using thin archives"
-> > +	default n  
+> There has been much debate about this. And the best I'll do is add a
+> comment and/or retain these exact semantics.
 > 
-> Of course, this will be enabled by allmodconfig, etc builds ...
+> What is done is:
 > 
+> 	refcount_inc() := WARN_ON(!refcount_inc_not_zero())
+> 
+> Because incrementing a zero reference count is a use-after-free and
+> something we should not do ever.
+> 
+> This is where the whole usage count vs reference count pain comes from.
+> 
+> Once there are no more _references_ to an object, a reference count
+> frees the object. Therefore a zero reference count means a dead object
+> and incrementing from that is fail.
+> 
+> The usage count model otoh counts how many (active) users there are of
+> an object, and no active users is a good and expected situation. But it
+> is very explicitly not a reference count. Because even in the no users
+> case do we have a reference to the object (we've not leaked it after
+> all, we just don't track all references).
+> 
+> 
+> Similarly, refcount_dec() is implemented using dec_and_test() and will
+> WARN when it hits 0, because this is a leak and we don't want those
+> either.
+> 
+> A usage count variant otoh would be fine with hitting 0.
 
-Yes that is true. Thanks for making a note of it -- I guess the
-changelog could be interpreted as implying no change to any
-existing build without arch enablement. I didn't intend to mislead
-there.
+A typical pattern for the usage count is caches, where objects are kept
+in a data structure (hash/tree and/or list) and we count how many users
+there are of said objects. A GC or shrinker will then iterate the
+structure and prune those objects that have 0 users.
 
-Thanks,
-Nick
+It is fairly straight forward to convert those to refcount_t by adding
+one reference for the data structure itself. The GC/shrinker will then
+have to use something like refcount_dec_if_one() to drop the reference
+from 1->0 (and we could easily add something like dec_and_lock_if_one if
+so desired).
+
+Not all of them mind you, but simple cases can certainly be done without
+too much pain.
+
+But clearly there have been conversions of less than desired quality /
+clarity though ...
