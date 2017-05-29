@@ -1,143 +1,55 @@
-From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: Re: [PATCH 0/3] ipc subsystem refcounter conversions
-Date: Mon, 29 May 2017 06:39:44 -0500
-Message-ID: <8760gjvqm7.fsf@xmission.com>
-References: <1487590189-18151-1-git-send-email-elena.reshetova@intel.com>
-        <20170303162352.b6af1c0c3115b3f5f1e7aed3@linux-foundation.org>
-        <CAGXu5jKNChaVdfbM171FYkvY1hUMXG6cp-=WAdXBP0eTOO5RAA@mail.gmail.com>
-        <20170529083903.GA17735@infradead.org> <87h904xc26.fsf@xmission.com>
-        <20170529102442.gerbzxzixllen46q@hirez.programming.kicks-ass.net>
-        <87a85wvsxa.fsf@xmission.com> <87o9ubvr0t.fsf@xmission.com>
+From: Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>
+Subject: Re: CPU_BIG_ENDIAN in generic code (was: Re: [PATCH v3 3/7] arch/sparc: Define config parameter CPU_BIG_ENDIAN)
+Date: Mon, 29 May 2017 22:07:41 +1000
+Message-ID: <87a85v7to2.fsf@concordia.ellerman.id.au>
+References: <CAMuHMdVjh+1TR19mUUQYHSazHnBHa4uxn7KyHUO+jAh7WDxy5Q@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from out02.mta.xmission.com ([166.70.13.232]:51193 "EHLO
-        out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750871AbdE2Lqd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 May 2017 07:46:33 -0400
-In-Reply-To: <87o9ubvr0t.fsf@xmission.com> (Eric W. Biederman's message of
-        "Mon, 29 May 2017 06:30:58 -0500")
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Christoph Hellwig <hch@infradead.org>, Kees Cook <keescook@chromium.org>, Andrew Morton <akpm@linux-foundation.org>, Elena Reshetova <elena.reshetova@intel.com>, Greg KH <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, kernel-hardening@lists.openwall.com
+Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <CAMuHMdVjh+1TR19mUUQYHSazHnBHa4uxn7KyHUO+jAh7WDxy5Q-JsoAwUIsXosN+BqQ9rBEUg@public.gmane.org>
+Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>, Babu Moger <babu.moger-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
+Cc: "David S. Miller" <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, sparclinux <sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-kernel@vger.kernel.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux-Arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "devicetree@vger.kernel.org" <devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-serial@vger.kernel.org" <linux-serial-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+List-Id: linux-arch.vger.kernel.org
 
-ebiederm@xmission.com (Eric W. Biederman) writes:
+Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org> writes:
 
-> ebiederm@xmission.com (Eric W. Biederman) writes:
+> On Tue, May 23, 2017 at 11:45 PM, Babu Moger <babu.moger-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org> wrote:
+>> Found this problem while enabling queued rwlock on SPARC.
+>> The parameter CONFIG_CPU_BIG_ENDIAN is used to clear the
+>> specific byte in qrwlock structure. Without this parameter,
+>> we clear the wrong byte. Here is the code.
+>>
+>> static inline u8 *__qrwlock_write_byte(struct qrwlock *lock)
+>>  {
+>>         return (u8 *)lock + 3 * IS_BUILTIN(CONFIG_CPU_BIG_ENDIAN);
+>>  }
+>>
+>> Define CPU_BIG_ENDIAN for SPARC to fix it.
 >
->> Peter Zijlstra <peterz@infradead.org> writes:
+>> --- a/arch/sparc/Kconfig
+>> +++ b/arch/sparc/Kconfig
+>> @@ -92,6 +92,10 @@ config ARCH_DEFCONFIG
+>>  config ARCH_PROC_KCORE_TEXT
+>>         def_bool y
 >>
->>> On Mon, May 29, 2017 at 04:11:13AM -0500, Eric W. Biederman wrote:
->>>
->>>> Kees I I have a concern:
->>>> 
->>>> __must_check bool refcount_add_not_zero(unsigned int i, refcount_t *r)
->>>> {
->>>>         unsigned int new, val = atomic_read(&r->refs);
->>>> 
->>>>         do {
->>>>                 if (!val)
->>>>                         return false;
->>>> 
->>>>                 if (unlikely(val == UINT_MAX))
->>>>                         return true;
->>>> 
->>>>                 new = val + i;
->>>>                 if (new < val)
->>>>                         new = UINT_MAX;
->>>> 
->>>>         } while (!atomic_try_cmpxchg_relaxed(&r->refs, &val, new));
->>>> 
->>>>         WARN_ONCE(new == UINT_MAX, "refcount_t: saturated; leaking memory.\n");
->>>> 
->>>>         return true;
->>>> }
->>>> 
->>>> Why in the world do you succeed when you the value saturates????
->>>
->>> Why not? On saturation the object will leak and returning a reference to
->>> it is always good.
->>>
->>>> From a code perspective that is bizarre.   The code already has to handle
->>>> the case when the counter does not increment.
->>>
->>> I don't see it as bizarre, we turned an overflow/use-after-free into a
->>> leak. That's the primary mechanism here.
->>>
->>> As long as we have a reference to a leaked object, we might as well use
->>> it, its not going anywhere.
->>>
->>>> Fixing the return value would move refcount_t into the realm of
->>>> something that is desirable because it has bettern semantics and
->>>> is more useful just on a day to day correctness point of view.  Even
->>>> ignoring the security implications.
->>>
->>> It changes the semantics between inc_not_zero() and inc(). It also
->>> complicates the semantics of inc_not_zero(), where currently the failure
->>> implies the count is 0 and means no-such-object, you complicate matters
->>> by basically returning 'busy'.
->>
->> Busy is not a state of a reference count.
->>
->> It is true I am suggesting treating something with a saturated reference
->> as not available.  If that is what you mean by busy.  But if it's
->> reference is zero it is also not available.  So there is no practical
->> difference.
->>
->>> That is a completely new class of failure that is actually hard to deal
->>> with, not to mention that it completely destroys refcount_inc_not_zero()
->>> being a 'simple' replacement for atomic_inc_not_zero().
->>>
->>> In case of the current failure, the no-such-object, we can fix that by
->>> creating said object. But what to do on 'busy' ? Surely you don't want
->>> to create another. You'd have to somehow retrofit something to wait on
->>> in every user.
->>
->> Using little words.
->>
->> A return of true from inc_not_zero means we took a reference.
->> A return of false means we did not take a reference.
->>
->> The code already handles I took a reference or I did not take a
->> reference.
->>
->> Therefore lying with refcount_t is not helpful.  It takes failures
->> the code could easily handle and turns them into leaks.
->>
->> At least that is how I have seen reference counts used.  And those
->> are definitely the plane obivous semantics.
->>
->> Your changes are definitely not drop in replacements for atomic_t in my
->> code.
+>> +config CPU_BIG_ENDIAN
+>> +       bool
+>> +       default y if SPARC
 >
-> To clarify.
+> Nice catch!
 >
-> If my code uses atomic_inc it does not expect a failure of any sort
-> and saturate semantics are a fine replacement.
->
-> If my code uses atomic_inc_not_zero it knows how to handle a failure
-> to take a reference count.  Making hiding the failure really bizarre.
->
-> A must check function that hides a case I can handle and requires
-> checking in a case where my code is built not to check is a drop in
-> replacement for neither.
->
-> So anyone who is proposing a refcount_t change as a drop in replacement
-> for any code I maintain I will nack on sight because refcount_t is not
-> currently a no-brain drop in replacement.
+> Traditionally, CPU_BIG_ENDIAN and CPU_LITTLE_ENDIAN were defined only on
+> architectures that may support both.  And it was checked in platform code
+> and drivers only.
+> Hence the symbol is lacking from most architectures. Heck, even
+> architectures that support both may default to one endiannes, and declare
+> only the symbol for the other endianness:
 
-*Blink*
+I guess there's a reason we can't use __BIG_ENDIAN__ / __LITTLE_ENDIAN__ ?
 
-I failed to see that there is a refcount_inc.  Too much noise in
-the header file I suppose.
-
-But implementing refcount_inc in terms of refcount_inc_not_zero is
-totally broken.  The two operations are not the same and the go to
-different assumptions the code is making.
-
-That explains why you think refcount_inc_not_zero should lie because
-you are implementing refcount_inc with it.  They are semantically very
-different operations.  Please separate them.
-
-Eric
+cheers
+--
+To unsubscribe from this list: send the line "unsubscribe devicetree" in
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
