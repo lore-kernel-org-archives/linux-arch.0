@@ -1,86 +1,41 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 0/3] ipc subsystem refcounter conversions
-Date: Mon, 29 May 2017 17:43:47 +0200
-Message-ID: <20170529154347.5ckn26uupkuar6nb@hirez.programming.kicks-ass.net>
-References: <1487590189-18151-1-git-send-email-elena.reshetova@intel.com>
- <20170303162352.b6af1c0c3115b3f5f1e7aed3@linux-foundation.org>
- <CAGXu5jKNChaVdfbM171FYkvY1hUMXG6cp-=WAdXBP0eTOO5RAA@mail.gmail.com>
- <20170529083903.GA17735@infradead.org>
- <87h904xc26.fsf@xmission.com>
- <20170529102442.gerbzxzixllen46q@hirez.programming.kicks-ass.net>
- <87a85wvsxa.fsf@xmission.com>
- <87o9ubvr0t.fsf@xmission.com>
- <8760gjvqm7.fsf@xmission.com>
- <20170529122316.giceifwjnuz6djr4@hirez.programming.kicks-ass.net>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCH] kbuild: provide THIN_ARCHIVES option for all architectures
+Date: Mon, 29 May 2017 10:03:19 -0700
+Message-ID: <CA+55aFyM8c1h7S+x95qvv84jphu9=XSXZop=gVp7xc5tf3JJMQ@mail.gmail.com>
+References: <20170529081103.29999-1-npiggin@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([65.50.211.133]:34958 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750811AbdE2PoD (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 May 2017 11:44:03 -0400
-Content-Disposition: inline
-In-Reply-To: <20170529122316.giceifwjnuz6djr4@hirez.programming.kicks-ass.net>
+Received: from mail-io0-f182.google.com ([209.85.223.182]:36501 "EHLO
+        mail-io0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750844AbdE2RDU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 May 2017 13:03:20 -0400
+In-Reply-To: <20170529081103.29999-1-npiggin@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: Christoph Hellwig <hch@infradead.org>, Kees Cook <keescook@chromium.org>, Andrew Morton <akpm@linux-foundation.org>, Elena Reshetova <elena.reshetova@intel.com>, Greg KH <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, kernel-hardening@lists.openwall.com
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Stephen Rothwell <sfr@canb.auug.org.au>
 
-On Mon, May 29, 2017 at 02:23:16PM +0200, Peter Zijlstra wrote:
-> On Mon, May 29, 2017 at 06:39:44AM -0500, Eric W. Biederman wrote:
-> > I failed to see that there is a refcount_inc.  Too much noise in
-> > the header file I suppose.
-> > 
-> > But implementing refcount_inc in terms of refcount_inc_not_zero is
-> > totally broken.  The two operations are not the same and the go to
-> > different assumptions the code is making.
-> > 
-> > That explains why you think refcount_inc_not_zero should lie because
-> > you are implementing refcount_inc with it.  They are semantically very
-> > different operations.  Please separate them.
-> 
-> There has been much debate about this. And the best I'll do is add a
-> comment and/or retain these exact semantics.
-> 
-> What is done is:
-> 
-> 	refcount_inc() := WARN_ON(!refcount_inc_not_zero())
-> 
-> Because incrementing a zero reference count is a use-after-free and
-> something we should not do ever.
-> 
-> This is where the whole usage count vs reference count pain comes from.
-> 
-> Once there are no more _references_ to an object, a reference count
-> frees the object. Therefore a zero reference count means a dead object
-> and incrementing from that is fail.
-> 
-> The usage count model otoh counts how many (active) users there are of
-> an object, and no active users is a good and expected situation. But it
-> is very explicitly not a reference count. Because even in the no users
-> case do we have a reference to the object (we've not leaked it after
-> all, we just don't track all references).
-> 
-> 
-> Similarly, refcount_dec() is implemented using dec_and_test() and will
-> WARN when it hits 0, because this is a leak and we don't want those
-> either.
-> 
-> A usage count variant otoh would be fine with hitting 0.
+On Mon, May 29, 2017 at 1:11 AM, Nicholas Piggin <npiggin@gmail.com> wrote:
+>
+> The next step will be to have archs always select THIN_ARCHIVES
+> when they are known to work. Then remove the option entirely.
 
-A typical pattern for the usage count is caches, where objects are kept
-in a data structure (hash/tree and/or list) and we count how many users
-there are of said objects. A GC or shrinker will then iterate the
-structure and prune those objects that have 0 users.
+Honestly, why even do that?
 
-It is fairly straight forward to convert those to refcount_t by adding
-one reference for the data structure itself. The GC/shrinker will then
-have to use something like refcount_dec_if_one() to drop the reference
-from 1->0 (and we could easily add something like dec_and_lock_if_one if
-so desired).
+If we really think that thin archives is the way to go, and it's known
+to work on ppc, x86 and arm, why not just do it unconditionally?
 
-Not all of them mind you, but simple cases can certainly be done without
-too much pain.
+I hate our kconfig process as-is, and asking about odd binutils things
+that nobody knows the answer to is just rude. Plus it will actually be
+really really painful to find problems triggered by this, because it
+will be some magical config detail that nobody thinks of.
 
-But clearly there have been conversions of less than desired quality /
-clarity though ...
+In contrast, if we just enable this unconditionally,  and it causes
+problems, they will show up the culprit trivially with "git bisect".
+
+So either thin archives work or they don't. Don't make it some painful
+drawn-out process that actually makes it harder to test rather than
+easier.
+
+                          Linus
