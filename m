@@ -1,108 +1,66 @@
-From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: Re: [PATCH 0/3] ipc subsystem refcounter conversions
-Date: Mon, 29 May 2017 05:49:53 -0500
-Message-ID: <87a85wvsxa.fsf@xmission.com>
-References: <1487590189-18151-1-git-send-email-elena.reshetova@intel.com>
-	<20170303162352.b6af1c0c3115b3f5f1e7aed3@linux-foundation.org>
-	<CAGXu5jKNChaVdfbM171FYkvY1hUMXG6cp-=WAdXBP0eTOO5RAA@mail.gmail.com>
-	<20170529083903.GA17735@infradead.org> <87h904xc26.fsf@xmission.com>
-	<20170529102442.gerbzxzixllen46q@hirez.programming.kicks-ass.net>
+From: Andrey Ryabinin <aryabinin@virtuozzo.com>
+Subject: Re: KASAN vs. boot-time switching between 4- and 5-level paging
+Date: Mon, 29 May 2017 14:18:52 +0300
+Message-ID: <71e11033-f95c-887f-4e4e-351bcc3df71e@virtuozzo.com>
+References: <20170525203334.867-1-kirill.shutemov@linux.intel.com>
+ <20170525203334.867-8-kirill.shutemov@linux.intel.com>
+ <20170526221059.o4kyt3ijdweurz6j@node.shutemov.name>
+ <CACT4Y+YyFWg3fbj4ta3tSKoeBaw7hbL2YoBatAFiFB1_cMg9=Q@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <kernel-hardening-return-8106-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <20170529102442.gerbzxzixllen46q@hirez.programming.kicks-ass.net>
-	(Peter Zijlstra's message of "Mon, 29 May 2017 12:24:42 +0200")
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Christoph Hellwig <hch@infradead.org>, Kees Cook <keescook@chromium.org>, Andrew Morton <akpm@linux-foundation.org>, Elena Reshetova <elena.reshetova@intel.com>, Greg KH <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@li>sts.openwall.com, LKML <linux-kernel@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-db5eur01on0114.outbound.protection.outlook.com ([104.47.2.114]:62352
+        "EHLO EUR01-DB5-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1750974AbdE2LRI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 29 May 2017 07:17:08 -0400
+In-Reply-To: <CACT4Y+YyFWg3fbj4ta3tSKoeBaw7hbL2YoBatAFiFB1_cMg9=Q@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dmitry Vyukov <dvyukov@google.com>, "Kirill A. Shutemov" <kirill@shutemov.name>
+Cc: Alexander Potapenko <glider@google.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, "x86@kernel.org" <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, "linux-mm@kvack.org" <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>
 
-Peter Zijlstra <peterz@infradead.org> writes:
 
-> On Mon, May 29, 2017 at 04:11:13AM -0500, Eric W. Biederman wrote:
->
->> Kees I I have a concern:
->> 
->> __must_check bool refcount_add_not_zero(unsigned int i, refcount_t *r)
->> {
->>         unsigned int new, val = atomic_read(&r->refs);
->> 
->>         do {
->>                 if (!val)
->>                         return false;
->> 
->>                 if (unlikely(val == UINT_MAX))
->>                         return true;
->> 
->>                 new = val + i;
->>                 if (new < val)
->>                         new = UINT_MAX;
->> 
->>         } while (!atomic_try_cmpxchg_relaxed(&r->refs, &val, new));
->> 
->>         WARN_ONCE(new == UINT_MAX, "refcount_t: saturated; leaking memory.\n");
->> 
->>         return true;
->> }
->> 
->> Why in the world do you succeed when you the value saturates????
->
-> Why not? On saturation the object will leak and returning a reference to
-> it is always good.
->
->> From a code perspective that is bizarre.   The code already has to handle
->> the case when the counter does not increment.
->
-> I don't see it as bizarre, we turned an overflow/use-after-free into a
-> leak. That's the primary mechanism here.
->
-> As long as we have a reference to a leaked object, we might as well use
-> it, its not going anywhere.
->
->> Fixing the return value would move refcount_t into the realm of
->> something that is desirable because it has bettern semantics and
->> is more useful just on a day to day correctness point of view.  Even
->> ignoring the security implications.
->
-> It changes the semantics between inc_not_zero() and inc(). It also
-> complicates the semantics of inc_not_zero(), where currently the failure
-> implies the count is 0 and means no-such-object, you complicate matters
-> by basically returning 'busy'.
 
-Busy is not a state of a reference count.
+On 05/29/2017 01:02 PM, Dmitry Vyukov wrote:
+> On Sat, May 27, 2017 at 12:10 AM, Kirill A. Shutemov
+> <kirill@shutemov.name> wrote:
+>> On Thu, May 25, 2017 at 11:33:33PM +0300, Kirill A. Shutemov wrote:
+>>> diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+>>> index 0bf81e837cbf..c795207d8a3c 100644
+>>> --- a/arch/x86/Kconfig
+>>> +++ b/arch/x86/Kconfig
+>>> @@ -100,7 +100,7 @@ config X86
+>>>       select HAVE_ARCH_AUDITSYSCALL
+>>>       select HAVE_ARCH_HUGE_VMAP              if X86_64 || X86_PAE
+>>>       select HAVE_ARCH_JUMP_LABEL
+>>> -     select HAVE_ARCH_KASAN                  if X86_64 && SPARSEMEM_VMEMMAP
+>>> +     select HAVE_ARCH_KASAN                  if X86_64 && SPARSEMEM_VMEMMAP && !X86_5LEVEL
+>>>       select HAVE_ARCH_KGDB
+>>>       select HAVE_ARCH_KMEMCHECK
+>>>       select HAVE_ARCH_MMAP_RND_BITS          if MMU
+>>
+>> Looks like KASAN will be a problem for boot-time paging mode switching.
+>> It wants to know CONFIG_KASAN_SHADOW_OFFSET at compile-time to pass to
+>> gcc -fasan-shadow-offset=. But this value varies between paging modes...
+>>
+>> I don't see how to solve it. Folks, any ideas?
+> 
+> +kasan-dev
+> 
+> I wonder if we can use the same offset for both modes. If we use
+> 0xFFDFFC0000000000 as start of shadow for 5 levels, then the same
+> offset that we use for 4 levels (0xdffffc0000000000) will also work
+> for 5 levels. Namely, ending of 5 level shadow will overlap with 4
+> level mapping (both end at 0xfffffbffffffffff), but 5 level mapping
+> extends towards lower addresses. The current 5 level start of shadow
+> is actually close -- 0xffd8000000000000 and it seems that the required
+> space after it is unused at the moment (at least looking at mm.txt).
+> So just try to move it to 0xFFDFFC0000000000?
+> 
 
-It is true I am suggesting treating something with a saturated reference
-as not available.  If that is what you mean by busy.  But if it's
-reference is zero it is also not available.  So there is no practical
-difference.
-
-> That is a completely new class of failure that is actually hard to deal
-> with, not to mention that it completely destroys refcount_inc_not_zero()
-> being a 'simple' replacement for atomic_inc_not_zero().
->
-> In case of the current failure, the no-such-object, we can fix that by
-> creating said object. But what to do on 'busy' ? Surely you don't want
-> to create another. You'd have to somehow retrofit something to wait on
-> in every user.
-
-Using little words.
-
-A return of true from inc_not_zero means we took a reference.
-A return of false means we did not take a reference.
-
-The code already handles I took a reference or I did not take a
-reference.
-
-Therefore lying with refcount_t is not helpful.  It takes failures
-the code could easily handle and turns them into leaks.
-
-At least that is how I have seen reference counts used.  And those
-are definitely the plane obivous semantics.
-
-Your changes are definitely not drop in replacements for atomic_t in my
-code.
-
-Eric
+Yeah, this should work, but note that 0xFFDFFC0000000000 is not PGDIR aligned address. Our init code
+assumes that kasan shadow stars and ends on the PGDIR aligned address.
+Fortunately this is fixable, we'd need two more pages for page tables to map unaligned start/end
+of the shadow.
