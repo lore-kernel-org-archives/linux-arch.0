@@ -1,94 +1,108 @@
 From: ebiederm@xmission.com (Eric W. Biederman)
 Subject: Re: [PATCH 0/3] ipc subsystem refcounter conversions
-Date: Mon, 29 May 2017 04:11:13 -0500
-Message-ID: <87h904xc26.fsf@xmission.com>
+Date: Mon, 29 May 2017 05:49:53 -0500
+Message-ID: <87a85wvsxa.fsf@xmission.com>
 References: <1487590189-18151-1-git-send-email-elena.reshetova@intel.com>
-        <20170303162352.b6af1c0c3115b3f5f1e7aed3@linux-foundation.org>
-        <CAGXu5jKNChaVdfbM171FYkvY1hUMXG6cp-=WAdXBP0eTOO5RAA@mail.gmail.com>
-        <20170529083903.GA17735@infradead.org>
+	<20170303162352.b6af1c0c3115b3f5f1e7aed3@linux-foundation.org>
+	<CAGXu5jKNChaVdfbM171FYkvY1hUMXG6cp-=WAdXBP0eTOO5RAA@mail.gmail.com>
+	<20170529083903.GA17735@infradead.org> <87h904xc26.fsf@xmission.com>
+	<20170529102442.gerbzxzixllen46q@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from out03.mta.xmission.com ([166.70.13.233]:52526 "EHLO
-        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750866AbdE2JSH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 May 2017 05:18:07 -0400
-In-Reply-To: <20170529083903.GA17735@infradead.org> (Christoph Hellwig's
-        message of "Mon, 29 May 2017 01:39:04 -0700")
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@infradead.org>
-Cc: Kees Cook <keescook@chromium.org>, Andrew Morton <akpm@linux-foundation.org>, Elena Reshetova <elena.reshetova@intel.com>, Peter Zijlstra <peterz@infradead.org>, Greg KH <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, kernel-hardening@lists.openwall.com
+Return-path: <kernel-hardening-return-8106-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+In-Reply-To: <20170529102442.gerbzxzixllen46q@hirez.programming.kicks-ass.net>
+	(Peter Zijlstra's message of "Mon, 29 May 2017 12:24:42 +0200")
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Christoph Hellwig <hch@infradead.org>, Kees Cook <keescook@chromium.org>, Andrew Morton <akpm@linux-foundation.org>, Elena Reshetova <elena.reshetova@intel.com>, Greg KH <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@li>sts.openwall.com, LKML <linux-kernel@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-Christoph Hellwig <hch@infradead.org> writes:
+Peter Zijlstra <peterz@infradead.org> writes:
 
-> On Sat, May 27, 2017 at 12:58:14PM -0700, Kees Cook wrote:
->> FAST_REFCOUNT=n: use function-based refcount_t with cmpxvhg and
->> full-verification
->> FAST_REFCOUNT=y without arch-specific implementation: use atomic_t
->> with no verification (i.e. no functional change from now)
->> FAST_REFCOUNT=y with arch-specific implementation: use atomic_t with
->> overflow protection
->> 
->> which means FAST_REFCOUNT would need to be default-on so that mm,
->> block, net users will remain happy.
->> 
->> Does that sound reasonable?
+> On Mon, May 29, 2017 at 04:11:13AM -0500, Eric W. Biederman wrote:
 >
-> I'd rather turn the options around so that the atomic_t or fast
-> arch implementations are the defaul.  But either way it needs to
-> be configurable.  Once that is done we can spread refcount_t everywhere
-> and everyone will be better off, if only for the documentation value
-> of the type when they use the atomic_t based implementation.
+>> Kees I I have a concern:
+>> 
+>> __must_check bool refcount_add_not_zero(unsigned int i, refcount_t *r)
+>> {
+>>         unsigned int new, val = atomic_read(&r->refs);
+>> 
+>>         do {
+>>                 if (!val)
+>>                         return false;
+>> 
+>>                 if (unlikely(val == UINT_MAX))
+>>                         return true;
+>> 
+>>                 new = val + i;
+>>                 if (new < val)
+>>                         new = UINT_MAX;
+>> 
+>>         } while (!atomic_try_cmpxchg_relaxed(&r->refs, &val, new));
+>> 
+>>         WARN_ONCE(new == UINT_MAX, "refcount_t: saturated; leaking memory.\n");
+>> 
+>>         return true;
+>> }
+>> 
+>> Why in the world do you succeed when you the value saturates????
+>
+> Why not? On saturation the object will leak and returning a reference to
+> it is always good.
+>
+>> From a code perspective that is bizarre.   The code already has to handle
+>> the case when the counter does not increment.
+>
+> I don't see it as bizarre, we turned an overflow/use-after-free into a
+> leak. That's the primary mechanism here.
+>
+> As long as we have a reference to a leaked object, we might as well use
+> it, its not going anywhere.
+>
+>> Fixing the return value would move refcount_t into the realm of
+>> something that is desirable because it has bettern semantics and
+>> is more useful just on a day to day correctness point of view.  Even
+>> ignoring the security implications.
+>
+> It changes the semantics between inc_not_zero() and inc(). It also
+> complicates the semantics of inc_not_zero(), where currently the failure
+> implies the count is 0 and means no-such-object, you complicate matters
+> by basically returning 'busy'.
 
-Agreed on the opposite default as opting into common library
-implementations is how we typically handle things in linux.
+Busy is not a state of a reference count.
 
-Kees I I have a concern:
+It is true I am suggesting treating something with a saturated reference
+as not available.  If that is what you mean by busy.  But if it's
+reference is zero it is also not available.  So there is no practical
+difference.
 
-__must_check bool refcount_add_not_zero(unsigned int i, refcount_t *r)
-{
-        unsigned int new, val = atomic_read(&r->refs);
+> That is a completely new class of failure that is actually hard to deal
+> with, not to mention that it completely destroys refcount_inc_not_zero()
+> being a 'simple' replacement for atomic_inc_not_zero().
+>
+> In case of the current failure, the no-such-object, we can fix that by
+> creating said object. But what to do on 'busy' ? Surely you don't want
+> to create another. You'd have to somehow retrofit something to wait on
+> in every user.
 
-        do {
-                if (!val)
-                        return false;
+Using little words.
 
-                if (unlikely(val == UINT_MAX))
-                        return true;
+A return of true from inc_not_zero means we took a reference.
+A return of false means we did not take a reference.
 
-                new = val + i;
-                if (new < val)
-                        new = UINT_MAX;
+The code already handles I took a reference or I did not take a
+reference.
 
-        } while (!atomic_try_cmpxchg_relaxed(&r->refs, &val, new));
+Therefore lying with refcount_t is not helpful.  It takes failures
+the code could easily handle and turns them into leaks.
 
-        WARN_ONCE(new == UINT_MAX, "refcount_t: saturated; leaking memory.\n");
+At least that is how I have seen reference counts used.  And those
+are definitely the plane obivous semantics.
 
-        return true;
-}
-
-Why in the world do you succeed when you the value saturates????
-
-From a code perspective that is bizarre.   The code already has to handle
-the case when the counter does not increment.
-
-So since we already have to have that code to handle the failure to
-increment I think it would make much more sense if the counters did not
-only saturate but report failure when the counter can not increment.
-
-Right now I am inclined to NACK refcount_t conversions because their
-semantics don't make sense.  Which would seem to make the code less
-correct by introducing bizarre corner cases instead of letting the code
-use the it's existing handling of the failure to increment or decrement
-the counter.
-
-Fixing the return value would move refcount_t into the realm of
-something that is desirable because it has bettern semantics and
-is more useful just on a day to day correctness point of view.  Even
-ignoring the security implications.
-
-I suspect that would also make it easier for refcount_t implementations
-to produce efficient code.
+Your changes are definitely not drop in replacements for atomic_t in my
+code.
 
 Eric
