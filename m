@@ -1,69 +1,80 @@
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: CPU_BIG_ENDIAN in generic code (was: Re: [PATCH v3 3/7] arch/sparc: Define config parameter CPU_BIG_ENDIAN)
-Date: Tue, 30 May 2017 12:56:39 +1000
-Message-ID: <877f0z6oig.fsf@concordia.ellerman.id.au>
-References: <CAMuHMdVjh+1TR19mUUQYHSazHnBHa4uxn7KyHUO+jAh7WDxy5Q@mail.gmail.com> <87a85v7to2.fsf@concordia.ellerman.id.au> <CAMuHMdU1kne4tKRfyx0hr1LXh_c75bYMs0b=vncHqrhB69jqYg@mail.gmail.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 0/3] ipc subsystem refcounter conversions
+Date: Mon, 29 May 2017 12:24:42 +0200
+Message-ID: <20170529102442.gerbzxzixllen46q@hirez.programming.kicks-ass.net>
+References: <1487590189-18151-1-git-send-email-elena.reshetova@intel.com>
+ <20170303162352.b6af1c0c3115b3f5f1e7aed3@linux-foundation.org>
+ <CAGXu5jKNChaVdfbM171FYkvY1hUMXG6cp-=WAdXBP0eTOO5RAA@mail.gmail.com>
+ <20170529083903.GA17735@infradead.org>
+ <87h904xc26.fsf@xmission.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([103.22.144.67]:39933 "EHLO ozlabs.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750811AbdE3C4p (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 29 May 2017 22:56:45 -0400
-In-Reply-To: <CAMuHMdU1kne4tKRfyx0hr1LXh_c75bYMs0b=vncHqrhB69jqYg@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Babu Moger <babu.moger@oracle.com>, "David S. Miller" <davem@davemloft.net>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, sparclinux <sparclinux@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <kernel-hardening-return-8104-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+Content-Disposition: inline
+In-Reply-To: <87h904xc26.fsf@xmission.com>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: Christoph Hellwig <hch@infradead.org>, Kees Cook <keescook@chromium.org>, Andrew Morton <akpm@linux-foundation.org>, Elena Reshetova <elena.reshetova@intel.com>, Greg KH <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, LKML <linux-kernel@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-Geert Uytterhoeven <geert@linux-m68k.org> writes:
+On Mon, May 29, 2017 at 04:11:13AM -0500, Eric W. Biederman wrote:
 
-> Hi Michael,
->
-> On Mon, May 29, 2017 at 2:07 PM, Michael Ellerman <mpe@ellerman.id.au> wrote:
->> Geert Uytterhoeven <geert@linux-m68k.org> writes:
->>> On Tue, May 23, 2017 at 11:45 PM, Babu Moger <babu.moger@oracle.com> wrote:
->>>> Found this problem while enabling queued rwlock on SPARC.
->>>> The parameter CONFIG_CPU_BIG_ENDIAN is used to clear the
->>>> specific byte in qrwlock structure. Without this parameter,
->>>> we clear the wrong byte. Here is the code.
->>>>
->>>> static inline u8 *__qrwlock_write_byte(struct qrwlock *lock)
->>>>  {
->>>>         return (u8 *)lock + 3 * IS_BUILTIN(CONFIG_CPU_BIG_ENDIAN);
->>>>  }
->>>>
->>>> Define CPU_BIG_ENDIAN for SPARC to fix it.
->>>
->>>> --- a/arch/sparc/Kconfig
->>>> +++ b/arch/sparc/Kconfig
->>>> @@ -92,6 +92,10 @@ config ARCH_DEFCONFIG
->>>>  config ARCH_PROC_KCORE_TEXT
->>>>         def_bool y
->>>>
->>>> +config CPU_BIG_ENDIAN
->>>> +       bool
->>>> +       default y if SPARC
->>>
->>> Nice catch!
->>>
->>> Traditionally, CPU_BIG_ENDIAN and CPU_LITTLE_ENDIAN were defined only on
->>> architectures that may support both.  And it was checked in platform code
->>> and drivers only.
->>> Hence the symbol is lacking from most architectures. Heck, even
->>> architectures that support both may default to one endiannes, and declare
->>> only the symbol for the other endianness:
->>
->> I guess there's a reason we can't use __BIG_ENDIAN__ / __LITTLE_ENDIAN__ ?
->
-> I (C/asm) code we can, in Kconfig we cannot.
->
-> So far we tried always doing that, but a few checks for the semi-existing
-> Kconfig symbol crept in in generic code. Those could be replaced by the __*__
-> variants, but consistently having the Kconfig symbols would be useful anyway
-> (e.g. to avoid building the broken-on-big-endian ISDN drivers).
+> Kees I I have a concern:
+> 
+> __must_check bool refcount_add_not_zero(unsigned int i, refcount_t *r)
+> {
+>         unsigned int new, val = atomic_read(&r->refs);
+> 
+>         do {
+>                 if (!val)
+>                         return false;
+> 
+>                 if (unlikely(val == UINT_MAX))
+>                         return true;
+> 
+>                 new = val + i;
+>                 if (new < val)
+>                         new = UINT_MAX;
+> 
+>         } while (!atomic_try_cmpxchg_relaxed(&r->refs, &val, new));
+> 
+>         WARN_ONCE(new == UINT_MAX, "refcount_t: saturated; leaking memory.\n");
+> 
+>         return true;
+> }
+> 
+> Why in the world do you succeed when you the value saturates????
 
-Ah OK, the original mail was citing C code, but yeah I guess it would be
-handy in Makefiles etc.
+Why not? On saturation the object will leak and returning a reference to
+it is always good.
 
-cheers
+> From a code perspective that is bizarre.   The code already has to handle
+> the case when the counter does not increment.
+
+I don't see it as bizarre, we turned an overflow/use-after-free into a
+leak. That's the primary mechanism here.
+
+As long as we have a reference to a leaked object, we might as well use
+it, its not going anywhere.
+
+> Fixing the return value would move refcount_t into the realm of
+> something that is desirable because it has bettern semantics and
+> is more useful just on a day to day correctness point of view.  Even
+> ignoring the security implications.
+
+It changes the semantics between inc_not_zero() and inc(). It also
+complicates the semantics of inc_not_zero(), where currently the failure
+implies the count is 0 and means no-such-object, you complicate matters
+by basically returning 'busy'.
+
+That is a completely new class of failure that is actually hard to deal
+with, not to mention that it completely destroys refcount_inc_not_zero()
+being a 'simple' replacement for atomic_inc_not_zero().
+
+In case of the current failure, the no-such-object, we can fix that by
+creating said object. But what to do on 'busy' ? Surely you don't want
+to create another. You'd have to somehow retrofit something to wait on
+in every user.
