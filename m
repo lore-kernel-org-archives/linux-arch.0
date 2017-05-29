@@ -1,82 +1,110 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([65.50.211.133]:54240 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751024AbdE2KZE (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 May 2017 06:25:04 -0400
-Date: Mon, 29 May 2017 12:24:42 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 0/3] ipc subsystem refcounter conversions
-Message-ID: <20170529102442.gerbzxzixllen46q@hirez.programming.kicks-ass.net>
+Received: from out01.mta.xmission.com ([166.70.13.231]:35542 "EHLO
+        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750984AbdE2K4t (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 May 2017 06:56:49 -0400
+From: ebiederm@xmission.com (Eric W. Biederman)
 References: <1487590189-18151-1-git-send-email-elena.reshetova@intel.com>
- <20170303162352.b6af1c0c3115b3f5f1e7aed3@linux-foundation.org>
- <CAGXu5jKNChaVdfbM171FYkvY1hUMXG6cp-=WAdXBP0eTOO5RAA@mail.gmail.com>
- <20170529083903.GA17735@infradead.org>
- <87h904xc26.fsf@xmission.com>
+        <20170303162352.b6af1c0c3115b3f5f1e7aed3@linux-foundation.org>
+        <CAGXu5jKNChaVdfbM171FYkvY1hUMXG6cp-=WAdXBP0eTOO5RAA@mail.gmail.com>
+        <20170529083903.GA17735@infradead.org> <87h904xc26.fsf@xmission.com>
+        <20170529102442.gerbzxzixllen46q@hirez.programming.kicks-ass.net>
+Date: Mon, 29 May 2017 05:49:53 -0500
+In-Reply-To: <20170529102442.gerbzxzixllen46q@hirez.programming.kicks-ass.net>
+        (Peter Zijlstra's message of "Mon, 29 May 2017 12:24:42 +0200")
+Message-ID: <87a85wvsxa.fsf@xmission.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <87h904xc26.fsf@xmission.com>
+Content-Type: text/plain
+Subject: Re: [PATCH 0/3] ipc subsystem refcounter conversions
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Eric W. Biederman" <ebiederm@xmission.com>
+To: Peter Zijlstra <peterz@infradead.org>
 Cc: Christoph Hellwig <hch@infradead.org>, Kees Cook <keescook@chromium.org>, Andrew Morton <akpm@linux-foundation.org>, Elena Reshetova <elena.reshetova@intel.com>, Greg KH <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, LKML <linux-kernel@vger.kernel.org>
-Message-ID: <20170529102442.T3P4n9YJpfrfd2wkioK_IRhJ5CkpJuD9OxFtp5rvcMA@z>
+Message-ID: <20170529104953.iwfUTAlDBAuyo6zSDwm7_-FT7sU2WyzAwxmcMVPvHIo@z>
 
-On Mon, May 29, 2017 at 04:11:13AM -0500, Eric W. Biederman wrote:
+Peter Zijlstra <peterz@infradead.org> writes:
 
-> Kees I I have a concern:
-> 
-> __must_check bool refcount_add_not_zero(unsigned int i, refcount_t *r)
-> {
->         unsigned int new, val = atomic_read(&r->refs);
-> 
->         do {
->                 if (!val)
->                         return false;
-> 
->                 if (unlikely(val == UINT_MAX))
->                         return true;
-> 
->                 new = val + i;
->                 if (new < val)
->                         new = UINT_MAX;
-> 
->         } while (!atomic_try_cmpxchg_relaxed(&r->refs, &val, new));
-> 
->         WARN_ONCE(new == UINT_MAX, "refcount_t: saturated; leaking memory.\n");
-> 
->         return true;
-> }
-> 
-> Why in the world do you succeed when you the value saturates????
+> On Mon, May 29, 2017 at 04:11:13AM -0500, Eric W. Biederman wrote:
+>
+>> Kees I I have a concern:
+>> 
+>> __must_check bool refcount_add_not_zero(unsigned int i, refcount_t *r)
+>> {
+>>         unsigned int new, val = atomic_read(&r->refs);
+>> 
+>>         do {
+>>                 if (!val)
+>>                         return false;
+>> 
+>>                 if (unlikely(val == UINT_MAX))
+>>                         return true;
+>> 
+>>                 new = val + i;
+>>                 if (new < val)
+>>                         new = UINT_MAX;
+>> 
+>>         } while (!atomic_try_cmpxchg_relaxed(&r->refs, &val, new));
+>> 
+>>         WARN_ONCE(new == UINT_MAX, "refcount_t: saturated; leaking memory.\n");
+>> 
+>>         return true;
+>> }
+>> 
+>> Why in the world do you succeed when you the value saturates????
+>
+> Why not? On saturation the object will leak and returning a reference to
+> it is always good.
+>
+>> From a code perspective that is bizarre.   The code already has to handle
+>> the case when the counter does not increment.
+>
+> I don't see it as bizarre, we turned an overflow/use-after-free into a
+> leak. That's the primary mechanism here.
+>
+> As long as we have a reference to a leaked object, we might as well use
+> it, its not going anywhere.
+>
+>> Fixing the return value would move refcount_t into the realm of
+>> something that is desirable because it has bettern semantics and
+>> is more useful just on a day to day correctness point of view.  Even
+>> ignoring the security implications.
+>
+> It changes the semantics between inc_not_zero() and inc(). It also
+> complicates the semantics of inc_not_zero(), where currently the failure
+> implies the count is 0 and means no-such-object, you complicate matters
+> by basically returning 'busy'.
 
-Why not? On saturation the object will leak and returning a reference to
-it is always good.
+Busy is not a state of a reference count.
 
-> From a code perspective that is bizarre.   The code already has to handle
-> the case when the counter does not increment.
+It is true I am suggesting treating something with a saturated reference
+as not available.  If that is what you mean by busy.  But if it's
+reference is zero it is also not available.  So there is no practical
+difference.
 
-I don't see it as bizarre, we turned an overflow/use-after-free into a
-leak. That's the primary mechanism here.
+> That is a completely new class of failure that is actually hard to deal
+> with, not to mention that it completely destroys refcount_inc_not_zero()
+> being a 'simple' replacement for atomic_inc_not_zero().
+>
+> In case of the current failure, the no-such-object, we can fix that by
+> creating said object. But what to do on 'busy' ? Surely you don't want
+> to create another. You'd have to somehow retrofit something to wait on
+> in every user.
 
-As long as we have a reference to a leaked object, we might as well use
-it, its not going anywhere.
+Using little words.
 
-> Fixing the return value would move refcount_t into the realm of
-> something that is desirable because it has bettern semantics and
-> is more useful just on a day to day correctness point of view.  Even
-> ignoring the security implications.
+A return of true from inc_not_zero means we took a reference.
+A return of false means we did not take a reference.
 
-It changes the semantics between inc_not_zero() and inc(). It also
-complicates the semantics of inc_not_zero(), where currently the failure
-implies the count is 0 and means no-such-object, you complicate matters
-by basically returning 'busy'.
+The code already handles I took a reference or I did not take a
+reference.
 
-That is a completely new class of failure that is actually hard to deal
-with, not to mention that it completely destroys refcount_inc_not_zero()
-being a 'simple' replacement for atomic_inc_not_zero().
+Therefore lying with refcount_t is not helpful.  It takes failures
+the code could easily handle and turns them into leaks.
 
-In case of the current failure, the no-such-object, we can fix that by
-creating said object. But what to do on 'busy' ? Surely you don't want
-to create another. You'd have to somehow retrofit something to wait on
-in every user.
+At least that is how I have seen reference counts used.  And those
+are definitely the plane obivous semantics.
+
+Your changes are definitely not drop in replacements for atomic_t in my
+code.
+
+Eric
