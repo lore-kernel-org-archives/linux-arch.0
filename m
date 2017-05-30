@@ -1,108 +1,111 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f180.google.com ([209.85.192.180]:35401 "EHLO
-        mail-pf0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750970AbdE3Vj7 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 30 May 2017 17:39:59 -0400
-Received: by mail-pf0-f180.google.com with SMTP id n23so83528242pfb.2
-        for <linux-arch@vger.kernel.org>; Tue, 30 May 2017 14:39:59 -0700 (PDT)
+Received: from mail-pf0-f174.google.com ([209.85.192.174]:32956 "EHLO
+        mail-pf0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750811AbdE3Vj6 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 30 May 2017 17:39:58 -0400
+Received: by mail-pf0-f174.google.com with SMTP id e193so83654543pfh.0
+        for <linux-arch@vger.kernel.org>; Tue, 30 May 2017 14:39:58 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v5 2/3] x86/asm: Add suffix macro for GEN_*_RMWcc()
-Date: Tue, 30 May 2017 14:39:51 -0700
-Message-ID: <1496180392-98718-3-git-send-email-keescook@chromium.org>
-In-Reply-To: <1496180392-98718-1-git-send-email-keescook@chromium.org>
-References: <1496180392-98718-1-git-send-email-keescook@chromium.org>
+Subject: [PATCH v5 0/3] Implement fast refcount overflow protection
+Date: Tue, 30 May 2017 14:39:49 -0700
+Message-ID: <1496180392-98718-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: Kees Cook <keescook@chromium.org>, Christoph Hellwig <hch@infradead.org>, Peter Zijlstra <peterz@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, PaX Team <pageexec@freemail.hu>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
-Message-ID: <20170530213951.pImwd7LyIi2SRwUsu58Eyd1PYJwBwIYI6Y3QwrEYJ0s@z>
+Message-ID: <20170530213949.UtyWJlwcv2zyi8_n4l8A4z1JEFDq6dJEbkY4wcLSr5c@z>
 
-The coming x86 refcount protection needs to be able to add trailing
-instructions to the GEN_*_RMWcc() operations. This extracts the
-difference between the goto/non-goto cases so the helper macros
-can be defined outside the #ifdef cases. Additionally adds argument
-naming to the resulting asm for referencing from suffixed
-instructions, and adds clobbers for "cc", and "cx" to let suffixes
-use _ASM_CX, and retain any set flags.
+A new patch has been added at the start of this series to make the default
+refcount_t implementation just use an unchecked atomic_t implementation,
+since many kernel subsystems want to be able to opt out of the full
+validation, since it includes a small performance overhead. When enabling
+CONFIG_REFCOUNT_FULL, the full validation is used.
 
-Signed-off-by: Kees Cook <keescook@chromium.org>
----
- arch/x86/include/asm/rmwcc.h | 37 ++++++++++++++++++++++++-------------
- 1 file changed, 24 insertions(+), 13 deletions(-)
+The other two patches provide overflow protection on x86 without incurring
+a performance penalty. The changelog for patch 3 is reproduced here for
+details:
 
-diff --git a/arch/x86/include/asm/rmwcc.h b/arch/x86/include/asm/rmwcc.h
-index 661dd305694a..045f99211a99 100644
---- a/arch/x86/include/asm/rmwcc.h
-+++ b/arch/x86/include/asm/rmwcc.h
-@@ -1,45 +1,56 @@
- #ifndef _ASM_X86_RMWcc
- #define _ASM_X86_RMWcc
- 
-+#define __CLOBBERS_MEM		"memory"
-+#define __CLOBBERS_MEM_CC_CX	"memory", "cc", "cx"
-+
- #if !defined(__GCC_ASM_FLAG_OUTPUTS__) && defined(CC_HAVE_ASM_GOTO)
- 
- /* Use asm goto */
- 
--#define __GEN_RMWcc(fullop, var, cc, ...)				\
-+#define __GEN_RMWcc(fullop, var, cc, clobbers, ...)			\
- do {									\
- 	asm_volatile_goto (fullop "; j" #cc " %l[cc_label]"		\
--			: : "m" (var), ## __VA_ARGS__ 			\
--			: "memory" : cc_label);				\
-+			: : [counter] "m" (var), ## __VA_ARGS__		\
-+			: clobbers : cc_label);				\
- 	return 0;							\
- cc_label:								\
- 	return 1;							\
- } while (0)
- 
--#define GEN_UNARY_RMWcc(op, var, arg0, cc) 				\
--	__GEN_RMWcc(op " " arg0, var, cc)
-+#define __BINARY_RMWcc_ARG	" %1, "
- 
--#define GEN_BINARY_RMWcc(op, var, vcon, val, arg0, cc)			\
--	__GEN_RMWcc(op " %1, " arg0, var, cc, vcon (val))
- 
- #else /* defined(__GCC_ASM_FLAG_OUTPUTS__) || !defined(CC_HAVE_ASM_GOTO) */
- 
- /* Use flags output or a set instruction */
- 
--#define __GEN_RMWcc(fullop, var, cc, ...)				\
-+#define __GEN_RMWcc(fullop, var, cc, clobbers, ...)			\
- do {									\
- 	bool c;								\
- 	asm volatile (fullop ";" CC_SET(cc)				\
--			: "+m" (var), CC_OUT(cc) (c)			\
--			: __VA_ARGS__ : "memory");			\
-+			: [counter] "+m" (var), CC_OUT(cc) (c)		\
-+			: __VA_ARGS__ : clobbers);			\
- 	return c;							\
- } while (0)
- 
-+#define __BINARY_RMWcc_ARG	" %2, "
-+
-+#endif /* defined(__GCC_ASM_FLAG_OUTPUTS__) || !defined(CC_HAVE_ASM_GOTO) */
-+
- #define GEN_UNARY_RMWcc(op, var, arg0, cc)				\
--	__GEN_RMWcc(op " " arg0, var, cc)
-+	__GEN_RMWcc(op " " arg0, var, cc, __CLOBBERS_MEM)
-+
-+#define GEN_UNARY_SUFFIXED_RMWcc(op, suffix, var, arg0, cc)		\
-+	__GEN_RMWcc(op " " arg0 "\n\t" suffix, var, cc,			\
-+		    __CLOBBERS_MEM_CC_CX)
- 
- #define GEN_BINARY_RMWcc(op, var, vcon, val, arg0, cc)			\
--	__GEN_RMWcc(op " %2, " arg0, var, cc, vcon (val))
-+	__GEN_RMWcc(op __BINARY_RMWcc_ARG arg0, var, cc,		\
-+		    __CLOBBERS_MEM, vcon (val))
- 
--#endif /* defined(__GCC_ASM_FLAG_OUTPUTS__) || !defined(CC_HAVE_ASM_GOTO) */
-+#define GEN_BINARY_SUFFIXED_RMWcc(op, suffix, var, vcon, val, arg0, cc)	\
-+	__GEN_RMWcc(op __BINARY_RMWcc_ARG arg0 "\n\t" suffix, var, cc,	\
-+		    __CLOBBERS_MEM_CC_CX, vcon (val))
- 
- #endif /* _ASM_X86_RMWcc */
--- 
-2.7.4
+This protection is a modified version of the x86 PAX_REFCOUNT defense
+from PaX/grsecurity. This speeds up the refcount_t API by duplicating
+the existing atomic_t implementation with a single instruction added to
+detect if the refcount has wrapped past INT_MAX (or below 0) resulting
+in a negative value, where the handler then restores the refcount_t to
+INT_MAX or saturates to INT_MIN / 2. With this overflow protection, the
+use-after-free following a refcount_t wrap is blocked from happening,
+avoiding the vulnerability entirely.
+
+While this defense only perfectly protects the overflow case, as that
+can be detected and stopped before the reference is freed and left to be
+abused by an attacker, it also notices some of the "inc from 0" and "below
+0" cases. However, these only indicate that a use-after-free has already
+happened. Such notifications are likely avoidable by an attacker that has
+already exploited a use-after-free vulnerability, but it's better to have
+them than allow such conditions to remain universally silent.
+
+On overflow detection (actually "negative value" detection), the refcount
+value is reset to INT_MAX, the offending process is killed, and a report
+and stack trace are generated. This allows the system to attempt to
+keep operating. In the case of a below-zero decrement or other negative
+value results, the refcount is saturated to INT_MIN / 2 to keep it from
+reaching zero again. (For the INT_MAX reset, another option would be to
+choose (INT_MAX - N) with some small N to provide some headroom for
+legitimate users of the reference counter.)
+
+On the matter of races, since the entire range beyond INT_MAX but before 0
+is negative, every inc will trap, leaving no overflow-only race condition.
+
+As for performance, this implementation adds a single "js" instruction to
+the regular execution flow of a copy of the regular atomic_t operations.
+Since this is a forward jump, it is by default the non-predicted path,
+which will be reinforced by dynamic branch prediction. The result is
+this protection having no measurable change in performance over standard
+atomic_t operations. The error path, located in .text.unlikely, saves
+the refcount location and then uses UD0 to fire a refcount exception
+handler, which resets the refcount, reports the error, marks the process
+to be killed, and returns to regular execution. This keeps the changes to
+.text size minimal, avoiding return jumps and open-coded calls to the
+error reporting routine.
+    
+Assembly comparison:
+    
+atomic_inc
+.text:
+ffffffff81546149:       f0 ff 45 f4             lock incl -0xc(%rbp)
+    
+refcount_inc
+.text:
+ffffffff81546149:       f0 ff 45 f4             lock incl -0xc(%rbp)
+ffffffff8154614d:       0f 88 80 d5 17 00       js     ffffffff816c36d3
+...
+.text.unlikely:
+ffffffff816c36d3:       48 8d 4d f4             lea    -0xc(%rbp),%rcx
+ffffffff816c36d7:       0f ff                   (bad)
+
+Thanks to PaX Team for various suggestions for improvement.
+
+
+-Kees
+
+v5:
+- add unchecked atomic_t implementation when !CONFIG_REFCOUNT_FULL
+- use "leal" again, as in v3 for more flexible reset handling
+- provide better underflow detection, with saturation
+
+v4:
+- switch to js from jns to gain static branch prediction benefits
+- use .text.unlikely for js target, effectively making handler __cold
+- use UD0 with refcount exception handler instead of int 0x81
+- Kconfig defaults on when arch has support
+
+v3:
+- drop named text sections until we need to distinguish sizes/directions
+- reset value immediately instead of passing back to handler
+- drop needless export; josh
+
+v2:
+- fix instruction pointer decrement bug; thejh
+- switch to js; pax-team
+- improve commit log
+- extract rmwcc macro helpers for better readability
+- implemented checks in inc_not_zero interface
+- adjusted reset values
