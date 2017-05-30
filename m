@@ -1,90 +1,129 @@
-From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: Re: [PATCH v5 26/32] x86, drm, fbdev: Do not specify encrypted memory
- for video mappings
-Date: Tue, 30 May 2017 15:07:05 -0500
-Message-ID: <766ddfd1-d1fe-213f-1720-5e10356398f0@amd.com>
-References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
- <20170418212056.10190.25468.stgit@tlendack-t1.amdoffice.net>
- <20170516173541.q2rbh5dhkluzsjae@pd.tnic>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20170516173541.q2rbh5dhkluzsjae@pd.tnic>
-Content-Language: en-US
-Sender: owner-linux-mm@kvack.org
-To: Borislav Petkov <bp@alien8.de>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S.
- Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter
- Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH v5 1/3] refcount: Create unchecked atomic_t implementation
+Date: Tue, 30 May 2017 14:39:50 -0700
+Message-ID: <1496180392-98718-2-git-send-email-keescook@chromium.org>
+References: <1496180392-98718-1-git-send-email-keescook@chromium.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1496180392-98718-1-git-send-email-keescook@chromium.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: Kees Cook <keescook@chromium.org>, Christoph Hellwig <hch@infradead.org>, Peter Zijlstra <peterz@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, PaX Team <pageexec@freemail.hu>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James
 List-Id: linux-arch.vger.kernel.org
 
-On 5/16/2017 12:35 PM, Borislav Petkov wrote:
-> On Tue, Apr 18, 2017 at 04:20:56PM -0500, Tom Lendacky wrote:
->> Since video memory needs to be accessed decrypted, be sure that the
->> memory encryption mask is not set for the video ranges.
->>
->> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
->> ---
->>   arch/x86/include/asm/vga.h       |   13 +++++++++++++
->>   arch/x86/mm/pageattr.c           |    2 ++
->>   drivers/gpu/drm/drm_gem.c        |    2 ++
->>   drivers/gpu/drm/drm_vm.c         |    4 ++++
->>   drivers/gpu/drm/ttm/ttm_bo_vm.c  |    7 +++++--
->>   drivers/gpu/drm/udl/udl_fb.c     |    4 ++++
->>   drivers/video/fbdev/core/fbmem.c |   12 ++++++++++++
->>   7 files changed, 42 insertions(+), 2 deletions(-)
->>
->> diff --git a/arch/x86/include/asm/vga.h b/arch/x86/include/asm/vga.h
->> index c4b9dc2..5c7567a 100644
->> --- a/arch/x86/include/asm/vga.h
->> +++ b/arch/x86/include/asm/vga.h
->> @@ -7,12 +7,25 @@
->>   #ifndef _ASM_X86_VGA_H
->>   #define _ASM_X86_VGA_H
->>   
->> +#include <asm/cacheflush.h>
->> +
->>   /*
->>    *	On the PC, we can just recalculate addresses and then
->>    *	access the videoram directly without any black magic.
->> + *	To support memory encryption however, we need to access
->> + *	the videoram as decrypted memory.
->>    */
->>   
->> +#ifdef CONFIG_AMD_MEM_ENCRYPT
->> +#define VGA_MAP_MEM(x, s)					\
->> +({								\
->> +	unsigned long start = (unsigned long)phys_to_virt(x);	\
->> +	set_memory_decrypted(start, (s) >> PAGE_SHIFT);		\
->> +	start;							\
->> +})
->> +#else
->>   #define VGA_MAP_MEM(x, s) (unsigned long)phys_to_virt(x)
->> +#endif
-> 
-> Can we push the check in and save us the ifdeffery?
-> 
-> #define VGA_MAP_MEM(x, s)                                       \
-> ({                                                              \
->          unsigned long start = (unsigned long)phys_to_virt(x);   \
->                                                                  \
->          if (IS_ENABLED(CONFIG_AMD_MEM_ENCRYPT))                 \
->                  set_memory_decrypted(start, (s) >> PAGE_SHIFT); \
->                                                                  \
->          start;                                                  \
-> })
-> 
-> It does build here. :)
-> 
+Many subsystems will not use refcount_t unless there is a way to build the
+kernel so that there is no regression in speed compared to atomic_t. This
+adds CONFIG_REFCOUNT_FULL to enable the full refcount_t implementation
+which has the validation but is slightly slower. When not enabled,
+refcount_t uses the basic unchecked atomic_t routines, which results in
+no code changes compared to just using atomic_t directly.
 
-That works for me and it's a lot cleaner.  I'll make the change.
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+ arch/Kconfig             |  9 +++++++++
+ include/linux/refcount.h | 44 ++++++++++++++++++++++++++++++++++++++++++++
+ lib/refcount.c           |  3 +++
+ 3 files changed, 56 insertions(+)
 
-Thanks,
-Tom
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+diff --git a/arch/Kconfig b/arch/Kconfig
+index 6c00e5b00f8b..fba3bf186728 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -867,4 +867,13 @@ config STRICT_MODULE_RWX
+ config ARCH_WANT_RELAX_ORDER
+ 	bool
+ 
++config REFCOUNT_FULL
++	bool "Perform full reference count validation at the expense of speed"
++	help
++	  Enabling this switches the refcounting infrastructure from a fast
++	  unchecked atomic_t implementation to a fully state checked
++	  implementation, which can be slower but provides protections
++	  against various use-after-free conditions that can be used in
++	  security flaw exploits.
++
+ source "kernel/gcov/Kconfig"
+diff --git a/include/linux/refcount.h b/include/linux/refcount.h
+index b34aa649d204..68ecb431dbab 100644
+--- a/include/linux/refcount.h
++++ b/include/linux/refcount.h
+@@ -41,6 +41,7 @@ static inline unsigned int refcount_read(const refcount_t *r)
+ 	return atomic_read(&r->refs);
+ }
+ 
++#ifdef CONFIG_REFCOUNT_FULL
+ extern __must_check bool refcount_add_not_zero(unsigned int i, refcount_t *r);
+ extern void refcount_add(unsigned int i, refcount_t *r);
+ 
+@@ -52,6 +53,49 @@ extern void refcount_sub(unsigned int i, refcount_t *r);
+ 
+ extern __must_check bool refcount_dec_and_test(refcount_t *r);
+ extern void refcount_dec(refcount_t *r);
++#else
++static inline __must_check bool refcount_add_not_zero(unsigned int i,
++						      refcount_t *r)
++{
++	return atomic_add_return(i, &r->refs) != 0;
++}
++
++static inline void refcount_add(unsigned int i, refcount_t *r)
++{
++	atomic_add(i, &r->refs);
++}
++
++static inline __must_check bool refcount_inc_not_zero(refcount_t *r)
++{
++	return atomic_add_unless(&r->refs, 1, 0);
++}
++
++static inline void refcount_inc(refcount_t *r)
++{
++	atomic_inc(&r->refs);
++}
++
++static inline __must_check bool refcount_sub_and_test(unsigned int i,
++						      refcount_t *r)
++{
++	return atomic_sub_return(i, &r->refs) == 0;
++}
++
++static inline void refcount_sub(unsigned int i, refcount_t *r)
++{
++	atomic_sub(i, &r->refs);
++}
++
++static inline __must_check bool refcount_dec_and_test(refcount_t *r)
++{
++	return atomic_dec_return(&r->refs) == 0;
++}
++
++static inline void refcount_dec(refcount_t *r)
++{
++	atomic_dec(&r->refs);
++}
++#endif /* CONFIG_REFCOUNT_FULL */
+ 
+ extern __must_check bool refcount_dec_if_one(refcount_t *r);
+ extern __must_check bool refcount_dec_not_one(refcount_t *r);
+diff --git a/lib/refcount.c b/lib/refcount.c
+index 9f906783987e..5d0582a9480c 100644
+--- a/lib/refcount.c
++++ b/lib/refcount.c
+@@ -37,6 +37,8 @@
+ #include <linux/refcount.h>
+ #include <linux/bug.h>
+ 
++#ifdef CONFIG_REFCOUNT_FULL
++
+ /**
+  * refcount_add_not_zero - add a value to a refcount unless it is 0
+  * @i: the value to add to the refcount
+@@ -225,6 +227,7 @@ void refcount_dec(refcount_t *r)
+ 	WARN_ONCE(refcount_dec_and_test(r), "refcount_t: decrement hit 0; leaking memory.\n");
+ }
+ EXPORT_SYMBOL(refcount_dec);
++#endif /* CONFIG_REFCOUNT_FULL */
+ 
+ /**
+  * refcount_dec_if_one - decrement a refcount if it is 1
+-- 
+2.7.4
