@@ -1,85 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f67.google.com ([209.85.214.67]:36006 "EHLO
-        mail-it0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751023AbdE3JNc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 30 May 2017 05:13:32 -0400
+Received: from 8bytes.org ([81.169.241.247]:58244 "EHLO theia.8bytes.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751078AbdE3J2D (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 30 May 2017 05:28:03 -0400
+Date: Tue, 30 May 2017 11:27:59 +0200
+From: Joerg Roedel <joro@8bytes.org>
+Subject: Re: [PATCH v5 1/5] iommu: of: Fix check for returning EPROBE_DEFER
+Message-ID: <20170530092759.GC2818@8bytes.org>
+References: <1495544493-14219-1-git-send-email-sricharan@codeaurora.org>
 MIME-Version: 1.0
-In-Reply-To: <CAK8P3a2E1LtCNoGkAuzwJJdQdUTB_+8d=FM2asEGkXJprvm8oQ@mail.gmail.com>
-References: <20170519193455.GA24206@localhost> <CACRpkdaRdZTB39-=sAojO+OyHtP02KaFChqGcxy+fWA8qaB2bw@mail.gmail.com>
- <CAOesGMhfrWSvLtDtGRWBTJiAoeSwzGgsdUTm26j1mpoVu0ghDg@mail.gmail.com>
- <CAMuHMdUivf9cw+LTn7UMueH=MMKi6i3wcOdgM6zbZBoxmkTZGQ@mail.gmail.com> <CAK8P3a2E1LtCNoGkAuzwJJdQdUTB_+8d=FM2asEGkXJprvm8oQ@mail.gmail.com>
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Tue, 30 May 2017 11:13:30 +0200
-Message-ID: <CAMuHMdWxNFUnWJjLj7ynWJFEFMAL=TPsdVSzDtohDprC=EXnaQ@mail.gmail.com>
-Subject: Re: [GIT PULL] ARM: SoC fixes (and a cross-arch dt-include fix)
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1495544493-14219-1-git-send-email-sricharan@codeaurora.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Olof Johansson <olof@lixom.net>, Linus Walleij <linus.walleij@linaro.org>, Rob Herring <robh+dt@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "arm@kernel.org" <arm@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "ksummit-discuss@lists.linuxfoundation.org" <ksummit-discuss@lists.linuxfoundation.org>
-Message-ID: <20170530091330.pS44wowTWLTWhODvL7qEjVB2L-jxtNbmujBufF16Vro@z>
+To: Sricharan R <sricharan@codeaurora.org>
+Cc: robin.murphy@arm.com, will.deacon@arm.com, lorenzo.pieralisi@arm.com, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arm-msm@vger.kernel.org, m.szyprowski@samsung.com, bhelgaas@google.com, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, tn@semihalf.com, hanjun.guo@linaro.org, okaya@codeaurora.org, robh+dt@kernel.org, frowand.list@gmail.com, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, sudeep.holla@arm.com, rjw@rjwysocki.net, lenb@kernel.org, catalin.marinas@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, laurent.pinchart@ideasonboard.com, j.neuschaefer@gmx.net, geert@linux-m68k.org, magnus.damm@gmail.com, nwatters@codeaurora.org
+Message-ID: <20170530092759.bqGEuaF4MJciBgldVDfT9ShpiL-j-Cp2GUPkNlj-Haw@z>
 
-Hi Arnd,
+On Tue, May 23, 2017 at 06:31:29PM +0530, Sricharan R wrote:
+> Now with IOMMU probe deferral, we return -EPROBE_DEFER
+> for masters that are connected to an IOMMU which is not
+> probed yet, but going to get probed, so that we can attach
+> the correct dma_ops. So while trying to defer the probe of
+> the master, check if the of_iommu node that it is connected
+> to is marked in DT as 'status=disabled', then the IOMMU is never
+> is going to get probed. So simply return NULL and let the master
+> work without an IOMMU.
+> 
+> Fixes: 7b07cbefb68d ("iommu: of: Handle IOMMU lookup failure with deferred probing or error")
+> Signed-off-by: Sricharan R <sricharan@codeaurora.org>
+> Reported-by: Geert Uytterhoeven <geert@linux-m68k.org>
+> Reviewed-by: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
+> Tested-by: Will Deacon <will.deacon@arm.com>
+> Tested-by: Magnus Damn <magnus.damn@gmail.com>
+> Acked-by: Will Deacon <will.deacon@arm.com>
 
-On Tue, May 23, 2017 at 4:17 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> On Tue, May 23, 2017 at 11:49 AM, Geert Uytterhoeven
-> <geert@linux-m68k.org> wrote:
->> On Mon, May 22, 2017 at 5:11 PM, Olof Johansson <olof@lixom.net> wrote:
->>> On Mon, May 22, 2017 at 4:44 AM, Linus Walleij <linus.walleij@linaro.org> wrote:
->>>> On Fri, May 19, 2017 at 9:34 PM, Olof Johansson <olof@lixom.net> wrote:
->>>
->>> Yeah, asking people to spread out across releases would remove
->>> dependencies a lot, but it would also slow down progress and frustrate
->>> a lot of contributors so we don't do that.
->>
->> The above works fine for new support, or for new platforms.
->>
->> There's still support being migrated from platform code to DT, which
->> requires three steps:
->>   1. New DT-aware driver support,
->>   2. DT update to use the new driver support,
->>   3. Clean up platform code after optional DTB backwards compatibility
->>      grace period,
->> To make matters worse, 1 may conflict with the existing platform code,
->> and 2 must sometimes not be done before 1. Hence you may need three kernel
->> releases.
->> So we're already planning now what to clean up for v4.15 ;-)
->>
->> Would it be acceptable to do step 2 in the same release, after the driver
->> support has entered in -rc1? I know this is more than just replacing
->> numbers by symbolic values.
->
-> I'd say it really depends on the individual case. Do you have a particular
-> platform in mind? E.g. For some of the more obsolete platforms that
-> Linus Walleij has worked on over time, we have sometimes relaxed the
-> rules about clean bisection and just merged everything in parallel, knowing
-> that nobody else was likely to run that code on a vanilla kernel anyway.
-
-This is for Renesas R-Car Gen2 SoCs, so we do care about DT backward
-compatibility (for a while), and about bisection.
-
-Last headache was "[PATCH v4 00/23] soc: renesas: Add R-Car RST driver for
-obtaining mode pin state" (https://lkml.org/lkml/2016/10/21/500). This used
-a shared immutable branch, but that caused several merge conflicts.
-
-Next one will be smaller, as it's not really moving functionality from
-platform code to DT, but switching to a new and better clock driver framework,
-so there's only the dependency of DT on the new driver
-"[PATCH v2 00/10] clk: renesas: rcar-gen2: Add new CPG/MSSR drivers"
-(https://lkml.org/lkml/2017/5/19/212)
-
-I'll go create an inventory of stuff in platform code for Renesas SoCs that
-still needs to be converted to DT...
-
-Thanks!
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Applied all to iommu/fixes, thanks.
