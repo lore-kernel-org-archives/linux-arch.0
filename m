@@ -1,39 +1,46 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v5 2/3] x86/asm: Add suffix macro for GEN_*_RMWcc()
-Date: Wed, 31 May 2017 16:03:18 +0200
-Message-ID: <20170531140318.5piqb4ksynq4evwi@hirez.programming.kicks-ass.net>
-References: <1496180392-98718-1-git-send-email-keescook@chromium.org>
- <1496180392-98718-3-git-send-email-keescook@chromium.org>
- <20170531111309.3kyfgxu5dkthu2dn@hirez.programming.kicks-ass.net>
- <CAGXu5j+MKKSU+=VGmwamC0aekRKt+WDvpVpdmFce2br8YoecgA@mail.gmail.com>
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v5 32/32] x86/mm: Add support to make use of Secure
+ Memory Encryption
+Date: Wed, 31 May 2017 16:12:01 +0200
+Message-ID: <20170531141201.7srucl6lgsye7qyv@pd.tnic>
+References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
+ <20170418212223.10190.85121.stgit@tlendack-t1.amdoffice.net>
+ <20170519112703.voajtn4t7uy6nwa3@pd.tnic>
+ <7c522f65-c5c8-9362-e1eb-d0765e3ea6c9@amd.com>
+ <20170530145459.tyuy6veqxnrqkhgw@pd.tnic>
+ <115ca39d-6ae7-f603-a415-ead7c4e8193d@amd.com>
+ <20170531084923.mmlpefxfx53f3okp@pd.tnic>
+ <706d6ae0-bc4c-5ba7-529c-b0fc5e4ad464@amd.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([65.50.211.133]:53946 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750998AbdEaODr (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 31 May 2017 10:03:47 -0400
+Content-Type: text/plain; charset=utf-8
+Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <CAGXu5j+MKKSU+=VGmwamC0aekRKt+WDvpVpdmFce2br8YoecgA@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Christoph Hellwig <hch@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, PaX Team <pageexec@freemail.hu>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.co>
+In-Reply-To: <706d6ae0-bc4c-5ba7-529c-b0fc5e4ad464@amd.com>
+Sender: owner-linux-mm@kvack.org
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, May 31, 2017 at 06:17:16AM -0700, Kees Cook wrote:
-> On Wed, May 31, 2017 at 4:13 AM, Peter Zijlstra <peterz@infradead.org> wrote:
-> > On Tue, May 30, 2017 at 02:39:51PM -0700, Kees Cook wrote:
-> >> The coming x86 refcount protection needs to be able to add trailing
-> >> instructions to the GEN_*_RMWcc() operations. This extracts the
-> >> difference between the goto/non-goto cases so the helper macros
-> >> can be defined outside the #ifdef cases. Additionally adds argument
-> >> naming to the resulting asm for referencing from suffixed
-> >> instructions, and adds clobbers for "cc", and "cx" to let suffixes
-> >> use _ASM_CX, and retain any set flags.
-> >
-> > Another option is to simply require __GCC_ASM_FLAG_OUTPUT__ for the fast
-> > refcount stuff. That would result in simpler and more readable code.
+On Wed, May 31, 2017 at 08:37:50AM -0500, Tom Lendacky wrote:
+> I like keeping the command line option and the values together. It may
+> not look the greatest but I like it more than defining the command line
+> option in head_64.S and passing it in as an argument.
 > 
-> What versions of GCC support that?
+> OTOH, I don't think the rip-relative addressing was that bad, I can
+> always go back to that...
 
-IIRC 6+
+Yeah, no nice solution here. Having gone full circle, the rip-relative
+thing doesn't look all that bad, all of a sudden. I'd let you decide
+what to do...
+
+-- 
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
