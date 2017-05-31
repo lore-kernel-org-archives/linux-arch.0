@@ -1,82 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-co1nam03on0049.outbound.protection.outlook.com ([104.47.40.49]:49380
-        "EHLO NAM03-CO1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751056AbdEaNNG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 31 May 2017 09:13:06 -0400
-Subject: Re: [PATCH v5 29/32] x86/mm: Add support to encrypt the kernel
- in-place
-References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
- <20170418212149.10190.70894.stgit@tlendack-t1.amdoffice.net>
- <20170518124626.hqyqqbjpy7hmlpqc@pd.tnic>
- <7e2ae014-525c-76f2-9fce-2124596db2d2@amd.com>
- <20170526162522.p7prrqqalx2ivfxl@pd.tnic>
- <33c075b1-71f6-b5d0-b1fa-d742d0659d38@amd.com>
- <20170531095148.pba6ju6im4qxbwfg@pd.tnic>
-From: Tom Lendacky <thomas.lendacky@amd.com>
-Message-ID: <17394b27-d693-4ff9-9dbd-11b5237fcf6a@amd.com>
-Date: Wed, 31 May 2017 08:12:56 -0500
+Received: from mail-it0-f47.google.com ([209.85.214.47]:34969 "EHLO
+        mail-it0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751011AbdEaNRS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 31 May 2017 09:17:18 -0400
+Received: by mail-it0-f47.google.com with SMTP id f72so12767996ite.0
+        for <linux-arch@vger.kernel.org>; Wed, 31 May 2017 06:17:17 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <20170531095148.pba6ju6im4qxbwfg@pd.tnic>
-Content-Type: text/plain; charset="utf-8"; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <20170531111309.3kyfgxu5dkthu2dn@hirez.programming.kicks-ass.net>
+References: <1496180392-98718-1-git-send-email-keescook@chromium.org>
+ <1496180392-98718-3-git-send-email-keescook@chromium.org> <20170531111309.3kyfgxu5dkthu2dn@hirez.programming.kicks-ass.net>
+From: Kees Cook <keescook@chromium.org>
+Date: Wed, 31 May 2017 06:17:16 -0700
+Message-ID: <CAGXu5j+MKKSU+=VGmwamC0aekRKt+WDvpVpdmFce2br8YoecgA@mail.gmail.com>
+Subject: Re: [PATCH v5 2/3] x86/asm: Add suffix macro for GEN_*_RMWcc()
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170531131256.Gd8AnCzNuxY_B975RhvfNjd2QDSza4ocR2thrK9Q8CQ@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, Christoph Hellwig <hch@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, PaX Team <pageexec@freemail.hu>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
+Message-ID: <20170531131716.fuMKZ-J84DtU0fpgdM7bTgIGET2UAszTLr_JUoY923c@z>
 
-On 5/31/2017 4:51 AM, Borislav Petkov wrote:
-> On Tue, May 30, 2017 at 11:39:07AM -0500, Tom Lendacky wrote:
->> Yes, it's from objtool:
->>
->> arch/x86/mm/mem_encrypt_boot.o: warning: objtool: .text+0xd2: return
->> instruction outside of a callable function
-> 
-> Oh, well, let's make it a global symbol then. Who knows, we might have
-> to live-patch it someday :-)
+On Wed, May 31, 2017 at 4:13 AM, Peter Zijlstra <peterz@infradead.org> wrote:
+> On Tue, May 30, 2017 at 02:39:51PM -0700, Kees Cook wrote:
+>> The coming x86 refcount protection needs to be able to add trailing
+>> instructions to the GEN_*_RMWcc() operations. This extracts the
+>> difference between the goto/non-goto cases so the helper macros
+>> can be defined outside the #ifdef cases. Additionally adds argument
+>> naming to the resulting asm for referencing from suffixed
+>> instructions, and adds clobbers for "cc", and "cx" to let suffixes
+>> use _ASM_CX, and retain any set flags.
+>
+> Another option is to simply require __GCC_ASM_FLAG_OUTPUT__ for the fast
+> refcount stuff. That would result in simpler and more readable code.
 
-Can do.
+What versions of GCC support that?
 
-Thanks,
-Tom
+-Kees
 
-> 
-> ---
-> diff --git a/arch/x86/mm/mem_encrypt_boot.S b/arch/x86/mm/mem_encrypt_boot.S
-> index fb58f9f953e3..7720b0050840 100644
-> --- a/arch/x86/mm/mem_encrypt_boot.S
-> +++ b/arch/x86/mm/mem_encrypt_boot.S
-> @@ -47,9 +47,9 @@ ENTRY(sme_encrypt_execute)
->   	movq	%rdx, %r12		/* Kernel length */
->   
->   	/* Copy encryption routine into the workarea */
-> -	movq	%rax, %rdi		/* Workarea encryption routine */
-> -	leaq	.Lenc_start(%rip), %rsi	/* Encryption routine */
-> -	movq	$(.Lenc_stop - .Lenc_start), %rcx	/* Encryption routine length */
-> +	movq	%rax, %rdi				/* Workarea encryption routine */
-> +	leaq	__enc_copy(%rip), %rsi			/* Encryption routine */
-> +	movq	$(.L__enc_copy_end - __enc_copy), %rcx	/* Encryption routine length */
->   	rep	movsb
->   
->   	/* Setup registers for call */
-> @@ -70,8 +70,7 @@ ENTRY(sme_encrypt_execute)
->   	ret
->   ENDPROC(sme_encrypt_execute)
->   
-> -.Lenc_start:
-> -ENTRY(sme_enc_routine)
-> +ENTRY(__enc_copy)
->   /*
->    * Routine used to encrypt kernel.
->    *   This routine must be run outside of the kernel proper since
-> @@ -147,5 +146,5 @@ ENTRY(sme_enc_routine)
->   	wrmsr
->   
->   	ret
-> -ENDPROC(sme_enc_routine)
-> -.Lenc_stop:
-> +.L__enc_copy_end:
-> +ENDPROC(__enc_copy)
-> 
+-- 
+Kees Cook
+Pixel Security
