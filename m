@@ -1,40 +1,122 @@
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH v5 28/32] x86/mm, kexec: Allow kexec to be used with SME
-Date: Wed, 31 May 2017 17:48:54 +0200
-Message-ID: <20170531154854.4tf4rmivgmixc275@pd.tnic>
-References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
- <20170418212121.10190.94885.stgit@tlendack-t1.amdoffice.net>
- <5927AC6E.8080209@redhat.com>
- <de4d2efc-6636-4120-98d9-7fdf4707f68d@amd.com>
- <592EDB58.4090903@redhat.com>
+From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Subject: Re: [PATCH] asm-generic: simd: allow SIMD in process context with BH disabled
+Date: Wed, 31 May 2017 15:52:48 +0000
+Message-ID: <CAKv+Gu_Z40UAwOafVfvzw7vcvLZ_XqT9eJzqhwzadYfKDsTf7w@mail.gmail.com>
+References: <20170531125701.20717-1-ard.biesheuvel@linaro.org> <20170531153231.GC30160@e103592.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <592EDB58.4090903@redhat.com>
-Sender: owner-linux-mm@kvack.org
-To: xlpang@redhat.com, Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Ingo Molnar <mingo@redhat.com>, "Michael S. Tsirkin" <mst@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Paolo Bonzini <pbonzini@redhat.com>, Alexander
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-io0-f169.google.com ([209.85.223.169]:35142 "EHLO
+        mail-io0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750998AbdEaPwu (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 31 May 2017 11:52:50 -0400
+Received: by mail-io0-f169.google.com with SMTP id f102so18477730ioi.2
+        for <linux-arch@vger.kernel.org>; Wed, 31 May 2017 08:52:49 -0700 (PDT)
+In-Reply-To: <20170531153231.GC30160@e103592.cambridge.arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Jason A. Donenfeld" <Jason@zx2c4.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Arnd Bergmann <arnd@arndb.de>
 
-On Wed, May 31, 2017 at 11:03:52PM +0800, Xunlei Pang wrote:
-> For kdump case, it will be put in some reserved crash memory allocated
-> by kexec-tools, and passed the corresponding start address of the
-> allocated reserved crash memory to kdump kernel via "elfcorehdr=",
-> please see kernel functions setup_elfcorehdr() and vmcore_init() for
-> how it is parsed by kdump kernel.
+On 31 May 2017 at 15:32, Dave Martin <Dave.Martin@arm.com> wrote:
+> On Wed, May 31, 2017 at 12:57:01PM +0000, Ard Biesheuvel wrote:
+>> asm-generic supplies a header asm/simd.h which exports a single function
+>> may_use_simd(), which conveys whether the current context allows the SIMD
+>> register file or instructions to be used.
+>>
+>> This header is included by crypto code shared between x86 and ARM/arm64,
+>> and which offloads SIMD processing to process context if required. The
+>> generic asm/simd.h is shared between ARM and arm64 at the moment, while
+>> x86 has its own implementation.
+>>
+>> On arm64, we currently mostly ignore may_use_simd(), because arm64 allows
+>> kernel mode NEON in any context. However, this is due to change shortly
+>> when support for SVE is merged, at which point we will introduce an arm64
+>> specific implementation of asm/simd.h as well.
+>>
+>> That leaves ARM, which only allows kernel mode NEON in process context,
+>> which makes the current generic implementation of may_use_simd() seem
+>> appropriate. However, given that in_interrupt() will return true when
+>> running in process context with bottom halves disabled, we may end up
+>> falling back to less optimized code unnecessarily, given that kernel
+>> mode NEON is perfectly usable in that case.
+>>
+>> So redefine may_use_simd() to disallow SIMD only when running in hardirq
+>> or softirq context.
+>>
+>> While we're at it, add some missing header file decorations such as
+>> a license header and include guards.
+>>
+>> Reported-by: "Jason A. Donenfeld" <Jason@zx2c4.com>
+>> Signed-off-by: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+>> ---
+>>  include/asm-generic/simd.h | 23 ++++++++++++++++++++---
+>>  1 file changed, 20 insertions(+), 3 deletions(-)
+>>
+>> diff --git a/include/asm-generic/simd.h b/include/asm-generic/simd.h
+>> index f57eb7b5c23b..a3e5ebe6b2b2 100644
+>> --- a/include/asm-generic/simd.h
+>> +++ b/include/asm-generic/simd.h
+>> @@ -1,14 +1,31 @@
+>> +/*
+>> + * Copyright (C) 2013 - 2017 Linaro Ltd. <ard.biesheuvel@linaro.org>
+>> + *
+>> + * This program is free software; you can redistribute it and/or modify it
+>> + * under the terms of the GNU General Public License version 2 as published
+>> + * by the Free Software Foundation.
+>> + */
+>>
+>> -#include <linux/hardirq.h>
+>> +#ifndef __ASM_SIMD_H
+>> +#define __ASM_SIMD_H
+>> +
+>> +#include <linux/types.h>
+>> +#include <linux/preempt.h>
+>>
+>>  /*
+>>   * may_use_simd - whether it is allowable at this time to issue SIMD
+>>   *                instructions or access the SIMD register file
+>>   *
+>>   * As architectures typically don't preserve the SIMD register file when
+>> - * taking an interrupt, !in_interrupt() should be a reasonable default.
+>> + * taking an interrupt, it is reasonable to define the default behavior
+>> + * of 'may_use_simd()' to be 'SIMD is only allowed when not handling an
+>> + * IRQ or softIRQ'. Since 'in_interrupt()' will also return true when
+>> + * running in process context with bottom halves disabled, we have to
+>> + * spell out that condition as shown.
+>
+> Minor nit: do we need the comment about in_interrupt() here?
+>
+> It makes more sense to explain the change in the commit message (which
+> you do) than to explain in-line the behaviour of a function that the
+> code doesn't use.
+>
+> <linux/preempt.h> already hints at the caveats of in_interrupt().
+>
 
-... which could be a great way to pass the SME status to the second
-kernel without any funky sysfs games.
+Fair enough. I tend to err on the verbose side when it comes to
+comments, but this could indeed be omitted.
 
--- 
-Regards/Gruss,
-    Boris.
+>
+> For this comment block, it may be more helpful to note that SIMD is
+> permitted in task context even if bottom halves are enabled.
+>
+>>   */
+>>  static __must_check inline bool may_use_simd(void)
+>>  {
+>> -     return !in_interrupt();
+>> +     return !in_irq() && !in_serving_softirq();
+>
+> Previously, in_nmi() implied !may_use_simd().
+>
+> Now, may_use_simd() can return true if in_nmi().
+>
+> Code in NMI context probably shouldn't be touching this interface at
+> all, but we may want to close this hole by adding && !in_nmi()
+> explicitly.  I did that in my kernel-mode-neon simplification series,
+> but couldn't decide whether it was superfluous.
+>
+> Any thoughts?
+>
 
-Good mailing practices for 400: avoid top-posting and trim the reply.
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+I agree. I will add that as well.
