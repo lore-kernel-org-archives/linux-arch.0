@@ -1,44 +1,155 @@
-From: Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>
-Subject: Re: [PATCH v5 28/32] x86/mm, kexec: Allow kexec to be used with SME
-Date: Wed, 31 May 2017 12:01:00 +0200
-Message-ID: <20170531100100.jgznzx3o7qklfgbp@pd.tnic>
-References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
-	<20170418212121.10190.94885.stgit@tlendack-t1.amdoffice.net>
-	<5927AC6E.8080209@redhat.com>
-	<de4d2efc-6636-4120-98d9-7fdf4707f68d@amd.com>
+From: "Reshetova, Elena" <elena.reshetova@intel.com>
+Subject: RE: [PATCH v5 1/3] refcount: Create unchecked atomic_t
+ implementation
+Date: Wed, 31 May 2017 10:45:09 +0000
+Message-ID: <2236FBA76BA1254E88B949DDB74E612B6B215E2E@IRSMSX102.ger.corp.intel.com>
+References: <1496180392-98718-1-git-send-email-keescook@chromium.org>
+ <1496180392-98718-2-git-send-email-keescook@chromium.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <de4d2efc-6636-4120-98d9-7fdf4707f68d-5C7GfCeVMHo@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
-Cc: linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Brijesh Singh <brijesh.singh-5C7GfCeVMHo@public.gmane.org>, Toshimitsu Kani <toshi.kani-ZPxbGqLxI0U@public.gmane.org>, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Larry Woodman <lwoodman-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrey Ryabinin <aryabinin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Dave Young <dyoung-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Rik van Riel <riel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, kexec-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, "Michael S. Tsirkin" <mst@re>
-List-Id: linux-arch.vger.kernel.org
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mga06.intel.com ([134.134.136.31]:59477 "EHLO mga06.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1750992AbdEaKpQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 31 May 2017 06:45:16 -0400
+In-Reply-To: <1496180392-98718-2-git-send-email-keescook@chromium.org>
+Content-Language: en-US
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Kees Cook <keescook@chromium.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Cc: Christoph Hellwig <hch@infradead.org>, Peter Zijlstra <peterz@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, PaX Team <pageexec@freemail.hu>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, "arozansk@redhat.com" <arozansk@redhat.com>, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>
 
-On Tue, May 30, 2017 at 12:46:14PM -0500, Tom Lendacky wrote:
-> This is an area that I'm not familiar with, so I don't completely
-> understand the flow in regards to where/when/how the ELF headers are
-> copied and what needs to be done.
+> 
+> Many subsystems will not use refcount_t unless there is a way to build the
+> kernel so that there is no regression in speed compared to atomic_t. This
+> adds CONFIG_REFCOUNT_FULL to enable the full refcount_t implementation
+> which has the validation but is slightly slower. When not enabled,
+> refcount_t uses the basic unchecked atomic_t routines, which results in
+> no code changes compared to just using atomic_t directly.
+> 
+> Signed-off-by: Kees Cook <keescook@chromium.org>
+> ---
+>  arch/Kconfig             |  9 +++++++++
+>  include/linux/refcount.h | 44 ++++++++++++++++++++++++++++++++++++++++++++
+>  lib/refcount.c           |  3 +++
+>  3 files changed, 56 insertions(+)
+> 
+> diff --git a/arch/Kconfig b/arch/Kconfig
+> index 6c00e5b00f8b..fba3bf186728 100644
+> --- a/arch/Kconfig
+> +++ b/arch/Kconfig
+> @@ -867,4 +867,13 @@ config STRICT_MODULE_RWX
+>  config ARCH_WANT_RELAX_ORDER
+>  	bool
+> 
+> +config REFCOUNT_FULL
+> +	bool "Perform full reference count validation at the expense of
+> speed"
+> +	help
+> +	  Enabling this switches the refcounting infrastructure from a fast
+> +	  unchecked atomic_t implementation to a fully state checked
+> +	  implementation, which can be slower but provides protections
+> +	  against various use-after-free conditions that can be used in
+> +	  security flaw exploits.
+> +
+>  source "kernel/gcov/Kconfig"
+> diff --git a/include/linux/refcount.h b/include/linux/refcount.h
+> index b34aa649d204..68ecb431dbab 100644
+> --- a/include/linux/refcount.h
+> +++ b/include/linux/refcount.h
+> @@ -41,6 +41,7 @@ static inline unsigned int refcount_read(const refcount_t *r)
+>  	return atomic_read(&r->refs);
+>  }
+> 
+> +#ifdef CONFIG_REFCOUNT_FULL
+>  extern __must_check bool refcount_add_not_zero(unsigned int i, refcount_t *r);
+>  extern void refcount_add(unsigned int i, refcount_t *r);
+> 
+> @@ -52,6 +53,49 @@ extern void refcount_sub(unsigned int i, refcount_t *r);
+> 
+>  extern __must_check bool refcount_dec_and_test(refcount_t *r);
+>  extern void refcount_dec(refcount_t *r);
+> +#else
+> +static inline __must_check bool refcount_add_not_zero(unsigned int i,
+> +
+> 	      refcount_t *r)
+> +{
+> +	return atomic_add_return(i, &r->refs) != 0;
+> +}
 
-So my suggestion is still to put kexec/kdump on the backburner for now
-and concentrate on the 30-ish patchset first. Once they're done, we can
-start dealing with it. Ditto with the IOMMU side of things. One thing at
-a time.
+Maybe atomic_add_unless(&r->refs, i, 0) in order to be consistent with the below inc_not_zero implementation?
+> +
+> +static inline void refcount_add(unsigned int i, refcount_t *r)
+> +{
+> +	atomic_add(i, &r->refs);
+> +}
+> +
+> +static inline __must_check bool refcount_inc_not_zero(refcount_t *r)
+> +{
+> +	return atomic_add_unless(&r->refs, 1, 0);
+> +}
+> +
+> +static inline void refcount_inc(refcount_t *r)
+> +{
+> +	atomic_inc(&r->refs);
+> +}
+> +
+> +static inline __must_check bool refcount_sub_and_test(unsigned int i,
+> +
+> 	      refcount_t *r)
+> +{
+> +	return atomic_sub_return(i, &r->refs) == 0;
+> +}
 
-Thanks.
+Any reason for not using atomic_sub_and_test() here?
 
--- 
-Regards/Gruss,
-    Boris.
+> +
+> +static inline void refcount_sub(unsigned int i, refcount_t *r)
+> +{
+> +	atomic_sub(i, &r->refs);
+> +}
+> +
+> +static inline __must_check bool refcount_dec_and_test(refcount_t *r)
+> +{
+> +	return atomic_dec_return(&r->refs) == 0;
+> +}
 
-Good mailing practices for 400: avoid top-posting and trim the reply.
+Same here: atomic_dec_and_test()?
+
+Best Regards,
+Elena.
+
+> +
+> +static inline void refcount_dec(refcount_t *r)
+> +{
+> +	atomic_dec(&r->refs);
+> +}
+> +#endif /* CONFIG_REFCOUNT_FULL */
+> 
+>  extern __must_check bool refcount_dec_if_one(refcount_t *r);
+>  extern __must_check bool refcount_dec_not_one(refcount_t *r);
+> diff --git a/lib/refcount.c b/lib/refcount.c
+> index 9f906783987e..5d0582a9480c 100644
+> --- a/lib/refcount.c
+> +++ b/lib/refcount.c
+> @@ -37,6 +37,8 @@
+>  #include <linux/refcount.h>
+>  #include <linux/bug.h>
+> 
+> +#ifdef CONFIG_REFCOUNT_FULL
+> +
+>  /**
+>   * refcount_add_not_zero - add a value to a refcount unless it is 0
+>   * @i: the value to add to the refcount
+> @@ -225,6 +227,7 @@ void refcount_dec(refcount_t *r)
+>  	WARN_ONCE(refcount_dec_and_test(r), "refcount_t: decrement hit
+> 0; leaking memory.\n");
+>  }
+>  EXPORT_SYMBOL(refcount_dec);
+> +#endif /* CONFIG_REFCOUNT_FULL */
+> 
+>  /**
+>   * refcount_dec_if_one - decrement a refcount if it is 1
+> --
+> 2.7.4
