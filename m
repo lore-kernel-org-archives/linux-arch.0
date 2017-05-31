@@ -1,47 +1,65 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v5 0/3] Implement fast refcount overflow protection
-Date: Wed, 31 May 2017 06:20:25 -0700
-Message-ID: <CAGXu5jK7Yn6b7__uSM5V6XPdn=wqBTh5Q8SojPpNq=Jnzc6T7w@mail.gmail.com>
-References: <1496180392-98718-1-git-send-email-keescook@chromium.org> <20170531122732.GA24923@linux-80c1.suse>
+From: Tom Lendacky <thomas.lendacky@amd.com>
+Subject: Re: [PATCH v5 32/32] x86/mm: Add support to make use of Secure Memory
+ Encryption
+Date: Wed, 31 May 2017 08:37:50 -0500
+Message-ID: <706d6ae0-bc4c-5ba7-529c-b0fc5e4ad464@amd.com>
+References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
+ <20170418212223.10190.85121.stgit@tlendack-t1.amdoffice.net>
+ <20170519112703.voajtn4t7uy6nwa3@pd.tnic>
+ <7c522f65-c5c8-9362-e1eb-d0765e3ea6c9@amd.com>
+ <20170530145459.tyuy6veqxnrqkhgw@pd.tnic>
+ <115ca39d-6ae7-f603-a415-ead7c4e8193d@amd.com>
+ <20170531084923.mmlpefxfx53f3okp@pd.tnic>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset="utf-8"; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f50.google.com ([209.85.214.50]:36911 "EHLO
-        mail-it0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751011AbdEaNU1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 31 May 2017 09:20:27 -0400
-Received: by mail-it0-f50.google.com with SMTP id g126so11194027ith.0
-        for <linux-arch@vger.kernel.org>; Wed, 31 May 2017 06:20:27 -0700 (PDT)
-In-Reply-To: <20170531122732.GA24923@linux-80c1.suse>
+Received: from mail-cys01nam02on0048.outbound.protection.outlook.com ([104.47.37.48]:10367
+        "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1750916AbdEaNh7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 31 May 2017 09:37:59 -0400
+In-Reply-To: <20170531084923.mmlpefxfx53f3okp@pd.tnic>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Davidlohr Bueso <dave@stgolabs.net>
-Cc: LKML <linux-kernel@vger.kernel.org>, Christoph Hellwig <hch@infradead.org>, Peter Zijlstra <peterz@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, PaX Team <pageexec@freemail.hu>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.>
+To: Borislav Petkov <bp@alien8.de>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@>
 
-On Wed, May 31, 2017 at 5:27 AM, Davidlohr Bueso <dave@stgolabs.net> wrote:
-> On Tue, 30 May 2017, Kees Cook wrote:
->
->> A new patch has been added at the start of this series to make the default
->> refcount_t implementation just use an unchecked atomic_t implementation,
->> since many kernel subsystems want to be able to opt out of the full
->> validation, since it includes a small performance overhead. When enabling
->> CONFIG_REFCOUNT_FULL, the full validation is used.
+On 5/31/2017 3:49 AM, Borislav Petkov wrote:
+> On Tue, May 30, 2017 at 10:37:03AM -0500, Tom Lendacky wrote:
+>> I can define the command line option and the "on" and "off" values as
+>> character buffers in the function and initialize them on a per character
+>> basis (using a static string causes the same issues as referencing a
+>> string constant), i.e.:
 >>
->> The other two patches provide overflow protection on x86 without incurring
->> a performance penalty. The changelog for patch 3 is reproduced here for
->> details:
->
->
-> To be sure I'm getting this right, after this all archs with the exception
-> of x86 will use the regular atomic_t ("unsecure") flavor, right?
+>> char cmdline_arg[] = {'m', 'e', 'm', '_', 'e', 'n', 'c', 'r', 'y', 'p', 't', '\0'};
+>> char cmdline_off[] = {'o', 'f', 'f', '\0'};
+>> char cmdline_on[] = {'o', 'n', '\0'};
+>>
+>> It doesn't look the greatest, but it works and removes the need for the
+>> rip-relative addressing.
+> 
+> Well, I'm not thrilled about this one either. It's like being between a
+> rock and a hard place. :-\
+> 
+> On the one hand, we need the encryption mask before we do the fixups and
+> OTOH we need to do the fixups in order to access the strings properly.
+> Yuck.
+> 
+> Well, the only thing I can think of right now is maybe define
+> "mem_encrypt=" at the end of head_64.S and pass it in from asm to
+> sme_enable() and then do the "on"/"off" comparsion with local char
+> buffers. That could make it less ugly...
 
-If a build does not select CONFIG_REFCOUNT_FULL and lacks
-CONFIG_ARCH_HAS_REFCOUNT, refcount_t will be the same at atomic_t
-(i.e. no change from the historical behavior where all the ref
-counters in the kernel used atomic_t).
+I like keeping the command line option and the values together. It may
+not look the greatest but I like it more than defining the command line
+option in head_64.S and passing it in as an argument.
 
--Kees
+OTOH, I don't think the rip-relative addressing was that bad, I can
+always go back to that...
 
--- 
-Kees Cook
-Pixel Security
+Thanks,
+Tom
+
+> 
