@@ -1,54 +1,73 @@
-From: Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>
-Subject: Re: [PATCH v5 32/32] x86/mm: Add support to make use of Secure
-	Memory Encryption
-Date: Wed, 31 May 2017 11:15:53 +0200
-Message-ID: <20170531091553.jwqcwkfivmmhndwv@pd.tnic>
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v5 29/32] x86/mm: Add support to encrypt the kernel
+ in-place
+Date: Wed, 31 May 2017 11:51:48 +0200
+Message-ID: <20170531095148.pba6ju6im4qxbwfg@pd.tnic>
 References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
-	<20170418212223.10190.85121.stgit@tlendack-t1.amdoffice.net>
-	<c29edaff-24f2-ee9b-4142-bdbf8c42083f@amd.com>
-	<20170519113005.3f5kwzg4pgh7j6a5@pd.tnic>
-	<20170519201651.dhayf2pwjlsnouz4@treble>
-	<1ac40d18-a8b2-94eb-35ed-c30768667be8@amd.com>
+ <20170418212149.10190.70894.stgit@tlendack-t1.amdoffice.net>
+ <20170518124626.hqyqqbjpy7hmlpqc@pd.tnic>
+ <7e2ae014-525c-76f2-9fce-2124596db2d2@amd.com>
+ <20170526162522.p7prrqqalx2ivfxl@pd.tnic>
+ <33c075b1-71f6-b5d0-b1fa-d742d0659d38@amd.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+Content-Type: text/plain; charset=utf-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.skyhub.de ([5.9.137.197]:44058 "EHLO mail.skyhub.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751104AbdEaJv5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 31 May 2017 05:51:57 -0400
 Content-Disposition: inline
-In-Reply-To: <1ac40d18-a8b2-94eb-35ed-c30768667be8-5C7GfCeVMHo@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
-Cc: linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Brijesh Singh <brijesh.singh-5C7GfCeVMHo@public.gmane.org>, Toshimitsu Kani <toshi.kani-ZPxbGqLxI0U@public.gmane.org>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Larry Woodman <lwoodman-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrey Ryabinin <aryabinin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Dave Young <dyoung-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Rik van Riel <riel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Josh Poimboeuf <jpoimboe-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, kexec-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3ANibfEOA+W@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <33c075b1-71f6-b5d0-b1fa-d742d0659d38@amd.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy
 
-On Tue, May 30, 2017 at 10:48:27AM -0500, Tom Lendacky wrote:
-> I'll look at doing that instead of removing the support for the whole
-> file.
+On Tue, May 30, 2017 at 11:39:07AM -0500, Tom Lendacky wrote:
+> Yes, it's from objtool:
+> 
+> arch/x86/mm/mem_encrypt_boot.o: warning: objtool: .text+0xd2: return
+> instruction outside of a callable function
 
-Right, so I don't think the stack protector is even ready that early -
-we do set it up later:
+Oh, well, let's make it a global symbol then. Who knows, we might have
+to live-patch it someday :-)
 
-        /* Set up %gs.
-         *
-         * The base of %gs always points to the bottom of the irqstack
-         * union.  If the stack protector canary is enabled, it is
-         * located at %gs:40.  Note that, on SMP, the boot cpu uses
-         * init data section till per cpu areas are set up.
-         */
-        movl    $MSR_GS_BASE,%ecx
-        movl    initial_gs(%rip),%eax
-        movl    initial_gs+4(%rip),%edx
-        wrmsr
-
-so I think marking the function "no-stack-protector" is the only option
-right now. We can always look at fixing that later.
+---
+diff --git a/arch/x86/mm/mem_encrypt_boot.S b/arch/x86/mm/mem_encrypt_boot.S
+index fb58f9f953e3..7720b0050840 100644
+--- a/arch/x86/mm/mem_encrypt_boot.S
++++ b/arch/x86/mm/mem_encrypt_boot.S
+@@ -47,9 +47,9 @@ ENTRY(sme_encrypt_execute)
+ 	movq	%rdx, %r12		/* Kernel length */
+ 
+ 	/* Copy encryption routine into the workarea */
+-	movq	%rax, %rdi		/* Workarea encryption routine */
+-	leaq	.Lenc_start(%rip), %rsi	/* Encryption routine */
+-	movq	$(.Lenc_stop - .Lenc_start), %rcx	/* Encryption routine length */
++	movq	%rax, %rdi				/* Workarea encryption routine */
++	leaq	__enc_copy(%rip), %rsi			/* Encryption routine */
++	movq	$(.L__enc_copy_end - __enc_copy), %rcx	/* Encryption routine length */
+ 	rep	movsb
+ 
+ 	/* Setup registers for call */
+@@ -70,8 +70,7 @@ ENTRY(sme_encrypt_execute)
+ 	ret
+ ENDPROC(sme_encrypt_execute)
+ 
+-.Lenc_start:
+-ENTRY(sme_enc_routine)
++ENTRY(__enc_copy)
+ /*
+  * Routine used to encrypt kernel.
+  *   This routine must be run outside of the kernel proper since
+@@ -147,5 +146,5 @@ ENTRY(sme_enc_routine)
+ 	wrmsr
+ 
+ 	ret
+-ENDPROC(sme_enc_routine)
+-.Lenc_stop:
++.L__enc_copy_end:
++ENDPROC(__enc_copy)
 
 -- 
 Regards/Gruss,
