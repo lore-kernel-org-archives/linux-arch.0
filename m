@@ -1,39 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([5.9.137.197]:57636 "EHLO mail.skyhub.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750912AbdEaPtD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 31 May 2017 11:49:03 -0400
-Date: Wed, 31 May 2017 17:48:54 +0200
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH v5 28/32] x86/mm, kexec: Allow kexec to be used with SME
-Message-ID: <20170531154854.4tf4rmivgmixc275@pd.tnic>
-References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
- <20170418212121.10190.94885.stgit@tlendack-t1.amdoffice.net>
- <5927AC6E.8080209@redhat.com>
- <de4d2efc-6636-4120-98d9-7fdf4707f68d@amd.com>
- <592EDB58.4090903@redhat.com>
+Received: from mail-io0-f181.google.com ([209.85.223.181]:36035 "EHLO
+        mail-io0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750998AbdEaQJS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 31 May 2017 12:09:18 -0400
+Received: by mail-io0-f181.google.com with SMTP id o12so18921911iod.3
+        for <linux-arch@vger.kernel.org>; Wed, 31 May 2017 09:09:18 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <592EDB58.4090903@redhat.com>
+In-Reply-To: <20170531140318.5piqb4ksynq4evwi@hirez.programming.kicks-ass.net>
+References: <1496180392-98718-1-git-send-email-keescook@chromium.org>
+ <1496180392-98718-3-git-send-email-keescook@chromium.org> <20170531111309.3kyfgxu5dkthu2dn@hirez.programming.kicks-ass.net>
+ <CAGXu5j+MKKSU+=VGmwamC0aekRKt+WDvpVpdmFce2br8YoecgA@mail.gmail.com> <20170531140318.5piqb4ksynq4evwi@hirez.programming.kicks-ass.net>
+From: Kees Cook <keescook@chromium.org>
+Date: Wed, 31 May 2017 09:09:16 -0700
+Message-ID: <CAGXu5jKV-NjD5=tFsfeik-Egh4sctzPnQnZtuv9D7-WSkkREVw@mail.gmail.com>
+Subject: Re: [PATCH v5 2/3] x86/asm: Add suffix macro for GEN_*_RMWcc()
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: xlpang@redhat.com, Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Ingo Molnar <mingo@redhat.com>, "Michael S. Tsirkin" <mst@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Paolo Bonzini <pbonzini@redhat.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170531154854.hhPNiPobwSqXsAr7kAx-L_MHgTYxtEbYirQBv-YoDUQ@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, Christoph Hellwig <hch@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, PaX Team <pageexec@freemail.hu>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
+Message-ID: <20170531160916.gkJhZE-ZhM0vHr1-NSf7d3hT11P_4O26uHwwlztjF78@z>
 
-On Wed, May 31, 2017 at 11:03:52PM +0800, Xunlei Pang wrote:
-> For kdump case, it will be put in some reserved crash memory allocated
-> by kexec-tools, and passed the corresponding start address of the
-> allocated reserved crash memory to kdump kernel via "elfcorehdr=",
-> please see kernel functions setup_elfcorehdr() and vmcore_init() for
-> how it is parsed by kdump kernel.
+On Wed, May 31, 2017 at 7:03 AM, Peter Zijlstra <peterz@infradead.org> wrote:
+> On Wed, May 31, 2017 at 06:17:16AM -0700, Kees Cook wrote:
+>> On Wed, May 31, 2017 at 4:13 AM, Peter Zijlstra <peterz@infradead.org> wrote:
+>> > On Tue, May 30, 2017 at 02:39:51PM -0700, Kees Cook wrote:
+>> >> The coming x86 refcount protection needs to be able to add trailing
+>> >> instructions to the GEN_*_RMWcc() operations. This extracts the
+>> >> difference between the goto/non-goto cases so the helper macros
+>> >> can be defined outside the #ifdef cases. Additionally adds argument
+>> >> naming to the resulting asm for referencing from suffixed
+>> >> instructions, and adds clobbers for "cc", and "cx" to let suffixes
+>> >> use _ASM_CX, and retain any set flags.
+>> >
+>> > Another option is to simply require __GCC_ASM_FLAG_OUTPUT__ for the fast
+>> > refcount stuff. That would result in simpler and more readable code.
+>>
+>> What versions of GCC support that?
+>
+> IIRC 6+
 
-... which could be a great way to pass the SME status to the second
-kernel without any funky sysfs games.
+Given how many folks are still using 4.9 (and lower, see the thread
+with Arnd[1]), I'd like to just keep this as I have it. It's not much
+less readable, IMO (It was already pretty complex). I cleaned it up a
+little before making it more ugly, so I think on sum, it's only a
+little more weird. I think that's better than making this
+compiler-specific or copy/pasting.
+
+-Kees
+
+[1] https://lkml.org/lkml/2017/4/25/66
 
 -- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
+Kees Cook
+Pixel Security
