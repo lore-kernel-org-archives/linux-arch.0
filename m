@@ -1,40 +1,60 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH] kbuild: provide THIN_ARCHIVES option for all architectures
-Date: Wed, 31 May 2017 23:13:01 +0200
-Message-ID: <CAK8P3a2umsN_fTLbRmMofFYBzfOSdfFTqYcKdtesAdXk9Dbwvg@mail.gmail.com>
-References: <20170529081103.29999-1-npiggin@gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+From: Jeremy Linton <jeremy.linton@arm.com>
+Subject: [PATCH 00/12] trace: add the ability to parse sizeof()
+Date: Wed, 31 May 2017 16:56:41 -0500
+Message-ID: <20170531215653.3240-1-jeremy.linton@arm.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f65.google.com ([209.85.218.65]:32881 "EHLO
-        mail-oi0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751019AbdEaVNC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 31 May 2017 17:13:02 -0400
-In-Reply-To: <20170529081103.29999-1-npiggin@gmail.com>
+Received: from foss.arm.com ([217.140.101.70]:49380 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751174AbdEaV4z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 31 May 2017 17:56:55 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, rostedt@goodmis.org, mingo@redhat.com, rusty@rustcorp.com.au, jeyu@redhat.com, kirill.shutemov@linux.intel.com, christoffer.dall@linaro.org, marc.zyngier@arm.com, jcm@jonmasters.org
 
-On Mon, May 29, 2017 at 10:11 AM, Nicholas Piggin <npiggin@gmail.com> wrote:
-> Supporting two different intermediate-artifact packaging schemes
-> was only ever intended as a temporary transition.
->
-> This has so far caused no problems for powerpc, after a small fix
-> for how the arch invoked ar. So now allow any arch to select the
-> option, continue defaulting to N.
->
-> Cc: Stephen Rothwell <sfr@canb.auug.org.au>
-> Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
-> ---
-> The next step will be to have archs always select THIN_ARCHIVES
-> when they are known to work. Then remove the option entirely.
->
-> x86 has always just worked for me, so that should be easy.
+There are a few cases of sizeof() embedded in TRACE_EVENT()
+macros. That is a problem because the sizeof(structure) gets
+passed to userspace which doesn't know how to decode the
+size of kernel data structures. This is a similar problem
+to enums which were being passed in their symbolic form to
+userspace.
 
-I have build-tested many thousand randconfig kernels on arm32 with
-this option enabled, and did not run into build-time regressions
-besides some initial problems from a broken binutils snapshot
-(all released binutils versions should be fine).
+Rather than recreating much of that infrastructure lets
+simply extend it, and append additional symbols into the
+enum_map that can translate string sizeof() calls into
+values. Of course that means that much of the infrastructure
+is now poorly named so we go through and replace instances
+describing "enum" with "eval" to indicate a generic C
+expression to numerical evaluation routine.
 
-       Arnd
+Jeremy Linton (12):
+  trace: rename kernel enum section to eval
+  trace: rename trace_enum_map to trace_eval_map
+  trace: rename struct module entry for trace enums
+  trace: rename trace enum data structures in trace.c
+  trace: rename trace_enum_mutex to trace_eval_mutex
+  trace: rename trace.c enum functions
+  trace: rename enum_map functions
+  tracing: Rename enum_replace to eval_replace
+  tracing: define TRACE_DEFINE_SIZEOF() macro to map sizeof's to their
+    values
+  tracing: Update sample file to describe the new macro
+  tracing: Add TRACE_DEFINE_SIZEOF() macros
+  tracing: Rename update the enum_map file
+
+ arch/arm64/kvm/trace.h                     |   2 +
+ include/asm-generic/vmlinux.lds.h          |   6 +-
+ include/linux/module.h                     |   4 +-
+ include/linux/tracepoint.h                 |   7 +-
+ include/trace/events/xen.h                 |  13 +-
+ include/trace/trace_events.h               |  26 +++-
+ kernel/module.c                            |   6 +-
+ kernel/trace/Kconfig                       |  22 ++--
+ kernel/trace/trace.c                       | 194 ++++++++++++++---------------
+ kernel/trace/trace.h                       |   4 +-
+ kernel/trace/trace_events.c                |  24 ++--
+ samples/trace_events/trace-events-sample.h |   7 ++
+ 12 files changed, 175 insertions(+), 140 deletions(-)
+
+-- 
+2.9.4
