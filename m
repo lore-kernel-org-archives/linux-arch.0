@@ -1,100 +1,84 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:49450 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:49464 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751321AbdEaV5A (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 31 May 2017 17:57:00 -0400
+        id S1751292AbdEaV46 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 31 May 2017 17:56:58 -0400
 From: Jeremy Linton <jeremy.linton@arm.com>
-Subject: [PATCH 11/12] tracing: Add TRACE_DEFINE_SIZEOF() macros
-Date: Wed, 31 May 2017 16:56:52 -0500
-Message-ID: <20170531215653.3240-12-jeremy.linton@arm.com>
+Subject: [PATCH 06/12] trace: rename trace.c enum functions
+Date: Wed, 31 May 2017 16:56:47 -0500
+Message-ID: <20170531215653.3240-7-jeremy.linton@arm.com>
 In-Reply-To: <20170531215653.3240-1-jeremy.linton@arm.com>
 References: <20170531215653.3240-1-jeremy.linton@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, rostedt@goodmis.org, mingo@redhat.com, rusty@rustcorp.com.au, jeyu@redhat.com, kirill.shutemov@linux.intel.com, christoffer.dall@linaro.org, marc.zyngier@arm.com, jcm@jonmasters.org
-Message-ID: <20170531215652.vbJ5KNuW_22Osm-G4mmvyG-wvyM1HjuxFPh5EnQ1e4U@z>
+Message-ID: <20170531215647.OIjq2nZcYPjsoSBxyyWM7yp5ybxx0XmLoYaV-mN2Nuo@z>
 
-There are a few places in the kernel where sizeof() is already
-being used. Update those locations with TRACE_DEFINE_SIZEOF.
+Rename the init and trace_enum_jmp_to_tail() routines
+to reflect their use by more than enumerated types.
 
 Signed-off-by: Jeremy Linton <jeremy.linton@arm.com>
 ---
- arch/arm64/kvm/trace.h     |  2 ++
- include/trace/events/xen.h | 13 +++++++++++--
- 2 files changed, 13 insertions(+), 2 deletions(-)
+ kernel/trace/trace.c | 12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
 
-diff --git a/arch/arm64/kvm/trace.h b/arch/arm64/kvm/trace.h
-index 7fb0008..5188c70 100644
---- a/arch/arm64/kvm/trace.h
-+++ b/arch/arm64/kvm/trace.h
-@@ -93,6 +93,8 @@ TRACE_EVENT(kvm_arm_set_dreg32,
- 	TP_printk("%s: 0x%08x", __entry->name, __entry->value)
- );
+diff --git a/kernel/trace/trace.c b/kernel/trace/trace.c
+index e1bc56c..5eda252 100644
+--- a/kernel/trace/trace.c
++++ b/kernel/trace/trace.c
+@@ -4810,7 +4810,7 @@ static const struct file_operations tracing_enum_map_fops = {
+ };
  
-+TRACE_DEFINE_SIZEOF(__u64);
-+
- TRACE_EVENT(kvm_arm_set_regset,
- 	TP_PROTO(const char *type, int len, __u64 *control, __u64 *value),
- 	TP_ARGS(type, len, control, value),
-diff --git a/include/trace/events/xen.h b/include/trace/events/xen.h
-index 31acce9..b70a38b 100644
---- a/include/trace/events/xen.h
-+++ b/include/trace/events/xen.h
-@@ -30,6 +30,8 @@ DECLARE_EVENT_CLASS(xen_mc__batch,
- DEFINE_XEN_MC_BATCH(xen_mc_batch);
- DEFINE_XEN_MC_BATCH(xen_mc_issue);
+ static inline union trace_eval_map_item *
+-trace_enum_jmp_to_tail(union trace_eval_map_item *ptr)
++trace_eval_jmp_to_tail(union trace_eval_map_item *ptr)
+ {
+ 	/* Return tail of array given the head */
+ 	return ptr + ptr->head.length + 1;
+@@ -4845,7 +4845,7 @@ trace_insert_enum_map_file(struct module *mod, struct trace_eval_map **start,
+ 	else {
+ 		ptr = trace_eval_maps;
+ 		for (;;) {
+-			ptr = trace_enum_jmp_to_tail(ptr);
++			ptr = trace_eval_jmp_to_tail(ptr);
+ 			if (!ptr->tail.next)
+ 				break;
+ 			ptr = ptr->tail.next;
+@@ -7707,7 +7707,7 @@ struct dentry *tracing_init_dentry(void)
+ extern struct trace_eval_map *__start_ftrace_eval_maps[];
+ extern struct trace_eval_map *__stop_ftrace_eval_maps[];
  
-+TRACE_DEFINE_SIZEOF(ulong);
-+
- TRACE_EVENT(xen_mc_entry,
- 	    TP_PROTO(struct multicall_entry *mc, unsigned nargs),
- 	    TP_ARGS(mc, nargs),
-@@ -40,8 +42,8 @@ TRACE_EVENT(xen_mc_entry,
- 		    ),
- 	    TP_fast_assign(__entry->op = mc->op;
- 			   __entry->nargs = nargs;
--			   memcpy(__entry->args, mc->args, sizeof(unsigned long) * nargs);
--			   memset(__entry->args + nargs, 0, sizeof(unsigned long) * (6 - nargs));
-+			   memcpy(__entry->args, mc->args, sizeof(ulong) * nargs);
-+			   memset(__entry->args + nargs, 0, sizeof(ulong) * (6 - nargs));
- 		    ),
- 	    TP_printk("op %u%s args [%lx, %lx, %lx, %lx, %lx, %lx]",
- 		      __entry->op, xen_hypercall_name(__entry->op),
-@@ -122,6 +124,7 @@ TRACE_EVENT(xen_mc_extend_args,
- 		      __entry->res == XEN_MC_XE_NO_SPACE ? "NO_SPACE" : "???")
- 	);
+-static void __init trace_enum_init(void)
++static void __init trace_eval_init(void)
+ {
+ 	int len;
  
-+TRACE_DEFINE_SIZEOF(pteval_t);
- /* mmu */
- DECLARE_EVENT_CLASS(xen_mmu__set_pte,
- 	    TP_PROTO(pte_t *ptep, pte_t pteval),
-@@ -199,6 +202,8 @@ TRACE_EVENT(xen_mmu_pte_clear,
- 		      __entry->mm, __entry->addr, __entry->ptep)
- 	);
+@@ -7747,14 +7747,14 @@ static void trace_module_remove_enums(struct module *mod)
+ 	while (map) {
+ 		if (map->head.mod == mod)
+ 			break;
+-		map = trace_enum_jmp_to_tail(map);
++		map = trace_eval_jmp_to_tail(map);
+ 		last = &map->tail.next;
+ 		map = map->tail.next;
+ 	}
+ 	if (!map)
+ 		goto out;
  
-+TRACE_DEFINE_SIZEOF(pmdval_t);
-+
- TRACE_EVENT(xen_mmu_set_pmd,
- 	    TP_PROTO(pmd_t *pmdp, pmd_t pmdval),
- 	    TP_ARGS(pmdp, pmdval),
-@@ -226,6 +231,8 @@ TRACE_EVENT(xen_mmu_pmd_clear,
+-	*last = trace_enum_jmp_to_tail(map)->tail.next;
++	*last = trace_eval_jmp_to_tail(map)->tail.next;
+ 	kfree(map);
+  out:
+ 	mutex_unlock(&trace_eval_mutex);
+@@ -7811,7 +7811,7 @@ static __init int tracer_init_tracefs(void)
+ 	trace_create_file("saved_cmdlines_size", 0644, d_tracer,
+ 			  NULL, &tracing_saved_cmdlines_size_fops);
  
- #if CONFIG_PGTABLE_LEVELS >= 4
+-	trace_enum_init();
++	trace_eval_init();
  
-+TRACE_DEFINE_SIZEOF(pudval_t);
-+
- TRACE_EVENT(xen_mmu_set_pud,
- 	    TP_PROTO(pud_t *pudp, pud_t pudval),
- 	    TP_ARGS(pudp, pudval),
-@@ -241,6 +248,8 @@ TRACE_EVENT(xen_mmu_set_pud,
- 		      (int)sizeof(pudval_t) * 2, (unsigned long long)__entry->pudval)
- 	);
+ 	trace_create_enum_file(d_tracer);
  
-+TRACE_DEFINE_SIZEOF(p4dval_t);
-+
- TRACE_EVENT(xen_mmu_set_p4d,
- 	    TP_PROTO(p4d_t *p4dp, p4d_t *user_p4dp, p4d_t p4dval),
- 	    TP_ARGS(p4dp, user_p4dp, p4dval),
 -- 
 2.9.4
