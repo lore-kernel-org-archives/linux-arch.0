@@ -1,111 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f174.google.com ([209.85.192.174]:32956 "EHLO
-        mail-pf0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750811AbdE3Vj6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 30 May 2017 17:39:58 -0400
-Received: by mail-pf0-f174.google.com with SMTP id e193so83654543pfh.0
-        for <linux-arch@vger.kernel.org>; Tue, 30 May 2017 14:39:58 -0700 (PDT)
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v5 0/3] Implement fast refcount overflow protection
-Date: Tue, 30 May 2017 14:39:49 -0700
-Message-ID: <1496180392-98718-1-git-send-email-keescook@chromium.org>
+Received: from mail.kernel.org ([198.145.29.99]:49790 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751405AbdEaIY7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 31 May 2017 04:24:59 -0400
+MIME-Version: 1.0
+In-Reply-To: <1495879129-28109-6-git-send-email-daniel.lezcano@linaro.org>
+References: <1495879129-28109-1-git-send-email-daniel.lezcano@linaro.org> <1495879129-28109-6-git-send-email-daniel.lezcano@linaro.org>
+From: Krzysztof Kozlowski <krzk@kernel.org>
+Date: Wed, 31 May 2017 10:24:57 +0200
+Message-ID: <CAJKOXPc54UKCBr_8jqUE+5_YHbwEWOv=YRz0zR-ymaXaiGUHyw@mail.gmail.com>
+Subject: Re: [PATCH 6/7] clocksource: Rename CLKSRC_OF to TIMER_OF
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>, Christoph Hellwig <hch@infradead.org>, Peter Zijlstra <peterz@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, PaX Team <pageexec@freemail.hu>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
-Message-ID: <20170530213949.UtyWJlwcv2zyi8_n4l8A4z1JEFDq6dJEbkY4wcLSr5c@z>
+To: Daniel Lezcano <daniel.lezcano@linaro.org>
+Cc: tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Russell King <linux@armlinux.org.uk>, Florian Fainelli <f.fainelli@gmail.com>, Ray Jui <rjui@broadcom.com>, Scott Branden <sbranden@broadcom.com>, "maintainer:BROADCOM BCM281XX/BCM11XXX/BCM216XX ARM ARCHITE..." <bcm-kernel-feedback-list@broadcom.com>, Alexander Shiyan <shc_work@mail.ru>, Shawn Guo <shawnguo@kernel.org>, Sascha Hauer <kernel@pengutronix.de>, Fabio Estevam <fabio.estevam@nxp.com>, Kukjin Kim <kgene@kernel.org>, Javier Martinez Canillas <javier@osg.samsung.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Michal Simek <monstr@monstr.eu>, John Crispin <john@phrozen.org>, Ralf Baechle <ralf@linux-mips.org>, Ley Foon Tan <lftan@altera.com>, Rich Felker <dalias@libc.org>, Arnd Bergmann <arnd@arndb.de>, John Stultz <john.stultz@linaro.org>, Stephen Boyd <sboyd@codeaurora.org>, Linus Walleij <linus.walleij@linaro.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Olof Johansson <olof@lixom.net>, "moderated list:ARM/SAMSUNG EXYNOS ARM ARCHITECTURES" <linux-samsung-soc@vger.kernel.org>, "moderated list:H8/300 ARCHITECTURE" <uclinux-h8-devel@lists.sourceforge.jp>, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, "moderated list:NIOS2 ARCHITECTURE" <nios2-dev@lists.rocketboards.org>, "open list:SUPERH" <linux-sh@vger.kernel.org>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>
+Message-ID: <20170531082457.z08nnbsi1MJ1cmwVx3N4mp9sRY8__6ki8P12hGz97KU@z>
 
-A new patch has been added at the start of this series to make the default
-refcount_t implementation just use an unchecked atomic_t implementation,
-since many kernel subsystems want to be able to opt out of the full
-validation, since it includes a small performance overhead. When enabling
-CONFIG_REFCOUNT_FULL, the full validation is used.
+On Sat, May 27, 2017 at 11:58 AM, Daniel Lezcano
+<daniel.lezcano@linaro.org> wrote:
+> The config option name is now renamed to 'TIMER_OF' for consistency with
+> the CLOCKSOURCE_OF_DECLARE => TIMER_OF_DECLARE change.
+>
+> Signed-off-by: Daniel Lezcano <daniel.lezcano@linaro.org>
+> ---
+>  arch/arm/Kconfig                        | 10 +++---
+>  arch/arm/mach-bcm/Kconfig               |  2 +-
+>  arch/arm/mach-clps711x/Kconfig          |  2 +-
+>  arch/arm/mach-imx/epit.c                |  2 +-
+>  arch/arm/mach-s3c24xx/Kconfig           |  2 +-
+>  arch/arm/mach-s3c64xx/Kconfig           |  2 +-
+>  arch/arm64/Kconfig.platforms            |  4 +--
+>  arch/h8300/Kconfig                      |  2 +-
+>  arch/microblaze/Kconfig                 |  2 +-
+>  arch/mips/ralink/Kconfig                |  2 +-
+>  arch/nios2/Kconfig                      |  2 +-
+>  arch/sh/boards/Kconfig                  |  2 +-
+>  drivers/clocksource/Kconfig             | 60 ++++++++++++++++-----------------
+>  drivers/clocksource/Makefile            |  2 +-
+>  drivers/clocksource/clksrc-probe.c      | 55 ------------------------------
+>  drivers/clocksource/clps711x-timer.c    |  2 +-
+>  drivers/clocksource/samsung_pwm_timer.c |  2 +-
 
-The other two patches provide overflow protection on x86 without incurring
-a performance penalty. The changelog for patch 3 is reproduced here for
-details:
+For s3c24xx, s3c64xx and samsung_pwm_timer:
+Acked-by: Krzysztof Kozlowski <krzk@kernel.org>
 
-This protection is a modified version of the x86 PAX_REFCOUNT defense
-from PaX/grsecurity. This speeds up the refcount_t API by duplicating
-the existing atomic_t implementation with a single instruction added to
-detect if the refcount has wrapped past INT_MAX (or below 0) resulting
-in a negative value, where the handler then restores the refcount_t to
-INT_MAX or saturates to INT_MIN / 2. With this overflow protection, the
-use-after-free following a refcount_t wrap is blocked from happening,
-avoiding the vulnerability entirely.
-
-While this defense only perfectly protects the overflow case, as that
-can be detected and stopped before the reference is freed and left to be
-abused by an attacker, it also notices some of the "inc from 0" and "below
-0" cases. However, these only indicate that a use-after-free has already
-happened. Such notifications are likely avoidable by an attacker that has
-already exploited a use-after-free vulnerability, but it's better to have
-them than allow such conditions to remain universally silent.
-
-On overflow detection (actually "negative value" detection), the refcount
-value is reset to INT_MAX, the offending process is killed, and a report
-and stack trace are generated. This allows the system to attempt to
-keep operating. In the case of a below-zero decrement or other negative
-value results, the refcount is saturated to INT_MIN / 2 to keep it from
-reaching zero again. (For the INT_MAX reset, another option would be to
-choose (INT_MAX - N) with some small N to provide some headroom for
-legitimate users of the reference counter.)
-
-On the matter of races, since the entire range beyond INT_MAX but before 0
-is negative, every inc will trap, leaving no overflow-only race condition.
-
-As for performance, this implementation adds a single "js" instruction to
-the regular execution flow of a copy of the regular atomic_t operations.
-Since this is a forward jump, it is by default the non-predicted path,
-which will be reinforced by dynamic branch prediction. The result is
-this protection having no measurable change in performance over standard
-atomic_t operations. The error path, located in .text.unlikely, saves
-the refcount location and then uses UD0 to fire a refcount exception
-handler, which resets the refcount, reports the error, marks the process
-to be killed, and returns to regular execution. This keeps the changes to
-.text size minimal, avoiding return jumps and open-coded calls to the
-error reporting routine.
-    
-Assembly comparison:
-    
-atomic_inc
-.text:
-ffffffff81546149:       f0 ff 45 f4             lock incl -0xc(%rbp)
-    
-refcount_inc
-.text:
-ffffffff81546149:       f0 ff 45 f4             lock incl -0xc(%rbp)
-ffffffff8154614d:       0f 88 80 d5 17 00       js     ffffffff816c36d3
-...
-.text.unlikely:
-ffffffff816c36d3:       48 8d 4d f4             lea    -0xc(%rbp),%rcx
-ffffffff816c36d7:       0f ff                   (bad)
-
-Thanks to PaX Team for various suggestions for improvement.
-
-
--Kees
-
-v5:
-- add unchecked atomic_t implementation when !CONFIG_REFCOUNT_FULL
-- use "leal" again, as in v3 for more flexible reset handling
-- provide better underflow detection, with saturation
-
-v4:
-- switch to js from jns to gain static branch prediction benefits
-- use .text.unlikely for js target, effectively making handler __cold
-- use UD0 with refcount exception handler instead of int 0x81
-- Kconfig defaults on when arch has support
-
-v3:
-- drop named text sections until we need to distinguish sizes/directions
-- reset value immediately instead of passing back to handler
-- drop needless export; josh
-
-v2:
-- fix instruction pointer decrement bug; thejh
-- switch to js; pax-team
-- improve commit log
-- extract rmwcc macro helpers for better readability
-- implemented checks in inc_not_zero interface
-- adjusted reset values
+Best regards,
+Krzysztof
