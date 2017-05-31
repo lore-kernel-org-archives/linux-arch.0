@@ -1,44 +1,57 @@
-From: Krzysztof Kozlowski <krzk@kernel.org>
-Subject: Re: [PATCH 6/7] clocksource: Rename CLKSRC_OF to TIMER_OF
-Date: Wed, 31 May 2017 10:24:57 +0200
-Message-ID: <CAJKOXPc54UKCBr_8jqUE+5_YHbwEWOv=YRz0zR-ymaXaiGUHyw@mail.gmail.com>
-References: <1495879129-28109-1-git-send-email-daniel.lezcano@linaro.org> <1495879129-28109-6-git-send-email-daniel.lezcano@linaro.org>
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v5 32/32] x86/mm: Add support to make use of Secure
+ Memory Encryption
+Date: Wed, 31 May 2017 10:49:23 +0200
+Message-ID: <20170531084923.mmlpefxfx53f3okp@pd.tnic>
+References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
+ <20170418212223.10190.85121.stgit@tlendack-t1.amdoffice.net>
+ <20170519112703.voajtn4t7uy6nwa3@pd.tnic>
+ <7c522f65-c5c8-9362-e1eb-d0765e3ea6c9@amd.com>
+ <20170530145459.tyuy6veqxnrqkhgw@pd.tnic>
+ <115ca39d-6ae7-f603-a415-ead7c4e8193d@amd.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1495879129-28109-6-git-send-email-daniel.lezcano@linaro.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Daniel Lezcano <daniel.lezcano@linaro.org>
-Cc: tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Russell King <linux@armlinux.org.uk>, Florian Fainelli <f.fainelli@gmail.com>, Ray Jui <rjui@broadcom.com>, Scott Branden <sbranden@broadcom.com>, "maintainer:BROADCOM BCM281XX/BCM11XXX/BCM216XX ARM ARCHITE..." <bcm-kernel-feedback-list@broadcom.com>, Alexander Shiyan <shc_work@mail.ru>, Shawn Guo <shawnguo@kernel.org>, Sascha Hauer <kernel@pengutronix.de>, Fabio Estevam <fabio.estevam@nxp.com>, Kukjin Kim <kgene@kernel.org>, Javier Martinez Canillas <javier@osg.samsung.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Michal Simek <monstr@monstr.eu>, John Crispin <john@phrozen.org>
+Content-Type: text/plain; charset=utf-8
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <115ca39d-6ae7-f603-a415-ead7c4e8193d@amd.com>
+Sender: owner-linux-mm@kvack.org
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander
 List-Id: linux-arch.vger.kernel.org
 
-On Sat, May 27, 2017 at 11:58 AM, Daniel Lezcano
-<daniel.lezcano@linaro.org> wrote:
-> The config option name is now renamed to 'TIMER_OF' for consistency with
-> the CLOCKSOURCE_OF_DECLARE => TIMER_OF_DECLARE change.
->
-> Signed-off-by: Daniel Lezcano <daniel.lezcano@linaro.org>
-> ---
->  arch/arm/Kconfig                        | 10 +++---
->  arch/arm/mach-bcm/Kconfig               |  2 +-
->  arch/arm/mach-clps711x/Kconfig          |  2 +-
->  arch/arm/mach-imx/epit.c                |  2 +-
->  arch/arm/mach-s3c24xx/Kconfig           |  2 +-
->  arch/arm/mach-s3c64xx/Kconfig           |  2 +-
->  arch/arm64/Kconfig.platforms            |  4 +--
->  arch/h8300/Kconfig                      |  2 +-
->  arch/microblaze/Kconfig                 |  2 +-
->  arch/mips/ralink/Kconfig                |  2 +-
->  arch/nios2/Kconfig                      |  2 +-
->  arch/sh/boards/Kconfig                  |  2 +-
->  drivers/clocksource/Kconfig             | 60 ++++++++++++++++-----------------
->  drivers/clocksource/Makefile            |  2 +-
->  drivers/clocksource/clksrc-probe.c      | 55 ------------------------------
->  drivers/clocksource/clps711x-timer.c    |  2 +-
->  drivers/clocksource/samsung_pwm_timer.c |  2 +-
+On Tue, May 30, 2017 at 10:37:03AM -0500, Tom Lendacky wrote:
+> I can define the command line option and the "on" and "off" values as
+> character buffers in the function and initialize them on a per character
+> basis (using a static string causes the same issues as referencing a
+> string constant), i.e.:
+> 
+> char cmdline_arg[] = {'m', 'e', 'm', '_', 'e', 'n', 'c', 'r', 'y', 'p', 't', '\0'};
+> char cmdline_off[] = {'o', 'f', 'f', '\0'};
+> char cmdline_on[] = {'o', 'n', '\0'};
+> 
+> It doesn't look the greatest, but it works and removes the need for the
+> rip-relative addressing.
 
-For s3c24xx, s3c64xx and samsung_pwm_timer:
-Acked-by: Krzysztof Kozlowski <krzk@kernel.org>
+Well, I'm not thrilled about this one either. It's like being between a
+rock and a hard place. :-\
 
-Best regards,
-Krzysztof
+On the one hand, we need the encryption mask before we do the fixups and
+OTOH we need to do the fixups in order to access the strings properly.
+Yuck.
+
+Well, the only thing I can think of right now is maybe define
+"mem_encrypt=" at the end of head_64.S and pass it in from asm to
+sme_enable() and then do the "on"/"off" comparsion with local char
+buffers. That could make it less ugly...
+
+-- 
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
