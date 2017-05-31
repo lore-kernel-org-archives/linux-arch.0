@@ -1,31 +1,45 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v5 2/3] x86/asm: Add suffix macro for GEN_*_RMWcc()
-Date: Wed, 31 May 2017 13:13:09 +0200
-Message-ID: <20170531111309.3kyfgxu5dkthu2dn@hirez.programming.kicks-ass.net>
-References: <1496180392-98718-1-git-send-email-keescook@chromium.org>
- <1496180392-98718-3-git-send-email-keescook@chromium.org>
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v5 17/32] x86/mm: Add support to access boot related data
+ in the clear
+Date: Wed, 31 May 2017 13:31:41 +0200
+Message-ID: <20170531113140.fxlxnlo3hod57l53@pd.tnic>
+References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
+ <20170418211921.10190.1537.stgit@tlendack-t1.amdoffice.net>
+ <20170515183517.mb4k2gp2qobbuvtm@pd.tnic>
+ <4845df29-bae7-9b78-0428-ff96dbef2128@amd.com>
+ <20170518090212.kebstmnjv4h3cjf2@pd.tnic>
+ <c0cb8a50-e860-169b-ee0c-7eb4db7c3fda@amd.com>
+ <20170521071650.pwwmw4agggaazfrh@pd.tnic>
+ <754886ff-b502-3f68-3c32-5355d4176829@amd.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:37744 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750996AbdEaLNZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 31 May 2017 07:13:25 -0400
+Content-Type: text/plain; charset=utf-8
+Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <1496180392-98718-3-git-send-email-keescook@chromium.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: linux-kernel@vger.kernel.org, Christoph Hellwig <hch@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, PaX Team <pageexec@freemail.hu>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>
+In-Reply-To: <754886ff-b502-3f68-3c32-5355d4176829@amd.com>
+Sender: owner-linux-mm@kvack.org
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, May 30, 2017 at 02:39:51PM -0700, Kees Cook wrote:
-> The coming x86 refcount protection needs to be able to add trailing
-> instructions to the GEN_*_RMWcc() operations. This extracts the
-> difference between the goto/non-goto cases so the helper macros
-> can be defined outside the #ifdef cases. Additionally adds argument
-> naming to the resulting asm for referencing from suffixed
-> instructions, and adds clobbers for "cc", and "cx" to let suffixes
-> use _ASM_CX, and retain any set flags.
+On Tue, May 30, 2017 at 11:46:52AM -0500, Tom Lendacky wrote:
+> Check if you have CONFIG_DEBUG_SECTION_MISMATCH=y
 
-Another option is to simply require __GCC_ASM_FLAG_OUTPUT__ for the fast
-refcount stuff. That would result in simpler and more readable code.
+$ grep MISM .config
+CONFIG_DEBUG_SECTION_MISMATCH=y
+CONFIG_SECTION_MISMATCH_WARN_ONLY=y
+
+Still no joy.
+
+Can you give me your .config?
+
+-- 
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
