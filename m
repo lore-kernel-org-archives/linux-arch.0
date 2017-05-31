@@ -1,65 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:49450 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:49496 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751315AbdEaV47 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 31 May 2017 17:56:59 -0400
+        id S1751229AbdEaV5A (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 31 May 2017 17:57:00 -0400
 From: Jeremy Linton <jeremy.linton@arm.com>
-Subject: [PATCH 08/12] tracing: Rename enum_replace to eval_replace
-Date: Wed, 31 May 2017 16:56:49 -0500
-Message-ID: <20170531215653.3240-9-jeremy.linton@arm.com>
+Subject: [PATCH 10/12] tracing: Update sample file to describe the new macro
+Date: Wed, 31 May 2017 16:56:51 -0500
+Message-ID: <20170531215653.3240-11-jeremy.linton@arm.com>
 In-Reply-To: <20170531215653.3240-1-jeremy.linton@arm.com>
 References: <20170531215653.3240-1-jeremy.linton@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, rostedt@goodmis.org, mingo@redhat.com, rusty@rustcorp.com.au, jeyu@redhat.com, kirill.shutemov@linux.intel.com, christoffer.dall@linaro.org, marc.zyngier@arm.com, jcm@jonmasters.org
-Message-ID: <20170531215649.HawHOf5dh6-UaB3HDQTeACmyAbdcP0MfBCPqRFm5XSE@z>
+Message-ID: <20170531215651.galERhq9T7vZNitW4HXavLlIREnTqh58H9T-OBR1Qj4@z>
 
-The enum_replace stanza works as is for sizeof()
-calls as well as enums. Rename it as well.
+Add a blurb in the trace sample file to describe
+the macro used to add sizeof to value conversions.
 
 Signed-off-by: Jeremy Linton <jeremy.linton@arm.com>
 ---
- kernel/trace/trace_events.c | 12 ++++++------
- 1 file changed, 6 insertions(+), 6 deletions(-)
+ samples/trace_events/trace-events-sample.h | 7 +++++++
+ 1 file changed, 7 insertions(+)
 
-diff --git a/kernel/trace/trace_events.c b/kernel/trace/trace_events.c
-index e6897b0..83dfd0d 100644
---- a/kernel/trace/trace_events.c
-+++ b/kernel/trace/trace_events.c
-@@ -2067,12 +2067,12 @@ __register_event(struct trace_event_call *call, struct module *mod)
- 	return 0;
- }
+diff --git a/samples/trace_events/trace-events-sample.h b/samples/trace_events/trace-events-sample.h
+index 76a75ab..82e1e66 100644
+--- a/samples/trace_events/trace-events-sample.h
++++ b/samples/trace_events/trace-events-sample.h
+@@ -225,6 +225,13 @@ TRACE_DEFINE_ENUM(TRACE_SAMPLE_FOO);
+ TRACE_DEFINE_ENUM(TRACE_SAMPLE_BAR);
+ TRACE_DEFINE_ENUM(TRACE_SAMPLE_ZOO);
  
--static char *enum_replace(char *ptr, struct trace_eval_map *map, int len)
-+static char *eval_replace(char *ptr, struct trace_eval_map *map, int len)
- {
- 	int rlen;
- 	int elen;
++/*
++ * The same problem as above applies to sizeof(), so there is also
++ * a macro to solve that problem.
++ */
++
++TRACE_DEFINE_SIZEOF(pteval_t);
++
+ TRACE_EVENT(foo_bar,
  
--	/* Find the length of the enum value as a string */
-+	/* Find the length of the eval value as a string */
- 	elen = snprintf(ptr, 0, "%ld", map->eval_value);
- 	/* Make sure there's enough room to replace the string with the value */
- 	if (len < elen)
-@@ -2127,14 +2127,14 @@ static void update_event_printk(struct trace_event_call *call,
- 		if (isalpha(*ptr) || *ptr == '_') {
- 			if (strncmp(map->eval_string, ptr, len) == 0 &&
- 			    !isalnum(ptr[len]) && ptr[len] != '_') {
--				ptr = enum_replace(ptr, map, len);
--				/* Hmm, enum string smaller than value */
-+				ptr = eval_replace(ptr, map, len);
-+				/* enum/sizeof string smaller than value */
- 				if (WARN_ON_ONCE(!ptr))
- 					return;
- 				/*
--				 * No need to decrement here, as enum_replace()
-+				 * No need to decrement here, as eval_replace()
- 				 * returns the pointer to the character passed
--				 * the enum, and two enums can not be placed
-+				 * the eval, and two evals can not be placed
- 				 * back to back without something in between.
- 				 * We can skip that something in between.
- 				 */
+ 	TP_PROTO(const char *foo, int bar, const int *lst,
 -- 
 2.9.4
