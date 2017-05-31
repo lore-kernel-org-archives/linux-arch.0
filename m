@@ -1,94 +1,98 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:49436 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:49392 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751272AbdEaV45 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 31 May 2017 17:56:57 -0400
+        id S1751196AbdEaV4z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 31 May 2017 17:56:55 -0400
 From: Jeremy Linton <jeremy.linton@arm.com>
-Subject: [PATCH 05/12] trace: rename trace_enum_mutex to trace_eval_mutex
-Date: Wed, 31 May 2017 16:56:46 -0500
-Message-ID: <20170531215653.3240-6-jeremy.linton@arm.com>
+Subject: [PATCH 01/12] trace: rename kernel enum section to eval
+Date: Wed, 31 May 2017 16:56:42 -0500
+Message-ID: <20170531215653.3240-2-jeremy.linton@arm.com>
 In-Reply-To: <20170531215653.3240-1-jeremy.linton@arm.com>
 References: <20170531215653.3240-1-jeremy.linton@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, rostedt@goodmis.org, mingo@redhat.com, rusty@rustcorp.com.au, jeyu@redhat.com, kirill.shutemov@linux.intel.com, christoffer.dall@linaro.org, marc.zyngier@arm.com, jcm@jonmasters.org
-Message-ID: <20170531215646.zD2xQhj_uX5xx40geNi6y3FhJ4miOS_Zw17aqBRLPBs@z>
+Message-ID: <20170531215642.3HUq_RbGPWh9D45jwiiZV9pqkJOHSWYBQHeANxpfv5c@z>
 
-There is a lock protecting the trace_enum_map, rename
-it to reflect the use by more than enums.
+The kernel and its modules have sections containing the enum
+string to value conversions. Rename this section because we
+intend to store more than enums in it.
 
 Signed-off-by: Jeremy Linton <jeremy.linton@arm.com>
 ---
- kernel/trace/trace.c | 14 +++++++-------
- 1 file changed, 7 insertions(+), 7 deletions(-)
+ include/asm-generic/vmlinux.lds.h | 6 +++---
+ include/trace/trace_events.h      | 2 +-
+ kernel/module.c                   | 2 +-
+ kernel/trace/trace.c              | 8 ++++----
+ 4 files changed, 9 insertions(+), 9 deletions(-)
 
-diff --git a/kernel/trace/trace.c b/kernel/trace/trace.c
-index af6ec07..e1bc56c 100644
---- a/kernel/trace/trace.c
-+++ b/kernel/trace/trace.c
-@@ -138,7 +138,7 @@ struct trace_eval_map_tail {
- 	const char			*end;	/* points to NULL */
- };
- 
--static DEFINE_MUTEX(trace_enum_mutex);
-+static DEFINE_MUTEX(trace_eval_mutex);
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 314a0b9..800f9f9 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -125,9 +125,9 @@
+ 			VMLINUX_SYMBOL(__start_ftrace_events) = .;	\
+ 			KEEP(*(_ftrace_events))				\
+ 			VMLINUX_SYMBOL(__stop_ftrace_events) = .;	\
+-			VMLINUX_SYMBOL(__start_ftrace_enum_maps) = .;	\
+-			KEEP(*(_ftrace_enum_map))			\
+-			VMLINUX_SYMBOL(__stop_ftrace_enum_maps) = .;
++			VMLINUX_SYMBOL(__start_ftrace_eval_maps) = .;	\
++			KEEP(*(_ftrace_eval_map))			\
++			VMLINUX_SYMBOL(__stop_ftrace_eval_maps) = .;
+ #else
+ #define FTRACE_EVENTS()
+ #endif
+diff --git a/include/trace/trace_events.h b/include/trace/trace_events.h
+index 00f6431..4bdd840 100644
+--- a/include/trace/trace_events.h
++++ b/include/trace/trace_events.h
+@@ -43,7 +43,7 @@ TRACE_MAKE_SYSTEM_STR();
+ 		.enum_value = a				\
+ 	};						\
+ 	static struct trace_enum_map __used		\
+-	__attribute__((section("_ftrace_enum_map")))	\
++	__attribute__((section("_ftrace_eval_map")))	\
+ 	*TRACE_SYSTEM##_##a = &__##TRACE_SYSTEM##_##a
  
  /*
-  * The trace_eval_maps are saved in an array with two extra elements,
-@@ -4758,7 +4758,7 @@ static void *enum_map_start(struct seq_file *m, loff_t *pos)
- 	union trace_eval_map_item *v;
- 	loff_t l = 0;
+diff --git a/kernel/module.c b/kernel/module.c
+index 4a3665f..9ec4713 100644
+--- a/kernel/module.c
++++ b/kernel/module.c
+@@ -3077,7 +3077,7 @@ static int find_module_sections(struct module *mod, struct load_info *info)
+ 	mod->trace_events = section_objs(info, "_ftrace_events",
+ 					 sizeof(*mod->trace_events),
+ 					 &mod->num_trace_events);
+-	mod->trace_enums = section_objs(info, "_ftrace_enum_map",
++	mod->trace_enums = section_objs(info, "_ftrace_eval_map",
+ 					sizeof(*mod->trace_enums),
+ 					&mod->num_trace_enums);
+ #endif
+diff --git a/kernel/trace/trace.c b/kernel/trace/trace.c
+index c4536c4..ce564c2 100644
+--- a/kernel/trace/trace.c
++++ b/kernel/trace/trace.c
+@@ -7704,15 +7704,15 @@ struct dentry *tracing_init_dentry(void)
+ 	return NULL;
+ }
  
--	mutex_lock(&trace_enum_mutex);
-+	mutex_lock(&trace_eval_mutex);
+-extern struct trace_enum_map *__start_ftrace_enum_maps[];
+-extern struct trace_enum_map *__stop_ftrace_enum_maps[];
++extern struct trace_enum_map *__start_ftrace_eval_maps[];
++extern struct trace_enum_map *__stop_ftrace_eval_maps[];
  
- 	v = trace_eval_maps;
- 	if (v)
-@@ -4773,7 +4773,7 @@ static void *enum_map_start(struct seq_file *m, loff_t *pos)
- 
- static void enum_map_stop(struct seq_file *m, void *v)
+ static void __init trace_enum_init(void)
  {
--	mutex_unlock(&trace_enum_mutex);
-+	mutex_unlock(&trace_eval_mutex);
+ 	int len;
+ 
+-	len = __stop_ftrace_enum_maps - __start_ftrace_enum_maps;
+-	trace_insert_enum_map(NULL, __start_ftrace_enum_maps, len);
++	len = __stop_ftrace_eval_maps - __start_ftrace_eval_maps;
++	trace_insert_enum_map(NULL, __start_ftrace_eval_maps, len);
  }
  
- static int enum_map_show(struct seq_file *m, void *v)
-@@ -4838,7 +4838,7 @@ trace_insert_enum_map_file(struct module *mod, struct trace_eval_map **start,
- 		return;
- 	}
- 
--	mutex_lock(&trace_enum_mutex);
-+	mutex_lock(&trace_eval_mutex);
- 
- 	if (!trace_eval_maps)
- 		trace_eval_maps = map_array;
-@@ -4863,7 +4863,7 @@ trace_insert_enum_map_file(struct module *mod, struct trace_eval_map **start,
- 	}
- 	memset(map_array, 0, sizeof(*map_array));
- 
--	mutex_unlock(&trace_enum_mutex);
-+	mutex_unlock(&trace_eval_mutex);
- }
- 
- static void trace_create_enum_file(struct dentry *d_tracer)
-@@ -7740,7 +7740,7 @@ static void trace_module_remove_enums(struct module *mod)
- 	if (!mod->num_trace_evals)
- 		return;
- 
--	mutex_lock(&trace_enum_mutex);
-+	mutex_lock(&trace_eval_mutex);
- 
- 	map = trace_eval_maps;
- 
-@@ -7757,7 +7757,7 @@ static void trace_module_remove_enums(struct module *mod)
- 	*last = trace_enum_jmp_to_tail(map)->tail.next;
- 	kfree(map);
-  out:
--	mutex_unlock(&trace_enum_mutex);
-+	mutex_unlock(&trace_eval_mutex);
- }
- #else
- static inline void trace_module_remove_enums(struct module *mod) { }
+ #ifdef CONFIG_MODULES
 -- 
 2.9.4
