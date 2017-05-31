@@ -1,37 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:57535 "EHLO mx1.suse.de"
+Received: from mail-co1nam03on0049.outbound.protection.outlook.com ([104.47.40.49]:49380
+        "EHLO NAM03-CO1-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751090AbdEaM1w (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 31 May 2017 08:27:52 -0400
-Date: Wed, 31 May 2017 05:27:32 -0700
-From: Davidlohr Bueso <dave@stgolabs.net>
-Subject: Re: [PATCH v5 0/3] Implement fast refcount overflow protection
-Message-ID: <20170531122732.GA24923@linux-80c1.suse>
-References: <1496180392-98718-1-git-send-email-keescook@chromium.org>
+        id S1751056AbdEaNNG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 31 May 2017 09:13:06 -0400
+Subject: Re: [PATCH v5 29/32] x86/mm: Add support to encrypt the kernel
+ in-place
+References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
+ <20170418212149.10190.70894.stgit@tlendack-t1.amdoffice.net>
+ <20170518124626.hqyqqbjpy7hmlpqc@pd.tnic>
+ <7e2ae014-525c-76f2-9fce-2124596db2d2@amd.com>
+ <20170526162522.p7prrqqalx2ivfxl@pd.tnic>
+ <33c075b1-71f6-b5d0-b1fa-d742d0659d38@amd.com>
+ <20170531095148.pba6ju6im4qxbwfg@pd.tnic>
+From: Tom Lendacky <thomas.lendacky@amd.com>
+Message-ID: <17394b27-d693-4ff9-9dbd-11b5237fcf6a@amd.com>
+Date: Wed, 31 May 2017 08:12:56 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii; format=flowed
-Content-Disposition: inline
-In-Reply-To: <1496180392-98718-1-git-send-email-keescook@chromium.org>
+In-Reply-To: <20170531095148.pba6ju6im4qxbwfg@pd.tnic>
+Content-Type: text/plain; charset="utf-8"; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: linux-kernel@vger.kernel.org, Christoph Hellwig <hch@infradead.org>, Peter Zijlstra <peterz@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, PaX Team <pageexec@freemail.hu>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
-Message-ID: <20170531122732.Rqsji3NMCszjbNfCUu2l1qrkWlJye115MpORNvZPihY@z>
+To: Borislav Petkov <bp@alien8.de>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20170531131256.Gd8AnCzNuxY_B975RhvfNjd2QDSza4ocR2thrK9Q8CQ@z>
 
-On Tue, 30 May 2017, Kees Cook wrote:
+On 5/31/2017 4:51 AM, Borislav Petkov wrote:
+> On Tue, May 30, 2017 at 11:39:07AM -0500, Tom Lendacky wrote:
+>> Yes, it's from objtool:
+>>
+>> arch/x86/mm/mem_encrypt_boot.o: warning: objtool: .text+0xd2: return
+>> instruction outside of a callable function
+> 
+> Oh, well, let's make it a global symbol then. Who knows, we might have
+> to live-patch it someday :-)
 
->A new patch has been added at the start of this series to make the default
->refcount_t implementation just use an unchecked atomic_t implementation,
->since many kernel subsystems want to be able to opt out of the full
->validation, since it includes a small performance overhead. When enabling
->CONFIG_REFCOUNT_FULL, the full validation is used.
->
->The other two patches provide overflow protection on x86 without incurring
->a performance penalty. The changelog for patch 3 is reproduced here for
->details:
-
-To be sure I'm getting this right, after this all archs with the exception
-of x86 will use the regular atomic_t ("unsecure") flavor, right?
+Can do.
 
 Thanks,
-Davidlohr
+Tom
+
+> 
+> ---
+> diff --git a/arch/x86/mm/mem_encrypt_boot.S b/arch/x86/mm/mem_encrypt_boot.S
+> index fb58f9f953e3..7720b0050840 100644
+> --- a/arch/x86/mm/mem_encrypt_boot.S
+> +++ b/arch/x86/mm/mem_encrypt_boot.S
+> @@ -47,9 +47,9 @@ ENTRY(sme_encrypt_execute)
+>   	movq	%rdx, %r12		/* Kernel length */
+>   
+>   	/* Copy encryption routine into the workarea */
+> -	movq	%rax, %rdi		/* Workarea encryption routine */
+> -	leaq	.Lenc_start(%rip), %rsi	/* Encryption routine */
+> -	movq	$(.Lenc_stop - .Lenc_start), %rcx	/* Encryption routine length */
+> +	movq	%rax, %rdi				/* Workarea encryption routine */
+> +	leaq	__enc_copy(%rip), %rsi			/* Encryption routine */
+> +	movq	$(.L__enc_copy_end - __enc_copy), %rcx	/* Encryption routine length */
+>   	rep	movsb
+>   
+>   	/* Setup registers for call */
+> @@ -70,8 +70,7 @@ ENTRY(sme_encrypt_execute)
+>   	ret
+>   ENDPROC(sme_encrypt_execute)
+>   
+> -.Lenc_start:
+> -ENTRY(sme_enc_routine)
+> +ENTRY(__enc_copy)
+>   /*
+>    * Routine used to encrypt kernel.
+>    *   This routine must be run outside of the kernel proper since
+> @@ -147,5 +146,5 @@ ENTRY(sme_enc_routine)
+>   	wrmsr
+>   
+>   	ret
+> -ENDPROC(sme_enc_routine)
+> -.Lenc_stop:
+> +.L__enc_copy_end:
+> +ENDPROC(__enc_copy)
+> 
