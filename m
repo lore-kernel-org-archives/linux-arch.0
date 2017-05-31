@@ -1,122 +1,49 @@
-From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Subject: Re: [PATCH] asm-generic: simd: allow SIMD in process context with BH disabled
-Date: Wed, 31 May 2017 15:52:48 +0000
-Message-ID: <CAKv+Gu_Z40UAwOafVfvzw7vcvLZ_XqT9eJzqhwzadYfKDsTf7w@mail.gmail.com>
-References: <20170531125701.20717-1-ard.biesheuvel@linaro.org> <20170531153231.GC30160@e103592.cambridge.arm.com>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH v5 2/3] x86/asm: Add suffix macro for GEN_*_RMWcc()
+Date: Wed, 31 May 2017 09:09:16 -0700
+Message-ID: <CAGXu5jKV-NjD5=tFsfeik-Egh4sctzPnQnZtuv9D7-WSkkREVw@mail.gmail.com>
+References: <1496180392-98718-1-git-send-email-keescook@chromium.org>
+ <1496180392-98718-3-git-send-email-keescook@chromium.org> <20170531111309.3kyfgxu5dkthu2dn@hirez.programming.kicks-ass.net>
+ <CAGXu5j+MKKSU+=VGmwamC0aekRKt+WDvpVpdmFce2br8YoecgA@mail.gmail.com> <20170531140318.5piqb4ksynq4evwi@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f169.google.com ([209.85.223.169]:35142 "EHLO
-        mail-io0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750998AbdEaPwu (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 31 May 2017 11:52:50 -0400
-Received: by mail-io0-f169.google.com with SMTP id f102so18477730ioi.2
-        for <linux-arch@vger.kernel.org>; Wed, 31 May 2017 08:52:49 -0700 (PDT)
-In-Reply-To: <20170531153231.GC30160@e103592.cambridge.arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Jason A. Donenfeld" <Jason@zx2c4.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Arnd Bergmann <arnd@arndb.de>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20170531140318.5piqb4ksynq4evwi@hirez.programming.kicks-ass.net>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, Christoph Hellwig <hch@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, PaX Team <pageexec@freemail.hu>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.co>
+List-Id: linux-arch.vger.kernel.org
 
-On 31 May 2017 at 15:32, Dave Martin <Dave.Martin@arm.com> wrote:
-> On Wed, May 31, 2017 at 12:57:01PM +0000, Ard Biesheuvel wrote:
->> asm-generic supplies a header asm/simd.h which exports a single function
->> may_use_simd(), which conveys whether the current context allows the SIMD
->> register file or instructions to be used.
+On Wed, May 31, 2017 at 7:03 AM, Peter Zijlstra <peterz@infradead.org> wrote:
+> On Wed, May 31, 2017 at 06:17:16AM -0700, Kees Cook wrote:
+>> On Wed, May 31, 2017 at 4:13 AM, Peter Zijlstra <peterz@infradead.org> wrote:
+>> > On Tue, May 30, 2017 at 02:39:51PM -0700, Kees Cook wrote:
+>> >> The coming x86 refcount protection needs to be able to add trailing
+>> >> instructions to the GEN_*_RMWcc() operations. This extracts the
+>> >> difference between the goto/non-goto cases so the helper macros
+>> >> can be defined outside the #ifdef cases. Additionally adds argument
+>> >> naming to the resulting asm for referencing from suffixed
+>> >> instructions, and adds clobbers for "cc", and "cx" to let suffixes
+>> >> use _ASM_CX, and retain any set flags.
+>> >
+>> > Another option is to simply require __GCC_ASM_FLAG_OUTPUT__ for the fast
+>> > refcount stuff. That would result in simpler and more readable code.
 >>
->> This header is included by crypto code shared between x86 and ARM/arm64,
->> and which offloads SIMD processing to process context if required. The
->> generic asm/simd.h is shared between ARM and arm64 at the moment, while
->> x86 has its own implementation.
->>
->> On arm64, we currently mostly ignore may_use_simd(), because arm64 allows
->> kernel mode NEON in any context. However, this is due to change shortly
->> when support for SVE is merged, at which point we will introduce an arm64
->> specific implementation of asm/simd.h as well.
->>
->> That leaves ARM, which only allows kernel mode NEON in process context,
->> which makes the current generic implementation of may_use_simd() seem
->> appropriate. However, given that in_interrupt() will return true when
->> running in process context with bottom halves disabled, we may end up
->> falling back to less optimized code unnecessarily, given that kernel
->> mode NEON is perfectly usable in that case.
->>
->> So redefine may_use_simd() to disallow SIMD only when running in hardirq
->> or softirq context.
->>
->> While we're at it, add some missing header file decorations such as
->> a license header and include guards.
->>
->> Reported-by: "Jason A. Donenfeld" <Jason@zx2c4.com>
->> Signed-off-by: Ard Biesheuvel <ard.biesheuvel@linaro.org>
->> ---
->>  include/asm-generic/simd.h | 23 ++++++++++++++++++++---
->>  1 file changed, 20 insertions(+), 3 deletions(-)
->>
->> diff --git a/include/asm-generic/simd.h b/include/asm-generic/simd.h
->> index f57eb7b5c23b..a3e5ebe6b2b2 100644
->> --- a/include/asm-generic/simd.h
->> +++ b/include/asm-generic/simd.h
->> @@ -1,14 +1,31 @@
->> +/*
->> + * Copyright (C) 2013 - 2017 Linaro Ltd. <ard.biesheuvel@linaro.org>
->> + *
->> + * This program is free software; you can redistribute it and/or modify it
->> + * under the terms of the GNU General Public License version 2 as published
->> + * by the Free Software Foundation.
->> + */
->>
->> -#include <linux/hardirq.h>
->> +#ifndef __ASM_SIMD_H
->> +#define __ASM_SIMD_H
->> +
->> +#include <linux/types.h>
->> +#include <linux/preempt.h>
->>
->>  /*
->>   * may_use_simd - whether it is allowable at this time to issue SIMD
->>   *                instructions or access the SIMD register file
->>   *
->>   * As architectures typically don't preserve the SIMD register file when
->> - * taking an interrupt, !in_interrupt() should be a reasonable default.
->> + * taking an interrupt, it is reasonable to define the default behavior
->> + * of 'may_use_simd()' to be 'SIMD is only allowed when not handling an
->> + * IRQ or softIRQ'. Since 'in_interrupt()' will also return true when
->> + * running in process context with bottom halves disabled, we have to
->> + * spell out that condition as shown.
+>> What versions of GCC support that?
 >
-> Minor nit: do we need the comment about in_interrupt() here?
->
-> It makes more sense to explain the change in the commit message (which
-> you do) than to explain in-line the behaviour of a function that the
-> code doesn't use.
->
-> <linux/preempt.h> already hints at the caveats of in_interrupt().
->
+> IIRC 6+
 
-Fair enough. I tend to err on the verbose side when it comes to
-comments, but this could indeed be omitted.
+Given how many folks are still using 4.9 (and lower, see the thread
+with Arnd[1]), I'd like to just keep this as I have it. It's not much
+less readable, IMO (It was already pretty complex). I cleaned it up a
+little before making it more ugly, so I think on sum, it's only a
+little more weird. I think that's better than making this
+compiler-specific or copy/pasting.
 
->
-> For this comment block, it may be more helpful to note that SIMD is
-> permitted in task context even if bottom halves are enabled.
->
->>   */
->>  static __must_check inline bool may_use_simd(void)
->>  {
->> -     return !in_interrupt();
->> +     return !in_irq() && !in_serving_softirq();
->
-> Previously, in_nmi() implied !may_use_simd().
->
-> Now, may_use_simd() can return true if in_nmi().
->
-> Code in NMI context probably shouldn't be touching this interface at
-> all, but we may want to close this hole by adding && !in_nmi()
-> explicitly.  I did that in my kernel-mode-neon simplification series,
-> but couldn't decide whether it was superfluous.
->
-> Any thoughts?
->
+-Kees
 
-I agree. I will add that as well.
+[1] https://lkml.org/lkml/2017/4/25/66
+
+-- 
+Kees Cook
+Pixel Security
