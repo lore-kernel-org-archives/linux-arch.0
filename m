@@ -1,104 +1,44 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v5 2/3] x86/asm: Add suffix macro for GEN_*_RMWcc()
-Date: Tue, 30 May 2017 14:39:51 -0700
-Message-ID: <1496180392-98718-3-git-send-email-keescook@chromium.org>
-References: <1496180392-98718-1-git-send-email-keescook@chromium.org>
-Return-path: <kernel-hardening-return-8141-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <1496180392-98718-1-git-send-email-keescook@chromium.org>
-To: linux-kernel@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>, Christoph Hellwig <hch@infradead.org>, Peter Zijlstra <peterz@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, PaX Team <pageexec@freemail.hu>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd
+From: Krzysztof Kozlowski <krzk@kernel.org>
+Subject: Re: [PATCH 6/7] clocksource: Rename CLKSRC_OF to TIMER_OF
+Date: Wed, 31 May 2017 10:24:57 +0200
+Message-ID: <CAJKOXPc54UKCBr_8jqUE+5_YHbwEWOv=YRz0zR-ymaXaiGUHyw@mail.gmail.com>
+References: <1495879129-28109-1-git-send-email-daniel.lezcano@linaro.org> <1495879129-28109-6-git-send-email-daniel.lezcano@linaro.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1495879129-28109-6-git-send-email-daniel.lezcano@linaro.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Daniel Lezcano <daniel.lezcano@linaro.org>
+Cc: tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Russell King <linux@armlinux.org.uk>, Florian Fainelli <f.fainelli@gmail.com>, Ray Jui <rjui@broadcom.com>, Scott Branden <sbranden@broadcom.com>, "maintainer:BROADCOM BCM281XX/BCM11XXX/BCM216XX ARM ARCHITE..." <bcm-kernel-feedback-list@broadcom.com>, Alexander Shiyan <shc_work@mail.ru>, Shawn Guo <shawnguo@kernel.org>, Sascha Hauer <kernel@pengutronix.de>, Fabio Estevam <fabio.estevam@nxp.com>, Kukjin Kim <kgene@kernel.org>, Javier Martinez Canillas <javier@osg.samsung.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Michal Simek <monstr@monstr.eu>, John Crispin <john@phrozen.org>
 List-Id: linux-arch.vger.kernel.org
 
-The coming x86 refcount protection needs to be able to add trailing
-instructions to the GEN_*_RMWcc() operations. This extracts the
-difference between the goto/non-goto cases so the helper macros
-can be defined outside the #ifdef cases. Additionally adds argument
-naming to the resulting asm for referencing from suffixed
-instructions, and adds clobbers for "cc", and "cx" to let suffixes
-use _ASM_CX, and retain any set flags.
+On Sat, May 27, 2017 at 11:58 AM, Daniel Lezcano
+<daniel.lezcano@linaro.org> wrote:
+> The config option name is now renamed to 'TIMER_OF' for consistency with
+> the CLOCKSOURCE_OF_DECLARE => TIMER_OF_DECLARE change.
+>
+> Signed-off-by: Daniel Lezcano <daniel.lezcano@linaro.org>
+> ---
+>  arch/arm/Kconfig                        | 10 +++---
+>  arch/arm/mach-bcm/Kconfig               |  2 +-
+>  arch/arm/mach-clps711x/Kconfig          |  2 +-
+>  arch/arm/mach-imx/epit.c                |  2 +-
+>  arch/arm/mach-s3c24xx/Kconfig           |  2 +-
+>  arch/arm/mach-s3c64xx/Kconfig           |  2 +-
+>  arch/arm64/Kconfig.platforms            |  4 +--
+>  arch/h8300/Kconfig                      |  2 +-
+>  arch/microblaze/Kconfig                 |  2 +-
+>  arch/mips/ralink/Kconfig                |  2 +-
+>  arch/nios2/Kconfig                      |  2 +-
+>  arch/sh/boards/Kconfig                  |  2 +-
+>  drivers/clocksource/Kconfig             | 60 ++++++++++++++++-----------------
+>  drivers/clocksource/Makefile            |  2 +-
+>  drivers/clocksource/clksrc-probe.c      | 55 ------------------------------
+>  drivers/clocksource/clps711x-timer.c    |  2 +-
+>  drivers/clocksource/samsung_pwm_timer.c |  2 +-
 
-Signed-off-by: Kees Cook <keescook@chromium.org>
----
- arch/x86/include/asm/rmwcc.h | 37 ++++++++++++++++++++++++-------------
- 1 file changed, 24 insertions(+), 13 deletions(-)
+For s3c24xx, s3c64xx and samsung_pwm_timer:
+Acked-by: Krzysztof Kozlowski <krzk@kernel.org>
 
-diff --git a/arch/x86/include/asm/rmwcc.h b/arch/x86/include/asm/rmwcc.h
-index 661dd305694a..045f99211a99 100644
---- a/arch/x86/include/asm/rmwcc.h
-+++ b/arch/x86/include/asm/rmwcc.h
-@@ -1,45 +1,56 @@
- #ifndef _ASM_X86_RMWcc
- #define _ASM_X86_RMWcc
- 
-+#define __CLOBBERS_MEM		"memory"
-+#define __CLOBBERS_MEM_CC_CX	"memory", "cc", "cx"
-+
- #if !defined(__GCC_ASM_FLAG_OUTPUTS__) && defined(CC_HAVE_ASM_GOTO)
- 
- /* Use asm goto */
- 
--#define __GEN_RMWcc(fullop, var, cc, ...)				\
-+#define __GEN_RMWcc(fullop, var, cc, clobbers, ...)			\
- do {									\
- 	asm_volatile_goto (fullop "; j" #cc " %l[cc_label]"		\
--			: : "m" (var), ## __VA_ARGS__ 			\
--			: "memory" : cc_label);				\
-+			: : [counter] "m" (var), ## __VA_ARGS__		\
-+			: clobbers : cc_label);				\
- 	return 0;							\
- cc_label:								\
- 	return 1;							\
- } while (0)
- 
--#define GEN_UNARY_RMWcc(op, var, arg0, cc) 				\
--	__GEN_RMWcc(op " " arg0, var, cc)
-+#define __BINARY_RMWcc_ARG	" %1, "
- 
--#define GEN_BINARY_RMWcc(op, var, vcon, val, arg0, cc)			\
--	__GEN_RMWcc(op " %1, " arg0, var, cc, vcon (val))
- 
- #else /* defined(__GCC_ASM_FLAG_OUTPUTS__) || !defined(CC_HAVE_ASM_GOTO) */
- 
- /* Use flags output or a set instruction */
- 
--#define __GEN_RMWcc(fullop, var, cc, ...)				\
-+#define __GEN_RMWcc(fullop, var, cc, clobbers, ...)			\
- do {									\
- 	bool c;								\
- 	asm volatile (fullop ";" CC_SET(cc)				\
--			: "+m" (var), CC_OUT(cc) (c)			\
--			: __VA_ARGS__ : "memory");			\
-+			: [counter] "+m" (var), CC_OUT(cc) (c)		\
-+			: __VA_ARGS__ : clobbers);			\
- 	return c;							\
- } while (0)
- 
-+#define __BINARY_RMWcc_ARG	" %2, "
-+
-+#endif /* defined(__GCC_ASM_FLAG_OUTPUTS__) || !defined(CC_HAVE_ASM_GOTO) */
-+
- #define GEN_UNARY_RMWcc(op, var, arg0, cc)				\
--	__GEN_RMWcc(op " " arg0, var, cc)
-+	__GEN_RMWcc(op " " arg0, var, cc, __CLOBBERS_MEM)
-+
-+#define GEN_UNARY_SUFFIXED_RMWcc(op, suffix, var, arg0, cc)		\
-+	__GEN_RMWcc(op " " arg0 "\n\t" suffix, var, cc,			\
-+		    __CLOBBERS_MEM_CC_CX)
- 
- #define GEN_BINARY_RMWcc(op, var, vcon, val, arg0, cc)			\
--	__GEN_RMWcc(op " %2, " arg0, var, cc, vcon (val))
-+	__GEN_RMWcc(op __BINARY_RMWcc_ARG arg0, var, cc,		\
-+		    __CLOBBERS_MEM, vcon (val))
- 
--#endif /* defined(__GCC_ASM_FLAG_OUTPUTS__) || !defined(CC_HAVE_ASM_GOTO) */
-+#define GEN_BINARY_SUFFIXED_RMWcc(op, suffix, var, vcon, val, arg0, cc)	\
-+	__GEN_RMWcc(op __BINARY_RMWcc_ARG arg0 "\n\t" suffix, var, cc,	\
-+		    __CLOBBERS_MEM_CC_CX, vcon (val))
- 
- #endif /* _ASM_X86_RMWcc */
--- 
-2.7.4
+Best regards,
+Krzysztof
