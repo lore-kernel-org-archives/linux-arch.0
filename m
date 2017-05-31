@@ -1,53 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([5.9.137.197]:41260 "EHLO mail.skyhub.de"
+Received: from mail.skyhub.de ([5.9.137.197]:42408 "EHLO mail.skyhub.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750993AbdEaItc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 31 May 2017 04:49:32 -0400
-Date: Wed, 31 May 2017 10:49:23 +0200
+        id S1751000AbdEaJQV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 31 May 2017 05:16:21 -0400
+Date: Wed, 31 May 2017 11:15:53 +0200
 From: Borislav Petkov <bp@alien8.de>
 Subject: Re: [PATCH v5 32/32] x86/mm: Add support to make use of Secure
  Memory Encryption
-Message-ID: <20170531084923.mmlpefxfx53f3okp@pd.tnic>
+Message-ID: <20170531091553.jwqcwkfivmmhndwv@pd.tnic>
 References: <20170418211612.10190.82788.stgit@tlendack-t1.amdoffice.net>
  <20170418212223.10190.85121.stgit@tlendack-t1.amdoffice.net>
- <20170519112703.voajtn4t7uy6nwa3@pd.tnic>
- <7c522f65-c5c8-9362-e1eb-d0765e3ea6c9@amd.com>
- <20170530145459.tyuy6veqxnrqkhgw@pd.tnic>
- <115ca39d-6ae7-f603-a415-ead7c4e8193d@amd.com>
+ <c29edaff-24f2-ee9b-4142-bdbf8c42083f@amd.com>
+ <20170519113005.3f5kwzg4pgh7j6a5@pd.tnic>
+ <20170519201651.dhayf2pwjlsnouz4@treble>
+ <1ac40d18-a8b2-94eb-35ed-c30768667be8@amd.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <115ca39d-6ae7-f603-a415-ead7c4e8193d@amd.com>
+In-Reply-To: <1ac40d18-a8b2-94eb-35ed-c30768667be8@amd.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170531084923.eewU5_TNU46WSmFAVCcbrekmohDnyAgVMStKgZ2g6_M@z>
+Cc: Josh Poimboeuf <jpoimboe@redhat.com>, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20170531091553.UDJzrFzgpo7EdjYGMV1KF3PWYIDVigqlBiNT-ET14EI@z>
 
-On Tue, May 30, 2017 at 10:37:03AM -0500, Tom Lendacky wrote:
-> I can define the command line option and the "on" and "off" values as
-> character buffers in the function and initialize them on a per character
-> basis (using a static string causes the same issues as referencing a
-> string constant), i.e.:
-> 
-> char cmdline_arg[] = {'m', 'e', 'm', '_', 'e', 'n', 'c', 'r', 'y', 'p', 't', '\0'};
-> char cmdline_off[] = {'o', 'f', 'f', '\0'};
-> char cmdline_on[] = {'o', 'n', '\0'};
-> 
-> It doesn't look the greatest, but it works and removes the need for the
-> rip-relative addressing.
+On Tue, May 30, 2017 at 10:48:27AM -0500, Tom Lendacky wrote:
+> I'll look at doing that instead of removing the support for the whole
+> file.
 
-Well, I'm not thrilled about this one either. It's like being between a
-rock and a hard place. :-\
+Right, so I don't think the stack protector is even ready that early -
+we do set it up later:
 
-On the one hand, we need the encryption mask before we do the fixups and
-OTOH we need to do the fixups in order to access the strings properly.
-Yuck.
+        /* Set up %gs.
+         *
+         * The base of %gs always points to the bottom of the irqstack
+         * union.  If the stack protector canary is enabled, it is
+         * located at %gs:40.  Note that, on SMP, the boot cpu uses
+         * init data section till per cpu areas are set up.
+         */
+        movl    $MSR_GS_BASE,%ecx
+        movl    initial_gs(%rip),%eax
+        movl    initial_gs+4(%rip),%edx
+        wrmsr
 
-Well, the only thing I can think of right now is maybe define
-"mem_encrypt=" at the end of head_64.S and pass it in from asm to
-sme_enable() and then do the "on"/"off" comparsion with local char
-buffers. That could make it less ugly...
+so I think marking the function "no-stack-protector" is the only option
+right now. We can always look at fixing that later.
 
 -- 
 Regards/Gruss,
