@@ -1,72 +1,93 @@
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH 00/12] trace: add the ability to parse sizeof()
-Date: Wed, 31 May 2017 21:11:40 -0400
-Message-ID: <20170531211038.63faa76b@vmware.local.home>
-References: <20170531215653.3240-1-jeremy.linton@arm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20170531215653.3240-1-jeremy.linton@arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Jeremy Linton <jeremy.linton@arm.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@redhat.com, rusty@rustcorp.com.au, jeyu@redhat.com, kirill.shutemov@linux.intel.com, christoffer.dall@linaro.org, marc.zyngier@arm.com, jcm@jonmasters.org
-List-Id: linux-arch.vger.kernel.org
+From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Subject: [PATCH v2] asm-generic: simd: allow SIMD in process context with BH disabled
+Date: Thu,  1 Jun 2017 09:55:32 +0000
+Message-ID: <20170601095532.16632-1-ard.biesheuvel@linaro.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wm0-f49.google.com ([74.125.82.49]:37094 "EHLO
+        mail-wm0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751435AbdFAJzn (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 1 Jun 2017 05:55:43 -0400
+Received: by mail-wm0-f49.google.com with SMTP id d127so53052773wmf.0
+        for <linux-arch@vger.kernel.org>; Thu, 01 Jun 2017 02:55:42 -0700 (PDT)
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org
+Cc: linux-arm-kernel@lists.infradead.org, arnd@arndb.de, dave.martin@arm.com, Jason@zx2c4.com, Ard Biesheuvel <ard.biesheuvel@linaro.org>
 
+asm-generic supplies a header asm/simd.h which exports a single function
+may_use_simd(), which conveys whether the current context allows the SIMD
+register file or instructions to be used.
 
-Hi Jeremy,
+This header is included by crypto code shared between x86 and ARM/arm64,
+and which offloads SIMD processing to process context if required. The
+generic asm/simd.h is shared between ARM and arm64 at the moment, while
+x86 has its own implementation.
 
-I'm currently at the Open Source Summit in Tokyo. It may be a while
-before I get to look more at this. If I get time during my travels,
-I may get to it sooner, otherwise it may be a week or so.
+On arm64, we currently mostly ignore may_use_simd(), because arm64 allows
+kernel mode NEON in any context. However, this is due to change shortly
+when support for SVE is merged, at which point we will introduce an arm64
+specific implementation of asm/simd.h as well.
 
--- Steve
+That leaves ARM, which only allows kernel mode NEON in process context,
+which makes the current generic implementation of may_use_simd() seem
+appropriate. However, given that in_interrupt() will return true when
+running in process context with bottom halves disabled, we may end up
+falling back to less optimized code unnecessarily, given that kernel
+mode NEON is perfectly usable in that case.
 
-On Wed, 31 May 2017 16:56:41 -0500
-Jeremy Linton <jeremy.linton@arm.com> wrote:
+So redefine may_use_simd() to disallow SIMD only when running in NMI,
+hardirq or softirq context.
 
-> There are a few cases of sizeof() embedded in TRACE_EVENT()
-> macros. That is a problem because the sizeof(structure) gets
-> passed to userspace which doesn't know how to decode the
-> size of kernel data structures. This is a similar problem
-> to enums which were being passed in their symbolic form to
-> userspace.
-> 
-> Rather than recreating much of that infrastructure lets
-> simply extend it, and append additional symbols into the
-> enum_map that can translate string sizeof() calls into
-> values. Of course that means that much of the infrastructure
-> is now poorly named so we go through and replace instances
-> describing "enum" with "eval" to indicate a generic C
-> expression to numerical evaluation routine.
-> 
-> Jeremy Linton (12):
->   trace: rename kernel enum section to eval
->   trace: rename trace_enum_map to trace_eval_map
->   trace: rename struct module entry for trace enums
->   trace: rename trace enum data structures in trace.c
->   trace: rename trace_enum_mutex to trace_eval_mutex
->   trace: rename trace.c enum functions
->   trace: rename enum_map functions
->   tracing: Rename enum_replace to eval_replace
->   tracing: define TRACE_DEFINE_SIZEOF() macro to map sizeof's to their
->     values
->   tracing: Update sample file to describe the new macro
->   tracing: Add TRACE_DEFINE_SIZEOF() macros
->   tracing: Rename update the enum_map file
-> 
->  arch/arm64/kvm/trace.h                     |   2 +
->  include/asm-generic/vmlinux.lds.h          |   6 +-
->  include/linux/module.h                     |   4 +-
->  include/linux/tracepoint.h                 |   7 +-
->  include/trace/events/xen.h                 |  13 +-
->  include/trace/trace_events.h               |  26 +++-
->  kernel/module.c                            |   6 +-
->  kernel/trace/Kconfig                       |  22 ++--
->  kernel/trace/trace.c                       | 194
-> ++++++++++++++---------------
-> kernel/trace/trace.h                       |   4 +-
-> kernel/trace/trace_events.c                |  24 ++--
-> samples/trace_events/trace-events-sample.h |   7 ++ 12 files changed,
-> 175 insertions(+), 140 deletions(-)
-> 
+While we're at it, add some missing header file decorations such as
+a license header and include guards.
+
+Reported-by: "Jason A. Donenfeld" <Jason@zx2c4.com>
+Signed-off-by: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+---
+v2: add !in_nmi() to may_use_simd() condition
+    include <linux/compiler.h> for __must_check
+    remove too elaborate comment
+
+ include/asm-generic/simd.h | 22 +++++++++++++++++---
+ 1 file changed, 19 insertions(+), 3 deletions(-)
+
+diff --git a/include/asm-generic/simd.h b/include/asm-generic/simd.h
+index f57eb7b5c23b..ded4156421ff 100644
+--- a/include/asm-generic/simd.h
++++ b/include/asm-generic/simd.h
+@@ -1,14 +1,30 @@
++/*
++ * Copyright (C) 2013 - 2017 Linaro Ltd. <ard.biesheuvel@linaro.org>
++ *
++ * This program is free software; you can redistribute it and/or modify it
++ * under the terms of the GNU General Public License version 2 as published
++ * by the Free Software Foundation.
++ */
+ 
+-#include <linux/hardirq.h>
++#ifndef __ASM_SIMD_H
++#define __ASM_SIMD_H
++
++#include <linux/compiler.h>
++#include <linux/preempt.h>
++#include <linux/types.h>
+ 
+ /*
+  * may_use_simd - whether it is allowable at this time to issue SIMD
+  *                instructions or access the SIMD register file
+  *
+  * As architectures typically don't preserve the SIMD register file when
+- * taking an interrupt, !in_interrupt() should be a reasonable default.
++ * taking an interrupt, it is reasonable to define the default behavior
++ * of 'may_use_simd()' to be 'SIMD is only allowed when not handling any
++ * kind of interrupt'.
+  */
+ static __must_check inline bool may_use_simd(void)
+ {
+-	return !in_interrupt();
++	return !in_nmi() && !in_irq() && !in_serving_softirq();
+ }
++
++#endif
+-- 
+2.9.3
