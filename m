@@ -1,57 +1,212 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v5 1/3] refcount: Create unchecked atomic_t implementation
-Date: Thu, 1 Jun 2017 07:43:37 -0700
-Message-ID: <CAGXu5j+eX4A5E5YQq3WmgWmW16nCUwswZsbwzVGdd1v8i72JLA@mail.gmail.com>
-References: <1496180392-98718-1-git-send-email-keescook@chromium.org>
- <1496180392-98718-2-git-send-email-keescook@chromium.org> <2236FBA76BA1254E88B949DDB74E612B6B215E2E@IRSMSX102.ger.corp.intel.com>
- <20170531110918.tgbppvxgkkhoaclk@hirez.programming.kicks-ass.net>
+From: Andrey Ryabinin <aryabinin@virtuozzo.com>
+Subject: Re: KASAN vs. boot-time switching between 4- and 5-level paging
+Date: Thu, 1 Jun 2017 17:56:30 +0300
+Message-ID: <bc95be68-8c68-2a45-c530-acbc6c90a231@virtuozzo.com>
+References: <20170525203334.867-1-kirill.shutemov@linux.intel.com>
+ <20170525203334.867-8-kirill.shutemov@linux.intel.com>
+ <20170526221059.o4kyt3ijdweurz6j@node.shutemov.name>
+ <CACT4Y+YyFWg3fbj4ta3tSKoeBaw7hbL2YoBatAFiFB1_cMg9=Q@mail.gmail.com>
+ <71e11033-f95c-887f-4e4e-351bcc3df71e@virtuozzo.com>
+ <CACT4Y+bSTOeJtDDZVmkff=qqJFesA_b6uTG__EAn4AvDLw0jzQ@mail.gmail.com>
+ <c4f11000-6138-c6ab-d075-2c4bd6a14943@virtuozzo.com>
+ <75acbed7-6a08-692f-61b5-2b44f66ec0d8@virtuozzo.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20170531110918.tgbppvxgkkhoaclk@hirez.programming.kicks-ass.net>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: "Reshetova, Elena" <elena.reshetova@intel.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Christoph Hellwig <hch@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, PaX Team <pageexec@freemail.hu>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, "arozansk@redhat.com" <arozansk@redhat.com>, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <75acbed7-6a08-692f-61b5-2b44f66ec0d8@virtuozzo.com>
+Sender: owner-linux-mm@kvack.org
+To: "Kirill A. Shutemov" <kirill@shutemov.name>
+Cc: Dmitry Vyukov <dvyukov@google.com>, Alexander Potapenko <glider@google.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, "x86@kernel.org" <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter
+ Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, "linux-mm@kvack.org" <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, May 31, 2017 at 4:09 AM, Peter Zijlstra <peterz@infradead.org> wrote:
-> On Wed, May 31, 2017 at 10:45:09AM +0000, Reshetova, Elena wrote:
->
->> > +static inline __must_check bool refcount_add_not_zero(unsigned int i,
->> > +
->> >           refcount_t *r)
->> > +{
->> > +   return atomic_add_return(i, &r->refs) != 0;
->> > +}
+On 05/29/2017 03:46 PM, Andrey Ryabinin wrote:
+> On 05/29/2017 02:45 PM, Andrey Ryabinin wrote:
+>>>>>> Looks like KASAN will be a problem for boot-time paging mode switching.
+>>>>>> It wants to know CONFIG_KASAN_SHADOW_OFFSET at compile-time to pass to
+>>>>>> gcc -fasan-shadow-offset=. But this value varies between paging modes...
+>>>>>>
+>>>>>> I don't see how to solve it. Folks, any ideas?
+>>>>>
+>>>>> +kasan-dev
+>>>>>
+>>>>> I wonder if we can use the same offset for both modes. If we use
+>>>>> 0xFFDFFC0000000000 as start of shadow for 5 levels, then the same
+>>>>> offset that we use for 4 levels (0xdffffc0000000000) will also work
+>>>>> for 5 levels. Namely, ending of 5 level shadow will overlap with 4
+>>>>> level mapping (both end at 0xfffffbffffffffff), but 5 level mapping
+>>>>> extends towards lower addresses. The current 5 level start of shadow
+>>>>> is actually close -- 0xffd8000000000000 and it seems that the required
+>>>>> space after it is unused at the moment (at least looking at mm.txt).
+>>>>> So just try to move it to 0xFFDFFC0000000000?
+>>>>>
+>>>>
+>>>> Yeah, this should work, but note that 0xFFDFFC0000000000 is not PGDIR aligned address. Our init code
+>>>> assumes that kasan shadow stars and ends on the PGDIR aligned address.
+>>>> Fortunately this is fixable, we'd need two more pages for page tables to map unaligned start/end
+>>>> of the shadow.
+>>>
+>>> I think we can extend the shadow backwards (to the current address),
+>>> provided that it does not affect shadow offset that we pass to
+>>> compiler.
 >>
->> Maybe atomic_add_unless(&r->refs, i, 0) in order to be consistent with the below inc_not_zero implementation?
->
-> Yes, atomic_add_return() is strictly incorrect here since the add is
-> unconditional.
->
->> > +static inline __must_check bool refcount_sub_and_test(unsigned int i,
->> > +
->> >           refcount_t *r)
->> > +{
->> > +   return atomic_sub_return(i, &r->refs) == 0;
->> > +}
->>
->> Any reason for not using atomic_sub_and_test() here?
->
->> > +static inline __must_check bool refcount_dec_and_test(refcount_t *r)
->> > +{
->> > +   return atomic_dec_return(&r->refs) == 0;
->> > +}
->>
->> Same here: atomic_dec_and_test()?
->
-> Both those are better because they return condition codes generated from
-> the operand itself.
+>> I thought about this. We can round down shadow start to 0xffdf000000000000, but we can't
+>> round up shadow end, because in that case shadow would end at 0xffffffffffffffff.
+>> So we still need at least one more page to cover unaligned end.
+> 
+> Actually, I'm wrong here. I assumed that we would need an additional page to store p4d entries,
+> but in fact we don't need it, as such page should already exist. It's the same last pgd where kernel image
+> is mapped.
+> 
 
-Ah yes, thanks to both of you for the corrections. I'll send a new version...
 
--Kees
+Something like bellow might work. It's just a proposal to demonstrate the idea, so some code might look ugly.
+And it's only build-tested.
 
+Based on top of: git://git.kernel.org/pub/scm/linux/kernel/git/kas/linux.git la57/integration
+
+
+---
+ arch/x86/Kconfig            |  1 -
+ arch/x86/mm/kasan_init_64.c | 74 ++++++++++++++++++++++++++++++++-------------
+ 2 files changed, 53 insertions(+), 22 deletions(-)
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 11bd0498f64c..3456f2fdda52 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -291,7 +291,6 @@ config ARCH_SUPPORTS_DEBUG_PAGEALLOC
+ config KASAN_SHADOW_OFFSET
+ 	hex
+ 	depends on KASAN
+-	default 0xdff8000000000000 if X86_5LEVEL
+ 	default 0xdffffc0000000000
+ 
+ config HAVE_INTEL_TXT
+diff --git a/arch/x86/mm/kasan_init_64.c b/arch/x86/mm/kasan_init_64.c
+index 88215ac16b24..d79a7ea83d05 100644
+--- a/arch/x86/mm/kasan_init_64.c
++++ b/arch/x86/mm/kasan_init_64.c
+@@ -15,6 +15,10 @@
+ extern pgd_t early_top_pgt[PTRS_PER_PGD];
+ extern struct range pfn_mapped[E820_MAX_ENTRIES];
+ 
++#if CONFIG_PGTABLE_LEVELS == 5
++p4d_t tmp_p4d_table[PTRS_PER_P4D] __initdata __aligned(PAGE_SIZE);
++#endif
++
+ static int __init map_range(struct range *range)
+ {
+ 	unsigned long start;
+@@ -35,8 +39,9 @@ static void __init clear_pgds(unsigned long start,
+ 			unsigned long end)
+ {
+ 	pgd_t *pgd;
++	unsigned long pgd_end = end & PGDIR_MASK;
+ 
+-	for (; start < end; start += PGDIR_SIZE) {
++	for (; start < pgd_end; start += PGDIR_SIZE) {
+ 		pgd = pgd_offset_k(start);
+ 		/*
+ 		 * With folded p4d, pgd_clear() is nop, use p4d_clear()
+@@ -47,29 +52,50 @@ static void __init clear_pgds(unsigned long start,
+ 		else
+ 			pgd_clear(pgd);
+ 	}
++
++	pgd = pgd_offset_k(start);
++	for (; start < end; start += P4D_SIZE)
++		p4d_clear(p4d_offset(pgd, start));
++}
++
++static void __init kasan_early_p4d_populate(pgd_t *pgd,
++					unsigned long addr,
++					unsigned long end)
++{
++	p4d_t *p4d;
++	unsigned long next;
++
++	if (pgd_none(*pgd))
++		set_pgd(pgd, __pgd(_KERNPG_TABLE | __pa_nodebug(kasan_zero_p4d)));
++
++	/* early p4d_offset()
++	 * TODO: we need helpers for this shit
++	 */
++	if (CONFIG_PGTABLE_LEVELS == 5)
++		p4d = ((p4d_t*)((__pa_nodebug(pgd->pgd) & PTE_PFN_MASK) + __START_KERNEL_map))
++			+ p4d_index(addr);
++	else
++		p4d = (p4d_t*)pgd;
++	do {
++		next = p4d_addr_end(addr, end);
++
++		if (p4d_none(*p4d))
++			set_p4d(p4d, __p4d(_KERNPG_TABLE |
++					__pa_nodebug(kasan_zero_pud)));
++	} while (p4d++, addr = next, addr != end && p4d_none(*p4d));
+ }
+ 
+ static void __init kasan_map_early_shadow(pgd_t *pgd)
+ {
+-	int i;
+-	unsigned long start = KASAN_SHADOW_START;
++	unsigned long addr = KASAN_SHADOW_START & PGDIR_MASK;
+ 	unsigned long end = KASAN_SHADOW_END;
++	unsigned long next;
+ 
+-	for (i = pgd_index(start); start < end; i++) {
+-		switch (CONFIG_PGTABLE_LEVELS) {
+-		case 4:
+-			pgd[i] = __pgd(__pa_nodebug(kasan_zero_pud) |
+-					_KERNPG_TABLE);
+-			break;
+-		case 5:
+-			pgd[i] = __pgd(__pa_nodebug(kasan_zero_p4d) |
+-					_KERNPG_TABLE);
+-			break;
+-		default:
+-			BUILD_BUG();
+-		}
+-		start += PGDIR_SIZE;
+-	}
++	pgd = pgd + pgd_index(addr);
++	do {
++		next = pgd_addr_end(addr, end);
++		kasan_early_p4d_populate(pgd, addr, next);
++	} while (pgd++, addr = next, addr != end);
+ }
+ 
+ #ifdef CONFIG_KASAN_INLINE
+@@ -120,14 +146,20 @@ void __init kasan_init(void)
+ #ifdef CONFIG_KASAN_INLINE
+ 	register_die_notifier(&kasan_die_notifier);
+ #endif
+-
+ 	memcpy(early_top_pgt, init_top_pgt, sizeof(early_top_pgt));
++#if CONFIG_PGTABLE_LEVELS == 5
++	memcpy(tmp_p4d_table, (void*)pgd_page_vaddr(*pgd_offset_k(KASAN_SHADOW_END)),
++		sizeof(tmp_p4d_table));
++	set_pgd(&early_top_pgt[pgd_index(KASAN_SHADOW_END)],
++		__pgd(__pa(tmp_p4d_table) | _KERNPG_TABLE));
++#endif
++
+ 	load_cr3(early_top_pgt);
+ 	__flush_tlb_all();
+ 
+-	clear_pgds(KASAN_SHADOW_START, KASAN_SHADOW_END);
++	clear_pgds(KASAN_SHADOW_START & PGDIR_MASK, KASAN_SHADOW_END);
+ 
+-	kasan_populate_zero_shadow((void *)KASAN_SHADOW_START,
++	kasan_populate_zero_shadow((void *)(KASAN_SHADOW_START & PGDIR_MASK),
+ 			kasan_mem_to_shadow((void *)PAGE_OFFSET));
+ 
+ 	for (i = 0; i < E820_MAX_ENTRIES; i++) {
 -- 
-Kees Cook
-Pixel Security
+2.13.0
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
