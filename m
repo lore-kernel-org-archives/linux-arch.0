@@ -1,91 +1,42 @@
-From: Waiman Long <longman@redhat.com>
-Subject: [PATCH v5 2/9] locking/rwsem: Stop active read lock ASAP
-Date: Thu,  1 Jun 2017 13:39:00 -0400
-Message-ID: <1496338747-20398-3-git-send-email-longman@redhat.com>
-References: <1496338747-20398-1-git-send-email-longman@redhat.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1496338747-20398-1-git-send-email-longman@redhat.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>
-Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, Dave Chinner <david@fromorbit.com>, Waiman Long <longman@redhat.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH] tty: add TIOCGPTPEER ioctl
+Date: Thu, 1 Jun 2017 20:46:29 +0200
+Message-ID: <CAMuHMdXkaWg70OidDi0_xALbzwZ+o0eEVEzT5U_6HdewBs4WwA@mail.gmail.com>
+References: <20170601173803.8698-1-asarai@suse.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-parisc-owner@vger.kernel.org>
+In-Reply-To: <20170601173803.8698-1-asarai@suse.de>
+Sender: linux-parisc-owner@vger.kernel.org
+To: Aleksa Sarai <asarai@suse.de>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.com>, Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, alpha <linux-alpha@vger.kernel.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, Parisc List <linux-parisc@vger.kernel.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Linux-sh list <linux-sh@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>, Linux-Arch <linux-arch@vger.kernel.org>, Christian Brauner <christian.brauner@ubuntu.com>, Valentin Rothberg <vrothberg@suse.com>
 List-Id: linux-arch.vger.kernel.org
 
-Currently, when down_read() fails, the active read locking isn't undone
-until the rwsem_down_read_failed() function grabs the wait_lock. If the
-wait_lock is contended, it may takes a while to get the lock. During
-that period, writer lock stealing will be disabled because of the
-active read lock.
+Hi Aleksa,
 
-This patch will release the active read lock ASAP when either the
-optimisitic spinners are present or the trylock fails so that writer
-lock stealing can happen sooner.
+On Thu, Jun 1, 2017 at 7:38 PM, Aleksa Sarai <asarai@suse.de> wrote:
+> --- a/arch/alpha/include/uapi/asm/ioctls.h
+> +++ b/arch/alpha/include/uapi/asm/ioctls.h
+> @@ -94,6 +94,7 @@
+>  #define TIOCSRS485     _IOWR('T', 0x2F, struct serial_rs485)
+>  #define TIOCGPTN       _IOR('T',0x30, unsigned int) /* Get Pty Number (of pty-mux device) */
+>  #define TIOCSPTLCK     _IOW('T',0x31, int)  /* Lock/unlock Pty */
+> +#define TIOCGPTPEER    _IOR('T', 0x41, int) /* Safely open the slave */
 
-On a 2-socket 36-core x86-64 E5-2699 v3 system, a rwsem microbenchmark
-was run with 36 locking threads (one/core) doing 250k reader and writer
-lock/unlock operations each, the resulting locking rates (avg of 3
-runs) on a 4.12 based kernel were 510.1 Mop/s and 520.1 Mop/s without
-and with the patch respectively. That was an increase of about 2%.
+Shouldn't the list of definitions be kept sorted, by hex number?
+(everywhere)
 
-Signed-off-by: Waiman Long <longman@redhat.com>
----
- kernel/locking/rwsem-xadd.c | 27 ++++++++++++++++++++++-----
- 1 file changed, 22 insertions(+), 5 deletions(-)
+>  #define TIOCGDEV       _IOR('T',0x32, unsigned int) /* Get primary device node of /dev/console */
+>  #define TIOCSIG                _IOW('T',0x36, int)  /* Generate signal on Pty slave */
+>  #define TIOCVHANGUP    0x5437
 
-diff --git a/kernel/locking/rwsem-xadd.c b/kernel/locking/rwsem-xadd.c
-index 13bdbc3..e6c2bd5 100644
---- a/kernel/locking/rwsem-xadd.c
-+++ b/kernel/locking/rwsem-xadd.c
-@@ -418,6 +418,7 @@ static inline bool rwsem_has_spinner(struct rw_semaphore *sem)
- __visible
- struct rw_semaphore __sched *rwsem_down_read_failed(struct rw_semaphore *sem)
- {
-+	bool first_in_queue = false;
- 	long count, adjustment = -RWSEM_ACTIVE_READ_BIAS;
- 	struct rwsem_waiter waiter;
- 	DEFINE_WAKE_Q(wake_q);
-@@ -425,13 +426,30 @@ struct rw_semaphore __sched *rwsem_down_read_failed(struct rw_semaphore *sem)
- 	waiter.task = current;
- 	waiter.type = RWSEM_WAITING_FOR_READ;
- 
-+	/*
-+	 * Undo read bias from down_read operation to stop active locking if:
-+	 * 1) Optimistic spinners are present; or
-+	 * 2) the wait_lock isn't free.
-+	 * Doing that after taking the wait_lock may otherwise block writer
-+	 * lock stealing for too long impacting performance.
-+	 */
-+	if (rwsem_has_spinner(sem) || raw_spin_is_locked(&sem->wait_lock)) {
-+		atomic_long_add(-RWSEM_ACTIVE_READ_BIAS, &sem->count);
-+		adjustment = 0;
-+	}
-+
- 	raw_spin_lock_irq(&sem->wait_lock);
--	if (list_empty(&sem->wait_list))
-+	if (list_empty(&sem->wait_list)) {
- 		adjustment += RWSEM_WAITING_BIAS;
-+		first_in_queue = true;
-+	}
- 	list_add_tail(&waiter.list, &sem->wait_list);
- 
--	/* we're now waiting on the lock, but no longer actively locking */
--	count = atomic_long_add_return(adjustment, &sem->count);
-+	/* we're now waiting on the lock */
-+	if (adjustment)
-+		count = atomic_long_add_return(adjustment, &sem->count);
-+	else
-+		count = atomic_long_read(&sem->count);
- 
- 	/*
- 	 * If there are no active locks, wake the front queued process(es).
-@@ -440,8 +458,7 @@ struct rw_semaphore __sched *rwsem_down_read_failed(struct rw_semaphore *sem)
- 	 * wake our own waiter to join the existing active readers !
- 	 */
- 	if (count == RWSEM_WAITING_BIAS ||
--	    (count > RWSEM_WAITING_BIAS &&
--	     adjustment != -RWSEM_ACTIVE_READ_BIAS))
-+	    (count > RWSEM_WAITING_BIAS && first_in_queue))
- 		__rwsem_mark_wake(sem, RWSEM_WAKE_ANY, &wake_q);
- 
- 	raw_spin_unlock_irq(&sem->wait_lock);
--- 
-1.8.3.1
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
