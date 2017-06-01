@@ -1,42 +1,37 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
+From: Aleksa Sarai <asarai@suse.de>
 Subject: Re: [PATCH] tty: add TIOCGPTPEER ioctl
-Date: Thu, 1 Jun 2017 20:46:29 +0200
-Message-ID: <CAMuHMdXkaWg70OidDi0_xALbzwZ+o0eEVEzT5U_6HdewBs4WwA@mail.gmail.com>
+Date: Fri, 2 Jun 2017 06:00:17 +1000
+Message-ID: <a0671efc-4c4e-bbdc-c9d8-a7bdc22b872a@suse.de>
 References: <20170601173803.8698-1-asarai@suse.de>
+ <CAMuHMdXkaWg70OidDi0_xALbzwZ+o0eEVEzT5U_6HdewBs4WwA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-parisc-owner@vger.kernel.org>
-In-Reply-To: <20170601173803.8698-1-asarai@suse.de>
-Sender: linux-parisc-owner@vger.kernel.org
-To: Aleksa Sarai <asarai@suse.de>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-alpha-owner@vger.kernel.org>
+In-Reply-To: <CAMuHMdXkaWg70OidDi0_xALbzwZ+o0eEVEzT5U_6HdewBs4WwA@mail.gmail.com>
+Content-Language: en-US
+Sender: linux-alpha-owner@vger.kernel.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>
 Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.com>, Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, alpha <linux-alpha@vger.kernel.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, Parisc List <linux-parisc@vger.kernel.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Linux-sh list <linux-sh@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>, Linux-Arch <linux-arch@vger.kernel.org>, Christian Brauner <christian.brauner@ubuntu.com>, Valentin Rothberg <vrothberg@suse.com>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Aleksa,
+>> --- a/arch/alpha/include/uapi/asm/ioctls.h
+>> +++ b/arch/alpha/include/uapi/asm/ioctls.h
+>> @@ -94,6 +94,7 @@
+>>   #define TIOCSRS485     _IOWR('T', 0x2F, struct serial_rs485)
+>>   #define TIOCGPTN       _IOR('T',0x30, unsigned int) /* Get Pty Number (of pty-mux device) */
+>>   #define TIOCSPTLCK     _IOW('T',0x31, int)  /* Lock/unlock Pty */
+>> +#define TIOCGPTPEER    _IOR('T', 0x41, int) /* Safely open the slave */
+> 
+> Shouldn't the list of definitions be kept sorted, by hex number?
+> (everywhere)
 
-On Thu, Jun 1, 2017 at 7:38 PM, Aleksa Sarai <asarai@suse.de> wrote:
-> --- a/arch/alpha/include/uapi/asm/ioctls.h
-> +++ b/arch/alpha/include/uapi/asm/ioctls.h
-> @@ -94,6 +94,7 @@
->  #define TIOCSRS485     _IOWR('T', 0x2F, struct serial_rs485)
->  #define TIOCGPTN       _IOR('T',0x30, unsigned int) /* Get Pty Number (of pty-mux device) */
->  #define TIOCSPTLCK     _IOW('T',0x31, int)  /* Lock/unlock Pty */
-> +#define TIOCGPTPEER    _IOR('T', 0x41, int) /* Safely open the slave */
+Probably. The reason I put it here is because it logically is very 
+similar to TIOCGPTN and TIOSPTLCK, but I can move it if the hex order is 
+more important for maintainence.
 
-Shouldn't the list of definitions be kept sorted, by hex number?
-(everywhere)
-
->  #define TIOCGDEV       _IOR('T',0x32, unsigned int) /* Get primary device node of /dev/console */
->  #define TIOCSIG                _IOW('T',0x36, int)  /* Generate signal on Pty slave */
->  #define TIOCVHANGUP    0x5437
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+-- 
+Aleksa Sarai
+Software Engineer (Containers)
+SUSE Linux GmbH
+https://www.cyphar.com/
