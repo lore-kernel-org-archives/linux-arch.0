@@ -1,93 +1,57 @@
-From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Subject: [PATCH v2] asm-generic: simd: allow SIMD in process context with BH disabled
-Date: Thu,  1 Jun 2017 09:55:32 +0000
-Message-ID: <20170601095532.16632-1-ard.biesheuvel@linaro.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f49.google.com ([74.125.82.49]:37094 "EHLO
-        mail-wm0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751435AbdFAJzn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 1 Jun 2017 05:55:43 -0400
-Received: by mail-wm0-f49.google.com with SMTP id d127so53052773wmf.0
-        for <linux-arch@vger.kernel.org>; Thu, 01 Jun 2017 02:55:42 -0700 (PDT)
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: linux-arm-kernel@lists.infradead.org, arnd@arndb.de, dave.martin@arm.com, Jason@zx2c4.com, Ard Biesheuvel <ard.biesheuvel@linaro.org>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH v5 1/3] refcount: Create unchecked atomic_t implementation
+Date: Thu, 1 Jun 2017 07:43:37 -0700
+Message-ID: <CAGXu5j+eX4A5E5YQq3WmgWmW16nCUwswZsbwzVGdd1v8i72JLA@mail.gmail.com>
+References: <1496180392-98718-1-git-send-email-keescook@chromium.org>
+ <1496180392-98718-2-git-send-email-keescook@chromium.org> <2236FBA76BA1254E88B949DDB74E612B6B215E2E@IRSMSX102.ger.corp.intel.com>
+ <20170531110918.tgbppvxgkkhoaclk@hirez.programming.kicks-ass.net>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20170531110918.tgbppvxgkkhoaclk@hirez.programming.kicks-ass.net>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: "Reshetova, Elena" <elena.reshetova@intel.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Christoph Hellwig <hch@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, PaX Team <pageexec@freemail.hu>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, "arozansk@redhat.com" <arozansk@redhat.com>, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>
+List-Id: linux-arch.vger.kernel.org
 
-asm-generic supplies a header asm/simd.h which exports a single function
-may_use_simd(), which conveys whether the current context allows the SIMD
-register file or instructions to be used.
+On Wed, May 31, 2017 at 4:09 AM, Peter Zijlstra <peterz@infradead.org> wrote:
+> On Wed, May 31, 2017 at 10:45:09AM +0000, Reshetova, Elena wrote:
+>
+>> > +static inline __must_check bool refcount_add_not_zero(unsigned int i,
+>> > +
+>> >           refcount_t *r)
+>> > +{
+>> > +   return atomic_add_return(i, &r->refs) != 0;
+>> > +}
+>>
+>> Maybe atomic_add_unless(&r->refs, i, 0) in order to be consistent with the below inc_not_zero implementation?
+>
+> Yes, atomic_add_return() is strictly incorrect here since the add is
+> unconditional.
+>
+>> > +static inline __must_check bool refcount_sub_and_test(unsigned int i,
+>> > +
+>> >           refcount_t *r)
+>> > +{
+>> > +   return atomic_sub_return(i, &r->refs) == 0;
+>> > +}
+>>
+>> Any reason for not using atomic_sub_and_test() here?
+>
+>> > +static inline __must_check bool refcount_dec_and_test(refcount_t *r)
+>> > +{
+>> > +   return atomic_dec_return(&r->refs) == 0;
+>> > +}
+>>
+>> Same here: atomic_dec_and_test()?
+>
+> Both those are better because they return condition codes generated from
+> the operand itself.
 
-This header is included by crypto code shared between x86 and ARM/arm64,
-and which offloads SIMD processing to process context if required. The
-generic asm/simd.h is shared between ARM and arm64 at the moment, while
-x86 has its own implementation.
+Ah yes, thanks to both of you for the corrections. I'll send a new version...
 
-On arm64, we currently mostly ignore may_use_simd(), because arm64 allows
-kernel mode NEON in any context. However, this is due to change shortly
-when support for SVE is merged, at which point we will introduce an arm64
-specific implementation of asm/simd.h as well.
+-Kees
 
-That leaves ARM, which only allows kernel mode NEON in process context,
-which makes the current generic implementation of may_use_simd() seem
-appropriate. However, given that in_interrupt() will return true when
-running in process context with bottom halves disabled, we may end up
-falling back to less optimized code unnecessarily, given that kernel
-mode NEON is perfectly usable in that case.
-
-So redefine may_use_simd() to disallow SIMD only when running in NMI,
-hardirq or softirq context.
-
-While we're at it, add some missing header file decorations such as
-a license header and include guards.
-
-Reported-by: "Jason A. Donenfeld" <Jason@zx2c4.com>
-Signed-off-by: Ard Biesheuvel <ard.biesheuvel@linaro.org>
----
-v2: add !in_nmi() to may_use_simd() condition
-    include <linux/compiler.h> for __must_check
-    remove too elaborate comment
-
- include/asm-generic/simd.h | 22 +++++++++++++++++---
- 1 file changed, 19 insertions(+), 3 deletions(-)
-
-diff --git a/include/asm-generic/simd.h b/include/asm-generic/simd.h
-index f57eb7b5c23b..ded4156421ff 100644
---- a/include/asm-generic/simd.h
-+++ b/include/asm-generic/simd.h
-@@ -1,14 +1,30 @@
-+/*
-+ * Copyright (C) 2013 - 2017 Linaro Ltd. <ard.biesheuvel@linaro.org>
-+ *
-+ * This program is free software; you can redistribute it and/or modify it
-+ * under the terms of the GNU General Public License version 2 as published
-+ * by the Free Software Foundation.
-+ */
- 
--#include <linux/hardirq.h>
-+#ifndef __ASM_SIMD_H
-+#define __ASM_SIMD_H
-+
-+#include <linux/compiler.h>
-+#include <linux/preempt.h>
-+#include <linux/types.h>
- 
- /*
-  * may_use_simd - whether it is allowable at this time to issue SIMD
-  *                instructions or access the SIMD register file
-  *
-  * As architectures typically don't preserve the SIMD register file when
-- * taking an interrupt, !in_interrupt() should be a reasonable default.
-+ * taking an interrupt, it is reasonable to define the default behavior
-+ * of 'may_use_simd()' to be 'SIMD is only allowed when not handling any
-+ * kind of interrupt'.
-  */
- static __must_check inline bool may_use_simd(void)
- {
--	return !in_interrupt();
-+	return !in_nmi() && !in_irq() && !in_serving_softirq();
- }
-+
-+#endif
 -- 
-2.9.3
+Kees Cook
+Pixel Security
