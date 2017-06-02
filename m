@@ -1,40 +1,30 @@
-From: Richard Henderson <rth@twiddle.net>
-Subject: Re: [PATCH] tty: add TIOCGPTPEER ioctl
-Date: Thu, 1 Jun 2017 13:12:15 -0700
-Message-ID: <4e16e83b-8fb7-c9b6-2f06-ee48499a67db@twiddle.net>
-References: <20170601173803.8698-1-asarai@suse.de>
- <CAMuHMdXkaWg70OidDi0_xALbzwZ+o0eEVEzT5U_6HdewBs4WwA@mail.gmail.com>
- <a0671efc-4c4e-bbdc-c9d8-a7bdc22b872a@suse.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-parisc-owner@vger.kernel.org>
-In-Reply-To: <a0671efc-4c4e-bbdc-c9d8-a7bdc22b872a@suse.de>
-Content-Language: en-US
-Sender: linux-parisc-owner@vger.kernel.org
-To: Aleksa Sarai <asarai@suse.de>, Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.com>, Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, alpha <linux-alpha@vger.kernel.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, Parisc List <linux-parisc@vger.kernel.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Linux-sh list <linux-sh@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>, Linux-Arch <linux-arch@vger.kernel.org>, Christian Brauner <christian.brauner@ubuntu.com>, Valentin Rothberg <vrothberg@suse.com>
+From: Aleksa Sarai <asarai@suse.de>
+Subject: [PATCH v2 0/1] tty: add TIOCGPTPEER ioctl
+Date: Fri,  2 Jun 2017 18:48:57 +1000
+Message-ID: <20170602084858.4299-1-asarai@suse.de>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Aleksa Sarai <asarai@suse.de>
 List-Id: linux-arch.vger.kernel.org
 
-On 06/01/2017 01:00 PM, Aleksa Sarai wrote:
->>> --- a/arch/alpha/include/uapi/asm/ioctls.h
->>> +++ b/arch/alpha/include/uapi/asm/ioctls.h
->>> @@ -94,6 +94,7 @@
->>>   #define TIOCSRS485     _IOWR('T', 0x2F, struct serial_rs485)
->>>   #define TIOCGPTN       _IOR('T',0x30, unsigned int) /* Get Pty Number (of 
->>> pty-mux device) */
->>>   #define TIOCSPTLCK     _IOW('T',0x31, int)  /* Lock/unlock Pty */
->>> +#define TIOCGPTPEER    _IOR('T', 0x41, int) /* Safely open the slave */
->>
->> Shouldn't the list of definitions be kept sorted, by hex number?
->> (everywhere)
-> 
-> Probably. The reason I put it here is because it logically is very similar to 
-> TIOCGPTN and TIOSPTLCK, but I can move it if the hex order is more important 
-> for maintainence.
-> 
+Changes in v2:
 
-Yes please.
+  * Reordered addition to ioctls.h to follow correct hex ordering.
 
+Aleksa Sarai (1):
+  tty: add TIOCGPTPEER ioctl
 
-r~
+ arch/alpha/include/uapi/asm/ioctls.h   |  1 +
+ arch/mips/include/uapi/asm/ioctls.h    |  1 +
+ arch/parisc/include/uapi/asm/ioctls.h  |  1 +
+ arch/powerpc/include/uapi/asm/ioctls.h |  1 +
+ arch/sh/include/uapi/asm/ioctls.h      |  1 +
+ arch/sparc/include/uapi/asm/ioctls.h   |  3 +-
+ arch/xtensa/include/uapi/asm/ioctls.h  |  1 +
+ drivers/tty/pty.c                      | 71 ++++++++++++++++++++++++++++++++--
+ include/uapi/asm-generic/ioctls.h      |  1 +
+ 9 files changed, 76 insertions(+), 5 deletions(-)
+
+-- 
+2.13.0
