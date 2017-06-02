@@ -1,84 +1,89 @@
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: Re: [PATCH 0/6] {sched_,}find_first{_zero}_bit optimizations
-Date: Fri, 2 Jun 2017 14:34:43 +0300
-Message-ID: <20170602113443.6xa6dahtlwoaz2za@yury-thinkpad>
-References: <20170523184321.11452-1-ynorov@caviumnetworks.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [GIT PULL] ARM: SoC fixes (and a cross-arch dt-include fix)
+Date: Fri, 2 Jun 2017 17:27:17 +0200
+Message-ID: <CAK8P3a2_V8hs7CRRJNjpkeAaqpRwztHhPpUQz8vB5K3GwJRaGQ@mail.gmail.com>
+References: <20170519193455.GA24206@localhost> <CACRpkdaRdZTB39-=sAojO+OyHtP02KaFChqGcxy+fWA8qaB2bw@mail.gmail.com>
+ <CAOesGMhfrWSvLtDtGRWBTJiAoeSwzGgsdUTm26j1mpoVu0ghDg@mail.gmail.com>
+ <CAMuHMdUivf9cw+LTn7UMueH=MMKi6i3wcOdgM6zbZBoxmkTZGQ@mail.gmail.com>
+ <CAK8P3a2E1LtCNoGkAuzwJJdQdUTB_+8d=FM2asEGkXJprvm8oQ@mail.gmail.com> <CAMuHMdWxNFUnWJjLj7ynWJFEFMAL=TPsdVSzDtohDprC=EXnaQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20170523184321.11452-1-ynorov@caviumnetworks.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Akinobu Mita <mita@miraclelinux.com>, Mike Galbraith <efault@gmx.de>, Paul Bolle <pebolle@tiscali.nl>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-oi0-f65.google.com ([209.85.218.65]:33606 "EHLO
+        mail-oi0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751148AbdFBP1S (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 2 Jun 2017 11:27:18 -0400
+In-Reply-To: <CAMuHMdWxNFUnWJjLj7ynWJFEFMAL=TPsdVSzDtohDprC=EXnaQ@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Olof Johansson <olof@lixom.net>, Linus Walleij <linus.walleij@linaro.org>, Rob Herring <robh+dt@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "arm@kernel.org" <arm@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "ksummit-discuss@lists.linuxfoundation.org" <ksummit-discuss@lists.linuxfoundation.org>
 
-Ping?
+On Tue, May 30, 2017 at 11:13 AM, Geert Uytterhoeven
+<geert@linux-m68k.org> wrote:
+> Hi Arnd,
+>
+> On Tue, May 23, 2017 at 4:17 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+>> On Tue, May 23, 2017 at 11:49 AM, Geert Uytterhoeven
+>> <geert@linux-m68k.org> wrote:
+>>> On Mon, May 22, 2017 at 5:11 PM, Olof Johansson <olof@lixom.net> wrote:
+>>>> On Mon, May 22, 2017 at 4:44 AM, Linus Walleij <linus.walleij@linaro.org> wrote:
+>>>>> On Fri, May 19, 2017 at 9:34 PM, Olof Johansson <olof@lixom.net> wrote:
+>>>>
+>>>> Yeah, asking people to spread out across releases would remove
+>>>> dependencies a lot, but it would also slow down progress and frustrate
+>>>> a lot of contributors so we don't do that.
+>>>
+>>> The above works fine for new support, or for new platforms.
+>>>
+>>> There's still support being migrated from platform code to DT, which
+>>> requires three steps:
+>>>   1. New DT-aware driver support,
+>>>   2. DT update to use the new driver support,
+>>>   3. Clean up platform code after optional DTB backwards compatibility
+>>>      grace period,
+>>> To make matters worse, 1 may conflict with the existing platform code,
+>>> and 2 must sometimes not be done before 1. Hence you may need three kernel
+>>> releases.
+>>> So we're already planning now what to clean up for v4.15 ;-)
+>>>
+>>> Would it be acceptable to do step 2 in the same release, after the driver
+>>> support has entered in -rc1? I know this is more than just replacing
+>>> numbers by symbolic values.
+>>
+>> I'd say it really depends on the individual case. Do you have a particular
+>> platform in mind? E.g. For some of the more obsolete platforms that
+>> Linus Walleij has worked on over time, we have sometimes relaxed the
+>> rules about clean bisection and just merged everything in parallel, knowing
+>> that nobody else was likely to run that code on a vanilla kernel anyway.
+>
+> This is for Renesas R-Car Gen2 SoCs, so we do care about DT backward
+> compatibility (for a while), and about bisection.
 
-On Tue, May 23, 2017 at 09:43:15PM +0300, Yury Norov wrote:
-> The series is the result of this discussion: https://lkml.org/lkml/2017/5/12/665
-> plus this patch: https://lkml.org/lkml/2017/5/13/137
-> (I'd like to have it together with others.)
-> 
-> Patch 1 remove useless GENERIC_FIND_FIRST_BIT option.  Patches 2 and 3 change
-> the order of macros definition and/or headers inclusion for frv and m86k, as
-> it's needed in patch 4. Patch 4 adds the optimization for find_first_bit() and
-> find_first_zero_bit(). Patches 5 and 6 consolidate the implementation of
-> sched_find_first_bit(), and make it local.
-> 
-> According to previous discussion, I added Arnd's ack to patches 5 and 6.
-> https://lkml.org/lkml/2017/5/15/514 and suggested-by to patch 4.
-> Arnd, are you OK with it?
-> 
-> Yury Norov (6):
->   arch: remove GENERIC_FIND_FIRST_BIT
->   m68k: make __ffs and ffz defined prior to including find.h
->   frv: make __ffs() visible for find.h
->   find_first{,_zero}_bit: unroll search cycle for small bitmaps
->   alpha: drop custom implementation for sched_find_first_bit()
->   sched: move sched_find_first_bit() from bitops.h to
->     kernel/sched/sched.h
-> 
->  arch/alpha/include/asm/bitops.h    |  18 -----
->  arch/arc/Kconfig                   |   1 -
->  arch/arc/include/asm/bitops.h      |   1 -
->  arch/arm/include/asm/bitops.h      |   1 -
->  arch/arm64/include/asm/bitops.h    |   1 -
->  arch/blackfin/include/asm/bitops.h |   1 -
->  arch/c6x/include/asm/bitops.h      |   1 -
->  arch/cris/include/asm/bitops.h     |   2 -
->  arch/frv/include/asm/bitops.h      |   4 +-
->  arch/h8300/include/asm/bitops.h    |   1 -
->  arch/hexagon/include/asm/bitops.h  |   1 -
->  arch/ia64/include/asm/bitops.h     |   2 -
->  arch/m32r/include/asm/bitops.h     |   1 -
->  arch/m68k/include/asm/bitops.h     | 162 ++++++++++++++++++-------------------
->  arch/metag/include/asm/bitops.h    |   1 -
->  arch/mips/include/asm/bitops.h     |   2 -
->  arch/mn10300/include/asm/bitops.h  |   1 -
->  arch/openrisc/include/asm/bitops.h |   1 -
->  arch/parisc/include/asm/bitops.h   |   1 -
->  arch/powerpc/include/asm/bitops.h  |   2 -
->  arch/s390/Kconfig                  |   1 -
->  arch/s390/include/asm/bitops.h     |   1 -
->  arch/sh/include/asm/bitops.h       |   1 -
->  arch/sparc/include/asm/bitops_32.h |   1 -
->  arch/sparc/include/asm/bitops_64.h |   1 -
->  arch/tile/Kconfig                  |   1 -
->  arch/tile/include/asm/bitops.h     |   1 -
->  arch/unicore32/Kconfig             |   1 -
->  arch/x86/Kconfig                   |   1 -
->  arch/x86/include/asm/bitops.h      |   2 -
->  arch/x86/um/Kconfig                |   1 -
->  arch/xtensa/include/asm/bitops.h   |   1 -
->  include/asm-generic/bitops.h       |   1 -
->  include/asm-generic/bitops/find.h  |  82 +++++++++++++++++--
->  include/asm-generic/bitops/sched.h |  31 -------
->  kernel/sched/sched.h               |  23 ++++++
->  lib/Kconfig                        |   3 -
->  lib/find_bit.c                     |   8 +-
->  38 files changed, 182 insertions(+), 184 deletions(-)
->  delete mode 100644 include/asm-generic/bitops/sched.h
-> 
-> -- 
-> 2.11.0
+Ok, I see.
+
+> Last headache was "[PATCH v4 00/23] soc: renesas: Add R-Car RST driver for
+> obtaining mode pin state" (https://lkml.org/lkml/2016/10/21/500). This used
+> a shared immutable branch, but that caused several merge conflicts.
+>
+> Next one will be smaller, as it's not really moving functionality from
+> platform code to DT, but switching to a new and better clock driver framework,
+> so there's only the dependency of DT on the new driver
+> "[PATCH v2 00/10] clk: renesas: rcar-gen2: Add new CPG/MSSR drivers"
+> (https://lkml.org/lkml/2017/5/19/212)
+
+Ok, so there is already a working driver for these chips, but you want
+to move to a better driver and binding. That's all fine, but I'm not sure
+about why you want to do this faster at all. Presumably you want to use
+the new driver quickly so you can add new platforms not using the old
+driver, but then you'd have a couple of years of grace period before
+removing the old driver for customers with existing out of tree dts files,
+so I would assume that waiting another release or two before moving
+the DT files over is not adding a huge burden.
+
+> I'll go create an inventory of stuff in platform code for Renesas SoCs that
+> still needs to be converted to DT...
+
+That would certainly be helpful, yes.
+
+       Arnd
