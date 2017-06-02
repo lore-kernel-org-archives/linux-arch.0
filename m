@@ -1,35 +1,90 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:50595 "EHLO mx1.suse.de"
+Received: from mail-sn1nam01on0074.outbound.protection.outlook.com ([104.47.32.74]:29522
+        "EHLO NAM01-SN1-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1750884AbdFBItG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 2 Jun 2017 04:49:06 -0400
-From: Aleksa Sarai <asarai@suse.de>
-Subject: [PATCH v2 0/1] tty: add TIOCGPTPEER ioctl
-Date: Fri,  2 Jun 2017 18:48:57 +1000
-Message-ID: <20170602084858.4299-1-asarai@suse.de>
+        id S1751126AbdFBLe7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 2 Jun 2017 07:34:59 -0400
+Date: Fri, 2 Jun 2017 14:34:43 +0300
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: Re: [PATCH 0/6] {sched_,}find_first{_zero}_bit optimizations
+Message-ID: <20170602113443.6xa6dahtlwoaz2za@yury-thinkpad>
+References: <20170523184321.11452-1-ynorov@caviumnetworks.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20170523184321.11452-1-ynorov@caviumnetworks.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Aleksa Sarai <asarai@suse.de>
-Message-ID: <20170602084857.RthaRNSvCI8PD2j8WlEs4cyN2kBQJzv33vxAqAkfTEM@z>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Akinobu Mita <mita@miraclelinux.com>, Mike Galbraith <efault@gmx.de>, Paul Bolle <pebolle@tiscali.nl>
+Message-ID: <20170602113443.jTrulWx9tUTQwC5M33WJGakarrlbQQdj_dUKJ87sSUA@z>
 
-Changes in v2:
+Ping?
 
-  * Reordered addition to ioctls.h to follow correct hex ordering.
-
-Aleksa Sarai (1):
-  tty: add TIOCGPTPEER ioctl
-
- arch/alpha/include/uapi/asm/ioctls.h   |  1 +
- arch/mips/include/uapi/asm/ioctls.h    |  1 +
- arch/parisc/include/uapi/asm/ioctls.h  |  1 +
- arch/powerpc/include/uapi/asm/ioctls.h |  1 +
- arch/sh/include/uapi/asm/ioctls.h      |  1 +
- arch/sparc/include/uapi/asm/ioctls.h   |  3 +-
- arch/xtensa/include/uapi/asm/ioctls.h  |  1 +
- drivers/tty/pty.c                      | 71 ++++++++++++++++++++++++++++++++--
- include/uapi/asm-generic/ioctls.h      |  1 +
- 9 files changed, 76 insertions(+), 5 deletions(-)
-
--- 
-2.13.0
+On Tue, May 23, 2017 at 09:43:15PM +0300, Yury Norov wrote:
+> The series is the result of this discussion: https://lkml.org/lkml/2017/5/12/665
+> plus this patch: https://lkml.org/lkml/2017/5/13/137
+> (I'd like to have it together with others.)
+> 
+> Patch 1 remove useless GENERIC_FIND_FIRST_BIT option.  Patches 2 and 3 change
+> the order of macros definition and/or headers inclusion for frv and m86k, as
+> it's needed in patch 4. Patch 4 adds the optimization for find_first_bit() and
+> find_first_zero_bit(). Patches 5 and 6 consolidate the implementation of
+> sched_find_first_bit(), and make it local.
+> 
+> According to previous discussion, I added Arnd's ack to patches 5 and 6.
+> https://lkml.org/lkml/2017/5/15/514 and suggested-by to patch 4.
+> Arnd, are you OK with it?
+> 
+> Yury Norov (6):
+>   arch: remove GENERIC_FIND_FIRST_BIT
+>   m68k: make __ffs and ffz defined prior to including find.h
+>   frv: make __ffs() visible for find.h
+>   find_first{,_zero}_bit: unroll search cycle for small bitmaps
+>   alpha: drop custom implementation for sched_find_first_bit()
+>   sched: move sched_find_first_bit() from bitops.h to
+>     kernel/sched/sched.h
+> 
+>  arch/alpha/include/asm/bitops.h    |  18 -----
+>  arch/arc/Kconfig                   |   1 -
+>  arch/arc/include/asm/bitops.h      |   1 -
+>  arch/arm/include/asm/bitops.h      |   1 -
+>  arch/arm64/include/asm/bitops.h    |   1 -
+>  arch/blackfin/include/asm/bitops.h |   1 -
+>  arch/c6x/include/asm/bitops.h      |   1 -
+>  arch/cris/include/asm/bitops.h     |   2 -
+>  arch/frv/include/asm/bitops.h      |   4 +-
+>  arch/h8300/include/asm/bitops.h    |   1 -
+>  arch/hexagon/include/asm/bitops.h  |   1 -
+>  arch/ia64/include/asm/bitops.h     |   2 -
+>  arch/m32r/include/asm/bitops.h     |   1 -
+>  arch/m68k/include/asm/bitops.h     | 162 ++++++++++++++++++-------------------
+>  arch/metag/include/asm/bitops.h    |   1 -
+>  arch/mips/include/asm/bitops.h     |   2 -
+>  arch/mn10300/include/asm/bitops.h  |   1 -
+>  arch/openrisc/include/asm/bitops.h |   1 -
+>  arch/parisc/include/asm/bitops.h   |   1 -
+>  arch/powerpc/include/asm/bitops.h  |   2 -
+>  arch/s390/Kconfig                  |   1 -
+>  arch/s390/include/asm/bitops.h     |   1 -
+>  arch/sh/include/asm/bitops.h       |   1 -
+>  arch/sparc/include/asm/bitops_32.h |   1 -
+>  arch/sparc/include/asm/bitops_64.h |   1 -
+>  arch/tile/Kconfig                  |   1 -
+>  arch/tile/include/asm/bitops.h     |   1 -
+>  arch/unicore32/Kconfig             |   1 -
+>  arch/x86/Kconfig                   |   1 -
+>  arch/x86/include/asm/bitops.h      |   2 -
+>  arch/x86/um/Kconfig                |   1 -
+>  arch/xtensa/include/asm/bitops.h   |   1 -
+>  include/asm-generic/bitops.h       |   1 -
+>  include/asm-generic/bitops/find.h  |  82 +++++++++++++++++--
+>  include/asm-generic/bitops/sched.h |  31 -------
+>  kernel/sched/sched.h               |  23 ++++++
+>  lib/Kconfig                        |   3 -
+>  lib/find_bit.c                     |   8 +-
+>  38 files changed, 182 insertions(+), 184 deletions(-)
+>  delete mode 100644 include/asm-generic/bitops/sched.h
+> 
+> -- 
+> 2.11.0
