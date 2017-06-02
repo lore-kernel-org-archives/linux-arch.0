@@ -1,53 +1,84 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v2 1/1] tty: add TIOCGPTPEER ioctl
-Date: Fri, 2 Jun 2017 12:04:55 +0200
-Message-ID: <CAK8P3a2Q5CwofO96fXyjTVqmm23UKZjd+mOopnvKr_TusLxXpQ@mail.gmail.com>
-References: <20170602084858.4299-1-asarai@suse.de> <20170602084858.4299-2-asarai@suse.de>
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: Re: [PATCH 0/6] {sched_,}find_first{_zero}_bit optimizations
+Date: Fri, 2 Jun 2017 14:34:43 +0300
+Message-ID: <20170602113443.6xa6dahtlwoaz2za@yury-thinkpad>
+References: <20170523184321.11452-1-ynorov@caviumnetworks.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f66.google.com ([209.85.218.66]:33739 "EHLO
-        mail-oi0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750910AbdFBKE5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 2 Jun 2017 06:04:57 -0400
-In-Reply-To: <20170602084858.4299-2-asarai@suse.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Aleksa Sarai <asarai@suse.de>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-alpha@vger.kernel.org, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, Parisc List <linux-parisc@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-sh@vger.kernel.org, sparclinux <sparclinux@vger.kernel.org>, linux-xtensa@linux-xtensa.org, linux-arch <linux-arch@vger.kernel.org>, Christian Brauner <christian.brauner@ubuntu.com>, Valentin Rothberg <vrothberg@suse.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20170523184321.11452-1-ynorov@caviumnetworks.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Akinobu Mita <mita@miraclelinux.com>, Mike Galbraith <efault@gmx.de>, Paul Bolle <pebolle@tiscali.nl>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jun 2, 2017 at 10:48 AM, Aleksa Sarai <asarai@suse.de> wrote:
-> When opening the slave end of a PTY, it is not possible for userspace to
-> safely ensure that /dev/pts/$num is actually a slave (in cases where the
-> mount namespace in which devpts was mounted is controlled by an
-> untrusted process). In addition, there are several unresolvable
-> race conditions if userspace were to attempt to detect attacks through
-> stat(2) and other similar methods [in addition it is not clear how
-> userspace could detect attacks involving FUSE].
->
-> Resolve this by providing an interface for userpace to safely open the
-> "peer" end of a PTY file descriptor by using the dentry cached by
-> devpts. Since it is not possible to have an open master PTY without
-> having its slave exposed in /dev/pts this interface is safe. This
-> interface currently does not provide a way to get the master pty (since
-> it is not clear whether such an interface is safe or even useful).
+Ping?
 
-This should be added to the compat ioctls as well. There are two ways
-of doing this:
-
-a) like the other ioctls handled by pty_unix98_ioctl(), add it to the
-list in fs/compat_ioctl.c, and check that the list is still up-to-date with
-the current driver (someone else may have missed one)
-
-b) remove all compat handling for ioctls that are specific to
-pty_unix98_ioctl() and pty_bsd_ioctl() from fs/compat_ioctl.c
-and add compat_ioctl callback pointers to master_pty_ops_bsd
-and ptm_unix98_ops, pointing to the respective ioctl handlers.
-
-I would recommend b) as it avoids the problem in the future,
-but it is a little more upfront work, and should be done as a
-separate preparation patch.
-All the ioctls here are compatible between 32-bit and 64-bit
-user space, so no special translation is needed.
-
-      Arnd
+On Tue, May 23, 2017 at 09:43:15PM +0300, Yury Norov wrote:
+> The series is the result of this discussion: https://lkml.org/lkml/2017/5/12/665
+> plus this patch: https://lkml.org/lkml/2017/5/13/137
+> (I'd like to have it together with others.)
+> 
+> Patch 1 remove useless GENERIC_FIND_FIRST_BIT option.  Patches 2 and 3 change
+> the order of macros definition and/or headers inclusion for frv and m86k, as
+> it's needed in patch 4. Patch 4 adds the optimization for find_first_bit() and
+> find_first_zero_bit(). Patches 5 and 6 consolidate the implementation of
+> sched_find_first_bit(), and make it local.
+> 
+> According to previous discussion, I added Arnd's ack to patches 5 and 6.
+> https://lkml.org/lkml/2017/5/15/514 and suggested-by to patch 4.
+> Arnd, are you OK with it?
+> 
+> Yury Norov (6):
+>   arch: remove GENERIC_FIND_FIRST_BIT
+>   m68k: make __ffs and ffz defined prior to including find.h
+>   frv: make __ffs() visible for find.h
+>   find_first{,_zero}_bit: unroll search cycle for small bitmaps
+>   alpha: drop custom implementation for sched_find_first_bit()
+>   sched: move sched_find_first_bit() from bitops.h to
+>     kernel/sched/sched.h
+> 
+>  arch/alpha/include/asm/bitops.h    |  18 -----
+>  arch/arc/Kconfig                   |   1 -
+>  arch/arc/include/asm/bitops.h      |   1 -
+>  arch/arm/include/asm/bitops.h      |   1 -
+>  arch/arm64/include/asm/bitops.h    |   1 -
+>  arch/blackfin/include/asm/bitops.h |   1 -
+>  arch/c6x/include/asm/bitops.h      |   1 -
+>  arch/cris/include/asm/bitops.h     |   2 -
+>  arch/frv/include/asm/bitops.h      |   4 +-
+>  arch/h8300/include/asm/bitops.h    |   1 -
+>  arch/hexagon/include/asm/bitops.h  |   1 -
+>  arch/ia64/include/asm/bitops.h     |   2 -
+>  arch/m32r/include/asm/bitops.h     |   1 -
+>  arch/m68k/include/asm/bitops.h     | 162 ++++++++++++++++++-------------------
+>  arch/metag/include/asm/bitops.h    |   1 -
+>  arch/mips/include/asm/bitops.h     |   2 -
+>  arch/mn10300/include/asm/bitops.h  |   1 -
+>  arch/openrisc/include/asm/bitops.h |   1 -
+>  arch/parisc/include/asm/bitops.h   |   1 -
+>  arch/powerpc/include/asm/bitops.h  |   2 -
+>  arch/s390/Kconfig                  |   1 -
+>  arch/s390/include/asm/bitops.h     |   1 -
+>  arch/sh/include/asm/bitops.h       |   1 -
+>  arch/sparc/include/asm/bitops_32.h |   1 -
+>  arch/sparc/include/asm/bitops_64.h |   1 -
+>  arch/tile/Kconfig                  |   1 -
+>  arch/tile/include/asm/bitops.h     |   1 -
+>  arch/unicore32/Kconfig             |   1 -
+>  arch/x86/Kconfig                   |   1 -
+>  arch/x86/include/asm/bitops.h      |   2 -
+>  arch/x86/um/Kconfig                |   1 -
+>  arch/xtensa/include/asm/bitops.h   |   1 -
+>  include/asm-generic/bitops.h       |   1 -
+>  include/asm-generic/bitops/find.h  |  82 +++++++++++++++++--
+>  include/asm-generic/bitops/sched.h |  31 -------
+>  kernel/sched/sched.h               |  23 ++++++
+>  lib/Kconfig                        |   3 -
+>  lib/find_bit.c                     |   8 +-
+>  38 files changed, 182 insertions(+), 184 deletions(-)
+>  delete mode 100644 include/asm-generic/bitops/sched.h
+> 
+> -- 
+> 2.11.0
