@@ -1,50 +1,99 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 4/5] signal: move copy_siginfo_to_user to <linux/signal.h>
-Date: Sat,  3 Jun 2017 21:01:01 +0200
-Message-ID: <20170603190102.28866-5-hch@lst.de>
+Subject: [PATCH 2/5] ia64: remove HAVE_ARCH_COPY_SIGINFO
+Date: Sat,  3 Jun 2017 21:00:59 +0200
+Message-ID: <20170603190102.28866-3-hch@lst.de>
 References: <20170603190102.28866-1-hch@lst.de>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <sparclinux-owner@vger.kernel.org>
 In-Reply-To: <20170603190102.28866-1-hch@lst.de>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: sparclinux-owner@vger.kernel.org
 To: Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>
 Cc: linux-arch@vger.kernel.org, sparclinux@vger.kernel.org, linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Having it in asm-generic/siginfo.h doesn't make any sense as it is in no way
-architecture specific.  Move it to signal.h instead where several related
-functions already reside.
+Since ia64 defines __ARCH_SI_PREAMBLE_SIZE it can just use the generic
+copy_siginfo implementation, which is identical to the architecture
+specific one.
+
+With that support for HAVE_ARCH_COPY_SIGINFO can go away entirely.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- include/asm-generic/siginfo.h | 4 ----
- include/linux/signal.h        | 2 ++
- 2 files changed, 2 insertions(+), 4 deletions(-)
+ arch/ia64/include/asm/siginfo.h      | 22 ----------------------
+ arch/ia64/include/uapi/asm/siginfo.h |  1 -
+ include/linux/signal.h               |  7 +------
+ 3 files changed, 1 insertion(+), 29 deletions(-)
 
-diff --git a/include/asm-generic/siginfo.h b/include/asm-generic/siginfo.h
-index 5a9394763a66..31268a5bf63e 100644
---- a/include/asm-generic/siginfo.h
-+++ b/include/asm-generic/siginfo.h
-@@ -14,8 +14,4 @@
- #define __SI_SYS	(7 << 16)
- #define __SI_CODE(T,N)	((T) | ((N) & 0xffff))
+diff --git a/arch/ia64/include/asm/siginfo.h b/arch/ia64/include/asm/siginfo.h
+index 6f2e2dd0f28f..dd2f2fce976b 100644
+--- a/arch/ia64/include/asm/siginfo.h
++++ b/arch/ia64/include/asm/siginfo.h
+@@ -1,23 +1 @@
+-/*
+- * Based on <asm-i386/siginfo.h>.
+- *
+- * Modified 1998-2002
+- *	David Mosberger-Tang <davidm@hpl.hp.com>, Hewlett-Packard Co
+- */
+-#ifndef _ASM_IA64_SIGINFO_H
+-#define _ASM_IA64_SIGINFO_H
+-
+-#include <linux/string.h>
+ #include <uapi/asm/siginfo.h>
+-
+-static inline void
+-copy_siginfo (siginfo_t *to, siginfo_t *from)
+-{
+-	if (from->si_code < 0)
+-		memcpy(to, from, sizeof(siginfo_t));
+-	else
+-		/* _sigchld is currently the largest know union member */
+-		memcpy(to, from, 4*sizeof(int) + sizeof(from->_sifields._sigchld));
+-}
+-
+-#endif /* _ASM_IA64_SIGINFO_H */
+diff --git a/arch/ia64/include/uapi/asm/siginfo.h b/arch/ia64/include/uapi/asm/siginfo.h
+index f72bf0172bb2..4694c64252d6 100644
+--- a/arch/ia64/include/uapi/asm/siginfo.h
++++ b/arch/ia64/include/uapi/asm/siginfo.h
+@@ -11,7 +11,6 @@
+ #define __ARCH_SI_PREAMBLE_SIZE	(4 * sizeof(int))
  
--struct siginfo;
--
--extern int copy_siginfo_to_user(struct siginfo __user *to, const struct siginfo *from);
--
- #endif
+ #define HAVE_ARCH_SIGINFO_T
+-#define HAVE_ARCH_COPY_SIGINFO
+ #define HAVE_ARCH_COPY_SIGINFO_TO_USER
+ 
+ #include <asm-generic/siginfo.h>
 diff --git a/include/linux/signal.h b/include/linux/signal.h
-index 80c7418be359..a39feddd71ba 100644
+index 1f5a16620693..80c7418be359 100644
 --- a/include/linux/signal.h
 +++ b/include/linux/signal.h
-@@ -19,6 +19,8 @@ static inline void copy_siginfo(struct siginfo *to, struct siginfo *from)
+@@ -3,16 +3,13 @@
+ 
+ #include <linux/bug.h>
+ #include <linux/signal_types.h>
++#include <linux/string.h>
+ 
+ struct task_struct;
+ 
+ /* for sysctl */
+ extern int print_fatal_signals;
+ 
+-#ifndef HAVE_ARCH_COPY_SIGINFO
+-
+-#include <linux/string.h>
+-
+ static inline void copy_siginfo(struct siginfo *to, struct siginfo *from)
+ {
+ 	if (from->si_code < 0)
+@@ -22,8 +19,6 @@ static inline void copy_siginfo(struct siginfo *to, struct siginfo *from)
  		memcpy(to, from, __ARCH_SI_PREAMBLE_SIZE + sizeof(from->_sifields._sigchld));
  }
  
-+int copy_siginfo_to_user(struct siginfo __user *to, const struct siginfo *from);
-+
+-#endif
+-
  /*
   * Define some primitives to manipulate sigset_t.
   */
 -- 
 2.11.0
+
