@@ -1,43 +1,71 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 1/5] sparc: simplify <asm/siginfo.h>
-Date: Sat,  3 Jun 2017 21:00:58 +0200
-Message-ID: <20170603190102.28866-2-hch@lst.de>
+Subject: [PATCH 3/5] posix-timers: move the do_schedule_next_timer declaration
+Date: Sat,  3 Jun 2017 21:01:00 +0200
+Message-ID: <20170603190102.28866-4-hch@lst.de>
 References: <20170603190102.28866-1-hch@lst.de>
-Return-path: <linux-ia64-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from bombadil.infradead.org ([65.50.211.133]:35447 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751154AbdFCTBS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 3 Jun 2017 15:01:18 -0400
 In-Reply-To: <20170603190102.28866-1-hch@lst.de>
-Sender: linux-ia64-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>
 Cc: linux-arch@vger.kernel.org, sparclinux@vger.kernel.org, linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
 
-There is no need for the forward declaration of compat_siginfo provided
-here.  We can't yet use the generic header as we need to pull in the
-sparc-specific version of the uapi <asm/siginfo.h>, but this prepares
-for removing the non-uapi <asm/siginfo.h> entirely.
+Having it in asm-generic/siginfo.h doesn't make any sense as it is in no way
+architecture specific.  Move it to posix-timers.h instead.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/sparc/include/asm/siginfo.h | 12 ------------
- 1 file changed, 12 deletions(-)
+ include/asm-generic/siginfo.h | 1 -
+ include/linux/posix-timers.h  | 3 +++
+ kernel/signal.c               | 1 +
+ 3 files changed, 4 insertions(+), 1 deletion(-)
 
-diff --git a/arch/sparc/include/asm/siginfo.h b/arch/sparc/include/asm/siginfo.h
-index 48c34c19f810..dd2f2fce976b 100644
---- a/arch/sparc/include/asm/siginfo.h
-+++ b/arch/sparc/include/asm/siginfo.h
-@@ -1,13 +1 @@
--#ifndef __SPARC_SIGINFO_H
--#define __SPARC_SIGINFO_H
--
- #include <uapi/asm/siginfo.h>
--
--
--#ifdef CONFIG_COMPAT
--
--struct compat_siginfo;
--
--#endif /* CONFIG_COMPAT */
--
--#endif /* !(__SPARC_SIGINFO_H) */
+diff --git a/include/asm-generic/siginfo.h b/include/asm-generic/siginfo.h
+index a2508a8f9a9c..5a9394763a66 100644
+--- a/include/asm-generic/siginfo.h
++++ b/include/asm-generic/siginfo.h
+@@ -15,7 +15,6 @@
+ #define __SI_CODE(T,N)	((T) | ((N) & 0xffff))
+ 
+ struct siginfo;
+-void do_schedule_next_timer(struct siginfo *info);
+ 
+ extern int copy_siginfo_to_user(struct siginfo __user *to, const struct siginfo *from);
+ 
+diff --git a/include/linux/posix-timers.h b/include/linux/posix-timers.h
+index 8c1e43ab14a9..fa25c23192a4 100644
+--- a/include/linux/posix-timers.h
++++ b/include/linux/posix-timers.h
+@@ -7,6 +7,7 @@
+ #include <linux/timex.h>
+ #include <linux/alarmtimer.h>
+ 
++struct siginfo;
+ 
+ struct cpu_timer_list {
+ 	struct list_head entry;
+@@ -125,4 +126,6 @@ long clock_nanosleep_restart(struct restart_block *restart_block);
+ 
+ void update_rlimit_cpu(struct task_struct *task, unsigned long rlim_new);
+ 
++void do_schedule_next_timer(struct siginfo *info);
++
+ #endif
+diff --git a/kernel/signal.c b/kernel/signal.c
+index ca92bcfeb322..1f85c843be8e 100644
+--- a/kernel/signal.c
++++ b/kernel/signal.c
+@@ -39,6 +39,7 @@
+ #include <linux/compat.h>
+ #include <linux/cn_proc.h>
+ #include <linux/compiler.h>
++#include <linux/posix-timers.h>
+ 
+ #define CREATE_TRACE_POINTS
+ #include <trace/events/signal.h>
 -- 
 2.11.0
-
