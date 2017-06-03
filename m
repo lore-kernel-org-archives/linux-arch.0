@@ -1,90 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-sn1nam01on0074.outbound.protection.outlook.com ([104.47.32.74]:29522
-        "EHLO NAM01-SN1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751126AbdFBLe7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 2 Jun 2017 07:34:59 -0400
-Date: Fri, 2 Jun 2017 14:34:43 +0300
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: Re: [PATCH 0/6] {sched_,}find_first{_zero}_bit optimizations
-Message-ID: <20170602113443.6xa6dahtlwoaz2za@yury-thinkpad>
-References: <20170523184321.11452-1-ynorov@caviumnetworks.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20170523184321.11452-1-ynorov@caviumnetworks.com>
+Received: from mail-pg0-f65.google.com ([74.125.83.65]:35480 "EHLO
+        mail-pg0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751142AbdFCCSI (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 2 Jun 2017 22:18:08 -0400
+Received: by mail-pg0-f65.google.com with SMTP id f127so3452085pgc.2
+        for <linux-arch@vger.kernel.org>; Fri, 02 Jun 2017 19:18:08 -0700 (PDT)
+Date: Fri, 02 Jun 2017 19:18:07 -0700 (PDT)
+From: Palmer Dabbelt <palmer@dabbelt.com>
+Subject: Re: [PATCH 1/7] lib: Add shared copies of some GCC library routines
+In-Reply-To: <4448bb28-fa2f-3a4c-753e-46bc4c3815a3@imgtec.com>
+Message-ID: <mhng-30ac217d-aaf3-47bd-bfe7-cc86e4660f58@palmer-si-x1c4>
+Mime-Version: 1.0 (MHng)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Akinobu Mita <mita@miraclelinux.com>, Mike Galbraith <efault@gmx.de>, Paul Bolle <pebolle@tiscali.nl>
-Message-ID: <20170602113443.jTrulWx9tUTQwC5M33WJGakarrlbQQdj_dUKJ87sSUA@z>
+To: matt.redfearn@imgtec.com
+Cc: monstr@monstr.eu, ralf@linux-mips.org, liqin.linux@gmail.com, lennox.wu@gmail.com, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, linux-mips@linux-mips.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, geert@linux-m68k.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20170603021807.E_dn7RRrxTUY0GgF8ewViklYZq1Adh-YTp-rfq2vgrE@z>
 
-Ping?
+On Wed, 24 May 2017 01:52:13 PDT (-0700), matt.redfearn@imgtec.com wrote:
+> Hi Palmer
+>
+>
+> On 23/05/17 23:05, Palmer Dabbelt wrote:
+>> Many ports (m32r, microblaze, mips, parisc, score, and sparc) use
+>> functionally identical copies of various GCC library routine files,
+>> which came up as we were submitting the RISC-V port (which also uses
+>> some of these).
+>>
+>> This patch adds a new copy of these library routine files, which are
+>> functionally identical to the various other copies.  These are
+>> availiable via Kconfig as CONFIG_LIB_$ROUTINE, which currently isn't
+>> used anywhere.
+>
+> Note that, on MIPS, we had to mark the compiler intrinsics as notrace
+> (see commit aedcfbe06558a9f53002e82d5be64c6c94687726) because if the
+> compiler requires the intrinsic in the ftrace path, it then tries to
+> trace itself leading to infinite recursion and stack overflow. So I'd
+> suggest you mark the generic versions notrace as well.
 
-On Tue, May 23, 2017 at 09:43:15PM +0300, Yury Norov wrote:
-> The series is the result of this discussion: https://lkml.org/lkml/2017/5/12/665
-> plus this patch: https://lkml.org/lkml/2017/5/13/137
-> (I'd like to have it together with others.)
-> 
-> Patch 1 remove useless GENERIC_FIND_FIRST_BIT option.  Patches 2 and 3 change
-> the order of macros definition and/or headers inclusion for frv and m86k, as
-> it's needed in patch 4. Patch 4 adds the optimization for find_first_bit() and
-> find_first_zero_bit(). Patches 5 and 6 consolidate the implementation of
-> sched_find_first_bit(), and make it local.
-> 
-> According to previous discussion, I added Arnd's ack to patches 5 and 6.
-> https://lkml.org/lkml/2017/5/15/514 and suggested-by to patch 4.
-> Arnd, are you OK with it?
-> 
-> Yury Norov (6):
->   arch: remove GENERIC_FIND_FIRST_BIT
->   m68k: make __ffs and ffz defined prior to including find.h
->   frv: make __ffs() visible for find.h
->   find_first{,_zero}_bit: unroll search cycle for small bitmaps
->   alpha: drop custom implementation for sched_find_first_bit()
->   sched: move sched_find_first_bit() from bitops.h to
->     kernel/sched/sched.h
-> 
->  arch/alpha/include/asm/bitops.h    |  18 -----
->  arch/arc/Kconfig                   |   1 -
->  arch/arc/include/asm/bitops.h      |   1 -
->  arch/arm/include/asm/bitops.h      |   1 -
->  arch/arm64/include/asm/bitops.h    |   1 -
->  arch/blackfin/include/asm/bitops.h |   1 -
->  arch/c6x/include/asm/bitops.h      |   1 -
->  arch/cris/include/asm/bitops.h     |   2 -
->  arch/frv/include/asm/bitops.h      |   4 +-
->  arch/h8300/include/asm/bitops.h    |   1 -
->  arch/hexagon/include/asm/bitops.h  |   1 -
->  arch/ia64/include/asm/bitops.h     |   2 -
->  arch/m32r/include/asm/bitops.h     |   1 -
->  arch/m68k/include/asm/bitops.h     | 162 ++++++++++++++++++-------------------
->  arch/metag/include/asm/bitops.h    |   1 -
->  arch/mips/include/asm/bitops.h     |   2 -
->  arch/mn10300/include/asm/bitops.h  |   1 -
->  arch/openrisc/include/asm/bitops.h |   1 -
->  arch/parisc/include/asm/bitops.h   |   1 -
->  arch/powerpc/include/asm/bitops.h  |   2 -
->  arch/s390/Kconfig                  |   1 -
->  arch/s390/include/asm/bitops.h     |   1 -
->  arch/sh/include/asm/bitops.h       |   1 -
->  arch/sparc/include/asm/bitops_32.h |   1 -
->  arch/sparc/include/asm/bitops_64.h |   1 -
->  arch/tile/Kconfig                  |   1 -
->  arch/tile/include/asm/bitops.h     |   1 -
->  arch/unicore32/Kconfig             |   1 -
->  arch/x86/Kconfig                   |   1 -
->  arch/x86/include/asm/bitops.h      |   2 -
->  arch/x86/um/Kconfig                |   1 -
->  arch/xtensa/include/asm/bitops.h   |   1 -
->  include/asm-generic/bitops.h       |   1 -
->  include/asm-generic/bitops/find.h  |  82 +++++++++++++++++--
->  include/asm-generic/bitops/sched.h |  31 -------
->  kernel/sched/sched.h               |  23 ++++++
->  lib/Kconfig                        |   3 -
->  lib/find_bit.c                     |   8 +-
->  38 files changed, 182 insertions(+), 184 deletions(-)
->  delete mode 100644 include/asm-generic/bitops/sched.h
-> 
-> -- 
-> 2.11.0
+Sorry, I didn't notice that.  I got a bit swamped responding to the RISC-V
+port's code reviews, but assuming nobody has merged any of this I'll submit a
+v2 patch set that fixes this (and some other errors I believe I introduced)
+once I get through all my email.
+
+Thanks!
