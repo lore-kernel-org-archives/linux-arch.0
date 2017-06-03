@@ -1,22 +1,43 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: untangle the <asm/siginfo.h> mess
-Date: Sat,  3 Jun 2017 21:00:57 +0200
-Message-ID: <20170603190102.28866-1-hch@lst.de>
+Subject: [PATCH 1/5] sparc: simplify <asm/siginfo.h>
+Date: Sat,  3 Jun 2017 21:00:58 +0200
+Message-ID: <20170603190102.28866-2-hch@lst.de>
+References: <20170603190102.28866-1-hch@lst.de>
 Return-path: <linux-ia64-owner@vger.kernel.org>
+In-Reply-To: <20170603190102.28866-1-hch@lst.de>
 Sender: linux-ia64-owner@vger.kernel.org
 To: Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>
 Cc: linux-arch@vger.kernel.org, sparclinux@vger.kernel.org, linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-We currently have uapi versions of <asm/siginfo.h> which at least on a few
-architectures define bits of the userspace ABI before including an uapi
-asm-generic version, and also non-uapi versions which do almost nothing
-except for making sure other headers include the right uapi one before
-including an asm-generic that defined two prototypes and a few defines
-that aren't architecture specific in any.
+There is no need for the forward declaration of compat_siginfo provided
+here.  We can't yet use the generic header as we need to pull in the
+sparc-specific version of the uapi <asm/siginfo.h>, but this prepares
+for removing the non-uapi <asm/siginfo.h> entirely.
 
-This series completely gets rid of the non-uapi versions and cleans up
-various small bits on the way.
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ arch/sparc/include/asm/siginfo.h | 12 ------------
+ 1 file changed, 12 deletions(-)
 
-Note that Thomas has some posix-timers work overlapping with this, so
-it might make sense to take these through the tip tree.
+diff --git a/arch/sparc/include/asm/siginfo.h b/arch/sparc/include/asm/siginfo.h
+index 48c34c19f810..dd2f2fce976b 100644
+--- a/arch/sparc/include/asm/siginfo.h
++++ b/arch/sparc/include/asm/siginfo.h
+@@ -1,13 +1 @@
+-#ifndef __SPARC_SIGINFO_H
+-#define __SPARC_SIGINFO_H
+-
+ #include <uapi/asm/siginfo.h>
+-
+-
+-#ifdef CONFIG_COMPAT
+-
+-struct compat_siginfo;
+-
+-#endif /* CONFIG_COMPAT */
+-
+-#endif /* !(__SPARC_SIGINFO_H) */
+-- 
+2.11.0
+
