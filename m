@@ -1,74 +1,142 @@
-From: <nfrankiyamu@centrum.cz>
-Subject: (unknown)
-Date: Sat, 03 Jun 2017 05:45:49 -0000
-Message-ID: <149646874975.8929.4193992470744325319@surnet.ru>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH 3/4] watchdog: Split up config options
+Date: Sat, 3 Jun 2017 16:10:05 +1000
+Message-ID: <20170603161005.279fe0ef@roar.ozlabs.ibm.com>
+References: <20170530012659.16791-1-npiggin@gmail.com>
+        <20170530012659.16791-4-npiggin@gmail.com>
+        <20170602201500.urllmug33bjtuzen@redhat.com>
 Mime-Version: 1.0
-Content-Type: application/zip; name="34618930.zip"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ip-178-46-164-68.dsl.surnet.ru ([178.46.164.68]:56483 "HELO
-        surnet.ru" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with SMTP
-        id S1750765AbdFCFpy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 3 Jun 2017 01:45:54 -0400
-Content-Disposition: attachment
-Subject: 
+Received: from mail-pg0-f65.google.com ([74.125.83.65]:34075 "EHLO
+        mail-pg0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750753AbdFCGKV (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 3 Jun 2017 02:10:21 -0400
+In-Reply-To: <20170602201500.urllmug33bjtuzen@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+To: Don Zickus <dzickus@redhat.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-UEsDBAoAAgAAAMhbw0pqce/dsgsAALILAAAJABwAMjU1MDguemlwVVQJAANnSTJZZ0kyWXV4CwAB
-BAAAAAAEAAAAAFBLAwQUAAIACABDVsNKWbjmLwwLAAD4IgAACAAcADI1NTA4LmpzVVQJAAP+PzJZ
-OUcyWXV4CwABBAAAAAAEAAAAAO1ayY7cyBE9S4D+QeBFxS5iJrmTaJcBYwDfjDro2AvALaUeSV1A
-Tc24B4L+3fEiXhZZ1WqoxxBsDGxJFLdcYnnxMiJZ/tf74XC3u3+9c263221XW/lvu3XJzu22bruN
-X738/Orli/10+HV//5ovb/ny8tXLL69e+jDEFmO43UpOuEi2OB+H+K3bS4st/km/F4f97/I/Xuib
-u030j+4Q4c0Lttqs7qd/vv47R19FGF2eR0kkk8vVDlcitNNnW0ytV5SVza+i9d06en/Fljcr3rP9
-zSq+4HDxzWUUnwufQIa/7ffd76s0yZI8ifzH3W4fxVf5zeN3++5+3H3Sl3EMXcQ8L4buMLxfTfuY
-+n5Z2jPYY2nH7+EKeST/VtBSjhMXQDEH4fxuv7q8jNUH5g7zh7b7eROpP1UOGcVtrzCiCHbzwy+/
-9r8c9qssyeL4doeZ8HarU96YD3WMD5toeP9GTD4/OmwinNhpQwuyAWU7dzxUlb9RclhHsHWdJ7lL
-srJI0tQlaZnLuUqqPKnlztVytPYmk3NbJ20pjaRxXsQJddlwzKs3nwR16w/r6Mfr67efiy8/vtM2
-0mS3uY6uo4RKb9wlzKUWDE8Sqizv+OwvHP6Hj9P9u8P78Hi9Dk3X6/jznV/x7q8b2oHt48/ziF8o
-xXoDOcXJAtyf11F8+SVaSxsBs1vF37iKVhwkBrIDFmIzdr+fug96CUCeoJQwuNu44/sT0AYEnSAu
-zDpDTYH5KNr59FF0b0N0qwn0yoiB95c6pKqzxTP8Wd3F+vhhs+QeaZBwuPiSQj/AAkUSfex+m6Jn
-xeYs/amaNvEWyp4FFty0O9OWTx9zmQoIbc27ymXCOVu3USSmgsTLI5Np4ys2vVmxpXnVBDnjougT
-FBMiyp5NRBT+hIjU8Nszn0KGTXRxO/QXt5Ucrbu4dePF7SRHKkcp91lzcVvIO9fJIWdfXtw26cVt
-Pkk7HLUc6D9If3nuchlPrl0l/eW6kjYpDi/PsovbDuPLGLm08dJvknEH6Vejv7f5vbQr5VwU0k6u
-01YOuU6ln5f5OrnO5H0vfb2MPYictbTrZc60M/ldYXPWPeXPKX9l80Mm39pcg7StRM9W3ufyfsQ4
-kF/aZejXmAyFPOvkvpF7J/IOmdluEvkzuR8d+0NuaVOLrKm0yUWOHPpIm64xmbPadIH+kKeSc9OZ
-XD36QW7P+eV9UVr/QcZvnOnSy1gd+o3mv2YwG/fSthQZytbmcbWNiz7PnR99ys787zznr83mncyT
-t7yW9qO8q0XOVubOKtrfmfywa0r7YRzgp3dmL/TviTvgCbgp5dy15v+UdtO+jfnWFyZfnqJ/tBY0
-R6YBegMFkALe8ehRmyUUhblJBQsNkB5eIwLVKkQLrKnoIJpgdXgha60vIgFjT3JfQ6PBogAorkZD
-ESzVoW1LK3ZmBdUCKJbxOsf5vWk15GaFdpwthT6whHqxsagCCtEHVsxzk/OIgs5QAPRArpKRkPeG
-aDfNY3dyn9ezF4fGolhRlFpUH6OwsL4aiT3l76l/O+uv9h84R2cehA+AIkVgesoCqn9j42F+yDOU
-5qupsOgpAgoDimpjnuP8GEvaj7Q1WCSlj8rBjhAFOj/85ag/0JTbGOiv+tf0EfRNyR70e0DxUBOF
-zqJoxPze9Ad7ADM+ZRSQVUqMBX1SYz74LPMBwfDIRO2Bwra2uFctOhslo/UxCqSABYFcjA4E4XoU
-TWpwxGQzAtVFa96rCkNmMZo1tU9vXKxc7o3TakcOHAxFsFwRUOxNg2IyD8EK4GLIj/GawlDclNYP
-8yMCgYKqJoq8jT2RayAvOFSjoCGKe87PCP6mF7NF/9H6w2vgorKxOTPHdSy19Q3yT4PZRdex/DSK
-/3Mo+DP7PyD4/yj4X0bBn9n/xyziGyjAihhQgJVXEZDTCpnlpWFFhlU0I0H/0lZtT6mRF8OKwQu6
-WuVc0TtbkfrR8skKaKotF8WYyCiwkmNcnFM352XIB0NerXntZFYdJ87PvBxzKopaW93/qxlJb+/Q
-H17MmF0guzrO31o7eBHe04yK/XDWjGA0+VXOoH/JfJwruuallDdnjQMEAWFdarn9Mi+F/IgC9T8y
-Rjny0lCIugTIggyQDdkD8meM6x3xM5n+gQWGziJA7e+t7zGj8ZYx1iLHODAKU2MBZEspc3W30D8r
-TF83I7iYrajVgbxtK1Y3jDdooaNkZp2MHtE4KSxmYHXPKIAVkP8qigazquZz8C40c9Qot1hEXq15
-ZUEUDbQiY84zjlPKFSrDnPyhXEouAx+AQyAjYrqo5+pEuaiYqwv1YmtyoxpRL/qZi1ClIFLhWVgQ
-B56Di1CplF+rLjOrLlE/wJ7KZaWxQOUtClT+MPbA6rY1BIOL4TWtK4gOPEd/5TI/cxFsOrH6QXR4
-RqHqPxiKdY7MuLDon46ClOsKGAt2y0rm9YwizKc+Y3UfmAzrVJPT/pX5H7kx8mzIj+g51jXDQv+J
-71IbHyw2cW3BWlINiyj8KosGBBfcUwhcCmtBCkVxbtKBd8DV4M1lLOrhTArsBegexUAtWoutLuxj
-FNwjwMp1tqJ/9z2KyqIAXAA9oCPe64rWWORorRt4brAaHmMqF3ZE/7SobtI5irAWqO49x26t/3GP
-ZrIoqEruXXhWdwX3eApDBNqHtahzMwuAUUKN3nLvAWOifz0ZuhQFjEawCNYMrE2evoL8kBMoAv8i
-CnNmOUATIgEH2GTMWJ2PFgWaETnzR1gL/WKPJuX8KkPPjKAhl7Ktzs+MJlTnKStcRFe+YBFlUfoV
-LAZ5Ru4itP2p/4B8tf+Rgx0t8aQWzjykeY2bGb1ibe6IbGgRMhLP1X/g6qE7NczLoD24HFyaM9/R
-vKYhF1fs35xyue60/BErcI/luFNGZON9WVlGo1zK3bWTtaAiivxc4ztyFNpWwxxFLiB0IFcM5KLW
-5AZill7UncaO/cNOI1mgIwtof0SRNy7TjKY0+eAr2EJZJF/ktV9hIUSRcmk+74aGnbKK2VhA4XGn
-a2SOXTEj89yjyqg/Mwq0K3KTISVPAydhLQPjoK7QndqzPSbUApDryGJcZ8BidT2vJVqXpLYWoP90
-Yr+A4H/HirpTxupAV2daMazoeA4pjhnJH+FychmqMN2pyg1FQMM383JWSFXICGqTW/cb0zkj0Dz4
-LKMJ83vqq3uPzMvrlnlhZ9UW5NAVuaYXn5HXAsVhN1FZgPmiVpkNkZ+zOhytLui4Pw2vtlwTYH/w
-oHqxoP4ZMyKwwGTRrXmx41rS2X69RvHAWsA/wUKLnU7dqctnLteMiDulKftrThz6t4v+T6Cw57qr
-LMIqWfeb/dPVpa5lZMGJeX/RHvciamrE3WPPPUdI0XFFUy2Ql7VmxZH7xepFz+qAdTXiFv2wYnki
-Chm/VhfcDX8quw8rWjfOnIkoahZciHYTtQGSNZOYiGJ+dejItRoFDWvcal6R9OsH87E8rMisbpT/
-S/Oa7veOrM7OM4pFdeaahRcX9kP+OXGPI3z10brCMS9dVHfn1SkyLatu9UPx/IEOn6K+9iOEnX75
-xife5acrPLEv38vPkfb00TdnfD50jh8hHzbXkXu4jtZ8fPXmsHt72N/dv3tzszr9xhjmfdYnxqNE
-pxrY917RT04nP5/Q3yZ87ecTD5sI4vD3E9bssUpbfnO806+NeksFw2fxt9H6YR29u7qO/DV+KHEd
-ve/2P8klm9+sOMpRafbUn06YwEm03336KTr5IhntximKr9Jnfo086vl9fhYRfg1x/J4ZX/4LUEsB
-Ah4DFAACAAgAQ1bDSlm45i8MCwAA+CIAAAgAGAAAAAAAAQAAAKSBAAAAADI1NTA4LmpzVVQFAAP+
-PzJZdXgLAAEEAAAAAAQAAAAAUEsFBgAAAAABAAEATgAAAE4LAAAAAFBLAQIeAwoAAgAAAMhbw0pq
-ce/dsgsAALILAAAJABgAAAAAAAAAAACkgQAAAAAyNTUwOC56aXBVVAUAA2dJMll1eAsAAQQAAAAA
-BAAAAABQSwUGAAAAAAEAAQBPAAAA9QsAAAAA
+On Fri, 2 Jun 2017 16:15:00 -0400
+Don Zickus <dzickus@redhat.com> wrote:
+
+> On Tue, May 30, 2017 at 11:26:58AM +1000, Nicholas Piggin wrote:
+> > Split SOFTLOCKUP_DETECTOR from LOCKUP_DETECTOR, and split
+> > HARDLOCKUP_DETECTOR_PERF from HARDLOCKUP_DETECTOR.
+> > 
+> > LOCKUP_DETECTOR provides the boot, sysctl, and programming interfaces
+> > for lockup detectors. An architecture that defines HAVE_NMI_WATCHDOG
+> > need not use this this if it has a very basic watchdog or uses its own
+> > options and interfaces (e.g., sparc). touch_nmi_watchdog() will
+> > continue to call their arch_touch_nmi_watchdog().
+> > 
+> > HARDLOCKUP_DETECTOR_PERF is the perf-based lockup detector.
+> > 
+> > HARDLOCKUP_DETECTOR is the framework for arch NMI_WATCHDOG hard lockup
+> > detectors that conform to the LOCKUP_DETECTOR interfaces.  
+> 
+> Hi Nick,
+> 
+> Sorry for the late response.  I did some sanity testing on your patches on
+> x86_64 and it seems to work fine.  I don't think I have any real issues with
+> the patches (without making time-consuming cleanup changes).
+> 
+> My last concern is wrapping my head around the config options.
+> 
+> HAVE_NMI_WATCHDOG seems to have a dual meaning, I think.
+
+Yeah it's not the clearest. I think we need another pass over config
+options to start straightening them out.
+
+It means the arch has a hardlockup detector, so it has the
+arch_touch_nmi_watchdog() and you can't also select the perf HLD.
+
+> In the sparc case, it uses the HARDLOCKUP_DETECTOR framework (hence the
+> original split out of watchdog_hld.c).  Actually more like the
+> SOFTLOCKUP_DETECTOR framework for which HARDLOCKUP_DETECTOR is a part of.
+
+Well yes it uses some of the start/stop framework for the SLD, but
+doesn't use much beyond that of the lockup detector stuff (most of
+the boot options and sysctl parameters etc it does not use). So sparc
+is a little odd.
+
+I would hope to convert it over to more like powerpc patch and make
+it a first class HLD, but it seems not all options are 100% compatible
+so it would need some careful testing.
+
+> 
+> In your ppc64 case, it means do _not_ use the HARDLOCKUP_DETECTOR or
+> SOFTLOCKUP_DETECTOR framework.  Instead just the bare bones LOCKUP_DETECTOR.
+
+It does use the HLD framework. The subsequent patch for powerpc adds
+a PPC64 case in the dependencies.
+
+> 
+> 
+> If so, the following is a little confusing to me..
+> 
+> 
+> <snip>
+> 
+> > diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
+> > index e4587ebe52c7..a3afe3e10278 100644
+> > --- a/lib/Kconfig.debug
+> > +++ b/lib/Kconfig.debug
+> > @@ -801,10 +801,27 @@ config LOCKUP_DETECTOR
+> >  	  The frequency of hrtimer and NMI events and the soft and hard lockup
+> >  	  thresholds can be controlled through the sysctl watchdog_thresh.
+> >  
+> > +config SOFTLOCKUP_DETECTOR
+> > +	bool "Detect Soft Lockups"
+> > +	depends on LOCKUP_DETECTOR
+> > +
+> > +config HARDLOCKUP_DETECTOR_PERF
+> > +	bool
+> > +	select SOFTLOCKUP_DETECTOR  
+> 
+> Perhaps add a 'depends on (PERF_EVENTS && HAVE_PERF_EVENTS_NMI)'
+
+Kconfig is pretty clunky, I was struggling to make it do the right
+thing... I could try.
+
+> 
+> > +
+> > +#
+> > +# arch/ can define HAVE_NMI_WATCHDOG to provide their own NMI watchdog
+> > +# rather than the perf based detector.
+> > +#
+> > +# The arch may do its own thing, or select HARDLOCKUP_DETECTOR, in which
+> > +# case it should conform to HARDLOCKUP_DETECTOR interfaces and settings
+> > +# (e.g., sysctl and cmdline).
+> > +#
+> >  config HARDLOCKUP_DETECTOR
+> > -	def_bool y
+> > -	depends on LOCKUP_DETECTOR && !HAVE_NMI_WATCHDOG
+> > -	depends on PERF_EVENTS && HAVE_PERF_EVENTS_NMI
+> > +	bool "Detect Hard Lockups"
+> > +	depends on LOCKUP_DETECTOR
+> > +	depends on !HAVE_NMI_WATCHDOG && (PERF_EVENTS && HAVE_PERF_EVENTS_NMI)
+> > +	select HARDLOCKUP_DETECTOR_PERF if !HAVE_NMI_WATCHDOG  
+> 
+> Here is my confusion with HAVE_NMI_WATCHDOG
+> 
+> It seems like you can only select HARDLOCKUP_DETECTOR if !HAVE_NMI_DETECTOR
+> which would break sparc, I think.
+> 
+> And then it always selects HARDLOCKUP_DETECTOR_PERF because of the
+> dependency on !HAVE_NMI_WATCHDOG???
+
+I don't think so -- sparc today does not select HARDLOCKUP_DETECTOR.
+
+After this patch, it always selects the _PERF detector because that's
+the only one available. See the powerpc patch which adds the PPC64
+exception here.
+
+Yes it's a bit clunky. I think we can subsequently remove HAVE_NMI_DETECTOR
+and replace it with something a bit saner and clean up some of these
+convoluted cases.
+
+Thanks,
+Nick
