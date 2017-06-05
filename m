@@ -1,42 +1,30 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([146.0.238.70]:49932 "EHLO
-        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751352AbdFEIA5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 5 Jun 2017 04:00:57 -0400
-Date: Mon, 5 Jun 2017 10:00:39 +0200 (CEST)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH 5/5] remove non-uapi <asm/siginfo.h>
-In-Reply-To: <20170605071821.GA21343@lst.de>
-Message-ID: <alpine.DEB.2.20.1706050959000.3517@nanos>
-References: <20170603190102.28866-1-hch@lst.de> <20170603190102.28866-6-hch@lst.de> <alpine.DEB.2.20.1706041510440.2813@nanos> <20170605071821.GA21343@lst.de>
+Received: from eddie.linux-mips.org ([148.251.95.138]:33954 "EHLO
+        cvs.linux-mips.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751309AbdFEMto (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 5 Jun 2017 08:49:44 -0400
+Date: Mon, 5 Jun 2017 13:49:36 +0100 (BST)
+From: "Maciej W. Rozycki" <macro@linux-mips.org>
+Subject: Re: is alpha jensen support dead?
+In-Reply-To: <20170522075128.GB2081@lst.de>
+Message-ID: <alpine.LFD.2.20.1706051347280.29944@eddie.linux-mips.org>
+References: <20170521085848.GA14559@lst.de> <20170521181128.GA13376@gherkin.frus.com> <20170522075128.GB2081@lst.de>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Christoph Hellwig <hch@lst.de>
-Cc: Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, linux-arch@vger.kernel.org, sparclinux@vger.kernel.org, linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20170605080039.SXr6intQLBztS61WPm4RhYyVHh8mNHGzr6Q1bJmVzGI@z>
+Cc: Bob Tracy <rct@gherkin.frus.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Christian Borntraeger <borntraeger@de.ibm.com>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20170605124936.c8yOp-g0a_VwPQR3pgxq4MOCpWXyOFi3ObWYsL0liRk@z>
 
-On Mon, 5 Jun 2017, Christoph Hellwig wrote:
-> On Sun, Jun 04, 2017 at 03:13:11PM +0200, Thomas Gleixner wrote:
-> > On Sat, 3 Jun 2017, Christoph Hellwig wrote:
-> > 
-> > > By moving the kernel side __SI_* defintions right next to the userspace
-> > > ones we can kill the non-uapi versions of <asm/siginfo.h> include
-> > > include/asm-generic/siginfo.h and untangle the unholy mess of includes.
-> > 
-> > That needs a couple of fixups and we can remove
-> > 
-> > arch/X/include/uapi/asm/siginfo.h from m32r, microblaze, mn10300 and score.
-> > 
-> > Delta patch below.
-> 
-> Thanks.  I'm going to include this if I have to resend for some reason.
+On Mon, 22 May 2017, Christoph Hellwig wrote:
 
-No need. I already folded it in and it survived the built bot testing w/o
-complaints. About to push it out into tip timers/core as I have the posix
-timer stuff pending on top of it.
+> Great!  Still makes me wonder about Jensen, which appears to be
+> the only platform that requires a different build than the normal
+> generic PCI-enabled kernel.  And I suspect it's pretty much dead
+> at this point..
 
-Thanks,
+ Jensen is EISA-only, which is likely why support wasn't folded into the 
+generic configuration.
 
-	tglx
+  Maciej
