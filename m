@@ -1,75 +1,60 @@
-From: <h.gerritsen12@chello.nl>
-Subject: (unknown)
-Date: Mon, 05 Jun 2017 05:43:54 -0000
-Message-ID: <149664143466.4334.15972654151101141171@dialogix.net>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH] kbuild: provide THIN_ARCHIVES option for all
+ architectures
+Date: Mon, 5 Jun 2017 17:00:45 +1000
+Message-ID: <20170605170045.11760813@roar.ozlabs.ibm.com>
+References: <20170529081103.29999-1-npiggin@gmail.com>
+        <CAK8P3a2umsN_fTLbRmMofFYBzfOSdfFTqYcKdtesAdXk9Dbwvg@mail.gmail.com>
+        <CAK7LNATyoCkDgywEdvR1z5kaTR+Uur1gg7-FT-0fV_HLb7AxMg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: application/zip; name="382993317.zip"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hostedpbx.dialogix.net ([97.65.205.10]:42445 "HELO dialogix.net"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with SMTP
-        id S1751241AbdFEFoA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 5 Jun 2017 01:44:00 -0400
-Content-Disposition: attachment
-Subject: 
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <CAK7LNATyoCkDgywEdvR1z5kaTR+Uur1gg7-FT-0fV_HLb7AxMg@mail.gmail.com>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Masahiro Yamada <yamada.masahiro@socionext.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>
+List-Id: linux-arch.vger.kernel.org
 
-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
-AAEAAQBOAAAAIwwAAAAA
+On Mon, 5 Jun 2017 08:17:26 +0900
+Masahiro Yamada <yamada.masahiro@socionext.com> wrote:
+
+> Hi.
+> 
+> 2017-06-01 6:13 GMT+09:00 Arnd Bergmann <arnd@arndb.de>:
+> > On Mon, May 29, 2017 at 10:11 AM, Nicholas Piggin <npiggin@gmail.com> wrote:  
+> >> Supporting two different intermediate-artifact packaging schemes
+> >> was only ever intended as a temporary transition.
+> >>
+> >> This has so far caused no problems for powerpc, after a small fix
+> >> for how the arch invoked ar. So now allow any arch to select the
+> >> option, continue defaulting to N.
+> >>
+> >> Cc: Stephen Rothwell <sfr@canb.auug.org.au>
+> >> Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+> >> ---
+> >> The next step will be to have archs always select THIN_ARCHIVES
+> >> when they are known to work. Then remove the option entirely.
+> >>
+> >> x86 has always just worked for me, so that should be easy.  
+> >
+> > I have build-tested many thousand randconfig kernels on arm32 with
+> > this option enabled, and did not run into build-time regressions
+> > besides some initial problems from a broken binutils snapshot
+> > (all released binutils versions should be fine).
+> >  
+> 
+> 
+> Please let me mention two advantages of using THIN_ARCHIVES.
+
+[snip]
+
+Thank you for the post. I ran it through 0day and found some issues
+with a few archs that I'm working through. Some changes are needed to
+the generic thin archives build scripts, and some arch tweaks required.
+So it's not 100% trivial.
+
+4.13 might still be a realistic target if I make some progress.
+
+Thanks,
+Nick
