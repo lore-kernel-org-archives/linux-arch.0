@@ -1,118 +1,116 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:32768 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751272AbdFEMv4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 5 Jun 2017 08:51:56 -0400
-From: Punit Agrawal <punit.agrawal@arm.com>
-Subject: [PATCH v4.1 4/8] mm, gup: Ensure real head page is ref-counted when using hugepages
-Date: Mon,  5 Jun 2017 13:51:12 +0100
-Message-ID: <20170605125112.19530-1-punit.agrawal@arm.com>
-In-Reply-To: <20170524115409.31309-5-punit.agrawal@arm.com>
-References: <20170524115409.31309-5-punit.agrawal@arm.com>
+Received: from mailapp01.imgtec.com ([195.59.15.196]:23394 "EHLO
+        imgpgp01.kl.imgtec.org" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+        with ESMTP id S1751335AbdFEOoJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 5 Jun 2017 10:44:09 -0400
+Date: Mon, 5 Jun 2017 15:44:06 +0100
+From: James Hogan <james.hogan@imgtec.com>
+Subject: Re: [PATCH 03/20] asm-generic: Drop getrlimit and setrlimit syscalls
+ from default list
+Message-ID: <20170605144406.GT6973@jhogan-linux.le.imgtec.org>
+References: <20170604120009.342-1-ynorov@caviumnetworks.com>
+ <20170604120009.342-4-ynorov@caviumnetworks.com>
+MIME-Version: 1.0
+Content-Type: multipart/signed; micalg=pgp-sha256;
+        protocol="application/pgp-signature"; boundary="+OVWeTxrbAwQuiek"
+Content-Disposition: inline
+In-Reply-To: <20170604120009.342-4-ynorov@caviumnetworks.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org
-Cc: Punit Agrawal <punit.agrawal@arm.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, will.deacon@arm.com, n-horiguchi@ah.jp.nec.com, kirill.shutemov@linux.intel.com, mike.kravetz@oracle.com, steve.capper@arm.com, mark.rutland@arm.com, linux-arch@vger.kernel.org, aneesh.kumar@linux.vnet.ibm.com, ynorov@caviumnetworks.com, Michal Hocko <mhocko@suse.com>
-Message-ID: <20170605125112.bpwfNZlYjIEPhBopuv1Nv0EpuXuTpV8B8gGCKR3TZL8@z>
+To: Yury Norov <ynorov@caviumnetworks.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andrew Pinski <pinskia@gmail.com>, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, Adam Borowski <kilobyte@angband.pl>, Chris Metcalf <cmetcalf@ezchip.com>, Steve Ellcey <sellcey@caviumnetworks.com>, Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, Ramana Radhakrishnan <ramana.gcc@googlemail.com>, Florian Weimer <fweimer@redhat.com>, Bamvor Zhangjian <bamvor.zhangjian@huawei.com>, Andreas Schwab <schwab@suse.de>, Chris Metcalf <cmetcalf@mellanox.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, schwidefsky@de.ibm.com, broonie@kernel.org, Joseph Myers <joseph@codesourcery.com>, christoph.muellner@theobroma-systems.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, davem@davemloft.net, zhouchengming1@huawei.com, linux-arch@vger.kernel.org, linux-snps-arc@lists.infradead.org, Will Deacon <will.deacon@arm.com>, Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <a-jacquiot@ti.com>, linux-c6x-dev@linux-c6x.org, Richard Kuo <rkuo@codeaurora.org>, linux-hexagon@vger.kernel.org, linux-metag@vger.kernel.org, Jonas Bonn <jonas@southpole.se>, linux@lists.openrisc.net, Chen Liqin <liqin.linux@gmail.com>, Lennox Wu <lennox.wu@gmail.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Ley Foon Tan <lftan@altera.com>, nios2-dev@lists.rocketboards.org, Yoshinori Sato <ysato@users.sourceforge.jp>, uclinux-h8-devel@lists.sourceforge.jp
+Message-ID: <20170605144406.gKusahMF23rQuzy5ql8TirBETOLICAe-Uoq-AouC9VA@z>
 
-When speculatively taking references to a hugepage using
-page_cache_add_speculative() in gup_huge_pmd(), it is assumed that the
-page returned by pmd_page() is the head page. Although normally true,
-this assumption doesn't hold when the hugepage comprises of successive
-page table entries such as when using contiguous bit on arm64 at PTE or
-PMD levels.
+--+OVWeTxrbAwQuiek
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-This can be addressed by ensuring that the page passed to
-page_cache_add_speculative() is the real head or by de-referencing the
-head page within the function.
+Hi Yury,
 
-We take the first approach to keep the usage pattern aligned with
-page_cache_get_speculative() where users already pass the appropriate
-page, i.e., the de-referenced head.
+On Sun, Jun 04, 2017 at 02:59:52PM +0300, Yury Norov wrote:
+> The newer prlimit64 syscall provides all the functionality provided by
+> the getrlimit and setrlimit syscalls and adds the pid of target process,
+> so future architectures won't need to include getrlimit and setrlimit.
+>=20
+> Therefore drop getrlimit and setrlimit syscalls from the generic syscall
+> list unless __ARCH_WANT_SET_GET_RLIMIT is defined by the architecture's
+> unistd.h prior to including asm-generic/unistd.h, and adjust all architec=
+tures
+> using the generic syscall list to define it so that no in-tree architectu=
+res
+> are affected.
+>=20
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: James Hogan <james.hogan@imgtec.com>
+> Cc: linux-arch@vger.kernel.org
+> Cc: linux-snps-arc@lists.infradead.org
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Will Deacon <will.deacon@arm.com>
+> Cc: linux-arm-kernel@lists.infradead.org
+> Cc: Mark Salter <msalter@redhat.com>
+> Cc: Aurelien Jacquiot <a-jacquiot@ti.com>
+> Cc: linux-c6x-dev@linux-c6x.org
+> Cc: Richard Kuo <rkuo@codeaurora.org>
+> Cc: linux-hexagon@vger.kernel.org
+> Cc: linux-metag@vger.kernel.org
+> Cc: Jonas Bonn <jonas@southpole.se>
+> Cc: linux@lists.openrisc.net
+> Cc: Chen Liqin <liqin.linux@gmail.com>
+> Cc: Lennox Wu <lennox.wu@gmail.com>
+> Cc: Chris Metcalf <cmetcalf@mellanox.com>
+> Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>
+> Cc: Ley Foon Tan <lftan@altera.com>
+> Cc: nios2-dev@lists.rocketboards.org
+> Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+> Cc: uclinux-h8-devel@lists.sourceforge.jp
+> Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
+> Acked-by: Arnd Bergmann <arnd@arndb.de>
+> Acked-by: Mark Salter <msalter@redhat.com> [c6x]
+> Acked-by: James Hogan <james.hogan@imgtec.com> [metag]
+> Acked-by: Ley Foon Tan <lftan@altera.com> [nios2]
+> Acked-by: Stafford Horne <shorne@gmail.com> [openrisc]
+> Acked-by: Will Deacon <will.deacon@arm.com> [arm64]
+> Acked-by: Vineet Gupta <vgupta@synopsys.com> #arch/arc bits
+> ---
+>  arch/arc/include/uapi/asm/unistd.h       | 1 +
+>  arch/arm64/include/uapi/asm/unistd.h     | 1 +
+>  arch/c6x/include/uapi/asm/unistd.h       | 1 +
+>  arch/h8300/include/uapi/asm/unistd.h     | 1 +
+>  arch/hexagon/include/uapi/asm/unistd.h   | 1 +
+>  arch/metag/include/uapi/asm/unistd.h     | 1 +
+>  arch/nios2/include/uapi/asm/unistd.h     | 1 +
+>  arch/openrisc/include/uapi/asm/unistd.h  | 1 +
+>  arch/score/include/uapi/asm/unistd.h     | 1 +
+>  arch/tile/include/uapi/asm/unistd.h      | 1 +
+>  arch/unicore32/include/uapi/asm/unistd.h | 1 +
+>  include/uapi/asm-generic/unistd.h        | 5 +++++
 
-Apply the same logic to fix gup_huge_[pud|pgd]() as well.
+Don't forget to add __IGNORE_getrlimit and __IGNORE_setrlimit to
+scripts/checksyscalls.sh, or you'll get warnings about missing syscalls.
 
-Signed-off-by: Punit Agrawal <punit.agrawal@arm.com>
-Cc: Steve Capper <steve.capper@arm.com>
-Cc: Michal Hocko <mhocko@suse.com>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Cc: Aneesh Kumar K.V <aneesh.kumar@linux.vnet.ibm.com>
----
+Cheers
+James
 
-Hi Andrew,
+--+OVWeTxrbAwQuiek
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
 
-Please update the patch in your queue with this version.
+-----BEGIN PGP SIGNATURE-----
 
-It fixes the ltp failures reported by Yury[0]. The original patch led
-to incorrect ref-count on certain pages due to taking a referencing on
-the following page in some instances. Should be fixed with this
-version.
+iQIzBAEBCAAdFiEEd80NauSabkiESfLYbAtpk944dnoFAlk1biwACgkQbAtpk944
+dnrVcg//UZcmXgi0ckej9MixRPVufo5+Oak4JvcCYjNjvUrPmaTQkfKO5rxbai/q
+j6cdZOEE7ypJeSN6BXth9NvTzS8v212O7xcUv6+5c0VLx3lRwH89EJbrw3j6OuzY
+2D/APaWBDrSBoZMEVuRyewQiEY6gz8wtyrFO94hfI0qNFtOFT1lzvSGeRVrsAlEE
+gj8Mw+pswMla6aFm2oI6adqT0P+0ZwvfkKBHDu/euMrkLZnmBeO6ACiLBvB/IKam
+IJGNSDWjNE+OsULzqV0QOtElWPRqUWRJ/l5tf1JqQE+pKjHE418QwzJluXKR7tMC
+MexPIKQFol7yn57bnTeGv3dymlbkaQ4TDjsIKdPfcmEwz07kZhq2VcpS4ubjvtp/
+c5n4CWV4lGY++aF17nbDpX64qfPYuHhpGI+FfrOHN78jCxutmf+H9LQ2T/Ep3MZ1
+9K1uMrwqE0rSt1cg/HLS9jPg+pyFU1iTJ+CdulSVljwLIrjGh95tw2d3MHuuXGL7
+03VA9rTgYTv6MM17dGtH63HeP3VcDxmMwT5wgntRl/7ZRPU4T2a4eGlaw19A/Nim
+RjIVDkX3XFSOESLR14ILR4QUwa0Q07SJFxlmCsb/OHU+CGJBqMrX/q6YImXR3/JG
+qhW2Iq8UCTsMYvQc0WL7dcTTMIHI9pLAmpexWx0mxhoqSWeAC0c=
+=DDq9
+-----END PGP SIGNATURE-----
 
-Thanks,
-Punit
-
-[0] http://lists.infradead.org/pipermail/linux-arm-kernel/2017-June/510318.html
-
- mm/gup.c | 12 ++++++------
- 1 file changed, 6 insertions(+), 6 deletions(-)
-
-diff --git a/mm/gup.c b/mm/gup.c
-index e74e0b5a0c7c..6bd39264d0e7 100644
---- a/mm/gup.c
-+++ b/mm/gup.c
-@@ -1354,8 +1354,7 @@ static int gup_huge_pmd(pmd_t orig, pmd_t *pmdp, unsigned long addr,
- 		return __gup_device_huge_pmd(orig, addr, end, pages, nr);
- 
- 	refs = 0;
--	head = pmd_page(orig);
--	page = head + ((addr & ~PMD_MASK) >> PAGE_SHIFT);
-+	page = pmd_page(orig) + ((addr & ~PMD_MASK) >> PAGE_SHIFT);
- 	do {
- 		pages[*nr] = page;
- 		(*nr)++;
-@@ -1363,6 +1362,7 @@ static int gup_huge_pmd(pmd_t orig, pmd_t *pmdp, unsigned long addr,
- 		refs++;
- 	} while (addr += PAGE_SIZE, addr != end);
- 
-+	head = compound_head(pmd_page(orig));
- 	if (!page_cache_add_speculative(head, refs)) {
- 		*nr -= refs;
- 		return 0;
-@@ -1392,8 +1392,7 @@ static int gup_huge_pud(pud_t orig, pud_t *pudp, unsigned long addr,
- 		return __gup_device_huge_pud(orig, addr, end, pages, nr);
- 
- 	refs = 0;
--	head = pud_page(orig);
--	page = head + ((addr & ~PUD_MASK) >> PAGE_SHIFT);
-+	page = pud_page(orig) + ((addr & ~PUD_MASK) >> PAGE_SHIFT);
- 	do {
- 		pages[*nr] = page;
- 		(*nr)++;
-@@ -1401,6 +1400,7 @@ static int gup_huge_pud(pud_t orig, pud_t *pudp, unsigned long addr,
- 		refs++;
- 	} while (addr += PAGE_SIZE, addr != end);
- 
-+	head = compound_head(pud_page(orig));
- 	if (!page_cache_add_speculative(head, refs)) {
- 		*nr -= refs;
- 		return 0;
-@@ -1429,8 +1429,7 @@ static int gup_huge_pgd(pgd_t orig, pgd_t *pgdp, unsigned long addr,
- 
- 	BUILD_BUG_ON(pgd_devmap(orig));
- 	refs = 0;
--	head = pgd_page(orig);
--	page = head + ((addr & ~PGDIR_MASK) >> PAGE_SHIFT);
-+	page = pgd_page(orig) + ((addr & ~PGDIR_MASK) >> PAGE_SHIFT);
- 	do {
- 		pages[*nr] = page;
- 		(*nr)++;
-@@ -1438,6 +1437,7 @@ static int gup_huge_pgd(pgd_t orig, pgd_t *pgdp, unsigned long addr,
- 		refs++;
- 	} while (addr += PAGE_SIZE, addr != end);
- 
-+	head = compound_head(pgd_page(orig));
- 	if (!page_cache_add_speculative(head, refs)) {
- 		*nr -= refs;
- 		return 0;
--- 
-2.11.0
+--+OVWeTxrbAwQuiek--
