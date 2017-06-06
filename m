@@ -1,71 +1,39 @@
-From: Aleksa Sarai <asarai@suse.de>
-Subject: Re: [PATCH v3 1/2] tty: add compat_ioctl callbacks
-Date: Tue, 6 Jun 2017 21:05:06 +1000
-Message-ID: <6faa7b93-a355-f7ba-e5e9-12f2414ac695@suse.de>
-References: <20170603135111.5444-1-asarai@suse.de>
- <20170603135111.5444-2-asarai@suse.de>
- <CAK8P3a3j4rB+iVX=a36csE6mX9iMRp14TS1UeePyFsjTKQyiZw@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-parisc-owner@vger.kernel.org>
-In-Reply-To: <CAK8P3a3j4rB+iVX=a36csE6mX9iMRp14TS1UeePyFsjTKQyiZw@mail.gmail.com>
-Content-Language: en-US
-Sender: linux-parisc-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-alpha@vger.kernel.org, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, Parisc List <linux-parisc@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-sh@vger.kernel.org, sparclinux <sparclinux@vger.kernel.org>, linux-xtensa@linux-xtensa.org, linux-arch <linux-arch@vger.kernel.org>, Christian Brauner <christian.brauner@ubuntu.com>, Valentin Rothberg <vrothberg@suse.com>
-List-Id: linux-arch.vger.kernel.org
+From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Subject: [PATCHv7 02/14] x86/asm: Fix comment in return_from_SYSCALL_64
+Date: Tue,  6 Jun 2017 14:31:21 +0300
+Message-ID: <20170606113133.22974-3-kirill.shutemov@linux.intel.com>
+References: <20170606113133.22974-1-kirill.shutemov@linux.intel.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mga11.intel.com ([192.55.52.93]:51851 "EHLO mga11.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751384AbdFFLbk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 6 Jun 2017 07:31:40 -0400
+In-Reply-To: <20170606113133.22974-1-kirill.shutemov@linux.intel.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 
->> diff --git a/Makefile b/Makefile
->> index 470bd4d9513a..fb689286d83a 100644
->> --- a/Makefile
->> +++ b/Makefile
->> @@ -401,6 +401,7 @@ KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
->>                     -fno-strict-aliasing -fno-common \
->>                     -Werror-implicit-function-declaration \
->>                     -Wno-format-security \
->> +                  -Wno-error=int-in-bool-context \
->>                     -std=gnu89 $(call cc-option,-fno-PIE)
-> 
-> This  slipped in by accident I assume? It seems completely unrelated.
+On x86-64 __VIRTUAL_MASK_SHIFT depends on paging mode now.
 
-Yeah, I re-sent v4 with this removed immediately afterwards.
+Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+---
+ arch/x86/entry/entry_64.S | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
-> 
->> diff --git a/drivers/tty/pty.c b/drivers/tty/pty.c
->> index 65799575c666..2a6bd9ae3f8b 100644
->> --- a/drivers/tty/pty.c
->> +++ b/drivers/tty/pty.c
->> @@ -481,6 +481,16 @@ static int pty_bsd_ioctl(struct tty_struct *tty,
->>          return -ENOIOCTLCMD;
->>   }
->>
->> +static long pty_bsd_compat_ioctl(struct tty_struct *tty,
->> +                                unsigned int cmd, unsigned long arg)
->> +{
->> +       /*
->> +        * PTY ioctls don't require any special translation between 32-bit and
->> +        * 64-bit userspace, they are already compatible.
->> +        */
->> +       return pty_bsd_ioctl(tty, cmd, arg);
->> +}
->> +
-> 
-> This looks correct but unnecessary, you can simply point both
-> function pointers to the same function:
-
-They have different types, since they have different return types:
-
-int  (*ioctl)(struct tty_struct *tty,
-	    unsigned int cmd, unsigned long arg);
-long (*compat_ioctl)(struct tty_struct *tty,
-		     unsigned int cmd, unsigned long arg);
-
-If you like, I can change (*ioctl) to return longs as well, and then 
-change all of the call-sites (since unlocked_ioctl also returns long).
-
+diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
+index 4a4c0834f965..a9a8027a6c0e 100644
+--- a/arch/x86/entry/entry_64.S
++++ b/arch/x86/entry/entry_64.S
+@@ -265,7 +265,8 @@ return_from_SYSCALL_64:
+ 	 * If width of "canonical tail" ever becomes variable, this will need
+ 	 * to be updated to remain correct on both old and new CPUs.
+ 	 *
+-	 * Change top 16 bits to be the sign-extension of 47th bit
++	 * Change top bits to match most significant bit (47th or 56th bit
++	 * depending on paging mode) in the address.
+ 	 */
+ 	shl	$(64 - (__VIRTUAL_MASK_SHIFT+1)), %rcx
+ 	sar	$(64 - (__VIRTUAL_MASK_SHIFT+1)), %rcx
 -- 
-Aleksa Sarai
-Software Engineer (Containers)
-SUSE Linux GmbH
-https://www.cyphar.com/
+2.11.0
