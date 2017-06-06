@@ -1,459 +1,182 @@
 From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: [PATCH 07/17] lib: Add shared copies of some GCC library routines
-Date: Tue,  6 Jun 2017 15:59:57 -0700
-Message-ID: <20170606230007.19101-8-palmer@dabbelt.com>
+Subject: [PATCH 09/17] clocksource/timer-riscv: New RISC-V Clocksource
+Date: Tue,  6 Jun 2017 15:59:59 -0700
+Message-ID: <20170606230007.19101-10-palmer@dabbelt.com>
 References: <20170523004107.536-1-palmer@dabbelt.com>
  <20170606230007.19101-1-palmer@dabbelt.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pg0-f65.google.com ([74.125.83.65]:33229 "EHLO
+        mail-pg0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751626AbdFFXBj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 6 Jun 2017 19:01:39 -0400
+Received: by mail-pg0-f65.google.com with SMTP id a70so5880665pge.0
+        for <linux-arch@vger.kernel.org>; Tue, 06 Jun 2017 16:01:38 -0700 (PDT)
 In-Reply-To: <20170606230007.19101-1-palmer@dabbelt.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, olof@lixom.net
 Cc: albert@sifive.com, patches@groups.riscv.org, Palmer Dabbelt <palmer@dabbelt.com>
-List-Id: linux-arch.vger.kernel.org
 
-Many ports (m32r, microblaze, mips, parisc, score, and sparc) use
-functionally identical copies of various GCC library routine files,
-which came up as we were submitting the RISC-V port (which also uses
-some of these).
-
-This patch adds a new copy of these library routine files, which are
-functionally identical to the various other copies.  These are
-availiable via Kconfig as CONFIG_LIB_$ROUTINE, which currently isn't
-used anywhere.
+The RISC-V ISA defines a single RTC as well as an SBI oneshot timer.
+This timer is present on all RISC-V systems.
 
 Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
-Reviewed-by: Geert Uytterhoeven <geert@linux-m68k.org>
 ---
- include/lib/libgcc.h | 44 ++++++++++++++++++++++++++++++++
- lib/Kconfig          | 18 +++++++++++++
- lib/Makefile         |  8 ++++++
- lib/ashldi3.c        | 45 ++++++++++++++++++++++++++++++++
- lib/ashrdi3.c        | 46 +++++++++++++++++++++++++++++++++
- lib/cmpdi2.c         | 42 ++++++++++++++++++++++++++++++
- lib/lshrdi3.c        | 45 ++++++++++++++++++++++++++++++++
- lib/muldi3.c         | 72 ++++++++++++++++++++++++++++++++++++++++++++++++++++
- lib/ucmpdi2.c        | 35 +++++++++++++++++++++++++
- 9 files changed, 355 insertions(+)
- create mode 100644 include/lib/libgcc.h
- create mode 100644 lib/ashldi3.c
- create mode 100644 lib/ashrdi3.c
- create mode 100644 lib/cmpdi2.c
- create mode 100644 lib/lshrdi3.c
- create mode 100644 lib/muldi3.c
- create mode 100644 lib/ucmpdi2.c
+ drivers/clocksource/Kconfig       |   8 +++
+ drivers/clocksource/Makefile      |   1 +
+ drivers/clocksource/timer-riscv.c | 118 ++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 127 insertions(+)
+ create mode 100644 drivers/clocksource/timer-riscv.c
 
-diff --git a/include/lib/libgcc.h b/include/lib/libgcc.h
-new file mode 100644
-index 000000000000..a5397e34e005
---- /dev/null
-+++ b/include/lib/libgcc.h
-@@ -0,0 +1,44 @@
-+/*
-+ * include/lib/libgcc.h
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, see the file COPYING, or write
-+ * to the Free Software Foundation, Inc.
-+ */
-+
-+
-+#ifndef __LIB_LIBGCC_H
-+#define __LIB_LIBGCC_H
-+
-+#include <asm/byteorder.h>
-+
-+typedef int word_type __attribute__ ((mode (__word__)));
-+
-+#ifdef __BIG_ENDIAN
-+struct DWstruct {
-+	int high, low;
-+};
-+#elif defined(__LITTLE_ENDIAN)
-+struct DWstruct {
-+	int low, high;
-+};
-+#else
-+#error I feel sick.
-+#endif
-+
-+typedef union {
-+	struct DWstruct s;
-+	long long ll;
-+} DWunion;
-+
-+#endif /* __ASM_LIBGCC_H */
-diff --git a/lib/Kconfig b/lib/Kconfig
-index 0c8b78a9ae2e..7a9c934d91fd 100644
---- a/lib/Kconfig
-+++ b/lib/Kconfig
-@@ -565,3 +565,21 @@ config PRIME_NUMBERS
- 	tristate
+diff --git a/drivers/clocksource/Kconfig b/drivers/clocksource/Kconfig
+index 545d541ae20e..1c2c6e7c7fab 100644
+--- a/drivers/clocksource/Kconfig
++++ b/drivers/clocksource/Kconfig
+@@ -612,4 +612,12 @@ config CLKSRC_ST_LPC
+ 	  Enable this option to use the Low Power controller timer
+ 	  as clocksource.
  
++config CLKSRC_RISCV
++	#bool "Clocksource for the RISC-V platform"
++	def_bool y if RISCV
++	depends on RISCV
++	help
++	  This enables a clocksource based on the RISC-V SBI timer, which is
++	  built in to all RISC-V systems.
++
  endmenu
-+
-+config GENERIC_ASHLDI3
-+	def_bool n
-+
-+config GENERIC_ASHRDI3
-+	def_bool n
-+
-+config GENERIC_LSHRDI3
-+	def_bool n
-+
-+config GENERIC_MULDI3
-+	def_bool n
-+
-+config GENERIC_CMPDI2
-+	def_bool n
-+
-+config GENERIC_UCMPDI2
-+	def_bool n
-diff --git a/lib/Makefile b/lib/Makefile
-index 0166fbc0fa81..5f68242f7774 100644
---- a/lib/Makefile
-+++ b/lib/Makefile
-@@ -243,3 +243,11 @@ UBSAN_SANITIZE_ubsan.o := n
- obj-$(CONFIG_SBITMAP) += sbitmap.o
- 
- obj-$(CONFIG_PARMAN) += parman.o
-+
-+# GCC library routines
-+obj-$(CONFIG_GENERIC_ASHLDI3) += ashldi3.o
-+obj-$(CONFIG_GENERIC_ASHRDI3) += ashrdi3.o
-+obj-$(CONFIG_GENERIC_LSHRDI3) += lshrdi3.o
-+obj-$(CONFIG_GENERIC_MULDI3) += muldi3.o
-+obj-$(CONFIG_GENERIC_CMPDI2) += cmpdi2.o
-+obj-$(CONFIG_GENERIC_UCMPDI2) += ucmpdi2.o
-diff --git a/lib/ashldi3.c b/lib/ashldi3.c
+diff --git a/drivers/clocksource/Makefile b/drivers/clocksource/Makefile
+index 2b5b56a6f00f..408ed9d314dc 100644
+--- a/drivers/clocksource/Makefile
++++ b/drivers/clocksource/Makefile
+@@ -73,3 +73,4 @@ obj-$(CONFIG_H8300_TMR16)		+= h8300_timer16.o
+ obj-$(CONFIG_H8300_TPU)			+= h8300_tpu.o
+ obj-$(CONFIG_CLKSRC_ST_LPC)		+= clksrc_st_lpc.o
+ obj-$(CONFIG_X86_NUMACHIP)		+= numachip.o
++obj-$(CONFIG_CLKSRC_RISCV)		+= timer-riscv.o
+diff --git a/drivers/clocksource/timer-riscv.c b/drivers/clocksource/timer-riscv.c
 new file mode 100644
-index 000000000000..ff4ec63d2ab6
+index 000000000000..04ef7b9130b3
 --- /dev/null
-+++ b/lib/ashldi3.c
-@@ -0,0 +1,45 @@
++++ b/drivers/clocksource/timer-riscv.c
+@@ -0,0 +1,118 @@
 +/*
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
++ * Copyright (C) 2012 Regents of the University of California
++ * Copyright (C) 2017 SiFive
 + *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
++ *   This program is free software; you can redistribute it and/or
++ *   modify it under the terms of the GNU General Public License
++ *   as published by the Free Software Foundation, version 2.
 + *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, see the file COPYING, or write
-+ * to the Free Software Foundation, Inc.
++ *   This program is distributed in the hope that it will be useful,
++ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ *   GNU General Public License for more details.
 + */
 +
++#include <linux/clocksource.h>
++#include <linux/clockchips.h>
++#include <linux/interrupt.h>
++#include <linux/irq.h>
++#include <linux/delay.h>
++#include <linux/of.h>
 +
-+#include <linux/export.h>
++#include <asm/irq.h>
++#include <asm/csr.h>
++#include <asm/sbi.h>
++#include <asm/delay.h>
 +
-+#include <lib/libgcc.h>
++unsigned long riscv_timebase;
 +
-+long long notrace __ashldi3(long long u, word_type b)
++static DEFINE_PER_CPU(struct clock_event_device, clock_event);
++
++static int riscv_timer_set_next_event(unsigned long delta,
++	struct clock_event_device *evdev)
 +{
-+	DWunion uu, w;
-+	word_type bm;
-+
-+	if (b == 0)
-+		return u;
-+
-+	uu.ll = u;
-+	bm = 32 - b;
-+
-+	if (bm <= 0) {
-+		w.s.low = 0;
-+		w.s.high = (unsigned int) uu.s.low << -bm;
-+	} else {
-+		const unsigned int carries = (unsigned int) uu.s.low >> bm;
-+
-+		w.s.low = (unsigned int) uu.s.low << b;
-+		w.s.high = ((unsigned int) uu.s.high << b) | carries;
-+	}
-+
-+	return w.ll;
++	sbi_set_timer(get_cycles() + delta);
++	return 0;
 +}
-+EXPORT_SYMBOL(__ashldi3);
-diff --git a/lib/ashrdi3.c b/lib/ashrdi3.c
-new file mode 100644
-index 000000000000..2e67c97ac65a
---- /dev/null
-+++ b/lib/ashrdi3.c
-@@ -0,0 +1,46 @@
-+/*
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, see the file COPYING, or write
-+ * to the Free Software Foundation, Inc.
-+ */
 +
-+#include <linux/export.h>
-+
-+#include <lib/libgcc.h>
-+
-+long long notrace __ashrdi3(long long u, word_type b)
++static int riscv_timer_set_oneshot(struct clock_event_device *evt)
 +{
-+	DWunion uu, w;
-+	word_type bm;
-+
-+	if (b == 0)
-+		return u;
-+
-+	uu.ll = u;
-+	bm = 32 - b;
-+
-+	if (bm <= 0) {
-+		/* w.s.high = 1..1 or 0..0 */
-+		w.s.high =
-+		    uu.s.high >> 31;
-+		w.s.low = uu.s.high >> -bm;
-+	} else {
-+		const unsigned int carries = (unsigned int) uu.s.high << bm;
-+
-+		w.s.high = uu.s.high >> b;
-+		w.s.low = ((unsigned int) uu.s.low >> b) | carries;
-+	}
-+
-+	return w.ll;
++	/* no-op; only one mode */
++	return 0;
 +}
-+EXPORT_SYMBOL(__ashrdi3);
-diff --git a/lib/cmpdi2.c b/lib/cmpdi2.c
-new file mode 100644
-index 000000000000..6d7ebf6c2b86
---- /dev/null
-+++ b/lib/cmpdi2.c
-@@ -0,0 +1,42 @@
-+/*
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, see the file COPYING, or write
-+ * to the Free Software Foundation, Inc.
-+ */
 +
-+#include <linux/export.h>
-+
-+#include <lib/libgcc.h>
-+
-+word_type notrace __cmpdi2(long long a, long long b)
++static int riscv_timer_set_shutdown(struct clock_event_device *evt)
 +{
-+	const DWunion au = {
-+		.ll = a
-+	};
-+	const DWunion bu = {
-+		.ll = b
++	/* can't stop the clock! */
++	return 0;
++}
++
++static u64 riscv_rdtime(struct clocksource *cs)
++{
++	return get_cycles();
++}
++
++static struct clocksource riscv_clocksource = {
++	.name = "riscv_clocksource",
++	.rating = 300,
++	.read = riscv_rdtime,
++#ifdef CONFIG_64BITS
++	.mask = CLOCKSOURCE_MASK(64),
++#else
++	.mask = CLOCKSOURCE_MASK(32),
++#endif /* CONFIG_64BITS */
++	.flags = CLOCK_SOURCE_IS_CONTINUOUS,
++};
++
++void riscv_timer_interrupt(void)
++{
++	int cpu = smp_processor_id();
++	struct clock_event_device *evdev = &per_cpu(clock_event, cpu);
++
++	evdev->event_handler(evdev);
++}
++
++void __init init_clockevent(void)
++{
++	int cpu = smp_processor_id();
++	struct clock_event_device *ce = &per_cpu(clock_event, cpu);
++
++	*ce = (struct clock_event_device){
++		.name = "riscv_timer_clockevent",
++		.features = CLOCK_EVT_FEAT_ONESHOT,
++		.rating = 300,
++		.cpumask = cpumask_of(cpu),
++		.set_next_event = riscv_timer_set_next_event,
++		.set_state_oneshot  = riscv_timer_set_oneshot,
++		.set_state_shutdown = riscv_timer_set_shutdown,
 +	};
 +
-+	if (au.s.high < bu.s.high)
-+		return 0;
-+	else if (au.s.high > bu.s.high)
-+		return 2;
++	/* Enable timer interrupts */
++	csr_set(sie, SIE_STIE);
 +
-+	if ((unsigned int) au.s.low < (unsigned int) bu.s.low)
-+		return 0;
-+	else if ((unsigned int) au.s.low > (unsigned int) bu.s.low)
-+		return 2;
-+
-+	return 1;
++	clockevents_config_and_register(ce, riscv_timebase, 100, 0x7fffffff);
 +}
-+EXPORT_SYMBOL(__cmpdi2);
-diff --git a/lib/lshrdi3.c b/lib/lshrdi3.c
-new file mode 100644
-index 000000000000..8e845f4bb65f
---- /dev/null
-+++ b/lib/lshrdi3.c
-@@ -0,0 +1,45 @@
-+/*
-+ * lib/lshrdi3.c
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, see the file COPYING, or write
-+ * to the Free Software Foundation, Inc.
-+ */
 +
-+#include <linux/module.h>
-+#include <lib/libgcc.h>
-+
-+long long notrace __lshrdi3(long long u, word_type b)
++static unsigned long __init of_timebase(void)
 +{
-+	DWunion uu, w;
-+	word_type bm;
++	struct device_node *cpu;
++	const __be32 *prop;
 +
-+	if (b == 0)
-+		return u;
-+
-+	uu.ll = u;
-+	bm = 32 - b;
-+
-+	if (bm <= 0) {
-+		w.s.high = 0;
-+		w.s.low = (unsigned int) uu.s.high >> -bm;
-+	} else {
-+		const unsigned int carries = (unsigned int) uu.s.high << bm;
-+
-+		w.s.high = (unsigned int) uu.s.high >> b;
-+		w.s.low = ((unsigned int) uu.s.low >> b) | carries;
++	cpu = of_find_node_by_path("/cpus");
++	if (cpu) {
++		prop = of_get_property(cpu, "timebase-frequency", NULL);
++		if (prop)
++			return be32_to_cpu(*prop);
 +	}
 +
-+	return w.ll;
++	return 10000000;
 +}
-+EXPORT_SYMBOL(__lshrdi3);
-diff --git a/lib/muldi3.c b/lib/muldi3.c
-new file mode 100644
-index 000000000000..88938543e10a
---- /dev/null
-+++ b/lib/muldi3.c
-@@ -0,0 +1,72 @@
-+/*
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, see the file COPYING, or write
-+ * to the Free Software Foundation, Inc.
-+ */
 +
-+#include <linux/export.h>
-+#include <lib/libgcc.h>
-+
-+#define W_TYPE_SIZE 32
-+
-+#define __ll_B ((unsigned long) 1 << (W_TYPE_SIZE / 2))
-+#define __ll_lowpart(t) ((unsigned long) (t) & (__ll_B - 1))
-+#define __ll_highpart(t) ((unsigned long) (t) >> (W_TYPE_SIZE / 2))
-+
-+/* If we still don't have umul_ppmm, define it using plain C.  */
-+#if !defined(umul_ppmm)
-+#define umul_ppmm(w1, w0, u, v)						\
-+	do {								\
-+		unsigned long __x0, __x1, __x2, __x3;			\
-+		unsigned short __ul, __vl, __uh, __vh;			\
-+									\
-+		__ul = __ll_lowpart(u);					\
-+		__uh = __ll_highpart(u);				\
-+		__vl = __ll_lowpart(v);					\
-+		__vh = __ll_highpart(v);				\
-+									\
-+		__x0 = (unsigned long) __ul * __vl;			\
-+		__x1 = (unsigned long) __ul * __vh;			\
-+		__x2 = (unsigned long) __uh * __vl;			\
-+		__x3 = (unsigned long) __uh * __vh;			\
-+									\
-+		__x1 += __ll_highpart(__x0); /* this can't give carry */\
-+		__x1 += __x2; /* but this indeed can */			\
-+		if (__x1 < __x2) /* did we get it? */			\
-+		__x3 += __ll_B; /* yes, add it in the proper pos */	\
-+									\
-+		(w1) = __x3 + __ll_highpart(__x1);			\
-+		(w0) = __ll_lowpart(__x1) * __ll_B + __ll_lowpart(__x0);\
-+	} while (0)
-+#endif
-+
-+#if !defined(__umulsidi3)
-+#define __umulsidi3(u, v) ({				\
-+	DWunion __w;					\
-+	umul_ppmm(__w.s.high, __w.s.low, u, v);		\
-+	__w.ll;						\
-+	})
-+#endif
-+
-+long long notrace __muldi3(long long u, long long v)
++void __init time_init(void)
 +{
-+	const DWunion uu = {.ll = u};
-+	const DWunion vv = {.ll = v};
-+	DWunion w = {.ll = __umulsidi3(uu.s.low, vv.s.low)};
++	riscv_timebase = of_timebase();
++	lpj_fine = riscv_timebase / HZ;
 +
-+	w.s.high += ((unsigned long) uu.s.low * (unsigned long) vv.s.high
-+		+ (unsigned long) uu.s.high * (unsigned long) vv.s.low);
-+
-+	return w.ll;
++	clocksource_register_hz(&riscv_clocksource, riscv_timebase);
++	init_clockevent();
 +}
-+EXPORT_SYMBOL(__muldi3);
-diff --git a/lib/ucmpdi2.c b/lib/ucmpdi2.c
-new file mode 100644
-index 000000000000..49a53505c8e3
---- /dev/null
-+++ b/lib/ucmpdi2.c
-@@ -0,0 +1,35 @@
-+/*
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, see the file COPYING, or write
-+ * to the Free Software Foundation, Inc.
-+ */
-+
-+#include <linux/module.h>
-+#include <lib/libgcc.h>
-+
-+word_type __ucmpdi2(unsigned long long a, unsigned long long b)
-+{
-+	const DWunion au = {.ll = a};
-+	const DWunion bu = {.ll = b};
-+
-+	if ((unsigned int) au.s.high < (unsigned int) bu.s.high)
-+		return 0;
-+	else if ((unsigned int) au.s.high > (unsigned int) bu.s.high)
-+		return 2;
-+	if ((unsigned int) au.s.low < (unsigned int) bu.s.low)
-+		return 0;
-+	else if ((unsigned int) au.s.low > (unsigned int) bu.s.low)
-+		return 2;
-+	return 1;
-+}
-+EXPORT_SYMBOL(__ucmpdi2);
 -- 
 2.13.0
