@@ -1,124 +1,155 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga14.intel.com ([192.55.52.115]:24637 "EHLO mga14.intel.com"
+Received: from mga04.intel.com ([192.55.52.120]:32707 "EHLO mga04.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751705AbdFFLb5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 6 Jun 2017 07:31:57 -0400
+        id S1751547AbdFFLbo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 6 Jun 2017 07:31:44 -0400
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv7 11/14] x86/mm: Make kernel_physical_mapping_init() support 5-level paging
-Date: Tue,  6 Jun 2017 14:31:30 +0300
-Message-ID: <20170606113133.22974-12-kirill.shutemov@linux.intel.com>
+Subject: [PATCHv7 06/14] x86/boot/compressed: Enable 5-level paging during decompression stage
+Date: Tue,  6 Jun 2017 14:31:25 +0300
+Message-ID: <20170606113133.22974-7-kirill.shutemov@linux.intel.com>
 In-Reply-To: <20170606113133.22974-1-kirill.shutemov@linux.intel.com>
 References: <20170606113133.22974-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20170606113130.7b7to7rUtal4SBiNBYR8jVfaR-0_12fhyQAUPE4z_CU@z>
+Message-ID: <20170606113125.2i_z9f6unBLjO1aEmYS89bNaR2yeTJmA-h4Q8cT3R7g@z>
 
-Populate additional page table level if CONFIG_X86_5LEVEL is enabled.
+We need to cover two basic cases: when bootloader left us in 32-bit mode
+and when bootloader enabled long mode.
+
+The patch implements unified codepath to enabled 5-level paging for both
+cases. It means case when we start in 32-bit mode, we first enable long
+mode with 4-level and then switch over to 5-level paging.
+
+Switching from 4-level to 5-level paging is not trivial. We cannot do it
+directly. Setting LA57 in long mode would trigger #GP. So we need to
+switch off long mode first and the then re-enable with 5-level paging.
+
+NOTE: The need of switching off long mode means we are in trouble if
+bootloader put us above 4G boundary. If bootloader wants to boot 5-level
+paging kernel, it has to put kernel below 4G or enable 5-level paging on
+it's own, so we could avoid the step.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
- arch/x86/mm/init_64.c | 69 ++++++++++++++++++++++++++++++++++++++++++++-------
- 1 file changed, 60 insertions(+), 9 deletions(-)
+ arch/x86/boot/compressed/head_64.S | 86 +++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 85 insertions(+), 1 deletion(-)
 
-diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
-index 7a9497ac468d..b863d14e452a 100644
---- a/arch/x86/mm/init_64.c
-+++ b/arch/x86/mm/init_64.c
-@@ -624,6 +624,57 @@ phys_pud_init(pud_t *pud_page, unsigned long paddr, unsigned long paddr_end,
- 	return paddr_last;
- }
+diff --git a/arch/x86/boot/compressed/head_64.S b/arch/x86/boot/compressed/head_64.S
+index d2ae1f821e0c..fbf4c32d0b62 100644
+--- a/arch/x86/boot/compressed/head_64.S
++++ b/arch/x86/boot/compressed/head_64.S
+@@ -346,6 +346,48 @@ preferred_addr:
+ 	/* Set up the stack */
+ 	leaq	boot_stack_end(%rbx), %rsp
  
-+static unsigned long __meminit
-+phys_p4d_init(p4d_t *p4d_page, unsigned long paddr, unsigned long paddr_end,
-+	      unsigned long page_size_mask)
-+{
-+	unsigned long paddr_next, paddr_last = paddr_end;
-+	unsigned long vaddr = (unsigned long)__va(paddr);
-+	int i = p4d_index(vaddr);
++#ifdef CONFIG_X86_5LEVEL
++	/* Check if 5-level paging has already enabled */
++	movq	%cr4, %rax
++	testl	$X86_CR4_LA57, %eax
++	jnz	lvl5
 +
-+	if (!IS_ENABLED(CONFIG_X86_5LEVEL))
-+		return phys_pud_init((pud_t *) p4d_page, paddr, paddr_end, page_size_mask);
++	/*
++	 * At this point we are in long mode with 4-level paging enabled,
++	 * but we want to enable 5-level paging.
++	 *
++	 * The problem is that we cannot do it directly. Setting LA57 in
++	 * long mode would trigger #GP. So we need to switch off long mode
++	 * first.
++	 *
++	 * NOTE: This is not going to work if bootloader put us above 4G
++	 * limit.
++	 *
++	 * The first step is go into compatibility mode.
++	 */
 +
-+	for (; i < PTRS_PER_P4D; i++, paddr = paddr_next) {
-+		p4d_t *p4d;
-+		pud_t *pud;
++	/* Clear additional page table */
++	leaq	lvl5_pgtable(%rbx), %rdi
++	xorq	%rax, %rax
++	movq	$(PAGE_SIZE/8), %rcx
++	rep	stosq
 +
-+		vaddr = (unsigned long)__va(paddr);
-+		p4d = p4d_page + p4d_index(vaddr);
-+		paddr_next = (paddr & P4D_MASK) + P4D_SIZE;
++	/*
++	 * Setup current CR3 as the first and only entry in a new top level
++	 * page table.
++	 */
++	movq	%cr3, %rdi
++	leaq	0x7 (%rdi), %rax
++	movq	%rax, lvl5_pgtable(%rbx)
 +
-+		if (paddr >= paddr_end) {
-+			if (!after_bootmem &&
-+			    !e820__mapped_any(paddr & P4D_MASK, paddr_next,
-+					     E820_TYPE_RAM) &&
-+			    !e820__mapped_any(paddr & P4D_MASK, paddr_next,
-+					     E820_TYPE_RESERVED_KERN))
-+				set_p4d(p4d, __p4d(0));
-+			continue;
-+		}
++	/* Switch to compatibility mode (CS.L = 0 CS.D = 1) via far return */
++	pushq	$__KERNEL32_CS
++	leaq	compatible_mode(%rip), %rax
++	pushq	%rax
++	lretq
++lvl5:
++#endif
 +
-+		if (!p4d_none(*p4d)) {
-+			pud = pud_offset(p4d, 0);
-+			paddr_last = phys_pud_init(pud, paddr,
-+					paddr_end,
-+					page_size_mask);
-+			__flush_tlb_all();
-+			continue;
-+		}
-+
-+		pud = alloc_low_page();
-+		paddr_last = phys_pud_init(pud, paddr, paddr_end,
-+					   page_size_mask);
-+
-+		spin_lock(&init_mm.page_table_lock);
-+		p4d_populate(&init_mm, p4d, pud);
-+		spin_unlock(&init_mm.page_table_lock);
-+	}
-+	__flush_tlb_all();
-+
-+	return paddr_last;
-+}
-+
- /*
-  * Create page table mapping for the physical memory for specific physical
-  * addresses. The virtual and physical addresses have to be aligned on PMD level
-@@ -645,26 +696,26 @@ kernel_physical_mapping_init(unsigned long paddr_start,
- 	for (; vaddr < vaddr_end; vaddr = vaddr_next) {
- 		pgd_t *pgd = pgd_offset_k(vaddr);
- 		p4d_t *p4d;
--		pud_t *pud;
+ 	/* Zero EFLAGS */
+ 	pushq	$0
+ 	popfq
+@@ -429,6 +471,44 @@ relocated:
+ 	jmp	*%rax
  
- 		vaddr_next = (vaddr & PGDIR_MASK) + PGDIR_SIZE;
- 
--		BUILD_BUG_ON(pgd_none(*pgd));
--		p4d = p4d_offset(pgd, vaddr);
--		if (p4d_val(*p4d)) {
--			pud = (pud_t *)p4d_page_vaddr(*p4d);
--			paddr_last = phys_pud_init(pud, __pa(vaddr),
-+		if (pgd_val(*pgd)) {
-+			p4d = (p4d_t *)pgd_page_vaddr(*pgd);
-+			paddr_last = phys_p4d_init(p4d, __pa(vaddr),
- 						   __pa(vaddr_end),
- 						   page_size_mask);
- 			continue;
- 		}
- 
--		pud = alloc_low_page();
--		paddr_last = phys_pud_init(pud, __pa(vaddr), __pa(vaddr_end),
-+		p4d = alloc_low_page();
-+		paddr_last = phys_p4d_init(p4d, __pa(vaddr), __pa(vaddr_end),
- 					   page_size_mask);
- 
- 		spin_lock(&init_mm.page_table_lock);
--		p4d_populate(&init_mm, p4d, pud);
-+		if (IS_ENABLED(CONFIG_X86_5LEVEL))
-+			pgd_populate(&init_mm, pgd, p4d);
-+		else
-+			p4d_populate(&init_mm, p4d_offset(pgd, vaddr), (pud_t *) p4d);
- 		spin_unlock(&init_mm.page_table_lock);
- 		pgd_changed = true;
- 	}
+ 	.code32
++#ifdef CONFIG_X86_5LEVEL
++compatible_mode:
++	/* Setup data and stack segments */
++	movl	$__KERNEL_DS, %eax
++	movl	%eax, %ds
++	movl	%eax, %ss
++
++	/* Disable paging */
++	movl	%cr0, %eax
++	btrl	$X86_CR0_PG_BIT, %eax
++	movl	%eax, %cr0
++
++	/* Point CR3 to 5-level paging */
++	leal	lvl5_pgtable(%ebx), %eax
++	movl	%eax, %cr3
++
++	/* Enable PAE and LA57 mode */
++	movl	%cr4, %eax
++	orl	$(X86_CR4_PAE | X86_CR4_LA57), %eax
++	movl	%eax, %cr4
++
++	/* Calculate address we are running at */
++	call	1f
++1:	popl	%edi
++	subl	$1b, %edi
++
++	/* Prepare stack for far return to Long Mode */
++	pushl	$__KERNEL_CS
++	leal	lvl5(%edi), %eax
++	push	%eax
++
++	/* Enable paging back */
++	movl	$(X86_CR0_PG | X86_CR0_PE), %eax
++	movl	%eax, %cr0
++
++	lret
++#endif
++
+ no_longmode:
+ 	/* This isn't an x86-64 CPU so hang */
+ 1:
+@@ -442,7 +522,7 @@ gdt:
+ 	.word	gdt_end - gdt
+ 	.long	gdt
+ 	.word	0
+-	.quad	0x0000000000000000	/* NULL descriptor */
++	.quad	0x00cf9a000000ffff	/* __KERNEL32_CS */
+ 	.quad	0x00af9a000000ffff	/* __KERNEL_CS */
+ 	.quad	0x00cf92000000ffff	/* __KERNEL_DS */
+ 	.quad	0x0080890000000000	/* TS descriptor */
+@@ -486,3 +566,7 @@ boot_stack_end:
+ 	.balign 4096
+ pgtable:
+ 	.fill BOOT_PGT_SIZE, 1, 0
++#ifdef CONFIG_X86_5LEVEL
++lvl5_pgtable:
++	.fill PAGE_SIZE, 1, 0
++#endif
 -- 
 2.11.0
