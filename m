@@ -1,12 +1,12 @@
 From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: [PATCH 3/7] microblaze: Use libgcc files from lib/
-Date: Tue,  6 Jun 2017 12:10:19 -0700
-Message-ID: <20170606191023.24581-4-palmer__9320.58957773752$1496776471$gmane$org@dabbelt.com>
+Subject: [PATCH 6/7] sparc: Use lib/{cmpdi2,ucmpdi2}.c
+Date: Tue,  6 Jun 2017 12:10:22 -0700
+Message-ID: <20170606191023.24581-7-palmer__22221.2575180039$1496776472$gmane$org@dabbelt.com>
 References: <20170523220546.16758-1-palmer@dabbelt.com>
  <20170606191023.24581-1-palmer@dabbelt.com>
-Return-path: <linux-sh-owner@vger.kernel.org>
+Return-path: <sparclinux-owner@vger.kernel.org>
 In-Reply-To: <20170606191023.24581-1-palmer@dabbelt.com>
-Sender: linux-sh-owner@vger.kernel.org
+Sender: sparclinux-owner@vger.kernel.org
 To: monstr@monstr.eu, ralf@linux-mips.org, liqin.linux@gmail.com, lennox.wu@gmail.com, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, linux-mips@linux-mips.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, geert@linux-m68k.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Palmer Dabbelt <palmer@dabbelt.com>
 List-Id: linux-arch.vger.kernel.org
@@ -17,129 +17,56 @@ recently added.
 Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
 Reviewed-by: Geert Uytterhoeven <geert@linux-m68k.org>
 ---
- arch/microblaze/Kconfig       |  6 +++++
- arch/microblaze/lib/Makefile  |  3 +--
- arch/microblaze/lib/ashldi3.c | 28 ---------------------
- arch/microblaze/lib/ashrdi3.c | 30 -----------------------
- arch/microblaze/lib/cmpdi2.c  | 26 --------------------
- arch/microblaze/lib/libgcc.h  | 32 ------------------------
- arch/microblaze/lib/lshrdi3.c | 28 ---------------------
- arch/microblaze/lib/muldi3.c  | 57 -------------------------------------------
- arch/microblaze/lib/ucmpdi2.c | 20 ---------------
- 9 files changed, 7 insertions(+), 223 deletions(-)
- delete mode 100644 arch/microblaze/lib/ashldi3.c
- delete mode 100644 arch/microblaze/lib/ashrdi3.c
- delete mode 100644 arch/microblaze/lib/cmpdi2.c
- delete mode 100644 arch/microblaze/lib/libgcc.h
- delete mode 100644 arch/microblaze/lib/lshrdi3.c
- delete mode 100644 arch/microblaze/lib/muldi3.c
- delete mode 100644 arch/microblaze/lib/ucmpdi2.c
+ arch/sparc/Kconfig       |  2 ++
+ arch/sparc/lib/Makefile  |  4 ++--
+ arch/sparc/lib/cmpdi2.c  | 27 ---------------------------
+ arch/sparc/lib/libgcc.h  | 18 ------------------
+ arch/sparc/lib/ucmpdi2.c | 19 -------------------
+ 5 files changed, 4 insertions(+), 66 deletions(-)
+ delete mode 100644 arch/sparc/lib/cmpdi2.c
+ delete mode 100644 arch/sparc/lib/libgcc.h
+ delete mode 100644 arch/sparc/lib/ucmpdi2.c
 
-diff --git a/arch/microblaze/Kconfig b/arch/microblaze/Kconfig
-index 85885a501dce..833487c17996 100644
---- a/arch/microblaze/Kconfig
-+++ b/arch/microblaze/Kconfig
-@@ -34,6 +34,12 @@ config MICROBLAZE
- 	select TRACING_SUPPORT
- 	select VIRT_TO_BUS
- 	select CPU_NO_EFFICIENT_FFS
-+	select GENERIC_ASHLDI3
-+	select GENERIC_ASHRDI3
+diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
+index 58243b0d21c0..cbb1aeb0d419 100644
+--- a/arch/sparc/Kconfig
++++ b/arch/sparc/Kconfig
+@@ -52,6 +52,8 @@ config SPARC32
+ 	select CLZ_TAB
+ 	select HAVE_UID16
+ 	select OLD_SIGACTION
 +	select GENERIC_CMPDI2
-+	select GENERIC_LSHRDI3
-+	select GENERIC_MULDI3
-+	select GENERIC_UCMPDI3
++	select GENERIC_UCMPDI2
  
- config SWAP
- 	def_bool n
-diff --git a/arch/microblaze/lib/Makefile b/arch/microblaze/lib/Makefile
-index 70c7ae6a3fb5..c9a4d537e2fd 100644
---- a/arch/microblaze/lib/Makefile
-+++ b/arch/microblaze/lib/Makefile
-@@ -19,5 +19,4 @@ endif
- lib-y += uaccess_old.o
+ config SPARC64
+ 	def_bool 64BIT
+diff --git a/arch/sparc/lib/Makefile b/arch/sparc/lib/Makefile
+index 69912d2f8b54..815b4a336aa8 100644
+--- a/arch/sparc/lib/Makefile
++++ b/arch/sparc/lib/Makefile
+@@ -14,7 +14,7 @@ lib-$(CONFIG_SPARC32) += divdi3.o udivdi3.o
+ lib-$(CONFIG_SPARC32) += copy_user.o locks.o
+ lib-$(CONFIG_SPARC64) += atomic_64.o
+ lib-$(CONFIG_SPARC32) += lshrdi3.o ashldi3.o
+-lib-$(CONFIG_SPARC32) += muldi3.o bitext.o cmpdi2.o
++lib-$(CONFIG_SPARC32) += muldi3.o bitext.o
  
- # libgcc-style stuff needed in the kernel
--obj-y += ashldi3.o ashrdi3.o cmpdi2.o divsi3.o lshrdi3.o modsi3.o
--obj-y += muldi3.o mulsi3.o ucmpdi2.o udivsi3.o umodsi3.o
-+obj-y += divsi3.o modsi3.o mulsi3.o udivsi3.o umodsi3.o
-diff --git a/arch/microblaze/lib/ashldi3.c b/arch/microblaze/lib/ashldi3.c
+ lib-$(CONFIG_SPARC64) += copy_page.o clear_page.o bzero.o
+ lib-$(CONFIG_SPARC64) += csum_copy.o csum_copy_from_user.o csum_copy_to_user.o
+@@ -42,5 +42,5 @@ lib-$(CONFIG_SPARC64) += copy_in_user.o memmove.o
+ lib-$(CONFIG_SPARC64) += mcount.o ipcsum.o xor.o hweight.o ffs.o
+ 
+ obj-$(CONFIG_SPARC64) += iomap.o
+-obj-$(CONFIG_SPARC32) += atomic32.o ucmpdi2.o
++obj-$(CONFIG_SPARC32) += atomic32.o
+ obj-$(CONFIG_SPARC64) += PeeCeeI.o
+diff --git a/arch/sparc/lib/cmpdi2.c b/arch/sparc/lib/cmpdi2.c
 deleted file mode 100644
-index 1af904cd972d..000000000000
---- a/arch/microblaze/lib/ashldi3.c
+index 8c1306437ed1..000000000000
+--- a/arch/sparc/lib/cmpdi2.c
 +++ /dev/null
-@@ -1,28 +0,0 @@
--#include <linux/export.h>
--
--#include "libgcc.h"
--
--long long __ashldi3(long long u, word_type b)
--{
--	DWunion uu, w;
--	word_type bm;
--
--	if (b == 0)
--		return u;
--
--	uu.ll = u;
--	bm = 32 - b;
--
--	if (bm <= 0) {
--		w.s.low = 0;
--		w.s.high = (unsigned int) uu.s.low << -bm;
--	} else {
--		const unsigned int carries = (unsigned int) uu.s.low >> bm;
--
--		w.s.low = (unsigned int) uu.s.low << b;
--		w.s.high = ((unsigned int) uu.s.high << b) | carries;
--	}
--
--	return w.ll;
--}
--EXPORT_SYMBOL(__ashldi3);
-diff --git a/arch/microblaze/lib/ashrdi3.c b/arch/microblaze/lib/ashrdi3.c
-deleted file mode 100644
-index 32c334c05d04..000000000000
---- a/arch/microblaze/lib/ashrdi3.c
-+++ /dev/null
-@@ -1,30 +0,0 @@
--#include <linux/export.h>
--
--#include "libgcc.h"
--
--long long __ashrdi3(long long u, word_type b)
--{
--	DWunion uu, w;
--	word_type bm;
--
--	if (b == 0)
--		return u;
--
--	uu.ll = u;
--	bm = 32 - b;
--
--	if (bm <= 0) {
--		/* w.s.high = 1..1 or 0..0 */
--		w.s.high =
--		    uu.s.high >> 31;
--		w.s.low = uu.s.high >> -bm;
--	} else {
--		const unsigned int carries = (unsigned int) uu.s.high << bm;
--
--		w.s.high = uu.s.high >> b;
--		w.s.low = ((unsigned int) uu.s.low >> b) | carries;
--	}
--
--	return w.ll;
--}
--EXPORT_SYMBOL(__ashrdi3);
-diff --git a/arch/microblaze/lib/cmpdi2.c b/arch/microblaze/lib/cmpdi2.c
-deleted file mode 100644
-index 67abc9ac1bd4..000000000000
---- a/arch/microblaze/lib/cmpdi2.c
-+++ /dev/null
-@@ -1,26 +0,0 @@
--#include <linux/export.h>
+@@ -1,27 +0,0 @@
+-#include <linux/module.h>
 -
 -#include "libgcc.h"
 -
@@ -164,13 +91,14 @@ index 67abc9ac1bd4..000000000000
 -
 -	return 1;
 -}
+-
 -EXPORT_SYMBOL(__cmpdi2);
-diff --git a/arch/microblaze/lib/libgcc.h b/arch/microblaze/lib/libgcc.h
+diff --git a/arch/sparc/lib/libgcc.h b/arch/sparc/lib/libgcc.h
 deleted file mode 100644
-index ab077ef7e14b..000000000000
---- a/arch/microblaze/lib/libgcc.h
+index b84fd797f3ea..000000000000
+--- a/arch/sparc/lib/libgcc.h
 +++ /dev/null
-@@ -1,32 +0,0 @@
+@@ -1,18 +0,0 @@
 -#ifndef __ASM_LIBGCC_H
 -#define __ASM_LIBGCC_H
 -
@@ -178,136 +106,24 @@ index ab077ef7e14b..000000000000
 -
 -typedef int word_type __attribute__ ((mode (__word__)));
 -
--#ifdef __BIG_ENDIAN
 -struct DWstruct {
 -	int high, low;
 -};
--#elif defined(__LITTLE_ENDIAN)
--struct DWstruct {
--	int low, high;
--};
--#else
--#error I feel sick.
--#endif
 -
--typedef union {
+-typedef union
+-{
 -	struct DWstruct s;
 -	long long ll;
 -} DWunion;
 -
--extern long long __ashldi3(long long u, word_type b);
--extern long long __ashrdi3(long long u, word_type b);
--extern word_type __cmpdi2(long long a, long long b);
--extern long long __lshrdi3(long long u, word_type b);
--extern long long __muldi3(long long u, long long v);
--extern word_type __ucmpdi2(unsigned long long a, unsigned long long b);
--
 -#endif /* __ASM_LIBGCC_H */
-diff --git a/arch/microblaze/lib/lshrdi3.c b/arch/microblaze/lib/lshrdi3.c
+diff --git a/arch/sparc/lib/ucmpdi2.c b/arch/sparc/lib/ucmpdi2.c
 deleted file mode 100644
-index adcb253f11c8..000000000000
---- a/arch/microblaze/lib/lshrdi3.c
+index 1e06ed500682..000000000000
+--- a/arch/sparc/lib/ucmpdi2.c
 +++ /dev/null
-@@ -1,28 +0,0 @@
--#include <linux/export.h>
--
--#include "libgcc.h"
--
--long long __lshrdi3(long long u, word_type b)
--{
--	DWunion uu, w;
--	word_type bm;
--
--	if (b == 0)
--		return u;
--
--	uu.ll = u;
--	bm = 32 - b;
--
--	if (bm <= 0) {
--		w.s.high = 0;
--		w.s.low = (unsigned int) uu.s.high >> -bm;
--	} else {
--		const unsigned int carries = (unsigned int) uu.s.high << bm;
--
--		w.s.high = (unsigned int) uu.s.high >> b;
--		w.s.low = ((unsigned int) uu.s.low >> b) | carries;
--	}
--
--	return w.ll;
--}
--EXPORT_SYMBOL(__lshrdi3);
-diff --git a/arch/microblaze/lib/muldi3.c b/arch/microblaze/lib/muldi3.c
-deleted file mode 100644
-index a3f9a03acdcd..000000000000
---- a/arch/microblaze/lib/muldi3.c
-+++ /dev/null
-@@ -1,57 +0,0 @@
--#include <linux/export.h>
--
--#include "libgcc.h"
--
--#define W_TYPE_SIZE 32
--
--#define __ll_B ((unsigned long) 1 << (W_TYPE_SIZE / 2))
--#define __ll_lowpart(t) ((unsigned long) (t) & (__ll_B - 1))
--#define __ll_highpart(t) ((unsigned long) (t) >> (W_TYPE_SIZE / 2))
--
--/* If we still don't have umul_ppmm, define it using plain C.  */
--#if !defined(umul_ppmm)
--#define umul_ppmm(w1, w0, u, v)						\
--	do {								\
--		unsigned long __x0, __x1, __x2, __x3;			\
--		unsigned short __ul, __vl, __uh, __vh;			\
--									\
--		__ul = __ll_lowpart(u);					\
--		__uh = __ll_highpart(u);				\
--		__vl = __ll_lowpart(v);					\
--		__vh = __ll_highpart(v);				\
--									\
--		__x0 = (unsigned long) __ul * __vl;			\
--		__x1 = (unsigned long) __ul * __vh;			\
--		__x2 = (unsigned long) __uh * __vl;			\
--		__x3 = (unsigned long) __uh * __vh;			\
--									\
--		__x1 += __ll_highpart(__x0); /* this can't give carry */\
--		__x1 += __x2; /* but this indeed can */			\
--		if (__x1 < __x2) /* did we get it? */			\
--		__x3 += __ll_B; /* yes, add it in the proper pos */	\
--									\
--		(w1) = __x3 + __ll_highpart(__x1);			\
--		(w0) = __ll_lowpart(__x1) * __ll_B + __ll_lowpart(__x0);\
--	} while (0)
--#endif
--
--#if !defined(__umulsidi3)
--#define __umulsidi3(u, v) ({				\
--	DWunion __w;					\
--	umul_ppmm(__w.s.high, __w.s.low, u, v);		\
--	__w.ll;						\
--	})
--#endif
--
--long long __muldi3(long long u, long long v)
--{
--	const DWunion uu = {.ll = u};
--	const DWunion vv = {.ll = v};
--	DWunion w = {.ll = __umulsidi3(uu.s.low, vv.s.low)};
--
--	w.s.high += ((unsigned long) uu.s.low * (unsigned long) vv.s.high
--		+ (unsigned long) uu.s.high * (unsigned long) vv.s.low);
--
--	return w.ll;
--}
--EXPORT_SYMBOL(__muldi3);
-diff --git a/arch/microblaze/lib/ucmpdi2.c b/arch/microblaze/lib/ucmpdi2.c
-deleted file mode 100644
-index d05f1585121c..000000000000
---- a/arch/microblaze/lib/ucmpdi2.c
-+++ /dev/null
-@@ -1,20 +0,0 @@
--#include <linux/export.h>
--
+@@ -1,19 +0,0 @@
+-#include <linux/module.h>
 -#include "libgcc.h"
 -
 -word_type __ucmpdi2(unsigned long long a, unsigned long long b)
