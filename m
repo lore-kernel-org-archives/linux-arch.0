@@ -1,31 +1,106 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: untangle the <asm/siginfo.h> mess
-Date: Tue, 6 Jun 2017 12:57:11 +0200
-Message-ID: <CAK8P3a05TaU_x97+egQHyptPQ5x8iq3=U9PVEwaFfjohJ-pVwg@mail.gmail.com>
-References: <20170603190102.28866-1-hch@lst.de>
+Subject: Re: [PATCH v3 1/2] tty: add compat_ioctl callbacks
+Date: Tue, 6 Jun 2017 13:01:23 +0200
+Message-ID: <CAK8P3a3j4rB+iVX=a36csE6mX9iMRp14TS1UeePyFsjTKQyiZw@mail.gmail.com>
+References: <20170603135111.5444-1-asarai@suse.de> <20170603135111.5444-2-asarai@suse.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <sparclinux-owner@vger.kernel.org>
-In-Reply-To: <20170603190102.28866-1-hch@lst.de>
-Sender: sparclinux-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: Thomas Gleixner <tglx@linutronix.de>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, linux-arch <linux-arch@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, linux-ia64@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Return-path: <linux-parisc-owner@vger.kernel.org>
+In-Reply-To: <20170603135111.5444-2-asarai@suse.de>
+Sender: linux-parisc-owner@vger.kernel.org
+To: Aleksa Sarai <asarai@suse.de>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-alpha@vger.kernel.org, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, Parisc List <linux-parisc@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-sh@vger.kernel.org, sparclinux <sparclinux@vger.kernel.org>, linux-xtensa@linux-xtensa.org, linux-arch <linux-arch@vger.kernel.org>, Christian Brauner <christian.brauner@ubuntu.com>, Valentin Rothberg <vrothberg@suse.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Sat, Jun 3, 2017 at 9:00 PM, Christoph Hellwig <hch@lst.de> wrote:
-> We currently have uapi versions of <asm/siginfo.h> which at least on a few
-> architectures define bits of the userspace ABI before including an uapi
-> asm-generic version, and also non-uapi versions which do almost nothing
-> except for making sure other headers include the right uapi one before
-> including an asm-generic that defined two prototypes and a few defines
-> that aren't architecture specific in any.
+On Sat, Jun 3, 2017 at 3:51 PM, Aleksa Sarai <asarai@suse.de> wrote:
+> In order to avoid future diversions between fs/compat_ioctl.c and
+> drivers/tty/pty.c, define .compat_ioctl callbacks for the relevant
+> tty_operations structs. Since both pty_unix98_ioctl() and
+> pty_bsd_ioctl() are compatible between 32-bit and 64-bit userspace no
+> special translation is required.
 >
-> This series completely gets rid of the non-uapi versions and cleans up
-> various small bits on the way.
+> Signed-off-by: Aleksa Sarai <asarai@suse.de>
+> ---
+>  Makefile          |  1 +
+>  drivers/tty/pty.c | 22 ++++++++++++++++++++++
+>  fs/compat_ioctl.c |  6 ------
+>  3 files changed, 23 insertions(+), 6 deletions(-)
 >
-> Note that Thomas has some posix-timers work overlapping with this, so
-> it might make sense to take these through the tip tree.
+> diff --git a/Makefile b/Makefile
+> index 470bd4d9513a..fb689286d83a 100644
+> --- a/Makefile
+> +++ b/Makefile
+> @@ -401,6 +401,7 @@ KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
+>                    -fno-strict-aliasing -fno-common \
+>                    -Werror-implicit-function-declaration \
+>                    -Wno-format-security \
+> +                  -Wno-error=int-in-bool-context \
+>                    -std=gnu89 $(call cc-option,-fno-PIE)
 
-Yes, makes sense. For asm-generic:
+This  slipped in by accident I assume? It seems completely unrelated.
 
-Acked-by: Arnd Bergmann <arnd@arndb.de>
+> diff --git a/drivers/tty/pty.c b/drivers/tty/pty.c
+> index 65799575c666..2a6bd9ae3f8b 100644
+> --- a/drivers/tty/pty.c
+> +++ b/drivers/tty/pty.c
+> @@ -481,6 +481,16 @@ static int pty_bsd_ioctl(struct tty_struct *tty,
+>         return -ENOIOCTLCMD;
+>  }
+>
+> +static long pty_bsd_compat_ioctl(struct tty_struct *tty,
+> +                                unsigned int cmd, unsigned long arg)
+> +{
+> +       /*
+> +        * PTY ioctls don't require any special translation between 32-bit and
+> +        * 64-bit userspace, they are already compatible.
+> +        */
+> +       return pty_bsd_ioctl(tty, cmd, arg);
+> +}
+> +
+
+This looks correct but unnecessary, you can simply point both
+function pointers to the same function:
+
+>   * not really modular, but the easiest way to keep compat with existing
+> @@ -502,6 +512,7 @@ static const struct tty_operations master_pty_ops_bsd = {
+>         .chars_in_buffer = pty_chars_in_buffer,
+>         .unthrottle = pty_unthrottle,
+>         .ioctl = pty_bsd_ioctl,
+> +       .compat_ioctl = pty_bsd_compat_ioctl,
+
+           .compat_ioctl = pty_bsd_ioctl,
+
+The separate handler would only be required when you need any kind
+of special handling depending on the command.
+
+> diff --git a/fs/compat_ioctl.c b/fs/compat_ioctl.c
+> index 6116d5275a3e..112b3e1e20e3 100644
+> --- a/fs/compat_ioctl.c
+> +++ b/fs/compat_ioctl.c
+> @@ -866,8 +866,6 @@ COMPATIBLE_IOCTL(TIOCGDEV)
+>  COMPATIBLE_IOCTL(TIOCCBRK)
+>  COMPATIBLE_IOCTL(TIOCGSID)
+>  COMPATIBLE_IOCTL(TIOCGICOUNT)
+> -COMPATIBLE_IOCTL(TIOCGPKT)
+> -COMPATIBLE_IOCTL(TIOCGPTLCK)
+>  COMPATIBLE_IOCTL(TIOCGEXCL)
+>  /* Little t */
+>  COMPATIBLE_IOCTL(TIOCGETD)
+> @@ -883,16 +881,12 @@ COMPATIBLE_IOCTL(TIOCMGET)
+>  COMPATIBLE_IOCTL(TIOCMBIC)
+>  COMPATIBLE_IOCTL(TIOCMBIS)
+>  COMPATIBLE_IOCTL(TIOCMSET)
+> -COMPATIBLE_IOCTL(TIOCPKT)
+>  COMPATIBLE_IOCTL(TIOCNOTTY)
+>  COMPATIBLE_IOCTL(TIOCSTI)
+>  COMPATIBLE_IOCTL(TIOCOUTQ)
+>  COMPATIBLE_IOCTL(TIOCSPGRP)
+>  COMPATIBLE_IOCTL(TIOCGPGRP)
+> -COMPATIBLE_IOCTL(TIOCGPTN)
+> -COMPATIBLE_IOCTL(TIOCSPTLCK)
+>  COMPATIBLE_IOCTL(TIOCSERGETLSR)
+> -COMPATIBLE_IOCTL(TIOCSIG)
+
+Looks good.
+
+       Arnd
