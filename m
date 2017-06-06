@@ -1,50 +1,71 @@
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [RFC PATCH v2 4/6] arm64: signal: Allocate extra sigcontext
- space as needed
-Date: Tue, 6 Jun 2017 14:58:18 +0100
-Message-ID: <20170606135815.GG30160@e103592.cambridge.arm.com>
-References: <1492016239-19511-1-git-send-email-Dave.Martin@arm.com>
- <1492016495-19689-1-git-send-email-Dave.Martin@arm.com>
- <1492016495-19689-4-git-send-email-Dave.Martin@arm.com>
- <20170512165724.GB8387@e104818-lin.cambridge.arm.com>
- <20170515132442.GB3559@e103592.cambridge.arm.com>
- <20170523113019.GB5948@e104818-lin.cambridge.arm.com>
- <20170526113729.GO3559@e103592.cambridge.arm.com>
- <20170605141744.GB9163@e104818-lin.cambridge.arm.com>
- <20170606113739.GF30160@e103592.cambridge.arm.com>
+From: Don Zickus <dzickus@redhat.com>
+Subject: Re: [PATCH 0/4][V3] Improve watchdog config for arch watchdogs
+Date: Tue, 6 Jun 2017 12:08:47 -0400
+Message-ID: <20170606160847.izishwer3m5jirkb@redhat.com>
+References: <20170530012659.16791-1-npiggin@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:46772 "EHLO foss.arm.com"
+Received: from mx1.redhat.com ([209.132.183.28]:45574 "EHLO mx1.redhat.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751390AbdFFN6W (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 6 Jun 2017 09:58:22 -0400
+        id S1751388AbdFFQIt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 6 Jun 2017 12:08:49 -0400
 Content-Disposition: inline
-In-Reply-To: <20170606113739.GF30160@e103592.cambridge.arm.com>
+In-Reply-To: <20170530012659.16791-1-npiggin@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org
+To: Nicholas Piggin <npiggin@gmail.com>, babu.moger@oracle.com
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Tue, Jun 06, 2017 at 12:37:53PM +0100, Dave Martin wrote:
-> On Mon, Jun 05, 2017 at 03:17:44PM +0100, Catalin Marinas wrote:
+(adding Babu)
 
-[...]
-
-[extra_context.size]
-
-> > I'd rather have the time size_t or __u64 to avoid implicit padding.
+On Tue, May 30, 2017 at 11:26:55AM +1000, Nicholas Piggin wrote:
+> Since last time:
 > 
-> Sure, it can be a u64.  I wanted to avoid the suggestion that the frame
-> should be that large, but 32 bits already allows it to be crazy large
-> anyway, so I don't think making it 32-bit helps.
+> - Have the perf based hardlockup detector use arch_touch_nmi_watchdog()
+>   rather than hld_touch_nmi_watchdog(). This changes direction slightly
+>   to make the perf-based hard lockup detector an alternative that an
+>   arch may select, rather than standalone. This better reflects how the
+>   code works in practice).
+> 
+> - Hopefully fixed the Kconfig options. There's still a bit of ugliness
+>   that will require another pass or two over interfaces and config
+>   scheme, but the idea is to make a minimal change to get the powerpc
+>   HLD in, which gives a reasonable starting point to improve things
+>   further.
 
-Actually, there is still implicit padding even with u64, since the total
-size is 16 bytes + sizeof(extra_context.size).
+Hi Babu,
 
-Since u64 is much bigger then we'd ever want, and to avoid introducing
-new bugs, do you object to keeping size as u32 and adding explicit
-padding instead?
+Does this patchset break sparc?  Specifically patch3 with all the config
+option changes?
 
-Cheers
----Dave
+Cheers,
+Don
+
+> 
+> Nicholas Piggin (4):
+>   watchdog: remove unused declaration
+>   watchdog: Introduce arch_touch_nmi_watchdog()
+>   watchdog: Split up config options
+>   watchdog: Provide watchdog_reconfigure() for arch watchdogs
+> 
+>  arch/blackfin/include/asm/nmi.h            |   2 +
+>  arch/blackfin/kernel/nmi.c                 |   2 +-
+>  arch/mn10300/include/asm/nmi.h             |   2 +
+>  arch/mn10300/kernel/mn10300-watchdog-low.S |   8 +-
+>  arch/mn10300/kernel/mn10300-watchdog.c     |   2 +-
+>  arch/powerpc/kernel/setup_64.c             |   2 +-
+>  arch/sparc/include/asm/nmi.h               |   1 +
+>  arch/sparc/kernel/nmi.c                    |   6 +-
+>  arch/x86/kernel/apic/hw_nmi.c              |   2 +-
+>  include/linux/nmi.h                        |  57 ++++---
+>  kernel/Makefile                            |   2 +-
+>  kernel/sysctl.c                            |  18 +-
+>  kernel/watchdog.c                          | 263 +++++++++++++++++++----------
+>  kernel/watchdog_hld.c                      |  37 +---
+>  lib/Kconfig.debug                          |  29 +++-
+>  15 files changed, 263 insertions(+), 170 deletions(-)
+> 
+> -- 
+> 2.11.0
+> 
