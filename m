@@ -1,120 +1,44 @@
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv7 11/14] x86/mm: Make kernel_physical_mapping_init() support 5-level paging
-Date: Tue,  6 Jun 2017 14:31:30 +0300
-Message-ID: <20170606113133.22974-12-kirill.shutemov@linux.intel.com>
+Subject: [PATCHv7 04/14] x86/boot/efi: Fix __KERNEL_CS definition of GDT entry on 64-bit configuration
+Date: Tue,  6 Jun 2017 14:31:23 +0300
+Message-ID: <20170606113133.22974-5-kirill.shutemov@linux.intel.com>
 References: <20170606113133.22974-1-kirill.shutemov@linux.intel.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <20170606113133.22974-1-kirill.shutemov@linux.intel.com>
 Sender: owner-linux-mm@kvack.org
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Matt Fleming <matt@codeblueprint.co.uk>
 List-Id: linux-arch.vger.kernel.org
 
-Populate additional page table level if CONFIG_X86_5LEVEL is enabled.
+Define __KERNEL_CS GDT entry as long mode (.L=1, .D=0) on 64-bit
+configuration.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+Cc: Matt Fleming <matt@codeblueprint.co.uk>
 ---
- arch/x86/mm/init_64.c | 69 ++++++++++++++++++++++++++++++++++++++++++++-------
- 1 file changed, 60 insertions(+), 9 deletions(-)
+ arch/x86/boot/compressed/eboot.c | 9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
-index 7a9497ac468d..b863d14e452a 100644
---- a/arch/x86/mm/init_64.c
-+++ b/arch/x86/mm/init_64.c
-@@ -624,6 +624,57 @@ phys_pud_init(pud_t *pud_page, unsigned long paddr, unsigned long paddr_end,
- 	return paddr_last;
- }
- 
-+static unsigned long __meminit
-+phys_p4d_init(p4d_t *p4d_page, unsigned long paddr, unsigned long paddr_end,
-+	      unsigned long page_size_mask)
-+{
-+	unsigned long paddr_next, paddr_last = paddr_end;
-+	unsigned long vaddr = (unsigned long)__va(paddr);
-+	int i = p4d_index(vaddr);
-+
-+	if (!IS_ENABLED(CONFIG_X86_5LEVEL))
-+		return phys_pud_init((pud_t *) p4d_page, paddr, paddr_end, page_size_mask);
-+
-+	for (; i < PTRS_PER_P4D; i++, paddr = paddr_next) {
-+		p4d_t *p4d;
-+		pud_t *pud;
-+
-+		vaddr = (unsigned long)__va(paddr);
-+		p4d = p4d_page + p4d_index(vaddr);
-+		paddr_next = (paddr & P4D_MASK) + P4D_SIZE;
-+
-+		if (paddr >= paddr_end) {
-+			if (!after_bootmem &&
-+			    !e820__mapped_any(paddr & P4D_MASK, paddr_next,
-+					     E820_TYPE_RAM) &&
-+			    !e820__mapped_any(paddr & P4D_MASK, paddr_next,
-+					     E820_TYPE_RESERVED_KERN))
-+				set_p4d(p4d, __p4d(0));
-+			continue;
-+		}
-+
-+		if (!p4d_none(*p4d)) {
-+			pud = pud_offset(p4d, 0);
-+			paddr_last = phys_pud_init(pud, paddr,
-+					paddr_end,
-+					page_size_mask);
-+			__flush_tlb_all();
-+			continue;
-+		}
-+
-+		pud = alloc_low_page();
-+		paddr_last = phys_pud_init(pud, paddr, paddr_end,
-+					   page_size_mask);
-+
-+		spin_lock(&init_mm.page_table_lock);
-+		p4d_populate(&init_mm, p4d, pud);
-+		spin_unlock(&init_mm.page_table_lock);
+diff --git a/arch/x86/boot/compressed/eboot.c b/arch/x86/boot/compressed/eboot.c
+index 1d5093d1f319..b75c20f779ea 100644
+--- a/arch/x86/boot/compressed/eboot.c
++++ b/arch/x86/boot/compressed/eboot.c
+@@ -1059,8 +1059,13 @@ struct boot_params *efi_main(struct efi_config *c,
+ 	desc->p = 1;
+ 	desc->limit = 0xf;
+ 	desc->avl = 0;
+-	desc->l = 0;
+-	desc->d = SEG_OP_SIZE_32BIT;
++	if (IS_ENABLED(CONFIG_X86_64)) {
++		desc->l = 1;
++		desc->d = 0;
++	} else {
++		desc->l = 0;
++		desc->d = SEG_OP_SIZE_32BIT;
 +	}
-+	__flush_tlb_all();
-+
-+	return paddr_last;
-+}
-+
- /*
-  * Create page table mapping for the physical memory for specific physical
-  * addresses. The virtual and physical addresses have to be aligned on PMD level
-@@ -645,26 +696,26 @@ kernel_physical_mapping_init(unsigned long paddr_start,
- 	for (; vaddr < vaddr_end; vaddr = vaddr_next) {
- 		pgd_t *pgd = pgd_offset_k(vaddr);
- 		p4d_t *p4d;
--		pud_t *pud;
- 
- 		vaddr_next = (vaddr & PGDIR_MASK) + PGDIR_SIZE;
- 
--		BUILD_BUG_ON(pgd_none(*pgd));
--		p4d = p4d_offset(pgd, vaddr);
--		if (p4d_val(*p4d)) {
--			pud = (pud_t *)p4d_page_vaddr(*p4d);
--			paddr_last = phys_pud_init(pud, __pa(vaddr),
-+		if (pgd_val(*pgd)) {
-+			p4d = (p4d_t *)pgd_page_vaddr(*pgd);
-+			paddr_last = phys_p4d_init(p4d, __pa(vaddr),
- 						   __pa(vaddr_end),
- 						   page_size_mask);
- 			continue;
- 		}
- 
--		pud = alloc_low_page();
--		paddr_last = phys_pud_init(pud, __pa(vaddr), __pa(vaddr_end),
-+		p4d = alloc_low_page();
-+		paddr_last = phys_p4d_init(p4d, __pa(vaddr), __pa(vaddr_end),
- 					   page_size_mask);
- 
- 		spin_lock(&init_mm.page_table_lock);
--		p4d_populate(&init_mm, p4d, pud);
-+		if (IS_ENABLED(CONFIG_X86_5LEVEL))
-+			pgd_populate(&init_mm, pgd, p4d);
-+		else
-+			p4d_populate(&init_mm, p4d_offset(pgd, vaddr), (pud_t *) p4d);
- 		spin_unlock(&init_mm.page_table_lock);
- 		pgd_changed = true;
- 	}
+ 	desc->g = SEG_GRANULARITY_4KB;
+ 	desc->base2 = 0x00;
+ 	desc++;
 -- 
 2.11.0
 
