@@ -1,26 +1,50 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v4 1/2] tty: add compat_ioctl callbacks
-Date: Tue, 6 Jun 2017 14:49:15 +0200
-Message-ID: <CAK8P3a2Y2U58dfAxRYPKQL2-o8ufpkvxxF07c_LCr5DOuQ4=vw@mail.gmail.com>
-References: <20170603141515.9529-1-asarai@suse.de> <20170603141515.9529-2-asarai@suse.de>
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [RFC PATCH v2 4/6] arm64: signal: Allocate extra sigcontext
+ space as needed
+Date: Tue, 6 Jun 2017 14:58:18 +0100
+Message-ID: <20170606135815.GG30160@e103592.cambridge.arm.com>
+References: <1492016239-19511-1-git-send-email-Dave.Martin@arm.com>
+ <1492016495-19689-1-git-send-email-Dave.Martin@arm.com>
+ <1492016495-19689-4-git-send-email-Dave.Martin@arm.com>
+ <20170512165724.GB8387@e104818-lin.cambridge.arm.com>
+ <20170515132442.GB3559@e103592.cambridge.arm.com>
+ <20170523113019.GB5948@e104818-lin.cambridge.arm.com>
+ <20170526113729.GO3559@e103592.cambridge.arm.com>
+ <20170605141744.GB9163@e104818-lin.cambridge.arm.com>
+ <20170606113739.GF30160@e103592.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-sh-owner@vger.kernel.org>
-In-Reply-To: <20170603141515.9529-2-asarai@suse.de>
-Sender: linux-sh-owner@vger.kernel.org
-To: Aleksa Sarai <asarai@suse.de>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-alpha@vger.kernel.org, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, Parisc List <linux-parisc@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-sh@vger.kernel.org, sparclinux <sparclinux@vger.kernel.org>, linux-xtensa@linux-xtensa.org, linux-arch <linux-arch@vger.kernel.org>, Christian Brauner <christian.brauner@ubuntu.com>, Valentin Rothberg <vrothberg@suse.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:46772 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751390AbdFFN6W (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 6 Jun 2017 09:58:22 -0400
+Content-Disposition: inline
+In-Reply-To: <20170606113739.GF30160@e103592.cambridge.arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org
 
-On Sat, Jun 3, 2017 at 4:15 PM, Aleksa Sarai <asarai@suse.de> wrote:
-> In order to avoid future diversions between fs/compat_ioctl.c and
-> drivers/tty/pty.c, define .compat_ioctl callbacks for the relevant
-> tty_operations structs. Since both pty_unix98_ioctl() and
-> pty_bsd_ioctl() are compatible between 32-bit and 64-bit userspace no
-> special translation is required.
->
-> Signed-off-by: Aleksa Sarai <asarai@suse.de>
+On Tue, Jun 06, 2017 at 12:37:53PM +0100, Dave Martin wrote:
+> On Mon, Jun 05, 2017 at 03:17:44PM +0100, Catalin Marinas wrote:
 
-Looks good,
+[...]
 
-Reviewed-by: Arnd Bergmann <arnd@arndb.de>
+[extra_context.size]
+
+> > I'd rather have the time size_t or __u64 to avoid implicit padding.
+> 
+> Sure, it can be a u64.  I wanted to avoid the suggestion that the frame
+> should be that large, but 32 bits already allows it to be crazy large
+> anyway, so I don't think making it 32-bit helps.
+
+Actually, there is still implicit padding even with u64, since the total
+size is 16 bytes + sizeof(extra_context.size).
+
+Since u64 is much bigger then we'd ever want, and to avoid introducing
+new bugs, do you object to keeping size as u32 and adding explicit
+padding instead?
+
+Cheers
+---Dave
