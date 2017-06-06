@@ -1,65 +1,156 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga02.intel.com ([134.134.136.20]:64379 "EHLO mga02.intel.com"
+Received: from mga09.intel.com ([134.134.136.24]:18486 "EHLO mga09.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751462AbdFFLca (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 6 Jun 2017 07:32:30 -0400
+        id S1751479AbdFFLcW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 6 Jun 2017 07:32:22 -0400
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv7 05/14] x86/boot/efi: Define __KERNEL32_CS GDT on 64-bit configurations
-Date: Tue,  6 Jun 2017 14:31:24 +0300
-Message-ID: <20170606113133.22974-6-kirill.shutemov@linux.intel.com>
+Subject: [PATCHv7 12/14] x86/mm: Add support for 5-level paging for KASLR
+Date: Tue,  6 Jun 2017 14:31:31 +0300
+Message-ID: <20170606113133.22974-13-kirill.shutemov@linux.intel.com>
 In-Reply-To: <20170606113133.22974-1-kirill.shutemov@linux.intel.com>
 References: <20170606113133.22974-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Matt Fleming <matt@codeblueprint.co.uk>
-Message-ID: <20170606113124.vn0gdpcfR8Cb-isWScNVHvrGXJECGD4zY8lsfgU5aww@z>
+Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Message-ID: <20170606113131.sZQXmrKbo3lmDuCGBxHwTDRI8oqZfnPC2wQRlfVES0U@z>
 
-We would need to switch temporarily to compatibility mode during booting
-with 5-level paging enabled. It would require 32-bit code segment
-descriptor.
+With 5-level paging randomization happens on P4D level instead of PUD.
+
+Maximum amount of physical memory also bumped to 52-bits for 5-level
+paging.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-Cc: Matt Fleming <matt@codeblueprint.co.uk>
 ---
- arch/x86/boot/compressed/eboot.c | 25 +++++++++++++++++++++++--
- 1 file changed, 23 insertions(+), 2 deletions(-)
+ arch/x86/mm/kaslr.c | 81 ++++++++++++++++++++++++++++++++++++++++-------------
+ 1 file changed, 62 insertions(+), 19 deletions(-)
 
-diff --git a/arch/x86/boot/compressed/eboot.c b/arch/x86/boot/compressed/eboot.c
-index b75c20f779ea..c3e869eaef0c 100644
---- a/arch/x86/boot/compressed/eboot.c
-+++ b/arch/x86/boot/compressed/eboot.c
-@@ -1046,8 +1046,29 @@ struct boot_params *efi_main(struct efi_config *c,
- 	memset((char *)gdt->address, 0x0, gdt->size);
- 	desc = (struct desc_struct *)gdt->address;
+diff --git a/arch/x86/mm/kaslr.c b/arch/x86/mm/kaslr.c
+index aed206475aa7..af599167fe3c 100644
+--- a/arch/x86/mm/kaslr.c
++++ b/arch/x86/mm/kaslr.c
+@@ -6,12 +6,12 @@
+  *
+  * Entropy is generated using the KASLR early boot functions now shared in
+  * the lib directory (originally written by Kees Cook). Randomization is
+- * done on PGD & PUD page table levels to increase possible addresses. The
+- * physical memory mapping code was adapted to support PUD level virtual
+- * addresses. This implementation on the best configuration provides 30,000
+- * possible virtual addresses in average for each memory region. An additional
+- * low memory page is used to ensure each CPU can start with a PGD aligned
+- * virtual address (for realmode).
++ * done on PGD & P4D/PUD page table levels to increase possible addresses.
++ * The physical memory mapping code was adapted to support P4D/PUD level
++ * virtual addresses. This implementation on the best configuration provides
++ * 30,000 possible virtual addresses in average for each memory region.
++ * An additional low memory page is used to ensure each CPU can start with
++ * a PGD aligned virtual address (for realmode).
+  *
+  * The order of each memory region is not changed. The feature looks at
+  * the available space for the regions based on different configuration
+@@ -70,7 +70,7 @@ static __initdata struct kaslr_memory_region {
+ 	unsigned long *base;
+ 	unsigned long size_tb;
+ } kaslr_regions[] = {
+-	{ &page_offset_base, 64/* Maximum */ },
++	{ &page_offset_base, 1 << (__PHYSICAL_MASK_SHIFT - TB_SHIFT) /* Maximum */ },
+ 	{ &vmalloc_base, VMALLOC_SIZE_TB },
+ 	{ &vmemmap_base, 1 },
+ };
+@@ -142,7 +142,10 @@ void __init kernel_randomize_memory(void)
+ 		 */
+ 		entropy = remain_entropy / (ARRAY_SIZE(kaslr_regions) - i);
+ 		prandom_bytes_state(&rand_state, &rand, sizeof(rand));
+-		entropy = (rand % (entropy + 1)) & PUD_MASK;
++		if (IS_ENABLED(CONFIG_X86_5LEVEL))
++			entropy = (rand % (entropy + 1)) & P4D_MASK;
++		else
++			entropy = (rand % (entropy + 1)) & PUD_MASK;
+ 		vaddr += entropy;
+ 		*kaslr_regions[i].base = vaddr;
  
--	/* The first GDT is a dummy and the second is unused. */
--	desc += 2;
-+	/* The first GDT is a dummy. */
-+	desc++;
+@@ -151,27 +154,21 @@ void __init kernel_randomize_memory(void)
+ 		 * randomization alignment.
+ 		 */
+ 		vaddr += get_padding(&kaslr_regions[i]);
+-		vaddr = round_up(vaddr + 1, PUD_SIZE);
++		if (IS_ENABLED(CONFIG_X86_5LEVEL))
++			vaddr = round_up(vaddr + 1, P4D_SIZE);
++		else
++			vaddr = round_up(vaddr + 1, PUD_SIZE);
+ 		remain_entropy -= entropy;
+ 	}
+ }
+ 
+-/*
+- * Create PGD aligned trampoline table to allow real mode initialization
+- * of additional CPUs. Consume only 1 low memory page.
+- */
+-void __meminit init_trampoline(void)
++static void __meminit init_trampoline_pud(void)
+ {
+ 	unsigned long paddr, paddr_next;
+ 	pgd_t *pgd;
+ 	pud_t *pud_page, *pud_page_tramp;
+ 	int i;
+ 
+-	if (!kaslr_memory_enabled()) {
+-		init_trampoline_default();
+-		return;
+-	}
+-
+ 	pud_page_tramp = alloc_low_page();
+ 
+ 	paddr = 0;
+@@ -192,3 +189,49 @@ void __meminit init_trampoline(void)
+ 	set_pgd(&trampoline_pgd_entry,
+ 		__pgd(_KERNPG_TABLE | __pa(pud_page_tramp)));
+ }
 +
-+	if (IS_ENABLED(CONFIG_X86_64)) {
-+		/* __KERNEL32_CS */
-+		desc->limit0 = 0xffff;
-+		desc->base0 = 0x0000;
-+		desc->base1 = 0x0000;
-+		desc->type = SEG_TYPE_CODE | SEG_TYPE_EXEC_READ;
-+		desc->s = DESC_TYPE_CODE_DATA;
-+		desc->dpl = 0;
-+		desc->p = 1;
-+		desc->limit = 0xf;
-+		desc->avl = 0;
-+		desc->l = 0;
-+		desc->d = SEG_OP_SIZE_32BIT;
-+		desc->g = SEG_GRANULARITY_4KB;
-+		desc->base2 = 0x00;
-+		desc++;
-+	} else {
-+		/* Second entry is unused on 32-bit */
-+		desc++;
++static void __meminit init_trampoline_p4d(void)
++{
++	unsigned long paddr, paddr_next;
++	pgd_t *pgd;
++	p4d_t *p4d_page, *p4d_page_tramp;
++	int i;
++
++	p4d_page_tramp = alloc_low_page();
++
++	paddr = 0;
++	pgd = pgd_offset_k((unsigned long)__va(paddr));
++	p4d_page = (p4d_t *) pgd_page_vaddr(*pgd);
++
++	for (i = p4d_index(paddr); i < PTRS_PER_P4D; i++, paddr = paddr_next) {
++		p4d_t *p4d, *p4d_tramp;
++		unsigned long vaddr = (unsigned long)__va(paddr);
++
++		p4d_tramp = p4d_page_tramp + p4d_index(paddr);
++		p4d = p4d_page + p4d_index(vaddr);
++		paddr_next = (paddr & P4D_MASK) + P4D_SIZE;
++
++		*p4d_tramp = *p4d;
 +	}
- 
- 	/* __KERNEL_CS */
- 	desc->limit0 = 0xffff;
++
++	set_pgd(&trampoline_pgd_entry,
++		__pgd(_KERNPG_TABLE | __pa(p4d_page_tramp)));
++}
++
++/*
++ * Create PGD aligned trampoline table to allow real mode initialization
++ * of additional CPUs. Consume only 1 low memory page.
++ */
++void __meminit init_trampoline(void)
++{
++
++	if (!kaslr_memory_enabled()) {
++		init_trampoline_default();
++		return;
++	}
++
++	if (IS_ENABLED(CONFIG_X86_5LEVEL))
++		init_trampoline_p4d();
++	else
++		init_trampoline_pud();
++}
 -- 
 2.11.0
