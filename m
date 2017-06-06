@@ -1,67 +1,162 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [RFC PATCH v2 4/6] arm64: signal: Allocate extra sigcontext
- space as needed
-Date: Tue, 6 Jun 2017 17:15:52 +0100
-Message-ID: <20170606161552.wgufjtgipdffkmyv@localhost>
-References: <1492016239-19511-1-git-send-email-Dave.Martin@arm.com>
- <1492016495-19689-1-git-send-email-Dave.Martin@arm.com>
- <1492016495-19689-4-git-send-email-Dave.Martin@arm.com>
- <20170512165724.GB8387@e104818-lin.cambridge.arm.com>
- <20170515132442.GB3559@e103592.cambridge.arm.com>
- <20170523113019.GB5948@e104818-lin.cambridge.arm.com>
- <20170526113729.GO3559@e103592.cambridge.arm.com>
- <20170605141744.GB9163@e104818-lin.cambridge.arm.com>
- <20170606113739.GF30160@e103592.cambridge.arm.com>
+From: Don Zickus <dzickus@redhat.com>
+Subject: Re: [PATCH 3/4] watchdog: Split up config options
+Date: Tue, 6 Jun 2017 12:49:58 -0400
+Message-ID: <20170606164958.lkwy7t7xzdpxg4mp@redhat.com>
+References: <20170530012659.16791-1-npiggin@gmail.com>
+ <20170530012659.16791-4-npiggin@gmail.com>
+ <20170602201500.urllmug33bjtuzen@redhat.com>
+ <20170603161005.279fe0ef@roar.ozlabs.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:49128 "EHLO foss.arm.com"
+Received: from mx1.redhat.com ([209.132.183.28]:39734 "EHLO mx1.redhat.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751427AbdFFQP5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 6 Jun 2017 12:15:57 -0400
+        id S1751291AbdFFQuA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 6 Jun 2017 12:50:00 -0400
 Content-Disposition: inline
-In-Reply-To: <20170606113739.GF30160@e103592.cambridge.arm.com>
+In-Reply-To: <20170603161005.279fe0ef@roar.ozlabs.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Tue, Jun 06, 2017 at 12:37:53PM +0100, Dave P Martin wrote:
-> On Mon, Jun 05, 2017 at 03:17:44PM +0100, Catalin Marinas wrote:
-> > On Fri, May 26, 2017 at 12:37:32PM +0100, Dave P Martin wrote:
-> > > On Tue, May 23, 2017 at 12:30:19PM +0100, Catalin Marinas wrote:
-> > > > BTW, does SIGFRAME_MAXSZ now become ABI? Or the user only needs to
-> > > > interrogate the frame size and we keep this internal to the kernel?
-> > > 
-> > > If the kernel rejects extra_contexts that cause this limit to be
-> > > exceeded, then yes -- though it will rarely be relevant except in the
-> > > case of memory corruption, or if architecture extensions eventually
-> > > require a larger frame.
-> > > 
-> > > (sve_context could theoretically grow larger then SIGFRAME_MAXSZ all by
-> > > itself, but that's unlikely to happen any time soon.)
-> > > 
-> > > Userspace could hit SIGFRAME_MAXSZ by constructing a valid sequence of
-> > > records that is ridiculously large, by padding out the records: common
-> > > sense suggests not to do this, but it's never been documented or
-> > > enforced.  I didn't feel comfortable changing the behaviour here to be
-> > > more strict.
-> > > 
-> > > So, SIGFRAME_MAXSZ should either be given a larger, more future-proof
-> > > value ... or otherwise we should perhaps get rid of it entirely.
+On Sat, Jun 03, 2017 at 04:10:05PM +1000, Nicholas Piggin wrote:
+> > My last concern is wrapping my head around the config options.
 > > 
-> > If we can, yes, I would get rid of it.
+> > HAVE_NMI_WATCHDOG seems to have a dual meaning, I think.
 > 
-> If the size field is retained I prefer to keep this, but it's
-> deliberately not in any header.  This allows the kernel to have a
-> stricter idea about what is sane, without it formally being ABI.
+> Yeah it's not the clearest. I think we need another pass over config
+> options to start straightening them out.
 > 
-> This is supposed to be a deterrent against people writing signal frame
-> code manipulation code in a stupid way.  SIGFRAME_MAXSZ should only
-> ever be increased during maintenance -- it's probably worth adding a
-> comment on that point.
+> It means the arch has a hardlockup detector, so it has the
+> arch_touch_nmi_watchdog() and you can't also select the perf HLD.
 
-Fine by me.
+Ok, agreed.
 
--- 
-Catalin
+> 
+> > In the sparc case, it uses the HARDLOCKUP_DETECTOR framework (hence the
+> > original split out of watchdog_hld.c).  Actually more like the
+> > SOFTLOCKUP_DETECTOR framework for which HARDLOCKUP_DETECTOR is a part of.
+> 
+> Well yes it uses some of the start/stop framework for the SLD, but
+> doesn't use much beyond that of the lockup detector stuff (most of
+> the boot options and sysctl parameters etc it does not use). So sparc
+> is a little odd.
+> 
+> I would hope to convert it over to more like powerpc patch and make
+> it a first class HLD, but it seems not all options are 100% compatible
+> so it would need some careful testing.
+> 
+
+Ok.  More comments on sparc below..
+
+> > 
+> > In your ppc64 case, it means do _not_ use the HARDLOCKUP_DETECTOR or
+> > SOFTLOCKUP_DETECTOR framework.  Instead just the bare bones LOCKUP_DETECTOR.
+> 
+> It does use the HLD framework. The subsequent patch for powerpc adds
+> a PPC64 case in the dependencies.
+
+Ah, ok.
+
+> 
+> > 
+> > 
+> > If so, the following is a little confusing to me..
+> > 
+> > 
+> > <snip>
+> > 
+> > > diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
+> > > index e4587ebe52c7..a3afe3e10278 100644
+> > > --- a/lib/Kconfig.debug
+> > > +++ b/lib/Kconfig.debug
+> > > @@ -801,10 +801,27 @@ config LOCKUP_DETECTOR
+> > >  	  The frequency of hrtimer and NMI events and the soft and hard lockup
+> > >  	  thresholds can be controlled through the sysctl watchdog_thresh.
+> > >  
+> > > +config SOFTLOCKUP_DETECTOR
+> > > +	bool "Detect Soft Lockups"
+> > > +	depends on LOCKUP_DETECTOR
+> > > +
+> > > +config HARDLOCKUP_DETECTOR_PERF
+> > > +	bool
+> > > +	select SOFTLOCKUP_DETECTOR  
+> > 
+> > Perhaps add a 'depends on (PERF_EVENTS && HAVE_PERF_EVENTS_NMI)'
+> 
+> Kconfig is pretty clunky, I was struggling to make it do the right
+> thing... I could try.
+> 
+> > 
+> > > +
+> > > +#
+> > > +# arch/ can define HAVE_NMI_WATCHDOG to provide their own NMI watchdog
+> > > +# rather than the perf based detector.
+> > > +#
+> > > +# The arch may do its own thing, or select HARDLOCKUP_DETECTOR, in which
+> > > +# case it should conform to HARDLOCKUP_DETECTOR interfaces and settings
+> > > +# (e.g., sysctl and cmdline).
+> > > +#
+> > >  config HARDLOCKUP_DETECTOR
+> > > -	def_bool y
+> > > -	depends on LOCKUP_DETECTOR && !HAVE_NMI_WATCHDOG
+> > > -	depends on PERF_EVENTS && HAVE_PERF_EVENTS_NMI
+> > > +	bool "Detect Hard Lockups"
+> > > +	depends on LOCKUP_DETECTOR
+> > > +	depends on !HAVE_NMI_WATCHDOG && (PERF_EVENTS && HAVE_PERF_EVENTS_NMI)
+> > > +	select HARDLOCKUP_DETECTOR_PERF if !HAVE_NMI_WATCHDOG  
+> > 
+> > Here is my confusion with HAVE_NMI_WATCHDOG
+> > 
+> > It seems like you can only select HARDLOCKUP_DETECTOR if !HAVE_NMI_DETECTOR
+> > which would break sparc, I think.
+> > 
+> > And then it always selects HARDLOCKUP_DETECTOR_PERF because of the
+> > dependency on !HAVE_NMI_WATCHDOG???
+> 
+> I don't think so -- sparc today does not select HARDLOCKUP_DETECTOR.
+
+Well yes, but your patch changes the definition of HARDLOCKUP_DETECTOR to
+HARDLOCKUP_DETECTOR_PERF and then recreates HARDLOCKUP_DETECTOR.
+
+For example look at kernel/watchdog.c::watchdog_enabled (line 38)
+
+sparc has HAVE_NMI_WATCHDOG set, but that will disable HARDLOCKUP_DETECTOR
+which I believes means sparc's nmi_watchdog is disabled on boot and has to
+be manually enabled?
+
+
+I _think_ having
+
+depends on LOCKUP_DETECTOR
+depends on HAVE_NMI_WATCHDOG || HAVE_PERF_EVENTS_NMI
+select HARDLOCKUP_DETECTOR_PERF if !HAVE_NMI_WATCHDOG
+
+will work because your new definition of HARDLOCKUP_DETECTOR is a
+combination of HAVE_NMI_WATCHDOG && HARDLOCKUP_DETECTOR_PERF ??
+
+Did I get that right?
+
+
+I almost wonder if arches should set either HAVE_NMI_WATCHDOG or
+HAVE_PERF_NMI_WATCHDOG and then use those two to determine
+HARDLOCKUP_DETECTOR.  Would that make the config options slightly less
+confusing?
+
+Thoughts?
+
+Cheers,
+Don
+
+> 
+> After this patch, it always selects the _PERF detector because that's
+> the only one available. See the powerpc patch which adds the PPC64
+> exception here.
+> 
+> Yes it's a bit clunky. I think we can subsequently remove HAVE_NMI_DETECTOR
+> and replace it with something a bit saner and clean up some of these
+> convoluted cases.
+> 
+> Thanks,
+> Nick
