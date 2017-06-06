@@ -1,21 +1,15 @@
 From: Palmer Dabbelt <palmer@dabbelt.com>
 Subject: [PATCH 7/7] MIPS: Use generic libgcc intrinsics
 Date: Tue,  6 Jun 2017 12:10:23 -0700
-Message-ID: <20170606191023.24581-8-palmer__49891.3859985352$1496776764$gmane$org@dabbelt.com>
+Message-ID: <20170606191023.24581-8-palmer__47464.4566224471$1496776766$gmane$org@dabbelt.com>
 References: <20170523220546.16758-1-palmer@dabbelt.com>
  <20170606191023.24581-1-palmer@dabbelt.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f195.google.com ([209.85.192.195]:36321 "EHLO
-        mail-pf0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751861AbdFFTKi (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 6 Jun 2017 15:10:38 -0400
-Received: by mail-pf0-f195.google.com with SMTP id y7so6591055pfd.3
-        for <linux-arch@vger.kernel.org>; Tue, 06 Jun 2017 12:10:38 -0700 (PDT)
+Return-path: <linux-sh-owner@vger.kernel.org>
 In-Reply-To: <20170606191023.24581-1-palmer@dabbelt.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-sh-owner@vger.kernel.org
 To: monstr@monstr.eu, ralf@linux-mips.org, liqin.linux@gmail.com, lennox.wu@gmail.com, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, linux-mips@linux-mips.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, geert@linux-m68k.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Palmer Dabbelt <palmer@dabbelt.com>, Matt Redfearn <matt.redfearn@imgtec.com>
+List-Id: linux-arch.vger.kernel.org
 
 These routines in arch/mips/lib/ are functionally identical to those
 recently added to lib/ so remove them and select the generic ones.
@@ -281,3 +275,4 @@ index 08067fa538f2..000000000000
 -EXPORT_SYMBOL(__ucmpdi2);
 -- 
 2.13.0
+
