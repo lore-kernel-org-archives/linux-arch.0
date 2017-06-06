@@ -1,7 +1,7 @@
 From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: [PATCH 04/17] Documentation: atomic_ops.txt is core-api/atomic_ops.rst
-Date: Tue,  6 Jun 2017 15:59:54 -0700
-Message-ID: <20170606230007.19101-5-palmer@dabbelt.com>
+Subject: [PATCH 06/17] pci: Add generic pcibios_{fixup_bus,align_resource}
+Date: Tue,  6 Jun 2017 15:59:56 -0700
+Message-ID: <20170606230007.19101-7-palmer@dabbelt.com>
 References: <20170523004107.536-1-palmer@dabbelt.com>
  <20170606230007.19101-1-palmer@dabbelt.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
@@ -11,35 +11,79 @@ To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arn
 Cc: albert@sifive.com, patches@groups.riscv.org, Palmer Dabbelt <palmer@dabbelt.com>
 List-Id: linux-arch.vger.kernel.org
 
-I was reading the memory barries documentation in order to make sure the
-RISC-V barries were correct, and I found a broken link to the atomic
-operations documentation.
+While upstreaming the RISC-V port, it was pointed out that multiple
+architectures (arc, arm64, cris, microblaze, sh, tile) have copied the
+mostly empty versions of at least one of these functions.  This defines
+weakly bound versions of the common functions so other architetures can
+use them.
 
 Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
 ---
- Documentation/memory-barriers.txt | 10 +++++-----
- 1 file changed, 5 insertions(+), 5 deletions(-)
+ drivers/pci/Makefile |  2 +-
+ drivers/pci/bios.c   | 42 ++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 43 insertions(+), 1 deletion(-)
+ create mode 100644 drivers/pci/bios.c
 
-diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
-index 732f10ea382e..f1c9eaa45a57 100644
---- a/Documentation/memory-barriers.txt
-+++ b/Documentation/memory-barriers.txt
-@@ -498,11 +498,11 @@ And a couple of implicit varieties:
-      This means that ACQUIRE acts as a minimal "acquire" operation and
-      RELEASE acts as a minimal "release" operation.
+diff --git a/drivers/pci/Makefile b/drivers/pci/Makefile
+index a29d9ec05d13..fa7040915194 100644
+--- a/drivers/pci/Makefile
++++ b/drivers/pci/Makefile
+@@ -4,7 +4,7 @@
  
--A subset of the atomic operations described in atomic_ops.txt have ACQUIRE
--and RELEASE variants in addition to fully-ordered and relaxed (no barrier
--semantics) definitions.  For compound atomics performing both a load and a
--store, ACQUIRE semantics apply only to the load and RELEASE semantics apply
--only to the store portion of the operation.
-+A subset of the atomic operations described in core-api/atomic_ops.rst have
-+ACQUIRE and RELEASE variants in addition to fully-ordered and relaxed (no
-+barrier semantics) definitions.  For compound atomics performing both a load
-+and a store, ACQUIRE semantics apply only to the load and RELEASE semantics
-+apply only to the store portion of the operation.
+ obj-y		+= access.o bus.o probe.o host-bridge.o remove.o pci.o \
+ 			pci-driver.o search.o pci-sysfs.o rom.o setup-res.o \
+-			irq.o vpd.o setup-bus.o vc.o mmap.o
++			irq.o vpd.o setup-bus.o vc.o mmap.o bios.o
+ obj-$(CONFIG_PROC_FS) += proc.o
+ obj-$(CONFIG_SYSFS) += slot.o
  
- Memory barriers are only required where there's a possibility of interaction
- between two CPUs or between a CPU and a device.  If it can be guaranteed that
+diff --git a/drivers/pci/bios.c b/drivers/pci/bios.c
+new file mode 100644
+index 000000000000..ffe34c024aa8
+--- /dev/null
++++ b/drivers/pci/bios.c
+@@ -0,0 +1,42 @@
++/*
++ * Code borrowed from arch/arm64/kernel/pci.c
++ *   which borrowed from powerpc/kernel/pci-common.c
++ *   which borrowed from arch/alpha/kernel/pci.c
++ *
++ * Extruded from code written by
++ *      Dave Rusling (david.rusling@reo.mts.dec.com)
++ *      David Mosberger (davidm@cs.arizona.edu)
++ * Copyright (C) 1999 Andrea Arcangeli <andrea@suse.de>
++ * Copyright (C) 2000 Ivan Kokshaysky <ink@jurassic.park.msu.ru>
++ * Copyright (C) 2003 Anton Blanchard <anton@au.ibm.com>, IBM
++ * Copyright (C) 2014 ARM Ltd.
++ * Copyright (C) 2017 SiFive
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License
++ * version 2 as published by the Free Software Foundation.
++ */
++
++/* This file contains weakly bound functions that implement pcibios functions
++ * that some architectures have copied verbatim.
++ */
++
++#include <linux/pci.h>
++
++/*
++ * Called after each bus is probed, but before its children are examined
++ */
++__attribute__ ((weak))
++void pcibios_fixup_bus(struct pci_bus *bus)
++{
++       /* nothing to do, expected to be removed in the future */
++}
++/*
++ * We don't have to worry about legacy ISA devices, so nothing to do here
++ */
++__attribute__ ((weak))
++resource_size_t pcibios_align_resource(void *data, const struct resource *res,
++				       resource_size_t size, resource_size_t align)
++{
++       return res->start;
++}
 -- 
 2.13.0
