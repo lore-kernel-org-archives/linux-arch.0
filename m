@@ -1,15 +1,21 @@
 From: Palmer Dabbelt <palmer@dabbelt.com>
 Subject: [PATCH 12/17] tty: New RISC-V SBI Console Driver
 Date: Tue,  6 Jun 2017 16:00:02 -0700
-Message-ID: <20170606230007.19101-13-palmer@dabbelt.com>
+Message-ID: <20170606230007.19101-13-palmer__15220.8335152411$1496790254$gmane$org@dabbelt.com>
 References: <20170523004107.536-1-palmer@dabbelt.com>
  <20170606230007.19101-1-palmer@dabbelt.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pf0-f195.google.com ([209.85.192.195]:36807 "EHLO
+        mail-pf0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751612AbdFFXBg (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 6 Jun 2017 19:01:36 -0400
+Received: by mail-pf0-f195.google.com with SMTP id y7so7021348pfd.3
+        for <linux-arch@vger.kernel.org>; Tue, 06 Jun 2017 16:01:36 -0700 (PDT)
 In-Reply-To: <20170606230007.19101-1-palmer@dabbelt.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, olof@lixom.net
 Cc: albert@sifive.com, patches@groups.riscv.org, Palmer Dabbelt <palmer@dabbelt.com>
-List-Id: linux-arch.vger.kernel.org
 
 This patch adds a new driver for the console availiable via the RISC-V
 SBI.  This console is specified to be used for early boot messages, and
