@@ -1,12 +1,9 @@
 From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: [PATCH 10/17] irqchip: New RISC-V PLIC Driver
-Date: Tue,  6 Jun 2017 16:00:00 -0700
-Message-ID: <20170606230007.19101-11-palmer@dabbelt.com>
+Subject: [PATCH 17/17] RISC-V: Makefile and Kconfig
+Date: Tue,  6 Jun 2017 16:00:07 -0700
+Message-ID: <20170606230007.19101-18-palmer__30819.1646975049$1496790131$gmane$org@dabbelt.com>
 References: <20170523004107.536-1-palmer@dabbelt.com>
  <20170606230007.19101-1-palmer@dabbelt.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20170606230007.19101-1-palmer@dabbelt.com>
 Sender: linux-kernel-owner@vger.kernel.org
@@ -14,306 +11,597 @@ To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arn
 Cc: albert@sifive.com, patches@groups.riscv.org, Palmer Dabbelt <palmer@dabbelt.com>
 List-Id: linux-arch.vger.kernel.org
 
-This patch adds a driver for the Platform Level Interrupt Controller
-(PLIC) specified as part of the RISC-V supervisor level ISA manual.
-The PLIC connocts global interrupt sources to the local interrupt
-controller on each hart.  A PLIC is present on all RISC-V systems.
+This patch adds RISC-V support to the build infastructure.
 
 Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
 ---
- drivers/irqchip/Kconfig          |  12 ++
- drivers/irqchip/Makefile         |   1 +
- drivers/irqchip/irq-riscv-plic.c | 253 +++++++++++++++++++++++++++++++++++++++
- 3 files changed, 266 insertions(+)
- create mode 100644 drivers/irqchip/irq-riscv-plic.c
+ Makefile                                  |   3 +-
+ arch/riscv/Kconfig                        | 318 ++++++++++++++++++++++++++++++
+ arch/riscv/Makefile                       |  64 ++++++
+ arch/riscv/configs/freedom-u500_defconfig |  53 +++++
+ arch/riscv/configs/spike32_defconfig      |  50 +++++
+ arch/riscv/configs/spike64_defconfig      |  46 +++++
+ 6 files changed, 533 insertions(+), 1 deletion(-)
+ create mode 100644 arch/riscv/Kconfig
+ create mode 100644 arch/riscv/Makefile
+ create mode 100644 arch/riscv/configs/freedom-u500_defconfig
+ create mode 100644 arch/riscv/configs/spike32_defconfig
+ create mode 100644 arch/riscv/configs/spike64_defconfig
 
-diff --git a/drivers/irqchip/Kconfig b/drivers/irqchip/Kconfig
-index 478f8ace2664..2906d63934ef 100644
---- a/drivers/irqchip/Kconfig
-+++ b/drivers/irqchip/Kconfig
-@@ -301,3 +301,15 @@ config QCOM_IRQ_COMBINER
- 	help
- 	  Say yes here to add support for the IRQ combiner devices embedded
- 	  in Qualcomm Technologies chips.
+diff --git a/Makefile b/Makefile
+index 853ae9179af9..88711cbcc3ca 100644
+--- a/Makefile
++++ b/Makefile
+@@ -232,7 +232,8 @@ SUBARCH := $(shell uname -m | sed -e s/i.86/x86/ -e s/x86_64/x86/ \
+ 				  -e s/arm.*/arm/ -e s/sa110/arm/ \
+ 				  -e s/s390x/s390/ -e s/parisc64/parisc/ \
+ 				  -e s/ppc.*/powerpc/ -e s/mips.*/mips/ \
+-				  -e s/sh[234].*/sh/ -e s/aarch64.*/arm64/ )
++				  -e s/sh[234].*/sh/ -e s/aarch64.*/arm64/ \
++				  -e s/riscv.*/riscv/)
+ 
+ # Cross compiling and selecting different set of gcc/bin-utils
+ # ---------------------------------------------------------------------------
+diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
+new file mode 100644
+index 000000000000..64fcb17886c6
+--- /dev/null
++++ b/arch/riscv/Kconfig
+@@ -0,0 +1,318 @@
++#
++# For a description of the syntax of this configuration file,
++# see Documentation/kbuild/kconfig-language.txt.
++#
 +
-+config RISCV_PLIC
-+        bool "Platform-Level Interrupt Controller"
-+	depends on RISCV
-+        default y
-+        help
-+	   This enables support for the PLIC chip found in standard RISC-V
-+	   systems. The PLIC is the top-most interrupt controller found in
-+	   the system, connected directly to the core complex. All other
-+	   interrupt sources (MSI, GPIO, etc) are subordinate to the PLIC.
++config RISCV
++	def_bool y
++	select OF
++	select OF_EARLY_FLATTREE
++	select OF_IRQ
++	select ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
++	select ARCH_WANT_FRAME_POINTERS
++	select CLONE_BACKWARDS
++	select COMMON_CLK
++	select GENERIC_CLOCKEVENTS
++	select GENERIC_CPU_DEVICES
++	select GENERIC_IRQ_SHOW
++	select GENERIC_PCI_IOMAP
++	select GENERIC_STRNCPY_FROM_USER
++	select GENERIC_STRNLEN_USER
++	select GENERIC_SMP_IDLE_THREAD
++	select GENERIC_ATOMIC64 if !64BIT || !ISA_A
++	select ARCH_WANT_OPTIONAL_GPIOLIB
++	select HAVE_MEMBLOCK
++	select HAVE_DMA_API_DEBUG
++	select HAVE_DMA_CONTIGUOUS
++	select HAVE_GENERIC_DMA_COHERENT
++	select IRQ_DOMAIN
++	select NO_BOOTMEM
++	select ISA_A if SMP
++	select SYSRISCV_ATOMIC if !ISA_A
++	select SPARSE_IRQ
++	select SYSCTL_EXCEPTION_TRACE
++	select HAVE_ARCH_TRACEHOOK
++	select MODULES_USE_ELF_RELA if MODULES
++	select THREAD_INFO_IN_TASK
++	select RISCV_IRQ_INTC
++
++config MMU
++	def_bool y
++
++# even on 32-bit, physical (and DMA) addresses are > 32-bits
++config ARCH_PHYS_ADDR_T_64BIT
++	def_bool y
++
++config ARCH_DMA_ADDR_T_64BIT
++	def_bool y
++
++config STACKTRACE_SUPPORT
++	def_bool y
++
++config RWSEM_GENERIC_SPINLOCK
++	def_bool y
++
++config GENERIC_BUG
++	def_bool y
++	depends on BUG
++	select GENERIC_BUG_RELATIVE_POINTERS if 64BIT
++
++config GENERIC_BUG_RELATIVE_POINTERS
++	bool
++
++config GENERIC_CALIBRATE_DELAY
++	def_bool y
++
++config GENERIC_CSUM
++	def_bool y
++
++config GENERIC_HWEIGHT
++	def_bool y
++
++config PGTABLE_LEVELS
++	int
++	default 3 if 64BIT
++	default 2
++
++config HAVE_KPROBES
++	def_bool n
++
++config DMA_NOOP_OPS
++	def_bool y
++
++menu "Platform type"
++
++config SMP
++	bool "Symmetric Multi-Processing"
++	help
++	  This enables support for systems with more than one CPU.  If
++	  you say N here, the kernel will run on single and
++	  multiprocessor machines, but will use only one CPU of a
++	  multiprocessor machine. If you say Y here, the kernel will run
++	  on many, but not all, single processor machines. On a single
++	  processor machine, the kernel will run faster if you say N
++	  here.
++
++	  If you don't know what to do here, say N.
++
++config NR_CPUS
++	int "Maximum number of CPUs (2-32)"
++	range 2 32
++	depends on SMP
++	default "8"
++
++config CPU_SUPPORTS_32BIT_KERNEL
++	bool
++config CPU_SUPPORTS_64BIT_KERNEL
++	bool
++
++choice
++	prompt "Base ISA"
++	default ARCH_RV64I
++
++config ARCH_RV32I
++	bool "RV32I"
++	select CPU_SUPPORTS_32BIT_KERNEL
++	select 32BIT
++	select GENERIC_ASHLDI3
++	select GENERIC_ASHRDI3
++	select GENERIC_LSHRDI3
++
++config ARCH_RV64I
++	bool "RV64I"
++	select CPU_SUPPORTS_64BIT_KERNEL
++	select 64BIT
++
++endchoice
++
++choice
++	prompt "CPU Tuning"
++	default TUNE_GENERIC
++
++config TUNE_GENERIC
++	bool "generic"
++
++endchoice
++
++config ISA_C
++	bool "Emit compressed instructions when building Linux"
++	default n
++	help
++	   Adds "C" to the ISA subsets that the toolchain is allowed to emit
++	   when building Linux, which results in compressed instructions in the
++	   Linux binary.
 +
 +	   If you don't know what to do here, say Y.
-diff --git a/drivers/irqchip/Makefile b/drivers/irqchip/Makefile
-index b64c59b838a0..bed94cc89146 100644
---- a/drivers/irqchip/Makefile
-+++ b/drivers/irqchip/Makefile
-@@ -76,3 +76,4 @@ obj-$(CONFIG_EZNPS_GIC)			+= irq-eznps.o
- obj-$(CONFIG_ARCH_ASPEED)		+= irq-aspeed-vic.o
- obj-$(CONFIG_STM32_EXTI) 		+= irq-stm32-exti.o
- obj-$(CONFIG_QCOM_IRQ_COMBINER)		+= qcom-irq-combiner.o
-+obj-$(CONFIG_RISCV_PLIC)		+= irq-riscv-plic.o
-diff --git a/drivers/irqchip/irq-riscv-plic.c b/drivers/irqchip/irq-riscv-plic.c
++
++config ISA_A
++	bool "Emit atomic instructions when building Linux"
++	default y
++	help
++	   Adds "A" to the ISA subsets that the toolchain is allowed to emit
++	   when building Linux, which results in atomic instructions in the
++	   Linux binary.
++
++	   If you don't know what to do here, say Y.
++
++config SYSRISCV_ATOMIC
++	bool "Include support for atomic operation syscalls"
++	default !ISA_A
++	help
++	  If atomic memory instructions are present, i.e.,
++	  CONFIG_ISA_A, this includes support for the syscall that
++	  provides atomic accesses.  This is only useful to run
++	  binaries that require atomic access but were compiled with
++	  -mno-atomic.
++
++	  If CONFIG_ISA_A is unset, this option is mandatory.
++
++	  If you don't know what to do here, say N.
++
++config RV_PUM
++	def_bool y
++	prompt "Protect User Memory" if EXPERT
++	---help---
++	  Protect User Memory (PUM) prevents the kernel from inadvertently
++	  accessing user-space memory.  There is a small performance cost
++	  and kernel size increase if this is enabled.
++
++	  If unsure, say Y.
++
++endmenu
++
++menu "Kernel type"
++
++choice
++	prompt "Kernel code model"
++	default 64BIT
++
++config 32BIT
++	bool "32-bit kernel"
++	depends on CPU_SUPPORTS_32BIT_KERNEL
++	help
++	  Select this option to build a 32-bit kernel.
++
++config 64BIT
++	bool "64-bit kernel"
++	depends on CPU_SUPPORTS_64BIT_KERNEL
++	help
++	  Select this option to build a 64-bit kernel.
++
++endchoice
++
++source "mm/Kconfig"
++
++source "kernel/Kconfig.preempt"
++
++source "kernel/Kconfig.hz"
++
++endmenu
++
++menu "Bus support"
++
++config PCI
++	bool "PCI support"
++	select PCI_MSI
++	help
++	  This feature enables support for PCI bus system. If you say Y
++	  here, the kernel will include drivers and infrastructure code
++	  to support PCI bus devices.
++
++	  If you don't know what to do here, say Y.
++
++config PCI_DOMAINS
++	def_bool PCI
++
++config PCI_DOMAINS_GENERIC
++	def_bool PCI
++
++source "drivers/pci/Kconfig"
++
++endmenu
++
++source "init/Kconfig"
++
++source "kernel/Kconfig.freezer"
++
++menu "Executable file formats"
++
++source "fs/Kconfig.binfmt"
++
++endmenu
++
++menu "Power management options"
++
++source kernel/power/Kconfig
++
++endmenu
++
++source "net/Kconfig"
++
++source "drivers/Kconfig"
++
++source "fs/Kconfig"
++
++menu "Kernel hacking"
++
++config CMDLINE_BOOL
++	bool "Built-in kernel command line"
++	default n
++	help
++	  For most platforms, it is firmware or second stage bootloader
++	  that by default specifies the kernel command line options.
++	  However, it might be necessary or advantageous to either override
++	  the default kernel command line or add a few extra options to it.
++	  For such cases, this option allows hardcoding command line options
++	  directly into the kernel.
++
++	  For that, choose 'Y' here and fill in the extra boot parameters
++	  in CONFIG_CMDLINE.
++
++	  The built-in options will be concatenated to the default command
++	  line if CMDLINE_OVERRIDE is set to 'N'. Otherwise, the default
++	  command line will be ignored and replaced by the built-in string.
++
++config CMDLINE
++	string "Built-in kernel command string"
++	depends on CMDLINE_BOOL
++	default ""
++	help
++	  Supply command-line options at build time by entering them here.
++
++config CMDLINE_OVERRIDE
++	bool "Built-in command line overrides bootloader arguments"
++	default n
++	depends on CMDLINE_BOOL
++	help
++	  Set this option to 'Y' to have the kernel ignore the bootloader
++	  or firmware command line.  Instead, the built-in command line
++	  will be used exclusively.
++
++	  If you don't know what to do here, say N.
++
++config EARLY_PRINTK
++	bool "Early printk"
++	default n
++	help
++	  This option enables special console drivers which allow the kernel
++	  to print messages very early in the bootup process.
++
++	  This is useful for kernel debugging when your machine crashes very
++	  early before the console code is initialized. For normal operation
++	  it is not recommended because it looks ugly and doesn't cooperate
++	  with klogd/syslogd or the X server. You should normally N here,
++	  unless you want to debug such a crash.
++
++
++source "lib/Kconfig.debug"
++
++config CMDLINE_BOOL
++	bool
++endmenu
++
++source "security/Kconfig"
++
++source "crypto/Kconfig"
++
++source "lib/Kconfig"
++
+diff --git a/arch/riscv/Makefile b/arch/riscv/Makefile
 new file mode 100644
-index 000000000000..906c8a62a911
+index 000000000000..66c4a5e383f9
 --- /dev/null
-+++ b/drivers/irqchip/irq-riscv-plic.c
-@@ -0,0 +1,253 @@
-+/*
-+ * Copyright (C) 2017 SiFive
-+ *
-+ *   This program is free software; you can redistribute it and/or
-+ *   modify it under the terms of the GNU General Public License
-+ *   as published by the Free Software Foundation, version 2.
-+ *
-+ *   This program is distributed in the hope that it will be useful,
-+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ *   GNU General Public License for more details.
-+ */
++++ b/arch/riscv/Makefile
+@@ -0,0 +1,64 @@
++# This file is included by the global makefile so that you can add your own
++# architecture-specific flags and dependencies. Remember to do have actions
++# for "archclean" and "archdep" for cleaning up and making dependencies for
++# this architecture
++#
++# This file is subject to the terms and conditions of the GNU General Public
++# License.  See the file "COPYING" in the main directory of this archive
++# for more details.
++#
 +
-+#include <linux/interrupt.h>
-+#include <linux/io.h>
-+#include <linux/irq.h>
-+#include <linux/irqchip.h>
-+#include <linux/irqchip/chained_irq.h>
-+#include <linux/irqdomain.h>
-+#include <linux/module.h>
-+#include <linux/of.h>
-+#include <linux/of_address.h>
-+#include <linux/of_irq.h>
-+#include <linux/platform_device.h>
++LDFLAGS         :=
++OBJCOPYFLAGS    := -O binary
++LDFLAGS_vmlinux :=
++KBUILD_AFLAGS_MODULE += -fPIC
++KBUILD_CFLAGS_MODULE += -fPIC
 +
-+/* From the RISC-V Privlidged Spec v1.10:
-+ *
-+ * Global interrupt sources are assigned small unsigned integer identifiers,
-+ * beginning at the value 1.  An interrupt ID of 0 is reserved to mean “no
-+ * interrupt”.  Interrupt identifiers are also used to break ties when two or
-+ * more interrupt sources have the same assigned priority. Smaller values of
-+ * interrupt ID take precedence over larger values of interrupt ID.
-+ *
-+ * It's not defined what the largest device ID is, so we're just fixing
-+ * MAX_DEVICES right here (which is named oddly, as there will never be a
-+ * device 0).
-+ */
-+#define MAX_DEVICES	1024
-+#define MAX_CONTEXTS	15872
++KBUILD_DEFCONFIG = spike64_defconfig
 +
-+#define PRIORITY_BASE	0
-+#define ENABLE_BASE	0x2000
-+#define ENABLE_SIZE	0x80
-+#define HART_BASE	0x200000
-+#define HART_SIZE	0x1000
++export BITS
++ifeq ($(CONFIG_ARCH_RV64I),y)
++	BITS := 64
++	UTS_MACHINE := riscv64
 +
-+struct plic_hart_context {
-+	u32 threshold;
-+	u32 claim;
-+};
++	KBUILD_CFLAGS += -mabi=lp64
++	KBUILD_AFLAGS += -mabi=lp64
++	KBUILD_MARCH = rv64im
++	LDFLAGS += -melf64lriscv
++else
++	BITS := 32
++	UTS_MACHINE := riscv32
 +
-+struct plic_enable_context {
-+	atomic_t mask[32]; // 32-bit * 32-entry
-+};
++	KBUILD_CFLAGS += -mabi=ilp32
++	KBUILD_AFLAGS += -mabi=ilp32
++	KBUILD_MARCH = rv32im
++	LDFLAGS += -melf32lriscv
++endif
 +
-+struct plic_priority {
-+	u32 prio[MAX_DEVICES];
-+};
++KBUILD_CFLAGS += -Wall
 +
-+struct plic_data {
-+	struct irq_chip		chip;
-+	struct irq_domain	*domain;
-+	u32			ndev;
-+	void __iomem		*reg;
-+	int			handlers;
-+	struct plic_handler	*handler;
-+	char			name[30];
-+};
++ifeq ($(CONFIG_ISA_A),y)
++	KBUILD_ARCH_A = a
++endif
++ifeq ($(CONFIG_ISA_C),y)
++	KBUILD_ARCH_C = c
++endif
 +
-+struct plic_handler {
-+	struct plic_hart_context	*context;
-+	struct plic_data		*data;
-+};
++KBUILD_AFLAGS += -march=$(KBUILD_MARCH)$(KBUILD_ARCH_A)fd$(KBUILD_ARCH_C)
 +
-+static inline
-+struct plic_hart_context *plic_hart_context(struct plic_data *data, size_t i)
-+{
-+	return (struct plic_hart_context *)((char *)data->reg + HART_BASE + HART_SIZE*i);
-+}
++KBUILD_CFLAGS += -march=$(KBUILD_MARCH)$(KBUILD_ARCH_A)$(KBUILD_ARCH_C)
++KBUILD_CFLAGS += -mno-save-restore
 +
-+static inline
-+struct plic_enable_context *plic_enable_context(struct plic_data *data, size_t i)
-+{
-+	return (struct plic_enable_context *)((char *)data->reg + ENABLE_BASE + ENABLE_SIZE*i);
-+}
++# GCC versions that support the "-mstrict-align" option default to allowing
++# unaligned accesses.  While unaligned accesses are explicitly allowed in the
++# RISC-V ISA, they're emulated by machine mode traps on all extant
++# architectures.  It's faster to have GCC emit only aligned accesses.
++KBUILD_CFLAGS += $(call cc-option,-mstrict-align)
 +
-+static inline
-+struct plic_priority *plic_priority(struct plic_data *data)
-+{
-+	return (struct plic_priority *)((char *)data->reg + PRIORITY_BASE);
-+}
++head-y := arch/riscv/kernel/head.o
 +
-+static void plic_disable(struct plic_data *data, int i, int hwirq)
-+{
-+	struct plic_enable_context *enable = plic_enable_context(data, i);
++core-y += arch/riscv/kernel/ arch/riscv/mm/
 +
-+	atomic_and(~(1 << (hwirq % 32)), &enable->mask[hwirq / 32]);
-+}
++libs-y += arch/riscv/lib/
 +
-+static void plic_enable(struct plic_data *data, int i, int hwirq)
-+{
-+	struct plic_enable_context *enable = plic_enable_context(data, i);
-+
-+	atomic_or((1 << (hwirq % 32)), &enable->mask[hwirq / 32]);
-+}
-+
-+// There is no need to mask/unmask PLIC interrupts
-+// They are "masked" by reading claim and "unmasked" when writing it back.
-+static void plic_irq_mask(struct irq_data *d) { }
-+static void plic_irq_unmask(struct irq_data *d) { }
-+
-+static void plic_irq_enable(struct irq_data *d)
-+{
-+	struct plic_data *data = irq_data_get_irq_chip_data(d);
-+	struct plic_priority *priority = plic_priority(data);
-+	int i;
-+
-+	iowrite32(1, &priority->prio[d->hwirq]);
-+	for (i = 0; i < data->handlers; ++i)
-+		if (data->handler[i].context)
-+			plic_enable(data, i, d->hwirq);
-+}
-+
-+static void plic_irq_disable(struct irq_data *d)
-+{
-+	struct plic_data *data = irq_data_get_irq_chip_data(d);
-+	struct plic_priority *priority = plic_priority(data);
-+	int i;
-+
-+	iowrite32(0, &priority->prio[d->hwirq]);
-+	for (i = 0; i < data->handlers; ++i)
-+		if (data->handler[i].context)
-+			plic_disable(data, i, d->hwirq);
-+}
-+
-+static int plic_irqdomain_map(struct irq_domain *d, unsigned int irq,
-+			      irq_hw_number_t hwirq)
-+{
-+	struct plic_data *data = d->host_data;
-+
-+	irq_set_chip_and_handler(irq, &data->chip, handle_simple_irq);
-+	irq_set_chip_data(irq, data);
-+	irq_set_noprobe(irq);
-+
-+	return 0;
-+}
-+
-+static const struct irq_domain_ops plic_irqdomain_ops = {
-+	.map	= plic_irqdomain_map,
-+	.xlate	= irq_domain_xlate_onecell,
-+};
-+
-+static void plic_chained_handle_irq(struct irq_desc *desc)
-+{
-+	struct plic_handler *handler = irq_desc_get_handler_data(desc);
-+	struct irq_chip *chip = irq_desc_get_chip(desc);
-+	struct irq_domain *domain = handler->data->domain;
-+	u32 what;
-+
-+	chained_irq_enter(chip, desc);
-+
-+	while ((what = ioread32(&handler->context->claim))) {
-+		int irq = irq_find_mapping(domain, what);
-+
-+		if (irq > 0)
-+			generic_handle_irq(irq);
-+		else
-+			handle_bad_irq(desc);
-+		iowrite32(what, &handler->context->claim);
-+	}
-+
-+	chained_irq_exit(chip, desc);
-+}
-+
-+static int plic_init(struct device_node *node, struct device_node *parent)
-+{
-+	struct plic_data *data;
-+	struct resource resource;
-+	int i, ok = 0;
-+
-+	data = kzalloc(sizeof(*data), GFP_KERNEL);
-+	if (WARN_ON(!data))
-+		return -ENOMEM;
-+
-+	data->reg = of_iomap(node, 0);
-+	if (WARN_ON(!data->reg))
-+		return -EIO;
-+
-+	of_property_read_u32(node, "riscv,ndev", &data->ndev);
-+	if (WARN_ON(!data->ndev))
-+		return -EINVAL;
-+
-+	data->handlers = of_irq_count(node);
-+	if (WARN_ON(!data->handlers))
-+		return -EINVAL;
-+
-+	data->handler =
-+		kcalloc(data->handlers, sizeof(*data->handler), GFP_KERNEL);
-+	if (WARN_ON(!data->handler))
-+		return -ENOMEM;
-+
-+	data->domain = irq_domain_add_linear(node, data->ndev+1, &plic_irqdomain_ops, data);
-+	if (WARN_ON(!data->domain))
-+		return -ENOMEM;
-+
-+	of_address_to_resource(node, 0, &resource);
-+	snprintf(data->name, sizeof(data->name),
-+		 "riscv,plic0,%llx", resource.start);
-+	data->chip.name = data->name;
-+	data->chip.irq_mask = plic_irq_mask;
-+	data->chip.irq_unmask = plic_irq_unmask;
-+	data->chip.irq_enable = plic_irq_enable;
-+	data->chip.irq_disable = plic_irq_disable;
-+
-+	for (i = 0; i < data->handlers; ++i) {
-+		struct plic_handler *handler = &data->handler[i];
-+		struct of_phandle_args parent;
-+		int parent_irq, hwirq;
-+
-+		if (of_irq_parse_one(node, i, &parent))
-+			continue;
-+		// skip context holes
-+		if (parent.args[0] == -1)
-+			continue;
-+
-+		// skip any contexts that lead to inactive harts
-+		if (of_device_is_compatible(parent.np, "riscv,cpu-intc") &&
-+		    parent.np->parent &&
-+		    riscv_of_processor_hart(parent.np->parent) < 0)
-+			continue;
-+
-+		parent_irq = irq_create_of_mapping(&parent);
-+		if (!parent_irq)
-+			continue;
-+
-+		handler->context = plic_hart_context(data, i);
-+		handler->data = data;
-+		// hwirq prio must be > this to trigger an interrupt
-+		iowrite32(0, &handler->context->threshold);
-+
-+		for (hwirq = 1; hwirq <= data->ndev; ++hwirq)
-+			plic_disable(data, i, hwirq);
-+		irq_set_chained_handler_and_data(parent_irq, plic_chained_handle_irq, handler);
-+		++ok;
-+	}
-+
-+	printk(KERN_INFO "%s: mapped %d interrupts to %d/%d handlers\n",
-+	       data->name, data->ndev, ok, data->handlers);
-+	WARN_ON(!ok);
-+	return 0;
-+}
-+
-+IRQCHIP_DECLARE(plic0, "riscv,plic0", plic_init);
++all: vmlinux
+diff --git a/arch/riscv/configs/freedom-u500_defconfig b/arch/riscv/configs/freedom-u500_defconfig
+new file mode 100644
+index 000000000000..b37908d45067
+--- /dev/null
++++ b/arch/riscv/configs/freedom-u500_defconfig
+@@ -0,0 +1,53 @@
++CONFIG_CROSS_COMPILE="riscv64-unknown-linux-gnu-"
++CONFIG_DEFAULT_HOSTNAME="ucbvax"
++# CONFIG_CROSS_MEMORY_ATTACH is not set
++# CONFIG_FHANDLE is not set
++CONFIG_NAMESPACES=y
++# CONFIG_SGETMASK_SYSCALL is not set
++CONFIG_EMBEDDED=y
++# CONFIG_BLK_DEV_BSG is not set
++CONFIG_PARTITION_ADVANCED=y
++# CONFIG_EFI_PARTITION is not set
++# CONFIG_IOSCHED_DEADLINE is not set
++# CONFIG_COMPACTION is not set
++CONFIG_HZ_100=y
++CONFIG_PCI_MSI=y
++CONFIG_NET=y
++CONFIG_UNIX=y
++CONFIG_INET=y
++# CONFIG_INET_XFRM_MODE_TRANSPORT is not set
++# CONFIG_INET_XFRM_MODE_TUNNEL is not set
++# CONFIG_INET_XFRM_MODE_BEET is not set
++# CONFIG_INET_DIAG is not set
++# CONFIG_IPV6 is not set
++# CONFIG_WIRELESS is not set
++CONFIG_DEVTMPFS=y
++CONFIG_DEVTMPFS_MOUNT=y
++# CONFIG_FIRMWARE_IN_KERNEL is not set
++CONFIG_OF=y
++# CONFIG_BLK_DEV is not set
++# CONFIG_INPUT_KEYBOARD is not set
++# CONFIG_INPUT_MOUSE is not set
++# CONFIG_VT is not set
++CONFIG_DEVKMEM=y
++# CONFIG_HW_RANDOM is not set
++# CONFIG_HWMON is not set
++CONFIG_FB=y
++# CONFIG_USB_SUPPORT is not set
++# CONFIG_IOMMU_SUPPORT is not set
++CONFIG_EXT2_FS=y
++# CONFIG_FILE_LOCKING is not set
++# CONFIG_DNOTIFY is not set
++# CONFIG_INOTIFY_USER is not set
++# CONFIG_PROC_PAGE_MONITOR is not set
++# CONFIG_SYSFS is not set
++CONFIG_TMPFS=y
++# CONFIG_MISC_FILESYSTEMS is not set
++# CONFIG_NETWORK_FILESYSTEMS is not set
++CONFIG_PRINTK_TIME=y
++# CONFIG_UNUSED_SYMBOLS is not set
++CONFIG_DEBUG_SECTION_MISMATCH=y
++# CONFIG_FRAME_POINTER is not set
++# CONFIG_EARLY_PRINTK is not set
++# CONFIG_CRYPTO_HW is not set
++CONFIG_TTY=y
+diff --git a/arch/riscv/configs/spike32_defconfig b/arch/riscv/configs/spike32_defconfig
+new file mode 100644
+index 000000000000..cf3431e94311
+--- /dev/null
++++ b/arch/riscv/configs/spike32_defconfig
+@@ -0,0 +1,50 @@
++CONFIG_64BIT=n
++CONFIG_32BIT=y
++CONFIG_ARCH_RV64I=n
++CONFIG_ARCH_RV32I=y
++CONFIG_PCI=y
++CONFIG_DEFAULT_HOSTNAME="ucbvax"
++# CONFIG_CROSS_MEMORY_ATTACH is not set
++# CONFIG_FHANDLE is not set
++CONFIG_NAMESPACES=y
++CONFIG_EMBEDDED=y
++# CONFIG_BLK_DEV_BSG is not set
++CONFIG_PARTITION_ADVANCED=y
++# CONFIG_EFI_PARTITION is not set
++# CONFIG_IOSCHED_DEADLINE is not set
++CONFIG_NET=y
++CONFIG_UNIX=y
++CONFIG_INET=y
++# CONFIG_INET_XFRM_MODE_TRANSPORT is not set
++# CONFIG_INET_XFRM_MODE_TUNNEL is not set
++# CONFIG_INET_XFRM_MODE_BEET is not set
++# CONFIG_INET_DIAG is not set
++# CONFIG_IPV6 is not set
++# CONFIG_WIRELESS is not set
++CONFIG_DEVTMPFS=y
++CONFIG_DEVTMPFS_MOUNT=y
++# CONFIG_FIRMWARE_IN_KERNEL is not set
++# CONFIG_BLK_DEV is not set
++# CONFIG_INPUT_KEYBOARD is not set
++# CONFIG_INPUT_MOUSE is not set
++# CONFIG_VT is not set
++CONFIG_DEVKMEM=y
++# CONFIG_HW_RANDOM is not set
++# CONFIG_HWMON is not set
++CONFIG_FB=y
++# CONFIG_USB_SUPPORT is not set
++# CONFIG_IOMMU_SUPPORT is not set
++CONFIG_EXT2_FS=y
++# CONFIG_FILE_LOCKING is not set
++# CONFIG_DNOTIFY is not set
++# CONFIG_INOTIFY_USER is not set
++# CONFIG_PROC_PAGE_MONITOR is not set
++# CONFIG_SYSFS is not set
++CONFIG_TMPFS=y
++# CONFIG_MISC_FILESYSTEMS is not set
++# CONFIG_NETWORK_FILESYSTEMS is not set
++CONFIG_PRINTK_TIME=y
++CONFIG_DEBUG_SECTION_MISMATCH=y
++# CONFIG_FRAME_POINTER is not set
++# CONFIG_CRYPTO_HW is not set
++CONFIG_TTY=y
+diff --git a/arch/riscv/configs/spike64_defconfig b/arch/riscv/configs/spike64_defconfig
+new file mode 100644
+index 000000000000..5ad6644df541
+--- /dev/null
++++ b/arch/riscv/configs/spike64_defconfig
+@@ -0,0 +1,46 @@
++CONFIG_PCI=y
++CONFIG_DEFAULT_HOSTNAME="ucbvax"
++# CONFIG_CROSS_MEMORY_ATTACH is not set
++# CONFIG_FHANDLE is not set
++CONFIG_NAMESPACES=y
++CONFIG_EMBEDDED=y
++# CONFIG_BLK_DEV_BSG is not set
++CONFIG_PARTITION_ADVANCED=y
++# CONFIG_EFI_PARTITION is not set
++# CONFIG_IOSCHED_DEADLINE is not set
++CONFIG_NET=y
++CONFIG_UNIX=y
++CONFIG_INET=y
++# CONFIG_INET_XFRM_MODE_TRANSPORT is not set
++# CONFIG_INET_XFRM_MODE_TUNNEL is not set
++# CONFIG_INET_XFRM_MODE_BEET is not set
++# CONFIG_INET_DIAG is not set
++# CONFIG_IPV6 is not set
++# CONFIG_WIRELESS is not set
++CONFIG_DEVTMPFS=y
++CONFIG_DEVTMPFS_MOUNT=y
++# CONFIG_FIRMWARE_IN_KERNEL is not set
++# CONFIG_BLK_DEV is not set
++# CONFIG_INPUT_KEYBOARD is not set
++# CONFIG_INPUT_MOUSE is not set
++# CONFIG_VT is not set
++CONFIG_DEVKMEM=y
++# CONFIG_HW_RANDOM is not set
++# CONFIG_HWMON is not set
++CONFIG_FB=y
++# CONFIG_USB_SUPPORT is not set
++# CONFIG_IOMMU_SUPPORT is not set
++CONFIG_EXT2_FS=y
++# CONFIG_FILE_LOCKING is not set
++# CONFIG_DNOTIFY is not set
++# CONFIG_INOTIFY_USER is not set
++# CONFIG_PROC_PAGE_MONITOR is not set
++# CONFIG_SYSFS is not set
++CONFIG_TMPFS=y
++# CONFIG_MISC_FILESYSTEMS is not set
++# CONFIG_NETWORK_FILESYSTEMS is not set
++CONFIG_PRINTK_TIME=y
++CONFIG_DEBUG_SECTION_MISMATCH=y
++# CONFIG_FRAME_POINTER is not set
++# CONFIG_CRYPTO_HW is not set
++CONFIG_TTY=y
 -- 
 2.13.0
