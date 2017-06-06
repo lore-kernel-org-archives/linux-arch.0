@@ -1,151 +1,156 @@
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv7 12/14] x86/mm: Add support for 5-level paging for KASLR
-Date: Tue,  6 Jun 2017 14:31:31 +0300
-Message-ID: <20170606113133.22974-13-kirill.shutemov@linux.intel.com>
+Subject: [PATCHv7 06/14] x86/boot/compressed: Enable 5-level paging during decompression stage
+Date: Tue,  6 Jun 2017 14:31:25 +0300
+Message-ID: <20170606113133.22974-7-kirill.shutemov@linux.intel.com>
 References: <20170606113133.22974-1-kirill.shutemov@linux.intel.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <20170606113133.22974-1-kirill.shutemov@linux.intel.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: owner-linux-mm@kvack.org
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-With 5-level paging randomization happens on P4D level instead of PUD.
+We need to cover two basic cases: when bootloader left us in 32-bit mode
+and when bootloader enabled long mode.
 
-Maximum amount of physical memory also bumped to 52-bits for 5-level
-paging.
+The patch implements unified codepath to enabled 5-level paging for both
+cases. It means case when we start in 32-bit mode, we first enable long
+mode with 4-level and then switch over to 5-level paging.
+
+Switching from 4-level to 5-level paging is not trivial. We cannot do it
+directly. Setting LA57 in long mode would trigger #GP. So we need to
+switch off long mode first and the then re-enable with 5-level paging.
+
+NOTE: The need of switching off long mode means we are in trouble if
+bootloader put us above 4G boundary. If bootloader wants to boot 5-level
+paging kernel, it has to put kernel below 4G or enable 5-level paging on
+it's own, so we could avoid the step.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
- arch/x86/mm/kaslr.c | 81 ++++++++++++++++++++++++++++++++++++++++-------------
- 1 file changed, 62 insertions(+), 19 deletions(-)
+ arch/x86/boot/compressed/head_64.S | 86 +++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 85 insertions(+), 1 deletion(-)
 
-diff --git a/arch/x86/mm/kaslr.c b/arch/x86/mm/kaslr.c
-index aed206475aa7..af599167fe3c 100644
---- a/arch/x86/mm/kaslr.c
-+++ b/arch/x86/mm/kaslr.c
-@@ -6,12 +6,12 @@
-  *
-  * Entropy is generated using the KASLR early boot functions now shared in
-  * the lib directory (originally written by Kees Cook). Randomization is
-- * done on PGD & PUD page table levels to increase possible addresses. The
-- * physical memory mapping code was adapted to support PUD level virtual
-- * addresses. This implementation on the best configuration provides 30,000
-- * possible virtual addresses in average for each memory region. An additional
-- * low memory page is used to ensure each CPU can start with a PGD aligned
-- * virtual address (for realmode).
-+ * done on PGD & P4D/PUD page table levels to increase possible addresses.
-+ * The physical memory mapping code was adapted to support P4D/PUD level
-+ * virtual addresses. This implementation on the best configuration provides
-+ * 30,000 possible virtual addresses in average for each memory region.
-+ * An additional low memory page is used to ensure each CPU can start with
-+ * a PGD aligned virtual address (for realmode).
-  *
-  * The order of each memory region is not changed. The feature looks at
-  * the available space for the regions based on different configuration
-@@ -70,7 +70,7 @@ static __initdata struct kaslr_memory_region {
- 	unsigned long *base;
- 	unsigned long size_tb;
- } kaslr_regions[] = {
--	{ &page_offset_base, 64/* Maximum */ },
-+	{ &page_offset_base, 1 << (__PHYSICAL_MASK_SHIFT - TB_SHIFT) /* Maximum */ },
- 	{ &vmalloc_base, VMALLOC_SIZE_TB },
- 	{ &vmemmap_base, 1 },
- };
-@@ -142,7 +142,10 @@ void __init kernel_randomize_memory(void)
- 		 */
- 		entropy = remain_entropy / (ARRAY_SIZE(kaslr_regions) - i);
- 		prandom_bytes_state(&rand_state, &rand, sizeof(rand));
--		entropy = (rand % (entropy + 1)) & PUD_MASK;
-+		if (IS_ENABLED(CONFIG_X86_5LEVEL))
-+			entropy = (rand % (entropy + 1)) & P4D_MASK;
-+		else
-+			entropy = (rand % (entropy + 1)) & PUD_MASK;
- 		vaddr += entropy;
- 		*kaslr_regions[i].base = vaddr;
+diff --git a/arch/x86/boot/compressed/head_64.S b/arch/x86/boot/compressed/head_64.S
+index d2ae1f821e0c..fbf4c32d0b62 100644
+--- a/arch/x86/boot/compressed/head_64.S
++++ b/arch/x86/boot/compressed/head_64.S
+@@ -346,6 +346,48 @@ preferred_addr:
+ 	/* Set up the stack */
+ 	leaq	boot_stack_end(%rbx), %rsp
  
-@@ -151,27 +154,21 @@ void __init kernel_randomize_memory(void)
- 		 * randomization alignment.
- 		 */
- 		vaddr += get_padding(&kaslr_regions[i]);
--		vaddr = round_up(vaddr + 1, PUD_SIZE);
-+		if (IS_ENABLED(CONFIG_X86_5LEVEL))
-+			vaddr = round_up(vaddr + 1, P4D_SIZE);
-+		else
-+			vaddr = round_up(vaddr + 1, PUD_SIZE);
- 		remain_entropy -= entropy;
- 	}
- }
++#ifdef CONFIG_X86_5LEVEL
++	/* Check if 5-level paging has already enabled */
++	movq	%cr4, %rax
++	testl	$X86_CR4_LA57, %eax
++	jnz	lvl5
++
++	/*
++	 * At this point we are in long mode with 4-level paging enabled,
++	 * but we want to enable 5-level paging.
++	 *
++	 * The problem is that we cannot do it directly. Setting LA57 in
++	 * long mode would trigger #GP. So we need to switch off long mode
++	 * first.
++	 *
++	 * NOTE: This is not going to work if bootloader put us above 4G
++	 * limit.
++	 *
++	 * The first step is go into compatibility mode.
++	 */
++
++	/* Clear additional page table */
++	leaq	lvl5_pgtable(%rbx), %rdi
++	xorq	%rax, %rax
++	movq	$(PAGE_SIZE/8), %rcx
++	rep	stosq
++
++	/*
++	 * Setup current CR3 as the first and only entry in a new top level
++	 * page table.
++	 */
++	movq	%cr3, %rdi
++	leaq	0x7 (%rdi), %rax
++	movq	%rax, lvl5_pgtable(%rbx)
++
++	/* Switch to compatibility mode (CS.L = 0 CS.D = 1) via far return */
++	pushq	$__KERNEL32_CS
++	leaq	compatible_mode(%rip), %rax
++	pushq	%rax
++	lretq
++lvl5:
++#endif
++
+ 	/* Zero EFLAGS */
+ 	pushq	$0
+ 	popfq
+@@ -429,6 +471,44 @@ relocated:
+ 	jmp	*%rax
  
--/*
-- * Create PGD aligned trampoline table to allow real mode initialization
-- * of additional CPUs. Consume only 1 low memory page.
-- */
--void __meminit init_trampoline(void)
-+static void __meminit init_trampoline_pud(void)
- {
- 	unsigned long paddr, paddr_next;
- 	pgd_t *pgd;
- 	pud_t *pud_page, *pud_page_tramp;
- 	int i;
- 
--	if (!kaslr_memory_enabled()) {
--		init_trampoline_default();
--		return;
--	}
--
- 	pud_page_tramp = alloc_low_page();
- 
- 	paddr = 0;
-@@ -192,3 +189,49 @@ void __meminit init_trampoline(void)
- 	set_pgd(&trampoline_pgd_entry,
- 		__pgd(_KERNPG_TABLE | __pa(pud_page_tramp)));
- }
+ 	.code32
++#ifdef CONFIG_X86_5LEVEL
++compatible_mode:
++	/* Setup data and stack segments */
++	movl	$__KERNEL_DS, %eax
++	movl	%eax, %ds
++	movl	%eax, %ss
 +
-+static void __meminit init_trampoline_p4d(void)
-+{
-+	unsigned long paddr, paddr_next;
-+	pgd_t *pgd;
-+	p4d_t *p4d_page, *p4d_page_tramp;
-+	int i;
++	/* Disable paging */
++	movl	%cr0, %eax
++	btrl	$X86_CR0_PG_BIT, %eax
++	movl	%eax, %cr0
 +
-+	p4d_page_tramp = alloc_low_page();
++	/* Point CR3 to 5-level paging */
++	leal	lvl5_pgtable(%ebx), %eax
++	movl	%eax, %cr3
 +
-+	paddr = 0;
-+	pgd = pgd_offset_k((unsigned long)__va(paddr));
-+	p4d_page = (p4d_t *) pgd_page_vaddr(*pgd);
++	/* Enable PAE and LA57 mode */
++	movl	%cr4, %eax
++	orl	$(X86_CR4_PAE | X86_CR4_LA57), %eax
++	movl	%eax, %cr4
 +
-+	for (i = p4d_index(paddr); i < PTRS_PER_P4D; i++, paddr = paddr_next) {
-+		p4d_t *p4d, *p4d_tramp;
-+		unsigned long vaddr = (unsigned long)__va(paddr);
++	/* Calculate address we are running at */
++	call	1f
++1:	popl	%edi
++	subl	$1b, %edi
 +
-+		p4d_tramp = p4d_page_tramp + p4d_index(paddr);
-+		p4d = p4d_page + p4d_index(vaddr);
-+		paddr_next = (paddr & P4D_MASK) + P4D_SIZE;
++	/* Prepare stack for far return to Long Mode */
++	pushl	$__KERNEL_CS
++	leal	lvl5(%edi), %eax
++	push	%eax
 +
-+		*p4d_tramp = *p4d;
-+	}
++	/* Enable paging back */
++	movl	$(X86_CR0_PG | X86_CR0_PE), %eax
++	movl	%eax, %cr0
 +
-+	set_pgd(&trampoline_pgd_entry,
-+		__pgd(_KERNPG_TABLE | __pa(p4d_page_tramp)));
-+}
++	lret
++#endif
 +
-+/*
-+ * Create PGD aligned trampoline table to allow real mode initialization
-+ * of additional CPUs. Consume only 1 low memory page.
-+ */
-+void __meminit init_trampoline(void)
-+{
-+
-+	if (!kaslr_memory_enabled()) {
-+		init_trampoline_default();
-+		return;
-+	}
-+
-+	if (IS_ENABLED(CONFIG_X86_5LEVEL))
-+		init_trampoline_p4d();
-+	else
-+		init_trampoline_pud();
-+}
+ no_longmode:
+ 	/* This isn't an x86-64 CPU so hang */
+ 1:
+@@ -442,7 +522,7 @@ gdt:
+ 	.word	gdt_end - gdt
+ 	.long	gdt
+ 	.word	0
+-	.quad	0x0000000000000000	/* NULL descriptor */
++	.quad	0x00cf9a000000ffff	/* __KERNEL32_CS */
+ 	.quad	0x00af9a000000ffff	/* __KERNEL_CS */
+ 	.quad	0x00cf92000000ffff	/* __KERNEL_DS */
+ 	.quad	0x0080890000000000	/* TS descriptor */
+@@ -486,3 +566,7 @@ boot_stack_end:
+ 	.balign 4096
+ pgtable:
+ 	.fill BOOT_PGT_SIZE, 1, 0
++#ifdef CONFIG_X86_5LEVEL
++lvl5_pgtable:
++	.fill PAGE_SIZE, 1, 0
++#endif
 -- 
 2.11.0
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
