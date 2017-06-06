@@ -1,12 +1,12 @@
 From: Palmer Dabbelt <palmer@dabbelt.com>
 Subject: [PATCH 7/7] MIPS: Use generic libgcc intrinsics
 Date: Tue,  6 Jun 2017 12:10:23 -0700
-Message-ID: <20170606191023.24581-8-palmer__47464.4566224471$1496776766$gmane$org@dabbelt.com>
+Message-ID: <20170606191023.24581-8-palmer__28398.5804221176$1496776819$gmane$org@dabbelt.com>
 References: <20170523220546.16758-1-palmer@dabbelt.com>
  <20170606191023.24581-1-palmer@dabbelt.com>
-Return-path: <linux-sh-owner@vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20170606191023.24581-1-palmer@dabbelt.com>
-Sender: linux-sh-owner@vger.kernel.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: monstr@monstr.eu, ralf@linux-mips.org, liqin.linux@gmail.com, lennox.wu@gmail.com, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, linux-mips@linux-mips.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, geert@linux-m68k.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Palmer Dabbelt <palmer@dabbelt.com>, Matt Redfearn <matt.redfearn@imgtec.com>
 List-Id: linux-arch.vger.kernel.org
@@ -275,4 +275,3 @@ index 08067fa538f2..000000000000
 -EXPORT_SYMBOL(__ucmpdi2);
 -- 
 2.13.0
-
