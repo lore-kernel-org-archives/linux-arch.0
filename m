@@ -1,131 +1,96 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from userp1040.oracle.com ([156.151.31.81]:38698 "EHLO
-        userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751458AbdFFTq5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 6 Jun 2017 15:46:57 -0400
-Subject: Re: [PATCH 0/4][V3] Improve watchdog config for arch watchdogs
-References: <20170530012659.16791-1-npiggin@gmail.com>
- <20170606160847.izishwer3m5jirkb@redhat.com>
-From: Babu Moger <babu.moger@oracle.com>
-Message-ID: <d274b1a5-c8b3-9e3a-b45d-c63c9022be91@oracle.com>
-Date: Tue, 6 Jun 2017 14:46:48 -0500
-MIME-Version: 1.0
-In-Reply-To: <20170606160847.izishwer3m5jirkb@redhat.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Content-Language: en-US
+Received: from mail-pf0-f194.google.com ([209.85.192.194]:36778 "EHLO
+        mail-pf0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751567AbdFFXBa (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 6 Jun 2017 19:01:30 -0400
+Received: by mail-pf0-f194.google.com with SMTP id y7so7021151pfd.3
+        for <linux-arch@vger.kernel.org>; Tue, 06 Jun 2017 16:01:30 -0700 (PDT)
+From: Palmer Dabbelt <palmer@dabbelt.com>
+Subject: [PATCH 06/17] pci: Add generic pcibios_{fixup_bus,align_resource}
+Date: Tue,  6 Jun 2017 15:59:56 -0700
+Message-ID: <20170606230007.19101-7-palmer@dabbelt.com>
+In-Reply-To: <20170606230007.19101-1-palmer@dabbelt.com>
+References: <20170523004107.536-1-palmer@dabbelt.com>
+ <20170606230007.19101-1-palmer@dabbelt.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Don Zickus <dzickus@redhat.com>, Nicholas Piggin <npiggin@gmail.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20170606194648.ZEh6IHftRWlt677yo9KRzjZVbiXZul13h1rH7qNCOWM@z>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, olof@lixom.net
+Cc: albert@sifive.com, patches@groups.riscv.org, Palmer Dabbelt <palmer@dabbelt.com>
+Message-ID: <20170606225956.EF5hNRMjExAYYL4dv2BMbfShIqkVMAA1PVRTGmxTyaY@z>
 
-Hi Don, Nicholas,
+While upstreaming the RISC-V port, it was pointed out that multiple
+architectures (arc, arm64, cris, microblaze, sh, tile) have copied the
+mostly empty versions of at least one of these functions.  This defines
+weakly bound versions of the common functions so other architetures can
+use them.
 
+Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
+---
+ drivers/pci/Makefile |  2 +-
+ drivers/pci/bios.c   | 42 ++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 43 insertions(+), 1 deletion(-)
+ create mode 100644 drivers/pci/bios.c
 
-On 6/6/2017 11:08 AM, Don Zickus wrote:
-> (adding Babu)
->
-> On Tue, May 30, 2017 at 11:26:55AM +1000, Nicholas Piggin wrote:
->> Since last time:
->>
->> - Have the perf based hardlockup detector use arch_touch_nmi_watchdog()
->>    rather than hld_touch_nmi_watchdog(). This changes direction slightly
->>    to make the perf-based hard lockup detector an alternative that an
->>    arch may select, rather than standalone. This better reflects how the
->>    code works in practice).
->>
->> - Hopefully fixed the Kconfig options. There's still a bit of ugliness
->>    that will require another pass or two over interfaces and config
->>    scheme, but the idea is to make a minimal change to get the powerpc
->>    HLD in, which gives a reasonable starting point to improve things
->>    further.
-> Hi Babu,
->
-> Does this patchset break sparc?  Specifically patch3 with all the config
-Patches applies, compiles fine and also works fine for most part. 
-However, there are few issues.
-
-We need to enter 'N' or 'Y'  for SOFTLOCKUP_DETECTOR.
-
-*
-* Restart config...
-*
-*
-* Debug Lockups and Hangs
-*
-Detect Hard and Soft Lockups (LOCKUP_DETECTOR) [Y/n/?] y
-   Detect Soft Lockups (SOFTLOCKUP_DETECTOR) [N/y] (NEW)
-
-For SPARC, softlockup is enabled by default earlier.   May be we need to 
-submit another patch to enable this in
-
-arch/sparc/configs/sparc64_defconfig.   Not  a big issue.
-
-
-Another issue.
-before that patch
-
-# cat /proc/sys/kernel/watchdog
-1
-# cat /proc/sys/kernel/nmi_watchdog
-1
-
-After the patch
-
-# cat /proc/sys/kernel/watchdog
-1
-# cat /proc/sys/kernel/nmi_watchdog
-0
-
-I think this is mostly due to change in this code below.
-
-#ifdef CONFIG_HARDLOCKUP_DETECTOR
-unsigned long __read_mostly watchdog_enabled = 
-SOFT_WATCHDOG_ENABLED|NMI_WATCHDOG_ENABLED;
-
-Old code was like this
-
-#if defined(CONFIG_HAVE_NMI_WATCHDOG) || defined(CONFIG_HARDLOCKUP_DETECTOR)
-unsigned long __read_mostly watchdog_enabled = 
-SOFT_WATCHDOG_ENABLED|NMI_WATCHDOG_ENABLED;
-#else
-unsigned long __read_mostly watchdog_enabled = SOFT_WATCHDOG_ENABLED;
-#endif
-
-SPARC defines CONFIG_HAVE_NMI_WATCHDOG.
-
-Thanks
-Babu
-
-> option changes?
->
-> Cheers,
-> Don
->
->> Nicholas Piggin (4):
->>    watchdog: remove unused declaration
->>    watchdog: Introduce arch_touch_nmi_watchdog()
->>    watchdog: Split up config options
->>    watchdog: Provide watchdog_reconfigure() for arch watchdogs
->>
->>   arch/blackfin/include/asm/nmi.h            |   2 +
->>   arch/blackfin/kernel/nmi.c                 |   2 +-
->>   arch/mn10300/include/asm/nmi.h             |   2 +
->>   arch/mn10300/kernel/mn10300-watchdog-low.S |   8 +-
->>   arch/mn10300/kernel/mn10300-watchdog.c     |   2 +-
->>   arch/powerpc/kernel/setup_64.c             |   2 +-
->>   arch/sparc/include/asm/nmi.h               |   1 +
->>   arch/sparc/kernel/nmi.c                    |   6 +-
->>   arch/x86/kernel/apic/hw_nmi.c              |   2 +-
->>   include/linux/nmi.h                        |  57 ++++---
->>   kernel/Makefile                            |   2 +-
->>   kernel/sysctl.c                            |  18 +-
->>   kernel/watchdog.c                          | 263 +++++++++++++++++++----------
->>   kernel/watchdog_hld.c                      |  37 +---
->>   lib/Kconfig.debug                          |  29 +++-
->>   15 files changed, 263 insertions(+), 170 deletions(-)
->>
->> -- 
->> 2.11.0
->>
+diff --git a/drivers/pci/Makefile b/drivers/pci/Makefile
+index a29d9ec05d13..fa7040915194 100644
+--- a/drivers/pci/Makefile
++++ b/drivers/pci/Makefile
+@@ -4,7 +4,7 @@
+ 
+ obj-y		+= access.o bus.o probe.o host-bridge.o remove.o pci.o \
+ 			pci-driver.o search.o pci-sysfs.o rom.o setup-res.o \
+-			irq.o vpd.o setup-bus.o vc.o mmap.o
++			irq.o vpd.o setup-bus.o vc.o mmap.o bios.o
+ obj-$(CONFIG_PROC_FS) += proc.o
+ obj-$(CONFIG_SYSFS) += slot.o
+ 
+diff --git a/drivers/pci/bios.c b/drivers/pci/bios.c
+new file mode 100644
+index 000000000000..ffe34c024aa8
+--- /dev/null
++++ b/drivers/pci/bios.c
+@@ -0,0 +1,42 @@
++/*
++ * Code borrowed from arch/arm64/kernel/pci.c
++ *   which borrowed from powerpc/kernel/pci-common.c
++ *   which borrowed from arch/alpha/kernel/pci.c
++ *
++ * Extruded from code written by
++ *      Dave Rusling (david.rusling@reo.mts.dec.com)
++ *      David Mosberger (davidm@cs.arizona.edu)
++ * Copyright (C) 1999 Andrea Arcangeli <andrea@suse.de>
++ * Copyright (C) 2000 Ivan Kokshaysky <ink@jurassic.park.msu.ru>
++ * Copyright (C) 2003 Anton Blanchard <anton@au.ibm.com>, IBM
++ * Copyright (C) 2014 ARM Ltd.
++ * Copyright (C) 2017 SiFive
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License
++ * version 2 as published by the Free Software Foundation.
++ */
++
++/* This file contains weakly bound functions that implement pcibios functions
++ * that some architectures have copied verbatim.
++ */
++
++#include <linux/pci.h>
++
++/*
++ * Called after each bus is probed, but before its children are examined
++ */
++__attribute__ ((weak))
++void pcibios_fixup_bus(struct pci_bus *bus)
++{
++       /* nothing to do, expected to be removed in the future */
++}
++/*
++ * We don't have to worry about legacy ISA devices, so nothing to do here
++ */
++__attribute__ ((weak))
++resource_size_t pcibios_align_resource(void *data, const struct resource *res,
++				       resource_size_t size, resource_size_t align)
++{
++       return res->start;
++}
+-- 
+2.13.0
