@@ -1,21 +1,23 @@
 From: Palmer Dabbelt <palmer@dabbelt.com>
 Subject: [PATCH 2/7] m32r: Use lib/ucmpdi2.c
 Date: Tue,  6 Jun 2017 12:10:18 -0700
-Message-ID: <20170606191023.24581-3-palmer__13139.7755737$1496776279$gmane$org@dabbelt.com>
+Message-ID: <20170606191023.24581-3-palmer__30537.7693301581$1496776333$gmane$org@dabbelt.com>
 References: <20170523220546.16758-1-palmer@dabbelt.com>
  <20170606191023.24581-1-palmer@dabbelt.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f194.google.com ([209.85.192.194]:36287 "EHLO
-        mail-pf0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751884AbdFFTKr (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 6 Jun 2017 15:10:47 -0400
-Received: by mail-pf0-f194.google.com with SMTP id y7so6590852pfd.3
-        for <linux-arch@vger.kernel.org>; Tue, 06 Jun 2017 12:10:36 -0700 (PDT)
+Return-path: <linux-mips-bounce@linux-mips.org>
 In-Reply-To: <20170606191023.24581-1-palmer@dabbelt.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-mips-bounce@linux-mips.org
+Errors-to: linux-mips-bounce@linux-mips.org
+List-help: <mailto:ecartis@linux-mips.org?Subject=help>
+List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
+List-software: Ecartis version 1.0.0
+List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
+List-owner: <mailto:ralf@linux-mips.org>
+List-post: <mailto:linux-mips@linux-mips.org>
+List-archive: <http://www.linux-mips.org/archives/linux-mips/>
 To: monstr@monstr.eu, ralf@linux-mips.org, liqin.linux@gmail.com, lennox.wu@gmail.com, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, linux-mips@linux-mips.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, geert@linux-m68k.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Palmer Dabbelt <palmer@dabbelt.com>
+List-Id: linux-arch.vger.kernel.org
 
 These files are functionally identical to the shared copies that I
 recently added.
