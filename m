@@ -1,47 +1,312 @@
 From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: [PATCH 05/17] MAINTAINERS: Add RISC-V
-Date: Tue,  6 Jun 2017 15:59:55 -0700
-Message-ID: <20170606230007.19101-6-palmer__31503.3503612087$1496790203$gmane$org@dabbelt.com>
+Subject: [PATCH 11/17] irqchip: RISC-V Local Interrupt Controller Driver
+Date: Tue,  6 Jun 2017 16:00:01 -0700
+Message-ID: <20170606230007.19101-12-palmer@dabbelt.com>
 References: <20170523004107.536-1-palmer@dabbelt.com>
  <20170606230007.19101-1-palmer@dabbelt.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pf0-f194.google.com ([209.85.192.194]:33551 "EHLO
+        mail-pf0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751634AbdFFXBk (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 6 Jun 2017 19:01:40 -0400
+Received: by mail-pf0-f194.google.com with SMTP id f27so25611667pfe.0
+        for <linux-arch@vger.kernel.org>; Tue, 06 Jun 2017 16:01:40 -0700 (PDT)
 In-Reply-To: <20170606230007.19101-1-palmer@dabbelt.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, olof@lixom.net
-Cc: albert@sifive.com, patches@groups.riscv.org, nathan=20Neusch=C3=A4fer?= <j.neuschaefer@gmx.net>, Palmer Dabbelt <palmer@dabbelt.com>
-List-Id: linux-arch.vger.kernel.org
+Cc: albert@sifive.com, patches@groups.riscv.org, Palmer Dabbelt <palmer@dabbelt.com>
 
-From: Jonathan Neuschäfer <j.neuschaefer@gmx.net>
+This patch adds a driver that manages the local interrupts on each
+RISC-V hart, as specifiec by the RISC-V supervisor level ISA manual.
+The local interrupt controller manages software interrupts, timer
+interrupts, and hardware interrupts (which are routed via the
+platform level interrupt controller).  Per-hart local interrupt
+controllers are found on all RISC-V systems.
 
-RISC-V needs a MAINTAINERS entry. Let's add one.
-
-Signed-off-by: Jonathan Neuschäfer <j.neuschaefer@gmx.net>
 Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
 ---
- MAINTAINERS | 8 ++++++++
- 1 file changed, 8 insertions(+)
+ drivers/irqchip/Kconfig          |  14 +++
+ drivers/irqchip/Makefile         |   1 +
+ drivers/irqchip/irq-riscv-intc.c | 239 +++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 254 insertions(+)
+ create mode 100644 drivers/irqchip/irq-riscv-intc.c
 
-diff --git a/MAINTAINERS b/MAINTAINERS
-index 7a28acd7f525..50b18dad8c22 100644
---- a/MAINTAINERS
-+++ b/MAINTAINERS
-@@ -10877,6 +10877,14 @@ M:	Maxim Levitsky <maximlevitsky@gmail.com>
- S:	Maintained
- F:	drivers/memstick/host/r592.*
+diff --git a/drivers/irqchip/Kconfig b/drivers/irqchip/Kconfig
+index 2906d63934ef..dfde170e5886 100644
+--- a/drivers/irqchip/Kconfig
++++ b/drivers/irqchip/Kconfig
+@@ -313,3 +313,17 @@ config RISCV_PLIC
+ 	   interrupt sources (MSI, GPIO, etc) are subordinate to the PLIC.
  
-+RISC-V ARCHITECTURE
-+M:	Palmer Dabbelt <palmer@sifive.com>
-+M:	Albert Ou <albert@sifive.com>
-+L:	patches@groups.riscv.org
-+T:	git https://github.com/riscv/riscv-linux
-+S:	Supported
-+F:	arch/riscv/
+ 	   If you don't know what to do here, say Y.
 +
- ROCCAT DRIVERS
- M:	Stefan Achatz <erazor_de@users.sourceforge.net>
- W:	http://sourceforge.net/projects/roccat/
++config RISCV_INTC
++	def_bool y if RISCV
++	#bool "RISC-V Interrupt Controller"
++	depends on RISCV
++	default y
++	help
++	   This enables support for the local interrupt controller found in
++	   standard RISC-V systems.  The local interrupt controller handles
++	   timer interrupts, software interrupts, and hardware interrupts.
++	   Without a local interrupt controller the system will be unable to
++	   handle any interrupts, including those passed via the PLIC.
++
++	   If you don't know what to do here, say Y.
+diff --git a/drivers/irqchip/Makefile b/drivers/irqchip/Makefile
+index bed94cc89146..bc9a6b45903b 100644
+--- a/drivers/irqchip/Makefile
++++ b/drivers/irqchip/Makefile
+@@ -77,3 +77,4 @@ obj-$(CONFIG_ARCH_ASPEED)		+= irq-aspeed-vic.o
+ obj-$(CONFIG_STM32_EXTI) 		+= irq-stm32-exti.o
+ obj-$(CONFIG_QCOM_IRQ_COMBINER)		+= qcom-irq-combiner.o
+ obj-$(CONFIG_RISCV_PLIC)		+= irq-riscv-plic.o
++obj-$(CONFIG_RISCV_INTC)		+= irq-riscv-intc.o
+diff --git a/drivers/irqchip/irq-riscv-intc.c b/drivers/irqchip/irq-riscv-intc.c
+new file mode 100644
+index 000000000000..8150a035aada
+--- /dev/null
++++ b/drivers/irqchip/irq-riscv-intc.c
+@@ -0,0 +1,239 @@
++/*
++ * Copyright (C) 2012 Regents of the University of California
++ * Copyright (C) 2017 SiFive
++ *
++ *   This program is free software; you can redistribute it and/or
++ *   modify it under the terms of the GNU General Public License
++ *   as published by the Free Software Foundation, version 2.
++ *
++ *   This program is distributed in the hope that it will be useful,
++ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ *   GNU General Public License for more details.
++ */
++
++#include <linux/irq.h>
++#include <linux/irqchip.h>
++#include <linux/irqdomain.h>
++#include <linux/interrupt.h>
++#include <linux/ftrace.h>
++#include <linux/of.h>
++#include <linux/seq_file.h>
++
++#include <asm/ptrace.h>
++#include <asm/sbi.h>
++#include <asm/smp.h>
++
++struct riscv_irq_data {
++	struct irq_chip		chip;
++	struct irq_domain	*domain;
++	int			hart;
++	char			name[20];
++};
++DEFINE_PER_CPU(struct riscv_irq_data, riscv_irq_data);
++DEFINE_PER_CPU(atomic_long_t, riscv_early_sie);
++
++static void riscv_software_interrupt(void)
++{
++#ifdef CONFIG_SMP
++	irqreturn_t ret;
++
++	ret = handle_ipi();
++	if (ret != IRQ_NONE)
++		return;
++#endif
++
++	BUG();
++}
++
++asmlinkage void __irq_entry do_IRQ(unsigned int cause, struct pt_regs *regs)
++{
++	struct pt_regs *old_regs = set_irq_regs(regs);
++	struct irq_domain *domain;
++
++	irq_enter();
++
++	/* There are three classes of interrupt: timer, software, and
++	 * external devices.  We dispatch between them here.  External
++	 * device interrupts use the generic IRQ mechanisms.
++	 */
++	switch (cause) {
++	case INTERRUPT_CAUSE_TIMER:
++		riscv_timer_interrupt();
++		break;
++	case INTERRUPT_CAUSE_SOFTWARE:
++		riscv_software_interrupt();
++		break;
++	default:
++		domain = per_cpu(riscv_irq_data, smp_processor_id()).domain;
++		generic_handle_irq(irq_find_mapping(domain, cause));
++		break;
++	}
++
++	irq_exit();
++	set_irq_regs(old_regs);
++}
++
++static int riscv_irqdomain_map(struct irq_domain *d, unsigned int irq,
++			       irq_hw_number_t hwirq)
++{
++	struct riscv_irq_data *data = d->host_data;
++
++	irq_set_chip_and_handler(irq, &data->chip, handle_simple_irq);
++	irq_set_chip_data(irq, data);
++	irq_set_noprobe(irq);
++
++	return 0;
++}
++
++static const struct irq_domain_ops riscv_irqdomain_ops = {
++	.map	= riscv_irqdomain_map,
++	.xlate	= irq_domain_xlate_onecell,
++};
++
++static void riscv_irq_mask(struct irq_data *d)
++{
++	struct riscv_irq_data *data = irq_data_get_irq_chip_data(d);
++
++	BUG_ON(smp_processor_id() != data->hart);
++	csr_clear(sie, 1 << (long)d->hwirq);
++}
++
++static void riscv_irq_unmask(struct irq_data *d)
++{
++	struct riscv_irq_data *data = irq_data_get_irq_chip_data(d);
++
++	BUG_ON(smp_processor_id() != data->hart);
++	csr_set(sie, 1 << (long)d->hwirq);
++}
++
++static void riscv_irq_enable_helper(void *d)
++{
++	riscv_irq_unmask(d);
++}
++
++static void riscv_irq_enable(struct irq_data *d)
++{
++	struct riscv_irq_data *data = irq_data_get_irq_chip_data(d);
++
++	/* There are two phases to setting up an interrupt: first we set a bit
++	 * in this bookkeeping structure, which is used by trap_init to
++	 * initialize SIE for each hart as it comes up.
++	 */
++	atomic_long_or((1 << (long)d->hwirq),
++		       &per_cpu(riscv_early_sie, data->hart));
++
++	/* The CPU is usually online, so here we just attempt to enable the
++	 * interrupt by writing SIE directly.  We need to write SIE on the
++	 * correct hart, which might be another hart.
++	 */
++	if (data->hart == smp_processor_id())
++		riscv_irq_unmask(d);
++	else if (cpu_online(data->hart))
++		smp_call_function_single(data->hart,
++					 riscv_irq_enable_helper,
++					 d,
++					 true);
++}
++
++static void riscv_irq_disable_helper(void *d)
++{
++	riscv_irq_mask(d);
++}
++
++static void riscv_irq_disable(struct irq_data *d)
++{
++	struct riscv_irq_data *data = irq_data_get_irq_chip_data(d);
++
++	/* This is the mirror of riscv_irq_enable. */
++	atomic_long_and(~(1 << (long)d->hwirq),
++			&per_cpu(riscv_early_sie, data->hart));
++	if (data->hart == smp_processor_id())
++		riscv_irq_mask(d);
++	else if (cpu_online(data->hart))
++		smp_call_function_single(data->hart,
++					 riscv_irq_disable_helper,
++					 d,
++					 true);
++}
++
++static void riscv_irq_mask_noop(struct irq_data *d) { }
++
++static void riscv_irq_unmask_noop(struct irq_data *d) { }
++
++static void riscv_irq_enable_noop(struct irq_data *d)
++{
++	struct device_node *data = irq_data_get_irq_chip_data(d);
++	u32 hart;
++
++	if (!of_property_read_u32(data, "reg", &hart))
++		printk(
++		  KERN_WARNING "enabled interrupt %d for missing hart %d (this interrupt has no handler)\n",
++		  (int)d->hwirq, hart);
++}
++
++static struct irq_chip riscv_noop_chip = {
++	.name = "riscv,cpu-intc,noop",
++	.irq_mask = riscv_irq_mask_noop,
++	.irq_unmask = riscv_irq_unmask_noop,
++	.irq_enable = riscv_irq_enable_noop,
++};
++
++static int riscv_irqdomain_map_noop(struct irq_domain *d, unsigned int irq,
++				    irq_hw_number_t hwirq)
++{
++	struct device_node *data = d->host_data;
++
++	irq_set_chip_and_handler(irq, &riscv_noop_chip, handle_simple_irq);
++	irq_set_chip_data(irq, data);
++	return 0;
++}
++
++static const struct irq_domain_ops riscv_irqdomain_ops_noop = {
++	.map    = riscv_irqdomain_map_noop,
++	.xlate  = irq_domain_xlate_onecell,
++};
++
++static int riscv_intc_init(struct device_node *node, struct device_node *parent)
++{
++	int hart;
++	struct riscv_irq_data *data;
++
++	if (parent)
++		return 0;
++
++	hart = riscv_of_processor_hart(node->parent);
++	if (hart < 0) {
++		/* If a hart is disabled, create a no-op irq domain.  Devices
++		 * may still have interrupts connected to those harts.  This is
++		 * not wrong... unless they actually load a driver that needs
++		 * it!
++		 */
++		irq_domain_add_linear(
++			node,
++			8*sizeof(uintptr_t),
++			&riscv_irqdomain_ops_noop,
++			node->parent);
++		return 0;
++	}
++
++	data = &per_cpu(riscv_irq_data, hart);
++	snprintf(data->name, sizeof(data->name), "riscv,cpu_intc,%d", hart);
++	data->hart = hart;
++	data->chip.name = data->name;
++	data->chip.irq_mask = riscv_irq_mask;
++	data->chip.irq_unmask = riscv_irq_unmask;
++	data->chip.irq_enable = riscv_irq_enable;
++	data->chip.irq_disable = riscv_irq_disable;
++	data->domain = irq_domain_add_linear(
++		node,
++		8*sizeof(uintptr_t),
++		&riscv_irqdomain_ops,
++		data);
++	WARN_ON(!data->domain);
++	printk(KERN_INFO "%s: %d local interrupts mapped\n",
++	       data->name, 8*(int)sizeof(uintptr_t));
++	return 0;
++}
++
++IRQCHIP_DECLARE(riscv, "riscv,cpu-intc", riscv_intc_init);
 -- 
 2.13.0
