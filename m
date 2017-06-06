@@ -1,277 +1,465 @@
 From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: [PATCH 7/7] MIPS: Use generic libgcc intrinsics
-Date: Tue,  6 Jun 2017 12:10:23 -0700
-Message-ID: <20170606191023.24581-8-palmer__28398.5804221176$1496776819$gmane$org@dabbelt.com>
+Subject: [PATCH 1/7] lib: Add shared copies of some GCC library routines
+Date: Tue,  6 Jun 2017 12:10:17 -0700
+Message-ID: <20170606191023.24581-2-palmer__37456.2525692911$1496777978$gmane$org@dabbelt.com>
 References: <20170523220546.16758-1-palmer@dabbelt.com>
  <20170606191023.24581-1-palmer@dabbelt.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pg0-f66.google.com ([74.125.83.66]:33591 "EHLO
+        mail-pg0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751440AbdFFTKf (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 6 Jun 2017 15:10:35 -0400
+Received: by mail-pg0-f66.google.com with SMTP id a70so5499457pge.0
+        for <linux-arch@vger.kernel.org>; Tue, 06 Jun 2017 12:10:35 -0700 (PDT)
 In-Reply-To: <20170606191023.24581-1-palmer@dabbelt.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: monstr@monstr.eu, ralf@linux-mips.org, liqin.linux@gmail.com, lennox.wu@gmail.com, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, linux-mips@linux-mips.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, geert@linux-m68k.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Palmer Dabbelt <palmer@dabbelt.com>, Matt Redfearn <matt.redfearn@imgtec.com>
-List-Id: linux-arch.vger.kernel.org
+Cc: Palmer Dabbelt <palmer@dabbelt.com>
 
-These routines in arch/mips/lib/ are functionally identical to those
-recently added to lib/ so remove them and select the generic ones.
+Many ports (m32r, microblaze, mips, parisc, score, and sparc) use
+functionally identical copies of various GCC library routine files,
+which came up as we were submitting the RISC-V port (which also uses
+some of these).
 
-Signed-off-by: Matt Redfearn <matt.redfearn@imgtec.com>
+This patch adds a new copy of these library routine files, which are
+functionally identical to the various other copies.  These are
+availiable via Kconfig as CONFIG_LIB_$ROUTINE, which currently isn't
+used anywhere.
+
 Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
+Reviewed-by: Geert Uytterhoeven <geert@linux-m68k.org>
 ---
- arch/mips/Kconfig                  |  5 +++++
- arch/mips/boot/compressed/Makefile |  4 +++-
- arch/mips/lib/Makefile             |  2 +-
- arch/mips/lib/ashldi3.c            | 29 -----------------------------
- arch/mips/lib/ashrdi3.c            | 31 -------------------------------
- arch/mips/lib/cmpdi2.c             | 27 ---------------------------
- arch/mips/lib/libgcc.h             | 25 -------------------------
- arch/mips/lib/lshrdi3.c            | 29 -----------------------------
- arch/mips/lib/ucmpdi2.c            | 21 ---------------------
- 9 files changed, 9 insertions(+), 164 deletions(-)
- delete mode 100644 arch/mips/lib/ashldi3.c
- delete mode 100644 arch/mips/lib/ashrdi3.c
- delete mode 100644 arch/mips/lib/cmpdi2.c
- delete mode 100644 arch/mips/lib/libgcc.h
- delete mode 100644 arch/mips/lib/lshrdi3.c
- delete mode 100644 arch/mips/lib/ucmpdi2.c
+ include/lib/libgcc.h | 44 ++++++++++++++++++++++++++++++++
+ lib/Kconfig          | 18 +++++++++++++
+ lib/Makefile         |  8 ++++++
+ lib/ashldi3.c        | 45 ++++++++++++++++++++++++++++++++
+ lib/ashrdi3.c        | 46 +++++++++++++++++++++++++++++++++
+ lib/cmpdi2.c         | 42 ++++++++++++++++++++++++++++++
+ lib/lshrdi3.c        | 45 ++++++++++++++++++++++++++++++++
+ lib/muldi3.c         | 72 ++++++++++++++++++++++++++++++++++++++++++++++++++++
+ lib/ucmpdi2.c        | 35 +++++++++++++++++++++++++
+ 9 files changed, 355 insertions(+)
+ create mode 100644 include/lib/libgcc.h
+ create mode 100644 lib/ashldi3.c
+ create mode 100644 lib/ashrdi3.c
+ create mode 100644 lib/cmpdi2.c
+ create mode 100644 lib/lshrdi3.c
+ create mode 100644 lib/muldi3.c
+ create mode 100644 lib/ucmpdi2.c
 
-diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
-index 2828ecde133d..25713699ef1d 100644
---- a/arch/mips/Kconfig
-+++ b/arch/mips/Kconfig
-@@ -70,6 +70,11 @@ config MIPS
- 	select HAVE_EXIT_THREAD
- 	select HAVE_REGS_AND_STACK_ACCESS_API
- 	select HAVE_COPY_THREAD_TLS
-+	select GENERIC_ASHLDI3
-+	select GENERIC_ASHRDI3
-+	select GENERIC_CMPDI2
-+	select GENERIC_LSHRDI3
-+	select GENERIC_UCMPDI2
+diff --git a/include/lib/libgcc.h b/include/lib/libgcc.h
+new file mode 100644
+index 000000000000..a5397e34e005
+--- /dev/null
++++ b/include/lib/libgcc.h
+@@ -0,0 +1,44 @@
++/*
++ * include/lib/libgcc.h
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, see the file COPYING, or write
++ * to the Free Software Foundation, Inc.
++ */
++
++
++#ifndef __LIB_LIBGCC_H
++#define __LIB_LIBGCC_H
++
++#include <asm/byteorder.h>
++
++typedef int word_type __attribute__ ((mode (__word__)));
++
++#ifdef __BIG_ENDIAN
++struct DWstruct {
++	int high, low;
++};
++#elif defined(__LITTLE_ENDIAN)
++struct DWstruct {
++	int low, high;
++};
++#else
++#error I feel sick.
++#endif
++
++typedef union {
++	struct DWstruct s;
++	long long ll;
++} DWunion;
++
++#endif /* __ASM_LIBGCC_H */
+diff --git a/lib/Kconfig b/lib/Kconfig
+index 0c8b78a9ae2e..7a9c934d91fd 100644
+--- a/lib/Kconfig
++++ b/lib/Kconfig
+@@ -565,3 +565,21 @@ config PRIME_NUMBERS
+ 	tristate
  
- menu "Machine selection"
+ endmenu
++
++config GENERIC_ASHLDI3
++	def_bool n
++
++config GENERIC_ASHRDI3
++	def_bool n
++
++config GENERIC_LSHRDI3
++	def_bool n
++
++config GENERIC_MULDI3
++	def_bool n
++
++config GENERIC_CMPDI2
++	def_bool n
++
++config GENERIC_UCMPDI2
++	def_bool n
+diff --git a/lib/Makefile b/lib/Makefile
+index 0166fbc0fa81..5f68242f7774 100644
+--- a/lib/Makefile
++++ b/lib/Makefile
+@@ -243,3 +243,11 @@ UBSAN_SANITIZE_ubsan.o := n
+ obj-$(CONFIG_SBITMAP) += sbitmap.o
  
-diff --git a/arch/mips/boot/compressed/Makefile b/arch/mips/boot/compressed/Makefile
-index c675eece389a..83cc738fb7af 100644
---- a/arch/mips/boot/compressed/Makefile
-+++ b/arch/mips/boot/compressed/Makefile
-@@ -48,7 +48,9 @@ vmlinuzobjs-$(CONFIG_KERNEL_XZ) += $(obj)/ashldi3.o $(obj)/bswapsi.o
- 
- extra-y += ashldi3.c bswapsi.c
- $(obj)/ashldi3.o $(obj)/bswapsi.o: KBUILD_CFLAGS += -I$(srctree)/arch/mips/lib
--$(obj)/ashldi3.c $(obj)/bswapsi.c: $(obj)/%.c: $(srctree)/arch/mips/lib/%.c
-+$(obj)/ashldi3.c $(obj)/%.c: $(srctree)/lib/%.c
-+	$(call cmd,shipped)
-+$(obj)/bswapsi.c: $(obj)/%.c: $(srctree)/arch/mips/lib/%.c
- 	$(call cmd,shipped)
- 
- targets := $(notdir $(vmlinuzobjs-y))
-diff --git a/arch/mips/lib/Makefile b/arch/mips/lib/Makefile
-index 0344e575f522..814e739d6f86 100644
---- a/arch/mips/lib/Makefile
-+++ b/arch/mips/lib/Makefile
-@@ -15,4 +15,4 @@ obj-$(CONFIG_CPU_R3000)		+= r3k_dump_tlb.o
- obj-$(CONFIG_CPU_TX39XX)	+= r3k_dump_tlb.o
- 
- # libgcc-style stuff needed in the kernel
--obj-y += ashldi3.o ashrdi3.o bswapsi.o bswapdi.o cmpdi2.o lshrdi3.o ucmpdi2.o
-+obj-y += bswapsi.o bswapdi.o
-diff --git a/arch/mips/lib/ashldi3.c b/arch/mips/lib/ashldi3.c
-deleted file mode 100644
-index c3e22053d13e..000000000000
---- a/arch/mips/lib/ashldi3.c
-+++ /dev/null
-@@ -1,29 +0,0 @@
--#include <linux/export.h>
--
--#include "libgcc.h"
--
--long long notrace __ashldi3(long long u, word_type b)
--{
--	DWunion uu, w;
--	word_type bm;
--
--	if (b == 0)
--		return u;
--
--	uu.ll = u;
--	bm = 32 - b;
--
--	if (bm <= 0) {
--		w.s.low = 0;
--		w.s.high = (unsigned int) uu.s.low << -bm;
--	} else {
--		const unsigned int carries = (unsigned int) uu.s.low >> bm;
--
--		w.s.low = (unsigned int) uu.s.low << b;
--		w.s.high = ((unsigned int) uu.s.high << b) | carries;
--	}
--
--	return w.ll;
--}
--
--EXPORT_SYMBOL(__ashldi3);
-diff --git a/arch/mips/lib/ashrdi3.c b/arch/mips/lib/ashrdi3.c
-deleted file mode 100644
-index 17456024873d..000000000000
---- a/arch/mips/lib/ashrdi3.c
-+++ /dev/null
-@@ -1,31 +0,0 @@
--#include <linux/export.h>
--
--#include "libgcc.h"
--
--long long notrace __ashrdi3(long long u, word_type b)
--{
--	DWunion uu, w;
--	word_type bm;
--
--	if (b == 0)
--		return u;
--
--	uu.ll = u;
--	bm = 32 - b;
--
--	if (bm <= 0) {
--		/* w.s.high = 1..1 or 0..0 */
--		w.s.high =
--		    uu.s.high >> 31;
--		w.s.low = uu.s.high >> -bm;
--	} else {
--		const unsigned int carries = (unsigned int) uu.s.high << bm;
--
--		w.s.high = uu.s.high >> b;
--		w.s.low = ((unsigned int) uu.s.low >> b) | carries;
--	}
--
--	return w.ll;
--}
--
--EXPORT_SYMBOL(__ashrdi3);
-diff --git a/arch/mips/lib/cmpdi2.c b/arch/mips/lib/cmpdi2.c
-deleted file mode 100644
-index 9d849d8743c9..000000000000
---- a/arch/mips/lib/cmpdi2.c
-+++ /dev/null
-@@ -1,27 +0,0 @@
--#include <linux/export.h>
--
--#include "libgcc.h"
--
--word_type notrace __cmpdi2(long long a, long long b)
--{
--	const DWunion au = {
--		.ll = a
--	};
--	const DWunion bu = {
--		.ll = b
--	};
--
--	if (au.s.high < bu.s.high)
--		return 0;
--	else if (au.s.high > bu.s.high)
--		return 2;
--
--	if ((unsigned int) au.s.low < (unsigned int) bu.s.low)
--		return 0;
--	else if ((unsigned int) au.s.low > (unsigned int) bu.s.low)
--		return 2;
--
--	return 1;
--}
--
--EXPORT_SYMBOL(__cmpdi2);
-diff --git a/arch/mips/lib/libgcc.h b/arch/mips/lib/libgcc.h
-deleted file mode 100644
-index 05909d58e2fe..000000000000
---- a/arch/mips/lib/libgcc.h
-+++ /dev/null
-@@ -1,25 +0,0 @@
--#ifndef __ASM_LIBGCC_H
--#define __ASM_LIBGCC_H
--
--#include <asm/byteorder.h>
--
--typedef int word_type __attribute__ ((mode (__word__)));
--
--#ifdef __BIG_ENDIAN
--struct DWstruct {
--	int high, low;
--};
--#elif defined(__LITTLE_ENDIAN)
--struct DWstruct {
--	int low, high;
--};
--#else
--#error I feel sick.
--#endif
--
--typedef union {
--	struct DWstruct s;
--	long long ll;
--} DWunion;
--
--#endif /* __ASM_LIBGCC_H */
-diff --git a/arch/mips/lib/lshrdi3.c b/arch/mips/lib/lshrdi3.c
-deleted file mode 100644
-index 221167c1be55..000000000000
---- a/arch/mips/lib/lshrdi3.c
-+++ /dev/null
-@@ -1,29 +0,0 @@
--#include <linux/export.h>
--
--#include "libgcc.h"
--
--long long notrace __lshrdi3(long long u, word_type b)
--{
--	DWunion uu, w;
--	word_type bm;
--
--	if (b == 0)
--		return u;
--
--	uu.ll = u;
--	bm = 32 - b;
--
--	if (bm <= 0) {
--		w.s.high = 0;
--		w.s.low = (unsigned int) uu.s.high >> -bm;
--	} else {
--		const unsigned int carries = (unsigned int) uu.s.high << bm;
--
--		w.s.high = (unsigned int) uu.s.high >> b;
--		w.s.low = ((unsigned int) uu.s.low >> b) | carries;
--	}
--
--	return w.ll;
--}
--
--EXPORT_SYMBOL(__lshrdi3);
-diff --git a/arch/mips/lib/ucmpdi2.c b/arch/mips/lib/ucmpdi2.c
-deleted file mode 100644
-index 08067fa538f2..000000000000
---- a/arch/mips/lib/ucmpdi2.c
-+++ /dev/null
-@@ -1,21 +0,0 @@
--#include <linux/export.h>
--
--#include "libgcc.h"
--
--word_type notrace __ucmpdi2(unsigned long long a, unsigned long long b)
--{
--	const DWunion au = {.ll = a};
--	const DWunion bu = {.ll = b};
--
--	if ((unsigned int) au.s.high < (unsigned int) bu.s.high)
--		return 0;
--	else if ((unsigned int) au.s.high > (unsigned int) bu.s.high)
--		return 2;
--	if ((unsigned int) au.s.low < (unsigned int) bu.s.low)
--		return 0;
--	else if ((unsigned int) au.s.low > (unsigned int) bu.s.low)
--		return 2;
--	return 1;
--}
--
--EXPORT_SYMBOL(__ucmpdi2);
+ obj-$(CONFIG_PARMAN) += parman.o
++
++# GCC library routines
++obj-$(CONFIG_GENERIC_ASHLDI3) += ashldi3.o
++obj-$(CONFIG_GENERIC_ASHRDI3) += ashrdi3.o
++obj-$(CONFIG_GENERIC_LSHRDI3) += lshrdi3.o
++obj-$(CONFIG_GENERIC_MULDI3) += muldi3.o
++obj-$(CONFIG_GENERIC_CMPDI2) += cmpdi2.o
++obj-$(CONFIG_GENERIC_UCMPDI2) += ucmpdi2.o
+diff --git a/lib/ashldi3.c b/lib/ashldi3.c
+new file mode 100644
+index 000000000000..ff4ec63d2ab6
+--- /dev/null
++++ b/lib/ashldi3.c
+@@ -0,0 +1,45 @@
++/*
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, see the file COPYING, or write
++ * to the Free Software Foundation, Inc.
++ */
++
++
++#include <linux/export.h>
++
++#include <lib/libgcc.h>
++
++long long notrace __ashldi3(long long u, word_type b)
++{
++	DWunion uu, w;
++	word_type bm;
++
++	if (b == 0)
++		return u;
++
++	uu.ll = u;
++	bm = 32 - b;
++
++	if (bm <= 0) {
++		w.s.low = 0;
++		w.s.high = (unsigned int) uu.s.low << -bm;
++	} else {
++		const unsigned int carries = (unsigned int) uu.s.low >> bm;
++
++		w.s.low = (unsigned int) uu.s.low << b;
++		w.s.high = ((unsigned int) uu.s.high << b) | carries;
++	}
++
++	return w.ll;
++}
++EXPORT_SYMBOL(__ashldi3);
+diff --git a/lib/ashrdi3.c b/lib/ashrdi3.c
+new file mode 100644
+index 000000000000..2e67c97ac65a
+--- /dev/null
++++ b/lib/ashrdi3.c
+@@ -0,0 +1,46 @@
++/*
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, see the file COPYING, or write
++ * to the Free Software Foundation, Inc.
++ */
++
++#include <linux/export.h>
++
++#include <lib/libgcc.h>
++
++long long notrace __ashrdi3(long long u, word_type b)
++{
++	DWunion uu, w;
++	word_type bm;
++
++	if (b == 0)
++		return u;
++
++	uu.ll = u;
++	bm = 32 - b;
++
++	if (bm <= 0) {
++		/* w.s.high = 1..1 or 0..0 */
++		w.s.high =
++		    uu.s.high >> 31;
++		w.s.low = uu.s.high >> -bm;
++	} else {
++		const unsigned int carries = (unsigned int) uu.s.high << bm;
++
++		w.s.high = uu.s.high >> b;
++		w.s.low = ((unsigned int) uu.s.low >> b) | carries;
++	}
++
++	return w.ll;
++}
++EXPORT_SYMBOL(__ashrdi3);
+diff --git a/lib/cmpdi2.c b/lib/cmpdi2.c
+new file mode 100644
+index 000000000000..6d7ebf6c2b86
+--- /dev/null
++++ b/lib/cmpdi2.c
+@@ -0,0 +1,42 @@
++/*
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, see the file COPYING, or write
++ * to the Free Software Foundation, Inc.
++ */
++
++#include <linux/export.h>
++
++#include <lib/libgcc.h>
++
++word_type notrace __cmpdi2(long long a, long long b)
++{
++	const DWunion au = {
++		.ll = a
++	};
++	const DWunion bu = {
++		.ll = b
++	};
++
++	if (au.s.high < bu.s.high)
++		return 0;
++	else if (au.s.high > bu.s.high)
++		return 2;
++
++	if ((unsigned int) au.s.low < (unsigned int) bu.s.low)
++		return 0;
++	else if ((unsigned int) au.s.low > (unsigned int) bu.s.low)
++		return 2;
++
++	return 1;
++}
++EXPORT_SYMBOL(__cmpdi2);
+diff --git a/lib/lshrdi3.c b/lib/lshrdi3.c
+new file mode 100644
+index 000000000000..8e845f4bb65f
+--- /dev/null
++++ b/lib/lshrdi3.c
+@@ -0,0 +1,45 @@
++/*
++ * lib/lshrdi3.c
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, see the file COPYING, or write
++ * to the Free Software Foundation, Inc.
++ */
++
++#include <linux/module.h>
++#include <lib/libgcc.h>
++
++long long notrace __lshrdi3(long long u, word_type b)
++{
++	DWunion uu, w;
++	word_type bm;
++
++	if (b == 0)
++		return u;
++
++	uu.ll = u;
++	bm = 32 - b;
++
++	if (bm <= 0) {
++		w.s.high = 0;
++		w.s.low = (unsigned int) uu.s.high >> -bm;
++	} else {
++		const unsigned int carries = (unsigned int) uu.s.high << bm;
++
++		w.s.high = (unsigned int) uu.s.high >> b;
++		w.s.low = ((unsigned int) uu.s.low >> b) | carries;
++	}
++
++	return w.ll;
++}
++EXPORT_SYMBOL(__lshrdi3);
+diff --git a/lib/muldi3.c b/lib/muldi3.c
+new file mode 100644
+index 000000000000..88938543e10a
+--- /dev/null
++++ b/lib/muldi3.c
+@@ -0,0 +1,72 @@
++/*
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, see the file COPYING, or write
++ * to the Free Software Foundation, Inc.
++ */
++
++#include <linux/export.h>
++#include <lib/libgcc.h>
++
++#define W_TYPE_SIZE 32
++
++#define __ll_B ((unsigned long) 1 << (W_TYPE_SIZE / 2))
++#define __ll_lowpart(t) ((unsigned long) (t) & (__ll_B - 1))
++#define __ll_highpart(t) ((unsigned long) (t) >> (W_TYPE_SIZE / 2))
++
++/* If we still don't have umul_ppmm, define it using plain C.  */
++#if !defined(umul_ppmm)
++#define umul_ppmm(w1, w0, u, v)						\
++	do {								\
++		unsigned long __x0, __x1, __x2, __x3;			\
++		unsigned short __ul, __vl, __uh, __vh;			\
++									\
++		__ul = __ll_lowpart(u);					\
++		__uh = __ll_highpart(u);				\
++		__vl = __ll_lowpart(v);					\
++		__vh = __ll_highpart(v);				\
++									\
++		__x0 = (unsigned long) __ul * __vl;			\
++		__x1 = (unsigned long) __ul * __vh;			\
++		__x2 = (unsigned long) __uh * __vl;			\
++		__x3 = (unsigned long) __uh * __vh;			\
++									\
++		__x1 += __ll_highpart(__x0); /* this can't give carry */\
++		__x1 += __x2; /* but this indeed can */			\
++		if (__x1 < __x2) /* did we get it? */			\
++		__x3 += __ll_B; /* yes, add it in the proper pos */	\
++									\
++		(w1) = __x3 + __ll_highpart(__x1);			\
++		(w0) = __ll_lowpart(__x1) * __ll_B + __ll_lowpart(__x0);\
++	} while (0)
++#endif
++
++#if !defined(__umulsidi3)
++#define __umulsidi3(u, v) ({				\
++	DWunion __w;					\
++	umul_ppmm(__w.s.high, __w.s.low, u, v);		\
++	__w.ll;						\
++	})
++#endif
++
++long long notrace __muldi3(long long u, long long v)
++{
++	const DWunion uu = {.ll = u};
++	const DWunion vv = {.ll = v};
++	DWunion w = {.ll = __umulsidi3(uu.s.low, vv.s.low)};
++
++	w.s.high += ((unsigned long) uu.s.low * (unsigned long) vv.s.high
++		+ (unsigned long) uu.s.high * (unsigned long) vv.s.low);
++
++	return w.ll;
++}
++EXPORT_SYMBOL(__muldi3);
+diff --git a/lib/ucmpdi2.c b/lib/ucmpdi2.c
+new file mode 100644
+index 000000000000..49a53505c8e3
+--- /dev/null
++++ b/lib/ucmpdi2.c
+@@ -0,0 +1,35 @@
++/*
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, see the file COPYING, or write
++ * to the Free Software Foundation, Inc.
++ */
++
++#include <linux/module.h>
++#include <lib/libgcc.h>
++
++word_type __ucmpdi2(unsigned long long a, unsigned long long b)
++{
++	const DWunion au = {.ll = a};
++	const DWunion bu = {.ll = b};
++
++	if ((unsigned int) au.s.high < (unsigned int) bu.s.high)
++		return 0;
++	else if ((unsigned int) au.s.high > (unsigned int) bu.s.high)
++		return 2;
++	if ((unsigned int) au.s.low < (unsigned int) bu.s.low)
++		return 0;
++	else if ((unsigned int) au.s.low > (unsigned int) bu.s.low)
++		return 2;
++	return 1;
++}
++EXPORT_SYMBOL(__ucmpdi2);
 -- 
 2.13.0
