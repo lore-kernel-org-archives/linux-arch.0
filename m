@@ -1,15 +1,21 @@
 From: Palmer Dabbelt <palmer@dabbelt.com>
 Subject: [PATCH 08/17] dts: include documentation for the RISC-V interrupt controllers
 Date: Tue,  6 Jun 2017 15:59:58 -0700
-Message-ID: <20170606230007.19101-9-palmer@dabbelt.com>
+Message-ID: <20170606230007.19101-9-palmer__48021.5843338103$1496790293$gmane$org@dabbelt.com>
 References: <20170523004107.536-1-palmer@dabbelt.com>
  <20170606230007.19101-1-palmer@dabbelt.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pg0-f68.google.com ([74.125.83.68]:36358 "EHLO
+        mail-pg0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751576AbdFFXBc (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 6 Jun 2017 19:01:32 -0400
+Received: by mail-pg0-f68.google.com with SMTP id v18so10880925pgb.3
+        for <linux-arch@vger.kernel.org>; Tue, 06 Jun 2017 16:01:32 -0700 (PDT)
 In-Reply-To: <20170606230007.19101-1-palmer@dabbelt.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, olof@lixom.net
 Cc: albert@sifive.com, patches@groups.riscv.org, "Wesley W. Terpstra" <wesley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>
-List-Id: linux-arch.vger.kernel.org
 
 From: "Wesley W. Terpstra" <wesley@sifive.com>
 
