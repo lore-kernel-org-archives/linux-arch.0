@@ -1,94 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:26106 "EHLO mga09.intel.com"
+Received: from mga04.intel.com ([192.55.52.120]:32707 "EHLO mga04.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751672AbdFFLbu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 6 Jun 2017 07:31:50 -0400
+        id S1751495AbdFFLbl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 6 Jun 2017 07:31:41 -0400
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv7 03/14] x86/boot/efi: Cleanup initialization of GDT entries
-Date: Tue,  6 Jun 2017 14:31:22 +0300
-Message-ID: <20170606113133.22974-4-kirill.shutemov@linux.intel.com>
+Subject: [PATCHv7 04/14] x86/boot/efi: Fix __KERNEL_CS definition of GDT entry on 64-bit configuration
+Date: Tue,  6 Jun 2017 14:31:23 +0300
+Message-ID: <20170606113133.22974-5-kirill.shutemov@linux.intel.com>
 In-Reply-To: <20170606113133.22974-1-kirill.shutemov@linux.intel.com>
 References: <20170606113133.22974-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Matt Fleming <matt@codeblueprint.co.uk>
-Message-ID: <20170606113122.IcvKG-QExBVTOBmb3ZMa7RfkQUQh7Zucz_AF4iJjyzs@z>
+Message-ID: <20170606113123.GQ1Jd28xjWRqK-UOCkni6c0nVnCfkZGmAweWFygMB5A@z>
 
-This is preparation for following patches without changing semantics of the
-code.
+Define __KERNEL_CS GDT entry as long mode (.L=1, .D=0) on 64-bit
+configuration.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 Cc: Matt Fleming <matt@codeblueprint.co.uk>
 ---
- arch/x86/boot/compressed/eboot.c | 39 +++++++++++++++++++++------------------
- 1 file changed, 21 insertions(+), 18 deletions(-)
+ arch/x86/boot/compressed/eboot.c | 9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
 
 diff --git a/arch/x86/boot/compressed/eboot.c b/arch/x86/boot/compressed/eboot.c
-index cbf4b87f55b9..1d5093d1f319 100644
+index 1d5093d1f319..b75c20f779ea 100644
 --- a/arch/x86/boot/compressed/eboot.c
 +++ b/arch/x86/boot/compressed/eboot.c
-@@ -1049,6 +1049,7 @@ struct boot_params *efi_main(struct efi_config *c,
- 	/* The first GDT is a dummy and the second is unused. */
- 	desc += 2;
- 
-+	/* __KERNEL_CS */
- 	desc->limit0 = 0xffff;
- 	desc->base0 = 0x0000;
- 	desc->base1 = 0x0000;
-@@ -1062,8 +1063,9 @@ struct boot_params *efi_main(struct efi_config *c,
- 	desc->d = SEG_OP_SIZE_32BIT;
- 	desc->g = SEG_GRANULARITY_4KB;
- 	desc->base2 = 0x00;
--
- 	desc++;
-+
-+	/* __KERNEL_DS */
- 	desc->limit0 = 0xffff;
- 	desc->base0 = 0x0000;
- 	desc->base1 = 0x0000;
-@@ -1077,24 +1079,25 @@ struct boot_params *efi_main(struct efi_config *c,
- 	desc->d = SEG_OP_SIZE_32BIT;
- 	desc->g = SEG_GRANULARITY_4KB;
- 	desc->base2 = 0x00;
--
--#ifdef CONFIG_X86_64
--	/* Task segment value */
- 	desc++;
--	desc->limit0 = 0x0000;
--	desc->base0 = 0x0000;
--	desc->base1 = 0x0000;
--	desc->type = SEG_TYPE_TSS;
--	desc->s = 0;
--	desc->dpl = 0;
--	desc->p = 1;
--	desc->limit = 0x0;
--	desc->avl = 0;
+@@ -1059,8 +1059,13 @@ struct boot_params *efi_main(struct efi_config *c,
+ 	desc->p = 1;
+ 	desc->limit = 0xf;
+ 	desc->avl = 0;
 -	desc->l = 0;
--	desc->d = 0;
--	desc->g = SEG_GRANULARITY_4KB;
--	desc->base2 = 0x00;
--#endif /* CONFIG_X86_64 */
-+
+-	desc->d = SEG_OP_SIZE_32BIT;
 +	if (IS_ENABLED(CONFIG_X86_64)) {
-+		/* Task segment value */
-+		desc->limit0 = 0x0000;
-+		desc->base0 = 0x0000;
-+		desc->base1 = 0x0000;
-+		desc->type = SEG_TYPE_TSS;
-+		desc->s = 0;
-+		desc->dpl = 0;
-+		desc->p = 1;
-+		desc->limit = 0x0;
-+		desc->avl = 0;
-+		desc->l = 0;
++		desc->l = 1;
 +		desc->d = 0;
-+		desc->g = SEG_GRANULARITY_4KB;
-+		desc->base2 = 0x00;
-+		desc++;
++	} else {
++		desc->l = 0;
++		desc->d = SEG_OP_SIZE_32BIT;
 +	}
- 
- 	asm volatile("cli");
- 	asm volatile ("lgdt %0" : : "m" (*gdt));
+ 	desc->g = SEG_GRANULARITY_4KB;
+ 	desc->base2 = 0x00;
+ 	desc++;
 -- 
 2.11.0
