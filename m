@@ -1,85 +1,124 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:51851 "EHLO mga11.intel.com"
+Received: from mga14.intel.com ([192.55.52.115]:24637 "EHLO mga14.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751433AbdFFLbl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 6 Jun 2017 07:31:41 -0400
+        id S1751705AbdFFLb5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 6 Jun 2017 07:31:57 -0400
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv7 00/14] x86: 5-level paging enabling for v4.13, Part 4
-Date: Tue,  6 Jun 2017 14:31:19 +0300
-Message-ID: <20170606113133.22974-1-kirill.shutemov@linux.intel.com>
+Subject: [PATCHv7 11/14] x86/mm: Make kernel_physical_mapping_init() support 5-level paging
+Date: Tue,  6 Jun 2017 14:31:30 +0300
+Message-ID: <20170606113133.22974-12-kirill.shutemov@linux.intel.com>
+In-Reply-To: <20170606113133.22974-1-kirill.shutemov@linux.intel.com>
+References: <20170606113133.22974-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20170606113119.5p0AuvCa7QKm3P2yZb4lD_wW5WZA4iZUfp__ddv0EHM@z>
+Message-ID: <20170606113130.7b7to7rUtal4SBiNBYR8jVfaR-0_12fhyQAUPE4z_CU@z>
 
-Here's updated version of the last bunch of of patches that brings initial
-5-level paging enabling.
+Populate additional page table level if CONFIG_X86_5LEVEL is enabled.
 
-Please review and consider applying.
+Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+---
+ arch/x86/mm/init_64.c | 69 ++++++++++++++++++++++++++++++++++++++++++++-------
+ 1 file changed, 60 insertions(+), 9 deletions(-)
 
-Changes since v6:
- - Major rework 5-level paging enabling in decompression code to fix #GP when
-   bootloader enables long mode.
- - Fix in sync_global_pgds() (Andrey Ryabinin);
- - Couple Reviewed-by form Juergen Gross.
-
-Kirill A. Shutemov (14):
-  x86/mm/gup: Switch GUP to the generic get_user_page_fast()
-    implementation
-  x86/asm: Fix comment in return_from_SYSCALL_64
-  x86/boot/efi: Cleanup initialization of GDT entries
-  x86/boot/efi: Fix __KERNEL_CS definition of GDT entry on 64-bit
-    configuration
-  x86/boot/efi: Define __KERNEL32_CS GDT on 64-bit configurations
-  x86/boot/compressed: Enable 5-level paging during decompression stage
-  x86/boot/64: Rewrite startup_64 in C
-  x86/boot/64: Rename init_level4_pgt and early_level4_pgt
-  x86/boot/64: Add support of additional page table level during early
-    boot
-  x86/mm: Add sync_global_pgds() for configuration with 5-level paging
-  x86/mm: Make kernel_physical_mapping_init() support 5-level paging
-  x86/mm: Add support for 5-level paging for KASLR
-  x86: Enable 5-level paging support
-  x86/mm: Allow to have userspace mappings above 47-bits
-
- arch/arm/Kconfig                            |   2 +-
- arch/arm64/Kconfig                          |   2 +-
- arch/powerpc/Kconfig                        |   2 +-
- arch/x86/Kconfig                            |   8 +
- arch/x86/boot/compressed/eboot.c            |  73 ++--
- arch/x86/boot/compressed/head_64.S          |  86 ++++-
- arch/x86/entry/entry_64.S                   |   3 +-
- arch/x86/include/asm/elf.h                  |   4 +-
- arch/x86/include/asm/mmu_context.h          |  12 -
- arch/x86/include/asm/mpx.h                  |   9 +
- arch/x86/include/asm/pgtable-3level.h       |  47 +++
- arch/x86/include/asm/pgtable.h              |  55 ++-
- arch/x86/include/asm/pgtable_64.h           |  22 +-
- arch/x86/include/asm/processor.h            |  12 +-
- arch/x86/include/uapi/asm/processor-flags.h |   2 +
- arch/x86/kernel/espfix_64.c                 |   2 +-
- arch/x86/kernel/head64.c                    | 143 +++++++-
- arch/x86/kernel/head_64.S                   | 131 ++------
- arch/x86/kernel/machine_kexec_64.c          |   2 +-
- arch/x86/kernel/sys_x86_64.c                |  30 +-
- arch/x86/mm/Makefile                        |   2 +-
- arch/x86/mm/dump_pagetables.c               |   2 +-
- arch/x86/mm/gup.c                           | 496 ----------------------------
- arch/x86/mm/hugetlbpage.c                   |  27 +-
- arch/x86/mm/init_64.c                       | 108 +++++-
- arch/x86/mm/kasan_init_64.c                 |  12 +-
- arch/x86/mm/kaslr.c                         |  81 +++--
- arch/x86/mm/mmap.c                          |   6 +-
- arch/x86/mm/mpx.c                           |  33 +-
- arch/x86/realmode/init.c                    |   2 +-
- arch/x86/xen/Kconfig                        |   1 +
- arch/x86/xen/mmu_pv.c                       |  16 +-
- arch/x86/xen/xen-pvh.S                      |   2 +-
- mm/Kconfig                                  |   2 +-
- mm/gup.c                                    |  10 +-
- 35 files changed, 722 insertions(+), 725 deletions(-)
- delete mode 100644 arch/x86/mm/gup.c
-
+diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
+index 7a9497ac468d..b863d14e452a 100644
+--- a/arch/x86/mm/init_64.c
++++ b/arch/x86/mm/init_64.c
+@@ -624,6 +624,57 @@ phys_pud_init(pud_t *pud_page, unsigned long paddr, unsigned long paddr_end,
+ 	return paddr_last;
+ }
+ 
++static unsigned long __meminit
++phys_p4d_init(p4d_t *p4d_page, unsigned long paddr, unsigned long paddr_end,
++	      unsigned long page_size_mask)
++{
++	unsigned long paddr_next, paddr_last = paddr_end;
++	unsigned long vaddr = (unsigned long)__va(paddr);
++	int i = p4d_index(vaddr);
++
++	if (!IS_ENABLED(CONFIG_X86_5LEVEL))
++		return phys_pud_init((pud_t *) p4d_page, paddr, paddr_end, page_size_mask);
++
++	for (; i < PTRS_PER_P4D; i++, paddr = paddr_next) {
++		p4d_t *p4d;
++		pud_t *pud;
++
++		vaddr = (unsigned long)__va(paddr);
++		p4d = p4d_page + p4d_index(vaddr);
++		paddr_next = (paddr & P4D_MASK) + P4D_SIZE;
++
++		if (paddr >= paddr_end) {
++			if (!after_bootmem &&
++			    !e820__mapped_any(paddr & P4D_MASK, paddr_next,
++					     E820_TYPE_RAM) &&
++			    !e820__mapped_any(paddr & P4D_MASK, paddr_next,
++					     E820_TYPE_RESERVED_KERN))
++				set_p4d(p4d, __p4d(0));
++			continue;
++		}
++
++		if (!p4d_none(*p4d)) {
++			pud = pud_offset(p4d, 0);
++			paddr_last = phys_pud_init(pud, paddr,
++					paddr_end,
++					page_size_mask);
++			__flush_tlb_all();
++			continue;
++		}
++
++		pud = alloc_low_page();
++		paddr_last = phys_pud_init(pud, paddr, paddr_end,
++					   page_size_mask);
++
++		spin_lock(&init_mm.page_table_lock);
++		p4d_populate(&init_mm, p4d, pud);
++		spin_unlock(&init_mm.page_table_lock);
++	}
++	__flush_tlb_all();
++
++	return paddr_last;
++}
++
+ /*
+  * Create page table mapping for the physical memory for specific physical
+  * addresses. The virtual and physical addresses have to be aligned on PMD level
+@@ -645,26 +696,26 @@ kernel_physical_mapping_init(unsigned long paddr_start,
+ 	for (; vaddr < vaddr_end; vaddr = vaddr_next) {
+ 		pgd_t *pgd = pgd_offset_k(vaddr);
+ 		p4d_t *p4d;
+-		pud_t *pud;
+ 
+ 		vaddr_next = (vaddr & PGDIR_MASK) + PGDIR_SIZE;
+ 
+-		BUILD_BUG_ON(pgd_none(*pgd));
+-		p4d = p4d_offset(pgd, vaddr);
+-		if (p4d_val(*p4d)) {
+-			pud = (pud_t *)p4d_page_vaddr(*p4d);
+-			paddr_last = phys_pud_init(pud, __pa(vaddr),
++		if (pgd_val(*pgd)) {
++			p4d = (p4d_t *)pgd_page_vaddr(*pgd);
++			paddr_last = phys_p4d_init(p4d, __pa(vaddr),
+ 						   __pa(vaddr_end),
+ 						   page_size_mask);
+ 			continue;
+ 		}
+ 
+-		pud = alloc_low_page();
+-		paddr_last = phys_pud_init(pud, __pa(vaddr), __pa(vaddr_end),
++		p4d = alloc_low_page();
++		paddr_last = phys_p4d_init(p4d, __pa(vaddr), __pa(vaddr_end),
+ 					   page_size_mask);
+ 
+ 		spin_lock(&init_mm.page_table_lock);
+-		p4d_populate(&init_mm, p4d, pud);
++		if (IS_ENABLED(CONFIG_X86_5LEVEL))
++			pgd_populate(&init_mm, pgd, p4d);
++		else
++			p4d_populate(&init_mm, p4d_offset(pgd, vaddr), (pud_t *) p4d);
+ 		spin_unlock(&init_mm.page_table_lock);
+ 		pgd_changed = true;
+ 	}
 -- 
 2.11.0
