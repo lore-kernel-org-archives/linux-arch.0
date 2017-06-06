@@ -1,336 +1,126 @@
-From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: [PATCH 3/7] microblaze: Use libgcc files from lib/
-Date: Tue,  6 Jun 2017 12:10:19 -0700
-Message-ID: <20170606191023.24581-4-palmer__37526.1954534382$1496778077$gmane$org@dabbelt.com>
-References: <20170523220546.16758-1-palmer@dabbelt.com>
- <20170606191023.24581-1-palmer@dabbelt.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f196.google.com ([209.85.192.196]:35366 "EHLO
-        mail-pf0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751558AbdFFTKd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 6 Jun 2017 15:10:33 -0400
-Received: by mail-pf0-f196.google.com with SMTP id u26so25161548pfd.2
-        for <linux-arch@vger.kernel.org>; Tue, 06 Jun 2017 12:10:33 -0700 (PDT)
-In-Reply-To: <20170606191023.24581-1-palmer@dabbelt.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: monstr@monstr.eu, ralf@linux-mips.org, liqin.linux@gmail.com, lennox.wu@gmail.com, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, linux-mips@linux-mips.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, geert@linux-m68k.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Palmer Dabbelt <palmer@dabbelt.com>
+From: Babu Moger <babu.moger@oracle.com>
+Subject: Re: [PATCH 0/4][V3] Improve watchdog config for arch watchdogs
+Date: Tue, 6 Jun 2017 14:46:48 -0500
+Message-ID: <d274b1a5-c8b3-9e3a-b45d-c63c9022be91@oracle.com>
+References: <20170530012659.16791-1-npiggin@gmail.com>
+ <20170606160847.izishwer3m5jirkb@redhat.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20170606160847.izishwer3m5jirkb@redhat.com>
+Content-Language: en-US
+Sender: linux-kernel-owner@vger.kernel.org
+To: Don Zickus <dzickus@redhat.com>, Nicholas Piggin <npiggin@gmail.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-These files are functionally identical to the shared copies that I
-recently added.
+Hi Don, Nicholas,
 
-Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
-Reviewed-by: Geert Uytterhoeven <geert@linux-m68k.org>
----
- arch/microblaze/Kconfig       |  6 +++++
- arch/microblaze/lib/Makefile  |  3 +--
- arch/microblaze/lib/ashldi3.c | 28 ---------------------
- arch/microblaze/lib/ashrdi3.c | 30 -----------------------
- arch/microblaze/lib/cmpdi2.c  | 26 --------------------
- arch/microblaze/lib/libgcc.h  | 32 ------------------------
- arch/microblaze/lib/lshrdi3.c | 28 ---------------------
- arch/microblaze/lib/muldi3.c  | 57 -------------------------------------------
- arch/microblaze/lib/ucmpdi2.c | 20 ---------------
- 9 files changed, 7 insertions(+), 223 deletions(-)
- delete mode 100644 arch/microblaze/lib/ashldi3.c
- delete mode 100644 arch/microblaze/lib/ashrdi3.c
- delete mode 100644 arch/microblaze/lib/cmpdi2.c
- delete mode 100644 arch/microblaze/lib/libgcc.h
- delete mode 100644 arch/microblaze/lib/lshrdi3.c
- delete mode 100644 arch/microblaze/lib/muldi3.c
- delete mode 100644 arch/microblaze/lib/ucmpdi2.c
 
-diff --git a/arch/microblaze/Kconfig b/arch/microblaze/Kconfig
-index 85885a501dce..833487c17996 100644
---- a/arch/microblaze/Kconfig
-+++ b/arch/microblaze/Kconfig
-@@ -34,6 +34,12 @@ config MICROBLAZE
- 	select TRACING_SUPPORT
- 	select VIRT_TO_BUS
- 	select CPU_NO_EFFICIENT_FFS
-+	select GENERIC_ASHLDI3
-+	select GENERIC_ASHRDI3
-+	select GENERIC_CMPDI2
-+	select GENERIC_LSHRDI3
-+	select GENERIC_MULDI3
-+	select GENERIC_UCMPDI3
- 
- config SWAP
- 	def_bool n
-diff --git a/arch/microblaze/lib/Makefile b/arch/microblaze/lib/Makefile
-index 70c7ae6a3fb5..c9a4d537e2fd 100644
---- a/arch/microblaze/lib/Makefile
-+++ b/arch/microblaze/lib/Makefile
-@@ -19,5 +19,4 @@ endif
- lib-y += uaccess_old.o
- 
- # libgcc-style stuff needed in the kernel
--obj-y += ashldi3.o ashrdi3.o cmpdi2.o divsi3.o lshrdi3.o modsi3.o
--obj-y += muldi3.o mulsi3.o ucmpdi2.o udivsi3.o umodsi3.o
-+obj-y += divsi3.o modsi3.o mulsi3.o udivsi3.o umodsi3.o
-diff --git a/arch/microblaze/lib/ashldi3.c b/arch/microblaze/lib/ashldi3.c
-deleted file mode 100644
-index 1af904cd972d..000000000000
---- a/arch/microblaze/lib/ashldi3.c
-+++ /dev/null
-@@ -1,28 +0,0 @@
--#include <linux/export.h>
--
--#include "libgcc.h"
--
--long long __ashldi3(long long u, word_type b)
--{
--	DWunion uu, w;
--	word_type bm;
--
--	if (b == 0)
--		return u;
--
--	uu.ll = u;
--	bm = 32 - b;
--
--	if (bm <= 0) {
--		w.s.low = 0;
--		w.s.high = (unsigned int) uu.s.low << -bm;
--	} else {
--		const unsigned int carries = (unsigned int) uu.s.low >> bm;
--
--		w.s.low = (unsigned int) uu.s.low << b;
--		w.s.high = ((unsigned int) uu.s.high << b) | carries;
--	}
--
--	return w.ll;
--}
--EXPORT_SYMBOL(__ashldi3);
-diff --git a/arch/microblaze/lib/ashrdi3.c b/arch/microblaze/lib/ashrdi3.c
-deleted file mode 100644
-index 32c334c05d04..000000000000
---- a/arch/microblaze/lib/ashrdi3.c
-+++ /dev/null
-@@ -1,30 +0,0 @@
--#include <linux/export.h>
--
--#include "libgcc.h"
--
--long long __ashrdi3(long long u, word_type b)
--{
--	DWunion uu, w;
--	word_type bm;
--
--	if (b == 0)
--		return u;
--
--	uu.ll = u;
--	bm = 32 - b;
--
--	if (bm <= 0) {
--		/* w.s.high = 1..1 or 0..0 */
--		w.s.high =
--		    uu.s.high >> 31;
--		w.s.low = uu.s.high >> -bm;
--	} else {
--		const unsigned int carries = (unsigned int) uu.s.high << bm;
--
--		w.s.high = uu.s.high >> b;
--		w.s.low = ((unsigned int) uu.s.low >> b) | carries;
--	}
--
--	return w.ll;
--}
--EXPORT_SYMBOL(__ashrdi3);
-diff --git a/arch/microblaze/lib/cmpdi2.c b/arch/microblaze/lib/cmpdi2.c
-deleted file mode 100644
-index 67abc9ac1bd4..000000000000
---- a/arch/microblaze/lib/cmpdi2.c
-+++ /dev/null
-@@ -1,26 +0,0 @@
--#include <linux/export.h>
--
--#include "libgcc.h"
--
--word_type __cmpdi2(long long a, long long b)
--{
--	const DWunion au = {
--		.ll = a
--	};
--	const DWunion bu = {
--		.ll = b
--	};
--
--	if (au.s.high < bu.s.high)
--		return 0;
--	else if (au.s.high > bu.s.high)
--		return 2;
--
--	if ((unsigned int) au.s.low < (unsigned int) bu.s.low)
--		return 0;
--	else if ((unsigned int) au.s.low > (unsigned int) bu.s.low)
--		return 2;
--
--	return 1;
--}
--EXPORT_SYMBOL(__cmpdi2);
-diff --git a/arch/microblaze/lib/libgcc.h b/arch/microblaze/lib/libgcc.h
-deleted file mode 100644
-index ab077ef7e14b..000000000000
---- a/arch/microblaze/lib/libgcc.h
-+++ /dev/null
-@@ -1,32 +0,0 @@
--#ifndef __ASM_LIBGCC_H
--#define __ASM_LIBGCC_H
--
--#include <asm/byteorder.h>
--
--typedef int word_type __attribute__ ((mode (__word__)));
--
--#ifdef __BIG_ENDIAN
--struct DWstruct {
--	int high, low;
--};
--#elif defined(__LITTLE_ENDIAN)
--struct DWstruct {
--	int low, high;
--};
--#else
--#error I feel sick.
--#endif
--
--typedef union {
--	struct DWstruct s;
--	long long ll;
--} DWunion;
--
--extern long long __ashldi3(long long u, word_type b);
--extern long long __ashrdi3(long long u, word_type b);
--extern word_type __cmpdi2(long long a, long long b);
--extern long long __lshrdi3(long long u, word_type b);
--extern long long __muldi3(long long u, long long v);
--extern word_type __ucmpdi2(unsigned long long a, unsigned long long b);
--
--#endif /* __ASM_LIBGCC_H */
-diff --git a/arch/microblaze/lib/lshrdi3.c b/arch/microblaze/lib/lshrdi3.c
-deleted file mode 100644
-index adcb253f11c8..000000000000
---- a/arch/microblaze/lib/lshrdi3.c
-+++ /dev/null
-@@ -1,28 +0,0 @@
--#include <linux/export.h>
--
--#include "libgcc.h"
--
--long long __lshrdi3(long long u, word_type b)
--{
--	DWunion uu, w;
--	word_type bm;
--
--	if (b == 0)
--		return u;
--
--	uu.ll = u;
--	bm = 32 - b;
--
--	if (bm <= 0) {
--		w.s.high = 0;
--		w.s.low = (unsigned int) uu.s.high >> -bm;
--	} else {
--		const unsigned int carries = (unsigned int) uu.s.high << bm;
--
--		w.s.high = (unsigned int) uu.s.high >> b;
--		w.s.low = ((unsigned int) uu.s.low >> b) | carries;
--	}
--
--	return w.ll;
--}
--EXPORT_SYMBOL(__lshrdi3);
-diff --git a/arch/microblaze/lib/muldi3.c b/arch/microblaze/lib/muldi3.c
-deleted file mode 100644
-index a3f9a03acdcd..000000000000
---- a/arch/microblaze/lib/muldi3.c
-+++ /dev/null
-@@ -1,57 +0,0 @@
--#include <linux/export.h>
--
--#include "libgcc.h"
--
--#define W_TYPE_SIZE 32
--
--#define __ll_B ((unsigned long) 1 << (W_TYPE_SIZE / 2))
--#define __ll_lowpart(t) ((unsigned long) (t) & (__ll_B - 1))
--#define __ll_highpart(t) ((unsigned long) (t) >> (W_TYPE_SIZE / 2))
--
--/* If we still don't have umul_ppmm, define it using plain C.  */
--#if !defined(umul_ppmm)
--#define umul_ppmm(w1, w0, u, v)						\
--	do {								\
--		unsigned long __x0, __x1, __x2, __x3;			\
--		unsigned short __ul, __vl, __uh, __vh;			\
--									\
--		__ul = __ll_lowpart(u);					\
--		__uh = __ll_highpart(u);				\
--		__vl = __ll_lowpart(v);					\
--		__vh = __ll_highpart(v);				\
--									\
--		__x0 = (unsigned long) __ul * __vl;			\
--		__x1 = (unsigned long) __ul * __vh;			\
--		__x2 = (unsigned long) __uh * __vl;			\
--		__x3 = (unsigned long) __uh * __vh;			\
--									\
--		__x1 += __ll_highpart(__x0); /* this can't give carry */\
--		__x1 += __x2; /* but this indeed can */			\
--		if (__x1 < __x2) /* did we get it? */			\
--		__x3 += __ll_B; /* yes, add it in the proper pos */	\
--									\
--		(w1) = __x3 + __ll_highpart(__x1);			\
--		(w0) = __ll_lowpart(__x1) * __ll_B + __ll_lowpart(__x0);\
--	} while (0)
--#endif
--
--#if !defined(__umulsidi3)
--#define __umulsidi3(u, v) ({				\
--	DWunion __w;					\
--	umul_ppmm(__w.s.high, __w.s.low, u, v);		\
--	__w.ll;						\
--	})
--#endif
--
--long long __muldi3(long long u, long long v)
--{
--	const DWunion uu = {.ll = u};
--	const DWunion vv = {.ll = v};
--	DWunion w = {.ll = __umulsidi3(uu.s.low, vv.s.low)};
--
--	w.s.high += ((unsigned long) uu.s.low * (unsigned long) vv.s.high
--		+ (unsigned long) uu.s.high * (unsigned long) vv.s.low);
--
--	return w.ll;
--}
--EXPORT_SYMBOL(__muldi3);
-diff --git a/arch/microblaze/lib/ucmpdi2.c b/arch/microblaze/lib/ucmpdi2.c
-deleted file mode 100644
-index d05f1585121c..000000000000
---- a/arch/microblaze/lib/ucmpdi2.c
-+++ /dev/null
-@@ -1,20 +0,0 @@
--#include <linux/export.h>
--
--#include "libgcc.h"
--
--word_type __ucmpdi2(unsigned long long a, unsigned long long b)
--{
--	const DWunion au = {.ll = a};
--	const DWunion bu = {.ll = b};
--
--	if ((unsigned int) au.s.high < (unsigned int) bu.s.high)
--		return 0;
--	else if ((unsigned int) au.s.high > (unsigned int) bu.s.high)
--		return 2;
--	if ((unsigned int) au.s.low < (unsigned int) bu.s.low)
--		return 0;
--	else if ((unsigned int) au.s.low > (unsigned int) bu.s.low)
--		return 2;
--	return 1;
--}
--EXPORT_SYMBOL(__ucmpdi2);
--- 
-2.13.0
+On 6/6/2017 11:08 AM, Don Zickus wrote:
+> (adding Babu)
+>
+> On Tue, May 30, 2017 at 11:26:55AM +1000, Nicholas Piggin wrote:
+>> Since last time:
+>>
+>> - Have the perf based hardlockup detector use arch_touch_nmi_watchdog()
+>>    rather than hld_touch_nmi_watchdog(). This changes direction slightly
+>>    to make the perf-based hard lockup detector an alternative that an
+>>    arch may select, rather than standalone. This better reflects how the
+>>    code works in practice).
+>>
+>> - Hopefully fixed the Kconfig options. There's still a bit of ugliness
+>>    that will require another pass or two over interfaces and config
+>>    scheme, but the idea is to make a minimal change to get the powerpc
+>>    HLD in, which gives a reasonable starting point to improve things
+>>    further.
+> Hi Babu,
+>
+> Does this patchset break sparc?  Specifically patch3 with all the config
+Patches applies, compiles fine and also works fine for most part. 
+However, there are few issues.
+
+We need to enter 'N' or 'Y'  for SOFTLOCKUP_DETECTOR.
+
+*
+* Restart config...
+*
+*
+* Debug Lockups and Hangs
+*
+Detect Hard and Soft Lockups (LOCKUP_DETECTOR) [Y/n/?] y
+   Detect Soft Lockups (SOFTLOCKUP_DETECTOR) [N/y] (NEW)
+
+For SPARC, softlockup is enabled by default earlier.   May be we need to 
+submit another patch to enable this in
+
+arch/sparc/configs/sparc64_defconfig.   Not  a big issue.
+
+
+Another issue.
+before that patch
+
+# cat /proc/sys/kernel/watchdog
+1
+# cat /proc/sys/kernel/nmi_watchdog
+1
+
+After the patch
+
+# cat /proc/sys/kernel/watchdog
+1
+# cat /proc/sys/kernel/nmi_watchdog
+0
+
+I think this is mostly due to change in this code below.
+
+#ifdef CONFIG_HARDLOCKUP_DETECTOR
+unsigned long __read_mostly watchdog_enabled = 
+SOFT_WATCHDOG_ENABLED|NMI_WATCHDOG_ENABLED;
+
+Old code was like this
+
+#if defined(CONFIG_HAVE_NMI_WATCHDOG) || defined(CONFIG_HARDLOCKUP_DETECTOR)
+unsigned long __read_mostly watchdog_enabled = 
+SOFT_WATCHDOG_ENABLED|NMI_WATCHDOG_ENABLED;
+#else
+unsigned long __read_mostly watchdog_enabled = SOFT_WATCHDOG_ENABLED;
+#endif
+
+SPARC defines CONFIG_HAVE_NMI_WATCHDOG.
+
+Thanks
+Babu
+
+> option changes?
+>
+> Cheers,
+> Don
+>
+>> Nicholas Piggin (4):
+>>    watchdog: remove unused declaration
+>>    watchdog: Introduce arch_touch_nmi_watchdog()
+>>    watchdog: Split up config options
+>>    watchdog: Provide watchdog_reconfigure() for arch watchdogs
+>>
+>>   arch/blackfin/include/asm/nmi.h            |   2 +
+>>   arch/blackfin/kernel/nmi.c                 |   2 +-
+>>   arch/mn10300/include/asm/nmi.h             |   2 +
+>>   arch/mn10300/kernel/mn10300-watchdog-low.S |   8 +-
+>>   arch/mn10300/kernel/mn10300-watchdog.c     |   2 +-
+>>   arch/powerpc/kernel/setup_64.c             |   2 +-
+>>   arch/sparc/include/asm/nmi.h               |   1 +
+>>   arch/sparc/kernel/nmi.c                    |   6 +-
+>>   arch/x86/kernel/apic/hw_nmi.c              |   2 +-
+>>   include/linux/nmi.h                        |  57 ++++---
+>>   kernel/Makefile                            |   2 +-
+>>   kernel/sysctl.c                            |  18 +-
+>>   kernel/watchdog.c                          | 263 +++++++++++++++++++----------
+>>   kernel/watchdog_hld.c                      |  37 +---
+>>   lib/Kconfig.debug                          |  29 +++-
+>>   15 files changed, 263 insertions(+), 170 deletions(-)
+>>
+>> -- 
+>> 2.11.0
+>>
