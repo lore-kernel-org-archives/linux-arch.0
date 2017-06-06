@@ -1,20 +1,14 @@
 From: Palmer Dabbelt <palmer@dabbelt.com>
 Subject: RISC-V Linux Port v2
 Date: Tue,  6 Jun 2017 15:59:50 -0700
-Message-ID: <20170606230007.19101-1-palmer@dabbelt.com>
+Message-ID: <20170606230007.19101-1-palmer__44437.3938291848$1496790097$gmane$org@dabbelt.com>
 References: <20170523004107.536-1-palmer@dabbelt.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f67.google.com ([74.125.83.67]:36309 "EHLO
-        mail-pg0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751399AbdFFXBV (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 6 Jun 2017 19:01:21 -0400
-Received: by mail-pg0-f67.google.com with SMTP id v18so10880536pgb.3
-        for <linux-arch@vger.kernel.org>; Tue, 06 Jun 2017 16:01:21 -0700 (PDT)
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20170523004107.536-1-palmer@dabbelt.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, olof@lixom.net
 Cc: albert@sifive.com, patches@groups.riscv.org
+List-Id: linux-arch.vger.kernel.org
 
 Thanks to everyone who has participated in the review process so far.  We've
 made a lot of changes since the v1 and while this isn't ready to go yet, I
