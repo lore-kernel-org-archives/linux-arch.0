@@ -1,12 +1,12 @@
 From: Palmer Dabbelt <palmer@dabbelt.com>
 Subject: [PATCH 4/7] score: Use lib/{ashldi3,ashrdi3,cmpdi2,lshrdi3,ucmpdi2}.c
 Date: Tue,  6 Jun 2017 12:10:20 -0700
-Message-ID: <20170606191023.24581-5-palmer__22391.3159491078$1496776756$gmane$org@dabbelt.com>
+Message-ID: <20170606191023.24581-5-palmer__26322.1190464266$1496776762$gmane$org@dabbelt.com>
 References: <20170523220546.16758-1-palmer@dabbelt.com>
  <20170606191023.24581-1-palmer@dabbelt.com>
-Return-path: <sparclinux-owner@vger.kernel.org>
+Return-path: <linux-sh-owner@vger.kernel.org>
 In-Reply-To: <20170606191023.24581-1-palmer@dabbelt.com>
-Sender: sparclinux-owner@vger.kernel.org
+Sender: linux-sh-owner@vger.kernel.org
 To: monstr@monstr.eu, ralf@linux-mips.org, liqin.linux@gmail.com, lennox.wu@gmail.com, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, linux-mips@linux-mips.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, geert@linux-m68k.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Palmer Dabbelt <palmer@dabbelt.com>
 List-Id: linux-arch.vger.kernel.org
