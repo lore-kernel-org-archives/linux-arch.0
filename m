@@ -1,60 +1,114 @@
-From: Christoph Hellwig <hch@infradead.org>
-Subject: Re: [PATCH 01/17] drivers: support PCIe in RISCV
-Date: Wed, 7 Jun 2017 07:25:58 -0700
-Message-ID: <20170607142558.GA21155@infradead.org>
-References: <20170523004107.536-1-palmer@dabbelt.com>
- <20170606230007.19101-1-palmer@dabbelt.com>
- <20170606230007.19101-2-palmer@dabbelt.com>
+From: Don Zickus <dzickus@redhat.com>
+Subject: Re: [PATCH 0/4][V3] Improve watchdog config for arch watchdogs
+Date: Wed, 7 Jun 2017 10:37:51 -0400
+Message-ID: <20170607143751.rnaa5c4jeggptvic@redhat.com>
+References: <20170530012659.16791-1-npiggin@gmail.com>
+ <20170606160847.izishwer3m5jirkb@redhat.com>
+ <d274b1a5-c8b3-9e3a-b45d-c63c9022be91@oracle.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20170606230007.19101-2-palmer@dabbelt.com>
+In-Reply-To: <d274b1a5-c8b3-9e3a-b45d-c63c9022be91@oracle.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Palmer Dabbelt <palmer@dabbelt.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, olof@lixom.net, albert@sifive.com, patches@groups.riscv.org, "Wesley W. Terpstra" <wesley@sifive.com>
+To: Babu Moger <babu.moger@oracle.com>
+Cc: Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jun 06, 2017 at 03:59:51PM -0700, Palmer Dabbelt wrote:
-> From: "Wesley W. Terpstra" <wesley@sifive.com>
+On Tue, Jun 06, 2017 at 02:46:48PM -0500, Babu Moger wrote:
+> Hi Don, Nicholas,
 > 
-> There are RISC-V systems that have been mapped to Xilinx FPGAs that have
-> their PCIe controllers on chip.  These build system changes allow RISC-V
-> systems to enable the Xilinx PCIe controller, and to setup PCIe IRQs.
 > 
-> Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
-> ---
->  drivers/pci/Makefile     | 1 +
->  drivers/pci/host/Kconfig | 2 +-
->  2 files changed, 2 insertions(+), 1 deletion(-)
+> On 6/6/2017 11:08 AM, Don Zickus wrote:
+> > (adding Babu)
+> > 
+> > On Tue, May 30, 2017 at 11:26:55AM +1000, Nicholas Piggin wrote:
+> > > Since last time:
+> > > 
+> > > - Have the perf based hardlockup detector use arch_touch_nmi_watchdog()
+> > >    rather than hld_touch_nmi_watchdog(). This changes direction slightly
+> > >    to make the perf-based hard lockup detector an alternative that an
+> > >    arch may select, rather than standalone. This better reflects how the
+> > >    code works in practice).
+> > > 
+> > > - Hopefully fixed the Kconfig options. There's still a bit of ugliness
+> > >    that will require another pass or two over interfaces and config
+> > >    scheme, but the idea is to make a minimal change to get the powerpc
+> > >    HLD in, which gives a reasonable starting point to improve things
+> > >    further.
+> > Hi Babu,
+> > 
+> > Does this patchset break sparc?  Specifically patch3 with all the config
+> Patches applies, compiles fine and also works fine for most part. However,
+> there are few issues.
+
+Thanks for the quick turnaround!
+
 > 
-> diff --git a/drivers/pci/Makefile b/drivers/pci/Makefile
-> index 462c1f5f5546..a29d9ec05d13 100644
-> --- a/drivers/pci/Makefile
-> +++ b/drivers/pci/Makefile
-> @@ -41,6 +41,7 @@ obj-$(CONFIG_MIPS) += setup-irq.o
->  obj-$(CONFIG_TILE) += setup-irq.o
->  obj-$(CONFIG_SPARC_LEON) += setup-irq.o
->  obj-$(CONFIG_M68K) += setup-irq.o
-> +obj-$(CONFIG_RISCV) += setup-irq.o
+> We need to enter 'N' or 'Y'  for SOFTLOCKUP_DETECTOR.
+> 
+> *
+> * Restart config...
+> *
+> *
+> * Debug Lockups and Hangs
+> *
+> Detect Hard and Soft Lockups (LOCKUP_DETECTOR) [Y/n/?] y
+>   Detect Soft Lockups (SOFTLOCKUP_DETECTOR) [N/y] (NEW)
+> 
+> For SPARC, softlockup is enabled by default earlier.   May be we need to
+> submit another patch to enable this in
+> 
+> arch/sparc/configs/sparc64_defconfig.   Not  a big issue.
 
-Can we do a cleanup here and add a ARCH_USE_GENERIC_PCI_SETUP Kconfig
-symbol that all these architectures can select?
+Hmm, I think the nmi_enable/disable stuff is wrapped into the
+SOFTLOCKUP_DETECTOR code, so you might need it.  Though Nick did create a
+separate interface outside of SOFTLOCKUP to something similar.  I believe
+patch4 introduces nmi_reconfigure().
 
->  
->  #
->  # ACPI Related PCI FW Functions
-> diff --git a/drivers/pci/host/Kconfig b/drivers/pci/host/Kconfig
-> index 7f47cd5e10a5..5148f3d3cab7 100644
-> --- a/drivers/pci/host/Kconfig
-> +++ b/drivers/pci/host/Kconfig
-> @@ -71,7 +71,7 @@ config PCI_HOST_GENERIC
->  
->  config PCIE_XILINX
->  	bool "Xilinx AXI PCIe host bridge support"
-> -	depends on ARCH_ZYNQ || MICROBLAZE
-> +	depends on ARCH_ZYNQ || MICROBLAZE || RISCV
+Not sure if the spirit of the sparc nmi_watchdog code wants SOFTLOCKUP or
+not.
 
-What about of arch support does this driver need?  It seems to compile
-just fine on x86 for me, so maybe we should just drop the arch
-dependency entirely.
+> 
+> 
+> Another issue.
+> before that patch
+> 
+> # cat /proc/sys/kernel/watchdog
+> 1
+> # cat /proc/sys/kernel/nmi_watchdog
+> 1
+> 
+> After the patch
+> 
+> # cat /proc/sys/kernel/watchdog
+> 1
+> # cat /proc/sys/kernel/nmi_watchdog
+> 0
+
+Yes, that is what I thought.  Thanks for confirming!
+
+> 
+> I think this is mostly due to change in this code below.
+> 
+> #ifdef CONFIG_HARDLOCKUP_DETECTOR
+> unsigned long __read_mostly watchdog_enabled =
+> SOFT_WATCHDOG_ENABLED|NMI_WATCHDOG_ENABLED;
+> 
+> Old code was like this
+> 
+> #if defined(CONFIG_HAVE_NMI_WATCHDOG) || defined(CONFIG_HARDLOCKUP_DETECTOR)
+> unsigned long __read_mostly watchdog_enabled =
+> SOFT_WATCHDOG_ENABLED|NMI_WATCHDOG_ENABLED;
+> #else
+> unsigned long __read_mostly watchdog_enabled = SOFT_WATCHDOG_ENABLED;
+> #endif
+> 
+> SPARC defines CONFIG_HAVE_NMI_WATCHDOG.
+
+
+I am still working with Nick to deal with these config issues.  But I am
+going to keep this one in mind while we work through it.
+
+Cheers,
+Don
