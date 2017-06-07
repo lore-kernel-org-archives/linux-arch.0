@@ -1,38 +1,67 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: RISC-V Linux Port v2
-Date: Wed, 7 Jun 2017 10:23:42 +0100
-Message-ID: <20170607092342.GB30263@arm.com>
+From: Marc Zyngier <marc.zyngier@arm.com>
+Subject: Re: [PATCH 02/17] pcie-xilinx: add missing 5th legacy interrupt
+Date: Wed, 7 Jun 2017 10:24:59 +0100
+Message-ID: <9e42e6d3-3433-0c3f-812f-28d98ef089dc@arm.com>
 References: <20170523004107.536-1-palmer@dabbelt.com>
  <20170606230007.19101-1-palmer@dabbelt.com>
+ <20170606230007.19101-3-palmer@dabbelt.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:57790 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:57818 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751008AbdFGJXf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 7 Jun 2017 05:23:35 -0400
-Content-Disposition: inline
-In-Reply-To: <20170606230007.19101-1-palmer@dabbelt.com>
+        id S1751008AbdFGJZC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 7 Jun 2017 05:25:02 -0400
+In-Reply-To: <20170606230007.19101-3-palmer@dabbelt.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Palmer Dabbelt <palmer@dabbelt.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, olof@lixom.net, albert@sifive.com, patches@groups.riscv.org
+To: Palmer Dabbelt <palmer@dabbelt.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, olof@lixom.net
+Cc: albert@sifive.com, patches@groups.riscv.org, "Wesley W. Terpstra" <wesley@sifive.com>, Bjorn Helgaas <bhelgaas@google.com>
 
-Hi Palmer,
++ Bjorn
 
-On Tue, Jun 06, 2017 at 03:59:50PM -0700, Palmer Dabbelt wrote:
-> Thanks to everyone who has participated in the review process so far.  We've
-> made a lot of changes since the v1 and while this isn't ready to go yet, I
-> finally managed to get through everything in my inbox so I thought it would be
-> a good time to submit a v2 so everyone is on the same page.
+On 06/06/17 23:59, Palmer Dabbelt wrote:
+> From: "Wesley W. Terpstra" <wesley@sifive.com>
+> 
+> These are numbered from 1.
+> 
+> Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
+> ---
+>  drivers/pci/host/pcie-xilinx.c | 4 ++--
+>  1 file changed, 2 insertions(+), 2 deletions(-)
+> 
+> diff --git a/drivers/pci/host/pcie-xilinx.c b/drivers/pci/host/pcie-xilinx.c
+> index 2fe2df51f9f8..8804145d399a 100644
+> --- a/drivers/pci/host/pcie-xilinx.c
+> +++ b/drivers/pci/host/pcie-xilinx.c
+> @@ -443,7 +443,7 @@ static irqreturn_t xilinx_pcie_intr_handler(int irq, void *data)
+>  			val = ((val & XILINX_PCIE_RPIFR1_INTR_MASK) >>
+>  				XILINX_PCIE_RPIFR1_INTR_SHIFT) + 1;
+>  			generic_handle_irq(irq_find_mapping(port->leg_domain,
+> -							    val));
+> +							    val + 1));
+>  		}
+>  	}
+>  
+> @@ -524,7 +524,7 @@ static int xilinx_pcie_init_irq_domain(struct xilinx_pcie_port *port)
+>  		return -ENODEV;
+>  	}
+>  
+> -	port->leg_domain = irq_domain_add_linear(pcie_intc_node, 4,
+> +	port->leg_domain = irq_domain_add_linear(pcie_intc_node, 5,
+>  						 &intx_domain_ops,
+>  						 port);
+>  	if (!port->leg_domain) {
+> 
 
-[...]
-
-> [PATCH 13/17] RISC-V: Add include subdirectory
-
-This guy is too big, and got silently dropped by the mailing list. Any
-chance you could split it up please, so that it can be reviewed?
+This is a common problem with the current OF code that numbers INTx from
+1 instead of zero (there is no 5th legacy interrupts in the PCI spec,
+despite what $SUBJECT says). I'd be inclined to fix this at the core
+level rather than papering over it in the various drivers...
 
 Thanks,
 
-Will
+	M.
+-- 
+Jazz is not dead. It just smells funny...
