@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-sn1nam02on0088.outbound.protection.outlook.com ([104.47.36.88]:57984
-        "EHLO NAM02-SN1-obe.outbound.protection.outlook.com"
+Received: from mail-dm3nam03on0087.outbound.protection.outlook.com ([104.47.41.87]:33712
+        "EHLO NAM03-DM3-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752343AbdFGTRE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 7 Jun 2017 15:17:04 -0400
+        id S1751929AbdFGTQt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 7 Jun 2017 15:16:49 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v6 21/34] x86/mm: Add support to access persistent memory in
- the clear
-Date: Wed, 07 Jun 2017 14:16:51 -0500
-Message-ID: <20170607191651.28645.70995.stgit@tlendack-t1.amdoffice.net>
+Subject: [PATCH v6 18/34] x86/efi: Update EFI pagetable creation to work
+ with SME
+Date: Wed, 07 Jun 2017 14:16:27 -0500
+Message-ID: <20170607191627.28645.4398.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
 References: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -18,68 +18,66 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Rik van Riel <riel@redhat.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170607191651.WCMQaoXkb2ShJkHJzr5n3zfa6w3ufUWGZ012supuFMc@z>
+Message-ID: <20170607191627.Eea-RVeO7fb2j4u58VzyTyLNAOj9afxtS3MVmnhw_u4@z>
 
-Persistent memory is expected to persist across reboots. The encryption
-key used by SME will change across reboots which will result in corrupted
-persistent memory.  Persistent memory is handed out by block devices
-through memory remapping functions, so be sure not to map this memory as
-encrypted.
+When SME is active, pagetable entries created for EFI need to have the
+encryption mask set as necessary.
+
+When the new pagetable pages are allocated they are mapped encrypted. So,
+update the efi_pgt value that will be used in cr3 to include the encryption
+mask so that the PGD table can be read successfully. The pagetable mapping
+as well as the kernel are also added to the pagetable mapping as encrypted.
+All other EFI mappings are mapped decrypted (tables, etc.).
 
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/mm/ioremap.c |   31 ++++++++++++++++++++++++++++++-
- 1 file changed, 30 insertions(+), 1 deletion(-)
+ arch/x86/platform/efi/efi_64.c |   15 +++++++++++----
+ 1 file changed, 11 insertions(+), 4 deletions(-)
 
-diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
-index 34ed59d..99cda55 100644
---- a/arch/x86/mm/ioremap.c
-+++ b/arch/x86/mm/ioremap.c
-@@ -428,17 +428,46 @@ void unxlate_dev_mem_ptr(phys_addr_t phys, void *addr)
-  * Examine the physical address to determine if it is an area of memory
-  * that should be mapped decrypted.  If the memory is not part of the
-  * kernel usable area it was accessed and created decrypted, so these
-- * areas should be mapped decrypted.
-+ * areas should be mapped decrypted. And since the encryption key can
-+ * change across reboots, persistent memory should also be mapped
-+ * decrypted.
-  */
- static bool memremap_should_map_decrypted(resource_size_t phys_addr,
- 					  unsigned long size)
+diff --git a/arch/x86/platform/efi/efi_64.c b/arch/x86/platform/efi/efi_64.c
+index eb8dff1..ed37fa3 100644
+--- a/arch/x86/platform/efi/efi_64.c
++++ b/arch/x86/platform/efi/efi_64.c
+@@ -327,7 +327,7 @@ void efi_sync_low_kernel_mappings(void)
+ 
+ int __init efi_setup_page_tables(unsigned long pa_memmap, unsigned num_pages)
  {
-+	int is_pmem;
-+
+-	unsigned long pfn, text;
++	unsigned long pfn, text, pf;
+ 	struct page *page;
+ 	unsigned npages;
+ 	pgd_t *pgd;
+@@ -335,7 +335,12 @@ int __init efi_setup_page_tables(unsigned long pa_memmap, unsigned num_pages)
+ 	if (efi_enabled(EFI_OLD_MEMMAP))
+ 		return 0;
+ 
+-	efi_scratch.efi_pgt = (pgd_t *)__pa(efi_pgd);
 +	/*
-+	 * Check if the address is part of a persistent memory region.
-+	 * This check covers areas added by E820, EFI and ACPI.
++	 * Since the PGD is encrypted, set the encryption mask so that when
++	 * this value is loaded into cr3 the PGD will be decrypted during
++	 * the pagetable walk.
 +	 */
-+	is_pmem = region_intersects(phys_addr, size, IORESOURCE_MEM,
-+				    IORES_DESC_PERSISTENT_MEMORY);
-+	if (is_pmem != REGION_DISJOINT)
-+		return true;
-+
-+	/*
-+	 * Check if the non-volatile attribute is set for an EFI
-+	 * reserved area.
-+	 */
-+	if (efi_enabled(EFI_BOOT)) {
-+		switch (efi_mem_type(phys_addr)) {
-+		case EFI_RESERVED_TYPE:
-+			if (efi_mem_attributes(phys_addr) & EFI_MEMORY_NV)
-+				return true;
-+			break;
-+		default:
-+			break;
-+		}
-+	}
-+
- 	/* Check if the address is outside kernel usable area */
- 	switch (e820__get_entry_type(phys_addr, phys_addr + size - 1)) {
- 	case E820_TYPE_RESERVED:
- 	case E820_TYPE_ACPI:
- 	case E820_TYPE_NVS:
- 	case E820_TYPE_UNUSABLE:
-+	case E820_TYPE_PRAM:
- 		return true;
- 	default:
- 		break;
++	efi_scratch.efi_pgt = (pgd_t *)__sme_pa(efi_pgd);
+ 	pgd = efi_pgd;
+ 
+ 	/*
+@@ -345,7 +350,8 @@ int __init efi_setup_page_tables(unsigned long pa_memmap, unsigned num_pages)
+ 	 * phys_efi_set_virtual_address_map().
+ 	 */
+ 	pfn = pa_memmap >> PAGE_SHIFT;
+-	if (kernel_map_pages_in_pgd(pgd, pfn, pa_memmap, num_pages, _PAGE_NX | _PAGE_RW)) {
++	pf = _PAGE_NX | _PAGE_RW | _PAGE_ENC;
++	if (kernel_map_pages_in_pgd(pgd, pfn, pa_memmap, num_pages, pf)) {
+ 		pr_err("Error ident-mapping new memmap (0x%lx)!\n", pa_memmap);
+ 		return 1;
+ 	}
+@@ -388,7 +394,8 @@ int __init efi_setup_page_tables(unsigned long pa_memmap, unsigned num_pages)
+ 	text = __pa(_text);
+ 	pfn = text >> PAGE_SHIFT;
+ 
+-	if (kernel_map_pages_in_pgd(pgd, pfn, text, npages, _PAGE_RW)) {
++	pf = _PAGE_RW | _PAGE_ENC;
++	if (kernel_map_pages_in_pgd(pgd, pfn, text, npages, pf)) {
+ 		pr_err("Failed to map kernel text 1:1\n");
+ 		return 1;
+ 	}
