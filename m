@@ -1,158 +1,142 @@
 From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [PATCH 13/17] RISC-V: Add include subdirectory
-Date: Wed, 7 Jun 2017 14:36:27 +0200
-Message-ID: <20170607123627.ofjobsxxv5ut776m@hirez.programming.kicks-ass.net>
+Date: Wed, 7 Jun 2017 14:42:51 +0200
+Message-ID: <20170607124251.ql7e54b4u2g5cqzt@hirez.programming.kicks-ass.net>
 References: <20170523004107.536-1-palmer@dabbelt.com>
  <20170606230007.19101-1-palmer@dabbelt.com>
  <20170606230007.19101-14-palmer@dabbelt.com>
- <20170607120613.ocbqpfajxj6eedbt@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from merlin.infradead.org ([205.233.59.134]:48614 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751489AbdFGMnE (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 7 Jun 2017 08:43:04 -0400
 Content-Disposition: inline
-In-Reply-To: <20170607120613.ocbqpfajxj6eedbt@hirez.programming.kicks-ass.net>
-Sender: linux-kernel-owner@vger.kernel.org
+In-Reply-To: <20170606230007.19101-14-palmer@dabbelt.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Palmer Dabbelt <palmer@dabbelt.com>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, olof@lixom.net, albert@sifive.com, patches@groups.riscv.org
-List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jun 07, 2017 at 02:06:13PM +0200, Peter Zijlstra wrote:
-> On Tue, Jun 06, 2017 at 04:00:03PM -0700, Palmer Dabbelt wrote:
-> What pretty much all the other architectures do is something like:
-> 
-> #define ATOMIC_OP(op, asm_op, c_op)				\
-> static __always_inline void atomic_##op(int i, atomic_t *v)	\
-> {								\
-> 	__asm__ __volatile__ (					\
-> 		"amo" #asm_op ".w zero, %1, %0"			\
-> 		: "+A" (v->counter)				\
-> 		: "r" (i));					\
-> }
-> 
-> #define ATOMIC_FETCH_OP(op, asm_op, c_op)			\
-> static __always_inline int atomic_fetch_##op(int i, atomic_t *v)\
-> {								\
-> 	register int ret;					\
-> 	__asm__ __volatile__ (					\
-> 		"amo" #asm_op ".w %2, %1, %0"			\
-> 		: "+A" (v->counter), "=r" (ret)			\
-> 		: "r" (mask));					\
-> 	return ret;						\
-> }
-> 
-> #define ATOMIC_OP_RETURN(op, asm_op, c_op)			\
-> static __always_inline int atomic_##op##_return(int i, atomic_t *v) \
-> {								\
-> 	return atomic_fetch_##op(i, v) c_op i;			\
-> }
-> 
-> #define ATOMIC_OPS(op, asm_op, c_op)				\
-> 	ATOMIC_OP(op, asm_op, c_op)				\
-> 	ATOMIC_OP_RETURN(op, asm_op, c_op)			\
-> 	ATOMIC_FETCH_OP(op, asm_op, c_op)
-> 
-> ATOMIC_OPS(add, add, +)
-> ATOMIC_OPS(sub, sub, -)
-> 
-> #undef ATOMIC_OPS
-> 
-> #define ATOMIC_OPS(op, asm_op, c_op)				\
-> 	ATOMIC_OP(op, asm_op, c_op)				\
-> 	ATOMIC_FETCH_OP(op, asm_op, c_op)
-> 
-> ATOMIC_OPS(and, and, &)
-> ATOMIC_OPS(or, or, |)
-> ATOMIC_OPS(xor, xor, ^)
-> 
-> #undef ATOMIC_OPS
-> 
-> Which is much simpler no?
+On Tue, Jun 06, 2017 at 04:00:03PM -0700, Palmer Dabbelt wrote:
+> diff --git a/arch/riscv/include/asm/cmpxchg.h b/arch/riscv/include/asm/cmpxchg.h
+> new file mode 100644
+> index 000000000000..c7ee1321ac18
+> --- /dev/null
+> +++ b/arch/riscv/include/asm/cmpxchg.h
+> @@ -0,0 +1,124 @@
+> +/*
+> + * Copyright (C) 2014 Regents of the University of California
+> + *
+> + *   This program is free software; you can redistribute it and/or
+> + *   modify it under the terms of the GNU General Public License
+> + *   as published by the Free Software Foundation, version 2.
+> + *
+> + *   This program is distributed in the hope that it will be useful,
+> + *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+> + *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+> + *   GNU General Public License for more details.
+> + */
+> +
+> +#ifndef _ASM_RISCV_CMPXCHG_H
+> +#define _ASM_RISCV_CMPXCHG_H
+> +
+> +#include <linux/bug.h>
+> +
+> +#ifdef CONFIG_ISA_A
+> +
+> +#include <asm/barrier.h>
+> +
+> +#define __xchg(new, ptr, size)					\
+> +({								\
+> +	__typeof__(ptr) __ptr = (ptr);				\
+> +	__typeof__(new) __new = (new);				\
+> +	__typeof__(*(ptr)) __ret;				\
+> +	switch (size) {						\
+> +	case 4:							\
+> +		__asm__ __volatile__ (				\
+> +			"amoswap.w %0, %2, %1"			\
+> +			: "=r" (__ret), "+A" (*__ptr)		\
+> +			: "r" (__new));				\
+> +		break;						\
+> +	case 8:							\
+> +		__asm__ __volatile__ (				\
+> +			"amoswap.d %0, %2, %1"			\
+> +			: "=r" (__ret), "+A" (*__ptr)		\
+> +			: "r" (__new));				\
+> +		break;						\
+> +	default:						\
+> +		BUILD_BUG();					\
+> +	}							\
+> +	__ret;							\
+> +})
+> +
+> +#define xchg(ptr, x)    (__xchg((x), (ptr), sizeof(*(ptr))))
 
-In fact, after having read your manual you'd want something like:
+our xchg() is fully ordered, and thus you need to use "amoswap.aq.rl"
 
+> +
+> +
+> +/*
+> + * Atomic compare and exchange.  Compare OLD with MEM, if identical,
+> + * store NEW in MEM.  Return the initial value in MEM.  Success is
+> + * indicated by comparing RETURN with OLD.
+> + */
+> +#define __cmpxchg(ptr, old, new, size)					\
+> +({									\
+> +	__typeof__(ptr) __ptr = (ptr);					\
+> +	__typeof__(old) __old = (old);					\
+> +	__typeof__(new) __new = (new);					\
+> +	__typeof__(*(ptr)) __ret;					\
+> +	register unsigned int __rc;					\
+> +	switch (size) {							\
+> +	case 4:								\
+> +		__asm__ __volatile__ (					\
+> +		"0:"							\
+> +			"lr.w %0, %2\n"					\
+> +			"bne  %0, %z3, 1f\n"				\
+> +			"sc.w %1, %z4, %2\n"				\
+> +			"bnez %1, 0b\n"					\
+> +		"1:"							\
+> +			: "=&r" (__ret), "=&r" (__rc), "+A" (*__ptr)	\
+> +			: "rJ" (__old), "rJ" (__new));			\
+> +		break;							\
+> +	case 8:								\
+> +		__asm__ __volatile__ (					\
+> +		"0:"							\
+> +			"lr.d %0, %2\n"					\
+> +			"bne  %0, %z3, 1f\n"				\
+> +			"sc.d %1, %z4, %2\n"				\
+> +			"bnez %1, 0b\n"					\
+> +		"1:"							\
+> +			: "=&r" (__ret), "=&r" (__rc), "+A" (*__ptr)	\
+> +			: "rJ" (__old), "rJ" (__new));			\
+> +		break;							\
+> +	default:							\
+> +		BUILD_BUG();						\
+> +	}								\
+> +	__ret;								\
+> +})
+> +
+> +#define __cmpxchg_mb(ptr, old, new, size)			\
+> +({								\
+> +	__typeof__(*(ptr)) __ret;				\
+> +	smp_mb();						\
+> +	__ret = __cmpxchg((ptr), (old), (new), (size));		\
+> +	smp_mb();						\
+> +	__ret;							\
+> +})
 
-#define ATOMIC_OP(op, asm_op, c_op)				\
-static __always_inline void atomic_##op(int i, atomic_t *v)	\
-{								\
-	__asm__ __volatile__ (					\
-		"amo" #asm_op ".w zero, %1, %0"			\
-		: "+A" (v->counter)				\
-		: "r" (i));					\
-}
+Your ISA of course, but wouldn't setting the AQ and RL bits on LR/SC be
+cheaper than doing two full barriers around the thing?
 
-#define ATOMIC_FETCH_OP(op, asm_op, c_op, asm_or, order)	\
-static __always_inline int atomic_fetch_##op##order(int i, atomic_t *v)\
-{								\
-	register int ret;					\
-	__asm__ __volatile__ (					\
-		"amo" #asm_op ".w" #asm_or " %2, %1, %0"	\
-		: "+A" (v->counter), "=r" (ret)			\
-		: "r" (mask));					\
-	return ret;						\
-}
+Note that cmpxchg() doesn't need to provide ordering on failure.
 
-#define ATOMIC_OP_RETURN(op, asm_op, c_op, asm_or, order)	\
-static __always_inline int atomic_##op##_return##order(int i, atomic_t *v) \
-{								\
-	return atomic_fetch_##op##order(i, v) c_op i;		\
-}
+Further note that we have:
 
-#define ATOMIC_OPS(op, asm_op, c_op)				\
-	ATOMIC_OP(op, asm_op, c_op, , _relaxed)			\
-	ATOMIC_OP_RETURN(op, asm_op, c_op, , _relaxed)		\
-	ATOMIC_FETCH_OP(op, asm_op, c_op, , _relaxed)
+	{atomic_,}cmpxchg{_relaxed,_acquire,_release,}()
 
-ATOMIC_OPS(add, add, +)
-ATOMIC_OPS(sub, sub, -)
+and recently:
 
-#undef ATOMIC_OPS
-
-#define ATOMIC_OPS(op, asm_op, c_op, asm_or, order)		\
-	ATOMIC_OP_RETURN(op, asm_op, c_op, , _relaxed)		\
-	ATOMIC_FETCH_OP(op, asm_op, c_op, , _relaxed)
-
-ATOMIC_OPS(add, add, +, ".aq", _acquire)
-ATOMIC_OPS(add, add, +, ".rl", _release)
-ATOMIC_OPS(add, add, +, ".aq.rl", )
-
-ATOMIC_OPS(sub, sub, -, ".aq", _acquire)
-ATOMIC_OPS(sub, sub, -, ".rl", _release)
-ATOMIC_OPS(sub, sub, -, ".aq.rl", )
-
-#undef ATOMIC_OPS
-
-#define ATOMIC_OPS(op, asm_op, c_op)				\
-	ATOMIC_OP(op, asm_op, c_op)				\
-	ATOMIC_FETCH_OP(op, asm_op, c_op, , _relaxed)
-
-ATOMIC_OPS(and, and, &)
-ATOMIC_OPS(or, or, |)
-ATOMIC_OPS(xor, xor, ^)
-
-#undef ATOMIC_OPS
-
-ATOMIC_FETCH_OP(and, and, &, ".aq", _acquire)
-ATOMIC_FETCH_OP(and, and, &, ".rl", _release)
-ATOMIC_FETCH_OP(and, and, &, ".aq.rl", )
-
-ATOMIC_FETCH_OP(or, or, |, ".aq", _acquire)
-ATOMIC_FETCH_OP(or, or, |, ".rl", _release)
-ATOMIC_FETCH_OP(or, or, |, ".aq.rl", )
-
-ATOMIC_FETCH_OP(xor, xor, ^, ".aq", _acquire)
-ATOMIC_FETCH_OP(xor, xor, ^, ".rl", _release)
-ATOMIC_FETCH_OP(xor, xor, ^, ".aq.rl", )
-
-
-#define smp_mb__before_atomic()	smp_mb()
-#define smp_mb__after_atomic()	smp_mb()
-
-
-Which (pending the sub confusion) will generate the entire set of:
-
- atomic_add, atomic_add_return{_relaxed,_acquire,_release,} atomic_fetch_add{_relaxed,_acquire,_release,}
- atomic_sub, atomic_sub_return{_relaxed,_acquire,_release,} atomic_fetch_sub{_relaxed,_acquire,_release,}
-
- atomic_and, atomic_fetch_and{_relaxed,_acquire,_release,}
- atomic_or,  atomic_fetch_or{_relaxed,_acquire,_release,}
- atomic_xor, atomic_fetch_xor{_relaxed,_acquire,_release,}
+	{atomic_,}try_cmpxchg{_relaxed,_acquire,_release,}()
