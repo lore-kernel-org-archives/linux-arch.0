@@ -1,93 +1,60 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 13/17] RISC-V: Add include subdirectory
-Date: Wed, 7 Jun 2017 15:17:27 +0200
-Message-ID: <20170607131727.chhlzuu4gysyuqrn@hirez.programming.kicks-ass.net>
+From: Christoph Hellwig <hch@infradead.org>
+Subject: Re: [PATCH 01/17] drivers: support PCIe in RISCV
+Date: Wed, 7 Jun 2017 07:25:58 -0700
+Message-ID: <20170607142558.GA21155@infradead.org>
 References: <20170523004107.536-1-palmer@dabbelt.com>
  <20170606230007.19101-1-palmer@dabbelt.com>
- <20170606230007.19101-14-palmer@dabbelt.com>
+ <20170606230007.19101-2-palmer@dabbelt.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:48784 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751638AbdFGNRx (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 7 Jun 2017 09:17:53 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20170606230007.19101-14-palmer@dabbelt.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+In-Reply-To: <20170606230007.19101-2-palmer@dabbelt.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Palmer Dabbelt <palmer@dabbelt.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, olof@lixom.net, albert@sifive.com, patches@groups.riscv.org, Will Deacon <will.deacon@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, olof@lixom.net, albert@sifive.com, patches@groups.riscv.org, "Wesley W. Terpstra" <wesley@sifive.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jun 06, 2017 at 04:00:03PM -0700, Palmer Dabbelt wrote:
-> diff --git a/arch/riscv/include/asm/spinlock.h b/arch/riscv/include/asm/spinlock.h
-> new file mode 100644
-> index 000000000000..9736f5714e54
-> --- /dev/null
-> +++ b/arch/riscv/include/asm/spinlock.h
-> @@ -0,0 +1,155 @@
-> +/*
-> + * Copyright (C) 2015 Regents of the University of California
-> + *
-> + *   This program is free software; you can redistribute it and/or
-> + *   modify it under the terms of the GNU General Public License
-> + *   as published by the Free Software Foundation, version 2.
-> + *
-> + *   This program is distributed in the hope that it will be useful,
-> + *   but WITHOUT ANY WARRANTY; without even the implied warranty of
-> + *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-> + *   GNU General Public License for more details.
-> + */
-> +
-> +#ifndef _ASM_RISCV_SPINLOCK_H
-> +#define _ASM_RISCV_SPINLOCK_H
-> +
-> +#include <linux/kernel.h>
-> +#include <asm/current.h>
-> +
-> +/*
-> + * Simple spin lock operations.  These provide no fairness guarantees.
-> + */
+On Tue, Jun 06, 2017 at 03:59:51PM -0700, Palmer Dabbelt wrote:
+> From: "Wesley W. Terpstra" <wesley@sifive.com>
+> 
+> There are RISC-V systems that have been mapped to Xilinx FPGAs that have
+> their PCIe controllers on chip.  These build system changes allow RISC-V
+> systems to enable the Xilinx PCIe controller, and to setup PCIe IRQs.
+> 
+> Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
+> ---
+>  drivers/pci/Makefile     | 1 +
+>  drivers/pci/host/Kconfig | 2 +-
+>  2 files changed, 2 insertions(+), 1 deletion(-)
+> 
+> diff --git a/drivers/pci/Makefile b/drivers/pci/Makefile
+> index 462c1f5f5546..a29d9ec05d13 100644
+> --- a/drivers/pci/Makefile
+> +++ b/drivers/pci/Makefile
+> @@ -41,6 +41,7 @@ obj-$(CONFIG_MIPS) += setup-irq.o
+>  obj-$(CONFIG_TILE) += setup-irq.o
+>  obj-$(CONFIG_SPARC_LEON) += setup-irq.o
+>  obj-$(CONFIG_M68K) += setup-irq.o
+> +obj-$(CONFIG_RISCV) += setup-irq.o
 
-Any reason to use a test-and-set spinlock at all?
+Can we do a cleanup here and add a ARCH_USE_GENERIC_PCI_SETUP Kconfig
+symbol that all these architectures can select?
 
-> +
-> +#define arch_spin_lock_flags(lock, flags) arch_spin_lock(lock)
-> +#define arch_spin_is_locked(x)	((x)->lock != 0)
-> +#define arch_spin_unlock_wait(x) \
-> +		do { cpu_relax(); } while ((x)->lock)
+>  
+>  #
+>  # ACPI Related PCI FW Functions
+> diff --git a/drivers/pci/host/Kconfig b/drivers/pci/host/Kconfig
+> index 7f47cd5e10a5..5148f3d3cab7 100644
+> --- a/drivers/pci/host/Kconfig
+> +++ b/drivers/pci/host/Kconfig
+> @@ -71,7 +71,7 @@ config PCI_HOST_GENERIC
+>  
+>  config PCIE_XILINX
+>  	bool "Xilinx AXI PCIe host bridge support"
+> -	depends on ARCH_ZYNQ || MICROBLAZE
+> +	depends on ARCH_ZYNQ || MICROBLAZE || RISCV
 
-Hehe, yeah, no ;-) There are ordering constraints on that.
-
-> +
-> +static inline void arch_spin_unlock(arch_spinlock_t *lock)
-> +{
-> +	__asm__ __volatile__ (
-> +		"amoswap.w.rl x0, x0, %0"
-> +		: "=A" (lock->lock)
-> +		:: "memory");
-> +}
-> +
-> +static inline int arch_spin_trylock(arch_spinlock_t *lock)
-> +{
-> +	int tmp = 1, busy;
-> +
-> +	__asm__ __volatile__ (
-> +		"amoswap.w.aq %0, %2, %1"
-> +		: "=r" (busy), "+A" (lock->lock)
-> +		: "r" (tmp)
-> +		: "memory");
-> +
-> +	return !busy;
-> +}
-> +
-> +static inline void arch_spin_lock(arch_spinlock_t *lock)
-> +{
-> +	while (1) {
-> +		if (arch_spin_is_locked(lock))
-> +			continue;
-> +
-> +		if (arch_spin_trylock(lock))
-> +			break;
-> +	}
-> +}
+What about of arch support does this driver need?  It seems to compile
+just fine on x86 for me, so maybe we should just drop the arch
+dependency entirely.
