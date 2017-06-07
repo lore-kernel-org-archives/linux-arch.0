@@ -1,118 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-co1nam03on0067.outbound.protection.outlook.com ([104.47.40.67]:17872
-        "EHLO NAM03-CO1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752616AbdFGTRn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 7 Jun 2017 15:17:43 -0400
-From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v6 25/34] swiotlb: Add warnings for use of bounce buffers
- with SME
-Date: Wed, 07 Jun 2017 14:17:32 -0500
-Message-ID: <20170607191732.28645.42876.stgit@tlendack-t1.amdoffice.net>
-In-Reply-To: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
-References: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
-MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
+Received: from mail-pf0-f194.google.com ([209.85.192.194]:36359 "EHLO
+        mail-pf0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751646AbdFGVyS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 7 Jun 2017 17:54:18 -0400
+Received: by mail-pf0-f194.google.com with SMTP id y7so2811180pfd.3
+        for <linux-arch@vger.kernel.org>; Wed, 07 Jun 2017 14:54:18 -0700 (PDT)
+Date: Wed, 07 Jun 2017 14:54:16 -0700 (PDT)
+From: Palmer Dabbelt <palmer@dabbelt.com>
+Subject: Re: RISC-V Linux Port v2
+In-Reply-To: <20170607092342.GB30263@arm.com>
+Message-ID: <mhng-9bc0a031-a834-42cc-aec0-cfb2efc8fe0c@palmer-si-x1c4>
+Mime-Version: 1.0 (MHng)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
-Cc: Rik van Riel <riel@redhat.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170607191732.Y8LAVogK0ewyHeAhZQjzaQcaB2iSj41K6Kv2b7C-7ms@z>
+To: will.deacon@arm.com
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Olof Johansson <olof@lixom.net>, albert@sifive.com, patches@groups.riscv.org
+Message-ID: <20170607215416.UKpvLcAHVWwbB06tDlzAOwsZTsFSVadkVwCOQyFZ0zs@z>
 
-Add warnings to let the user know when bounce buffers are being used for
-DMA when SME is active.  Since the bounce buffers are not in encrypted
-memory, these notifications are to allow the user to determine some
-appropriate action - if necessary.
+On Wed, 07 Jun 2017 02:23:42 PDT (-0700), will.deacon@arm.com wrote:
+> Hi Palmer,
+>
+> On Tue, Jun 06, 2017 at 03:59:50PM -0700, Palmer Dabbelt wrote:
+>> Thanks to everyone who has participated in the review process so far.  We've
+>> made a lot of changes since the v1 and while this isn't ready to go yet, I
+>> finally managed to get through everything in my inbox so I thought it would be
+>> a good time to submit a v2 so everyone is on the same page.
+>
+> [...]
+>
+>> [PATCH 13/17] RISC-V: Add include subdirectory
+>
+> This guy is too big, and got silently dropped by the mailing list. Any
+> chance you could split it up please, so that it can be reviewed?
 
-Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
----
- arch/x86/include/asm/mem_encrypt.h |    8 ++++++++
- include/asm-generic/mem_encrypt.h  |    5 +++++
- include/linux/dma-mapping.h        |    9 +++++++++
- lib/swiotlb.c                      |    3 +++
- 4 files changed, 25 insertions(+)
+Sorry about that.  It's online
 
-diff --git a/arch/x86/include/asm/mem_encrypt.h b/arch/x86/include/asm/mem_encrypt.h
-index f1215a4..c7a2525 100644
---- a/arch/x86/include/asm/mem_encrypt.h
-+++ b/arch/x86/include/asm/mem_encrypt.h
-@@ -69,6 +69,14 @@ static inline bool sme_active(void)
- 	return !!sme_me_mask;
- }
- 
-+static inline u64 sme_dma_mask(void)
-+{
-+	if (!sme_me_mask)
-+		return 0ULL;
-+
-+	return ((u64)sme_me_mask << 1) - 1;
-+}
-+
- /*
-  * The __sme_pa() and __sme_pa_nodebug() macros are meant for use when
-  * writing to or comparing values from the cr3 register.  Having the
-diff --git a/include/asm-generic/mem_encrypt.h b/include/asm-generic/mem_encrypt.h
-index b55c3f9..fb02ff0 100644
---- a/include/asm-generic/mem_encrypt.h
-+++ b/include/asm-generic/mem_encrypt.h
-@@ -22,6 +22,11 @@ static inline bool sme_active(void)
- 	return false;
- }
- 
-+static inline u64 sme_dma_mask(void)
-+{
-+	return 0ULL;
-+}
-+
- /*
-  * The __sme_set() and __sme_clr() macros are useful for adding or removing
-  * the encryption mask from a value (e.g. when dealing with pagetable
-diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
-index 4f3eece..e2c5fda 100644
---- a/include/linux/dma-mapping.h
-+++ b/include/linux/dma-mapping.h
-@@ -10,6 +10,7 @@
- #include <linux/scatterlist.h>
- #include <linux/kmemcheck.h>
- #include <linux/bug.h>
-+#include <linux/mem_encrypt.h>
- 
- /**
-  * List of possible attributes associated with a DMA mapping. The semantics
-@@ -577,6 +578,10 @@ static inline int dma_set_mask(struct device *dev, u64 mask)
- 
- 	if (!dev->dma_mask || !dma_supported(dev, mask))
- 		return -EIO;
-+
-+	if (sme_active() && (mask < sme_dma_mask()))
-+		dev_warn(dev, "SME is active, device will require DMA bounce buffers\n");
-+
- 	*dev->dma_mask = mask;
- 	return 0;
- }
-@@ -596,6 +601,10 @@ static inline int dma_set_coherent_mask(struct device *dev, u64 mask)
- {
- 	if (!dma_supported(dev, mask))
- 		return -EIO;
-+
-+	if (sme_active() && (mask < sme_dma_mask()))
-+		dev_warn(dev, "SME is active, device will require DMA bounce buffers\n");
-+
- 	dev->coherent_dma_mask = mask;
- 	return 0;
- }
-diff --git a/lib/swiotlb.c b/lib/swiotlb.c
-index 74d6557..f78906a 100644
---- a/lib/swiotlb.c
-+++ b/lib/swiotlb.c
-@@ -509,6 +509,9 @@ phys_addr_t swiotlb_tbl_map_single(struct device *hwdev,
- 	if (no_iotlb_memory)
- 		panic("Can not allocate SWIOTLB buffer earlier and can't now provide you with the DMA bounce buffer");
- 
-+	if (sme_active())
-+		pr_warn_once("SME is active and system is using DMA bounce buffers\n");
-+
- 	mask = dma_get_seg_boundary(hwdev);
- 
- 	tbl_dma_addr &= mask;
+  https://github.com/riscv/riscv-linux/commit/daaea1609cb5e8c93745c1ce112a06e90f5b663c
+
+I'll be sure to split it up next time.  I can submit a v3 if you want?
