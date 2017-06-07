@@ -1,78 +1,93 @@
-From: Will Deacon <will.deacon@arm.com>
+From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [PATCH 13/17] RISC-V: Add include subdirectory
-Date: Wed, 7 Jun 2017 14:16:11 +0100
-Message-ID: <20170607131611.GF30263@arm.com>
+Date: Wed, 7 Jun 2017 15:17:27 +0200
+Message-ID: <20170607131727.chhlzuu4gysyuqrn@hirez.programming.kicks-ass.net>
 References: <20170523004107.536-1-palmer@dabbelt.com>
  <20170606230007.19101-1-palmer@dabbelt.com>
  <20170606230007.19101-14-palmer@dabbelt.com>
- <20170607120613.ocbqpfajxj6eedbt@hirez.programming.kicks-ass.net>
- <20170607123627.ofjobsxxv5ut776m@hirez.programming.kicks-ass.net>
- <20170607125850.zwh3w5s5ce54jcrz@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from merlin.infradead.org ([205.233.59.134]:48784 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751638AbdFGNRx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 7 Jun 2017 09:17:53 -0400
 Content-Disposition: inline
-In-Reply-To: <20170607125850.zwh3w5s5ce54jcrz@hirez.programming.kicks-ass.net>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Palmer Dabbelt <palmer@dabbelt.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, olof@lixom.net, albert@sifive.com, patches@groups.riscv.org
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20170606230007.19101-14-palmer@dabbelt.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Palmer Dabbelt <palmer@dabbelt.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, olof@lixom.net, albert@sifive.com, patches@groups.riscv.org, Will Deacon <will.deacon@arm.com>
 
-[sorry, jumping in here because it's the only mail I have relating to
- patch 13]
+On Tue, Jun 06, 2017 at 04:00:03PM -0700, Palmer Dabbelt wrote:
+> diff --git a/arch/riscv/include/asm/spinlock.h b/arch/riscv/include/asm/spinlock.h
+> new file mode 100644
+> index 000000000000..9736f5714e54
+> --- /dev/null
+> +++ b/arch/riscv/include/asm/spinlock.h
+> @@ -0,0 +1,155 @@
+> +/*
+> + * Copyright (C) 2015 Regents of the University of California
+> + *
+> + *   This program is free software; you can redistribute it and/or
+> + *   modify it under the terms of the GNU General Public License
+> + *   as published by the Free Software Foundation, version 2.
+> + *
+> + *   This program is distributed in the hope that it will be useful,
+> + *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+> + *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+> + *   GNU General Public License for more details.
+> + */
+> +
+> +#ifndef _ASM_RISCV_SPINLOCK_H
+> +#define _ASM_RISCV_SPINLOCK_H
+> +
+> +#include <linux/kernel.h>
+> +#include <asm/current.h>
+> +
+> +/*
+> + * Simple spin lock operations.  These provide no fairness guarantees.
+> + */
 
-On Wed, Jun 07, 2017 at 02:58:50PM +0200, Peter Zijlstra wrote:
-> On Wed, Jun 07, 2017 at 02:36:27PM +0200, Peter Zijlstra wrote:
-> > Which (pending the sub confusion) will generate the entire set of:
-> > 
-> >  atomic_add, atomic_add_return{_relaxed,_acquire,_release,} atomic_fetch_add{_relaxed,_acquire,_release,}
-> >  atomic_sub, atomic_sub_return{_relaxed,_acquire,_release,} atomic_fetch_sub{_relaxed,_acquire,_release,}
-> > 
-> >  atomic_and, atomic_fetch_and{_relaxed,_acquire,_release,}
-> >  atomic_or,  atomic_fetch_or{_relaxed,_acquire,_release,}
-> >  atomic_xor, atomic_fetch_xor{_relaxed,_acquire,_release,}
-> > 
-> 
-> Another approach would be to override __atomic_op_{acquire,release} and
-> use things like:
-> 
-> 	"FENCE r,rw" -- (load) ACQUIRE
-> 	"FENCE rw,w" -- (store) RELEASE
-> 
-> And then you only need to provide _relaxed atomics.
-> 
-> Also, and I didn't check for that, you need to provide:
-> 
-> smp_load_acquire(), smp_store_release(), atomic_read_acquire(),
-> atomic_store_release().
+Any reason to use a test-and-set spinlock at all?
 
-Is there an up-to-date specification for the RISC-V memory model? I looked
-at:
+> +
+> +#define arch_spin_lock_flags(lock, flags) arch_spin_lock(lock)
+> +#define arch_spin_is_locked(x)	((x)->lock != 0)
+> +#define arch_spin_unlock_wait(x) \
+> +		do { cpu_relax(); } while ((x)->lock)
 
-https://github.com/riscv/riscv-isa-manual/releases/download/riscv-user-2.2/riscv-spec-v2.2.pdf
+Hehe, yeah, no ;-) There are ordering constraints on that.
 
-but it says:
-
-| 2.7 Memory Model
-| This section is out of date as the RISC-V memory model is
-| currently under revision to ensure it can efficiently support current
-| programming language memory models. The revised base mem- ory model will
-| contain further ordering constraints, including at least that loads to the
-| same address from the same hart cannot be reordered, and that syntactic data
-| dependencies between instructions are respected
-
-which, on the one hand is reassuring (because ignoring dependency ordering is
-plain broken), but on the other it doesn't go quite far enough in defining
-exactly what constitutes a "syntactic data dependency". The cumulativity of
-your fences also needs defining, because I think this was up in the air at some
-point and the document above doesn't seem to tackle it (it doesn't seem to
-describe what constitutes being a memory of the predecessor or successor sets)
-
-Could you shed some light on this please? We've started relying on RW control
-dependencies in semi-recent history, so it's important to get this nailed down.
-
-Thanks,
-
-Will
-
-P.S. You should also totally get your architects to write a formal model ;)
+> +
+> +static inline void arch_spin_unlock(arch_spinlock_t *lock)
+> +{
+> +	__asm__ __volatile__ (
+> +		"amoswap.w.rl x0, x0, %0"
+> +		: "=A" (lock->lock)
+> +		:: "memory");
+> +}
+> +
+> +static inline int arch_spin_trylock(arch_spinlock_t *lock)
+> +{
+> +	int tmp = 1, busy;
+> +
+> +	__asm__ __volatile__ (
+> +		"amoswap.w.aq %0, %2, %1"
+> +		: "=r" (busy), "+A" (lock->lock)
+> +		: "r" (tmp)
+> +		: "memory");
+> +
+> +	return !busy;
+> +}
+> +
+> +static inline void arch_spin_lock(arch_spinlock_t *lock)
+> +{
+> +	while (1) {
+> +		if (arch_spin_is_locked(lock))
+> +			continue;
+> +
+> +		if (arch_spin_trylock(lock))
+> +			break;
+> +	}
+> +}
