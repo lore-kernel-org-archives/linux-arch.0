@@ -1,69 +1,87 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f65.google.com ([209.85.213.65]:35242 "EHLO
-        mail-vk0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751813AbdFGRkw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 7 Jun 2017 13:40:52 -0400
-Received: by mail-vk0-f65.google.com with SMTP id 19so1089932vkd.2
-        for <linux-arch@vger.kernel.org>; Wed, 07 Jun 2017 10:40:51 -0700 (PDT)
+Received: from mail-yw0-f173.google.com ([209.85.161.173]:33457 "EHLO
+        mail-yw0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752158AbdFGSkC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 7 Jun 2017 14:40:02 -0400
+Received: by mail-yw0-f173.google.com with SMTP id 63so6452677ywr.0
+        for <linux-arch@vger.kernel.org>; Wed, 07 Jun 2017 11:40:01 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <CAMgXwTjXZ5dsxmJ2FyWhCRWo-3nyvKUDfhfV0nNC+oakF=AEsA@mail.gmail.com>
+In-Reply-To: <20170607093523.GB29370@leverpostej>
 References: <20170523004107.536-1-palmer@dabbelt.com> <20170606230007.19101-1-palmer@dabbelt.com>
- <20170606230007.19101-2-palmer@dabbelt.com> <20170607142558.GA21155@infradead.org>
- <CAMgXwTjXZ5dsxmJ2FyWhCRWo-3nyvKUDfhfV0nNC+oakF=AEsA@mail.gmail.com>
-From: Olof Johansson <olof@lixom.net>
-Date: Wed, 7 Jun 2017 10:40:50 -0700
-Message-ID: <CAOesGMgrXcWvrv-8Xos7qeXsYhsx5XJEXnU8NqQ1X7YvoYkDaA@mail.gmail.com>
-Subject: Re: [PATCH 01/17] drivers: support PCIe in RISCV
+ <20170606230007.19101-4-palmer@dabbelt.com> <CAMuHMdXWH5fU8YKfR37D5SMi1GpSk75Bq-OcYmm5ZuHe+XK0PQ@mail.gmail.com>
+ <20170607093523.GB29370@leverpostej>
+From: Wesley Terpstra <wesley@sifive.com>
+Date: Wed, 7 Jun 2017 11:39:50 -0700
+Message-ID: <CAMgXwTiE48KLCJe6TD6VCd5rYASyw0L+pYh8yfvGjhohAfo2dg@mail.gmail.com>
+Subject: Re: [PATCH 03/17] base: fix order of OF initialization
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Wesley Terpstra <wesley@sifive.com>
-Cc: Christoph Hellwig <hch@infradead.org>, Palmer Dabbelt <palmer@dabbelt.com>, patches@groups.riscv.org, linux-arch <linux-arch@vger.kernel.org>, albert@sifive.com, Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Message-ID: <20170607174050.JLrxiCssSQ16Uo22_iC-dN-YmwUbegmXZPKP_J48-Yg@z>
+To: Mark Rutland <mark.rutland@arm.com>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Palmer Dabbelt <palmer@dabbelt.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Olof Johansson <olof@lixom.net>, Albert Ou <albert@sifive.com>, patches@groups.riscv.org, Rob Herring <robh+dt@kernel.org>, Frank Rowand <frowand.list@gmail.com>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Message-ID: <20170607183950.uohWPvJcC0Z_ggRRZurTx7aCJtXsyALMRgW6wJhp1sE@z>
 
-On Wed, Jun 7, 2017 at 10:09 AM, Wesley Terpstra <wesley@sifive.com> wrote:
->
->
-> On Jun 7, 2017 7:26 AM, "Christoph Hellwig" <hch@infradead.org> wrote:
->
-> On Tue, Jun 06, 2017 at 03:59:51PM -0700, Palmer Dabbelt wrote:
->> From: "Wesley W. Terpstra" <wesley@sifive.com>
+It was a while ago that I debugged this. I already reported this bug
+to Benjamin Herrenschmidt (now in CC), and I believe he has a patch of
+his own to fix the same issue.
+
+As I understand it, of_core_init sets up the OF entries in
+/sys/firmware/devicetree. During platform bringup, when the system
+describes the cpu + cache hierarchy, it also makes an of_node symlink
+into that directory. However, if it doesn't exist yet, you get the
+warning.
+
+# ls -l /sys/devices/system/cpu/cpu3/of_node
+lrwxrwxrwx    1 root     root             0 Jan  1 00:00
+/sys/devices/system/cpu/cpu3/of_node ->
+../../../../firmware/devicetree/base/cpus/cpu@3
+
+On Wed, Jun 7, 2017 at 2:35 AM, Mark Rutland <mark.rutland@arm.com> wrote:
+> On Wed, Jun 07, 2017 at 09:07:20AM +0200, Geert Uytterhoeven wrote:
+>> CC devicetree folks
 >>
->> There are RISC-V systems that have been mapped to Xilinx FPGAs that have
->> their PCIe controllers on chip.  These build system changes allow RISC-V
->> systems to enable the Xilinx PCIe controller, and to setup PCIe IRQs.
->>
->> Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
->> ---
->>  drivers/pci/Makefile     | 1 +
->>  drivers/pci/host/Kconfig | 2 +-
->>  2 files changed, 2 insertions(+), 1 deletion(-)
->>
->> diff --git a/drivers/pci/Makefile b/drivers/pci/Makefile
->> index 462c1f5f5546..a29d9ec05d13 100644
->> --- a/drivers/pci/Makefile
->> +++ b/drivers/pci/Makefile
->> @@ -41,6 +41,7 @@ obj-$(CONFIG_MIPS) += setup-irq.o
->>  obj-$(CONFIG_TILE) += setup-irq.o
->>  obj-$(CONFIG_SPARC_LEON) += setup-irq.o
->>  obj-$(CONFIG_M68K) += setup-irq.o
->> +obj-$(CONFIG_RISCV) += setup-irq.o
+>> On Wed, Jun 7, 2017 at 12:59 AM, Palmer Dabbelt <palmer@dabbelt.com> wrote:
+>> > From: "Wesley W. Terpstra" <wesley@sifive.com>
+>> >
+>> > This fixes: [    0.010000] cpu cpu0: Error -2 creating of_node link
+>> > ... which you get for every CPU on all architectures with a OF cpu/ node.
 >
-> Can we do a cleanup here and add a ARCH_USE_GENERIC_PCI_SETUP Kconfig
-> symbol that all these architectures can select?
+> I take it this means a /cpus node? Or the /cpus/cpu@* nodes?
 >
+> I'm not seeing this on arm64 when booting v4.12-rc4 with DT, so clearly
+> this doesn't affect all such architectures.
 >
-> That would probably be better. I did not want to touch other arch/ folders
-> in our changes.
-
-I understand that approach when you're doing things in your tree
-early, but in this case (and at this phase in submission/merging),
-don't be afraid to touch other architectures and refactor/clean up.
-
-Please do the refactor in a separate preceding patch and submit it
-separate/soon instead of keeping it just in the series and bundled
-with your addition. That way it can go in when ready even if the rest
-of the series is spinning.
-
-
--Olof
+> What path are these errors happening in?
+>
+> Thanks,
+> Mark.
+>
+>> >
+>> > This affects riscv, nios, etc.
+>> >
+>> > Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
+>> > ---
+>> >  drivers/base/init.c | 2 +-
+>> >  1 file changed, 1 insertion(+), 1 deletion(-)
+>> >
+>> > diff --git a/drivers/base/init.c b/drivers/base/init.c
+>> > index 48c0e220acc0..0dcd17e561d0 100644
+>> > --- a/drivers/base/init.c
+>> > +++ b/drivers/base/init.c
+>> > @@ -31,9 +31,9 @@ void __init driver_init(void)
+>> >         /* These are also core pieces, but must come after the
+>> >          * core core pieces.
+>> >          */
+>> > +       of_core_init();
+>> >         platform_bus_init();
+>> >         cpu_dev_init();
+>> >         memory_dev_init();
+>> >         container_dev_init();
+>> > -       of_core_init();
+>> >  }
+>> > --
+>> > 2.13.0
+>> --
+>> To unsubscribe from this list: send the line "unsubscribe devicetree" in
+>> the body of a message to majordomo@vger.kernel.org
+>> More majordomo info at  http://vger.kernel.org/majordomo-info.html
