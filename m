@@ -1,70 +1,197 @@
-From: Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>
-Subject: Re: [PATCH 03/17] base: fix order of OF initialization
-Date: Wed, 7 Jun 2017 10:35:23 +0100
-Message-ID: <20170607093523.GB29370@leverpostej>
+From: Marc Zyngier <marc.zyngier@arm.com>
+Subject: Re: [PATCH 09/17] clocksource/timer-riscv: New RISC-V Clocksource
+Date: Wed, 7 Jun 2017 10:43:09 +0100
+Message-ID: <3ff254dc-5aa0-69af-c5f2-828ff2b4be54@arm.com>
 References: <20170523004107.536-1-palmer@dabbelt.com>
  <20170606230007.19101-1-palmer@dabbelt.com>
- <20170606230007.19101-4-palmer@dabbelt.com>
- <CAMuHMdXWH5fU8YKfR37D5SMi1GpSk75Bq-OcYmm5ZuHe+XK0PQ@mail.gmail.com>
+ <20170606230007.19101-10-palmer@dabbelt.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <CAMuHMdXWH5fU8YKfR37D5SMi1GpSk75Bq-OcYmm5ZuHe+XK0PQ-JsoAwUIsXosN+BqQ9rBEUg@public.gmane.org>
-Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>
-Cc: Palmer Dabbelt <palmer-96lFi9zoCfxBDgjK7y7TUQ@public.gmane.org>, Linux-Arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Olof Johansson <olof-nZhT3qVonbNeoWH0uzbU5w@public.gmane.org>, albert-SpMDHPYPyPbQT0dZR+AlfA@public.gmane.org, patches-q3qR2WxjNRFS9aJRtSZj7A@public.gmane.org, "Wesley W. Terpstra" <wesley-SpMDHPYPyPbQT0dZR+AlfA@public.gmane.org>, Rob Herring <robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Frank Rowand <frowand.list-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, "devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:58328 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751483AbdFGJnM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 7 Jun 2017 05:43:12 -0400
+In-Reply-To: <20170606230007.19101-10-palmer@dabbelt.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Palmer Dabbelt <palmer@dabbelt.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, olof@lixom.net
+Cc: albert@sifive.com, patches@groups.riscv.org
 
-On Wed, Jun 07, 2017 at 09:07:20AM +0200, Geert Uytterhoeven wrote:
-> CC devicetree folks
+On 06/06/17 23:59, Palmer Dabbelt wrote:
+> The RISC-V ISA defines a single RTC as well as an SBI oneshot timer.
+> This timer is present on all RISC-V systems.
 > 
-> On Wed, Jun 7, 2017 at 12:59 AM, Palmer Dabbelt <palmer-96lFi9zoCfxBDgjK7y7TUQ@public.gmane.org> wrote:
-> > From: "Wesley W. Terpstra" <wesley-SpMDHPYPyPbQT0dZR+AlfA@public.gmane.org>
-> >
-> > This fixes: [    0.010000] cpu cpu0: Error -2 creating of_node link
-> > ... which you get for every CPU on all architectures with a OF cpu/ node.
+> Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
+> ---
+>  drivers/clocksource/Kconfig       |   8 +++
+>  drivers/clocksource/Makefile      |   1 +
+>  drivers/clocksource/timer-riscv.c | 118 ++++++++++++++++++++++++++++++++++++++
+>  3 files changed, 127 insertions(+)
+>  create mode 100644 drivers/clocksource/timer-riscv.c
+> 
+> diff --git a/drivers/clocksource/Kconfig b/drivers/clocksource/Kconfig
+> index 545d541ae20e..1c2c6e7c7fab 100644
+> --- a/drivers/clocksource/Kconfig
+> +++ b/drivers/clocksource/Kconfig
+> @@ -612,4 +612,12 @@ config CLKSRC_ST_LPC
+>  	  Enable this option to use the Low Power controller timer
+>  	  as clocksource.
+>  
+> +config CLKSRC_RISCV
+> +	#bool "Clocksource for the RISC-V platform"
+> +	def_bool y if RISCV
+> +	depends on RISCV
+> +	help
+> +	  This enables a clocksource based on the RISC-V SBI timer, which is
+> +	  built in to all RISC-V systems.
+> +
+>  endmenu
+> diff --git a/drivers/clocksource/Makefile b/drivers/clocksource/Makefile
+> index 2b5b56a6f00f..408ed9d314dc 100644
+> --- a/drivers/clocksource/Makefile
+> +++ b/drivers/clocksource/Makefile
+> @@ -73,3 +73,4 @@ obj-$(CONFIG_H8300_TMR16)		+= h8300_timer16.o
+>  obj-$(CONFIG_H8300_TPU)			+= h8300_tpu.o
+>  obj-$(CONFIG_CLKSRC_ST_LPC)		+= clksrc_st_lpc.o
+>  obj-$(CONFIG_X86_NUMACHIP)		+= numachip.o
+> +obj-$(CONFIG_CLKSRC_RISCV)		+= timer-riscv.o
+> diff --git a/drivers/clocksource/timer-riscv.c b/drivers/clocksource/timer-riscv.c
+> new file mode 100644
+> index 000000000000..04ef7b9130b3
+> --- /dev/null
+> +++ b/drivers/clocksource/timer-riscv.c
+> @@ -0,0 +1,118 @@
+> +/*
+> + * Copyright (C) 2012 Regents of the University of California
+> + * Copyright (C) 2017 SiFive
+> + *
+> + *   This program is free software; you can redistribute it and/or
+> + *   modify it under the terms of the GNU General Public License
+> + *   as published by the Free Software Foundation, version 2.
+> + *
+> + *   This program is distributed in the hope that it will be useful,
+> + *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+> + *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+> + *   GNU General Public License for more details.
+> + */
+> +
+> +#include <linux/clocksource.h>
+> +#include <linux/clockchips.h>
+> +#include <linux/interrupt.h>
+> +#include <linux/irq.h>
+> +#include <linux/delay.h>
+> +#include <linux/of.h>
+> +
+> +#include <asm/irq.h>
+> +#include <asm/csr.h>
+> +#include <asm/sbi.h>
+> +#include <asm/delay.h>
+> +
+> +unsigned long riscv_timebase;
+> +
+> +static DEFINE_PER_CPU(struct clock_event_device, clock_event);
+> +
+> +static int riscv_timer_set_next_event(unsigned long delta,
+> +	struct clock_event_device *evdev)
+> +{
+> +	sbi_set_timer(get_cycles() + delta);
+> +	return 0;
+> +}
+> +
+> +static int riscv_timer_set_oneshot(struct clock_event_device *evt)
+> +{
+> +	/* no-op; only one mode */
+> +	return 0;
+> +}
+> +
+> +static int riscv_timer_set_shutdown(struct clock_event_device *evt)
+> +{
+> +	/* can't stop the clock! */
+> +	return 0;
+> +}
+> +
+> +static u64 riscv_rdtime(struct clocksource *cs)
+> +{
+> +	return get_cycles();
+> +}
+> +
+> +static struct clocksource riscv_clocksource = {
+> +	.name = "riscv_clocksource",
+> +	.rating = 300,
+> +	.read = riscv_rdtime,
+> +#ifdef CONFIG_64BITS
+> +	.mask = CLOCKSOURCE_MASK(64),
+> +#else
+> +	.mask = CLOCKSOURCE_MASK(32),
+> +#endif /* CONFIG_64BITS */
+> +	.flags = CLOCK_SOURCE_IS_CONTINUOUS,
+> +};
+> +
+> +void riscv_timer_interrupt(void)
+> +{
+> +	int cpu = smp_processor_id();
+> +	struct clock_event_device *evdev = &per_cpu(clock_event, cpu);
+> +
+> +	evdev->event_handler(evdev);
+> +}
+> +
+> +void __init init_clockevent(void)
+> +{
+> +	int cpu = smp_processor_id();
+> +	struct clock_event_device *ce = &per_cpu(clock_event, cpu);
+> +
+> +	*ce = (struct clock_event_device){
+> +		.name = "riscv_timer_clockevent",
+> +		.features = CLOCK_EVT_FEAT_ONESHOT,
+> +		.rating = 300,
+> +		.cpumask = cpumask_of(cpu),
+> +		.set_next_event = riscv_timer_set_next_event,
+> +		.set_state_oneshot  = riscv_timer_set_oneshot,
+> +		.set_state_shutdown = riscv_timer_set_shutdown,
+> +	};
+> +
+> +	/* Enable timer interrupts */
+> +	csr_set(sie, SIE_STIE);
+> +
+> +	clockevents_config_and_register(ce, riscv_timebase, 100, 0x7fffffff);
+> +}
+> +
+> +static unsigned long __init of_timebase(void)
+> +{
+> +	struct device_node *cpu;
+> +	const __be32 *prop;
+> +
+> +	cpu = of_find_node_by_path("/cpus");
+> +	if (cpu) {
+> +		prop = of_get_property(cpu, "timebase-frequency", NULL);
+> +		if (prop)
+> +			return be32_to_cpu(*prop);
 
-I take it this means a /cpus node? Or the /cpus/cpu@* nodes?
+Consider using of_property_read_u32() instead.
 
-I'm not seeing this on arm64 when booting v4.12-rc4 with DT, so clearly
-this doesn't affect all such architectures.
+> +	}
+> +
+> +	return 10000000;
 
-What path are these errors happening in?
+Is this an architectural guarantee? Or something that is implementation
+specific?
+
+> +}
+> +
+> +void __init time_init(void)
+> +{
+> +	riscv_timebase = of_timebase();
+> +	lpj_fine = riscv_timebase / HZ;
+> +
+> +	clocksource_register_hz(&riscv_clocksource, riscv_timebase);
+> +	init_clockevent();
+> +}
+> 
 
 Thanks,
-Mark.
 
-> >
-> > This affects riscv, nios, etc.
-> >
-> > Signed-off-by: Palmer Dabbelt <palmer-96lFi9zoCfxBDgjK7y7TUQ@public.gmane.org>
-> > ---
-> >  drivers/base/init.c | 2 +-
-> >  1 file changed, 1 insertion(+), 1 deletion(-)
-> >
-> > diff --git a/drivers/base/init.c b/drivers/base/init.c
-> > index 48c0e220acc0..0dcd17e561d0 100644
-> > --- a/drivers/base/init.c
-> > +++ b/drivers/base/init.c
-> > @@ -31,9 +31,9 @@ void __init driver_init(void)
-> >         /* These are also core pieces, but must come after the
-> >          * core core pieces.
-> >          */
-> > +       of_core_init();
-> >         platform_bus_init();
-> >         cpu_dev_init();
-> >         memory_dev_init();
-> >         container_dev_init();
-> > -       of_core_init();
-> >  }
-> > --
-> > 2.13.0
-> --
-> To unsubscribe from this list: send the line "unsubscribe devicetree" in
-> the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
---
-To unsubscribe from this list: send the line "unsubscribe devicetree" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+	M.
+-- 
+Jazz is not dead. It just smells funny...
