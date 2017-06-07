@@ -1,231 +1,391 @@
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCH 08/17] dts: include documentation for the RISC-V
- interrupt controllers
-Date: Wed, 7 Jun 2017 11:13:43 +0100
-Message-ID: <20170607101343.GC29370@leverpostej>
+From: Marc Zyngier <marc.zyngier@arm.com>
+Subject: Re: [PATCH 10/17] irqchip: New RISC-V PLIC Driver
+Date: Wed, 7 Jun 2017 11:52:10 +0100
+Message-ID: <34ebb0fd-8d8b-3ec7-ecf1-f296e878bd5d@arm.com>
 References: <20170523004107.536-1-palmer@dabbelt.com>
  <20170606230007.19101-1-palmer@dabbelt.com>
- <20170606230007.19101-9-palmer@dabbelt.com>
- <CAMuHMdWYNVvh4hqDrqYNe2oyVHkCbH15VfWTWHaBCeRAaf6O4g@mail.gmail.com>
+ <20170606230007.19101-11-palmer@dabbelt.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:58806 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:59190 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751026AbdFGKO2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 7 Jun 2017 06:14:28 -0400
-Content-Disposition: inline
-In-Reply-To: <CAMuHMdWYNVvh4hqDrqYNe2oyVHkCbH15VfWTWHaBCeRAaf6O4g@mail.gmail.com>
+        id S1751008AbdFGKwO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 7 Jun 2017 06:52:14 -0400
+In-Reply-To: <20170606230007.19101-11-palmer@dabbelt.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Palmer Dabbelt <palmer@dabbelt.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Olof Johansson <olof@lixom.net>, albert@sifive.com, patches@groups.riscv.org, "Wesley W. Terpstra" <wesley@sifive.com>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <Marc.Zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>
+To: Palmer Dabbelt <palmer@dabbelt.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, olof@lixom.net
+Cc: albert@sifive.com, patches@groups.riscv.org, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>
 
-On Wed, Jun 07, 2017 at 09:11:31AM +0200, Geert Uytterhoeven wrote:
-> CC irqchip and devicetree folks
+Hi Palmer,
 
-Thanks Geert.
+On 07/06/17 00:00, Palmer Dabbelt wrote:
+> This patch adds a driver for the Platform Level Interrupt Controller
+> (PLIC) specified as part of the RISC-V supervisor level ISA manual.
+> The PLIC connocts global interrupt sources to the local interrupt
+> controller on each hart.  A PLIC is present on all RISC-V systems.
+> 
+> Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
+> ---
+>  drivers/irqchip/Kconfig          |  12 ++
+>  drivers/irqchip/Makefile         |   1 +
+>  drivers/irqchip/irq-riscv-plic.c | 253 +++++++++++++++++++++++++++++++++++++++
+>  3 files changed, 266 insertions(+)
+>  create mode 100644 drivers/irqchip/irq-riscv-plic.c
+> 
+> diff --git a/drivers/irqchip/Kconfig b/drivers/irqchip/Kconfig
+> index 478f8ace2664..2906d63934ef 100644
+> --- a/drivers/irqchip/Kconfig
+> +++ b/drivers/irqchip/Kconfig
+> @@ -301,3 +301,15 @@ config QCOM_IRQ_COMBINER
+>  	help
+>  	  Say yes here to add support for the IRQ combiner devices embedded
+>  	  in Qualcomm Technologies chips.
+> +
+> +config RISCV_PLIC
+> +        bool "Platform-Level Interrupt Controller"
+> +	depends on RISCV
+> +        default y
+> +        help
+> +	   This enables support for the PLIC chip found in standard RISC-V
+> +	   systems. The PLIC is the top-most interrupt controller found in
 
-Palmer, in future, you can ensure (most) relevant parties are Cc'd by
-using scripts/get_maintainer.pl to find them, and adding Cc: lines to
-the relevant patches.
+nit: this seems to slightly contradict what is being said in patch #8,
+where the HLIC is the top-level interrupt controller.
 
-You can either hand that a patch or a path, e.g.
+> +	   the system, connected directly to the core complex. All other
+> +	   interrupt sources (MSI, GPIO, etc) are subordinate to the PLIC.
+> +
+> +	   If you don't know what to do here, say Y.
+> diff --git a/drivers/irqchip/Makefile b/drivers/irqchip/Makefile
+> index b64c59b838a0..bed94cc89146 100644
+> --- a/drivers/irqchip/Makefile
+> +++ b/drivers/irqchip/Makefile
+> @@ -76,3 +76,4 @@ obj-$(CONFIG_EZNPS_GIC)			+= irq-eznps.o
+>  obj-$(CONFIG_ARCH_ASPEED)		+= irq-aspeed-vic.o
+>  obj-$(CONFIG_STM32_EXTI) 		+= irq-stm32-exti.o
+>  obj-$(CONFIG_QCOM_IRQ_COMBINER)		+= qcom-irq-combiner.o
+> +obj-$(CONFIG_RISCV_PLIC)		+= irq-riscv-plic.o
+> diff --git a/drivers/irqchip/irq-riscv-plic.c b/drivers/irqchip/irq-riscv-plic.c
+> new file mode 100644
+> index 000000000000..906c8a62a911
+> --- /dev/null
+> +++ b/drivers/irqchip/irq-riscv-plic.c
+> @@ -0,0 +1,253 @@
+> +/*
+> + * Copyright (C) 2017 SiFive
+> + *
+> + *   This program is free software; you can redistribute it and/or
+> + *   modify it under the terms of the GNU General Public License
+> + *   as published by the Free Software Foundation, version 2.
+> + *
+> + *   This program is distributed in the hope that it will be useful,
+> + *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+> + *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+> + *   GNU General Public License for more details.
+> + */
+> +
+> +#include <linux/interrupt.h>
+> +#include <linux/io.h>
+> +#include <linux/irq.h>
+> +#include <linux/irqchip.h>
+> +#include <linux/irqchip/chained_irq.h>
+> +#include <linux/irqdomain.h>
+> +#include <linux/module.h>
+> +#include <linux/of.h>
+> +#include <linux/of_address.h>
+> +#include <linux/of_irq.h>
+> +#include <linux/platform_device.h>
+> +
+> +/* From the RISC-V Privlidged Spec v1.10:
+> + *
+> + * Global interrupt sources are assigned small unsigned integer identifiers,
+> + * beginning at the value 1.  An interrupt ID of 0 is reserved to mean “no
+> + * interrupt”.  Interrupt identifiers are also used to break ties when two or
+> + * more interrupt sources have the same assigned priority. Smaller values of
+> + * interrupt ID take precedence over larger values of interrupt ID.
+> + *
+> + * It's not defined what the largest device ID is, so we're just fixing
+> + * MAX_DEVICES right here (which is named oddly, as there will never be a
+> + * device 0).
+> + */
+> +#define MAX_DEVICES	1024
+> +#define MAX_CONTEXTS	15872
 
-[mark@leverpostej:~/src/linux]% ./scripts/get_maintainer.pl -f Documentation/devicetree/bindings/interrupt-controller/                  
-Thomas Gleixner <tglx@linutronix.de> (maintainer:IRQCHIP DRIVERS)
-Jason Cooper <jason@lakedaemon.net> (maintainer:IRQCHIP DRIVERS)
-Marc Zyngier <marc.zyngier@arm.com> (maintainer:IRQCHIP DRIVERS)
-Rob Herring <robh+dt@kernel.org> (maintainer:OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS)
-Mark Rutland <mark.rutland@arm.com> (maintainer:OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS)
-linux-kernel@vger.kernel.org (open list:IRQCHIP DRIVERS)
-devicetree@vger.kernel.org (open list:OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS)
+If those are HW properties, they should probably come from the device
+tree instead of being hardcoded here.
 
-Otherwise, I have a few comments inline below.
+> +
+> +#define PRIORITY_BASE	0
+> +#define ENABLE_BASE	0x2000
+> +#define ENABLE_SIZE	0x80
+> +#define HART_BASE	0x200000
+> +#define HART_SIZE	0x1000
+> +
+> +struct plic_hart_context {
+> +	u32 threshold;
+> +	u32 claim;
+> +};
 
-> On Wed, Jun 7, 2017 at 12:59 AM, Palmer Dabbelt <palmer@dabbelt.com> wrote:
-> > From: "Wesley W. Terpstra" <wesley@sifive.com>
-> >
-> > Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
-> > ---
-> >  .../interrupt-controller/riscv,cpu-intc.txt        | 46 ++++++++++++++++++++++
-> >  .../bindings/interrupt-controller/riscv,plic0.txt  | 44 +++++++++++++++++++++
-> >  2 files changed, 90 insertions(+)
-> >  create mode 100644 Documentation/devicetree/bindings/interrupt-controller/riscv,cpu-intc.txt
-> >  create mode 100644 Documentation/devicetree/bindings/interrupt-controller/riscv,plic0.txt
-> >
-> > diff --git a/Documentation/devicetree/bindings/interrupt-controller/riscv,cpu-intc.txt b/Documentation/devicetree/bindings/interrupt-controller/riscv,cpu-intc.txt
-> > new file mode 100644
-> > index 000000000000..62f02e834ff9
-> > --- /dev/null
-> > +++ b/Documentation/devicetree/bindings/interrupt-controller/riscv,cpu-intc.txt
-> > @@ -0,0 +1,46 @@
-> > +RISC-V Hart-Level Interrupt Controller (HLIC)
-> > +---------------------------------------------
-> > +
-> > +RISC-V cores include Control Status Registers (CSRs) which are local to each
-> > +hart and can be read or written by software. Some of these CSRs are used to
-> > +control local interrupts connected to the core.
-> > +
-> > +Typical examples of local interrupts on a RISC-V core include: software IPI
-> > +interrupts, timer interrupts, and a link to the PLIC interrupt controller.
+Representing HW layout as a C structure is not something we usually do
+in the kernel. It relies on the ABI (which may change over time), and
+makes it harder to quickly distinguish what is a SW concept from what's
+not. It also leads to some of the mistakes below...
 
-So IIUC those interrupts are routed directly to the HLIC, and are (only)
-controlled thought the HLIC?
+> +
+> +struct plic_enable_context {
+> +	atomic_t mask[32]; // 32-bit * 32-entry
 
-Is the HLIC architecturally mandated? i.e. is this guaranteed to be
-present on any RISC-V implementation?
+/* */ comments please, placed above the field.
 
-Does the presence of the HLIC imply the presence of a PLIC (or
-vice/versa)? Typically, the per-cpu and platform-wide parts of the
-top-level interrupt controller are fairly intimately coupled.
+> +};
+> +
+> +struct plic_priority {
+> +	u32 prio[MAX_DEVICES];
+> +};
+> +
+> +struct plic_data {
+> +	struct irq_chip		chip;
+> +	struct irq_domain	*domain;
+> +	u32			ndev;
+> +	void __iomem		*reg;
+> +	int			handlers;
+> +	struct plic_handler	*handler;
+> +	char			name[30];
 
-> > +
-> > +Required properties:
-> > +- compatible : "riscv,cpu-intc"
+Why 30? #define?
 
-You'll need to allocate the "riscv" vendor prefix in 
-Documentation/devicetree/bindings/vendor-prefixes.txt
+> +};
+> +
+> +struct plic_handler {
+> +	struct plic_hart_context	*context;
+> +	struct plic_data		*data;
+> +};
+> +
+> +static inline
+> +struct plic_hart_context *plic_hart_context(struct plic_data *data, size_t i)
 
-... if that was done in some other patch, I didn't receive it.
+What is 'i' here?
 
-> > +- #interrupt-cells : should be <1>
+> +{
+> +	return (struct plic_hart_context *)((char *)data->reg + HART_BASE + HART_SIZE*i);
 
-What about the flags?
+This looks dodgy on a number of levels:
+- the various levels of casts are useless
+- what you return is still an __iomem
 
-Are all HLIC interrupts edge triggered (or level triggered)?
+Sparse would certainly shout at you if you ran it on this file.
 
-> > +- interrupt-controller : Identifies the node as an interrupt controller
-> > +
-> > +Furthermore, this interrupt-controller MUST be embedded inside the cpu
-> > +definition of the hart whose CSRs control these local interrupts.
-> > +
-> > +Example:
-> > +
-> > +       cpu1: cpu@1 {
-> > +               clock-frequency = <1600000000>;
-> > +               compatible = "riscv";
-> > +               d-cache-block-size = <64>;
-> > +               d-cache-sets = <64>;
-> > +               d-cache-size = <16384>;
-> > +               d-tlb-sets = <1>;
-> > +               d-tlb-size = <32>;
-> > +               device_type = "cpu";
-> > +               i-cache-block-size = <64>;
-> > +               i-cache-sets = <64>;
-> > +               i-cache-size = <16384>;
-> > +               i-tlb-sets = <1>;
-> > +               i-tlb-size = <32>;
-> > +               mmu-type = "riscv,sv39";
-> > +               next-level-cache = <&L2>;
-> > +               reg = <1>;
-> > +               riscv,isa = "rv64imac";
-> > +               status = "okay";
-> > +               tlb-split;
+Same comment for the two functions below.
 
-We can probably replace most of these with a "...", as they're largely
-irrelevany to this binding.
+> +}
+> +
+> +static inline
+> +struct plic_enable_context *plic_enable_context(struct plic_data *data, size_t i)
+> +{
+> +	return (struct plic_enable_context *)((char *)data->reg + ENABLE_BASE + ENABLE_SIZE*i);
+> +}
+> +
+> +static inline
+> +struct plic_priority *plic_priority(struct plic_data *data)
+> +{
+> +	return (struct plic_priority *)((char *)data->reg + PRIORITY_BASE);
+> +}
+> +
+> +static void plic_disable(struct plic_data *data, int i, int hwirq)
+> +{
+> +	struct plic_enable_context *enable = plic_enable_context(data, i);
+> +
+> +	atomic_and(~(1 << (hwirq % 32)), &enable->mask[hwirq / 32]);
 
-> > +               cpu1-intc: interrupt-controller {
-> > +                       #interrupt-cells = <1>;
-> > +                       compatible = "riscv,cpu-intc";
-> > +                       interrupt-controller;
-> > +               };
-> > +       };
-> > diff --git a/Documentation/devicetree/bindings/interrupt-controller/riscv,plic0.txt b/Documentation/devicetree/bindings/interrupt-controller/riscv,plic0.txt
-> > new file mode 100644
-> > index 000000000000..c05b5806f7d2
-> > --- /dev/null
-> > +++ b/Documentation/devicetree/bindings/interrupt-controller/riscv,plic0.txt
-> > @@ -0,0 +1,44 @@
-> > +RISC-V Platform-Level Interrupt Controller (PLIC)
-> > +-------------------------------------------------
-> > +
-> > +RISC-V cores typically include a PLIC, which route interrupts from multiple
-> > +devices to multiple hart contexts.  The PLIC is connected to the interrupt
-> > +controller embedded in a RISC-V core via the interrupt-related CSRs.
+This is still a device access, right? What does it mean to use the
+atomic primitives on that? What are you racing against? I thought the
+various context were private to an execution context...
 
-Do you mean that the PLIC is connected to the HLIC, or that the HLIC is
-also managed in part through CSRs?
+Adding Will and PeterZ to the CC list because they will probably have
+their own views on this...
 
-> > +
-> > +A hart context is a priviledge mode in a hardware execution thread.  For
-> > +example, in an 4 core system with 2-way SMT, you have 8 harts and probably
-> > +at least two priviledge modes per hart; machine mode and supervisor mode.
-> > +
-> > +Each interrupt can be enabled on per-context basis. Any context can claim
-> > +a pending enabled interrupt and then release it once it has been handled.
-> > +
-> > +Each interrupt has a configurable priority. Higher priority interrupts are
-> > +serviced firs. Each context can specify a priority threshold. Interrupts
-> > +with priority below this threshold will not cause the PLIC to raise its
-> > +interrupt line leading to the context.
-> > +
-> > +Required properties:
-> > +- compatible : "riscv,plic0"
-> > +- #address-cells : should be <0>
-> > +- #interrupt-cells : should be <1>
+> +}
+> +
+> +static void plic_enable(struct plic_data *data, int i, int hwirq)
+> +{
+> +	struct plic_enable_context *enable = plic_enable_context(data, i);
+> +
+> +	atomic_or((1 << (hwirq % 32)), &enable->mask[hwirq / 32]);
+> +}
+> +
+> +// There is no need to mask/unmask PLIC interrupts
+> +// They are "masked" by reading claim and "unmasked" when writing it back.
 
-As with the HLIC, what about the flags?
+Hmmm. What you describe here is the FastEOI flow.
 
-> > +- interrupt-controller : Identifies the node as an interrupt controller
-> > +- reg : Should contain 1 register range (address and length)
-> > +- riscv,ndev : Specifies the number of interrupts attached to the PLIC
+> +static void plic_irq_mask(struct irq_data *d) { }
+> +static void plic_irq_unmask(struct irq_data *d) { }
+> +
+> +static void plic_irq_enable(struct irq_data *d)
+> +{
+> +	struct plic_data *data = irq_data_get_irq_chip_data(d);
+> +	struct plic_priority *priority = plic_priority(data);
+> +	int i;
+> +
+> +	iowrite32(1, &priority->prio[d->hwirq]);
 
-Why do we need to know this?
+Using iowrite is only meaningful if your architecture has an actual I/O
+address space that is distinct from the "normal" address space. Using
+the write{b,w,l}{_relaxed} accessors would make more sense if you're not
+in that case.
 
-I suspect this ia actually the number of interrupts implemented in the
-PLIC, rather than the number of interrupts attached. i.e. the PLIC can
-be implemented with a subset of the potential registers/bits. Is that
-correct?
+> +	for (i = 0; i < data->handlers; ++i)
+> +		if (data->handler[i].context)
+> +			plic_enable(data, i, d->hwirq);
+> +}
+> +
+> +static void plic_irq_disable(struct irq_data *d)
+> +{
+> +	struct plic_data *data = irq_data_get_irq_chip_data(d);
+> +	struct plic_priority *priority = plic_priority(data);
+> +	int i;
+> +
+> +	iowrite32(0, &priority->prio[d->hwirq]);
+> +	for (i = 0; i < data->handlers; ++i)
+> +		if (data->handler[i].context)
+> +			plic_disable(data, i, d->hwirq);
+> +}
+> +
+> +static int plic_irqdomain_map(struct irq_domain *d, unsigned int irq,
+> +			      irq_hw_number_t hwirq)
+> +{
+> +	struct plic_data *data = d->host_data;
+> +
+> +	irq_set_chip_and_handler(irq, &data->chip, handle_simple_irq);
+> +	irq_set_chip_data(irq, data);
+> +	irq_set_noprobe(irq);
+> +
+> +	return 0;
+> +}
+> +
+> +static const struct irq_domain_ops plic_irqdomain_ops = {
+> +	.map	= plic_irqdomain_map,
+> +	.xlate	= irq_domain_xlate_onecell,
+> +};
+> +
+> +static void plic_chained_handle_irq(struct irq_desc *desc)
+> +{
+> +	struct plic_handler *handler = irq_desc_get_handler_data(desc);
+> +	struct irq_chip *chip = irq_desc_get_chip(desc);
+> +	struct irq_domain *domain = handler->data->domain;
+> +	u32 what;
+> +
+> +	chained_irq_enter(chip, desc);
+> +
+> +	while ((what = ioread32(&handler->context->claim))) {
+> +		int irq = irq_find_mapping(domain, what);
+> +
+> +		if (irq > 0)
+> +			generic_handle_irq(irq);
+> +		else
+> +			handle_bad_irq(desc);
+> +		iowrite32(what, &handler->context->claim);
 
-If so, something like "riscv,num-interrupts" would be better, along with
-a clearer description.
+So this is your EOI. It should be represented as such, instead of
+abusing the handle_simple_irq flow.
 
-> > +- interrupts-extended : Specifies which contexts are connected to the PLIC
+> +	}
+> +
+> +	chained_irq_exit(chip, desc);
+> +}
+> +
+> +static int plic_init(struct device_node *node, struct device_node *parent)
+> +{
+> +	struct plic_data *data;
+> +	struct resource resource;
+> +	int i, ok = 0;
+> +
+> +	data = kzalloc(sizeof(*data), GFP_KERNEL);
+> +	if (WARN_ON(!data))
+> +		return -ENOMEM;
+> +
+> +	data->reg = of_iomap(node, 0);
+> +	if (WARN_ON(!data->reg))
+> +		return -EIO;
+> +
+> +	of_property_read_u32(node, "riscv,ndev", &data->ndev);
+> +	if (WARN_ON(!data->ndev))
+> +		return -EINVAL;
+> +
+> +	data->handlers = of_irq_count(node);
+> +	if (WARN_ON(!data->handlers))
+> +		return -EINVAL;
+> +
+> +	data->handler =
+> +		kcalloc(data->handlers, sizeof(*data->handler), GFP_KERNEL);
+> +	if (WARN_ON(!data->handler))
+> +		return -ENOMEM;
+> +
+> +	data->domain = irq_domain_add_linear(node, data->ndev+1, &plic_irqdomain_ops, data);
+> +	if (WARN_ON(!data->domain))
+> +		return -ENOMEM;
 
-That description doesn't sound right.
+Memory leak of data->handler and data, data->reg is still mapped...
 
-I take it that these are the HLIC interrupts that the PLIC can raise?
+> +
+> +	of_address_to_resource(node, 0, &resource);
+> +	snprintf(data->name, sizeof(data->name),
+> +		 "riscv,plic0,%llx", resource.start);
+> +	data->chip.name = data->name;
+> +	data->chip.irq_mask = plic_irq_mask;
+> +	data->chip.irq_unmask = plic_irq_unmask;
+> +	data->chip.irq_enable = plic_irq_enable;
+> +	data->chip.irq_disable = plic_irq_disable;
+> +
+> +	for (i = 0; i < data->handlers; ++i) {
+> +		struct plic_handler *handler = &data->handler[i];
+> +		struct of_phandle_args parent;
+> +		int parent_irq, hwirq;
+> +
+> +		if (of_irq_parse_one(node, i, &parent))
+> +			continue;
+> +		// skip context holes
+> +		if (parent.args[0] == -1)
+> +			continue;
+> +
+> +		// skip any contexts that lead to inactive harts
+> +		if (of_device_is_compatible(parent.np, "riscv,cpu-intc") &&
+> +		    parent.np->parent &&
+> +		    riscv_of_processor_hart(parent.np->parent) < 0)
+> +			continue;
+> +
+> +		parent_irq = irq_create_of_mapping(&parent);
+> +		if (!parent_irq)
+> +			continue;
+> +
+> +		handler->context = plic_hart_context(data, i);
+> +		handler->data = data;
+> +		// hwirq prio must be > this to trigger an interrupt
+> +		iowrite32(0, &handler->context->threshold);
+> +
+> +		for (hwirq = 1; hwirq <= data->ndev; ++hwirq)
+> +			plic_disable(data, i, hwirq);
+> +		irq_set_chained_handler_and_data(parent_irq, plic_chained_handle_irq, handler);
+> +		++ok;
+> +	}
+> +
+> +	printk(KERN_INFO "%s: mapped %d interrupts to %d/%d handlers\n",
+> +	       data->name, data->ndev, ok, data->handlers);
+> +	WARN_ON(!ok);
+> +	return 0;
+> +}
+> +
+> +IRQCHIP_DECLARE(plic0, "riscv,plic0", plic_init);
+> 
 
-You will need to be explicit about the order of interrupts in this
-property. i.e. which interrupt is routed to which context?
-
-Is the interrupt at the HLIC well known? From the example I see that
-here local interrupts 11 adn 9 are used. Is that mandated, or just the
-case for this particular implementation?
-
-Also, please consider how you will handle the case when the Linux
-logical CPU ID is not the same as the physical ID, and how you will
-handle physical IDs being sparse.
-
-We went though a lot of pain trying to do something similar for the ARM
-PMU interrupts (see the interrupt-affinity property in
-Documentation/devicetree/bindings/arm/pmu.txt), and it's still painful
-to deal with.
-
-> > +
-> > +Example:
-> > +
-> > +       plic: interrupt-controller@c000000 {
-> > +               #address-cells = <0>;
-
-This can go, given you don't have sub-nodes, nor a #size-cells property.
+In the future, please CC me (as well as Thomas Gleixner and Jason
+Cooper) on all the interrupt-controller related patches.
 
 Thanks,
-Mark.
 
-> > +               #interrupt-cells = <1>;
-> > +               compatible = "riscv,plic0";
-> > +               interrupt-controller;
-> > +               interrupts-extended = <
-> > +                       &cpu0-intc 11
-> > +                       &cpu1-intc 11 &cpu1-intc 9
-> > +                       &cpu2-intc 11 &cpu2-intc 9
-> > +                       &cpu3-intc 11 &cpu3-intc 9
-> > +                       &cpu4-intc 11 &cpu4-intc 9>;
-> > +               reg = <0xc000000 0x4000000>;
-> > +               riscv,ndev = <10>;
-> > +       };
-> > --
-> > 2.13.0
+	M.
+-- 
+Jazz is not dead. It just smells funny...
