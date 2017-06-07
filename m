@@ -1,142 +1,46 @@
 From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [PATCH 13/17] RISC-V: Add include subdirectory
-Date: Wed, 7 Jun 2017 14:42:51 +0200
-Message-ID: <20170607124251.ql7e54b4u2g5cqzt@hirez.programming.kicks-ass.net>
+Date: Wed, 7 Jun 2017 14:58:50 +0200
+Message-ID: <20170607125850.zwh3w5s5ce54jcrz@hirez.programming.kicks-ass.net>
 References: <20170523004107.536-1-palmer@dabbelt.com>
  <20170606230007.19101-1-palmer@dabbelt.com>
  <20170606230007.19101-14-palmer@dabbelt.com>
+ <20170607120613.ocbqpfajxj6eedbt@hirez.programming.kicks-ass.net>
+ <20170607123627.ofjobsxxv5ut776m@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:48614 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751489AbdFGMnE (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 7 Jun 2017 08:43:04 -0400
+Received: from bombadil.infradead.org ([65.50.211.133]:37170 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751465AbdFGM64 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 7 Jun 2017 08:58:56 -0400
 Content-Disposition: inline
-In-Reply-To: <20170606230007.19101-14-palmer@dabbelt.com>
+In-Reply-To: <20170607123627.ofjobsxxv5ut776m@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Palmer Dabbelt <palmer@dabbelt.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, olof@lixom.net, albert@sifive.com, patches@groups.riscv.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, olof@lixom.net, albert@sifive.com, patches@groups.riscv.org, Will Deacon <will.deacon@arm.com>
 
-On Tue, Jun 06, 2017 at 04:00:03PM -0700, Palmer Dabbelt wrote:
-> diff --git a/arch/riscv/include/asm/cmpxchg.h b/arch/riscv/include/asm/cmpxchg.h
-> new file mode 100644
-> index 000000000000..c7ee1321ac18
-> --- /dev/null
-> +++ b/arch/riscv/include/asm/cmpxchg.h
-> @@ -0,0 +1,124 @@
-> +/*
-> + * Copyright (C) 2014 Regents of the University of California
-> + *
-> + *   This program is free software; you can redistribute it and/or
-> + *   modify it under the terms of the GNU General Public License
-> + *   as published by the Free Software Foundation, version 2.
-> + *
-> + *   This program is distributed in the hope that it will be useful,
-> + *   but WITHOUT ANY WARRANTY; without even the implied warranty of
-> + *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-> + *   GNU General Public License for more details.
-> + */
-> +
-> +#ifndef _ASM_RISCV_CMPXCHG_H
-> +#define _ASM_RISCV_CMPXCHG_H
-> +
-> +#include <linux/bug.h>
-> +
-> +#ifdef CONFIG_ISA_A
-> +
-> +#include <asm/barrier.h>
-> +
-> +#define __xchg(new, ptr, size)					\
-> +({								\
-> +	__typeof__(ptr) __ptr = (ptr);				\
-> +	__typeof__(new) __new = (new);				\
-> +	__typeof__(*(ptr)) __ret;				\
-> +	switch (size) {						\
-> +	case 4:							\
-> +		__asm__ __volatile__ (				\
-> +			"amoswap.w %0, %2, %1"			\
-> +			: "=r" (__ret), "+A" (*__ptr)		\
-> +			: "r" (__new));				\
-> +		break;						\
-> +	case 8:							\
-> +		__asm__ __volatile__ (				\
-> +			"amoswap.d %0, %2, %1"			\
-> +			: "=r" (__ret), "+A" (*__ptr)		\
-> +			: "r" (__new));				\
-> +		break;						\
-> +	default:						\
-> +		BUILD_BUG();					\
-> +	}							\
-> +	__ret;							\
-> +})
-> +
-> +#define xchg(ptr, x)    (__xchg((x), (ptr), sizeof(*(ptr))))
+On Wed, Jun 07, 2017 at 02:36:27PM +0200, Peter Zijlstra wrote:
+> Which (pending the sub confusion) will generate the entire set of:
+> 
+>  atomic_add, atomic_add_return{_relaxed,_acquire,_release,} atomic_fetch_add{_relaxed,_acquire,_release,}
+>  atomic_sub, atomic_sub_return{_relaxed,_acquire,_release,} atomic_fetch_sub{_relaxed,_acquire,_release,}
+> 
+>  atomic_and, atomic_fetch_and{_relaxed,_acquire,_release,}
+>  atomic_or,  atomic_fetch_or{_relaxed,_acquire,_release,}
+>  atomic_xor, atomic_fetch_xor{_relaxed,_acquire,_release,}
+> 
 
-our xchg() is fully ordered, and thus you need to use "amoswap.aq.rl"
+Another approach would be to override __atomic_op_{acquire,release} and
+use things like:
 
-> +
-> +
-> +/*
-> + * Atomic compare and exchange.  Compare OLD with MEM, if identical,
-> + * store NEW in MEM.  Return the initial value in MEM.  Success is
-> + * indicated by comparing RETURN with OLD.
-> + */
-> +#define __cmpxchg(ptr, old, new, size)					\
-> +({									\
-> +	__typeof__(ptr) __ptr = (ptr);					\
-> +	__typeof__(old) __old = (old);					\
-> +	__typeof__(new) __new = (new);					\
-> +	__typeof__(*(ptr)) __ret;					\
-> +	register unsigned int __rc;					\
-> +	switch (size) {							\
-> +	case 4:								\
-> +		__asm__ __volatile__ (					\
-> +		"0:"							\
-> +			"lr.w %0, %2\n"					\
-> +			"bne  %0, %z3, 1f\n"				\
-> +			"sc.w %1, %z4, %2\n"				\
-> +			"bnez %1, 0b\n"					\
-> +		"1:"							\
-> +			: "=&r" (__ret), "=&r" (__rc), "+A" (*__ptr)	\
-> +			: "rJ" (__old), "rJ" (__new));			\
-> +		break;							\
-> +	case 8:								\
-> +		__asm__ __volatile__ (					\
-> +		"0:"							\
-> +			"lr.d %0, %2\n"					\
-> +			"bne  %0, %z3, 1f\n"				\
-> +			"sc.d %1, %z4, %2\n"				\
-> +			"bnez %1, 0b\n"					\
-> +		"1:"							\
-> +			: "=&r" (__ret), "=&r" (__rc), "+A" (*__ptr)	\
-> +			: "rJ" (__old), "rJ" (__new));			\
-> +		break;							\
-> +	default:							\
-> +		BUILD_BUG();						\
-> +	}								\
-> +	__ret;								\
-> +})
-> +
-> +#define __cmpxchg_mb(ptr, old, new, size)			\
-> +({								\
-> +	__typeof__(*(ptr)) __ret;				\
-> +	smp_mb();						\
-> +	__ret = __cmpxchg((ptr), (old), (new), (size));		\
-> +	smp_mb();						\
-> +	__ret;							\
-> +})
+	"FENCE r,rw" -- (load) ACQUIRE
+	"FENCE rw,w" -- (store) RELEASE
 
-Your ISA of course, but wouldn't setting the AQ and RL bits on LR/SC be
-cheaper than doing two full barriers around the thing?
+And then you only need to provide _relaxed atomics.
 
-Note that cmpxchg() doesn't need to provide ordering on failure.
+Also, and I didn't check for that, you need to provide:
 
-Further note that we have:
-
-	{atomic_,}cmpxchg{_relaxed,_acquire,_release,}()
-
-and recently:
-
-	{atomic_,}try_cmpxchg{_relaxed,_acquire,_release,}()
+smp_load_acquire(), smp_store_release(), atomic_read_acquire(),
+atomic_store_release().
