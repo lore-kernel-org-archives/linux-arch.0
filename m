@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-cys01nam02on0044.outbound.protection.outlook.com ([104.47.37.44]:50592
-        "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
+Received: from mail-by2nam01on0047.outbound.protection.outlook.com ([104.47.34.47]:32694
+        "EHLO NAM01-BY2-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752378AbdFGTPJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 7 Jun 2017 15:15:09 -0400
+        id S1752451AbdFGTQB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 7 Jun 2017 15:16:01 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v6 10/34] x86, x86/mm, x86/xen,
- olpc: Use __va() against just the physical address in cr3
-Date: Wed, 07 Jun 2017 14:14:53 -0500
-Message-ID: <20170607191453.28645.92256.stgit@tlendack-t1.amdoffice.net>
+Subject: [PATCH v6 15/34] x86/boot/e820: Add support to determine the E820
+ type of an address
+Date: Wed, 07 Jun 2017 14:15:49 -0500
+Message-ID: <20170607191549.28645.40861.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
 References: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -18,176 +18,72 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Rik van Riel <riel@redhat.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170607191453.ok2OWITp9RDjRMAy_efBC3G5djbi4jeporaF0v2_c_U@z>
+Message-ID: <20170607191549.DOtFhzCDlm3sfMaMywbQPwxcij9w-tdjdhO6bZKFNcA@z>
 
-The cr3 register entry can contain the SME encryption bit that indicates
-the PGD is encrypted.  The encryption bit should not be used when creating
-a virtual address for the PGD table.
-
-Create a new function, read_cr3_pa(), that will extract the physical
-address from the cr3 register. This function is then used where a virtual
-address of the PGD needs to be created/used from the cr3 register.
+Add a function that will return the E820 type associated with an address
+range.
 
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/include/asm/special_insns.h |    9 +++++++++
- arch/x86/kernel/head64.c             |    2 +-
- arch/x86/mm/fault.c                  |   10 +++++-----
- arch/x86/mm/ioremap.c                |    2 +-
- arch/x86/platform/olpc/olpc-xo1-pm.c |    2 +-
- arch/x86/power/hibernate_64.c        |    2 +-
- arch/x86/xen/mmu_pv.c                |    6 +++---
- 7 files changed, 21 insertions(+), 12 deletions(-)
+ arch/x86/include/asm/e820/api.h |    2 ++
+ arch/x86/kernel/e820.c          |   26 +++++++++++++++++++++++---
+ 2 files changed, 25 insertions(+), 3 deletions(-)
 
-diff --git a/arch/x86/include/asm/special_insns.h b/arch/x86/include/asm/special_insns.h
-index 12af3e3..d8e8ace 100644
---- a/arch/x86/include/asm/special_insns.h
-+++ b/arch/x86/include/asm/special_insns.h
-@@ -234,6 +234,15 @@ static inline void clwb(volatile void *__p)
+diff --git a/arch/x86/include/asm/e820/api.h b/arch/x86/include/asm/e820/api.h
+index 8e0f8b8..3641f5f 100644
+--- a/arch/x86/include/asm/e820/api.h
++++ b/arch/x86/include/asm/e820/api.h
+@@ -38,6 +38,8 @@
+ extern void e820__reallocate_tables(void);
+ extern void e820__register_nosave_regions(unsigned long limit_pfn);
  
- #define nop() asm volatile ("nop")
++extern int  e820__get_entry_type(u64 start, u64 end);
++
+ /*
+  * Returns true iff the specified range [start,end) is completely contained inside
+  * the ISA region.
+diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
+index d78a586..46c9b65 100644
+--- a/arch/x86/kernel/e820.c
++++ b/arch/x86/kernel/e820.c
+@@ -84,7 +84,8 @@ bool e820__mapped_any(u64 start, u64 end, enum e820_type type)
+  * Note: this function only works correctly once the E820 table is sorted and
+  * not-overlapping (at least for the range specified), which is the case normally.
+  */
+-bool __init e820__mapped_all(u64 start, u64 end, enum e820_type type)
++static struct e820_entry *__e820__mapped_all(u64 start, u64 end,
++					     enum e820_type type)
+ {
+ 	int i;
  
-+static inline unsigned long native_read_cr3_pa(void)
-+{
-+	return (native_read_cr3() & PHYSICAL_PAGE_MASK);
+@@ -110,9 +111,28 @@ bool __init e820__mapped_all(u64 start, u64 end, enum e820_type type)
+ 		 * coverage of the desired range exists:
+ 		 */
+ 		if (start >= end)
+-			return 1;
++			return entry;
+ 	}
+-	return 0;
++
++	return NULL;
 +}
 +
-+static inline unsigned long read_cr3_pa(void)
++/*
++ * This function checks if the entire range <start,end> is mapped with type.
++ */
++bool __init e820__mapped_all(u64 start, u64 end, enum e820_type type)
 +{
-+	return (read_cr3() & PHYSICAL_PAGE_MASK);
++	return __e820__mapped_all(start, end, type);
 +}
++
++/*
++ * This function returns the type associated with the range <start,end>.
++ */
++int e820__get_entry_type(u64 start, u64 end)
++{
++	struct e820_entry *entry = __e820__mapped_all(start, end, 0);
++
++	return entry ? entry->type : -EINVAL;
+ }
  
- #endif /* __KERNEL__ */
- 
-diff --git a/arch/x86/kernel/head64.c b/arch/x86/kernel/head64.c
-index 43b7002..dc03624 100644
---- a/arch/x86/kernel/head64.c
-+++ b/arch/x86/kernel/head64.c
-@@ -55,7 +55,7 @@ int __init early_make_pgtable(unsigned long address)
- 	pmdval_t pmd, *pmd_p;
- 
- 	/* Invalid address or early pgt is done ?  */
--	if (physaddr >= MAXMEM || read_cr3() != __pa_nodebug(early_level4_pgt))
-+	if (physaddr >= MAXMEM || read_cr3_pa() != __pa_nodebug(early_level4_pgt))
- 		return -1;
- 
- again:
-diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
-index 8ad91a0..2a1fa10c 100644
---- a/arch/x86/mm/fault.c
-+++ b/arch/x86/mm/fault.c
-@@ -346,7 +346,7 @@ static noinline int vmalloc_fault(unsigned long address)
- 	 * Do _not_ use "current" here. We might be inside
- 	 * an interrupt in the middle of a task switch..
- 	 */
--	pgd_paddr = read_cr3();
-+	pgd_paddr = read_cr3_pa();
- 	pmd_k = vmalloc_sync_one(__va(pgd_paddr), address);
- 	if (!pmd_k)
- 		return -1;
-@@ -388,7 +388,7 @@ static bool low_pfn(unsigned long pfn)
- 
- static void dump_pagetable(unsigned long address)
- {
--	pgd_t *base = __va(read_cr3());
-+	pgd_t *base = __va(read_cr3_pa());
- 	pgd_t *pgd = &base[pgd_index(address)];
- 	p4d_t *p4d;
- 	pud_t *pud;
-@@ -451,7 +451,7 @@ static noinline int vmalloc_fault(unsigned long address)
- 	 * happen within a race in page table update. In the later
- 	 * case just flush:
- 	 */
--	pgd = (pgd_t *)__va(read_cr3()) + pgd_index(address);
-+	pgd = (pgd_t *)__va(read_cr3_pa()) + pgd_index(address);
- 	pgd_ref = pgd_offset_k(address);
- 	if (pgd_none(*pgd_ref))
- 		return -1;
-@@ -555,7 +555,7 @@ static int bad_address(void *p)
- 
- static void dump_pagetable(unsigned long address)
- {
--	pgd_t *base = __va(read_cr3() & PHYSICAL_PAGE_MASK);
-+	pgd_t *base = __va(read_cr3_pa());
- 	pgd_t *pgd = base + pgd_index(address);
- 	p4d_t *p4d;
- 	pud_t *pud;
-@@ -700,7 +700,7 @@ static int is_f00f_bug(struct pt_regs *regs, unsigned long address)
- 		pgd_t *pgd;
- 		pte_t *pte;
- 
--		pgd = __va(read_cr3() & PHYSICAL_PAGE_MASK);
-+		pgd = __va(read_cr3_pa());
- 		pgd += pgd_index(address);
- 
- 		pte = lookup_address_in_pgd(pgd, address, &level);
-diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
-index 2a0fa89..e6305dd 100644
---- a/arch/x86/mm/ioremap.c
-+++ b/arch/x86/mm/ioremap.c
-@@ -427,7 +427,7 @@ void unxlate_dev_mem_ptr(phys_addr_t phys, void *addr)
- static inline pmd_t * __init early_ioremap_pmd(unsigned long addr)
- {
- 	/* Don't assume we're using swapper_pg_dir at this point */
--	pgd_t *base = __va(read_cr3());
-+	pgd_t *base = __va(read_cr3_pa());
- 	pgd_t *pgd = &base[pgd_index(addr)];
- 	p4d_t *p4d = p4d_offset(pgd, addr);
- 	pud_t *pud = pud_offset(p4d, addr);
-diff --git a/arch/x86/platform/olpc/olpc-xo1-pm.c b/arch/x86/platform/olpc/olpc-xo1-pm.c
-index c5350fd..0668aaf 100644
---- a/arch/x86/platform/olpc/olpc-xo1-pm.c
-+++ b/arch/x86/platform/olpc/olpc-xo1-pm.c
-@@ -77,7 +77,7 @@ static int xo1_power_state_enter(suspend_state_t pm_state)
- 
- asmlinkage __visible int xo1_do_sleep(u8 sleep_state)
- {
--	void *pgd_addr = __va(read_cr3());
-+	void *pgd_addr = __va(read_cr3_pa());
- 
- 	/* Program wakeup mask (using dword access to CS5536_PM1_EN) */
- 	outl(wakeup_mask << 16, acpi_base + CS5536_PM1_STS);
-diff --git a/arch/x86/power/hibernate_64.c b/arch/x86/power/hibernate_64.c
-index a6e21fe..0a7650d 100644
---- a/arch/x86/power/hibernate_64.c
-+++ b/arch/x86/power/hibernate_64.c
-@@ -150,7 +150,7 @@ static int relocate_restore_code(void)
- 	memcpy((void *)relocated_restore_code, &core_restore_code, PAGE_SIZE);
- 
- 	/* Make the page containing the relocated code executable */
--	pgd = (pgd_t *)__va(read_cr3()) + pgd_index(relocated_restore_code);
-+	pgd = (pgd_t *)__va(read_cr3_pa()) + pgd_index(relocated_restore_code);
- 	p4d = p4d_offset(pgd, relocated_restore_code);
- 	if (p4d_large(*p4d)) {
- 		set_p4d(p4d, __p4d(p4d_val(*p4d) & ~_PAGE_NX));
-diff --git a/arch/x86/xen/mmu_pv.c b/arch/x86/xen/mmu_pv.c
-index 1f386d7..2dc5243 100644
---- a/arch/x86/xen/mmu_pv.c
-+++ b/arch/x86/xen/mmu_pv.c
-@@ -2022,7 +2022,7 @@ static phys_addr_t __init xen_early_virt_to_phys(unsigned long vaddr)
- 	pmd_t pmd;
- 	pte_t pte;
- 
--	pa = read_cr3();
-+	pa = read_cr3_pa();
- 	pgd = native_make_pgd(xen_read_phys_ulong(pa + pgd_index(vaddr) *
- 						       sizeof(pgd)));
- 	if (!pgd_present(pgd))
-@@ -2102,7 +2102,7 @@ void __init xen_relocate_p2m(void)
- 	pt_phys = pmd_phys + PFN_PHYS(n_pmd);
- 	p2m_pfn = PFN_DOWN(pt_phys) + n_pt;
- 
--	pgd = __va(read_cr3());
-+	pgd = __va(read_cr3_pa());
- 	new_p2m = (unsigned long *)(2 * PGDIR_SIZE);
- 	idx_p4d = 0;
- 	save_pud = n_pud;
-@@ -2209,7 +2209,7 @@ static void __init xen_write_cr3_init(unsigned long cr3)
- {
- 	unsigned long pfn = PFN_DOWN(__pa(swapper_pg_dir));
- 
--	BUG_ON(read_cr3() != __pa(initial_page_table));
-+	BUG_ON(read_cr3_pa() != __pa(initial_page_table));
- 	BUG_ON(cr3 != __pa(swapper_pg_dir));
- 
- 	/*
+ /*
