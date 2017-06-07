@@ -1,13 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-dm3nam03on0052.outbound.protection.outlook.com ([104.47.41.52]:20156
-        "EHLO NAM03-DM3-obe.outbound.protection.outlook.com"
+Received: from mail-sn1nam02on0051.outbound.protection.outlook.com ([104.47.36.51]:31409
+        "EHLO NAM02-SN1-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752209AbdFGTPB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 7 Jun 2017 15:15:01 -0400
+        id S1752272AbdFGTOf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 7 Jun 2017 15:14:35 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v6 09/34] x86/mm: Simplify p[gum]d_page() macros
-Date: Wed, 07 Jun 2017 14:14:45 -0500
-Message-ID: <20170607191445.28645.15664.stgit@tlendack-t1.amdoffice.net>
+Subject: [PATCH v6 05/34] x86/CPU/AMD: Handle SME reduction in physical
+ address size
+Date: Wed, 07 Jun 2017 14:14:04 -0500
+Message-ID: <20170607191404.28645.41148.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
 References: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -17,69 +18,41 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Rik van Riel <riel@redhat.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170607191445.YvOFlLO7cDX7O4FBSkFJt2L8_ikD2ZXZEEnJaAw9UxY@z>
+Message-ID: <20170607191404.iL9ByJIn3MZiL4u7CVsfVVToc1sQScYlJ1XhtsIfC1w@z>
 
-Create a pgd_pfn() macro similar to the p[um]d_pfn() macros and then
-use the p[gum]d_pfn() macros in the p[gum]d_page() macros instead of
-duplicating the code.
+When System Memory Encryption (SME) is enabled, the physical address
+space is reduced. Adjust the x86_phys_bits value to reflect this
+reduction.
 
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/include/asm/pgtable.h |   16 +++++++++-------
- 1 file changed, 9 insertions(+), 7 deletions(-)
+ arch/x86/kernel/cpu/amd.c |   10 +++++++---
+ 1 file changed, 7 insertions(+), 3 deletions(-)
 
-diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
-index f5af95a..96b6b83 100644
---- a/arch/x86/include/asm/pgtable.h
-+++ b/arch/x86/include/asm/pgtable.h
-@@ -195,6 +195,11 @@ static inline unsigned long p4d_pfn(p4d_t p4d)
- 	return (p4d_val(p4d) & p4d_pfn_mask(p4d)) >> PAGE_SHIFT;
+diff --git a/arch/x86/kernel/cpu/amd.c b/arch/x86/kernel/cpu/amd.c
+index c47ceee..5bdcbd4 100644
+--- a/arch/x86/kernel/cpu/amd.c
++++ b/arch/x86/kernel/cpu/amd.c
+@@ -613,15 +613,19 @@ static void early_init_amd(struct cpuinfo_x86 *c)
+ 		set_cpu_bug(c, X86_BUG_AMD_E400);
+ 
+ 	/*
+-	 * BIOS support is required for SME. If BIOS has not enabled SME
+-	 * then don't advertise the feature (set in scattered.c)
++	 * BIOS support is required for SME. If BIOS has enabld SME then
++	 * adjust x86_phys_bits by the SME physical address space reduction
++	 * value. If BIOS has not enabled SME then don't advertise the
++	 * feature (set in scattered.c).
+ 	 */
+ 	if (cpu_has(c, X86_FEATURE_SME)) {
+ 		u64 msr;
+ 
+ 		/* Check if SME is enabled */
+ 		rdmsrl(MSR_K8_SYSCFG, msr);
+-		if (!(msr & MSR_K8_SYSCFG_MEM_ENCRYPT))
++		if (msr & MSR_K8_SYSCFG_MEM_ENCRYPT)
++			c->x86_phys_bits -= (cpuid_ebx(0x8000001f) >> 6) & 0x3f;
++		else
+ 			clear_cpu_cap(c, X86_FEATURE_SME);
+ 	}
  }
- 
-+static inline unsigned long pgd_pfn(pgd_t pgd)
-+{
-+	return (pgd_val(pgd) & PTE_PFN_MASK) >> PAGE_SHIFT;
-+}
-+
- static inline int p4d_large(p4d_t p4d)
- {
- 	/* No 512 GiB pages yet */
-@@ -699,8 +704,7 @@ static inline unsigned long pmd_page_vaddr(pmd_t pmd)
-  * Currently stuck as a macro due to indirect forward reference to
-  * linux/mmzone.h's __section_mem_map_addr() definition:
-  */
--#define pmd_page(pmd)		\
--	pfn_to_page((pmd_val(pmd) & pmd_pfn_mask(pmd)) >> PAGE_SHIFT)
-+#define pmd_page(pmd)	pfn_to_page(pmd_pfn(pmd))
- 
- /*
-  * the pmd page can be thought of an array like this: pmd_t[PTRS_PER_PMD]
-@@ -768,8 +772,7 @@ static inline unsigned long pud_page_vaddr(pud_t pud)
-  * Currently stuck as a macro due to indirect forward reference to
-  * linux/mmzone.h's __section_mem_map_addr() definition:
-  */
--#define pud_page(pud)		\
--	pfn_to_page((pud_val(pud) & pud_pfn_mask(pud)) >> PAGE_SHIFT)
-+#define pud_page(pud)	pfn_to_page(pud_pfn(pud))
- 
- /* Find an entry in the second-level page table.. */
- static inline pmd_t *pmd_offset(pud_t *pud, unsigned long address)
-@@ -819,8 +822,7 @@ static inline unsigned long p4d_page_vaddr(p4d_t p4d)
-  * Currently stuck as a macro due to indirect forward reference to
-  * linux/mmzone.h's __section_mem_map_addr() definition:
-  */
--#define p4d_page(p4d)		\
--	pfn_to_page((p4d_val(p4d) & p4d_pfn_mask(p4d)) >> PAGE_SHIFT)
-+#define p4d_page(p4d)	pfn_to_page(p4d_pfn(p4d))
- 
- /* Find an entry in the third-level page table.. */
- static inline pud_t *pud_offset(p4d_t *p4d, unsigned long address)
-@@ -854,7 +856,7 @@ static inline unsigned long pgd_page_vaddr(pgd_t pgd)
-  * Currently stuck as a macro due to indirect forward reference to
-  * linux/mmzone.h's __section_mem_map_addr() definition:
-  */
--#define pgd_page(pgd)		pfn_to_page(pgd_val(pgd) >> PAGE_SHIFT)
-+#define pgd_page(pgd)	pfn_to_page(pgd_pfn(pgd))
- 
- /* to find an entry in a page-table-directory. */
- static inline p4d_t *p4d_offset(pgd_t *pgd, unsigned long address)
