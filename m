@@ -1,197 +1,231 @@
-From: Marc Zyngier <marc.zyngier@arm.com>
-Subject: Re: [PATCH 09/17] clocksource/timer-riscv: New RISC-V Clocksource
-Date: Wed, 7 Jun 2017 10:43:09 +0100
-Message-ID: <3ff254dc-5aa0-69af-c5f2-828ff2b4be54@arm.com>
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [PATCH 08/17] dts: include documentation for the RISC-V
+ interrupt controllers
+Date: Wed, 7 Jun 2017 11:13:43 +0100
+Message-ID: <20170607101343.GC29370@leverpostej>
 References: <20170523004107.536-1-palmer@dabbelt.com>
  <20170606230007.19101-1-palmer@dabbelt.com>
- <20170606230007.19101-10-palmer@dabbelt.com>
+ <20170606230007.19101-9-palmer@dabbelt.com>
+ <CAMuHMdWYNVvh4hqDrqYNe2oyVHkCbH15VfWTWHaBCeRAaf6O4g@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:58328 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:58806 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751483AbdFGJnM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 7 Jun 2017 05:43:12 -0400
-In-Reply-To: <20170606230007.19101-10-palmer@dabbelt.com>
+        id S1751026AbdFGKO2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 7 Jun 2017 06:14:28 -0400
+Content-Disposition: inline
+In-Reply-To: <CAMuHMdWYNVvh4hqDrqYNe2oyVHkCbH15VfWTWHaBCeRAaf6O4g@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Palmer Dabbelt <palmer@dabbelt.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, olof@lixom.net
-Cc: albert@sifive.com, patches@groups.riscv.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Palmer Dabbelt <palmer@dabbelt.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Olof Johansson <olof@lixom.net>, albert@sifive.com, patches@groups.riscv.org, "Wesley W. Terpstra" <wesley@sifive.com>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <Marc.Zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>
 
-On 06/06/17 23:59, Palmer Dabbelt wrote:
-> The RISC-V ISA defines a single RTC as well as an SBI oneshot timer.
-> This timer is present on all RISC-V systems.
-> 
-> Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
-> ---
->  drivers/clocksource/Kconfig       |   8 +++
->  drivers/clocksource/Makefile      |   1 +
->  drivers/clocksource/timer-riscv.c | 118 ++++++++++++++++++++++++++++++++++++++
->  3 files changed, 127 insertions(+)
->  create mode 100644 drivers/clocksource/timer-riscv.c
-> 
-> diff --git a/drivers/clocksource/Kconfig b/drivers/clocksource/Kconfig
-> index 545d541ae20e..1c2c6e7c7fab 100644
-> --- a/drivers/clocksource/Kconfig
-> +++ b/drivers/clocksource/Kconfig
-> @@ -612,4 +612,12 @@ config CLKSRC_ST_LPC
->  	  Enable this option to use the Low Power controller timer
->  	  as clocksource.
->  
-> +config CLKSRC_RISCV
-> +	#bool "Clocksource for the RISC-V platform"
-> +	def_bool y if RISCV
-> +	depends on RISCV
-> +	help
-> +	  This enables a clocksource based on the RISC-V SBI timer, which is
-> +	  built in to all RISC-V systems.
-> +
->  endmenu
-> diff --git a/drivers/clocksource/Makefile b/drivers/clocksource/Makefile
-> index 2b5b56a6f00f..408ed9d314dc 100644
-> --- a/drivers/clocksource/Makefile
-> +++ b/drivers/clocksource/Makefile
-> @@ -73,3 +73,4 @@ obj-$(CONFIG_H8300_TMR16)		+= h8300_timer16.o
->  obj-$(CONFIG_H8300_TPU)			+= h8300_tpu.o
->  obj-$(CONFIG_CLKSRC_ST_LPC)		+= clksrc_st_lpc.o
->  obj-$(CONFIG_X86_NUMACHIP)		+= numachip.o
-> +obj-$(CONFIG_CLKSRC_RISCV)		+= timer-riscv.o
-> diff --git a/drivers/clocksource/timer-riscv.c b/drivers/clocksource/timer-riscv.c
-> new file mode 100644
-> index 000000000000..04ef7b9130b3
-> --- /dev/null
-> +++ b/drivers/clocksource/timer-riscv.c
-> @@ -0,0 +1,118 @@
-> +/*
-> + * Copyright (C) 2012 Regents of the University of California
-> + * Copyright (C) 2017 SiFive
-> + *
-> + *   This program is free software; you can redistribute it and/or
-> + *   modify it under the terms of the GNU General Public License
-> + *   as published by the Free Software Foundation, version 2.
-> + *
-> + *   This program is distributed in the hope that it will be useful,
-> + *   but WITHOUT ANY WARRANTY; without even the implied warranty of
-> + *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-> + *   GNU General Public License for more details.
-> + */
-> +
-> +#include <linux/clocksource.h>
-> +#include <linux/clockchips.h>
-> +#include <linux/interrupt.h>
-> +#include <linux/irq.h>
-> +#include <linux/delay.h>
-> +#include <linux/of.h>
-> +
-> +#include <asm/irq.h>
-> +#include <asm/csr.h>
-> +#include <asm/sbi.h>
-> +#include <asm/delay.h>
-> +
-> +unsigned long riscv_timebase;
-> +
-> +static DEFINE_PER_CPU(struct clock_event_device, clock_event);
-> +
-> +static int riscv_timer_set_next_event(unsigned long delta,
-> +	struct clock_event_device *evdev)
-> +{
-> +	sbi_set_timer(get_cycles() + delta);
-> +	return 0;
-> +}
-> +
-> +static int riscv_timer_set_oneshot(struct clock_event_device *evt)
-> +{
-> +	/* no-op; only one mode */
-> +	return 0;
-> +}
-> +
-> +static int riscv_timer_set_shutdown(struct clock_event_device *evt)
-> +{
-> +	/* can't stop the clock! */
-> +	return 0;
-> +}
-> +
-> +static u64 riscv_rdtime(struct clocksource *cs)
-> +{
-> +	return get_cycles();
-> +}
-> +
-> +static struct clocksource riscv_clocksource = {
-> +	.name = "riscv_clocksource",
-> +	.rating = 300,
-> +	.read = riscv_rdtime,
-> +#ifdef CONFIG_64BITS
-> +	.mask = CLOCKSOURCE_MASK(64),
-> +#else
-> +	.mask = CLOCKSOURCE_MASK(32),
-> +#endif /* CONFIG_64BITS */
-> +	.flags = CLOCK_SOURCE_IS_CONTINUOUS,
-> +};
-> +
-> +void riscv_timer_interrupt(void)
-> +{
-> +	int cpu = smp_processor_id();
-> +	struct clock_event_device *evdev = &per_cpu(clock_event, cpu);
-> +
-> +	evdev->event_handler(evdev);
-> +}
-> +
-> +void __init init_clockevent(void)
-> +{
-> +	int cpu = smp_processor_id();
-> +	struct clock_event_device *ce = &per_cpu(clock_event, cpu);
-> +
-> +	*ce = (struct clock_event_device){
-> +		.name = "riscv_timer_clockevent",
-> +		.features = CLOCK_EVT_FEAT_ONESHOT,
-> +		.rating = 300,
-> +		.cpumask = cpumask_of(cpu),
-> +		.set_next_event = riscv_timer_set_next_event,
-> +		.set_state_oneshot  = riscv_timer_set_oneshot,
-> +		.set_state_shutdown = riscv_timer_set_shutdown,
-> +	};
-> +
-> +	/* Enable timer interrupts */
-> +	csr_set(sie, SIE_STIE);
-> +
-> +	clockevents_config_and_register(ce, riscv_timebase, 100, 0x7fffffff);
-> +}
-> +
-> +static unsigned long __init of_timebase(void)
-> +{
-> +	struct device_node *cpu;
-> +	const __be32 *prop;
-> +
-> +	cpu = of_find_node_by_path("/cpus");
-> +	if (cpu) {
-> +		prop = of_get_property(cpu, "timebase-frequency", NULL);
-> +		if (prop)
-> +			return be32_to_cpu(*prop);
+On Wed, Jun 07, 2017 at 09:11:31AM +0200, Geert Uytterhoeven wrote:
+> CC irqchip and devicetree folks
 
-Consider using of_property_read_u32() instead.
+Thanks Geert.
 
-> +	}
-> +
-> +	return 10000000;
+Palmer, in future, you can ensure (most) relevant parties are Cc'd by
+using scripts/get_maintainer.pl to find them, and adding Cc: lines to
+the relevant patches.
 
-Is this an architectural guarantee? Or something that is implementation
-specific?
+You can either hand that a patch or a path, e.g.
 
-> +}
-> +
-> +void __init time_init(void)
-> +{
-> +	riscv_timebase = of_timebase();
-> +	lpj_fine = riscv_timebase / HZ;
-> +
-> +	clocksource_register_hz(&riscv_clocksource, riscv_timebase);
-> +	init_clockevent();
-> +}
-> 
+[mark@leverpostej:~/src/linux]% ./scripts/get_maintainer.pl -f Documentation/devicetree/bindings/interrupt-controller/                  
+Thomas Gleixner <tglx@linutronix.de> (maintainer:IRQCHIP DRIVERS)
+Jason Cooper <jason@lakedaemon.net> (maintainer:IRQCHIP DRIVERS)
+Marc Zyngier <marc.zyngier@arm.com> (maintainer:IRQCHIP DRIVERS)
+Rob Herring <robh+dt@kernel.org> (maintainer:OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS)
+Mark Rutland <mark.rutland@arm.com> (maintainer:OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS)
+linux-kernel@vger.kernel.org (open list:IRQCHIP DRIVERS)
+devicetree@vger.kernel.org (open list:OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS)
+
+Otherwise, I have a few comments inline below.
+
+> On Wed, Jun 7, 2017 at 12:59 AM, Palmer Dabbelt <palmer@dabbelt.com> wrote:
+> > From: "Wesley W. Terpstra" <wesley@sifive.com>
+> >
+> > Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
+> > ---
+> >  .../interrupt-controller/riscv,cpu-intc.txt        | 46 ++++++++++++++++++++++
+> >  .../bindings/interrupt-controller/riscv,plic0.txt  | 44 +++++++++++++++++++++
+> >  2 files changed, 90 insertions(+)
+> >  create mode 100644 Documentation/devicetree/bindings/interrupt-controller/riscv,cpu-intc.txt
+> >  create mode 100644 Documentation/devicetree/bindings/interrupt-controller/riscv,plic0.txt
+> >
+> > diff --git a/Documentation/devicetree/bindings/interrupt-controller/riscv,cpu-intc.txt b/Documentation/devicetree/bindings/interrupt-controller/riscv,cpu-intc.txt
+> > new file mode 100644
+> > index 000000000000..62f02e834ff9
+> > --- /dev/null
+> > +++ b/Documentation/devicetree/bindings/interrupt-controller/riscv,cpu-intc.txt
+> > @@ -0,0 +1,46 @@
+> > +RISC-V Hart-Level Interrupt Controller (HLIC)
+> > +---------------------------------------------
+> > +
+> > +RISC-V cores include Control Status Registers (CSRs) which are local to each
+> > +hart and can be read or written by software. Some of these CSRs are used to
+> > +control local interrupts connected to the core.
+> > +
+> > +Typical examples of local interrupts on a RISC-V core include: software IPI
+> > +interrupts, timer interrupts, and a link to the PLIC interrupt controller.
+
+So IIUC those interrupts are routed directly to the HLIC, and are (only)
+controlled thought the HLIC?
+
+Is the HLIC architecturally mandated? i.e. is this guaranteed to be
+present on any RISC-V implementation?
+
+Does the presence of the HLIC imply the presence of a PLIC (or
+vice/versa)? Typically, the per-cpu and platform-wide parts of the
+top-level interrupt controller are fairly intimately coupled.
+
+> > +
+> > +Required properties:
+> > +- compatible : "riscv,cpu-intc"
+
+You'll need to allocate the "riscv" vendor prefix in 
+Documentation/devicetree/bindings/vendor-prefixes.txt
+
+... if that was done in some other patch, I didn't receive it.
+
+> > +- #interrupt-cells : should be <1>
+
+What about the flags?
+
+Are all HLIC interrupts edge triggered (or level triggered)?
+
+> > +- interrupt-controller : Identifies the node as an interrupt controller
+> > +
+> > +Furthermore, this interrupt-controller MUST be embedded inside the cpu
+> > +definition of the hart whose CSRs control these local interrupts.
+> > +
+> > +Example:
+> > +
+> > +       cpu1: cpu@1 {
+> > +               clock-frequency = <1600000000>;
+> > +               compatible = "riscv";
+> > +               d-cache-block-size = <64>;
+> > +               d-cache-sets = <64>;
+> > +               d-cache-size = <16384>;
+> > +               d-tlb-sets = <1>;
+> > +               d-tlb-size = <32>;
+> > +               device_type = "cpu";
+> > +               i-cache-block-size = <64>;
+> > +               i-cache-sets = <64>;
+> > +               i-cache-size = <16384>;
+> > +               i-tlb-sets = <1>;
+> > +               i-tlb-size = <32>;
+> > +               mmu-type = "riscv,sv39";
+> > +               next-level-cache = <&L2>;
+> > +               reg = <1>;
+> > +               riscv,isa = "rv64imac";
+> > +               status = "okay";
+> > +               tlb-split;
+
+We can probably replace most of these with a "...", as they're largely
+irrelevany to this binding.
+
+> > +               cpu1-intc: interrupt-controller {
+> > +                       #interrupt-cells = <1>;
+> > +                       compatible = "riscv,cpu-intc";
+> > +                       interrupt-controller;
+> > +               };
+> > +       };
+> > diff --git a/Documentation/devicetree/bindings/interrupt-controller/riscv,plic0.txt b/Documentation/devicetree/bindings/interrupt-controller/riscv,plic0.txt
+> > new file mode 100644
+> > index 000000000000..c05b5806f7d2
+> > --- /dev/null
+> > +++ b/Documentation/devicetree/bindings/interrupt-controller/riscv,plic0.txt
+> > @@ -0,0 +1,44 @@
+> > +RISC-V Platform-Level Interrupt Controller (PLIC)
+> > +-------------------------------------------------
+> > +
+> > +RISC-V cores typically include a PLIC, which route interrupts from multiple
+> > +devices to multiple hart contexts.  The PLIC is connected to the interrupt
+> > +controller embedded in a RISC-V core via the interrupt-related CSRs.
+
+Do you mean that the PLIC is connected to the HLIC, or that the HLIC is
+also managed in part through CSRs?
+
+> > +
+> > +A hart context is a priviledge mode in a hardware execution thread.  For
+> > +example, in an 4 core system with 2-way SMT, you have 8 harts and probably
+> > +at least two priviledge modes per hart; machine mode and supervisor mode.
+> > +
+> > +Each interrupt can be enabled on per-context basis. Any context can claim
+> > +a pending enabled interrupt and then release it once it has been handled.
+> > +
+> > +Each interrupt has a configurable priority. Higher priority interrupts are
+> > +serviced firs. Each context can specify a priority threshold. Interrupts
+> > +with priority below this threshold will not cause the PLIC to raise its
+> > +interrupt line leading to the context.
+> > +
+> > +Required properties:
+> > +- compatible : "riscv,plic0"
+> > +- #address-cells : should be <0>
+> > +- #interrupt-cells : should be <1>
+
+As with the HLIC, what about the flags?
+
+> > +- interrupt-controller : Identifies the node as an interrupt controller
+> > +- reg : Should contain 1 register range (address and length)
+> > +- riscv,ndev : Specifies the number of interrupts attached to the PLIC
+
+Why do we need to know this?
+
+I suspect this ia actually the number of interrupts implemented in the
+PLIC, rather than the number of interrupts attached. i.e. the PLIC can
+be implemented with a subset of the potential registers/bits. Is that
+correct?
+
+If so, something like "riscv,num-interrupts" would be better, along with
+a clearer description.
+
+> > +- interrupts-extended : Specifies which contexts are connected to the PLIC
+
+That description doesn't sound right.
+
+I take it that these are the HLIC interrupts that the PLIC can raise?
+
+You will need to be explicit about the order of interrupts in this
+property. i.e. which interrupt is routed to which context?
+
+Is the interrupt at the HLIC well known? From the example I see that
+here local interrupts 11 adn 9 are used. Is that mandated, or just the
+case for this particular implementation?
+
+Also, please consider how you will handle the case when the Linux
+logical CPU ID is not the same as the physical ID, and how you will
+handle physical IDs being sparse.
+
+We went though a lot of pain trying to do something similar for the ARM
+PMU interrupts (see the interrupt-affinity property in
+Documentation/devicetree/bindings/arm/pmu.txt), and it's still painful
+to deal with.
+
+> > +
+> > +Example:
+> > +
+> > +       plic: interrupt-controller@c000000 {
+> > +               #address-cells = <0>;
+
+This can go, given you don't have sub-nodes, nor a #size-cells property.
 
 Thanks,
+Mark.
 
-	M.
--- 
-Jazz is not dead. It just smells funny...
+> > +               #interrupt-cells = <1>;
+> > +               compatible = "riscv,plic0";
+> > +               interrupt-controller;
+> > +               interrupts-extended = <
+> > +                       &cpu0-intc 11
+> > +                       &cpu1-intc 11 &cpu1-intc 9
+> > +                       &cpu2-intc 11 &cpu2-intc 9
+> > +                       &cpu3-intc 11 &cpu3-intc 9
+> > +                       &cpu4-intc 11 &cpu4-intc 9>;
+> > +               reg = <0xc000000 0x4000000>;
+> > +               riscv,ndev = <10>;
+> > +       };
+> > --
+> > 2.13.0
