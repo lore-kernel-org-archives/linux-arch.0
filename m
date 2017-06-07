@@ -1,83 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:60806 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751203AbdFGNQE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 7 Jun 2017 09:16:04 -0400
-Date: Wed, 7 Jun 2017 14:16:11 +0100
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH 13/17] RISC-V: Add include subdirectory
-Message-ID: <20170607131611.GF30263@arm.com>
+Received: from bombadil.infradead.org ([65.50.211.133]:34863 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751536AbdFGO0A (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 7 Jun 2017 10:26:00 -0400
+Date: Wed, 7 Jun 2017 07:25:58 -0700
+From: Christoph Hellwig <hch@infradead.org>
+Subject: Re: [PATCH 01/17] drivers: support PCIe in RISCV
+Message-ID: <20170607142558.GA21155@infradead.org>
 References: <20170523004107.536-1-palmer@dabbelt.com>
  <20170606230007.19101-1-palmer@dabbelt.com>
- <20170606230007.19101-14-palmer@dabbelt.com>
- <20170607120613.ocbqpfajxj6eedbt@hirez.programming.kicks-ass.net>
- <20170607123627.ofjobsxxv5ut776m@hirez.programming.kicks-ass.net>
- <20170607125850.zwh3w5s5ce54jcrz@hirez.programming.kicks-ass.net>
+ <20170606230007.19101-2-palmer@dabbelt.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20170607125850.zwh3w5s5ce54jcrz@hirez.programming.kicks-ass.net>
+In-Reply-To: <20170606230007.19101-2-palmer@dabbelt.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Palmer Dabbelt <palmer@dabbelt.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, olof@lixom.net, albert@sifive.com, patches@groups.riscv.org
-Message-ID: <20170607131611.7DtKl3atPounU7Ml11CP_k0GOVY8V7gUXv9Cao8CUG4@z>
+To: Palmer Dabbelt <palmer@dabbelt.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, olof@lixom.net, albert@sifive.com, patches@groups.riscv.org, "Wesley W. Terpstra" <wesley@sifive.com>
+Message-ID: <20170607142558.pLEALavO1xI6s3ZNAYwLFymmLoTIwevOLwHz5j5BGNI@z>
 
-[sorry, jumping in here because it's the only mail I have relating to
- patch 13]
-
-On Wed, Jun 07, 2017 at 02:58:50PM +0200, Peter Zijlstra wrote:
-> On Wed, Jun 07, 2017 at 02:36:27PM +0200, Peter Zijlstra wrote:
-> > Which (pending the sub confusion) will generate the entire set of:
-> > 
-> >  atomic_add, atomic_add_return{_relaxed,_acquire,_release,} atomic_fetch_add{_relaxed,_acquire,_release,}
-> >  atomic_sub, atomic_sub_return{_relaxed,_acquire,_release,} atomic_fetch_sub{_relaxed,_acquire,_release,}
-> > 
-> >  atomic_and, atomic_fetch_and{_relaxed,_acquire,_release,}
-> >  atomic_or,  atomic_fetch_or{_relaxed,_acquire,_release,}
-> >  atomic_xor, atomic_fetch_xor{_relaxed,_acquire,_release,}
-> > 
+On Tue, Jun 06, 2017 at 03:59:51PM -0700, Palmer Dabbelt wrote:
+> From: "Wesley W. Terpstra" <wesley@sifive.com>
 > 
-> Another approach would be to override __atomic_op_{acquire,release} and
-> use things like:
+> There are RISC-V systems that have been mapped to Xilinx FPGAs that have
+> their PCIe controllers on chip.  These build system changes allow RISC-V
+> systems to enable the Xilinx PCIe controller, and to setup PCIe IRQs.
 > 
-> 	"FENCE r,rw" -- (load) ACQUIRE
-> 	"FENCE rw,w" -- (store) RELEASE
+> Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
+> ---
+>  drivers/pci/Makefile     | 1 +
+>  drivers/pci/host/Kconfig | 2 +-
+>  2 files changed, 2 insertions(+), 1 deletion(-)
 > 
-> And then you only need to provide _relaxed atomics.
-> 
-> Also, and I didn't check for that, you need to provide:
-> 
-> smp_load_acquire(), smp_store_release(), atomic_read_acquire(),
-> atomic_store_release().
+> diff --git a/drivers/pci/Makefile b/drivers/pci/Makefile
+> index 462c1f5f5546..a29d9ec05d13 100644
+> --- a/drivers/pci/Makefile
+> +++ b/drivers/pci/Makefile
+> @@ -41,6 +41,7 @@ obj-$(CONFIG_MIPS) += setup-irq.o
+>  obj-$(CONFIG_TILE) += setup-irq.o
+>  obj-$(CONFIG_SPARC_LEON) += setup-irq.o
+>  obj-$(CONFIG_M68K) += setup-irq.o
+> +obj-$(CONFIG_RISCV) += setup-irq.o
 
-Is there an up-to-date specification for the RISC-V memory model? I looked
-at:
+Can we do a cleanup here and add a ARCH_USE_GENERIC_PCI_SETUP Kconfig
+symbol that all these architectures can select?
 
-https://github.com/riscv/riscv-isa-manual/releases/download/riscv-user-2.2/riscv-spec-v2.2.pdf
+>  
+>  #
+>  # ACPI Related PCI FW Functions
+> diff --git a/drivers/pci/host/Kconfig b/drivers/pci/host/Kconfig
+> index 7f47cd5e10a5..5148f3d3cab7 100644
+> --- a/drivers/pci/host/Kconfig
+> +++ b/drivers/pci/host/Kconfig
+> @@ -71,7 +71,7 @@ config PCI_HOST_GENERIC
+>  
+>  config PCIE_XILINX
+>  	bool "Xilinx AXI PCIe host bridge support"
+> -	depends on ARCH_ZYNQ || MICROBLAZE
+> +	depends on ARCH_ZYNQ || MICROBLAZE || RISCV
 
-but it says:
-
-| 2.7 Memory Model
-| This section is out of date as the RISC-V memory model is
-| currently under revision to ensure it can efficiently support current
-| programming language memory models. The revised base mem- ory model will
-| contain further ordering constraints, including at least that loads to the
-| same address from the same hart cannot be reordered, and that syntactic data
-| dependencies between instructions are respected
-
-which, on the one hand is reassuring (because ignoring dependency ordering is
-plain broken), but on the other it doesn't go quite far enough in defining
-exactly what constitutes a "syntactic data dependency". The cumulativity of
-your fences also needs defining, because I think this was up in the air at some
-point and the document above doesn't seem to tackle it (it doesn't seem to
-describe what constitutes being a memory of the predecessor or successor sets)
-
-Could you shed some light on this please? We've started relying on RW control
-dependencies in semi-recent history, so it's important to get this nailed down.
-
-Thanks,
-
-Will
-
-P.S. You should also totally get your architects to write a formal model ;)
+What about of arch support does this driver need?  It seems to compile
+just fine on x86 for me, so maybe we should just drop the arch
+dependency entirely.
