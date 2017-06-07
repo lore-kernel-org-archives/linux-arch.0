@@ -1,152 +1,289 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw0-f172.google.com ([209.85.161.172]:35051 "EHLO
-        mail-yw0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751690AbdFGS5S (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 7 Jun 2017 14:57:18 -0400
-Received: by mail-yw0-f172.google.com with SMTP id 141so6582290ywe.2
-        for <linux-arch@vger.kernel.org>; Wed, 07 Jun 2017 11:57:18 -0700 (PDT)
+Received: from mail-bl2nam02on0062.outbound.protection.outlook.com ([104.47.38.62]:28589
+        "EHLO NAM02-BL2-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1751584AbdFGTNS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 7 Jun 2017 15:13:18 -0400
+From: Tom Lendacky <thomas.lendacky@amd.com>
+Subject: [PATCH v6 00/34] x86: Secure Memory Encryption (AMD)
+Date: Wed, 07 Jun 2017 14:13:10 -0500
+Message-ID: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
-In-Reply-To: <20170607101343.GC29370@leverpostej>
-References: <20170523004107.536-1-palmer@dabbelt.com> <20170606230007.19101-1-palmer@dabbelt.com>
- <20170606230007.19101-9-palmer@dabbelt.com> <CAMuHMdWYNVvh4hqDrqYNe2oyVHkCbH15VfWTWHaBCeRAaf6O4g@mail.gmail.com>
- <20170607101343.GC29370@leverpostej>
-From: Wesley Terpstra <wesley@sifive.com>
-Date: Wed, 7 Jun 2017 11:57:17 -0700
-Message-ID: <CAMgXwTiz0jXgSw=veJ3O7xzVgm==YisZZLWpZFH7aJMXV4j7qA@mail.gmail.com>
-Subject: Re: [PATCH 08/17] dts: include documentation for the RISC-V interrupt controllers
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Rutland <mark.rutland@arm.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Palmer Dabbelt <palmer@dabbelt.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Olof Johansson <olof@lixom.net>, Albert Ou <albert@sifive.com>, patches@groups.riscv.org, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <Marc.Zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>
-Message-ID: <20170607185717.FGRUcfMoXK3Y5Q8U2PNYWMK93E-v-KYEk4z3ouHVlIg@z>
+To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
+Cc: Rik van Riel <riel@redhat.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20170607191310.Fl320dr5elK5dBKXw-mmjFjMm8MulUGLAZIIwgM5dWg@z>
 
-On Wed, Jun 7, 2017 at 3:13 AM, Mark Rutland <mark.rutland@arm.com> wrote:
->> > +RISC-V Hart-Level Interrupt Controller (HLIC)
->> > +---------------------------------------------
->> > +
->> > +RISC-V cores include Control Status Registers (CSRs) which are local to each
->> > +hart and can be read or written by software. Some of these CSRs are used to
->> > +control local interrupts connected to the core.
->> > +
->> > +Typical examples of local interrupts on a RISC-V core include: software IPI
->> > +interrupts, timer interrupts, and a link to the PLIC interrupt controller.
->
-> So IIUC those interrupts are routed directly to the HLIC, and are (only)
-> controlled thought the HLIC?
+This patch series provides support for AMD's new Secure Memory Encryption (SME)
+feature.
 
-Yes. You can have a local interrupt that goes directly to a specific
-core, not via the PLIC.
+SME can be used to mark individual pages of memory as encrypted through the
+page tables. A page of memory that is marked encrypted will be automatically
+decrypted when read from DRAM and will be automatically encrypted when
+written to DRAM. Details on SME can found in the links below.
 
-> Is the HLIC architecturally mandated? i.e. is this guaranteed to be
-> present on any RISC-V implementation?
+The SME feature is identified through a CPUID function and enabled through
+the SYSCFG MSR. Once enabled, page table entries will determine how the
+memory is accessed. If a page table entry has the memory encryption mask set,
+then that memory will be accessed as encrypted memory. The memory encryption
+mask (as well as other related information) is determined from settings
+returned through the same CPUID function that identifies the presence of the
+feature.
 
-It's in the RISC-V privileged specification. Therefore, if a riscv
-core can run linux it will have these CSRs.
+The approach that this patch series takes is to encrypt everything possible
+starting early in the boot where the kernel is encrypted. Using the page
+table macros the encryption mask can be incorporated into all page table
+entries and page allocations. By updating the protection map, userspace
+allocations are also marked encrypted. Certain data must be accounted for
+as having been placed in memory before SME was enabled (EFI, initrd, etc.)
+and accessed accordingly.
 
-> Does the presence of the HLIC imply the presence of a PLIC (or
-> vice/versa)?
+This patch series is a pre-cursor to another AMD processor feature called
+Secure Encrypted Virtualization (SEV). The support for SEV will build upon
+the SME support and will be submitted later. Details on SEV can be found
+in the links below.
 
-No. SiFive implementations always have a PLIC, though.
+The following links provide additional detail:
 
-> Typically, the per-cpu and platform-wide parts of the
-> top-level interrupt controller are fairly intimately coupled.
+AMD Memory Encryption whitepaper:
+   http://amd-dev.wpengine.netdna-cdn.com/wordpress/media/2013/12/AMD_Memory_Encryption_Whitepaper_v7-Public.pdf
 
-They are coupled if they both exist. The privileged specification does
-explicitly call out interrupts 9 and 11 in the HLIC for attaching the
-PLIC.
+AMD64 Architecture Programmer's Manual:
+   http://support.amd.com/TechDocs/24593.pdf
+   SME is section 7.10
+   SEV is section 15.34
 
-> You'll need to allocate the "riscv" vendor prefix in
-> Documentation/devicetree/bindings/vendor-prefixes.txt
+---
 
-@palmer: Can you add this?
+This patch series is based off of the master branch of tip.
+  Commit 53614fbd7961 ("Merge branch 'WIP.x86/fpu'")
 
-> What about the flags?
-
-What flags?
-
-> Are all HLIC interrupts edge triggered (or level triggered)?
-
-HLIC = level. PLIC = both.
-
-> We can probably replace most of these with a "...", as they're largely
-> irrelevany to this binding.
-
-Sure. I thought it would be nice to include a complete cpu example
-somewhere, though.
-
->> > +RISC-V cores typically include a PLIC, which route interrupts from multiple
->> > +devices to multiple hart contexts.  The PLIC is connected to the interrupt
->> > +controller embedded in a RISC-V core via the interrupt-related CSRs.
->
-> Do you mean that the PLIC is connected to the HLIC, or that the HLIC is
-> also managed in part through CSRs?
-
-Both. The HLIC is entirely manager through CSRs. The PLIC is managed
-through a memory mapped interface. The PLIC is attached to the HLIC.
-
->> > +Required properties:
->> > +- compatible : "riscv,plic0"
->> > +- #address-cells : should be <0>
->> > +- #interrupt-cells : should be <1>
->
-> As with the HLIC, what about the flags?
-
-Still unsure what flags we're talking about.
-
->> > +- riscv,ndev : Specifies the number of interrupts attached to the PLIC
->
-> Why do we need to know this?
->
-> I suspect this ia actually the number of interrupts implemented in the
-> PLIC, rather than the number of interrupts attached. i.e. the PLIC can
-> be implemented with a subset of the potential registers/bits. Is that
-> correct?
-
-You're in principle correct, although these are probably always the same.
-
-> If so, something like "riscv,num-interrupts" would be better, along with
-> a clearer description.
-
-Uhm. I suppose we can change this. However, it would requires changes
-to quite a number of riscv repositories. I believe this is also
-included in the riscv platform specification. A better description is
-easy, do we really need to change the key?
+Source code is also available at https://github.com/codomania/tip/tree/sme-v6
 
 
->> > +- interrupts-extended : Specifies which contexts are connected to the PLIC
->
-> That description doesn't sound right.
->
-> I take it that these are the HLIC interrupts that the PLIC can raise?
+Still to do:
+- Kdump support, including using memremap() instead of ioremap_cache()
 
-Yes.
+Changes since v5:
+- Added support for 5-level paging
+- Added IOMMU support
+- Created a generic asm/mem_encrypt.h in order to remove a bunch of
+  #ifndef/#define entries
+- Removed changes to the __va() macro and defined a function to return
+  the true physical address in cr3
+- Removed sysfs support as it was determined not to be needed
+- General code cleanup based on feedback
+- General cleanup of patch subjects and descriptions
 
-> You will need to be explicit about the order of interrupts in this
-> property. i.e. which interrupt is routed to which context?
+Changes since v4:
+- Re-worked mapping of setup data to not use a fixed list. Rather, check
+  dynamically whether the requested early_memremap()/memremap() call
+  needs to be mapped decrypted.
+- Moved SME cpu feature into scattered features
+- Moved some declarations into header files
+- Cleared the encryption mask from the __PHYSICAL_MASK so that users
+  of macros such as pmd_pfn_mask() don't have to worry/know about the
+  encryption mask
+- Updated some return types and values related to EFI and e820 functions
+  so that an error could be returned
+- During cpu shutdown, removed cache disabling and added a check for kexec
+  in progress to use wbinvd followed immediately by halt in order to avoid
+  any memory corruption
+- Update how persistent memory is identified
+- Added a function to find command line arguments and their values
+- Added sysfs support
+- General code cleanup based on feedback
+- General cleanup of patch subjects and descriptions
 
-Yes. Order and position matter.
 
-> Is the interrupt at the HLIC well known? From the example I see that
-> here local interrupts 11 adn 9 are used. Is that mandated, or just the
-> case for this particular implementation?
+Changes since v3:
+- Broke out some of the patches into smaller individual patches
+- Updated Documentation
+- Added a message to indicate why the IOMMU was disabled
+- Updated CPU feature support for SME by taking into account whether
+  BIOS has enabled SME
+- Eliminated redundant functions
+- Added some warning messages for DMA usage of bounce buffers when SME
+  is active
+- Added support for persistent memory
+- Added support to determine when setup data is being mapped and be sure
+  to map it un-encrypted
+- Added CONFIG support to set the default action of whether to activate
+  SME if it is supported/enabled
+- Added support for (re)booting with kexec
 
-9 and 11 are in the privileged specification.
+Changes since v2:
+- Updated Documentation
+- Make the encryption mask available outside of arch/x86 through a
+  standard include file
+- Conversion of assembler routines to C where possible (not everything
+  could be converted, e.g. the routine that does the actual encryption
+  needs to be copied into a safe location and it is difficult to
+  determine the actual length of the function in order to copy it)
+- Fix SME feature use of scattered CPUID feature
+- Creation of SME specific functions for things like encrypting
+  the setup data, ramdisk, etc.
+- New take on early_memremap / memremap encryption support
+- Additional support for accessing video buffers (fbdev/gpu) as
+  un-encrypted
+- Disable IOMMU for now - need to investigate further in relation to
+  how it needs to be programmed relative to accessing physical memory
 
-> Also, please consider how you will handle the case when the Linux
-> logical CPU ID is not the same as the physical ID, and how you will
-> handle physical IDs being sparse.
+Changes since v1:
+- Added Documentation.
+- Removed AMD vendor check for setting the PAT write protect mode
+- Updated naming of trampoline flag for SME as well as moving of the
+  SME check to before paging is enabled.
+- Change to early_memremap to identify the data being mapped as either
+  boot data or kernel data.  The idea being that boot data will have
+  been placed in memory as un-encrypted data and would need to be accessed
+  as such.
+- Updated debugfs support for the bootparams to access the data properly.
+- Do not set the SYSCFG[MEME] bit, only check it.  The setting of the
+  MemEncryptionModeEn bit results in a reduction of physical address size
+  of the processor.  It is possible that BIOS could have configured resources
+  resources into a range that will now not be addressable.  To prevent this,
+  rely on BIOS to set the SYSCFG[MEME] bit and only then enable memory
+  encryption support in the kernel.
 
-We already deal with this. If the interrupt is '-1', we skip it.
-That's done in plic.c:
-                if (parent.args[0] == -1) continue; // skip context holes
+Tom Lendacky (34):
+      x86: Document AMD Secure Memory Encryption (SME)
+      x86/mm/pat: Set write-protect cache mode for full PAT support
+      x86, mpparse, x86/acpi, x86/PCI, x86/dmi, SFI: Use memremap for RAM mappings
+      x86/CPU/AMD: Add the Secure Memory Encryption CPU feature
+      x86/CPU/AMD: Handle SME reduction in physical address size
+      x86/mm: Add Secure Memory Encryption (SME) support
+      x86/mm: Don't use phys_to_virt in ioremap() if SME is active
+      x86/mm: Add support to enable SME in early boot processing
+      x86/mm: Simplify p[gum]d_page() macros
+      x86, x86/mm, x86/xen, olpc: Use __va() against just the physical address in cr3
+      x86/mm: Provide general kernel support for memory encryption
+      x86/mm: Extend early_memremap() support with additional attrs
+      x86/mm: Add support for early encrypt/decrypt of memory
+      x86/mm: Insure that boot memory areas are mapped properly
+      x86/boot/e820: Add support to determine the E820 type of an address
+      efi: Add an EFI table address match function
+      efi: Update efi_mem_type() to return an error rather than 0
+      x86/efi: Update EFI pagetable creation to work with SME
+      x86/mm: Add support to access boot related data in the clear
+      x86, mpparse: Use memremap to map the mpf and mpc data
+      x86/mm: Add support to access persistent memory in the clear
+      x86/mm: Add support for changing the memory encryption attribute
+      x86, realmode: Decrypt trampoline area if memory encryption is active
+      x86, swiotlb: Add memory encryption support
+      swiotlb: Add warnings for use of bounce buffers with SME
+      iommu/amd: Allow the AMD IOMMU to work with memory encryption
+      x86, realmode: Check for memory encryption on the APs
+      x86, drm, fbdev: Do not specify encrypted memory for video mappings
+      kvm: x86: svm: Support Secure Memory Encryption within KVM
+      x86/mm, kexec: Allow kexec to be used with SME
+      x86/mm: Use proper encryption attributes with /dev/mem
+      x86/mm: Add support to encrypt the kernel in-place
+      x86/boot: Add early cmdline parsing for options with arguments
+      x86/mm: Add support to make use of Secure Memory Encryption
 
->> > +       plic: interrupt-controller@c000000 {
->> > +               #address-cells = <0>;
->
-> This can go, given you don't have sub-nodes, nor a #size-cells property.
 
-The device-tree-specification seems to indicate that this is mandatory
-for an interrupt-controller. Or have I understood this wrongly? When
-you use interrupts-extended, doesn't it use the address-cells of the
-interrupt controller? We should add that size-cells = 0, though.
+ Documentation/admin-guide/kernel-parameters.txt |   11 
+ Documentation/x86/amd-memory-encryption.txt     |   68 ++
+ arch/ia64/kernel/efi.c                          |    4 
+ arch/x86/Kconfig                                |   26 +
+ arch/x86/boot/compressed/pagetable.c            |    7 
+ arch/x86/include/asm/cmdline.h                  |    2 
+ arch/x86/include/asm/cpufeatures.h              |    1 
+ arch/x86/include/asm/dma-mapping.h              |    5 
+ arch/x86/include/asm/dmi.h                      |    8 
+ arch/x86/include/asm/e820/api.h                 |    2 
+ arch/x86/include/asm/fixmap.h                   |   20 +
+ arch/x86/include/asm/init.h                     |    1 
+ arch/x86/include/asm/io.h                       |    7 
+ arch/x86/include/asm/kexec.h                    |    8 
+ arch/x86/include/asm/kvm_host.h                 |    2 
+ arch/x86/include/asm/mem_encrypt.h              |  112 ++++
+ arch/x86/include/asm/msr-index.h                |    2 
+ arch/x86/include/asm/page_types.h               |    2 
+ arch/x86/include/asm/pgtable.h                  |   28 +
+ arch/x86/include/asm/pgtable_types.h            |   54 +-
+ arch/x86/include/asm/processor.h                |    3 
+ arch/x86/include/asm/realmode.h                 |   12 
+ arch/x86/include/asm/set_memory.h               |    3 
+ arch/x86/include/asm/special_insns.h            |    9 
+ arch/x86/include/asm/vga.h                      |   14 
+ arch/x86/kernel/acpi/boot.c                     |    6 
+ arch/x86/kernel/cpu/amd.c                       |   17 +
+ arch/x86/kernel/cpu/scattered.c                 |    1 
+ arch/x86/kernel/e820.c                          |   26 +
+ arch/x86/kernel/espfix_64.c                     |    2 
+ arch/x86/kernel/head64.c                        |   42 +
+ arch/x86/kernel/head_64.S                       |   80 ++-
+ arch/x86/kernel/kdebugfs.c                      |   34 -
+ arch/x86/kernel/ksysfs.c                        |   28 -
+ arch/x86/kernel/machine_kexec_64.c              |   35 +
+ arch/x86/kernel/mpparse.c                       |  108 +++-
+ arch/x86/kernel/pci-dma.c                       |   11 
+ arch/x86/kernel/pci-nommu.c                     |    2 
+ arch/x86/kernel/pci-swiotlb.c                   |   15 -
+ arch/x86/kernel/process.c                       |   17 +
+ arch/x86/kernel/setup.c                         |    9 
+ arch/x86/kvm/mmu.c                              |   12 
+ arch/x86/kvm/mmu.h                              |    2 
+ arch/x86/kvm/svm.c                              |   35 +
+ arch/x86/kvm/vmx.c                              |    3 
+ arch/x86/kvm/x86.c                              |    3 
+ arch/x86/lib/cmdline.c                          |  105 ++++
+ arch/x86/mm/Makefile                            |    3 
+ arch/x86/mm/fault.c                             |   10 
+ arch/x86/mm/ident_map.c                         |   12 
+ arch/x86/mm/ioremap.c                           |  277 +++++++++-
+ arch/x86/mm/kasan_init_64.c                     |    4 
+ arch/x86/mm/mem_encrypt.c                       |  667 +++++++++++++++++++++++
+ arch/x86/mm/mem_encrypt_boot.S                  |  150 +++++
+ arch/x86/mm/pageattr.c                          |   67 ++
+ arch/x86/mm/pat.c                               |    9 
+ arch/x86/pci/common.c                           |    4 
+ arch/x86/platform/efi/efi.c                     |    6 
+ arch/x86/platform/efi/efi_64.c                  |   15 -
+ arch/x86/platform/olpc/olpc-xo1-pm.c            |    2 
+ arch/x86/power/hibernate_64.c                   |    2 
+ arch/x86/realmode/init.c                        |   15 +
+ arch/x86/realmode/rm/trampoline_64.S            |   24 +
+ arch/x86/xen/mmu_pv.c                           |    6 
+ drivers/firmware/dmi-sysfs.c                    |    5 
+ drivers/firmware/efi/efi.c                      |   33 +
+ drivers/firmware/pcdp.c                         |    4 
+ drivers/gpu/drm/drm_gem.c                       |    2 
+ drivers/gpu/drm/drm_vm.c                        |    4 
+ drivers/gpu/drm/ttm/ttm_bo_vm.c                 |    7 
+ drivers/gpu/drm/udl/udl_fb.c                    |    4 
+ drivers/iommu/amd_iommu.c                       |   36 +
+ drivers/iommu/amd_iommu_init.c                  |   18 -
+ drivers/iommu/amd_iommu_proto.h                 |   10 
+ drivers/iommu/amd_iommu_types.h                 |    2 
+ drivers/sfi/sfi_core.c                          |   22 -
+ drivers/video/fbdev/core/fbmem.c                |   12 
+ include/asm-generic/early_ioremap.h             |    2 
+ include/asm-generic/mem_encrypt.h               |   45 ++
+ include/asm-generic/pgtable.h                   |    8 
+ include/linux/dma-mapping.h                     |    9 
+ include/linux/efi.h                             |    9 
+ include/linux/io.h                              |    2 
+ include/linux/kexec.h                           |   14 
+ include/linux/mem_encrypt.h                     |   18 +
+ include/linux/swiotlb.h                         |    1 
+ init/main.c                                     |   13 
+ kernel/kexec_core.c                             |    6 
+ kernel/memremap.c                               |   20 +
+ lib/swiotlb.c                                   |   59 ++
+ mm/early_ioremap.c                              |   30 +
+ 91 files changed, 2411 insertions(+), 261 deletions(-)
+ create mode 100644 Documentation/x86/amd-memory-encryption.txt
+ create mode 100644 arch/x86/include/asm/mem_encrypt.h
+ create mode 100644 arch/x86/mm/mem_encrypt.c
+ create mode 100644 arch/x86/mm/mem_encrypt_boot.S
+ create mode 100644 include/asm-generic/mem_encrypt.h
+ create mode 100644 include/linux/mem_encrypt.h
+
+-- 
+Tom Lendacky
