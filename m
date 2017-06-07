@@ -1,13 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-sn1nam02on0044.outbound.protection.outlook.com ([104.47.36.44]:56743
+Received: from mail-sn1nam02on0046.outbound.protection.outlook.com ([104.47.36.46]:39664
         "EHLO NAM02-SN1-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752196AbdFGTRd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 7 Jun 2017 15:17:33 -0400
+        id S1752451AbdFGTPq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 7 Jun 2017 15:15:46 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v6 24/34] x86, swiotlb: Add memory encryption support
-Date: Wed, 07 Jun 2017 14:17:21 -0500
-Message-ID: <20170607191721.28645.96519.stgit@tlendack-t1.amdoffice.net>
+Subject: [PATCH v6 14/34] x86/mm: Insure that boot memory areas are mapped
+ properly
+Date: Wed, 07 Jun 2017 14:15:39 -0500
+Message-ID: <20170607191539.28645.70161.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
 References: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -17,381 +18,265 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Rik van Riel <riel@redhat.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170607191721.Ii-yXuMY0qfom1M8CxhR7O03VCyJmPhwttN4reErt6M@z>
+Message-ID: <20170607191539.WVDS68wFyscN7DCw7DCa9dMah3AOmYX_B-T_qOguC_o@z>
 
-Since DMA addresses will effectively look like 48-bit addresses when the
-memory encryption mask is set, SWIOTLB is needed if the DMA mask of the
-device performing the DMA does not support 48-bits. SWIOTLB will be
-initialized to create decrypted bounce buffers for use by these devices.
+The boot data and command line data are present in memory in a decrypted
+state and are copied early in the boot process.  The early page fault
+support will map these areas as encrypted, so before attempting to copy
+them, add decrypted mappings so the data is accessed properly when copied.
+
+For the initrd, encrypt this data in place. Since the future mapping of the
+initrd area will be mapped as encrypted the data will be accessed properly.
 
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/include/asm/dma-mapping.h |    5 ++-
- arch/x86/include/asm/mem_encrypt.h |    5 +++
- arch/x86/kernel/pci-dma.c          |   11 +++++--
- arch/x86/kernel/pci-nommu.c        |    2 +
- arch/x86/kernel/pci-swiotlb.c      |   15 ++++++++--
- arch/x86/mm/mem_encrypt.c          |   22 ++++++++++++++
- include/linux/swiotlb.h            |    1 +
- init/main.c                        |   13 ++++++++
- lib/swiotlb.c                      |   56 +++++++++++++++++++++++++++++++-----
- 9 files changed, 113 insertions(+), 17 deletions(-)
+ arch/x86/include/asm/mem_encrypt.h |   11 +++++
+ arch/x86/include/asm/pgtable.h     |    3 +
+ arch/x86/kernel/head64.c           |   30 ++++++++++++--
+ arch/x86/kernel/setup.c            |    9 ++++
+ arch/x86/mm/mem_encrypt.c          |   77 ++++++++++++++++++++++++++++++++++++
+ 5 files changed, 126 insertions(+), 4 deletions(-)
 
-diff --git a/arch/x86/include/asm/dma-mapping.h b/arch/x86/include/asm/dma-mapping.h
-index 08a0838..d75430a 100644
---- a/arch/x86/include/asm/dma-mapping.h
-+++ b/arch/x86/include/asm/dma-mapping.h
-@@ -12,6 +12,7 @@
- #include <asm/io.h>
- #include <asm/swiotlb.h>
- #include <linux/dma-contiguous.h>
-+#include <asm/mem_encrypt.h>
- 
- #ifdef CONFIG_ISA
- # define ISA_DMA_BIT_MASK DMA_BIT_MASK(24)
-@@ -62,12 +63,12 @@ static inline bool dma_capable(struct device *dev, dma_addr_t addr, size_t size)
- 
- static inline dma_addr_t phys_to_dma(struct device *dev, phys_addr_t paddr)
- {
--	return paddr;
-+	return __sme_set(paddr);
- }
- 
- static inline phys_addr_t dma_to_phys(struct device *dev, dma_addr_t daddr)
- {
--	return daddr;
-+	return __sme_clr(daddr);
- }
- #endif /* CONFIG_X86_DMA_REMAP */
- 
 diff --git a/arch/x86/include/asm/mem_encrypt.h b/arch/x86/include/asm/mem_encrypt.h
-index 61a7049..f1215a4 100644
+index 7c395cf..61a7049 100644
 --- a/arch/x86/include/asm/mem_encrypt.h
 +++ b/arch/x86/include/asm/mem_encrypt.h
-@@ -31,6 +31,11 @@ void __init sme_early_decrypt(resource_size_t paddr,
+@@ -26,6 +26,9 @@ void __init sme_early_encrypt(resource_size_t paddr,
+ void __init sme_early_decrypt(resource_size_t paddr,
+ 			      unsigned long size);
  
++void __init sme_map_bootdata(char *real_mode_data);
++void __init sme_unmap_bootdata(char *real_mode_data);
++
  void __init sme_early_init(void);
  
-+/* Architecture __weak replacement functions */
-+void __init mem_encrypt_init(void);
-+
-+void swiotlb_set_mem_attributes(void *vaddr, unsigned long size);
-+
  #else	/* !CONFIG_AMD_MEM_ENCRYPT */
- 
- #define sme_me_mask	0UL
-diff --git a/arch/x86/kernel/pci-dma.c b/arch/x86/kernel/pci-dma.c
-index 3a216ec..72d96d4 100644
---- a/arch/x86/kernel/pci-dma.c
-+++ b/arch/x86/kernel/pci-dma.c
-@@ -93,9 +93,12 @@ void *dma_generic_alloc_coherent(struct device *dev, size_t size,
- 	if (gfpflags_allow_blocking(flag)) {
- 		page = dma_alloc_from_contiguous(dev, count, get_order(size),
- 						 flag);
--		if (page && page_to_phys(page) + size > dma_mask) {
--			dma_release_from_contiguous(dev, page, count);
--			page = NULL;
-+		if (page) {
-+			addr = phys_to_dma(dev, page_to_phys(page));
-+			if (addr + size > dma_mask) {
-+				dma_release_from_contiguous(dev, page, count);
-+				page = NULL;
-+			}
- 		}
- 	}
- 	/* fallback */
-@@ -104,7 +107,7 @@ void *dma_generic_alloc_coherent(struct device *dev, size_t size,
- 	if (!page)
- 		return NULL;
- 
--	addr = page_to_phys(page);
-+	addr = phys_to_dma(dev, page_to_phys(page));
- 	if (addr + size > dma_mask) {
- 		__free_pages(page, get_order(size));
- 
-diff --git a/arch/x86/kernel/pci-nommu.c b/arch/x86/kernel/pci-nommu.c
-index a88952e..98b576a 100644
---- a/arch/x86/kernel/pci-nommu.c
-+++ b/arch/x86/kernel/pci-nommu.c
-@@ -30,7 +30,7 @@ static dma_addr_t nommu_map_page(struct device *dev, struct page *page,
- 				 enum dma_data_direction dir,
- 				 unsigned long attrs)
+@@ -42,6 +45,14 @@ static inline void __init sme_early_decrypt(resource_size_t paddr,
  {
--	dma_addr_t bus = page_to_phys(page) + offset;
-+	dma_addr_t bus = phys_to_dma(dev, page_to_phys(page)) + offset;
- 	WARN_ON(size == 0);
- 	if (!check_addr("map_single", dev, bus, size))
- 		return DMA_ERROR_CODE;
-diff --git a/arch/x86/kernel/pci-swiotlb.c b/arch/x86/kernel/pci-swiotlb.c
-index 1e23577..cc1e106 100644
---- a/arch/x86/kernel/pci-swiotlb.c
-+++ b/arch/x86/kernel/pci-swiotlb.c
-@@ -12,6 +12,8 @@
- #include <asm/dma.h>
- #include <asm/xen/swiotlb-xen.h>
- #include <asm/iommu_table.h>
-+#include <asm/mem_encrypt.h>
+ }
+ 
++static inline void __init sme_map_bootdata(char *real_mode_data)
++{
++}
 +
- int swiotlb __read_mostly;
- 
- void *x86_swiotlb_alloc_coherent(struct device *hwdev, size_t size,
-@@ -79,8 +81,8 @@ int __init pci_swiotlb_detect_override(void)
- 		  pci_swiotlb_late_init);
- 
- /*
-- * if 4GB or more detected (and iommu=off not set) return 1
-- * and set swiotlb to 1.
-+ * If 4GB or more detected (and iommu=off not set) or if SME is active
-+ * then set swiotlb to 1 and return 1.
-  */
- int __init pci_swiotlb_detect_4gb(void)
++static inline void __init sme_unmap_bootdata(char *real_mode_data)
++{
++}
++
+ static inline void __init sme_early_init(void)
  {
-@@ -89,6 +91,15 @@ int __init pci_swiotlb_detect_4gb(void)
- 	if (!no_iommu && max_possible_pfn > MAX_DMA32_PFN)
- 		swiotlb = 1;
- #endif
+ }
+diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
+index 3f789ec..16657e7 100644
+--- a/arch/x86/include/asm/pgtable.h
++++ b/arch/x86/include/asm/pgtable.h
+@@ -23,6 +23,9 @@
+ #ifndef __ASSEMBLY__
+ #include <asm/x86_init.h>
+ 
++extern pgd_t early_level4_pgt[PTRS_PER_PGD];
++int __init __early_make_pgtable(unsigned long address, pmdval_t pmd);
++
+ void ptdump_walk_pgd_level(struct seq_file *m, pgd_t *pgd);
+ void ptdump_walk_pgd_level_checkwx(void);
+ 
+diff --git a/arch/x86/kernel/head64.c b/arch/x86/kernel/head64.c
+index 00ae2c5..f1fe5df 100644
+--- a/arch/x86/kernel/head64.c
++++ b/arch/x86/kernel/head64.c
+@@ -34,7 +34,6 @@
+ /*
+  * Manage page tables very early on.
+  */
+-extern pgd_t early_level4_pgt[PTRS_PER_PGD];
+ extern pmd_t early_dynamic_pgts[EARLY_DYNAMIC_PAGE_TABLES][PTRS_PER_PMD];
+ static unsigned int __initdata next_early_pgt = 2;
+ pmdval_t early_pmd_flags = __PAGE_KERNEL_LARGE & ~(_PAGE_GLOBAL | _PAGE_NX);
+@@ -48,12 +47,12 @@ static void __init reset_early_page_tables(void)
+ }
+ 
+ /* Create a new PMD entry */
+-int __init early_make_pgtable(unsigned long address)
++int __init __early_make_pgtable(unsigned long address, pmdval_t pmd)
+ {
+ 	unsigned long physaddr = address - __PAGE_OFFSET;
+ 	pgdval_t pgd, *pgd_p;
+ 	pudval_t pud, *pud_p;
+-	pmdval_t pmd, *pmd_p;
++	pmdval_t *pmd_p;
+ 
+ 	/* Invalid address or early pgt is done ?  */
+ 	if (physaddr >= MAXMEM || read_cr3_pa() != __pa_nodebug(early_level4_pgt))
+@@ -95,12 +94,21 @@ int __init early_make_pgtable(unsigned long address)
+ 		memset(pmd_p, 0, sizeof(*pmd_p) * PTRS_PER_PMD);
+ 		*pud_p = (pudval_t)pmd_p - __START_KERNEL_map + phys_base + _KERNPG_TABLE;
+ 	}
+-	pmd = (physaddr & PMD_MASK) + early_pmd_flags;
+ 	pmd_p[pmd_index(address)] = pmd;
+ 
+ 	return 0;
+ }
+ 
++int __init early_make_pgtable(unsigned long address)
++{
++	unsigned long physaddr = address - __PAGE_OFFSET;
++	pmdval_t pmd;
++
++	pmd = (physaddr & PMD_MASK) + early_pmd_flags;
++
++	return __early_make_pgtable(address, pmd);
++}
++
+ /* Don't add a printk in there. printk relies on the PDA which is not initialized 
+    yet. */
+ static void __init clear_bss(void)
+@@ -123,6 +131,12 @@ static void __init copy_bootdata(char *real_mode_data)
+ 	char * command_line;
+ 	unsigned long cmd_line_ptr;
+ 
++	/*
++	 * If SME is active, this will create decrypted mappings of the
++	 * boot data in advance of the copy operations.
++	 */
++	sme_map_bootdata(real_mode_data);
++
+ 	memcpy(&boot_params, real_mode_data, sizeof boot_params);
+ 	sanitize_boot_params(&boot_params);
+ 	cmd_line_ptr = get_cmd_line_ptr();
+@@ -130,6 +144,14 @@ static void __init copy_bootdata(char *real_mode_data)
+ 		command_line = __va(cmd_line_ptr);
+ 		memcpy(boot_command_line, command_line, COMMAND_LINE_SIZE);
+ 	}
 +
 +	/*
-+	 * If SME is active then swiotlb will be set to 1 so that bounce
-+	 * buffers are allocated and used for devices that do not support
-+	 * the addressing range required for the encryption mask.
++	 * The old boot data is no longer needed and won't be reserved,
++	 * freeing up that memory for use by the system. If SME is active,
++	 * we need to remove the mappings that were created so that the
++	 * memory doesn't remain mapped as decrypted.
 +	 */
-+	if (sme_active())
-+		swiotlb = 1;
-+
- 	return swiotlb;
++	sme_unmap_bootdata(real_mode_data);
  }
- IOMMU_INIT(pci_swiotlb_detect_4gb,
+ 
+ asmlinkage __visible void __init x86_64_start_kernel(char * real_mode_data)
+diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
+index f818236..d1414a1 100644
+--- a/arch/x86/kernel/setup.c
++++ b/arch/x86/kernel/setup.c
+@@ -115,6 +115,7 @@
+ #include <asm/microcode.h>
+ #include <asm/mmu_context.h>
+ #include <asm/kaslr.h>
++#include <asm/mem_encrypt.h>
+ 
+ /*
+  * max_low_pfn_mapped: highest direct mapped pfn under 4GB
+@@ -374,6 +375,14 @@ static void __init reserve_initrd(void)
+ 	    !ramdisk_image || !ramdisk_size)
+ 		return;		/* No initrd provided by bootloader */
+ 
++	/*
++	 * If SME is active, this memory will be marked encrypted by the
++	 * kernel when it is accessed (including relocation). However, the
++	 * ramdisk image was loaded decrypted by the bootloader, so make
++	 * sure that it is encrypted before accessing it.
++	 */
++	sme_early_encrypt(ramdisk_image, ramdisk_end - ramdisk_image);
++
+ 	initrd_start = 0;
+ 
+ 	mapped_size = memblock_mem_size(max_pfn_mapped);
 diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
-index 2321f05..5d7c51d 100644
+index 18c0887..2321f05 100644
 --- a/arch/x86/mm/mem_encrypt.c
 +++ b/arch/x86/mm/mem_encrypt.c
-@@ -16,11 +16,14 @@
- #ifdef CONFIG_AMD_MEM_ENCRYPT
- 
- #include <linux/mm.h>
-+#include <linux/dma-mapping.h>
-+#include <linux/swiotlb.h>
+@@ -19,6 +19,8 @@
  
  #include <asm/tlbflush.h>
  #include <asm/fixmap.h>
- #include <asm/setup.h>
- #include <asm/bootparam.h>
-+#include <asm/set_memory.h>
++#include <asm/setup.h>
++#include <asm/bootparam.h>
  
  /*
   * Since SME related variables are set early in the boot process they must
-@@ -194,6 +197,25 @@ void __init sme_early_init(void)
- 		protection_map[i] = pgprot_encrypted(protection_map[i]);
+@@ -101,6 +103,81 @@ void __init sme_early_decrypt(resource_size_t paddr, unsigned long size)
+ 	__sme_early_enc_dec(paddr, size, false);
  }
  
-+/* Architecture __weak replacement functions */
-+void __init mem_encrypt_init(void)
++static void __init sme_early_pgtable_flush(void)
 +{
-+	if (!sme_me_mask)
-+		return;
-+
-+	/* Call into SWIOTLB to update the SWIOTLB DMA buffers */
-+	swiotlb_update_mem_attributes();
++	write_cr3(__sme_pa_nodebug(early_level4_pgt));
 +}
 +
-+void swiotlb_set_mem_attributes(void *vaddr, unsigned long size)
++static void __init __sme_early_map_unmap_mem(void *vaddr, unsigned long size,
++					     bool map)
 +{
-+	WARN(PAGE_ALIGN(size) != size,
-+	     "size is not page-aligned (%#lx)\n", size);
++	unsigned long paddr = (unsigned long)vaddr - __PAGE_OFFSET;
++	pmdval_t pmd_flags, pmd;
 +
-+	/* Make the SWIOTLB buffer area decrypted */
-+	set_memory_decrypted((unsigned long)vaddr, size >> PAGE_SHIFT);
++	/* Use early_pmd_flags but remove the encryption mask */
++	pmd_flags = __sme_clr(early_pmd_flags);
++
++	do {
++		pmd = map ? (paddr & PMD_MASK) + pmd_flags : 0;
++		__early_make_pgtable((unsigned long)vaddr, pmd);
++
++		vaddr += PMD_SIZE;
++		paddr += PMD_SIZE;
++		size = (size <= PMD_SIZE) ? 0 : size - PMD_SIZE;
++	} while (size);
 +}
 +
- void __init sme_encrypt_kernel(void)
- {
- }
-diff --git a/include/linux/swiotlb.h b/include/linux/swiotlb.h
-index 4ee479f..15e7160 100644
---- a/include/linux/swiotlb.h
-+++ b/include/linux/swiotlb.h
-@@ -35,6 +35,7 @@ enum swiotlb_force {
- extern unsigned long swiotlb_nr_tbl(void);
- unsigned long swiotlb_size_or_default(void);
- extern int swiotlb_late_init_with_tbl(char *tlb, unsigned long nslabs);
-+extern void __init swiotlb_update_mem_attributes(void);
- 
- /*
-  * Enumeration for sync targets
-diff --git a/init/main.c b/init/main.c
-index df58a41..7125b5f 100644
---- a/init/main.c
-+++ b/init/main.c
-@@ -488,6 +488,10 @@ void __init __weak thread_stack_cache_init(void)
- }
- #endif
- 
-+void __init __weak mem_encrypt_init(void)
++static void __init __sme_map_unmap_bootdata(char *real_mode_data, bool map)
 +{
-+}
++	struct boot_params *boot_data;
++	unsigned long cmdline_paddr;
 +
- /*
-  * Set up kernel memory allocators
-  */
-@@ -640,6 +644,15 @@ asmlinkage __visible void __init start_kernel(void)
- 	 */
- 	locking_selftest();
- 
++	__sme_early_map_unmap_mem(real_mode_data, sizeof(boot_params), map);
++	boot_data = (struct boot_params *)real_mode_data;
++
 +	/*
-+	 * This needs to be called before any devices perform DMA
-+	 * operations that might use the SWIOTLB bounce buffers.
-+	 * This call will mark the bounce buffers as decrypted so
-+	 * that their usage will not cause "plain-text" data to be
-+	 * decrypted when accessed.
++	 * Determine the command line address only after having established
++	 * the decrypted mapping.
 +	 */
-+	mem_encrypt_init();
++	cmdline_paddr = boot_data->hdr.cmd_line_ptr |
++			((u64)boot_data->ext_cmd_line_ptr << 32);
 +
- #ifdef CONFIG_BLK_DEV_INITRD
- 	if (initrd_start && !initrd_below_start_ok &&
- 	    page_to_pfn(virt_to_page((void *)initrd_start)) < min_low_pfn) {
-diff --git a/lib/swiotlb.c b/lib/swiotlb.c
-index a8d74a7..74d6557 100644
---- a/lib/swiotlb.c
-+++ b/lib/swiotlb.c
-@@ -30,6 +30,7 @@
- #include <linux/highmem.h>
- #include <linux/gfp.h>
- #include <linux/scatterlist.h>
-+#include <linux/mem_encrypt.h>
- 
- #include <asm/io.h>
- #include <asm/dma.h>
-@@ -155,6 +156,17 @@ unsigned long swiotlb_size_or_default(void)
- 	return size ? size : (IO_TLB_DEFAULT_SIZE);
- }
- 
-+void __weak swiotlb_set_mem_attributes(void *vaddr, unsigned long size)
-+{
++	if (cmdline_paddr)
++		__sme_early_map_unmap_mem(__va(cmdline_paddr),
++					  COMMAND_LINE_SIZE, map);
 +}
 +
-+/* For swiotlb, clear memory encryption mask from dma addresses */
-+static dma_addr_t swiotlb_phys_to_dma(struct device *hwdev,
-+				      phys_addr_t address)
++void __init sme_unmap_bootdata(char *real_mode_data)
 +{
-+	return __sme_clr(phys_to_dma(hwdev, address));
-+}
-+
- /* Note that this doesn't work with highmem page */
- static dma_addr_t swiotlb_virt_to_bus(struct device *hwdev,
- 				      volatile void *address)
-@@ -183,6 +195,31 @@ void swiotlb_print_info(void)
- 	       bytes >> 20, vstart, vend - 1);
- }
- 
-+/*
-+ * Early SWIOTLB allocation may be too early to allow an architecture to
-+ * perform the desired operations.  This function allows the architecture to
-+ * call SWIOTLB when the operations are possible.  It needs to be called
-+ * before the SWIOTLB memory is used.
-+ */
-+void __init swiotlb_update_mem_attributes(void)
-+{
-+	void *vaddr;
-+	unsigned long bytes;
-+
-+	if (no_iotlb_memory || late_alloc)
++	/* If SME is not active, the bootdata is in the correct state */
++	if (!sme_active())
 +		return;
 +
-+	vaddr = phys_to_virt(io_tlb_start);
-+	bytes = PAGE_ALIGN(io_tlb_nslabs << IO_TLB_SHIFT);
-+	swiotlb_set_mem_attributes(vaddr, bytes);
-+	memset(vaddr, 0, bytes);
++	/*
++	 * The bootdata and command line aren't needed anymore so clear
++	 * any mapping of them.
++	 */
++	__sme_map_unmap_bootdata(real_mode_data, false);
 +
-+	vaddr = phys_to_virt(io_tlb_overflow_buffer);
-+	bytes = PAGE_ALIGN(io_tlb_overflow);
-+	swiotlb_set_mem_attributes(vaddr, bytes);
-+	memset(vaddr, 0, bytes);
++	sme_early_pgtable_flush();
 +}
 +
- int __init swiotlb_init_with_tbl(char *tlb, unsigned long nslabs, int verbose)
++void __init sme_map_bootdata(char *real_mode_data)
++{
++	/* If SME is not active, the bootdata is in the correct state */
++	if (!sme_active())
++		return;
++
++	/*
++	 * The bootdata and command line will not be encrypted, so they
++	 * need to be mapped as decrypted memory so they can be copied
++	 * properly.
++	 */
++	__sme_map_unmap_bootdata(real_mode_data, true);
++
++	sme_early_pgtable_flush();
++}
++
+ void __init sme_early_init(void)
  {
- 	void *v_overflow_buffer;
-@@ -320,6 +357,7 @@ int __init swiotlb_init_with_tbl(char *tlb, unsigned long nslabs, int verbose)
- 	io_tlb_start = virt_to_phys(tlb);
- 	io_tlb_end = io_tlb_start + bytes;
- 
-+	swiotlb_set_mem_attributes(tlb, bytes);
- 	memset(tlb, 0, bytes);
- 
- 	/*
-@@ -330,6 +368,8 @@ int __init swiotlb_init_with_tbl(char *tlb, unsigned long nslabs, int verbose)
- 	if (!v_overflow_buffer)
- 		goto cleanup2;
- 
-+	swiotlb_set_mem_attributes(v_overflow_buffer, io_tlb_overflow);
-+	memset(v_overflow_buffer, 0, io_tlb_overflow);
- 	io_tlb_overflow_buffer = virt_to_phys(v_overflow_buffer);
- 
- 	/*
-@@ -581,7 +621,7 @@ phys_addr_t swiotlb_tbl_map_single(struct device *hwdev,
- 		return SWIOTLB_MAP_ERROR;
- 	}
- 
--	start_dma_addr = phys_to_dma(hwdev, io_tlb_start);
-+	start_dma_addr = swiotlb_phys_to_dma(hwdev, io_tlb_start);
- 	return swiotlb_tbl_map_single(hwdev, start_dma_addr, phys, size,
- 				      dir, attrs);
- }
-@@ -702,7 +742,7 @@ void swiotlb_tbl_sync_single(struct device *hwdev, phys_addr_t tlb_addr,
- 			goto err_warn;
- 
- 		ret = phys_to_virt(paddr);
--		dev_addr = phys_to_dma(hwdev, paddr);
-+		dev_addr = swiotlb_phys_to_dma(hwdev, paddr);
- 
- 		/* Confirm address can be DMA'd by device */
- 		if (dev_addr + size - 1 > dma_mask) {
-@@ -812,10 +852,10 @@ dma_addr_t swiotlb_map_page(struct device *dev, struct page *page,
- 	map = map_single(dev, phys, size, dir, attrs);
- 	if (map == SWIOTLB_MAP_ERROR) {
- 		swiotlb_full(dev, size, dir, 1);
--		return phys_to_dma(dev, io_tlb_overflow_buffer);
-+		return swiotlb_phys_to_dma(dev, io_tlb_overflow_buffer);
- 	}
- 
--	dev_addr = phys_to_dma(dev, map);
-+	dev_addr = swiotlb_phys_to_dma(dev, map);
- 
- 	/* Ensure that the address returned is DMA'ble */
- 	if (dma_capable(dev, dev_addr, size))
-@@ -824,7 +864,7 @@ dma_addr_t swiotlb_map_page(struct device *dev, struct page *page,
- 	attrs |= DMA_ATTR_SKIP_CPU_SYNC;
- 	swiotlb_tbl_unmap_single(dev, map, size, dir, attrs);
- 
--	return phys_to_dma(dev, io_tlb_overflow_buffer);
-+	return swiotlb_phys_to_dma(dev, io_tlb_overflow_buffer);
- }
- EXPORT_SYMBOL_GPL(swiotlb_map_page);
- 
-@@ -958,7 +998,7 @@ void swiotlb_unmap_page(struct device *hwdev, dma_addr_t dev_addr,
- 				sg_dma_len(sgl) = 0;
- 				return 0;
- 			}
--			sg->dma_address = phys_to_dma(hwdev, map);
-+			sg->dma_address = swiotlb_phys_to_dma(hwdev, map);
- 		} else
- 			sg->dma_address = dev_addr;
- 		sg_dma_len(sg) = sg->length;
-@@ -1026,7 +1066,7 @@ void swiotlb_unmap_page(struct device *hwdev, dma_addr_t dev_addr,
- int
- swiotlb_dma_mapping_error(struct device *hwdev, dma_addr_t dma_addr)
- {
--	return (dma_addr == phys_to_dma(hwdev, io_tlb_overflow_buffer));
-+	return (dma_addr == swiotlb_phys_to_dma(hwdev, io_tlb_overflow_buffer));
- }
- EXPORT_SYMBOL(swiotlb_dma_mapping_error);
- 
-@@ -1039,6 +1079,6 @@ void swiotlb_unmap_page(struct device *hwdev, dma_addr_t dev_addr,
- int
- swiotlb_dma_supported(struct device *hwdev, u64 mask)
- {
--	return phys_to_dma(hwdev, io_tlb_end - 1) <= mask;
-+	return swiotlb_phys_to_dma(hwdev, io_tlb_end - 1) <= mask;
- }
- EXPORT_SYMBOL(swiotlb_dma_supported);
+ 	unsigned int i;
