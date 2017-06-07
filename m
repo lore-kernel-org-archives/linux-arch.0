@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-sn1nam01on0049.outbound.protection.outlook.com ([104.47.32.49]:63808
-        "EHLO NAM01-SN1-obe.outbound.protection.outlook.com"
+Received: from mail-bl2nam02on0052.outbound.protection.outlook.com ([104.47.38.52]:19818
+        "EHLO NAM02-BL2-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751989AbdFGTSP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 7 Jun 2017 15:18:15 -0400
+        id S1752056AbdFGTTY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 7 Jun 2017 15:19:24 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v6 28/34] x86, drm,
- fbdev: Do not specify encrypted memory for video mappings
-Date: Wed, 07 Jun 2017 14:18:04 -0500
-Message-ID: <20170607191804.28645.72185.stgit@tlendack-t1.amdoffice.net>
+Subject: [PATCH v6 33/34] x86/boot: Add early cmdline parsing for options
+ with arguments
+Date: Wed, 07 Jun 2017 14:19:05 -0500
+Message-ID: <20170607191905.28645.58429.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
 References: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -18,194 +18,145 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Rik van Riel <riel@redhat.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170607191804.7Uqm0CH9Dl4xNUx8A5RXT9Ikc8IfpafqgbA3qK1-0NM@z>
+Message-ID: <20170607191905.xhTbqVGACwysIr8J9H9i2TyfAn-hs-mDPufDjOemiMQ@z>
 
-Since video memory needs to be accessed decrypted, be sure that the
-memory encryption mask is not set for the video ranges.
+Add a cmdline_find_option() function to look for cmdline options that
+take arguments. The argument is returned in a supplied buffer and the
+argument length (regardless of whether it fits in the supplied buffer)
+is returned, with -1 indicating not found.
 
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/include/asm/vga.h       |   14 +++++++++++++-
- arch/x86/mm/pageattr.c           |    2 ++
- drivers/gpu/drm/drm_gem.c        |    2 ++
- drivers/gpu/drm/drm_vm.c         |    4 ++++
- drivers/gpu/drm/ttm/ttm_bo_vm.c  |    7 +++++--
- drivers/gpu/drm/udl/udl_fb.c     |    4 ++++
- drivers/video/fbdev/core/fbmem.c |   12 ++++++++++++
- 7 files changed, 42 insertions(+), 3 deletions(-)
+ arch/x86/include/asm/cmdline.h |    2 +
+ arch/x86/lib/cmdline.c         |  105 ++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 107 insertions(+)
 
-diff --git a/arch/x86/include/asm/vga.h b/arch/x86/include/asm/vga.h
-index c4b9dc2..9f42bee 100644
---- a/arch/x86/include/asm/vga.h
-+++ b/arch/x86/include/asm/vga.h
-@@ -7,12 +7,24 @@
- #ifndef _ASM_X86_VGA_H
- #define _ASM_X86_VGA_H
+diff --git a/arch/x86/include/asm/cmdline.h b/arch/x86/include/asm/cmdline.h
+index e01f7f7..84ae170 100644
+--- a/arch/x86/include/asm/cmdline.h
++++ b/arch/x86/include/asm/cmdline.h
+@@ -2,5 +2,7 @@
+ #define _ASM_X86_CMDLINE_H
  
-+#include <asm/set_memory.h>
-+
- /*
-  *	On the PC, we can just recalculate addresses and then
-  *	access the videoram directly without any black magic.
-+ *	To support memory encryption however, we need to access
-+ *	the videoram as decrypted memory.
-  */
+ int cmdline_find_option_bool(const char *cmdline_ptr, const char *option);
++int cmdline_find_option(const char *cmdline_ptr, const char *option,
++			char *buffer, int bufsize);
  
--#define VGA_MAP_MEM(x, s) (unsigned long)phys_to_virt(x)
-+#define VGA_MAP_MEM(x, s)					\
-+({								\
-+	unsigned long start = (unsigned long)phys_to_virt(x);	\
-+								\
-+	if (IS_ENABLED(CONFIG_AMD_MEM_ENCRYPT))			\
-+		set_memory_decrypted(start, (s) >> PAGE_SHIFT);	\
-+								\
-+	start;							\
-+})
- 
- #define vga_readb(x) (*(x))
- #define vga_writeb(x, y) (*(y) = (x))
-diff --git a/arch/x86/mm/pageattr.c b/arch/x86/mm/pageattr.c
-index d9e09fb..13fc5db 100644
---- a/arch/x86/mm/pageattr.c
-+++ b/arch/x86/mm/pageattr.c
-@@ -1825,11 +1825,13 @@ int set_memory_encrypted(unsigned long addr, int numpages)
- {
- 	return __set_memory_enc_dec(addr, numpages, true);
+ #endif /* _ASM_X86_CMDLINE_H */
+diff --git a/arch/x86/lib/cmdline.c b/arch/x86/lib/cmdline.c
+index 5cc78bf..3261abb 100644
+--- a/arch/x86/lib/cmdline.c
++++ b/arch/x86/lib/cmdline.c
+@@ -104,7 +104,112 @@ static inline int myisspace(u8 c)
+ 	return 0;	/* Buffer overrun */
  }
-+EXPORT_SYMBOL_GPL(set_memory_encrypted);
  
- int set_memory_decrypted(unsigned long addr, int numpages)
- {
- 	return __set_memory_enc_dec(addr, numpages, false);
- }
-+EXPORT_SYMBOL_GPL(set_memory_decrypted);
- 
- int set_pages_uc(struct page *page, int numpages)
- {
-diff --git a/drivers/gpu/drm/drm_gem.c b/drivers/gpu/drm/drm_gem.c
-index b1e28c9..019f48c 100644
---- a/drivers/gpu/drm/drm_gem.c
-+++ b/drivers/gpu/drm/drm_gem.c
-@@ -36,6 +36,7 @@
- #include <linux/pagemap.h>
- #include <linux/shmem_fs.h>
- #include <linux/dma-buf.h>
-+#include <linux/mem_encrypt.h>
- #include <drm/drmP.h>
- #include <drm/drm_vma_manager.h>
- #include <drm/drm_gem.h>
-@@ -928,6 +929,7 @@ int drm_gem_mmap_obj(struct drm_gem_object *obj, unsigned long obj_size,
- 	vma->vm_ops = dev->driver->gem_vm_ops;
- 	vma->vm_private_data = obj;
- 	vma->vm_page_prot = pgprot_writecombine(vm_get_page_prot(vma->vm_flags));
-+	vma->vm_page_prot = pgprot_decrypted(vma->vm_page_prot);
- 
- 	/* Take a ref for this mapping of the object, so that the fault
- 	 * handler can dereference the mmap offset's pointer to the object.
-diff --git a/drivers/gpu/drm/drm_vm.c b/drivers/gpu/drm/drm_vm.c
-index 1170b32..ed4bcbf 100644
---- a/drivers/gpu/drm/drm_vm.c
-+++ b/drivers/gpu/drm/drm_vm.c
-@@ -40,6 +40,7 @@
- #include <linux/efi.h>
- #include <linux/slab.h>
- #endif
-+#include <linux/mem_encrypt.h>
- #include <asm/pgtable.h>
- #include "drm_internal.h"
- #include "drm_legacy.h"
-@@ -58,6 +59,9 @@ static pgprot_t drm_io_prot(struct drm_local_map *map,
- {
- 	pgprot_t tmp = vm_get_page_prot(vma->vm_flags);
- 
-+	/* We don't want graphics memory to be mapped encrypted */
-+	tmp = pgprot_decrypted(tmp);
++/*
++ * Find a non-boolean option (i.e. option=argument). In accordance with
++ * standard Linux practice, if this option is repeated, this returns the
++ * last instance on the command line.
++ *
++ * @cmdline: the cmdline string
++ * @max_cmdline_size: the maximum size of cmdline
++ * @option: option string to look for
++ * @buffer: memory buffer to return the option argument
++ * @bufsize: size of the supplied memory buffer
++ *
++ * Returns the length of the argument (regardless of if it was
++ * truncated to fit in the buffer), or -1 on not found.
++ */
++static int
++__cmdline_find_option(const char *cmdline, int max_cmdline_size,
++		      const char *option, char *buffer, int bufsize)
++{
++	char c;
++	int pos = 0, len = -1;
++	const char *opptr = NULL;
++	char *bufptr = buffer;
++	enum {
++		st_wordstart = 0,	/* Start of word/after whitespace */
++		st_wordcmp,	/* Comparing this word */
++		st_wordskip,	/* Miscompare, skip */
++		st_bufcpy,	/* Copying this to buffer */
++	} state = st_wordstart;
 +
- #if defined(__i386__) || defined(__x86_64__) || defined(__powerpc__)
- 	if (map->type == _DRM_REGISTERS && !(map->flags & _DRM_WRITE_COMBINING))
- 		tmp = pgprot_noncached(tmp);
-diff --git a/drivers/gpu/drm/ttm/ttm_bo_vm.c b/drivers/gpu/drm/ttm/ttm_bo_vm.c
-index 9f53df9..622dab6 100644
---- a/drivers/gpu/drm/ttm/ttm_bo_vm.c
-+++ b/drivers/gpu/drm/ttm/ttm_bo_vm.c
-@@ -39,6 +39,7 @@
- #include <linux/rbtree.h>
- #include <linux/module.h>
- #include <linux/uaccess.h>
-+#include <linux/mem_encrypt.h>
- 
- #define TTM_BO_VM_NUM_PREFAULT 16
- 
-@@ -230,9 +231,11 @@ static int ttm_bo_vm_fault(struct vm_fault *vmf)
- 	 * first page.
- 	 */
- 	for (i = 0; i < TTM_BO_VM_NUM_PREFAULT; ++i) {
--		if (bo->mem.bus.is_iomem)
-+		if (bo->mem.bus.is_iomem) {
-+			/* Iomem should not be marked encrypted */
-+			cvma.vm_page_prot = pgprot_decrypted(cvma.vm_page_prot);
- 			pfn = bdev->driver->io_mem_pfn(bo, page_offset);
--		else {
-+		} else {
- 			page = ttm->pages[page_offset];
- 			if (unlikely(!page && i == 0)) {
- 				retval = VM_FAULT_OOM;
-diff --git a/drivers/gpu/drm/udl/udl_fb.c b/drivers/gpu/drm/udl/udl_fb.c
-index 4a65003..92e1690 100644
---- a/drivers/gpu/drm/udl/udl_fb.c
-+++ b/drivers/gpu/drm/udl/udl_fb.c
-@@ -14,6 +14,7 @@
- #include <linux/slab.h>
- #include <linux/fb.h>
- #include <linux/dma-buf.h>
-+#include <linux/mem_encrypt.h>
- 
- #include <drm/drmP.h>
- #include <drm/drm_crtc.h>
-@@ -169,6 +170,9 @@ static int udl_fb_mmap(struct fb_info *info, struct vm_area_struct *vma)
- 	pr_notice("mmap() framebuffer addr:%lu size:%lu\n",
- 		  pos, size);
- 
-+	/* We don't want the framebuffer to be mapped encrypted */
-+	vma->vm_page_prot = pgprot_decrypted(vma->vm_page_prot);
++	if (!cmdline)
++		return -1;      /* No command line */
 +
- 	while (size > 0) {
- 		page = vmalloc_to_pfn((void *)pos);
- 		if (remap_pfn_range(vma, start, page, PAGE_SIZE, PAGE_SHARED))
-diff --git a/drivers/video/fbdev/core/fbmem.c b/drivers/video/fbdev/core/fbmem.c
-index 069fe79..b5e7c33 100644
---- a/drivers/video/fbdev/core/fbmem.c
-+++ b/drivers/video/fbdev/core/fbmem.c
-@@ -32,6 +32,7 @@
- #include <linux/device.h>
- #include <linux/efi.h>
- #include <linux/fb.h>
-+#include <linux/mem_encrypt.h>
- 
- #include <asm/fb.h>
- 
-@@ -1405,6 +1406,12 @@ static long fb_compat_ioctl(struct file *file, unsigned int cmd,
- 	mutex_lock(&info->mm_lock);
- 	if (fb->fb_mmap) {
- 		int res;
-+
-+		/*
-+		 * The framebuffer needs to be accessed decrypted, be sure
-+		 * SME protection is removed ahead of the call
-+		 */
-+		vma->vm_page_prot = pgprot_decrypted(vma->vm_page_prot);
- 		res = fb->fb_mmap(info, vma);
- 		mutex_unlock(&info->mm_lock);
- 		return res;
-@@ -1430,6 +1437,11 @@ static long fb_compat_ioctl(struct file *file, unsigned int cmd,
- 	mutex_unlock(&info->mm_lock);
- 
- 	vma->vm_page_prot = vm_get_page_prot(vma->vm_flags);
 +	/*
-+	 * The framebuffer needs to be accessed decrypted, be sure
-+	 * SME protection is removed
++	 * This 'pos' check ensures we do not overrun
++	 * a non-NULL-terminated 'cmdline'
 +	 */
-+	vma->vm_page_prot = pgprot_decrypted(vma->vm_page_prot);
- 	fb_pgprotect(file, vma, start);
- 
- 	return vm_iomap_memory(vma, start, len);
++	while (pos++ < max_cmdline_size) {
++		c = *(char *)cmdline++;
++		if (!c)
++			break;
++
++		switch (state) {
++		case st_wordstart:
++			if (myisspace(c))
++				break;
++
++			state = st_wordcmp;
++			opptr = option;
++			/* fall through */
++
++		case st_wordcmp:
++			if ((c == '=') && !*opptr) {
++				/*
++				 * We matched all the way to the end of the
++				 * option we were looking for, prepare to
++				 * copy the argument.
++				 */
++				len = 0;
++				bufptr = buffer;
++				state = st_bufcpy;
++				break;
++			} else if (c == *opptr++) {
++				/*
++				 * We are currently matching, so continue
++				 * to the next character on the cmdline.
++				 */
++				break;
++			}
++			state = st_wordskip;
++			/* fall through */
++
++		case st_wordskip:
++			if (myisspace(c))
++				state = st_wordstart;
++			break;
++
++		case st_bufcpy:
++			if (myisspace(c)) {
++				state = st_wordstart;
++			} else {
++				/*
++				 * Increment len, but don't overrun the
++				 * supplied buffer and leave room for the
++				 * NULL terminator.
++				 */
++				if (++len < bufsize)
++					*bufptr++ = c;
++			}
++			break;
++		}
++	}
++
++	if (bufsize)
++		*bufptr = '\0';
++
++	return len;
++}
++
+ int cmdline_find_option_bool(const char *cmdline, const char *option)
+ {
+ 	return __cmdline_find_option_bool(cmdline, COMMAND_LINE_SIZE, option);
+ }
++
++int cmdline_find_option(const char *cmdline, const char *option, char *buffer,
++			int bufsize)
++{
++	return __cmdline_find_option(cmdline, COMMAND_LINE_SIZE, option,
++				     buffer, bufsize);
++}
