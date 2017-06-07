@@ -1,114 +1,49 @@
-From: Don Zickus <dzickus@redhat.com>
-Subject: Re: [PATCH 0/4][V3] Improve watchdog config for arch watchdogs
-Date: Wed, 7 Jun 2017 10:37:51 -0400
-Message-ID: <20170607143751.rnaa5c4jeggptvic@redhat.com>
-References: <20170530012659.16791-1-npiggin@gmail.com>
- <20170606160847.izishwer3m5jirkb@redhat.com>
- <d274b1a5-c8b3-9e3a-b45d-c63c9022be91@oracle.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 13/17] RISC-V: Add include subdirectory
+Date: Wed, 7 Jun 2017 18:35:02 +0200
+Message-ID: <20170607163502.roefzqivvkywb236@hirez.programming.kicks-ass.net>
+References: <20170523004107.536-1-palmer@dabbelt.com>
+ <20170606230007.19101-1-palmer@dabbelt.com>
+ <20170606230007.19101-14-palmer@dabbelt.com>
+ <20170607120613.ocbqpfajxj6eedbt@hirez.programming.kicks-ass.net>
+ <20170607123627.ofjobsxxv5ut776m@hirez.programming.kicks-ass.net>
+ <20170607125850.zwh3w5s5ce54jcrz@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <d274b1a5-c8b3-9e3a-b45d-c63c9022be91@oracle.com>
+In-Reply-To: <20170607125850.zwh3w5s5ce54jcrz@hirez.programming.kicks-ass.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Babu Moger <babu.moger@oracle.com>
-Cc: Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Palmer Dabbelt <palmer@dabbelt.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, olof@lixom.net, albert@sifive.com, patches@groups.riscv.org, Will Deacon <will.deacon@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jun 06, 2017 at 02:46:48PM -0500, Babu Moger wrote:
-> Hi Don, Nicholas,
-> 
-> 
-> On 6/6/2017 11:08 AM, Don Zickus wrote:
-> > (adding Babu)
+On Wed, Jun 07, 2017 at 02:58:50PM +0200, Peter Zijlstra wrote:
+> On Wed, Jun 07, 2017 at 02:36:27PM +0200, Peter Zijlstra wrote:
+> > Which (pending the sub confusion) will generate the entire set of:
 > > 
-> > On Tue, May 30, 2017 at 11:26:55AM +1000, Nicholas Piggin wrote:
-> > > Since last time:
-> > > 
-> > > - Have the perf based hardlockup detector use arch_touch_nmi_watchdog()
-> > >    rather than hld_touch_nmi_watchdog(). This changes direction slightly
-> > >    to make the perf-based hard lockup detector an alternative that an
-> > >    arch may select, rather than standalone. This better reflects how the
-> > >    code works in practice).
-> > > 
-> > > - Hopefully fixed the Kconfig options. There's still a bit of ugliness
-> > >    that will require another pass or two over interfaces and config
-> > >    scheme, but the idea is to make a minimal change to get the powerpc
-> > >    HLD in, which gives a reasonable starting point to improve things
-> > >    further.
-> > Hi Babu,
+> >  atomic_add, atomic_add_return{_relaxed,_acquire,_release,} atomic_fetch_add{_relaxed,_acquire,_release,}
+> >  atomic_sub, atomic_sub_return{_relaxed,_acquire,_release,} atomic_fetch_sub{_relaxed,_acquire,_release,}
 > > 
-> > Does this patchset break sparc?  Specifically patch3 with all the config
-> Patches applies, compiles fine and also works fine for most part. However,
-> there are few issues.
+> >  atomic_and, atomic_fetch_and{_relaxed,_acquire,_release,}
+> >  atomic_or,  atomic_fetch_or{_relaxed,_acquire,_release,}
+> >  atomic_xor, atomic_fetch_xor{_relaxed,_acquire,_release,}
+> > 
+> 
+> Another approach would be to override __atomic_op_{acquire,release} and
+> use things like:
+> 
+> 	"FENCE r,rw" -- (load) ACQUIRE
+> 	"FENCE rw,w" -- (store) RELEASE
+> 
+> And then you only need to provide _relaxed atomics.
+> 
+> Also, and I didn't check for that, you need to provide:
+> 
+> smp_load_acquire(), smp_store_release(), atomic_read_acquire(),
+> atomic_store_release().
 
-Thanks for the quick turnaround!
+Also, you probably need to provide smp_mb__before_spinlock(), but also
+see:
 
-> 
-> We need to enter 'N' or 'Y'  for SOFTLOCKUP_DETECTOR.
-> 
-> *
-> * Restart config...
-> *
-> *
-> * Debug Lockups and Hangs
-> *
-> Detect Hard and Soft Lockups (LOCKUP_DETECTOR) [Y/n/?] y
->   Detect Soft Lockups (SOFTLOCKUP_DETECTOR) [N/y] (NEW)
-> 
-> For SPARC, softlockup is enabled by default earlier.   May be we need to
-> submit another patch to enable this in
-> 
-> arch/sparc/configs/sparc64_defconfig.   Not  a big issue.
-
-Hmm, I think the nmi_enable/disable stuff is wrapped into the
-SOFTLOCKUP_DETECTOR code, so you might need it.  Though Nick did create a
-separate interface outside of SOFTLOCKUP to something similar.  I believe
-patch4 introduces nmi_reconfigure().
-
-Not sure if the spirit of the sparc nmi_watchdog code wants SOFTLOCKUP or
-not.
-
-> 
-> 
-> Another issue.
-> before that patch
-> 
-> # cat /proc/sys/kernel/watchdog
-> 1
-> # cat /proc/sys/kernel/nmi_watchdog
-> 1
-> 
-> After the patch
-> 
-> # cat /proc/sys/kernel/watchdog
-> 1
-> # cat /proc/sys/kernel/nmi_watchdog
-> 0
-
-Yes, that is what I thought.  Thanks for confirming!
-
-> 
-> I think this is mostly due to change in this code below.
-> 
-> #ifdef CONFIG_HARDLOCKUP_DETECTOR
-> unsigned long __read_mostly watchdog_enabled =
-> SOFT_WATCHDOG_ENABLED|NMI_WATCHDOG_ENABLED;
-> 
-> Old code was like this
-> 
-> #if defined(CONFIG_HAVE_NMI_WATCHDOG) || defined(CONFIG_HARDLOCKUP_DETECTOR)
-> unsigned long __read_mostly watchdog_enabled =
-> SOFT_WATCHDOG_ENABLED|NMI_WATCHDOG_ENABLED;
-> #else
-> unsigned long __read_mostly watchdog_enabled = SOFT_WATCHDOG_ENABLED;
-> #endif
-> 
-> SPARC defines CONFIG_HAVE_NMI_WATCHDOG.
-
-
-I am still working with Nick to deal with these config issues.  But I am
-going to keep this one in mind while we work through it.
-
-Cheers,
-Don
+  https://lkml.kernel.org/r/20170607161501.819948352@infradead.org
