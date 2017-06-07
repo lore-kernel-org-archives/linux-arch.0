@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-sn1nam01on0085.outbound.protection.outlook.com ([104.47.32.85]:29847
-        "EHLO NAM01-SN1-obe.outbound.protection.outlook.com"
+Received: from mail-co1nam03on0067.outbound.protection.outlook.com ([104.47.40.67]:17872
+        "EHLO NAM03-CO1-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751805AbdFGTTY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 7 Jun 2017 15:19:24 -0400
+        id S1752616AbdFGTRn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 7 Jun 2017 15:17:43 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v6 34/34] x86/mm: Add support to make use of Secure Memory
- Encryption
-Date: Wed, 07 Jun 2017 14:19:16 -0500
-Message-ID: <20170607191916.28645.87015.stgit@tlendack-t1.amdoffice.net>
+Subject: [PATCH v6 25/34] swiotlb: Add warnings for use of bounce buffers
+ with SME
+Date: Wed, 07 Jun 2017 14:17:32 -0500
+Message-ID: <20170607191732.28645.42876.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
 References: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -18,165 +18,101 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Rik van Riel <riel@redhat.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170607191916.rkhQvcSl9Bf0bn3Bxf4-jfzqYBkAOsdKXcgYoiMJTyA@z>
+Message-ID: <20170607191732.Y8LAVogK0ewyHeAhZQjzaQcaB2iSj41K6Kv2b7C-7ms@z>
 
-Add support to check if SME has been enabled and if memory encryption
-should be activated (checking of command line option based on the
-configuration of the default state).  If memory encryption is to be
-activated, then the encryption mask is set and the kernel is encrypted
-"in place."
+Add warnings to let the user know when bounce buffers are being used for
+DMA when SME is active.  Since the bounce buffers are not in encrypted
+memory, these notifications are to allow the user to determine some
+appropriate action - if necessary.
 
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/kernel/head_64.S |    1 
- arch/x86/mm/mem_encrypt.c |   93 +++++++++++++++++++++++++++++++++++++++++++--
- 2 files changed, 89 insertions(+), 5 deletions(-)
+ arch/x86/include/asm/mem_encrypt.h |    8 ++++++++
+ include/asm-generic/mem_encrypt.h  |    5 +++++
+ include/linux/dma-mapping.h        |    9 +++++++++
+ lib/swiotlb.c                      |    3 +++
+ 4 files changed, 25 insertions(+)
 
-diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
-index 1fe944b..660bf8e 100644
---- a/arch/x86/kernel/head_64.S
-+++ b/arch/x86/kernel/head_64.S
-@@ -97,6 +97,7 @@ startup_64:
- 	 * Save the returned mask in %r12 for later use.
- 	 */
- 	push	%rsi
-+	movq	%rsi, %rdi
- 	call	sme_enable
- 	pop	%rsi
- 	movq	%rax, %r12
-diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
-index 6129477..d624058 100644
---- a/arch/x86/mm/mem_encrypt.c
-+++ b/arch/x86/mm/mem_encrypt.c
-@@ -12,6 +12,7 @@
+diff --git a/arch/x86/include/asm/mem_encrypt.h b/arch/x86/include/asm/mem_encrypt.h
+index f1215a4..c7a2525 100644
+--- a/arch/x86/include/asm/mem_encrypt.h
++++ b/arch/x86/include/asm/mem_encrypt.h
+@@ -69,6 +69,14 @@ static inline bool sme_active(void)
+ 	return !!sme_me_mask;
+ }
  
- #include <linux/linkage.h>
- #include <linux/init.h>
-+#include <asm/bootparam.h>
- 
- #ifdef CONFIG_AMD_MEM_ENCRYPT
- 
-@@ -22,10 +23,23 @@
- #include <asm/tlbflush.h>
- #include <asm/fixmap.h>
- #include <asm/setup.h>
--#include <asm/bootparam.h>
- #include <asm/set_memory.h>
- #include <asm/cacheflush.h>
- #include <asm/sections.h>
-+#include <asm/mem_encrypt.h>
-+#include <asm/processor-flags.h>
-+#include <asm/msr.h>
-+#include <asm/cmdline.h>
++static inline u64 sme_dma_mask(void)
++{
++	if (!sme_me_mask)
++		return 0ULL;
 +
-+static char sme_cmdline_arg[] __initdata = "mem_encrypt";
-+static char sme_cmdline_on[]  __initdata = "on";
-+static char sme_cmdline_off[] __initdata = "off";
++	return ((u64)sme_me_mask << 1) - 1;
++}
 +
-+/*
-+ * Some SME functions run very early causing issues with the stack-protector
-+ * support. Provide a way to turn off this support on a per-function basis.
-+ */
-+#define SME_NOSTACKP __attribute__((__optimize__("no-stack-protector")))
- 
  /*
-  * Since SME related variables are set early in the boot process they must
-@@ -237,6 +251,8 @@ void __init mem_encrypt_init(void)
+  * The __sme_pa() and __sme_pa_nodebug() macros are meant for use when
+  * writing to or comparing values from the cr3 register.  Having the
+diff --git a/include/asm-generic/mem_encrypt.h b/include/asm-generic/mem_encrypt.h
+index b55c3f9..fb02ff0 100644
+--- a/include/asm-generic/mem_encrypt.h
++++ b/include/asm-generic/mem_encrypt.h
+@@ -22,6 +22,11 @@ static inline bool sme_active(void)
+ 	return false;
+ }
  
- 	/* Call into SWIOTLB to update the SWIOTLB DMA buffers */
- 	swiotlb_update_mem_attributes();
++static inline u64 sme_dma_mask(void)
++{
++	return 0ULL;
++}
 +
-+	pr_info("AMD Secure Memory Encryption (SME) active\n");
- }
+ /*
+  * The __sme_set() and __sme_clr() macros are useful for adding or removing
+  * the encryption mask from a value (e.g. when dealing with pagetable
+diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
+index 4f3eece..e2c5fda 100644
+--- a/include/linux/dma-mapping.h
++++ b/include/linux/dma-mapping.h
+@@ -10,6 +10,7 @@
+ #include <linux/scatterlist.h>
+ #include <linux/kmemcheck.h>
+ #include <linux/bug.h>
++#include <linux/mem_encrypt.h>
  
- void swiotlb_set_mem_attributes(void *vaddr, unsigned long size)
-@@ -564,8 +580,75 @@ void __init sme_encrypt_kernel(void)
- 	native_write_cr3(native_read_cr3());
- }
+ /**
+  * List of possible attributes associated with a DMA mapping. The semantics
+@@ -577,6 +578,10 @@ static inline int dma_set_mask(struct device *dev, u64 mask)
  
--unsigned long __init sme_enable(void)
-+unsigned long __init SME_NOSTACKP sme_enable(struct boot_params *bp)
+ 	if (!dev->dma_mask || !dma_supported(dev, mask))
+ 		return -EIO;
++
++	if (sme_active() && (mask < sme_dma_mask()))
++		dev_warn(dev, "SME is active, device will require DMA bounce buffers\n");
++
+ 	*dev->dma_mask = mask;
+ 	return 0;
+ }
+@@ -596,6 +601,10 @@ static inline int dma_set_coherent_mask(struct device *dev, u64 mask)
  {
-+	const char *cmdline_ptr, *cmdline_arg, *cmdline_on, *cmdline_off;
-+	unsigned int eax, ebx, ecx, edx;
-+	bool active_by_default;
-+	unsigned long me_mask;
-+	char buffer[16];
-+	u64 msr;
+ 	if (!dma_supported(dev, mask))
+ 		return -EIO;
 +
-+	/* Check for the SME support leaf */
-+	eax = 0x80000000;
-+	ecx = 0;
-+	native_cpuid(&eax, &ebx, &ecx, &edx);
-+	if (eax < 0x8000001f)
-+		goto out;
++	if (sme_active() && (mask < sme_dma_mask()))
++		dev_warn(dev, "SME is active, device will require DMA bounce buffers\n");
 +
-+	/*
-+	 * Check for the SME feature:
-+	 *   CPUID Fn8000_001F[EAX] - Bit 0
-+	 *     Secure Memory Encryption support
-+	 *   CPUID Fn8000_001F[EBX] - Bits 5:0
-+	 *     Pagetable bit position used to indicate encryption
-+	 */
-+	eax = 0x8000001f;
-+	ecx = 0;
-+	native_cpuid(&eax, &ebx, &ecx, &edx);
-+	if (!(eax & 1))
-+		goto out;
-+
-+	me_mask = 1UL << (ebx & 0x3f);
-+
-+	/* Check if SME is enabled */
-+	msr = __rdmsr(MSR_K8_SYSCFG);
-+	if (!(msr & MSR_K8_SYSCFG_MEM_ENCRYPT))
-+		goto out;
-+
-+	/*
-+	 * Fixups have not been applied to phys_base yet and we're running
-+	 * identity mapped, so we must obtain the address to the SME command
-+	 * line argument data using rip-relative addressing.
-+	 */
-+	asm ("lea sme_cmdline_arg(%%rip), %0"
-+	     : "=r" (cmdline_arg)
-+	     : "p" (sme_cmdline_arg));
-+	asm ("lea sme_cmdline_on(%%rip), %0"
-+	     : "=r" (cmdline_on)
-+	     : "p" (sme_cmdline_on));
-+	asm ("lea sme_cmdline_off(%%rip), %0"
-+	     : "=r" (cmdline_off)
-+	     : "p" (sme_cmdline_off));
-+
-+	if (IS_ENABLED(CONFIG_AMD_MEM_ENCRYPT_ACTIVE_BY_DEFAULT))
-+		active_by_default = true;
-+	else
-+		active_by_default = false;
-+
-+	cmdline_ptr = (const char *)((u64)bp->hdr.cmd_line_ptr |
-+				     ((u64)bp->ext_cmd_line_ptr << 32));
-+
-+	cmdline_find_option(cmdline_ptr, cmdline_arg, buffer, sizeof(buffer));
-+
-+	if (strncmp(buffer, cmdline_on, sizeof(buffer)) == 0)
-+		sme_me_mask = me_mask;
-+	else if (strncmp(buffer, cmdline_off, sizeof(buffer)) == 0)
-+		sme_me_mask = 0;
-+	else
-+		sme_me_mask = active_by_default ? me_mask : 0;
-+
-+out:
- 	return sme_me_mask;
+ 	dev->coherent_dma_mask = mask;
+ 	return 0;
  }
+diff --git a/lib/swiotlb.c b/lib/swiotlb.c
+index 74d6557..f78906a 100644
+--- a/lib/swiotlb.c
++++ b/lib/swiotlb.c
+@@ -509,6 +509,9 @@ phys_addr_t swiotlb_tbl_map_single(struct device *hwdev,
+ 	if (no_iotlb_memory)
+ 		panic("Can not allocate SWIOTLB buffer earlier and can't now provide you with the DMA bounce buffer");
  
-@@ -576,9 +659,9 @@ unsigned long sme_get_me_mask(void)
++	if (sme_active())
++		pr_warn_once("SME is active and system is using DMA bounce buffers\n");
++
+ 	mask = dma_get_seg_boundary(hwdev);
  
- #else	/* !CONFIG_AMD_MEM_ENCRYPT */
- 
--void __init sme_encrypt_kernel(void)	{ }
--unsigned long __init sme_enable(void)	{ return 0; }
-+void __init sme_encrypt_kernel(void)			{ }
-+unsigned long __init sme_enable(struct boot_params *bp)	{ return 0; }
- 
--unsigned long sme_get_me_mask(void)	{ return 0; }
-+unsigned long sme_get_me_mask(void)			{ return 0; }
- 
- #endif	/* CONFIG_AMD_MEM_ENCRYPT */
+ 	tbl_dma_addr &= mask;
