@@ -1,102 +1,47 @@
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH 3/4] watchdog: Split up config options
-Date: Wed, 7 Jun 2017 13:50:26 +1000
-Message-ID: <20170607135026.1a6129a8@roar.ozlabs.ibm.com>
-References: <20170530012659.16791-1-npiggin@gmail.com>
-        <20170530012659.16791-4-npiggin@gmail.com>
-        <20170602201500.urllmug33bjtuzen@redhat.com>
-        <20170603161005.279fe0ef@roar.ozlabs.ibm.com>
-        <20170606164958.lkwy7t7xzdpxg4mp@redhat.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 03/17] base: fix order of OF initialization
+Date: Wed, 7 Jun 2017 09:07:20 +0200
+Message-ID: <CAMuHMdXWH5fU8YKfR37D5SMi1GpSk75Bq-OcYmm5ZuHe+XK0PQ@mail.gmail.com>
+References: <20170523004107.536-1-palmer@dabbelt.com> <20170606230007.19101-1-palmer@dabbelt.com>
+ <20170606230007.19101-4-palmer@dabbelt.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f195.google.com ([209.85.192.195]:32993 "EHLO
-        mail-pf0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751566AbdFGDul (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 6 Jun 2017 23:50:41 -0400
-In-Reply-To: <20170606164958.lkwy7t7xzdpxg4mp@redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Don Zickus <dzickus@redhat.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20170606230007.19101-4-palmer@dabbelt.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Palmer Dabbelt <palmer@dabbelt.com>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Olof Johansson <olof@lixom.net>, albert@sifive.com, patches@groups.riscv.org, "Wesley W. Terpstra" <wesley@sifive.com>, Rob Herring <robh+dt@kernel.org>, Frank Rowand <frowand.list@gmail.com>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, 6 Jun 2017 12:49:58 -0400
-Don Zickus <dzickus@redhat.com> wrote:
+CC devicetree folks
 
-> On Sat, Jun 03, 2017 at 04:10:05PM +1000, Nicholas Piggin wrote:
-
-> > > >  config HARDLOCKUP_DETECTOR
-> > > > -	def_bool y
-> > > > -	depends on LOCKUP_DETECTOR && !HAVE_NMI_WATCHDOG
-> > > > -	depends on PERF_EVENTS && HAVE_PERF_EVENTS_NMI
-> > > > +	bool "Detect Hard Lockups"
-> > > > +	depends on LOCKUP_DETECTOR
-> > > > +	depends on !HAVE_NMI_WATCHDOG && (PERF_EVENTS && HAVE_PERF_EVENTS_NMI)
-> > > > +	select HARDLOCKUP_DETECTOR_PERF if !HAVE_NMI_WATCHDOG    
-> > > 
-> > > Here is my confusion with HAVE_NMI_WATCHDOG
-> > > 
-> > > It seems like you can only select HARDLOCKUP_DETECTOR if !HAVE_NMI_DETECTOR
-> > > which would break sparc, I think.
-> > > 
-> > > And then it always selects HARDLOCKUP_DETECTOR_PERF because of the
-> > > dependency on !HAVE_NMI_WATCHDOG???  
-> > 
-> > I don't think so -- sparc today does not select HARDLOCKUP_DETECTOR.  
-> 
-> Well yes, but your patch changes the definition of HARDLOCKUP_DETECTOR to
-> HARDLOCKUP_DETECTOR_PERF and then recreates HARDLOCKUP_DETECTOR.
-> 
-> For example look at kernel/watchdog.c::watchdog_enabled (line 38)
-> 
-> sparc has HAVE_NMI_WATCHDOG set, but that will disable HARDLOCKUP_DETECTOR
-> which I believes means sparc's nmi_watchdog is disabled on boot and has to
-> be manually enabled?
-
-Ahh okay because sparc is using watchdog_nmi_enable/disable from the
-softlockup watchdog, which checks watchdog_enabled.
-
-> 
-> 
-> I _think_ having
-> 
-> depends on LOCKUP_DETECTOR
-> depends on HAVE_NMI_WATCHDOG || HAVE_PERF_EVENTS_NMI
-> select HARDLOCKUP_DETECTOR_PERF if !HAVE_NMI_WATCHDOG
-> 
-> will work because your new definition of HARDLOCKUP_DETECTOR is a
-> combination of HAVE_NMI_WATCHDOG && HARDLOCKUP_DETECTOR_PERF ??
-> 
-> Did I get that right?
-
-Well in some ways, except that most of the NMI watchdogs do not seem to
-heed the HARDLOCKUP_DETECTOR configuration sysctls and commands.
-
-NMI_WATCHDOG by itself was supposed to be for an arch that wnats to do
-completely it own thing.
-
-sparc is somewhere in the middle. It uses some of the HLD stuff, but
-not all. That makes it a bit tricky.
-
-
-> I almost wonder if arches should set either HAVE_NMI_WATCHDOG or
-> HAVE_PERF_NMI_WATCHDOG and then use those two to determine
-> HARDLOCKUP_DETECTOR.  Would that make the config options slightly less
-> confusing?
-
-This would probably be the right direction to go in, but it will take
-slightly more I think. We first need to remove HAVE_NMI_WATCHDOG from
-meaning that an arch has its own watchdog and does not want any HLD
-stuff. I think with arch_touch_nmi_watchdog(), we can probably get there.
-
-While transitioning, we could add a new option instead,
-
-HAVE_ARCH_HARDLOCKUP_DETECTOR
-
-I think HAVE_PERF_EVENTS_NMI is sufficient to imply it will use the PERF
-HLD. Possibly you could just change the name to be a bit more regular,
-HAVE_PERF_NMI_HARDLOCKUP_DETECTOR
-
-Thanks,
-Nick
+On Wed, Jun 7, 2017 at 12:59 AM, Palmer Dabbelt <palmer@dabbelt.com> wrote:
+> From: "Wesley W. Terpstra" <wesley@sifive.com>
+>
+> This fixes: [    0.010000] cpu cpu0: Error -2 creating of_node link
+> ... which you get for every CPU on all architectures with a OF cpu/ node.
+>
+> This affects riscv, nios, etc.
+>
+> Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
+> ---
+>  drivers/base/init.c | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
+>
+> diff --git a/drivers/base/init.c b/drivers/base/init.c
+> index 48c0e220acc0..0dcd17e561d0 100644
+> --- a/drivers/base/init.c
+> +++ b/drivers/base/init.c
+> @@ -31,9 +31,9 @@ void __init driver_init(void)
+>         /* These are also core pieces, but must come after the
+>          * core core pieces.
+>          */
+> +       of_core_init();
+>         platform_bus_init();
+>         cpu_dev_init();
+>         memory_dev_init();
+>         container_dev_init();
+> -       of_core_init();
+>  }
+> --
+> 2.13.0
