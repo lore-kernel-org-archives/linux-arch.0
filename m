@@ -1,67 +1,70 @@
-From: Marc Zyngier <marc.zyngier@arm.com>
-Subject: Re: [PATCH 02/17] pcie-xilinx: add missing 5th legacy interrupt
-Date: Wed, 7 Jun 2017 10:24:59 +0100
-Message-ID: <9e42e6d3-3433-0c3f-812f-28d98ef089dc@arm.com>
+From: Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>
+Subject: Re: [PATCH 03/17] base: fix order of OF initialization
+Date: Wed, 7 Jun 2017 10:35:23 +0100
+Message-ID: <20170607093523.GB29370@leverpostej>
 References: <20170523004107.536-1-palmer@dabbelt.com>
  <20170606230007.19101-1-palmer@dabbelt.com>
- <20170606230007.19101-3-palmer@dabbelt.com>
+ <20170606230007.19101-4-palmer@dabbelt.com>
+ <CAMuHMdXWH5fU8YKfR37D5SMi1GpSk75Bq-OcYmm5ZuHe+XK0PQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:57818 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751008AbdFGJZC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 7 Jun 2017 05:25:02 -0400
-In-Reply-To: <20170606230007.19101-3-palmer@dabbelt.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Palmer Dabbelt <palmer@dabbelt.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, olof@lixom.net
-Cc: albert@sifive.com, patches@groups.riscv.org, "Wesley W. Terpstra" <wesley@sifive.com>, Bjorn Helgaas <bhelgaas@google.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <CAMuHMdXWH5fU8YKfR37D5SMi1GpSk75Bq-OcYmm5ZuHe+XK0PQ-JsoAwUIsXosN+BqQ9rBEUg@public.gmane.org>
+Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>
+Cc: Palmer Dabbelt <palmer-96lFi9zoCfxBDgjK7y7TUQ@public.gmane.org>, Linux-Arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Olof Johansson <olof-nZhT3qVonbNeoWH0uzbU5w@public.gmane.org>, albert-SpMDHPYPyPbQT0dZR+AlfA@public.gmane.org, patches-q3qR2WxjNRFS9aJRtSZj7A@public.gmane.org, "Wesley W. Terpstra" <wesley-SpMDHPYPyPbQT0dZR+AlfA@public.gmane.org>, Rob Herring <robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Frank Rowand <frowand.list-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, "devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+List-Id: linux-arch.vger.kernel.org
 
-+ Bjorn
+On Wed, Jun 07, 2017 at 09:07:20AM +0200, Geert Uytterhoeven wrote:
+> CC devicetree folks
+> 
+> On Wed, Jun 7, 2017 at 12:59 AM, Palmer Dabbelt <palmer-96lFi9zoCfxBDgjK7y7TUQ@public.gmane.org> wrote:
+> > From: "Wesley W. Terpstra" <wesley-SpMDHPYPyPbQT0dZR+AlfA@public.gmane.org>
+> >
+> > This fixes: [    0.010000] cpu cpu0: Error -2 creating of_node link
+> > ... which you get for every CPU on all architectures with a OF cpu/ node.
 
-On 06/06/17 23:59, Palmer Dabbelt wrote:
-> From: "Wesley W. Terpstra" <wesley@sifive.com>
-> 
-> These are numbered from 1.
-> 
-> Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
-> ---
->  drivers/pci/host/pcie-xilinx.c | 4 ++--
->  1 file changed, 2 insertions(+), 2 deletions(-)
-> 
-> diff --git a/drivers/pci/host/pcie-xilinx.c b/drivers/pci/host/pcie-xilinx.c
-> index 2fe2df51f9f8..8804145d399a 100644
-> --- a/drivers/pci/host/pcie-xilinx.c
-> +++ b/drivers/pci/host/pcie-xilinx.c
-> @@ -443,7 +443,7 @@ static irqreturn_t xilinx_pcie_intr_handler(int irq, void *data)
->  			val = ((val & XILINX_PCIE_RPIFR1_INTR_MASK) >>
->  				XILINX_PCIE_RPIFR1_INTR_SHIFT) + 1;
->  			generic_handle_irq(irq_find_mapping(port->leg_domain,
-> -							    val));
-> +							    val + 1));
->  		}
->  	}
->  
-> @@ -524,7 +524,7 @@ static int xilinx_pcie_init_irq_domain(struct xilinx_pcie_port *port)
->  		return -ENODEV;
->  	}
->  
-> -	port->leg_domain = irq_domain_add_linear(pcie_intc_node, 4,
-> +	port->leg_domain = irq_domain_add_linear(pcie_intc_node, 5,
->  						 &intx_domain_ops,
->  						 port);
->  	if (!port->leg_domain) {
-> 
+I take it this means a /cpus node? Or the /cpus/cpu@* nodes?
 
-This is a common problem with the current OF code that numbers INTx from
-1 instead of zero (there is no 5th legacy interrupts in the PCI spec,
-despite what $SUBJECT says). I'd be inclined to fix this at the core
-level rather than papering over it in the various drivers...
+I'm not seeing this on arm64 when booting v4.12-rc4 with DT, so clearly
+this doesn't affect all such architectures.
+
+What path are these errors happening in?
 
 Thanks,
+Mark.
 
-	M.
--- 
-Jazz is not dead. It just smells funny...
+> >
+> > This affects riscv, nios, etc.
+> >
+> > Signed-off-by: Palmer Dabbelt <palmer-96lFi9zoCfxBDgjK7y7TUQ@public.gmane.org>
+> > ---
+> >  drivers/base/init.c | 2 +-
+> >  1 file changed, 1 insertion(+), 1 deletion(-)
+> >
+> > diff --git a/drivers/base/init.c b/drivers/base/init.c
+> > index 48c0e220acc0..0dcd17e561d0 100644
+> > --- a/drivers/base/init.c
+> > +++ b/drivers/base/init.c
+> > @@ -31,9 +31,9 @@ void __init driver_init(void)
+> >         /* These are also core pieces, but must come after the
+> >          * core core pieces.
+> >          */
+> > +       of_core_init();
+> >         platform_bus_init();
+> >         cpu_dev_init();
+> >         memory_dev_init();
+> >         container_dev_init();
+> > -       of_core_init();
+> >  }
+> > --
+> > 2.13.0
+> --
+> To unsubscribe from this list: send the line "unsubscribe devicetree" in
+> the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+--
+To unsubscribe from this list: send the line "unsubscribe devicetree" in
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
