@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-sn1nam01on0049.outbound.protection.outlook.com ([104.47.32.49]:14848
-        "EHLO NAM01-SN1-obe.outbound.protection.outlook.com"
+Received: from mail-cys01nam02on0083.outbound.protection.outlook.com ([104.47.37.83]:17312
+        "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752291AbdFGTOm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 7 Jun 2017 15:14:42 -0400
+        id S1752445AbdFGTPg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 7 Jun 2017 15:15:36 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v6 08/34] x86/mm: Add support to enable SME in early boot
- processing
-Date: Wed, 07 Jun 2017 14:14:36 -0500
-Message-ID: <20170607191436.28645.59706.stgit@tlendack-t1.amdoffice.net>
+Subject: [PATCH v6 13/34] x86/mm: Add support for early encrypt/decrypt of
+ memory
+Date: Wed, 07 Jun 2017 14:15:27 -0500
+Message-ID: <20170607191527.28645.84593.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
 References: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -18,195 +18,144 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Rik van Riel <riel@redhat.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170607191436.nbT9VSyjlyM_tSHA-l3ivu_GJwHQKn3tqz_DoiWsflQ@z>
+Message-ID: <20170607191527.yzUZv3AEuhuOnsSj8gNL5sUOQKA77ZjPMk_enwnEYQI@z>
 
-Add support to the early boot code to use Secure Memory Encryption (SME).
-Since the kernel has been loaded into memory in a decrypted state, encrypt
-the kernel in place and update the early pagetables with the memory
-encryption mask so that new pagetable entries will use memory encryption.
-
-The routines to set the encryption mask and perform the encryption are
-stub routines for now with functionality to be added in a later patch.
-
-Because of the need to have the routines available to head_64.S, the
-mem_encrypt.c is always built and #ifdefs in mem_encrypt.c will provide
-functionality or stub routines depending on CONFIG_AMD_MEM_ENCRYPT.
+Add support to be able to either encrypt or decrypt data in place during
+the early stages of booting the kernel. This does not change the memory
+encryption attribute - it is used for ensuring that data present in either
+an encrypted or decrypted memory area is in the proper state (for example
+the initrd will have been loaded by the boot loader and will not be
+encrypted, but the memory that it resides in is marked as encrypted).
 
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/kernel/head_64.S |   61 ++++++++++++++++++++++++++++++++++++++++++++-
- arch/x86/mm/Makefile      |    4 +--
- arch/x86/mm/mem_encrypt.c |   26 +++++++++++++++++++
- 3 files changed, 86 insertions(+), 5 deletions(-)
+ arch/x86/include/asm/mem_encrypt.h |   15 +++++++
+ arch/x86/mm/mem_encrypt.c          |   76 ++++++++++++++++++++++++++++++++++++
+ 2 files changed, 91 insertions(+)
 
-diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
-index ac9d327..222630c 100644
---- a/arch/x86/kernel/head_64.S
-+++ b/arch/x86/kernel/head_64.S
-@@ -91,6 +91,23 @@ startup_64:
- 	jnz	bad_address
+diff --git a/arch/x86/include/asm/mem_encrypt.h b/arch/x86/include/asm/mem_encrypt.h
+index f1c4c29..7c395cf 100644
+--- a/arch/x86/include/asm/mem_encrypt.h
++++ b/arch/x86/include/asm/mem_encrypt.h
+@@ -21,12 +21,27 @@
  
- 	/*
-+	 * Activate Secure Memory Encryption (SME), if supported and enabled.
-+	 * The real_mode_data address is in %rsi and that register can be
-+	 * clobbered by the called function so be sure to save it.
-+	 * Save the returned mask in %r12 for later use.
-+	 */
-+	push	%rsi
-+	call	sme_enable
-+	pop	%rsi
-+	movq	%rax, %r12
+ extern unsigned long sme_me_mask;
+ 
++void __init sme_early_encrypt(resource_size_t paddr,
++			      unsigned long size);
++void __init sme_early_decrypt(resource_size_t paddr,
++			      unsigned long size);
 +
-+	/*
-+	 * Add the memory encryption mask to %rbp to include it in the page
-+	 * table fixups.
-+	 */
-+	addq	%r12, %rbp
+ void __init sme_early_init(void);
+ 
+ #else	/* !CONFIG_AMD_MEM_ENCRYPT */
+ 
+ #define sme_me_mask	0UL
+ 
++static inline void __init sme_early_encrypt(resource_size_t paddr,
++					    unsigned long size)
++{
++}
 +
-+	/*
- 	 * Fixup the physical addresses in the page table
- 	 */
- 	addq	%rbp, early_level4_pgt + (L4_START_KERNEL*8)(%rip)
-@@ -113,6 +130,7 @@ startup_64:
- 	shrq	$PGDIR_SHIFT, %rax
- 
- 	leaq	(PAGE_SIZE + _KERNPG_TABLE)(%rbx), %rdx
-+	addq	%r12, %rdx
- 	movq	%rdx, 0(%rbx,%rax,8)
- 	movq	%rdx, 8(%rbx,%rax,8)
- 
-@@ -129,6 +147,7 @@ startup_64:
- 	movq	%rdi, %rax
- 	shrq	$PMD_SHIFT, %rdi
- 	addq	$(__PAGE_KERNEL_LARGE_EXEC & ~_PAGE_GLOBAL), %rax
-+	addq	%r12, %rax
- 	leaq	(_end - 1)(%rip), %rcx
- 	shrq	$PMD_SHIFT, %rcx
- 	subq	%rdi, %rcx
-@@ -142,6 +161,12 @@ startup_64:
- 	decl	%ecx
- 	jnz	1b
- 
-+	/*
-+	 * Determine if any fixups are required. This includes fixups
-+	 * based on where the kernel was loaded and whether SME is
-+	 * active. If %rbp is zero, then we can skip both the fixups
-+	 * and the call to encrypt the kernel.
-+	 */
- 	test %rbp, %rbp
- 	jz .Lskip_fixup
- 
-@@ -162,11 +187,30 @@ startup_64:
- 	cmp	%r8, %rdi
- 	jne	1b
- 
--	/* Fixup phys_base */
-+	/*
-+	 * Fixup phys_base - remove the memory encryption mask from %rbp
-+	 * to obtain the true physical address.
-+	 */
-+	subq	%r12, %rbp
- 	addq	%rbp, phys_base(%rip)
- 
-+	/*
-+	 * Encrypt the kernel if SME is active.
-+	 * The real_mode_data address is in %rsi and that register can be
-+	 * clobbered by the called function so be sure to save it.
-+	 */
-+	push	%rsi
-+	call	sme_encrypt_kernel
-+	pop	%rsi
++static inline void __init sme_early_decrypt(resource_size_t paddr,
++					    unsigned long size)
++{
++}
 +
- .Lskip_fixup:
-+	/*
-+	 * The encryption mask is in %r12. We ADD this to %rax to be sure
-+	 * that the encryption mask is part of the value that will be
-+	 * stored in %cr3.
-+	 */
- 	movq	$(early_level4_pgt - __START_KERNEL_map), %rax
-+	addq	%r12, %rax
- 	jmp 1f
- ENTRY(secondary_startup_64)
- 	/*
-@@ -186,7 +230,20 @@ ENTRY(secondary_startup_64)
- 	/* Sanitize CPU configuration */
- 	call verify_cpu
- 
--	movq	$(init_level4_pgt - __START_KERNEL_map), %rax
-+	/*
-+	 * Get the SME encryption mask.
-+	 *  The encryption mask will be returned in %rax so we do an ADD
-+	 *  below to be sure that the encryption mask is part of the
-+	 *  value that will stored in %cr3.
-+	 *
-+	 * The real_mode_data address is in %rsi and that register can be
-+	 * clobbered by the called function so be sure to save it.
-+	 */
-+	push	%rsi
-+	call	sme_get_me_mask
-+	pop	%rsi
-+
-+	addq	$(init_level4_pgt - __START_KERNEL_map), %rax
- 1:
- 
- 	/* Enable PAE mode and PGE */
-diff --git a/arch/x86/mm/Makefile b/arch/x86/mm/Makefile
-index 44d4d21..88ee454 100644
---- a/arch/x86/mm/Makefile
-+++ b/arch/x86/mm/Makefile
-@@ -2,7 +2,7 @@
- KCOV_INSTRUMENT_tlb.o	:= n
- 
- obj-y	:=  init.o init_$(BITS).o fault.o ioremap.o extable.o pageattr.o mmap.o \
--	    pat.o pgtable.o physaddr.o gup.o setup_nx.o tlb.o
-+	    pat.o pgtable.o physaddr.o gup.o setup_nx.o tlb.o mem_encrypt.o
- 
- # Make sure __phys_addr has no stackprotector
- nostackp := $(call cc-option, -fno-stack-protector)
-@@ -38,5 +38,3 @@ obj-$(CONFIG_NUMA_EMU)		+= numa_emulation.o
- obj-$(CONFIG_X86_INTEL_MPX)	+= mpx.o
- obj-$(CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS) += pkeys.o
- obj-$(CONFIG_RANDOMIZE_MEMORY) += kaslr.o
--
--obj-$(CONFIG_AMD_MEM_ENCRYPT)	+= mem_encrypt.o
+ static inline void __init sme_early_init(void)
+ {
+ }
 diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
-index b99d469..cc00d8b 100644
+index 8ca93e5..18c0887 100644
 --- a/arch/x86/mm/mem_encrypt.c
 +++ b/arch/x86/mm/mem_encrypt.c
-@@ -11,6 +11,9 @@
-  */
+@@ -17,6 +17,9 @@
  
- #include <linux/linkage.h>
-+#include <linux/init.h>
+ #include <linux/mm.h>
+ 
++#include <asm/tlbflush.h>
++#include <asm/fixmap.h>
 +
-+#ifdef CONFIG_AMD_MEM_ENCRYPT
- 
  /*
   * Since SME related variables are set early in the boot process they must
-@@ -19,3 +22,26 @@
-  */
+  * reside in the .data section so as not to be zeroed out when the .bss
+@@ -25,6 +28,79 @@
  unsigned long sme_me_mask __section(.data) = 0;
  EXPORT_SYMBOL_GPL(sme_me_mask);
+ 
++/* Buffer used for early in-place encryption by BSP, no locking needed */
++static char sme_early_buffer[PAGE_SIZE] __aligned(PAGE_SIZE);
 +
-+void __init sme_encrypt_kernel(void)
++/*
++ * This routine does not change the underlying encryption setting of the
++ * page(s) that map this memory. It assumes that eventually the memory is
++ * meant to be accessed as either encrypted or decrypted but the contents
++ * are currently not in the desired state.
++ *
++ * This routine follows the steps outlined in the AMD64 Architecture
++ * Programmer's Manual Volume 2, Section 7.10.8 Encrypt-in-Place.
++ */
++static void __init __sme_early_enc_dec(resource_size_t paddr,
++				       unsigned long size, bool enc)
 +{
++	void *src, *dst;
++	size_t len;
++
++	if (!sme_me_mask)
++		return;
++
++	local_flush_tlb();
++	wbinvd();
++
++	/*
++	 * There are limited number of early mapping slots, so map (at most)
++	 * one page at time.
++	 */
++	while (size) {
++		len = min_t(size_t, sizeof(sme_early_buffer), size);
++
++		/*
++		 * Create mappings for the current and desired format of
++		 * the memory. Use a write-protected mapping for the source.
++		 */
++		src = enc ? early_memremap_decrypted_wp(paddr, len) :
++			    early_memremap_encrypted_wp(paddr, len);
++
++		dst = enc ? early_memremap_encrypted(paddr, len) :
++			    early_memremap_decrypted(paddr, len);
++
++		/*
++		 * If a mapping can't be obtained to perform the operation,
++		 * then eventual access of that area in the desired mode
++		 * will cause a crash.
++		 */
++		BUG_ON(!src || !dst);
++
++		/*
++		 * Use a temporary buffer, of cache-line multiple size, to
++		 * avoid data corruption as documented in the APM.
++		 */
++		memcpy(sme_early_buffer, src, len);
++		memcpy(dst, sme_early_buffer, len);
++
++		early_memunmap(dst, len);
++		early_memunmap(src, len);
++
++		paddr += len;
++		size -= len;
++	}
 +}
 +
-+unsigned long __init sme_enable(void)
++void __init sme_early_encrypt(resource_size_t paddr, unsigned long size)
 +{
-+	return sme_me_mask;
++	__sme_early_enc_dec(paddr, size, true);
 +}
 +
-+unsigned long sme_get_me_mask(void)
++void __init sme_early_decrypt(resource_size_t paddr, unsigned long size)
 +{
-+	return sme_me_mask;
++	__sme_early_enc_dec(paddr, size, false);
 +}
 +
-+#else	/* !CONFIG_AMD_MEM_ENCRYPT */
-+
-+void __init sme_encrypt_kernel(void)	{ }
-+unsigned long __init sme_enable(void)	{ return 0; }
-+
-+unsigned long sme_get_me_mask(void)	{ return 0; }
-+
-+#endif	/* CONFIG_AMD_MEM_ENCRYPT */
+ void __init sme_early_init(void)
+ {
+ 	unsigned int i;
