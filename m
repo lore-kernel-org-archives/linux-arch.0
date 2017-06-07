@@ -1,88 +1,145 @@
-From: Yury Norov <ynorov-M3mlKVOIwJVv6pq1l3V1OdBPR1lH4CV8@public.gmane.org>
-Subject: Re: [PATCH 03/20] asm-generic: Drop getrlimit and setrlimit syscalls
- from default list
-Date: Wed, 7 Jun 2017 21:48:09 +0300
-Message-ID: <20170607184809.e4hmsvewkrmigmww@yury-thinkpad>
-References: <20170604120009.342-1-ynorov@caviumnetworks.com>
- <20170604120009.342-4-ynorov@caviumnetworks.com>
- <20170605144406.GT6973@jhogan-linux.le.imgtec.org>
+From: Wesley Terpstra <wesley@sifive.com>
+Subject: Re: [PATCH 08/17] dts: include documentation for the RISC-V interrupt controllers
+Date: Wed, 7 Jun 2017 11:57:17 -0700
+Message-ID: <CAMgXwTiz0jXgSw=veJ3O7xzVgm==YisZZLWpZFH7aJMXV4j7qA@mail.gmail.com>
+References: <20170523004107.536-1-palmer@dabbelt.com> <20170606230007.19101-1-palmer@dabbelt.com>
+ <20170606230007.19101-9-palmer@dabbelt.com> <CAMuHMdWYNVvh4hqDrqYNe2oyVHkCbH15VfWTWHaBCeRAaf6O4g@mail.gmail.com>
+ <20170607101343.GC29370@leverpostej>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <20170605144406.GT6973-4bYivNCBEGTR3KXKvIWQxtm+Uo4AYnCiHZ5vskTnxNA@public.gmane.org>
-Sender: linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: James Hogan <james.hogan-1AXoQHu6uovQT0dZR+AlfA@public.gmane.org>
-Cc: Catalin Marinas <catalin.marinas-5wv7dgnIgG8@public.gmane.org>, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Andrew Pinski <pinskia-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Andrew Pinski <Andrew.Pinski-M3mlKVOIwJVv6pq1l3V1OdBPR1lH4CV8@public.gmane.org>, Adam Borowski <kilobyte-b9QjgO8OEXPVItvQsEIGlw@public.gmane.org>, Chris Metcalf <cmetcalf-d5a29ZRxExrQT0dZR+AlfA@public.gmane.org>, Steve Ellcey <sellcey-M3mlKVOIwJVv6pq1l3V1OdBPR1lH4CV8@public.gmane.org>, Maxim Kuvyrkov <maxim.kuvyrkov-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Ramana Radhakrishnan <ramana.gcc-gM/Ye1E23mwN+BqQ9rBEUg@public.gmane.org>, Florian Weimer <fweimer-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Bamvor Zhangjian <bamvor.zhangjian-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>, Andreas Schwab <schwab-l3A5Bk7waGM@public.gmane.org>, Chris Metcalf <cmetcalf-VPRAkNaXOzVWk0Htik3J/w@public.gmane.org>, Heiko Carstens <heiko.carstens-tA70FqPdS9bQT0dZR+AlfA@public.gmane.org>, schwidefsky-tA70FqPdS9bQT0dZR+AlfA@public.gmane.org, broonie-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, Joseph Myers <joseph-qD8j1LwMmJjtCj0u4l0SBw@public.gmane.org>, christoph.
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20170607101343.GC29370@leverpostej>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Mark Rutland <mark.rutland@arm.com>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Palmer Dabbelt <palmer@dabbelt.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Olof Johansson <olof@lixom.net>, Albert Ou <albert@sifive.com>, patches@groups.riscv.org, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <Marc.Zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jun 05, 2017 at 03:44:06PM +0100, James Hogan wrote:
-> Hi Yury,
-> 
-> On Sun, Jun 04, 2017 at 02:59:52PM +0300, Yury Norov wrote:
-> > The newer prlimit64 syscall provides all the functionality provided by
-> > the getrlimit and setrlimit syscalls and adds the pid of target process,
-> > so future architectures won't need to include getrlimit and setrlimit.
-> > 
-> > Therefore drop getrlimit and setrlimit syscalls from the generic syscall
-> > list unless __ARCH_WANT_SET_GET_RLIMIT is defined by the architecture's
-> > unistd.h prior to including asm-generic/unistd.h, and adjust all architectures
-> > using the generic syscall list to define it so that no in-tree architectures
-> > are affected.
-> > 
-> > Cc: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
-> > Cc: James Hogan <james.hogan-1AXoQHu6uovQT0dZR+AlfA@public.gmane.org>
-> > Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-> > Cc: linux-snps-arc-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
-> > Cc: Catalin Marinas <catalin.marinas-5wv7dgnIgG8@public.gmane.org>
-> > Cc: Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>
-> > Cc: linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
-> > Cc: Mark Salter <msalter-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-> > Cc: Aurelien Jacquiot <a-jacquiot-l0cyMroinI0@public.gmane.org>
-> > Cc: linux-c6x-dev-jPsnJVOj+W6hPH1hqNUYSQ@public.gmane.org
-> > Cc: Richard Kuo <rkuo-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>
-> > Cc: linux-hexagon-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-> > Cc: linux-metag-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-> > Cc: Jonas Bonn <jonas-A9uVI2HLR7kOP4wsBPIw7w@public.gmane.org>
-> > Cc: linux-ZwoEplunGu2h2975yA52AaxOck334EZe@public.gmane.org
-> > Cc: Chen Liqin <liqin.linux-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-> > Cc: Lennox Wu <lennox.wu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-> > Cc: Chris Metcalf <cmetcalf-VPRAkNaXOzVWk0Htik3J/w@public.gmane.org>
-> > Cc: Guan Xuetao <gxt-TG0Ac1+ktVePQbnJrJN+5g@public.gmane.org>
-> > Cc: Ley Foon Tan <lftan-EIB2kfCEclfQT0dZR+AlfA@public.gmane.org>
-> > Cc: nios2-dev-g9ZBwUv/Ih/yUk5EbOjzuce+I+R0W71w@public.gmane.org
-> > Cc: Yoshinori Sato <ysato-Rn4VEauK+AKRv+LV9MX5uooqe+aC9MnS@public.gmane.org>
-> > Cc: uclinux-h8-devel-5NWGOfrQmneRv+LV9MX5uooqe+aC9MnS@public.gmane.org
-> > Signed-off-by: Yury Norov <ynorov-M3mlKVOIwJVv6pq1l3V1OdBPR1lH4CV8@public.gmane.org>
-> > Acked-by: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
-> > Acked-by: Mark Salter <msalter-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org> [c6x]
-> > Acked-by: James Hogan <james.hogan-1AXoQHu6uovQT0dZR+AlfA@public.gmane.org> [metag]
-> > Acked-by: Ley Foon Tan <lftan-EIB2kfCEclfQT0dZR+AlfA@public.gmane.org> [nios2]
-> > Acked-by: Stafford Horne <shorne-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org> [openrisc]
-> > Acked-by: Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org> [arm64]
-> > Acked-by: Vineet Gupta <vgupta-HKixBCOQz3hWk0Htik3J/w@public.gmane.org> #arch/arc bits
-> > ---
-> >  arch/arc/include/uapi/asm/unistd.h       | 1 +
-> >  arch/arm64/include/uapi/asm/unistd.h     | 1 +
-> >  arch/c6x/include/uapi/asm/unistd.h       | 1 +
-> >  arch/h8300/include/uapi/asm/unistd.h     | 1 +
-> >  arch/hexagon/include/uapi/asm/unistd.h   | 1 +
-> >  arch/metag/include/uapi/asm/unistd.h     | 1 +
-> >  arch/nios2/include/uapi/asm/unistd.h     | 1 +
-> >  arch/openrisc/include/uapi/asm/unistd.h  | 1 +
-> >  arch/score/include/uapi/asm/unistd.h     | 1 +
-> >  arch/tile/include/uapi/asm/unistd.h      | 1 +
-> >  arch/unicore32/include/uapi/asm/unistd.h | 1 +
-> >  include/uapi/asm-generic/unistd.h        | 5 +++++
-> 
-> Don't forget to add __IGNORE_getrlimit and __IGNORE_setrlimit to
-> scripts/checksyscalls.sh, or you'll get warnings about missing syscalls.
-> 
-> Cheers
-> James
+On Wed, Jun 7, 2017 at 3:13 AM, Mark Rutland <mark.rutland@arm.com> wrote:
+>> > +RISC-V Hart-Level Interrupt Controller (HLIC)
+>> > +---------------------------------------------
+>> > +
+>> > +RISC-V cores include Control Status Registers (CSRs) which are local to each
+>> > +hart and can be read or written by software. Some of these CSRs are used to
+>> > +control local interrupts connected to the core.
+>> > +
+>> > +Typical examples of local interrupts on a RISC-V core include: software IPI
+>> > +interrupts, timer interrupts, and a link to the PLIC interrupt controller.
+>
+> So IIUC those interrupts are routed directly to the HLIC, and are (only)
+> controlled thought the HLIC?
 
-Hi James,
+Yes. You can have a local interrupt that goes directly to a specific
+core, not via the PLIC.
 
-Thanks for the hint.
+> Is the HLIC architecturally mandated? i.e. is this guaranteed to be
+> present on any RISC-V implementation?
 
-Yury
+It's in the RISC-V privileged specification. Therefore, if a riscv
+core can run linux it will have these CSRs.
+
+> Does the presence of the HLIC imply the presence of a PLIC (or
+> vice/versa)?
+
+No. SiFive implementations always have a PLIC, though.
+
+> Typically, the per-cpu and platform-wide parts of the
+> top-level interrupt controller are fairly intimately coupled.
+
+They are coupled if they both exist. The privileged specification does
+explicitly call out interrupts 9 and 11 in the HLIC for attaching the
+PLIC.
+
+> You'll need to allocate the "riscv" vendor prefix in
+> Documentation/devicetree/bindings/vendor-prefixes.txt
+
+@palmer: Can you add this?
+
+> What about the flags?
+
+What flags?
+
+> Are all HLIC interrupts edge triggered (or level triggered)?
+
+HLIC = level. PLIC = both.
+
+> We can probably replace most of these with a "...", as they're largely
+> irrelevany to this binding.
+
+Sure. I thought it would be nice to include a complete cpu example
+somewhere, though.
+
+>> > +RISC-V cores typically include a PLIC, which route interrupts from multiple
+>> > +devices to multiple hart contexts.  The PLIC is connected to the interrupt
+>> > +controller embedded in a RISC-V core via the interrupt-related CSRs.
+>
+> Do you mean that the PLIC is connected to the HLIC, or that the HLIC is
+> also managed in part through CSRs?
+
+Both. The HLIC is entirely manager through CSRs. The PLIC is managed
+through a memory mapped interface. The PLIC is attached to the HLIC.
+
+>> > +Required properties:
+>> > +- compatible : "riscv,plic0"
+>> > +- #address-cells : should be <0>
+>> > +- #interrupt-cells : should be <1>
+>
+> As with the HLIC, what about the flags?
+
+Still unsure what flags we're talking about.
+
+>> > +- riscv,ndev : Specifies the number of interrupts attached to the PLIC
+>
+> Why do we need to know this?
+>
+> I suspect this ia actually the number of interrupts implemented in the
+> PLIC, rather than the number of interrupts attached. i.e. the PLIC can
+> be implemented with a subset of the potential registers/bits. Is that
+> correct?
+
+You're in principle correct, although these are probably always the same.
+
+> If so, something like "riscv,num-interrupts" would be better, along with
+> a clearer description.
+
+Uhm. I suppose we can change this. However, it would requires changes
+to quite a number of riscv repositories. I believe this is also
+included in the riscv platform specification. A better description is
+easy, do we really need to change the key?
+
+
+>> > +- interrupts-extended : Specifies which contexts are connected to the PLIC
+>
+> That description doesn't sound right.
+>
+> I take it that these are the HLIC interrupts that the PLIC can raise?
+
+Yes.
+
+> You will need to be explicit about the order of interrupts in this
+> property. i.e. which interrupt is routed to which context?
+
+Yes. Order and position matter.
+
+> Is the interrupt at the HLIC well known? From the example I see that
+> here local interrupts 11 adn 9 are used. Is that mandated, or just the
+> case for this particular implementation?
+
+9 and 11 are in the privileged specification.
+
+> Also, please consider how you will handle the case when the Linux
+> logical CPU ID is not the same as the physical ID, and how you will
+> handle physical IDs being sparse.
+
+We already deal with this. If the interrupt is '-1', we skip it.
+That's done in plic.c:
+                if (parent.args[0] == -1) continue; // skip context holes
+
+>> > +       plic: interrupt-controller@c000000 {
+>> > +               #address-cells = <0>;
+>
+> This can go, given you don't have sub-nodes, nor a #size-cells property.
+
+The device-tree-specification seems to indicate that this is mandatory
+for an interrupt-controller. Or have I understood this wrongly? When
+you use interrupts-extended, doesn't it use the address-cells of the
+interrupt controller? We should add that size-cells = 0, though.
