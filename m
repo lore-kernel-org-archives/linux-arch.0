@@ -1,87 +1,94 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw0-f173.google.com ([209.85.161.173]:33457 "EHLO
-        mail-yw0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752158AbdFGSkC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 7 Jun 2017 14:40:02 -0400
-Received: by mail-yw0-f173.google.com with SMTP id 63so6452677ywr.0
-        for <linux-arch@vger.kernel.org>; Wed, 07 Jun 2017 11:40:01 -0700 (PDT)
+Received: from mail-by2nam01on0047.outbound.protection.outlook.com ([104.47.34.47]:64100
+        "EHLO NAM01-BY2-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1751690AbdFGSsY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 7 Jun 2017 14:48:24 -0400
+Date: Wed, 7 Jun 2017 21:48:09 +0300
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: Re: [PATCH 03/20] asm-generic: Drop getrlimit and setrlimit syscalls
+ from default list
+Message-ID: <20170607184809.e4hmsvewkrmigmww@yury-thinkpad>
+References: <20170604120009.342-1-ynorov@caviumnetworks.com>
+ <20170604120009.342-4-ynorov@caviumnetworks.com>
+ <20170605144406.GT6973@jhogan-linux.le.imgtec.org>
 MIME-Version: 1.0
-In-Reply-To: <20170607093523.GB29370@leverpostej>
-References: <20170523004107.536-1-palmer@dabbelt.com> <20170606230007.19101-1-palmer@dabbelt.com>
- <20170606230007.19101-4-palmer@dabbelt.com> <CAMuHMdXWH5fU8YKfR37D5SMi1GpSk75Bq-OcYmm5ZuHe+XK0PQ@mail.gmail.com>
- <20170607093523.GB29370@leverpostej>
-From: Wesley Terpstra <wesley@sifive.com>
-Date: Wed, 7 Jun 2017 11:39:50 -0700
-Message-ID: <CAMgXwTiE48KLCJe6TD6VCd5rYASyw0L+pYh8yfvGjhohAfo2dg@mail.gmail.com>
-Subject: Re: [PATCH 03/17] base: fix order of OF initialization
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20170605144406.GT6973@jhogan-linux.le.imgtec.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Rutland <mark.rutland@arm.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Palmer Dabbelt <palmer@dabbelt.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Olof Johansson <olof@lixom.net>, Albert Ou <albert@sifive.com>, patches@groups.riscv.org, Rob Herring <robh+dt@kernel.org>, Frank Rowand <frowand.list@gmail.com>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Message-ID: <20170607183950.uohWPvJcC0Z_ggRRZurTx7aCJtXsyALMRgW6wJhp1sE@z>
+To: James Hogan <james.hogan@imgtec.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andrew Pinski <pinskia@gmail.com>, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, Adam Borowski <kilobyte@angband.pl>, Chris Metcalf <cmetcalf@ezchip.com>, Steve Ellcey <sellcey@caviumnetworks.com>, Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, Ramana Radhakrishnan <ramana.gcc@googlemail.com>, Florian Weimer <fweimer@redhat.com>, Bamvor Zhangjian <bamvor.zhangjian@huawei.com>, Andreas Schwab <schwab@suse.de>, Chris Metcalf <cmetcalf@mellanox.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, schwidefsky@de.ibm.com, broonie@kernel.org, Joseph Myers <joseph@codesourcery.com>, christoph.muellner@theobroma-systems.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, davem@davemloft.net, zhouchengming1@huawei.com, linux-arch@vger.kernel.org, linux-snps-arc@lists.infradead.org, Will Deacon <will.deacon@arm.com>, Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <a-jacquiot@ti.com>, linux-c6x-dev@linux-c6x.org, Richard Kuo <rkuo@codeaurora.org>, linux-hexagon@vger.kernel.org, linux-metag@vger.kernel.org, Jonas Bonn <jonas@southpole.se>, linux@lists.openrisc.net, Chen Liqin <liqin.linux@gmail.com>, Lennox Wu <lennox.wu@gmail.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Ley Foon Tan <lftan@altera.com>, nios2-dev@lists.rocketboards.org, Yoshinori Sato <ysato@users.sourceforge.jp>, uclinux-h8-devel@lists.sourceforge.jp
+Message-ID: <20170607184809.dstnZnQuz9Gwd-PwkjAidZCZS05JIBSVqiF0qalRuRs@z>
 
-It was a while ago that I debugged this. I already reported this bug
-to Benjamin Herrenschmidt (now in CC), and I believe he has a patch of
-his own to fix the same issue.
+On Mon, Jun 05, 2017 at 03:44:06PM +0100, James Hogan wrote:
+> Hi Yury,
+> 
+> On Sun, Jun 04, 2017 at 02:59:52PM +0300, Yury Norov wrote:
+> > The newer prlimit64 syscall provides all the functionality provided by
+> > the getrlimit and setrlimit syscalls and adds the pid of target process,
+> > so future architectures won't need to include getrlimit and setrlimit.
+> > 
+> > Therefore drop getrlimit and setrlimit syscalls from the generic syscall
+> > list unless __ARCH_WANT_SET_GET_RLIMIT is defined by the architecture's
+> > unistd.h prior to including asm-generic/unistd.h, and adjust all architectures
+> > using the generic syscall list to define it so that no in-tree architectures
+> > are affected.
+> > 
+> > Cc: Arnd Bergmann <arnd@arndb.de>
+> > Cc: James Hogan <james.hogan@imgtec.com>
+> > Cc: linux-arch@vger.kernel.org
+> > Cc: linux-snps-arc@lists.infradead.org
+> > Cc: Catalin Marinas <catalin.marinas@arm.com>
+> > Cc: Will Deacon <will.deacon@arm.com>
+> > Cc: linux-arm-kernel@lists.infradead.org
+> > Cc: Mark Salter <msalter@redhat.com>
+> > Cc: Aurelien Jacquiot <a-jacquiot@ti.com>
+> > Cc: linux-c6x-dev@linux-c6x.org
+> > Cc: Richard Kuo <rkuo@codeaurora.org>
+> > Cc: linux-hexagon@vger.kernel.org
+> > Cc: linux-metag@vger.kernel.org
+> > Cc: Jonas Bonn <jonas@southpole.se>
+> > Cc: linux@lists.openrisc.net
+> > Cc: Chen Liqin <liqin.linux@gmail.com>
+> > Cc: Lennox Wu <lennox.wu@gmail.com>
+> > Cc: Chris Metcalf <cmetcalf@mellanox.com>
+> > Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>
+> > Cc: Ley Foon Tan <lftan@altera.com>
+> > Cc: nios2-dev@lists.rocketboards.org
+> > Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+> > Cc: uclinux-h8-devel@lists.sourceforge.jp
+> > Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
+> > Acked-by: Arnd Bergmann <arnd@arndb.de>
+> > Acked-by: Mark Salter <msalter@redhat.com> [c6x]
+> > Acked-by: James Hogan <james.hogan@imgtec.com> [metag]
+> > Acked-by: Ley Foon Tan <lftan@altera.com> [nios2]
+> > Acked-by: Stafford Horne <shorne@gmail.com> [openrisc]
+> > Acked-by: Will Deacon <will.deacon@arm.com> [arm64]
+> > Acked-by: Vineet Gupta <vgupta@synopsys.com> #arch/arc bits
+> > ---
+> >  arch/arc/include/uapi/asm/unistd.h       | 1 +
+> >  arch/arm64/include/uapi/asm/unistd.h     | 1 +
+> >  arch/c6x/include/uapi/asm/unistd.h       | 1 +
+> >  arch/h8300/include/uapi/asm/unistd.h     | 1 +
+> >  arch/hexagon/include/uapi/asm/unistd.h   | 1 +
+> >  arch/metag/include/uapi/asm/unistd.h     | 1 +
+> >  arch/nios2/include/uapi/asm/unistd.h     | 1 +
+> >  arch/openrisc/include/uapi/asm/unistd.h  | 1 +
+> >  arch/score/include/uapi/asm/unistd.h     | 1 +
+> >  arch/tile/include/uapi/asm/unistd.h      | 1 +
+> >  arch/unicore32/include/uapi/asm/unistd.h | 1 +
+> >  include/uapi/asm-generic/unistd.h        | 5 +++++
+> 
+> Don't forget to add __IGNORE_getrlimit and __IGNORE_setrlimit to
+> scripts/checksyscalls.sh, or you'll get warnings about missing syscalls.
+> 
+> Cheers
+> James
 
-As I understand it, of_core_init sets up the OF entries in
-/sys/firmware/devicetree. During platform bringup, when the system
-describes the cpu + cache hierarchy, it also makes an of_node symlink
-into that directory. However, if it doesn't exist yet, you get the
-warning.
+Hi James,
 
-# ls -l /sys/devices/system/cpu/cpu3/of_node
-lrwxrwxrwx    1 root     root             0 Jan  1 00:00
-/sys/devices/system/cpu/cpu3/of_node ->
-../../../../firmware/devicetree/base/cpus/cpu@3
+Thanks for the hint.
 
-On Wed, Jun 7, 2017 at 2:35 AM, Mark Rutland <mark.rutland@arm.com> wrote:
-> On Wed, Jun 07, 2017 at 09:07:20AM +0200, Geert Uytterhoeven wrote:
->> CC devicetree folks
->>
->> On Wed, Jun 7, 2017 at 12:59 AM, Palmer Dabbelt <palmer@dabbelt.com> wrote:
->> > From: "Wesley W. Terpstra" <wesley@sifive.com>
->> >
->> > This fixes: [    0.010000] cpu cpu0: Error -2 creating of_node link
->> > ... which you get for every CPU on all architectures with a OF cpu/ node.
->
-> I take it this means a /cpus node? Or the /cpus/cpu@* nodes?
->
-> I'm not seeing this on arm64 when booting v4.12-rc4 with DT, so clearly
-> this doesn't affect all such architectures.
->
-> What path are these errors happening in?
->
-> Thanks,
-> Mark.
->
->> >
->> > This affects riscv, nios, etc.
->> >
->> > Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
->> > ---
->> >  drivers/base/init.c | 2 +-
->> >  1 file changed, 1 insertion(+), 1 deletion(-)
->> >
->> > diff --git a/drivers/base/init.c b/drivers/base/init.c
->> > index 48c0e220acc0..0dcd17e561d0 100644
->> > --- a/drivers/base/init.c
->> > +++ b/drivers/base/init.c
->> > @@ -31,9 +31,9 @@ void __init driver_init(void)
->> >         /* These are also core pieces, but must come after the
->> >          * core core pieces.
->> >          */
->> > +       of_core_init();
->> >         platform_bus_init();
->> >         cpu_dev_init();
->> >         memory_dev_init();
->> >         container_dev_init();
->> > -       of_core_init();
->> >  }
->> > --
->> > 2.13.0
->> --
->> To unsubscribe from this list: send the line "unsubscribe devicetree" in
->> the body of a message to majordomo@vger.kernel.org
->> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+Yury
