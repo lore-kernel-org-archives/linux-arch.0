@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-sn1nam01on0088.outbound.protection.outlook.com ([104.47.32.88]:57216
+Received: from mail-sn1nam01on0070.outbound.protection.outlook.com ([104.47.32.70]:6208
         "EHLO NAM01-SN1-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751989AbdFGTSc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 7 Jun 2017 15:18:32 -0400
+        id S1752303AbdFGTR6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 7 Jun 2017 15:17:58 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v6 29/34] kvm: x86: svm: Support Secure Memory Encryption
- within KVM
-Date: Wed, 07 Jun 2017 14:18:15 -0500
-Message-ID: <20170607191815.28645.9054.stgit@tlendack-t1.amdoffice.net>
+Subject: [PATCH v6 26/34] iommu/amd: Allow the AMD IOMMU to work with memory
+ encryption
+Date: Wed, 07 Jun 2017 14:17:45 -0500
+Message-ID: <20170607191745.28645.81756.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
 References: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -18,270 +18,352 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Rik van Riel <riel@redhat.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170607191815.Ry8lHsN8D06bBvGWPto4b9lwx-hCUQKCY-EKjt3yXgE@z>
+Message-ID: <20170607191745.3_6IaKr44GbTXEarMBE8feOr0lMpFvT9c-recLsFHpU@z>
 
-Update the KVM support to work with SME. The VMCB has a number of fields
-where physical addresses are used and these addresses must contain the
-memory encryption mask in order to properly access the encrypted memory.
-Also, use the memory encryption mask when creating and using the nested
-page tables.
+The IOMMU is programmed with physical addresses for the various tables
+and buffers that are used to communicate between the device and the
+driver. When the driver allocates this memory it is encrypted. In order
+for the IOMMU to access the memory as encrypted the encryption mask needs
+to be included in these physical addresses during configuration.
+
+The PTE entries created by the IOMMU should also include the encryption
+mask so that when the device behind the IOMMU performs a DMA, the DMA
+will be performed to encrypted memory.
 
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/include/asm/kvm_host.h |    2 +-
- arch/x86/kvm/mmu.c              |   12 ++++++++----
- arch/x86/kvm/mmu.h              |    2 +-
- arch/x86/kvm/svm.c              |   35 ++++++++++++++++++-----------------
- arch/x86/kvm/vmx.c              |    3 ++-
- arch/x86/kvm/x86.c              |    3 ++-
- 6 files changed, 32 insertions(+), 25 deletions(-)
+ arch/x86/include/asm/mem_encrypt.h |    7 +++++++
+ arch/x86/mm/mem_encrypt.c          |   30 ++++++++++++++++++++++++++++++
+ drivers/iommu/amd_iommu.c          |   36 +++++++++++++++++++-----------------
+ drivers/iommu/amd_iommu_init.c     |   18 ++++++++++++------
+ drivers/iommu/amd_iommu_proto.h    |   10 ++++++++++
+ drivers/iommu/amd_iommu_types.h    |    2 +-
+ include/asm-generic/mem_encrypt.h  |    5 +++++
+ 7 files changed, 84 insertions(+), 24 deletions(-)
 
-diff --git a/arch/x86/include/asm/kvm_host.h b/arch/x86/include/asm/kvm_host.h
-index 695605e..6d1267f 100644
---- a/arch/x86/include/asm/kvm_host.h
-+++ b/arch/x86/include/asm/kvm_host.h
-@@ -1069,7 +1069,7 @@ struct kvm_arch_async_pf {
- void kvm_mmu_uninit_vm(struct kvm *kvm);
- void kvm_mmu_set_mask_ptes(u64 user_mask, u64 accessed_mask,
- 		u64 dirty_mask, u64 nx_mask, u64 x_mask, u64 p_mask,
--		u64 acc_track_mask);
-+		u64 acc_track_mask, u64 me_mask);
+diff --git a/arch/x86/include/asm/mem_encrypt.h b/arch/x86/include/asm/mem_encrypt.h
+index c7a2525..d86e544 100644
+--- a/arch/x86/include/asm/mem_encrypt.h
++++ b/arch/x86/include/asm/mem_encrypt.h
+@@ -31,6 +31,8 @@ void __init sme_early_decrypt(resource_size_t paddr,
  
- void kvm_mmu_reset_context(struct kvm_vcpu *vcpu);
- void kvm_mmu_slot_remove_write_access(struct kvm *kvm,
-diff --git a/arch/x86/kvm/mmu.c b/arch/x86/kvm/mmu.c
-index 5d3376f..892b7bd 100644
---- a/arch/x86/kvm/mmu.c
-+++ b/arch/x86/kvm/mmu.c
-@@ -107,7 +107,7 @@ enum {
- 	(((address) >> PT32_LEVEL_SHIFT(level)) & ((1 << PT32_LEVEL_BITS) - 1))
+ void __init sme_early_init(void);
  
++bool sme_iommu_supported(void);
++
+ /* Architecture __weak replacement functions */
+ void __init mem_encrypt_init(void);
  
--#define PT64_BASE_ADDR_MASK (((1ULL << 52) - 1) & ~(u64)(PAGE_SIZE-1))
-+#define PT64_BASE_ADDR_MASK __sme_clr((((1ULL << 52) - 1) & ~(u64)(PAGE_SIZE-1)))
- #define PT64_DIR_BASE_ADDR_MASK \
- 	(PT64_BASE_ADDR_MASK & ~((1ULL << (PAGE_SHIFT + PT64_LEVEL_BITS)) - 1))
- #define PT64_LVL_ADDR_MASK(level) \
-@@ -125,7 +125,7 @@ enum {
- 					    * PT32_LEVEL_BITS))) - 1))
- 
- #define PT64_PERM_MASK (PT_PRESENT_MASK | PT_WRITABLE_MASK | shadow_user_mask \
--			| shadow_x_mask | shadow_nx_mask)
-+			| shadow_x_mask | shadow_nx_mask | shadow_me_mask)
- 
- #define ACC_EXEC_MASK    1
- #define ACC_WRITE_MASK   PT_WRITABLE_MASK
-@@ -184,6 +184,7 @@ struct kvm_shadow_walk_iterator {
- static u64 __read_mostly shadow_dirty_mask;
- static u64 __read_mostly shadow_mmio_mask;
- static u64 __read_mostly shadow_present_mask;
-+static u64 __read_mostly shadow_me_mask;
- 
- /*
-  * The mask/value to distinguish a PTE that has been marked not-present for
-@@ -317,7 +318,7 @@ static bool check_mmio_spte(struct kvm_vcpu *vcpu, u64 spte)
- 
- void kvm_mmu_set_mask_ptes(u64 user_mask, u64 accessed_mask,
- 		u64 dirty_mask, u64 nx_mask, u64 x_mask, u64 p_mask,
--		u64 acc_track_mask)
-+		u64 acc_track_mask, u64 me_mask)
+@@ -62,6 +64,11 @@ static inline void __init sme_early_init(void)
  {
- 	if (acc_track_mask != 0)
- 		acc_track_mask |= SPTE_SPECIAL_MASK;
-@@ -330,6 +331,7 @@ void kvm_mmu_set_mask_ptes(u64 user_mask, u64 accessed_mask,
- 	shadow_present_mask = p_mask;
- 	shadow_acc_track_mask = acc_track_mask;
- 	WARN_ON(shadow_accessed_mask != 0 && shadow_acc_track_mask != 0);
-+	shadow_me_mask = me_mask;
- }
- EXPORT_SYMBOL_GPL(kvm_mmu_set_mask_ptes);
- 
-@@ -2398,7 +2400,8 @@ static void link_shadow_page(struct kvm_vcpu *vcpu, u64 *sptep,
- 	BUILD_BUG_ON(VMX_EPT_WRITABLE_MASK != PT_WRITABLE_MASK);
- 
- 	spte = __pa(sp->spt) | shadow_present_mask | PT_WRITABLE_MASK |
--	       shadow_user_mask | shadow_x_mask | shadow_accessed_mask;
-+	       shadow_user_mask | shadow_x_mask | shadow_accessed_mask |
-+	       shadow_me_mask;
- 
- 	mmu_spte_set(sptep, spte);
- 
-@@ -2700,6 +2703,7 @@ static int set_spte(struct kvm_vcpu *vcpu, u64 *sptep,
- 		pte_access &= ~ACC_WRITE_MASK;
- 
- 	spte |= (u64)pfn << PAGE_SHIFT;
-+	spte |= shadow_me_mask;
- 
- 	if (pte_access & ACC_WRITE_MASK) {
- 
-diff --git a/arch/x86/kvm/mmu.h b/arch/x86/kvm/mmu.h
-index 2797580..9694ff9 100644
---- a/arch/x86/kvm/mmu.h
-+++ b/arch/x86/kvm/mmu.h
-@@ -48,7 +48,7 @@
- 
- static inline u64 rsvd_bits(int s, int e)
- {
--	return ((1ULL << (e - s + 1)) - 1) << s;
-+	return __sme_clr(((1ULL << (e - s + 1)) - 1) << s);
  }
  
- void kvm_mmu_set_mmio_spte_mask(u64 mmio_mask);
-diff --git a/arch/x86/kvm/svm.c b/arch/x86/kvm/svm.c
-index ba9891a..d2e9fca 100644
---- a/arch/x86/kvm/svm.c
-+++ b/arch/x86/kvm/svm.c
-@@ -1138,9 +1138,9 @@ static void avic_init_vmcb(struct vcpu_svm *svm)
++static inline bool sme_iommu_supported(void)
++{
++	return true;
++}
++
+ #endif	/* CONFIG_AMD_MEM_ENCRYPT */
+ 
+ static inline bool sme_active(void)
+diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
+index 5d7c51d..018b58a 100644
+--- a/arch/x86/mm/mem_encrypt.c
++++ b/arch/x86/mm/mem_encrypt.c
+@@ -197,6 +197,36 @@ void __init sme_early_init(void)
+ 		protection_map[i] = pgprot_encrypted(protection_map[i]);
+ }
+ 
++bool sme_iommu_supported(void)
++{
++	struct cpuinfo_x86 *c = &boot_cpu_data;
++
++	if (!sme_me_mask || (c->x86 != 0x17))
++		return true;
++
++	/* For Fam17h, a specific level of support is required */
++	switch (c->microcode & 0xf000) {
++	case 0x0000:
++		return false;
++	case 0x1000:
++		switch (c->microcode & 0x0f00) {
++		case 0x0000:
++			return false;
++		case 0x0100:
++			if ((c->microcode & 0xff) < 0x26)
++				return false;
++			break;
++		case 0x0200:
++			if ((c->microcode & 0xff) < 0x05)
++				return false;
++			break;
++		}
++		break;
++	}
++
++	return true;
++}
++
+ /* Architecture __weak replacement functions */
+ void __init mem_encrypt_init(void)
  {
- 	struct vmcb *vmcb = svm->vmcb;
- 	struct kvm_arch *vm_data = &svm->vcpu.kvm->arch;
--	phys_addr_t bpa = page_to_phys(svm->avic_backing_page);
--	phys_addr_t lpa = page_to_phys(vm_data->avic_logical_id_table_page);
--	phys_addr_t ppa = page_to_phys(vm_data->avic_physical_id_table_page);
-+	phys_addr_t bpa = __sme_set(page_to_phys(svm->avic_backing_page));
-+	phys_addr_t lpa = __sme_set(page_to_phys(vm_data->avic_logical_id_table_page));
-+	phys_addr_t ppa = __sme_set(page_to_phys(vm_data->avic_physical_id_table_page));
+diff --git a/drivers/iommu/amd_iommu.c b/drivers/iommu/amd_iommu.c
+index 63cacf5..94eb130 100644
+--- a/drivers/iommu/amd_iommu.c
++++ b/drivers/iommu/amd_iommu.c
+@@ -544,7 +544,7 @@ static void dump_dte_entry(u16 devid)
  
- 	vmcb->control.avic_backing_page = bpa & AVIC_HPA_MASK;
- 	vmcb->control.avic_logical_id = lpa & AVIC_HPA_MASK;
-@@ -1203,8 +1203,8 @@ static void init_vmcb(struct vcpu_svm *svm)
- 		set_intercept(svm, INTERCEPT_MWAIT);
- 	}
- 
--	control->iopm_base_pa = iopm_base;
--	control->msrpm_base_pa = __pa(svm->msrpm);
-+	control->iopm_base_pa = __sme_set(iopm_base);
-+	control->msrpm_base_pa = __sme_set(__pa(svm->msrpm));
- 	control->int_ctl = V_INTR_MASKING_MASK;
- 
- 	init_seg(&save->es);
-@@ -1338,9 +1338,9 @@ static int avic_init_backing_page(struct kvm_vcpu *vcpu)
- 		return -EINVAL;
- 
- 	new_entry = READ_ONCE(*entry);
--	new_entry = (page_to_phys(svm->avic_backing_page) &
--		     AVIC_PHYSICAL_ID_ENTRY_BACKING_PAGE_MASK) |
--		     AVIC_PHYSICAL_ID_ENTRY_VALID_MASK;
-+	new_entry = __sme_set((page_to_phys(svm->avic_backing_page) &
-+			      AVIC_PHYSICAL_ID_ENTRY_BACKING_PAGE_MASK) |
-+			      AVIC_PHYSICAL_ID_ENTRY_VALID_MASK);
- 	WRITE_ONCE(*entry, new_entry);
- 
- 	svm->avic_physical_id_cache = entry;
-@@ -1608,7 +1608,7 @@ static struct kvm_vcpu *svm_create_vcpu(struct kvm *kvm, unsigned int id)
- 
- 	svm->vmcb = page_address(page);
- 	clear_page(svm->vmcb);
--	svm->vmcb_pa = page_to_pfn(page) << PAGE_SHIFT;
-+	svm->vmcb_pa = __sme_set(page_to_pfn(page) << PAGE_SHIFT);
- 	svm->asid_generation = 0;
- 	init_vmcb(svm);
- 
-@@ -1636,7 +1636,7 @@ static void svm_free_vcpu(struct kvm_vcpu *vcpu)
+ static void dump_command(unsigned long phys_addr)
  {
- 	struct vcpu_svm *svm = to_svm(vcpu);
+-	struct iommu_cmd *cmd = phys_to_virt(phys_addr);
++	struct iommu_cmd *cmd = iommu_phys_to_virt(phys_addr);
+ 	int i;
  
--	__free_page(pfn_to_page(svm->vmcb_pa >> PAGE_SHIFT));
-+	__free_page(pfn_to_page(__sme_clr(svm->vmcb_pa) >> PAGE_SHIFT));
- 	__free_pages(virt_to_page(svm->msrpm), MSRPM_ALLOC_ORDER);
- 	__free_page(virt_to_page(svm->nested.hsave));
- 	__free_pages(virt_to_page(svm->nested.msrpm), MSRPM_ALLOC_ORDER);
-@@ -2303,7 +2303,7 @@ static u64 nested_svm_get_tdp_pdptr(struct kvm_vcpu *vcpu, int index)
- 	u64 pdpte;
- 	int ret;
+ 	for (i = 0; i < 4; ++i)
+@@ -863,13 +863,15 @@ static void copy_cmd_to_buffer(struct amd_iommu *iommu,
+ 	writel(tail, iommu->mmio_base + MMIO_CMD_TAIL_OFFSET);
+ }
  
--	ret = kvm_vcpu_read_guest_page(vcpu, gpa_to_gfn(cr3), &pdpte,
-+	ret = kvm_vcpu_read_guest_page(vcpu, gpa_to_gfn(__sme_clr(cr3)), &pdpte,
- 				       offset_in_page(cr3) + index * 8, 8);
- 	if (ret)
+-static void build_completion_wait(struct iommu_cmd *cmd, u64 address)
++static void build_completion_wait(struct iommu_cmd *cmd, volatile u64 *sem)
+ {
++	u64 address = iommu_virt_to_phys((void *)sem);
++
+ 	WARN_ON(address & 0x7ULL);
+ 
+ 	memset(cmd, 0, sizeof(*cmd));
+-	cmd->data[0] = lower_32_bits(__pa(address)) | CMD_COMPL_WAIT_STORE_MASK;
+-	cmd->data[1] = upper_32_bits(__pa(address));
++	cmd->data[0] = lower_32_bits(address) | CMD_COMPL_WAIT_STORE_MASK;
++	cmd->data[1] = upper_32_bits(address);
+ 	cmd->data[2] = 1;
+ 	CMD_SET_TYPE(cmd, CMD_COMPL_WAIT);
+ }
+@@ -1033,7 +1035,7 @@ static int __iommu_queue_command_sync(struct amd_iommu *iommu,
+ 
+ 		iommu->cmd_sem = 0;
+ 
+-		build_completion_wait(&sync_cmd, (u64)&iommu->cmd_sem);
++		build_completion_wait(&sync_cmd, &iommu->cmd_sem);
+ 		copy_cmd_to_buffer(iommu, &sync_cmd, tail);
+ 
+ 		if ((ret = wait_on_sem(&iommu->cmd_sem)) != 0)
+@@ -1083,7 +1085,7 @@ static int iommu_completion_wait(struct amd_iommu *iommu)
  		return 0;
-@@ -2315,7 +2315,7 @@ static void nested_svm_set_tdp_cr3(struct kvm_vcpu *vcpu,
- {
- 	struct vcpu_svm *svm = to_svm(vcpu);
  
--	svm->vmcb->control.nested_cr3 = root;
-+	svm->vmcb->control.nested_cr3 = __sme_set(root);
- 	mark_dirty(svm->vmcb, VMCB_NPT);
- 	svm_flush_tlb(vcpu);
- }
-@@ -2803,7 +2803,7 @@ static bool nested_svm_vmrun_msrpm(struct vcpu_svm *svm)
- 		svm->nested.msrpm[p] = svm->msrpm[p] | value;
+ 
+-	build_completion_wait(&cmd, (u64)&iommu->cmd_sem);
++	build_completion_wait(&cmd, &iommu->cmd_sem);
+ 
+ 	spin_lock_irqsave(&iommu->lock, flags);
+ 
+@@ -1328,7 +1330,7 @@ static bool increase_address_space(struct protection_domain *domain,
+ 		return false;
+ 
+ 	*pte             = PM_LEVEL_PDE(domain->mode,
+-					virt_to_phys(domain->pt_root));
++					iommu_virt_to_phys(domain->pt_root));
+ 	domain->pt_root  = pte;
+ 	domain->mode    += 1;
+ 	domain->updated  = true;
+@@ -1365,7 +1367,7 @@ static u64 *alloc_pte(struct protection_domain *domain,
+ 			if (!page)
+ 				return NULL;
+ 
+-			__npte = PM_LEVEL_PDE(level, virt_to_phys(page));
++			__npte = PM_LEVEL_PDE(level, iommu_virt_to_phys(page));
+ 
+ 			/* pte could have been changed somewhere. */
+ 			if (cmpxchg64(pte, __pte, __npte) != __pte) {
+@@ -1481,10 +1483,10 @@ static int iommu_map_page(struct protection_domain *dom,
+ 			return -EBUSY;
+ 
+ 	if (count > 1) {
+-		__pte = PAGE_SIZE_PTE(phys_addr, page_size);
++		__pte = PAGE_SIZE_PTE(__sme_set(phys_addr), page_size);
+ 		__pte |= PM_LEVEL_ENC(7) | IOMMU_PTE_P | IOMMU_PTE_FC;
+ 	} else
+-		__pte = phys_addr | IOMMU_PTE_P | IOMMU_PTE_FC;
++		__pte = __sme_set(phys_addr) | IOMMU_PTE_P | IOMMU_PTE_FC;
+ 
+ 	if (prot & IOMMU_PROT_IR)
+ 		__pte |= IOMMU_PTE_IR;
+@@ -1700,7 +1702,7 @@ static void free_gcr3_tbl_level1(u64 *tbl)
+ 		if (!(tbl[i] & GCR3_VALID))
+ 			continue;
+ 
+-		ptr = __va(tbl[i] & PAGE_MASK);
++		ptr = iommu_phys_to_virt(tbl[i] & PAGE_MASK);
+ 
+ 		free_page((unsigned long)ptr);
  	}
+@@ -1715,7 +1717,7 @@ static void free_gcr3_tbl_level2(u64 *tbl)
+ 		if (!(tbl[i] & GCR3_VALID))
+ 			continue;
  
--	svm->vmcb->control.msrpm_base_pa = __pa(svm->nested.msrpm);
-+	svm->vmcb->control.msrpm_base_pa = __sme_set(__pa(svm->nested.msrpm));
+-		ptr = __va(tbl[i] & PAGE_MASK);
++		ptr = iommu_phys_to_virt(tbl[i] & PAGE_MASK);
  
- 	return true;
+ 		free_gcr3_tbl_level1(ptr);
+ 	}
+@@ -1807,7 +1809,7 @@ static void set_dte_entry(u16 devid, struct protection_domain *domain, bool ats)
+ 	u64 flags = 0;
+ 
+ 	if (domain->mode != PAGE_MODE_NONE)
+-		pte_root = virt_to_phys(domain->pt_root);
++		pte_root = iommu_virt_to_phys(domain->pt_root);
+ 
+ 	pte_root |= (domain->mode & DEV_ENTRY_MODE_MASK)
+ 		    << DEV_ENTRY_MODE_SHIFT;
+@@ -1819,7 +1821,7 @@ static void set_dte_entry(u16 devid, struct protection_domain *domain, bool ats)
+ 		flags |= DTE_FLAG_IOTLB;
+ 
+ 	if (domain->flags & PD_IOMMUV2_MASK) {
+-		u64 gcr3 = __pa(domain->gcr3_tbl);
++		u64 gcr3 = iommu_virt_to_phys(domain->gcr3_tbl);
+ 		u64 glx  = domain->glx;
+ 		u64 tmp;
+ 
+@@ -3470,10 +3472,10 @@ static u64 *__get_gcr3_pte(u64 *root, int level, int pasid, bool alloc)
+ 			if (root == NULL)
+ 				return NULL;
+ 
+-			*pte = __pa(root) | GCR3_VALID;
++			*pte = iommu_virt_to_phys(root) | GCR3_VALID;
+ 		}
+ 
+-		root = __va(*pte & PAGE_MASK);
++		root = iommu_phys_to_virt(*pte & PAGE_MASK);
+ 
+ 		level -= 1;
+ 	}
+@@ -3652,7 +3654,7 @@ static void set_dte_irq_entry(u16 devid, struct irq_remap_table *table)
+ 
+ 	dte	= amd_iommu_dev_table[devid].data[2];
+ 	dte	&= ~DTE_IRQ_PHYS_ADDR_MASK;
+-	dte	|= virt_to_phys(table->table);
++	dte	|= iommu_virt_to_phys(table->table);
+ 	dte	|= DTE_IRQ_REMAP_INTCTL;
+ 	dte	|= DTE_IRQ_TABLE_LEN;
+ 	dte	|= DTE_IRQ_REMAP_ENABLE;
+diff --git a/drivers/iommu/amd_iommu_init.c b/drivers/iommu/amd_iommu_init.c
+index 5a11328..2870a6b 100644
+--- a/drivers/iommu/amd_iommu_init.c
++++ b/drivers/iommu/amd_iommu_init.c
+@@ -29,6 +29,7 @@
+ #include <linux/export.h>
+ #include <linux/iommu.h>
+ #include <linux/kmemleak.h>
++#include <linux/mem_encrypt.h>
+ #include <asm/pci-direct.h>
+ #include <asm/iommu.h>
+ #include <asm/gart.h>
+@@ -346,7 +347,7 @@ static void iommu_set_device_table(struct amd_iommu *iommu)
+ 
+ 	BUG_ON(iommu->mmio_base == NULL);
+ 
+-	entry = virt_to_phys(amd_iommu_dev_table);
++	entry = iommu_virt_to_phys(amd_iommu_dev_table);
+ 	entry |= (dev_table_size >> 12) - 1;
+ 	memcpy_toio(iommu->mmio_base + MMIO_DEV_TABLE_OFFSET,
+ 			&entry, sizeof(entry));
+@@ -602,7 +603,7 @@ static void iommu_enable_command_buffer(struct amd_iommu *iommu)
+ 
+ 	BUG_ON(iommu->cmd_buf == NULL);
+ 
+-	entry = (u64)virt_to_phys(iommu->cmd_buf);
++	entry = iommu_virt_to_phys(iommu->cmd_buf);
+ 	entry |= MMIO_CMD_SIZE_512;
+ 
+ 	memcpy_toio(iommu->mmio_base + MMIO_CMD_BUF_OFFSET,
+@@ -631,7 +632,7 @@ static void iommu_enable_event_buffer(struct amd_iommu *iommu)
+ 
+ 	BUG_ON(iommu->evt_buf == NULL);
+ 
+-	entry = (u64)virt_to_phys(iommu->evt_buf) | EVT_LEN_MASK;
++	entry = iommu_virt_to_phys(iommu->evt_buf) | EVT_LEN_MASK;
+ 
+ 	memcpy_toio(iommu->mmio_base + MMIO_EVT_BUF_OFFSET,
+ 		    &entry, sizeof(entry));
+@@ -664,7 +665,7 @@ static void iommu_enable_ppr_log(struct amd_iommu *iommu)
+ 	if (iommu->ppr_log == NULL)
+ 		return;
+ 
+-	entry = (u64)virt_to_phys(iommu->ppr_log) | PPR_LOG_SIZE_512;
++	entry = iommu_virt_to_phys(iommu->ppr_log) | PPR_LOG_SIZE_512;
+ 
+ 	memcpy_toio(iommu->mmio_base + MMIO_PPR_LOG_OFFSET,
+ 		    &entry, sizeof(entry));
+@@ -744,10 +745,10 @@ static int iommu_init_ga_log(struct amd_iommu *iommu)
+ 	if (!iommu->ga_log_tail)
+ 		goto err_out;
+ 
+-	entry = (u64)virt_to_phys(iommu->ga_log) | GA_LOG_SIZE_512;
++	entry = iommu_virt_to_phys(iommu->ga_log) | GA_LOG_SIZE_512;
+ 	memcpy_toio(iommu->mmio_base + MMIO_GA_LOG_BASE_OFFSET,
+ 		    &entry, sizeof(entry));
+-	entry = ((u64)virt_to_phys(iommu->ga_log) & 0xFFFFFFFFFFFFFULL) & ~7ULL;
++	entry = (iommu_virt_to_phys(iommu->ga_log) & 0xFFFFFFFFFFFFFULL) & ~7ULL;
+ 	memcpy_toio(iommu->mmio_base + MMIO_GA_LOG_TAIL_OFFSET,
+ 		    &entry, sizeof(entry));
+ 	writel(0x00, iommu->mmio_base + MMIO_GA_HEAD_OFFSET);
+@@ -2552,6 +2553,11 @@ int __init amd_iommu_detect(void)
+ 	if (amd_iommu_disabled)
+ 		return -ENODEV;
+ 
++	if (!sme_iommu_supported()) {
++		pr_notice("AMD-Vi: IOMMU not supported when SME is active\n");
++		return -ENODEV;
++	}
++
+ 	ret = iommu_go_to_state(IOMMU_IVRS_DETECTED);
+ 	if (ret)
+ 		return ret;
+diff --git a/drivers/iommu/amd_iommu_proto.h b/drivers/iommu/amd_iommu_proto.h
+index 466260f..3f12fb2 100644
+--- a/drivers/iommu/amd_iommu_proto.h
++++ b/drivers/iommu/amd_iommu_proto.h
+@@ -87,4 +87,14 @@ static inline bool iommu_feature(struct amd_iommu *iommu, u64 f)
+ 	return !!(iommu->features & f);
  }
-@@ -4435,7 +4435,7 @@ static int svm_ir_list_add(struct vcpu_svm *svm, struct amd_iommu_pi_data *pi)
- 	pr_debug("SVM: %s: use GA mode for irq %u\n", __func__,
- 		 irq.vector);
- 	*svm = to_svm(vcpu);
--	vcpu_info->pi_desc_addr = page_to_phys((*svm)->avic_backing_page);
-+	vcpu_info->pi_desc_addr = __sme_set(page_to_phys((*svm)->avic_backing_page));
- 	vcpu_info->vector = irq.vector;
  
- 	return 0;
-@@ -4486,7 +4486,8 @@ static int svm_update_pi_irte(struct kvm *kvm, unsigned int host_irq,
- 			struct amd_iommu_pi_data pi;
++static inline u64 iommu_virt_to_phys(void *vaddr)
++{
++	return (u64)__sme_set(virt_to_phys(vaddr));
++}
++
++static inline void *iommu_phys_to_virt(unsigned long paddr)
++{
++	return phys_to_virt(__sme_clr(paddr));
++}
++
+ #endif /* _ASM_X86_AMD_IOMMU_PROTO_H  */
+diff --git a/drivers/iommu/amd_iommu_types.h b/drivers/iommu/amd_iommu_types.h
+index 4de8f41..3ce587d 100644
+--- a/drivers/iommu/amd_iommu_types.h
++++ b/drivers/iommu/amd_iommu_types.h
+@@ -343,7 +343,7 @@
  
- 			/* Try to enable guest_mode in IRTE */
--			pi.base = page_to_phys(svm->avic_backing_page) & AVIC_HPA_MASK;
-+			pi.base = __sme_set(page_to_phys(svm->avic_backing_page) &
-+					    AVIC_HPA_MASK);
- 			pi.ga_tag = AVIC_GATAG(kvm->arch.avic_vm_id,
- 						     svm->vcpu.vcpu_id);
- 			pi.is_guest_mode = true;
-@@ -4911,7 +4912,7 @@ static void svm_set_cr3(struct kvm_vcpu *vcpu, unsigned long root)
- {
- 	struct vcpu_svm *svm = to_svm(vcpu);
+ #define IOMMU_PAGE_MASK (((1ULL << 52) - 1) & ~0xfffULL)
+ #define IOMMU_PTE_PRESENT(pte) ((pte) & IOMMU_PTE_P)
+-#define IOMMU_PTE_PAGE(pte) (phys_to_virt((pte) & IOMMU_PAGE_MASK))
++#define IOMMU_PTE_PAGE(pte) (iommu_phys_to_virt((pte) & IOMMU_PAGE_MASK))
+ #define IOMMU_PTE_MODE(pte) (((pte) >> 9) & 0x07)
  
--	svm->vmcb->save.cr3 = root;
-+	svm->vmcb->save.cr3 = __sme_set(root);
- 	mark_dirty(svm->vmcb, VMCB_CR);
- 	svm_flush_tlb(vcpu);
+ #define IOMMU_PROT_MASK 0x03
+diff --git a/include/asm-generic/mem_encrypt.h b/include/asm-generic/mem_encrypt.h
+index fb02ff0..bbc49e1 100644
+--- a/include/asm-generic/mem_encrypt.h
++++ b/include/asm-generic/mem_encrypt.h
+@@ -27,6 +27,11 @@ static inline u64 sme_dma_mask(void)
+ 	return 0ULL;
  }
-@@ -4920,7 +4921,7 @@ static void set_tdp_cr3(struct kvm_vcpu *vcpu, unsigned long root)
- {
- 	struct vcpu_svm *svm = to_svm(vcpu);
  
--	svm->vmcb->control.nested_cr3 = root;
-+	svm->vmcb->control.nested_cr3 = __sme_set(root);
- 	mark_dirty(svm->vmcb, VMCB_NPT);
- 
- 	/* Also sync guest cr3 here in case we live migrate */
-diff --git a/arch/x86/kvm/vmx.c b/arch/x86/kvm/vmx.c
-index 9b4b5d6..dd3dd26 100644
---- a/arch/x86/kvm/vmx.c
-+++ b/arch/x86/kvm/vmx.c
-@@ -6443,7 +6443,8 @@ void vmx_enable_tdp(void)
- 		enable_ept_ad_bits ? VMX_EPT_DIRTY_BIT : 0ull,
- 		0ull, VMX_EPT_EXECUTABLE_MASK,
- 		cpu_has_vmx_ept_execute_only() ? 0ull : VMX_EPT_READABLE_MASK,
--		enable_ept_ad_bits ? 0ull : VMX_EPT_RWX_MASK);
-+		enable_ept_ad_bits ? 0ull : VMX_EPT_RWX_MASK,
-+		0ull);
- 
- 	ept_set_mmio_spte_mask();
- 	kvm_enable_tdp();
-diff --git a/arch/x86/kvm/x86.c b/arch/x86/kvm/x86.c
-index a2cd099..d232b98 100644
---- a/arch/x86/kvm/x86.c
-+++ b/arch/x86/kvm/x86.c
-@@ -66,6 +66,7 @@
- #include <asm/pvclock.h>
- #include <asm/div64.h>
- #include <asm/irq_remapping.h>
-+#include <asm/mem_encrypt.h>
- 
- #define CREATE_TRACE_POINTS
- #include "trace.h"
-@@ -6095,7 +6096,7 @@ int kvm_arch_init(void *opaque)
- 
- 	kvm_mmu_set_mask_ptes(PT_USER_MASK, PT_ACCESSED_MASK,
- 			PT_DIRTY_MASK, PT64_NX_MASK, 0,
--			PT_PRESENT_MASK, 0);
-+			PT_PRESENT_MASK, 0, sme_me_mask);
- 	kvm_timer_init();
- 
- 	perf_register_guest_info_callbacks(&kvm_guest_cbs);
++static inline bool sme_iommu_supported(void)
++{
++	return true;
++}
++
+ /*
+  * The __sme_set() and __sme_clr() macros are useful for adding or removing
+  * the encryption mask from a value (e.g. when dealing with pagetable
