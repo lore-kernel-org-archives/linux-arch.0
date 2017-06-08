@@ -1,68 +1,104 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:44444 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751475AbdFHJF4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 8 Jun 2017 05:05:56 -0400
-Date: Thu, 8 Jun 2017 10:05:08 +0100
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCH 03/17] base: fix order of OF initialization
-Message-ID: <20170608090507.GA5765@leverpostej>
-References: <20170523004107.536-1-palmer@dabbelt.com>
- <20170606230007.19101-1-palmer@dabbelt.com>
- <20170606230007.19101-4-palmer@dabbelt.com>
- <CAMuHMdXWH5fU8YKfR37D5SMi1GpSk75Bq-OcYmm5ZuHe+XK0PQ@mail.gmail.com>
- <20170607093523.GB29370@leverpostej>
- <CAMgXwTiE48KLCJe6TD6VCd5rYASyw0L+pYh8yfvGjhohAfo2dg@mail.gmail.com>
- <5938C957.2030005@gmail.com>
+Received: from mail-sn1nam01on0043.outbound.protection.outlook.com ([104.47.32.43]:39526
+        "EHLO NAM01-SN1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1751422AbdFHNnN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 8 Jun 2017 09:43:13 -0400
+Subject: Re: [PATCH v6 10/34] x86, x86/mm, x86/xen, olpc: Use __va() against
+ just the physical address in cr3
+References: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
+ <20170607191453.28645.92256.stgit@tlendack-t1.amdoffice.net>
+ <b15e8924-4069-b5fa-adb2-86c164b1dd36@oracle.com>
+From: Tom Lendacky <thomas.lendacky@amd.com>
+Message-ID: <4a7376fb-abfc-8edd-42b7-38de461ac65e@amd.com>
+Date: Thu, 8 Jun 2017 08:42:51 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <5938C957.2030005@gmail.com>
+In-Reply-To: <b15e8924-4069-b5fa-adb2-86c164b1dd36@oracle.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Frank Rowand <frowand.list@gmail.com>
-Cc: Wesley Terpstra <wesley@sifive.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Palmer Dabbelt <palmer@dabbelt.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Olof Johansson <olof@lixom.net>, Albert Ou <albert@sifive.com>, patches@groups.riscv.org, Rob Herring <robh+dt@kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Message-ID: <20170608090508.82KG56qUD8lqK9VcIXDMMHYTjMad4bP7bCJbOTtIyC0@z>
+To: Boris Ostrovsky <boris.ostrovsky@oracle.com>, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
+Cc: Rik van Riel <riel@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, xen-devel <xen-devel@lists.xen.org>
+Message-ID: <20170608134251.uSVuO0qA-rMBHK6vdnV5C6BcdTJUdHs_Eh7NizwC-4w@z>
 
-On Wed, Jun 07, 2017 at 08:49:43PM -0700, Frank Rowand wrote:
-> On 06/07/17 11:39, Wesley Terpstra wrote:
-> > It was a while ago that I debugged this. I already reported this bug
-> > to Benjamin Herrenschmidt (now in CC), and I believe he has a patch of
-> > his own to fix the same issue.
-> > 
-> > As I understand it, of_core_init sets up the OF entries in
-> > /sys/firmware/devicetree. During platform bringup, when the system
-> > describes the cpu + cache hierarchy, it also makes an of_node symlink
-> > into that directory. However, if it doesn't exist yet, you get the
-> > warning.
-> > 
-> > # ls -l /sys/devices/system/cpu/cpu3/of_node
-> > lrwxrwxrwx    1 root     root             0 Jan  1 00:00
-> > /sys/devices/system/cpu/cpu3/of_node ->
-> > ../../../../firmware/devicetree/base/cpus/cpu@3
-> > 
-> > On Wed, Jun 7, 2017 at 2:35 AM, Mark Rutland <mark.rutland@arm.com> wrote:
-> >> On Wed, Jun 07, 2017 at 09:07:20AM +0200, Geert Uytterhoeven wrote:
-> >>> CC devicetree folks
-> >>>
-> >>> On Wed, Jun 7, 2017 at 12:59 AM, Palmer Dabbelt <palmer@dabbelt.com> wrote:
-> >>>> From: "Wesley W. Terpstra" <wesley@sifive.com>
-> >>>>
-> >>>> This fixes: [    0.010000] cpu cpu0: Error -2 creating of_node link
-> >>>> ... which you get for every CPU on all architectures with a OF cpu/ node.
-> >>
-> >> I take it this means a /cpus node? Or the /cpus/cpu@* nodes?
-> >>
-> >> I'm not seeing this on arm64 when booting v4.12-rc4 with DT, so clearly
-> >> this doesn't affect all such architectures.
-> >>
-> >> What path are these errors happening in?
+On 6/7/2017 5:06 PM, Boris Ostrovsky wrote:
+> On 06/07/2017 03:14 PM, Tom Lendacky wrote:
+>> The cr3 register entry can contain the SME encryption bit that indicates
+>> the PGD is encrypted.  The encryption bit should not be used when creating
+>> a virtual address for the PGD table.
+>>
+>> Create a new function, read_cr3_pa(), that will extract the physical
+>> address from the cr3 register. This function is then used where a virtual
+>> address of the PGD needs to be created/used from the cr3 register.
+>>
+>> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+>> ---
+>>   arch/x86/include/asm/special_insns.h |    9 +++++++++
+>>   arch/x86/kernel/head64.c             |    2 +-
+>>   arch/x86/mm/fault.c                  |   10 +++++-----
+>>   arch/x86/mm/ioremap.c                |    2 +-
+>>   arch/x86/platform/olpc/olpc-xo1-pm.c |    2 +-
+>>   arch/x86/power/hibernate_64.c        |    2 +-
+>>   arch/x86/xen/mmu_pv.c                |    6 +++---
+>>   7 files changed, 21 insertions(+), 12 deletions(-)
+>>
+
+...
+
+>> diff --git a/arch/x86/xen/mmu_pv.c b/arch/x86/xen/mmu_pv.c
+>> index 1f386d7..2dc5243 100644
+>> --- a/arch/x86/xen/mmu_pv.c
+>> +++ b/arch/x86/xen/mmu_pv.c
+>> @@ -2022,7 +2022,7 @@ static phys_addr_t __init xen_early_virt_to_phys(unsigned long vaddr)
+>>   	pmd_t pmd;
+>>   	pte_t pte;
+>>   
+>> -	pa = read_cr3();
+>> +	pa = read_cr3_pa();
+>>   	pgd = native_make_pgd(xen_read_phys_ulong(pa + pgd_index(vaddr) *
+>>   						       sizeof(pgd)));
+>>   	if (!pgd_present(pgd))
+>> @@ -2102,7 +2102,7 @@ void __init xen_relocate_p2m(void)
+>>   	pt_phys = pmd_phys + PFN_PHYS(n_pmd);
+>>   	p2m_pfn = PFN_DOWN(pt_phys) + n_pt;
+>>   
+>> -	pgd = __va(read_cr3());
+>> +	pgd = __va(read_cr3_pa());
+>>   	new_p2m = (unsigned long *)(2 * PGDIR_SIZE);
+>>   	idx_p4d = 0;
+>>   	save_pud = n_pud;
+>> @@ -2209,7 +2209,7 @@ static void __init xen_write_cr3_init(unsigned long cr3)
+>>   {
+>>   	unsigned long pfn = PFN_DOWN(__pa(swapper_pg_dir));
+>>   
+>> -	BUG_ON(read_cr3() != __pa(initial_page_table));
+>> +	BUG_ON(read_cr3_pa() != __pa(initial_page_table));
+>>   	BUG_ON(cr3 != __pa(swapper_pg_dir));
+>>   
+>>   	/*
 > 
-> On the surface, the patch looks reasonable.  But it is not obvious to me why
-> the error message is occurring.  I would like to understand the cause before
-> saying the patch is good.
 > 
-> What kernel version is showing the error?  For a specific architecture
-> (the patch lists 'riscv, nios, etc'), which config and device tree source?
+> (Please copy Xen maintainers when modifying xen-related files.)
+
+Sorry about that, missed adding the Xen maintainers when I added this
+change.
+
 > 
-> And again, what is the calling path?
+> Given that page tables for Xen PV guests are controlled by the
+> hypervisor I don't think this change (although harmless) is necessary.
+
+I can back this change out if the Xen maintainers think that's best.
+
+> What may be needed is making sure X86_FEATURE_SME is not set for PV guests.
+
+And that may be something that Xen will need to control through either
+CPUID or MSR support for the PV guests.
+
+Thanks,
+Tom
+
+> 
+> -boris
+> 
