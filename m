@@ -1,104 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-sn1nam01on0043.outbound.protection.outlook.com ([104.47.32.43]:39526
-        "EHLO NAM01-SN1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751422AbdFHNnN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 8 Jun 2017 09:43:13 -0400
-Subject: Re: [PATCH v6 10/34] x86, x86/mm, x86/xen, olpc: Use __va() against
- just the physical address in cr3
-References: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
- <20170607191453.28645.92256.stgit@tlendack-t1.amdoffice.net>
- <b15e8924-4069-b5fa-adb2-86c164b1dd36@oracle.com>
-From: Tom Lendacky <thomas.lendacky@amd.com>
-Message-ID: <4a7376fb-abfc-8edd-42b7-38de461ac65e@amd.com>
-Date: Thu, 8 Jun 2017 08:42:51 -0500
+Received: from mail-wm0-f44.google.com ([74.125.82.44]:35964 "EHLO
+        mail-wm0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751573AbdFHOAj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 8 Jun 2017 10:00:39 -0400
+Received: by mail-wm0-f44.google.com with SMTP id 7so138599649wmo.1
+        for <linux-arch@vger.kernel.org>; Thu, 08 Jun 2017 07:00:34 -0700 (PDT)
+Date: Thu, 8 Jun 2017 15:00:31 +0100
+From: Matt Fleming <matt@codeblueprint.co.uk>
+Subject: Re: [PATCHv7 03/14] x86/boot/efi: Cleanup initialization of GDT
+ entries
+Message-ID: <20170608140031.GB3220@codeblueprint.co.uk>
+References: <20170606113133.22974-1-kirill.shutemov@linux.intel.com>
+ <20170606113133.22974-4-kirill.shutemov@linux.intel.com>
 MIME-Version: 1.0
-In-Reply-To: <b15e8924-4069-b5fa-adb2-86c164b1dd36@oracle.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20170606113133.22974-4-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Boris Ostrovsky <boris.ostrovsky@oracle.com>, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
-Cc: Rik van Riel <riel@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, xen-devel <xen-devel@lists.xen.org>
-Message-ID: <20170608134251.uSVuO0qA-rMBHK6vdnV5C6BcdTJUdHs_Eh7NizwC-4w@z>
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+Message-ID: <20170608140031.5huKxRz4xFwAvInMuW4kiMd57m66e8usfs_5SCNe1x0@z>
 
-On 6/7/2017 5:06 PM, Boris Ostrovsky wrote:
-> On 06/07/2017 03:14 PM, Tom Lendacky wrote:
->> The cr3 register entry can contain the SME encryption bit that indicates
->> the PGD is encrypted.  The encryption bit should not be used when creating
->> a virtual address for the PGD table.
->>
->> Create a new function, read_cr3_pa(), that will extract the physical
->> address from the cr3 register. This function is then used where a virtual
->> address of the PGD needs to be created/used from the cr3 register.
->>
->> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
->> ---
->>   arch/x86/include/asm/special_insns.h |    9 +++++++++
->>   arch/x86/kernel/head64.c             |    2 +-
->>   arch/x86/mm/fault.c                  |   10 +++++-----
->>   arch/x86/mm/ioremap.c                |    2 +-
->>   arch/x86/platform/olpc/olpc-xo1-pm.c |    2 +-
->>   arch/x86/power/hibernate_64.c        |    2 +-
->>   arch/x86/xen/mmu_pv.c                |    6 +++---
->>   7 files changed, 21 insertions(+), 12 deletions(-)
->>
-
-...
-
->> diff --git a/arch/x86/xen/mmu_pv.c b/arch/x86/xen/mmu_pv.c
->> index 1f386d7..2dc5243 100644
->> --- a/arch/x86/xen/mmu_pv.c
->> +++ b/arch/x86/xen/mmu_pv.c
->> @@ -2022,7 +2022,7 @@ static phys_addr_t __init xen_early_virt_to_phys(unsigned long vaddr)
->>   	pmd_t pmd;
->>   	pte_t pte;
->>   
->> -	pa = read_cr3();
->> +	pa = read_cr3_pa();
->>   	pgd = native_make_pgd(xen_read_phys_ulong(pa + pgd_index(vaddr) *
->>   						       sizeof(pgd)));
->>   	if (!pgd_present(pgd))
->> @@ -2102,7 +2102,7 @@ void __init xen_relocate_p2m(void)
->>   	pt_phys = pmd_phys + PFN_PHYS(n_pmd);
->>   	p2m_pfn = PFN_DOWN(pt_phys) + n_pt;
->>   
->> -	pgd = __va(read_cr3());
->> +	pgd = __va(read_cr3_pa());
->>   	new_p2m = (unsigned long *)(2 * PGDIR_SIZE);
->>   	idx_p4d = 0;
->>   	save_pud = n_pud;
->> @@ -2209,7 +2209,7 @@ static void __init xen_write_cr3_init(unsigned long cr3)
->>   {
->>   	unsigned long pfn = PFN_DOWN(__pa(swapper_pg_dir));
->>   
->> -	BUG_ON(read_cr3() != __pa(initial_page_table));
->> +	BUG_ON(read_cr3_pa() != __pa(initial_page_table));
->>   	BUG_ON(cr3 != __pa(swapper_pg_dir));
->>   
->>   	/*
+On Tue, 06 Jun, at 02:31:22PM, Kirill A. Shutemov wrote:
+> This is preparation for following patches without changing semantics of the
+> code.
 > 
-> 
-> (Please copy Xen maintainers when modifying xen-related files.)
+> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+> Cc: Matt Fleming <matt@codeblueprint.co.uk>
+> ---
+>  arch/x86/boot/compressed/eboot.c | 39 +++++++++++++++++++++------------------
+>  1 file changed, 21 insertions(+), 18 deletions(-)
 
-Sorry about that, missed adding the Xen maintainers when I added this
-change.
-
-> 
-> Given that page tables for Xen PV guests are controlled by the
-> hypervisor I don't think this change (although harmless) is necessary.
-
-I can back this change out if the Xen maintainers think that's best.
-
-> What may be needed is making sure X86_FEATURE_SME is not set for PV guests.
-
-And that may be something that Xen will need to control through either
-CPUID or MSR support for the PV guests.
-
-Thanks,
-Tom
-
-> 
-> -boris
-> 
+Reviewed-by: Matt Fleming <matt@codeblueprint.co.uk>
