@@ -1,88 +1,119 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn3nam01on0066.outbound.protection.outlook.com ([104.47.33.66]:17056
-        "EHLO NAM01-BN3-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752422AbdFHQPA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 8 Jun 2017 12:15:00 -0400
-Subject: Re: [PATCH v6 00/34] x86: Secure Memory Encryption (AMD)
-References: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
- <CAOcCaLYWoOu0c-Fkee-=wegNqkzUp9pLFLmaFrXuhiXRnUZ3Xw@mail.gmail.com>
-From: Tom Lendacky <thomas.lendacky@amd.com>
-Message-ID: <2dd424fe-0af1-d82f-b608-271ea5e1f62b@amd.com>
-Date: Thu, 8 Jun 2017 11:14:38 -0500
+Received: from mx1.redhat.com ([209.132.183.28]:42930 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1750788AbdFHStT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 8 Jun 2017 14:49:19 -0400
+Subject: Re: [PATCH v5 0/9] locking/rwsem: Enable reader optimistic spinning
+References: <1496338747-20398-1-git-send-email-longman@redhat.com>
+From: Waiman Long <longman@redhat.com>
+Message-ID: <df455d4a-471d-1ddb-fec1-aeefbbc1c62f@redhat.com>
+Date: Thu, 8 Jun 2017 14:49:17 -0400
 MIME-Version: 1.0
-In-Reply-To: <CAOcCaLYWoOu0c-Fkee-=wegNqkzUp9pLFLmaFrXuhiXRnUZ3Xw@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <1496338747-20398-1-git-send-email-longman@redhat.com>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Sarnie <commendsarnex@gmail.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Ingo Molnar <mingo@redhat.com>, "Michael S. Tsirkin" <mst@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Borislav Petkov <bp@alien8.de>, Paolo Bonzini <pbonzini@redhat.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170608161438.Gb5g2ncLUkuVaKizDkxgCskifwo63XWjT7FisprdHJ8@z>
+To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>
+Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, Dave Chinner <david@fromorbit.com>
+Message-ID: <20170608184917.83kd9t7cyHg_tUGotzE9FFbCTYd7bJ4U4rO7m7l1DW8@z>
 
-On 6/7/2017 9:40 PM, Nick Sarnie wrote:
-> On Wed, Jun 7, 2017 at 3:13 PM, Tom Lendacky <thomas.lendacky@amd.com> wrote:
->> This patch series provides support for AMD's new Secure Memory Encryption (SME)
->> feature.
->>
->> SME can be used to mark individual pages of memory as encrypted through the
->> page tables. A page of memory that is marked encrypted will be automatically
->> decrypted when read from DRAM and will be automatically encrypted when
->> written to DRAM. Details on SME can found in the links below.
->>
->> The SME feature is identified through a CPUID function and enabled through
->> the SYSCFG MSR. Once enabled, page table entries will determine how the
->> memory is accessed. If a page table entry has the memory encryption mask set,
->> then that memory will be accessed as encrypted memory. The memory encryption
->> mask (as well as other related information) is determined from settings
->> returned through the same CPUID function that identifies the presence of the
->> feature.
->>
->> The approach that this patch series takes is to encrypt everything possible
->> starting early in the boot where the kernel is encrypted. Using the page
->> table macros the encryption mask can be incorporated into all page table
->> entries and page allocations. By updating the protection map, userspace
->> allocations are also marked encrypted. Certain data must be accounted for
->> as having been placed in memory before SME was enabled (EFI, initrd, etc.)
->> and accessed accordingly.
->>
->> This patch series is a pre-cursor to another AMD processor feature called
->> Secure Encrypted Virtualization (SEV). The support for SEV will build upon
->> the SME support and will be submitted later. Details on SEV can be found
->> in the links below.
->>
->> The following links provide additional detail:
->>
->> AMD Memory Encryption whitepaper:
->>     http://amd-dev.wpengine.netdna-cdn.com/wordpress/media/2013/12/AMD_Memory_Encryption_Whitepaper_v7-Public.pdf
->>
->> AMD64 Architecture Programmer's Manual:
->>     http://support.amd.com/TechDocs/24593.pdf
->>     SME is section 7.10
->>     SEV is section 15.34
->>
->> ---
->>
+Hi,
 
-...
+Got the following tip-bit about this patch performance impact.
 
-> 
-> 
-> Hi Tom,
-> 
-> Thanks for your work on this. This may be a stupid question, but is
-> using bounce buffers for the GPU(s) expected to reduce performance in
-> any/a noticeable way? I'm hitting another issue which I've already
-> sent mail about so I can't test it for myself at the moment,
+Cheers,
+Longman
 
-That all depends on the workload, how much DMA is being performed, etc.
-But it is extra overhead to use bounce buffers.
+----------------------------------------------------
+
+Greeting,
+
+FYI, we noticed a 125.4% improvement of will-it-scale.per_thread_ops due to commit:
+
+
+commit: a150752454e4aea37a44d7eb5baf5a538bcad6fc ("locking/rwsem: Enable readers spinning on writer")
+url: https://github.com/0day-ci/linux/commits/Waiman-Long/locking-rwsem-Enable-reader-optimistic-spinning/20170602-071830
+
+
+in testcase: will-it-scale
+on test machine: 8 threads Ivy Bridge with 16G memory
+with following parameters:
+
+	nr_task: 100%
+	mode: thread
+	test: malloc1
+	cpufreq_governor: performance
+
+test-description: Will It Scale takes a testcase and runs it from 1 through to n parallel copies to see if the testcase will scale. It builds both a process and threads based test in order to see any differences between the two.
+test-url: https://github.com/antonblanchard/will-it-scale
+
+
+Details are as below:
+-------------------------------------------------------------------------------------------------->
+
+
+To reproduce:
+
+        git clone https://github.com/01org/lkp-tests.git
+        cd lkp-tests
+        bin/lkp install job.yaml  # job file is attached in this email
+        bin/lkp run     job.yaml
+
+testcase/path_params/tbox_group/run: will-it-scale/100%-thread-malloc1-performance/lkp-ivb-d01
+
+f25a7e717bfb87ab  a150752454e4aea37a44d7eb5b  
+----------------  --------------------------  
+         %stddev      change         %stddev
+             \          |                \  
+      6092 ± 12%       125%      13734        will-it-scale.per_thread_ops
+  14641877 ± 12%       126%   33029197        will-it-scale.time.minor_page_faults
+     15.03 ± 13%        57%      23.66 ± 12%  will-it-scale.time.user_time
+  40731914 ± 12%        46%   59414926 ±  5%  will-it-scale.time.voluntary_context_switches
+     11954 ± 18%        28%      15275 ± 11%  will-it-scale.time.maximum_resident_set_size
+       142              22%        174        will-it-scale.time.percent_of_cpu_this_job_got
+       414              21%        502        will-it-scale.time.system_time
+    539104             -78%     117329 ± 13%  will-it-scale.time.involuntary_context_switches
+  31904937 ± 13%        55%   49519854 ±  5%  interrupts.CAL:Function_call_interrupts
+    129303 ± 10%        48%     191426 ±  4%  vmstat.system.in
+    297417 ± 11%        42%     421902 ±  4%  vmstat.system.cs
+     25.73                       26.28        turbostat.CorWatt
+     31.60                       32.21        turbostat.PkgWatt
+     22.67              19%      27.03        turbostat.%Busy
+       837              20%       1006        turbostat.Avg_MHz
+      1271 ± 36%      6e+04      56891 ± 74%  latency_stats.max.call_rwsem_down_read_failed.__do_page_fault.do_page_fault.page_fault
+      2249 ± 19%      5e+04      52972 ± 86%  latency_stats.max.call_rwsem_down_write_failed_killable.vm_mmap_pgoff.SyS_mmap_pgoff.SyS_mmap.entry_SYSCALL_64_fastpath
+      2264 ± 19%      5e+04      52187 ± 88%  latency_stats.max.call_rwsem_down_write_failed_killable.vm_munmap.SyS_munmap.entry_SYSCALL_64_fastpath
+      9934 ± 25%      5e+04      57497 ± 75%  latency_stats.max.max
+  14956191 ± 12%       123%   33343207        perf-stat.page-faults
+  14956191 ± 12%       123%   33343206        perf-stat.minor-faults
+ 2.266e+11 ±  4%        46%  3.318e+11        perf-stat.branch-instructions
+ 3.231e+11 ±  3%        39%  4.485e+11        perf-stat.dTLB-loads
+ 1.155e+12 ±  3%        38%  1.593e+12        perf-stat.instructions
+      0.02 ± 11%       103%       0.05 ±  6%  perf-stat.dTLB-store-miss-rate%
+  86305241 ±  8%        74%  1.502e+08 ±  6%  perf-stat.dTLB-store-misses
+      0.56              14%       0.64        perf-stat.ipc
+ 2.057e+12              21%  2.481e+12        perf-stat.cpu-cycles
+ 3.674e+11 ±  3%       -15%  3.136e+11        perf-stat.dTLB-stores
+      0.76 ±  3%       -32%       0.51 ±  4%  perf-stat.branch-miss-rate%
+      1869 ±  5%        30%       2432 ±  8%  perf-stat.instructions-per-iTLB-miss
+ 6.014e+10 ±  8%       -48%  3.146e+10 ±  5%  perf-stat.cache-references
+      0.29 ±  6%       -17%       0.24 ± 12%  perf-stat.dTLB-load-miss-rate%
+  90408163 ± 11%        42%  1.283e+08 ±  4%  perf-stat.context-switches
+    182383 ± 13%       -55%      82982 ± 49%  perf-stat.cpu-migrations
+
+
+
+
+  [*] bisect-good sample
+  [O] bisect-bad  sample
+
+
+Disclaimer:
+Results have been estimated based on internal Intel analysis and are provided
+for informational purposes only. Any difference in system hardware or software
+design or configuration may affect actual performance.
+
 
 Thanks,
-Tom
-
-> 
-> Thanks,
-> Sarnex
-> 
+Xiaolong
