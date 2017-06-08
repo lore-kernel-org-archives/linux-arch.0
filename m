@@ -1,38 +1,88 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f65.google.com ([209.85.218.65]:33388 "EHLO
-        mail-oi0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750788AbdFHOg7 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 8 Jun 2017 10:36:59 -0400
+Received: from mail-bn3nam01on0066.outbound.protection.outlook.com ([104.47.33.66]:17056
+        "EHLO NAM01-BN3-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1752422AbdFHQPA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 8 Jun 2017 12:15:00 -0400
+Subject: Re: [PATCH v6 00/34] x86: Secure Memory Encryption (AMD)
+References: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
+ <CAOcCaLYWoOu0c-Fkee-=wegNqkzUp9pLFLmaFrXuhiXRnUZ3Xw@mail.gmail.com>
+From: Tom Lendacky <thomas.lendacky@amd.com>
+Message-ID: <2dd424fe-0af1-d82f-b608-271ea5e1f62b@amd.com>
+Date: Thu, 8 Jun 2017 11:14:38 -0500
 MIME-Version: 1.0
-In-Reply-To: <20170608.100222.1573468093040905016.davem@davemloft.net>
-References: <877f0z6oig.fsf@concordia.ellerman.id.au> <28d6c874-4653-b15d-39b7-57a032abc9c6@oracle.com>
- <CAK8P3a1WfU9V1k2r=TfJSVRTymuD8n2hkJDr6u1KcmC_scAZMA@mail.gmail.com> <20170608.100222.1573468093040905016.davem@davemloft.net>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Thu, 8 Jun 2017 16:36:58 +0200
-Message-ID: <CAK8P3a2JDEQ+KjajVUhFbbfHmM+8AdkEzbJwretar78PsfOAKA@mail.gmail.com>
-Subject: Re: CPU_BIG_ENDIAN in generic code
-Content-Type: text/plain; charset="UTF-8"
+In-Reply-To: <CAOcCaLYWoOu0c-Fkee-=wegNqkzUp9pLFLmaFrXuhiXRnUZ3Xw@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
-Cc: Babu Moger <babu.moger@oracle.com>, Michael Ellerman <mpe@ellerman.id.au>, Geert Uytterhoeven <geert@linux-m68k.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, sparclinux <sparclinux@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, devicetree@vger.kernel.org, linux-serial@vger.kernel.org
-Message-ID: <20170608143658.yfuHTSwhjkODcuO_-8iH_hzw9WwJdJuUh98VlEsWTUA@z>
+To: Nick Sarnie <commendsarnex@gmail.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Ingo Molnar <mingo@redhat.com>, "Michael S. Tsirkin" <mst@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Borislav Petkov <bp@alien8.de>, Paolo Bonzini <pbonzini@redhat.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20170608161438.Gb5g2ncLUkuVaKizDkxgCskifwo63XWjT7FisprdHJ8@z>
 
-On Thu, Jun 8, 2017 at 4:02 PM, David Miller <davem@davemloft.net> wrote:
-> From: Arnd Bergmann <arnd@arndb.de>
-> Date: Thu, 8 Jun 2017 10:01:59 +0200
->
->> I would also suggest adding a sanity check like
->
-> Hmm, but this will kill the build for non-fixed endian architectures
-> won't it?
+On 6/7/2017 9:40 PM, Nick Sarnie wrote:
+> On Wed, Jun 7, 2017 at 3:13 PM, Tom Lendacky <thomas.lendacky@amd.com> wrote:
+>> This patch series provides support for AMD's new Secure Memory Encryption (SME)
+>> feature.
+>>
+>> SME can be used to mark individual pages of memory as encrypted through the
+>> page tables. A page of memory that is marked encrypted will be automatically
+>> decrypted when read from DRAM and will be automatically encrypted when
+>> written to DRAM. Details on SME can found in the links below.
+>>
+>> The SME feature is identified through a CPUID function and enabled through
+>> the SYSCFG MSR. Once enabled, page table entries will determine how the
+>> memory is accessed. If a page table entry has the memory encryption mask set,
+>> then that memory will be accessed as encrypted memory. The memory encryption
+>> mask (as well as other related information) is determined from settings
+>> returned through the same CPUID function that identifies the presence of the
+>> feature.
+>>
+>> The approach that this patch series takes is to encrypt everything possible
+>> starting early in the boot where the kernel is encrypted. Using the page
+>> table macros the encryption mask can be incorporated into all page table
+>> entries and page allocations. By updating the protection map, userspace
+>> allocations are also marked encrypted. Certain data must be accounted for
+>> as having been placed in memory before SME was enabled (EFI, initrd, etc.)
+>> and accessed accordingly.
+>>
+>> This patch series is a pre-cursor to another AMD processor feature called
+>> Secure Encrypted Virtualization (SEV). The support for SEV will build upon
+>> the SME support and will be submitted later. Details on SEV can be found
+>> in the links below.
+>>
+>> The following links provide additional detail:
+>>
+>> AMD Memory Encryption whitepaper:
+>>     http://amd-dev.wpengine.netdna-cdn.com/wordpress/media/2013/12/AMD_Memory_Encryption_Whitepaper_v7-Public.pdf
+>>
+>> AMD64 Architecture Programmer's Manual:
+>>     http://support.amd.com/TechDocs/24593.pdf
+>>     SME is section 7.10
+>>     SEV is section 15.34
+>>
+>> ---
+>>
 
-I think only xtensa, all others already define CONFIG_CPU_BIG_ENDIAN
-conditionally, and include the right header depending on that.
+...
 
-For xtensa, the decision is apparently made by the toolchain, and the
-kernel just detects the macros set by the compiler, but that is slightly
-fragile because it prevents us from making Kconfig decisions based on
-endianess.
+> 
+> 
+> Hi Tom,
+> 
+> Thanks for your work on this. This may be a stupid question, but is
+> using bounce buffers for the GPU(s) expected to reduce performance in
+> any/a noticeable way? I'm hitting another issue which I've already
+> sent mail about so I can't test it for myself at the moment,
 
-       Arnd
+That all depends on the workload, how much DMA is being performed, etc.
+But it is extra overhead to use bounce buffers.
+
+Thanks,
+Tom
+
+> 
+> Thanks,
+> Sarnex
+> 
