@@ -1,68 +1,106 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 06/17] pci: Add generic pcibios_{fixup_bus,align_resource}
-Date: Thu, 8 Jun 2017 10:35:29 +0200
-Message-ID: <CAK8P3a1Q=LoAPU_6X_z1=4Yp-Q=TCYpVz3R2MOv_UikX-tPDQg@mail.gmail.com>
-References: <20170523004107.536-1-palmer@dabbelt.com> <20170606230007.19101-1-palmer@dabbelt.com>
- <20170606230007.19101-7-palmer@dabbelt.com> <CAMuHMdUiuqB3vPYkAJfP5+qotcH=o1gJnH8Mosr9VSKxAQGJMQ@mail.gmail.com>
- <20170608081228.GA26932@infradead.org>
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [RFC PATCH v2 4/6] arm64: signal: Allocate extra sigcontext
+ space as needed
+Date: Thu, 8 Jun 2017 09:46:17 +0100
+Message-ID: <20170608084614.GH30160@e103592.cambridge.arm.com>
+References: <1492016239-19511-1-git-send-email-Dave.Martin@arm.com>
+ <1492016495-19689-1-git-send-email-Dave.Martin@arm.com>
+ <1492016495-19689-4-git-send-email-Dave.Martin@arm.com>
+ <20170512165724.GB8387@e104818-lin.cambridge.arm.com>
+ <20170515132442.GB3559@e103592.cambridge.arm.com>
+ <20170523113019.GB5948@e104818-lin.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20170608081228.GA26932@infradead.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@infradead.org>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Palmer Dabbelt <palmer@dabbelt.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Olof Johansson <olof@lixom.net>, albert@sifive.com, patches@groups.riscv.org, Bjorn Helgaas <bhelgaas@google.com>, linux-pci <linux-pci@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:44124 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751475AbdFHIqV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 8 Jun 2017 04:46:21 -0400
+Content-Disposition: inline
+In-Reply-To: <20170523113019.GB5948@e104818-lin.cambridge.arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org
 
-On Thu, Jun 8, 2017 at 10:12 AM, Christoph Hellwig <hch@infradead.org> wrote:
-> On Wed, Jun 07, 2017 at 09:19:49AM +0200, Geert Uytterhoeven wrote:
->> CC pci folks
->
-> Ok, replying with pci folks in Cc then :)
->
-> Weak symbols have (rightly) gotten a bad reputation, so maybe
-> we should approach this without them.
+On Tue, May 23, 2017 at 12:30:19PM +0100, Catalin Marinas wrote:
+> On Mon, May 15, 2017 at 02:24:45PM +0100, Dave P Martin wrote:
+> > On Fri, May 12, 2017 at 05:57:24PM +0100, Catalin Marinas wrote:
+> > > On Wed, Apr 12, 2017 at 06:01:13PM +0100, Dave P Martin wrote:
+> > > > --- a/arch/arm64/include/uapi/asm/sigcontext.h
+> > > > +++ b/arch/arm64/include/uapi/asm/sigcontext.h
+> > > > @@ -80,4 +80,31 @@ struct esr_context {
+> > > >  	__u64 esr;
+> > > >  };
+> > > >  
+> > > > +/*
+> > > > + * Pointer to extra space for additional structures that don't fit in
+> > > > + * sigcontext.__reserved[].  Note:
+> > > > + *
+> > > > + * 1) fpsimd_context, esr_context and extra_context must be placed in
+> > > > + * sigcontext.__reserved[] if present.  They cannot be placed in the
+> > > > + * extra space.  Any other record can be placed either in the extra
+> > > > + * space or in sigcontext.__reserved[].
+> > > > + *
+> > > > + * 2) There must not be more than one extra_context.
+> > > > + *
+> > > > + * 3) If extra_context is present, it must be followed immediately in
+> > > > + * sigcontext.__reserved[] by the terminating null _aarch64_ctx (i.e.,
+> > > > + * extra_context must be the last record in sigcontext.__reserved[]
+> > > > + * except for the terminator).
+> > > > + *
+> > > > + * 4) The extra space must itself be terminated with a null
+> > > > + * _aarch64_ctx.
+> > > > + */
+> > > 
+> > > IIUC, if we need to save some state that doesn't fit in what's left of
+> > > sigcontext.__reserved[] (e.g. SVE with 1024-bit vector length), we
+> > > ignore the available space and go for a memory block following the end
+> > > of sigcontext.__reserved[] + 16. Is there a reason we can't store the
+> > > new state across the end of sigcontext.__reserved[] and move fp/lr at
+> > > the end of the new frame? I'm not sure the fp/lr position immediately
+> > > after __reserved[] counts as ABI.
+> > 
+> > This was my original view.
+> > 
+> > Originally I preferred not to waste the space and did move fp/lr to the
+> > end, but someone (I think you or Will) expressed concern that the fp/lr
+> > position relative to the signal frame _might_ count as ABI.
+> > 
+> > I think it's not that likely that software will be relying on this,
+> > since it appears easier just to follow the frame chain than to treat
+> > this as a special case.
+> > 
+> > But it's hard to be certain.  It comes down to a judgement call.
+> 
+> I would not consider this ABI. The ABI part is that the fp register
+> points to where fp/lr were saved.
 
-Agreed, I would almost never recommend using a __weak symbol,
-but they are already widely used in the PCI subsystem, so I suggested
-using them here for consistency.
+On this point, it looks like the libgcc unwinder
 
-We have a struct pci_host_bridge now, and we should eventually
-move most of the 38 pci specific weak  per-architecture symbols
-into per-host driver callbacks, but that I think that would be too much
-to ask for when adding an architecture port.
+https://gcc.gnu.org/git/?p=gcc.git;a=blob;f=libgcc/config/aarch64/linux-unwind.h;h=d5d6980442fd47b1f1e499e99cb25b5fffbdbeb3;hb=HEAD
 
-> It seems we have a large number of emptry pcibios_fixup_bus calls
-> alreayd, so I think we should simply have the architectures
-> that do define it define a Kconfig or header symbol and not call
-> it at all otherwise.
+doesn't rely on the frame record location.  It clones the (internal)
+struct rt_sigframe definition from v3.7, which doesn't include any frame
+record, and mines fp and lr out of the signal frame AFAICT.
 
-I would argue that most of them should not be per-architecture
-in the first place, the current state is mostly an artifact of the
-times when each architecture had just one PCI implementation.
+It appears that gdb and libunwind likely take the same approach, but
+I've not looked closely yet.
 
-The ones that have multiple implementations (arm, powerpc, ...)
-tend to actually override the weak functions with their own
-per-host multiplexers again.
+The frame record in rt_sigframe was added in by Will in 304ef4e83672
+("arm64: signal: push the unwinding prologue on the signal stack"),
+which changes from pushing the frame record onto the interrupted stack
+(which may be inaccessible for a SEGV), to pushing onto the signal
+stack.
 
-> For the ones that exist as lot just seem to call pci_read_bridge_bases
-> and/or pcibios_fixup_device_resources in one form or another,
-> and I wonder why we even need the arch indirection for that.
->
-> Similarly for pcibios_align_resource: a lot of architetures seem
-> to have a noop, and the once that don't mostly seem copy and
-> paste code, so we should again have a symbol for architectures
-> to opt into it, and we probably should have a generic helper
-> for the VGA window mirroring code instead of duplicating it multiple
-> times.
 
-I now remember that we already have a host_bridge->align_resource
-callback pointer, so the generic function should definitely try
-to use that.
+Even with the frame record split from rt_sigframe, I've not seen any
+failed backtrace in gdb.  Throwing an exception from a SEGV handler in
+C++ (with -fnon-call-exceptions) also appears to work reliably with
+that change, even when the signal frame grows.
 
-We could just use the version from arch/mips/pci/pci-generic.c
-and remove that in the process. I'm not sure about why mips calls
-pci_read_bridge_bases() in pcibios_fixup_bus() though, or whether
-this make sense to put in the generic version.
+In any case, there is no ABI break unless there is extra_context, so
+it shouldn't impact current userspace.
 
-       Arnd
+Cheers
+---Dave
