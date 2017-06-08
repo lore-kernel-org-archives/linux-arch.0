@@ -1,29 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([184.105.139.130]:56260 "EHLO
-        shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751449AbdFHOCo (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 8 Jun 2017 10:02:44 -0400
-Date: Thu, 08 Jun 2017 10:02:22 -0400 (EDT)
-Message-ID: <20170608.100222.1573468093040905016.davem@davemloft.net>
-Subject: Re: CPU_BIG_ENDIAN in generic code
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <CAK8P3a1WfU9V1k2r=TfJSVRTymuD8n2hkJDr6u1KcmC_scAZMA@mail.gmail.com>
-References: <877f0z6oig.fsf@concordia.ellerman.id.au>
-        <28d6c874-4653-b15d-39b7-57a032abc9c6@oracle.com>
-        <CAK8P3a1WfU9V1k2r=TfJSVRTymuD8n2hkJDr6u1KcmC_scAZMA@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Received: from mail-wr0-f169.google.com ([209.85.128.169]:35690 "EHLO
+        mail-wr0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751583AbdFHOJa (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 8 Jun 2017 10:09:30 -0400
+Received: by mail-wr0-f169.google.com with SMTP id q97so19137069wrb.2
+        for <linux-arch@vger.kernel.org>; Thu, 08 Jun 2017 07:09:29 -0700 (PDT)
+Date: Thu, 8 Jun 2017 15:09:22 +0100
+From: Matt Fleming <matt@codeblueprint.co.uk>
+Subject: Re: [PATCHv7 04/14] x86/boot/efi: Fix __KERNEL_CS definition of GDT
+ entry on 64-bit configuration
+Message-ID: <20170608140922.GC3220@codeblueprint.co.uk>
+References: <20170606113133.22974-1-kirill.shutemov@linux.intel.com>
+ <20170606113133.22974-5-kirill.shutemov@linux.intel.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20170606113133.22974-5-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: arnd@arndb.de
-Cc: babu.moger@oracle.com, mpe@ellerman.id.au, geert@linux-m68k.org, peterz@infradead.org, mingo@redhat.com, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, linux-serial@vger.kernel.org
-Message-ID: <20170608140222.IjmGHO8Rr3ZuDmpMmJcZ-f5wDUV_9rA_gxLoSGS5WO8@z>
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+Message-ID: <20170608140922.BNB2lL5MSptNAzgA8ovt-OGo9BOCYVvjmyeq91AEgmg@z>
 
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Thu, 8 Jun 2017 10:01:59 +0200
+On Tue, 06 Jun, at 02:31:23PM, Kirill A. Shutemov wrote:
+> Define __KERNEL_CS GDT entry as long mode (.L=1, .D=0) on 64-bit
+> configuration.
+> 
+> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+> Cc: Matt Fleming <matt@codeblueprint.co.uk>
+> ---
+>  arch/x86/boot/compressed/eboot.c | 9 +++++++--
+>  1 file changed, 7 insertions(+), 2 deletions(-)
 
-> I would also suggest adding a sanity check like
-
-Hmm, but this will kill the build for non-fixed endian architectures
-won't it?
+Reviewed-by: Matt Fleming <matt@codeblueprint.co.uk>
