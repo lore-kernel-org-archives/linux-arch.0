@@ -1,106 +1,94 @@
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [RFC PATCH v2 4/6] arm64: signal: Allocate extra sigcontext
- space as needed
-Date: Thu, 8 Jun 2017 09:46:17 +0100
-Message-ID: <20170608084614.GH30160@e103592.cambridge.arm.com>
-References: <1492016239-19511-1-git-send-email-Dave.Martin@arm.com>
- <1492016495-19689-1-git-send-email-Dave.Martin@arm.com>
- <1492016495-19689-4-git-send-email-Dave.Martin@arm.com>
- <20170512165724.GB8387@e104818-lin.cambridge.arm.com>
- <20170515132442.GB3559@e103592.cambridge.arm.com>
- <20170523113019.GB5948@e104818-lin.cambridge.arm.com>
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [PATCH 03/17] base: fix order of OF initialization
+Date: Thu, 8 Jun 2017 10:05:08 +0100
+Message-ID: <20170608090507.GA5765@leverpostej>
+References: <20170523004107.536-1-palmer@dabbelt.com>
+ <20170606230007.19101-1-palmer@dabbelt.com>
+ <20170606230007.19101-4-palmer@dabbelt.com>
+ <CAMuHMdXWH5fU8YKfR37D5SMi1GpSk75Bq-OcYmm5ZuHe+XK0PQ@mail.gmail.com>
+ <20170607093523.GB29370@leverpostej>
+ <CAMgXwTiE48KLCJe6TD6VCd5rYASyw0L+pYh8yfvGjhohAfo2dg@mail.gmail.com>
+ <5938C957.2030005@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:44124 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:44444 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751475AbdFHIqV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 8 Jun 2017 04:46:21 -0400
+        id S1751475AbdFHJF4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 8 Jun 2017 05:05:56 -0400
 Content-Disposition: inline
-In-Reply-To: <20170523113019.GB5948@e104818-lin.cambridge.arm.com>
+In-Reply-To: <5938C957.2030005@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org
+To: Frank Rowand <frowand.list@gmail.com>
+Cc: Wesley Terpstra <wesley@sifive.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Palmer Dabbelt <palmer@dabbelt.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Olof Johansson <olof@lixom.net>, Albert Ou <albert@sifive.com>, patches@groups.riscv.org, Rob Herring <robh+dt@kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-On Tue, May 23, 2017 at 12:30:19PM +0100, Catalin Marinas wrote:
-> On Mon, May 15, 2017 at 02:24:45PM +0100, Dave P Martin wrote:
-> > On Fri, May 12, 2017 at 05:57:24PM +0100, Catalin Marinas wrote:
-> > > On Wed, Apr 12, 2017 at 06:01:13PM +0100, Dave P Martin wrote:
-> > > > --- a/arch/arm64/include/uapi/asm/sigcontext.h
-> > > > +++ b/arch/arm64/include/uapi/asm/sigcontext.h
-> > > > @@ -80,4 +80,31 @@ struct esr_context {
-> > > >  	__u64 esr;
-> > > >  };
-> > > >  
-> > > > +/*
-> > > > + * Pointer to extra space for additional structures that don't fit in
-> > > > + * sigcontext.__reserved[].  Note:
-> > > > + *
-> > > > + * 1) fpsimd_context, esr_context and extra_context must be placed in
-> > > > + * sigcontext.__reserved[] if present.  They cannot be placed in the
-> > > > + * extra space.  Any other record can be placed either in the extra
-> > > > + * space or in sigcontext.__reserved[].
-> > > > + *
-> > > > + * 2) There must not be more than one extra_context.
-> > > > + *
-> > > > + * 3) If extra_context is present, it must be followed immediately in
-> > > > + * sigcontext.__reserved[] by the terminating null _aarch64_ctx (i.e.,
-> > > > + * extra_context must be the last record in sigcontext.__reserved[]
-> > > > + * except for the terminator).
-> > > > + *
-> > > > + * 4) The extra space must itself be terminated with a null
-> > > > + * _aarch64_ctx.
-> > > > + */
-> > > 
-> > > IIUC, if we need to save some state that doesn't fit in what's left of
-> > > sigcontext.__reserved[] (e.g. SVE with 1024-bit vector length), we
-> > > ignore the available space and go for a memory block following the end
-> > > of sigcontext.__reserved[] + 16. Is there a reason we can't store the
-> > > new state across the end of sigcontext.__reserved[] and move fp/lr at
-> > > the end of the new frame? I'm not sure the fp/lr position immediately
-> > > after __reserved[] counts as ABI.
+On Wed, Jun 07, 2017 at 08:49:43PM -0700, Frank Rowand wrote:
+> On 06/07/17 11:39, Wesley Terpstra wrote:
+> > It was a while ago that I debugged this. I already reported this bug
+> > to Benjamin Herrenschmidt (now in CC), and I believe he has a patch of
+> > his own to fix the same issue.
 > > 
-> > This was my original view.
+> > As I understand it, of_core_init sets up the OF entries in
+> > /sys/firmware/devicetree. During platform bringup, when the system
+> > describes the cpu + cache hierarchy, it also makes an of_node symlink
+> > into that directory. However, if it doesn't exist yet, you get the
+> > warning.
 > > 
-> > Originally I preferred not to waste the space and did move fp/lr to the
-> > end, but someone (I think you or Will) expressed concern that the fp/lr
-> > position relative to the signal frame _might_ count as ABI.
+> > # ls -l /sys/devices/system/cpu/cpu3/of_node
+> > lrwxrwxrwx    1 root     root             0 Jan  1 00:00
+> > /sys/devices/system/cpu/cpu3/of_node ->
+> > ../../../../firmware/devicetree/base/cpus/cpu@3
 > > 
-> > I think it's not that likely that software will be relying on this,
-> > since it appears easier just to follow the frame chain than to treat
-> > this as a special case.
-> > 
-> > But it's hard to be certain.  It comes down to a judgement call.
+> > On Wed, Jun 7, 2017 at 2:35 AM, Mark Rutland <mark.rutland@arm.com> wrote:
+> >> On Wed, Jun 07, 2017 at 09:07:20AM +0200, Geert Uytterhoeven wrote:
+> >>> CC devicetree folks
+> >>>
+> >>> On Wed, Jun 7, 2017 at 12:59 AM, Palmer Dabbelt <palmer@dabbelt.com> wrote:
+> >>>> From: "Wesley W. Terpstra" <wesley@sifive.com>
+> >>>>
+> >>>> This fixes: [    0.010000] cpu cpu0: Error -2 creating of_node link
+> >>>> ... which you get for every CPU on all architectures with a OF cpu/ node.
+> >>
+> >> I take it this means a /cpus node? Or the /cpus/cpu@* nodes?
+> >>
+> >> I'm not seeing this on arm64 when booting v4.12-rc4 with DT, so clearly
+> >> this doesn't affect all such architectures.
+> >>
+> >> What path are these errors happening in?
 > 
-> I would not consider this ABI. The ABI part is that the fp register
-> points to where fp/lr were saved.
+> On the surface, the patch looks reasonable.  But it is not obvious to me why
+> the error message is occurring.  I would like to understand the cause before
+> saying the patch is good.
+> 
+> What kernel version is showing the error?  For a specific architecture
+> (the patch lists 'riscv, nios, etc'), which config and device tree source?
+> 
+> And again, what is the calling path?
 
-On this point, it looks like the libgcc unwinder
+From having grepped around, I think this affects architectures which
+select CONFIG_GENERIC_CPU_DEVICES, which includes nios2.
 
-https://gcc.gnu.org/git/?p=gcc.git;a=blob;f=libgcc/config/aarch64/linux-unwind.h;h=d5d6980442fd47b1f1e499e99cb25b5fffbdbeb3;hb=HEAD
+In that case, driver_init() calls cpu_dev_init() before calling
+of_core_init(). Then we get the callchain:
 
-doesn't rely on the frame record location.  It clones the (internal)
-struct rt_sigframe definition from v3.7, which doesn't include any frame
-record, and mines fp and lr out of the signal frame AFAICT.
+   cpu_dev_init()
+-> cpu_dev_register_generic()
+-> register_cpu(cpu, i)
+-> device_register(&cpu->dev)
+-> device_add(dev)
+-> device_add_class_symlinks(dev)
 
-It appears that gdb and libunwind likely take the same approach, but
-I've not looked closely yet.
+... in device_add_class_symlinks, we we dev->of_node, and call
+sysfs_create_link(), which fails because we haven't called
+of_core_init() to register the sysfs devicetree directory yet.
 
-The frame record in rt_sigframe was added in by Will in 304ef4e83672
-("arm64: signal: push the unwinding prologue on the signal stack"),
-which changes from pushing the frame record onto the interrupted stack
-(which may be inaccessible for a SEGV), to pushing onto the signal
-stack.
+Given that, this patch makes sense to me.
 
+FWIW, with the commit message updated to describe the particular
+ordering problem:
 
-Even with the frame record split from rt_sigframe, I've not seen any
-failed backtrace in gdb.  Throwing an exception from a SEGV handler in
-C++ (with -fnon-call-exceptions) also appears to work reliably with
-that change, even when the signal frame grows.
+Acked-by: Mark Rutland <mark.rutland@arm.com>
 
-In any case, there is no ABI break unless there is extra_context, so
-it shouldn't impact current userspace.
-
-Cheers
----Dave
+Thanks,
+Mark.
