@@ -1,73 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot0-f193.google.com ([74.125.82.193]:36369 "EHLO
-        mail-ot0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751427AbdFHIfa (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 8 Jun 2017 04:35:30 -0400
+Received: from foss.arm.com ([217.140.101.70]:44444 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751475AbdFHJF4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 8 Jun 2017 05:05:56 -0400
+Date: Thu, 8 Jun 2017 10:05:08 +0100
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [PATCH 03/17] base: fix order of OF initialization
+Message-ID: <20170608090507.GA5765@leverpostej>
+References: <20170523004107.536-1-palmer@dabbelt.com>
+ <20170606230007.19101-1-palmer@dabbelt.com>
+ <20170606230007.19101-4-palmer@dabbelt.com>
+ <CAMuHMdXWH5fU8YKfR37D5SMi1GpSk75Bq-OcYmm5ZuHe+XK0PQ@mail.gmail.com>
+ <20170607093523.GB29370@leverpostej>
+ <CAMgXwTiE48KLCJe6TD6VCd5rYASyw0L+pYh8yfvGjhohAfo2dg@mail.gmail.com>
+ <5938C957.2030005@gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <20170608081228.GA26932@infradead.org>
-References: <20170523004107.536-1-palmer@dabbelt.com> <20170606230007.19101-1-palmer@dabbelt.com>
- <20170606230007.19101-7-palmer@dabbelt.com> <CAMuHMdUiuqB3vPYkAJfP5+qotcH=o1gJnH8Mosr9VSKxAQGJMQ@mail.gmail.com>
- <20170608081228.GA26932@infradead.org>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Thu, 8 Jun 2017 10:35:29 +0200
-Message-ID: <CAK8P3a1Q=LoAPU_6X_z1=4Yp-Q=TCYpVz3R2MOv_UikX-tPDQg@mail.gmail.com>
-Subject: Re: [PATCH 06/17] pci: Add generic pcibios_{fixup_bus,align_resource}
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <5938C957.2030005@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@infradead.org>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Palmer Dabbelt <palmer@dabbelt.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Olof Johansson <olof@lixom.net>, albert@sifive.com, patches@groups.riscv.org, Bjorn Helgaas <bhelgaas@google.com>, linux-pci <linux-pci@vger.kernel.org>
-Message-ID: <20170608083529.WRRNuw30ADpHMQcfksl0SNCA_EtxViBNu_doB6rZ9LA@z>
+To: Frank Rowand <frowand.list@gmail.com>
+Cc: Wesley Terpstra <wesley@sifive.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Palmer Dabbelt <palmer@dabbelt.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Olof Johansson <olof@lixom.net>, Albert Ou <albert@sifive.com>, patches@groups.riscv.org, Rob Herring <robh+dt@kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Message-ID: <20170608090508.82KG56qUD8lqK9VcIXDMMHYTjMad4bP7bCJbOTtIyC0@z>
 
-On Thu, Jun 8, 2017 at 10:12 AM, Christoph Hellwig <hch@infradead.org> wrote:
-> On Wed, Jun 07, 2017 at 09:19:49AM +0200, Geert Uytterhoeven wrote:
->> CC pci folks
->
-> Ok, replying with pci folks in Cc then :)
->
-> Weak symbols have (rightly) gotten a bad reputation, so maybe
-> we should approach this without them.
-
-Agreed, I would almost never recommend using a __weak symbol,
-but they are already widely used in the PCI subsystem, so I suggested
-using them here for consistency.
-
-We have a struct pci_host_bridge now, and we should eventually
-move most of the 38 pci specific weak  per-architecture symbols
-into per-host driver callbacks, but that I think that would be too much
-to ask for when adding an architecture port.
-
-> It seems we have a large number of emptry pcibios_fixup_bus calls
-> alreayd, so I think we should simply have the architectures
-> that do define it define a Kconfig or header symbol and not call
-> it at all otherwise.
-
-I would argue that most of them should not be per-architecture
-in the first place, the current state is mostly an artifact of the
-times when each architecture had just one PCI implementation.
-
-The ones that have multiple implementations (arm, powerpc, ...)
-tend to actually override the weak functions with their own
-per-host multiplexers again.
-
-> For the ones that exist as lot just seem to call pci_read_bridge_bases
-> and/or pcibios_fixup_device_resources in one form or another,
-> and I wonder why we even need the arch indirection for that.
->
-> Similarly for pcibios_align_resource: a lot of architetures seem
-> to have a noop, and the once that don't mostly seem copy and
-> paste code, so we should again have a symbol for architectures
-> to opt into it, and we probably should have a generic helper
-> for the VGA window mirroring code instead of duplicating it multiple
-> times.
-
-I now remember that we already have a host_bridge->align_resource
-callback pointer, so the generic function should definitely try
-to use that.
-
-We could just use the version from arch/mips/pci/pci-generic.c
-and remove that in the process. I'm not sure about why mips calls
-pci_read_bridge_bases() in pcibios_fixup_bus() though, or whether
-this make sense to put in the generic version.
-
-       Arnd
+On Wed, Jun 07, 2017 at 08:49:43PM -0700, Frank Rowand wrote:
+> On 06/07/17 11:39, Wesley Terpstra wrote:
+> > It was a while ago that I debugged this. I already reported this bug
+> > to Benjamin Herrenschmidt (now in CC), and I believe he has a patch of
+> > his own to fix the same issue.
+> > 
+> > As I understand it, of_core_init sets up the OF entries in
+> > /sys/firmware/devicetree. During platform bringup, when the system
+> > describes the cpu + cache hierarchy, it also makes an of_node symlink
+> > into that directory. However, if it doesn't exist yet, you get the
+> > warning.
+> > 
+> > # ls -l /sys/devices/system/cpu/cpu3/of_node
+> > lrwxrwxrwx    1 root     root             0 Jan  1 00:00
+> > /sys/devices/system/cpu/cpu3/of_node ->
+> > ../../../../firmware/devicetree/base/cpus/cpu@3
+> > 
+> > On Wed, Jun 7, 2017 at 2:35 AM, Mark Rutland <mark.rutland@arm.com> wrote:
+> >> On Wed, Jun 07, 2017 at 09:07:20AM +0200, Geert Uytterhoeven wrote:
+> >>> CC devicetree folks
+> >>>
+> >>> On Wed, Jun 7, 2017 at 12:59 AM, Palmer Dabbelt <palmer@dabbelt.com> wrote:
+> >>>> From: "Wesley W. Terpstra" <wesley@sifive.com>
+> >>>>
+> >>>> This fixes: [    0.010000] cpu cpu0: Error -2 creating of_node link
+> >>>> ... which you get for every CPU on all architectures with a OF cpu/ node.
+> >>
+> >> I take it this means a /cpus node? Or the /cpus/cpu@* nodes?
+> >>
+> >> I'm not seeing this on arm64 when booting v4.12-rc4 with DT, so clearly
+> >> this doesn't affect all such architectures.
+> >>
+> >> What path are these errors happening in?
+> 
+> On the surface, the patch looks reasonable.  But it is not obvious to me why
+> the error message is occurring.  I would like to understand the cause before
+> saying the patch is good.
+> 
+> What kernel version is showing the error?  For a specific architecture
+> (the patch lists 'riscv, nios, etc'), which config and device tree source?
+> 
+> And again, what is the calling path?
