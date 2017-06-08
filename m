@@ -1,34 +1,24 @@
-From: Matt Fleming <matt@codeblueprint.co.uk>
-Subject: Re: [PATCHv7 03/14] x86/boot/efi: Cleanup initialization of GDT
- entries
-Date: Thu, 8 Jun 2017 15:00:31 +0100
-Message-ID: <20170608140031.GB3220@codeblueprint.co.uk>
-References: <20170606113133.22974-1-kirill.shutemov@linux.intel.com>
- <20170606113133.22974-4-kirill.shutemov@linux.intel.com>
+From: David Miller <davem@davemloft.net>
+Subject: Re: CPU_BIG_ENDIAN in generic code
+Date: Thu, 08 Jun 2017 10:02:22 -0400 (EDT)
+Message-ID: <20170608.100222.1573468093040905016.davem@davemloft.net>
+References: <877f0z6oig.fsf@concordia.ellerman.id.au>
+        <28d6c874-4653-b15d-39b7-57a032abc9c6@oracle.com>
+        <CAK8P3a1WfU9V1k2r=TfJSVRTymuD8n2hkJDr6u1KcmC_scAZMA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20170606113133.22974-4-kirill.shutemov@linux.intel.com>
-Sender: owner-linux-mm@kvack.org
-To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CAK8P3a1WfU9V1k2r=TfJSVRTymuD8n2hkJDr6u1KcmC_scAZMA@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: arnd@arndb.de
+Cc: babu.moger@oracle.com, mpe@ellerman.id.au, geert@linux-m68k.org, peterz@infradead.org, mingo@redhat.com, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, linux-serial@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 06 Jun, at 02:31:22PM, Kirill A. Shutemov wrote:
-> This is preparation for following patches without changing semantics of the
-> code.
-> 
-> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-> Cc: Matt Fleming <matt@codeblueprint.co.uk>
-> ---
->  arch/x86/boot/compressed/eboot.c | 39 +++++++++++++++++++++------------------
->  1 file changed, 21 insertions(+), 18 deletions(-)
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Thu, 8 Jun 2017 10:01:59 +0200
 
-Reviewed-by: Matt Fleming <matt@codeblueprint.co.uk>
+> I would also suggest adding a sanity check like
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Hmm, but this will kill the build for non-fixed endian architectures
+won't it?
