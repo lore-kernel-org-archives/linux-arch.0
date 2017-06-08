@@ -1,49 +1,38 @@
-From: Davidlohr Bueso <dave@stgolabs.net>
-Subject: Re: [PATCH v2] refcount: Create unchecked atomic_t implementation
-Date: Thu, 8 Jun 2017 13:09:31 -0700
-Message-ID: <20170608200931.GC2464@linux-80c1.suse>
-References: <20170608025831.GA43608@beast>
- <20170608065809.GC14568@infradead.org>
- <2236FBA76BA1254E88B949DDB74E612B6FF0E5C7@IRSMSX102.ger.corp.intel.com>
+From: Boris Ostrovsky <boris.ostrovsky@oracle.com>
+Subject: Re: [PATCH v6 10/34] x86, x86/mm, x86/xen, olpc: Use __va() against
+ just the physical address in cr3
+Date: Thu, 8 Jun 2017 16:51:04 -0400
+Message-ID: <67fe69ac-a213-8de3-db28-0e54bba95127@oracle.com>
+References: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
+ <20170607191453.28645.92256.stgit@tlendack-t1.amdoffice.net>
+ <b15e8924-4069-b5fa-adb2-86c164b1dd36@oracle.com>
+ <4a7376fb-abfc-8edd-42b7-38de461ac65e@amd.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii; format=flowed
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:58505 "EHLO mx1.suse.de"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751510AbdFHUJv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 8 Jun 2017 16:09:51 -0400
-Content-Disposition: inline
-In-Reply-To: <2236FBA76BA1254E88B949DDB74E612B6FF0E5C7@IRSMSX102.ger.corp.intel.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Reshetova, Elena" <elena.reshetova@intel.com>
-Cc: Christoph Hellwig <hch@infradead.org>, Kees Cook <keescook@chromium.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, "arozansk@redhat.com" <arozansk@redhat.com>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@han>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <4a7376fb-abfc-8edd-42b7-38de461ac65e@amd.com>
+Sender: owner-linux-mm@kvack.org
+To: Tom Lendacky <thomas.lendacky@amd.com>, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
+Cc: Rik van Riel <riel@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@g>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, 08 Jun 2017, Reshetova, Elena wrote:
 
->> On Wed, Jun 07, 2017 at 07:58:31PM -0700, Kees Cook wrote:
->> > Many subsystems will not use refcount_t unless there is a way to build the
->> > kernel so that there is no regression in speed compared to atomic_t. This
->> > adds CONFIG_REFCOUNT_FULL to enable the full refcount_t implementation
->> > which has the validation but is slightly slower. When not enabled,
->> > refcount_t uses the basic unchecked atomic_t routines, which results in
->> > no code changes compared to just using atomic_t directly.
->> >
->> > Signed-off-by: Kees Cook <keescook@chromium.org>
->> > ---
->> > This is v2 of this patch, which I've split from the arch-specific
->> > alternative implementation for x86. Getting this patch in will unblock
->> > atomic_t -> refcount_t conversion, and the x86 alternative implementation
->> > can be developed in parallel. Changes from v1: use better atomic ops,
->> > thanks to Elena and Peter.
->>
->> Yeah, can we get this in ASAP?  Without having to always incur the over
->> this will allow us to convert subsystems to refcount_t broadly.
 >
->+1. If this gets in, I can refresh the rest of the patches in net, mm, ipc, block, etc. and send them for review again.
+>> What may be needed is making sure X86_FEATURE_SME is not set for PV
+>> guests.
+>
+> And that may be something that Xen will need to control through either
+> CPUID or MSR support for the PV guests.
 
-Yes, this would be a prerequisite for ipc; which I initially thought didn't
-take a performance hit.
 
-Thanks,
-Davidlohr
+Only on newer versions of Xen. On earlier versions (2-3 years old) leaf
+0x80000007 is passed to the guest unchanged. And so is MSR_K8_SYSCFG.
+
+-boris
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
