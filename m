@@ -1,105 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f68.google.com ([209.85.218.68]:34504 "EHLO
-        mail-oi0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751470AbdFHICA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 8 Jun 2017 04:02:00 -0400
+Received: from mail-ot0-f193.google.com ([74.125.82.193]:36369 "EHLO
+        mail-ot0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751427AbdFHIfa (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 8 Jun 2017 04:35:30 -0400
 MIME-Version: 1.0
-In-Reply-To: <28d6c874-4653-b15d-39b7-57a032abc9c6@oracle.com>
-References: <CAMuHMdVjh+1TR19mUUQYHSazHnBHa4uxn7KyHUO+jAh7WDxy5Q@mail.gmail.com>
- <87a85v7to2.fsf@concordia.ellerman.id.au> <CAMuHMdU1kne4tKRfyx0hr1LXh_c75bYMs0b=vncHqrhB69jqYg@mail.gmail.com>
- <877f0z6oig.fsf@concordia.ellerman.id.au> <28d6c874-4653-b15d-39b7-57a032abc9c6@oracle.com>
+In-Reply-To: <20170608081228.GA26932@infradead.org>
+References: <20170523004107.536-1-palmer@dabbelt.com> <20170606230007.19101-1-palmer@dabbelt.com>
+ <20170606230007.19101-7-palmer@dabbelt.com> <CAMuHMdUiuqB3vPYkAJfP5+qotcH=o1gJnH8Mosr9VSKxAQGJMQ@mail.gmail.com>
+ <20170608081228.GA26932@infradead.org>
 From: Arnd Bergmann <arnd@arndb.de>
-Date: Thu, 8 Jun 2017 10:01:59 +0200
-Message-ID: <CAK8P3a1WfU9V1k2r=TfJSVRTymuD8n2hkJDr6u1KcmC_scAZMA@mail.gmail.com>
-Subject: Re: CPU_BIG_ENDIAN in generic code (was: Re: [PATCH v3 3/7]
- arch/sparc: Define config parameter CPU_BIG_ENDIAN)
+Date: Thu, 8 Jun 2017 10:35:29 +0200
+Message-ID: <CAK8P3a1Q=LoAPU_6X_z1=4Yp-Q=TCYpVz3R2MOv_UikX-tPDQg@mail.gmail.com>
+Subject: Re: [PATCH 06/17] pci: Add generic pcibios_{fixup_bus,align_resource}
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Babu Moger <babu.moger@oracle.com>
-Cc: Michael Ellerman <mpe@ellerman.id.au>, Geert Uytterhoeven <geert@linux-m68k.org>, "David S. Miller" <davem@davemloft.net>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, sparclinux <sparclinux@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>
-Message-ID: <20170608080159.C_sUQaXJalJnhJUtaOkfR1iiycViSpwKG8nE12z62lE@z>
+To: Christoph Hellwig <hch@infradead.org>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Palmer Dabbelt <palmer@dabbelt.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Olof Johansson <olof@lixom.net>, albert@sifive.com, patches@groups.riscv.org, Bjorn Helgaas <bhelgaas@google.com>, linux-pci <linux-pci@vger.kernel.org>
+Message-ID: <20170608083529.WRRNuw30ADpHMQcfksl0SNCA_EtxViBNu_doB6rZ9LA@z>
 
-On Thu, Jun 8, 2017 at 1:07 AM, Babu Moger <babu.moger@oracle.com> wrote:
+On Thu, Jun 8, 2017 at 10:12 AM, Christoph Hellwig <hch@infradead.org> wrote:
+> On Wed, Jun 07, 2017 at 09:19:49AM +0200, Geert Uytterhoeven wrote:
+>> CC pci folks
 >
-> On 5/29/2017 9:56 PM, Michael Ellerman wrote:
->>
->> Geert Uytterhoeven <geert@linux-m68k.org> writes:
->>
->>> Hi Michael,
->>>
->>> On Mon, May 29, 2017 at 2:07 PM, Michael Ellerman <mpe@ellerman.id.au>
->>> wrote:
->>>>
->>>> Geert Uytterhoeven <geert@linux-m68k.org> writes:
->>>>>
->>>>> On Tue, May 23, 2017 at 11:45 PM, Babu Moger <babu.moger@oracle.com>
->>>>> wrote:
-
->>>
->>> So far we tried always doing that, but a few checks for the semi-existing
->>> Kconfig symbol crept in in generic code. Those could be replaced by the
->>> __*__
->>> variants, but consistently having the Kconfig symbols would be useful
->>> anyway
->>> (e.g. to avoid building the broken-on-big-endian ISDN drivers).
->>
->> Ah OK, the original mail was citing C code, but yeah I guess it would be
->> handy in Makefiles etc.
+> Ok, replying with pci folks in Cc then :)
 >
+> Weak symbols have (rightly) gotten a bad reputation, so maybe
+> we should approach this without them.
+
+Agreed, I would almost never recommend using a __weak symbol,
+but they are already widely used in the PCI subsystem, so I suggested
+using them here for consistency.
+
+We have a struct pci_host_bridge now, and we should eventually
+move most of the 38 pci specific weak  per-architecture symbols
+into per-host driver callbacks, but that I think that would be too much
+to ask for when adding an architecture port.
+
+> It seems we have a large number of emptry pcibios_fixup_bus calls
+> alreayd, so I think we should simply have the architectures
+> that do define it define a Kconfig or header symbol and not call
+> it at all otherwise.
+
+I would argue that most of them should not be per-architecture
+in the first place, the current state is mostly an artifact of the
+times when each architecture had just one PCI implementation.
+
+The ones that have multiple implementations (arm, powerpc, ...)
+tend to actually override the weak functions with their own
+per-host multiplexers again.
+
+> For the ones that exist as lot just seem to call pci_read_bridge_bases
+> and/or pcibios_fixup_device_resources in one form or another,
+> and I wonder why we even need the arch indirection for that.
 >
-> Thanks for all the responses.  I see couple of options here.
->
-> 1. Fix the c code in include/asm-generic/qrwlock.h using ifdef
-> __BIG_ENDIAN__
->     This will fix the issue for us.
->
-> 2. Define CPU_BIG_ENDIAN for all the missing fixed endian architectures.
-> Because the problem is only for fixed big endian archs.
->
-> I prefer the option 1.  What do you guys think ?
+> Similarly for pcibios_align_resource: a lot of architetures seem
+> to have a noop, and the once that don't mostly seem copy and
+> paste code, so we should again have a symbol for architectures
+> to opt into it, and we probably should have a generic helper
+> for the VGA window mirroring code instead of duplicating it multiple
+> times.
 
-I would prefer option 2. If we leave out CONFIG_CPU_LITTLE_ENDIAN,
-then the patch becomes much easier than what we had discussed earlier,
-and we just need to patch a few Kconfig files to add
+I now remember that we already have a host_bridge->align_resource
+callback pointer, so the generic function should definitely try
+to use that.
 
-config CPU_BIG_ENDIAN
-       def_bool y
+We could just use the version from arch/mips/pci/pci-generic.c
+and remove that in the process. I'm not sure about why mips calls
+pci_read_bridge_bases() in pcibios_fixup_bus() though, or whether
+this make sense to put in the generic version.
 
-I would also suggest adding a sanity check like
-
-diff --git a/include/linux/byteorder/big_endian.h
-b/include/linux/byteorder/big_endian.h
-index 392041475c72..18a1ab5b0260 100644
---- a/include/linux/byteorder/big_endian.h
-+++ b/include/linux/byteorder/big_endian.h
-@@ -3,5 +3,9 @@
-
- #include <uapi/linux/byteorder/big_endian.h>
-
-+#ifndef CONFIG_CPU_BIG_ENDIAN
-+#warning inconsistent configuration, need CONFIG_CPU_BIG_ENDIAN
-+#endif
-+
- #include <linux/byteorder/generic.h>
- #endif /* _LINUX_BYTEORDER_BIG_ENDIAN_H */
-diff --git a/include/linux/byteorder/little_endian.h
-b/include/linux/byteorder/little_endian.h
-index 08057377aa23..ba910bb9aad0 100644
---- a/include/linux/byteorder/little_endian.h
-+++ b/include/linux/byteorder/little_endian.h
-@@ -3,5 +3,9 @@
-
- #include <uapi/linux/byteorder/little_endian.h>
-
-+#ifdef CONFIG_CPU_BIG_ENDIAN
-+#warning inconsistent configuration, CONFIG_CPU_BIG_ENDIAN is set
-+#endif
-+
- #include <linux/byteorder/generic.h>
- #endif /* _LINUX_BYTEORDER_LITTLE_ENDIAN_H */
-
-Fixing xtensa properly might still be tricky, but with that change, at least
-we detect when things go wrong in this area.
-
-        Arnd
+       Arnd
