@@ -1,31 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:57572 "EHLO
-        mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750822AbdFHF5B (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 8 Jun 2017 01:57:01 -0400
-Date: Thu, 8 Jun 2017 07:56:55 +0200
-From: Greg KH <gregkh@linuxfoundation.org>
-Subject: Re: [PATCH v2] refcount: Create unchecked atomic_t implementation
-Message-ID: <20170608055655.GB19269@kroah.com>
-References: <20170608025831.GA43608@beast>
+Received: from mail.kernel.org ([198.145.29.99]:36972 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751484AbdFHGGE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 8 Jun 2017 02:06:04 -0400
+Received: from mail-vk0-f51.google.com (mail-vk0-f51.google.com [209.85.213.51])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+        (No client certificate requested)
+        by mail.kernel.org (Postfix) with ESMTPSA id CF0EE23A20
+        for <linux-arch@vger.kernel.org>; Thu,  8 Jun 2017 06:06:03 +0000 (UTC)
+Received: by mail-vk0-f51.google.com with SMTP id g66so13184479vki.1
+        for <linux-arch@vger.kernel.org>; Wed, 07 Jun 2017 23:06:03 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20170608025831.GA43608@beast>
+In-Reply-To: <20170607191453.28645.92256.stgit@tlendack-t1.amdoffice.net>
+References: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net> <20170607191453.28645.92256.stgit@tlendack-t1.amdoffice.net>
+From: Andy Lutomirski <luto@kernel.org>
+Date: Wed, 7 Jun 2017 23:05:42 -0700
+Message-ID: <CALCETrVVhMf=zkiDNn_-hKDZLGXKFiwxuWkPmD5RJgHa5VUMiQ@mail.gmail.com>
+Subject: Re: [PATCH v6 10/34] x86, x86/mm, x86/xen, olpc: Use __va() against
+ just the physical address in cr3
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: linux-kernel@vger.kernel.org, Christoph Hellwig <hch@infradead.org>, Peter Zijlstra <peterz@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, Ingo Molnar <mingo@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20170608055655.738y8FkYJ0lgcU12r29iUiUA8HhZw9aRJedjcDguBMo@z>
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, "linux-efi@vger.kernel.org" <linux-efi@vger.kernel.org>, kvm list <kvm@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, X86 ML <x86@kernel.org>, kexec@lists.infradead.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20170608060542.eW963SVP6C_Jw-wcOfzwtnqiaKSrQ5H6ihu6pKMSSj0@z>
 
-On Wed, Jun 07, 2017 at 07:58:31PM -0700, Kees Cook wrote:
-> Many subsystems will not use refcount_t unless there is a way to build the
-> kernel so that there is no regression in speed compared to atomic_t. This
-> adds CONFIG_REFCOUNT_FULL to enable the full refcount_t implementation
-> which has the validation but is slightly slower. When not enabled,
-> refcount_t uses the basic unchecked atomic_t routines, which results in
-> no code changes compared to just using atomic_t directly.
-> 
-> Signed-off-by: Kees Cook <keescook@chromium.org>
+On Wed, Jun 7, 2017 at 12:14 PM, Tom Lendacky <thomas.lendacky@amd.com> wrote:
+> The cr3 register entry can contain the SME encryption bit that indicates
+> the PGD is encrypted.  The encryption bit should not be used when creating
+> a virtual address for the PGD table.
+>
+> Create a new function, read_cr3_pa(), that will extract the physical
+> address from the cr3 register. This function is then used where a virtual
+> address of the PGD needs to be created/used from the cr3 register.
 
-Acked-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+This is going to conflict with:
+
+https://git.kernel.org/pub/scm/linux/kernel/git/luto/linux.git/commit/?h=x86/pcid&id=555c81e5d01a62b629ec426a2f50d27e2127c1df
+
+We're both encountering the fact that CR3 munges the page table PA
+with some other stuff, and some readers want to see the actual CR3
+value and other readers just want the PA.  The thing I prefer about my
+patch is that I get rid of read_cr3() entirely, forcing the patch to
+update every single reader, making review and conflict resolution much
+safer.
+
+I'd be willing to send a patch tomorrow that just does the split into
+__read_cr3() and read_cr3_pa() (I like your name better) and then we
+can both base on top of it.  Would that make sense?
+
+Also:
+
+> +static inline unsigned long read_cr3_pa(void)
+> +{
+> +       return (read_cr3() & PHYSICAL_PAGE_MASK);
+> +}
+
+Is there any guarantee that the magic encryption bit is masked out in
+PHYSICAL_PAGE_MASK?  The docs make it sound like it could be any bit.
+(But if it's one of the low 12 bits, that would be quite confusing.)
+
+--Andy
