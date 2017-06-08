@@ -1,100 +1,90 @@
-From: Don Zickus <dzickus@redhat.com>
-Subject: Re: [PATCH 3/4] watchdog: Split up config options
-Date: Thu, 8 Jun 2017 12:05:02 -0400
-Message-ID: <20170608160502.uzp7vmr7s4fj6hjm@redhat.com>
-References: <20170530012659.16791-1-npiggin@gmail.com>
- <20170530012659.16791-4-npiggin@gmail.com>
- <20170602201500.urllmug33bjtuzen@redhat.com>
- <20170603161005.279fe0ef@roar.ozlabs.ibm.com>
- <20170606164958.lkwy7t7xzdpxg4mp@redhat.com>
- <20170607135026.1a6129a8@roar.ozlabs.ibm.com>
+From: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
+Subject: Re: [PATCH v6 00/34] x86: Secure Memory Encryption (AMD)
+Date: Thu, 8 Jun 2017 11:14:38 -0500
+Message-ID: <2dd424fe-0af1-d82f-b608-271ea5e1f62b@amd.com>
+References: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
+	<CAOcCaLYWoOu0c-Fkee-=wegNqkzUp9pLFLmaFrXuhiXRnUZ3Xw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:42370 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750725AbdFHQFE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 8 Jun 2017 12:05:04 -0400
-Content-Disposition: inline
-In-Reply-To: <20170607135026.1a6129a8@roar.ozlabs.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Transfer-Encoding: 7bit
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+In-Reply-To: <CAOcCaLYWoOu0c-Fkee-=wegNqkzUp9pLFLmaFrXuhiXRnUZ3Xw-JsoAwUIsXosN+BqQ9rBEUg@public.gmane.org>
+Content-Language: en-US
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: Nick Sarnie <commendsarnex-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Cc: linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Brijesh Singh <brijesh.singh-5C7GfCeVMHo@public.gmane.org>, Toshimitsu Kani <toshi.kani-ZPxbGqLxI0U@public.gmane.org>, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Larry Woodman <lwoodman-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, "Michael S. Tsirkin" <mst-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrey Ryabinin <aryabinin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Dave Young <dyoung-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Rik van Riel <riel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, kexec-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-kernel@vger.k
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jun 07, 2017 at 01:50:26PM +1000, Nicholas Piggin wrote:
-> > 
-> > I _think_ having
-> > 
-> > depends on LOCKUP_DETECTOR
-> > depends on HAVE_NMI_WATCHDOG || HAVE_PERF_EVENTS_NMI
-> > select HARDLOCKUP_DETECTOR_PERF if !HAVE_NMI_WATCHDOG
-> > 
-> > will work because your new definition of HARDLOCKUP_DETECTOR is a
-> > combination of HAVE_NMI_WATCHDOG && HARDLOCKUP_DETECTOR_PERF ??
-> > 
-> > Did I get that right?
+On 6/7/2017 9:40 PM, Nick Sarnie wrote:
+> On Wed, Jun 7, 2017 at 3:13 PM, Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org> wrote:
+>> This patch series provides support for AMD's new Secure Memory Encryption (SME)
+>> feature.
+>>
+>> SME can be used to mark individual pages of memory as encrypted through the
+>> page tables. A page of memory that is marked encrypted will be automatically
+>> decrypted when read from DRAM and will be automatically encrypted when
+>> written to DRAM. Details on SME can found in the links below.
+>>
+>> The SME feature is identified through a CPUID function and enabled through
+>> the SYSCFG MSR. Once enabled, page table entries will determine how the
+>> memory is accessed. If a page table entry has the memory encryption mask set,
+>> then that memory will be accessed as encrypted memory. The memory encryption
+>> mask (as well as other related information) is determined from settings
+>> returned through the same CPUID function that identifies the presence of the
+>> feature.
+>>
+>> The approach that this patch series takes is to encrypt everything possible
+>> starting early in the boot where the kernel is encrypted. Using the page
+>> table macros the encryption mask can be incorporated into all page table
+>> entries and page allocations. By updating the protection map, userspace
+>> allocations are also marked encrypted. Certain data must be accounted for
+>> as having been placed in memory before SME was enabled (EFI, initrd, etc.)
+>> and accessed accordingly.
+>>
+>> This patch series is a pre-cursor to another AMD processor feature called
+>> Secure Encrypted Virtualization (SEV). The support for SEV will build upon
+>> the SME support and will be submitted later. Details on SEV can be found
+>> in the links below.
+>>
+>> The following links provide additional detail:
+>>
+>> AMD Memory Encryption whitepaper:
+>>     http://amd-dev.wpengine.netdna-cdn.com/wordpress/media/2013/12/AMD_Memory_Encryption_Whitepaper_v7-Public.pdf
+>>
+>> AMD64 Architecture Programmer's Manual:
+>>     http://support.amd.com/TechDocs/24593.pdf
+>>     SME is section 7.10
+>>     SEV is section 15.34
+>>
+>> ---
+>>
+
+...
+
 > 
-> Well in some ways, except that most of the NMI watchdogs do not seem to
-> heed the HARDLOCKUP_DETECTOR configuration sysctls and commands.
 > 
-> NMI_WATCHDOG by itself was supposed to be for an arch that wnats to do
-> completely it own thing.
+> Hi Tom,
 > 
-> sparc is somewhere in the middle. It uses some of the HLD stuff, but
-> not all. That makes it a bit tricky.
+> Thanks for your work on this. This may be a stupid question, but is
+> using bounce buffers for the GPU(s) expected to reduce performance in
+> any/a noticeable way? I'm hitting another issue which I've already
+> sent mail about so I can't test it for myself at the moment,
 
-Hmm, I can see sparc relying on SOFTLOCKUP, but the HARDLOCKUP code with
-your patches seems really small.  The only sysctl is nmi_watchdog and
-hardlockup_panic.  The former is needed but the later is only implemented in
-the HARDLOCKUP_DETECTOR_PERF case.
+That all depends on the workload, how much DMA is being performed, etc.
+But it is extra overhead to use bounce buffers.
 
-So by having HAVE_NMI_WATCHDOG, you sorta need a sysctl knob which the
-HARDLOCKUP_DETECTOR seems to provide on top of the default knobs.
-
-With sparc being special and needing SOFTLOCKUP to call its nmi
-enable/disable hooks.
-
-
-Is there a particular chunk of code you had in mind that did not make sense
-with HARDLOCKUP_DETECTOR enabled?
-
-> 
-> 
-> > I almost wonder if arches should set either HAVE_NMI_WATCHDOG or
-> > HAVE_PERF_NMI_WATCHDOG and then use those two to determine
-> > HARDLOCKUP_DETECTOR.  Would that make the config options slightly less
-> > confusing?
-> 
-> This would probably be the right direction to go in, but it will take
-> slightly more I think. We first need to remove HAVE_NMI_WATCHDOG from
-> meaning that an arch has its own watchdog and does not want any HLD
-> stuff. I think with arch_touch_nmi_watchdog(), we can probably get there.
-> 
-> While transitioning, we could add a new option instead,
-> 
-> HAVE_ARCH_HARDLOCKUP_DETECTOR
-> 
-> I think HAVE_PERF_EVENTS_NMI is sufficient to imply it will use the PERF
-> HLD. Possibly you could just change the name to be a bit more regular,
-> HAVE_PERF_NMI_HARDLOCKUP_DETECTOR
-
-Actually, I don't think I can just rename it as it has a specific use to let
-OPROFILE know the perf events are being NMI triggered as opposed to IRQ
-triggered.
-
-Though I like the direction you are going.  Then arches either have one or
-the other.  Or in the ppc case it is dependent on what ppc platform is being
-used.
-
-Then the HARDLOCKUP_DETECTOR needs one or the other to work correctly with
-the arch/<arch>/Kconfig explicitly stating which one to use?
-
-Cheers,
-Don
-
-
+Thanks,
+Tom
 
 > 
 > Thanks,
-> Nick
+> Sarnex
+> 
