@@ -1,90 +1,48 @@
-From: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
-Subject: Re: [PATCH v6 00/34] x86: Secure Memory Encryption (AMD)
-Date: Thu, 8 Jun 2017 11:14:38 -0500
-Message-ID: <2dd424fe-0af1-d82f-b608-271ea5e1f62b@amd.com>
-References: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
-	<CAOcCaLYWoOu0c-Fkee-=wegNqkzUp9pLFLmaFrXuhiXRnUZ3Xw@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <CAOcCaLYWoOu0c-Fkee-=wegNqkzUp9pLFLmaFrXuhiXRnUZ3Xw-JsoAwUIsXosN+BqQ9rBEUg@public.gmane.org>
-Content-Language: en-US
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Nick Sarnie <commendsarnex-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Cc: linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Brijesh Singh <brijesh.singh-5C7GfCeVMHo@public.gmane.org>, Toshimitsu Kani <toshi.kani-ZPxbGqLxI0U@public.gmane.org>, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Larry Woodman <lwoodman-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, "Michael S. Tsirkin" <mst-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrey Ryabinin <aryabinin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Dave Young <dyoung-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Rik van Riel <riel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, kexec-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-kernel@vger.k
-List-Id: linux-arch.vger.kernel.org
+From: Palmer Dabbelt <palmer@dabbelt.com>
+Subject: Re: RISC-V Linux Port v2
+Date: Thu, 08 Jun 2017 11:16:40 -0700 (PDT)
+Message-ID: <mhng-5c2e7501-fbce-48a4-ae20-d69cb0660e04@palmer-si-x1c4>
+References: <20170608102632.GE6071@arm.com>
+Mime-Version: 1.0 (MHng)
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pf0-f196.google.com ([209.85.192.196]:34284 "EHLO
+        mail-pf0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751392AbdFHSQl (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 8 Jun 2017 14:16:41 -0400
+Received: by mail-pf0-f196.google.com with SMTP id u1so5996484pfg.1
+        for <linux-arch@vger.kernel.org>; Thu, 08 Jun 2017 11:16:41 -0700 (PDT)
+In-Reply-To: <20170608102632.GE6071@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: will.deacon@arm.com
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Olof Johansson <olof@lixom.net>, albert@sifive.com, patches@groups.riscv.org
 
-On 6/7/2017 9:40 PM, Nick Sarnie wrote:
-> On Wed, Jun 7, 2017 at 3:13 PM, Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org> wrote:
->> This patch series provides support for AMD's new Secure Memory Encryption (SME)
->> feature.
+On Thu, 08 Jun 2017 03:26:32 PDT (-0700), will.deacon@arm.com wrote:
+> On Wed, Jun 07, 2017 at 02:54:16PM -0700, Palmer Dabbelt wrote:
+>> On Wed, 07 Jun 2017 02:23:42 PDT (-0700), will.deacon@arm.com wrote:
+>> > Hi Palmer,
+>> >
+>> > On Tue, Jun 06, 2017 at 03:59:50PM -0700, Palmer Dabbelt wrote:
+>> >> Thanks to everyone who has participated in the review process so far.  We've
+>> >> made a lot of changes since the v1 and while this isn't ready to go yet, I
+>> >> finally managed to get through everything in my inbox so I thought it would be
+>> >> a good time to submit a v2 so everyone is on the same page.
+>> >
+>> > [...]
+>> >
+>> >> [PATCH 13/17] RISC-V: Add include subdirectory
+>> >
+>> > This guy is too big, and got silently dropped by the mailing list. Any
+>> > chance you could split it up please, so that it can be reviewed?
 >>
->> SME can be used to mark individual pages of memory as encrypted through the
->> page tables. A page of memory that is marked encrypted will be automatically
->> decrypted when read from DRAM and will be automatically encrypted when
->> written to DRAM. Details on SME can found in the links below.
+>> Sorry about that.  It's online
 >>
->> The SME feature is identified through a CPUID function and enabled through
->> the SYSCFG MSR. Once enabled, page table entries will determine how the
->> memory is accessed. If a page table entry has the memory encryption mask set,
->> then that memory will be accessed as encrypted memory. The memory encryption
->> mask (as well as other related information) is determined from settings
->> returned through the same CPUID function that identifies the presence of the
->> feature.
+>>   https://github.com/riscv/riscv-linux/commit/daaea1609cb5e8c93745c1ce112a06e90f5b663c
 >>
->> The approach that this patch series takes is to encrypt everything possible
->> starting early in the boot where the kernel is encrypted. Using the page
->> table macros the encryption mask can be incorporated into all page table
->> entries and page allocations. By updating the protection map, userspace
->> allocations are also marked encrypted. Certain data must be accounted for
->> as having been placed in memory before SME was enabled (EFI, initrd, etc.)
->> and accessed accordingly.
->>
->> This patch series is a pre-cursor to another AMD processor feature called
->> Secure Encrypted Virtualization (SEV). The support for SEV will build upon
->> the SME support and will be submitted later. Details on SEV can be found
->> in the links below.
->>
->> The following links provide additional detail:
->>
->> AMD Memory Encryption whitepaper:
->>     http://amd-dev.wpengine.netdna-cdn.com/wordpress/media/2013/12/AMD_Memory_Encryption_Whitepaper_v7-Public.pdf
->>
->> AMD64 Architecture Programmer's Manual:
->>     http://support.amd.com/TechDocs/24593.pdf
->>     SME is section 7.10
->>     SEV is section 15.34
->>
->> ---
->>
+>> I'll be sure to split it up next time.  I can submit a v3 if you want?
+>
+> It looks like you'll be submitting a v3 anyway, so if you could split it up
+> for that then it would be much appreciated.
 
-...
-
-> 
-> 
-> Hi Tom,
-> 
-> Thanks for your work on this. This may be a stupid question, but is
-> using bounce buffers for the GPU(s) expected to reduce performance in
-> any/a noticeable way? I'm hitting another issue which I've already
-> sent mail about so I can't test it for myself at the moment,
-
-That all depends on the workload, how much DMA is being performed, etc.
-But it is extra overhead to use bounce buffers.
-
-Thanks,
-Tom
-
-> 
-> Thanks,
-> Sarnex
-> 
+Sounds good.  I won't spin a v3 just for this problem, as there's a lot of
+other comments I need to go through.
