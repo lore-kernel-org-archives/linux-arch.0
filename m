@@ -1,147 +1,102 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v2] refcount: Create unchecked atomic_t implementation
-Date: Wed, 7 Jun 2017 19:58:31 -0700
-Message-ID: <20170608025831.GA43608@beast>
+From: Frank Rowand <frowand.list@gmail.com>
+Subject: Re: [PATCH 03/17] base: fix order of OF initialization
+Date: Wed, 7 Jun 2017 20:49:43 -0700
+Message-ID: <5938C957.2030005@gmail.com>
+References: <20170523004107.536-1-palmer@dabbelt.com>
+ <20170606230007.19101-1-palmer@dabbelt.com>
+ <20170606230007.19101-4-palmer@dabbelt.com>
+ <CAMuHMdXWH5fU8YKfR37D5SMi1GpSk75Bq-OcYmm5ZuHe+XK0PQ@mail.gmail.com>
+ <20170607093523.GB29370@leverpostej>
+ <CAMgXwTiE48KLCJe6TD6VCd5rYASyw0L+pYh8yfvGjhohAfo2dg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f43.google.com ([74.125.83.43]:36792 "EHLO
-        mail-pg0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751441AbdFHC6e (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 7 Jun 2017 22:58:34 -0400
-Received: by mail-pg0-f43.google.com with SMTP id a70so11274337pge.3
-        for <linux-arch@vger.kernel.org>; Wed, 07 Jun 2017 19:58:34 -0700 (PDT)
-Content-Disposition: inline
+Received: from mail-pg0-f68.google.com ([74.125.83.68]:36402 "EHLO
+        mail-pg0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751502AbdFHDu3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 7 Jun 2017 23:50:29 -0400
+In-Reply-To: <CAMgXwTiE48KLCJe6TD6VCd5rYASyw0L+pYh8yfvGjhohAfo2dg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Christoph Hellwig <hch@infradead.org>, Peter Zijlstra <peterz@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>"x86@kernel.org" <x>
+To: Wesley Terpstra <wesley@sifive.com>, Mark Rutland <mark.rutland@arm.com>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Palmer Dabbelt <palmer@dabbelt.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Olof Johansson <olof@lixom.net>, Albert Ou <albert@sifive.com>, patches@groups.riscv.org, Rob Herring <robh+dt@kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-Many subsystems will not use refcount_t unless there is a way to build the
-kernel so that there is no regression in speed compared to atomic_t. This
-adds CONFIG_REFCOUNT_FULL to enable the full refcount_t implementation
-which has the validation but is slightly slower. When not enabled,
-refcount_t uses the basic unchecked atomic_t routines, which results in
-no code changes compared to just using atomic_t directly.
+On 06/07/17 11:39, Wesley Terpstra wrote:
+> It was a while ago that I debugged this. I already reported this bug
+> to Benjamin Herrenschmidt (now in CC), and I believe he has a patch of
+> his own to fix the same issue.
+> 
+> As I understand it, of_core_init sets up the OF entries in
+> /sys/firmware/devicetree. During platform bringup, when the system
+> describes the cpu + cache hierarchy, it also makes an of_node symlink
+> into that directory. However, if it doesn't exist yet, you get the
+> warning.
+> 
+> # ls -l /sys/devices/system/cpu/cpu3/of_node
+> lrwxrwxrwx    1 root     root             0 Jan  1 00:00
+> /sys/devices/system/cpu/cpu3/of_node ->
+> ../../../../firmware/devicetree/base/cpus/cpu@3
+> 
+> On Wed, Jun 7, 2017 at 2:35 AM, Mark Rutland <mark.rutland@arm.com> wrote:
+>> On Wed, Jun 07, 2017 at 09:07:20AM +0200, Geert Uytterhoeven wrote:
+>>> CC devicetree folks
+>>>
+>>> On Wed, Jun 7, 2017 at 12:59 AM, Palmer Dabbelt <palmer@dabbelt.com> wrote:
+>>>> From: "Wesley W. Terpstra" <wesley@sifive.com>
+>>>>
+>>>> This fixes: [    0.010000] cpu cpu0: Error -2 creating of_node link
+>>>> ... which you get for every CPU on all architectures with a OF cpu/ node.
+>>
+>> I take it this means a /cpus node? Or the /cpus/cpu@* nodes?
+>>
+>> I'm not seeing this on arm64 when booting v4.12-rc4 with DT, so clearly
+>> this doesn't affect all such architectures.
+>>
+>> What path are these errors happening in?
 
-Signed-off-by: Kees Cook <keescook@chromium.org>
----
-This is v2 of this patch, which I've split from the arch-specific
-alternative implementation for x86. Getting this patch in will unblock
-atomic_t -> refcount_t conversion, and the x86 alternative implementation
-can be developed in parallel. Changes from v1: use better atomic ops,
-thanks to Elena and Peter.
----
- arch/Kconfig             |  9 +++++++++
- include/linux/refcount.h | 44 ++++++++++++++++++++++++++++++++++++++++++++
- lib/refcount.c           |  3 +++
- 3 files changed, 56 insertions(+)
+On the surface, the patch looks reasonable.  But it is not obvious to me why
+the error message is occurring.  I would like to understand the cause before
+saying the patch is good.
 
-diff --git a/arch/Kconfig b/arch/Kconfig
-index 6c00e5b00f8b..fba3bf186728 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -867,4 +867,13 @@ config STRICT_MODULE_RWX
- config ARCH_WANT_RELAX_ORDER
- 	bool
- 
-+config REFCOUNT_FULL
-+	bool "Perform full reference count validation at the expense of speed"
-+	help
-+	  Enabling this switches the refcounting infrastructure from a fast
-+	  unchecked atomic_t implementation to a fully state checked
-+	  implementation, which can be slower but provides protections
-+	  against various use-after-free conditions that can be used in
-+	  security flaw exploits.
-+
- source "kernel/gcov/Kconfig"
-diff --git a/include/linux/refcount.h b/include/linux/refcount.h
-index b34aa649d204..099c32bd07b2 100644
---- a/include/linux/refcount.h
-+++ b/include/linux/refcount.h
-@@ -41,6 +41,7 @@ static inline unsigned int refcount_read(const refcount_t *r)
- 	return atomic_read(&r->refs);
- }
- 
-+#ifdef CONFIG_REFCOUNT_FULL
- extern __must_check bool refcount_add_not_zero(unsigned int i, refcount_t *r);
- extern void refcount_add(unsigned int i, refcount_t *r);
- 
-@@ -52,6 +53,49 @@ extern void refcount_sub(unsigned int i, refcount_t *r);
- 
- extern __must_check bool refcount_dec_and_test(refcount_t *r);
- extern void refcount_dec(refcount_t *r);
-+#else
-+static inline __must_check bool refcount_add_not_zero(unsigned int i,
-+						      refcount_t *r)
-+{
-+	return atomic_add_unless(&r->refs, i, 0);
-+}
-+
-+static inline void refcount_add(unsigned int i, refcount_t *r)
-+{
-+	atomic_add(i, &r->refs);
-+}
-+
-+static inline __must_check bool refcount_inc_not_zero(refcount_t *r)
-+{
-+	return atomic_add_unless(&r->refs, 1, 0);
-+}
-+
-+static inline void refcount_inc(refcount_t *r)
-+{
-+	atomic_inc(&r->refs);
-+}
-+
-+static inline __must_check bool refcount_sub_and_test(unsigned int i,
-+						      refcount_t *r)
-+{
-+	return atomic_sub_and_test(i, &r->refs);
-+}
-+
-+static inline void refcount_sub(unsigned int i, refcount_t *r)
-+{
-+	atomic_sub(i, &r->refs);
-+}
-+
-+static inline __must_check bool refcount_dec_and_test(refcount_t *r)
-+{
-+	return atomic_dec_and_test(&r->refs);
-+}
-+
-+static inline void refcount_dec(refcount_t *r)
-+{
-+	atomic_dec(&r->refs);
-+}
-+#endif /* CONFIG_REFCOUNT_FULL */
- 
- extern __must_check bool refcount_dec_if_one(refcount_t *r);
- extern __must_check bool refcount_dec_not_one(refcount_t *r);
-diff --git a/lib/refcount.c b/lib/refcount.c
-index 9f906783987e..5d0582a9480c 100644
---- a/lib/refcount.c
-+++ b/lib/refcount.c
-@@ -37,6 +37,8 @@
- #include <linux/refcount.h>
- #include <linux/bug.h>
- 
-+#ifdef CONFIG_REFCOUNT_FULL
-+
- /**
-  * refcount_add_not_zero - add a value to a refcount unless it is 0
-  * @i: the value to add to the refcount
-@@ -225,6 +227,7 @@ void refcount_dec(refcount_t *r)
- 	WARN_ONCE(refcount_dec_and_test(r), "refcount_t: decrement hit 0; leaking memory.\n");
- }
- EXPORT_SYMBOL(refcount_dec);
-+#endif /* CONFIG_REFCOUNT_FULL */
- 
- /**
-  * refcount_dec_if_one - decrement a refcount if it is 1
--- 
-2.7.4
+What kernel version is showing the error?  For a specific architecture
+(the patch lists 'riscv, nios, etc'), which config and device tree source?
 
+And again, what is the calling path?
 
--- 
-Kees Cook
-Pixel Security
+- Frank
+
+>>
+>> Thanks,
+>> Mark.
+>>
+>>>>
+>>>> This affects riscv, nios, etc.
+>>>>
+>>>> Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
+>>>> ---
+>>>>  drivers/base/init.c | 2 +-
+>>>>  1 file changed, 1 insertion(+), 1 deletion(-)
+>>>>
+>>>> diff --git a/drivers/base/init.c b/drivers/base/init.c
+>>>> index 48c0e220acc0..0dcd17e561d0 100644
+>>>> --- a/drivers/base/init.c
+>>>> +++ b/drivers/base/init.c
+>>>> @@ -31,9 +31,9 @@ void __init driver_init(void)
+>>>>         /* These are also core pieces, but must come after the
+>>>>          * core core pieces.
+>>>>          */
+>>>> +       of_core_init();
+>>>>         platform_bus_init();
+>>>>         cpu_dev_init();
+>>>>         memory_dev_init();
+>>>>         container_dev_init();
+>>>> -       of_core_init();
+>>>>  }
+>>>> --
+>>>> 2.13.0
+>>> --
+>>> To unsubscribe from this list: send the line "unsubscribe devicetree" in
+>>> the body of a message to majordomo@vger.kernel.org
+>>> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> 
