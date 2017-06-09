@@ -1,21 +1,25 @@
 From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH 3/5] sh: thin archives fix linking
-Date: Fri,  9 Jun 2017 15:24:15 +1000
-Message-ID: <20170609052417.561-4-npiggin@gmail.com>
+Subject: [PATCH 4/5] x86/um: thin archives build fix
+Date: Fri,  9 Jun 2017 15:24:16 +1000
+Message-ID: <20170609052417.561-5-npiggin@gmail.com>
 References: <20170609052417.561-1-npiggin@gmail.com>
-Return-path: <linux-kbuild-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pg0-f67.google.com ([74.125.83.67]:34869 "EHLO
+        mail-pg0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751505AbdFIFZH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 9 Jun 2017 01:25:07 -0400
 In-Reply-To: <20170609052417.561-1-npiggin@gmail.com>
-Sender: linux-kbuild-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Nicholas Piggin <npiggin@gmail.com>, Masahiro Yamada <yamada.masahiro@socionext.com>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, linux-sh@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Cc: Nicholas Piggin <npiggin@gmail.com>, Masahiro Yamada <yamada.masahiro@socionext.com>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, user-mode-linux-devel@lists.sourceforge.net
 
-The VDSO symbols can't be linked into built-in.o when building with
-thin archives, so change this to linking them into the final link.
+The linker does not like vdso-syms.lds in input archive files.
+Make it an extra-y instead.
 
-Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-Cc: Rich Felker <dalias@libc.org>
-Cc: linux-sh@vger.kernel.org
+Cc: Jeff Dike <jdike@addtoit.com>
+Cc: Richard Weinberger <richard@nod.at>
+Cc: user-mode-linux-devel@lists.sourceforge.net
 Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 ---
 
@@ -25,36 +29,21 @@ the kbuild tree.
 Thanks,
 Nick
 
- arch/sh/Makefile                 | 2 ++
- arch/sh/kernel/vsyscall/Makefile | 2 --
- 2 files changed, 2 insertions(+), 2 deletions(-)
+ arch/x86/um/vdso/Makefile | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/sh/Makefile b/arch/sh/Makefile
-index 280bbff12102..a907366f0352 100644
---- a/arch/sh/Makefile
-+++ b/arch/sh/Makefile
-@@ -97,6 +97,8 @@ defaultimage-$(CONFIG_SH_7619_SOLUTION_ENGINE)	:= vmlinux
- boot := arch/sh/boot
- KBUILD_IMAGE		:= $(boot)/$(defaultimage-y)
+diff --git a/arch/x86/um/vdso/Makefile b/arch/x86/um/vdso/Makefile
+index d72dec406ccb..329406224330 100644
+--- a/arch/x86/um/vdso/Makefile
++++ b/arch/x86/um/vdso/Makefile
+@@ -53,7 +53,7 @@ CFLAGS_REMOVE_vdso-note.o = -pg -fprofile-arcs -ftest-coverage
+ CFLAGS_REMOVE_um_vdso.o = -pg -fprofile-arcs -ftest-coverage
  
-+LDFLAGS_vmlinux		+= -R arch/sh/kernel/vsyscall/vsyscall-syms.o
-+
+ targets += vdso-syms.lds
+-obj-$(VDSO64-y)			+= vdso-syms.lds
++extra-$(VDSO64-y)			+= vdso-syms.lds
+ 
  #
- # Choosing incompatible machines durings configuration will result in
- # error messages during linking.
-diff --git a/arch/sh/kernel/vsyscall/Makefile b/arch/sh/kernel/vsyscall/Makefile
-index 8f0ea5fc835c..b82d13eb8d30 100644
---- a/arch/sh/kernel/vsyscall/Makefile
-+++ b/arch/sh/kernel/vsyscall/Makefile
-@@ -27,8 +27,6 @@ $(obj)/vsyscall-%.so: $(src)/vsyscall.lds $(obj)/vsyscall-%.o FORCE
- # table and layout of the linked DSO.  With ld -R we can then refer to
- # these symbols in the kernel code rather than hand-coded addresses.
- extra-y += vsyscall-syms.o
--$(obj)/built-in.o: $(obj)/vsyscall-syms.o
--$(obj)/built-in.o: ld_flags += -R $(obj)/vsyscall-syms.o
- 
- SYSCFLAGS_vsyscall-syms.o = -r
- $(obj)/vsyscall-syms.o: $(src)/vsyscall.lds \
+ # Match symbols in the DSO that look like VDSO*; produce a file of constants.
 -- 
 2.11.0
-
