@@ -1,105 +1,144 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2nam03on0083.outbound.protection.outlook.com ([104.47.42.83]:60111
-        "EHLO NAM03-BY2-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751545AbdFIVUm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 9 Jun 2017 17:20:42 -0400
-Subject: Re: [PATCH v6 10/34] x86, x86/mm, x86/xen, olpc: Use __va() against
- just the physical address in cr3
-References: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
- <20170607191453.28645.92256.stgit@tlendack-t1.amdoffice.net>
- <CALCETrVVhMf=zkiDNn_-hKDZLGXKFiwxuWkPmD5RJgHa5VUMiQ@mail.gmail.com>
- <85355c4c-2cc1-daac-d8fe-ac6965b34606@amd.com>
- <CALCETrVyHbgJxk6hTRuM0CCpWTvFSX0MxuUQjKOf=7hYCt-yEg@mail.gmail.com>
-From: Tom Lendacky <thomas.lendacky@amd.com>
-Message-ID: <601d5972-72b0-6556-0054-7275cb763816@amd.com>
-Date: Fri, 9 Jun 2017 16:20:35 -0500
+Received: from mail-yw0-f177.google.com ([209.85.161.177]:35504 "EHLO
+        mail-yw0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751616AbdFIVqa (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 9 Jun 2017 17:46:30 -0400
+Received: by mail-yw0-f177.google.com with SMTP id v7so7588095ywc.2
+        for <linux-arch@vger.kernel.org>; Fri, 09 Jun 2017 14:46:30 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <CALCETrVyHbgJxk6hTRuM0CCpWTvFSX0MxuUQjKOf=7hYCt-yEg@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <20170608105230.GC5765@leverpostej>
+References: <20170523004107.536-1-palmer@dabbelt.com> <20170606230007.19101-1-palmer@dabbelt.com>
+ <20170606230007.19101-9-palmer@dabbelt.com> <CAMuHMdWYNVvh4hqDrqYNe2oyVHkCbH15VfWTWHaBCeRAaf6O4g@mail.gmail.com>
+ <20170607101343.GC29370@leverpostej> <CAMgXwTiz0jXgSw=veJ3O7xzVgm==YisZZLWpZFH7aJMXV4j7qA@mail.gmail.com>
+ <20170608105230.GC5765@leverpostej>
+From: Wesley Terpstra <wesley@sifive.com>
+Date: Fri, 9 Jun 2017 14:46:28 -0700
+Message-ID: <CAMgXwTgk0yY2WzqKGnriy+KR0+YqZJYLEBz_HStYq03d5C3QKQ@mail.gmail.com>
+Subject: Re: [PATCH 08/17] dts: include documentation for the RISC-V interrupt controllers
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@kernel.org>
-Cc: linux-arch <linux-arch@vger.kernel.org>, "linux-efi@vger.kernel.org" <linux-efi@vger.kernel.org>, kvm list <kvm@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, X86 ML <x86@kernel.org>, kexec@lists.infradead.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170609212035.deu2Kw00GOx0BaTLdqOL04-KFl5XYBJJlcWybFDjdwU@z>
+To: Mark Rutland <mark.rutland@arm.com>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Palmer Dabbelt <palmer@dabbelt.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Olof Johansson <olof@lixom.net>, Albert Ou <albert@sifive.com>, patches@groups.riscv.org, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <Marc.Zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>
+Message-ID: <20170609214628.Pe5M94JPE1iHXTFer0-QZ7Tf7YiYa-eRVKeSt6Ud3EU@z>
 
-On 6/9/2017 1:46 PM, Andy Lutomirski wrote:
-> On Thu, Jun 8, 2017 at 3:38 PM, Tom Lendacky <thomas.lendacky@amd.com> wrote:
->> On 6/8/2017 1:05 AM, Andy Lutomirski wrote:
->>>
->>> On Wed, Jun 7, 2017 at 12:14 PM, Tom Lendacky <thomas.lendacky@amd.com>
->>> wrote:
->>>>
->>>> The cr3 register entry can contain the SME encryption bit that indicates
->>>> the PGD is encrypted.  The encryption bit should not be used when
->>>> creating
->>>> a virtual address for the PGD table.
->>>>
->>>> Create a new function, read_cr3_pa(), that will extract the physical
->>>> address from the cr3 register. This function is then used where a virtual
->>>> address of the PGD needs to be created/used from the cr3 register.
->>>
->>>
->>> This is going to conflict with:
->>>
->>>
->>> https://git.kernel.org/pub/scm/linux/kernel/git/luto/linux.git/commit/?h=x86/pcid&id=555c81e5d01a62b629ec426a2f50d27e2127c1df
->>>
->>> We're both encountering the fact that CR3 munges the page table PA
->>> with some other stuff, and some readers want to see the actual CR3
->>> value and other readers just want the PA.  The thing I prefer about my
->>> patch is that I get rid of read_cr3() entirely, forcing the patch to
->>> update every single reader, making review and conflict resolution much
->>> safer.
->>>
->>> I'd be willing to send a patch tomorrow that just does the split into
->>> __read_cr3() and read_cr3_pa() (I like your name better) and then we
->>> can both base on top of it.  Would that make sense?
+On Thu, Jun 8, 2017 at 3:52 AM, Mark Rutland <mark.rutland@arm.com> wrote:
+>> What flags?
+>
+> Edge vs level, active high vs active low. Typically some of these are
+> programmable, and are described as flags in the interrupt-specifier.
+>
+> See the examples in:
+>
+> Documentation/devicetree/bindings/interrupt-controller/interrupts.txt
+
+Ok. Those are not applicable to the PLIC.
+
+>
+>> > Are all HLIC interrupts edge triggered (or level triggered)?
 >>
+>> HLIC = level. PLIC = both.
+>
+> Ok. Given that, flags aren't necessary for the HLIC, and the
+> interrupt-specifier is fine as-is.
+>
+>> >> > +RISC-V cores typically include a PLIC, which route interrupts from multiple
+>> >> > +devices to multiple hart contexts.  The PLIC is connected to the interrupt
+>> >> > +controller embedded in a RISC-V core via the interrupt-related CSRs.
+>> >
+>> > Do you mean that the PLIC is connected to the HLIC, or that the HLIC is
+>> > also managed in part through CSRs?
 >>
->> That makes sense to me.
-> 
-> Draft patch:
-> 
-> https://git.kernel.org/pub/scm/linux/kernel/git/luto/linux.git/commit/?h=x86/read_cr3&id=9adebbc1071f066421a27b4f6e040190f1049624
-
-Looks good to me. I'll look at how to best mask off the encryption bit
-in CR3_ADDR_MASK for SME support.  I should be able to just do an
-__sme_clr() against it.
-
-> 
+>> Both. The HLIC is entirely manager through CSRs. The PLIC is managed
+>> through a memory mapped interface. The PLIC is attached to the HLIC.
+>
+> So do any CSRs affect the state of the PLIC? If it's just MMIO, the
+> mention of CSRs above is just a little confusing.
+>
+> It might be best to just say "The PLIC is connect to the HLIC embedded
+> in each RISC-V core".
+>
+>> >> > +Required properties:
+>> >> > +- compatible : "riscv,plic0"
+>> >> > +- #address-cells : should be <0>
+>> >> > +- #interrupt-cells : should be <1>
+>> >
+>> > As with the HLIC, what about the flags?
 >>
->>>
->>> Also:
->>>
->>>> +static inline unsigned long read_cr3_pa(void)
->>>> +{
->>>> +       return (read_cr3() & PHYSICAL_PAGE_MASK);
->>>> +}
->>>
->>>
->>> Is there any guarantee that the magic encryption bit is masked out in
->>> PHYSICAL_PAGE_MASK?  The docs make it sound like it could be any bit.
->>> (But if it's one of the low 12 bits, that would be quite confusing.)
+>> Still unsure what flags we're talking about.
+>
+> As covered above for the HLIC.
+>
+> It sounds like we'd need these to distinguish edge/level interrupts,
+> unless that's fixed at integration time and you can determine it from
+> the PLIC itself?
+>
+>> >> > +- riscv,ndev : Specifies the number of interrupts attached to the PLIC
+>> >
+>> > Why do we need to know this?
+>> >
+>> > I suspect this ia actually the number of interrupts implemented in the
+>> > PLIC, rather than the number of interrupts attached. i.e. the PLIC can
+>> > be implemented with a subset of the potential registers/bits. Is that
+>> > correct?
 >>
+>> You're in principle correct, although these are probably always the same.
+>
+> For now, perhaps. Let's not embed an assumption we cannot guarantee.
+>
+>> > If so, something like "riscv,num-interrupts" would be better, along with
+>> > a clearer description.
 >>
->> Right now it's bit 47 and we're steering away from any of the currently
->> reserved bits so we should be safe.
-> 
-> Should the SME init code check that it's a usable bit (i.e. outside
-> our physical address mask and not one of the bottom twelve bits)?  If
-> some future CPU daftly picks, say, bit 12, we'll regret it if we
-> enable SME.
-
-I think I can safely say that it will never be any of the lower 12 bits,
-but let me talk to some of the hardware folks and see about the other
-end of the range.
-
-Thanks,
-Tom
-
-> 
-> --Andy
-> 
+>> Uhm. I suppose we can change this. However, it would requires changes
+>> to quite a number of riscv repositories. I believe this is also
+>> included in the riscv platform specification. A better description is
+>> easy, do we really need to change the key?
+>
+> It's not too much of a problem, but if we end up having to change
+> anything else from the proposed bindings, those trees are going to
+> require updates anyway.
+>
+> If we can, I would like to change this to keep things as clear as
+> possible from the outset.
+>
+> [...]
+>
+>> > You will need to be explicit about the order of interrupts in this
+>> > property. i.e. which interrupt is routed to which context?
+>>
+>> Yes. Order and position matter.
+>
+> Ok.
+>
+> Please update the binding to explicitly define the ordering requirement.
+>
+> [...]
+>
+>> > Also, please consider how you will handle the case when the Linux
+>> > logical CPU ID is not the same as the physical ID, and how you will
+>> > handle physical IDs being sparse.
+>>
+>> We already deal with this. If the interrupt is '-1', we skip it.
+>> That's done in plic.c:
+>>                 if (parent.args[0] == -1) continue; // skip context holes
+>
+> If this is what we expect people to do, it needs to be documented in the
+> binding.
+>
+> Does this mean that you expect Linux logical CPU IDs to be equal to
+> physical CPU IDs in all cases?
+>
+> That's going to be painful for very sparse ID ranges, and won't work for
+> cases like kexec/kdump where you cannot guarantee which physical CPU
+> will end up being CPU0 in the new kernel.
+>
+> I would strongly advise that you explicitly describe the relationship
+> using phandles to CPU nodes.
+>
+> I would also advise that you try to decouple the physical CPU IDs and
+> Linux logical IDs. While assuming they're the same might simplify things
+> today, it will create longer term maintenance problems and get in the
+> way of a number of features.
+>
+> Thanks,
+> Mark.
