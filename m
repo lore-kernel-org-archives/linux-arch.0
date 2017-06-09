@@ -1,37 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:56732 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751537AbdFIHVL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 9 Jun 2017 03:21:11 -0400
-Date: Fri, 9 Jun 2017 09:20:36 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v2] refcount: Create unchecked atomic_t implementation
-Message-ID: <20170609072036.GK8337@worktop.programming.kicks-ass.net>
-References: <20170608025831.GA43608@beast>
- <20170608065809.GC14568@infradead.org>
- <2236FBA76BA1254E88B949DDB74E612B6FF0E5C7@IRSMSX102.ger.corp.intel.com>
- <20170608200931.GC2464@linux-80c1.suse>
- <cea7c45e-511a-38ce-6b70-9a3a80108414@colorfullife.com>
+Received: from mail.linuxfoundation.org ([140.211.169.12]:46628 "EHLO
+        mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751528AbdFIJ1I (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 9 Jun 2017 05:27:08 -0400
+Date: Fri, 9 Jun 2017 11:26:59 +0200
+From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Subject: Re: [PATCH v4 2/2] tty: add TIOCGPTPEER ioctl
+Message-ID: <20170609092659.GA26933@kroah.com>
+References: <20170603141515.9529-1-asarai@suse.de>
+ <20170603141515.9529-3-asarai@suse.de>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <cea7c45e-511a-38ce-6b70-9a3a80108414@colorfullife.com>
+In-Reply-To: <20170603141515.9529-3-asarai@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Manfred Spraul <manfred@colorfullife.com>
-Cc: Davidlohr Bueso <dave@stgolabs.net>, "Reshetova, Elena" <elena.reshetova@intel.com>, Christoph Hellwig <hch@infradead.org>, Kees Cook <keescook@chromium.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, "arozansk@redhat.com" <arozansk@redhat.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20170609072036.x7dw8cauirCxS1ywl9D7EZcAeyirmYR-d2trYFZwAM0@z>
+To: Aleksa Sarai <asarai@suse.de>
+Cc: Jiri Slaby <jslaby@suse.com>, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Christian Brauner <christian.brauner@ubuntu.com>, Valentin Rothberg <vrothberg@suse.com>
+Message-ID: <20170609092659.AayXNp2ZADVynLHNlLsIBJcEKJ4N0YQPqLRYU9FPMCE@z>
 
-On Fri, Jun 09, 2017 at 06:24:04AM +0200, Manfred Spraul wrote:
-> Hi Davidlohr,
+On Sun, Jun 04, 2017 at 12:15:15AM +1000, Aleksa Sarai wrote:
+> When opening the slave end of a PTY, it is not possible for userspace to
+> safely ensure that /dev/pts/$num is actually a slave (in cases where the
+> mount namespace in which devpts was mounted is controlled by an
+> untrusted process). In addition, there are several unresolvable
+> race conditions if userspace were to attempt to detect attacks through
+> stat(2) and other similar methods [in addition it is not clear how
+> userspace could detect attacks involving FUSE].
 > 
-> On 06/08/2017 10:09 PM, Davidlohr Bueso wrote:
-> >
-> >Yes, this would be a prerequisite for ipc; which I initially thought
-> >didn't
-> >take a performance hit.
-> >
-> Did you see a regression for ipc?
+> Resolve this by providing an interface for userpace to safely open the
+> "peer" end of a PTY file descriptor by using the dentry cached by
+> devpts. Since it is not possible to have an open master PTY without
+> having its slave exposed in /dev/pts this interface is safe. This
+> interface currently does not provide a way to get the master pty (since
+> it is not clear whether such an interface is safe or even useful).
+> 
+> Cc: Christian Brauner <christian.brauner@ubuntu.com>
+> Cc: Valentin Rothberg <vrothberg@suse.com>
+> Signed-off-by: Aleksa Sarai <asarai@suse.de>
 
-I'd be most interested in having a benchmark that shows a regression.
-Please share.
+Is this going to be documented anywhere?  Is there a man page update
+that also goes along with this?  What userspace program wants to use
+this?
+
+I'm not objecting to this, I just want to know that people will use
+this, and that they can find out information about it if they want to.
+
+thanks,
+
+greg k-h
