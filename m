@@ -1,65 +1,60 @@
 From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH 2/5] kbuild: thin archives use P option to ar
-Date: Fri,  9 Jun 2017 15:24:14 +1000
-Message-ID: <20170609052417.561-3-npiggin@gmail.com>
+Subject: [PATCH 3/5] sh: thin archives fix linking
+Date: Fri,  9 Jun 2017 15:24:15 +1000
+Message-ID: <20170609052417.561-4-npiggin@gmail.com>
 References: <20170609052417.561-1-npiggin@gmail.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f65.google.com ([74.125.83.65]:35809 "EHLO
-        mail-pg0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751483AbdFIFYv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 9 Jun 2017 01:24:51 -0400
+Return-path: <linux-kbuild-owner@vger.kernel.org>
 In-Reply-To: <20170609052417.561-1-npiggin@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kbuild-owner@vger.kernel.org
 To: linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Nicholas Piggin <npiggin@gmail.com>, Masahiro Yamada <yamada.masahiro@socionext.com>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: Nicholas Piggin <npiggin@gmail.com>, Masahiro Yamada <yamada.masahiro@socionext.com>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, linux-sh@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-The P option makes ar do full path name matching and can prevent ar
-from discarding files with duplicate names in some cases of creating
-thin archives from thin archives. The sh architecture in particular
-loses some object files from its kernel/cpu/sh*/ directories without
-this option.
+The VDSO symbols can't be linked into built-in.o when building with
+thin archives, so change this to linking them into the final link.
 
-This could be a bug in binutils ar, but the P option should not cause
-any negative effects so it is safe to use to work around tihs with.
-
+Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+Cc: Rich Felker <dalias@libc.org>
+Cc: linux-sh@vger.kernel.org
 Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 ---
- scripts/Makefile.build | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/scripts/Makefile.build b/scripts/Makefile.build
-index 733e044fff8b..4a9a2cec0a1b 100644
---- a/scripts/Makefile.build
-+++ b/scripts/Makefile.build
-@@ -437,8 +437,8 @@ $(sort $(subdir-obj-y)): $(subdir-ym) ;
- ifdef builtin-target
+Arch maintainers please give an ack if we can take this through
+the kbuild tree.
+
+Thanks,
+Nick
+
+ arch/sh/Makefile                 | 2 ++
+ arch/sh/kernel/vsyscall/Makefile | 2 --
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/arch/sh/Makefile b/arch/sh/Makefile
+index 280bbff12102..a907366f0352 100644
+--- a/arch/sh/Makefile
++++ b/arch/sh/Makefile
+@@ -97,6 +97,8 @@ defaultimage-$(CONFIG_SH_7619_SOLUTION_ENGINE)	:= vmlinux
+ boot := arch/sh/boot
+ KBUILD_IMAGE		:= $(boot)/$(defaultimage-y)
  
- ifdef CONFIG_THIN_ARCHIVES
--  cmd_make_builtin = rm -f $@; $(AR) rcST$(KBUILD_ARFLAGS)
--  cmd_make_empty_builtin = rm -f $@; $(AR) rcST$(KBUILD_ARFLAGS)
-+  cmd_make_builtin = rm -f $@; $(AR) rcSTP$(KBUILD_ARFLAGS)
-+  cmd_make_empty_builtin = rm -f $@; $(AR) rcSTP$(KBUILD_ARFLAGS)
-   quiet_cmd_link_o_target = AR      $@
- else
-   cmd_make_builtin = $(LD) $(ld_flags) -r -o
-@@ -478,7 +478,7 @@ ifdef lib-target
- quiet_cmd_link_l_target = AR      $@
++LDFLAGS_vmlinux		+= -R arch/sh/kernel/vsyscall/vsyscall-syms.o
++
+ #
+ # Choosing incompatible machines durings configuration will result in
+ # error messages during linking.
+diff --git a/arch/sh/kernel/vsyscall/Makefile b/arch/sh/kernel/vsyscall/Makefile
+index 8f0ea5fc835c..b82d13eb8d30 100644
+--- a/arch/sh/kernel/vsyscall/Makefile
++++ b/arch/sh/kernel/vsyscall/Makefile
+@@ -27,8 +27,6 @@ $(obj)/vsyscall-%.so: $(src)/vsyscall.lds $(obj)/vsyscall-%.o FORCE
+ # table and layout of the linked DSO.  With ld -R we can then refer to
+ # these symbols in the kernel code rather than hand-coded addresses.
+ extra-y += vsyscall-syms.o
+-$(obj)/built-in.o: $(obj)/vsyscall-syms.o
+-$(obj)/built-in.o: ld_flags += -R $(obj)/vsyscall-syms.o
  
- ifdef CONFIG_THIN_ARCHIVES
--  cmd_link_l_target = rm -f $@; $(AR) rcsT$(KBUILD_ARFLAGS) $@ $(lib-y)
-+  cmd_link_l_target = rm -f $@; $(AR) rcsTP$(KBUILD_ARFLAGS) $@ $(lib-y)
- else
-   cmd_link_l_target = rm -f $@; $(AR) rcs$(KBUILD_ARFLAGS) $@ $(lib-y)
- endif
-@@ -531,7 +531,7 @@ cmd_link_multi-link = $(LD) $(ld_flags) -r -o $@ $(link_multi_deps) $(cmd_secana
- 
- ifdef CONFIG_THIN_ARCHIVES
-   quiet_cmd_link_multi-y = AR      $@
--  cmd_link_multi-y = rm -f $@; $(AR) rcST$(KBUILD_ARFLAGS) $@ $(link_multi_deps)
-+  cmd_link_multi-y = rm -f $@; $(AR) rcSTP$(KBUILD_ARFLAGS) $@ $(link_multi_deps)
- else
-   quiet_cmd_link_multi-y = LD      $@
-   cmd_link_multi-y = $(cmd_link_multi-link)
+ SYSCFLAGS_vsyscall-syms.o = -r
+ $(obj)/vsyscall-syms.o: $(src)/vsyscall.lds \
 -- 
 2.11.0
+
