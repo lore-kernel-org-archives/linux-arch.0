@@ -1,46 +1,107 @@
-From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: Re: [PATCH v6 25/34] swiotlb: Add warnings for use of bounce buffers
- with SME
-Date: Thu, 8 Jun 2017 18:04:03 -0500
-Message-ID: <8d78db0c-7c3e-9304-7d04-31095246ec83@amd.com>
-References: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
- <20170607191732.28645.42876.stgit@tlendack-t1.amdoffice.net>
- <20170608075829.GA2446@infradead.org>
+From: Frank Rowand <frowand.list@gmail.com>
+Subject: Re: [PATCH 03/17] base: fix order of OF initialization
+Date: Thu, 8 Jun 2017 17:37:09 -0700
+Message-ID: <5939EDB5.2040306@gmail.com>
+References: <20170523004107.536-1-palmer@dabbelt.com>
+ <20170606230007.19101-1-palmer@dabbelt.com>
+ <20170606230007.19101-4-palmer@dabbelt.com>
+ <CAMuHMdXWH5fU8YKfR37D5SMi1GpSk75Bq-OcYmm5ZuHe+XK0PQ@mail.gmail.com>
+ <20170607093523.GB29370@leverpostej>
+ <CAMgXwTiE48KLCJe6TD6VCd5rYASyw0L+pYh8yfvGjhohAfo2dg@mail.gmail.com>
+ <5938C957.2030005@gmail.com> <20170608090507.GA5765@leverpostej>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Type: text/plain; charset=windows-1252
 Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20170608075829.GA2446@infradead.org>
-Content-Language: en-US
-Sender: owner-linux-mm@kvack.org
-To: Christoph Hellwig <hch@infradead.org>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@vi>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pg0-f66.google.com ([74.125.83.66]:34156 "EHLO
+        mail-pg0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751428AbdFIAh6 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 8 Jun 2017 20:37:58 -0400
+In-Reply-To: <20170608090507.GA5765@leverpostej>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Mark Rutland <mark.rutland@arm.com>
+Cc: Wesley Terpstra <wesley@sifive.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Palmer Dabbelt <palmer@dabbelt.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Olof Johansson <olof@lixom.net>, Albert Ou <albert@sifive.com>, patches@groups.riscv.org, Rob Herring <robh+dt@kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-On 6/8/2017 2:58 AM, Christoph Hellwig wrote:
-> On Wed, Jun 07, 2017 at 02:17:32PM -0500, Tom Lendacky wrote:
->> Add warnings to let the user know when bounce buffers are being used for
->> DMA when SME is active.  Since the bounce buffers are not in encrypted
->> memory, these notifications are to allow the user to determine some
->> appropriate action - if necessary.
+On 06/08/17 02:05, Mark Rutland wrote:
+> On Wed, Jun 07, 2017 at 08:49:43PM -0700, Frank Rowand wrote:
+>> On 06/07/17 11:39, Wesley Terpstra wrote:
+>>> It was a while ago that I debugged this. I already reported this bug
+>>> to Benjamin Herrenschmidt (now in CC), and I believe he has a patch of
+>>> his own to fix the same issue.
+>>>
+>>> As I understand it, of_core_init sets up the OF entries in
+>>> /sys/firmware/devicetree. During platform bringup, when the system
+>>> describes the cpu + cache hierarchy, it also makes an of_node symlink
+>>> into that directory. However, if it doesn't exist yet, you get the
+>>> warning.
+>>>
+>>> # ls -l /sys/devices/system/cpu/cpu3/of_node
+>>> lrwxrwxrwx    1 root     root             0 Jan  1 00:00
+>>> /sys/devices/system/cpu/cpu3/of_node ->
+>>> ../../../../firmware/devicetree/base/cpus/cpu@3
+>>>
+>>> On Wed, Jun 7, 2017 at 2:35 AM, Mark Rutland <mark.rutland@arm.com> wrote:
+>>>> On Wed, Jun 07, 2017 at 09:07:20AM +0200, Geert Uytterhoeven wrote:
+>>>>> CC devicetree folks
+>>>>>
+>>>>> On Wed, Jun 7, 2017 at 12:59 AM, Palmer Dabbelt <palmer@dabbelt.com> wrote:
+>>>>>> From: "Wesley W. Terpstra" <wesley@sifive.com>
+>>>>>>
+>>>>>> This fixes: [    0.010000] cpu cpu0: Error -2 creating of_node link
+>>>>>> ... which you get for every CPU on all architectures with a OF cpu/ node.
+>>>>
+>>>> I take it this means a /cpus node? Or the /cpus/cpu@* nodes?
+>>>>
+>>>> I'm not seeing this on arm64 when booting v4.12-rc4 with DT, so clearly
+>>>> this doesn't affect all such architectures.
+>>>>
+>>>> What path are these errors happening in?
+>>
+>> On the surface, the patch looks reasonable.  But it is not obvious to me why
+>> the error message is occurring.  I would like to understand the cause before
+>> saying the patch is good.
+>>
+>> What kernel version is showing the error?  For a specific architecture
+>> (the patch lists 'riscv, nios, etc'), which config and device tree source?
+>>
+>> And again, what is the calling path?
 > 
-> And what would the action be?  Do we need a boot or other option to
-> disallow this fallback for people who care deeply?
+>>From having grepped around, I think this affects architectures which
+> select CONFIG_GENERIC_CPU_DEVICES, which includes nios2.
 
-The action could be to enable the IOMMU so that lower DMA addresses are
-used, or to replace the device with one that supports 64-bit DMA or, if
-the device is not used much, you could just ignore it.
+Thanks Mark!  The "#ifdef CONFIG_GENERIC_CPU_DEVICES" in cpu_dev_register_generic()
+explains why we don't see the error on ARM, ARM64, etc.  Without the CONFIG
+option, register_cpu(cpu, i) is not called.
 
-I'm not sure we need an option to disallow the fallback.  Are you
-thinking along the lines of disabling the device?
 
-Thanks,
-Tom
+> In that case, driver_init() calls cpu_dev_init() before calling
+> of_core_init(). Then we get the callchain:
+> 
+>    cpu_dev_init()
+> -> cpu_dev_register_generic()
+> -> register_cpu(cpu, i)
+> -> device_register(&cpu->dev)
+> -> device_add(dev)
+> -> device_add_class_symlinks(dev)
+> 
+> ... in device_add_class_symlinks, we we dev->of_node, and call
+> sysfs_create_link(), which fails because we haven't called
+> of_core_init() to register the sysfs devicetree directory yet.
+> 
+> Given that, this patch makes sense to me.
+> 
+> FWIW, with the commit message updated to describe the particular
+> ordering problem:
+> 
+> Acked-by: Mark Rutland <mark.rutland@arm.com>
+
+Agree with Mark's request to update the commit message, and also
+I would like to see this shaken out in the -next tree.
+
+Acked-by: Frank Rowand <frowand.list@gmail.com>
 
 > 
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+> Thanks,
+> Mark.
+> 
