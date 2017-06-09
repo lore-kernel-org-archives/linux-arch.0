@@ -1,35 +1,38 @@
-From: Manfred Spraul <manfred@colorfullife.com>
-Subject: Re: [PATCH v2] refcount: Create unchecked atomic_t implementation
-Date: Fri, 9 Jun 2017 06:24:04 +0200
-Message-ID: <cea7c45e-511a-38ce-6b70-9a3a80108414@colorfullife.com>
-References: <20170608025831.GA43608@beast>
- <20170608065809.GC14568@infradead.org>
- <2236FBA76BA1254E88B949DDB74E612B6FF0E5C7@IRSMSX102.ger.corp.intel.com>
- <20170608200931.GC2464@linux-80c1.suse>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20170608200931.GC2464@linux-80c1.suse>
-Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: Davidlohr Bueso <dave@stgolabs.net>, "Reshetova, Elena" <elena.reshetova@intel.com>
-Cc: Christoph Hellwig <hch@infradead.org>, Kees Cook <keescook@chromium.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, "arozansk@redhat.com" <arozansk@redhat.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: [PATCH 0/5] move everyone over to thin archives
+Date: Fri,  9 Jun 2017 15:24:12 +1000
+Message-ID: <20170609052417.561-1-npiggin@gmail.com>
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Nicholas Piggin <npiggin@gmail.com>, Masahiro Yamada <yamada.masahiro@socionext.com>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Davidlohr,
+This has gone through 0day several times now, and I think I've
+weeded out all the build breakage. Following what Linus asked
+for, I did not make it a user selectable option. I kept the
+option there in case we need to do a depend on !ARCH for any
+reason.
 
-On 06/08/2017 10:09 PM, Davidlohr Bueso wrote:
->
-> Yes, this would be a prerequisite for ipc; which I initially thought 
-> didn't
-> take a performance hit.
->
-Did you see a regression for ipc?
+Please consider for the kbuild tree.
 
-The fast paths don't use the refcount, it is only used for rare situations:
-- GETALL, SETALL for large arrays
-- alloc undo
+Nicholas Piggin (5):
+  kbuild: thin archives final link close --whole-archives option
+  kbuild: thin archives use P option to ar
+  sh: thin archives fix linking
+  x86/um: thin archives build fix
+  kbuild: thin archives make default for all archs
 
---
-     Manfred
+ Documentation/process/changes.rst | 9 ++++-----
+ arch/Kconfig                      | 2 +-
+ arch/powerpc/Kconfig              | 8 --------
+ arch/sh/Makefile                  | 2 ++
+ arch/sh/kernel/vsyscall/Makefile  | 2 --
+ arch/x86/um/vdso/Makefile         | 2 +-
+ scripts/Makefile.build            | 8 ++++----
+ scripts/link-vmlinux.sh           | 6 +++---
+ 8 files changed, 15 insertions(+), 24 deletions(-)
+
+-- 
+2.11.0
+
