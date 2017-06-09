@@ -1,48 +1,46 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 13/17] RISC-V: Add include subdirectory
-Date: Fri, 9 Jun 2017 10:16:35 +0200
-Message-ID: <20170609081635.mrqnzk3wxwou4nqy@hirez.programming.kicks-ass.net>
-References: <20170523004107.536-1-palmer@dabbelt.com>
- <20170606230007.19101-1-palmer@dabbelt.com>
- <20170606230007.19101-14-palmer@dabbelt.com>
- <20170607131727.chhlzuu4gysyuqrn@hirez.programming.kicks-ass.net>
+From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Subject: Re: [PATCH v4 2/2] tty: add TIOCGPTPEER ioctl
+Date: Fri, 9 Jun 2017 11:26:59 +0200
+Message-ID: <20170609092659.GA26933@kroah.com>
+References: <20170603141515.9529-1-asarai@suse.de>
+ <20170603141515.9529-3-asarai@suse.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([65.50.211.133]:42056 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751412AbdFIIQm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 9 Jun 2017 04:16:42 -0400
+Return-path: <sparclinux-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20170607131727.chhlzuu4gysyuqrn@hirez.programming.kicks-ass.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Palmer Dabbelt <palmer@dabbelt.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, olof@lixom.net, albert@sifive.com, patches@groups.riscv.org, Will Deacon <will.deacon@arm.com>
+In-Reply-To: <20170603141515.9529-3-asarai@suse.de>
+Sender: sparclinux-owner@vger.kernel.org
+To: Aleksa Sarai <asarai@suse.de>
+Cc: Jiri Slaby <jslaby@suse.com>, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Christian Brauner <christian.brauner@ubuntu.com>, Valentin Rothberg <vrothberg@suse.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jun 07, 2017 at 03:17:27PM +0200, Peter Zijlstra wrote:
+On Sun, Jun 04, 2017 at 12:15:15AM +1000, Aleksa Sarai wrote:
+> When opening the slave end of a PTY, it is not possible for userspace to
+> safely ensure that /dev/pts/$num is actually a slave (in cases where the
+> mount namespace in which devpts was mounted is controlled by an
+> untrusted process). In addition, there are several unresolvable
+> race conditions if userspace were to attempt to detect attacks through
+> stat(2) and other similar methods [in addition it is not clear how
+> userspace could detect attacks involving FUSE].
+> 
+> Resolve this by providing an interface for userpace to safely open the
+> "peer" end of a PTY file descriptor by using the dentry cached by
+> devpts. Since it is not possible to have an open master PTY without
+> having its slave exposed in /dev/pts this interface is safe. This
+> interface currently does not provide a way to get the master pty (since
+> it is not clear whether such an interface is safe or even useful).
+> 
+> Cc: Christian Brauner <christian.brauner@ubuntu.com>
+> Cc: Valentin Rothberg <vrothberg@suse.com>
+> Signed-off-by: Aleksa Sarai <asarai@suse.de>
 
-> > +static inline void arch_spin_unlock(arch_spinlock_t *lock)
-> > +{
-> > +	__asm__ __volatile__ (
-> > +		"amoswap.w.rl x0, x0, %0"
-> > +		: "=A" (lock->lock)
-> > +		:: "memory");
-> > +}
-> > +
-> > +static inline int arch_spin_trylock(arch_spinlock_t *lock)
-> > +{
-> > +	int tmp = 1, busy;
-> > +
-> > +	__asm__ __volatile__ (
-> > +		"amoswap.w.aq %0, %2, %1"
-> > +		: "=r" (busy), "+A" (lock->lock)
-> > +		: "r" (tmp)
-> > +		: "memory");
-> > +
-> > +	return !busy;
-> > +}
+Is this going to be documented anywhere?  Is there a man page update
+that also goes along with this?  What userspace program wants to use
+this?
 
-One other thing, you need to describe the acquire/release semantics for
-your platform. Is the above lock RCpc or RCsc ? If RCpc, you need to
-look into adding smp_mb__after_unlock_lock().
+I'm not objecting to this, I just want to know that people will use
+this, and that they can find out information about it if they want to.
+
+thanks,
+
+greg k-h
