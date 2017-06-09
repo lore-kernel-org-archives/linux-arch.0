@@ -1,107 +1,141 @@
-From: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
-Subject: Re: [PATCH v6 10/34] x86, x86/mm, x86/xen, olpc: Use __va() against
-	just the physical address in cr3
-Date: Fri, 9 Jun 2017 16:20:35 -0500
-Message-ID: <601d5972-72b0-6556-0054-7275cb763816@amd.com>
-References: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
-	<20170607191453.28645.92256.stgit@tlendack-t1.amdoffice.net>
-	<CALCETrVVhMf=zkiDNn_-hKDZLGXKFiwxuWkPmD5RJgHa5VUMiQ@mail.gmail.com>
-	<85355c4c-2cc1-daac-d8fe-ac6965b34606@amd.com>
-	<CALCETrVyHbgJxk6hTRuM0CCpWTvFSX0MxuUQjKOf=7hYCt-yEg@mail.gmail.com>
+From: Wesley Terpstra <wesley-SpMDHPYPyPbQT0dZR+AlfA@public.gmane.org>
+Subject: Re: [PATCH 08/17] dts: include documentation for the RISC-V interrupt controllers
+Date: Fri, 9 Jun 2017 14:46:28 -0700
+Message-ID: <CAMgXwTgk0yY2WzqKGnriy+KR0+YqZJYLEBz_HStYq03d5C3QKQ@mail.gmail.com>
+References: <20170523004107.536-1-palmer@dabbelt.com> <20170606230007.19101-1-palmer@dabbelt.com>
+ <20170606230007.19101-9-palmer@dabbelt.com> <CAMuHMdWYNVvh4hqDrqYNe2oyVHkCbH15VfWTWHaBCeRAaf6O4g@mail.gmail.com>
+ <20170607101343.GC29370@leverpostej> <CAMgXwTiz0jXgSw=veJ3O7xzVgm==YisZZLWpZFH7aJMXV4j7qA@mail.gmail.com>
+ <20170608105230.GC5765@leverpostej>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <CALCETrVyHbgJxk6hTRuM0CCpWTvFSX0MxuUQjKOf=7hYCt-yEg-JsoAwUIsXosN+BqQ9rBEUg@public.gmane.org>
-Content-Language: en-US
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
-Cc: "linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Brijesh Singh <brijesh.singh-5C7GfCeVMHo@public.gmane.org>, Toshimitsu Kani <toshi.kani-ZPxbGqLxI0U@public.gmane.org>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, X86 ML <x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, "linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org" <linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org>, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Larry Woodman <lwoodman-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, kvm list <kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, "linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, kasan-dev <kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrey Ryabinin <aryabinin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Dave Young <dyoung-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Rik van Riel <riel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Dmitry Vyukov <dvyukov@goo>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <20170608105230.GC5765@leverpostej>
+Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>
+Cc: Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>, Palmer Dabbelt <palmer-96lFi9zoCfxBDgjK7y7TUQ@public.gmane.org>, Linux-Arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Olof Johansson <olof-nZhT3qVonbNeoWH0uzbU5w@public.gmane.org>, Albert Ou <albert-SpMDHPYPyPbQT0dZR+AlfA@public.gmane.org>, patches-q3qR2WxjNRFS9aJRtSZj7A@public.gmane.org, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Jason Cooper <jason-NLaQJdtUoK4Be96aLqz0jA@public.gmane.org>, Marc Zyngier <Marc.Zyngier-5wv7dgnIgG8@public.gmane.org>, Rob Herring <robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, "devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 6/9/2017 1:46 PM, Andy Lutomirski wrote:
-> On Thu, Jun 8, 2017 at 3:38 PM, Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org> wrote:
->> On 6/8/2017 1:05 AM, Andy Lutomirski wrote:
->>>
->>> On Wed, Jun 7, 2017 at 12:14 PM, Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
->>> wrote:
->>>>
->>>> The cr3 register entry can contain the SME encryption bit that indicates
->>>> the PGD is encrypted.  The encryption bit should not be used when
->>>> creating
->>>> a virtual address for the PGD table.
->>>>
->>>> Create a new function, read_cr3_pa(), that will extract the physical
->>>> address from the cr3 register. This function is then used where a virtual
->>>> address of the PGD needs to be created/used from the cr3 register.
->>>
->>>
->>> This is going to conflict with:
->>>
->>>
->>> https://git.kernel.org/pub/scm/linux/kernel/git/luto/linux.git/commit/?h=x86/pcid&id=555c81e5d01a62b629ec426a2f50d27e2127c1df
->>>
->>> We're both encountering the fact that CR3 munges the page table PA
->>> with some other stuff, and some readers want to see the actual CR3
->>> value and other readers just want the PA.  The thing I prefer about my
->>> patch is that I get rid of read_cr3() entirely, forcing the patch to
->>> update every single reader, making review and conflict resolution much
->>> safer.
->>>
->>> I'd be willing to send a patch tomorrow that just does the split into
->>> __read_cr3() and read_cr3_pa() (I like your name better) and then we
->>> can both base on top of it.  Would that make sense?
->>
->>
->> That makes sense to me.
-> 
-> Draft patch:
-> 
-> https://git.kernel.org/pub/scm/linux/kernel/git/luto/linux.git/commit/?h=x86/read_cr3&id=9adebbc1071f066421a27b4f6e040190f1049624
+On Thu, Jun 8, 2017 at 3:52 AM, Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org> wrote:
+>> What flags?
+>
+> Edge vs level, active high vs active low. Typically some of these are
+> programmable, and are described as flags in the interrupt-specifier.
+>
+> See the examples in:
+>
+> Documentation/devicetree/bindings/interrupt-controller/interrupts.txt
 
-Looks good to me. I'll look at how to best mask off the encryption bit
-in CR3_ADDR_MASK for SME support.  I should be able to just do an
-__sme_clr() against it.
+Ok. Those are not applicable to the PLIC.
 
-> 
+>
+>> > Are all HLIC interrupts edge triggered (or level triggered)?
 >>
->>>
->>> Also:
->>>
->>>> +static inline unsigned long read_cr3_pa(void)
->>>> +{
->>>> +       return (read_cr3() & PHYSICAL_PAGE_MASK);
->>>> +}
->>>
->>>
->>> Is there any guarantee that the magic encryption bit is masked out in
->>> PHYSICAL_PAGE_MASK?  The docs make it sound like it could be any bit.
->>> (But if it's one of the low 12 bits, that would be quite confusing.)
+>> HLIC = level. PLIC = both.
+>
+> Ok. Given that, flags aren't necessary for the HLIC, and the
+> interrupt-specifier is fine as-is.
+>
+>> >> > +RISC-V cores typically include a PLIC, which route interrupts from multiple
+>> >> > +devices to multiple hart contexts.  The PLIC is connected to the interrupt
+>> >> > +controller embedded in a RISC-V core via the interrupt-related CSRs.
+>> >
+>> > Do you mean that the PLIC is connected to the HLIC, or that the HLIC is
+>> > also managed in part through CSRs?
 >>
+>> Both. The HLIC is entirely manager through CSRs. The PLIC is managed
+>> through a memory mapped interface. The PLIC is attached to the HLIC.
+>
+> So do any CSRs affect the state of the PLIC? If it's just MMIO, the
+> mention of CSRs above is just a little confusing.
+>
+> It might be best to just say "The PLIC is connect to the HLIC embedded
+> in each RISC-V core".
+>
+>> >> > +Required properties:
+>> >> > +- compatible : "riscv,plic0"
+>> >> > +- #address-cells : should be <0>
+>> >> > +- #interrupt-cells : should be <1>
+>> >
+>> > As with the HLIC, what about the flags?
 >>
->> Right now it's bit 47 and we're steering away from any of the currently
->> reserved bits so we should be safe.
-> 
-> Should the SME init code check that it's a usable bit (i.e. outside
-> our physical address mask and not one of the bottom twelve bits)?  If
-> some future CPU daftly picks, say, bit 12, we'll regret it if we
-> enable SME.
-
-I think I can safely say that it will never be any of the lower 12 bits,
-but let me talk to some of the hardware folks and see about the other
-end of the range.
-
-Thanks,
-Tom
-
-> 
-> --Andy
-> 
+>> Still unsure what flags we're talking about.
+>
+> As covered above for the HLIC.
+>
+> It sounds like we'd need these to distinguish edge/level interrupts,
+> unless that's fixed at integration time and you can determine it from
+> the PLIC itself?
+>
+>> >> > +- riscv,ndev : Specifies the number of interrupts attached to the PLIC
+>> >
+>> > Why do we need to know this?
+>> >
+>> > I suspect this ia actually the number of interrupts implemented in the
+>> > PLIC, rather than the number of interrupts attached. i.e. the PLIC can
+>> > be implemented with a subset of the potential registers/bits. Is that
+>> > correct?
+>>
+>> You're in principle correct, although these are probably always the same.
+>
+> For now, perhaps. Let's not embed an assumption we cannot guarantee.
+>
+>> > If so, something like "riscv,num-interrupts" would be better, along with
+>> > a clearer description.
+>>
+>> Uhm. I suppose we can change this. However, it would requires changes
+>> to quite a number of riscv repositories. I believe this is also
+>> included in the riscv platform specification. A better description is
+>> easy, do we really need to change the key?
+>
+> It's not too much of a problem, but if we end up having to change
+> anything else from the proposed bindings, those trees are going to
+> require updates anyway.
+>
+> If we can, I would like to change this to keep things as clear as
+> possible from the outset.
+>
+> [...]
+>
+>> > You will need to be explicit about the order of interrupts in this
+>> > property. i.e. which interrupt is routed to which context?
+>>
+>> Yes. Order and position matter.
+>
+> Ok.
+>
+> Please update the binding to explicitly define the ordering requirement.
+>
+> [...]
+>
+>> > Also, please consider how you will handle the case when the Linux
+>> > logical CPU ID is not the same as the physical ID, and how you will
+>> > handle physical IDs being sparse.
+>>
+>> We already deal with this. If the interrupt is '-1', we skip it.
+>> That's done in plic.c:
+>>                 if (parent.args[0] == -1) continue; // skip context holes
+>
+> If this is what we expect people to do, it needs to be documented in the
+> binding.
+>
+> Does this mean that you expect Linux logical CPU IDs to be equal to
+> physical CPU IDs in all cases?
+>
+> That's going to be painful for very sparse ID ranges, and won't work for
+> cases like kexec/kdump where you cannot guarantee which physical CPU
+> will end up being CPU0 in the new kernel.
+>
+> I would strongly advise that you explicitly describe the relationship
+> using phandles to CPU nodes.
+>
+> I would also advise that you try to decouple the physical CPU IDs and
+> Linux logical IDs. While assuming they're the same might simplify things
+> today, it will create longer term maintenance problems and get in the
+> way of a number of features.
+>
+> Thanks,
+> Mark.
+--
+To unsubscribe from this list: send the line "unsubscribe devicetree" in
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
