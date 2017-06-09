@@ -1,64 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f65.google.com ([74.125.83.65]:34816 "EHLO
-        mail-pg0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751519AbdFIFY6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 9 Jun 2017 01:24:58 -0400
+Received: from mail-pf0-f194.google.com ([209.85.192.194]:34430 "EHLO
+        mail-pf0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751483AbdFIFYp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 9 Jun 2017 01:24:45 -0400
 From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH 3/5] sh: thin archives fix linking
-Date: Fri,  9 Jun 2017 15:24:15 +1000
-Message-ID: <20170609052417.561-4-npiggin@gmail.com>
+Subject: [PATCH 1/5] kbuild: thin archives final link close --whole-archives option
+Date: Fri,  9 Jun 2017 15:24:13 +1000
+Message-ID: <20170609052417.561-2-npiggin@gmail.com>
 In-Reply-To: <20170609052417.561-1-npiggin@gmail.com>
 References: <20170609052417.561-1-npiggin@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Nicholas Piggin <npiggin@gmail.com>, Masahiro Yamada <yamada.masahiro@socionext.com>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, linux-sh@vger.kernel.org
-Message-ID: <20170609052415.FrEiY98oJV1Vj8UpHuSF4ByYbQH5ae0EV0GhgGhiz6s@z>
+Cc: Nicholas Piggin <npiggin@gmail.com>, Masahiro Yamada <yamada.masahiro@socionext.com>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>
+Message-ID: <20170609052413.CppKxSCy07AHGyViE6yGM-ze0ZB5n81t4GWIyYwxIi4@z>
 
-The VDSO symbols can't be linked into built-in.o when building with
-thin archives, so change this to linking them into the final link.
+Close the --whole-archives option with --no-whole-archive. Some
+architectures end up including additional .o and files multiple
+times after this, and they get duplicate symbols when they are
+brought under the --whole-archives option.
 
-Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-Cc: Rich Felker <dalias@libc.org>
-Cc: linux-sh@vger.kernel.org
+This matches more closely with the incremental final link.
+
 Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 ---
+ scripts/link-vmlinux.sh | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
 
-Arch maintainers please give an ack if we can take this through
-the kbuild tree.
-
-Thanks,
-Nick
-
- arch/sh/Makefile                 | 2 ++
- arch/sh/kernel/vsyscall/Makefile | 2 --
- 2 files changed, 2 insertions(+), 2 deletions(-)
-
-diff --git a/arch/sh/Makefile b/arch/sh/Makefile
-index 280bbff12102..a907366f0352 100644
---- a/arch/sh/Makefile
-+++ b/arch/sh/Makefile
-@@ -97,6 +97,8 @@ defaultimage-$(CONFIG_SH_7619_SOLUTION_ENGINE)	:= vmlinux
- boot := arch/sh/boot
- KBUILD_IMAGE		:= $(boot)/$(defaultimage-y)
+diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
+index c80291319cb2..2a062ea130b5 100755
+--- a/scripts/link-vmlinux.sh
++++ b/scripts/link-vmlinux.sh
+@@ -63,7 +63,7 @@ modpost_link()
+ 	local objects
  
-+LDFLAGS_vmlinux		+= -R arch/sh/kernel/vsyscall/vsyscall-syms.o
-+
- #
- # Choosing incompatible machines durings configuration will result in
- # error messages during linking.
-diff --git a/arch/sh/kernel/vsyscall/Makefile b/arch/sh/kernel/vsyscall/Makefile
-index 8f0ea5fc835c..b82d13eb8d30 100644
---- a/arch/sh/kernel/vsyscall/Makefile
-+++ b/arch/sh/kernel/vsyscall/Makefile
-@@ -27,8 +27,6 @@ $(obj)/vsyscall-%.so: $(src)/vsyscall.lds $(obj)/vsyscall-%.o FORCE
- # table and layout of the linked DSO.  With ld -R we can then refer to
- # these symbols in the kernel code rather than hand-coded addresses.
- extra-y += vsyscall-syms.o
--$(obj)/built-in.o: $(obj)/vsyscall-syms.o
--$(obj)/built-in.o: ld_flags += -R $(obj)/vsyscall-syms.o
+ 	if [ -n "${CONFIG_THIN_ARCHIVES}" ]; then
+-		objects="--whole-archive built-in.o"
++		objects="--whole-archive built-in.o --no-whole-archive"
+ 	else
+ 		objects="${KBUILD_VMLINUX_INIT}				\
+ 			--start-group					\
+@@ -83,7 +83,7 @@ vmlinux_link()
  
- SYSCFLAGS_vsyscall-syms.o = -r
- $(obj)/vsyscall-syms.o: $(src)/vsyscall.lds \
+ 	if [ "${SRCARCH}" != "um" ]; then
+ 		if [ -n "${CONFIG_THIN_ARCHIVES}" ]; then
+-			objects="--whole-archive built-in.o ${1}"
++			objects="--whole-archive built-in.o ${1} --no-whole-archive"
+ 		else
+ 			objects="${KBUILD_VMLINUX_INIT}			\
+ 				--start-group				\
+@@ -96,7 +96,7 @@ vmlinux_link()
+ 			-T ${lds} ${objects}
+ 	else
+ 		if [ -n "${CONFIG_THIN_ARCHIVES}" ]; then
+-			objects="-Wl,--whole-archive built-in.o ${1}"
++			objects="-Wl,--whole-archive built-in.o ${1} -Wl,--no-whole-archive"
+ 		else
+ 			objects="${KBUILD_VMLINUX_INIT}			\
+ 				-Wl,--start-group			\
 -- 
 2.11.0
