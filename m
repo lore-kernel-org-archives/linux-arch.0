@@ -1,60 +1,45 @@
-From: Aleksa Sarai <asarai@suse.de>
-Subject: Re: [PATCH v4 2/2] tty: add TIOCGPTPEER ioctl
-Date: Fri, 9 Jun 2017 20:24:30 +1000
-Message-ID: <f3587aca-0d84-1ca7-cfb0-830e536410c2@suse.de>
-References: <20170603141515.9529-1-asarai@suse.de>
- <20170603141515.9529-3-asarai@suse.de> <20170609092659.GA26933@kroah.com>
- <44c2b6c7-63ee-5c7f-cc77-5e1bcd69eea4@suse.de>
- <20170609100442.GA1405@kroah.com>
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v6 04/34] x86/CPU/AMD: Add the Secure Memory Encryption
+ CPU feature
+Date: Fri, 9 Jun 2017 12:55:40 +0200
+Message-ID: <20170609105540.jpkle2qja4kyin6i@pd.tnic>
+References: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
+ <20170607191353.28645.85058.stgit@tlendack-t1.amdoffice.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-alpha-owner@vger.kernel.org>
-In-Reply-To: <20170609100442.GA1405@kroah.com>
-Content-Language: en-US
-Sender: linux-alpha-owner@vger.kernel.org
-To: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: Jiri Slaby <jslaby@suse.com>, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Christian Brauner <christian.brauner@ubuntu.com>, Valentin Rothberg <vrothberg@suse.com>
+Content-Type: text/plain; charset=utf-8
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <20170607191353.28645.85058.stgit@tlendack-t1.amdoffice.net>
+Sender: owner-linux-mm@kvack.org
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander
 List-Id: linux-arch.vger.kernel.org
 
->>>> When opening the slave end of a PTY, it is not possible for userspace to
->>>> safely ensure that /dev/pts/$num is actually a slave (in cases where the
->>>> mount namespace in which devpts was mounted is controlled by an
->>>> untrusted process). In addition, there are several unresolvable
->>>> race conditions if userspace were to attempt to detect attacks through
->>>> stat(2) and other similar methods [in addition it is not clear how
->>>> userspace could detect attacks involving FUSE].
->>>>
->>>> Resolve this by providing an interface for userpace to safely open the
->>>> "peer" end of a PTY file descriptor by using the dentry cached by
->>>> devpts. Since it is not possible to have an open master PTY without
->>>> having its slave exposed in /dev/pts this interface is safe. This
->>>> interface currently does not provide a way to get the master pty (since
->>>> it is not clear whether such an interface is safe or even useful).
->>>>
->>>> Cc: Christian Brauner <christian.brauner@ubuntu.com>
->>>> Cc: Valentin Rothberg <vrothberg@suse.com>
->>>> Signed-off-by: Aleksa Sarai <asarai@suse.de>
->>>
->>> Is this going to be documented anywhere?  Is there a man page update
->>> that also goes along with this?
->>
->> I will add one, I didn't know where the man-pages project is hosted / where
->> patches get pushed? What is the ML?
+On Wed, Jun 07, 2017 at 02:13:53PM -0500, Tom Lendacky wrote:
+> Update the CPU features to include identifying and reporting on the
+> Secure Memory Encryption (SME) feature.  SME is identified by CPUID
+> 0x8000001f, but requires BIOS support to enable it (set bit 23 of
+> MSR_K8_SYSCFG).  Only show the SME feature as available if reported by
+> CPUID and enabled by BIOS.
 > 
->  From the MAINTAINERS file:
->    MAN-PAGES: MANUAL PAGES FOR LINUX -- Sections 2, 3, 4, 5, and 7
->    M:      Michael Kerrisk <mtk.manpages@gmail.com>
->    W:      http://www.kernel.org/doc/man-pages
->    L:      linux-man@vger.kernel.org
->    S:      Maintained
+> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+> ---
+>  arch/x86/include/asm/cpufeatures.h |    1 +
+>  arch/x86/include/asm/msr-index.h   |    2 ++
+>  arch/x86/kernel/cpu/amd.c          |   13 +++++++++++++
+>  arch/x86/kernel/cpu/scattered.c    |    1 +
+>  4 files changed, 17 insertions(+)
 
-Ah, should've looked there first!
-
-Thanks Greg, I'll send it over the weekend.
+Reviewed-by: Borislav Petkov <bp@suse.de>
 
 -- 
-Aleksa Sarai
-Software Engineer (Containers)
-SUSE Linux GmbH
-https://www.cyphar.com/
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
