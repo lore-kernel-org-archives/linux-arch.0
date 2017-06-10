@@ -1,55 +1,41 @@
-From: <jacqueline.pike@gmail.com>
-Subject: (unknown)
-Date: Sat, 10 Jun 2017 05:53:12 -0000
-Message-ID: <149707399268.19456.17204038559390321938@189-81-17-163.user.veloxzone.com.br>
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v6 09/34] x86/mm: Simplify p[gum]d_page() macros
+Date: Sat, 10 Jun 2017 12:44:08 +0200
+Message-ID: <20170610104408.xmmlwtafyhbczxyi@pd.tnic>
+References: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
+ <20170607191445.28645.15664.stgit@tlendack-t1.amdoffice.net>
 Mime-Version: 1.0
-Content-Type: application/zip; name="465348500411810.zip"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 189-81-17-163.user.veloxzone.com.br ([189.81.17.163]:58190 "HELO
-        189-81-17-163.user.veloxzone.com.br" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with SMTP id S1751789AbdFJFxQ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 10 Jun 2017 01:53:16 -0400
-Content-Disposition: attachment
-Subject: 
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=utf-8
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <20170607191445.28645.15664.stgit@tlendack-t1.amdoffice.net>
+Sender: owner-linux-mm@kvack.org
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander
+List-Id: linux-arch.vger.kernel.org
 
-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
+On Wed, Jun 07, 2017 at 02:14:45PM -0500, Tom Lendacky wrote:
+> Create a pgd_pfn() macro similar to the p[um]d_pfn() macros and then
+> use the p[gum]d_pfn() macros in the p[gum]d_page() macros instead of
+> duplicating the code.
+> 
+> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+> ---
+>  arch/x86/include/asm/pgtable.h |   16 +++++++++-------
+>  1 file changed, 9 insertions(+), 7 deletions(-)
+
+For patches 7-9:
+
+Reviewed-by: Borislav Petkov <bp@suse.de>
+
+-- 
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
