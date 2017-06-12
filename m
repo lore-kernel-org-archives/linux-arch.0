@@ -1,19 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from conuserg-09.nifty.com ([210.131.2.76]:64797 "EHLO
+Received: from conuserg-09.nifty.com ([210.131.2.76]:64373 "EHLO
         conuserg-09.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752228AbdFLD2b (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 11 Jun 2017 23:28:31 -0400
+        with ESMTP id S1752221AbdFLD22 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 11 Jun 2017 23:28:28 -0400
 From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH 24/27] xtensa: move generic-y of exported headers to uapi/asm/Kbuild
-Date: Mon, 12 Jun 2017 12:27:18 +0900
-Message-ID: <1497238041-7011-25-git-send-email-yamada.masahiro@socionext.com>
+Subject: [PATCH 10/27] h8300: move generic-y of exported headers to uapi/asm/Kbuild
+Date: Mon, 12 Jun 2017 12:27:04 +0900
+Message-ID: <1497238041-7011-11-git-send-email-yamada.masahiro@socionext.com>
 In-Reply-To: <1497238041-7011-1-git-send-email-yamada.masahiro@socionext.com>
 References: <1497238041-7011-1-git-send-email-yamada.masahiro@socionext.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kbuild@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>
-Cc: Masahiro Yamada <yamada.masahiro@socionext.com>, linux-xtensa@linux-xtensa.org, Chris Zankel <chris@zankel.net>, linux-kernel@vger.kernel.org, Max Filippov <jcmvbkbc@gmail.com>
-Message-ID: <20170612032718.NPJvK2TUjNoMBZlnmKynVp5DLxEhcena5AbBcKQMcbQ@z>
+Cc: Masahiro Yamada <yamada.masahiro@socionext.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, uclinux-h8-devel@lists.sourceforge.jp, linux-kernel@vger.kernel.org
+Message-ID: <20170612032704.e1sct7AzJGRScKvdkVIpUoRa2GP8AZHRGfwfwhbKY_E@z>
 
 Since commit fcc8487d477a ("uapi: export all headers under uapi
 directories"), all (and only) headers under uapi directories are
@@ -28,27 +28,37 @@ move generic-y of exported headers to uapi/asm/Kbuild.
 Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
 ---
 
- arch/xtensa/include/asm/Kbuild      |  9 ---------
- arch/xtensa/include/uapi/asm/Kbuild | 10 ++++++++++
- 2 files changed, 10 insertions(+), 9 deletions(-)
+ arch/h8300/include/asm/Kbuild      | 27 ---------------------------
+ arch/h8300/include/uapi/asm/Kbuild | 28 ++++++++++++++++++++++++++++
+ 2 files changed, 28 insertions(+), 27 deletions(-)
 
-diff --git a/arch/xtensa/include/asm/Kbuild b/arch/xtensa/include/asm/Kbuild
-index cc23e9ecc6bb..0b408dc2366e 100644
---- a/arch/xtensa/include/asm/Kbuild
-+++ b/arch/xtensa/include/asm/Kbuild
-@@ -1,20 +1,15 @@
--generic-y += bitsperlong.h
- generic-y += bug.h
- generic-y += clkdev.h
+diff --git a/arch/h8300/include/asm/Kbuild b/arch/h8300/include/asm/Kbuild
+index 757cdeb24e6e..5f2af32a7a57 100644
+--- a/arch/h8300/include/asm/Kbuild
++++ b/arch/h8300/include/asm/Kbuild
+@@ -1,5 +1,4 @@
+ generic-y += asm-offsets.h
+-generic-y += auxvec.h
+ generic-y += barrier.h
+ generic-y += bugs.h
+ generic-y += cacheflush.h
+@@ -11,65 +10,39 @@ generic-y += device.h
  generic-y += div64.h
- generic-y += dma-contiguous.h
+ generic-y += dma.h
  generic-y += emergency-restart.h
 -generic-y += errno.h
  generic-y += exec.h
  generic-y += extable.h
+ generic-y += fb.h
 -generic-y += fcntl.h
+ generic-y += ftrace.h
+ generic-y += futex.h
  generic-y += hardirq.h
+ generic-y += hash.h
+ generic-y += hw_irq.h
 -generic-y += ioctl.h
+-generic-y += ioctls.h
+-generic-y += ipcbuf.h
  generic-y += irq_regs.h
  generic-y += irq_work.h
  generic-y += kdebug.h
@@ -57,35 +67,81 @@ index cc23e9ecc6bb..0b408dc2366e 100644
  generic-y += linkage.h
  generic-y += local.h
  generic-y += local64.h
-@@ -22,12 +17,8 @@ generic-y += mcs_spinlock.h
+ generic-y += mcs_spinlock.h
  generic-y += mm-arch-hooks.h
+-generic-y += mman.h
+ generic-y += mmu.h
+ generic-y += mmu_context.h
+ generic-y += module.h
+-generic-y += msgbuf.h
+-generic-y += param.h
+ generic-y += parport.h
  generic-y += percpu.h
+ generic-y += pgalloc.h
+-generic-y += poll.h
+-generic-y += posix_types.h
  generic-y += preempt.h
 -generic-y += resource.h
- generic-y += rwsem.h
+ generic-y += scatterlist.h
  generic-y += sections.h
+-generic-y += sembuf.h
+ generic-y += serial.h
+-generic-y += setup.h
+-generic-y += shmbuf.h
+-generic-y += shmparam.h
 -generic-y += siginfo.h
+ generic-y += sizes.h
+-generic-y += socket.h
+-generic-y += sockios.h
+ generic-y += spinlock.h
+-generic-y += stat.h
 -generic-y += statfs.h
+-generic-y += swab.h
+-generic-y += termbits.h
 -generic-y += termios.h
- generic-y += topology.h
+ generic-y += timex.h
+ generic-y += tlbflush.h
  generic-y += trace_clock.h
+ generic-y += topology.h
+-generic-y += types.h
+-generic-y += ucontext.h
+ generic-y += unaligned.h
+ generic-y += vga.h
  generic-y += word-at-a-time.h
-diff --git a/arch/xtensa/include/uapi/asm/Kbuild b/arch/xtensa/include/uapi/asm/Kbuild
-index b15bf6bc0e94..a5bcdfb890f1 100644
---- a/arch/xtensa/include/uapi/asm/Kbuild
-+++ b/arch/xtensa/include/uapi/asm/Kbuild
-@@ -1,2 +1,12 @@
+diff --git a/arch/h8300/include/uapi/asm/Kbuild b/arch/h8300/include/uapi/asm/Kbuild
+index b15bf6bc0e94..187aed820e71 100644
+--- a/arch/h8300/include/uapi/asm/Kbuild
++++ b/arch/h8300/include/uapi/asm/Kbuild
+@@ -1,2 +1,30 @@
  # UAPI Header export list
  include include/uapi/asm-generic/Kbuild.asm
 +
-+generic-y += bitsperlong.h
++generic-y += auxvec.h
 +generic-y += errno.h
 +generic-y += fcntl.h
 +generic-y += ioctl.h
++generic-y += ioctls.h
++generic-y += ipcbuf.h
 +generic-y += kvm_para.h
++generic-y += mman.h
++generic-y += msgbuf.h
++generic-y += param.h
++generic-y += poll.h
++generic-y += posix_types.h
 +generic-y += resource.h
++generic-y += sembuf.h
++generic-y += setup.h
++generic-y += shmbuf.h
++generic-y += shmparam.h
 +generic-y += siginfo.h
++generic-y += socket.h
++generic-y += sockios.h
++generic-y += stat.h
 +generic-y += statfs.h
++generic-y += swab.h
++generic-y += termbits.h
 +generic-y += termios.h
++generic-y += types.h
++generic-y += ucontext.h
 -- 
 2.7.4
