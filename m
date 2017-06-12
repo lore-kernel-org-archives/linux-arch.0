@@ -1,48 +1,143 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f193.google.com ([209.85.128.193]:34175 "EHLO
-        mail-wr0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751494AbdFLMKw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 12 Jun 2017 08:10:52 -0400
+Received: from mail-cys01nam02on0040.outbound.protection.outlook.com ([104.47.37.40]:48160
+        "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1751990AbdFLNcT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 12 Jun 2017 09:32:19 -0400
+Subject: Re: [PATCH v6 14/34] x86/mm: Insure that boot memory areas are mapped
+ properly
+References: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
+ <20170607191539.28645.70161.stgit@tlendack-t1.amdoffice.net>
+ <20170610160119.bnx5ir5dj3i27igx@pd.tnic>
+From: Tom Lendacky <thomas.lendacky@amd.com>
+Message-ID: <64d7cb4e-64fe-0882-ad17-fc3918c3a09a@amd.com>
+Date: Mon, 12 Jun 2017 08:31:58 -0500
 MIME-Version: 1.0
-In-Reply-To: <1497238041-7011-15-git-send-email-yamada.masahiro@socionext.com>
-References: <1497238041-7011-1-git-send-email-yamada.masahiro@socionext.com> <1497238041-7011-15-git-send-email-yamada.masahiro@socionext.com>
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Mon, 12 Jun 2017 14:10:50 +0200
-Message-ID: <CAMuHMdXoZxwVRTtvbOt+QRiHCb0_S2YDpxm8=KZUJhimTnTMoQ@mail.gmail.com>
-Subject: Re: [PATCH 14/27] m68k: move generic-y of exported headers to uapi/asm/Kbuild
-Content-Type: text/plain; charset="UTF-8"
+In-Reply-To: <20170610160119.bnx5ir5dj3i27igx@pd.tnic>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Masahiro Yamada <yamada.masahiro@socionext.com>
-Cc: linux-kbuild <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Message-ID: <20170612121050.9ZxBbpkZJ9RbXVlBiNnfvDyZFtfFgFRpKeWJFmp17WY@z>
+To: Borislav Petkov <bp@alien8.de>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20170612133158.pmzP82OSaHMyzZpkt2AB6HxxnKwRzv0YnMfCOHyBlnk@z>
 
-On Mon, Jun 12, 2017 at 5:27 AM, Masahiro Yamada
-<yamada.masahiro@socionext.com> wrote:
-> Since commit fcc8487d477a ("uapi: export all headers under uapi
-> directories"), all (and only) headers under uapi directories are
-> exported, but asm-generic wrappers are still exceptions.
->
-> scripts/Makefile.headersinst still need to deal with old-kbuild-file
-> for headers listed in arch/*/include/asm/Kbuild, but actually exported.
->
-> As the last work to finish de-coupling the uapi from kernel headers,
-> move generic-y of exported headers to uapi/asm/Kbuild.
->
-> For m68k, "generic-y += termios.h" is doubled in asm/Kbuild and
-> uapi/asm/Kbuild.  So, the one in the former can be simply removed.
->
-> Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+On 6/10/2017 11:01 AM, Borislav Petkov wrote:
+> On Wed, Jun 07, 2017 at 02:15:39PM -0500, Tom Lendacky wrote:
+>> The boot data and command line data are present in memory in a decrypted
+>> state and are copied early in the boot process.  The early page fault
+>> support will map these areas as encrypted, so before attempting to copy
+>> them, add decrypted mappings so the data is accessed properly when copied.
+>>
+>> For the initrd, encrypt this data in place. Since the future mapping of the
+>> initrd area will be mapped as encrypted the data will be accessed properly.
+>>
+>> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+>> ---
+>>   arch/x86/include/asm/mem_encrypt.h |   11 +++++
+>>   arch/x86/include/asm/pgtable.h     |    3 +
+>>   arch/x86/kernel/head64.c           |   30 ++++++++++++--
+>>   arch/x86/kernel/setup.c            |    9 ++++
+>>   arch/x86/mm/mem_encrypt.c          |   77 ++++++++++++++++++++++++++++++++++++
+>>   5 files changed, 126 insertions(+), 4 deletions(-)
+> 
+> Some cleanups ontop in case you get to send v7:
 
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+There will be a v7.
 
-Gr{oetje,eeting}s,
+> 
+> diff --git a/arch/x86/include/asm/mem_encrypt.h b/arch/x86/include/asm/mem_encrypt.h
+> index 61a704945294..5959a42dd4d5 100644
+> --- a/arch/x86/include/asm/mem_encrypt.h
+> +++ b/arch/x86/include/asm/mem_encrypt.h
+> @@ -45,13 +45,8 @@ static inline void __init sme_early_decrypt(resource_size_t paddr,
+>   {
+>   }
+>   
+> -static inline void __init sme_map_bootdata(char *real_mode_data)
+> -{
+> -}
+> -
+> -static inline void __init sme_unmap_bootdata(char *real_mode_data)
+> -{
+> -}
+> +static inline void __init sme_map_bootdata(char *real_mode_data)	{ }
+> +static inline void __init sme_unmap_bootdata(char *real_mode_data)	{ }
+>   
+>   static inline void __init sme_early_init(void)
+>   {
+> diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
+> index 2321f05045e5..32ebbe0ab04d 100644
+> --- a/arch/x86/mm/mem_encrypt.c
+> +++ b/arch/x86/mm/mem_encrypt.c
+> @@ -132,6 +132,10 @@ static void __init __sme_map_unmap_bootdata(char *real_mode_data, bool map)
+>   	struct boot_params *boot_data;
+>   	unsigned long cmdline_paddr;
+>   
+> +	/* If SME is not active, the bootdata is in the correct state */
+> +	if (!sme_active())
+> +		return;
+> +
+>   	__sme_early_map_unmap_mem(real_mode_data, sizeof(boot_params), map);
+>   	boot_data = (struct boot_params *)real_mode_data;
+>   
+> @@ -142,40 +146,22 @@ static void __init __sme_map_unmap_bootdata(char *real_mode_data, bool map)
+>   	cmdline_paddr = boot_data->hdr.cmd_line_ptr |
+>   			((u64)boot_data->ext_cmd_line_ptr << 32);
+>   
+> -	if (cmdline_paddr)
+> -		__sme_early_map_unmap_mem(__va(cmdline_paddr),
+> -					  COMMAND_LINE_SIZE, map);
+> +	if (!cmdline_paddr)
+> +		return;
+> +
+> +	__sme_early_map_unmap_mem(__va(cmdline_paddr), COMMAND_LINE_SIZE, map);
+> +
+> +	sme_early_pgtable_flush();
 
-                        Geert
+Yup, overall it definitely simplifies things.
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+I have to call sme_early_pgtable_flush() even if cmdline_paddr is NULL,
+so I'll either keep the if and have one flush at the end or I can move
+the flush into __sme_early_map_unmap_mem(). I'm leaning towards the
+latter.
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Thanks,
+Tom
+
+>   }
+>   
+>   void __init sme_unmap_bootdata(char *real_mode_data)
+>   {
+> -	/* If SME is not active, the bootdata is in the correct state */
+> -	if (!sme_active())
+> -		return;
+> -
+> -	/*
+> -	 * The bootdata and command line aren't needed anymore so clear
+> -	 * any mapping of them.
+> -	 */
+>   	__sme_map_unmap_bootdata(real_mode_data, false);
+> -
+> -	sme_early_pgtable_flush();
+>   }
+>   
+>   void __init sme_map_bootdata(char *real_mode_data)
+>   {
+> -	/* If SME is not active, the bootdata is in the correct state */
+> -	if (!sme_active())
+> -		return;
+> -
+> -	/*
+> -	 * The bootdata and command line will not be encrypted, so they
+> -	 * need to be mapped as decrypted memory so they can be copied
+> -	 * properly.
+> -	 */
+>   	__sme_map_unmap_bootdata(real_mode_data, true);
+> -
+> -	sme_early_pgtable_flush();
+>   }
+>   
+>   void __init sme_early_init(void)
+> 
