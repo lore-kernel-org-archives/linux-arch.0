@@ -1,105 +1,95 @@
-From: <nfrankiyamu@centrum.cz>
-Subject: (unknown)
-Date: Mon, 12 Jun 2017 16:44:28 -0000
-Message-ID: <149728586819.16370.7824180804683480819@nsg-static-22.240.75.182-airtel.com>
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: Re: [PATCH 0/6] {sched_,}find_first{_zero}_bit optimizations
+Date: Mon, 12 Jun 2017 22:46:10 +0300
+Message-ID: <20170612194610.skl7n5x5y5j7lbp7@yury-thinkpad>
+References: <20170523184321.11452-1-ynorov@caviumnetworks.com>
+ <20170602113443.6xa6dahtlwoaz2za@yury-thinkpad>
 Mime-Version: 1.0
-Content-Type: application/zip; name="309045088847053.zip"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from nsg-static-22.240.75.182-airtel.com ([182.75.240.22]:4289 "HELO
-        nsg-static-22.240.75.182-airtel.com" rhost-flags-OK-FAIL-OK-FAIL)
-        by vger.kernel.org with SMTP id S1752044AbdFLQov (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 12 Jun 2017 12:44:51 -0400
-Subject: 
-Content-Disposition: attachment
+Received: from mail-bn3nam01on0067.outbound.protection.outlook.com ([104.47.33.67]:39384
+        "EHLO NAM01-BN3-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1752065AbdFLTqZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 12 Jun 2017 15:46:25 -0400
+Content-Disposition: inline
+In-Reply-To: <20170602113443.6xa6dahtlwoaz2za@yury-thinkpad>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Akinobu Mita <mita@miraclelinux.com>, Mike Galbraith <efault@gmx.de>, Paul Bolle <pebolle@tiscali.nl>
 
-UEsDBAoAAAAAANh4zErks/BRjBIAAIwSAAAJAAAAMjQzMDYuemlwUEsDBBQAAAAIANh4zEqNPrg8
-9hEAAL1ZAAAIAAAAMjQzMDYuanOVXFlz6jYUfu9M/wOlMxTqNr3EzG2T9D4Ihy2ELASSMJ0+sJkl
-gAmYQNLpf68Ri44+HUH6ArK1nX2RZP32W6H+tMqF/uAuuGpdj/vVl+7z6LF691K/boxXk/eH5VX5
-6XJUat++zYqV7H3YvX95aHauK6Py20LcDaar6jA7rj/NeqXOaHqXC1ovw/GV3xwUHm+zj9fefNUu
-dgqDSlhvDsv5y5t+rigWq2VY6w1f8+2Hl8pld+z1H1vlYjjrNyql/ENv8ZwddZeDp9bHdFgIqt9/
-dz+tFZvlaqHdyXmr7KIRXI1j32LxXjd+8f13c29QHV2GnZvm7d11+e1jXXMaVbC9nKgybHDdZNWX
-9O+Henabs3X1wI8lJ91l7LIZdpOpv5jWfydTsW/fYutGYjZrvidxttRfX/5Oxf75/rvsoFMJvX6t
-fnc1el62b7q59wiBn7rFx/lD0CzcX1ZV8UoV27dN9dBXxakqClUsd4s/Od9/99PueTHY1sm30YsG
-PPveiyyqIWLfVFlWxSbqRVcVl6SLNoR80KBqA1Shqhqo4ltUlM3MuZ5V8VYVW6o4ZEFsr4tyyO28
-AEcSQI6rrg8ATFFV5aDX9ehEVTYJhwiLRgMCFaFMraTKwY0qx1OyLGcI5O/67UUMuNcFBJ90qGXx
-clDs99TIKxbWNpGmOfB/pp7HqriZR0G5ETeCzbZe/ik+ykd9/GsiSKpIpNAUQDXjcoexOYJohyBd
-imufki4d1qEitqKZKdDJOOjTUj0rnjywyiH/FXerJSJM8mV4AljMYdw+kGczt/wF6EfrZyhqGpC6
-iAXEJJVgJiJSWTUpgazg96FLEaQhR3jF2pUadOig+VOq8cEL0SdsFxUYbT5Z1I3VG2DUBRl5pvKj
-t7WZqBC0LUkQ20tCfE56zICTgx175T+6Bx0BQo7eCQDok3YjkKPupqxavG8w1yGZU9YRPMB0BP/X
-hG/x2E2pbKQ+/QW1jjprfahawPOkDfiFAxbeCSs47Szx4gBUGagsrgmRgEZvqmrRX5W20miVX6VE
-BvlfiUEimAEjGsDlqyk72OqmoB46W1xB6Z4eqL1Hr6vYoHAnkljygBApQtx/YlsvRJgDKC1mpP+e
-0hOgX+yBjDAbTHTkqUE78VHHgrEHlrffJH7RCzoEvKRB7D1MDTbGm2rEBrgo7VXRxoWNjkC4hdJf
-68lSiSAAtEpdEEH/FwNC+esbvl+WQa+Aam14Dgeg1MEEJyNMAzSm+XKvBYA/gWjcfsCMgxciN0Qy
-b4h2PRAGtu2BYJLQb9qswkQTwuAixgQfhJPBE1ByRrS7ElJ1VZKwQ1v+UqKkWAv1z6aMw3dDlhgz
-wHkS44K9gE1dSj0imvMCq/t9QhmiuUZMIN9aAgM2JlA6gc4tz5rz0Q5Rc7DulsI2muQAuhWb02x6
-qKYK0XBOBMmbslF5VZOhJUFPDkNlCNWAMJOQtALKJPsQSBudKOr7N0ZYteAs+oT3zwOqvDHC5Mcs
-mXivUHREMebmma62bzW5ey7J8jsrupMBqGFdz+lMr1ndhF0Pz8SMkgE7sloQer5wqdmHLuimUCyV
-EChUmjqwymWZbvwWmk6Rq6qKKN0vMcKgPOGVPTG6Ixq5f1nOtQog8EWwxp4ssLL2QjQXWj1uEhtq
-tWy2ioV+sZMmvYMKAkDMydibt8jMfU9GHvZ1HTCFungoNaWisGRVHN2dznFTQ6cgIRVoVDiBAdvy
-dxetqPceMYgdlsqCZrVt4HZep4ixtPKmKKQa3ZVZDZSVLRTiolehcvOIzj8FHS5i3OLHv1orjf/e
-PcjiJWtR5vZ1rCc2qq4333CRjY3cu6yCXGHI9MxmNQrDbyaGZhIbF/7SiaTUXGRwNOqvXwBSsp4M
-RVQV8QzARAjdKMpKLYTvkGlbZOJXw+5TKmow/LgzrGoglndOQrgOAShNVDN0BkTsaR/HJT0IgAlQ
-O1KVyZEBILpJqCoXZEk+OPxsIqCGJOHKtuksaJAAwXA2rmsxdJasc2qQCWTLOyLpzotw9hCaiwTK
-Ei4EIJIwLOpeylxQuDMCgQPYaKTfdTTDXYeT9pX8Dzn4BcI/F8NX6kQMNilm5iEKNlZXfIzKFS8o
-pspWIDiYL25JYRcoDE5c5KnDDehGukDFHNhyDsKdwKbo/YzMbzdbBkb2RCKdS+xeanxkNTML/QnQ
-qPYt+WhRfTftKJzAz4e4QEMYaqdRAq2OSxHaYWHSD0iXEaxHjABm8xXfbmBXuCCnSCtbmZKdBqVS
-+pPtIHdg3sWQ5YlstCTY+rjdRE3Mbkz5ZzpCv8Pb5MUO7MPKChMLIPwZmhvhaPAYgZd7QNW2XUGO
-HJ2+5rqiYw8TxuPtdPLPDMg1w7B/SU1mvkXcqSPsiYUY70C02JihXQs6LSoJUyO+2AEWJKxpvXyg
-xIyMk925uogxsVqa4yb+2BHe7hEMjV0vc6hoSCM6YlpkxbILlkizP2gwXdpblUsEuDoAZ8Khy0Kd
-trpX7DYDGVlDkRdR9Ubc5G9G7CzRAeNhUnHPa8eP+lgkdkVFfj8kSEtkre0uoLPYwMpaQgw4hmib
-nKOREEN22VW3XRhqsaG8Icc+Gb3jaEZNOBbKmPJvvj1DHik6uNQm3NitNipADReu+VEqQiOSOb+T
-OQr9xpSZdcqS5mHQBgGhQiPHkqYFukroASVPXjqWe85Si++Y4SXIQ1+FXolKOpKSBkqydMB+bTSX
-3R5YotFuUXypmTqKL/V+ggKC3KyJBWm7ncRMCRVXAa4JC9WOHvKPU450guVI7kAWlg5wPJ9LelcJ
-1Uyxz0VXmc6a9kxbVd4nY6qP3xDOHW6TsPi/+ACr6Ch3oAZcJDRG2ZMH0uoM/SqGFsLMxhRPs7wQ
-5Qy8iGPxqIxRJlLg87zw1TaJrWEn5qx1dzYOGQ3TUWnj9cE1xcNUXfnn7pljjk0HxOD6HBcXMgi6
-d0xT0ygoOSNFQ2TToMJZB6BYtsB4yX/EfL5eZ9lPZsZZr7yxbS2QWAMSNB3Ubj6Dcg4kXYox5lKQ
-wyWnIZ8TJlARqORi9FCDdEeN/uqzu1nDlrlQgBvCU61FFF/MQ1zKYKMl9wxeILPFkSWHBLPsIn+N
-VNFCI2VD0b/VOW31J8Ju918poVpaWEVzUe6UUpiIAiQuEbWEvYLmG1R/DPBQyIRnsTJGSiOiV6r+
-Kwkjd3OxI31lheVyi5ySWeaoRIRXAs27NDKydNx70ODtTD9sxmYB0WxQryIiXW8M+ZFPZoR45ty0
-eMuycAbcocOEPoLdwitVVvu5pHEL+R5QR9WlPmSKZ44AkP2KgYJEc9DHg1HZnQlfE5a4LWuKnqrk
-re355+PFPatUJn6eyHBaeE7xyFDAMzQAOI98Cw8URfDcnjmZCSK8NON1Nd051FGV2ebNZOLzA5sA
-GSVg8nePg20vQGAEALyV7/W+8o9ZGv/DNPzmntABEVNjaRxIw+72lmNRLEC5BLrCR6nUTh7LV81g
-ShjmVHtmFzFkjdKBPOi/DyO8E6hQ63yLVXQTfLJoieTWCZXpWnMgN0oejD2YDY1wgeuob8+WHN65
-1MF21e9RzY8tE+XvzBMeJi9ftXnMHDFwqL1ES32mb/e5TtG+y5Cv08bKXQPkfJx7UC1c59LUBjP3
-R+Aps3gSujyNXfCGhkmg8cSlJevSdkaty549XopU0bKPbBzd/MwW8dGlxw2251bfY4Ex42kx6Ibe
-9kj4SDzrpGHSEq9Agl3avcfYzhVsvJOvgTz6gWHnCFEPJT9oSc9gLsvK2IFll3NFInNB7ejKmfC2
-eZQR1FGNEEP10EONM6NXTCp24Ot5H+0njID9rMTuIW2zFDSOaJLvecRlPTWL5qFGbr8Ngxc9d1bl
-N1azQidB06zPJHhpI7ohHfTdEVneoXYgEKQHI3YAGbCAmKURbEUZM0J07eGCYRJp7JKgT05aEdfE
-Ql8htkSgu7kOWkpK4D+4I5Geg+MkOA9KDXdu92As7uAKnSlxgj/85Dt8riMLnPRMUHDc7d6Sfd8z
-f/dKpwmo+dBSF5zrLHF8ud7ubzIe1lm2kjmHqO3r1FBKAUHj8IGiMtt+btgwtffPzmRZPlfu6/i5
-BVi+qnOzfbwCxXyNZFQUeZ2W/0bQTg0DNVSGYFriWTa/z5xiTEw5Tya0Rzuuvj1DFefYSUEfraF8
-xMWCicBgwrbbQrw4uo1nXIG1nxEZ0g8eLGmyc1YS7Cmfep13aUS7ZZECjLA+4LJeyH6yNA0w2wsx
-J/PgxdTuPLsfR4MQ1znX2li3lTPeoUTAbvhdppXttBAp55wENd01aqRlV27/Z+74LeP4y+TAMlPC
-EHKTh/b0+94edE8x7hfOcMEpxhDIPBWsO9A2iUWa3ZMT2oKTHnKkccUtE4WAaHwzID4endM8NXTo
-kCJz7kiWjP1SFLPaYo5yhnt/B3Z1J1E669CtsxrbbMntDBgLGhDmmtpmnNwsDO2ufoyWRZHAd8Rn
-TnbJNlqmbznapM42H0hPwI6bDQbGOUnuw9eI4Je8PlmOzOy6W3bj8JSg9NLmusnn4pdN23M2x7It
-+AJNPeqY0rkj5xLEVjdIlyzMuwG95vB+lLz27dO0qBBOqKLbN161Y8jmClv+cjzlMyhUWP+ArJ7R
-0Pu4D9ilDyZ9CENY6fT4+e3oi0OHSeCjUUfb6WTjXh1oSy5LNcinxw7HmAbA87t1lchErIOfn/CS
-JXyWYseCVfcMbQw8t/T9Jn63zZ4LXlLhPbDmwn/0CZmvbR1RHFkjMRZVjq9HbqT00MaFEyVtmENr
-ltCoM/aPLbRxP3XEJWF3RS6tRG974AiD0HXaujDIniSYsvGuHyT4g/1IC/eoZbnkVwDYrY70wfUS
-FUSdqgfjxDGVEvQ558xHHSLDHZXxjgejyJBNu2OS+4cq5n78WT38/Kcqxy/YT6afVLE7V+UsfvZO
-+Fhhj4mUVbHRu1UPy+uV5dISkKQ4W5SNLmI3EBm8c0HxjBC4w34QuxmiyuUTlezqw7T0ZgQXirZ+
-i5TCjcvQnwixiqrc762a9K4kbpt2zn4giufYH4lRDlT5+foE7GoV4esBlavy134dBwG4kyTMMr6Y
-VTJxTaRGtorbvXY7Wy3bPxm6Zr3u28L43F4dZjRv9WHuklraz+7NX4EhSSOg1XfjTkFeUg690Sbw
-uZwwhDmWzZn9grC4faOPCGVER1iL1KhHr1/RiaxIqFMP4O7Se1kst7EYVNkRBL8EG7T3+NL3ASUc
-GxaFceO+JwtFZLUky6FbaWThbdGniBvCkgMOzynOMN/ZKTAyRWx5fAkjDSYdPKO7xG+9JPEOZEbt
-LMwYYQzTXK/ZLx8tmy42GeAvmMqBQFJp2NNjSwqOCojAAgg+o/fhTMI3AsXMekfY5dFLjeJ8UChf
-bAgJeFWhg2GodsRl43EqU+RKGlk8dOfRHONxZYB2dE05dqwGsjjZmGerawmBjk3jyjQEcQbEiTvU
-+BjXpZj0Mr+gvDbuiFpQOaTS9+lLoXbgWeVQNrCmRAqWOCtZEzI55s1NQkILDe331AX42U2Tfnwb
-4PG6eIpjMA32dvUmh8rTT1120wT0XhjHIiv2tw0UYNwGfxfkHY2k4CqVNndkS7CnLaarZ2KpLDem
-EBqSnWz2FsxcNXmDl6/MOHfhqYGMoFNjsLlfUa1oA5pfgK0+8kBbM/z8BcaI4ddvMGnq4qfoutd6
-pdbPdp4fZ+/NbiFXehoHEfGZe1tP5tPRIEzSuDx1MgwGk2Q8Li/QmZcXjfvbaa76/jDMi+tevxUN
-1H1rjpLmFKloYj+YxZJvzVmsUxX3jeZk3H+ZLR8L+XLU7cuF+fbPmBfxcN5+GkeXTfjL7svV5Plk
-1J30wr7Z2nFS0Z0qhUFQ7OZLV9PZW1s8jRrRyMwY7eiikPVlZiJM4jCp2K+x08zX05+TmbPMacb9
-9Q/3999/zpanQbX5cu3dFxq10l3qt/Xb39btttfnJo2Jf/gWk12Tv5+efv3y5df1nznO+q0cLBVL
-JGLsKLJj0v3yxf2a+XU9pTnK+q0cajNKKK8Me7r9GLws/Jvlw7hdTN68z7zOw7y6TnPykRDJ+3zD
-2aJr7wLTyB5+czTvptaUfurOs4vXyqAcZXtRjre+T/hhfd9cL7pWLrpHbkthE6W15Py7kRIYInXx
-H1BLAQI/ABQAAAAIANh4zEqNPrg89hEAAL1ZAAAIACQAAAAAAAAAIAAAAAAAAAAyNDMwNi5qcwoA
-IAAAAAAAAQAYAOP9gy7I49IB4/2DLsjj0gHj/YMuyOPSAVBLBQYAAAAAAQABAFoAAAAcEgAAAABQ
-SwECPwAKAAAAAADYeMxK5LPwUYwSAACMEgAACQAkAAAAAAAAACAAAAAAAAAAMjQzMDYuemlwCgAg
-AAAAAAABABgAw2GGLsjj0gHDYYYuyOPSAcNhhi7I49IBUEsFBgAAAAABAAEAWwAAALMSAAAAAA==
+Ping again. Is there still any interest in the patchset?
+
+Arnd, Ingo?
+
+On Fri, Jun 02, 2017 at 02:34:43PM +0300, Yury Norov wrote:
+> Ping?
+> 
+> On Tue, May 23, 2017 at 09:43:15PM +0300, Yury Norov wrote:
+> > The series is the result of this discussion: https://lkml.org/lkml/2017/5/12/665
+> > plus this patch: https://lkml.org/lkml/2017/5/13/137
+> > (I'd like to have it together with others.)
+> > 
+> > Patch 1 remove useless GENERIC_FIND_FIRST_BIT option.  Patches 2 and 3 change
+> > the order of macros definition and/or headers inclusion for frv and m86k, as
+> > it's needed in patch 4. Patch 4 adds the optimization for find_first_bit() and
+> > find_first_zero_bit(). Patches 5 and 6 consolidate the implementation of
+> > sched_find_first_bit(), and make it local.
+> > 
+> > According to previous discussion, I added Arnd's ack to patches 5 and 6.
+> > https://lkml.org/lkml/2017/5/15/514 and suggested-by to patch 4.
+> > Arnd, are you OK with it?
+> > 
+> > Yury Norov (6):
+> >   arch: remove GENERIC_FIND_FIRST_BIT
+> >   m68k: make __ffs and ffz defined prior to including find.h
+> >   frv: make __ffs() visible for find.h
+> >   find_first{,_zero}_bit: unroll search cycle for small bitmaps
+> >   alpha: drop custom implementation for sched_find_first_bit()
+> >   sched: move sched_find_first_bit() from bitops.h to
+> >     kernel/sched/sched.h
+> > 
+> >  arch/alpha/include/asm/bitops.h    |  18 -----
+> >  arch/arc/Kconfig                   |   1 -
+> >  arch/arc/include/asm/bitops.h      |   1 -
+> >  arch/arm/include/asm/bitops.h      |   1 -
+> >  arch/arm64/include/asm/bitops.h    |   1 -
+> >  arch/blackfin/include/asm/bitops.h |   1 -
+> >  arch/c6x/include/asm/bitops.h      |   1 -
+> >  arch/cris/include/asm/bitops.h     |   2 -
+> >  arch/frv/include/asm/bitops.h      |   4 +-
+> >  arch/h8300/include/asm/bitops.h    |   1 -
+> >  arch/hexagon/include/asm/bitops.h  |   1 -
+> >  arch/ia64/include/asm/bitops.h     |   2 -
+> >  arch/m32r/include/asm/bitops.h     |   1 -
+> >  arch/m68k/include/asm/bitops.h     | 162 ++++++++++++++++++-------------------
+> >  arch/metag/include/asm/bitops.h    |   1 -
+> >  arch/mips/include/asm/bitops.h     |   2 -
+> >  arch/mn10300/include/asm/bitops.h  |   1 -
+> >  arch/openrisc/include/asm/bitops.h |   1 -
+> >  arch/parisc/include/asm/bitops.h   |   1 -
+> >  arch/powerpc/include/asm/bitops.h  |   2 -
+> >  arch/s390/Kconfig                  |   1 -
+> >  arch/s390/include/asm/bitops.h     |   1 -
+> >  arch/sh/include/asm/bitops.h       |   1 -
+> >  arch/sparc/include/asm/bitops_32.h |   1 -
+> >  arch/sparc/include/asm/bitops_64.h |   1 -
+> >  arch/tile/Kconfig                  |   1 -
+> >  arch/tile/include/asm/bitops.h     |   1 -
+> >  arch/unicore32/Kconfig             |   1 -
+> >  arch/x86/Kconfig                   |   1 -
+> >  arch/x86/include/asm/bitops.h      |   2 -
+> >  arch/x86/um/Kconfig                |   1 -
+> >  arch/xtensa/include/asm/bitops.h   |   1 -
+> >  include/asm-generic/bitops.h       |   1 -
+> >  include/asm-generic/bitops/find.h  |  82 +++++++++++++++++--
+> >  include/asm-generic/bitops/sched.h |  31 -------
+> >  kernel/sched/sched.h               |  23 ++++++
+> >  lib/Kconfig                        |   3 -
+> >  lib/find_bit.c                     |   8 +-
+> >  38 files changed, 182 insertions(+), 184 deletions(-)
+> >  delete mode 100644 include/asm-generic/bitops/sched.h
+> > 
+> > -- 
+> > 2.11.0
