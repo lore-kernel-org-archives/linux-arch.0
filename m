@@ -1,56 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from conuserg-09.nifty.com ([210.131.2.76]:63924 "EHLO
+Received: from conuserg-09.nifty.com ([210.131.2.76]:63926 "EHLO
         conuserg-09.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752075AbdFLD2F (ORCPT
+        with ESMTP id S1752078AbdFLD2F (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Sun, 11 Jun 2017 23:28:05 -0400
 From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH 26/27] kbuild: split exported generic header creation into uapi-asm-generic
-Date: Mon, 12 Jun 2017 12:27:20 +0900
-Message-ID: <1497238041-7011-27-git-send-email-yamada.masahiro@socionext.com>
+Subject: [PATCH 01/27] kbuild: remove useless $(gen) variable in Makefile.headersinst
+Date: Mon, 12 Jun 2017 12:26:55 +0900
+Message-ID: <1497238041-7011-2-git-send-email-yamada.masahiro@socionext.com>
 In-Reply-To: <1497238041-7011-1-git-send-email-yamada.masahiro@socionext.com>
 References: <1497238041-7011-1-git-send-email-yamada.masahiro@socionext.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kbuild@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>
 Cc: Masahiro Yamada <yamada.masahiro@socionext.com>, Michal Marek <mmarek@suse.com>, linux-kernel@vger.kernel.org
-Message-ID: <20170612032720.slg0cgPkYV2jM0dORecA6YkZuNg1SZMqGX_APtfNQZE@z>
+Message-ID: <20170612032655.0HCGy2q3N1SnDdv5ipg2__zwSUzyVGy46Mu8PofsUb0@z>
 
-When we install headers, we are interested only in headers under uapi
-directories.  Split out uapi-asm-generic target and make headers_install
-depend on it.  It will avoid generating unneeded asm-generic wrappers.
+We have no true case for the $(if $(gen), ...) conditional.  Drop it
+to simplify the gendir calculation.
 
 Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
 ---
 
- Makefile | 7 ++++---
- 1 file changed, 4 insertions(+), 3 deletions(-)
+ scripts/Makefile.headersinst | 5 +----
+ 1 file changed, 1 insertion(+), 4 deletions(-)
 
-diff --git a/Makefile b/Makefile
-index 1bb8c07db134..4fe556511c0d 100644
---- a/Makefile
-+++ b/Makefile
-@@ -465,10 +465,11 @@ ifneq ($(KBUILD_SRC),)
- endif
+diff --git a/scripts/Makefile.headersinst b/scripts/Makefile.headersinst
+index ce753a408c56..c801bc129635 100644
+--- a/scripts/Makefile.headersinst
++++ b/scripts/Makefile.headersinst
+@@ -31,9 +31,6 @@ skip-inst := $(if $(filter %/uapi,$(obj)),1)
  
- # Support for using generic headers in asm-generic
--PHONY += asm-generic
--asm-generic:
-+PHONY += asm-generic uapi-asm-generic
-+asm-generic: uapi-asm-generic
- 	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.asm-generic \
- 	            src=asm obj=arch/$(SRCARCH)/include/generated/asm
-+uapi-asm-generic:
- 	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.asm-generic \
- 	            src=uapi/asm obj=arch/$(SRCARCH)/include/generated/uapi/asm
+ ifeq ($(skip-inst),)
  
-@@ -1151,7 +1152,7 @@ PHONY += archscripts
- archscripts:
+-# generated header directory
+-gen := $(if $(gen),$(gen),$(subst include/,include/generated/,$(obj)))
+-
+ # Kbuild file is optional
+ kbuild-file := $(srctree)/$(obj)/Kbuild
+ -include $(kbuild-file)
+@@ -45,7 +42,7 @@ endif
  
- PHONY += __headers
--__headers: $(version_h) scripts_basic asm-generic archheaders archscripts
-+__headers: $(version_h) scripts_basic uapi-asm-generic archheaders archscripts
- 	$(Q)$(MAKE) $(build)=scripts build_unifdef
+ installdir    := $(INSTALL_HDR_PATH)/$(subst uapi/,,$(_dst))
  
- PHONY += headers_install_all
+-gendir        := $(objtree)/$(gen)
++gendir        := $(objtree)/$(subst include/,include/generated/,$(obj))
+ header-files  := $(notdir $(wildcard $(srcdir)/*.h))
+ header-files  += $(notdir $(wildcard $(srcdir)/*.agh))
+ header-files  := $(filter-out $(no-export-headers), $(header-files))
 -- 
 2.7.4
