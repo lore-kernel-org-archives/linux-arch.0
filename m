@@ -1,50 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:50082 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:48040 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752189AbdFLOP7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 12 Jun 2017 10:15:59 -0400
-Date: Mon, 12 Jun 2017 10:15:54 -0400
+        id S1752326AbdFMVIE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 13 Jun 2017 17:08:04 -0400
+Date: Tue, 13 Jun 2017 17:07:55 -0400
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH v5 1/6] asm-generic/bug.h: declare struct pt_regs;
- before function prototype
-Message-ID: <20170612101554.62828f32@gandalf.local.home>
-In-Reply-To: <20489607-25ef-1cbc-3679-6d4c7253514b@mev.co.uk>
-References: <20170525120316.24473-1-abbotti@mev.co.uk>
-        <20170525120316.24473-2-abbotti@mev.co.uk>
-        <20170608100731.43ee0323@gandalf.local.home>
-        <20489607-25ef-1cbc-3679-6d4c7253514b@mev.co.uk>
+Subject: Re: [PATCH 10/12] tracing: Update sample file to describe the new
+ macro
+Message-ID: <20170613170755.13331121@gandalf.local.home>
+In-Reply-To: <20170531215653.3240-11-jeremy.linton@arm.com>
+References: <20170531215653.3240-1-jeremy.linton@arm.com>
+        <20170531215653.3240-11-jeremy.linton@arm.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ian Abbott <abbotti@mev.co.uk>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Alexander Potapenko <glider@google.com>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@suse.de>, Hidehiro Kawai <hidehiro.kawai.ez@hitachi.com>, Jakub Kicinski <jakub.kicinski@netronome.com>, Johannes Berg <johannes.berg@intel.com>, Kees Cook <keescook@chromium.org>, Michal Nazarewicz <mina86@mina86.com>, Peter Zijlstra <peterz@infradead.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>
-Message-ID: <20170612141554.aMTJy9tE9Tbmu_b8FCH_c-ekNfJS78NAVneim5i8ihY@z>
+To: Jeremy Linton <jeremy.linton@arm.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@redhat.com, rusty@rustcorp.com.au, jeyu@redhat.com, kirill.shutemov@linux.intel.com, christoffer.dall@linaro.org, marc.zyngier@arm.com, jcm@jonmasters.org
+Message-ID: <20170613210755.OhlcPr2_Ih8qqcGs2nmsiI8aShuWjEH_c6-Hjyxwb0c@z>
 
-On Mon, 12 Jun 2017 15:13:54 +0100
-Ian Abbott <abbotti@mev.co.uk> wrote:
+On Wed, 31 May 2017 16:56:51 -0500
+Jeremy Linton <jeremy.linton@arm.com> wrote:
 
-> >> diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
-> >> index d6f4aed479a1..87191357d303 100644
-> >> --- a/include/asm-generic/bug.h
-> >> +++ b/include/asm-generic/bug.h
-> >> @@ -97,6 +97,7 @@ extern void warn_slowpath_null(const char *file, const int line);
-> >>
-> >>  /* used internally by panic.c */
-> >>  struct warn_args;
-> >> +struct pt_regs;  
-> >
-> > Probably be better to move pt_regs above the comment. For one, it is
-> > used before warn_args in the function below. Two, it's not defined
-> > internally by panic.c like warn_args is.  
+> Add a blurb in the trace sample file to describe
+> the macro used to add sizeof to value conversions.
 > 
-> Alternatively, the comment could be placed on the same line as `struct 
-> warn_args;`.  I don't think it's a big enough of a deal to patch it for 
-> the sake of it, tbh.
+> Signed-off-by: Jeremy Linton <jeremy.linton@arm.com>
+> ---
+>  samples/trace_events/trace-events-sample.h | 7 +++++++
+>  1 file changed, 7 insertions(+)
+> 
+> diff --git a/samples/trace_events/trace-events-sample.h b/samples/trace_events/trace-events-sample.h
+> index 76a75ab..82e1e66 100644
+> --- a/samples/trace_events/trace-events-sample.h
+> +++ b/samples/trace_events/trace-events-sample.h
+> @@ -225,6 +225,13 @@ TRACE_DEFINE_ENUM(TRACE_SAMPLE_FOO);
+>  TRACE_DEFINE_ENUM(TRACE_SAMPLE_BAR);
+>  TRACE_DEFINE_ENUM(TRACE_SAMPLE_ZOO);
+>  
+> +/*
+> + * The same problem as above applies to sizeof(), so there is also
+> + * a macro to solve that problem.
+> + */
+> +
+> +TRACE_DEFINE_SIZEOF(pteval_t);
+> +
 
-trivial clean up patches are fine to add for merge windows.
-
-Could just write a patch and send it to the trivial maintainer.
+Could you add this in the example too. That is, a use case. Just
+having the define isn't a proper sample. You want to use it in a
+TP_printk() too.
 
 -- Steve
+
+>  TRACE_EVENT(foo_bar,
+>  
+>  	TP_PROTO(const char *foo, int bar, const int *lst,
