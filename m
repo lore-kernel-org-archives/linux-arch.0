@@ -1,54 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga06.intel.com ([134.134.136.31]:19740 "EHLO mga06.intel.com"
+Received: from mga02.intel.com ([134.134.136.20]:13881 "EHLO mga02.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750728AbdFNNwc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 14 Jun 2017 09:52:32 -0400
+        id S1751990AbdFNNwC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 14 Jun 2017 09:52:02 -0400
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 2/3] mm: Do not loose dirty and access bits in pmdp_invalidate()
-Date: Wed, 14 Jun 2017 16:51:42 +0300
-Message-ID: <20170614135143.25068-3-kirill.shutemov@linux.intel.com>
+Subject: [PATCH 3/3] mm, thp: Do not loose dirty bit in __split_huge_pmd_locked()
+Date: Wed, 14 Jun 2017 16:51:43 +0300
+Message-ID: <20170614135143.25068-4-kirill.shutemov@linux.intel.com>
 In-Reply-To: <20170614135143.25068-1-kirill.shutemov@linux.intel.com>
 References: <20170614135143.25068-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Ralf Baechle <ralf@linux-mips.org>, "David S. Miller" <davem@davemloft.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
 Cc: "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Andrea Arcangeli <aarcange@redhat.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20170614135142.ZvKxUp9SiAGEBCusMTzclSENOhrsWYxi-wePLtVNLiM@z>
+Message-ID: <20170614135143.VxF-1epFeOEiGZpSmjwuJh_LtSZTAzKepQZhJkWRjXs@z>
 
-Vlastimil noted that pmdp_invalidate() is not atomic and we can loose
-dirty and access bits if CPU sets them after pmdp dereference, but
-before set_pmd_at().
+Until pmdp_invalidate() pmd entry is present and CPU can update it,
+setting dirty. Currently, we tranfer dirty bit to page too early and
+there is window when we can miss dirty bit.
 
-The bug doesn't lead to user-visible misbehaviour in current kernel.
-
-Loosing access bit can lead to sub-optimal reclaim behaviour for THP,
-but nothing destructive.
-
-Loosing dirty bit is not a big deal too: we would make page dirty
-unconditionally on splitting huge page.
-
-The fix is critical for future work on THP: both huge-ext4 and THP swap
-out rely on proper dirty tracking.
+Let's call SetPageDirty() after pmdp_invalidate().
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-Reported-by: Vlastimil Babka <vbabka@suse.cz>
 ---
- mm/pgtable-generic.c | 3 +--
- 1 file changed, 1 insertion(+), 2 deletions(-)
+ mm/huge_memory.c | 13 +++++++++----
+ 1 file changed, 9 insertions(+), 4 deletions(-)
 
-diff --git a/mm/pgtable-generic.c b/mm/pgtable-generic.c
-index c99d9512a45b..68094fa190d1 100644
---- a/mm/pgtable-generic.c
-+++ b/mm/pgtable-generic.c
-@@ -182,8 +182,7 @@ pgtable_t pgtable_trans_huge_withdraw(struct mm_struct *mm, pmd_t *pmdp)
- void pmdp_invalidate(struct vm_area_struct *vma, unsigned long address,
- 		     pmd_t *pmdp)
- {
--	pmd_t entry = *pmdp;
--	set_pmd_at(vma->vm_mm, address, pmdp, pmd_mknotpresent(entry));
-+	pmdp_mknotpresent(pmdp);
- 	flush_pmd_tlb_range(vma, address, address + HPAGE_PMD_SIZE);
- }
- #endif
+diff --git a/mm/huge_memory.c b/mm/huge_memory.c
+index a84909cf20d3..c4ee5c890910 100644
+--- a/mm/huge_memory.c
++++ b/mm/huge_memory.c
+@@ -1928,7 +1928,7 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
+ 	struct page *page;
+ 	pgtable_t pgtable;
+ 	pmd_t _pmd;
+-	bool young, write, dirty, soft_dirty;
++	bool young, write, soft_dirty;
+ 	unsigned long addr;
+ 	int i;
+ 
+@@ -1965,7 +1965,6 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
+ 	page_ref_add(page, HPAGE_PMD_NR - 1);
+ 	write = pmd_write(*pmd);
+ 	young = pmd_young(*pmd);
+-	dirty = pmd_dirty(*pmd);
+ 	soft_dirty = pmd_soft_dirty(*pmd);
+ 
+ 	pmdp_huge_split_prepare(vma, haddr, pmd);
+@@ -1995,8 +1994,6 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
+ 			if (soft_dirty)
+ 				entry = pte_mksoft_dirty(entry);
+ 		}
+-		if (dirty)
+-			SetPageDirty(page + i);
+ 		pte = pte_offset_map(&_pmd, addr);
+ 		BUG_ON(!pte_none(*pte));
+ 		set_pte_at(mm, addr, pte, entry);
+@@ -2046,6 +2043,14 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
+ 	 * pmd_populate.
+ 	 */
+ 	pmdp_invalidate(vma, haddr, pmd);
++
++	/*
++	 * Transfer dirty bit to page after pmd invalidated, so CPU would not
++	 * be able to set it under us.
++	 */
++	if (pmd_dirty(*pmd))
++		SetPageDirty(page);
++
+ 	pmd_populate(mm, pmd, pgtable);
+ 
+ 	if (freeze) {
 -- 
 2.11.0
