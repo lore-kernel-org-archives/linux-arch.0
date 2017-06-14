@@ -1,176 +1,176 @@
-From: Jeremy Linton <jeremy.linton@arm.com>
-Subject: Re: [PATCH 12/12] tracing: Rename update the enum_map file
-Date: Tue, 13 Jun 2017 16:21:48 -0500
-Message-ID: <d111f8c9-1a31-c447-8f2e-8360df6ef835@arm.com>
-References: <20170531215653.3240-1-jeremy.linton@arm.com>
- <20170531215653.3240-13-jeremy.linton@arm.com>
- <20170613171255.5090de5b@gandalf.local.home>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
+From: Daniel Lezcano <daniel.lezcano@linaro.org>
+Subject: [PATCH 11/23] Revert "clockevents: Add a clkevt-of mechanism like clksrc-of"
+Date: Wed, 14 Jun 2017 14:39:32 +0200
+Message-ID: <1497443984-12371-11-git-send-email-daniel.lezcano@linaro.org>
+References: <20170614123800.GH2261@mai>
+ <1497443984-12371-1-git-send-email-daniel.lezcano@linaro.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:54136 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752525AbdFMVVv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 13 Jun 2017 17:21:51 -0400
-In-Reply-To: <20170613171255.5090de5b@gandalf.local.home>
-Content-Language: en-US
+Received: from mail-wr0-f170.google.com ([209.85.128.170]:36444 "EHLO
+        mail-wr0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752600AbdFNMla (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Jun 2017 08:41:30 -0400
+Received: by mail-wr0-f170.google.com with SMTP id 36so66280330wry.3
+        for <linux-arch@vger.kernel.org>; Wed, 14 Jun 2017 05:41:24 -0700 (PDT)
+In-Reply-To: <1497443984-12371-1-git-send-email-daniel.lezcano@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@redhat.com, rusty@rustcorp.com.au, jeyu@redhat.com, kirill.shutemov@linux.intel.com, christoffer.dall@linaro.org, marc.zyngier@arm.com, jcm@jonmasters.org
+To: tglx@linutronix.de
+Cc: linux-kernel@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, Arnd Bergmann <arnd@arndb.de>, "open list:GENERIC INCLUDE/A..." <linux-arch@vger.kernel.org>
 
-Hi,
+After discussing it, this feature is dropped as it is not considered
+adequate:
 
-On 06/13/2017 04:12 PM, Steven Rostedt wrote:
-> On Wed, 31 May 2017 16:56:53 -0500
-> Jeremy Linton <jeremy.linton@arm.com> wrote:
-> 
->> The enum_map file is used to display a list of symbol
->> to name conversions. As its now used to resolve sizeof
->> lets update the name and description.
->>
->> Signed-off-by: Jeremy Linton <jeremy.linton@arm.com>
->> ---
->>   kernel/trace/Kconfig | 22 +++++++++++-----------
->>   kernel/trace/trace.c | 20 ++++++++++----------
->>   2 files changed, 21 insertions(+), 21 deletions(-)
->>
->> diff --git a/kernel/trace/Kconfig b/kernel/trace/Kconfig
->> index 7e06f04..434c840 100644
->> --- a/kernel/trace/Kconfig
->> +++ b/kernel/trace/Kconfig
->> @@ -667,30 +667,30 @@ config RING_BUFFER_STARTUP_TEST
->>   
->>   	 If unsure, say N
->>   
->> -config TRACE_ENUM_MAP_FILE
->> -       bool "Show enum mappings for trace events"
->> +config TRACE_EVAL_MAP_FILE
->> +       bool "Show eval mappings for trace events"
->>          depends on TRACING
->>          help
->> -        The "print fmt" of the trace events will show the enum names instead
->> -	of their values. This can cause problems for user space tools that
->> -	use this string to parse the raw data as user space does not know
->> +	The "print fmt" of the trace events will show the enum/sizeof names
->> +	instead	of their values. This can cause problems for user space tools
->> +	that use this string to parse the raw data as user space does not know
->>   	how to convert the string to its value.
->>   
->>   	To fix this, there's a special macro in the kernel that can be used
->> -	to convert the enum into its value. If this macro is used, then the
->> -	print fmt strings will have the enums converted to their values.
->> +	to convert an enum/sizeof into its value. If this macro is used, then
->> +	the print fmt strings will be converted to their values.
->>   
->>   	If something does not get converted properly, this option can be
->> -	used to show what enums the kernel tried to convert.
->> +	used to show what enums/sizeof the kernel tried to convert.
->>   
->> -	This option is for debugging the enum conversions. A file is created
->> -	in the tracing directory called "enum_map" that will show the enum
->> +	This option is for debugging the conversions. A file is created
->> +	in the tracing directory called "eval_map" that will show the
->>   	names matched with their values and what trace event system they
->>   	belong too.
->>   
->>   	Normally, the mapping of the strings to values will be freed after
->>   	boot up or module load. With this option, they will not be freed, as
->> -	they are needed for the "enum_map" file. Enabling this option will
->> +	they are needed for the "eval_map" file. Enabling this option will
->>   	increase the memory footprint of the running kernel.
->>   
->>   	If unsure, say N
->> diff --git a/kernel/trace/trace.c b/kernel/trace/trace.c
->> index 676c808..7297e9d 100644
->> --- a/kernel/trace/trace.c
->> +++ b/kernel/trace/trace.c
->> @@ -120,8 +120,8 @@ enum ftrace_dump_mode ftrace_dump_on_oops;
->>   /* When set, tracing will stop when a WARN*() is hit */
->>   int __disable_trace_on_warning;
->>   
->> -#ifdef CONFIG_TRACE_ENUM_MAP_FILE
->> -/* Map of enums to their values, for "enum_map" file */
->> +#ifdef CONFIG_TRACE_EVAL_MAP_FILE
->> +/* Map of enums to their values, for "eval_map" file */
->>   struct trace_eval_map_head {
->>   	struct module			*mod;
->>   	unsigned long			length;
->> @@ -145,7 +145,7 @@ static DEFINE_MUTEX(trace_eval_mutex);
->>    * one at the beginning, and one at the end. The beginning item contains
->>    * the count of the saved maps (head.length), and the module they
->>    * belong to if not built in (head.mod). The ending item contains a
->> - * pointer to the next array of saved enum_eval/enum_map items.
->> + * pointer to the next array of saved eval_map items.
->>    */
->>   union trace_eval_map_item {
->>   	struct trace_eval_map		map;
->> @@ -154,7 +154,7 @@ union trace_eval_map_item {
->>   };
->>   
->>   static union trace_eval_map_item *trace_eval_maps;
->> -#endif /* CONFIG_TRACE_ENUM_MAP_FILE */
->> +#endif /* CONFIG_TRACE_EVAL_MAP_FILE */
->>   
->>   static int tracing_set_tracer(struct trace_array *tr, const char *buf);
->>   
->> @@ -4717,7 +4717,7 @@ static const struct file_operations tracing_saved_cmdlines_size_fops = {
->>   	.write		= tracing_saved_cmdlines_size_write,
->>   };
->>   
->> -#ifdef CONFIG_TRACE_ENUM_MAP_FILE
->> +#ifdef CONFIG_TRACE_EVAL_MAP_FILE
->>   static union trace_eval_map_item *
->>   update_eval_map(union trace_eval_map_item *ptr)
->>   {
->> @@ -4868,15 +4868,15 @@ trace_insert_eval_map_file(struct module *mod, struct trace_eval_map **start,
->>   
->>   static void trace_create_eval_file(struct dentry *d_tracer)
->>   {
->> -	trace_create_file("enum_map", 0444, d_tracer,
->> +	trace_create_file("eval_map", 0444, d_tracer,
->>   			  NULL, &tracing_eval_map_fops);
-> 
-> Hmm, I have to audit some userspace code to see if this is used. The
-> enum_map was a debug feature, but it could have been used by some tools.
+	https://patchwork.kernel.org/patch/9639317/
 
-I thought perf was using it, but I was mistaken. I didn't find anything 
-using it, but to be on the safe side I placed this patch last so it 
-could be dropped if a user was found. The CONFIG option seems to be 
-disabled in the couple distro's I checked, further indicating that if 
-someone is using it, they are seemingly obscure.
+There is no user of this macro yet, so there is no impact on the drivers.
 
+This reverts commit 376bc27150f180d9f5eddec6a14117780177589d.
 
+Cc: Mark Rutland <mark.rutland@arm.com>
+Signed-off-by: Daniel Lezcano <daniel.lezcano@linaro.org>
+---
+ drivers/clocksource/Kconfig        |  7 -----
+ drivers/clocksource/Makefile       |  1 -
+ drivers/clocksource/clkevt-probe.c | 56 --------------------------------------
+ include/asm-generic/vmlinux.lds.h  |  2 --
+ include/linux/clockchips.h         |  9 ------
+ 5 files changed, 75 deletions(-)
+ delete mode 100644 drivers/clocksource/clkevt-probe.c
 
->>   }
->>   
->> -#else /* CONFIG_TRACE_ENUM_MAP_FILE */
->> +#else /* CONFIG_TRACE_EVAL_MAP_FILE */
->>   static inline void trace_create_eval_file(struct dentry *d_tracer) { }
->>   static inline void trace_insert_eval_map_file(struct module *mod,
->>   			      struct trace_eval_map **start, int len) { }
->> -#endif /* !CONFIG_TRACE_ENUM_MAP_FILE */
->> +#endif /* !CONFIG_TRACE_EVAL_MAP_FILE */
->>   
->>   static void trace_insert_eval_map(struct module *mod,
->>   				  struct trace_eval_map **start, int len)
->> @@ -7731,7 +7731,7 @@ static void trace_module_add_evals(struct module *mod)
->>   	trace_insert_eval_map(mod, mod->trace_evals, mod->num_trace_evals);
->>   }
->>   
->> -#ifdef CONFIG_TRACE_ENUM_MAP_FILE
->> +#ifdef CONFIG_TRACE_EVAL_MAP_FILE
->>   static void trace_module_remove_evals(struct module *mod)
->>   {
->>   	union trace_eval_map_item *map;
->> @@ -7761,7 +7761,7 @@ static void trace_module_remove_evals(struct module *mod)
->>   }
->>   #else
->>   static inline void trace_module_remove_evals(struct module *mod) { }
->> -#endif /* CONFIG_TRACE_ENUM_MAP_FILE */
->> +#endif /* CONFIG_TRACE_EVAL_MAP_FILE */
->>   
->>   static int trace_module_notify(struct notifier_block *self,
->>   			       unsigned long val, void *data)
-> 
+diff --git a/drivers/clocksource/Kconfig b/drivers/clocksource/Kconfig
+index 1b22ade..623fcc6 100644
+--- a/drivers/clocksource/Kconfig
++++ b/drivers/clocksource/Kconfig
+@@ -5,10 +5,6 @@ config CLKSRC_OF
+ 	bool
+ 	select CLKSRC_PROBE
+ 
+-config CLKEVT_OF
+-	bool
+-	select CLKEVT_PROBE
+-
+ config CLKSRC_ACPI
+ 	bool
+ 	select CLKSRC_PROBE
+@@ -16,9 +12,6 @@ config CLKSRC_ACPI
+ config CLKSRC_PROBE
+ 	bool
+ 
+-config CLKEVT_PROBE
+-	bool
+-
+ config CLKSRC_I8253
+ 	bool
+ 
+diff --git a/drivers/clocksource/Makefile b/drivers/clocksource/Makefile
+index cf0c30b..cad713c 100644
+--- a/drivers/clocksource/Makefile
++++ b/drivers/clocksource/Makefile
+@@ -1,5 +1,4 @@
+ obj-$(CONFIG_CLKSRC_PROBE)	+= clksrc-probe.o
+-obj-$(CONFIG_CLKEVT_PROBE)	+= clkevt-probe.o
+ obj-$(CONFIG_ATMEL_PIT)		+= timer-atmel-pit.o
+ obj-$(CONFIG_ATMEL_ST)		+= timer-atmel-st.o
+ obj-$(CONFIG_ATMEL_TCB_CLKSRC)	+= tcb_clksrc.o
+diff --git a/drivers/clocksource/clkevt-probe.c b/drivers/clocksource/clkevt-probe.c
+deleted file mode 100644
+index eb89b50..0000000
+--- a/drivers/clocksource/clkevt-probe.c
++++ /dev/null
+@@ -1,56 +0,0 @@
+-/*
+- * Copyright (c) 2016, Linaro Ltd.  All rights reserved.
+- * Daniel Lezcano <daniel.lezcano@linaro.org>
+- *
+- * This program is free software; you can redistribute it and/or modify it
+- * under the terms and conditions of the GNU General Public License,
+- * version 2, as published by the Free Software Foundation.
+- *
+- * This program is distributed in the hope it will be useful, but WITHOUT
+- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+- * more details.
+- *
+- * You should have received a copy of the GNU General Public License
+- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+- */
+-
+-#include <linux/init.h>
+-#include <linux/of.h>
+-#include <linux/clockchips.h>
+-
+-extern struct of_device_id __clkevt_of_table[];
+-
+-static const struct of_device_id __clkevt_of_table_sentinel
+-	__used __section(__clkevt_of_table_end);
+-
+-int __init clockevent_probe(void)
+-{
+-	struct device_node *np;
+-	const struct of_device_id *match;
+-	of_init_fn_1_ret init_func;
+-	int ret, clockevents = 0;
+-
+-	for_each_matching_node_and_match(np, __clkevt_of_table, &match) {
+-		if (!of_device_is_available(np))
+-			continue;
+-
+-		init_func = match->data;
+-
+-		ret = init_func(np);
+-		if (ret) {
+-			pr_warn("Failed to initialize '%s' (%d)\n",
+-				np->name, ret);
+-			continue;
+-		}
+-
+-		clockevents++;
+-	}
+-
+-	if (!clockevents) {
+-		pr_crit("%s: no matching clockevent found\n", __func__);
+-		return -ENODEV;
+-	}
+-
+-	return 0;
+-}
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 314a0b9..401d324 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -173,7 +173,6 @@
+ 	KEEP(*(__##name##_of_table_end))
+ 
+ #define CLKSRC_OF_TABLES()	OF_TABLE(CONFIG_CLKSRC_OF, clksrc)
+-#define CLKEVT_OF_TABLES()	OF_TABLE(CONFIG_CLKEVT_OF, clkevt)
+ #define IRQCHIP_OF_MATCH_TABLE() OF_TABLE(CONFIG_IRQCHIP, irqchip)
+ #define CLK_OF_TABLES()		OF_TABLE(CONFIG_COMMON_CLK, clk)
+ #define IOMMU_OF_TABLES()	OF_TABLE(CONFIG_OF_IOMMU, iommu)
+@@ -558,7 +557,6 @@
+ 	CLK_OF_TABLES()							\
+ 	RESERVEDMEM_OF_TABLES()						\
+ 	CLKSRC_OF_TABLES()						\
+-	CLKEVT_OF_TABLES()						\
+ 	IOMMU_OF_TABLES()						\
+ 	CPU_METHOD_OF_TABLES()						\
+ 	CPUIDLE_METHOD_OF_TABLES()					\
+diff --git a/include/linux/clockchips.h b/include/linux/clockchips.h
+index acc9ce0..a116926 100644
+--- a/include/linux/clockchips.h
++++ b/include/linux/clockchips.h
+@@ -223,13 +223,4 @@ static inline void tick_setup_hrtimer_broadcast(void) { }
+ 
+ #endif /* !CONFIG_GENERIC_CLOCKEVENTS */
+ 
+-#define CLOCKEVENT_OF_DECLARE(name, compat, fn) \
+-	OF_DECLARE_1_RET(clkevt, name, compat, fn)
+-
+-#ifdef CONFIG_CLKEVT_PROBE
+-extern int clockevent_probe(void);
+-#else
+-static inline int clockevent_probe(void) { return 0; }
+-#endif
+-
+ #endif /* _LINUX_CLOCKCHIPS_H */
+-- 
+2.7.4
