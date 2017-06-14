@@ -1,65 +1,114 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:39680 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:39706 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752661AbdFNW1g (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 14 Jun 2017 18:27:36 -0400
+        id S1752080AbdFNW1h (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 14 Jun 2017 18:27:37 -0400
 From: Jeremy Linton <jeremy.linton@arm.com>
-Subject: [PATCH v2 08/13] tracing: Rename enum_replace to eval_replace
-Date: Wed, 14 Jun 2017 17:27:24 -0500
-Message-ID: <20170614222729.16521-9-jeremy.linton@arm.com>
+Subject: [PATCH v2 11/13] tracing: Add TRACE_DEFINE_SIZEOF() macros
+Date: Wed, 14 Jun 2017 17:27:27 -0500
+Message-ID: <20170614222729.16521-12-jeremy.linton@arm.com>
 In-Reply-To: <20170614222729.16521-1-jeremy.linton@arm.com>
 References: <20170614222729.16521-1-jeremy.linton@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, rostedt@goodmis.org, mingo@redhat.com, rusty@rustcorp.com.au, jeyu@redhat.com, kirill.shutemov@linux.intel.com, christoffer.dall@linaro.org, marc.zyngier@arm.com, jcm@jonmasters.org, clemens@ladisch.de, perex@perex.cz
-Message-ID: <20170614222724.gO9EkDZ_Q91tiZie9u5dqT834I-IzSccU0GKx275jnI@z>
+Message-ID: <20170614222727.7TJYRx1mQserX-rSqQ6EWA68FRjytMSu5mXY1nnu-EM@z>
 
-The enum_replace stanza works as is for sizeof()
-calls as well as enums. Rename it as well.
+There are a few places in the kernel where sizeof() is already
+being used. Update those locations with TRACE_DEFINE_SIZEOF.
 
 Signed-off-by: Jeremy Linton <jeremy.linton@arm.com>
 ---
- kernel/trace/trace_events.c | 12 ++++++------
- 1 file changed, 6 insertions(+), 6 deletions(-)
+ arch/arm64/kvm/trace.h        |  2 ++
+ drivers/net/fjes/fjes_trace.h |  2 ++
+ include/trace/events/xen.h    | 13 +++++++++++--
+ 3 files changed, 15 insertions(+), 2 deletions(-)
 
-diff --git a/kernel/trace/trace_events.c b/kernel/trace/trace_events.c
-index e6897b0..83dfd0d 100644
---- a/kernel/trace/trace_events.c
-+++ b/kernel/trace/trace_events.c
-@@ -2067,12 +2067,12 @@ __register_event(struct trace_event_call *call, struct module *mod)
- 	return 0;
- }
+diff --git a/arch/arm64/kvm/trace.h b/arch/arm64/kvm/trace.h
+index 7fb0008..5188c70 100644
+--- a/arch/arm64/kvm/trace.h
++++ b/arch/arm64/kvm/trace.h
+@@ -93,6 +93,8 @@ TRACE_EVENT(kvm_arm_set_dreg32,
+ 	TP_printk("%s: 0x%08x", __entry->name, __entry->value)
+ );
  
--static char *enum_replace(char *ptr, struct trace_eval_map *map, int len)
-+static char *eval_replace(char *ptr, struct trace_eval_map *map, int len)
- {
- 	int rlen;
- 	int elen;
++TRACE_DEFINE_SIZEOF(__u64);
++
+ TRACE_EVENT(kvm_arm_set_regset,
+ 	TP_PROTO(const char *type, int len, __u64 *control, __u64 *value),
+ 	TP_ARGS(type, len, control, value),
+diff --git a/drivers/net/fjes/fjes_trace.h b/drivers/net/fjes/fjes_trace.h
+index cca01a1..d9c8ca6 100644
+--- a/drivers/net/fjes/fjes_trace.h
++++ b/drivers/net/fjes/fjes_trace.h
+@@ -62,6 +62,8 @@ TRACE_EVENT(fjes_hw_issue_request_command,
+ 		  __entry->cs_complete, __entry->timeout, __entry->ret)
+ );
  
--	/* Find the length of the enum value as a string */
-+	/* Find the length of the eval value as a string */
- 	elen = snprintf(ptr, 0, "%ld", map->eval_value);
- 	/* Make sure there's enough room to replace the string with the value */
- 	if (len < elen)
-@@ -2127,14 +2127,14 @@ static void update_event_printk(struct trace_event_call *call,
- 		if (isalpha(*ptr) || *ptr == '_') {
- 			if (strncmp(map->eval_string, ptr, len) == 0 &&
- 			    !isalnum(ptr[len]) && ptr[len] != '_') {
--				ptr = enum_replace(ptr, map, len);
--				/* Hmm, enum string smaller than value */
-+				ptr = eval_replace(ptr, map, len);
-+				/* enum/sizeof string smaller than value */
- 				if (WARN_ON_ONCE(!ptr))
- 					return;
- 				/*
--				 * No need to decrement here, as enum_replace()
-+				 * No need to decrement here, as eval_replace()
- 				 * returns the pointer to the character passed
--				 * the enum, and two enums can not be placed
-+				 * the eval, and two evals can not be placed
- 				 * back to back without something in between.
- 				 * We can skip that something in between.
- 				 */
++TRACE_DEFINE_SIZEOF(u8);
++
+ TRACE_EVENT(fjes_hw_request_info,
+ 	TP_PROTO(struct fjes_hw *hw, union fjes_device_command_res *res_buf),
+ 	TP_ARGS(hw, res_buf),
+diff --git a/include/trace/events/xen.h b/include/trace/events/xen.h
+index 31acce9..b70a38b 100644
+--- a/include/trace/events/xen.h
++++ b/include/trace/events/xen.h
+@@ -30,6 +30,8 @@ DECLARE_EVENT_CLASS(xen_mc__batch,
+ DEFINE_XEN_MC_BATCH(xen_mc_batch);
+ DEFINE_XEN_MC_BATCH(xen_mc_issue);
+ 
++TRACE_DEFINE_SIZEOF(ulong);
++
+ TRACE_EVENT(xen_mc_entry,
+ 	    TP_PROTO(struct multicall_entry *mc, unsigned nargs),
+ 	    TP_ARGS(mc, nargs),
+@@ -40,8 +42,8 @@ TRACE_EVENT(xen_mc_entry,
+ 		    ),
+ 	    TP_fast_assign(__entry->op = mc->op;
+ 			   __entry->nargs = nargs;
+-			   memcpy(__entry->args, mc->args, sizeof(unsigned long) * nargs);
+-			   memset(__entry->args + nargs, 0, sizeof(unsigned long) * (6 - nargs));
++			   memcpy(__entry->args, mc->args, sizeof(ulong) * nargs);
++			   memset(__entry->args + nargs, 0, sizeof(ulong) * (6 - nargs));
+ 		    ),
+ 	    TP_printk("op %u%s args [%lx, %lx, %lx, %lx, %lx, %lx]",
+ 		      __entry->op, xen_hypercall_name(__entry->op),
+@@ -122,6 +124,7 @@ TRACE_EVENT(xen_mc_extend_args,
+ 		      __entry->res == XEN_MC_XE_NO_SPACE ? "NO_SPACE" : "???")
+ 	);
+ 
++TRACE_DEFINE_SIZEOF(pteval_t);
+ /* mmu */
+ DECLARE_EVENT_CLASS(xen_mmu__set_pte,
+ 	    TP_PROTO(pte_t *ptep, pte_t pteval),
+@@ -199,6 +202,8 @@ TRACE_EVENT(xen_mmu_pte_clear,
+ 		      __entry->mm, __entry->addr, __entry->ptep)
+ 	);
+ 
++TRACE_DEFINE_SIZEOF(pmdval_t);
++
+ TRACE_EVENT(xen_mmu_set_pmd,
+ 	    TP_PROTO(pmd_t *pmdp, pmd_t pmdval),
+ 	    TP_ARGS(pmdp, pmdval),
+@@ -226,6 +231,8 @@ TRACE_EVENT(xen_mmu_pmd_clear,
+ 
+ #if CONFIG_PGTABLE_LEVELS >= 4
+ 
++TRACE_DEFINE_SIZEOF(pudval_t);
++
+ TRACE_EVENT(xen_mmu_set_pud,
+ 	    TP_PROTO(pud_t *pudp, pud_t pudval),
+ 	    TP_ARGS(pudp, pudval),
+@@ -241,6 +248,8 @@ TRACE_EVENT(xen_mmu_set_pud,
+ 		      (int)sizeof(pudval_t) * 2, (unsigned long long)__entry->pudval)
+ 	);
+ 
++TRACE_DEFINE_SIZEOF(p4dval_t);
++
+ TRACE_EVENT(xen_mmu_set_p4d,
+ 	    TP_PROTO(p4d_t *p4dp, p4d_t *user_p4dp, p4d_t p4dval),
+ 	    TP_ARGS(p4dp, user_p4dp, p4dval),
 -- 
 2.9.4
