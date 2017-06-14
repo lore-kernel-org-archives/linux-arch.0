@@ -1,98 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:57454 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1752454AbdFNP3C (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 14 Jun 2017 11:29:02 -0400
-Received: from pps.filterd (m0098396.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.20/8.16.0.20) with SMTP id v5EFO3ap049947
-        for <linux-arch@vger.kernel.org>; Wed, 14 Jun 2017 11:29:01 -0400
-Received: from e37.co.us.ibm.com (e37.co.us.ibm.com [32.97.110.158])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2b335mg4ka-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Wed, 14 Jun 2017 11:29:00 -0400
-Received: from localhost
-        by e37.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <aneesh.kumar@linux.vnet.ibm.com>;
-        Wed, 14 Jun 2017 09:28:58 -0600
-Subject: Re: [PATCH 3/3] mm, thp: Do not loose dirty bit in
- __split_huge_pmd_locked()
-References: <20170614135143.25068-1-kirill.shutemov@linux.intel.com>
- <20170614135143.25068-4-kirill.shutemov@linux.intel.com>
-From: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
-Date: Wed, 14 Jun 2017 20:58:45 +0530
+Received: from mail.skyhub.de ([5.9.137.197]:58070 "EHLO mail.skyhub.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751738AbdFNQIE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 14 Jun 2017 12:08:04 -0400
+Date: Wed, 14 Jun 2017 18:07:54 +0200
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v6 20/34] x86, mpparse: Use memremap to map the mpf and
+ mpc data
+Message-ID: <20170614160754.c4ywbf5ktqwgc4ij@pd.tnic>
+References: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
+ <20170607191643.28645.91679.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
-In-Reply-To: <20170614135143.25068-4-kirill.shutemov@linux.intel.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
-Message-ID: <4f87514b-e00e-065b-aa04-802a3302aa1d@linux.vnet.ibm.com>
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20170607191643.28645.91679.stgit@tlendack-t1.amdoffice.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Ralf Baechle <ralf@linux-mips.org>, "David S. Miller" <davem@davemloft.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>, Andrea Arcangeli <aarcange@redhat.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
-Message-ID: <20170614152845.izelROsi-AJ3OduFnrK0juI02N10O1HlbuNvAknbcEg@z>
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20170614160754.kVhwFuA2vVl9kiIGCDiUuNdcD-v8GbLP-CsDU5l-pUg@z>
 
-
-
-On Wednesday 14 June 2017 07:21 PM, Kirill A. Shutemov wrote:
-> Until pmdp_invalidate() pmd entry is present and CPU can update it,
-> setting dirty. Currently, we tranfer dirty bit to page too early and
-> there is window when we can miss dirty bit.
+On Wed, Jun 07, 2017 at 02:16:43PM -0500, Tom Lendacky wrote:
+> The SMP MP-table is built by UEFI and placed in memory in a decrypted
+> state. These tables are accessed using a mix of early_memremap(),
+> early_memunmap(), phys_to_virt() and virt_to_phys(). Change all accesses
+> to use early_memremap()/early_memunmap(). This allows for proper setting
+> of the encryption mask so that the data can be successfully accessed when
+> SME is active.
 > 
-> Let's call SetPageDirty() after pmdp_invalidate().
-> 
-> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 > ---
->   mm/huge_memory.c | 13 +++++++++----
->   1 file changed, 9 insertions(+), 4 deletions(-)
-> 
-> diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-> index a84909cf20d3..c4ee5c890910 100644
-> --- a/mm/huge_memory.c
-> +++ b/mm/huge_memory.c
-> @@ -1928,7 +1928,7 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
->   	struct page *page;
->   	pgtable_t pgtable;
->   	pmd_t _pmd;
-> -	bool young, write, dirty, soft_dirty;
-> +	bool young, write, soft_dirty;
->   	unsigned long addr;
->   	int i;
-> 
-> @@ -1965,7 +1965,6 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
->   	page_ref_add(page, HPAGE_PMD_NR - 1);
->   	write = pmd_write(*pmd);
->   	young = pmd_young(*pmd);
-> -	dirty = pmd_dirty(*pmd);
->   	soft_dirty = pmd_soft_dirty(*pmd);
-> 
->   	pmdp_huge_split_prepare(vma, haddr, pmd);
-> @@ -1995,8 +1994,6 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
->   			if (soft_dirty)
->   				entry = pte_mksoft_dirty(entry);
->   		}
-> -		if (dirty)
-> -			SetPageDirty(page + i);
->   		pte = pte_offset_map(&_pmd, addr);
->   		BUG_ON(!pte_none(*pte));
->   		set_pte_at(mm, addr, pte, entry);
-> @@ -2046,6 +2043,14 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
->   	 * pmd_populate.
->   	 */
->   	pmdp_invalidate(vma, haddr, pmd);
-> +
-> +	/*
-> +	 * Transfer dirty bit to page after pmd invalidated, so CPU would not
-> +	 * be able to set it under us.
-> +	 */
-> +	if (pmd_dirty(*pmd))
-> +		SetPageDirty(page);
-> +
->   	pmd_populate(mm, pmd, pgtable);
-> 
+>  arch/x86/kernel/mpparse.c |   98 ++++++++++++++++++++++++++++++++-------------
+>  1 file changed, 70 insertions(+), 28 deletions(-)
 
-you fixed dirty bit loosing i discussed in my previous mail here.
+...
 
-thanks
--aneesh
+> @@ -515,6 +516,12 @@ void __init default_get_smp_config(unsigned int early)
+>  	if (acpi_lapic && acpi_ioapic)
+>  		return;
+>  
+> +	mpf = early_memremap(mpf_base, sizeof(*mpf));
+> +	if (!mpf) {
+> +		pr_err("MPTABLE: mpf early_memremap() failed\n");
+
+If you're going to introduce new prefixes then add:
+
+#undef pr_fmt
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+
+at the beginning of the file so that they all say "mpparse:" instead.
+
+And pls make that message more user-friendly: "Error mapping MP table"
+or so.
+
+-- 
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
