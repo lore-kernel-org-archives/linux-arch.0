@@ -1,66 +1,61 @@
-From: Andrea Arcangeli <aarcange@redhat.com>
-Subject: Re: [PATCH 3/3] mm, thp: Do not loose dirty bit in
- __split_huge_pmd_locked()
-Date: Wed, 14 Jun 2017 17:31:31 +0200
-Message-ID: <20170614153131.GC5847@redhat.com>
-References: <20170614135143.25068-1-kirill.shutemov@linux.intel.com>
- <20170614135143.25068-4-kirill.shutemov@linux.intel.com>
- <20170614161857.69d54338@mschwideX1>
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v6 20/34] x86, mpparse: Use memremap to map the mpf and
+ mpc data
+Date: Wed, 14 Jun 2017 18:07:54 +0200
+Message-ID: <20170614160754.c4ywbf5ktqwgc4ij@pd.tnic>
+References: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
+ <20170607191643.28645.91679.stgit@tlendack-t1.amdoffice.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:62804 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751904AbdFNPbh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 14 Jun 2017 11:31:37 -0400
+Content-Type: text/plain; charset=utf-8
+Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <20170614161857.69d54338@mschwideX1>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Ralf Baechle <ralf@linux-mips.org>, "David S. Miller" <davem@davemloft.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+In-Reply-To: <20170607191643.28645.91679.stgit@tlendack-t1.amdoffice.net>
+Sender: owner-linux-mm@kvack.org
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander
+List-Id: linux-arch.vger.kernel.org
 
-Hello,
+On Wed, Jun 07, 2017 at 02:16:43PM -0500, Tom Lendacky wrote:
+> The SMP MP-table is built by UEFI and placed in memory in a decrypted
+> state. These tables are accessed using a mix of early_memremap(),
+> early_memunmap(), phys_to_virt() and virt_to_phys(). Change all accesses
+> to use early_memremap()/early_memunmap(). This allows for proper setting
+> of the encryption mask so that the data can be successfully accessed when
+> SME is active.
+> 
+> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+> ---
+>  arch/x86/kernel/mpparse.c |   98 ++++++++++++++++++++++++++++++++-------------
+>  1 file changed, 70 insertions(+), 28 deletions(-)
 
-On Wed, Jun 14, 2017 at 04:18:57PM +0200, Martin Schwidefsky wrote:
-> Could we change pmdp_invalidate to make it return the old pmd entry?
+...
 
-That to me seems the simplest fix to avoid losing the dirty bit.
+> @@ -515,6 +516,12 @@ void __init default_get_smp_config(unsigned int early)
+>  	if (acpi_lapic && acpi_ioapic)
+>  		return;
+>  
+> +	mpf = early_memremap(mpf_base, sizeof(*mpf));
+> +	if (!mpf) {
+> +		pr_err("MPTABLE: mpf early_memremap() failed\n");
 
-I earlier suggested to replace pmdp_invalidate with something like
-old_pmd = pmdp_establish(pmd_mknotpresent(pmd)) (then tlb flush could
-then be conditional to the old pmd being present). Making
-pmdp_invalidate return the old pmd entry would be mostly equivalent to
-that.
+If you're going to introduce new prefixes then add:
 
-The advantage of not changing pmdp_invalidate is that we could skip a
-xchg which is more costly in __split_huge_pmd_locked and
-madvise_free_huge_pmd so perhaps there's a point to keep a variant of
-pmdp_invalidate that doesn't use xchg internally (and in turn can't
-return the old pmd value atomically).
+#undef pr_fmt
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
-If we don't want new messy names like pmdp_establish we could have a
-__pmdp_invalidate that returns void, and pmdp_invalidate that returns
-the old pmd and uses xchg (and it'd also be backwards compatible as
-far as the callers are concerned). So those places that don't need the
-old value returned and can skip the xchg, could simply
-s/pmdp_invalidate/__pmdp_invalidate/ to optimize.
+at the beginning of the file so that they all say "mpparse:" instead.
 
-One way or another for change_huge_pmd I think we need a xchg like in
-native_pmdp_get_and_clear but that sets the pmd to
-pmd_mknotpresent(pmd) instead of zero. And this whole issues
-originates because both change_huge_pmd(prot_numa = 1) and
-madvise_free_huge_pmd both run concurrently with the mmap_sem for
-reading.
+And pls make that message more user-friendly: "Error mapping MP table"
+or so.
 
-In the earlier email on this topic, I also mentioned the concern of
-the _notify mmu notifier invalidate that got dropped silently with the
-s/pmdp_huge_get_and_clear_notify/pmdp_invalidate/ conversion but I
-later noticed the mmu notifier invalidate is already covered by the
-caller. So change_huge_pmd should have called pmdp_huge_get_and_clear
-in the first place and the _notify prefix in the old code was a
-mistake as far as I can tell. So we can focus only on the dirty bit
-retention issue.
+-- 
+Regards/Gruss,
+    Boris.
 
-Thanks,
-Andrea
+Good mailing practices for 400: avoid top-posting and trim the reply.
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
