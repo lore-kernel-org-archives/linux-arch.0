@@ -1,82 +1,97 @@
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: Re: [PATCH 3/3] mm, thp: Do not loose dirty bit in
- __split_huge_pmd_locked()
-Date: Wed, 14 Jun 2017 16:18:57 +0200
-Message-ID: <20170614161857.69d54338@mschwideX1>
+From: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
+Subject: Re: [HELP-NEEDED, PATCH 0/3] Do not loose dirty bit on THP pages
+Date: Wed, 14 Jun 2017 20:55:26 +0530
+Message-ID: <eed279c6-bf61-f2f3-c9f2-d9a94568e2e3@linux.vnet.ibm.com>
 References: <20170614135143.25068-1-kirill.shutemov@linux.intel.com>
-        <20170614135143.25068-4-kirill.shutemov@linux.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:34574 "EHLO
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:59727 "EHLO
         mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1750721AbdFNOTF (ORCPT
+        by vger.kernel.org with ESMTP id S1751829AbdFNPZs (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 14 Jun 2017 10:19:05 -0400
-Received: from pps.filterd (m0098417.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.20/8.16.0.20) with SMTP id v5EEDvQw120580
-        for <linux-arch@vger.kernel.org>; Wed, 14 Jun 2017 10:19:05 -0400
-Received: from e06smtp15.uk.ibm.com (e06smtp15.uk.ibm.com [195.75.94.111])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2b34wwyapf-1
+        Wed, 14 Jun 2017 11:25:48 -0400
+Received: from pps.filterd (m0098421.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.20/8.16.0.20) with SMTP id v5EFO5bc042896
+        for <linux-arch@vger.kernel.org>; Wed, 14 Jun 2017 11:25:47 -0400
+Received: from e37.co.us.ibm.com (e37.co.us.ibm.com [32.97.110.158])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2b32ty14as-1
         (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Wed, 14 Jun 2017 10:19:04 -0400
+        for <linux-arch@vger.kernel.org>; Wed, 14 Jun 2017 11:25:46 -0400
 Received: from localhost
-        by e06smtp15.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <schwidefsky@de.ibm.com>;
-        Wed, 14 Jun 2017 15:19:02 +0100
-In-Reply-To: <20170614135143.25068-4-kirill.shutemov@linux.intel.com>
+        by e37.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <aneesh.kumar@linux.vnet.ibm.com>;
+        Wed, 14 Jun 2017 09:25:45 -0600
+In-Reply-To: <20170614135143.25068-1-kirill.shutemov@linux.intel.com>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Ralf Baechle <ralf@linux-mips.org>, "David S. Miller" <davem@davemloft.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Andrea Arcangeli <aarcange@redhat.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Ralf Baechle <ralf@linux-mips.org>, "David S. Miller" <davem@davemloft.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>, Andrea Arcangeli <aarcange@redhat.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
 
-On Wed, 14 Jun 2017 16:51:43 +0300
-"Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> wrote:
 
-> Until pmdp_invalidate() pmd entry is present and CPU can update it,
-> setting dirty. Currently, we tranfer dirty bit to page too early and
-> there is window when we can miss dirty bit.
+
+On Wednesday 14 June 2017 07:21 PM, Kirill A. Shutemov wrote:
+> Hi,
 > 
-> Let's call SetPageDirty() after pmdp_invalidate().
+> Vlastimil noted that pmdp_invalidate() is not atomic and we can loose
+> dirty and access bits if CPU sets them after pmdp dereference, but
+> before set_pmd_at().
 > 
-> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-> ...
-> @@ -2046,6 +2043,14 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
->  	 * pmd_populate.
->  	 */
->  	pmdp_invalidate(vma, haddr, pmd);
-> +
-> +	/*
-> +	 * Transfer dirty bit to page after pmd invalidated, so CPU would not
-> +	 * be able to set it under us.
-> +	 */
-> +	if (pmd_dirty(*pmd))
-> +		SetPageDirty(page);
-> +
->  	pmd_populate(mm, pmd, pgtable);
+> The bug doesn't lead to user-visible misbehaviour in current kernel, but
+> fixing this would be critical for future work on THP: both huge-ext4 and THP
+> swap out rely on proper dirty tracking.
 > 
->  	if (freeze) {
+> Unfortunately, there's no way to address the issue in a generic way. We need to
+> fix all architectures that support THP one-by-one.
+> 
+> All architectures that have THP supported have to provide atomic
+> pmdp_invalidate(). If generic implementation of pmdp_invalidate() is used,
+> architecture needs to provide atomic pmdp_mknonpresent().
+> 
+> I've fixed the issue for x86, but I need help with the rest.
+> 
+> So far THP is supported on 8 architectures. Power and S390 already provides
+> atomic pmdp_invalidate(). x86 is fixed by this patches, so 5 architectures
+> left:
+> 
+>   - arc;
+>   - arm;
+>   - arm64;
+>   - mips;
+>   - sparc -- it has custom pmdp_invalidate(), but it's racy too;
+> 
+> Please, help me with them.
+> 
+> Kirill A. Shutemov (3):
+>    x86/mm: Provide pmdp_mknotpresent() helper
+>    mm: Do not loose dirty and access bits in pmdp_invalidate()
+>    mm, thp: Do not loose dirty bit in __split_huge_pmd_locked()
+> 
 
-That won't work on s390. After pmdp_invalidate the pmd entry is gone,
-it has been replaced with _SEGMENT_ENTRY_EMPTY. This includes the
-dirty and referenced bits. The old scheme is
 
-        entry = *pmd;
-        pmdp_invalidate(vma, addr, pmd);
-	if (pmd_dirty(entry))
-		...
+But in __split_huge_pmd_locked() we collected the dirty bit early. So 
+even if we made pmdp_invalidate() atomic, if we had marked the pmd pte 
+entry dirty after we collected the dirty bit, we still loose it right ?
 
-Could we change pmdp_invalidate to make it return the old pmd entry?
-The pmdp_xchg_direct function already returns it, for s390 that would
-be an easy change. The above code snippet would change like this:
 
-	entry = pmdp_invalidate(vma, addr, pmd);
-	if (pmd_dirty(entry))
-		...
+May be we should relook at pmd PTE udpate interface. We really need an 
+interface that can update pmd entries such that we don't clear it in 
+between. IMHO, we can avoid the pmdp_invalidate() completely, if we can 
+switch from a pmd PTE entry to a pointer to PTE page (pgtable_t). We 
+also need this interface to avoid the madvise race fixed by
 
--- 
-blue skies,
-   Martin.
+https://lkml.kernel.org/r/20170302151034.27829-1-kirill.shutemov@linux.intel.com
 
-"Reality continues to ruin my life." - Calvin.
+The usage of pmdp_invalidate while splitting the pmd also need updated 
+documentation. In the earlier version of thp, we were required to keep 
+the pmd present and marked splitting, so that code paths can wait till 
+the splitting is done.
+
+With the current design, we can ideally mark the pmdp not present early 
+on right ? As long as we hold the pmd lock a parallel fault will try to 
+mark the pmd accessed and wait on the pmd lock. On taking the lock it 
+will find the pmd modified and we should retry access again ?
+
+-aneesh
