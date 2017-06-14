@@ -1,84 +1,186 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:39610 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:39622 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752097AbdFNW1e (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 14 Jun 2017 18:27:34 -0400
+        id S1752595AbdFNW1d (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 14 Jun 2017 18:27:33 -0400
 From: Jeremy Linton <jeremy.linton@arm.com>
-Subject: [PATCH v2 06/13] trace: rename trace.c enum functions
-Date: Wed, 14 Jun 2017 17:27:22 -0500
-Message-ID: <20170614222729.16521-7-jeremy.linton@arm.com>
+Subject: [PATCH v2 04/13] trace: rename trace enum data structures in trace.c
+Date: Wed, 14 Jun 2017 17:27:20 -0500
+Message-ID: <20170614222729.16521-5-jeremy.linton@arm.com>
 In-Reply-To: <20170614222729.16521-1-jeremy.linton@arm.com>
 References: <20170614222729.16521-1-jeremy.linton@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, rostedt@goodmis.org, mingo@redhat.com, rusty@rustcorp.com.au, jeyu@redhat.com, kirill.shutemov@linux.intel.com, christoffer.dall@linaro.org, marc.zyngier@arm.com, jcm@jonmasters.org, clemens@ladisch.de, perex@perex.cz
-Message-ID: <20170614222722.-lIxnjk3f9OtB29zpS2LL1JRcEyqWIp16ovOEfygN0I@z>
+Message-ID: <20170614222720.auXoD1C1tnR-TRtn4NipQXuc9kdQOI6Lg6-N1pXiePE@z>
 
-Rename the init and trace_enum_jmp_to_tail() routines
-to reflect their use by more than enumerated types.
+The enum map entries can be exported to userspace
+via a sys enum_map file. Rename those functions
+and structures to reflect the fact that we are using
+them for more than enums.
 
 Signed-off-by: Jeremy Linton <jeremy.linton@arm.com>
 ---
- kernel/trace/trace.c | 12 ++++++------
- 1 file changed, 6 insertions(+), 6 deletions(-)
+ kernel/trace/trace.c | 52 ++++++++++++++++++++++++++--------------------------
+ 1 file changed, 26 insertions(+), 26 deletions(-)
 
 diff --git a/kernel/trace/trace.c b/kernel/trace/trace.c
-index e1bc56c..5eda252 100644
+index 85f0e3c..af6ec07 100644
 --- a/kernel/trace/trace.c
 +++ b/kernel/trace/trace.c
-@@ -4810,7 +4810,7 @@ static const struct file_operations tracing_enum_map_fops = {
+@@ -122,38 +122,38 @@ int __disable_trace_on_warning;
+ 
+ #ifdef CONFIG_TRACE_ENUM_MAP_FILE
+ /* Map of enums to their values, for "enum_map" file */
+-struct trace_enum_map_head {
++struct trace_eval_map_head {
+ 	struct module			*mod;
+ 	unsigned long			length;
  };
  
- static inline union trace_eval_map_item *
--trace_enum_jmp_to_tail(union trace_eval_map_item *ptr)
-+trace_eval_jmp_to_tail(union trace_eval_map_item *ptr)
+-union trace_enum_map_item;
++union trace_eval_map_item;
+ 
+-struct trace_enum_map_tail {
++struct trace_eval_map_tail {
+ 	/*
+ 	 * "end" is first and points to NULL as it must be different
+ 	 * than "mod" or "eval_string"
+ 	 */
+-	union trace_enum_map_item	*next;
++	union trace_eval_map_item	*next;
+ 	const char			*end;	/* points to NULL */
+ };
+ 
+ static DEFINE_MUTEX(trace_enum_mutex);
+ 
+ /*
+- * The trace_enum_maps are saved in an array with two extra elements,
++ * The trace_eval_maps are saved in an array with two extra elements,
+  * one at the beginning, and one at the end. The beginning item contains
+  * the count of the saved maps (head.length), and the module they
+  * belong to if not built in (head.mod). The ending item contains a
+  * pointer to the next array of saved enum_map items.
+  */
+-union trace_enum_map_item {
++union trace_eval_map_item {
+ 	struct trace_eval_map		map;
+-	struct trace_enum_map_head	head;
+-	struct trace_enum_map_tail	tail;
++	struct trace_eval_map_head	head;
++	struct trace_eval_map_tail	tail;
+ };
+ 
+-static union trace_enum_map_item *trace_enum_maps;
++static union trace_eval_map_item *trace_eval_maps;
+ #endif /* CONFIG_TRACE_ENUM_MAP_FILE */
+ 
+ static int tracing_set_tracer(struct trace_array *tr, const char *buf);
+@@ -4718,8 +4718,8 @@ static const struct file_operations tracing_saved_cmdlines_size_fops = {
+ };
+ 
+ #ifdef CONFIG_TRACE_ENUM_MAP_FILE
+-static union trace_enum_map_item *
+-update_enum_map(union trace_enum_map_item *ptr)
++static union trace_eval_map_item *
++update_enum_map(union trace_eval_map_item *ptr)
+ {
+ 	if (!ptr->map.eval_string) {
+ 		if (ptr->tail.next) {
+@@ -4734,7 +4734,7 @@ update_enum_map(union trace_enum_map_item *ptr)
+ 
+ static void *enum_map_next(struct seq_file *m, void *v, loff_t *pos)
+ {
+-	union trace_enum_map_item *ptr = v;
++	union trace_eval_map_item *ptr = v;
+ 
+ 	/*
+ 	 * Paranoid! If ptr points to end, we don't want to increment past it.
+@@ -4755,12 +4755,12 @@ static void *enum_map_next(struct seq_file *m, void *v, loff_t *pos)
+ 
+ static void *enum_map_start(struct seq_file *m, loff_t *pos)
+ {
+-	union trace_enum_map_item *v;
++	union trace_eval_map_item *v;
+ 	loff_t l = 0;
+ 
+ 	mutex_lock(&trace_enum_mutex);
+ 
+-	v = trace_enum_maps;
++	v = trace_eval_maps;
+ 	if (v)
+ 		v++;
+ 
+@@ -4778,7 +4778,7 @@ static void enum_map_stop(struct seq_file *m, void *v)
+ 
+ static int enum_map_show(struct seq_file *m, void *v)
+ {
+-	union trace_enum_map_item *ptr = v;
++	union trace_eval_map_item *ptr = v;
+ 
+ 	seq_printf(m, "%s %ld (%s)\n",
+ 		   ptr->map.eval_string, ptr->map.eval_value,
+@@ -4809,8 +4809,8 @@ static const struct file_operations tracing_enum_map_fops = {
+ 	.release	= seq_release,
+ };
+ 
+-static inline union trace_enum_map_item *
+-trace_enum_jmp_to_tail(union trace_enum_map_item *ptr)
++static inline union trace_eval_map_item *
++trace_enum_jmp_to_tail(union trace_eval_map_item *ptr)
  {
  	/* Return tail of array given the head */
  	return ptr + ptr->head.length + 1;
-@@ -4845,7 +4845,7 @@ trace_insert_enum_map_file(struct module *mod, struct trace_eval_map **start,
- 	else {
- 		ptr = trace_eval_maps;
- 		for (;;) {
--			ptr = trace_enum_jmp_to_tail(ptr);
-+			ptr = trace_eval_jmp_to_tail(ptr);
- 			if (!ptr->tail.next)
- 				break;
- 			ptr = ptr->tail.next;
-@@ -7707,7 +7707,7 @@ struct dentry *tracing_init_dentry(void)
- extern struct trace_eval_map *__start_ftrace_eval_maps[];
- extern struct trace_eval_map *__stop_ftrace_eval_maps[];
- 
--static void __init trace_enum_init(void)
-+static void __init trace_eval_init(void)
+@@ -4822,13 +4822,13 @@ trace_insert_enum_map_file(struct module *mod, struct trace_eval_map **start,
  {
- 	int len;
+ 	struct trace_eval_map **stop;
+ 	struct trace_eval_map **map;
+-	union trace_enum_map_item *map_array;
+-	union trace_enum_map_item *ptr;
++	union trace_eval_map_item *map_array;
++	union trace_eval_map_item *ptr;
  
-@@ -7747,14 +7747,14 @@ static void trace_module_remove_enums(struct module *mod)
+ 	stop = start + len;
+ 
+ 	/*
+-	 * The trace_enum_maps contains the map plus a head and tail item,
++	 * The trace_eval_maps contains the map plus a head and tail item,
+ 	 * where the head holds the module and length of array, and the
+ 	 * tail holds a pointer to the next list.
+ 	 */
+@@ -4840,10 +4840,10 @@ trace_insert_enum_map_file(struct module *mod, struct trace_eval_map **start,
+ 
+ 	mutex_lock(&trace_enum_mutex);
+ 
+-	if (!trace_enum_maps)
+-		trace_enum_maps = map_array;
++	if (!trace_eval_maps)
++		trace_eval_maps = map_array;
+ 	else {
+-		ptr = trace_enum_maps;
++		ptr = trace_eval_maps;
+ 		for (;;) {
+ 			ptr = trace_enum_jmp_to_tail(ptr);
+ 			if (!ptr->tail.next)
+@@ -7734,15 +7734,15 @@ static void trace_module_add_enums(struct module *mod)
+ #ifdef CONFIG_TRACE_ENUM_MAP_FILE
+ static void trace_module_remove_enums(struct module *mod)
+ {
+-	union trace_enum_map_item *map;
+-	union trace_enum_map_item **last = &trace_enum_maps;
++	union trace_eval_map_item *map;
++	union trace_eval_map_item **last = &trace_eval_maps;
+ 
+ 	if (!mod->num_trace_evals)
+ 		return;
+ 
+ 	mutex_lock(&trace_enum_mutex);
+ 
+-	map = trace_enum_maps;
++	map = trace_eval_maps;
+ 
  	while (map) {
  		if (map->head.mod == mod)
- 			break;
--		map = trace_enum_jmp_to_tail(map);
-+		map = trace_eval_jmp_to_tail(map);
- 		last = &map->tail.next;
- 		map = map->tail.next;
- 	}
- 	if (!map)
- 		goto out;
- 
--	*last = trace_enum_jmp_to_tail(map)->tail.next;
-+	*last = trace_eval_jmp_to_tail(map)->tail.next;
- 	kfree(map);
-  out:
- 	mutex_unlock(&trace_eval_mutex);
-@@ -7811,7 +7811,7 @@ static __init int tracer_init_tracefs(void)
- 	trace_create_file("saved_cmdlines_size", 0644, d_tracer,
- 			  NULL, &tracing_saved_cmdlines_size_fops);
- 
--	trace_enum_init();
-+	trace_eval_init();
- 
- 	trace_create_enum_file(d_tracer);
- 
 -- 
 2.9.4
