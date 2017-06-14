@@ -1,57 +1,107 @@
-From: Jeremy Linton <jeremy.linton@arm.com>
-Subject: Re: [PATCH 12/12] tracing: Rename update the enum_map file
-Date: Wed, 14 Jun 2017 13:43:26 -0500
-Message-ID: <ffb8c5fa-4ea7-cbea-b7ea-f88c0a49548b@arm.com>
-References: <20170531215653.3240-1-jeremy.linton@arm.com>
- <20170531215653.3240-13-jeremy.linton@arm.com>
- <20170613171255.5090de5b@gandalf.local.home>
- <d111f8c9-1a31-c447-8f2e-8360df6ef835@arm.com>
- <20170614130615.1c841159@gandalf.local.home>
+From: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
+Subject: Re: [PATCH v6 24/34] x86, swiotlb: Add memory encryption support
+Date: Wed, 14 Jun 2017 14:38:48 -0500
+Message-ID: <c1a59a06-2850-b215-5c08-27adff6fecde@amd.com>
+References: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
+	<20170607191721.28645.96519.stgit@tlendack-t1.amdoffice.net>
+	<20170614164553.jwcfgugpizz5pc2e@pd.tnic>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:38004 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751628AbdFNSn3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 14 Jun 2017 14:43:29 -0400
-In-Reply-To: <20170614130615.1c841159@gandalf.local.home>
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+In-Reply-To: <20170614164553.jwcfgugpizz5pc2e-fF5Pk5pvG8Y@public.gmane.org>
 Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@redhat.com, rusty@rustcorp.com.au, jeyu@redhat.com, kirill.shutemov@linux.intel.com, christoffer.dall@linaro.org, marc.zyngier@arm.com, jcm@jonmasters.org
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>
+Cc: linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Brijesh Singh <brijesh.singh-5C7GfCeVMHo@public.gmane.org>, Toshimitsu Kani <toshi.kani-ZPxbGqLxI0U@public.gmane.org>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Larry Woodman <lwoodman-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrey Ryabinin <aryabinin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Dave Young <dyoung-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Rik van Riel <riel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, kexec-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, "Michael S. Tsirkin" <mst>
+List-Id: linux-arch.vger.kernel.org
 
-On 06/14/2017 12:06 PM, Steven Rostedt wrote:
-> On Tue, 13 Jun 2017 16:21:48 -0500
-> Jeremy Linton <jeremy.linton@arm.com> wrote:
-> 
->>> Hmm, I have to audit some userspace code to see if this is used. The
->>> enum_map was a debug feature, but it could have been used by some tools.
+On 6/14/2017 11:45 AM, Borislav Petkov wrote:
+> On Wed, Jun 07, 2017 at 02:17:21PM -0500, Tom Lendacky wrote:
+>> Since DMA addresses will effectively look like 48-bit addresses when the
+>> memory encryption mask is set, SWIOTLB is needed if the DMA mask of the
+>> device performing the DMA does not support 48-bits. SWIOTLB will be
+>> initialized to create decrypted bounce buffers for use by these devices.
 >>
->> I thought perf was using it, but I was mistaken. I didn't find anything
->> using it, but to be on the safe side I placed this patch last so it
->> could be dropped if a user was found. The CONFIG option seems to be
->> disabled in the couple distro's I checked, further indicating that if
->> someone is using it, they are seemingly obscure.
+>> Signed-off-by: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
+>> ---
 > 
-> I pulled in all your patches but the samples one. Could you update that
-> with a use case as well. You can create some crazy struct that you want
-> to get the size of, or whatever. Maybe make an array out of it? Or I
-> can come up with something creative.
+> ...
+> 
+> 
+>> diff --git a/init/main.c b/init/main.c
+>> index df58a41..7125b5f 100644
+>> --- a/init/main.c
+>> +++ b/init/main.c
+>> @@ -488,6 +488,10 @@ void __init __weak thread_stack_cache_init(void)
+>>   }
+>>   #endif
+>>   
+>> +void __init __weak mem_encrypt_init(void)
+>> +{
+>> +}
+> 
+> void __init __weak mem_encrypt_init(void) { }
+> 
+> saves some real estate. Please do that for the rest of the stubs you're
+> adding, for the next version.
 
-I was actually working on that, it seems that the existing sample has 
-the problem because of the __print_array(...sizeof(int)) case. So I 
-think my general plan was just to update it to TRACE_DEFINE_SIZEOF(int).
+Ok, will do.
 
-Do you want a more complex example?
-
-But this lead me to discover a number of other __print_array() cases 
-where people have hardcoded the size, so I was running through those and 
-converting them to sizeof() since it should work now.
+Thanks,
+Tom
 
 > 
-> I'll start testing your patches and do a push in a few days.
+>> +
+>>   /*
+>>    * Set up kernel memory allocators
+>>    */
+>> @@ -640,6 +644,15 @@ asmlinkage __visible void __init start_kernel(void)
+>>   	 */
+>>   	locking_selftest();
+>>   
+>> +	/*
+>> +	 * This needs to be called before any devices perform DMA
+>> +	 * operations that might use the SWIOTLB bounce buffers.
+>> +	 * This call will mark the bounce buffers as decrypted so
+>> +	 * that their usage will not cause "plain-text" data to be
+>> +	 * decrypted when accessed.
 > 
-> -- Steve
+> s/This call/It/
+> 
+>> +	 */
+>> +	mem_encrypt_init();
+>> +
+>>   #ifdef CONFIG_BLK_DEV_INITRD
+>>   	if (initrd_start && !initrd_below_start_ok &&
+>>   	    page_to_pfn(virt_to_page((void *)initrd_start)) < min_low_pfn) {
+>> diff --git a/lib/swiotlb.c b/lib/swiotlb.c
+>> index a8d74a7..74d6557 100644
+>> --- a/lib/swiotlb.c
+>> +++ b/lib/swiotlb.c
+>> @@ -30,6 +30,7 @@
+>>   #include <linux/highmem.h>
+>>   #include <linux/gfp.h>
+>>   #include <linux/scatterlist.h>
+>> +#include <linux/mem_encrypt.h>
+>>   
+>>   #include <asm/io.h>
+>>   #include <asm/dma.h>
+>> @@ -155,6 +156,17 @@ unsigned long swiotlb_size_or_default(void)
+>>   	return size ? size : (IO_TLB_DEFAULT_SIZE);
+>>   }
+>>   
+>> +void __weak swiotlb_set_mem_attributes(void *vaddr, unsigned long size)
+>> +{
+>> +}
+> 
+> As above.
 > 
