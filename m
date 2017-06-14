@@ -1,74 +1,101 @@
-From: <nfrankiyamu@centrum.cz>
-Subject: (unknown)
-Date: Wed, 14 Jun 2017 16:39:09 -0000
-Message-ID: <149745834998.30693.13051572690246038501@neoclan.net.mx>
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v6 24/34] x86, swiotlb: Add memory encryption support
+Date: Wed, 14 Jun 2017 18:45:53 +0200
+Message-ID: <20170614164553.jwcfgugpizz5pc2e@pd.tnic>
+References: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
+ <20170607191721.28645.96519.stgit@tlendack-t1.amdoffice.net>
 Mime-Version: 1.0
-Content-Type: application/zip; name="8121690.zip"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from neo-201-158-38-142.neoclan.net.mx ([201.158.38.142]:56275 "HELO
-        neoclan.net.mx" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org
-        with SMTP id S1752496AbdFNQjP (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Jun 2017 12:39:15 -0400
-Content-Disposition: attachment
-Subject: 
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=utf-8
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <20170607191721.28645.96519.stgit@tlendack-t1.amdoffice.net>
+Sender: owner-linux-mm@kvack.org
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander
+List-Id: linux-arch.vger.kernel.org
 
-UEsDBAoAAgAAAISyzkpw0rmYwwsAAMMLAAAJABwAMTA1MTYuemlwVVQJAAM4YkFZOGJBWXV4CwAB
-BAAAAAAEAAAAAFBLAwQUAAIACACEss5KyNLL7h0LAADzIgAACAAcADEwNTE2LmpzVVQJAAM4YkFZ
-OGJBWXV4CwABBAAAAAAEAAAAAO1a244bxxF9lgD9gzAv4iwJu7vnjg0DBAbyFvBBj3sB5iqtJS0B
-euWsIejfU6fqNGe4K0Xr2HBgJICoHU7f6nLqdFU3p4+3/d3N/vbl3rm92+1W+/1uv9u5jXzwL33x
-/NOL588O493Hg3Syxms2nr94/vnF82meYi9TuNVuh5ncRrriiVP83B5eyhuZAuOe3R1+kf/RoC03
-2+Qf7V2ClmfstV3djv98+XfOvkpkaZl9n2wS+Svi7uwJS8mTLLS3J8rK7hfJ+madvL1gz6sVv7P/
-1So943Tp1XmSPhR+Axn+dji0v6z8JmyyTTK93+8PSXqRXT1uO7S3w/6DNqYpdBHzPOvbu/7tajyk
-1Pfzwp5He5za8be7QuaVD7SB4gsXSGeoDuGm/WF1fp6qD8wd5g/t9+M2UTncXuWQz4X87+Tx6ruf
-PnY/3R1WYRPS9FoWwPuL/V5nvjIf6hzvtkn/9pWYfH51t00MCDpoSwuyA2V76Pi9Gklce7dOxNZh
-U4SNr+QT6o3P5RPE/PWm8psq39Qila83uTSXbuOzcuMLeWzSDdXYcrqLVx8EcOt36+T7y8vXn/LP
-379BH5FM5LpMLpMN9d26c1hKjRffbKittPHdXzj9d+/H2zd3b+Pr9Tp2Xa/TTzfTit/+uqUJ2D/9
-NM/4mVKst3CxvBXM/rhO0vPPyVqmlGl3q/QbT8mKk6QEtcIgNTt3h7F9p4/A4glAiYAbESO2L/A6
-g+cB2GzVRaBDN/cw0Pn2sX8RiwhsBa0GsXECv5/T9nDbFpAUIVY3qb6+3x5pxzpsOF16TqHvYYF8
-k7xvfx6Tp4XlUfqHYYmFd06FWmprKz/UlgI/pjHYEORl3oXesKtAU5HoBYnnM4mh8wW7Xq3Y07xq
-gjygoeQDFBMOCk/koKPwpz514L8Tn6pdd9vk7LrMz65zf3bdh7PrMZOPO7v28qnkOTTS3p5dZ8XZ
-dTedXRejtEv/Ud5XnYypZSzGl/KMsYP8lbmctFUyRyljMvkEee6kj5NPLc+jtJcyV1/Y3wLjB1t/
-wjoYW8lY+Z7JGkH6tzJv0dv8k8gUpN/gbY2iNrmm3OR3Il8mfauW8veUf7D1e+gl7wb5XsrcebB3
-g8wzyHcP+UWmEMwGQZ4neXa16Yg+RWVr5iP1ChzfmL0KafMiv0e7tE3S5uR7I2Mn6BdM/1zky52N
-xftOvvvS5NP1c9MD40vYSMYMaIMuhfWB/wb4BnpKv6KxMZBbP970f+r6Tj5VQ91Hrg9dvNlpHM3+
-tbc2rNc7w4PafzD5S9iC9us6w88ga06djW9yw4eXv420dTK2zc3/8Jl+ZM5MbN0CJ/A5cAqdpmQt
-aBYE9/ByZiiAFCOsLat4aFERhcFWAgqh+QC0ACHQorIVC1hxMitAQs+xgZ7PRKsOUshatYxta9MQ
-WgPFeWXWafGBtXNasTMrqBaechZcvzU0wVqwQi/jRm/e9tKnGulBWhIoRMTBikAf9D6iwBkKoPvk
-TaeAKGpt7czPXugZ6dGLiDZEsaJoMgsfo7CwfpCjZbT1I/XvZ/3je5VfxnnYPKfs8MF4ygKq/2Bo
-xjpenhv5Ow3GMH4y+4ZmjsJO5M6LxfpYs7doBeOARcACsAH8WU1zFOj6YKyO+mf2HojCeNWf6FS0
-9zY/ogY+jChW5gAKK8OS6uFM/1rWbvlOo4DoRTt0hVy6vkZrRLBaYbSZi44o9rYCeAazhNo8ib6Q
-AryjnAnveUNxFYwjB/JdRAu4ogTXltan6y2WVIqOXO6MX4rWtMBYoAhcUEYUj4ZI8G/OWMRz6QzF
-6AMUD5V5EHOAG4CCsiSKnHkOXsR4RESVMwoqophjJ3LLN71YLcZXNh5cCIQXhfEIODDqgAiF/HVj
-iIJNgKJlFP9xKPgz+z8i+P8o+F9GwZ/Z/xHB30IBdsSIAs0maptRrdBYXhp35L5jRoLxlWmKfo7o
-gATRCy13Tt3RB9OuCaYt5sXuDk/DksgosBtXvSEJlox5GXLZmFdrXst8OWYqE/NytCuKavP4fzUj
-yS2jwHh4EevDLn25WL+znFezlYEZVWtzoF0zgtLkH+qF/q35q+aOrnlpZxFwzC0zsw3QjTWXeSnk
-RxSo/0XWLqfNJhsXMsvNEWHwo2ZNrc2v+PGmf2QB4AAZqdp/NPmPGU1OnJTEkmNG5a0emhpjAbfQ
-30EP5OsuIhixGK0YWOnAQ1rdDOYpaKGzePMAEJl1lpdhPDJ7IK1kFGju2xBFwXK9UFj8IM6gJbRH
-3oZYHFiBIc6GGAUtKwNqAq2AYq0ORsurEX1aHYSZy8BLqqnM3bQWr7E6US4q5upCvRgsclBBqBfd
-zEXgxZZVKKKyYk6KfhV59lF1OVj+D+/As8pltaEq72cegicxBvWCVrejRSjWzJmHamWYWYR41h1A
-QeSipmde2xtnlYxC1b80FKv8k3Gh7gVfiQKNHuwLufnITczrGUWO7Bare0VhZX4Cy6n9M5OlCMad
-kH+sF3XNtNAfdUUwv9SskCtWydhL8nIRhV9k0WUWkfczl8KKkEJR3Fi9HyWEtZexqNVZblKopRvz
-smpR2o4K78EKQKHjjhQe7Oi/+xlFY9YEF8Aj8CKQXPAMBRGW8QwB3tWdyxn6S3pUIy1fVDf9HEWw
-keqfc48JNv54RsMdT3fqlhlFyfUziyLsxs7PexHWjCxQN3ONrmdEhdkA43GeAg5UFED/3taBncFn
-8D4YqWQGAxQhUhGFsBnWQmXtRjtzmlgxD9SlJHMgCn0574XT4ozGc/3A6NCMYCCXMosoqzmjidU5
-5tO9TPr6BYsoi3rTEyyGahR2VI5uTv2n+xHsX0QEGyP/Gy1a5pTBZo6MXpIPdEcaTYuYkSCv0oyi
-Nk30pIZ5ma+Ny8GHmBtRoHlNRi72HF+dcrmetPwaK/CM5XhSlpseQEZVMIImyx7a9sFekBFFbq7x
-dS8o7YQsn+Yowp6keS24dJwzKXAa9ATql17Uk8aG4+NJI1mgJwvo+MLsAC7TjKaz/Bf2AFcpi4RF
-XvsFFoKOjqeOyiL1fFJW8nwlovB40tUyL2+YkRXM63vqz4wi9BZtyEo0IyptzbiXYS/CPpX7x2dM
-mBdReGQx7vlgMaA17iVal3S2F2D8eGK/I4L/AyvqSVkzSxCtGHf0ifnYMSP5NVxOLsM5rZ5U9YYi
-oPibeXlua3YxI2AfPW/M5owgbx5nNHF9zTxqex/zcpwAal6Ym3yeJ1GBp4tPyWuB4pEnVY47JnQs
-mRu35EfYeeIuXXNPA+/i1FPl761fxXPnjCeVLavVgXypefFEHZ3JpVHsTR49r/0SCy1OOvWkrp+5
-fGzmk9KM4zW3j+PDYvxXUKh2DmQRb/0qsuTXqkt9TxZEtoHxZRsRHLi7aHU18HSaO0/GHa3kDooZ
-YcWB58XqxZHVQWWn+prRBztXVi5vufP0xlFD9fXsPu5oPfOiGEVhwYWoLpDdo4pTdBY8L+3nWweN
-woJRULHG7ecdCZzpedORxR2Z1Q2iULmAGQl0CqzaTjKKRXUWmoUXF/ZDe88qNt76aF1BO5eL6u5h
-dQqkW3Wrd8THe3O9ivrSvTnuq51eSJ5cRzpchj66jtS3j64jnbw8XkLeby8Td3+ZrPn64tXd/vXd
-4eb2zaur1ekdY1z3aVeMUaKlBvG+d//4inGnPwr4wi8n7rcJxIk/ndBuj+4cYa89VLrBvSM67XZU
-MF6Lv07W9+vkzcVlMl3iNxKXydv28IM8svvVirMcleZIU92uIpPD/sMPycmNZLIfxiS98E/9RUTU
-8/f5RUT8IcTxPjM9/xdQSwECHgMUAAIACACEss5KyNLL7h0LAADzIgAACAAYAAAAAAABAAAApIEA
-AAAAMTA1MTYuanNVVAUAAzhiQVl1eAsAAQQAAAAABAAAAABQSwUGAAAAAAEAAQBOAAAAXwsAAAAA
-UEsBAh4DCgACAAAAhLLOSnDSuZjDCwAAwwsAAAkAGAAAAAAAAAAAAKSBAAAAADEwNTE2LnppcFVU
-BQADOGJBWXV4CwABBAAAAAAEAAAAAFBLBQYAAAAAAQABAE8AAAAGDAAAAAA=
+On Wed, Jun 07, 2017 at 02:17:21PM -0500, Tom Lendacky wrote:
+> Since DMA addresses will effectively look like 48-bit addresses when the
+> memory encryption mask is set, SWIOTLB is needed if the DMA mask of the
+> device performing the DMA does not support 48-bits. SWIOTLB will be
+> initialized to create decrypted bounce buffers for use by these devices.
+> 
+> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+> ---
+
+...
+
+
+> diff --git a/init/main.c b/init/main.c
+> index df58a41..7125b5f 100644
+> --- a/init/main.c
+> +++ b/init/main.c
+> @@ -488,6 +488,10 @@ void __init __weak thread_stack_cache_init(void)
+>  }
+>  #endif
+>  
+> +void __init __weak mem_encrypt_init(void)
+> +{
+> +}
+
+void __init __weak mem_encrypt_init(void) { }
+
+saves some real estate. Please do that for the rest of the stubs you're
+adding, for the next version.
+
+> +
+>  /*
+>   * Set up kernel memory allocators
+>   */
+> @@ -640,6 +644,15 @@ asmlinkage __visible void __init start_kernel(void)
+>  	 */
+>  	locking_selftest();
+>  
+> +	/*
+> +	 * This needs to be called before any devices perform DMA
+> +	 * operations that might use the SWIOTLB bounce buffers.
+> +	 * This call will mark the bounce buffers as decrypted so
+> +	 * that their usage will not cause "plain-text" data to be
+> +	 * decrypted when accessed.
+
+s/This call/It/
+
+> +	 */
+> +	mem_encrypt_init();
+> +
+>  #ifdef CONFIG_BLK_DEV_INITRD
+>  	if (initrd_start && !initrd_below_start_ok &&
+>  	    page_to_pfn(virt_to_page((void *)initrd_start)) < min_low_pfn) {
+> diff --git a/lib/swiotlb.c b/lib/swiotlb.c
+> index a8d74a7..74d6557 100644
+> --- a/lib/swiotlb.c
+> +++ b/lib/swiotlb.c
+> @@ -30,6 +30,7 @@
+>  #include <linux/highmem.h>
+>  #include <linux/gfp.h>
+>  #include <linux/scatterlist.h>
+> +#include <linux/mem_encrypt.h>
+>  
+>  #include <asm/io.h>
+>  #include <asm/dma.h>
+> @@ -155,6 +156,17 @@ unsigned long swiotlb_size_or_default(void)
+>  	return size ? size : (IO_TLB_DEFAULT_SIZE);
+>  }
+>  
+> +void __weak swiotlb_set_mem_attributes(void *vaddr, unsigned long size)
+> +{
+> +}
+
+As above.
+
+-- 
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
