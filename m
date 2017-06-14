@@ -1,69 +1,93 @@
 From: Jeremy Linton <jeremy.linton@arm.com>
-Subject: [PATCH v2 00/13] trace: add the ability to parse sizeof()
-Date: Wed, 14 Jun 2017 17:27:16 -0500
-Message-ID: <20170614222729.16521-1-jeremy.linton@arm.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:39548 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751600AbdFNW1b (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 14 Jun 2017 18:27:31 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Subject: [PATCH v2 01/13] trace: rename kernel enum section to eval
+Date: Wed, 14 Jun 2017 17:27:17 -0500
+Message-ID: <20170614222729.16521-2-jeremy.linton@arm.com>
+References: <20170614222729.16521-1-jeremy.linton@arm.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20170614222729.16521-1-jeremy.linton@arm.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, rostedt@goodmis.org, mingo@redhat.com, rusty@rustcorp.com.au, jeyu@redhat.com, kirill.shutemov@linux.intel.com, christoffer.dall@linaro.org, marc.zyngier@arm.com, jcm@jonmasters.org, clemens@ladisch.de, perex@perex.cz
+List-Id: linux-arch.vger.kernel.org
 
-There are a few cases of sizeof() embedded in TRACE_EVENT()
-macros. That is a problem because "sizeof(structure)" is
-passed to userspace, which doesn't know how to decode the
-size of kernel data structures. There was a similar problem
-with enums.
+The kernel and its modules have sections containing the enum
+string to value conversions. Rename this section because we
+intend to store more than enums in it.
 
-Rather than recreating much of the enum infrastructure lets
-simply extend it, and append additional symbols into the
-enum_map that can translate string sizeof() calls into
-values. Of course that means that much of the infrastructure
-is now poorly named so we go through and replace instances
-describing "enum" with "eval" to indicate a generic C
-expression to numerical evaluation routine.
+Signed-off-by: Jeremy Linton <jeremy.linton@arm.com>
+---
+ include/asm-generic/vmlinux.lds.h | 6 +++---
+ include/trace/trace_events.h      | 2 +-
+ kernel/module.c                   | 2 +-
+ kernel/trace/trace.c              | 8 ++++----
+ 4 files changed, 9 insertions(+), 9 deletions(-)
 
-v1->v2:
-  Modify the sample trace file to reflect a more reasonable example
-  Add an additional TRACE_DEFINE_SIZEOF() for fjes_hw_request_info
-  Add an additional patch to convert some hardcoded size values to sizeof
-
-Jeremy Linton (13):
-  trace: rename kernel enum section to eval
-  trace: rename trace_enum_map to trace_eval_map
-  trace: rename struct module entry for trace enums
-  trace: rename trace enum data structures in trace.c
-  trace: rename trace_enum_mutex to trace_eval_mutex
-  trace: rename trace.c enum functions
-  trace: rename enum_map functions
-  tracing: Rename enum_replace to eval_replace
-  tracing: define TRACE_DEFINE_SIZEOF() macro to map sizeof's to their
-    values
-  tracing: Update sample file to describe the new macro
-  tracing: Add TRACE_DEFINE_SIZEOF() macros
-  tracing: Replace some majic constants with sizeof()
-  tracing: Rename and update the enum_map file
-
- arch/arm64/kvm/trace.h                         |   2 +
- drivers/net/fjes/fjes_trace.h                  |   2 +
- include/asm-generic/vmlinux.lds.h              |   6 +-
- include/linux/module.h                         |   4 +-
- include/linux/tracepoint.h                     |   7 +-
- include/trace/events/thermal.h                 |   4 +-
- include/trace/events/thermal_power_allocator.h |   4 +-
- include/trace/events/xen.h                     |  13 +-
- include/trace/trace_events.h                   |  26 +++-
- kernel/module.c                                |   6 +-
- kernel/trace/Kconfig                           |  22 +--
- kernel/trace/trace.c                           | 194 ++++++++++++-------------
- kernel/trace/trace.h                           |   4 +-
- kernel/trace/trace_events.c                    |  24 +--
- samples/trace_events/trace-events-sample.h     |  28 ++--
- sound/firewire/motu/amdtp-motu-trace.h         |  12 +-
- 16 files changed, 202 insertions(+), 156 deletions(-)
-
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 314a0b9..800f9f9 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -125,9 +125,9 @@
+ 			VMLINUX_SYMBOL(__start_ftrace_events) = .;	\
+ 			KEEP(*(_ftrace_events))				\
+ 			VMLINUX_SYMBOL(__stop_ftrace_events) = .;	\
+-			VMLINUX_SYMBOL(__start_ftrace_enum_maps) = .;	\
+-			KEEP(*(_ftrace_enum_map))			\
+-			VMLINUX_SYMBOL(__stop_ftrace_enum_maps) = .;
++			VMLINUX_SYMBOL(__start_ftrace_eval_maps) = .;	\
++			KEEP(*(_ftrace_eval_map))			\
++			VMLINUX_SYMBOL(__stop_ftrace_eval_maps) = .;
+ #else
+ #define FTRACE_EVENTS()
+ #endif
+diff --git a/include/trace/trace_events.h b/include/trace/trace_events.h
+index 00f6431..4bdd840 100644
+--- a/include/trace/trace_events.h
++++ b/include/trace/trace_events.h
+@@ -43,7 +43,7 @@ TRACE_MAKE_SYSTEM_STR();
+ 		.enum_value = a				\
+ 	};						\
+ 	static struct trace_enum_map __used		\
+-	__attribute__((section("_ftrace_enum_map")))	\
++	__attribute__((section("_ftrace_eval_map")))	\
+ 	*TRACE_SYSTEM##_##a = &__##TRACE_SYSTEM##_##a
+ 
+ /*
+diff --git a/kernel/module.c b/kernel/module.c
+index 4a3665f..9ec4713 100644
+--- a/kernel/module.c
++++ b/kernel/module.c
+@@ -3077,7 +3077,7 @@ static int find_module_sections(struct module *mod, struct load_info *info)
+ 	mod->trace_events = section_objs(info, "_ftrace_events",
+ 					 sizeof(*mod->trace_events),
+ 					 &mod->num_trace_events);
+-	mod->trace_enums = section_objs(info, "_ftrace_enum_map",
++	mod->trace_enums = section_objs(info, "_ftrace_eval_map",
+ 					sizeof(*mod->trace_enums),
+ 					&mod->num_trace_enums);
+ #endif
+diff --git a/kernel/trace/trace.c b/kernel/trace/trace.c
+index c4536c4..ce564c2 100644
+--- a/kernel/trace/trace.c
++++ b/kernel/trace/trace.c
+@@ -7704,15 +7704,15 @@ struct dentry *tracing_init_dentry(void)
+ 	return NULL;
+ }
+ 
+-extern struct trace_enum_map *__start_ftrace_enum_maps[];
+-extern struct trace_enum_map *__stop_ftrace_enum_maps[];
++extern struct trace_enum_map *__start_ftrace_eval_maps[];
++extern struct trace_enum_map *__stop_ftrace_eval_maps[];
+ 
+ static void __init trace_enum_init(void)
+ {
+ 	int len;
+ 
+-	len = __stop_ftrace_enum_maps - __start_ftrace_enum_maps;
+-	trace_insert_enum_map(NULL, __start_ftrace_enum_maps, len);
++	len = __stop_ftrace_eval_maps - __start_ftrace_eval_maps;
++	trace_insert_enum_map(NULL, __start_ftrace_eval_maps, len);
+ }
+ 
+ #ifdef CONFIG_MODULES
 -- 
 2.9.4
