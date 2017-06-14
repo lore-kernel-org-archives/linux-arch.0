@@ -1,105 +1,81 @@
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH v6 25/34] swiotlb: Add warnings for use of bounce buffers
- with SME
-Date: Wed, 14 Jun 2017 18:50:52 +0200
-Message-ID: <20170614165052.fyn5t4gkq5leczcc@pd.tnic>
-References: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
- <20170607191732.28645.42876.stgit@tlendack-t1.amdoffice.net>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [HELP-NEEDED, PATCH 0/3] Do not loose dirty bit on THP pages
+Date: Wed, 14 Jun 2017 17:55:13 +0100
+Message-ID: <20170614165513.GD17632@arm.com>
+References: <20170614135143.25068-1-kirill.shutemov@linux.intel.com>
+ <eed279c6-bf61-f2f3-c9f2-d9a94568e2e3@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Return-path: <owner-linux-mm@kvack.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:36736 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1750768AbdFNQzE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 14 Jun 2017 12:55:04 -0400
 Content-Disposition: inline
-In-Reply-To: <20170607191732.28645.42876.stgit@tlendack-t1.amdoffice.net>
-Sender: owner-linux-mm@kvack.org
-To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <eed279c6-bf61-f2f3-c9f2-d9a94568e2e3@linux.vnet.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Ralf Baechle <ralf@linux-mips.org>, "David S. Miller" <davem@davemloft.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Andrea Arcangeli <aarcange@redhat.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, mark.rutland@arm.com
 
-On Wed, Jun 07, 2017 at 02:17:32PM -0500, Tom Lendacky wrote:
-> Add warnings to let the user know when bounce buffers are being used for
-> DMA when SME is active.  Since the bounce buffers are not in encrypted
-> memory, these notifications are to allow the user to determine some
-> appropriate action - if necessary.
+Hi Aneesh,
+
+On Wed, Jun 14, 2017 at 08:55:26PM +0530, Aneesh Kumar K.V wrote:
+> On Wednesday 14 June 2017 07:21 PM, Kirill A. Shutemov wrote:
+> >Vlastimil noted that pmdp_invalidate() is not atomic and we can loose
+> >dirty and access bits if CPU sets them after pmdp dereference, but
+> >before set_pmd_at().
+> >
+> >The bug doesn't lead to user-visible misbehaviour in current kernel, but
+> >fixing this would be critical for future work on THP: both huge-ext4 and THP
+> >swap out rely on proper dirty tracking.
+> >
+> >Unfortunately, there's no way to address the issue in a generic way. We need to
+> >fix all architectures that support THP one-by-one.
+> >
+> >All architectures that have THP supported have to provide atomic
+> >pmdp_invalidate(). If generic implementation of pmdp_invalidate() is used,
+> >architecture needs to provide atomic pmdp_mknonpresent().
+> >
+> >I've fixed the issue for x86, but I need help with the rest.
+> >
+> >So far THP is supported on 8 architectures. Power and S390 already provides
+> >atomic pmdp_invalidate(). x86 is fixed by this patches, so 5 architectures
+> >left:
+> >
+> >  - arc;
+> >  - arm;
+> >  - arm64;
+> >  - mips;
+> >  - sparc -- it has custom pmdp_invalidate(), but it's racy too;
+> >
+> >Please, help me with them.
+> >
+> >Kirill A. Shutemov (3):
+> >   x86/mm: Provide pmdp_mknotpresent() helper
+> >   mm: Do not loose dirty and access bits in pmdp_invalidate()
+> >   mm, thp: Do not loose dirty bit in __split_huge_pmd_locked()
+> >
 > 
-> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
-> ---
->  arch/x86/include/asm/mem_encrypt.h |    8 ++++++++
->  include/asm-generic/mem_encrypt.h  |    5 +++++
->  include/linux/dma-mapping.h        |    9 +++++++++
->  lib/swiotlb.c                      |    3 +++
->  4 files changed, 25 insertions(+)
 > 
-> diff --git a/arch/x86/include/asm/mem_encrypt.h b/arch/x86/include/asm/mem_encrypt.h
-> index f1215a4..c7a2525 100644
-> --- a/arch/x86/include/asm/mem_encrypt.h
-> +++ b/arch/x86/include/asm/mem_encrypt.h
-> @@ -69,6 +69,14 @@ static inline bool sme_active(void)
->  	return !!sme_me_mask;
->  }
->  
-> +static inline u64 sme_dma_mask(void)
-> +{
-> +	if (!sme_me_mask)
-> +		return 0ULL;
-> +
-> +	return ((u64)sme_me_mask << 1) - 1;
-> +}
-> +
->  /*
->   * The __sme_pa() and __sme_pa_nodebug() macros are meant for use when
->   * writing to or comparing values from the cr3 register.  Having the
-> diff --git a/include/asm-generic/mem_encrypt.h b/include/asm-generic/mem_encrypt.h
-> index b55c3f9..fb02ff0 100644
-> --- a/include/asm-generic/mem_encrypt.h
-> +++ b/include/asm-generic/mem_encrypt.h
-> @@ -22,6 +22,11 @@ static inline bool sme_active(void)
->  	return false;
->  }
->  
-> +static inline u64 sme_dma_mask(void)
-> +{
-> +	return 0ULL;
-> +}
-> +
->  /*
->   * The __sme_set() and __sme_clr() macros are useful for adding or removing
->   * the encryption mask from a value (e.g. when dealing with pagetable
-> diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
-> index 4f3eece..e2c5fda 100644
-> --- a/include/linux/dma-mapping.h
-> +++ b/include/linux/dma-mapping.h
-> @@ -10,6 +10,7 @@
->  #include <linux/scatterlist.h>
->  #include <linux/kmemcheck.h>
->  #include <linux/bug.h>
-> +#include <linux/mem_encrypt.h>
->  
->  /**
->   * List of possible attributes associated with a DMA mapping. The semantics
-> @@ -577,6 +578,10 @@ static inline int dma_set_mask(struct device *dev, u64 mask)
->  
->  	if (!dev->dma_mask || !dma_supported(dev, mask))
->  		return -EIO;
-> +
-> +	if (sme_active() && (mask < sme_dma_mask()))
-> +		dev_warn(dev, "SME is active, device will require DMA bounce buffers\n");
+> But in __split_huge_pmd_locked() we collected the dirty bit early. So even
+> if we made pmdp_invalidate() atomic, if we had marked the pmd pte entry
+> dirty after we collected the dirty bit, we still loose it right ?
+> 
+> 
+> May be we should relook at pmd PTE udpate interface. We really need an
+> interface that can update pmd entries such that we don't clear it in
+> between. IMHO, we can avoid the pmdp_invalidate() completely, if we can
+> switch from a pmd PTE entry to a pointer to PTE page (pgtable_t). We also
+> need this interface to avoid the madvise race fixed by
 
-Something looks strange here:
+There's a good chance I'm not following your suggestion here, but it's
+probably worth me pointing out that swizzling a page table entry from a
+block mapping (e.g. a huge page mapped at the PMD level) to a table entry
+(e.g. a pointer to a page of PTEs) can lead to all sorts of horrible
+problems on ARM, including amalgamation of TLB entries and fatal aborts.
 
-you're checking sme_active() before calling sme_dma_mask() and yet in
-it, you're checking !sme_me_mask again. What gives?
+So we really need to go via an invalid entry, with appropriate TLB
+invalidation before installing the new entry.
 
-Why not move the sme_active() check into sme_dma_mask() and thus
-simplify callers?
-
--- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Will
