@@ -1,43 +1,37 @@
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH 1/5] arm64: signal: split frame link record from
- sigcontext structure
-Date: Thu, 15 Jun 2017 17:37:47 +0100
-Message-ID: <20170615163747.GA17424@e104818-lin.cambridge.arm.com>
+Subject: Re: [PATCH 2/5] arm64: signal: Refactor sigcontext parsing in
+ rt_sigreturn
+Date: Thu, 15 Jun 2017 18:01:30 +0100
+Message-ID: <20170615170130.GB17424@e104818-lin.cambridge.arm.com>
 References: <1497535442-11586-1-git-send-email-Dave.Martin@arm.com>
- <1497535442-11586-2-git-send-email-Dave.Martin@arm.com>
+ <1497535442-11586-3-git-send-email-Dave.Martin@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:47576 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:47782 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752094AbdFOQhv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 15 Jun 2017 12:37:51 -0400
+        id S1750961AbdFORBe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 15 Jun 2017 13:01:34 -0400
 Content-Disposition: inline
-In-Reply-To: <1497535442-11586-2-git-send-email-Dave.Martin@arm.com>
+In-Reply-To: <1497535442-11586-3-git-send-email-Dave.Martin@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Dave Martin <Dave.Martin@arm.com>
 Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>
 
-On Thu, Jun 15, 2017 at 03:03:38PM +0100, Dave P Martin wrote:
-> In order to be able to increase the amount of the data currently
-> written to the __reserved[] array in the signal frame, it is
-> necessary to overwrite the locations currently occupied by the
-> {fp,lr} frame link record pushed at the top of the signal stack.
+On Thu, Jun 15, 2017 at 03:03:39PM +0100, Dave P Martin wrote:
+> Currently, rt_sigreturn does very limited checking on the
+> sigcontext coming from userspace.
 > 
-> In order for this to work, this patch detaches the frame link
-> record from struct rt_sigframe and places it separately at the top
-> of the signal stack.  This will allow subsequent patches to insert
-> data between it and __reserved[].
+> Future additions to the sigcontext data will increase the potential
+> for surprises.  Also, it is not clear whether the sigcontext
+> extension records are supposed to occur in a particular order.
 > 
-> This change relies on the non-ABI status of the placement of the
-> frame record with respect to struct sigframe: this status is
-> undocumented, but the placement is not declared or described in the
-> user headers, and known unwinder implementations (libgcc,
-> libunwind, gdb) appear not to rely on it.
+> To allow the parsing code to be extended more easily, this patch
+> factors out the sigcontext parsing into a separate function, and
+> adds extra checks to validate the well-formedness of the sigcontext
+> structure.
 > 
 > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-
-I'm fine with this approach:
 
 Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
