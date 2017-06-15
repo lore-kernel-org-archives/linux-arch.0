@@ -1,239 +1,113 @@
-From: Jeremy Linton <jeremy.linton@arm.com>
-Subject: [PATCH v2 02/13] trace: rename trace_enum_map to trace_eval_map
-Date: Wed, 14 Jun 2017 17:27:18 -0500
-Message-ID: <20170614222729.16521-3-jeremy.linton@arm.com>
-References: <20170614222729.16521-1-jeremy.linton@arm.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20170614222729.16521-1-jeremy.linton@arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, rostedt@goodmis.org, mingo@redhat.com, rusty@rustcorp.com.au, jeyu@redhat.com, kirill.shutemov@linux.intel.com, christoffer.dall@linaro.org, marc.zyngier@arm.com, jcm@jonmasters.org, clemens@ladisch.de, perex@perex.cz
-List-Id: linux-arch.vger.kernel.org
+From: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
+Subject: Re: [HELP-NEEDED, PATCH 0/3] Do not loose dirty bit on THP pages
+Date: Thu, 15 Jun 2017 06:35:21 +0530
+Message-ID: <548e33cb-e737-bb39-91a3-f66ee9211262@linux.vnet.ibm.com>
+References: <20170614135143.25068-1-kirill.shutemov@linux.intel.com>
+ <eed279c6-bf61-f2f3-c9f2-d9a94568e2e3@linux.vnet.ibm.com>
+ <20170614165513.GD17632@arm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:39165 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1751606AbdFOBFh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 14 Jun 2017 21:05:37 -0400
+Received: from pps.filterd (m0098421.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.20/8.16.0.20) with SMTP id v5F13c58037222
+        for <linux-arch@vger.kernel.org>; Wed, 14 Jun 2017 21:05:36 -0400
+Received: from e33.co.us.ibm.com (e33.co.us.ibm.com [32.97.110.151])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2b3fwu0pgy-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Wed, 14 Jun 2017 21:05:36 -0400
+Received: from localhost
+        by e33.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <aneesh.kumar@linux.vnet.ibm.com>;
+        Wed, 14 Jun 2017 19:05:35 -0600
+In-Reply-To: <20170614165513.GD17632@arm.com>
+Content-Language: en-US
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Will Deacon <will.deacon@arm.com>
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Ralf Baechle <ralf@linux-mips.org>, "David S. Miller" <davem@davemloft.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Andrea Arcangeli <aarcange@redhat.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, mark.rutland@arm.com
 
-Each enum is loaded into the trace_enum_map, as we
-are now using this for more than enums rename it.
 
-Signed-off-by: Jeremy Linton <jeremy.linton@arm.com>
----
- include/linux/module.h       |  2 +-
- include/linux/tracepoint.h   |  6 +++---
- include/trace/trace_events.h |  8 ++++----
- kernel/trace/trace.c         | 24 ++++++++++++------------
- kernel/trace/trace.h         |  4 ++--
- kernel/trace/trace_events.c  | 14 +++++++-------
- 6 files changed, 29 insertions(+), 29 deletions(-)
 
-diff --git a/include/linux/module.h b/include/linux/module.h
-index 21f5639..46b4804 100644
---- a/include/linux/module.h
-+++ b/include/linux/module.h
-@@ -442,7 +442,7 @@ struct module {
- #ifdef CONFIG_EVENT_TRACING
- 	struct trace_event_call **trace_events;
- 	unsigned int num_trace_events;
--	struct trace_enum_map **trace_enums;
-+	struct trace_eval_map **trace_enums;
- 	unsigned int num_trace_enums;
- #endif
- #ifdef CONFIG_FTRACE_MCOUNT_RECORD
-diff --git a/include/linux/tracepoint.h b/include/linux/tracepoint.h
-index cc48cb2..f7b0f55 100644
---- a/include/linux/tracepoint.h
-+++ b/include/linux/tracepoint.h
-@@ -25,10 +25,10 @@ struct module;
- struct tracepoint;
- struct notifier_block;
- 
--struct trace_enum_map {
-+struct trace_eval_map {
- 	const char		*system;
--	const char		*enum_string;
--	unsigned long		enum_value;
-+	const char		*eval_string;
-+	unsigned long		eval_value;
- };
- 
- #define TRACEPOINT_DEFAULT_PRIO	10
-diff --git a/include/trace/trace_events.h b/include/trace/trace_events.h
-index 4bdd840..49cce5f 100644
---- a/include/trace/trace_events.h
-+++ b/include/trace/trace_events.h
-@@ -35,14 +35,14 @@ TRACE_MAKE_SYSTEM_STR();
- 
- #undef TRACE_DEFINE_ENUM
- #define TRACE_DEFINE_ENUM(a)				\
--	static struct trace_enum_map __used __initdata	\
-+	static struct trace_eval_map __used __initdata	\
- 	__##TRACE_SYSTEM##_##a =			\
- 	{						\
- 		.system = TRACE_SYSTEM_STRING,		\
--		.enum_string = #a,			\
--		.enum_value = a				\
-+		.eval_string = #a,			\
-+		.eval_value = a				\
- 	};						\
--	static struct trace_enum_map __used		\
-+	static struct trace_eval_map __used		\
- 	__attribute__((section("_ftrace_eval_map")))	\
- 	*TRACE_SYSTEM##_##a = &__##TRACE_SYSTEM##_##a
- 
-diff --git a/kernel/trace/trace.c b/kernel/trace/trace.c
-index ce564c2..f82764b 100644
---- a/kernel/trace/trace.c
-+++ b/kernel/trace/trace.c
-@@ -132,7 +132,7 @@ union trace_enum_map_item;
- struct trace_enum_map_tail {
- 	/*
- 	 * "end" is first and points to NULL as it must be different
--	 * than "mod" or "enum_string"
-+	 * than "mod" or "eval_string"
- 	 */
- 	union trace_enum_map_item	*next;
- 	const char			*end;	/* points to NULL */
-@@ -148,7 +148,7 @@ static DEFINE_MUTEX(trace_enum_mutex);
-  * pointer to the next array of saved enum_map items.
-  */
- union trace_enum_map_item {
--	struct trace_enum_map		map;
-+	struct trace_eval_map		map;
- 	struct trace_enum_map_head	head;
- 	struct trace_enum_map_tail	tail;
- };
-@@ -4721,7 +4721,7 @@ static const struct file_operations tracing_saved_cmdlines_size_fops = {
- static union trace_enum_map_item *
- update_enum_map(union trace_enum_map_item *ptr)
- {
--	if (!ptr->map.enum_string) {
-+	if (!ptr->map.eval_string) {
- 		if (ptr->tail.next) {
- 			ptr = ptr->tail.next;
- 			/* Set ptr to the next real item (skip head) */
-@@ -4781,7 +4781,7 @@ static int enum_map_show(struct seq_file *m, void *v)
- 	union trace_enum_map_item *ptr = v;
- 
- 	seq_printf(m, "%s %ld (%s)\n",
--		   ptr->map.enum_string, ptr->map.enum_value,
-+		   ptr->map.eval_string, ptr->map.eval_value,
- 		   ptr->map.system);
- 
- 	return 0;
-@@ -4817,11 +4817,11 @@ trace_enum_jmp_to_tail(union trace_enum_map_item *ptr)
- }
- 
- static void
--trace_insert_enum_map_file(struct module *mod, struct trace_enum_map **start,
-+trace_insert_enum_map_file(struct module *mod, struct trace_eval_map **start,
- 			   int len)
- {
--	struct trace_enum_map **stop;
--	struct trace_enum_map **map;
-+	struct trace_eval_map **stop;
-+	struct trace_eval_map **map;
- 	union trace_enum_map_item *map_array;
- 	union trace_enum_map_item *ptr;
- 
-@@ -4875,13 +4875,13 @@ static void trace_create_enum_file(struct dentry *d_tracer)
- #else /* CONFIG_TRACE_ENUM_MAP_FILE */
- static inline void trace_create_enum_file(struct dentry *d_tracer) { }
- static inline void trace_insert_enum_map_file(struct module *mod,
--			      struct trace_enum_map **start, int len) { }
-+			      struct trace_eval_map **start, int len) { }
- #endif /* !CONFIG_TRACE_ENUM_MAP_FILE */
- 
- static void trace_insert_enum_map(struct module *mod,
--				  struct trace_enum_map **start, int len)
-+				  struct trace_eval_map **start, int len)
- {
--	struct trace_enum_map **map;
-+	struct trace_eval_map **map;
- 
- 	if (len <= 0)
- 		return;
-@@ -7704,8 +7704,8 @@ struct dentry *tracing_init_dentry(void)
- 	return NULL;
- }
- 
--extern struct trace_enum_map *__start_ftrace_eval_maps[];
--extern struct trace_enum_map *__stop_ftrace_eval_maps[];
-+extern struct trace_eval_map *__start_ftrace_eval_maps[];
-+extern struct trace_eval_map *__stop_ftrace_eval_maps[];
- 
- static void __init trace_enum_init(void)
- {
-diff --git a/kernel/trace/trace.h b/kernel/trace/trace.h
-index 291a1bc..75d5e27 100644
---- a/kernel/trace/trace.h
-+++ b/kernel/trace/trace.h
-@@ -1768,10 +1768,10 @@ static inline const char *get_syscall_name(int syscall)
- 
- #ifdef CONFIG_EVENT_TRACING
- void trace_event_init(void);
--void trace_event_enum_update(struct trace_enum_map **map, int len);
-+void trace_event_enum_update(struct trace_eval_map **map, int len);
- #else
- static inline void __init trace_event_init(void) { }
--static inline void trace_event_enum_update(struct trace_enum_map **map, int len) { }
-+static inline void trace_event_enum_update(struct trace_eval_map **map, int len) { }
- #endif
- 
- extern struct trace_iterator *tracepoint_print_iter;
-diff --git a/kernel/trace/trace_events.c b/kernel/trace/trace_events.c
-index e7973e1..cf5b9aa 100644
---- a/kernel/trace/trace_events.c
-+++ b/kernel/trace/trace_events.c
-@@ -2067,18 +2067,18 @@ __register_event(struct trace_event_call *call, struct module *mod)
- 	return 0;
- }
- 
--static char *enum_replace(char *ptr, struct trace_enum_map *map, int len)
-+static char *enum_replace(char *ptr, struct trace_eval_map *map, int len)
- {
- 	int rlen;
- 	int elen;
- 
- 	/* Find the length of the enum value as a string */
--	elen = snprintf(ptr, 0, "%ld", map->enum_value);
-+	elen = snprintf(ptr, 0, "%ld", map->eval_value);
- 	/* Make sure there's enough room to replace the string with the value */
- 	if (len < elen)
- 		return NULL;
- 
--	snprintf(ptr, elen + 1, "%ld", map->enum_value);
-+	snprintf(ptr, elen + 1, "%ld", map->eval_value);
- 
- 	/* Get the rest of the string of ptr */
- 	rlen = strlen(ptr + len);
-@@ -2090,11 +2090,11 @@ static char *enum_replace(char *ptr, struct trace_enum_map *map, int len)
- }
- 
- static void update_event_printk(struct trace_event_call *call,
--				struct trace_enum_map *map)
-+				struct trace_eval_map *map)
- {
- 	char *ptr;
- 	int quote = 0;
--	int len = strlen(map->enum_string);
-+	int len = strlen(map->eval_string);
- 
- 	for (ptr = call->print_fmt; *ptr; ptr++) {
- 		if (*ptr == '\\') {
-@@ -2125,7 +2125,7 @@ static void update_event_printk(struct trace_event_call *call,
- 			continue;
- 		}
- 		if (isalpha(*ptr) || *ptr == '_') {
--			if (strncmp(map->enum_string, ptr, len) == 0 &&
-+			if (strncmp(map->eval_string, ptr, len) == 0 &&
- 			    !isalnum(ptr[len]) && ptr[len] != '_') {
- 				ptr = enum_replace(ptr, map, len);
- 				/* Hmm, enum string smaller than value */
-@@ -2165,7 +2165,7 @@ static void update_event_printk(struct trace_event_call *call,
- 	}
- }
- 
--void trace_event_enum_update(struct trace_enum_map **map, int len)
-+void trace_event_enum_update(struct trace_eval_map **map, int len)
- {
- 	struct trace_event_call *call, *p;
- 	const char *last_system = NULL;
--- 
-2.9.4
+On Wednesday 14 June 2017 10:25 PM, Will Deacon wrote:
+> Hi Aneesh,
+> 
+> On Wed, Jun 14, 2017 at 08:55:26PM +0530, Aneesh Kumar K.V wrote:
+>> On Wednesday 14 June 2017 07:21 PM, Kirill A. Shutemov wrote:
+>>> Vlastimil noted that pmdp_invalidate() is not atomic and we can loose
+>>> dirty and access bits if CPU sets them after pmdp dereference, but
+>>> before set_pmd_at().
+>>>
+>>> The bug doesn't lead to user-visible misbehaviour in current kernel, but
+>>> fixing this would be critical for future work on THP: both huge-ext4 and THP
+>>> swap out rely on proper dirty tracking.
+>>>
+>>> Unfortunately, there's no way to address the issue in a generic way. We need to
+>>> fix all architectures that support THP one-by-one.
+>>>
+>>> All architectures that have THP supported have to provide atomic
+>>> pmdp_invalidate(). If generic implementation of pmdp_invalidate() is used,
+>>> architecture needs to provide atomic pmdp_mknonpresent().
+>>>
+>>> I've fixed the issue for x86, but I need help with the rest.
+>>>
+>>> So far THP is supported on 8 architectures. Power and S390 already provides
+>>> atomic pmdp_invalidate(). x86 is fixed by this patches, so 5 architectures
+>>> left:
+>>>
+>>>   - arc;
+>>>   - arm;
+>>>   - arm64;
+>>>   - mips;
+>>>   - sparc -- it has custom pmdp_invalidate(), but it's racy too;
+>>>
+>>> Please, help me with them.
+>>>
+>>> Kirill A. Shutemov (3):
+>>>    x86/mm: Provide pmdp_mknotpresent() helper
+>>>    mm: Do not loose dirty and access bits in pmdp_invalidate()
+>>>    mm, thp: Do not loose dirty bit in __split_huge_pmd_locked()
+>>>
+>>
+>>
+>> But in __split_huge_pmd_locked() we collected the dirty bit early. So even
+>> if we made pmdp_invalidate() atomic, if we had marked the pmd pte entry
+>> dirty after we collected the dirty bit, we still loose it right ?
+>>
+>>
+>> May be we should relook at pmd PTE udpate interface. We really need an
+>> interface that can update pmd entries such that we don't clear it in
+>> between. IMHO, we can avoid the pmdp_invalidate() completely, if we can
+>> switch from a pmd PTE entry to a pointer to PTE page (pgtable_t). We also
+>> need this interface to avoid the madvise race fixed by
+> 
+> There's a good chance I'm not following your suggestion here, but it's
+> probably worth me pointing out that swizzling a page table entry from a
+> block mapping (e.g. a huge page mapped at the PMD level) to a table entry
+> (e.g. a pointer to a page of PTEs) can lead to all sorts of horrible
+> problems on ARM, including amalgamation of TLB entries and fatal aborts.
+> 
+> So we really need to go via an invalid entry, with appropriate TLB
+> invalidation before installing the new entry.
+> 
+
+I am not suggesting we don't do the invalidate (the need for that is 
+documented in __split_huge_pmd_locked(). I am suggesting we need a new 
+interface, something like Andrea suggested.
+
+old_pmd = pmdp_establish(pmd_mknotpresent());
+
+instead of pmdp_invalidate(). We can then use this in scenarios where we 
+want to update pmd PTE entries, where right now we go through a 
+pmdp_clear and set_pmd path. We should really not do that for THP entries.
+
+
+W.r.t pmdp_invalidate() usage, I was wondering whether we can do that 
+early in __split_huge_pmd_locked().
+
+-aneesh
