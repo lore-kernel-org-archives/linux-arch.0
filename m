@@ -1,66 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([5.9.137.197]:45896 "EHLO mail.skyhub.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750728AbdFOPdd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 15 Jun 2017 11:33:33 -0400
-Date: Thu, 15 Jun 2017 17:33:22 +0200
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH v6 26/34] iommu/amd: Allow the AMD IOMMU to work with
- memory encryption
-Message-ID: <20170615153322.nwylo3dzn4fdx6n6@pd.tnic>
-References: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
- <20170607191745.28645.81756.stgit@tlendack-t1.amdoffice.net>
- <20170614174208.p2yr5exs4b6pjxhf@pd.tnic>
- <0611d01a-19f8-d6ae-2682-932789855518@amd.com>
- <20170615094111.wga334kg2bhxqib3@pd.tnic>
- <921153f5-1528-31d8-b815-f0419e819aeb@amd.com>
+Received: from mail-pf0-f195.google.com ([209.85.192.195]:36051 "EHLO
+        mail-pf0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750749AbdFOP7N (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 15 Jun 2017 11:59:13 -0400
+Date: Fri, 16 Jun 2017 01:59:00 +1000
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH 3/4] watchdog: Split up config options
+Message-ID: <20170616015900.0d133913@roar.ozlabs.ibm.com>
+In-Reply-To: <20170615155122.exwji7lkurfjvmzn@redhat.com>
+References: <20170603161005.279fe0ef@roar.ozlabs.ibm.com>
+        <20170606164958.lkwy7t7xzdpxg4mp@redhat.com>
+        <20170607135026.1a6129a8@roar.ozlabs.ibm.com>
+        <20170608160502.uzp7vmr7s4fj6hjm@redhat.com>
+        <20170612180739.1aa4b123@roar.ozlabs.ibm.com>
+        <20170612204156.ov7ka2765t4gdakl@redhat.com>
+        <20170614021118.4bbfd00f@roar.ozlabs.ibm.com>
+        <20170614140937.qrkajknqxldwdkv2@redhat.com>
+        <fc41c166-7db1-79d2-da01-cbcb412952c9@oracle.com>
+        <20170615130401.033a39dd@roar.ozlabs.ibm.com>
+        <20170615155122.exwji7lkurfjvmzn@redhat.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <921153f5-1528-31d8-b815-f0419e819aeb@amd.com>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170615153322.q7Q3GIIuj2XZijvrQ-axofTf_NN6f_HKveFErjU7MoU@z>
+To: Don Zickus <dzickus@redhat.com>
+Cc: Babu Moger <babu.moger@oracle.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20170615155900.V2Q_xFbAnolDkpPeB8kT10eV73Les1aQUGSlINL_VMc@z>
 
-On Thu, Jun 15, 2017 at 09:59:45AM -0500, Tom Lendacky wrote:
-> Actually the detection routine, amd_iommu_detect(), is part of the
-> IOMMU_INIT_FINISH macro support which is called early through mm_init()
-> from start_kernel() and that routine is called before init_amd().
+On Thu, 15 Jun 2017 11:51:22 -0400
+Don Zickus <dzickus@redhat.com> wrote:
 
-Ah, we do that there too:
-
-	for (p = __iommu_table; p < __iommu_table_end; p++) {
-
-Can't say that that code with the special section and whatnot is
-obvious. :-\
-
-Oh, well, early_init_amd() then. That is called in
-start_kernel->setup_arch->early_cpu_init and thus before mm_init().
-
-> > If so, it did work fine until now, without the volatile. Why is it
-> > needed now, all of a sudden?
+> On Thu, Jun 15, 2017 at 01:04:01PM +1000, Nicholas Piggin wrote:
+> > > +#ifdef CONFIG_HARDLOCKUP_DETECTOR
+> > >   /* boot commands */
+> > >   /*
+> > >    * Should we panic when a soft-lockup or hard-lockup occurs:
+> > > @@ -69,9 +73,6 @@ static int __init hardlockup_panic_setup(char *str)
+> > >          return 1;
+> > >   }
+> > >   __setup("nmi_watchdog=", hardlockup_panic_setup);
+> > > -
+> > > -#else
+> > > -unsigned long __read_mostly watchdog_enabled = SOFT_WATCHDOG_ENABLED;
+> > >   #endif
+> > > 
+> > >   #ifdef CONFIG_SOFTLOCKUP_DETECTOR  
+> > 
+> > Hmm, I guess I missed this because sparc parses nmi_watchdog=, but it
+> > also relies on the watchdog_enabled value.
+> > 
+> > I guess I can fold your incremental patch in. I hope we could get
+> > sparc quickly to adopt the complate HAVE_HARDLOCKUP_DETECTOR_ARCH soon
+> > afterwards though, so we only have 2 cases -- complete hardlockup
+> > detector, or the very bare minimum NMI_WATCHDOG.  
 > 
-> If you run checkpatch against the whole amd_iommu.c file you'll see that
+> Hi Nick,
+> 
+> I agree.  Let's move forward with this temp fix just to get things in the
+> kernel for initial testing.  Then follow up with a cleanup patch.  The idea
+> is we can always revert the cleanup patch if things still don't quite work.
+> 
+> Thoughts?
 
-I'm, of course, not talking about the signature change: I'm *actually*
-questioning the need to make this argument volatile, all of a sudden.
+Hi Don,
 
-If there's a need, please explain why. It worked fine until now. If it
-didn't, we would've seen it.
+Yeah that sounds good to me. Would you like me to re-test things
+and resend the series?
 
-If it is a bug, then it needs a proper explanation, a *separate* patch
-and so on. But not like now, a drive-by change in an IOMMU enablement
-patch.
-
-If it is wrong, then wait_on_sem() needs to be fixed too. AFAICT,
-wait_on_sem() gets called in both cases with interrupts disabled, while
-holding a lock so I'd like to pls know why, even in that case, does this
-variable need to be volatile.
-
--- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
+Thanks,
+Nick
