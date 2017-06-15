@@ -1,124 +1,166 @@
 From: Dave Martin <Dave.Martin@arm.com>
-Subject: [PATCH 0/5] arm64: signal: Signal frame expansion support
-Date: Thu, 15 Jun 2017 15:03:37 +0100
-Message-ID: <1497535442-11586-1-git-send-email-Dave.Martin@arm.com>
+Subject: [PATCH 1/5] arm64: signal: split frame link record from sigcontext structure
+Date: Thu, 15 Jun 2017 15:03:38 +0100
+Message-ID: <1497535442-11586-2-git-send-email-Dave.Martin@arm.com>
+References: <1497535442-11586-1-git-send-email-Dave.Martin@arm.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:45716 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:45726 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751016AbdFOOEX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 15 Jun 2017 10:04:23 -0400
+        id S1751016AbdFOOEo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 15 Jun 2017 10:04:44 -0400
+In-Reply-To: <1497535442-11586-1-git-send-email-Dave.Martin@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org
 Cc: linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>
 
-This series supersedes a prior RFC [1].
+In order to be able to increase the amount of the data currently
+written to the __reserved[] array in the signal frame, it is
+necessary to overwrite the locations currently occupied by the
+{fp,lr} frame link record pushed at the top of the signal stack.
 
-This series refactors the arm64 signal handling implementation in order
-to make it easier to add support for new CPU architecture extensions,
-which may require new records in the signal frame and may require the
-signal frame to grow beyond its current size.
+In order for this to work, this patch detaches the frame link
+record from struct rt_sigframe and places it separately at the top
+of the signal stack.  This will allow subsequent patches to insert
+data between it and __reserved[].
 
-This series provides infrastructure that will be needed in order to
-support the Scalable Vector Extension (SVE) [2] (patches to be posted
-separately).
+This change relies on the non-ABI status of the placement of the
+frame record with respect to struct sigframe: this status is
+undocumented, but the placement is not declared or described in the
+user headers, and known unwinder implementations (libgcc,
+libunwind, gdb) appear not to rely on it.
 
-LTP testing is ongoing -- I will ping this series when I have results.
+Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+---
+ arch/arm64/kernel/signal.c | 50 +++++++++++++++++++++++++++++-----------------
+ 1 file changed, 32 insertions(+), 18 deletions(-)
 
-
-Changes since RFC v2:
-
- * The frame link record has been moved back to the end of the full
-   signal frame, instead of fixing its position at the end of
-   __reserved[], after Catalin raised concerns about the space otherwise
-   wasted by putting the extended signal frame data after it.
-
-   Previous versions of the series had this behaviour, but concerns were
-   expressed by reviewers about the potential ABI impact.
-
-   This change has been informally tested for ABI impacts using the
-   libgcc unwinder (exercised by throwing exceptions from a signal
-   handler with g++ -fnon-call-exceptions) and gdb backtracing, neither
-   of which showed any problem.  Review of the libgcc and libunwind
-   implementations and discussion with gdb developers suggest that no
-   breakage is expected as a result of the change.
-
-   (See patch 1 of this posting.)
-
- * Patches 4 (Allocate extra sigcontext space as needed) and 5 (Parse
-   extra_context during sigreturn) of RFC v2 have been merged, since
-   they are not fully bisectable and make more sense as a single patch.
-
- * Patch 6 (Report signal frame size to userspace via auxv) of RFC v2
-   has been dropped from the series, because this creates ABI that we
-   don't need yet, and can benefit from further discussion.  This patch
-   will become relevant when merging support for SVE.
-
- * struct extra_context is explicitly padded up to a multiple of 16 bytes.
-   This fixes a bug whereby a non-extra_context-aware unwinder would
-   skip the wrong amount of data after extra_context and miss the
-   terminator record.
-
-   There is a de facto assumption that unwinders do not need to round
-   _aarch64_ctx.size up to a multiple of 16 when stepping through the
-   records in the signal frame, though this isn't documented anywhere.
-
-
-Original blurb:
-
-An architecture advertises the maximum possible signal frame size via
-the MINSIGSTKSZ #define (mandated by POSIX).
-
-However, CPU architecture extensions may increase the amount of space
-required to store the interrupted context when a signal is delivered.
-
-
-Eventually the amount of space needed in the signal frame may exceed
-MINSIGSTKSZ -- whether and when this happens is largely a matter of
-luck, depending on the initial guess for MINSIGSTKSZ and the evolution
-of that particular CPU architecture.  Unfortunately MINSIGSTKSZ cannot
-be changed without an ABI break, and POSIX provides no mechanism for
-migration.
-
-arm64 initially reserved 4KB of space in the signal frame for
-extensions, of which about 0.5KB is allocated to the FP/SIMD registers
-initially.
-
-Depending on the vector length supported by the hardware, SVE requires
-up to around 8KB of space to store the full SIMD register context, which
-is too large to fit in the existing frame.
-
-This series adds a mechanism for optionally enlarging the signal frame
-(patches 4-5) and reporting the actual maximum signal frame size to
-userspace (patch 6).  Patches 1-3 do some refactoring to support this
-change by abstracting the way signal frame records are allocated onto
-the user stack.
-
-Full backwards compatibility is not possible -- there is no way to hide
-the fact that the signal frame has grown -- so it is expected that
-support for new architecture extensions that can cause the signal frame
-to grow will be opt-in for userspace, in addition to using the extension
-mechanism defined by this series.
-
-
-[1] [RFC PATCH v2 0/6] Signal frame expansion support
-http://lists.infradead.org/pipermail/linux-arm-kernel/2017-April/501163.html
-
-[2] ARM Scalable Vector Extension
-https://community.arm.com/groups/processors/blog/2016/08/22/technology-update-the-scalable-vector-extension-sve-for-the-armv8-a-architecture
-https://developer.arm.com/docs/ddi0584/latest/arm-architecture-reference-manual-supplement-the-scalable-vector-extension-sve-for-armv8-a
-
-
-Dave Martin (5):
-  arm64: signal: split frame link record from sigcontext structure
-  arm64: signal: Refactor sigcontext parsing in rt_sigreturn
-  arm64: signal: factor frame layout and population into separate passes
-  arm64: signal: factor out signal frame record allocation
-  arm64: signal: Allow expansion of the signal frame
-
- arch/arm64/include/uapi/asm/sigcontext.h |  55 +++++
- arch/arm64/kernel/signal.c               | 408 ++++++++++++++++++++++++++++---
- 2 files changed, 427 insertions(+), 36 deletions(-)
-
+diff --git a/arch/arm64/kernel/signal.c b/arch/arm64/kernel/signal.c
+index c7b6de6..1e5ed3be 100644
+--- a/arch/arm64/kernel/signal.c
++++ b/arch/arm64/kernel/signal.c
+@@ -19,6 +19,7 @@
+ 
+ #include <linux/compat.h>
+ #include <linux/errno.h>
++#include <linux/kernel.h>
+ #include <linux/signal.h>
+ #include <linux/personality.h>
+ #include <linux/freezer.h>
+@@ -41,10 +42,18 @@
+ struct rt_sigframe {
+ 	struct siginfo info;
+ 	struct ucontext uc;
++};
++
++struct frame_record {
+ 	u64 fp;
+ 	u64 lr;
+ };
+ 
++struct rt_sigframe_user_layout {
++	struct rt_sigframe __user *sigframe;
++	struct frame_record __user *next_frame;
++};
++
+ static int preserve_fpsimd_context(struct fpsimd_context __user *ctx)
+ {
+ 	struct fpsimd_state *fpsimd = &current->thread.fpsimd_state;
+@@ -162,16 +171,17 @@ asmlinkage long sys_rt_sigreturn(struct pt_regs *regs)
+ 	return 0;
+ }
+ 
+-static int setup_sigframe(struct rt_sigframe __user *sf,
++static int setup_sigframe(struct rt_sigframe_user_layout *user,
+ 			  struct pt_regs *regs, sigset_t *set)
+ {
+ 	int i, err = 0;
++	struct rt_sigframe __user *sf = user->sigframe;
+ 	void *aux = sf->uc.uc_mcontext.__reserved;
+ 	struct _aarch64_ctx *end;
+ 
+ 	/* set up the stack frame for unwinding */
+-	__put_user_error(regs->regs[29], &sf->fp, err);
+-	__put_user_error(regs->regs[30], &sf->lr, err);
++	__put_user_error(regs->regs[29], &user->next_frame->fp, err);
++	__put_user_error(regs->regs[30], &user->next_frame->lr, err);
+ 
+ 	for (i = 0; i < 31; i++)
+ 		__put_user_error(regs->regs[i], &sf->uc.uc_mcontext.regs[i],
+@@ -209,34 +219,36 @@ static int setup_sigframe(struct rt_sigframe __user *sf,
+ 	return err;
+ }
+ 
+-static struct rt_sigframe __user *get_sigframe(struct ksignal *ksig,
+-					       struct pt_regs *regs)
++static int get_sigframe(struct rt_sigframe_user_layout *user,
++			 struct ksignal *ksig, struct pt_regs *regs)
+ {
+ 	unsigned long sp, sp_top;
+-	struct rt_sigframe __user *frame;
+ 
+ 	sp = sp_top = sigsp(regs->sp, ksig);
+ 
+-	sp = (sp - sizeof(struct rt_sigframe)) & ~15;
+-	frame = (struct rt_sigframe __user *)sp;
++	sp = round_down(sp - sizeof(struct frame_record), 16);
++	user->next_frame = (struct frame_record __user *)sp;
++
++	sp = round_down(sp - sizeof(struct rt_sigframe), 16);
++	user->sigframe = (struct rt_sigframe __user *)sp;
+ 
+ 	/*
+ 	 * Check that we can actually write to the signal frame.
+ 	 */
+-	if (!access_ok(VERIFY_WRITE, frame, sp_top - sp))
+-		frame = NULL;
++	if (!access_ok(VERIFY_WRITE, user->sigframe, sp_top - sp))
++		return -EFAULT;
+ 
+-	return frame;
++	return 0;
+ }
+ 
+ static void setup_return(struct pt_regs *regs, struct k_sigaction *ka,
+-			 void __user *frame, int usig)
++			 struct rt_sigframe_user_layout *user, int usig)
+ {
+ 	__sigrestore_t sigtramp;
+ 
+ 	regs->regs[0] = usig;
+-	regs->sp = (unsigned long)frame;
+-	regs->regs[29] = regs->sp + offsetof(struct rt_sigframe, fp);
++	regs->sp = (unsigned long)user->sigframe;
++	regs->regs[29] = (unsigned long)&user->next_frame->fp;
+ 	regs->pc = (unsigned long)ka->sa.sa_handler;
+ 
+ 	if (ka->sa.sa_flags & SA_RESTORER)
+@@ -250,20 +262,22 @@ static void setup_return(struct pt_regs *regs, struct k_sigaction *ka,
+ static int setup_rt_frame(int usig, struct ksignal *ksig, sigset_t *set,
+ 			  struct pt_regs *regs)
+ {
++	struct rt_sigframe_user_layout user;
+ 	struct rt_sigframe __user *frame;
+ 	int err = 0;
+ 
+-	frame = get_sigframe(ksig, regs);
+-	if (!frame)
++	if (get_sigframe(&user, ksig, regs))
+ 		return 1;
+ 
++	frame = user.sigframe;
++
+ 	__put_user_error(0, &frame->uc.uc_flags, err);
+ 	__put_user_error(NULL, &frame->uc.uc_link, err);
+ 
+ 	err |= __save_altstack(&frame->uc.uc_stack, regs->sp);
+-	err |= setup_sigframe(frame, regs, set);
++	err |= setup_sigframe(&user, regs, set);
+ 	if (err == 0) {
+-		setup_return(regs, &ksig->ka, frame, usig);
++		setup_return(regs, &ksig->ka, &user, usig);
+ 		if (ksig->ka.sa.sa_flags & SA_SIGINFO) {
+ 			err |= copy_siginfo_to_user(&frame->info, &ksig->info);
+ 			regs->regs[1] = (unsigned long)&frame->info;
 -- 
 2.1.4
