@@ -1,44 +1,118 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-sn1nam02on0089.outbound.protection.outlook.com ([104.47.36.89]:2592
-        "EHLO NAM02-SN1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751662AbdFONX2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 15 Jun 2017 09:23:28 -0400
-Subject: Re: [PATCH v6 25/34] swiotlb: Add warnings for use of bounce buffers
- with SME
-References: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
- <20170607191732.28645.42876.stgit@tlendack-t1.amdoffice.net>
- <20170614165052.fyn5t4gkq5leczcc@pd.tnic>
- <33d1debc-c684-cba1-7d95-493678f086d0@amd.com>
- <20170615090832.ncmq2kgom32cchhw@pd.tnic>
-From: Tom Lendacky <thomas.lendacky@amd.com>
-Message-ID: <a6fb0334-42e4-a08f-ac95-f33c48b0711f@amd.com>
-Date: Thu, 15 Jun 2017 08:23:17 -0500
-MIME-Version: 1.0
-In-Reply-To: <20170615090832.ncmq2kgom32cchhw@pd.tnic>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Received: from mga06.intel.com ([134.134.136.31]:48704 "EHLO mga06.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752338AbdFOOww (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 15 Jun 2017 10:52:52 -0400
+From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Subject: [PATCHv2 3/3] mm: Use updated pmdp_invalidate() inteface to track dirty/accessed bits
+Date: Thu, 15 Jun 2017 17:52:24 +0300
+Message-ID: <20170615145224.66200-4-kirill.shutemov@linux.intel.com>
+In-Reply-To: <20170615145224.66200-1-kirill.shutemov@linux.intel.com>
+References: <20170615145224.66200-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170615132317.HmaI53jrO_CBNbxS3UO6zOpPh8lwpIeau07rce2xfOI@z>
+To: Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Ralf Baechle <ralf@linux-mips.org>, "David S. Miller" <davem@davemloft.net>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andrea Arcangeli <aarcange@redhat.com>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Message-ID: <20170615145224.aQZqxiSnCX4ljD7asxTnIcI7wK-McRC35Q6nM5mBpHI@z>
 
-On 6/15/2017 4:08 AM, Borislav Petkov wrote:
-> On Wed, Jun 14, 2017 at 02:49:02PM -0500, Tom Lendacky wrote:
->> I guess I don't need the sme_active() check since the second part of the
->> if statement can only ever be true if SME is active (since mask is
->> unsigned).
-> 
-> ... and you can define sme_me_mask as an u64 directly (it is that already,
-> practically, as we don't do SME on 32-bit) and then get rid of the cast.
+This patch uses modifed pmdp_invalidate(), that return previous value of pmd,
+to transfer dirty and accessed bits.
 
-Let me look into that. There are so many places that are expecting an
-unsigned long I'll have to see how that all works out from a build
-perspective.
+Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+---
+ fs/proc/task_mmu.c |  8 ++++----
+ mm/huge_memory.c   | 29 ++++++++++++-----------------
+ 2 files changed, 16 insertions(+), 21 deletions(-)
 
-Thanks,
-Tom
-
-> 
+diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
+index f0c8b33d99b1..f2fc1ef5bba2 100644
+--- a/fs/proc/task_mmu.c
++++ b/fs/proc/task_mmu.c
+@@ -906,13 +906,13 @@ static inline void clear_soft_dirty(struct vm_area_struct *vma,
+ static inline void clear_soft_dirty_pmd(struct vm_area_struct *vma,
+ 		unsigned long addr, pmd_t *pmdp)
+ {
+-	pmd_t pmd = *pmdp;
++	pmd_t old, pmd = *pmdp;
+ 
+ 	/* See comment in change_huge_pmd() */
+-	pmdp_invalidate(vma, addr, pmdp);
+-	if (pmd_dirty(*pmdp))
++	old = pmdp_invalidate(vma, addr, pmdp);
++	if (pmd_dirty(old))
+ 		pmd = pmd_mkdirty(pmd);
+-	if (pmd_young(*pmdp))
++	if (pmd_young(old))
+ 		pmd = pmd_mkyoung(pmd);
+ 
+ 	pmd = pmd_wrprotect(pmd);
+diff --git a/mm/huge_memory.c b/mm/huge_memory.c
+index a84909cf20d3..0433e73531bf 100644
+--- a/mm/huge_memory.c
++++ b/mm/huge_memory.c
+@@ -1777,17 +1777,7 @@ int change_huge_pmd(struct vm_area_struct *vma, pmd_t *pmd,
+ 	 * pmdp_invalidate() is required to make sure we don't miss
+ 	 * dirty/young flags set by hardware.
+ 	 */
+-	entry = *pmd;
+-	pmdp_invalidate(vma, addr, pmd);
+-
+-	/*
+-	 * Recover dirty/young flags.  It relies on pmdp_invalidate to not
+-	 * corrupt them.
+-	 */
+-	if (pmd_dirty(*pmd))
+-		entry = pmd_mkdirty(entry);
+-	if (pmd_young(*pmd))
+-		entry = pmd_mkyoung(entry);
++	entry = pmdp_invalidate(vma, addr, pmd);
+ 
+ 	entry = pmd_modify(entry, newprot);
+ 	if (preserve_write)
+@@ -1927,8 +1917,8 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
+ 	struct mm_struct *mm = vma->vm_mm;
+ 	struct page *page;
+ 	pgtable_t pgtable;
+-	pmd_t _pmd;
+-	bool young, write, dirty, soft_dirty;
++	pmd_t old, _pmd;
++	bool young, write, soft_dirty;
+ 	unsigned long addr;
+ 	int i;
+ 
+@@ -1965,7 +1955,6 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
+ 	page_ref_add(page, HPAGE_PMD_NR - 1);
+ 	write = pmd_write(*pmd);
+ 	young = pmd_young(*pmd);
+-	dirty = pmd_dirty(*pmd);
+ 	soft_dirty = pmd_soft_dirty(*pmd);
+ 
+ 	pmdp_huge_split_prepare(vma, haddr, pmd);
+@@ -1995,8 +1984,6 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
+ 			if (soft_dirty)
+ 				entry = pte_mksoft_dirty(entry);
+ 		}
+-		if (dirty)
+-			SetPageDirty(page + i);
+ 		pte = pte_offset_map(&_pmd, addr);
+ 		BUG_ON(!pte_none(*pte));
+ 		set_pte_at(mm, addr, pte, entry);
+@@ -2045,7 +2032,15 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
+ 	 * and finally we write the non-huge version of the pmd entry with
+ 	 * pmd_populate.
+ 	 */
+-	pmdp_invalidate(vma, haddr, pmd);
++	old = pmdp_invalidate(vma, haddr, pmd);
++
++	/*
++	 * Transfer dirty bit using value returned by pmd_invalidate() to be
++	 * sure we don't race with CPU that can set the bit under us.
++	 */
++	if (pmd_dirty(old))
++		SetPageDirty(page);
++
+ 	pmd_populate(mm, pmd, pgtable);
+ 
+ 	if (freeze) {
+-- 
+2.11.0
