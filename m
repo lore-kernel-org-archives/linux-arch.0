@@ -1,85 +1,43 @@
-From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: Re: [PATCH v6 26/34] iommu/amd: Allow the AMD IOMMU to work with
- memory encryption
-Date: Thu, 15 Jun 2017 11:33:41 -0500
-Message-ID: <3db2c52d-5e63-a1df-edd4-975bce7f29c2@amd.com>
-References: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
- <20170607191745.28645.81756.stgit@tlendack-t1.amdoffice.net>
- <20170614174208.p2yr5exs4b6pjxhf@pd.tnic>
- <0611d01a-19f8-d6ae-2682-932789855518@amd.com>
- <20170615094111.wga334kg2bhxqib3@pd.tnic>
- <921153f5-1528-31d8-b815-f0419e819aeb@amd.com>
- <20170615153322.nwylo3dzn4fdx6n6@pd.tnic>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH 1/5] arm64: signal: split frame link record from
+ sigcontext structure
+Date: Thu, 15 Jun 2017 17:37:47 +0100
+Message-ID: <20170615163747.GA17424@e104818-lin.cambridge.arm.com>
+References: <1497535442-11586-1-git-send-email-Dave.Martin@arm.com>
+ <1497535442-11586-2-git-send-email-Dave.Martin@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20170615153322.nwylo3dzn4fdx6n6@pd.tnic>
-Content-Language: en-US
-Sender: owner-linux-mm@kvack.org
-To: Borislav Petkov <bp@alien8.de>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:47576 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752094AbdFOQhv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 15 Jun 2017 12:37:51 -0400
+Content-Disposition: inline
+In-Reply-To: <1497535442-11586-2-git-send-email-Dave.Martin@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>
 
-On 6/15/2017 10:33 AM, Borislav Petkov wrote:
-> On Thu, Jun 15, 2017 at 09:59:45AM -0500, Tom Lendacky wrote:
->> Actually the detection routine, amd_iommu_detect(), is part of the
->> IOMMU_INIT_FINISH macro support which is called early through mm_init()
->> from start_kernel() and that routine is called before init_amd().
+On Thu, Jun 15, 2017 at 03:03:38PM +0100, Dave P Martin wrote:
+> In order to be able to increase the amount of the data currently
+> written to the __reserved[] array in the signal frame, it is
+> necessary to overwrite the locations currently occupied by the
+> {fp,lr} frame link record pushed at the top of the signal stack.
 > 
-> Ah, we do that there too:
+> In order for this to work, this patch detaches the frame link
+> record from struct rt_sigframe and places it separately at the top
+> of the signal stack.  This will allow subsequent patches to insert
+> data between it and __reserved[].
 > 
-> 	for (p = __iommu_table; p < __iommu_table_end; p++) {
+> This change relies on the non-ABI status of the placement of the
+> frame record with respect to struct sigframe: this status is
+> undocumented, but the placement is not declared or described in the
+> user headers, and known unwinder implementations (libgcc,
+> libunwind, gdb) appear not to rely on it.
 > 
-> Can't say that that code with the special section and whatnot is
-> obvious. :-\
-> 
-> Oh, well, early_init_amd() then. That is called in
-> start_kernel->setup_arch->early_cpu_init and thus before mm_init().
-> 
->>> If so, it did work fine until now, without the volatile. Why is it
->>> needed now, all of a sudden?
->>
->> If you run checkpatch against the whole amd_iommu.c file you'll see that
-> 
-> I'm, of course, not talking about the signature change: I'm *actually*
-> questioning the need to make this argument volatile, all of a sudden.
+> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
 
-Understood.
+I'm fine with this approach:
 
-> 
-> If there's a need, please explain why. It worked fine until now. If it
-> didn't, we would've seen it.
-
-The original reason for the change was to try and make the use of
-iommu_virt_to_phys() straight forward.  Removing the cast and changing
-build_completion_wait() to take a u64 * (without volatile) resulted in a
-warning because cmd_sem is defined in the amd_iommu struct as volatile,
-which required a cast on the call to iommu_virt_to_phys() anyway. Since
-it worked fine previously and the whole volatile thing is beyond the
-scope of this patchset, I'll change back to the original method of how
-the function was called.
-
-> 
-> If it is a bug, then it needs a proper explanation, a *separate* patch
-> and so on. But not like now, a drive-by change in an IOMMU enablement
-> patch.
-> 
-> If it is wrong, then wait_on_sem() needs to be fixed too. AFAICT,
-> wait_on_sem() gets called in both cases with interrupts disabled, while
-> holding a lock so I'd like to pls know why, even in that case, does this
-> variable need to be volatile
-
-Changing the signature back reverts to the original way, so this can be
-looked at separate from this patchset then.
-
-Thanks,
-Tom
-
-> 
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
