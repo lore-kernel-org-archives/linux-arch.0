@@ -1,73 +1,42 @@
-From: Don Zickus <dzickus@redhat.com>
-Subject: Re: [PATCH 3/4] watchdog: Split up config options
-Date: Thu, 15 Jun 2017 14:42:45 -0400
-Message-ID: <20170615184245.ogqtjn6j5dpadi6m@redhat.com>
-References: <20170607135026.1a6129a8@roar.ozlabs.ibm.com>
- <20170608160502.uzp7vmr7s4fj6hjm@redhat.com>
- <20170612180739.1aa4b123@roar.ozlabs.ibm.com>
- <20170612204156.ov7ka2765t4gdakl@redhat.com>
- <20170614021118.4bbfd00f@roar.ozlabs.ibm.com>
- <20170614140937.qrkajknqxldwdkv2@redhat.com>
- <fc41c166-7db1-79d2-da01-cbcb412952c9@oracle.com>
- <20170615130401.033a39dd@roar.ozlabs.ibm.com>
- <20170615155122.exwji7lkurfjvmzn@redhat.com>
- <20170616015900.0d133913@roar.ozlabs.ibm.com>
+From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Subject: Re: [PATCH v6 26/34] iommu/amd: Allow the AMD IOMMU to work with memory encryption
+Date: Thu, 15 Jun 2017 16:13:29 -0400
+Message-ID: <C1A52990-84AA-4258-B864-0121F5F5C4B5@oracle.com>
+References: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net> <20170607191745.28645.81756.stgit@tlendack-t1.amdoffice.net> <20170614174208.p2yr5exs4b6pjxhf@pd.tnic> <0611d01a-19f8-d6ae-2682-932789855518@amd.com> <20170615094111.wga334kg2bhxqib3@pd.tnic> <921153f5-1528-31d8-b815-f0419e819aeb@amd.com> <20170615153322.nwylo3dzn4fdx6n6@pd.tnic>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:40288 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750830AbdFOSmr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 15 Jun 2017 14:42:47 -0400
-Content-Disposition: inline
-In-Reply-To: <20170616015900.0d133913@roar.ozlabs.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: Babu Moger <babu.moger@oracle.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain;
+ charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20170615153322.nwylo3dzn4fdx6n6@pd.tnic>
+Sender: owner-linux-mm@kvack.org
+To: Borislav Petkov <bp@alien8.de>, Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jun 16, 2017 at 01:59:00AM +1000, Nicholas Piggin wrote:
-> On Thu, 15 Jun 2017 11:51:22 -0400
-> Don Zickus <dzickus@redhat.com> wrote:
-> 
-> > On Thu, Jun 15, 2017 at 01:04:01PM +1000, Nicholas Piggin wrote:
-> > > > +#ifdef CONFIG_HARDLOCKUP_DETECTOR
-> > > >   /* boot commands */
-> > > >   /*
-> > > >    * Should we panic when a soft-lockup or hard-lockup occurs:
-> > > > @@ -69,9 +73,6 @@ static int __init hardlockup_panic_setup(char *str)
-> > > >          return 1;
-> > > >   }
-> > > >   __setup("nmi_watchdog=", hardlockup_panic_setup);
-> > > > -
-> > > > -#else
-> > > > -unsigned long __read_mostly watchdog_enabled = SOFT_WATCHDOG_ENABLED;
-> > > >   #endif
-> > > > 
-> > > >   #ifdef CONFIG_SOFTLOCKUP_DETECTOR  
-> > > 
-> > > Hmm, I guess I missed this because sparc parses nmi_watchdog=, but it
-> > > also relies on the watchdog_enabled value.
-> > > 
-> > > I guess I can fold your incremental patch in. I hope we could get
-> > > sparc quickly to adopt the complate HAVE_HARDLOCKUP_DETECTOR_ARCH soon
-> > > afterwards though, so we only have 2 cases -- complete hardlockup
-> > > detector, or the very bare minimum NMI_WATCHDOG.  
-> > 
-> > Hi Nick,
-> > 
-> > I agree.  Let's move forward with this temp fix just to get things in the
-> > kernel for initial testing.  Then follow up with a cleanup patch.  The idea
-> > is we can always revert the cleanup patch if things still don't quite work.
-> > 
-> > Thoughts?
-> 
-> Hi Don,
-> 
-> Yeah that sounds good to me. Would you like me to re-test things
-> and resend the series?
+On June 15, 2017 11:33:22 AM EDT, Borislav Petkov <bp@alien8=2Ede> wrote:
+>On Thu, Jun 15, 2017 at 09:59:45AM -0500, Tom Lendacky wrote:
+>> Actually the detection routine, amd_iommu_detect(), is part of the
+>> IOMMU_INIT_FINISH macro support which is called early through
+>mm_init()
+>> from start_kernel() and that routine is called before init_amd()=2E
+>
+>Ah, we do that there too:
+>
+>	for (p =3D __iommu_table; p < __iommu_table_end; p++) {
+>
+>Can't say that that code with the special section and whatnot is
+>obvious=2E :-\
+>
 
-Yes, please.  Thanks!
+Patches to make it more obvious would be always welcome!
 
-Cheers,
-Don
+
+
+Thanks!
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
