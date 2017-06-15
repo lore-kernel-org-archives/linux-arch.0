@@ -1,152 +1,255 @@
 From: Dave Martin <Dave.Martin@arm.com>
-Subject: [PATCH 2/5] arm64: signal: Refactor sigcontext parsing in rt_sigreturn
-Date: Thu, 15 Jun 2017 15:03:39 +0100
-Message-ID: <1497535442-11586-3-git-send-email-Dave.Martin@arm.com>
+Subject: [PATCH 3/5] arm64: signal: factor frame layout and population into separate passes
+Date: Thu, 15 Jun 2017 15:03:40 +0100
+Message-ID: <1497535442-11586-4-git-send-email-Dave.Martin@arm.com>
 References: <1497535442-11586-1-git-send-email-Dave.Martin@arm.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:45748 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:45758 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752406AbdFOOFF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 15 Jun 2017 10:05:05 -0400
+        id S1752427AbdFOOF0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 15 Jun 2017 10:05:26 -0400
 In-Reply-To: <1497535442-11586-1-git-send-email-Dave.Martin@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org
 Cc: linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>
 
-Currently, rt_sigreturn does very limited checking on the
-sigcontext coming from userspace.
+In preparation for expanding the signal frame, this patch refactors
+the signal frame setup code in setup_sigframe() into two separate
+passes.
 
-Future additions to the sigcontext data will increase the potential
-for surprises.  Also, it is not clear whether the sigcontext
-extension records are supposed to occur in a particular order.
+The first pass, setup_sigframe_layout(), determines the size of the
+signal frame and its internal layout, including the presence and
+location of optional records.  The resulting knowledge is used to
+allocate and locate the user stack space required for the signal
+frame and to determine which optional records to include.
 
-To allow the parsing code to be extended more easily, this patch
-factors out the sigcontext parsing into a separate function, and
-adds extra checks to validate the well-formedness of the sigcontext
-structure.
+The second pass, setup_sigframe(), is called once the stack frame
+is allocated in order to populate it with the necessary context
+information.
+
+As a result of these changes, it becomes more natural to represent
+locations in the signal frame by a base pointer and an offset,
+since the absolute address of each location is not known during the
+layout pass.  To be more consistent with this logic,
+parse_user_sigframe() is refactored to describe signal frame
+locations in a similar way.
+
+This change has no effect on the signal ABI, but will make it
+easier to expand the signal frame in future patches.
 
 Signed-off-by: Dave Martin <Dave.Martin@arm.com>
 ---
- arch/arm64/kernel/signal.c | 86 ++++++++++++++++++++++++++++++++++++++++++----
- 1 file changed, 80 insertions(+), 6 deletions(-)
+ arch/arm64/kernel/signal.c | 111 +++++++++++++++++++++++++++++++++++----------
+ 1 file changed, 88 insertions(+), 23 deletions(-)
 
 diff --git a/arch/arm64/kernel/signal.c b/arch/arm64/kernel/signal.c
-index 1e5ed3be..67769f6 100644
+index 67769f6..eaef530 100644
 --- a/arch/arm64/kernel/signal.c
 +++ b/arch/arm64/kernel/signal.c
-@@ -23,6 +23,7 @@
- #include <linux/signal.h>
- #include <linux/personality.h>
+@@ -25,6 +25,7 @@
  #include <linux/freezer.h>
-+#include <linux/stddef.h>
+ #include <linux/stddef.h>
  #include <linux/uaccess.h>
++#include <linux/string.h>
  #include <linux/tracehook.h>
  #include <linux/ratelimit.h>
-@@ -101,12 +102,86 @@ static int restore_fpsimd_context(struct fpsimd_context __user *ctx)
- 	return err ? -EFAULT : 0;
- }
  
-+struct user_ctxs {
-+	struct fpsimd_context __user *fpsimd;
-+};
+@@ -53,8 +54,39 @@ struct frame_record {
+ struct rt_sigframe_user_layout {
+ 	struct rt_sigframe __user *sigframe;
+ 	struct frame_record __user *next_frame;
 +
-+static int parse_user_sigframe(struct user_ctxs *user,
-+			       struct rt_sigframe __user *sf)
++	unsigned long size;	/* size of allocated sigframe data */
++	unsigned long limit;	/* largest allowed size */
++
++	unsigned long fpsimd_offset;
++	unsigned long esr_offset;
++	unsigned long end_offset;
+ };
+ 
++static void init_user_layout(struct rt_sigframe_user_layout *user)
 +{
-+	struct sigcontext __user *const sc = &sf->uc.uc_mcontext;
-+	struct _aarch64_ctx __user *head =
-+		(struct _aarch64_ctx __user *)&sc->__reserved;
-+	size_t offset = 0;
++	memset(user, 0, sizeof(*user));
++	user->size = offsetof(struct rt_sigframe, uc.uc_mcontext.__reserved);
 +
-+	user->fpsimd = NULL;
-+
-+	while (1) {
-+		int err;
-+		u32 magic, size;
-+
-+		head = (struct _aarch64_ctx __user *)&sc->__reserved[offset];
-+		if (!IS_ALIGNED((unsigned long)head, 16))
-+			goto invalid;
-+
-+		err = 0;
-+		__get_user_error(magic, &head->magic, err);
-+		__get_user_error(size, &head->size, err);
-+		if (err)
-+			return err;
-+
-+		switch (magic) {
-+		case 0:
-+			if (size)
-+				goto invalid;
-+
-+			goto done;
-+
-+		case FPSIMD_MAGIC:
-+			if (user->fpsimd)
-+				goto invalid;
-+
-+			if (offset > sizeof(sc->__reserved) -
-+					sizeof(*user->fpsimd) ||
-+			    size < sizeof(*user->fpsimd))
-+				goto invalid;
-+
-+			user->fpsimd = (struct fpsimd_context __user *)head;
-+			break;
-+
-+		case ESR_MAGIC:
-+			/* ignore */
-+			break;
-+
-+		default:
-+			goto invalid;
-+		}
-+
-+		if (size < sizeof(*head))
-+			goto invalid;
-+
-+		if (size > sizeof(sc->__reserved) - (sizeof(*head) + offset))
-+			goto invalid;
-+
-+		offset += size;
-+	}
-+
-+done:
-+	if (!user->fpsimd)
-+		goto invalid;
-+
-+	return 0;
-+
-+invalid:
-+	return -EINVAL;
++	user->limit = user->size +
++		sizeof(user->sigframe->uc.uc_mcontext.__reserved) -
++		round_up(sizeof(struct _aarch64_ctx), 16);
++		/* ^ reserve space for terminator */
 +}
 +
- static int restore_sigframe(struct pt_regs *regs,
- 			    struct rt_sigframe __user *sf)
++static size_t sigframe_size(struct rt_sigframe_user_layout const *user)
++{
++	return round_up(max(user->size, sizeof(struct rt_sigframe)), 16);
++}
++
++static void __user *apply_user_offset(
++	struct rt_sigframe_user_layout const *user, unsigned long offset)
++{
++	char __user *base = (char __user *)user->sigframe;
++
++	return base + offset;
++}
++
+ static int preserve_fpsimd_context(struct fpsimd_context __user *ctx)
  {
- 	sigset_t set;
- 	int i, err;
+ 	struct fpsimd_state *fpsimd = &current->thread.fpsimd_state;
+@@ -110,26 +142,35 @@ static int parse_user_sigframe(struct user_ctxs *user,
+ 			       struct rt_sigframe __user *sf)
+ {
+ 	struct sigcontext __user *const sc = &sf->uc.uc_mcontext;
+-	struct _aarch64_ctx __user *head =
+-		(struct _aarch64_ctx __user *)&sc->__reserved;
++	struct _aarch64_ctx __user *head;
++	char __user *base = (char __user *)&sc->__reserved;
+ 	size_t offset = 0;
++	size_t limit = sizeof(sc->__reserved);
+ 
+ 	user->fpsimd = NULL;
+ 
++	if (!IS_ALIGNED((unsigned long)base, 16))
++		goto invalid;
++
+ 	while (1) {
+-		int err;
++		int err = 0;
+ 		u32 magic, size;
+ 
+-		head = (struct _aarch64_ctx __user *)&sc->__reserved[offset];
+-		if (!IS_ALIGNED((unsigned long)head, 16))
++		if (limit - offset < sizeof(*head))
+ 			goto invalid;
+ 
+-		err = 0;
++		if (!IS_ALIGNED(offset, 16))
++			goto invalid;
++
++		head = (struct _aarch64_ctx __user *)(base + offset);
+ 		__get_user_error(magic, &head->magic, err);
+ 		__get_user_error(size, &head->size, err);
+ 		if (err)
+ 			return err;
+ 
++		if (limit - offset < size)
++			goto invalid;
++
+ 		switch (magic) {
+ 		case 0:
+ 			if (size)
+@@ -141,9 +182,7 @@ static int parse_user_sigframe(struct user_ctxs *user,
+ 			if (user->fpsimd)
+ 				goto invalid;
+ 
+-			if (offset > sizeof(sc->__reserved) -
+-					sizeof(*user->fpsimd) ||
+-			    size < sizeof(*user->fpsimd))
++			if (size < sizeof(*user->fpsimd))
+ 				goto invalid;
+ 
+ 			user->fpsimd = (struct fpsimd_context __user *)head;
+@@ -160,7 +199,7 @@ static int parse_user_sigframe(struct user_ctxs *user,
+ 		if (size < sizeof(*head))
+ 			goto invalid;
+ 
+-		if (size > sizeof(sc->__reserved) - (sizeof(*head) + offset))
++		if (limit - offset < size)
+ 			goto invalid;
+ 
+ 		offset += size;
+@@ -245,13 +284,30 @@ asmlinkage long sys_rt_sigreturn(struct pt_regs *regs)
+ 	return 0;
+ }
+ 
++/* Determine the layout of optional records in the signal frame */
++static int setup_sigframe_layout(struct rt_sigframe_user_layout *user)
++{
++	user->fpsimd_offset = user->size;
++	user->size += round_up(sizeof(struct fpsimd_context), 16);
++
++	/* fault information, if valid */
++	if (current->thread.fault_code) {
++		user->esr_offset = user->size;
++		user->size += round_up(sizeof(struct esr_context), 16);
++	}
++
++	/* set the "end" magic */
++	user->end_offset = user->size;
++
++	return 0;
++}
++
++
+ static int setup_sigframe(struct rt_sigframe_user_layout *user,
+ 			  struct pt_regs *regs, sigset_t *set)
+ {
+ 	int i, err = 0;
+ 	struct rt_sigframe __user *sf = user->sigframe;
 -	void *aux = sf->uc.uc_mcontext.__reserved;
-+	struct user_ctxs user;
+-	struct _aarch64_ctx *end;
  
- 	err = __copy_from_user(&set, &sf->uc.uc_sigmask, sizeof(set));
- 	if (err == 0)
-@@ -125,12 +200,11 @@ static int restore_sigframe(struct pt_regs *regs,
- 	regs->syscallno = ~0UL;
+ 	/* set up the stack frame for unwinding */
+ 	__put_user_error(regs->regs[29], &user->next_frame->fp, err);
+@@ -269,26 +325,29 @@ static int setup_sigframe(struct rt_sigframe_user_layout *user,
+ 	err |= __copy_to_user(&sf->uc.uc_sigmask, set, sizeof(*set));
  
- 	err |= !valid_user_regs(&regs->user_regs, current);
-+	if (err == 0)
-+		err = parse_user_sigframe(&user, sf);
- 
--	if (err == 0) {
+ 	if (err == 0) {
 -		struct fpsimd_context *fpsimd_ctx =
 -			container_of(aux, struct fpsimd_context, head);
--		err |= restore_fpsimd_context(fpsimd_ctx);
--	}
-+	if (err == 0)
-+		err = restore_fpsimd_context(user.fpsimd);
++		struct fpsimd_context __user *fpsimd_ctx =
++			apply_user_offset(user, user->fpsimd_offset);
+ 		err |= preserve_fpsimd_context(fpsimd_ctx);
+-		aux += sizeof(*fpsimd_ctx);
+ 	}
+ 
+ 	/* fault information, if valid */
+-	if (current->thread.fault_code) {
+-		struct esr_context *esr_ctx =
+-			container_of(aux, struct esr_context, head);
++	if (err == 0 && user->esr_offset) {
++		struct esr_context __user *esr_ctx =
++			apply_user_offset(user, user->esr_offset);
++
+ 		__put_user_error(ESR_MAGIC, &esr_ctx->head.magic, err);
+ 		__put_user_error(sizeof(*esr_ctx), &esr_ctx->head.size, err);
+ 		__put_user_error(current->thread.fault_code, &esr_ctx->esr, err);
+-		aux += sizeof(*esr_ctx);
+ 	}
+ 
+ 	/* set the "end" magic */
+-	end = aux;
+-	__put_user_error(0, &end->magic, err);
+-	__put_user_error(0, &end->size, err);
++	if (err == 0) {
++		struct _aarch64_ctx __user *end =
++			apply_user_offset(user, user->end_offset);
++
++		__put_user_error(0, &end->magic, err);
++		__put_user_error(0, &end->size, err);
++	}
  
  	return err;
  }
+@@ -297,13 +356,19 @@ static int get_sigframe(struct rt_sigframe_user_layout *user,
+ 			 struct ksignal *ksig, struct pt_regs *regs)
+ {
+ 	unsigned long sp, sp_top;
++	int err;
++
++	init_user_layout(user);
++	err = setup_sigframe_layout(user);
++	if (err)
++		return err;
+ 
+ 	sp = sp_top = sigsp(regs->sp, ksig);
+ 
+ 	sp = round_down(sp - sizeof(struct frame_record), 16);
+ 	user->next_frame = (struct frame_record __user *)sp;
+ 
+-	sp = round_down(sp - sizeof(struct rt_sigframe), 16);
++	sp = round_down(sp, 16) - sigframe_size(user);
+ 	user->sigframe = (struct rt_sigframe __user *)sp;
+ 
+ 	/*
 -- 
 2.1.4
