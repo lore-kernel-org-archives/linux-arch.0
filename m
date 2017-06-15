@@ -1,118 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga06.intel.com ([134.134.136.31]:48704 "EHLO mga06.intel.com"
+Received: from mga04.intel.com ([192.55.52.120]:17168 "EHLO mga04.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752338AbdFOOww (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 15 Jun 2017 10:52:52 -0400
+        id S1752338AbdFOOxJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 15 Jun 2017 10:53:09 -0400
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv2 3/3] mm: Use updated pmdp_invalidate() inteface to track dirty/accessed bits
-Date: Thu, 15 Jun 2017 17:52:24 +0300
-Message-ID: <20170615145224.66200-4-kirill.shutemov@linux.intel.com>
-In-Reply-To: <20170615145224.66200-1-kirill.shutemov@linux.intel.com>
-References: <20170615145224.66200-1-kirill.shutemov@linux.intel.com>
+Subject: [HELP-NEEDED, PATCHv2 0/3] Do not loose dirty bit on THP pages
+Date: Thu, 15 Jun 2017 17:52:21 +0300
+Message-ID: <20170615145224.66200-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Ralf Baechle <ralf@linux-mips.org>, "David S. Miller" <davem@davemloft.net>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andrea Arcangeli <aarcange@redhat.com>
 Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20170615145224.aQZqxiSnCX4ljD7asxTnIcI7wK-McRC35Q6nM5mBpHI@z>
+Message-ID: <20170615145221.Ru2VnBB0303RyQtmMrdSZmjz5kSppJ-dMbyFAcp-VhQ@z>
 
-This patch uses modifed pmdp_invalidate(), that return previous value of pmd,
-to transfer dirty and accessed bits.
+Hi,
 
-Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
----
- fs/proc/task_mmu.c |  8 ++++----
- mm/huge_memory.c   | 29 ++++++++++++-----------------
- 2 files changed, 16 insertions(+), 21 deletions(-)
+Vlastimil noted that pmdp_invalidate() is not atomic and we can loose
+dirty and access bits if CPU sets them after pmdp dereference, but
+before set_pmd_at().
 
-diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
-index f0c8b33d99b1..f2fc1ef5bba2 100644
---- a/fs/proc/task_mmu.c
-+++ b/fs/proc/task_mmu.c
-@@ -906,13 +906,13 @@ static inline void clear_soft_dirty(struct vm_area_struct *vma,
- static inline void clear_soft_dirty_pmd(struct vm_area_struct *vma,
- 		unsigned long addr, pmd_t *pmdp)
- {
--	pmd_t pmd = *pmdp;
-+	pmd_t old, pmd = *pmdp;
- 
- 	/* See comment in change_huge_pmd() */
--	pmdp_invalidate(vma, addr, pmdp);
--	if (pmd_dirty(*pmdp))
-+	old = pmdp_invalidate(vma, addr, pmdp);
-+	if (pmd_dirty(old))
- 		pmd = pmd_mkdirty(pmd);
--	if (pmd_young(*pmdp))
-+	if (pmd_young(old))
- 		pmd = pmd_mkyoung(pmd);
- 
- 	pmd = pmd_wrprotect(pmd);
-diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-index a84909cf20d3..0433e73531bf 100644
---- a/mm/huge_memory.c
-+++ b/mm/huge_memory.c
-@@ -1777,17 +1777,7 @@ int change_huge_pmd(struct vm_area_struct *vma, pmd_t *pmd,
- 	 * pmdp_invalidate() is required to make sure we don't miss
- 	 * dirty/young flags set by hardware.
- 	 */
--	entry = *pmd;
--	pmdp_invalidate(vma, addr, pmd);
--
--	/*
--	 * Recover dirty/young flags.  It relies on pmdp_invalidate to not
--	 * corrupt them.
--	 */
--	if (pmd_dirty(*pmd))
--		entry = pmd_mkdirty(entry);
--	if (pmd_young(*pmd))
--		entry = pmd_mkyoung(entry);
-+	entry = pmdp_invalidate(vma, addr, pmd);
- 
- 	entry = pmd_modify(entry, newprot);
- 	if (preserve_write)
-@@ -1927,8 +1917,8 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
- 	struct mm_struct *mm = vma->vm_mm;
- 	struct page *page;
- 	pgtable_t pgtable;
--	pmd_t _pmd;
--	bool young, write, dirty, soft_dirty;
-+	pmd_t old, _pmd;
-+	bool young, write, soft_dirty;
- 	unsigned long addr;
- 	int i;
- 
-@@ -1965,7 +1955,6 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
- 	page_ref_add(page, HPAGE_PMD_NR - 1);
- 	write = pmd_write(*pmd);
- 	young = pmd_young(*pmd);
--	dirty = pmd_dirty(*pmd);
- 	soft_dirty = pmd_soft_dirty(*pmd);
- 
- 	pmdp_huge_split_prepare(vma, haddr, pmd);
-@@ -1995,8 +1984,6 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
- 			if (soft_dirty)
- 				entry = pte_mksoft_dirty(entry);
- 		}
--		if (dirty)
--			SetPageDirty(page + i);
- 		pte = pte_offset_map(&_pmd, addr);
- 		BUG_ON(!pte_none(*pte));
- 		set_pte_at(mm, addr, pte, entry);
-@@ -2045,7 +2032,15 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
- 	 * and finally we write the non-huge version of the pmd entry with
- 	 * pmd_populate.
- 	 */
--	pmdp_invalidate(vma, haddr, pmd);
-+	old = pmdp_invalidate(vma, haddr, pmd);
-+
-+	/*
-+	 * Transfer dirty bit using value returned by pmd_invalidate() to be
-+	 * sure we don't race with CPU that can set the bit under us.
-+	 */
-+	if (pmd_dirty(old))
-+		SetPageDirty(page);
-+
- 	pmd_populate(mm, pmd, pgtable);
- 
- 	if (freeze) {
+The bug doesn't lead to user-visible misbehaviour in current kernel, but
+fixing this would be critical for future work on THP: both huge-ext4 and THP
+swap out rely on proper dirty tracking.
+
+Unfortunately, there's no way to address the issue in a generic way. We need to
+fix all architectures that support THP one-by-one.
+
+All architectures that have THP supported have to provide atomic
+pmdp_invalidate() that returns previous value.
+
+If generic implementation of pmdp_invalidate() is used, architecture needs to
+provide atomic pmdp_estabish().
+
+pmdp_estabish() is not used out-side generic implementation of
+pmdp_invalidate() so far, but I think this can change in the future.
+
+I've fixed the issue for x86, but I need help with the rest.
+
+So far THP is supported on 7 architectures, beyond x86:
+
+ - arc;
+ - arm;
+ - arm64;
+ - mips;
+ - power;
+ - s390;
+ - sparc;
+
+Please, help me with them.
+
+v2:
+ - Introduce pmdp_estabish(), instead of pmdp_mknonpresent();
+ - Change pmdp_invalidate() to return previous value of the pmd;
+
+ arch/x86/include/asm/pgtable-3level.h | 18 ++++++++++++++++++
+ arch/x86/include/asm/pgtable.h        | 14 ++++++++++++++
+ fs/proc/task_mmu.c                    |  8 ++++----
+ include/asm-generic/pgtable.h         |  2 +-
+ mm/huge_memory.c                      | 29 ++++++++++++-----------------
+ mm/pgtable-generic.c                  |  9 +++++----
+ 6 files changed, 54 insertions(+), 26 deletions(-)
+
 -- 
 2.11.0
