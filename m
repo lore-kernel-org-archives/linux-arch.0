@@ -1,366 +1,119 @@
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: [PATCH 5/5] arm64: signal: Allow expansion of the signal frame
-Date: Thu, 15 Jun 2017 15:03:42 +0100
-Message-ID: <1497535442-11586-6-git-send-email-Dave.Martin@arm.com>
-References: <1497535442-11586-1-git-send-email-Dave.Martin@arm.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:45790 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752072AbdFOOGI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 15 Jun 2017 10:06:08 -0400
-In-Reply-To: <1497535442-11586-1-git-send-email-Dave.Martin@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arm-kernel@lists.infradead.org
-Cc: linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>
+From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Subject: [PATCHv2 3/3] mm: Use updated pmdp_invalidate() inteface to track dirty/accessed bits
+Date: Thu, 15 Jun 2017 17:52:24 +0300
+Message-ID: <20170615145224.66200-4-kirill.shutemov@linux.intel.com>
+References: <20170615145224.66200-1-kirill.shutemov@linux.intel.com>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20170615145224.66200-1-kirill.shutemov@linux.intel.com>
+Sender: owner-linux-mm@kvack.org
+To: Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Ralf Baechle <ralf@linux-mips.org>, "David S. Miller" <davem@davemloft.net>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andrea Arcangeli <aarcange@redhat.com>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+List-Id: linux-arch.vger.kernel.org
 
-This patch defines an extra_context signal frame record that can be
-used to describe an expanded signal frame, and modifies the context
-block allocator and signal frame setup and parsing code to create,
-populate, parse and decode this block as necessary.
+This patch uses modifed pmdp_invalidate(), that return previous value of pmd,
+to transfer dirty and accessed bits.
 
-To avoid abuse by userspace, parse_user_sigframe() attempts to
-ensure that:
-
- * no more than one extra_context is accepted;
- * the extra context data is a sensible size, and properly placed
-   and aligned.
-
-The extra_context data is required to start at the first 16-byte
-aligned address immediately after the dummy terminator record
-following extra_context in rt_sigframe.__reserved[] (as ensured
-during signal delivery).  This serves as a sanity-check that the
-signal frame has not been moved or copied without taking the extra
-data into account.
-
-Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
- arch/arm64/include/uapi/asm/sigcontext.h |  38 ++++++-
- arch/arm64/kernel/signal.c               | 190 ++++++++++++++++++++++++++++---
- 2 files changed, 209 insertions(+), 19 deletions(-)
+ fs/proc/task_mmu.c |  8 ++++----
+ mm/huge_memory.c   | 29 ++++++++++++-----------------
+ 2 files changed, 16 insertions(+), 21 deletions(-)
 
-diff --git a/arch/arm64/include/uapi/asm/sigcontext.h b/arch/arm64/include/uapi/asm/sigcontext.h
-index 1328a2c..303a48c 100644
---- a/arch/arm64/include/uapi/asm/sigcontext.h
-+++ b/arch/arm64/include/uapi/asm/sigcontext.h
-@@ -41,9 +41,10 @@ struct sigcontext {
-  *
-  *	0x210		fpsimd_context
-  *	 0x10		esr_context
-+ *	 0x20		extra_context (optional)
-  *	 0x10		terminator (null _aarch64_ctx)
-  *
-- *	0xdd0		(reserved for future allocation)
-+ *	0xdb0		(reserved for future allocation)
-  *
-  * New records that can exceed this space need to be opt-in for userspace, so
-  * that an expanded signal frame is not generated unexpectedly.  The mechanism
-@@ -80,4 +81,39 @@ struct esr_context {
- 	__u64 esr;
- };
- 
-+/*
-+ * extra_context: describes extra space in the signal frame for
-+ * additional structures that don't fit in sigcontext.__reserved[].
-+ *
-+ * Note:
-+ *
-+ * 1) fpsimd_context, esr_context and extra_context must be placed in
-+ * sigcontext.__reserved[] if present.  They cannot be placed in the
-+ * extra space.  Any other record can be placed either in the extra
-+ * space or in sigcontext.__reserved[], unless otherwise specified in
-+ * this file.
-+ *
-+ * 2) There must not be more than one extra_context.
-+ *
-+ * 3) If extra_context is present, it must be followed immediately in
-+ * sigcontext.__reserved[] by the terminating null _aarch64_ctx.
-+ *
-+ * 4) The extra space to which data points must start at the first
-+ * 16-byte aligned address immediately after the terminating null
-+ * _aarch64_ctx that follows the extra_context structure in
-+ * __reserved[].  The extra space may overrun the end of __reserved[],
-+ * as indicated by a sufficiently large value for the size field.
-+ *
-+ * 5) The extra space must itself be terminated with a null
-+ * _aarch64_ctx.
-+ */
-+#define EXTRA_MAGIC	0x45585401
-+
-+struct extra_context {
-+	struct _aarch64_ctx head;
-+	void __user *data;	/* 16-byte aligned pointer to extra space */
-+	__u32 size;		/* size in bytes of the extra space */
-+	__u32 __reserved[3];
-+};
-+
- #endif /* _UAPI__ASM_SIGCONTEXT_H */
-diff --git a/arch/arm64/kernel/signal.c b/arch/arm64/kernel/signal.c
-index fa787e6..3602fb7 100644
---- a/arch/arm64/kernel/signal.c
-+++ b/arch/arm64/kernel/signal.c
-@@ -25,6 +25,7 @@
- #include <linux/freezer.h>
- #include <linux/stddef.h>
- #include <linux/uaccess.h>
-+#include <linux/sizes.h>
- #include <linux/string.h>
- #include <linux/tracehook.h>
- #include <linux/ratelimit.h>
-@@ -60,18 +61,27 @@ struct rt_sigframe_user_layout {
- 
- 	unsigned long fpsimd_offset;
- 	unsigned long esr_offset;
-+	unsigned long extra_offset;
- 	unsigned long end_offset;
- };
- 
-+#define BASE_SIGFRAME_SIZE round_up(sizeof(struct rt_sigframe), 16)
-+#define TERMINATOR_SIZE round_up(sizeof(struct _aarch64_ctx), 16)
-+#define EXTRA_CONTEXT_SIZE round_up(sizeof(struct extra_context), 16)
-+
- static void init_user_layout(struct rt_sigframe_user_layout *user)
+diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
+index f0c8b33d99b1..f2fc1ef5bba2 100644
+--- a/fs/proc/task_mmu.c
++++ b/fs/proc/task_mmu.c
+@@ -906,13 +906,13 @@ static inline void clear_soft_dirty(struct vm_area_struct *vma,
+ static inline void clear_soft_dirty_pmd(struct vm_area_struct *vma,
+ 		unsigned long addr, pmd_t *pmdp)
  {
-+	const size_t reserved_size =
-+		sizeof(user->sigframe->uc.uc_mcontext.__reserved);
-+
- 	memset(user, 0, sizeof(*user));
- 	user->size = offsetof(struct rt_sigframe, uc.uc_mcontext.__reserved);
+-	pmd_t pmd = *pmdp;
++	pmd_t old, pmd = *pmdp;
  
--	user->limit = user->size +
--		sizeof(user->sigframe->uc.uc_mcontext.__reserved) -
--		round_up(sizeof(struct _aarch64_ctx), 16);
--		/* ^ reserve space for terminator */
-+	user->limit = user->size + reserved_size;
-+
-+	user->limit -= TERMINATOR_SIZE;
-+	user->limit -= EXTRA_CONTEXT_SIZE;
-+	/* Reserve space for extension and terminator ^ */
- }
+ 	/* See comment in change_huge_pmd() */
+-	pmdp_invalidate(vma, addr, pmdp);
+-	if (pmd_dirty(*pmdp))
++	old = pmdp_invalidate(vma, addr, pmdp);
++	if (pmd_dirty(old))
+ 		pmd = pmd_mkdirty(pmd);
+-	if (pmd_young(*pmdp))
++	if (pmd_young(old))
+ 		pmd = pmd_mkyoung(pmd);
  
- static size_t sigframe_size(struct rt_sigframe_user_layout const *user)
-@@ -80,6 +90,52 @@ static size_t sigframe_size(struct rt_sigframe_user_layout const *user)
- }
- 
- /*
-+ * Sanity limit on the approximate maximum size of signal frame we'll
-+ * try to generate.  Stack alignment padding and the frame record are
-+ * not taken into account.  This limit is not a guarantee and is
-+ * NOT ABI.
-+ */
-+#define SIGFRAME_MAXSZ SZ_64K
-+
-+static int __sigframe_alloc(struct rt_sigframe_user_layout *user,
-+			    unsigned long *offset, size_t size, bool extend)
-+{
-+	size_t padded_size = round_up(size, 16);
-+
-+	if (padded_size > user->limit - user->size &&
-+	    !user->extra_offset &&
-+	    extend) {
-+		int ret;
-+
-+		user->limit += EXTRA_CONTEXT_SIZE;
-+		ret = __sigframe_alloc(user, &user->extra_offset,
-+				       sizeof(struct extra_context), false);
-+		if (ret) {
-+			user->limit -= EXTRA_CONTEXT_SIZE;
-+			return ret;
-+		}
-+
-+		/* Reserve space for the __reserved[] terminator */
-+		user->size += TERMINATOR_SIZE;
-+
-+		/*
-+		 * Allow expansion up to SIGFRAME_MAXSZ, ensuring space for
-+		 * the terminator:
-+		 */
-+		user->limit = SIGFRAME_MAXSZ - TERMINATOR_SIZE;
-+	}
-+
-+	/* Still not enough space?  Bad luck! */
-+	if (padded_size > user->limit - user->size)
-+		return -ENOMEM;
-+
-+	*offset = user->size;
-+	user->size += padded_size;
-+
-+	return 0;
-+}
-+
-+/*
-  * Allocate space for an optional record of <size> bytes in the user
-  * signal frame.  The offset from the signal frame base address to the
-  * allocated block is assigned to *offset.
-@@ -87,11 +143,24 @@ static size_t sigframe_size(struct rt_sigframe_user_layout const *user)
- static int sigframe_alloc(struct rt_sigframe_user_layout *user,
- 			  unsigned long *offset, size_t size)
- {
--	size_t padded_size = round_up(size, 16);
-+	return __sigframe_alloc(user, offset, size, true);
-+}
- 
--	*offset = user->size;
--	user->size += padded_size;
-+/* Allocate the null terminator record and prevent further allocations */
-+static int sigframe_alloc_end(struct rt_sigframe_user_layout *user)
-+{
-+	int ret;
-+
-+	/* Un-reserve the space reserved for the terminator: */
-+	user->limit += TERMINATOR_SIZE;
-+
-+	ret = sigframe_alloc(user, &user->end_offset,
-+			     sizeof(struct _aarch64_ctx));
-+	if (ret)
-+		return ret;
- 
-+	/* Prevent further allocation: */
-+	user->limit = user->size;
- 	return 0;
- }
- 
-@@ -162,6 +231,8 @@ static int parse_user_sigframe(struct user_ctxs *user,
- 	char __user *base = (char __user *)&sc->__reserved;
- 	size_t offset = 0;
- 	size_t limit = sizeof(sc->__reserved);
-+	bool have_extra_context = false;
-+	char const __user *const sfp = (char const __user *)sf;
- 
- 	user->fpsimd = NULL;
- 
-@@ -171,6 +242,12 @@ static int parse_user_sigframe(struct user_ctxs *user,
- 	while (1) {
- 		int err = 0;
- 		u32 magic, size;
-+		char const __user *userp;
-+		struct extra_context const __user *extra;
-+		void __user *extra_data;
-+		u32 extra_size;
-+		struct _aarch64_ctx const __user *end;
-+		u32 end_magic, end_size;
- 
- 		if (limit - offset < sizeof(*head))
- 			goto invalid;
-@@ -208,6 +285,64 @@ static int parse_user_sigframe(struct user_ctxs *user,
- 			/* ignore */
- 			break;
- 
-+		case EXTRA_MAGIC:
-+			if (have_extra_context)
-+				goto invalid;
-+
-+			if (size < sizeof(*extra))
-+				goto invalid;
-+
-+			userp = (char const __user *)head;
-+
-+			extra = (struct extra_context const __user *)userp;
-+			userp += size;
-+
-+			__get_user_error(extra_data, &extra->data, err);
-+			__get_user_error(extra_size, &extra->size, err);
-+			if (err)
-+				return err;
-+
-+			/* Check for the dummy terminator in __reserved[]: */
-+
-+			if (limit - offset - size < TERMINATOR_SIZE)
-+				goto invalid;
-+
-+			end = (struct _aarch64_ctx const __user *)userp;
-+			userp += TERMINATOR_SIZE;
-+
-+			__get_user_error(end_magic, &end->magic, err);
-+			__get_user_error(end_size, &end->size, err);
-+			if (err)
-+				return err;
-+
-+			if (end_magic || end_size)
-+				goto invalid;
-+
-+			/* Prevent looping/repeated parsing of extra_context */
-+			have_extra_context = true;
-+
-+			base = extra_data;
-+			if (!IS_ALIGNED((unsigned long)base, 16))
-+				goto invalid;
-+
-+			if (!IS_ALIGNED(extra_size, 16))
-+				goto invalid;
-+
-+			if (extra_data != userp)
-+				goto invalid;
-+
-+			/* Reject "unreasonably large" frames: */
-+			if (extra_size > sfp + SIGFRAME_MAXSZ - userp)
-+				goto invalid;
-+
-+			/*
-+			 * Ignore trailing terminator in __reserved[]
-+			 * and start parsing extra_data:
-+			 */
-+			offset = 0;
-+			limit = extra_size;
-+			continue;
-+
- 		default:
- 			goto invalid;
- 		}
-@@ -318,17 +453,7 @@ static int setup_sigframe_layout(struct rt_sigframe_user_layout *user)
- 			return err;
- 	}
- 
--	/*
--	 * Allocate space for the terminator record.
--	 * HACK: here we undo the reservation of space for the end record.
--	 * This bodge should be replaced with a cleaner approach later on.
--	 */
--	user->limit = offsetof(struct rt_sigframe, uc.uc_mcontext.__reserved) +
--		sizeof(user->sigframe->uc.uc_mcontext.__reserved);
+ 	pmd = pmd_wrprotect(pmd);
+diff --git a/mm/huge_memory.c b/mm/huge_memory.c
+index a84909cf20d3..0433e73531bf 100644
+--- a/mm/huge_memory.c
++++ b/mm/huge_memory.c
+@@ -1777,17 +1777,7 @@ int change_huge_pmd(struct vm_area_struct *vma, pmd_t *pmd,
+ 	 * pmdp_invalidate() is required to make sure we don't miss
+ 	 * dirty/young flags set by hardware.
+ 	 */
+-	entry = *pmd;
+-	pmdp_invalidate(vma, addr, pmd);
 -
--	err = sigframe_alloc(user, &user->end_offset,
--			     sizeof(struct _aarch64_ctx));
--	return err;
-+	return sigframe_alloc_end(user);
- }
+-	/*
+-	 * Recover dirty/young flags.  It relies on pmdp_invalidate to not
+-	 * corrupt them.
+-	 */
+-	if (pmd_dirty(*pmd))
+-		entry = pmd_mkdirty(entry);
+-	if (pmd_young(*pmd))
+-		entry = pmd_mkyoung(entry);
++	entry = pmdp_invalidate(vma, addr, pmd);
  
+ 	entry = pmd_modify(entry, newprot);
+ 	if (preserve_write)
+@@ -1927,8 +1917,8 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
+ 	struct mm_struct *mm = vma->vm_mm;
+ 	struct page *page;
+ 	pgtable_t pgtable;
+-	pmd_t _pmd;
+-	bool young, write, dirty, soft_dirty;
++	pmd_t old, _pmd;
++	bool young, write, soft_dirty;
+ 	unsigned long addr;
+ 	int i;
  
-@@ -369,6 +494,35 @@ static int setup_sigframe(struct rt_sigframe_user_layout *user,
- 		__put_user_error(current->thread.fault_code, &esr_ctx->esr, err);
- 	}
+@@ -1965,7 +1955,6 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
+ 	page_ref_add(page, HPAGE_PMD_NR - 1);
+ 	write = pmd_write(*pmd);
+ 	young = pmd_young(*pmd);
+-	dirty = pmd_dirty(*pmd);
+ 	soft_dirty = pmd_soft_dirty(*pmd);
  
-+	if (err == 0 && user->extra_offset) {
-+		char __user *sfp = (char __user *)user->sigframe;
-+		char __user *userp =
-+			apply_user_offset(user, user->extra_offset);
+ 	pmdp_huge_split_prepare(vma, haddr, pmd);
+@@ -1995,8 +1984,6 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
+ 			if (soft_dirty)
+ 				entry = pte_mksoft_dirty(entry);
+ 		}
+-		if (dirty)
+-			SetPageDirty(page + i);
+ 		pte = pte_offset_map(&_pmd, addr);
+ 		BUG_ON(!pte_none(*pte));
+ 		set_pte_at(mm, addr, pte, entry);
+@@ -2045,7 +2032,15 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
+ 	 * and finally we write the non-huge version of the pmd entry with
+ 	 * pmd_populate.
+ 	 */
+-	pmdp_invalidate(vma, haddr, pmd);
++	old = pmdp_invalidate(vma, haddr, pmd);
 +
-+		struct extra_context __user *extra;
-+		struct _aarch64_ctx __user *end;
-+		void __user *extra_data;
-+		u32 extra_size;
++	/*
++	 * Transfer dirty bit using value returned by pmd_invalidate() to be
++	 * sure we don't race with CPU that can set the bit under us.
++	 */
++	if (pmd_dirty(old))
++		SetPageDirty(page);
 +
-+		extra = (struct extra_context __user *)userp;
-+		userp += EXTRA_CONTEXT_SIZE;
-+
-+		end = (struct _aarch64_ctx __user *)userp;
-+		userp += TERMINATOR_SIZE;
-+
-+		extra_data = userp;
-+		extra_size = sfp + round_up(user->size, 16) - userp;
-+
-+		__put_user_error(EXTRA_MAGIC, &extra->head.magic, err);
-+		__put_user_error(EXTRA_CONTEXT_SIZE, &extra->head.size, err);
-+		__put_user_error(extra_data, &extra->data, err);
-+		__put_user_error(extra_size, &extra->size, err);
-+
-+		/* Add the terminator */
-+		__put_user_error(0, &end->magic, err);
-+		__put_user_error(0, &end->size, err);
-+	}
-+
- 	/* set the "end" magic */
- 	if (err == 0) {
- 		struct _aarch64_ctx __user *end =
+ 	pmd_populate(mm, pmd, pgtable);
+ 
+ 	if (freeze) {
 -- 
-2.1.4
+2.11.0
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
