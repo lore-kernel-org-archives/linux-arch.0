@@ -1,35 +1,106 @@
-From: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
-Subject: Re: [HELP-NEEDED, PATCH 0/3] Do not loose dirty bit on THP pages
-Date: Thu, 15 Jun 2017 08:20:32 +0530
-Message-ID: <95a2756a-dd56-e042-95ed-90f4078e0380@linux.vnet.ibm.com>
-References: <20170614135143.25068-1-kirill.shutemov@linux.intel.com>
- <eed279c6-bf61-f2f3-c9f2-d9a94568e2e3@linux.vnet.ibm.com>
- <20170614165513.GD17632@arm.com>
- <548e33cb-e737-bb39-91a3-f66ee9211262@linux.vnet.ibm.com>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH 3/4] watchdog: Split up config options
+Date: Thu, 15 Jun 2017 13:04:01 +1000
+Message-ID: <20170615130401.033a39dd@roar.ozlabs.ibm.com>
+References: <20170530012659.16791-1-npiggin@gmail.com>
+        <20170530012659.16791-4-npiggin@gmail.com>
+        <20170602201500.urllmug33bjtuzen@redhat.com>
+        <20170603161005.279fe0ef@roar.ozlabs.ibm.com>
+        <20170606164958.lkwy7t7xzdpxg4mp@redhat.com>
+        <20170607135026.1a6129a8@roar.ozlabs.ibm.com>
+        <20170608160502.uzp7vmr7s4fj6hjm@redhat.com>
+        <20170612180739.1aa4b123@roar.ozlabs.ibm.com>
+        <20170612204156.ov7ka2765t4gdakl@redhat.com>
+        <20170614021118.4bbfd00f@roar.ozlabs.ibm.com>
+        <20170614140937.qrkajknqxldwdkv2@redhat.com>
+        <fc41c166-7db1-79d2-da01-cbcb412952c9@oracle.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <548e33cb-e737-bb39-91a3-f66ee9211262@linux.vnet.ibm.com>
-Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: Will Deacon <will.deacon@arm.com>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Ralf Baechle <ralf@linux-mips.org>, "David S. Miller" <davem@davemloft.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Andrea Arcangeli <aarcange@redhat.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, mark.rutland@arm.com
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pg0-f65.google.com ([74.125.83.65]:34466 "EHLO
+        mail-pg0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752052AbdFODEP (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Jun 2017 23:04:15 -0400
+In-Reply-To: <fc41c166-7db1-79d2-da01-cbcb412952c9@oracle.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Babu Moger <babu.moger@oracle.com>
+Cc: Don Zickus <dzickus@redhat.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
+On Wed, 14 Jun 2017 21:16:04 -0500
+Babu Moger <babu.moger@oracle.com> wrote:
 
-
-On Thursday 15 June 2017 06:35 AM, Aneesh Kumar K.V wrote:
+> Hi Don,
 > 
-
-> W.r.t pmdp_invalidate() usage, I was wondering whether we can do that 
-> early in __split_huge_pmd_locked().
+> On 6/14/2017 9:09 AM, Don Zickus wrote:
+> > On Wed, Jun 14, 2017 at 02:11:18AM +1000, Nicholas Piggin wrote:  
+> >>> Yeah, if you wouldn't mind.  Sorry for dragging this out, but I feel like we
+> >>> are getting close to have this defined properly which would allow us to
+> >>> split the code up correctly in the future.  
+> >> How's this for a replacement patch 3? I think the Kconfig works out much
+> >> better now.  
+> > Hi Nick,
+> >
+> > I think you made this much clearer, thank you!  I am good with this.
+> >
+> >
+> > Hi Babu,
+> >
+> > Can you give this patchset (and particularly this version of patch 3) a try
+> > on sparc to make sure we didn't break anything?  I believe this should
+> > resolve the start nmi watchdog on boot issue you noticed.  Thanks!  
 > 
+> There is still one problem with the patch.
+> 
+> # cat /proc/sys/kernel/watchdog
+> 1
+> # cat /proc/sys/kernel/nmi_watchdog
+> 0
+> 
+> Problem is setting the initial value for  "nmi_watchdog"
+> 
+> We need something(or similar) patch on top to address this.
+> ============================================
+> diff --git a/kernel/watchdog.c b/kernel/watchdog.c
+> index 5397c63..0105856 100644
+> --- a/kernel/watchdog.c
+> +++ b/kernel/watchdog.c
+> @@ -34,9 +34,13 @@
+> 
+>   int __read_mostly nmi_watchdog_enabled;
+> 
+> -#ifdef CONFIG_HARDLOCKUP_DETECTOR
+> +#if defined(CONFIG_HARDLOCKUP_DETECTOR) || 
+> defined(CONFIG_HAVE_NMI_WATCHDOG)
+>   unsigned long __read_mostly watchdog_enabled = 
+> SOFT_WATCHDOG_ENABLED|NMI_WATCHDOG_ENABLED;
+> +#else
+> +unsigned long __read_mostly watchdog_enabled = SOFT_WATCHDOG_ENABLED;
+> +#endif
+> 
+> +#ifdef CONFIG_HARDLOCKUP_DETECTOR
+>   /* boot commands */
+>   /*
+>    * Should we panic when a soft-lockup or hard-lockup occurs:
+> @@ -69,9 +73,6 @@ static int __init hardlockup_panic_setup(char *str)
+>          return 1;
+>   }
+>   __setup("nmi_watchdog=", hardlockup_panic_setup);
+> -
+> -#else
+> -unsigned long __read_mostly watchdog_enabled = SOFT_WATCHDOG_ENABLED;
+>   #endif
+> 
+>   #ifdef CONFIG_SOFTLOCKUP_DETECTOR
 
+Hmm, I guess I missed this because sparc parses nmi_watchdog=, but it
+also relies on the watchdog_enabled value.
 
-BTW by moving  pmdp_invalidate early, we can then get rid of
+I guess I can fold your incremental patch in. I hope we could get
+sparc quickly to adopt the complate HAVE_HARDLOCKUP_DETECTOR_ARCH soon
+afterwards though, so we only have 2 cases -- complete hardlockup
+detector, or the very bare minimum NMI_WATCHDOG.
 
-	pmdp_huge_split_prepare(vma, haddr, pmd);
-
-
--aneesh
+Thanks,
+Nick
