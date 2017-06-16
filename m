@@ -1,13 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn3nam01on0089.outbound.protection.outlook.com ([104.47.33.89]:50208
-        "EHLO NAM01-BN3-obe.outbound.protection.outlook.com"
+Received: from mail-bl2nam02on0074.outbound.protection.outlook.com ([104.47.38.74]:46338
+        "EHLO NAM02-BL2-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751815AbdFPSuH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 16 Jun 2017 14:50:07 -0400
+        id S1752087AbdFPSwS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 16 Jun 2017 14:52:18 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v7 01/36] x86: Document AMD Secure Memory Encryption (SME)
-Date: Fri, 16 Jun 2017 13:49:58 -0500
-Message-ID: <20170616184958.18967.93012.stgit@tlendack-t1.amdoffice.net>
+Subject: [PATCH v7 12/36] x86/mm: Extend early_memremap() support with
+ additional attrs
+Date: Fri, 16 Jun 2017 13:52:08 -0500
+Message-ID: <20170616185208.18967.72141.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20170616184947.18967.84890.stgit@tlendack-t1.amdoffice.net>
 References: <20170616184947.18967.84890.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -17,113 +18,184 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>
-Message-ID: <20170616184958.tCA3Qq4xUxwiqDD7UtRSy63QUZm1Z2WHXG-RVHaG8KM@z>
+Message-ID: <20170616185208.riF7rlbYqpxGl9G846IoJEsTKyH17RBJOetWDR_8LSo@z>
 
-Create a Documentation entry to describe the AMD Secure Memory
-Encryption (SME) feature and add documentation for the mem_encrypt=
-kernel parameter.
+Add early_memremap() support to be able to specify encrypted and
+decrypted mappings with and without write-protection. The use of
+write-protection is necessary when encrypting data "in place". The
+write-protect attribute is considered cacheable for loads, but not
+stores. This implies that the hardware will never give the core a
+dirty line with this memtype.
 
 Reviewed-by: Borislav Petkov <bp@suse.de>
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- Documentation/admin-guide/kernel-parameters.txt |   11 ++++
- Documentation/x86/amd-memory-encryption.txt     |   68 +++++++++++++++++++++++
- 2 files changed, 79 insertions(+)
- create mode 100644 Documentation/x86/amd-memory-encryption.txt
+ arch/x86/Kconfig                     |    4 +++
+ arch/x86/include/asm/fixmap.h        |   13 ++++++++++
+ arch/x86/include/asm/pgtable_types.h |    8 ++++++
+ arch/x86/mm/ioremap.c                |   44 ++++++++++++++++++++++++++++++++++
+ include/asm-generic/early_ioremap.h  |    2 ++
+ mm/early_ioremap.c                   |   10 ++++++++
+ 6 files changed, 81 insertions(+)
 
-diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
-index ee5c65a..9edc0b7 100644
---- a/Documentation/admin-guide/kernel-parameters.txt
-+++ b/Documentation/admin-guide/kernel-parameters.txt
-@@ -2197,6 +2197,17 @@
- 			memory contents and reserves bad memory
- 			regions that are detected.
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index cf74791..0b09b88 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -1433,6 +1433,10 @@ config AMD_MEM_ENCRYPT_ACTIVE_BY_DEFAULT
+ 	  If set to N, then the encryption of system memory can be
+ 	  activated with the mem_encrypt=on command line option.
  
-+	mem_encrypt=	[X86-64] AMD Secure Memory Encryption (SME) control
-+			Valid arguments: on, off
-+			Default (depends on kernel configuration option):
-+			  on  (CONFIG_AMD_MEM_ENCRYPT_ACTIVE_BY_DEFAULT=y)
-+			  off (CONFIG_AMD_MEM_ENCRYPT_ACTIVE_BY_DEFAULT=n)
-+			mem_encrypt=on:		Activate SME
-+			mem_encrypt=off:	Do not activate SME
++config ARCH_USE_MEMREMAP_PROT
++	def_bool y
++	depends on AMD_MEM_ENCRYPT
 +
-+			Refer to Documentation/x86/amd-memory-encryption.txt
-+			for details on when memory encryption can be activated.
+ # Common NUMA Features
+ config NUMA
+ 	bool "Numa Memory Allocation and Scheduler Support"
+diff --git a/arch/x86/include/asm/fixmap.h b/arch/x86/include/asm/fixmap.h
+index d9ff226..dcd9fb5 100644
+--- a/arch/x86/include/asm/fixmap.h
++++ b/arch/x86/include/asm/fixmap.h
+@@ -164,6 +164,19 @@ static inline void __set_fixmap(enum fixed_addresses idx,
+  */
+ #define FIXMAP_PAGE_NOCACHE PAGE_KERNEL_IO_NOCACHE
+ 
++/*
++ * Early memremap routines used for in-place encryption. The mappings created
++ * by these routines are intended to be used as temporary mappings.
++ */
++void __init *early_memremap_encrypted(resource_size_t phys_addr,
++				      unsigned long size);
++void __init *early_memremap_encrypted_wp(resource_size_t phys_addr,
++					 unsigned long size);
++void __init *early_memremap_decrypted(resource_size_t phys_addr,
++				      unsigned long size);
++void __init *early_memremap_decrypted_wp(resource_size_t phys_addr,
++					 unsigned long size);
 +
- 	mem_sleep_default=	[SUSPEND] Default system suspend mode:
- 			s2idle  - Suspend-To-Idle
- 			shallow - Power-On Suspend or equivalent (if supported)
-diff --git a/Documentation/x86/amd-memory-encryption.txt b/Documentation/x86/amd-memory-encryption.txt
-new file mode 100644
-index 0000000..f512ab7
---- /dev/null
-+++ b/Documentation/x86/amd-memory-encryption.txt
-@@ -0,0 +1,68 @@
-+Secure Memory Encryption (SME) is a feature found on AMD processors.
+ #include <asm-generic/fixmap.h>
+ 
+ #define __late_set_fixmap(idx, phys, flags) __set_fixmap(idx, phys, flags)
+diff --git a/arch/x86/include/asm/pgtable_types.h b/arch/x86/include/asm/pgtable_types.h
+index de32ca3..32095af 100644
+--- a/arch/x86/include/asm/pgtable_types.h
++++ b/arch/x86/include/asm/pgtable_types.h
+@@ -161,6 +161,7 @@ enum page_cache_mode {
+ 
+ #define _PAGE_CACHE_MASK	(_PAGE_PAT | _PAGE_PCD | _PAGE_PWT)
+ #define _PAGE_NOCACHE		(cachemode2protval(_PAGE_CACHE_MODE_UC))
++#define _PAGE_CACHE_WP		(cachemode2protval(_PAGE_CACHE_MODE_WP))
+ 
+ #define PAGE_NONE	__pgprot(_PAGE_PROTNONE | _PAGE_ACCESSED)
+ #define PAGE_SHARED	__pgprot(_PAGE_PRESENT | _PAGE_RW | _PAGE_USER | \
+@@ -189,6 +190,7 @@ enum page_cache_mode {
+ #define __PAGE_KERNEL_VVAR		(__PAGE_KERNEL_RO | _PAGE_USER)
+ #define __PAGE_KERNEL_LARGE		(__PAGE_KERNEL | _PAGE_PSE)
+ #define __PAGE_KERNEL_LARGE_EXEC	(__PAGE_KERNEL_EXEC | _PAGE_PSE)
++#define __PAGE_KERNEL_WP		(__PAGE_KERNEL | _PAGE_CACHE_WP)
+ 
+ #define __PAGE_KERNEL_IO		(__PAGE_KERNEL)
+ #define __PAGE_KERNEL_IO_NOCACHE	(__PAGE_KERNEL_NOCACHE)
+@@ -202,6 +204,12 @@ enum page_cache_mode {
+ #define _KERNPG_TABLE	(_PAGE_PRESENT | _PAGE_RW | _PAGE_ACCESSED |	\
+ 			 _PAGE_DIRTY | _PAGE_ENC)
+ 
++#define __PAGE_KERNEL_ENC	(__PAGE_KERNEL | _PAGE_ENC)
++#define __PAGE_KERNEL_ENC_WP	(__PAGE_KERNEL_WP | _PAGE_ENC)
 +
-+SME provides the ability to mark individual pages of memory as encrypted using
-+the standard x86 page tables.  A page that is marked encrypted will be
-+automatically decrypted when read from DRAM and encrypted when written to
-+DRAM.  SME can therefore be used to protect the contents of DRAM from physical
-+attacks on the system.
++#define __PAGE_KERNEL_NOENC	(__PAGE_KERNEL)
++#define __PAGE_KERNEL_NOENC_WP	(__PAGE_KERNEL_WP)
 +
-+A page is encrypted when a page table entry has the encryption bit set (see
-+below on how to determine its position).  The encryption bit can also be
-+specified in the cr3 register, allowing the PGD table to be encrypted. Each
-+successive level of page tables can also be encrypted by setting the encryption
-+bit in the page table entry that points to the next table. This allows the full
-+page table hierarchy to be encrypted. Note, this means that just because the
-+encryption bit is set in cr3, doesn't imply the full hierarchy is encyrpted.
-+Each page table entry in the hierarchy needs to have the encryption bit set to
-+achieve that. So, theoretically, you could have the encryption bit set in cr3
-+so that the PGD is encrypted, but not set the encryption bit in the PGD entry
-+for a PUD which results in the PUD pointed to by that entry to not be
-+encrypted.
+ #define PAGE_KERNEL		__pgprot(__PAGE_KERNEL | _PAGE_ENC)
+ #define PAGE_KERNEL_RO		__pgprot(__PAGE_KERNEL_RO | _PAGE_ENC)
+ #define PAGE_KERNEL_EXEC	__pgprot(__PAGE_KERNEL_EXEC | _PAGE_ENC)
+diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
+index a382ba9..4feda83 100644
+--- a/arch/x86/mm/ioremap.c
++++ b/arch/x86/mm/ioremap.c
+@@ -422,6 +422,50 @@ void unxlate_dev_mem_ptr(phys_addr_t phys, void *addr)
+ 	iounmap((void __iomem *)((unsigned long)addr & PAGE_MASK));
+ }
+ 
++#ifdef CONFIG_ARCH_USE_MEMREMAP_PROT
++/* Remap memory with encryption */
++void __init *early_memremap_encrypted(resource_size_t phys_addr,
++				      unsigned long size)
++{
++	return early_memremap_prot(phys_addr, size, __PAGE_KERNEL_ENC);
++}
 +
-+Support for SME can be determined through the CPUID instruction. The CPUID
-+function 0x8000001f reports information related to SME:
++/*
++ * Remap memory with encryption and write-protected - cannot be called
++ * before pat_init() is called
++ */
++void __init *early_memremap_encrypted_wp(resource_size_t phys_addr,
++					 unsigned long size)
++{
++	/* Be sure the write-protect PAT entry is set for write-protect */
++	if (__pte2cachemode_tbl[_PAGE_CACHE_MODE_WP] != _PAGE_CACHE_MODE_WP)
++		return NULL;
 +
-+	0x8000001f[eax]:
-+		Bit[0] indicates support for SME
-+	0x8000001f[ebx]:
-+		Bits[5:0]  pagetable bit number used to activate memory
-+			   encryption
-+		Bits[11:6] reduction in physical address space, in bits, when
-+			   memory encryption is enabled (this only affects
-+			   system physical addresses, not guest physical
-+			   addresses)
++	return early_memremap_prot(phys_addr, size, __PAGE_KERNEL_ENC_WP);
++}
 +
-+If support for SME is present, MSR 0xc00100010 (MSR_K8_SYSCFG) can be used to
-+determine if SME is enabled and/or to enable memory encryption:
++/* Remap memory without encryption */
++void __init *early_memremap_decrypted(resource_size_t phys_addr,
++				      unsigned long size)
++{
++	return early_memremap_prot(phys_addr, size, __PAGE_KERNEL_NOENC);
++}
 +
-+	0xc0010010:
-+		Bit[23]   0 = memory encryption features are disabled
-+			  1 = memory encryption features are enabled
++/*
++ * Remap memory without encryption and write-protected - cannot be called
++ * before pat_init() is called
++ */
++void __init *early_memremap_decrypted_wp(resource_size_t phys_addr,
++					 unsigned long size)
++{
++	/* Be sure the write-protect PAT entry is set for write-protect */
++	if (__pte2cachemode_tbl[_PAGE_CACHE_MODE_WP] != _PAGE_CACHE_MODE_WP)
++		return NULL;
 +
-+Linux relies on BIOS to set this bit if BIOS has determined that the reduction
-+in the physical address space as a result of enabling memory encryption (see
-+CPUID information above) will not conflict with the address space resource
-+requirements for the system.  If this bit is not set upon Linux startup then
-+Linux itself will not set it and memory encryption will not be possible.
++	return early_memremap_prot(phys_addr, size, __PAGE_KERNEL_NOENC_WP);
++}
++#endif	/* CONFIG_ARCH_USE_MEMREMAP_PROT */
 +
-+The state of SME in the Linux kernel can be documented as follows:
-+	- Supported:
-+	  The CPU supports SME (determined through CPUID instruction).
+ static pte_t bm_pte[PAGE_SIZE/sizeof(pte_t)] __page_aligned_bss;
+ 
+ static inline pmd_t * __init early_ioremap_pmd(unsigned long addr)
+diff --git a/include/asm-generic/early_ioremap.h b/include/asm-generic/early_ioremap.h
+index 734ad4d..2edef8d 100644
+--- a/include/asm-generic/early_ioremap.h
++++ b/include/asm-generic/early_ioremap.h
+@@ -13,6 +13,8 @@ extern void *early_memremap(resource_size_t phys_addr,
+ 			    unsigned long size);
+ extern void *early_memremap_ro(resource_size_t phys_addr,
+ 			       unsigned long size);
++extern void *early_memremap_prot(resource_size_t phys_addr,
++				 unsigned long size, unsigned long prot_val);
+ extern void early_iounmap(void __iomem *addr, unsigned long size);
+ extern void early_memunmap(void *addr, unsigned long size);
+ 
+diff --git a/mm/early_ioremap.c b/mm/early_ioremap.c
+index 6d5717b..d7d30da 100644
+--- a/mm/early_ioremap.c
++++ b/mm/early_ioremap.c
+@@ -226,6 +226,16 @@ void __init early_iounmap(void __iomem *addr, unsigned long size)
+ }
+ #endif
+ 
++#ifdef CONFIG_ARCH_USE_MEMREMAP_PROT
++void __init *
++early_memremap_prot(resource_size_t phys_addr, unsigned long size,
++		    unsigned long prot_val)
++{
++	return (__force void *)__early_ioremap(phys_addr, size,
++					       __pgprot(prot_val));
++}
++#endif
 +
-+	- Enabled:
-+	  Supported and bit 23 of MSR_K8_SYSCFG is set.
-+
-+	- Active:
-+	  Supported, Enabled and the Linux kernel is actively applying
-+	  the encryption bit to page table entries (the SME mask in the
-+	  kernel is non-zero).
-+
-+SME can also be enabled and activated in the BIOS. If SME is enabled and
-+activated in the BIOS, then all memory accesses will be encrypted and it will
-+not be necessary to activate the Linux memory encryption support.  If the BIOS
-+merely enables SME (sets bit 23 of the MSR_K8_SYSCFG), then Linux can activate
-+memory encryption by default (CONFIG_AMD_MEM_ENCRYPT_ACTIVE_BY_DEFAULT=y) or
-+by supplying mem_encrypt=on on the kernel command line.  However, if BIOS does
-+not enable SME, then Linux will not be able to activate memory encryption, even
-+if configured to do so by default or the mem_encrypt=on command line parameter
-+is specified.
+ #define MAX_MAP_CHUNK	(NR_FIX_BTMAPS << PAGE_SHIFT)
+ 
+ void __init copy_from_early_mem(void *dest, phys_addr_t src, unsigned long size)
