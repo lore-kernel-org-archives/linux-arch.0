@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-cys01nam02on0080.outbound.protection.outlook.com ([104.47.37.80]:54439
-        "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
+Received: from mail-dm3nam03on0053.outbound.protection.outlook.com ([104.47.41.53]:43616
+        "EHLO NAM03-DM3-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752271AbdFPSu7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 16 Jun 2017 14:50:59 -0400
+        id S1751922AbdFPSw6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 16 Jun 2017 14:52:58 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v7 05/36] x86/CPU/AMD: Handle SME reduction in physical
- address size
-Date: Fri, 16 Jun 2017 13:50:45 -0500
-Message-ID: <20170616185045.18967.79495.stgit@tlendack-t1.amdoffice.net>
+Subject: [PATCH v7 15/36] x86/boot/e820: Add support to determine the E820
+ type of an address
+Date: Fri, 16 Jun 2017 13:52:43 -0500
+Message-ID: <20170616185243.18967.44475.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20170616184947.18967.84890.stgit@tlendack-t1.amdoffice.net>
 References: <20170616184947.18967.84890.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -18,42 +18,73 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>
-Message-ID: <20170616185045.1guoJnKP85icOuaNDznKKM-pF-zGeQo6GD4Ccvv9_yA@z>
+Message-ID: <20170616185243.qK4xBCPMK3oat4Wtg4MnbCQ97IA7a5WMX9wfNcMB0BU@z>
 
-When System Memory Encryption (SME) is enabled, the physical address
-space is reduced. Adjust the x86_phys_bits value to reflect this
-reduction.
+Add a function that will return the E820 type associated with an address
+range.
 
 Reviewed-by: Borislav Petkov <bp@suse.de>
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/kernel/cpu/amd.c |   10 +++++++---
- 1 file changed, 7 insertions(+), 3 deletions(-)
+ arch/x86/include/asm/e820/api.h |    2 ++
+ arch/x86/kernel/e820.c          |   26 +++++++++++++++++++++++---
+ 2 files changed, 25 insertions(+), 3 deletions(-)
 
-diff --git a/arch/x86/kernel/cpu/amd.c b/arch/x86/kernel/cpu/amd.c
-index c47ceee..5bdcbd4 100644
---- a/arch/x86/kernel/cpu/amd.c
-+++ b/arch/x86/kernel/cpu/amd.c
-@@ -613,15 +613,19 @@ static void early_init_amd(struct cpuinfo_x86 *c)
- 		set_cpu_bug(c, X86_BUG_AMD_E400);
+diff --git a/arch/x86/include/asm/e820/api.h b/arch/x86/include/asm/e820/api.h
+index 8e0f8b8..3641f5f 100644
+--- a/arch/x86/include/asm/e820/api.h
++++ b/arch/x86/include/asm/e820/api.h
+@@ -38,6 +38,8 @@
+ extern void e820__reallocate_tables(void);
+ extern void e820__register_nosave_regions(unsigned long limit_pfn);
  
- 	/*
--	 * BIOS support is required for SME. If BIOS has not enabled SME
--	 * then don't advertise the feature (set in scattered.c)
-+	 * BIOS support is required for SME. If BIOS has enabld SME then
-+	 * adjust x86_phys_bits by the SME physical address space reduction
-+	 * value. If BIOS has not enabled SME then don't advertise the
-+	 * feature (set in scattered.c).
- 	 */
- 	if (cpu_has(c, X86_FEATURE_SME)) {
- 		u64 msr;
++extern int  e820__get_entry_type(u64 start, u64 end);
++
+ /*
+  * Returns true iff the specified range [start,end) is completely contained inside
+  * the ISA region.
+diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
+index d78a586..46c9b65 100644
+--- a/arch/x86/kernel/e820.c
++++ b/arch/x86/kernel/e820.c
+@@ -84,7 +84,8 @@ bool e820__mapped_any(u64 start, u64 end, enum e820_type type)
+  * Note: this function only works correctly once the E820 table is sorted and
+  * not-overlapping (at least for the range specified), which is the case normally.
+  */
+-bool __init e820__mapped_all(u64 start, u64 end, enum e820_type type)
++static struct e820_entry *__e820__mapped_all(u64 start, u64 end,
++					     enum e820_type type)
+ {
+ 	int i;
  
- 		/* Check if SME is enabled */
- 		rdmsrl(MSR_K8_SYSCFG, msr);
--		if (!(msr & MSR_K8_SYSCFG_MEM_ENCRYPT))
-+		if (msr & MSR_K8_SYSCFG_MEM_ENCRYPT)
-+			c->x86_phys_bits -= (cpuid_ebx(0x8000001f) >> 6) & 0x3f;
-+		else
- 			clear_cpu_cap(c, X86_FEATURE_SME);
+@@ -110,9 +111,28 @@ bool __init e820__mapped_all(u64 start, u64 end, enum e820_type type)
+ 		 * coverage of the desired range exists:
+ 		 */
+ 		if (start >= end)
+-			return 1;
++			return entry;
  	}
+-	return 0;
++
++	return NULL;
++}
++
++/*
++ * This function checks if the entire range <start,end> is mapped with type.
++ */
++bool __init e820__mapped_all(u64 start, u64 end, enum e820_type type)
++{
++	return __e820__mapped_all(start, end, type);
++}
++
++/*
++ * This function returns the type associated with the range <start,end>.
++ */
++int e820__get_entry_type(u64 start, u64 end)
++{
++	struct e820_entry *entry = __e820__mapped_all(start, end, 0);
++
++	return entry ? entry->type : -EINVAL;
  }
+ 
+ /*
