@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bl2nam02on0068.outbound.protection.outlook.com ([104.47.38.68]:64864
-        "EHLO NAM02-BL2-obe.outbound.protection.outlook.com"
+Received: from mail-sn1nam02on0068.outbound.protection.outlook.com ([104.47.36.68]:18746
+        "EHLO NAM02-SN1-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752485AbdFPS41 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 16 Jun 2017 14:56:27 -0400
+        id S1752657AbdFPSzt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 16 Jun 2017 14:55:49 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v7 33/36] x86/mm: Use proper encryption attributes with
- /dev/mem
-Date: Fri, 16 Jun 2017 13:56:07 -0500
-Message-ID: <20170616185607.18967.51412.stgit@tlendack-t1.amdoffice.net>
+Subject: [PATCH v7 30/36] kvm: x86: svm: Support Secure Memory Encryption
+ within KVM
+Date: Fri, 16 Jun 2017 13:55:33 -0500
+Message-ID: <20170616185532.18967.63164.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20170616184947.18967.84890.stgit@tlendack-t1.amdoffice.net>
 References: <20170616184947.18967.84890.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -18,96 +18,271 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>
-Message-ID: <20170616185607.x6edjyFrOpeI0TCBMQHjIHF7FAj1UcrA0TueP6e2szU@z>
+Message-ID: <20170616185533.59dG8Tiv4lO-uAcbbO5CAE8JiTwtnxtIAFCcbkOCOxI@z>
 
-When accessing memory using /dev/mem (or /dev/kmem) use the proper
-encryption attributes when mapping the memory.
+Update the KVM support to work with SME. The VMCB has a number of fields
+where physical addresses are used and these addresses must contain the
+memory encryption mask in order to properly access the encrypted memory.
+Also, use the memory encryption mask when creating and using the nested
+page tables.
 
-To insure the proper attributes are applied when reading or writing
-/dev/mem, update the xlate_dev_mem_ptr() function to use memremap()
-which will essentially perform the same steps of applying __va for
-RAM or using ioremap() for if not RAM.
-
-To insure the proper attributes are applied when mmapping /dev/mem,
-update the phys_mem_access_prot() to call phys_mem_access_encrypted(),
-a new function which will check if the memory should be mapped encrypted
-or not. If it is not to be mapped encrypted then the VMA protection
-value is updated to remove the encryption bit.
-
+Reviewed-by: Borislav Petkov <bp@suse.de>
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/include/asm/io.h |    3 +++
- arch/x86/mm/ioremap.c     |   18 +++++++++---------
- arch/x86/mm/pat.c         |    3 +++
- 3 files changed, 15 insertions(+), 9 deletions(-)
+ arch/x86/include/asm/kvm_host.h |    2 +-
+ arch/x86/kvm/mmu.c              |   12 ++++++++----
+ arch/x86/kvm/mmu.h              |    2 +-
+ arch/x86/kvm/svm.c              |   35 ++++++++++++++++++-----------------
+ arch/x86/kvm/vmx.c              |    3 ++-
+ arch/x86/kvm/x86.c              |    3 ++-
+ 6 files changed, 32 insertions(+), 25 deletions(-)
 
-diff --git a/arch/x86/include/asm/io.h b/arch/x86/include/asm/io.h
-index 09c5557..e080a39 100644
---- a/arch/x86/include/asm/io.h
-+++ b/arch/x86/include/asm/io.h
-@@ -386,4 +386,7 @@ extern bool arch_memremap_can_ram_remap(resource_size_t offset,
- 					unsigned long flags);
- #define arch_memremap_can_ram_remap arch_memremap_can_ram_remap
+diff --git a/arch/x86/include/asm/kvm_host.h b/arch/x86/include/asm/kvm_host.h
+index 695605e..6d1267f 100644
+--- a/arch/x86/include/asm/kvm_host.h
++++ b/arch/x86/include/asm/kvm_host.h
+@@ -1069,7 +1069,7 @@ struct kvm_arch_async_pf {
+ void kvm_mmu_uninit_vm(struct kvm *kvm);
+ void kvm_mmu_set_mask_ptes(u64 user_mask, u64 accessed_mask,
+ 		u64 dirty_mask, u64 nx_mask, u64 x_mask, u64 p_mask,
+-		u64 acc_track_mask);
++		u64 acc_track_mask, u64 me_mask);
  
-+extern bool phys_mem_access_encrypted(unsigned long phys_addr,
-+				      unsigned long size);
-+
- #endif /* _ASM_X86_IO_H */
-diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
-index 0254b78..5d8b3cf 100644
---- a/arch/x86/mm/ioremap.c
-+++ b/arch/x86/mm/ioremap.c
-@@ -404,12 +404,10 @@ void *xlate_dev_mem_ptr(phys_addr_t phys)
- 	unsigned long offset = phys & ~PAGE_MASK;
- 	void *vaddr;
+ void kvm_mmu_reset_context(struct kvm_vcpu *vcpu);
+ void kvm_mmu_slot_remove_write_access(struct kvm *kvm,
+diff --git a/arch/x86/kvm/mmu.c b/arch/x86/kvm/mmu.c
+index cb82259..e85888c 100644
+--- a/arch/x86/kvm/mmu.c
++++ b/arch/x86/kvm/mmu.c
+@@ -107,7 +107,7 @@ enum {
+ 	(((address) >> PT32_LEVEL_SHIFT(level)) & ((1 << PT32_LEVEL_BITS) - 1))
  
--	/* If page is RAM, we can use __va. Otherwise ioremap and unmap. */
--	if (page_is_ram(start >> PAGE_SHIFT))
--		return __va(phys);
-+	/* memremap() maps if RAM, otherwise falls back to ioremap() */
-+	vaddr = memremap(start, PAGE_SIZE, MEMREMAP_WB);
  
--	vaddr = ioremap_cache(start, PAGE_SIZE);
--	/* Only add the offset on success and return NULL if the ioremap() failed: */
-+	/* Only add the offset on success and return NULL if memremap() failed */
- 	if (vaddr)
- 		vaddr += offset;
+-#define PT64_BASE_ADDR_MASK (((1ULL << 52) - 1) & ~(u64)(PAGE_SIZE-1))
++#define PT64_BASE_ADDR_MASK __sme_clr((((1ULL << 52) - 1) & ~(u64)(PAGE_SIZE-1)))
+ #define PT64_DIR_BASE_ADDR_MASK \
+ 	(PT64_BASE_ADDR_MASK & ~((1ULL << (PAGE_SHIFT + PT64_LEVEL_BITS)) - 1))
+ #define PT64_LVL_ADDR_MASK(level) \
+@@ -125,7 +125,7 @@ enum {
+ 					    * PT32_LEVEL_BITS))) - 1))
  
-@@ -418,10 +416,7 @@ void *xlate_dev_mem_ptr(phys_addr_t phys)
+ #define PT64_PERM_MASK (PT_PRESENT_MASK | PT_WRITABLE_MASK | shadow_user_mask \
+-			| shadow_x_mask | shadow_nx_mask)
++			| shadow_x_mask | shadow_nx_mask | shadow_me_mask)
  
- void unxlate_dev_mem_ptr(phys_addr_t phys, void *addr)
- {
--	if (page_is_ram(phys >> PAGE_SHIFT))
--		return;
--
--	iounmap((void __iomem *)((unsigned long)addr & PAGE_MASK));
-+	memunmap((void *)((unsigned long)addr & PAGE_MASK));
- }
+ #define ACC_EXEC_MASK    1
+ #define ACC_WRITE_MASK   PT_WRITABLE_MASK
+@@ -184,6 +184,7 @@ struct kvm_shadow_walk_iterator {
+ static u64 __read_mostly shadow_dirty_mask;
+ static u64 __read_mostly shadow_mmio_mask;
+ static u64 __read_mostly shadow_present_mask;
++static u64 __read_mostly shadow_me_mask;
  
  /*
-@@ -630,6 +625,11 @@ pgprot_t __init early_memremap_pgprot_adjust(resource_size_t phys_addr,
- 	return prot;
- }
+  * The mask/value to distinguish a PTE that has been marked not-present for
+@@ -317,7 +318,7 @@ static bool check_mmio_spte(struct kvm_vcpu *vcpu, u64 spte)
  
-+bool phys_mem_access_encrypted(unsigned long phys_addr, unsigned long size)
-+{
-+	return arch_memremap_can_ram_remap(phys_addr, size, 0);
-+}
-+
- #ifdef CONFIG_ARCH_USE_MEMREMAP_PROT
- /* Remap memory with encryption */
- void __init *early_memremap_encrypted(resource_size_t phys_addr,
-diff --git a/arch/x86/mm/pat.c b/arch/x86/mm/pat.c
-index 6753d9c..b970c95 100644
---- a/arch/x86/mm/pat.c
-+++ b/arch/x86/mm/pat.c
-@@ -748,6 +748,9 @@ void arch_io_free_memtype_wc(resource_size_t start, resource_size_t size)
- pgprot_t phys_mem_access_prot(struct file *file, unsigned long pfn,
- 				unsigned long size, pgprot_t vma_prot)
+ void kvm_mmu_set_mask_ptes(u64 user_mask, u64 accessed_mask,
+ 		u64 dirty_mask, u64 nx_mask, u64 x_mask, u64 p_mask,
+-		u64 acc_track_mask)
++		u64 acc_track_mask, u64 me_mask)
  {
-+	if (!phys_mem_access_encrypted(pfn << PAGE_SHIFT, size))
-+		vma_prot = pgprot_decrypted(vma_prot);
-+
- 	return vma_prot;
+ 	if (acc_track_mask != 0)
+ 		acc_track_mask |= SPTE_SPECIAL_MASK;
+@@ -330,6 +331,7 @@ void kvm_mmu_set_mask_ptes(u64 user_mask, u64 accessed_mask,
+ 	shadow_present_mask = p_mask;
+ 	shadow_acc_track_mask = acc_track_mask;
+ 	WARN_ON(shadow_accessed_mask != 0 && shadow_acc_track_mask != 0);
++	shadow_me_mask = me_mask;
+ }
+ EXPORT_SYMBOL_GPL(kvm_mmu_set_mask_ptes);
+ 
+@@ -2398,7 +2400,8 @@ static void link_shadow_page(struct kvm_vcpu *vcpu, u64 *sptep,
+ 	BUILD_BUG_ON(VMX_EPT_WRITABLE_MASK != PT_WRITABLE_MASK);
+ 
+ 	spte = __pa(sp->spt) | shadow_present_mask | PT_WRITABLE_MASK |
+-	       shadow_user_mask | shadow_x_mask | shadow_accessed_mask;
++	       shadow_user_mask | shadow_x_mask | shadow_accessed_mask |
++	       shadow_me_mask;
+ 
+ 	mmu_spte_set(sptep, spte);
+ 
+@@ -2700,6 +2703,7 @@ static int set_spte(struct kvm_vcpu *vcpu, u64 *sptep,
+ 		pte_access &= ~ACC_WRITE_MASK;
+ 
+ 	spte |= (u64)pfn << PAGE_SHIFT;
++	spte |= shadow_me_mask;
+ 
+ 	if (pte_access & ACC_WRITE_MASK) {
+ 
+diff --git a/arch/x86/kvm/mmu.h b/arch/x86/kvm/mmu.h
+index 330bf3a..08b779d 100644
+--- a/arch/x86/kvm/mmu.h
++++ b/arch/x86/kvm/mmu.h
+@@ -48,7 +48,7 @@
+ 
+ static inline u64 rsvd_bits(int s, int e)
+ {
+-	return ((1ULL << (e - s + 1)) - 1) << s;
++	return __sme_clr(((1ULL << (e - s + 1)) - 1) << s);
  }
  
+ void kvm_mmu_set_mmio_spte_mask(u64 mmio_mask);
+diff --git a/arch/x86/kvm/svm.c b/arch/x86/kvm/svm.c
+index ba9891a..d2e9fca 100644
+--- a/arch/x86/kvm/svm.c
++++ b/arch/x86/kvm/svm.c
+@@ -1138,9 +1138,9 @@ static void avic_init_vmcb(struct vcpu_svm *svm)
+ {
+ 	struct vmcb *vmcb = svm->vmcb;
+ 	struct kvm_arch *vm_data = &svm->vcpu.kvm->arch;
+-	phys_addr_t bpa = page_to_phys(svm->avic_backing_page);
+-	phys_addr_t lpa = page_to_phys(vm_data->avic_logical_id_table_page);
+-	phys_addr_t ppa = page_to_phys(vm_data->avic_physical_id_table_page);
++	phys_addr_t bpa = __sme_set(page_to_phys(svm->avic_backing_page));
++	phys_addr_t lpa = __sme_set(page_to_phys(vm_data->avic_logical_id_table_page));
++	phys_addr_t ppa = __sme_set(page_to_phys(vm_data->avic_physical_id_table_page));
+ 
+ 	vmcb->control.avic_backing_page = bpa & AVIC_HPA_MASK;
+ 	vmcb->control.avic_logical_id = lpa & AVIC_HPA_MASK;
+@@ -1203,8 +1203,8 @@ static void init_vmcb(struct vcpu_svm *svm)
+ 		set_intercept(svm, INTERCEPT_MWAIT);
+ 	}
+ 
+-	control->iopm_base_pa = iopm_base;
+-	control->msrpm_base_pa = __pa(svm->msrpm);
++	control->iopm_base_pa = __sme_set(iopm_base);
++	control->msrpm_base_pa = __sme_set(__pa(svm->msrpm));
+ 	control->int_ctl = V_INTR_MASKING_MASK;
+ 
+ 	init_seg(&save->es);
+@@ -1338,9 +1338,9 @@ static int avic_init_backing_page(struct kvm_vcpu *vcpu)
+ 		return -EINVAL;
+ 
+ 	new_entry = READ_ONCE(*entry);
+-	new_entry = (page_to_phys(svm->avic_backing_page) &
+-		     AVIC_PHYSICAL_ID_ENTRY_BACKING_PAGE_MASK) |
+-		     AVIC_PHYSICAL_ID_ENTRY_VALID_MASK;
++	new_entry = __sme_set((page_to_phys(svm->avic_backing_page) &
++			      AVIC_PHYSICAL_ID_ENTRY_BACKING_PAGE_MASK) |
++			      AVIC_PHYSICAL_ID_ENTRY_VALID_MASK);
+ 	WRITE_ONCE(*entry, new_entry);
+ 
+ 	svm->avic_physical_id_cache = entry;
+@@ -1608,7 +1608,7 @@ static struct kvm_vcpu *svm_create_vcpu(struct kvm *kvm, unsigned int id)
+ 
+ 	svm->vmcb = page_address(page);
+ 	clear_page(svm->vmcb);
+-	svm->vmcb_pa = page_to_pfn(page) << PAGE_SHIFT;
++	svm->vmcb_pa = __sme_set(page_to_pfn(page) << PAGE_SHIFT);
+ 	svm->asid_generation = 0;
+ 	init_vmcb(svm);
+ 
+@@ -1636,7 +1636,7 @@ static void svm_free_vcpu(struct kvm_vcpu *vcpu)
+ {
+ 	struct vcpu_svm *svm = to_svm(vcpu);
+ 
+-	__free_page(pfn_to_page(svm->vmcb_pa >> PAGE_SHIFT));
++	__free_page(pfn_to_page(__sme_clr(svm->vmcb_pa) >> PAGE_SHIFT));
+ 	__free_pages(virt_to_page(svm->msrpm), MSRPM_ALLOC_ORDER);
+ 	__free_page(virt_to_page(svm->nested.hsave));
+ 	__free_pages(virt_to_page(svm->nested.msrpm), MSRPM_ALLOC_ORDER);
+@@ -2303,7 +2303,7 @@ static u64 nested_svm_get_tdp_pdptr(struct kvm_vcpu *vcpu, int index)
+ 	u64 pdpte;
+ 	int ret;
+ 
+-	ret = kvm_vcpu_read_guest_page(vcpu, gpa_to_gfn(cr3), &pdpte,
++	ret = kvm_vcpu_read_guest_page(vcpu, gpa_to_gfn(__sme_clr(cr3)), &pdpte,
+ 				       offset_in_page(cr3) + index * 8, 8);
+ 	if (ret)
+ 		return 0;
+@@ -2315,7 +2315,7 @@ static void nested_svm_set_tdp_cr3(struct kvm_vcpu *vcpu,
+ {
+ 	struct vcpu_svm *svm = to_svm(vcpu);
+ 
+-	svm->vmcb->control.nested_cr3 = root;
++	svm->vmcb->control.nested_cr3 = __sme_set(root);
+ 	mark_dirty(svm->vmcb, VMCB_NPT);
+ 	svm_flush_tlb(vcpu);
+ }
+@@ -2803,7 +2803,7 @@ static bool nested_svm_vmrun_msrpm(struct vcpu_svm *svm)
+ 		svm->nested.msrpm[p] = svm->msrpm[p] | value;
+ 	}
+ 
+-	svm->vmcb->control.msrpm_base_pa = __pa(svm->nested.msrpm);
++	svm->vmcb->control.msrpm_base_pa = __sme_set(__pa(svm->nested.msrpm));
+ 
+ 	return true;
+ }
+@@ -4435,7 +4435,7 @@ static int svm_ir_list_add(struct vcpu_svm *svm, struct amd_iommu_pi_data *pi)
+ 	pr_debug("SVM: %s: use GA mode for irq %u\n", __func__,
+ 		 irq.vector);
+ 	*svm = to_svm(vcpu);
+-	vcpu_info->pi_desc_addr = page_to_phys((*svm)->avic_backing_page);
++	vcpu_info->pi_desc_addr = __sme_set(page_to_phys((*svm)->avic_backing_page));
+ 	vcpu_info->vector = irq.vector;
+ 
+ 	return 0;
+@@ -4486,7 +4486,8 @@ static int svm_update_pi_irte(struct kvm *kvm, unsigned int host_irq,
+ 			struct amd_iommu_pi_data pi;
+ 
+ 			/* Try to enable guest_mode in IRTE */
+-			pi.base = page_to_phys(svm->avic_backing_page) & AVIC_HPA_MASK;
++			pi.base = __sme_set(page_to_phys(svm->avic_backing_page) &
++					    AVIC_HPA_MASK);
+ 			pi.ga_tag = AVIC_GATAG(kvm->arch.avic_vm_id,
+ 						     svm->vcpu.vcpu_id);
+ 			pi.is_guest_mode = true;
+@@ -4911,7 +4912,7 @@ static void svm_set_cr3(struct kvm_vcpu *vcpu, unsigned long root)
+ {
+ 	struct vcpu_svm *svm = to_svm(vcpu);
+ 
+-	svm->vmcb->save.cr3 = root;
++	svm->vmcb->save.cr3 = __sme_set(root);
+ 	mark_dirty(svm->vmcb, VMCB_CR);
+ 	svm_flush_tlb(vcpu);
+ }
+@@ -4920,7 +4921,7 @@ static void set_tdp_cr3(struct kvm_vcpu *vcpu, unsigned long root)
+ {
+ 	struct vcpu_svm *svm = to_svm(vcpu);
+ 
+-	svm->vmcb->control.nested_cr3 = root;
++	svm->vmcb->control.nested_cr3 = __sme_set(root);
+ 	mark_dirty(svm->vmcb, VMCB_NPT);
+ 
+ 	/* Also sync guest cr3 here in case we live migrate */
+diff --git a/arch/x86/kvm/vmx.c b/arch/x86/kvm/vmx.c
+index 7dd53fb..53098cd 100644
+--- a/arch/x86/kvm/vmx.c
++++ b/arch/x86/kvm/vmx.c
+@@ -6452,7 +6452,8 @@ void vmx_enable_tdp(void)
+ 		enable_ept_ad_bits ? VMX_EPT_DIRTY_BIT : 0ull,
+ 		0ull, VMX_EPT_EXECUTABLE_MASK,
+ 		cpu_has_vmx_ept_execute_only() ? 0ull : VMX_EPT_READABLE_MASK,
+-		enable_ept_ad_bits ? 0ull : VMX_EPT_RWX_MASK);
++		enable_ept_ad_bits ? 0ull : VMX_EPT_RWX_MASK,
++		0ull);
+ 
+ 	ept_set_mmio_spte_mask();
+ 	kvm_enable_tdp();
+diff --git a/arch/x86/kvm/x86.c b/arch/x86/kvm/x86.c
+index 87d3cb9..559f710 100644
+--- a/arch/x86/kvm/x86.c
++++ b/arch/x86/kvm/x86.c
+@@ -54,6 +54,7 @@
+ #include <linux/kvm_irqfd.h>
+ #include <linux/irqbypass.h>
+ #include <linux/sched/stat.h>
++#include <linux/mem_encrypt.h>
+ 
+ #include <trace/events/kvm.h>
+ 
+@@ -6095,7 +6096,7 @@ int kvm_arch_init(void *opaque)
+ 
+ 	kvm_mmu_set_mask_ptes(PT_USER_MASK, PT_ACCESSED_MASK,
+ 			PT_DIRTY_MASK, PT64_NX_MASK, 0,
+-			PT_PRESENT_MASK, 0);
++			PT_PRESENT_MASK, 0, sme_me_mask);
+ 	kvm_timer_init();
+ 
+ 	perf_register_guest_info_callbacks(&kvm_guest_cbs);
