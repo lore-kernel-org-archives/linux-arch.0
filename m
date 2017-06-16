@@ -1,124 +1,30 @@
-From: Minchan Kim <minchan@kernel.org>
-Subject: Re: [PATCHv2 3/3] mm: Use updated pmdp_invalidate() inteface to
- track dirty/accessed bits
-Date: Fri, 16 Jun 2017 12:02:50 +0900
-Message-ID: <20170616030250.GA27637@bbox>
-References: <20170615145224.66200-1-kirill.shutemov@linux.intel.com>
- <20170615145224.66200-4-kirill.shutemov@linux.intel.com>
+From: Tony Lindgren <tony@atomide.com>
+Subject: Re: [PATCH 1/3] ARM: Generalize fncpy implementation
+Date: Fri, 16 Jun 2017 01:35:24 -0700
+Message-ID: <20170616083524.GJ3730@atomide.com>
+References: <20170615232117.29727-1-f.fainelli@gmail.com>
+ <20170615232117.29727-2-f.fainelli@gmail.com>
+ <577f22f3-ff16-05a0-8204-39e86d47dd9f@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from LGEAMRELO12.lge.com ([156.147.23.52]:43762 "EHLO
-        lgeamrelo12.lge.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751667AbdFPDCw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 15 Jun 2017 23:02:52 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20170615145224.66200-4-kirill.shutemov@linux.intel.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Ralf Baechle <ralf@linux-mips.org>, "David S. Miller" <davem@davemloft.net>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andrea Arcangeli <aarcange@redhat.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+In-Reply-To: <577f22f3-ff16-05a0-8204-39e86d47dd9f@gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Florian Fainelli <f.fainelli@gmail.com>
+Cc: linux-arm-kernel@lists.infradead.org, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, open list <linux-kernel@vger.kernel.org>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, Dave Gerlach <d-gerlach@ti.com>, Keerthy J <j-keerthy@ti.com>, Alexandre Belloni <alexandre.belloni@free-electrons.com>, linux-omap@vger.kernel.org, Shawn Guo <shawnguo@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-Hello,
+* Florian Fainelli <f.fainelli@gmail.com> [170615 16:27]:
+> On 06/15/2017 04:21 PM, Florian Fainelli wrote:
+> > ARM's fncpy implementation is actually suitable for a large number of
+> > platforms since the only assumption it makes is just the function's
+> > alignment (8 bytes) which also happens to fulfil other architectures,
+> > including but not limited to ARM64.
 
-On Thu, Jun 15, 2017 at 05:52:24PM +0300, Kirill A. Shutemov wrote:
-> This patch uses modifed pmdp_invalidate(), that return previous value of pmd,
-> to transfer dirty and accessed bits.
-> 
-> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-> ---
->  fs/proc/task_mmu.c |  8 ++++----
->  mm/huge_memory.c   | 29 ++++++++++++-----------------
->  2 files changed, 16 insertions(+), 21 deletions(-)
-> 
-> diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
-> index f0c8b33d99b1..f2fc1ef5bba2 100644
-> --- a/fs/proc/task_mmu.c
-> +++ b/fs/proc/task_mmu.c
-> @@ -906,13 +906,13 @@ static inline void clear_soft_dirty(struct vm_area_struct *vma,
->  static inline void clear_soft_dirty_pmd(struct vm_area_struct *vma,
->  		unsigned long addr, pmd_t *pmdp)
->  {
-> -	pmd_t pmd = *pmdp;
-> +	pmd_t old, pmd = *pmdp;
->  
->  	/* See comment in change_huge_pmd() */
-> -	pmdp_invalidate(vma, addr, pmdp);
-> -	if (pmd_dirty(*pmdp))
-> +	old = pmdp_invalidate(vma, addr, pmdp);
-> +	if (pmd_dirty(old))
->  		pmd = pmd_mkdirty(pmd);
-> -	if (pmd_young(*pmdp))
-> +	if (pmd_young(old))
->  		pmd = pmd_mkyoung(pmd);
->  
->  	pmd = pmd_wrprotect(pmd);
-> diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-> index a84909cf20d3..0433e73531bf 100644
-> --- a/mm/huge_memory.c
-> +++ b/mm/huge_memory.c
-> @@ -1777,17 +1777,7 @@ int change_huge_pmd(struct vm_area_struct *vma, pmd_t *pmd,
->  	 * pmdp_invalidate() is required to make sure we don't miss
->  	 * dirty/young flags set by hardware.
->  	 */
-> -	entry = *pmd;
-> -	pmdp_invalidate(vma, addr, pmd);
-> -
-> -	/*
-> -	 * Recover dirty/young flags.  It relies on pmdp_invalidate to not
-> -	 * corrupt them.
-> -	 */
-> -	if (pmd_dirty(*pmd))
-> -		entry = pmd_mkdirty(entry);
-> -	if (pmd_young(*pmd))
-> -		entry = pmd_mkyoung(entry);
-> +	entry = pmdp_invalidate(vma, addr, pmd);
->  
->  	entry = pmd_modify(entry, newprot);
->  	if (preserve_write)
-> @@ -1927,8 +1917,8 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
->  	struct mm_struct *mm = vma->vm_mm;
->  	struct page *page;
->  	pgtable_t pgtable;
-> -	pmd_t _pmd;
-> -	bool young, write, dirty, soft_dirty;
-> +	pmd_t old, _pmd;
-> +	bool young, write, soft_dirty;
->  	unsigned long addr;
->  	int i;
->  
-> @@ -1965,7 +1955,6 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
->  	page_ref_add(page, HPAGE_PMD_NR - 1);
->  	write = pmd_write(*pmd);
->  	young = pmd_young(*pmd);
-> -	dirty = pmd_dirty(*pmd);
->  	soft_dirty = pmd_soft_dirty(*pmd);
->  
->  	pmdp_huge_split_prepare(vma, haddr, pmd);
-> @@ -1995,8 +1984,6 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
->  			if (soft_dirty)
->  				entry = pte_mksoft_dirty(entry);
->  		}
-> -		if (dirty)
-> -			SetPageDirty(page + i);
->  		pte = pte_offset_map(&_pmd, addr);
->  		BUG_ON(!pte_none(*pte));
->  		set_pte_at(mm, addr, pte, entry);
-> @@ -2045,7 +2032,15 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
->  	 * and finally we write the non-huge version of the pmd entry with
->  	 * pmd_populate.
->  	 */
-> -	pmdp_invalidate(vma, haddr, pmd);
-> +	old = pmdp_invalidate(vma, haddr, pmd);
-> +
-> +	/*
-> +	 * Transfer dirty bit using value returned by pmd_invalidate() to be
-> +	 * sure we don't race with CPU that can set the bit under us.
-> +	 */
-> +	if (pmd_dirty(old))
-> +		SetPageDirty(page);
-> +
+Yeah I'm all for it. Maybe mention in the next version that this helps
+with making SoC specific PM code into just regular Linux device drivers.
 
-When I see this, without this patch, MADV_FREE has been broken because
-it can lose dirty bit by early checking. Right?
-If so, isn't it a candidate for -stable?
+Regards,
+
+Tony
