@@ -1,90 +1,56 @@
-From: "Kirill A. Shutemov" <kirill@shutemov.name>
-Subject: Re: [PATCHv2 3/3] mm: Use updated pmdp_invalidate() inteface to
- track dirty/accessed bits
-Date: Fri, 16 Jun 2017 16:21:43 +0300
-Message-ID: <20170616132143.cdr4qt5hzvgxsnek@node.shutemov.name>
+From: Andrea Arcangeli <aarcange@redhat.com>
+Subject: Re: [PATCHv2 1/3] x86/mm: Provide pmdp_establish() helper
+Date: Fri, 16 Jun 2017 15:36:00 +0200
+Message-ID: <20170616133600.GE11676@redhat.com>
 References: <20170615145224.66200-1-kirill.shutemov@linux.intel.com>
- <20170615145224.66200-4-kirill.shutemov@linux.intel.com>
- <87bmpob23x.fsf@skywalker.in.ibm.com>
+ <20170615145224.66200-2-kirill.shutemov@linux.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f65.google.com ([74.125.82.65]:35514 "EHLO
-        mail-wm0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752566AbdFPNVq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 16 Jun 2017 09:21:46 -0400
-Received: by mail-wm0-f65.google.com with SMTP id d64so5017711wmf.2
-        for <linux-arch@vger.kernel.org>; Fri, 16 Jun 2017 06:21:46 -0700 (PDT)
+Received: from mx1.redhat.com ([209.132.183.28]:36392 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1753326AbdFPNgE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 16 Jun 2017 09:36:04 -0400
 Content-Disposition: inline
-In-Reply-To: <87bmpob23x.fsf@skywalker.in.ibm.com>
+In-Reply-To: <20170615145224.66200-2-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Ralf Baechle <ralf@linux-mips.org>, "David S. Miller" <davem@davemloft.net>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andrea Arcangeli <aarcange@redhat.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Ralf Baechle <ralf@linux-mips.org>, "David S. Miller" <davem@davemloft.net>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>
 
-On Fri, Jun 16, 2017 at 05:01:30PM +0530, Aneesh Kumar K.V wrote:
-> "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> writes:
-> 
-> > This patch uses modifed pmdp_invalidate(), that return previous value of pmd,
-> > to transfer dirty and accessed bits.
-> >
-> > Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-> > ---
-> >  fs/proc/task_mmu.c |  8 ++++----
-> >  mm/huge_memory.c   | 29 ++++++++++++-----------------
-> >  2 files changed, 16 insertions(+), 21 deletions(-)
-> >
-> > diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
-> > index f0c8b33d99b1..f2fc1ef5bba2 100644
-> > --- a/fs/proc/task_mmu.c
-> > +++ b/fs/proc/task_mmu.c
-> 
-> .....
-> 
-> > @@ -1965,7 +1955,6 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
-> >  	page_ref_add(page, HPAGE_PMD_NR - 1);
-> >  	write = pmd_write(*pmd);
-> >  	young = pmd_young(*pmd);
-> > -	dirty = pmd_dirty(*pmd);
-> >  	soft_dirty = pmd_soft_dirty(*pmd);
-> >
-> >  	pmdp_huge_split_prepare(vma, haddr, pmd);
-> > @@ -1995,8 +1984,6 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
-> >  			if (soft_dirty)
-> >  				entry = pte_mksoft_dirty(entry);
-> >  		}
-> > -		if (dirty)
-> > -			SetPageDirty(page + i);
-> >  		pte = pte_offset_map(&_pmd, addr);
-> >  		BUG_ON(!pte_none(*pte));
-> >  		set_pte_at(mm, addr, pte, entry);
-> > @@ -2045,7 +2032,15 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
-> >  	 * and finally we write the non-huge version of the pmd entry with
-> >  	 * pmd_populate.
-> >  	 */
-> > -	pmdp_invalidate(vma, haddr, pmd);
-> > +	old = pmdp_invalidate(vma, haddr, pmd);
-> > +
-> > +	/*
-> > +	 * Transfer dirty bit using value returned by pmd_invalidate() to be
-> > +	 * sure we don't race with CPU that can set the bit under us.
-> > +	 */
-> > +	if (pmd_dirty(old))
-> > +		SetPageDirty(page);
-> > +
-> >  	pmd_populate(mm, pmd, pgtable);
-> >
-> >  	if (freeze) {
-> 
-> 
-> Can we invalidate the pmd early here ? ie, do pmdp_invalidate instead of
-> pmdp_huge_split_prepare() ?
+Hello Krill,
 
-I think we can. But it means we would block access to the page for longer
-than it's necessary on most architectures. I guess it's not a bit deal.
+On Thu, Jun 15, 2017 at 05:52:22PM +0300, Kirill A. Shutemov wrote:
+> +static inline pmd_t pmdp_establish(pmd_t *pmdp, pmd_t pmd)
+> +{
+> +	pmd_t old;
+> +
+> +	/*
+> +	 * We cannot assume what is value of pmd here, so there's no easy way
+> +	 * to set if half by half. We have to fall back to cmpxchg64.
+> +	 */
+> +	{
+> +		old = *pmdp;
+> +	} while (cmpxchg64(&pmdp->pmd, old.pmd, pmd.pmd) != old.pmd);
+> +
+> +	return old;
+> +}
 
-Maybe as separate patch on top of this patchet? Aneesh, would you take
-care of this?
+I see further margin for optimization here (although it's only for PAE
+x32..).
 
--- 
- Kirill A. Shutemov
+pmd is stable so we could do:
+
+if (!(pmd & _PAGE_PRESENT)) {
+   cast to split_pmd and use xchg on pmd_low like
+   native_pmdp_get_and_clear and copy pmd_high non atomically
+} else {
+  the above cmpxchg64 loop
+}
+
+Now thinking about the above I had a second thought if pmdp_establish
+is the right interface and if we shouldn't replace pmdp_establish with
+pmdp_mknotpresent instead to skip the pmd & _PAGE_PRESENT check that
+will always be true in practice, so pmdp_mknotpresent will call
+internally pmd_mknotpresent and it won't have to check for pmd &
+_PAGE_PRESENT and it would have no cons on x86-64.
