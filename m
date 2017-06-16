@@ -1,54 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:36964 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753878AbdFPO1W (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 16 Jun 2017 10:27:22 -0400
-Date: Fri, 16 Jun 2017 16:27:20 +0200
-From: Andrea Arcangeli <aarcange@redhat.com>
-Subject: Re: [PATCHv2 3/3] mm: Use updated pmdp_invalidate() inteface to
- track dirty/accessed bits
-Message-ID: <20170616142720.GH11676@redhat.com>
-References: <20170615145224.66200-1-kirill.shutemov@linux.intel.com>
- <20170615145224.66200-4-kirill.shutemov@linux.intel.com>
- <20170616030250.GA27637@bbox>
- <20170616131908.3rxtm2w73gdfex4a@node.shutemov.name>
- <20170616135209.GA29542@bbox>
+Received: from mail-cys01nam02on0065.outbound.protection.outlook.com ([104.47.37.65]:26496
+        "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1751815AbdFPSuX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 16 Jun 2017 14:50:23 -0400
+From: Tom Lendacky <thomas.lendacky@amd.com>
+Subject: [PATCH v7 02/36] x86/mm/pat: Set write-protect cache mode for full
+ PAT support
+Date: Fri, 16 Jun 2017 13:50:09 -0500
+Message-ID: <20170616185008.18967.91275.stgit@tlendack-t1.amdoffice.net>
+In-Reply-To: <20170616184947.18967.84890.stgit@tlendack-t1.amdoffice.net>
+References: <20170616184947.18967.84890.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20170616135209.GA29542@bbox>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Minchan Kim <minchan@kernel.org>
-Cc: "Kirill A. Shutemov" <kirill@shutemov.name>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Ralf Baechle <ralf@linux-mips.org>, "David S. Miller" <davem@davemloft.net>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
-Message-ID: <20170616142720.YiYYpuBjTJfAUflp8syL6L_KRkWpg25IRw9sIep6rzc@z>
+To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org
+Cc: Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>
+Message-ID: <20170616185009.uPJ3torRT_Za7iPz76UPbE3zboUNj0bve0LYfcSaOtI@z>
 
-Hello Minchan,
+For processors that support PAT, set the write-protect cache mode
+(_PAGE_CACHE_MODE_WP) entry to the actual write-protect value (x05).
 
-On Fri, Jun 16, 2017 at 10:52:09PM +0900, Minchan Kim wrote:
-> > > > @@ -1995,8 +1984,6 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
-> > > >  			if (soft_dirty)
-> > > >  				entry = pte_mksoft_dirty(entry);
-> > > >  		}
-> > > > -		if (dirty)
-> > > > -			SetPageDirty(page + i);
-> > > >  		pte = pte_offset_map(&_pmd, addr);
-[..]
-> 
-> split_huge_page set PG_dirty to all subpages unconditionally?
-> If it's true, yes, it doesn't break MADV_FREE. However, I didn't spot
-> that piece of code. What I found one is just __split_huge_page_tail
-> which set PG_dirty to subpage if head page is dirty. IOW, if the head
-> page is not dirty, tail page will be clean, too.
-> Could you point out what routine set PG_dirty to all subpages unconditionally?
+Acked-by: Borislav Petkov <bp@suse.de>
+Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+---
+ arch/x86/mm/pat.c |    6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
 
-On a side note the snippet deleted above was useless, as long as
-there's one left hugepmd to split, the physical page has to be still
-compound and huge and as long as that's the case the tail pages
-PG_dirty bit is meaningless (even if set, it's going to be clobbered
-during the physical split).
-
-In short PG_dirty is only meaningful in the head as long as it's
-compound. The physical split in __split_huge_page_tail transfer the
-head value to the tails like you mentioned, that's all as far as I can
-tell.
+diff --git a/arch/x86/mm/pat.c b/arch/x86/mm/pat.c
+index 9b78685..6753d9c 100644
+--- a/arch/x86/mm/pat.c
++++ b/arch/x86/mm/pat.c
+@@ -295,7 +295,7 @@ static void init_cache_modes(void)
+  * pat_init - Initialize PAT MSR and PAT table
+  *
+  * This function initializes PAT MSR and PAT table with an OS-defined value
+- * to enable additional cache attributes, WC and WT.
++ * to enable additional cache attributes, WC, WT and WP.
+  *
+  * This function must be called on all CPUs using the specific sequence of
+  * operations defined in Intel SDM. mtrr_rendezvous_handler() provides this
+@@ -356,7 +356,7 @@ void pat_init(void)
+ 		 *      010    2    UC-: _PAGE_CACHE_MODE_UC_MINUS
+ 		 *      011    3    UC : _PAGE_CACHE_MODE_UC
+ 		 *      100    4    WB : Reserved
+-		 *      101    5    WC : Reserved
++		 *      101    5    WP : _PAGE_CACHE_MODE_WP
+ 		 *      110    6    UC-: Reserved
+ 		 *      111    7    WT : _PAGE_CACHE_MODE_WT
+ 		 *
+@@ -364,7 +364,7 @@ void pat_init(void)
+ 		 * corresponding types in the presence of PAT errata.
+ 		 */
+ 		pat = PAT(0, WB) | PAT(1, WC) | PAT(2, UC_MINUS) | PAT(3, UC) |
+-		      PAT(4, WB) | PAT(5, WC) | PAT(6, UC_MINUS) | PAT(7, WT);
++		      PAT(4, WB) | PAT(5, WP) | PAT(6, UC_MINUS) | PAT(7, WT);
+ 	}
+ 
+ 	if (!boot_cpu_done) {
