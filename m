@@ -1,14 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn3nam01on0061.outbound.protection.outlook.com ([104.47.33.61]:60706
-        "EHLO NAM01-BN3-obe.outbound.protection.outlook.com"
+Received: from mail-dm3nam03on0061.outbound.protection.outlook.com ([104.47.41.61]:53175
+        "EHLO NAM03-DM3-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751815AbdFPSuo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 16 Jun 2017 14:50:44 -0400
+        id S1752087AbdFPSwJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 16 Jun 2017 14:52:09 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v7 04/36] x86/CPU/AMD: Add the Secure Memory Encryption CPU
- feature
-Date: Fri, 16 Jun 2017 13:50:34 -0500
-Message-ID: <20170616185033.18967.46040.stgit@tlendack-t1.amdoffice.net>
+Subject: [PATCH v7 11/36] x86/mm: Add SME support for read_cr3_pa()
+Date: Fri, 16 Jun 2017 13:51:55 -0500
+Message-ID: <20170616185154.18967.71073.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20170616184947.18967.84890.stgit@tlendack-t1.amdoffice.net>
 References: <20170616184947.18967.84890.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -18,81 +17,56 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>
-Message-ID: <20170616185034.nmPbTCLyYgbGFRibZoBYFAaNMzEezf0-W4Y85PpNJfA@z>
+Message-ID: <20170616185155.nTyNoi8UJofrOcc8F1SleKFp415DIHOl2h8J6xL2ym4@z>
 
-Update the CPU features to include identifying and reporting on the
-Secure Memory Encryption (SME) feature.  SME is identified by CPUID
-0x8000001f, but requires BIOS support to enable it (set bit 23 of
-MSR_K8_SYSCFG).  Only show the SME feature as available if reported by
-CPUID and enabled by BIOS.
+The cr3 register entry can contain the SME encryption mask that indicates
+the PGD is encrypted.  The encryption mask should not be used when
+creating a virtual address from the cr3 register, so remove the SME
+encryption mask in the read_cr3_pa() function.
 
-Reviewed-by: Borislav Petkov <bp@suse.de>
+During early boot SME will need to use a native version of read_cr3_pa(),
+so create native_read_cr3_pa().
+
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/include/asm/cpufeatures.h |    1 +
- arch/x86/include/asm/msr-index.h   |    2 ++
- arch/x86/kernel/cpu/amd.c          |   13 +++++++++++++
- arch/x86/kernel/cpu/scattered.c    |    1 +
- 4 files changed, 17 insertions(+)
+ arch/x86/include/asm/processor-flags.h |    3 ++-
+ arch/x86/include/asm/processor.h       |    5 +++++
+ 2 files changed, 7 insertions(+), 1 deletion(-)
 
-diff --git a/arch/x86/include/asm/cpufeatures.h b/arch/x86/include/asm/cpufeatures.h
-index 2701e5f..2b692df 100644
---- a/arch/x86/include/asm/cpufeatures.h
-+++ b/arch/x86/include/asm/cpufeatures.h
-@@ -196,6 +196,7 @@
+diff --git a/arch/x86/include/asm/processor-flags.h b/arch/x86/include/asm/processor-flags.h
+index 79aa2f9..cb6999c 100644
+--- a/arch/x86/include/asm/processor-flags.h
++++ b/arch/x86/include/asm/processor-flags.h
+@@ -2,6 +2,7 @@
+ #define _ASM_X86_PROCESSOR_FLAGS_H
  
- #define X86_FEATURE_HW_PSTATE	( 7*32+ 8) /* AMD HW-PState */
- #define X86_FEATURE_PROC_FEEDBACK ( 7*32+ 9) /* AMD ProcFeedbackInterface */
-+#define X86_FEATURE_SME		( 7*32+10) /* AMD Secure Memory Encryption */
+ #include <uapi/asm/processor-flags.h>
++#include <linux/mem_encrypt.h>
  
- #define X86_FEATURE_INTEL_PPIN	( 7*32+14) /* Intel Processor Inventory Number */
- #define X86_FEATURE_INTEL_PT	( 7*32+15) /* Intel Processor Trace */
-diff --git a/arch/x86/include/asm/msr-index.h b/arch/x86/include/asm/msr-index.h
-index 18b1623..460ac01 100644
---- a/arch/x86/include/asm/msr-index.h
-+++ b/arch/x86/include/asm/msr-index.h
-@@ -352,6 +352,8 @@
- #define MSR_K8_TOP_MEM1			0xc001001a
- #define MSR_K8_TOP_MEM2			0xc001001d
- #define MSR_K8_SYSCFG			0xc0010010
-+#define MSR_K8_SYSCFG_MEM_ENCRYPT_BIT	23
-+#define MSR_K8_SYSCFG_MEM_ENCRYPT	BIT_ULL(MSR_K8_SYSCFG_MEM_ENCRYPT_BIT)
- #define MSR_K8_INT_PENDING_MSG		0xc0010055
- /* C1E active bits in int pending message */
- #define K8_INTP_C1E_ACTIVE_MASK		0x18000000
-diff --git a/arch/x86/kernel/cpu/amd.c b/arch/x86/kernel/cpu/amd.c
-index bb5abe8..c47ceee 100644
---- a/arch/x86/kernel/cpu/amd.c
-+++ b/arch/x86/kernel/cpu/amd.c
-@@ -611,6 +611,19 @@ static void early_init_amd(struct cpuinfo_x86 *c)
- 	 */
- 	if (cpu_has_amd_erratum(c, amd_erratum_400))
- 		set_cpu_bug(c, X86_BUG_AMD_E400);
-+
-+	/*
-+	 * BIOS support is required for SME. If BIOS has not enabled SME
-+	 * then don't advertise the feature (set in scattered.c)
-+	 */
-+	if (cpu_has(c, X86_FEATURE_SME)) {
-+		u64 msr;
-+
-+		/* Check if SME is enabled */
-+		rdmsrl(MSR_K8_SYSCFG, msr);
-+		if (!(msr & MSR_K8_SYSCFG_MEM_ENCRYPT))
-+			clear_cpu_cap(c, X86_FEATURE_SME);
-+	}
+ #ifdef CONFIG_VM86
+ #define X86_VM_MASK	X86_EFLAGS_VM
+@@ -33,7 +34,7 @@
+  */
+ #ifdef CONFIG_X86_64
+ /* Mask off the address space ID bits. */
+-#define CR3_ADDR_MASK 0x7FFFFFFFFFFFF000ull
++#define CR3_ADDR_MASK __sme_clr(0x7FFFFFFFFFFFF000ull)
+ #define CR3_PCID_MASK 0xFFFull
+ #else
+ /*
+diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
+index 8010c97..ab878bd 100644
+--- a/arch/x86/include/asm/processor.h
++++ b/arch/x86/include/asm/processor.h
+@@ -240,6 +240,11 @@ static inline unsigned long read_cr3_pa(void)
+ 	return __read_cr3() & CR3_ADDR_MASK;
  }
  
- static void init_amd_k8(struct cpuinfo_x86 *c)
-diff --git a/arch/x86/kernel/cpu/scattered.c b/arch/x86/kernel/cpu/scattered.c
-index 23c2350..05459ad 100644
---- a/arch/x86/kernel/cpu/scattered.c
-+++ b/arch/x86/kernel/cpu/scattered.c
-@@ -31,6 +31,7 @@ struct cpuid_bit {
- 	{ X86_FEATURE_HW_PSTATE,	CPUID_EDX,  7, 0x80000007, 0 },
- 	{ X86_FEATURE_CPB,		CPUID_EDX,  9, 0x80000007, 0 },
- 	{ X86_FEATURE_PROC_FEEDBACK,    CPUID_EDX, 11, 0x80000007, 0 },
-+	{ X86_FEATURE_SME,		CPUID_EAX,  0, 0x8000001f, 0 },
- 	{ 0, 0, 0, 0, 0 }
- };
- 
++static inline unsigned long native_read_cr3_pa(void)
++{
++	return __native_read_cr3() & CR3_ADDR_MASK;
++}
++
+ static inline void load_cr3(pgd_t *pgdir)
+ {
+ 	write_cr3(__sme_pa(pgdir));
