@@ -1,14 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-sn1nam02on0068.outbound.protection.outlook.com ([104.47.36.68]:18746
-        "EHLO NAM02-SN1-obe.outbound.protection.outlook.com"
+Received: from mail-by2nam01on0064.outbound.protection.outlook.com ([104.47.34.64]:13319
+        "EHLO NAM01-BY2-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752657AbdFPSzt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 16 Jun 2017 14:55:49 -0400
+        id S1750797AbdFPSyf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 16 Jun 2017 14:54:35 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v7 30/36] kvm: x86: svm: Support Secure Memory Encryption
- within KVM
-Date: Fri, 16 Jun 2017 13:55:33 -0500
-Message-ID: <20170616185532.18967.63164.stgit@tlendack-t1.amdoffice.net>
+Subject: [PATCH v7 24/36] x86, swiotlb: Add memory encryption support
+Date: Fri, 16 Jun 2017 13:54:24 -0500
+Message-ID: <20170616185423.18967.19605.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20170616184947.18967.84890.stgit@tlendack-t1.amdoffice.net>
 References: <20170616184947.18967.84890.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -18,271 +17,382 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>
-Message-ID: <20170616185533.59dG8Tiv4lO-uAcbbO5CAE8JiTwtnxtIAFCcbkOCOxI@z>
+Message-ID: <20170616185424.LQfWI-vTXO9l5A3XMyxjb5GjawTn-OZbrxDX_xrxGWQ@z>
 
-Update the KVM support to work with SME. The VMCB has a number of fields
-where physical addresses are used and these addresses must contain the
-memory encryption mask in order to properly access the encrypted memory.
-Also, use the memory encryption mask when creating and using the nested
-page tables.
+Since DMA addresses will effectively look like 48-bit addresses when the
+memory encryption mask is set, SWIOTLB is needed if the DMA mask of the
+device performing the DMA does not support 48-bits. SWIOTLB will be
+initialized to create decrypted bounce buffers for use by these devices.
 
-Reviewed-by: Borislav Petkov <bp@suse.de>
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/include/asm/kvm_host.h |    2 +-
- arch/x86/kvm/mmu.c              |   12 ++++++++----
- arch/x86/kvm/mmu.h              |    2 +-
- arch/x86/kvm/svm.c              |   35 ++++++++++++++++++-----------------
- arch/x86/kvm/vmx.c              |    3 ++-
- arch/x86/kvm/x86.c              |    3 ++-
- 6 files changed, 32 insertions(+), 25 deletions(-)
+ arch/x86/include/asm/dma-mapping.h |    5 ++-
+ arch/x86/include/asm/mem_encrypt.h |    5 +++
+ arch/x86/kernel/pci-dma.c          |   11 +++++--
+ arch/x86/kernel/pci-nommu.c        |    2 +
+ arch/x86/kernel/pci-swiotlb.c      |   15 +++++++++-
+ arch/x86/mm/mem_encrypt.c          |   22 +++++++++++++++
+ include/linux/swiotlb.h            |    1 +
+ init/main.c                        |   10 +++++++
+ lib/swiotlb.c                      |   54 +++++++++++++++++++++++++++++++-----
+ 9 files changed, 108 insertions(+), 17 deletions(-)
 
-diff --git a/arch/x86/include/asm/kvm_host.h b/arch/x86/include/asm/kvm_host.h
-index 695605e..6d1267f 100644
---- a/arch/x86/include/asm/kvm_host.h
-+++ b/arch/x86/include/asm/kvm_host.h
-@@ -1069,7 +1069,7 @@ struct kvm_arch_async_pf {
- void kvm_mmu_uninit_vm(struct kvm *kvm);
- void kvm_mmu_set_mask_ptes(u64 user_mask, u64 accessed_mask,
- 		u64 dirty_mask, u64 nx_mask, u64 x_mask, u64 p_mask,
--		u64 acc_track_mask);
-+		u64 acc_track_mask, u64 me_mask);
- 
- void kvm_mmu_reset_context(struct kvm_vcpu *vcpu);
- void kvm_mmu_slot_remove_write_access(struct kvm *kvm,
-diff --git a/arch/x86/kvm/mmu.c b/arch/x86/kvm/mmu.c
-index cb82259..e85888c 100644
---- a/arch/x86/kvm/mmu.c
-+++ b/arch/x86/kvm/mmu.c
-@@ -107,7 +107,7 @@ enum {
- 	(((address) >> PT32_LEVEL_SHIFT(level)) & ((1 << PT32_LEVEL_BITS) - 1))
- 
- 
--#define PT64_BASE_ADDR_MASK (((1ULL << 52) - 1) & ~(u64)(PAGE_SIZE-1))
-+#define PT64_BASE_ADDR_MASK __sme_clr((((1ULL << 52) - 1) & ~(u64)(PAGE_SIZE-1)))
- #define PT64_DIR_BASE_ADDR_MASK \
- 	(PT64_BASE_ADDR_MASK & ~((1ULL << (PAGE_SHIFT + PT64_LEVEL_BITS)) - 1))
- #define PT64_LVL_ADDR_MASK(level) \
-@@ -125,7 +125,7 @@ enum {
- 					    * PT32_LEVEL_BITS))) - 1))
- 
- #define PT64_PERM_MASK (PT_PRESENT_MASK | PT_WRITABLE_MASK | shadow_user_mask \
--			| shadow_x_mask | shadow_nx_mask)
-+			| shadow_x_mask | shadow_nx_mask | shadow_me_mask)
- 
- #define ACC_EXEC_MASK    1
- #define ACC_WRITE_MASK   PT_WRITABLE_MASK
-@@ -184,6 +184,7 @@ struct kvm_shadow_walk_iterator {
- static u64 __read_mostly shadow_dirty_mask;
- static u64 __read_mostly shadow_mmio_mask;
- static u64 __read_mostly shadow_present_mask;
-+static u64 __read_mostly shadow_me_mask;
- 
- /*
-  * The mask/value to distinguish a PTE that has been marked not-present for
-@@ -317,7 +318,7 @@ static bool check_mmio_spte(struct kvm_vcpu *vcpu, u64 spte)
- 
- void kvm_mmu_set_mask_ptes(u64 user_mask, u64 accessed_mask,
- 		u64 dirty_mask, u64 nx_mask, u64 x_mask, u64 p_mask,
--		u64 acc_track_mask)
-+		u64 acc_track_mask, u64 me_mask)
- {
- 	if (acc_track_mask != 0)
- 		acc_track_mask |= SPTE_SPECIAL_MASK;
-@@ -330,6 +331,7 @@ void kvm_mmu_set_mask_ptes(u64 user_mask, u64 accessed_mask,
- 	shadow_present_mask = p_mask;
- 	shadow_acc_track_mask = acc_track_mask;
- 	WARN_ON(shadow_accessed_mask != 0 && shadow_acc_track_mask != 0);
-+	shadow_me_mask = me_mask;
- }
- EXPORT_SYMBOL_GPL(kvm_mmu_set_mask_ptes);
- 
-@@ -2398,7 +2400,8 @@ static void link_shadow_page(struct kvm_vcpu *vcpu, u64 *sptep,
- 	BUILD_BUG_ON(VMX_EPT_WRITABLE_MASK != PT_WRITABLE_MASK);
- 
- 	spte = __pa(sp->spt) | shadow_present_mask | PT_WRITABLE_MASK |
--	       shadow_user_mask | shadow_x_mask | shadow_accessed_mask;
-+	       shadow_user_mask | shadow_x_mask | shadow_accessed_mask |
-+	       shadow_me_mask;
- 
- 	mmu_spte_set(sptep, spte);
- 
-@@ -2700,6 +2703,7 @@ static int set_spte(struct kvm_vcpu *vcpu, u64 *sptep,
- 		pte_access &= ~ACC_WRITE_MASK;
- 
- 	spte |= (u64)pfn << PAGE_SHIFT;
-+	spte |= shadow_me_mask;
- 
- 	if (pte_access & ACC_WRITE_MASK) {
- 
-diff --git a/arch/x86/kvm/mmu.h b/arch/x86/kvm/mmu.h
-index 330bf3a..08b779d 100644
---- a/arch/x86/kvm/mmu.h
-+++ b/arch/x86/kvm/mmu.h
-@@ -48,7 +48,7 @@
- 
- static inline u64 rsvd_bits(int s, int e)
- {
--	return ((1ULL << (e - s + 1)) - 1) << s;
-+	return __sme_clr(((1ULL << (e - s + 1)) - 1) << s);
- }
- 
- void kvm_mmu_set_mmio_spte_mask(u64 mmio_mask);
-diff --git a/arch/x86/kvm/svm.c b/arch/x86/kvm/svm.c
-index ba9891a..d2e9fca 100644
---- a/arch/x86/kvm/svm.c
-+++ b/arch/x86/kvm/svm.c
-@@ -1138,9 +1138,9 @@ static void avic_init_vmcb(struct vcpu_svm *svm)
- {
- 	struct vmcb *vmcb = svm->vmcb;
- 	struct kvm_arch *vm_data = &svm->vcpu.kvm->arch;
--	phys_addr_t bpa = page_to_phys(svm->avic_backing_page);
--	phys_addr_t lpa = page_to_phys(vm_data->avic_logical_id_table_page);
--	phys_addr_t ppa = page_to_phys(vm_data->avic_physical_id_table_page);
-+	phys_addr_t bpa = __sme_set(page_to_phys(svm->avic_backing_page));
-+	phys_addr_t lpa = __sme_set(page_to_phys(vm_data->avic_logical_id_table_page));
-+	phys_addr_t ppa = __sme_set(page_to_phys(vm_data->avic_physical_id_table_page));
- 
- 	vmcb->control.avic_backing_page = bpa & AVIC_HPA_MASK;
- 	vmcb->control.avic_logical_id = lpa & AVIC_HPA_MASK;
-@@ -1203,8 +1203,8 @@ static void init_vmcb(struct vcpu_svm *svm)
- 		set_intercept(svm, INTERCEPT_MWAIT);
- 	}
- 
--	control->iopm_base_pa = iopm_base;
--	control->msrpm_base_pa = __pa(svm->msrpm);
-+	control->iopm_base_pa = __sme_set(iopm_base);
-+	control->msrpm_base_pa = __sme_set(__pa(svm->msrpm));
- 	control->int_ctl = V_INTR_MASKING_MASK;
- 
- 	init_seg(&save->es);
-@@ -1338,9 +1338,9 @@ static int avic_init_backing_page(struct kvm_vcpu *vcpu)
- 		return -EINVAL;
- 
- 	new_entry = READ_ONCE(*entry);
--	new_entry = (page_to_phys(svm->avic_backing_page) &
--		     AVIC_PHYSICAL_ID_ENTRY_BACKING_PAGE_MASK) |
--		     AVIC_PHYSICAL_ID_ENTRY_VALID_MASK;
-+	new_entry = __sme_set((page_to_phys(svm->avic_backing_page) &
-+			      AVIC_PHYSICAL_ID_ENTRY_BACKING_PAGE_MASK) |
-+			      AVIC_PHYSICAL_ID_ENTRY_VALID_MASK);
- 	WRITE_ONCE(*entry, new_entry);
- 
- 	svm->avic_physical_id_cache = entry;
-@@ -1608,7 +1608,7 @@ static struct kvm_vcpu *svm_create_vcpu(struct kvm *kvm, unsigned int id)
- 
- 	svm->vmcb = page_address(page);
- 	clear_page(svm->vmcb);
--	svm->vmcb_pa = page_to_pfn(page) << PAGE_SHIFT;
-+	svm->vmcb_pa = __sme_set(page_to_pfn(page) << PAGE_SHIFT);
- 	svm->asid_generation = 0;
- 	init_vmcb(svm);
- 
-@@ -1636,7 +1636,7 @@ static void svm_free_vcpu(struct kvm_vcpu *vcpu)
- {
- 	struct vcpu_svm *svm = to_svm(vcpu);
- 
--	__free_page(pfn_to_page(svm->vmcb_pa >> PAGE_SHIFT));
-+	__free_page(pfn_to_page(__sme_clr(svm->vmcb_pa) >> PAGE_SHIFT));
- 	__free_pages(virt_to_page(svm->msrpm), MSRPM_ALLOC_ORDER);
- 	__free_page(virt_to_page(svm->nested.hsave));
- 	__free_pages(virt_to_page(svm->nested.msrpm), MSRPM_ALLOC_ORDER);
-@@ -2303,7 +2303,7 @@ static u64 nested_svm_get_tdp_pdptr(struct kvm_vcpu *vcpu, int index)
- 	u64 pdpte;
- 	int ret;
- 
--	ret = kvm_vcpu_read_guest_page(vcpu, gpa_to_gfn(cr3), &pdpte,
-+	ret = kvm_vcpu_read_guest_page(vcpu, gpa_to_gfn(__sme_clr(cr3)), &pdpte,
- 				       offset_in_page(cr3) + index * 8, 8);
- 	if (ret)
- 		return 0;
-@@ -2315,7 +2315,7 @@ static void nested_svm_set_tdp_cr3(struct kvm_vcpu *vcpu,
- {
- 	struct vcpu_svm *svm = to_svm(vcpu);
- 
--	svm->vmcb->control.nested_cr3 = root;
-+	svm->vmcb->control.nested_cr3 = __sme_set(root);
- 	mark_dirty(svm->vmcb, VMCB_NPT);
- 	svm_flush_tlb(vcpu);
- }
-@@ -2803,7 +2803,7 @@ static bool nested_svm_vmrun_msrpm(struct vcpu_svm *svm)
- 		svm->nested.msrpm[p] = svm->msrpm[p] | value;
- 	}
- 
--	svm->vmcb->control.msrpm_base_pa = __pa(svm->nested.msrpm);
-+	svm->vmcb->control.msrpm_base_pa = __sme_set(__pa(svm->nested.msrpm));
- 
- 	return true;
- }
-@@ -4435,7 +4435,7 @@ static int svm_ir_list_add(struct vcpu_svm *svm, struct amd_iommu_pi_data *pi)
- 	pr_debug("SVM: %s: use GA mode for irq %u\n", __func__,
- 		 irq.vector);
- 	*svm = to_svm(vcpu);
--	vcpu_info->pi_desc_addr = page_to_phys((*svm)->avic_backing_page);
-+	vcpu_info->pi_desc_addr = __sme_set(page_to_phys((*svm)->avic_backing_page));
- 	vcpu_info->vector = irq.vector;
- 
- 	return 0;
-@@ -4486,7 +4486,8 @@ static int svm_update_pi_irte(struct kvm *kvm, unsigned int host_irq,
- 			struct amd_iommu_pi_data pi;
- 
- 			/* Try to enable guest_mode in IRTE */
--			pi.base = page_to_phys(svm->avic_backing_page) & AVIC_HPA_MASK;
-+			pi.base = __sme_set(page_to_phys(svm->avic_backing_page) &
-+					    AVIC_HPA_MASK);
- 			pi.ga_tag = AVIC_GATAG(kvm->arch.avic_vm_id,
- 						     svm->vcpu.vcpu_id);
- 			pi.is_guest_mode = true;
-@@ -4911,7 +4912,7 @@ static void svm_set_cr3(struct kvm_vcpu *vcpu, unsigned long root)
- {
- 	struct vcpu_svm *svm = to_svm(vcpu);
- 
--	svm->vmcb->save.cr3 = root;
-+	svm->vmcb->save.cr3 = __sme_set(root);
- 	mark_dirty(svm->vmcb, VMCB_CR);
- 	svm_flush_tlb(vcpu);
- }
-@@ -4920,7 +4921,7 @@ static void set_tdp_cr3(struct kvm_vcpu *vcpu, unsigned long root)
- {
- 	struct vcpu_svm *svm = to_svm(vcpu);
- 
--	svm->vmcb->control.nested_cr3 = root;
-+	svm->vmcb->control.nested_cr3 = __sme_set(root);
- 	mark_dirty(svm->vmcb, VMCB_NPT);
- 
- 	/* Also sync guest cr3 here in case we live migrate */
-diff --git a/arch/x86/kvm/vmx.c b/arch/x86/kvm/vmx.c
-index 7dd53fb..53098cd 100644
---- a/arch/x86/kvm/vmx.c
-+++ b/arch/x86/kvm/vmx.c
-@@ -6452,7 +6452,8 @@ void vmx_enable_tdp(void)
- 		enable_ept_ad_bits ? VMX_EPT_DIRTY_BIT : 0ull,
- 		0ull, VMX_EPT_EXECUTABLE_MASK,
- 		cpu_has_vmx_ept_execute_only() ? 0ull : VMX_EPT_READABLE_MASK,
--		enable_ept_ad_bits ? 0ull : VMX_EPT_RWX_MASK);
-+		enable_ept_ad_bits ? 0ull : VMX_EPT_RWX_MASK,
-+		0ull);
- 
- 	ept_set_mmio_spte_mask();
- 	kvm_enable_tdp();
-diff --git a/arch/x86/kvm/x86.c b/arch/x86/kvm/x86.c
-index 87d3cb9..559f710 100644
---- a/arch/x86/kvm/x86.c
-+++ b/arch/x86/kvm/x86.c
-@@ -54,6 +54,7 @@
- #include <linux/kvm_irqfd.h>
- #include <linux/irqbypass.h>
- #include <linux/sched/stat.h>
+diff --git a/arch/x86/include/asm/dma-mapping.h b/arch/x86/include/asm/dma-mapping.h
+index 08a0838..191f9a5 100644
+--- a/arch/x86/include/asm/dma-mapping.h
++++ b/arch/x86/include/asm/dma-mapping.h
+@@ -12,6 +12,7 @@
+ #include <asm/io.h>
+ #include <asm/swiotlb.h>
+ #include <linux/dma-contiguous.h>
 +#include <linux/mem_encrypt.h>
  
- #include <trace/events/kvm.h>
+ #ifdef CONFIG_ISA
+ # define ISA_DMA_BIT_MASK DMA_BIT_MASK(24)
+@@ -62,12 +63,12 @@ static inline bool dma_capable(struct device *dev, dma_addr_t addr, size_t size)
  
-@@ -6095,7 +6096,7 @@ int kvm_arch_init(void *opaque)
+ static inline dma_addr_t phys_to_dma(struct device *dev, phys_addr_t paddr)
+ {
+-	return paddr;
++	return __sme_set(paddr);
+ }
  
- 	kvm_mmu_set_mask_ptes(PT_USER_MASK, PT_ACCESSED_MASK,
- 			PT_DIRTY_MASK, PT64_NX_MASK, 0,
--			PT_PRESENT_MASK, 0);
-+			PT_PRESENT_MASK, 0, sme_me_mask);
- 	kvm_timer_init();
+ static inline phys_addr_t dma_to_phys(struct device *dev, dma_addr_t daddr)
+ {
+-	return daddr;
++	return __sme_clr(daddr);
+ }
+ #endif /* CONFIG_X86_DMA_REMAP */
  
- 	perf_register_guest_info_callbacks(&kvm_guest_cbs);
+diff --git a/arch/x86/include/asm/mem_encrypt.h b/arch/x86/include/asm/mem_encrypt.h
+index 3ffa5fa..af835cf 100644
+--- a/arch/x86/include/asm/mem_encrypt.h
++++ b/arch/x86/include/asm/mem_encrypt.h
+@@ -33,6 +33,11 @@ void __init sme_early_decrypt(resource_size_t paddr,
+ 
+ void __init sme_enable(void);
+ 
++/* Architecture __weak replacement functions */
++void __init mem_encrypt_init(void);
++
++void swiotlb_set_mem_attributes(void *vaddr, unsigned long size);
++
+ #else	/* !CONFIG_AMD_MEM_ENCRYPT */
+ 
+ #define sme_me_mask	0UL
+diff --git a/arch/x86/kernel/pci-dma.c b/arch/x86/kernel/pci-dma.c
+index 3a216ec..72d96d4 100644
+--- a/arch/x86/kernel/pci-dma.c
++++ b/arch/x86/kernel/pci-dma.c
+@@ -93,9 +93,12 @@ void *dma_generic_alloc_coherent(struct device *dev, size_t size,
+ 	if (gfpflags_allow_blocking(flag)) {
+ 		page = dma_alloc_from_contiguous(dev, count, get_order(size),
+ 						 flag);
+-		if (page && page_to_phys(page) + size > dma_mask) {
+-			dma_release_from_contiguous(dev, page, count);
+-			page = NULL;
++		if (page) {
++			addr = phys_to_dma(dev, page_to_phys(page));
++			if (addr + size > dma_mask) {
++				dma_release_from_contiguous(dev, page, count);
++				page = NULL;
++			}
+ 		}
+ 	}
+ 	/* fallback */
+@@ -104,7 +107,7 @@ void *dma_generic_alloc_coherent(struct device *dev, size_t size,
+ 	if (!page)
+ 		return NULL;
+ 
+-	addr = page_to_phys(page);
++	addr = phys_to_dma(dev, page_to_phys(page));
+ 	if (addr + size > dma_mask) {
+ 		__free_pages(page, get_order(size));
+ 
+diff --git a/arch/x86/kernel/pci-nommu.c b/arch/x86/kernel/pci-nommu.c
+index a88952e..98b576a 100644
+--- a/arch/x86/kernel/pci-nommu.c
++++ b/arch/x86/kernel/pci-nommu.c
+@@ -30,7 +30,7 @@ static dma_addr_t nommu_map_page(struct device *dev, struct page *page,
+ 				 enum dma_data_direction dir,
+ 				 unsigned long attrs)
+ {
+-	dma_addr_t bus = page_to_phys(page) + offset;
++	dma_addr_t bus = phys_to_dma(dev, page_to_phys(page)) + offset;
+ 	WARN_ON(size == 0);
+ 	if (!check_addr("map_single", dev, bus, size))
+ 		return DMA_ERROR_CODE;
+diff --git a/arch/x86/kernel/pci-swiotlb.c b/arch/x86/kernel/pci-swiotlb.c
+index 1e23577..6770775 100644
+--- a/arch/x86/kernel/pci-swiotlb.c
++++ b/arch/x86/kernel/pci-swiotlb.c
+@@ -6,12 +6,14 @@
+ #include <linux/swiotlb.h>
+ #include <linux/bootmem.h>
+ #include <linux/dma-mapping.h>
++#include <linux/mem_encrypt.h>
+ 
+ #include <asm/iommu.h>
+ #include <asm/swiotlb.h>
+ #include <asm/dma.h>
+ #include <asm/xen/swiotlb-xen.h>
+ #include <asm/iommu_table.h>
++
+ int swiotlb __read_mostly;
+ 
+ void *x86_swiotlb_alloc_coherent(struct device *hwdev, size_t size,
+@@ -79,8 +81,8 @@ int __init pci_swiotlb_detect_override(void)
+ 		  pci_swiotlb_late_init);
+ 
+ /*
+- * if 4GB or more detected (and iommu=off not set) return 1
+- * and set swiotlb to 1.
++ * If 4GB or more detected (and iommu=off not set) or if SME is active
++ * then set swiotlb to 1 and return 1.
+  */
+ int __init pci_swiotlb_detect_4gb(void)
+ {
+@@ -89,6 +91,15 @@ int __init pci_swiotlb_detect_4gb(void)
+ 	if (!no_iommu && max_possible_pfn > MAX_DMA32_PFN)
+ 		swiotlb = 1;
+ #endif
++
++	/*
++	 * If SME is active then swiotlb will be set to 1 so that bounce
++	 * buffers are allocated and used for devices that do not support
++	 * the addressing range required for the encryption mask.
++	 */
++	if (sme_active())
++		swiotlb = 1;
++
+ 	return swiotlb;
+ }
+ IOMMU_INIT(pci_swiotlb_detect_4gb,
+diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
+index ea5e3a6..842c8a6 100644
+--- a/arch/x86/mm/mem_encrypt.c
++++ b/arch/x86/mm/mem_encrypt.c
+@@ -16,11 +16,14 @@
+ #ifdef CONFIG_AMD_MEM_ENCRYPT
+ 
+ #include <linux/mm.h>
++#include <linux/dma-mapping.h>
++#include <linux/swiotlb.h>
+ 
+ #include <asm/tlbflush.h>
+ #include <asm/fixmap.h>
+ #include <asm/setup.h>
+ #include <asm/bootparam.h>
++#include <asm/set_memory.h>
+ 
+ /*
+  * Since SME related variables are set early in the boot process they must
+@@ -187,6 +190,25 @@ void __init sme_early_init(void)
+ 		protection_map[i] = pgprot_encrypted(protection_map[i]);
+ }
+ 
++/* Architecture __weak replacement functions */
++void __init mem_encrypt_init(void)
++{
++	if (!sme_me_mask)
++		return;
++
++	/* Call into SWIOTLB to update the SWIOTLB DMA buffers */
++	swiotlb_update_mem_attributes();
++}
++
++void swiotlb_set_mem_attributes(void *vaddr, unsigned long size)
++{
++	WARN(PAGE_ALIGN(size) != size,
++	     "size is not page-aligned (%#lx)\n", size);
++
++	/* Make the SWIOTLB buffer area decrypted */
++	set_memory_decrypted((unsigned long)vaddr, size >> PAGE_SHIFT);
++}
++
+ void __init sme_encrypt_kernel(void)
+ {
+ }
+diff --git a/include/linux/swiotlb.h b/include/linux/swiotlb.h
+index 4ee479f..15e7160 100644
+--- a/include/linux/swiotlb.h
++++ b/include/linux/swiotlb.h
+@@ -35,6 +35,7 @@ enum swiotlb_force {
+ extern unsigned long swiotlb_nr_tbl(void);
+ unsigned long swiotlb_size_or_default(void);
+ extern int swiotlb_late_init_with_tbl(char *tlb, unsigned long nslabs);
++extern void __init swiotlb_update_mem_attributes(void);
+ 
+ /*
+  * Enumeration for sync targets
+diff --git a/init/main.c b/init/main.c
+index df58a41..5013cbc 100644
+--- a/init/main.c
++++ b/init/main.c
+@@ -488,6 +488,8 @@ void __init __weak thread_stack_cache_init(void)
+ }
+ #endif
+ 
++void __init __weak mem_encrypt_init(void) { }
++
+ /*
+  * Set up kernel memory allocators
+  */
+@@ -640,6 +642,14 @@ asmlinkage __visible void __init start_kernel(void)
+ 	 */
+ 	locking_selftest();
+ 
++	/*
++	 * This needs to be called before any devices perform DMA
++	 * operations that might use the SWIOTLB bounce buffers. It will
++	 * mark the bounce buffers as decrypted so that their usage will
++	 * not cause "plain-text" data to be decrypted when accessed.
++	 */
++	mem_encrypt_init();
++
+ #ifdef CONFIG_BLK_DEV_INITRD
+ 	if (initrd_start && !initrd_below_start_ok &&
+ 	    page_to_pfn(virt_to_page((void *)initrd_start)) < min_low_pfn) {
+diff --git a/lib/swiotlb.c b/lib/swiotlb.c
+index a8d74a7..04ac91a 100644
+--- a/lib/swiotlb.c
++++ b/lib/swiotlb.c
+@@ -30,6 +30,7 @@
+ #include <linux/highmem.h>
+ #include <linux/gfp.h>
+ #include <linux/scatterlist.h>
++#include <linux/mem_encrypt.h>
+ 
+ #include <asm/io.h>
+ #include <asm/dma.h>
+@@ -155,6 +156,15 @@ unsigned long swiotlb_size_or_default(void)
+ 	return size ? size : (IO_TLB_DEFAULT_SIZE);
+ }
+ 
++void __weak swiotlb_set_mem_attributes(void *vaddr, unsigned long size) { }
++
++/* For swiotlb, clear memory encryption mask from dma addresses */
++static dma_addr_t swiotlb_phys_to_dma(struct device *hwdev,
++				      phys_addr_t address)
++{
++	return __sme_clr(phys_to_dma(hwdev, address));
++}
++
+ /* Note that this doesn't work with highmem page */
+ static dma_addr_t swiotlb_virt_to_bus(struct device *hwdev,
+ 				      volatile void *address)
+@@ -183,6 +193,31 @@ void swiotlb_print_info(void)
+ 	       bytes >> 20, vstart, vend - 1);
+ }
+ 
++/*
++ * Early SWIOTLB allocation may be too early to allow an architecture to
++ * perform the desired operations.  This function allows the architecture to
++ * call SWIOTLB when the operations are possible.  It needs to be called
++ * before the SWIOTLB memory is used.
++ */
++void __init swiotlb_update_mem_attributes(void)
++{
++	void *vaddr;
++	unsigned long bytes;
++
++	if (no_iotlb_memory || late_alloc)
++		return;
++
++	vaddr = phys_to_virt(io_tlb_start);
++	bytes = PAGE_ALIGN(io_tlb_nslabs << IO_TLB_SHIFT);
++	swiotlb_set_mem_attributes(vaddr, bytes);
++	memset(vaddr, 0, bytes);
++
++	vaddr = phys_to_virt(io_tlb_overflow_buffer);
++	bytes = PAGE_ALIGN(io_tlb_overflow);
++	swiotlb_set_mem_attributes(vaddr, bytes);
++	memset(vaddr, 0, bytes);
++}
++
+ int __init swiotlb_init_with_tbl(char *tlb, unsigned long nslabs, int verbose)
+ {
+ 	void *v_overflow_buffer;
+@@ -320,6 +355,7 @@ int __init swiotlb_init_with_tbl(char *tlb, unsigned long nslabs, int verbose)
+ 	io_tlb_start = virt_to_phys(tlb);
+ 	io_tlb_end = io_tlb_start + bytes;
+ 
++	swiotlb_set_mem_attributes(tlb, bytes);
+ 	memset(tlb, 0, bytes);
+ 
+ 	/*
+@@ -330,6 +366,8 @@ int __init swiotlb_init_with_tbl(char *tlb, unsigned long nslabs, int verbose)
+ 	if (!v_overflow_buffer)
+ 		goto cleanup2;
+ 
++	swiotlb_set_mem_attributes(v_overflow_buffer, io_tlb_overflow);
++	memset(v_overflow_buffer, 0, io_tlb_overflow);
+ 	io_tlb_overflow_buffer = virt_to_phys(v_overflow_buffer);
+ 
+ 	/*
+@@ -581,7 +619,7 @@ phys_addr_t swiotlb_tbl_map_single(struct device *hwdev,
+ 		return SWIOTLB_MAP_ERROR;
+ 	}
+ 
+-	start_dma_addr = phys_to_dma(hwdev, io_tlb_start);
++	start_dma_addr = swiotlb_phys_to_dma(hwdev, io_tlb_start);
+ 	return swiotlb_tbl_map_single(hwdev, start_dma_addr, phys, size,
+ 				      dir, attrs);
+ }
+@@ -702,7 +740,7 @@ void swiotlb_tbl_sync_single(struct device *hwdev, phys_addr_t tlb_addr,
+ 			goto err_warn;
+ 
+ 		ret = phys_to_virt(paddr);
+-		dev_addr = phys_to_dma(hwdev, paddr);
++		dev_addr = swiotlb_phys_to_dma(hwdev, paddr);
+ 
+ 		/* Confirm address can be DMA'd by device */
+ 		if (dev_addr + size - 1 > dma_mask) {
+@@ -812,10 +850,10 @@ dma_addr_t swiotlb_map_page(struct device *dev, struct page *page,
+ 	map = map_single(dev, phys, size, dir, attrs);
+ 	if (map == SWIOTLB_MAP_ERROR) {
+ 		swiotlb_full(dev, size, dir, 1);
+-		return phys_to_dma(dev, io_tlb_overflow_buffer);
++		return swiotlb_phys_to_dma(dev, io_tlb_overflow_buffer);
+ 	}
+ 
+-	dev_addr = phys_to_dma(dev, map);
++	dev_addr = swiotlb_phys_to_dma(dev, map);
+ 
+ 	/* Ensure that the address returned is DMA'ble */
+ 	if (dma_capable(dev, dev_addr, size))
+@@ -824,7 +862,7 @@ dma_addr_t swiotlb_map_page(struct device *dev, struct page *page,
+ 	attrs |= DMA_ATTR_SKIP_CPU_SYNC;
+ 	swiotlb_tbl_unmap_single(dev, map, size, dir, attrs);
+ 
+-	return phys_to_dma(dev, io_tlb_overflow_buffer);
++	return swiotlb_phys_to_dma(dev, io_tlb_overflow_buffer);
+ }
+ EXPORT_SYMBOL_GPL(swiotlb_map_page);
+ 
+@@ -958,7 +996,7 @@ void swiotlb_unmap_page(struct device *hwdev, dma_addr_t dev_addr,
+ 				sg_dma_len(sgl) = 0;
+ 				return 0;
+ 			}
+-			sg->dma_address = phys_to_dma(hwdev, map);
++			sg->dma_address = swiotlb_phys_to_dma(hwdev, map);
+ 		} else
+ 			sg->dma_address = dev_addr;
+ 		sg_dma_len(sg) = sg->length;
+@@ -1026,7 +1064,7 @@ void swiotlb_unmap_page(struct device *hwdev, dma_addr_t dev_addr,
+ int
+ swiotlb_dma_mapping_error(struct device *hwdev, dma_addr_t dma_addr)
+ {
+-	return (dma_addr == phys_to_dma(hwdev, io_tlb_overflow_buffer));
++	return (dma_addr == swiotlb_phys_to_dma(hwdev, io_tlb_overflow_buffer));
+ }
+ EXPORT_SYMBOL(swiotlb_dma_mapping_error);
+ 
+@@ -1039,6 +1077,6 @@ void swiotlb_unmap_page(struct device *hwdev, dma_addr_t dev_addr,
+ int
+ swiotlb_dma_supported(struct device *hwdev, u64 mask)
+ {
+-	return phys_to_dma(hwdev, io_tlb_end - 1) <= mask;
++	return swiotlb_phys_to_dma(hwdev, io_tlb_end - 1) <= mask;
+ }
+ EXPORT_SYMBOL(swiotlb_dma_supported);
