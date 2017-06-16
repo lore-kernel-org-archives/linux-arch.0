@@ -1,7 +1,7 @@
 From: Florian Fainelli <f.fainelli@gmail.com>
-Subject: [PATCH v2 4/4] misc: sram: Allow ARM64 to select SRAM_EXEC
-Date: Fri, 16 Jun 2017 14:28:08 -0700
-Message-ID: <20170616212808.19073-5-f.fainelli@gmail.com>
+Subject: [PATCH v2 2/4] asm-generic: Provide a fncpy() implementation
+Date: Fri, 16 Jun 2017 14:28:06 -0700
+Message-ID: <20170616212808.19073-3-f.fainelli@gmail.com>
 References: <20170616212808.19073-1-f.fainelli@gmail.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20170616212808.19073-1-f.fainelli@gmail.com>
@@ -10,26 +10,114 @@ To: linux-arm-kernel@lists.infradead.org
 Cc: bcm-kernel-feedback-list@broadcom.com, Florian Fainelli <f.fainelli@gmail.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, open list <linux-kernel@vger.kernel.org>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, Dave Gerlach <d-gerlach@ti.com>, Tony Lindgren <tony@atomide.com>, Keerthy J <j-keerthy@ti.com>, Alexandre Belloni <alexandre.belloni@free-electrons.com>, linux-omap@vger.kernel.org, Shawn Guo <shawnguo@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Now that ARM64 also has a fncpy() implementation, allow selection
-SRAM_EXEC for ARM64 as well.
+Define a generic fncpy() implementation largely based on the ARM version
+that requires an 8 bytes alignment for the destination address where to
+copy this function as well as the function's own address.
 
 Signed-off-by: Florian Fainelli <f.fainelli@gmail.com>
 ---
- drivers/misc/Kconfig | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ include/asm-generic/fncpy.h | 93 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 93 insertions(+)
+ create mode 100644 include/asm-generic/fncpy.h
 
-diff --git a/drivers/misc/Kconfig b/drivers/misc/Kconfig
-index 07bbd4cc1852..ac8779278c0c 100644
---- a/drivers/misc/Kconfig
-+++ b/drivers/misc/Kconfig
-@@ -464,7 +464,7 @@ config SRAM
- 	bool "Generic on-chip SRAM driver"
- 	depends on HAS_IOMEM
- 	select GENERIC_ALLOCATOR
--	select SRAM_EXEC if ARM
-+	select SRAM_EXEC if ARM || ARM64
- 	help
- 	  This driver allows you to declare a memory region to be managed by
- 	  the genalloc API. It is supposed to be used for small on-chip SRAM
+diff --git a/include/asm-generic/fncpy.h b/include/asm-generic/fncpy.h
+new file mode 100644
+index 000000000000..5bb3e5d20ae0
+--- /dev/null
++++ b/include/asm-generic/fncpy.h
+@@ -0,0 +1,93 @@
++/*
++ * include/asm-generic/fncpy.h - helper macros for function body copying
++ *
++ * Copyright (C) 2011 Linaro Limited
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
++ */
++
++/*
++ * These macros are intended for use when there is a need to copy a low-level
++ * function body into special memory.
++ *
++ * For example, when reconfiguring the SDRAM controller, the code doing the
++ * reconfiguration may need to run from SRAM.
++ *
++ * NOTE: that the copied function body must be entirely self-contained and
++ * position-independent in order for this to work properly.
++ *
++ * NOTE: in order for embedded literals and data to get referenced correctly,
++ * the alignment of functions must be preserved when copying.  To ensure this,
++ * the source and destination addresses for fncpy() must be aligned to a
++ * multiple of 8 bytes: you will be get a BUG() if this condition is not met.
++ * You will typically need a ".align 3" directive in the assembler where the
++ * function to be copied is defined, and ensure that your allocator for the
++ * destination buffer returns 8-byte-aligned pointers.
++ *
++ * Typical usage example:
++ *
++ * extern int f(args);
++ * extern uint32_t size_of_f;
++ * int (*copied_f)(args);
++ * void *sram_buffer;
++ *
++ * copied_f = fncpy(sram_buffer, &f, size_of_f);
++ *
++ * ... later, call the function: ...
++ *
++ * copied_f(args);
++ *
++ * The size of the function to be copied can't be determined from C:
++ * this must be determined by other means, such as adding assmbler directives
++ * in the file where f is defined.
++ */
++
++#ifndef __ASM_ARM_FNCPY_H
++#define __ASM_ARM_FNCPY_H
++
++#include <linux/types.h>
++#include <linux/string.h>
++
++#include <asm/bug.h>
++#include <asm/cacheflush.h>
++
++/*
++ * Minimum alignment requirement for the source and destination addresses
++ * for function copying.
++ */
++#define FNCPY_ALIGN 8
++
++#define fncpy(dest_buf, funcp, size) ({					\
++	uintptr_t __funcp_address;					\
++	typeof(funcp) __result;						\
++									\
++	asm("" : "=r" (__funcp_address) : "0" (funcp));			\
++									\
++	/*								\
++	 * Ensure alignment of source and destination addresses.	\
++	 */								\
++	BUG_ON((uintptr_t)(dest_buf) & (FNCPY_ALIGN - 1) ||		\
++		(__funcp_address & (FNCPY_ALIGN - 1)));			\
++									\
++	memcpy(dest_buf, (void const *)__funcp_address, size);		\
++	flush_icache_range((unsigned long)(dest_buf),			\
++		(unsigned long)(dest_buf) + (size));			\
++									\
++	asm("" : "=r" (__result)					\
++		: "0" ((uintptr_t)(dest_buf)));				\
++									\
++	__result;							\
++})
++
++#endif /* !__ASM_ARM_FNCPY_H */
 -- 
 2.9.3
