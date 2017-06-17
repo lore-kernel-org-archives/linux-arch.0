@@ -1,47 +1,34 @@
-From: Juergen Gross <jgross@suse.com>
-Subject: Re: [PATCH v7 32/36] xen/x86: Remove SME feature in PV guests
-Date: Sat, 17 Jun 2017 12:40:17 +0200
-Message-ID: <8dac5656-3d54-8b14-46ca-50072b507be3@suse.com>
-References: <20170616184947.18967.84890.stgit@tlendack-t1.amdoffice.net>
- <20170616185554.18967.82909.stgit@tlendack-t1.amdoffice.net>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH 0/5] move everyone over to thin archives
+Date: Sat, 17 Jun 2017 23:10:54 +1000
+Message-ID: <20170617231054.63aeb5ac@roar.ozlabs.ibm.com>
+References: <20170609052417.561-1-npiggin@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <20170616185554.18967.82909.stgit@tlendack-t1.amdoffice.net>
-Content-Language: de-DE
-Sender: linux-doc-owner@vger.kernel.org
-To: Tom Lendacky <thomas.lendacky@amd.com>, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org
-Cc: Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.c>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pg0-f67.google.com ([74.125.83.67]:34628 "EHLO
+        mail-pg0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751962AbdFQNLJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 17 Jun 2017 09:11:09 -0400
+In-Reply-To: <20170609052417.561-1-npiggin@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Masahiro Yamada <yamada.masahiro@socionext.com>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>
 
-On 16/06/17 20:55, Tom Lendacky wrote:
-> Xen does not currently support SME for PV guests. Clear the SME cpu
-> capability in order to avoid any ambiguity.
+On Fri,  9 Jun 2017 15:24:12 +1000
+Nicholas Piggin <npiggin@gmail.com> wrote:
+
+> This has gone through 0day several times now, and I think I've
+> weeded out all the build breakage. Following what Linus asked
+> for, I did not make it a user selectable option. I kept the
+> option there in case we need to do a depend on !ARCH for any
+> reason.
 > 
-> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+> Please consider for the kbuild tree.
 
-Reviewed-by: Juergen Gross <jgross@suse.com>
+Any thoughts on this?
 
-
-Juergen
-
-> ---
->  arch/x86/xen/enlighten_pv.c |    1 +
->  1 file changed, 1 insertion(+)
-> 
-> diff --git a/arch/x86/xen/enlighten_pv.c b/arch/x86/xen/enlighten_pv.c
-> index f33eef4..e6ecf42 100644
-> --- a/arch/x86/xen/enlighten_pv.c
-> +++ b/arch/x86/xen/enlighten_pv.c
-> @@ -294,6 +294,7 @@ static void __init xen_init_capabilities(void)
->  	setup_clear_cpu_cap(X86_FEATURE_MTRR);
->  	setup_clear_cpu_cap(X86_FEATURE_ACC);
->  	setup_clear_cpu_cap(X86_FEATURE_X2APIC);
-> +	setup_clear_cpu_cap(X86_FEATURE_SME);
->  
->  	if (!xen_initial_domain())
->  		setup_clear_cpu_cap(X86_FEATURE_ACPI);
-> 
-> 
-
+Thanks,
+Nick
