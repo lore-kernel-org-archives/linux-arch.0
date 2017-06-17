@@ -1,128 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f193.google.com ([209.85.220.193]:34564 "EHLO
-        mail-qk0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751144AbdFQAHz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 16 Jun 2017 20:07:55 -0400
+Received: from mail-qk0-f196.google.com ([209.85.220.196]:35375 "EHLO
+        mail-qk0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752067AbdFQAH5 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 16 Jun 2017 20:07:57 -0400
 From: Florian Fainelli <f.fainelli@gmail.com>
-Subject: [PATCH v3 2/4] asm-generic: Provide a fncpy() implementation
-Date: Fri, 16 Jun 2017 17:07:42 -0700
-Message-ID: <20170617000744.22158-3-f.fainelli@gmail.com>
+Subject: [PATCH v3 3/4] arm64: Provide a fncpy implementation
+Date: Fri, 16 Jun 2017 17:07:43 -0700
+Message-ID: <20170617000744.22158-4-f.fainelli@gmail.com>
 In-Reply-To: <20170617000744.22158-1-f.fainelli@gmail.com>
 References: <20170617000744.22158-1-f.fainelli@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org
 Cc: bcm-kernel-feedback-list@broadcom.com, Florian Fainelli <f.fainelli@gmail.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, open list <linux-kernel@vger.kernel.org>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, Dave Gerlach <d-gerlach@ti.com>, Tony Lindgren <tony@atomide.com>, Keerthy J <j-keerthy@ti.com>, Alexandre Belloni <alexandre.belloni@free-electrons.com>, linux-omap@vger.kernel.org, Shawn Guo <shawnguo@kernel.org>
-Message-ID: <20170617000742.VVBbfdytg1MeMrTz8zQKoMBGBsVA8otC8BRDnmsVgcM@z>
+Message-ID: <20170617000743.8RxccX0k-SOIT8Z7PXd1vDWY65i2z-d-jHvMbXA0Xn0@z>
 
-Define a generic fncpy() implementation largely based on the ARM version
-that requires an 8 bytes alignment for the destination address where to
-copy this function as well as the function's own address.
+Utilize the asm-generic/fncpy.h implementation for ARM64 to allow the
+use of drivers/misc/sram*.c on these platforms as well.
 
 Signed-off-by: Florian Fainelli <f.fainelli@gmail.com>
 ---
- include/asm-generic/fncpy.h | 93 +++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 93 insertions(+)
- create mode 100644 include/asm-generic/fncpy.h
+ arch/arm64/include/asm/Kbuild | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/include/asm-generic/fncpy.h b/include/asm-generic/fncpy.h
-new file mode 100644
-index 000000000000..ec03b83b8535
---- /dev/null
-+++ b/include/asm-generic/fncpy.h
-@@ -0,0 +1,93 @@
-+/*
-+ * include/asm-generic/fncpy.h - helper macros for function body copying
-+ *
-+ * Copyright (C) 2011 Linaro Limited
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
-+ */
-+
-+/*
-+ * These macros are intended for use when there is a need to copy a low-level
-+ * function body into special memory.
-+ *
-+ * For example, when reconfiguring the SDRAM controller, the code doing the
-+ * reconfiguration may need to run from SRAM.
-+ *
-+ * NOTE: that the copied function body must be entirely self-contained and
-+ * position-independent in order for this to work properly.
-+ *
-+ * NOTE: in order for embedded literals and data to get referenced correctly,
-+ * the alignment of functions must be preserved when copying.  To ensure this,
-+ * the source and destination addresses for fncpy() must be aligned to a
-+ * multiple of 8 bytes: you will be get a BUG() if this condition is not met.
-+ * You will typically need a ".align 3" directive in the assembler where the
-+ * function to be copied is defined, and ensure that your allocator for the
-+ * destination buffer returns 8-byte-aligned pointers.
-+ *
-+ * Typical usage example:
-+ *
-+ * extern int f(args);
-+ * extern uint32_t size_of_f;
-+ * int (*copied_f)(args);
-+ * void *sram_buffer;
-+ *
-+ * copied_f = fncpy(sram_buffer, &f, size_of_f);
-+ *
-+ * ... later, call the function: ...
-+ *
-+ * copied_f(args);
-+ *
-+ * The size of the function to be copied can't be determined from C:
-+ * this must be determined by other means, such as adding assmbler directives
-+ * in the file where f is defined.
-+ */
-+
-+#ifndef __ASM_FNCPY_H
-+#define __ASM_FNCPY_H
-+
-+#include <linux/types.h>
-+#include <linux/string.h>
-+
-+#include <asm/bug.h>
-+#include <asm/cacheflush.h>
-+
-+/*
-+ * Minimum alignment requirement for the source and destination addresses
-+ * for function copying.
-+ */
-+#define FNCPY_ALIGN 8
-+
-+#define fncpy(dest_buf, funcp, size) ({					\
-+	uintptr_t __funcp_address;					\
-+	typeof(funcp) __result;						\
-+									\
-+	asm("" : "=r" (__funcp_address) : "0" (funcp));			\
-+									\
-+	/*								\
-+	 * Ensure alignment of source and destination addresses.	\
-+	 */								\
-+	BUG_ON((uintptr_t)(dest_buf) & (FNCPY_ALIGN - 1) ||		\
-+		(__funcp_address & (FNCPY_ALIGN - 1)));			\
-+									\
-+	memcpy(dest_buf, (void const *)__funcp_address, size);		\
-+	flush_icache_range((unsigned long)(dest_buf),			\
-+		(unsigned long)(dest_buf) + (size));			\
-+									\
-+	asm("" : "=r" (__result)					\
-+		: "0" ((uintptr_t)(dest_buf)));				\
-+									\
-+	__result;							\
-+})
-+
-+#endif /* !__ASM_FNCPY_H */
+diff --git a/arch/arm64/include/asm/Kbuild b/arch/arm64/include/asm/Kbuild
+index a7a97a608033..5cfd822d3256 100644
+--- a/arch/arm64/include/asm/Kbuild
++++ b/arch/arm64/include/asm/Kbuild
+@@ -7,6 +7,7 @@ generic-y += dma-contiguous.h
+ generic-y += early_ioremap.h
+ generic-y += emergency-restart.h
+ generic-y += errno.h
++generic-y += fncpy.h
+ generic-y += hw_irq.h
+ generic-y += ioctl.h
+ generic-y += ioctls.h
 -- 
 2.9.3
