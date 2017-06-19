@@ -1,114 +1,84 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bl2nam02on0080.outbound.protection.outlook.com ([104.47.38.80]:2785
-        "EHLO NAM02-BL2-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752503AbdFRXvY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 18 Jun 2017 19:51:24 -0400
-Date: Mon, 19 Jun 2017 02:51:08 +0300
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: Re: [PATCH v3 2/4] asm-generic: Provide a fncpy() implementation
-Message-ID: <20170618235108.peaxdi367jpkt542@yury-thinkpad>
-References: <20170617000744.22158-1-f.fainelli@gmail.com>
- <20170617000744.22158-3-f.fainelli@gmail.com>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:59692 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1751013AbdFSFsO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 19 Jun 2017 01:48:14 -0400
+Received: from pps.filterd (m0098420.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.20/8.16.0.20) with SMTP id v5J5hwnZ083868
+        for <linux-arch@vger.kernel.org>; Mon, 19 Jun 2017 01:48:13 -0400
+Received: from e06smtp10.uk.ibm.com (e06smtp10.uk.ibm.com [195.75.94.106])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2b64r205k2-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Mon, 19 Jun 2017 01:48:13 -0400
+Received: from localhost
+        by e06smtp10.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <schwidefsky@de.ibm.com>;
+        Mon, 19 Jun 2017 06:48:11 +0100
+Date: Mon, 19 Jun 2017 07:48:01 +0200
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Subject: Re: [PATCHv2 1/3] x86/mm: Provide pmdp_establish() helper
+In-Reply-To: <20170615145224.66200-2-kirill.shutemov@linux.intel.com>
+References: <20170615145224.66200-1-kirill.shutemov@linux.intel.com>
+        <20170615145224.66200-2-kirill.shutemov@linux.intel.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20170617000744.22158-3-f.fainelli@gmail.com>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 8BIT
+Message-ID: <20170619074801.18fa2a16@mschwideX1>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Florian Fainelli <f.fainelli@gmail.com>
-Cc: linux-arm-kernel@lists.infradead.org, bcm-kernel-feedback-list@broadcom.com, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, open list <linux-kernel@vger.kernel.org>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, Dave Gerlach <d-gerlach@ti.com>, Tony Lindgren <tony@atomide.com>, Keerthy J <j-keerthy@ti.com>, Alexandre Belloni <alexandre.belloni@free-electrons.com>, linux-omap@vger.kernel.org, Shawn Guo <shawnguo@kernel.org>
-Message-ID: <20170618235108.u4n67ZGWk-J3EwC5KK5D_E2b1osSy8bk3uEAzlajY1U@z>
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Ralf Baechle <ralf@linux-mips.org>, "David S. Miller" <davem@davemloft.net>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andrea Arcangeli <aarcange@redhat.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>
+Message-ID: <20170619054801.HrLEcLUbnCr40-cgs5MHxpJokcVvdALCsOeu1EiPuvg@z>
 
-Hi Florian,
+On Thu, 15 Jun 2017 17:52:22 +0300
+"Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> wrote:
 
-Some questions and thoughts inline.
-
-Yury
-
-On Fri, Jun 16, 2017 at 05:07:42PM -0700, Florian Fainelli wrote:
-> Define a generic fncpy() implementation largely based on the ARM version
-> that requires an 8 bytes alignment for the destination address where to
-> copy this function as well as the function's own address.
+> We need an atomic way to setup pmd page table entry, avoiding races with
+> CPU setting dirty/accessed bits. This is required to implement
+> pmdp_invalidate() that doesn't loose these bits.
 > 
-> Signed-off-by: Florian Fainelli <f.fainelli@gmail.com>
+> On PAE we have to use cmpxchg8b as we cannot assume what is value of new pmd and
+> setting it up half-by-half can expose broken corrupted entry to CPU.
+> 
+> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+> Cc: Ingo Molnar <mingo@kernel.org>
+> Cc: H. Peter Anvin <hpa@zytor.com>
+> Cc: Thomas Gleixner <tglx@linutronix.de>
 > ---
->  include/asm-generic/fncpy.h | 93 +++++++++++++++++++++++++++++++++++++++++++++
->  1 file changed, 93 insertions(+)
->  create mode 100644 include/asm-generic/fncpy.h
+>  arch/x86/include/asm/pgtable-3level.h | 18 ++++++++++++++++++
+>  arch/x86/include/asm/pgtable.h        | 14 ++++++++++++++
+>  2 files changed, 32 insertions(+)
 > 
-> diff --git a/include/asm-generic/fncpy.h b/include/asm-generic/fncpy.h
-> new file mode 100644
-> index 000000000000..ec03b83b8535
-> --- /dev/null
-> +++ b/include/asm-generic/fncpy.h
-> @@ -0,0 +1,93 @@
-> +/*
-> + * include/asm-generic/fncpy.h - helper macros for function body copying
-> + *
-> + * Copyright (C) 2011 Linaro Limited
-> + *
-> + * This program is free software; you can redistribute it and/or modify
-> + * it under the terms of the GNU General Public License version 2 as
-> + * published by the Free Software Foundation.
-> + *
-> + * This program is distributed in the hope that it will be useful,
-> + * but WITHOUT ANY WARRANTY; without even the implied warranty of
-> + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-> + * GNU General Public License for more details.
-> + *
-> + * You should have received a copy of the GNU General Public License
-> + * along with this program; if not, write to the Free Software
-> + * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
-> + */
+> diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
+> index f5af95a0c6b8..a924fc6a96b9 100644
+> --- a/arch/x86/include/asm/pgtable.h
+> +++ b/arch/x86/include/asm/pgtable.h
+> @@ -1092,6 +1092,20 @@ static inline void pmdp_set_wrprotect(struct mm_struct *mm,
+>  	clear_bit(_PAGE_BIT_RW, (unsigned long *)pmdp);
+>  }
+> 
+> +#ifndef pmdp_establish
+> +#define pmdp_establish pmdp_establish
+> +static inline pmd_t pmdp_establish(pmd_t *pmdp, pmd_t pmd)
+> +{
+> +	if (IS_ENABLED(CONFIG_SMP)) {
+> +		return xchg(pmdp, pmd);
+> +	} else {
+> +		pmd_t old = *pmdp;
+> +		*pmdp = pmd;
+> +		return old;
+> +	}
+> +}
+> +#endif
 > +
-> +/*
-> + * These macros are intended for use when there is a need to copy a low-level
-> + * function body into special memory.
-> + *
-> + * For example, when reconfiguring the SDRAM controller, the code doing the
-> + * reconfiguration may need to run from SRAM.
-> + *
-> + * NOTE: that the copied function body must be entirely self-contained and
-> + * position-independent in order for this to work properly.
-> + *
-> + * NOTE: in order for embedded literals and data to get referenced correctly,
-> + * the alignment of functions must be preserved when copying.  To ensure this,
-> + * the source and destination addresses for fncpy() must be aligned to a
-> + * multiple of 8 bytes: you will be get a BUG() if this condition is not met.
-> + * You will typically need a ".align 3" directive in the assembler where the
-> + * function to be copied is defined, and ensure that your allocator for the
-> + * destination buffer returns 8-byte-aligned pointers.
-> + *
-> + * Typical usage example:
-> + *
-> + * extern int f(args);
-> + * extern uint32_t size_of_f;
-> + * int (*copied_f)(args);
-> + * void *sram_buffer;
-> + *
-> + * copied_f = fncpy(sram_buffer, &f, size_of_f);
-> + *
-> + * ... later, call the function: ...
-> + *
-> + * copied_f(args);
-> + *
-> + * The size of the function to be copied can't be determined from C:
-> + * this must be determined by other means, such as adding assmbler directives
-> + * in the file where f is defined.
-> + */
-> +
-> +#ifndef __ASM_FNCPY_H
-> +#define __ASM_FNCPY_H
-> +
-> +#include <linux/types.h>
-> +#include <linux/string.h>
-> +
-> +#include <asm/bug.h>
-> +#include <asm/cacheflush.h>
-> +
-> +/*
-> + * Minimum alignment requirement for the source and destination addresses
-> + * for function copying.
-> + */
-> +#define FNCPY_ALIGN 8
+>  /*
+>   * clone_pgd_range(pgd_t *dst, pgd_t *src, int count);
+>   *
+
+For the s390 version of the pmdp_establish function we need the mm to be able
+to do the TLB flush correctly. Can we please add a "struct vm_area_struct *vma"
+argument to pmdp_establish analog to pmdp_invalidate?
+
+The s390 patch would then look like this:
+--
