@@ -1,49 +1,59 @@
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: Re: [PATCH 0/5] move everyone over to thin archives
-Date: Mon, 19 Jun 2017 15:30:18 +0900
-Message-ID: <CAK7LNATZb-=1c9hnHWJCk5oyYcC1z190yHVtTJZLcOZG8MRCjQ@mail.gmail.com>
-References: <20170609052417.561-1-npiggin@gmail.com> <20170617231054.63aeb5ac@roar.ozlabs.ibm.com>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH 1/5] kbuild: thin archives final link close
+ --whole-archives option
+Date: Mon, 19 Jun 2017 16:51:00 +1000
+Message-ID: <20170619165100.3ce26d00@roar.ozlabs.ibm.com>
+References: <20170609052417.561-1-npiggin@gmail.com>
+        <20170609052417.561-2-npiggin@gmail.com>
+        <CAK7LNASxuE-6eMk+Y-vyrMfibtYoD2JkjNS2z8QF85x9NdiiaA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from conssluserg-03.nifty.com ([210.131.2.82]:38381 "EHLO
-        conssluserg-03.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751438AbdFSGa0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 19 Jun 2017 02:30:26 -0400
-In-Reply-To: <20170617231054.63aeb5ac@roar.ozlabs.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <CAK7LNASxuE-6eMk+Y-vyrMfibtYoD2JkjNS2z8QF85x9NdiiaA@mail.gmail.com>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Masahiro Yamada <yamada.masahiro@socionext.com>
 Cc: Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>
+List-Id: linux-arch.vger.kernel.org
 
-Hi Nicholas,
+On Mon, 19 Jun 2017 15:16:17 +0900
+Masahiro Yamada <yamada.masahiro@socionext.com> wrote:
 
-2017-06-17 22:10 GMT+09:00 Nicholas Piggin <npiggin@gmail.com>:
-> On Fri,  9 Jun 2017 15:24:12 +1000
-> Nicholas Piggin <npiggin@gmail.com> wrote:
->
->> This has gone through 0day several times now, and I think I've
->> weeded out all the build breakage. Following what Linus asked
->> for, I did not make it a user selectable option. I kept the
->> option there in case we need to do a depend on !ARCH for any
->> reason.
->>
->> Please consider for the kbuild tree.
->
-> Any thoughts on this?
->
-> Thanks,
-> Nick
+> Hi Nicholas,
+> 
+> 
+> 2017-06-09 14:24 GMT+09:00 Nicholas Piggin <npiggin@gmail.com>:
+> > Close the --whole-archives option with --no-whole-archive. Some
+> > architectures end up including additional .o and files multiple
+> > times after this, and they get duplicate symbols when they are
+> > brought under the --whole-archives option.  
+> 
+> Which architectures have additional files after --no-whole-archive ?
+> 
+> I see this case only for ARCH = "um" in vmlinux_link()
+> where it adds some -l* options after --no-whole-archive.
+> 
+> I think it is good to close the --whole-archives everywhere.
+> So, the code looks OK to me, but I just wondered about the log.
 
-Sorry for my late reply.
+Actually a number of archs seemed to get build errors without this,
+and they seem to come from libgcc perhaps.
 
-Basically, I think thin-archive is the right direction we should go.
-(and I agree thin-archive and DCE can get in separately)
+binfmt_elf.c:(.text+0x4851): undefined reference to `__kernel_syscall_via_epc'
+/c/gcc/libgcc/libgcc2.c:1318: multiple definition of `__ucmpdi2'
+/c/gcc/libgcc/libgcc2.c:405: multiple definition of `__lshrdi3'
+/c/gcc/libgcc/libgcc2.c:433: multiple definition of `__ashldi3'
+/c/gcc/libgcc/libgcc2.c:461: multiple definition of `__ashrdi3'
 
-Could you check my comments on each patch?
+/home/tony/buildall/src/gcc/libgcc/config/xtensa/lib2funcs.S:36: multiple definition of `__xtensa_libgcc_window_spill'
 
+etc
 
+m32r, parisc, xtensa seemed to be getting such errors. I wonder if
+the linker implicitly adds some runtime libs at the end that get
+caught up here. Either way I didn't look too far into it because this
+fix seems obviously correct and solved the problem.
 
--- 
-Best Regards
-Masahiro Yamada
+Thanks,
+Nick
+
