@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ve1eur01on0106.outbound.protection.outlook.com ([104.47.1.106]:45388
-        "EHLO EUR01-VE1-obe.outbound.protection.outlook.com"
+Received: from mail-eopbgr30092.outbound.protection.outlook.com ([40.107.3.92]:31697
+        "EHLO EUR03-AM5-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752332AbdFSSC6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 19 Jun 2017 14:02:58 -0400
-Subject: [PATCH 3/7] alpha: Add __down_read_killable()
+        id S1752475AbdFSSD3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 19 Jun 2017 14:03:29 -0400
+Subject: [PATCH 6/7] x86: Add __down_read_killable()
 From: Kirill Tkhai <ktkhai@virtuozzo.com>
-Date: Mon, 19 Jun 2017 21:02:39 +0300
-Message-ID: <149789535907.9059.6602375201918019383.stgit@localhost.localdomain>
+Date: Mon, 19 Jun 2017 21:03:14 +0300
+Message-ID: <149789539472.9059.14776109385585841547.stgit@localhost.localdomain>
 In-Reply-To: <149789463636.9059.16943955939303454611.stgit@localhost.localdomain>
 References: <149789463636.9059.16943955939303454611.stgit@localhost.localdomain>
 MIME-Version: 1.0
@@ -16,51 +16,94 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-ia64@vger.kernel.org, avagin@virtuozzo.com, peterz@infradead.org, heiko.carstens@de.ibm.com, hpa@zytor.com, gorcunov@virtuozzo.com, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, x86@kernel.org, mingo@redhat.com, mattst88@gmail.com, fenghua.yu@intel.com, arnd@arndb.de, ktkhai@virtuozzo.com, ink@jurassic.park.msu.ru, tglx@linutronix.de, rth@twiddle.net, tony.luck@intel.com, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, schwidefsky@de.ibm.com, davem@davemloft.net
-Message-ID: <20170619180239.8JaLn8jTbUFpZE25WYhmWsyKRwBdsEgBOc9KNv1HRXU@z>
+Message-ID: <20170619180314.JJ3nDfx9hWKByu_YOC-SF-TDl-eNc2tZEp71jX8HQmM@z>
 
-Similar to __down_write_killable(), and read killable primitive.
+Similar to __down_write_killable(), add read killable primitive:
+extract current __down_read() code to macros and teach it to get
+different functions as slow_path argument:
+store ax register to ret, and add sp register and preserve its value.
+
+Add call_rwsem_down_read_failed_killable() assembly entry similar
+to call_rwsem_down_read_failed():
+push dx register to stack in additional to common registers,
+as it's not declarated as modifiable in ____down_read().
 
 Signed-off-by: Kirill Tkhai <ktkhai@virtuozzo.com>
 ---
- arch/alpha/include/asm/rwsem.h |   18 ++++++++++++++++--
- 1 file changed, 16 insertions(+), 2 deletions(-)
+ arch/x86/include/asm/rwsem.h |   37 +++++++++++++++++++++++++++----------
+ arch/x86/lib/rwsem.S         |   12 ++++++++++++
+ 2 files changed, 39 insertions(+), 10 deletions(-)
 
-diff --git a/arch/alpha/include/asm/rwsem.h b/arch/alpha/include/asm/rwsem.h
-index 77873d0ad293..7118bd090085 100644
---- a/arch/alpha/include/asm/rwsem.h
-+++ b/arch/alpha/include/asm/rwsem.h
-@@ -21,7 +21,7 @@
- #define RWSEM_ACTIVE_READ_BIAS		RWSEM_ACTIVE_BIAS
- #define RWSEM_ACTIVE_WRITE_BIAS		(RWSEM_WAITING_BIAS + RWSEM_ACTIVE_BIAS)
- 
--static inline void __down_read(struct rw_semaphore *sem)
-+static inline int ___down_read(struct rw_semaphore *sem)
+diff --git a/arch/x86/include/asm/rwsem.h b/arch/x86/include/asm/rwsem.h
+index a34e0d4b957d..0fe7b0aee266 100644
+--- a/arch/x86/include/asm/rwsem.h
++++ b/arch/x86/include/asm/rwsem.h
+@@ -60,18 +60,35 @@
+ /*
+  * lock for reading
+  */
++#define ____down_read(sem, slow_path)					\
++({									\
++	struct rw_semaphore* ret;					\
++	register void *__sp asm(_ASM_SP);				\
++	asm volatile("# beginning down_read\n\t"			\
++		     LOCK_PREFIX _ASM_INC "(%3)\n\t"			\
++		     /* adds 0x00000001 */				\
++		     "  jns        1f\n"				\
++		     "  call " slow_path "\n"				\
++		     "1:\n\t"						\
++		     "# ending down_read\n\t"				\
++		     : "+m" (sem->count), "=a" (ret), "+r" (__sp)	\
++		     : "a" (sem)					\
++		     : "memory", "cc");					\
++									\
++	ret;								\
++})
++
+ static inline void __down_read(struct rw_semaphore *sem)
  {
- 	long oldcount;
- #ifndef	CONFIG_SMP
-@@ -41,10 +41,24 @@ static inline void __down_read(struct rw_semaphore *sem)
- 	:"=&r" (oldcount), "=m" (sem->count), "=&r" (temp)
- 	:"Ir" (RWSEM_ACTIVE_READ_BIAS), "m" (sem->count) : "memory");
- #endif
--	if (unlikely(oldcount < 0))
-+	return (oldcount < 0);
+-	asm volatile("# beginning down_read\n\t"
+-		     LOCK_PREFIX _ASM_INC "(%1)\n\t"
+-		     /* adds 0x00000001 */
+-		     "  jns        1f\n"
+-		     "  call call_rwsem_down_read_failed\n"
+-		     "1:\n\t"
+-		     "# ending down_read\n\t"
+-		     : "+m" (sem->count)
+-		     : "a" (sem)
+-		     : "memory", "cc");
++	____down_read(sem, "call_rwsem_down_read_failed");
 +}
 +
-+static inline void __down_read(struct rw_semaphore *sem)
-+{
-+	if (unlikely(___down_read(sem)))
- 		rwsem_down_read_failed(sem);
- }
- 
 +static inline int __down_read_killable(struct rw_semaphore *sem)
 +{
-+	if (unlikely(___down_read(sem)))
-+		if (IS_ERR(rwsem_down_read_failed_killable(sem)))
-+			return -EINTR;
++	if (IS_ERR(____down_read(sem, "call_rwsem_down_read_failed_killable")))
++		return -EINTR;
 +
 +	return 0;
-+}
-+
+ }
+ 
  /*
-  * trylock for reading -- returns 1 if successful, 0 if contention
-  */
+diff --git a/arch/x86/lib/rwsem.S b/arch/x86/lib/rwsem.S
+index bf2c6074efd2..dc2ab6ea6768 100644
+--- a/arch/x86/lib/rwsem.S
++++ b/arch/x86/lib/rwsem.S
+@@ -98,6 +98,18 @@ ENTRY(call_rwsem_down_read_failed)
+ 	ret
+ ENDPROC(call_rwsem_down_read_failed)
+ 
++ENTRY(call_rwsem_down_read_failed_killable)
++	FRAME_BEGIN
++	save_common_regs
++	__ASM_SIZE(push,) %__ASM_REG(dx)
++	movq %rax,%rdi
++	call rwsem_down_read_failed_killable
++	__ASM_SIZE(pop,) %__ASM_REG(dx)
++	restore_common_regs
++	FRAME_END
++	ret
++ENDPROC(call_rwsem_down_read_failed_killable)
++
+ ENTRY(call_rwsem_down_write_failed)
+ 	FRAME_BEGIN
+ 	save_common_regs
