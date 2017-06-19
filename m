@@ -1,106 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:50514 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:51618 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751063AbdFSObo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 19 Jun 2017 10:31:44 -0400
-Date: Mon, 19 Jun 2017 15:30:51 +0100
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCH 08/17] dts: include documentation for the RISC-V
- interrupt controllers
-Message-ID: <20170619143027.GA4433@leverpostej>
-References: <20170523004107.536-1-palmer@dabbelt.com>
- <20170606230007.19101-1-palmer@dabbelt.com>
- <20170606230007.19101-9-palmer@dabbelt.com>
- <CAMuHMdWYNVvh4hqDrqYNe2oyVHkCbH15VfWTWHaBCeRAaf6O4g@mail.gmail.com>
- <20170607101343.GC29370@leverpostej>
- <CAMgXwTiz0jXgSw=veJ3O7xzVgm==YisZZLWpZFH7aJMXV4j7qA@mail.gmail.com>
- <20170608105230.GC5765@leverpostej>
- <CAMgXwTi+H5n9f_kcbvTJE1yA-yeNSuwuR+QO4kYXtyZbQ2ga2w@mail.gmail.com>
+        id S1752742AbdFSPWf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 19 Jun 2017 11:22:35 -0400
+Date: Mon, 19 Jun 2017 16:22:29 +0100
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCHv2 1/3] x86/mm: Provide pmdp_establish() helper
+Message-ID: <20170619152228.GE3024@e104818-lin.cambridge.arm.com>
+References: <20170615145224.66200-1-kirill.shutemov@linux.intel.com>
+ <20170615145224.66200-2-kirill.shutemov@linux.intel.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <CAMgXwTi+H5n9f_kcbvTJE1yA-yeNSuwuR+QO4kYXtyZbQ2ga2w@mail.gmail.com>
+In-Reply-To: <20170615145224.66200-2-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Wesley Terpstra <wesley@sifive.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Palmer Dabbelt <palmer@dabbelt.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Olof Johansson <olof@lixom.net>, Albert Ou <albert@sifive.com>, patches@groups.riscv.org, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <Marc.Zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>
-Message-ID: <20170619143051.GLz8ySMDQGHdV-35vcyk6pP8rjQSrhLP9UHKQBASP6g@z>
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, Ralf Baechle <ralf@linux-mips.org>, "David S. Miller" <davem@davemloft.net>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andrea Arcangeli <aarcange@redhat.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>
+Message-ID: <20170619152229.pfx_fPxgXGdwuYsB32duFiaCmv-Recj2o320GsDTbw4@z>
 
-On Fri, Jun 09, 2017 at 02:58:14PM -0700, Wesley Terpstra wrote:
-> Ugh. Clicked reply without being done writing the reply!
+Hi Kirill,
+
+On Thu, Jun 15, 2017 at 05:52:22PM +0300, Kirill A. Shutemov wrote:
+> We need an atomic way to setup pmd page table entry, avoiding races with
+> CPU setting dirty/accessed bits. This is required to implement
+> pmdp_invalidate() that doesn't loose these bits.
 > 
-> On Thu, Jun 8, 2017 at 3:52 AM, Mark Rutland <mark.rutland@arm.com> wrote:
-> > Edge vs level, active high vs active low. Typically some of these are
-> > programmable, and are described as flags in the interrupt-specifier.
-> >
-> > See the examples in:
-> >
-> > Documentation/devicetree/bindings/interrupt-controller/interrupts.txt
+> On PAE we have to use cmpxchg8b as we cannot assume what is value of new pmd and
+> setting it up half-by-half can expose broken corrupted entry to CPU.
 > 
-> Ok. Those are not really relevant to the PLIC. It has a flat interrupt
-> namespace and the way you handle all four kinds of interrupts in the
-> driver is uniform. I don't think we want to architecturally expose
-> this to the operating system.
+> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+> Cc: Ingo Molnar <mingo@kernel.org>
+> Cc: H. Peter Anvin <hpa@zytor.com>
+> Cc: Thomas Gleixner <tglx@linutronix.de>
 
-Sure thing. I was just making sure I clarified my initial statement.
+I'll look at this from the arm64 perspective. It would be good if we can
+have a generic atomic implementation based on cmpxchg64 but I need to
+look at the details first.
 
-> > So do any CSRs affect the state of the PLIC? If it's just MMIO, the
-> > mention of CSRs above is just a little confusing.
-> 
-> HLIC = CSR only. PLIC = MMIO only.
-> 
-> > It might be best to just say "The PLIC is connect to the HLIC embedded
-> > in each RISC-V core".
-> 
-> Fair enough.
-> 
-> > It sounds like we'd need these to distinguish edge/level interrupts,
-> > unless that's fixed at integration time and you can determine it from
-> > the PLIC itself?
-> 
-> They are fixed at integration time and the PLIC driver does not need to care.
+> +static inline pmd_t pmdp_establish(pmd_t *pmdp, pmd_t pmd)
+> +{
+> +	pmd_t old;
+> +
+> +	/*
+> +	 * We cannot assume what is value of pmd here, so there's no easy way
+> +	 * to set if half by half. We have to fall back to cmpxchg64.
+> +	 */
+> +	{
 
-Ok.
+BTW, you are missing a "do" here (and it probably compiles just fine
+without it, though different behaviour).
 
-> > Please update the binding to explicitly define the ordering requirement.
-> 
-> The ordering requirement is that the first interrupts-extended entry
-> corresponds to the first context, second to second, etc. If a context
-> is unused for some reason, that's when you need a -1. The contexts are
-> linear and contiguous in the MMIO address map.
+> +		old = *pmdp;
+> +	} while (cmpxchg64(&pmdp->pmd, old.pmd, pmd.pmd) != old.pmd);
+> +
+> +	return old;
+> +}
 
-Ah. It wasn't at all clear to me that the order was in relation to the
-MMIO space.
-
-How is it possible to tell if an context is unused?
-
-Are those mandated to be linear and contiguous in the address space?
-
-How is the relationship between an MMIO context and hart determined?
-
-I'm not sure that it makes sense to use -1 in this manner, since the
-first cell of each interrupts-extended tuple entry is a phandle. IIRC
-zero is currently de-facto invalid, and if we really need a NULL
-phandle, we should get that clarified in the DT spec.
-
-It might be better to describe each MMIO context separately, and then
-associate IRQs with those in-order.
-
-> 
-> > Does this mean that you expect Linux logical CPU IDs to be equal to
-> > physical CPU IDs in all cases?
-> 
-> No. There is no 'physical CPU ID' anyway, except the mhartid CSR which
-> is unavailable to linux. The SBI conveys your CPU ID by passing it as
-> the first argument to the linux kernel.
-> 
-> The interrupts-extended in the PLIC uses a phandle to reference the
-> matching CPU in DTS. The num in cpu@<num> only need correspond to the
-> first register argument to the kernel.
-
-So you use the reference to the HLIC to implictly provide the CPU
-affinity? Or do you assume that these align with the SBI-provided CPU
-IDs?
-
-Thanks,
-Mark.
+-- 
+Catalin
