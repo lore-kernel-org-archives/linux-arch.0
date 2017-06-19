@@ -1,108 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:54428 "EHLO foss.arm.com"
+Received: from mail.skyhub.de ([5.9.137.197]:47026 "EHLO mail.skyhub.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752340AbdFSRCM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 19 Jun 2017 13:02:12 -0400
-From: Punit Agrawal <punit.agrawal@arm.com>
-Subject: [PATCH v5 1/8] arm64: hugetlb: Refactor find_num_contig
-Date: Mon, 19 Jun 2017 18:01:38 +0100
-Message-ID: <20170619170145.25577-2-punit.agrawal@arm.com>
-In-Reply-To: <20170619170145.25577-1-punit.agrawal@arm.com>
-References: <20170619170145.25577-1-punit.agrawal@arm.com>
+        id S1750780AbdFSRSa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 19 Jun 2017 13:18:30 -0400
+Date: Mon, 19 Jun 2017 19:18:20 +0200
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v6 26/34] iommu/amd: Allow the AMD IOMMU to work with
+ memory encryption
+Message-ID: <20170619171820.tq4htttamb52pyx5@pd.tnic>
+References: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
+ <20170607191745.28645.81756.stgit@tlendack-t1.amdoffice.net>
+ <20170614174208.p2yr5exs4b6pjxhf@pd.tnic>
+ <0611d01a-19f8-d6ae-2682-932789855518@amd.com>
+ <20170615094111.wga334kg2bhxqib3@pd.tnic>
+ <921153f5-1528-31d8-b815-f0419e819aeb@amd.com>
+ <20170615153322.nwylo3dzn4fdx6n6@pd.tnic>
+ <3db2c52d-5e63-a1df-edd4-975bce7f29c2@amd.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <3db2c52d-5e63-a1df-edd4-975bce7f29c2@amd.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org
-Cc: Steve Capper <steve.capper@arm.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, will.deacon@arm.com, n-horiguchi@ah.jp.nec.com, kirill.shutemov@linux.intel.com, mike.kravetz@oracle.com, mark.rutland@arm.com, linux-arch@vger.kernel.org, aneesh.kumar@linux.vnet.ibm.com, David Woods <dwoods@mellanox.com>, Punit Agrawal <punit.agrawal@arm.com>
-Message-ID: <20170619170138.XCohDtIv21_GNbruHVmiTLzT58NZSGxnvFHVAvkq-PM@z>
+To: Tom Lendacky <thomas.lendacky@amd.com>, =?utf-8?B?SsO2cmcgUsO2ZGVs?= <joro@8bytes.org>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20170619171820.oLEQGcDXLS9eZlS23FGuYXy3TTCaWijsj8oa-aDXuYs@z>
 
-From: Steve Capper <steve.capper@arm.com>
+On Thu, Jun 15, 2017 at 11:33:41AM -0500, Tom Lendacky wrote:
+> Changing the signature back reverts to the original way, so this can be
+> looked at separate from this patchset then.
 
-As we regularly check for contiguous pte's in the huge accessors, remove
-this extra check from find_num_contig.
+Right, the patch which added the volatile thing was this one:
 
-Cc: David Woods <dwoods@mellanox.com>
-Signed-off-by: Steve Capper <steve.capper@arm.com>
-[ Resolved rebase conflicts due to patch re-ordering ]
-Signed-off-by: Punit Agrawal <punit.agrawal@arm.com>
----
- arch/arm64/mm/hugetlbpage.c | 17 ++++++++---------
- 1 file changed, 8 insertions(+), 9 deletions(-)
+  4bf5beef578e ("iommu/amd: Don't put completion-wait semaphore on stack")
 
-diff --git a/arch/arm64/mm/hugetlbpage.c b/arch/arm64/mm/hugetlbpage.c
-index 69b8200b1cfd..710bf935a473 100644
---- a/arch/arm64/mm/hugetlbpage.c
-+++ b/arch/arm64/mm/hugetlbpage.c
-@@ -42,15 +42,13 @@ int pud_huge(pud_t pud)
- }
- 
- static int find_num_contig(struct mm_struct *mm, unsigned long addr,
--			   pte_t *ptep, pte_t pte, size_t *pgsize)
-+			   pte_t *ptep, size_t *pgsize)
- {
- 	pgd_t *pgd = pgd_offset(mm, addr);
- 	pud_t *pud;
- 	pmd_t *pmd;
- 
- 	*pgsize = PAGE_SIZE;
--	if (!pte_cont(pte))
--		return 1;
- 	pud = pud_offset(pgd, addr);
- 	pmd = pmd_offset(pud, addr);
- 	if ((pte_t *)pmd == ptep) {
-@@ -65,15 +63,16 @@ void set_huge_pte_at(struct mm_struct *mm, unsigned long addr,
- {
- 	size_t pgsize;
- 	int i;
--	int ncontig = find_num_contig(mm, addr, ptep, pte, &pgsize);
-+	int ncontig;
- 	unsigned long pfn;
- 	pgprot_t hugeprot;
- 
--	if (ncontig == 1) {
-+	if (!pte_cont(pte)) {
- 		set_pte_at(mm, addr, ptep, pte);
- 		return;
- 	}
- 
-+	ncontig = find_num_contig(mm, addr, ptep, &pgsize);
- 	pfn = pte_pfn(pte);
- 	hugeprot = __pgprot(pte_val(pfn_pte(pfn, __pgprot(0))) ^ pte_val(pte));
- 	for (i = 0; i < ncontig; i++) {
-@@ -188,7 +187,7 @@ pte_t huge_ptep_get_and_clear(struct mm_struct *mm,
- 		bool is_dirty = false;
- 
- 		cpte = huge_pte_offset(mm, addr);
--		ncontig = find_num_contig(mm, addr, cpte, *cpte, &pgsize);
-+		ncontig = find_num_contig(mm, addr, cpte, &pgsize);
- 		/* save the 1st pte to return */
- 		pte = ptep_get_and_clear(mm, addr, cpte);
- 		for (i = 1, addr += pgsize; i < ncontig; ++i, addr += pgsize) {
-@@ -228,7 +227,7 @@ int huge_ptep_set_access_flags(struct vm_area_struct *vma,
- 		cpte = huge_pte_offset(vma->vm_mm, addr);
- 		pfn = pte_pfn(*cpte);
- 		ncontig = find_num_contig(vma->vm_mm, addr, cpte,
--					  *cpte, &pgsize);
-+					  &pgsize);
- 		for (i = 0; i < ncontig; ++i, ++cpte, addr += pgsize) {
- 			changed |= ptep_set_access_flags(vma, addr, cpte,
- 							pfn_pte(pfn,
-@@ -251,7 +250,7 @@ void huge_ptep_set_wrprotect(struct mm_struct *mm,
- 		size_t pgsize = 0;
- 
- 		cpte = huge_pte_offset(mm, addr);
--		ncontig = find_num_contig(mm, addr, cpte, *cpte, &pgsize);
-+		ncontig = find_num_contig(mm, addr, cpte, &pgsize);
- 		for (i = 0; i < ncontig; ++i, ++cpte, addr += pgsize)
- 			ptep_set_wrprotect(mm, addr, cpte);
- 	} else {
-@@ -269,7 +268,7 @@ void huge_ptep_clear_flush(struct vm_area_struct *vma,
- 
- 		cpte = huge_pte_offset(vma->vm_mm, addr);
- 		ncontig = find_num_contig(vma->vm_mm, addr, cpte,
--					  *cpte, &pgsize);
-+					  &pgsize);
- 		for (i = 0; i < ncontig; ++i, ++cpte, addr += pgsize)
- 			ptep_clear_flush(vma, addr, cpte);
- 	} else {
+and the commit message doesn't say why the thing needs to be volatile at
+all.
+
+Joerg?
+
 -- 
-2.11.0
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
