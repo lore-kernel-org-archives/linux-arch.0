@@ -1,64 +1,58 @@
-From: Florian Fainelli <florian.fainelli@broadcom.com>
-Subject: Re: [PATCH v3 0/4] Generalize fncpy availability
-Date: Mon, 19 Jun 2017 10:32:38 -0700
-Message-ID: <c8b7789c-38fb-6793-050f-7c60ccb8ca17@broadcom.com>
+From: Russell King - ARM Linux <linux@armlinux.org.uk>
+Subject: Re: [PATCH v3 2/4] asm-generic: Provide a fncpy() implementation
+Date: Mon, 19 Jun 2017 18:43:48 +0100
+Message-ID: <20170619174348.GA23750@n2100.armlinux.org.uk>
 References: <20170617000744.22158-1-f.fainelli@gmail.com>
- <20170619122444.GJ10246@leverpostej>
+ <20170617000744.22158-3-f.fainelli@gmail.com>
+ <20170618235108.peaxdi367jpkt542@yury-thinkpad>
+ <20170619151818.pvjygbdvm6arvarq@yury-thinkpad>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20170619122444.GJ10246@leverpostej>
-Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: Mark Rutland <mark.rutland@arm.com>, Florian Fainelli <f.fainelli@gmail.com>
-Cc: linux-arm-kernel@lists.infradead.org, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Dave Gerlach <d-gerlach@ti.com>, Tony Lindgren <tony@atomide.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, open list <linux-kernel@vger.kernel.org>, bcm-kernel-feedback-list@broadcom.com, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Alexandre Belloni <alexandre.belloni@free-electrons.com>, linux-omap@vger.kernel.org, Shawn Guo <shawnguo@kernel.org>, Keerthy J <j-keerthy@ti.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from pandora.armlinux.org.uk ([78.32.30.218]:45564 "EHLO
+        pandora.armlinux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750811AbdFSRoB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 19 Jun 2017 13:44:01 -0400
+Content-Disposition: inline
+In-Reply-To: <20170619151818.pvjygbdvm6arvarq@yury-thinkpad>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Yury Norov <ynorov@caviumnetworks.com>
+Cc: Florian Fainelli <f.fainelli@gmail.com>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, Keerthy J <j-keerthy@ti.com>, Arnd Bergmann <arnd@arndb.de>, Dave Gerlach <d-gerlach@ti.com>, Tony Lindgren <tony@atomide.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, open list <linux-kernel@vger.kernel.org>, bcm-kernel-feedback-list@broadcom.com, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Alexandre Belloni <alexandre.belloni@free-electrons.com>, linux-omap@vger.kernel.org, Shawn Guo <shawnguo@kernel.org>, linux-arm-kernel@lists.infradead.org
 
-On 06/19/2017 05:24 AM, Mark Rutland wrote:
-> On Fri, Jun 16, 2017 at 05:07:40PM -0700, Florian Fainelli wrote:
->> Hi all,
-> 
-> Hi Florian,
-> 
->> This patch series makes ARM's fncpy() implementation more generic (dropping the
->> Thumb-specifics) and available in an asm-generic header file.
->>
->> Tested on a Broadcom ARM64 STB platform with code that is written to SRAM.
->>
->> Changes in v3 (thanks Doug!):
->> - correct include guard names in asm-generic/fncpy.h to __ASM_FNCPY_H
->> - utilize Kbuild to provide the fncpy.h header on ARM64
->>
->> Changes in v2:
->> - leave the ARM implementation where it is
->> - make the generic truly generic (no)
->>
->> This is helpful in making SoC-specific power management code become true drivers
->> that can be shared between different architectures.
-> > Could you elaborate on what this is needed for?
+On Mon, Jun 19, 2017 at 06:18:18PM +0300, Yury Norov wrote:
+> One else thing I forgot to ask - now you have the generic
+> implementation for fncpy(), so do you really need to save arm
+> version of it?
 
-Several uses cases come to mind:
+This was covered in the review of v1, which took the ARM version
+and incorrectly used it as an asm-generic implementation.
 
-- it could be used as a trampoline code prior to entering S2 for systems
-that do not support PSCI 1.0
+I explicitly asked Florian _not_ to copy the ARM fncpy() version
+to asm-generic because it has (surprise surprise) ARM specific
+behaviours that do not belong in a cross-architecture generic
+version.
 
-- any code that has a specific need to relocate a performance, security
-sensitive code into SRAM and use it as another pool of memory.
+Namely, the ARM specific behaviour that bit 0 of a code address is
+used to signal whether the code should be executed as ARM code or
+as Thumb code.
 
-> 
-> My understanding was that on 32-bit, this was to handle idle / suspend
-> cases, whereas for arm64 that should be handled by PSCI.
+This behaviour has no meaning on other architectures (eg, x86)
+where code addresses are not 32-bit aligned.
 
-For systems that support PSCI 1.0, I agree, but it may not be possible
-to update those systems easily, still use case 2 is completely valid.
+So, suggesting that the ARM fncpy() should be used as an asm-generic
+version is completely absurd, and just because we have an asm-generic
+version also does not mean ARM should use it.
 
-> 
-> what exactly do you intend to use this for?
+Florian's approach to providing an asm-generic version, leaving the
+ARM specific version is entirely correct and appropriate.
 
-At the moment we use it to enter S2 on ARM64 systems (ARCH_BRCMSTB)
-which are PSCI 0.2 only. And yes, we do have a plan to evaluate
-upgrading to PSCI 1.0, but in general, any SoC which as an addressable
-SRAM could use it for whatever purpose it sees fit.
+So, in answer to your question, yes, we need _both_ an ARM specific
+version and an asm-generic version, where the ARM specific version is
+different from the asm-generic version.  Purely because it needs
+architecture specific details.
+
 -- 
-Florian
+RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
+FTTC broadband for 0.8mile line: currently at 9.6Mbps down 400kbps up
+according to speedtest.net.
