@@ -1,101 +1,49 @@
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCH 08/17] dts: include documentation for the RISC-V
- interrupt controllers
-Date: Mon, 19 Jun 2017 15:30:51 +0100
-Message-ID: <20170619143027.GA4433@leverpostej>
-References: <20170523004107.536-1-palmer@dabbelt.com>
- <20170606230007.19101-1-palmer@dabbelt.com>
- <20170606230007.19101-9-palmer@dabbelt.com>
- <CAMuHMdWYNVvh4hqDrqYNe2oyVHkCbH15VfWTWHaBCeRAaf6O4g@mail.gmail.com>
- <20170607101343.GC29370@leverpostej>
- <CAMgXwTiz0jXgSw=veJ3O7xzVgm==YisZZLWpZFH7aJMXV4j7qA@mail.gmail.com>
- <20170608105230.GC5765@leverpostej>
- <CAMgXwTi+H5n9f_kcbvTJE1yA-yeNSuwuR+QO4kYXtyZbQ2ga2w@mail.gmail.com>
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: Re: [PATCH v3 2/4] asm-generic: Provide a fncpy() implementation
+Date: Mon, 19 Jun 2017 18:18:18 +0300
+Message-ID: <20170619151818.pvjygbdvm6arvarq@yury-thinkpad>
+References: <20170617000744.22158-1-f.fainelli@gmail.com>
+ <20170617000744.22158-3-f.fainelli@gmail.com>
+ <20170618235108.peaxdi367jpkt542@yury-thinkpad>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 Content-Disposition: inline
-In-Reply-To: <CAMgXwTi+H5n9f_kcbvTJE1yA-yeNSuwuR+QO4kYXtyZbQ2ga2w@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Wesley Terpstra <wesley@sifive.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Palmer Dabbelt <palmer@dabbelt.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Olof Johansson <olof@lixom.net>, Albert Ou <albert@sifive.com>, patches@groups.riscv.org, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <Marc.Zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>
+In-Reply-To: <20170618235108.peaxdi367jpkt542@yury-thinkpad>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Florian Fainelli <f.fainelli@gmail.com>
+Cc: "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Dave Gerlach <d-gerlach@ti.com>, Tony Lindgren <tony@atomide.com>, Keerthy J <j-keerthy@ti.com>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, open list <linux-kernel@vger.kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, bcm-kernel-feedback-list@broadcom.com, Catalin Marinas <catalin.marinas@arm.com>, Alexandre Belloni <alexandre.belloni@free-electrons.com>, linux-omap@vger.kernel.org, Shawn Guo <shawnguo@kernel.org>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jun 09, 2017 at 02:58:14PM -0700, Wesley Terpstra wrote:
-> Ugh. Clicked reply without being done writing the reply!
+On Mon, Jun 19, 2017 at 02:51:08AM +0300, Yury Norov wrote:
+> Hi Florian,
 > 
-> On Thu, Jun 8, 2017 at 3:52 AM, Mark Rutland <mark.rutland@arm.com> wrote:
-> > Edge vs level, active high vs active low. Typically some of these are
-> > programmable, and are described as flags in the interrupt-specifier.
-> >
-> > See the examples in:
-> >
-> > Documentation/devicetree/bindings/interrupt-controller/interrupts.txt
+> Some questions and thoughts inline.
 > 
-> Ok. Those are not really relevant to the PLIC. It has a flat interrupt
-> namespace and the way you handle all four kinds of interrupts in the
-> driver is uniform. I don't think we want to architecturally expose
-> this to the operating system.
-
-Sure thing. I was just making sure I clarified my initial statement.
-
-> > So do any CSRs affect the state of the PLIC? If it's just MMIO, the
-> > mention of CSRs above is just a little confusing.
+> Yury
 > 
-> HLIC = CSR only. PLIC = MMIO only.
-> 
-> > It might be best to just say "The PLIC is connect to the HLIC embedded
-> > in each RISC-V core".
-> 
-> Fair enough.
-> 
-> > It sounds like we'd need these to distinguish edge/level interrupts,
-> > unless that's fixed at integration time and you can determine it from
-> > the PLIC itself?
-> 
-> They are fixed at integration time and the PLIC driver does not need to care.
+> On Fri, Jun 16, 2017 at 05:07:42PM -0700, Florian Fainelli wrote:
+> > Define a generic fncpy() implementation largely based on the ARM version
+> > that requires an 8 bytes alignment for the destination address where to
+> > copy this function as well as the function's own address.
+> > 
+> > Signed-off-by: Florian Fainelli <f.fainelli@gmail.com>
+> > ---
+> >  include/asm-generic/fncpy.h | 93 +++++++++++++++++++++++++++++++++++++++++++++
+> >  1 file changed, 93 insertions(+)
+> >  create mode 100644 include/asm-generic/fncpy.h
 
-Ok.
+One else thing I forgot to ask - now you have the generic
+implementation for fncpy(), so do you really need to save arm
+version of it?
 
-> > Please update the binding to explicitly define the ordering requirement.
-> 
-> The ordering requirement is that the first interrupts-extended entry
-> corresponds to the first context, second to second, etc. If a context
-> is unused for some reason, that's when you need a -1. The contexts are
-> linear and contiguous in the MMIO address map.
-
-Ah. It wasn't at all clear to me that the order was in relation to the
-MMIO space.
-
-How is it possible to tell if an context is unused?
-
-Are those mandated to be linear and contiguous in the address space?
-
-How is the relationship between an MMIO context and hart determined?
-
-I'm not sure that it makes sense to use -1 in this manner, since the
-first cell of each interrupts-extended tuple entry is a phandle. IIRC
-zero is currently de-facto invalid, and if we really need a NULL
-phandle, we should get that clarified in the DT spec.
-
-It might be better to describe each MMIO context separately, and then
-associate IRQs with those in-order.
-
-> 
-> > Does this mean that you expect Linux logical CPU IDs to be equal to
-> > physical CPU IDs in all cases?
-> 
-> No. There is no 'physical CPU ID' anyway, except the mhartid CSR which
-> is unavailable to linux. The SBI conveys your CPU ID by passing it as
-> the first argument to the linux kernel.
-> 
-> The interrupts-extended in the PLIC uses a phandle to reference the
-> matching CPU in DTS. The num in cpu@<num> only need correspond to the
-> first register argument to the kernel.
-
-So you use the reference to the HLIC to implictly provide the CPU
-affinity? Or do you assume that these align with the SBI-provided CPU
-IDs?
-
-Thanks,
-Mark.
+Yury
