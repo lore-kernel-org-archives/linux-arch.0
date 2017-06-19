@@ -1,88 +1,54 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
+From: Nadav Amit <nadav.amit@gmail.com>
 Subject: Re: [PATCHv2 1/3] x86/mm: Provide pmdp_establish() helper
-Date: Mon, 19 Jun 2017 18:09:12 +0100
-Message-ID: <20170619170911.GF3024@e104818-lin.cambridge.arm.com>
+Date: Mon, 19 Jun 2017 10:11:35 -0700
+Message-ID: <D16802A9-161A-4074-A2C6-DCEA73E2E608@gmail.com>
 References: <20170615145224.66200-1-kirill.shutemov@linux.intel.com>
  <20170615145224.66200-2-kirill.shutemov@linux.intel.com>
- <20170619152228.GE3024@e104818-lin.cambridge.arm.com>
- <20170619160005.wgj4nymtj2nntfll@node.shutemov.name>
-Mime-Version: 1.0
+Mime-Version: 1.0 (Mac OS X Mail 10.3 \(3273\))
 Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:54796 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750979AbdFSRJS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 19 Jun 2017 13:09:18 -0400
-Content-Disposition: inline
-In-Reply-To: <20170619160005.wgj4nymtj2nntfll@node.shutemov.name>
+Received: from mail-pg0-f66.google.com ([74.125.83.66]:36379 "EHLO
+        mail-pg0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750844AbdFSRLj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 19 Jun 2017 13:11:39 -0400
+In-Reply-To: <20170615145224.66200-2-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Kirill A. Shutemov" <kirill@shutemov.name>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, Ralf Baechle <ralf@linux-mips.org>, "David S. Miller" <davem@davemloft.net>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andrea Arcangeli <aarcange@redhat.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Ralf Baechle <ralf@linux-mips.org>, "David S. Miller" <davem@davemloft.net>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andrea Arcangeli <aarcange@redhat.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>
 
-On Mon, Jun 19, 2017 at 07:00:05PM +0300, Kirill A. Shutemov wrote:
-> On Mon, Jun 19, 2017 at 04:22:29PM +0100, Catalin Marinas wrote:
-> > On Thu, Jun 15, 2017 at 05:52:22PM +0300, Kirill A. Shutemov wrote:
-> > > We need an atomic way to setup pmd page table entry, avoiding races with
-> > > CPU setting dirty/accessed bits. This is required to implement
-> > > pmdp_invalidate() that doesn't loose these bits.
-> > > 
-> > > On PAE we have to use cmpxchg8b as we cannot assume what is value of new pmd and
-> > > setting it up half-by-half can expose broken corrupted entry to CPU.
-> > > 
-> > > Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-> > > Cc: Ingo Molnar <mingo@kernel.org>
-> > > Cc: H. Peter Anvin <hpa@zytor.com>
-> > > Cc: Thomas Gleixner <tglx@linutronix.de>
-> > 
-> > I'll look at this from the arm64 perspective. It would be good if we can
-> > have a generic atomic implementation based on cmpxchg64 but I need to
-> > look at the details first.
-> 
-> Unfortunately, I'm not sure it's possbile.
-> 
-> The format of a page table is defined per-arch. We cannot assume much about
-> it in generic code.
-> 
-> I guess we could make it compile by casting to 'unsigned long', but is it
-> useful?
-> Every architecture manintainer still has to validate that this assumption
-> is valid for the architecture.
+Kirill A. Shutemov <kirill.shutemov@linux.intel.com> wrote:
 
-You are right, not much gained in doing this.
+> We need an atomic way to setup pmd page table entry, avoiding races =
+with
+> CPU setting dirty/accessed bits. This is required to implement
+> pmdp_invalidate() that doesn't loose these bits.
+>=20
+> On PAE we have to use cmpxchg8b as we cannot assume what is value of =
+new pmd and
+> setting it up half-by-half can expose broken corrupted entry to CPU.
 
-Maybe a stupid question but can we not implement pmdp_invalidate() with
-something like pmdp_get_and_clear() (usually reusing the ptep_*
-equivalent). Or pmdp_clear_flush() (again, reusing ptep_clear_flush())?
+...
 
-In my quick grep on pmdp_invalidate, it seems to be followed by
-set_pmd_at() or pmd_populate() already and the *pmd value after
-mknotpresent isn't any different from 0 to the hardware (at least on
-ARM). That's unless Linux expects to see some non-zero value here if
-walking the page tables on another CPU.
+>=20
+> +#ifndef pmdp_establish
+> +#define pmdp_establish pmdp_establish
+> +static inline pmd_t pmdp_establish(pmd_t *pmdp, pmd_t pmd)
+> +{
+> +	if (IS_ENABLED(CONFIG_SMP)) {
+> +		return xchg(pmdp, pmd);
+> +	} else {
+> +		pmd_t old =3D *pmdp;
+> +		*pmdp =3D pmd;
 
-> > > +static inline pmd_t pmdp_establish(pmd_t *pmdp, pmd_t pmd)
-> > > +{
-> > > +	pmd_t old;
-> > > +
-> > > +	/*
-> > > +	 * We cannot assume what is value of pmd here, so there's no easy way
-> > > +	 * to set if half by half. We have to fall back to cmpxchg64.
-> > > +	 */
-> > > +	{
-> > 
-> > BTW, you are missing a "do" here (and it probably compiles just fine
-> > without it, though different behaviour).
-> 
-> Ouch. Thanks.
-> 
-> Hm, what is semantics of the construct without a "do"?
+I think you may want to use WRITE_ONCE() here - otherwise nobody =
+guarantees
+that the compiler will not split writes to *pmdp. Although the kernel =
+uses
+similar code to setting PTEs and PMDs, I think that it is best to start
+fixing it. Obviously, you might need a different code path for 32-bit
+kernels.
 
-You can just ignore the brackets:
-
-	old = *pmdp;
-	while (cmpxchg64(&pmdp->pmd, old.pmd, pmd.pmd) != old.pmd)
-		;
-
--- 
-Catalin
+Regards,
+Nadav=
