@@ -1,73 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:54468 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:54394 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752520AbdFSRCp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 19 Jun 2017 13:02:45 -0400
+        id S1752225AbdFSRCG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 19 Jun 2017 13:02:06 -0400
 From: Punit Agrawal <punit.agrawal@arm.com>
-Subject: [PATCH v5 3/8] mm, gup: Remove broken VM_BUG_ON_PAGE compound check for hugepages
-Date: Mon, 19 Jun 2017 18:01:40 +0100
-Message-ID: <20170619170145.25577-4-punit.agrawal@arm.com>
-In-Reply-To: <20170619170145.25577-1-punit.agrawal@arm.com>
-References: <20170619170145.25577-1-punit.agrawal@arm.com>
+Subject: [PATCH v5 0/8] Support for contiguous pte hugepages
+Date: Mon, 19 Jun 2017 18:01:37 +0100
+Message-ID: <20170619170145.25577-1-punit.agrawal@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org
-Cc: Will Deacon <will.deacon@arm.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, n-horiguchi@ah.jp.nec.com, kirill.shutemov@linux.intel.com, mike.kravetz@oracle.com, steve.capper@arm.com, mark.rutland@arm.com, linux-arch@vger.kernel.org, aneesh.kumar@linux.vnet.ibm.com, Punit Agrawal <punit.agrawal@arm.com>
-Message-ID: <20170619170140.Vqx8vBtEWwpWWqFK7zJ4vDx4xosCJobE2mGmkfSNtDc@z>
+Cc: Punit Agrawal <punit.agrawal@arm.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, will.deacon@arm.com, n-horiguchi@ah.jp.nec.com, kirill.shutemov@linux.intel.com, mike.kravetz@oracle.com, steve.capper@arm.com, mark.rutland@arm.com, linux-arch@vger.kernel.org, aneesh.kumar@linux.vnet.ibm.com
+Message-ID: <20170619170137.tgMDVqO_YPl7nVvrZtvYHbKCA4GsdymBDqUqen8OUok@z>
 
-From: Will Deacon <will.deacon@arm.com>
+Hi Andrew,
 
-When operating on hugepages with DEBUG_VM enabled, the GUP code checks the
-compound head for each tail page prior to calling page_cache_add_speculative.
-This is broken, because on the fast-GUP path (where we don't hold any page
-table locks) we can be racing with a concurrent invocation of
-split_huge_page_to_list.
+This is v5 of the patchset to update the hugetlb code to support
+contiguous hugepages. Previous version of the patchset can be found at
+[0].
 
-split_huge_page_to_list deals with this race by using page_ref_freeze to
-freeze the page and force concurrent GUPs to fail whilst the component
-pages are modified. This modification includes clearing the compound_head
-field for the tail pages, so checking this prior to a successful call
-to page_cache_add_speculative can lead to false positives: In fact,
-page_cache_add_speculative *already* has this check once the page refcount
-has been successfully updated, so we can simply remove the broken calls
-to VM_BUG_ON_PAGE.
+The main changes in this version are updating Patch 4 and 7 due to
+issues highlighted in the previous postings (ltp and build failure).
 
-Signed-off-by: Will Deacon <will.deacon@arm.com>
-Acked-by: Steve Capper <steve.capper@arm.com>
-Signed-off-by: Punit Agrawal <punit.agrawal@arm.com>
-Acked-by: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Cc: Aneesh Kumar K.V <aneesh.kumar@linux.vnet.ibm.com>
----
- mm/gup.c | 3 ---
- 1 file changed, 3 deletions(-)
+Please update the patches in your queue with this version.
 
-diff --git a/mm/gup.c b/mm/gup.c
-index b3c7214d710d..e74e0b5a0c7c 100644
---- a/mm/gup.c
-+++ b/mm/gup.c
-@@ -1357,7 +1357,6 @@ static int gup_huge_pmd(pmd_t orig, pmd_t *pmdp, unsigned long addr,
- 	head = pmd_page(orig);
- 	page = head + ((addr & ~PMD_MASK) >> PAGE_SHIFT);
- 	do {
--		VM_BUG_ON_PAGE(compound_head(page) != head, page);
- 		pages[*nr] = page;
- 		(*nr)++;
- 		page++;
-@@ -1396,7 +1395,6 @@ static int gup_huge_pud(pud_t orig, pud_t *pudp, unsigned long addr,
- 	head = pud_page(orig);
- 	page = head + ((addr & ~PUD_MASK) >> PAGE_SHIFT);
- 	do {
--		VM_BUG_ON_PAGE(compound_head(page) != head, page);
- 		pages[*nr] = page;
- 		(*nr)++;
- 		page++;
-@@ -1434,7 +1432,6 @@ static int gup_huge_pgd(pgd_t orig, pgd_t *pgdp, unsigned long addr,
- 	head = pgd_page(orig);
- 	page = head + ((addr & ~PGDIR_MASK) >> PAGE_SHIFT);
- 	do {
--		VM_BUG_ON_PAGE(compound_head(page) != head, page);
- 		pages[*nr] = page;
- 		(*nr)++;
- 		page++;
+Thanks,
+Punit
+
+Changes since v4:
+
+* Patch 4 updated to fix arm64 ltp failure (pth_str01, pth_str03) [1]
+* Patch 7 update to fix build failure when CONFIG_HUGETLB_PAGE is disabled
+
+[0] https://lkml.org/lkml/2017/5/24/463
+[1] https://lkml.org/lkml/2017/6/5/332
+
+Punit Agrawal (5):
+  mm, gup: Ensure real head page is ref-counted when using hugepages
+  mm/hugetlb: add size parameter to huge_pte_offset()
+  mm/hugetlb: Allow architectures to override huge_pte_clear()
+  mm/hugetlb: Introduce set_huge_swap_pte_at() helper
+  mm: rmap: Use correct helper when poisoning hugepages
+
+Steve Capper (2):
+  arm64: hugetlb: Refactor find_num_contig
+  arm64: hugetlb: Remove spurious calls to huge_ptep_offset
+
+Will Deacon (1):
+  mm, gup: Remove broken VM_BUG_ON_PAGE compound check for hugepages
+
+ arch/arm64/mm/hugetlbpage.c     | 53 +++++++++++++++++------------------------
+ arch/ia64/mm/hugetlbpage.c      |  4 ++--
+ arch/metag/mm/hugetlbpage.c     |  3 ++-
+ arch/mips/mm/hugetlbpage.c      |  3 ++-
+ arch/parisc/mm/hugetlbpage.c    |  3 ++-
+ arch/powerpc/mm/hugetlbpage.c   |  2 +-
+ arch/s390/include/asm/hugetlb.h |  2 +-
+ arch/s390/mm/hugetlbpage.c      |  3 ++-
+ arch/sh/mm/hugetlbpage.c        |  3 ++-
+ arch/sparc/mm/hugetlbpage.c     |  3 ++-
+ arch/tile/mm/hugetlbpage.c      |  3 ++-
+ arch/x86/mm/hugetlbpage.c       |  2 +-
+ fs/userfaultfd.c                |  7 ++++--
+ include/asm-generic/hugetlb.h   |  4 +++-
+ include/linux/hugetlb.h         | 18 ++++++++++++--
+ mm/gup.c                        | 15 +++++-------
+ mm/hugetlb.c                    | 33 +++++++++++++++----------
+ mm/page_vma_mapped.c            |  3 ++-
+ mm/pagewalk.c                   |  3 ++-
+ mm/rmap.c                       |  7 ++++--
+ 20 files changed, 100 insertions(+), 74 deletions(-)
+
 -- 
 2.11.0
