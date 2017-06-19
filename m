@@ -1,63 +1,92 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f66.google.com ([74.125.83.66]:35968 "EHLO
-        mail-pg0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751146AbdFSGw5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 19 Jun 2017 02:52:57 -0400
-Date: Mon, 19 Jun 2017 16:52:40 +1000
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH 2/5] kbuild: thin archives use P option to ar
-Message-ID: <20170619165240.0d2b6e73@roar.ozlabs.ibm.com>
-In-Reply-To: <CAK7LNATkm0hKB+yBKHFBEpV2nycp5DyJMvUe7vATLOwN2fLb1g@mail.gmail.com>
-References: <20170609052417.561-1-npiggin@gmail.com>
-        <20170609052417.561-3-npiggin@gmail.com>
-        <CAK7LNATkm0hKB+yBKHFBEpV2nycp5DyJMvUe7vATLOwN2fLb1g@mail.gmail.com>
+Received: from conssluserg-05.nifty.com ([210.131.2.90]:40058 "EHLO
+        conssluserg-05.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753348AbdFSIOh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 19 Jun 2017 04:14:37 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <20170619165100.3ce26d00@roar.ozlabs.ibm.com>
+References: <20170609052417.561-1-npiggin@gmail.com> <20170609052417.561-2-npiggin@gmail.com>
+ <CAK7LNASxuE-6eMk+Y-vyrMfibtYoD2JkjNS2z8QF85x9NdiiaA@mail.gmail.com> <20170619165100.3ce26d00@roar.ozlabs.ibm.com>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Date: Mon, 19 Jun 2017 17:14:22 +0900
+Message-ID: <CAK7LNARuuQzGkYBdzoy3bVpBuNPZEMGerHSEdmrH+PqK0Gbyzg@mail.gmail.com>
+Subject: Re: [PATCH 1/5] kbuild: thin archives final link close
+ --whole-archives option
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Masahiro Yamada <yamada.masahiro@socionext.com>
+To: Nicholas Piggin <npiggin@gmail.com>
 Cc: Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>
-Message-ID: <20170619065240._6MuBABYliVgTp7uM_50wYrZXFiG3cKo7uHdNSM3ZvY@z>
+Message-ID: <20170619081422.35nixyfnPADj8cGBw9A1ksWYVNHsMuaxsZipDEs5FfU@z>
 
-On Mon, 19 Jun 2017 15:17:39 +0900
-Masahiro Yamada <yamada.masahiro@socionext.com> wrote:
+Hi Nicholas,
 
-> Hi Nicholas,
-> 
-> 
-> 2017-06-09 14:24 GMT+09:00 Nicholas Piggin <npiggin@gmail.com>:
-> > The P option makes ar do full path name matching and can prevent ar
-> > from discarding files with duplicate names in some cases of creating
-> > thin archives from thin archives. The sh architecture in particular
-> > loses some object files from its kernel/cpu/sh*/ directories without
-> > this option.  
-> 
-> After playing around with thin archives, I agree this is the right
-> thing to do.
-> 
-> Currently, sh is the only architecture that has this kind of issue
-> (arch/sh/kernel/cpu/fpu.c  vs  arch/sh/kernel/cpu/sh*/fpu.c),
-> but this could happen in any architecture, I think.
-> 
-> 
-> BTW, I see one more instance in archive_builtin() in scripts/link-vmlinux.sh.
-> 
-> We have no source file at the top directory, so it will work
-> with/without "P" for the top-level built-in.o
-> 
-> Either way seems OK to me.
 
-Oh, we should probably add the P there for consistency. I can't see
-any downside to it. Can you fold in the fix?
+2017-06-19 15:51 GMT+09:00 Nicholas Piggin <npiggin@gmail.com>:
+> On Mon, 19 Jun 2017 15:16:17 +0900
+> Masahiro Yamada <yamada.masahiro@socionext.com> wrote:
+>
+>> Hi Nicholas,
+>>
+>>
+>> 2017-06-09 14:24 GMT+09:00 Nicholas Piggin <npiggin@gmail.com>:
+>> > Close the --whole-archives option with --no-whole-archive. Some
+>> > architectures end up including additional .o and files multiple
+>> > times after this, and they get duplicate symbols when they are
+>> > brought under the --whole-archives option.
+>>
+>> Which architectures have additional files after --no-whole-archive ?
+>>
+>> I see this case only for ARCH = "um" in vmlinux_link()
+>> where it adds some -l* options after --no-whole-archive.
+>>
+>> I think it is good to close the --whole-archives everywhere.
+>> So, the code looks OK to me, but I just wondered about the log.
+>
+> Actually a number of archs seemed to get build errors without this,
+> and they seem to come from libgcc perhaps.
+>
+> binfmt_elf.c:(.text+0x4851): undefined reference to `__kernel_syscall_via_epc'
+> /c/gcc/libgcc/libgcc2.c:1318: multiple definition of `__ucmpdi2'
+> /c/gcc/libgcc/libgcc2.c:405: multiple definition of `__lshrdi3'
+> /c/gcc/libgcc/libgcc2.c:433: multiple definition of `__ashldi3'
+> /c/gcc/libgcc/libgcc2.c:461: multiple definition of `__ashrdi3'
+>
+> /home/tony/buildall/src/gcc/libgcc/config/xtensa/lib2funcs.S:36: multiple definition of `__xtensa_libgcc_window_spill'
+>
+> etc
 
-> > This could be a bug in binutils ar, but the P option should not cause
-> > any negative effects so it is safe to use to work around tihs with.  
-> 
-> 
-> Is "tihs" a typo?
 
-Yes. Should be "this".
+Oops, I did not test such architectures.
 
-Thanks,
-Nick
+
+> m32r, parisc, xtensa seemed to be getting such errors. I wonder if
+> the linker implicitly adds some runtime libs at the end that get
+> caught up here. Either way I didn't look too far into it because this
+> fix seems obviously correct and solved the problem.
+>
+> Thanks,
+
+
+Which toolchains do you use?
+
+I downloaded xtensa-linux- from this site:
+https://www.kernel.org/pub/tools/crosstool/files/bin/x86_64/4.9.0/
+
+
+I see a different error for xtensa.
+
+
+I applied all of you 5 patches, but xtensa build still fails.
+
+  LD      vmlinux.o
+xtensa-linux-ld: internal error
+/home/tony/buildall/src/binutils/ld/ldlang.c 6178
+
+
+Could you check it?
+
+
+-- 
+Best Regards
+Masahiro Yamada
