@@ -1,14 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-db5eur01on0099.outbound.protection.outlook.com ([104.47.2.99]:9536
-        "EHLO EUR01-DB5-obe.outbound.protection.outlook.com"
+Received: from mail-ve1eur01on0106.outbound.protection.outlook.com ([104.47.1.106]:45388
+        "EHLO EUR01-VE1-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1750844AbdFSSCp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 19 Jun 2017 14:02:45 -0400
-Subject: [PATCH 2/7] rwsem-spinlock: Add killable versions of
- rwsem_down_read_failed()
+        id S1752332AbdFSSC6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 19 Jun 2017 14:02:58 -0400
+Subject: [PATCH 3/7] alpha: Add __down_read_killable()
 From: Kirill Tkhai <ktkhai@virtuozzo.com>
-Date: Mon, 19 Jun 2017 21:02:26 +0300
-Message-ID: <149789534632.9059.2901382369609922565.stgit@localhost.localdomain>
+Date: Mon, 19 Jun 2017 21:02:39 +0300
+Message-ID: <149789535907.9059.6602375201918019383.stgit@localhost.localdomain>
 In-Reply-To: <149789463636.9059.16943955939303454611.stgit@localhost.localdomain>
 References: <149789463636.9059.16943955939303454611.stgit@localhost.localdomain>
 MIME-Version: 1.0
@@ -17,97 +16,51 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-ia64@vger.kernel.org, avagin@virtuozzo.com, peterz@infradead.org, heiko.carstens@de.ibm.com, hpa@zytor.com, gorcunov@virtuozzo.com, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, x86@kernel.org, mingo@redhat.com, mattst88@gmail.com, fenghua.yu@intel.com, arnd@arndb.de, ktkhai@virtuozzo.com, ink@jurassic.park.msu.ru, tglx@linutronix.de, rth@twiddle.net, tony.luck@intel.com, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, schwidefsky@de.ibm.com, davem@davemloft.net
-Message-ID: <20170619180226.xiDKYGSXDDjIP2k8QB1XjSHdQCAC-rmoV0olU8wo4Zg@z>
+Message-ID: <20170619180239.8JaLn8jTbUFpZE25WYhmWsyKRwBdsEgBOc9KNv1HRXU@z>
 
-Rename rwsem_down_read_failed() in __rwsem_down_read_failed_common()
-and teach it to abort waiting in case of pending signals and killable
-state argument passed.
-
-Note, that we shouldn't wake anybody up in EINTR path, as:
-
-We check for (waiter.task) under spinlock before we go to out_nolock
-path. Current task wasn't able to be woken up, so there are
-a writer, owning the sem, or a writer, which is the first waiter.
-In the both cases we shouldn't wake anybody. If there is a writer,
-owning the sem, and we were the only waiter, remove RWSEM_WAITING_BIAS,
-as there are no waiters anymore.
+Similar to __down_write_killable(), and read killable primitive.
 
 Signed-off-by: Kirill Tkhai <ktkhai@virtuozzo.com>
 ---
- include/linux/rwsem.h       |    1 +
- kernel/locking/rwsem-xadd.c |   33 ++++++++++++++++++++++++++++++---
- 2 files changed, 31 insertions(+), 3 deletions(-)
+ arch/alpha/include/asm/rwsem.h |   18 ++++++++++++++++--
+ 1 file changed, 16 insertions(+), 2 deletions(-)
 
-diff --git a/include/linux/rwsem.h b/include/linux/rwsem.h
-index dd1d14250340..0ad7318ff299 100644
---- a/include/linux/rwsem.h
-+++ b/include/linux/rwsem.h
-@@ -44,6 +44,7 @@ struct rw_semaphore {
- };
+diff --git a/arch/alpha/include/asm/rwsem.h b/arch/alpha/include/asm/rwsem.h
+index 77873d0ad293..7118bd090085 100644
+--- a/arch/alpha/include/asm/rwsem.h
++++ b/arch/alpha/include/asm/rwsem.h
+@@ -21,7 +21,7 @@
+ #define RWSEM_ACTIVE_READ_BIAS		RWSEM_ACTIVE_BIAS
+ #define RWSEM_ACTIVE_WRITE_BIAS		(RWSEM_WAITING_BIAS + RWSEM_ACTIVE_BIAS)
  
- extern struct rw_semaphore *rwsem_down_read_failed(struct rw_semaphore *sem);
-+extern struct rw_semaphore *rwsem_down_read_failed_killable(struct rw_semaphore *sem);
- extern struct rw_semaphore *rwsem_down_write_failed(struct rw_semaphore *sem);
- extern struct rw_semaphore *rwsem_down_write_failed_killable(struct rw_semaphore *sem);
- extern struct rw_semaphore *rwsem_wake(struct rw_semaphore *);
-diff --git a/kernel/locking/rwsem-xadd.c b/kernel/locking/rwsem-xadd.c
-index 34e727f18e49..02f660666ab8 100644
---- a/kernel/locking/rwsem-xadd.c
-+++ b/kernel/locking/rwsem-xadd.c
-@@ -221,8 +221,8 @@ static void __rwsem_mark_wake(struct rw_semaphore *sem,
- /*
-  * Wait for the read lock to be granted
-  */
--__visible
--struct rw_semaphore __sched *rwsem_down_read_failed(struct rw_semaphore *sem)
-+static inline struct rw_semaphore __sched *
-+__rwsem_down_read_failed_common(struct rw_semaphore *sem, int state)
+-static inline void __down_read(struct rw_semaphore *sem)
++static inline int ___down_read(struct rw_semaphore *sem)
  {
- 	long count, adjustment = -RWSEM_ACTIVE_READ_BIAS;
- 	struct rwsem_waiter waiter;
-@@ -255,17 +255,44 @@ struct rw_semaphore __sched *rwsem_down_read_failed(struct rw_semaphore *sem)
- 
- 	/* wait to be given the lock */
- 	while (true) {
--		set_current_state(TASK_UNINTERRUPTIBLE);
-+		set_current_state(state);
- 		if (!waiter.task)
- 			break;
-+		if (signal_pending_state(state, current)) {
-+			raw_spin_lock_irq(&sem->wait_lock);
-+			if (waiter.task)
-+				goto out_nolock;
-+			raw_spin_unlock_irq(&sem->wait_lock);
-+			break;
-+		}
- 		schedule();
- 	}
- 
- 	__set_current_state(TASK_RUNNING);
- 	return sem;
-+out_nolock:
-+	list_del(&waiter.list);
-+	if (list_empty(&sem->wait_list))
-+		atomic_long_add(-RWSEM_WAITING_BIAS, &sem->count);
-+	raw_spin_unlock_irq(&sem->wait_lock);
-+	__set_current_state(TASK_RUNNING);
-+	return ERR_PTR(-EINTR);
+ 	long oldcount;
+ #ifndef	CONFIG_SMP
+@@ -41,10 +41,24 @@ static inline void __down_read(struct rw_semaphore *sem)
+ 	:"=&r" (oldcount), "=m" (sem->count), "=&r" (temp)
+ 	:"Ir" (RWSEM_ACTIVE_READ_BIAS), "m" (sem->count) : "memory");
+ #endif
+-	if (unlikely(oldcount < 0))
++	return (oldcount < 0);
 +}
 +
-+__visible struct rw_semaphore * __sched
-+rwsem_down_read_failed(struct rw_semaphore *sem)
++static inline void __down_read(struct rw_semaphore *sem)
 +{
-+	return __rwsem_down_read_failed_common(sem, TASK_UNINTERRUPTIBLE);
++	if (unlikely(___down_read(sem)))
+ 		rwsem_down_read_failed(sem);
  }
- EXPORT_SYMBOL(rwsem_down_read_failed);
  
-+__visible struct rw_semaphore * __sched
-+rwsem_down_read_failed_killable(struct rw_semaphore *sem)
++static inline int __down_read_killable(struct rw_semaphore *sem)
 +{
-+	return __rwsem_down_read_failed_common(sem, TASK_KILLABLE);
++	if (unlikely(___down_read(sem)))
++		if (IS_ERR(rwsem_down_read_failed_killable(sem)))
++			return -EINTR;
++
++	return 0;
 +}
-+EXPORT_SYMBOL(rwsem_down_read_failed_killable);
 +
  /*
-  * This function must be called with the sem->wait_lock held to prevent
-  * race conditions between checking the rwsem wait list and setting the
+  * trylock for reading -- returns 1 if successful, 0 if contention
+  */
