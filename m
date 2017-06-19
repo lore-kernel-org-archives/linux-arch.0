@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-he1eur01on0136.outbound.protection.outlook.com ([104.47.0.136]:24547
-        "EHLO EUR01-HE1-obe.outbound.protection.outlook.com"
+Received: from mail-db5eur01on0117.outbound.protection.outlook.com ([104.47.2.117]:23273
+        "EHLO EUR01-DB5-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751897AbdFSSDw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 19 Jun 2017 14:03:52 -0400
-Subject: [PATCH 7/7] rwsem: Add down_read_killable()
+        id S1752396AbdFSSDS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 19 Jun 2017 14:03:18 -0400
+Subject: [PATCH 4/7] ia64: Add __down_read_killable()
 From: Kirill Tkhai <ktkhai@virtuozzo.com>
-Date: Mon, 19 Jun 2017 21:03:28 +0300
-Message-ID: <149789540861.9059.16507519363746458694.stgit@localhost.localdomain>
+Date: Mon, 19 Jun 2017 21:02:51 +0300
+Message-ID: <149789537165.9059.15919512843596106349.stgit@localhost.localdomain>
 In-Reply-To: <149789463636.9059.16943955939303454611.stgit@localhost.localdomain>
 References: <149789463636.9059.16943955939303454611.stgit@localhost.localdomain>
 MIME-Version: 1.0
@@ -16,75 +16,51 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-ia64@vger.kernel.org, avagin@virtuozzo.com, peterz@infradead.org, heiko.carstens@de.ibm.com, hpa@zytor.com, gorcunov@virtuozzo.com, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, x86@kernel.org, mingo@redhat.com, mattst88@gmail.com, fenghua.yu@intel.com, arnd@arndb.de, ktkhai@virtuozzo.com, ink@jurassic.park.msu.ru, tglx@linutronix.de, rth@twiddle.net, tony.luck@intel.com, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, schwidefsky@de.ibm.com, davem@davemloft.net
-Message-ID: <20170619180328.oQlAeJSSv5FPh3f7gq2egLj7MQ-p0jsx8By0HkuU7oU@z>
+Message-ID: <20170619180251.8jC41CWXRDesjIYGhPtjRoNd3shNLHVFMPC6xuJWJ7Y@z>
 
-Similar to down_read() and down_write_killable(),
-add killable version of down_read(), based on
-__down_read_killable() function, added in previous
-patches.
+Similar to __down_write_killable(), and read killable primitive.
 
 Signed-off-by: Kirill Tkhai <ktkhai@virtuozzo.com>
 ---
- include/asm-generic/rwsem.h |    8 ++++++++
- include/linux/rwsem.h       |    1 +
- kernel/locking/rwsem.c      |   16 ++++++++++++++++
- 3 files changed, 25 insertions(+)
+ arch/ia64/include/asm/rwsem.h |   22 +++++++++++++++++++---
+ 1 file changed, 19 insertions(+), 3 deletions(-)
 
-diff --git a/include/asm-generic/rwsem.h b/include/asm-generic/rwsem.h
-index 6c6a2141f271..2f71b913b555 100644
---- a/include/asm-generic/rwsem.h
-+++ b/include/asm-generic/rwsem.h
-@@ -37,6 +37,14 @@ static inline void __down_read(struct rw_semaphore *sem)
+diff --git a/arch/ia64/include/asm/rwsem.h b/arch/ia64/include/asm/rwsem.h
+index 8fa98dd303b4..1fb8b7cb1c98 100644
+--- a/arch/ia64/include/asm/rwsem.h
++++ b/arch/ia64/include/asm/rwsem.h
+@@ -37,15 +37,31 @@
+ /*
+  * lock for reading
+  */
+-static inline void
+-__down_read (struct rw_semaphore *sem)
++static inline int
++___down_read (struct rw_semaphore *sem)
+ {
+ 	long result = ia64_fetchadd8_acq((unsigned long *)&sem->count.counter, 1);
+ 
+-	if (result < 0)
++	return (result < 0);
++}
++
++static inline void
++__down_read (struct rw_semaphore *sem)
++{
++	if (___down_read(sem))
  		rwsem_down_read_failed(sem);
  }
  
-+static inline int __down_read_killable(struct rw_semaphore *sem)
++static inline int
++__down_read_killable (struct rw_semaphore *sem)
 +{
-+	if (unlikely(atomic_long_inc_return_acquire(&sem->count) <= 0))
++	if (___down_read(sem))
 +		if (IS_ERR(rwsem_down_read_failed_killable(sem)))
 +			return -EINTR;
++
 +	return 0;
 +}
 +
- static inline int __down_read_trylock(struct rw_semaphore *sem)
- {
- 	long tmp;
-diff --git a/include/linux/rwsem.h b/include/linux/rwsem.h
-index 0ad7318ff299..6ac8ee5f15dd 100644
---- a/include/linux/rwsem.h
-+++ b/include/linux/rwsem.h
-@@ -111,6 +111,7 @@ static inline int rwsem_is_contended(struct rw_semaphore *sem)
-  * lock for reading
-  */
- extern void down_read(struct rw_semaphore *sem);
-+extern int __must_check down_read_killable(struct rw_semaphore *sem);
- 
  /*
-  * trylock for reading -- returns 1 if successful, 0 if contention
-diff --git a/kernel/locking/rwsem.c b/kernel/locking/rwsem.c
-index 4d48b1c4870d..e53f7746d9fd 100644
---- a/kernel/locking/rwsem.c
-+++ b/kernel/locking/rwsem.c
-@@ -28,6 +28,22 @@ void __sched down_read(struct rw_semaphore *sem)
- 
- EXPORT_SYMBOL(down_read);
- 
-+int __sched down_read_killable(struct rw_semaphore *sem)
-+{
-+	might_sleep();
-+	rwsem_acquire_read(&sem->dep_map, 0, 0, _RET_IP_);
-+
-+	if (LOCK_CONTENDED_RETURN(sem, __down_read_trylock, __down_read_killable)) {
-+		rwsem_release(&sem->dep_map, 1, _RET_IP_);
-+		return -EINTR;
-+	}
-+
-+	rwsem_set_reader_owned(sem);
-+	return 0;
-+}
-+
-+EXPORT_SYMBOL(down_read_killable);
-+
- /*
-  * trylock for reading -- returns 1 if successful, 0 if contention
+  * lock for writing
   */
