@@ -1,80 +1,49 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH 5/5] arm64: signal: Allow expansion of the signal frame
-Date: Mon, 19 Jun 2017 12:03:47 +0100
-Message-ID: <20170619110346.GB3024@e104818-lin.cambridge.arm.com>
-References: <1497535442-11586-1-git-send-email-Dave.Martin@arm.com>
- <1497535442-11586-6-git-send-email-Dave.Martin@arm.com>
- <20170616104740.GA31526@e104818-lin.cambridge.arm.com>
- <20170619101204.GA8543@e103592.cambridge.arm.com>
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [PATCH v3 0/4] Generalize fncpy availability
+Date: Mon, 19 Jun 2017 13:24:44 +0100
+Message-ID: <20170619122444.GJ10246@leverpostej>
+References: <20170617000744.22158-1-f.fainelli@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:48646 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:49244 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753838AbdFSLDv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 19 Jun 2017 07:03:51 -0400
+        id S1750926AbdFSMZf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 19 Jun 2017 08:25:35 -0400
 Content-Disposition: inline
-In-Reply-To: <20170619101204.GA8543@e103592.cambridge.arm.com>
+In-Reply-To: <20170617000744.22158-1-f.fainelli@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org
+To: Florian Fainelli <f.fainelli@gmail.com>
+Cc: linux-arm-kernel@lists.infradead.org, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Dave Gerlach <d-gerlach@ti.com>, Tony Lindgren <tony@atomide.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, open list <linux-kernel@vger.kernel.org>, bcm-kernel-feedback-list@broadcom.com, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Alexandre Belloni <alexandre.belloni@free-electrons.com>, linux-omap@vger.kernel.org, Shawn Guo <shawnguo@kernel.org>, Keerthy J <j-keerthy@ti.com>
 
-On Mon, Jun 19, 2017 at 11:12:29AM +0100, Dave P Martin wrote:
-> On Fri, Jun 16, 2017 at 11:47:41AM +0100, Catalin Marinas wrote:
-> > On Thu, Jun 15, 2017 at 03:03:42PM +0100, Dave P Martin wrote:
-> > > +struct extra_context {
-> > > +	struct _aarch64_ctx head;
-> > > +	void __user *data;	/* 16-byte aligned pointer to extra space */
-> > > +	__u32 size;		/* size in bytes of the extra space */
-> > > +	__u32 __reserved[3];
-> > > +};
-> > 
-> > Some more thoughts on the type of "data" above. It's the first time we
-> > introduce pointers in sigcontext and wonder whether __u64 would make
-> > more sense (invariable size with the ABI).
-> 
-> I'm happy to change this if you want -- it can be a __u64 without
-> impacting the semantics.
+On Fri, Jun 16, 2017 at 05:07:40PM -0700, Florian Fainelli wrote:
+> Hi all,
 
-I was thinking in the context of ILP32 but we can address this
-separately for the exported kernel headers and glibc definitions.
-Looking at this structure from an LP64 perspective, it indeed makes
-sense to keep it as void *. We have other UAPI structures with user
-pointers already.
+Hi Florian,
 
-> > Also for discussion - whether using an offset vs absolute address would
-> > be better.
+> This patch series makes ARM's fncpy() implementation more generic (dropping the
+> Thumb-specifics) and available in an asm-generic header file.
 > 
-> My rationale here related to the ucontext semantics associated with
-> the signal frame, rather than signal handling itself.
+> Tested on a Broadcom ARM64 STB platform with code that is written to SRAM.
 > 
-> Consider:
+> Changes in v3 (thanks Doug!):
+> - correct include guard names in asm-generic/fncpy.h to __ASM_FNCPY_H
+> - utilize Kbuild to provide the fncpy.h header on ARM64
 > 
-> void signal_handler(int n, siginfo_t *si, void *uc)
-> {
-> 	*signal_context = *(ucontext_t *)uc;
-> }
+> Changes in v2:
+> - leave the ARM implementation where it is
+> - make the generic truly generic (no)
 > 
-> Will this "work"?  On most machines, yes it will. 
-> 
-> With an expanded signal frame on arm64, it won't work: the copied
-> context will be truncated at the end of __reserved[].  If extra_data
-> uses an offset to locate the additional data then someone parsing
-> *signal_context won't be able to detect the error and will overrun:
-> this includes rt_sigreturn (if that is run on a stack that has the
-> copied context).
-> 
-> If a pointer is used in extra_context, this provides some chance of
-> handling this: naive code like the above will result in a ucontext_t
-> whose extra_context data pointer is "wrong": extra_context aware
-> parsers can detect that and error out or ignore the remaining data.
-> extra_context aware code that wants to copy the signal context can walk
-> the signal frame to determine its true size, allocate memory, copy, and
-> then update the extra_context data pointer in the new copy.
+> This is helpful in making SoC-specific power management code become true drivers
+> that can be shared between different architectures.
 
-Thanks for the explanation, it makes sense to keep an absolute pointer
-here rather than offset. So no further changes needed to this patch.
+Could you elaborate on what this is needed for?
 
--- 
-Catalin
+My understanding was that on 32-bit, this was to handle idle / suspend
+cases, whereas for arm64 that should be handled by PSCI.
+
+what exactly do you intend to use this for?
+
+Thanks,
+Mark.
