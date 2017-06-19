@@ -1,239 +1,305 @@
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH 03/20] asm-generic: Drop getrlimit and setrlimit syscalls from default list
-Date: Mon, 19 Jun 2017 18:49:46 +0300
-Message-ID: <20170619155003.13218-4-ynorov@caviumnetworks.com>
-References: <20170619155003.13218-1-ynorov@caviumnetworks.com>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH 1/5] kbuild: thin archives final link close
+ --whole-archives option
+Date: Tue, 20 Jun 2017 01:52:05 +1000
+Message-ID: <20170620015205.329519b2@roar.ozlabs.ibm.com>
+References: <20170609052417.561-1-npiggin@gmail.com>
+        <20170609052417.561-2-npiggin@gmail.com>
+        <CAK7LNASxuE-6eMk+Y-vyrMfibtYoD2JkjNS2z8QF85x9NdiiaA@mail.gmail.com>
+        <20170619165100.3ce26d00@roar.ozlabs.ibm.com>
+        <CAK7LNARuuQzGkYBdzoy3bVpBuNPZEMGerHSEdmrH+PqK0Gbyzg@mail.gmail.com>
+        <20170619182714.2cb60e17@roar.ozlabs.ibm.com>
+        <CAK7LNATznx=5A1KnhkFHpjencsJj7AGUsHtDUu6M-Qkw=jvpPQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-hexagon-owner@vger.kernel.org>
-In-Reply-To: <20170619155003.13218-1-ynorov@caviumnetworks.com>
-Sender: linux-hexagon-owner@vger.kernel.org
-To: Catalin Marinas <catalin.marinas@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
-Cc: Yury Norov <ynorov@caviumnetworks.com>, Adam Borowski <kilobyte@angband.pl>, Andreas Schwab <schwab@suse.de>, Andrew Pinski <pinskia@gmail.com>, Bamvor Zhangjian <bamvor.zhangjian@huawei.com>, Chris Metcalf <cmetcalf@ezchip.com>, Chris Metcalf <cmetcalf@mellanox.com>, Florian Weimer <fweimer@redhat.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, James Hogan <james.hogan@imgtec.com>, James Morse <james.morse@arm.com>, Joseph Myers <joseph@codesourcery.com>, Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, Nathan_Lynch@mentor.com, Prasun.Kapoor@caviumnetworks.com, Ramana Radhakrishnan <ramana.gcc@googlemail.com>, Steve Ellcey <sellcey@caviumnetworks.com>, Alexander Graf <agraf@suse.de>, Mark Brown <broonie@kernel.org>, christoph.muellner@theobroma
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <CAK7LNATznx=5A1KnhkFHpjencsJj7AGUsHtDUu6M-Qkw=jvpPQ@mail.gmail.com>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Masahiro Yamada <yamada.masahiro@socionext.com>
+Cc: Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>, kbuild test robot <fengguang.wu@intel.com>, Josh Triplett <josh@joshtriplett.org>
 List-Id: linux-arch.vger.kernel.org
 
-The newer prlimit64 syscall provides all the functionality provided by
-the getrlimit and setrlimit syscalls and adds the pid of target process,
-so future architectures won't need to include getrlimit and setrlimit.
+On Mon, 19 Jun 2017 17:35:32 +0900
+Masahiro Yamada <yamada.masahiro@socionext.com> wrote:
 
-Therefore drop getrlimit and setrlimit syscalls from the generic syscall
-list unless __ARCH_WANT_SET_GET_RLIMIT is defined by the architecture's
-unistd.h prior to including asm-generic/unistd.h, and adjust all architectures
-using the generic syscall list to define it so that no in-tree architectures
-are affected.
+> Hi Nicholas,
+> 
+> 
+> 2017-06-19 17:27 GMT+09:00 Nicholas Piggin <npiggin@gmail.com>:
+> > On Mon, 19 Jun 2017 17:14:22 +0900
+> > Masahiro Yamada <yamada.masahiro@socionext.com> wrote:
+> >  
+> >> Hi Nicholas,
+> >>
+> >>
+> >> 2017-06-19 15:51 GMT+09:00 Nicholas Piggin <npiggin@gmail.com>:  
+> >> > On Mon, 19 Jun 2017 15:16:17 +0900
+> >> > Masahiro Yamada <yamada.masahiro@socionext.com> wrote:
+> >> >  
+> >> >> Hi Nicholas,
+> >> >>
+> >> >>
+> >> >> 2017-06-09 14:24 GMT+09:00 Nicholas Piggin <npiggin@gmail.com>:  
+> >> >> > Close the --whole-archives option with --no-whole-archive. Some
+> >> >> > architectures end up including additional .o and files multiple
+> >> >> > times after this, and they get duplicate symbols when they are
+> >> >> > brought under the --whole-archives option.  
+> >> >>
+> >> >> Which architectures have additional files after --no-whole-archive ?
+> >> >>
+> >> >> I see this case only for ARCH = "um" in vmlinux_link()
+> >> >> where it adds some -l* options after --no-whole-archive.
+> >> >>
+> >> >> I think it is good to close the --whole-archives everywhere.
+> >> >> So, the code looks OK to me, but I just wondered about the log.  
+> >> >
+> >> > Actually a number of archs seemed to get build errors without this,
+> >> > and they seem to come from libgcc perhaps.
+> >> >
+> >> > binfmt_elf.c:(.text+0x4851): undefined reference to `__kernel_syscall_via_epc'
+> >> > /c/gcc/libgcc/libgcc2.c:1318: multiple definition of `__ucmpdi2'
+> >> > /c/gcc/libgcc/libgcc2.c:405: multiple definition of `__lshrdi3'
+> >> > /c/gcc/libgcc/libgcc2.c:433: multiple definition of `__ashldi3'
+> >> > /c/gcc/libgcc/libgcc2.c:461: multiple definition of `__ashrdi3'
+> >> >
+> >> > /home/tony/buildall/src/gcc/libgcc/config/xtensa/lib2funcs.S:36: multiple definition of `__xtensa_libgcc_window_spill'
+> >> >
+> >> > etc  
+> >>
+> >>
+> >> Oops, I did not test such architectures.
+> >>
+> >>  
+> >> > m32r, parisc, xtensa seemed to be getting such errors. I wonder if
+> >> > the linker implicitly adds some runtime libs at the end that get
+> >> > caught up here. Either way I didn't look too far into it because this
+> >> > fix seems obviously correct and solved the problem.
+> >> >
+> >> > Thanks,  
+> >>
+> >>
+> >> Which toolchains do you use?  
+> >
+> > I just had them run through the kbuild 0day tests. Not sure exactly
+> > what they use.
+> >  
+> >> I downloaded xtensa-linux- from this site:
+> >> https://www.kernel.org/pub/tools/crosstool/files/bin/x86_64/4.9.0/
+> >>
+> >>
+> >> I see a different error for xtensa.
+> >>
+> >>
+> >> I applied all of you 5 patches, but xtensa build still fails.
+> >>
+> >>   LD      vmlinux.o
+> >> xtensa-linux-ld: internal error
+> >> /home/tony/buildall/src/binutils/ld/ldlang.c 6178
+> >>
+> >>
+> >> Could you check it?  
+> >
+> > Ahh, the old ld: internal error... what ld version is that?
+> >  
+> 
+> 
+> seems 2.24 according to the following:
+> 
+> 
+> masahiro@pug:~$ xtensa-linux-ld -v
+> GNU ld (GNU Binutils) 2.24
 
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: James Hogan <james.hogan@imgtec.com>
-Cc: linux-arch@vger.kernel.org
-Cc: linux-snps-arc@lists.infradead.org
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org
-Cc: Mark Salter <msalter@redhat.com>
-Cc: Aurelien Jacquiot <a-jacquiot@ti.com>
-Cc: linux-c6x-dev@linux-c6x.org
-Cc: Richard Kuo <rkuo@codeaurora.org>
-Cc: linux-hexagon@vger.kernel.org
-Cc: linux-metag@vger.kernel.org
-Cc: Jonas Bonn <jonas@southpole.se>
-Cc: linux@lists.openrisc.net
-Cc: Chen Liqin <liqin.linux@gmail.com>
-Cc: Lennox Wu <lennox.wu@gmail.com>
-Cc: Chris Metcalf <cmetcalf@mellanox.com>
-Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>
-Cc: Ley Foon Tan <lftan@altera.com>
-Cc: nios2-dev@lists.rocketboards.org
-Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-Cc: uclinux-h8-devel@lists.sourceforge.jp
-Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
-Acked-by: Arnd Bergmann <arnd@arndb.de>
-Acked-by: Mark Salter <msalter@redhat.com> [c6x]
-Acked-by: James Hogan <james.hogan@imgtec.com> [metag]
-Acked-by: Ley Foon Tan <lftan@altera.com> [nios2]
-Acked-by: Stafford Horne <shorne@gmail.com> [openrisc]
-Acked-by: Will Deacon <will.deacon@arm.com> [arm64]
-Acked-by: Vineet Gupta <vgupta@synopsys.com> #arch/arc bits
+Ah, thank you. It must have been that the 0day build (cc'ed) did
+not return any error to be from the ld internal error.
+
+This has led me to the true cause of the error which is the way
+external archives are handled. After implementing the fix, I think
+the lib.a size regression for thin archives should be solved as
+well.
+
+This patch should be added between patches 2 and 3 of this series.
+
+
+kbuild: handle libs-y archives separately from built-in.o archives
+
+The thin archives build currently puts all lib.a and built-in.o
+files together and links them with --whole-archive.
+
+This works because thin archives can recursively refer to thin
+archives. However some architectures include libgcc.a, which may
+not be a thin archive, or it may not be constructed with the "P"
+option, in which case its contents do not get linked correctly.
+
+So don't pull .a libs into the root built-in.o archive. These
+libs should already have symbol tables and indexes built, so they
+can be direct linker inputs. Move them out of the --whole-archive
+option, which restore the conditional linking behaviour of lib.a
+to thin archives builds.
+
+Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 ---
- arch/arc/include/uapi/asm/unistd.h       | 1 +
- arch/arm64/include/uapi/asm/unistd.h     | 1 +
- arch/c6x/include/uapi/asm/unistd.h       | 1 +
- arch/h8300/include/uapi/asm/unistd.h     | 1 +
- arch/hexagon/include/uapi/asm/unistd.h   | 1 +
- arch/metag/include/uapi/asm/unistd.h     | 1 +
- arch/nios2/include/uapi/asm/unistd.h     | 1 +
- arch/openrisc/include/uapi/asm/unistd.h  | 1 +
- arch/score/include/uapi/asm/unistd.h     | 1 +
- arch/tile/include/uapi/asm/unistd.h      | 1 +
- arch/unicore32/include/uapi/asm/unistd.h | 1 +
- include/uapi/asm-generic/unistd.h        | 5 +++++
- scripts/checksyscalls.sh                 | 5 +++++
- 13 files changed, 21 insertions(+)
+ Documentation/kbuild/kbuild.txt |  8 +++++--
+ Makefile                        |  7 +++---
+ scripts/link-vmlinux.sh         | 47 ++++++++++++++++++++++++++++++++---------
+ 3 files changed, 47 insertions(+), 15 deletions(-)
 
-diff --git a/arch/arc/include/uapi/asm/unistd.h b/arch/arc/include/uapi/asm/unistd.h
-index 9a34136d84b2..ac6496527ad6 100644
---- a/arch/arc/include/uapi/asm/unistd.h
-+++ b/arch/arc/include/uapi/asm/unistd.h
-@@ -16,6 +16,7 @@
- #define _UAPI_ASM_ARC_UNISTD_H
- 
- #define __ARCH_WANT_RENAMEAT
-+#define __ARCH_WANT_SET_GET_RLIMIT
- #define __ARCH_WANT_SYS_EXECVE
- #define __ARCH_WANT_SYS_CLONE
- #define __ARCH_WANT_SYS_VFORK
-diff --git a/arch/arm64/include/uapi/asm/unistd.h b/arch/arm64/include/uapi/asm/unistd.h
-index 043d17a21342..48355a683e25 100644
---- a/arch/arm64/include/uapi/asm/unistd.h
-+++ b/arch/arm64/include/uapi/asm/unistd.h
-@@ -15,5 +15,6 @@
-  */
- 
- #define __ARCH_WANT_RENAMEAT
-+#define __ARCH_WANT_SET_GET_RLIMIT
- 
- #include <asm-generic/unistd.h>
-diff --git a/arch/c6x/include/uapi/asm/unistd.h b/arch/c6x/include/uapi/asm/unistd.h
-index 12d73d9d81f5..f67623137853 100644
---- a/arch/c6x/include/uapi/asm/unistd.h
-+++ b/arch/c6x/include/uapi/asm/unistd.h
-@@ -15,6 +15,7 @@
-  */
- 
- #define __ARCH_WANT_RENAMEAT
-+#define __ARCH_WANT_SET_GET_RLIMIT
- #define __ARCH_WANT_SYS_CLONE
- 
- /* Use the standard ABI for syscalls. */
-diff --git a/arch/h8300/include/uapi/asm/unistd.h b/arch/h8300/include/uapi/asm/unistd.h
-index 7dd20ef7625a..2f98394b77d4 100644
---- a/arch/h8300/include/uapi/asm/unistd.h
-+++ b/arch/h8300/include/uapi/asm/unistd.h
-@@ -1,5 +1,6 @@
- #define __ARCH_NOMMU
- 
- #define __ARCH_WANT_RENAMEAT
-+#define __ARCH_WANT_SET_GET_RLIMIT
- 
- #include <asm-generic/unistd.h>
-diff --git a/arch/hexagon/include/uapi/asm/unistd.h b/arch/hexagon/include/uapi/asm/unistd.h
-index 21517600432b..52d585c5cdb2 100644
---- a/arch/hexagon/include/uapi/asm/unistd.h
-+++ b/arch/hexagon/include/uapi/asm/unistd.h
-@@ -28,6 +28,7 @@
- 
- #define sys_mmap2 sys_mmap_pgoff
- #define __ARCH_WANT_RENAMEAT
-+#define __ARCH_WANT_SET_GET_RLIMIT
- #define __ARCH_WANT_SYS_EXECVE
- #define __ARCH_WANT_SYS_CLONE
- #define __ARCH_WANT_SYS_VFORK
-diff --git a/arch/metag/include/uapi/asm/unistd.h b/arch/metag/include/uapi/asm/unistd.h
-index 459b6ec15848..16b5cb32ec21 100644
---- a/arch/metag/include/uapi/asm/unistd.h
-+++ b/arch/metag/include/uapi/asm/unistd.h
-@@ -8,6 +8,7 @@
-  */
- 
- #define __ARCH_WANT_RENAMEAT
-+#define __ARCH_WANT_SET_GET_RLIMIT
- 
- /* Use the standard ABI for syscalls. */
- #include <asm-generic/unistd.h>
-diff --git a/arch/nios2/include/uapi/asm/unistd.h b/arch/nios2/include/uapi/asm/unistd.h
-index 51a32c71ce2b..b0dda4de2bc7 100644
---- a/arch/nios2/include/uapi/asm/unistd.h
-+++ b/arch/nios2/include/uapi/asm/unistd.h
-@@ -18,6 +18,7 @@
-  #define sys_mmap2 sys_mmap_pgoff
- 
- #define __ARCH_WANT_RENAMEAT
-+#define __ARCH_WANT_SET_GET_RLIMIT
- 
- /* Use the standard ABI for syscalls */
- #include <asm-generic/unistd.h>
-diff --git a/arch/openrisc/include/uapi/asm/unistd.h b/arch/openrisc/include/uapi/asm/unistd.h
-index 471905bd7745..6812d81b3c6c 100644
---- a/arch/openrisc/include/uapi/asm/unistd.h
-+++ b/arch/openrisc/include/uapi/asm/unistd.h
-@@ -21,6 +21,7 @@
- #define sys_mmap2 sys_mmap_pgoff
- 
- #define __ARCH_WANT_RENAMEAT
-+#define __ARCH_WANT_SET_GET_RLIMIT
- #define __ARCH_WANT_SYS_FORK
- #define __ARCH_WANT_SYS_CLONE
- 
-diff --git a/arch/score/include/uapi/asm/unistd.h b/arch/score/include/uapi/asm/unistd.h
-index d4008c339e89..7ad1bdcb8615 100644
---- a/arch/score/include/uapi/asm/unistd.h
-+++ b/arch/score/include/uapi/asm/unistd.h
-@@ -1,6 +1,7 @@
- #define __ARCH_HAVE_MMU
- 
- #define __ARCH_WANT_RENAMEAT
-+#define __ARCH_WANT_SET_GET_RLIMIT
- #define __ARCH_WANT_SYSCALL_NO_AT
- #define __ARCH_WANT_SYSCALL_NO_FLAGS
- #define __ARCH_WANT_SYSCALL_OFF_T
-diff --git a/arch/tile/include/uapi/asm/unistd.h b/arch/tile/include/uapi/asm/unistd.h
-index 24e9187e85a8..cf0505fe4b9c 100644
---- a/arch/tile/include/uapi/asm/unistd.h
-+++ b/arch/tile/include/uapi/asm/unistd.h
-@@ -13,6 +13,7 @@
-  */
- 
- #define __ARCH_WANT_RENAMEAT
-+#define __ARCH_WANT_SET_GET_RLIMIT
- #if !defined(__LP64__) || defined(__SYSCALL_COMPAT)
- /* Use the flavor of this syscall that matches the 32-bit API better. */
- #define __ARCH_WANT_SYNC_FILE_RANGE2
-diff --git a/arch/unicore32/include/uapi/asm/unistd.h b/arch/unicore32/include/uapi/asm/unistd.h
-index 9cf71c7bedb1..76ece524ab70 100644
---- a/arch/unicore32/include/uapi/asm/unistd.h
-+++ b/arch/unicore32/include/uapi/asm/unistd.h
-@@ -11,6 +11,7 @@
-  */
- 
- #define __ARCH_WANT_RENAMEAT
-+#define __ARCH_WANT_SET_GET_RLIMIT
- 
- #ifndef CONFIG_UNICORE32_OLDABI
- 
-diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
-index 429dd335def6..ef90d53ac9b6 100644
---- a/include/uapi/asm-generic/unistd.h
-+++ b/include/uapi/asm-generic/unistd.h
-@@ -464,10 +464,15 @@ __SYSCALL(__NR_uname, sys_newuname)
- __SYSCALL(__NR_sethostname, sys_sethostname)
- #define __NR_setdomainname 162
- __SYSCALL(__NR_setdomainname, sys_setdomainname)
+diff --git a/Documentation/kbuild/kbuild.txt b/Documentation/kbuild/kbuild.txt
+index 0ff6a466a05b..ac2363ea05c5 100644
+--- a/Documentation/kbuild/kbuild.txt
++++ b/Documentation/kbuild/kbuild.txt
+@@ -236,5 +236,9 @@ Files specified with KBUILD_VMLINUX_INIT are linked first.
+ KBUILD_VMLINUX_MAIN
+ --------------------------------------------------
+ All object files for the main part of vmlinux.
+-KBUILD_VMLINUX_INIT and KBUILD_VMLINUX_MAIN together specify
+-all the object files used to link vmlinux.
 +
-+#ifdef __ARCH_WANT_SET_GET_RLIMIT
-+/* getrlimit and setrlimit are superseded with prlimit64 */
- #define __NR_getrlimit 163
- __SC_COMP(__NR_getrlimit, sys_getrlimit, compat_sys_getrlimit)
- #define __NR_setrlimit 164
- __SC_COMP(__NR_setrlimit, sys_setrlimit, compat_sys_setrlimit)
-+#endif
-+
- #define __NR_getrusage 165
- __SC_COMP(__NR_getrusage, sys_getrusage, compat_sys_getrusage)
- #define __NR_umask 166
-diff --git a/scripts/checksyscalls.sh b/scripts/checksyscalls.sh
-index 5a387a264201..566275e64274 100755
---- a/scripts/checksyscalls.sh
-+++ b/scripts/checksyscalls.sh
-@@ -37,6 +37,11 @@ cat << EOF
- #define __IGNORE_lstat64	/* fstatat64 */
- #endif
++KBUILD_VMLINUX_LIBS
++--------------------------------------------------
++All .a "lib" files for vmlinux.
++KBUILD_VMLINUX_INIT, KBUILD_VMLINUX_MAIN, and KBUILD_VMLINUX_LIBS together
++specify all the object files used to link vmlinux.
+diff --git a/Makefile b/Makefile
+index 470bd4d9513a..a145a537ad42 100644
+--- a/Makefile
++++ b/Makefile
+@@ -952,19 +952,20 @@ core-y		:= $(patsubst %/, %/built-in.o, $(core-y))
+ drivers-y	:= $(patsubst %/, %/built-in.o, $(drivers-y))
+ net-y		:= $(patsubst %/, %/built-in.o, $(net-y))
+ libs-y1		:= $(patsubst %/, %/lib.a, $(libs-y))
+-libs-y2		:= $(patsubst %/, %/built-in.o, $(libs-y))
++libs-y2		:= $(filter-out %.a, $(patsubst %/, %/built-in.o, $(libs-y)))
+ libs-y		:= $(libs-y1) $(libs-y2)
+ virt-y		:= $(patsubst %/, %/built-in.o, $(virt-y))
  
-+#ifndef __ARCH_WANT_SET_GET_RLIMIT
-+#define __IGNORE_getrlimit	/* getrlimit */
-+#define __IGNORE_setrlimit	/* setrlimit */
-+#endif
-+
- /* Missing flags argument */
- #define __IGNORE_renameat	/* renameat2 */
+ # Externally visible symbols (used by link-vmlinux.sh)
+ export KBUILD_VMLINUX_INIT := $(head-y) $(init-y)
+-export KBUILD_VMLINUX_MAIN := $(core-y) $(libs-y) $(drivers-y) $(net-y) $(virt-y)
++export KBUILD_VMLINUX_MAIN := $(core-y) $(libs-y2) $(drivers-y) $(net-y) $(virt-y)
++export KBUILD_VMLINUX_LIBS := $(libs-y1)
+ export KBUILD_LDS          := arch/$(SRCARCH)/kernel/vmlinux.lds
+ export LDFLAGS_vmlinux
+ # used by scripts/pacmage/Makefile
+ export KBUILD_ALLDIRS := $(sort $(filter-out arch/%,$(vmlinux-alldirs)) arch Documentation include samples scripts tools)
  
+-vmlinux-deps := $(KBUILD_LDS) $(KBUILD_VMLINUX_INIT) $(KBUILD_VMLINUX_MAIN)
++vmlinux-deps := $(KBUILD_LDS) $(KBUILD_VMLINUX_INIT) $(KBUILD_VMLINUX_MAIN) $(KBUILD_VMLINUX_LIBS)
+ 
+ # Include targets which we want to execute sequentially if the rest of the
+ # kernel build went well. If CONFIG_TRIM_UNUSED_KSYMS is set, this might be
+diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
+index 2a062ea130b5..e7b7eee31538 100755
+--- a/scripts/link-vmlinux.sh
++++ b/scripts/link-vmlinux.sh
+@@ -3,9 +3,12 @@
+ # link vmlinux
+ #
+ # vmlinux is linked from the objects selected by $(KBUILD_VMLINUX_INIT) and
+-# $(KBUILD_VMLINUX_MAIN). Most are built-in.o files from top-level directories
+-# in the kernel tree, others are specified in arch/$(ARCH)/Makefile.
+-# Ordering when linking is important, and $(KBUILD_VMLINUX_INIT) must be first.
++# $(KBUILD_VMLINUX_MAIN) and $(KBUILD_VMLINUX_LIBS). Most are built-in.o files
++# from top-level directories in the kernel tree, others are specified in
++# arch/$(ARCH)/Makefile. Ordering when linking is important, and
++# $(KBUILD_VMLINUX_INIT) must be first. $(KBUILD_VMLINUX_LIBS) are archives
++# which are linked conditionally (not within --whole-archive), and do not
++# require symbol indexes added.
+ #
+ # vmlinux
+ #   ^
+@@ -16,6 +19,9 @@
+ #   +--< $(KBUILD_VMLINUX_MAIN)
+ #   |    +--< drivers/built-in.o mm/built-in.o + more
+ #   |
++#   +--< $(KBUILD_VMLINUX_LIBS)
++#   |    +--< lib/lib.a + more
++#   |
+ #   +-< ${kallsymso} (see description in KALLSYMS section)
+ #
+ # vmlinux version (uname -v) cannot be updated during normal
+@@ -37,9 +43,10 @@ info()
+ 	fi
+ }
+ 
+-# Thin archive build here makes a final archive with
+-# symbol table and indexes from vmlinux objects, which can be
+-# used as input to linker.
++# Thin archive build here makes a final archive with symbol table and indexes
++# from vmlinux objects INIT and MAIN, which can be used as input to linker.
++# KBUILD_VMLINUX_LIBS archives should already have symbol table and indexes
++# added.
+ #
+ # Traditional incremental style of link does not require this step
+ #
+@@ -50,7 +57,7 @@ archive_builtin()
+ 	if [ -n "${CONFIG_THIN_ARCHIVES}" ]; then
+ 		info AR built-in.o
+ 		rm -f built-in.o;
+-		${AR} rcsT${KBUILD_ARFLAGS} built-in.o			\
++		${AR} rcsTP${KBUILD_ARFLAGS} built-in.o			\
+ 					${KBUILD_VMLINUX_INIT}		\
+ 					${KBUILD_VMLINUX_MAIN}
+ 	fi
+@@ -63,11 +70,17 @@ modpost_link()
+ 	local objects
+ 
+ 	if [ -n "${CONFIG_THIN_ARCHIVES}" ]; then
+-		objects="--whole-archive built-in.o --no-whole-archive"
++		objects="--whole-archive				\
++			built-in.o					\
++			--no-whole-archive				\
++			--start-group					\
++			${KBUILD_VMLINUX_LIBS}				\
++			--end-group"
+ 	else
+ 		objects="${KBUILD_VMLINUX_INIT}				\
+ 			--start-group					\
+ 			${KBUILD_VMLINUX_MAIN}				\
++			${KBUILD_VMLINUX_LIBS}				\
+ 			--end-group"
+ 	fi
+ 	${LD} ${LDFLAGS} -r -o ${1} ${objects}
+@@ -83,11 +96,18 @@ vmlinux_link()
+ 
+ 	if [ "${SRCARCH}" != "um" ]; then
+ 		if [ -n "${CONFIG_THIN_ARCHIVES}" ]; then
+-			objects="--whole-archive built-in.o ${1} --no-whole-archive"
++			objects="--whole-archive			\
++				built-in.o				\
++				--no-whole-archive			\
++				--start-group				\
++				${KBUILD_VMLINUX_LIBS}			\
++				--end-group				\
++				${1}"
+ 		else
+ 			objects="${KBUILD_VMLINUX_INIT}			\
+ 				--start-group				\
+ 				${KBUILD_VMLINUX_MAIN}			\
++				${KBUILD_VMLINUX_LIBS}			\
+ 				--end-group				\
+ 				${1}"
+ 		fi
+@@ -96,11 +116,18 @@ vmlinux_link()
+ 			-T ${lds} ${objects}
+ 	else
+ 		if [ -n "${CONFIG_THIN_ARCHIVES}" ]; then
+-			objects="-Wl,--whole-archive built-in.o ${1} -Wl,--no-whole-archive"
++			objects="-Wl,--whole-archive			\
++				built-in.o				\
++				-Wl,--no-whole-archive			\
++				-Wl,--start-group			\
++				${KBUILD_VMLINUX_LIBS}			\
++				-Wl,--end-group				\
++				${1}"
+ 		else
+ 			objects="${KBUILD_VMLINUX_INIT}			\
+ 				-Wl,--start-group			\
+ 				${KBUILD_VMLINUX_MAIN}			\
++				${KBUILD_VMLINUX_LIBS}			\
+ 				-Wl,--end-group				\
+ 				${1}"
+ 		fi
 -- 
 2.11.0
+
