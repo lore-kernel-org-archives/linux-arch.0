@@ -1,46 +1,123 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2nam01on0084.outbound.protection.outlook.com ([104.47.34.84]:24064
-        "EHLO NAM01-BY2-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751152AbdFSPSd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 19 Jun 2017 11:18:33 -0400
-Date: Mon, 19 Jun 2017 18:18:18 +0300
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: Re: [PATCH v3 2/4] asm-generic: Provide a fncpy() implementation
-Message-ID: <20170619151818.pvjygbdvm6arvarq@yury-thinkpad>
-References: <20170617000744.22158-1-f.fainelli@gmail.com>
- <20170617000744.22158-3-f.fainelli@gmail.com>
- <20170618235108.peaxdi367jpkt542@yury-thinkpad>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20170618235108.peaxdi367jpkt542@yury-thinkpad>
+Received: from foss.arm.com ([217.140.101.70]:54446 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1750992AbdFSRCl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 19 Jun 2017 13:02:41 -0400
+From: Punit Agrawal <punit.agrawal@arm.com>
+Subject: [PATCH v5 2/8] arm64: hugetlb: Remove spurious calls to huge_ptep_offset
+Date: Mon, 19 Jun 2017 18:01:39 +0100
+Message-ID: <20170619170145.25577-3-punit.agrawal@arm.com>
+In-Reply-To: <20170619170145.25577-1-punit.agrawal@arm.com>
+References: <20170619170145.25577-1-punit.agrawal@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Florian Fainelli <f.fainelli@gmail.com>
-Cc: "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, Keerthy J <j-keerthy@ti.com>, Arnd Bergmann <arnd@arndb.de>, Dave Gerlach <d-gerlach@ti.com>, Tony Lindgren <tony@atomide.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, open list <linux-kernel@vger.kernel.org>, bcm-kernel-feedback-list@broadcom.com, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Alexandre Belloni <alexandre.belloni@free-electrons.com>, linux-omap@vger.kernel.org, Shawn Guo <shawnguo@kernel.org>, linux-arm-kernel@lists.infradead.org
-Message-ID: <20170619151818.0RuwWk2SUeNY3UPIq_bb-pSkLM76hTtENpUW1cnVwbc@z>
+To: akpm@linux-foundation.org
+Cc: Steve Capper <steve.capper@arm.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, will.deacon@arm.com, n-horiguchi@ah.jp.nec.com, kirill.shutemov@linux.intel.com, mike.kravetz@oracle.com, mark.rutland@arm.com, linux-arch@vger.kernel.org, aneesh.kumar@linux.vnet.ibm.com, David Woods <dwoods@mellanox.com>, Punit Agrawal <punit.agrawal@arm.com>
+Message-ID: <20170619170139.1bgKVexjcgLFmLBDnSPqJCdzNguYHA8Wc8AjJQARPjw@z>
 
-On Mon, Jun 19, 2017 at 02:51:08AM +0300, Yury Norov wrote:
-> Hi Florian,
-> 
-> Some questions and thoughts inline.
-> 
-> Yury
-> 
-> On Fri, Jun 16, 2017 at 05:07:42PM -0700, Florian Fainelli wrote:
-> > Define a generic fncpy() implementation largely based on the ARM version
-> > that requires an 8 bytes alignment for the destination address where to
-> > copy this function as well as the function's own address.
-> > 
-> > Signed-off-by: Florian Fainelli <f.fainelli@gmail.com>
-> > ---
-> >  include/asm-generic/fncpy.h | 93 +++++++++++++++++++++++++++++++++++++++++++++
-> >  1 file changed, 93 insertions(+)
-> >  create mode 100644 include/asm-generic/fncpy.h
+From: Steve Capper <steve.capper@arm.com>
 
-One else thing I forgot to ask - now you have the generic
-implementation for fncpy(), so do you really need to save arm
-version of it?
+We don't need to call huge_ptep_offset as our accessors are already
+supplied with the pte_t *. This patch removes those spurious calls.
 
-Yury
+Cc: David Woods <dwoods@mellanox.com>
+Signed-off-by: Steve Capper <steve.capper@arm.com>
+[ Resolved rebase conflicts due to patch re-ordering ]
+Signed-off-by: Punit Agrawal <punit.agrawal@arm.com>
+---
+ arch/arm64/mm/hugetlbpage.c | 37 ++++++++++++++-----------------------
+ 1 file changed, 14 insertions(+), 23 deletions(-)
+
+diff --git a/arch/arm64/mm/hugetlbpage.c b/arch/arm64/mm/hugetlbpage.c
+index 710bf935a473..f89aa8fa5855 100644
+--- a/arch/arm64/mm/hugetlbpage.c
++++ b/arch/arm64/mm/hugetlbpage.c
+@@ -183,21 +183,19 @@ pte_t huge_ptep_get_and_clear(struct mm_struct *mm,
+ 	if (pte_cont(*ptep)) {
+ 		int ncontig, i;
+ 		size_t pgsize;
+-		pte_t *cpte;
+ 		bool is_dirty = false;
+ 
+-		cpte = huge_pte_offset(mm, addr);
+-		ncontig = find_num_contig(mm, addr, cpte, &pgsize);
++		ncontig = find_num_contig(mm, addr, ptep, &pgsize);
+ 		/* save the 1st pte to return */
+-		pte = ptep_get_and_clear(mm, addr, cpte);
++		pte = ptep_get_and_clear(mm, addr, ptep);
+ 		for (i = 1, addr += pgsize; i < ncontig; ++i, addr += pgsize) {
+ 			/*
+ 			 * If HW_AFDBM is enabled, then the HW could
+ 			 * turn on the dirty bit for any of the page
+ 			 * in the set, so check them all.
+ 			 */
+-			++cpte;
+-			if (pte_dirty(ptep_get_and_clear(mm, addr, cpte)))
++			++ptep;
++			if (pte_dirty(ptep_get_and_clear(mm, addr, ptep)))
+ 				is_dirty = true;
+ 		}
+ 		if (is_dirty)
+@@ -213,8 +211,6 @@ int huge_ptep_set_access_flags(struct vm_area_struct *vma,
+ 			       unsigned long addr, pte_t *ptep,
+ 			       pte_t pte, int dirty)
+ {
+-	pte_t *cpte;
+-
+ 	if (pte_cont(pte)) {
+ 		int ncontig, i, changed = 0;
+ 		size_t pgsize = 0;
+@@ -224,12 +220,11 @@ int huge_ptep_set_access_flags(struct vm_area_struct *vma,
+ 			__pgprot(pte_val(pfn_pte(pfn, __pgprot(0))) ^
+ 				 pte_val(pte));
+ 
+-		cpte = huge_pte_offset(vma->vm_mm, addr);
+-		pfn = pte_pfn(*cpte);
+-		ncontig = find_num_contig(vma->vm_mm, addr, cpte,
++		pfn = pte_pfn(pte);
++		ncontig = find_num_contig(vma->vm_mm, addr, ptep,
+ 					  &pgsize);
+-		for (i = 0; i < ncontig; ++i, ++cpte, addr += pgsize) {
+-			changed |= ptep_set_access_flags(vma, addr, cpte,
++		for (i = 0; i < ncontig; ++i, ++ptep, addr += pgsize) {
++			changed |= ptep_set_access_flags(vma, addr, ptep,
+ 							pfn_pte(pfn,
+ 								hugeprot),
+ 							dirty);
+@@ -246,13 +241,11 @@ void huge_ptep_set_wrprotect(struct mm_struct *mm,
+ {
+ 	if (pte_cont(*ptep)) {
+ 		int ncontig, i;
+-		pte_t *cpte;
+ 		size_t pgsize = 0;
+ 
+-		cpte = huge_pte_offset(mm, addr);
+-		ncontig = find_num_contig(mm, addr, cpte, &pgsize);
+-		for (i = 0; i < ncontig; ++i, ++cpte, addr += pgsize)
+-			ptep_set_wrprotect(mm, addr, cpte);
++		ncontig = find_num_contig(mm, addr, ptep, &pgsize);
++		for (i = 0; i < ncontig; ++i, ++ptep, addr += pgsize)
++			ptep_set_wrprotect(mm, addr, ptep);
+ 	} else {
+ 		ptep_set_wrprotect(mm, addr, ptep);
+ 	}
+@@ -263,14 +256,12 @@ void huge_ptep_clear_flush(struct vm_area_struct *vma,
+ {
+ 	if (pte_cont(*ptep)) {
+ 		int ncontig, i;
+-		pte_t *cpte;
+ 		size_t pgsize = 0;
+ 
+-		cpte = huge_pte_offset(vma->vm_mm, addr);
+-		ncontig = find_num_contig(vma->vm_mm, addr, cpte,
++		ncontig = find_num_contig(vma->vm_mm, addr, ptep,
+ 					  &pgsize);
+-		for (i = 0; i < ncontig; ++i, ++cpte, addr += pgsize)
+-			ptep_clear_flush(vma, addr, cpte);
++		for (i = 0; i < ncontig; ++i, ++ptep, addr += pgsize)
++			ptep_clear_flush(vma, addr, ptep);
+ 	} else {
+ 		ptep_clear_flush(vma, addr, ptep);
+ 	}
+-- 
+2.11.0
