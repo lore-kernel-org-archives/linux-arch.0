@@ -1,46 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([5.9.137.197]:47026 "EHLO mail.skyhub.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750780AbdFSRSa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 19 Jun 2017 13:18:30 -0400
-Date: Mon, 19 Jun 2017 19:18:20 +0200
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH v6 26/34] iommu/amd: Allow the AMD IOMMU to work with
- memory encryption
-Message-ID: <20170619171820.tq4htttamb52pyx5@pd.tnic>
-References: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
- <20170607191745.28645.81756.stgit@tlendack-t1.amdoffice.net>
- <20170614174208.p2yr5exs4b6pjxhf@pd.tnic>
- <0611d01a-19f8-d6ae-2682-932789855518@amd.com>
- <20170615094111.wga334kg2bhxqib3@pd.tnic>
- <921153f5-1528-31d8-b815-f0419e819aeb@amd.com>
- <20170615153322.nwylo3dzn4fdx6n6@pd.tnic>
- <3db2c52d-5e63-a1df-edd4-975bce7f29c2@amd.com>
+Received: from mail-qt0-f172.google.com ([209.85.216.172]:36783 "EHLO
+        mail-qt0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751028AbdFSRcs (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 19 Jun 2017 13:32:48 -0400
+Received: by mail-qt0-f172.google.com with SMTP id u19so115930171qta.3
+        for <linux-arch@vger.kernel.org>; Mon, 19 Jun 2017 10:32:42 -0700 (PDT)
+Subject: Re: [PATCH v3 0/4] Generalize fncpy availability
+References: <20170617000744.22158-1-f.fainelli@gmail.com>
+ <20170619122444.GJ10246@leverpostej>
+From: Florian Fainelli <florian.fainelli@broadcom.com>
+Message-ID: <c8b7789c-38fb-6793-050f-7c60ccb8ca17@broadcom.com>
+Date: Mon, 19 Jun 2017 10:32:38 -0700
 MIME-Version: 1.0
+In-Reply-To: <20170619122444.GJ10246@leverpostej>
 Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <3db2c52d-5e63-a1df-edd4-975bce7f29c2@amd.com>
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tom Lendacky <thomas.lendacky@amd.com>, =?utf-8?B?SsO2cmcgUsO2ZGVs?= <joro@8bytes.org>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170619171820.oLEQGcDXLS9eZlS23FGuYXy3TTCaWijsj8oa-aDXuYs@z>
+To: Mark Rutland <mark.rutland@arm.com>, Florian Fainelli <f.fainelli@gmail.com>
+Cc: linux-arm-kernel@lists.infradead.org, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Dave Gerlach <d-gerlach@ti.com>, Tony Lindgren <tony@atomide.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, open list <linux-kernel@vger.kernel.org>, bcm-kernel-feedback-list@broadcom.com, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Alexandre Belloni <alexandre.belloni@free-electrons.com>, linux-omap@vger.kernel.org, Shawn Guo <shawnguo@kernel.org>, Keerthy J <j-keerthy@ti.com>
+Message-ID: <20170619173238.oHLfPqcCzaNu9M6Q0Km0AcGvhkc8MTOmjjCKe_fTxx8@z>
 
-On Thu, Jun 15, 2017 at 11:33:41AM -0500, Tom Lendacky wrote:
-> Changing the signature back reverts to the original way, so this can be
-> looked at separate from this patchset then.
+On 06/19/2017 05:24 AM, Mark Rutland wrote:
+> On Fri, Jun 16, 2017 at 05:07:40PM -0700, Florian Fainelli wrote:
+>> Hi all,
+> 
+> Hi Florian,
+> 
+>> This patch series makes ARM's fncpy() implementation more generic (dropping the
+>> Thumb-specifics) and available in an asm-generic header file.
+>>
+>> Tested on a Broadcom ARM64 STB platform with code that is written to SRAM.
+>>
+>> Changes in v3 (thanks Doug!):
+>> - correct include guard names in asm-generic/fncpy.h to __ASM_FNCPY_H
+>> - utilize Kbuild to provide the fncpy.h header on ARM64
+>>
+>> Changes in v2:
+>> - leave the ARM implementation where it is
+>> - make the generic truly generic (no)
+>>
+>> This is helpful in making SoC-specific power management code become true drivers
+>> that can be shared between different architectures.
+> > Could you elaborate on what this is needed for?
 
-Right, the patch which added the volatile thing was this one:
+Several uses cases come to mind:
 
-  4bf5beef578e ("iommu/amd: Don't put completion-wait semaphore on stack")
+- it could be used as a trampoline code prior to entering S2 for systems
+that do not support PSCI 1.0
 
-and the commit message doesn't say why the thing needs to be volatile at
-all.
+- any code that has a specific need to relocate a performance, security
+sensitive code into SRAM and use it as another pool of memory.
 
-Joerg?
+> 
+> My understanding was that on 32-bit, this was to handle idle / suspend
+> cases, whereas for arm64 that should be handled by PSCI.
 
+For systems that support PSCI 1.0, I agree, but it may not be possible
+to update those systems easily, still use case 2 is completely valid.
+
+> 
+> what exactly do you intend to use this for?
+
+At the moment we use it to enter S2 on ARM64 systems (ARCH_BRCMSTB)
+which are PSCI 0.2 only. And yes, we do have a plan to evaluate
+upgrading to PSCI 1.0, but in general, any SoC which as an addressable
+SRAM could use it for whatever purpose it sees fit.
 -- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
+Florian
