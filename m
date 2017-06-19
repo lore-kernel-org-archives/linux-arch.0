@@ -1,82 +1,96 @@
 From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: Re: [PATCH 1/5] kbuild: thin archives final link close
- --whole-archives option
-Date: Mon, 19 Jun 2017 15:16:17 +0900
-Message-ID: <CAK7LNASxuE-6eMk+Y-vyrMfibtYoD2JkjNS2z8QF85x9NdiiaA@mail.gmail.com>
-References: <20170609052417.561-1-npiggin@gmail.com> <20170609052417.561-2-npiggin@gmail.com>
+Subject: Re: [PATCH 2/5] kbuild: thin archives use P option to ar
+Date: Mon, 19 Jun 2017 15:17:39 +0900
+Message-ID: <CAK7LNATkm0hKB+yBKHFBEpV2nycp5DyJMvUe7vATLOwN2fLb1g@mail.gmail.com>
+References: <20170609052417.561-1-npiggin@gmail.com> <20170609052417.561-3-npiggin@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from conssluserg-06.nifty.com ([210.131.2.91]:31174 "EHLO
-        conssluserg-06.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751024AbdFSGQW (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 19 Jun 2017 02:16:22 -0400
-In-Reply-To: <20170609052417.561-2-npiggin@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <20170609052417.561-3-npiggin@gmail.com>
+Sender: linux-kbuild-owner@vger.kernel.org
 To: Nicholas Piggin <npiggin@gmail.com>
 Cc: Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>
+List-Id: linux-arch.vger.kernel.org
 
 Hi Nicholas,
 
 
 2017-06-09 14:24 GMT+09:00 Nicholas Piggin <npiggin@gmail.com>:
-> Close the --whole-archives option with --no-whole-archive. Some
-> architectures end up including additional .o and files multiple
-> times after this, and they get duplicate symbols when they are
-> brought under the --whole-archives option.
+> The P option makes ar do full path name matching and can prevent ar
+> from discarding files with duplicate names in some cases of creating
+> thin archives from thin archives. The sh architecture in particular
+> loses some object files from its kernel/cpu/sh*/ directories without
+> this option.
 
-Which architectures have additional files after --no-whole-archive ?
+After playing around with thin archives, I agree this is the right
+thing to do.
 
-I see this case only for ARCH = "um" in vmlinux_link()
-where it adds some -l* options after --no-whole-archive.
-
-I think it is good to close the --whole-archives everywhere.
-So, the code looks OK to me, but I just wondered about the log.
+Currently, sh is the only architecture that has this kind of issue
+(arch/sh/kernel/cpu/fpu.c  vs  arch/sh/kernel/cpu/sh*/fpu.c),
+but this could happen in any architecture, I think.
 
 
-> This matches more closely with the incremental final link.
->
+BTW, I see one more instance in archive_builtin() in scripts/link-vmlinux.sh.
+
+We have no source file at the top directory, so it will work
+with/without "P" for the top-level built-in.o
+
+Either way seems OK to me.
+
+
+> This could be a bug in binutils ar, but the P option should not cause
+> any negative effects so it is safe to use to work around tihs with.
+
+
+Is "tihs" a typo?
+
+
+
 > Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 > ---
->  scripts/link-vmlinux.sh | 6 +++---
->  1 file changed, 3 insertions(+), 3 deletions(-)
+>  scripts/Makefile.build | 8 ++++----
+>  1 file changed, 4 insertions(+), 4 deletions(-)
 >
-> diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
-> index c80291319cb2..2a062ea130b5 100755
-> --- a/scripts/link-vmlinux.sh
-> +++ b/scripts/link-vmlinux.sh
-> @@ -63,7 +63,7 @@ modpost_link()
->         local objects
+> diff --git a/scripts/Makefile.build b/scripts/Makefile.build
+> index 733e044fff8b..4a9a2cec0a1b 100644
+> --- a/scripts/Makefile.build
+> +++ b/scripts/Makefile.build
+> @@ -437,8 +437,8 @@ $(sort $(subdir-obj-y)): $(subdir-ym) ;
+>  ifdef builtin-target
 >
->         if [ -n "${CONFIG_THIN_ARCHIVES}" ]; then
-> -               objects="--whole-archive built-in.o"
-> +               objects="--whole-archive built-in.o --no-whole-archive"
->         else
->                 objects="${KBUILD_VMLINUX_INIT}                         \
->                         --start-group                                   \
-> @@ -83,7 +83,7 @@ vmlinux_link()
+>  ifdef CONFIG_THIN_ARCHIVES
+> -  cmd_make_builtin = rm -f $@; $(AR) rcST$(KBUILD_ARFLAGS)
+> -  cmd_make_empty_builtin = rm -f $@; $(AR) rcST$(KBUILD_ARFLAGS)
+> +  cmd_make_builtin = rm -f $@; $(AR) rcSTP$(KBUILD_ARFLAGS)
+> +  cmd_make_empty_builtin = rm -f $@; $(AR) rcSTP$(KBUILD_ARFLAGS)
+>    quiet_cmd_link_o_target = AR      $@
+>  else
+>    cmd_make_builtin = $(LD) $(ld_flags) -r -o
+> @@ -478,7 +478,7 @@ ifdef lib-target
+>  quiet_cmd_link_l_target = AR      $@
 >
->         if [ "${SRCARCH}" != "um" ]; then
->                 if [ -n "${CONFIG_THIN_ARCHIVES}" ]; then
-> -                       objects="--whole-archive built-in.o ${1}"
-> +                       objects="--whole-archive built-in.o ${1} --no-whole-archive"
->                 else
->                         objects="${KBUILD_VMLINUX_INIT}                 \
->                                 --start-group                           \
-> @@ -96,7 +96,7 @@ vmlinux_link()
->                         -T ${lds} ${objects}
->         else
->                 if [ -n "${CONFIG_THIN_ARCHIVES}" ]; then
-> -                       objects="-Wl,--whole-archive built-in.o ${1}"
-> +                       objects="-Wl,--whole-archive built-in.o ${1} -Wl,--no-whole-archive"
->                 else
->                         objects="${KBUILD_VMLINUX_INIT}                 \
->                                 -Wl,--start-group                       \
-
-
-
-
+>  ifdef CONFIG_THIN_ARCHIVES
+> -  cmd_link_l_target = rm -f $@; $(AR) rcsT$(KBUILD_ARFLAGS) $@ $(lib-y)
+> +  cmd_link_l_target = rm -f $@; $(AR) rcsTP$(KBUILD_ARFLAGS) $@ $(lib-y)
+>  else
+>    cmd_link_l_target = rm -f $@; $(AR) rcs$(KBUILD_ARFLAGS) $@ $(lib-y)
+>  endif
+> @@ -531,7 +531,7 @@ cmd_link_multi-link = $(LD) $(ld_flags) -r -o $@ $(link_multi_deps) $(cmd_secana
+>
+>  ifdef CONFIG_THIN_ARCHIVES
+>    quiet_cmd_link_multi-y = AR      $@
+> -  cmd_link_multi-y = rm -f $@; $(AR) rcST$(KBUILD_ARFLAGS) $@ $(link_multi_deps)
+> +  cmd_link_multi-y = rm -f $@; $(AR) rcSTP$(KBUILD_ARFLAGS) $@ $(link_multi_deps)
+>  else
+>    quiet_cmd_link_multi-y = LD      $@
+>    cmd_link_multi-y = $(cmd_link_multi-link)
+> --
+> 2.11.0
+>
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-kbuild" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
 
 
 
