@@ -1,61 +1,66 @@
 From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: Re: [PATCH 4/5] x86/um: thin archives build fix
-Date: Mon, 19 Jun 2017 15:21:00 +0900
-Message-ID: <CAK7LNAT4v3h=eaG5nyCCZCP1o9yPkJWAXny9zvSa+Z0Q89=9Zw@mail.gmail.com>
-References: <20170609052417.561-1-npiggin@gmail.com> <20170609052417.561-5-npiggin@gmail.com>
+Subject: Re: [PATCH 5/5] kbuild: thin archives make default for all archs
+Date: Mon, 19 Jun 2017 15:22:14 +0900
+Message-ID: <CAK7LNATfQcjTWKBWPmJG9WQOVWw984MO0ag4LaazAb82d252qw@mail.gmail.com>
+References: <20170609052417.561-1-npiggin@gmail.com> <20170609052417.561-6-npiggin@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <20170609052417.561-5-npiggin@gmail.com>
-Sender: linux-kbuild-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from conssluserg-06.nifty.com ([210.131.2.91]:37032 "EHLO
+        conssluserg-06.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751090AbdFSGWW (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 19 Jun 2017 02:22:22 -0400
+In-Reply-To: <20170609052417.561-6-npiggin@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Nicholas Piggin <npiggin@gmail.com>
-Cc: Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, user-mode-linux-devel@lists.sourceforge.net
-List-Id: linux-arch.vger.kernel.org
+Cc: Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>
+
+Hi Nicholas,
 
 2017-06-09 14:24 GMT+09:00 Nicholas Piggin <npiggin@gmail.com>:
-> The linker does not like vdso-syms.lds in input archive files.
-> Make it an extra-y instead.
+> Make thin archives build the default, but keep the config option
+> to allow exemptions if any breakage can't be quickly solved.
 >
-> Cc: Jeff Dike <jdike@addtoit.com>
-> Cc: Richard Weinberger <richard@nod.at>
-> Cc: user-mode-linux-devel@lists.sourceforge.net
 > Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 > ---
+>  Documentation/process/changes.rst | 9 ++++-----
+>  arch/Kconfig                      | 2 +-
+>  arch/powerpc/Kconfig              | 8 --------
+>  3 files changed, 5 insertions(+), 14 deletions(-)
 >
-> Arch maintainers please give an ack if we can take this through
-> the kbuild tree.
+> diff --git a/Documentation/process/changes.rst b/Documentation/process/changes.rst
+> index e25d63f8c0da..56fd0687bd4a 100644
+> --- a/Documentation/process/changes.rst
+> +++ b/Documentation/process/changes.rst
+> @@ -31,7 +31,7 @@ you probably needn't concern yourself with isdn4k-utils.
+>  ====================== ===============  ========================================
+>  GNU C                  3.2              gcc --version
+>  GNU make               3.81             make --version
+> -binutils               2.12             ld -v
+> +binutils               2.20             ld -v
+>  util-linux             2.10o            fdformat --version
+>  module-init-tools      0.9.10           depmod -V
+>  e2fsprogs              1.41.4           e2fsck -V
+> @@ -75,10 +75,9 @@ You will need GNU make 3.81 or later to build the kernel.
+>  Binutils
+>  --------
 >
-> Thanks,
-> Nick
->
->  arch/x86/um/vdso/Makefile | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
->
-> diff --git a/arch/x86/um/vdso/Makefile b/arch/x86/um/vdso/Makefile
-> index d72dec406ccb..329406224330 100644
-> --- a/arch/x86/um/vdso/Makefile
-> +++ b/arch/x86/um/vdso/Makefile
-> @@ -53,7 +53,7 @@ CFLAGS_REMOVE_vdso-note.o = -pg -fprofile-arcs -ftest-coverage
->  CFLAGS_REMOVE_um_vdso.o = -pg -fprofile-arcs -ftest-coverage
->
->  targets += vdso-syms.lds
-> -obj-$(VDSO64-y)                        += vdso-syms.lds
-> +extra-$(VDSO64-y)                      += vdso-syms.lds
+> -Linux on IA-32 has recently switched from using ``as86`` to using ``gas`` for
+> -assembling the 16-bit boot code, removing the need for ``as86`` to compile
+> -your kernel.  This change does, however, mean that you need a recent
+> -release of binutils.
+> +The build system has recently switched to using thin archives (`ar T`) rather
+> +than incremental linking (`ld -r`) for built-in.o intermediate steps. This
+> +requires binutils 2.20 or newer.
 
+Sorry for my nit-picking.
 
-I agree this line is weird, but where is vdso-syms.lds used?
+If you see this document some years later,
+"recently" may not be so recent.
 
-
-I removed the following, but it still built successfully.
-
-
-targets += vdso-syms.lds
-obj-$(VDSO64-y)                        += vdso-syms.lds
-
-$(obj)/%-syms.lds: $(obj)/%.so.dbg FORCE
-       $(call if_changed,vdsosym)
-
-
+Currently, this part is written like that already,
+but perhaps is it better to reword it a bit?
 
 
 
