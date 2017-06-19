@@ -1,49 +1,62 @@
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: Re: [PATCH v3 2/4] asm-generic: Provide a fncpy() implementation
-Date: Mon, 19 Jun 2017 18:18:18 +0300
-Message-ID: <20170619151818.pvjygbdvm6arvarq@yury-thinkpad>
-References: <20170617000744.22158-1-f.fainelli@gmail.com>
- <20170617000744.22158-3-f.fainelli@gmail.com>
- <20170618235108.peaxdi367jpkt542@yury-thinkpad>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCHv2 1/3] x86/mm: Provide pmdp_establish() helper
+Date: Mon, 19 Jun 2017 16:22:29 +0100
+Message-ID: <20170619152228.GE3024@e104818-lin.cambridge.arm.com>
+References: <20170615145224.66200-1-kirill.shutemov@linux.intel.com>
+ <20170615145224.66200-2-kirill.shutemov@linux.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <20170618235108.peaxdi367jpkt542@yury-thinkpad>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Florian Fainelli <f.fainelli@gmail.com>
-Cc: "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Dave Gerlach <d-gerlach@ti.com>, Tony Lindgren <tony@atomide.com>, Keerthy J <j-keerthy@ti.com>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, open list <linux-kernel@vger.kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, bcm-kernel-feedback-list@broadcom.com, Catalin Marinas <catalin.marinas@arm.com>, Alexandre Belloni <alexandre.belloni@free-electrons.com>, linux-omap@vger.kernel.org, Shawn Guo <shawnguo@kernel.org>, linux-arm-kernel@lists.infradead.org
+In-Reply-To: <20170615145224.66200-2-kirill.shutemov@linux.intel.com>
+Sender: owner-linux-mm@kvack.org
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, Ralf Baechle <ralf@linux-mips.org>, "David S. Miller" <davem@davemloft.net>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andrea Arcangeli <aarcange@redhat.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jun 19, 2017 at 02:51:08AM +0300, Yury Norov wrote:
-> Hi Florian,
-> 
-> Some questions and thoughts inline.
-> 
-> Yury
-> 
-> On Fri, Jun 16, 2017 at 05:07:42PM -0700, Florian Fainelli wrote:
-> > Define a generic fncpy() implementation largely based on the ARM version
-> > that requires an 8 bytes alignment for the destination address where to
-> > copy this function as well as the function's own address.
-> > 
-> > Signed-off-by: Florian Fainelli <f.fainelli@gmail.com>
-> > ---
-> >  include/asm-generic/fncpy.h | 93 +++++++++++++++++++++++++++++++++++++++++++++
-> >  1 file changed, 93 insertions(+)
-> >  create mode 100644 include/asm-generic/fncpy.h
+Hi Kirill,
 
-One else thing I forgot to ask - now you have the generic
-implementation for fncpy(), so do you really need to save arm
-version of it?
+On Thu, Jun 15, 2017 at 05:52:22PM +0300, Kirill A. Shutemov wrote:
+> We need an atomic way to setup pmd page table entry, avoiding races with
+> CPU setting dirty/accessed bits. This is required to implement
+> pmdp_invalidate() that doesn't loose these bits.
+> 
+> On PAE we have to use cmpxchg8b as we cannot assume what is value of new pmd and
+> setting it up half-by-half can expose broken corrupted entry to CPU.
+> 
+> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+> Cc: Ingo Molnar <mingo@kernel.org>
+> Cc: H. Peter Anvin <hpa@zytor.com>
+> Cc: Thomas Gleixner <tglx@linutronix.de>
 
-Yury
+I'll look at this from the arm64 perspective. It would be good if we can
+have a generic atomic implementation based on cmpxchg64 but I need to
+look at the details first.
+
+> +static inline pmd_t pmdp_establish(pmd_t *pmdp, pmd_t pmd)
+> +{
+> +	pmd_t old;
+> +
+> +	/*
+> +	 * We cannot assume what is value of pmd here, so there's no easy way
+> +	 * to set if half by half. We have to fall back to cmpxchg64.
+> +	 */
+> +	{
+
+BTW, you are missing a "do" here (and it probably compiles just fine
+without it, though different behaviour).
+
+> +		old = *pmdp;
+> +	} while (cmpxchg64(&pmdp->pmd, old.pmd, pmd.pmd) != old.pmd);
+> +
+> +	return old;
+> +}
+
+-- 
+Catalin
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
