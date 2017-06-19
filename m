@@ -1,64 +1,101 @@
 From: "Kirill A. Shutemov" <kirill@shutemov.name>
 Subject: Re: [PATCHv2 1/3] x86/mm: Provide pmdp_establish() helper
-Date: Mon, 19 Jun 2017 15:46:49 +0300
-Message-ID: <20170619124649.jy7m4ig3clln3pcw@node.shutemov.name>
+Date: Mon, 19 Jun 2017 15:48:19 +0300
+Message-ID: <20170619124819.tlbprgi7tima6rzl@node.shutemov.name>
 References: <20170615145224.66200-1-kirill.shutemov@linux.intel.com>
  <20170615145224.66200-2-kirill.shutemov@linux.intel.com>
- <20170616133600.GE11676@redhat.com>
+ <20170619074801.18fa2a16@mschwideX1>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20170616133600.GE11676@redhat.com>
+In-Reply-To: <20170619074801.18fa2a16@mschwideX1>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Andrea Arcangeli <aarcange@redhat.com>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Ralf Baechle <ralf@linux-mips.org>, "David S. Miller" <davem@davemloft.net>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>
+To: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Ralf Baechle <ralf@linux-mips.org>, "David S. Miller" <davem@davemloft.net>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andrea Arcangeli <aarcange@redhat.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jun 16, 2017 at 03:36:00PM +0200, Andrea Arcangeli wrote:
-> Hello Krill,
+On Mon, Jun 19, 2017 at 07:48:01AM +0200, Martin Schwidefsky wrote:
+> On Thu, 15 Jun 2017 17:52:22 +0300
+> "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> wrote:
 > 
-> On Thu, Jun 15, 2017 at 05:52:22PM +0300, Kirill A. Shutemov wrote:
+> > We need an atomic way to setup pmd page table entry, avoiding races with
+> > CPU setting dirty/accessed bits. This is required to implement
+> > pmdp_invalidate() that doesn't loose these bits.
+> > 
+> > On PAE we have to use cmpxchg8b as we cannot assume what is value of new pmd and
+> > setting it up half-by-half can expose broken corrupted entry to CPU.
+> > 
+> > Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+> > Cc: Ingo Molnar <mingo@kernel.org>
+> > Cc: H. Peter Anvin <hpa@zytor.com>
+> > Cc: Thomas Gleixner <tglx@linutronix.de>
+> > ---
+> >  arch/x86/include/asm/pgtable-3level.h | 18 ++++++++++++++++++
+> >  arch/x86/include/asm/pgtable.h        | 14 ++++++++++++++
+> >  2 files changed, 32 insertions(+)
+> > 
+> > diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
+> > index f5af95a0c6b8..a924fc6a96b9 100644
+> > --- a/arch/x86/include/asm/pgtable.h
+> > +++ b/arch/x86/include/asm/pgtable.h
+> > @@ -1092,6 +1092,20 @@ static inline void pmdp_set_wrprotect(struct mm_struct *mm,
+> >  	clear_bit(_PAGE_BIT_RW, (unsigned long *)pmdp);
+> >  }
+> > 
+> > +#ifndef pmdp_establish
+> > +#define pmdp_establish pmdp_establish
 > > +static inline pmd_t pmdp_establish(pmd_t *pmdp, pmd_t pmd)
 > > +{
-> > +	pmd_t old;
-> > +
-> > +	/*
-> > +	 * We cannot assume what is value of pmd here, so there's no easy way
-> > +	 * to set if half by half. We have to fall back to cmpxchg64.
-> > +	 */
-> > +	{
-> > +		old = *pmdp;
-> > +	} while (cmpxchg64(&pmdp->pmd, old.pmd, pmd.pmd) != old.pmd);
-> > +
-> > +	return old;
+> > +	if (IS_ENABLED(CONFIG_SMP)) {
+> > +		return xchg(pmdp, pmd);
+> > +	} else {
+> > +		pmd_t old = *pmdp;
+> > +		*pmdp = pmd;
+> > +		return old;
+> > +	}
 > > +}
+> > +#endif
+> > +
+> >  /*
+> >   * clone_pgd_range(pgd_t *dst, pgd_t *src, int count);
+> >   *
 > 
-> I see further margin for optimization here (although it's only for PAE
-> x32..).
+> For the s390 version of the pmdp_establish function we need the mm to be able
+> to do the TLB flush correctly. Can we please add a "struct vm_area_struct *vma"
+> argument to pmdp_establish analog to pmdp_invalidate?
 > 
-> pmd is stable so we could do:
+> The s390 patch would then look like this:
+> --
+> From 4d4641249d5e826c21c522d149553e89d73fcd4f Mon Sep 17 00:00:00 2001
+> From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+> Date: Mon, 19 Jun 2017 07:40:11 +0200
+> Subject: [PATCH] s390/mm: add pmdp_establish
 > 
-> if (!(pmd & _PAGE_PRESENT)) {
->    cast to split_pmd and use xchg on pmd_low like
->    native_pmdp_get_and_clear and copy pmd_high non atomically
-> } else {
->   the above cmpxchg64 loop
-> }
+> Define the pmdp_establish function to replace a pmd entry with a new
+> one and return the old value.
 > 
-> Now thinking about the above I had a second thought if pmdp_establish
-> is the right interface and if we shouldn't replace pmdp_establish with
-> pmdp_mknotpresent instead to skip the pmd & _PAGE_PRESENT check that
-> will always be true in practice, so pmdp_mknotpresent will call
-> internally pmd_mknotpresent and it won't have to check for pmd &
-> _PAGE_PRESENT and it would have no cons on x86-64.
+> Signed-off-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
+> ---
+>  arch/s390/include/asm/pgtable.h | 7 +++++++
+>  1 file changed, 7 insertions(+)
+> 
+> diff --git a/arch/s390/include/asm/pgtable.h b/arch/s390/include/asm/pgtable.h
+> index bb59a0aa3249..dedeecd5455c 100644
+> --- a/arch/s390/include/asm/pgtable.h
+> +++ b/arch/s390/include/asm/pgtable.h
+> @@ -1511,6 +1511,13 @@ static inline void pmdp_invalidate(struct vm_area_struct *vma,
+>  	pmdp_xchg_direct(vma->vm_mm, addr, pmdp, __pmd(_SEGMENT_ENTRY_EMPTY));
+>  }
+>  
+> +static inline pmd_t pmdp_establish(struct vm_area_struct *vma,
+> +				   pmd_t *pmdp, pmd_t pmd)
+> +{
+> +	return pmdp_xchg_direct(vma->vm_mm, addr, pmdp, pmd);
 
-With your proposed optimization, compiler is in good position to eliminate
-cmpxchg loop for trivial cases as we have in pmdp_invalidate() case.
-It can see that pmd is always has the present bit cleared.
+I guess, you need address too :-P.
 
-I'll keep more flexible interface for now. Will see if anybody would see
-more problems with it.
+I'll change prototype of pmdp_establish() and apply your patch.
 
 -- 
  Kirill A. Shutemov
