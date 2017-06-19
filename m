@@ -1,84 +1,104 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:59692 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1751013AbdFSFsO (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 19 Jun 2017 01:48:14 -0400
-Received: from pps.filterd (m0098420.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.20/8.16.0.20) with SMTP id v5J5hwnZ083868
-        for <linux-arch@vger.kernel.org>; Mon, 19 Jun 2017 01:48:13 -0400
-Received: from e06smtp10.uk.ibm.com (e06smtp10.uk.ibm.com [195.75.94.106])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 2b64r205k2-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Mon, 19 Jun 2017 01:48:13 -0400
-Received: from localhost
-        by e06smtp10.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <schwidefsky@de.ibm.com>;
-        Mon, 19 Jun 2017 06:48:11 +0100
-Date: Mon, 19 Jun 2017 07:48:01 +0200
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: Re: [PATCHv2 1/3] x86/mm: Provide pmdp_establish() helper
-In-Reply-To: <20170615145224.66200-2-kirill.shutemov@linux.intel.com>
-References: <20170615145224.66200-1-kirill.shutemov@linux.intel.com>
-        <20170615145224.66200-2-kirill.shutemov@linux.intel.com>
+Received: from conssluserg-04.nifty.com ([210.131.2.83]:35911 "EHLO
+        conssluserg-04.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751054AbdFSGR7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 19 Jun 2017 02:17:59 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 8BIT
-Message-ID: <20170619074801.18fa2a16@mschwideX1>
+In-Reply-To: <20170609052417.561-3-npiggin@gmail.com>
+References: <20170609052417.561-1-npiggin@gmail.com> <20170609052417.561-3-npiggin@gmail.com>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Date: Mon, 19 Jun 2017 15:17:39 +0900
+Message-ID: <CAK7LNATkm0hKB+yBKHFBEpV2nycp5DyJMvUe7vATLOwN2fLb1g@mail.gmail.com>
+Subject: Re: [PATCH 2/5] kbuild: thin archives use P option to ar
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Ralf Baechle <ralf@linux-mips.org>, "David S. Miller" <davem@davemloft.net>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andrea Arcangeli <aarcange@redhat.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>
-Message-ID: <20170619054801.HrLEcLUbnCr40-cgs5MHxpJokcVvdALCsOeu1EiPuvg@z>
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>
+Message-ID: <20170619061739.vSRGAyHgIPMshJcsCpYMBiYVMX3TKtEUzPebl3uClUw@z>
 
-On Thu, 15 Jun 2017 17:52:22 +0300
-"Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> wrote:
+Hi Nicholas,
 
-> We need an atomic way to setup pmd page table entry, avoiding races with
-> CPU setting dirty/accessed bits. This is required to implement
-> pmdp_invalidate() that doesn't loose these bits.
-> 
-> On PAE we have to use cmpxchg8b as we cannot assume what is value of new pmd and
-> setting it up half-by-half can expose broken corrupted entry to CPU.
-> 
-> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-> Cc: Ingo Molnar <mingo@kernel.org>
-> Cc: H. Peter Anvin <hpa@zytor.com>
-> Cc: Thomas Gleixner <tglx@linutronix.de>
+
+2017-06-09 14:24 GMT+09:00 Nicholas Piggin <npiggin@gmail.com>:
+> The P option makes ar do full path name matching and can prevent ar
+> from discarding files with duplicate names in some cases of creating
+> thin archives from thin archives. The sh architecture in particular
+> loses some object files from its kernel/cpu/sh*/ directories without
+> this option.
+
+After playing around with thin archives, I agree this is the right
+thing to do.
+
+Currently, sh is the only architecture that has this kind of issue
+(arch/sh/kernel/cpu/fpu.c  vs  arch/sh/kernel/cpu/sh*/fpu.c),
+but this could happen in any architecture, I think.
+
+
+BTW, I see one more instance in archive_builtin() in scripts/link-vmlinux.sh.
+
+We have no source file at the top directory, so it will work
+with/without "P" for the top-level built-in.o
+
+Either way seems OK to me.
+
+
+> This could be a bug in binutils ar, but the P option should not cause
+> any negative effects so it is safe to use to work around tihs with.
+
+
+Is "tihs" a typo?
+
+
+
+> Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 > ---
->  arch/x86/include/asm/pgtable-3level.h | 18 ++++++++++++++++++
->  arch/x86/include/asm/pgtable.h        | 14 ++++++++++++++
->  2 files changed, 32 insertions(+)
-> 
-> diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
-> index f5af95a0c6b8..a924fc6a96b9 100644
-> --- a/arch/x86/include/asm/pgtable.h
-> +++ b/arch/x86/include/asm/pgtable.h
-> @@ -1092,6 +1092,20 @@ static inline void pmdp_set_wrprotect(struct mm_struct *mm,
->  	clear_bit(_PAGE_BIT_RW, (unsigned long *)pmdp);
->  }
-> 
-> +#ifndef pmdp_establish
-> +#define pmdp_establish pmdp_establish
-> +static inline pmd_t pmdp_establish(pmd_t *pmdp, pmd_t pmd)
-> +{
-> +	if (IS_ENABLED(CONFIG_SMP)) {
-> +		return xchg(pmdp, pmd);
-> +	} else {
-> +		pmd_t old = *pmdp;
-> +		*pmdp = pmd;
-> +		return old;
-> +	}
-> +}
-> +#endif
-> +
->  /*
->   * clone_pgd_range(pgd_t *dst, pgd_t *src, int count);
->   *
+>  scripts/Makefile.build | 8 ++++----
+>  1 file changed, 4 insertions(+), 4 deletions(-)
+>
+> diff --git a/scripts/Makefile.build b/scripts/Makefile.build
+> index 733e044fff8b..4a9a2cec0a1b 100644
+> --- a/scripts/Makefile.build
+> +++ b/scripts/Makefile.build
+> @@ -437,8 +437,8 @@ $(sort $(subdir-obj-y)): $(subdir-ym) ;
+>  ifdef builtin-target
+>
+>  ifdef CONFIG_THIN_ARCHIVES
+> -  cmd_make_builtin = rm -f $@; $(AR) rcST$(KBUILD_ARFLAGS)
+> -  cmd_make_empty_builtin = rm -f $@; $(AR) rcST$(KBUILD_ARFLAGS)
+> +  cmd_make_builtin = rm -f $@; $(AR) rcSTP$(KBUILD_ARFLAGS)
+> +  cmd_make_empty_builtin = rm -f $@; $(AR) rcSTP$(KBUILD_ARFLAGS)
+>    quiet_cmd_link_o_target = AR      $@
+>  else
+>    cmd_make_builtin = $(LD) $(ld_flags) -r -o
+> @@ -478,7 +478,7 @@ ifdef lib-target
+>  quiet_cmd_link_l_target = AR      $@
+>
+>  ifdef CONFIG_THIN_ARCHIVES
+> -  cmd_link_l_target = rm -f $@; $(AR) rcsT$(KBUILD_ARFLAGS) $@ $(lib-y)
+> +  cmd_link_l_target = rm -f $@; $(AR) rcsTP$(KBUILD_ARFLAGS) $@ $(lib-y)
+>  else
+>    cmd_link_l_target = rm -f $@; $(AR) rcs$(KBUILD_ARFLAGS) $@ $(lib-y)
+>  endif
+> @@ -531,7 +531,7 @@ cmd_link_multi-link = $(LD) $(ld_flags) -r -o $@ $(link_multi_deps) $(cmd_secana
+>
+>  ifdef CONFIG_THIN_ARCHIVES
+>    quiet_cmd_link_multi-y = AR      $@
+> -  cmd_link_multi-y = rm -f $@; $(AR) rcST$(KBUILD_ARFLAGS) $@ $(link_multi_deps)
+> +  cmd_link_multi-y = rm -f $@; $(AR) rcSTP$(KBUILD_ARFLAGS) $@ $(link_multi_deps)
+>  else
+>    quiet_cmd_link_multi-y = LD      $@
+>    cmd_link_multi-y = $(cmd_link_multi-link)
+> --
+> 2.11.0
+>
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-kbuild" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
 
-For the s390 version of the pmdp_establish function we need the mm to be able
-to do the TLB flush correctly. Can we please add a "struct vm_area_struct *vma"
-argument to pmdp_establish analog to pmdp_invalidate?
 
-The s390 patch would then look like this:
---
+
+-- 
+Best Regards
+Masahiro Yamada
