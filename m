@@ -1,84 +1,101 @@
-From: "Kirill A. Shutemov" <kirill@shutemov.name>
-Subject: Re: [PATCHv2 3/3] mm: Use updated pmdp_invalidate() inteface to
- track dirty/accessed bits
-Date: Mon, 19 Jun 2017 17:03:23 +0300
-Message-ID: <20170619140322.iszk7sbhxblusygo@node.shutemov.name>
-References: <20170615145224.66200-1-kirill.shutemov@linux.intel.com>
- <20170615145224.66200-4-kirill.shutemov@linux.intel.com>
- <20170616030250.GA27637@bbox>
- <20170616131908.3rxtm2w73gdfex4a@node.shutemov.name>
- <20170616135209.GA29542@bbox>
- <20170616142720.GH11676@redhat.com>
- <20170616145333.GA29802@bbox>
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [PATCH 08/17] dts: include documentation for the RISC-V
+ interrupt controllers
+Date: Mon, 19 Jun 2017 15:30:51 +0100
+Message-ID: <20170619143027.GA4433@leverpostej>
+References: <20170523004107.536-1-palmer@dabbelt.com>
+ <20170606230007.19101-1-palmer@dabbelt.com>
+ <20170606230007.19101-9-palmer@dabbelt.com>
+ <CAMuHMdWYNVvh4hqDrqYNe2oyVHkCbH15VfWTWHaBCeRAaf6O4g@mail.gmail.com>
+ <20170607101343.GC29370@leverpostej>
+ <CAMgXwTiz0jXgSw=veJ3O7xzVgm==YisZZLWpZFH7aJMXV4j7qA@mail.gmail.com>
+ <20170608105230.GC5765@leverpostej>
+ <CAMgXwTi+H5n9f_kcbvTJE1yA-yeNSuwuR+QO4kYXtyZbQ2ga2w@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20170616145333.GA29802@bbox>
-Sender: owner-linux-mm@kvack.org
-To: Minchan Kim <minchan@kernel.org>
-Cc: Andrea Arcangeli <aarcange@redhat.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Ralf Baechle <ralf@linux-mips.org>, "David S. Miller" <davem@davemloft.net>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+In-Reply-To: <CAMgXwTi+H5n9f_kcbvTJE1yA-yeNSuwuR+QO4kYXtyZbQ2ga2w@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Wesley Terpstra <wesley@sifive.com>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Palmer Dabbelt <palmer@dabbelt.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Olof Johansson <olof@lixom.net>, Albert Ou <albert@sifive.com>, patches@groups.riscv.org, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <Marc.Zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jun 16, 2017 at 11:53:33PM +0900, Minchan Kim wrote:
-> Hi Andrea,
+On Fri, Jun 09, 2017 at 02:58:14PM -0700, Wesley Terpstra wrote:
+> Ugh. Clicked reply without being done writing the reply!
 > 
-> On Fri, Jun 16, 2017 at 04:27:20PM +0200, Andrea Arcangeli wrote:
-> > Hello Minchan,
-> > 
-> > On Fri, Jun 16, 2017 at 10:52:09PM +0900, Minchan Kim wrote:
-> > > > > > @@ -1995,8 +1984,6 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
-> > > > > >  			if (soft_dirty)
-> > > > > >  				entry = pte_mksoft_dirty(entry);
-> > > > > >  		}
-> > > > > > -		if (dirty)
-> > > > > > -			SetPageDirty(page + i);
-> > > > > >  		pte = pte_offset_map(&_pmd, addr);
-> > [..]
-> > > 
-> > > split_huge_page set PG_dirty to all subpages unconditionally?
-> > > If it's true, yes, it doesn't break MADV_FREE. However, I didn't spot
-> > > that piece of code. What I found one is just __split_huge_page_tail
-> > > which set PG_dirty to subpage if head page is dirty. IOW, if the head
-> > > page is not dirty, tail page will be clean, too.
-> > > Could you point out what routine set PG_dirty to all subpages unconditionally?
-
-When I wrote this code, I considered that we may want to track dirty
-status on per-4k basis for file-backed THPs.
-
-> > On a side note the snippet deleted above was useless, as long as
-> > there's one left hugepmd to split, the physical page has to be still
-> > compound and huge and as long as that's the case the tail pages
-> > PG_dirty bit is meaningless (even if set, it's going to be clobbered
-> > during the physical split).
+> On Thu, Jun 8, 2017 at 3:52 AM, Mark Rutland <mark.rutland@arm.com> wrote:
+> > Edge vs level, active high vs active low. Typically some of these are
+> > programmable, and are described as flags in the interrupt-specifier.
+> >
+> > See the examples in:
+> >
+> > Documentation/devicetree/bindings/interrupt-controller/interrupts.txt
 > 
-> I got it during reviewing this patch. That's why I didn't argue
-> this patch would break MADV_FREE by deleting routine which propagate
-> dirty to pte of subpages. However, although it's useless, I prefer
-> not removing the transfer of dirty bit. Because it would help MADV_FREE
-> users who want to use smaps to know how many of pages are not freeable
-> (i.e, dirtied) since MADV_FREE although it is not 100% correct.
+> Ok. Those are not really relevant to the PLIC. It has a flat interrupt
+> namespace and the way you handle all four kinds of interrupts in the
+> driver is uniform. I don't think we want to architecturally expose
+> this to the operating system.
+
+Sure thing. I was just making sure I clarified my initial statement.
+
+> > So do any CSRs affect the state of the PLIC? If it's just MMIO, the
+> > mention of CSRs above is just a little confusing.
 > 
-> > 
-> > In short PG_dirty is only meaningful in the head as long as it's
-> > compound. The physical split in __split_huge_page_tail transfer the
-> > head value to the tails like you mentioned, that's all as far as I can
-> > tell.
+> HLIC = CSR only. PLIC = MMIO only.
 > 
-> Thanks for the comment. Then, this patch is to fix MADV_FREE's bug
-> which has lost dirty bit by transferring dirty bit too early.
+> > It might be best to just say "The PLIC is connect to the HLIC embedded
+> > in each RISC-V core".
+> 
+> Fair enough.
+> 
+> > It sounds like we'd need these to distinguish edge/level interrupts,
+> > unless that's fixed at integration time and you can determine it from
+> > the PLIC itself?
+> 
+> They are fixed at integration time and the PLIC driver does not need to care.
 
-Erghh. I've misread splitting code. Yes, it's not unconditional. So we fix
-actual bug.
+Ok.
 
-But I'm not sure it's subject for -stable. I haven't seen any bug reports
-that can be attributed to the bug.
+> > Please update the binding to explicitly define the ordering requirement.
+> 
+> The ordering requirement is that the first interrupts-extended entry
+> corresponds to the first context, second to second, etc. If a context
+> is unused for some reason, that's when you need a -1. The contexts are
+> linear and contiguous in the MMIO address map.
 
--- 
- Kirill A. Shutemov
+Ah. It wasn't at all clear to me that the order was in relation to the
+MMIO space.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+How is it possible to tell if an context is unused?
+
+Are those mandated to be linear and contiguous in the address space?
+
+How is the relationship between an MMIO context and hart determined?
+
+I'm not sure that it makes sense to use -1 in this manner, since the
+first cell of each interrupts-extended tuple entry is a phandle. IIRC
+zero is currently de-facto invalid, and if we really need a NULL
+phandle, we should get that clarified in the DT spec.
+
+It might be better to describe each MMIO context separately, and then
+associate IRQs with those in-order.
+
+> 
+> > Does this mean that you expect Linux logical CPU IDs to be equal to
+> > physical CPU IDs in all cases?
+> 
+> No. There is no 'physical CPU ID' anyway, except the mhartid CSR which
+> is unavailable to linux. The SBI conveys your CPU ID by passing it as
+> the first argument to the linux kernel.
+> 
+> The interrupts-extended in the PLIC uses a phandle to reference the
+> matching CPU in DTS. The num in cpu@<num> only need correspond to the
+> first register argument to the kernel.
+
+So you use the reference to the HLIC to implictly provide the CPU
+affinity? Or do you assume that these align with the SBI-provided CPU
+IDs?
+
+Thanks,
+Mark.
