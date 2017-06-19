@@ -1,71 +1,96 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f172.google.com ([209.85.216.172]:36783 "EHLO
-        mail-qt0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751028AbdFSRcs (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 19 Jun 2017 13:32:48 -0400
-Received: by mail-qt0-f172.google.com with SMTP id u19so115930171qta.3
-        for <linux-arch@vger.kernel.org>; Mon, 19 Jun 2017 10:32:42 -0700 (PDT)
-Subject: Re: [PATCH v3 0/4] Generalize fncpy availability
-References: <20170617000744.22158-1-f.fainelli@gmail.com>
- <20170619122444.GJ10246@leverpostej>
-From: Florian Fainelli <florian.fainelli@broadcom.com>
-Message-ID: <c8b7789c-38fb-6793-050f-7c60ccb8ca17@broadcom.com>
-Date: Mon, 19 Jun 2017 10:32:38 -0700
+Received: from mail-eopbgr10124.outbound.protection.outlook.com ([40.107.1.124]:44416
+        "EHLO EUR02-HE1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1750987AbdFSSCU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 19 Jun 2017 14:02:20 -0400
+Subject: [PATCH 0/7] rwsem: Implement down_read_killable()
+From: Kirill Tkhai <ktkhai@virtuozzo.com>
+Date: Mon, 19 Jun 2017 21:02:00 +0300
+Message-ID: <149789463636.9059.16943955939303454611.stgit@localhost.localdomain>
 MIME-Version: 1.0
-In-Reply-To: <20170619122444.GJ10246@leverpostej>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Rutland <mark.rutland@arm.com>, Florian Fainelli <f.fainelli@gmail.com>
-Cc: linux-arm-kernel@lists.infradead.org, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Dave Gerlach <d-gerlach@ti.com>, Tony Lindgren <tony@atomide.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, open list <linux-kernel@vger.kernel.org>, bcm-kernel-feedback-list@broadcom.com, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Alexandre Belloni <alexandre.belloni@free-electrons.com>, linux-omap@vger.kernel.org, Shawn Guo <shawnguo@kernel.org>, Keerthy J <j-keerthy@ti.com>
-Message-ID: <20170619173238.oHLfPqcCzaNu9M6Q0Km0AcGvhkc8MTOmjjCKe_fTxx8@z>
+To: linux-ia64@vger.kernel.org, avagin@virtuozzo.com, peterz@infradead.org, heiko.carstens@de.ibm.com, hpa@zytor.com, gorcunov@virtuozzo.com, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, x86@kernel.org, mingo@redhat.com, mattst88@gmail.com, fenghua.yu@intel.com, arnd@arndb.de, ktkhai@virtuozzo.com, ink@jurassic.park.msu.ru, tglx@linutronix.de, rth@twiddle.net, tony.luck@intel.com, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, schwidefsky@de.ibm.com, davem@davemloft.net
+Message-ID: <20170619180200.9jzmDGDBKZHdfFKf3iCHe7N7UhqaxG-FfpPV_v0g52U@z>
 
-On 06/19/2017 05:24 AM, Mark Rutland wrote:
-> On Fri, Jun 16, 2017 at 05:07:40PM -0700, Florian Fainelli wrote:
->> Hi all,
-> 
-> Hi Florian,
-> 
->> This patch series makes ARM's fncpy() implementation more generic (dropping the
->> Thumb-specifics) and available in an asm-generic header file.
->>
->> Tested on a Broadcom ARM64 STB platform with code that is written to SRAM.
->>
->> Changes in v3 (thanks Doug!):
->> - correct include guard names in asm-generic/fncpy.h to __ASM_FNCPY_H
->> - utilize Kbuild to provide the fncpy.h header on ARM64
->>
->> Changes in v2:
->> - leave the ARM implementation where it is
->> - make the generic truly generic (no)
->>
->> This is helpful in making SoC-specific power management code become true drivers
->> that can be shared between different architectures.
-> > Could you elaborate on what this is needed for?
+This series implements killable version of down_read()
+similar to already existing down_write_killable() function.
+Patches [1-2/7] add arch-independent low-level primitives
+for the both rwsem types.
 
-Several uses cases come to mind:
+Patches [3-6/7] add arch-dependent primitives for
+the architectures, that use rwsem-xadd implementation.
+The assembly code was modified in x86 case only, the rest
+of architectures does not need such change.
 
-- it could be used as a trampoline code prior to entering S2 for systems
-that do not support PSCI 1.0
+I tested the series in x86 (which uses RWSEM_XCHGADD_ALGORITHM
+config option), and also the RWSEM_GENERIC_SPINLOCK case,
+which were manually written in Kconfig. alpha, ia64 and s390
+are compile-tested only, but I believe, their changes are
+pretty easy. Please, people, who work with them, take your
+look at the corresponding patches.
 
-- any code that has a specific need to relocate a performance, security
-sensitive code into SRAM and use it as another pool of memory.
+***
 
-> 
-> My understanding was that on 32-bit, this was to handle idle / suspend
-> cases, whereas for arm64 that should be handled by PSCI.
+Where this came from. Cycle of creation/destroying net
+namespace is slow at the moment as it's made under net_mutex.
+During cleanup_net(), the mutex is held the whole time,
+while RCU is synchronizing. This takes a lot of time,
+especially when RCU is preemptible, and at this time
+the creation of new net namespaces is blocked. But
+this moment may be optimized by using small locks
+in pernet callbacks, where they are need, and by
+converting net_mutex into rw semaphore. In cleanup_net()
+it's only need to prevent from registration/unregistration
+of pernet_subsys and pernet_devices, which actions
+can't be missed by unhashed dead net namespace.
+down_read guarantees that, and it's lite-weight.
 
-For systems that support PSCI 1.0, I agree, but it may not be possible
-to update those systems easily, still use case 2 is completely valid.
+Using the rwsem improves the create/destroy cycle performance
+on my development kernel much:
 
-> 
-> what exactly do you intend to use this for?
+$time for i in {1..10000}; do unshare -n -- bash -c exit; done
 
-At the moment we use it to enter S2 on ARM64 systems (ARCH_BRCMSTB)
-which are PSCI 0.2 only. And yes, we do have a plan to evaluate
-upgrading to PSCI 1.0, but in general, any SoC which as an addressable
-SRAM could use it for whatever purpose it sees fit.
--- 
-Florian
+MUTEX:
+real 1m13,372s
+user 0m9,278s
+sys 0m17.181s
+
+RWSEM:
+real 0m17,482s
+user 0m3,791s
+sys 0m13,723s
+
+Of course, it's just an example, and it's a generic use
+function. It may be used in other places.
+
+---
+
+Kirill Tkhai (7):
+      rwsem-spinlock: Add killable versions of __down_read()
+      rwsem-spinlock: Add killable versions of rwsem_down_read_failed()
+      alpha: Add __down_read_killable()
+      ia64: Add __down_read_killable()
+      s390: Add __down_read_killable()
+      x86: Add __down_read_killable()
+      rwsem: Add down_read_killable()
+
+
+ arch/alpha/include/asm/rwsem.h  |   18 ++++++++++++++++--
+ arch/ia64/include/asm/rwsem.h   |   22 +++++++++++++++++++---
+ arch/s390/include/asm/rwsem.h   |   18 ++++++++++++++++--
+ arch/x86/include/asm/rwsem.h    |   37 +++++++++++++++++++++++++++----------
+ arch/x86/lib/rwsem.S            |   12 ++++++++++++
+ include/asm-generic/rwsem.h     |    8 ++++++++
+ include/linux/rwsem-spinlock.h  |    1 +
+ include/linux/rwsem.h           |    2 ++
+ kernel/locking/rwsem-spinlock.c |   37 ++++++++++++++++++++++++++++---------
+ kernel/locking/rwsem-xadd.c     |   33 ++++++++++++++++++++++++++++++---
+ kernel/locking/rwsem.c          |   16 ++++++++++++++++
+ 11 files changed, 175 insertions(+), 29 deletions(-)
+
+--
+Signed-off-by: Kirill Tkhai <ktkhai@virtuozzo.com>
