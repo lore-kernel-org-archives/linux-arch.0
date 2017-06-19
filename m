@@ -1,53 +1,64 @@
-From: Florian Fainelli <f.fainelli@gmail.com>
-Subject: Re: [PATCH v3 2/4] asm-generic: Provide a fncpy() implementation
-Date: Mon, 19 Jun 2017 10:27:33 -0700
-Message-ID: <f9839beb-ea66-18c3-c541-b78080b560b3@gmail.com>
+From: Florian Fainelli <florian.fainelli@broadcom.com>
+Subject: Re: [PATCH v3 0/4] Generalize fncpy availability
+Date: Mon, 19 Jun 2017 10:32:38 -0700
+Message-ID: <c8b7789c-38fb-6793-050f-7c60ccb8ca17@broadcom.com>
 References: <20170617000744.22158-1-f.fainelli@gmail.com>
- <20170617000744.22158-3-f.fainelli@gmail.com>
- <20170618235108.peaxdi367jpkt542@yury-thinkpad>
- <20170619151818.pvjygbdvm6arvarq@yury-thinkpad>
+ <20170619122444.GJ10246@leverpostej>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f67.google.com ([74.125.82.67]:35103 "EHLO
-        mail-wm0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750928AbdFSR1m (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 19 Jun 2017 13:27:42 -0400
-In-Reply-To: <20170619151818.pvjygbdvm6arvarq@yury-thinkpad>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20170619122444.GJ10246@leverpostej>
 Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Yury Norov <ynorov@caviumnetworks.com>, Florian Fainelli <f.fainelli@gmail.com>
-Cc: "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, Keerthy J <j-keerthy@ti.com>, Arnd Bergmann <arnd@arndb.de>, Dave Gerlach <d-gerlach@ti.com>, Tony Lindgren <tony@atomide.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, open list <linux-kernel@vger.kernel.org>, bcm-kernel-feedback-list@broadcom.com, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Alexandre Belloni <alexandre.belloni@free-electrons.com>, linux-omap@vger.kernel.org, Shawn Guo <shawnguo@kernel.org>, linux-arm-kernel@lists.infradead.org
+Sender: linux-kernel-owner@vger.kernel.org
+To: Mark Rutland <mark.rutland@arm.com>, Florian Fainelli <f.fainelli@gmail.com>
+Cc: linux-arm-kernel@lists.infradead.org, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Dave Gerlach <d-gerlach@ti.com>, Tony Lindgren <tony@atomide.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, open list <linux-kernel@vger.kernel.org>, bcm-kernel-feedback-list@broadcom.com, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Alexandre Belloni <alexandre.belloni@free-electrons.com>, linux-omap@vger.kernel.org, Shawn Guo <shawnguo@kernel.org>, Keerthy J <j-keerthy@ti.com>
+List-Id: linux-arch.vger.kernel.org
 
-On 06/19/2017 08:18 AM, Yury Norov wrote:
-> On Mon, Jun 19, 2017 at 02:51:08AM +0300, Yury Norov wrote:
->> Hi Florian,
->>
->> Some questions and thoughts inline.
->>
->> Yury
->>
->> On Fri, Jun 16, 2017 at 05:07:42PM -0700, Florian Fainelli wrote:
->>> Define a generic fncpy() implementation largely based on the ARM version
->>> that requires an 8 bytes alignment for the destination address where to
->>> copy this function as well as the function's own address.
->>>
->>> Signed-off-by: Florian Fainelli <f.fainelli@gmail.com>
->>> ---
->>>  include/asm-generic/fncpy.h | 93 +++++++++++++++++++++++++++++++++++++++++++++
->>>  1 file changed, 93 insertions(+)
->>>  create mode 100644 include/asm-generic/fncpy.h
+On 06/19/2017 05:24 AM, Mark Rutland wrote:
+> On Fri, Jun 16, 2017 at 05:07:40PM -0700, Florian Fainelli wrote:
+>> Hi all,
 > 
-> One else thing I forgot to ask - now you have the generic
-> implementation for fncpy(), so do you really need to save arm
-> version of it?
+> Hi Florian,
+> 
+>> This patch series makes ARM's fncpy() implementation more generic (dropping the
+>> Thumb-specifics) and available in an asm-generic header file.
+>>
+>> Tested on a Broadcom ARM64 STB platform with code that is written to SRAM.
+>>
+>> Changes in v3 (thanks Doug!):
+>> - correct include guard names in asm-generic/fncpy.h to __ASM_FNCPY_H
+>> - utilize Kbuild to provide the fncpy.h header on ARM64
+>>
+>> Changes in v2:
+>> - leave the ARM implementation where it is
+>> - make the generic truly generic (no)
+>>
+>> This is helpful in making SoC-specific power management code become true drivers
+>> that can be shared between different architectures.
+> > Could you elaborate on what this is needed for?
 
-Yes, it needs to deal with the Thumb bit, and there is no point in
-making the generic implementation extremely flexible to support that
-special case.
+Several uses cases come to mind:
 
-Thanks
+- it could be used as a trampoline code prior to entering S2 for systems
+that do not support PSCI 1.0
+
+- any code that has a specific need to relocate a performance, security
+sensitive code into SRAM and use it as another pool of memory.
+
+> 
+> My understanding was that on 32-bit, this was to handle idle / suspend
+> cases, whereas for arm64 that should be handled by PSCI.
+
+For systems that support PSCI 1.0, I agree, but it may not be possible
+to update those systems easily, still use case 2 is completely valid.
+
+> 
+> what exactly do you intend to use this for?
+
+At the moment we use it to enter S2 on ARM64 systems (ARCH_BRCMSTB)
+which are PSCI 0.2 only. And yes, we do have a plan to evaluate
+upgrading to PSCI 1.0, but in general, any SoC which as an addressable
+SRAM could use it for whatever purpose it sees fit.
 -- 
 Florian
