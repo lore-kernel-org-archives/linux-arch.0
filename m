@@ -1,69 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from conssluserg-05.nifty.com ([210.131.2.90]:27033 "EHLO
-        conssluserg-05.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751146AbdFSGVG (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 19 Jun 2017 02:21:06 -0400
+Received: from mail-pf0-f193.google.com ([209.85.192.193]:33071 "EHLO
+        mail-pf0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751438AbdFSGvR (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 19 Jun 2017 02:51:17 -0400
+Date: Mon, 19 Jun 2017 16:51:00 +1000
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH 1/5] kbuild: thin archives final link close
+ --whole-archives option
+Message-ID: <20170619165100.3ce26d00@roar.ozlabs.ibm.com>
+In-Reply-To: <CAK7LNASxuE-6eMk+Y-vyrMfibtYoD2JkjNS2z8QF85x9NdiiaA@mail.gmail.com>
+References: <20170609052417.561-1-npiggin@gmail.com>
+        <20170609052417.561-2-npiggin@gmail.com>
+        <CAK7LNASxuE-6eMk+Y-vyrMfibtYoD2JkjNS2z8QF85x9NdiiaA@mail.gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <20170609052417.561-5-npiggin@gmail.com>
-References: <20170609052417.561-1-npiggin@gmail.com> <20170609052417.561-5-npiggin@gmail.com>
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Date: Mon, 19 Jun 2017 15:21:00 +0900
-Message-ID: <CAK7LNAT4v3h=eaG5nyCCZCP1o9yPkJWAXny9zvSa+Z0Q89=9Zw@mail.gmail.com>
-Subject: Re: [PATCH 4/5] x86/um: thin archives build fix
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, user-mode-linux-devel@lists.sourceforge.net
-Message-ID: <20170619062100.AF-Z08NF2nabDokNR5HfwDfAMcc8lEGlQPq43v3MWjM@z>
+To: Masahiro Yamada <yamada.masahiro@socionext.com>
+Cc: Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>
+Message-ID: <20170619065100.RT9C7peKkCsQJxFSR9C0xejlOpixjeT_BUsyMzoMq3g@z>
 
-2017-06-09 14:24 GMT+09:00 Nicholas Piggin <npiggin@gmail.com>:
-> The linker does not like vdso-syms.lds in input archive files.
-> Make it an extra-y instead.
->
-> Cc: Jeff Dike <jdike@addtoit.com>
-> Cc: Richard Weinberger <richard@nod.at>
-> Cc: user-mode-linux-devel@lists.sourceforge.net
-> Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
-> ---
->
-> Arch maintainers please give an ack if we can take this through
-> the kbuild tree.
->
-> Thanks,
-> Nick
->
->  arch/x86/um/vdso/Makefile | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
->
-> diff --git a/arch/x86/um/vdso/Makefile b/arch/x86/um/vdso/Makefile
-> index d72dec406ccb..329406224330 100644
-> --- a/arch/x86/um/vdso/Makefile
-> +++ b/arch/x86/um/vdso/Makefile
-> @@ -53,7 +53,7 @@ CFLAGS_REMOVE_vdso-note.o = -pg -fprofile-arcs -ftest-coverage
->  CFLAGS_REMOVE_um_vdso.o = -pg -fprofile-arcs -ftest-coverage
->
->  targets += vdso-syms.lds
-> -obj-$(VDSO64-y)                        += vdso-syms.lds
-> +extra-$(VDSO64-y)                      += vdso-syms.lds
+On Mon, 19 Jun 2017 15:16:17 +0900
+Masahiro Yamada <yamada.masahiro@socionext.com> wrote:
 
+> Hi Nicholas,
+> 
+> 
+> 2017-06-09 14:24 GMT+09:00 Nicholas Piggin <npiggin@gmail.com>:
+> > Close the --whole-archives option with --no-whole-archive. Some
+> > architectures end up including additional .o and files multiple
+> > times after this, and they get duplicate symbols when they are
+> > brought under the --whole-archives option.  
+> 
+> Which architectures have additional files after --no-whole-archive ?
+> 
+> I see this case only for ARCH = "um" in vmlinux_link()
+> where it adds some -l* options after --no-whole-archive.
+> 
+> I think it is good to close the --whole-archives everywhere.
+> So, the code looks OK to me, but I just wondered about the log.
 
-I agree this line is weird, but where is vdso-syms.lds used?
+Actually a number of archs seemed to get build errors without this,
+and they seem to come from libgcc perhaps.
 
+binfmt_elf.c:(.text+0x4851): undefined reference to `__kernel_syscall_via_epc'
+/c/gcc/libgcc/libgcc2.c:1318: multiple definition of `__ucmpdi2'
+/c/gcc/libgcc/libgcc2.c:405: multiple definition of `__lshrdi3'
+/c/gcc/libgcc/libgcc2.c:433: multiple definition of `__ashldi3'
+/c/gcc/libgcc/libgcc2.c:461: multiple definition of `__ashrdi3'
 
-I removed the following, but it still built successfully.
+/home/tony/buildall/src/gcc/libgcc/config/xtensa/lib2funcs.S:36: multiple definition of `__xtensa_libgcc_window_spill'
 
+etc
 
-targets += vdso-syms.lds
-obj-$(VDSO64-y)                        += vdso-syms.lds
+m32r, parisc, xtensa seemed to be getting such errors. I wonder if
+the linker implicitly adds some runtime libs at the end that get
+caught up here. Either way I didn't look too far into it because this
+fix seems obviously correct and solved the problem.
 
-$(obj)/%-syms.lds: $(obj)/%.so.dbg FORCE
-       $(call if_changed,vdsosym)
-
-
-
-
-
--- 
-Best Regards
-Masahiro Yamada
+Thanks,
+Nick
