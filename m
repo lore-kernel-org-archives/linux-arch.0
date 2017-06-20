@@ -1,80 +1,154 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-sn1nam01on0055.outbound.protection.outlook.com ([104.47.32.55]:59648
-        "EHLO NAM01-SN1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751090AbdFTO2D (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 20 Jun 2017 10:28:03 -0400
-Date: Tue, 20 Jun 2017 17:27:02 +0300
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: Re: [PATCH v3 2/4] asm-generic: Provide a fncpy() implementation
-Message-ID: <20170620142702.mmks36ydoujvvhan@yury-thinkpad>
-References: <20170617000744.22158-1-f.fainelli@gmail.com>
- <20170617000744.22158-3-f.fainelli@gmail.com>
- <20170618235108.peaxdi367jpkt542@yury-thinkpad>
- <20170619151818.pvjygbdvm6arvarq@yury-thinkpad>
- <20170619174348.GA23750@n2100.armlinux.org.uk>
+Received: from mail.skyhub.de ([5.9.137.197]:43104 "EHLO mail.skyhub.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1750859AbdFTPbN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 20 Jun 2017 11:31:13 -0400
+Date: Tue, 20 Jun 2017 17:30:56 +0200
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v7 14/36] x86/mm: Insure that boot memory areas are
+ mapped properly
+Message-ID: <20170620153056.bz2kvgvshnat6345@pd.tnic>
+References: <20170616184947.18967.84890.stgit@tlendack-t1.amdoffice.net>
+ <20170616185232.18967.61753.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <20170619174348.GA23750@n2100.armlinux.org.uk>
+In-Reply-To: <20170616185232.18967.61753.stgit@tlendack-t1.amdoffice.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@armlinux.org.uk>
-Cc: Florian Fainelli <f.fainelli@gmail.com>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, Keerthy J <j-keerthy@ti.com>, Arnd Bergmann <arnd@arndb.de>, Dave Gerlach <d-gerlach@ti.com>, Tony Lindgren <tony@atomide.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, open list <linux-kernel@vger.kernel.org>, bcm-kernel-feedback-list@broadcom.com, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Alexandre Belloni <alexandre.belloni@free-electrons.com>, linux-omap@vger.kernel.org, Shawn Guo <shawnguo@kernel.org>, linux-arm-kernel@lists.infradead.org
-Message-ID: <20170620142702.Plimk8INaCexD1lfKYjwx3NgoKe_JwW6v2RRhSVHvEs@z>
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>
+Message-ID: <20170620153056.EMR4WURWNFkOvdjNmYn5k0QjzJuRT1eJAG8yUDrvo54@z>
 
-On Mon, Jun 19, 2017 at 06:43:48PM +0100, Russell King - ARM Linux wrote:
-> On Mon, Jun 19, 2017 at 06:18:18PM +0300, Yury Norov wrote:
-> > One else thing I forgot to ask - now you have the generic
-> > implementation for fncpy(), so do you really need to save arm
-> > version of it?
+On Fri, Jun 16, 2017 at 01:52:32PM -0500, Tom Lendacky wrote:
+> The boot data and command line data are present in memory in a decrypted
+> state and are copied early in the boot process.  The early page fault
+> support will map these areas as encrypted, so before attempting to copy
+> them, add decrypted mappings so the data is accessed properly when copied.
 > 
-> This was covered in the review of v1, which took the ARM version
-> and incorrectly used it as an asm-generic implementation.
+> For the initrd, encrypt this data in place. Since the future mapping of
+> the initrd area will be mapped as encrypted the data will be accessed
+> properly.
 > 
-> I explicitly asked Florian _not_ to copy the ARM fncpy() version
-> to asm-generic because it has (surprise surprise) ARM specific
-> behaviours that do not belong in a cross-architecture generic
-> version.
-> 
-> Namely, the ARM specific behaviour that bit 0 of a code address is
-> used to signal whether the code should be executed as ARM code or
-> as Thumb code.
-> 
-> This behaviour has no meaning on other architectures (eg, x86)
-> where code addresses are not 32-bit aligned.
-> 
-> So, suggesting that the ARM fncpy() should be used as an asm-generic
-> version is completely absurd, and just because we have an asm-generic
-> version also does not mean ARM should use it.
-> 
-> Florian's approach to providing an asm-generic version, leaving the
-> ARM specific version is entirely correct and appropriate.
-> 
-> So, in answer to your question, yes, we need _both_ an ARM specific
-> version and an asm-generic version, where the ARM specific version is
-> different from the asm-generic version.  Purely because it needs
-> architecture specific details.
+> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+> ---
+>  arch/x86/include/asm/mem_encrypt.h |    6 +++
+>  arch/x86/include/asm/pgtable.h     |    3 ++
+>  arch/x86/kernel/head64.c           |   30 +++++++++++++--
+>  arch/x86/kernel/setup.c            |    9 +++++
+>  arch/x86/mm/kasan_init_64.c        |    2 +
+>  arch/x86/mm/mem_encrypt.c          |   70 ++++++++++++++++++++++++++++++++++++
+>  6 files changed, 115 insertions(+), 5 deletions(-)
 
-Hi Russell, Florian,
+...
 
-Thanks for clarifications. Thumb bit is a good reason to save arm
-version, and I completely agree with you in this. Sorry that missed it
-in the v1 discussion.
+> diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
+> index b7671b9..ea5e3a6 100644
+> --- a/arch/x86/mm/mem_encrypt.c
+> +++ b/arch/x86/mm/mem_encrypt.c
+> @@ -19,6 +19,8 @@
+>  
+>  #include <asm/tlbflush.h>
+>  #include <asm/fixmap.h>
+> +#include <asm/setup.h>
+> +#include <asm/bootparam.h>
+>  
+>  /*
+>   * Since SME related variables are set early in the boot process they must
+> @@ -101,6 +103,74 @@ void __init sme_early_decrypt(resource_size_t paddr, unsigned long size)
+>  	__sme_early_enc_dec(paddr, size, false);
+>  }
+>  
+> +static void __init __sme_early_map_unmap_mem(void *vaddr, unsigned long size,
+> +					     bool map)
+> +{
+> +	unsigned long paddr = (unsigned long)vaddr - __PAGE_OFFSET;
+> +	pmdval_t pmd_flags, pmd;
+> +
+> +	/* Use early_pmd_flags but remove the encryption mask */
+> +	pmd_flags = __sme_clr(early_pmd_flags);
+> +
+> +	do {
+> +		pmd = map ? (paddr & PMD_MASK) + pmd_flags : 0;
+> +		__early_make_pgtable((unsigned long)vaddr, pmd);
+> +
+> +		vaddr += PMD_SIZE;
+> +		paddr += PMD_SIZE;
+> +		size = (size <= PMD_SIZE) ? 0 : size - PMD_SIZE;
+> +	} while (size);
+> +
+> +	write_cr3(__read_cr3());
 
-> I explicitly asked Florian _not_ to copy the ARM fncpy() version
-> to asm-generic because it has (surprise surprise) ARM specific
-> behaviours that do not belong in a cross-architecture generic
-> version.
+local_flush_tlb() or __native_flush_tlb(). Probably the native variant
+since this is early fun.
 
-But it seems that v3 does exactly that - copies arm with very small
-changes. :) Maybe there are good reasons to have arm version exactly
-how it looks now, but in general case, for me, some things that
-it does are not needed. I mean checking the alignment of the source and
-the type of destination. And after some headscratching I became even
-more convinced that for the general case it would be much preferable
-to write the fncpy() as regular function in .c file, not a macro, at
-least to have the corresponding symbol in binary and let the assembler
-code to call it, which is very probable.
+> +}
+> +
+> +static void __init __sme_map_unmap_bootdata(char *real_mode_data, bool map)
+> +{
+> +	struct boot_params *boot_data;
+> +	unsigned long cmdline_paddr;
+> +
+> +	/* If SME is not active, the bootdata is in the correct state */
+> +	if (!sme_active())
+> +		return;
+> +
+> +	if (!map) {
+> +		/*
+> +		 * If unmapping, get the command line address before
+> +		 * unmapping the real_mode_data.
+> +		 */
+> +		boot_data = (struct boot_params *)real_mode_data;
+> +		cmdline_paddr = boot_data->hdr.cmd_line_ptr |
+> +				((u64)boot_data->ext_cmd_line_ptr << 32);
 
-Yury
+Let it stick out:
+
+	cmdline_paddr = bd->hdr.cmd_line_ptr | ((u64)bd->ext_cmd_line_ptr << 32);
+
+> +	}
+> +
+> +	__sme_early_map_unmap_mem(real_mode_data, sizeof(boot_params), map);
+> +
+> +	if (map) {
+> +		/*
+> +		 * If mapping, get the command line address after mapping
+> +		 * the real_mode_data.
+> +		 */
+> +		boot_data = (struct boot_params *)real_mode_data;
+> +		cmdline_paddr = boot_data->hdr.cmd_line_ptr |
+> +				((u64)boot_data->ext_cmd_line_ptr << 32);
+> +	}
+> +
+> +	if (!cmdline_paddr)
+> +		return;
+> +
+> +	__sme_early_map_unmap_mem(__va(cmdline_paddr), COMMAND_LINE_SIZE, map);
+
+Ok, so from looking at this function now - it does different things
+depending on whether we map or not. So it doesn't look like a worker
+function anymore and you can move the stuff back to the original callers
+below. Should make the whole flow more readable.
+
+> +}
+> +
+> +void __init sme_unmap_bootdata(char *real_mode_data)
+> +{
+> +	__sme_map_unmap_bootdata(real_mode_data, false);
+> +}
+> +
+> +void __init sme_map_bootdata(char *real_mode_data)
+> +{
+> +	__sme_map_unmap_bootdata(real_mode_data, true);
+> +}
+> +
+>  void __init sme_early_init(void)
+>  {
+>  	unsigned int i;
+> 
+
+-- 
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
