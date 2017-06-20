@@ -1,80 +1,117 @@
-From: <nfrankiyamu@centrum.cz>
-Subject: (unknown)
-Date: Tue, 20 Jun 2017 16:31:09 -0000
-Message-ID: <149797626929.30693.7277855913930178289@fourway.net>
+From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+Subject: Re: [PATCH v3 0/4] Generalize fncpy availability
+Date: Tue, 20 Jun 2017 17:46:44 +0100
+Message-ID: <20170620164644.GF11351@red-moon>
+References: <20170617000744.22158-1-f.fainelli@gmail.com>
+ <20170619122444.GJ10246@leverpostej>
+ <c8b7789c-38fb-6793-050f-7c60ccb8ca17@broadcom.com>
+ <20170620091025.GA26846@red-moon>
+ <3834f2fa-5ac0-5b48-7c19-a1b68c1e9c65@gmail.com>
 Mime-Version: 1.0
-Content-Type: application/zip; name="2590095223830.zip"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-118-118-90.fourway.net ([74.118.118.90]:52015 "HELO
-        fourway.net" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with SMTP
-        id S1750773AbdFTQbP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 20 Jun 2017 12:31:15 -0400
-Content-Disposition: attachment
-Subject: 
+Received: from foss.arm.com ([217.140.101.70]:41898 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751052AbdFTQpU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 20 Jun 2017 12:45:20 -0400
+Content-Disposition: inline
+In-Reply-To: <3834f2fa-5ac0-5b48-7c19-a1b68c1e9c65@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+To: Florian Fainelli <f.fainelli@gmail.com>
+Cc: Florian Fainelli <florian.fainelli@broadcom.com>, Mark Rutland <mark.rutland@arm.com>, linux-arm-kernel@lists.infradead.org, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Dave Gerlach <d-gerlach@ti.com>, Tony Lindgren <tony@atomide.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, open list <linux-kernel@vger.kernel.org>, bcm-kernel-feedback-list@broadcom.com, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Alexandre Belloni <alexandre.belloni@free-electrons.com>, linux-omap@vger.kernel.org, Shawn Guo <shawnguo@kernel.org>, Keerthy J <j-keerthy@ti.com>, sudeep.holla@arm.com
 
-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
-AABQSwUGAAAAAAEAAQBPAAAASA0AAAAA
+On Tue, Jun 20, 2017 at 09:20:34AM -0700, Florian Fainelli wrote:
+> On 06/20/2017 02:10 AM, Lorenzo Pieralisi wrote:
+> > [+Sudeep]
+> > 
+> > On Mon, Jun 19, 2017 at 10:32:38AM -0700, Florian Fainelli wrote:
+> >> On 06/19/2017 05:24 AM, Mark Rutland wrote:
+> >>> On Fri, Jun 16, 2017 at 05:07:40PM -0700, Florian Fainelli wrote:
+> >>>> Hi all,
+> >>>
+> >>> Hi Florian,
+> >>>
+> >>>> This patch series makes ARM's fncpy() implementation more generic (dropping the
+> >>>> Thumb-specifics) and available in an asm-generic header file.
+> >>>>
+> >>>> Tested on a Broadcom ARM64 STB platform with code that is written to SRAM.
+> >>>>
+> >>>> Changes in v3 (thanks Doug!):
+> >>>> - correct include guard names in asm-generic/fncpy.h to __ASM_FNCPY_H
+> >>>> - utilize Kbuild to provide the fncpy.h header on ARM64
+> >>>>
+> >>>> Changes in v2:
+> >>>> - leave the ARM implementation where it is
+> >>>> - make the generic truly generic (no)
+> >>>>
+> >>>> This is helpful in making SoC-specific power management code become true drivers
+> >>>> that can be shared between different architectures.
+> >>>> Could you elaborate on what this is needed for?
+> >>
+> >> Several uses cases come to mind:
+> >>
+> >> - it could be used as a trampoline code prior to entering S2 for systems
+> >> that do not support PSCI 1.0
+> > 
+> > I think S2 here means PM_SUSPEND_MEM. It is very wrong to manage power
+> > states through platform specific hooks on PSCI based systems, consider
+> > upgrading to PSCI 1.0 please (or implement PSCI CPU_SUSPEND power
+> > states that allow to achieve same power savings as PM_SUSPEND_MEM
+> > by just entering suspend-to-idle).
+> 
+> S2 is PM_SUSPEND_STANDBY and S3 is PM_SUSPEND_MEM, at least that how I
+> read it. I would rather we update to PSCI 1.0 (at least) to properly
+> support SYSTEM_SUSPEND rather than retrofitting a system-wide suspend
+> state into CPU_SUSPEND since that seems wrong.
+
+I am not asking to retrofit anything, just implementing CPU_SUSPEND
+according to platform capabilities, suspend-to-idle would allow you to
+enter a system suspend state where all cores are in the deepest idle
+state (which, as far as the core is concerned is identical to the state
+reached on S2R). Upgrading to PSCI 1.0 is what has to be done anyway.
+
+> >> - any code that has a specific need to relocate a performance, security
+> >> sensitive code into SRAM and use it as another pool of memory.
+> >>
+> >>>
+> >>> My understanding was that on 32-bit, this was to handle idle / suspend
+> >>> cases, whereas for arm64 that should be handled by PSCI.
+> >>
+> >> For systems that support PSCI 1.0, I agree, but it may not be possible
+> >> to update those systems easily, still use case 2 is completely valid.
+> > 
+> > Just to be clear, thinking of using platform specific suspend hooks
+> > on PSCI systems is not a viable solution, I will let other people
+> > comment on option 2.
+> > 
+> >>> what exactly do you intend to use this for?
+> >>
+> >> At the moment we use it to enter S2 on ARM64 systems (ARCH_BRCMSTB)
+> > 
+> > "At the moment", where ?
+> 
+> Obviously not in tree, since fncpy() is not available on ARM64, here is
+> what it looks like for ARM & MIPS systems though:
+> 
+> http://lists.infradead.org/pipermail/linux-arm-kernel/2017-June/513953.html
+> 
+> > 
+> >> which are PSCI 0.2 only. And yes, we do have a plan to evaluate
+> >> upgrading to PSCI 1.0, but in general, any SoC which as an addressable
+> >> SRAM could use it for whatever purpose it sees fit.
+> > 
+> > Not to implement suspend hooks on PSCI 0.2 systems.
+> 
+> You have made your point and it is very valid, still that does not mean
+> fncpy() does not have any usefulness on ARM64 systems, this was one
+> although not "ARM approved" use case (system suspend), but use case
+> where you have code that should execute from SRAM is something that
+> should be possible using the standard facilities offered in
+> drives/misc/sram*.c
+
+fncpy() won't be used to implement a suspend ops hook on ARM64, that's
+the point I made so that it is clear from the beginning.
+
+Thanks,
+Lorenzo
