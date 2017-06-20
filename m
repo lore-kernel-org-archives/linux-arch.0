@@ -1,98 +1,194 @@
-From: Punit Agrawal <punit.agrawal@arm.com>
-Subject: Re: [PATCH v5 0/8] Support for contiguous pte hugepages
-Date: Tue, 20 Jun 2017 14:39:57 +0100
-Message-ID: <871sqezsk2.fsf@e105922-lin.cambridge.arm.com>
-References: <20170619170145.25577-1-punit.agrawal@arm.com>
-        <20170619150133.cb4173220e4e3abd02c6f6d0@linux-foundation.org>
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: Re: [PATCH v3 2/4] asm-generic: Provide a fncpy() implementation
+Date: Tue, 20 Jun 2017 17:24:25 +0300
+Message-ID: <20170620142425.7zydhktmf4466bmu@yury-thinkpad>
+References: <20170617000744.22158-1-f.fainelli@gmail.com>
+ <20170617000744.22158-3-f.fainelli@gmail.com>
+ <20170618235108.peaxdi367jpkt542@yury-thinkpad>
+ <25e87a4c-ecd9-a205-5a25-207a293e0204@broadcom.com>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:38696 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751056AbdFTNkA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 20 Jun 2017 09:40:00 -0400
-In-Reply-To: <20170619150133.cb4173220e4e3abd02c6f6d0@linux-foundation.org>
-        (Andrew Morton's message of "Mon, 19 Jun 2017 15:01:33 -0700")
+Received: from mail-dm3nam03on0079.outbound.protection.outlook.com ([104.47.41.79]:45664
+        "EHLO NAM03-DM3-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1750993AbdFTOZb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 20 Jun 2017 10:25:31 -0400
+Content-Disposition: inline
+In-Reply-To: <25e87a4c-ecd9-a205-5a25-207a293e0204@broadcom.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, will.deacon@arm.com, n-horiguchi@ah.jp.nec.com, kirill.shutemov@linux.intel.com, mike.kravetz@oracle.com, steve.capper@arm.com, mark.rutland@arm.com, linux-arch@vger.kernel.org, aneesh.kumar@linux.vnet.ibm.com
+To: Florian Fainelli <florian.fainelli@broadcom.com>
+Cc: Florian Fainelli <f.fainelli@gmail.com>, linux-arm-kernel@lists.infradead.org, bcm-kernel-feedback-list@broadcom.com, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, open list <linux-kernel@vger.kernel.org>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, Dave Gerlach <d-gerlach@ti.com>, Tony Lindgren <tony@atomide.com>, Keerthy J <j-keerthy@ti.com>, Alexandre Belloni <alexandre.belloni@free-electrons.com>, linux-omap@vger.kernel.org, Shawn Guo <shawnguo@kernel.org>
 
-Andrew Morton <akpm@linux-foundation.org> writes:
+On Mon, Jun 19, 2017 at 01:58:53PM -0700, Florian Fainelli wrote:
+> On 06/18/2017 04:51 PM, Yury Norov wrote:
+> > Hi Florian,
+> > 
+> > Some questions and thoughts inline.
+> > 
+> > Yury
+> > 
+> > On Fri, Jun 16, 2017 at 05:07:42PM -0700, Florian Fainelli wrote:
+> >> Define a generic fncpy() implementation largely based on the ARM version
+> >> that requires an 8 bytes alignment for the destination address where to
+> >> copy this function as well as the function's own address.
+> >>
+> >> Signed-off-by: Florian Fainelli <f.fainelli@gmail.com>
+> >> ---
+> >>  include/asm-generic/fncpy.h | 93 +++++++++++++++++++++++++++++++++++++++++++++
+> >>  1 file changed, 93 insertions(+)
+> >>  create mode 100644 include/asm-generic/fncpy.h
+> >>
+> >> diff --git a/include/asm-generic/fncpy.h b/include/asm-generic/fncpy.h
+> >> new file mode 100644
+> >> index 000000000000..ec03b83b8535
+> >> --- /dev/null
+> >> +++ b/include/asm-generic/fncpy.h
+> >> @@ -0,0 +1,93 @@
+> >> +/*
+> >> + * include/asm-generic/fncpy.h - helper macros for function body copying
+> >> + *
+> >> + * Copyright (C) 2011 Linaro Limited
+> >> + *
+> >> + * This program is free software; you can redistribute it and/or modify
+> >> + * it under the terms of the GNU General Public License version 2 as
+> >> + * published by the Free Software Foundation.
+> >> + *
+> >> + * This program is distributed in the hope that it will be useful,
+> >> + * but WITHOUT ANY WARRANTY; without even the implied warranty of
+> >> + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+> >> + * GNU General Public License for more details.
+> >> + *
+> >> + * You should have received a copy of the GNU General Public License
+> >> + * along with this program; if not, write to the Free Software
+> >> + * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+> >> + */
+> >> +
+> >> +/*
+> >> + * These macros are intended for use when there is a need to copy a low-level
+> >> + * function body into special memory.
+> >> + *
+> >> + * For example, when reconfiguring the SDRAM controller, the code doing the
+> >> + * reconfiguration may need to run from SRAM.
+> >> + *
+> >> + * NOTE: that the copied function body must be entirely self-contained and
+> >> + * position-independent in order for this to work properly.
+> >> + *
+> >> + * NOTE: in order for embedded literals and data to get referenced correctly,
+> >> + * the alignment of functions must be preserved when copying.  To ensure this,
+> >> + * the source and destination addresses for fncpy() must be aligned to a
+> >> + * multiple of 8 bytes: you will be get a BUG() if this condition is not met.
+> >> + * You will typically need a ".align 3" directive in the assembler where the
+> >> + * function to be copied is defined, and ensure that your allocator for the
+> >> + * destination buffer returns 8-byte-aligned pointers.
+> >> + *
+> >> + * Typical usage example:
+> >> + *
+> >> + * extern int f(args);
+> >> + * extern uint32_t size_of_f;
+> >> + * int (*copied_f)(args);
+> >> + * void *sram_buffer;
+> >> + *
+> >> + * copied_f = fncpy(sram_buffer, &f, size_of_f);
+> >> + *
+> >> + * ... later, call the function: ...
+> >> + *
+> >> + * copied_f(args);
+> >> + *
+> >> + * The size of the function to be copied can't be determined from C:
+> >> + * this must be determined by other means, such as adding assmbler directives
+> >> + * in the file where f is defined.
+> >> + */
+> >> +
+> >> +#ifndef __ASM_FNCPY_H
+> >> +#define __ASM_FNCPY_H
+> >> +
+> >> +#include <linux/types.h>
+> >> +#include <linux/string.h>
+> >> +
+> >> +#include <asm/bug.h>
+> >> +#include <asm/cacheflush.h>
+> >> +
+> >> +/*
+> >> + * Minimum alignment requirement for the source and destination addresses
+> >> + * for function copying.
+> >> + */
+> >> +#define FNCPY_ALIGN 8
+> > 
+> > From now this is not arm-only, and it's possible that some architectures
+> > might want to redefine it in their arch/xxx/include/asm/fncpy.h files.
+> > So it will be easier for them if you'll wrap FNCPY_ALIGN here with #ifdef
+> > guards.
+> > 
+> > By the way, compiler already has an information on the proper alignment.
+> > Maybe it's better to use it as the default value here instead of the
+> > hardcoded value?
+> > 
+> > #ifndef FNCPY_ALIGN
+> > #define FNCPY_ALIGN ({void foo(); __alignof__(&foo);})
+> > #endif
+> > 
+> >> +
+> >> +#define fncpy(dest_buf, funcp, size) ({					\
+> > 
+> > Do you really need to check types inside the macro? If not, you can
+> > declare it as function, which is better in general, with the memcpy-like
+> > prototype.
+> > 
+> >> +	uintptr_t __funcp_address;					\
+> >> +	typeof(funcp) __result;						\
+> >> +									\
+> >> +	asm("" : "=r" (__funcp_address) : "0" (funcp));			\
+> >> +									\
+> >> +	/*								\
+> >> +	 * Ensure alignment of source and destination addresses.	\
+> >> +	 */								\
+> >> +	BUG_ON((uintptr_t)(dest_buf) & (FNCPY_ALIGN - 1) ||		\
+> > 
+> > People don't like new BUG_ONs. Maybe it's better to use BUILD_BUG_ON()
+> > at compile time and WARN_ON() at runtime?
+> 
+> If you have a BUILD_BUG_ON() what's the point of the WARN_ON()?
 
-> On Mon, 19 Jun 2017 18:01:37 +0100 Punit Agrawal <punit.agrawal@arm.com> wrote:
->
->> This is v5 of the patchset to update the hugetlb code to support
->> contiguous hugepages. Previous version of the patchset can be found at
->> [0].
->
-> Dumb question: is there a handy description anywhere which describes
-> how arm64 implements huge pages?  "contiguous 4k ptes" doesn't sound
-> like a huge page at all - what's going on here?
+To warn user if bad destination address comes at runtime.
 
-Indeed! I should've provided more context with the cover letter.
-
-I couldn't find anything direct to point to so cobbling together
-a summary from the commit history[0][1] and the ARM architecture
-manual[1].
-
-The architecture supports two flavours of hugepages -
-
-* Block mappings at the pud/pmd level
-
-  These are regular hugepages where a pmd or a pud page table entry
-  points to a block of memory. Depending on the PAGE_SIZE in use the
-  following size of block mappings are supported -
-
-          PMD	PUD
-          ---	---
-  4K:      2M	 1G
-  16K:    32M
-  64K:   512M
-
-  For certain applications/usecases such as HPC and large enterprise
-  workloads, folks are using 64k page size but the minimum hugepage size
-  of 512MB isn't very practical.
-
-To overcome this ...
-
-* Using the Contiguous bit
-
-  The architecture provides a contiguous bit in the translation table
-  entry which acts as a hint to the mmu to indicate that it is one of a
-  contiguous set of entries that can be cached in a single TLB entry.
-
-  We use the contiguous bit in Linux to increase the mapping size at the
-  pmd and pte (last) level.
-
-  The number of supported contiguous entries varies by page size and
-  level of the page table.
-
-  Using the contiguous bit allows additional hugepage sizes -
-
-           CONT PTE    PMD    CONT PMD    PUD
-           --------    ---    --------    ---
-    4K:         64K     2M         32M     1G
-    16K:         2M    32M          1G
-    64K:         2M   512M         16G
-
-  Of these, 64K with 4K and 2M with 64K pages have been explicitly
-  requested by a few different users.
-
-Entries with the contiguous bit set are required to be modified all
-together - which makes things like memory poisoning and migration
-impossible to do correctly without knowing the size of hugepage being
-dealt with - the reason for adding size parameter to a few of the
-hugepage helpers in this series.
-
-Apologies for the length, but I am hoping the context provides
-motivation for the changes.
-
-Thanks for pulling the updated version of the patches.
-
-Punit
-
-[0] https://github.com/torvalds/linux/commit/084bd29810a5689e423d2f085255a3200a03a06e
-[1] https://github.com/torvalds/linux/commit/66b3923a1a0f77a563b43f43f6ad091354abbfe9
-[2] ARM DDI 0487B.a Section D4.3 VMSAv8-64 translation table format
-    [http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0487b.a/index.html]
+> > 
+> >> +		(__funcp_address & (FNCPY_ALIGN - 1)));			\
+> > 
+> > There is IS_ALIGNED() macro for things like this.
+> 
+> Sure, makes sense.
+> 
+> > 
+> > And I frankly don't understand the 2nd check. One can imagine the
+> > situation when someone wants copy the function from the packed blob or
+> > some intermediate location were the function is unaligned, and it's
+> > impossible with the current implementation.
+> 
+> That's a good point, I am not sure if this is historical, or if there is
+> a reason for that from the ARM/Linux implementation. It sounds unlikely
+> that the function would be unaligned though considering that you'd have
+> to refer to the function being copied by its symbolic name, which
+> assumes it's in the kernel image or a module, and highly probable that
+> it is also aligned.
+> 
+> > 
+> >> +									\
+> >> +	memcpy(dest_buf, (void const *)__funcp_address, size);		\
+> >> +	flush_icache_range((unsigned long)(dest_buf),			\
+> >> +		(unsigned long)(dest_buf) + (size));			\
+> >> +									\
+> >> +	asm("" : "=r" (__result)					\
+> >> +		: "0" ((uintptr_t)(dest_buf)));				\
+> >> +									\
+> >> +	__result;							\
+> >> +})
+> >> +
+> >> +#endif /* !__ASM_FNCPY_H */
+> >> -- 
+> >> 2.9.3
+> 
+> 
+> -- 
+> Florian
