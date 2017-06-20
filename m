@@ -1,55 +1,87 @@
-From: Andy Lutomirski <luto@kernel.org>
-Subject: Re: [PATCH v7 11/36] x86/mm: Add SME support for read_cr3_pa()
-Date: Tue, 20 Jun 2017 09:17:26 -0700
-Message-ID: <CALCETrVkyj=wfcgNMVG_BU+xGb3yBNhxrDdSTxJLx7UYraVcUA@mail.gmail.com>
-References: <20170616184947.18967.84890.stgit@tlendack-t1.amdoffice.net> <20170616185154.18967.71073.stgit@tlendack-t1.amdoffice.net>
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [PATCH 5/5] arm64: signal: Allow expansion of the signal frame
+Date: Tue, 20 Jun 2017 17:20:18 +0100
+Message-ID: <20170620162016.GB8543@e103592.cambridge.arm.com>
+References: <1497535442-11586-1-git-send-email-Dave.Martin@arm.com>
+ <1497535442-11586-6-git-send-email-Dave.Martin@arm.com>
+ <20170616104740.GA31526@e104818-lin.cambridge.arm.com>
+ <20170619101204.GA8543@e103592.cambridge.arm.com>
+ <20170619110346.GB3024@e104818-lin.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20170616185154.18967.71073.stgit@tlendack-t1.amdoffice.net>
-Sender: owner-linux-mm@kvack.org
-To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, "linux-efi@vger.kernel.org" <linux-efi@vger.kernel.org>, kvm list <kvm@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, X86 ML <x86@kernel.org>, kexec@lists.infradead.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>, xen-devel <xen-devel@lists.xen.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, iommu@lists.linux-foundation.org, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:41622 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751002AbdFTQUW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 20 Jun 2017 12:20:22 -0400
+Content-Disposition: inline
+In-Reply-To: <20170619110346.GB3024@e104818-lin.cambridge.arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org
 
-On Fri, Jun 16, 2017 at 11:51 AM, Tom Lendacky <thomas.lendacky@amd.com> wrote:
-> The cr3 register entry can contain the SME encryption mask that indicates
-> the PGD is encrypted.  The encryption mask should not be used when
-> creating a virtual address from the cr3 register, so remove the SME
-> encryption mask in the read_cr3_pa() function.
->
-> During early boot SME will need to use a native version of read_cr3_pa(),
-> so create native_read_cr3_pa().
->
-> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
-> ---
->  arch/x86/include/asm/processor-flags.h |    3 ++-
->  arch/x86/include/asm/processor.h       |    5 +++++
->  2 files changed, 7 insertions(+), 1 deletion(-)
->
-> diff --git a/arch/x86/include/asm/processor-flags.h b/arch/x86/include/asm/processor-flags.h
-> index 79aa2f9..cb6999c 100644
-> --- a/arch/x86/include/asm/processor-flags.h
-> +++ b/arch/x86/include/asm/processor-flags.h
-> @@ -2,6 +2,7 @@
->  #define _ASM_X86_PROCESSOR_FLAGS_H
->
->  #include <uapi/asm/processor-flags.h>
-> +#include <linux/mem_encrypt.h>
->
->  #ifdef CONFIG_VM86
->  #define X86_VM_MASK    X86_EFLAGS_VM
-> @@ -33,7 +34,7 @@
->   */
->  #ifdef CONFIG_X86_64
->  /* Mask off the address space ID bits. */
-> -#define CR3_ADDR_MASK 0x7FFFFFFFFFFFF000ull
-> +#define CR3_ADDR_MASK __sme_clr(0x7FFFFFFFFFFFF000ull)
+On Mon, Jun 19, 2017 at 12:03:47PM +0100, Catalin Marinas wrote:
+> On Mon, Jun 19, 2017 at 11:12:29AM +0100, Dave P Martin wrote:
+> > On Fri, Jun 16, 2017 at 11:47:41AM +0100, Catalin Marinas wrote:
+> > > On Thu, Jun 15, 2017 at 03:03:42PM +0100, Dave P Martin wrote:
+> > > > +struct extra_context {
+> > > > +	struct _aarch64_ctx head;
+> > > > +	void __user *data;	/* 16-byte aligned pointer to extra space */
+> > > > +	__u32 size;		/* size in bytes of the extra space */
+> > > > +	__u32 __reserved[3];
+> > > > +};
+> > > 
+> > > Some more thoughts on the type of "data" above. It's the first time we
+> > > introduce pointers in sigcontext and wonder whether __u64 would make
+> > > more sense (invariable size with the ABI).
+> > 
+> > I'm happy to change this if you want -- it can be a __u64 without
+> > impacting the semantics.
+> 
+> I was thinking in the context of ILP32 but we can address this
+> separately for the exported kernel headers and glibc definitions.
+> Looking at this structure from an LP64 perspective, it indeed makes
+> sense to keep it as void *. We have other UAPI structures with user
+> pointers already.
 
-Can you update the comment one line above, too?
+OK -- I'll reply with an additional fixup that can be folded in if you
+do want the u64.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+> > > Also for discussion - whether using an offset vs absolute address would
+> > > be better.
+> > 
+> > My rationale here related to the ucontext semantics associated with
+> > the signal frame, rather than signal handling itself.
+> > 
+> > Consider:
+> > 
+> > void signal_handler(int n, siginfo_t *si, void *uc)
+> > {
+> > 	*signal_context = *(ucontext_t *)uc;
+> > }
+> > 
+> > Will this "work"?  On most machines, yes it will. 
+> > 
+> > With an expanded signal frame on arm64, it won't work: the copied
+> > context will be truncated at the end of __reserved[].  If extra_data
+> > uses an offset to locate the additional data then someone parsing
+> > *signal_context won't be able to detect the error and will overrun:
+> > this includes rt_sigreturn (if that is run on a stack that has the
+> > copied context).
+> > 
+> > If a pointer is used in extra_context, this provides some chance of
+> > handling this: naive code like the above will result in a ucontext_t
+> > whose extra_context data pointer is "wrong": extra_context aware
+> > parsers can detect that and error out or ignore the remaining data.
+> > extra_context aware code that wants to copy the signal context can walk
+> > the signal frame to determine its true size, allocate memory, copy, and
+> > then update the extra_context data pointer in the new copy.
+> 
+> Thanks for the explanation, it makes sense to keep an absolute pointer
+> here rather than offset. So no further changes needed to this patch.
+
+Fair enough.
+
+Cheers
+---Dave
