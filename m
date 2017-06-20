@@ -1,39 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([146.0.238.70]:46123 "EHLO
-        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751979AbdFTUzq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 20 Jun 2017 16:55:46 -0400
-Date: Tue, 20 Jun 2017 22:55:35 +0200 (CEST)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH v7 07/36] x86/mm: Don't use phys_to_virt in ioremap() if
- SME is active
-In-Reply-To: <20170616185104.18967.7867.stgit@tlendack-t1.amdoffice.net>
-Message-ID: <alpine.DEB.2.20.1706202251110.2157@nanos>
-References: <20170616184947.18967.84890.stgit@tlendack-t1.amdoffice.net> <20170616185104.18967.7867.stgit@tlendack-t1.amdoffice.net>
-MIME-Version: 1.0
+Received: from mail.linuxfoundation.org ([140.211.169.12]:35824 "EHLO
+        mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752403AbdFTVId (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 20 Jun 2017 17:08:33 -0400
+Date: Tue, 20 Jun 2017 14:08:31 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH v5 0/8] Support for contiguous pte hugepages
+Message-ID: <20170620140831.6bd835649d475bcf30c3c434@linux-foundation.org>
+In-Reply-To: <871sqezsk2.fsf@e105922-lin.cambridge.arm.com>
+References: <20170619170145.25577-1-punit.agrawal@arm.com>
+        <20170619150133.cb4173220e4e3abd02c6f6d0@linux-foundation.org>
+        <871sqezsk2.fsf@e105922-lin.cambridge.arm.com>
+Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, =?ISO-8859-2?Q?Radim_Kr=E8m=E1=F8?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Paolo Bonzini <pbonzini@redhat.com>
-Message-ID: <20170620205535.S0z1HaNAoF4_fV4lY_Q14YZ-sh_sf7O2yevcgJOcmDY@z>
+To: Punit Agrawal <punit.agrawal@arm.com>
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, will.deacon@arm.com, n-horiguchi@ah.jp.nec.com, kirill.shutemov@linux.intel.com, mike.kravetz@oracle.com, steve.capper@arm.com, mark.rutland@arm.com, linux-arch@vger.kernel.org, aneesh.kumar@linux.vnet.ibm.com
+Message-ID: <20170620210831.xuQuzecYT9fhPoQ1h0Ufg-MuzUUqXNgNIK00Lo4st3g@z>
 
-On Fri, 16 Jun 2017, Tom Lendacky wrote:
+On Tue, 20 Jun 2017 14:39:57 +0100 Punit Agrawal <punit.agrawal@arm.com> wrote:
 
-> Currently there is a check if the address being mapped is in the ISA
-> range (is_ISA_range()), and if it is then phys_to_virt() is used to
-> perform the mapping.  When SME is active, however, this will result
-> in the mapping having the encryption bit set when it is expected that
-> an ioremap() should not have the encryption bit set. So only use the
-> phys_to_virt() function if SME is not active
+> 
+> The architecture supports two flavours of hugepages -
+> 
+> * Block mappings at the pud/pmd level
+> 
+>   These are regular hugepages where a pmd or a pud page table entry
+>   points to a block of memory. Depending on the PAGE_SIZE in use the
+>   following size of block mappings are supported -
+> 
+>           PMD	PUD
+>           ---	---
+>   4K:      2M	 1G
+>   16K:    32M
+>   64K:   512M
+> 
+>   For certain applications/usecases such as HPC and large enterprise
+>   workloads, folks are using 64k page size but the minimum hugepage size
+>   of 512MB isn't very practical.
+> 
+> To overcome this ...
+> 
+> * Using the Contiguous bit
+> 
+>   The architecture provides a contiguous bit in the translation table
+>   entry which acts as a hint to the mmu to indicate that it is one of a
+>   contiguous set of entries that can be cached in a single TLB entry.
+> 
+>   We use the contiguous bit in Linux to increase the mapping size at the
+>   pmd and pte (last) level.
+> 
+>   The number of supported contiguous entries varies by page size and
+>   level of the page table.
+> 
+>   Using the contiguous bit allows additional hugepage sizes -
+> 
+>            CONT PTE    PMD    CONT PMD    PUD
+>            --------    ---    --------    ---
+>     4K:         64K     2M         32M     1G
+>     16K:         2M    32M          1G
+>     64K:         2M   512M         16G
+> 
+>   Of these, 64K with 4K and 2M with 64K pages have been explicitly
+>   requested by a few different users.
+> 
+> Entries with the contiguous bit set are required to be modified all
+> together - which makes things like memory poisoning and migration
+> impossible to do correctly without knowing the size of hugepage being
+> dealt with - the reason for adding size parameter to a few of the
+> hugepage helpers in this series.
+> 
 
-This does not make sense to me. What the heck has phys_to_virt() to do with
-the encryption bit. Especially why would the encryption bit be set on that
-mapping in the first place?
-
-I'm probably missing something, but this want's some coherent explanation
-understandable by mere mortals both in the changelog and the code comment.
-
-Thanks,
-
-	tglx
+Thanks, I added the above to the 1/n changelog.  Perhaps it's worth
+adding something like this to Documentation/vm/hugetlbpage.txt.
