@@ -1,110 +1,55 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCHv2 1/3] x86/mm: Provide pmdp_establish() helper
-Date: Tue, 20 Jun 2017 16:54:38 +0100
-Message-ID: <20170620155438.GC21383@e104818-lin.cambridge.arm.com>
-References: <20170615145224.66200-1-kirill.shutemov@linux.intel.com>
- <20170615145224.66200-2-kirill.shutemov@linux.intel.com>
- <20170619152228.GE3024@e104818-lin.cambridge.arm.com>
- <20170619160005.wgj4nymtj2nntfll@node.shutemov.name>
- <20170619170911.GF3024@e104818-lin.cambridge.arm.com>
- <20170619215210.2crwjou3sfdcj73d@node.shutemov.name>
+From: Andy Lutomirski <luto@kernel.org>
+Subject: Re: [PATCH v7 11/36] x86/mm: Add SME support for read_cr3_pa()
+Date: Tue, 20 Jun 2017 09:17:26 -0700
+Message-ID: <CALCETrVkyj=wfcgNMVG_BU+xGb3yBNhxrDdSTxJLx7UYraVcUA@mail.gmail.com>
+References: <20170616184947.18967.84890.stgit@tlendack-t1.amdoffice.net> <20170616185154.18967.71073.stgit@tlendack-t1.amdoffice.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:41250 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751015AbdFTPyp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 20 Jun 2017 11:54:45 -0400
-Content-Disposition: inline
-In-Reply-To: <20170619215210.2crwjou3sfdcj73d@node.shutemov.name>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Kirill A. Shutemov" <kirill@shutemov.name>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, Ralf Baechle <ralf@linux-mips.org>, "David S. Miller" <davem@davemloft.net>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andrea Arcangeli <aarcange@redhat.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20170616185154.18967.71073.stgit@tlendack-t1.amdoffice.net>
+Sender: owner-linux-mm@kvack.org
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, "linux-efi@vger.kernel.org" <linux-efi@vger.kernel.org>, kvm list <kvm@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, X86 ML <x86@kernel.org>, kexec@lists.infradead.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>, xen-devel <xen-devel@lists.xen.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, iommu@lists.linux-foundation.org, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jun 20, 2017 at 12:52:10AM +0300, Kirill A. Shutemov wrote:
-> On Mon, Jun 19, 2017 at 06:09:12PM +0100, Catalin Marinas wrote:
-> > On Mon, Jun 19, 2017 at 07:00:05PM +0300, Kirill A. Shutemov wrote:
-> > > On Mon, Jun 19, 2017 at 04:22:29PM +0100, Catalin Marinas wrote:
-> > > > On Thu, Jun 15, 2017 at 05:52:22PM +0300, Kirill A. Shutemov wrote:
-> > > > > We need an atomic way to setup pmd page table entry, avoiding races with
-> > > > > CPU setting dirty/accessed bits. This is required to implement
-> > > > > pmdp_invalidate() that doesn't loose these bits.
-> > > > > 
-> > > > > On PAE we have to use cmpxchg8b as we cannot assume what is value of new pmd and
-> > > > > setting it up half-by-half can expose broken corrupted entry to CPU.
-> > > > > 
-> > > > > Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-> > > > > Cc: Ingo Molnar <mingo@kernel.org>
-> > > > > Cc: H. Peter Anvin <hpa@zytor.com>
-> > > > > Cc: Thomas Gleixner <tglx@linutronix.de>
-> > > > 
-> > > > I'll look at this from the arm64 perspective. It would be good if we can
-> > > > have a generic atomic implementation based on cmpxchg64 but I need to
-> > > > look at the details first.
-> > > 
-> > > Unfortunately, I'm not sure it's possbile.
-> > > 
-> > > The format of a page table is defined per-arch. We cannot assume much about
-> > > it in generic code.
-> > > 
-> > > I guess we could make it compile by casting to 'unsigned long', but is it
-> > > useful?
-> > > Every architecture manintainer still has to validate that this assumption
-> > > is valid for the architecture.
-> > 
-> > You are right, not much gained in doing this.
-> > 
-> > Maybe a stupid question but can we not implement pmdp_invalidate() with
-> > something like pmdp_get_and_clear() (usually reusing the ptep_*
-> > equivalent). Or pmdp_clear_flush() (again, reusing ptep_clear_flush())?
-> > 
-> > In my quick grep on pmdp_invalidate, it seems to be followed by
-> > set_pmd_at() or pmd_populate() already and the *pmd value after
-> > mknotpresent isn't any different from 0 to the hardware (at least on
-> > ARM). That's unless Linux expects to see some non-zero value here if
-> > walking the page tables on another CPU.
-> 
-> The whole reason to have pmdp_invalidate() in first place is to never make
-> pmd clear in the middle. Otherwise we will get race with MADV_DONTNEED.
-> See ced108037c2a for an example of such race.
+On Fri, Jun 16, 2017 at 11:51 AM, Tom Lendacky <thomas.lendacky@amd.com> wrote:
+> The cr3 register entry can contain the SME encryption mask that indicates
+> the PGD is encrypted.  The encryption mask should not be used when
+> creating a virtual address from the cr3 register, so remove the SME
+> encryption mask in the read_cr3_pa() function.
+>
+> During early boot SME will need to use a native version of read_cr3_pa(),
+> so create native_read_cr3_pa().
+>
+> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+> ---
+>  arch/x86/include/asm/processor-flags.h |    3 ++-
+>  arch/x86/include/asm/processor.h       |    5 +++++
+>  2 files changed, 7 insertions(+), 1 deletion(-)
+>
+> diff --git a/arch/x86/include/asm/processor-flags.h b/arch/x86/include/asm/processor-flags.h
+> index 79aa2f9..cb6999c 100644
+> --- a/arch/x86/include/asm/processor-flags.h
+> +++ b/arch/x86/include/asm/processor-flags.h
+> @@ -2,6 +2,7 @@
+>  #define _ASM_X86_PROCESSOR_FLAGS_H
+>
+>  #include <uapi/asm/processor-flags.h>
+> +#include <linux/mem_encrypt.h>
+>
+>  #ifdef CONFIG_VM86
+>  #define X86_VM_MASK    X86_EFLAGS_VM
+> @@ -33,7 +34,7 @@
+>   */
+>  #ifdef CONFIG_X86_64
+>  /* Mask off the address space ID bits. */
+> -#define CR3_ADDR_MASK 0x7FFFFFFFFFFFF000ull
+> +#define CR3_ADDR_MASK __sme_clr(0x7FFFFFFFFFFFF000ull)
 
-Thanks for the explanation. So you basically just want to set a !present
-and !none pmd. I noticed that with your proposed pmdp_invalidate(),
-pmdp_establish(pmd_mknotpresent(*pmdp)) could set a stale *pmdp (with
-the present bit cleared) temporarily until updated with what
-pmdp_establish() returned. Is there a risk of racing with other parts of
-the kernel? I guess not since the pmd is !present.
+Can you update the comment one line above, too?
 
-For arm64, I don't see the point of a cmpxchg, so something like below
-would do (it needs proper testing though):
-
--------------8<---------------------------
-diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pgtable.h
-index c213fdbd056c..8fe1dad9100a 100644
---- a/arch/arm64/include/asm/pgtable.h
-+++ b/arch/arm64/include/asm/pgtable.h
-@@ -39,6 +39,7 @@
- 
- #ifndef __ASSEMBLY__
- 
-+#include <asm/cmpxchg.h>
- #include <asm/fixmap.h>
- #include <linux/mmdebug.h>
- 
-@@ -683,6 +684,11 @@ static inline void pmdp_set_wrprotect(struct mm_struct *mm,
- {
- 	ptep_set_wrprotect(mm, address, (pte_t *)pmdp);
- }
-+
-+static inline pmd_t pmdp_establish(pmd_t *pmdp, pmd_t pmd)
-+{
-+	return __pmd(xchg_relaxed(&pmd_val(*pmdp), pmd_val(pmd)));
-+}
- #endif
- #endif	/* CONFIG_ARM64_HW_AFDBM */
- 
--------------8<---------------------------
-
--- 
-Catalin
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
