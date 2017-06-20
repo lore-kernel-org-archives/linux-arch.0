@@ -1,44 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f175.google.com ([209.85.223.175]:34368 "EHLO
-        mail-io0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750916AbdFTErY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 20 Jun 2017 00:47:24 -0400
-Received: by mail-io0-f175.google.com with SMTP id i7so76560069ioe.1
-        for <linux-arch@vger.kernel.org>; Mon, 19 Jun 2017 21:47:24 -0700 (PDT)
+Received: from mail.skyhub.de ([5.9.137.197]:49440 "EHLO mail.skyhub.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751120AbdFTHVk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 20 Jun 2017 03:21:40 -0400
+Date: Tue, 20 Jun 2017 09:21:25 +0200
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v7 03/36] x86, mpparse, x86/acpi, x86/PCI, x86/dmi, SFI:
+ Use memremap for RAM mappings
+Message-ID: <20170620072124.p6wztvxw5fj25a6m@pd.tnic>
+References: <20170616184947.18967.84890.stgit@tlendack-t1.amdoffice.net>
+ <20170616185023.18967.72831.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
-In-Reply-To: <20170608055655.GB19269@kroah.com>
-References: <20170608025831.GA43608@beast> <20170608055655.GB19269@kroah.com>
-From: Kees Cook <keescook@chromium.org>
-Date: Mon, 19 Jun 2017 21:47:22 -0700
-Message-ID: <CAGXu5jJs+sFhmWSWqOjDnyzpSn8fbACLYUw=KBB4w_YfEDVXNA@mail.gmail.com>
-Subject: Re: [PATCH v2] refcount: Create unchecked atomic_t implementation
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20170616185023.18967.72831.stgit@tlendack-t1.amdoffice.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greg KH <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@kernel.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Christoph Hellwig <hch@infradead.org>, Peter Zijlstra <peterz@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, Ingo Molnar <mingo@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20170620044722.HYvLpq0-_36FQP9Jpa3sz1zEQpTZ7d4SKYAo9hVoWoc@z>
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>
+Message-ID: <20170620072125.KWkMxkt6X5IrRH1TDQZzh2cfgShs-oVx47K-fgycmu0@z>
 
-On Wed, Jun 7, 2017 at 10:56 PM, Greg KH <gregkh@linuxfoundation.org> wrote:
-> On Wed, Jun 07, 2017 at 07:58:31PM -0700, Kees Cook wrote:
->> Many subsystems will not use refcount_t unless there is a way to build the
->> kernel so that there is no regression in speed compared to atomic_t. This
->> adds CONFIG_REFCOUNT_FULL to enable the full refcount_t implementation
->> which has the validation but is slightly slower. When not enabled,
->> refcount_t uses the basic unchecked atomic_t routines, which results in
->> no code changes compared to just using atomic_t directly.
->>
->> Signed-off-by: Kees Cook <keescook@chromium.org>
->
-> Acked-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+On Fri, Jun 16, 2017 at 01:50:23PM -0500, Tom Lendacky wrote:
+> The ioremap() function is intended for mapping MMIO. For RAM, the
+> memremap() function should be used. Convert calls from ioremap() to
+> memremap() when re-mapping RAM.
+> 
+> This will be used later by SME to control how the encryption mask is
+> applied to memory mappings, with certain memory locations being mapped
+> decrypted vs encrypted.
+> 
+> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+> ---
+>  arch/x86/include/asm/dmi.h   |    8 ++++----
+>  arch/x86/kernel/acpi/boot.c  |    6 +++---
+>  arch/x86/kernel/kdebugfs.c   |   34 +++++++++++-----------------------
+>  arch/x86/kernel/ksysfs.c     |   28 ++++++++++++++--------------
+>  arch/x86/kernel/mpparse.c    |   10 +++++-----
+>  arch/x86/pci/common.c        |    4 ++--
+>  drivers/firmware/dmi-sysfs.c |    5 +++--
+>  drivers/firmware/pcdp.c      |    4 ++--
+>  drivers/sfi/sfi_core.c       |   22 +++++++++++-----------
+>  9 files changed, 55 insertions(+), 66 deletions(-)
 
-Ping. tip maintainers, can you please take this patch to unblock the
-refcount_t conversions?
-
-Thanks!
-
--Kees
+Reviewed-by: Borislav Petkov <bp@suse.de>
 
 -- 
-Kees Cook
-Pixel Security
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
