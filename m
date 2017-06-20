@@ -1,43 +1,55 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v2] refcount: Create unchecked atomic_t implementation
-Date: Mon, 19 Jun 2017 21:47:22 -0700
-Message-ID: <CAGXu5jJs+sFhmWSWqOjDnyzpSn8fbACLYUw=KBB4w_YfEDVXNA@mail.gmail.com>
-References: <20170608025831.GA43608@beast> <20170608055655.GB19269@kroah.com>
+From: Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>
+Subject: Re: [PATCH v7 03/36] x86, mpparse, x86/acpi, x86/PCI, x86/dmi, SFI:
+	Use memremap for RAM mappings
+Date: Tue, 20 Jun 2017 09:21:25 +0200
+Message-ID: <20170620072124.p6wztvxw5fj25a6m@pd.tnic>
+References: <20170616184947.18967.84890.stgit@tlendack-t1.amdoffice.net>
+	<20170616185023.18967.72831.stgit@tlendack-t1.amdoffice.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f175.google.com ([209.85.223.175]:34368 "EHLO
-        mail-io0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750916AbdFTErY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 20 Jun 2017 00:47:24 -0400
-Received: by mail-io0-f175.google.com with SMTP id i7so76560069ioe.1
-        for <linux-arch@vger.kernel.org>; Mon, 19 Jun 2017 21:47:24 -0700 (PDT)
-In-Reply-To: <20170608055655.GB19269@kroah.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Greg KH <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@kernel.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Christoph Hellwig <hch@infradead.org>, Peter Zijlstra <peterz@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, Ingo Molnar <mingo@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x8>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <20170616185023.18967.72831.stgit-qCXWGYdRb2BnqfbPTmsdiZQ+2ll4COg0XqFh9Ls21Oc@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
+Cc: linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Brijesh Singh <brijesh.singh-5C7GfCeVMHo@public.gmane.org>, Toshimitsu Kani <toshi.kani-ZPxbGqLxI0U@public.gmane.org>, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Larry Woodman <lwoodman-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, "Michael S. Tsirkin" <mst-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrey Ryabinin <aryabinin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Dave Young <dyoung-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Rik van Riel <riel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Boris Ostrovsky <boris.ostrovsky-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Juergen Gross <jgross-IBi9RG/b67k@public.gmane.org>, kexec-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-kerne
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jun 7, 2017 at 10:56 PM, Greg KH <gregkh@linuxfoundation.org> wrote:
-> On Wed, Jun 07, 2017 at 07:58:31PM -0700, Kees Cook wrote:
->> Many subsystems will not use refcount_t unless there is a way to build the
->> kernel so that there is no regression in speed compared to atomic_t. This
->> adds CONFIG_REFCOUNT_FULL to enable the full refcount_t implementation
->> which has the validation but is slightly slower. When not enabled,
->> refcount_t uses the basic unchecked atomic_t routines, which results in
->> no code changes compared to just using atomic_t directly.
->>
->> Signed-off-by: Kees Cook <keescook@chromium.org>
->
-> Acked-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+On Fri, Jun 16, 2017 at 01:50:23PM -0500, Tom Lendacky wrote:
+> The ioremap() function is intended for mapping MMIO. For RAM, the
+> memremap() function should be used. Convert calls from ioremap() to
+> memremap() when re-mapping RAM.
+> 
+> This will be used later by SME to control how the encryption mask is
+> applied to memory mappings, with certain memory locations being mapped
+> decrypted vs encrypted.
+> 
+> Signed-off-by: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
+> ---
+>  arch/x86/include/asm/dmi.h   |    8 ++++----
+>  arch/x86/kernel/acpi/boot.c  |    6 +++---
+>  arch/x86/kernel/kdebugfs.c   |   34 +++++++++++-----------------------
+>  arch/x86/kernel/ksysfs.c     |   28 ++++++++++++++--------------
+>  arch/x86/kernel/mpparse.c    |   10 +++++-----
+>  arch/x86/pci/common.c        |    4 ++--
+>  drivers/firmware/dmi-sysfs.c |    5 +++--
+>  drivers/firmware/pcdp.c      |    4 ++--
+>  drivers/sfi/sfi_core.c       |   22 +++++++++++-----------
+>  9 files changed, 55 insertions(+), 66 deletions(-)
 
-Ping. tip maintainers, can you please take this patch to unblock the
-refcount_t conversions?
-
-Thanks!
-
--Kees
+Reviewed-by: Borislav Petkov <bp-l3A5Bk7waGM@public.gmane.org>
 
 -- 
-Kees Cook
-Pixel Security
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
