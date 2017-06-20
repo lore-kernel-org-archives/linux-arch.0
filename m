@@ -1,97 +1,75 @@
-From: Minchan Kim <minchan@kernel.org>
-Subject: Re: [PATCHv2 3/3] mm: Use updated pmdp_invalidate() inteface to
- track dirty/accessed bits
-Date: Tue, 20 Jun 2017 18:57:40 +0900
-Message-ID: <20170620095740.GC27702@bbox>
-References: <20170615145224.66200-1-kirill.shutemov@linux.intel.com>
- <20170615145224.66200-4-kirill.shutemov@linux.intel.com>
- <20170616030250.GA27637@bbox>
- <20170616131908.3rxtm2w73gdfex4a@node.shutemov.name>
- <20170616135209.GA29542@bbox>
- <20170616142720.GH11676@redhat.com>
- <20170616145333.GA29802@bbox>
- <20170619140322.iszk7sbhxblusygo@node.shutemov.name>
- <20170620025208.GB27702@bbox>
+From: Kirill Tkhai <ktkhai@virtuozzo.com>
+Subject: Re: [PATCH 0/7] rwsem: Implement down_read_killable()
+Date: Tue, 20 Jun 2017 13:36:50 +0300
+Message-ID: <20170620103648.vi7v45mjk63msw72@virtuozzo.com>
+References: <alpine.DEB.2.10.1706191327190.95967@chino.kir.corp.google.com>
+ <149789463636.9059.16943955939303454611.stgit@localhost.localdomain>
+ <2406.1497947414@warthog.procyon.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ve1eur01on0125.outbound.protection.outlook.com ([104.47.1.125]:54303
+        "EHLO EUR01-VE1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1750992AbdFTKhE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 20 Jun 2017 06:37:04 -0400
 Content-Disposition: inline
-In-Reply-To: <20170620025208.GB27702@bbox>
-Sender: owner-linux-mm@kvack.org
-To: "Kirill A. Shutemov" <kirill@shutemov.name>
-Cc: Andrea Arcangeli <aarcange@redhat.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Ralf Baechle <ralf@linux-mips.org>, "David S. Miller" <davem@davemloft.net>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <2406.1497947414@warthog.procyon.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Howells <dhowells@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>
+Cc: David Rientjes <rientjes@google.com>, linux-ia64@vger.kernel.org, avagin@virtuozzo.com, peterz@infradead.org, heiko.carstens@de.ibm.com, hpa@zytor.com, gorcunov@virtuozzo.com, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, x86@kernel.org, mingo@redhat.com, mattst88@gmail.com, fenghua.yu@intel.com, arnd@arndb.de, ink@jurassic.park.msu.ru, tglx@linutronix.de, rth@twiddle.net, tony.luck@intel.com, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, schwidefsky@de.ibm.com, davem@davemloft.net
 
-On Tue, Jun 20, 2017 at 11:52:08AM +0900, Minchan Kim wrote:
-> Hello Kirill,
+On Tue, Jun 20, 2017 at 09:30, David Howells wrote:
+> David Rientjes <rientjes@google.com> wrote:
 > 
-> On Mon, Jun 19, 2017 at 05:03:23PM +0300, Kirill A. Shutemov wrote:
-> > On Fri, Jun 16, 2017 at 11:53:33PM +0900, Minchan Kim wrote:
-> > > Hi Andrea,
-> > > 
-> > > On Fri, Jun 16, 2017 at 04:27:20PM +0200, Andrea Arcangeli wrote:
-> > > > Hello Minchan,
-> > > > 
-> > > > On Fri, Jun 16, 2017 at 10:52:09PM +0900, Minchan Kim wrote:
-> > > > > > > > @@ -1995,8 +1984,6 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
-> > > > > > > >  			if (soft_dirty)
-> > > > > > > >  				entry = pte_mksoft_dirty(entry);
-> > > > > > > >  		}
-> > > > > > > > -		if (dirty)
-> > > > > > > > -			SetPageDirty(page + i);
-> > > > > > > >  		pte = pte_offset_map(&_pmd, addr);
-> > > > [..]
-> > > > > 
-> > > > > split_huge_page set PG_dirty to all subpages unconditionally?
-> > > > > If it's true, yes, it doesn't break MADV_FREE. However, I didn't spot
-> > > > > that piece of code. What I found one is just __split_huge_page_tail
-> > > > > which set PG_dirty to subpage if head page is dirty. IOW, if the head
-> > > > > page is not dirty, tail page will be clean, too.
-> > > > > Could you point out what routine set PG_dirty to all subpages unconditionally?
-> > 
-> > When I wrote this code, I considered that we may want to track dirty
-> > status on per-4k basis for file-backed THPs.
-> > 
-> > > > On a side note the snippet deleted above was useless, as long as
-> > > > there's one left hugepmd to split, the physical page has to be still
-> > > > compound and huge and as long as that's the case the tail pages
-> > > > PG_dirty bit is meaningless (even if set, it's going to be clobbered
-> > > > during the physical split).
-> > > 
-> > > I got it during reviewing this patch. That's why I didn't argue
-> > > this patch would break MADV_FREE by deleting routine which propagate
-> > > dirty to pte of subpages. However, although it's useless, I prefer
-> > > not removing the transfer of dirty bit. Because it would help MADV_FREE
-> > > users who want to use smaps to know how many of pages are not freeable
-> > > (i.e, dirtied) since MADV_FREE although it is not 100% correct.
-> > > 
-> > > > 
-> > > > In short PG_dirty is only meaningful in the head as long as it's
-> > > > compound. The physical split in __split_huge_page_tail transfer the
-> > > > head value to the tails like you mentioned, that's all as far as I can
-> > > > tell.
-> > > 
-> > > Thanks for the comment. Then, this patch is to fix MADV_FREE's bug
-> > > which has lost dirty bit by transferring dirty bit too early.
-> > 
-> > Erghh. I've misread splitting code. Yes, it's not unconditional. So we fix
-> > actual bug.
-> > 
-> > But I'm not sure it's subject for -stable. I haven't seen any bug reports
-> > that can be attributed to the bug.
+> > I would have expected to see down_read_killable() actually used somewhere 
+> > after its implementation as part of this patchset.
 > 
-> Okay, I'm not against but please rewrite changelog to indicate it fixes
-> the problem. One more thing, as I mentioned, I don't want to remove
-> pmd dirty bit -> PG_dirty propagate to subpage part because it would be
-> helpful for MADV_FREE users.
+> There are some places we should be using down_{read|write}_interruptible(), if
+> it existed, dressed as inode_lock{,_shared}_interruptible().
 
-Oops, I misread smap accouting code so no problem to remove useless
-propagation part I added for MADV_FREE.
+Then let's use it in iterate_dir():
 
-Thanks.
+[PATCH]fs: Use killable down_read() in iterate_dir()
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+There was mutex_lock_interruptible() initially, and it was changed
+to rwsem, but there were not killable rwsem primitives that time.
+From commit 9902af79c01a:
+    
+    "The main issue is the lack of down_write_killable(), so the places
+     like readdir.c switched to plain inode_lock(); once killable
+     variants of rwsem primitives appear, that'll be dealt with"
+
+Use down_read_killable() same as down_write_killable() in !shared
+case, as concurrent inode_lock() may take much time, that may be
+wanted to be interrupted by user.
+
+Signed-off-by: Kirill Tkhai <ktkhai@virtuozzo.com>
+---
+ fs/readdir.c | 11 +++++------
+ 1 file changed, 5 insertions(+), 6 deletions(-)
+
+diff --git a/fs/readdir.c b/fs/readdir.c
+index 89659549c09d..7c584bbb4ce3 100644
+--- a/fs/readdir.c
++++ b/fs/readdir.c
+@@ -36,13 +36,12 @@ int iterate_dir(struct file *file, struct dir_context *ctx)
+ 	if (res)
+ 		goto out;
+ 
+-	if (shared) {
+-		inode_lock_shared(inode);
+-	} else {
++	if (shared)
++		res = down_read_killable(&inode->i_rwsem);
++	else
+ 		res = down_write_killable(&inode->i_rwsem);
+-		if (res)
+-			goto out;
+-	}
++	if (res)
++		goto out;
+ 
+ 	res = -ENOENT;
+ 	if (!IS_DEADDIR(inode)) {
