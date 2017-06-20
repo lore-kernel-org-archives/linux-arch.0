@@ -1,82 +1,97 @@
-From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Subject: Re: [PATCH v3 0/4] Generalize fncpy availability
-Date: Tue, 20 Jun 2017 10:10:25 +0100
-Message-ID: <20170620091025.GA26846@red-moon>
-References: <20170617000744.22158-1-f.fainelli@gmail.com>
- <20170619122444.GJ10246@leverpostej>
- <c8b7789c-38fb-6793-050f-7c60ccb8ca17@broadcom.com>
+From: Minchan Kim <minchan@kernel.org>
+Subject: Re: [PATCHv2 3/3] mm: Use updated pmdp_invalidate() inteface to
+ track dirty/accessed bits
+Date: Tue, 20 Jun 2017 18:57:40 +0900
+Message-ID: <20170620095740.GC27702@bbox>
+References: <20170615145224.66200-1-kirill.shutemov@linux.intel.com>
+ <20170615145224.66200-4-kirill.shutemov@linux.intel.com>
+ <20170616030250.GA27637@bbox>
+ <20170616131908.3rxtm2w73gdfex4a@node.shutemov.name>
+ <20170616135209.GA29542@bbox>
+ <20170616142720.GH11676@redhat.com>
+ <20170616145333.GA29802@bbox>
+ <20170619140322.iszk7sbhxblusygo@node.shutemov.name>
+ <20170620025208.GB27702@bbox>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <c8b7789c-38fb-6793-050f-7c60ccb8ca17@broadcom.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Florian Fainelli <florian.fainelli@broadcom.com>
-Cc: Mark Rutland <mark.rutland@arm.com>, Florian Fainelli <f.fainelli@gmail.com>, linux-arm-kernel@lists.infradead.org, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Dave Gerlach <d-gerlach@ti.com>, Tony Lindgren <tony@atomide.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, open list <linux-kernel@vger.kernel.org>, bcm-kernel-feedback-list@broadcom.com, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Alexandre Belloni <alexandre.belloni@free-electrons.com>, linux-omap@vger.kernel.org, Shawn Guo <shawnguo@kernel.org>, Keerthy J <j-keerthy@ti.com>, sudeep.holla@arm.com
+In-Reply-To: <20170620025208.GB27702@bbox>
+Sender: owner-linux-mm@kvack.org
+To: "Kirill A. Shutemov" <kirill@shutemov.name>
+Cc: Andrea Arcangeli <aarcange@redhat.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Ralf Baechle <ralf@linux-mips.org>, "David S. Miller" <davem@davemloft.net>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-[+Sudeep]
-
-On Mon, Jun 19, 2017 at 10:32:38AM -0700, Florian Fainelli wrote:
-> On 06/19/2017 05:24 AM, Mark Rutland wrote:
-> > On Fri, Jun 16, 2017 at 05:07:40PM -0700, Florian Fainelli wrote:
-> >> Hi all,
+On Tue, Jun 20, 2017 at 11:52:08AM +0900, Minchan Kim wrote:
+> Hello Kirill,
+> 
+> On Mon, Jun 19, 2017 at 05:03:23PM +0300, Kirill A. Shutemov wrote:
+> > On Fri, Jun 16, 2017 at 11:53:33PM +0900, Minchan Kim wrote:
+> > > Hi Andrea,
+> > > 
+> > > On Fri, Jun 16, 2017 at 04:27:20PM +0200, Andrea Arcangeli wrote:
+> > > > Hello Minchan,
+> > > > 
+> > > > On Fri, Jun 16, 2017 at 10:52:09PM +0900, Minchan Kim wrote:
+> > > > > > > > @@ -1995,8 +1984,6 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
+> > > > > > > >  			if (soft_dirty)
+> > > > > > > >  				entry = pte_mksoft_dirty(entry);
+> > > > > > > >  		}
+> > > > > > > > -		if (dirty)
+> > > > > > > > -			SetPageDirty(page + i);
+> > > > > > > >  		pte = pte_offset_map(&_pmd, addr);
+> > > > [..]
+> > > > > 
+> > > > > split_huge_page set PG_dirty to all subpages unconditionally?
+> > > > > If it's true, yes, it doesn't break MADV_FREE. However, I didn't spot
+> > > > > that piece of code. What I found one is just __split_huge_page_tail
+> > > > > which set PG_dirty to subpage if head page is dirty. IOW, if the head
+> > > > > page is not dirty, tail page will be clean, too.
+> > > > > Could you point out what routine set PG_dirty to all subpages unconditionally?
 > > 
-> > Hi Florian,
+> > When I wrote this code, I considered that we may want to track dirty
+> > status on per-4k basis for file-backed THPs.
 > > 
-> >> This patch series makes ARM's fncpy() implementation more generic (dropping the
-> >> Thumb-specifics) and available in an asm-generic header file.
-> >>
-> >> Tested on a Broadcom ARM64 STB platform with code that is written to SRAM.
-> >>
-> >> Changes in v3 (thanks Doug!):
-> >> - correct include guard names in asm-generic/fncpy.h to __ASM_FNCPY_H
-> >> - utilize Kbuild to provide the fncpy.h header on ARM64
-> >>
-> >> Changes in v2:
-> >> - leave the ARM implementation where it is
-> >> - make the generic truly generic (no)
-> >>
-> >> This is helpful in making SoC-specific power management code become true drivers
-> >> that can be shared between different architectures.
-> > > Could you elaborate on what this is needed for?
-> 
-> Several uses cases come to mind:
-> 
-> - it could be used as a trampoline code prior to entering S2 for systems
-> that do not support PSCI 1.0
-
-I think S2 here means PM_SUSPEND_MEM. It is very wrong to manage power
-states through platform specific hooks on PSCI based systems, consider
-upgrading to PSCI 1.0 please (or implement PSCI CPU_SUSPEND power
-states that allow to achieve same power savings as PM_SUSPEND_MEM
-by just entering suspend-to-idle).
-
-> - any code that has a specific need to relocate a performance, security
-> sensitive code into SRAM and use it as another pool of memory.
-> 
+> > > > On a side note the snippet deleted above was useless, as long as
+> > > > there's one left hugepmd to split, the physical page has to be still
+> > > > compound and huge and as long as that's the case the tail pages
+> > > > PG_dirty bit is meaningless (even if set, it's going to be clobbered
+> > > > during the physical split).
+> > > 
+> > > I got it during reviewing this patch. That's why I didn't argue
+> > > this patch would break MADV_FREE by deleting routine which propagate
+> > > dirty to pte of subpages. However, although it's useless, I prefer
+> > > not removing the transfer of dirty bit. Because it would help MADV_FREE
+> > > users who want to use smaps to know how many of pages are not freeable
+> > > (i.e, dirtied) since MADV_FREE although it is not 100% correct.
+> > > 
+> > > > 
+> > > > In short PG_dirty is only meaningful in the head as long as it's
+> > > > compound. The physical split in __split_huge_page_tail transfer the
+> > > > head value to the tails like you mentioned, that's all as far as I can
+> > > > tell.
+> > > 
+> > > Thanks for the comment. Then, this patch is to fix MADV_FREE's bug
+> > > which has lost dirty bit by transferring dirty bit too early.
 > > 
-> > My understanding was that on 32-bit, this was to handle idle / suspend
-> > cases, whereas for arm64 that should be handled by PSCI.
+> > Erghh. I've misread splitting code. Yes, it's not unconditional. So we fix
+> > actual bug.
+> > 
+> > But I'm not sure it's subject for -stable. I haven't seen any bug reports
+> > that can be attributed to the bug.
 > 
-> For systems that support PSCI 1.0, I agree, but it may not be possible
-> to update those systems easily, still use case 2 is completely valid.
+> Okay, I'm not against but please rewrite changelog to indicate it fixes
+> the problem. One more thing, as I mentioned, I don't want to remove
+> pmd dirty bit -> PG_dirty propagate to subpage part because it would be
+> helpful for MADV_FREE users.
 
-Just to be clear, thinking of using platform specific suspend hooks
-on PSCI systems is not a viable solution, I will let other people
-comment on option 2.
+Oops, I misread smap accouting code so no problem to remove useless
+propagation part I added for MADV_FREE.
 
-> > what exactly do you intend to use this for?
-> 
-> At the moment we use it to enter S2 on ARM64 systems (ARCH_BRCMSTB)
+Thanks.
 
-"At the moment", where ?
-
-> which are PSCI 0.2 only. And yes, we do have a plan to evaluate
-> upgrading to PSCI 1.0, but in general, any SoC which as an addressable
-> SRAM could use it for whatever purpose it sees fit.
-
-Not to implement suspend hooks on PSCI 0.2 systems.
-
-Thanks,
-Lorenzo
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
