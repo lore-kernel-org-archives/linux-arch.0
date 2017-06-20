@@ -1,44 +1,78 @@
-From: Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>
-Subject: Re: [PATCH v7 07/36] x86/mm: Don't use phys_to_virt in ioremap() if
-	SME is active
-Date: Tue, 20 Jun 2017 22:55:35 +0200 (CEST)
-Message-ID: <alpine.DEB.2.20.1706202251110.2157@nanos>
-References: <20170616184947.18967.84890.stgit@tlendack-t1.amdoffice.net>
-	<20170616185104.18967.7867.stgit@tlendack-t1.amdoffice.net>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH v5 0/8] Support for contiguous pte hugepages
+Date: Tue, 20 Jun 2017 14:08:31 -0700
+Message-ID: <20170620140831.6bd835649d475bcf30c3c434@linux-foundation.org>
+References: <20170619170145.25577-1-punit.agrawal@arm.com>
+	<20170619150133.cb4173220e4e3abd02c6f6d0@linux-foundation.org>
+	<871sqezsk2.fsf@e105922-lin.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <20170616185104.18967.7867.stgit-qCXWGYdRb2BnqfbPTmsdiZQ+2ll4COg0XqFh9Ls21Oc@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
-Cc: linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Brijesh Singh <brijesh.singh-5C7GfCeVMHo@public.gmane.org>, Toshimitsu Kani <toshi.kani-ZPxbGqLxI0U@public.gmane.org>, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, =?ISO-8859-2?Q?Radim_Kr=E8m=E1=F8?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Larry Woodman <lwoodman-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, "Michael S. Tsirkin" <mst-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrey Ryabinin <aryabinin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Dave Young <dyoung-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Rik van Riel <riel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Boris Ostrovsky <boris.ostrovsky-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Juergen Gross <jgross-IBi9RG/b67k@public.gmane.org>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <871sqezsk2.fsf@e105922-lin.cambridge.arm.com>
+Sender: owner-linux-mm@kvack.org
+To: Punit Agrawal <punit.agrawal@arm.com>
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, will.deacon@arm.com, n-horiguchi@ah.jp.nec.com, kirill.shutemov@linux.intel.com, mike.kravetz@oracle.com, steve.capper@arm.com, mark.rutland@arm.com, linux-arch@vger.kernel.org, aneesh.kumar@linux.vnet.ibm.com
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, 16 Jun 2017, Tom Lendacky wrote:
+On Tue, 20 Jun 2017 14:39:57 +0100 Punit Agrawal <punit.agrawal@arm.com> wrote:
 
-> Currently there is a check if the address being mapped is in the ISA
-> range (is_ISA_range()), and if it is then phys_to_virt() is used to
-> perform the mapping.  When SME is active, however, this will result
-> in the mapping having the encryption bit set when it is expected that
-> an ioremap() should not have the encryption bit set. So only use the
-> phys_to_virt() function if SME is not active
+> 
+> The architecture supports two flavours of hugepages -
+> 
+> * Block mappings at the pud/pmd level
+> 
+>   These are regular hugepages where a pmd or a pud page table entry
+>   points to a block of memory. Depending on the PAGE_SIZE in use the
+>   following size of block mappings are supported -
+> 
+>           PMD	PUD
+>           ---	---
+>   4K:      2M	 1G
+>   16K:    32M
+>   64K:   512M
+> 
+>   For certain applications/usecases such as HPC and large enterprise
+>   workloads, folks are using 64k page size but the minimum hugepage size
+>   of 512MB isn't very practical.
+> 
+> To overcome this ...
+> 
+> * Using the Contiguous bit
+> 
+>   The architecture provides a contiguous bit in the translation table
+>   entry which acts as a hint to the mmu to indicate that it is one of a
+>   contiguous set of entries that can be cached in a single TLB entry.
+> 
+>   We use the contiguous bit in Linux to increase the mapping size at the
+>   pmd and pte (last) level.
+> 
+>   The number of supported contiguous entries varies by page size and
+>   level of the page table.
+> 
+>   Using the contiguous bit allows additional hugepage sizes -
+> 
+>            CONT PTE    PMD    CONT PMD    PUD
+>            --------    ---    --------    ---
+>     4K:         64K     2M         32M     1G
+>     16K:         2M    32M          1G
+>     64K:         2M   512M         16G
+> 
+>   Of these, 64K with 4K and 2M with 64K pages have been explicitly
+>   requested by a few different users.
+> 
+> Entries with the contiguous bit set are required to be modified all
+> together - which makes things like memory poisoning and migration
+> impossible to do correctly without knowing the size of hugepage being
+> dealt with - the reason for adding size parameter to a few of the
+> hugepage helpers in this series.
+> 
 
-This does not make sense to me. What the heck has phys_to_virt() to do with
-the encryption bit. Especially why would the encryption bit be set on that
-mapping in the first place?
+Thanks, I added the above to the 1/n changelog.  Perhaps it's worth
+adding something like this to Documentation/vm/hugetlbpage.txt.
 
-I'm probably missing something, but this want's some coherent explanation
-understandable by mere mortals both in the changelog and the code comment.
-
-Thanks,
-
-	tglx
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
