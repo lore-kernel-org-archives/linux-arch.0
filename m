@@ -1,87 +1,107 @@
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH 5/5] arm64: signal: Allow expansion of the signal frame
-Date: Tue, 20 Jun 2017 17:20:18 +0100
-Message-ID: <20170620162016.GB8543@e103592.cambridge.arm.com>
-References: <1497535442-11586-1-git-send-email-Dave.Martin@arm.com>
- <1497535442-11586-6-git-send-email-Dave.Martin@arm.com>
- <20170616104740.GA31526@e104818-lin.cambridge.arm.com>
- <20170619101204.GA8543@e103592.cambridge.arm.com>
- <20170619110346.GB3024@e104818-lin.cambridge.arm.com>
+From: Florian Fainelli <f.fainelli@gmail.com>
+Subject: Re: [PATCH v3 0/4] Generalize fncpy availability
+Date: Tue, 20 Jun 2017 09:20:34 -0700
+Message-ID: <3834f2fa-5ac0-5b48-7c19-a1b68c1e9c65@gmail.com>
+References: <20170617000744.22158-1-f.fainelli@gmail.com>
+ <20170619122444.GJ10246@leverpostej>
+ <c8b7789c-38fb-6793-050f-7c60ccb8ca17@broadcom.com>
+ <20170620091025.GA26846@red-moon>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:41622 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751002AbdFTQUW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 20 Jun 2017 12:20:22 -0400
-Content-Disposition: inline
-In-Reply-To: <20170619110346.GB3024@e104818-lin.cambridge.arm.com>
+Received: from mail-qt0-f195.google.com ([209.85.216.195]:33681 "EHLO
+        mail-qt0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751015AbdFTQUj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 20 Jun 2017 12:20:39 -0400
+In-Reply-To: <20170620091025.GA26846@red-moon>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org
+To: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Florian Fainelli <florian.fainelli@broadcom.com>
+Cc: Mark Rutland <mark.rutland@arm.com>, linux-arm-kernel@lists.infradead.org, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Dave Gerlach <d-gerlach@ti.com>, Tony Lindgren <tony@atomide.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, open list <linux-kernel@vger.kernel.org>, bcm-kernel-feedback-list@broadcom.com, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Alexandre Belloni <alexandre.belloni@free-electrons.com>, linux-omap@vger.kernel.org, Shawn Guo <shawnguo@kernel.org>, Keerthy J <j-keerthy@ti.com>, sudeep.holla@arm.com
 
-On Mon, Jun 19, 2017 at 12:03:47PM +0100, Catalin Marinas wrote:
-> On Mon, Jun 19, 2017 at 11:12:29AM +0100, Dave P Martin wrote:
-> > On Fri, Jun 16, 2017 at 11:47:41AM +0100, Catalin Marinas wrote:
-> > > On Thu, Jun 15, 2017 at 03:03:42PM +0100, Dave P Martin wrote:
-> > > > +struct extra_context {
-> > > > +	struct _aarch64_ctx head;
-> > > > +	void __user *data;	/* 16-byte aligned pointer to extra space */
-> > > > +	__u32 size;		/* size in bytes of the extra space */
-> > > > +	__u32 __reserved[3];
-> > > > +};
-> > > 
-> > > Some more thoughts on the type of "data" above. It's the first time we
-> > > introduce pointers in sigcontext and wonder whether __u64 would make
-> > > more sense (invariable size with the ABI).
-> > 
-> > I'm happy to change this if you want -- it can be a __u64 without
-> > impacting the semantics.
+On 06/20/2017 02:10 AM, Lorenzo Pieralisi wrote:
+> [+Sudeep]
 > 
-> I was thinking in the context of ILP32 but we can address this
-> separately for the exported kernel headers and glibc definitions.
-> Looking at this structure from an LP64 perspective, it indeed makes
-> sense to keep it as void *. We have other UAPI structures with user
-> pointers already.
-
-OK -- I'll reply with an additional fixup that can be folded in if you
-do want the u64.
-
-> > > Also for discussion - whether using an offset vs absolute address would
-> > > be better.
-> > 
-> > My rationale here related to the ucontext semantics associated with
-> > the signal frame, rather than signal handling itself.
-> > 
-> > Consider:
-> > 
-> > void signal_handler(int n, siginfo_t *si, void *uc)
-> > {
-> > 	*signal_context = *(ucontext_t *)uc;
-> > }
-> > 
-> > Will this "work"?  On most machines, yes it will. 
-> > 
-> > With an expanded signal frame on arm64, it won't work: the copied
-> > context will be truncated at the end of __reserved[].  If extra_data
-> > uses an offset to locate the additional data then someone parsing
-> > *signal_context won't be able to detect the error and will overrun:
-> > this includes rt_sigreturn (if that is run on a stack that has the
-> > copied context).
-> > 
-> > If a pointer is used in extra_context, this provides some chance of
-> > handling this: naive code like the above will result in a ucontext_t
-> > whose extra_context data pointer is "wrong": extra_context aware
-> > parsers can detect that and error out or ignore the remaining data.
-> > extra_context aware code that wants to copy the signal context can walk
-> > the signal frame to determine its true size, allocate memory, copy, and
-> > then update the extra_context data pointer in the new copy.
+> On Mon, Jun 19, 2017 at 10:32:38AM -0700, Florian Fainelli wrote:
+>> On 06/19/2017 05:24 AM, Mark Rutland wrote:
+>>> On Fri, Jun 16, 2017 at 05:07:40PM -0700, Florian Fainelli wrote:
+>>>> Hi all,
+>>>
+>>> Hi Florian,
+>>>
+>>>> This patch series makes ARM's fncpy() implementation more generic (dropping the
+>>>> Thumb-specifics) and available in an asm-generic header file.
+>>>>
+>>>> Tested on a Broadcom ARM64 STB platform with code that is written to SRAM.
+>>>>
+>>>> Changes in v3 (thanks Doug!):
+>>>> - correct include guard names in asm-generic/fncpy.h to __ASM_FNCPY_H
+>>>> - utilize Kbuild to provide the fncpy.h header on ARM64
+>>>>
+>>>> Changes in v2:
+>>>> - leave the ARM implementation where it is
+>>>> - make the generic truly generic (no)
+>>>>
+>>>> This is helpful in making SoC-specific power management code become true drivers
+>>>> that can be shared between different architectures.
+>>>> Could you elaborate on what this is needed for?
+>>
+>> Several uses cases come to mind:
+>>
+>> - it could be used as a trampoline code prior to entering S2 for systems
+>> that do not support PSCI 1.0
 > 
-> Thanks for the explanation, it makes sense to keep an absolute pointer
-> here rather than offset. So no further changes needed to this patch.
+> I think S2 here means PM_SUSPEND_MEM. It is very wrong to manage power
+> states through platform specific hooks on PSCI based systems, consider
+> upgrading to PSCI 1.0 please (or implement PSCI CPU_SUSPEND power
+> states that allow to achieve same power savings as PM_SUSPEND_MEM
+> by just entering suspend-to-idle).
 
-Fair enough.
+S2 is PM_SUSPEND_STANDBY and S3 is PM_SUSPEND_MEM, at least that how I
+read it. I would rather we update to PSCI 1.0 (at least) to properly
+support SYSTEM_SUSPEND rather than retrofitting a system-wide suspend
+state into CPU_SUSPEND since that seems wrong.
 
-Cheers
----Dave
+> 
+>> - any code that has a specific need to relocate a performance, security
+>> sensitive code into SRAM and use it as another pool of memory.
+>>
+>>>
+>>> My understanding was that on 32-bit, this was to handle idle / suspend
+>>> cases, whereas for arm64 that should be handled by PSCI.
+>>
+>> For systems that support PSCI 1.0, I agree, but it may not be possible
+>> to update those systems easily, still use case 2 is completely valid.
+> 
+> Just to be clear, thinking of using platform specific suspend hooks
+> on PSCI systems is not a viable solution, I will let other people
+> comment on option 2.
+> 
+>>> what exactly do you intend to use this for?
+>>
+>> At the moment we use it to enter S2 on ARM64 systems (ARCH_BRCMSTB)
+> 
+> "At the moment", where ?
+
+Obviously not in tree, since fncpy() is not available on ARM64, here is
+what it looks like for ARM & MIPS systems though:
+
+http://lists.infradead.org/pipermail/linux-arm-kernel/2017-June/513953.html
+
+> 
+>> which are PSCI 0.2 only. And yes, we do have a plan to evaluate
+>> upgrading to PSCI 1.0, but in general, any SoC which as an addressable
+>> SRAM could use it for whatever purpose it sees fit.
+> 
+> Not to implement suspend hooks on PSCI 0.2 systems.
+
+You have made your point and it is very valid, still that does not mean
+fncpy() does not have any usefulness on ARM64 systems, this was one
+although not "ARM approved" use case (system suspend), but use case
+where you have code that should execute from SRAM is something that
+should be possible using the standard facilities offered in
+drives/misc/sram*.c
+-- 
+Florian
