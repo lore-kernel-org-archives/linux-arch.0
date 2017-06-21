@@ -1,71 +1,128 @@
-From: "Kirill A. Shutemov" <kirill@shutemov.name>
-Subject: Re: [PATCHv2 1/3] x86/mm: Provide pmdp_establish() helper
-Date: Wed, 21 Jun 2017 20:52:03 +0300
-Message-ID: <20170621175203.g2susfjihyqrf245@node.shutemov.name>
-References: <20170619152228.GE3024@e104818-lin.cambridge.arm.com>
- <20170619160005.wgj4nymtj2nntfll@node.shutemov.name>
- <20170619170911.GF3024@e104818-lin.cambridge.arm.com>
- <20170619215210.2crwjou3sfdcj73d@node.shutemov.name>
- <20170620155438.GC21383@e104818-lin.cambridge.arm.com>
- <20170621095303.q5fqt5a3ao5smko6@node.shutemov.name>
- <20170621112702.GC10220@e104818-lin.cambridge.arm.com>
- <1af1738a-88a7-987c-eca7-2118d66514e1@synopsys.com>
- <20170621171558.7zrgzc7uk3kspcys@node.shutemov.name>
- <eeff42d2-fc4b-ea9c-81d2-145fb349f420@synopsys.com>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH 1/5] kbuild: thin archives final link close
+ --whole-archives option
+Date: Thu, 22 Jun 2017 04:08:38 +1000
+Message-ID: <20170622040838.1c63ebb7@roar.ozlabs.ibm.com>
+References: <20170621140445.4d6fd92a@roar.ozlabs.ibm.com>
+        <CAK8P3a34gWKqPCFDAnWki4H-eyj50Xgar+YFT_+2Og-qJb_i8A@mail.gmail.com>
+        <20170621191607.33c8db74@roar.ozlabs.ibm.com>
+        <CAK8P3a0NT42HKOU+ZDRg_-1hA+RzYnL0RtzqbMsLbY=yTUxGRA@mail.gmail.com>
+        <20170621203824.719ffdc5@roar.ozlabs.ibm.com>
+        <CAK8P3a1o91guXimc99sY3UOUjKTX5QxhQyOfY+j-x7MMCdRbdw@mail.gmail.com>
+        <20170621211002.44525d9b@roar.ozlabs.ibm.com>
+        <CAK8P3a2A9fMrNZPWJft2t+52kmGkGgm3gv_fxJntjevWtJ69Zw@mail.gmail.com>
+        <20170621220213.2b33d56d@roar.ozlabs.ibm.com>
+        <CAK8P3a0nVPz=eLV8ET6BYR2Qs0H3PQZuhYsu4Cb_kJSPACrR9w@mail.gmail.com>
+        <20170621161913.GY4493@codeaurora.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f193.google.com ([209.85.128.193]:33084 "EHLO
-        mail-wr0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751114AbdFURwG (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Jun 2017 13:52:06 -0400
-Received: by mail-wr0-f193.google.com with SMTP id x23so28450440wrb.0
-        for <linux-arch@vger.kernel.org>; Wed, 21 Jun 2017 10:52:06 -0700 (PDT)
-Content-Disposition: inline
-In-Reply-To: <eeff42d2-fc4b-ea9c-81d2-145fb349f420@synopsys.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, Ralf Baechle <ralf@linux-mips.org>, "David S. Miller" <davem@davemloft.net>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andrea Arcangeli <aarcange@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <20170621161913.GY4493@codeaurora.org>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Stephen Boyd <sboyd@codeaurora.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Masahiro Yamada <yamada.masahiro@socionext.com>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>, kbuild test robot <fengguang.wu@intel.com>, Josh Triplett <josh@joshtriplett.org>, Nicolas Pitre <nicolas.pitre@linaro.org>, Maxime Ripard <maxime.ripard@free-electrons.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jun 21, 2017 at 10:20:47AM -0700, Vineet Gupta wrote:
-> On 06/21/2017 10:16 AM, Kirill A. Shutemov wrote:
-> > On Wed, Jun 21, 2017 at 08:49:03AM -0700, Vineet Gupta wrote:
-> > > On 06/21/2017 04:27 AM, Catalin Marinas wrote:
-> > > > On Wed, Jun 21, 2017 at 12:53:03PM +0300, Kirill A. Shutemov wrote:
-> > > > > > > > > > On Thu, Jun 15, 2017 at 05:52:22PM +0300, Kirill A. Shutemov wrote:
-> > > > > > > > > > > We need an atomic way to setup pmd page table entry, avoiding races with
-> > > > > > > > > > > CPU setting dirty/accessed bits. This is required to implement
-> > > > > > > > > > > pmdp_invalidate() that doesn't loose these bits.
-> > > > [...]
-> > > > > Any chance you could help me with arm too?
-> > > > On arm (ARMv7 with LPAE) we don't have hardware updates of the
-> > > > access/dirty bits, so a generic implementation would suffice. I didn't
-> > > > find one in your patches, so here's an untested version:
-> > > > 
-> > > > static inline pmd_t pmdp_establish(struct mm_struct *mm, unsigned long address,
-> > > > 				   pmd_t *pmdp, pmd_t pmd)
-> > > > {
-> > > > 	pmd_t old_pmd = *pmdp;
-> > > > 	set_pmd_at(mm, address, pmdp, pmd);
-> > > > 	return old_pmd;
-> > > > }
-> > > So it seems the discussions have settled down and pmdp_establish() can be
-> > > implemented in generic way as above and it will suffice if arch doesn't have
-> > > a special need. It would be nice to add the comment above generic version
-> > > that it only needs to be implemented if hardware sets the accessed/dirty
-> > > bits !
-> > > 
-> > > Then nothing special is needed for ARC - right ?
-> > I will define generic version as Catalin proposed with a comment, but
-> > under the name generic_pmdp_establish. An arch can make use of it by
+On Wed, 21 Jun 2017 09:19:13 -0700
+Stephen Boyd <sboyd@codeaurora.org> wrote:
+
+> On 06/21, Arnd Bergmann wrote:
+> > On Wed, Jun 21, 2017 at 2:02 PM, Nicholas Piggin <npiggin@gmail.com> wrote:  
+> > > On Wed, 21 Jun 2017 13:32:17 +0200
+> > > Arnd Bergmann <arnd@arndb.de> wrote:
+> > >  
+> > >> On Wed, Jun 21, 2017 at 1:10 PM, Nicholas Piggin <npiggin@gmail.com> wrote:  
+> > >> > On Wed, 21 Jun 2017 12:49:10 +0200
+> > >> > Arnd Bergmann <arnd@arndb.de> wrote:
+> > >> >  
+> > >> >> On Wed, Jun 21, 2017 at 12:38 PM, Nicholas Piggin <npiggin@gmail.com> wrote:  
+> > >> >> > On Wed, 21 Jun 2017 12:21:16 +0200
+> > >> >> > Arnd Bergmann <arnd@arndb.de> wrote:
+> > >> >> >  
+> > >> >>
+> > >> >> I'm building on top of yesterday's linux-next at the moment,
+> > >> >> with a number of my own patches applied
+> > >> >>  
+> > >> >> > I can take a look at ARM and try to get it at least to parity with
+> > >> >> > incremental link. Any particular config options required?  
+> > >> >>
+> > >> >> This is the patch I am testing with:
+> > >> >>
+> > >> >> https://pastebin.com/HQuhCEmK
+> > >> >> I have not looked at that in a while, no idea if it works, or
+> > >> >> if it has known problems.
+> > >> >>
+> > >> >> I last posted the patch in March for discussion:
+> > >> >>
+> > >> >> https://patchwork.kernel.org/patch/9626207/  
+> > >> >
+> > >> > Well I just mean the stuff now in kbuild/thin-ac, not the LD_DCDE.
+> > >> > Just want to try getting thin archives up to a point where there are
+> > >> > no serious regressions first.  
+> > >>
+> > >> For my build testing, I have now reverted most of my patch and only
+> > >> left the 'select THIN_ARCHIVES'. I'll let you know if I run into problems.  
+> > >
+> > > Okay. Currently with the patches in the kbuild tree, thin archives
+> > > actually does better than incremental linking for ARM (defconfig).
+> > >
+> > > 11651574        6090952  418616 18161142        1151df6 vmlinux.thinarc
+> > > 11656118        6095208  418952 18170278        11541a6 vmlinux.inc
+> > >
+> > > In mainline, thin archives is sub-optimal for lib-y libraries (just
+> > > pulls them all in). But now that I test it, even that is better than
+> > > incremental linking for ARM:
+> > >
+> > > 11653926        6090888  418620 18163434        11526ea vmlinux.thinarc
+> > >
+> > > I haven't grabbed that "clk: sunxi-ng: Move all clock types to a library"
+> > > patch yet to check. What tree is it in? I wonder if I could convince you
+> > > to drop that for now and bring it up on linux-kernel/linux-kbuild? I
+> > > think it's quite reasonable to reduce Kconfig hell of very fine grained
+> > > conditional compilation/linking if we can make the toolchain do it for
+> > > us. So we should consider how to support it nicely rather than having
+> > > such hacks IMO.  
 > > 
-> > #define pmdp_establish generic_pmdp_establish
+> > [adding Maxime and Stephen to cc]
+> > 
+> > Stephen,
+> > 
+> > The hack has come to bite us after all, with Nick's proposed change to
+> > CONFIG_THIN_ARCHIVES for all architectures, the entire lib.a file will
+> > end up being linked into each kernel that enables the directory.
+> > 
+> > I'm out of other ideas for fixing it, so it seems better to revert back to
+> > individual Kconfig options. Once we enable
+> > CONFIG_LD_DEAD_CODE_DATA_ELIMINATION (which is the
+> > next step after CONFIG_THIN_ARCHIVES), we can simply list
+> > all files, and the linker will drop all unused functions by itself.
+> >   
 > 
-> Can you do that for ARC in your next posting - or want me to once you have
-> posted that ?
+> Ok. Can you send a revert patch to the list with some information
+> on why we can't do the hack anymore and also Cc lkml/kbuild
+> lists? The commit is in linux-next now as commit 06e226c7fb23
+> (clk: sunxi-ng: Move all clock types to a library, 2017-06-02).
+> 
 
-I'll do this.
+I grabbed this patch and applied it to the kbuid/thin-ac tree. I tested
+with thin archives enabled and disabled with arm defconfig which ends up
+setting CONFIG_SUNXI_CCU=y.
 
--- 
- Kirill A. Shutemov
+The patch makes no difference to vmlinux size whether using traditional
+incremental link, or thin archives (there is a small difference between
+inclink and thinarc but that's unrelated).
+
+So this thin archives change does not break your patch, it's just that
+it doesn't really do the right thing. I like the general idea, but we
+need to work out how to make it properly supported by the build system.
+
+With the patch applied, this is what the build system currently does:
+
+arm-linux-gnueabihf-ld -EL    -r -o drivers/clk/sunxi-ng/built-in.o drivers/clk/sunxi-ng/ccu-sun5i.o drivers/clk/sunxi-ng/ccu-sun6i-a31.o drivers/clk/sunxi-ng/ccu-sun8i-a23.o drivers/clk/sunxi-ng/ccu-sun8i-a33.o drivers/clk/sunxi-ng/ccu-sun8i-h3.o drivers/clk/sunxi-ng/ccu-sun8i-v3s.o drivers/clk/sunxi-ng/ccu-sun8i-r.o drivers/clk/sunxi-ng/ccu-sun9i-a80.o drivers/clk/sunxi-ng/ccu-sun9i-a80-de.o drivers/clk/sunxi-ng/ccu-sun9i-a80-usb.o drivers/clk/sunxi-ng/lib.a drivers/clk/sunxi-ng/lib-ksyms.o
+
+This incremental link pulls in all your lib.a objects and links them
+into built-in.o. They can no longer be selectively linked.
+
+Thanks,
+Nick
