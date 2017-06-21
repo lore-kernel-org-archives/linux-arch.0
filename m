@@ -1,112 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f67.google.com ([74.125.83.67]:33241 "EHLO
-        mail-pg0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752983AbdFUCrU (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 20 Jun 2017 22:47:20 -0400
-Date: Wed, 21 Jun 2017 12:47:08 +1000
-From: Nicholas Piggin <npiggin@gmail.com>
+Received: from conssluserg-04.nifty.com ([210.131.2.83]:43986 "EHLO
+        conssluserg-04.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751175AbdFUD3i (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 20 Jun 2017 23:29:38 -0400
+MIME-Version: 1.0
+In-Reply-To: <20170621124708.6bce7692@roar.ozlabs.ibm.com>
+References: <20170609052417.561-1-npiggin@gmail.com> <20170609052417.561-2-npiggin@gmail.com>
+ <CAK7LNASxuE-6eMk+Y-vyrMfibtYoD2JkjNS2z8QF85x9NdiiaA@mail.gmail.com>
+ <20170619165100.3ce26d00@roar.ozlabs.ibm.com> <CAK7LNARuuQzGkYBdzoy3bVpBuNPZEMGerHSEdmrH+PqK0Gbyzg@mail.gmail.com>
+ <20170619182714.2cb60e17@roar.ozlabs.ibm.com> <CAK7LNATznx=5A1KnhkFHpjencsJj7AGUsHtDUu6M-Qkw=jvpPQ@mail.gmail.com>
+ <20170620015205.329519b2@roar.ozlabs.ibm.com> <CAK7LNAS6zucv54-XwqfTbm=y20eFVQYLwgsVCdtS7mYknsYK+Q@mail.gmail.com>
+ <20170621124708.6bce7692@roar.ozlabs.ibm.com>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Date: Wed, 21 Jun 2017 12:29:33 +0900
+Message-ID: <CAK7LNATPyoVcsDtFjRhdmFh7v_HE9F=2GVX=z+XVWV2fXsEukA@mail.gmail.com>
 Subject: Re: [PATCH 1/5] kbuild: thin archives final link close
  --whole-archives option
-Message-ID: <20170621124708.6bce7692@roar.ozlabs.ibm.com>
-In-Reply-To: <CAK7LNAS6zucv54-XwqfTbm=y20eFVQYLwgsVCdtS7mYknsYK+Q@mail.gmail.com>
-References: <20170609052417.561-1-npiggin@gmail.com>
-        <20170609052417.561-2-npiggin@gmail.com>
-        <CAK7LNASxuE-6eMk+Y-vyrMfibtYoD2JkjNS2z8QF85x9NdiiaA@mail.gmail.com>
-        <20170619165100.3ce26d00@roar.ozlabs.ibm.com>
-        <CAK7LNARuuQzGkYBdzoy3bVpBuNPZEMGerHSEdmrH+PqK0Gbyzg@mail.gmail.com>
-        <20170619182714.2cb60e17@roar.ozlabs.ibm.com>
-        <CAK7LNATznx=5A1KnhkFHpjencsJj7AGUsHtDUu6M-Qkw=jvpPQ@mail.gmail.com>
-        <20170620015205.329519b2@roar.ozlabs.ibm.com>
-        <CAK7LNAS6zucv54-XwqfTbm=y20eFVQYLwgsVCdtS7mYknsYK+Q@mail.gmail.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Masahiro Yamada <yamada.masahiro@socionext.com>
+To: Nicholas Piggin <npiggin@gmail.com>
 Cc: Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>, kbuild test robot <fengguang.wu@intel.com>, Josh Triplett <josh@joshtriplett.org>
-Message-ID: <20170621024708.quKKWd54S5_dPrdQMOXMO0uW8HEUbNSyzwxlhKYpcE0@z>
+Message-ID: <20170621032933.H08z74VYbkx95IgGc65PdEQ7PVEFcXD99aXDYd9AG8k@z>
 
-On Wed, 21 Jun 2017 10:17:11 +0900
-Masahiro Yamada <yamada.masahiro@socionext.com> wrote:
+Hi Nicholas,
 
-> Hi Nicholas,
-> 
-> 2017-06-20 0:52 GMT+09:00 Nicholas Piggin <npiggin@gmail.com>:
-> >>
-> >> masahiro@pug:~$ xtensa-linux-ld -v
-> >> GNU ld (GNU Binutils) 2.24  
-> >
-> > Ah, thank you. It must have been that the 0day build (cc'ed) did
-> > not return any error to be from the ld internal error.
-> >
-> > This has led me to the true cause of the error which is the way
-> > external archives are handled. After implementing the fix, I think
-> > the lib.a size regression for thin archives should be solved as
-> > well.  
-> 
-> 
-> Thanks for figuring this out!
-> 
-> 
-> > This patch should be added between patches 2 and 3 of this series.
-> >  
-> 
-> Done.
-> 
-> 
-> I applied all 6 patches to linux-kbuild/thin-ar.
-> 
-> I fixed up some:
-> 
-> [1] fix a typo  "tihs"  -> "this"
-> [2] reword the document as "The build system has, as of 4.13, switched
-> to using..."
-> [3] Add "P" to link_vmlinux.sh as well
-> 
-> 
-> Could you double-check if I did them correctly?
 
-Yes these look good to me, thank you.
+2017-06-21 11:47 GMT+09:00 Nicholas Piggin <npiggin@gmail.com>:
+> I wonder if the names could be a bit more descriptive?
+>
+> libs-y-liba
+> libs-y-builtin
+>
+> ?
 
-> > --- a/Makefile
-> > +++ b/Makefile
-> > @@ -952,19 +952,20 @@ core-y            := $(patsubst %/, %/built-in.o, $(core-y))
-> >  drivers-y      := $(patsubst %/, %/built-in.o, $(drivers-y))
-> >  net-y          := $(patsubst %/, %/built-in.o, $(net-y))
-> >  libs-y1                := $(patsubst %/, %/lib.a, $(libs-y))
-> > -libs-y2                := $(patsubst %/, %/built-in.o, $(libs-y))
-> > +libs-y2                := $(filter-out %.a, $(patsubst %/, %/built-in.o, $(libs-y)))
-> >  libs-y         := $(libs-y1) $(libs-y2)  
-> 
-> 
-> After I applied this patch, I noticed one more thing.
-> 
-> With this patch, I think "libs-y" will be unnecessary.
-> 
-> If you ack me to fix-up locally, I will remove:
->    libs-y         := $(libs-y1) $(libs-y2)
+I do not have a strong opinion.  Either way sounds OK to me.
+If you like, I can fix it up.
 
-Yes I suppose that can be removed.
 
-I wonder if the names could be a bit more descriptive?
+I think you mentioned LD_DEAD_CODE_DATA_ELIMINATION is under way for
+ARM and x86.
+If we can switch all architectures, lib.a will turn into built-in.o.  Correct?
+(I am not sure how difficult the global conversion is.)
 
-libs-y-liba
-libs-y-builtin
 
-?
 
-> > @@ -50,7 +57,7 @@ archive_builtin()
-> >         if [ -n "${CONFIG_THIN_ARCHIVES}" ]; then
-> >                 info AR built-in.o
-> >                 rm -f built-in.o;
-> > -               ${AR} rcsT${KBUILD_ARFLAGS} built-in.o                  \
-> > +               ${AR} rcsTP${KBUILD_ARFLAGS} built-in.o                 \
-> >                                         ${KBUILD_VMLINUX_INIT}          \
-> >                                         ${KBUILD_VMLINUX_MAIN}
-> >         fi  
-> 
-> I moved this hunk to  2/6 "thin archives use P option to ar".
 
-Thanks,
-Nick
+BTW, I saw abuse of lib.a in
+https://patchwork.kernel.org/patch/9768439/
+
+I see it in linux-next.
+
+commit 06e226c7fb233f676b01b144d0b321ebe510fdcd
+Author: Stephen Boyd <sboyd@codeaurora.org>
+Date:   Fri Jun 2 15:30:06 2017 -0700
+
+    clk: sunxi-ng: Move all clock types to a library
+
+
+
+
+Now drivers/clk/sunxi-ng/lib.a
+will go into thin archives.
+The result might be different from what they expect...
+
+
+
+-- 
+Best Regards
+Masahiro Yamada
