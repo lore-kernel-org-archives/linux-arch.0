@@ -1,95 +1,87 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 1/5] kbuild: thin archives final link close
- --whole-archives option
-Date: Wed, 21 Jun 2017 14:21:29 +0200
-Message-ID: <CAK8P3a0nVPz=eLV8ET6BYR2Qs0H3PQZuhYsu4Cb_kJSPACrR9w@mail.gmail.com>
-References: <20170609052417.561-1-npiggin@gmail.com> <20170619165100.3ce26d00@roar.ozlabs.ibm.com>
- <CAK7LNARuuQzGkYBdzoy3bVpBuNPZEMGerHSEdmrH+PqK0Gbyzg@mail.gmail.com>
- <20170619182714.2cb60e17@roar.ozlabs.ibm.com> <CAK7LNATznx=5A1KnhkFHpjencsJj7AGUsHtDUu6M-Qkw=jvpPQ@mail.gmail.com>
- <20170620015205.329519b2@roar.ozlabs.ibm.com> <CAK7LNAS6zucv54-XwqfTbm=y20eFVQYLwgsVCdtS7mYknsYK+Q@mail.gmail.com>
- <20170621124708.6bce7692@roar.ozlabs.ibm.com> <CAK7LNATPyoVcsDtFjRhdmFh7v_HE9F=2GVX=z+XVWV2fXsEukA@mail.gmail.com>
- <20170621140445.4d6fd92a@roar.ozlabs.ibm.com> <CAK8P3a34gWKqPCFDAnWki4H-eyj50Xgar+YFT_+2Og-qJb_i8A@mail.gmail.com>
- <20170621191607.33c8db74@roar.ozlabs.ibm.com> <CAK8P3a0NT42HKOU+ZDRg_-1hA+RzYnL0RtzqbMsLbY=yTUxGRA@mail.gmail.com>
- <20170621203824.719ffdc5@roar.ozlabs.ibm.com> <CAK8P3a1o91guXimc99sY3UOUjKTX5QxhQyOfY+j-x7MMCdRbdw@mail.gmail.com>
- <20170621211002.44525d9b@roar.ozlabs.ibm.com> <CAK8P3a2A9fMrNZPWJft2t+52kmGkGgm3gv_fxJntjevWtJ69Zw@mail.gmail.com>
- <20170621220213.2b33d56d@roar.ozlabs.ibm.com>
+From: Punit Agrawal <punit.agrawal@arm.com>
+Subject: Re: [PATCH v5 0/8] Support for contiguous pte hugepages
+Date: Wed, 21 Jun 2017 13:32:02 +0100
+Message-ID: <87fuety119.fsf@e105922-lin.cambridge.arm.com>
+References: <20170619170145.25577-1-punit.agrawal@arm.com>
+        <20170619150133.cb4173220e4e3abd02c6f6d0@linux-foundation.org>
+        <871sqezsk2.fsf@e105922-lin.cambridge.arm.com>
+        <20170620140831.6bd835649d475bcf30c3c434@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <20170621220213.2b33d56d@roar.ozlabs.ibm.com>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: Masahiro Yamada <yamada.masahiro@socionext.com>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>, kbuild test robot <fengguang.wu@intel.com>, Josh Triplett <josh@joshtriplett.org>, Nicolas Pitre <nicolas.pitre@linaro.org>, Stephen Boyd <sboyd@codeaurora.org>, Maxime Ripard <maxime.ripard@free-electrons.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:52018 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751140AbdFUMcF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 21 Jun 2017 08:32:05 -0400
+In-Reply-To: <20170620140831.6bd835649d475bcf30c3c434@linux-foundation.org>
+        (Andrew Morton's message of "Tue, 20 Jun 2017 14:08:31 -0700")
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, will.deacon@arm.com, n-horiguchi@ah.jp.nec.com, kirill.shutemov@linux.intel.com, mike.kravetz@oracle.com, steve.capper@arm.com, mark.rutland@arm.com, linux-arch@vger.kernel.org, aneesh.kumar@linux.vnet.ibm.com
 
-On Wed, Jun 21, 2017 at 2:02 PM, Nicholas Piggin <npiggin@gmail.com> wrote:
-> On Wed, 21 Jun 2017 13:32:17 +0200
-> Arnd Bergmann <arnd@arndb.de> wrote:
->
->> On Wed, Jun 21, 2017 at 1:10 PM, Nicholas Piggin <npiggin@gmail.com> wrote:
->> > On Wed, 21 Jun 2017 12:49:10 +0200
->> > Arnd Bergmann <arnd@arndb.de> wrote:
->> >
->> >> On Wed, Jun 21, 2017 at 12:38 PM, Nicholas Piggin <npiggin@gmail.com> wrote:
->> >> > On Wed, 21 Jun 2017 12:21:16 +0200
->> >> > Arnd Bergmann <arnd@arndb.de> wrote:
->> >> >
->> >>
->> >> I'm building on top of yesterday's linux-next at the moment,
->> >> with a number of my own patches applied
->> >>
->> >> > I can take a look at ARM and try to get it at least to parity with
->> >> > incremental link. Any particular config options required?
->> >>
->> >> This is the patch I am testing with:
->> >>
->> >> https://pastebin.com/HQuhCEmK
->> >> I have not looked at that in a while, no idea if it works, or
->> >> if it has known problems.
->> >>
->> >> I last posted the patch in March for discussion:
->> >>
->> >> https://patchwork.kernel.org/patch/9626207/
->> >
->> > Well I just mean the stuff now in kbuild/thin-ac, not the LD_DCDE.
->> > Just want to try getting thin archives up to a point where there are
->> > no serious regressions first.
->>
->> For my build testing, I have now reverted most of my patch and only
->> left the 'select THIN_ARCHIVES'. I'll let you know if I run into problems.
->
-> Okay. Currently with the patches in the kbuild tree, thin archives
-> actually does better than incremental linking for ARM (defconfig).
->
-> 11651574        6090952  418616 18161142        1151df6 vmlinux.thinarc
-> 11656118        6095208  418952 18170278        11541a6 vmlinux.inc
->
-> In mainline, thin archives is sub-optimal for lib-y libraries (just
-> pulls them all in). But now that I test it, even that is better than
-> incremental linking for ARM:
->
-> 11653926        6090888  418620 18163434        11526ea vmlinux.thinarc
->
-> I haven't grabbed that "clk: sunxi-ng: Move all clock types to a library"
-> patch yet to check. What tree is it in? I wonder if I could convince you
-> to drop that for now and bring it up on linux-kernel/linux-kbuild? I
-> think it's quite reasonable to reduce Kconfig hell of very fine grained
-> conditional compilation/linking if we can make the toolchain do it for
-> us. So we should consider how to support it nicely rather than having
-> such hacks IMO.
+Andrew Morton <akpm@linux-foundation.org> writes:
 
-[adding Maxime and Stephen to cc]
+> On Tue, 20 Jun 2017 14:39:57 +0100 Punit Agrawal <punit.agrawal@arm.com> wrote:
+>
+>> 
+>> The architecture supports two flavours of hugepages -
+>> 
+>> * Block mappings at the pud/pmd level
+>> 
+>>   These are regular hugepages where a pmd or a pud page table entry
+>>   points to a block of memory. Depending on the PAGE_SIZE in use the
+>>   following size of block mappings are supported -
+>> 
+>>           PMD	PUD
+>>           ---	---
+>>   4K:      2M	 1G
+>>   16K:    32M
+>>   64K:   512M
+>> 
+>>   For certain applications/usecases such as HPC and large enterprise
+>>   workloads, folks are using 64k page size but the minimum hugepage size
+>>   of 512MB isn't very practical.
+>> 
+>> To overcome this ...
+>> 
+>> * Using the Contiguous bit
+>> 
+>>   The architecture provides a contiguous bit in the translation table
+>>   entry which acts as a hint to the mmu to indicate that it is one of a
+>>   contiguous set of entries that can be cached in a single TLB entry.
+>> 
+>>   We use the contiguous bit in Linux to increase the mapping size at the
+>>   pmd and pte (last) level.
+>> 
+>>   The number of supported contiguous entries varies by page size and
+>>   level of the page table.
+>> 
+>>   Using the contiguous bit allows additional hugepage sizes -
+>> 
+>>            CONT PTE    PMD    CONT PMD    PUD
+>>            --------    ---    --------    ---
+>>     4K:         64K     2M         32M     1G
+>>     16K:         2M    32M          1G
+>>     64K:         2M   512M         16G
+>> 
+>>   Of these, 64K with 4K and 2M with 64K pages have been explicitly
+>>   requested by a few different users.
+>> 
+>> Entries with the contiguous bit set are required to be modified all
+>> together - which makes things like memory poisoning and migration
+>> impossible to do correctly without knowing the size of hugepage being
+>> dealt with - the reason for adding size parameter to a few of the
+>> hugepage helpers in this series.
+>> 
+>
+> Thanks, I added the above to the 1/n changelog.  Perhaps it's worth
+> adding something like this to Documentation/vm/hugetlbpage.txt.
 
-Stephen,
+Yes, it would be useful to have this documented.
 
-The hack has come to bite us after all, with Nick's proposed change to
-CONFIG_THIN_ARCHIVES for all architectures, the entire lib.a file will
-end up being linked into each kernel that enables the directory.
+I'll send a patch once the architecture bits for re-enabling contiguous
+hugepages are merged.
 
-I'm out of other ideas for fixing it, so it seems better to revert back to
-individual Kconfig options. Once we enable
-CONFIG_LD_DEAD_CODE_DATA_ELIMINATION (which is the
-next step after CONFIG_THIN_ARCHIVES), we can simply list
-all files, and the linker will drop all unused functions by itself.
-
-       Arnd
+Thanks,
+Punit
