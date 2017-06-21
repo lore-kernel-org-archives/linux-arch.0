@@ -1,88 +1,54 @@
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH v7 25/36] swiotlb: Add warnings for use of bounce buffers
- with SME
-Date: Wed, 21 Jun 2017 12:50:26 +0200
-Message-ID: <20170621105026.lcbtkklaenyi2wqe@pd.tnic>
-References: <20170616184947.18967.84890.stgit@tlendack-t1.amdoffice.net>
- <20170616185435.18967.26665.stgit@tlendack-t1.amdoffice.net>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 1/5] kbuild: thin archives final link close
+ --whole-archives option
+Date: Wed, 21 Jun 2017 12:51:20 +0200
+Message-ID: <CAK8P3a2MB37oqB2PerOtnjhp-NW+oKMsE1Vm7M4=zrJEL9nM9w@mail.gmail.com>
+References: <20170609052417.561-1-npiggin@gmail.com> <20170609052417.561-2-npiggin@gmail.com>
+ <CAK7LNASxuE-6eMk+Y-vyrMfibtYoD2JkjNS2z8QF85x9NdiiaA@mail.gmail.com>
+ <20170619165100.3ce26d00@roar.ozlabs.ibm.com> <CAK7LNARuuQzGkYBdzoy3bVpBuNPZEMGerHSEdmrH+PqK0Gbyzg@mail.gmail.com>
+ <20170619182714.2cb60e17@roar.ozlabs.ibm.com> <CAK7LNATznx=5A1KnhkFHpjencsJj7AGUsHtDUu6M-Qkw=jvpPQ@mail.gmail.com>
+ <20170620015205.329519b2@roar.ozlabs.ibm.com> <CAK7LNAS6zucv54-XwqfTbm=y20eFVQYLwgsVCdtS7mYknsYK+Q@mail.gmail.com>
+ <20170621124708.6bce7692@roar.ozlabs.ibm.com> <CAK7LNATPyoVcsDtFjRhdmFh7v_HE9F=2GVX=z+XVWV2fXsEukA@mail.gmail.com>
+ <20170621140445.4d6fd92a@roar.ozlabs.ibm.com> <CAK8P3a34gWKqPCFDAnWki4H-eyj50Xgar+YFT_+2Og-qJb_i8A@mail.gmail.com>
+ <20170621191607.33c8db74@roar.ozlabs.ibm.com> <CAK8P3a0NT42HKOU+ZDRg_-1hA+RzYnL0RtzqbMsLbY=yTUxGRA@mail.gmail.com>
+ <20170621203824.719ffdc5@roar.ozlabs.ibm.com> <CAK8P3a1o91guXimc99sY3UOUjKTX5QxhQyOfY+j-x7MMCdRbdw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([5.9.137.197]:55972 "EHLO mail.skyhub.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751742AbdFUKuo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 21 Jun 2017 06:50:44 -0400
-Content-Disposition: inline
-In-Reply-To: <20170616185435.18967.26665.stgit@tlendack-t1.amdoffice.net>
+Received: from mail-ot0-f195.google.com ([74.125.82.195]:34842 "EHLO
+        mail-ot0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750823AbdFUKvV (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Jun 2017 06:51:21 -0400
+In-Reply-To: <CAK8P3a1o91guXimc99sY3UOUjKTX5QxhQyOfY+j-x7MMCdRbdw@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dy>
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: Masahiro Yamada <yamada.masahiro@socionext.com>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>, kbuild test robot <fengguang.wu@intel.com>, Josh Triplett <josh@joshtriplett.org>, Nicolas Pitre <nicolas.pitre@linaro.org>
 
-On Fri, Jun 16, 2017 at 01:54:36PM -0500, Tom Lendacky wrote:
-> Add warnings to let the user know when bounce buffers are being used for
-> DMA when SME is active.  Since the bounce buffers are not in encrypted
-> memory, these notifications are to allow the user to determine some
-> appropriate action - if necessary.  Actions can range from utilizing an
-> IOMMU, replacing the device with another device that can support 64-bit
-> DMA, ignoring the message if the device isn't used much, etc.
-> 
-> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
-> ---
->  include/linux/dma-mapping.h |   11 +++++++++++
->  include/linux/mem_encrypt.h |    8 ++++++++
->  lib/swiotlb.c               |    3 +++
->  3 files changed, 22 insertions(+)
-> 
-> diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
-> index 4f3eece..ee2307e 100644
-> --- a/include/linux/dma-mapping.h
-> +++ b/include/linux/dma-mapping.h
-> @@ -10,6 +10,7 @@
->  #include <linux/scatterlist.h>
->  #include <linux/kmemcheck.h>
->  #include <linux/bug.h>
-> +#include <linux/mem_encrypt.h>
->  
->  /**
->   * List of possible attributes associated with a DMA mapping. The semantics
-> @@ -577,6 +578,11 @@ static inline int dma_set_mask(struct device *dev, u64 mask)
->  
->  	if (!dev->dma_mask || !dma_supported(dev, mask))
->  		return -EIO;
-> +
-> +	/* Since mask is unsigned, this can only be true if SME is active */
-> +	if (mask < sme_dma_mask())
-> +		dev_warn(dev, "SME is active, device will require DMA bounce buffers\n");
-> +
->  	*dev->dma_mask = mask;
->  	return 0;
->  }
-> @@ -596,6 +602,11 @@ static inline int dma_set_coherent_mask(struct device *dev, u64 mask)
->  {
->  	if (!dma_supported(dev, mask))
->  		return -EIO;
-> +
-> +	/* Since mask is unsigned, this can only be true if SME is active */
-> +	if (mask < sme_dma_mask())
-> +		dev_warn(dev, "SME is active, device will require DMA bounce buffers\n");
+On Wed, Jun 21, 2017 at 12:49 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Wed, Jun 21, 2017 at 12:38 PM, Nicholas Piggin <npiggin@gmail.com> wrote:
+>> On Wed, 21 Jun 2017 12:21:16 +0200
+>> Arnd Bergmann <arnd@arndb.de> wrote:
 
-Looks to me like those two checks above need to be a:
+>>> so we are fine as long as we enable THIN_ARCHIVES
+>>> and LD_DEAD_CODE_DATA_ELIMINATION at the same time
+>>> on ARM.
+>>
+>> Well the current proposal is to unconditionally enable it for all archs
+>> for 4.13. After that I'll submit patches to x86 and powerpc arch
+>> maintainers to allow LD_DEAD_CODE_DATA_ELIMINATION as an option. I guess
+>> you will do ARM and there have been MIPS guys looking at it too.
+>>
+>> That leaves a window of one release. ARM could unselect thin archives if
+>> necessary but I think it would be much better to enable it and flush out
+>> any toolchain and build issues before doing the LD_DCDE option. Disabling
+>> should be a last resort if we can't fix something in time for release.
+>
+> I see.
 
-void sme_check_mask(struct device *dev, u64 mask)
-{
-        if (!sme_me_mask)
-                return;
+[hit 'send' too early]
 
-        /* Since mask is unsigned, this can only be true if SME is active */
-        if (mask < (((u64)sme_me_mask << 1) - 1))
-                dev_warn(dev, "SME is active, device will require DMA bounce buffers\n");
-}
+We can always revert 06e226c7fb23 ("clk: sunxi-ng: Move all clock types to a
+library"), it's also scheduled for 4.13 and has not been in a release yet.
 
-which gets called and sme_dma_mask() is not really needed.
-
--- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
+       Arnd
