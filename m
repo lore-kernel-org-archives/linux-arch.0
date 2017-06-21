@@ -1,65 +1,104 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 1/5] kbuild: thin archives final link close
- --whole-archives option
-Date: Wed, 21 Jun 2017 09:15:09 +0200
-Message-ID: <CAK8P3a34gWKqPCFDAnWki4H-eyj50Xgar+YFT_+2Og-qJb_i8A@mail.gmail.com>
-References: <20170609052417.561-1-npiggin@gmail.com> <20170609052417.561-2-npiggin@gmail.com>
- <CAK7LNASxuE-6eMk+Y-vyrMfibtYoD2JkjNS2z8QF85x9NdiiaA@mail.gmail.com>
- <20170619165100.3ce26d00@roar.ozlabs.ibm.com> <CAK7LNARuuQzGkYBdzoy3bVpBuNPZEMGerHSEdmrH+PqK0Gbyzg@mail.gmail.com>
- <20170619182714.2cb60e17@roar.ozlabs.ibm.com> <CAK7LNATznx=5A1KnhkFHpjencsJj7AGUsHtDUu6M-Qkw=jvpPQ@mail.gmail.com>
- <20170620015205.329519b2@roar.ozlabs.ibm.com> <CAK7LNAS6zucv54-XwqfTbm=y20eFVQYLwgsVCdtS7mYknsYK+Q@mail.gmail.com>
- <20170621124708.6bce7692@roar.ozlabs.ibm.com> <CAK7LNATPyoVcsDtFjRhdmFh7v_HE9F=2GVX=z+XVWV2fXsEukA@mail.gmail.com>
- <20170621140445.4d6fd92a@roar.ozlabs.ibm.com>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH v7 08/36] x86/mm: Add support to enable SME in early boot
+ processing
+Date: Wed, 21 Jun 2017 09:16:05 +0200 (CEST)
+Message-ID: <alpine.DEB.2.20.1706202259290.2157@nanos>
+References: <20170616184947.18967.84890.stgit@tlendack-t1.amdoffice.net> <20170616185115.18967.79622.stgit@tlendack-t1.amdoffice.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <20170621140445.4d6fd92a@roar.ozlabs.ibm.com>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: Masahiro Yamada <yamada.masahiro@socionext.com>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>, kbuild test robot <fengguang.wu@intel.com>, Josh Triplett <josh@joshtriplett.org>, Nicolas Pitre <nicolas.pitre@linaro.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from Galois.linutronix.de ([146.0.238.70]:47677 "EHLO
+        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751030AbdFUHQN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Jun 2017 03:16:13 -0400
+In-Reply-To: <20170616185115.18967.79622.stgit@tlendack-t1.amdoffice.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, =?ISO-8859-2?Q?Radim_Kr=E8m=E1=F8?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave
 
-On Wed, Jun 21, 2017 at 6:04 AM, Nicholas Piggin <npiggin@gmail.com> wrote:
-> On Wed, 21 Jun 2017 12:29:33 +0900
-> Masahiro Yamada <yamada.masahiro@socionext.com> wrote:
+On Fri, 16 Jun 2017, Tom Lendacky wrote:
+> diff --git a/arch/x86/include/asm/mem_encrypt.h b/arch/x86/include/asm/mem_encrypt.h
+> index a105796..988b336 100644
+> --- a/arch/x86/include/asm/mem_encrypt.h
+> +++ b/arch/x86/include/asm/mem_encrypt.h
+> @@ -15,16 +15,24 @@
+>  
+>  #ifndef __ASSEMBLY__
+>  
+> +#include <linux/init.h>
+> +
+>  #ifdef CONFIG_AMD_MEM_ENCRYPT
+>  
+>  extern unsigned long sme_me_mask;
+>  
+> +void __init sme_enable(void);
+> +
+>  #else	/* !CONFIG_AMD_MEM_ENCRYPT */
+>  
+>  #define sme_me_mask	0UL
+>  
+> +static inline void __init sme_enable(void) { }
+> +
+>  #endif	/* CONFIG_AMD_MEM_ENCRYPT */
+>  
+> +unsigned long sme_get_me_mask(void);
 
->> BTW, I saw abuse of lib.a in
->> https://patchwork.kernel.org/patch/9768439/
->>
->> I see it in linux-next.
->>
->> commit 06e226c7fb233f676b01b144d0b321ebe510fdcd
->> Author: Stephen Boyd <sboyd@codeaurora.org>
->> Date:   Fri Jun 2 15:30:06 2017 -0700
->>
->>     clk: sunxi-ng: Move all clock types to a library
->>
->>
->>
->>
->> Now drivers/clk/sunxi-ng/lib.a
->> will go into thin archives.
->> The result might be different from what they expect...
->
-> Yes I see. With thin archives, that is just going to cause the
-> same behaviour as built-in.o (everything will be linked). So the
-> build should not break, but they won't get savings.
->
-> Does it even save space with incremental linking? If the lib.a gets
-> linked into drivers/built-in.o, I wonder what happens then?
+Why is this an unconditional function? Isn't the mask simply 0 when the MEM
+ENCRYPT support is disabled?
 
-Ah, too bad. I thought we had found a way to use a library correctly
-here, but I just verified that indeed all the just gets linked into built-in.o
+> diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
+> index 6225550..ef12729 100644
+> --- a/arch/x86/kernel/head_64.S
+> +++ b/arch/x86/kernel/head_64.S
+> @@ -78,7 +78,29 @@ startup_64:
+>  	call	__startup_64
+>  	popq	%rsi
+>  
+> -	movq	$(early_top_pgt - __START_KERNEL_map), %rax
+> +	/*
+> +	 * Encrypt the kernel if SME is active.
+> +	 * The real_mode_data address is in %rsi and that register can be
+> +	 * clobbered by the called function so be sure to save it.
+> +	 */
+> +	push	%rsi
+> +	call	sme_encrypt_kernel
+> +	pop	%rsi
 
-I played around with it some more now, but without success: if I
-build sunxi-ng as a loadable module (using a few modifications),
-then the unneeded objects from lib.a are dropped as I had hoped,
-but for built-in code we now always include everything.
+That does not make any sense. Neither the call to sme_encrypt_kernel() nor
+the following call to sme_get_me_mask().
 
-I suppose that we can ignore this once we get
-LD_DEAD_CODE_DATA_ELIMINATION enabled on ARM, but
-until then, we have a code size regression. Any other ideas for
-how this could be solved? We used to have a Kconfig symbol
-for each file, but those would frequently get out of sync.
+__startup_64() is already C code, so why can't you simply call that from
+__startup_64() in C and return the mask from there?
 
-         Arnd
+> @@ -98,7 +120,20 @@ ENTRY(secondary_startup_64)
+>  	/* Sanitize CPU configuration */
+>  	call verify_cpu
+>  
+> -	movq	$(init_top_pgt - __START_KERNEL_map), %rax
+> +	/*
+> +	 * Get the SME encryption mask.
+> +	 *  The encryption mask will be returned in %rax so we do an ADD
+> +	 *  below to be sure that the encryption mask is part of the
+> +	 *  value that will stored in %cr3.
+> +	 *
+> +	 * The real_mode_data address is in %rsi and that register can be
+> +	 * clobbered by the called function so be sure to save it.
+> +	 */
+> +	push	%rsi
+> +	call	sme_get_me_mask
+> +	pop	%rsi
+
+Do we really need a call here? The mask is established at this point, so
+it's either 0 when the encryption stuff is not compiled in or it can be
+retrieved from a variable which is accessible at this point.
+
+> +
+> +	addq	$(init_top_pgt - __START_KERNEL_map), %rax
+>  1:
+>  
+>  	/* Enable PAE mode, PGE and LA57 */
+
+Thanks,
+
+	tglx
