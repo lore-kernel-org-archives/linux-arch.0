@@ -1,91 +1,77 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH v2] refcount: Create unchecked atomic_t implementation
-Date: Wed, 21 Jun 2017 11:57:15 +0200
-Message-ID: <20170621095715.zf57frodvjmhdttg@gmail.com>
-References: <20170608025831.GA43608@beast>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 1/5] kbuild: thin archives final link close
+ --whole-archives option
+Date: Wed, 21 Jun 2017 12:21:16 +0200
+Message-ID: <CAK8P3a0NT42HKOU+ZDRg_-1hA+RzYnL0RtzqbMsLbY=yTUxGRA@mail.gmail.com>
+References: <20170609052417.561-1-npiggin@gmail.com> <20170609052417.561-2-npiggin@gmail.com>
+ <CAK7LNASxuE-6eMk+Y-vyrMfibtYoD2JkjNS2z8QF85x9NdiiaA@mail.gmail.com>
+ <20170619165100.3ce26d00@roar.ozlabs.ibm.com> <CAK7LNARuuQzGkYBdzoy3bVpBuNPZEMGerHSEdmrH+PqK0Gbyzg@mail.gmail.com>
+ <20170619182714.2cb60e17@roar.ozlabs.ibm.com> <CAK7LNATznx=5A1KnhkFHpjencsJj7AGUsHtDUu6M-Qkw=jvpPQ@mail.gmail.com>
+ <20170620015205.329519b2@roar.ozlabs.ibm.com> <CAK7LNAS6zucv54-XwqfTbm=y20eFVQYLwgsVCdtS7mYknsYK+Q@mail.gmail.com>
+ <20170621124708.6bce7692@roar.ozlabs.ibm.com> <CAK7LNATPyoVcsDtFjRhdmFh7v_HE9F=2GVX=z+XVWV2fXsEukA@mail.gmail.com>
+ <20170621140445.4d6fd92a@roar.ozlabs.ibm.com> <CAK8P3a34gWKqPCFDAnWki4H-eyj50Xgar+YFT_+2Og-qJb_i8A@mail.gmail.com>
+ <20170621191607.33c8db74@roar.ozlabs.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f195.google.com ([209.85.128.195]:33866 "EHLO
-        mail-wr0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751744AbdFUJ5U (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Jun 2017 05:57:20 -0400
-Content-Disposition: inline
-In-Reply-To: <20170608025831.GA43608@beast>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: linux-kernel@vger.kernel.org, Christoph Hellwig <hch@infradead.org>, Peter Zijlstra <peterz@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartner>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <20170621191607.33c8db74@roar.ozlabs.ibm.com>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: Masahiro Yamada <yamada.masahiro@socionext.com>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>, kbuild test robot <fengguang.wu@intel.com>, Josh Triplett <josh@joshtriplett.org>, Nicolas Pitre <nicolas.pitre@linaro.org>
+List-Id: linux-arch.vger.kernel.org
 
+On Wed, Jun 21, 2017 at 11:16 AM, Nicholas Piggin <npiggin@gmail.com> wrote:
+> On Wed, 21 Jun 2017 09:15:09 +0200
+> Arnd Bergmann <arnd@arndb.de> wrote:
+>
+>> On Wed, Jun 21, 2017 at 6:04 AM, Nicholas Piggin <npiggin@gmail.com> wrote:
+>> > On Wed, 21 Jun 2017 12:29:33 +0900
+>> > Masahiro Yamada <yamada.masahiro@socionext.com> wrote:
+>>
+>> >> BTW, I saw abuse of lib.a in
+>> >> https://patchwork.kernel.org/patch/9768439/
+>> >>
+>> >> I see it in linux-next.
+>> >>
+>> >> commit 06e226c7fb233f676b01b144d0b321ebe510fdcd
+>> >> Author: Stephen Boyd <sboyd@codeaurora.org>
+>> >> Date:   Fri Jun 2 15:30:06 2017 -0700
+>> >>
+>> >>     clk: sunxi-ng: Move all clock types to a library
+>> >>
+>> >>
+>> >>
+>> >>
+>> >> Now drivers/clk/sunxi-ng/lib.a
+>> >> will go into thin archives.
+>> >> The result might be different from what they expect...
+>> >
+>> > Yes I see. With thin archives, that is just going to cause the
+>> > same behaviour as built-in.o (everything will be linked). So the
+>> > build should not break, but they won't get savings.
+>> >
+>> > Does it even save space with incremental linking? If the lib.a gets
+>> > linked into drivers/built-in.o, I wonder what happens then?
+>>
+>> Ah, too bad. I thought we had found a way to use a library correctly
+>> here, but I just verified that indeed all the just gets linked into built-in.o
+>>
+>> I played around with it some more now, but without success: if I
+>> build sunxi-ng as a loadable module (using a few modifications),
+>> then the unneeded objects from lib.a are dropped as I had hoped,
+>> but for built-in code we now always include everything.
+>>
+>> I suppose that we can ignore this once we get
+>> LD_DEAD_CODE_DATA_ELIMINATION enabled on ARM, but
+>> until then, we have a code size regression.
+>
+> I didn't follow the thread there, is it a regression caused by
+> thin archives, or just by removing the Kconfig symbol from each
+> file?
 
-* Kees Cook <keescook@chromium.org> wrote:
+I thought it was the latter, but actually it only happens with thin
+archives, so we are fine as long as we enable THIN_ARCHIVES
+and LD_DEAD_CODE_DATA_ELIMINATION at the same time
+on ARM.
 
-> Many subsystems will not use refcount_t unless there is a way to build the
-> kernel so that there is no regression in speed compared to atomic_t. This
-> adds CONFIG_REFCOUNT_FULL to enable the full refcount_t implementation
-> which has the validation but is slightly slower. When not enabled,
-> refcount_t uses the basic unchecked atomic_t routines, which results in
-> no code changes compared to just using atomic_t directly.
-> 
-> Signed-off-by: Kees Cook <keescook@chromium.org>
-> ---
-> This is v2 of this patch, which I've split from the arch-specific
-> alternative implementation for x86. Getting this patch in will unblock
-> atomic_t -> refcount_t conversion, and the x86 alternative implementation
-> can be developed in parallel. Changes from v1: use better atomic ops,
-> thanks to Elena and Peter.
-> ---
->  arch/Kconfig             |  9 +++++++++
->  include/linux/refcount.h | 44 ++++++++++++++++++++++++++++++++++++++++++++
->  lib/refcount.c           |  3 +++
->  3 files changed, 56 insertions(+)
-
-Looks almost good - sans a few stylistic nits:
-
-> 
-> diff --git a/arch/Kconfig b/arch/Kconfig
-> index 6c00e5b00f8b..fba3bf186728 100644
-> --- a/arch/Kconfig
-> +++ b/arch/Kconfig
-> @@ -867,4 +867,13 @@ config STRICT_MODULE_RWX
->  config ARCH_WANT_RELAX_ORDER
->  	bool
->  
-> +config REFCOUNT_FULL
-> +	bool "Perform full reference count validation at the expense of speed"
-> +	help
-> +	  Enabling this switches the refcounting infrastructure from a fast
-> +	  unchecked atomic_t implementation to a fully state checked
-> +	  implementation, which can be slower but provides protections
-> +	  against various use-after-free conditions that can be used in
-> +	  security flaw exploits.
-> +
->  source "kernel/gcov/Kconfig"
-> diff --git a/include/linux/refcount.h b/include/linux/refcount.h
-> index b34aa649d204..099c32bd07b2 100644
-> --- a/include/linux/refcount.h
-> +++ b/include/linux/refcount.h
-> @@ -41,6 +41,7 @@ static inline unsigned int refcount_read(const refcount_t *r)
->  	return atomic_read(&r->refs);
->  }
->  
-> +#ifdef CONFIG_REFCOUNT_FULL
->  extern __must_check bool refcount_add_not_zero(unsigned int i, refcount_t *r);
->  extern void refcount_add(unsigned int i, refcount_t *r);
->  
-> @@ -52,6 +53,49 @@ extern void refcount_sub(unsigned int i, refcount_t *r);
->  
->  extern __must_check bool refcount_dec_and_test(refcount_t *r);
->  extern void refcount_dec(refcount_t *r);
-> +#else
-> +static inline __must_check bool refcount_add_not_zero(unsigned int i,
-> +						      refcount_t *r)
-
-Please keep it on a single, slighly over-long line instead of the ugly line break 
-in the middle of the list of parameters ...
-
-There's other such uglies in the patch as well.
-
-Thanks,
-
-	Ingo
+        Arnd
