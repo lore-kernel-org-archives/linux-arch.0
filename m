@@ -1,60 +1,67 @@
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH v6 26/34] iommu/amd: Allow the AMD IOMMU to work with
- memory encryption
-Date: Wed, 21 Jun 2017 18:59:22 +0200
-Message-ID: <20170621165921.tv2jfhf5dz7hsjsy@pd.tnic>
-References: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
- <20170607191745.28645.81756.stgit@tlendack-t1.amdoffice.net>
- <20170614174208.p2yr5exs4b6pjxhf@pd.tnic>
- <0611d01a-19f8-d6ae-2682-932789855518@amd.com>
- <20170615094111.wga334kg2bhxqib3@pd.tnic>
- <20170621153721.GP30388@8bytes.org>
+From: "Kirill A. Shutemov" <kirill@shutemov.name>
+Subject: Re: [PATCHv2 1/3] x86/mm: Provide pmdp_establish() helper
+Date: Wed, 21 Jun 2017 20:15:58 +0300
+Message-ID: <20170621171558.7zrgzc7uk3kspcys@node.shutemov.name>
+References: <20170615145224.66200-1-kirill.shutemov@linux.intel.com>
+ <20170615145224.66200-2-kirill.shutemov@linux.intel.com>
+ <20170619152228.GE3024@e104818-lin.cambridge.arm.com>
+ <20170619160005.wgj4nymtj2nntfll@node.shutemov.name>
+ <20170619170911.GF3024@e104818-lin.cambridge.arm.com>
+ <20170619215210.2crwjou3sfdcj73d@node.shutemov.name>
+ <20170620155438.GC21383@e104818-lin.cambridge.arm.com>
+ <20170621095303.q5fqt5a3ao5smko6@node.shutemov.name>
+ <20170621112702.GC10220@e104818-lin.cambridge.arm.com>
+ <1af1738a-88a7-987c-eca7-2118d66514e1@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <20170621153721.GP30388@8bytes.org>
+In-Reply-To: <1af1738a-88a7-987c-eca7-2118d66514e1@synopsys.com>
 Sender: owner-linux-mm@kvack.org
-To: Joerg Roedel <joro@8bytes.org>
-Cc: Tom Lendacky <thomas.lendacky@amd.com>, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexand
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, Ralf Baechle <ralf@linux-mips.org>, "David S. Miller" <davem@davemloft.net>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andrea Arcangeli <aarcange@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jun 21, 2017 at 05:37:22PM +0200, Joerg Roedel wrote:
-> > Do you mean this is like the last exception case in that document above:
+On Wed, Jun 21, 2017 at 08:49:03AM -0700, Vineet Gupta wrote:
+> On 06/21/2017 04:27 AM, Catalin Marinas wrote:
+> > On Wed, Jun 21, 2017 at 12:53:03PM +0300, Kirill A. Shutemov wrote:
+> > > > > > > > On Thu, Jun 15, 2017 at 05:52:22PM +0300, Kirill A. Shutemov wrote:
+> > > > > > > > > We need an atomic way to setup pmd page table entry, avoiding races with
+> > > > > > > > > CPU setting dirty/accessed bits. This is required to implement
+> > > > > > > > > pmdp_invalidate() that doesn't loose these bits.
+> > [...]
+> > > Any chance you could help me with arm too?
+> > On arm (ARMv7 with LPAE) we don't have hardware updates of the
+> > access/dirty bits, so a generic implementation would suffice. I didn't
+> > find one in your patches, so here's an untested version:
 > > 
-> > "
-> >   - Pointers to data structures in coherent memory which might be modified
-> >     by I/O devices can, sometimes, legitimately be volatile.  A ring buffer
-> >     used by a network adapter, where that adapter changes pointers to
-> >     indicate which descriptors have been processed, is an example of this
-> >     type of situation."
-> > 
-> > ?
+> > static inline pmd_t pmdp_establish(struct mm_struct *mm, unsigned long address,
+> > 				   pmd_t *pmdp, pmd_t pmd)
+> > {
+> > 	pmd_t old_pmd = *pmdp;
+> > 	set_pmd_at(mm, address, pmdp, pmd);
+> > 	return old_pmd;
+> > }
 > 
-> So currently (without this patch) the build_completion_wait function
-> does not take a volatile parameter, only wait_on_sem() does.
+> So it seems the discussions have settled down and pmdp_establish() can be
+> implemented in generic way as above and it will suffice if arch doesn't have
+> a special need. It would be nice to add the comment above generic version
+> that it only needs to be implemented if hardware sets the accessed/dirty
+> bits !
 > 
-> Wait_on_sem() needs it because its purpose is to poll a memory location
-> which is changed by the iommu-hardware when its done with command
-> processing.
+> Then nothing special is needed for ARC - right ?
 
-Right, the reason above - memory modifiable by an IO device. You could
-add a comment there explaining the need for the volatile.
+I will define generic version as Catalin proposed with a comment, but
+under the name generic_pmdp_establish. An arch can make use of it by
 
-> But the 'volatile' in build_completion_wait() looks unnecessary, because
-> the function does not poll the memory location. It only uses the
-> pointer, converts it to a physical address and writes it to the command
-> to be queued.
+#define pmdp_establish generic_pmdp_establish
 
-Ok.
-
-Thanks.
+I don't want it to be used by default without attention from architecture
+maintainer. It can lead unnoticied breakage if THP got enabled on new
+arch.
 
 -- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
+ Kirill A. Shutemov
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
