@@ -1,100 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot0-f195.google.com ([74.125.82.195]:36335 "EHLO
-        mail-ot0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750927AbdFUMVa (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Jun 2017 08:21:30 -0400
+Received: from mail-dm3nam03on0060.outbound.protection.outlook.com ([104.47.41.60]:62504
+        "EHLO NAM03-DM3-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1751093AbdFUN1C (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 21 Jun 2017 09:27:02 -0400
+Subject: Re: [PATCH v7 06/36] x86/mm: Add Secure Memory Encryption (SME)
+ support
+References: <20170616184947.18967.84890.stgit@tlendack-t1.amdoffice.net>
+ <20170616185054.18967.52228.stgit@tlendack-t1.amdoffice.net>
+ <alpine.DEB.2.20.1706202244480.2157@nanos>
+From: Tom Lendacky <thomas.lendacky@amd.com>
+Message-ID: <efa51470-5d8f-6883-b9da-f2face12ea22@amd.com>
+Date: Wed, 21 Jun 2017 08:26:44 -0500
 MIME-Version: 1.0
-In-Reply-To: <20170621220213.2b33d56d@roar.ozlabs.ibm.com>
-References: <20170609052417.561-1-npiggin@gmail.com> <20170619165100.3ce26d00@roar.ozlabs.ibm.com>
- <CAK7LNARuuQzGkYBdzoy3bVpBuNPZEMGerHSEdmrH+PqK0Gbyzg@mail.gmail.com>
- <20170619182714.2cb60e17@roar.ozlabs.ibm.com> <CAK7LNATznx=5A1KnhkFHpjencsJj7AGUsHtDUu6M-Qkw=jvpPQ@mail.gmail.com>
- <20170620015205.329519b2@roar.ozlabs.ibm.com> <CAK7LNAS6zucv54-XwqfTbm=y20eFVQYLwgsVCdtS7mYknsYK+Q@mail.gmail.com>
- <20170621124708.6bce7692@roar.ozlabs.ibm.com> <CAK7LNATPyoVcsDtFjRhdmFh7v_HE9F=2GVX=z+XVWV2fXsEukA@mail.gmail.com>
- <20170621140445.4d6fd92a@roar.ozlabs.ibm.com> <CAK8P3a34gWKqPCFDAnWki4H-eyj50Xgar+YFT_+2Og-qJb_i8A@mail.gmail.com>
- <20170621191607.33c8db74@roar.ozlabs.ibm.com> <CAK8P3a0NT42HKOU+ZDRg_-1hA+RzYnL0RtzqbMsLbY=yTUxGRA@mail.gmail.com>
- <20170621203824.719ffdc5@roar.ozlabs.ibm.com> <CAK8P3a1o91guXimc99sY3UOUjKTX5QxhQyOfY+j-x7MMCdRbdw@mail.gmail.com>
- <20170621211002.44525d9b@roar.ozlabs.ibm.com> <CAK8P3a2A9fMrNZPWJft2t+52kmGkGgm3gv_fxJntjevWtJ69Zw@mail.gmail.com>
- <20170621220213.2b33d56d@roar.ozlabs.ibm.com>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Wed, 21 Jun 2017 14:21:29 +0200
-Message-ID: <CAK8P3a0nVPz=eLV8ET6BYR2Qs0H3PQZuhYsu4Cb_kJSPACrR9w@mail.gmail.com>
-Subject: Re: [PATCH 1/5] kbuild: thin archives final link close
- --whole-archives option
-Content-Type: text/plain; charset="UTF-8"
+In-Reply-To: <alpine.DEB.2.20.1706202244480.2157@nanos>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: Masahiro Yamada <yamada.masahiro@socionext.com>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>, kbuild test robot <fengguang.wu@intel.com>, Josh Triplett <josh@joshtriplett.org>, Nicolas Pitre <nicolas.pitre@linaro.org>, Stephen Boyd <sboyd@codeaurora.org>, Maxime Ripard <maxime.ripard@free-electrons.com>
-Message-ID: <20170621122129.debBLfBRHguqB39b75nmoY0LIZDzjbC0h9XzJ60jYDA@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Paolo Bonzini <pbonzini@redhat.com>
+Message-ID: <20170621132644.-XqCxMYEOSUunCRaktfZPNhk50936ml__RI5s9odeSQ@z>
 
-On Wed, Jun 21, 2017 at 2:02 PM, Nicholas Piggin <npiggin@gmail.com> wrote:
-> On Wed, 21 Jun 2017 13:32:17 +0200
-> Arnd Bergmann <arnd@arndb.de> wrote:
->
->> On Wed, Jun 21, 2017 at 1:10 PM, Nicholas Piggin <npiggin@gmail.com> wrote:
->> > On Wed, 21 Jun 2017 12:49:10 +0200
->> > Arnd Bergmann <arnd@arndb.de> wrote:
->> >
->> >> On Wed, Jun 21, 2017 at 12:38 PM, Nicholas Piggin <npiggin@gmail.com> wrote:
->> >> > On Wed, 21 Jun 2017 12:21:16 +0200
->> >> > Arnd Bergmann <arnd@arndb.de> wrote:
->> >> >
->> >>
->> >> I'm building on top of yesterday's linux-next at the moment,
->> >> with a number of my own patches applied
->> >>
->> >> > I can take a look at ARM and try to get it at least to parity with
->> >> > incremental link. Any particular config options required?
->> >>
->> >> This is the patch I am testing with:
->> >>
->> >> https://pastebin.com/HQuhCEmK
->> >> I have not looked at that in a while, no idea if it works, or
->> >> if it has known problems.
->> >>
->> >> I last posted the patch in March for discussion:
->> >>
->> >> https://patchwork.kernel.org/patch/9626207/
->> >
->> > Well I just mean the stuff now in kbuild/thin-ac, not the LD_DCDE.
->> > Just want to try getting thin archives up to a point where there are
->> > no serious regressions first.
->>
->> For my build testing, I have now reverted most of my patch and only
->> left the 'select THIN_ARCHIVES'. I'll let you know if I run into problems.
->
-> Okay. Currently with the patches in the kbuild tree, thin archives
-> actually does better than incremental linking for ARM (defconfig).
->
-> 11651574        6090952  418616 18161142        1151df6 vmlinux.thinarc
-> 11656118        6095208  418952 18170278        11541a6 vmlinux.inc
->
-> In mainline, thin archives is sub-optimal for lib-y libraries (just
-> pulls them all in). But now that I test it, even that is better than
-> incremental linking for ARM:
->
-> 11653926        6090888  418620 18163434        11526ea vmlinux.thinarc
->
-> I haven't grabbed that "clk: sunxi-ng: Move all clock types to a library"
-> patch yet to check. What tree is it in? I wonder if I could convince you
-> to drop that for now and bring it up on linux-kernel/linux-kbuild? I
-> think it's quite reasonable to reduce Kconfig hell of very fine grained
-> conditional compilation/linking if we can make the toolchain do it for
-> us. So we should consider how to support it nicely rather than having
-> such hacks IMO.
+On 6/20/2017 3:49 PM, Thomas Gleixner wrote:
+> On Fri, 16 Jun 2017, Tom Lendacky wrote:
+>>   
+>> +config ARCH_HAS_MEM_ENCRYPT
+>> +	def_bool y
+>> +	depends on X86
+> 
+> That one is silly. The config switch is in the x86 KConfig file, so X86 is
+> on. If you intended to move this to some generic place outside of
+> x86/Kconfig then this should be
+> 
+> config ARCH_HAS_MEM_ENCRYPT
+> 	bool
+> 
+> and x86/Kconfig should have
+> 
+>      	select ARCH_HAS_MEM_ENCRYPT
+> 
+> and that should be selected by AMD_MEM_ENCRYPT
 
-[adding Maxime and Stephen to cc]
+This is used for deciding whether to include the asm/mem_encrypt.h file
+so it needs to be on whether AMD_MEM_ENCRYPT is configured or not. I'll
+leave it in the x86/Kconfig file and remove the depends on line.
 
-Stephen,
+Thanks,
+Tom
 
-The hack has come to bite us after all, with Nick's proposed change to
-CONFIG_THIN_ARCHIVES for all architectures, the entire lib.a file will
-end up being linked into each kernel that enables the directory.
-
-I'm out of other ideas for fixing it, so it seems better to revert back to
-individual Kconfig options. Once we enable
-CONFIG_LD_DEAD_CODE_DATA_ELIMINATION (which is the
-next step after CONFIG_THIN_ARCHIVES), we can simply list
-all files, and the linker will drop all unused functions by itself.
-
-       Arnd
+> 
+>> +config AMD_MEM_ENCRYPT
+>> +	bool "AMD Secure Memory Encryption (SME) support"
+>> +	depends on X86_64 && CPU_SUP_AMD
+>> +	---help---
+>> +	  Say yes to enable support for the encryption of system memory.
+>> +	  This requires an AMD processor that supports Secure Memory
+>> +	  Encryption (SME).
+> 
+> Thanks,
+> 
+> 	tglx
+> 
