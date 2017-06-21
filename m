@@ -1,54 +1,95 @@
-From: "Kirill A. Shutemov" <kirill@shutemov.name>
-Subject: Re: [PATCHv2 1/3] x86/mm: Provide pmdp_establish() helper
-Date: Wed, 21 Jun 2017 15:04:12 +0300
-Message-ID: <20170621120412.cdmg76jy2zby56cx@node.shutemov.name>
-References: <20170615145224.66200-1-kirill.shutemov@linux.intel.com>
- <20170615145224.66200-2-kirill.shutemov@linux.intel.com>
- <20170619152228.GE3024@e104818-lin.cambridge.arm.com>
- <20170619160005.wgj4nymtj2nntfll@node.shutemov.name>
- <20170619170911.GF3024@e104818-lin.cambridge.arm.com>
- <20170619215210.2crwjou3sfdcj73d@node.shutemov.name>
- <20170620155438.GC21383@e104818-lin.cambridge.arm.com>
- <20170621095303.q5fqt5a3ao5smko6@node.shutemov.name>
- <20170621112702.GC10220@e104818-lin.cambridge.arm.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 1/5] kbuild: thin archives final link close
+ --whole-archives option
+Date: Wed, 21 Jun 2017 14:21:29 +0200
+Message-ID: <CAK8P3a0nVPz=eLV8ET6BYR2Qs0H3PQZuhYsu4Cb_kJSPACrR9w@mail.gmail.com>
+References: <20170609052417.561-1-npiggin@gmail.com> <20170619165100.3ce26d00@roar.ozlabs.ibm.com>
+ <CAK7LNARuuQzGkYBdzoy3bVpBuNPZEMGerHSEdmrH+PqK0Gbyzg@mail.gmail.com>
+ <20170619182714.2cb60e17@roar.ozlabs.ibm.com> <CAK7LNATznx=5A1KnhkFHpjencsJj7AGUsHtDUu6M-Qkw=jvpPQ@mail.gmail.com>
+ <20170620015205.329519b2@roar.ozlabs.ibm.com> <CAK7LNAS6zucv54-XwqfTbm=y20eFVQYLwgsVCdtS7mYknsYK+Q@mail.gmail.com>
+ <20170621124708.6bce7692@roar.ozlabs.ibm.com> <CAK7LNATPyoVcsDtFjRhdmFh7v_HE9F=2GVX=z+XVWV2fXsEukA@mail.gmail.com>
+ <20170621140445.4d6fd92a@roar.ozlabs.ibm.com> <CAK8P3a34gWKqPCFDAnWki4H-eyj50Xgar+YFT_+2Og-qJb_i8A@mail.gmail.com>
+ <20170621191607.33c8db74@roar.ozlabs.ibm.com> <CAK8P3a0NT42HKOU+ZDRg_-1hA+RzYnL0RtzqbMsLbY=yTUxGRA@mail.gmail.com>
+ <20170621203824.719ffdc5@roar.ozlabs.ibm.com> <CAK8P3a1o91guXimc99sY3UOUjKTX5QxhQyOfY+j-x7MMCdRbdw@mail.gmail.com>
+ <20170621211002.44525d9b@roar.ozlabs.ibm.com> <CAK8P3a2A9fMrNZPWJft2t+52kmGkGgm3gv_fxJntjevWtJ69Zw@mail.gmail.com>
+ <20170621220213.2b33d56d@roar.ozlabs.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lf0-f66.google.com ([209.85.215.66]:35186 "EHLO
-        mail-lf0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751108AbdFUMEQ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Jun 2017 08:04:16 -0400
-Received: by mail-lf0-f66.google.com with SMTP id n136so9199650lfn.2
-        for <linux-arch@vger.kernel.org>; Wed, 21 Jun 2017 05:04:16 -0700 (PDT)
-Content-Disposition: inline
-In-Reply-To: <20170621112702.GC10220@e104818-lin.cambridge.arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, Ralf Baechle <ralf@linux-mips.org>, "David S. Miller" <davem@davemloft.net>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andrea Arcangeli <aarcange@redhat.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <20170621220213.2b33d56d@roar.ozlabs.ibm.com>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: Masahiro Yamada <yamada.masahiro@socionext.com>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>, kbuild test robot <fengguang.wu@intel.com>, Josh Triplett <josh@joshtriplett.org>, Nicolas Pitre <nicolas.pitre@linaro.org>, Stephen Boyd <sboyd@codeaurora.org>, Maxime Ripard <maxime.ripard@free-electrons.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jun 21, 2017 at 12:27:02PM +0100, Catalin Marinas wrote:
-> On Wed, Jun 21, 2017 at 12:53:03PM +0300, Kirill A. Shutemov wrote:
-> > > > > > > On Thu, Jun 15, 2017 at 05:52:22PM +0300, Kirill A. Shutemov wrote:
-> > > > > > > > We need an atomic way to setup pmd page table entry, avoiding races with
-> > > > > > > > CPU setting dirty/accessed bits. This is required to implement
-> > > > > > > > pmdp_invalidate() that doesn't loose these bits.
-> [...]
-> > Any chance you could help me with arm too?
-> 
-> On arm (ARMv7 with LPAE) we don't have hardware updates of the
-> access/dirty bits, so a generic implementation would suffice. I didn't
-> find one in your patches, so here's an untested version:
-> 
-> static inline pmd_t pmdp_establish(struct mm_struct *mm, unsigned long address,
-> 				   pmd_t *pmdp, pmd_t pmd)
-> {
-> 	pmd_t old_pmd = *pmdp;
-> 	set_pmd_at(mm, address, pmdp, pmd);
-> 	return old_pmd;
-> }
+On Wed, Jun 21, 2017 at 2:02 PM, Nicholas Piggin <npiggin@gmail.com> wrote:
+> On Wed, 21 Jun 2017 13:32:17 +0200
+> Arnd Bergmann <arnd@arndb.de> wrote:
+>
+>> On Wed, Jun 21, 2017 at 1:10 PM, Nicholas Piggin <npiggin@gmail.com> wrote:
+>> > On Wed, 21 Jun 2017 12:49:10 +0200
+>> > Arnd Bergmann <arnd@arndb.de> wrote:
+>> >
+>> >> On Wed, Jun 21, 2017 at 12:38 PM, Nicholas Piggin <npiggin@gmail.com> wrote:
+>> >> > On Wed, 21 Jun 2017 12:21:16 +0200
+>> >> > Arnd Bergmann <arnd@arndb.de> wrote:
+>> >> >
+>> >>
+>> >> I'm building on top of yesterday's linux-next at the moment,
+>> >> with a number of my own patches applied
+>> >>
+>> >> > I can take a look at ARM and try to get it at least to parity with
+>> >> > incremental link. Any particular config options required?
+>> >>
+>> >> This is the patch I am testing with:
+>> >>
+>> >> https://pastebin.com/HQuhCEmK
+>> >> I have not looked at that in a while, no idea if it works, or
+>> >> if it has known problems.
+>> >>
+>> >> I last posted the patch in March for discussion:
+>> >>
+>> >> https://patchwork.kernel.org/patch/9626207/
+>> >
+>> > Well I just mean the stuff now in kbuild/thin-ac, not the LD_DCDE.
+>> > Just want to try getting thin archives up to a point where there are
+>> > no serious regressions first.
+>>
+>> For my build testing, I have now reverted most of my patch and only
+>> left the 'select THIN_ARCHIVES'. I'll let you know if I run into problems.
+>
+> Okay. Currently with the patches in the kbuild tree, thin archives
+> actually does better than incremental linking for ARM (defconfig).
+>
+> 11651574        6090952  418616 18161142        1151df6 vmlinux.thinarc
+> 11656118        6095208  418952 18170278        11541a6 vmlinux.inc
+>
+> In mainline, thin archives is sub-optimal for lib-y libraries (just
+> pulls them all in). But now that I test it, even that is better than
+> incremental linking for ARM:
+>
+> 11653926        6090888  418620 18163434        11526ea vmlinux.thinarc
+>
+> I haven't grabbed that "clk: sunxi-ng: Move all clock types to a library"
+> patch yet to check. What tree is it in? I wonder if I could convince you
+> to drop that for now and bring it up on linux-kernel/linux-kbuild? I
+> think it's quite reasonable to reduce Kconfig hell of very fine grained
+> conditional compilation/linking if we can make the toolchain do it for
+> us. So we should consider how to support it nicely rather than having
+> such hacks IMO.
 
-Thanks, I'll integrate this into the patchset.
+[adding Maxime and Stephen to cc]
 
--- 
- Kirill A. Shutemov
+Stephen,
+
+The hack has come to bite us after all, with Nick's proposed change to
+CONFIG_THIN_ARCHIVES for all architectures, the entire lib.a file will
+end up being linked into each kernel that enables the directory.
+
+I'm out of other ideas for fixing it, so it seems better to revert back to
+individual Kconfig options. Once we enable
+CONFIG_LD_DEAD_CODE_DATA_ELIMINATION (which is the
+next step after CONFIG_THIN_ARCHIVES), we can simply list
+all files, and the linker will drop all unused functions by itself.
+
+       Arnd
