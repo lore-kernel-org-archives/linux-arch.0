@@ -1,128 +1,99 @@
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH 1/5] kbuild: thin archives final link close
- --whole-archives option
-Date: Thu, 22 Jun 2017 04:08:38 +1000
-Message-ID: <20170622040838.1c63ebb7@roar.ozlabs.ibm.com>
-References: <20170621140445.4d6fd92a@roar.ozlabs.ibm.com>
-        <CAK8P3a34gWKqPCFDAnWki4H-eyj50Xgar+YFT_+2Og-qJb_i8A@mail.gmail.com>
-        <20170621191607.33c8db74@roar.ozlabs.ibm.com>
-        <CAK8P3a0NT42HKOU+ZDRg_-1hA+RzYnL0RtzqbMsLbY=yTUxGRA@mail.gmail.com>
-        <20170621203824.719ffdc5@roar.ozlabs.ibm.com>
-        <CAK8P3a1o91guXimc99sY3UOUjKTX5QxhQyOfY+j-x7MMCdRbdw@mail.gmail.com>
-        <20170621211002.44525d9b@roar.ozlabs.ibm.com>
-        <CAK8P3a2A9fMrNZPWJft2t+52kmGkGgm3gv_fxJntjevWtJ69Zw@mail.gmail.com>
-        <20170621220213.2b33d56d@roar.ozlabs.ibm.com>
-        <CAK8P3a0nVPz=eLV8ET6BYR2Qs0H3PQZuhYsu4Cb_kJSPACrR9w@mail.gmail.com>
-        <20170621161913.GY4493@codeaurora.org>
+From: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
+Subject: Re: [PATCH v7 08/36] x86/mm: Add support to enable SME in early boot
+	processing
+Date: Wed, 21 Jun 2017 13:30:19 -0500
+Message-ID: <fc697503-ec54-f481-36b3-3d5bf63aaaee@amd.com>
+References: <20170616184947.18967.84890.stgit@tlendack-t1.amdoffice.net>
+	<20170616185115.18967.79622.stgit@tlendack-t1.amdoffice.net>
+	<alpine.DEB.2.20.1706202259290.2157@nanos>
+	<8d3c215f-cdad-5554-6e9c-5598e1081850@amd.com>
+	<alpine.DEB.2.20.1706211720060.2328@nanos>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <20170621161913.GY4493@codeaurora.org>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Stephen Boyd <sboyd@codeaurora.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Masahiro Yamada <yamada.masahiro@socionext.com>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>, kbuild test robot <fengguang.wu@intel.com>, Josh Triplett <josh@joshtriplett.org>, Nicolas Pitre <nicolas.pitre@linaro.org>, Maxime Ripard <maxime.ripard@free-electrons.com>
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+In-Reply-To: <alpine.DEB.2.20.1706211720060.2328@nanos>
+Content-Language: en-US
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>
+Cc: linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Brijesh Singh <brijesh.singh-5C7GfCeVMHo@public.gmane.org>, Toshimitsu Kani <toshi.kani-ZPxbGqLxI0U@public.gmane.org>, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Larry Woodman <lwoodman-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, "Michael S. Tsirkin" <mst-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrey Ryabinin <aryabinin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Dave Young <dyoung-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Rik van Riel <riel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Boris Ostrovsky <boris.ostrovsky-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Juergen Gross <jgross-IBi9RG/b67k@public.gmane.org>, kexe
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, 21 Jun 2017 09:19:13 -0700
-Stephen Boyd <sboyd@codeaurora.org> wrote:
-
-> On 06/21, Arnd Bergmann wrote:
-> > On Wed, Jun 21, 2017 at 2:02 PM, Nicholas Piggin <npiggin@gmail.com> wrote:  
-> > > On Wed, 21 Jun 2017 13:32:17 +0200
-> > > Arnd Bergmann <arnd@arndb.de> wrote:
-> > >  
-> > >> On Wed, Jun 21, 2017 at 1:10 PM, Nicholas Piggin <npiggin@gmail.com> wrote:  
-> > >> > On Wed, 21 Jun 2017 12:49:10 +0200
-> > >> > Arnd Bergmann <arnd@arndb.de> wrote:
-> > >> >  
-> > >> >> On Wed, Jun 21, 2017 at 12:38 PM, Nicholas Piggin <npiggin@gmail.com> wrote:  
-> > >> >> > On Wed, 21 Jun 2017 12:21:16 +0200
-> > >> >> > Arnd Bergmann <arnd@arndb.de> wrote:
-> > >> >> >  
-> > >> >>
-> > >> >> I'm building on top of yesterday's linux-next at the moment,
-> > >> >> with a number of my own patches applied
-> > >> >>  
-> > >> >> > I can take a look at ARM and try to get it at least to parity with
-> > >> >> > incremental link. Any particular config options required?  
-> > >> >>
-> > >> >> This is the patch I am testing with:
-> > >> >>
-> > >> >> https://pastebin.com/HQuhCEmK
-> > >> >> I have not looked at that in a while, no idea if it works, or
-> > >> >> if it has known problems.
-> > >> >>
-> > >> >> I last posted the patch in March for discussion:
-> > >> >>
-> > >> >> https://patchwork.kernel.org/patch/9626207/  
-> > >> >
-> > >> > Well I just mean the stuff now in kbuild/thin-ac, not the LD_DCDE.
-> > >> > Just want to try getting thin archives up to a point where there are
-> > >> > no serious regressions first.  
-> > >>
-> > >> For my build testing, I have now reverted most of my patch and only
-> > >> left the 'select THIN_ARCHIVES'. I'll let you know if I run into problems.  
-> > >
-> > > Okay. Currently with the patches in the kbuild tree, thin archives
-> > > actually does better than incremental linking for ARM (defconfig).
-> > >
-> > > 11651574        6090952  418616 18161142        1151df6 vmlinux.thinarc
-> > > 11656118        6095208  418952 18170278        11541a6 vmlinux.inc
-> > >
-> > > In mainline, thin archives is sub-optimal for lib-y libraries (just
-> > > pulls them all in). But now that I test it, even that is better than
-> > > incremental linking for ARM:
-> > >
-> > > 11653926        6090888  418620 18163434        11526ea vmlinux.thinarc
-> > >
-> > > I haven't grabbed that "clk: sunxi-ng: Move all clock types to a library"
-> > > patch yet to check. What tree is it in? I wonder if I could convince you
-> > > to drop that for now and bring it up on linux-kernel/linux-kbuild? I
-> > > think it's quite reasonable to reduce Kconfig hell of very fine grained
-> > > conditional compilation/linking if we can make the toolchain do it for
-> > > us. So we should consider how to support it nicely rather than having
-> > > such hacks IMO.  
-> > 
-> > [adding Maxime and Stephen to cc]
-> > 
-> > Stephen,
-> > 
-> > The hack has come to bite us after all, with Nick's proposed change to
-> > CONFIG_THIN_ARCHIVES for all architectures, the entire lib.a file will
-> > end up being linked into each kernel that enables the directory.
-> > 
-> > I'm out of other ideas for fixing it, so it seems better to revert back to
-> > individual Kconfig options. Once we enable
-> > CONFIG_LD_DEAD_CODE_DATA_ELIMINATION (which is the
-> > next step after CONFIG_THIN_ARCHIVES), we can simply list
-> > all files, and the linker will drop all unused functions by itself.
-> >   
+On 6/21/2017 10:38 AM, Thomas Gleixner wrote:
+> On Wed, 21 Jun 2017, Tom Lendacky wrote:
+>> On 6/21/2017 2:16 AM, Thomas Gleixner wrote:
+>>> Why is this an unconditional function? Isn't the mask simply 0 when the MEM
+>>> ENCRYPT support is disabled?
+>>
+>> I made it unconditional because of the call from head_64.S. I can't make
+>> use of the C level static inline function and since the mask is not a
+>> variable if CONFIG_AMD_MEM_ENCRYPT is not configured (#defined to 0) I
+>> can't reference the variable directly.
+>>
+>> I could create a #define in head_64.S that changes this to load rax with
+>> the variable if CONFIG_AMD_MEM_ENCRYPT is configured or a zero if it's
+>> not or add a #ifdef at that point in the code directly. Thoughts on
+>> that?
 > 
-> Ok. Can you send a revert patch to the list with some information
-> on why we can't do the hack anymore and also Cc lkml/kbuild
-> lists? The commit is in linux-next now as commit 06e226c7fb23
-> (clk: sunxi-ng: Move all clock types to a library, 2017-06-02).
+> See below.
+> 
+>>> That does not make any sense. Neither the call to sme_encrypt_kernel() nor
+>>> the following call to sme_get_me_mask().
+>>>
+>>> __startup_64() is already C code, so why can't you simply call that from
+>>> __startup_64() in C and return the mask from there?
+>>
+>> I was trying to keep it explicit as to what was happening, but I can
+>> move those calls into __startup_64().
+> 
+> That's much preferred. And the return value wants to be documented in both
+> C and ASM code.
+
+Will do.
+
+> 
+>> I'll still need the call to sme_get_me_mask() in the secondary_startup_64
+>> path, though (depending on your thoughts to the above response).
+> 
+>          call verify_cpu
+> 
+>          movq    $(init_top_pgt - __START_KERNEL_map), %rax
+> 
+> So if you make that:
+> 
+> 	/*
+> 	 * Sanitize CPU configuration and retrieve the modifier
+> 	 * for the initial pgdir entry which will be programmed
+> 	 * into CR3. Depends on enabled SME encryption, normally 0.
+> 	 */
+> 	call __startup_secondary_64
+> 
+>          addq    $(init_top_pgt - __START_KERNEL_map), %rax
+> 
+> You can hide that stuff in C-code nicely without adding any cruft to the
+> ASM code.
 > 
 
-I grabbed this patch and applied it to the kbuid/thin-ac tree. I tested
-with thin archives enabled and disabled with arm defconfig which ends up
-setting CONFIG_SUNXI_CCU=y.
-
-The patch makes no difference to vmlinux size whether using traditional
-incremental link, or thin archives (there is a small difference between
-inclink and thinarc but that's unrelated).
-
-So this thin archives change does not break your patch, it's just that
-it doesn't really do the right thing. I like the general idea, but we
-need to work out how to make it properly supported by the build system.
-
-With the patch applied, this is what the build system currently does:
-
-arm-linux-gnueabihf-ld -EL    -r -o drivers/clk/sunxi-ng/built-in.o drivers/clk/sunxi-ng/ccu-sun5i.o drivers/clk/sunxi-ng/ccu-sun6i-a31.o drivers/clk/sunxi-ng/ccu-sun8i-a23.o drivers/clk/sunxi-ng/ccu-sun8i-a33.o drivers/clk/sunxi-ng/ccu-sun8i-h3.o drivers/clk/sunxi-ng/ccu-sun8i-v3s.o drivers/clk/sunxi-ng/ccu-sun8i-r.o drivers/clk/sunxi-ng/ccu-sun9i-a80.o drivers/clk/sunxi-ng/ccu-sun9i-a80-de.o drivers/clk/sunxi-ng/ccu-sun9i-a80-usb.o drivers/clk/sunxi-ng/lib.a drivers/clk/sunxi-ng/lib-ksyms.o
-
-This incremental link pulls in all your lib.a objects and links them
-into built-in.o. They can no longer be selectively linked.
+Moving the call to verify_cpu into the C-code might be quite a bit of
+change.  Currently, the verify_cpu code is included code and not a
+global function.  I can still do the __startup_secondary_64() function
+and then look to incorporate verify_cpu into both __startup_64() and
+__startup_secondary_64() as a post-patch to this series. At least the
+secondary path will have a base C routine to which modifications can
+be made in the future if needed.  How does that sound?
 
 Thanks,
-Nick
+Tom
+
+> Thanks,
+> 
+> 	tglx
+> 
