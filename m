@@ -1,53 +1,144 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([146.0.238.70]:51747 "EHLO
-        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751038AbdFUSw4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Jun 2017 14:52:56 -0400
-Date: Wed, 21 Jun 2017 20:52:47 +0200 (CEST)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH v7 08/36] x86/mm: Add support to enable SME in early boot
- processing
-In-Reply-To: <fc697503-ec54-f481-36b3-3d5bf63aaaee@amd.com>
-Message-ID: <alpine.DEB.2.20.1706212051120.2152@nanos>
-References: <20170616184947.18967.84890.stgit@tlendack-t1.amdoffice.net> <20170616185115.18967.79622.stgit@tlendack-t1.amdoffice.net> <alpine.DEB.2.20.1706202259290.2157@nanos> <8d3c215f-cdad-5554-6e9c-5598e1081850@amd.com> <alpine.DEB.2.20.1706211720060.2328@nanos>
- <fc697503-ec54-f481-36b3-3d5bf63aaaee@amd.com>
+Received: from mail-pf0-f174.google.com ([209.85.192.174]:36190 "EHLO
+        mail-pf0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751883AbdFUUA3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Jun 2017 16:00:29 -0400
+Received: by mail-pf0-f174.google.com with SMTP id q86so5728368pfl.3
+        for <linux-arch@vger.kernel.org>; Wed, 21 Jun 2017 13:00:28 -0700 (PDT)
+Date: Wed, 21 Jun 2017 13:00:26 -0700
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH v3] refcount: Create unchecked atomic_t implementation
+Message-ID: <20170621200026.GA115679@beast>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, =?ISO-8859-2?Q?Radim_Kr=E8m=E1=F8?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Paolo Bonzini <pbonzini@redhat.com>
-Message-ID: <20170621185247.bly3AQzXcGVkvUGXYJ8UamFIvtyu5J8Iq6hCFo_L2xo@z>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: linux-kernel@vger.kernel.org, Christoph Hellwig <hch@infradead.org>, Peter Zijlstra <peterz@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20170621200026.Up6jWb7Pu2O5fFhm8q0ji_V7H4HJu4Vjc3HAVVPRua0@z>
 
-On Wed, 21 Jun 2017, Tom Lendacky wrote:
-> On 6/21/2017 10:38 AM, Thomas Gleixner wrote:
-> > 	/*
-> > 	 * Sanitize CPU configuration and retrieve the modifier
-> > 	 * for the initial pgdir entry which will be programmed
-> > 	 * into CR3. Depends on enabled SME encryption, normally 0.
-> > 	 */
-> > 	call __startup_secondary_64
-> > 
-> >          addq    $(init_top_pgt - __START_KERNEL_map), %rax
-> > 
-> > You can hide that stuff in C-code nicely without adding any cruft to the
-> > ASM code.
-> > 
-> 
-> Moving the call to verify_cpu into the C-code might be quite a bit of
-> change.  Currently, the verify_cpu code is included code and not a
-> global function.
+Many subsystems will not use refcount_t unless there is a way to build the
+kernel so that there is no regression in speed compared to atomic_t. This
+adds CONFIG_REFCOUNT_FULL to enable the full refcount_t implementation
+which has the validation but is slightly slower. When not enabled,
+refcount_t uses the basic unchecked atomic_t routines, which results in
+no code changes compared to just using atomic_t directly.
 
-Ah. Ok. I missed that.
+Signed-off-by: Kees Cook <keescook@chromium.org>
+Acked-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+v3: unbreak slightly long lines; Ingo. Add Greg's Ack.
+v2: use better atomic ops; Elena and Peter.
+---
+ arch/Kconfig             |  9 +++++++++
+ include/linux/refcount.h | 42 ++++++++++++++++++++++++++++++++++++++++++
+ lib/refcount.c           |  3 +++
+ 3 files changed, 54 insertions(+)
 
-> I can still do the __startup_secondary_64() function and then look to
-> incorporate verify_cpu into both __startup_64() and
-> __startup_secondary_64() as a post-patch to this series.
+diff --git a/arch/Kconfig b/arch/Kconfig
+index 6c00e5b00f8b..fba3bf186728 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -867,4 +867,13 @@ config STRICT_MODULE_RWX
+ config ARCH_WANT_RELAX_ORDER
+ 	bool
+ 
++config REFCOUNT_FULL
++	bool "Perform full reference count validation at the expense of speed"
++	help
++	  Enabling this switches the refcounting infrastructure from a fast
++	  unchecked atomic_t implementation to a fully state checked
++	  implementation, which can be slower but provides protections
++	  against various use-after-free conditions that can be used in
++	  security flaw exploits.
++
+ source "kernel/gcov/Kconfig"
+diff --git a/include/linux/refcount.h b/include/linux/refcount.h
+index b34aa649d204..bb71f2871dac 100644
+--- a/include/linux/refcount.h
++++ b/include/linux/refcount.h
+@@ -41,6 +41,7 @@ static inline unsigned int refcount_read(const refcount_t *r)
+ 	return atomic_read(&r->refs);
+ }
+ 
++#ifdef CONFIG_REFCOUNT_FULL
+ extern __must_check bool refcount_add_not_zero(unsigned int i, refcount_t *r);
+ extern void refcount_add(unsigned int i, refcount_t *r);
+ 
+@@ -52,6 +53,47 @@ extern void refcount_sub(unsigned int i, refcount_t *r);
+ 
+ extern __must_check bool refcount_dec_and_test(refcount_t *r);
+ extern void refcount_dec(refcount_t *r);
++#else
++static inline __must_check bool refcount_add_not_zero(unsigned int i, refcount_t *r)
++{
++	return atomic_add_unless(&r->refs, i, 0);
++}
++
++static inline void refcount_add(unsigned int i, refcount_t *r)
++{
++	atomic_add(i, &r->refs);
++}
++
++static inline __must_check bool refcount_inc_not_zero(refcount_t *r)
++{
++	return atomic_add_unless(&r->refs, 1, 0);
++}
++
++static inline void refcount_inc(refcount_t *r)
++{
++	atomic_inc(&r->refs);
++}
++
++static inline __must_check bool refcount_sub_and_test(unsigned int i, refcount_t *r)
++{
++	return atomic_sub_and_test(i, &r->refs);
++}
++
++static inline void refcount_sub(unsigned int i, refcount_t *r)
++{
++	atomic_sub(i, &r->refs);
++}
++
++static inline __must_check bool refcount_dec_and_test(refcount_t *r)
++{
++	return atomic_dec_and_test(&r->refs);
++}
++
++static inline void refcount_dec(refcount_t *r)
++{
++	atomic_dec(&r->refs);
++}
++#endif /* CONFIG_REFCOUNT_FULL */
+ 
+ extern __must_check bool refcount_dec_if_one(refcount_t *r);
+ extern __must_check bool refcount_dec_not_one(refcount_t *r);
+diff --git a/lib/refcount.c b/lib/refcount.c
+index 9f906783987e..5d0582a9480c 100644
+--- a/lib/refcount.c
++++ b/lib/refcount.c
+@@ -37,6 +37,8 @@
+ #include <linux/refcount.h>
+ #include <linux/bug.h>
+ 
++#ifdef CONFIG_REFCOUNT_FULL
++
+ /**
+  * refcount_add_not_zero - add a value to a refcount unless it is 0
+  * @i: the value to add to the refcount
+@@ -225,6 +227,7 @@ void refcount_dec(refcount_t *r)
+ 	WARN_ONCE(refcount_dec_and_test(r), "refcount_t: decrement hit 0; leaking memory.\n");
+ }
+ EXPORT_SYMBOL(refcount_dec);
++#endif /* CONFIG_REFCOUNT_FULL */
+ 
+ /**
+  * refcount_dec_if_one - decrement a refcount if it is 1
+-- 
+2.7.4
 
-Yes, just having __startup_secondary_64() for now and there the extra bits
-for that encryption stuff is fine.
 
-> At least the secondary path will have a base C routine to which
-> modifications can be made in the future if needed.  How does that sound?
-
-Sounds like a plan.
+-- 
+Kees Cook
+Pixel Security
