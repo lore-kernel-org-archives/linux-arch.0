@@ -1,78 +1,96 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH v5 0/8] Support for contiguous pte hugepages
-Date: Tue, 20 Jun 2017 14:08:31 -0700
-Message-ID: <20170620140831.6bd835649d475bcf30c3c434@linux-foundation.org>
-References: <20170619170145.25577-1-punit.agrawal@arm.com>
-	<20170619150133.cb4173220e4e3abd02c6f6d0@linux-foundation.org>
-	<871sqezsk2.fsf@e105922-lin.cambridge.arm.com>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Subject: Re: [PATCH 1/5] kbuild: thin archives final link close
+ --whole-archives option
+Date: Wed, 21 Jun 2017 10:17:11 +0900
+Message-ID: <CAK7LNAS6zucv54-XwqfTbm=y20eFVQYLwgsVCdtS7mYknsYK+Q@mail.gmail.com>
+References: <20170609052417.561-1-npiggin@gmail.com> <20170609052417.561-2-npiggin@gmail.com>
+ <CAK7LNASxuE-6eMk+Y-vyrMfibtYoD2JkjNS2z8QF85x9NdiiaA@mail.gmail.com>
+ <20170619165100.3ce26d00@roar.ozlabs.ibm.com> <CAK7LNARuuQzGkYBdzoy3bVpBuNPZEMGerHSEdmrH+PqK0Gbyzg@mail.gmail.com>
+ <20170619182714.2cb60e17@roar.ozlabs.ibm.com> <CAK7LNATznx=5A1KnhkFHpjencsJj7AGUsHtDUu6M-Qkw=jvpPQ@mail.gmail.com>
+ <20170620015205.329519b2@roar.ozlabs.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <871sqezsk2.fsf@e105922-lin.cambridge.arm.com>
-Sender: owner-linux-mm@kvack.org
-To: Punit Agrawal <punit.agrawal@arm.com>
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, will.deacon@arm.com, n-horiguchi@ah.jp.nec.com, kirill.shutemov@linux.intel.com, mike.kravetz@oracle.com, steve.capper@arm.com, mark.rutland@arm.com, linux-arch@vger.kernel.org, aneesh.kumar@linux.vnet.ibm.com
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <20170620015205.329519b2@roar.ozlabs.ibm.com>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>, kbuild test robot <fengguang.wu@intel.com>, Josh Triplett <josh@joshtriplett.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 20 Jun 2017 14:39:57 +0100 Punit Agrawal <punit.agrawal@arm.com> wrote:
+Hi Nicholas,
 
-> 
-> The architecture supports two flavours of hugepages -
-> 
-> * Block mappings at the pud/pmd level
-> 
->   These are regular hugepages where a pmd or a pud page table entry
->   points to a block of memory. Depending on the PAGE_SIZE in use the
->   following size of block mappings are supported -
-> 
->           PMD	PUD
->           ---	---
->   4K:      2M	 1G
->   16K:    32M
->   64K:   512M
-> 
->   For certain applications/usecases such as HPC and large enterprise
->   workloads, folks are using 64k page size but the minimum hugepage size
->   of 512MB isn't very practical.
-> 
-> To overcome this ...
-> 
-> * Using the Contiguous bit
-> 
->   The architecture provides a contiguous bit in the translation table
->   entry which acts as a hint to the mmu to indicate that it is one of a
->   contiguous set of entries that can be cached in a single TLB entry.
-> 
->   We use the contiguous bit in Linux to increase the mapping size at the
->   pmd and pte (last) level.
-> 
->   The number of supported contiguous entries varies by page size and
->   level of the page table.
-> 
->   Using the contiguous bit allows additional hugepage sizes -
-> 
->            CONT PTE    PMD    CONT PMD    PUD
->            --------    ---    --------    ---
->     4K:         64K     2M         32M     1G
->     16K:         2M    32M          1G
->     64K:         2M   512M         16G
-> 
->   Of these, 64K with 4K and 2M with 64K pages have been explicitly
->   requested by a few different users.
-> 
-> Entries with the contiguous bit set are required to be modified all
-> together - which makes things like memory poisoning and migration
-> impossible to do correctly without knowing the size of hugepage being
-> dealt with - the reason for adding size parameter to a few of the
-> hugepage helpers in this series.
-> 
+2017-06-20 0:52 GMT+09:00 Nicholas Piggin <npiggin@gmail.com>:
+>>
+>> masahiro@pug:~$ xtensa-linux-ld -v
+>> GNU ld (GNU Binutils) 2.24
+>
+> Ah, thank you. It must have been that the 0day build (cc'ed) did
+> not return any error to be from the ld internal error.
+>
+> This has led me to the true cause of the error which is the way
+> external archives are handled. After implementing the fix, I think
+> the lib.a size regression for thin archives should be solved as
+> well.
 
-Thanks, I added the above to the 1/n changelog.  Perhaps it's worth
-adding something like this to Documentation/vm/hugetlbpage.txt.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Thanks for figuring this out!
+
+
+> This patch should be added between patches 2 and 3 of this series.
+>
+
+Done.
+
+
+I applied all 6 patches to linux-kbuild/thin-ar.
+
+I fixed up some:
+
+[1] fix a typo  "tihs"  -> "this"
+[2] reword the document as "The build system has, as of 4.13, switched
+to using..."
+[3] Add "P" to link_vmlinux.sh as well
+
+
+Could you double-check if I did them correctly?
+
+
+
+
+> --- a/Makefile
+> +++ b/Makefile
+> @@ -952,19 +952,20 @@ core-y            := $(patsubst %/, %/built-in.o, $(core-y))
+>  drivers-y      := $(patsubst %/, %/built-in.o, $(drivers-y))
+>  net-y          := $(patsubst %/, %/built-in.o, $(net-y))
+>  libs-y1                := $(patsubst %/, %/lib.a, $(libs-y))
+> -libs-y2                := $(patsubst %/, %/built-in.o, $(libs-y))
+> +libs-y2                := $(filter-out %.a, $(patsubst %/, %/built-in.o, $(libs-y)))
+>  libs-y         := $(libs-y1) $(libs-y2)
+
+
+After I applied this patch, I noticed one more thing.
+
+With this patch, I think "libs-y" will be unnecessary.
+
+If you ack me to fix-up locally, I will remove:
+   libs-y         := $(libs-y1) $(libs-y2)
+
+
+
+
+> @@ -50,7 +57,7 @@ archive_builtin()
+>         if [ -n "${CONFIG_THIN_ARCHIVES}" ]; then
+>                 info AR built-in.o
+>                 rm -f built-in.o;
+> -               ${AR} rcsT${KBUILD_ARFLAGS} built-in.o                  \
+> +               ${AR} rcsTP${KBUILD_ARFLAGS} built-in.o                 \
+>                                         ${KBUILD_VMLINUX_INIT}          \
+>                                         ${KBUILD_VMLINUX_MAIN}
+>         fi
+
+I moved this hunk to  2/6 "thin archives use P option to ar".
+
+
+-- 
+Best Regards
+Masahiro Yamada
