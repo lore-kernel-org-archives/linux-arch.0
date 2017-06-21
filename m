@@ -1,84 +1,89 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f65.google.com ([209.85.218.65]:34043 "EHLO
-        mail-oi0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751108AbdFUVoo (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Jun 2017 17:44:44 -0400
+Received: from mail-io0-f195.google.com ([209.85.223.195]:33573 "EHLO
+        mail-io0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752366AbdFUWJW (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Jun 2017 18:09:22 -0400
+Received: by mail-io0-f195.google.com with SMTP id j200so2124087ioe.0
+        for <linux-arch@vger.kernel.org>; Wed, 21 Jun 2017 15:09:17 -0700 (PDT)
+Subject: Re: [PATCH 3/5] sh: thin archives fix linking
+References: <20170609052417.561-1-npiggin@gmail.com>
+ <20170609052417.561-4-npiggin@gmail.com>
+ <CAK7LNARFQ0bLEYOgEKd+0oULevSxRqwFu_VSLn89gn_XBo+-uQ@mail.gmail.com>
+From: Rob Landley <rob@landley.net>
+Message-ID: <7a1286aa-b656-7b71-2628-9093156143ff@landley.net>
+Date: Wed, 21 Jun 2017 17:09:06 -0500
 MIME-Version: 1.0
-In-Reply-To: <20170622073024.4822ed6d@roar.ozlabs.ibm.com>
-References: <20170609052417.561-1-npiggin@gmail.com> <20170619182714.2cb60e17@roar.ozlabs.ibm.com>
- <CAK7LNATznx=5A1KnhkFHpjencsJj7AGUsHtDUu6M-Qkw=jvpPQ@mail.gmail.com>
- <20170620015205.329519b2@roar.ozlabs.ibm.com> <CAK7LNAS6zucv54-XwqfTbm=y20eFVQYLwgsVCdtS7mYknsYK+Q@mail.gmail.com>
- <20170621124708.6bce7692@roar.ozlabs.ibm.com> <CAK7LNATPyoVcsDtFjRhdmFh7v_HE9F=2GVX=z+XVWV2fXsEukA@mail.gmail.com>
- <20170621140445.4d6fd92a@roar.ozlabs.ibm.com> <CAK8P3a34gWKqPCFDAnWki4H-eyj50Xgar+YFT_+2Og-qJb_i8A@mail.gmail.com>
- <20170621191607.33c8db74@roar.ozlabs.ibm.com> <CAK8P3a0NT42HKOU+ZDRg_-1hA+RzYnL0RtzqbMsLbY=yTUxGRA@mail.gmail.com>
- <20170621203824.719ffdc5@roar.ozlabs.ibm.com> <CAK8P3a1o91guXimc99sY3UOUjKTX5QxhQyOfY+j-x7MMCdRbdw@mail.gmail.com>
- <20170621211002.44525d9b@roar.ozlabs.ibm.com> <CAK8P3a2A9fMrNZPWJft2t+52kmGkGgm3gv_fxJntjevWtJ69Zw@mail.gmail.com>
- <CAK8P3a01Q7OgFd8KThvJWu_UBr3unxJ=JZoGrsN7X9p-3maOAg@mail.gmail.com> <20170622073024.4822ed6d@roar.ozlabs.ibm.com>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Wed, 21 Jun 2017 23:44:43 +0200
-Message-ID: <CAK8P3a1stukp1OQeuLUOuF8Lh0QvfKW-Q-0WDGUrQvU3ifq2sg@mail.gmail.com>
-Subject: Re: [PATCH 1/5] kbuild: thin archives final link close
- --whole-archives option
-Content-Type: text/plain; charset="UTF-8"
+In-Reply-To: <CAK7LNARFQ0bLEYOgEKd+0oULevSxRqwFu_VSLn89gn_XBo+-uQ@mail.gmail.com>
+Content-Type: multipart/mixed;
+ boundary="------------456D35A4F606E4BE60E3CBC6"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: Masahiro Yamada <yamada.masahiro@socionext.com>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>, kbuild test robot <fengguang.wu@intel.com>, Josh Triplett <josh@joshtriplett.org>, Nicolas Pitre <nicolas.pitre@linaro.org>
-Message-ID: <20170621214443.yODaRENQ7KwpXhsj32oF5T4pu-sjubKl_7eBkylAnIk@z>
+To: Masahiro Yamada <yamada.masahiro@socionext.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, linux-sh@vger.kernel.org, Rich Felker <dalias@libc.org>
+Cc: Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Nicholas Piggin <npiggin@gmail.com>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20170621220906.YbODRh-tlmdYi2nxpgIaUrMPmGgNb4_EFKMo7GLzPVo@z>
 
-On Wed, Jun 21, 2017 at 11:30 PM, Nicholas Piggin <npiggin@gmail.com> wrote:
-> On Wed, 21 Jun 2017 22:52:25 +0200
-> Arnd Bergmann <arnd@arndb.de> wrote:
->
->> On Wed, Jun 21, 2017 at 1:32 PM, Arnd Bergmann <arnd@arndb.de> wrote:
->> > On Wed, Jun 21, 2017 at 1:10 PM, Nicholas Piggin <npiggin@gmail.com> wrote:
->> >> On Wed, 21 Jun 2017 12:49:10 +0200
->> > For my build testing, I have now reverted most of my patch and only
->> > left the 'select THIN_ARCHIVES'. I'll let you know if I run into problems.
+This is a multi-part message in MIME format.
+--------------456D35A4F606E4BE60E3CBC6
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+
+On 06/19/2017 01:19 AM, Masahiro Yamada wrote:
+> 2017-06-09 14:24 GMT+09:00 Nicholas Piggin <npiggin@gmail.com>:
+>> The VDSO symbols can't be linked into built-in.o when building with
+>> thin archives, so change this to linking them into the final link.
 >>
->> I just got one build failure on a randconfig build with THIN_ARCHIVES
->> but without LD_DCDE:
->>
->> /home/arnd/cross-gcc/bin/arm-linux-gnueabi-ld: section .data VMA
->> [0000000000808000,000000000096cc7f] overlaps section .text VMA
->> [0000000000080080,00000000008a8427]
->> /home/arnd/cross-gcc/bin/arm-linux-gnueabi-ld: section .rodata VMA
->> [00000000008a9000,0000000000ea216f] overlaps section .data VMA
->> [0000000000808000,000000000096cc7f]
->> /home/arnd/cross-gcc/bin/arm-linux-gnueabi-ld: section .bss VMA
->> [000000000096cd00,000000000157896f] overlaps section .rodata VMA
->> [00000000008a9000,0000000000ea216f]
->> /home/arnd/cross-gcc/bin/arm-linux-gnueabi-ld: section __param VMA
->> [0000000000ea2170,0000000000ea5257] overlaps section .bss VMA
->> [000000000096cd00,000000000157896f]
->>
->> haven't spent any time analyzing it further, maybe you can see right
->> away what caused this. If not, you could try the .config file at
->> https://pastebin.com/raw/YTZKH9Xe
->
-> It's due to vmlinux-xip.lds.S explicitly putting sections inside each
-> other
->
->         . = PAGE_OFFSET + TEXT_OFFSET;
->
-> Same config fails without thin archives for me.
->
-> If XIP can't place these dynamically, at least you should use an
-> ASSERT() linker script function if sizes overlap. E.g.,
->
->     ASSERT(. <= PAGE_OFFSET + TEXT_OFFSET, "kernel too big");
->     . = PAGE_OFFSET + TEXT_OFFSET;
->
+>> Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+>> Cc: Rich Felker <dalias@libc.org>
+>> Cc: linux-sh@vger.kernel.org
+>> Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+>> ---
+> 
+> SH maintainers, any comments for this patch?
+> 
+> 
+> I confirmed this patch solved the build error,
+> but I do not have access to any SH hardware.
 
-Right, makes sense. The linker error actually shows this quite clearly,
-though I wonder why I never saw that with my LD_DCDE patch.
-It's possible that the sections were always small enough in that
-case, but there is probably something else going on as well.
+You can build and boot the kernel under qemu for several architectures
+(including sh4) by following the instructions on:
 
-I'd like to end up with a version that lets me build randconfig kernels
-without warnings or errors (probably keeping LD_DCDE enabled
-is sufficient). I have to think about that some more, but for now
-this doesn't seem like a reason against doing THIN_ARCHIVES
-in mainline for ARM.
+  https://github.com/landley/mkroot
 
-       Arnd
+I believe I last built -rc6?
+
+You may need the attached patch to fix the serial port issue from:
+
+  https://www.spinics.net/lists/linux-serial/msg26085.html
+
+Which is still there because the kernel guys don't care that they broke
+qemu, and the qemu guys are still using old kernel versions that work
+fine. My patch just reverts the kernel change (which enabled hardware
+buffer logic qemu doesn't implement).
+
+Rob
+
+
+
+
+--------------456D35A4F606E4BE60E3CBC6
+Content-Type: text/x-diff;
+ name="qemu-sh4.patch"
+Content-Transfer-Encoding: 7bit
+Content-Disposition: attachment;
+ filename="qemu-sh4.patch"
+
+diff --git a/drivers/tty/serial/sh-sci.c b/drivers/tty/serial/sh-sci.c
+index 71707e8..a798def 100644
+--- a/drivers/tty/serial/sh-sci.c
++++ b/drivers/tty/serial/sh-sci.c
+@@ -2193,7 +2193,7 @@ static void sci_reset(struct uart_port *port)
+ 			setup_timer(&s->rx_fifo_timer, rx_fifo_timer_fn,
+ 				    (unsigned long)s);
+ 		} else {
+-			if (port->type == PORT_SCIFA ||
++			if (1 || port->type == PORT_SCIFA ||
+ 			    port->type == PORT_SCIFB)
+ 				scif_set_rtrg(port, 1);
+ 			else
+
+--------------456D35A4F606E4BE60E3CBC6--
