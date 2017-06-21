@@ -1,87 +1,65 @@
-From: Punit Agrawal <punit.agrawal@arm.com>
-Subject: Re: [PATCH v5 0/8] Support for contiguous pte hugepages
-Date: Wed, 21 Jun 2017 13:32:02 +0100
-Message-ID: <87fuety119.fsf@e105922-lin.cambridge.arm.com>
-References: <20170619170145.25577-1-punit.agrawal@arm.com>
-        <20170619150133.cb4173220e4e3abd02c6f6d0@linux-foundation.org>
-        <871sqezsk2.fsf@e105922-lin.cambridge.arm.com>
-        <20170620140831.6bd835649d475bcf30c3c434@linux-foundation.org>
+From: Tom Lendacky <thomas.lendacky@amd.com>
+Subject: Re: [PATCH v7 06/36] x86/mm: Add Secure Memory Encryption (SME)
+ support
+Date: Wed, 21 Jun 2017 08:26:44 -0500
+Message-ID: <efa51470-5d8f-6883-b9da-f2face12ea22@amd.com>
+References: <20170616184947.18967.84890.stgit@tlendack-t1.amdoffice.net>
+ <20170616185054.18967.52228.stgit@tlendack-t1.amdoffice.net>
+ <alpine.DEB.2.20.1706202244480.2157@nanos>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:52018 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751140AbdFUMcF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 21 Jun 2017 08:32:05 -0400
-In-Reply-To: <20170620140831.6bd835649d475bcf30c3c434@linux-foundation.org>
-        (Andrew Morton's message of "Tue, 20 Jun 2017 14:08:31 -0700")
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, will.deacon@arm.com, n-horiguchi@ah.jp.nec.com, kirill.shutemov@linux.intel.com, mike.kravetz@oracle.com, steve.capper@arm.com, mark.rutland@arm.com, linux-arch@vger.kernel.org, aneesh.kumar@linux.vnet.ibm.com
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <alpine.DEB.2.20.1706202244480.2157@nanos>
+Content-Language: en-US
+Sender: owner-linux-mm@kvack.org
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracl>
+List-Id: linux-arch.vger.kernel.org
 
-Andrew Morton <akpm@linux-foundation.org> writes:
+On 6/20/2017 3:49 PM, Thomas Gleixner wrote:
+> On Fri, 16 Jun 2017, Tom Lendacky wrote:
+>>   
+>> +config ARCH_HAS_MEM_ENCRYPT
+>> +	def_bool y
+>> +	depends on X86
+> 
+> That one is silly. The config switch is in the x86 KConfig file, so X86 is
+> on. If you intended to move this to some generic place outside of
+> x86/Kconfig then this should be
+> 
+> config ARCH_HAS_MEM_ENCRYPT
+> 	bool
+> 
+> and x86/Kconfig should have
+> 
+>      	select ARCH_HAS_MEM_ENCRYPT
+> 
+> and that should be selected by AMD_MEM_ENCRYPT
 
-> On Tue, 20 Jun 2017 14:39:57 +0100 Punit Agrawal <punit.agrawal@arm.com> wrote:
->
->> 
->> The architecture supports two flavours of hugepages -
->> 
->> * Block mappings at the pud/pmd level
->> 
->>   These are regular hugepages where a pmd or a pud page table entry
->>   points to a block of memory. Depending on the PAGE_SIZE in use the
->>   following size of block mappings are supported -
->> 
->>           PMD	PUD
->>           ---	---
->>   4K:      2M	 1G
->>   16K:    32M
->>   64K:   512M
->> 
->>   For certain applications/usecases such as HPC and large enterprise
->>   workloads, folks are using 64k page size but the minimum hugepage size
->>   of 512MB isn't very practical.
->> 
->> To overcome this ...
->> 
->> * Using the Contiguous bit
->> 
->>   The architecture provides a contiguous bit in the translation table
->>   entry which acts as a hint to the mmu to indicate that it is one of a
->>   contiguous set of entries that can be cached in a single TLB entry.
->> 
->>   We use the contiguous bit in Linux to increase the mapping size at the
->>   pmd and pte (last) level.
->> 
->>   The number of supported contiguous entries varies by page size and
->>   level of the page table.
->> 
->>   Using the contiguous bit allows additional hugepage sizes -
->> 
->>            CONT PTE    PMD    CONT PMD    PUD
->>            --------    ---    --------    ---
->>     4K:         64K     2M         32M     1G
->>     16K:         2M    32M          1G
->>     64K:         2M   512M         16G
->> 
->>   Of these, 64K with 4K and 2M with 64K pages have been explicitly
->>   requested by a few different users.
->> 
->> Entries with the contiguous bit set are required to be modified all
->> together - which makes things like memory poisoning and migration
->> impossible to do correctly without knowing the size of hugepage being
->> dealt with - the reason for adding size parameter to a few of the
->> hugepage helpers in this series.
->> 
->
-> Thanks, I added the above to the 1/n changelog.  Perhaps it's worth
-> adding something like this to Documentation/vm/hugetlbpage.txt.
-
-Yes, it would be useful to have this documented.
-
-I'll send a patch once the architecture bits for re-enabling contiguous
-hugepages are merged.
+This is used for deciding whether to include the asm/mem_encrypt.h file
+so it needs to be on whether AMD_MEM_ENCRYPT is configured or not. I'll
+leave it in the x86/Kconfig file and remove the depends on line.
 
 Thanks,
-Punit
+Tom
+
+> 
+>> +config AMD_MEM_ENCRYPT
+>> +	bool "AMD Secure Memory Encryption (SME) support"
+>> +	depends on X86_64 && CPU_SUP_AMD
+>> +	---help---
+>> +	  Say yes to enable support for the encryption of system memory.
+>> +	  This requires an AMD processor that supports Secure Memory
+>> +	  Encryption (SME).
+> 
+> Thanks,
+> 
+> 	tglx
+> 
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
