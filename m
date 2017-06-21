@@ -1,27 +1,38 @@
 From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH v7 10/36] x86/mm: Provide general kernel support for
- memory encryption
-Date: Wed, 21 Jun 2017 10:23:01 +0200
-Message-ID: <20170621082301.47lafavh6cstbwfl@pd.tnic>
+Subject: Re: [PATCH v7 20/36] x86, mpparse: Use memremap to map the mpf and
+ mpc data
+Date: Wed, 21 Jun 2017 10:39:18 +0200
+Message-ID: <20170621083918.oa2w5jsxs3si4oln@pd.tnic>
 References: <20170616184947.18967.84890.stgit@tlendack-t1.amdoffice.net>
- <20170616185140.18967.61905.stgit@tlendack-t1.amdoffice.net>
- <alpine.DEB.2.20.1706210916590.2328@nanos>
+ <20170616185338.18967.80659.stgit@tlendack-t1.amdoffice.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <alpine.DEB.2.20.1706210916590.2328@nanos>
+In-Reply-To: <20170616185338.18967.80659.stgit@tlendack-t1.amdoffice.net>
 Sender: owner-linux-mm@kvack.org
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Tom Lendacky <thomas.lendacky@amd.com>, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@or>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jun 21, 2017 at 09:18:59AM +0200, Thomas Gleixner wrote:
-> That looks wrong. It's not decrypted it's rather unencrypted, right?
+On Fri, Jun 16, 2017 at 01:53:38PM -0500, Tom Lendacky wrote:
+> The SMP MP-table is built by UEFI and placed in memory in a decrypted
+> state. These tables are accessed using a mix of early_memremap(),
+> early_memunmap(), phys_to_virt() and virt_to_phys(). Change all accesses
+> to use early_memremap()/early_memunmap(). This allows for proper setting
+> of the encryption mask so that the data can be successfully accessed when
+> SME is active.
+> 
+> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+> ---
+>  arch/x86/kernel/mpparse.c |   98 ++++++++++++++++++++++++++++++++-------------
+>  1 file changed, 70 insertions(+), 28 deletions(-)
 
-Yeah, it previous versions of the patchset, "decrypted" and
-"unencrypted" were both present so we settled on "decrypted" for the
-nomenclature.
+Reviewed-by: Borislav Petkov <bp@suse.de>
+
+Please put the conversion to pr_fmt() on the TODO list for later.
+
+Thanks.
 
 -- 
 Regards/Gruss,
