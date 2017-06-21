@@ -1,94 +1,110 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bl2nam02on0055.outbound.protection.outlook.com ([104.47.38.55]:19918
-        "EHLO NAM02-BL2-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752413AbdFUQWF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 21 Jun 2017 12:22:05 -0400
-Subject: Re: [PATCH v7 25/36] swiotlb: Add warnings for use of bounce buffers
- with SME
-References: <20170616184947.18967.84890.stgit@tlendack-t1.amdoffice.net>
- <20170616185435.18967.26665.stgit@tlendack-t1.amdoffice.net>
- <20170621105026.lcbtkklaenyi2wqe@pd.tnic>
-From: Tom Lendacky <thomas.lendacky@amd.com>
-Message-ID: <7b9f8b6d-60f2-0a78-b582-0821401d17eb@amd.com>
-Date: Wed, 21 Jun 2017 10:37:41 -0500
+Received: from smtp.codeaurora.org ([198.145.29.96]:43158 "EHLO
+        smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752828AbdFUQYk (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Jun 2017 12:24:40 -0400
+Date: Wed, 21 Jun 2017 09:19:13 -0700
+From: Stephen Boyd <sboyd@codeaurora.org>
+Subject: Re: [PATCH 1/5] kbuild: thin archives final link close
+ --whole-archives option
+Message-ID: <20170621161913.GY4493@codeaurora.org>
+References: <20170621140445.4d6fd92a@roar.ozlabs.ibm.com>
+ <CAK8P3a34gWKqPCFDAnWki4H-eyj50Xgar+YFT_+2Og-qJb_i8A@mail.gmail.com>
+ <20170621191607.33c8db74@roar.ozlabs.ibm.com>
+ <CAK8P3a0NT42HKOU+ZDRg_-1hA+RzYnL0RtzqbMsLbY=yTUxGRA@mail.gmail.com>
+ <20170621203824.719ffdc5@roar.ozlabs.ibm.com>
+ <CAK8P3a1o91guXimc99sY3UOUjKTX5QxhQyOfY+j-x7MMCdRbdw@mail.gmail.com>
+ <20170621211002.44525d9b@roar.ozlabs.ibm.com>
+ <CAK8P3a2A9fMrNZPWJft2t+52kmGkGgm3gv_fxJntjevWtJ69Zw@mail.gmail.com>
+ <20170621220213.2b33d56d@roar.ozlabs.ibm.com>
+ <CAK8P3a0nVPz=eLV8ET6BYR2Qs0H3PQZuhYsu4Cb_kJSPACrR9w@mail.gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <20170621105026.lcbtkklaenyi2wqe@pd.tnic>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAK8P3a0nVPz=eLV8ET6BYR2Qs0H3PQZuhYsu4Cb_kJSPACrR9w@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>
-Message-ID: <20170621153741.wT9thK5cH7hLpR0JSAe-iIu739IsPM9rfjDBzqI_C48@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Nicholas Piggin <npiggin@gmail.com>, Masahiro Yamada <yamada.masahiro@socionext.com>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>, kbuild test robot <fengguang.wu@intel.com>, Josh Triplett <josh@joshtriplett.org>, Nicolas Pitre <nicolas.pitre@linaro.org>, Maxime Ripard <maxime.ripard@free-electrons.com>
+Message-ID: <20170621161913.4Fw-QCk3ZnsWrjol_8ngV5h9yn58felO9_sBCfn0mvA@z>
 
-On 6/21/2017 5:50 AM, Borislav Petkov wrote:
-> On Fri, Jun 16, 2017 at 01:54:36PM -0500, Tom Lendacky wrote:
->> Add warnings to let the user know when bounce buffers are being used for
->> DMA when SME is active.  Since the bounce buffers are not in encrypted
->> memory, these notifications are to allow the user to determine some
->> appropriate action - if necessary.  Actions can range from utilizing an
->> IOMMU, replacing the device with another device that can support 64-bit
->> DMA, ignoring the message if the device isn't used much, etc.
->>
->> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
->> ---
->>   include/linux/dma-mapping.h |   11 +++++++++++
->>   include/linux/mem_encrypt.h |    8 ++++++++
->>   lib/swiotlb.c               |    3 +++
->>   3 files changed, 22 insertions(+)
->>
->> diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
->> index 4f3eece..ee2307e 100644
->> --- a/include/linux/dma-mapping.h
->> +++ b/include/linux/dma-mapping.h
->> @@ -10,6 +10,7 @@
->>   #include <linux/scatterlist.h>
->>   #include <linux/kmemcheck.h>
->>   #include <linux/bug.h>
->> +#include <linux/mem_encrypt.h>
->>   
->>   /**
->>    * List of possible attributes associated with a DMA mapping. The semantics
->> @@ -577,6 +578,11 @@ static inline int dma_set_mask(struct device *dev, u64 mask)
->>   
->>   	if (!dev->dma_mask || !dma_supported(dev, mask))
->>   		return -EIO;
->> +
->> +	/* Since mask is unsigned, this can only be true if SME is active */
->> +	if (mask < sme_dma_mask())
->> +		dev_warn(dev, "SME is active, device will require DMA bounce buffers\n");
->> +
->>   	*dev->dma_mask = mask;
->>   	return 0;
->>   }
->> @@ -596,6 +602,11 @@ static inline int dma_set_coherent_mask(struct device *dev, u64 mask)
->>   {
->>   	if (!dma_supported(dev, mask))
->>   		return -EIO;
->> +
->> +	/* Since mask is unsigned, this can only be true if SME is active */
->> +	if (mask < sme_dma_mask())
->> +		dev_warn(dev, "SME is active, device will require DMA bounce buffers\n");
+On 06/21, Arnd Bergmann wrote:
+> On Wed, Jun 21, 2017 at 2:02 PM, Nicholas Piggin <npiggin@gmail.com> wrote:
+> > On Wed, 21 Jun 2017 13:32:17 +0200
+> > Arnd Bergmann <arnd@arndb.de> wrote:
+> >
+> >> On Wed, Jun 21, 2017 at 1:10 PM, Nicholas Piggin <npiggin@gmail.com> wrote:
+> >> > On Wed, 21 Jun 2017 12:49:10 +0200
+> >> > Arnd Bergmann <arnd@arndb.de> wrote:
+> >> >
+> >> >> On Wed, Jun 21, 2017 at 12:38 PM, Nicholas Piggin <npiggin@gmail.com> wrote:
+> >> >> > On Wed, 21 Jun 2017 12:21:16 +0200
+> >> >> > Arnd Bergmann <arnd@arndb.de> wrote:
+> >> >> >
+> >> >>
+> >> >> I'm building on top of yesterday's linux-next at the moment,
+> >> >> with a number of my own patches applied
+> >> >>
+> >> >> > I can take a look at ARM and try to get it at least to parity with
+> >> >> > incremental link. Any particular config options required?
+> >> >>
+> >> >> This is the patch I am testing with:
+> >> >>
+> >> >> https://pastebin.com/HQuhCEmK
+> >> >> I have not looked at that in a while, no idea if it works, or
+> >> >> if it has known problems.
+> >> >>
+> >> >> I last posted the patch in March for discussion:
+> >> >>
+> >> >> https://patchwork.kernel.org/patch/9626207/
+> >> >
+> >> > Well I just mean the stuff now in kbuild/thin-ac, not the LD_DCDE.
+> >> > Just want to try getting thin archives up to a point where there are
+> >> > no serious regressions first.
+> >>
+> >> For my build testing, I have now reverted most of my patch and only
+> >> left the 'select THIN_ARCHIVES'. I'll let you know if I run into problems.
+> >
+> > Okay. Currently with the patches in the kbuild tree, thin archives
+> > actually does better than incremental linking for ARM (defconfig).
+> >
+> > 11651574        6090952  418616 18161142        1151df6 vmlinux.thinarc
+> > 11656118        6095208  418952 18170278        11541a6 vmlinux.inc
+> >
+> > In mainline, thin archives is sub-optimal for lib-y libraries (just
+> > pulls them all in). But now that I test it, even that is better than
+> > incremental linking for ARM:
+> >
+> > 11653926        6090888  418620 18163434        11526ea vmlinux.thinarc
+> >
+> > I haven't grabbed that "clk: sunxi-ng: Move all clock types to a library"
+> > patch yet to check. What tree is it in? I wonder if I could convince you
+> > to drop that for now and bring it up on linux-kernel/linux-kbuild? I
+> > think it's quite reasonable to reduce Kconfig hell of very fine grained
+> > conditional compilation/linking if we can make the toolchain do it for
+> > us. So we should consider how to support it nicely rather than having
+> > such hacks IMO.
 > 
-> Looks to me like those two checks above need to be a:
+> [adding Maxime and Stephen to cc]
 > 
-> void sme_check_mask(struct device *dev, u64 mask)
-> {
->          if (!sme_me_mask)
->                  return;
+> Stephen,
 > 
->          /* Since mask is unsigned, this can only be true if SME is active */
->          if (mask < (((u64)sme_me_mask << 1) - 1))
->                  dev_warn(dev, "SME is active, device will require DMA bounce buffers\n");
-> }
+> The hack has come to bite us after all, with Nick's proposed change to
+> CONFIG_THIN_ARCHIVES for all architectures, the entire lib.a file will
+> end up being linked into each kernel that enables the directory.
 > 
-> which gets called and sme_dma_mask() is not really needed.
+> I'm out of other ideas for fixing it, so it seems better to revert back to
+> individual Kconfig options. Once we enable
+> CONFIG_LD_DEAD_CODE_DATA_ELIMINATION (which is the
+> next step after CONFIG_THIN_ARCHIVES), we can simply list
+> all files, and the linker will drop all unused functions by itself.
+> 
 
-Makes a lot of sense, I'll update the patch.
+Ok. Can you send a revert patch to the list with some information
+on why we can't do the hack anymore and also Cc lkml/kbuild
+lists? The commit is in linux-next now as commit 06e226c7fb23
+(clk: sunxi-ng: Move all clock types to a library, 2017-06-02).
 
-Thanks,
-Tom
-
-> 
+-- 
+Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum,
+a Linux Foundation Collaborative Project
