@@ -1,54 +1,115 @@
-From: Arnd Bergmann <arnd@arndb.de>
+From: Nicholas Piggin <npiggin@gmail.com>
 Subject: Re: [PATCH 1/5] kbuild: thin archives final link close
  --whole-archives option
-Date: Wed, 21 Jun 2017 12:51:20 +0200
-Message-ID: <CAK8P3a2MB37oqB2PerOtnjhp-NW+oKMsE1Vm7M4=zrJEL9nM9w@mail.gmail.com>
-References: <20170609052417.561-1-npiggin@gmail.com> <20170609052417.561-2-npiggin@gmail.com>
- <CAK7LNASxuE-6eMk+Y-vyrMfibtYoD2JkjNS2z8QF85x9NdiiaA@mail.gmail.com>
- <20170619165100.3ce26d00@roar.ozlabs.ibm.com> <CAK7LNARuuQzGkYBdzoy3bVpBuNPZEMGerHSEdmrH+PqK0Gbyzg@mail.gmail.com>
- <20170619182714.2cb60e17@roar.ozlabs.ibm.com> <CAK7LNATznx=5A1KnhkFHpjencsJj7AGUsHtDUu6M-Qkw=jvpPQ@mail.gmail.com>
- <20170620015205.329519b2@roar.ozlabs.ibm.com> <CAK7LNAS6zucv54-XwqfTbm=y20eFVQYLwgsVCdtS7mYknsYK+Q@mail.gmail.com>
- <20170621124708.6bce7692@roar.ozlabs.ibm.com> <CAK7LNATPyoVcsDtFjRhdmFh7v_HE9F=2GVX=z+XVWV2fXsEukA@mail.gmail.com>
- <20170621140445.4d6fd92a@roar.ozlabs.ibm.com> <CAK8P3a34gWKqPCFDAnWki4H-eyj50Xgar+YFT_+2Og-qJb_i8A@mail.gmail.com>
- <20170621191607.33c8db74@roar.ozlabs.ibm.com> <CAK8P3a0NT42HKOU+ZDRg_-1hA+RzYnL0RtzqbMsLbY=yTUxGRA@mail.gmail.com>
- <20170621203824.719ffdc5@roar.ozlabs.ibm.com> <CAK8P3a1o91guXimc99sY3UOUjKTX5QxhQyOfY+j-x7MMCdRbdw@mail.gmail.com>
+Date: Wed, 21 Jun 2017 21:10:02 +1000
+Message-ID: <20170621211002.44525d9b@roar.ozlabs.ibm.com>
+References: <20170609052417.561-1-npiggin@gmail.com>
+        <20170609052417.561-2-npiggin@gmail.com>
+        <CAK7LNASxuE-6eMk+Y-vyrMfibtYoD2JkjNS2z8QF85x9NdiiaA@mail.gmail.com>
+        <20170619165100.3ce26d00@roar.ozlabs.ibm.com>
+        <CAK7LNARuuQzGkYBdzoy3bVpBuNPZEMGerHSEdmrH+PqK0Gbyzg@mail.gmail.com>
+        <20170619182714.2cb60e17@roar.ozlabs.ibm.com>
+        <CAK7LNATznx=5A1KnhkFHpjencsJj7AGUsHtDUu6M-Qkw=jvpPQ@mail.gmail.com>
+        <20170620015205.329519b2@roar.ozlabs.ibm.com>
+        <CAK7LNAS6zucv54-XwqfTbm=y20eFVQYLwgsVCdtS7mYknsYK+Q@mail.gmail.com>
+        <20170621124708.6bce7692@roar.ozlabs.ibm.com>
+        <CAK7LNATPyoVcsDtFjRhdmFh7v_HE9F=2GVX=z+XVWV2fXsEukA@mail.gmail.com>
+        <20170621140445.4d6fd92a@roar.ozlabs.ibm.com>
+        <CAK8P3a34gWKqPCFDAnWki4H-eyj50Xgar+YFT_+2Og-qJb_i8A@mail.gmail.com>
+        <20170621191607.33c8db74@roar.ozlabs.ibm.com>
+        <CAK8P3a0NT42HKOU+ZDRg_-1hA+RzYnL0RtzqbMsLbY=yTUxGRA@mail.gmail.com>
+        <20170621203824.719ffdc5@roar.ozlabs.ibm.com>
+        <CAK8P3a1o91guXimc99sY3UOUjKTX5QxhQyOfY+j-x7MMCdRbdw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot0-f195.google.com ([74.125.82.195]:34842 "EHLO
-        mail-ot0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750823AbdFUKvV (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Jun 2017 06:51:21 -0400
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kbuild-owner@vger.kernel.org>
 In-Reply-To: <CAK8P3a1o91guXimc99sY3UOUjKTX5QxhQyOfY+j-x7MMCdRbdw@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
 Cc: Masahiro Yamada <yamada.masahiro@socionext.com>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>, kbuild test robot <fengguang.wu@intel.com>, Josh Triplett <josh@joshtriplett.org>, Nicolas Pitre <nicolas.pitre@linaro.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jun 21, 2017 at 12:49 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+On Wed, 21 Jun 2017 12:49:10 +0200
+Arnd Bergmann <arnd@arndb.de> wrote:
+
 > On Wed, Jun 21, 2017 at 12:38 PM, Nicholas Piggin <npiggin@gmail.com> wrote:
->> On Wed, 21 Jun 2017 12:21:16 +0200
->> Arnd Bergmann <arnd@arndb.de> wrote:
+> > On Wed, 21 Jun 2017 12:21:16 +0200
+> > Arnd Bergmann <arnd@arndb.de> wrote:
+> >  
+> >> On Wed, Jun 21, 2017 at 11:16 AM, Nicholas Piggin <npiggin@gmail.com> wrote:  
+> >> > On Wed, 21 Jun 2017 09:15:09 +0200
+> >> > Arnd Bergmann <arnd@arndb.de> wrote:
+> >> >  
+> >> >> On Wed, Jun 21, 2017 at 6:04 AM, Nicholas Piggin <npiggin@gmail.com> wrote:  
+> >> >> > On Wed, 21 Jun 2017 12:29:33 +0900
+> >> >> > Masahiro Yamada <yamada.masahiro@socionext.com> wrote:  
+> >> >>  
+> >> >> >> BTW, I saw abuse of lib.a in
+> >> >> >> https://patchwork.kernel.org/patch/9768439/
+> >> >> >>
+> >> >> >> I see it in linux-next.
+> >> >> >>
+> >> >> >> commit 06e226c7fb233f676b01b144d0b321ebe510fdcd
+> >> >> >> Author: Stephen Boyd <sboyd@codeaurora.org>
+> >> >> >> Date:   Fri Jun 2 15:30:06 2017 -0700
+> >> >> >>
+> >> >> >>     clk: sunxi-ng: Move all clock types to a library
+> >> >> >>
+> >> >> >>
+> >> >> >>
+> >> >> >>
+> >> >> >> Now drivers/clk/sunxi-ng/lib.a
+> >> >> >> will go into thin archives.
+> >> >> >> The result might be different from what they expect...  
+> >> >> >
+> >> >> > Yes I see. With thin archives, that is just going to cause the
+> >> >> > same behaviour as built-in.o (everything will be linked). So the
+> >> >> > build should not break, but they won't get savings.
+> >> >> >
+> >> >> > Does it even save space with incremental linking? If the lib.a gets
+> >> >> > linked into drivers/built-in.o, I wonder what happens then?  
+> >> >>
+> >> >> Ah, too bad. I thought we had found a way to use a library correctly
+> >> >> here, but I just verified that indeed all the just gets linked into built-in.o
+> >> >>
+> >> >> I played around with it some more now, but without success: if I
+> >> >> build sunxi-ng as a loadable module (using a few modifications),
+> >> >> then the unneeded objects from lib.a are dropped as I had hoped,
+> >> >> but for built-in code we now always include everything.
+> >> >>
+> >> >> I suppose that we can ignore this once we get
+> >> >> LD_DEAD_CODE_DATA_ELIMINATION enabled on ARM, but
+> >> >> until then, we have a code size regression.  
+> >> >
+> >> > I didn't follow the thread there, is it a regression caused by
+> >> > thin archives, or just by removing the Kconfig symbol from each
+> >> > file?  
+> >>
+> >> I thought it was the latter, but actually it only happens with thin
+> >> archives,  
+> >
+> > Is this including these changes now in the kbuild tree?  
+> 
+> I'm building on top of yesterday's linux-next at the moment,
+> with a number of my own patches applied
+> 
+> > I can take a look at ARM and try to get it at least to parity with
+> > incremental link. Any particular config options required?  
+> 
+> This is the patch I am testing with:
+> 
+> https://pastebin.com/HQuhCEmK
+> I have not looked at that in a while, no idea if it works, or
+> if it has known problems.
+> 
+> I last posted the patch in March for discussion:
+> 
+> https://patchwork.kernel.org/patch/9626207/
 
->>> so we are fine as long as we enable THIN_ARCHIVES
->>> and LD_DEAD_CODE_DATA_ELIMINATION at the same time
->>> on ARM.
->>
->> Well the current proposal is to unconditionally enable it for all archs
->> for 4.13. After that I'll submit patches to x86 and powerpc arch
->> maintainers to allow LD_DEAD_CODE_DATA_ELIMINATION as an option. I guess
->> you will do ARM and there have been MIPS guys looking at it too.
->>
->> That leaves a window of one release. ARM could unselect thin archives if
->> necessary but I think it would be much better to enable it and flush out
->> any toolchain and build issues before doing the LD_DCDE option. Disabling
->> should be a last resort if we can't fix something in time for release.
->
-> I see.
+Well I just mean the stuff now in kbuild/thin-ac, not the LD_DCDE.
+Just want to try getting thin archives up to a point where there are
+no serious regressions first.
 
-[hit 'send' too early]
-
-We can always revert 06e226c7fb23 ("clk: sunxi-ng: Move all clock types to a
-library"), it's also scheduled for 4.13 and has not been in a release yet.
-
-       Arnd
+Thanks,
+Nick
