@@ -1,71 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from conssluserg-04.nifty.com ([210.131.2.83]:43986 "EHLO
-        conssluserg-04.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751175AbdFUD3i (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 20 Jun 2017 23:29:38 -0400
+Received: from mail-oi0-f66.google.com ([209.85.218.66]:33853 "EHLO
+        mail-oi0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750987AbdFUHPL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Jun 2017 03:15:11 -0400
 MIME-Version: 1.0
-In-Reply-To: <20170621124708.6bce7692@roar.ozlabs.ibm.com>
+In-Reply-To: <20170621140445.4d6fd92a@roar.ozlabs.ibm.com>
 References: <20170609052417.561-1-npiggin@gmail.com> <20170609052417.561-2-npiggin@gmail.com>
  <CAK7LNASxuE-6eMk+Y-vyrMfibtYoD2JkjNS2z8QF85x9NdiiaA@mail.gmail.com>
  <20170619165100.3ce26d00@roar.ozlabs.ibm.com> <CAK7LNARuuQzGkYBdzoy3bVpBuNPZEMGerHSEdmrH+PqK0Gbyzg@mail.gmail.com>
  <20170619182714.2cb60e17@roar.ozlabs.ibm.com> <CAK7LNATznx=5A1KnhkFHpjencsJj7AGUsHtDUu6M-Qkw=jvpPQ@mail.gmail.com>
  <20170620015205.329519b2@roar.ozlabs.ibm.com> <CAK7LNAS6zucv54-XwqfTbm=y20eFVQYLwgsVCdtS7mYknsYK+Q@mail.gmail.com>
- <20170621124708.6bce7692@roar.ozlabs.ibm.com>
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Date: Wed, 21 Jun 2017 12:29:33 +0900
-Message-ID: <CAK7LNATPyoVcsDtFjRhdmFh7v_HE9F=2GVX=z+XVWV2fXsEukA@mail.gmail.com>
+ <20170621124708.6bce7692@roar.ozlabs.ibm.com> <CAK7LNATPyoVcsDtFjRhdmFh7v_HE9F=2GVX=z+XVWV2fXsEukA@mail.gmail.com>
+ <20170621140445.4d6fd92a@roar.ozlabs.ibm.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Wed, 21 Jun 2017 09:15:09 +0200
+Message-ID: <CAK8P3a34gWKqPCFDAnWki4H-eyj50Xgar+YFT_+2Og-qJb_i8A@mail.gmail.com>
 Subject: Re: [PATCH 1/5] kbuild: thin archives final link close
  --whole-archives option
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Nicholas Piggin <npiggin@gmail.com>
-Cc: Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>, kbuild test robot <fengguang.wu@intel.com>, Josh Triplett <josh@joshtriplett.org>
-Message-ID: <20170621032933.H08z74VYbkx95IgGc65PdEQ7PVEFcXD99aXDYd9AG8k@z>
+Cc: Masahiro Yamada <yamada.masahiro@socionext.com>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>, kbuild test robot <fengguang.wu@intel.com>, Josh Triplett <josh@joshtriplett.org>, Nicolas Pitre <nicolas.pitre@linaro.org>
+Message-ID: <20170621071509.9RFNrweucK43tgpq7Kw2rpz2J9D1dXcZ8czAFTcxI-A@z>
 
-Hi Nicholas,
+On Wed, Jun 21, 2017 at 6:04 AM, Nicholas Piggin <npiggin@gmail.com> wrote:
+> On Wed, 21 Jun 2017 12:29:33 +0900
+> Masahiro Yamada <yamada.masahiro@socionext.com> wrote:
 
-
-2017-06-21 11:47 GMT+09:00 Nicholas Piggin <npiggin@gmail.com>:
-> I wonder if the names could be a bit more descriptive?
+>> BTW, I saw abuse of lib.a in
+>> https://patchwork.kernel.org/patch/9768439/
+>>
+>> I see it in linux-next.
+>>
+>> commit 06e226c7fb233f676b01b144d0b321ebe510fdcd
+>> Author: Stephen Boyd <sboyd@codeaurora.org>
+>> Date:   Fri Jun 2 15:30:06 2017 -0700
+>>
+>>     clk: sunxi-ng: Move all clock types to a library
+>>
+>>
+>>
+>>
+>> Now drivers/clk/sunxi-ng/lib.a
+>> will go into thin archives.
+>> The result might be different from what they expect...
 >
-> libs-y-liba
-> libs-y-builtin
+> Yes I see. With thin archives, that is just going to cause the
+> same behaviour as built-in.o (everything will be linked). So the
+> build should not break, but they won't get savings.
 >
-> ?
+> Does it even save space with incremental linking? If the lib.a gets
+> linked into drivers/built-in.o, I wonder what happens then?
 
-I do not have a strong opinion.  Either way sounds OK to me.
-If you like, I can fix it up.
+Ah, too bad. I thought we had found a way to use a library correctly
+here, but I just verified that indeed all the just gets linked into built-in.o
 
+I played around with it some more now, but without success: if I
+build sunxi-ng as a loadable module (using a few modifications),
+then the unneeded objects from lib.a are dropped as I had hoped,
+but for built-in code we now always include everything.
 
-I think you mentioned LD_DEAD_CODE_DATA_ELIMINATION is under way for
-ARM and x86.
-If we can switch all architectures, lib.a will turn into built-in.o.  Correct?
-(I am not sure how difficult the global conversion is.)
+I suppose that we can ignore this once we get
+LD_DEAD_CODE_DATA_ELIMINATION enabled on ARM, but
+until then, we have a code size regression. Any other ideas for
+how this could be solved? We used to have a Kconfig symbol
+for each file, but those would frequently get out of sync.
 
-
-
-
-BTW, I saw abuse of lib.a in
-https://patchwork.kernel.org/patch/9768439/
-
-I see it in linux-next.
-
-commit 06e226c7fb233f676b01b144d0b321ebe510fdcd
-Author: Stephen Boyd <sboyd@codeaurora.org>
-Date:   Fri Jun 2 15:30:06 2017 -0700
-
-    clk: sunxi-ng: Move all clock types to a library
-
-
-
-
-Now drivers/clk/sunxi-ng/lib.a
-will go into thin archives.
-The result might be different from what they expect...
-
-
-
--- 
-Best Regards
-Masahiro Yamada
+         Arnd
