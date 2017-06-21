@@ -1,57 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay4.synopsys.com ([198.182.47.9]:60059 "EHLO
-        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752620AbdFUQZj (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Jun 2017 12:25:39 -0400
-Subject: Re: [PATCHv2 1/3] x86/mm: Provide pmdp_establish() helper
-References: <20170615145224.66200-1-kirill.shutemov@linux.intel.com>
- <20170615145224.66200-2-kirill.shutemov@linux.intel.com>
- <20170619152228.GE3024@e104818-lin.cambridge.arm.com>
- <20170619160005.wgj4nymtj2nntfll@node.shutemov.name>
- <20170619170911.GF3024@e104818-lin.cambridge.arm.com>
- <20170619215210.2crwjou3sfdcj73d@node.shutemov.name>
- <20170620155438.GC21383@e104818-lin.cambridge.arm.com>
- <20170621095303.q5fqt5a3ao5smko6@node.shutemov.name>
- <20170621112702.GC10220@e104818-lin.cambridge.arm.com>
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Message-ID: <1af1738a-88a7-987c-eca7-2118d66514e1@synopsys.com>
-Date: Wed, 21 Jun 2017 08:49:03 -0700
+Received: from Galois.linutronix.de ([146.0.238.70]:51239 "EHLO
+        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752552AbdFUQeK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Jun 2017 12:34:10 -0400
+Date: Wed, 21 Jun 2017 17:38:04 +0200 (CEST)
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH v7 08/36] x86/mm: Add support to enable SME in early boot
+ processing
+In-Reply-To: <8d3c215f-cdad-5554-6e9c-5598e1081850@amd.com>
+Message-ID: <alpine.DEB.2.20.1706211720060.2328@nanos>
+References: <20170616184947.18967.84890.stgit@tlendack-t1.amdoffice.net> <20170616185115.18967.79622.stgit@tlendack-t1.amdoffice.net> <alpine.DEB.2.20.1706202259290.2157@nanos> <8d3c215f-cdad-5554-6e9c-5598e1081850@amd.com>
 MIME-Version: 1.0
-In-Reply-To: <20170621112702.GC10220@e104818-lin.cambridge.arm.com>
-Content-Type: text/plain; charset="utf-8"; format=flowed
-Content-Transfer-Encoding: 7bit
-Content-Language: en-US
+Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>, "Kirill A. Shutemov" <kirill@shutemov.name>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, Ralf Baechle <ralf@linux-mips.org>, "David S. Miller" <davem@davemloft.net>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andrea Arcangeli <aarcange@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>
-Message-ID: <20170621154903.b47l3VTBua7ZxB8rDqpt8nxQsEd6qz6G8ST1nFzLAIU@z>
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, =?ISO-8859-2?Q?Radim_Kr=E8m=E1=F8?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Paolo Bonzini <pbonzini@redhat.com>
+Message-ID: <20170621153804.uWWp7Fr6nxjMKf5c2cLAig61l4rkuE6Tmg8KETDAKEI@z>
 
-On 06/21/2017 04:27 AM, Catalin Marinas wrote:
-> On Wed, Jun 21, 2017 at 12:53:03PM +0300, Kirill A. Shutemov wrote:
->>>>>>> On Thu, Jun 15, 2017 at 05:52:22PM +0300, Kirill A. Shutemov wrote:
->>>>>>>> We need an atomic way to setup pmd page table entry, avoiding races with
->>>>>>>> CPU setting dirty/accessed bits. This is required to implement
->>>>>>>> pmdp_invalidate() that doesn't loose these bits.
-> [...]
->> Any chance you could help me with arm too?
-> On arm (ARMv7 with LPAE) we don't have hardware updates of the
-> access/dirty bits, so a generic implementation would suffice. I didn't
-> find one in your patches, so here's an untested version:
->
-> static inline pmd_t pmdp_establish(struct mm_struct *mm, unsigned long address,
-> 				   pmd_t *pmdp, pmd_t pmd)
-> {
-> 	pmd_t old_pmd = *pmdp;
-> 	set_pmd_at(mm, address, pmdp, pmd);
-> 	return old_pmd;
-> }
+On Wed, 21 Jun 2017, Tom Lendacky wrote:
+> On 6/21/2017 2:16 AM, Thomas Gleixner wrote:
+> > Why is this an unconditional function? Isn't the mask simply 0 when the MEM
+> > ENCRYPT support is disabled?
+> 
+> I made it unconditional because of the call from head_64.S. I can't make
+> use of the C level static inline function and since the mask is not a
+> variable if CONFIG_AMD_MEM_ENCRYPT is not configured (#defined to 0) I
+> can't reference the variable directly.
+> 
+> I could create a #define in head_64.S that changes this to load rax with
+> the variable if CONFIG_AMD_MEM_ENCRYPT is configured or a zero if it's
+> not or add a #ifdef at that point in the code directly. Thoughts on
+> that?
 
-So it seems the discussions have settled down and pmdp_establish() can be 
-implemented in generic way as above and it will suffice if arch doesn't have a 
-special need. It would be nice to add the comment above generic version that it 
-only needs to be implemented if hardware sets the accessed/dirty bits !
+See below.
 
-Then nothing special is needed for ARC - right ?
+> > That does not make any sense. Neither the call to sme_encrypt_kernel() nor
+> > the following call to sme_get_me_mask().
+> > 
+> > __startup_64() is already C code, so why can't you simply call that from
+> > __startup_64() in C and return the mask from there?
+> 
+> I was trying to keep it explicit as to what was happening, but I can
+> move those calls into __startup_64().
 
--Vineet
+That's much preferred. And the return value wants to be documented in both
+C and ASM code.
+
+> I'll still need the call to sme_get_me_mask() in the secondary_startup_64
+> path, though (depending on your thoughts to the above response).
+
+        call verify_cpu
+
+        movq    $(init_top_pgt - __START_KERNEL_map), %rax
+
+So if you make that:
+
+	/*
+	 * Sanitize CPU configuration and retrieve the modifier
+	 * for the initial pgdir entry which will be programmed
+	 * into CR3. Depends on enabled SME encryption, normally 0.
+	 */
+	call __startup_secondary_64
+
+        addq    $(init_top_pgt - __START_KERNEL_map), %rax
+
+You can hide that stuff in C-code nicely without adding any cruft to the
+ASM code.
+
+Thanks,
+
+	tglx
