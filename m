@@ -1,48 +1,117 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f182.google.com ([209.85.128.182]:33685 "EHLO
-        mail-wr0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752993AbdFVLEN (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Jun 2017 07:04:13 -0400
-Received: by mail-wr0-f182.google.com with SMTP id r103so18494932wrb.0
-        for <linux-arch@vger.kernel.org>; Thu, 22 Jun 2017 04:04:13 -0700 (PDT)
-Date: Thu, 22 Jun 2017 12:04:05 +0100
-From: Matt Fleming <matt@codeblueprint.co.uk>
-Subject: Re: [PATCH v7 19/36] x86/mm: Add support to access boot related data
- in the clear
-Message-ID: <20170622110405.GC3129@codeblueprint.co.uk>
-References: <20170616184947.18967.84890.stgit@tlendack-t1.amdoffice.net>
- <20170616185326.18967.43278.stgit@tlendack-t1.amdoffice.net>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20170616185326.18967.43278.stgit@tlendack-t1.amdoffice.net>
+Received: from mga07.intel.com ([134.134.136.100]:38918 "EHLO mga07.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752675AbdFVM0m (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 22 Jun 2017 08:26:42 -0400
+From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Subject: [PATCH 2/5] x86/mm: Rename tasksize_32bit/64bit to task_size_32bit/64bit
+Date: Thu, 22 Jun 2017 15:26:05 +0300
+Message-ID: <20170622122608.80435-3-kirill.shutemov@linux.intel.com>
+In-Reply-To: <20170622122608.80435-1-kirill.shutemov@linux.intel.com>
+References: <20170622122608.80435-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>
-Message-ID: <20170622110405.YgG_BjTts_nQ5A2rg82Gqen0i5IkdGkJuxO4Pa5W204@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Message-ID: <20170622122605.11wReDumJF7ljzNbOr57XufUHK-3VTKG3xCyOdaFoz8@z>
 
-On Fri, 16 Jun, at 01:53:26PM, Tom Lendacky wrote:
-> Boot data (such as EFI related data) is not encrypted when the system is
-> booted because UEFI/BIOS does not run with SME active. In order to access
-> this data properly it needs to be mapped decrypted.
-> 
-> Update early_memremap() to provide an arch specific routine to modify the
-> pagetable protection attributes before they are applied to the new
-> mapping. This is used to remove the encryption mask for boot related data.
-> 
-> Update memremap() to provide an arch specific routine to determine if RAM
-> remapping is allowed.  RAM remapping will cause an encrypted mapping to be
-> generated. By preventing RAM remapping, ioremap_cache() will be used
-> instead, which will provide a decrypted mapping of the boot related data.
-> 
-> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
-> ---
->  arch/x86/include/asm/io.h |    5 +
->  arch/x86/mm/ioremap.c     |  179 +++++++++++++++++++++++++++++++++++++++++++++
->  include/linux/io.h        |    2 +
->  kernel/memremap.c         |   20 ++++-
->  mm/early_ioremap.c        |   18 ++++-
->  5 files changed, 217 insertions(+), 7 deletions(-)
+Rename these helpers to be consistent with spelling of TASK_SIZE and
+related constants.
 
-Reviewed-by: Matt Fleming <matt@codeblueprint.co.uk>
+Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+---
+ arch/x86/include/asm/elf.h   |  4 ++--
+ arch/x86/kernel/sys_x86_64.c |  2 +-
+ arch/x86/mm/hugetlbpage.c    |  2 +-
+ arch/x86/mm/mmap.c           | 10 +++++-----
+ 4 files changed, 9 insertions(+), 9 deletions(-)
+
+diff --git a/arch/x86/include/asm/elf.h b/arch/x86/include/asm/elf.h
+index e8ab9a46bc68..e68e9ff588c8 100644
+--- a/arch/x86/include/asm/elf.h
++++ b/arch/x86/include/asm/elf.h
+@@ -303,8 +303,8 @@ static inline int mmap_is_ia32(void)
+ 		test_thread_flag(TIF_ADDR32));
+ }
+ 
+-extern unsigned long tasksize_32bit(void);
+-extern unsigned long tasksize_64bit(void);
++extern unsigned long task_size_32bit(void);
++extern unsigned long task_size_64bit(void);
+ extern unsigned long get_mmap_base(int is_legacy);
+ 
+ #ifdef CONFIG_X86_32
+diff --git a/arch/x86/kernel/sys_x86_64.c b/arch/x86/kernel/sys_x86_64.c
+index 213ddf3e937d..89bd0d6460e1 100644
+--- a/arch/x86/kernel/sys_x86_64.c
++++ b/arch/x86/kernel/sys_x86_64.c
+@@ -120,7 +120,7 @@ static void find_start_end(unsigned long flags, unsigned long *begin,
+ 	}
+ 
+ 	*begin	= get_mmap_base(1);
+-	*end	= in_compat_syscall() ? tasksize_32bit() : tasksize_64bit();
++	*end	= in_compat_syscall() ? task_size_32bit() : task_size_64bit();
+ }
+ 
+ unsigned long
+diff --git a/arch/x86/mm/hugetlbpage.c b/arch/x86/mm/hugetlbpage.c
+index adad702b39cd..93bfd6d7ce1c 100644
+--- a/arch/x86/mm/hugetlbpage.c
++++ b/arch/x86/mm/hugetlbpage.c
+@@ -86,7 +86,7 @@ static unsigned long hugetlb_get_unmapped_area_bottomup(struct file *file,
+ 	info.length = len;
+ 	info.low_limit = get_mmap_base(1);
+ 	info.high_limit = in_compat_syscall() ?
+-		tasksize_32bit() : tasksize_64bit();
++		task_size_32bit() : task_size_64bit();
+ 	info.align_mask = PAGE_MASK & ~huge_page_mask(h);
+ 	info.align_offset = 0;
+ 	return vm_unmapped_area(&info);
+diff --git a/arch/x86/mm/mmap.c b/arch/x86/mm/mmap.c
+index 19ad095b41df..b99c1a29dcca 100644
+--- a/arch/x86/mm/mmap.c
++++ b/arch/x86/mm/mmap.c
+@@ -37,12 +37,12 @@ struct va_alignment __read_mostly va_align = {
+ 	.flags = -1,
+ };
+ 
+-unsigned long tasksize_32bit(void)
++unsigned long task_size_32bit(void)
+ {
+ 	return IA32_PAGE_OFFSET;
+ }
+ 
+-unsigned long tasksize_64bit(void)
++unsigned long task_size_64bit(void)
+ {
+ 	return TASK_SIZE_MAX;
+ }
+@@ -52,7 +52,7 @@ static unsigned long stack_maxrandom_size(unsigned long task_size)
+ 	unsigned long max = 0;
+ 	if ((current->flags & PF_RANDOMIZE) &&
+ 		!(current->personality & ADDR_NO_RANDOMIZE)) {
+-		max = (-1UL) & __STACK_RND_MASK(task_size == tasksize_32bit());
++		max = (-1UL) & __STACK_RND_MASK(task_size == task_size_32bit());
+ 		max <<= PAGE_SHIFT;
+ 	}
+ 
+@@ -140,7 +140,7 @@ void arch_pick_mmap_layout(struct mm_struct *mm)
+ 		mm->get_unmapped_area = arch_get_unmapped_area_topdown;
+ 
+ 	arch_pick_mmap_base(&mm->mmap_base, &mm->mmap_legacy_base,
+-			arch_rnd(mmap64_rnd_bits), tasksize_64bit());
++			arch_rnd(mmap64_rnd_bits), task_size_64bit());
+ 
+ #ifdef CONFIG_HAVE_ARCH_COMPAT_MMAP_BASES
+ 	/*
+@@ -150,7 +150,7 @@ void arch_pick_mmap_layout(struct mm_struct *mm)
+ 	 * mmap_base, the compat syscall uses mmap_compat_base.
+ 	 */
+ 	arch_pick_mmap_base(&mm->mmap_compat_base, &mm->mmap_compat_legacy_base,
+-			arch_rnd(mmap32_rnd_bits), tasksize_32bit());
++			arch_rnd(mmap32_rnd_bits), task_size_32bit());
+ #endif
+ }
+ 
+-- 
+2.11.0
