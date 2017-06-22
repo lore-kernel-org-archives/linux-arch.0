@@ -1,117 +1,200 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga07.intel.com ([134.134.136.100]:38918 "EHLO mga07.intel.com"
+Received: from mga03.intel.com ([134.134.136.65]:8550 "EHLO mga03.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752675AbdFVM0m (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 22 Jun 2017 08:26:42 -0400
+        id S1752409AbdFVM03 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 22 Jun 2017 08:26:29 -0400
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 2/5] x86/mm: Rename tasksize_32bit/64bit to task_size_32bit/64bit
-Date: Thu, 22 Jun 2017 15:26:05 +0300
-Message-ID: <20170622122608.80435-3-kirill.shutemov@linux.intel.com>
+Subject: [PATCH 3/5] x86/mpx: Do not allow MPX if we have mappings above 47-bit
+Date: Thu, 22 Jun 2017 15:26:06 +0300
+Message-ID: <20170622122608.80435-4-kirill.shutemov@linux.intel.com>
 In-Reply-To: <20170622122608.80435-1-kirill.shutemov@linux.intel.com>
 References: <20170622122608.80435-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20170622122605.11wReDumJF7ljzNbOr57XufUHK-3VTKG3xCyOdaFoz8@z>
+Message-ID: <20170622122606.YwQFLpG4T5geNxBmOYkbQCywotcn4QS-RNJm5zv8JEk@z>
 
-Rename these helpers to be consistent with spelling of TASK_SIZE and
-related constants.
+MPX (without MAWA extension) cannot handle addresses above 47-bit, so we
+need to make sure that MPX cannot be enabled if we already have VMA above
+the boundary and forbid creating such VMAs once MPX is enabled.
+
+The patch implements mpx_unmapped_area_check() which is called from all
+variants of get_unmapped_area() to check if the requested address fits
+mpx.
+
+On enabling MPX, we check if we already have any vma above 47-bit
+boundary and forbit the enabling if we do.
+
+As long as DEFAULT_MAP_WINDOW is equal to TASK_SIZE_MAX, the change is
+nop. It will change when we allow userspace to have mappings above
+47-bits.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
- arch/x86/include/asm/elf.h   |  4 ++--
- arch/x86/kernel/sys_x86_64.c |  2 +-
- arch/x86/mm/hugetlbpage.c    |  2 +-
- arch/x86/mm/mmap.c           | 10 +++++-----
- 4 files changed, 9 insertions(+), 9 deletions(-)
+ arch/x86/include/asm/mpx.h       |  9 +++++++++
+ arch/x86/include/asm/processor.h |  3 +++
+ arch/x86/kernel/sys_x86_64.c     |  9 +++++++++
+ arch/x86/mm/hugetlbpage.c        |  6 ++++++
+ arch/x86/mm/mpx.c                | 33 ++++++++++++++++++++++++++++++++-
+ 5 files changed, 59 insertions(+), 1 deletion(-)
 
-diff --git a/arch/x86/include/asm/elf.h b/arch/x86/include/asm/elf.h
-index e8ab9a46bc68..e68e9ff588c8 100644
---- a/arch/x86/include/asm/elf.h
-+++ b/arch/x86/include/asm/elf.h
-@@ -303,8 +303,8 @@ static inline int mmap_is_ia32(void)
- 		test_thread_flag(TIF_ADDR32));
+diff --git a/arch/x86/include/asm/mpx.h b/arch/x86/include/asm/mpx.h
+index a0d662be4c5b..7d7404756bb4 100644
+--- a/arch/x86/include/asm/mpx.h
++++ b/arch/x86/include/asm/mpx.h
+@@ -73,6 +73,9 @@ static inline void mpx_mm_init(struct mm_struct *mm)
  }
+ void mpx_notify_unmap(struct mm_struct *mm, struct vm_area_struct *vma,
+ 		      unsigned long start, unsigned long end);
++
++unsigned long mpx_unmapped_area_check(unsigned long addr, unsigned long len,
++		unsigned long flags);
+ #else
+ static inline siginfo_t *mpx_generate_siginfo(struct pt_regs *regs)
+ {
+@@ -94,6 +97,12 @@ static inline void mpx_notify_unmap(struct mm_struct *mm,
+ 				    unsigned long start, unsigned long end)
+ {
+ }
++
++static inline unsigned long mpx_unmapped_area_check(unsigned long addr,
++		unsigned long len, unsigned long flags)
++{
++	return addr;
++}
+ #endif /* CONFIG_X86_INTEL_MPX */
  
--extern unsigned long tasksize_32bit(void);
--extern unsigned long tasksize_64bit(void);
-+extern unsigned long task_size_32bit(void);
-+extern unsigned long task_size_64bit(void);
- extern unsigned long get_mmap_base(int is_legacy);
+ #endif /* _ASM_X86_MPX_H */
+diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
+index f3b1b27f1c0a..97e9cada4945 100644
+--- a/arch/x86/include/asm/processor.h
++++ b/arch/x86/include/asm/processor.h
+@@ -803,6 +803,7 @@ static inline void spin_lock_prefetch(const void *x)
+ #define IA32_PAGE_OFFSET	PAGE_OFFSET
+ #define TASK_SIZE		PAGE_OFFSET
+ #define TASK_SIZE_MAX		TASK_SIZE
++#define DEFAULT_MAP_WINDOW	TASK_SIZE
+ #define STACK_TOP		TASK_SIZE
+ #define STACK_TOP_MAX		STACK_TOP
  
- #ifdef CONFIG_X86_32
+@@ -844,6 +845,8 @@ static inline void spin_lock_prefetch(const void *x)
+  */
+ #define TASK_SIZE_MAX	((1UL << 47) - PAGE_SIZE)
+ 
++#define DEFAULT_MAP_WINDOW	TASK_SIZE_MAX
++
+ /* This decides where the kernel will search for a free chunk of vm
+  * space during mmap's.
+  */
 diff --git a/arch/x86/kernel/sys_x86_64.c b/arch/x86/kernel/sys_x86_64.c
-index 213ddf3e937d..89bd0d6460e1 100644
+index 89bd0d6460e1..f840e895d871 100644
 --- a/arch/x86/kernel/sys_x86_64.c
 +++ b/arch/x86/kernel/sys_x86_64.c
-@@ -120,7 +120,7 @@ static void find_start_end(unsigned long flags, unsigned long *begin,
- 	}
+@@ -21,6 +21,7 @@
+ #include <asm/compat.h>
+ #include <asm/ia32.h>
+ #include <asm/syscalls.h>
++#include <asm/mpx.h>
  
- 	*begin	= get_mmap_base(1);
--	*end	= in_compat_syscall() ? tasksize_32bit() : tasksize_64bit();
-+	*end	= in_compat_syscall() ? task_size_32bit() : task_size_64bit();
- }
+ /*
+  * Align a virtual address to avoid aliasing in the I$ on AMD F15h.
+@@ -132,6 +133,10 @@ arch_get_unmapped_area(struct file *filp, unsigned long addr,
+ 	struct vm_unmapped_area_info info;
+ 	unsigned long begin, end;
  
- unsigned long
++	addr = mpx_unmapped_area_check(addr, len, flags);
++	if (IS_ERR_VALUE(addr))
++		return addr;
++
+ 	if (flags & MAP_FIXED)
+ 		return addr;
+ 
+@@ -171,6 +176,10 @@ arch_get_unmapped_area_topdown(struct file *filp, const unsigned long addr0,
+ 	unsigned long addr = addr0;
+ 	struct vm_unmapped_area_info info;
+ 
++	addr = mpx_unmapped_area_check(addr, len, flags);
++	if (IS_ERR_VALUE(addr))
++		return addr;
++
+ 	/* requested length too big for entire address space */
+ 	if (len > TASK_SIZE)
+ 		return -ENOMEM;
 diff --git a/arch/x86/mm/hugetlbpage.c b/arch/x86/mm/hugetlbpage.c
-index adad702b39cd..93bfd6d7ce1c 100644
+index 93bfd6d7ce1c..afd5f2152300 100644
 --- a/arch/x86/mm/hugetlbpage.c
 +++ b/arch/x86/mm/hugetlbpage.c
-@@ -86,7 +86,7 @@ static unsigned long hugetlb_get_unmapped_area_bottomup(struct file *file,
- 	info.length = len;
- 	info.low_limit = get_mmap_base(1);
- 	info.high_limit = in_compat_syscall() ?
--		tasksize_32bit() : tasksize_64bit();
-+		task_size_32bit() : task_size_64bit();
- 	info.align_mask = PAGE_MASK & ~huge_page_mask(h);
- 	info.align_offset = 0;
- 	return vm_unmapped_area(&info);
-diff --git a/arch/x86/mm/mmap.c b/arch/x86/mm/mmap.c
-index 19ad095b41df..b99c1a29dcca 100644
---- a/arch/x86/mm/mmap.c
-+++ b/arch/x86/mm/mmap.c
-@@ -37,12 +37,12 @@ struct va_alignment __read_mostly va_align = {
- 	.flags = -1,
- };
+@@ -18,6 +18,7 @@
+ #include <asm/tlbflush.h>
+ #include <asm/pgalloc.h>
+ #include <asm/elf.h>
++#include <asm/mpx.h>
  
--unsigned long tasksize_32bit(void)
-+unsigned long task_size_32bit(void)
- {
- 	return IA32_PAGE_OFFSET;
- }
+ #if 0	/* This is just for testing */
+ struct page *
+@@ -135,6 +136,11 @@ hugetlb_get_unmapped_area(struct file *file, unsigned long addr,
  
--unsigned long tasksize_64bit(void)
-+unsigned long task_size_64bit(void)
- {
- 	return TASK_SIZE_MAX;
- }
-@@ -52,7 +52,7 @@ static unsigned long stack_maxrandom_size(unsigned long task_size)
- 	unsigned long max = 0;
- 	if ((current->flags & PF_RANDOMIZE) &&
- 		!(current->personality & ADDR_NO_RANDOMIZE)) {
--		max = (-1UL) & __STACK_RND_MASK(task_size == tasksize_32bit());
-+		max = (-1UL) & __STACK_RND_MASK(task_size == task_size_32bit());
- 		max <<= PAGE_SHIFT;
- 	}
+ 	if (len & ~huge_page_mask(h))
+ 		return -EINVAL;
++
++	addr = mpx_unmapped_area_check(addr, len, flags);
++	if (IS_ERR_VALUE(addr))
++		return addr;
++
+ 	if (len > TASK_SIZE)
+ 		return -ENOMEM;
  
-@@ -140,7 +140,7 @@ void arch_pick_mmap_layout(struct mm_struct *mm)
- 		mm->get_unmapped_area = arch_get_unmapped_area_topdown;
- 
- 	arch_pick_mmap_base(&mm->mmap_base, &mm->mmap_legacy_base,
--			arch_rnd(mmap64_rnd_bits), tasksize_64bit());
-+			arch_rnd(mmap64_rnd_bits), task_size_64bit());
- 
- #ifdef CONFIG_HAVE_ARCH_COMPAT_MMAP_BASES
- 	/*
-@@ -150,7 +150,7 @@ void arch_pick_mmap_layout(struct mm_struct *mm)
- 	 * mmap_base, the compat syscall uses mmap_compat_base.
+diff --git a/arch/x86/mm/mpx.c b/arch/x86/mm/mpx.c
+index 1c34b767c84c..8c8da27e8549 100644
+--- a/arch/x86/mm/mpx.c
++++ b/arch/x86/mm/mpx.c
+@@ -355,10 +355,19 @@ int mpx_enable_management(void)
  	 */
- 	arch_pick_mmap_base(&mm->mmap_compat_base, &mm->mmap_compat_legacy_base,
--			arch_rnd(mmap32_rnd_bits), tasksize_32bit());
-+			arch_rnd(mmap32_rnd_bits), task_size_32bit());
- #endif
+ 	bd_base = mpx_get_bounds_dir();
+ 	down_write(&mm->mmap_sem);
++
++	/* MPX doesn't support addresses above 47-bits yet. */
++	if (find_vma(mm, DEFAULT_MAP_WINDOW)) {
++		pr_warn_once("%s (%d): MPX cannot handle addresses "
++				"above 47-bits. Disabling.",
++				current->comm, current->pid);
++		ret = -ENXIO;
++		goto out;
++	}
+ 	mm->context.bd_addr = bd_base;
+ 	if (mm->context.bd_addr == MPX_INVALID_BOUNDS_DIR)
+ 		ret = -ENXIO;
+-
++out:
+ 	up_write(&mm->mmap_sem);
+ 	return ret;
  }
- 
+@@ -1030,3 +1039,25 @@ void mpx_notify_unmap(struct mm_struct *mm, struct vm_area_struct *vma,
+ 	if (ret)
+ 		force_sig(SIGSEGV, current);
+ }
++
++/* MPX cannot handle addresses above 47-bits yet. */
++unsigned long mpx_unmapped_area_check(unsigned long addr, unsigned long len,
++		unsigned long flags)
++{
++	if (!kernel_managing_mpx_tables(current->mm))
++		return addr;
++	if (addr + len <= DEFAULT_MAP_WINDOW)
++		return addr;
++	if (flags & MAP_FIXED)
++		return -ENOMEM;
++
++	/*
++	 * Requested len is larger than whole area we're allowed to map in.
++	 * Resetting hinting address wouldn't do much good -- fail early.
++	 */
++	if (len > DEFAULT_MAP_WINDOW)
++		return -ENOMEM;
++
++	/* Look for unmap area within DEFAULT_MAP_WINDOW */
++	return 0;
++}
 -- 
 2.11.0
