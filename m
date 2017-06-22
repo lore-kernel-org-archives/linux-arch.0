@@ -1,94 +1,119 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f193.google.com ([209.85.220.193]:33104 "EHLO
-        mail-qk0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752610AbdFVBky (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Jun 2017 21:40:54 -0400
+Received: from mail-qt0-f193.google.com ([209.85.216.193]:35624 "EHLO
+        mail-qt0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751997AbdFVBkq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Jun 2017 21:40:46 -0400
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v3 23/23] procfs: display the protection-key number associated with a vma
-Date: Wed, 21 Jun 2017 18:39:39 -0700
-Message-ID: <1498095579-6790-24-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v3 22/23] Documentation: PowerPC specific updates to memory protection keys
+Date: Wed, 21 Jun 2017 18:39:38 -0700
+Message-ID: <1498095579-6790-23-git-send-email-linuxram@us.ibm.com>
 In-Reply-To: <1498095579-6790-1-git-send-email-linuxram@us.ibm.com>
 References: <1498095579-6790-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
-Message-ID: <20170622013939.sANOxeCrrv3H8RBBdUFdtQDywGALZvCon6wnO5ywCy4@z>
+Message-ID: <20170622013938.13m_kh-aI82N5tJPu2Y01UGC5l9oq4ZXQ4fAomKlOd0@z>
 
-Display the pkey number associated with the vma in smaps of a task.
-The key will be seen as below:
-
-VmFlags: rd wr mr mw me dw ac key=0
+Add documentation updates that capture PowerPC specific changes.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- Documentation/filesystems/proc.txt |  3 ++-
- fs/proc/task_mmu.c                 | 22 +++++++++++-----------
- 2 files changed, 13 insertions(+), 12 deletions(-)
+ Documentation/vm/protection-keys.txt | 65 +++++++++++++++++++++++++-----------
+ 1 file changed, 45 insertions(+), 20 deletions(-)
 
-diff --git a/Documentation/filesystems/proc.txt b/Documentation/filesystems/proc.txt
-index 4cddbce..a8c74aa 100644
---- a/Documentation/filesystems/proc.txt
-+++ b/Documentation/filesystems/proc.txt
-@@ -423,7 +423,7 @@ SwapPss:               0 kB
- KernelPageSize:        4 kB
- MMUPageSize:           4 kB
- Locked:                0 kB
--VmFlags: rd ex mr mw me dw
-+VmFlags: rd ex mr mw me dw key=<num>
+diff --git a/Documentation/vm/protection-keys.txt b/Documentation/vm/protection-keys.txt
+index b643045..965ad75 100644
+--- a/Documentation/vm/protection-keys.txt
++++ b/Documentation/vm/protection-keys.txt
+@@ -1,21 +1,46 @@
+-Memory Protection Keys for Userspace (PKU aka PKEYs) is a CPU feature
+-which will be found on future Intel CPUs.
++Memory Protection Keys for Userspace (PKU aka PKEYs) is a CPU feature found in
++new generation of intel CPUs and on PowerPC 7 and higher CPUs.
  
- the first of these lines shows the same information as is displayed for the
- mapping in /proc/PID/maps.  The remaining lines show the size of the mapping
-@@ -491,6 +491,7 @@ manner. The codes are the following:
-     hg  - huge page advise flag
-     nh  - no-huge page advise flag
-     mg  - mergable advise flag
-+    key=<num> - the memory protection key number
- 
- Note that there is no guarantee that every flag and associated mnemonic will
- be present in all further kernel releases. Things get changed, the flags may
-diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
-index 2ddc298..d2eb096 100644
---- a/fs/proc/task_mmu.c
-+++ b/fs/proc/task_mmu.c
-@@ -1,4 +1,6 @@
- #include <linux/mm.h>
-+#include <linux/pkeys.h>
-+#include <linux/huge_mm.h>
- #include <linux/vmacache.h>
- #include <linux/hugetlb.h>
- #include <linux/huge_mm.h>
-@@ -666,22 +668,20 @@ static void show_smap_vma_flags(struct seq_file *m, struct vm_area_struct *vma)
- 		[ilog2(VM_MERGEABLE)]	= "mg",
- 		[ilog2(VM_UFFD_MISSING)]= "um",
- 		[ilog2(VM_UFFD_WP)]	= "uw",
--#ifdef CONFIG_ARCH_HAS_PKEYS
--		/* These come out via ProtectionKey: */
--		[ilog2(VM_PKEY_BIT0)]	= "",
--		[ilog2(VM_PKEY_BIT1)]	= "",
--		[ilog2(VM_PKEY_BIT2)]	= "",
--		[ilog2(VM_PKEY_BIT3)]	= "",
--#endif /* CONFIG_ARCH_HAS_PKEYS */
--#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
--		/* Additional bit in ProtectionKey: */
--		[ilog2(VM_PKEY_BIT4)]	= "",
--#endif
- 	};
- 	size_t i;
- 
- 	seq_puts(m, "VmFlags: ");
- 	for (i = 0; i < BITS_PER_LONG; i++) {
-+#ifdef CONFIG_ARCH_HAS_PKEYS
-+		if (i == ilog2(VM_PKEY_BIT0)) {
-+			int keyvalue = vma_pkey(vma);
+ Memory Protection Keys provides a mechanism for enforcing page-based
+-protections, but without requiring modification of the page tables
+-when an application changes protection domains.  It works by
+-dedicating 4 previously ignored bits in each page table entry to a
+-"protection key", giving 16 possible keys.
+-
+-There is also a new user-accessible register (PKRU) with two separate
+-bits (Access Disable and Write Disable) for each key.  Being a CPU
+-register, PKRU is inherently thread-local, potentially giving each
+-thread a different set of protections from every other thread.
+-
+-There are two new instructions (RDPKRU/WRPKRU) for reading and writing
+-to the new register.  The feature is only available in 64-bit mode,
+-even though there is theoretically space in the PAE PTEs.  These
+-permissions are enforced on data access only and have no effect on
++protections, but without requiring modification of the page tables when an
++application changes protection domains.
 +
-+			i += ilog2(arch_max_pkey())-1;
-+			seq_printf(m, "key=%d ", keyvalue);
-+			continue;
-+		}
-+#endif /* CONFIG_ARCH_HAS_PKEYS */
- 		if (!mnemonics[i][0])
- 			continue;
- 		if (vma->vm_flags & (1UL << i)) {
++
++On Intel:
++
++	It works by dedicating 4 previously ignored bits in each page table
++	entry to a "protection key", giving 16 possible keys.
++
++	There is also a new user-accessible register (PKRU) with two separate
++	bits (Access Disable and Write Disable) for each key.  Being a CPU
++	register, PKRU is inherently thread-local, potentially giving each
++	thread a different set of protections from every other thread.
++
++	There are two new instructions (RDPKRU/WRPKRU) for reading and writing
++	to the new register.  The feature is only available in 64-bit mode,
++	even though there is theoretically space in the PAE PTEs.  These
++	permissions are enforced on data access only and have no effect on
++	instruction fetches.
++
++
++On PowerPC:
++
++	It works by dedicating 5 page table entry bits to a "protection key",
++	giving 32 possible keys.
++
++	There  is  a  user-accessible  register (AMR)  with  two separate bits;
++	Access Disable and  Write  Disable, for  each key.  Being  a  CPU
++	register,  AMR  is inherently  thread-local,  potentially  giving  each
++	thread a different set of protections from every other thread.  NOTE:
++	Disabling read permission does not disable write and vice-versa.
++
++	The feature is available on 64-bit HPTE mode only.
++	'mtspr 0xd, mem' reads the AMR register
++	'mfspr mem, 0xd' writes into the AMR register.
++
++
++
++Permissions are enforced on data access only and have no effect on
+ instruction fetches.
+ 
+ =========================== Syscalls ===========================
+@@ -28,9 +53,9 @@ There are 3 system calls which directly interact with pkeys:
+ 			  unsigned long prot, int pkey);
+ 
+ Before a pkey can be used, it must first be allocated with
+-pkey_alloc().  An application calls the WRPKRU instruction
++pkey_alloc().  An application calls the WRPKRU/AMR instruction
+ directly in order to change access permissions to memory covered
+-with a key.  In this example WRPKRU is wrapped by a C function
++with a key.  In this example WRPKRU/AMR is wrapped by a C function
+ called pkey_set().
+ 
+ 	int real_prot = PROT_READ|PROT_WRITE;
+@@ -52,11 +77,11 @@ is no longer in use:
+ 	munmap(ptr, PAGE_SIZE);
+ 	pkey_free(pkey);
+ 
+-(Note: pkey_set() is a wrapper for the RDPKRU and WRPKRU instructions.
++(Note: pkey_set() is a wrapper for the RDPKRU,WRPKRU or AMR instructions.
+  An example implementation can be found in
+  tools/testing/selftests/x86/protection_keys.c)
+ 
+-=========================== Behavior ===========================
++=========================== Behavior =================================
+ 
+ The kernel attempts to make protection keys consistent with the
+ behavior of a plain mprotect().  For instance if you do this:
 -- 
 1.8.3.1
