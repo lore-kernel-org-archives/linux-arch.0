@@ -1,87 +1,90 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f194.google.com ([209.85.220.194]:36416 "EHLO
-        mail-qk0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752450AbdFVBkW (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Jun 2017 21:40:22 -0400
+Received: from mail-qk0-f193.google.com ([209.85.220.193]:34728 "EHLO
+        mail-qk0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752390AbdFVBkX (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Jun 2017 21:40:23 -0400
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v3 13/23] powerpc: store and restore the pkey state across context switches
-Date: Wed, 21 Jun 2017 18:39:29 -0700
-Message-ID: <1498095579-6790-14-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v3 09/23] mm: introduce an additional vma bit for powerpc pkey
+Date: Wed, 21 Jun 2017 18:39:25 -0700
+Message-ID: <1498095579-6790-10-git-send-email-linuxram@us.ibm.com>
 In-Reply-To: <1498095579-6790-1-git-send-email-linuxram@us.ibm.com>
 References: <1498095579-6790-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
-Message-ID: <20170622013929.BbEQQZXcAMcttwWiIfNN7zECB0-sm_JL8w_OnI-wH8Q@z>
+Message-ID: <20170622013925.i6JbWiOkmS44QnS_vqBh3qCLM6akmsID40bY6wn9Mok@z>
 
-Store and restore the AMR, IAMR and UMOR register state of the task
-before scheduling out and after scheduling in, respectively.
+Currently there are only 4bits in the vma flags to support 16 keys
+on x86.  powerpc supports 32 keys, which needs 5bits. This patch
+introduces an addition bit in the vma flags.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/include/asm/processor.h |  5 +++++
- arch/powerpc/kernel/process.c        | 18 ++++++++++++++++++
- 2 files changed, 23 insertions(+)
+ fs/proc/task_mmu.c |  6 +++++-
+ include/linux/mm.h | 18 +++++++++++++-----
+ 2 files changed, 18 insertions(+), 6 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/processor.h b/arch/powerpc/include/asm/processor.h
-index a2123f2..1f714df 100644
---- a/arch/powerpc/include/asm/processor.h
-+++ b/arch/powerpc/include/asm/processor.h
-@@ -310,6 +310,11 @@ struct thread_struct {
- 	struct thread_vr_state ckvr_state; /* Checkpointed VR state */
- 	unsigned long	ckvrsave; /* Checkpointed VRSAVE */
- #endif /* CONFIG_PPC_TRANSACTIONAL_MEM */
+diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
+index f0c8b33..2ddc298 100644
+--- a/fs/proc/task_mmu.c
++++ b/fs/proc/task_mmu.c
+@@ -666,12 +666,16 @@ static void show_smap_vma_flags(struct seq_file *m, struct vm_area_struct *vma)
+ 		[ilog2(VM_MERGEABLE)]	= "mg",
+ 		[ilog2(VM_UFFD_MISSING)]= "um",
+ 		[ilog2(VM_UFFD_WP)]	= "uw",
+-#ifdef CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS
++#ifdef CONFIG_ARCH_HAS_PKEYS
+ 		/* These come out via ProtectionKey: */
+ 		[ilog2(VM_PKEY_BIT0)]	= "",
+ 		[ilog2(VM_PKEY_BIT1)]	= "",
+ 		[ilog2(VM_PKEY_BIT2)]	= "",
+ 		[ilog2(VM_PKEY_BIT3)]	= "",
++#endif /* CONFIG_ARCH_HAS_PKEYS */
 +#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
-+	unsigned long	amr;
-+	unsigned long	iamr;
-+	unsigned long	uamor;
-+#endif
- #ifdef CONFIG_KVM_BOOK3S_32_HANDLER
- 	void*		kvm_shadow_vcpu; /* KVM internal data */
- #endif /* CONFIG_KVM_BOOK3S_32_HANDLER */
-diff --git a/arch/powerpc/kernel/process.c b/arch/powerpc/kernel/process.c
-index baae104..37d001a 100644
---- a/arch/powerpc/kernel/process.c
-+++ b/arch/powerpc/kernel/process.c
-@@ -1096,6 +1096,11 @@ static inline void save_sprs(struct thread_struct *t)
- 		t->tar = mfspr(SPRN_TAR);
- 	}
++		/* Additional bit in ProtectionKey: */
++		[ilog2(VM_PKEY_BIT4)]	= "",
  #endif
-+#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
-+	t->amr = mfspr(SPRN_AMR);
-+	t->iamr = mfspr(SPRN_IAMR);
-+	t->uamor = mfspr(SPRN_UAMOR);
-+#endif
- }
+ 	};
+ 	size_t i;
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index 7cb17c6..3d35bcc 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -208,21 +208,29 @@ extern int overcommit_kbytes_handler(struct ctl_table *, int, void __user *,
+ #define VM_HIGH_ARCH_BIT_1	33	/* bit only usable on 64-bit architectures */
+ #define VM_HIGH_ARCH_BIT_2	34	/* bit only usable on 64-bit architectures */
+ #define VM_HIGH_ARCH_BIT_3	35	/* bit only usable on 64-bit architectures */
++#define VM_HIGH_ARCH_BIT_4	36	/* bit only usable on 64-bit arch */
+ #define VM_HIGH_ARCH_0	BIT(VM_HIGH_ARCH_BIT_0)
+ #define VM_HIGH_ARCH_1	BIT(VM_HIGH_ARCH_BIT_1)
+ #define VM_HIGH_ARCH_2	BIT(VM_HIGH_ARCH_BIT_2)
+ #define VM_HIGH_ARCH_3	BIT(VM_HIGH_ARCH_BIT_3)
++#define VM_HIGH_ARCH_4	BIT(VM_HIGH_ARCH_BIT_4)
+ #endif /* CONFIG_ARCH_USES_HIGH_VMA_FLAGS */
  
- static inline void restore_sprs(struct thread_struct *old_thread,
-@@ -1131,6 +1136,14 @@ static inline void restore_sprs(struct thread_struct *old_thread,
- 			mtspr(SPRN_TAR, new_thread->tar);
- 	}
- #endif
-+#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
-+	if (old_thread->amr != new_thread->amr)
-+		mtspr(SPRN_AMR, new_thread->amr);
-+	if (old_thread->iamr != new_thread->iamr)
-+		mtspr(SPRN_IAMR, new_thread->iamr);
-+	if (old_thread->uamor != new_thread->uamor)
-+		mtspr(SPRN_UAMOR, new_thread->uamor);
-+#endif
- }
- 
- struct task_struct *__switch_to(struct task_struct *prev,
-@@ -1686,6 +1699,11 @@ void start_thread(struct pt_regs *regs, unsigned long start, unsigned long sp)
- 	current->thread.tm_texasr = 0;
- 	current->thread.tm_tfiar = 0;
- #endif /* CONFIG_PPC_TRANSACTIONAL_MEM */
-+#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
-+	current->thread.amr   = 0x0ul;
-+	current->thread.iamr  = 0x0ul;
-+	current->thread.uamor = 0x0ul;
+-#if defined(CONFIG_X86)
+-# define VM_PAT		VM_ARCH_1	/* PAT reserves whole VMA at once (x86) */
+-#if defined (CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS)
++#ifdef CONFIG_ARCH_HAS_PKEYS
+ # define VM_PKEY_SHIFT	VM_HIGH_ARCH_BIT_0
+-# define VM_PKEY_BIT0	VM_HIGH_ARCH_0	/* A protection key is a 4-bit value */
++# define VM_PKEY_BIT0	VM_HIGH_ARCH_0
+ # define VM_PKEY_BIT1	VM_HIGH_ARCH_1
+ # define VM_PKEY_BIT2	VM_HIGH_ARCH_2
+ # define VM_PKEY_BIT3	VM_HIGH_ARCH_3
+-#endif
++#endif /* CONFIG_ARCH_HAS_PKEYS */
++
++#if defined(CONFIG_PPC64_MEMORY_PROTECTION_KEYS)
++# define VM_PKEY_BIT4	VM_HIGH_ARCH_4 /* additional key bit used on ppc64 */
 +#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
- }
- EXPORT_SYMBOL(start_thread);
- 
++
++
++#if defined(CONFIG_X86)
++# define VM_PAT		VM_ARCH_1	/* PAT reserves whole VMA at once (x86) */
+ #elif defined(CONFIG_PPC)
+ # define VM_SAO		VM_ARCH_1	/* Strong Access Ordering (powerpc) */
+ #elif defined(CONFIG_PARISC)
 -- 
 1.8.3.1
