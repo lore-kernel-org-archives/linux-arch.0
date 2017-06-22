@@ -1,213 +1,51 @@
-From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v3 21/23] Documentation: Move protecton key documentation to arch neutral directory
-Date: Wed, 21 Jun 2017 18:39:37 -0700
-Message-ID: <1498095579-6790-22-git-send-email-linuxram@us.ibm.com>
-References: <1498095579-6790-1-git-send-email-linuxram@us.ibm.com>
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1498095579-6790-1-git-send-email-linuxram@us.ibm.com>
-Sender: owner-linux-mm@kvack.org
-To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
-Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
+From: Darren Hart <dvhart@infradead.org>
+Subject: Re: [PATCH 1/1] futex: remove duplicated code and fix UB
+Date: Wed, 21 Jun 2017 20:53:37 -0700
+Message-ID: <20170622035337.GF25900@fury>
+References: <20170621115318.2781-1-jslaby@suse.cz>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
+Content-Disposition: inline
+In-Reply-To: <20170621115318.2781-1-jslaby@suse.cz>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
+List-Post: <mailto:linux-snps-arc@lists.infradead.org>
+List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
+Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
+To: Jiri Slaby <jslaby@suse.cz>
+Cc: linux-mips@linux-mips.org, Rich Felker <dalias@libc.org>, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, peterz@infradead.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Will Deacon <will.deacon@arm.com>, Max Filippov <jcmvbkbc@gmail.com>, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, sparclinux@vger.kernel.org, tglx@linutronix.de, Jonas Bonn <jonas@southpole.se>, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, linux-hexagon@vger.kernel.org, Helge Deller <deller@gmx.de>, x86@kernel.org, "James E.J. Bottomley" <jejb@parisc-linux.org>, mingo@redhat.com, Catalin Marinas <catalin.marinas@arm.com>, Matt Turner <mattst88@gmail.com>, linux-snps-arc@lists.infradead.org, Fenghua Yu <fenghua.yu@intel.com>, Arnd Bergmann <arnd@arndb.de>, linux-xtensa@linux-xtensa.org, Stefan Kristiansson <ste>
 List-Id: linux-arch.vger.kernel.org
 
-Since PowerPC and Intel both support memory protection keys, moving
-the documenation to arch-neutral directory.
+On Wed, Jun 21, 2017 at 01:53:18PM +0200, Jiri Slaby wrote:
+> There is code duplicated over all architecture's headers for
+> futex_atomic_op_inuser. Namely op decoding, access_ok check for uaddr,
+> and comparison of the result.
+> 
+> Remove this duplication and leave up to the arches only the needed
+> assembly which is now in arch_futex_atomic_op_inuser.
+> 
+> This effectively distributes the Will Deacon's arm64 fix for undefined
+> behaviour reported by UBSAN to all architectures. The fix was done in
+> commit 5f16a046f8e1 (arm64: futex: Fix undefined behaviour with
+> FUTEX_OP_OPARG_SHIFT usage).  Look there for an example dump.
+> 
+> Note that s390 removed access_ok check in d12a29703 ("s390/uaccess:
+> remove pointless access_ok() checks") as access_ok there returns true.
+> We introduce it back to the helper for the sake of simplicity (it gets
+> optimized away anyway).
+> 
 
-Signed-off-by: Ram Pai <linuxram@us.ibm.com>
----
- Documentation/vm/protection-keys.txt  | 85 +++++++++++++++++++++++++++++++++++
- Documentation/x86/protection-keys.txt | 85 -----------------------------------
- 2 files changed, 85 insertions(+), 85 deletions(-)
- create mode 100644 Documentation/vm/protection-keys.txt
- delete mode 100644 Documentation/x86/protection-keys.txt
+This required a minor manual merge for ARM on the tip of Linus' tree today. The
+reduced duplication is a welcome improvement.
 
-diff --git a/Documentation/vm/protection-keys.txt b/Documentation/vm/protection-keys.txt
-new file mode 100644
-index 0000000..b643045
---- /dev/null
-+++ b/Documentation/vm/protection-keys.txt
-@@ -0,0 +1,85 @@
-+Memory Protection Keys for Userspace (PKU aka PKEYs) is a CPU feature
-+which will be found on future Intel CPUs.
-+
-+Memory Protection Keys provides a mechanism for enforcing page-based
-+protections, but without requiring modification of the page tables
-+when an application changes protection domains.  It works by
-+dedicating 4 previously ignored bits in each page table entry to a
-+"protection key", giving 16 possible keys.
-+
-+There is also a new user-accessible register (PKRU) with two separate
-+bits (Access Disable and Write Disable) for each key.  Being a CPU
-+register, PKRU is inherently thread-local, potentially giving each
-+thread a different set of protections from every other thread.
-+
-+There are two new instructions (RDPKRU/WRPKRU) for reading and writing
-+to the new register.  The feature is only available in 64-bit mode,
-+even though there is theoretically space in the PAE PTEs.  These
-+permissions are enforced on data access only and have no effect on
-+instruction fetches.
-+
-+=========================== Syscalls ===========================
-+
-+There are 3 system calls which directly interact with pkeys:
-+
-+	int pkey_alloc(unsigned long flags, unsigned long init_access_rights)
-+	int pkey_free(int pkey);
-+	int pkey_mprotect(unsigned long start, size_t len,
-+			  unsigned long prot, int pkey);
-+
-+Before a pkey can be used, it must first be allocated with
-+pkey_alloc().  An application calls the WRPKRU instruction
-+directly in order to change access permissions to memory covered
-+with a key.  In this example WRPKRU is wrapped by a C function
-+called pkey_set().
-+
-+	int real_prot = PROT_READ|PROT_WRITE;
-+	pkey = pkey_alloc(0, PKEY_DENY_WRITE);
-+	ptr = mmap(NULL, PAGE_SIZE, PROT_NONE, MAP_ANONYMOUS|MAP_PRIVATE, -1, 0);
-+	ret = pkey_mprotect(ptr, PAGE_SIZE, real_prot, pkey);
-+	... application runs here
-+
-+Now, if the application needs to update the data at 'ptr', it can
-+gain access, do the update, then remove its write access:
-+
-+	pkey_set(pkey, 0); // clear PKEY_DENY_WRITE
-+	*ptr = foo; // assign something
-+	pkey_set(pkey, PKEY_DENY_WRITE); // set PKEY_DENY_WRITE again
-+
-+Now when it frees the memory, it will also free the pkey since it
-+is no longer in use:
-+
-+	munmap(ptr, PAGE_SIZE);
-+	pkey_free(pkey);
-+
-+(Note: pkey_set() is a wrapper for the RDPKRU and WRPKRU instructions.
-+ An example implementation can be found in
-+ tools/testing/selftests/x86/protection_keys.c)
-+
-+=========================== Behavior ===========================
-+
-+The kernel attempts to make protection keys consistent with the
-+behavior of a plain mprotect().  For instance if you do this:
-+
-+	mprotect(ptr, size, PROT_NONE);
-+	something(ptr);
-+
-+you can expect the same effects with protection keys when doing this:
-+
-+	pkey = pkey_alloc(0, PKEY_DISABLE_WRITE | PKEY_DISABLE_READ);
-+	pkey_mprotect(ptr, size, PROT_READ|PROT_WRITE, pkey);
-+	something(ptr);
-+
-+That should be true whether something() is a direct access to 'ptr'
-+like:
-+
-+	*ptr = foo;
-+
-+or when the kernel does the access on the application's behalf like
-+with a read():
-+
-+	read(fd, ptr, 1);
-+
-+The kernel will send a SIGSEGV in both cases, but si_code will be set
-+to SEGV_PKERR when violating protection keys versus SEGV_ACCERR when
-+the plain mprotect() permissions are violated.
-diff --git a/Documentation/x86/protection-keys.txt b/Documentation/x86/protection-keys.txt
-deleted file mode 100644
-index b643045..0000000
---- a/Documentation/x86/protection-keys.txt
-+++ /dev/null
-@@ -1,85 +0,0 @@
--Memory Protection Keys for Userspace (PKU aka PKEYs) is a CPU feature
--which will be found on future Intel CPUs.
--
--Memory Protection Keys provides a mechanism for enforcing page-based
--protections, but without requiring modification of the page tables
--when an application changes protection domains.  It works by
--dedicating 4 previously ignored bits in each page table entry to a
--"protection key", giving 16 possible keys.
--
--There is also a new user-accessible register (PKRU) with two separate
--bits (Access Disable and Write Disable) for each key.  Being a CPU
--register, PKRU is inherently thread-local, potentially giving each
--thread a different set of protections from every other thread.
--
--There are two new instructions (RDPKRU/WRPKRU) for reading and writing
--to the new register.  The feature is only available in 64-bit mode,
--even though there is theoretically space in the PAE PTEs.  These
--permissions are enforced on data access only and have no effect on
--instruction fetches.
--
--=========================== Syscalls ===========================
--
--There are 3 system calls which directly interact with pkeys:
--
--	int pkey_alloc(unsigned long flags, unsigned long init_access_rights)
--	int pkey_free(int pkey);
--	int pkey_mprotect(unsigned long start, size_t len,
--			  unsigned long prot, int pkey);
--
--Before a pkey can be used, it must first be allocated with
--pkey_alloc().  An application calls the WRPKRU instruction
--directly in order to change access permissions to memory covered
--with a key.  In this example WRPKRU is wrapped by a C function
--called pkey_set().
--
--	int real_prot = PROT_READ|PROT_WRITE;
--	pkey = pkey_alloc(0, PKEY_DENY_WRITE);
--	ptr = mmap(NULL, PAGE_SIZE, PROT_NONE, MAP_ANONYMOUS|MAP_PRIVATE, -1, 0);
--	ret = pkey_mprotect(ptr, PAGE_SIZE, real_prot, pkey);
--	... application runs here
--
--Now, if the application needs to update the data at 'ptr', it can
--gain access, do the update, then remove its write access:
--
--	pkey_set(pkey, 0); // clear PKEY_DENY_WRITE
--	*ptr = foo; // assign something
--	pkey_set(pkey, PKEY_DENY_WRITE); // set PKEY_DENY_WRITE again
--
--Now when it frees the memory, it will also free the pkey since it
--is no longer in use:
--
--	munmap(ptr, PAGE_SIZE);
--	pkey_free(pkey);
--
--(Note: pkey_set() is a wrapper for the RDPKRU and WRPKRU instructions.
-- An example implementation can be found in
-- tools/testing/selftests/x86/protection_keys.c)
--
--=========================== Behavior ===========================
--
--The kernel attempts to make protection keys consistent with the
--behavior of a plain mprotect().  For instance if you do this:
--
--	mprotect(ptr, size, PROT_NONE);
--	something(ptr);
--
--you can expect the same effects with protection keys when doing this:
--
--	pkey = pkey_alloc(0, PKEY_DISABLE_WRITE | PKEY_DISABLE_READ);
--	pkey_mprotect(ptr, size, PROT_READ|PROT_WRITE, pkey);
--	something(ptr);
--
--That should be true whether something() is a direct access to 'ptr'
--like:
--
--	*ptr = foo;
--
--or when the kernel does the access on the application's behalf like
--with a read():
--
--	read(fd, ptr, 1);
--
--The kernel will send a SIGSEGV in both cases, but si_code will be set
--to SEGV_PKERR when violating protection keys versus SEGV_ACCERR when
--the plain mprotect() permissions are violated.
+Reviewed-by: Darren Hart (VMware) <dvhart@infradead.org>
+
 -- 
-1.8.3.1
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Darren Hart
+VMware Open Source Technology Center
