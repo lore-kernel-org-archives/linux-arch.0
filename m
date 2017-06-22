@@ -1,70 +1,93 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f196.google.com ([209.85.220.196]:36305 "EHLO
+Received: from mail-qk0-f196.google.com ([209.85.220.196]:33010 "EHLO
         mail-qk0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751154AbdFVBj6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Jun 2017 21:39:58 -0400
+        with ESMTP id S1752484AbdFVBke (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Jun 2017 21:40:34 -0400
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v3 03/23] powerpc: introduce get_hidx_gslot helper
-Date: Wed, 21 Jun 2017 18:39:19 -0700
-Message-ID: <1498095579-6790-4-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v3 15/23] powerpc: Program HPTE key protection bits
+Date: Wed, 21 Jun 2017 18:39:31 -0700
+Message-ID: <1498095579-6790-16-git-send-email-linuxram@us.ibm.com>
 In-Reply-To: <1498095579-6790-1-git-send-email-linuxram@us.ibm.com>
 References: <1498095579-6790-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
-Message-ID: <20170622013919.epnaxG4pYbNUNxfAtV8tK5Nxr8zpC3Kfc-AYQqgMx1U@z>
+Message-ID: <20170622013931.nyJhFgoWG3k2SJFbNy6If5vKUrABnfz9aIAfmqzd0JQ@z>
 
-Introduce get_hidx_gslot() which returns the slot number of the HPTE
-in the global hash table.
-
-This function will come in handy as we work towards re-arranging the
-PTE bits in the later patches.
+Map the PTE protection key bits to the HPTE key protection bits,
+while creating HPTE  entries.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/include/asm/book3s/64/hash.h |  3 +++
- arch/powerpc/mm/hash_utils_64.c           | 14 ++++++++++++++
- 2 files changed, 17 insertions(+)
+ arch/powerpc/include/asm/book3s/64/mmu-hash.h | 5 +++++
+ arch/powerpc/include/asm/pkeys.h              | 7 +++++++
+ arch/powerpc/mm/hash_utils_64.c               | 5 +++++
+ 3 files changed, 17 insertions(+)
 
-diff --git a/arch/powerpc/include/asm/book3s/64/hash.h b/arch/powerpc/include/asm/book3s/64/hash.h
-index ac049de..e7cf03a 100644
---- a/arch/powerpc/include/asm/book3s/64/hash.h
-+++ b/arch/powerpc/include/asm/book3s/64/hash.h
-@@ -162,6 +162,9 @@ static inline bool hpte_soft_invalid(unsigned long slot)
- 	return ((slot & 0xfUL) == 0xfUL);
- }
+diff --git a/arch/powerpc/include/asm/book3s/64/mmu-hash.h b/arch/powerpc/include/asm/book3s/64/mmu-hash.h
+index 6981a52..f7a6ed3 100644
+--- a/arch/powerpc/include/asm/book3s/64/mmu-hash.h
++++ b/arch/powerpc/include/asm/book3s/64/mmu-hash.h
+@@ -90,6 +90,8 @@
+ #define HPTE_R_PP0		ASM_CONST(0x8000000000000000)
+ #define HPTE_R_TS		ASM_CONST(0x4000000000000000)
+ #define HPTE_R_KEY_HI		ASM_CONST(0x3000000000000000)
++#define HPTE_R_KEY_BIT0		ASM_CONST(0x2000000000000000)
++#define HPTE_R_KEY_BIT1		ASM_CONST(0x1000000000000000)
+ #define HPTE_R_RPN_SHIFT	12
+ #define HPTE_R_RPN		ASM_CONST(0x0ffffffffffff000)
+ #define HPTE_R_RPN_3_0		ASM_CONST(0x01fffffffffff000)
+@@ -104,6 +106,9 @@
+ #define HPTE_R_C		ASM_CONST(0x0000000000000080)
+ #define HPTE_R_R		ASM_CONST(0x0000000000000100)
+ #define HPTE_R_KEY_LO		ASM_CONST(0x0000000000000e00)
++#define HPTE_R_KEY_BIT2		ASM_CONST(0x0000000000000800)
++#define HPTE_R_KEY_BIT3		ASM_CONST(0x0000000000000400)
++#define HPTE_R_KEY_BIT4		ASM_CONST(0x0000000000000200)
  
-+unsigned long get_hidx_gslot(unsigned long vpn, unsigned long shift,
-+		int ssize, real_pte_t rpte, unsigned int subpg_index);
+ #define HPTE_V_1TB_SEG		ASM_CONST(0x4000000000000000)
+ #define HPTE_V_VRMA_MASK	ASM_CONST(0x4001ffffff000000)
+diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
+index 0f3dca8..af3882f 100644
+--- a/arch/powerpc/include/asm/pkeys.h
++++ b/arch/powerpc/include/asm/pkeys.h
+@@ -27,6 +27,13 @@
+ 		((vm_flags & VM_PKEY_BIT3) ? H_PAGE_PKEY_BIT1 : 0x0UL) |     \
+ 		((vm_flags & VM_PKEY_BIT4) ? H_PAGE_PKEY_BIT0 : 0x0UL))
+ 
++#define pte_to_hpte_pkey_bits(pteflags)	\
++	(((pteflags & H_PAGE_PKEY_BIT0) ? HPTE_R_KEY_BIT0 : 0x0UL) |	\
++	((pteflags & H_PAGE_PKEY_BIT1) ? HPTE_R_KEY_BIT1 : 0x0UL) |	\
++	((pteflags & H_PAGE_PKEY_BIT2) ? HPTE_R_KEY_BIT2 : 0x0UL) |	\
++	((pteflags & H_PAGE_PKEY_BIT3) ? HPTE_R_KEY_BIT3 : 0x0UL) |	\
++	((pteflags & H_PAGE_PKEY_BIT4) ? HPTE_R_KEY_BIT4 : 0x0UL))
 +
- /* This low level function performs the actual PTE insertion
-  * Setting the PTE depends on the MMU type and other factors. It's
-  * an horrible mess that I'm not going to try to clean up now but
+ /*
+  * Bits are in BE format.
+  * NOTE: key 31, 1, 0 are not used.
 diff --git a/arch/powerpc/mm/hash_utils_64.c b/arch/powerpc/mm/hash_utils_64.c
-index 1b494d0..99f97754c 100644
+index b3bc5d6..34bc94c 100644
 --- a/arch/powerpc/mm/hash_utils_64.c
 +++ b/arch/powerpc/mm/hash_utils_64.c
-@@ -1591,6 +1591,20 @@ static inline void tm_flush_hash_page(int local)
- }
- #endif
+@@ -35,6 +35,7 @@
+ #include <linux/memblock.h>
+ #include <linux/context_tracking.h>
+ #include <linux/libfdt.h>
++#include <linux/pkeys.h>
  
-+unsigned long get_hidx_gslot(unsigned long vpn, unsigned long shift,
-+			int ssize, real_pte_t rpte, unsigned int subpg_index)
-+{
-+	unsigned long hash, slot, hidx;
+ #include <asm/debugfs.h>
+ #include <asm/processor.h>
+@@ -230,6 +231,10 @@ unsigned long htab_convert_pte_flags(unsigned long pteflags)
+ 		 */
+ 		rflags |= HPTE_R_M;
+ 
++#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
++	rflags |= pte_to_hpte_pkey_bits(pteflags);
++#endif
 +
-+	hash = hpt_hash(vpn, shift, ssize);
-+	hidx = __rpte_to_hidx(rpte, subpg_index);
-+	if (hidx & _PTEIDX_SECONDARY)
-+		hash = ~hash;
-+	slot = (hash & htab_hash_mask) * HPTES_PER_GROUP;
-+	slot += hidx & _PTEIDX_GROUP_IX;
-+	return slot;
-+}
-+
- /* WARNING: This is called from hash_low_64.S, if you change this prototype,
-  *          do not forget to update the assembly call site !
-  */
+ 	return rflags;
+ }
+ 
 -- 
 1.8.3.1
