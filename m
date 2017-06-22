@@ -1,82 +1,48 @@
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v3 13/23] powerpc: store and restore the pkey state across context switches
-Date: Wed, 21 Jun 2017 18:39:29 -0700
-Message-ID: <1498095579-6790-14-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v3 10/23] mm: provide the ability to disable execute on a key at creation
+Date: Wed, 21 Jun 2017 18:39:26 -0700
+Message-ID: <1498095579-6790-11-git-send-email-linuxram@us.ibm.com>
 References: <1498095579-6790-1-git-send-email-linuxram@us.ibm.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1498095579-6790-1-git-send-email-linuxram@us.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: owner-linux-mm@kvack.org
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
 List-Id: linux-arch.vger.kernel.org
 
-Store and restore the AMR, IAMR and UMOR register state of the task
-before scheduling out and after scheduling in, respectively.
+Currently sys_pkey_create() provides the ability to disable read
+and write permission on the key, at  creation. powerpc  has  the
+hardware support to disable execute on a pkey as well.This patch
+enhances the interface to let disable execute  at  key  creation
+time. x86 does  not  allow  this.  Hence the next patch will add
+ability  in  x86  to  return  error  is  PKEY_DISABLE_EXECUTE is
+specified.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/include/asm/processor.h |  5 +++++
- arch/powerpc/kernel/process.c        | 18 ++++++++++++++++++
- 2 files changed, 23 insertions(+)
+ include/uapi/asm-generic/mman-common.h | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
 
-diff --git a/arch/powerpc/include/asm/processor.h b/arch/powerpc/include/asm/processor.h
-index a2123f2..1f714df 100644
---- a/arch/powerpc/include/asm/processor.h
-+++ b/arch/powerpc/include/asm/processor.h
-@@ -310,6 +310,11 @@ struct thread_struct {
- 	struct thread_vr_state ckvr_state; /* Checkpointed VR state */
- 	unsigned long	ckvrsave; /* Checkpointed VRSAVE */
- #endif /* CONFIG_PPC_TRANSACTIONAL_MEM */
-+#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
-+	unsigned long	amr;
-+	unsigned long	iamr;
-+	unsigned long	uamor;
-+#endif
- #ifdef CONFIG_KVM_BOOK3S_32_HANDLER
- 	void*		kvm_shadow_vcpu; /* KVM internal data */
- #endif /* CONFIG_KVM_BOOK3S_32_HANDLER */
-diff --git a/arch/powerpc/kernel/process.c b/arch/powerpc/kernel/process.c
-index baae104..37d001a 100644
---- a/arch/powerpc/kernel/process.c
-+++ b/arch/powerpc/kernel/process.c
-@@ -1096,6 +1096,11 @@ static inline void save_sprs(struct thread_struct *t)
- 		t->tar = mfspr(SPRN_TAR);
- 	}
- #endif
-+#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
-+	t->amr = mfspr(SPRN_AMR);
-+	t->iamr = mfspr(SPRN_IAMR);
-+	t->uamor = mfspr(SPRN_UAMOR);
-+#endif
- }
+diff --git a/include/uapi/asm-generic/mman-common.h b/include/uapi/asm-generic/mman-common.h
+index 8c27db0..bf4fa07 100644
+--- a/include/uapi/asm-generic/mman-common.h
++++ b/include/uapi/asm-generic/mman-common.h
+@@ -74,7 +74,9 @@
  
- static inline void restore_sprs(struct thread_struct *old_thread,
-@@ -1131,6 +1136,14 @@ static inline void restore_sprs(struct thread_struct *old_thread,
- 			mtspr(SPRN_TAR, new_thread->tar);
- 	}
- #endif
-+#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
-+	if (old_thread->amr != new_thread->amr)
-+		mtspr(SPRN_AMR, new_thread->amr);
-+	if (old_thread->iamr != new_thread->iamr)
-+		mtspr(SPRN_IAMR, new_thread->iamr);
-+	if (old_thread->uamor != new_thread->uamor)
-+		mtspr(SPRN_UAMOR, new_thread->uamor);
-+#endif
- }
+ #define PKEY_DISABLE_ACCESS	0x1
+ #define PKEY_DISABLE_WRITE	0x2
++#define PKEY_DISABLE_EXECUTE	0x4
+ #define PKEY_ACCESS_MASK	(PKEY_DISABLE_ACCESS |\
+-				 PKEY_DISABLE_WRITE)
++				 PKEY_DISABLE_WRITE  |\
++				 PKEY_DISABLE_EXECUTE)
  
- struct task_struct *__switch_to(struct task_struct *prev,
-@@ -1686,6 +1699,11 @@ void start_thread(struct pt_regs *regs, unsigned long start, unsigned long sp)
- 	current->thread.tm_texasr = 0;
- 	current->thread.tm_tfiar = 0;
- #endif /* CONFIG_PPC_TRANSACTIONAL_MEM */
-+#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
-+	current->thread.amr   = 0x0ul;
-+	current->thread.iamr  = 0x0ul;
-+	current->thread.uamor = 0x0ul;
-+#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
- }
- EXPORT_SYMBOL(start_thread);
- 
+ #endif /* __ASM_GENERIC_MMAN_COMMON_H */
 -- 
 1.8.3.1
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
