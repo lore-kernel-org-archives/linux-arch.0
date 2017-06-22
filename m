@@ -1,60 +1,149 @@
-From: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
-Subject: Re: [PATCH v7 27/36] iommu/amd: Allow the AMD IOMMU to work with
-	memory encryption
-Date: Thu, 22 Jun 2017 11:48:46 -0500
-Message-ID: <379702e6-31f1-2df1-8889-3498241aea49@amd.com>
-References: <20170616184947.18967.84890.stgit@tlendack-t1.amdoffice.net>
-	<20170616185459.18967.72790.stgit@tlendack-t1.amdoffice.net>
-	<20170622105637.g7twdaae2v5eaown@pd.tnic>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <20170622105637.g7twdaae2v5eaown-fF5Pk5pvG8Y@public.gmane.org>
-Content-Language: en-US
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>
-Cc: linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Brijesh Singh <brijesh.singh-5C7GfCeVMHo@public.gmane.org>, Toshimitsu Kani <toshi.kani-ZPxbGqLxI0U@public.gmane.org>, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Larry Woodman <lwoodman-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, "Michael S. Tsirkin" <mst-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrey Ryabinin <aryabinin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Dave Young <dyoung-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Rik van Riel <riel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Boris Ostrovsky <boris.ostrovsky-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Juergen Gross <jgross-IBi9RG/b67k@public.gmane.org>, kexec-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-ker
-List-Id: linux-arch.vger.kernel.org
+From: Logan Gunthorpe <logang@deltatee.com>
+Subject: [PATCH 3/7] asm-generic/io.h: make ioread64 and iowrite64 universally available
+Date: Thu, 22 Jun 2017 10:48:13 -0600
+Message-ID: <20170622164817.25515-4-logang@deltatee.com>
+References: <20170622164817.25515-1-logang@deltatee.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from ale.deltatee.com ([207.54.116.67]:53875 "EHLO ale.deltatee.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752449AbdFVQtV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 22 Jun 2017 12:49:21 -0400
+In-Reply-To: <20170622164817.25515-1-logang@deltatee.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-alpha@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-crypto@vger.kernel.org, dri-devel@lists.freedesktop.org
+Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Stephen Bates <sbates@raithlin.com>, Logan Gunthorpe <logang@deltatee.com>
 
-On 6/22/2017 5:56 AM, Borislav Petkov wrote:
-> On Fri, Jun 16, 2017 at 01:54:59PM -0500, Tom Lendacky wrote:
->> The IOMMU is programmed with physical addresses for the various tables
->> and buffers that are used to communicate between the device and the
->> driver. When the driver allocates this memory it is encrypted. In order
->> for the IOMMU to access the memory as encrypted the encryption mask needs
->> to be included in these physical addresses during configuration.
->>
->> The PTE entries created by the IOMMU should also include the encryption
->> mask so that when the device behind the IOMMU performs a DMA, the DMA
->> will be performed to encrypted memory.
->>
->> Signed-off-by: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
->> ---
->>   drivers/iommu/amd_iommu.c       |   30 ++++++++++++++++--------------
->>   drivers/iommu/amd_iommu_init.c  |   34 ++++++++++++++++++++++++++++------
->>   drivers/iommu/amd_iommu_proto.h |   10 ++++++++++
->>   drivers/iommu/amd_iommu_types.h |    2 +-
->>   4 files changed, 55 insertions(+), 21 deletions(-)
-> 
-> Reviewed-by: Borislav Petkov <bp-l3A5Bk7waGM@public.gmane.org>
-> 
-> Btw, I'm assuming the virt_to_phys() difference on SME systems is only
-> needed in a handful of places. Otherwise, I'd suggest changing the
-> virt_to_phys() function/macro directly. But I guess most of the places
-> need the real physical address without the enc bit.
+Currently, ioread64 and iowrite64 are only available io CONFIG_64BIT=y
+and CONFIG_GENERIC_IOMAP=n. Thus, seeing the functions are not
+universally available, it makes them unusable for driver developers.
+This leads to ugly hacks such as those at the top of
 
-Correct.
+drivers/ntb/hw/intel/ntb_hw_intel.c
 
-Thanks,
-Tom
+This patch adds fallback implementations for when CONFIG_64BIT and
+CONFIG_GENERIC_IOMAP are not set. These functions use two io32 based
+calls to complete the operation.
 
-> 
+Note, we do not use the volatile keyword in these functions like the
+others in the same file. It is necessary to avoid a compiler warning
+on arm.
+
+Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+---
+ include/asm-generic/io.h | 54 +++++++++++++++++++++++++++++++++++++-----------
+ 1 file changed, 42 insertions(+), 12 deletions(-)
+
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+index 7ef015eb3403..817edaa3da78 100644
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -585,15 +585,24 @@ static inline u32 ioread32(const volatile void __iomem *addr)
+ }
+ #endif
+ 
+-#ifdef CONFIG_64BIT
+ #ifndef ioread64
+ #define ioread64 ioread64
+-static inline u64 ioread64(const volatile void __iomem *addr)
++#ifdef readq
++static inline u64 ioread64(const void __iomem *addr)
+ {
+ 	return readq(addr);
+ }
++#else
++static inline u64 ioread64(const void __iomem *addr)
++{
++	u64 low, high;
++
++	low = ioread32(addr);
++	high = ioread32(addr + sizeof(u32));
++	return low | (high << 32);
++}
++#endif
+ #endif
+-#endif /* CONFIG_64BIT */
+ 
+ #ifndef iowrite8
+ #define iowrite8 iowrite8
+@@ -619,15 +628,21 @@ static inline void iowrite32(u32 value, volatile void __iomem *addr)
+ }
+ #endif
+ 
+-#ifdef CONFIG_64BIT
+ #ifndef iowrite64
+ #define iowrite64 iowrite64
+-static inline void iowrite64(u64 value, volatile void __iomem *addr)
++#ifdef writeq
++static inline void iowrite64(u64 value, void __iomem *addr)
+ {
+ 	writeq(value, addr);
+ }
++#else
++static inline void iowrite64(u64 value, void __iomem *addr)
++{
++	iowrite32(value, addr);
++	iowrite32(value >> 32, addr + sizeof(u32));
++}
++#endif
+ #endif
+-#endif /* CONFIG_64BIT */
+ 
+ #ifndef ioread16be
+ #define ioread16be ioread16be
+@@ -645,15 +660,24 @@ static inline u32 ioread32be(const volatile void __iomem *addr)
+ }
+ #endif
+ 
+-#ifdef CONFIG_64BIT
+ #ifndef ioread64be
+ #define ioread64be ioread64be
+-static inline u64 ioread64be(const volatile void __iomem *addr)
++#ifdef readq
++static inline u64 ioread64be(const void __iomem *addr)
+ {
+ 	return swab64(readq(addr));
+ }
++#else
++static inline u64 ioread64be(const void __iomem *addr)
++{
++	u64 low, high;
++
++	low = ioread32be(addr + sizeof(u32));
++	high = ioread32be(addr);
++	return low | (high << 32);
++}
++#endif
+ #endif
+-#endif /* CONFIG_64BIT */
+ 
+ #ifndef iowrite16be
+ #define iowrite16be iowrite16be
+@@ -671,15 +695,21 @@ static inline void iowrite32be(u32 value, volatile void __iomem *addr)
+ }
+ #endif
+ 
+-#ifdef CONFIG_64BIT
+ #ifndef iowrite64be
+ #define iowrite64be iowrite64be
+-static inline void iowrite64be(u64 value, volatile void __iomem *addr)
++#ifdef writeq
++static inline void iowrite64be(u64 value, void __iomem *addr)
+ {
+ 	writeq(swab64(value), addr);
+ }
++#else
++static inline void iowrite64be(u64 value, void __iomem *addr)
++{
++	iowrite32be(value >> 32, addr);
++	iowrite32be(value, addr + sizeof(u32));
++}
++#endif
+ #endif
+-#endif /* CONFIG_64BIT */
+ 
+ #ifndef ioread8_rep
+ #define ioread8_rep ioread8_rep
+-- 
+2.11.0
