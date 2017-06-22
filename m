@@ -1,82 +1,158 @@
-From: Rob Landley <rob@landley.net>
-Subject: Re: [PATCH 3/5] sh: thin archives fix linking
-Date: Wed, 21 Jun 2017 17:09:06 -0500
-Message-ID: <7a1286aa-b656-7b71-2628-9093156143ff@landley.net>
-References: <20170609052417.561-1-npiggin@gmail.com>
- <20170609052417.561-4-npiggin@gmail.com>
- <CAK7LNARFQ0bLEYOgEKd+0oULevSxRqwFu_VSLn89gn_XBo+-uQ@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: multipart/mixed;
- boundary="------------456D35A4F606E4BE60E3CBC6"
-Return-path: <linux-sh-owner@vger.kernel.org>
-In-Reply-To: <CAK7LNARFQ0bLEYOgEKd+0oULevSxRqwFu_VSLn89gn_XBo+-uQ@mail.gmail.com>
-Sender: linux-sh-owner@vger.kernel.org
-To: Masahiro Yamada <yamada.masahiro@socionext.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, linux-sh@vger.kernel.org, Rich Felker <dalias@libc.org>
-Cc: Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Nicholas Piggin <npiggin@gmail.com>, linux-arch <linux-arch@vger.kernel.org>
+From: Ram Pai <linuxram@us.ibm.com>
+Subject: [RFC v3 00/23] powerpc: Memory Protection Keys
+Date: Wed, 21 Jun 2017 18:39:16 -0700
+Message-ID: <1498095579-6790-1-git-send-email-linuxram@us.ibm.com>
+Return-path: <owner-linux-mm@kvack.org>
+Sender: owner-linux-mm@kvack.org
+To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
+Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
 List-Id: linux-arch.vger.kernel.org
 
-This is a multi-part message in MIME format.
---------------456D35A4F606E4BE60E3CBC6
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Memory protection keys enable applications to protect its
+address space from inadvertent access or corruption from
+itself.
 
-On 06/19/2017 01:19 AM, Masahiro Yamada wrote:
-> 2017-06-09 14:24 GMT+09:00 Nicholas Piggin <npiggin@gmail.com>:
->> The VDSO symbols can't be linked into built-in.o when building with
->> thin archives, so change this to linking them into the final link.
->>
->> Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
->> Cc: Rich Felker <dalias@libc.org>
->> Cc: linux-sh@vger.kernel.org
->> Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
->> ---
-> 
-> SH maintainers, any comments for this patch?
-> 
-> 
-> I confirmed this patch solved the build error,
-> but I do not have access to any SH hardware.
+The overall idea:
 
-You can build and boot the kernel under qemu for several architectures
-(including sh4) by following the instructions on:
+ A process allocates a   key  and associates it with
+ a  address  range  within    its   address   space.
+ The process  than  can  dynamically  set read/write 
+ permissions on  the   key   without  involving  the 
+ kernel. Any  code that  violates   the  permissions
+ off the address space; as defined by its associated
+ key, will receive a segmentation fault.
 
-  https://github.com/landley/mkroot
+This patch series enables the feature on PPC64.
+It is enabled on HPTE 64K-page platform.
 
-I believe I last built -rc6?
-
-You may need the attached patch to fix the serial port issue from:
-
-  https://www.spinics.net/lists/linux-serial/msg26085.html
-
-Which is still there because the kernel guys don't care that they broke
-qemu, and the qemu guys are still using old kernel versions that work
-fine. My patch just reverts the kernel change (which enabled hardware
-buffer logic qemu doesn't implement).
-
-Rob
+ISA3.0 section 5.7.13 describes the detailed specifications.
 
 
+Testing:
+	This patch series has passed all the protection key
+	tests available in  the selftests directory.
+	The tests are updated to work on both x86 and powerpc.
+
+version v3:
+	(1) split the patches into smaller consumable
+		patches.
+	(2) added the ability to disable execute permission
+		on a key at creation.
+	(3) rename  calc_pte_to_hpte_pkey_bits() to
+	    pte_to_hpte_pkey_bits() -- suggested by Anshuman
+	(4) some code optimization and clarity in
+		do_page_fault()  
+	(5) A bug fix while invalidating a hpte slot in 
+		__hash_page_4K() -- noticed by Aneesh
+	
+
+version v2:
+	(1) documentation and selftest added
+ 	(2) fixed a bug in 4k hpte backed 64k pte where page
+	    invalidation was not done correctly, and 
+	    initialization of second-part-of-the-pte was not
+	    done correctly if the pte was not yet Hashed
+	    with a hpte.  Reported by Aneesh.
+	(3) Fixed ABI breakage caused in siginfo structure.
+		Reported by Anshuman.
+	
+Outstanding known issue:
+    Calls to sys_swapcontext with a made-up context will end 
+    up with a crap AMR if done by code who didn't know about
+    that register. -- Reported by Ben.
+
+version v1: Initial version
+
+Thanks-to: Dave Hansen, Aneesh, Paul Mackerras,
+	   Michael Ellermen
 
 
---------------456D35A4F606E4BE60E3CBC6
-Content-Type: text/x-diff;
- name="qemu-sh4.patch"
-Content-Transfer-Encoding: 7bit
-Content-Disposition: attachment;
- filename="qemu-sh4.patch"
+Ram Pai (23):
+  powerpc: Free up four 64K PTE bits in 4K backed HPTE pages
+  powerpc: introduce set_hidx_slot helper
+  powerpc: introduce get_hidx_gslot helper
+  powerpc: Free up four 64K PTE bits in 64K backed HPTE pages
+  powerpc: capture the PTE format changes in the dump pte report
+  powerpc: use helper functions in __hash_page_4K() for 64K PTE
+  powerpc: use helper functions in __hash_page_4K() for 4K PTE
+  powerpc: use helper functions in flush_hash_page()
+  mm: introduce an additional vma bit for powerpc pkey
+  mm: provide the ability to disable execute on a key at creation
+  x86: key creation with PKEY_DISABLE_EXECUTE is disallowed
+  powerpc: Implement sys_pkey_alloc and sys_pkey_free system call
+  powerpc: store and restore the pkey state across context switches
+  powerpc: Implementation for sys_mprotect_pkey() system call
+  powerpc: Program HPTE key protection bits
+  powerpc: Macro the mask used for checking DSI exception
+  powerpc: Handle exceptions caused by violation of pkey protection
+  powerpc: Deliver SEGV signal on pkey violation
+  selftest: Move protecton key selftest to arch neutral directory
+  selftest: PowerPC specific test updates to memory protection keys
+  Documentation: Move protecton key documentation to arch neutral
+    directory
+  Documentation: PowerPC specific updates to memory protection keys
+  procfs: display the protection-key number associated with a vma
 
-diff --git a/drivers/tty/serial/sh-sci.c b/drivers/tty/serial/sh-sci.c
-index 71707e8..a798def 100644
---- a/drivers/tty/serial/sh-sci.c
-+++ b/drivers/tty/serial/sh-sci.c
-@@ -2193,7 +2193,7 @@ static void sci_reset(struct uart_port *port)
- 			setup_timer(&s->rx_fifo_timer, rx_fifo_timer_fn,
- 				    (unsigned long)s);
- 		} else {
--			if (port->type == PORT_SCIFA ||
-+			if (1 || port->type == PORT_SCIFA ||
- 			    port->type == PORT_SCIFB)
- 				scif_set_rtrg(port, 1);
- 			else
+ Documentation/filesystems/proc.txt            |    3 +-
+ Documentation/vm/protection-keys.txt          |  110 ++
+ Documentation/x86/protection-keys.txt         |   85 --
+ arch/powerpc/Kconfig                          |   15 +
+ arch/powerpc/include/asm/book3s/64/hash-4k.h  |   14 +
+ arch/powerpc/include/asm/book3s/64/hash-64k.h |   53 +-
+ arch/powerpc/include/asm/book3s/64/hash.h     |   15 +-
+ arch/powerpc/include/asm/book3s/64/mmu-hash.h |    5 +
+ arch/powerpc/include/asm/book3s/64/mmu.h      |   10 +
+ arch/powerpc/include/asm/book3s/64/pgtable.h  |   84 +-
+ arch/powerpc/include/asm/mman.h               |   14 +-
+ arch/powerpc/include/asm/mmu_context.h        |   12 +
+ arch/powerpc/include/asm/paca.h               |    1 +
+ arch/powerpc/include/asm/pkeys.h              |  159 +++
+ arch/powerpc/include/asm/processor.h          |    5 +
+ arch/powerpc/include/asm/reg.h                |    7 +-
+ arch/powerpc/include/asm/systbl.h             |    3 +
+ arch/powerpc/include/asm/unistd.h             |    6 +-
+ arch/powerpc/include/uapi/asm/ptrace.h        |    3 +-
+ arch/powerpc/include/uapi/asm/unistd.h        |    3 +
+ arch/powerpc/kernel/asm-offsets.c             |    5 +
+ arch/powerpc/kernel/exceptions-64s.S          |   18 +-
+ arch/powerpc/kernel/process.c                 |   18 +
+ arch/powerpc/kernel/signal_32.c               |   14 +
+ arch/powerpc/kernel/signal_64.c               |   14 +
+ arch/powerpc/kernel/traps.c                   |   49 +
+ arch/powerpc/mm/Makefile                      |    1 +
+ arch/powerpc/mm/dump_linuxpagetables.c        |    3 +-
+ arch/powerpc/mm/fault.c                       |   22 +
+ arch/powerpc/mm/hash64_4k.c                   |   14 +-
+ arch/powerpc/mm/hash64_64k.c                  |  111 +-
+ arch/powerpc/mm/hash_utils_64.c               |   36 +-
+ arch/powerpc/mm/hugetlbpage-hash64.c          |   16 +-
+ arch/powerpc/mm/mmu_context_book3s64.c        |    5 +
+ arch/powerpc/mm/pkeys.c                       |  267 +++++
+ arch/x86/kernel/fpu/xstate.c                  |    3 +
+ fs/proc/task_mmu.c                            |   18 +-
+ include/linux/mm.h                            |   18 +-
+ include/uapi/asm-generic/mman-common.h        |    4 +-
+ tools/testing/selftests/vm/Makefile           |    1 +
+ tools/testing/selftests/vm/pkey-helpers.h     |  365 ++++++
+ tools/testing/selftests/vm/protection_keys.c  | 1483 +++++++++++++++++++++++++
+ tools/testing/selftests/x86/Makefile          |    2 +-
+ tools/testing/selftests/x86/pkey-helpers.h    |  219 ----
+ tools/testing/selftests/x86/protection_keys.c | 1395 -----------------------
+ 45 files changed, 2868 insertions(+), 1840 deletions(-)
+ create mode 100644 Documentation/vm/protection-keys.txt
+ delete mode 100644 Documentation/x86/protection-keys.txt
+ create mode 100644 arch/powerpc/include/asm/pkeys.h
+ create mode 100644 arch/powerpc/mm/pkeys.c
+ create mode 100644 tools/testing/selftests/vm/pkey-helpers.h
+ create mode 100644 tools/testing/selftests/vm/protection_keys.c
+ delete mode 100644 tools/testing/selftests/x86/pkey-helpers.h
+ delete mode 100644 tools/testing/selftests/x86/protection_keys.c
 
---------------456D35A4F606E4BE60E3CBC6--
+-- 
+1.8.3.1
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
