@@ -1,93 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f196.google.com ([209.85.220.196]:33010 "EHLO
-        mail-qk0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752484AbdFVBke (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Jun 2017 21:40:34 -0400
+Received: from mail-qt0-f194.google.com ([209.85.216.194]:34261 "EHLO
+        mail-qt0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752192AbdFVBkI (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Jun 2017 21:40:08 -0400
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v3 15/23] powerpc: Program HPTE key protection bits
-Date: Wed, 21 Jun 2017 18:39:31 -0700
-Message-ID: <1498095579-6790-16-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v3 07/23] powerpc: use helper functions in __hash_page_4K() for 4K PTE
+Date: Wed, 21 Jun 2017 18:39:23 -0700
+Message-ID: <1498095579-6790-8-git-send-email-linuxram@us.ibm.com>
 In-Reply-To: <1498095579-6790-1-git-send-email-linuxram@us.ibm.com>
 References: <1498095579-6790-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
-Message-ID: <20170622013931.nyJhFgoWG3k2SJFbNy6If5vKUrABnfz9aIAfmqzd0JQ@z>
+Message-ID: <20170622013923.w59fYFWyxjT_vvM0nS_9HRuMdiIiLALqEfvT5JI25og@z>
 
-Map the PTE protection key bits to the HPTE key protection bits,
-while creating HPTE  entries.
+replace redundant code with helper functions
+get_hidx_gslot() and set_hidx_slot()
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/include/asm/book3s/64/mmu-hash.h | 5 +++++
- arch/powerpc/include/asm/pkeys.h              | 7 +++++++
- arch/powerpc/mm/hash_utils_64.c               | 5 +++++
- 3 files changed, 17 insertions(+)
+ arch/powerpc/mm/hash64_4k.c | 14 ++++++--------
+ 1 file changed, 6 insertions(+), 8 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/book3s/64/mmu-hash.h b/arch/powerpc/include/asm/book3s/64/mmu-hash.h
-index 6981a52..f7a6ed3 100644
---- a/arch/powerpc/include/asm/book3s/64/mmu-hash.h
-+++ b/arch/powerpc/include/asm/book3s/64/mmu-hash.h
-@@ -90,6 +90,8 @@
- #define HPTE_R_PP0		ASM_CONST(0x8000000000000000)
- #define HPTE_R_TS		ASM_CONST(0x4000000000000000)
- #define HPTE_R_KEY_HI		ASM_CONST(0x3000000000000000)
-+#define HPTE_R_KEY_BIT0		ASM_CONST(0x2000000000000000)
-+#define HPTE_R_KEY_BIT1		ASM_CONST(0x1000000000000000)
- #define HPTE_R_RPN_SHIFT	12
- #define HPTE_R_RPN		ASM_CONST(0x0ffffffffffff000)
- #define HPTE_R_RPN_3_0		ASM_CONST(0x01fffffffffff000)
-@@ -104,6 +106,9 @@
- #define HPTE_R_C		ASM_CONST(0x0000000000000080)
- #define HPTE_R_R		ASM_CONST(0x0000000000000100)
- #define HPTE_R_KEY_LO		ASM_CONST(0x0000000000000e00)
-+#define HPTE_R_KEY_BIT2		ASM_CONST(0x0000000000000800)
-+#define HPTE_R_KEY_BIT3		ASM_CONST(0x0000000000000400)
-+#define HPTE_R_KEY_BIT4		ASM_CONST(0x0000000000000200)
+diff --git a/arch/powerpc/mm/hash64_4k.c b/arch/powerpc/mm/hash64_4k.c
+index 6fa450c..c673829 100644
+--- a/arch/powerpc/mm/hash64_4k.c
++++ b/arch/powerpc/mm/hash64_4k.c
+@@ -20,6 +20,7 @@ int __hash_page_4K(unsigned long ea, unsigned long access, unsigned long vsid,
+ 		   pte_t *ptep, unsigned long trap, unsigned long flags,
+ 		   int ssize, int subpg_prot)
+ {
++	real_pte_t rpte;
+ 	unsigned long hpte_group;
+ 	unsigned long rflags, pa;
+ 	unsigned long old_pte, new_pte;
+@@ -54,6 +55,7 @@ int __hash_page_4K(unsigned long ea, unsigned long access, unsigned long vsid,
+ 	 * need to add in 0x1 if it's a read-only user page
+ 	 */
+ 	rflags = htab_convert_pte_flags(new_pte);
++	rpte = __real_pte(__pte(old_pte), ptep);
  
- #define HPTE_V_1TB_SEG		ASM_CONST(0x4000000000000000)
- #define HPTE_V_VRMA_MASK	ASM_CONST(0x4001ffffff000000)
-diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
-index 0f3dca8..af3882f 100644
---- a/arch/powerpc/include/asm/pkeys.h
-+++ b/arch/powerpc/include/asm/pkeys.h
-@@ -27,6 +27,13 @@
- 		((vm_flags & VM_PKEY_BIT3) ? H_PAGE_PKEY_BIT1 : 0x0UL) |     \
- 		((vm_flags & VM_PKEY_BIT4) ? H_PAGE_PKEY_BIT0 : 0x0UL))
- 
-+#define pte_to_hpte_pkey_bits(pteflags)	\
-+	(((pteflags & H_PAGE_PKEY_BIT0) ? HPTE_R_KEY_BIT0 : 0x0UL) |	\
-+	((pteflags & H_PAGE_PKEY_BIT1) ? HPTE_R_KEY_BIT1 : 0x0UL) |	\
-+	((pteflags & H_PAGE_PKEY_BIT2) ? HPTE_R_KEY_BIT2 : 0x0UL) |	\
-+	((pteflags & H_PAGE_PKEY_BIT3) ? HPTE_R_KEY_BIT3 : 0x0UL) |	\
-+	((pteflags & H_PAGE_PKEY_BIT4) ? HPTE_R_KEY_BIT4 : 0x0UL))
-+
- /*
-  * Bits are in BE format.
-  * NOTE: key 31, 1, 0 are not used.
-diff --git a/arch/powerpc/mm/hash_utils_64.c b/arch/powerpc/mm/hash_utils_64.c
-index b3bc5d6..34bc94c 100644
---- a/arch/powerpc/mm/hash_utils_64.c
-+++ b/arch/powerpc/mm/hash_utils_64.c
-@@ -35,6 +35,7 @@
- #include <linux/memblock.h>
- #include <linux/context_tracking.h>
- #include <linux/libfdt.h>
-+#include <linux/pkeys.h>
- 
- #include <asm/debugfs.h>
- #include <asm/processor.h>
-@@ -230,6 +231,10 @@ unsigned long htab_convert_pte_flags(unsigned long pteflags)
+ 	if (cpu_has_feature(CPU_FTR_NOEXECUTE) &&
+ 	    !cpu_has_feature(CPU_FTR_COHERENT_ICACHE))
+@@ -64,13 +66,10 @@ int __hash_page_4K(unsigned long ea, unsigned long access, unsigned long vsid,
+ 		/*
+ 		 * There MIGHT be an HPTE for this pte
  		 */
- 		rflags |= HPTE_R_M;
+-		hash = hpt_hash(vpn, shift, ssize);
+-		if (old_pte & H_PAGE_F_SECOND)
+-			hash = ~hash;
+-		slot = (hash & htab_hash_mask) * HPTES_PER_GROUP;
+-		slot += (old_pte & H_PAGE_F_GIX) >> H_PAGE_F_GIX_SHIFT;
++		unsigned long gslot = get_hidx_gslot(vpn, shift,
++						ssize, rpte, 0);
  
-+#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
-+	rflags |= pte_to_hpte_pkey_bits(pteflags);
-+#endif
-+
- 	return rflags;
- }
- 
+-		if (mmu_hash_ops.hpte_updatepp(slot, rflags, vpn, MMU_PAGE_4K,
++		if (mmu_hash_ops.hpte_updatepp(gslot, rflags, vpn, MMU_PAGE_4K,
+ 					       MMU_PAGE_4K, ssize, flags) == -1)
+ 			old_pte &= ~_PAGE_HPTEFLAGS;
+ 	}
+@@ -118,8 +117,7 @@ int __hash_page_4K(unsigned long ea, unsigned long access, unsigned long vsid,
+ 			return -1;
+ 		}
+ 		new_pte = (new_pte & ~_PAGE_HPTEFLAGS) | H_PAGE_HASHPTE;
+-		new_pte |= (slot << H_PAGE_F_GIX_SHIFT) &
+-			(H_PAGE_F_SECOND | H_PAGE_F_GIX);
++		new_pte |= set_hidx_slot(ptep, rpte, 0, slot);
+ 	}
+ 	*ptep = __pte(new_pte & ~H_PAGE_BUSY);
+ 	return 0;
 -- 
 1.8.3.1
