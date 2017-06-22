@@ -1,180 +1,118 @@
-From: tip-bot for Kees Cook <tipbot@zytor.com>
-Subject: [tip:locking/core] locking/refcount: Create unchecked atomic_t
- implementation
-Date: Thu, 22 Jun 2017 04:07:33 -0700
-Message-ID: <tip-87f7583e9205fe5220677d0775f3a4d2b8fe8827@git.kernel.org>
-References: <20170621200026.GA115679@beast>
-Reply-To: davem@davemloft.net, akpm@linux-foundation.org,
-          tglx@linutronix.de, adobriyan@gmail.com,
-          gregkh@linuxfoundation.org, ebiederm@xmission.com,
-          James.Bottomley@hansenpartnership.com, jannh@google.com,
-          jpoimboe@redhat.com, peterz@infradead.org, ebiggers3@gmail.com,
-          elena.reshetova@intel.com, linux-kernel@vger.kernel.org,
-          manfred@colorfullife.com, torvalds@linux-foundation.org,
-          arnd@arndb.de, keescook@chromium.org, dave@stgolabs.net,
-          linux-arch@vger.kernel.org, hch@infradead.org,
-          dwindsor@gmail.com, mingo@kernel.org, serge@hallyn.com,
-          hpa@zytor.com, ishkamiel@gmail.com, riel@redhat.com
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([65.50.211.136]:41147 "EHLO
-        terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752827AbdFVLQU (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Jun 2017 07:16:20 -0400
-In-Reply-To: <20170621200026.GA115679@beast>
-Content-Disposition: inline
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-tip-commits@vger.kernel.org
-Cc: elena.reshetova@intel.com, ebiggers3@gmail.com, jpoimboe@redhat.com, jannh@google.com, peterz@infradead.org, ebiederm@xmission.com, gregkh@linuxfoundation.org, James.Bottomley@hansenpartnership.com, davem@davemloft.net, adobriyan@gmail.com, tglx@linutronix.de, akpm@linux-foundation.org, ishkamiel@gmail.com, hpa@zytor.com, mingo@kernel.org, serge@hallyn.com, riel@redhat.com, linux-arch@vger.kernel.org, dwindsor@gmail.com, hch@infradead.org, keescook@chromium.org, arnd@arndb.de, torvalds@linux-foundation.org, dave@stgolabs.net, linux-kernel@vger.kernel.org, manfred@colorfullife.com
+From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Subject: [PATCH 2/5] x86/mm: Rename tasksize_32bit/64bit to task_size_32bit/64bit
+Date: Thu, 22 Jun 2017 15:26:05 +0300
+Message-ID: <20170622122608.80435-3-kirill.shutemov@linux.intel.com>
+References: <20170622122608.80435-1-kirill.shutemov@linux.intel.com>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20170622122608.80435-1-kirill.shutemov@linux.intel.com>
+Sender: owner-linux-mm@kvack.org
+To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+List-Id: linux-arch.vger.kernel.org
 
-Commit-ID:  87f7583e9205fe5220677d0775f3a4d2b8fe8827
-Gitweb:     http://git.kernel.org/tip/87f7583e9205fe5220677d0775f3a4d2b8fe8827
-Author:     Kees Cook <keescook@chromium.org>
-AuthorDate: Wed, 21 Jun 2017 13:00:26 -0700
-Committer:  Ingo Molnar <mingo@kernel.org>
-CommitDate: Thu, 22 Jun 2017 10:36:25 +0200
+Rename these helpers to be consistent with spelling of TASK_SIZE and
+related constants.
 
-locking/refcount: Create unchecked atomic_t implementation
-
-Many subsystems will not use refcount_t unless there is a way to build the
-kernel so that there is no regression in speed compared to atomic_t. This
-adds CONFIG_REFCOUNT_FULL to enable the full refcount_t implementation
-which has the validation but is slightly slower. When not enabled,
-refcount_t uses the basic unchecked atomic_t routines, which results in
-no code changes compared to just using atomic_t directly.
-
-Signed-off-by: Kees Cook <keescook@chromium.org>
-Acked-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: Alexey Dobriyan <adobriyan@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Christoph Hellwig <hch@infradead.org>
-Cc: David S. Miller <davem@davemloft.net>
-Cc: David Windsor <dwindsor@gmail.com>
-Cc: Davidlohr Bueso <dave@stgolabs.net>
-Cc: Elena Reshetova <elena.reshetova@intel.com>
-Cc: Eric Biggers <ebiggers3@gmail.com>
-Cc: Eric W. Biederman <ebiederm@xmission.com>
-Cc: Hans Liljestrand <ishkamiel@gmail.com>
-Cc: James Bottomley <James.Bottomley@hansenpartnership.com>
-Cc: Jann Horn <jannh@google.com>
-Cc: Josh Poimboeuf <jpoimboe@redhat.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Manfred Spraul <manfred@colorfullife.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Rik van Riel <riel@redhat.com>
-Cc: Serge E. Hallyn <serge@hallyn.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: arozansk@redhat.com
-Cc: axboe@kernel.dk
-Cc: linux-arch <linux-arch@vger.kernel.org>
-Link: http://lkml.kernel.org/r/20170621200026.GA115679@beast
-Signed-off-by: Ingo Molnar <mingo@kernel.org>
+Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
- arch/Kconfig             |  9 +++++++++
- include/linux/refcount.h | 42 ++++++++++++++++++++++++++++++++++++++++++
- lib/refcount.c           |  3 +++
- 3 files changed, 54 insertions(+)
+ arch/x86/include/asm/elf.h   |  4 ++--
+ arch/x86/kernel/sys_x86_64.c |  2 +-
+ arch/x86/mm/hugetlbpage.c    |  2 +-
+ arch/x86/mm/mmap.c           | 10 +++++-----
+ 4 files changed, 9 insertions(+), 9 deletions(-)
 
-diff --git a/arch/Kconfig b/arch/Kconfig
-index 6c00e5b..f76b214 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -867,4 +867,13 @@ config STRICT_MODULE_RWX
- config ARCH_WANT_RELAX_ORDER
- 	bool
- 
-+config REFCOUNT_FULL
-+	bool "Perform full reference count validation at the expense of speed"
-+	help
-+	  Enabling this switches the refcounting infrastructure from a fast
-+	  unchecked atomic_t implementation to a fully state checked
-+	  implementation, which can be (slightly) slower but provides protections
-+	  against various use-after-free conditions that can be used in
-+	  security flaw exploits.
-+
- source "kernel/gcov/Kconfig"
-diff --git a/include/linux/refcount.h b/include/linux/refcount.h
-index b34aa64..bb71f28 100644
---- a/include/linux/refcount.h
-+++ b/include/linux/refcount.h
-@@ -41,6 +41,7 @@ static inline unsigned int refcount_read(const refcount_t *r)
- 	return atomic_read(&r->refs);
+diff --git a/arch/x86/include/asm/elf.h b/arch/x86/include/asm/elf.h
+index e8ab9a46bc68..e68e9ff588c8 100644
+--- a/arch/x86/include/asm/elf.h
++++ b/arch/x86/include/asm/elf.h
+@@ -303,8 +303,8 @@ static inline int mmap_is_ia32(void)
+ 		test_thread_flag(TIF_ADDR32));
  }
  
-+#ifdef CONFIG_REFCOUNT_FULL
- extern __must_check bool refcount_add_not_zero(unsigned int i, refcount_t *r);
- extern void refcount_add(unsigned int i, refcount_t *r);
+-extern unsigned long tasksize_32bit(void);
+-extern unsigned long tasksize_64bit(void);
++extern unsigned long task_size_32bit(void);
++extern unsigned long task_size_64bit(void);
+ extern unsigned long get_mmap_base(int is_legacy);
  
-@@ -52,6 +53,47 @@ extern void refcount_sub(unsigned int i, refcount_t *r);
+ #ifdef CONFIG_X86_32
+diff --git a/arch/x86/kernel/sys_x86_64.c b/arch/x86/kernel/sys_x86_64.c
+index 213ddf3e937d..89bd0d6460e1 100644
+--- a/arch/x86/kernel/sys_x86_64.c
++++ b/arch/x86/kernel/sys_x86_64.c
+@@ -120,7 +120,7 @@ static void find_start_end(unsigned long flags, unsigned long *begin,
+ 	}
  
- extern __must_check bool refcount_dec_and_test(refcount_t *r);
- extern void refcount_dec(refcount_t *r);
-+#else
-+static inline __must_check bool refcount_add_not_zero(unsigned int i, refcount_t *r)
-+{
-+	return atomic_add_unless(&r->refs, i, 0);
-+}
-+
-+static inline void refcount_add(unsigned int i, refcount_t *r)
-+{
-+	atomic_add(i, &r->refs);
-+}
-+
-+static inline __must_check bool refcount_inc_not_zero(refcount_t *r)
-+{
-+	return atomic_add_unless(&r->refs, 1, 0);
-+}
-+
-+static inline void refcount_inc(refcount_t *r)
-+{
-+	atomic_inc(&r->refs);
-+}
-+
-+static inline __must_check bool refcount_sub_and_test(unsigned int i, refcount_t *r)
-+{
-+	return atomic_sub_and_test(i, &r->refs);
-+}
-+
-+static inline void refcount_sub(unsigned int i, refcount_t *r)
-+{
-+	atomic_sub(i, &r->refs);
-+}
-+
-+static inline __must_check bool refcount_dec_and_test(refcount_t *r)
-+{
-+	return atomic_dec_and_test(&r->refs);
-+}
-+
-+static inline void refcount_dec(refcount_t *r)
-+{
-+	atomic_dec(&r->refs);
-+}
-+#endif /* CONFIG_REFCOUNT_FULL */
- 
- extern __must_check bool refcount_dec_if_one(refcount_t *r);
- extern __must_check bool refcount_dec_not_one(refcount_t *r);
-diff --git a/lib/refcount.c b/lib/refcount.c
-index 9f90678..5d0582a 100644
---- a/lib/refcount.c
-+++ b/lib/refcount.c
-@@ -37,6 +37,8 @@
- #include <linux/refcount.h>
- #include <linux/bug.h>
- 
-+#ifdef CONFIG_REFCOUNT_FULL
-+
- /**
-  * refcount_add_not_zero - add a value to a refcount unless it is 0
-  * @i: the value to add to the refcount
-@@ -225,6 +227,7 @@ void refcount_dec(refcount_t *r)
- 	WARN_ONCE(refcount_dec_and_test(r), "refcount_t: decrement hit 0; leaking memory.\n");
+ 	*begin	= get_mmap_base(1);
+-	*end	= in_compat_syscall() ? tasksize_32bit() : tasksize_64bit();
++	*end	= in_compat_syscall() ? task_size_32bit() : task_size_64bit();
  }
- EXPORT_SYMBOL(refcount_dec);
-+#endif /* CONFIG_REFCOUNT_FULL */
  
- /**
-  * refcount_dec_if_one - decrement a refcount if it is 1
+ unsigned long
+diff --git a/arch/x86/mm/hugetlbpage.c b/arch/x86/mm/hugetlbpage.c
+index adad702b39cd..93bfd6d7ce1c 100644
+--- a/arch/x86/mm/hugetlbpage.c
++++ b/arch/x86/mm/hugetlbpage.c
+@@ -86,7 +86,7 @@ static unsigned long hugetlb_get_unmapped_area_bottomup(struct file *file,
+ 	info.length = len;
+ 	info.low_limit = get_mmap_base(1);
+ 	info.high_limit = in_compat_syscall() ?
+-		tasksize_32bit() : tasksize_64bit();
++		task_size_32bit() : task_size_64bit();
+ 	info.align_mask = PAGE_MASK & ~huge_page_mask(h);
+ 	info.align_offset = 0;
+ 	return vm_unmapped_area(&info);
+diff --git a/arch/x86/mm/mmap.c b/arch/x86/mm/mmap.c
+index 19ad095b41df..b99c1a29dcca 100644
+--- a/arch/x86/mm/mmap.c
++++ b/arch/x86/mm/mmap.c
+@@ -37,12 +37,12 @@ struct va_alignment __read_mostly va_align = {
+ 	.flags = -1,
+ };
+ 
+-unsigned long tasksize_32bit(void)
++unsigned long task_size_32bit(void)
+ {
+ 	return IA32_PAGE_OFFSET;
+ }
+ 
+-unsigned long tasksize_64bit(void)
++unsigned long task_size_64bit(void)
+ {
+ 	return TASK_SIZE_MAX;
+ }
+@@ -52,7 +52,7 @@ static unsigned long stack_maxrandom_size(unsigned long task_size)
+ 	unsigned long max = 0;
+ 	if ((current->flags & PF_RANDOMIZE) &&
+ 		!(current->personality & ADDR_NO_RANDOMIZE)) {
+-		max = (-1UL) & __STACK_RND_MASK(task_size == tasksize_32bit());
++		max = (-1UL) & __STACK_RND_MASK(task_size == task_size_32bit());
+ 		max <<= PAGE_SHIFT;
+ 	}
+ 
+@@ -140,7 +140,7 @@ void arch_pick_mmap_layout(struct mm_struct *mm)
+ 		mm->get_unmapped_area = arch_get_unmapped_area_topdown;
+ 
+ 	arch_pick_mmap_base(&mm->mmap_base, &mm->mmap_legacy_base,
+-			arch_rnd(mmap64_rnd_bits), tasksize_64bit());
++			arch_rnd(mmap64_rnd_bits), task_size_64bit());
+ 
+ #ifdef CONFIG_HAVE_ARCH_COMPAT_MMAP_BASES
+ 	/*
+@@ -150,7 +150,7 @@ void arch_pick_mmap_layout(struct mm_struct *mm)
+ 	 * mmap_base, the compat syscall uses mmap_compat_base.
+ 	 */
+ 	arch_pick_mmap_base(&mm->mmap_compat_base, &mm->mmap_compat_legacy_base,
+-			arch_rnd(mmap32_rnd_bits), tasksize_32bit());
++			arch_rnd(mmap32_rnd_bits), task_size_32bit());
+ #endif
+ }
+ 
+-- 
+2.11.0
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
