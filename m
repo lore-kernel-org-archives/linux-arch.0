@@ -1,30 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ale.deltatee.com ([207.54.116.67]:54090 "EHLO ale.deltatee.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753345AbdFVRbC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 22 Jun 2017 13:31:02 -0400
-References: <20170622164817.25515-1-logang@deltatee.com>
- <20170622164817.25515-5-logang@deltatee.com>
- <E70FB7EB-3A05-4A08-A85E-020F47751E3B@raithlin.com>
-From: Logan Gunthorpe <logang@deltatee.com>
-Message-ID: <0d2f1f7c-d014-5ddf-ad5c-64f13cb5a64a@deltatee.com>
-Date: Thu, 22 Jun 2017 11:30:42 -0600
-MIME-Version: 1.0
-In-Reply-To: <E70FB7EB-3A05-4A08-A85E-020F47751E3B@raithlin.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Subject: Re: [PATCH 4/7] alpha: provide ioread64 and iowrite64 implementations
+Received: from mail-pf0-f182.google.com ([209.85.192.182]:35591 "EHLO
+        mail-pf0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753385AbdFVSGl (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Jun 2017 14:06:41 -0400
+Received: by mail-pf0-f182.google.com with SMTP id c73so12136118pfk.2
+        for <linux-arch@vger.kernel.org>; Thu, 22 Jun 2017 11:06:41 -0700 (PDT)
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH 3/4] powerpc: Reduce ELF_ET_DYN_BASE
+Date: Thu, 22 Jun 2017 11:06:31 -0700
+Message-ID: <1498154792-49952-4-git-send-email-keescook@chromium.org>
+In-Reply-To: <1498154792-49952-1-git-send-email-keescook@chromium.org>
+References: <1498154792-49952-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Bates <sbates@raithlin.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-ntb@googlegroups.com" <linux-ntb@googlegroups.com>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, "linux-crypto@vger.kernel.org" <linux-crypto@vger.kernel.org>, "dri-devel@lists.freedesktop.org" <dri-devel@lists.freedesktop.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>
-Message-ID: <20170622173042.44-86_pxX8bozVXWl2eawjdWYikXNh1-oOV21F6LXc0@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Kees Cook <keescook@chromium.org>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, James Hogan <james.hogan@imgtec.com>, Pratyush Anand <panand@redhat.com>, Ingo Molnar <mingo@kernel.org>, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com
+Message-ID: <20170622180631.2Qz72Sl0noxDcVa7sJLTNK6PcLmmYNo1ESOTH-xUcVk@z>
 
-On 6/22/2017 11:29 AM, Stephen  Bates wrote:
->> +#define iowrite64be(v,p) iowrite32(cpu_to_be64(v), (p))
->
-> Logan, thanks for taking this cleanup on. I think this should be iowrite64 not iowrite32?
+Now that explicitly executed loaders are loaded in the mmap region,
+position PIE binaries lower in the address space to avoid possible
+collisions with mmap or stack regions. For 64-bit, align to 4GB to
+allow runtimes to use the entire 32-bit address space for 32-bit
+pointers.
 
-Yup, good catch. Thanks. I'll fix it in a v2 of this series.
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+ arch/powerpc/include/asm/elf.h | 13 +++++++------
+ 1 file changed, 7 insertions(+), 6 deletions(-)
 
-Logan
+diff --git a/arch/powerpc/include/asm/elf.h b/arch/powerpc/include/asm/elf.h
+index 09bde6e34f5d..548d9a411a0d 100644
+--- a/arch/powerpc/include/asm/elf.h
++++ b/arch/powerpc/include/asm/elf.h
+@@ -23,12 +23,13 @@
+ #define CORE_DUMP_USE_REGSET
+ #define ELF_EXEC_PAGESIZE	PAGE_SIZE
+ 
+-/* This is the location that an ET_DYN program is loaded if exec'ed.  Typical
+-   use of this is to invoke "./ld.so someprog" to test out a new version of
+-   the loader.  We need to make sure that it is out of the way of the program
+-   that it will "exec", and that there is sufficient room for the brk.  */
+-
+-#define ELF_ET_DYN_BASE	0x20000000
++/*
++ * This is the base location for PIE (ET_DYN with INTERP) loads. On
++ * 64-bit, this is raised to 4GB to leave the entire 32-bit address
++ * space open for things that want to use the area for 32-bit pointers.
++ */
++#define ELF_ET_DYN_BASE		(is_32bit_task() ? 0x000400000UL : \
++						   0x100000000UL)
+ 
+ #define ELF_CORE_EFLAGS (is_elf2_task() ? 2 : 0)
+ 
+-- 
+2.7.4
