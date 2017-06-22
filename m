@@ -1,25 +1,63 @@
-From: Logan Gunthorpe <logang@deltatee.com>
-Subject: Re: [PATCH 4/7] alpha: provide ioread64 and iowrite64 implementations
-Date: Thu, 22 Jun 2017 11:30:42 -0600
-Message-ID: <0d2f1f7c-d014-5ddf-ad5c-64f13cb5a64a@deltatee.com>
-References: <20170622164817.25515-1-logang@deltatee.com>
- <20170622164817.25515-5-logang@deltatee.com>
- <E70FB7EB-3A05-4A08-A85E-020F47751E3B@raithlin.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <E70FB7EB-3A05-4A08-A85E-020F47751E3B@raithlin.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Stephen Bates <sbates@raithlin.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-ntb@googlegroups.com" <linux-ntb@googlegroups.com>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, "linux-crypto@vger.kernel.org" <linux-crypto@vger.kernel.org>, "dri-devel@lists.freedesktop.org" <dri-devel@lists.freedesktop.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>
-List-Id: linux-arch.vger.kernel.org
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH 2/4] arm64: Reduce ELF_ET_DYN_BASE
+Date: Thu, 22 Jun 2017 11:06:30 -0700
+Message-ID: <1498154792-49952-3-git-send-email-keescook@chromium.org>
+References: <1498154792-49952-1-git-send-email-keescook@chromium.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pg0-f41.google.com ([74.125.83.41]:36487 "EHLO
+        mail-pg0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752374AbdFVSGl (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Jun 2017 14:06:41 -0400
+Received: by mail-pg0-f41.google.com with SMTP id u62so10932338pgb.3
+        for <linux-arch@vger.kernel.org>; Thu, 22 Jun 2017 11:06:40 -0700 (PDT)
+In-Reply-To: <1498154792-49952-1-git-send-email-keescook@chromium.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Kees Cook <keescook@chromium.org>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, James Hogan <james.hogan@imgtec.com>, Pratyush Anand <panand@redhat.com>, Ingo Molnar <mingo@kernel.org>, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com
 
-On 6/22/2017 11:29 AM, Stephen  Bates wrote:
->> +#define iowrite64be(v,p) iowrite32(cpu_to_be64(v), (p))
->
-> Logan, thanks for taking this cleanup on. I think this should be iowrite64 not iowrite32?
+Now that explicitly executed loaders are loaded in the mmap region,
+position PIE binaries lower in the address space to avoid possible
+collisions with mmap or stack regions. For 64-bit, align to 4GB to
+allow runtimes to use the entire 32-bit address space for 32-bit
+pointers.
 
-Yup, good catch. Thanks. I'll fix it in a v2 of this series.
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+ arch/arm64/include/asm/elf.h | 13 ++++++-------
+ 1 file changed, 6 insertions(+), 7 deletions(-)
 
-Logan
+diff --git a/arch/arm64/include/asm/elf.h b/arch/arm64/include/asm/elf.h
+index 5d1700425efe..f742af8f7c42 100644
+--- a/arch/arm64/include/asm/elf.h
++++ b/arch/arm64/include/asm/elf.h
+@@ -113,12 +113,13 @@
+ #define ELF_EXEC_PAGESIZE	PAGE_SIZE
+ 
+ /*
+- * This is the location that an ET_DYN program is loaded if exec'ed.  Typical
+- * use of this is to invoke "./ld.so someprog" to test out a new version of
+- * the loader.  We need to make sure that it is out of the way of the program
+- * that it will "exec", and that there is sufficient room for the brk.
++ * This is the base location for PIE (ET_DYN with INTERP) loads. On
++ * 64-bit, this is raised to 4GB to leave the entire 32-bit address
++ * space open for things that want to use the area for 32-bit pointers.
+  */
+-#define ELF_ET_DYN_BASE	(2 * TASK_SIZE_64 / 3)
++#define ELF_ET_DYN_BASE		(test_thread_flag(TIF_32BIT) ?	\
++					0x000400000UL :		\
++					0x100000000UL)
+ 
+ #ifndef __ASSEMBLY__
+ 
+@@ -173,8 +174,6 @@ extern int arch_setup_additional_pages(struct linux_binprm *bprm,
+ 
+ #ifdef CONFIG_COMPAT
+ 
+-#define COMPAT_ELF_ET_DYN_BASE		(2 * TASK_SIZE_32 / 3)
+-
+ /* AArch32 registers. */
+ #define COMPAT_ELF_NGREG		18
+ typedef unsigned int			compat_elf_greg_t;
+-- 
+2.7.4
