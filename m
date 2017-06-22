@@ -1,235 +1,94 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f195.google.com ([209.85.220.195]:36478 "EHLO
-        mail-qk0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751997AbdFVBky (ORCPT
+Received: from mail-qk0-f193.google.com ([209.85.220.193]:33104 "EHLO
+        mail-qk0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752610AbdFVBky (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Jun 2017 21:40:54 -0400
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v3 17/23] powerpc: Handle exceptions caused by violation of pkey protection
-Date: Wed, 21 Jun 2017 18:39:33 -0700
-Message-ID: <1498095579-6790-18-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v3 23/23] procfs: display the protection-key number associated with a vma
+Date: Wed, 21 Jun 2017 18:39:39 -0700
+Message-ID: <1498095579-6790-24-git-send-email-linuxram@us.ibm.com>
 In-Reply-To: <1498095579-6790-1-git-send-email-linuxram@us.ibm.com>
 References: <1498095579-6790-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
-Message-ID: <20170622013933.sEvr6kW2gkB0jzGQZ_q_kQB0GefbrKCzed1NyklFjTM@z>
+Message-ID: <20170622013939.sANOxeCrrv3H8RBBdUFdtQDywGALZvCon6wnO5ywCy4@z>
 
-Handle Data and Instruction exceptions caused by memory
-protection-key.
+Display the pkey number associated with the vma in smaps of a task.
+The key will be seen as below:
+
+VmFlags: rd wr mr mw me dw ac key=0
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/include/asm/mmu_context.h | 12 +++++
- arch/powerpc/include/asm/pkeys.h       |  9 ++++
- arch/powerpc/include/asm/reg.h         |  2 +-
- arch/powerpc/mm/fault.c                | 20 ++++++++
- arch/powerpc/mm/pkeys.c                | 90 ++++++++++++++++++++++++++++++++++
- 5 files changed, 132 insertions(+), 1 deletion(-)
+ Documentation/filesystems/proc.txt |  3 ++-
+ fs/proc/task_mmu.c                 | 22 +++++++++++-----------
+ 2 files changed, 13 insertions(+), 12 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/mmu_context.h b/arch/powerpc/include/asm/mmu_context.h
-index da7e943..71fffe0 100644
---- a/arch/powerpc/include/asm/mmu_context.h
-+++ b/arch/powerpc/include/asm/mmu_context.h
-@@ -175,11 +175,23 @@ static inline void arch_bprm_mm_init(struct mm_struct *mm,
- {
- }
+diff --git a/Documentation/filesystems/proc.txt b/Documentation/filesystems/proc.txt
+index 4cddbce..a8c74aa 100644
+--- a/Documentation/filesystems/proc.txt
++++ b/Documentation/filesystems/proc.txt
+@@ -423,7 +423,7 @@ SwapPss:               0 kB
+ KernelPageSize:        4 kB
+ MMUPageSize:           4 kB
+ Locked:                0 kB
+-VmFlags: rd ex mr mw me dw
++VmFlags: rd ex mr mw me dw key=<num>
  
-+#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
-+bool arch_pte_access_permitted(pte_t pte, bool write);
-+bool arch_vma_access_permitted(struct vm_area_struct *vma,
-+		bool write, bool execute, bool foreign);
-+#else /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
-+static inline bool arch_pte_access_permitted(pte_t pte, bool write)
-+{
-+	/* by default, allow everything */
-+	return true;
-+}
- static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
- 		bool write, bool execute, bool foreign)
- {
- 	/* by default, allow everything */
- 	return true;
- }
-+#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
-+
- #endif /* __KERNEL__ */
- #endif /* __ASM_POWERPC_MMU_CONTEXT_H */
-diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
-index af3882f..a83722e 100644
---- a/arch/powerpc/include/asm/pkeys.h
-+++ b/arch/powerpc/include/asm/pkeys.h
-@@ -14,6 +14,15 @@
- 			VM_PKEY_BIT3 | \
- 			VM_PKEY_BIT4)
+ the first of these lines shows the same information as is displayed for the
+ mapping in /proc/PID/maps.  The remaining lines show the size of the mapping
+@@ -491,6 +491,7 @@ manner. The codes are the following:
+     hg  - huge page advise flag
+     nh  - no-huge page advise flag
+     mg  - mergable advise flag
++    key=<num> - the memory protection key number
  
-+static inline u16 pte_flags_to_pkey(unsigned long pte_flags)
-+{
-+	return ((pte_flags & H_PAGE_PKEY_BIT4) ? 0x1 : 0x0) |
-+		((pte_flags & H_PAGE_PKEY_BIT3) ? 0x2 : 0x0) |
-+		((pte_flags & H_PAGE_PKEY_BIT2) ? 0x4 : 0x0) |
-+		((pte_flags & H_PAGE_PKEY_BIT1) ? 0x8 : 0x0) |
-+		((pte_flags & H_PAGE_PKEY_BIT0) ? 0x10 : 0x0);
-+}
-+
- #define pkey_to_vmflag_bits(key) (((key & 0x1UL) ? VM_PKEY_BIT0 : 0x0UL) | \
- 			((key & 0x2UL) ? VM_PKEY_BIT1 : 0x0UL) |	\
- 			((key & 0x4UL) ? VM_PKEY_BIT2 : 0x0UL) |	\
-diff --git a/arch/powerpc/include/asm/reg.h b/arch/powerpc/include/asm/reg.h
-index ba110dd..6e2a860 100644
---- a/arch/powerpc/include/asm/reg.h
-+++ b/arch/powerpc/include/asm/reg.h
-@@ -286,7 +286,7 @@
- #define   DSISR_SET_RC		0x00040000	/* Failed setting of R/C bits */
- #define   DSISR_PGDIRFAULT      0x00020000      /* Fault on page directory */
- #define   DSISR_PAGE_FAULT_MASK (DSISR_BIT32 | DSISR_PAGEATTR_CONFLT | \
--				DSISR_BADACCESS | DSISR_BIT43)
-+			DSISR_BADACCESS | DSISR_KEYFAULT | DSISR_BIT43)
- #define SPRN_TBRL	0x10C	/* Time Base Read Lower Register (user, R/O) */
- #define SPRN_TBRU	0x10D	/* Time Base Read Upper Register (user, R/O) */
- #define SPRN_CIR	0x11B	/* Chip Information Register (hyper, R/0) */
-diff --git a/arch/powerpc/mm/fault.c b/arch/powerpc/mm/fault.c
-index 3a7d580..3d71984 100644
---- a/arch/powerpc/mm/fault.c
-+++ b/arch/powerpc/mm/fault.c
-@@ -261,6 +261,13 @@ int do_page_fault(struct pt_regs *regs, unsigned long address,
- 	}
- #endif
+ Note that there is no guarantee that every flag and associated mnemonic will
+ be present in all further kernel releases. Things get changed, the flags may
+diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
+index 2ddc298..d2eb096 100644
+--- a/fs/proc/task_mmu.c
++++ b/fs/proc/task_mmu.c
+@@ -1,4 +1,6 @@
+ #include <linux/mm.h>
++#include <linux/pkeys.h>
++#include <linux/huge_mm.h>
+ #include <linux/vmacache.h>
+ #include <linux/hugetlb.h>
+ #include <linux/huge_mm.h>
+@@ -666,22 +668,20 @@ static void show_smap_vma_flags(struct seq_file *m, struct vm_area_struct *vma)
+ 		[ilog2(VM_MERGEABLE)]	= "mg",
+ 		[ilog2(VM_UFFD_MISSING)]= "um",
+ 		[ilog2(VM_UFFD_WP)]	= "uw",
+-#ifdef CONFIG_ARCH_HAS_PKEYS
+-		/* These come out via ProtectionKey: */
+-		[ilog2(VM_PKEY_BIT0)]	= "",
+-		[ilog2(VM_PKEY_BIT1)]	= "",
+-		[ilog2(VM_PKEY_BIT2)]	= "",
+-		[ilog2(VM_PKEY_BIT3)]	= "",
+-#endif /* CONFIG_ARCH_HAS_PKEYS */
+-#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
+-		/* Additional bit in ProtectionKey: */
+-		[ilog2(VM_PKEY_BIT4)]	= "",
+-#endif
+ 	};
+ 	size_t i;
  
-+#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
-+	if (error_code & DSISR_KEYFAULT) {
-+		code = SEGV_PKUERR;
-+		goto bad_area_nosemaphore;
-+	}
-+#endif /*  CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
+ 	seq_puts(m, "VmFlags: ");
+ 	for (i = 0; i < BITS_PER_LONG; i++) {
++#ifdef CONFIG_ARCH_HAS_PKEYS
++		if (i == ilog2(VM_PKEY_BIT0)) {
++			int keyvalue = vma_pkey(vma);
 +
- 	/* We restore the interrupt state now */
- 	if (!arch_irq_disabled_regs(regs))
- 		local_irq_enable();
-@@ -441,6 +448,19 @@ int do_page_fault(struct pt_regs *regs, unsigned long address,
- 		WARN_ON_ONCE(error_code & DSISR_PROTFAULT);
- #endif /* CONFIG_PPC_STD_MMU */
- 
-+#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
-+	if (!arch_vma_access_permitted(vma, flags & FAULT_FLAG_WRITE,
-+					is_exec, 0)) {
-+		code = SEGV_PKUERR;
-+		goto bad_area;
-+	}
-+#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
-+
-+	/* handle_mm_fault() needs to know if its a instruction access
-+	 * fault.
-+	 */
-+	if (is_exec)
-+		flags |= FAULT_FLAG_INSTRUCTION;
- 	/*
- 	 * If for any reason at all we couldn't handle the fault,
- 	 * make sure we exit gracefully rather than endlessly redo
-diff --git a/arch/powerpc/mm/pkeys.c b/arch/powerpc/mm/pkeys.c
-index 11a32b3..439241a 100644
---- a/arch/powerpc/mm/pkeys.c
-+++ b/arch/powerpc/mm/pkeys.c
-@@ -27,6 +27,37 @@ static inline bool pkey_allows_readwrite(int pkey)
- 	return !(read_amr() & ((AMR_AD_BIT|AMR_WD_BIT) << pkey_shift));
- }
- 
-+static inline bool pkey_allows_read(int pkey)
-+{
-+	int pkey_shift = (arch_max_pkey()-pkey-1) * AMR_BITS_PER_PKEY;
-+
-+	if (!(read_uamor() & (0x3ul << pkey_shift)))
-+		return true;
-+
-+	return !(read_amr() & (AMR_AD_BIT << pkey_shift));
-+}
-+
-+static inline bool pkey_allows_write(int pkey)
-+{
-+	int pkey_shift = (arch_max_pkey()-pkey-1) * AMR_BITS_PER_PKEY;
-+
-+	if (!(read_uamor() & (0x3ul << pkey_shift)))
-+		return true;
-+
-+	return !(read_amr() & (AMR_WD_BIT << pkey_shift));
-+}
-+
-+static inline bool pkey_allows_execute(int pkey)
-+{
-+	int pkey_shift = (arch_max_pkey()-pkey-1) * AMR_BITS_PER_PKEY;
-+
-+	if (!(read_uamor() & (0x3ul << pkey_shift)))
-+		return true;
-+
-+	return !(read_iamr() & (IAMR_EX_BIT << pkey_shift));
-+}
-+
-+
- /*
-  * set the access right in AMR IAMR and UAMOR register
-  * for @pkey to that specified in @init_val.
-@@ -175,3 +206,62 @@ int __arch_override_mprotect_pkey(struct vm_area_struct *vma, int prot,
- 	 */
- 	return vma_pkey(vma);
- }
-+
-+bool arch_pte_access_permitted(pte_t pte, bool write)
-+{
-+	int pkey = pte_flags_to_pkey(pte_val(pte));
-+
-+	if (!pkey_allows_read(pkey))
-+		return false;
-+	if (write && !pkey_allows_write(pkey))
-+		return false;
-+	return true;
-+}
-+
-+/*
-+ * We only want to enforce protection keys on the current process
-+ * because we effectively have no access to AMR/IAMR for other
-+ * processes or any way to tell *which * AMR/IAMR in a threaded
-+ * process we could use.
-+ *
-+ * So do not enforce things if the VMA is not from the current
-+ * mm, or if we are in a kernel thread.
-+ */
-+static inline bool vma_is_foreign(struct vm_area_struct *vma)
-+{
-+	if (!current->mm)
-+		return true;
-+	/*
-+	 * if the VMA is from another process, then AMR/IAMR has no
-+	 * relevance and should not be enforced.
-+	 */
-+	if (current->mm != vma->vm_mm)
-+		return true;
-+
-+	return false;
-+}
-+
-+bool arch_vma_access_permitted(struct vm_area_struct *vma,
-+		bool write, bool execute, bool foreign)
-+{
-+	int pkey;
-+	/* allow access if the VMA is not one from this process */
-+	if (foreign || vma_is_foreign(vma))
-+		return true;
-+
-+	pkey = vma_pkey(vma);
-+
-+	if (!pkey)
-+		return true;
-+
-+	if (execute)
-+		return pkey_allows_execute(pkey);
-+
-+	if (!pkey_allows_read(pkey))
-+		return false;
-+
-+	if (write)
-+		return pkey_allows_write(pkey);
-+
-+	return true;
-+}
++			i += ilog2(arch_max_pkey())-1;
++			seq_printf(m, "key=%d ", keyvalue);
++			continue;
++		}
++#endif /* CONFIG_ARCH_HAS_PKEYS */
+ 		if (!mnemonics[i][0])
+ 			continue;
+ 		if (vma->vm_flags & (1UL << i)) {
 -- 
 1.8.3.1
