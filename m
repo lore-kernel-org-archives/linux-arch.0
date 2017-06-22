@@ -1,55 +1,38 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCHv7 13/14] x86: Enable 5-level paging support
-Date: Thu, 22 Jun 2017 11:24:54 +0200
-Message-ID: <20170622092454.n4f2uho5lsp6ox4q@gmail.com>
-References: <20170606113133.22974-1-kirill.shutemov@linux.intel.com>
- <20170606113133.22974-14-kirill.shutemov@linux.intel.com>
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v7 26/36] x86/CPU/AMD: Make the microcode level available
+ earlier in the boot
+Date: Thu, 22 Jun 2017 11:40:33 +0200
+Message-ID: <20170622094033.gaqsujzi7ocpemko@pd.tnic>
+References: <20170616184947.18967.84890.stgit@tlendack-t1.amdoffice.net>
+ <20170616185447.18967.8792.stgit@tlendack-t1.amdoffice.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
+Content-Type: text/plain; charset=utf-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.skyhub.de ([5.9.137.197]:47636 "EHLO mail.skyhub.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1753064AbdFVJks (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 22 Jun 2017 05:40:48 -0400
 Content-Disposition: inline
-In-Reply-To: <20170606113133.22974-14-kirill.shutemov@linux.intel.com>
-Sender: owner-linux-mm@kvack.org
-To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20170616185447.18967.8792.stgit@tlendack-t1.amdoffice.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dy>
 
-
-* Kirill A. Shutemov <kirill.shutemov@linux.intel.com> wrote:
-
-> Most of things are in place and we can enable support of 5-level paging.
+On Fri, Jun 16, 2017 at 01:54:47PM -0500, Tom Lendacky wrote:
+> Move the setting of the cpuinfo_x86.microcode field from amd_init() to
+> early_amd_init() so that it is available earlier in the boot process. This
+> avoids having to read MSR_AMD64_PATCH_LEVEL directly during early boot.
 > 
-> The patch makes XEN_PV dependent on !X86_5LEVEL. XEN_PV is not ready to
-> work with 5-level paging.
+> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+> ---
+>  arch/x86/kernel/cpu/amd.c |    8 ++++----
+>  1 file changed, 4 insertions(+), 4 deletions(-)
 
-Please make a short comment about that in the Kconfig code as well, instead of a 
-silent, undocumented 'depends' clause.
+Reviewed-by: Borislav Petkov <bp@suse.de>
 
->  config PGTABLE_LEVELS
->  	int
-> +	default 5 if X86_5LEVEL
->  	default 4 if X86_64
->  	default 3 if X86_PAE
->  	default 2
-> @@ -1390,6 +1391,10 @@ config X86_PAE
->  	  has the cost of more pagetable lookup overhead, and also
->  	  consumes more pagetable space per process.
->  
-> +config X86_5LEVEL
-> +	bool "Enable 5-level page tables support"
-> +	depends on X86_64
+-- 
+Regards/Gruss,
+    Boris.
 
-So since users will be enabling it, this needs a proper help text that explains 
-what hardware supports it ("future Intel CPUs" will do if models are not public 
-yet), a short blurb about what it's good for - and a link to the Documentation/ 
-file explaining it all.
-
-Thanks,
-
-	Ingo
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Good mailing practices for 400: avoid top-posting and trim the reply.
