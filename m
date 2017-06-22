@@ -1,79 +1,140 @@
 From: Nicholas Piggin <npiggin@gmail.com>
 Subject: Re: [PATCH 1/5] kbuild: thin archives final link close
  --whole-archives option
-Date: Fri, 23 Jun 2017 01:50:21 +1000
-Message-ID: <20170623015021.58f74316@roar.ozlabs.ibm.com>
-References: <CAK8P3a0NT42HKOU+ZDRg_-1hA+RzYnL0RtzqbMsLbY=yTUxGRA@mail.gmail.com>
+Date: Fri, 23 Jun 2017 02:12:40 +1000
+Message-ID: <20170623021240.396b2f63@roar.ozlabs.ibm.com>
+References: <20170609052417.561-1-npiggin@gmail.com>
+        <20170609052417.561-2-npiggin@gmail.com>
+        <CAK7LNASxuE-6eMk+Y-vyrMfibtYoD2JkjNS2z8QF85x9NdiiaA@mail.gmail.com>
+        <20170619165100.3ce26d00@roar.ozlabs.ibm.com>
+        <CAK7LNARuuQzGkYBdzoy3bVpBuNPZEMGerHSEdmrH+PqK0Gbyzg@mail.gmail.com>
+        <20170619182714.2cb60e17@roar.ozlabs.ibm.com>
+        <CAK7LNATznx=5A1KnhkFHpjencsJj7AGUsHtDUu6M-Qkw=jvpPQ@mail.gmail.com>
+        <20170620015205.329519b2@roar.ozlabs.ibm.com>
+        <CAK7LNAS6zucv54-XwqfTbm=y20eFVQYLwgsVCdtS7mYknsYK+Q@mail.gmail.com>
+        <20170621124708.6bce7692@roar.ozlabs.ibm.com>
+        <CAK7LNATPyoVcsDtFjRhdmFh7v_HE9F=2GVX=z+XVWV2fXsEukA@mail.gmail.com>
+        <20170621140445.4d6fd92a@roar.ozlabs.ibm.com>
+        <CAK8P3a34gWKqPCFDAnWki4H-eyj50Xgar+YFT_+2Og-qJb_i8A@mail.gmail.com>
+        <20170621191607.33c8db74@roar.ozlabs.ibm.com>
+        <CAK8P3a0NT42HKOU+ZDRg_-1hA+RzYnL0RtzqbMsLbY=yTUxGRA@mail.gmail.com>
         <20170621203824.719ffdc5@roar.ozlabs.ibm.com>
         <CAK8P3a1o91guXimc99sY3UOUjKTX5QxhQyOfY+j-x7MMCdRbdw@mail.gmail.com>
-        <20170621211002.44525d9b@roar.ozlabs.ibm.com>
-        <CAK8P3a2A9fMrNZPWJft2t+52kmGkGgm3gv_fxJntjevWtJ69Zw@mail.gmail.com>
-        <20170621220213.2b33d56d@roar.ozlabs.ibm.com>
-        <CAK8P3a0nVPz=eLV8ET6BYR2Qs0H3PQZuhYsu4Cb_kJSPACrR9w@mail.gmail.com>
-        <20170621161913.GY4493@codeaurora.org>
-        <20170622040838.1c63ebb7@roar.ozlabs.ibm.com>
-        <CAK8P3a2vV10+ymS7vHybfhRf_DVvACOW4O2OZzyz+v75y2Ak4w@mail.gmail.com>
-        <20170622061838.ljlmk4enzpvdlyyu@flea.lan>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <20170622061838.ljlmk4enzpvdlyyu@flea.lan>
+In-Reply-To: <CAK8P3a1o91guXimc99sY3UOUjKTX5QxhQyOfY+j-x7MMCdRbdw@mail.gmail.com>
 Sender: linux-kbuild-owner@vger.kernel.org
-To: Maxime Ripard <maxime.ripard@free-electrons.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Stephen Boyd <sboyd@codeaurora.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>, kbuild test robot <fengguang.wu@intel.com>, Josh Triplett <josh@joshtriplett.org>, Nicolas Pitre <nicolas.pitre@linaro.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Masahiro Yamada <yamada.masahiro@socionext.com>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>, kbuild test robot <fengguang.wu@intel.com>, Josh Triplett <josh@joshtriplett.org>, Nicolas Pitre <nicolas.pitre@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, 22 Jun 2017 08:18:38 +0200
-Maxime Ripard <maxime.ripard@free-electrons.com> wrote:
+On Wed, 21 Jun 2017 12:49:10 +0200
+Arnd Bergmann <arnd@arndb.de> wrote:
 
-> On Wed, Jun 21, 2017 at 10:55:06PM +0200, Arnd Bergmann wrote:
-> > On Wed, Jun 21, 2017 at 8:08 PM, Nicholas Piggin <npiggin@gmail.com> wrote:  
-> > > On Wed, 21 Jun 2017 09:19:13 -0700
-> > > Stephen Boyd <sboyd@codeaurora.org> wrote:  
-> > >> On 06/21, Arnd Bergmann wrote:
-> > >>
-> > >> Ok. Can you send a revert patch to the list with some information
-> > >> on why we can't do the hack anymore and also Cc lkml/kbuild
-> > >> lists? The commit is in linux-next now as commit 06e226c7fb23
-> > >> (clk: sunxi-ng: Move all clock types to a library, 2017-06-02).
-> > >>  
-> > >
-> > > I grabbed this patch and applied it to the kbuid/thin-ac tree. I tested
-> > > with thin archives enabled and disabled with arm defconfig which ends up
-> > > setting CONFIG_SUNXI_CCU=y.
-> > >
-> > > The patch makes no difference to vmlinux size whether using traditional
-> > > incremental link, or thin archives (there is a small difference between
-> > > inclink and thinarc but that's unrelated).
-> > >
-> > > So this thin archives change does not break your patch, it's just that
-> > > it doesn't really do the right thing. I like the general idea, but we
-> > > need to work out how to make it properly supported by the build system.
-> > >
-> > > With the patch applied, this is what the build system currently does:
-> > >
-> > > arm-linux-gnueabihf-ld -EL    -r -o drivers/clk/sunxi-ng/built-in.o drivers/clk/sunxi-ng/ccu-sun5i.o drivers/clk/sunxi-ng/ccu-sun6i-a31.o drivers/clk/sunxi-ng/ccu-sun8i-a23.o drivers/clk/sunxi-ng/ccu-sun8i-a33.o drivers/clk/sunxi-ng/ccu-sun8i-h3.o drivers/clk/sunxi-ng/ccu-sun8i-v3s.o drivers/clk/sunxi-ng/ccu-sun8i-r.o drivers/clk/sunxi-ng/ccu-sun9i-a80.o drivers/clk/sunxi-ng/ccu-sun9i-a80-de.o drivers/clk/sunxi-ng/ccu-sun9i-a80-usb.o drivers/clk/sunxi-ng/lib.a drivers/clk/sunxi-ng/lib-ksyms.o
-> > >
-> > > This incremental link pulls in all your lib.a objects and links them
-> > > into built-in.o. They can no longer be selectively linked.  
-> > 
-> > I think the ARM defconfig actually needs all those objects because it
-> > enables all the high-level drivers. You could try disabling e.g. all except
-> > CONFIG_SUN8I_DE2_CCU if you want the objects to actually becomes
-> > unused.  
+> On Wed, Jun 21, 2017 at 12:38 PM, Nicholas Piggin <npiggin@gmail.com> wrote:
+> > On Wed, 21 Jun 2017 12:21:16 +0200
+> > Arnd Bergmann <arnd@arndb.de> wrote:
+> >  
+> >> On Wed, Jun 21, 2017 at 11:16 AM, Nicholas Piggin <npiggin@gmail.com> wrote:  
+> >> > On Wed, 21 Jun 2017 09:15:09 +0200
+> >> > Arnd Bergmann <arnd@arndb.de> wrote:
+> >> >  
+> >> >> On Wed, Jun 21, 2017 at 6:04 AM, Nicholas Piggin <npiggin@gmail.com> wrote:  
+> >> >> > On Wed, 21 Jun 2017 12:29:33 +0900
+> >> >> > Masahiro Yamada <yamada.masahiro@socionext.com> wrote:  
+> >> >>  
+> >> >> >> BTW, I saw abuse of lib.a in
+> >> >> >> https://patchwork.kernel.org/patch/9768439/
+> >> >> >>
+> >> >> >> I see it in linux-next.
+> >> >> >>
+> >> >> >> commit 06e226c7fb233f676b01b144d0b321ebe510fdcd
+> >> >> >> Author: Stephen Boyd <sboyd@codeaurora.org>
+> >> >> >> Date:   Fri Jun 2 15:30:06 2017 -0700
+> >> >> >>
+> >> >> >>     clk: sunxi-ng: Move all clock types to a library
+> >> >> >>
+> >> >> >>
+> >> >> >>
+> >> >> >>
+> >> >> >> Now drivers/clk/sunxi-ng/lib.a
+> >> >> >> will go into thin archives.
+> >> >> >> The result might be different from what they expect...  
+> >> >> >
+> >> >> > Yes I see. With thin archives, that is just going to cause the
+> >> >> > same behaviour as built-in.o (everything will be linked). So the
+> >> >> > build should not break, but they won't get savings.
+> >> >> >
+> >> >> > Does it even save space with incremental linking? If the lib.a gets
+> >> >> > linked into drivers/built-in.o, I wonder what happens then?  
+> >> >>
+> >> >> Ah, too bad. I thought we had found a way to use a library correctly
+> >> >> here, but I just verified that indeed all the just gets linked into built-in.o
+> >> >>
+> >> >> I played around with it some more now, but without success: if I
+> >> >> build sunxi-ng as a loadable module (using a few modifications),
+> >> >> then the unneeded objects from lib.a are dropped as I had hoped,
+> >> >> but for built-in code we now always include everything.
+> >> >>
+> >> >> I suppose that we can ignore this once we get
+> >> >> LD_DEAD_CODE_DATA_ELIMINATION enabled on ARM, but
+> >> >> until then, we have a code size regression.  
+> >> >
+> >> > I didn't follow the thread there, is it a regression caused by
+> >> > thin archives, or just by removing the Kconfig symbol from each
+> >> > file?  
+> >>
+> >> I thought it was the latter, but actually it only happens with thin
+> >> archives,  
+> >
+> > Is this including these changes now in the kbuild tree?  
 > 
-> You can also disable MACH_SUN8I, it should disable a significant
-> number of the clocks driver.
+> I'm building on top of yesterday's linux-next at the moment,
+> with a number of my own patches applied
+> 
+> > I can take a look at ARM and try to get it at least to parity with
+> > incremental link. Any particular config options required?  
+> 
+> This is the patch I am testing with:
+> 
+> https://pastebin.com/HQuhCEmK
+> 
+> I have not looked at that in a while, no idea if it works, or
+> if it has known problems.
+> 
+> I last posted the patch in March for discussion:
+> 
+> https://patchwork.kernel.org/patch/9626207/
 
-   text	   data	    bss	    dec	    hex	filename
-11655078	6018736	 418944	18092758	11412d6	vmlinux.inclink
-11655078	6018736	 418944	18092758	11412d6	vmlinux.inclink.clk
-11650534	6010288	 418616	18079438	113dece	vmlinux.thinarc
-11650534	6010288	 418616	18079438	113dece	vmlinux.thinarc.clk
+Your patch needs the KEEP annotations on the other exception table
+bits to avoid that error.
 
-Same result for me when compiling defconfig minus MACH_SUN8I, comparing
-+/- the clock patch and thin archives. No size savings. As I explained
-already, I really can't see how there could be any saving if the lib.a is
-incrementally linked into built-in.o.
+After that it builds and no obvious sections or symbols are missing
+but it would take more careful review.
 
+diff --git a/arch/arm/kernel/vmlinux.lds.S b/arch/arm/kernel/vmlinux.lds.S
+index 7b9a7058c32c..218ab698970a 100644
+--- a/arch/arm/kernel/vmlinux.lds.S
++++ b/arch/arm/kernel/vmlinux.lds.S
+@@ -91,8 +91,8 @@ SECTIONS
+                ARM_EXIT_DISCARD(EXIT_DATA)
+                EXIT_CALL
+ #ifndef CONFIG_MMU
+-               *(.text.fixup)
+-               *(__ex_table)
++               KEEP(*(.text.fixup))
++               KEEP(*(__ex_table))
+ #endif
+ #ifndef CONFIG_SMP_ON_UP
+                *(.alt.smp.init)
+@@ -144,7 +144,7 @@ SECTIONS
+        __ex_table : AT(ADDR(__ex_table) - LOAD_OFFSET) {
+                __start___ex_table = .;
+ #ifdef CONFIG_MMU
+-               *(__ex_table)
++               KEEP(*(__ex_table))
+ #endif
+                __stop___ex_table = .;
+        }
