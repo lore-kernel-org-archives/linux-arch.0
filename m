@@ -1,82 +1,82 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH 1/1] futex: remove duplicated code and fix UB
-Date: Fri, 23 Jun 2017 09:51:23 +0200 (CEST)
-Message-ID: <alpine.DEB.2.20.1706230017520.2221@nanos>
-References: <20170621115318.2781-1-jslaby@suse.cz>
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v7 31/36] x86/mm, kexec: Allow kexec to be used with SME
+Date: Fri, 23 Jun 2017 10:56:07 +0200
+Message-ID: <20170623085606.ett5nuiow2ye7p3a@pd.tnic>
+References: <20170616184947.18967.84890.stgit@tlendack-t1.amdoffice.net>
+ <20170616185545.18967.90815.stgit@tlendack-t1.amdoffice.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20170621115318.2781-1-jslaby@suse.cz>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
- <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
-List-Post: <mailto:linux-snps-arc@lists.infradead.org>
-List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
- <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
-Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
-To: Jiri Slaby <jslaby@suse.cz>
-Cc: linux-mips@linux-mips.org, Rich Felker <dalias@libc.org>, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, peterz@infradead.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Will Deacon <will.deacon@arm.com>, Max Filippov <jcmvbkbc@gmail.com>, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, sparclinux@vger.kernel.org, Jonas Bonn <jonas@southpole.se>, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, linux-hexagon@vger.kernel.org, Helge Deller <deller@gmx.de>, x86@kernel.org, "James E.J. Bottomley" <jejb@parisc-linux.org>, mingo@redhat.com, Catalin Marinas <catalin.marinas@arm.com>, dvhart@infradead.org, Matt Turner <mattst88@gmail.com>, linux-snps-arc@lists.infradead.org, Fenghua Yu <fenghua.yu@intel.com>, Arnd Bergmann <arnd@arndb.de>, linux-xtensa@linux-xtensa.org
+Content-Type: text/plain; charset=utf-8
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <20170616185545.18967.90815.stgit@tlendack-t1.amdoffice.net>
+Sender: owner-linux-mm@kvack.org
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@or>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, 21 Jun 2017, Jiri Slaby wrote:
-> diff --git a/arch/arm64/include/asm/futex.h b/arch/arm64/include/asm/futex.h
-> index f32b42e8725d..5bb2fd4674e7 100644
-> --- a/arch/arm64/include/asm/futex.h
-> +++ b/arch/arm64/include/asm/futex.h
-> @@ -48,20 +48,10 @@ do {									\
->  } while (0)
+On Fri, Jun 16, 2017 at 01:55:45PM -0500, Tom Lendacky wrote:
+> Provide support so that kexec can be used to boot a kernel when SME is
+> enabled.
+> 
+> Support is needed to allocate pages for kexec without encryption.  This
+> is needed in order to be able to reboot in the kernel in the same manner
+> as originally booted.
+> 
+> Additionally, when shutting down all of the CPUs we need to be sure to
+> flush the caches and then halt. This is needed when booting from a state
+> where SME was not active into a state where SME is active (or vice-versa).
+> Without these steps, it is possible for cache lines to exist for the same
+> physical location but tagged both with and without the encryption bit. This
+> can cause random memory corruption when caches are flushed depending on
+> which cacheline is written last.
+> 
+> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+> ---
+>  arch/x86/include/asm/init.h          |    1 +
+>  arch/x86/include/asm/kexec.h         |    8 ++++++++
+>  arch/x86/include/asm/pgtable_types.h |    1 +
+>  arch/x86/kernel/machine_kexec_64.c   |   22 +++++++++++++++++++++-
+>  arch/x86/kernel/process.c            |   17 +++++++++++++++--
+>  arch/x86/mm/ident_map.c              |   12 ++++++++----
+>  include/linux/kexec.h                |   14 ++++++++++++++
+>  kernel/kexec_core.c                  |   12 +++++++++++-
+>  8 files changed, 79 insertions(+), 8 deletions(-)
+
+...
+
+> diff --git a/include/linux/kexec.h b/include/linux/kexec.h
+> index c9481eb..5d17fd6 100644
+> --- a/include/linux/kexec.h
+> +++ b/include/linux/kexec.h
+> @@ -334,6 +334,20 @@ static inline void *boot_phys_to_virt(unsigned long entry)
+>  	return phys_to_virt(boot_phys_to_phys(entry));
+>  }
 >  
->  static inline int
-> -futex_atomic_op_inuser(unsigned int encoded_op, u32 __user *uaddr)
-
-That unsigned int seems to be a change from the arm64 tree in next. It's
-not upstream and it'll cause a (easy to resolve) conflict.
-
-> +static int futex_atomic_op_inuser(unsigned int encoded_op, u32 __user *uaddr)
+> +#ifndef arch_kexec_post_alloc_pages
+> +static inline int arch_kexec_post_alloc_pages(void *vaddr, unsigned int pages,
+> +					      gfp_t gfp)
 > +{
-> +	int op = (encoded_op >> 28) & 7;
-> +	int cmp = (encoded_op >> 24) & 15;
-> +	int oparg = (int)(encoded_op << 8) >> 20;
-> +	int cmparg = (int)(encoded_op << 20) >> 20;
+> +	return 0;
+> +}
+> +#endif
 
-So this is really bad. We have implicit and explicit type casting to
-int. And while we are at it can we please stop proliferating the existing
-mess.
+Just a nitpick:
 
-'op' and 'cmp' definitly can be unsigned int. There is no reason to cast
-them to int.
+static inline int arch_kexec_post_alloc_pages(void *vaddr, unsigned int pages, gfp_t gfp) { return 0; }
+static inline void arch_kexec_pre_free_pages(void *vaddr, unsigned int pages) { }
 
-oparg, cmparg and oldval are more interesting.
+Other than that:
 
-The logic here is "documented" in uapi/linux/futex.h
+Reviewed-by: Borislav Petkov <bp@suse.de>
 
-/* FUTEX_WAKE_OP will perform atomically
-   int oldval = *(int *)UADDR2;
-   *(int *)UADDR2 = oldval OP OPARG;
-   if (oldval CMP CMPARG)
-       wake UADDR2;  */
+-- 
+Regards/Gruss,
+    Boris.
 
-Now the FUTEX_OP macro which is supposed to compose the encoded_up does:
+Good mailing practices for 400: avoid top-posting and trim the reply.
 
-#define FUTEX_OP(op, oparg, cmp, cmparg) \
-  (((op & 0xf) << 28) | ((cmp & 0xf) << 24)             \
-   | ((oparg & 0xfff) << 12) | (cmparg & 0xfff))
-
-Of course this all is not typed, undocumented and completely ill
-defined.
-
-> +	int oparg = (int)(encoded_op << 8) >> 20;
-> +	int cmparg = (int)(encoded_op << 20) >> 20;
-
-So in fact we sign expand the 12 bits of oparg and cmparg. Really
-intuitive.
-
-Yes, we probably can't change that anymore, but at least we should make it
-very explicit and add a comment to that effect.
-
-Thanks,
-
-	tglx
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
