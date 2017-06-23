@@ -1,124 +1,159 @@
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: Re: [PATCH 1/5] kbuild: thin archives final link close
- --whole-archives option
-Date: Fri, 23 Jun 2017 14:31:40 +0900
-Message-ID: <CAK7LNATbd5n2uMsTN_jaUN+QjpB5DN3AvS+6iqqt3w3kuwQS3A@mail.gmail.com>
-References: <CAK8P3a0NT42HKOU+ZDRg_-1hA+RzYnL0RtzqbMsLbY=yTUxGRA@mail.gmail.com>
- <20170621203824.719ffdc5@roar.ozlabs.ibm.com> <CAK8P3a1o91guXimc99sY3UOUjKTX5QxhQyOfY+j-x7MMCdRbdw@mail.gmail.com>
- <20170621211002.44525d9b@roar.ozlabs.ibm.com> <CAK8P3a2A9fMrNZPWJft2t+52kmGkGgm3gv_fxJntjevWtJ69Zw@mail.gmail.com>
- <20170621220213.2b33d56d@roar.ozlabs.ibm.com> <CAK8P3a0nVPz=eLV8ET6BYR2Qs0H3PQZuhYsu4Cb_kJSPACrR9w@mail.gmail.com>
- <20170621161913.GY4493@codeaurora.org> <20170622040838.1c63ebb7@roar.ozlabs.ibm.com>
- <CAK8P3a2vV10+ymS7vHybfhRf_DVvACOW4O2OZzyz+v75y2Ak4w@mail.gmail.com>
- <20170622061838.ljlmk4enzpvdlyyu@flea.lan> <20170623015021.58f74316@roar.ozlabs.ibm.com>
+From: =?iso-8859-2?Q?Horia_Geant=E3?= <horia.geanta@nxp.com>
+Subject: Re: [PATCH 7/7] crypto: caam: cleanup CONFIG_64BIT ifdefs when using
+ io{read|write}64
+Date: Fri, 23 Jun 2017 06:51:14 +0000
+Message-ID: <VI1PR0401MB259182B9B11B72B4B53B2C1498D80@VI1PR0401MB2591.eurprd04.prod.outlook.com>
+References: <20170622164817.25515-1-logang@deltatee.com>
+ <20170622164817.25515-8-logang@deltatee.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset="iso-8859-2"
 Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <20170623015021.58f74316@roar.ozlabs.ibm.com>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: Maxime Ripard <maxime.ripard@free-electrons.com>, Arnd Bergmann <arnd@arndb.de>, Stephen Boyd <sboyd@codeaurora.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>, kbuild test robot <fengguang.wu@intel.com>, Josh Triplett <josh@joshtriplett.org>, Nicolas Pitre <nicolas.pitre@linaro.org>
+Return-path: <linux-crypto-owner@vger.kernel.org>
+Content-Language: en-US
+Sender: linux-crypto-owner@vger.kernel.org
+To: Logan Gunthorpe <logang@deltatee.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-ntb@googlegroups.com" <linux-ntb@googlegroups.com>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, "linux-crypto@vger.kernel.org" <linux-crypto@vger.kernel.org>, "dri-devel@lists.freedesktop.org" <dri-devel@lists.freedesktop.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Stephen Bates <sbates@raithlin.com>, Dan Douglass <dan.douglass@nxp.com>, Herbert Xu <herbert@gondor.apana.org.au>, "David S. Miller" <davem@davemloft.net>, Radu Solea <radu.solea@nxp.com>, Steve Cornelius <steve.cornelius@nxp.com>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Nicholas,
-
-2017-06-23 0:50 GMT+09:00 Nicholas Piggin <npiggin@gmail.com>:
-> On Thu, 22 Jun 2017 08:18:38 +0200
-> Maxime Ripard <maxime.ripard@free-electrons.com> wrote:
->
->> On Wed, Jun 21, 2017 at 10:55:06PM +0200, Arnd Bergmann wrote:
->> > On Wed, Jun 21, 2017 at 8:08 PM, Nicholas Piggin <npiggin@gmail.com> w=
-rote:
->> > > On Wed, 21 Jun 2017 09:19:13 -0700
->> > > Stephen Boyd <sboyd@codeaurora.org> wrote:
->> > >> On 06/21, Arnd Bergmann wrote:
->> > >>
->> > >> Ok. Can you send a revert patch to the list with some information
->> > >> on why we can't do the hack anymore and also Cc lkml/kbuild
->> > >> lists? The commit is in linux-next now as commit 06e226c7fb23
->> > >> (clk: sunxi-ng: Move all clock types to a library, 2017-06-02).
->> > >>
->> > >
->> > > I grabbed this patch and applied it to the kbuid/thin-ac tree. I tes=
-ted
->> > > with thin archives enabled and disabled with arm defconfig which end=
-s up
->> > > setting CONFIG_SUNXI_CCU=3Dy.
->> > >
->> > > The patch makes no difference to vmlinux size whether using traditio=
-nal
->> > > incremental link, or thin archives (there is a small difference betw=
-een
->> > > inclink and thinarc but that's unrelated).
->> > >
->> > > So this thin archives change does not break your patch, it's just th=
-at
->> > > it doesn't really do the right thing. I like the general idea, but w=
-e
->> > > need to work out how to make it properly supported by the build syst=
-em.
->> > >
->> > > With the patch applied, this is what the build system currently does=
-:
->> > >
->> > > arm-linux-gnueabihf-ld -EL    -r -o drivers/clk/sunxi-ng/built-in.o =
-drivers/clk/sunxi-ng/ccu-sun5i.o drivers/clk/sunxi-ng/ccu-sun6i-a31.o drive=
-rs/clk/sunxi-ng/ccu-sun8i-a23.o drivers/clk/sunxi-ng/ccu-sun8i-a33.o driver=
-s/clk/sunxi-ng/ccu-sun8i-h3.o drivers/clk/sunxi-ng/ccu-sun8i-v3s.o drivers/=
-clk/sunxi-ng/ccu-sun8i-r.o drivers/clk/sunxi-ng/ccu-sun9i-a80.o drivers/clk=
-/sunxi-ng/ccu-sun9i-a80-de.o drivers/clk/sunxi-ng/ccu-sun9i-a80-usb.o drive=
-rs/clk/sunxi-ng/lib.a drivers/clk/sunxi-ng/lib-ksyms.o
->> > >
->> > > This incremental link pulls in all your lib.a objects and links them
->> > > into built-in.o. They can no longer be selectively linked.
->> >
->> > I think the ARM defconfig actually needs all those objects because it
->> > enables all the high-level drivers. You could try disabling e.g. all e=
-xcept
->> > CONFIG_SUN8I_DE2_CCU if you want the objects to actually becomes
->> > unused.
->>
->> You can also disable MACH_SUN8I, it should disable a significant
->> number of the clocks driver.
->
->    text    data     bss     dec     hex filename
-> 11655078        6018736  418944 18092758        11412d6 vmlinux.inclink
-> 11655078        6018736  418944 18092758        11412d6 vmlinux.inclink.c=
-lk
-> 11650534        6010288  418616 18079438        113dece vmlinux.thinarc
-> 11650534        6010288  418616 18079438        113dece vmlinux.thinarc.c=
-lk
->
-> Same result for me when compiling defconfig minus MACH_SUN8I, comparing
-> +/- the clock patch and thin archives. No size savings. As I explained
-> already, I really can't see how there could be any saving if the lib.a is
-> incrementally linked into built-in.o.
-
-I think defconfig minus MACH_SUN8I
-will give no difference to CONFIG_SUNXI_CCU*
-
-As far as I tried,  minus MACH_SUN8I still enabled the following:
-CONFIG_SUNXI_CCU=3Dy
-CONFIG_SUNXI_CCU_DIV=3Dy
-CONFIG_SUNXI_CCU_FRAC=3Dy
-CONFIG_SUNXI_CCU_GATE=3Dy
-CONFIG_SUNXI_CCU_MUX=3Dy
-CONFIG_SUNXI_CCU_MULT=3Dy
-CONFIG_SUNXI_CCU_PHASE=3Dy
-CONFIG_SUNXI_CCU_NK=3Dy
-CONFIG_SUNXI_CCU_NKM=3Dy
-CONFIG_SUNXI_CCU_NKMP=3Dy
-CONFIG_SUNXI_CCU_NM=3Dy
-CONFIG_SUNXI_CCU_MP=3Dy
-
-I think you need to disable some more MACH_SUN*I and
-perhaps disable some CONFIG_SUN*I_*_CCU explicitly,
-then you will see difference in the result.
-
-
-
-
-
---=20
-Best Regards
-Masahiro Yamada
+On 6/22/2017 7:49 PM, Logan Gunthorpe wrote:=0A=
+> Now that ioread64 and iowrite64 are always available we don't=0A=
+> need the ugly ifdefs to change their implementation when they=0A=
+> are not.=0A=
+> =0A=
+Thanks Logan.=0A=
+=0A=
+Note however this is not equivalent - it changes the behaviour, since=0A=
+CAAM engine on i.MX6S/SL/D/Q platforms is broken in terms of 64-bit=0A=
+register endianness - see CONFIG_CRYPTO_DEV_FSL_CAAM_IMX usage in code=0A=
+you are removing.=0A=
+=0A=
+[Yes, current code has its problems, as it does not differentiate b/w=0A=
+i.MX platforms with and without the (unofficial) erratum, but this=0A=
+should be fixed separately.]=0A=
+=0A=
+Below is the change that would keep current logic - still forcing i.MX=0A=
+to write CAAM 64-bit registers in BE even if the engine is LE (yes, diff=0A=
+is doing a poor job).=0A=
+=0A=
+Horia=0A=
+=0A=
+diff --git a/drivers/crypto/caam/regs.h b/drivers/crypto/caam/regs.h=0A=
+index 84d2f838a063..b893ebb24e65 100644=0A=
+--- a/drivers/crypto/caam/regs.h=0A=
++++ b/drivers/crypto/caam/regs.h=0A=
+@@ -134,50 +134,25 @@ static inline void clrsetbits_32(void __iomem=0A=
+*reg, u32 clear, u32 set)=0A=
+  *    base + 0x0000 : least-significant 32 bits=0A=
+  *    base + 0x0004 : most-significant 32 bits=0A=
+  */=0A=
+-#ifdef CONFIG_64BIT=0A=
+ static inline void wr_reg64(void __iomem *reg, u64 data)=0A=
+ {=0A=
++#ifndef CONFIG_CRYPTO_DEV_FSL_CAAM_IMX=0A=
+        if (caam_little_end)=0A=
+                iowrite64(data, reg);=0A=
+        else=0A=
+-               iowrite64be(data, reg);=0A=
+-}=0A=
+-=0A=
+-static inline u64 rd_reg64(void __iomem *reg)=0A=
+-{=0A=
+-       if (caam_little_end)=0A=
+-               return ioread64(reg);=0A=
+-       else=0A=
+-               return ioread64be(reg);=0A=
+-}=0A=
+-=0A=
+-#else /* CONFIG_64BIT */=0A=
+-static inline void wr_reg64(void __iomem *reg, u64 data)=0A=
+-{=0A=
+-#ifndef CONFIG_CRYPTO_DEV_FSL_CAAM_IMX=0A=
+-       if (caam_little_end) {=0A=
+-               wr_reg32((u32 __iomem *)(reg) + 1, data >> 32);=0A=
+-               wr_reg32((u32 __iomem *)(reg), data);=0A=
+-       } else=0A=
+ #endif=0A=
+-       {=0A=
+-               wr_reg32((u32 __iomem *)(reg), data >> 32);=0A=
+-               wr_reg32((u32 __iomem *)(reg) + 1, data);=0A=
+-       }=0A=
++               iowrite64be(data, reg);=0A=
+ }=0A=
+=0A=
+ static inline u64 rd_reg64(void __iomem *reg)=0A=
+ {=0A=
+ #ifndef CONFIG_CRYPTO_DEV_FSL_CAAM_IMX=0A=
+        if (caam_little_end)=0A=
+-               return ((u64)rd_reg32((u32 __iomem *)(reg) + 1) << 32 |=0A=
+-                       (u64)rd_reg32((u32 __iomem *)(reg)));=0A=
++               return ioread64(reg);=0A=
+        else=0A=
+ #endif=0A=
+-               return ((u64)rd_reg32((u32 __iomem *)(reg)) << 32 |=0A=
+-                       (u64)rd_reg32((u32 __iomem *)(reg) + 1));=0A=
++               return ioread64be(reg);=0A=
+ }=0A=
+-#endif /* CONFIG_64BIT  */=0A=
+=0A=
+ #ifdef CONFIG_ARCH_DMA_ADDR_T_64BIT=0A=
+ #ifdef CONFIG_SOC_IMX7D=0A=
+=0A=
+=0A=
+> Signed-off-by: Logan Gunthorpe <logang@deltatee.com>=0A=
+> Cc: "Horia Geant=E3" <horia.geanta@nxp.com>=0A=
+> Cc: Dan Douglass <dan.douglass@nxp.com>=0A=
+> Cc: Herbert Xu <herbert@gondor.apana.org.au>=0A=
+> Cc: "David S. Miller" <davem@davemloft.net>=0A=
+> ---=0A=
+>  drivers/crypto/caam/regs.h | 29 -----------------------------=0A=
+>  1 file changed, 29 deletions(-)=0A=
+> =0A=
+> diff --git a/drivers/crypto/caam/regs.h b/drivers/crypto/caam/regs.h=0A=
+> index 84d2f838a063..26fc19dd0c39 100644=0A=
+> --- a/drivers/crypto/caam/regs.h=0A=
+> +++ b/drivers/crypto/caam/regs.h=0A=
+> @@ -134,7 +134,6 @@ static inline void clrsetbits_32(void __iomem *reg, u=
+32 clear, u32 set)=0A=
+>   *    base + 0x0000 : least-significant 32 bits=0A=
+>   *    base + 0x0004 : most-significant 32 bits=0A=
+>   */=0A=
+> -#ifdef CONFIG_64BIT=0A=
+>  static inline void wr_reg64(void __iomem *reg, u64 data)=0A=
+>  {=0A=
+>  	if (caam_little_end)=0A=
+> @@ -151,34 +150,6 @@ static inline u64 rd_reg64(void __iomem *reg)=0A=
+>  		return ioread64be(reg);=0A=
+>  }=0A=
+>  =0A=
+> -#else /* CONFIG_64BIT */=0A=
+> -static inline void wr_reg64(void __iomem *reg, u64 data)=0A=
+> -{=0A=
+> -#ifndef CONFIG_CRYPTO_DEV_FSL_CAAM_IMX=0A=
+> -	if (caam_little_end) {=0A=
+> -		wr_reg32((u32 __iomem *)(reg) + 1, data >> 32);=0A=
+> -		wr_reg32((u32 __iomem *)(reg), data);=0A=
+> -	} else=0A=
+> -#endif=0A=
+> -	{=0A=
+> -		wr_reg32((u32 __iomem *)(reg), data >> 32);=0A=
+> -		wr_reg32((u32 __iomem *)(reg) + 1, data);=0A=
+> -	}=0A=
+> -}=0A=
+> -=0A=
+> -static inline u64 rd_reg64(void __iomem *reg)=0A=
+> -{=0A=
+> -#ifndef CONFIG_CRYPTO_DEV_FSL_CAAM_IMX=0A=
+> -	if (caam_little_end)=0A=
+> -		return ((u64)rd_reg32((u32 __iomem *)(reg) + 1) << 32 |=0A=
+> -			(u64)rd_reg32((u32 __iomem *)(reg)));=0A=
+> -	else=0A=
+> -#endif=0A=
+> -		return ((u64)rd_reg32((u32 __iomem *)(reg)) << 32 |=0A=
+> -			(u64)rd_reg32((u32 __iomem *)(reg) + 1));=0A=
+> -}=0A=
+> -#endif /* CONFIG_64BIT  */=0A=
+> -=0A=
+>  #ifdef CONFIG_ARCH_DMA_ADDR_T_64BIT=0A=
+>  #ifdef CONFIG_SOC_IMX7D=0A=
+>  #define cpu_to_caam_dma(value) \=0A=
+> =0A=
