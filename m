@@ -1,75 +1,64 @@
-From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Subject: Re: [kernel-hardening] [PATCH 2/4] arm64: Reduce ELF_ET_DYN_BASE
-Date: Fri, 23 Jun 2017 15:04:24 +0000
-Message-ID: <CAKv+Gu8-N6UO2_v3vFRbgjEjWG+ipVA=H6nEB=m3gXyN=HGVow@mail.gmail.com>
-References: <1498154792-49952-1-git-send-email-keescook@chromium.org>
- <1498154792-49952-3-git-send-email-keescook@chromium.org> <CAKv+Gu_2Wg_D+4c3-iqMr9hbKkGVdBtW6Bmxj-4=FOG9hVN5vA@mail.gmail.com>
- <CAGXu5jLHOjg9+8xDSzs2nLKjoqUf3NAc_0a1Coo+4WnDYRT3=g@mail.gmail.com> <CAGXu5jKt_=aV-=bDREOhKLpi2GX9aEO5Gk-+vhk-ZphLJJ3K-g@mail.gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 1/5] kbuild: thin archives final link close
+ --whole-archives option
+Date: Fri, 23 Jun 2017 17:04:45 +0200
+Message-ID: <CAK8P3a1m9teuQV-r5-753FBVtFTDsz=31bC_zeuCZ5ViBTQKRw@mail.gmail.com>
+References: <20170621211002.44525d9b@roar.ozlabs.ibm.com> <CAK8P3a2A9fMrNZPWJft2t+52kmGkGgm3gv_fxJntjevWtJ69Zw@mail.gmail.com>
+ <20170621220213.2b33d56d@roar.ozlabs.ibm.com> <CAK8P3a0nVPz=eLV8ET6BYR2Qs0H3PQZuhYsu4Cb_kJSPACrR9w@mail.gmail.com>
+ <20170621161913.GY4493@codeaurora.org> <20170622040838.1c63ebb7@roar.ozlabs.ibm.com>
+ <CAK8P3a2vV10+ymS7vHybfhRf_DVvACOW4O2OZzyz+v75y2Ak4w@mail.gmail.com>
+ <20170622061838.ljlmk4enzpvdlyyu@flea.lan> <20170623015021.58f74316@roar.ozlabs.ibm.com>
+ <CAK7LNATbd5n2uMsTN_jaUN+QjpB5DN3AvS+6iqqt3w3kuwQS3A@mail.gmail.com> <20170623145734.7pv3rdgucveg66s3@flea.lan>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f170.google.com ([209.85.223.170]:34539 "EHLO
-        mail-io0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753397AbdFWPEZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 23 Jun 2017 11:04:25 -0400
-Received: by mail-io0-f170.google.com with SMTP id c201so42374962ioe.1
-        for <linux-arch@vger.kernel.org>; Fri, 23 Jun 2017 08:04:25 -0700 (PDT)
-In-Reply-To: <CAGXu5jKt_=aV-=bDREOhKLpi2GX9aEO5Gk-+vhk-ZphLJJ3K-g@mail.gmail.com>
+Received: from mail-ot0-f193.google.com ([74.125.82.193]:35923 "EHLO
+        mail-ot0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754468AbdFWPEr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 23 Jun 2017 11:04:47 -0400
+In-Reply-To: <20170623145734.7pv3rdgucveg66s3@flea.lan>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, James Hogan <james.hogan@imgtec.com>, Pratyush Anand <panand@redhat.com>, Ingo Molnar <mingo@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>"linux-arch@vger.kernel.org" <lin>
+To: Maxime Ripard <maxime.ripard@free-electrons.com>
+Cc: Masahiro Yamada <yamada.masahiro@socionext.com>, Nicholas Piggin <npiggin@gmail.com>, Stephen Boyd <sboyd@codeaurora.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>, kbuild test robot <fengguang.wu@intel.com>, Josh Triplett <josh@joshtriplett.org>, Nicolas Pitre <nicolas.pitre@linaro.org>
 
-On 23 June 2017 at 14:02, Kees Cook <keescook@chromium.org> wrote:
-> On Fri, Jun 23, 2017 at 6:52 AM, Kees Cook <keescook@chromium.org> wrote:
->> On Thu, Jun 22, 2017 at 11:57 PM, Ard Biesheuvel
->> <ard.biesheuvel@linaro.org> wrote:
->>> Hi Kees,
->>>
->>> On 22 June 2017 at 18:06, Kees Cook <keescook@chromium.org> wrote:
->>>> Now that explicitly executed loaders are loaded in the mmap region,
->>>> position PIE binaries lower in the address space to avoid possible
->>>> collisions with mmap or stack regions. For 64-bit, align to 4GB to
->>>> allow runtimes to use the entire 32-bit address space for 32-bit
->>>> pointers.
->>>>
->>>> Signed-off-by: Kees Cook <keescook@chromium.org>
->>>> ---
->>>>  arch/arm64/include/asm/elf.h | 13 ++++++-------
->>>>  1 file changed, 6 insertions(+), 7 deletions(-)
->>>>
->>>> diff --git a/arch/arm64/include/asm/elf.h b/arch/arm64/include/asm/elf.h
->>>> index 5d1700425efe..f742af8f7c42 100644
->>>> --- a/arch/arm64/include/asm/elf.h
->>>> +++ b/arch/arm64/include/asm/elf.h
->>>> @@ -113,12 +113,13 @@
->>>>  #define ELF_EXEC_PAGESIZE      PAGE_SIZE
->>>>
->>>>  /*
->>>> - * This is the location that an ET_DYN program is loaded if exec'ed.  Typical
->>>> - * use of this is to invoke "./ld.so someprog" to test out a new version of
->>>> - * the loader.  We need to make sure that it is out of the way of the program
->>>> - * that it will "exec", and that there is sufficient room for the brk.
->>>> + * This is the base location for PIE (ET_DYN with INTERP) loads. On
->>>> + * 64-bit, this is raised to 4GB to leave the entire 32-bit address
->>>> + * space open for things that want to use the area for 32-bit pointers.
->>>>   */
->>>> -#define ELF_ET_DYN_BASE        (2 * TASK_SIZE_64 / 3)
->>>> +#define ELF_ET_DYN_BASE                (test_thread_flag(TIF_32BIT) ?  \
->>>> +                                       0x000400000UL :         \
->>>> +                                       0x100000000UL)
->>>>
->>>
->>> Why are you merging this with the COMPAT definition?
+On Fri, Jun 23, 2017 at 4:57 PM, Maxime Ripard
+<maxime.ripard@free-electrons.com> wrote:
+> On Fri, Jun 23, 2017 at 02:31:40PM +0900, Masahiro Yamada wrote:
+>> As far as I tried,  minus MACH_SUN8I still enabled the following:
+>> CONFIG_SUNXI_CCU=y
+>> CONFIG_SUNXI_CCU_DIV=y
+>> CONFIG_SUNXI_CCU_FRAC=y
+>> CONFIG_SUNXI_CCU_GATE=y
+>> CONFIG_SUNXI_CCU_MUX=y
+>> CONFIG_SUNXI_CCU_MULT=y
+>> CONFIG_SUNXI_CCU_PHASE=y
+>> CONFIG_SUNXI_CCU_NK=y
+>> CONFIG_SUNXI_CCU_NKM=y
+>> CONFIG_SUNXI_CCU_NKMP=y
+>> CONFIG_SUNXI_CCU_NM=y
+>> CONFIG_SUNXI_CCU_MP=y
 >>
->> It seemed like the right thing to do since a single definition could
->> handle both cases. Is there something I'm overlooking in the arm64
->> case?
+>> I think you need to disable some more MACH_SUN*I and
+>> perhaps disable some CONFIG_SUN*I_*_CCU explicitly,
+>> then you will see difference in the result.
 >
-> And like 5 minutes later there was a loud head-slapping noise in my
-> office. Durr, yeah, arm64 doesn't have to deal with a "native 32-bit"
-> mode, so the merge isn't needed. Yes yes, I will split it back up and
-> drop the thread flag test.
+> Ah, right, it's all selected by the rest.
 >
+> I guess to get a meaningful example you could disable all the
+> SUN*I_CCU (SUN5I, SUN8I, and the likes) options and while keeping
+> SUN8I_R_CCU.
+>
+> Most of the clock types shouldn't be used but div and gates.
 
-Oh, is that what I heard?
+Given that we appear to basically always pull in all (or most) of
+the CCU parts anyway, and it's hard to even test with a subset
+being disabled, I wonder how much we care about dropping
+the unused objects at all:
+
+Maybe the answer is that we just always build all of them into
+the kernel and make only the SoC-specific objects configurable ;-)
+
+Once we start linking with  --gc-sections, it will all be fine anyway.
+
+       Arnd
