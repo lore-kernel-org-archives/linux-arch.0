@@ -1,59 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f196.google.com ([209.85.128.196]:35730 "EHLO
-        mail-wr0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753931AbdFWJGG (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 23 Jun 2017 05:06:06 -0400
-Date: Fri, 23 Jun 2017 11:06:01 +0200
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH 0/5] Last bits for initial 5-level paging enabling
-Message-ID: <20170623090601.njsmucxdy4rev6zw@gmail.com>
-References: <20170622122608.80435-1-kirill.shutemov@linux.intel.com>
+Received: from mail.skyhub.de ([5.9.137.197]:38720 "EHLO mail.skyhub.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1753912AbdFWJKN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 23 Jun 2017 05:10:13 -0400
+Date: Fri, 23 Jun 2017 11:09:57 +0200
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v7 32/36] xen/x86: Remove SME feature in PV guests
+Message-ID: <20170623090957.yb2x225f4ok4w5qu@pd.tnic>
+References: <20170616184947.18967.84890.stgit@tlendack-t1.amdoffice.net>
+ <20170616185554.18967.82909.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <20170622122608.80435-1-kirill.shutemov@linux.intel.com>
+In-Reply-To: <20170616185554.18967.82909.stgit@tlendack-t1.amdoffice.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
-Message-ID: <20170623090601.3BnUMqFKcZZ7flRxXi6fSCUZn-AL7Td-XG-7ydnTcC4@z>
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>
+Message-ID: <20170623090957.sWDxc4mSqGXNt7OQP5sgE0edjZXt7fCazcazEJIaeWQ@z>
 
+On Fri, Jun 16, 2017 at 01:55:54PM -0500, Tom Lendacky wrote:
+> Xen does not currently support SME for PV guests. Clear the SME cpu
 
-* Kirill A. Shutemov <kirill.shutemov@linux.intel.com> wrote:
+nitpick: s/cpu/CPU/
 
-> As Ingo requested I've split and updated last two patches for my previous
-> patchset.
+> capability in order to avoid any ambiguity.
 > 
-> Please review and consider applying.
+> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+> ---
+>  arch/x86/xen/enlighten_pv.c |    1 +
+>  1 file changed, 1 insertion(+)
 > 
-> Kirill A. Shutemov (5):
->   x86: Enable 5-level paging support
->   x86/mm: Rename tasksize_32bit/64bit to task_size_32bit/64bit
->   x86/mpx: Do not allow MPX if we have mappings above 47-bit
->   x86/mm: Prepare to expose larger address space to userspace
->   x86/mm: Allow userspace have mapping above 47-bit
+> diff --git a/arch/x86/xen/enlighten_pv.c b/arch/x86/xen/enlighten_pv.c
+> index f33eef4..e6ecf42 100644
+> --- a/arch/x86/xen/enlighten_pv.c
+> +++ b/arch/x86/xen/enlighten_pv.c
+> @@ -294,6 +294,7 @@ static void __init xen_init_capabilities(void)
+>  	setup_clear_cpu_cap(X86_FEATURE_MTRR);
+>  	setup_clear_cpu_cap(X86_FEATURE_ACC);
+>  	setup_clear_cpu_cap(X86_FEATURE_X2APIC);
+> +	setup_clear_cpu_cap(X86_FEATURE_SME);
+>  
+>  	if (!xen_initial_domain())
+>  		setup_clear_cpu_cap(X86_FEATURE_ACPI);
 
-Ok, looks pretty neat now.
+Reviewed-by: Borislav Petkov <bp@suse.de>
 
-Can I apply them in this order cleanly, without breaking bisection:
+-- 
+Regards/Gruss,
+    Boris.
 
->   x86/mm: Rename tasksize_32bit/64bit to task_size_32bit/64bit
->   x86/mpx: Do not allow MPX if we have mappings above 47-bit
->   x86/mm: Prepare to expose larger address space to userspace
->   x86/mm: Allow userspace have mapping above 47-bit
->   x86: Enable 5-level paging support
-
-?
-
-I.e. I'd like to move the first patch last.
-
-The reason is that we should first get all quirks and assumptions fixed, all 
-facilities implemented - and only then enable 5-level paging as a final step which 
-produces a well working kernel.
-
-(This should also make it slightly easier to analyze any potential regressions in 
-earlier patches.)
-
-Thanks,
-
-	Ingo
+Good mailing practices for 400: avoid top-posting and trim the reply.
