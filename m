@@ -1,102 +1,61 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [kernel-hardening] [PATCH 2/4] arm64: Reduce ELF_ET_DYN_BASE
-Date: Fri, 23 Jun 2017 07:02:13 -0700
-Message-ID: <CAGXu5jKt_=aV-=bDREOhKLpi2GX9aEO5Gk-+vhk-ZphLJJ3K-g@mail.gmail.com>
-References: <1498154792-49952-1-git-send-email-keescook@chromium.org>
- <1498154792-49952-3-git-send-email-keescook@chromium.org> <CAKv+Gu_2Wg_D+4c3-iqMr9hbKkGVdBtW6Bmxj-4=FOG9hVN5vA@mail.gmail.com>
- <CAGXu5jLHOjg9+8xDSzs2nLKjoqUf3NAc_0a1Coo+4WnDYRT3=g@mail.gmail.com>
+From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Subject: Re: [PATCH 0/5] Last bits for initial 5-level paging enabling
+Date: Fri, 23 Jun 2017 17:49:15 +0300
+Message-ID: <20170623144915.4d6esghvicnczuaj@black.fi.intel.com>
+References: <20170622122608.80435-1-kirill.shutemov@linux.intel.com>
+ <20170623090601.njsmucxdy4rev6zw@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f174.google.com ([209.85.223.174]:34319 "EHLO
-        mail-io0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751217AbdFWOCQ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 23 Jun 2017 10:02:16 -0400
-Received: by mail-io0-f174.google.com with SMTP id c201so41345705ioe.1
-        for <linux-arch@vger.kernel.org>; Fri, 23 Jun 2017 07:02:16 -0700 (PDT)
-In-Reply-To: <CAGXu5jLHOjg9+8xDSzs2nLKjoqUf3NAc_0a1Coo+4WnDYRT3=g@mail.gmail.com>
+Received: from mga04.intel.com ([192.55.52.120]:33091 "EHLO mga04.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751999AbdFWOtu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 23 Jun 2017 10:49:50 -0400
+Content-Disposition: inline
+In-Reply-To: <20170623090601.njsmucxdy4rev6zw@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, James Hogan <james.hogan@imgtec.com>, Pratyush Anand <panand@redhat.com>, Ingo Molnar <mingo@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>"linux-arch@vger.kernel.org" <lin>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
 
-On Fri, Jun 23, 2017 at 6:52 AM, Kees Cook <keescook@chromium.org> wrote:
-> On Thu, Jun 22, 2017 at 11:57 PM, Ard Biesheuvel
-> <ard.biesheuvel@linaro.org> wrote:
->> Hi Kees,
->>
->> On 22 June 2017 at 18:06, Kees Cook <keescook@chromium.org> wrote:
->>> Now that explicitly executed loaders are loaded in the mmap region,
->>> position PIE binaries lower in the address space to avoid possible
->>> collisions with mmap or stack regions. For 64-bit, align to 4GB to
->>> allow runtimes to use the entire 32-bit address space for 32-bit
->>> pointers.
->>>
->>> Signed-off-by: Kees Cook <keescook@chromium.org>
->>> ---
->>>  arch/arm64/include/asm/elf.h | 13 ++++++-------
->>>  1 file changed, 6 insertions(+), 7 deletions(-)
->>>
->>> diff --git a/arch/arm64/include/asm/elf.h b/arch/arm64/include/asm/elf.h
->>> index 5d1700425efe..f742af8f7c42 100644
->>> --- a/arch/arm64/include/asm/elf.h
->>> +++ b/arch/arm64/include/asm/elf.h
->>> @@ -113,12 +113,13 @@
->>>  #define ELF_EXEC_PAGESIZE      PAGE_SIZE
->>>
->>>  /*
->>> - * This is the location that an ET_DYN program is loaded if exec'ed.  Typical
->>> - * use of this is to invoke "./ld.so someprog" to test out a new version of
->>> - * the loader.  We need to make sure that it is out of the way of the program
->>> - * that it will "exec", and that there is sufficient room for the brk.
->>> + * This is the base location for PIE (ET_DYN with INTERP) loads. On
->>> + * 64-bit, this is raised to 4GB to leave the entire 32-bit address
->>> + * space open for things that want to use the area for 32-bit pointers.
->>>   */
->>> -#define ELF_ET_DYN_BASE        (2 * TASK_SIZE_64 / 3)
->>> +#define ELF_ET_DYN_BASE                (test_thread_flag(TIF_32BIT) ?  \
->>> +                                       0x000400000UL :         \
->>> +                                       0x100000000UL)
->>>
->>
->> Why are you merging this with the COMPAT definition?
->
-> It seemed like the right thing to do since a single definition could
-> handle both cases. Is there something I'm overlooking in the arm64
-> case?
+On Fri, Jun 23, 2017 at 11:06:01AM +0200, Ingo Molnar wrote:
+> 
+> * Kirill A. Shutemov <kirill.shutemov@linux.intel.com> wrote:
+> 
+> > As Ingo requested I've split and updated last two patches for my previous
+> > patchset.
+> > 
+> > Please review and consider applying.
+> > 
+> > Kirill A. Shutemov (5):
+> >   x86: Enable 5-level paging support
+> >   x86/mm: Rename tasksize_32bit/64bit to task_size_32bit/64bit
+> >   x86/mpx: Do not allow MPX if we have mappings above 47-bit
+> >   x86/mm: Prepare to expose larger address space to userspace
+> >   x86/mm: Allow userspace have mapping above 47-bit
+> 
+> Ok, looks pretty neat now.
+> 
+> Can I apply them in this order cleanly, without breaking bisection:
+> 
+> >   x86/mm: Rename tasksize_32bit/64bit to task_size_32bit/64bit
+> >   x86/mpx: Do not allow MPX if we have mappings above 47-bit
+> >   x86/mm: Prepare to expose larger address space to userspace
+> >   x86/mm: Allow userspace have mapping above 47-bit
+> >   x86: Enable 5-level paging support
+> 
+> ?
+> 
+> I.e. I'd like to move the first patch last.
+> 
+> The reason is that we should first get all quirks and assumptions fixed, all 
+> facilities implemented - and only then enable 5-level paging as a final step which 
+> produces a well working kernel.
+> 
+> (This should also make it slightly easier to analyze any potential regressions in 
+> earlier patches.)
 
-And like 5 minutes later there was a loud head-slapping noise in my
-office. Durr, yeah, arm64 doesn't have to deal with a "native 32-bit"
-mode, so the merge isn't needed. Yes yes, I will split it back up and
-drop the thread flag test.
-
-Thanks!
-
--Kees
-
->>>  #ifndef __ASSEMBLY__
->>>
->>> @@ -173,8 +174,6 @@ extern int arch_setup_additional_pages(struct linux_binprm *bprm,
->>>
->>>  #ifdef CONFIG_COMPAT
->>>
->>> -#define COMPAT_ELF_ET_DYN_BASE         (2 * TASK_SIZE_32 / 3)
->>> -
->>>  /* AArch32 registers. */
->>>  #define COMPAT_ELF_NGREG               18
->>>  typedef unsigned int                   compat_elf_greg_t;
->>> --
->>> 2.7.4
->>>
->
->
->
-> --
-> Kees Cook
-> Pixel Security
-
-
+Just checked bisectability with this order on allmodconfig -- works fine.
 
 -- 
-Kees Cook
-Pixel Security
+ Kirill A. Shutemov
