@@ -1,78 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([146.0.238.70]:58820 "EHLO
-        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751240AbdFWHxH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 23 Jun 2017 03:53:07 -0400
-Date: Fri, 23 Jun 2017 09:51:23 +0200 (CEST)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH 1/1] futex: remove duplicated code and fix UB
-In-Reply-To: <20170621115318.2781-1-jslaby@suse.cz>
-Message-ID: <alpine.DEB.2.20.1706230017520.2221@nanos>
-References: <20170621115318.2781-1-jslaby@suse.cz>
+Received: from mail.skyhub.de ([5.9.137.197]:37952 "EHLO mail.skyhub.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1754091AbdFWI42 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 23 Jun 2017 04:56:28 -0400
+Date: Fri, 23 Jun 2017 10:56:07 +0200
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v7 31/36] x86/mm, kexec: Allow kexec to be used with SME
+Message-ID: <20170623085606.ett5nuiow2ye7p3a@pd.tnic>
+References: <20170616184947.18967.84890.stgit@tlendack-t1.amdoffice.net>
+ <20170616185545.18967.90815.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20170616185545.18967.90815.stgit@tlendack-t1.amdoffice.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jiri Slaby <jslaby@suse.cz>
-Cc: mingo@redhat.com, peterz@infradead.org, dvhart@infradead.org, linux-kernel@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, "H. Peter Anvin" <hpa@zytor.com>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org
-Message-ID: <20170623075123.8ktw45kuQAj8O-4RfUetzuWLleCjWSTYRTImkBuH288@z>
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>
+Message-ID: <20170623085607.PRropDV3-LKEJXJ6cMf7yAqzON_HipKwImg6ZSbBKSk@z>
 
-On Wed, 21 Jun 2017, Jiri Slaby wrote:
-> diff --git a/arch/arm64/include/asm/futex.h b/arch/arm64/include/asm/futex.h
-> index f32b42e8725d..5bb2fd4674e7 100644
-> --- a/arch/arm64/include/asm/futex.h
-> +++ b/arch/arm64/include/asm/futex.h
-> @@ -48,20 +48,10 @@ do {									\
->  } while (0)
+On Fri, Jun 16, 2017 at 01:55:45PM -0500, Tom Lendacky wrote:
+> Provide support so that kexec can be used to boot a kernel when SME is
+> enabled.
+> 
+> Support is needed to allocate pages for kexec without encryption.  This
+> is needed in order to be able to reboot in the kernel in the same manner
+> as originally booted.
+> 
+> Additionally, when shutting down all of the CPUs we need to be sure to
+> flush the caches and then halt. This is needed when booting from a state
+> where SME was not active into a state where SME is active (or vice-versa).
+> Without these steps, it is possible for cache lines to exist for the same
+> physical location but tagged both with and without the encryption bit. This
+> can cause random memory corruption when caches are flushed depending on
+> which cacheline is written last.
+> 
+> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+> ---
+>  arch/x86/include/asm/init.h          |    1 +
+>  arch/x86/include/asm/kexec.h         |    8 ++++++++
+>  arch/x86/include/asm/pgtable_types.h |    1 +
+>  arch/x86/kernel/machine_kexec_64.c   |   22 +++++++++++++++++++++-
+>  arch/x86/kernel/process.c            |   17 +++++++++++++++--
+>  arch/x86/mm/ident_map.c              |   12 ++++++++----
+>  include/linux/kexec.h                |   14 ++++++++++++++
+>  kernel/kexec_core.c                  |   12 +++++++++++-
+>  8 files changed, 79 insertions(+), 8 deletions(-)
+
+...
+
+> diff --git a/include/linux/kexec.h b/include/linux/kexec.h
+> index c9481eb..5d17fd6 100644
+> --- a/include/linux/kexec.h
+> +++ b/include/linux/kexec.h
+> @@ -334,6 +334,20 @@ static inline void *boot_phys_to_virt(unsigned long entry)
+>  	return phys_to_virt(boot_phys_to_phys(entry));
+>  }
 >  
->  static inline int
-> -futex_atomic_op_inuser(unsigned int encoded_op, u32 __user *uaddr)
-
-That unsigned int seems to be a change from the arm64 tree in next. It's
-not upstream and it'll cause a (easy to resolve) conflict.
-
-> +static int futex_atomic_op_inuser(unsigned int encoded_op, u32 __user *uaddr)
+> +#ifndef arch_kexec_post_alloc_pages
+> +static inline int arch_kexec_post_alloc_pages(void *vaddr, unsigned int pages,
+> +					      gfp_t gfp)
 > +{
-> +	int op = (encoded_op >> 28) & 7;
-> +	int cmp = (encoded_op >> 24) & 15;
-> +	int oparg = (int)(encoded_op << 8) >> 20;
-> +	int cmparg = (int)(encoded_op << 20) >> 20;
+> +	return 0;
+> +}
+> +#endif
 
-So this is really bad. We have implicit and explicit type casting to
-int. And while we are at it can we please stop proliferating the existing
-mess.
+Just a nitpick:
 
-'op' and 'cmp' definitly can be unsigned int. There is no reason to cast
-them to int.
+static inline int arch_kexec_post_alloc_pages(void *vaddr, unsigned int pages, gfp_t gfp) { return 0; }
+static inline void arch_kexec_pre_free_pages(void *vaddr, unsigned int pages) { }
 
-oparg, cmparg and oldval are more interesting.
+Other than that:
 
-The logic here is "documented" in uapi/linux/futex.h
+Reviewed-by: Borislav Petkov <bp@suse.de>
 
-/* FUTEX_WAKE_OP will perform atomically
-   int oldval = *(int *)UADDR2;
-   *(int *)UADDR2 = oldval OP OPARG;
-   if (oldval CMP CMPARG)
-       wake UADDR2;  */
+-- 
+Regards/Gruss,
+    Boris.
 
-Now the FUTEX_OP macro which is supposed to compose the encoded_up does:
-
-#define FUTEX_OP(op, oparg, cmp, cmparg) \
-  (((op & 0xf) << 28) | ((cmp & 0xf) << 24)             \
-   | ((oparg & 0xfff) << 12) | (cmparg & 0xfff))
-
-Of course this all is not typed, undocumented and completely ill
-defined.
-
-> +	int oparg = (int)(encoded_op << 8) >> 20;
-> +	int cmparg = (int)(encoded_op << 20) >> 20;
-
-So in fact we sign expand the 12 bits of oparg and cmparg. Really
-intuitive.
-
-Yes, we probably can't change that anymore, but at least we should make it
-very explicit and add a comment to that effect.
-
-Thanks,
-
-	tglx
+Good mailing practices for 400: avoid top-posting and trim the reply.
