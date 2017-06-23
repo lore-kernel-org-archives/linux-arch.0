@@ -1,76 +1,144 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f170.google.com ([209.85.223.170]:34539 "EHLO
-        mail-io0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753397AbdFWPEZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 23 Jun 2017 11:04:25 -0400
-Received: by mail-io0-f170.google.com with SMTP id c201so42374962ioe.1
-        for <linux-arch@vger.kernel.org>; Fri, 23 Jun 2017 08:04:25 -0700 (PDT)
+Received: from mail.skyhub.de ([5.9.137.197]:55444 "EHLO mail.skyhub.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1754601AbdFWRkK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 23 Jun 2017 13:40:10 -0400
+Date: Fri, 23 Jun 2017 19:39:37 +0200
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v7 36/36] x86/mm: Add support to make use of Secure
+ Memory Encryption
+Message-ID: <20170623173937.erotfiemyidyvarn@pd.tnic>
+References: <20170616184947.18967.84890.stgit@tlendack-t1.amdoffice.net>
+ <20170616185639.18967.41488.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
-In-Reply-To: <CAGXu5jKt_=aV-=bDREOhKLpi2GX9aEO5Gk-+vhk-ZphLJJ3K-g@mail.gmail.com>
-References: <1498154792-49952-1-git-send-email-keescook@chromium.org>
- <1498154792-49952-3-git-send-email-keescook@chromium.org> <CAKv+Gu_2Wg_D+4c3-iqMr9hbKkGVdBtW6Bmxj-4=FOG9hVN5vA@mail.gmail.com>
- <CAGXu5jLHOjg9+8xDSzs2nLKjoqUf3NAc_0a1Coo+4WnDYRT3=g@mail.gmail.com> <CAGXu5jKt_=aV-=bDREOhKLpi2GX9aEO5Gk-+vhk-ZphLJJ3K-g@mail.gmail.com>
-From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Date: Fri, 23 Jun 2017 15:04:24 +0000
-Message-ID: <CAKv+Gu8-N6UO2_v3vFRbgjEjWG+ipVA=H6nEB=m3gXyN=HGVow@mail.gmail.com>
-Subject: Re: [kernel-hardening] [PATCH 2/4] arm64: Reduce ELF_ET_DYN_BASE
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20170616185639.18967.41488.stgit@tlendack-t1.amdoffice.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, James Hogan <james.hogan@imgtec.com>, Pratyush Anand <panand@redhat.com>, Ingo Molnar <mingo@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
-Message-ID: <20170623150424.Mcl3HmDMHhndP1Tgr1uzz3PQcxG37qeKDYhJ2PNUE_w@z>
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>
+Message-ID: <20170623173937.NcaoURjJa3Zaen7jux9uIgkMPvFa-CEKjXzs6u7upbs@z>
 
-On 23 June 2017 at 14:02, Kees Cook <keescook@chromium.org> wrote:
-> On Fri, Jun 23, 2017 at 6:52 AM, Kees Cook <keescook@chromium.org> wrote:
->> On Thu, Jun 22, 2017 at 11:57 PM, Ard Biesheuvel
->> <ard.biesheuvel@linaro.org> wrote:
->>> Hi Kees,
->>>
->>> On 22 June 2017 at 18:06, Kees Cook <keescook@chromium.org> wrote:
->>>> Now that explicitly executed loaders are loaded in the mmap region,
->>>> position PIE binaries lower in the address space to avoid possible
->>>> collisions with mmap or stack regions. For 64-bit, align to 4GB to
->>>> allow runtimes to use the entire 32-bit address space for 32-bit
->>>> pointers.
->>>>
->>>> Signed-off-by: Kees Cook <keescook@chromium.org>
->>>> ---
->>>>  arch/arm64/include/asm/elf.h | 13 ++++++-------
->>>>  1 file changed, 6 insertions(+), 7 deletions(-)
->>>>
->>>> diff --git a/arch/arm64/include/asm/elf.h b/arch/arm64/include/asm/elf.h
->>>> index 5d1700425efe..f742af8f7c42 100644
->>>> --- a/arch/arm64/include/asm/elf.h
->>>> +++ b/arch/arm64/include/asm/elf.h
->>>> @@ -113,12 +113,13 @@
->>>>  #define ELF_EXEC_PAGESIZE      PAGE_SIZE
->>>>
->>>>  /*
->>>> - * This is the location that an ET_DYN program is loaded if exec'ed.  Typical
->>>> - * use of this is to invoke "./ld.so someprog" to test out a new version of
->>>> - * the loader.  We need to make sure that it is out of the way of the program
->>>> - * that it will "exec", and that there is sufficient room for the brk.
->>>> + * This is the base location for PIE (ET_DYN with INTERP) loads. On
->>>> + * 64-bit, this is raised to 4GB to leave the entire 32-bit address
->>>> + * space open for things that want to use the area for 32-bit pointers.
->>>>   */
->>>> -#define ELF_ET_DYN_BASE        (2 * TASK_SIZE_64 / 3)
->>>> +#define ELF_ET_DYN_BASE                (test_thread_flag(TIF_32BIT) ?  \
->>>> +                                       0x000400000UL :         \
->>>> +                                       0x100000000UL)
->>>>
->>>
->>> Why are you merging this with the COMPAT definition?
->>
->> It seemed like the right thing to do since a single definition could
->> handle both cases. Is there something I'm overlooking in the arm64
->> case?
->
-> And like 5 minutes later there was a loud head-slapping noise in my
-> office. Durr, yeah, arm64 doesn't have to deal with a "native 32-bit"
-> mode, so the merge isn't needed. Yes yes, I will split it back up and
-> drop the thread flag test.
->
+On Fri, Jun 16, 2017 at 01:56:39PM -0500, Tom Lendacky wrote:
+> Add support to check if SME has been enabled and if memory encryption
+> should be activated (checking of command line option based on the
+> configuration of the default state).  If memory encryption is to be
+> activated, then the encryption mask is set and the kernel is encrypted
+> "in place."
+> 
+> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+> ---
+>  arch/x86/include/asm/mem_encrypt.h |    6 ++-
+>  arch/x86/kernel/head64.c           |    4 +-
+>  arch/x86/mm/mem_encrypt.c          |   86 +++++++++++++++++++++++++++++++++++-
+>  3 files changed, 90 insertions(+), 6 deletions(-)
 
-Oh, is that what I heard?
+...
+
+> +/*
+> + * Some SME functions run very early causing issues with the stack-protector
+> + * support. Provide a way to turn off this support on a per-function basis.
+> + */
+> +#define SME_NOSTACKP __attribute__((__optimize__("no-stack-protector")))
+
+__nostackp
+
+just like the others in include/linux/compiler-gcc.h.
+
+> +
+> +static char sme_cmdline_arg[] __initdata = "mem_encrypt";
+> +static char sme_cmdline_on[]  __initdata = "on";
+> +static char sme_cmdline_off[] __initdata = "off";
+>  
+>  /*
+>   * Since SME related variables are set early in the boot process they must
+> @@ -200,6 +215,8 @@ void __init mem_encrypt_init(void)
+>  
+>  	/* Call into SWIOTLB to update the SWIOTLB DMA buffers */
+>  	swiotlb_update_mem_attributes();
+> +
+> +	pr_info("AMD Secure Memory Encryption (SME) active\n");
+>  }
+>  
+>  void swiotlb_set_mem_attributes(void *vaddr, unsigned long size)
+> @@ -527,8 +544,73 @@ void __init sme_encrypt_kernel(void)
+>  	native_write_cr3(__native_read_cr3());
+>  }
+>  
+> -void __init sme_enable(void)
+> +void __init SME_NOSTACKP sme_enable(struct boot_params *bp)
+>  {
+> +	const char *cmdline_ptr, *cmdline_arg, *cmdline_on, *cmdline_off;
+> +	unsigned int eax, ebx, ecx, edx;
+> +	bool active_by_default;
+> +	unsigned long me_mask;
+> +	char buffer[16];
+> +	u64 msr;
+> +
+> +	/* Check for the SME support leaf */
+> +	eax = 0x80000000;
+> +	ecx = 0;
+> +	native_cpuid(&eax, &ebx, &ecx, &edx);
+> +	if (eax < 0x8000001f)
+> +		return;
+> +
+> +	/*
+> +	 * Check for the SME feature:
+> +	 *   CPUID Fn8000_001F[EAX] - Bit 0
+> +	 *     Secure Memory Encryption support
+> +	 *   CPUID Fn8000_001F[EBX] - Bits 5:0
+> +	 *     Pagetable bit position used to indicate encryption
+> +	 */
+> +	eax = 0x8000001f;
+> +	ecx = 0;
+> +	native_cpuid(&eax, &ebx, &ecx, &edx);
+> +	if (!(eax & 1))
+> +		return;
+> +
+> +	me_mask = 1UL << (ebx & 0x3f);
+> +
+> +	/* Check if SME is enabled */
+> +	msr = __rdmsr(MSR_K8_SYSCFG);
+> +	if (!(msr & MSR_K8_SYSCFG_MEM_ENCRYPT))
+> +		return;
+> +
+> +	/*
+> +	 * Fixups have not been applied to phys_base yet and we're running
+> +	 * identity mapped, so we must obtain the address to the SME command
+> +	 * line argument data using rip-relative addressing.
+> +	 */
+> +	asm ("lea sme_cmdline_arg(%%rip), %0"
+> +	     : "=r" (cmdline_arg)
+> +	     : "p" (sme_cmdline_arg));
+> +	asm ("lea sme_cmdline_on(%%rip), %0"
+> +	     : "=r" (cmdline_on)
+> +	     : "p" (sme_cmdline_on));
+> +	asm ("lea sme_cmdline_off(%%rip), %0"
+> +	     : "=r" (cmdline_off)
+> +	     : "p" (sme_cmdline_off));
+> +
+> +	if (IS_ENABLED(CONFIG_AMD_MEM_ENCRYPT_ACTIVE_BY_DEFAULT))
+> +		active_by_default = true;
+> +	else
+> +		active_by_default = false;
+> +
+> +	cmdline_ptr = (const char *)((u64)bp->hdr.cmd_line_ptr |
+> +				     ((u64)bp->ext_cmd_line_ptr << 32));
+> +
+> +	cmdline_find_option(cmdline_ptr, cmdline_arg, buffer, sizeof(buffer));
+> +
+> +	if (strncmp(buffer, cmdline_on, sizeof(buffer)) == 0)
+
+	if (!strncmp(...
+
+> +		sme_me_mask = me_mask;
+> +	else if (strncmp(buffer, cmdline_off, sizeof(buffer)) == 0)
+
+	else if (!strncmp(...
+
+-- 
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
