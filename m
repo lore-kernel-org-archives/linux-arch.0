@@ -1,68 +1,148 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f178.google.com ([209.85.223.178]:33879 "EHLO
-        mail-io0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754880AbdFWUIB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 23 Jun 2017 16:08:01 -0400
-Received: by mail-io0-f178.google.com with SMTP id c201so46637345ioe.1
-        for <linux-arch@vger.kernel.org>; Fri, 23 Jun 2017 13:08:01 -0700 (PDT)
-MIME-Version: 1.0
-In-Reply-To: <87podvp4q1.fsf@concordia.ellerman.id.au>
-References: <1498154792-49952-1-git-send-email-keescook@chromium.org>
- <1498154792-49952-4-git-send-email-keescook@chromium.org> <87podvp4q1.fsf@concordia.ellerman.id.au>
-From: Kees Cook <keescook@chromium.org>
-Date: Fri, 23 Jun 2017 13:08:00 -0700
-Message-ID: <CAGXu5jK7aHHRMZyZyrviBF+cLghWcH_D4PX_vMFOycHuF7EdLA@mail.gmail.com>
-Subject: Re: [PATCH 3/4] powerpc: Reduce ELF_ET_DYN_BASE
-Content-Type: text/plain; charset="UTF-8"
+Received: from mail-pg0-f68.google.com ([74.125.83.68]:34578 "EHLO
+        mail-pg0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753397AbdFWXYF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 23 Jun 2017 19:24:05 -0400
+Received: by mail-pg0-f68.google.com with SMTP id j186so7788248pge.1
+        for <linux-arch@vger.kernel.org>; Fri, 23 Jun 2017 16:24:05 -0700 (PDT)
+Date: Fri, 23 Jun 2017 16:24:03 -0700 (PDT)
+From: Palmer Dabbelt <palmer@dabbelt.com>
+Subject: Re: [PATCH 09/17] clocksource/timer-riscv: New RISC-V Clocksource
+In-Reply-To: <CAK8P3a2tprg+z5yZ4SySLdWBbqGKSk0SGf4SOejAFB8p6sKPKQ@mail.gmail.com>
+Message-ID: <mhng-18b5fd0f-c7ac-4d0a-8ee6-395103eb46df@palmer-si-x1c4>
+Mime-Version: 1.0 (MHng)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, James Hogan <james.hogan@imgtec.com>, Pratyush Anand <panand@redhat.com>, Ingo Molnar <mingo@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
-Message-ID: <20170623200800.IBT9LSYx1sYOOqGpArs4yJqFkf1RRLERPTzVF54MaZA@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: geert@linux-m68k.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Olof Johansson <olof@lixom.net>, albert@sifive.com, patches@groups.riscv.org, tglx@linutronix.de, daniel.lezcano@linaro.org
+Message-ID: <20170623232403.7lfPcscQ2J5v8C8mm5XoLz3Cr5ybQm3mTv_wcnN3JBA@z>
 
-On Fri, Jun 23, 2017 at 12:01 AM, Michael Ellerman <mpe@ellerman.id.au> wrote:
-> Kees Cook <keescook@chromium.org> writes:
+On Wed, 07 Jun 2017 00:25:37 PDT (-0700), Arnd Bergmann wrote:
+> On Wed, Jun 7, 2017 at 9:12 AM, Geert Uytterhoeven <geert@linux-m68k.org> wrote:
+>> CC clocksource folks
+>>
+>> On Wed, Jun 7, 2017 at 12:59 AM, Palmer Dabbelt <palmer@dabbelt.com> wrote:
+>>> The RISC-V ISA defines a single RTC as well as an SBI oneshot timer.
+>>> This timer is present on all RISC-V systems.
+>>>
+>>> Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
+>>> ---
+>>>  drivers/clocksource/Kconfig       |   8 +++
+>>>  drivers/clocksource/Makefile      |   1 +
+>>>  drivers/clocksource/timer-riscv.c | 118 ++++++++++++++++++++++++++++++++++++++
+>>>  3 files changed, 127 insertions(+)
+>>>  create mode 100644 drivers/clocksource/timer-riscv.c
+>>>
+>>> diff --git a/drivers/clocksource/Kconfig b/drivers/clocksource/Kconfig
+>>> index 545d541ae20e..1c2c6e7c7fab 100644
+>>> --- a/drivers/clocksource/Kconfig
+>>> +++ b/drivers/clocksource/Kconfig
+>>> @@ -612,4 +612,12 @@ config CLKSRC_ST_LPC
+>>>           Enable this option to use the Low Power controller timer
+>>>           as clocksource.
+>>>
+>>> +config CLKSRC_RISCV
+>>> +       #bool "Clocksource for the RISC-V platform"
+>>> +       def_bool y if RISCV
+>>> +       depends on RISCV
 >
->> Now that explicitly executed loaders are loaded in the mmap region,
->> position PIE binaries lower in the address space to avoid possible
->> collisions with mmap or stack regions. For 64-bit, align to 4GB to
->> allow runtimes to use the entire 32-bit address space for 32-bit
->> pointers.
+> I don't like the commenting out parts of the entry. If there are no
+> build-time dependencies, you can just make it 'default y' and still allow
+> users to disabled the driver if they really want to (e.g. on a machine
+> specific kernel that has a driver for another clocksource), or you
+> just leave it 'def_bool RISCV'.
 >
-> The change log and subject are a bit out of whack with the actual patch
-> because previously we used 512MB.
+>>> +
+>>> +static int riscv_timer_set_oneshot(struct clock_event_device *evt)
+>>> +{
+>>> +       /* no-op; only one mode */
+>>> +       return 0;
+>>> +}
+>>> +
+>>> +static int riscv_timer_set_shutdown(struct clock_event_device *evt)
+>>> +{
+>>> +       /* can't stop the clock! */
+>>> +       return 0;
+>>> +}
 >
-> How about?
+> I'd just leave out the empty callbacks, the callers all protect NULL
+> pointers.
 >
->   powerpc: Move ELF_ET_DYN_BASE to 4GB / 4MB
+>>> +static u64 riscv_rdtime(struct clocksource *cs)
+>>> +{
+>>> +       return get_cycles();
+>>> +}
+>>> +
+>>> +static struct clocksource riscv_clocksource = {
+>>> +       .name = "riscv_clocksource",
+>>> +       .rating = 300,
+>>> +       .read = riscv_rdtime,
+>>> +#ifdef CONFIG_64BITS
+>>> +       .mask = CLOCKSOURCE_MASK(64),
+>>> +#else
+>>> +       .mask = CLOCKSOURCE_MASK(32),
+>>> +#endif /* CONFIG_64BITS */
+>>> +       .flags = CLOCK_SOURCE_IS_CONTINUOUS,
+>>> +};
 >
->   Now that explicitly executed loaders are loaded in the mmap region,
->   we have more freedom to decide where we position PIE binaries in the
->   address space to avoid possible collisions with mmap or stack regions.
+>      ".mask = BITS_PER_LONG" maybe?
 >
->   For 64-bit, align to 4GB to allow runtimes to use the entire 32-bit
->   address space for 32-bit pointers. On 32-bit use 4MB.
-
-Good idea, thanks. I'll resend the series with the commit logs updated.
-
-> Is there any particular reasoning behind the 4MB value on 32-bit?
-
-So, I've dug around a bit on this, and I *think* the rationale is to
-avoid mapping a possible 4MB page table entry when it won't be using
-at least a portion near the lower end (NULL address area covered
-blocked by mmap_min_addr). It seems to be mainly tradition, though.
-
-> I gave this a quick spin and it booted OK on all my test boxes, which
-> covers 64-bit/32-bit kernel and userspace. So seems to work!
-
-Awesome, thanks for the testing!
-
-> Acked-by: Michael Ellerman <mpe@ellerman.id.au>
+>>> +void riscv_timer_interrupt(void)
+>>> +{
+>>> +       int cpu = smp_processor_id();
+>>> +       struct clock_event_device *evdev = &per_cpu(clock_event, cpu);
+>>> +
+>>> +       evdev->event_handler(evdev);
+>>> +}
+>>> +
+>>> +void __init init_clockevent(void)
+>>> +{
+>>> +       int cpu = smp_processor_id();
+>>> +       struct clock_event_device *ce = &per_cpu(clock_event, cpu);
+>>> +
+>>> +       *ce = (struct clock_event_device){
+>>> +               .name = "riscv_timer_clockevent",
+>>> +               .features = CLOCK_EVT_FEAT_ONESHOT,
+>>> +               .rating = 300,
+>>> +               .cpumask = cpumask_of(cpu),
+>>> +               .set_next_event = riscv_timer_set_next_event,
+>>> +               .set_state_oneshot  = riscv_timer_set_oneshot,
+>>> +               .set_state_shutdown = riscv_timer_set_shutdown,
+>>> +       };
+>>> +
+>>> +       /* Enable timer interrupts */
+>>> +       csr_set(sie, SIE_STIE);
+>>> +
+>>> +       clockevents_config_and_register(ce, riscv_timebase, 100, 0x7fffffff);
+>>> +}
+>>> +
+>>> +static unsigned long __init of_timebase(void)
+>>> +{
+>>> +       struct device_node *cpu;
+>>> +       const __be32 *prop;
+>>> +
+>>> +       cpu = of_find_node_by_path("/cpus");
+>>> +       if (cpu) {
+>>> +               prop = of_get_property(cpu, "timebase-frequency", NULL);
+>>> +               if (prop)
+>>> +                       return be32_to_cpu(*prop);
 >
-> cheers
+> of_property_read_u32()
+>
+>>> +       }
+>>> +
+>>> +       return 10000000;
+>
+> The default seems rather arbitrary. Any reason for this particular
+> number? Maybe it's better to fail if the property is missing.
 
--Kees
+This was just there for compatibility with the systems before we had device
+tree up and running, there's no reason for it to be there any more.  I've
+changed this to panic instead, as our delay code relies on this clock source
+initializing correctly.  I think that's safer than just having a bogus timer.
 
--- 
-Kees Cook
-Pixel Security
+I've included this and your other CR comments here
+
+  https://github.com/riscv/riscv-linux/commit/4b8dffa13a5d965d1aefe9f5f4fed41b0a4835d7
+
+which I'll include in a v3 patch set.
