@@ -1,66 +1,142 @@
 From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: Re: [patches] Re: [PATCH 01/17] drivers: support PCIe in RISCV
-Date: Fri, 23 Jun 2017 14:47:34 -0700 (PDT)
-Message-ID: <mhng-3678d26e-78a2-40af-a54c-fd16d0593e37@palmer-si-x1c4>
-References: <CAOesGMgrXcWvrv-8Xos7qeXsYhsx5XJEXnU8NqQ1X7YvoYkDaA@mail.gmail.com>
+Subject: Re: [PATCH 09/17] clocksource/timer-riscv: New RISC-V Clocksource
+Date: Fri, 23 Jun 2017 16:24:03 -0700 (PDT)
+Message-ID: <mhng-18b5fd0f-c7ac-4d0a-8ee6-395103eb46df@palmer-si-x1c4>
+References: <CAK8P3a2tprg+z5yZ4SySLdWBbqGKSk0SGf4SOejAFB8p6sKPKQ@mail.gmail.com>
 Mime-Version: 1.0 (MHng)
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f193.google.com ([209.85.192.193]:33014 "EHLO
-        mail-pf0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754162AbdFWVrf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 23 Jun 2017 17:47:35 -0400
-Received: by mail-pf0-f193.google.com with SMTP id w12so9121174pfk.0
-        for <linux-arch@vger.kernel.org>; Fri, 23 Jun 2017 14:47:35 -0700 (PDT)
-In-Reply-To: <CAOesGMgrXcWvrv-8Xos7qeXsYhsx5XJEXnU8NqQ1X7YvoYkDaA@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Olof Johansson <olof@lixom.net>
-Cc: Wesley Terpstra <wesley@sifive.com>, hch@infradead.org, patches@groups.riscv.org, linux-arch@vger.kernel.org, albert@sifive.com, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CAK8P3a2tprg+z5yZ4SySLdWBbqGKSk0SGf4SOejAFB8p6sKPKQ@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: geert@linux-m68k.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Olof Johansson <olof@lixom.net>, albert@sifive.com, patches@groups.riscv.org, tglx@linutronix.de, daniel.lezcano@linaro.org
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, 07 Jun 2017 10:40:50 PDT (-0700), Olof Johansson wrote:
-> On Wed, Jun 7, 2017 at 10:09 AM, Wesley Terpstra <wesley@sifive.com> wrote:
+On Wed, 07 Jun 2017 00:25:37 PDT (-0700), Arnd Bergmann wrote:
+> On Wed, Jun 7, 2017 at 9:12 AM, Geert Uytterhoeven <geert@linux-m68k.org> wrote:
+>> CC clocksource folks
 >>
->>
->> On Jun 7, 2017 7:26 AM, "Christoph Hellwig" <hch@infradead.org> wrote:
->>
->> On Tue, Jun 06, 2017 at 03:59:51PM -0700, Palmer Dabbelt wrote:
->>> From: "Wesley W. Terpstra" <wesley@sifive.com>
->>>
->>> There are RISC-V systems that have been mapped to Xilinx FPGAs that have
->>> their PCIe controllers on chip.  These build system changes allow RISC-V
->>> systems to enable the Xilinx PCIe controller, and to setup PCIe IRQs.
+>> On Wed, Jun 7, 2017 at 12:59 AM, Palmer Dabbelt <palmer@dabbelt.com> wrote:
+>>> The RISC-V ISA defines a single RTC as well as an SBI oneshot timer.
+>>> This timer is present on all RISC-V systems.
 >>>
 >>> Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
 >>> ---
->>>  drivers/pci/Makefile     | 1 +
->>>  drivers/pci/host/Kconfig | 2 +-
->>>  2 files changed, 2 insertions(+), 1 deletion(-)
+>>>  drivers/clocksource/Kconfig       |   8 +++
+>>>  drivers/clocksource/Makefile      |   1 +
+>>>  drivers/clocksource/timer-riscv.c | 118 ++++++++++++++++++++++++++++++++++++++
+>>>  3 files changed, 127 insertions(+)
+>>>  create mode 100644 drivers/clocksource/timer-riscv.c
 >>>
->>> diff --git a/drivers/pci/Makefile b/drivers/pci/Makefile
->>> index 462c1f5f5546..a29d9ec05d13 100644
->>> --- a/drivers/pci/Makefile
->>> +++ b/drivers/pci/Makefile
->>> @@ -41,6 +41,7 @@ obj-$(CONFIG_MIPS) += setup-irq.o
->>>  obj-$(CONFIG_TILE) += setup-irq.o
->>>  obj-$(CONFIG_SPARC_LEON) += setup-irq.o
->>>  obj-$(CONFIG_M68K) += setup-irq.o
->>> +obj-$(CONFIG_RISCV) += setup-irq.o
->>
->> Can we do a cleanup here and add a ARCH_USE_GENERIC_PCI_SETUP Kconfig
->> symbol that all these architectures can select?
->>
->>
->> That would probably be better. I did not want to touch other arch/ folders
->> in our changes.
+>>> diff --git a/drivers/clocksource/Kconfig b/drivers/clocksource/Kconfig
+>>> index 545d541ae20e..1c2c6e7c7fab 100644
+>>> --- a/drivers/clocksource/Kconfig
+>>> +++ b/drivers/clocksource/Kconfig
+>>> @@ -612,4 +612,12 @@ config CLKSRC_ST_LPC
+>>>           Enable this option to use the Low Power controller timer
+>>>           as clocksource.
+>>>
+>>> +config CLKSRC_RISCV
+>>> +       #bool "Clocksource for the RISC-V platform"
+>>> +       def_bool y if RISCV
+>>> +       depends on RISCV
 >
-> I understand that approach when you're doing things in your tree
-> early, but in this case (and at this phase in submission/merging),
-> don't be afraid to touch other architectures and refactor/clean up.
+> I don't like the commenting out parts of the entry. If there are no
+> build-time dependencies, you can just make it 'default y' and still allow
+> users to disabled the driver if they really want to (e.g. on a machine
+> specific kernel that has a driver for another clocksource), or you
+> just leave it 'def_bool RISCV'.
 >
-> Please do the refactor in a separate preceding patch and submit it
-> separate/soon instead of keeping it just in the series and bundled
-> with your addition. That way it can go in when ready even if the rest
-> of the series is spinning.
+>>> +
+>>> +static int riscv_timer_set_oneshot(struct clock_event_device *evt)
+>>> +{
+>>> +       /* no-op; only one mode */
+>>> +       return 0;
+>>> +}
+>>> +
+>>> +static int riscv_timer_set_shutdown(struct clock_event_device *evt)
+>>> +{
+>>> +       /* can't stop the clock! */
+>>> +       return 0;
+>>> +}
+>
+> I'd just leave out the empty callbacks, the callers all protect NULL
+> pointers.
+>
+>>> +static u64 riscv_rdtime(struct clocksource *cs)
+>>> +{
+>>> +       return get_cycles();
+>>> +}
+>>> +
+>>> +static struct clocksource riscv_clocksource = {
+>>> +       .name = "riscv_clocksource",
+>>> +       .rating = 300,
+>>> +       .read = riscv_rdtime,
+>>> +#ifdef CONFIG_64BITS
+>>> +       .mask = CLOCKSOURCE_MASK(64),
+>>> +#else
+>>> +       .mask = CLOCKSOURCE_MASK(32),
+>>> +#endif /* CONFIG_64BITS */
+>>> +       .flags = CLOCK_SOURCE_IS_CONTINUOUS,
+>>> +};
+>
+>      ".mask = BITS_PER_LONG" maybe?
+>
+>>> +void riscv_timer_interrupt(void)
+>>> +{
+>>> +       int cpu = smp_processor_id();
+>>> +       struct clock_event_device *evdev = &per_cpu(clock_event, cpu);
+>>> +
+>>> +       evdev->event_handler(evdev);
+>>> +}
+>>> +
+>>> +void __init init_clockevent(void)
+>>> +{
+>>> +       int cpu = smp_processor_id();
+>>> +       struct clock_event_device *ce = &per_cpu(clock_event, cpu);
+>>> +
+>>> +       *ce = (struct clock_event_device){
+>>> +               .name = "riscv_timer_clockevent",
+>>> +               .features = CLOCK_EVT_FEAT_ONESHOT,
+>>> +               .rating = 300,
+>>> +               .cpumask = cpumask_of(cpu),
+>>> +               .set_next_event = riscv_timer_set_next_event,
+>>> +               .set_state_oneshot  = riscv_timer_set_oneshot,
+>>> +               .set_state_shutdown = riscv_timer_set_shutdown,
+>>> +       };
+>>> +
+>>> +       /* Enable timer interrupts */
+>>> +       csr_set(sie, SIE_STIE);
+>>> +
+>>> +       clockevents_config_and_register(ce, riscv_timebase, 100, 0x7fffffff);
+>>> +}
+>>> +
+>>> +static unsigned long __init of_timebase(void)
+>>> +{
+>>> +       struct device_node *cpu;
+>>> +       const __be32 *prop;
+>>> +
+>>> +       cpu = of_find_node_by_path("/cpus");
+>>> +       if (cpu) {
+>>> +               prop = of_get_property(cpu, "timebase-frequency", NULL);
+>>> +               if (prop)
+>>> +                       return be32_to_cpu(*prop);
+>
+> of_property_read_u32()
+>
+>>> +       }
+>>> +
+>>> +       return 10000000;
+>
+> The default seems rather arbitrary. Any reason for this particular
+> number? Maybe it's better to fail if the property is missing.
 
-Makes sense.  I've started submitting the various smaller patches so we can get
-them all in to make our patch set smaller.
+This was just there for compatibility with the systems before we had device
+tree up and running, there's no reason for it to be there any more.  I've
+changed this to panic instead, as our delay code relies on this clock source
+initializing correctly.  I think that's safer than just having a bogus timer.
+
+I've included this and your other CR comments here
+
+  https://github.com/riscv/riscv-linux/commit/4b8dffa13a5d965d1aefe9f5f4fed41b0a4835d7
+
+which I'll include in a v3 patch set.
