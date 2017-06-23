@@ -1,203 +1,150 @@
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH 2/5] arm64: signal: Refactor sigcontext parsing in
- rt_sigreturn
-Date: Fri, 23 Jun 2017 10:48:59 +0100
-Message-ID: <20170623094857.GF8543@e103592.cambridge.arm.com>
-References: <1497535442-11586-1-git-send-email-Dave.Martin@arm.com>
- <1497535442-11586-3-git-send-email-Dave.Martin@arm.com>
- <20170622193235.esxidcqcsz2zdpf2@yury-thinkpad>
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v7 34/36] x86/mm: Add support to encrypt the kernel
+ in-place
+Date: Fri, 23 Jun 2017 12:00:13 +0200
+Message-ID: <20170623100013.upd4or6esjvulmvg@pd.tnic>
+References: <20170616184947.18967.84890.stgit@tlendack-t1.amdoffice.net>
+ <20170616185619.18967.38945.stgit@tlendack-t1.amdoffice.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:49094 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1754504AbdFWJtD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 23 Jun 2017 05:49:03 -0400
+Content-Type: text/plain; charset=utf-8
+Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <20170622193235.esxidcqcsz2zdpf2@yury-thinkpad>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Yury Norov <ynorov@caviumnetworks.com>
-Cc: linux-arch@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org
+In-Reply-To: <20170616185619.18967.38945.stgit@tlendack-t1.amdoffice.net>
+Sender: owner-linux-mm@kvack.org
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@or>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jun 22, 2017 at 10:32:35PM +0300, Yury Norov wrote:
-> Hi Dave,
+On Fri, Jun 16, 2017 at 01:56:19PM -0500, Tom Lendacky wrote:
+> Add the support to encrypt the kernel in-place. This is done by creating
+> new page mappings for the kernel - a decrypted write-protected mapping
+> and an encrypted mapping. The kernel is encrypted by copying it through
+> a temporary buffer.
 > 
-> It seems that your series conflicts with one of patches of my ILP32:
-> https://patchwork.kernel.org/patch/9599015/
+> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+> ---
+>  arch/x86/include/asm/mem_encrypt.h |    6 +
+>  arch/x86/mm/Makefile               |    2 
+>  arch/x86/mm/mem_encrypt.c          |  314 ++++++++++++++++++++++++++++++++++++
+>  arch/x86/mm/mem_encrypt_boot.S     |  150 +++++++++++++++++
+>  4 files changed, 472 insertions(+)
+>  create mode 100644 arch/x86/mm/mem_encrypt_boot.S
 > 
-> Now I try to rebase ilp32 on your patchset, and maybe will have some
-> questions. The first question is below. If you have comments on my
-> series - please share it.
-> 
-> Yury
-> 
-> On Thu, Jun 15, 2017 at 03:03:39PM +0100, Dave Martin wrote:
-> > Currently, rt_sigreturn does very limited checking on the
-> > sigcontext coming from userspace.
-> > 
-> > Future additions to the sigcontext data will increase the potential
-> > for surprises.  Also, it is not clear whether the sigcontext
-> > extension records are supposed to occur in a particular order.
-> > 
-> > To allow the parsing code to be extended more easily, this patch
-> > factors out the sigcontext parsing into a separate function, and
-> > adds extra checks to validate the well-formedness of the sigcontext
-> > structure.
-> > 
-> > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> 
-> > +static int parse_user_sigframe(struct user_ctxs *user,
-> > +			       struct rt_sigframe __user *sf)
-> 
-> You parse sigcontext here in fact. At least you take the pointer to 
+> diff --git a/arch/x86/include/asm/mem_encrypt.h b/arch/x86/include/asm/mem_encrypt.h
+> index af835cf..7da6de3 100644
+> --- a/arch/x86/include/asm/mem_encrypt.h
+> +++ b/arch/x86/include/asm/mem_encrypt.h
+> @@ -21,6 +21,12 @@
+>  
+>  extern unsigned long sme_me_mask;
+>  
+> +void sme_encrypt_execute(unsigned long encrypted_kernel_vaddr,
+> +			 unsigned long decrypted_kernel_vaddr,
+> +			 unsigned long kernel_len,
+> +			 unsigned long encryption_wa,
+> +			 unsigned long encryption_pgd);
+> +
+>  void __init sme_early_encrypt(resource_size_t paddr,
+>  			      unsigned long size);
+>  void __init sme_early_decrypt(resource_size_t paddr,
+> diff --git a/arch/x86/mm/Makefile b/arch/x86/mm/Makefile
+> index 9e13841..0633142 100644
+> --- a/arch/x86/mm/Makefile
+> +++ b/arch/x86/mm/Makefile
+> @@ -38,3 +38,5 @@ obj-$(CONFIG_NUMA_EMU)		+= numa_emulation.o
+>  obj-$(CONFIG_X86_INTEL_MPX)	+= mpx.o
+>  obj-$(CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS) += pkeys.o
+>  obj-$(CONFIG_RANDOMIZE_MEMORY) += kaslr.o
+> +
+> +obj-$(CONFIG_AMD_MEM_ENCRYPT)	+= mem_encrypt_boot.o
+> diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
+> index 842c8a6..6e87662 100644
+> --- a/arch/x86/mm/mem_encrypt.c
+> +++ b/arch/x86/mm/mem_encrypt.c
+> @@ -24,6 +24,8 @@
+>  #include <asm/setup.h>
+>  #include <asm/bootparam.h>
+>  #include <asm/set_memory.h>
+> +#include <asm/cacheflush.h>
+> +#include <asm/sections.h>
+>  
+>  /*
+>   * Since SME related variables are set early in the boot process they must
+> @@ -209,8 +211,320 @@ void swiotlb_set_mem_attributes(void *vaddr, unsigned long size)
+>  	set_memory_decrypted((unsigned long)vaddr, size >> PAGE_SHIFT);
+>  }
+>  
+> +static void __init sme_clear_pgd(pgd_t *pgd_base, unsigned long start,
+> +				 unsigned long end)
+> +{
+> +	unsigned long pgd_start, pgd_end, pgd_size;
+> +	pgd_t *pgd_p;
+> +
+> +	pgd_start = start & PGDIR_MASK;
+> +	pgd_end = end & PGDIR_MASK;
+> +
+> +	pgd_size = (((pgd_end - pgd_start) / PGDIR_SIZE) + 1);
+> +	pgd_size *= sizeof(pgd_t);
+> +
+> +	pgd_p = pgd_base + pgd_index(start);
+> +
+> +	memset(pgd_p, 0, pgd_size);
+> +}
+> +
+> +#ifndef CONFIG_X86_5LEVEL
+> +#define native_make_p4d(_x)	(p4d_t) { .pgd = native_make_pgd(_x) }
+> +#endif
 
-That's a fair point...
+Huh, why isn't this in arch/x86/include/asm/pgtable_types.h in the #else
+branch of #if CONFIG_PGTABLE_LEVELS > 4 ?
 
-> the sigcontext from rt_sigframe, and never refer it anymore. rt_sigframe
+Also
 
-...however, the final patch [1] (which has not appeared in next yet,
-I need to chase it) does refer to the sigframe base in order to
-determine when the signal frame exceeds the maximum allowed size.
+ERROR: Macros with complex values should be enclosed in parentheses
+#105: FILE: arch/x86/mm/mem_encrypt.c:232:
++#define native_make_p4d(_x)    (p4d_t) { .pgd = native_make_pgd(_x) }
 
-> is different for lp64 and ilp32, but sigcontext is the same. So if you'll 
-> rename the function to parse_user_sigcontext, and will pass sigcontext
-> to it directly, I will reuse it in ilp32 code.
+so why isn't it a function?
 
-Because the rt_sigframe pointer is _only_ used as a base address, the
-rt_sigframe definition is not relevant.  So a refactoring along lines of
-[2] might work.
+> +
+> +#define PGD_FLAGS	_KERNPG_TABLE_NOENC
+> +#define P4D_FLAGS	_KERNPG_TABLE_NOENC
+> +#define PUD_FLAGS	_KERNPG_TABLE_NOENC
+> +#define PMD_FLAGS	(__PAGE_KERNEL_LARGE_EXEC & ~_PAGE_GLOBAL)
+> +
+> +static void __init *sme_populate_pgd(pgd_t *pgd_base, void *pgtable_area,
+> +				     unsigned long vaddr, pmdval_t pmd_val)
+> +{
+> +	pgd_t *pgd_p;
+> +	p4d_t *p4d_p;
+> +	pud_t *pud_p;
+> +	pmd_t *pmd_p;
+> +
+> +	pgd_p = pgd_base + pgd_index(vaddr);
+> +	if (native_pgd_val(*pgd_p)) {
+> +		if (IS_ENABLED(CONFIG_X86_5LEVEL))
 
-Other things that may need attention are the handling of the extra_data
-pointer [2] (I changed this from void __user * to u64 after Catalin
-pointed out the ABI dependency here), and the way the {fp,lr} frame
-record is handled.
+Err, I don't understand: so this is a Kconfig symbol and when it is
+enabled at build time, you do a 5level pagetable.
 
-I think the RT_SIGFRAME_FP_POS() logic can probably be simplified/
-dropped: this is now handled through
-rt_sigframe_user_layout.next_frame.  ILP32 would need its own version
-of sigframe_size(), or that function should test for current being
-ILP32, but the ILP32 equivalent of get_sigframe() would probably look
-very similar to the native version after my patches.
+But you can't stick a 5level pagetable to a hardware which doesn't know
+about it.
 
-(Note that I've not understood the proposed ILP32 signal changes in
-detail at this point.)
+Or do you mean that p4d layer folding at runtime to happen? (I admit, I
+haven't looked at that in detail.) But then I'd hope that the generic
+macros/functions would give you the ability to not care whether we have
+a p4d or not and not add a whole bunch of ifdeffery to this code.
 
-Cheers
----Dave
+Hmmm.
 
-[1] [PATCH] arm64: signal: Allow expansion of the signal frame
-http://lists.infradead.org/pipermail/linux-arm-kernel/2017-June/514699.html
+-- 
+Regards/Gruss,
+    Boris.
 
-[2] [RFC PATCH] arm64: signal: Make parse_user_sigframe() independent of rt_sigframe layout
-http://lists.infradead.org/pipermail/linux-arm-kernel/2017-June/515361.html
+Good mailing practices for 400: avoid top-posting and trim the reply.
 
-> 
-> > +{
-> > +	struct sigcontext __user *const sc = &sf->uc.uc_mcontext;
-> > +	struct _aarch64_ctx __user *head =
-> > +		(struct _aarch64_ctx __user *)&sc->__reserved;
-> > +	size_t offset = 0;
-> > +
-> > +	user->fpsimd = NULL;
-> > +
-> > +	while (1) {
-> > +		int err;
-> > +		u32 magic, size;
-> > +
-> > +		head = (struct _aarch64_ctx __user *)&sc->__reserved[offset];
-> > +		if (!IS_ALIGNED((unsigned long)head, 16))
-> > +			goto invalid;
-> > +
-> > +		err = 0;
-> > +		__get_user_error(magic, &head->magic, err);
-> > +		__get_user_error(size, &head->size, err);
-> > +		if (err)
-> > +			return err;
-> > +
-> > +		switch (magic) {
-> > +		case 0:
-> > +			if (size)
-> > +				goto invalid;
-> > +
-> > +			goto done;
-> > +
-> > +		case FPSIMD_MAGIC:
-> > +			if (user->fpsimd)
-> > +				goto invalid;
-> > +
-> > +			if (offset > sizeof(sc->__reserved) -
-> > +					sizeof(*user->fpsimd) ||
-> > +			    size < sizeof(*user->fpsimd))
-> > +				goto invalid;
-> > +
-> > +			user->fpsimd = (struct fpsimd_context __user *)head;
-> > +			break;
-> > +
-> > +		case ESR_MAGIC:
-> > +			/* ignore */
-> > +			break;
-> > +
-> > +		default:
-> > +			goto invalid;
-> > +		}
-> > +
-> > +		if (size < sizeof(*head))
-> > +			goto invalid;
-> > +
-> > +		if (size > sizeof(sc->__reserved) - (sizeof(*head) + offset))
-> > +			goto invalid;
-> > +
-> > +		offset += size;
-> > +	}
-> > +
-> > +done:
-> > +	if (!user->fpsimd)
-> > +		goto invalid;
-> > +
-> > +	return 0;
-> > +
-> > +invalid:
-> > +	return -EINVAL;
-> > +}
-> > +
-> >  static int restore_sigframe(struct pt_regs *regs,
-> >  			    struct rt_sigframe __user *sf)
-> >  {
-> >  	sigset_t set;
-> >  	int i, err;
-> > -	void *aux = sf->uc.uc_mcontext.__reserved;
-> > +	struct user_ctxs user;
-> >  
-> >  	err = __copy_from_user(&set, &sf->uc.uc_sigmask, sizeof(set));
-> >  	if (err == 0)
-> > @@ -125,12 +200,11 @@ static int restore_sigframe(struct pt_regs *regs,
-> >  	regs->syscallno = ~0UL;
-> >  
-> >  	err |= !valid_user_regs(&regs->user_regs, current);
-> > +	if (err == 0)
-> > +		err = parse_user_sigframe(&user, sf);
-> >  
-> > -	if (err == 0) {
-> > -		struct fpsimd_context *fpsimd_ctx =
-> > -			container_of(aux, struct fpsimd_context, head);
-> > -		err |= restore_fpsimd_context(fpsimd_ctx);
-> > -	}
-> > +	if (err == 0)
-> > +		err = restore_fpsimd_context(user.fpsimd);
-> >  
-> >  	return err;
-> >  }
-> > -- 
-> > 2.1.4
-> > 
-> > 
-> > _______________________________________________
-> > linux-arm-kernel mailing list
-> > linux-arm-kernel@lists.infradead.org
-> > http://lists.infradead.org/mailman/listinfo/linux-arm-kernel
-> 
-> _______________________________________________
-> linux-arm-kernel mailing list
-> linux-arm-kernel@lists.infradead.org
-> http://lists.infradead.org/mailman/listinfo/linux-arm-kernel
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
