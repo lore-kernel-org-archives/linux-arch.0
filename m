@@ -1,41 +1,89 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([5.9.137.197]:44218 "EHLO mail.skyhub.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752878AbdFWL56 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 23 Jun 2017 07:57:58 -0400
-Date: Fri, 23 Jun 2017 13:57:41 +0200
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH v7 35/36] x86/boot: Add early cmdline parsing for options
- with arguments
-Message-ID: <20170623115741.o4ejclshoy6yjogl@pd.tnic>
-References: <20170616184947.18967.84890.stgit@tlendack-t1.amdoffice.net>
- <20170616185630.18967.80046.stgit@tlendack-t1.amdoffice.net>
+Received: from mail-it0-f41.google.com ([209.85.214.41]:36958 "EHLO
+        mail-it0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752927AbdFWNw0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 23 Jun 2017 09:52:26 -0400
+Received: by mail-it0-f41.google.com with SMTP id m47so8531683iti.0
+        for <linux-arch@vger.kernel.org>; Fri, 23 Jun 2017 06:52:25 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20170616185630.18967.80046.stgit@tlendack-t1.amdoffice.net>
+In-Reply-To: <CAKv+Gu_2Wg_D+4c3-iqMr9hbKkGVdBtW6Bmxj-4=FOG9hVN5vA@mail.gmail.com>
+References: <1498154792-49952-1-git-send-email-keescook@chromium.org>
+ <1498154792-49952-3-git-send-email-keescook@chromium.org> <CAKv+Gu_2Wg_D+4c3-iqMr9hbKkGVdBtW6Bmxj-4=FOG9hVN5vA@mail.gmail.com>
+From: Kees Cook <keescook@chromium.org>
+Date: Fri, 23 Jun 2017 06:52:24 -0700
+Message-ID: <CAGXu5jLHOjg9+8xDSzs2nLKjoqUf3NAc_0a1Coo+4WnDYRT3=g@mail.gmail.com>
+Subject: Re: [kernel-hardening] [PATCH 2/4] arm64: Reduce ELF_ET_DYN_BASE
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>
-Message-ID: <20170623115741.ugf-8RAEKi7ISXKrZMQ7n3oT5-If_wOVhuS-zBR2Tuk@z>
+To: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, James Hogan <james.hogan@imgtec.com>, Pratyush Anand <panand@redhat.com>, Ingo Molnar <mingo@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
+Message-ID: <20170623135224.44mO5AgC_PYOZJMU4DcHA3bCJJ9fEvI5aO54uNIwdR4@z>
 
-On Fri, Jun 16, 2017 at 01:56:30PM -0500, Tom Lendacky wrote:
-> Add a cmdline_find_option() function to look for cmdline options that
-> take arguments. The argument is returned in a supplied buffer and the
-> argument length (regardless of whether it fits in the supplied buffer)
-> is returned, with -1 indicating not found.
-> 
-> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
-> ---
->  arch/x86/include/asm/cmdline.h |    2 +
->  arch/x86/lib/cmdline.c         |  105 ++++++++++++++++++++++++++++++++++++++++
->  2 files changed, 107 insertions(+)
+On Thu, Jun 22, 2017 at 11:57 PM, Ard Biesheuvel
+<ard.biesheuvel@linaro.org> wrote:
+> Hi Kees,
+>
+> On 22 June 2017 at 18:06, Kees Cook <keescook@chromium.org> wrote:
+>> Now that explicitly executed loaders are loaded in the mmap region,
+>> position PIE binaries lower in the address space to avoid possible
+>> collisions with mmap or stack regions. For 64-bit, align to 4GB to
+>> allow runtimes to use the entire 32-bit address space for 32-bit
+>> pointers.
+>>
+>> Signed-off-by: Kees Cook <keescook@chromium.org>
+>> ---
+>>  arch/arm64/include/asm/elf.h | 13 ++++++-------
+>>  1 file changed, 6 insertions(+), 7 deletions(-)
+>>
+>> diff --git a/arch/arm64/include/asm/elf.h b/arch/arm64/include/asm/elf.h
+>> index 5d1700425efe..f742af8f7c42 100644
+>> --- a/arch/arm64/include/asm/elf.h
+>> +++ b/arch/arm64/include/asm/elf.h
+>> @@ -113,12 +113,13 @@
+>>  #define ELF_EXEC_PAGESIZE      PAGE_SIZE
+>>
+>>  /*
+>> - * This is the location that an ET_DYN program is loaded if exec'ed.  Typical
+>> - * use of this is to invoke "./ld.so someprog" to test out a new version of
+>> - * the loader.  We need to make sure that it is out of the way of the program
+>> - * that it will "exec", and that there is sufficient room for the brk.
+>> + * This is the base location for PIE (ET_DYN with INTERP) loads. On
+>> + * 64-bit, this is raised to 4GB to leave the entire 32-bit address
+>> + * space open for things that want to use the area for 32-bit pointers.
+>>   */
+>> -#define ELF_ET_DYN_BASE        (2 * TASK_SIZE_64 / 3)
+>> +#define ELF_ET_DYN_BASE                (test_thread_flag(TIF_32BIT) ?  \
+>> +                                       0x000400000UL :         \
+>> +                                       0x100000000UL)
+>>
+>
+> Why are you merging this with the COMPAT definition?
 
-Reviewed-by: Borislav Petkov <bp@suse.de>
+It seemed like the right thing to do since a single definition could
+handle both cases. Is there something I'm overlooking in the arm64
+case?
+
+-Kees
+
+>
+>>  #ifndef __ASSEMBLY__
+>>
+>> @@ -173,8 +174,6 @@ extern int arch_setup_additional_pages(struct linux_binprm *bprm,
+>>
+>>  #ifdef CONFIG_COMPAT
+>>
+>> -#define COMPAT_ELF_ET_DYN_BASE         (2 * TASK_SIZE_32 / 3)
+>> -
+>>  /* AArch32 registers. */
+>>  #define COMPAT_ELF_NGREG               18
+>>  typedef unsigned int                   compat_elf_greg_t;
+>> --
+>> 2.7.4
+>>
+
+
 
 -- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
+Kees Cook
+Pixel Security
