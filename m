@@ -1,179 +1,171 @@
-From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: Re: [PATCH v7 34/36] x86/mm: Add support to encrypt the kernel
- in-place
-Date: Fri, 23 Jun 2017 12:44:46 -0500
-Message-ID: <af9a50f7-17ea-a840-6456-b6479e5d7e82@amd.com>
-References: <20170616184947.18967.84890.stgit@tlendack-t1.amdoffice.net>
- <20170616185619.18967.38945.stgit@tlendack-t1.amdoffice.net>
- <20170623100013.upd4or6esjvulmvg@pd.tnic>
+From: Logan Gunthorpe <logang@deltatee.com>
+Subject: Re: [PATCH 7/7] crypto: caam: cleanup CONFIG_64BIT ifdefs when using
+ io{read|write}64
+Date: Fri, 23 Jun 2017 11:59:02 -0600
+Message-ID: <411c4bb0-2709-1902-778a-bf4d7734e3e1@deltatee.com>
+References: <20170622164817.25515-1-logang@deltatee.com>
+ <20170622164817.25515-8-logang@deltatee.com>
+ <VI1PR0401MB259182B9B11B72B4B53B2C1498D80@VI1PR0401MB2591.eurprd04.prod.outlook.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20170623100013.upd4or6esjvulmvg@pd.tnic>
-Content-Language: en-US
-Sender: owner-linux-mm@kvack.org
-To: Borislav Petkov <bp@alien8.de>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracl>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=iso-8859-2
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from ale.deltatee.com ([207.54.116.67]:57920 "EHLO ale.deltatee.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1754068AbdFWR7W (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 23 Jun 2017 13:59:22 -0400
+In-Reply-To: <VI1PR0401MB259182B9B11B72B4B53B2C1498D80@VI1PR0401MB2591.eurprd04.prod.outlook.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: =?UTF-8?Q?Horia_Geant=c4=83?= <horia.geanta@nxp.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-ntb@googlegroups.com" <linux-ntb@googlegroups.com>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, "linux-crypto@vger.kernel.org" <linux-crypto@vger.kernel.org>, "dri-devel@lists.freedesktop.org" <dri-devel@lists.freedesktop.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Stephen Bates <sbates@raithlin.com>, Dan Douglass <dan.douglass@nxp.com>, Herbert Xu <herbert@gondor.apana.org.au>, "David S. Miller" <davem@davemloft.net>, Radu Solea <radu.solea@nxp.com>, Steve Cornelius <steve.cornelius@nxp.com>
 
-On 6/23/2017 5:00 AM, Borislav Petkov wrote:
-> On Fri, Jun 16, 2017 at 01:56:19PM -0500, Tom Lendacky wrote:
->> Add the support to encrypt the kernel in-place. This is done by creating
->> new page mappings for the kernel - a decrypted write-protected mapping
->> and an encrypted mapping. The kernel is encrypted by copying it through
->> a temporary buffer.
+Thanks Horia.
+
+I'm inclined to just use your patch verbatim. I can set you as author,
+but no matter how I do it, I'll need your Signed-off-by.
+
+Logan
+
+On 23/06/17 12:51 AM, Horia Geantã wrote:
+> On 6/22/2017 7:49 PM, Logan Gunthorpe wrote:
+>> Now that ioread64 and iowrite64 are always available we don't
+>> need the ugly ifdefs to change their implementation when they
+>> are not.
 >>
->> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+> Thanks Logan.
+> 
+> Note however this is not equivalent - it changes the behaviour, since
+> CAAM engine on i.MX6S/SL/D/Q platforms is broken in terms of 64-bit
+> register endianness - see CONFIG_CRYPTO_DEV_FSL_CAAM_IMX usage in code
+> you are removing.
+> 
+> [Yes, current code has its problems, as it does not differentiate b/w
+> i.MX platforms with and without the (unofficial) erratum, but this
+> should be fixed separately.]
+> 
+> Below is the change that would keep current logic - still forcing i.MX
+> to write CAAM 64-bit registers in BE even if the engine is LE (yes, diff
+> is doing a poor job).
+> 
+> Horia
+> 
+> diff --git a/drivers/crypto/caam/regs.h b/drivers/crypto/caam/regs.h
+> index 84d2f838a063..b893ebb24e65 100644
+> --- a/drivers/crypto/caam/regs.h
+> +++ b/drivers/crypto/caam/regs.h
+> @@ -134,50 +134,25 @@ static inline void clrsetbits_32(void __iomem
+> *reg, u32 clear, u32 set)
+>   *    base + 0x0000 : least-significant 32 bits
+>   *    base + 0x0004 : most-significant 32 bits
+>   */
+> -#ifdef CONFIG_64BIT
+>  static inline void wr_reg64(void __iomem *reg, u64 data)
+>  {
+> +#ifndef CONFIG_CRYPTO_DEV_FSL_CAAM_IMX
+>         if (caam_little_end)
+>                 iowrite64(data, reg);
+>         else
+> -               iowrite64be(data, reg);
+> -}
+> -
+> -static inline u64 rd_reg64(void __iomem *reg)
+> -{
+> -       if (caam_little_end)
+> -               return ioread64(reg);
+> -       else
+> -               return ioread64be(reg);
+> -}
+> -
+> -#else /* CONFIG_64BIT */
+> -static inline void wr_reg64(void __iomem *reg, u64 data)
+> -{
+> -#ifndef CONFIG_CRYPTO_DEV_FSL_CAAM_IMX
+> -       if (caam_little_end) {
+> -               wr_reg32((u32 __iomem *)(reg) + 1, data >> 32);
+> -               wr_reg32((u32 __iomem *)(reg), data);
+> -       } else
+>  #endif
+> -       {
+> -               wr_reg32((u32 __iomem *)(reg), data >> 32);
+> -               wr_reg32((u32 __iomem *)(reg) + 1, data);
+> -       }
+> +               iowrite64be(data, reg);
+>  }
+> 
+>  static inline u64 rd_reg64(void __iomem *reg)
+>  {
+>  #ifndef CONFIG_CRYPTO_DEV_FSL_CAAM_IMX
+>         if (caam_little_end)
+> -               return ((u64)rd_reg32((u32 __iomem *)(reg) + 1) << 32 |
+> -                       (u64)rd_reg32((u32 __iomem *)(reg)));
+> +               return ioread64(reg);
+>         else
+>  #endif
+> -               return ((u64)rd_reg32((u32 __iomem *)(reg)) << 32 |
+> -                       (u64)rd_reg32((u32 __iomem *)(reg) + 1));
+> +               return ioread64be(reg);
+>  }
+> -#endif /* CONFIG_64BIT  */
+> 
+>  #ifdef CONFIG_ARCH_DMA_ADDR_T_64BIT
+>  #ifdef CONFIG_SOC_IMX7D
+> 
+> 
+>> Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
+>> Cc: "Horia Geantã" <horia.geanta@nxp.com>
+>> Cc: Dan Douglass <dan.douglass@nxp.com>
+>> Cc: Herbert Xu <herbert@gondor.apana.org.au>
+>> Cc: "David S. Miller" <davem@davemloft.net>
 >> ---
->>   arch/x86/include/asm/mem_encrypt.h |    6 +
->>   arch/x86/mm/Makefile               |    2
->>   arch/x86/mm/mem_encrypt.c          |  314 ++++++++++++++++++++++++++++++++++++
->>   arch/x86/mm/mem_encrypt_boot.S     |  150 +++++++++++++++++
->>   4 files changed, 472 insertions(+)
->>   create mode 100644 arch/x86/mm/mem_encrypt_boot.S
+>>  drivers/crypto/caam/regs.h | 29 -----------------------------
+>>  1 file changed, 29 deletions(-)
 >>
->> diff --git a/arch/x86/include/asm/mem_encrypt.h b/arch/x86/include/asm/mem_encrypt.h
->> index af835cf..7da6de3 100644
->> --- a/arch/x86/include/asm/mem_encrypt.h
->> +++ b/arch/x86/include/asm/mem_encrypt.h
->> @@ -21,6 +21,12 @@
->>   
->>   extern unsigned long sme_me_mask;
->>   
->> +void sme_encrypt_execute(unsigned long encrypted_kernel_vaddr,
->> +			 unsigned long decrypted_kernel_vaddr,
->> +			 unsigned long kernel_len,
->> +			 unsigned long encryption_wa,
->> +			 unsigned long encryption_pgd);
->> +
->>   void __init sme_early_encrypt(resource_size_t paddr,
->>   			      unsigned long size);
->>   void __init sme_early_decrypt(resource_size_t paddr,
->> diff --git a/arch/x86/mm/Makefile b/arch/x86/mm/Makefile
->> index 9e13841..0633142 100644
->> --- a/arch/x86/mm/Makefile
->> +++ b/arch/x86/mm/Makefile
->> @@ -38,3 +38,5 @@ obj-$(CONFIG_NUMA_EMU)		+= numa_emulation.o
->>   obj-$(CONFIG_X86_INTEL_MPX)	+= mpx.o
->>   obj-$(CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS) += pkeys.o
->>   obj-$(CONFIG_RANDOMIZE_MEMORY) += kaslr.o
->> +
->> +obj-$(CONFIG_AMD_MEM_ENCRYPT)	+= mem_encrypt_boot.o
->> diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
->> index 842c8a6..6e87662 100644
->> --- a/arch/x86/mm/mem_encrypt.c
->> +++ b/arch/x86/mm/mem_encrypt.c
->> @@ -24,6 +24,8 @@
->>   #include <asm/setup.h>
->>   #include <asm/bootparam.h>
->>   #include <asm/set_memory.h>
->> +#include <asm/cacheflush.h>
->> +#include <asm/sections.h>
->>   
->>   /*
->>    * Since SME related variables are set early in the boot process they must
->> @@ -209,8 +211,320 @@ void swiotlb_set_mem_attributes(void *vaddr, unsigned long size)
->>   	set_memory_decrypted((unsigned long)vaddr, size >> PAGE_SHIFT);
->>   }
->>   
->> +static void __init sme_clear_pgd(pgd_t *pgd_base, unsigned long start,
->> +				 unsigned long end)
->> +{
->> +	unsigned long pgd_start, pgd_end, pgd_size;
->> +	pgd_t *pgd_p;
->> +
->> +	pgd_start = start & PGDIR_MASK;
->> +	pgd_end = end & PGDIR_MASK;
->> +
->> +	pgd_size = (((pgd_end - pgd_start) / PGDIR_SIZE) + 1);
->> +	pgd_size *= sizeof(pgd_t);
->> +
->> +	pgd_p = pgd_base + pgd_index(start);
->> +
->> +	memset(pgd_p, 0, pgd_size);
->> +}
->> +
->> +#ifndef CONFIG_X86_5LEVEL
->> +#define native_make_p4d(_x)	(p4d_t) { .pgd = native_make_pgd(_x) }
->> +#endif
-> 
-> Huh, why isn't this in arch/x86/include/asm/pgtable_types.h in the #else
-> branch of #if CONFIG_PGTABLE_LEVELS > 4 ?
-
-Normally the __p4d() macro would be used and that would be ok whether
-CONFIG_X86_5LEVEL is defined or not. But since __p4d() is part of the
-paravirt ops path I have to use native_make_p4d(). I'd be the only user
-of the function and thought it would be best to localize it this way.
-
-> 
-> Also
-> 
-> ERROR: Macros with complex values should be enclosed in parentheses
-> #105: FILE: arch/x86/mm/mem_encrypt.c:232:
-> +#define native_make_p4d(_x)    (p4d_t) { .pgd = native_make_pgd(_x) }
-> 
-> so why isn't it a function?
-
-I can define it as an inline function.
-
-> 
->> +
->> +#define PGD_FLAGS	_KERNPG_TABLE_NOENC
->> +#define P4D_FLAGS	_KERNPG_TABLE_NOENC
->> +#define PUD_FLAGS	_KERNPG_TABLE_NOENC
->> +#define PMD_FLAGS	(__PAGE_KERNEL_LARGE_EXEC & ~_PAGE_GLOBAL)
->> +
->> +static void __init *sme_populate_pgd(pgd_t *pgd_base, void *pgtable_area,
->> +				     unsigned long vaddr, pmdval_t pmd_val)
->> +{
->> +	pgd_t *pgd_p;
->> +	p4d_t *p4d_p;
->> +	pud_t *pud_p;
->> +	pmd_t *pmd_p;
->> +
->> +	pgd_p = pgd_base + pgd_index(vaddr);
->> +	if (native_pgd_val(*pgd_p)) {
->> +		if (IS_ENABLED(CONFIG_X86_5LEVEL))
-> 
-> Err, I don't understand: so this is a Kconfig symbol and when it is
-> enabled at build time, you do a 5level pagetable.
-> 
-> But you can't stick a 5level pagetable to a hardware which doesn't know
-> about it.
-
-True, 5-level will only be turned on for specific hardware which is why
-I originally had this as only 4-level pagetables. But in a comment from
-you back on the v5 version you said it needed to support 5-level. I
-guess we should have discussed this more, but I also thought that should
-our hardware ever support 5-level paging in the future then this would
-be good to go.
-
-> 
-> Or do you mean that p4d layer folding at runtime to happen? (I admit, I
-> haven't looked at that in detail.) But then I'd hope that the generic
-> macros/functions would give you the ability to not care whether we have
-> a p4d or not and not add a whole bunch of ifdeffery to this code.
-
-The macros work great if you are not running identity mapped. You could
-use p*d_offset() to move easily through the tables, but those functions
-use __va() to generate table virtual addresses. I've seen where
-boot/compressed/pagetable.c #defines __va() to work with identity mapped
-pages but that would only work if I create a separate file just for this
-function.
-
-Given when this occurs it's very similar to what __startup_64() does in
-regards to the IS_ENABLED(CONFIG_X86_5LEVEL) checks.
-
-Thanks,
-Tom
-
-> 
-> Hmmm.
-> 
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+>> diff --git a/drivers/crypto/caam/regs.h b/drivers/crypto/caam/regs.h
+>> index 84d2f838a063..26fc19dd0c39 100644
+>> --- a/drivers/crypto/caam/regs.h
+>> +++ b/drivers/crypto/caam/regs.h
+>> @@ -134,7 +134,6 @@ static inline void clrsetbits_32(void __iomem *reg, u32 clear, u32 set)
+>>   *    base + 0x0000 : least-significant 32 bits
+>>   *    base + 0x0004 : most-significant 32 bits
+>>   */
+>> -#ifdef CONFIG_64BIT
+>>  static inline void wr_reg64(void __iomem *reg, u64 data)
+>>  {
+>>  	if (caam_little_end)
+>> @@ -151,34 +150,6 @@ static inline u64 rd_reg64(void __iomem *reg)
+>>  		return ioread64be(reg);
+>>  }
+>>  
+>> -#else /* CONFIG_64BIT */
+>> -static inline void wr_reg64(void __iomem *reg, u64 data)
+>> -{
+>> -#ifndef CONFIG_CRYPTO_DEV_FSL_CAAM_IMX
+>> -	if (caam_little_end) {
+>> -		wr_reg32((u32 __iomem *)(reg) + 1, data >> 32);
+>> -		wr_reg32((u32 __iomem *)(reg), data);
+>> -	} else
+>> -#endif
+>> -	{
+>> -		wr_reg32((u32 __iomem *)(reg), data >> 32);
+>> -		wr_reg32((u32 __iomem *)(reg) + 1, data);
+>> -	}
+>> -}
+>> -
+>> -static inline u64 rd_reg64(void __iomem *reg)
+>> -{
+>> -#ifndef CONFIG_CRYPTO_DEV_FSL_CAAM_IMX
+>> -	if (caam_little_end)
+>> -		return ((u64)rd_reg32((u32 __iomem *)(reg) + 1) << 32 |
+>> -			(u64)rd_reg32((u32 __iomem *)(reg)));
+>> -	else
+>> -#endif
+>> -		return ((u64)rd_reg32((u32 __iomem *)(reg)) << 32 |
+>> -			(u64)rd_reg32((u32 __iomem *)(reg) + 1));
+>> -}
+>> -#endif /* CONFIG_64BIT  */
+>> -
+>>  #ifdef CONFIG_ARCH_DMA_ADDR_T_64BIT
+>>  #ifdef CONFIG_SOC_IMX7D
+>>  #define cpu_to_caam_dma(value) \
+>>
