@@ -1,64 +1,145 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 1/5] kbuild: thin archives final link close
- --whole-archives option
-Date: Fri, 23 Jun 2017 17:04:45 +0200
-Message-ID: <CAK8P3a1m9teuQV-r5-753FBVtFTDsz=31bC_zeuCZ5ViBTQKRw@mail.gmail.com>
-References: <20170621211002.44525d9b@roar.ozlabs.ibm.com> <CAK8P3a2A9fMrNZPWJft2t+52kmGkGgm3gv_fxJntjevWtJ69Zw@mail.gmail.com>
- <20170621220213.2b33d56d@roar.ozlabs.ibm.com> <CAK8P3a0nVPz=eLV8ET6BYR2Qs0H3PQZuhYsu4Cb_kJSPACrR9w@mail.gmail.com>
- <20170621161913.GY4493@codeaurora.org> <20170622040838.1c63ebb7@roar.ozlabs.ibm.com>
- <CAK8P3a2vV10+ymS7vHybfhRf_DVvACOW4O2OZzyz+v75y2Ak4w@mail.gmail.com>
- <20170622061838.ljlmk4enzpvdlyyu@flea.lan> <20170623015021.58f74316@roar.ozlabs.ibm.com>
- <CAK7LNATbd5n2uMsTN_jaUN+QjpB5DN3AvS+6iqqt3w3kuwQS3A@mail.gmail.com> <20170623145734.7pv3rdgucveg66s3@flea.lan>
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v7 36/36] x86/mm: Add support to make use of Secure
+ Memory Encryption
+Date: Fri, 23 Jun 2017 19:39:37 +0200
+Message-ID: <20170623173937.erotfiemyidyvarn@pd.tnic>
+References: <20170616184947.18967.84890.stgit@tlendack-t1.amdoffice.net>
+ <20170616185639.18967.41488.stgit@tlendack-t1.amdoffice.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot0-f193.google.com ([74.125.82.193]:35923 "EHLO
-        mail-ot0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754468AbdFWPEr (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 23 Jun 2017 11:04:47 -0400
-In-Reply-To: <20170623145734.7pv3rdgucveg66s3@flea.lan>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Maxime Ripard <maxime.ripard@free-electrons.com>
-Cc: Masahiro Yamada <yamada.masahiro@socionext.com>, Nicholas Piggin <npiggin@gmail.com>, Stephen Boyd <sboyd@codeaurora.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>, kbuild test robot <fengguang.wu@intel.com>, Josh Triplett <josh@joshtriplett.org>, Nicolas Pitre <nicolas.pitre@linaro.org>
+Content-Type: text/plain; charset=utf-8
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <20170616185639.18967.41488.stgit@tlendack-t1.amdoffice.net>
+Sender: owner-linux-mm@kvack.org
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@or>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jun 23, 2017 at 4:57 PM, Maxime Ripard
-<maxime.ripard@free-electrons.com> wrote:
-> On Fri, Jun 23, 2017 at 02:31:40PM +0900, Masahiro Yamada wrote:
->> As far as I tried,  minus MACH_SUN8I still enabled the following:
->> CONFIG_SUNXI_CCU=y
->> CONFIG_SUNXI_CCU_DIV=y
->> CONFIG_SUNXI_CCU_FRAC=y
->> CONFIG_SUNXI_CCU_GATE=y
->> CONFIG_SUNXI_CCU_MUX=y
->> CONFIG_SUNXI_CCU_MULT=y
->> CONFIG_SUNXI_CCU_PHASE=y
->> CONFIG_SUNXI_CCU_NK=y
->> CONFIG_SUNXI_CCU_NKM=y
->> CONFIG_SUNXI_CCU_NKMP=y
->> CONFIG_SUNXI_CCU_NM=y
->> CONFIG_SUNXI_CCU_MP=y
->>
->> I think you need to disable some more MACH_SUN*I and
->> perhaps disable some CONFIG_SUN*I_*_CCU explicitly,
->> then you will see difference in the result.
->
-> Ah, right, it's all selected by the rest.
->
-> I guess to get a meaningful example you could disable all the
-> SUN*I_CCU (SUN5I, SUN8I, and the likes) options and while keeping
-> SUN8I_R_CCU.
->
-> Most of the clock types shouldn't be used but div and gates.
+On Fri, Jun 16, 2017 at 01:56:39PM -0500, Tom Lendacky wrote:
+> Add support to check if SME has been enabled and if memory encryption
+> should be activated (checking of command line option based on the
+> configuration of the default state).  If memory encryption is to be
+> activated, then the encryption mask is set and the kernel is encrypted
+> "in place."
+> 
+> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+> ---
+>  arch/x86/include/asm/mem_encrypt.h |    6 ++-
+>  arch/x86/kernel/head64.c           |    4 +-
+>  arch/x86/mm/mem_encrypt.c          |   86 +++++++++++++++++++++++++++++++++++-
+>  3 files changed, 90 insertions(+), 6 deletions(-)
 
-Given that we appear to basically always pull in all (or most) of
-the CCU parts anyway, and it's hard to even test with a subset
-being disabled, I wonder how much we care about dropping
-the unused objects at all:
+...
 
-Maybe the answer is that we just always build all of them into
-the kernel and make only the SoC-specific objects configurable ;-)
+> +/*
+> + * Some SME functions run very early causing issues with the stack-protector
+> + * support. Provide a way to turn off this support on a per-function basis.
+> + */
+> +#define SME_NOSTACKP __attribute__((__optimize__("no-stack-protector")))
 
-Once we start linking with  --gc-sections, it will all be fine anyway.
+__nostackp
 
-       Arnd
+just like the others in include/linux/compiler-gcc.h.
+
+> +
+> +static char sme_cmdline_arg[] __initdata = "mem_encrypt";
+> +static char sme_cmdline_on[]  __initdata = "on";
+> +static char sme_cmdline_off[] __initdata = "off";
+>  
+>  /*
+>   * Since SME related variables are set early in the boot process they must
+> @@ -200,6 +215,8 @@ void __init mem_encrypt_init(void)
+>  
+>  	/* Call into SWIOTLB to update the SWIOTLB DMA buffers */
+>  	swiotlb_update_mem_attributes();
+> +
+> +	pr_info("AMD Secure Memory Encryption (SME) active\n");
+>  }
+>  
+>  void swiotlb_set_mem_attributes(void *vaddr, unsigned long size)
+> @@ -527,8 +544,73 @@ void __init sme_encrypt_kernel(void)
+>  	native_write_cr3(__native_read_cr3());
+>  }
+>  
+> -void __init sme_enable(void)
+> +void __init SME_NOSTACKP sme_enable(struct boot_params *bp)
+>  {
+> +	const char *cmdline_ptr, *cmdline_arg, *cmdline_on, *cmdline_off;
+> +	unsigned int eax, ebx, ecx, edx;
+> +	bool active_by_default;
+> +	unsigned long me_mask;
+> +	char buffer[16];
+> +	u64 msr;
+> +
+> +	/* Check for the SME support leaf */
+> +	eax = 0x80000000;
+> +	ecx = 0;
+> +	native_cpuid(&eax, &ebx, &ecx, &edx);
+> +	if (eax < 0x8000001f)
+> +		return;
+> +
+> +	/*
+> +	 * Check for the SME feature:
+> +	 *   CPUID Fn8000_001F[EAX] - Bit 0
+> +	 *     Secure Memory Encryption support
+> +	 *   CPUID Fn8000_001F[EBX] - Bits 5:0
+> +	 *     Pagetable bit position used to indicate encryption
+> +	 */
+> +	eax = 0x8000001f;
+> +	ecx = 0;
+> +	native_cpuid(&eax, &ebx, &ecx, &edx);
+> +	if (!(eax & 1))
+> +		return;
+> +
+> +	me_mask = 1UL << (ebx & 0x3f);
+> +
+> +	/* Check if SME is enabled */
+> +	msr = __rdmsr(MSR_K8_SYSCFG);
+> +	if (!(msr & MSR_K8_SYSCFG_MEM_ENCRYPT))
+> +		return;
+> +
+> +	/*
+> +	 * Fixups have not been applied to phys_base yet and we're running
+> +	 * identity mapped, so we must obtain the address to the SME command
+> +	 * line argument data using rip-relative addressing.
+> +	 */
+> +	asm ("lea sme_cmdline_arg(%%rip), %0"
+> +	     : "=r" (cmdline_arg)
+> +	     : "p" (sme_cmdline_arg));
+> +	asm ("lea sme_cmdline_on(%%rip), %0"
+> +	     : "=r" (cmdline_on)
+> +	     : "p" (sme_cmdline_on));
+> +	asm ("lea sme_cmdline_off(%%rip), %0"
+> +	     : "=r" (cmdline_off)
+> +	     : "p" (sme_cmdline_off));
+> +
+> +	if (IS_ENABLED(CONFIG_AMD_MEM_ENCRYPT_ACTIVE_BY_DEFAULT))
+> +		active_by_default = true;
+> +	else
+> +		active_by_default = false;
+> +
+> +	cmdline_ptr = (const char *)((u64)bp->hdr.cmd_line_ptr |
+> +				     ((u64)bp->ext_cmd_line_ptr << 32));
+> +
+> +	cmdline_find_option(cmdline_ptr, cmdline_arg, buffer, sizeof(buffer));
+> +
+> +	if (strncmp(buffer, cmdline_on, sizeof(buffer)) == 0)
+
+	if (!strncmp(...
+
+> +		sme_me_mask = me_mask;
+> +	else if (strncmp(buffer, cmdline_off, sizeof(buffer)) == 0)
+
+	else if (!strncmp(...
+
+-- 
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
