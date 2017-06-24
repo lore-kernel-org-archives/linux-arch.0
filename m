@@ -1,75 +1,193 @@
 From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: Re: [PATCH 06/17] pci: Add generic pcibios_{fixup_bus,align_resource}
-Date: Fri, 23 Jun 2017 19:01:51 -0700 (PDT)
-Message-ID: <mhng-730176d6-cea5-4f58-99fa-63f6f32df543@palmer-si-x1c4>
-References: <CAK8P3a1Q=LoAPU_6X_z1=4Yp-Q=TCYpVz3R2MOv_UikX-tPDQg@mail.gmail.com>
+Subject: Re: [PATCH 09/17] clocksource/timer-riscv: New RISC-V Clocksource
+Date: Fri, 23 Jun 2017 19:02:00 -0700 (PDT)
+Message-ID: <mhng-386c2db2-8392-400e-8ce3-1ed2c9a6c752@palmer-si-x1c4>
+References: <3ff254dc-5aa0-69af-c5f2-828ff2b4be54@arm.com>
 Mime-Version: 1.0 (MHng)
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f195.google.com ([209.85.192.195]:34233 "EHLO
-        mail-pf0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754209AbdFXCBy (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 23 Jun 2017 22:01:54 -0400
-Received: by mail-pf0-f195.google.com with SMTP id d5so9746982pfe.1
-        for <linux-arch@vger.kernel.org>; Fri, 23 Jun 2017 19:01:53 -0700 (PDT)
-In-Reply-To: <CAK8P3a1Q=LoAPU_6X_z1=4Yp-Q=TCYpVz3R2MOv_UikX-tPDQg@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: hch@infradead.org, geert@linux-m68k.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Olof Johansson <olof@lixom.net>, albert@sifive.com, patches@groups.riscv.org, bhelgaas@google.com, linux-pci@vger.kernel.org
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <3ff254dc-5aa0-69af-c5f2-828ff2b4be54@arm.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: marc.zyngier@arm.com
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Olof Johansson <olof@lixom.net>, albert@sifive.com, patches@groups.riscv.org
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, 08 Jun 2017 01:35:29 PDT (-0700), Arnd Bergmann wrote:
-> On Thu, Jun 8, 2017 at 10:12 AM, Christoph Hellwig <hch@infradead.org> wrote:
->> On Wed, Jun 07, 2017 at 09:19:49AM +0200, Geert Uytterhoeven wrote:
->>> CC pci folks
+On Wed, 07 Jun 2017 02:43:09 PDT (-0700), marc.zyngier@arm.com wrote:
+> On 06/06/17 23:59, Palmer Dabbelt wrote:
+>> The RISC-V ISA defines a single RTC as well as an SBI oneshot timer.
+>> This timer is present on all RISC-V systems.
 >>
->> Ok, replying with pci folks in Cc then :)
+>> Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
+>> ---
+>>  drivers/clocksource/Kconfig       |   8 +++
+>>  drivers/clocksource/Makefile      |   1 +
+>>  drivers/clocksource/timer-riscv.c | 118 ++++++++++++++++++++++++++++++++++++++
+>>  3 files changed, 127 insertions(+)
+>>  create mode 100644 drivers/clocksource/timer-riscv.c
 >>
->> Weak symbols have (rightly) gotten a bad reputation, so maybe
->> we should approach this without them.
->
-> Agreed, I would almost never recommend using a __weak symbol,
-> but they are already widely used in the PCI subsystem, so I suggested
-> using them here for consistency.
->
-> We have a struct pci_host_bridge now, and we should eventually
-> move most of the 38 pci specific weak  per-architecture symbols
-> into per-host driver callbacks, but that I think that would be too much
-> to ask for when adding an architecture port.
-
-I agree :)
-
->> It seems we have a large number of emptry pcibios_fixup_bus calls
->> alreayd, so I think we should simply have the architectures
->> that do define it define a Kconfig or header symbol and not call
->> it at all otherwise.
->
-> I would argue that most of them should not be per-architecture
-> in the first place, the current state is mostly an artifact of the
-> times when each architecture had just one PCI implementation.
->
-> The ones that have multiple implementations (arm, powerpc, ...)
-> tend to actually override the weak functions with their own
-> per-host multiplexers again.
->
->> For the ones that exist as lot just seem to call pci_read_bridge_bases
->> and/or pcibios_fixup_device_resources in one form or another,
->> and I wonder why we even need the arch indirection for that.
+>> diff --git a/drivers/clocksource/Kconfig b/drivers/clocksource/Kconfig
+>> index 545d541ae20e..1c2c6e7c7fab 100644
+>> --- a/drivers/clocksource/Kconfig
+>> +++ b/drivers/clocksource/Kconfig
+>> @@ -612,4 +612,12 @@ config CLKSRC_ST_LPC
+>>  	  Enable this option to use the Low Power controller timer
+>>  	  as clocksource.
 >>
->> Similarly for pcibios_align_resource: a lot of architetures seem
->> to have a noop, and the once that don't mostly seem copy and
->> paste code, so we should again have a symbol for architectures
->> to opt into it, and we probably should have a generic helper
->> for the VGA window mirroring code instead of duplicating it multiple
->> times.
+>> +config CLKSRC_RISCV
+>> +	#bool "Clocksource for the RISC-V platform"
+>> +	def_bool y if RISCV
+>> +	depends on RISCV
+>> +	help
+>> +	  This enables a clocksource based on the RISC-V SBI timer, which is
+>> +	  built in to all RISC-V systems.
+>> +
+>>  endmenu
+>> diff --git a/drivers/clocksource/Makefile b/drivers/clocksource/Makefile
+>> index 2b5b56a6f00f..408ed9d314dc 100644
+>> --- a/drivers/clocksource/Makefile
+>> +++ b/drivers/clocksource/Makefile
+>> @@ -73,3 +73,4 @@ obj-$(CONFIG_H8300_TMR16)		+= h8300_timer16.o
+>>  obj-$(CONFIG_H8300_TPU)			+= h8300_tpu.o
+>>  obj-$(CONFIG_CLKSRC_ST_LPC)		+= clksrc_st_lpc.o
+>>  obj-$(CONFIG_X86_NUMACHIP)		+= numachip.o
+>> +obj-$(CONFIG_CLKSRC_RISCV)		+= timer-riscv.o
+>> diff --git a/drivers/clocksource/timer-riscv.c b/drivers/clocksource/timer-riscv.c
+>> new file mode 100644
+>> index 000000000000..04ef7b9130b3
+>> --- /dev/null
+>> +++ b/drivers/clocksource/timer-riscv.c
+>> @@ -0,0 +1,118 @@
+>> +/*
+>> + * Copyright (C) 2012 Regents of the University of California
+>> + * Copyright (C) 2017 SiFive
+>> + *
+>> + *   This program is free software; you can redistribute it and/or
+>> + *   modify it under the terms of the GNU General Public License
+>> + *   as published by the Free Software Foundation, version 2.
+>> + *
+>> + *   This program is distributed in the hope that it will be useful,
+>> + *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+>> + *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+>> + *   GNU General Public License for more details.
+>> + */
+>> +
+>> +#include <linux/clocksource.h>
+>> +#include <linux/clockchips.h>
+>> +#include <linux/interrupt.h>
+>> +#include <linux/irq.h>
+>> +#include <linux/delay.h>
+>> +#include <linux/of.h>
+>> +
+>> +#include <asm/irq.h>
+>> +#include <asm/csr.h>
+>> +#include <asm/sbi.h>
+>> +#include <asm/delay.h>
+>> +
+>> +unsigned long riscv_timebase;
+>> +
+>> +static DEFINE_PER_CPU(struct clock_event_device, clock_event);
+>> +
+>> +static int riscv_timer_set_next_event(unsigned long delta,
+>> +	struct clock_event_device *evdev)
+>> +{
+>> +	sbi_set_timer(get_cycles() + delta);
+>> +	return 0;
+>> +}
+>> +
+>> +static int riscv_timer_set_oneshot(struct clock_event_device *evt)
+>> +{
+>> +	/* no-op; only one mode */
+>> +	return 0;
+>> +}
+>> +
+>> +static int riscv_timer_set_shutdown(struct clock_event_device *evt)
+>> +{
+>> +	/* can't stop the clock! */
+>> +	return 0;
+>> +}
+>> +
+>> +static u64 riscv_rdtime(struct clocksource *cs)
+>> +{
+>> +	return get_cycles();
+>> +}
+>> +
+>> +static struct clocksource riscv_clocksource = {
+>> +	.name = "riscv_clocksource",
+>> +	.rating = 300,
+>> +	.read = riscv_rdtime,
+>> +#ifdef CONFIG_64BITS
+>> +	.mask = CLOCKSOURCE_MASK(64),
+>> +#else
+>> +	.mask = CLOCKSOURCE_MASK(32),
+>> +#endif /* CONFIG_64BITS */
+>> +	.flags = CLOCK_SOURCE_IS_CONTINUOUS,
+>> +};
+>> +
+>> +void riscv_timer_interrupt(void)
+>> +{
+>> +	int cpu = smp_processor_id();
+>> +	struct clock_event_device *evdev = &per_cpu(clock_event, cpu);
+>> +
+>> +	evdev->event_handler(evdev);
+>> +}
+>> +
+>> +void __init init_clockevent(void)
+>> +{
+>> +	int cpu = smp_processor_id();
+>> +	struct clock_event_device *ce = &per_cpu(clock_event, cpu);
+>> +
+>> +	*ce = (struct clock_event_device){
+>> +		.name = "riscv_timer_clockevent",
+>> +		.features = CLOCK_EVT_FEAT_ONESHOT,
+>> +		.rating = 300,
+>> +		.cpumask = cpumask_of(cpu),
+>> +		.set_next_event = riscv_timer_set_next_event,
+>> +		.set_state_oneshot  = riscv_timer_set_oneshot,
+>> +		.set_state_shutdown = riscv_timer_set_shutdown,
+>> +	};
+>> +
+>> +	/* Enable timer interrupts */
+>> +	csr_set(sie, SIE_STIE);
+>> +
+>> +	clockevents_config_and_register(ce, riscv_timebase, 100, 0x7fffffff);
+>> +}
+>> +
+>> +static unsigned long __init of_timebase(void)
+>> +{
+>> +	struct device_node *cpu;
+>> +	const __be32 *prop;
+>> +
+>> +	cpu = of_find_node_by_path("/cpus");
+>> +	if (cpu) {
+>> +		prop = of_get_property(cpu, "timebase-frequency", NULL);
+>> +		if (prop)
+>> +			return be32_to_cpu(*prop);
 >
-> I now remember that we already have a host_bridge->align_resource
-> callback pointer, so the generic function should definitely try
-> to use that.
->
-> We could just use the version from arch/mips/pci/pci-generic.c
-> and remove that in the process. I'm not sure about why mips calls
-> pci_read_bridge_bases() in pcibios_fixup_bus() though, or whether
-> this make sense to put in the generic version.
+> Consider using of_property_read_u32() instead.
 
-I'm splitting this off into another patch set and sending it to a bunch of PCI
-people.
+Thanks, that's must cleaner.
+
+>
+>> +	}
+>> +
+>> +	return 10000000;
+>
+> Is this an architectural guarantee? Or something that is implementation
+> specific?
+
+It was just a holdover from before we converted our port to device tree, it's
+been fixed.
+
+>
+>> +}
+>> +
+>> +void __init time_init(void)
+>> +{
+>> +	riscv_timebase = of_timebase();
+>> +	lpj_fine = riscv_timebase / HZ;
+>> +
+>> +	clocksource_register_hz(&riscv_clocksource, riscv_timebase);
+>> +	init_clockevent();
+>> +}
+>>
+
+Thanks, I'll put these in the v3 patch set.
