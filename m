@@ -1,92 +1,69 @@
 From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: Re: [PATCH 10/17] irqchip: New RISC-V PLIC Driver
-Date: Fri, 23 Jun 2017 17:45:21 -0700 (PDT)
-Message-ID: <mhng-2d0d0abd-bd5a-49dd-ba5b-9dc8a253d559@palmer-si-x1c4>
-References: <CAK8P3a3n9oAjkOuS3CkMkMMmKQ8YoKYe2NzZF4yT9aoDLAnUoA@mail.gmail.com>
+Subject: Re: [PATCH 12/17] tty: New RISC-V SBI Console Driver
+Date: Fri, 23 Jun 2017 17:45:23 -0700 (PDT)
+Message-ID: <mhng-ff4db4ff-d1b4-4f40-8488-7c5b0bf52b67@palmer-si-x1c4>
+References: <CAK8P3a35SEeOaVXBNCzUiwQTXys4MZN28d4yVRqNQ=Jz=Z-EWw@mail.gmail.com>
 Mime-Version: 1.0 (MHng)
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f65.google.com ([74.125.83.65]:34369 "EHLO
-        mail-pg0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754126AbdFXApX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 23 Jun 2017 20:45:23 -0400
-Received: by mail-pg0-f65.google.com with SMTP id j186so7944122pge.1
-        for <linux-arch@vger.kernel.org>; Fri, 23 Jun 2017 17:45:23 -0700 (PDT)
-In-Reply-To: <CAK8P3a3n9oAjkOuS3CkMkMMmKQ8YoKYe2NzZF4yT9aoDLAnUoA@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CAK8P3a35SEeOaVXBNCzUiwQTXys4MZN28d4yVRqNQ=Jz=Z-EWw@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: geert@linux-m68k.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Olof Johansson <olof@lixom.net>, albert@sifive.com, patches@groups.riscv.org, tglx@linutronix.de, jason@lakedaemon.net, Marc.Zyngier@arm.com
+Cc: geert@linux-m68k.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Olof Johansson <olof@lixom.net>, albert@sifive.com, patches@groups.riscv.org, gregkh@linuxfoundation.org, jslaby@suse.com, linuxppc-dev@lists.ozlabs.org
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, 07 Jun 2017 00:55:28 PDT (-0700), Arnd Bergmann wrote:
-> On Wed, Jun 7, 2017 at 9:13 AM, Geert Uytterhoeven <geert@linux-m68k.org> wrote:
->>> +struct plic_enable_context {
->>> +       atomic_t mask[32]; // 32-bit * 32-entry
->>> +};
+On Wed, 07 Jun 2017 00:58:04 PDT (-0700), Arnd Bergmann wrote:
+> On Wed, Jun 7, 2017 at 9:15 AM, Geert Uytterhoeven <geert@linux-m68k.org> wrote:
+>> CC (hypervisor) console folks
+>>
+>> On Wed, Jun 7, 2017 at 1:00 AM, Palmer Dabbelt <palmer@dabbelt.com> wrote:
+>>> This patch adds a new driver for the console availiable via the RISC-V
+>>> SBI.  This console is specified to be used for early boot messages, and
+>>> is designed to be a very simple (albiet somewhat slow) console that is
+>>> always availiable.  All RISC-V systems have an SBI console.
+>>>
+>>> The SBI console is made availiable for early printk messages and is also
+>>> availiable as a regular console.
+>>>
+>>> Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
+>>> ---
+>>>  drivers/tty/hvc/Kconfig   |  11 +++++
+>>>  drivers/tty/hvc/Makefile  |   1 +
+>>>  drivers/tty/hvc/hvc_sbi.c | 102 ++++++++++++++++++++++++++++++++++++++++++++++
+>>>  3 files changed, 114 insertions(+)
+>>>  create mode 100644 drivers/tty/hvc/hvc_sbi.c
+>>>
+>>> diff --git a/drivers/tty/hvc/Kconfig b/drivers/tty/hvc/Kconfig
+>>> index 574da15fe618..f3774adab240 100644
+>>> --- a/drivers/tty/hvc/Kconfig
+>>> +++ b/drivers/tty/hvc/Kconfig
+>>> @@ -114,4 +114,15 @@ config HVCS
+>>>           which will also be compiled when this driver is built as a
+>>>           module.
+>>>
+>>> +config HVC_SBI
+>>> +       bool "SBI console support"
+>>> +       depends on RISCV
+>>> +       select HVC_DRIVER
+>>> +       default y
+>>> +       help
+>>> +         This enables support for console output via RISC-V SBI calls, which
+>>> +         is normally used only during boot to output printk.
+>>> +
+>>> +         If you don't know what do to here, say Y.
+>>> +
+>>>  endif # TTY
 >
-> You use many '//' style comments in this file, please change them all to '/* */'
-> for consistency with kernel coding style.
+> Please move this a little higher along with the other HVC_DRIVER
+> implementations.
 
-OK, I fixed them here and in all our other files that had them.
+OK: https://github.com/riscv/riscv-linux/commit/1c769cad7931b7b08644d2d4a7b6985777a8e0be
 
->>> +
->>> +struct plic_priority {
->>> +       u32 prio[MAX_DEVICES];
->>> +};
->>> +
->>> +struct plic_data {
->>> +       struct irq_chip         chip;
->>> +       struct irq_domain       *domain;
->>> +       u32                     ndev;
->>> +       void __iomem            *reg;
->>> +       int                     handlers;
->>> +       struct plic_handler     *handler;
->>> +       char                    name[30];
->>> +};
->>> +
->>> +struct plic_handler {
->>> +       struct plic_hart_context        *context;
->>> +       struct plic_data                *data;
->>> +};
->>> +
->>> +static inline
->>> +struct plic_hart_context *plic_hart_context(struct plic_data *data, size_t i)
->>> +{
->>> +       return (struct plic_hart_context *)((char *)data->reg + HART_BASE + HART_SIZE*i);
->>> +}
+>>> + * RISC-V SBI interface to hvc_console.c
+>>> + *  based on drivers-tty/hvc/hvc_udbg.c
+>>> + *
+>>> + * Copyright (C) 2008 David Gibson, IBM Corporation
+>>> + * Copyright (C) 2012 Regents of the University of California
 >
-> 'data->reg' is an __iomem pointer, so when you build-test this with 'make C=1',
-> you should get a valid warning from sparse about an address space mismatch.
-> Please address all the warning from sparse.
+> 2017?
 
-I didn't know about sparse.  I'll run it on our port and fix everything.
-
->>> +static void plic_disable(struct plic_data *data, int i, int hwirq)
->>> +{
->>> +       struct plic_enable_context *enable = plic_enable_context(data, i);
->>> +
->>> +       atomic_and(~(1 << (hwirq % 32)), &enable->mask[hwirq / 32]);
->>> +}
->
-> In particular, you must not do atomic operations on MMIO pointers.
-> On most architectures these are explicitly disallowed and trap for
-> a good reason, as the hardware implementation behind atomics tend
-> to rely on the cache controller, while mmio registers are required
-> to be uncached.
-
-Sorry about that: the SiFive bus actually supports AMOs natively out to the
-every device, even without caches, bit the RISC-V spec allows regions
-to be marked as not supporting AMOs.  Sometimes a few SiFive-isms sneak in from
-before the supervisor spec was written in this particular manner.  I've
-converted this to a spinlock instead.
-
-  https://github.com/riscv/riscv-linux/commit/79b26ca800663399ea7d9dead73f3715deee1a99
-
-
->>> +       iowrite32(1, &priority->prio[d->hwirq]);
->
-> I would normally use 'readl' instead of 'iowrite32'. They may be the same
-> on riscv, but they have slightly different meaning in portable drivers.
-
-I assume you meant writel?  If so, that makes sense
-
-  https://github.com/riscv/riscv-linux/commit/45c968f1f068c35e0a5c8c90ba0776e7bdb6db78
+https://github.com/riscv/riscv-linux/commit/dafa678d26886076a8a9cccc2486f1bbbfa44aa8
