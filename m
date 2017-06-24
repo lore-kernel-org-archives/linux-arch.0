@@ -1,69 +1,75 @@
 From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: Re: [PATCH 12/17] tty: New RISC-V SBI Console Driver
-Date: Fri, 23 Jun 2017 17:45:23 -0700 (PDT)
-Message-ID: <mhng-ff4db4ff-d1b4-4f40-8488-7c5b0bf52b67@palmer-si-x1c4>
-References: <CAK8P3a35SEeOaVXBNCzUiwQTXys4MZN28d4yVRqNQ=Jz=Z-EWw@mail.gmail.com>
+Subject: Re: [PATCH 06/17] pci: Add generic pcibios_{fixup_bus,align_resource}
+Date: Fri, 23 Jun 2017 19:01:51 -0700 (PDT)
+Message-ID: <mhng-730176d6-cea5-4f58-99fa-63f6f32df543@palmer-si-x1c4>
+References: <CAK8P3a1Q=LoAPU_6X_z1=4Yp-Q=TCYpVz3R2MOv_UikX-tPDQg@mail.gmail.com>
 Mime-Version: 1.0 (MHng)
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAK8P3a35SEeOaVXBNCzUiwQTXys4MZN28d4yVRqNQ=Jz=Z-EWw@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pf0-f195.google.com ([209.85.192.195]:34233 "EHLO
+        mail-pf0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754209AbdFXCBy (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 23 Jun 2017 22:01:54 -0400
+Received: by mail-pf0-f195.google.com with SMTP id d5so9746982pfe.1
+        for <linux-arch@vger.kernel.org>; Fri, 23 Jun 2017 19:01:53 -0700 (PDT)
+In-Reply-To: <CAK8P3a1Q=LoAPU_6X_z1=4Yp-Q=TCYpVz3R2MOv_UikX-tPDQg@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: geert@linux-m68k.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Olof Johansson <olof@lixom.net>, albert@sifive.com, patches@groups.riscv.org, gregkh@linuxfoundation.org, jslaby@suse.com, linuxppc-dev@lists.ozlabs.org
-List-Id: linux-arch.vger.kernel.org
+Cc: hch@infradead.org, geert@linux-m68k.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Olof Johansson <olof@lixom.net>, albert@sifive.com, patches@groups.riscv.org, bhelgaas@google.com, linux-pci@vger.kernel.org
 
-On Wed, 07 Jun 2017 00:58:04 PDT (-0700), Arnd Bergmann wrote:
-> On Wed, Jun 7, 2017 at 9:15 AM, Geert Uytterhoeven <geert@linux-m68k.org> wrote:
->> CC (hypervisor) console folks
+On Thu, 08 Jun 2017 01:35:29 PDT (-0700), Arnd Bergmann wrote:
+> On Thu, Jun 8, 2017 at 10:12 AM, Christoph Hellwig <hch@infradead.org> wrote:
+>> On Wed, Jun 07, 2017 at 09:19:49AM +0200, Geert Uytterhoeven wrote:
+>>> CC pci folks
 >>
->> On Wed, Jun 7, 2017 at 1:00 AM, Palmer Dabbelt <palmer@dabbelt.com> wrote:
->>> This patch adds a new driver for the console availiable via the RISC-V
->>> SBI.  This console is specified to be used for early boot messages, and
->>> is designed to be a very simple (albiet somewhat slow) console that is
->>> always availiable.  All RISC-V systems have an SBI console.
->>>
->>> The SBI console is made availiable for early printk messages and is also
->>> availiable as a regular console.
->>>
->>> Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
->>> ---
->>>  drivers/tty/hvc/Kconfig   |  11 +++++
->>>  drivers/tty/hvc/Makefile  |   1 +
->>>  drivers/tty/hvc/hvc_sbi.c | 102 ++++++++++++++++++++++++++++++++++++++++++++++
->>>  3 files changed, 114 insertions(+)
->>>  create mode 100644 drivers/tty/hvc/hvc_sbi.c
->>>
->>> diff --git a/drivers/tty/hvc/Kconfig b/drivers/tty/hvc/Kconfig
->>> index 574da15fe618..f3774adab240 100644
->>> --- a/drivers/tty/hvc/Kconfig
->>> +++ b/drivers/tty/hvc/Kconfig
->>> @@ -114,4 +114,15 @@ config HVCS
->>>           which will also be compiled when this driver is built as a
->>>           module.
->>>
->>> +config HVC_SBI
->>> +       bool "SBI console support"
->>> +       depends on RISCV
->>> +       select HVC_DRIVER
->>> +       default y
->>> +       help
->>> +         This enables support for console output via RISC-V SBI calls, which
->>> +         is normally used only during boot to output printk.
->>> +
->>> +         If you don't know what do to here, say Y.
->>> +
->>>  endif # TTY
+>> Ok, replying with pci folks in Cc then :)
+>>
+>> Weak symbols have (rightly) gotten a bad reputation, so maybe
+>> we should approach this without them.
 >
-> Please move this a little higher along with the other HVC_DRIVER
-> implementations.
-
-OK: https://github.com/riscv/riscv-linux/commit/1c769cad7931b7b08644d2d4a7b6985777a8e0be
-
->>> + * RISC-V SBI interface to hvc_console.c
->>> + *  based on drivers-tty/hvc/hvc_udbg.c
->>> + *
->>> + * Copyright (C) 2008 David Gibson, IBM Corporation
->>> + * Copyright (C) 2012 Regents of the University of California
+> Agreed, I would almost never recommend using a __weak symbol,
+> but they are already widely used in the PCI subsystem, so I suggested
+> using them here for consistency.
 >
-> 2017?
+> We have a struct pci_host_bridge now, and we should eventually
+> move most of the 38 pci specific weak  per-architecture symbols
+> into per-host driver callbacks, but that I think that would be too much
+> to ask for when adding an architecture port.
 
-https://github.com/riscv/riscv-linux/commit/dafa678d26886076a8a9cccc2486f1bbbfa44aa8
+I agree :)
+
+>> It seems we have a large number of emptry pcibios_fixup_bus calls
+>> alreayd, so I think we should simply have the architectures
+>> that do define it define a Kconfig or header symbol and not call
+>> it at all otherwise.
+>
+> I would argue that most of them should not be per-architecture
+> in the first place, the current state is mostly an artifact of the
+> times when each architecture had just one PCI implementation.
+>
+> The ones that have multiple implementations (arm, powerpc, ...)
+> tend to actually override the weak functions with their own
+> per-host multiplexers again.
+>
+>> For the ones that exist as lot just seem to call pci_read_bridge_bases
+>> and/or pcibios_fixup_device_resources in one form or another,
+>> and I wonder why we even need the arch indirection for that.
+>>
+>> Similarly for pcibios_align_resource: a lot of architetures seem
+>> to have a noop, and the once that don't mostly seem copy and
+>> paste code, so we should again have a symbol for architectures
+>> to opt into it, and we probably should have a generic helper
+>> for the VGA window mirroring code instead of duplicating it multiple
+>> times.
+>
+> I now remember that we already have a host_bridge->align_resource
+> callback pointer, so the generic function should definitely try
+> to use that.
+>
+> We could just use the version from arch/mips/pci/pci-generic.c
+> and remove that in the process. I'm not sure about why mips calls
+> pci_read_bridge_bases() in pcibios_fixup_bus() though, or whether
+> this make sense to put in the generic version.
+
+I'm splitting this off into another patch set and sending it to a bunch of PCI
+people.
