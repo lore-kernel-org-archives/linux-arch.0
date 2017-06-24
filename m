@@ -1,142 +1,92 @@
 From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: Re: [PATCH 09/17] clocksource/timer-riscv: New RISC-V Clocksource
-Date: Fri, 23 Jun 2017 16:24:03 -0700 (PDT)
-Message-ID: <mhng-18b5fd0f-c7ac-4d0a-8ee6-395103eb46df@palmer-si-x1c4>
-References: <CAK8P3a2tprg+z5yZ4SySLdWBbqGKSk0SGf4SOejAFB8p6sKPKQ@mail.gmail.com>
+Subject: Re: [PATCH 10/17] irqchip: New RISC-V PLIC Driver
+Date: Fri, 23 Jun 2017 17:45:21 -0700 (PDT)
+Message-ID: <mhng-2d0d0abd-bd5a-49dd-ba5b-9dc8a253d559@palmer-si-x1c4>
+References: <CAK8P3a3n9oAjkOuS3CkMkMMmKQ8YoKYe2NzZF4yT9aoDLAnUoA@mail.gmail.com>
 Mime-Version: 1.0 (MHng)
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAK8P3a2tprg+z5yZ4SySLdWBbqGKSk0SGf4SOejAFB8p6sKPKQ@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pg0-f65.google.com ([74.125.83.65]:34369 "EHLO
+        mail-pg0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754126AbdFXApX (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 23 Jun 2017 20:45:23 -0400
+Received: by mail-pg0-f65.google.com with SMTP id j186so7944122pge.1
+        for <linux-arch@vger.kernel.org>; Fri, 23 Jun 2017 17:45:23 -0700 (PDT)
+In-Reply-To: <CAK8P3a3n9oAjkOuS3CkMkMMmKQ8YoKYe2NzZF4yT9aoDLAnUoA@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: geert@linux-m68k.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Olof Johansson <olof@lixom.net>, albert@sifive.com, patches@groups.riscv.org, tglx@linutronix.de, daniel.lezcano@linaro.org
-List-Id: linux-arch.vger.kernel.org
+Cc: geert@linux-m68k.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Olof Johansson <olof@lixom.net>, albert@sifive.com, patches@groups.riscv.org, tglx@linutronix.de, jason@lakedaemon.net, Marc.Zyngier@arm.com
 
-On Wed, 07 Jun 2017 00:25:37 PDT (-0700), Arnd Bergmann wrote:
-> On Wed, Jun 7, 2017 at 9:12 AM, Geert Uytterhoeven <geert@linux-m68k.org> wrote:
->> CC clocksource folks
->>
->> On Wed, Jun 7, 2017 at 12:59 AM, Palmer Dabbelt <palmer@dabbelt.com> wrote:
->>> The RISC-V ISA defines a single RTC as well as an SBI oneshot timer.
->>> This timer is present on all RISC-V systems.
->>>
->>> Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
->>> ---
->>>  drivers/clocksource/Kconfig       |   8 +++
->>>  drivers/clocksource/Makefile      |   1 +
->>>  drivers/clocksource/timer-riscv.c | 118 ++++++++++++++++++++++++++++++++++++++
->>>  3 files changed, 127 insertions(+)
->>>  create mode 100644 drivers/clocksource/timer-riscv.c
->>>
->>> diff --git a/drivers/clocksource/Kconfig b/drivers/clocksource/Kconfig
->>> index 545d541ae20e..1c2c6e7c7fab 100644
->>> --- a/drivers/clocksource/Kconfig
->>> +++ b/drivers/clocksource/Kconfig
->>> @@ -612,4 +612,12 @@ config CLKSRC_ST_LPC
->>>           Enable this option to use the Low Power controller timer
->>>           as clocksource.
->>>
->>> +config CLKSRC_RISCV
->>> +       #bool "Clocksource for the RISC-V platform"
->>> +       def_bool y if RISCV
->>> +       depends on RISCV
->
-> I don't like the commenting out parts of the entry. If there are no
-> build-time dependencies, you can just make it 'default y' and still allow
-> users to disabled the driver if they really want to (e.g. on a machine
-> specific kernel that has a driver for another clocksource), or you
-> just leave it 'def_bool RISCV'.
->
->>> +
->>> +static int riscv_timer_set_oneshot(struct clock_event_device *evt)
->>> +{
->>> +       /* no-op; only one mode */
->>> +       return 0;
->>> +}
->>> +
->>> +static int riscv_timer_set_shutdown(struct clock_event_device *evt)
->>> +{
->>> +       /* can't stop the clock! */
->>> +       return 0;
->>> +}
->
-> I'd just leave out the empty callbacks, the callers all protect NULL
-> pointers.
->
->>> +static u64 riscv_rdtime(struct clocksource *cs)
->>> +{
->>> +       return get_cycles();
->>> +}
->>> +
->>> +static struct clocksource riscv_clocksource = {
->>> +       .name = "riscv_clocksource",
->>> +       .rating = 300,
->>> +       .read = riscv_rdtime,
->>> +#ifdef CONFIG_64BITS
->>> +       .mask = CLOCKSOURCE_MASK(64),
->>> +#else
->>> +       .mask = CLOCKSOURCE_MASK(32),
->>> +#endif /* CONFIG_64BITS */
->>> +       .flags = CLOCK_SOURCE_IS_CONTINUOUS,
+On Wed, 07 Jun 2017 00:55:28 PDT (-0700), Arnd Bergmann wrote:
+> On Wed, Jun 7, 2017 at 9:13 AM, Geert Uytterhoeven <geert@linux-m68k.org> wrote:
+>>> +struct plic_enable_context {
+>>> +       atomic_t mask[32]; // 32-bit * 32-entry
 >>> +};
 >
->      ".mask = BITS_PER_LONG" maybe?
->
->>> +void riscv_timer_interrupt(void)
->>> +{
->>> +       int cpu = smp_processor_id();
->>> +       struct clock_event_device *evdev = &per_cpu(clock_event, cpu);
+> You use many '//' style comments in this file, please change them all to '/* */'
+> for consistency with kernel coding style.
+
+OK, I fixed them here and in all our other files that had them.
+
 >>> +
->>> +       evdev->event_handler(evdev);
+>>> +struct plic_priority {
+>>> +       u32 prio[MAX_DEVICES];
+>>> +};
+>>> +
+>>> +struct plic_data {
+>>> +       struct irq_chip         chip;
+>>> +       struct irq_domain       *domain;
+>>> +       u32                     ndev;
+>>> +       void __iomem            *reg;
+>>> +       int                     handlers;
+>>> +       struct plic_handler     *handler;
+>>> +       char                    name[30];
+>>> +};
+>>> +
+>>> +struct plic_handler {
+>>> +       struct plic_hart_context        *context;
+>>> +       struct plic_data                *data;
+>>> +};
+>>> +
+>>> +static inline
+>>> +struct plic_hart_context *plic_hart_context(struct plic_data *data, size_t i)
+>>> +{
+>>> +       return (struct plic_hart_context *)((char *)data->reg + HART_BASE + HART_SIZE*i);
 >>> +}
->>> +
->>> +void __init init_clockevent(void)
+>
+> 'data->reg' is an __iomem pointer, so when you build-test this with 'make C=1',
+> you should get a valid warning from sparse about an address space mismatch.
+> Please address all the warning from sparse.
+
+I didn't know about sparse.  I'll run it on our port and fix everything.
+
+>>> +static void plic_disable(struct plic_data *data, int i, int hwirq)
 >>> +{
->>> +       int cpu = smp_processor_id();
->>> +       struct clock_event_device *ce = &per_cpu(clock_event, cpu);
+>>> +       struct plic_enable_context *enable = plic_enable_context(data, i);
 >>> +
->>> +       *ce = (struct clock_event_device){
->>> +               .name = "riscv_timer_clockevent",
->>> +               .features = CLOCK_EVT_FEAT_ONESHOT,
->>> +               .rating = 300,
->>> +               .cpumask = cpumask_of(cpu),
->>> +               .set_next_event = riscv_timer_set_next_event,
->>> +               .set_state_oneshot  = riscv_timer_set_oneshot,
->>> +               .set_state_shutdown = riscv_timer_set_shutdown,
->>> +       };
->>> +
->>> +       /* Enable timer interrupts */
->>> +       csr_set(sie, SIE_STIE);
->>> +
->>> +       clockevents_config_and_register(ce, riscv_timebase, 100, 0x7fffffff);
+>>> +       atomic_and(~(1 << (hwirq % 32)), &enable->mask[hwirq / 32]);
 >>> +}
->>> +
->>> +static unsigned long __init of_timebase(void)
->>> +{
->>> +       struct device_node *cpu;
->>> +       const __be32 *prop;
->>> +
->>> +       cpu = of_find_node_by_path("/cpus");
->>> +       if (cpu) {
->>> +               prop = of_get_property(cpu, "timebase-frequency", NULL);
->>> +               if (prop)
->>> +                       return be32_to_cpu(*prop);
 >
-> of_property_read_u32()
+> In particular, you must not do atomic operations on MMIO pointers.
+> On most architectures these are explicitly disallowed and trap for
+> a good reason, as the hardware implementation behind atomics tend
+> to rely on the cache controller, while mmio registers are required
+> to be uncached.
+
+Sorry about that: the SiFive bus actually supports AMOs natively out to the
+every device, even without caches, bit the RISC-V spec allows regions
+to be marked as not supporting AMOs.  Sometimes a few SiFive-isms sneak in from
+before the supervisor spec was written in this particular manner.  I've
+converted this to a spinlock instead.
+
+  https://github.com/riscv/riscv-linux/commit/79b26ca800663399ea7d9dead73f3715deee1a99
+
+
+>>> +       iowrite32(1, &priority->prio[d->hwirq]);
 >
->>> +       }
->>> +
->>> +       return 10000000;
->
-> The default seems rather arbitrary. Any reason for this particular
-> number? Maybe it's better to fail if the property is missing.
+> I would normally use 'readl' instead of 'iowrite32'. They may be the same
+> on riscv, but they have slightly different meaning in portable drivers.
 
-This was just there for compatibility with the systems before we had device
-tree up and running, there's no reason for it to be there any more.  I've
-changed this to panic instead, as our delay code relies on this clock source
-initializing correctly.  I think that's safer than just having a bogus timer.
+I assume you meant writel?  If so, that makes sense
 
-I've included this and your other CR comments here
-
-  https://github.com/riscv/riscv-linux/commit/4b8dffa13a5d965d1aefe9f5f4fed41b0a4835d7
-
-which I'll include in a v3 patch set.
+  https://github.com/riscv/riscv-linux/commit/45c968f1f068c35e0a5c8c90ba0776e7bdb6db78
