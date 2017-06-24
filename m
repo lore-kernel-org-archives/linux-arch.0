@@ -1,81 +1,99 @@
-From: <h.gerritsen12@chello.nl>
-Subject: (unknown)
-Date: Sat, 24 Jun 2017 02:32:40 -0000
-Message-ID: <149827156055.4332.6923562304454036217@senator-telecom.com>
+From: =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>
+Subject: [PATCH v2 7/7] crypto: caam: cleanup CONFIG_64BIT ifdefs when using io{read|write}64
+Date: Sat, 24 Jun 2017 14:57:07 +0300
+Message-ID: <20170624115707.30095-1-horia.geanta@nxp.com>
+References: <411c4bb0-2709-1902-778a-bf4d7734e3e1@deltatee.com>
 Mime-Version: 1.0
-Content-Type: application/zip; name="EMAIL_1181869410986_linux-arch.zip"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 111-185-187-93.customer.senator-telecom.com ([93.187.185.111]:35190
-        "HELO senator-telecom.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with SMTP id S1754525AbdFXCcs (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 23 Jun 2017 22:32:48 -0400
-Content-Disposition: attachment
-Subject: 
+Received: from mail-bn3nam01on0073.outbound.protection.outlook.com ([104.47.33.73]:46019
+        "EHLO NAM01-BN3-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1751272AbdFXL5t (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 24 Jun 2017 07:57:49 -0400
+In-Reply-To: <411c4bb0-2709-1902-778a-bf4d7734e3e1@deltatee.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+To: Logan Gunthorpe <logang@deltatee.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-alpha@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-crypto@vger.kernel.org, dri-devel@lists.freedesktop.org
+Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Stephen Bates <sbates@raithlin.com>, Dan Douglass <dan.douglass@nxp.com>, Herbert Xu <herbert@gondor.apana.org.au>, "David S . Miller" <davem@davemloft.net>, Radu Solea <radu.solea@nxp.com>, Steve Cornelius <steve.cornelius@nxp.com>
 
-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
-UEsFBgAAAAABAAEATwAAAEYNAAAAAA==
+Now that ioread64 and iowrite64 are always available we don't
+need the ugly ifdefs to change their implementation when they
+are not.
+
+Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
+Cc: Horia Geantă <horia.geanta@nxp.com>
+Cc: Dan Douglass <dan.douglass@nxp.com>
+Cc: Herbert Xu <herbert@gondor.apana.org.au>
+Cc: "David S. Miller" <davem@davemloft.net>
+
+Updated patch such that behaviour does not change
+from i.MX workaround point of view.
+
+Signed-off-by: Horia Geantă <horia.geanta@nxp.com>
+---
+ drivers/crypto/caam/regs.h | 33 ++++-----------------------------
+ 1 file changed, 4 insertions(+), 29 deletions(-)
+
+diff --git a/drivers/crypto/caam/regs.h b/drivers/crypto/caam/regs.h
+index 84d2f838a063..b893ebb24e65 100644
+--- a/drivers/crypto/caam/regs.h
++++ b/drivers/crypto/caam/regs.h
+@@ -134,50 +134,25 @@ static inline void clrsetbits_32(void __iomem *reg, u32 clear, u32 set)
+  *    base + 0x0000 : least-significant 32 bits
+  *    base + 0x0004 : most-significant 32 bits
+  */
+-#ifdef CONFIG_64BIT
+ static inline void wr_reg64(void __iomem *reg, u64 data)
+ {
++#ifndef CONFIG_CRYPTO_DEV_FSL_CAAM_IMX
+ 	if (caam_little_end)
+ 		iowrite64(data, reg);
+ 	else
+-		iowrite64be(data, reg);
+-}
+-
+-static inline u64 rd_reg64(void __iomem *reg)
+-{
+-	if (caam_little_end)
+-		return ioread64(reg);
+-	else
+-		return ioread64be(reg);
+-}
+-
+-#else /* CONFIG_64BIT */
+-static inline void wr_reg64(void __iomem *reg, u64 data)
+-{
+-#ifndef CONFIG_CRYPTO_DEV_FSL_CAAM_IMX
+-	if (caam_little_end) {
+-		wr_reg32((u32 __iomem *)(reg) + 1, data >> 32);
+-		wr_reg32((u32 __iomem *)(reg), data);
+-	} else
+ #endif
+-	{
+-		wr_reg32((u32 __iomem *)(reg), data >> 32);
+-		wr_reg32((u32 __iomem *)(reg) + 1, data);
+-	}
++		iowrite64be(data, reg);
+ }
+ 
+ static inline u64 rd_reg64(void __iomem *reg)
+ {
+ #ifndef CONFIG_CRYPTO_DEV_FSL_CAAM_IMX
+ 	if (caam_little_end)
+-		return ((u64)rd_reg32((u32 __iomem *)(reg) + 1) << 32 |
+-			(u64)rd_reg32((u32 __iomem *)(reg)));
++		return ioread64(reg);
+ 	else
+ #endif
+-		return ((u64)rd_reg32((u32 __iomem *)(reg)) << 32 |
+-			(u64)rd_reg32((u32 __iomem *)(reg) + 1));
++		return ioread64be(reg);
+ }
+-#endif /* CONFIG_64BIT  */
+ 
+ #ifdef CONFIG_ARCH_DMA_ADDR_T_64BIT
+ #ifdef CONFIG_SOC_IMX7D
+-- 
+2.12.0.264.gd6db3f216544
