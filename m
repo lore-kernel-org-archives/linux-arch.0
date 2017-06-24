@@ -1,75 +1,199 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f195.google.com ([209.85.192.195]:36494 "EHLO
-        mail-pf0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754473AbdFXApY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 23 Jun 2017 20:45:24 -0400
-Received: by mail-pf0-f195.google.com with SMTP id z6so806339pfk.3
-        for <linux-arch@vger.kernel.org>; Fri, 23 Jun 2017 17:45:24 -0700 (PDT)
-Date: Fri, 23 Jun 2017 17:45:23 -0700 (PDT)
+Received: from mail-pf0-f196.google.com ([209.85.192.196]:34281 "EHLO
+        mail-pf0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754944AbdFXCCB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 23 Jun 2017 22:02:01 -0400
+Received: by mail-pf0-f196.google.com with SMTP id d5so9747297pfe.1
+        for <linux-arch@vger.kernel.org>; Fri, 23 Jun 2017 19:02:01 -0700 (PDT)
+Date: Fri, 23 Jun 2017 19:02:00 -0700 (PDT)
 From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: Re: [PATCH 12/17] tty: New RISC-V SBI Console Driver
-In-Reply-To: <CAK8P3a35SEeOaVXBNCzUiwQTXys4MZN28d4yVRqNQ=Jz=Z-EWw@mail.gmail.com>
-Message-ID: <mhng-ff4db4ff-d1b4-4f40-8488-7c5b0bf52b67@palmer-si-x1c4>
+Subject: Re: [PATCH 09/17] clocksource/timer-riscv: New RISC-V Clocksource
+In-Reply-To: <3ff254dc-5aa0-69af-c5f2-828ff2b4be54@arm.com>
+Message-ID: <mhng-386c2db2-8392-400e-8ce3-1ed2c9a6c752@palmer-si-x1c4>
 Mime-Version: 1.0 (MHng)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: geert@linux-m68k.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Olof Johansson <olof@lixom.net>, albert@sifive.com, patches@groups.riscv.org, gregkh@linuxfoundation.org, jslaby@suse.com, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20170624004523.h3aOIhSUeTCC6V1LlRSD70vDb2yHPaGSFu9wEqIvsEo@z>
+To: marc.zyngier@arm.com
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Olof Johansson <olof@lixom.net>, albert@sifive.com, patches@groups.riscv.org
+Message-ID: <20170624020200.L_H-9sx1tCf3G2ZGcjABCrlPi-q9onNsoJFpSN0a3NQ@z>
 
-On Wed, 07 Jun 2017 00:58:04 PDT (-0700), Arnd Bergmann wrote:
-> On Wed, Jun 7, 2017 at 9:15 AM, Geert Uytterhoeven <geert@linux-m68k.org> wrote:
->> CC (hypervisor) console folks
+On Wed, 07 Jun 2017 02:43:09 PDT (-0700), marc.zyngier@arm.com wrote:
+> On 06/06/17 23:59, Palmer Dabbelt wrote:
+>> The RISC-V ISA defines a single RTC as well as an SBI oneshot timer.
+>> This timer is present on all RISC-V systems.
 >>
->> On Wed, Jun 7, 2017 at 1:00 AM, Palmer Dabbelt <palmer@dabbelt.com> wrote:
->>> This patch adds a new driver for the console availiable via the RISC-V
->>> SBI.  This console is specified to be used for early boot messages, and
->>> is designed to be a very simple (albiet somewhat slow) console that is
->>> always availiable.  All RISC-V systems have an SBI console.
->>>
->>> The SBI console is made availiable for early printk messages and is also
->>> availiable as a regular console.
->>>
->>> Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
->>> ---
->>>  drivers/tty/hvc/Kconfig   |  11 +++++
->>>  drivers/tty/hvc/Makefile  |   1 +
->>>  drivers/tty/hvc/hvc_sbi.c | 102 ++++++++++++++++++++++++++++++++++++++++++++++
->>>  3 files changed, 114 insertions(+)
->>>  create mode 100644 drivers/tty/hvc/hvc_sbi.c
->>>
->>> diff --git a/drivers/tty/hvc/Kconfig b/drivers/tty/hvc/Kconfig
->>> index 574da15fe618..f3774adab240 100644
->>> --- a/drivers/tty/hvc/Kconfig
->>> +++ b/drivers/tty/hvc/Kconfig
->>> @@ -114,4 +114,15 @@ config HVCS
->>>           which will also be compiled when this driver is built as a
->>>           module.
->>>
->>> +config HVC_SBI
->>> +       bool "SBI console support"
->>> +       depends on RISCV
->>> +       select HVC_DRIVER
->>> +       default y
->>> +       help
->>> +         This enables support for console output via RISC-V SBI calls, which
->>> +         is normally used only during boot to output printk.
->>> +
->>> +         If you don't know what do to here, say Y.
->>> +
->>>  endif # TTY
+>> Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
+>> ---
+>>  drivers/clocksource/Kconfig       |   8 +++
+>>  drivers/clocksource/Makefile      |   1 +
+>>  drivers/clocksource/timer-riscv.c | 118 ++++++++++++++++++++++++++++++++++++++
+>>  3 files changed, 127 insertions(+)
+>>  create mode 100644 drivers/clocksource/timer-riscv.c
+>>
+>> diff --git a/drivers/clocksource/Kconfig b/drivers/clocksource/Kconfig
+>> index 545d541ae20e..1c2c6e7c7fab 100644
+>> --- a/drivers/clocksource/Kconfig
+>> +++ b/drivers/clocksource/Kconfig
+>> @@ -612,4 +612,12 @@ config CLKSRC_ST_LPC
+>>  	  Enable this option to use the Low Power controller timer
+>>  	  as clocksource.
+>>
+>> +config CLKSRC_RISCV
+>> +	#bool "Clocksource for the RISC-V platform"
+>> +	def_bool y if RISCV
+>> +	depends on RISCV
+>> +	help
+>> +	  This enables a clocksource based on the RISC-V SBI timer, which is
+>> +	  built in to all RISC-V systems.
+>> +
+>>  endmenu
+>> diff --git a/drivers/clocksource/Makefile b/drivers/clocksource/Makefile
+>> index 2b5b56a6f00f..408ed9d314dc 100644
+>> --- a/drivers/clocksource/Makefile
+>> +++ b/drivers/clocksource/Makefile
+>> @@ -73,3 +73,4 @@ obj-$(CONFIG_H8300_TMR16)		+= h8300_timer16.o
+>>  obj-$(CONFIG_H8300_TPU)			+= h8300_tpu.o
+>>  obj-$(CONFIG_CLKSRC_ST_LPC)		+= clksrc_st_lpc.o
+>>  obj-$(CONFIG_X86_NUMACHIP)		+= numachip.o
+>> +obj-$(CONFIG_CLKSRC_RISCV)		+= timer-riscv.o
+>> diff --git a/drivers/clocksource/timer-riscv.c b/drivers/clocksource/timer-riscv.c
+>> new file mode 100644
+>> index 000000000000..04ef7b9130b3
+>> --- /dev/null
+>> +++ b/drivers/clocksource/timer-riscv.c
+>> @@ -0,0 +1,118 @@
+>> +/*
+>> + * Copyright (C) 2012 Regents of the University of California
+>> + * Copyright (C) 2017 SiFive
+>> + *
+>> + *   This program is free software; you can redistribute it and/or
+>> + *   modify it under the terms of the GNU General Public License
+>> + *   as published by the Free Software Foundation, version 2.
+>> + *
+>> + *   This program is distributed in the hope that it will be useful,
+>> + *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+>> + *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+>> + *   GNU General Public License for more details.
+>> + */
+>> +
+>> +#include <linux/clocksource.h>
+>> +#include <linux/clockchips.h>
+>> +#include <linux/interrupt.h>
+>> +#include <linux/irq.h>
+>> +#include <linux/delay.h>
+>> +#include <linux/of.h>
+>> +
+>> +#include <asm/irq.h>
+>> +#include <asm/csr.h>
+>> +#include <asm/sbi.h>
+>> +#include <asm/delay.h>
+>> +
+>> +unsigned long riscv_timebase;
+>> +
+>> +static DEFINE_PER_CPU(struct clock_event_device, clock_event);
+>> +
+>> +static int riscv_timer_set_next_event(unsigned long delta,
+>> +	struct clock_event_device *evdev)
+>> +{
+>> +	sbi_set_timer(get_cycles() + delta);
+>> +	return 0;
+>> +}
+>> +
+>> +static int riscv_timer_set_oneshot(struct clock_event_device *evt)
+>> +{
+>> +	/* no-op; only one mode */
+>> +	return 0;
+>> +}
+>> +
+>> +static int riscv_timer_set_shutdown(struct clock_event_device *evt)
+>> +{
+>> +	/* can't stop the clock! */
+>> +	return 0;
+>> +}
+>> +
+>> +static u64 riscv_rdtime(struct clocksource *cs)
+>> +{
+>> +	return get_cycles();
+>> +}
+>> +
+>> +static struct clocksource riscv_clocksource = {
+>> +	.name = "riscv_clocksource",
+>> +	.rating = 300,
+>> +	.read = riscv_rdtime,
+>> +#ifdef CONFIG_64BITS
+>> +	.mask = CLOCKSOURCE_MASK(64),
+>> +#else
+>> +	.mask = CLOCKSOURCE_MASK(32),
+>> +#endif /* CONFIG_64BITS */
+>> +	.flags = CLOCK_SOURCE_IS_CONTINUOUS,
+>> +};
+>> +
+>> +void riscv_timer_interrupt(void)
+>> +{
+>> +	int cpu = smp_processor_id();
+>> +	struct clock_event_device *evdev = &per_cpu(clock_event, cpu);
+>> +
+>> +	evdev->event_handler(evdev);
+>> +}
+>> +
+>> +void __init init_clockevent(void)
+>> +{
+>> +	int cpu = smp_processor_id();
+>> +	struct clock_event_device *ce = &per_cpu(clock_event, cpu);
+>> +
+>> +	*ce = (struct clock_event_device){
+>> +		.name = "riscv_timer_clockevent",
+>> +		.features = CLOCK_EVT_FEAT_ONESHOT,
+>> +		.rating = 300,
+>> +		.cpumask = cpumask_of(cpu),
+>> +		.set_next_event = riscv_timer_set_next_event,
+>> +		.set_state_oneshot  = riscv_timer_set_oneshot,
+>> +		.set_state_shutdown = riscv_timer_set_shutdown,
+>> +	};
+>> +
+>> +	/* Enable timer interrupts */
+>> +	csr_set(sie, SIE_STIE);
+>> +
+>> +	clockevents_config_and_register(ce, riscv_timebase, 100, 0x7fffffff);
+>> +}
+>> +
+>> +static unsigned long __init of_timebase(void)
+>> +{
+>> +	struct device_node *cpu;
+>> +	const __be32 *prop;
+>> +
+>> +	cpu = of_find_node_by_path("/cpus");
+>> +	if (cpu) {
+>> +		prop = of_get_property(cpu, "timebase-frequency", NULL);
+>> +		if (prop)
+>> +			return be32_to_cpu(*prop);
 >
-> Please move this a little higher along with the other HVC_DRIVER
-> implementations.
+> Consider using of_property_read_u32() instead.
 
-OK: https://github.com/riscv/riscv-linux/commit/1c769cad7931b7b08644d2d4a7b6985777a8e0be
+Thanks, that's must cleaner.
 
->>> + * RISC-V SBI interface to hvc_console.c
->>> + *  based on drivers-tty/hvc/hvc_udbg.c
->>> + *
->>> + * Copyright (C) 2008 David Gibson, IBM Corporation
->>> + * Copyright (C) 2012 Regents of the University of California
 >
-> 2017?
+>> +	}
+>> +
+>> +	return 10000000;
+>
+> Is this an architectural guarantee? Or something that is implementation
+> specific?
 
-https://github.com/riscv/riscv-linux/commit/dafa678d26886076a8a9cccc2486f1bbbfa44aa8
+It was just a holdover from before we converted our port to device tree, it's
+been fixed.
+
+>
+>> +}
+>> +
+>> +void __init time_init(void)
+>> +{
+>> +	riscv_timebase = of_timebase();
+>> +	lpj_fine = riscv_timebase / HZ;
+>> +
+>> +	clocksource_register_hz(&riscv_clocksource, riscv_timebase);
+>> +	init_clockevent();
+>> +}
+>>
+
+Thanks, I'll put these in the v3 patch set.
