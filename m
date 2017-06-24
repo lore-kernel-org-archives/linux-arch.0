@@ -1,193 +1,93 @@
 From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: Re: [PATCH 09/17] clocksource/timer-riscv: New RISC-V Clocksource
-Date: Fri, 23 Jun 2017 19:02:00 -0700 (PDT)
-Message-ID: <mhng-386c2db2-8392-400e-8ce3-1ed2c9a6c752@palmer-si-x1c4>
-References: <3ff254dc-5aa0-69af-c5f2-828ff2b4be54@arm.com>
+Subject: Re: [PATCH 13/17] RISC-V: Add include subdirectory
+Date: Fri, 23 Jun 2017 19:01:59 -0700 (PDT)
+Message-ID: <mhng-002dc1e3-4bff-43d8-b58c-a105e5643aea@palmer-si-x1c4>
+References: <CAK8P3a3LVGTrBxc+GD2gFHKg-YcZ40+z0SJAuFXadqLFDrE=DQ@mail.gmail.com>
 Mime-Version: 1.0 (MHng)
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <3ff254dc-5aa0-69af-c5f2-828ff2b4be54@arm.com>
+In-Reply-To: <CAK8P3a3LVGTrBxc+GD2gFHKg-YcZ40+z0SJAuFXadqLFDrE=DQ@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: marc.zyngier@arm.com
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Olof Johansson <olof@lixom.net>, albert@sifive.com, patches@groups.riscv.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Olof Johansson <olof@lixom.net>, albert@sifive.com, patches@groups.riscv.org, benh@kernel.crashing.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, 07 Jun 2017 02:43:09 PDT (-0700), marc.zyngier@arm.com wrote:
-> On 06/06/17 23:59, Palmer Dabbelt wrote:
->> The RISC-V ISA defines a single RTC as well as an SBI oneshot timer.
->> This timer is present on all RISC-V systems.
+On Wed, 07 Jun 2017 01:12:00 PDT (-0700), Arnd Bergmann wrote:
+> On Wed, Jun 7, 2017 at 1:00 AM, Palmer Dabbelt <palmer@dabbelt.com> wrote:
+>> This patch adds the include files for the RISC-V port.  These are mostly
+>> based on the score port, but there are a lot of arm64-based files as
+>> well.
 >>
 >> Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
->> ---
->>  drivers/clocksource/Kconfig       |   8 +++
->>  drivers/clocksource/Makefile      |   1 +
->>  drivers/clocksource/timer-riscv.c | 118 ++++++++++++++++++++++++++++++++++++++
->>  3 files changed, 127 insertions(+)
->>  create mode 100644 drivers/clocksource/timer-riscv.c
->>
->> diff --git a/drivers/clocksource/Kconfig b/drivers/clocksource/Kconfig
->> index 545d541ae20e..1c2c6e7c7fab 100644
->> --- a/drivers/clocksource/Kconfig
->> +++ b/drivers/clocksource/Kconfig
->> @@ -612,4 +612,12 @@ config CLKSRC_ST_LPC
->>  	  Enable this option to use the Low Power controller timer
->>  	  as clocksource.
->>
->> +config CLKSRC_RISCV
->> +	#bool "Clocksource for the RISC-V platform"
->> +	def_bool y if RISCV
->> +	depends on RISCV
->> +	help
->> +	  This enables a clocksource based on the RISC-V SBI timer, which is
->> +	  built in to all RISC-V systems.
+>
+> It might be better to split this up into several parts, as the patch
+> is longer than
+> most people are willing to review at once.
+>
+> The uapi should definitely be a separate patch, as it includes the parts that
+> cannot be changed any more later. memory management (pgtable, mmu,
+> uaccess) would be another part to split out, and possibly all the atomics
+> in one separate patch (along with spinlocks and bitops).
+
+OK, we'll do this for the v3.
+
+>
 >> +
->>  endmenu
->> diff --git a/drivers/clocksource/Makefile b/drivers/clocksource/Makefile
->> index 2b5b56a6f00f..408ed9d314dc 100644
->> --- a/drivers/clocksource/Makefile
->> +++ b/drivers/clocksource/Makefile
->> @@ -73,3 +73,4 @@ obj-$(CONFIG_H8300_TMR16)		+= h8300_timer16.o
->>  obj-$(CONFIG_H8300_TPU)			+= h8300_tpu.o
->>  obj-$(CONFIG_CLKSRC_ST_LPC)		+= clksrc_st_lpc.o
->>  obj-$(CONFIG_X86_NUMACHIP)		+= numachip.o
->> +obj-$(CONFIG_CLKSRC_RISCV)		+= timer-riscv.o
->> diff --git a/drivers/clocksource/timer-riscv.c b/drivers/clocksource/timer-riscv.c
->> new file mode 100644
->> index 000000000000..04ef7b9130b3
->> --- /dev/null
->> +++ b/drivers/clocksource/timer-riscv.c
->> @@ -0,0 +1,118 @@
->> +/*
->> + * Copyright (C) 2012 Regents of the University of California
->> + * Copyright (C) 2017 SiFive
->> + *
->> + *   This program is free software; you can redistribute it and/or
->> + *   modify it under the terms of the GNU General Public License
->> + *   as published by the Free Software Foundation, version 2.
->> + *
->> + *   This program is distributed in the hope that it will be useful,
->> + *   but WITHOUT ANY WARRANTY; without even the implied warranty of
->> + *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
->> + *   GNU General Public License for more details.
+>> +/* IO barriers.  These only fence on the IO bits because they're only required
+>> + * to order device access.  We're defining mmiowb because our AMO instructions
+>> + * (which are used to implement locks) don't specify ordering.  From Chapter 7
+>> + * of v2.2 of the user ISA:
+>> + * "The bits order accesses to one of the two address domains, memory or I/O,
+>> + * depending on which address domain the atomic instruction is accessing. No
+>> + * ordering constraint is implied to accesses to the other domain, and a FENCE
+>> + * instruction should be used to order across both domains."
 >> + */
 >> +
->> +#include <linux/clocksource.h>
->> +#include <linux/clockchips.h>
->> +#include <linux/interrupt.h>
->> +#include <linux/irq.h>
->> +#include <linux/delay.h>
->> +#include <linux/of.h>
+>> +#define __iormb()      __asm__ __volatile__ ("fence i,io" : : : "memory");
+>> +#define __iowmb()      __asm__ __volatile__ ("fence io,o" : : : "memory");
 >> +
->> +#include <asm/irq.h>
->> +#include <asm/csr.h>
->> +#include <asm/sbi.h>
->> +#include <asm/delay.h>
+>> +#define mmiowb()       __asm__ __volatile__ ("fence io,io" : : : "memory");
 >> +
->> +unsigned long riscv_timebase;
+>> +/*
+>> + * Relaxed I/O memory access primitives. These follow the Device memory
+>> + * ordering rules but do not guarantee any ordering relative to Normal memory
+>> + * accesses.
+>> + */
+>> +#define readb_relaxed(c)       ({ u8  __r = __raw_readb(c); __r; })
+>> +#define readw_relaxed(c)       ({ u16 __r = le16_to_cpu((__force __le16)__raw_readw(c)); __r; })
+>> +#define readl_relaxed(c)       ({ u32 __r = le32_to_cpu((__force __le32)__raw_readl(c)); __r; })
+>> +#define readq_relaxed(c)       ({ u64 __r = le64_to_cpu((__force __le64)__raw_readq(c)); __r; })
 >> +
->> +static DEFINE_PER_CPU(struct clock_event_device, clock_event);
+>> +#define writeb_relaxed(v,c)    ((void)__raw_writeb((v),(c)))
+>> +#define writew_relaxed(v,c)    ((void)__raw_writew((__force u16)cpu_to_le16(v),(c)))
+>> +#define writel_relaxed(v,c)    ((void)__raw_writel((__force u32)cpu_to_le32(v),(c)))
+>> +#define writeq_relaxed(v,c)    ((void)__raw_writeq((__force u64)cpu_to_le64(v),(c)))
 >> +
->> +static int riscv_timer_set_next_event(unsigned long delta,
->> +	struct clock_event_device *evdev)
->> +{
->> +	sbi_set_timer(get_cycles() + delta);
->> +	return 0;
->> +}
+>> +/*
+>> + * I/O memory access primitives. Reads are ordered relative to any
+>> + * following Normal memory access. Writes are ordered relative to any prior
+>> + * Normal memory access.
+>> + */
+>> +#define readb(c)               ({ u8  __v = readb_relaxed(c); __iormb(); __v; })
+>> +#define readw(c)               ({ u16 __v = readw_relaxed(c); __iormb(); __v; })
+>> +#define readl(c)               ({ u32 __v = readl_relaxed(c); __iormb(); __v; })
+>> +#define readq(c)               ({ u64 __v = readq_relaxed(c); __iormb(); __v; })
 >> +
->> +static int riscv_timer_set_oneshot(struct clock_event_device *evt)
->> +{
->> +	/* no-op; only one mode */
->> +	return 0;
->> +}
+>> +#define writeb(v,c)            ({ __iowmb(); writeb_relaxed((v),(c)); })
+>> +#define writew(v,c)            ({ __iowmb(); writew_relaxed((v),(c)); })
+>> +#define writel(v,c)            ({ __iowmb(); writel_relaxed((v),(c)); })
+>> +#define writeq(v,c)            ({ __iowmb(); writeq_relaxed((v),(c)); })
 >> +
->> +static int riscv_timer_set_shutdown(struct clock_event_device *evt)
->> +{
->> +	/* can't stop the clock! */
->> +	return 0;
->> +}
->> +
->> +static u64 riscv_rdtime(struct clocksource *cs)
->> +{
->> +	return get_cycles();
->> +}
->> +
->> +static struct clocksource riscv_clocksource = {
->> +	.name = "riscv_clocksource",
->> +	.rating = 300,
->> +	.read = riscv_rdtime,
->> +#ifdef CONFIG_64BITS
->> +	.mask = CLOCKSOURCE_MASK(64),
->> +#else
->> +	.mask = CLOCKSOURCE_MASK(32),
->> +#endif /* CONFIG_64BITS */
->> +	.flags = CLOCK_SOURCE_IS_CONTINUOUS,
->> +};
->> +
->> +void riscv_timer_interrupt(void)
->> +{
->> +	int cpu = smp_processor_id();
->> +	struct clock_event_device *evdev = &per_cpu(clock_event, cpu);
->> +
->> +	evdev->event_handler(evdev);
->> +}
->> +
->> +void __init init_clockevent(void)
->> +{
->> +	int cpu = smp_processor_id();
->> +	struct clock_event_device *ce = &per_cpu(clock_event, cpu);
->> +
->> +	*ce = (struct clock_event_device){
->> +		.name = "riscv_timer_clockevent",
->> +		.features = CLOCK_EVT_FEAT_ONESHOT,
->> +		.rating = 300,
->> +		.cpumask = cpumask_of(cpu),
->> +		.set_next_event = riscv_timer_set_next_event,
->> +		.set_state_oneshot  = riscv_timer_set_oneshot,
->> +		.set_state_shutdown = riscv_timer_set_shutdown,
->> +	};
->> +
->> +	/* Enable timer interrupts */
->> +	csr_set(sie, SIE_STIE);
->> +
->> +	clockevents_config_and_register(ce, riscv_timebase, 100, 0x7fffffff);
->> +}
->> +
->> +static unsigned long __init of_timebase(void)
->> +{
->> +	struct device_node *cpu;
->> +	const __be32 *prop;
->> +
->> +	cpu = of_find_node_by_path("/cpus");
->> +	if (cpu) {
->> +		prop = of_get_property(cpu, "timebase-frequency", NULL);
->> +		if (prop)
->> +			return be32_to_cpu(*prop);
+>> +#include <asm-generic/io.h>
 >
-> Consider using of_property_read_u32() instead.
+> These do not yet contain all the changes we discussed: the relaxed operations
+> don't seem to be ordered against one another and the regular accessors
+> are not ordered against DMA.
 
-Thanks, that's must cleaner.
+Sorry, I must have forgotten to write this -- I just wanted to push out a v3
+patch set without the changes to the atomics so everything else could be looked
+at.  I wanted to just go through the atomics completely and fix them, as I
+found a handful of problems (everything was missing the AQ and RL bits, for
+example) and figured it would be best to just get them done right.
 
->
->> +	}
->> +
->> +	return 10000000;
->
-> Is this an architectural guarantee? Or something that is implementation
-> specific?
-
-It was just a holdover from before we converted our port to device tree, it's
-been fixed.
-
->
->> +}
->> +
->> +void __init time_init(void)
->> +{
->> +	riscv_timebase = of_timebase();
->> +	lpj_fine = riscv_timebase / HZ;
->> +
->> +	clocksource_register_hz(&riscv_clocksource, riscv_timebase);
->> +	init_clockevent();
->> +}
->>
-
-Thanks, I'll put these in the v3 patch set.
+I think that's not something for after dinner on a Friday, but hopefully I'll
+get to it tomorrow morning.
