@@ -1,102 +1,80 @@
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: Re: [RFC PATCH] arm64: signal: Make parse_user_sigframe()
- independent of rt_sigframe layout
-Date: Sun, 25 Jun 2017 18:05:44 +0300
-Message-ID: <20170625150544.2qsh4hpnmxygmcft@yury-thinkpad>
-References: <1498208859-6099-1-git-send-email-Dave.Martin@arm.com>
+From: <h.gerritsen12@chello.nl>
+Subject: (unknown)
+Date: Sun, 25 Jun 2017 20:10:25 -0000
+Message-ID: <149842142507.12492.6931700576827674606@telenet.ru>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: application/zip; name="EMAIL_721984611666_linux-arch.zip"
+Content-Transfer-Encoding: base64
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bl2nam02on0069.outbound.protection.outlook.com ([104.47.38.69]:16615
-        "EHLO NAM02-BL2-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751008AbdFYPGA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 25 Jun 2017 11:06:00 -0400
-Content-Disposition: inline
-In-Reply-To: <1498208859-6099-1-git-send-email-Dave.Martin@arm.com>
+Received: from 61.239-224-87.telenet.ru ([87.224.239.61]:34441 "HELO
+        telenet.ru" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with SMTP
+        id S1751334AbdFYUK2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 25 Jun 2017 16:10:28 -0400
+Content-Disposition: attachment
+Subject: 
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org
+To: linux-arch@vger.kernel.org
 
-On Fri, Jun 23, 2017 at 10:07:39AM +0100, Dave Martin wrote:
-> ILP32 support uses the same struct sigcontext as the native ABI
-> (i.e., LP64), but a different layout for the rest of the signal
-> frame (since siginfo_t and ucontext_t are both ABI-dependent).
-> 
-> Since the purpose of parse_user_sigframe() is really to parse
-> sigcontext and not the whole signal frame, the function does not
-> need to depend on the layout of rt_sigframe -- the only purpose of
-> the rt_sigframe pointer is for use as a base to measure the signal
-> frame size.
-> 
-> So, this patch renames the function to parse_user_sigcontext() and
-> makes the sigframe base pointer generic.  ABI-specific parsers that
-> share the same sigcontext definition can then call it.
-> 
-> To minimise churn in this patch, the native LP64 parser is retained
-> under the old name, but becomes a call to parse_user_sigconext().
-> It may make sense instead to fold this into its restore_sigframe(),
-> depending on how ILP32 support is integrated.
-> 
-> Suggested-by: Yury Norov <ynorov@caviumnetworks.com>
-> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> ---
-> 
-> This patch depends on [1], which does not appear to be applied yet.
-> 
-> [1] [PATCH] arm64: signal: Allow expansion of the signal frame                  http://lists.infradead.org/pipermail/linux-arm-kernel/2017-June/514699.html
-> 
->  arch/arm64/kernel/signal.c | 14 ++++++++++----
->  1 file changed, 10 insertions(+), 4 deletions(-)
-> 
-> diff --git a/arch/arm64/kernel/signal.c b/arch/arm64/kernel/signal.c
-> index e47cd3a..a189321 100644
-> --- a/arch/arm64/kernel/signal.c
-> +++ b/arch/arm64/kernel/signal.c
-> @@ -223,16 +223,16 @@ struct user_ctxs {
->  	struct fpsimd_context __user *fpsimd;
->  };
->  
-> -static int parse_user_sigframe(struct user_ctxs *user,
-> -			       struct rt_sigframe __user *sf)
-> +static int parse_user_sigcontext(struct user_ctxs *user,
-> +				 struct sigcontext __user const *sc,
-> +				 void __user const *sigframe_base)
->  {
-> -	struct sigcontext __user *const sc = &sf->uc.uc_mcontext;
->  	struct _aarch64_ctx __user *head;
->  	char __user *base = (char __user *)&sc->__reserved;
->  	size_t offset = 0;
->  	size_t limit = sizeof(sc->__reserved);
->  	bool have_extra_context = false;
-> -	char const __user *const sfp = (char const __user *)sf;
-> +	char const __user *const sfp = (char const __user *)sigframe_base;
->  
->  	user->fpsimd = NULL;
->  
-> @@ -366,6 +366,12 @@ static int parse_user_sigframe(struct user_ctxs *user,
->  	return -EINVAL;
->  }
->  
-> +static int parse_user_sigframe(struct user_ctxs *user,
-> +			       struct rt_sigframe __user const *sf)
-> +{
-> +	return parse_user_sigcontext(user, &sf->uc.uc_mcontext, sf);
-> +}
-> +
-
-Hi Dave, 
-
-Thank you. Seems this is what I need. Only one thing. We can #define
-parse_user_sigframe() as macro, and so bypass type control.
-The macro then will be used both by lp64 and ilp32 without any
-modification.
-
-Yury
-
->  static int restore_sigframe(struct pt_regs *regs,
->  			    struct rt_sigframe __user *sf)
->  {
-> -- 
-> 2.1.4
+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
+AAAAAAEAAQBPAAAAQg0AAAAA
