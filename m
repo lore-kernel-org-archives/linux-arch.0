@@ -1,70 +1,80 @@
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: Re: [PATCH 1/5] kbuild: thin archives final link close
- --whole-archives option
-Date: Sun, 25 Jun 2017 12:55:12 +0900
-Message-ID: <CAK7LNATajsaJxFs9tzvKCz53ZoY7cymbA5f0yCYHXjBgB8+ciA@mail.gmail.com>
-References: <20170621211002.44525d9b@roar.ozlabs.ibm.com> <CAK8P3a2A9fMrNZPWJft2t+52kmGkGgm3gv_fxJntjevWtJ69Zw@mail.gmail.com>
- <20170621220213.2b33d56d@roar.ozlabs.ibm.com> <CAK8P3a0nVPz=eLV8ET6BYR2Qs0H3PQZuhYsu4Cb_kJSPACrR9w@mail.gmail.com>
- <20170621161913.GY4493@codeaurora.org> <20170622040838.1c63ebb7@roar.ozlabs.ibm.com>
- <CAK8P3a2vV10+ymS7vHybfhRf_DVvACOW4O2OZzyz+v75y2Ak4w@mail.gmail.com>
- <20170622061838.ljlmk4enzpvdlyyu@flea.lan> <20170623015021.58f74316@roar.ozlabs.ibm.com>
- <CAK7LNATbd5n2uMsTN_jaUN+QjpB5DN3AvS+6iqqt3w3kuwQS3A@mail.gmail.com>
- <20170623145734.7pv3rdgucveg66s3@flea.lan> <CAK8P3a1m9teuQV-r5-753FBVtFTDsz=31bC_zeuCZ5ViBTQKRw@mail.gmail.com>
+From: <nfrankiyamu@centrum.cz>
+Subject: (unknown)
+Date: Sun, 25 Jun 2017 03:57:15 -0000
+Message-ID: <149836303567.8929.11544468592605055425@zaural.ru>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <CAK8P3a1m9teuQV-r5-753FBVtFTDsz=31bC_zeuCZ5ViBTQKRw@mail.gmail.com>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Maxime Ripard <maxime.ripard@free-electrons.com>, Nicholas Piggin <npiggin@gmail.com>, Stephen Boyd <sboyd@codeaurora.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>, kbuild test robot <fengguang.wu@intel.com>, Josh Triplett <josh@joshtriplett.org>, Nicolas Pitre <nicolas.pitre@linaro.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: application/zip; name="EMAIL_2308411819257_linux-arch.zip"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from ws238.zone31-163-162.zaural.ru ([31.163.162.238]:51244 "HELO
+        zaural.ru" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with SMTP
+        id S1751017AbdFYD5T (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 24 Jun 2017 23:57:19 -0400
+Content-Disposition: attachment
+Subject: 
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org
 
-2017-06-24 0:04 GMT+09:00 Arnd Bergmann <arnd@arndb.de>:
-> On Fri, Jun 23, 2017 at 4:57 PM, Maxime Ripard
-> <maxime.ripard@free-electrons.com> wrote:
->> On Fri, Jun 23, 2017 at 02:31:40PM +0900, Masahiro Yamada wrote:
->>> As far as I tried,  minus MACH_SUN8I still enabled the following:
->>> CONFIG_SUNXI_CCU=y
->>> CONFIG_SUNXI_CCU_DIV=y
->>> CONFIG_SUNXI_CCU_FRAC=y
->>> CONFIG_SUNXI_CCU_GATE=y
->>> CONFIG_SUNXI_CCU_MUX=y
->>> CONFIG_SUNXI_CCU_MULT=y
->>> CONFIG_SUNXI_CCU_PHASE=y
->>> CONFIG_SUNXI_CCU_NK=y
->>> CONFIG_SUNXI_CCU_NKM=y
->>> CONFIG_SUNXI_CCU_NKMP=y
->>> CONFIG_SUNXI_CCU_NM=y
->>> CONFIG_SUNXI_CCU_MP=y
->>>
->>> I think you need to disable some more MACH_SUN*I and
->>> perhaps disable some CONFIG_SUN*I_*_CCU explicitly,
->>> then you will see difference in the result.
->>
->> Ah, right, it's all selected by the rest.
->>
->> I guess to get a meaningful example you could disable all the
->> SUN*I_CCU (SUN5I, SUN8I, and the likes) options and while keeping
->> SUN8I_R_CCU.
->>
->> Most of the clock types shouldn't be used but div and gates.
->
-> Given that we appear to basically always pull in all (or most) of
-> the CCU parts anyway, and it's hard to even test with a subset
-> being disabled, I wonder how much we care about dropping
-> the unused objects at all:
->
-> Maybe the answer is that we just always build all of them into
-> the kernel and make only the SoC-specific objects configurable ;-)
->
-> Once we start linking with  --gc-sections, it will all be fine anyway.
->
-
-I agree!
-
-
-
-
--- 
-Best Regards
-Masahiro Yamada
+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
+UEsFBgAAAAABAAEATwAAAEYNAAAAAA==
