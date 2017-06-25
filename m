@@ -1,75 +1,90 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from conssluserg-05.nifty.com ([210.131.2.90]:57374 "EHLO
-        conssluserg-05.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750944AbdFYDz1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 24 Jun 2017 23:55:27 -0400
-MIME-Version: 1.0
-In-Reply-To: <CAK8P3a1m9teuQV-r5-753FBVtFTDsz=31bC_zeuCZ5ViBTQKRw@mail.gmail.com>
-References: <20170621211002.44525d9b@roar.ozlabs.ibm.com> <CAK8P3a2A9fMrNZPWJft2t+52kmGkGgm3gv_fxJntjevWtJ69Zw@mail.gmail.com>
- <20170621220213.2b33d56d@roar.ozlabs.ibm.com> <CAK8P3a0nVPz=eLV8ET6BYR2Qs0H3PQZuhYsu4Cb_kJSPACrR9w@mail.gmail.com>
- <20170621161913.GY4493@codeaurora.org> <20170622040838.1c63ebb7@roar.ozlabs.ibm.com>
- <CAK8P3a2vV10+ymS7vHybfhRf_DVvACOW4O2OZzyz+v75y2Ak4w@mail.gmail.com>
- <20170622061838.ljlmk4enzpvdlyyu@flea.lan> <20170623015021.58f74316@roar.ozlabs.ibm.com>
- <CAK7LNATbd5n2uMsTN_jaUN+QjpB5DN3AvS+6iqqt3w3kuwQS3A@mail.gmail.com>
- <20170623145734.7pv3rdgucveg66s3@flea.lan> <CAK8P3a1m9teuQV-r5-753FBVtFTDsz=31bC_zeuCZ5ViBTQKRw@mail.gmail.com>
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Date: Sun, 25 Jun 2017 12:55:12 +0900
-Message-ID: <CAK7LNATajsaJxFs9tzvKCz53ZoY7cymbA5f0yCYHXjBgB8+ciA@mail.gmail.com>
-Subject: Re: [PATCH 1/5] kbuild: thin archives final link close
- --whole-archives option
+Received: from mail-pf0-f196.google.com ([209.85.192.196]:33368 "EHLO
+        mail-pf0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751394AbdFYXEO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 25 Jun 2017 19:04:14 -0400
+Message-ID: <1498431798.7935.5.camel@gmail.com>
+Subject: Re: [RFC v3 02/23] powerpc: introduce set_hidx_slot helper
+From: Balbir Singh <bsingharora@gmail.com>
+Date: Mon, 26 Jun 2017 09:03:18 +1000
+In-Reply-To: <1498095579-6790-3-git-send-email-linuxram@us.ibm.com>
+References: <1498095579-6790-1-git-send-email-linuxram@us.ibm.com>
+         <1498095579-6790-3-git-send-email-linuxram@us.ibm.com>
 Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Maxime Ripard <maxime.ripard@free-electrons.com>, Nicholas Piggin <npiggin@gmail.com>, Stephen Boyd <sboyd@codeaurora.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>, kbuild test robot <fengguang.wu@intel.com>, Josh Triplett <josh@joshtriplett.org>, Nicolas Pitre <nicolas.pitre@linaro.org>
-Message-ID: <20170625035512.2OD-M5Mk63pk77emFplrmXRFQl9ROc6-oNUrnjm7IYM@z>
+To: Ram Pai <linuxram@us.ibm.com>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
+Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, dave.hansen@intel.com, hbabu@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
+Message-ID: <20170625230318.fSSAsLdWoClFX5N0LAV6Ndmu3NpZXSWOi9WJrPH0ies@z>
 
-2017-06-24 0:04 GMT+09:00 Arnd Bergmann <arnd@arndb.de>:
-> On Fri, Jun 23, 2017 at 4:57 PM, Maxime Ripard
-> <maxime.ripard@free-electrons.com> wrote:
->> On Fri, Jun 23, 2017 at 02:31:40PM +0900, Masahiro Yamada wrote:
->>> As far as I tried,  minus MACH_SUN8I still enabled the following:
->>> CONFIG_SUNXI_CCU=y
->>> CONFIG_SUNXI_CCU_DIV=y
->>> CONFIG_SUNXI_CCU_FRAC=y
->>> CONFIG_SUNXI_CCU_GATE=y
->>> CONFIG_SUNXI_CCU_MUX=y
->>> CONFIG_SUNXI_CCU_MULT=y
->>> CONFIG_SUNXI_CCU_PHASE=y
->>> CONFIG_SUNXI_CCU_NK=y
->>> CONFIG_SUNXI_CCU_NKM=y
->>> CONFIG_SUNXI_CCU_NKMP=y
->>> CONFIG_SUNXI_CCU_NM=y
->>> CONFIG_SUNXI_CCU_MP=y
->>>
->>> I think you need to disable some more MACH_SUN*I and
->>> perhaps disable some CONFIG_SUN*I_*_CCU explicitly,
->>> then you will see difference in the result.
->>
->> Ah, right, it's all selected by the rest.
->>
->> I guess to get a meaningful example you could disable all the
->> SUN*I_CCU (SUN5I, SUN8I, and the likes) options and while keeping
->> SUN8I_R_CCU.
->>
->> Most of the clock types shouldn't be used but div and gates.
->
-> Given that we appear to basically always pull in all (or most) of
-> the CCU parts anyway, and it's hard to even test with a subset
-> being disabled, I wonder how much we care about dropping
-> the unused objects at all:
->
-> Maybe the answer is that we just always build all of them into
-> the kernel and make only the SoC-specific objects configurable ;-)
->
-> Once we start linking with  --gc-sections, it will all be fine anyway.
->
+On Wed, 2017-06-21 at 18:39 -0700, Ram Pai wrote:
+> Introduce set_hidx_slot() which sets the (H_PAGE_F_SECOND|H_PAGE_F_GIX)
+> bits at  the  appropriate  location  in  the  PTE  of  4K  PTE.  In the
+> case of 64K PTE, it sets the bits in the second part of the PTE. Though
+> the implementation for the former just needs the slot parameter, it does
+> take some additional parameters to keep the prototype consistent.
+> 
+> This function will come in handy as we  work  towards  re-arranging the
+> bits in the later patches.
+> 
+> Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+> ---
+>  arch/powerpc/include/asm/book3s/64/hash-4k.h  |  7 +++++++
+>  arch/powerpc/include/asm/book3s/64/hash-64k.h | 16 ++++++++++++++++
+>  2 files changed, 23 insertions(+)
+> 
+> diff --git a/arch/powerpc/include/asm/book3s/64/hash-4k.h b/arch/powerpc/include/asm/book3s/64/hash-4k.h
+> index 9c2c8f1..cef644c 100644
+> --- a/arch/powerpc/include/asm/book3s/64/hash-4k.h
+> +++ b/arch/powerpc/include/asm/book3s/64/hash-4k.h
+> @@ -55,6 +55,13 @@ static inline int hash__hugepd_ok(hugepd_t hpd)
+>  }
+>  #endif
+>  
+> +static inline unsigned long set_hidx_slot(pte_t *ptep, real_pte_t rpte,
+> +			unsigned int subpg_index, unsigned long slot)
+> +{
+> +	return (slot << H_PAGE_F_GIX_SHIFT) &
+> +		(H_PAGE_F_SECOND | H_PAGE_F_GIX);
+> +}
+> +
 
-I agree!
+A comment on top would help explain that 4k and 64k are different, 64k
+is a new layout.
 
+>  #ifdef CONFIG_TRANSPARENT_HUGEPAGE
+>  
+>  static inline char *get_hpte_slot_array(pmd_t *pmdp)
+> diff --git a/arch/powerpc/include/asm/book3s/64/hash-64k.h b/arch/powerpc/include/asm/book3s/64/hash-64k.h
+> index 3f49941..4bac70a 100644
+> --- a/arch/powerpc/include/asm/book3s/64/hash-64k.h
+> +++ b/arch/powerpc/include/asm/book3s/64/hash-64k.h
+> @@ -75,6 +75,22 @@ static inline unsigned long __rpte_to_hidx(real_pte_t rpte, unsigned long index)
+>  	return (pte_val(rpte.pte) >> H_PAGE_F_GIX_SHIFT) & 0xf;
+>  }
+>  
+> +static inline unsigned long set_hidx_slot(pte_t *ptep, real_pte_t rpte,
+> +		unsigned int subpg_index, unsigned long slot)
+> +{
+> +	unsigned long *hidxp = (unsigned long *)(ptep + PTRS_PER_PTE);
+> +
+> +	rpte.hidx &= ~(0xfUL << (subpg_index << 2));
+> +	*hidxp = rpte.hidx  | (slot << (subpg_index << 2));
+> +	/*
+> +	 * Avoid race with __real_pte()
+> +	 * hidx must be committed to memory before committing
+> +	 * the pte.
+> +	 */
+> +	smp_wmb();
 
+Whats the other paired barrier, is it in set_pte()?
 
+> +	return 0x0UL;
+> +}
 
--- 
-Best Regards
-Masahiro Yamada
+We return 0 here and slot information for 4k pages, it is not that
+clear
+
+Balbir Singh.
