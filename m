@@ -1,45 +1,70 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [patches] Re: [PATCH 13/17] RISC-V: Add include subdirectory
-Date: Sat, 24 Jun 2017 22:01:29 -0500
-Message-ID: <1498359689.31581.102.camel@kernel.crashing.org>
-References: <mhng-d95a6423-75a8-4a91-bb6a-1f8765b97016@palmer-si-x1c4>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Subject: Re: [PATCH 1/5] kbuild: thin archives final link close
+ --whole-archives option
+Date: Sun, 25 Jun 2017 12:55:12 +0900
+Message-ID: <CAK7LNATajsaJxFs9tzvKCz53ZoY7cymbA5f0yCYHXjBgB8+ciA@mail.gmail.com>
+References: <20170621211002.44525d9b@roar.ozlabs.ibm.com> <CAK8P3a2A9fMrNZPWJft2t+52kmGkGgm3gv_fxJntjevWtJ69Zw@mail.gmail.com>
+ <20170621220213.2b33d56d@roar.ozlabs.ibm.com> <CAK8P3a0nVPz=eLV8ET6BYR2Qs0H3PQZuhYsu4Cb_kJSPACrR9w@mail.gmail.com>
+ <20170621161913.GY4493@codeaurora.org> <20170622040838.1c63ebb7@roar.ozlabs.ibm.com>
+ <CAK8P3a2vV10+ymS7vHybfhRf_DVvACOW4O2OZzyz+v75y2Ak4w@mail.gmail.com>
+ <20170622061838.ljlmk4enzpvdlyyu@flea.lan> <20170623015021.58f74316@roar.ozlabs.ibm.com>
+ <CAK7LNATbd5n2uMsTN_jaUN+QjpB5DN3AvS+6iqqt3w3kuwQS3A@mail.gmail.com>
+ <20170623145734.7pv3rdgucveg66s3@flea.lan> <CAK8P3a1m9teuQV-r5-753FBVtFTDsz=31bC_zeuCZ5ViBTQKRw@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:44702 "EHLO gate.crashing.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751115AbdFYDBo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 24 Jun 2017 23:01:44 -0400
-In-Reply-To: <mhng-d95a6423-75a8-4a91-bb6a-1f8765b97016@palmer-si-x1c4>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Palmer Dabbelt <palmer@dabbelt.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Olof Johansson <olof@lixom.net>, albert@sifive.com, patches@groups.riscv.org
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <CAK8P3a1m9teuQV-r5-753FBVtFTDsz=31bC_zeuCZ5ViBTQKRw@mail.gmail.com>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Maxime Ripard <maxime.ripard@free-electrons.com>, Nicholas Piggin <npiggin@gmail.com>, Stephen Boyd <sboyd@codeaurora.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>, kbuild test robot <fengguang.wu@intel.com>, Josh Triplett <josh@joshtriplett.org>, Nicolas Pitre <nicolas.pitre@linaro.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Sat, 2017-06-24 at 14:32 -0700, Palmer Dabbelt wrote:
-> On Sat, 24 Jun 2017 08:42:05 PDT (-0700), benh@kernel.crashing.org wrote:
-> > On Fri, 2017-06-23 at 19:01 -0700, Palmer Dabbelt wrote:
-> > > > > +#define mmiowb()       __asm__ __volatile__ ("fence io,io" : : : "memory");
-> > 
-> > I forgot if we already mentioned that but mmiowb is primarily intended
-> > to order MMIO stores vs. a subsequent spin_unlock.
-> > 
-> > I'm not sure an IO only fence is sufficient here.
-> > 
-> > Note that I've never trusted drivers to get that right, it's a rather
-> > bad abstraction to begin with, so on powerpc, instead, I just set a
-> > per-cpu flag on every non-relaxed MMIO write and test it in spin_unlock
-> > in order to "beef up" the barrier in there if necessary.
-> 
-> Sorry about that -- I thought I'd included a note somewhere that the atomics
-> and barriers weren't ready to go yet, as we'd found a bunch of problems with
-> them in the first review and I needed to go through them all.  Arnd suggested
-> copying the PowerPC approach to mmiowb and I like that better, so we're going
-> to use it.
+2017-06-24 0:04 GMT+09:00 Arnd Bergmann <arnd@arndb.de>:
+> On Fri, Jun 23, 2017 at 4:57 PM, Maxime Ripard
+> <maxime.ripard@free-electrons.com> wrote:
+>> On Fri, Jun 23, 2017 at 02:31:40PM +0900, Masahiro Yamada wrote:
+>>> As far as I tried,  minus MACH_SUN8I still enabled the following:
+>>> CONFIG_SUNXI_CCU=y
+>>> CONFIG_SUNXI_CCU_DIV=y
+>>> CONFIG_SUNXI_CCU_FRAC=y
+>>> CONFIG_SUNXI_CCU_GATE=y
+>>> CONFIG_SUNXI_CCU_MUX=y
+>>> CONFIG_SUNXI_CCU_MULT=y
+>>> CONFIG_SUNXI_CCU_PHASE=y
+>>> CONFIG_SUNXI_CCU_NK=y
+>>> CONFIG_SUNXI_CCU_NKM=y
+>>> CONFIG_SUNXI_CCU_NKMP=y
+>>> CONFIG_SUNXI_CCU_NM=y
+>>> CONFIG_SUNXI_CCU_MP=y
+>>>
+>>> I think you need to disable some more MACH_SUN*I and
+>>> perhaps disable some CONFIG_SUN*I_*_CCU explicitly,
+>>> then you will see difference in the result.
+>>
+>> Ah, right, it's all selected by the rest.
+>>
+>> I guess to get a meaningful example you could disable all the
+>> SUN*I_CCU (SUN5I, SUN8I, and the likes) options and while keeping
+>> SUN8I_R_CCU.
+>>
+>> Most of the clock types shouldn't be used but div and gates.
+>
+> Given that we appear to basically always pull in all (or most) of
+> the CCU parts anyway, and it's hard to even test with a subset
+> being disabled, I wonder how much we care about dropping
+> the unused objects at all:
+>
+> Maybe the answer is that we just always build all of them into
+> the kernel and make only the SoC-specific objects configurable ;-)
+>
+> Once we start linking with  --gc-sections, it will all be fine anyway.
+>
 
-Ah yes, I did see your note, I just wasn't sure we had clarified the
-mmiowb case and thought it was worth mentioning.
+I agree!
 
-Cheers,
-Ben,
+
+
+
+-- 
+Best Regards
+Masahiro Yamada
