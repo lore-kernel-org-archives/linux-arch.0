@@ -1,79 +1,28 @@
-From: <h.gerritsen12@chello.nl>
-Subject: (unknown)
-Date: Sun, 25 Jun 2017 04:47:19 -0000
-Message-ID: <149836603960.4332.2416480047133410012@singnet.com.sg>
+From: Khadov Amir Moh <test@sogangrotc.com>
+Subject: inquiry
+Date: Sun, 25 Jun 2017 03:47:17 +0100
+Message-ID: <fa06a32dfc39b430be2fea33c4d56d23__33945.9916380749$1498377907$gmane$org@sogangrotc.com>
+Reply-To: <mkhadov@yahoo.com>
 Mime-Version: 1.0
-Content-Type: application/zip; name="EMAIL_88082875035496_linux-arch.zip"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset=UTF-8;
+ format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bb220-255-197-1.singnet.com.sg ([220.255.197.1]:38265 "HELO
-        singnet.com.sg" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-        with SMTP id S1751108AbdFYErZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 25 Jun 2017 00:47:25 -0400
-Subject: 
-Content-Disposition: attachment
+Received: from mail.globalctm.co.kr ([115.68.5.208]:55857 "EHLO
+        globalctm.co.kr" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751334AbdFYIFD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 25 Jun 2017 04:05:03 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
 
-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
+
+
+-- 
+Hello,
+
+My name is Khadov Amir Moh, a former resident of Birmingham UK.
+Please reach me for the details of an extremely important business
+proposition.
+
+Best regards,
+Khadov Amir Moh.
