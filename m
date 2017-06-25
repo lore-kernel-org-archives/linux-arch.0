@@ -1,80 +1,441 @@
-From: <h.gerritsen12@chello.nl>
-Subject: (unknown)
-Date: Sun, 25 Jun 2017 20:10:25 -0000
-Message-ID: <149842142507.12492.6931700576827674606@telenet.ru>
-Mime-Version: 1.0
-Content-Type: application/zip; name="EMAIL_721984611666_linux-arch.zip"
-Content-Transfer-Encoding: base64
+From: Palmer Dabbelt <palmer@dabbelt.com>
+Subject: Re: [PATCH 10/17] irqchip: New RISC-V PLIC Driver
+Date: Sun, 25 Jun 2017 13:49:28 -0700 (PDT)
+Message-ID: <mhng-e905dce4-0c11-48b3-baee-91938590de40@palmer-si-x1c4>
+References: <34ebb0fd-8d8b-3ec7-ecf1-f296e878bd5d@arm.com>
+Mime-Version: 1.0 (MHng)
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 61.239-224-87.telenet.ru ([87.224.239.61]:34441 "HELO
-        telenet.ru" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with SMTP
-        id S1751334AbdFYUK2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 25 Jun 2017 16:10:28 -0400
-Content-Disposition: attachment
-Subject: 
+Received: from mail-pf0-f194.google.com ([209.85.192.194]:33036 "EHLO
+        mail-pf0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751353AbdFYUta (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 25 Jun 2017 16:49:30 -0400
+Received: by mail-pf0-f194.google.com with SMTP id e199so4782370pfh.0
+        for <linux-arch@vger.kernel.org>; Sun, 25 Jun 2017 13:49:30 -0700 (PDT)
+In-Reply-To: <34ebb0fd-8d8b-3ec7-ecf1-f296e878bd5d@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+To: marc.zyngier@arm.com
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Olof Johansson <olof@lixom.net>, albert@sifive.com, patches@groups.riscv.org, will.deacon@arm.com, peterz@infradead.org
 
-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
-AAAAAAEAAQBPAAAAQg0AAAAA
+On Wed, 07 Jun 2017 03:52:10 PDT (-0700), marc.zyngier@arm.com wrote:
+> Hi Palmer,
+>
+> On 07/06/17 00:00, Palmer Dabbelt wrote:
+>> This patch adds a driver for the Platform Level Interrupt Controller
+>> (PLIC) specified as part of the RISC-V supervisor level ISA manual.
+>> The PLIC connocts global interrupt sources to the local interrupt
+>> controller on each hart.  A PLIC is present on all RISC-V systems.
+>>
+>> Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
+>> ---
+>>  drivers/irqchip/Kconfig          |  12 ++
+>>  drivers/irqchip/Makefile         |   1 +
+>>  drivers/irqchip/irq-riscv-plic.c | 253 +++++++++++++++++++++++++++++++++++++++
+>>  3 files changed, 266 insertions(+)
+>>  create mode 100644 drivers/irqchip/irq-riscv-plic.c
+>>
+>> diff --git a/drivers/irqchip/Kconfig b/drivers/irqchip/Kconfig
+>> index 478f8ace2664..2906d63934ef 100644
+>> --- a/drivers/irqchip/Kconfig
+>> +++ b/drivers/irqchip/Kconfig
+>> @@ -301,3 +301,15 @@ config QCOM_IRQ_COMBINER
+>>  	help
+>>  	  Say yes here to add support for the IRQ combiner devices embedded
+>>  	  in Qualcomm Technologies chips.
+>> +
+>> +config RISCV_PLIC
+>> +        bool "Platform-Level Interrupt Controller"
+>> +	depends on RISCV
+>> +        default y
+>> +        help
+>> +	   This enables support for the PLIC chip found in standard RISC-V
+>> +	   systems. The PLIC is the top-most interrupt controller found in
+>
+> nit: this seems to slightly contradict what is being said in patch #8,
+> where the HLIC is the top-level interrupt controller.
+
+Sorry, I guess that was a bit confusing: by "top-level interrupt controller
+found in the system" I meant the stuff outside the core complex -- in other
+words, all the devices.  How does this sound instead?
+
+    This enables support for the PLIC chip found in standard RISC-V
+    systems.  The PLIC controls devices interrupts and connects them to
+    each core's local interrupt controller.  Aside from timer and
+    software interrupts, all other interrupt sources (MSI, GPIO, etc)
+    are subordinate to the PLIC.
+
+https://github.com/riscv/riscv-linux/commit/2395b17a36c3cf5aabd9b019e1f8fc7efe67e9a0
+
+>> +	   the system, connected directly to the core complex. All other
+>> +	   interrupt sources (MSI, GPIO, etc) are subordinate to the PLIC.
+>> +
+>> +	   If you don't know what to do here, say Y.
+>> diff --git a/drivers/irqchip/Makefile b/drivers/irqchip/Makefile
+>> index b64c59b838a0..bed94cc89146 100644
+>> --- a/drivers/irqchip/Makefile
+>> +++ b/drivers/irqchip/Makefile
+>> @@ -76,3 +76,4 @@ obj-$(CONFIG_EZNPS_GIC)			+= irq-eznps.o
+>>  obj-$(CONFIG_ARCH_ASPEED)		+= irq-aspeed-vic.o
+>>  obj-$(CONFIG_STM32_EXTI) 		+= irq-stm32-exti.o
+>>  obj-$(CONFIG_QCOM_IRQ_COMBINER)		+= qcom-irq-combiner.o
+>> +obj-$(CONFIG_RISCV_PLIC)		+= irq-riscv-plic.o
+>> diff --git a/drivers/irqchip/irq-riscv-plic.c b/drivers/irqchip/irq-riscv-plic.c
+>> new file mode 100644
+>> index 000000000000..906c8a62a911
+>> --- /dev/null
+>> +++ b/drivers/irqchip/irq-riscv-plic.c
+>> @@ -0,0 +1,253 @@
+>> +/*
+>> + * Copyright (C) 2017 SiFive
+>> + *
+>> + *   This program is free software; you can redistribute it and/or
+>> + *   modify it under the terms of the GNU General Public License
+>> + *   as published by the Free Software Foundation, version 2.
+>> + *
+>> + *   This program is distributed in the hope that it will be useful,
+>> + *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+>> + *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+>> + *   GNU General Public License for more details.
+>> + */
+>> +
+>> +#include <linux/interrupt.h>
+>> +#include <linux/io.h>
+>> +#include <linux/irq.h>
+>> +#include <linux/irqchip.h>
+>> +#include <linux/irqchip/chained_irq.h>
+>> +#include <linux/irqdomain.h>
+>> +#include <linux/module.h>
+>> +#include <linux/of.h>
+>> +#include <linux/of_address.h>
+>> +#include <linux/of_irq.h>
+>> +#include <linux/platform_device.h>
+>> +
+>> +/* From the RISC-V Privlidged Spec v1.10:
+>> + *
+>> + * Global interrupt sources are assigned small unsigned integer identifiers,
+>> + * beginning at the value 1.  An interrupt ID of 0 is reserved to mean “no
+>> + * interrupt”.  Interrupt identifiers are also used to break ties when two or
+>> + * more interrupt sources have the same assigned priority. Smaller values of
+>> + * interrupt ID take precedence over larger values of interrupt ID.
+>> + *
+>> + * It's not defined what the largest device ID is, so we're just fixing
+>> + * MAX_DEVICES right here (which is named oddly, as there will never be a
+>> + * device 0).
+>> + */
+>> +#define MAX_DEVICES	1024
+>> +#define MAX_CONTEXTS	15872
+>
+> If those are HW properties, they should probably come from the device
+> tree instead of being hardcoded here.
+
+Sorry, this is a bit confusing: the RISC-V supervisor spec (which is what this
+comment was about) doesn't actually specify much about the PLIC, while this
+driver is for the concrete 'riscv,plic0' device (which is SiFive's PLIC
+implementation, and will be part of the platform specification).  Maybe this is
+a better comment?
+
+ * While the RISC-V supervisor spec doesn't define the maximum number of
+ * devices supported by the PLIC, the largest number supported by devices
+ * marked as 'riscv,plic0' (which is the only device type this driver supports,
+ * and is the only extant PLIC as of now) is 1024.  As mentioned above, device
+ * 0 is defined to be non-existant so this device really only supports 1023
+ * devices.
+
+https://github.com/riscv/riscv-linux/commit/ef43982522f84874be3dfba24f5acb57ad0d9186
+
+>> +
+>> +#define PRIORITY_BASE	0
+>> +#define ENABLE_BASE	0x2000
+>> +#define ENABLE_SIZE	0x80
+>> +#define HART_BASE	0x200000
+>> +#define HART_SIZE	0x1000
+>> +
+>> +struct plic_hart_context {
+>> +	u32 threshold;
+>> +	u32 claim;
+>> +};
+>
+> Representing HW layout as a C structure is not something we usually do
+> in the kernel. It relies on the ABI (which may change over time), and
+> makes it harder to quickly distinguish what is a SW concept from what's
+> not. It also leads to some of the mistakes below...
+
+OK, makes sense.  I went ahead and removed
+
+>> +
+>> +struct plic_enable_context {
+>> +	atomic_t mask[32]; // 32-bit * 32-entry
+>
+> /* */ comments please, placed above the field.
+>
+>> +};
+>> +
+>> +struct plic_priority {
+>> +	u32 prio[MAX_DEVICES];
+>> +};
+>> +
+>> +struct plic_data {
+>> +	struct irq_chip		chip;
+>> +	struct irq_domain	*domain;
+>> +	u32			ndev;
+>> +	void __iomem		*reg;
+>> +	int			handlers;
+>> +	struct plic_handler	*handler;
+>> +	char			name[30];
+>
+> Why 30? #define?
+>
+>> +};
+>> +
+>> +struct plic_handler {
+>> +	struct plic_hart_context	*context;
+>> +	struct plic_data		*data;
+>> +};
+>> +
+>> +static inline
+>> +struct plic_hart_context *plic_hart_context(struct plic_data *data, size_t i)
+>
+> What is 'i' here?
+>
+>> +{
+>> +	return (struct plic_hart_context *)((char *)data->reg + HART_BASE + HART_SIZE*i);
+>
+> This looks dodgy on a number of levels:
+> - the various levels of casts are useless
+> - what you return is still an __iomem
+>
+> Sparse would certainly shout at you if you ran it on this file.
+>
+> Same comment for the two functions below.
+>
+>> +}
+>> +
+>> +static inline
+>> +struct plic_enable_context *plic_enable_context(struct plic_data *data, size_t i)
+>> +{
+>> +	return (struct plic_enable_context *)((char *)data->reg + ENABLE_BASE + ENABLE_SIZE*i);
+>> +}
+>> +
+>> +static inline
+>> +struct plic_priority *plic_priority(struct plic_data *data)
+>> +{
+>> +	return (struct plic_priority *)((char *)data->reg + PRIORITY_BASE);
+>> +}
+>> +
+>> +static void plic_disable(struct plic_data *data, int i, int hwirq)
+>> +{
+>> +	struct plic_enable_context *enable = plic_enable_context(data, i);
+>> +
+>> +	atomic_and(~(1 << (hwirq % 32)), &enable->mask[hwirq / 32]);
+>
+> This is still a device access, right? What does it mean to use the
+> atomic primitives on that? What are you racing against? I thought the
+> various context were private to an execution context...
+>
+> Adding Will and PeterZ to the CC list because they will probably have
+> their own views on this...
+>
+>> +}
+>> +
+>> +static void plic_enable(struct plic_data *data, int i, int hwirq)
+>> +{
+>> +	struct plic_enable_context *enable = plic_enable_context(data, i);
+>> +
+>> +	atomic_or((1 << (hwirq % 32)), &enable->mask[hwirq / 32]);
+>> +}
+>> +
+>> +// There is no need to mask/unmask PLIC interrupts
+>> +// They are "masked" by reading claim and "unmasked" when writing it back.
+>
+> Hmmm. What you describe here is the FastEOI flow.
+>
+>> +static void plic_irq_mask(struct irq_data *d) { }
+>> +static void plic_irq_unmask(struct irq_data *d) { }
+>> +
+>> +static void plic_irq_enable(struct irq_data *d)
+>> +{
+>> +	struct plic_data *data = irq_data_get_irq_chip_data(d);
+>> +	struct plic_priority *priority = plic_priority(data);
+>> +	int i;
+>> +
+>> +	iowrite32(1, &priority->prio[d->hwirq]);
+>
+> Using iowrite is only meaningful if your architecture has an actual I/O
+> address space that is distinct from the "normal" address space. Using
+> the write{b,w,l}{_relaxed} accessors would make more sense if you're not
+> in that case.
+>
+>> +	for (i = 0; i < data->handlers; ++i)
+>> +		if (data->handler[i].context)
+>> +			plic_enable(data, i, d->hwirq);
+>> +}
+>> +
+>> +static void plic_irq_disable(struct irq_data *d)
+>> +{
+>> +	struct plic_data *data = irq_data_get_irq_chip_data(d);
+>> +	struct plic_priority *priority = plic_priority(data);
+>> +	int i;
+>> +
+>> +	iowrite32(0, &priority->prio[d->hwirq]);
+>> +	for (i = 0; i < data->handlers; ++i)
+>> +		if (data->handler[i].context)
+>> +			plic_disable(data, i, d->hwirq);
+>> +}
+>> +
+>> +static int plic_irqdomain_map(struct irq_domain *d, unsigned int irq,
+>> +			      irq_hw_number_t hwirq)
+>> +{
+>> +	struct plic_data *data = d->host_data;
+>> +
+>> +	irq_set_chip_and_handler(irq, &data->chip, handle_simple_irq);
+>> +	irq_set_chip_data(irq, data);
+>> +	irq_set_noprobe(irq);
+>> +
+>> +	return 0;
+>> +}
+>> +
+>> +static const struct irq_domain_ops plic_irqdomain_ops = {
+>> +	.map	= plic_irqdomain_map,
+>> +	.xlate	= irq_domain_xlate_onecell,
+>> +};
+>> +
+>> +static void plic_chained_handle_irq(struct irq_desc *desc)
+>> +{
+>> +	struct plic_handler *handler = irq_desc_get_handler_data(desc);
+>> +	struct irq_chip *chip = irq_desc_get_chip(desc);
+>> +	struct irq_domain *domain = handler->data->domain;
+>> +	u32 what;
+>> +
+>> +	chained_irq_enter(chip, desc);
+>> +
+>> +	while ((what = ioread32(&handler->context->claim))) {
+>> +		int irq = irq_find_mapping(domain, what);
+>> +
+>> +		if (irq > 0)
+>> +			generic_handle_irq(irq);
+>> +		else
+>> +			handle_bad_irq(desc);
+>> +		iowrite32(what, &handler->context->claim);
+>
+> So this is your EOI. It should be represented as such, instead of
+> abusing the handle_simple_irq flow.
+
+OK, I think that makes sense.  From my understanding of this, when using the
+FastEOI flow we'll get a callback to our irq_eoi at the end of handling the IRQ
+via generic_handle_irq.  If I've understood everything correctly then I think
+this should do it
+
+  https://github.com/riscv/riscv-linux/commit/c2cf592609eb927e3eef60876ca78f73538af69a
+
+Note that I haven't tested it yet, so I probably managed to screw something up...
+
+The one thing I'm still confused about is: what is the difference between
+masking an IRQ and disabling an IRQ, and are our empty mask/unmask functions
+obsolete in the FastEOI flow?
+
+>> +	}
+>> +
+>> +	chained_irq_exit(chip, desc);
+>> +}
+>> +
+>> +static int plic_init(struct device_node *node, struct device_node *parent)
+>> +{
+>> +	struct plic_data *data;
+>> +	struct resource resource;
+>> +	int i, ok = 0;
+>> +
+>> +	data = kzalloc(sizeof(*data), GFP_KERNEL);
+>> +	if (WARN_ON(!data))
+>> +		return -ENOMEM;
+>> +
+>> +	data->reg = of_iomap(node, 0);
+>> +	if (WARN_ON(!data->reg))
+>> +		return -EIO;
+>> +
+>> +	of_property_read_u32(node, "riscv,ndev", &data->ndev);
+>> +	if (WARN_ON(!data->ndev))
+>> +		return -EINVAL;
+>> +
+>> +	data->handlers = of_irq_count(node);
+>> +	if (WARN_ON(!data->handlers))
+>> +		return -EINVAL;
+>> +
+>> +	data->handler =
+>> +		kcalloc(data->handlers, sizeof(*data->handler), GFP_KERNEL);
+>> +	if (WARN_ON(!data->handler))
+>> +		return -ENOMEM;
+>> +
+>> +	data->domain = irq_domain_add_linear(node, data->ndev+1, &plic_irqdomain_ops, data);
+>> +	if (WARN_ON(!data->domain))
+>> +		return -ENOMEM;
+>
+> Memory leak of data->handler and data, data->reg is still mapped...
+
+Sorry, I should have caught that earlier.  I think this should fix it
+
+  https://github.com/riscv/riscv-linux/commit/ce8fdac83558c1e2cfd759b9a090a6f4657e2951
+
+>> +
+>> +	of_address_to_resource(node, 0, &resource);
+>> +	snprintf(data->name, sizeof(data->name),
+>> +		 "riscv,plic0,%llx", resource.start);
+>> +	data->chip.name = data->name;
+>> +	data->chip.irq_mask = plic_irq_mask;
+>> +	data->chip.irq_unmask = plic_irq_unmask;
+>> +	data->chip.irq_enable = plic_irq_enable;
+>> +	data->chip.irq_disable = plic_irq_disable;
+>> +
+>> +	for (i = 0; i < data->handlers; ++i) {
+>> +		struct plic_handler *handler = &data->handler[i];
+>> +		struct of_phandle_args parent;
+>> +		int parent_irq, hwirq;
+>> +
+>> +		if (of_irq_parse_one(node, i, &parent))
+>> +			continue;
+>> +		// skip context holes
+>> +		if (parent.args[0] == -1)
+>> +			continue;
+>> +
+>> +		// skip any contexts that lead to inactive harts
+>> +		if (of_device_is_compatible(parent.np, "riscv,cpu-intc") &&
+>> +		    parent.np->parent &&
+>> +		    riscv_of_processor_hart(parent.np->parent) < 0)
+>> +			continue;
+>> +
+>> +		parent_irq = irq_create_of_mapping(&parent);
+>> +		if (!parent_irq)
+>> +			continue;
+>> +
+>> +		handler->context = plic_hart_context(data, i);
+>> +		handler->data = data;
+>> +		// hwirq prio must be > this to trigger an interrupt
+>> +		iowrite32(0, &handler->context->threshold);
+>> +
+>> +		for (hwirq = 1; hwirq <= data->ndev; ++hwirq)
+>> +			plic_disable(data, i, hwirq);
+>> +		irq_set_chained_handler_and_data(parent_irq, plic_chained_handle_irq, handler);
+>> +		++ok;
+>> +	}
+>> +
+>> +	printk(KERN_INFO "%s: mapped %d interrupts to %d/%d handlers\n",
+>> +	       data->name, data->ndev, ok, data->handlers);
+>> +	WARN_ON(!ok);
+>> +	return 0;
+>> +}
+>> +
+>> +IRQCHIP_DECLARE(plic0, "riscv,plic0", plic_init);
+>>
+>
+> In the future, please CC me (as well as Thomas Gleixner and Jason
+> Cooper) on all the interrupt-controller related patches.
+
+OK.  We'd just been keeping the RISC-V port all as one big patch set in order
+to simplify our lives (for example, this v2 is the first time we had anything
+outside of arch/riscv).  The big feedback has been that's the wrong way to do
+it, so I'm going to start splitting everything up to try to get things to the
+correct parties.
+
+Once I get a chance to test all this I'll go and submit a patch set with our
+IRQ drivers.
+
+Thanks for reviewing our patches!
