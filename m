@@ -1,56 +1,85 @@
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [PATCH 3/4] powerpc: Reduce ELF_ET_DYN_BASE
-Date: Mon, 26 Jun 2017 23:04:58 +1000
-Message-ID: <8737amew79.fsf@concordia.ellerman.id.au>
-References: <1498154792-49952-1-git-send-email-keescook@chromium.org> <1498154792-49952-4-git-send-email-keescook@chromium.org> <87podvp4q1.fsf@concordia.ellerman.id.au> <CAGXu5jK7aHHRMZyZyrviBF+cLghWcH_D4PX_vMFOycHuF7EdLA@mail.gmail.com>
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: Re: [RFC PATCH] arm64: signal: Make parse_user_sigframe()
+ independent of rt_sigframe layout
+Date: Mon, 26 Jun 2017 18:38:27 +0300
+Message-ID: <20170626153827.kzraqd3s7gavx3uw@yury-thinkpad>
+References: <1498208859-6099-1-git-send-email-Dave.Martin@arm.com>
+ <20170625150544.2qsh4hpnmxygmcft@yury-thinkpad>
+ <20170626093518.GG8543@e103592.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([103.22.144.67]:47889 "EHLO ozlabs.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751453AbdFZNFJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 26 Jun 2017 09:05:09 -0400
-In-Reply-To: <CAGXu5jK7aHHRMZyZyrviBF+cLghWcH_D4PX_vMFOycHuF7EdLA@mail.gmail.com>
+Received: from mail-cys01nam02on0050.outbound.protection.outlook.com ([104.47.37.50]:9056
+        "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1751464AbdFZPio (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 26 Jun 2017 11:38:44 -0400
+Content-Disposition: inline
+In-Reply-To: <20170626093518.GG8543@e103592.cambridge.arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, James Hogan <james.hogan@imgtec.com>, Pratyush Anand <panand@redhat.com>, Ingo Molnar <mingo@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, kernel-hardening@lists.openwall.c
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 
-Kees Cook <keescook@chromium.org> writes:
+On Mon, Jun 26, 2017 at 10:35:21AM +0100, Dave Martin wrote:
+> On Sun, Jun 25, 2017 at 06:05:44PM +0300, Yury Norov wrote:
+> > On Fri, Jun 23, 2017 at 10:07:39AM +0100, Dave Martin wrote:
+> > > ILP32 support uses the same struct sigcontext as the native ABI
+> > > (i.e., LP64), but a different layout for the rest of the signal
+> > > frame (since siginfo_t and ucontext_t are both ABI-dependent).
+> > > 
+> > > Since the purpose of parse_user_sigframe() is really to parse
+> > > sigcontext and not the whole signal frame, the function does not
+> > > need to depend on the layout of rt_sigframe -- the only purpose of
+> > > the rt_sigframe pointer is for use as a base to measure the signal
+> > > frame size.
+> > > 
+> > > So, this patch renames the function to parse_user_sigcontext() and
+> > > makes the sigframe base pointer generic.  ABI-specific parsers that
+> > > share the same sigcontext definition can then call it.
+> > > 
+> > > To minimise churn in this patch, the native LP64 parser is retained
+> > > under the old name, but becomes a call to parse_user_sigconext().
+> > > It may make sense instead to fold this into its restore_sigframe(),
+> > > depending on how ILP32 support is integrated.
+> > > 
+> > > Suggested-by: Yury Norov <ynorov@caviumnetworks.com>
+> > > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> > > ---
+> > > 
+> > > This patch depends on [1], which does not appear to be applied yet.
+> > > 
+> > > [1] [PATCH] arm64: signal: Allow expansion of the signal frame                  http://lists.infradead.org/pipermail/linux-arm-kernel/2017-June/514699.html
+> 
+> [...]
+> 
+> FYI, [1] above is now merged in arm64 for-next/core, so we shouldn't
+> have dependency issues with this patch.
+> 
+> > > +static int parse_user_sigframe(struct user_ctxs *user,
+> > > +			       struct rt_sigframe __user const *sf)
+> > > +{
+> > > +	return parse_user_sigcontext(user, &sf->uc.uc_mcontext, sf);
+> > > +}
+> > > +
+> > 
+> > Hi Dave, 
+> > 
+> > Thank you. Seems this is what I need. Only one thing. We can #define
+> > parse_user_sigframe() as macro, and so bypass type control.
+> > The macro then will be used both by lp64 and ilp32 without any
+> > modification.
+> 
+> For the reasons you already gave, parse_user_sigframe is probably not
+> the right name for such a macro.  But it otherwise makes sense as an
+> interface.  Does [2] look OK for you?
+ 
+Yes, looks good, thank you.
 
-> On Fri, Jun 23, 2017 at 12:01 AM, Michael Ellerman <mpe@ellerman.id.au> wrote:
->> Kees Cook <keescook@chromium.org> writes:
->>
->>> Now that explicitly executed loaders are loaded in the mmap region,
->>> position PIE binaries lower in the address space to avoid possible
->>> collisions with mmap or stack regions. For 64-bit, align to 4GB to
->>> allow runtimes to use the entire 32-bit address space for 32-bit
->>> pointers.
->>
->> The change log and subject are a bit out of whack with the actual patch
->> because previously we used 512MB.
->>
->> How about?
->>
->>   powerpc: Move ELF_ET_DYN_BASE to 4GB / 4MB
->>
->>   Now that explicitly executed loaders are loaded in the mmap region,
->>   we have more freedom to decide where we position PIE binaries in the
->>   address space to avoid possible collisions with mmap or stack regions.
->>
->>   For 64-bit, align to 4GB to allow runtimes to use the entire 32-bit
->>   address space for 32-bit pointers. On 32-bit use 4MB.
->
-> Good idea, thanks. I'll resend the series with the commit logs updated.
->
->> Is there any particular reasoning behind the 4MB value on 32-bit?
->
-> So, I've dug around a bit on this, and I *think* the rationale is to
-> avoid mapping a possible 4MB page table entry when it won't be using
-> at least a portion near the lower end (NULL address area covered
-> blocked by mmap_min_addr). It seems to be mainly tradition, though.
+> Unless you suggest otherwise, I don't plan to maintain or push this
+> patch -- I think it makes more sense for you to carry it in the ILP32
+> series, since that's the only thing that needs it.
 
-OK, that is obscure, especially for CPUs that don't have a 4MB page
-size. But consistency across arches is probably best regardless.
+I'll just add it to ilp32 series.
 
-cheers
+Yury
