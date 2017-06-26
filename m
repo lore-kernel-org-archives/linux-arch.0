@@ -1,95 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:35667 "EHLO gate.crashing.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750763AbdFZEl6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 26 Jun 2017 00:41:58 -0400
-Message-ID: <1498449778.31581.118.camel@kernel.crashing.org>
-Subject: Re: [RFC v3 02/23] powerpc: introduce set_hidx_slot helper
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Date: Sun, 25 Jun 2017 23:02:58 -0500
-In-Reply-To: <1498431798.7935.5.camel@gmail.com>
-References: <1498095579-6790-1-git-send-email-linuxram@us.ibm.com>
-         <1498095579-6790-3-git-send-email-linuxram@us.ibm.com>
-         <1498431798.7935.5.camel@gmail.com>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
+Received: from lelnx194.ext.ti.com ([198.47.27.80]:39759 "EHLO
+        lelnx194.ext.ti.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751344AbdFZIyw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 26 Jun 2017 04:54:52 -0400
+Subject: Re: [PATCH 1/7] drm/tilcdc: don't use volatile with iowrite64
+References: <20170622164817.25515-1-logang@deltatee.com>
+ <20170622164817.25515-2-logang@deltatee.com>
+From: Jyri Sarha <jsarha@ti.com>
+Message-ID: <33b6c00f-1982-69dd-86b2-107266d238d0@ti.com>
+Date: Mon, 26 Jun 2017 11:54:25 +0300
+MIME-Version: 1.0
+In-Reply-To: <20170622164817.25515-2-logang@deltatee.com>
+Content-Type: text/plain; charset="utf-8"
+Content-Language: en-GB
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Balbir Singh <bsingharora@gmail.com>, Ram Pai <linuxram@us.ibm.com>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
-Cc: paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, dave.hansen@intel.com, hbabu@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
-Message-ID: <20170626040258.Sh0H90vz3TtWuDhmMQh2MqpUtqMJn9a5Nokf3JrWVoA@z>
+To: Logan Gunthorpe <logang@deltatee.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-alpha@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-crypto@vger.kernel.org, dri-devel@lists.freedesktop.org
+Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Stephen Bates <sbates@raithlin.com>, Tomi Valkeinen <tomi.valkeinen@ti.com>, David Airlie <airlied@linux.ie>
+Message-ID: <20170626085425.wXVOLetDAiOrGOYFptSiSsNXHsI_10iM_eQnBslNfwU@z>
 
-On Mon, 2017-06-26 at 09:03 +1000, Balbir Singh wrote:
-> On Wed, 2017-06-21 at 18:39 -0700, Ram Pai wrote:
-> > Introduce set_hidx_slot() which sets the (H_PAGE_F_SECOND|H_PAGE_F_GIX)
-> > bits at  the  appropriate  location  in  the  PTE  of  4K  PTE.  In the
-> > case of 64K PTE, it sets the bits in the second part of the PTE. Though
-> > the implementation for the former just needs the slot parameter, it does
-> > take some additional parameters to keep the prototype consistent.
-> > 
-> > This function will come in handy as we  work  towards  re-arranging the
-> > bits in the later patches.
+On 06/22/17 19:48, Logan Gunthorpe wrote:
+> This is a prep patch for adding a universal iowrite64.
+> 
+> The patch is to prevent compiler warnings when we add iowrite64 that
+> would occur because there is an unnecessary volatile in this driver.
+> 
+> Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
+> Cc: Jyri Sarha <jsarha@ti.com>
+> Cc: Tomi Valkeinen <tomi.valkeinen@ti.com>
+> Cc: David Airlie <airlied@linux.ie>
 
-The name somewhat sucks. Something like pte_set_hash_slot() or
-something like that would be much more meaningful.
+Acked-by: Jyri Sarha <jsarha@ti.com>
 
-> > Signed-off-by: Ram Pai <linuxram@us.ibm.com>
-> > ---
-> >  arch/powerpc/include/asm/book3s/64/hash-4k.h  |  7 +++++++
-> >  arch/powerpc/include/asm/book3s/64/hash-64k.h | 16 ++++++++++++++++
-> >  2 files changed, 23 insertions(+)
-> > 
-> > diff --git a/arch/powerpc/include/asm/book3s/64/hash-4k.h b/arch/powerpc/include/asm/book3s/64/hash-4k.h
-> > index 9c2c8f1..cef644c 100644
-> > --- a/arch/powerpc/include/asm/book3s/64/hash-4k.h
-> > +++ b/arch/powerpc/include/asm/book3s/64/hash-4k.h
-> > @@ -55,6 +55,13 @@ static inline int hash__hugepd_ok(hugepd_t hpd)
-> >  }
-> >  #endif
-> >  
-> > +static inline unsigned long set_hidx_slot(pte_t *ptep, real_pte_t rpte,
-> > +			unsigned int subpg_index, unsigned long slot)
-> > +{
-> > +	return (slot << H_PAGE_F_GIX_SHIFT) &
-> > +		(H_PAGE_F_SECOND | H_PAGE_F_GIX);
-> > +}
-> > +
+> ---
+>  drivers/gpu/drm/tilcdc/tilcdc_regs.h | 4 ++--
+>  1 file changed, 2 insertions(+), 2 deletions(-)
 > 
-> A comment on top would help explain that 4k and 64k are different, 64k
-> is a new layout.
+> diff --git a/drivers/gpu/drm/tilcdc/tilcdc_regs.h b/drivers/gpu/drm/tilcdc/tilcdc_regs.h
+> index 9d528c0a67a4..e9ce725698a9 100644
+> --- a/drivers/gpu/drm/tilcdc/tilcdc_regs.h
+> +++ b/drivers/gpu/drm/tilcdc/tilcdc_regs.h
+> @@ -131,14 +131,14 @@ static inline void tilcdc_write(struct drm_device *dev, u32 reg, u32 data)
+>  static inline void tilcdc_write64(struct drm_device *dev, u32 reg, u64 data)
+>  {
+>  	struct tilcdc_drm_private *priv = dev->dev_private;
+> -	volatile void __iomem *addr = priv->mmio + reg;
+> +	void __iomem *addr = priv->mmio + reg;
+>  
+>  #ifdef iowrite64
+>  	iowrite64(data, addr);
+>  #else
+>  	__iowmb();
+>  	/* This compiles to strd (=64-bit write) on ARM7 */
+> -	*(volatile u64 __force *)addr = __cpu_to_le64(data);
+> +	*(u64 __force *)addr = __cpu_to_le64(data);
+>  #endif
+>  }
+>  
 > 
-> >  #ifdef CONFIG_TRANSPARENT_HUGEPAGE
-> >  
-> >  static inline char *get_hpte_slot_array(pmd_t *pmdp)
-> > diff --git a/arch/powerpc/include/asm/book3s/64/hash-64k.h b/arch/powerpc/include/asm/book3s/64/hash-64k.h
-> > index 3f49941..4bac70a 100644
-> > --- a/arch/powerpc/include/asm/book3s/64/hash-64k.h
-> > +++ b/arch/powerpc/include/asm/book3s/64/hash-64k.h
-> > @@ -75,6 +75,22 @@ static inline unsigned long __rpte_to_hidx(real_pte_t rpte, unsigned long index)
-> >  	return (pte_val(rpte.pte) >> H_PAGE_F_GIX_SHIFT) & 0xf;
-> >  }
-> >  
-> > +static inline unsigned long set_hidx_slot(pte_t *ptep, real_pte_t rpte,
-> > +		unsigned int subpg_index, unsigned long slot)
-> > +{
-> > +	unsigned long *hidxp = (unsigned long *)(ptep + PTRS_PER_PTE);
-> > +
-> > +	rpte.hidx &= ~(0xfUL << (subpg_index << 2));
-> > +	*hidxp = rpte.hidx  | (slot << (subpg_index << 2));
-> > +	/*
-> > +	 * Avoid race with __real_pte()
-> > +	 * hidx must be committed to memory before committing
-> > +	 * the pte.
-> > +	 */
-> > +	smp_wmb();
-> 
-> Whats the other paired barrier, is it in set_pte()?
-> 
-> > +	return 0x0UL;
-> > +}
-> 
-> We return 0 here and slot information for 4k pages, it is not that
-> clear
-> 
-> Balbir Singh.
