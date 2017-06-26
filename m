@@ -1,74 +1,91 @@
-From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: Re: [PATCH v7 34/36] x86/mm: Add support to encrypt the kernel
- in-place
-Date: Mon, 26 Jun 2017 11:34:49 -0500
-Message-ID: <aed44ee3-dd6c-e6e1-4de5-5629bf61e688@amd.com>
-References: <20170616184947.18967.84890.stgit@tlendack-t1.amdoffice.net>
- <20170616185619.18967.38945.stgit@tlendack-t1.amdoffice.net>
- <20170623100013.upd4or6esjvulmvg@pd.tnic>
- <af9a50f7-17ea-a840-6456-b6479e5d7e82@amd.com>
- <20170626154543.fsuxfhxidytgo2ia@pd.tnic>
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [RFC PATCH] arm64: signal: Make parse_user_sigframe()
+ independent of rt_sigframe layout
+Date: Mon, 26 Jun 2017 17:38:15 +0100
+Message-ID: <20170626163814.GJ8543@e103592.cambridge.arm.com>
+References: <1498208859-6099-1-git-send-email-Dave.Martin@arm.com>
+ <20170625150544.2qsh4hpnmxygmcft@yury-thinkpad>
+ <20170626093518.GG8543@e103592.cambridge.arm.com>
+ <20170626153827.kzraqd3s7gavx3uw@yury-thinkpad>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20170626154543.fsuxfhxidytgo2ia@pd.tnic>
-Content-Language: en-US
-Sender: owner-linux-mm@kvack.org
-To: Borislav Petkov <bp@alien8.de>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracl>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:46790 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751435AbdFZQiS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 26 Jun 2017 12:38:18 -0400
+Content-Disposition: inline
+In-Reply-To: <20170626153827.kzraqd3s7gavx3uw@yury-thinkpad>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Yury Norov <ynorov@caviumnetworks.com>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 
-On 6/26/2017 10:45 AM, Borislav Petkov wrote:
-> On Fri, Jun 23, 2017 at 12:44:46PM -0500, Tom Lendacky wrote:
->> Normally the __p4d() macro would be used and that would be ok whether
->> CONFIG_X86_5LEVEL is defined or not. But since __p4d() is part of the
->> paravirt ops path I have to use native_make_p4d().
+On Mon, Jun 26, 2017 at 06:38:27PM +0300, Yury Norov wrote:
+> On Mon, Jun 26, 2017 at 10:35:21AM +0100, Dave Martin wrote:
+> > On Sun, Jun 25, 2017 at 06:05:44PM +0300, Yury Norov wrote:
+> > > On Fri, Jun 23, 2017 at 10:07:39AM +0100, Dave Martin wrote:
+> > > > ILP32 support uses the same struct sigcontext as the native ABI
+> > > > (i.e., LP64), but a different layout for the rest of the signal
+> > > > frame (since siginfo_t and ucontext_t are both ABI-dependent).
+> > > > 
+> > > > Since the purpose of parse_user_sigframe() is really to parse
+> > > > sigcontext and not the whole signal frame, the function does not
+> > > > need to depend on the layout of rt_sigframe -- the only purpose of
+> > > > the rt_sigframe pointer is for use as a base to measure the signal
+> > > > frame size.
+> > > > 
+> > > > So, this patch renames the function to parse_user_sigcontext() and
+> > > > makes the sigframe base pointer generic.  ABI-specific parsers that
+> > > > share the same sigcontext definition can then call it.
+> > > > 
+> > > > To minimise churn in this patch, the native LP64 parser is retained
+> > > > under the old name, but becomes a call to parse_user_sigconext().
+> > > > It may make sense instead to fold this into its restore_sigframe(),
+> > > > depending on how ILP32 support is integrated.
+> > > > 
+> > > > Suggested-by: Yury Norov <ynorov@caviumnetworks.com>
+> > > > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> > > > ---
+> > > > 
+> > > > This patch depends on [1], which does not appear to be applied yet.
+> > > > 
+> > > > [1] [PATCH] arm64: signal: Allow expansion of the signal frame                  http://lists.infradead.org/pipermail/linux-arm-kernel/2017-June/514699.html
+> > 
+> > [...]
+> > 
+> > FYI, [1] above is now merged in arm64 for-next/core, so we shouldn't
+> > have dependency issues with this patch.
+> > 
+> > > > +static int parse_user_sigframe(struct user_ctxs *user,
+> > > > +			       struct rt_sigframe __user const *sf)
+> > > > +{
+> > > > +	return parse_user_sigcontext(user, &sf->uc.uc_mcontext, sf);
+> > > > +}
+> > > > +
+> > > 
+> > > Hi Dave, 
+> > > 
+> > > Thank you. Seems this is what I need. Only one thing. We can #define
+> > > parse_user_sigframe() as macro, and so bypass type control.
+> > > The macro then will be used both by lp64 and ilp32 without any
+> > > modification.
+> > 
+> > For the reasons you already gave, parse_user_sigframe is probably not
+> > the right name for such a macro.  But it otherwise makes sense as an
+> > interface.  Does [2] look OK for you?
+>  
+> Yes, looks good, thank you.
 > 
-> So __p4d is in !CONFIG_PARAVIRT path.
+> > Unless you suggest otherwise, I don't plan to maintain or push this
+> > patch -- I think it makes more sense for you to carry it in the ILP32
+> > series, since that's the only thing that needs it.
 > 
-> Regardless, we use the native_* variants in generic code to mean, not
-> paravirt. Just define it in a separate patch like the rest of the p4*
-> machinery and use it in your code. Sooner or later someone else will
-> need it.
+> I'll just add it to ilp32 series.
 
-Ok, will do.
+OK, thanks
 
-> 
->> True, 5-level will only be turned on for specific hardware which is why
->> I originally had this as only 4-level pagetables. But in a comment from
->> you back on the v5 version you said it needed to support 5-level. I
->> guess we should have discussed this more,
-> 
-> AFAIR, I said something along the lines of "what about 5-level page
-> tables?" and whether we care.
+Let me know if you have any other questions.
 
-My bad, I took the meaning of that question the wrong way then.
-
-Thanks,
-Tom
-
-> 
->> but I also thought that should our hardware ever support 5-level
->> paging in the future then this would be good to go.
-> 
-> There it is :-)
-> 
->> The macros work great if you are not running identity mapped. You could
->> use p*d_offset() to move easily through the tables, but those functions
->> use __va() to generate table virtual addresses. I've seen where
->> boot/compressed/pagetable.c #defines __va() to work with identity mapped
->> pages but that would only work if I create a separate file just for this
->> function.
->>
->> Given when this occurs it's very similar to what __startup_64() does in
->> regards to the IS_ENABLED(CONFIG_X86_5LEVEL) checks.
-> 
-> Ok.
-> 
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Cheers
+---Dave
