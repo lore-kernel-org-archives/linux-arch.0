@@ -1,67 +1,106 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH 3/4] powerpc: Reduce ELF_ET_DYN_BASE
-Date: Mon, 26 Jun 2017 11:26:59 -0700
-Message-ID: <CAGXu5jJKtdgRzdiDhA7XBcsaLQhmFgyQahk1F-zscFQY3pNBUQ@mail.gmail.com>
-References: <1498154792-49952-1-git-send-email-keescook@chromium.org>
- <1498154792-49952-4-git-send-email-keescook@chromium.org> <87podvp4q1.fsf@concordia.ellerman.id.au>
- <CAGXu5jK7aHHRMZyZyrviBF+cLghWcH_D4PX_vMFOycHuF7EdLA@mail.gmail.com> <8737amew79.fsf@concordia.ellerman.id.au>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <8737amew79.fsf@concordia.ellerman.id.au>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, James Hogan <james.hogan@imgtec.com>, Pratyush Anand <panand@redhat.com>, Ingo Molnar <mingo@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, kernel-hardening@lists.openwall.com
-List-Id: linux-arch.vger.kernel.org
+From: Palmer Dabbelt <palmer@dabbelt.com>
+Subject: Re: [PATCH 13/17] RISC-V: Add include subdirectory
+Date: Mon, 26 Jun 2017 13:07:06 -0700 (PDT)
+Message-ID: <mhng-4802f4bb-e93c-4fc5-bbf5-ec11bde39482@palmer-si-x1c4>
+References: <20170607131727.chhlzuu4gysyuqrn@hirez.programming.kicks-ass.net>
+Mime-Version: 1.0 (MHng)
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pf0-f196.google.com ([209.85.192.196]:33479 "EHLO
+        mail-pf0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751425AbdFZUHI (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 26 Jun 2017 16:07:08 -0400
+Received: by mail-pf0-f196.google.com with SMTP id e199so1600623pfh.0
+        for <linux-arch@vger.kernel.org>; Mon, 26 Jun 2017 13:07:07 -0700 (PDT)
+In-Reply-To: <20170607131727.chhlzuu4gysyuqrn@hirez.programming.kicks-ass.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: peterz@infradead.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Olof Johansson <olof@lixom.net>, albert@sifive.com, patches@groups.riscv.org, will.deacon@arm.com
 
-On Mon, Jun 26, 2017 at 6:04 AM, Michael Ellerman <mpe@ellerman.id.au> wrote:
-> Kees Cook <keescook@chromium.org> writes:
+On Wed, 07 Jun 2017 06:17:27 PDT (-0700), peterz@infradead.org wrote:
+> On Tue, Jun 06, 2017 at 04:00:03PM -0700, Palmer Dabbelt wrote:
+>> diff --git a/arch/riscv/include/asm/spinlock.h b/arch/riscv/include/asm/spinlock.h
+>> new file mode 100644
+>> index 000000000000..9736f5714e54
+>> --- /dev/null
+>> +++ b/arch/riscv/include/asm/spinlock.h
+>> @@ -0,0 +1,155 @@
+>> +/*
+>> + * Copyright (C) 2015 Regents of the University of California
+>> + *
+>> + *   This program is free software; you can redistribute it and/or
+>> + *   modify it under the terms of the GNU General Public License
+>> + *   as published by the Free Software Foundation, version 2.
+>> + *
+>> + *   This program is distributed in the hope that it will be useful,
+>> + *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+>> + *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+>> + *   GNU General Public License for more details.
+>> + */
+>> +
+>> +#ifndef _ASM_RISCV_SPINLOCK_H
+>> +#define _ASM_RISCV_SPINLOCK_H
+>> +
+>> +#include <linux/kernel.h>
+>> +#include <asm/current.h>
+>> +
+>> +/*
+>> + * Simple spin lock operations.  These provide no fairness guarantees.
+>> + */
 >
->> On Fri, Jun 23, 2017 at 12:01 AM, Michael Ellerman <mpe@ellerman.id.au> wrote:
->>> Kees Cook <keescook@chromium.org> writes:
->>>
->>>> Now that explicitly executed loaders are loaded in the mmap region,
->>>> position PIE binaries lower in the address space to avoid possible
->>>> collisions with mmap or stack regions. For 64-bit, align to 4GB to
->>>> allow runtimes to use the entire 32-bit address space for 32-bit
->>>> pointers.
->>>
->>> The change log and subject are a bit out of whack with the actual patch
->>> because previously we used 512MB.
->>>
->>> How about?
->>>
->>>   powerpc: Move ELF_ET_DYN_BASE to 4GB / 4MB
->>>
->>>   Now that explicitly executed loaders are loaded in the mmap region,
->>>   we have more freedom to decide where we position PIE binaries in the
->>>   address space to avoid possible collisions with mmap or stack regions.
->>>
->>>   For 64-bit, align to 4GB to allow runtimes to use the entire 32-bit
->>>   address space for 32-bit pointers. On 32-bit use 4MB.
->>
->> Good idea, thanks. I'll resend the series with the commit logs updated.
->>
->>> Is there any particular reasoning behind the 4MB value on 32-bit?
->>
->> So, I've dug around a bit on this, and I *think* the rationale is to
->> avoid mapping a possible 4MB page table entry when it won't be using
->> at least a portion near the lower end (NULL address area covered
->> blocked by mmap_min_addr). It seems to be mainly tradition, though.
+> Any reason to use a test-and-set spinlock at all?
+
+Just simplicity.  I looked at the MIPS ticket lock and I think we can implement
+that while still maintaining the forward progress constraints on our LR/SC
+sequences.  I added a FIXME about it, which I'll try to get around to
+
+  https://github.com/riscv/riscv-linux/commit/a75d28c849e695639b7909ffa88ce571abfb0c76
+
+but I'm going to try and get a v3 patch set out first.
+
+>> +
+>> +#define arch_spin_lock_flags(lock, flags) arch_spin_lock(lock)
+>> +#define arch_spin_is_locked(x)	((x)->lock != 0)
+>> +#define arch_spin_unlock_wait(x) \
+>> +		do { cpu_relax(); } while ((x)->lock)
 >
-> OK, that is obscure, especially for CPUs that don't have a 4MB page
-> size. But consistency across arches is probably best regardless.
+> Hehe, yeah, no ;-) There are ordering constraints on that.
 
-Yeah, I like being not "close" to the NULL address, though the
-definition of "close" has been various values like 64K (mmap_min_addr)
-and 1M (x86 BIOS junk and new stack-gap size). 4MB is above even that,
-so, I think we're fine there. It's what Windows has used, so it's
-familiar and any new attack methodologies would at least be shared
-across OSes and architectures, so we should "notice" any problem with
-the value, and then we can adjust it if we need to.
+OK.  I copied the ordering guarntees from MIPS here
 
--Kees
+  https://github.com/riscv/riscv-linux/commit/7d16920452c6bd14c847aade2d51c56d2a1ae457
 
--- 
-Kees Cook
-Pixel Security
+>> +
+>> +static inline void arch_spin_unlock(arch_spinlock_t *lock)
+>> +{
+>> +	__asm__ __volatile__ (
+>> +		"amoswap.w.rl x0, x0, %0"
+>> +		: "=A" (lock->lock)
+>> +		:: "memory");
+>> +}
+>> +
+>> +static inline int arch_spin_trylock(arch_spinlock_t *lock)
+>> +{
+>> +	int tmp = 1, busy;
+>> +
+>> +	__asm__ __volatile__ (
+>> +		"amoswap.w.aq %0, %2, %1"
+>> +		: "=r" (busy), "+A" (lock->lock)
+>> +		: "r" (tmp)
+>> +		: "memory");
+>> +
+>> +	return !busy;
+>> +}
+>> +
+>> +static inline void arch_spin_lock(arch_spinlock_t *lock)
+>> +{
+>> +	while (1) {
+>> +		if (arch_spin_is_locked(lock))
+>> +			continue;
+>> +
+>> +		if (arch_spin_trylock(lock))
+>> +			break;
+>> +	}
+>> +}
+
+Thanks for all the comments!
