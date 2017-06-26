@@ -1,106 +1,62 @@
 From: Palmer Dabbelt <palmer@dabbelt.com>
 Subject: Re: [PATCH 13/17] RISC-V: Add include subdirectory
-Date: Mon, 26 Jun 2017 13:07:06 -0700 (PDT)
-Message-ID: <mhng-4802f4bb-e93c-4fc5-bbf5-ec11bde39482@palmer-si-x1c4>
-References: <20170607131727.chhlzuu4gysyuqrn@hirez.programming.kicks-ass.net>
+Date: Mon, 26 Jun 2017 13:07:07 -0700 (PDT)
+Message-ID: <mhng-d36dc177-05be-4785-a261-cc59e03d60b5@palmer-si-x1c4>
+References: <20170607125850.zwh3w5s5ce54jcrz@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0 (MHng)
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f196.google.com ([209.85.192.196]:33479 "EHLO
-        mail-pf0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751425AbdFZUHI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 26 Jun 2017 16:07:08 -0400
-Received: by mail-pf0-f196.google.com with SMTP id e199so1600623pfh.0
-        for <linux-arch@vger.kernel.org>; Mon, 26 Jun 2017 13:07:07 -0700 (PDT)
-In-Reply-To: <20170607131727.chhlzuu4gysyuqrn@hirez.programming.kicks-ass.net>
+Received: from mail-pg0-f67.google.com ([74.125.83.67]:35596 "EHLO
+        mail-pg0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751441AbdFZUHJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 26 Jun 2017 16:07:09 -0400
+Received: by mail-pg0-f67.google.com with SMTP id f127so1442003pgc.2
+        for <linux-arch@vger.kernel.org>; Mon, 26 Jun 2017 13:07:09 -0700 (PDT)
+In-Reply-To: <20170607125850.zwh3w5s5ce54jcrz@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: peterz@infradead.org
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Olof Johansson <olof@lixom.net>, albert@sifive.com, patches@groups.riscv.org, will.deacon@arm.com
 
-On Wed, 07 Jun 2017 06:17:27 PDT (-0700), peterz@infradead.org wrote:
-> On Tue, Jun 06, 2017 at 04:00:03PM -0700, Palmer Dabbelt wrote:
->> diff --git a/arch/riscv/include/asm/spinlock.h b/arch/riscv/include/asm/spinlock.h
->> new file mode 100644
->> index 000000000000..9736f5714e54
->> --- /dev/null
->> +++ b/arch/riscv/include/asm/spinlock.h
->> @@ -0,0 +1,155 @@
->> +/*
->> + * Copyright (C) 2015 Regents of the University of California
->> + *
->> + *   This program is free software; you can redistribute it and/or
->> + *   modify it under the terms of the GNU General Public License
->> + *   as published by the Free Software Foundation, version 2.
->> + *
->> + *   This program is distributed in the hope that it will be useful,
->> + *   but WITHOUT ANY WARRANTY; without even the implied warranty of
->> + *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
->> + *   GNU General Public License for more details.
->> + */
->> +
->> +#ifndef _ASM_RISCV_SPINLOCK_H
->> +#define _ASM_RISCV_SPINLOCK_H
->> +
->> +#include <linux/kernel.h>
->> +#include <asm/current.h>
->> +
->> +/*
->> + * Simple spin lock operations.  These provide no fairness guarantees.
->> + */
+On Wed, 07 Jun 2017 05:58:50 PDT (-0700), peterz@infradead.org wrote:
+> On Wed, Jun 07, 2017 at 02:36:27PM +0200, Peter Zijlstra wrote:
+>> Which (pending the sub confusion) will generate the entire set of:
+>>
+>>  atomic_add, atomic_add_return{_relaxed,_acquire,_release,} atomic_fetch_add{_relaxed,_acquire,_release,}
+>>  atomic_sub, atomic_sub_return{_relaxed,_acquire,_release,} atomic_fetch_sub{_relaxed,_acquire,_release,}
+>>
+>>  atomic_and, atomic_fetch_and{_relaxed,_acquire,_release,}
+>>  atomic_or,  atomic_fetch_or{_relaxed,_acquire,_release,}
+>>  atomic_xor, atomic_fetch_xor{_relaxed,_acquire,_release,}
+>>
 >
-> Any reason to use a test-and-set spinlock at all?
-
-Just simplicity.  I looked at the MIPS ticket lock and I think we can implement
-that while still maintaining the forward progress constraints on our LR/SC
-sequences.  I added a FIXME about it, which I'll try to get around to
-
-  https://github.com/riscv/riscv-linux/commit/a75d28c849e695639b7909ffa88ce571abfb0c76
-
-but I'm going to try and get a v3 patch set out first.
-
->> +
->> +#define arch_spin_lock_flags(lock, flags) arch_spin_lock(lock)
->> +#define arch_spin_is_locked(x)	((x)->lock != 0)
->> +#define arch_spin_unlock_wait(x) \
->> +		do { cpu_relax(); } while ((x)->lock)
+> Another approach would be to override __atomic_op_{acquire,release} and
+> use things like:
 >
-> Hehe, yeah, no ;-) There are ordering constraints on that.
+> 	"FENCE r,rw" -- (load) ACQUIRE
+> 	"FENCE rw,w" -- (store) RELEASE
+>
+> And then you only need to provide _relaxed atomics.
+>
+> Also, and I didn't check for that, you need to provide:
+>
+> smp_load_acquire(), smp_store_release(), atomic_read_acquire(),
+> atomic_store_release().
 
-OK.  I copied the ordering guarntees from MIPS here
+OK, thanks for looking so deeply into this.  Sorry it was such a mess, I
+thought I included a note somewhere that this all needed to be redone -- I just
+wanted to get a v2 out first as that split all the drivers out.  I've went
+ahead and completely rewrote atomic.h using your suggestions in a slightly
+modified way.  It includes
 
-  https://github.com/riscv/riscv-linux/commit/7d16920452c6bd14c847aade2d51c56d2a1ae457
+ * _relaxed, _acquire, and _release versions of everything via a bunch of macros.
+ * What I believe to be correct aqrl bits on every op.
+ * 64-bit and 32-bit atomics (as opposed to just copying everything)
 
->> +
->> +static inline void arch_spin_unlock(arch_spinlock_t *lock)
->> +{
->> +	__asm__ __volatile__ (
->> +		"amoswap.w.rl x0, x0, %0"
->> +		: "=A" (lock->lock)
->> +		:: "memory");
->> +}
->> +
->> +static inline int arch_spin_trylock(arch_spinlock_t *lock)
->> +{
->> +	int tmp = 1, busy;
->> +
->> +	__asm__ __volatile__ (
->> +		"amoswap.w.aq %0, %2, %1"
->> +		: "=r" (busy), "+A" (lock->lock)
->> +		: "r" (tmp)
->> +		: "memory");
->> +
->> +	return !busy;
->> +}
->> +
->> +static inline void arch_spin_lock(arch_spinlock_t *lock)
->> +{
->> +	while (1) {
->> +		if (arch_spin_is_locked(lock))
->> +			continue;
->> +
->> +		if (arch_spin_trylock(lock))
->> +			break;
->> +	}
->> +}
+I didn't implement try_cmpxchg yet.  I'm going to go ahead and sort through our
+memory barriers, look at the few remaining CR comments from our v2, and then
+submit a v3 patch set.
 
-Thanks for all the comments!
+I'm only replying to this message, but I believe I'll have taken into account
+all your comments for the v3.
+
+Thanks, again, for your time!
