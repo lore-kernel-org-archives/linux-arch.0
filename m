@@ -1,82 +1,53 @@
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [RFC PATCH] arm64: signal: Make parse_user_sigframe()
- independent of rt_sigframe layout
-Date: Mon, 26 Jun 2017 10:35:21 +0100
-Message-ID: <20170626093518.GG8543@e103592.cambridge.arm.com>
-References: <1498208859-6099-1-git-send-email-Dave.Martin@arm.com>
- <20170625150544.2qsh4hpnmxygmcft@yury-thinkpad>
+From: Jiri Slaby <jslaby@suse.cz>
+Subject: Re: [PATCH 1/1] futex: remove duplicated code and fix UB
+Date: Mon, 26 Jun 2017 14:02:31 +0200
+Message-ID: <80af8d81-4522-de2d-8289-1ab46565505a@suse.cz>
+References: <20170621115318.2781-1-jslaby@suse.cz>
+ <alpine.DEB.2.20.1706230017520.2221@nanos>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:41254 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751353AbdFZJfY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 26 Jun 2017 05:35:24 -0400
-Content-Disposition: inline
-In-Reply-To: <20170625150544.2qsh4hpnmxygmcft@yury-thinkpad>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Yury Norov <ynorov@caviumnetworks.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Content-Type: text/plain; charset=iso-8859-2
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-alpha-owner@vger.kernel.org>
+In-Reply-To: <alpine.DEB.2.20.1706230017520.2221@nanos>
+Content-Language: en-GB
+Sender: linux-alpha-owner@vger.kernel.org
+To: Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>
+Cc: mingo@redhat.com, peterz@infradead.org, dvhart@infradead.org, linux-kernel@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Marti
+List-Id: linux-arch.vger.kernel.org
 
-On Sun, Jun 25, 2017 at 06:05:44PM +0300, Yury Norov wrote:
-> On Fri, Jun 23, 2017 at 10:07:39AM +0100, Dave Martin wrote:
-> > ILP32 support uses the same struct sigcontext as the native ABI
-> > (i.e., LP64), but a different layout for the rest of the signal
-> > frame (since siginfo_t and ucontext_t are both ABI-dependent).
-> > 
-> > Since the purpose of parse_user_sigframe() is really to parse
-> > sigcontext and not the whole signal frame, the function does not
-> > need to depend on the layout of rt_sigframe -- the only purpose of
-> > the rt_sigframe pointer is for use as a base to measure the signal
-> > frame size.
-> > 
-> > So, this patch renames the function to parse_user_sigcontext() and
-> > makes the sigframe base pointer generic.  ABI-specific parsers that
-> > share the same sigcontext definition can then call it.
-> > 
-> > To minimise churn in this patch, the native LP64 parser is retained
-> > under the old name, but becomes a call to parse_user_sigconext().
-> > It may make sense instead to fold this into its restore_sigframe(),
-> > depending on how ILP32 support is integrated.
-> > 
-> > Suggested-by: Yury Norov <ynorov@caviumnetworks.com>
-> > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> > ---
-> > 
-> > This patch depends on [1], which does not appear to be applied yet.
-> > 
-> > [1] [PATCH] arm64: signal: Allow expansion of the signal frame                  http://lists.infradead.org/pipermail/linux-arm-kernel/2017-June/514699.html
-
-[...]
-
-FYI, [1] above is now merged in arm64 for-next/core, so we shouldn't
-have dependency issues with this patch.
-
-> > +static int parse_user_sigframe(struct user_ctxs *user,
-> > +			       struct rt_sigframe __user const *sf)
-> > +{
-> > +	return parse_user_sigcontext(user, &sf->uc.uc_mcontext, sf);
-> > +}
-> > +
+On 06/23/2017, 09:51 AM, Thomas Gleixner wrote:
+> On Wed, 21 Jun 2017, Jiri Slaby wrote:
+>> diff --git a/arch/arm64/include/asm/futex.h b/arch/arm64/include/asm/futex.h
+>> index f32b42e8725d..5bb2fd4674e7 100644
+>> --- a/arch/arm64/include/asm/futex.h
+>> +++ b/arch/arm64/include/asm/futex.h
+>> @@ -48,20 +48,10 @@ do {									\
+>>  } while (0)
+>>  
+>>  static inline int
+>> -futex_atomic_op_inuser(unsigned int encoded_op, u32 __user *uaddr)
 > 
-> Hi Dave, 
-> 
-> Thank you. Seems this is what I need. Only one thing. We can #define
-> parse_user_sigframe() as macro, and so bypass type control.
-> The macro then will be used both by lp64 and ilp32 without any
-> modification.
+> That unsigned int seems to be a change from the arm64 tree in next. It's
+> not upstream and it'll cause a (easy to resolve) conflict.
 
-For the reasons you already gave, parse_user_sigframe is probably not
-the right name for such a macro.  But it otherwise makes sense as an
-interface.  Does [2] look OK for you?
+Ugh, I thought the arm64 is in upstream already. Note that this patch
+just takes what is in this arm64 fix and makes it effective for all
+architectures. So I will wait with v2 until it merges upstream.
 
-Unless you suggest otherwise, I don't plan to maintain or push this
-patch -- I think it makes more sense for you to carry it in the ILP32
-series, since that's the only thing that needs it.
+So, Will, will you incorporate Thomas' comments into your arm64 fix?
 
-Cheers
----Dave
+...
 
-[2] [RFC PATCH v2] arm64: signal: Make parse_user_sigframe() independent of rt_sigframe layout
-http://lists.infradead.org/pipermail/linux-arm-kernel/2017-June/515746.html
+> Yes, we probably can't change that anymore, but at least we should make it
+> very explicit and add a comment to that effect.
+
+Something like this or do you want a comment yet?
+        unsigned int op =         (encoded_op & 0x70000000) >> 28;
+        unsigned int cmp =        (encoded_op & 0x0f000000) >> 24;
+        int oparg = sign_extend32((encoded_op & 0x00fff000) >> 12, 12);
+        int cmparg = sign_extend32(encoded_op & 0x00000fff, 12);
+
+thanks,
+-- 
+js
+suse labs
