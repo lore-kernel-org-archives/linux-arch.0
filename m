@@ -1,58 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from lelnx193.ext.ti.com ([198.47.27.77]:29619 "EHLO
-        lelnx193.ext.ti.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751361AbdFZIz1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 26 Jun 2017 04:55:27 -0400
-Subject: Re: [PATCH 6/7] drm/tilcdc: clean up ifdef hacks around iowrite64
-References: <20170622164817.25515-1-logang@deltatee.com>
- <20170622164817.25515-7-logang@deltatee.com>
-From: Jyri Sarha <jsarha@ti.com>
-Message-ID: <504da99a-838c-48ec-c5b2-6b611d587a10@ti.com>
-Date: Mon, 26 Jun 2017 11:55:03 +0300
+Received: from mail-wm0-f68.google.com ([74.125.82.68]:34066 "EHLO
+        mail-wm0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751415AbdFZMCh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 26 Jun 2017 08:02:37 -0400
+Subject: Re: [PATCH 1/1] futex: remove duplicated code and fix UB
+References: <20170621115318.2781-1-jslaby@suse.cz>
+ <alpine.DEB.2.20.1706230017520.2221@nanos>
+From: Jiri Slaby <jslaby@suse.cz>
+Message-ID: <80af8d81-4522-de2d-8289-1ab46565505a@suse.cz>
+Date: Mon, 26 Jun 2017 14:02:31 +0200
 MIME-Version: 1.0
-In-Reply-To: <20170622164817.25515-7-logang@deltatee.com>
-Content-Type: text/plain; charset="utf-8"
+In-Reply-To: <alpine.DEB.2.20.1706230017520.2221@nanos>
+Content-Type: text/plain; charset=iso-8859-2
 Content-Language: en-GB
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Logan Gunthorpe <logang@deltatee.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-alpha@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-crypto@vger.kernel.org, dri-devel@lists.freedesktop.org
-Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Stephen Bates <sbates@raithlin.com>, Tomi Valkeinen <tomi.valkeinen@ti.com>, David Airlie <airlied@linux.ie>
-Message-ID: <20170626085503.kPs0JF3MXZKXzdc2czvZu7vnf0583_9kI0p2JsCxA7s@z>
+To: Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>
+Cc: mingo@redhat.com, peterz@infradead.org, dvhart@infradead.org, linux-kernel@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, "H. Peter Anvin" <hpa@zytor.com>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org
+Message-ID: <20170626120231.fmdnwccNGtcrUsruzg5Wdn0iGie9S6mHSF0l9-a5Jq8@z>
 
-On 06/22/17 19:48, Logan Gunthorpe wrote:
-> Now that we can expect iowrite64 to always exist the hack is no longer
-> necessary so we just call iowrite64 directly.
+On 06/23/2017, 09:51 AM, Thomas Gleixner wrote:
+> On Wed, 21 Jun 2017, Jiri Slaby wrote:
+>> diff --git a/arch/arm64/include/asm/futex.h b/arch/arm64/include/asm/futex.h
+>> index f32b42e8725d..5bb2fd4674e7 100644
+>> --- a/arch/arm64/include/asm/futex.h
+>> +++ b/arch/arm64/include/asm/futex.h
+>> @@ -48,20 +48,10 @@ do {									\
+>>  } while (0)
+>>  
+>>  static inline int
+>> -futex_atomic_op_inuser(unsigned int encoded_op, u32 __user *uaddr)
 > 
-> Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
-> Cc: Jyri Sarha <jsarha@ti.com>
-> Cc: Tomi Valkeinen <tomi.valkeinen@ti.com>
-> Cc: David Airlie <airlied@linux.ie>
+> That unsigned int seems to be a change from the arm64 tree in next. It's
+> not upstream and it'll cause a (easy to resolve) conflict.
 
-Acked-by: Jyri Sarha <jsarha@ti.com>
+Ugh, I thought the arm64 is in upstream already. Note that this patch
+just takes what is in this arm64 fix and makes it effective for all
+architectures. So I will wait with v2 until it merges upstream.
 
-And thanks!
+So, Will, will you incorporate Thomas' comments into your arm64 fix?
 
-> ---
->  drivers/gpu/drm/tilcdc/tilcdc_regs.h | 6 ------
->  1 file changed, 6 deletions(-)
-> 
-> diff --git a/drivers/gpu/drm/tilcdc/tilcdc_regs.h b/drivers/gpu/drm/tilcdc/tilcdc_regs.h
-> index e9ce725698a9..0b901405f30a 100644
-> --- a/drivers/gpu/drm/tilcdc/tilcdc_regs.h
-> +++ b/drivers/gpu/drm/tilcdc/tilcdc_regs.h
-> @@ -133,13 +133,7 @@ static inline void tilcdc_write64(struct drm_device *dev, u32 reg, u64 data)
->  	struct tilcdc_drm_private *priv = dev->dev_private;
->  	void __iomem *addr = priv->mmio + reg;
->  
-> -#ifdef iowrite64
->  	iowrite64(data, addr);
-> -#else
-> -	__iowmb();
-> -	/* This compiles to strd (=64-bit write) on ARM7 */
-> -	*(u64 __force *)addr = __cpu_to_le64(data);
-> -#endif
->  }
->  
->  static inline u32 tilcdc_read(struct drm_device *dev, u32 reg)
-> 
+...
+
+> Yes, we probably can't change that anymore, but at least we should make it
+> very explicit and add a comment to that effect.
+
+Something like this or do you want a comment yet?
+        unsigned int op =         (encoded_op & 0x70000000) >> 28;
+        unsigned int cmp =        (encoded_op & 0x0f000000) >> 24;
+        int oparg = sign_extend32((encoded_op & 0x00fff000) >> 12, 12);
+        int cmparg = sign_extend32(encoded_op & 0x00000fff, 12);
+
+thanks,
+-- 
+js
+suse labs
