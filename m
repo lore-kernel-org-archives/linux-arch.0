@@ -1,74 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-dm3nam03on0079.outbound.protection.outlook.com ([104.47.41.79]:29856
-        "EHLO NAM03-DM3-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751386AbdFZQfL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 26 Jun 2017 12:35:11 -0400
-Subject: Re: [PATCH v7 34/36] x86/mm: Add support to encrypt the kernel
- in-place
-References: <20170616184947.18967.84890.stgit@tlendack-t1.amdoffice.net>
- <20170616185619.18967.38945.stgit@tlendack-t1.amdoffice.net>
- <20170623100013.upd4or6esjvulmvg@pd.tnic>
- <af9a50f7-17ea-a840-6456-b6479e5d7e82@amd.com>
- <20170626154543.fsuxfhxidytgo2ia@pd.tnic>
-From: Tom Lendacky <thomas.lendacky@amd.com>
-Message-ID: <aed44ee3-dd6c-e6e1-4de5-5629bf61e688@amd.com>
-Date: Mon, 26 Jun 2017 11:34:49 -0500
+Received: from mail-it0-f53.google.com ([209.85.214.53]:37376 "EHLO
+        mail-it0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751432AbdFZS1E (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 26 Jun 2017 14:27:04 -0400
+Received: by mail-it0-f53.google.com with SMTP id m84so3419082ita.0
+        for <linux-arch@vger.kernel.org>; Mon, 26 Jun 2017 11:27:04 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <20170626154543.fsuxfhxidytgo2ia@pd.tnic>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <8737amew79.fsf@concordia.ellerman.id.au>
+References: <1498154792-49952-1-git-send-email-keescook@chromium.org>
+ <1498154792-49952-4-git-send-email-keescook@chromium.org> <87podvp4q1.fsf@concordia.ellerman.id.au>
+ <CAGXu5jK7aHHRMZyZyrviBF+cLghWcH_D4PX_vMFOycHuF7EdLA@mail.gmail.com> <8737amew79.fsf@concordia.ellerman.id.au>
+From: Kees Cook <keescook@chromium.org>
+Date: Mon, 26 Jun 2017 11:26:59 -0700
+Message-ID: <CAGXu5jJKtdgRzdiDhA7XBcsaLQhmFgyQahk1F-zscFQY3pNBUQ@mail.gmail.com>
+Subject: Re: [PATCH 3/4] powerpc: Reduce ELF_ET_DYN_BASE
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>
-Message-ID: <20170626163449.zat_iJN2_rzdPzI6A1jzHE4MEn1o4bPLDpnGS0YU5ZI@z>
+To: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, James Hogan <james.hogan@imgtec.com>, Pratyush Anand <panand@redhat.com>, Ingo Molnar <mingo@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
+Message-ID: <20170626182659.Qd6GPSZ3alklw-DA1QYoOi3AJ6pkFPNLrSuq1VEAbzA@z>
 
-On 6/26/2017 10:45 AM, Borislav Petkov wrote:
-> On Fri, Jun 23, 2017 at 12:44:46PM -0500, Tom Lendacky wrote:
->> Normally the __p4d() macro would be used and that would be ok whether
->> CONFIG_X86_5LEVEL is defined or not. But since __p4d() is part of the
->> paravirt ops path I have to use native_make_p4d().
-> 
-> So __p4d is in !CONFIG_PARAVIRT path.
-> 
-> Regardless, we use the native_* variants in generic code to mean, not
-> paravirt. Just define it in a separate patch like the rest of the p4*
-> machinery and use it in your code. Sooner or later someone else will
-> need it.
-
-Ok, will do.
-
-> 
->> True, 5-level will only be turned on for specific hardware which is why
->> I originally had this as only 4-level pagetables. But in a comment from
->> you back on the v5 version you said it needed to support 5-level. I
->> guess we should have discussed this more,
-> 
-> AFAIR, I said something along the lines of "what about 5-level page
-> tables?" and whether we care.
-
-My bad, I took the meaning of that question the wrong way then.
-
-Thanks,
-Tom
-
-> 
->> but I also thought that should our hardware ever support 5-level
->> paging in the future then this would be good to go.
-> 
-> There it is :-)
-> 
->> The macros work great if you are not running identity mapped. You could
->> use p*d_offset() to move easily through the tables, but those functions
->> use __va() to generate table virtual addresses. I've seen where
->> boot/compressed/pagetable.c #defines __va() to work with identity mapped
->> pages but that would only work if I create a separate file just for this
->> function.
+On Mon, Jun 26, 2017 at 6:04 AM, Michael Ellerman <mpe@ellerman.id.au> wrote:
+> Kees Cook <keescook@chromium.org> writes:
+>
+>> On Fri, Jun 23, 2017 at 12:01 AM, Michael Ellerman <mpe@ellerman.id.au> wrote:
+>>> Kees Cook <keescook@chromium.org> writes:
+>>>
+>>>> Now that explicitly executed loaders are loaded in the mmap region,
+>>>> position PIE binaries lower in the address space to avoid possible
+>>>> collisions with mmap or stack regions. For 64-bit, align to 4GB to
+>>>> allow runtimes to use the entire 32-bit address space for 32-bit
+>>>> pointers.
+>>>
+>>> The change log and subject are a bit out of whack with the actual patch
+>>> because previously we used 512MB.
+>>>
+>>> How about?
+>>>
+>>>   powerpc: Move ELF_ET_DYN_BASE to 4GB / 4MB
+>>>
+>>>   Now that explicitly executed loaders are loaded in the mmap region,
+>>>   we have more freedom to decide where we position PIE binaries in the
+>>>   address space to avoid possible collisions with mmap or stack regions.
+>>>
+>>>   For 64-bit, align to 4GB to allow runtimes to use the entire 32-bit
+>>>   address space for 32-bit pointers. On 32-bit use 4MB.
 >>
->> Given when this occurs it's very similar to what __startup_64() does in
->> regards to the IS_ENABLED(CONFIG_X86_5LEVEL) checks.
-> 
-> Ok.
-> 
+>> Good idea, thanks. I'll resend the series with the commit logs updated.
+>>
+>>> Is there any particular reasoning behind the 4MB value on 32-bit?
+>>
+>> So, I've dug around a bit on this, and I *think* the rationale is to
+>> avoid mapping a possible 4MB page table entry when it won't be using
+>> at least a portion near the lower end (NULL address area covered
+>> blocked by mmap_min_addr). It seems to be mainly tradition, though.
+>
+> OK, that is obscure, especially for CPUs that don't have a 4MB page
+> size. But consistency across arches is probably best regardless.
+
+Yeah, I like being not "close" to the NULL address, though the
+definition of "close" has been various values like 64K (mmap_min_addr)
+and 1M (x86 BIOS junk and new stack-gap size). 4MB is above even that,
+so, I think we're fine there. It's what Windows has used, so it's
+familiar and any new attack methodologies would at least be shared
+across OSes and architectures, so we should "notice" any problem with
+the value, and then we can adjust it if we need to.
+
+-Kees
+
+-- 
+Kees Cook
+Pixel Security
