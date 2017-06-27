@@ -1,162 +1,94 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f195.google.com ([209.85.220.195]:33293 "EHLO
-        mail-qk0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751632AbdF0KML (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 27 Jun 2017 06:12:11 -0400
+Received: from mail-qt0-f196.google.com ([209.85.216.196]:34030 "EHLO
+        mail-qt0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752860AbdF0KM7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 27 Jun 2017 06:12:59 -0400
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v4 00/17] powerpc: Memory Protection Keys
-Date: Tue, 27 Jun 2017 03:11:42 -0700
-Message-ID: <1498558319-32466-1-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v4 17/17] procfs: display the protection-key number associated with a vma
+Date: Tue, 27 Jun 2017 03:11:59 -0700
+Message-ID: <1498558319-32466-18-git-send-email-linuxram@us.ibm.com>
+In-Reply-To: <1498558319-32466-1-git-send-email-linuxram@us.ibm.com>
+References: <1498558319-32466-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
-Message-ID: <20170627101142.vgR1Svu8hsinp0jEU72MmYbPJSACFeiYqqDZd6jZ6mo@z>
+Message-ID: <20170627101159.pdbfwBnEJoG1GPhAG5OpFUBdH_W7M-5hjTb8EMvzYoc@z>
 
-Memory protection keys enable applications to protect its
-address space from inadvertent access or corruption from
-itself.
+Display the pkey number associated with the vma in smaps of a task.
+The key will be seen as below:
 
-The overall idea:
+VmFlags: rd wr mr mw me dw ac key=0
 
- A process allocates a   key  and associates it with
- a  address  range  within    its   address   space.
- The process  than  can  dynamically  set read/write 
- permissions on  the   key   without  involving  the 
- kernel. Any  code that  violates   the  permissions
- off the address space; as defined by its associated
- key, will receive a segmentation fault.
+Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+---
+ Documentation/filesystems/proc.txt |  3 ++-
+ fs/proc/task_mmu.c                 | 22 +++++++++++-----------
+ 2 files changed, 13 insertions(+), 12 deletions(-)
 
-This patch series enables the feature on PPC64 HPTE
-platform.
-
-ISA3.0 section 5.7.13 describes the detailed specifications.
-
-
-Testing:
-	This patch series has passed all the protection key
-	tests available in  the selftests directory.
-	The tests are updated to work on both x86 and powerpc.
-
-version v4:
-	(1) patches no more depend on the pte bits to program
-		the hpte -- comment by Balbir
-	(2) documentation updates
-	(3) fixed a bug in the selftest.
-	(4) unlike x86, powerpc lets signal handler change key
-	    permission bits; the change will persist across
-	    signal handler boundaries. Earlier we allowed
-	    the signal handler to modify a field in the siginfo
-	    structure which would than be used by the kernel
-	    to program the key protection register (AMR)
-       		-- resolves a issue raised by Ben.
-    		"Calls to sys_swapcontext with a made-up context
-	        will end up with a crap AMR if done by code who
-	       	didn't know about that register".
-	(5) these changes enable protection keys on 4k-page 
-		kernel aswell.
-
-version v3:
-	(1) split the patches into smaller consumable
-		patches.
-	(2) added the ability to disable execute permission
-		on a key at creation.
-	(3) rename  calc_pte_to_hpte_pkey_bits() to
-	    pte_to_hpte_pkey_bits() -- suggested by Anshuman
-	(4) some code optimization and clarity in
-		do_page_fault()  
-	(5) A bug fix while invalidating a hpte slot in 
-		__hash_page_4K() -- noticed by Aneesh
-	
-
-version v2:
-	(1) documentation and selftest added
- 	(2) fixed a bug in 4k hpte backed 64k pte where page
-	    invalidation was not done correctly, and 
-	    initialization of second-part-of-the-pte was not
-	    done correctly if the pte was not yet Hashed
-	    with a hpte.  Reported by Aneesh.
-	(3) Fixed ABI breakage caused in siginfo structure.
-		Reported by Anshuman.
-	
-
-version v1: Initial version
-
-Ram Pai (17):
-  mm: introduce an additional vma bit for powerpc pkey
-  mm: ability to disable execute permission on a key at creation
-  x86: key creation with PKEY_DISABLE_EXECUTE disallowed
-  powerpc: Implement sys_pkey_alloc and sys_pkey_free system call
-  powerpc: store and restore the pkey state across context switches
-  powerpc: Implementation for sys_mprotect_pkey() system call
-  powerpc: make the hash functions protection-key aware
-  powerpc: Program HPTE key protection bits
-  powerpc: call the hash functions with the correct pkey value
-  powerpc: Macro the mask used for checking DSI exception
-  powerpc: Handle exceptions caused by pkey violation
-  powerpc: Deliver SEGV signal on pkey violation
-  selftest: Move protecton key selftest to arch neutral directory
-  selftest: PowerPC specific test updates to memory protection keys
-  Documentation: Move protecton key documentation to arch neutral
-    directory
-  Documentation: PowerPC specific updates to memory protection keys
-  procfs: display the protection-key number associated with a vma
-
- Documentation/filesystems/proc.txt            |    3 +-
- Documentation/vm/protection-keys.txt          |  134 +++
- Documentation/x86/protection-keys.txt         |   85 --
- Makefile                                      |    2 +-
- arch/powerpc/Kconfig                          |   15 +
- arch/powerpc/include/asm/book3s/64/hash.h     |    2 +-
- arch/powerpc/include/asm/book3s/64/mmu-hash.h |   19 +-
- arch/powerpc/include/asm/book3s/64/mmu.h      |   10 +
- arch/powerpc/include/asm/book3s/64/pgtable.h  |   62 ++
- arch/powerpc/include/asm/mman.h               |    8 +-
- arch/powerpc/include/asm/mmu_context.h        |   12 +
- arch/powerpc/include/asm/paca.h               |    1 +
- arch/powerpc/include/asm/pkeys.h              |  159 +++
- arch/powerpc/include/asm/processor.h          |    5 +
- arch/powerpc/include/asm/reg.h                |    7 +-
- arch/powerpc/include/asm/systbl.h             |    3 +
- arch/powerpc/include/asm/unistd.h             |    6 +-
- arch/powerpc/include/uapi/asm/ptrace.h        |    3 +-
- arch/powerpc/include/uapi/asm/unistd.h        |    3 +
- arch/powerpc/kernel/asm-offsets.c             |    5 +
- arch/powerpc/kernel/exceptions-64s.S          |   18 +-
- arch/powerpc/kernel/process.c                 |   18 +
- arch/powerpc/kernel/signal_32.c               |    5 +
- arch/powerpc/kernel/signal_64.c               |    4 +
- arch/powerpc/kernel/traps.c                   |   49 +
- arch/powerpc/mm/Makefile                      |    1 +
- arch/powerpc/mm/fault.c                       |   22 +
- arch/powerpc/mm/hash64_4k.c                   |    4 +-
- arch/powerpc/mm/hash64_64k.c                  |    8 +-
- arch/powerpc/mm/hash_utils_64.c               |   42 +-
- arch/powerpc/mm/hugepage-hash64.c             |    4 +-
- arch/powerpc/mm/hugetlbpage-hash64.c          |    5 +-
- arch/powerpc/mm/mem.c                         |    7 +
- arch/powerpc/mm/mmu_context_book3s64.c        |    5 +
- arch/powerpc/mm/mmu_decl.h                    |    5 +-
- arch/powerpc/mm/pkeys.c                       |  256 +++++
- arch/x86/kernel/fpu/xstate.c                  |    3 +
- fs/proc/task_mmu.c                            |   18 +-
- include/linux/mm.h                            |   18 +-
- include/uapi/asm-generic/mman-common.h        |    4 +-
- tools/testing/selftests/vm/Makefile           |    1 +
- tools/testing/selftests/vm/pkey-helpers.h     |  365 ++++++
- tools/testing/selftests/vm/protection_keys.c  | 1488 +++++++++++++++++++++++++
- tools/testing/selftests/x86/Makefile          |    2 +-
- tools/testing/selftests/x86/pkey-helpers.h    |  219 ----
- tools/testing/selftests/x86/protection_keys.c | 1395 -----------------------
- 46 files changed, 2755 insertions(+), 1755 deletions(-)
- create mode 100644 Documentation/vm/protection-keys.txt
- delete mode 100644 Documentation/x86/protection-keys.txt
- create mode 100644 arch/powerpc/include/asm/pkeys.h
- create mode 100644 arch/powerpc/mm/pkeys.c
- create mode 100644 tools/testing/selftests/vm/pkey-helpers.h
- create mode 100644 tools/testing/selftests/vm/protection_keys.c
- delete mode 100644 tools/testing/selftests/x86/pkey-helpers.h
- delete mode 100644 tools/testing/selftests/x86/protection_keys.c
-
+diff --git a/Documentation/filesystems/proc.txt b/Documentation/filesystems/proc.txt
+index 4cddbce..a8c74aa 100644
+--- a/Documentation/filesystems/proc.txt
++++ b/Documentation/filesystems/proc.txt
+@@ -423,7 +423,7 @@ SwapPss:               0 kB
+ KernelPageSize:        4 kB
+ MMUPageSize:           4 kB
+ Locked:                0 kB
+-VmFlags: rd ex mr mw me dw
++VmFlags: rd ex mr mw me dw key=<num>
+ 
+ the first of these lines shows the same information as is displayed for the
+ mapping in /proc/PID/maps.  The remaining lines show the size of the mapping
+@@ -491,6 +491,7 @@ manner. The codes are the following:
+     hg  - huge page advise flag
+     nh  - no-huge page advise flag
+     mg  - mergable advise flag
++    key=<num> - the memory protection key number
+ 
+ Note that there is no guarantee that every flag and associated mnemonic will
+ be present in all further kernel releases. Things get changed, the flags may
+diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
+index 2ddc298..d2eb096 100644
+--- a/fs/proc/task_mmu.c
++++ b/fs/proc/task_mmu.c
+@@ -1,4 +1,6 @@
+ #include <linux/mm.h>
++#include <linux/pkeys.h>
++#include <linux/huge_mm.h>
+ #include <linux/vmacache.h>
+ #include <linux/hugetlb.h>
+ #include <linux/huge_mm.h>
+@@ -666,22 +668,20 @@ static void show_smap_vma_flags(struct seq_file *m, struct vm_area_struct *vma)
+ 		[ilog2(VM_MERGEABLE)]	= "mg",
+ 		[ilog2(VM_UFFD_MISSING)]= "um",
+ 		[ilog2(VM_UFFD_WP)]	= "uw",
+-#ifdef CONFIG_ARCH_HAS_PKEYS
+-		/* These come out via ProtectionKey: */
+-		[ilog2(VM_PKEY_BIT0)]	= "",
+-		[ilog2(VM_PKEY_BIT1)]	= "",
+-		[ilog2(VM_PKEY_BIT2)]	= "",
+-		[ilog2(VM_PKEY_BIT3)]	= "",
+-#endif /* CONFIG_ARCH_HAS_PKEYS */
+-#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
+-		/* Additional bit in ProtectionKey: */
+-		[ilog2(VM_PKEY_BIT4)]	= "",
+-#endif
+ 	};
+ 	size_t i;
+ 
+ 	seq_puts(m, "VmFlags: ");
+ 	for (i = 0; i < BITS_PER_LONG; i++) {
++#ifdef CONFIG_ARCH_HAS_PKEYS
++		if (i == ilog2(VM_PKEY_BIT0)) {
++			int keyvalue = vma_pkey(vma);
++
++			i += ilog2(arch_max_pkey())-1;
++			seq_printf(m, "key=%d ", keyvalue);
++			continue;
++		}
++#endif /* CONFIG_ARCH_HAS_PKEYS */
+ 		if (!mnemonics[i][0])
+ 			continue;
+ 		if (vma->vm_flags & (1UL << i)) {
 -- 
 1.8.3.1
