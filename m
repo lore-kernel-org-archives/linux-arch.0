@@ -1,16 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-cys01nam02on0084.outbound.protection.outlook.com ([104.47.37.84]:24800
-        "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
+Received: from mail-dm3nam03on0083.outbound.protection.outlook.com ([104.47.41.83]:53417
+        "EHLO NAM03-DM3-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752665AbdF0PIy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 27 Jun 2017 11:08:54 -0400
+        id S1752128AbdF0PBk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 27 Jun 2017 11:01:40 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v8 RESEND 08/38] x86/mm: Add support to enable SME in early
- boot processing
-Date: Tue, 27 Jun 2017 10:08:43 -0500
-Message-ID: <20170627150843.17428.77939.stgit@tlendack-t1.amdoffice.net>
-In-Reply-To: <20170627150718.17428.81813.stgit@tlendack-t1.amdoffice.net>
-References: <20170627150718.17428.81813.stgit@tlendack-t1.amdoffice.net>
+Subject: [PATCH v8 30/38] kvm: x86: svm: Support Secure Memory Encryption
+ within KVM
+Date: Tue, 27 Jun 2017 10:01:31 -0500
+Message-ID: <20170627150131.15908.22634.stgit@tlendack-t1.amdoffice.net>
+In-Reply-To: <20170627145607.15908.26571.stgit@tlendack-t1.amdoffice.net>
+References: <20170627145607.15908.26571.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
@@ -18,241 +18,271 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>
-Message-ID: <20170627150843.glFhFY6GvJG6fal7PFKuywk9vDIdGKAXmsfxNsoZ6lE@z>
+Message-ID: <20170627150131.61pGdx5X83VLFfsDEDD4VvExVCfqBr6eLz8ZwFmj97k@z>
 
-Add support to the early boot code to use Secure Memory Encryption (SME).
-Since the kernel has been loaded into memory in a decrypted state, encrypt
-the kernel in place and update the early pagetables with the memory
-encryption mask so that new pagetable entries will use memory encryption.
+Update the KVM support to work with SME. The VMCB has a number of fields
+where physical addresses are used and these addresses must contain the
+memory encryption mask in order to properly access the encrypted memory.
+Also, use the memory encryption mask when creating and using the nested
+page tables.
 
-The routines to set the encryption mask and perform the encryption are
-stub routines for now with functionality to be added in a later patch.
-
+Reviewed-by: Borislav Petkov <bp@suse.de>
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/include/asm/mem_encrypt.h |    8 +++++
- arch/x86/kernel/head64.c           |   53 +++++++++++++++++++++++++++++-------
- arch/x86/kernel/head_64.S          |   20 ++++++++++++--
- arch/x86/mm/mem_encrypt.c          |    9 ++++++
- include/linux/mem_encrypt.h        |    5 +++
- 5 files changed, 82 insertions(+), 13 deletions(-)
+ arch/x86/include/asm/kvm_host.h |    2 +-
+ arch/x86/kvm/mmu.c              |   12 ++++++++----
+ arch/x86/kvm/mmu.h              |    2 +-
+ arch/x86/kvm/svm.c              |   35 ++++++++++++++++++-----------------
+ arch/x86/kvm/vmx.c              |    3 ++-
+ arch/x86/kvm/x86.c              |    3 ++-
+ 6 files changed, 32 insertions(+), 25 deletions(-)
 
-diff --git a/arch/x86/include/asm/mem_encrypt.h b/arch/x86/include/asm/mem_encrypt.h
-index a105796..475e34f 100644
---- a/arch/x86/include/asm/mem_encrypt.h
-+++ b/arch/x86/include/asm/mem_encrypt.h
-@@ -15,14 +15,22 @@
+diff --git a/arch/x86/include/asm/kvm_host.h b/arch/x86/include/asm/kvm_host.h
+index 695605e..6d1267f 100644
+--- a/arch/x86/include/asm/kvm_host.h
++++ b/arch/x86/include/asm/kvm_host.h
+@@ -1069,7 +1069,7 @@ struct kvm_arch_async_pf {
+ void kvm_mmu_uninit_vm(struct kvm *kvm);
+ void kvm_mmu_set_mask_ptes(u64 user_mask, u64 accessed_mask,
+ 		u64 dirty_mask, u64 nx_mask, u64 x_mask, u64 p_mask,
+-		u64 acc_track_mask);
++		u64 acc_track_mask, u64 me_mask);
  
- #ifndef __ASSEMBLY__
+ void kvm_mmu_reset_context(struct kvm_vcpu *vcpu);
+ void kvm_mmu_slot_remove_write_access(struct kvm *kvm,
+diff --git a/arch/x86/kvm/mmu.c b/arch/x86/kvm/mmu.c
+index cb82259..e85888c 100644
+--- a/arch/x86/kvm/mmu.c
++++ b/arch/x86/kvm/mmu.c
+@@ -107,7 +107,7 @@ enum {
+ 	(((address) >> PT32_LEVEL_SHIFT(level)) & ((1 << PT32_LEVEL_BITS) - 1))
  
-+#include <linux/init.h>
-+
- #ifdef CONFIG_AMD_MEM_ENCRYPT
  
- extern unsigned long sme_me_mask;
+-#define PT64_BASE_ADDR_MASK (((1ULL << 52) - 1) & ~(u64)(PAGE_SIZE-1))
++#define PT64_BASE_ADDR_MASK __sme_clr((((1ULL << 52) - 1) & ~(u64)(PAGE_SIZE-1)))
+ #define PT64_DIR_BASE_ADDR_MASK \
+ 	(PT64_BASE_ADDR_MASK & ~((1ULL << (PAGE_SHIFT + PT64_LEVEL_BITS)) - 1))
+ #define PT64_LVL_ADDR_MASK(level) \
+@@ -125,7 +125,7 @@ enum {
+ 					    * PT32_LEVEL_BITS))) - 1))
  
-+void __init sme_encrypt_kernel(void);
-+void __init sme_enable(void);
-+
- #else	/* !CONFIG_AMD_MEM_ENCRYPT */
+ #define PT64_PERM_MASK (PT_PRESENT_MASK | PT_WRITABLE_MASK | shadow_user_mask \
+-			| shadow_x_mask | shadow_nx_mask)
++			| shadow_x_mask | shadow_nx_mask | shadow_me_mask)
  
- #define sme_me_mask	0UL
- 
-+static inline void __init sme_encrypt_kernel(void) { }
-+static inline void __init sme_enable(void) { }
-+
- #endif	/* CONFIG_AMD_MEM_ENCRYPT */
- 
- #endif	/* __ASSEMBLY__ */
-diff --git a/arch/x86/kernel/head64.c b/arch/x86/kernel/head64.c
-index 46c3c73..1f0ddcc 100644
---- a/arch/x86/kernel/head64.c
-+++ b/arch/x86/kernel/head64.c
-@@ -14,6 +14,7 @@
- #include <linux/start_kernel.h>
- #include <linux/io.h>
- #include <linux/memblock.h>
-+#include <linux/mem_encrypt.h>
- 
- #include <asm/processor.h>
- #include <asm/proto.h>
-@@ -45,9 +46,10 @@ static void __head *fixup_pointer(void *ptr, unsigned long physaddr)
- 	return ptr - (void *)_text + (void *)physaddr;
- }
- 
--void __head __startup_64(unsigned long physaddr)
-+unsigned long __head __startup_64(unsigned long physaddr)
- {
- 	unsigned long load_delta, *p;
-+	unsigned long pgtable_flags;
- 	pgdval_t *pgd;
- 	p4dval_t *p4d;
- 	pudval_t *pud;
-@@ -68,6 +70,12 @@ void __head __startup_64(unsigned long physaddr)
- 	if (load_delta & ~PMD_PAGE_MASK)
- 		for (;;);
- 
-+	/* Activate Secure Memory Encryption (SME) if supported and enabled */
-+	sme_enable();
-+
-+	/* Include the SME encryption mask in the fixup value */
-+	load_delta += sme_get_me_mask();
-+
- 	/* Fixup the physical addresses in the page table */
- 
- 	pgd = fixup_pointer(&early_top_pgt, physaddr);
-@@ -94,28 +102,30 @@ void __head __startup_64(unsigned long physaddr)
- 
- 	pud = fixup_pointer(early_dynamic_pgts[next_early_pgt++], physaddr);
- 	pmd = fixup_pointer(early_dynamic_pgts[next_early_pgt++], physaddr);
-+	pgtable_flags = _KERNPG_TABLE + sme_get_me_mask();
- 
- 	if (IS_ENABLED(CONFIG_X86_5LEVEL)) {
- 		p4d = fixup_pointer(early_dynamic_pgts[next_early_pgt++], physaddr);
- 
- 		i = (physaddr >> PGDIR_SHIFT) % PTRS_PER_PGD;
--		pgd[i + 0] = (pgdval_t)p4d + _KERNPG_TABLE;
--		pgd[i + 1] = (pgdval_t)p4d + _KERNPG_TABLE;
-+		pgd[i + 0] = (pgdval_t)p4d + pgtable_flags;
-+		pgd[i + 1] = (pgdval_t)p4d + pgtable_flags;
- 
- 		i = (physaddr >> P4D_SHIFT) % PTRS_PER_P4D;
--		p4d[i + 0] = (pgdval_t)pud + _KERNPG_TABLE;
--		p4d[i + 1] = (pgdval_t)pud + _KERNPG_TABLE;
-+		p4d[i + 0] = (pgdval_t)pud + pgtable_flags;
-+		p4d[i + 1] = (pgdval_t)pud + pgtable_flags;
- 	} else {
- 		i = (physaddr >> PGDIR_SHIFT) % PTRS_PER_PGD;
--		pgd[i + 0] = (pgdval_t)pud + _KERNPG_TABLE;
--		pgd[i + 1] = (pgdval_t)pud + _KERNPG_TABLE;
-+		pgd[i + 0] = (pgdval_t)pud + pgtable_flags;
-+		pgd[i + 1] = (pgdval_t)pud + pgtable_flags;
- 	}
- 
- 	i = (physaddr >> PUD_SHIFT) % PTRS_PER_PUD;
--	pud[i + 0] = (pudval_t)pmd + _KERNPG_TABLE;
--	pud[i + 1] = (pudval_t)pmd + _KERNPG_TABLE;
-+	pud[i + 0] = (pudval_t)pmd + pgtable_flags;
-+	pud[i + 1] = (pudval_t)pmd + pgtable_flags;
- 
- 	pmd_entry = __PAGE_KERNEL_LARGE_EXEC & ~_PAGE_GLOBAL;
-+	pmd_entry += sme_get_me_mask();
- 	pmd_entry +=  physaddr;
- 
- 	for (i = 0; i < DIV_ROUND_UP(_end - _text, PMD_SIZE); i++) {
-@@ -136,9 +146,30 @@ void __head __startup_64(unsigned long physaddr)
- 			pmd[i] += load_delta;
- 	}
- 
--	/* Fixup phys_base */
-+	/*
-+	 * Fixup phys_base - remove the memory encryption mask to obtain
-+	 * the true physical address.
-+	 */
- 	p = fixup_pointer(&phys_base, physaddr);
--	*p += load_delta;
-+	*p += load_delta - sme_get_me_mask();
-+
-+	/* Encrypt the kernel (if SME is active) */
-+	sme_encrypt_kernel();
-+
-+	/*
-+	 * Return the SME encryption mask (if SME is active) to be used as a
-+	 * modifier for the initial pgdir entry programmed into CR3.
-+	 */
-+	return sme_get_me_mask();
-+}
-+
-+unsigned long __startup_secondary_64(void)
-+{
-+	/*
-+	 * Return the SME encryption mask (if SME is active) to be used as a
-+	 * modifier for the initial pgdir entry programmed into CR3.
-+	 */
-+	return sme_get_me_mask();
- }
- 
- /* Wipe all early page tables except for the kernel symbol map */
-diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
-index 6225550..ec5d5e9 100644
---- a/arch/x86/kernel/head_64.S
-+++ b/arch/x86/kernel/head_64.S
-@@ -73,12 +73,19 @@ startup_64:
- 	/* Sanitize CPU configuration */
- 	call verify_cpu
- 
-+	/*
-+	 * Perform pagetable fixups. Additionally, if SME is active, encrypt
-+	 * the kernel and retrieve the modifier (SME encryption mask if SME
-+	 * is active) to be added to the initial pgdir entry that will be
-+	 * programmed into CR3.
-+	 */
- 	leaq	_text(%rip), %rdi
- 	pushq	%rsi
- 	call	__startup_64
- 	popq	%rsi
- 
--	movq	$(early_top_pgt - __START_KERNEL_map), %rax
-+	/* Form the CR3 value being sure to include the CR3 modifier */
-+	addq	$(early_top_pgt - __START_KERNEL_map), %rax
- 	jmp 1f
- ENTRY(secondary_startup_64)
- 	/*
-@@ -98,7 +105,16 @@ ENTRY(secondary_startup_64)
- 	/* Sanitize CPU configuration */
- 	call verify_cpu
- 
--	movq	$(init_top_pgt - __START_KERNEL_map), %rax
-+	/*
-+	 * Retrieve the modifier (SME encryption mask if SME is active) to be
-+	 * added to the initial pgdir entry that will be programmed into CR3.
-+	 */
-+	pushq	%rsi
-+	call	__startup_secondary_64
-+	popq	%rsi
-+
-+	/* Form the CR3 value being sure to include the CR3 modifier */
-+	addq	$(init_top_pgt - __START_KERNEL_map), %rax
- 1:
- 
- 	/* Enable PAE mode, PGE and LA57 */
-diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
-index b99d469..3ac6f99 100644
---- a/arch/x86/mm/mem_encrypt.c
-+++ b/arch/x86/mm/mem_encrypt.c
-@@ -11,6 +11,7 @@
-  */
- 
- #include <linux/linkage.h>
-+#include <linux/init.h>
+ #define ACC_EXEC_MASK    1
+ #define ACC_WRITE_MASK   PT_WRITABLE_MASK
+@@ -184,6 +184,7 @@ struct kvm_shadow_walk_iterator {
+ static u64 __read_mostly shadow_dirty_mask;
+ static u64 __read_mostly shadow_mmio_mask;
+ static u64 __read_mostly shadow_present_mask;
++static u64 __read_mostly shadow_me_mask;
  
  /*
-  * Since SME related variables are set early in the boot process they must
-@@ -19,3 +20,11 @@
-  */
- unsigned long sme_me_mask __section(.data) = 0;
- EXPORT_SYMBOL_GPL(sme_me_mask);
-+
-+void __init sme_encrypt_kernel(void)
-+{
-+}
-+
-+void __init sme_enable(void)
-+{
-+}
-diff --git a/include/linux/mem_encrypt.h b/include/linux/mem_encrypt.h
-index 59769f7..570f4fc 100644
---- a/include/linux/mem_encrypt.h
-+++ b/include/linux/mem_encrypt.h
-@@ -30,6 +30,11 @@ static inline bool sme_active(void)
- 	return !!sme_me_mask;
+  * The mask/value to distinguish a PTE that has been marked not-present for
+@@ -317,7 +318,7 @@ static bool check_mmio_spte(struct kvm_vcpu *vcpu, u64 spte)
+ 
+ void kvm_mmu_set_mask_ptes(u64 user_mask, u64 accessed_mask,
+ 		u64 dirty_mask, u64 nx_mask, u64 x_mask, u64 p_mask,
+-		u64 acc_track_mask)
++		u64 acc_track_mask, u64 me_mask)
+ {
+ 	if (acc_track_mask != 0)
+ 		acc_track_mask |= SPTE_SPECIAL_MASK;
+@@ -330,6 +331,7 @@ void kvm_mmu_set_mask_ptes(u64 user_mask, u64 accessed_mask,
+ 	shadow_present_mask = p_mask;
+ 	shadow_acc_track_mask = acc_track_mask;
+ 	WARN_ON(shadow_accessed_mask != 0 && shadow_acc_track_mask != 0);
++	shadow_me_mask = me_mask;
+ }
+ EXPORT_SYMBOL_GPL(kvm_mmu_set_mask_ptes);
+ 
+@@ -2398,7 +2400,8 @@ static void link_shadow_page(struct kvm_vcpu *vcpu, u64 *sptep,
+ 	BUILD_BUG_ON(VMX_EPT_WRITABLE_MASK != PT_WRITABLE_MASK);
+ 
+ 	spte = __pa(sp->spt) | shadow_present_mask | PT_WRITABLE_MASK |
+-	       shadow_user_mask | shadow_x_mask | shadow_accessed_mask;
++	       shadow_user_mask | shadow_x_mask | shadow_accessed_mask |
++	       shadow_me_mask;
+ 
+ 	mmu_spte_set(sptep, spte);
+ 
+@@ -2700,6 +2703,7 @@ static int set_spte(struct kvm_vcpu *vcpu, u64 *sptep,
+ 		pte_access &= ~ACC_WRITE_MASK;
+ 
+ 	spte |= (u64)pfn << PAGE_SHIFT;
++	spte |= shadow_me_mask;
+ 
+ 	if (pte_access & ACC_WRITE_MASK) {
+ 
+diff --git a/arch/x86/kvm/mmu.h b/arch/x86/kvm/mmu.h
+index 330bf3a..08b779d 100644
+--- a/arch/x86/kvm/mmu.h
++++ b/arch/x86/kvm/mmu.h
+@@ -48,7 +48,7 @@
+ 
+ static inline u64 rsvd_bits(int s, int e)
+ {
+-	return ((1ULL << (e - s + 1)) - 1) << s;
++	return __sme_clr(((1ULL << (e - s + 1)) - 1) << s);
  }
  
-+static inline unsigned long sme_get_me_mask(void)
-+{
-+	return sme_me_mask;
-+}
-+
- #endif	/* __ASSEMBLY__ */
+ void kvm_mmu_set_mmio_spte_mask(u64 mmio_mask);
+diff --git a/arch/x86/kvm/svm.c b/arch/x86/kvm/svm.c
+index ba9891a..d2e9fca 100644
+--- a/arch/x86/kvm/svm.c
++++ b/arch/x86/kvm/svm.c
+@@ -1138,9 +1138,9 @@ static void avic_init_vmcb(struct vcpu_svm *svm)
+ {
+ 	struct vmcb *vmcb = svm->vmcb;
+ 	struct kvm_arch *vm_data = &svm->vcpu.kvm->arch;
+-	phys_addr_t bpa = page_to_phys(svm->avic_backing_page);
+-	phys_addr_t lpa = page_to_phys(vm_data->avic_logical_id_table_page);
+-	phys_addr_t ppa = page_to_phys(vm_data->avic_physical_id_table_page);
++	phys_addr_t bpa = __sme_set(page_to_phys(svm->avic_backing_page));
++	phys_addr_t lpa = __sme_set(page_to_phys(vm_data->avic_logical_id_table_page));
++	phys_addr_t ppa = __sme_set(page_to_phys(vm_data->avic_physical_id_table_page));
  
- #endif	/* __MEM_ENCRYPT_H__ */
+ 	vmcb->control.avic_backing_page = bpa & AVIC_HPA_MASK;
+ 	vmcb->control.avic_logical_id = lpa & AVIC_HPA_MASK;
+@@ -1203,8 +1203,8 @@ static void init_vmcb(struct vcpu_svm *svm)
+ 		set_intercept(svm, INTERCEPT_MWAIT);
+ 	}
+ 
+-	control->iopm_base_pa = iopm_base;
+-	control->msrpm_base_pa = __pa(svm->msrpm);
++	control->iopm_base_pa = __sme_set(iopm_base);
++	control->msrpm_base_pa = __sme_set(__pa(svm->msrpm));
+ 	control->int_ctl = V_INTR_MASKING_MASK;
+ 
+ 	init_seg(&save->es);
+@@ -1338,9 +1338,9 @@ static int avic_init_backing_page(struct kvm_vcpu *vcpu)
+ 		return -EINVAL;
+ 
+ 	new_entry = READ_ONCE(*entry);
+-	new_entry = (page_to_phys(svm->avic_backing_page) &
+-		     AVIC_PHYSICAL_ID_ENTRY_BACKING_PAGE_MASK) |
+-		     AVIC_PHYSICAL_ID_ENTRY_VALID_MASK;
++	new_entry = __sme_set((page_to_phys(svm->avic_backing_page) &
++			      AVIC_PHYSICAL_ID_ENTRY_BACKING_PAGE_MASK) |
++			      AVIC_PHYSICAL_ID_ENTRY_VALID_MASK);
+ 	WRITE_ONCE(*entry, new_entry);
+ 
+ 	svm->avic_physical_id_cache = entry;
+@@ -1608,7 +1608,7 @@ static struct kvm_vcpu *svm_create_vcpu(struct kvm *kvm, unsigned int id)
+ 
+ 	svm->vmcb = page_address(page);
+ 	clear_page(svm->vmcb);
+-	svm->vmcb_pa = page_to_pfn(page) << PAGE_SHIFT;
++	svm->vmcb_pa = __sme_set(page_to_pfn(page) << PAGE_SHIFT);
+ 	svm->asid_generation = 0;
+ 	init_vmcb(svm);
+ 
+@@ -1636,7 +1636,7 @@ static void svm_free_vcpu(struct kvm_vcpu *vcpu)
+ {
+ 	struct vcpu_svm *svm = to_svm(vcpu);
+ 
+-	__free_page(pfn_to_page(svm->vmcb_pa >> PAGE_SHIFT));
++	__free_page(pfn_to_page(__sme_clr(svm->vmcb_pa) >> PAGE_SHIFT));
+ 	__free_pages(virt_to_page(svm->msrpm), MSRPM_ALLOC_ORDER);
+ 	__free_page(virt_to_page(svm->nested.hsave));
+ 	__free_pages(virt_to_page(svm->nested.msrpm), MSRPM_ALLOC_ORDER);
+@@ -2303,7 +2303,7 @@ static u64 nested_svm_get_tdp_pdptr(struct kvm_vcpu *vcpu, int index)
+ 	u64 pdpte;
+ 	int ret;
+ 
+-	ret = kvm_vcpu_read_guest_page(vcpu, gpa_to_gfn(cr3), &pdpte,
++	ret = kvm_vcpu_read_guest_page(vcpu, gpa_to_gfn(__sme_clr(cr3)), &pdpte,
+ 				       offset_in_page(cr3) + index * 8, 8);
+ 	if (ret)
+ 		return 0;
+@@ -2315,7 +2315,7 @@ static void nested_svm_set_tdp_cr3(struct kvm_vcpu *vcpu,
+ {
+ 	struct vcpu_svm *svm = to_svm(vcpu);
+ 
+-	svm->vmcb->control.nested_cr3 = root;
++	svm->vmcb->control.nested_cr3 = __sme_set(root);
+ 	mark_dirty(svm->vmcb, VMCB_NPT);
+ 	svm_flush_tlb(vcpu);
+ }
+@@ -2803,7 +2803,7 @@ static bool nested_svm_vmrun_msrpm(struct vcpu_svm *svm)
+ 		svm->nested.msrpm[p] = svm->msrpm[p] | value;
+ 	}
+ 
+-	svm->vmcb->control.msrpm_base_pa = __pa(svm->nested.msrpm);
++	svm->vmcb->control.msrpm_base_pa = __sme_set(__pa(svm->nested.msrpm));
+ 
+ 	return true;
+ }
+@@ -4435,7 +4435,7 @@ static int svm_ir_list_add(struct vcpu_svm *svm, struct amd_iommu_pi_data *pi)
+ 	pr_debug("SVM: %s: use GA mode for irq %u\n", __func__,
+ 		 irq.vector);
+ 	*svm = to_svm(vcpu);
+-	vcpu_info->pi_desc_addr = page_to_phys((*svm)->avic_backing_page);
++	vcpu_info->pi_desc_addr = __sme_set(page_to_phys((*svm)->avic_backing_page));
+ 	vcpu_info->vector = irq.vector;
+ 
+ 	return 0;
+@@ -4486,7 +4486,8 @@ static int svm_update_pi_irte(struct kvm *kvm, unsigned int host_irq,
+ 			struct amd_iommu_pi_data pi;
+ 
+ 			/* Try to enable guest_mode in IRTE */
+-			pi.base = page_to_phys(svm->avic_backing_page) & AVIC_HPA_MASK;
++			pi.base = __sme_set(page_to_phys(svm->avic_backing_page) &
++					    AVIC_HPA_MASK);
+ 			pi.ga_tag = AVIC_GATAG(kvm->arch.avic_vm_id,
+ 						     svm->vcpu.vcpu_id);
+ 			pi.is_guest_mode = true;
+@@ -4911,7 +4912,7 @@ static void svm_set_cr3(struct kvm_vcpu *vcpu, unsigned long root)
+ {
+ 	struct vcpu_svm *svm = to_svm(vcpu);
+ 
+-	svm->vmcb->save.cr3 = root;
++	svm->vmcb->save.cr3 = __sme_set(root);
+ 	mark_dirty(svm->vmcb, VMCB_CR);
+ 	svm_flush_tlb(vcpu);
+ }
+@@ -4920,7 +4921,7 @@ static void set_tdp_cr3(struct kvm_vcpu *vcpu, unsigned long root)
+ {
+ 	struct vcpu_svm *svm = to_svm(vcpu);
+ 
+-	svm->vmcb->control.nested_cr3 = root;
++	svm->vmcb->control.nested_cr3 = __sme_set(root);
+ 	mark_dirty(svm->vmcb, VMCB_NPT);
+ 
+ 	/* Also sync guest cr3 here in case we live migrate */
+diff --git a/arch/x86/kvm/vmx.c b/arch/x86/kvm/vmx.c
+index 7dd53fb..53098cd 100644
+--- a/arch/x86/kvm/vmx.c
++++ b/arch/x86/kvm/vmx.c
+@@ -6452,7 +6452,8 @@ void vmx_enable_tdp(void)
+ 		enable_ept_ad_bits ? VMX_EPT_DIRTY_BIT : 0ull,
+ 		0ull, VMX_EPT_EXECUTABLE_MASK,
+ 		cpu_has_vmx_ept_execute_only() ? 0ull : VMX_EPT_READABLE_MASK,
+-		enable_ept_ad_bits ? 0ull : VMX_EPT_RWX_MASK);
++		enable_ept_ad_bits ? 0ull : VMX_EPT_RWX_MASK,
++		0ull);
+ 
+ 	ept_set_mmio_spte_mask();
+ 	kvm_enable_tdp();
+diff --git a/arch/x86/kvm/x86.c b/arch/x86/kvm/x86.c
+index 87d3cb9..559f710 100644
+--- a/arch/x86/kvm/x86.c
++++ b/arch/x86/kvm/x86.c
+@@ -54,6 +54,7 @@
+ #include <linux/kvm_irqfd.h>
+ #include <linux/irqbypass.h>
+ #include <linux/sched/stat.h>
++#include <linux/mem_encrypt.h>
+ 
+ #include <trace/events/kvm.h>
+ 
+@@ -6095,7 +6096,7 @@ int kvm_arch_init(void *opaque)
+ 
+ 	kvm_mmu_set_mask_ptes(PT_USER_MASK, PT_ACCESSED_MASK,
+ 			PT_DIRTY_MASK, PT64_NX_MASK, 0,
+-			PT_PRESENT_MASK, 0);
++			PT_PRESENT_MASK, 0, sme_me_mask);
+ 	kvm_timer_init();
+ 
+ 	perf_register_guest_info_callbacks(&kvm_guest_cbs);
