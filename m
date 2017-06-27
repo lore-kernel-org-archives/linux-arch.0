@@ -1,254 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f196.google.com ([209.85.220.196]:35875 "EHLO
-        mail-qk0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751699AbdF0KMd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 27 Jun 2017 06:12:33 -0400
+Received: from mail-qk0-f195.google.com ([209.85.220.195]:33414 "EHLO
+        mail-qk0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752755AbdF0KMe (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 27 Jun 2017 06:12:34 -0400
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v4 06/17] powerpc: Implementation for sys_mprotect_pkey() system call
-Date: Tue, 27 Jun 2017 03:11:48 -0700
-Message-ID: <1498558319-32466-7-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v4 09/17] powerpc: call the hash functions with the correct pkey value
+Date: Tue, 27 Jun 2017 03:11:51 -0700
+Message-ID: <1498558319-32466-10-git-send-email-linuxram@us.ibm.com>
 In-Reply-To: <1498558319-32466-1-git-send-email-linuxram@us.ibm.com>
 References: <1498558319-32466-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
-Message-ID: <20170627101148.bDE5Ad2x9KUhpBazMC7kw7VSCx7oWC2RD5LWATU4DUo@z>
+Message-ID: <20170627101151.pBOGDM1FM26Qu1MsD0Iswogm0NeFe2Fr8DG-L6UI4oI@z>
 
-This system call, associates the pkey with vma corresponding to
-the given address range.
+Pass the correct protection key value to the hash functions on
+page fault.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/include/asm/mman.h        |  8 ++-
- arch/powerpc/include/asm/pkeys.h       | 17 ++++++-
- arch/powerpc/include/asm/systbl.h      |  1 +
- arch/powerpc/include/asm/unistd.h      |  4 +-
- arch/powerpc/include/uapi/asm/unistd.h |  1 +
- arch/powerpc/mm/pkeys.c                | 93 +++++++++++++++++++++++++++++++++-
- 6 files changed, 117 insertions(+), 7 deletions(-)
+ arch/powerpc/include/asm/pkeys.h | 11 +++++++++++
+ arch/powerpc/mm/hash_utils_64.c  |  4 ++++
+ arch/powerpc/mm/mem.c            |  6 ++++++
+ 3 files changed, 21 insertions(+)
 
-diff --git a/arch/powerpc/include/asm/mman.h b/arch/powerpc/include/asm/mman.h
-index 30922f6..067eec2 100644
---- a/arch/powerpc/include/asm/mman.h
-+++ b/arch/powerpc/include/asm/mman.h
-@@ -13,6 +13,7 @@
- 
- #include <asm/cputable.h>
- #include <linux/mm.h>
-+#include <linux/pkeys.h>
- #include <asm/cpu_has_feature.h>
- 
- /*
-@@ -22,7 +23,12 @@
- static inline unsigned long arch_calc_vm_prot_bits(unsigned long prot,
- 		unsigned long pkey)
- {
--	return (prot & PROT_SAO) ? VM_SAO : 0;
-+#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
-+	return (((prot & PROT_SAO) ? VM_SAO : 0) |
-+			pkey_to_vmflag_bits(pkey));
-+#else
-+	return ((prot & PROT_SAO) ? VM_SAO : 0);
-+#endif
- }
- #define arch_calc_vm_prot_bits(prot, pkey) arch_calc_vm_prot_bits(prot, pkey)
- 
 diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
-index 7bc8746..41bf5d4 100644
+index ef1c601..1370b3f 100644
 --- a/arch/powerpc/include/asm/pkeys.h
 +++ b/arch/powerpc/include/asm/pkeys.h
-@@ -14,6 +14,15 @@
- 			VM_PKEY_BIT3 | \
- 			VM_PKEY_BIT4)
- 
-+static inline unsigned long  pkey_to_vmflag_bits(int pkey)
-+{
-+	return (((pkey & 0x1UL) ? VM_PKEY_BIT0 : 0x0UL) |
-+		((pkey & 0x2UL) ? VM_PKEY_BIT1 : 0x0UL) |
-+		((pkey & 0x4UL) ? VM_PKEY_BIT2 : 0x0UL) |
-+		((pkey & 0x8UL) ? VM_PKEY_BIT3 : 0x0UL) |
-+		((pkey & 0x10UL) ? VM_PKEY_BIT4 : 0x0UL));
-+}
-+
- /*
-  * Bits are in BE format.
-  * NOTE: key 31, 1, 0 are not used.
-@@ -42,6 +51,12 @@
- #define mm_set_pkey_is_reserved(mm, pkey) (PKEY_INITIAL_ALLOCAION & \
- 					pkeybit_mask(pkey))
- 
-+
-+static inline int vma_pkey(struct vm_area_struct *vma)
-+{
-+	return (vma->vm_flags & ARCH_VM_PKEY_FLAGS) >> VM_PKEY_SHIFT;
-+}
-+
- static inline bool mm_pkey_is_allocated(struct mm_struct *mm, int pkey)
- {
- 	/* a reserved key is never considered as 'explicitly allocated' */
-@@ -114,7 +129,7 @@ static inline int arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
- 	return __arch_set_user_pkey_access(tsk, pkey, init_val);
- }
- 
--static inline pkey_mm_init(struct mm_struct *mm)
-+static inline void pkey_mm_init(struct mm_struct *mm)
- {
- 	mm_pkey_allocation_map(mm) = PKEY_INITIAL_ALLOCAION;
- 	/* -1 means unallocated or invalid */
-diff --git a/arch/powerpc/include/asm/systbl.h b/arch/powerpc/include/asm/systbl.h
-index 22dd776..b33b551 100644
---- a/arch/powerpc/include/asm/systbl.h
-+++ b/arch/powerpc/include/asm/systbl.h
-@@ -390,3 +390,4 @@
- SYSCALL(statx)
- SYSCALL(pkey_alloc)
- SYSCALL(pkey_free)
-+SYSCALL(pkey_mprotect)
-diff --git a/arch/powerpc/include/asm/unistd.h b/arch/powerpc/include/asm/unistd.h
-index e0273bc..daf1ba9 100644
---- a/arch/powerpc/include/asm/unistd.h
-+++ b/arch/powerpc/include/asm/unistd.h
-@@ -12,12 +12,10 @@
- #include <uapi/asm/unistd.h>
- 
- 
--#define NR_syscalls		386
-+#define NR_syscalls		387
- 
- #define __NR__exit __NR_exit
- 
--#define __IGNORE_pkey_mprotect
--
- #ifndef __ASSEMBLY__
- 
- #include <linux/types.h>
-diff --git a/arch/powerpc/include/uapi/asm/unistd.h b/arch/powerpc/include/uapi/asm/unistd.h
-index 7993a07..71ae45e 100644
---- a/arch/powerpc/include/uapi/asm/unistd.h
-+++ b/arch/powerpc/include/uapi/asm/unistd.h
-@@ -396,5 +396,6 @@
- #define __NR_statx		383
- #define __NR_pkey_alloc		384
- #define __NR_pkey_free		385
-+#define __NR_pkey_mprotect	386
- 
- #endif /* _UAPI_ASM_POWERPC_UNISTD_H_ */
-diff --git a/arch/powerpc/mm/pkeys.c b/arch/powerpc/mm/pkeys.c
-index b97366e..11a32b3 100644
---- a/arch/powerpc/mm/pkeys.c
-+++ b/arch/powerpc/mm/pkeys.c
-@@ -15,6 +15,17 @@
- #include <linux/pkeys.h>                /* PKEY_*                       */
- #include <uapi/asm-generic/mman-common.h>
- 
-+#define pkeyshift(pkey) ((arch_max_pkey()-pkey-1) * AMR_BITS_PER_PKEY)
-+
-+static inline bool pkey_allows_readwrite(int pkey)
-+{
-+	int pkey_shift = pkeyshift(pkey);
-+
-+	if (!(read_uamor() & (0x3UL << pkey_shift)))
-+		return true;
-+
-+	return !(read_amr() & ((AMR_AD_BIT|AMR_WD_BIT) << pkey_shift));
-+}
- 
- /*
-  * set the access right in AMR IAMR and UAMOR register
-@@ -68,7 +79,60 @@ int __arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
- 
- int __execute_only_pkey(struct mm_struct *mm)
- {
--	return -1;
-+	bool need_to_set_mm_pkey = false;
-+	int execute_only_pkey = mm->context.execute_only_pkey;
-+	int ret;
-+
-+	/* Do we need to assign a pkey for mm's execute-only maps? */
-+	if (execute_only_pkey == -1) {
-+		/* Go allocate one to use, which might fail */
-+		execute_only_pkey = mm_pkey_alloc(mm);
-+		if (execute_only_pkey < 0)
-+			return -1;
-+		need_to_set_mm_pkey = true;
-+	}
-+
-+	/*
-+	 * We do not want to go through the relatively costly
-+	 * dance to set AMR if we do not need to.  Check it
-+	 * first and assume that if the execute-only pkey is
-+	 * readwrite-disabled than we do not have to set it
-+	 * ourselves.
-+	 */
-+	if (!need_to_set_mm_pkey &&
-+	    !pkey_allows_readwrite(execute_only_pkey))
-+		return execute_only_pkey;
-+
-+	/*
-+	 * Set up AMR so that it denies access for everything
-+	 * other than execution.
-+	 */
-+	ret = __arch_set_user_pkey_access(current, execute_only_pkey,
-+			(PKEY_DISABLE_ACCESS | PKEY_DISABLE_WRITE));
-+	/*
-+	 * If the AMR-set operation failed somehow, just return
-+	 * 0 and effectively disable execute-only support.
-+	 */
-+	if (ret) {
-+		mm_set_pkey_free(mm, execute_only_pkey);
-+		return -1;
-+	}
-+
-+	/* We got one, store it and use it from here on out */
-+	if (need_to_set_mm_pkey)
-+		mm->context.execute_only_pkey = execute_only_pkey;
-+	return execute_only_pkey;
-+}
-+
-+static inline bool vma_is_pkey_exec_only(struct vm_area_struct *vma)
-+{
-+	/* Do this check first since the vm_flags should be hot */
-+	if ((vma->vm_flags & (VM_READ | VM_WRITE | VM_EXEC)) != VM_EXEC)
-+		return false;
-+	if (vma_pkey(vma) != vma->vm_mm->context.execute_only_pkey)
-+		return false;
-+
-+	return true;
+@@ -74,6 +74,17 @@ static inline bool mm_pkey_is_allocated(struct mm_struct *mm, int pkey)
  }
  
  /*
-@@ -84,5 +148,30 @@ int __arch_override_mprotect_pkey(struct vm_area_struct *vma, int prot,
- 	if (pkey != -1)
- 		return pkey;
++ * return the protection key of the vma corresponding to the
++ * given effective address @ea.
++ */
++static inline int mm_pkey(struct mm_struct *mm, unsigned long ea)
++{
++	struct vm_area_struct *vma = find_vma(mm, ea);
++	int pkey = vma ? vma_pkey(vma) : 0;
++	return pkey;
++}
++
++/*
+  * Returns a positive, 5-bit key on success, or -1 on failure.
+  */
+ static inline int mm_pkey_alloc(struct mm_struct *mm)
+diff --git a/arch/powerpc/mm/hash_utils_64.c b/arch/powerpc/mm/hash_utils_64.c
+index 7e67dea..403f75d 100644
+--- a/arch/powerpc/mm/hash_utils_64.c
++++ b/arch/powerpc/mm/hash_utils_64.c
+@@ -1319,6 +1319,10 @@ int hash_page_mm(struct mm_struct *mm, unsigned long ea,
+ 		goto bail;
+ 	}
  
--	return 0;
-+	/*
-+	 * Look for a protection-key-drive execute-only mapping
-+	 * which is now being given permissions that are not
-+	 * execute-only.  Move it back to the default pkey.
-+	 */
-+	if (vma_is_pkey_exec_only(vma) &&
-+	    (prot & (PROT_READ|PROT_WRITE))) {
-+		return 0;
-+	}
-+	/*
-+	 * The mapping is execute-only.  Go try to get the
-+	 * execute-only protection key.  If we fail to do that,
-+	 * fall through as if we do not have execute-only
-+	 * support.
-+	 */
-+	if (prot == PROT_EXEC) {
-+		pkey = execute_only_pkey(vma->vm_mm);
-+		if (pkey > 0)
-+			return pkey;
-+	}
-+	/*
-+	 * This is a vanilla, non-pkey mprotect (or we failed to
-+	 * setup execute-only), inherit the pkey from the VMA we
-+	 * are working on.
-+	 */
-+	return vma_pkey(vma);
- }
++#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
++	pkey = mm_pkey(mm, ea);
++#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
++
+ 	if (hugeshift) {
+ 		if (is_thp)
+ 			rc = __hash_page_thp(ea, access, vsid, (pmd_t *)ptep,
+diff --git a/arch/powerpc/mm/mem.c b/arch/powerpc/mm/mem.c
+index ec890d3..0fcaa48 100644
+--- a/arch/powerpc/mm/mem.c
++++ b/arch/powerpc/mm/mem.c
+@@ -541,8 +541,14 @@ void update_mmu_cache(struct vm_area_struct *vma, unsigned long address,
+ 		return;
+ 	}
+ 
++#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
++	hash_preload_pkey(vma->vm_mm, address, access, trap, vma_pkey(vma));
++#else
+ 	hash_preload(vma->vm_mm, address, access, trap);
++#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
++
+ #endif /* CONFIG_PPC_STD_MMU */
++
+ #if (defined(CONFIG_PPC_BOOK3E_64) || defined(CONFIG_PPC_FSL_BOOK3E)) \
+ 	&& defined(CONFIG_HUGETLB_PAGE)
+ 	if (is_vm_hugetlb_page(vma))
 -- 
 1.8.3.1
