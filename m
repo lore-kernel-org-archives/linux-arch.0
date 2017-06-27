@@ -1,79 +1,113 @@
-From: <h.gerritsen12@chello.nl>
-Subject: (unknown)
-Date: Tue, 27 Jun 2017 00:08:57 -0000
-Message-ID: <149852213756.4332.7600897955271637428@proxad.net>
+From: Ram Pai <linuxram@us.ibm.com>
+Subject: Re: [RFC v3 02/23] powerpc: introduce set_hidx_slot helper
+Date: Mon, 26 Jun 2017 17:16:37 -0700
+Message-ID: <20170627001637.GA5846@ram.oc3035372033.ibm.com>
+References: <1498095579-6790-1-git-send-email-linuxram@us.ibm.com>
+ <1498095579-6790-3-git-send-email-linuxram@us.ibm.com>
+ <1498431798.7935.5.camel@gmail.com>
+Reply-To: Ram Pai <linuxram@us.ibm.com>
 Mime-Version: 1.0
-Content-Type: application/zip; name="EMAIL_0578932146183_linux-arch.zip"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from pdm33-1-82-235-254-76.fbx.proxad.net ([82.235.254.76]:46043
-        "HELO proxad.net" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-        with SMTP id S1751456AbdF0AJG (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 26 Jun 2017 20:09:06 -0400
-Content-Disposition: attachment
-Subject: 
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:49694 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1751484AbdF0AQs (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 26 Jun 2017 20:16:48 -0400
+Received: from pps.filterd (m0098394.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.20/8.16.0.20) with SMTP id v5R0DiXt060432
+        for <linux-arch@vger.kernel.org>; Mon, 26 Jun 2017 20:16:48 -0400
+Received: from e17.ny.us.ibm.com (e17.ny.us.ibm.com [129.33.205.207])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2bb2b3hb7p-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Mon, 26 Jun 2017 20:16:47 -0400
+Received: from localhost
+        by e17.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <linuxram@us.ibm.com>;
+        Mon, 26 Jun 2017 20:16:46 -0400
+Content-Disposition: inline
+In-Reply-To: <1498431798.7935.5.camel@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+To: Balbir Singh <bsingharora@gmail.com>
+Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, dave.hansen@intel.com, hbabu@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
 
-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
-AAA=
+On Mon, Jun 26, 2017 at 09:03:18AM +1000, Balbir Singh wrote:
+> On Wed, 2017-06-21 at 18:39 -0700, Ram Pai wrote:
+> > Introduce set_hidx_slot() which sets the (H_PAGE_F_SECOND|H_PAGE_F_GIX)
+> > bits at  the  appropriate  location  in  the  PTE  of  4K  PTE.  In the
+> > case of 64K PTE, it sets the bits in the second part of the PTE. Though
+> > the implementation for the former just needs the slot parameter, it does
+> > take some additional parameters to keep the prototype consistent.
+> > 
+> > This function will come in handy as we  work  towards  re-arranging the
+> > bits in the later patches.
+> > 
+> > Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+> > ---
+> >  arch/powerpc/include/asm/book3s/64/hash-4k.h  |  7 +++++++
+> >  arch/powerpc/include/asm/book3s/64/hash-64k.h | 16 ++++++++++++++++
+> >  2 files changed, 23 insertions(+)
+> > 
+> > diff --git a/arch/powerpc/include/asm/book3s/64/hash-4k.h b/arch/powerpc/include/asm/book3s/64/hash-4k.h
+> > index 9c2c8f1..cef644c 100644
+> > --- a/arch/powerpc/include/asm/book3s/64/hash-4k.h
+> > +++ b/arch/powerpc/include/asm/book3s/64/hash-4k.h
+> > @@ -55,6 +55,13 @@ static inline int hash__hugepd_ok(hugepd_t hpd)
+> >  }
+> >  #endif
+> >  
+> > +static inline unsigned long set_hidx_slot(pte_t *ptep, real_pte_t rpte,
+> > +			unsigned int subpg_index, unsigned long slot)
+> > +{
+> > +	return (slot << H_PAGE_F_GIX_SHIFT) &
+> > +		(H_PAGE_F_SECOND | H_PAGE_F_GIX);
+> > +}
+> > +
+> 
+> A comment on top would help explain that 4k and 64k are different, 64k
+> is a new layout.
+
+ok.
+
+> 
+> >  #ifdef CONFIG_TRANSPARENT_HUGEPAGE
+> >  
+> >  static inline char *get_hpte_slot_array(pmd_t *pmdp)
+> > diff --git a/arch/powerpc/include/asm/book3s/64/hash-64k.h b/arch/powerpc/include/asm/book3s/64/hash-64k.h
+> > index 3f49941..4bac70a 100644
+> > --- a/arch/powerpc/include/asm/book3s/64/hash-64k.h
+> > +++ b/arch/powerpc/include/asm/book3s/64/hash-64k.h
+> > @@ -75,6 +75,22 @@ static inline unsigned long __rpte_to_hidx(real_pte_t rpte, unsigned long index)
+> >  	return (pte_val(rpte.pte) >> H_PAGE_F_GIX_SHIFT) & 0xf;
+> >  }
+> >  
+> > +static inline unsigned long set_hidx_slot(pte_t *ptep, real_pte_t rpte,
+> > +		unsigned int subpg_index, unsigned long slot)
+> > +{
+> > +	unsigned long *hidxp = (unsigned long *)(ptep + PTRS_PER_PTE);
+> > +
+> > +	rpte.hidx &= ~(0xfUL << (subpg_index << 2));
+> > +	*hidxp = rpte.hidx  | (slot << (subpg_index << 2));
+> > +	/*
+> > +	 * Avoid race with __real_pte()
+> > +	 * hidx must be committed to memory before committing
+> > +	 * the pte.
+> > +	 */
+> > +	smp_wmb();
+> 
+> Whats the other paired barrier, is it in set_pte()?
+
+ __real_pte() reads the hidx. The smp_rmb() is in that function.
+
+> 
+> > +	return 0x0UL;
+> > +}
+> 
+> We return 0 here and slot information for 4k pages, it is not that
+> clear
+
+We return 0 here and commit the 4k-hpte hidx. 
+
+
+RP
