@@ -1,92 +1,66 @@
-From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v4 17/17] procfs: display the protection-key number associated with a vma
-Date: Tue, 27 Jun 2017 03:11:59 -0700
-Message-ID: <1498558319-32466-18-git-send-email-linuxram@us.ibm.com>
+From: Balbir Singh <bsingharora@gmail.com>
+Subject: Re: [RFC v4 00/17] powerpc: Memory Protection Keys
+Date: Tue, 27 Jun 2017 20:46:24 +1000
+Message-ID: <1498560384.7935.6.camel@gmail.com>
 References: <1498558319-32466-1-git-send-email-linuxram@us.ibm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1498558319-32466-1-git-send-email-linuxram@us.ibm.com>
 Sender: owner-linux-mm@kvack.org
-To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
-Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
+To: Ram Pai <linuxram@us.ibm.com>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
+Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, dave.hansen@intel.com, hbabu@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
 List-Id: linux-arch.vger.kernel.org
 
-Display the pkey number associated with the vma in smaps of a task.
-The key will be seen as below:
+On Tue, 2017-06-27 at 03:11 -0700, Ram Pai wrote:
+> Memory protection keys enable applications to protect its
+> address space from inadvertent access or corruption from
+> itself.
+> 
+> The overall idea:
+> 
+>  A process allocates a   key  and associates it with
+>  a  address  range  within    its   address   space.
+>  The process  than  can  dynamically  set read/write 
+>  permissions on  the   key   without  involving  the 
+>  kernel. Any  code that  violates   the  permissions
+>  off the address space; as defined by its associated
+>  key, will receive a segmentation fault.
+> 
+> This patch series enables the feature on PPC64 HPTE
+> platform.
+> 
+> ISA3.0 section 5.7.13 describes the detailed specifications.
+> 
+> 
+> Testing:
+> 	This patch series has passed all the protection key
+> 	tests available in  the selftests directory.
+> 	The tests are updated to work on both x86 and powerpc.
+> 
+> version v4:
+> 	(1) patches no more depend on the pte bits to program
+> 		the hpte -- comment by Balbir
+> 	(2) documentation updates
+> 	(3) fixed a bug in the selftest.
+> 	(4) unlike x86, powerpc lets signal handler change key
+> 	    permission bits; the change will persist across
+> 	    signal handler boundaries. Earlier we allowed
+> 	    the signal handler to modify a field in the siginfo
+> 	    structure which would than be used by the kernel
+> 	    to program the key protection register (AMR)
+>        		-- resolves a issue raised by Ben.
+>     		"Calls to sys_swapcontext with a made-up context
+> 	        will end up with a crap AMR if done by code who
+> 	       	didn't know about that register".
+> 	(5) these changes enable protection keys on 4k-page 
+> 		kernel aswell.
 
-VmFlags: rd wr mr mw me dw ac key=0
+I have not looked at the full series, but it seems cleaner than the original
+one and the side-effect is that we can support 4k as well. Nice!
 
-Signed-off-by: Ram Pai <linuxram@us.ibm.com>
----
- Documentation/filesystems/proc.txt |  3 ++-
- fs/proc/task_mmu.c                 | 22 +++++++++++-----------
- 2 files changed, 13 insertions(+), 12 deletions(-)
-
-diff --git a/Documentation/filesystems/proc.txt b/Documentation/filesystems/proc.txt
-index 4cddbce..a8c74aa 100644
---- a/Documentation/filesystems/proc.txt
-+++ b/Documentation/filesystems/proc.txt
-@@ -423,7 +423,7 @@ SwapPss:               0 kB
- KernelPageSize:        4 kB
- MMUPageSize:           4 kB
- Locked:                0 kB
--VmFlags: rd ex mr mw me dw
-+VmFlags: rd ex mr mw me dw key=<num>
- 
- the first of these lines shows the same information as is displayed for the
- mapping in /proc/PID/maps.  The remaining lines show the size of the mapping
-@@ -491,6 +491,7 @@ manner. The codes are the following:
-     hg  - huge page advise flag
-     nh  - no-huge page advise flag
-     mg  - mergable advise flag
-+    key=<num> - the memory protection key number
- 
- Note that there is no guarantee that every flag and associated mnemonic will
- be present in all further kernel releases. Things get changed, the flags may
-diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
-index 2ddc298..d2eb096 100644
---- a/fs/proc/task_mmu.c
-+++ b/fs/proc/task_mmu.c
-@@ -1,4 +1,6 @@
- #include <linux/mm.h>
-+#include <linux/pkeys.h>
-+#include <linux/huge_mm.h>
- #include <linux/vmacache.h>
- #include <linux/hugetlb.h>
- #include <linux/huge_mm.h>
-@@ -666,22 +668,20 @@ static void show_smap_vma_flags(struct seq_file *m, struct vm_area_struct *vma)
- 		[ilog2(VM_MERGEABLE)]	= "mg",
- 		[ilog2(VM_UFFD_MISSING)]= "um",
- 		[ilog2(VM_UFFD_WP)]	= "uw",
--#ifdef CONFIG_ARCH_HAS_PKEYS
--		/* These come out via ProtectionKey: */
--		[ilog2(VM_PKEY_BIT0)]	= "",
--		[ilog2(VM_PKEY_BIT1)]	= "",
--		[ilog2(VM_PKEY_BIT2)]	= "",
--		[ilog2(VM_PKEY_BIT3)]	= "",
--#endif /* CONFIG_ARCH_HAS_PKEYS */
--#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
--		/* Additional bit in ProtectionKey: */
--		[ilog2(VM_PKEY_BIT4)]	= "",
--#endif
- 	};
- 	size_t i;
- 
- 	seq_puts(m, "VmFlags: ");
- 	for (i = 0; i < BITS_PER_LONG; i++) {
-+#ifdef CONFIG_ARCH_HAS_PKEYS
-+		if (i == ilog2(VM_PKEY_BIT0)) {
-+			int keyvalue = vma_pkey(vma);
-+
-+			i += ilog2(arch_max_pkey())-1;
-+			seq_printf(m, "key=%d ", keyvalue);
-+			continue;
-+		}
-+#endif /* CONFIG_ARCH_HAS_PKEYS */
- 		if (!mnemonics[i][0])
- 			continue;
- 		if (vma->vm_flags & (1UL << i)) {
--- 
-1.8.3.1
+Balbir Singh.
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
