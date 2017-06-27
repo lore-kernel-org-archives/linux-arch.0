@@ -1,13 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-cys01nam02on0065.outbound.protection.outlook.com ([104.47.37.65]:11972
-        "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
+Received: from mail-bn3nam01on0083.outbound.protection.outlook.com ([104.47.33.83]:45888
+        "EHLO NAM01-BN3-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751492AbdF0O5k (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 27 Jun 2017 10:57:40 -0400
+        id S1751659AbdF0O7W (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 27 Jun 2017 10:59:22 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v8 07/38] x86/mm: Remove phys_to_virt() usage in ioremap()
-Date: Tue, 27 Jun 2017 09:57:25 -0500
-Message-ID: <20170627145725.15908.24612.stgit@tlendack-t1.amdoffice.net>
+Subject: [PATCH v8 17/38] efi: Update efi_mem_type() to return an error
+ rather than 0
+Date: Tue, 27 Jun 2017 09:59:12 -0500
+Message-ID: <20170627145912.15908.60861.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20170627145607.15908.26571.stgit@tlendack-t1.amdoffice.net>
 References: <20170627145607.15908.26571.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -17,48 +18,83 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>
-Message-ID: <20170627145725.kMYqZMUgdH-X88Xc70Eaiz8RhJzf71GZD7gKpBzs1kk@z>
+Message-ID: <20170627145912.-dBNP7PR2APY5W5V_zy9J3hakvVRPIcSFp6feXIdRAs@z>
 
-Currently there is a check if the address being mapped is in the ISA
-range (is_ISA_range()), and if it is, then phys_to_virt() is used to
-perform the mapping. When SME is active, the default is to add pagetable
-mappings with the encryption bit set unless specifically overridden. The
-resulting pagetable mapping from phys_to_virt() will result in a mapping
-that has the encryption bit set. With SME, the use of ioremap() is
-intended to generate pagetable mappings that do not have the encryption
-bit set through the use of the PAGE_KERNEL_IO protection value.
+The efi_mem_type() function currently returns a 0, which maps to
+EFI_RESERVED_TYPE, if the function is unable to find a memmap entry for
+the supplied physical address. Returning EFI_RESERVED_TYPE implies that
+a memmap entry exists, when it doesn't.  Instead of returning 0, change
+the function to return a negative error value when no memmap entry is
+found.
 
-Rather than special case the SME scenario, remove the ISA range check and
-usage of phys_to_virt() and have ISA range mappings continue through the
-remaining ioremap() path.
-
+Reviewed-by: Matt Fleming <matt@codeblueprint.co.uk>
+Reviewed-by: Borislav Petkov <bp@suse.de>
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/mm/ioremap.c |    7 +------
- 1 file changed, 1 insertion(+), 6 deletions(-)
+ arch/ia64/kernel/efi.c      |    4 ++--
+ arch/x86/platform/efi/efi.c |    6 +++---
+ include/linux/efi.h         |    2 +-
+ 3 files changed, 6 insertions(+), 6 deletions(-)
 
-diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
-index 4c1b5fd..bfc3e2d 100644
---- a/arch/x86/mm/ioremap.c
-+++ b/arch/x86/mm/ioremap.c
-@@ -13,6 +13,7 @@
- #include <linux/slab.h>
- #include <linux/vmalloc.h>
- #include <linux/mmiotrace.h>
-+#include <linux/mem_encrypt.h>
+diff --git a/arch/ia64/kernel/efi.c b/arch/ia64/kernel/efi.c
+index 1212956..8141600 100644
+--- a/arch/ia64/kernel/efi.c
++++ b/arch/ia64/kernel/efi.c
+@@ -757,14 +757,14 @@ static void __init handle_palo(unsigned long phys_addr)
+ 	return 0;
+ }
  
- #include <asm/set_memory.h>
- #include <asm/e820/api.h>
-@@ -106,12 +107,6 @@ static void __iomem *__ioremap_caller(resource_size_t phys_addr,
+-u32
++int
+ efi_mem_type (unsigned long phys_addr)
+ {
+ 	efi_memory_desc_t *md = efi_memory_descriptor(phys_addr);
+ 
+ 	if (md)
+ 		return md->type;
+-	return 0;
++	return -EINVAL;
+ }
+ 
+ u64
+diff --git a/arch/x86/platform/efi/efi.c b/arch/x86/platform/efi/efi.c
+index f084d87..6217b23 100644
+--- a/arch/x86/platform/efi/efi.c
++++ b/arch/x86/platform/efi/efi.c
+@@ -1035,12 +1035,12 @@ void __init efi_enter_virtual_mode(void)
+ /*
+  * Convenience functions to obtain memory types and attributes
+  */
+-u32 efi_mem_type(unsigned long phys_addr)
++int efi_mem_type(unsigned long phys_addr)
+ {
+ 	efi_memory_desc_t *md;
+ 
+ 	if (!efi_enabled(EFI_MEMMAP))
+-		return 0;
++		return -ENOTSUPP;
+ 
+ 	for_each_efi_memory_desc(md) {
+ 		if ((md->phys_addr <= phys_addr) &&
+@@ -1048,7 +1048,7 @@ u32 efi_mem_type(unsigned long phys_addr)
+ 				  (md->num_pages << EFI_PAGE_SHIFT))))
+ 			return md->type;
  	}
+-	return 0;
++	return -EINVAL;
+ }
  
- 	/*
--	 * Don't remap the low PCI/ISA area, it's always mapped..
--	 */
--	if (is_ISA_range(phys_addr, last_addr))
--		return (__force void __iomem *)phys_to_virt(phys_addr);
--
--	/*
- 	 * Don't allow anybody to remap normal RAM that we're using..
- 	 */
- 	pfn      = phys_addr >> PAGE_SHIFT;
+ static int __init arch_parse_efi_cmdline(char *str)
+diff --git a/include/linux/efi.h b/include/linux/efi.h
+index 8e24f09..4e47f78 100644
+--- a/include/linux/efi.h
++++ b/include/linux/efi.h
+@@ -985,7 +985,7 @@ static inline void efi_esrt_init(void) { }
+ extern int efi_config_parse_tables(void *config_tables, int count, int sz,
+ 				   efi_config_table_type_t *arch_tables);
+ extern u64 efi_get_iobase (void);
+-extern u32 efi_mem_type (unsigned long phys_addr);
++extern int efi_mem_type(unsigned long phys_addr);
+ extern u64 efi_mem_attributes (unsigned long phys_addr);
+ extern u64 efi_mem_attribute (unsigned long phys_addr, unsigned long size);
+ extern int __init efi_uart_console_only (void);
