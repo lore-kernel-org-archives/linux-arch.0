@@ -1,16 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-sn1nam01on0058.outbound.protection.outlook.com ([104.47.32.58]:17760
+Received: from mail-sn1nam01on0041.outbound.protection.outlook.com ([104.47.32.41]:19228
         "EHLO NAM01-SN1-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752860AbdF0PNr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 27 Jun 2017 11:13:47 -0400
+        id S1752020AbdF0PAi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 27 Jun 2017 11:00:38 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v8 RESEND 33/38] x86/mm: Use proper encryption attributes
- with /dev/mem
-Date: Tue, 27 Jun 2017 10:13:38 -0500
-Message-ID: <20170627151338.17428.47553.stgit@tlendack-t1.amdoffice.net>
-In-Reply-To: <20170627150718.17428.81813.stgit@tlendack-t1.amdoffice.net>
-References: <20170627150718.17428.81813.stgit@tlendack-t1.amdoffice.net>
+Subject: [PATCH v8 21/38] x86/mm: Add support to access persistent memory in
+ the clear
+Date: Tue, 27 Jun 2017 09:59:56 -0500
+Message-ID: <20170627145956.15908.64000.stgit@tlendack-t1.amdoffice.net>
+In-Reply-To: <20170627145607.15908.26571.stgit@tlendack-t1.amdoffice.net>
+References: <20170627145607.15908.26571.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
@@ -18,97 +18,69 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>
-Message-ID: <20170627151338.18Gr8k-e73SEEoIN0ecNasoxGRsFADqVz8XOtWnBnjs@z>
+Message-ID: <20170627145956.IFhuC93Qdbf4c-t1MCp5vhXl43tprK4bWfnfdKvGEyE@z>
 
-When accessing memory using /dev/mem (or /dev/kmem) use the proper
-encryption attributes when mapping the memory.
-
-To insure the proper attributes are applied when reading or writing
-/dev/mem, update the xlate_dev_mem_ptr() function to use memremap()
-which will essentially perform the same steps of applying __va for
-RAM or using ioremap() if not RAM.
-
-To insure the proper attributes are applied when mmapping /dev/mem,
-update the phys_mem_access_prot() to call phys_mem_access_encrypted(),
-a new function which will check if the memory should be mapped encrypted
-or not. If it is not to be mapped encrypted then the VMA protection
-value is updated to remove the encryption bit.
+Persistent memory is expected to persist across reboots. The encryption
+key used by SME will change across reboots which will result in corrupted
+persistent memory.  Persistent memory is handed out by block devices
+through memory remapping functions, so be sure not to map this memory as
+encrypted.
 
 Reviewed-by: Borislav Petkov <bp@suse.de>
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/include/asm/io.h |    3 +++
- arch/x86/mm/ioremap.c     |   18 +++++++++---------
- arch/x86/mm/pat.c         |    3 +++
- 3 files changed, 15 insertions(+), 9 deletions(-)
+ arch/x86/mm/ioremap.c |   31 ++++++++++++++++++++++++++++++-
+ 1 file changed, 30 insertions(+), 1 deletion(-)
 
-diff --git a/arch/x86/include/asm/io.h b/arch/x86/include/asm/io.h
-index 09c5557..e080a39 100644
---- a/arch/x86/include/asm/io.h
-+++ b/arch/x86/include/asm/io.h
-@@ -386,4 +386,7 @@ extern bool arch_memremap_can_ram_remap(resource_size_t offset,
- 					unsigned long flags);
- #define arch_memremap_can_ram_remap arch_memremap_can_ram_remap
- 
-+extern bool phys_mem_access_encrypted(unsigned long phys_addr,
-+				      unsigned long size);
-+
- #endif /* _ASM_X86_IO_H */
 diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
-index effa529..71d4ca7 100644
+index ee33838..effa529 100644
 --- a/arch/x86/mm/ioremap.c
 +++ b/arch/x86/mm/ioremap.c
-@@ -396,12 +396,10 @@ void *xlate_dev_mem_ptr(phys_addr_t phys)
- 	unsigned long offset = phys & ~PAGE_MASK;
- 	void *vaddr;
- 
--	/* If page is RAM, we can use __va. Otherwise ioremap and unmap. */
--	if (page_is_ram(start >> PAGE_SHIFT))
--		return __va(phys);
-+	/* memremap() maps if RAM, otherwise falls back to ioremap() */
-+	vaddr = memremap(start, PAGE_SIZE, MEMREMAP_WB);
- 
--	vaddr = ioremap_cache(start, PAGE_SIZE);
--	/* Only add the offset on success and return NULL if the ioremap() failed: */
-+	/* Only add the offset on success and return NULL if memremap() failed */
- 	if (vaddr)
- 		vaddr += offset;
- 
-@@ -410,10 +408,7 @@ void *xlate_dev_mem_ptr(phys_addr_t phys)
- 
- void unxlate_dev_mem_ptr(phys_addr_t phys, void *addr)
+@@ -420,17 +420,46 @@ void unxlate_dev_mem_ptr(phys_addr_t phys, void *addr)
+  * Examine the physical address to determine if it is an area of memory
+  * that should be mapped decrypted.  If the memory is not part of the
+  * kernel usable area it was accessed and created decrypted, so these
+- * areas should be mapped decrypted.
++ * areas should be mapped decrypted. And since the encryption key can
++ * change across reboots, persistent memory should also be mapped
++ * decrypted.
+  */
+ static bool memremap_should_map_decrypted(resource_size_t phys_addr,
+ 					  unsigned long size)
  {
--	if (page_is_ram(phys >> PAGE_SHIFT))
--		return;
--
--	iounmap((void __iomem *)((unsigned long)addr & PAGE_MASK));
-+	memunmap((void *)((unsigned long)addr & PAGE_MASK));
- }
- 
- /*
-@@ -622,6 +617,11 @@ pgprot_t __init early_memremap_pgprot_adjust(resource_size_t phys_addr,
- 	return prot;
- }
- 
-+bool phys_mem_access_encrypted(unsigned long phys_addr, unsigned long size)
-+{
-+	return arch_memremap_can_ram_remap(phys_addr, size, 0);
-+}
++	int is_pmem;
 +
- #ifdef CONFIG_ARCH_USE_MEMREMAP_PROT
- /* Remap memory with encryption */
- void __init *early_memremap_encrypted(resource_size_t phys_addr,
-diff --git a/arch/x86/mm/pat.c b/arch/x86/mm/pat.c
-index 6753d9c..b970c95 100644
---- a/arch/x86/mm/pat.c
-+++ b/arch/x86/mm/pat.c
-@@ -748,6 +748,9 @@ void arch_io_free_memtype_wc(resource_size_t start, resource_size_t size)
- pgprot_t phys_mem_access_prot(struct file *file, unsigned long pfn,
- 				unsigned long size, pgprot_t vma_prot)
- {
-+	if (!phys_mem_access_encrypted(pfn << PAGE_SHIFT, size))
-+		vma_prot = pgprot_decrypted(vma_prot);
++	/*
++	 * Check if the address is part of a persistent memory region.
++	 * This check covers areas added by E820, EFI and ACPI.
++	 */
++	is_pmem = region_intersects(phys_addr, size, IORESOURCE_MEM,
++				    IORES_DESC_PERSISTENT_MEMORY);
++	if (is_pmem != REGION_DISJOINT)
++		return true;
 +
- 	return vma_prot;
- }
- 
++	/*
++	 * Check if the non-volatile attribute is set for an EFI
++	 * reserved area.
++	 */
++	if (efi_enabled(EFI_BOOT)) {
++		switch (efi_mem_type(phys_addr)) {
++		case EFI_RESERVED_TYPE:
++			if (efi_mem_attributes(phys_addr) & EFI_MEMORY_NV)
++				return true;
++			break;
++		default:
++			break;
++		}
++	}
++
+ 	/* Check if the address is outside kernel usable area */
+ 	switch (e820__get_entry_type(phys_addr, phys_addr + size - 1)) {
+ 	case E820_TYPE_RESERVED:
+ 	case E820_TYPE_ACPI:
+ 	case E820_TYPE_NVS:
+ 	case E820_TYPE_UNUSABLE:
++	case E820_TYPE_PRAM:
+ 		return true;
+ 	default:
+ 		break;
