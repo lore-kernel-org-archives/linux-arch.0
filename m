@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bl2nam02on0078.outbound.protection.outlook.com ([104.47.38.78]:33616
+Received: from mail-bl2nam02on0062.outbound.protection.outlook.com ([104.47.38.62]:3430
         "EHLO NAM02-BL2-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1753379AbdF0PNU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 27 Jun 2017 11:13:20 -0400
+        id S1752328AbdF0PN0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 27 Jun 2017 11:13:26 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v8 RESEND 27/38] iommu/amd: Allow the AMD IOMMU to work with
- memory encryption
-Date: Tue, 27 Jun 2017 10:12:30 -0500
-Message-ID: <20170627151230.17428.75281.stgit@tlendack-t1.amdoffice.net>
+Subject: [PATCH v8 RESEND 31/38] x86/mm,
+ kexec: Allow kexec to be used with SME
+Date: Tue, 27 Jun 2017 10:13:14 -0500
+Message-ID: <20170627151314.17428.39391.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20170627150718.17428.81813.stgit@tlendack-t1.amdoffice.net>
 References: <20170627150718.17428.81813.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -18,270 +18,261 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>
-Message-ID: <20170627151230._Bg2d6ZLLM-7ELb1Bu7Gn9WL79HybnLvrDIu1cuPrAU@z>
+Message-ID: <20170627151314.vqfGV_SEBNpUIgoHaE3G6jQWfsSqB2hp2yPOyIBiNss@z>
 
-The IOMMU is programmed with physical addresses for the various tables
-and buffers that are used to communicate between the device and the
-driver. When the driver allocates this memory it is encrypted. In order
-for the IOMMU to access the memory as encrypted the encryption mask needs
-to be included in these physical addresses during configuration.
+Provide support so that kexec can be used to boot a kernel when SME is
+enabled.
 
-The PTE entries created by the IOMMU should also include the encryption
-mask so that when the device behind the IOMMU performs a DMA, the DMA
-will be performed to encrypted memory.
+Support is needed to allocate pages for kexec without encryption.  This
+is needed in order to be able to reboot in the kernel in the same manner
+as originally booted.
+
+Additionally, when shutting down all of the CPUs we need to be sure to
+flush the caches and then halt. This is needed when booting from a state
+where SME was not active into a state where SME is active (or vice-versa).
+Without these steps, it is possible for cache lines to exist for the same
+physical location but tagged both with and without the encryption bit. This
+can cause random memory corruption when caches are flushed depending on
+which cacheline is written last.
 
 Reviewed-by: Borislav Petkov <bp@suse.de>
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- drivers/iommu/amd_iommu.c       |   30 ++++++++++++++++--------------
- drivers/iommu/amd_iommu_init.c  |   34 ++++++++++++++++++++++++++++------
- drivers/iommu/amd_iommu_proto.h |   10 ++++++++++
- drivers/iommu/amd_iommu_types.h |    2 +-
- 4 files changed, 55 insertions(+), 21 deletions(-)
+ arch/x86/include/asm/init.h          |    1 +
+ arch/x86/include/asm/kexec.h         |    8 ++++++++
+ arch/x86/include/asm/pgtable_types.h |    1 +
+ arch/x86/kernel/machine_kexec_64.c   |   22 +++++++++++++++++++++-
+ arch/x86/kernel/process.c            |   17 +++++++++++++++--
+ arch/x86/mm/ident_map.c              |   12 ++++++++----
+ include/linux/kexec.h                |    8 ++++++++
+ kernel/kexec_core.c                  |   12 +++++++++++-
+ 8 files changed, 73 insertions(+), 8 deletions(-)
 
-diff --git a/drivers/iommu/amd_iommu.c b/drivers/iommu/amd_iommu.c
-index 503849d..16cc54b 100644
---- a/drivers/iommu/amd_iommu.c
-+++ b/drivers/iommu/amd_iommu.c
-@@ -544,7 +544,7 @@ static void dump_dte_entry(u16 devid)
+diff --git a/arch/x86/include/asm/init.h b/arch/x86/include/asm/init.h
+index 474eb8c..05c4aa0 100644
+--- a/arch/x86/include/asm/init.h
++++ b/arch/x86/include/asm/init.h
+@@ -7,6 +7,7 @@ struct x86_mapping_info {
+ 	unsigned long page_flag;	 /* page flag for PMD or PUD entry */
+ 	unsigned long offset;		 /* ident mapping offset */
+ 	bool direct_gbpages;		 /* PUD level 1GB page support */
++	unsigned long kernpg_flag;	 /* kernel pagetable flag override */
+ };
  
- static void dump_command(unsigned long phys_addr)
- {
--	struct iommu_cmd *cmd = phys_to_virt(phys_addr);
-+	struct iommu_cmd *cmd = iommu_phys_to_virt(phys_addr);
- 	int i;
- 
- 	for (i = 0; i < 4; ++i)
-@@ -865,11 +865,13 @@ static void copy_cmd_to_buffer(struct amd_iommu *iommu,
- 
- static void build_completion_wait(struct iommu_cmd *cmd, u64 address)
- {
-+	u64 paddr = iommu_virt_to_phys((void *)address);
+ int kernel_ident_mapping_init(struct x86_mapping_info *info, pgd_t *pgd_page,
+diff --git a/arch/x86/include/asm/kexec.h b/arch/x86/include/asm/kexec.h
+index 70ef205..e8183ac 100644
+--- a/arch/x86/include/asm/kexec.h
++++ b/arch/x86/include/asm/kexec.h
+@@ -207,6 +207,14 @@ struct kexec_entry64_regs {
+ 	uint64_t r15;
+ 	uint64_t rip;
+ };
 +
- 	WARN_ON(address & 0x7ULL);
++extern int arch_kexec_post_alloc_pages(void *vaddr, unsigned int pages,
++				       gfp_t gfp);
++#define arch_kexec_post_alloc_pages arch_kexec_post_alloc_pages
++
++extern void arch_kexec_pre_free_pages(void *vaddr, unsigned int pages);
++#define arch_kexec_pre_free_pages arch_kexec_pre_free_pages
++
+ #endif
  
- 	memset(cmd, 0, sizeof(*cmd));
--	cmd->data[0] = lower_32_bits(__pa(address)) | CMD_COMPL_WAIT_STORE_MASK;
--	cmd->data[1] = upper_32_bits(__pa(address));
-+	cmd->data[0] = lower_32_bits(paddr) | CMD_COMPL_WAIT_STORE_MASK;
-+	cmd->data[1] = upper_32_bits(paddr);
- 	cmd->data[2] = 1;
- 	CMD_SET_TYPE(cmd, CMD_COMPL_WAIT);
+ typedef void crash_vmclear_fn(void);
+diff --git a/arch/x86/include/asm/pgtable_types.h b/arch/x86/include/asm/pgtable_types.h
+index 32095af..830992f 100644
+--- a/arch/x86/include/asm/pgtable_types.h
++++ b/arch/x86/include/asm/pgtable_types.h
+@@ -213,6 +213,7 @@ enum page_cache_mode {
+ #define PAGE_KERNEL		__pgprot(__PAGE_KERNEL | _PAGE_ENC)
+ #define PAGE_KERNEL_RO		__pgprot(__PAGE_KERNEL_RO | _PAGE_ENC)
+ #define PAGE_KERNEL_EXEC	__pgprot(__PAGE_KERNEL_EXEC | _PAGE_ENC)
++#define PAGE_KERNEL_EXEC_NOENC	__pgprot(__PAGE_KERNEL_EXEC)
+ #define PAGE_KERNEL_RX		__pgprot(__PAGE_KERNEL_RX | _PAGE_ENC)
+ #define PAGE_KERNEL_NOCACHE	__pgprot(__PAGE_KERNEL_NOCACHE | _PAGE_ENC)
+ #define PAGE_KERNEL_LARGE	__pgprot(__PAGE_KERNEL_LARGE | _PAGE_ENC)
+diff --git a/arch/x86/kernel/machine_kexec_64.c b/arch/x86/kernel/machine_kexec_64.c
+index cb0a304..9cf8daa 100644
+--- a/arch/x86/kernel/machine_kexec_64.c
++++ b/arch/x86/kernel/machine_kexec_64.c
+@@ -87,7 +87,7 @@ static int init_transition_pgtable(struct kimage *image, pgd_t *pgd)
+ 		set_pmd(pmd, __pmd(__pa(pte) | _KERNPG_TABLE));
+ 	}
+ 	pte = pte_offset_kernel(pmd, vaddr);
+-	set_pte(pte, pfn_pte(paddr >> PAGE_SHIFT, PAGE_KERNEL_EXEC));
++	set_pte(pte, pfn_pte(paddr >> PAGE_SHIFT, PAGE_KERNEL_EXEC_NOENC));
+ 	return 0;
+ err:
+ 	free_transition_pgtable(image);
+@@ -115,6 +115,7 @@ static int init_pgtable(struct kimage *image, unsigned long start_pgtable)
+ 		.alloc_pgt_page	= alloc_pgt_page,
+ 		.context	= image,
+ 		.page_flag	= __PAGE_KERNEL_LARGE_EXEC,
++		.kernpg_flag	= _KERNPG_TABLE_NOENC,
+ 	};
+ 	unsigned long mstart, mend;
+ 	pgd_t *level4p;
+@@ -602,3 +603,22 @@ void arch_kexec_unprotect_crashkres(void)
+ {
+ 	kexec_mark_crashkres(false);
  }
-@@ -1328,7 +1330,7 @@ static bool increase_address_space(struct protection_domain *domain,
- 		return false;
- 
- 	*pte             = PM_LEVEL_PDE(domain->mode,
--					virt_to_phys(domain->pt_root));
-+					iommu_virt_to_phys(domain->pt_root));
- 	domain->pt_root  = pte;
- 	domain->mode    += 1;
- 	domain->updated  = true;
-@@ -1365,7 +1367,7 @@ static u64 *alloc_pte(struct protection_domain *domain,
- 			if (!page)
- 				return NULL;
- 
--			__npte = PM_LEVEL_PDE(level, virt_to_phys(page));
-+			__npte = PM_LEVEL_PDE(level, iommu_virt_to_phys(page));
- 
- 			/* pte could have been changed somewhere. */
- 			if (cmpxchg64(pte, __pte, __npte) != __pte) {
-@@ -1481,10 +1483,10 @@ static int iommu_map_page(struct protection_domain *dom,
- 			return -EBUSY;
- 
- 	if (count > 1) {
--		__pte = PAGE_SIZE_PTE(phys_addr, page_size);
-+		__pte = PAGE_SIZE_PTE(__sme_set(phys_addr), page_size);
- 		__pte |= PM_LEVEL_ENC(7) | IOMMU_PTE_P | IOMMU_PTE_FC;
- 	} else
--		__pte = phys_addr | IOMMU_PTE_P | IOMMU_PTE_FC;
-+		__pte = __sme_set(phys_addr) | IOMMU_PTE_P | IOMMU_PTE_FC;
- 
- 	if (prot & IOMMU_PROT_IR)
- 		__pte |= IOMMU_PTE_IR;
-@@ -1700,7 +1702,7 @@ static void free_gcr3_tbl_level1(u64 *tbl)
- 		if (!(tbl[i] & GCR3_VALID))
- 			continue;
- 
--		ptr = __va(tbl[i] & PAGE_MASK);
-+		ptr = iommu_phys_to_virt(tbl[i] & PAGE_MASK);
- 
- 		free_page((unsigned long)ptr);
- 	}
-@@ -1715,7 +1717,7 @@ static void free_gcr3_tbl_level2(u64 *tbl)
- 		if (!(tbl[i] & GCR3_VALID))
- 			continue;
- 
--		ptr = __va(tbl[i] & PAGE_MASK);
-+		ptr = iommu_phys_to_virt(tbl[i] & PAGE_MASK);
- 
- 		free_gcr3_tbl_level1(ptr);
- 	}
-@@ -1807,7 +1809,7 @@ static void set_dte_entry(u16 devid, struct protection_domain *domain, bool ats)
- 	u64 flags = 0;
- 
- 	if (domain->mode != PAGE_MODE_NONE)
--		pte_root = virt_to_phys(domain->pt_root);
-+		pte_root = iommu_virt_to_phys(domain->pt_root);
- 
- 	pte_root |= (domain->mode & DEV_ENTRY_MODE_MASK)
- 		    << DEV_ENTRY_MODE_SHIFT;
-@@ -1819,7 +1821,7 @@ static void set_dte_entry(u16 devid, struct protection_domain *domain, bool ats)
- 		flags |= DTE_FLAG_IOTLB;
- 
- 	if (domain->flags & PD_IOMMUV2_MASK) {
--		u64 gcr3 = __pa(domain->gcr3_tbl);
-+		u64 gcr3 = iommu_virt_to_phys(domain->gcr3_tbl);
- 		u64 glx  = domain->glx;
- 		u64 tmp;
- 
-@@ -3470,10 +3472,10 @@ static u64 *__get_gcr3_pte(u64 *root, int level, int pasid, bool alloc)
- 			if (root == NULL)
- 				return NULL;
- 
--			*pte = __pa(root) | GCR3_VALID;
-+			*pte = iommu_virt_to_phys(root) | GCR3_VALID;
- 		}
- 
--		root = __va(*pte & PAGE_MASK);
-+		root = iommu_phys_to_virt(*pte & PAGE_MASK);
- 
- 		level -= 1;
- 	}
-@@ -3652,7 +3654,7 @@ static void set_dte_irq_entry(u16 devid, struct irq_remap_table *table)
- 
- 	dte	= amd_iommu_dev_table[devid].data[2];
- 	dte	&= ~DTE_IRQ_PHYS_ADDR_MASK;
--	dte	|= virt_to_phys(table->table);
-+	dte	|= iommu_virt_to_phys(table->table);
- 	dte	|= DTE_IRQ_REMAP_INTCTL;
- 	dte	|= DTE_IRQ_TABLE_LEN;
- 	dte	|= DTE_IRQ_REMAP_ENABLE;
-diff --git a/drivers/iommu/amd_iommu_init.c b/drivers/iommu/amd_iommu_init.c
-index 5a11328..26862f1 100644
---- a/drivers/iommu/amd_iommu_init.c
-+++ b/drivers/iommu/amd_iommu_init.c
-@@ -29,6 +29,7 @@
- #include <linux/export.h>
- #include <linux/iommu.h>
- #include <linux/kmemleak.h>
-+#include <linux/mem_encrypt.h>
- #include <asm/pci-direct.h>
- #include <asm/iommu.h>
- #include <asm/gart.h>
-@@ -346,7 +347,7 @@ static void iommu_set_device_table(struct amd_iommu *iommu)
- 
- 	BUG_ON(iommu->mmio_base == NULL);
- 
--	entry = virt_to_phys(amd_iommu_dev_table);
-+	entry = iommu_virt_to_phys(amd_iommu_dev_table);
- 	entry |= (dev_table_size >> 12) - 1;
- 	memcpy_toio(iommu->mmio_base + MMIO_DEV_TABLE_OFFSET,
- 			&entry, sizeof(entry));
-@@ -602,7 +603,7 @@ static void iommu_enable_command_buffer(struct amd_iommu *iommu)
- 
- 	BUG_ON(iommu->cmd_buf == NULL);
- 
--	entry = (u64)virt_to_phys(iommu->cmd_buf);
-+	entry = iommu_virt_to_phys(iommu->cmd_buf);
- 	entry |= MMIO_CMD_SIZE_512;
- 
- 	memcpy_toio(iommu->mmio_base + MMIO_CMD_BUF_OFFSET,
-@@ -631,7 +632,7 @@ static void iommu_enable_event_buffer(struct amd_iommu *iommu)
- 
- 	BUG_ON(iommu->evt_buf == NULL);
- 
--	entry = (u64)virt_to_phys(iommu->evt_buf) | EVT_LEN_MASK;
-+	entry = iommu_virt_to_phys(iommu->evt_buf) | EVT_LEN_MASK;
- 
- 	memcpy_toio(iommu->mmio_base + MMIO_EVT_BUF_OFFSET,
- 		    &entry, sizeof(entry));
-@@ -664,7 +665,7 @@ static void iommu_enable_ppr_log(struct amd_iommu *iommu)
- 	if (iommu->ppr_log == NULL)
- 		return;
- 
--	entry = (u64)virt_to_phys(iommu->ppr_log) | PPR_LOG_SIZE_512;
-+	entry = iommu_virt_to_phys(iommu->ppr_log) | PPR_LOG_SIZE_512;
- 
- 	memcpy_toio(iommu->mmio_base + MMIO_PPR_LOG_OFFSET,
- 		    &entry, sizeof(entry));
-@@ -744,10 +745,10 @@ static int iommu_init_ga_log(struct amd_iommu *iommu)
- 	if (!iommu->ga_log_tail)
- 		goto err_out;
- 
--	entry = (u64)virt_to_phys(iommu->ga_log) | GA_LOG_SIZE_512;
-+	entry = iommu_virt_to_phys(iommu->ga_log) | GA_LOG_SIZE_512;
- 	memcpy_toio(iommu->mmio_base + MMIO_GA_LOG_BASE_OFFSET,
- 		    &entry, sizeof(entry));
--	entry = ((u64)virt_to_phys(iommu->ga_log) & 0xFFFFFFFFFFFFFULL) & ~7ULL;
-+	entry = (iommu_virt_to_phys(iommu->ga_log) & 0xFFFFFFFFFFFFFULL) & ~7ULL;
- 	memcpy_toio(iommu->mmio_base + MMIO_GA_LOG_TAIL_OFFSET,
- 		    &entry, sizeof(entry));
- 	writel(0x00, iommu->mmio_base + MMIO_GA_HEAD_OFFSET);
-@@ -2535,6 +2536,24 @@ static int __init amd_iommu_init(void)
++
++int arch_kexec_post_alloc_pages(void *vaddr, unsigned int pages, gfp_t gfp)
++{
++	/*
++	 * If SME is active we need to be sure that kexec pages are
++	 * not encrypted because when we boot to the new kernel the
++	 * pages won't be accessed encrypted (initially).
++	 */
++	return set_memory_decrypted((unsigned long)vaddr, pages);
++}
++
++void arch_kexec_pre_free_pages(void *vaddr, unsigned int pages)
++{
++	/*
++	 * If SME is active we need to reset the pages back to being
++	 * an encrypted mapping before freeing them.
++	 */
++	set_memory_encrypted((unsigned long)vaddr, pages);
++}
+diff --git a/arch/x86/kernel/process.c b/arch/x86/kernel/process.c
+index 0bb8842..fdad0fb 100644
+--- a/arch/x86/kernel/process.c
++++ b/arch/x86/kernel/process.c
+@@ -355,6 +355,7 @@ bool xen_set_default_idle(void)
  	return ret;
  }
+ #endif
++
+ void stop_this_cpu(void *dummy)
+ {
+ 	local_irq_disable();
+@@ -365,8 +366,20 @@ void stop_this_cpu(void *dummy)
+ 	disable_local_APIC();
+ 	mcheck_cpu_clear(this_cpu_ptr(&cpu_info));
  
-+static bool amd_iommu_supports_sme(void)
-+{
-+	if (!sme_active() || (boot_cpu_data.x86 != 0x17))
-+		return true;
-+
-+	/* For Fam17h, a specific level of support is required */
-+	if (boot_cpu_data.microcode >= 0x08001205)
-+		return true;
-+
-+	if ((boot_cpu_data.microcode >= 0x08001126) &&
-+	    (boot_cpu_data.microcode <= 0x080011ff))
-+		return true;
-+
-+	pr_notice("AMD-Vi: IOMMU not currently supported when SME is active\n");
-+
-+	return false;
-+}
-+
- /****************************************************************************
-  *
-  * Early detect code. This code runs at IOMMU detection time in the DMA
-@@ -2552,6 +2571,9 @@ int __init amd_iommu_detect(void)
- 	if (amd_iommu_disabled)
- 		return -ENODEV;
- 
-+	if (!amd_iommu_supports_sme())
-+		return -ENODEV;
-+
- 	ret = iommu_go_to_state(IOMMU_IVRS_DETECTED);
- 	if (ret)
- 		return ret;
-diff --git a/drivers/iommu/amd_iommu_proto.h b/drivers/iommu/amd_iommu_proto.h
-index 466260f..3f12fb2 100644
---- a/drivers/iommu/amd_iommu_proto.h
-+++ b/drivers/iommu/amd_iommu_proto.h
-@@ -87,4 +87,14 @@ static inline bool iommu_feature(struct amd_iommu *iommu, u64 f)
- 	return !!(iommu->features & f);
+-	for (;;)
+-		halt();
++	for (;;) {
++		/*
++		 * Use wbinvd followed by hlt to stop the processor. This
++		 * provides support for kexec on a processor that supports
++		 * SME. With kexec, going from SME inactive to SME active
++		 * requires clearing cache entries so that addresses without
++		 * the encryption bit set don't corrupt the same physical
++		 * address that has the encryption bit set when caches are
++		 * flushed. To achieve this a wbinvd is performed followed by
++		 * a hlt. Even if the processor is not in the kexec/SME
++		 * scenario this only adds a wbinvd to a halting processor.
++		 */
++		asm volatile("wbinvd; hlt" : : : "memory");
++	}
  }
  
-+static inline u64 iommu_virt_to_phys(void *vaddr)
-+{
-+	return (u64)__sme_set(virt_to_phys(vaddr));
-+}
-+
-+static inline void *iommu_phys_to_virt(unsigned long paddr)
-+{
-+	return phys_to_virt(__sme_clr(paddr));
-+}
-+
- #endif /* _ASM_X86_AMD_IOMMU_PROTO_H  */
-diff --git a/drivers/iommu/amd_iommu_types.h b/drivers/iommu/amd_iommu_types.h
-index 4de8f41..3ce587d 100644
---- a/drivers/iommu/amd_iommu_types.h
-+++ b/drivers/iommu/amd_iommu_types.h
-@@ -343,7 +343,7 @@
+ /*
+diff --git a/arch/x86/mm/ident_map.c b/arch/x86/mm/ident_map.c
+index adab159..31cea98 100644
+--- a/arch/x86/mm/ident_map.c
++++ b/arch/x86/mm/ident_map.c
+@@ -51,7 +51,7 @@ static int ident_pud_init(struct x86_mapping_info *info, pud_t *pud_page,
+ 		if (!pmd)
+ 			return -ENOMEM;
+ 		ident_pmd_init(info, pmd, addr, next);
+-		set_pud(pud, __pud(__pa(pmd) | _KERNPG_TABLE));
++		set_pud(pud, __pud(__pa(pmd) | info->kernpg_flag));
+ 	}
  
- #define IOMMU_PAGE_MASK (((1ULL << 52) - 1) & ~0xfffULL)
- #define IOMMU_PTE_PRESENT(pte) ((pte) & IOMMU_PTE_P)
--#define IOMMU_PTE_PAGE(pte) (phys_to_virt((pte) & IOMMU_PAGE_MASK))
-+#define IOMMU_PTE_PAGE(pte) (iommu_phys_to_virt((pte) & IOMMU_PAGE_MASK))
- #define IOMMU_PTE_MODE(pte) (((pte) >> 9) & 0x07)
+ 	return 0;
+@@ -79,7 +79,7 @@ static int ident_p4d_init(struct x86_mapping_info *info, p4d_t *p4d_page,
+ 		if (!pud)
+ 			return -ENOMEM;
+ 		ident_pud_init(info, pud, addr, next);
+-		set_p4d(p4d, __p4d(__pa(pud) | _KERNPG_TABLE));
++		set_p4d(p4d, __p4d(__pa(pud) | info->kernpg_flag));
+ 	}
  
- #define IOMMU_PROT_MASK 0x03
+ 	return 0;
+@@ -93,6 +93,10 @@ int kernel_ident_mapping_init(struct x86_mapping_info *info, pgd_t *pgd_page,
+ 	unsigned long next;
+ 	int result;
+ 
++	/* Set the default pagetable flags if not supplied */
++	if (!info->kernpg_flag)
++		info->kernpg_flag = _KERNPG_TABLE;
++
+ 	for (; addr < end; addr = next) {
+ 		pgd_t *pgd = pgd_page + pgd_index(addr);
+ 		p4d_t *p4d;
+@@ -116,14 +120,14 @@ int kernel_ident_mapping_init(struct x86_mapping_info *info, pgd_t *pgd_page,
+ 		if (result)
+ 			return result;
+ 		if (IS_ENABLED(CONFIG_X86_5LEVEL)) {
+-			set_pgd(pgd, __pgd(__pa(p4d) | _KERNPG_TABLE));
++			set_pgd(pgd, __pgd(__pa(p4d) | info->kernpg_flag));
+ 		} else {
+ 			/*
+ 			 * With p4d folded, pgd is equal to p4d.
+ 			 * The pgd entry has to point to the pud page table in this case.
+ 			 */
+ 			pud_t *pud = pud_offset(p4d, 0);
+-			set_pgd(pgd, __pgd(__pa(pud) | _KERNPG_TABLE));
++			set_pgd(pgd, __pgd(__pa(pud) | info->kernpg_flag));
+ 		}
+ 	}
+ 
+diff --git a/include/linux/kexec.h b/include/linux/kexec.h
+index c9481eb..bd7af8b 100644
+--- a/include/linux/kexec.h
++++ b/include/linux/kexec.h
+@@ -334,6 +334,14 @@ static inline void *boot_phys_to_virt(unsigned long entry)
+ 	return phys_to_virt(boot_phys_to_phys(entry));
+ }
+ 
++#ifndef arch_kexec_post_alloc_pages
++static inline int arch_kexec_post_alloc_pages(void *vaddr, unsigned int pages, gfp_t gfp) { return 0; }
++#endif
++
++#ifndef arch_kexec_pre_free_pages
++static inline void arch_kexec_pre_free_pages(void *vaddr, unsigned int pages) { }
++#endif
++
+ #else /* !CONFIG_KEXEC_CORE */
+ struct pt_regs;
+ struct task_struct;
+diff --git a/kernel/kexec_core.c b/kernel/kexec_core.c
+index ae1a3ba..2df1c39 100644
+--- a/kernel/kexec_core.c
++++ b/kernel/kexec_core.c
+@@ -300,7 +300,7 @@ static struct page *kimage_alloc_pages(gfp_t gfp_mask, unsigned int order)
+ {
+ 	struct page *pages;
+ 
+-	pages = alloc_pages(gfp_mask, order);
++	pages = alloc_pages(gfp_mask & ~__GFP_ZERO, order);
+ 	if (pages) {
+ 		unsigned int count, i;
+ 
+@@ -309,6 +309,13 @@ static struct page *kimage_alloc_pages(gfp_t gfp_mask, unsigned int order)
+ 		count = 1 << order;
+ 		for (i = 0; i < count; i++)
+ 			SetPageReserved(pages + i);
++
++		arch_kexec_post_alloc_pages(page_address(pages), count,
++					    gfp_mask);
++
++		if (gfp_mask & __GFP_ZERO)
++			for (i = 0; i < count; i++)
++				clear_highpage(pages + i);
+ 	}
+ 
+ 	return pages;
+@@ -320,6 +327,9 @@ static void kimage_free_pages(struct page *page)
+ 
+ 	order = page_private(page);
+ 	count = 1 << order;
++
++	arch_kexec_pre_free_pages(page_address(page), count);
++
+ 	for (i = 0; i < count; i++)
+ 		ClearPageReserved(page + i);
+ 	__free_pages(page, order);
