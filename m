@@ -1,14 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2nam01on0056.outbound.protection.outlook.com ([104.47.34.56]:59648
-        "EHLO NAM01-BY2-obe.outbound.protection.outlook.com"
+Received: from mail-sn1nam01on0041.outbound.protection.outlook.com ([104.47.32.41]:19228
+        "EHLO NAM01-SN1-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751510AbdF0O7q (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 27 Jun 2017 10:59:46 -0400
+        id S1751564AbdF0O7y (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 27 Jun 2017 10:59:54 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v8 19/38] x86/mm: Add support to access boot related data in
- the clear
-Date: Tue, 27 Jun 2017 09:59:35 -0500
-Message-ID: <20170627145935.15908.91473.stgit@tlendack-t1.amdoffice.net>
+Subject: [PATCH v8 16/38] efi: Add an EFI table address match function
+Date: Tue, 27 Jun 2017 09:59:03 -0500
+Message-ID: <20170627145903.15908.84218.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20170627145607.15908.26571.stgit@tlendack-t1.amdoffice.net>
 References: <20170627145607.15908.26571.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -18,351 +17,92 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>
-Message-ID: <20170627145935.bAzgaTvCVE0whihkI6GhelZZH80ko6H4V2rQSrTgliA@z>
+Message-ID: <20170627145903.epMPIQVxI7CJl7tY1u8sovq0rKk3L11vXnUIcltLWVo@z>
 
-Boot data (such as EFI related data) is not encrypted when the system is
-booted because UEFI/BIOS does not run with SME active. In order to access
-this data properly it needs to be mapped decrypted.
-
-Update early_memremap() to provide an arch specific routine to modify the
-pagetable protection attributes before they are applied to the new
-mapping. This is used to remove the encryption mask for boot related data.
-
-Update memremap() to provide an arch specific routine to determine if RAM
-remapping is allowed.  RAM remapping will cause an encrypted mapping to be
-generated. By preventing RAM remapping, ioremap_cache() will be used
-instead, which will provide a decrypted mapping of the boot related data.
+Add a function that will determine if a supplied physical address matches
+the address of an EFI table.
 
 Reviewed-by: Matt Fleming <matt@codeblueprint.co.uk>
 Reviewed-by: Borislav Petkov <bp@suse.de>
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/include/asm/io.h |    5 +
- arch/x86/mm/ioremap.c     |  179 +++++++++++++++++++++++++++++++++++++++++++++
- include/linux/io.h        |    2 +
- kernel/memremap.c         |   20 ++++-
- mm/early_ioremap.c        |   18 ++++-
- 5 files changed, 217 insertions(+), 7 deletions(-)
+ drivers/firmware/efi/efi.c |   33 +++++++++++++++++++++++++++++++++
+ include/linux/efi.h        |    7 +++++++
+ 2 files changed, 40 insertions(+)
 
-diff --git a/arch/x86/include/asm/io.h b/arch/x86/include/asm/io.h
-index 7afb0e2..09c5557 100644
---- a/arch/x86/include/asm/io.h
-+++ b/arch/x86/include/asm/io.h
-@@ -381,4 +381,9 @@ extern int __must_check arch_phys_wc_add(unsigned long base,
- #define arch_io_reserve_memtype_wc arch_io_reserve_memtype_wc
- #endif
- 
-+extern bool arch_memremap_can_ram_remap(resource_size_t offset,
-+					unsigned long size,
-+					unsigned long flags);
-+#define arch_memremap_can_ram_remap arch_memremap_can_ram_remap
-+
- #endif /* _ASM_X86_IO_H */
-diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
-index 26db273..ee33838 100644
---- a/arch/x86/mm/ioremap.c
-+++ b/arch/x86/mm/ioremap.c
-@@ -14,6 +14,7 @@
- #include <linux/vmalloc.h>
- #include <linux/mmiotrace.h>
- #include <linux/mem_encrypt.h>
-+#include <linux/efi.h>
- 
- #include <asm/set_memory.h>
- #include <asm/e820/api.h>
-@@ -22,6 +23,7 @@
- #include <asm/tlbflush.h>
- #include <asm/pgalloc.h>
- #include <asm/pat.h>
-+#include <asm/setup.h>
- 
- #include "physaddr.h"
- 
-@@ -414,6 +416,183 @@ void unxlate_dev_mem_ptr(phys_addr_t phys, void *addr)
- 	iounmap((void __iomem *)((unsigned long)addr & PAGE_MASK));
- }
- 
-+/*
-+ * Examine the physical address to determine if it is an area of memory
-+ * that should be mapped decrypted.  If the memory is not part of the
-+ * kernel usable area it was accessed and created decrypted, so these
-+ * areas should be mapped decrypted.
-+ */
-+static bool memremap_should_map_decrypted(resource_size_t phys_addr,
-+					  unsigned long size)
-+{
-+	/* Check if the address is outside kernel usable area */
-+	switch (e820__get_entry_type(phys_addr, phys_addr + size - 1)) {
-+	case E820_TYPE_RESERVED:
-+	case E820_TYPE_ACPI:
-+	case E820_TYPE_NVS:
-+	case E820_TYPE_UNUSABLE:
-+		return true;
-+	default:
-+		break;
-+	}
-+
-+	return false;
-+}
-+
-+/*
-+ * Examine the physical address to determine if it is EFI data. Check
-+ * it against the boot params structure and EFI tables and memory types.
-+ */
-+static bool memremap_is_efi_data(resource_size_t phys_addr,
-+				 unsigned long size)
-+{
-+	u64 paddr;
-+
-+	/* Check if the address is part of EFI boot/runtime data */
-+	if (!efi_enabled(EFI_BOOT))
-+		return false;
-+
-+	paddr = boot_params.efi_info.efi_memmap_hi;
-+	paddr <<= 32;
-+	paddr |= boot_params.efi_info.efi_memmap;
-+	if (phys_addr == paddr)
-+		return true;
-+
-+	paddr = boot_params.efi_info.efi_systab_hi;
-+	paddr <<= 32;
-+	paddr |= boot_params.efi_info.efi_systab;
-+	if (phys_addr == paddr)
-+		return true;
-+
-+	if (efi_is_table_address(phys_addr))
-+		return true;
-+
-+	switch (efi_mem_type(phys_addr)) {
-+	case EFI_BOOT_SERVICES_DATA:
-+	case EFI_RUNTIME_SERVICES_DATA:
-+		return true;
-+	default:
-+		break;
-+	}
-+
-+	return false;
-+}
-+
-+/*
-+ * Examine the physical address to determine if it is boot data by checking
-+ * it against the boot params setup_data chain.
-+ */
-+static bool memremap_is_setup_data(resource_size_t phys_addr,
-+				   unsigned long size)
-+{
-+	struct setup_data *data;
-+	u64 paddr, paddr_next;
-+
-+	paddr = boot_params.hdr.setup_data;
-+	while (paddr) {
-+		unsigned int len;
-+
-+		if (phys_addr == paddr)
-+			return true;
-+
-+		data = memremap(paddr, sizeof(*data),
-+				MEMREMAP_WB | MEMREMAP_DEC);
-+
-+		paddr_next = data->next;
-+		len = data->len;
-+
-+		memunmap(data);
-+
-+		if ((phys_addr > paddr) && (phys_addr < (paddr + len)))
-+			return true;
-+
-+		paddr = paddr_next;
-+	}
-+
-+	return false;
-+}
-+
-+/*
-+ * Examine the physical address to determine if it is boot data by checking
-+ * it against the boot params setup_data chain (early boot version).
-+ */
-+static bool __init early_memremap_is_setup_data(resource_size_t phys_addr,
-+						unsigned long size)
-+{
-+	struct setup_data *data;
-+	u64 paddr, paddr_next;
-+
-+	paddr = boot_params.hdr.setup_data;
-+	while (paddr) {
-+		unsigned int len;
-+
-+		if (phys_addr == paddr)
-+			return true;
-+
-+		data = early_memremap_decrypted(paddr, sizeof(*data));
-+
-+		paddr_next = data->next;
-+		len = data->len;
-+
-+		early_memunmap(data, sizeof(*data));
-+
-+		if ((phys_addr > paddr) && (phys_addr < (paddr + len)))
-+			return true;
-+
-+		paddr = paddr_next;
-+	}
-+
-+	return false;
-+}
-+
-+/*
-+ * Architecture function to determine if RAM remap is allowed. By default, a
-+ * RAM remap will map the data as encrypted. Determine if a RAM remap should
-+ * not be done so that the data will be mapped decrypted.
-+ */
-+bool arch_memremap_can_ram_remap(resource_size_t phys_addr, unsigned long size,
-+				 unsigned long flags)
-+{
-+	if (!sme_active())
-+		return true;
-+
-+	if (flags & MEMREMAP_ENC)
-+		return true;
-+
-+	if (flags & MEMREMAP_DEC)
-+		return false;
-+
-+	if (memremap_is_setup_data(phys_addr, size) ||
-+	    memremap_is_efi_data(phys_addr, size) ||
-+	    memremap_should_map_decrypted(phys_addr, size))
-+		return false;
-+
-+	return true;
-+}
-+
-+/*
-+ * Architecture override of __weak function to adjust the protection attributes
-+ * used when remapping memory. By default, early_memremap() will map the data
-+ * as encrypted. Determine if an encrypted mapping should not be done and set
-+ * the appropriate protection attributes.
-+ */
-+pgprot_t __init early_memremap_pgprot_adjust(resource_size_t phys_addr,
-+					     unsigned long size,
-+					     pgprot_t prot)
-+{
-+	if (!sme_active())
-+		return prot;
-+
-+	if (early_memremap_is_setup_data(phys_addr, size) ||
-+	    memremap_is_efi_data(phys_addr, size) ||
-+	    memremap_should_map_decrypted(phys_addr, size))
-+		prot = pgprot_decrypted(prot);
-+	else
-+		prot = pgprot_encrypted(prot);
-+
-+	return prot;
-+}
-+
- #ifdef CONFIG_ARCH_USE_MEMREMAP_PROT
- /* Remap memory with encryption */
- void __init *early_memremap_encrypted(resource_size_t phys_addr,
-diff --git a/include/linux/io.h b/include/linux/io.h
-index 2195d9e..32e30e8 100644
---- a/include/linux/io.h
-+++ b/include/linux/io.h
-@@ -157,6 +157,8 @@ enum {
- 	MEMREMAP_WB = 1 << 0,
- 	MEMREMAP_WT = 1 << 1,
- 	MEMREMAP_WC = 1 << 2,
-+	MEMREMAP_ENC = 1 << 3,
-+	MEMREMAP_DEC = 1 << 4,
+diff --git a/drivers/firmware/efi/efi.c b/drivers/firmware/efi/efi.c
+index 045d6d3..69d4d13 100644
+--- a/drivers/firmware/efi/efi.c
++++ b/drivers/firmware/efi/efi.c
+@@ -55,6 +55,25 @@ struct efi __read_mostly efi = {
  };
+ EXPORT_SYMBOL(efi);
  
- void *memremap(resource_size_t offset, size_t size, unsigned long flags);
-diff --git a/kernel/memremap.c b/kernel/memremap.c
-index 23a6483..9b4fbd5 100644
---- a/kernel/memremap.c
-+++ b/kernel/memremap.c
-@@ -34,13 +34,24 @@ static void *arch_memremap_wb(resource_size_t offset, unsigned long size)
- }
- #endif
- 
--static void *try_ram_remap(resource_size_t offset, size_t size)
-+#ifndef arch_memremap_can_ram_remap
-+static bool arch_memremap_can_ram_remap(resource_size_t offset, size_t size,
-+					unsigned long flags)
-+{
-+	return true;
-+}
-+#endif
++static unsigned long *efi_tables[] = {
++	&efi.mps,
++	&efi.acpi,
++	&efi.acpi20,
++	&efi.smbios,
++	&efi.smbios3,
++	&efi.sal_systab,
++	&efi.boot_info,
++	&efi.hcdp,
++	&efi.uga,
++	&efi.uv_systab,
++	&efi.fw_vendor,
++	&efi.runtime,
++	&efi.config_table,
++	&efi.esrt,
++	&efi.properties_table,
++	&efi.mem_attr_table,
++};
 +
-+static void *try_ram_remap(resource_size_t offset, size_t size,
-+			   unsigned long flags)
+ static bool disable_runtime;
+ static int __init setup_noefi(char *arg)
  {
- 	unsigned long pfn = PHYS_PFN(offset);
- 
- 	/* In the simple case just return the existing linear address */
--	if (pfn_valid(pfn) && !PageHighMem(pfn_to_page(pfn)))
-+	if (pfn_valid(pfn) && !PageHighMem(pfn_to_page(pfn)) &&
-+	    arch_memremap_can_ram_remap(offset, size, flags))
- 		return __va(offset);
-+
- 	return NULL; /* fallback to arch_memremap_wb */
+@@ -855,6 +874,20 @@ int efi_status_to_err(efi_status_t status)
+ 	return err;
  }
  
-@@ -48,7 +59,8 @@ static void *try_ram_remap(resource_size_t offset, size_t size)
-  * memremap() - remap an iomem_resource as cacheable memory
-  * @offset: iomem resource start address
-  * @size: size of remap
-- * @flags: any of MEMREMAP_WB, MEMREMAP_WT and MEMREMAP_WC
-+ * @flags: any of MEMREMAP_WB, MEMREMAP_WT, MEMREMAP_WC,
-+ *		  MEMREMAP_ENC, MEMREMAP_DEC
-  *
-  * memremap() is "ioremap" for cases where it is known that the resource
-  * being mapped does not have i/o side effects and the __iomem
-@@ -95,7 +107,7 @@ void *memremap(resource_size_t offset, size_t size, unsigned long flags)
- 		 * the requested range is potentially in System RAM.
- 		 */
- 		if (is_ram == REGION_INTERSECTS)
--			addr = try_ram_remap(offset, size);
-+			addr = try_ram_remap(offset, size, flags);
- 		if (!addr)
- 			addr = arch_memremap_wb(offset, size);
- 	}
-diff --git a/mm/early_ioremap.c b/mm/early_ioremap.c
-index d7d30da..b1dd4a9 100644
---- a/mm/early_ioremap.c
-+++ b/mm/early_ioremap.c
-@@ -30,6 +30,13 @@ static int __init early_ioremap_debug_setup(char *str)
- 
- static int after_paging_init __initdata;
- 
-+pgprot_t __init __weak early_memremap_pgprot_adjust(resource_size_t phys_addr,
-+						    unsigned long size,
-+						    pgprot_t prot)
++bool efi_is_table_address(unsigned long phys_addr)
 +{
-+	return prot;
++	unsigned int i;
++
++	if (phys_addr == EFI_INVALID_TABLE_ADDR)
++		return false;
++
++	for (i = 0; i < ARRAY_SIZE(efi_tables); i++)
++		if (*(efi_tables[i]) == phys_addr)
++			return true;
++
++	return false;
 +}
 +
- void __init __weak early_ioremap_shutdown(void)
- {
+ #ifdef CONFIG_KEXEC
+ static int update_efi_random_seed(struct notifier_block *nb,
+ 				  unsigned long code, void *unused)
+diff --git a/include/linux/efi.h b/include/linux/efi.h
+index 8269bcb..8e24f09 100644
+--- a/include/linux/efi.h
++++ b/include/linux/efi.h
+@@ -1091,6 +1091,8 @@ static inline bool efi_enabled(int feature)
+ 	return test_bit(feature, &efi.flags) != 0;
  }
-@@ -215,14 +222,19 @@ void __init early_iounmap(void __iomem *addr, unsigned long size)
- void __init *
- early_memremap(resource_size_t phys_addr, unsigned long size)
- {
--	return (__force void *)__early_ioremap(phys_addr, size,
--					       FIXMAP_PAGE_NORMAL);
-+	pgprot_t prot = early_memremap_pgprot_adjust(phys_addr, size,
-+						     FIXMAP_PAGE_NORMAL);
+ extern void efi_reboot(enum reboot_mode reboot_mode, const char *__unused);
 +
-+	return (__force void *)__early_ioremap(phys_addr, size, prot);
- }
- #ifdef FIXMAP_PAGE_RO
- void __init *
- early_memremap_ro(resource_size_t phys_addr, unsigned long size)
++extern bool efi_is_table_address(unsigned long phys_addr);
+ #else
+ static inline bool efi_enabled(int feature)
  {
--	return (__force void *)__early_ioremap(phys_addr, size, FIXMAP_PAGE_RO);
-+	pgprot_t prot = early_memremap_pgprot_adjust(phys_addr, size,
-+						     FIXMAP_PAGE_RO);
-+
-+	return (__force void *)__early_ioremap(phys_addr, size, prot);
+@@ -1104,6 +1106,11 @@ static inline bool efi_enabled(int feature)
+ {
+ 	return false;
  }
++
++static inline bool efi_is_table_address(unsigned long phys_addr)
++{
++	return false;
++}
  #endif
  
+ extern int efi_status_to_err(efi_status_t status);
