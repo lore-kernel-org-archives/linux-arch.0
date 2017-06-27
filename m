@@ -1,7 +1,7 @@
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v4 09/17] powerpc: call the hash functions with the correct pkey value
-Date: Tue, 27 Jun 2017 03:11:51 -0700
-Message-ID: <1498558319-32466-10-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v4 11/17] powerpc: Handle exceptions caused by pkey violation
+Date: Tue, 27 Jun 2017 03:11:53 -0700
+Message-ID: <1498558319-32466-12-git-send-email-linuxram@us.ibm.com>
 References: <1498558319-32466-1-git-send-email-linuxram@us.ibm.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1498558319-32466-1-git-send-email-linuxram@us.ibm.com>
@@ -10,72 +10,190 @@ To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
 List-Id: linux-arch.vger.kernel.org
 
-Pass the correct protection key value to the hash functions on
-page fault.
+Handle Data and Instruction exceptions caused by memory
+protection-key.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/include/asm/pkeys.h | 11 +++++++++++
- arch/powerpc/mm/hash_utils_64.c  |  4 ++++
- arch/powerpc/mm/mem.c            |  6 ++++++
- 3 files changed, 21 insertions(+)
+ arch/powerpc/include/asm/mmu_context.h | 12 ++++++
+ arch/powerpc/include/asm/reg.h         |  2 +-
+ arch/powerpc/mm/fault.c                | 20 +++++++++
+ arch/powerpc/mm/pkeys.c                | 79 ++++++++++++++++++++++++++++++++++
+ 4 files changed, 112 insertions(+), 1 deletion(-)
 
-diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
-index ef1c601..1370b3f 100644
---- a/arch/powerpc/include/asm/pkeys.h
-+++ b/arch/powerpc/include/asm/pkeys.h
-@@ -74,6 +74,17 @@ static inline bool mm_pkey_is_allocated(struct mm_struct *mm, int pkey)
+diff --git a/arch/powerpc/include/asm/mmu_context.h b/arch/powerpc/include/asm/mmu_context.h
+index da7e943..71fffe0 100644
+--- a/arch/powerpc/include/asm/mmu_context.h
++++ b/arch/powerpc/include/asm/mmu_context.h
+@@ -175,11 +175,23 @@ static inline void arch_bprm_mm_init(struct mm_struct *mm,
+ {
  }
  
- /*
-+ * return the protection key of the vma corresponding to the
-+ * given effective address @ea.
-+ */
-+static inline int mm_pkey(struct mm_struct *mm, unsigned long ea)
++#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
++bool arch_pte_access_permitted(pte_t pte, bool write);
++bool arch_vma_access_permitted(struct vm_area_struct *vma,
++		bool write, bool execute, bool foreign);
++#else /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
++static inline bool arch_pte_access_permitted(pte_t pte, bool write)
 +{
-+	struct vm_area_struct *vma = find_vma(mm, ea);
-+	int pkey = vma ? vma_pkey(vma) : 0;
-+	return pkey;
++	/* by default, allow everything */
++	return true;
++}
+ static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
+ 		bool write, bool execute, bool foreign)
+ {
+ 	/* by default, allow everything */
+ 	return true;
+ }
++#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
++
+ #endif /* __KERNEL__ */
+ #endif /* __ASM_POWERPC_MMU_CONTEXT_H */
+diff --git a/arch/powerpc/include/asm/reg.h b/arch/powerpc/include/asm/reg.h
+index ba110dd..6e2a860 100644
+--- a/arch/powerpc/include/asm/reg.h
++++ b/arch/powerpc/include/asm/reg.h
+@@ -286,7 +286,7 @@
+ #define   DSISR_SET_RC		0x00040000	/* Failed setting of R/C bits */
+ #define   DSISR_PGDIRFAULT      0x00020000      /* Fault on page directory */
+ #define   DSISR_PAGE_FAULT_MASK (DSISR_BIT32 | DSISR_PAGEATTR_CONFLT | \
+-				DSISR_BADACCESS | DSISR_BIT43)
++			DSISR_BADACCESS | DSISR_KEYFAULT | DSISR_BIT43)
+ #define SPRN_TBRL	0x10C	/* Time Base Read Lower Register (user, R/O) */
+ #define SPRN_TBRU	0x10D	/* Time Base Read Upper Register (user, R/O) */
+ #define SPRN_CIR	0x11B	/* Chip Information Register (hyper, R/0) */
+diff --git a/arch/powerpc/mm/fault.c b/arch/powerpc/mm/fault.c
+index 3a7d580..3d71984 100644
+--- a/arch/powerpc/mm/fault.c
++++ b/arch/powerpc/mm/fault.c
+@@ -261,6 +261,13 @@ int do_page_fault(struct pt_regs *regs, unsigned long address,
+ 	}
+ #endif
+ 
++#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
++	if (error_code & DSISR_KEYFAULT) {
++		code = SEGV_PKUERR;
++		goto bad_area_nosemaphore;
++	}
++#endif /*  CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
++
+ 	/* We restore the interrupt state now */
+ 	if (!arch_irq_disabled_regs(regs))
+ 		local_irq_enable();
+@@ -441,6 +448,19 @@ int do_page_fault(struct pt_regs *regs, unsigned long address,
+ 		WARN_ON_ONCE(error_code & DSISR_PROTFAULT);
+ #endif /* CONFIG_PPC_STD_MMU */
+ 
++#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
++	if (!arch_vma_access_permitted(vma, flags & FAULT_FLAG_WRITE,
++					is_exec, 0)) {
++		code = SEGV_PKUERR;
++		goto bad_area;
++	}
++#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
++
++	/* handle_mm_fault() needs to know if its a instruction access
++	 * fault.
++	 */
++	if (is_exec)
++		flags |= FAULT_FLAG_INSTRUCTION;
+ 	/*
+ 	 * If for any reason at all we couldn't handle the fault,
+ 	 * make sure we exit gracefully rather than endlessly redo
+diff --git a/arch/powerpc/mm/pkeys.c b/arch/powerpc/mm/pkeys.c
+index 11a32b3..514f503 100644
+--- a/arch/powerpc/mm/pkeys.c
++++ b/arch/powerpc/mm/pkeys.c
+@@ -27,6 +27,37 @@ static inline bool pkey_allows_readwrite(int pkey)
+ 	return !(read_amr() & ((AMR_AD_BIT|AMR_WD_BIT) << pkey_shift));
+ }
+ 
++static inline bool pkey_allows_read(int pkey)
++{
++	int pkey_shift = (arch_max_pkey()-pkey-1) * AMR_BITS_PER_PKEY;
++
++	if (!(read_uamor() & (0x3ul << pkey_shift)))
++		return true;
++
++	return !(read_amr() & (AMR_AD_BIT << pkey_shift));
 +}
 +
++static inline bool pkey_allows_write(int pkey)
++{
++	int pkey_shift = (arch_max_pkey()-pkey-1) * AMR_BITS_PER_PKEY;
++
++	if (!(read_uamor() & (0x3ul << pkey_shift)))
++		return true;
++
++	return !(read_amr() & (AMR_WD_BIT << pkey_shift));
++}
++
++static inline bool pkey_allows_execute(int pkey)
++{
++	int pkey_shift = (arch_max_pkey()-pkey-1) * AMR_BITS_PER_PKEY;
++
++	if (!(read_uamor() & (0x3ul << pkey_shift)))
++		return true;
++
++	return !(read_iamr() & (IAMR_EX_BIT << pkey_shift));
++}
++
++
+ /*
+  * set the access right in AMR IAMR and UAMOR register
+  * for @pkey to that specified in @init_val.
+@@ -175,3 +206,51 @@ int __arch_override_mprotect_pkey(struct vm_area_struct *vma, int prot,
+ 	 */
+ 	return vma_pkey(vma);
+ }
++
 +/*
-  * Returns a positive, 5-bit key on success, or -1 on failure.
-  */
- static inline int mm_pkey_alloc(struct mm_struct *mm)
-diff --git a/arch/powerpc/mm/hash_utils_64.c b/arch/powerpc/mm/hash_utils_64.c
-index 7e67dea..403f75d 100644
---- a/arch/powerpc/mm/hash_utils_64.c
-+++ b/arch/powerpc/mm/hash_utils_64.c
-@@ -1319,6 +1319,10 @@ int hash_page_mm(struct mm_struct *mm, unsigned long ea,
- 		goto bail;
- 	}
- 
-+#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
-+	pkey = mm_pkey(mm, ea);
-+#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
++ * We only want to enforce protection keys on the current process
++ * because we effectively have no access to AMR/IAMR for other
++ * processes or any way to tell *which * AMR/IAMR in a threaded
++ * process we could use.
++ *
++ * So do not enforce things if the VMA is not from the current
++ * mm, or if we are in a kernel thread.
++ */
++static inline bool vma_is_foreign(struct vm_area_struct *vma)
++{
++	if (!current->mm)
++		return true;
++	/*
++	 * if the VMA is from another process, then AMR/IAMR has no
++	 * relevance and should not be enforced.
++	 */
++	if (current->mm != vma->vm_mm)
++		return true;
 +
- 	if (hugeshift) {
- 		if (is_thp)
- 			rc = __hash_page_thp(ea, access, vsid, (pmd_t *)ptep,
-diff --git a/arch/powerpc/mm/mem.c b/arch/powerpc/mm/mem.c
-index ec890d3..0fcaa48 100644
---- a/arch/powerpc/mm/mem.c
-+++ b/arch/powerpc/mm/mem.c
-@@ -541,8 +541,14 @@ void update_mmu_cache(struct vm_area_struct *vma, unsigned long address,
- 		return;
- 	}
- 
-+#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
-+	hash_preload_pkey(vma->vm_mm, address, access, trap, vma_pkey(vma));
-+#else
- 	hash_preload(vma->vm_mm, address, access, trap);
-+#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
++	return false;
++}
 +
- #endif /* CONFIG_PPC_STD_MMU */
++bool arch_vma_access_permitted(struct vm_area_struct *vma,
++		bool write, bool execute, bool foreign)
++{
++	int pkey;
++	/* allow access if the VMA is not one from this process */
++	if (foreign || vma_is_foreign(vma))
++		return true;
 +
- #if (defined(CONFIG_PPC_BOOK3E_64) || defined(CONFIG_PPC_FSL_BOOK3E)) \
- 	&& defined(CONFIG_HUGETLB_PAGE)
- 	if (is_vm_hugetlb_page(vma))
++	pkey = vma_pkey(vma);
++
++	if (!pkey)
++		return true;
++
++	if (execute)
++		return pkey_allows_execute(pkey);
++
++	if (!pkey_allows_read(pkey))
++		return false;
++
++	if (write)
++		return pkey_allows_write(pkey);
++
++	return true;
++}
 -- 
 1.8.3.1
 
