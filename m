@@ -1,86 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-sn1nam01on0041.outbound.protection.outlook.com ([104.47.32.41]:19228
-        "EHLO NAM01-SN1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752020AbdF0PAi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 27 Jun 2017 11:00:38 -0400
-From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v8 21/38] x86/mm: Add support to access persistent memory in
- the clear
-Date: Tue, 27 Jun 2017 09:59:56 -0500
-Message-ID: <20170627145956.15908.64000.stgit@tlendack-t1.amdoffice.net>
-In-Reply-To: <20170627145607.15908.26571.stgit@tlendack-t1.amdoffice.net>
-References: <20170627145607.15908.26571.stgit@tlendack-t1.amdoffice.net>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:34611 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1752413AbdF0PY2 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 27 Jun 2017 11:24:28 -0400
+Received: from pps.filterd (m0098416.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.20/8.16.0.20) with SMTP id v5RFNYvW030367
+        for <linux-arch@vger.kernel.org>; Tue, 27 Jun 2017 11:24:28 -0400
+Received: from e14.ny.us.ibm.com (e14.ny.us.ibm.com [129.33.205.204])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2bbfskvcyn-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Tue, 27 Jun 2017 11:24:27 -0400
+Received: from localhost
+        by e14.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <aneesh.kumar@linux.vnet.ibm.com>;
+        Tue, 27 Jun 2017 11:24:27 -0400
+Subject: Re: [RFC v4 09/17] powerpc: call the hash functions with the correct
+ pkey value
+References: <1498558319-32466-1-git-send-email-linuxram@us.ibm.com>
+ <1498558319-32466-10-git-send-email-linuxram@us.ibm.com>
+From: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
+Date: Tue, 27 Jun 2017 20:54:07 +0530
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
+In-Reply-To: <1498558319-32466-10-git-send-email-linuxram@us.ibm.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
 Content-Transfer-Encoding: 7bit
+Message-ID: <5e4fa932-4313-5376-2147-a6431bbec16b@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org
-Cc: Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>
-Message-ID: <20170627145956.IFhuC93Qdbf4c-t1MCp5vhXl43tprK4bWfnfdKvGEyE@z>
+To: Ram Pai <linuxram@us.ibm.com>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
+Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
+Message-ID: <20170627152407.n0bZR7yXP97kSUaYYsj_5Owjg5nzDOvOAHTPhP_qL_c@z>
 
-Persistent memory is expected to persist across reboots. The encryption
-key used by SME will change across reboots which will result in corrupted
-persistent memory.  Persistent memory is handed out by block devices
-through memory remapping functions, so be sure not to map this memory as
-encrypted.
 
-Reviewed-by: Borislav Petkov <bp@suse.de>
-Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
----
- arch/x86/mm/ioremap.c |   31 ++++++++++++++++++++++++++++++-
- 1 file changed, 30 insertions(+), 1 deletion(-)
 
-diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
-index ee33838..effa529 100644
---- a/arch/x86/mm/ioremap.c
-+++ b/arch/x86/mm/ioremap.c
-@@ -420,17 +420,46 @@ void unxlate_dev_mem_ptr(phys_addr_t phys, void *addr)
-  * Examine the physical address to determine if it is an area of memory
-  * that should be mapped decrypted.  If the memory is not part of the
-  * kernel usable area it was accessed and created decrypted, so these
-- * areas should be mapped decrypted.
-+ * areas should be mapped decrypted. And since the encryption key can
-+ * change across reboots, persistent memory should also be mapped
-+ * decrypted.
-  */
- static bool memremap_should_map_decrypted(resource_size_t phys_addr,
- 					  unsigned long size)
- {
-+	int is_pmem;
-+
-+	/*
-+	 * Check if the address is part of a persistent memory region.
-+	 * This check covers areas added by E820, EFI and ACPI.
-+	 */
-+	is_pmem = region_intersects(phys_addr, size, IORESOURCE_MEM,
-+				    IORES_DESC_PERSISTENT_MEMORY);
-+	if (is_pmem != REGION_DISJOINT)
-+		return true;
-+
-+	/*
-+	 * Check if the non-volatile attribute is set for an EFI
-+	 * reserved area.
-+	 */
-+	if (efi_enabled(EFI_BOOT)) {
-+		switch (efi_mem_type(phys_addr)) {
-+		case EFI_RESERVED_TYPE:
-+			if (efi_mem_attributes(phys_addr) & EFI_MEMORY_NV)
-+				return true;
-+			break;
-+		default:
-+			break;
-+		}
-+	}
-+
- 	/* Check if the address is outside kernel usable area */
- 	switch (e820__get_entry_type(phys_addr, phys_addr + size - 1)) {
- 	case E820_TYPE_RESERVED:
- 	case E820_TYPE_ACPI:
- 	case E820_TYPE_NVS:
- 	case E820_TYPE_UNUSABLE:
-+	case E820_TYPE_PRAM:
- 		return true;
- 	default:
- 		break;
+On Tuesday 27 June 2017 03:41 PM, Ram Pai wrote:
+> Pass the correct protection key value to the hash functions on
+> page fault.
+> 
+> Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+> ---
+>   arch/powerpc/include/asm/pkeys.h | 11 +++++++++++
+>   arch/powerpc/mm/hash_utils_64.c  |  4 ++++
+>   arch/powerpc/mm/mem.c            |  6 ++++++
+>   3 files changed, 21 insertions(+)
+> 
+> diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
+> index ef1c601..1370b3f 100644
+> --- a/arch/powerpc/include/asm/pkeys.h
+> +++ b/arch/powerpc/include/asm/pkeys.h
+> @@ -74,6 +74,17 @@ static inline bool mm_pkey_is_allocated(struct mm_struct *mm, int pkey)
+>   }
+> 
+>   /*
+> + * return the protection key of the vma corresponding to the
+> + * given effective address @ea.
+> + */
+> +static inline int mm_pkey(struct mm_struct *mm, unsigned long ea)
+> +{
+> +	struct vm_area_struct *vma = find_vma(mm, ea);
+> +	int pkey = vma ? vma_pkey(vma) : 0;
+> +	return pkey;
+> +}
+> +
+> +/*
+>
+
+That is not going to work in hash fault path right ? We can't do a 
+find_vma there without holding the mmap_sem
+
+-aneesh
