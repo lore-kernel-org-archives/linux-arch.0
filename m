@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-dm3nam03on0083.outbound.protection.outlook.com ([104.47.41.83]:45912
+Received: from mail-dm3nam03on0077.outbound.protection.outlook.com ([104.47.41.77]:6752
         "EHLO NAM03-DM3-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1753271AbdF0PIN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 27 Jun 2017 11:08:13 -0400
+        id S1752454AbdF0PIY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 27 Jun 2017 11:08:24 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v8 RESEND 02/38] x86/mm/pat: Set write-protect cache mode
- for full PAT support
-Date: Tue, 27 Jun 2017 10:07:40 -0500
-Message-ID: <20170627150740.17428.95661.stgit@tlendack-t1.amdoffice.net>
+Subject: [PATCH v8 RESEND 05/38] x86/CPU/AMD: Handle SME reduction in
+ physical address size
+Date: Tue, 27 Jun 2017 10:08:13 -0500
+Message-ID: <20170627150813.17428.17375.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20170627150718.17428.81813.stgit@tlendack-t1.amdoffice.net>
 References: <20170627150718.17428.81813.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -18,45 +18,42 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>
-Message-ID: <20170627150740.BpP_WcOv0HlSou9DdIgGUYTyb982FvJvJkBvM7-sfEg@z>
+Message-ID: <20170627150813.QY2ErBZ371n9qGOyDO6-TpgQ8Oj5v5wkZcxR5hMFnX0@z>
 
-For processors that support PAT, set the write-protect cache mode
-(_PAGE_CACHE_MODE_WP) entry to the actual write-protect value (x05).
+When System Memory Encryption (SME) is enabled, the physical address
+space is reduced. Adjust the x86_phys_bits value to reflect this
+reduction.
 
-Acked-by: Borislav Petkov <bp@suse.de>
+Reviewed-by: Borislav Petkov <bp@suse.de>
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/mm/pat.c |    6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+ arch/x86/kernel/cpu/amd.c |   10 +++++++---
+ 1 file changed, 7 insertions(+), 3 deletions(-)
 
-diff --git a/arch/x86/mm/pat.c b/arch/x86/mm/pat.c
-index 9b78685..6753d9c 100644
---- a/arch/x86/mm/pat.c
-+++ b/arch/x86/mm/pat.c
-@@ -295,7 +295,7 @@ static void init_cache_modes(void)
-  * pat_init - Initialize PAT MSR and PAT table
-  *
-  * This function initializes PAT MSR and PAT table with an OS-defined value
-- * to enable additional cache attributes, WC and WT.
-+ * to enable additional cache attributes, WC, WT and WP.
-  *
-  * This function must be called on all CPUs using the specific sequence of
-  * operations defined in Intel SDM. mtrr_rendezvous_handler() provides this
-@@ -356,7 +356,7 @@ void pat_init(void)
- 		 *      010    2    UC-: _PAGE_CACHE_MODE_UC_MINUS
- 		 *      011    3    UC : _PAGE_CACHE_MODE_UC
- 		 *      100    4    WB : Reserved
--		 *      101    5    WC : Reserved
-+		 *      101    5    WP : _PAGE_CACHE_MODE_WP
- 		 *      110    6    UC-: Reserved
- 		 *      111    7    WT : _PAGE_CACHE_MODE_WT
- 		 *
-@@ -364,7 +364,7 @@ void pat_init(void)
- 		 * corresponding types in the presence of PAT errata.
- 		 */
- 		pat = PAT(0, WB) | PAT(1, WC) | PAT(2, UC_MINUS) | PAT(3, UC) |
--		      PAT(4, WB) | PAT(5, WC) | PAT(6, UC_MINUS) | PAT(7, WT);
-+		      PAT(4, WB) | PAT(5, WP) | PAT(6, UC_MINUS) | PAT(7, WT);
- 	}
+diff --git a/arch/x86/kernel/cpu/amd.c b/arch/x86/kernel/cpu/amd.c
+index c47ceee..5bdcbd4 100644
+--- a/arch/x86/kernel/cpu/amd.c
++++ b/arch/x86/kernel/cpu/amd.c
+@@ -613,15 +613,19 @@ static void early_init_amd(struct cpuinfo_x86 *c)
+ 		set_cpu_bug(c, X86_BUG_AMD_E400);
  
- 	if (!boot_cpu_done) {
+ 	/*
+-	 * BIOS support is required for SME. If BIOS has not enabled SME
+-	 * then don't advertise the feature (set in scattered.c)
++	 * BIOS support is required for SME. If BIOS has enabld SME then
++	 * adjust x86_phys_bits by the SME physical address space reduction
++	 * value. If BIOS has not enabled SME then don't advertise the
++	 * feature (set in scattered.c).
+ 	 */
+ 	if (cpu_has(c, X86_FEATURE_SME)) {
+ 		u64 msr;
+ 
+ 		/* Check if SME is enabled */
+ 		rdmsrl(MSR_K8_SYSCFG, msr);
+-		if (!(msr & MSR_K8_SYSCFG_MEM_ENCRYPT))
++		if (msr & MSR_K8_SYSCFG_MEM_ENCRYPT)
++			c->x86_phys_bits -= (cpuid_ebx(0x8000001f) >> 6) & 0x3f;
++		else
+ 			clear_cpu_cap(c, X86_FEATURE_SME);
+ 	}
+ }
