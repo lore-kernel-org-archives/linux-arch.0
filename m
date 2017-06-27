@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-sn1nam02on0087.outbound.protection.outlook.com ([104.47.36.87]:48800
-        "EHLO NAM02-SN1-obe.outbound.protection.outlook.com"
+Received: from mail-sn1nam01on0054.outbound.protection.outlook.com ([104.47.32.54]:35664
+        "EHLO NAM01-SN1-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751690AbdF0PL6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 27 Jun 2017 11:11:58 -0400
+        id S1752148AbdF0PL7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 27 Jun 2017 11:11:59 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v8 RESEND 23/38] x86/realmode: Decrypt trampoline area if
- memory encryption is active
-Date: Tue, 27 Jun 2017 10:11:38 -0500
-Message-ID: <20170627151138.17428.15995.stgit@tlendack-t1.amdoffice.net>
+Subject: [PATCH v8 RESEND 21/38] x86/mm: Add support to access persistent
+ memory in the clear
+Date: Tue, 27 Jun 2017 10:11:11 -0500
+Message-ID: <20170627151111.17428.69076.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20170627150718.17428.81813.stgit@tlendack-t1.amdoffice.net>
 References: <20170627150718.17428.81813.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -18,42 +18,69 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>
-Message-ID: <20170627151138.NG_ANWjiPqPhkWC3D9PQrytBK1y4MrpHRbDP5gZehEM@z>
+Message-ID: <20170627151111.ubE7RI3vnFjnuvDhmyYFnGO8TzK8fWDDMoFIrevYr0o@z>
 
-When Secure Memory Encryption is enabled, the trampoline area must not
-be encrypted. A CPU running in real mode will not be able to decrypt
-memory that has been encrypted because it will not be able to use addresses
-with the memory encryption mask.
+Persistent memory is expected to persist across reboots. The encryption
+key used by SME will change across reboots which will result in corrupted
+persistent memory.  Persistent memory is handed out by block devices
+through memory remapping functions, so be sure not to map this memory as
+encrypted.
 
 Reviewed-by: Borislav Petkov <bp@suse.de>
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/realmode/init.c |    8 ++++++++
- 1 file changed, 8 insertions(+)
+ arch/x86/mm/ioremap.c |   31 ++++++++++++++++++++++++++++++-
+ 1 file changed, 30 insertions(+), 1 deletion(-)
 
-diff --git a/arch/x86/realmode/init.c b/arch/x86/realmode/init.c
-index cd4be19..d6ddc7e 100644
---- a/arch/x86/realmode/init.c
-+++ b/arch/x86/realmode/init.c
-@@ -1,6 +1,7 @@
- #include <linux/io.h>
- #include <linux/slab.h>
- #include <linux/memblock.h>
-+#include <linux/mem_encrypt.h>
- 
- #include <asm/set_memory.h>
- #include <asm/pgtable.h>
-@@ -59,6 +60,13 @@ static void __init setup_real_mode(void)
- 
- 	base = (unsigned char *)real_mode_header;
- 
-+	/*
-+	 * If SME is active, the trampoline area will need to be in
-+	 * decrypted memory in order to bring up other processors
-+	 * successfully.
-+	 */
-+	set_memory_decrypted((unsigned long)base, size >> PAGE_SHIFT);
+diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
+index ee33838..effa529 100644
+--- a/arch/x86/mm/ioremap.c
++++ b/arch/x86/mm/ioremap.c
+@@ -420,17 +420,46 @@ void unxlate_dev_mem_ptr(phys_addr_t phys, void *addr)
+  * Examine the physical address to determine if it is an area of memory
+  * that should be mapped decrypted.  If the memory is not part of the
+  * kernel usable area it was accessed and created decrypted, so these
+- * areas should be mapped decrypted.
++ * areas should be mapped decrypted. And since the encryption key can
++ * change across reboots, persistent memory should also be mapped
++ * decrypted.
+  */
+ static bool memremap_should_map_decrypted(resource_size_t phys_addr,
+ 					  unsigned long size)
+ {
++	int is_pmem;
 +
- 	memcpy(base, real_mode_blob, size);
- 
- 	phys_base = __pa(base);
++	/*
++	 * Check if the address is part of a persistent memory region.
++	 * This check covers areas added by E820, EFI and ACPI.
++	 */
++	is_pmem = region_intersects(phys_addr, size, IORESOURCE_MEM,
++				    IORES_DESC_PERSISTENT_MEMORY);
++	if (is_pmem != REGION_DISJOINT)
++		return true;
++
++	/*
++	 * Check if the non-volatile attribute is set for an EFI
++	 * reserved area.
++	 */
++	if (efi_enabled(EFI_BOOT)) {
++		switch (efi_mem_type(phys_addr)) {
++		case EFI_RESERVED_TYPE:
++			if (efi_mem_attributes(phys_addr) & EFI_MEMORY_NV)
++				return true;
++			break;
++		default:
++			break;
++		}
++	}
++
+ 	/* Check if the address is outside kernel usable area */
+ 	switch (e820__get_entry_type(phys_addr, phys_addr + size - 1)) {
+ 	case E820_TYPE_RESERVED:
+ 	case E820_TYPE_ACPI:
+ 	case E820_TYPE_NVS:
+ 	case E820_TYPE_UNUSABLE:
++	case E820_TYPE_PRAM:
+ 		return true;
+ 	default:
+ 		break;
