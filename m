@@ -1,341 +1,90 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f195.google.com ([209.85.216.195]:34991 "EHLO
-        mail-qt0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752749AbdF0KMa (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 27 Jun 2017 06:12:30 -0400
+Received: from mail-qt0-f194.google.com ([209.85.216.194]:33678 "EHLO
+        mail-qt0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752587AbdF0KMO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 27 Jun 2017 06:12:14 -0400
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v4 07/17] powerpc: make the hash functions protection-key aware
-Date: Tue, 27 Jun 2017 03:11:49 -0700
-Message-ID: <1498558319-32466-8-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v4 01/17] mm: introduce an additional vma bit for powerpc pkey
+Date: Tue, 27 Jun 2017 03:11:43 -0700
+Message-ID: <1498558319-32466-2-git-send-email-linuxram@us.ibm.com>
 In-Reply-To: <1498558319-32466-1-git-send-email-linuxram@us.ibm.com>
 References: <1498558319-32466-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
-Message-ID: <20170627101149.yL2lXuHJtx62nRLQ1PTfOxMTRLn48Y7z00iSSdwmoU8@z>
+Message-ID: <20170627101143.32ylbq70jEmzoh-qRdTPuPjuq-HeR3gVR0CyBif8DG0@z>
 
-Prepare the hash functions to be aware of protection keys.
-This key will later be used to program the HPTE.
+Currently there are only 4bits in the vma flags to support 16 keys
+on x86.  powerpc supports 32 keys, which needs 5bits. This patch
+introduces an addition bit in the vma flags.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/include/asm/book3s/64/hash.h     |  2 +-
- arch/powerpc/include/asm/book3s/64/mmu-hash.h | 14 ++++++-----
- arch/powerpc/mm/hash64_4k.c                   |  4 ++--
- arch/powerpc/mm/hash64_64k.c                  |  8 +++----
- arch/powerpc/mm/hash_utils_64.c               | 34 ++++++++++++++++++---------
- arch/powerpc/mm/hugepage-hash64.c             |  4 ++--
- arch/powerpc/mm/hugetlbpage-hash64.c          |  5 ++--
- arch/powerpc/mm/mem.c                         |  1 +
- arch/powerpc/mm/mmu_decl.h                    |  5 +++-
- 9 files changed, 48 insertions(+), 29 deletions(-)
+ fs/proc/task_mmu.c |  6 +++++-
+ include/linux/mm.h | 18 +++++++++++++-----
+ 2 files changed, 18 insertions(+), 6 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/book3s/64/hash.h b/arch/powerpc/include/asm/book3s/64/hash.h
-index 4e957b0..3c1ef01 100644
---- a/arch/powerpc/include/asm/book3s/64/hash.h
-+++ b/arch/powerpc/include/asm/book3s/64/hash.h
-@@ -92,7 +92,7 @@ static inline int hash__pgd_bad(pgd_t pgd)
- 
- extern void hpte_need_flush(struct mm_struct *mm, unsigned long addr,
- 			    pte_t *ptep, unsigned long pte, int huge);
--extern unsigned long htab_convert_pte_flags(unsigned long pteflags);
-+extern unsigned long htab_convert_pte_flags(unsigned long pteflags, int pkey);
- /* Atomic PTE updates */
- static inline unsigned long hash__pte_update(struct mm_struct *mm,
- 					 unsigned long addr,
-diff --git a/arch/powerpc/include/asm/book3s/64/mmu-hash.h b/arch/powerpc/include/asm/book3s/64/mmu-hash.h
-index 6981a52..aa3c299 100644
---- a/arch/powerpc/include/asm/book3s/64/mmu-hash.h
-+++ b/arch/powerpc/include/asm/book3s/64/mmu-hash.h
-@@ -430,11 +430,11 @@ static inline unsigned long hpt_hash(unsigned long vpn,
- #define HPTE_NOHPTE_UPDATE	0x2
- 
- extern int __hash_page_4K(unsigned long ea, unsigned long access,
--			  unsigned long vsid, pte_t *ptep, unsigned long trap,
--			  unsigned long flags, int ssize, int subpage_prot);
-+		  unsigned long vsid, pte_t *ptep, unsigned long trap,
-+		  unsigned long flags, int ssize, int subpage_prot, int pkey);
- extern int __hash_page_64K(unsigned long ea, unsigned long access,
- 			   unsigned long vsid, pte_t *ptep, unsigned long trap,
--			   unsigned long flags, int ssize);
-+			   unsigned long flags, int ssize, int pkey);
- struct mm_struct;
- unsigned int hash_page_do_lazy_icache(unsigned int pp, pte_t pte, int trap);
- extern int hash_page_mm(struct mm_struct *mm, unsigned long ea,
-@@ -444,16 +444,18 @@ extern int hash_page(unsigned long ea, unsigned long access, unsigned long trap,
- 		     unsigned long dsisr);
- int __hash_page_huge(unsigned long ea, unsigned long access, unsigned long vsid,
- 		     pte_t *ptep, unsigned long trap, unsigned long flags,
--		     int ssize, unsigned int shift, unsigned int mmu_psize);
-+		     int ssize, unsigned int shift, unsigned int mmu_psize,
-+		     int pkey);
- #ifdef CONFIG_TRANSPARENT_HUGEPAGE
- extern int __hash_page_thp(unsigned long ea, unsigned long access,
- 			   unsigned long vsid, pmd_t *pmdp, unsigned long trap,
--			   unsigned long flags, int ssize, unsigned int psize);
-+			   unsigned long flags, int ssize, unsigned int psize,
-+			   int pkey);
- #else
- static inline int __hash_page_thp(unsigned long ea, unsigned long access,
- 				  unsigned long vsid, pmd_t *pmdp,
- 				  unsigned long trap, unsigned long flags,
--				  int ssize, unsigned int psize)
-+				  int ssize, unsigned int psize, int pkey)
- {
- 	BUG();
- 	return -1;
-diff --git a/arch/powerpc/mm/hash64_4k.c b/arch/powerpc/mm/hash64_4k.c
-index 6fa450c..6765ba2 100644
---- a/arch/powerpc/mm/hash64_4k.c
-+++ b/arch/powerpc/mm/hash64_4k.c
-@@ -18,7 +18,7 @@
- 
- int __hash_page_4K(unsigned long ea, unsigned long access, unsigned long vsid,
- 		   pte_t *ptep, unsigned long trap, unsigned long flags,
--		   int ssize, int subpg_prot)
-+		   int ssize, int subpg_prot, int pkey)
- {
- 	unsigned long hpte_group;
- 	unsigned long rflags, pa;
-@@ -53,7 +53,7 @@ int __hash_page_4K(unsigned long ea, unsigned long access, unsigned long vsid,
- 	 * PP bits. _PAGE_USER is already PP bit 0x2, so we only
- 	 * need to add in 0x1 if it's a read-only user page
- 	 */
--	rflags = htab_convert_pte_flags(new_pte);
-+	rflags = htab_convert_pte_flags(new_pte, pkey);
- 
- 	if (cpu_has_feature(CPU_FTR_NOEXECUTE) &&
- 	    !cpu_has_feature(CPU_FTR_COHERENT_ICACHE))
-diff --git a/arch/powerpc/mm/hash64_64k.c b/arch/powerpc/mm/hash64_64k.c
-index 1a68cb1..9ce4d7b 100644
---- a/arch/powerpc/mm/hash64_64k.c
-+++ b/arch/powerpc/mm/hash64_64k.c
-@@ -47,7 +47,7 @@ static unsigned long mark_subptegroup_valid(unsigned long ptev, unsigned long in
- 
- int __hash_page_4K(unsigned long ea, unsigned long access, unsigned long vsid,
- 		   pte_t *ptep, unsigned long trap, unsigned long flags,
--		   int ssize, int subpg_prot)
-+		   int ssize, int subpg_prot, int pkey)
- {
- 	real_pte_t rpte;
- 	unsigned long *hidxp;
-@@ -85,7 +85,7 @@ int __hash_page_4K(unsigned long ea, unsigned long access, unsigned long vsid,
- 	 * Handle the subpage protection bits
- 	 */
- 	subpg_pte = new_pte & ~subpg_prot;
--	rflags = htab_convert_pte_flags(subpg_pte);
-+	rflags = htab_convert_pte_flags(subpg_pte, pkey);
- 
- 	if (cpu_has_feature(CPU_FTR_NOEXECUTE) &&
- 	    !cpu_has_feature(CPU_FTR_COHERENT_ICACHE)) {
-@@ -219,7 +219,7 @@ int __hash_page_4K(unsigned long ea, unsigned long access, unsigned long vsid,
- 
- int __hash_page_64K(unsigned long ea, unsigned long access,
- 		    unsigned long vsid, pte_t *ptep, unsigned long trap,
--		    unsigned long flags, int ssize)
-+		    unsigned long flags, int ssize, int pkey)
- {
- 	unsigned long hpte_group;
- 	unsigned long rflags, pa;
-@@ -256,7 +256,7 @@ int __hash_page_64K(unsigned long ea, unsigned long access,
- 			new_pte |= _PAGE_DIRTY;
- 	} while (!pte_xchg(ptep, __pte(old_pte), __pte(new_pte)));
- 
--	rflags = htab_convert_pte_flags(new_pte);
-+	rflags = htab_convert_pte_flags(new_pte, pkey);
- 
- 	if (cpu_has_feature(CPU_FTR_NOEXECUTE) &&
- 	    !cpu_has_feature(CPU_FTR_COHERENT_ICACHE))
-diff --git a/arch/powerpc/mm/hash_utils_64.c b/arch/powerpc/mm/hash_utils_64.c
-index f2095ce..2254ff0 100644
---- a/arch/powerpc/mm/hash_utils_64.c
-+++ b/arch/powerpc/mm/hash_utils_64.c
-@@ -35,6 +35,7 @@
- #include <linux/memblock.h>
- #include <linux/context_tracking.h>
- #include <linux/libfdt.h>
-+#include <linux/pkeys.h>
- 
- #include <asm/debugfs.h>
- #include <asm/processor.h>
-@@ -176,7 +177,7 @@
-  *    - We make sure R is always set and never lost
-  *    - C is _PAGE_DIRTY, and *should* always be set for a writeable mapping
-  */
--unsigned long htab_convert_pte_flags(unsigned long pteflags)
-+unsigned long htab_convert_pte_flags(unsigned long pteflags, int pkey)
- {
- 	unsigned long rflags = 0;
- 
-@@ -244,7 +245,7 @@ int htab_bolt_mapping(unsigned long vstart, unsigned long vend,
- 	shift = mmu_psize_defs[psize].shift;
- 	step = 1 << shift;
- 
--	prot = htab_convert_pte_flags(prot);
-+	prot = htab_convert_pte_flags(prot, 0);
- 
- 	DBG("htab_bolt_mapping(%lx..%lx -> %lx (%lx,%d,%d)\n",
- 	    vstart, vend, pstart, prot, psize, ssize);
-@@ -1228,7 +1229,7 @@ int hash_page_mm(struct mm_struct *mm, unsigned long ea,
- 	unsigned hugeshift;
- 	const struct cpumask *tmp;
- 	int rc, user_region = 0;
--	int psize, ssize;
-+	int psize, ssize, pkey = 0;
- 
- 	DBG_LOW("hash_page(ea=%016lx, access=%lx, trap=%lx\n",
- 		ea, access, trap);
-@@ -1317,11 +1318,13 @@ int hash_page_mm(struct mm_struct *mm, unsigned long ea,
- 	if (hugeshift) {
- 		if (is_thp)
- 			rc = __hash_page_thp(ea, access, vsid, (pmd_t *)ptep,
--					     trap, flags, ssize, psize);
-+					     trap, flags, ssize, psize,
-+					     pkey);
- #ifdef CONFIG_HUGETLB_PAGE
- 		else
- 			rc = __hash_page_huge(ea, access, vsid, ptep, trap,
--					      flags, ssize, hugeshift, psize);
-+					      flags, ssize, hugeshift, psize,
-+					      pkey);
- #else
- 		else {
- 			/*
-@@ -1381,7 +1384,8 @@ int hash_page_mm(struct mm_struct *mm, unsigned long ea,
- #ifdef CONFIG_PPC_64K_PAGES
- 	if (psize == MMU_PAGE_64K)
- 		rc = __hash_page_64K(ea, access, vsid, ptep, trap,
--				     flags, ssize);
-+				     flags, ssize,
-+				     pkey);
- 	else
- #endif /* CONFIG_PPC_64K_PAGES */
- 	{
-@@ -1390,7 +1394,8 @@ int hash_page_mm(struct mm_struct *mm, unsigned long ea,
- 			rc = -2;
- 		else
- 			rc = __hash_page_4K(ea, access, vsid, ptep, trap,
--					    flags, ssize, spp);
-+						flags, ssize, spp,
-+						pkey);
- 	}
- 
- 	/* Dump some info in case of hash insertion failure, they should
-@@ -1486,8 +1491,9 @@ static bool should_hash_preload(struct mm_struct *mm, unsigned long ea)
- }
+diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
+index f0c8b33..2ddc298 100644
+--- a/fs/proc/task_mmu.c
++++ b/fs/proc/task_mmu.c
+@@ -666,12 +666,16 @@ static void show_smap_vma_flags(struct seq_file *m, struct vm_area_struct *vma)
+ 		[ilog2(VM_MERGEABLE)]	= "mg",
+ 		[ilog2(VM_UFFD_MISSING)]= "um",
+ 		[ilog2(VM_UFFD_WP)]	= "uw",
+-#ifdef CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS
++#ifdef CONFIG_ARCH_HAS_PKEYS
+ 		/* These come out via ProtectionKey: */
+ 		[ilog2(VM_PKEY_BIT0)]	= "",
+ 		[ilog2(VM_PKEY_BIT1)]	= "",
+ 		[ilog2(VM_PKEY_BIT2)]	= "",
+ 		[ilog2(VM_PKEY_BIT3)]	= "",
++#endif /* CONFIG_ARCH_HAS_PKEYS */
++#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
++		/* Additional bit in ProtectionKey: */
++		[ilog2(VM_PKEY_BIT4)]	= "",
  #endif
+ 	};
+ 	size_t i;
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index 7cb17c6..3d35bcc 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -208,21 +208,29 @@ extern int overcommit_kbytes_handler(struct ctl_table *, int, void __user *,
+ #define VM_HIGH_ARCH_BIT_1	33	/* bit only usable on 64-bit architectures */
+ #define VM_HIGH_ARCH_BIT_2	34	/* bit only usable on 64-bit architectures */
+ #define VM_HIGH_ARCH_BIT_3	35	/* bit only usable on 64-bit architectures */
++#define VM_HIGH_ARCH_BIT_4	36	/* bit only usable on 64-bit arch */
+ #define VM_HIGH_ARCH_0	BIT(VM_HIGH_ARCH_BIT_0)
+ #define VM_HIGH_ARCH_1	BIT(VM_HIGH_ARCH_BIT_1)
+ #define VM_HIGH_ARCH_2	BIT(VM_HIGH_ARCH_BIT_2)
+ #define VM_HIGH_ARCH_3	BIT(VM_HIGH_ARCH_BIT_3)
++#define VM_HIGH_ARCH_4	BIT(VM_HIGH_ARCH_BIT_4)
+ #endif /* CONFIG_ARCH_USES_HIGH_VMA_FLAGS */
  
--void hash_preload(struct mm_struct *mm, unsigned long ea,
--		  unsigned long access, unsigned long trap)
-+void hash_preload_pkey(struct mm_struct *mm, unsigned long ea,
-+		  unsigned long access, unsigned long trap,
-+		  int pkey)
- {
- 	int hugepage_shift;
- 	unsigned long vsid;
-@@ -1548,11 +1554,11 @@ void hash_preload(struct mm_struct *mm, unsigned long ea,
- #ifdef CONFIG_PPC_64K_PAGES
- 	if (mm->context.user_psize == MMU_PAGE_64K)
- 		rc = __hash_page_64K(ea, access, vsid, ptep, trap,
--				     update_flags, ssize);
-+				     update_flags, ssize, pkey);
- 	else
- #endif /* CONFIG_PPC_64K_PAGES */
- 		rc = __hash_page_4K(ea, access, vsid, ptep, trap, update_flags,
--				    ssize, subpage_protection(mm, ea));
-+				    ssize, subpage_protection(mm, ea), pkey);
- 
- 	/* Dump some info in case of hash insertion failure, they should
- 	 * never happen so it is really useful to know if/when they do
-@@ -1566,6 +1572,12 @@ void hash_preload(struct mm_struct *mm, unsigned long ea,
- 	local_irq_restore(flags);
- }
- 
-+void hash_preload(struct mm_struct *mm, unsigned long ea,
-+		  unsigned long access, unsigned long trap)
-+{
-+	hash_preload_pkey(mm, ea, access, trap, 0);
-+}
+-#if defined(CONFIG_X86)
+-# define VM_PAT		VM_ARCH_1	/* PAT reserves whole VMA at once (x86) */
+-#if defined (CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS)
++#ifdef CONFIG_ARCH_HAS_PKEYS
+ # define VM_PKEY_SHIFT	VM_HIGH_ARCH_BIT_0
+-# define VM_PKEY_BIT0	VM_HIGH_ARCH_0	/* A protection key is a 4-bit value */
++# define VM_PKEY_BIT0	VM_HIGH_ARCH_0
+ # define VM_PKEY_BIT1	VM_HIGH_ARCH_1
+ # define VM_PKEY_BIT2	VM_HIGH_ARCH_2
+ # define VM_PKEY_BIT3	VM_HIGH_ARCH_3
+-#endif
++#endif /* CONFIG_ARCH_HAS_PKEYS */
 +
- #ifdef CONFIG_PPC_TRANSACTIONAL_MEM
- static inline void tm_flush_hash_page(int local)
- {
-diff --git a/arch/powerpc/mm/hugepage-hash64.c b/arch/powerpc/mm/hugepage-hash64.c
-index f20d16f..cc4855e 100644
---- a/arch/powerpc/mm/hugepage-hash64.c
-+++ b/arch/powerpc/mm/hugepage-hash64.c
-@@ -20,7 +20,7 @@
- 
- int __hash_page_thp(unsigned long ea, unsigned long access, unsigned long vsid,
- 		    pmd_t *pmdp, unsigned long trap, unsigned long flags,
--		    int ssize, unsigned int psize)
-+		    int ssize, unsigned int psize, int pkey)
- {
- 	unsigned int index, valid;
- 	unsigned char *hpte_slot_array;
-@@ -51,7 +51,7 @@ int __hash_page_thp(unsigned long ea, unsigned long access, unsigned long vsid,
- 			new_pmd |= _PAGE_DIRTY;
- 	} while (!pmd_xchg(pmdp, __pmd(old_pmd), __pmd(new_pmd)));
- 
--	rflags = htab_convert_pte_flags(new_pmd);
-+	rflags = htab_convert_pte_flags(new_pmd, pkey);
- 
- #if 0
- 	if (!cpu_has_feature(CPU_FTR_COHERENT_ICACHE)) {
-diff --git a/arch/powerpc/mm/hugetlbpage-hash64.c b/arch/powerpc/mm/hugetlbpage-hash64.c
-index a84bb44..fe7d671 100644
---- a/arch/powerpc/mm/hugetlbpage-hash64.c
-+++ b/arch/powerpc/mm/hugetlbpage-hash64.c
-@@ -20,7 +20,8 @@ extern long hpte_insert_repeating(unsigned long hash, unsigned long vpn,
- 
- int __hash_page_huge(unsigned long ea, unsigned long access, unsigned long vsid,
- 		     pte_t *ptep, unsigned long trap, unsigned long flags,
--		     int ssize, unsigned int shift, unsigned int mmu_psize)
-+		     int ssize, unsigned int shift, unsigned int mmu_psize,
-+		     int pkey)
- {
- 	unsigned long vpn;
- 	unsigned long old_pte, new_pte;
-@@ -60,7 +61,7 @@ int __hash_page_huge(unsigned long ea, unsigned long access, unsigned long vsid,
- 			new_pte |= _PAGE_DIRTY;
- 	} while(!pte_xchg(ptep, __pte(old_pte), __pte(new_pte)));
- 
--	rflags = htab_convert_pte_flags(new_pte);
-+	rflags = htab_convert_pte_flags(new_pte, pkey);
- 
- 	sz = ((1UL) << shift);
- 	if (!cpu_has_feature(CPU_FTR_COHERENT_ICACHE))
-diff --git a/arch/powerpc/mm/mem.c b/arch/powerpc/mm/mem.c
-index 9ee536e..ec890d3 100644
---- a/arch/powerpc/mm/mem.c
-+++ b/arch/powerpc/mm/mem.c
-@@ -36,6 +36,7 @@
- #include <linux/hugetlb.h>
- #include <linux/slab.h>
- #include <linux/vmalloc.h>
-+#include <linux/pkeys.h>
- 
- #include <asm/pgalloc.h>
- #include <asm/prom.h>
-diff --git a/arch/powerpc/mm/mmu_decl.h b/arch/powerpc/mm/mmu_decl.h
-index f988db6..e425c27 100644
---- a/arch/powerpc/mm/mmu_decl.h
-+++ b/arch/powerpc/mm/mmu_decl.h
-@@ -82,10 +82,13 @@ static inline void _tlbivax_bcast(unsigned long address, unsigned int pid,
- 
- #else /* CONFIG_PPC_MMU_NOHASH */
- 
-+extern void hash_preload_pkey(struct mm_struct *mm, unsigned long ea,
-+			 unsigned long access, unsigned long trap,
-+			 int pkey);
++#if defined(CONFIG_PPC64_MEMORY_PROTECTION_KEYS)
++# define VM_PKEY_BIT4	VM_HIGH_ARCH_4 /* additional key bit used on ppc64 */
++#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
 +
- extern void hash_preload(struct mm_struct *mm, unsigned long ea,
- 			 unsigned long access, unsigned long trap);
- 
--
- extern void _tlbie(unsigned long address);
- extern void _tlbia(void);
- 
++
++#if defined(CONFIG_X86)
++# define VM_PAT		VM_ARCH_1	/* PAT reserves whole VMA at once (x86) */
+ #elif defined(CONFIG_PPC)
+ # define VM_SAO		VM_ARCH_1	/* Strong Access Ordering (powerpc) */
+ #elif defined(CONFIG_PARISC)
 -- 
 1.8.3.1
