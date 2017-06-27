@@ -1,16 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2nam03on0045.outbound.protection.outlook.com ([104.47.42.45]:35559
-        "EHLO NAM03-BY2-obe.outbound.protection.outlook.com"
+Received: from mail-sn1nam01on0075.outbound.protection.outlook.com ([104.47.32.75]:34112
+        "EHLO NAM01-SN1-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752839AbdF0O7A (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 27 Jun 2017 10:59:00 -0400
+        id S1753137AbdF0PIL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 27 Jun 2017 11:08:11 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v8 14/38] x86/mm: Insure that boot memory areas are mapped
- properly
-Date: Tue, 27 Jun 2017 09:58:44 -0500
-Message-ID: <20170627145844.15908.49837.stgit@tlendack-t1.amdoffice.net>
-In-Reply-To: <20170627145607.15908.26571.stgit@tlendack-t1.amdoffice.net>
-References: <20170627145607.15908.26571.stgit@tlendack-t1.amdoffice.net>
+Subject: [PATCH v8 RESEND 03/38] x86, mpparse, x86/acpi, x86/PCI, x86/dmi,
+ SFI: Use memremap for RAM mappings
+Date: Tue, 27 Jun 2017 10:07:51 -0500
+Message-ID: <20170627150751.17428.63752.stgit@tlendack-t1.amdoffice.net>
+In-Reply-To: <20170627150718.17428.81813.stgit@tlendack-t1.amdoffice.net>
+References: <20170627150718.17428.81813.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
@@ -18,263 +18,432 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>
-Message-ID: <20170627145844.DeHXAPX5dbPX6oz6YFwS0CJGdr0IykjyB7DwaiR2DN0@z>
+Message-ID: <20170627150751.JlrxTiaD55EVC3KeJ6HrXgtKzlO2cwTlambR7Y0r7FE@z>
 
-The boot data and command line data are present in memory in a decrypted
-state and are copied early in the boot process.  The early page fault
-support will map these areas as encrypted, so before attempting to copy
-them, add decrypted mappings so the data is accessed properly when copied.
+The ioremap() function is intended for mapping MMIO. For RAM, the
+memremap() function should be used. Convert calls from ioremap() to
+memremap() when re-mapping RAM.
 
-For the initrd, encrypt this data in place. Since the future mapping of
-the initrd area will be mapped as encrypted the data will be accessed
-properly.
+This will be used later by SME to control how the encryption mask is
+applied to memory mappings, with certain memory locations being mapped
+decrypted vs encrypted.
 
+Reviewed-by: Borislav Petkov <bp@suse.de>
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/include/asm/mem_encrypt.h |    6 +++
- arch/x86/include/asm/pgtable.h     |    3 ++
- arch/x86/kernel/head64.c           |   30 +++++++++++++++--
- arch/x86/kernel/setup.c            |    9 +++++
- arch/x86/mm/kasan_init_64.c        |    2 +
- arch/x86/mm/mem_encrypt.c          |   63 ++++++++++++++++++++++++++++++++++++
- 6 files changed, 108 insertions(+), 5 deletions(-)
+ arch/x86/include/asm/dmi.h   |    8 ++++----
+ arch/x86/kernel/acpi/boot.c  |    6 +++---
+ arch/x86/kernel/kdebugfs.c   |   34 +++++++++++-----------------------
+ arch/x86/kernel/ksysfs.c     |   28 ++++++++++++++--------------
+ arch/x86/kernel/mpparse.c    |   10 +++++-----
+ arch/x86/pci/common.c        |    4 ++--
+ drivers/firmware/dmi-sysfs.c |    5 +++--
+ drivers/firmware/pcdp.c      |    4 ++--
+ drivers/sfi/sfi_core.c       |   22 +++++++++++-----------
+ 9 files changed, 55 insertions(+), 66 deletions(-)
 
-diff --git a/arch/x86/include/asm/mem_encrypt.h b/arch/x86/include/asm/mem_encrypt.h
-index 8baa35b..ab1fe77 100644
---- a/arch/x86/include/asm/mem_encrypt.h
-+++ b/arch/x86/include/asm/mem_encrypt.h
-@@ -26,6 +26,9 @@ void __init sme_early_encrypt(resource_size_t paddr,
- void __init sme_early_decrypt(resource_size_t paddr,
- 			      unsigned long size);
+diff --git a/arch/x86/include/asm/dmi.h b/arch/x86/include/asm/dmi.h
+index 3c69fed..a8e15b0 100644
+--- a/arch/x86/include/asm/dmi.h
++++ b/arch/x86/include/asm/dmi.h
+@@ -13,9 +13,9 @@ static __always_inline __init void *dmi_alloc(unsigned len)
+ }
  
-+void __init sme_map_bootdata(char *real_mode_data);
-+void __init sme_unmap_bootdata(char *real_mode_data);
-+
- void __init sme_early_init(void);
+ /* Use early IO mappings for DMI because it's initialized early */
+-#define dmi_early_remap		early_ioremap
+-#define dmi_early_unmap		early_iounmap
+-#define dmi_remap		ioremap_cache
+-#define dmi_unmap		iounmap
++#define dmi_early_remap		early_memremap
++#define dmi_early_unmap		early_memunmap
++#define dmi_remap(_x, _l)	memremap(_x, _l, MEMREMAP_WB)
++#define dmi_unmap(_x)		memunmap(_x)
  
- void __init sme_encrypt_kernel(void);
-@@ -40,6 +43,9 @@ static inline void __init sme_early_encrypt(resource_size_t paddr,
- static inline void __init sme_early_decrypt(resource_size_t paddr,
- 					    unsigned long size) { }
+ #endif /* _ASM_X86_DMI_H */
+diff --git a/arch/x86/kernel/acpi/boot.c b/arch/x86/kernel/acpi/boot.c
+index 6bb6806..850160a 100644
+--- a/arch/x86/kernel/acpi/boot.c
++++ b/arch/x86/kernel/acpi/boot.c
+@@ -115,7 +115,7 @@
+ #define	ACPI_INVALID_GSI		INT_MIN
  
-+static inline void __init sme_map_bootdata(char *real_mode_data) { }
-+static inline void __init sme_unmap_bootdata(char *real_mode_data) { }
-+
- static inline void __init sme_early_init(void) { }
- 
- static inline void __init sme_encrypt_kernel(void) { }
-diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
-index c6452cb..bbeae4a 100644
---- a/arch/x86/include/asm/pgtable.h
-+++ b/arch/x86/include/asm/pgtable.h
-@@ -23,6 +23,9 @@
- #ifndef __ASSEMBLY__
- #include <asm/x86_init.h>
- 
-+extern pgd_t early_top_pgt[PTRS_PER_PGD];
-+int __init __early_make_pgtable(unsigned long address, pmdval_t pmd);
-+
- void ptdump_walk_pgd_level(struct seq_file *m, pgd_t *pgd);
- void ptdump_walk_pgd_level_checkwx(void);
- 
-diff --git a/arch/x86/kernel/head64.c b/arch/x86/kernel/head64.c
-index 5cd0b72..0cdb53b 100644
---- a/arch/x86/kernel/head64.c
-+++ b/arch/x86/kernel/head64.c
-@@ -34,7 +34,6 @@
  /*
-  * Manage page tables very early on.
+- * This is just a simple wrapper around early_ioremap(),
++ * This is just a simple wrapper around early_memremap(),
+  * with sanity checks for phys == 0 and size == 0.
   */
--extern pgd_t early_top_pgt[PTRS_PER_PGD];
- extern pmd_t early_dynamic_pgts[EARLY_DYNAMIC_PAGE_TABLES][PTRS_PER_PMD];
- static unsigned int __initdata next_early_pgt;
- pmdval_t early_pmd_flags = __PAGE_KERNEL_LARGE & ~(_PAGE_GLOBAL | _PAGE_NX);
-@@ -181,13 +180,13 @@ static void __init reset_early_page_tables(void)
+ char *__init __acpi_map_table(unsigned long phys, unsigned long size)
+@@ -124,7 +124,7 @@ char *__init __acpi_map_table(unsigned long phys, unsigned long size)
+ 	if (!phys || !size)
+ 		return NULL;
+ 
+-	return early_ioremap(phys, size);
++	return early_memremap(phys, size);
  }
  
- /* Create a new PMD entry */
--int __init early_make_pgtable(unsigned long address)
-+int __init __early_make_pgtable(unsigned long address, pmdval_t pmd)
- {
- 	unsigned long physaddr = address - __PAGE_OFFSET;
- 	pgdval_t pgd, *pgd_p;
- 	p4dval_t p4d, *p4d_p;
- 	pudval_t pud, *pud_p;
--	pmdval_t pmd, *pmd_p;
-+	pmdval_t *pmd_p;
+ void __init __acpi_unmap_table(char *map, unsigned long size)
+@@ -132,7 +132,7 @@ void __init __acpi_unmap_table(char *map, unsigned long size)
+ 	if (!map || !size)
+ 		return;
  
- 	/* Invalid address or early pgt is done ?  */
- 	if (physaddr >= MAXMEM || read_cr3_pa() != __pa_nodebug(early_top_pgt))
-@@ -246,12 +245,21 @@ int __init early_make_pgtable(unsigned long address)
- 		memset(pmd_p, 0, sizeof(*pmd_p) * PTRS_PER_PMD);
- 		*pud_p = (pudval_t)pmd_p - __START_KERNEL_map + phys_base + _KERNPG_TABLE;
+-	early_iounmap(map, size);
++	early_memunmap(map, size);
+ }
+ 
+ #ifdef CONFIG_X86_LOCAL_APIC
+diff --git a/arch/x86/kernel/kdebugfs.c b/arch/x86/kernel/kdebugfs.c
+index 38b6458..fd6f8fb 100644
+--- a/arch/x86/kernel/kdebugfs.c
++++ b/arch/x86/kernel/kdebugfs.c
+@@ -33,7 +33,6 @@ static ssize_t setup_data_read(struct file *file, char __user *user_buf,
+ 	struct setup_data_node *node = file->private_data;
+ 	unsigned long remain;
+ 	loff_t pos = *ppos;
+-	struct page *pg;
+ 	void *p;
+ 	u64 pa;
+ 
+@@ -47,18 +46,13 @@ static ssize_t setup_data_read(struct file *file, char __user *user_buf,
+ 		count = node->len - pos;
+ 
+ 	pa = node->paddr + sizeof(struct setup_data) + pos;
+-	pg = pfn_to_page((pa + count - 1) >> PAGE_SHIFT);
+-	if (PageHighMem(pg)) {
+-		p = ioremap_cache(pa, count);
+-		if (!p)
+-			return -ENXIO;
+-	} else
+-		p = __va(pa);
++	p = memremap(pa, count, MEMREMAP_WB);
++	if (!p)
++		return -ENOMEM;
+ 
+ 	remain = copy_to_user(user_buf, p, count);
+ 
+-	if (PageHighMem(pg))
+-		iounmap(p);
++	memunmap(p);
+ 
+ 	if (remain)
+ 		return -EFAULT;
+@@ -109,7 +103,6 @@ static int __init create_setup_data_nodes(struct dentry *parent)
+ 	struct setup_data *data;
+ 	int error;
+ 	struct dentry *d;
+-	struct page *pg;
+ 	u64 pa_data;
+ 	int no = 0;
+ 
+@@ -126,16 +119,12 @@ static int __init create_setup_data_nodes(struct dentry *parent)
+ 			goto err_dir;
+ 		}
+ 
+-		pg = pfn_to_page((pa_data+sizeof(*data)-1) >> PAGE_SHIFT);
+-		if (PageHighMem(pg)) {
+-			data = ioremap_cache(pa_data, sizeof(*data));
+-			if (!data) {
+-				kfree(node);
+-				error = -ENXIO;
+-				goto err_dir;
+-			}
+-		} else
+-			data = __va(pa_data);
++		data = memremap(pa_data, sizeof(*data), MEMREMAP_WB);
++		if (!data) {
++			kfree(node);
++			error = -ENOMEM;
++			goto err_dir;
++		}
+ 
+ 		node->paddr = pa_data;
+ 		node->type = data->type;
+@@ -143,8 +132,7 @@ static int __init create_setup_data_nodes(struct dentry *parent)
+ 		error = create_setup_data_node(d, no, node);
+ 		pa_data = data->next;
+ 
+-		if (PageHighMem(pg))
+-			iounmap(data);
++		memunmap(data);
+ 		if (error)
+ 			goto err_dir;
+ 		no++;
+diff --git a/arch/x86/kernel/ksysfs.c b/arch/x86/kernel/ksysfs.c
+index 4afc67f..ee51db9 100644
+--- a/arch/x86/kernel/ksysfs.c
++++ b/arch/x86/kernel/ksysfs.c
+@@ -16,8 +16,8 @@
+ #include <linux/stat.h>
+ #include <linux/slab.h>
+ #include <linux/mm.h>
++#include <linux/io.h>
+ 
+-#include <asm/io.h>
+ #include <asm/setup.h>
+ 
+ static ssize_t version_show(struct kobject *kobj,
+@@ -79,12 +79,12 @@ static int get_setup_data_paddr(int nr, u64 *paddr)
+ 			*paddr = pa_data;
+ 			return 0;
+ 		}
+-		data = ioremap_cache(pa_data, sizeof(*data));
++		data = memremap(pa_data, sizeof(*data), MEMREMAP_WB);
+ 		if (!data)
+ 			return -ENOMEM;
+ 
+ 		pa_data = data->next;
+-		iounmap(data);
++		memunmap(data);
+ 		i++;
  	}
--	pmd = (physaddr & PMD_MASK) + early_pmd_flags;
- 	pmd_p[pmd_index(address)] = pmd;
+ 	return -EINVAL;
+@@ -97,17 +97,17 @@ static int __init get_setup_data_size(int nr, size_t *size)
+ 	u64 pa_data = boot_params.hdr.setup_data;
  
- 	return 0;
- }
+ 	while (pa_data) {
+-		data = ioremap_cache(pa_data, sizeof(*data));
++		data = memremap(pa_data, sizeof(*data), MEMREMAP_WB);
+ 		if (!data)
+ 			return -ENOMEM;
+ 		if (nr == i) {
+ 			*size = data->len;
+-			iounmap(data);
++			memunmap(data);
+ 			return 0;
+ 		}
  
-+int __init early_make_pgtable(unsigned long address)
-+{
-+	unsigned long physaddr = address - __PAGE_OFFSET;
-+	pmdval_t pmd;
-+
-+	pmd = (physaddr & PMD_MASK) + early_pmd_flags;
-+
-+	return __early_make_pgtable(address, pmd);
-+}
-+
- /* Don't add a printk in there. printk relies on the PDA which is not initialized 
-    yet. */
- static void __init clear_bss(void)
-@@ -274,6 +282,12 @@ static void __init copy_bootdata(char *real_mode_data)
- 	char * command_line;
- 	unsigned long cmd_line_ptr;
- 
-+	/*
-+	 * If SME is active, this will create decrypted mappings of the
-+	 * boot data in advance of the copy operations.
-+	 */
-+	sme_map_bootdata(real_mode_data);
-+
- 	memcpy(&boot_params, real_mode_data, sizeof boot_params);
- 	sanitize_boot_params(&boot_params);
- 	cmd_line_ptr = get_cmd_line_ptr();
-@@ -281,6 +295,14 @@ static void __init copy_bootdata(char *real_mode_data)
- 		command_line = __va(cmd_line_ptr);
- 		memcpy(boot_command_line, command_line, COMMAND_LINE_SIZE);
+ 		pa_data = data->next;
+-		iounmap(data);
++		memunmap(data);
+ 		i++;
  	}
-+
-+	/*
-+	 * The old boot data is no longer needed and won't be reserved,
-+	 * freeing up that memory for use by the system. If SME is active,
-+	 * we need to remove the mappings that were created so that the
-+	 * memory doesn't remain mapped as decrypted.
-+	 */
-+	sme_unmap_bootdata(real_mode_data);
+ 	return -EINVAL;
+@@ -127,12 +127,12 @@ static ssize_t type_show(struct kobject *kobj,
+ 	ret = get_setup_data_paddr(nr, &paddr);
+ 	if (ret)
+ 		return ret;
+-	data = ioremap_cache(paddr, sizeof(*data));
++	data = memremap(paddr, sizeof(*data), MEMREMAP_WB);
+ 	if (!data)
+ 		return -ENOMEM;
+ 
+ 	ret = sprintf(buf, "0x%x\n", data->type);
+-	iounmap(data);
++	memunmap(data);
+ 	return ret;
  }
  
- asmlinkage __visible void __init x86_64_start_kernel(char * real_mode_data)
-diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
-index 65622f0..31ae85e 100644
---- a/arch/x86/kernel/setup.c
-+++ b/arch/x86/kernel/setup.c
-@@ -69,6 +69,7 @@
- #include <linux/crash_dump.h>
- #include <linux/tboot.h>
- #include <linux/jiffies.h>
-+#include <linux/mem_encrypt.h>
+@@ -154,7 +154,7 @@ static ssize_t setup_data_data_read(struct file *fp,
+ 	ret = get_setup_data_paddr(nr, &paddr);
+ 	if (ret)
+ 		return ret;
+-	data = ioremap_cache(paddr, sizeof(*data));
++	data = memremap(paddr, sizeof(*data), MEMREMAP_WB);
+ 	if (!data)
+ 		return -ENOMEM;
  
- #include <linux/usb/xhci-dbgp.h>
- #include <video/edid.h>
-@@ -374,6 +375,14 @@ static void __init reserve_initrd(void)
- 	    !ramdisk_image || !ramdisk_size)
- 		return;		/* No initrd provided by bootloader */
+@@ -170,15 +170,15 @@ static ssize_t setup_data_data_read(struct file *fp,
+ 		goto out;
  
-+	/*
-+	 * If SME is active, this memory will be marked encrypted by the
-+	 * kernel when it is accessed (including relocation). However, the
-+	 * ramdisk image was loaded decrypted by the bootloader, so make
-+	 * sure that it is encrypted before accessing it.
-+	 */
-+	sme_early_encrypt(ramdisk_image, ramdisk_end - ramdisk_image);
-+
- 	initrd_start = 0;
+ 	ret = count;
+-	p = ioremap_cache(paddr + sizeof(*data), data->len);
++	p = memremap(paddr + sizeof(*data), data->len, MEMREMAP_WB);
+ 	if (!p) {
+ 		ret = -ENOMEM;
+ 		goto out;
+ 	}
+ 	memcpy(buf, p + off, count);
+-	iounmap(p);
++	memunmap(p);
+ out:
+-	iounmap(data);
++	memunmap(data);
+ 	return ret;
+ }
  
- 	mapped_size = memblock_mem_size(max_pfn_mapped);
-diff --git a/arch/x86/mm/kasan_init_64.c b/arch/x86/mm/kasan_init_64.c
-index d7cc830..1b8791f 100644
---- a/arch/x86/mm/kasan_init_64.c
-+++ b/arch/x86/mm/kasan_init_64.c
-@@ -11,8 +11,8 @@
- #include <asm/e820/types.h>
- #include <asm/tlbflush.h>
- #include <asm/sections.h>
-+#include <asm/pgtable.h>
+@@ -250,13 +250,13 @@ static int __init get_setup_data_total_num(u64 pa_data, int *nr)
+ 	*nr = 0;
+ 	while (pa_data) {
+ 		*nr += 1;
+-		data = ioremap_cache(pa_data, sizeof(*data));
++		data = memremap(pa_data, sizeof(*data), MEMREMAP_WB);
+ 		if (!data) {
+ 			ret = -ENOMEM;
+ 			goto out;
+ 		}
+ 		pa_data = data->next;
+-		iounmap(data);
++		memunmap(data);
+ 	}
  
--extern pgd_t early_top_pgt[PTRS_PER_PGD];
- extern struct range pfn_mapped[E820_MAX_ENTRIES];
+ out:
+diff --git a/arch/x86/kernel/mpparse.c b/arch/x86/kernel/mpparse.c
+index 0d904d7..fd37f39 100644
+--- a/arch/x86/kernel/mpparse.c
++++ b/arch/x86/kernel/mpparse.c
+@@ -436,9 +436,9 @@ static unsigned long __init get_mpc_size(unsigned long physptr)
+ 	struct mpc_table *mpc;
+ 	unsigned long size;
  
- static int __init map_range(struct range *range)
-diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
-index 54bb73c..0843d02 100644
---- a/arch/x86/mm/mem_encrypt.c
-+++ b/arch/x86/mm/mem_encrypt.c
-@@ -16,6 +16,8 @@
+-	mpc = early_ioremap(physptr, PAGE_SIZE);
++	mpc = early_memremap(physptr, PAGE_SIZE);
+ 	size = mpc->length;
+-	early_iounmap(mpc, PAGE_SIZE);
++	early_memunmap(mpc, PAGE_SIZE);
+ 	apic_printk(APIC_VERBOSE, "  mpc: %lx-%lx\n", physptr, physptr + size);
  
- #include <asm/tlbflush.h>
- #include <asm/fixmap.h>
-+#include <asm/setup.h>
-+#include <asm/bootparam.h>
+ 	return size;
+@@ -450,7 +450,7 @@ static int __init check_physptr(struct mpf_intel *mpf, unsigned int early)
+ 	unsigned long size;
+ 
+ 	size = get_mpc_size(mpf->physptr);
+-	mpc = early_ioremap(mpf->physptr, size);
++	mpc = early_memremap(mpf->physptr, size);
+ 	/*
+ 	 * Read the physical hardware table.  Anything here will
+ 	 * override the defaults.
+@@ -461,10 +461,10 @@ static int __init check_physptr(struct mpf_intel *mpf, unsigned int early)
+ #endif
+ 		pr_err("BIOS bug, MP table errors detected!...\n");
+ 		pr_cont("... disabling SMP support. (tell your hw vendor)\n");
+-		early_iounmap(mpc, size);
++		early_memunmap(mpc, size);
+ 		return -1;
+ 	}
+-	early_iounmap(mpc, size);
++	early_memunmap(mpc, size);
+ 
+ 	if (early)
+ 		return -1;
+diff --git a/arch/x86/pci/common.c b/arch/x86/pci/common.c
+index 190e718..08cf71c 100644
+--- a/arch/x86/pci/common.c
++++ b/arch/x86/pci/common.c
+@@ -691,7 +691,7 @@ int pcibios_add_device(struct pci_dev *dev)
+ 
+ 	pa_data = boot_params.hdr.setup_data;
+ 	while (pa_data) {
+-		data = ioremap(pa_data, sizeof(*rom));
++		data = memremap(pa_data, sizeof(*rom), MEMREMAP_WB);
+ 		if (!data)
+ 			return -ENOMEM;
+ 
+@@ -710,7 +710,7 @@ int pcibios_add_device(struct pci_dev *dev)
+ 			}
+ 		}
+ 		pa_data = data->next;
+-		iounmap(data);
++		memunmap(data);
+ 	}
+ 	set_dma_domain_ops(dev);
+ 	set_dev_domain_options(dev);
+diff --git a/drivers/firmware/dmi-sysfs.c b/drivers/firmware/dmi-sysfs.c
+index ef76e5e..d5de6ee 100644
+--- a/drivers/firmware/dmi-sysfs.c
++++ b/drivers/firmware/dmi-sysfs.c
+@@ -25,6 +25,7 @@
+ #include <linux/slab.h>
+ #include <linux/list.h>
+ #include <linux/io.h>
++#include <asm/dmi.h>
+ 
+ #define MAX_ENTRY_TYPE 255 /* Most of these aren't used, but we consider
+ 			      the top entry type is only 8 bits */
+@@ -380,7 +381,7 @@ static ssize_t dmi_sel_raw_read_phys32(struct dmi_sysfs_entry *entry,
+ 	u8 __iomem *mapped;
+ 	ssize_t wrote = 0;
+ 
+-	mapped = ioremap(sel->access_method_address, sel->area_length);
++	mapped = dmi_remap(sel->access_method_address, sel->area_length);
+ 	if (!mapped)
+ 		return -EIO;
+ 
+@@ -390,7 +391,7 @@ static ssize_t dmi_sel_raw_read_phys32(struct dmi_sysfs_entry *entry,
+ 		wrote++;
+ 	}
+ 
+-	iounmap(mapped);
++	dmi_unmap(mapped);
+ 	return wrote;
+ }
+ 
+diff --git a/drivers/firmware/pcdp.c b/drivers/firmware/pcdp.c
+index 75273a25..e83d6ae 100644
+--- a/drivers/firmware/pcdp.c
++++ b/drivers/firmware/pcdp.c
+@@ -95,7 +95,7 @@
+ 	if (efi.hcdp == EFI_INVALID_TABLE_ADDR)
+ 		return -ENODEV;
+ 
+-	pcdp = early_ioremap(efi.hcdp, 4096);
++	pcdp = early_memremap(efi.hcdp, 4096);
+ 	printk(KERN_INFO "PCDP: v%d at 0x%lx\n", pcdp->rev, efi.hcdp);
+ 
+ 	if (strstr(cmdline, "console=hcdp")) {
+@@ -131,6 +131,6 @@
+ 	}
+ 
+ out:
+-	early_iounmap(pcdp, 4096);
++	early_memunmap(pcdp, 4096);
+ 	return rc;
+ }
+diff --git a/drivers/sfi/sfi_core.c b/drivers/sfi/sfi_core.c
+index 296db7a..d5ce534 100644
+--- a/drivers/sfi/sfi_core.c
++++ b/drivers/sfi/sfi_core.c
+@@ -86,13 +86,13 @@
+ /*
+  * FW creates and saves the SFI tables in memory. When these tables get
+  * used, they may need to be mapped to virtual address space, and the mapping
+- * can happen before or after the ioremap() is ready, so a flag is needed
++ * can happen before or after the memremap() is ready, so a flag is needed
+  * to indicating this
+  */
+-static u32 sfi_use_ioremap __read_mostly;
++static u32 sfi_use_memremap __read_mostly;
  
  /*
-  * Since SME related variables are set early in the boot process they must
-@@ -98,6 +100,67 @@ void __init sme_early_decrypt(resource_size_t paddr, unsigned long size)
- 	__sme_early_enc_dec(paddr, size, false);
+- * sfi_un/map_memory calls early_ioremap/iounmap which is a __init function
++ * sfi_un/map_memory calls early_memremap/memunmap which is a __init function
+  * and introduces section mismatch. So use __ref to make it calm.
+  */
+ static void __iomem * __ref sfi_map_memory(u64 phys, u32 size)
+@@ -100,10 +100,10 @@ static void __iomem * __ref sfi_map_memory(u64 phys, u32 size)
+ 	if (!phys || !size)
+ 		return NULL;
+ 
+-	if (sfi_use_ioremap)
+-		return ioremap_cache(phys, size);
++	if (sfi_use_memremap)
++		return memremap(phys, size, MEMREMAP_WB);
+ 	else
+-		return early_ioremap(phys, size);
++		return early_memremap(phys, size);
  }
  
-+static void __init __sme_early_map_unmap_mem(void *vaddr, unsigned long size,
-+					     bool map)
-+{
-+	unsigned long paddr = (unsigned long)vaddr - __PAGE_OFFSET;
-+	pmdval_t pmd_flags, pmd;
-+
-+	/* Use early_pmd_flags but remove the encryption mask */
-+	pmd_flags = __sme_clr(early_pmd_flags);
-+
-+	do {
-+		pmd = map ? (paddr & PMD_MASK) + pmd_flags : 0;
-+		__early_make_pgtable((unsigned long)vaddr, pmd);
-+
-+		vaddr += PMD_SIZE;
-+		paddr += PMD_SIZE;
-+		size = (size <= PMD_SIZE) ? 0 : size - PMD_SIZE;
-+	} while (size);
-+
-+	__native_flush_tlb();
-+}
-+
-+void __init sme_unmap_bootdata(char *real_mode_data)
-+{
-+	struct boot_params *boot_data;
-+	unsigned long cmdline_paddr;
-+
-+	if (!sme_active())
-+		return;
-+
-+	/* Get the command line address before unmapping the real_mode_data */
-+	boot_data = (struct boot_params *)real_mode_data;
-+	cmdline_paddr = boot_data->hdr.cmd_line_ptr | ((u64)boot_data->ext_cmd_line_ptr << 32);
-+
-+	__sme_early_map_unmap_mem(real_mode_data, sizeof(boot_params), false);
-+
-+	if (!cmdline_paddr)
-+		return;
-+
-+	__sme_early_map_unmap_mem(__va(cmdline_paddr), COMMAND_LINE_SIZE, false);
-+}
-+
-+void __init sme_map_bootdata(char *real_mode_data)
-+{
-+	struct boot_params *boot_data;
-+	unsigned long cmdline_paddr;
-+
-+	if (!sme_active())
-+		return;
-+
-+	__sme_early_map_unmap_mem(real_mode_data, sizeof(boot_params), true);
-+
-+	/* Get the command line address after mapping the real_mode_data */
-+	boot_data = (struct boot_params *)real_mode_data;
-+	cmdline_paddr = boot_data->hdr.cmd_line_ptr | ((u64)boot_data->ext_cmd_line_ptr << 32);
-+
-+	if (!cmdline_paddr)
-+		return;
-+
-+	__sme_early_map_unmap_mem(__va(cmdline_paddr), COMMAND_LINE_SIZE, true);
-+}
-+
- void __init sme_early_init(void)
- {
- 	unsigned int i;
+ static void __ref sfi_unmap_memory(void __iomem *virt, u32 size)
+@@ -111,10 +111,10 @@ static void __ref sfi_unmap_memory(void __iomem *virt, u32 size)
+ 	if (!virt || !size)
+ 		return;
+ 
+-	if (sfi_use_ioremap)
+-		iounmap(virt);
++	if (sfi_use_memremap)
++		memunmap(virt);
+ 	else
+-		early_iounmap(virt, size);
++		early_memunmap(virt, size);
+ }
+ 
+ static void sfi_print_table_header(unsigned long long pa,
+@@ -507,8 +507,8 @@ void __init sfi_init_late(void)
+ 	length = syst_va->header.len;
+ 	sfi_unmap_memory(syst_va, sizeof(struct sfi_table_simple));
+ 
+-	/* Use ioremap now after it is ready */
+-	sfi_use_ioremap = 1;
++	/* Use memremap now after it is ready */
++	sfi_use_memremap = 1;
+ 	syst_va = sfi_map_memory(syst_pa, length);
+ 
+ 	sfi_acpi_init();
