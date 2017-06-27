@@ -1,7 +1,7 @@
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v4 04/17] powerpc: Implement sys_pkey_alloc and sys_pkey_free system call
-Date: Tue, 27 Jun 2017 03:11:46 -0700
-Message-ID: <1498558319-32466-5-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v4 07/17] powerpc: make the hash functions protection-key aware
+Date: Tue, 27 Jun 2017 03:11:49 -0700
+Message-ID: <1498558319-32466-8-git-send-email-linuxram@us.ibm.com>
 References: <1498558319-32466-1-git-send-email-linuxram@us.ibm.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1498558319-32466-1-git-send-email-linuxram@us.ibm.com>
@@ -10,448 +10,328 @@ To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
 List-Id: linux-arch.vger.kernel.org
 
-Sys_pkey_alloc() allocates and returns available pkey
-Sys_pkey_free()  frees up the pkey.
-
-Total 32 keys are supported on powerpc. However pkey 0,1 and 31
-are reserved. So effectively we have 29 pkeys.
-
-Each key  can  be  initialized  to disable read, write and execute
-permissions. On powerpc a key can be initialize to disable execute.
+Prepare the hash functions to be aware of protection keys.
+This key will later be used to program the HPTE.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/Kconfig                         |  15 ++++
- arch/powerpc/include/asm/book3s/64/mmu.h     |  10 +++
- arch/powerpc/include/asm/book3s/64/pgtable.h |  62 ++++++++++++++
- arch/powerpc/include/asm/pkeys.h             | 124 +++++++++++++++++++++++++++
- arch/powerpc/include/asm/systbl.h            |   2 +
- arch/powerpc/include/asm/unistd.h            |   4 +-
- arch/powerpc/include/uapi/asm/unistd.h       |   2 +
- arch/powerpc/mm/Makefile                     |   1 +
- arch/powerpc/mm/mmu_context_book3s64.c       |   5 ++
- arch/powerpc/mm/pkeys.c                      |  88 +++++++++++++++++++
- 10 files changed, 310 insertions(+), 3 deletions(-)
- create mode 100644 arch/powerpc/include/asm/pkeys.h
- create mode 100644 arch/powerpc/mm/pkeys.c
+ arch/powerpc/include/asm/book3s/64/hash.h     |  2 +-
+ arch/powerpc/include/asm/book3s/64/mmu-hash.h | 14 ++++++-----
+ arch/powerpc/mm/hash64_4k.c                   |  4 ++--
+ arch/powerpc/mm/hash64_64k.c                  |  8 +++----
+ arch/powerpc/mm/hash_utils_64.c               | 34 ++++++++++++++++++---------
+ arch/powerpc/mm/hugepage-hash64.c             |  4 ++--
+ arch/powerpc/mm/hugetlbpage-hash64.c          |  5 ++--
+ arch/powerpc/mm/mem.c                         |  1 +
+ arch/powerpc/mm/mmu_decl.h                    |  5 +++-
+ 9 files changed, 48 insertions(+), 29 deletions(-)
 
-diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index f7c8f99..81202e5 100644
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -871,6 +871,21 @@ config SECCOMP
+diff --git a/arch/powerpc/include/asm/book3s/64/hash.h b/arch/powerpc/include/asm/book3s/64/hash.h
+index 4e957b0..3c1ef01 100644
+--- a/arch/powerpc/include/asm/book3s/64/hash.h
++++ b/arch/powerpc/include/asm/book3s/64/hash.h
+@@ -92,7 +92,7 @@ static inline int hash__pgd_bad(pgd_t pgd)
  
- 	  If unsure, say Y. Only embedded should say N here.
+ extern void hpte_need_flush(struct mm_struct *mm, unsigned long addr,
+ 			    pte_t *ptep, unsigned long pte, int huge);
+-extern unsigned long htab_convert_pte_flags(unsigned long pteflags);
++extern unsigned long htab_convert_pte_flags(unsigned long pteflags, int pkey);
+ /* Atomic PTE updates */
+ static inline unsigned long hash__pte_update(struct mm_struct *mm,
+ 					 unsigned long addr,
+diff --git a/arch/powerpc/include/asm/book3s/64/mmu-hash.h b/arch/powerpc/include/asm/book3s/64/mmu-hash.h
+index 6981a52..aa3c299 100644
+--- a/arch/powerpc/include/asm/book3s/64/mmu-hash.h
++++ b/arch/powerpc/include/asm/book3s/64/mmu-hash.h
+@@ -430,11 +430,11 @@ static inline unsigned long hpt_hash(unsigned long vpn,
+ #define HPTE_NOHPTE_UPDATE	0x2
  
-+config PPC64_MEMORY_PROTECTION_KEYS
-+	prompt "PowerPC Memory Protection Keys"
-+	def_bool y
-+	# Note: only available in 64-bit mode
-+	depends on PPC64
-+	select ARCH_USES_HIGH_VMA_FLAGS
-+	select ARCH_HAS_PKEYS
-+	---help---
-+	  Memory Protection Keys provides a mechanism for enforcing
-+	  page-based protections, but without requiring modification of the
-+	  page tables when an application changes protection domains.
-+
-+	  For details, see Documentation/powerpc/protection-keys.txt
-+
-+	  If unsure, say y.
- endmenu
+ extern int __hash_page_4K(unsigned long ea, unsigned long access,
+-			  unsigned long vsid, pte_t *ptep, unsigned long trap,
+-			  unsigned long flags, int ssize, int subpage_prot);
++		  unsigned long vsid, pte_t *ptep, unsigned long trap,
++		  unsigned long flags, int ssize, int subpage_prot, int pkey);
+ extern int __hash_page_64K(unsigned long ea, unsigned long access,
+ 			   unsigned long vsid, pte_t *ptep, unsigned long trap,
+-			   unsigned long flags, int ssize);
++			   unsigned long flags, int ssize, int pkey);
+ struct mm_struct;
+ unsigned int hash_page_do_lazy_icache(unsigned int pp, pte_t pte, int trap);
+ extern int hash_page_mm(struct mm_struct *mm, unsigned long ea,
+@@ -444,16 +444,18 @@ extern int hash_page(unsigned long ea, unsigned long access, unsigned long trap,
+ 		     unsigned long dsisr);
+ int __hash_page_huge(unsigned long ea, unsigned long access, unsigned long vsid,
+ 		     pte_t *ptep, unsigned long trap, unsigned long flags,
+-		     int ssize, unsigned int shift, unsigned int mmu_psize);
++		     int ssize, unsigned int shift, unsigned int mmu_psize,
++		     int pkey);
+ #ifdef CONFIG_TRANSPARENT_HUGEPAGE
+ extern int __hash_page_thp(unsigned long ea, unsigned long access,
+ 			   unsigned long vsid, pmd_t *pmdp, unsigned long trap,
+-			   unsigned long flags, int ssize, unsigned int psize);
++			   unsigned long flags, int ssize, unsigned int psize,
++			   int pkey);
+ #else
+ static inline int __hash_page_thp(unsigned long ea, unsigned long access,
+ 				  unsigned long vsid, pmd_t *pmdp,
+ 				  unsigned long trap, unsigned long flags,
+-				  int ssize, unsigned int psize)
++				  int ssize, unsigned int psize, int pkey)
+ {
+ 	BUG();
+ 	return -1;
+diff --git a/arch/powerpc/mm/hash64_4k.c b/arch/powerpc/mm/hash64_4k.c
+index 6fa450c..6765ba2 100644
+--- a/arch/powerpc/mm/hash64_4k.c
++++ b/arch/powerpc/mm/hash64_4k.c
+@@ -18,7 +18,7 @@
  
- config ISA_DMA_API
-diff --git a/arch/powerpc/include/asm/book3s/64/mmu.h b/arch/powerpc/include/asm/book3s/64/mmu.h
-index 77529a3..0c0a2a8 100644
---- a/arch/powerpc/include/asm/book3s/64/mmu.h
-+++ b/arch/powerpc/include/asm/book3s/64/mmu.h
-@@ -108,6 +108,16 @@ struct patb_entry {
- #ifdef CONFIG_SPAPR_TCE_IOMMU
- 	struct list_head iommu_group_mem_list;
- #endif
-+
-+#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
-+	/*
-+	 * Each bit represents one protection key.
-+	 * bit set   -> key allocated
-+	 * bit unset -> key available for allocation
-+	 */
-+	u32 pkey_allocation_map;
-+	s16 execute_only_pkey; /* key holding execute-only protection */
-+#endif
- } mm_context_t;
+ int __hash_page_4K(unsigned long ea, unsigned long access, unsigned long vsid,
+ 		   pte_t *ptep, unsigned long trap, unsigned long flags,
+-		   int ssize, int subpg_prot)
++		   int ssize, int subpg_prot, int pkey)
+ {
+ 	unsigned long hpte_group;
+ 	unsigned long rflags, pa;
+@@ -53,7 +53,7 @@ int __hash_page_4K(unsigned long ea, unsigned long access, unsigned long vsid,
+ 	 * PP bits. _PAGE_USER is already PP bit 0x2, so we only
+ 	 * need to add in 0x1 if it's a read-only user page
+ 	 */
+-	rflags = htab_convert_pte_flags(new_pte);
++	rflags = htab_convert_pte_flags(new_pte, pkey);
  
- /*
-diff --git a/arch/powerpc/include/asm/book3s/64/pgtable.h b/arch/powerpc/include/asm/book3s/64/pgtable.h
-index 85bc987..87e9a89 100644
---- a/arch/powerpc/include/asm/book3s/64/pgtable.h
-+++ b/arch/powerpc/include/asm/book3s/64/pgtable.h
-@@ -428,6 +428,68 @@ static inline void huge_ptep_set_wrprotect(struct mm_struct *mm,
- 		pte_update(mm, addr, ptep, 0, _PAGE_PRIVILEGED, 1);
- }
+ 	if (cpu_has_feature(CPU_FTR_NOEXECUTE) &&
+ 	    !cpu_has_feature(CPU_FTR_COHERENT_ICACHE))
+diff --git a/arch/powerpc/mm/hash64_64k.c b/arch/powerpc/mm/hash64_64k.c
+index 1a68cb1..9ce4d7b 100644
+--- a/arch/powerpc/mm/hash64_64k.c
++++ b/arch/powerpc/mm/hash64_64k.c
+@@ -47,7 +47,7 @@ static unsigned long mark_subptegroup_valid(unsigned long ptev, unsigned long in
  
-+
-+#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
-+
-+#include <asm/reg.h>
-+static inline u64 read_amr(void)
-+{
-+	return mfspr(SPRN_AMR);
-+}
-+static inline void write_amr(u64 value)
-+{
-+	mtspr(SPRN_AMR, value);
-+}
-+static inline u64 read_iamr(void)
-+{
-+	return mfspr(SPRN_IAMR);
-+}
-+static inline void write_iamr(u64 value)
-+{
-+	mtspr(SPRN_IAMR, value);
-+}
-+static inline u64 read_uamor(void)
-+{
-+	return mfspr(SPRN_UAMOR);
-+}
-+static inline void write_uamor(u64 value)
-+{
-+	mtspr(SPRN_UAMOR, value);
-+}
-+
-+#else /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
-+
-+static inline u64 read_amr(void)
-+{
-+	WARN(1, "%s called with MEMORY PROTECTION KEYS disabled\n", __func__);
-+	return -1;
-+}
-+static inline void write_amr(u64 value)
-+{
-+	WARN(1, "%s called with MEMORY PROTECTION KEYS disabled\n", __func__);
-+}
-+static inline u64 read_uamor(void)
-+{
-+	WARN(1, "%s called with MEMORY PROTECTION KEYS disabled\n", __func__);
-+	return -1;
-+}
-+static inline void write_uamor(u64 value)
-+{
-+	WARN(1, "%s called with MEMORY PROTECTION KEYS disabled\n", __func__);
-+}
-+static inline u64 read_iamr(void)
-+{
-+	WARN(1, "%s called with MEMORY PROTECTION KEYS disabled\n", __func__);
-+	return -1;
-+}
-+static inline void write_iamr(u64 value)
-+{
-+	WARN(1, "%s called with MEMORY PROTECTION KEYS disabled\n", __func__);
-+}
-+
-+#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
-+
-+
- #define __HAVE_ARCH_PTEP_GET_AND_CLEAR
- static inline pte_t ptep_get_and_clear(struct mm_struct *mm,
- 				       unsigned long addr, pte_t *ptep)
-diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
-new file mode 100644
-index 0000000..7bc8746
---- /dev/null
-+++ b/arch/powerpc/include/asm/pkeys.h
-@@ -0,0 +1,124 @@
-+#ifndef _ASM_PPC64_PKEYS_H
-+#define _ASM_PPC64_PKEYS_H
-+
-+
-+#define arch_max_pkey()  32
-+
-+#define AMR_AD_BIT 0x1UL
-+#define AMR_WD_BIT 0x2UL
-+#define IAMR_EX_BIT 0x1UL
-+#define AMR_BITS_PER_PKEY 2
-+#define ARCH_VM_PKEY_FLAGS (VM_PKEY_BIT0 | \
-+			VM_PKEY_BIT1 | \
-+			VM_PKEY_BIT2 | \
-+			VM_PKEY_BIT3 | \
-+			VM_PKEY_BIT4)
-+
-+/*
-+ * Bits are in BE format.
-+ * NOTE: key 31, 1, 0 are not used.
-+ * key 0 is used by default. It give read/write/execute permission.
-+ * key 31 is reserved by the hypervisor.
-+ * key 1 is recommended to be not used.
-+ * PowerISA(3.0) page 1015, programming note.
-+ */
-+#define PKEY_INITIAL_ALLOCAION  0xc0000001
-+
-+#define pkeybit_mask(pkey) (0x1 << (arch_max_pkey() - pkey - 1))
-+
-+#define mm_pkey_allocation_map(mm)	(mm->context.pkey_allocation_map)
-+
-+#define mm_set_pkey_allocated(mm, pkey) {	\
-+	mm_pkey_allocation_map(mm) |= pkeybit_mask(pkey); \
-+}
-+
-+#define mm_set_pkey_free(mm, pkey) {	\
-+	mm_pkey_allocation_map(mm) &= ~pkeybit_mask(pkey);	\
-+}
-+
-+#define mm_set_pkey_is_allocated(mm, pkey)	\
-+	(mm_pkey_allocation_map(mm) & pkeybit_mask(pkey))
-+
-+#define mm_set_pkey_is_reserved(mm, pkey) (PKEY_INITIAL_ALLOCAION & \
-+					pkeybit_mask(pkey))
-+
-+static inline bool mm_pkey_is_allocated(struct mm_struct *mm, int pkey)
-+{
-+	/* a reserved key is never considered as 'explicitly allocated' */
-+	return (!mm_set_pkey_is_reserved(mm, pkey) &&
-+		mm_set_pkey_is_allocated(mm, pkey));
-+}
-+
-+/*
-+ * Returns a positive, 5-bit key on success, or -1 on failure.
-+ */
-+static inline int mm_pkey_alloc(struct mm_struct *mm)
-+{
-+	/*
-+	 * Note: this is the one and only place we make sure
-+	 * that the pkey is valid as far as the hardware is
-+	 * concerned.  The rest of the kernel trusts that
-+	 * only good, valid pkeys come out of here.
-+	 */
-+	u32 all_pkeys_mask = (u32)(~(0x0));
-+	int ret;
-+
-+	/*
-+	 * Are we out of pkeys?  We must handle this specially
-+	 * because ffz() behavior is undefined if there are no
-+	 * zeros.
-+	 */
-+	if (mm_pkey_allocation_map(mm) == all_pkeys_mask)
-+		return -1;
-+
-+	ret = arch_max_pkey() -
-+		ffz((u32)mm_pkey_allocation_map(mm))
-+		- 1;
-+	mm_set_pkey_allocated(mm, ret);
-+	return ret;
-+}
-+
-+static inline int mm_pkey_free(struct mm_struct *mm, int pkey)
-+{
-+	if (!mm_pkey_is_allocated(mm, pkey))
-+		return -EINVAL;
-+
-+	mm_set_pkey_free(mm, pkey);
-+
-+	return 0;
-+}
-+
-+/*
-+ * Try to dedicate one of the protection keys to be used as an
-+ * execute-only protection key.
-+ */
-+extern int __execute_only_pkey(struct mm_struct *mm);
-+static inline int execute_only_pkey(struct mm_struct *mm)
-+{
-+	return __execute_only_pkey(mm);
-+}
-+
-+extern int __arch_override_mprotect_pkey(struct vm_area_struct *vma,
-+		int prot, int pkey);
-+static inline int arch_override_mprotect_pkey(struct vm_area_struct *vma,
-+		int prot, int pkey)
-+{
-+	return __arch_override_mprotect_pkey(vma, prot, pkey);
-+}
-+
-+extern int __arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
-+		unsigned long init_val);
-+static inline int arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
-+		unsigned long init_val)
-+{
-+	return __arch_set_user_pkey_access(tsk, pkey, init_val);
-+}
-+
-+static inline pkey_mm_init(struct mm_struct *mm)
-+{
-+	mm_pkey_allocation_map(mm) = PKEY_INITIAL_ALLOCAION;
-+	/* -1 means unallocated or invalid */
-+	mm->context.execute_only_pkey = -1;
-+}
-+
-+#endif /*_ASM_PPC64_PKEYS_H */
-diff --git a/arch/powerpc/include/asm/systbl.h b/arch/powerpc/include/asm/systbl.h
-index 1c94708..22dd776 100644
---- a/arch/powerpc/include/asm/systbl.h
-+++ b/arch/powerpc/include/asm/systbl.h
-@@ -388,3 +388,5 @@
- COMPAT_SYS_SPU(pwritev2)
- SYSCALL(kexec_file_load)
- SYSCALL(statx)
-+SYSCALL(pkey_alloc)
-+SYSCALL(pkey_free)
-diff --git a/arch/powerpc/include/asm/unistd.h b/arch/powerpc/include/asm/unistd.h
-index 9ba11db..e0273bc 100644
---- a/arch/powerpc/include/asm/unistd.h
-+++ b/arch/powerpc/include/asm/unistd.h
-@@ -12,13 +12,11 @@
- #include <uapi/asm/unistd.h>
+ int __hash_page_4K(unsigned long ea, unsigned long access, unsigned long vsid,
+ 		   pte_t *ptep, unsigned long trap, unsigned long flags,
+-		   int ssize, int subpg_prot)
++		   int ssize, int subpg_prot, int pkey)
+ {
+ 	real_pte_t rpte;
+ 	unsigned long *hidxp;
+@@ -85,7 +85,7 @@ int __hash_page_4K(unsigned long ea, unsigned long access, unsigned long vsid,
+ 	 * Handle the subpage protection bits
+ 	 */
+ 	subpg_pte = new_pte & ~subpg_prot;
+-	rflags = htab_convert_pte_flags(subpg_pte);
++	rflags = htab_convert_pte_flags(subpg_pte, pkey);
  
+ 	if (cpu_has_feature(CPU_FTR_NOEXECUTE) &&
+ 	    !cpu_has_feature(CPU_FTR_COHERENT_ICACHE)) {
+@@ -219,7 +219,7 @@ int __hash_page_4K(unsigned long ea, unsigned long access, unsigned long vsid,
  
--#define NR_syscalls		384
-+#define NR_syscalls		386
+ int __hash_page_64K(unsigned long ea, unsigned long access,
+ 		    unsigned long vsid, pte_t *ptep, unsigned long trap,
+-		    unsigned long flags, int ssize)
++		    unsigned long flags, int ssize, int pkey)
+ {
+ 	unsigned long hpte_group;
+ 	unsigned long rflags, pa;
+@@ -256,7 +256,7 @@ int __hash_page_64K(unsigned long ea, unsigned long access,
+ 			new_pte |= _PAGE_DIRTY;
+ 	} while (!pte_xchg(ptep, __pte(old_pte), __pte(new_pte)));
  
- #define __NR__exit __NR_exit
+-	rflags = htab_convert_pte_flags(new_pte);
++	rflags = htab_convert_pte_flags(new_pte, pkey);
  
- #define __IGNORE_pkey_mprotect
--#define __IGNORE_pkey_alloc
--#define __IGNORE_pkey_free
- 
- #ifndef __ASSEMBLY__
- 
-diff --git a/arch/powerpc/include/uapi/asm/unistd.h b/arch/powerpc/include/uapi/asm/unistd.h
-index b85f142..7993a07 100644
---- a/arch/powerpc/include/uapi/asm/unistd.h
-+++ b/arch/powerpc/include/uapi/asm/unistd.h
-@@ -394,5 +394,7 @@
- #define __NR_pwritev2		381
- #define __NR_kexec_file_load	382
- #define __NR_statx		383
-+#define __NR_pkey_alloc		384
-+#define __NR_pkey_free		385
- 
- #endif /* _UAPI_ASM_POWERPC_UNISTD_H_ */
-diff --git a/arch/powerpc/mm/Makefile b/arch/powerpc/mm/Makefile
-index 7414034..8cc2ff1 100644
---- a/arch/powerpc/mm/Makefile
-+++ b/arch/powerpc/mm/Makefile
-@@ -45,3 +45,4 @@ obj-$(CONFIG_PPC_COPRO_BASE)	+= copro_fault.o
- obj-$(CONFIG_SPAPR_TCE_IOMMU)	+= mmu_context_iommu.o
- obj-$(CONFIG_PPC_PTDUMP)	+= dump_linuxpagetables.o
- obj-$(CONFIG_PPC_HTDUMP)	+= dump_hashpagetable.o
-+obj-$(CONFIG_PPC64_MEMORY_PROTECTION_KEYS)	+= pkeys.o
-diff --git a/arch/powerpc/mm/mmu_context_book3s64.c b/arch/powerpc/mm/mmu_context_book3s64.c
-index c6dca2a..2da9931 100644
---- a/arch/powerpc/mm/mmu_context_book3s64.c
-+++ b/arch/powerpc/mm/mmu_context_book3s64.c
-@@ -16,6 +16,7 @@
- #include <linux/string.h>
- #include <linux/types.h>
- #include <linux/mm.h>
+ 	if (cpu_has_feature(CPU_FTR_NOEXECUTE) &&
+ 	    !cpu_has_feature(CPU_FTR_COHERENT_ICACHE))
+diff --git a/arch/powerpc/mm/hash_utils_64.c b/arch/powerpc/mm/hash_utils_64.c
+index f2095ce..2254ff0 100644
+--- a/arch/powerpc/mm/hash_utils_64.c
++++ b/arch/powerpc/mm/hash_utils_64.c
+@@ -35,6 +35,7 @@
+ #include <linux/memblock.h>
+ #include <linux/context_tracking.h>
+ #include <linux/libfdt.h>
 +#include <linux/pkeys.h>
- #include <linux/spinlock.h>
- #include <linux/idr.h>
- #include <linux/export.h>
-@@ -120,6 +121,10 @@ static int hash__init_new_context(struct mm_struct *mm)
  
- 	subpage_prot_init_new_context(mm);
+ #include <asm/debugfs.h>
+ #include <asm/processor.h>
+@@ -176,7 +177,7 @@
+  *    - We make sure R is always set and never lost
+  *    - C is _PAGE_DIRTY, and *should* always be set for a writeable mapping
+  */
+-unsigned long htab_convert_pte_flags(unsigned long pteflags)
++unsigned long htab_convert_pte_flags(unsigned long pteflags, int pkey)
+ {
+ 	unsigned long rflags = 0;
  
-+#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
-+	pkey_mm_init(mm);
-+#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
-+
- 	return index;
+@@ -244,7 +245,7 @@ int htab_bolt_mapping(unsigned long vstart, unsigned long vend,
+ 	shift = mmu_psize_defs[psize].shift;
+ 	step = 1 << shift;
+ 
+-	prot = htab_convert_pte_flags(prot);
++	prot = htab_convert_pte_flags(prot, 0);
+ 
+ 	DBG("htab_bolt_mapping(%lx..%lx -> %lx (%lx,%d,%d)\n",
+ 	    vstart, vend, pstart, prot, psize, ssize);
+@@ -1228,7 +1229,7 @@ int hash_page_mm(struct mm_struct *mm, unsigned long ea,
+ 	unsigned hugeshift;
+ 	const struct cpumask *tmp;
+ 	int rc, user_region = 0;
+-	int psize, ssize;
++	int psize, ssize, pkey = 0;
+ 
+ 	DBG_LOW("hash_page(ea=%016lx, access=%lx, trap=%lx\n",
+ 		ea, access, trap);
+@@ -1317,11 +1318,13 @@ int hash_page_mm(struct mm_struct *mm, unsigned long ea,
+ 	if (hugeshift) {
+ 		if (is_thp)
+ 			rc = __hash_page_thp(ea, access, vsid, (pmd_t *)ptep,
+-					     trap, flags, ssize, psize);
++					     trap, flags, ssize, psize,
++					     pkey);
+ #ifdef CONFIG_HUGETLB_PAGE
+ 		else
+ 			rc = __hash_page_huge(ea, access, vsid, ptep, trap,
+-					      flags, ssize, hugeshift, psize);
++					      flags, ssize, hugeshift, psize,
++					      pkey);
+ #else
+ 		else {
+ 			/*
+@@ -1381,7 +1384,8 @@ int hash_page_mm(struct mm_struct *mm, unsigned long ea,
+ #ifdef CONFIG_PPC_64K_PAGES
+ 	if (psize == MMU_PAGE_64K)
+ 		rc = __hash_page_64K(ea, access, vsid, ptep, trap,
+-				     flags, ssize);
++				     flags, ssize,
++				     pkey);
+ 	else
+ #endif /* CONFIG_PPC_64K_PAGES */
+ 	{
+@@ -1390,7 +1394,8 @@ int hash_page_mm(struct mm_struct *mm, unsigned long ea,
+ 			rc = -2;
+ 		else
+ 			rc = __hash_page_4K(ea, access, vsid, ptep, trap,
+-					    flags, ssize, spp);
++						flags, ssize, spp,
++						pkey);
+ 	}
+ 
+ 	/* Dump some info in case of hash insertion failure, they should
+@@ -1486,8 +1491,9 @@ static bool should_hash_preload(struct mm_struct *mm, unsigned long ea)
+ }
+ #endif
+ 
+-void hash_preload(struct mm_struct *mm, unsigned long ea,
+-		  unsigned long access, unsigned long trap)
++void hash_preload_pkey(struct mm_struct *mm, unsigned long ea,
++		  unsigned long access, unsigned long trap,
++		  int pkey)
+ {
+ 	int hugepage_shift;
+ 	unsigned long vsid;
+@@ -1548,11 +1554,11 @@ void hash_preload(struct mm_struct *mm, unsigned long ea,
+ #ifdef CONFIG_PPC_64K_PAGES
+ 	if (mm->context.user_psize == MMU_PAGE_64K)
+ 		rc = __hash_page_64K(ea, access, vsid, ptep, trap,
+-				     update_flags, ssize);
++				     update_flags, ssize, pkey);
+ 	else
+ #endif /* CONFIG_PPC_64K_PAGES */
+ 		rc = __hash_page_4K(ea, access, vsid, ptep, trap, update_flags,
+-				    ssize, subpage_protection(mm, ea));
++				    ssize, subpage_protection(mm, ea), pkey);
+ 
+ 	/* Dump some info in case of hash insertion failure, they should
+ 	 * never happen so it is really useful to know if/when they do
+@@ -1566,6 +1572,12 @@ void hash_preload(struct mm_struct *mm, unsigned long ea,
+ 	local_irq_restore(flags);
  }
  
-diff --git a/arch/powerpc/mm/pkeys.c b/arch/powerpc/mm/pkeys.c
-new file mode 100644
-index 0000000..b97366e
---- /dev/null
-+++ b/arch/powerpc/mm/pkeys.c
-@@ -0,0 +1,88 @@
-+/*
-+ * PowerPC Memory Protection Keys management
-+ * Copyright (c) 2015, Intel Corporation.
-+ * Copyright (c) 2017, IBM Corporation.
-+ *
-+ * This program is free software; you can redistribute it and/or modify it
-+ * under the terms and conditions of the GNU General Public License,
-+ * version 2, as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope it will be useful, but WITHOUT
-+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
-+ * more details.
-+ */
-+#include <linux/pkeys.h>                /* PKEY_*                       */
-+#include <uapi/asm-generic/mman-common.h>
-+
-+
-+/*
-+ * set the access right in AMR IAMR and UAMOR register
-+ * for @pkey to that specified in @init_val.
-+ */
-+int __arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
-+		unsigned long init_val)
++void hash_preload(struct mm_struct *mm, unsigned long ea,
++		  unsigned long access, unsigned long trap)
 +{
-+	u64 old_amr, old_uamor, old_iamr;
-+	int pkey_shift = (arch_max_pkey()-pkey-1) * AMR_BITS_PER_PKEY;
-+	u64 new_amr_bits = 0x0ul;
-+	u64 new_iamr_bits = 0x0ul;
-+	u64 new_uamor_bits = 0x3ul;
-+
-+	/* Set the bits we need in AMR:  */
-+	if (init_val & PKEY_DISABLE_ACCESS)
-+		new_amr_bits |= AMR_AD_BIT;
-+	if (init_val & PKEY_DISABLE_WRITE)
-+		new_amr_bits |= AMR_WD_BIT;
-+
-+	/*
-+	 * By default execute is disabled.
-+	 * To enable execute, PKEY_ENABLE_EXECUTE
-+	 * needs to be specified.
-+	 */
-+	if ((init_val & PKEY_DISABLE_EXECUTE))
-+		new_iamr_bits |= IAMR_EX_BIT;
-+
-+	/* Shift the bits in to the correct place in AMR for pkey: */
-+	new_amr_bits	<<= pkey_shift;
-+	new_iamr_bits	<<= pkey_shift;
-+	new_uamor_bits	<<= pkey_shift;
-+
-+	/* Get old AMR and mask off any old bits in place: */
-+	old_amr	= read_amr();
-+	old_amr	&= ~((u64)(AMR_AD_BIT|AMR_WD_BIT) << pkey_shift);
-+
-+	old_iamr = read_iamr();
-+	old_iamr &= ~(0x3ul << pkey_shift);
-+
-+	old_uamor = read_uamor();
-+	old_uamor &= ~(0x3ul << pkey_shift);
-+
-+	/* Write old part along with new part: */
-+	write_amr(old_amr | new_amr_bits);
-+	write_iamr(old_iamr | new_iamr_bits);
-+	write_uamor(old_uamor | new_uamor_bits);
-+
-+	return 0;
++	hash_preload_pkey(mm, ea, access, trap, 0);
 +}
 +
-+int __execute_only_pkey(struct mm_struct *mm)
-+{
-+	return -1;
-+}
+ #ifdef CONFIG_PPC_TRANSACTIONAL_MEM
+ static inline void tm_flush_hash_page(int local)
+ {
+diff --git a/arch/powerpc/mm/hugepage-hash64.c b/arch/powerpc/mm/hugepage-hash64.c
+index f20d16f..cc4855e 100644
+--- a/arch/powerpc/mm/hugepage-hash64.c
++++ b/arch/powerpc/mm/hugepage-hash64.c
+@@ -20,7 +20,7 @@
+ 
+ int __hash_page_thp(unsigned long ea, unsigned long access, unsigned long vsid,
+ 		    pmd_t *pmdp, unsigned long trap, unsigned long flags,
+-		    int ssize, unsigned int psize)
++		    int ssize, unsigned int psize, int pkey)
+ {
+ 	unsigned int index, valid;
+ 	unsigned char *hpte_slot_array;
+@@ -51,7 +51,7 @@ int __hash_page_thp(unsigned long ea, unsigned long access, unsigned long vsid,
+ 			new_pmd |= _PAGE_DIRTY;
+ 	} while (!pmd_xchg(pmdp, __pmd(old_pmd), __pmd(new_pmd)));
+ 
+-	rflags = htab_convert_pte_flags(new_pmd);
++	rflags = htab_convert_pte_flags(new_pmd, pkey);
+ 
+ #if 0
+ 	if (!cpu_has_feature(CPU_FTR_COHERENT_ICACHE)) {
+diff --git a/arch/powerpc/mm/hugetlbpage-hash64.c b/arch/powerpc/mm/hugetlbpage-hash64.c
+index a84bb44..fe7d671 100644
+--- a/arch/powerpc/mm/hugetlbpage-hash64.c
++++ b/arch/powerpc/mm/hugetlbpage-hash64.c
+@@ -20,7 +20,8 @@ extern long hpte_insert_repeating(unsigned long hash, unsigned long vpn,
+ 
+ int __hash_page_huge(unsigned long ea, unsigned long access, unsigned long vsid,
+ 		     pte_t *ptep, unsigned long trap, unsigned long flags,
+-		     int ssize, unsigned int shift, unsigned int mmu_psize)
++		     int ssize, unsigned int shift, unsigned int mmu_psize,
++		     int pkey)
+ {
+ 	unsigned long vpn;
+ 	unsigned long old_pte, new_pte;
+@@ -60,7 +61,7 @@ int __hash_page_huge(unsigned long ea, unsigned long access, unsigned long vsid,
+ 			new_pte |= _PAGE_DIRTY;
+ 	} while(!pte_xchg(ptep, __pte(old_pte), __pte(new_pte)));
+ 
+-	rflags = htab_convert_pte_flags(new_pte);
++	rflags = htab_convert_pte_flags(new_pte, pkey);
+ 
+ 	sz = ((1UL) << shift);
+ 	if (!cpu_has_feature(CPU_FTR_COHERENT_ICACHE))
+diff --git a/arch/powerpc/mm/mem.c b/arch/powerpc/mm/mem.c
+index 9ee536e..ec890d3 100644
+--- a/arch/powerpc/mm/mem.c
++++ b/arch/powerpc/mm/mem.c
+@@ -36,6 +36,7 @@
+ #include <linux/hugetlb.h>
+ #include <linux/slab.h>
+ #include <linux/vmalloc.h>
++#include <linux/pkeys.h>
+ 
+ #include <asm/pgalloc.h>
+ #include <asm/prom.h>
+diff --git a/arch/powerpc/mm/mmu_decl.h b/arch/powerpc/mm/mmu_decl.h
+index f988db6..e425c27 100644
+--- a/arch/powerpc/mm/mmu_decl.h
++++ b/arch/powerpc/mm/mmu_decl.h
+@@ -82,10 +82,13 @@ static inline void _tlbivax_bcast(unsigned long address, unsigned int pid,
+ 
+ #else /* CONFIG_PPC_MMU_NOHASH */
+ 
++extern void hash_preload_pkey(struct mm_struct *mm, unsigned long ea,
++			 unsigned long access, unsigned long trap,
++			 int pkey);
 +
-+/*
-+ * This should only be called for *plain* mprotect calls.
-+ */
-+int __arch_override_mprotect_pkey(struct vm_area_struct *vma, int prot,
-+		int pkey)
-+{
-+	/*
-+	 * Is this an mprotect_pkey() call?  If so, never
-+	 * override the value that came from the user.
-+	 */
-+	if (pkey != -1)
-+		return pkey;
-+
-+	return 0;
-+}
+ extern void hash_preload(struct mm_struct *mm, unsigned long ea,
+ 			 unsigned long access, unsigned long trap);
+ 
+-
+ extern void _tlbie(unsigned long address);
+ extern void _tlbia(void);
+ 
 -- 
 1.8.3.1
 
