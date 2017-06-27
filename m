@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-dm3nam03on0068.outbound.protection.outlook.com ([104.47.41.68]:3830
-        "EHLO NAM03-DM3-obe.outbound.protection.outlook.com"
+Received: from mail-sn1nam01on0080.outbound.protection.outlook.com ([104.47.32.80]:35627
+        "EHLO NAM01-SN1-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751513AbdF0PIc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 27 Jun 2017 11:08:32 -0400
+        id S1753292AbdF0PMU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 27 Jun 2017 11:12:20 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v8 RESEND 06/38] x86/mm: Add Secure Memory Encryption (SME)
- support
-Date: Tue, 27 Jun 2017 10:08:24 -0500
-Message-ID: <20170627150824.17428.98358.stgit@tlendack-t1.amdoffice.net>
+Subject: [PATCH v8 RESEND 25/38] swiotlb: Add warnings for use of bounce
+ buffers with SME
+Date: Tue, 27 Jun 2017 10:12:06 -0500
+Message-ID: <20170627151206.17428.59944.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20170627150718.17428.81813.stgit@tlendack-t1.amdoffice.net>
 References: <20170627150718.17428.81813.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -18,172 +18,77 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>
-Message-ID: <20170627150824.uhvYtZ3pW5QknUxPWAqGJz7x5r1uFhx64UOXjtJJuoc@z>
+Message-ID: <20170627151206.u5xPK4hXKFAl94GummI5srbshoRAwi55SME20jB-AAo@z>
 
-Add support for Secure Memory Encryption (SME). This initial support
-provides a Kconfig entry to build the SME support into the kernel and
-defines the memory encryption mask that will be used in subsequent
-patches to mark pages as encrypted.
+Add warnings to let the user know when bounce buffers are being used for
+DMA when SME is active.  Since the bounce buffers are not in encrypted
+memory, these notifications are to allow the user to determine some
+appropriate action - if necessary.  Actions can range from utilizing an
+IOMMU, replacing the device with another device that can support 64-bit
+DMA, ignoring the message if the device isn't used much, etc.
 
-Reviewed-by: Borislav Petkov <bp@suse.de>
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/Kconfig                   |   25 +++++++++++++++++++++++++
- arch/x86/include/asm/mem_encrypt.h |   30 ++++++++++++++++++++++++++++++
- arch/x86/mm/Makefile               |    1 +
- arch/x86/mm/mem_encrypt.c          |   21 +++++++++++++++++++++
- include/linux/mem_encrypt.h        |   35 +++++++++++++++++++++++++++++++++++
- 5 files changed, 112 insertions(+)
- create mode 100644 arch/x86/include/asm/mem_encrypt.h
- create mode 100644 arch/x86/mm/mem_encrypt.c
- create mode 100644 include/linux/mem_encrypt.h
+ include/linux/dma-mapping.h |   13 +++++++++++++
+ lib/swiotlb.c               |    3 +++
+ 2 files changed, 16 insertions(+)
 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 72028a1..3a59e9c 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -1409,6 +1409,31 @@ config X86_DIRECT_GBPAGES
- 	  supports them), so don't confuse the user by printing
- 	  that we have them enabled.
+diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
+index 4f3eece..a156c40 100644
+--- a/include/linux/dma-mapping.h
++++ b/include/linux/dma-mapping.h
+@@ -10,6 +10,7 @@
+ #include <linux/scatterlist.h>
+ #include <linux/kmemcheck.h>
+ #include <linux/bug.h>
++#include <linux/mem_encrypt.h>
  
-+config ARCH_HAS_MEM_ENCRYPT
-+	def_bool y
-+
-+config AMD_MEM_ENCRYPT
-+	bool "AMD Secure Memory Encryption (SME) support"
-+	depends on X86_64 && CPU_SUP_AMD
-+	---help---
-+	  Say yes to enable support for the encryption of system memory.
-+	  This requires an AMD processor that supports Secure Memory
-+	  Encryption (SME).
-+
-+config AMD_MEM_ENCRYPT_ACTIVE_BY_DEFAULT
-+	bool "Activate AMD Secure Memory Encryption (SME) by default"
-+	default y
-+	depends on AMD_MEM_ENCRYPT
-+	---help---
-+	  Say yes to have system memory encrypted by default if running on
-+	  an AMD processor that supports Secure Memory Encryption (SME).
-+
-+	  If set to Y, then the encryption of system memory can be
-+	  deactivated with the mem_encrypt=off command line option.
-+
-+	  If set to N, then the encryption of system memory can be
-+	  activated with the mem_encrypt=on command line option.
-+
- # Common NUMA Features
- config NUMA
- 	bool "Numa Memory Allocation and Scheduler Support"
-diff --git a/arch/x86/include/asm/mem_encrypt.h b/arch/x86/include/asm/mem_encrypt.h
-new file mode 100644
-index 0000000..a105796
---- /dev/null
-+++ b/arch/x86/include/asm/mem_encrypt.h
-@@ -0,0 +1,30 @@
-+/*
-+ * AMD Memory Encryption Support
-+ *
-+ * Copyright (C) 2016 Advanced Micro Devices, Inc.
-+ *
-+ * Author: Tom Lendacky <thomas.lendacky@amd.com>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#ifndef __X86_MEM_ENCRYPT_H__
-+#define __X86_MEM_ENCRYPT_H__
-+
-+#ifndef __ASSEMBLY__
-+
-+#ifdef CONFIG_AMD_MEM_ENCRYPT
-+
-+extern unsigned long sme_me_mask;
-+
-+#else	/* !CONFIG_AMD_MEM_ENCRYPT */
-+
-+#define sme_me_mask	0UL
-+
-+#endif	/* CONFIG_AMD_MEM_ENCRYPT */
-+
-+#endif	/* __ASSEMBLY__ */
-+
-+#endif	/* __X86_MEM_ENCRYPT_H__ */
-diff --git a/arch/x86/mm/Makefile b/arch/x86/mm/Makefile
-index 0fbdcb6..a94a7b6 100644
---- a/arch/x86/mm/Makefile
-+++ b/arch/x86/mm/Makefile
-@@ -39,3 +39,4 @@ obj-$(CONFIG_X86_INTEL_MPX)	+= mpx.o
- obj-$(CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS) += pkeys.o
- obj-$(CONFIG_RANDOMIZE_MEMORY) += kaslr.o
+ /**
+  * List of possible attributes associated with a DMA mapping. The semantics
+@@ -554,6 +555,12 @@ static inline int dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
+ #endif
+ }
  
-+obj-$(CONFIG_AMD_MEM_ENCRYPT)	+= mem_encrypt.o
-diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
-new file mode 100644
-index 0000000..b99d469
---- /dev/null
-+++ b/arch/x86/mm/mem_encrypt.c
-@@ -0,0 +1,21 @@
-+/*
-+ * AMD Memory Encryption Support
-+ *
-+ * Copyright (C) 2016 Advanced Micro Devices, Inc.
-+ *
-+ * Author: Tom Lendacky <thomas.lendacky@amd.com>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#include <linux/linkage.h>
-+
-+/*
-+ * Since SME related variables are set early in the boot process they must
-+ * reside in the .data section so as not to be zeroed out when the .bss
-+ * section is later cleared.
-+ */
-+unsigned long sme_me_mask __section(.data) = 0;
-+EXPORT_SYMBOL_GPL(sme_me_mask);
-diff --git a/include/linux/mem_encrypt.h b/include/linux/mem_encrypt.h
-new file mode 100644
-index 0000000..59769f7
---- /dev/null
-+++ b/include/linux/mem_encrypt.h
-@@ -0,0 +1,35 @@
-+/*
-+ * AMD Memory Encryption Support
-+ *
-+ * Copyright (C) 2016 Advanced Micro Devices, Inc.
-+ *
-+ * Author: Tom Lendacky <thomas.lendacky@amd.com>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#ifndef __MEM_ENCRYPT_H__
-+#define __MEM_ENCRYPT_H__
-+
-+#ifndef __ASSEMBLY__
-+
-+#ifdef CONFIG_ARCH_HAS_MEM_ENCRYPT
-+
-+#include <asm/mem_encrypt.h>
-+
-+#else	/* !CONFIG_ARCH_HAS_MEM_ENCRYPT */
-+
-+#define sme_me_mask	0UL
-+
-+#endif	/* CONFIG_ARCH_HAS_MEM_ENCRYPT */
-+
-+static inline bool sme_active(void)
++static inline void dma_check_mask(struct device *dev, u64 mask)
 +{
-+	return !!sme_me_mask;
++	if (sme_active() && (mask < (((u64)sme_get_me_mask() << 1) - 1)))
++		dev_warn(dev, "SME is active, device will require DMA bounce buffers\n");
 +}
 +
-+#endif	/* __ASSEMBLY__ */
+ #ifndef HAVE_ARCH_DMA_SUPPORTED
+ static inline int dma_supported(struct device *dev, u64 mask)
+ {
+@@ -577,6 +584,9 @@ static inline int dma_set_mask(struct device *dev, u64 mask)
+ 
+ 	if (!dev->dma_mask || !dma_supported(dev, mask))
+ 		return -EIO;
 +
-+#endif	/* __MEM_ENCRYPT_H__ */
++	dma_check_mask(dev, mask);
++
+ 	*dev->dma_mask = mask;
+ 	return 0;
+ }
+@@ -596,6 +606,9 @@ static inline int dma_set_coherent_mask(struct device *dev, u64 mask)
+ {
+ 	if (!dma_supported(dev, mask))
+ 		return -EIO;
++
++	dma_check_mask(dev, mask);
++
+ 	dev->coherent_dma_mask = mask;
+ 	return 0;
+ }
+diff --git a/lib/swiotlb.c b/lib/swiotlb.c
+index 04ac91a..8c6c83e 100644
+--- a/lib/swiotlb.c
++++ b/lib/swiotlb.c
+@@ -507,6 +507,9 @@ phys_addr_t swiotlb_tbl_map_single(struct device *hwdev,
+ 	if (no_iotlb_memory)
+ 		panic("Can not allocate SWIOTLB buffer earlier and can't now provide you with the DMA bounce buffer");
+ 
++	if (sme_active())
++		pr_warn_once("SME is active and system is using DMA bounce buffers\n");
++
+ 	mask = dma_get_seg_boundary(hwdev);
+ 
+ 	tbl_dma_addr &= mask;
