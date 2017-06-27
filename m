@@ -1,73 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:34611 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1752413AbdF0PY2 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 27 Jun 2017 11:24:28 -0400
-Received: from pps.filterd (m0098416.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.20/8.16.0.20) with SMTP id v5RFNYvW030367
-        for <linux-arch@vger.kernel.org>; Tue, 27 Jun 2017 11:24:28 -0400
-Received: from e14.ny.us.ibm.com (e14.ny.us.ibm.com [129.33.205.204])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 2bbfskvcyn-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Tue, 27 Jun 2017 11:24:27 -0400
-Received: from localhost
-        by e14.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <aneesh.kumar@linux.vnet.ibm.com>;
-        Tue, 27 Jun 2017 11:24:27 -0400
-Subject: Re: [RFC v4 09/17] powerpc: call the hash functions with the correct
- pkey value
-References: <1498558319-32466-1-git-send-email-linuxram@us.ibm.com>
- <1498558319-32466-10-git-send-email-linuxram@us.ibm.com>
-From: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
-Date: Tue, 27 Jun 2017 20:54:07 +0530
+Received: from mail-co1nam03on0083.outbound.protection.outlook.com ([104.47.40.83]:41248
+        "EHLO NAM03-CO1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1753014AbdF0POt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 27 Jun 2017 11:14:49 -0400
+From: Tom Lendacky <thomas.lendacky@amd.com>
+Subject: [PATCH v8 RESEND 37/38] compiler-gcc.h: Introduce __nostackp
+ function attribute
+Date: Tue, 27 Jun 2017 10:14:38 -0500
+Message-ID: <20170627151438.17428.63531.stgit@tlendack-t1.amdoffice.net>
+In-Reply-To: <20170627150718.17428.81813.stgit@tlendack-t1.amdoffice.net>
+References: <20170627150718.17428.81813.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
-In-Reply-To: <1498558319-32466-10-git-send-email-linuxram@us.ibm.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-ID: <5e4fa932-4313-5376-2147-a6431bbec16b@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ram Pai <linuxram@us.ibm.com>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
-Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
-Message-ID: <20170627152407.n0bZR7yXP97kSUaYYsj_5Owjg5nzDOvOAHTPhP_qL_c@z>
+To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org
+Cc: Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>
+Message-ID: <20170627151438.k5k7SsfSX-zp66Vq9M98rUoDSCdbYJ3dEAr-MG977uo@z>
 
+Create a new function attribute, __nostackp, that can used to turn off
+stack protection on a per function basis.
 
+Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+---
+ include/linux/compiler-gcc.h |    2 ++
+ include/linux/compiler.h     |    4 ++++
+ 2 files changed, 6 insertions(+)
 
-On Tuesday 27 June 2017 03:41 PM, Ram Pai wrote:
-> Pass the correct protection key value to the hash functions on
-> page fault.
-> 
-> Signed-off-by: Ram Pai <linuxram@us.ibm.com>
-> ---
->   arch/powerpc/include/asm/pkeys.h | 11 +++++++++++
->   arch/powerpc/mm/hash_utils_64.c  |  4 ++++
->   arch/powerpc/mm/mem.c            |  6 ++++++
->   3 files changed, 21 insertions(+)
-> 
-> diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
-> index ef1c601..1370b3f 100644
-> --- a/arch/powerpc/include/asm/pkeys.h
-> +++ b/arch/powerpc/include/asm/pkeys.h
-> @@ -74,6 +74,17 @@ static inline bool mm_pkey_is_allocated(struct mm_struct *mm, int pkey)
->   }
-> 
->   /*
-> + * return the protection key of the vma corresponding to the
-> + * given effective address @ea.
-> + */
-> +static inline int mm_pkey(struct mm_struct *mm, unsigned long ea)
-> +{
-> +	struct vm_area_struct *vma = find_vma(mm, ea);
-> +	int pkey = vma ? vma_pkey(vma) : 0;
-> +	return pkey;
-> +}
-> +
-> +/*
->
-
-That is not going to work in hash fault path right ? We can't do a 
-find_vma there without holding the mmap_sem
-
--aneesh
+diff --git a/include/linux/compiler-gcc.h b/include/linux/compiler-gcc.h
+index 0efef9c..de48b32 100644
+--- a/include/linux/compiler-gcc.h
++++ b/include/linux/compiler-gcc.h
+@@ -162,6 +162,8 @@
+ 
+ #if GCC_VERSION >= 40100
+ # define __compiletime_object_size(obj) __builtin_object_size(obj, 0)
++
++#define __nostackp	__attribute__((__optimize__("no-stack-protector")))
+ #endif
+ 
+ #if GCC_VERSION >= 40300
+diff --git a/include/linux/compiler.h b/include/linux/compiler.h
+index 707242f..615d50d 100644
+--- a/include/linux/compiler.h
++++ b/include/linux/compiler.h
+@@ -458,6 +458,10 @@ static __always_inline void __write_once_size(volatile void *p, void *res, int s
+ #define __visible
+ #endif
+ 
++#ifndef __nostackp
++#define __nostackp
++#endif
++
+ /*
+  * Assume alignment of return value.
+  */
