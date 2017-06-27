@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bl2nam02on0086.outbound.protection.outlook.com ([104.47.38.86]:45556
-        "EHLO NAM02-BL2-obe.outbound.protection.outlook.com"
+Received: from mail-sn1nam01on0057.outbound.protection.outlook.com ([104.47.32.57]:48928
+        "EHLO NAM01-SN1-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752693AbdF0O5y (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 27 Jun 2017 10:57:54 -0400
+        id S1752253AbdF0O7O (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 27 Jun 2017 10:59:14 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v8 08/38] x86/mm: Add support to enable SME in early boot
- processing
-Date: Tue, 27 Jun 2017 09:57:39 -0500
-Message-ID: <20170627145738.15908.16582.stgit@tlendack-t1.amdoffice.net>
+Subject: [PATCH v8 15/38] x86/boot/e820: Add support to determine the E820
+ type of an address
+Date: Tue, 27 Jun 2017 09:58:55 -0500
+Message-ID: <20170627145855.15908.1043.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20170627145607.15908.26571.stgit@tlendack-t1.amdoffice.net>
 References: <20170627145607.15908.26571.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -18,241 +18,73 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>
-Message-ID: <20170627145739.wudTO72tlk_KX6KTf1tO_v478CF2wMeuoZt_eeYIO4I@z>
+Message-ID: <20170627145855.NxIh7oNX5DPiZ6Y5vePCmRAFNwADQCGghYcI-FkSZWA@z>
 
-Add support to the early boot code to use Secure Memory Encryption (SME).
-Since the kernel has been loaded into memory in a decrypted state, encrypt
-the kernel in place and update the early pagetables with the memory
-encryption mask so that new pagetable entries will use memory encryption.
+Add a function that will return the E820 type associated with an address
+range.
 
-The routines to set the encryption mask and perform the encryption are
-stub routines for now with functionality to be added in a later patch.
-
+Reviewed-by: Borislav Petkov <bp@suse.de>
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/include/asm/mem_encrypt.h |    8 +++++
- arch/x86/kernel/head64.c           |   53 +++++++++++++++++++++++++++++-------
- arch/x86/kernel/head_64.S          |   20 ++++++++++++--
- arch/x86/mm/mem_encrypt.c          |    9 ++++++
- include/linux/mem_encrypt.h        |    5 +++
- 5 files changed, 82 insertions(+), 13 deletions(-)
+ arch/x86/include/asm/e820/api.h |    2 ++
+ arch/x86/kernel/e820.c          |   26 +++++++++++++++++++++++---
+ 2 files changed, 25 insertions(+), 3 deletions(-)
 
-diff --git a/arch/x86/include/asm/mem_encrypt.h b/arch/x86/include/asm/mem_encrypt.h
-index a105796..475e34f 100644
---- a/arch/x86/include/asm/mem_encrypt.h
-+++ b/arch/x86/include/asm/mem_encrypt.h
-@@ -15,14 +15,22 @@
+diff --git a/arch/x86/include/asm/e820/api.h b/arch/x86/include/asm/e820/api.h
+index 8e0f8b8..3641f5f 100644
+--- a/arch/x86/include/asm/e820/api.h
++++ b/arch/x86/include/asm/e820/api.h
+@@ -38,6 +38,8 @@
+ extern void e820__reallocate_tables(void);
+ extern void e820__register_nosave_regions(unsigned long limit_pfn);
  
- #ifndef __ASSEMBLY__
- 
-+#include <linux/init.h>
++extern int  e820__get_entry_type(u64 start, u64 end);
 +
- #ifdef CONFIG_AMD_MEM_ENCRYPT
- 
- extern unsigned long sme_me_mask;
- 
-+void __init sme_encrypt_kernel(void);
-+void __init sme_enable(void);
-+
- #else	/* !CONFIG_AMD_MEM_ENCRYPT */
- 
- #define sme_me_mask	0UL
- 
-+static inline void __init sme_encrypt_kernel(void) { }
-+static inline void __init sme_enable(void) { }
-+
- #endif	/* CONFIG_AMD_MEM_ENCRYPT */
- 
- #endif	/* __ASSEMBLY__ */
-diff --git a/arch/x86/kernel/head64.c b/arch/x86/kernel/head64.c
-index 46c3c73..1f0ddcc 100644
---- a/arch/x86/kernel/head64.c
-+++ b/arch/x86/kernel/head64.c
-@@ -14,6 +14,7 @@
- #include <linux/start_kernel.h>
- #include <linux/io.h>
- #include <linux/memblock.h>
-+#include <linux/mem_encrypt.h>
- 
- #include <asm/processor.h>
- #include <asm/proto.h>
-@@ -45,9 +46,10 @@ static void __head *fixup_pointer(void *ptr, unsigned long physaddr)
- 	return ptr - (void *)_text + (void *)physaddr;
- }
- 
--void __head __startup_64(unsigned long physaddr)
-+unsigned long __head __startup_64(unsigned long physaddr)
+ /*
+  * Returns true iff the specified range [start,end) is completely contained inside
+  * the ISA region.
+diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
+index d78a586..46c9b65 100644
+--- a/arch/x86/kernel/e820.c
++++ b/arch/x86/kernel/e820.c
+@@ -84,7 +84,8 @@ bool e820__mapped_any(u64 start, u64 end, enum e820_type type)
+  * Note: this function only works correctly once the E820 table is sorted and
+  * not-overlapping (at least for the range specified), which is the case normally.
+  */
+-bool __init e820__mapped_all(u64 start, u64 end, enum e820_type type)
++static struct e820_entry *__e820__mapped_all(u64 start, u64 end,
++					     enum e820_type type)
  {
- 	unsigned long load_delta, *p;
-+	unsigned long pgtable_flags;
- 	pgdval_t *pgd;
- 	p4dval_t *p4d;
- 	pudval_t *pud;
-@@ -68,6 +70,12 @@ void __head __startup_64(unsigned long physaddr)
- 	if (load_delta & ~PMD_PAGE_MASK)
- 		for (;;);
+ 	int i;
  
-+	/* Activate Secure Memory Encryption (SME) if supported and enabled */
-+	sme_enable();
-+
-+	/* Include the SME encryption mask in the fixup value */
-+	load_delta += sme_get_me_mask();
-+
- 	/* Fixup the physical addresses in the page table */
- 
- 	pgd = fixup_pointer(&early_top_pgt, physaddr);
-@@ -94,28 +102,30 @@ void __head __startup_64(unsigned long physaddr)
- 
- 	pud = fixup_pointer(early_dynamic_pgts[next_early_pgt++], physaddr);
- 	pmd = fixup_pointer(early_dynamic_pgts[next_early_pgt++], physaddr);
-+	pgtable_flags = _KERNPG_TABLE + sme_get_me_mask();
- 
- 	if (IS_ENABLED(CONFIG_X86_5LEVEL)) {
- 		p4d = fixup_pointer(early_dynamic_pgts[next_early_pgt++], physaddr);
- 
- 		i = (physaddr >> PGDIR_SHIFT) % PTRS_PER_PGD;
--		pgd[i + 0] = (pgdval_t)p4d + _KERNPG_TABLE;
--		pgd[i + 1] = (pgdval_t)p4d + _KERNPG_TABLE;
-+		pgd[i + 0] = (pgdval_t)p4d + pgtable_flags;
-+		pgd[i + 1] = (pgdval_t)p4d + pgtable_flags;
- 
- 		i = (physaddr >> P4D_SHIFT) % PTRS_PER_P4D;
--		p4d[i + 0] = (pgdval_t)pud + _KERNPG_TABLE;
--		p4d[i + 1] = (pgdval_t)pud + _KERNPG_TABLE;
-+		p4d[i + 0] = (pgdval_t)pud + pgtable_flags;
-+		p4d[i + 1] = (pgdval_t)pud + pgtable_flags;
- 	} else {
- 		i = (physaddr >> PGDIR_SHIFT) % PTRS_PER_PGD;
--		pgd[i + 0] = (pgdval_t)pud + _KERNPG_TABLE;
--		pgd[i + 1] = (pgdval_t)pud + _KERNPG_TABLE;
-+		pgd[i + 0] = (pgdval_t)pud + pgtable_flags;
-+		pgd[i + 1] = (pgdval_t)pud + pgtable_flags;
+@@ -110,9 +111,28 @@ bool __init e820__mapped_all(u64 start, u64 end, enum e820_type type)
+ 		 * coverage of the desired range exists:
+ 		 */
+ 		if (start >= end)
+-			return 1;
++			return entry;
  	}
- 
- 	i = (physaddr >> PUD_SHIFT) % PTRS_PER_PUD;
--	pud[i + 0] = (pudval_t)pmd + _KERNPG_TABLE;
--	pud[i + 1] = (pudval_t)pmd + _KERNPG_TABLE;
-+	pud[i + 0] = (pudval_t)pmd + pgtable_flags;
-+	pud[i + 1] = (pudval_t)pmd + pgtable_flags;
- 
- 	pmd_entry = __PAGE_KERNEL_LARGE_EXEC & ~_PAGE_GLOBAL;
-+	pmd_entry += sme_get_me_mask();
- 	pmd_entry +=  physaddr;
- 
- 	for (i = 0; i < DIV_ROUND_UP(_end - _text, PMD_SIZE); i++) {
-@@ -136,9 +146,30 @@ void __head __startup_64(unsigned long physaddr)
- 			pmd[i] += load_delta;
- 	}
- 
--	/* Fixup phys_base */
-+	/*
-+	 * Fixup phys_base - remove the memory encryption mask to obtain
-+	 * the true physical address.
-+	 */
- 	p = fixup_pointer(&phys_base, physaddr);
--	*p += load_delta;
-+	*p += load_delta - sme_get_me_mask();
+-	return 0;
 +
-+	/* Encrypt the kernel (if SME is active) */
-+	sme_encrypt_kernel();
-+
-+	/*
-+	 * Return the SME encryption mask (if SME is active) to be used as a
-+	 * modifier for the initial pgdir entry programmed into CR3.
-+	 */
-+	return sme_get_me_mask();
++	return NULL;
 +}
 +
-+unsigned long __startup_secondary_64(void)
++/*
++ * This function checks if the entire range <start,end> is mapped with type.
++ */
++bool __init e820__mapped_all(u64 start, u64 end, enum e820_type type)
 +{
-+	/*
-+	 * Return the SME encryption mask (if SME is active) to be used as a
-+	 * modifier for the initial pgdir entry programmed into CR3.
-+	 */
-+	return sme_get_me_mask();
- }
- 
- /* Wipe all early page tables except for the kernel symbol map */
-diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
-index 6225550..ec5d5e9 100644
---- a/arch/x86/kernel/head_64.S
-+++ b/arch/x86/kernel/head_64.S
-@@ -73,12 +73,19 @@ startup_64:
- 	/* Sanitize CPU configuration */
- 	call verify_cpu
- 
-+	/*
-+	 * Perform pagetable fixups. Additionally, if SME is active, encrypt
-+	 * the kernel and retrieve the modifier (SME encryption mask if SME
-+	 * is active) to be added to the initial pgdir entry that will be
-+	 * programmed into CR3.
-+	 */
- 	leaq	_text(%rip), %rdi
- 	pushq	%rsi
- 	call	__startup_64
- 	popq	%rsi
- 
--	movq	$(early_top_pgt - __START_KERNEL_map), %rax
-+	/* Form the CR3 value being sure to include the CR3 modifier */
-+	addq	$(early_top_pgt - __START_KERNEL_map), %rax
- 	jmp 1f
- ENTRY(secondary_startup_64)
- 	/*
-@@ -98,7 +105,16 @@ ENTRY(secondary_startup_64)
- 	/* Sanitize CPU configuration */
- 	call verify_cpu
- 
--	movq	$(init_top_pgt - __START_KERNEL_map), %rax
-+	/*
-+	 * Retrieve the modifier (SME encryption mask if SME is active) to be
-+	 * added to the initial pgdir entry that will be programmed into CR3.
-+	 */
-+	pushq	%rsi
-+	call	__startup_secondary_64
-+	popq	%rsi
++	return __e820__mapped_all(start, end, type);
++}
 +
-+	/* Form the CR3 value being sure to include the CR3 modifier */
-+	addq	$(init_top_pgt - __START_KERNEL_map), %rax
- 1:
- 
- 	/* Enable PAE mode, PGE and LA57 */
-diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
-index b99d469..3ac6f99 100644
---- a/arch/x86/mm/mem_encrypt.c
-+++ b/arch/x86/mm/mem_encrypt.c
-@@ -11,6 +11,7 @@
-  */
- 
- #include <linux/linkage.h>
-+#include <linux/init.h>
++/*
++ * This function returns the type associated with the range <start,end>.
++ */
++int e820__get_entry_type(u64 start, u64 end)
++{
++	struct e820_entry *entry = __e820__mapped_all(start, end, 0);
++
++	return entry ? entry->type : -EINVAL;
+ }
  
  /*
-  * Since SME related variables are set early in the boot process they must
-@@ -19,3 +20,11 @@
-  */
- unsigned long sme_me_mask __section(.data) = 0;
- EXPORT_SYMBOL_GPL(sme_me_mask);
-+
-+void __init sme_encrypt_kernel(void)
-+{
-+}
-+
-+void __init sme_enable(void)
-+{
-+}
-diff --git a/include/linux/mem_encrypt.h b/include/linux/mem_encrypt.h
-index 59769f7..570f4fc 100644
---- a/include/linux/mem_encrypt.h
-+++ b/include/linux/mem_encrypt.h
-@@ -30,6 +30,11 @@ static inline bool sme_active(void)
- 	return !!sme_me_mask;
- }
- 
-+static inline unsigned long sme_get_me_mask(void)
-+{
-+	return sme_me_mask;
-+}
-+
- #endif	/* __ASSEMBLY__ */
- 
- #endif	/* __MEM_ENCRYPT_H__ */
