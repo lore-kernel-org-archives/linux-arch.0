@@ -1,7 +1,7 @@
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v4 10/17] powerpc: Macro the mask used for checking DSI exception
-Date: Tue, 27 Jun 2017 03:11:52 -0700
-Message-ID: <1498558319-32466-11-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v4 12/17] powerpc: Deliver SEGV signal on pkey violation
+Date: Tue, 27 Jun 2017 03:11:54 -0700
+Message-ID: <1498558319-32466-13-git-send-email-linuxram@us.ibm.com>
 References: <1498558319-32466-1-git-send-email-linuxram@us.ibm.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1498558319-32466-1-git-send-email-linuxram@us.ibm.com>
@@ -10,55 +10,223 @@ To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
 List-Id: linux-arch.vger.kernel.org
 
-Replace the magic number used to check for DSI exception
-with a meaningful value.
+The value of the AMR register at the time of exception
+is made available in gp_regs[PT_AMR] of the siginfo.
+
+The value of the pkey, whose protection got violated,
+is made available in si_pkey field of the siginfo structure.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/include/asm/reg.h       | 7 ++++++-
- arch/powerpc/kernel/exceptions-64s.S | 2 +-
- 2 files changed, 7 insertions(+), 2 deletions(-)
+ arch/powerpc/include/asm/paca.h        |  1 +
+ arch/powerpc/include/uapi/asm/ptrace.h |  3 ++-
+ arch/powerpc/kernel/asm-offsets.c      |  5 ++++
+ arch/powerpc/kernel/exceptions-64s.S   | 16 +++++++++--
+ arch/powerpc/kernel/signal_32.c        |  5 ++++
+ arch/powerpc/kernel/signal_64.c        |  4 +++
+ arch/powerpc/kernel/traps.c            | 49 ++++++++++++++++++++++++++++++++++
+ arch/powerpc/mm/fault.c                |  2 ++
+ 8 files changed, 82 insertions(+), 3 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/reg.h b/arch/powerpc/include/asm/reg.h
-index 7e50e47..ba110dd 100644
---- a/arch/powerpc/include/asm/reg.h
-+++ b/arch/powerpc/include/asm/reg.h
-@@ -272,16 +272,21 @@
- #define SPRN_DAR	0x013	/* Data Address Register */
- #define SPRN_DBCR	0x136	/* e300 Data Breakpoint Control Reg */
- #define SPRN_DSISR	0x012	/* Data Storage Interrupt Status Register */
-+#define   DSISR_BIT32		0x80000000	/* not defined */
- #define   DSISR_NOHPTE		0x40000000	/* no translation found */
-+#define   DSISR_PAGEATTR_CONFLT	0x20000000	/* page attribute conflict */
-+#define   DSISR_BIT35		0x10000000	/* not defined */
- #define   DSISR_PROTFAULT	0x08000000	/* protection fault */
- #define   DSISR_BADACCESS	0x04000000	/* bad access to CI or G */
- #define   DSISR_ISSTORE		0x02000000	/* access was a store */
- #define   DSISR_DABRMATCH	0x00400000	/* hit data breakpoint */
--#define   DSISR_NOSEGMENT	0x00200000	/* SLB miss */
- #define   DSISR_KEYFAULT	0x00200000	/* Key fault */
-+#define   DSISR_BIT43		0x00100000	/* not defined */
- #define   DSISR_UNSUPP_MMU	0x00080000	/* Unsupported MMU config */
- #define   DSISR_SET_RC		0x00040000	/* Failed setting of R/C bits */
- #define   DSISR_PGDIRFAULT      0x00020000      /* Fault on page directory */
-+#define   DSISR_PAGE_FAULT_MASK (DSISR_BIT32 | DSISR_PAGEATTR_CONFLT | \
-+				DSISR_BADACCESS | DSISR_BIT43)
- #define SPRN_TBRL	0x10C	/* Time Base Read Lower Register (user, R/O) */
- #define SPRN_TBRU	0x10D	/* Time Base Read Upper Register (user, R/O) */
- #define SPRN_CIR	0x11B	/* Chip Information Register (hyper, R/0) */
+diff --git a/arch/powerpc/include/asm/paca.h b/arch/powerpc/include/asm/paca.h
+index 1c09f8f..a41afd3 100644
+--- a/arch/powerpc/include/asm/paca.h
++++ b/arch/powerpc/include/asm/paca.h
+@@ -92,6 +92,7 @@ struct paca_struct {
+ 	struct dtl_entry *dispatch_log_end;
+ #endif /* CONFIG_PPC_STD_MMU_64 */
+ 	u64 dscr_default;		/* per-CPU default DSCR */
++	u64 paca_amr;			/* value of amr at exception */
+ 
+ #ifdef CONFIG_PPC_STD_MMU_64
+ 	/*
+diff --git a/arch/powerpc/include/uapi/asm/ptrace.h b/arch/powerpc/include/uapi/asm/ptrace.h
+index 8036b38..7ec2428 100644
+--- a/arch/powerpc/include/uapi/asm/ptrace.h
++++ b/arch/powerpc/include/uapi/asm/ptrace.h
+@@ -108,8 +108,9 @@ struct pt_regs {
+ #define PT_DAR	41
+ #define PT_DSISR 42
+ #define PT_RESULT 43
+-#define PT_DSCR 44
+ #define PT_REGS_COUNT 44
++#define PT_DSCR 44
++#define PT_AMR	45
+ 
+ #define PT_FPR0	48	/* each FP reg occupies 2 slots in this space */
+ 
+diff --git a/arch/powerpc/kernel/asm-offsets.c b/arch/powerpc/kernel/asm-offsets.c
+index 709e234..17f5d8a 100644
+--- a/arch/powerpc/kernel/asm-offsets.c
++++ b/arch/powerpc/kernel/asm-offsets.c
+@@ -241,6 +241,11 @@ int main(void)
+ 	OFFSET(PACAHWCPUID, paca_struct, hw_cpu_id);
+ 	OFFSET(PACAKEXECSTATE, paca_struct, kexec_state);
+ 	OFFSET(PACA_DSCR_DEFAULT, paca_struct, dscr_default);
++
++#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
++	OFFSET(PACA_AMR, paca_struct, paca_amr);
++#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
++
+ 	OFFSET(ACCOUNT_STARTTIME, paca_struct, accounting.starttime);
+ 	OFFSET(ACCOUNT_STARTTIME_USER, paca_struct, accounting.starttime_user);
+ 	OFFSET(ACCOUNT_USER_TIME, paca_struct, accounting.utime);
 diff --git a/arch/powerpc/kernel/exceptions-64s.S b/arch/powerpc/kernel/exceptions-64s.S
-index ae418b8..3fd0528 100644
+index 3fd0528..a4de1b4 100644
 --- a/arch/powerpc/kernel/exceptions-64s.S
 +++ b/arch/powerpc/kernel/exceptions-64s.S
-@@ -1411,7 +1411,7 @@ USE_TEXT_SECTION()
- 	.balign	IFETCH_ALIGN_BYTES
- do_hash_page:
- #ifdef CONFIG_PPC_STD_MMU_64
--	andis.	r0,r4,0xa410		/* weird error? */
-+	andis.	r0,r4,DSISR_PAGE_FAULT_MASK@h
- 	bne-	handle_page_fault	/* if not, try to insert a HPTE */
- 	andis.  r0,r4,DSISR_DABRMATCH@h
- 	bne-    handle_dabr_fault
+@@ -493,9 +493,15 @@ EXC_COMMON_BEGIN(data_access_common)
+ 	ld	r12,_MSR(r1)
+ 	ld	r3,PACA_EXGEN+EX_DAR(r13)
+ 	lwz	r4,PACA_EXGEN+EX_DSISR(r13)
+-	li	r5,0x300
+ 	std	r3,_DAR(r1)
+ 	std	r4,_DSISR(r1)
++#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
++	andis.  r0,r4,DSISR_KEYFAULT@h /* save AMR only if its a key fault */
++	beq+	1f
++	mfspr	r5,SPRN_AMR
++	std	r5,PACA_AMR(r13)
++#endif /*  CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
++1:	li	r5,0x300
+ BEGIN_MMU_FTR_SECTION
+ 	b	do_hash_page		/* Try to handle as hpte fault */
+ MMU_FTR_SECTION_ELSE
+@@ -561,9 +567,15 @@ EXC_COMMON_BEGIN(instruction_access_common)
+ 	ld	r12,_MSR(r1)
+ 	ld	r3,_NIP(r1)
+ 	andis.	r4,r12,0x5820
+-	li	r5,0x400
+ 	std	r3,_DAR(r1)
+ 	std	r4,_DSISR(r1)
++#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
++	andis.  r0,r4,DSISR_KEYFAULT@h /* save AMR only if its a key fault */
++	beq+	1f
++	mfspr	r5,SPRN_AMR
++	std	r5,PACA_AMR(r13)
++#endif /*  CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
++1:	li	r5,0x400
+ BEGIN_MMU_FTR_SECTION
+ 	b	do_hash_page		/* Try to handle as hpte fault */
+ MMU_FTR_SECTION_ELSE
+diff --git a/arch/powerpc/kernel/signal_32.c b/arch/powerpc/kernel/signal_32.c
+index 97bb138..9c4a7f3 100644
+--- a/arch/powerpc/kernel/signal_32.c
++++ b/arch/powerpc/kernel/signal_32.c
+@@ -500,6 +500,11 @@ static int save_user_regs(struct pt_regs *regs, struct mcontext __user *frame,
+ 				   (unsigned long) &frame->tramp[2]);
+ 	}
+ 
++#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
++	if (__put_user(get_paca()->paca_amr, &frame->mc_gregs[PT_AMR]))
++		return 1;
++#endif /*  CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
++
+ 	return 0;
+ }
+ 
+diff --git a/arch/powerpc/kernel/signal_64.c b/arch/powerpc/kernel/signal_64.c
+index c83c115..86a4262 100644
+--- a/arch/powerpc/kernel/signal_64.c
++++ b/arch/powerpc/kernel/signal_64.c
+@@ -174,6 +174,10 @@ static long setup_sigcontext(struct sigcontext __user *sc,
+ 	if (set != NULL)
+ 		err |=  __put_user(set->sig[0], &sc->oldmask);
+ 
++#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
++	err |= __put_user(get_paca()->paca_amr, &sc->gp_regs[PT_AMR]);
++#endif /*  CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
++
+ 	return err;
+ }
+ 
+diff --git a/arch/powerpc/kernel/traps.c b/arch/powerpc/kernel/traps.c
+index d4e545d..cc4bde8b 100644
+--- a/arch/powerpc/kernel/traps.c
++++ b/arch/powerpc/kernel/traps.c
+@@ -20,6 +20,7 @@
+ #include <linux/sched/debug.h>
+ #include <linux/kernel.h>
+ #include <linux/mm.h>
++#include <linux/pkeys.h>
+ #include <linux/stddef.h>
+ #include <linux/unistd.h>
+ #include <linux/ptrace.h>
+@@ -247,6 +248,49 @@ void user_single_step_siginfo(struct task_struct *tsk,
+ 	info->si_addr = (void __user *)regs->nip;
+ }
+ 
++#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
++static void fill_sig_info_pkey(int si_code, siginfo_t *info, unsigned long addr)
++{
++	struct vm_area_struct *vma;
++
++	/* Fault not from Protection Keys: nothing to do */
++	if (si_code != SEGV_PKUERR)
++		return;
++
++	down_read(&current->mm->mmap_sem);
++	/*
++	 * we could be racing with pkey_mprotect().
++	 * If pkey_mprotect() wins the key value could
++	 * get modified...xxx
++	 */
++	vma = find_vma(current->mm, addr);
++	up_read(&current->mm->mmap_sem);
++
++	/*
++	 * force_sig_info_fault() is called from a number of
++	 * contexts, some of which have a VMA and some of which
++	 * do not.  The Pkey-fault handing happens after we have a
++	 * valid VMA, so we should never reach this without a
++	 * valid VMA.
++	 */
++	if (!vma) {
++		WARN_ONCE(1, "Pkey fault with no VMA passed in");
++		info->si_pkey = 0;
++		return;
++	}
++
++	/*
++	 * We could report the incorrect key because of the reason
++	 * explained above.
++	 *
++	 * si_pkey should be thought off as a strong hint, but not
++	 * an absolutely guarantee because of the race explained
++	 * above.
++	 */
++	info->si_pkey = vma_pkey(vma);
++}
++#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
++
+ void _exception(int signr, struct pt_regs *regs, int code, unsigned long addr)
+ {
+ 	siginfo_t info;
+@@ -274,6 +318,11 @@ void _exception(int signr, struct pt_regs *regs, int code, unsigned long addr)
+ 	info.si_signo = signr;
+ 	info.si_code = code;
+ 	info.si_addr = (void __user *) addr;
++
++#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
++	fill_sig_info_pkey(code, &info, addr);
++#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
++
+ 	force_sig_info(signr, &info, current);
+ }
+ 
+diff --git a/arch/powerpc/mm/fault.c b/arch/powerpc/mm/fault.c
+index 3d71984..0780a53 100644
+--- a/arch/powerpc/mm/fault.c
++++ b/arch/powerpc/mm/fault.c
+@@ -451,6 +451,8 @@ int do_page_fault(struct pt_regs *regs, unsigned long address,
+ #ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
+ 	if (!arch_vma_access_permitted(vma, flags & FAULT_FLAG_WRITE,
+ 					is_exec, 0)) {
++		/* our caller may not have saved the amr. Lets save it */
++		get_paca()->paca_amr = read_amr();
+ 		code = SEGV_PKUERR;
+ 		goto bad_area;
+ 	}
 -- 
 1.8.3.1
 
