@@ -1,14 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-sn1nam01on0054.outbound.protection.outlook.com ([104.47.32.54]:35664
-        "EHLO NAM01-SN1-obe.outbound.protection.outlook.com"
+Received: from mail-by2nam01on0052.outbound.protection.outlook.com ([104.47.34.52]:33696
+        "EHLO NAM01-BY2-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752148AbdF0PL7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 27 Jun 2017 11:11:59 -0400
+        id S1752871AbdF0PJL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 27 Jun 2017 11:09:11 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v8 RESEND 21/38] x86/mm: Add support to access persistent
- memory in the clear
-Date: Tue, 27 Jun 2017 10:11:11 -0500
-Message-ID: <20170627151111.17428.69076.stgit@tlendack-t1.amdoffice.net>
+Subject: [PATCH v8 RESEND 09/38] x86/mm: Simplify p[g4um]d_page() macros
+Date: Tue, 27 Jun 2017 10:08:55 -0500
+Message-ID: <20170627150855.17428.90364.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20170627150718.17428.81813.stgit@tlendack-t1.amdoffice.net>
 References: <20170627150718.17428.81813.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -18,69 +17,70 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>
-Message-ID: <20170627151111.ubE7RI3vnFjnuvDhmyYFnGO8TzK8fWDDMoFIrevYr0o@z>
+Message-ID: <20170627150855.H8ZTOZp1qtZgDiLnSZClygaicrHJ8qw8g_nrJ7cB7Hg@z>
 
-Persistent memory is expected to persist across reboots. The encryption
-key used by SME will change across reboots which will result in corrupted
-persistent memory.  Persistent memory is handed out by block devices
-through memory remapping functions, so be sure not to map this memory as
-encrypted.
+Create a pgd_pfn() macro similar to the p[4um]d_pfn() macros and then
+use the p[g4um]d_pfn() macros in the p[g4um]d_page() macros instead of
+duplicating the code.
 
 Reviewed-by: Borislav Petkov <bp@suse.de>
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/mm/ioremap.c |   31 ++++++++++++++++++++++++++++++-
- 1 file changed, 30 insertions(+), 1 deletion(-)
+ arch/x86/include/asm/pgtable.h |   16 +++++++++-------
+ 1 file changed, 9 insertions(+), 7 deletions(-)
 
-diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
-index ee33838..effa529 100644
---- a/arch/x86/mm/ioremap.c
-+++ b/arch/x86/mm/ioremap.c
-@@ -420,17 +420,46 @@ void unxlate_dev_mem_ptr(phys_addr_t phys, void *addr)
-  * Examine the physical address to determine if it is an area of memory
-  * that should be mapped decrypted.  If the memory is not part of the
-  * kernel usable area it was accessed and created decrypted, so these
-- * areas should be mapped decrypted.
-+ * areas should be mapped decrypted. And since the encryption key can
-+ * change across reboots, persistent memory should also be mapped
-+ * decrypted.
-  */
- static bool memremap_should_map_decrypted(resource_size_t phys_addr,
- 					  unsigned long size)
+diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
+index 77037b6..b64ea52 100644
+--- a/arch/x86/include/asm/pgtable.h
++++ b/arch/x86/include/asm/pgtable.h
+@@ -195,6 +195,11 @@ static inline unsigned long p4d_pfn(p4d_t p4d)
+ 	return (p4d_val(p4d) & p4d_pfn_mask(p4d)) >> PAGE_SHIFT;
+ }
+ 
++static inline unsigned long pgd_pfn(pgd_t pgd)
++{
++	return (pgd_val(pgd) & PTE_PFN_MASK) >> PAGE_SHIFT;
++}
++
+ static inline int p4d_large(p4d_t p4d)
  {
-+	int is_pmem;
-+
-+	/*
-+	 * Check if the address is part of a persistent memory region.
-+	 * This check covers areas added by E820, EFI and ACPI.
-+	 */
-+	is_pmem = region_intersects(phys_addr, size, IORESOURCE_MEM,
-+				    IORES_DESC_PERSISTENT_MEMORY);
-+	if (is_pmem != REGION_DISJOINT)
-+		return true;
-+
-+	/*
-+	 * Check if the non-volatile attribute is set for an EFI
-+	 * reserved area.
-+	 */
-+	if (efi_enabled(EFI_BOOT)) {
-+		switch (efi_mem_type(phys_addr)) {
-+		case EFI_RESERVED_TYPE:
-+			if (efi_mem_attributes(phys_addr) & EFI_MEMORY_NV)
-+				return true;
-+			break;
-+		default:
-+			break;
-+		}
-+	}
-+
- 	/* Check if the address is outside kernel usable area */
- 	switch (e820__get_entry_type(phys_addr, phys_addr + size - 1)) {
- 	case E820_TYPE_RESERVED:
- 	case E820_TYPE_ACPI:
- 	case E820_TYPE_NVS:
- 	case E820_TYPE_UNUSABLE:
-+	case E820_TYPE_PRAM:
- 		return true;
- 	default:
- 		break;
+ 	/* No 512 GiB pages yet */
+@@ -704,8 +709,7 @@ static inline unsigned long pmd_page_vaddr(pmd_t pmd)
+  * Currently stuck as a macro due to indirect forward reference to
+  * linux/mmzone.h's __section_mem_map_addr() definition:
+  */
+-#define pmd_page(pmd)		\
+-	pfn_to_page((pmd_val(pmd) & pmd_pfn_mask(pmd)) >> PAGE_SHIFT)
++#define pmd_page(pmd)	pfn_to_page(pmd_pfn(pmd))
+ 
+ /*
+  * the pmd page can be thought of an array like this: pmd_t[PTRS_PER_PMD]
+@@ -773,8 +777,7 @@ static inline unsigned long pud_page_vaddr(pud_t pud)
+  * Currently stuck as a macro due to indirect forward reference to
+  * linux/mmzone.h's __section_mem_map_addr() definition:
+  */
+-#define pud_page(pud)		\
+-	pfn_to_page((pud_val(pud) & pud_pfn_mask(pud)) >> PAGE_SHIFT)
++#define pud_page(pud)	pfn_to_page(pud_pfn(pud))
+ 
+ /* Find an entry in the second-level page table.. */
+ static inline pmd_t *pmd_offset(pud_t *pud, unsigned long address)
+@@ -824,8 +827,7 @@ static inline unsigned long p4d_page_vaddr(p4d_t p4d)
+  * Currently stuck as a macro due to indirect forward reference to
+  * linux/mmzone.h's __section_mem_map_addr() definition:
+  */
+-#define p4d_page(p4d)		\
+-	pfn_to_page((p4d_val(p4d) & p4d_pfn_mask(p4d)) >> PAGE_SHIFT)
++#define p4d_page(p4d)	pfn_to_page(p4d_pfn(p4d))
+ 
+ /* Find an entry in the third-level page table.. */
+ static inline pud_t *pud_offset(p4d_t *p4d, unsigned long address)
+@@ -859,7 +861,7 @@ static inline unsigned long pgd_page_vaddr(pgd_t pgd)
+  * Currently stuck as a macro due to indirect forward reference to
+  * linux/mmzone.h's __section_mem_map_addr() definition:
+  */
+-#define pgd_page(pgd)		pfn_to_page(pgd_val(pgd) >> PAGE_SHIFT)
++#define pgd_page(pgd)	pfn_to_page(pgd_pfn(pgd))
+ 
+ /* to find an entry in a page-table-directory. */
+ static inline p4d_t *p4d_offset(pgd_t *pgd, unsigned long address)
