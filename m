@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-co1nam03on0077.outbound.protection.outlook.com ([104.47.40.77]:27211
-        "EHLO NAM03-CO1-obe.outbound.protection.outlook.com"
+Received: from mail-dm3nam03on0068.outbound.protection.outlook.com ([104.47.41.68]:3830
+        "EHLO NAM03-DM3-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751579AbdF0PLx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 27 Jun 2017 11:11:53 -0400
+        id S1751513AbdF0PIc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 27 Jun 2017 11:08:32 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v8 RESEND 22/38] x86/mm: Add support for changing the memory
- encryption attribute
-Date: Tue, 27 Jun 2017 10:11:24 -0500
-Message-ID: <20170627151124.17428.69701.stgit@tlendack-t1.amdoffice.net>
+Subject: [PATCH v8 RESEND 06/38] x86/mm: Add Secure Memory Encryption (SME)
+ support
+Date: Tue, 27 Jun 2017 10:08:24 -0500
+Message-ID: <20170627150824.17428.98358.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20170627150718.17428.81813.stgit@tlendack-t1.amdoffice.net>
 References: <20170627150718.17428.81813.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -18,112 +18,172 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>
-Message-ID: <20170627151124.1AJ2cknLkATB3G4GvnTuFoXkqb-4CK_SBIeUaLuFbsg@z>
+Message-ID: <20170627150824.uhvYtZ3pW5QknUxPWAqGJz7x5r1uFhx64UOXjtJJuoc@z>
 
-Add support for changing the memory encryption attribute for one or more
-memory pages. This will be useful when we have to change the AP trampoline
-area to not be encrypted. Or when we need to change the SWIOTLB area to
-not be encrypted in support of devices that can't support the encryption
-mask range.
+Add support for Secure Memory Encryption (SME). This initial support
+provides a Kconfig entry to build the SME support into the kernel and
+defines the memory encryption mask that will be used in subsequent
+patches to mark pages as encrypted.
 
 Reviewed-by: Borislav Petkov <bp@suse.de>
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/include/asm/set_memory.h |    3 ++
- arch/x86/mm/pageattr.c            |   62 +++++++++++++++++++++++++++++++++++++
- 2 files changed, 65 insertions(+)
+ arch/x86/Kconfig                   |   25 +++++++++++++++++++++++++
+ arch/x86/include/asm/mem_encrypt.h |   30 ++++++++++++++++++++++++++++++
+ arch/x86/mm/Makefile               |    1 +
+ arch/x86/mm/mem_encrypt.c          |   21 +++++++++++++++++++++
+ include/linux/mem_encrypt.h        |   35 +++++++++++++++++++++++++++++++++++
+ 5 files changed, 112 insertions(+)
+ create mode 100644 arch/x86/include/asm/mem_encrypt.h
+ create mode 100644 arch/x86/mm/mem_encrypt.c
+ create mode 100644 include/linux/mem_encrypt.h
 
-diff --git a/arch/x86/include/asm/set_memory.h b/arch/x86/include/asm/set_memory.h
-index eaec6c3..cd71273 100644
---- a/arch/x86/include/asm/set_memory.h
-+++ b/arch/x86/include/asm/set_memory.h
-@@ -11,6 +11,7 @@
-  * Executability : eXeutable, NoteXecutable
-  * Read/Write    : ReadOnly, ReadWrite
-  * Presence      : NotPresent
-+ * Encryption    : Encrypted, Decrypted
-  *
-  * Within a category, the attributes are mutually exclusive.
-  *
-@@ -42,6 +43,8 @@
- int set_memory_wb(unsigned long addr, int numpages);
- int set_memory_np(unsigned long addr, int numpages);
- int set_memory_4k(unsigned long addr, int numpages);
-+int set_memory_encrypted(unsigned long addr, int numpages);
-+int set_memory_decrypted(unsigned long addr, int numpages);
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 72028a1..3a59e9c 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -1409,6 +1409,31 @@ config X86_DIRECT_GBPAGES
+ 	  supports them), so don't confuse the user by printing
+ 	  that we have them enabled.
  
- int set_memory_array_uc(unsigned long *addr, int addrinarray);
- int set_memory_array_wc(unsigned long *addr, int addrinarray);
-diff --git a/arch/x86/mm/pageattr.c b/arch/x86/mm/pageattr.c
-index e7d3866..d9e09fb 100644
---- a/arch/x86/mm/pageattr.c
-+++ b/arch/x86/mm/pageattr.c
-@@ -1769,6 +1769,68 @@ int set_memory_4k(unsigned long addr, int numpages)
- 					__pgprot(0), 1, 0, NULL);
- }
++config ARCH_HAS_MEM_ENCRYPT
++	def_bool y
++
++config AMD_MEM_ENCRYPT
++	bool "AMD Secure Memory Encryption (SME) support"
++	depends on X86_64 && CPU_SUP_AMD
++	---help---
++	  Say yes to enable support for the encryption of system memory.
++	  This requires an AMD processor that supports Secure Memory
++	  Encryption (SME).
++
++config AMD_MEM_ENCRYPT_ACTIVE_BY_DEFAULT
++	bool "Activate AMD Secure Memory Encryption (SME) by default"
++	default y
++	depends on AMD_MEM_ENCRYPT
++	---help---
++	  Say yes to have system memory encrypted by default if running on
++	  an AMD processor that supports Secure Memory Encryption (SME).
++
++	  If set to Y, then the encryption of system memory can be
++	  deactivated with the mem_encrypt=off command line option.
++
++	  If set to N, then the encryption of system memory can be
++	  activated with the mem_encrypt=on command line option.
++
+ # Common NUMA Features
+ config NUMA
+ 	bool "Numa Memory Allocation and Scheduler Support"
+diff --git a/arch/x86/include/asm/mem_encrypt.h b/arch/x86/include/asm/mem_encrypt.h
+new file mode 100644
+index 0000000..a105796
+--- /dev/null
++++ b/arch/x86/include/asm/mem_encrypt.h
+@@ -0,0 +1,30 @@
++/*
++ * AMD Memory Encryption Support
++ *
++ * Copyright (C) 2016 Advanced Micro Devices, Inc.
++ *
++ * Author: Tom Lendacky <thomas.lendacky@amd.com>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#ifndef __X86_MEM_ENCRYPT_H__
++#define __X86_MEM_ENCRYPT_H__
++
++#ifndef __ASSEMBLY__
++
++#ifdef CONFIG_AMD_MEM_ENCRYPT
++
++extern unsigned long sme_me_mask;
++
++#else	/* !CONFIG_AMD_MEM_ENCRYPT */
++
++#define sme_me_mask	0UL
++
++#endif	/* CONFIG_AMD_MEM_ENCRYPT */
++
++#endif	/* __ASSEMBLY__ */
++
++#endif	/* __X86_MEM_ENCRYPT_H__ */
+diff --git a/arch/x86/mm/Makefile b/arch/x86/mm/Makefile
+index 0fbdcb6..a94a7b6 100644
+--- a/arch/x86/mm/Makefile
++++ b/arch/x86/mm/Makefile
+@@ -39,3 +39,4 @@ obj-$(CONFIG_X86_INTEL_MPX)	+= mpx.o
+ obj-$(CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS) += pkeys.o
+ obj-$(CONFIG_RANDOMIZE_MEMORY) += kaslr.o
  
-+static int __set_memory_enc_dec(unsigned long addr, int numpages, bool enc)
++obj-$(CONFIG_AMD_MEM_ENCRYPT)	+= mem_encrypt.o
+diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
+new file mode 100644
+index 0000000..b99d469
+--- /dev/null
++++ b/arch/x86/mm/mem_encrypt.c
+@@ -0,0 +1,21 @@
++/*
++ * AMD Memory Encryption Support
++ *
++ * Copyright (C) 2016 Advanced Micro Devices, Inc.
++ *
++ * Author: Tom Lendacky <thomas.lendacky@amd.com>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#include <linux/linkage.h>
++
++/*
++ * Since SME related variables are set early in the boot process they must
++ * reside in the .data section so as not to be zeroed out when the .bss
++ * section is later cleared.
++ */
++unsigned long sme_me_mask __section(.data) = 0;
++EXPORT_SYMBOL_GPL(sme_me_mask);
+diff --git a/include/linux/mem_encrypt.h b/include/linux/mem_encrypt.h
+new file mode 100644
+index 0000000..59769f7
+--- /dev/null
++++ b/include/linux/mem_encrypt.h
+@@ -0,0 +1,35 @@
++/*
++ * AMD Memory Encryption Support
++ *
++ * Copyright (C) 2016 Advanced Micro Devices, Inc.
++ *
++ * Author: Tom Lendacky <thomas.lendacky@amd.com>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#ifndef __MEM_ENCRYPT_H__
++#define __MEM_ENCRYPT_H__
++
++#ifndef __ASSEMBLY__
++
++#ifdef CONFIG_ARCH_HAS_MEM_ENCRYPT
++
++#include <asm/mem_encrypt.h>
++
++#else	/* !CONFIG_ARCH_HAS_MEM_ENCRYPT */
++
++#define sme_me_mask	0UL
++
++#endif	/* CONFIG_ARCH_HAS_MEM_ENCRYPT */
++
++static inline bool sme_active(void)
 +{
-+	struct cpa_data cpa;
-+	unsigned long start;
-+	int ret;
-+
-+	/* Nothing to do if the SME is not active */
-+	if (!sme_active())
-+		return 0;
-+
-+	/* Should not be working on unaligned addresses */
-+	if (WARN_ONCE(addr & ~PAGE_MASK, "misaligned address: %#lx\n", addr))
-+		addr &= PAGE_MASK;
-+
-+	start = addr;
-+
-+	memset(&cpa, 0, sizeof(cpa));
-+	cpa.vaddr = &addr;
-+	cpa.numpages = numpages;
-+	cpa.mask_set = enc ? __pgprot(_PAGE_ENC) : __pgprot(0);
-+	cpa.mask_clr = enc ? __pgprot(0) : __pgprot(_PAGE_ENC);
-+	cpa.pgd = init_mm.pgd;
-+
-+	/* Must avoid aliasing mappings in the highmem code */
-+	kmap_flush_unused();
-+	vm_unmap_aliases();
-+
-+	/*
-+	 * Before changing the encryption attribute, we need to flush caches.
-+	 */
-+	if (static_cpu_has(X86_FEATURE_CLFLUSH))
-+		cpa_flush_range(start, numpages, 1);
-+	else
-+		cpa_flush_all(1);
-+
-+	ret = __change_page_attr_set_clr(&cpa, 1);
-+
-+	/*
-+	 * After changing the encryption attribute, we need to flush TLBs
-+	 * again in case any speculative TLB caching occurred (but no need
-+	 * to flush caches again).  We could just use cpa_flush_all(), but
-+	 * in case TLB flushing gets optimized in the cpa_flush_range()
-+	 * path use the same logic as above.
-+	 */
-+	if (static_cpu_has(X86_FEATURE_CLFLUSH))
-+		cpa_flush_range(start, numpages, 0);
-+	else
-+		cpa_flush_all(0);
-+
-+	return ret;
++	return !!sme_me_mask;
 +}
 +
-+int set_memory_encrypted(unsigned long addr, int numpages)
-+{
-+	return __set_memory_enc_dec(addr, numpages, true);
-+}
++#endif	/* __ASSEMBLY__ */
 +
-+int set_memory_decrypted(unsigned long addr, int numpages)
-+{
-+	return __set_memory_enc_dec(addr, numpages, false);
-+}
-+
- int set_pages_uc(struct page *page, int numpages)
- {
- 	unsigned long addr = (unsigned long)page_address(page);
++#endif	/* __MEM_ENCRYPT_H__ */
