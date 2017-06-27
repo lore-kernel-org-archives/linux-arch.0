@@ -1,50 +1,79 @@
-From: Daniel Lustig <dlustig@nvidia.com>
-Subject: RE: [PATCH 13/17] RISC-V: Add include subdirectory
-Date: Tue, 27 Jun 2017 00:07:20 +0000
-Message-ID: <8709419e3d964b86b025bb35a6b55440@HQMAIL105.nvidia.com>
-References: <20170607131611.GF30263@arm.com>
- <mhng-107d5417-a33b-4b20-96cb-6adead7c3130@palmer-si-x1c4>
+From: <h.gerritsen12@chello.nl>
+Subject: (unknown)
+Date: Tue, 27 Jun 2017 00:08:57 -0000
+Message-ID: <149852213756.4332.7600897955271637428@proxad.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
+Content-Type: application/zip; name="EMAIL_0578932146183_linux-arch.zip"
+Content-Transfer-Encoding: base64
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hqemgate14.nvidia.com ([216.228.121.143]:8542 "EHLO
-        hqemgate14.nvidia.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751551AbdF0AHX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 26 Jun 2017 20:07:23 -0400
-In-Reply-To: <mhng-107d5417-a33b-4b20-96cb-6adead7c3130@palmer-si-x1c4>
-Content-Language: en-US
+Received: from pdm33-1-82-235-254-76.fbx.proxad.net ([82.235.254.76]:46043
+        "HELO proxad.net" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+        with SMTP id S1751456AbdF0AJG (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 26 Jun 2017 20:09:06 -0400
+Content-Disposition: attachment
+Subject: 
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Palmer Dabbelt <palmer@dabbelt.com>, "will.deacon@arm.com" <will.deacon@arm.com>
-Cc: "peterz@infradead.org" <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Olof Johansson <olof@lixom.net>, "albert@sifive.com" <albert@sifive.com>, "patches@groups.riscv.org" <patches@groups.riscv.org>
+To: linux-arch@vger.kernel.org
 
-> > https://github.com/riscv/riscv-isa-manual/releases/download/riscv-user
-> > -2.2/riscv-spec-v2.2.pdf
-> 
-> That's the most up to date spec.
-
-Yes, that's the most up to date public spec.  Internally, the RISC-V memory
-model task group has been working on fixing the memory model spec for the
-past couple of months now.  We're aiming to release it for public review
-well before the end of the year.  Hopefully in the coming weeks even.
-
-> > which, on the one hand is reassuring (because ignoring dependency
-> > ordering is plain broken), but on the other it doesn't go quite far
-> > enough in defining exactly what constitutes a "syntactic data
-> > dependency". The cumulativity of your fences also needs defining,
-> > because I think this was up in the air at some point and the document
-> > above doesn't seem to tackle it (it doesn't seem to describe what
-> > constitutes being a memory of the predecessor or successor sets)
-
-That will all covered in the new spec.
-
-> > P.S. You should also totally get your architects to write a formal
-> > model ;)
-
-Also in progress :)
-
-Were there any more specific questions I can answer in the meantime?  Or
-any specific concern you'd like to point me to?
-
-Dan
+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
+AAA=
