@@ -1,74 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f53.google.com ([209.85.214.53]:37376 "EHLO
-        mail-it0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751432AbdFZS1E (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 26 Jun 2017 14:27:04 -0400
-Received: by mail-it0-f53.google.com with SMTP id m84so3419082ita.0
-        for <linux-arch@vger.kernel.org>; Mon, 26 Jun 2017 11:27:04 -0700 (PDT)
+Received: from foss.arm.com ([217.140.101.70]:53490 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751513AbdF0IsU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 27 Jun 2017 04:48:20 -0400
+Date: Tue, 27 Jun 2017 09:48:19 +0100
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH 13/17] RISC-V: Add include subdirectory
+Message-ID: <20170627084818.GD5759@arm.com>
+References: <20170607131611.GF30263@arm.com>
+ <mhng-107d5417-a33b-4b20-96cb-6adead7c3130@palmer-si-x1c4>
+ <8709419e3d964b86b025bb35a6b55440@HQMAIL105.nvidia.com>
 MIME-Version: 1.0
-In-Reply-To: <8737amew79.fsf@concordia.ellerman.id.au>
-References: <1498154792-49952-1-git-send-email-keescook@chromium.org>
- <1498154792-49952-4-git-send-email-keescook@chromium.org> <87podvp4q1.fsf@concordia.ellerman.id.au>
- <CAGXu5jK7aHHRMZyZyrviBF+cLghWcH_D4PX_vMFOycHuF7EdLA@mail.gmail.com> <8737amew79.fsf@concordia.ellerman.id.au>
-From: Kees Cook <keescook@chromium.org>
-Date: Mon, 26 Jun 2017 11:26:59 -0700
-Message-ID: <CAGXu5jJKtdgRzdiDhA7XBcsaLQhmFgyQahk1F-zscFQY3pNBUQ@mail.gmail.com>
-Subject: Re: [PATCH 3/4] powerpc: Reduce ELF_ET_DYN_BASE
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <8709419e3d964b86b025bb35a6b55440@HQMAIL105.nvidia.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, James Hogan <james.hogan@imgtec.com>, Pratyush Anand <panand@redhat.com>, Ingo Molnar <mingo@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
-Message-ID: <20170626182659.Qd6GPSZ3alklw-DA1QYoOi3AJ6pkFPNLrSuq1VEAbzA@z>
+To: Daniel Lustig <dlustig@nvidia.com>
+Cc: Palmer Dabbelt <palmer@dabbelt.com>, "peterz@infradead.org" <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Olof Johansson <olof@lixom.net>, "albert@sifive.com" <albert@sifive.com>, "patches@groups.riscv.org" <patches@groups.riscv.org>
+Message-ID: <20170627084819.5mPFUbNIVZtwXqepDDiW0hRTSxXTbP40iL09vgDEAA0@z>
 
-On Mon, Jun 26, 2017 at 6:04 AM, Michael Ellerman <mpe@ellerman.id.au> wrote:
-> Kees Cook <keescook@chromium.org> writes:
->
->> On Fri, Jun 23, 2017 at 12:01 AM, Michael Ellerman <mpe@ellerman.id.au> wrote:
->>> Kees Cook <keescook@chromium.org> writes:
->>>
->>>> Now that explicitly executed loaders are loaded in the mmap region,
->>>> position PIE binaries lower in the address space to avoid possible
->>>> collisions with mmap or stack regions. For 64-bit, align to 4GB to
->>>> allow runtimes to use the entire 32-bit address space for 32-bit
->>>> pointers.
->>>
->>> The change log and subject are a bit out of whack with the actual patch
->>> because previously we used 512MB.
->>>
->>> How about?
->>>
->>>   powerpc: Move ELF_ET_DYN_BASE to 4GB / 4MB
->>>
->>>   Now that explicitly executed loaders are loaded in the mmap region,
->>>   we have more freedom to decide where we position PIE binaries in the
->>>   address space to avoid possible collisions with mmap or stack regions.
->>>
->>>   For 64-bit, align to 4GB to allow runtimes to use the entire 32-bit
->>>   address space for 32-bit pointers. On 32-bit use 4MB.
->>
->> Good idea, thanks. I'll resend the series with the commit logs updated.
->>
->>> Is there any particular reasoning behind the 4MB value on 32-bit?
->>
->> So, I've dug around a bit on this, and I *think* the rationale is to
->> avoid mapping a possible 4MB page table entry when it won't be using
->> at least a portion near the lower end (NULL address area covered
->> blocked by mmap_min_addr). It seems to be mainly tradition, though.
->
-> OK, that is obscure, especially for CPUs that don't have a 4MB page
-> size. But consistency across arches is probably best regardless.
+Hi Dan,
 
-Yeah, I like being not "close" to the NULL address, though the
-definition of "close" has been various values like 64K (mmap_min_addr)
-and 1M (x86 BIOS junk and new stack-gap size). 4MB is above even that,
-so, I think we're fine there. It's what Windows has used, so it's
-familiar and any new attack methodologies would at least be shared
-across OSes and architectures, so we should "notice" any problem with
-the value, and then we can adjust it if we need to.
+On Tue, Jun 27, 2017 at 12:07:20AM +0000, Daniel Lustig wrote:
+> > > https://github.com/riscv/riscv-isa-manual/releases/download/riscv-user
+> > > -2.2/riscv-spec-v2.2.pdf
+> > 
+> > That's the most up to date spec.
+> 
+> Yes, that's the most up to date public spec.  Internally, the RISC-V memory
+> model task group has been working on fixing the memory model spec for the
+> past couple of months now.  We're aiming to release it for public review
+> well before the end of the year.  Hopefully in the coming weeks even.
 
--Kees
+Excellent, cheers for the update.
 
--- 
-Kees Cook
-Pixel Security
+> > > which, on the one hand is reassuring (because ignoring dependency
+> > > ordering is plain broken), but on the other it doesn't go quite far
+> > > enough in defining exactly what constitutes a "syntactic data
+> > > dependency". The cumulativity of your fences also needs defining,
+> > > because I think this was up in the air at some point and the document
+> > > above doesn't seem to tackle it (it doesn't seem to describe what
+> > > constitutes being a memory of the predecessor or successor sets)
+> 
+> That will all covered in the new spec.
+> 
+> > > P.S. You should also totally get your architects to write a formal
+> > > model ;)
+> 
+> Also in progress :)
+
+3/3 :)
+
+> Were there any more specific questions I can answer in the meantime?  Or
+> any specific concern you'd like to point me to?
+
+Nothing specific, but we won't be able to review the
+memory-ordering/atomics/locking parts of this patch series until we have
+a spec.
+
+Will
