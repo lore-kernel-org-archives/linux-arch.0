@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-cys01nam02on0047.outbound.protection.outlook.com ([104.47.37.47]:38336
-        "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
+Received: from mail-by2nam03on0053.outbound.protection.outlook.com ([104.47.42.53]:32820
+        "EHLO NAM03-BY2-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752487AbdF0PBL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 27 Jun 2017 11:01:11 -0400
+        id S1752563AbdF0PAp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 27 Jun 2017 11:00:45 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v8 27/38] iommu/amd: Allow the AMD IOMMU to work with memory
- encryption
-Date: Tue, 27 Jun 2017 10:00:56 -0500
-Message-ID: <20170627150056.15908.79730.stgit@tlendack-t1.amdoffice.net>
+Subject: [PATCH v8 25/38] swiotlb: Add warnings for use of bounce buffers
+ with SME
+Date: Tue, 27 Jun 2017 10:00:36 -0500
+Message-ID: <20170627150036.15908.80988.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20170627145607.15908.26571.stgit@tlendack-t1.amdoffice.net>
 References: <20170627145607.15908.26571.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -18,270 +18,77 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>
-Message-ID: <20170627150056.U-NgJUlfSY3J-XP_cI8-i4zoq6ATAFVPFFR4faXu_rQ@z>
+Message-ID: <20170627150036.7UfqYL4lj4WnMTUKmITq8tllwReXN7j1v4LQQcxs560@z>
 
-The IOMMU is programmed with physical addresses for the various tables
-and buffers that are used to communicate between the device and the
-driver. When the driver allocates this memory it is encrypted. In order
-for the IOMMU to access the memory as encrypted the encryption mask needs
-to be included in these physical addresses during configuration.
+Add warnings to let the user know when bounce buffers are being used for
+DMA when SME is active.  Since the bounce buffers are not in encrypted
+memory, these notifications are to allow the user to determine some
+appropriate action - if necessary.  Actions can range from utilizing an
+IOMMU, replacing the device with another device that can support 64-bit
+DMA, ignoring the message if the device isn't used much, etc.
 
-The PTE entries created by the IOMMU should also include the encryption
-mask so that when the device behind the IOMMU performs a DMA, the DMA
-will be performed to encrypted memory.
-
-Reviewed-by: Borislav Petkov <bp@suse.de>
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- drivers/iommu/amd_iommu.c       |   30 ++++++++++++++++--------------
- drivers/iommu/amd_iommu_init.c  |   34 ++++++++++++++++++++++++++++------
- drivers/iommu/amd_iommu_proto.h |   10 ++++++++++
- drivers/iommu/amd_iommu_types.h |    2 +-
- 4 files changed, 55 insertions(+), 21 deletions(-)
+ include/linux/dma-mapping.h |   13 +++++++++++++
+ lib/swiotlb.c               |    3 +++
+ 2 files changed, 16 insertions(+)
 
-diff --git a/drivers/iommu/amd_iommu.c b/drivers/iommu/amd_iommu.c
-index 503849d..16cc54b 100644
---- a/drivers/iommu/amd_iommu.c
-+++ b/drivers/iommu/amd_iommu.c
-@@ -544,7 +544,7 @@ static void dump_dte_entry(u16 devid)
- 
- static void dump_command(unsigned long phys_addr)
- {
--	struct iommu_cmd *cmd = phys_to_virt(phys_addr);
-+	struct iommu_cmd *cmd = iommu_phys_to_virt(phys_addr);
- 	int i;
- 
- 	for (i = 0; i < 4; ++i)
-@@ -865,11 +865,13 @@ static void copy_cmd_to_buffer(struct amd_iommu *iommu,
- 
- static void build_completion_wait(struct iommu_cmd *cmd, u64 address)
- {
-+	u64 paddr = iommu_virt_to_phys((void *)address);
-+
- 	WARN_ON(address & 0x7ULL);
- 
- 	memset(cmd, 0, sizeof(*cmd));
--	cmd->data[0] = lower_32_bits(__pa(address)) | CMD_COMPL_WAIT_STORE_MASK;
--	cmd->data[1] = upper_32_bits(__pa(address));
-+	cmd->data[0] = lower_32_bits(paddr) | CMD_COMPL_WAIT_STORE_MASK;
-+	cmd->data[1] = upper_32_bits(paddr);
- 	cmd->data[2] = 1;
- 	CMD_SET_TYPE(cmd, CMD_COMPL_WAIT);
- }
-@@ -1328,7 +1330,7 @@ static bool increase_address_space(struct protection_domain *domain,
- 		return false;
- 
- 	*pte             = PM_LEVEL_PDE(domain->mode,
--					virt_to_phys(domain->pt_root));
-+					iommu_virt_to_phys(domain->pt_root));
- 	domain->pt_root  = pte;
- 	domain->mode    += 1;
- 	domain->updated  = true;
-@@ -1365,7 +1367,7 @@ static u64 *alloc_pte(struct protection_domain *domain,
- 			if (!page)
- 				return NULL;
- 
--			__npte = PM_LEVEL_PDE(level, virt_to_phys(page));
-+			__npte = PM_LEVEL_PDE(level, iommu_virt_to_phys(page));
- 
- 			/* pte could have been changed somewhere. */
- 			if (cmpxchg64(pte, __pte, __npte) != __pte) {
-@@ -1481,10 +1483,10 @@ static int iommu_map_page(struct protection_domain *dom,
- 			return -EBUSY;
- 
- 	if (count > 1) {
--		__pte = PAGE_SIZE_PTE(phys_addr, page_size);
-+		__pte = PAGE_SIZE_PTE(__sme_set(phys_addr), page_size);
- 		__pte |= PM_LEVEL_ENC(7) | IOMMU_PTE_P | IOMMU_PTE_FC;
- 	} else
--		__pte = phys_addr | IOMMU_PTE_P | IOMMU_PTE_FC;
-+		__pte = __sme_set(phys_addr) | IOMMU_PTE_P | IOMMU_PTE_FC;
- 
- 	if (prot & IOMMU_PROT_IR)
- 		__pte |= IOMMU_PTE_IR;
-@@ -1700,7 +1702,7 @@ static void free_gcr3_tbl_level1(u64 *tbl)
- 		if (!(tbl[i] & GCR3_VALID))
- 			continue;
- 
--		ptr = __va(tbl[i] & PAGE_MASK);
-+		ptr = iommu_phys_to_virt(tbl[i] & PAGE_MASK);
- 
- 		free_page((unsigned long)ptr);
- 	}
-@@ -1715,7 +1717,7 @@ static void free_gcr3_tbl_level2(u64 *tbl)
- 		if (!(tbl[i] & GCR3_VALID))
- 			continue;
- 
--		ptr = __va(tbl[i] & PAGE_MASK);
-+		ptr = iommu_phys_to_virt(tbl[i] & PAGE_MASK);
- 
- 		free_gcr3_tbl_level1(ptr);
- 	}
-@@ -1807,7 +1809,7 @@ static void set_dte_entry(u16 devid, struct protection_domain *domain, bool ats)
- 	u64 flags = 0;
- 
- 	if (domain->mode != PAGE_MODE_NONE)
--		pte_root = virt_to_phys(domain->pt_root);
-+		pte_root = iommu_virt_to_phys(domain->pt_root);
- 
- 	pte_root |= (domain->mode & DEV_ENTRY_MODE_MASK)
- 		    << DEV_ENTRY_MODE_SHIFT;
-@@ -1819,7 +1821,7 @@ static void set_dte_entry(u16 devid, struct protection_domain *domain, bool ats)
- 		flags |= DTE_FLAG_IOTLB;
- 
- 	if (domain->flags & PD_IOMMUV2_MASK) {
--		u64 gcr3 = __pa(domain->gcr3_tbl);
-+		u64 gcr3 = iommu_virt_to_phys(domain->gcr3_tbl);
- 		u64 glx  = domain->glx;
- 		u64 tmp;
- 
-@@ -3470,10 +3472,10 @@ static u64 *__get_gcr3_pte(u64 *root, int level, int pasid, bool alloc)
- 			if (root == NULL)
- 				return NULL;
- 
--			*pte = __pa(root) | GCR3_VALID;
-+			*pte = iommu_virt_to_phys(root) | GCR3_VALID;
- 		}
- 
--		root = __va(*pte & PAGE_MASK);
-+		root = iommu_phys_to_virt(*pte & PAGE_MASK);
- 
- 		level -= 1;
- 	}
-@@ -3652,7 +3654,7 @@ static void set_dte_irq_entry(u16 devid, struct irq_remap_table *table)
- 
- 	dte	= amd_iommu_dev_table[devid].data[2];
- 	dte	&= ~DTE_IRQ_PHYS_ADDR_MASK;
--	dte	|= virt_to_phys(table->table);
-+	dte	|= iommu_virt_to_phys(table->table);
- 	dte	|= DTE_IRQ_REMAP_INTCTL;
- 	dte	|= DTE_IRQ_TABLE_LEN;
- 	dte	|= DTE_IRQ_REMAP_ENABLE;
-diff --git a/drivers/iommu/amd_iommu_init.c b/drivers/iommu/amd_iommu_init.c
-index 5a11328..26862f1 100644
---- a/drivers/iommu/amd_iommu_init.c
-+++ b/drivers/iommu/amd_iommu_init.c
-@@ -29,6 +29,7 @@
- #include <linux/export.h>
- #include <linux/iommu.h>
- #include <linux/kmemleak.h>
+diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
+index 4f3eece..a156c40 100644
+--- a/include/linux/dma-mapping.h
++++ b/include/linux/dma-mapping.h
+@@ -10,6 +10,7 @@
+ #include <linux/scatterlist.h>
+ #include <linux/kmemcheck.h>
+ #include <linux/bug.h>
 +#include <linux/mem_encrypt.h>
- #include <asm/pci-direct.h>
- #include <asm/iommu.h>
- #include <asm/gart.h>
-@@ -346,7 +347,7 @@ static void iommu_set_device_table(struct amd_iommu *iommu)
  
- 	BUG_ON(iommu->mmio_base == NULL);
- 
--	entry = virt_to_phys(amd_iommu_dev_table);
-+	entry = iommu_virt_to_phys(amd_iommu_dev_table);
- 	entry |= (dev_table_size >> 12) - 1;
- 	memcpy_toio(iommu->mmio_base + MMIO_DEV_TABLE_OFFSET,
- 			&entry, sizeof(entry));
-@@ -602,7 +603,7 @@ static void iommu_enable_command_buffer(struct amd_iommu *iommu)
- 
- 	BUG_ON(iommu->cmd_buf == NULL);
- 
--	entry = (u64)virt_to_phys(iommu->cmd_buf);
-+	entry = iommu_virt_to_phys(iommu->cmd_buf);
- 	entry |= MMIO_CMD_SIZE_512;
- 
- 	memcpy_toio(iommu->mmio_base + MMIO_CMD_BUF_OFFSET,
-@@ -631,7 +632,7 @@ static void iommu_enable_event_buffer(struct amd_iommu *iommu)
- 
- 	BUG_ON(iommu->evt_buf == NULL);
- 
--	entry = (u64)virt_to_phys(iommu->evt_buf) | EVT_LEN_MASK;
-+	entry = iommu_virt_to_phys(iommu->evt_buf) | EVT_LEN_MASK;
- 
- 	memcpy_toio(iommu->mmio_base + MMIO_EVT_BUF_OFFSET,
- 		    &entry, sizeof(entry));
-@@ -664,7 +665,7 @@ static void iommu_enable_ppr_log(struct amd_iommu *iommu)
- 	if (iommu->ppr_log == NULL)
- 		return;
- 
--	entry = (u64)virt_to_phys(iommu->ppr_log) | PPR_LOG_SIZE_512;
-+	entry = iommu_virt_to_phys(iommu->ppr_log) | PPR_LOG_SIZE_512;
- 
- 	memcpy_toio(iommu->mmio_base + MMIO_PPR_LOG_OFFSET,
- 		    &entry, sizeof(entry));
-@@ -744,10 +745,10 @@ static int iommu_init_ga_log(struct amd_iommu *iommu)
- 	if (!iommu->ga_log_tail)
- 		goto err_out;
- 
--	entry = (u64)virt_to_phys(iommu->ga_log) | GA_LOG_SIZE_512;
-+	entry = iommu_virt_to_phys(iommu->ga_log) | GA_LOG_SIZE_512;
- 	memcpy_toio(iommu->mmio_base + MMIO_GA_LOG_BASE_OFFSET,
- 		    &entry, sizeof(entry));
--	entry = ((u64)virt_to_phys(iommu->ga_log) & 0xFFFFFFFFFFFFFULL) & ~7ULL;
-+	entry = (iommu_virt_to_phys(iommu->ga_log) & 0xFFFFFFFFFFFFFULL) & ~7ULL;
- 	memcpy_toio(iommu->mmio_base + MMIO_GA_LOG_TAIL_OFFSET,
- 		    &entry, sizeof(entry));
- 	writel(0x00, iommu->mmio_base + MMIO_GA_HEAD_OFFSET);
-@@ -2535,6 +2536,24 @@ static int __init amd_iommu_init(void)
- 	return ret;
+ /**
+  * List of possible attributes associated with a DMA mapping. The semantics
+@@ -554,6 +555,12 @@ static inline int dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
+ #endif
  }
  
-+static bool amd_iommu_supports_sme(void)
++static inline void dma_check_mask(struct device *dev, u64 mask)
 +{
-+	if (!sme_active() || (boot_cpu_data.x86 != 0x17))
-+		return true;
-+
-+	/* For Fam17h, a specific level of support is required */
-+	if (boot_cpu_data.microcode >= 0x08001205)
-+		return true;
-+
-+	if ((boot_cpu_data.microcode >= 0x08001126) &&
-+	    (boot_cpu_data.microcode <= 0x080011ff))
-+		return true;
-+
-+	pr_notice("AMD-Vi: IOMMU not currently supported when SME is active\n");
-+
-+	return false;
++	if (sme_active() && (mask < (((u64)sme_get_me_mask() << 1) - 1)))
++		dev_warn(dev, "SME is active, device will require DMA bounce buffers\n");
 +}
 +
- /****************************************************************************
-  *
-  * Early detect code. This code runs at IOMMU detection time in the DMA
-@@ -2552,6 +2571,9 @@ int __init amd_iommu_detect(void)
- 	if (amd_iommu_disabled)
- 		return -ENODEV;
+ #ifndef HAVE_ARCH_DMA_SUPPORTED
+ static inline int dma_supported(struct device *dev, u64 mask)
+ {
+@@ -577,6 +584,9 @@ static inline int dma_set_mask(struct device *dev, u64 mask)
  
-+	if (!amd_iommu_supports_sme())
-+		return -ENODEV;
+ 	if (!dev->dma_mask || !dma_supported(dev, mask))
+ 		return -EIO;
 +
- 	ret = iommu_go_to_state(IOMMU_IVRS_DETECTED);
- 	if (ret)
- 		return ret;
-diff --git a/drivers/iommu/amd_iommu_proto.h b/drivers/iommu/amd_iommu_proto.h
-index 466260f..3f12fb2 100644
---- a/drivers/iommu/amd_iommu_proto.h
-+++ b/drivers/iommu/amd_iommu_proto.h
-@@ -87,4 +87,14 @@ static inline bool iommu_feature(struct amd_iommu *iommu, u64 f)
- 	return !!(iommu->features & f);
++	dma_check_mask(dev, mask);
++
+ 	*dev->dma_mask = mask;
+ 	return 0;
  }
- 
-+static inline u64 iommu_virt_to_phys(void *vaddr)
-+{
-+	return (u64)__sme_set(virt_to_phys(vaddr));
-+}
+@@ -596,6 +606,9 @@ static inline int dma_set_coherent_mask(struct device *dev, u64 mask)
+ {
+ 	if (!dma_supported(dev, mask))
+ 		return -EIO;
 +
-+static inline void *iommu_phys_to_virt(unsigned long paddr)
-+{
-+	return phys_to_virt(__sme_clr(paddr));
-+}
++	dma_check_mask(dev, mask);
 +
- #endif /* _ASM_X86_AMD_IOMMU_PROTO_H  */
-diff --git a/drivers/iommu/amd_iommu_types.h b/drivers/iommu/amd_iommu_types.h
-index 4de8f41..3ce587d 100644
---- a/drivers/iommu/amd_iommu_types.h
-+++ b/drivers/iommu/amd_iommu_types.h
-@@ -343,7 +343,7 @@
+ 	dev->coherent_dma_mask = mask;
+ 	return 0;
+ }
+diff --git a/lib/swiotlb.c b/lib/swiotlb.c
+index 04ac91a..8c6c83e 100644
+--- a/lib/swiotlb.c
++++ b/lib/swiotlb.c
+@@ -507,6 +507,9 @@ phys_addr_t swiotlb_tbl_map_single(struct device *hwdev,
+ 	if (no_iotlb_memory)
+ 		panic("Can not allocate SWIOTLB buffer earlier and can't now provide you with the DMA bounce buffer");
  
- #define IOMMU_PAGE_MASK (((1ULL << 52) - 1) & ~0xfffULL)
- #define IOMMU_PTE_PRESENT(pte) ((pte) & IOMMU_PTE_P)
--#define IOMMU_PTE_PAGE(pte) (phys_to_virt((pte) & IOMMU_PAGE_MASK))
-+#define IOMMU_PTE_PAGE(pte) (iommu_phys_to_virt((pte) & IOMMU_PAGE_MASK))
- #define IOMMU_PTE_MODE(pte) (((pte) >> 9) & 0x07)
++	if (sme_active())
++		pr_warn_once("SME is active and system is using DMA bounce buffers\n");
++
+ 	mask = dma_get_seg_boundary(hwdev);
  
- #define IOMMU_PROT_MASK 0x03
+ 	tbl_dma_addr &= mask;
