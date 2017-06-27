@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-dm3nam03on0062.outbound.protection.outlook.com ([104.47.41.62]:20960
-        "EHLO NAM03-DM3-obe.outbound.protection.outlook.com"
+Received: from mail-sn1nam01on0057.outbound.protection.outlook.com ([104.47.32.57]:48928
+        "EHLO NAM01-SN1-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752934AbdF0PAz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 27 Jun 2017 11:00:55 -0400
+        id S1752026AbdF0PAf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 27 Jun 2017 11:00:35 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v8 26/38] x86/CPU/AMD: Make the microcode level available
- earlier in the boot
-Date: Tue, 27 Jun 2017 10:00:45 -0500
-Message-ID: <20170627150045.15908.23856.stgit@tlendack-t1.amdoffice.net>
+Subject: [PATCH v8 23/38] x86/realmode: Decrypt trampoline area if memory
+ encryption is active
+Date: Tue, 27 Jun 2017 10:00:16 -0500
+Message-ID: <20170627150016.15908.37813.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20170627145607.15908.26571.stgit@tlendack-t1.amdoffice.net>
 References: <20170627145607.15908.26571.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -18,50 +18,42 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>
-Message-ID: <20170627150045.lcaYx7J0aYDac16nTmIPmPoPTAPUH5vlPkOVp-lnEfQ@z>
+Message-ID: <20170627150016.EbAht6GXq5KdOXr-jO-PJ203kmuT0KJidb2AqofrzNo@z>
 
-Move the setting of the cpuinfo_x86.microcode field from amd_init() to
-early_amd_init() so that it is available earlier in the boot process. This
-avoids having to read MSR_AMD64_PATCH_LEVEL directly during early boot.
+When Secure Memory Encryption is enabled, the trampoline area must not
+be encrypted. A CPU running in real mode will not be able to decrypt
+memory that has been encrypted because it will not be able to use addresses
+with the memory encryption mask.
 
 Reviewed-by: Borislav Petkov <bp@suse.de>
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/kernel/cpu/amd.c |    8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+ arch/x86/realmode/init.c |    8 ++++++++
+ 1 file changed, 8 insertions(+)
 
-diff --git a/arch/x86/kernel/cpu/amd.c b/arch/x86/kernel/cpu/amd.c
-index 5bdcbd4..fdcf305 100644
---- a/arch/x86/kernel/cpu/amd.c
-+++ b/arch/x86/kernel/cpu/amd.c
-@@ -547,8 +547,12 @@ static void bsp_init_amd(struct cpuinfo_x86 *c)
+diff --git a/arch/x86/realmode/init.c b/arch/x86/realmode/init.c
+index cd4be19..d6ddc7e 100644
+--- a/arch/x86/realmode/init.c
++++ b/arch/x86/realmode/init.c
+@@ -1,6 +1,7 @@
+ #include <linux/io.h>
+ #include <linux/slab.h>
+ #include <linux/memblock.h>
++#include <linux/mem_encrypt.h>
  
- static void early_init_amd(struct cpuinfo_x86 *c)
- {
-+	u32 dummy;
+ #include <asm/set_memory.h>
+ #include <asm/pgtable.h>
+@@ -59,6 +60,13 @@ static void __init setup_real_mode(void)
+ 
+ 	base = (unsigned char *)real_mode_header;
+ 
++	/*
++	 * If SME is active, the trampoline area will need to be in
++	 * decrypted memory in order to bring up other processors
++	 * successfully.
++	 */
++	set_memory_decrypted((unsigned long)base, size >> PAGE_SHIFT);
 +
- 	early_init_amd_mc(c);
+ 	memcpy(base, real_mode_blob, size);
  
-+	rdmsr_safe(MSR_AMD64_PATCH_LEVEL, &c->microcode, &dummy);
-+
- 	/*
- 	 * c->x86_power is 8000_0007 edx. Bit 8 is TSC runs at constant rate
- 	 * with P/T states and does not stop in deep C-states
-@@ -746,8 +750,6 @@ static void init_amd_bd(struct cpuinfo_x86 *c)
- 
- static void init_amd(struct cpuinfo_x86 *c)
- {
--	u32 dummy;
--
- 	early_init_amd(c);
- 
- 	/*
-@@ -809,8 +811,6 @@ static void init_amd(struct cpuinfo_x86 *c)
- 	if (c->x86 > 0x11)
- 		set_cpu_cap(c, X86_FEATURE_ARAT);
- 
--	rdmsr_safe(MSR_AMD64_PATCH_LEVEL, &c->microcode, &dummy);
--
- 	/* 3DNow or LM implies PREFETCHW */
- 	if (!cpu_has(c, X86_FEATURE_3DNOWPREFETCH))
- 		if (cpu_has(c, X86_FEATURE_3DNOW) || cpu_has(c, X86_FEATURE_LM))
+ 	phys_base = __pa(base);
