@@ -1,41 +1,116 @@
-From: Logan Gunthorpe <logang@deltatee.com>
-Subject: Re: [PATCH v2 1/3] io-64-nonatomic: add io{read|write}64[be] macros
-Date: Wed, 28 Jun 2017 10:02:57 -0600
-Message-ID: <e32bd057-2069-63c9-b75d-3a97a736d898@deltatee.com>
-References: <20170627230204.16410-1-logang@deltatee.com>
- <20170627230204.16410-2-logang@deltatee.com>
- <CAK8P3a2tL5wdCRscpyb6fW+LQVM05urud=YQRS-3+=4w53rmvg@mail.gmail.com>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH 6/5] x86/KASLR: Fix detection 32/64 bit bootloaders for
+ 5-level paging
+Date: Wed, 28 Jun 2017 09:39:59 -0700
+Message-ID: <CAGXu5jJaK-bHnXF8z0RVqubHasnv6G0owCZ3TVyfpUgLKt_5Bw@mail.gmail.com>
+References: <20170622122608.80435-1-kirill.shutemov@linux.intel.com> <20170628121730.43079-1-kirill.shutemov@linux.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-crypto-owner@vger.kernel.org>
-In-Reply-To: <CAK8P3a2tL5wdCRscpyb6fW+LQVM05urud=YQRS-3+=4w53rmvg@mail.gmail.com>
-Sender: linux-crypto-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jyri Sarha <jsarha@ti.com>, Stephen Bates <sbates@raithlin.com>, Christoph Hellwig <hch@lst.de>, Alan Cox <gnomes@lxorguk.ukuu.org.uk>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20170628121730.43079-1-kirill.shutemov@linux.intel.com>
+Sender: owner-linux-mm@kvack.org
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, "x86@kernel.org" <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch <linux-arch@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
+On Wed, Jun 28, 2017 at 5:17 AM, Kirill A. Shutemov
+<kirill.shutemov@linux.intel.com> wrote:
+> KASLR uses hack to detect whether we booted via startup_32() or
+> startup_64(): it checks what is loaded into cr3 and compares it to
+> _pgtables. _pgtables is the array of page tables where early code
+> allocates page table from.
+>
+> KASLR expects cr3 to point to _pgtables if we booted via startup_32(), but
+> that's not true if we booted with 5-level paging enabled. In this case top
+> level page table is allocated separately and only the first p4d page table
+> is allocated from the array.
+>
+> Let's modify the check to cover both 4- and 5-level paging cases.
+>
+> The patch also renames 'level4p' to 'top_level_pgt' as it now can hold
+> page table for 4th or 5th level, depending on configuration.
+>
+> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+> Cc: Kees Cook <keescook@chromium.org>
+
+This looks good, thanks!
+
+Acked-by: Kees Cook <keescook@chromium.org>
+
+-Kees
+
+> ---
+>  arch/x86/boot/compressed/pagetable.c | 18 ++++++++++++------
+>  1 file changed, 12 insertions(+), 6 deletions(-)
+>
+> diff --git a/arch/x86/boot/compressed/pagetable.c b/arch/x86/boot/compressed/pagetable.c
+> index 8e69df96492e..da4cf44d4aac 100644
+> --- a/arch/x86/boot/compressed/pagetable.c
+> +++ b/arch/x86/boot/compressed/pagetable.c
+> @@ -63,7 +63,7 @@ static void *alloc_pgt_page(void *context)
+>  static struct alloc_pgt_data pgt_data;
+>
+>  /* The top level page table entry pointer. */
+> -static unsigned long level4p;
+> +static unsigned long top_level_pgt;
+>
+>  /*
+>   * Mapping information structure passed to kernel_ident_mapping_init().
+> @@ -91,9 +91,15 @@ void initialize_identity_maps(void)
+>          * If we came here via startup_32(), cr3 will be _pgtable already
+>          * and we must append to the existing area instead of entirely
+>          * overwriting it.
+> +        *
+> +        * With 5-level paging, we use _pgtable allocate p4d page table,
+> +        * top-level page table is allocated separately.
+> +        *
+> +        * p4d_offset(top_level_pgt, 0) would cover both 4- and 5-level
+> +        * cases. On 4-level paging it's equal to top_level_pgt.
+>          */
+> -       level4p = read_cr3_pa();
+> -       if (level4p == (unsigned long)_pgtable) {
+> +       top_level_pgt = read_cr3_pa();
+> +       if (p4d_offset((pgd_t *)top_level_pgt, 0) == (p4d_t *)_pgtable) {
+>                 debug_putstr("booted via startup_32()\n");
+>                 pgt_data.pgt_buf = _pgtable + BOOT_INIT_PGT_SIZE;
+>                 pgt_data.pgt_buf_size = BOOT_PGT_SIZE - BOOT_INIT_PGT_SIZE;
+> @@ -103,7 +109,7 @@ void initialize_identity_maps(void)
+>                 pgt_data.pgt_buf = _pgtable;
+>                 pgt_data.pgt_buf_size = BOOT_PGT_SIZE;
+>                 memset(pgt_data.pgt_buf, 0, pgt_data.pgt_buf_size);
+> -               level4p = (unsigned long)alloc_pgt_page(&pgt_data);
+> +               top_level_pgt = (unsigned long)alloc_pgt_page(&pgt_data);
+>         }
+>  }
+>
+> @@ -123,7 +129,7 @@ void add_identity_map(unsigned long start, unsigned long size)
+>                 return;
+>
+>         /* Build the mapping. */
+> -       kernel_ident_mapping_init(&mapping_info, (pgd_t *)level4p,
+> +       kernel_ident_mapping_init(&mapping_info, (pgd_t *)top_level_pgt,
+>                                   start, end);
+>  }
+>
+> @@ -134,5 +140,5 @@ void add_identity_map(unsigned long start, unsigned long size)
+>   */
+>  void finalize_identity_maps(void)
+>  {
+> -       write_cr3(level4p);
+> +       write_cr3(top_level_pgt);
+>  }
+> --
+> 2.11.0
+>
 
 
-On 28/06/17 04:11 AM, Arnd Bergmann wrote:
-> This is wrong since ioread* is not the same read* on x86 and other
-> architectures that have native PCI PIO accessors, or that require
-> additional barriers for those.
-> 
-> You have to copy hi_lo_readq() here, and call ioread32 twice instead
-> of calling readl() twice. Same for iowrite64.
-> 
->> +#ifndef ioread64be
->> +#define ioread64be(p) be64_to_cpu(ioread64(p))
->> +#endif
-> 
-> This has another problem: ioread64() is defined to access little-endian
-> registers, just like readq(). This means that instead of be64_to_cpu()
-> you need swab64() and always perform the byte swap, otherwise this
-> would be broken on big-endian architectures.
 
-Ah, ok, understood. I'll see if I can fix both these issues.
+-- 
+Kees Cook
+Pixel Security
 
-Thanks,
-
-Logan
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
