@@ -1,180 +1,88 @@
-From: tip-bot for Kees Cook <tipbot@zytor.com>
-Subject: [tip:locking/core] locking/refcount: Create unchecked atomic_t
- implementation
-Date: Wed, 28 Jun 2017 09:58:15 -0700
-Message-ID: <tip-fd25d19f6b8da315332bb75936605fb45d3ea981@git.kernel.org>
-References: <20170621200026.GA115679@beast>
-Reply-To: davem@davemloft.net, arnd@arndb.de, manfred@colorfullife.com,
-          riel@redhat.com, hpa@zytor.com, peterz@infradead.org,
-          ebiggers3@gmail.com, elena.reshetova@intel.com,
-          keescook@chromium.org, dwindsor@gmail.com, mingo@kernel.org,
-          jannh@google.com, serge@hallyn.com, adobriyan@gmail.com,
-          gregkh@linuxfoundation.org, ebiederm@xmission.com,
-          ishkamiel@gmail.com, tglx@linutronix.de, hch@infradead.org,
-          jpoimboe@redhat.com, linux-kernel@vger.kernel.org,
-          torvalds@linux-foundation.org, akpm@linux-foundation.org,
-          dave@stgolabs.net, linux-arch@vger.kernel.org,
-          James.Bottomley@hansenpartnership.com
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+From: Palmer Dabbelt <palmer@dabbelt.com>
+Subject: RISC-V Linux Port v3
+Date: Wed, 28 Jun 2017 11:55:29 -0700
+Message-ID: <20170628185538.1804-1-palmer@dabbelt.com>
+References: <20170606230007.19101-1-palmer@dabbelt.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([65.50.211.136]:36793 "EHLO
-        terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751516AbdF1RIH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 28 Jun 2017 13:08:07 -0400
-In-Reply-To: <20170621200026.GA115679@beast>
-Content-Disposition: inline
+Received: from mail-pg0-f68.google.com ([74.125.83.68]:36833 "EHLO
+        mail-pg0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751526AbdF1Szx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 28 Jun 2017 14:55:53 -0400
+Received: by mail-pg0-f68.google.com with SMTP id u36so9150659pgn.3
+        for <linux-arch@vger.kernel.org>; Wed, 28 Jun 2017 11:55:53 -0700 (PDT)
+In-Reply-To: <20170606230007.19101-1-palmer@dabbelt.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-tip-commits@vger.kernel.org
-Cc: arnd@arndb.de, manfred@colorfullife.com, davem@davemloft.net, riel@redhat.com, peterz@infradead.org, ebiggers3@gmail.com, elena.reshetova@intel.com, hpa@zytor.com, keescook@chromium.org, dwindsor@gmail.com, jannh@google.com, mingo@kernel.org, gregkh@linuxfoundation.org, serge@hallyn.com, adobriyan@gmail.com, ebiederm@xmission.com, ishkamiel@gmail.com, tglx@linutronix.de, hch@infradead.org, linux-kernel@vger.kernel.org, jpoimboe@redhat.com, torvalds@linux-foundation.org, akpm@linux-foundation.org, dave@stgolabs.net, linux-arch@vger.kernel.org, James.Bottomley@hansenpartnership.com
+To: peterz@infradead.org, mingo@redhat.com, mcgrof@kernel.org, viro@zeniv.linux.org.uk, sfr@canb.auug.org.au, nicolas.dichtel@6wind.com, rmk+kernel@armlinux.org.uk, msalter@redhat.com, tklauser@distanz.ch, will.deacon@arm.com, james.hogan@imgtec.com, paul.gortmaker@windriver.com, linux@roeck-us.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, albert@sifive.com
 
-Commit-ID:  fd25d19f6b8da315332bb75936605fb45d3ea981
-Gitweb:     http://git.kernel.org/tip/fd25d19f6b8da315332bb75936605fb45d3ea981
-Author:     Kees Cook <keescook@chromium.org>
-AuthorDate: Wed, 21 Jun 2017 13:00:26 -0700
-Committer:  Ingo Molnar <mingo@kernel.org>
-CommitDate: Wed, 28 Jun 2017 18:54:46 +0200
+Thanks to everyone who has particpated in the review process so far.  We've
+made a handful of changes since the v2 port, and at this point aside from a
+handful of FIXMEs floating around the code I don't think there's anything left
+I know about that's still missing for a minimal port.  I believe I've addressed
+every review comment so far, if I've missed yours then I'm sorry but I'd like
+to request you resend it.
 
-locking/refcount: Create unchecked atomic_t implementation
+A highlight of the changes since the v1 patch set includes:
 
-Many subsystems will not use refcount_t unless there is a way to build the
-kernel so that there is no regression in speed compared to atomic_t. This
-adds CONFIG_REFCOUNT_FULL to enable the full refcount_t implementation
-which has the validation but is slightly slower. When not enabled,
-refcount_t uses the basic unchecked atomic_t routines, which results in
-no code changes compared to just using atomic_t directly.
+ * We've split out all our drivers into separate patch sets, which I've already
+   sent out to the relevant maintainers.  I haven't included those patches in
+   this patch set, but some of them are necessary to build our port.  A git
+   tree that contains all our patch sets merged together lives at
+   <https://github.com/riscv/riscv-linux/tree/riscv-for-submission-v3>.
 
-Signed-off-by: Kees Cook <keescook@chromium.org>
-Acked-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: Alexey Dobriyan <adobriyan@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Christoph Hellwig <hch@infradead.org>
-Cc: David S. Miller <davem@davemloft.net>
-Cc: David Windsor <dwindsor@gmail.com>
-Cc: Davidlohr Bueso <dave@stgolabs.net>
-Cc: Elena Reshetova <elena.reshetova@intel.com>
-Cc: Eric Biggers <ebiggers3@gmail.com>
-Cc: Eric W. Biederman <ebiederm@xmission.com>
-Cc: Hans Liljestrand <ishkamiel@gmail.com>
-Cc: James Bottomley <James.Bottomley@hansenpartnership.com>
-Cc: Jann Horn <jannh@google.com>
-Cc: Josh Poimboeuf <jpoimboe@redhat.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Manfred Spraul <manfred@colorfullife.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Rik van Riel <riel@redhat.com>
-Cc: Serge E. Hallyn <serge@hallyn.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: arozansk@redhat.com
-Cc: axboe@kernel.dk
-Cc: linux-arch <linux-arch@vger.kernel.org>
-Link: http://lkml.kernel.org/r/20170621200026.GA115679@beast
-Signed-off-by: Ingo Molnar <mingo@kernel.org>
----
- arch/Kconfig             |  9 +++++++++
- include/linux/refcount.h | 42 ++++++++++++++++++++++++++++++++++++++++++
- lib/refcount.c           |  3 +++
- 3 files changed, 54 insertions(+)
+ * The patch set is now split up differently: rather than being split per
+   directory it is split per topic.  Hopefully this will make it easier to
+   review the port on the mailing list.  The split is a bit rough, so you
+   probably still want to look at the patch set as a whole.
 
-diff --git a/arch/Kconfig b/arch/Kconfig
-index 6c00e5b..f76b214 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -867,4 +867,13 @@ config STRICT_MODULE_RWX
- config ARCH_WANT_RELAX_ORDER
- 	bool
- 
-+config REFCOUNT_FULL
-+	bool "Perform full reference count validation at the expense of speed"
-+	help
-+	  Enabling this switches the refcounting infrastructure from a fast
-+	  unchecked atomic_t implementation to a fully state checked
-+	  implementation, which can be (slightly) slower but provides protections
-+	  against various use-after-free conditions that can be used in
-+	  security flaw exploits.
-+
- source "kernel/gcov/Kconfig"
-diff --git a/include/linux/refcount.h b/include/linux/refcount.h
-index b34aa64..bb71f28 100644
---- a/include/linux/refcount.h
-+++ b/include/linux/refcount.h
-@@ -41,6 +41,7 @@ static inline unsigned int refcount_read(const refcount_t *r)
- 	return atomic_read(&r->refs);
- }
- 
-+#ifdef CONFIG_REFCOUNT_FULL
- extern __must_check bool refcount_add_not_zero(unsigned int i, refcount_t *r);
- extern void refcount_add(unsigned int i, refcount_t *r);
- 
-@@ -52,6 +53,47 @@ extern void refcount_sub(unsigned int i, refcount_t *r);
- 
- extern __must_check bool refcount_dec_and_test(refcount_t *r);
- extern void refcount_dec(refcount_t *r);
-+#else
-+static inline __must_check bool refcount_add_not_zero(unsigned int i, refcount_t *r)
-+{
-+	return atomic_add_unless(&r->refs, i, 0);
-+}
-+
-+static inline void refcount_add(unsigned int i, refcount_t *r)
-+{
-+	atomic_add(i, &r->refs);
-+}
-+
-+static inline __must_check bool refcount_inc_not_zero(refcount_t *r)
-+{
-+	return atomic_add_unless(&r->refs, 1, 0);
-+}
-+
-+static inline void refcount_inc(refcount_t *r)
-+{
-+	atomic_inc(&r->refs);
-+}
-+
-+static inline __must_check bool refcount_sub_and_test(unsigned int i, refcount_t *r)
-+{
-+	return atomic_sub_and_test(i, &r->refs);
-+}
-+
-+static inline void refcount_sub(unsigned int i, refcount_t *r)
-+{
-+	atomic_sub(i, &r->refs);
-+}
-+
-+static inline __must_check bool refcount_dec_and_test(refcount_t *r)
-+{
-+	return atomic_dec_and_test(&r->refs);
-+}
-+
-+static inline void refcount_dec(refcount_t *r)
-+{
-+	atomic_dec(&r->refs);
-+}
-+#endif /* CONFIG_REFCOUNT_FULL */
- 
- extern __must_check bool refcount_dec_if_one(refcount_t *r);
- extern __must_check bool refcount_dec_not_one(refcount_t *r);
-diff --git a/lib/refcount.c b/lib/refcount.c
-index 9f90678..5d0582a 100644
---- a/lib/refcount.c
-+++ b/lib/refcount.c
-@@ -37,6 +37,8 @@
- #include <linux/refcount.h>
- #include <linux/bug.h>
- 
-+#ifdef CONFIG_REFCOUNT_FULL
-+
- /**
-  * refcount_add_not_zero - add a value to a refcount unless it is 0
-  * @i: the value to add to the refcount
-@@ -225,6 +227,7 @@ void refcount_dec(refcount_t *r)
- 	WARN_ONCE(refcount_dec_and_test(r), "refcount_t: decrement hit 0; leaking memory.\n");
- }
- EXPORT_SYMBOL(refcount_dec);
-+#endif /* CONFIG_REFCOUNT_FULL */
- 
- /**
-  * refcount_dec_if_one - decrement a refcount if it is 1
+ * atomic.h has been completely rewritten and is hopefully now correct.  I've
+   attempted to sanitize the various other memory model related code as well,
+   and I think it should all be sane now aside from a handful of FIXMEs
+   commented in the code.
+
+ * We've changed the cmpexchg syscall to always exist and to not be
+   multiplexed.  There is also a VDSO entry for compare and exchange, which
+   allows kernels with the A extension to execute user code without the A
+   extension reasonably fast.
+
+ * Our user-visible register state now contains enough space for the Q
+   extension for 128-bit floating point, as well as a few words to allow
+   extensibility to future ISA extensions like the eventual V extension for
+   vectors.
+
+ * A handful of driver cleanups, but these have been split into separate patch
+   sets now so I won't duplicate them here.
+
+The full list of patches is below
+
+  [PATCH 1/9] RISC-V: Init and Halt Code
+  [PATCH 2/9] RISC-V: Atomic and Locking Code
+  [PATCH 3/9] RISC-V: Generic library routines and assembly
+  [PATCH 4/9] RISC-V: ELF and module implementation
+  [PATCH 5/9] RISC-V: Task implementation
+  [PATCH 6/9] RISC-V: Device, timer, IRQs, and the SBI
+  [PATCH 7/9] RISC-V: Paging and MMU
+  [PATCH 8/9] RISC-V: User-facing API
+  [PATCH 9/9] RISC-V: Build Infastructure
+
+In case one gets eaten by the mailing list, this is also availiable as a git
+tree on our Git Hub
+
+  https://github.com/riscv/riscv-linux/tree/riscv-for-submission-arch-v3
+
+This patch set just contains the arch code, we have various drivers that are
+required to build and boot a RISC-V system.  A tree that contains this patch
+set merged with all our other patch sets lives at
+
+  https://github.com/riscv/riscv-linux/tree/riscv-for-submission-v3
+
+  commit 319a127e0685ed294996e0e6b25b229f42ec1d6e
+  Merge: a980edd4a4b7 e67734c51bc9
+  Author: Palmer Dabbelt <palmer@dabbelt.com>
+  Date:   Wed Jun 28 10:45:14 2017 -0700
+  
+      Merge branch 'riscv-for-submission-arch-v3' into riscv-for-submission-v3
+
+If you're going to try to build or boot the kernel, I'd recommend using that.
+
+Thanks to everyone who has helped review our port!
