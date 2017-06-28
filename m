@@ -1,62 +1,62 @@
-From: Joerg Roedel <joro@8bytes.org>
-Subject: Re: [PATCH v8 RESEND 27/38] iommu/amd: Allow the AMD IOMMU to work
- with memory encryption
-Date: Wed, 28 Jun 2017 11:36:27 +0200
-Message-ID: <20170628093627.GD14532@8bytes.org>
-References: <20170627150718.17428.81813.stgit@tlendack-t1.amdoffice.net>
- <20170627151230.17428.75281.stgit@tlendack-t1.amdoffice.net>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v2 1/3] io-64-nonatomic: add io{read|write}64[be] macros
+Date: Wed, 28 Jun 2017 12:11:37 +0200
+Message-ID: <CAK8P3a2tL5wdCRscpyb6fW+LQVM05urud=YQRS-3+=4w53rmvg@mail.gmail.com>
+References: <20170627230204.16410-1-logang@deltatee.com> <20170627230204.16410-2-logang@deltatee.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20170627151230.17428.75281.stgit@tlendack-t1.amdoffice.net>
-Sender: owner-linux-mm@kvack.org
-To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Borislav Petkov <bp@>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-crypto-owner@vger.kernel.org>
+In-Reply-To: <20170627230204.16410-2-logang@deltatee.com>
+Sender: linux-crypto-owner@vger.kernel.org
+To: Logan Gunthorpe <logang@deltatee.com>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jyri Sarha <jsarha@ti.com>, Stephen Bates <sbates@raithlin.com>, Christoph Hellwig <hch@lst.de>, Alan Cox <gnomes@lxorguk.ukuu.org.uk>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Tom,
-
-On Tue, Jun 27, 2017 at 10:12:30AM -0500, Tom Lendacky wrote:
+On Wed, Jun 28, 2017 at 1:02 AM, Logan Gunthorpe <logang@deltatee.com> wrote:
+> This patch adds io{read|write}64[be] macros to point to the readq/writeq
+> in use.
+>
+> This is because new drivers are encouraged to use ioreadXX, et al instead
+> of readX[1], et al -- and mixing ioreadXX with readq is pretty ugly.
+>
+> [1] ldd3: section 9.4.2
+>
+> Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
+> cc: Christoph Hellwig <hch@lst.de>
+> cc: Arnd Bergmann <arnd@arndb.de>
+> cc: Alan Cox <gnomes@lxorguk.ukuu.org.uk>
+> cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 > ---
->  drivers/iommu/amd_iommu.c       |   30 ++++++++++++++++--------------
->  drivers/iommu/amd_iommu_init.c  |   34 ++++++++++++++++++++++++++++------
->  drivers/iommu/amd_iommu_proto.h |   10 ++++++++++
->  drivers/iommu/amd_iommu_types.h |    2 +-
->  4 files changed, 55 insertions(+), 21 deletions(-)
+>  include/linux/io-64-nonatomic-hi-lo.h | 16 ++++++++++++++++
+>  include/linux/io-64-nonatomic-lo-hi.h | 16 ++++++++++++++++
+>  2 files changed, 32 insertions(+)
+>
+> diff --git a/include/linux/io-64-nonatomic-hi-lo.h b/include/linux/io-64-nonatomic-hi-lo.h
+> index defcc4644ce3..07a75831244f 100644
+> --- a/include/linux/io-64-nonatomic-hi-lo.h
+> +++ b/include/linux/io-64-nonatomic-hi-lo.h
+> @@ -54,4 +54,20 @@ static inline void hi_lo_writeq_relaxed(__u64 val, volatile void __iomem *addr)
+>  #define writeq_relaxed hi_lo_writeq_relaxed
+>  #endif
+>
+> +#ifndef ioread64
+> +#define ioread64 readq
+> +#endif
 
-Looks like a straightforward change. Just one nit below.
+This is wrong since ioread* is not the same read* on x86 and other
+architectures that have native PCI PIO accessors, or that require
+additional barriers for those.
 
-> +static bool amd_iommu_supports_sme(void)
-> +{
-> +	if (!sme_active() || (boot_cpu_data.x86 != 0x17))
-> +		return true;
-> +
-> +	/* For Fam17h, a specific level of support is required */
-> +	if (boot_cpu_data.microcode >= 0x08001205)
-> +		return true;
-> +
-> +	if ((boot_cpu_data.microcode >= 0x08001126) &&
-> +	    (boot_cpu_data.microcode <= 0x080011ff))
-> +		return true;
-> +
-> +	pr_notice("AMD-Vi: IOMMU not currently supported when SME is active\n");
-> +
-> +	return false;
-> +}
+You have to copy hi_lo_readq() here, and call ioread32 twice instead
+of calling readl() twice. Same for iowrite64.
 
-The name of the function is misleading. It checks whether the IOMMU can
-be enabled when SME is active. But the name suggests that it checks
-whether the iommu hardware supports SME.
+> +#ifndef ioread64be
+> +#define ioread64be(p) be64_to_cpu(ioread64(p))
+> +#endif
 
-How about renaming it to amd_iommu_sme_check()?
+This has another problem: ioread64() is defined to access little-endian
+registers, just like readq(). This means that instead of be64_to_cpu()
+you need swab64() and always perform the byte swap, otherwise this
+would be broken on big-endian architectures.
 
-With that change the patch is:
-
-	Acked-by: Joerg Roedel <jroedel@suse.de>
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+       Arnd
