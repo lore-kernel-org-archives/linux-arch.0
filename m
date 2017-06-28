@@ -1,73 +1,90 @@
-From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: [PATCH 9/9] RISC-V: Build Infastructure
-Date: Wed, 28 Jun 2017 22:25:00 +0100
-Message-ID: <20170628212500.GN6973@jhogan-linux.le.imgtec.org>
-References: <20170606230007.19101-1-palmer@dabbelt.com>
- <20170628185538.1804-1-palmer@dabbelt.com>
- <20170628185538.1804-10-palmer@dabbelt.com>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH 8/9] RISC-V: User-facing API
+Date: Wed, 28 Jun 2017 23:49:44 +0200 (CEST)
+Message-ID: <alpine.DEB.2.20.1706282336270.1890@nanos>
+References: <20170606230007.19101-1-palmer@dabbelt.com> <20170628185538.1804-1-palmer@dabbelt.com> <20170628185538.1804-9-palmer@dabbelt.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-        protocol="application/pgp-signature"; boundary="VpRFFy90J6DTn7yH"
+Content-Type: text/plain; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mailapp01.imgtec.com ([195.59.15.196]:3391 "EHLO
-        imgpgp01.kl.imgtec.org" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-        with ESMTP id S1751526AbdF1VZC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 28 Jun 2017 17:25:02 -0400
-Content-Disposition: inline
-In-Reply-To: <20170628185538.1804-10-palmer@dabbelt.com>
+Received: from Galois.linutronix.de ([146.0.238.70]:53804 "EHLO
+        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751523AbdF1Vv0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 28 Jun 2017 17:51:26 -0400
+In-Reply-To: <20170628185538.1804-9-palmer@dabbelt.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Palmer Dabbelt <palmer@dabbelt.com>
-Cc: peterz@infradead.org, mingo@redhat.com, mcgrof@kernel.org, viro@zeniv.linux.org.uk, sfr@canb.auug.org.au, nicolas.dichtel@6wind.com, rmk+kernel@armlinux.org.uk, msalter@redhat.com, tklauser@distanz.ch, will.deacon@arm.com, paul.gortmaker@windriver.com, linux@roeck-us.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, albert@sifive.com
+Cc: peterz@infradead.org, mingo@redhat.com, mcgrof@kernel.org, viro@zeniv.linux.org.uk, sfr@canb.auug.org.au, nicolas.dichtel@6wind.com, rmk+kernel@armlinux.org.uk, msalter@redhat.com, tklauser@distanz.ch, will.deacon@arm.com, james.hogan@imgtec.com, paul.gortmaker@windriver.com, linux@roeck-us.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, albert@sifive.com
 
---VpRFFy90J6DTn7yH
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-
-Hi Palmer,
-
-On Wed, Jun 28, 2017 at 11:55:38AM -0700, Palmer Dabbelt wrote:
-> +	select SYSRISCV_ATOMIC if !ISA_A
-...
-> +config SYSRISCV_ATOMIC
-> +	bool "Include support for atomic operation syscalls"
-> +	default !ISA_A
-> +	help
-> +	  If atomic memory instructions are present, i.e.,
-> +	  CONFIG_ISA_A, this includes support for the syscall that
-> +	  provides atomic accesses.  This is only useful to run
-> +	  binaries that require atomic access but were compiled with
-> +	  -mno-atomic.
+On Wed, 28 Jun 2017, Palmer Dabbelt wrote:
 > +
-> +	  If CONFIG_ISA_A is unset, this option is mandatory.
+> +SYSCALL_DEFINE3(sysriscv_cmpxchg32, unsigned long, arg1, unsigned long, arg2,
+> +		unsigned long, arg3)
+> +{
+> +	unsigned long flags;
+> +	unsigned long prev;
+> +	unsigned int *ptr;
+> +	unsigned int err;
 > +
-> +	  If you don't know what to do here, say N.
+> +	ptr = (unsigned int *)arg1;
 
-Can this be removed now that you mentioned the atomics syscall being
-mandatory? I can't find any other references to it.
+Errm. Why isn't arg1 a proper pointer type and the arguments arg2/3 u32?
 
-Cheers
-James
+And please give the arguments a proper name, so it's obvious what is what.
 
---VpRFFy90J6DTn7yH
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
+SYSCALL_DEFINE3(sysriscv_cmpxchg32, u32 __user *, ptr, u32 new, u32 old)
 
------BEGIN PGP SIGNATURE-----
+Hmm?
 
-iQIzBAEBCAAdFiEEd80NauSabkiESfLYbAtpk944dnoFAllUHpcACgkQbAtpk944
-dnocwA//X8ELwdxtCUCVeAsO7/aD0IZDlYq94atznAELV6tkReS1EUV6ALY0/k8L
-NfWfEY4nrR1k0qREj/GX6RSWpOFiCMuhpQX760UWQM9fOgUG+goO9lZbJIFyKNI+
-GV7/dFjPt24N/b1bBVNj4jKzsgSoduMWWWuyWteiqY32K22HHtklqcU93efSZqSi
-tgxoe+MuwISJmyd9zX4VoArmRLU09EdVzspthKNLw4uNVx/2rvC8eNLRfmVRlk1R
-l64P4Rounzd5rB47JWDuryJueFQBUYx5eb3+IC3rhkp7ZkNnWuUkNShmkAEmFzSy
-WV4A/CYi1Z2Rvhq060KPqymiZD6XpaUm+h5GnvijGpT0WlaS7a08bXwXjHVby7LZ
-2Zqon7hEwhlY2DssEQNtXBmx05Ey47UtLmc/dq/1BTe5BBCBacq5lMlbhC4LNiPE
-bXM1p51m8m+68WGg12shZBQXO7dHOzHjK0/BNZ0NbkCAOIYIM02zgMZncemdYOW1
-Co+vyF/RWxTX3mCyrIfHBqti4N44huGA6U9Sk6DUDQoMJPdzI04OaJD2vUrQJgFK
-/XgAPSRl36N+bHcHhRcNrXsSuLHPUp+tcocbMRbZbYQiixM53AgU0OpOS6h7T9Z9
-HEsHMaza7p/b2FwPFqbe0TZCgh2uIi7fyUshw7ZmQ7Ju2K/9IcY=
-=RZZS
------END PGP SIGNATURE-----
+> +	if (!access_ok(VERIFY_WRITE, ptr, sizeof(unsigned int)))
+> +		return -EFAULT;
+> +
+> +	preempt_disable();
+> +	raw_local_irq_save(flags);
 
---VpRFFy90J6DTn7yH--
+Why do you want to disable interrupts here? This is thread context and
+accessing user space memory, so the only protection this needs is against
+preemption.
+
+> +	err = __get_user(prev, ptr);
+> +	if (likely(!err && prev == arg2))
+> +		err = __put_user(arg3, ptr);
+> +	raw_local_irq_restore(flags);
+> +	preempt_enable();
+> +
+> +	return unlikely(err) ? err : prev;
+> +}
+> +
+> +SYSCALL_DEFINE3(sysriscv_cmpxchg64, unsigned long, arg1, unsigned long, arg2,
+> +		unsigned long, arg3)
+
+This one is even worse. How does this implement cmpxchg64 on a 32bit machine?
+
+Answer: Not at all, because arg2 and 3 are 32bit ....
+
+> +{
+> +	unsigned long flags;
+> +	unsigned long prev;
+> +	unsigned int *ptr;
+> +	unsigned int err;
+> +
+> +	ptr = (unsigned int *)arg1;
+
+Type casting to random pointer types makes the code more obvious
+and safe, right? What the heck has a int pointer to do with u64?
+
+> +	if (!access_ok(VERIFY_WRITE, ptr, sizeof(unsigned long)))
+> +		return -EFAULT;
+> +
+> +	preempt_disable();
+> +	raw_local_irq_save(flags);
+
+Same as above.
+
+> +	err = __get_user(prev, ptr);
+
+Sigh. Type safety is overrated, right?
+
+Thanks,
+
+	tglx
