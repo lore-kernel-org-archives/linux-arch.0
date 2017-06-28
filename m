@@ -1,81 +1,62 @@
-From: Ram Pai <linuxram@us.ibm.com>
-Subject: Re: [RFC v4 09/17] powerpc: call the hash functions with the correct
- pkey value
-Date: Wed, 28 Jun 2017 00:12:28 -0700
-Message-ID: <20170628071228.GA5561@ram.oc3035372033.ibm.com>
-References: <1498558319-32466-1-git-send-email-linuxram@us.ibm.com>
- <1498558319-32466-10-git-send-email-linuxram@us.ibm.com>
- <5e4fa932-4313-5376-2147-a6431bbec16b@linux.vnet.ibm.com>
-Reply-To: Ram Pai <linuxram@us.ibm.com>
+From: Joerg Roedel <joro@8bytes.org>
+Subject: Re: [PATCH v8 RESEND 27/38] iommu/amd: Allow the AMD IOMMU to work
+ with memory encryption
+Date: Wed, 28 Jun 2017 11:36:27 +0200
+Message-ID: <20170628093627.GD14532@8bytes.org>
+References: <20170627150718.17428.81813.stgit@tlendack-t1.amdoffice.net>
+ <20170627151230.17428.75281.stgit@tlendack-t1.amdoffice.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:45069 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1751312AbdF1HMk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 28 Jun 2017 03:12:40 -0400
-Received: from pps.filterd (m0098421.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.20/8.16.0.20) with SMTP id v5S79S35030496
-        for <linux-arch@vger.kernel.org>; Wed, 28 Jun 2017 03:12:40 -0400
-Received: from e32.co.us.ibm.com (e32.co.us.ibm.com [32.97.110.150])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2bc2hvjttt-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Wed, 28 Jun 2017 03:12:39 -0400
-Received: from localhost
-        by e32.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <linuxram@us.ibm.com>;
-        Wed, 28 Jun 2017 01:12:39 -0600
+Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <5e4fa932-4313-5376-2147-a6431bbec16b@linux.vnet.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
-Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
+In-Reply-To: <20170627151230.17428.75281.stgit@tlendack-t1.amdoffice.net>
+Sender: owner-linux-mm@kvack.org
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Borislav Petkov <bp@>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jun 27, 2017 at 08:54:07PM +0530, Aneesh Kumar K.V wrote:
-> 
-> 
-> On Tuesday 27 June 2017 03:41 PM, Ram Pai wrote:
-> >Pass the correct protection key value to the hash functions on
-> >page fault.
-> >
-> >Signed-off-by: Ram Pai <linuxram@us.ibm.com>
-> >---
-> >  arch/powerpc/include/asm/pkeys.h | 11 +++++++++++
-> >  arch/powerpc/mm/hash_utils_64.c  |  4 ++++
-> >  arch/powerpc/mm/mem.c            |  6 ++++++
-> >  3 files changed, 21 insertions(+)
-> >
-> >diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
-> >index ef1c601..1370b3f 100644
-> >--- a/arch/powerpc/include/asm/pkeys.h
-> >+++ b/arch/powerpc/include/asm/pkeys.h
-> >@@ -74,6 +74,17 @@ static inline bool mm_pkey_is_allocated(struct mm_struct *mm, int pkey)
-> >  }
-> >
-> >  /*
-> >+ * return the protection key of the vma corresponding to the
-> >+ * given effective address @ea.
-> >+ */
-> >+static inline int mm_pkey(struct mm_struct *mm, unsigned long ea)
-> >+{
-> >+	struct vm_area_struct *vma = find_vma(mm, ea);
-> >+	int pkey = vma ? vma_pkey(vma) : 0;
-> >+	return pkey;
-> >+}
-> >+
-> >+/*
-> >
-> 
-> That is not going to work in hash fault path right ? We can't do a
-> find_vma there without holding the mmap_sem
+Hi Tom,
 
-There is a fundamental problem with this new design. Looks like we can't
-hold a lock in that path, without badly hurting the performance.
+On Tue, Jun 27, 2017 at 10:12:30AM -0500, Tom Lendacky wrote:
+> ---
+>  drivers/iommu/amd_iommu.c       |   30 ++++++++++++++++--------------
+>  drivers/iommu/amd_iommu_init.c  |   34 ++++++++++++++++++++++++++++------
+>  drivers/iommu/amd_iommu_proto.h |   10 ++++++++++
+>  drivers/iommu/amd_iommu_types.h |    2 +-
+>  4 files changed, 55 insertions(+), 21 deletions(-)
 
-I am moving back to the old design. Cant by-pass the pte. The
-keys will be programmed into the pte which will than be used
-to program the hpte.
+Looks like a straightforward change. Just one nit below.
 
-RP
+> +static bool amd_iommu_supports_sme(void)
+> +{
+> +	if (!sme_active() || (boot_cpu_data.x86 != 0x17))
+> +		return true;
+> +
+> +	/* For Fam17h, a specific level of support is required */
+> +	if (boot_cpu_data.microcode >= 0x08001205)
+> +		return true;
+> +
+> +	if ((boot_cpu_data.microcode >= 0x08001126) &&
+> +	    (boot_cpu_data.microcode <= 0x080011ff))
+> +		return true;
+> +
+> +	pr_notice("AMD-Vi: IOMMU not currently supported when SME is active\n");
+> +
+> +	return false;
+> +}
+
+The name of the function is misleading. It checks whether the IOMMU can
+be enabled when SME is active. But the name suggests that it checks
+whether the iommu hardware supports SME.
+
+How about renaming it to amd_iommu_sme_check()?
+
+With that change the patch is:
+
+	Acked-by: Joerg Roedel <jroedel@suse.de>
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
