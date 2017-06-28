@@ -1,66 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([103.22.144.67]:60373 "EHLO ozlabs.org"
+Received: from 8bytes.org ([81.169.241.247]:46988 "EHLO theia.8bytes.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751457AbdF1Gdy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 28 Jun 2017 02:33:54 -0400
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [PATCH v2] spin loop primitives for busy waiting
-In-Reply-To: <20170529022223.14793-1-npiggin@gmail.com>
-References: <20170529022223.14793-1-npiggin@gmail.com>
-Date: Wed, 28 Jun 2017 16:33:52 +1000
-Message-ID: <877ezwd3jj.fsf@concordia.ellerman.id.au>
+        id S1751491AbdF1Jgb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 28 Jun 2017 05:36:31 -0400
+Date: Wed, 28 Jun 2017 11:36:27 +0200
+From: Joerg Roedel <joro@8bytes.org>
+Subject: Re: [PATCH v8 RESEND 27/38] iommu/amd: Allow the AMD IOMMU to work
+ with memory encryption
+Message-ID: <20170628093627.GD14532@8bytes.org>
+References: <20170627150718.17428.81813.stgit@tlendack-t1.amdoffice.net>
+ <20170627151230.17428.75281.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20170627151230.17428.75281.stgit@tlendack-t1.amdoffice.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org
-Message-ID: <20170628063352.Cz1f7EX2mkwjdII5eKe6J50G3BIS-HBzQl2GGiSFl4k@z>
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>
+Message-ID: <20170628093627.F8T4dYNuOF8rMm3D_ebCcA9CSKNBREQ7PCtdmaAxPsU@z>
 
-Nicholas Piggin <npiggin@gmail.com> writes:
+Hi Tom,
 
-> Current busy-wait loops are implemented by repeatedly calling cpu_relax()
-> to give an arch option for a low-latency option to improve power and/or
-> SMT resource contention.
->
-> This poses some difficulties for powerpc, which has SMT priority setting
-> instructions (priorities determine how ifetch cycles are apportioned).
-> powerpc's cpu_relax() is implemented by setting a low priority then
-> setting normal priority. This has several problems:
->
->  - Changing thread priority can have some execution cost and potential
->    impact to other threads in the core. It's inefficient to execute them
->    every time around a busy-wait loop.
->
->  - Depending on implementation details, a `low ; medium` sequence may
->    not have much if any affect. Some software with similar pattern
->    actually inserts a lot of nops between, in order to cause a few fetch
->    cycles with the low priority.
->
->  - The busy-wait loop runs with regular priority. This might only be a few
->    fetch cycles, but if there are several threads running such loops, they
->    could cause a noticable impact on a non-idle thread.
->
-> Implement spin_begin, spin_end primitives that can be used around busy
-> wait loops, which default to no-ops. And spin_cpu_relax which defaults to
-> cpu_relax.
->
-> This will allow architectures to hook the entry and exit of busy-wait
-> loops, and will allow powerpc to set low SMT priority at entry, and
-> normal priority at exit.
->
-> Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
-> Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+On Tue, Jun 27, 2017 at 10:12:30AM -0500, Tom Lendacky wrote:
 > ---
->
-> Since last time:
-> - Fixed spin_do_cond with initial test as suggested by Linus.
-> - Renamed it to spin_until_cond, which reads a little better.
->
->  include/linux/processor.h | 70 +++++++++++++++++++++++++++++++++++++++++++++++
->  1 file changed, 70 insertions(+)
->  create mode 100644 include/linux/processor.h
+>  drivers/iommu/amd_iommu.c       |   30 ++++++++++++++++--------------
+>  drivers/iommu/amd_iommu_init.c  |   34 ++++++++++++++++++++++++++++------
+>  drivers/iommu/amd_iommu_proto.h |   10 ++++++++++
+>  drivers/iommu/amd_iommu_types.h |    2 +-
+>  4 files changed, 55 insertions(+), 21 deletions(-)
 
-I'm gonna merge this via the powerpc tree unless anyone objects.
+Looks like a straightforward change. Just one nit below.
 
-cheers
+> +static bool amd_iommu_supports_sme(void)
+> +{
+> +	if (!sme_active() || (boot_cpu_data.x86 != 0x17))
+> +		return true;
+> +
+> +	/* For Fam17h, a specific level of support is required */
+> +	if (boot_cpu_data.microcode >= 0x08001205)
+> +		return true;
+> +
+> +	if ((boot_cpu_data.microcode >= 0x08001126) &&
+> +	    (boot_cpu_data.microcode <= 0x080011ff))
+> +		return true;
+> +
+> +	pr_notice("AMD-Vi: IOMMU not currently supported when SME is active\n");
+> +
+> +	return false;
+> +}
+
+The name of the function is misleading. It checks whether the IOMMU can
+be enabled when SME is active. But the name suggests that it checks
+whether the iommu hardware supports SME.
+
+How about renaming it to amd_iommu_sme_check()?
+
+With that change the patch is:
+
+	Acked-by: Joerg Roedel <jroedel@suse.de>
