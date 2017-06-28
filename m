@@ -1,87 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ale.deltatee.com ([207.54.116.67]:43180 "EHLO ale.deltatee.com"
+Received: from ozlabs.org ([103.22.144.67]:39601 "EHLO ozlabs.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753931AbdF0XCO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 27 Jun 2017 19:02:14 -0400
-From: Logan Gunthorpe <logang@deltatee.com>
-Date: Tue, 27 Jun 2017 17:02:02 -0600
-Message-ID: <20170627230204.16410-2-logang@deltatee.com>
-In-Reply-To: <20170627230204.16410-1-logang@deltatee.com>
-References: <20170627230204.16410-1-logang@deltatee.com>
-Subject: [PATCH v2 1/3] io-64-nonatomic: add io{read|write}64[be] macros
+        id S1753592AbdF1BuR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 27 Jun 2017 21:50:17 -0400
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [RFC v4 17/17] procfs: display the protection-key number associated with a vma
+In-Reply-To: <1498558319-32466-18-git-send-email-linuxram@us.ibm.com>
+References: <1498558319-32466-1-git-send-email-linuxram@us.ibm.com> <1498558319-32466-18-git-send-email-linuxram@us.ibm.com>
+Date: Wed, 28 Jun 2017 11:50:13 +1000
+Message-ID: <87d19odgoa.fsf@concordia.ellerman.id.au>
+MIME-Version: 1.0
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jyri Sarha <jsarha@ti.com>, Stephen Bates <sbates@raithlin.com>, Logan Gunthorpe <logang@deltatee.com>, Christoph Hellwig <hch@lst.de>, Alan Cox <gnomes@lxorguk.ukuu.org.uk>
-Message-ID: <20170627230202.Zho4DlefyRcJs7apftLOnxiaG2fVJ1GEeLuOyxQjJTs@z>
+To: Ram Pai <linuxram@us.ibm.com>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
+Cc: benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
+Message-ID: <20170628015013.ro1MegikVuU44mlkLpB6J5IPbZnJCkdSXgJJ2oTPR14@z>
 
-This patch adds io{read|write}64[be] macros to point to the readq/writeq
-in use.
+Ram Pai <linuxram@us.ibm.com> writes:
 
-This is because new drivers are encouraged to use ioreadXX, et al instead
-of readX[1], et al -- and mixing ioreadXX with readq is pretty ugly.
+> Display the pkey number associated with the vma in smaps of a task.
+> The key will be seen as below:
+>
+> VmFlags: rd wr mr mw me dw ac key=0
 
-[1] ldd3: section 9.4.2
+Why wouldn't we just emit a "ProtectionKey:" line like x86 does?
 
-Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
-cc: Christoph Hellwig <hch@lst.de>
-cc: Arnd Bergmann <arnd@arndb.de>
-cc: Alan Cox <gnomes@lxorguk.ukuu.org.uk>
-cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
----
- include/linux/io-64-nonatomic-hi-lo.h | 16 ++++++++++++++++
- include/linux/io-64-nonatomic-lo-hi.h | 16 ++++++++++++++++
- 2 files changed, 32 insertions(+)
+See their arch_show_smap().
 
-diff --git a/include/linux/io-64-nonatomic-hi-lo.h b/include/linux/io-64-nonatomic-hi-lo.h
-index defcc4644ce3..07a75831244f 100644
---- a/include/linux/io-64-nonatomic-hi-lo.h
-+++ b/include/linux/io-64-nonatomic-hi-lo.h
-@@ -54,4 +54,20 @@ static inline void hi_lo_writeq_relaxed(__u64 val, volatile void __iomem *addr)
- #define writeq_relaxed hi_lo_writeq_relaxed
- #endif
- 
-+#ifndef ioread64
-+#define ioread64 readq
-+#endif
-+
-+#ifndef iowrite64
-+#define iowrite64 writeq
-+#endif
-+
-+#ifndef ioread64be
-+#define ioread64be(p) be64_to_cpu(ioread64(p))
-+#endif
-+
-+#ifndef iowrite64be
-+#define iowrite64be(v, p) iowrite64(cpu_to_be64(v), (p))
-+#endif
-+
- #endif	/* _LINUX_IO_64_NONATOMIC_HI_LO_H_ */
-diff --git a/include/linux/io-64-nonatomic-lo-hi.h b/include/linux/io-64-nonatomic-lo-hi.h
-index 084461a4e5ab..3d0565e67175 100644
---- a/include/linux/io-64-nonatomic-lo-hi.h
-+++ b/include/linux/io-64-nonatomic-lo-hi.h
-@@ -54,4 +54,20 @@ static inline void lo_hi_writeq_relaxed(__u64 val, volatile void __iomem *addr)
- #define writeq_relaxed lo_hi_writeq_relaxed
- #endif
- 
-+#ifndef ioread64
-+#define ioread64 readq
-+#endif
-+
-+#ifndef iowrite64
-+#define iowrite64 writeq
-+#endif
-+
-+#ifndef ioread64be
-+#define ioread64be(p) be64_to_cpu(ioread64(p))
-+#endif
-+
-+#ifndef iowrite64be
-+#define iowrite64be(v, p) iowrite64(cpu_to_be64(v), (p))
-+#endif
-+
- #endif	/* _LINUX_IO_64_NONATOMIC_LO_HI_H_ */
--- 
-2.11.0
+You should probably also do what x86 does, which is to not display the
+key on CPUs that don't support keys.
+
+cheers
