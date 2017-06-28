@@ -1,21 +1,15 @@
 From: Palmer Dabbelt <palmer@dabbelt.com>
 Subject: [PATCH 1/9] RISC-V: Init and Halt Code
 Date: Wed, 28 Jun 2017 11:55:30 -0700
-Message-ID: <20170628185538.1804-2-palmer@dabbelt.com>
+Message-ID: <20170628185538.1804-2-palmer__24430.9420152151$1498676188$gmane$org@dabbelt.com>
 References: <20170606230007.19101-1-palmer@dabbelt.com>
  <20170628185538.1804-1-palmer@dabbelt.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f67.google.com ([74.125.83.67]:32825 "EHLO
-        mail-pg0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751560AbdF1Szz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 28 Jun 2017 14:55:55 -0400
-Received: by mail-pg0-f67.google.com with SMTP id u62so9162377pgb.0
-        for <linux-arch@vger.kernel.org>; Wed, 28 Jun 2017 11:55:54 -0700 (PDT)
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20170628185538.1804-1-palmer@dabbelt.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: peterz@infradead.org, mingo@redhat.com, mcgrof@kernel.org, viro@zeniv.linux.org.uk, sfr@canb.auug.org.au, nicolas.dichtel@6wind.com, rmk+kernel@armlinux.org.uk, msalter@redhat.com, tklauser@distanz.ch, will.deacon@arm.com, james.hogan@imgtec.com, paul.gortmaker@windriver.com, linux@roeck-us.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, albert@sifive.com
 Cc: Palmer Dabbelt <palmer@dabbelt.com>
+List-Id: linux-arch.vger.kernel.org
 
 This contains the various __init C functions, the initial assembly
 kernel entry point, and the code to reset the system.  When a file was
