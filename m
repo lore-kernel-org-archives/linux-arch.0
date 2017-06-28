@@ -1,15 +1,21 @@
 From: Palmer Dabbelt <palmer@dabbelt.com>
 Subject: [PATCH 7/9] RISC-V: Paging and MMU
 Date: Wed, 28 Jun 2017 11:55:36 -0700
-Message-ID: <20170628185538.1804-8-palmer@dabbelt.com>
+Message-ID: <20170628185538.1804-8-palmer__41887.254760559$1498676532$gmane$org@dabbelt.com>
 References: <20170606230007.19101-1-palmer@dabbelt.com>
  <20170628185538.1804-1-palmer@dabbelt.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pf0-f195.google.com ([209.85.192.195]:35128 "EHLO
+        mail-pf0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751744AbdF1S4C (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 28 Jun 2017 14:56:02 -0400
+Received: by mail-pf0-f195.google.com with SMTP id s66so10062099pfs.2
+        for <linux-arch@vger.kernel.org>; Wed, 28 Jun 2017 11:56:02 -0700 (PDT)
 In-Reply-To: <20170628185538.1804-1-palmer@dabbelt.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: peterz@infradead.org, mingo@redhat.com, mcgrof@kernel.org, viro@zeniv.linux.org.uk, sfr@canb.auug.org.au, nicolas.dichtel@6wind.com, rmk+kernel@armlinux.org.uk, msalter@redhat.com, tklauser@distanz.ch, will.deacon@arm.com, james.hogan@imgtec.com, paul.gortmaker@windriver.com, linux@roeck-us.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, albert@sifive.com
 Cc: Palmer Dabbelt <palmer@dabbelt.com>
-List-Id: linux-arch.vger.kernel.org
 
 This patch contains code to manage the RISC-V MMU, including definitions
 of the page tables and the page walking code.
