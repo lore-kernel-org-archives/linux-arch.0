@@ -1,75 +1,77 @@
-From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: Re: [PATCH v8 RESEND 27/38] iommu/amd: Allow the AMD IOMMU to work
- with memory encryption
-Date: Wed, 28 Jun 2017 09:05:44 -0500
-Message-ID: <03a9d0f5-1f0e-ca0c-78a4-c3a7242f6935@amd.com>
-References: <20170627150718.17428.81813.stgit@tlendack-t1.amdoffice.net>
- <20170627151230.17428.75281.stgit@tlendack-t1.amdoffice.net>
- <20170628093627.GD14532@8bytes.org>
+From: <tchidrenplytoo@aim.com>
+Subject: (unknown)
+Date: Wed, 28 Jun 2017 14:22:47 -0000
+Message-ID: <149865976761.29697.8366974062136669539@isurgut.ru>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20170628093627.GD14532@8bytes.org>
-Content-Language: en-US
-Sender: owner-linux-mm@kvack.org
-To: Joerg Roedel <joro@8bytes.org>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Borislav Petkov <bp@alie>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: application/zip; name="EMAIL_202419_linux-arch.zip"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from 90-151-121-101.pppoe-adsl.isurgut.ru ([90.151.121.101]:48876
+        "HELO isurgut.ru" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org
+        with SMTP id S1752094AbdF1OWw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 28 Jun 2017 10:22:52 -0400
+Content-Disposition: attachment
+Subject: 
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org
 
-On 6/28/2017 4:36 AM, Joerg Roedel wrote:
-> Hi Tom,
-
-Hi Joerg,
-
-> 
-> On Tue, Jun 27, 2017 at 10:12:30AM -0500, Tom Lendacky wrote:
->> ---
->>   drivers/iommu/amd_iommu.c       |   30 ++++++++++++++++--------------
->>   drivers/iommu/amd_iommu_init.c  |   34 ++++++++++++++++++++++++++++------
->>   drivers/iommu/amd_iommu_proto.h |   10 ++++++++++
->>   drivers/iommu/amd_iommu_types.h |    2 +-
->>   4 files changed, 55 insertions(+), 21 deletions(-)
-> 
-> Looks like a straightforward change. Just one nit below.
-> 
->> +static bool amd_iommu_supports_sme(void)
->> +{
->> +	if (!sme_active() || (boot_cpu_data.x86 != 0x17))
->> +		return true;
->> +
->> +	/* For Fam17h, a specific level of support is required */
->> +	if (boot_cpu_data.microcode >= 0x08001205)
->> +		return true;
->> +
->> +	if ((boot_cpu_data.microcode >= 0x08001126) &&
->> +	    (boot_cpu_data.microcode <= 0x080011ff))
->> +		return true;
->> +
->> +	pr_notice("AMD-Vi: IOMMU not currently supported when SME is active\n");
->> +
->> +	return false;
->> +}
-> 
-> The name of the function is misleading. It checks whether the IOMMU can
-> be enabled when SME is active. But the name suggests that it checks
-> whether the iommu hardware supports SME.
-> 
-> How about renaming it to amd_iommu_sme_check()?
-
-Can do.
-
-Thanks,
-Tom
-
-> 
-> With that change the patch is:
-> 
-> 	Acked-by: Joerg Roedel <jroedel@suse.de>
-> 
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+UEsDBBQAAgAIAASg3EoVbMdkWQwAAGAMAAAJABwAMTk4NjcuemlwVVQJAANntlNZZ7ZTWXV4CwAB
+BAAAAAAEAAAAAHVXZzQbjBoWER1Ro0KootIaNaLUalCKlNqjVSEVVastqtQsUtuN/bU+n1hFa9Um
+iCAtTe3WqPklNrFniiLc9n4/7jn3nPue87zjec/7/n4ecyMgG4SFleU0C/At1RCg0vO0EczC4gpj
++cVcZFG4oaaiCn/ic+/uGRagS50V6jd8A8AsADaWX/GfNG/b6Xmxk0fT6NXxQ3Oob5XQdRRKfdzj
+o8BH1XwuhDfgCd+NP2y0uZQXtPvI6vafu8uXC9z66zz5+64TnG5/2Z5BOvG3f9ujtdFenAwqre0N
+KpVJFEIzmLX+nt5bGSOYiaZQXwGRm6JOyc1N091rv5jJJpGI04HSQD22Y/pFvVVaaF6sFj5CVvEh
+T/re8vRm4RFUntFLgx/o73BP98okjpetx2CPGf6GGGSyxEyeidINqco0mY609oDoet5s0AOPfefa
+Fjv9+rSLgc0zmu2YihkwLq6i3iK4/IgdcbTm5XaMFhci31Ht33+O57QITrfXCvF3Wz9cet0S/2gU
+th44pMxFW3ui9rl2b6U1Rx8ry9wH6ojxx255Evwr2+V0KmMYTJGuhMGHBNqXC0BwDEW3nVnHm+Z4
+hiccO3gFHllYsJKDPaEeH3vZ/ExImhUKeIynvh+HcdYJlMRzkYpIITLwHFHNVdhQq8Ta4i3Ot55m
+rEnaYrVcK6dbyj+YoDxxQbM1jlbzQhvSzbLVJinPzmO6stiumKjcgY0ESuwptkpuRResSm1vr0kC
+aAdtiIP55WVa2uqK/IZz/CCW9GFRerxvIevvVrsCRI67W1XTbA3Z/OibaMzhHlf99FaQcHT5yFYa
+6TmFRF5fZE9MIvecJ1vGKd8FXQHVk8vyAw6VbePMj+wok0ScNeQ8cBRwtupnoyZH76lmNhEzbUMI
+dY26xWStuf7KFNB+D2rACw/ArwYfKBGnTxs9NtEmKtpPMYc/fvAnNUtU2NEoB/vPoUUxQBUI9Fkx
+47JGskdeUq+oLiPveyZBK1cN3qR6lGmzcm3+X4QDBtXWRFZc5vb9MxzwF+pIR5gBVUS4PEL+BiOI
+khJfIu19G9kvKSChMVeBcXM3P37zzXd+6GpYdwcT3tjwmEoxsX1A3d+dKfg6f9JJMbHrJhwdeT23
+6giBbawYhxbHpx4GNTUUIwQlyWd35idUt9FOasRnTejuELEdy3R6EDENI7mxQy0XI/OhEuJ3/soZ
+OyguvdFFKqknFpcunSXGBC/+MTbe3OHpFDyI/2qTv+13LiMo3Wr3u1bu8dfhZ/qDhBTfC0RTMWBQ
+9/i/Sgd1sKi2NlHvtbkQ+UckavAQo4597laFpRNEjn5fpV7YeOSK6mFQVf5r1/Sjklb3KGYqtZDw
+k+9b9zCjjUCnNtX+vCDjenNlXrUrM/da1sBAsD2uNKXxE9T+hW/W2MnAj4zvjgn7uqceYIYXkaas
+qFRaEnHszORP/Mgm1qX6bEfByVsuJ1bRWLkFLm/NLpLOuhEqvy2TOpO0LwaP1XK0BKgm38OXtuCG
+wxc6rD0Mbe0y3mubZlwYgERta2z5JcWSPsPuf8J9XwiIlzHeqVUg2vCJePW1po88CczWbftUngKK
+NTA0Y+SjON8UQdV3wm37/4qP7CguMrNKh2rArPAtcvkFfoG6vOY2QwvIAOBGklTROdC9J1JhUHUn
+nlAx73idcF/cDVysWrWNRWSPPBS1KKfOQ8Gh8LW15Ky1+5pGy/LVdokAHHfSFU3nMNzxqzUbcrKC
+ePCErex4q7sFhB1yj79m9iDPxw71pXGcwQZ2aK7CC55DJXMPxT5r5VgMG25d+MCkuftkZMimodBA
+XEaklLExO+OxoOTnym89dJM+Csp6/uuLaC5e55pXDno8E5YQ9cOHEBiCc47Q7w2xRLiia/Vyg6ry
+6jv7ARRmZayja/W0s9OtjXMgubLT6EQFZ1c0a1JAHky0MwpkQUVBpm/16EOsbIvRqTwptYCdMHSC
+jglEVc/CU5BFXoReqAeoPq1SyE/AEbSdCQUnl6qNtnOHS4IWFOf3HRfOa4zYDgjM8HWmi/XyplRC
+gz5ho1RF3fjnorfdlR4c/CF71yfUw8CCHwYuYnpnSaqIFj3Xc4hRiyvNFQP3uSxy8H+Q4q1CykWc
+JMkO/M2FThR4OxGm+3S5gtBQ9+NT5CbZZcJBEPB3UCVyb7JSW3vTiDhFknJ3hbdr2AAgnHKBYlpl
+bkW1XStlYjy2qnNmpYOI2yl8okM2MoaI+4x3hfqIWfcA1n54xxAemZ8LOa3jJzFn/0PHQ+R7YofQ
+s4eh6YJQWRnvLhwn3BpSOduHW7ABW3ZfeksukM+1+paorZ43US2yQteT4gay5Rux4N7EGbqkqGJl
+4joamvYVCIskKQ5UXy8BItUzSgGMneEpIBAd+K1XDXT4OWu13p+gjC5ZoV6hCgiljvp2OX56XZTS
+c5tEXyXAp/LqoSBrq0s82TKID3nZIaIl6qNHJ7l5MMVNv96eiJAALviu3mD/8QSMgUYi52on9RIc
+rGFxqVpC6+CLFn02HJsiUt87fCXuj7D6c9YVuLSonrT5zVenpGLfnugPihIMKk69BsM9jVzEnrLs
+8grELOfAV7F+mMrVFRnFPjV/p03ScOObw5JoYXEbh2uBfaK7/le3dOsAI1DxPcWI3Ib50FPGf0zR
+AlZhOnC1de0mVISGbMOjARrNLVVltfz8bT51YpNqbVuexQTXUHic4g7emtGz3WBMx3Ew2ODh92+n
+XHe46FOXl9lfIy+eFt59TUuPfzZ5o8s5IfDaQ8o95oca2gMPkVWbeR058xtRvXu1Cl4pw1EpIQ/V
+fYjjZndLjucs1oqyO1lD9DlNRtMf63+WRax/nap4pVMNPjD4gR1tXoij+XoiHNBTjgQt5XV9fj5l
+dfybLVdhdZdp8uyA44JlaQLmC4LV3mMsRIoOrzZ/+tB5ZaWF3acrcC+hpWGpJ3RK/j3XU++KccwF
+CeVQfU5r+boepPXOn+rFjzBLYyNscE19C+LiSmbgtVWFlJpxaEoMA9+PLJeG1vEjV+eV056SOFHf
+n6uCnD7FgZozvOptEv4E5TbKjCuWT3r5Iwa6Q8tBYWAEI5WP2HAJ11DjNbYkeE5xuAZ4p7Nt846O
+COi8eRy7Hzpxh6ERKQzN44L3J4Yf7ka+ZJqDCRXCayNeTJdpI6dw7yXtExIxHxAXz2gerv761Yc1
+TiqtOl/HAzRzsQaqIjsbk2jIJE/NuP7gokGwYd0v15Nq+Xmqci8XC7Y5KfU81u9INK7JooskuhqM
+93/cC9SuXNh2eMkQz+diYhej4qXKBe7AePhO4d8ifr1tzLwbmS0lXXYSwWkLVrRTv7og+wRYAWuz
+KfNt7mIAzeTyi0i6u5Y3MxkpYA2iNr2+wKi3RWhMkeMLqF0ziLz4lPwJ2QGbH8hEV2s8ulqKOwUp
+GJt591zpUPfBIE3Z7L2G+tnF2IN+zp11S3/XJXTcx95KXYu/etGZ2+jpDmeiGBAd/bra3KhVEPCX
+25zpJvZHjhk9JCybsw/b/npgYfXdBgUtwn2xgYP/xeVDneyTkPq8zSY1sHCYRrd39w29Ky/YbInf
+DvBTIM2rgr3eXsmPzN6HiMk0Z4OSV5Rx8otPw2Z23f1jW3j5UGZBit5bH20t078mZkaXWjNPfQBO
+x0uswgmXSxIy0KPQK6XiCZ1FASLTRN4jCeiPWrJSoul4evevtRwORD8MViDb9mDZo8bT+J14XHcj
+kNyzdL802+6OqEq+HQXT9Py5dekq1ynd0smqP4uPy4aQ+1xZrdvxhnsg4pBN+8u13Y74RLVlaGHh
+5PIKfWcq0naxBU98I9/A3e/WZv+GdhN23rSL8a7dJynHDlP8kupYbqC7j9AJ3e5sIt2CS0MrL4dJ
+evsBJYUpjv4FJBI3JQr6EmZPLLqetLLu6IRpHKVlbZhmaa0/r5ecLNlaoh+RMPu3S3PyzW7Grv14
+RP15SuHlwdzOZOTG2HT+5Oy6tHfS/X58kvzkTeMNEU7/vY1J+wpT8lKUL4aRulLUP1bozWzByccW
+8i/Wjz47JrTOwsMRRz4god05IdGWgSXVFvXj3PAQev4zxnUGyY3ZkDiBsUfO8h3Dp6UbPTjJXeIx
+mAqpeTcl12jy3Y+F5MVrIQfKiJ+sAiZMbkpaJ/jk7LQbPemnTOSsqGjkRszWLsbcCMAqAvx/6l/g
+t7hnAfzCu7Df3X+9AOgfL/A/PsDcCMT+zwWAxfRXPQL/nv4NUEsBAh4DFAACAAgABKDcShVsx2RZ
+DAAAYAwAAAkAGAAAAAAAAAAAAKSBAAAAADE5ODY3LnppcFVUBQADZ7ZTWXV4CwABBAAAAAAEAAAA
+AFBLBQYAAAAAAQABAE8AAACcDAAAAAA=
