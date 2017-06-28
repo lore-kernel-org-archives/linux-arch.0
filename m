@@ -1,75 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-cys01nam02on0083.outbound.protection.outlook.com ([104.47.37.83]:52939
-        "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751616AbdF1OF6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 28 Jun 2017 10:05:58 -0400
-Subject: Re: [PATCH v8 RESEND 27/38] iommu/amd: Allow the AMD IOMMU to work
- with memory encryption
-References: <20170627150718.17428.81813.stgit@tlendack-t1.amdoffice.net>
- <20170627151230.17428.75281.stgit@tlendack-t1.amdoffice.net>
- <20170628093627.GD14532@8bytes.org>
-From: Tom Lendacky <thomas.lendacky@amd.com>
-Message-ID: <03a9d0f5-1f0e-ca0c-78a4-c3a7242f6935@amd.com>
-Date: Wed, 28 Jun 2017 09:05:44 -0500
+Received: from mail-io0-f193.google.com ([209.85.223.193]:35379 "EHLO
+        mail-io0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751602AbdF1OgL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 28 Jun 2017 10:36:11 -0400
 MIME-Version: 1.0
-In-Reply-To: <20170628093627.GD14532@8bytes.org>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <20170628133003.17432-1-tklauser@distanz.ch>
+References: <20170628133003.17432-1-tklauser@distanz.ch>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Date: Wed, 28 Jun 2017 16:36:09 +0200
+Message-ID: <CAMuHMdVqL4_QVR5z=s3+tf=VxkoF5sDD4MVCcfefQskyYxOKzw@mail.gmail.com>
+Subject: Re: [PATCH] arch: remove unused macro/function thread_saved_pc()
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Joerg Roedel <joro@8bytes.org>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>
-Message-ID: <20170628140544.Svw9UFHuVqRXrHrc1d0adTOINmAj36ZO90OlLpVTJ7c@z>
+To: Tobias Klauser <tklauser@distanz.ch>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>
+Message-ID: <20170628143609.5bFCNu2lLPaLumsZRmNWi2syXXKYFUUtEQ5CJmodWVU@z>
 
-On 6/28/2017 4:36 AM, Joerg Roedel wrote:
-> Hi Tom,
+On Wed, Jun 28, 2017 at 3:30 PM, Tobias Klauser <tklauser@distanz.ch> wrote:
+> The only user of thread_saved_pc() in non-arch-specific code was removed
+> in commit 8243d5597793 ("sched/core: Remove pointless printout in
+> sched_show_task()"). Remove the implementations as well.
+>
+> Some architectures use thread_saved_pc() in their arch-specific code.
+> Leave their thread_saved_pc() intact.
+>
+> Cc: Linus Torvalds <torvalds@linux-foundation.org>
+> Cc: Ingo Molnar <mingo@kernel.org>
+> Signed-off-by: Tobias Klauser <tklauser@distanz.ch>
 
-Hi Joerg,
+>  arch/m68k/include/asm/processor.h       |  2 --
+>  arch/m68k/kernel/process.c              | 14 --------------
 
-> 
-> On Tue, Jun 27, 2017 at 10:12:30AM -0500, Tom Lendacky wrote:
->> ---
->>   drivers/iommu/amd_iommu.c       |   30 ++++++++++++++++--------------
->>   drivers/iommu/amd_iommu_init.c  |   34 ++++++++++++++++++++++++++++------
->>   drivers/iommu/amd_iommu_proto.h |   10 ++++++++++
->>   drivers/iommu/amd_iommu_types.h |    2 +-
->>   4 files changed, 55 insertions(+), 21 deletions(-)
-> 
-> Looks like a straightforward change. Just one nit below.
-> 
->> +static bool amd_iommu_supports_sme(void)
->> +{
->> +	if (!sme_active() || (boot_cpu_data.x86 != 0x17))
->> +		return true;
->> +
->> +	/* For Fam17h, a specific level of support is required */
->> +	if (boot_cpu_data.microcode >= 0x08001205)
->> +		return true;
->> +
->> +	if ((boot_cpu_data.microcode >= 0x08001126) &&
->> +	    (boot_cpu_data.microcode <= 0x080011ff))
->> +		return true;
->> +
->> +	pr_notice("AMD-Vi: IOMMU not currently supported when SME is active\n");
->> +
->> +	return false;
->> +}
-> 
-> The name of the function is misleading. It checks whether the IOMMU can
-> be enabled when SME is active. But the name suggests that it checks
-> whether the iommu hardware supports SME.
-> 
-> How about renaming it to amd_iommu_sme_check()?
+For the m68k part:
+Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
 
-Can do.
+Gr{oetje,eeting}s,
 
-Thanks,
-Tom
+                        Geert
 
-> 
-> With that change the patch is:
-> 
-> 	Acked-by: Joerg Roedel <jroedel@suse.de>
-> 
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
