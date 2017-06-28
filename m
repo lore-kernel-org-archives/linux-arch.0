@@ -1,7 +1,7 @@
 From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: [PATCH 9/9] RISC-V: Build Infastructure
-Date: Wed, 28 Jun 2017 11:55:38 -0700
-Message-ID: <20170628185538.1804-10-palmer@dabbelt.com>
+Subject: [PATCH 7/9] RISC-V: Paging and MMU
+Date: Wed, 28 Jun 2017 11:55:36 -0700
+Message-ID: <20170628185538.1804-8-palmer@dabbelt.com>
 References: <20170606230007.19101-1-palmer@dabbelt.com>
  <20170628185538.1804-1-palmer@dabbelt.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
@@ -11,798 +11,35 @@ To: peterz@infradead.org, mingo@redhat.com, mcgrof@kernel.org, viro@zeniv.linux.
 Cc: Palmer Dabbelt <palmer@dabbelt.com>
 List-Id: linux-arch.vger.kernel.org
 
-This patch contains all the build infastructure that actually enables
-the RISC-V port.  This includes Makefiles, linker scripts, and Kconfig
-files.  It also contains the only top-level change, which adds RISC-V to
-the list of architectures that need a sed run to produce the ARCH
-variable when building locally.
+This patch contains code to manage the RISC-V MMU, including definitions
+of the page tables and the page walking code.
 
 Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
 ---
- Makefile                                  |   3 +-
- arch/riscv/Kconfig                        | 318 ++++++++++++++++++++++++++++++
- arch/riscv/Makefile                       |  64 ++++++
- arch/riscv/configs/freedom-u500_defconfig |  53 +++++
- arch/riscv/configs/spike32_defconfig      |  50 +++++
- arch/riscv/configs/spike64_defconfig      |  46 +++++
- arch/riscv/include/asm/Kbuild             |  60 ++++++
- arch/riscv/include/uapi/asm/Kbuild        |   4 +
- arch/riscv/kernel/.gitignore              |   1 +
- arch/riscv/kernel/Makefile                |  16 ++
- arch/riscv/kernel/vdso/Makefile           |  61 ++++++
- arch/riscv/kernel/vdso/vdso.lds.S         |  77 ++++++++
- arch/riscv/kernel/vmlinux.lds.S           |  92 +++++++++
- arch/riscv/lib/Makefile                   |   5 +
- arch/riscv/mm/Makefile                    |   1 +
- 15 files changed, 850 insertions(+), 1 deletion(-)
- create mode 100644 arch/riscv/Kconfig
- create mode 100644 arch/riscv/Makefile
- create mode 100644 arch/riscv/configs/freedom-u500_defconfig
- create mode 100644 arch/riscv/configs/spike32_defconfig
- create mode 100644 arch/riscv/configs/spike64_defconfig
- create mode 100644 arch/riscv/include/asm/Kbuild
- create mode 100644 arch/riscv/include/uapi/asm/Kbuild
- create mode 100644 arch/riscv/kernel/.gitignore
- create mode 100644 arch/riscv/kernel/Makefile
- create mode 100644 arch/riscv/kernel/vdso/Makefile
- create mode 100644 arch/riscv/kernel/vdso/vdso.lds.S
- create mode 100644 arch/riscv/kernel/vmlinux.lds.S
- create mode 100644 arch/riscv/lib/Makefile
- create mode 100644 arch/riscv/mm/Makefile
+ arch/riscv/include/asm/mmu_context.h  |  69 ++++++
+ arch/riscv/include/asm/page.h         | 138 +++++++++++
+ arch/riscv/include/asm/pgalloc.h      | 124 ++++++++++
+ arch/riscv/include/asm/pgtable-32.h   |  25 ++
+ arch/riscv/include/asm/pgtable-64.h   |  84 +++++++
+ arch/riscv/include/asm/pgtable-bits.h |  48 ++++
+ arch/riscv/include/asm/pgtable.h      | 427 ++++++++++++++++++++++++++++++++++
+ arch/riscv/mm/fault.c                 | 280 ++++++++++++++++++++++
+ 8 files changed, 1195 insertions(+)
+ create mode 100644 arch/riscv/include/asm/mmu_context.h
+ create mode 100644 arch/riscv/include/asm/page.h
+ create mode 100644 arch/riscv/include/asm/pgalloc.h
+ create mode 100644 arch/riscv/include/asm/pgtable-32.h
+ create mode 100644 arch/riscv/include/asm/pgtable-64.h
+ create mode 100644 arch/riscv/include/asm/pgtable-bits.h
+ create mode 100644 arch/riscv/include/asm/pgtable.h
+ create mode 100644 arch/riscv/mm/fault.c
 
-diff --git a/Makefile b/Makefile
-index 6d8a984ed9c9..b8fbaa805d56 100644
---- a/Makefile
-+++ b/Makefile
-@@ -232,7 +232,8 @@ SUBARCH := $(shell uname -m | sed -e s/i.86/x86/ -e s/x86_64/x86/ \
- 				  -e s/arm.*/arm/ -e s/sa110/arm/ \
- 				  -e s/s390x/s390/ -e s/parisc64/parisc/ \
- 				  -e s/ppc.*/powerpc/ -e s/mips.*/mips/ \
--				  -e s/sh[234].*/sh/ -e s/aarch64.*/arm64/ )
-+				  -e s/sh[234].*/sh/ -e s/aarch64.*/arm64/ \
-+				  -e s/riscv.*/riscv/)
- 
- # Cross compiling and selecting different set of gcc/bin-utils
- # ---------------------------------------------------------------------------
-diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
+diff --git a/arch/riscv/include/asm/mmu_context.h b/arch/riscv/include/asm/mmu_context.h
 new file mode 100644
-index 000000000000..38c8112861fd
+index 000000000000..de1fc1631fc4
 --- /dev/null
-+++ b/arch/riscv/Kconfig
-@@ -0,0 +1,318 @@
-+#
-+# For a description of the syntax of this configuration file,
-+# see Documentation/kbuild/kconfig-language.txt.
-+#
-+
-+config RISCV
-+	def_bool y
-+	select OF
-+	select OF_EARLY_FLATTREE
-+	select OF_IRQ
-+	select ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
-+	select ARCH_WANT_FRAME_POINTERS
-+	select CLONE_BACKWARDS
-+	select COMMON_CLK
-+	select GENERIC_CLOCKEVENTS
-+	select GENERIC_CPU_DEVICES
-+	select GENERIC_IRQ_SHOW
-+	select GENERIC_PCI_IOMAP
-+	select GENERIC_STRNCPY_FROM_USER
-+	select GENERIC_STRNLEN_USER
-+	select GENERIC_SMP_IDLE_THREAD
-+	select GENERIC_ATOMIC64 if !64BIT || !ISA_A
-+	select ARCH_WANT_OPTIONAL_GPIOLIB
-+	select HAVE_MEMBLOCK
-+	select HAVE_DMA_API_DEBUG
-+	select HAVE_DMA_CONTIGUOUS
-+	select HAVE_GENERIC_DMA_COHERENT
-+	select IRQ_DOMAIN
-+	select NO_BOOTMEM
-+	select ISA_A if SMP
-+	select SYSRISCV_ATOMIC if !ISA_A
-+	select SPARSE_IRQ
-+	select SYSCTL_EXCEPTION_TRACE
-+	select HAVE_ARCH_TRACEHOOK
-+	select MODULES_USE_ELF_RELA if MODULES
-+	select THREAD_INFO_IN_TASK
-+	select RISCV_IRQ_INTC
-+	select RISCV_TIMER
-+
-+config MMU
-+	def_bool y
-+
-+# even on 32-bit, physical (and DMA) addresses are > 32-bits
-+config ARCH_PHYS_ADDR_T_64BIT
-+	def_bool y
-+
-+config ARCH_DMA_ADDR_T_64BIT
-+	def_bool y
-+
-+config STACKTRACE_SUPPORT
-+	def_bool y
-+
-+config RWSEM_GENERIC_SPINLOCK
-+	def_bool y
-+
-+config GENERIC_BUG
-+	def_bool y
-+	depends on BUG
-+	select GENERIC_BUG_RELATIVE_POINTERS if 64BIT
-+
-+config GENERIC_BUG_RELATIVE_POINTERS
-+	bool
-+
-+config GENERIC_CALIBRATE_DELAY
-+	def_bool y
-+
-+config GENERIC_CSUM
-+	def_bool y
-+
-+config GENERIC_HWEIGHT
-+	def_bool y
-+
-+config PGTABLE_LEVELS
-+	int
-+	default 3 if 64BIT
-+	default 2
-+
-+config HAVE_KPROBES
-+	def_bool n
-+
-+config DMA_NOOP_OPS
-+	def_bool y
-+
-+menu "Platform type"
-+
-+config SMP
-+	bool "Symmetric Multi-Processing"
-+	help
-+	  This enables support for systems with more than one CPU.  If
-+	  you say N here, the kernel will run on single and
-+	  multiprocessor machines, but will use only one CPU of a
-+	  multiprocessor machine. If you say Y here, the kernel will run
-+	  on many, but not all, single processor machines. On a single
-+	  processor machine, the kernel will run faster if you say N
-+	  here.
-+
-+	  If you don't know what to do here, say N.
-+
-+config NR_CPUS
-+	int "Maximum number of CPUs (2-32)"
-+	range 2 32
-+	depends on SMP
-+	default "8"
-+
-+config CPU_SUPPORTS_32BIT_KERNEL
-+	bool
-+config CPU_SUPPORTS_64BIT_KERNEL
-+	bool
-+
-+choice
-+	prompt "Base ISA"
-+	default ARCH_RV64I
-+
-+config ARCH_RV32I
-+	bool "RV32I"
-+	select CPU_SUPPORTS_32BIT_KERNEL
-+	select 32BIT
-+	select GENERIC_ASHLDI3
-+	select GENERIC_ASHRDI3
-+	select GENERIC_LSHRDI3
-+
-+config ARCH_RV64I
-+	bool "RV64I"
-+	select CPU_SUPPORTS_64BIT_KERNEL
-+	select 64BIT
-+
-+endchoice
-+
-+choice
-+	prompt "CPU Tuning"
-+	default TUNE_GENERIC
-+
-+config TUNE_GENERIC
-+	bool "generic"
-+
-+endchoice
-+
-+config ISA_C
-+	bool "Emit compressed instructions when building Linux"
-+	default n
-+	help
-+	   Adds "C" to the ISA subsets that the toolchain is allowed to emit
-+	   when building Linux, which results in compressed instructions in the
-+	   Linux binary.
-+
-+	   If you don't know what to do here, say Y.
-+
-+config ISA_A
-+	bool "Emit atomic instructions when building Linux"
-+	default y
-+	help
-+	   Adds "A" to the ISA subsets that the toolchain is allowed to emit
-+	   when building Linux, which results in atomic instructions in the
-+	   Linux binary.
-+
-+	   If you don't know what to do here, say Y.
-+
-+config SYSRISCV_ATOMIC
-+	bool "Include support for atomic operation syscalls"
-+	default !ISA_A
-+	help
-+	  If atomic memory instructions are present, i.e.,
-+	  CONFIG_ISA_A, this includes support for the syscall that
-+	  provides atomic accesses.  This is only useful to run
-+	  binaries that require atomic access but were compiled with
-+	  -mno-atomic.
-+
-+	  If CONFIG_ISA_A is unset, this option is mandatory.
-+
-+	  If you don't know what to do here, say N.
-+
-+config RV_PUM
-+	def_bool y
-+	prompt "Protect User Memory" if EXPERT
-+	---help---
-+	  Protect User Memory (PUM) prevents the kernel from inadvertently
-+	  accessing user-space memory.  There is a small performance cost
-+	  and kernel size increase if this is enabled.
-+
-+	  If unsure, say Y.
-+
-+endmenu
-+
-+menu "Kernel type"
-+
-+choice
-+	prompt "Kernel code model"
-+	default 64BIT
-+
-+config 32BIT
-+	bool "32-bit kernel"
-+	depends on CPU_SUPPORTS_32BIT_KERNEL
-+	help
-+	  Select this option to build a 32-bit kernel.
-+
-+config 64BIT
-+	bool "64-bit kernel"
-+	depends on CPU_SUPPORTS_64BIT_KERNEL
-+	help
-+	  Select this option to build a 64-bit kernel.
-+
-+endchoice
-+
-+source "mm/Kconfig"
-+
-+source "kernel/Kconfig.preempt"
-+
-+source "kernel/Kconfig.hz"
-+
-+endmenu
-+
-+menu "Bus support"
-+
-+config PCI
-+	bool "PCI support"
-+	select PCI_MSI
-+	help
-+	  This feature enables support for PCI bus system. If you say Y
-+	  here, the kernel will include drivers and infrastructure code
-+	  to support PCI bus devices.
-+
-+	  If you don't know what to do here, say Y.
-+
-+config PCI_DOMAINS
-+	def_bool PCI
-+
-+config PCI_DOMAINS_GENERIC
-+	def_bool PCI
-+
-+source "drivers/pci/Kconfig"
-+
-+endmenu
-+
-+source "init/Kconfig"
-+
-+source "kernel/Kconfig.freezer"
-+
-+menu "Executable file formats"
-+
-+source "fs/Kconfig.binfmt"
-+
-+endmenu
-+
-+menu "Power management options"
-+
-+source kernel/power/Kconfig
-+
-+endmenu
-+
-+source "net/Kconfig"
-+
-+source "drivers/Kconfig"
-+
-+source "fs/Kconfig"
-+
-+menu "Kernel hacking"
-+
-+config CMDLINE_BOOL
-+	bool "Built-in kernel command line"
-+	default n
-+	help
-+	  For most platforms, it is firmware or second stage bootloader
-+	  that by default specifies the kernel command line options.
-+	  However, it might be necessary or advantageous to either override
-+	  the default kernel command line or add a few extra options to it.
-+	  For such cases, this option allows hardcoding command line options
-+	  directly into the kernel.
-+
-+	  For that, choose 'Y' here and fill in the extra boot parameters
-+	  in CONFIG_CMDLINE.
-+
-+	  The built-in options will be concatenated to the default command
-+	  line if CMDLINE_OVERRIDE is set to 'N'. Otherwise, the default
-+	  command line will be ignored and replaced by the built-in string.
-+
-+config CMDLINE
-+	string "Built-in kernel command string"
-+	depends on CMDLINE_BOOL
-+	default ""
-+	help
-+	  Supply command-line options at build time by entering them here.
-+
-+config CMDLINE_OVERRIDE
-+	bool "Built-in command line overrides bootloader arguments"
-+	default n
-+	depends on CMDLINE_BOOL
-+	help
-+	  Set this option to 'Y' to have the kernel ignore the bootloader
-+	  or firmware command line.  Instead, the built-in command line
-+	  will be used exclusively.
-+
-+	  If you don't know what to do here, say N.
-+
-+config EARLY_PRINTK
-+	bool "Early printk"
-+	default n
-+	help
-+	  This option enables special console drivers which allow the kernel
-+	  to print messages very early in the bootup process.
-+
-+	  This is useful for kernel debugging when your machine crashes very
-+	  early before the console code is initialized. For normal operation
-+	  it is not recommended because it looks ugly and doesn't cooperate
-+	  with klogd/syslogd or the X server. You should normally N here,
-+	  unless you want to debug such a crash.
-+
-+
-+source "lib/Kconfig.debug"
-+
-+config CMDLINE_BOOL
-+	bool
-+endmenu
-+
-+source "security/Kconfig"
-+
-+source "crypto/Kconfig"
-+
-+source "lib/Kconfig"
-diff --git a/arch/riscv/Makefile b/arch/riscv/Makefile
-new file mode 100644
-index 000000000000..66c4a5e383f9
---- /dev/null
-+++ b/arch/riscv/Makefile
-@@ -0,0 +1,64 @@
-+# This file is included by the global makefile so that you can add your own
-+# architecture-specific flags and dependencies. Remember to do have actions
-+# for "archclean" and "archdep" for cleaning up and making dependencies for
-+# this architecture
-+#
-+# This file is subject to the terms and conditions of the GNU General Public
-+# License.  See the file "COPYING" in the main directory of this archive
-+# for more details.
-+#
-+
-+LDFLAGS         :=
-+OBJCOPYFLAGS    := -O binary
-+LDFLAGS_vmlinux :=
-+KBUILD_AFLAGS_MODULE += -fPIC
-+KBUILD_CFLAGS_MODULE += -fPIC
-+
-+KBUILD_DEFCONFIG = spike64_defconfig
-+
-+export BITS
-+ifeq ($(CONFIG_ARCH_RV64I),y)
-+	BITS := 64
-+	UTS_MACHINE := riscv64
-+
-+	KBUILD_CFLAGS += -mabi=lp64
-+	KBUILD_AFLAGS += -mabi=lp64
-+	KBUILD_MARCH = rv64im
-+	LDFLAGS += -melf64lriscv
-+else
-+	BITS := 32
-+	UTS_MACHINE := riscv32
-+
-+	KBUILD_CFLAGS += -mabi=ilp32
-+	KBUILD_AFLAGS += -mabi=ilp32
-+	KBUILD_MARCH = rv32im
-+	LDFLAGS += -melf32lriscv
-+endif
-+
-+KBUILD_CFLAGS += -Wall
-+
-+ifeq ($(CONFIG_ISA_A),y)
-+	KBUILD_ARCH_A = a
-+endif
-+ifeq ($(CONFIG_ISA_C),y)
-+	KBUILD_ARCH_C = c
-+endif
-+
-+KBUILD_AFLAGS += -march=$(KBUILD_MARCH)$(KBUILD_ARCH_A)fd$(KBUILD_ARCH_C)
-+
-+KBUILD_CFLAGS += -march=$(KBUILD_MARCH)$(KBUILD_ARCH_A)$(KBUILD_ARCH_C)
-+KBUILD_CFLAGS += -mno-save-restore
-+
-+# GCC versions that support the "-mstrict-align" option default to allowing
-+# unaligned accesses.  While unaligned accesses are explicitly allowed in the
-+# RISC-V ISA, they're emulated by machine mode traps on all extant
-+# architectures.  It's faster to have GCC emit only aligned accesses.
-+KBUILD_CFLAGS += $(call cc-option,-mstrict-align)
-+
-+head-y := arch/riscv/kernel/head.o
-+
-+core-y += arch/riscv/kernel/ arch/riscv/mm/
-+
-+libs-y += arch/riscv/lib/
-+
-+all: vmlinux
-diff --git a/arch/riscv/configs/freedom-u500_defconfig b/arch/riscv/configs/freedom-u500_defconfig
-new file mode 100644
-index 000000000000..b37908d45067
---- /dev/null
-+++ b/arch/riscv/configs/freedom-u500_defconfig
-@@ -0,0 +1,53 @@
-+CONFIG_CROSS_COMPILE="riscv64-unknown-linux-gnu-"
-+CONFIG_DEFAULT_HOSTNAME="ucbvax"
-+# CONFIG_CROSS_MEMORY_ATTACH is not set
-+# CONFIG_FHANDLE is not set
-+CONFIG_NAMESPACES=y
-+# CONFIG_SGETMASK_SYSCALL is not set
-+CONFIG_EMBEDDED=y
-+# CONFIG_BLK_DEV_BSG is not set
-+CONFIG_PARTITION_ADVANCED=y
-+# CONFIG_EFI_PARTITION is not set
-+# CONFIG_IOSCHED_DEADLINE is not set
-+# CONFIG_COMPACTION is not set
-+CONFIG_HZ_100=y
-+CONFIG_PCI_MSI=y
-+CONFIG_NET=y
-+CONFIG_UNIX=y
-+CONFIG_INET=y
-+# CONFIG_INET_XFRM_MODE_TRANSPORT is not set
-+# CONFIG_INET_XFRM_MODE_TUNNEL is not set
-+# CONFIG_INET_XFRM_MODE_BEET is not set
-+# CONFIG_INET_DIAG is not set
-+# CONFIG_IPV6 is not set
-+# CONFIG_WIRELESS is not set
-+CONFIG_DEVTMPFS=y
-+CONFIG_DEVTMPFS_MOUNT=y
-+# CONFIG_FIRMWARE_IN_KERNEL is not set
-+CONFIG_OF=y
-+# CONFIG_BLK_DEV is not set
-+# CONFIG_INPUT_KEYBOARD is not set
-+# CONFIG_INPUT_MOUSE is not set
-+# CONFIG_VT is not set
-+CONFIG_DEVKMEM=y
-+# CONFIG_HW_RANDOM is not set
-+# CONFIG_HWMON is not set
-+CONFIG_FB=y
-+# CONFIG_USB_SUPPORT is not set
-+# CONFIG_IOMMU_SUPPORT is not set
-+CONFIG_EXT2_FS=y
-+# CONFIG_FILE_LOCKING is not set
-+# CONFIG_DNOTIFY is not set
-+# CONFIG_INOTIFY_USER is not set
-+# CONFIG_PROC_PAGE_MONITOR is not set
-+# CONFIG_SYSFS is not set
-+CONFIG_TMPFS=y
-+# CONFIG_MISC_FILESYSTEMS is not set
-+# CONFIG_NETWORK_FILESYSTEMS is not set
-+CONFIG_PRINTK_TIME=y
-+# CONFIG_UNUSED_SYMBOLS is not set
-+CONFIG_DEBUG_SECTION_MISMATCH=y
-+# CONFIG_FRAME_POINTER is not set
-+# CONFIG_EARLY_PRINTK is not set
-+# CONFIG_CRYPTO_HW is not set
-+CONFIG_TTY=y
-diff --git a/arch/riscv/configs/spike32_defconfig b/arch/riscv/configs/spike32_defconfig
-new file mode 100644
-index 000000000000..cf3431e94311
---- /dev/null
-+++ b/arch/riscv/configs/spike32_defconfig
-@@ -0,0 +1,50 @@
-+CONFIG_64BIT=n
-+CONFIG_32BIT=y
-+CONFIG_ARCH_RV64I=n
-+CONFIG_ARCH_RV32I=y
-+CONFIG_PCI=y
-+CONFIG_DEFAULT_HOSTNAME="ucbvax"
-+# CONFIG_CROSS_MEMORY_ATTACH is not set
-+# CONFIG_FHANDLE is not set
-+CONFIG_NAMESPACES=y
-+CONFIG_EMBEDDED=y
-+# CONFIG_BLK_DEV_BSG is not set
-+CONFIG_PARTITION_ADVANCED=y
-+# CONFIG_EFI_PARTITION is not set
-+# CONFIG_IOSCHED_DEADLINE is not set
-+CONFIG_NET=y
-+CONFIG_UNIX=y
-+CONFIG_INET=y
-+# CONFIG_INET_XFRM_MODE_TRANSPORT is not set
-+# CONFIG_INET_XFRM_MODE_TUNNEL is not set
-+# CONFIG_INET_XFRM_MODE_BEET is not set
-+# CONFIG_INET_DIAG is not set
-+# CONFIG_IPV6 is not set
-+# CONFIG_WIRELESS is not set
-+CONFIG_DEVTMPFS=y
-+CONFIG_DEVTMPFS_MOUNT=y
-+# CONFIG_FIRMWARE_IN_KERNEL is not set
-+# CONFIG_BLK_DEV is not set
-+# CONFIG_INPUT_KEYBOARD is not set
-+# CONFIG_INPUT_MOUSE is not set
-+# CONFIG_VT is not set
-+CONFIG_DEVKMEM=y
-+# CONFIG_HW_RANDOM is not set
-+# CONFIG_HWMON is not set
-+CONFIG_FB=y
-+# CONFIG_USB_SUPPORT is not set
-+# CONFIG_IOMMU_SUPPORT is not set
-+CONFIG_EXT2_FS=y
-+# CONFIG_FILE_LOCKING is not set
-+# CONFIG_DNOTIFY is not set
-+# CONFIG_INOTIFY_USER is not set
-+# CONFIG_PROC_PAGE_MONITOR is not set
-+# CONFIG_SYSFS is not set
-+CONFIG_TMPFS=y
-+# CONFIG_MISC_FILESYSTEMS is not set
-+# CONFIG_NETWORK_FILESYSTEMS is not set
-+CONFIG_PRINTK_TIME=y
-+CONFIG_DEBUG_SECTION_MISMATCH=y
-+# CONFIG_FRAME_POINTER is not set
-+# CONFIG_CRYPTO_HW is not set
-+CONFIG_TTY=y
-diff --git a/arch/riscv/configs/spike64_defconfig b/arch/riscv/configs/spike64_defconfig
-new file mode 100644
-index 000000000000..5ad6644df541
---- /dev/null
-+++ b/arch/riscv/configs/spike64_defconfig
-@@ -0,0 +1,46 @@
-+CONFIG_PCI=y
-+CONFIG_DEFAULT_HOSTNAME="ucbvax"
-+# CONFIG_CROSS_MEMORY_ATTACH is not set
-+# CONFIG_FHANDLE is not set
-+CONFIG_NAMESPACES=y
-+CONFIG_EMBEDDED=y
-+# CONFIG_BLK_DEV_BSG is not set
-+CONFIG_PARTITION_ADVANCED=y
-+# CONFIG_EFI_PARTITION is not set
-+# CONFIG_IOSCHED_DEADLINE is not set
-+CONFIG_NET=y
-+CONFIG_UNIX=y
-+CONFIG_INET=y
-+# CONFIG_INET_XFRM_MODE_TRANSPORT is not set
-+# CONFIG_INET_XFRM_MODE_TUNNEL is not set
-+# CONFIG_INET_XFRM_MODE_BEET is not set
-+# CONFIG_INET_DIAG is not set
-+# CONFIG_IPV6 is not set
-+# CONFIG_WIRELESS is not set
-+CONFIG_DEVTMPFS=y
-+CONFIG_DEVTMPFS_MOUNT=y
-+# CONFIG_FIRMWARE_IN_KERNEL is not set
-+# CONFIG_BLK_DEV is not set
-+# CONFIG_INPUT_KEYBOARD is not set
-+# CONFIG_INPUT_MOUSE is not set
-+# CONFIG_VT is not set
-+CONFIG_DEVKMEM=y
-+# CONFIG_HW_RANDOM is not set
-+# CONFIG_HWMON is not set
-+CONFIG_FB=y
-+# CONFIG_USB_SUPPORT is not set
-+# CONFIG_IOMMU_SUPPORT is not set
-+CONFIG_EXT2_FS=y
-+# CONFIG_FILE_LOCKING is not set
-+# CONFIG_DNOTIFY is not set
-+# CONFIG_INOTIFY_USER is not set
-+# CONFIG_PROC_PAGE_MONITOR is not set
-+# CONFIG_SYSFS is not set
-+CONFIG_TMPFS=y
-+# CONFIG_MISC_FILESYSTEMS is not set
-+# CONFIG_NETWORK_FILESYSTEMS is not set
-+CONFIG_PRINTK_TIME=y
-+CONFIG_DEBUG_SECTION_MISMATCH=y
-+# CONFIG_FRAME_POINTER is not set
-+# CONFIG_CRYPTO_HW is not set
-+CONFIG_TTY=y
-diff --git a/arch/riscv/include/asm/Kbuild b/arch/riscv/include/asm/Kbuild
-new file mode 100644
-index 000000000000..deaa5ff9ebb4
---- /dev/null
-+++ b/arch/riscv/include/asm/Kbuild
-@@ -0,0 +1,60 @@
-+generic-y += bugs.h
-+generic-y += cacheflush.h
-+generic-y += checksum.h
-+generic-y += clkdev.h
-+generic-y += cputime.h
-+generic-y += div64.h
-+generic-y += dma.h
-+generic-y += dma-contiguous.h
-+generic-y += emergency-restart.h
-+generic-y += errno.h
-+generic-y += exec.h
-+generic-y += fb.h
-+generic-y += fcntl.h
-+generic-y += ftrace.h
-+generic-y += futex.h
-+generic-y += hardirq.h
-+generic-y += hash.h
-+generic-y += hw_irq.h
-+generic-y += ioctl.h
-+generic-y += ioctls.h
-+generic-y += ipcbuf.h
-+generic-y += irq_regs.h
-+generic-y += irq_work.h
-+generic-y += kdebug.h
-+generic-y += kmap_types.h
-+generic-y += kvm_para.h
-+generic-y += local.h
-+generic-y += mm-arch-hooks.h
-+generic-y += mman.h
-+generic-y += module.h
-+generic-y += msgbuf.h
-+generic-y += mutex.h
-+generic-y += param.h
-+generic-y += percpu.h
-+generic-y += poll.h
-+generic-y += posix_types.h
-+generic-y += preempt.h
-+generic-y += resource.h
-+generic-y += scatterlist.h
-+generic-y += sections.h
-+generic-y += sembuf.h
-+generic-y += setup.h
-+generic-y += shmbuf.h
-+generic-y += shmparam.h
-+generic-y += signal.h
-+generic-y += socket.h
-+generic-y += sockios.h
-+generic-y += stat.h
-+generic-y += statfs.h
-+generic-y += swab.h
-+generic-y += termbits.h
-+generic-y += termios.h
-+generic-y += topology.h
-+generic-y += trace_clock.h
-+generic-y += types.h
-+generic-y += unaligned.h
-+generic-y += user.h
-+generic-y += vga.h
-+generic-y += vmlinux.lds.h
-+generic-y += xor.h
-diff --git a/arch/riscv/include/uapi/asm/Kbuild b/arch/riscv/include/uapi/asm/Kbuild
-new file mode 100644
-index 000000000000..0727570a49b2
---- /dev/null
-+++ b/arch/riscv/include/uapi/asm/Kbuild
-@@ -0,0 +1,4 @@
-+# UAPI Header export list
-+include include/uapi/asm-generic/Kbuild.asm
-+
-+generic-y += setup.h
-diff --git a/arch/riscv/kernel/.gitignore b/arch/riscv/kernel/.gitignore
-new file mode 100644
-index 000000000000..b51634f6a7cd
---- /dev/null
-+++ b/arch/riscv/kernel/.gitignore
-@@ -0,0 +1 @@
-+/vmlinux.lds
-diff --git a/arch/riscv/kernel/Makefile b/arch/riscv/kernel/Makefile
-new file mode 100644
-index 000000000000..7f58cd251ab8
---- /dev/null
-+++ b/arch/riscv/kernel/Makefile
-@@ -0,0 +1,16 @@
-+#
-+# Makefile for the RISC-V Linux kernel
-+#
-+
-+extra-y := head.o vmlinux.lds
-+
-+obj-y	:= cpu.o entry.o irq.o process.o ptrace.o reset.o setup.o \
-+	   signal.o syscall_table.o sys_riscv.o time.o traps.o \
-+	   riscv_ksyms.o stacktrace.o vdso.o cacheinfo.o vdso/
-+
-+CFLAGS_setup.o := -mcmodel=medany
-+
-+obj-$(CONFIG_SMP)		+= smpboot.o smp.o
-+obj-$(CONFIG_MODULES)		+= module.o
-+
-+clean:
-diff --git a/arch/riscv/kernel/vdso/Makefile b/arch/riscv/kernel/vdso/Makefile
-new file mode 100644
-index 000000000000..1f272425e889
---- /dev/null
-+++ b/arch/riscv/kernel/vdso/Makefile
-@@ -0,0 +1,61 @@
-+# Derived from arch/{arm64,tile}/kernel/vdso/Makefile
-+
-+obj-vdso := sigreturn.o cmpxchg32.o cmpxchg64.o
-+
-+# Build rules
-+targets := $(obj-vdso) vdso.so vdso.so.dbg
-+obj-vdso := $(addprefix $(obj)/, $(obj-vdso))
-+
-+#ccflags-y := -shared -fno-common -fno-builtin
-+#ccflags-y += -nostdlib -Wl,-soname=linux-vdso.so.1 \
-+		$(call cc-ldoption, -Wl$(comma)--hash-style=sysv)
-+
-+CFLAGS_vdso.so = $(c_flags)
-+CFLAGS_vdso.so.dbg = -shared -s -Wl,-soname=linux-vdso.so.1 \
-+	$(call cc-ldoption, -Wl$(comma)--hash-style=sysv)
-+CFLAGS_vdso_syms.o = -r
-+
-+obj-y += vdso.o
-+
-+# We also create a special relocatable object that should mirror the symbol
-+# table and layout of the linked DSO.  With ld -R we can then refer to
-+# these symbols in the kernel code rather than hand-coded addresses.
-+extra-y += vdso.lds vdso-syms.o
-+$(obj)/built-in.o: $(obj)/vdso-syms.o
-+$(obj)/built-in.o: ld_flags += -R $(obj)/vdso-syms.o
-+
-+CPPFLAGS_vdso.lds += -P -C -U$(ARCH)
-+
-+# Force dependency
-+$(obj)/vdso.o : $(obj)/vdso.so
-+
-+# Link rule for the *.so file; *.lds must be first
-+$(obj)/vdso.so.dbg: $(src)/vdso.lds $(obj-vdso)
-+	$(call if_changed,vdsold)
-+$(obj)/vdso-syms.o: $(src)/vdso.lds $(obj-vdso)
-+	$(call if_changed,vdsold)
-+
-+# Strip rule for the *.so file
-+$(obj)/%.so: OBJCOPYFLAGS := -S
-+$(obj)/%.so: $(obj)/%.so.dbg FORCE
-+	$(call if_changed,objcopy)
-+
-+# Assembly rules for the *.S files
-+$(obj-vdso): %.o: %.S
-+	$(call if_changed_dep,vdsoas)
-+
-+# Actual build commands
-+quiet_cmd_vdsold = VDSOLD  $@
-+      cmd_vdsold = $(CC) $(c_flags) -nostdlib $(CFLAGS_$(@F)) -Wl,-n -Wl,-T $^ -o $@
-+quiet_cmd_vdsoas = VDSOAS  $@
-+      cmd_vdsoas = $(CC) $(a_flags) -c -o $@ $<
-+
-+# Install commands for the unstripped file
-+quiet_cmd_vdso_install = INSTALL $@
-+      cmd_vdso_install = cp $(obj)/$@.dbg $(MODLIB)/vdso/$@
-+
-+vdso.so: $(obj)/vdso.so.dbg
-+	@mkdir -p $(MODLIB)/vdso
-+	$(call cmd,vdso_install)
-+
-+vdso_install: vdso.so
-diff --git a/arch/riscv/kernel/vdso/vdso.lds.S b/arch/riscv/kernel/vdso/vdso.lds.S
-new file mode 100644
-index 000000000000..7142e1aafc30
---- /dev/null
-+++ b/arch/riscv/kernel/vdso/vdso.lds.S
-@@ -0,0 +1,77 @@
++++ b/arch/riscv/include/asm/mmu_context.h
+@@ -0,0 +1,69 @@
 +/*
 + * Copyright (C) 2012 Regents of the University of California
 + *
@@ -816,79 +53,73 @@ index 000000000000..7142e1aafc30
 + *   GNU General Public License for more details.
 + */
 +
-+OUTPUT_ARCH(riscv)
++#ifndef _ASM_RISCV_MMU_CONTEXT_H
++#define _ASM_RISCV_MMU_CONTEXT_H
 +
-+SECTIONS
++#include <asm-generic/mm_hooks.h>
++
++#include <linux/mm.h>
++#include <linux/sched.h>
++#include <asm/tlbflush.h>
++
++static inline void enter_lazy_tlb(struct mm_struct *mm,
++	struct task_struct *task)
 +{
-+	. = SIZEOF_HEADERS;
++}
 +
-+	.hash		: { *(.hash) }			:text
-+	.gnu.hash	: { *(.gnu.hash) }
-+	.dynsym		: { *(.dynsym) }
-+	.dynstr		: { *(.dynstr) }
-+	.gnu.version	: { *(.gnu.version) }
-+	.gnu.version_d	: { *(.gnu.version_d) }
-+	.gnu.version_r	: { *(.gnu.version_r) }
++/* Initialize context-related info for a new mm_struct */
++static inline int init_new_context(struct task_struct *task,
++	struct mm_struct *mm)
++{
++	return 0;
++}
 +
-+	.note		: { *(.note.*) }		:text	:note
-+	.dynamic	: { *(.dynamic) }		:text	:dynamic
++static inline void destroy_context(struct mm_struct *mm)
++{
++}
 +
-+	.eh_frame_hdr	: { *(.eh_frame_hdr) }		:text	:eh_frame_hdr
-+	.eh_frame	: { KEEP (*(.eh_frame)) }	:text
++static inline pgd_t *current_pgdir(void)
++{
++	return pfn_to_virt(csr_read(sptbr) & SPTBR_PPN);
++}
 +
-+	.rodata		: { *(.rodata .rodata.* .gnu.linkonce.r.*) }
++static inline void set_pgdir(pgd_t *pgd)
++{
++	csr_write(sptbr, virt_to_pfn(pgd) | SPTBR_MODE);
++}
 +
-+	/*
-+	 * This linker script is used both with -r and with -shared.
-+	 * For the layouts to match, we need to skip more than enough
-+	 * space for the dynamic symbol table, etc. If this amount is
-+	 * insufficient, ld -shared will error; simply increase it here.
-+	 */
-+	. = 0x800;
-+	.text		: { *(.text .text.*) }		:text
-+
-+	.data		: {
-+		*(.got.plt) *(.got)
-+		*(.data .data.* .gnu.linkonce.d.*)
-+		*(.dynbss)
-+		*(.bss .bss.* .gnu.linkonce.b.*)
++static inline void switch_mm(struct mm_struct *prev,
++	struct mm_struct *next, struct task_struct *task)
++{
++	if (likely(prev != next)) {
++		set_pgdir(next->pgd);
++		local_flush_tlb_all();
 +	}
 +}
 +
-+/*
-+ * We must supply the ELF program headers explicitly to get just one
-+ * PT_LOAD segment, and set the flags explicitly to make segments read-only.
-+ */
-+PHDRS
++static inline void activate_mm(struct mm_struct *prev,
++			       struct mm_struct *next)
 +{
-+	text		PT_LOAD		FLAGS(5) FILEHDR PHDRS; /* PF_R|PF_X */
-+	dynamic		PT_DYNAMIC	FLAGS(4);		/* PF_R */
-+	note		PT_NOTE		FLAGS(4);		/* PF_R */
-+	eh_frame_hdr	PT_GNU_EH_FRAME;
++	switch_mm(prev, next, NULL);
 +}
 +
-+/*
-+ * This controls what symbols we export from the DSO.
-+ */
-+VERSION
++static inline void deactivate_mm(struct task_struct *task,
++	struct mm_struct *mm)
 +{
-+	LINUX_2.6 {
-+	global:
-+		__vdso_rt_sigreturn;
-+		__vdso_cmpxchg32;
-+		__vdso_cmpxchg64;
-+	local: *;
-+	};
 +}
-diff --git a/arch/riscv/kernel/vmlinux.lds.S b/arch/riscv/kernel/vmlinux.lds.S
++
++#endif /* _ASM_RISCV_MMU_CONTEXT_H */
+diff --git a/arch/riscv/include/asm/page.h b/arch/riscv/include/asm/page.h
 new file mode 100644
-index 000000000000..ece84991609c
+index 000000000000..e1491c20d6fd
 --- /dev/null
-+++ b/arch/riscv/kernel/vmlinux.lds.S
-@@ -0,0 +1,92 @@
++++ b/arch/riscv/include/asm/page.h
+@@ -0,0 +1,138 @@
 +/*
++ * Copyright (C) 2009 Chen Liqin <liqin.chen@sunplusct.com>
 + * Copyright (C) 2012 Regents of the University of California
 + * Copyright (C) 2017 SiFive
++ * Copyright (C) 2017 XiaojingZhu <zhuxiaoj@ict.ac.cn>
 + *
 + *   This program is free software; you can redistribute it and/or
 + *   modify it under the terms of the GNU General Public License
@@ -900,101 +131,1151 @@ index 000000000000..ece84991609c
 + *   GNU General Public License for more details.
 + */
 +
-+#define LOAD_OFFSET PAGE_OFFSET
-+#include <asm/vmlinux.lds.h>
-+#include <asm/page.h>
-+#include <asm/cache.h>
-+#include <asm/thread_info.h>
++#ifndef _ASM_RISCV_PAGE_H
++#define _ASM_RISCV_PAGE_H
 +
-+OUTPUT_ARCH(riscv)
-+ENTRY(_start)
++#include <linux/pfn.h>
++#include <linux/const.h>
 +
-+jiffies = jiffies_64;
++#define PAGE_SHIFT	(12)
++#define PAGE_SIZE	(_AC(1, UL) << PAGE_SHIFT)
++#define PAGE_MASK	(~(PAGE_SIZE - 1))
 +
-+SECTIONS
++#ifdef __KERNEL__
++
++/*
++ * PAGE_OFFSET -- the first address of the first page of memory.
++ * When not using MMU this corresponds to the first free page in
++ * physical memory (aligned on a page boundary).
++ */
++#ifdef CONFIG_64BIT
++#define PAGE_OFFSET		_AC(0xffffffff80000000, UL)
++#else
++#define PAGE_OFFSET		_AC(0xc0000000, UL)
++#endif
++
++#define KERN_VIRT_SIZE (-PAGE_OFFSET)
++
++#ifndef __ASSEMBLY__
++
++#define PAGE_UP(addr)	(((addr)+((PAGE_SIZE)-1))&(~((PAGE_SIZE)-1)))
++#define PAGE_DOWN(addr)	((addr)&(~((PAGE_SIZE)-1)))
++
++/* align addr on a size boundary - adjust address up/down if needed */
++#define _ALIGN_UP(addr, size)	(((addr)+((size)-1))&(~((size)-1)))
++#define _ALIGN_DOWN(addr, size)	((addr)&(~((size)-1)))
++
++/* align addr on a size boundary - adjust address up if needed */
++#define _ALIGN(addr, size)	_ALIGN_UP(addr, size)
++
++#define clear_page(pgaddr)			memset((pgaddr), 0, PAGE_SIZE)
++#define copy_page(to, from)			memcpy((to), (from), PAGE_SIZE)
++
++#define clear_user_page(pgaddr, vaddr, page)	memset((pgaddr), 0, PAGE_SIZE)
++#define copy_user_page(vto, vfrom, vaddr, topg) \
++			memcpy((vto), (vfrom), PAGE_SIZE)
++
++/*
++ * Use struct definitions to apply C type checking
++ */
++
++/* Page Global Directory entry */
++typedef struct {
++	unsigned long pgd;
++} pgd_t;
++
++/* Page Table entry */
++typedef struct {
++	unsigned long pte;
++} pte_t;
++
++typedef struct {
++	unsigned long pgprot;
++} pgprot_t;
++
++typedef struct page *pgtable_t;
++
++#define pte_val(x)	((x).pte)
++#define pgd_val(x)	((x).pgd)
++#define pgprot_val(x)	((x).pgprot)
++
++#define __pte(x)	((pte_t) { (x) })
++#define __pgd(x)	((pgd_t) { (x) })
++#define __pgprot(x)	((pgprot_t) { (x) })
++
++#ifdef CONFIG_64BITS
++#define PTE_FMT "%016lx"
++#else
++#define PTE_FMT "%08lx"
++#endif
++
++extern unsigned long va_pa_offset;
++extern unsigned long pfn_base;
++
++extern unsigned long max_low_pfn;
++extern unsigned long min_low_pfn;
++
++#define __pa(x)		((unsigned long)(x) - va_pa_offset)
++#define __va(x)		((void *)((unsigned long) (x) + va_pa_offset))
++
++#define phys_to_pfn(phys)	(PFN_DOWN(phys))
++#define pfn_to_phys(pfn)	(PFN_PHYS(pfn))
++
++#define virt_to_pfn(vaddr)	(phys_to_pfn(__pa(vaddr)))
++#define pfn_to_virt(pfn)	(__va(pfn_to_phys(pfn)))
++
++#define virt_to_page(vaddr)	(pfn_to_page(virt_to_pfn(vaddr)))
++#define page_to_virt(page)	(pfn_to_virt(page_to_pfn(page)))
++
++#define page_to_phys(page)	(pfn_to_phys(page_to_pfn(page)))
++#define page_to_bus(page)	(page_to_phys(page))
++#define phys_to_page(paddr)	(pfn_to_page(phys_to_pfn(paddr)))
++
++#define pfn_valid(pfn) \
++	(((pfn) >= pfn_base) && (((pfn)-pfn_base) < max_mapnr))
++
++#define ARCH_PFN_OFFSET		(pfn_base)
++
++#endif /* __ASSEMBLY__ */
++
++#define virt_addr_valid(vaddr)	(pfn_valid(virt_to_pfn(vaddr)))
++
++#endif /* __KERNEL__ */
++
++#define VM_DATA_DEFAULT_FLAGS	(VM_READ | VM_WRITE | \
++				 VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC)
++
++#include <asm-generic/memory_model.h>
++#include <asm-generic/getorder.h>
++
++/* vDSO support */
++/* We do define AT_SYSINFO_EHDR but don't use the gate mechanism */
++#define __HAVE_ARCH_GATE_AREA
++
++#endif /* _ASM_RISCV_PAGE_H */
+diff --git a/arch/riscv/include/asm/pgalloc.h b/arch/riscv/include/asm/pgalloc.h
+new file mode 100644
+index 000000000000..b40074bcb164
+--- /dev/null
++++ b/arch/riscv/include/asm/pgalloc.h
+@@ -0,0 +1,124 @@
++/*
++ * Copyright (C) 2009 Chen Liqin <liqin.chen@sunplusct.com>
++ * Copyright (C) 2012 Regents of the University of California
++ *
++ *   This program is free software; you can redistribute it and/or
++ *   modify it under the terms of the GNU General Public License
++ *   as published by the Free Software Foundation, version 2.
++ *
++ *   This program is distributed in the hope that it will be useful,
++ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ *   GNU General Public License for more details.
++ */
++
++#ifndef _ASM_RISCV_PGALLOC_H
++#define _ASM_RISCV_PGALLOC_H
++
++#include <linux/mm.h>
++#include <asm/tlb.h>
++
++static inline void pmd_populate_kernel(struct mm_struct *mm,
++	pmd_t *pmd, pte_t *pte)
 +{
-+	/* Beginning of code and text segment */
-+	. = LOAD_OFFSET;
-+	_start = .;
-+	__init_begin = .;
-+	HEAD_TEXT_SECTION
-+	INIT_TEXT_SECTION(PAGE_SIZE)
-+	INIT_DATA_SECTION(16)
-+	/* we have to discard exit text and such at runtime, not link time */
-+	.exit.text :
-+	{
-+		EXIT_TEXT
-+	}
-+	.exit.data :
-+	{
-+		EXIT_DATA
-+	}
-+	PERCPU_SECTION(L1_CACHE_BYTES)
-+	__init_end = .;
++	unsigned long pfn = virt_to_pfn(pte);
 +
-+	.text : {
-+		_text = .;
-+		_stext = .;
-+		TEXT_TEXT
-+		SCHED_TEXT
-+		CPUIDLE_TEXT
-+		LOCK_TEXT
-+		KPROBES_TEXT
-+		ENTRY_TEXT
-+		IRQENTRY_TEXT
-+		*(.fixup)
-+		_etext = .;
-+	}
-+
-+	/* Start of data section */
-+	_sdata = .;
-+	RO_DATA_SECTION(L1_CACHE_BYTES)
-+	.srodata : {
-+		*(.srodata*)
-+	}
-+
-+	RW_DATA_SECTION(L1_CACHE_BYTES, PAGE_SIZE, THREAD_SIZE)
-+	.sdata : {
-+		__global_pointer$ = . + 0x800;
-+		*(.sdata*)
-+		/* End of data section */
-+		_edata = .;
-+		*(.sbss*)
-+	}
-+
-+	BSS_SECTION(0, 0, 0)
-+
-+	EXCEPTION_TABLE(0x10)
-+	NOTES
-+
-+	.rel.dyn : {
-+		*(.rel.dyn*)
-+	}
-+
-+	_end = .;
-+
-+	STABS_DEBUG
-+	DWARF_DEBUG
-+
-+	DISCARDS
++	set_pmd(pmd, __pmd((pfn << _PAGE_PFN_SHIFT) | _PAGE_TABLE));
 +}
-diff --git a/arch/riscv/lib/Makefile b/arch/riscv/lib/Makefile
-new file mode 100644
-index 000000000000..120c38e77a46
---- /dev/null
-+++ b/arch/riscv/lib/Makefile
-@@ -0,0 +1,5 @@
-+lib-y	:= delay.o memcpy.o memset.o uaccess.o
 +
-+ifeq ($(CONFIG_64BIT),)
-+lib-y += udivdi3.o
-+endif
-diff --git a/arch/riscv/mm/Makefile b/arch/riscv/mm/Makefile
++static inline void pmd_populate(struct mm_struct *mm,
++	pmd_t *pmd, pgtable_t pte)
++{
++	unsigned long pfn = virt_to_pfn(page_address(pte));
++
++	set_pmd(pmd, __pmd((pfn << _PAGE_PFN_SHIFT) | _PAGE_TABLE));
++}
++
++#ifndef __PAGETABLE_PMD_FOLDED
++static inline void pud_populate(struct mm_struct *mm, pud_t *pud, pmd_t *pmd)
++{
++	unsigned long pfn = virt_to_pfn(pmd);
++
++	set_pud(pud, __pud((pfn << _PAGE_PFN_SHIFT) | _PAGE_TABLE));
++}
++#endif /* __PAGETABLE_PMD_FOLDED */
++
++#define pmd_pgtable(pmd)	pmd_page(pmd)
++
++static inline pgd_t *pgd_alloc(struct mm_struct *mm)
++{
++	pgd_t *pgd;
++
++	pgd = (pgd_t *)__get_free_page(GFP_KERNEL);
++	if (likely(pgd != NULL)) {
++		memset(pgd, 0, USER_PTRS_PER_PGD * sizeof(pgd_t));
++		/* Copy kernel mappings */
++		memcpy(pgd + USER_PTRS_PER_PGD,
++			init_mm.pgd + USER_PTRS_PER_PGD,
++			(PTRS_PER_PGD - USER_PTRS_PER_PGD) * sizeof(pgd_t));
++	}
++	return pgd;
++}
++
++static inline void pgd_free(struct mm_struct *mm, pgd_t *pgd)
++{
++	free_page((unsigned long)pgd);
++}
++
++#ifndef __PAGETABLE_PMD_FOLDED
++
++static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long addr)
++{
++	return (pmd_t *)__get_free_page(
++		GFP_KERNEL | __GFP_REPEAT | __GFP_ZERO);
++}
++
++static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
++{
++	free_page((unsigned long)pmd);
++}
++
++#define __pmd_free_tlb(tlb, pmd, addr)  pmd_free((tlb)->mm, pmd)
++
++#endif /* __PAGETABLE_PMD_FOLDED */
++
++static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
++	unsigned long address)
++{
++	return (pte_t *)__get_free_page(
++		GFP_KERNEL | __GFP_REPEAT | __GFP_ZERO);
++}
++
++static inline struct page *pte_alloc_one(struct mm_struct *mm,
++	unsigned long address)
++{
++	struct page *pte;
++
++	pte = alloc_page(GFP_KERNEL | __GFP_REPEAT | __GFP_ZERO);
++	if (likely(pte != NULL))
++		pgtable_page_ctor(pte);
++	return pte;
++}
++
++static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
++{
++	free_page((unsigned long)pte);
++}
++
++static inline void pte_free(struct mm_struct *mm, pgtable_t pte)
++{
++	pgtable_page_dtor(pte);
++	__free_page(pte);
++}
++
++#define __pte_free_tlb(tlb, pte, buf)   \
++do {                                    \
++	pgtable_page_dtor(pte);         \
++	tlb_remove_page((tlb), pte);    \
++} while (0)
++
++static inline void check_pgt_cache(void)
++{
++}
++
++#endif /* _ASM_RISCV_PGALLOC_H */
+diff --git a/arch/riscv/include/asm/pgtable-32.h b/arch/riscv/include/asm/pgtable-32.h
 new file mode 100644
-index 000000000000..36ebe6feb5d6
+index 000000000000..d61974b74182
 --- /dev/null
-+++ b/arch/riscv/mm/Makefile
-@@ -0,0 +1 @@
-+obj-y := init.o fault.o extable.o ioremap.o
++++ b/arch/riscv/include/asm/pgtable-32.h
+@@ -0,0 +1,25 @@
++/*
++ * Copyright (C) 2012 Regents of the University of California
++ *
++ *   This program is free software; you can redistribute it and/or
++ *   modify it under the terms of the GNU General Public License
++ *   as published by the Free Software Foundation, version 2.
++ *
++ *   This program is distributed in the hope that it will be useful,
++ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ *   GNU General Public License for more details.
++ */
++
++#ifndef _ASM_RISCV_PGTABLE_32_H
++#define _ASM_RISCV_PGTABLE_32_H
++
++#include <asm-generic/pgtable-nopmd.h>
++#include <linux/const.h>
++
++/* Size of region mapped by a page global directory */
++#define PGDIR_SHIFT     22
++#define PGDIR_SIZE      (_AC(1, UL) << PGDIR_SHIFT)
++#define PGDIR_MASK      (~(PGDIR_SIZE - 1))
++
++#endif /* _ASM_RISCV_PGTABLE_32_H */
+diff --git a/arch/riscv/include/asm/pgtable-64.h b/arch/riscv/include/asm/pgtable-64.h
+new file mode 100644
+index 000000000000..7aa0ea9bd8bb
+--- /dev/null
++++ b/arch/riscv/include/asm/pgtable-64.h
+@@ -0,0 +1,84 @@
++/*
++ * Copyright (C) 2012 Regents of the University of California
++ *
++ *   This program is free software; you can redistribute it and/or
++ *   modify it under the terms of the GNU General Public License
++ *   as published by the Free Software Foundation, version 2.
++ *
++ *   This program is distributed in the hope that it will be useful,
++ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ *   GNU General Public License for more details.
++ */
++
++#ifndef _ASM_RISCV_PGTABLE_64_H
++#define _ASM_RISCV_PGTABLE_64_H
++
++#include <linux/const.h>
++
++#define PGDIR_SHIFT     30
++/* Size of region mapped by a page global directory */
++#define PGDIR_SIZE      (_AC(1, UL) << PGDIR_SHIFT)
++#define PGDIR_MASK      (~(PGDIR_SIZE - 1))
++
++#define PMD_SHIFT       21
++/* Size of region mapped by a page middle directory */
++#define PMD_SIZE        (_AC(1, UL) << PMD_SHIFT)
++#define PMD_MASK        (~(PMD_SIZE - 1))
++
++/* Page Middle Directory entry */
++typedef struct {
++	unsigned long pmd;
++} pmd_t;
++
++#define pmd_val(x)      ((x).pmd)
++#define __pmd(x)        ((pmd_t) { (x) })
++
++#define PTRS_PER_PMD    (PAGE_SIZE / sizeof(pmd_t))
++
++static inline int pud_present(pud_t pud)
++{
++	return (pud_val(pud) & _PAGE_PRESENT);
++}
++
++static inline int pud_none(pud_t pud)
++{
++	return (pud_val(pud) == 0);
++}
++
++static inline int pud_bad(pud_t pud)
++{
++	return !pud_present(pud);
++}
++
++static inline void set_pud(pud_t *pudp, pud_t pud)
++{
++	*pudp = pud;
++}
++
++static inline void pud_clear(pud_t *pudp)
++{
++	set_pud(pudp, __pud(0));
++}
++
++static inline unsigned long pud_page_vaddr(pud_t pud)
++{
++	return (unsigned long)pfn_to_virt(pud_val(pud) >> _PAGE_PFN_SHIFT);
++}
++
++#define pmd_index(addr) (((addr) >> PMD_SHIFT) & (PTRS_PER_PMD - 1))
++
++static inline pmd_t *pmd_offset(pud_t *pud, unsigned long addr)
++{
++	return (pmd_t *)pud_page_vaddr(*pud) + pmd_index(addr);
++}
++
++static inline pmd_t pfn_pmd(unsigned long pfn, pgprot_t prot)
++{
++	return __pmd((pfn << _PAGE_PFN_SHIFT) | pgprot_val(prot));
++}
++
++#define pmd_ERROR(e) \
++	pr_err("%s:%d: bad pmd %016lx.\n", __FILE__, __LINE__, pmd_val(e))
++
++#endif /* _ASM_RISCV_PGTABLE_64_H */
+diff --git a/arch/riscv/include/asm/pgtable-bits.h b/arch/riscv/include/asm/pgtable-bits.h
+new file mode 100644
+index 000000000000..997ddbb1d370
+--- /dev/null
++++ b/arch/riscv/include/asm/pgtable-bits.h
+@@ -0,0 +1,48 @@
++/*
++ * Copyright (C) 2012 Regents of the University of California
++ *
++ *   This program is free software; you can redistribute it and/or
++ *   modify it under the terms of the GNU General Public License
++ *   as published by the Free Software Foundation, version 2.
++ *
++ *   This program is distributed in the hope that it will be useful,
++ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ *   GNU General Public License for more details.
++ */
++
++#ifndef _ASM_RISCV_PGTABLE_BITS_H
++#define _ASM_RISCV_PGTABLE_BITS_H
++
++/*
++ * PTE format:
++ * | XLEN-1  10 | 9             8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0
++ *       PFN      reserved for SW   D   A   G   U   X   W   R   V
++ */
++
++#define _PAGE_ACCESSED_OFFSET 6
++
++#define _PAGE_PRESENT   (1 << 0)
++#define _PAGE_READ      (1 << 1)    /* Readable */
++#define _PAGE_WRITE     (1 << 2)    /* Writable */
++#define _PAGE_EXEC      (1 << 3)    /* Executable */
++#define _PAGE_USER      (1 << 4)    /* User */
++#define _PAGE_GLOBAL    (1 << 5)    /* Global */
++#define _PAGE_ACCESSED  (1 << 6)    /* Set by hardware on any access */
++#define _PAGE_DIRTY     (1 << 7)    /* Set by hardware on any write */
++#define _PAGE_SOFT      (1 << 8)    /* Reserved for software */
++
++#define _PAGE_SPECIAL   _PAGE_SOFT
++#define _PAGE_TABLE     _PAGE_PRESENT
++
++#define _PAGE_PFN_SHIFT 10
++
++/* Set of bits to preserve across pte_modify() */
++#define _PAGE_CHG_MASK  (~(unsigned long)(_PAGE_PRESENT | _PAGE_READ |	\
++					  _PAGE_WRITE | _PAGE_EXEC |	\
++					  _PAGE_USER | _PAGE_GLOBAL))
++
++/* Advertise support for _PAGE_SPECIAL */
++#define __HAVE_ARCH_PTE_SPECIAL
++
++#endif /* _ASM_RISCV_PGTABLE_BITS_H */
+diff --git a/arch/riscv/include/asm/pgtable.h b/arch/riscv/include/asm/pgtable.h
+new file mode 100644
+index 000000000000..8bb44014f5c3
+--- /dev/null
++++ b/arch/riscv/include/asm/pgtable.h
+@@ -0,0 +1,427 @@
++/*
++ * Copyright (C) 2012 Regents of the University of California
++ *
++ *   This program is free software; you can redistribute it and/or
++ *   modify it under the terms of the GNU General Public License
++ *   as published by the Free Software Foundation, version 2.
++ *
++ *   This program is distributed in the hope that it will be useful,
++ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ *   GNU General Public License for more details.
++ */
++
++#ifndef _ASM_RISCV_PGTABLE_H
++#define _ASM_RISCV_PGTABLE_H
++
++#include <linux/mmzone.h>
++
++#include <asm/pgtable-bits.h>
++
++#ifndef __ASSEMBLY__
++
++#ifdef CONFIG_MMU
++
++/* Page Upper Directory not used in RISC-V */
++#include <asm-generic/pgtable-nopud.h>
++#include <asm/page.h>
++#include <asm/tlbflush.h>
++#include <linux/mm_types.h>
++
++#ifdef CONFIG_64BIT
++#include <asm/pgtable-64.h>
++#else
++#include <asm/pgtable-32.h>
++#endif /* CONFIG_64BIT */
++
++/* Number of entries in the page global directory */
++#define PTRS_PER_PGD    (PAGE_SIZE / sizeof(pgd_t))
++/* Number of entries in the page table */
++#define PTRS_PER_PTE    (PAGE_SIZE / sizeof(pte_t))
++
++/* Number of PGD entries that a user-mode program can use */
++#define USER_PTRS_PER_PGD   (TASK_SIZE / PGDIR_SIZE)
++#define FIRST_USER_ADDRESS  0
++
++/* Page protection bits */
++#define _PAGE_BASE	(_PAGE_PRESENT | _PAGE_ACCESSED | _PAGE_USER)
++
++#define PAGE_NONE		__pgprot(0)
++#define PAGE_READ		__pgprot(_PAGE_BASE | _PAGE_READ)
++#define PAGE_WRITE		__pgprot(_PAGE_BASE | _PAGE_READ | _PAGE_WRITE)
++#define PAGE_EXEC		__pgprot(_PAGE_BASE | _PAGE_EXEC)
++#define PAGE_READ_EXEC		__pgprot(_PAGE_BASE | _PAGE_READ | _PAGE_EXEC)
++#define PAGE_WRITE_EXEC		__pgprot(_PAGE_BASE | _PAGE_READ |	\
++					 _PAGE_EXEC | _PAGE_WRITE)
++
++#define PAGE_COPY		PAGE_READ
++#define PAGE_COPY_EXEC		PAGE_EXEC
++#define PAGE_COPY_READ_EXEC	PAGE_READ_EXEC
++#define PAGE_SHARED		PAGE_WRITE
++#define PAGE_SHARED_EXEC	PAGE_WRITE_EXEC
++
++#define _PAGE_KERNEL		(_PAGE_READ \
++				| _PAGE_WRITE \
++				| _PAGE_PRESENT \
++				| _PAGE_ACCESSED \
++				| _PAGE_DIRTY)
++
++#define PAGE_KERNEL		__pgprot(_PAGE_KERNEL)
++#define PAGE_KERNEL_EXEC	__pgprot(_PAGE_KERNEL | _PAGE_EXEC)
++
++extern pgd_t swapper_pg_dir[];
++
++/* MAP_PRIVATE permissions: xwr (copy-on-write) */
++#define __P000	PAGE_NONE
++#define __P001	PAGE_READ
++#define __P010	PAGE_COPY
++#define __P011	PAGE_COPY
++#define __P100	PAGE_EXEC
++#define __P101	PAGE_READ_EXEC
++#define __P110	PAGE_COPY_EXEC
++#define __P111	PAGE_COPY_READ_EXEC
++
++/* MAP_SHARED permissions: xwr */
++#define __S000	PAGE_NONE
++#define __S001	PAGE_READ
++#define __S010	PAGE_SHARED
++#define __S011	PAGE_SHARED
++#define __S100	PAGE_EXEC
++#define __S101	PAGE_READ_EXEC
++#define __S110	PAGE_SHARED_EXEC
++#define __S111	PAGE_SHARED_EXEC
++
++/*
++ * ZERO_PAGE is a global shared page that is always zero,
++ * used for zero-mapped memory areas, etc.
++ */
++extern unsigned long empty_zero_page[PAGE_SIZE / sizeof(unsigned long)];
++#define ZERO_PAGE(vaddr) (virt_to_page(empty_zero_page))
++
++static inline int pmd_present(pmd_t pmd)
++{
++	return (pmd_val(pmd) & _PAGE_PRESENT);
++}
++
++static inline int pmd_none(pmd_t pmd)
++{
++	return (pmd_val(pmd) == 0);
++}
++
++static inline int pmd_bad(pmd_t pmd)
++{
++	return !pmd_present(pmd);
++}
++
++static inline void set_pmd(pmd_t *pmdp, pmd_t pmd)
++{
++	*pmdp = pmd;
++}
++
++static inline void pmd_clear(pmd_t *pmdp)
++{
++	set_pmd(pmdp, __pmd(0));
++}
++
++
++static inline pgd_t pfn_pgd(unsigned long pfn, pgprot_t prot)
++{
++	return __pgd((pfn << _PAGE_PFN_SHIFT) | pgprot_val(prot));
++}
++
++#define pgd_index(addr) (((addr) >> PGDIR_SHIFT) & (PTRS_PER_PGD - 1))
++
++/* Locate an entry in the page global directory */
++static inline pgd_t *pgd_offset(const struct mm_struct *mm, unsigned long addr)
++{
++	return mm->pgd + pgd_index(addr);
++}
++/* Locate an entry in the kernel page global directory */
++#define pgd_offset_k(addr)      pgd_offset(&init_mm, (addr))
++
++static inline struct page *pmd_page(pmd_t pmd)
++{
++	return pfn_to_page(pmd_val(pmd) >> _PAGE_PFN_SHIFT);
++}
++
++static inline unsigned long pmd_page_vaddr(pmd_t pmd)
++{
++	return (unsigned long)pfn_to_virt(pmd_val(pmd) >> _PAGE_PFN_SHIFT);
++}
++
++/* Yields the page frame number (PFN) of a page table entry */
++static inline unsigned long pte_pfn(pte_t pte)
++{
++	return (pte_val(pte) >> _PAGE_PFN_SHIFT);
++}
++
++#define pte_page(x)     pfn_to_page(pte_pfn(x))
++
++/* Constructs a page table entry */
++static inline pte_t pfn_pte(unsigned long pfn, pgprot_t prot)
++{
++	return __pte((pfn << _PAGE_PFN_SHIFT) | pgprot_val(prot));
++}
++
++static inline pte_t mk_pte(struct page *page, pgprot_t prot)
++{
++	return pfn_pte(page_to_pfn(page), prot);
++}
++
++#define pte_index(addr) (((addr) >> PAGE_SHIFT) & (PTRS_PER_PTE - 1))
++
++static inline pte_t *pte_offset_kernel(pmd_t *pmd, unsigned long addr)
++{
++	return (pte_t *)pmd_page_vaddr(*pmd) + pte_index(addr);
++}
++
++#define pte_offset_map(dir, addr)	pte_offset_kernel((dir), (addr))
++#define pte_unmap(pte)			((void)(pte))
++
++/*
++ * Certain architectures need to do special things when PTEs within
++ * a page table are directly modified.  Thus, the following hook is
++ * made available.
++ */
++static inline void set_pte(pte_t *ptep, pte_t pteval)
++{
++	*ptep = pteval;
++}
++
++static inline void set_pte_at(struct mm_struct *mm,
++	unsigned long addr, pte_t *ptep, pte_t pteval)
++{
++	set_pte(ptep, pteval);
++}
++
++static inline void pte_clear(struct mm_struct *mm,
++	unsigned long addr, pte_t *ptep)
++{
++	set_pte_at(mm, addr, ptep, __pte(0));
++}
++
++static inline int pte_present(pte_t pte)
++{
++	return (pte_val(pte) & _PAGE_PRESENT);
++}
++
++static inline int pte_none(pte_t pte)
++{
++	return (pte_val(pte) == 0);
++}
++
++/* static inline int pte_read(pte_t pte) */
++
++static inline int pte_write(pte_t pte)
++{
++	return pte_val(pte) & _PAGE_WRITE;
++}
++
++static inline int pte_huge(pte_t pte)
++{
++	return pte_present(pte)
++		&& (pte_val(pte) & (_PAGE_READ | _PAGE_WRITE | _PAGE_EXEC));
++}
++
++/* static inline int pte_exec(pte_t pte) */
++
++static inline int pte_dirty(pte_t pte)
++{
++	return pte_val(pte) & _PAGE_DIRTY;
++}
++
++static inline int pte_young(pte_t pte)
++{
++	return pte_val(pte) & _PAGE_ACCESSED;
++}
++
++static inline int pte_special(pte_t pte)
++{
++	return pte_val(pte) & _PAGE_SPECIAL;
++}
++
++/* static inline pte_t pte_rdprotect(pte_t pte) */
++
++static inline pte_t pte_wrprotect(pte_t pte)
++{
++	return __pte(pte_val(pte) & ~(_PAGE_WRITE));
++}
++
++/* static inline pte_t pte_mkread(pte_t pte) */
++
++static inline pte_t pte_mkwrite(pte_t pte)
++{
++	return __pte(pte_val(pte) | _PAGE_WRITE);
++}
++
++/* static inline pte_t pte_mkexec(pte_t pte) */
++
++static inline pte_t pte_mkdirty(pte_t pte)
++{
++	return __pte(pte_val(pte) | _PAGE_DIRTY);
++}
++
++static inline pte_t pte_mkclean(pte_t pte)
++{
++	return __pte(pte_val(pte) & ~(_PAGE_DIRTY));
++}
++
++static inline pte_t pte_mkyoung(pte_t pte)
++{
++	return __pte(pte_val(pte) | _PAGE_ACCESSED);
++}
++
++static inline pte_t pte_mkold(pte_t pte)
++{
++	return __pte(pte_val(pte) & ~(_PAGE_ACCESSED));
++}
++
++static inline pte_t pte_mkspecial(pte_t pte)
++{
++	return __pte(pte_val(pte) | _PAGE_SPECIAL);
++}
++
++/* Modify page protection bits */
++static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
++{
++	return __pte((pte_val(pte) & _PAGE_CHG_MASK) | pgprot_val(newprot));
++}
++
++#define pgd_ERROR(e) \
++	pr_err("%s:%d: bad pgd " PTE_FMT ".\n", __FILE__, __LINE__, pgd_val(e))
++
++
++/* Commit new configuration to MMU hardware */
++static inline void update_mmu_cache(struct vm_area_struct *vma,
++	unsigned long address, pte_t *ptep)
++{
++	/* The kernel assumes that TLBs don't cache invalid entries, but
++	 * in RISC-V, SFENCE.VMA specifies an ordering constraint, not a
++	 * cache flush; it is necessary even after writing invalid entries.
++	 * Relying on flush_tlb_fix_spurious_fault would suffice, but
++	 * the extra traps reduce performance.  So, eagerly SFENCE.VMA.
++	 */
++	local_flush_tlb_page(address);
++}
++
++#define __HAVE_ARCH_PTE_SAME
++static inline int pte_same(pte_t pte_a, pte_t pte_b)
++{
++	return pte_val(pte_a) == pte_val(pte_b);
++}
++
++#define __HAVE_ARCH_PTEP_SET_ACCESS_FLAGS
++static inline int ptep_set_access_flags(struct vm_area_struct *vma,
++					unsigned long address, pte_t *ptep,
++					pte_t entry, int dirty)
++{
++	if (!pte_same(*ptep, entry))
++		set_pte_at(vma->vm_mm, address, ptep, entry);
++	/* update_mmu_cache will unconditionally execute, handling both
++	 * the case that the PTE changed and the spurious fault case.
++	 */
++	return true;
++}
++
++#define __HAVE_ARCH_PTEP_GET_AND_CLEAR
++static inline pte_t ptep_get_and_clear(struct mm_struct *mm,
++				       unsigned long address, pte_t *ptep)
++{
++	return __pte(atomic_long_xchg((atomic_long_t *)ptep, 0));
++}
++
++#define __HAVE_ARCH_PTEP_TEST_AND_CLEAR_YOUNG
++static inline int ptep_test_and_clear_young(struct vm_area_struct *vma,
++					    unsigned long address,
++					    pte_t *ptep)
++{
++	if (!pte_young(*ptep))
++		return 0;
++	return test_and_clear_bit(_PAGE_ACCESSED_OFFSET, &pte_val(*ptep));
++}
++
++#define __HAVE_ARCH_PTEP_SET_WRPROTECT
++static inline void ptep_set_wrprotect(struct mm_struct *mm,
++				      unsigned long address, pte_t *ptep)
++{
++	atomic_long_and(~(unsigned long)_PAGE_WRITE, (atomic_long_t *)ptep);
++}
++
++#define __HAVE_ARCH_PTEP_CLEAR_YOUNG_FLUSH
++static inline int ptep_clear_flush_young(struct vm_area_struct *vma,
++					 unsigned long address, pte_t *ptep)
++{
++	/*
++	 * This comment is borrowed from x86, but applies equally to RISC-V:
++	 *
++	 * Clearing the accessed bit without a TLB flush
++	 * doesn't cause data corruption. [ It could cause incorrect
++	 * page aging and the (mistaken) reclaim of hot pages, but the
++	 * chance of that should be relatively low. ]
++	 *
++	 * So as a performance optimization don't flush the TLB when
++	 * clearing the accessed bit, it will eventually be flushed by
++	 * a context switch or a VM operation anyway. [ In the rare
++	 * event of it not getting flushed for a long time the delay
++	 * shouldn't really matter because there's no real memory
++	 * pressure for swapout to react to. ]
++	 */
++	return ptep_test_and_clear_young(vma, address, ptep);
++}
++
++/*
++ * Encode and decode a swap entry
++ *
++ * Format of swap PTE:
++ *	bit            0:	_PAGE_PRESENT (zero)
++ *	bit            1:	reserved for future use (zero)
++ *	bits      2 to 6:	swap type
++ *	bits 7 to XLEN-1:	swap offset
++ */
++#define __SWP_TYPE_SHIFT	2
++#define __SWP_TYPE_BITS		5
++#define __SWP_TYPE_MASK		((1UL << __SWP_TYPE_BITS) - 1)
++#define __SWP_OFFSET_SHIFT	(__SWP_TYPE_BITS + __SWP_TYPE_SHIFT)
++
++#define MAX_SWAPFILES_CHECK()	\
++	BUILD_BUG_ON(MAX_SWAPFILES_SHIFT > __SWP_TYPE_BITS)
++
++#define __swp_type(x)	(((x).val >> __SWP_TYPE_SHIFT) & __SWP_TYPE_MASK)
++#define __swp_offset(x)	((x).val >> __SWP_OFFSET_SHIFT)
++#define __swp_entry(type, offset) ((swp_entry_t) \
++	{ ((type) << __SWP_TYPE_SHIFT) | ((offset) << __SWP_OFFSET_SHIFT) })
++
++#define __pte_to_swp_entry(pte)	((swp_entry_t) { pte_val(pte) })
++#define __swp_entry_to_pte(x)	((pte_t) { (x).val })
++
++#ifdef CONFIG_FLATMEM
++#define kern_addr_valid(addr)   (1) /* FIXME */
++#endif
++
++extern void paging_init(void);
++
++static inline void pgtable_cache_init(void)
++{
++	/* No page table caches to initialize */
++}
++
++#endif /* CONFIG_MMU */
++
++#define VMALLOC_SIZE     (KERN_VIRT_SIZE >> 1)
++#define VMALLOC_END      (PAGE_OFFSET - 1)
++#define VMALLOC_START    (PAGE_OFFSET - VMALLOC_SIZE)
++
++/* Task size is 0x40000000000 for RV64 or 0xb800000 for RV32.
++ * Note that PGDIR_SIZE must evenly divide TASK_SIZE.
++ */
++#ifdef CONFIG_64BIT
++#define TASK_SIZE (PGDIR_SIZE * PTRS_PER_PGD / 2)
++#else
++#define TASK_SIZE VMALLOC_START
++#endif
++
++#include <asm-generic/pgtable.h>
++
++#endif /* !__ASSEMBLY__ */
++
++#endif /* _ASM_RISCV_PGTABLE_H */
+diff --git a/arch/riscv/mm/fault.c b/arch/riscv/mm/fault.c
+new file mode 100644
+index 000000000000..b2a431c7f233
+--- /dev/null
++++ b/arch/riscv/mm/fault.c
+@@ -0,0 +1,280 @@
++/*
++ * Copyright (C) 2009 Sunplus Core Technology Co., Ltd.
++ *  Lennox Wu <lennox.wu@sunplusct.com>
++ *  Chen Liqin <liqin.chen@sunplusct.com>
++ * Copyright (C) 2012 Regents of the University of California
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, see the file COPYING, or write
++ * to the Free Software Foundation, Inc.,
++ */
++
++
++#include <linux/mm.h>
++#include <linux/kernel.h>
++#include <linux/interrupt.h>
++#include <linux/perf_event.h>
++#include <linux/signal.h>
++#include <linux/uaccess.h>
++
++#include <asm/pgalloc.h>
++#include <asm/ptrace.h>
++#include <asm/uaccess.h>
++
++/*
++ * This routine handles page faults.  It determines the address and the
++ * problem, and then passes it off to one of the appropriate routines.
++ */
++asmlinkage void do_page_fault(struct pt_regs *regs)
++{
++	struct task_struct *tsk;
++	struct vm_area_struct *vma;
++	struct mm_struct *mm;
++	unsigned long addr, cause;
++	unsigned int flags = FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_KILLABLE;
++	int fault, code = SEGV_MAPERR;
++
++	cause = regs->scause;
++	addr = regs->sbadaddr;
++
++	tsk = current;
++	mm = tsk->mm;
++
++	/*
++	 * Fault-in kernel-space virtual memory on-demand.
++	 * The 'reference' page table is init_mm.pgd.
++	 *
++	 * NOTE! We MUST NOT take any locks for this case. We may
++	 * be in an interrupt or a critical region, and should
++	 * only copy the information from the master page table,
++	 * nothing more.
++	 */
++	if (unlikely((addr >= VMALLOC_START) && (addr <= VMALLOC_END)))
++		goto vmalloc_fault;
++
++	/* Enable interrupts if they were enabled in the parent context. */
++	if (likely(regs->sstatus & SR_PIE))
++		local_irq_enable();
++
++	/*
++	 * If we're in an interrupt, have no user context, or are running
++	 * in an atomic region, then we must not take the fault.
++	 */
++	if (unlikely(faulthandler_disabled() || !mm))
++		goto no_context;
++
++	if (user_mode(regs))
++		flags |= FAULT_FLAG_USER;
++
++	perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS, 1, regs, addr);
++
++retry:
++	down_read(&mm->mmap_sem);
++	vma = find_vma(mm, addr);
++	if (unlikely(!vma))
++		goto bad_area;
++	if (likely(vma->vm_start <= addr))
++		goto good_area;
++	if (unlikely(!(vma->vm_flags & VM_GROWSDOWN)))
++		goto bad_area;
++	if (unlikely(expand_stack(vma, addr)))
++		goto bad_area;
++
++	/*
++	 * Ok, we have a good vm_area for this memory access, so
++	 * we can handle it.
++	 */
++good_area:
++	code = SEGV_ACCERR;
++
++	switch (cause) {
++	case EXC_INST_PAGE_FAULT:
++		if (!(vma->vm_flags & VM_EXEC))
++			goto bad_area;
++		break;
++	case EXC_LOAD_PAGE_FAULT:
++		if (!(vma->vm_flags & VM_READ))
++			goto bad_area;
++		break;
++	case EXC_STORE_PAGE_FAULT:
++		if (!(vma->vm_flags & VM_WRITE))
++			goto bad_area;
++		flags |= FAULT_FLAG_WRITE;
++		break;
++	default:
++		panic("%s: unhandled cause %lu", __func__, cause);
++	}
++
++	/*
++	 * If for any reason at all we could not handle the fault,
++	 * make sure we exit gracefully rather than endlessly redo
++	 * the fault.
++	 */
++	fault = handle_mm_fault(vma, addr, flags);
++
++	/*
++	 * If we need to retry but a fatal signal is pending, handle the
++	 * signal first. We do not need to release the mmap_sem because it
++	 * would already be released in __lock_page_or_retry in mm/filemap.c.
++	 */
++	if ((fault & VM_FAULT_RETRY) && fatal_signal_pending(tsk))
++		return;
++
++	if (unlikely(fault & VM_FAULT_ERROR)) {
++		if (fault & VM_FAULT_OOM)
++			goto out_of_memory;
++		else if (fault & VM_FAULT_SIGBUS)
++			goto do_sigbus;
++		BUG();
++	}
++
++	/*
++	 * Major/minor page fault accounting is only done on the
++	 * initial attempt. If we go through a retry, it is extremely
++	 * likely that the page will be found in page cache at that point.
++	 */
++	if (flags & FAULT_FLAG_ALLOW_RETRY) {
++		if (fault & VM_FAULT_MAJOR) {
++			tsk->maj_flt++;
++			perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS_MAJ,
++				      1, regs, addr);
++		} else {
++			tsk->min_flt++;
++			perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS_MIN,
++				      1, regs, addr);
++		}
++		if (fault & VM_FAULT_RETRY) {
++			/*
++			 * Clear FAULT_FLAG_ALLOW_RETRY to avoid any risk
++			 * of starvation.
++			 */
++			flags &= ~(FAULT_FLAG_ALLOW_RETRY);
++			flags |= FAULT_FLAG_TRIED;
++
++			/*
++			 * No need to up_read(&mm->mmap_sem) as we would
++			 * have already released it in __lock_page_or_retry
++			 * in mm/filemap.c.
++			 */
++			goto retry;
++		}
++	}
++
++	up_read(&mm->mmap_sem);
++	return;
++
++	/*
++	 * Something tried to access memory that isn't in our memory map.
++	 * Fix it, but check if it's kernel or user first.
++	 */
++bad_area:
++	up_read(&mm->mmap_sem);
++	/* User mode accesses just cause a SIGSEGV */
++	if (user_mode(regs)) {
++		do_trap(regs, SIGSEGV, code, addr, tsk);
++		return;
++	}
++
++no_context:
++	/* Are we prepared to handle this kernel fault? */
++	if (fixup_exception(regs))
++		return;
++
++	/*
++	 * Oops. The kernel tried to access some bad page. We'll have to
++	 * terminate things with extreme prejudice.
++	 */
++	bust_spinlocks(1);
++	pr_alert("Unable to handle kernel %s at virtual address " REG_FMT "\n",
++		(addr < PAGE_SIZE) ? "NULL pointer dereference" :
++		"paging request", addr);
++	die(regs, "Oops");
++	do_exit(SIGKILL);
++
++	/*
++	 * We ran out of memory, call the OOM killer, and return the userspace
++	 * (which will retry the fault, or kill us if we got oom-killed).
++	 */
++out_of_memory:
++	up_read(&mm->mmap_sem);
++	if (!user_mode(regs))
++		goto no_context;
++	pagefault_out_of_memory();
++	return;
++
++do_sigbus:
++	up_read(&mm->mmap_sem);
++	/* Kernel mode? Handle exceptions or die */
++	if (!user_mode(regs))
++		goto no_context;
++	do_trap(regs, SIGBUS, BUS_ADRERR, addr, tsk);
++	return;
++
++vmalloc_fault:
++	{
++		pgd_t *pgd, *pgd_k;
++		pud_t *pud, *pud_k;
++		p4d_t *p4d, *p4d_k;
++		pmd_t *pmd, *pmd_k;
++		pte_t *pte_k;
++		int index;
++
++		if (user_mode(regs))
++			goto bad_area;
++
++		/*
++		 * Synchronize this task's top level page-table
++		 * with the 'reference' page table.
++		 *
++		 * Do _not_ use "tsk->active_mm->pgd" here.
++		 * We might be inside an interrupt in the middle
++		 * of a task switch.
++		 */
++		index = pgd_index(addr);
++		pgd = (pgd_t *)pfn_to_virt(csr_read(sptbr)) + index;
++		pgd_k = init_mm.pgd + index;
++
++		if (!pgd_present(*pgd_k))
++			goto no_context;
++		set_pgd(pgd, *pgd_k);
++
++		p4d = p4d_offset(pgd, addr);
++		p4d_k = p4d_offset(pgd_k, addr);
++		if (!p4d_present(*p4d_k))
++			goto no_context;
++
++		pud = pud_offset(p4d, addr);
++		pud_k = pud_offset(p4d_k, addr);
++		if (!pud_present(*pud_k))
++			goto no_context;
++
++		/* Since the vmalloc area is global, it is unnecessary
++		 * to copy individual PTEs
++		 */
++		pmd = pmd_offset(pud, addr);
++		pmd_k = pmd_offset(pud_k, addr);
++		if (!pmd_present(*pmd_k))
++			goto no_context;
++		set_pmd(pmd, *pmd_k);
++
++		/* Make sure the actual PTE exists as well to
++		 * catch kernel vmalloc-area accesses to non-mapped
++		 * addresses. If we don't do this, this will just
++		 * silently loop forever.
++		 */
++		pte_k = pte_offset_kernel(pmd_k, addr);
++		if (!pte_present(*pte_k))
++			goto no_context;
++		return;
++	}
++}
 -- 
 2.13.0
