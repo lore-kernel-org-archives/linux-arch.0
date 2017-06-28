@@ -1,79 +1,180 @@
-From: Logan Gunthorpe <logang@deltatee.com>
-Subject: Re: [PATCH v2 3/3] crypto: caam: cleanup CONFIG_64BIT ifdefs when
- using io{read|write}64
-Date: Wed, 28 Jun 2017 10:51:15 -0600
-Message-ID: <c3f2e061-5ed1-5c74-b955-3d2bfb0da074@deltatee.com>
-References: <20170627230204.16410-1-logang@deltatee.com>
- <20170627230204.16410-4-logang@deltatee.com>
- <CAK8P3a1mXeH+qdW=MFKO7i4oXw3yfLj-QU=09Y=MvD5y-T4zmw@mail.gmail.com>
+From: tip-bot for Kees Cook <tipbot@zytor.com>
+Subject: [tip:locking/core] locking/refcount: Create unchecked atomic_t
+ implementation
+Date: Wed, 28 Jun 2017 09:58:15 -0700
+Message-ID: <tip-fd25d19f6b8da315332bb75936605fb45d3ea981@git.kernel.org>
+References: <20170621200026.GA115679@beast>
+Reply-To: davem@davemloft.net, arnd@arndb.de, manfred@colorfullife.com,
+          riel@redhat.com, hpa@zytor.com, peterz@infradead.org,
+          ebiggers3@gmail.com, elena.reshetova@intel.com,
+          keescook@chromium.org, dwindsor@gmail.com, mingo@kernel.org,
+          jannh@google.com, serge@hallyn.com, adobriyan@gmail.com,
+          gregkh@linuxfoundation.org, ebiederm@xmission.com,
+          ishkamiel@gmail.com, tglx@linutronix.de, hch@infradead.org,
+          jpoimboe@redhat.com, linux-kernel@vger.kernel.org,
+          torvalds@linux-foundation.org, akpm@linux-foundation.org,
+          dave@stgolabs.net, linux-arch@vger.kernel.org,
+          James.Bottomley@hansenpartnership.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ale.deltatee.com ([207.54.116.67]:46906 "EHLO ale.deltatee.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751579AbdF1QvZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 28 Jun 2017 12:51:25 -0400
-In-Reply-To: <CAK8P3a1mXeH+qdW=MFKO7i4oXw3yfLj-QU=09Y=MvD5y-T4zmw@mail.gmail.com>
+Received: from terminus.zytor.com ([65.50.211.136]:36793 "EHLO
+        terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751516AbdF1RIH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 28 Jun 2017 13:08:07 -0400
+In-Reply-To: <20170621200026.GA115679@beast>
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jyri Sarha <jsarha@ti.com>, Stephen Bates <sbates@raithlin.com>, =?UTF-8?Q?Horia_Geant=c4=83?= <horia.geanta@nxp.com>, Dan Douglass <dan.douglass@nxp.com>, Herbert Xu <herbert@gondor.apana.org.au>, "David S. Miller" <davem@davemloft.net>
+To: linux-tip-commits@vger.kernel.org
+Cc: arnd@arndb.de, manfred@colorfullife.com, davem@davemloft.net, riel@redhat.com, peterz@infradead.org, ebiggers3@gmail.com, elena.reshetova@intel.com, hpa@zytor.com, keescook@chromium.org, dwindsor@gmail.com, jannh@google.com, mingo@kernel.org, gregkh@linuxfoundation.org, serge@hallyn.com, adobriyan@gmail.com, ebiederm@xmission.com, ishkamiel@gmail.com, tglx@linutronix.de, hch@infradead.org, linux-kernel@vger.kernel.org, jpoimboe@redhat.com, torvalds@linux-foundation.org, akpm@linux-foundation.org, dave@stgolabs.net, linux-arch@vger.kernel.org, James.Bottomley@hansenpartnership.com
 
+Commit-ID:  fd25d19f6b8da315332bb75936605fb45d3ea981
+Gitweb:     http://git.kernel.org/tip/fd25d19f6b8da315332bb75936605fb45d3ea981
+Author:     Kees Cook <keescook@chromium.org>
+AuthorDate: Wed, 21 Jun 2017 13:00:26 -0700
+Committer:  Ingo Molnar <mingo@kernel.org>
+CommitDate: Wed, 28 Jun 2017 18:54:46 +0200
 
+locking/refcount: Create unchecked atomic_t implementation
 
-On 28/06/17 04:20 AM, Arnd Bergmann wrote:
-> On Wed, Jun 28, 2017 at 1:02 AM, Logan Gunthorpe <logang@deltatee.com> wrote:
->>  #include <linux/types.h>
->>  #include <linux/bitops.h>
->> -#include <linux/io.h>
->> +#include <linux/io-64-nonatomic-hi-lo.h>
-> 
-> Here you include the hi-lo variant unconditionally.
-> 
->> -#else /* CONFIG_64BIT */
->> -static inline void wr_reg64(void __iomem *reg, u64 data)
->> -{
->> -#ifndef CONFIG_CRYPTO_DEV_FSL_CAAM_IMX
->> -       if (caam_little_end) {
->> -               wr_reg32((u32 __iomem *)(reg) + 1, data >> 32);
->> -               wr_reg32((u32 __iomem *)(reg), data);
->> -       } else
->>  #endif
->> -       {
->> -               wr_reg32((u32 __iomem *)(reg), data >> 32);
->> -               wr_reg32((u32 __iomem *)(reg) + 1, data);
->> -       }
->> +               iowrite64be(data, reg);
->>  }
-> 
-> However, the #else path here uses lo-hi instead. I guess we have
-> to decide how to define iowrite64be_lo_hi() first: it could
-> either byteswap the 64-bit value first, then write the two halves,
-> or it could write the two halves, doing a 32-bit byte swap on
-> each.
+Many subsystems will not use refcount_t unless there is a way to build the
+kernel so that there is no regression in speed compared to atomic_t. This
+adds CONFIG_REFCOUNT_FULL to enable the full refcount_t implementation
+which has the validation but is slightly slower. When not enabled,
+refcount_t uses the basic unchecked atomic_t routines, which results in
+no code changes compared to just using atomic_t directly.
 
-Ok, I studied this a bit more:
+Signed-off-by: Kees Cook <keescook@chromium.org>
+Acked-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Alexey Dobriyan <adobriyan@gmail.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Christoph Hellwig <hch@infradead.org>
+Cc: David S. Miller <davem@davemloft.net>
+Cc: David Windsor <dwindsor@gmail.com>
+Cc: Davidlohr Bueso <dave@stgolabs.net>
+Cc: Elena Reshetova <elena.reshetova@intel.com>
+Cc: Eric Biggers <ebiggers3@gmail.com>
+Cc: Eric W. Biederman <ebiederm@xmission.com>
+Cc: Hans Liljestrand <ishkamiel@gmail.com>
+Cc: James Bottomley <James.Bottomley@hansenpartnership.com>
+Cc: Jann Horn <jannh@google.com>
+Cc: Josh Poimboeuf <jpoimboe@redhat.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Manfred Spraul <manfred@colorfullife.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Rik van Riel <riel@redhat.com>
+Cc: Serge E. Hallyn <serge@hallyn.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: arozansk@redhat.com
+Cc: axboe@kernel.dk
+Cc: linux-arch <linux-arch@vger.kernel.org>
+Link: http://lkml.kernel.org/r/20170621200026.GA115679@beast
+Signed-off-by: Ingo Molnar <mingo@kernel.org>
+---
+ arch/Kconfig             |  9 +++++++++
+ include/linux/refcount.h | 42 ++++++++++++++++++++++++++++++++++++++++++
+ lib/refcount.c           |  3 +++
+ 3 files changed, 54 insertions(+)
 
-The lo_hi/hi_lo functions seem to always refer to the data being written
-or read not to the address operated on. So, in the v3 version of this
-set, which I'm working on, I've defined:
-
-static inline void iowrite64_hi_lo(u64 val, void __iomem *addr)
-{
-        iowrite32(val >> 32, addr + sizeof(u32));
-        iowrite32(val, addr);
-}
-
-static inline void iowrite64be_hi_lo(u64 val, void __iomem *addr)
-{
-        iowrite32be(val >> 32, addr);
-        iowrite32be(val, addr + sizeof(u32));
-}
-
-So the two hi_lo functions match both paths of the #if and thus, I
-believe, the patch will be correct in v3 without changes.
-
-Thanks,
-
-Logan
+diff --git a/arch/Kconfig b/arch/Kconfig
+index 6c00e5b..f76b214 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -867,4 +867,13 @@ config STRICT_MODULE_RWX
+ config ARCH_WANT_RELAX_ORDER
+ 	bool
+ 
++config REFCOUNT_FULL
++	bool "Perform full reference count validation at the expense of speed"
++	help
++	  Enabling this switches the refcounting infrastructure from a fast
++	  unchecked atomic_t implementation to a fully state checked
++	  implementation, which can be (slightly) slower but provides protections
++	  against various use-after-free conditions that can be used in
++	  security flaw exploits.
++
+ source "kernel/gcov/Kconfig"
+diff --git a/include/linux/refcount.h b/include/linux/refcount.h
+index b34aa64..bb71f28 100644
+--- a/include/linux/refcount.h
++++ b/include/linux/refcount.h
+@@ -41,6 +41,7 @@ static inline unsigned int refcount_read(const refcount_t *r)
+ 	return atomic_read(&r->refs);
+ }
+ 
++#ifdef CONFIG_REFCOUNT_FULL
+ extern __must_check bool refcount_add_not_zero(unsigned int i, refcount_t *r);
+ extern void refcount_add(unsigned int i, refcount_t *r);
+ 
+@@ -52,6 +53,47 @@ extern void refcount_sub(unsigned int i, refcount_t *r);
+ 
+ extern __must_check bool refcount_dec_and_test(refcount_t *r);
+ extern void refcount_dec(refcount_t *r);
++#else
++static inline __must_check bool refcount_add_not_zero(unsigned int i, refcount_t *r)
++{
++	return atomic_add_unless(&r->refs, i, 0);
++}
++
++static inline void refcount_add(unsigned int i, refcount_t *r)
++{
++	atomic_add(i, &r->refs);
++}
++
++static inline __must_check bool refcount_inc_not_zero(refcount_t *r)
++{
++	return atomic_add_unless(&r->refs, 1, 0);
++}
++
++static inline void refcount_inc(refcount_t *r)
++{
++	atomic_inc(&r->refs);
++}
++
++static inline __must_check bool refcount_sub_and_test(unsigned int i, refcount_t *r)
++{
++	return atomic_sub_and_test(i, &r->refs);
++}
++
++static inline void refcount_sub(unsigned int i, refcount_t *r)
++{
++	atomic_sub(i, &r->refs);
++}
++
++static inline __must_check bool refcount_dec_and_test(refcount_t *r)
++{
++	return atomic_dec_and_test(&r->refs);
++}
++
++static inline void refcount_dec(refcount_t *r)
++{
++	atomic_dec(&r->refs);
++}
++#endif /* CONFIG_REFCOUNT_FULL */
+ 
+ extern __must_check bool refcount_dec_if_one(refcount_t *r);
+ extern __must_check bool refcount_dec_not_one(refcount_t *r);
+diff --git a/lib/refcount.c b/lib/refcount.c
+index 9f90678..5d0582a 100644
+--- a/lib/refcount.c
++++ b/lib/refcount.c
+@@ -37,6 +37,8 @@
+ #include <linux/refcount.h>
+ #include <linux/bug.h>
+ 
++#ifdef CONFIG_REFCOUNT_FULL
++
+ /**
+  * refcount_add_not_zero - add a value to a refcount unless it is 0
+  * @i: the value to add to the refcount
+@@ -225,6 +227,7 @@ void refcount_dec(refcount_t *r)
+ 	WARN_ONCE(refcount_dec_and_test(r), "refcount_t: decrement hit 0; leaking memory.\n");
+ }
+ EXPORT_SYMBOL(refcount_dec);
++#endif /* CONFIG_REFCOUNT_FULL */
+ 
+ /**
+  * refcount_dec_if_one - decrement a refcount if it is 1
