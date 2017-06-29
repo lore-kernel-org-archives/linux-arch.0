@@ -1,49 +1,76 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ale.deltatee.com ([207.54.116.67]:51099 "EHLO ale.deltatee.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752645AbdF2QKK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 29 Jun 2017 12:10:10 -0400
-From: Logan Gunthorpe <logang@deltatee.com>
-Date: Thu, 29 Jun 2017 10:09:56 -0600
-Message-ID: <20170629161000.15563-1-logang@deltatee.com>
+Received: from mail-io0-f174.google.com ([209.85.223.174]:34172 "EHLO
+        mail-io0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753489AbdF2WFv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Jun 2017 18:05:51 -0400
+Received: by mail-io0-f174.google.com with SMTP id r36so14962425ioi.1
+        for <linux-arch@vger.kernel.org>; Thu, 29 Jun 2017 15:05:46 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
-Subject: [PATCH v3 0/4] make io{read|write}64 more globally usable
+In-Reply-To: <3812aec2-682f-e95c-4d61-8e7eac33cc88@huawei.com>
+References: <1496180392-98718-1-git-send-email-keescook@chromium.org>
+ <1496180392-98718-4-git-send-email-keescook@chromium.org> <3812aec2-682f-e95c-4d61-8e7eac33cc88@huawei.com>
+From: Kees Cook <keescook@chromium.org>
+Date: Thu, 29 Jun 2017 15:05:44 -0700
+Message-ID: <CAGXu5jLzL3URMvF81EbH1Bt74MnwL9-25AU41yQnbEBcWA7J8Q@mail.gmail.com>
+Subject: Re: [kernel-hardening] [PATCH v5 3/3] x86/refcount: Implement fast
+ refcount overflow protection
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Stephen Bates <sbates@raithlin.com>, Logan Gunthorpe <logang@deltatee.com>
-Message-ID: <20170629160956.kFbOkwSobyZ4bMtNslqt5pbKkXrRz2nJWgMFLNABLgY@z>
+To: Li Kun <hw.likun@huawei.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, Christoph Hellwig <hch@infradead.org>, Peter Zijlstra <peterz@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, PaX Team <pageexec@freemail.hu>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, "Wangkai (Morgan, Euler)" <morgan.wang@huawei.com>
+Message-ID: <20170629220544.BIbt3ybiQpFK-UHWgQ2qKFNmWTWHPD0QONprcsMeFMg@z>
 
-Hi,
+On Wed, Jun 28, 2017 at 9:13 PM, Li Kun <hw.likun@huawei.com> wrote:
+> =E5=9C=A8 2017/5/31 5:39, Kees Cook =E5=86=99=E9=81=93:
+>> +bool ex_handler_refcount(const struct exception_table_entry *fixup,
+>> +                        struct pt_regs *regs, int trapnr)
+>> +{
+>> +       int reset;
+>> +
+>> +       /*
+>> +        * If we crossed from INT_MAX to INT_MIN, the OF flag (result
+>> +        * wrapped around) and the SF flag (result is negative) will be
+>> +        * set. In this case, reset to INT_MAX in an attempt to leave th=
+e
+>> +        * refcount usable. Otherwise, we've landed here due to producin=
+g
+>> +        * a negative result from either decrementing zero or operating =
+on
+>> +        * a negative value. In this case things are badly broken, so we
+>> +        * we saturate to INT_MIN / 2.
+>> +        */
+>> +       if (regs->flags & (X86_EFLAGS_OF | X86_EFLAGS_SF))
+>> +               reset =3D INT_MAX;
+>
+>     Should it be like this to indicate that the refcount is wapped from
+> INT_MAX to INT_MIN ?
+>         if (regs->flags & (X86_EFLAGS_OF | X86_EFLAGS_SF)
+>                 =3D=3D (X86_EFLAGS_OF | X86_EFLAGS_SF))
+>
+>                 reset =3D INT_MAX;
 
-Here's my third attempt. This time we add functions to io-64-nonatomic-*
-which call io{read|write}32 twice so that the pio is done correctly.
+Ah yes, thanks for the catch. Yeah, that test is expecting both
+condition flags to be set.
 
-I've also included a patch that adds these functions to the generic iomap
-library so that readq/writeq can be used while still splitting pio
-operations (when appropriate).
+I'm still on the fence about the best way to deal with the bad states.
+I've been pondering just strictly using a saturation value (INT_MIN /
+2), which should offer the same system state protection (except for
+the inherent resource leak), but that means there isn't really a good
+way to kill an offending process (since after saturation ALL processes
+will look like violators). It can be argued that killing the process
+doesn't actually provide any benefit since the system is still safe,
+though.
 
-Thanks,
+>> +       else
+>> +               reset =3D INT_MIN / 2;
+>> +       *(int *)regs->cx =3D reset;
 
-Logan
+Thanks for looking at this!
 
-Horia Geantă (1):
-  crypto: caam: cleanup CONFIG_64BIT ifdefs when using io{read|write}64
+-Kees
 
-Logan Gunthorpe (3):
-  iomap: introduce io{read|write}64_{lo_hi|hi_lo}
-  io-64-nonatomic: add io{read|write}64[be]{_lo_hi|_hi_lo} macros
-  ntb: ntb_hw_intel: use io-64-nonatomic instead of in-driver hacks
-
- drivers/crypto/caam/regs.h            |  35 ++-------
- drivers/ntb/hw/intel/ntb_hw_intel.c   |  31 +-------
- include/asm-generic/iomap.h           |  26 +++++--
- include/linux/io-64-nonatomic-hi-lo.h |  62 ++++++++++++++++
- include/linux/io-64-nonatomic-lo-hi.h |  60 ++++++++++++++++
- lib/iomap.c                           | 132 ++++++++++++++++++++++++++++++++++
- 6 files changed, 280 insertions(+), 66 deletions(-)
-
---
-2.11.0
+--=20
+Kees Cook
+Pixel Security
