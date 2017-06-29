@@ -1,84 +1,91 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f193.google.com ([209.85.192.193]:36596 "EHLO
+Received: from mail-pf0-f193.google.com ([209.85.192.193]:34879 "EHLO
         mail-pf0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753037AbdF2WLs (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Jun 2017 18:11:48 -0400
-Received: by mail-pf0-f193.google.com with SMTP id z6so14655146pfk.3
-        for <linux-arch@vger.kernel.org>; Thu, 29 Jun 2017 15:11:43 -0700 (PDT)
-Date: Thu, 29 Jun 2017 15:11:41 -0700 (PDT)
+        with ESMTP id S1751601AbdF2Wwp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Jun 2017 18:52:45 -0400
+Received: by mail-pf0-f193.google.com with SMTP id s66so14718785pfs.2
+        for <linux-arch@vger.kernel.org>; Thu, 29 Jun 2017 15:52:45 -0700 (PDT)
+Date: Thu, 29 Jun 2017 15:52:44 -0700 (PDT)
 From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: Re: [PATCH 9/9] RISC-V: Build Infastructure
-In-Reply-To: <20170628225442.GP6973@jhogan-linux.le.imgtec.org>
-Message-ID: <mhng-1f78b59f-b5ef-4b2d-a622-9255581d21c8@palmer-si-x1c4>
+Subject: Re: [PATCH 6/9] RISC-V: Device, timer, IRQs, and the SBI
+In-Reply-To: <20170629083924.GB5851@distanz.ch>
+Message-ID: <mhng-b71fc2a8-a47a-49af-82e1-fb88c016d547@palmer-si-x1c4>
 Mime-Version: 1.0 (MHng)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: james.hogan@imgtec.com
-Cc: peterz@infradead.org, mingo@redhat.com, mcgrof@kernel.org, viro@zeniv.linux.org.uk, sfr@canb.auug.org.au, nicolas.dichtel@6wind.com, rmk+kernel@armlinux.org.uk, msalter@redhat.com, tklauser@distanz.ch, will.deacon@arm.com, paul.gortmaker@windriver.com, linux@roeck-us.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, albert@sifive.com
-Message-ID: <20170629221141.XDzGp8mKiFsXRY0IXjQHAor_6xQG97r80QsjlAAKUhM@z>
+To: tklauser@distanz.ch
+Cc: peterz@infradead.org, mingo@redhat.com, mcgrof@kernel.org, viro@zeniv.linux.org.uk, sfr@canb.auug.org.au, nicolas.dichtel@6wind.com, rmk+kernel@armlinux.org.uk, msalter@redhat.com, will.deacon@arm.com, james.hogan@imgtec.com, paul.gortmaker@windriver.com, linux@roeck-us.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, albert@sifive.com
+Message-ID: <20170629225244.-fFygN_Q-nOPEWeVuj_j7ObDwWJTk1QJ53SS3K_EKEs@z>
 
-On Wed, 28 Jun 2017 15:54:42 PDT (-0700), james.hogan@imgtec.com wrote:
-> On Wed, Jun 28, 2017 at 11:55:38AM -0700, Palmer Dabbelt wrote:
->> diff --git a/arch/riscv/kernel/Makefile b/arch/riscv/kernel/Makefile
+On Thu, 29 Jun 2017 01:39:25 PDT (-0700), tklauser@distanz.ch wrote:
+> On 2017-06-28 at 20:55:35 +0200, Palmer Dabbelt <palmer@dabbelt.com> wrote:
+> [...]
+>> diff --git a/arch/riscv/include/asm/device.h b/arch/riscv/include/asm/device.h
 >> new file mode 100644
->> index 000000000000..7f58cd251ab8
+>> index 000000000000..28975e528d2f
 >> --- /dev/null
->> +++ b/arch/riscv/kernel/Makefile
->> @@ -0,0 +1,16 @@
->> +#
->> +# Makefile for the RISC-V Linux kernel
->> +#
+>> +++ b/arch/riscv/include/asm/device.h
+>> @@ -0,0 +1,27 @@
+>> +/*
+>> + * Copyright (C) 2016 SiFive
+>> + *
+>> + *   This program is free software; you can redistribute it and/or
+>> + *   modify it under the terms of the GNU General Public License
+>> + *   as published by the Free Software Foundation, version 2.
+>> + *
+>> + *   This program is distributed in the hope that it will be useful,
+>> + *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+>> + *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+>> + *   GNU General Public License for more details.
+>> + */
 >> +
->> +extra-y := head.o vmlinux.lds
 >> +
->> +obj-y	:= cpu.o entry.o irq.o process.o ptrace.o reset.o setup.o \
->> +	   signal.o syscall_table.o sys_riscv.o time.o traps.o \
->> +	   riscv_ksyms.o stacktrace.o vdso.o cacheinfo.o vdso/
->
-> I would suggest splitting these sort of things onto separate lines.
-> It'll make later changes much more readable (especially when you're
-> escaping newlines) as well as avoiding conflicts.
->
+>> +#ifndef _ASM_RISCV_DEVICE_H
+>> +#define _ASM_RISCV_DEVICE_H
 >> +
->> +CFLAGS_setup.o := -mcmodel=medany
+>> +#include <linux/sysfs.h>
 >> +
->> +obj-$(CONFIG_SMP)		+= smpboot.o smp.o
+>> +struct dev_archdata {
+>> +	struct dma_map_ops *dma_ops;
+>> +};
 >
-> same here
->
->> +obj-$(CONFIG_MODULES)		+= module.o
->> +
->> +clean:
->
->> diff --git a/arch/riscv/lib/Makefile b/arch/riscv/lib/Makefile
->> new file mode 100644
->> index 000000000000..120c38e77a46
->> --- /dev/null
->> +++ b/arch/riscv/lib/Makefile
->> @@ -0,0 +1,5 @@
->> +lib-y	:= delay.o memcpy.o memset.o uaccess.o
->
-> and here
->
->> +
->> +ifeq ($(CONFIG_64BIT),)
->> +lib-y += udivdi3.o
->> +endif
->
-> Would this work?
->
-> lib-$(CONFIG_32BIT) += udivdi3.o
->
->> diff --git a/arch/riscv/mm/Makefile b/arch/riscv/mm/Makefile
->> new file mode 100644
->> index 000000000000..36ebe6feb5d6
->> --- /dev/null
->> +++ b/arch/riscv/mm/Makefile
->> @@ -0,0 +1 @@
->> +obj-y := init.o fault.o extable.o ioremap.o
->
-> and here
+> The dma_ops member isn't used in any arch code or driver from what I can
+> tell (I checked against your riscv-for-submission-v3 branch). Could
+> device.h from asm-generic be used instead, or did I miss something?
 
-Sounds good.  I'll include this in the v4
+I think you're right.  I'll include this
 
-  https://github.com/riscv/riscv-linux/commit/e5a3eee8cd3e493dcd9b81509b1aa9e0302b72da
+  diff --git a/arch/riscv/include/asm/device.h b/arch/riscv/include/asm/device.h
+  index 28975e528d2f..a310c2c26101 100644
+  --- a/arch/riscv/include/asm/device.h
+  +++ b/arch/riscv/include/asm/device.h
+  @@ -11,17 +11,9 @@
+    *   GNU General Public License for more details.
+    */
+
+  -
+   #ifndef _ASM_RISCV_DEVICE_H
+   #define _ASM_RISCV_DEVICE_H
+
+  -#include <linux/sysfs.h>
+  -
+  -struct dev_archdata {
+  -       struct dma_map_ops *dma_ops;
+  -};
+  -
+  -struct pdev_archdata {
+  -};
+  +#include <asm-generic/device.h>
+
+   #endif /* _ASM_RISCV_DEVICE_H */
+
+in the v4
+
+>
+>> +
+>> +struct pdev_archdata {
+>> +};
+>> +
+>> +#endif /* _ASM_RISCV_DEVICE_H */
+
+Thanks!
