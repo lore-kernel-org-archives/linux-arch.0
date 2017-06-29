@@ -1,68 +1,183 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f66.google.com ([74.125.82.66]:34447 "EHLO
-        mail-wm0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753468AbdF2PHB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Jun 2017 11:07:01 -0400
-Received: by mail-wm0-f66.google.com with SMTP id p204so3117794wmg.1
-        for <linux-arch@vger.kernel.org>; Thu, 29 Jun 2017 08:07:00 -0700 (PDT)
-Date: Thu, 29 Jun 2017 18:06:57 +0300
-From: "Kirill A. Shutemov" <kirill@shutemov.name>
-Subject: Re: [PATCH 0/5] Last bits for initial 5-level paging enabling
-Message-ID: <20170629150657.urgapbzmf3jy6jgp@node.shutemov.name>
-References: <20170622122608.80435-1-kirill.shutemov@linux.intel.com>
- <20170623090601.njsmucxdy4rev6zw@gmail.com>
- <20170623144915.4d6esghvicnczuaj@black.fi.intel.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20170623144915.4d6esghvicnczuaj@black.fi.intel.com>
+Received: from ale.deltatee.com ([207.54.116.67]:51118 "EHLO ale.deltatee.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752665AbdF2QKL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 29 Jun 2017 12:10:11 -0400
+From: Logan Gunthorpe <logang@deltatee.com>
+Date: Thu, 29 Jun 2017 10:09:58 -0600
+Message-ID: <20170629161000.15563-3-logang@deltatee.com>
+In-Reply-To: <20170629161000.15563-1-logang@deltatee.com>
+References: <20170629161000.15563-1-logang@deltatee.com>
+Subject: [PATCH v3 2/4] io-64-nonatomic: add io{read|write}64[be]{_lo_hi|_hi_lo} macros
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
-Message-ID: <20170629150657.4OxluA3r3UWNRTSrXoMeuU_MJsufQPEHeqG7XH3By-0@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Stephen Bates <sbates@raithlin.com>, Logan Gunthorpe <logang@deltatee.com>, Christoph Hellwig <hch@lst.de>, Alan Cox <gnomes@lxorguk.ukuu.org.uk>
+Message-ID: <20170629160958.Jc_gg0ZvdZVYyrFV6gcsaMbgypxrpHyyHnbb97MenkA@z>
 
-On Fri, Jun 23, 2017 at 05:49:15PM +0300, Kirill A. Shutemov wrote:
-> On Fri, Jun 23, 2017 at 11:06:01AM +0200, Ingo Molnar wrote:
-> > 
-> > * Kirill A. Shutemov <kirill.shutemov@linux.intel.com> wrote:
-> > 
-> > > As Ingo requested I've split and updated last two patches for my previous
-> > > patchset.
-> > > 
-> > > Please review and consider applying.
-> > > 
-> > > Kirill A. Shutemov (5):
-> > >   x86: Enable 5-level paging support
-> > >   x86/mm: Rename tasksize_32bit/64bit to task_size_32bit/64bit
-> > >   x86/mpx: Do not allow MPX if we have mappings above 47-bit
-> > >   x86/mm: Prepare to expose larger address space to userspace
-> > >   x86/mm: Allow userspace have mapping above 47-bit
-> > 
-> > Ok, looks pretty neat now.
-> > 
-> > Can I apply them in this order cleanly, without breaking bisection:
-> > 
-> > >   x86/mm: Rename tasksize_32bit/64bit to task_size_32bit/64bit
-> > >   x86/mpx: Do not allow MPX if we have mappings above 47-bit
-> > >   x86/mm: Prepare to expose larger address space to userspace
-> > >   x86/mm: Allow userspace have mapping above 47-bit
-> > >   x86: Enable 5-level paging support
-> > 
-> > ?
-> > 
-> > I.e. I'd like to move the first patch last.
-> > 
-> > The reason is that we should first get all quirks and assumptions fixed, all 
-> > facilities implemented - and only then enable 5-level paging as a final step which 
-> > produces a well working kernel.
-> > 
-> > (This should also make it slightly easier to analyze any potential regressions in 
-> > earlier patches.)
-> 
-> Just checked bisectability with this order on allmodconfig -- works fine.
+This patch adds generic io{read|write}64[be]{_lo_hi|_hi_lo} macros if
+they are not already defined by the architecture. (As they are provided
+by the generic iomap library).
 
-Ingo, if there's no objections, can we get these applied?
+The patch also points io{read|write}64[be] to the variant specified by the
+header name.
 
+This is because new drivers are encouraged to use ioreadXX, et al instead
+of readX[1], et al -- and mixing ioreadXX with readq is pretty ugly.
+
+[1] ldd3: section 9.4.2
+
+Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
+cc: Christoph Hellwig <hch@lst.de>
+cc: Arnd Bergmann <arnd@arndb.de>
+cc: Alan Cox <gnomes@lxorguk.ukuu.org.uk>
+cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+
+squash! io-64-nonatomic: add io{read|write}64[be] macros
+---
+ include/linux/io-64-nonatomic-hi-lo.h | 62 +++++++++++++++++++++++++++++++++++
+ include/linux/io-64-nonatomic-lo-hi.h | 60 +++++++++++++++++++++++++++++++++
+ 2 files changed, 122 insertions(+)
+
+diff --git a/include/linux/io-64-nonatomic-hi-lo.h b/include/linux/io-64-nonatomic-hi-lo.h
+index defcc4644ce3..845e67d4b1d2 100644
+--- a/include/linux/io-64-nonatomic-hi-lo.h
++++ b/include/linux/io-64-nonatomic-hi-lo.h
+@@ -54,4 +54,66 @@ static inline void hi_lo_writeq_relaxed(__u64 val, volatile void __iomem *addr)
+ #define writeq_relaxed hi_lo_writeq_relaxed
+ #endif
+ 
++#ifndef ioread64_hi_lo
++#define ioread64_hi_lo ioread64_hi_lo
++static inline u64 ioread64_hi_lo(void __iomem *addr)
++{
++	const u32 __iomem *p = addr;
++	u32 low, high;
++
++	high = ioread32(p + 1);
++	low = ioread32(p);
++
++	return low + ((u64)high << 32);
++}
++#endif
++
++#ifndef iowrite64_hi_lo
++#define iowrite64_hi_lo iowrite64_hi_lo
++static inline void iowrite64_hi_lo(u64 val, void __iomem *addr)
++{
++	iowrite32(val >> 32, addr + sizeof(u32));
++	iowrite32(val, addr);
++}
++#endif
++
++#ifndef ioread64be_hi_lo
++#define ioread64be_hi_lo ioread64be_hi_lo
++static inline u64 ioread64be_hi_lo(void __iomem *addr)
++{
++	const u32 __iomem *p = addr;
++	u32 low, high;
++
++	high = ioread32be(p);
++	low = ioread32be(p + 1);
++
++	return low + ((u64)high << 32);
++}
++#endif
++
++#ifndef iowrite64be_hi_lo
++#define iowrite64be_hi_lo iowrite64be_hi_lo
++static inline void iowrite64be_hi_lo(u64 val, void __iomem *addr)
++{
++	iowrite32be(val >> 32, addr);
++	iowrite32be(val, addr + sizeof(u32));
++}
++#endif
++
++#ifndef ioread64
++#define ioread64 ioread64_hi_lo
++#endif
++
++#ifndef iowrite64
++#define iowrite64 iowrite64_hi_lo
++#endif
++
++#ifndef ioread64be
++#define ioread64be(p) ioread64be_hi_lo
++#endif
++
++#ifndef iowrite64be
++#define iowrite64be(v, p) iowrite64be_hi_lo
++#endif
++
+ #endif	/* _LINUX_IO_64_NONATOMIC_HI_LO_H_ */
+diff --git a/include/linux/io-64-nonatomic-lo-hi.h b/include/linux/io-64-nonatomic-lo-hi.h
+index 084461a4e5ab..7ffa928a07fb 100644
+--- a/include/linux/io-64-nonatomic-lo-hi.h
++++ b/include/linux/io-64-nonatomic-lo-hi.h
+@@ -54,4 +54,64 @@ static inline void lo_hi_writeq_relaxed(__u64 val, volatile void __iomem *addr)
+ #define writeq_relaxed lo_hi_writeq_relaxed
+ #endif
+ 
++#ifndef ioread64_lo_hi
++#define ioread64_lo_hi ioread64_lo_hi
++static inline u64 ioread64_lo_hi(void __iomem *addr)
++{
++	u32 low, high;
++
++	low = ioread32(addr);
++	high = ioread32(addr + sizeof(u32));
++
++	return low + ((u64)high << 32);
++}
++#endif
++
++#ifndef iowrite64_lo_hi
++#define iowrite64_lo_hi iowrite64_lo_hi
++static inline void iowrite64_lo_hi(u64 val, void __iomem *addr)
++{
++	iowrite32(val, addr);
++	iowrite32(val >> 32, addr + sizeof(u32));
++}
++#endif
++
++#ifndef ioread64be_lo_hi
++#define ioread64be_lo_hi ioread64be_lo_hi
++static inline u64 ioread64be_lo_hi(void __iomem *addr)
++{
++	u32 low, high;
++
++	low = ioread32be(addr + sizeof(u32));
++	high = ioread32be(addr);
++
++	return low + ((u64)high << 32);
++}
++#endif
++
++#ifndef iowrite64be_lo_hi
++#define iowrite64be_lo_hi iowrite64be_lo_hi
++static inline void iowrite64be_lo_hi(u64 val, void __iomem *addr)
++{
++	iowrite32be(val, addr + sizeof(u32));
++	iowrite32be(val >> 32, addr);
++}
++#endif
++
++#ifndef ioread64
++#define ioread64 ioread64_lo_hi
++#endif
++
++#ifndef iowrite64
++#define iowrite64 iowrite64_lo_hi
++#endif
++
++#ifndef ioread64be
++#define ioread64be(p) ioread64be_lo_hi
++#endif
++
++#ifndef iowrite64be
++#define iowrite64be(v, p) iowrite64be_lo_hi
++#endif
++
+ #endif	/* _LINUX_IO_64_NONATOMIC_LO_HI_H_ */
 -- 
- Kirill A. Shutemov
+2.11.0
