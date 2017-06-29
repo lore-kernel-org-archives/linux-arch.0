@@ -1,91 +1,91 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f193.google.com ([209.85.192.193]:34879 "EHLO
-        mail-pf0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751601AbdF2Wwp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Jun 2017 18:52:45 -0400
-Received: by mail-pf0-f193.google.com with SMTP id s66so14718785pfs.2
-        for <linux-arch@vger.kernel.org>; Thu, 29 Jun 2017 15:52:45 -0700 (PDT)
-Date: Thu, 29 Jun 2017 15:52:44 -0700 (PDT)
-From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: Re: [PATCH 6/9] RISC-V: Device, timer, IRQs, and the SBI
-In-Reply-To: <20170629083924.GB5851@distanz.ch>
-Message-ID: <mhng-b71fc2a8-a47a-49af-82e1-fb88c016d547@palmer-si-x1c4>
-Mime-Version: 1.0 (MHng)
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:43358 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1751584AbdF2X73 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 29 Jun 2017 19:59:29 -0400
+Received: from pps.filterd (m0098419.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.20/8.16.0.20) with SMTP id v5TNx6Qo098034
+        for <linux-arch@vger.kernel.org>; Thu, 29 Jun 2017 19:59:24 -0400
+Received: from e16.ny.us.ibm.com (e16.ny.us.ibm.com [129.33.205.206])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2bcsuwvy5m-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Thu, 29 Jun 2017 19:59:23 -0400
+Received: from localhost
+        by e16.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+        Thu, 29 Jun 2017 19:59:23 -0400
+Date: Thu, 29 Jun 2017 16:59:18 -0700
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: [PATCH RFC 0/26] Remove spin_unlock_wait()
+Reply-To: paulmck@linux.vnet.ibm.com
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Message-ID: <20170629235918.GA6445@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: tklauser@distanz.ch
-Cc: peterz@infradead.org, mingo@redhat.com, mcgrof@kernel.org, viro@zeniv.linux.org.uk, sfr@canb.auug.org.au, nicolas.dichtel@6wind.com, rmk+kernel@armlinux.org.uk, msalter@redhat.com, will.deacon@arm.com, james.hogan@imgtec.com, paul.gortmaker@windriver.com, linux@roeck-us.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, albert@sifive.com
-Message-ID: <20170629225244.-fFygN_Q-nOPEWeVuj_j7ObDwWJTk1QJ53SS3K_EKEs@z>
+To: linux-kernel@vger.kernel.org
+Cc: netfilter-devel@vger.kernel.org, netdev@vger.kernel.org, oleg@redhat.com, akpm@linux-foundation.org, mingo@redhat.com, dave@stgolabs.net, manfred@colorfullife.com, tj@kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, will.deacon@arm.com, peterz@infradead.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, torvalds@linux-foundation.org
+Message-ID: <20170629235918.PyHulpE0KaUm7WHNqKeJ2koj4lrbVWTPy2xDHYzp8_g@z>
 
-On Thu, 29 Jun 2017 01:39:25 PDT (-0700), tklauser@distanz.ch wrote:
-> On 2017-06-28 at 20:55:35 +0200, Palmer Dabbelt <palmer@dabbelt.com> wrote:
-> [...]
->> diff --git a/arch/riscv/include/asm/device.h b/arch/riscv/include/asm/device.h
->> new file mode 100644
->> index 000000000000..28975e528d2f
->> --- /dev/null
->> +++ b/arch/riscv/include/asm/device.h
->> @@ -0,0 +1,27 @@
->> +/*
->> + * Copyright (C) 2016 SiFive
->> + *
->> + *   This program is free software; you can redistribute it and/or
->> + *   modify it under the terms of the GNU General Public License
->> + *   as published by the Free Software Foundation, version 2.
->> + *
->> + *   This program is distributed in the hope that it will be useful,
->> + *   but WITHOUT ANY WARRANTY; without even the implied warranty of
->> + *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
->> + *   GNU General Public License for more details.
->> + */
->> +
->> +
->> +#ifndef _ASM_RISCV_DEVICE_H
->> +#define _ASM_RISCV_DEVICE_H
->> +
->> +#include <linux/sysfs.h>
->> +
->> +struct dev_archdata {
->> +	struct dma_map_ops *dma_ops;
->> +};
->
-> The dma_ops member isn't used in any arch code or driver from what I can
-> tell (I checked against your riscv-for-submission-v3 branch). Could
-> device.h from asm-generic be used instead, or did I miss something?
+Hello!
 
-I think you're right.  I'll include this
+There is no agreed-upon definition of spin_unlock_wait()'s semantics,
+and it appears that all callers could do just as well with a lock/unlock
+pair.  This series therefore removes spin_unlock_wait() and changes
+its users to instead use a lock/unlock pair.  The commits are as follows,
+in three groups:
 
-  diff --git a/arch/riscv/include/asm/device.h b/arch/riscv/include/asm/device.h
-  index 28975e528d2f..a310c2c26101 100644
-  --- a/arch/riscv/include/asm/device.h
-  +++ b/arch/riscv/include/asm/device.h
-  @@ -11,17 +11,9 @@
-    *   GNU General Public License for more details.
-    */
+1-7.	Change uses of spin_unlock_wait() and raw_spin_unlock_wait()
+	to instead use a spin_lock/spin_unlock pair.  These may be
+	applied in any order, but must be applied before any later
+	commits in this series.  The commit logs state why I believe
+	that these commits won't noticeably degrade performance.
 
-  -
-   #ifndef _ASM_RISCV_DEVICE_H
-   #define _ASM_RISCV_DEVICE_H
+8.	Remove core-kernel definitions for spin_unlock_wait() and
+	raw_spin_unlock_wait().
 
-  -#include <linux/sysfs.h>
-  -
-  -struct dev_archdata {
-  -       struct dma_map_ops *dma_ops;
-  -};
-  -
-  -struct pdev_archdata {
-  -};
-  +#include <asm-generic/device.h>
+9-26.	Remove arch-specific definitions of arch_spin_unlock_wait().
 
-   #endif /* _ASM_RISCV_DEVICE_H */
+Thoughts?
 
-in the v4
+							Thanx, Paul
 
->
->> +
->> +struct pdev_archdata {
->> +};
->> +
->> +#endif /* _ASM_RISCV_DEVICE_H */
+------------------------------------------------------------------------
 
-Thanks!
+ arch/alpha/include/asm/spinlock.h    |    5 -
+ arch/arc/include/asm/spinlock.h      |    5 -
+ arch/arm/include/asm/spinlock.h      |   16 ----
+ arch/arm64/include/asm/spinlock.h    |   58 +----------------
+ arch/blackfin/include/asm/spinlock.h |    5 -
+ arch/hexagon/include/asm/spinlock.h  |    5 -
+ arch/ia64/include/asm/spinlock.h     |   21 ------
+ arch/m32r/include/asm/spinlock.h     |    5 -
+ arch/metag/include/asm/spinlock.h    |    5 -
+ arch/mips/include/asm/spinlock.h     |   16 ----
+ arch/mn10300/include/asm/spinlock.h  |    5 -
+ arch/parisc/include/asm/spinlock.h   |    7 --
+ arch/powerpc/include/asm/spinlock.h  |   33 ---------
+ arch/s390/include/asm/spinlock.h     |    7 --
+ arch/sh/include/asm/spinlock-cas.h   |    5 -
+ arch/sh/include/asm/spinlock-llsc.h  |    5 -
+ arch/sparc/include/asm/spinlock_32.h |    5 -
+ arch/sparc/include/asm/spinlock_64.h |    5 -
+ arch/tile/include/asm/spinlock_32.h  |    2 
+ arch/tile/include/asm/spinlock_64.h  |    2 
+ arch/tile/lib/spinlock_32.c          |   23 ------
+ arch/tile/lib/spinlock_64.c          |   22 ------
+ arch/xtensa/include/asm/spinlock.h   |    5 -
+ drivers/ata/libata-eh.c              |    8 --
+ include/asm-generic/qspinlock.h      |   14 ----
+ include/linux/spinlock.h             |   31 ---------
+ include/linux/spinlock_up.h          |    6 -
+ ipc/sem.c                            |    3 
+ kernel/exit.c                        |    3 
+ kernel/locking/qspinlock.c           |  117 -----------------------------------
+ kernel/sched/completion.c            |    9 --
+ kernel/sched/core.c                  |    3 
+ kernel/task_work.c                   |    3 
+ net/netfilter/nf_conntrack_core.c    |   26 ++-----
+ 34 files changed, 26 insertions(+), 464 deletions(-)
