@@ -1,61 +1,33 @@
-From: Tobias Klauser <tklauser@distanz.ch>
-Subject: Re: [PATCH 6/9] RISC-V: Device, timer, IRQs, and the SBI
-Date: Thu, 29 Jun 2017 10:39:25 +0200
-Message-ID: <20170629083924.GB5851@distanz.ch>
-References: <20170606230007.19101-1-palmer@dabbelt.com>
- <20170628185538.1804-1-palmer@dabbelt.com>
- <20170628185538.1804-7-palmer@dabbelt.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 1/9] RISC-V: Init and Halt Code
+Date: Thu, 29 Jun 2017 11:44:32 +0200
+Message-ID: <CAMuHMdXOOyRT5Vogi3F-x9O2R4GXazxSXQ1Q3F2VbfBEFFLEiw@mail.gmail.com>
+References: <20170606230007.19101-1-palmer@dabbelt.com> <20170628185538.1804-1-palmer@dabbelt.com>
+ <20170628185538.1804-2-palmer@dabbelt.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from sym2.noone.org ([178.63.92.236]:38528 "EHLO sym2.noone.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752451AbdF2Ijg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 29 Jun 2017 04:39:36 -0400
-Content-Disposition: inline
-In-Reply-To: <20170628185538.1804-7-palmer@dabbelt.com>
+Received: from mail-it0-f68.google.com ([209.85.214.68]:34498 "EHLO
+        mail-it0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751725AbdF2Joe (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Jun 2017 05:44:34 -0400
+In-Reply-To: <20170628185538.1804-2-palmer@dabbelt.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Palmer Dabbelt <palmer@dabbelt.com>
-Cc: peterz@infradead.org, mingo@redhat.com, mcgrof@kernel.org, viro@zeniv.linux.org.uk, sfr@canb.auug.org.au, nicolas.dichtel@6wind.com, rmk+kernel@armlinux.org.uk, msalter@redhat.com, will.deacon@arm.com, james.hogan@imgtec.com, paul.gortmaker@windriver.com, linux@roeck-us.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, albert@sifive.com
+Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, "Luis R. Rodriguez" <mcgrof@kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Stephen Rothwell <sfr@canb.auug.org.au>, Nicolas Dichtel <nicolas.dichtel@6wind.com>, Russell King <rmk+kernel@armlinux.org.uk>, Mark Salter <msalter@redhat.com>, Tobias Klauser <tklauser@distanz.ch>, Will Deacon <will.deacon@arm.com>, James Hogan <james.hogan@imgtec.com>, Paul Gortmaker <paul.gortmaker@windriver.com>, Guenter Roeck <linux@roeck-us.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, albert@sifive.com
 
-On 2017-06-28 at 20:55:35 +0200, Palmer Dabbelt <palmer@dabbelt.com> wrote:
-[...]
-> diff --git a/arch/riscv/include/asm/device.h b/arch/riscv/include/asm/device.h
-> new file mode 100644
-> index 000000000000..28975e528d2f
-> --- /dev/null
-> +++ b/arch/riscv/include/asm/device.h
-> @@ -0,0 +1,27 @@
-> +/*
-> + * Copyright (C) 2016 SiFive
-> + *
-> + *   This program is free software; you can redistribute it and/or
-> + *   modify it under the terms of the GNU General Public License
-> + *   as published by the Free Software Foundation, version 2.
-> + *
-> + *   This program is distributed in the hope that it will be useful,
-> + *   but WITHOUT ANY WARRANTY; without even the implied warranty of
-> + *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-> + *   GNU General Public License for more details.
-> + */
-> +
-> +
-> +#ifndef _ASM_RISCV_DEVICE_H
-> +#define _ASM_RISCV_DEVICE_H
-> +
-> +#include <linux/sysfs.h>
-> +
-> +struct dev_archdata {
-> +	struct dma_map_ops *dma_ops;
-> +};
+Hi Palmer,
 
-The dma_ops member isn't used in any arch code or driver from what I can
-tell (I checked against your riscv-for-submission-v3 branch). Could
-device.h from asm-generic be used instead, or did I miss something?
+On Wed, Jun 28, 2017 at 8:55 PM, Palmer Dabbelt <palmer@dabbelt.com> wrote:
+> This contains the various __init C functions, the initial assembly
+> kernel entry point, and the code to reset the system.  When a file was
+> init-related, it contains
 
-> +
-> +struct pdev_archdata {
-> +};
-> +
-> +#endif /* _ASM_RISCV_DEVICE_H */
+...?
+
+> Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
+
+Gr{oetje,eeting}s,
+
+                        Geert
