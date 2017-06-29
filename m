@@ -1,94 +1,123 @@
-From: =?iso-8859-2?Q?Horia_Geant=E3?= <horia.geanta@nxp.com>
-Subject: Re: [PATCH v2 3/3] crypto: caam: cleanup CONFIG_64BIT ifdefs when
- using io{read|write}64
-Date: Thu, 29 Jun 2017 07:52:04 +0000
-Message-ID: <VI1PR0401MB259145C2DFDB5E4084EA5DFC98D20@VI1PR0401MB2591.eurprd04.prod.outlook.com>
-References: <20170627230204.16410-1-logang@deltatee.com>
- <20170627230204.16410-4-logang@deltatee.com>
- <CAK8P3a1mXeH+qdW=MFKO7i4oXw3yfLj-QU=09Y=MvD5y-T4zmw@mail.gmail.com>
- <c3f2e061-5ed1-5c74-b955-3d2bfb0da074@deltatee.com>
+From: Tobias Klauser <tklauser@distanz.ch>
+Subject: Re: [PATCH 5/9] RISC-V: Task implementation
+Date: Thu, 29 Jun 2017 10:22:23 +0200
+Message-ID: <20170629082222.GA5851@distanz.ch>
+References: <20170606230007.19101-1-palmer@dabbelt.com>
+ <20170628185538.1804-1-palmer@dabbelt.com>
+ <20170628185538.1804-6-palmer@dabbelt.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="iso-8859-2"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-crypto-owner@vger.kernel.org>
-Content-Language: en-US
-Sender: linux-crypto-owner@vger.kernel.org
-To: Logan Gunthorpe <logang@deltatee.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-ntb@googlegroups.com" <linux-ntb@googlegroups.com>, "linux-crypto@vger.kernel.org" <linux-crypto@vger.kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jyri Sarha <jsarha@ti.com>, Stephen Bates <sbates@raithlin.com>, Dan Douglass <dan.douglass@nxp.com>, Herbert Xu <herbert@gondor.apana.org.au>, "David S. Miller" <davem@davemloft.net>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from sym2.noone.org ([178.63.92.236]:37328 "EHLO sym2.noone.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752463AbdF2IW1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 29 Jun 2017 04:22:27 -0400
+Content-Disposition: inline
+In-Reply-To: <20170628185538.1804-6-palmer@dabbelt.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Palmer Dabbelt <palmer@dabbelt.com>
+Cc: peterz@infradead.org, mingo@redhat.com, mcgrof@kernel.org, viro@zeniv.linux.org.uk, sfr@canb.auug.org.au, nicolas.dichtel@6wind.com, rmk+kernel@armlinux.org.uk, msalter@redhat.com, will.deacon@arm.com, james.hogan@imgtec.com, paul.gortmaker@windriver.com, linux@roeck-us.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, albert@sifive.com
 
-On 6/28/2017 7:51 PM, Logan Gunthorpe wrote:=0A=
-> =0A=
-> =0A=
-> On 28/06/17 04:20 AM, Arnd Bergmann wrote:=0A=
->> On Wed, Jun 28, 2017 at 1:02 AM, Logan Gunthorpe <logang@deltatee.com> w=
-rote:=0A=
->>>  #include <linux/types.h>=0A=
->>>  #include <linux/bitops.h>=0A=
->>> -#include <linux/io.h>=0A=
->>> +#include <linux/io-64-nonatomic-hi-lo.h>=0A=
->>=0A=
->> Here you include the hi-lo variant unconditionally.=0A=
->>=0A=
-Arnd, thanks for spotting this.=0A=
-=0A=
-This was not in the patch I signed off.=0A=
-The lo-hi variant should be used instead for CAAM, see further below.=0A=
-=0A=
->>> -#else /* CONFIG_64BIT */=0A=
->>> -static inline void wr_reg64(void __iomem *reg, u64 data)=0A=
->>> -{=0A=
->>> -#ifndef CONFIG_CRYPTO_DEV_FSL_CAAM_IMX=0A=
->>> -       if (caam_little_end) {=0A=
->>> -               wr_reg32((u32 __iomem *)(reg) + 1, data >> 32);=0A=
->>> -               wr_reg32((u32 __iomem *)(reg), data);=0A=
->>> -       } else=0A=
->>>  #endif=0A=
->>> -       {=0A=
->>> -               wr_reg32((u32 __iomem *)(reg), data >> 32);=0A=
->>> -               wr_reg32((u32 __iomem *)(reg) + 1, data);=0A=
->>> -       }=0A=
->>> +               iowrite64be(data, reg);=0A=
->>>  }=0A=
->>=0A=
->> However, the #else path here uses lo-hi instead. I guess we have=0A=
->> to decide how to define iowrite64be_lo_hi() first: it could=0A=
->> either byteswap the 64-bit value first, then write the two halves,=0A=
->> or it could write the two halves, doing a 32-bit byte swap on=0A=
->> each.=0A=
-> =0A=
-> Ok, I studied this a bit more:=0A=
-> =0A=
-> The lo_hi/hi_lo functions seem to always refer to the data being written=
-=0A=
-> or read not to the address operated on. So, in the v3 version of this=0A=
-> set, which I'm working on, I've defined:=0A=
-> =0A=
-> static inline void iowrite64_hi_lo(u64 val, void __iomem *addr)=0A=
-> {=0A=
->         iowrite32(val >> 32, addr + sizeof(u32));=0A=
->         iowrite32(val, addr);=0A=
-> }=0A=
-> =0A=
-> static inline void iowrite64be_hi_lo(u64 val, void __iomem *addr)=0A=
-> {=0A=
->         iowrite32be(val >> 32, addr);=0A=
->         iowrite32be(val, addr + sizeof(u32));=0A=
-> }=0A=
-> =0A=
-> So the two hi_lo functions match both paths of the #if and thus, I=0A=
-> believe, the patch will be correct in v3 without changes.=0A=
-> =0A=
-To be consistent with CAAM engine HW spec: in case of 64-bit registers,=0A=
-irrespective of device endianness, the lower address should be read from=0A=
-/ written to first, followed by the upper address.=0A=
-=0A=
-Indeed the I/O accessors in CAAM driver currently don't follow the spec,=0A=
-however this is a good opportunity to fix the code.=0A=
-I don't consider this requires a separate patch, as we haven't noticed=0A=
-any problem. I'd say a simple note in the commit message mentioning the=0A=
-change (lo-hi r/w order replacing hi-lo for little endian case) is enough.=
-=0A=
-=0A=
-Thanks,=0A=
-Horia=0A=
+On 2017-06-28 at 20:55:34 +0200, Palmer Dabbelt <palmer@dabbelt.com> wrote:
+[...]
+> diff --git a/arch/riscv/include/asm/kprobes.h b/arch/riscv/include/asm/kprobes.h
+> new file mode 100644
+> index 000000000000..1190de7a0f74
+> --- /dev/null
+> +++ b/arch/riscv/include/asm/kprobes.h
+> @@ -0,0 +1,22 @@
+> +/*
+> + * Copyright (C) 2017 SiFive
+> + *
+> + *   This program is free software; you can redistribute it and/or
+> + *   modify it under the terms of the GNU General Public License
+> + *   as published by the Free Software Foundation, version 2.
+> + *
+> + *   This program is distributed in the hope that it will be useful,
+> + *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+> + *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+> + *   GNU General Public License for more details.
+> + */
+> +
+> +
+> +#ifndef ASM_RISCV_KPROBES_H
+> +#define ASM_RISCV_KPROBES_H
+> +
+> +#ifdef CONFIG_KPROBES
+> +#error "RISC-V doesn't skpport CONFIG_KPROBES"
+
+Typo: s/skpport/support/
+
+> +#endif
+> +
+> +#endif
+> diff --git a/arch/riscv/include/asm/processor.h b/arch/riscv/include/asm/processor.h
+> new file mode 100644
+> index 000000000000..65aa014db9b4
+> --- /dev/null
+> +++ b/arch/riscv/include/asm/processor.h
+> @@ -0,0 +1,102 @@
+> +/*
+> + * Copyright (C) 2012 Regents of the University of California
+> + *
+> + *   This program is free software; you can redistribute it and/or
+> + *   modify it under the terms of the GNU General Public License
+> + *   as published by the Free Software Foundation, version 2.
+> + *
+> + *   This program is distributed in the hope that it will be useful,
+> + *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+> + *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+> + *   GNU General Public License for more details.
+> + */
+> +
+> +#ifndef _ASM_RISCV_PROCESSOR_H
+> +#define _ASM_RISCV_PROCESSOR_H
+> +
+> +#include <linux/const.h>
+> +
+> +#include <asm/ptrace.h>
+> +
+> +/*
+> + * This decides where the kernel will search for a free chunk of vm
+> + * space during mmap's.
+> + */
+> +#define TASK_UNMAPPED_BASE	PAGE_ALIGN(TASK_SIZE >> 1)
+> +
+> +#ifdef __KERNEL__
+> +#define STACK_TOP		TASK_SIZE
+> +#define STACK_TOP_MAX		STACK_TOP
+> +#define STACK_ALIGN		16
+> +#endif /* __KERNEL__ */
+> +
+> +#ifndef __ASSEMBLY__
+> +
+> +struct task_struct;
+> +struct pt_regs;
+> +
+> +/*
+> + * Default implementation of macro that returns current
+> + * instruction pointer ("program counter").
+> + */
+> +#define current_text_addr()	({ __label__ _l; _l: &&_l; })
+> +
+> +/* CPU-specific state of a task */
+> +struct thread_struct {
+> +	/* Callee-saved registers */
+> +	unsigned long ra;
+> +	unsigned long sp;	/* Kernel mode stack */
+> +	unsigned long s[12];	/* s[0]: frame pointer */
+> +	struct __riscv_d_ext_state fstate;
+> +};
+> +
+> +#define INIT_THREAD {					\
+> +	.sp = sizeof(init_stack) + (long)&init_stack,	\
+> +}
+> +
+> +/* Return saved (kernel) PC of a blocked thread. */
+> +#define thread_saved_pc(t)	((t)->thread.ra)
+> +#define thread_saved_sp(t)	((t)->thread.sp)
+> +#define thread_saved_fp(t)	((t)->thread.s[0])
+
+These aren't needed outside of arch-specific code (anymore) and the
+riscv port doesn't seem to be using them, so they can be omitted.
