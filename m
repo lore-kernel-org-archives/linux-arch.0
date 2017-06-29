@@ -1,44 +1,72 @@
-From: Logan Gunthorpe <logang@deltatee.com>
-Subject: [PATCH v3 0/4] make io{read|write}64 more globally usable
-Date: Thu, 29 Jun 2017 10:09:56 -0600
-Message-ID: <20170629161000.15563-1-logang@deltatee.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Stephen Bates <sbates@raithlin.com>, Logan Gunthorpe <logang@deltatee.com>
-List-Id: linux-arch.vger.kernel.org
+From: Palmer Dabbelt <palmer@dabbelt.com>
+Subject: Re: [PATCH 9/9] RISC-V: Build Infastructure
+Date: Thu, 29 Jun 2017 09:29:35 -0700 (PDT)
+Message-ID: <mhng-f6830643-823f-489f-a0bf-d07dab7a72c0@palmer-si-x1c4>
+References: <20170628212500.GN6973@jhogan-linux.le.imgtec.org>
+Mime-Version: 1.0 (MHng)
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pg0-f67.google.com ([74.125.83.67]:33127 "EHLO
+        mail-pg0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752822AbdF2Q3h (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Jun 2017 12:29:37 -0400
+Received: by mail-pg0-f67.google.com with SMTP id u62so12497081pgb.0
+        for <linux-arch@vger.kernel.org>; Thu, 29 Jun 2017 09:29:37 -0700 (PDT)
+In-Reply-To: <20170628212500.GN6973@jhogan-linux.le.imgtec.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: james.hogan@imgtec.com
+Cc: peterz@infradead.org, mingo@redhat.com, mcgrof@kernel.org, viro@zeniv.linux.org.uk, sfr@canb.auug.org.au, nicolas.dichtel@6wind.com, rmk+kernel@armlinux.org.uk, msalter@redhat.com, tklauser@distanz.ch, will.deacon@arm.com, paul.gortmaker@windriver.com, linux@roeck-us.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, albert@sifive.com
 
-Hi,
+On Wed, 28 Jun 2017 14:25:00 PDT (-0700), james.hogan@imgtec.com wrote:
+> Hi Palmer,
+>
+> On Wed, Jun 28, 2017 at 11:55:38AM -0700, Palmer Dabbelt wrote:
+>> +	select SYSRISCV_ATOMIC if !ISA_A
+> ...
+>> +config SYSRISCV_ATOMIC
+>> +	bool "Include support for atomic operation syscalls"
+>> +	default !ISA_A
+>> +	help
+>> +	  If atomic memory instructions are present, i.e.,
+>> +	  CONFIG_ISA_A, this includes support for the syscall that
+>> +	  provides atomic accesses.  This is only useful to run
+>> +	  binaries that require atomic access but were compiled with
+>> +	  -mno-atomic.
+>> +
+>> +	  If CONFIG_ISA_A is unset, this option is mandatory.
+>> +
+>> +	  If you don't know what to do here, say N.
+>
+> Can this be removed now that you mentioned the atomics syscall being
+> mandatory? I can't find any other references to it.
 
-Here's my third attempt. This time we add functions to io-64-nonatomic-*
-which call io{read|write}32 twice so that the pio is done correctly.
+Oh, sorry, I must have just missed it when swizzling that around.  I'll remove
+it as part of our v4.
 
-I've also included a patch that adds these functions to the generic iomap
-library so that readq/writeq can be used while still splitting pio
-operations (when appropriate).
+  diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
+  index 38c8112861fd..9f587af28910 100644
+  --- a/arch/riscv/Kconfig
+  +++ b/arch/riscv/Kconfig
+  @@ -155,20 +155,6 @@ config ISA_A
 
-Thanks,
+             If you don't know what to do here, say Y.
 
-Logan
+  -config SYSRISCV_ATOMIC
+  -       bool "Include support for atomic operation syscalls"
+  -       default !ISA_A
+  -       help
+  -         If atomic memory instructions are present, i.e.,
+  -         CONFIG_ISA_A, this includes support for the syscall that
+  -         provides atomic accesses.  This is only useful to run
+  -         binaries that require atomic access but were compiled with
+  -         -mno-atomic.
+  -
+  -         If CONFIG_ISA_A is unset, this option is mandatory.
+  -
+  -         If you don't know what to do here, say N.
+  -
+   config RV_PUM
+          def_bool y
+          prompt "Protect User Memory" if EXPERT
 
-Horia Geantă (1):
-  crypto: caam: cleanup CONFIG_64BIT ifdefs when using io{read|write}64
-
-Logan Gunthorpe (3):
-  iomap: introduce io{read|write}64_{lo_hi|hi_lo}
-  io-64-nonatomic: add io{read|write}64[be]{_lo_hi|_hi_lo} macros
-  ntb: ntb_hw_intel: use io-64-nonatomic instead of in-driver hacks
-
- drivers/crypto/caam/regs.h            |  35 ++-------
- drivers/ntb/hw/intel/ntb_hw_intel.c   |  31 +-------
- include/asm-generic/iomap.h           |  26 +++++--
- include/linux/io-64-nonatomic-hi-lo.h |  62 ++++++++++++++++
- include/linux/io-64-nonatomic-lo-hi.h |  60 ++++++++++++++++
- lib/iomap.c                           | 132 ++++++++++++++++++++++++++++++++++
- 6 files changed, 280 insertions(+), 66 deletions(-)
-
---
-2.11.0
+Thanks for catching this!
