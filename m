@@ -1,145 +1,74 @@
-From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: Re: [PATCH 5/9] RISC-V: Task implementation
-Date: Thu, 29 Jun 2017 15:52:43 -0700 (PDT)
-Message-ID: <mhng-d057ddd0-fa49-4374-8c55-7e1f7d29207c@palmer-si-x1c4>
-References: <20170629082222.GA5851@distanz.ch>
-Mime-Version: 1.0 (MHng)
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f193.google.com ([209.85.192.193]:33746 "EHLO
-        mail-pf0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751581AbdF2Wwp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Jun 2017 18:52:45 -0400
-Received: by mail-pf0-f193.google.com with SMTP id e199so14735804pfh.0
-        for <linux-arch@vger.kernel.org>; Thu, 29 Jun 2017 15:52:44 -0700 (PDT)
-In-Reply-To: <20170629082222.GA5851@distanz.ch>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: tklauser@distanz.ch
-Cc: peterz@infradead.org, mingo@redhat.com, mcgrof@kernel.org, viro@zeniv.linux.org.uk, sfr@canb.auug.org.au, nicolas.dichtel@6wind.com, rmk+kernel@armlinux.org.uk, msalter@redhat.com, will.deacon@arm.com, james.hogan@imgtec.com, paul.gortmaker@windriver.com, linux@roeck-us.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, albert@sifive.com
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: [PATCH RFC 0/26] Remove spin_unlock_wait()
+Date: Thu, 29 Jun 2017 16:59:18 -0700
+Message-ID: <20170629235918.GA6445@linux.vnet.ibm.com>
+Reply-To: paulmck@linux.vnet.ibm.com
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: netfilter-devel@vger.kernel.org, netdev@vger.kernel.org, oleg@redhat.com, akpm@linux-foundation.org, mingo@redhat.com, dave@stgolabs.net, manfred@colorfullife.com, tj@kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, will.deacon@arm.com, peterz@infradead.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, torvalds@linux-foundation.org
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, 29 Jun 2017 01:22:23 PDT (-0700), tklauser@distanz.ch wrote:
-> On 2017-06-28 at 20:55:34 +0200, Palmer Dabbelt <palmer@dabbelt.com> wrote:
-> [...]
->> diff --git a/arch/riscv/include/asm/kprobes.h b/arch/riscv/include/asm/kprobes.h
->> new file mode 100644
->> index 000000000000..1190de7a0f74
->> --- /dev/null
->> +++ b/arch/riscv/include/asm/kprobes.h
->> @@ -0,0 +1,22 @@
->> +/*
->> + * Copyright (C) 2017 SiFive
->> + *
->> + *   This program is free software; you can redistribute it and/or
->> + *   modify it under the terms of the GNU General Public License
->> + *   as published by the Free Software Foundation, version 2.
->> + *
->> + *   This program is distributed in the hope that it will be useful,
->> + *   but WITHOUT ANY WARRANTY; without even the implied warranty of
->> + *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
->> + *   GNU General Public License for more details.
->> + */
->> +
->> +
->> +#ifndef ASM_RISCV_KPROBES_H
->> +#define ASM_RISCV_KPROBES_H
->> +
->> +#ifdef CONFIG_KPROBES
->> +#error "RISC-V doesn't skpport CONFIG_KPROBES"
->
-> Typo: s/skpport/support/
+Hello!
 
-Thanks.
+There is no agreed-upon definition of spin_unlock_wait()'s semantics,
+and it appears that all callers could do just as well with a lock/unlock
+pair.  This series therefore removes spin_unlock_wait() and changes
+its users to instead use a lock/unlock pair.  The commits are as follows,
+in three groups:
 
->> +#endif
->> +
->> +#endif
->> diff --git a/arch/riscv/include/asm/processor.h b/arch/riscv/include/asm/processor.h
->> new file mode 100644
->> index 000000000000..65aa014db9b4
->> --- /dev/null
->> +++ b/arch/riscv/include/asm/processor.h
->> @@ -0,0 +1,102 @@
->> +/*
->> + * Copyright (C) 2012 Regents of the University of California
->> + *
->> + *   This program is free software; you can redistribute it and/or
->> + *   modify it under the terms of the GNU General Public License
->> + *   as published by the Free Software Foundation, version 2.
->> + *
->> + *   This program is distributed in the hope that it will be useful,
->> + *   but WITHOUT ANY WARRANTY; without even the implied warranty of
->> + *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
->> + *   GNU General Public License for more details.
->> + */
->> +
->> +#ifndef _ASM_RISCV_PROCESSOR_H
->> +#define _ASM_RISCV_PROCESSOR_H
->> +
->> +#include <linux/const.h>
->> +
->> +#include <asm/ptrace.h>
->> +
->> +/*
->> + * This decides where the kernel will search for a free chunk of vm
->> + * space during mmap's.
->> + */
->> +#define TASK_UNMAPPED_BASE	PAGE_ALIGN(TASK_SIZE >> 1)
->> +
->> +#ifdef __KERNEL__
->> +#define STACK_TOP		TASK_SIZE
->> +#define STACK_TOP_MAX		STACK_TOP
->> +#define STACK_ALIGN		16
->> +#endif /* __KERNEL__ */
->> +
->> +#ifndef __ASSEMBLY__
->> +
->> +struct task_struct;
->> +struct pt_regs;
->> +
->> +/*
->> + * Default implementation of macro that returns current
->> + * instruction pointer ("program counter").
->> + */
->> +#define current_text_addr()	({ __label__ _l; _l: &&_l; })
->> +
->> +/* CPU-specific state of a task */
->> +struct thread_struct {
->> +	/* Callee-saved registers */
->> +	unsigned long ra;
->> +	unsigned long sp;	/* Kernel mode stack */
->> +	unsigned long s[12];	/* s[0]: frame pointer */
->> +	struct __riscv_d_ext_state fstate;
->> +};
->> +
->> +#define INIT_THREAD {					\
->> +	.sp = sizeof(init_stack) + (long)&init_stack,	\
->> +}
->> +
->> +/* Return saved (kernel) PC of a blocked thread. */
->> +#define thread_saved_pc(t)	((t)->thread.ra)
->> +#define thread_saved_sp(t)	((t)->thread.sp)
->> +#define thread_saved_fp(t)	((t)->thread.s[0])
->
-> These aren't needed outside of arch-specific code (anymore) and the
-> riscv port doesn't seem to be using them, so they can be omitted.
+1-7.	Change uses of spin_unlock_wait() and raw_spin_unlock_wait()
+	to instead use a spin_lock/spin_unlock pair.  These may be
+	applied in any order, but must be applied before any later
+	commits in this series.  The commit logs state why I believe
+	that these commits won't noticeably degrade performance.
 
-Great.  I've removed them, I'll include that in the v4
+8.	Remove core-kernel definitions for spin_unlock_wait() and
+	raw_spin_unlock_wait().
 
-  diff --git a/arch/riscv/include/asm/processor.h b/arch/riscv/include/asm/processor.h
-  index 53768048b9de..b62873633bde 100644
-  --- a/arch/riscv/include/asm/processor.h
-  +++ b/arch/riscv/include/asm/processor.h
-  @@ -52,11 +52,6 @@ struct thread_struct {
-          .sp = sizeof(init_stack) + (long)&init_stack,   \
-   }
+9-26.	Remove arch-specific definitions of arch_spin_unlock_wait().
 
-  -/* Return saved (kernel) PC of a blocked thread. */
-  -#define thread_saved_pc(t)     ((t)->thread.ra)
-  -#define thread_saved_sp(t)     ((t)->thread.sp)
-  -#define thread_saved_fp(t)     ((t)->thread.s[0])
-  -
-   #define task_pt_regs(tsk)                                              \
-          ((struct pt_regs *)(task_stack_page(tsk) + THREAD_SIZE          \
-                              - ALIGN(sizeof(struct pt_regs), STACK_ALIGN)))
+Thoughts?
 
-Thanks!
+							Thanx, Paul
+
+------------------------------------------------------------------------
+
+ arch/alpha/include/asm/spinlock.h    |    5 -
+ arch/arc/include/asm/spinlock.h      |    5 -
+ arch/arm/include/asm/spinlock.h      |   16 ----
+ arch/arm64/include/asm/spinlock.h    |   58 +----------------
+ arch/blackfin/include/asm/spinlock.h |    5 -
+ arch/hexagon/include/asm/spinlock.h  |    5 -
+ arch/ia64/include/asm/spinlock.h     |   21 ------
+ arch/m32r/include/asm/spinlock.h     |    5 -
+ arch/metag/include/asm/spinlock.h    |    5 -
+ arch/mips/include/asm/spinlock.h     |   16 ----
+ arch/mn10300/include/asm/spinlock.h  |    5 -
+ arch/parisc/include/asm/spinlock.h   |    7 --
+ arch/powerpc/include/asm/spinlock.h  |   33 ---------
+ arch/s390/include/asm/spinlock.h     |    7 --
+ arch/sh/include/asm/spinlock-cas.h   |    5 -
+ arch/sh/include/asm/spinlock-llsc.h  |    5 -
+ arch/sparc/include/asm/spinlock_32.h |    5 -
+ arch/sparc/include/asm/spinlock_64.h |    5 -
+ arch/tile/include/asm/spinlock_32.h  |    2 
+ arch/tile/include/asm/spinlock_64.h  |    2 
+ arch/tile/lib/spinlock_32.c          |   23 ------
+ arch/tile/lib/spinlock_64.c          |   22 ------
+ arch/xtensa/include/asm/spinlock.h   |    5 -
+ drivers/ata/libata-eh.c              |    8 --
+ include/asm-generic/qspinlock.h      |   14 ----
+ include/linux/spinlock.h             |   31 ---------
+ include/linux/spinlock_up.h          |    6 -
+ ipc/sem.c                            |    3 
+ kernel/exit.c                        |    3 
+ kernel/locking/qspinlock.c           |  117 -----------------------------------
+ kernel/sched/completion.c            |    9 --
+ kernel/sched/core.c                  |    3 
+ kernel/task_work.c                   |    3 
+ net/netfilter/nf_conntrack_core.c    |   26 ++-----
+ 34 files changed, 26 insertions(+), 464 deletions(-)
