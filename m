@@ -1,73 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out01.mta.xmission.com ([166.70.13.231]:58916 "EHLO
-        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751918AbdF3SVC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 30 Jun 2017 14:21:02 -0400
-From: ebiederm@xmission.com (Eric W. Biederman)
-References: <87efu22set.fsf@xmission.com>
-        <20170630123906.8865-3-ebiederm@xmission.com>
-        <20170630.124505.736865959393416284.davem@davemloft.net>
-Date: Fri, 30 Jun 2017 13:13:40 -0500
-In-Reply-To: <20170630.124505.736865959393416284.davem@davemloft.net> (David
-        Miller's message of "Fri, 30 Jun 2017 12:45:05 -0400 (EDT)")
-Message-ID: <8737ahwdgr.fsf@xmission.com>
+Received: from mx1.redhat.com ([209.132.183.28]:38846 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752493AbdF3TVb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 30 Jun 2017 15:21:31 -0400
+Date: Fri, 30 Jun 2017 21:21:23 +0200
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: Re: [PATCH RFC 02/26] task_work: Replace spin_unlock_wait() with
+ lock/unlock pair
+Message-ID: <20170630192123.GA8471@redhat.com>
+References: <20170629235918.GA6445@linux.vnet.ibm.com>
+ <1498780894-8253-2-git-send-email-paulmck@linux.vnet.ibm.com>
+ <20170630110445.GA5123@redhat.com>
+ <20170630125020.GU2393@linux.vnet.ibm.com>
+ <20170630152010.GA6935@redhat.com>
+ <20170630161607.GX2393@linux.vnet.ibm.com>
 MIME-Version: 1.0
-Content-Type: text/plain
-Subject: Re: [PATCH 3/8] signal/sparc: Document a conflict with SI_USER with SIGFPE
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20170630161607.GX2393@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
-Cc: linux-kernel@vger.kernel.org, luto@kernel.org, torvalds@linux-foundation.org, viro@zeniv.linux.org.uk, oleg@redhat.com, avagin@virtuozzo.com, tglx@linutronix.de, greg@kroah.com, avagin@openvz.org, serge@hallyn.com, xemul@virtuozzo.com, gorcunov@openvz.org, peterz@infradead.org, w@1wt.eu, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, containers@lists.linux-foundation.org, mtk.manpages@gmail.com, sparclinux@vger.kernel.org
-Message-ID: <20170630181340.DFN2gPXKTrHezeVJAuWQawi1kaXwc08S1c5DJJbYC7w@z>
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: linux-kernel@vger.kernel.org, netfilter-devel@vger.kernel.org, netdev@vger.kernel.org, akpm@linux-foundation.org, mingo@redhat.com, dave@stgolabs.net, manfred@colorfullife.com, tj@kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, will.deacon@arm.com, peterz@infradead.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, torvalds@linux-foundation.org
+Message-ID: <20170630192123.-BRy12yK0gNKfD-_LhzIeidn_bIP2dLGK35te7SIS9U@z>
 
-David Miller <davem@davemloft.net> writes:
-
-> From: "Eric W. Biederman" <ebiederm@xmission.com>
-> Date: Fri, 30 Jun 2017 07:39:01 -0500
+On 06/30, Paul E. McKenney wrote:
 >
->> diff --git a/arch/sparc/include/uapi/asm/siginfo.h b/arch/sparc/include/uapi/asm/siginfo.h
->> index 2d9b79ccaa50..6bc5c677e92f 100644
->> --- a/arch/sparc/include/uapi/asm/siginfo.h
->> +++ b/arch/sparc/include/uapi/asm/siginfo.h
->> @@ -17,6 +17,11 @@
->>  #define SI_NOINFO	32767		/* no information in siginfo_t */
->>  
->>  /*
->> + * SIGFPE si_codes
->> + */
->> +#define FPE_FIXME	(__SI_FAULT|0)	/* Broken dup of SI_USER */
->> +
->> +/*
->>   * SIGEMT si_codes
->>   */
->>  #define EMT_TAGOVF	(__SI_FAULT|1)	/* tag overflow */
+> On Fri, Jun 30, 2017 at 05:20:10PM +0200, Oleg Nesterov wrote:
+> >
+> > I do not think the overhead will be noticeable in this particular case.
+> >
+> > But I am not sure I understand why do we want to unlock_wait. Yes I agree,
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+if it was not clear, I tried to say "why do we want to _remove_ unlock_wait".
+
+> > it has some problems, but still...
+> >
+> > The code above looks strange for me. If we are going to repeat this pattern
+> > the perhaps we should add a helper for lock+unlock and name it unlock_wait2 ;)
+> >
+> > If not, we should probably change this code more:
 >
-> It's one thing to say FIXME in a comment in a kernel local header or
-> C file.
->
-> It's quite another to put this into the name of a macro which has
-> visibility in the global user compilation namespace.
->
-> I don't think you should really do that.
+> This looks -much- better than my patch!  May I have your Signed-off-by?
 
-Good point.
+Only if you promise to replace all RCU flavors with a single simple implementation
+based on rwlock ;)
 
-Sigh.   It almost fits because we did do something off in the uapi
-exported to userspace and we don't have a header file definition for
-that case.
+Seriously, of course I won't argue, and it seems that nobody except me likes
+this primitive, but to me spin_unlock_wait() looks like synchronize_rcu(() and
+sometimes it makes sense.
 
-Still.  At this point arch/sparc/include/asm/siginfo.h is
-a better fit for that definition.
+Including this particular case. task_work_run() is going to flush/destroy the
+->task_works list, so it needs to wait until all currently executing "readers"
+(task_work_cancel()'s which have started before ->task_works was updated) have
+completed.
 
-I will respin and fix that.
-
-I wish I knew what would make a better default floating point si_code on
-sparc.  Using 0 aka SI_USER is doesn't fit at all.  Sigh.
-
-Unfortunately I don't know the architecture well enough to even guess
-what is going on in do_fpe_common when when no bits in fsr are set.
-
-Any suggests for a better fix than just documenting that linux does
-something weird and ill advised here?
-
-Eric
+Oleg.
