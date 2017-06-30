@@ -1,60 +1,93 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f68.google.com ([74.125.82.68]:36092 "EHLO
-        mail-wm0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751532AbdF3G7b (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 30 Jun 2017 02:59:31 -0400
-Date: Fri, 30 Jun 2017 08:59:26 +0200
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH 0/5] Last bits for initial 5-level paging enabling
-Message-ID: <20170630065926.fcwax3odtla4dp4t@gmail.com>
-References: <20170622122608.80435-1-kirill.shutemov@linux.intel.com>
- <20170623090601.njsmucxdy4rev6zw@gmail.com>
- <20170623144915.4d6esghvicnczuaj@black.fi.intel.com>
- <20170629150657.urgapbzmf3jy6jgp@node.shutemov.name>
+Received: from foss.arm.com ([217.140.101.70]:39396 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751584AbdF3JT3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 30 Jun 2017 05:19:29 -0400
+Date: Fri, 30 Jun 2017 10:19:29 +0100
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH RFC 08/26] locking: Remove spin_unlock_wait() generic
+ definitions
+Message-ID: <20170630091928.GC9726@arm.com>
+References: <20170629235918.GA6445@linux.vnet.ibm.com>
+ <1498780894-8253-8-git-send-email-paulmck@linux.vnet.ibm.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20170629150657.urgapbzmf3jy6jgp@node.shutemov.name>
+In-Reply-To: <1498780894-8253-8-git-send-email-paulmck@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Kirill A. Shutemov" <kirill@shutemov.name>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
-Message-ID: <20170630065926.EnSLtU1jCJA_kFgKNNkGs2HQ5mf6giBTBPLjrpJttIA@z>
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: linux-kernel@vger.kernel.org, netfilter-devel@vger.kernel.org, netdev@vger.kernel.org, oleg@redhat.com, akpm@linux-foundation.org, mingo@redhat.com, dave@stgolabs.net, manfred@colorfullife.com, tj@kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, peterz@infradead.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, torvalds@linux-foundation.org
+Message-ID: <20170630091929.XhtBc3vUuM-_RHewhEN1DrYUXy4iHbrCV_L65IeOcXk@z>
 
-
-* Kirill A. Shutemov <kirill@shutemov.name> wrote:
-
-> > > Can I apply them in this order cleanly, without breaking bisection:
-> > > 
-> > > >   x86/mm: Rename tasksize_32bit/64bit to task_size_32bit/64bit
-> > > >   x86/mpx: Do not allow MPX if we have mappings above 47-bit
-> > > >   x86/mm: Prepare to expose larger address space to userspace
-> > > >   x86/mm: Allow userspace have mapping above 47-bit
-> > > >   x86: Enable 5-level paging support
-> > > 
-> > > ?
-> > > 
-> > > I.e. I'd like to move the first patch last.
-> > > 
-> > > The reason is that we should first get all quirks and assumptions fixed, all 
-> > > facilities implemented - and only then enable 5-level paging as a final step which 
-> > > produces a well working kernel.
-> > > 
-> > > (This should also make it slightly easier to analyze any potential regressions in 
-> > > earlier patches.)
-> > 
-> > Just checked bisectability with this order on allmodconfig -- works fine.
+On Thu, Jun 29, 2017 at 05:01:16PM -0700, Paul E. McKenney wrote:
+> There is no agreed-upon definition of spin_unlock_wait()'s semantics,
+> and it appears that all callers could do just as well with a lock/unlock
+> pair.  This commit therefore removes spin_unlock_wait() and related
+> definitions from core code.
 > 
-> Ingo, if there's no objections, can we get these applied?
+> Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: Ingo Molnar <mingo@redhat.com>
+> Cc: Will Deacon <will.deacon@arm.com>
+> Cc: Peter Zijlstra <peterz@infradead.org>
+> Cc: Alan Stern <stern@rowland.harvard.edu>
+> Cc: Andrea Parri <parri.andrea@gmail.com>
+> Cc: Linus Torvalds <torvalds@linux-foundation.org>
+> ---
+>  include/asm-generic/qspinlock.h |  14 -----
+>  include/linux/spinlock.h        |  31 -----------
+>  include/linux/spinlock_up.h     |   6 ---
+>  kernel/locking/qspinlock.c      | 117 ----------------------------------------
+>  4 files changed, 168 deletions(-)
 
-Just this week, which is the final week of the development window, we had two 
-fixes for the 5-level pagetables commits, so we need to delay the rest to right 
-after -rc1.
+[...]
 
-Could you please resend them them (and any followup patches), in the suggested 
-order? I don't see any conceptual problems, so this is only about timing and 
-maximizing stability.
+> diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
+> index b2caec7315af..64a9051e4c2c 100644
+> --- a/kernel/locking/qspinlock.c
+> +++ b/kernel/locking/qspinlock.c
+> @@ -267,123 +267,6 @@ static __always_inline u32  __pv_wait_head_or_lock(struct qspinlock *lock,
+>  #define queued_spin_lock_slowpath	native_queued_spin_lock_slowpath
+>  #endif
+>  
+> -/*
+> - * Various notes on spin_is_locked() and spin_unlock_wait(), which are
+> - * 'interesting' functions:
+> - *
+> - * PROBLEM: some architectures have an interesting issue with atomic ACQUIRE
+> - * operations in that the ACQUIRE applies to the LOAD _not_ the STORE (ARM64,
+> - * PPC). Also qspinlock has a similar issue per construction, the setting of
+> - * the locked byte can be unordered acquiring the lock proper.
+> - *
+> - * This gets to be 'interesting' in the following cases, where the /should/s
+> - * end up false because of this issue.
+> - *
+> - *
+> - * CASE 1:
+> - *
+> - * So the spin_is_locked() correctness issue comes from something like:
+> - *
+> - *   CPU0				CPU1
+> - *
+> - *   global_lock();			local_lock(i)
+> - *     spin_lock(&G)			  spin_lock(&L[i])
+> - *     for (i)				  if (!spin_is_locked(&G)) {
+> - *       spin_unlock_wait(&L[i]);	    smp_acquire__after_ctrl_dep();
+> - *					    return;
+> - *					  }
+> - *					  // deal with fail
+> - *
+> - * Where it is important CPU1 sees G locked or CPU0 sees L[i] locked such
+> - * that there is exclusion between the two critical sections.
+> - *
+> - * The load from spin_is_locked(&G) /should/ be constrained by the ACQUIRE from
+> - * spin_lock(&L[i]), and similarly the load(s) from spin_unlock_wait(&L[i])
+> - * /should/ be constrained by the ACQUIRE from spin_lock(&G).
+> - *
+> - * Similarly, later stuff is constrained by the ACQUIRE from CTRL+RMB.
 
-Thanks,
+Might be worth keeping this comment about spin_is_locked, since we're not
+removing that guy just yet!
 
-	Ingo
+Will
