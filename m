@@ -1,100 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f46.google.com ([209.85.214.46]:37598 "EHLO
-        mail-it0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751560AbdF3D6N (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Jun 2017 23:58:13 -0400
-Received: by mail-it0-f46.google.com with SMTP id m84so18284112ita.0
-        for <linux-arch@vger.kernel.org>; Thu, 29 Jun 2017 20:58:12 -0700 (PDT)
+Received: from mail-wm0-f68.google.com ([74.125.82.68]:36092 "EHLO
+        mail-wm0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751532AbdF3G7b (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 30 Jun 2017 02:59:31 -0400
+Date: Fri, 30 Jun 2017 08:59:26 +0200
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH 0/5] Last bits for initial 5-level paging enabling
+Message-ID: <20170630065926.fcwax3odtla4dp4t@gmail.com>
+References: <20170622122608.80435-1-kirill.shutemov@linux.intel.com>
+ <20170623090601.njsmucxdy4rev6zw@gmail.com>
+ <20170623144915.4d6esghvicnczuaj@black.fi.intel.com>
+ <20170629150657.urgapbzmf3jy6jgp@node.shutemov.name>
 MIME-Version: 1.0
-In-Reply-To: <afcc7ab0-c1ca-e89d-169c-66be444274e4@huawei.com>
-References: <1496180392-98718-1-git-send-email-keescook@chromium.org>
- <1496180392-98718-4-git-send-email-keescook@chromium.org> <3812aec2-682f-e95c-4d61-8e7eac33cc88@huawei.com>
- <CAGXu5jLzL3URMvF81EbH1Bt74MnwL9-25AU41yQnbEBcWA7J8Q@mail.gmail.com> <afcc7ab0-c1ca-e89d-169c-66be444274e4@huawei.com>
-From: Kees Cook <keescook@chromium.org>
-Date: Thu, 29 Jun 2017 20:58:10 -0700
-Message-ID: <CAGXu5j+1irA8SK_XgbP9qRKLUckEzdPQ=YjopWJm+On_0RhumA@mail.gmail.com>
-Subject: Re: [kernel-hardening] [PATCH v5 3/3] x86/refcount: Implement fast
- refcount overflow protection
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20170629150657.urgapbzmf3jy6jgp@node.shutemov.name>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Li Kun <hw.likun@huawei.com>
-Cc: LKML <linux-kernel@vger.kernel.org>, Christoph Hellwig <hch@infradead.org>, Peter Zijlstra <peterz@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, PaX Team <pageexec@freemail.hu>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, "Wangkai (Morgan, Euler)" <morgan.wang@huawei.com>
-Message-ID: <20170630035810.6_KDY9caSFcau94dow-cIu_Cn2qXixzWG8bd36_g_1g@z>
+To: "Kirill A. Shutemov" <kirill@shutemov.name>
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+Message-ID: <20170630065926.EnSLtU1jCJA_kFgKNNkGs2HQ5mf6giBTBPLjrpJttIA@z>
 
-On Thu, Jun 29, 2017 at 7:42 PM, Li Kun <hw.likun@huawei.com> wrote:
->
->
-> on 2017/6/30 6:05, Kees Cook wrote:
->>
->> On Wed, Jun 28, 2017 at 9:13 PM, Li Kun <hw.likun@huawei.com> wrote:
->>>
->>> =E5=9C=A8 2017/5/31 5:39, Kees Cook =E5=86=99=E9=81=93:
->>>>
->>>> +bool ex_handler_refcount(const struct exception_table_entry *fixup,
->>>> +                        struct pt_regs *regs, int trapnr)
->>>> +{
->>>> +       int reset;
->>>> +
->>>> +       /*
->>>> +        * If we crossed from INT_MAX to INT_MIN, the OF flag (result
->>>> +        * wrapped around) and the SF flag (result is negative) will b=
-e
->>>> +        * set. In this case, reset to INT_MAX in an attempt to leave
->>>> the
->>>> +        * refcount usable. Otherwise, we've landed here due to
->>>> producing
->>>> +        * a negative result from either decrementing zero or operatin=
-g
->>>> on
->>>> +        * a negative value. In this case things are badly broken, so =
-we
->>>> +        * we saturate to INT_MIN / 2.
->>>> +        */
->>>> +       if (regs->flags & (X86_EFLAGS_OF | X86_EFLAGS_SF))
->>>> +               reset =3D INT_MAX;
->>>
->>>      Should it be like this to indicate that the refcount is wapped fro=
-m
->>> INT_MAX to INT_MIN ?
->>>          if (regs->flags & (X86_EFLAGS_OF | X86_EFLAGS_SF)
->>>                  =3D=3D (X86_EFLAGS_OF | X86_EFLAGS_SF))
->>>
->>>                  reset =3D INT_MAX;
->>
->> Ah yes, thanks for the catch. Yeah, that test is expecting both
->> condition flags to be set.
->>
->> I'm still on the fence about the best way to deal with the bad states.
->> I've been pondering just strictly using a saturation value (INT_MIN /
->> 2), which should offer the same system state protection (except for
->> the inherent resource leak), but that means there isn't really a good
->> way to kill an offending process (since after saturation ALL processes
->> will look like violators). It can be argued that killing the process
->> doesn't actually provide any benefit since the system is still safe,
->> though.
->
-> An immature idea,can we set the count to INT_MAX/2 when we detect and kil=
-l
-> the offending process,
-> and wait to see if there will be another offender touching the fence. Er,=
-not
-> very acurate,but better than
-> killing all the processes doing refcount_add ,i think.
->>>>
->>>> +       else
->>>> +               reset =3D INT_MIN / 2;
->>>> +       *(int *)regs->cx =3D reset;
 
-I suppose we could kill a process if it did the wrap from INT_MAX to
-INT_MIN, and then ignore (though maintain saturation of) the rest.
-i.e. if X86_EFLAGS_OF, kill and saturate. If X86_EFLAGS_SF, saturate.
-I'm still curious about catching refcount_dec() (not
-refcount_dec_and_test()) hitting zero.
+* Kirill A. Shutemov <kirill@shutemov.name> wrote:
 
--Kees
+> > > Can I apply them in this order cleanly, without breaking bisection:
+> > > 
+> > > >   x86/mm: Rename tasksize_32bit/64bit to task_size_32bit/64bit
+> > > >   x86/mpx: Do not allow MPX if we have mappings above 47-bit
+> > > >   x86/mm: Prepare to expose larger address space to userspace
+> > > >   x86/mm: Allow userspace have mapping above 47-bit
+> > > >   x86: Enable 5-level paging support
+> > > 
+> > > ?
+> > > 
+> > > I.e. I'd like to move the first patch last.
+> > > 
+> > > The reason is that we should first get all quirks and assumptions fixed, all 
+> > > facilities implemented - and only then enable 5-level paging as a final step which 
+> > > produces a well working kernel.
+> > > 
+> > > (This should also make it slightly easier to analyze any potential regressions in 
+> > > earlier patches.)
+> > 
+> > Just checked bisectability with this order on allmodconfig -- works fine.
+> 
+> Ingo, if there's no objections, can we get these applied?
 
---=20
-Kees Cook
-Pixel Security
+Just this week, which is the final week of the development window, we had two 
+fixes for the 5-level pagetables commits, so we need to delay the rest to right 
+after -rc1.
+
+Could you please resend them them (and any followup patches), in the suggested 
+order? I don't see any conceptual problems, so this is only about timing and 
+maximizing stability.
+
+Thanks,
+
+	Ingo
