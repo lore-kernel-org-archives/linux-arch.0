@@ -1,98 +1,115 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH RFC 08/26] locking: Remove spin_unlock_wait() generic
- definitions
-Date: Fri, 30 Jun 2017 05:38:15 -0700
-Message-ID: <20170630123815.GT2393@linux.vnet.ibm.com>
-References: <20170629235918.GA6445@linux.vnet.ibm.com>
- <1498780894-8253-8-git-send-email-paulmck@linux.vnet.ibm.com>
- <20170630091928.GC9726@arm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: ebiederm@xmission.com (Eric W. Biederman)
+Subject: [PATCH 0/8] signal: Fix sending signals with siginfo
+Date: Fri, 30 Jun 2017 07:36:16 -0500
+Message-ID: <87bmp5y7nj.fsf_-_@xmission.com>
+References: <87lgot2loq.fsf@xmission.com> <87zid90vye.fsf_-_@xmission.com>
+        <20170615225426.GP31671@ZenIV.linux.org.uk>
+        <87poe4zrs1.fsf@xmission.com>
+        <CA+55aFxpv+gchzs7AYgSC8feAOV=B6mjFgBVm4Kx+83J2CNE-w@mail.gmail.com>
+        <87poe3vsa9.fsf@xmission.com>
+        <CALCETrX=SquyR8JZqHDNx=_FQKQo-0u9AxfdUwJs_hujVO2A-g@mail.gmail.com>
+        <87h8zfua59.fsf@xmission.com>
+        <CALCETrWPBn31Dye=81r2ZMainNOnDy5c_QxbU2uRjnJs0ie=Zg@mail.gmail.com>
+        <87r2yjsuwl.fsf@xmission.com> <20170616191602.GA10675@1wt.eu>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20170630091928.GC9726@arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Will Deacon <will.deacon@arm.com>
-Cc: linux-kernel@vger.kernel.org, netfilter-devel@vger.kernel.org, netdev@vger.kernel.org, oleg@redhat.com, akpm@linux-foundation.org, mingo@redhat.com, dave@stgolabs.net, manfred@colorfullife.com, tj@kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, peterz@infradead.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, torvalds@linux-foundation.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from out02.mta.xmission.com ([166.70.13.232]:39512 "EHLO
+        out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751545AbdF3Mna (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 30 Jun 2017 08:43:30 -0400
+In-Reply-To: <20170616191602.GA10675@1wt.eu> (Willy Tarreau's message of "Fri,
+        16 Jun 2017 21:16:02 +0200")
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org
+Cc: Andy Lutomirski <luto@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, Andrei Vagin <avagin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Greg KH <greg@kroah.com>, Andrey Vagin <avagin@openvz.org>, Serge Hallyn <serge@hallyn.com>, Pavel Emelyanov <xemul@virtuozzo.com>, Cyrill Gorcunov <gorcunov@openvz.org>, Peter Zijlstra <peterz@infradead.org>, Willy Tarreau <w@1wt.eu>, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Linux Containers <containers@lists.linux-foundation.org>, Michael Kerrisk <mtk.manpages@gmail.com>
 
-On Fri, Jun 30, 2017 at 10:19:29AM +0100, Will Deacon wrote:
-> On Thu, Jun 29, 2017 at 05:01:16PM -0700, Paul E. McKenney wrote:
-> > There is no agreed-upon definition of spin_unlock_wait()'s semantics,
-> > and it appears that all callers could do just as well with a lock/unlock
-> > pair.  This commit therefore removes spin_unlock_wait() and related
-> > definitions from core code.
-> > 
-> > Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-> > Cc: Arnd Bergmann <arnd@arndb.de>
-> > Cc: Ingo Molnar <mingo@redhat.com>
-> > Cc: Will Deacon <will.deacon@arm.com>
-> > Cc: Peter Zijlstra <peterz@infradead.org>
-> > Cc: Alan Stern <stern@rowland.harvard.edu>
-> > Cc: Andrea Parri <parri.andrea@gmail.com>
-> > Cc: Linus Torvalds <torvalds@linux-foundation.org>
-> > ---
-> >  include/asm-generic/qspinlock.h |  14 -----
-> >  include/linux/spinlock.h        |  31 -----------
-> >  include/linux/spinlock_up.h     |   6 ---
-> >  kernel/locking/qspinlock.c      | 117 ----------------------------------------
-> >  4 files changed, 168 deletions(-)
-> 
-> [...]
-> 
-> > diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
-> > index b2caec7315af..64a9051e4c2c 100644
-> > --- a/kernel/locking/qspinlock.c
-> > +++ b/kernel/locking/qspinlock.c
-> > @@ -267,123 +267,6 @@ static __always_inline u32  __pv_wait_head_or_lock(struct qspinlock *lock,
-> >  #define queued_spin_lock_slowpath	native_queued_spin_lock_slowpath
-> >  #endif
-> >  
-> > -/*
-> > - * Various notes on spin_is_locked() and spin_unlock_wait(), which are
-> > - * 'interesting' functions:
-> > - *
-> > - * PROBLEM: some architectures have an interesting issue with atomic ACQUIRE
-> > - * operations in that the ACQUIRE applies to the LOAD _not_ the STORE (ARM64,
-> > - * PPC). Also qspinlock has a similar issue per construction, the setting of
-> > - * the locked byte can be unordered acquiring the lock proper.
-> > - *
-> > - * This gets to be 'interesting' in the following cases, where the /should/s
-> > - * end up false because of this issue.
-> > - *
-> > - *
-> > - * CASE 1:
-> > - *
-> > - * So the spin_is_locked() correctness issue comes from something like:
-> > - *
-> > - *   CPU0				CPU1
-> > - *
-> > - *   global_lock();			local_lock(i)
-> > - *     spin_lock(&G)			  spin_lock(&L[i])
-> > - *     for (i)				  if (!spin_is_locked(&G)) {
-> > - *       spin_unlock_wait(&L[i]);	    smp_acquire__after_ctrl_dep();
-> > - *					    return;
-> > - *					  }
-> > - *					  // deal with fail
-> > - *
-> > - * Where it is important CPU1 sees G locked or CPU0 sees L[i] locked such
-> > - * that there is exclusion between the two critical sections.
-> > - *
-> > - * The load from spin_is_locked(&G) /should/ be constrained by the ACQUIRE from
-> > - * spin_lock(&L[i]), and similarly the load(s) from spin_unlock_wait(&L[i])
-> > - * /should/ be constrained by the ACQUIRE from spin_lock(&G).
-> > - *
-> > - * Similarly, later stuff is constrained by the ACQUIRE from CTRL+RMB.
-> 
-> Might be worth keeping this comment about spin_is_locked, since we're not
-> removing that guy just yet!
 
-Ah, all the examples had spin_unlock_wait() in them.  So what I need to
-do is to create a spin_unlock_wait()-free example to illustrate the
-text starting with "The load from spin_is_locked(", correct?
+Today sending a signal with rt_sigqueueinfo and receving it on
+a signalfd does not work reliably.  The issue is that reading
+a signalfd instead of returning a siginfo returns a signalfd_siginfo and
+the kernel must convert from one to the other.
 
-I also need to check all uses of spin_is_locked().  There might no
-longer be any that rely on any particular ordering...
+The kernel does not currently have the code to deduce which union
+members of struct siginfo are in use.
 
-								Thanx, Paul
+In this patchset I fix that by introducing a new function siginfo_layout
+that can look at a siginfo and report which union member of struct
+nnsiginfo is in use.  Before that I clean up how we populate struct
+siginfo.
+
+The siginfo structure has two key members si_signo and si_code.  Some
+si_codes are signal specific and for those it takes si_signo and si_code
+to indicate the members of siginfo that are valid.  The rest of the
+si_code values are signal independent like SI_USER, SI_KERNEL, SI_QUEUE,
+and SI_TIMER and only si_code is needed to indicate which members of
+siginfo are valid.
+
+At least that is how POSIX documents them, and how common sense would
+indicate they should function.  In practice we have been rather sloppy
+about maintaining the ABI in linux and we have some exceptions.  We have
+a couple of buggy architectures that make SI_USER mean something
+different when combined with SIGFPE or SIGTRAP.  Worse we have
+fcntl(F_SETSIG) which results in the si_codes POLL_IN, POLL_OUT,
+POLL_MSG, POLL_ERR, POLL_PRI, POLL_HUP being sent with any arbitrary
+signal, while the values are in a range that overlaps the signal
+specific si_codes.
+
+Thankfully the ambiguous cases are for things no sane persion would do
+that so we can rectify the situtation.  AKA no one cares so we won't
+cause a regression fixing it.
+
+As part of fixing this I stop leaking the __SI_xxxx codes to userspace
+and stop storing them in the high 16bits of si_code.  Making the kernel
+code fundamentally simpler.  We have already confirmed that the one
+application that would see this difference in kernel behavior CRIU won't
+be affected by this change as it copies values verbatim from one kernel
+interface to another.
+
+Eric
+
+Eric W. Biederman (8):
+      signal/alpha: Document a conflict with SI_USER for SIGTRAP
+      signal/ia64: Document a conflict with SI_USER with SIGFPE
+      signal/sparc: Document a conflict with SI_USER with SIGFPE
+      signal/mips: Document a conflict with SI_USER with SIGFPE
+      signal/testing: Don't look for __SI_FAULT in userspace
+      signal/x86: Fix SIGSYS handling in copy_siginfo_to_user32
+      fcntl: Don't use ambiguous SIG_POLL si_codes
+      signal: Remove kernel interal si_code magic
+
+ arch/alpha/include/uapi/asm/siginfo.h         |   5 ++
+ arch/alpha/kernel/traps.c                     |   6 +-
+ arch/arm64/kernel/signal32.c                  |  23 +++---
+ arch/blackfin/include/uapi/asm/siginfo.h      |  30 +++++---
+ arch/frv/include/uapi/asm/siginfo.h           |   2 +-
+ arch/ia64/include/uapi/asm/siginfo.h          |  19 ++---
+ arch/ia64/kernel/signal.c                     |  17 ++---
+ arch/ia64/kernel/traps.c                      |   4 +-
+ arch/mips/include/uapi/asm/siginfo.h          |   9 ++-
+ arch/mips/kernel/signal32.c                   |  19 +++--
+ arch/mips/kernel/traps.c                      |   2 +-
+ arch/parisc/kernel/signal32.c                 |  31 ++++----
+ arch/powerpc/kernel/signal_32.c               |  20 +++--
+ arch/s390/kernel/compat_signal.c              |  32 ++++----
+ arch/sparc/include/uapi/asm/siginfo.h         |   7 +-
+ arch/sparc/kernel/signal32.c                  |  16 ++--
+ arch/sparc/kernel/traps_32.c                  |   2 +-
+ arch/sparc/kernel/traps_64.c                  |   2 +-
+ arch/tile/include/uapi/asm/siginfo.h          |   4 +-
+ arch/tile/kernel/compat_signal.c              |  18 ++---
+ arch/tile/kernel/traps.c                      |   1 -
+ arch/x86/kernel/signal_compat.c               |  22 +++---
+ fs/fcntl.c                                    |  13 +++-
+ fs/signalfd.c                                 |  22 ++----
+ include/asm-generic/siginfo.h                 |  22 +++---
+ include/linux/signal.h                        |   8 ++
+ include/uapi/asm-generic/siginfo.h            | 104 ++++++++++++--------------
+ kernel/compat.c                               |   2 -
+ kernel/exit.c                                 |   6 +-
+ kernel/ptrace.c                               |   6 +-
+ kernel/signal.c                               |  72 +++++++++++++-----
+ tools/testing/selftests/x86/mpx-mini-test.c   |   3 +-
+ tools/testing/selftests/x86/protection_keys.c |  13 ++--
+ 33 files changed, 302 insertions(+), 260 deletions(-)
