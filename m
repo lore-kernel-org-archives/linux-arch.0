@@ -1,31 +1,48 @@
-From: Logan Gunthorpe <logang@deltatee.com>
-Subject: Re: [PATCH v3 4/4] crypto: caam: cleanup CONFIG_64BIT ifdefs when
- using io{read|write}64
-Date: Fri, 30 Jun 2017 10:21:11 -0600
-Message-ID: <bc8579cb-cb9e-c20a-a2e2-41d8a30224f1@deltatee.com>
-References: <20170629161000.15563-1-logang@deltatee.com>
- <20170629161000.15563-5-logang@deltatee.com>
- <HE1PR0401MB2585F67CA6DE08D083AA043998D30@HE1PR0401MB2585.eurprd04.prod.outlook.com>
+From: David Miller <davem@davemloft.net>
+Subject: Re: [PATCH 3/8] signal/sparc: Document a conflict with SI_USER
+ with SIGFPE
+Date: Fri, 30 Jun 2017 12:45:05 -0400 (EDT)
+Message-ID: <20170630.124505.736865959393416284.davem@davemloft.net>
+References: <87efu22set.fsf@xmission.com>
+        <20170630123906.8865-3-ebiederm@xmission.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-2
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-crypto-owner@vger.kernel.org>
-In-Reply-To: <HE1PR0401MB2585F67CA6DE08D083AA043998D30@HE1PR0401MB2585.eurprd04.prod.outlook.com>
-Sender: linux-crypto-owner@vger.kernel.org
-To: =?UTF-8?Q?Horia_Geant=c4=83?= <horia.geanta@nxp.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-ntb@googlegroups.com" <linux-ntb@googlegroups.com>, "linux-crypto@vger.kernel.org" <linux-crypto@vger.kernel.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Stephen Bates <sbates@raithlin.com>, Dan Douglass <dan.douglass@nxp.com>, Herbert Xu <herbert@gondor.apana.org.au>, "David S. Miller" <davem@davemloft.net>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from shards.monkeyblade.net ([184.105.139.130]:44198 "EHLO
+        shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751189AbdF3QpL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 30 Jun 2017 12:45:11 -0400
+In-Reply-To: <20170630123906.8865-3-ebiederm@xmission.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: ebiederm@xmission.com
+Cc: linux-kernel@vger.kernel.org, luto@kernel.org, torvalds@linux-foundation.org, viro@zeniv.linux.org.uk, oleg@redhat.com, avagin@virtuozzo.com, tglx@linutronix.de, greg@kroah.com, avagin@openvz.org, serge@hallyn.com, xemul@virtuozzo.com, gorcunov@openvz.org, peterz@infradead.org, w@1wt.eu, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, containers@lists.linux-foundation.org, mtk.manpages@gmail.com, sparclinux@vger.kernel.org
 
+From: "Eric W. Biederman" <ebiederm@xmission.com>
+Date: Fri, 30 Jun 2017 07:39:01 -0500
 
+> diff --git a/arch/sparc/include/uapi/asm/siginfo.h b/arch/sparc/include/uapi/asm/siginfo.h
+> index 2d9b79ccaa50..6bc5c677e92f 100644
+> --- a/arch/sparc/include/uapi/asm/siginfo.h
+> +++ b/arch/sparc/include/uapi/asm/siginfo.h
+> @@ -17,6 +17,11 @@
+>  #define SI_NOINFO	32767		/* no information in siginfo_t */
+>  
+>  /*
+> + * SIGFPE si_codes
+> + */
+> +#define FPE_FIXME	(__SI_FAULT|0)	/* Broken dup of SI_USER */
+> +
+> +/*
+>   * SIGEMT si_codes
+>   */
+>  #define EMT_TAGOVF	(__SI_FAULT|1)	/* tag overflow */
 
-On 30/06/17 12:18 AM, Horia Geantã wrote:
-> On 6/29/2017 7:10 PM, Logan Gunthorpe wrote:
->> From: Horia Geantã <horia.geanta@nxp.com>
->>
->> We can now make use of the io-64-nonatomic-hi-lo header to always
-> Typo: we are using io-64-nonatomic-lo-hi, not hi-lo.
+It's one thing to say FIXME in a comment in a kernel local header or
+C file.
 
-Yup, thanks. I will fix this for a v4. I've also noticed a couple other
-mistakes I need to fix.
+It's quite another to put this into the name of a macro which has
+visibility in the global user compilation namespace.
 
-Logan
+I don't think you should really do that.
