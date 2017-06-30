@@ -1,68 +1,78 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH RFC 25/26] tile: Remove spin_unlock_wait() arch-specific
- definitions
-Date: Thu, 29 Jun 2017 17:24:46 -0700
-Message-ID: <20170630002446.GM2393@linux.vnet.ibm.com>
-References: <20170629235918.GA6445@linux.vnet.ibm.com>
- <1498780894-8253-25-git-send-email-paulmck@linux.vnet.ibm.com>
- <CA+55aFxf=4+LEk6wSE3HPFdwSf_F0Ny9NRGXaA6daikY+TGbDg@mail.gmail.com>
- <CA+55aFyogF0gpZ+5KHabFaYDhAq0awPzpSVj9S2q9EZnoY2eXQ@mail.gmail.com>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Li Kun <hw.likun@huawei.com>
+Subject: Re: [PATCH v5 3/3] x86/refcount: Implement fast
+ refcount overflow protection
+Date: Fri, 30 Jun 2017 10:42:05 +0800
+Message-ID: <afcc7ab0-c1ca-e89d-169c-66be444274e4@huawei.com>
+References: <1496180392-98718-1-git-send-email-keescook@chromium.org>
+ <1496180392-98718-4-git-send-email-keescook@chromium.org>
+ <3812aec2-682f-e95c-4d61-8e7eac33cc88@huawei.com>
+ <CAGXu5jLzL3URMvF81EbH1Bt74MnwL9-25AU41yQnbEBcWA7J8Q@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CA+55aFyogF0gpZ+5KHabFaYDhAq0awPzpSVj9S2q9EZnoY2eXQ@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, NetFilter <netfilter-devel@vger.kernel.org>, Network Development <netdev@vger.kernel.org>, Oleg Nesterov <oleg@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, Tejun Heo <tj@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Chris Metcalf <cmetcalf@mellanox.com>
+Content-Type: text/plain; charset="UTF-8"; format=flowed
+Content-Transfer-Encoding: 8bit
+Return-path: <kernel-hardening-return-8844-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+In-Reply-To: <CAGXu5jLzL3URMvF81EbH1Bt74MnwL9-25AU41yQnbEBcWA7J8Q@mail.gmail.com>
+To: Kees Cook <keescook@chromium.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, Christoph Hellwig <hch@infradead.org>, Peter Zijlstra <peterz@infradead.org>, "Eric W.
+ Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, PaX Team <pageexec@freemail.hu>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans
+ Liljestrand <ishkamiel@gmail.com>, David Windsor <dwindsor@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jun 29, 2017 at 05:10:41PM -0700, Linus Torvalds wrote:
-> On Thu, Jun 29, 2017 at 5:06 PM, Linus Torvalds
-> <torvalds@linux-foundation.org> wrote:
-> >
-> > Please don't make this one commit fopr every architecture.
-> >
-> > Once something gets removed, it gets removed. There's no point in
-> > "remove it from architecture X". If there are no more users, we're
-> > done with it, and making it be 25 patches with the same commit message
-> > instead of just one doesn't help anybody.
-> 
-> Just to clarify: I think the actual *users* are worth doing one by
-> one, particularly if there are user-specific explanations of what that
-> particular code wanted, and why spin_unlock_wait() doesn't really
-> help.
 
-Got it, and I did merge -only- the arch-specific definition removals
-into one commit.  Should I also merge the core-code definition removals
-into that same commit, or is it OK to remove the core-code definitions
-with one commit and the arch-specific definitions with another.
 
-(My guess is that you would prefer I removed -all- definitions with one
-commit, including the core-kernel definitions, but at this point I figure
-I should just ask.)
+on 2017/6/30 6:05, Kees Cook wrote:
+> On Wed, Jun 28, 2017 at 9:13 PM, Li Kun <hw.likun@huawei.com> wrote:
+>> 在 2017/5/31 5:39, Kees Cook 写道:
+>>> +bool ex_handler_refcount(const struct exception_table_entry *fixup,
+>>> +                        struct pt_regs *regs, int trapnr)
+>>> +{
+>>> +       int reset;
+>>> +
+>>> +       /*
+>>> +        * If we crossed from INT_MAX to INT_MIN, the OF flag (result
+>>> +        * wrapped around) and the SF flag (result is negative) will be
+>>> +        * set. In this case, reset to INT_MAX in an attempt to leave the
+>>> +        * refcount usable. Otherwise, we've landed here due to producing
+>>> +        * a negative result from either decrementing zero or operating on
+>>> +        * a negative value. In this case things are badly broken, so we
+>>> +        * we saturate to INT_MIN / 2.
+>>> +        */
+>>> +       if (regs->flags & (X86_EFLAGS_OF | X86_EFLAGS_SF))
+>>> +               reset = INT_MAX;
+>>      Should it be like this to indicate that the refcount is wapped from
+>> INT_MAX to INT_MIN ?
+>>          if (regs->flags & (X86_EFLAGS_OF | X86_EFLAGS_SF)
+>>                  == (X86_EFLAGS_OF | X86_EFLAGS_SF))
+>>
+>>                  reset = INT_MAX;
+> Ah yes, thanks for the catch. Yeah, that test is expecting both
+> condition flags to be set.
+>
+> I'm still on the fence about the best way to deal with the bad states.
+> I've been pondering just strictly using a saturation value (INT_MIN /
+> 2), which should offer the same system state protection (except for
+> the inherent resource leak), but that means there isn't really a good
+> way to kill an offending process (since after saturation ALL processes
+> will look like violators). It can be argued that killing the process
+> doesn't actually provide any benefit since the system is still safe,
+> though.
+An immature idea,can we set the count to INT_MAX/2 when we detect and 
+kill the offending process,
+and wait to see if there will be another offender touching the fence. 
+Er,not very acurate,but better than
+killing all the processes doing refcount_add ,i think.
+>>> +       else
+>>> +               reset = INT_MIN / 2;
+>>> +       *(int *)regs->cx = reset;
+> Thanks for looking at this!
+>
+> -Kees
+>
 
-> And I think that you actually have those per-user insights by now,
-> after looking at the long thread.
-
-One Acked-by thus far, so some progress!
-
-> So I'm not saying "do one patch for the whole series". One patch per
-> removal of use is fine - in fact preferred.
-
-Got it.  It allows the developers and maintainers to tell me where my
-analysis is wrong, for one thing.  ;-)
-
-> But once there are no actual more users, just remove all the
-> architecture definitions in one go, because explaining the same thing
-> several times doesn't actually help anything.
-> 
-> In fact, *if* we end up ever resurrecting that thing, it's good if we
-> can resurrect it in one go. Then we can resurrect the one or two users
-> that turned out to matter after all and could come up with why some
-> particular ordering was ok too.
-
-Understood!
-
-							Thanx, Paul
+-- 
+Best Regards
+Li Kun
