@@ -1,61 +1,144 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH 0/5] Last bits for initial 5-level paging enabling
-Date: Fri, 30 Jun 2017 08:59:26 +0200
-Message-ID: <20170630065926.fcwax3odtla4dp4t@gmail.com>
-References: <20170622122608.80435-1-kirill.shutemov@linux.intel.com>
- <20170623090601.njsmucxdy4rev6zw@gmail.com>
- <20170623144915.4d6esghvicnczuaj@black.fi.intel.com>
- <20170629150657.urgapbzmf3jy6jgp@node.shutemov.name>
+From: Tobias Klauser <tklauser@distanz.ch>
+Subject: Re: [PATCH 6/9] RISC-V: Device, timer, IRQs, and the SBI
+Date: Fri, 30 Jun 2017 09:57:10 +0200
+Message-ID: <20170630075710.GC5851@distanz.ch>
+References: <20170629083924.GB5851@distanz.ch>
+ <mhng-b71fc2a8-a47a-49af-82e1-fb88c016d547@palmer-si-x1c4>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from sym2.noone.org ([178.63.92.236]:36309 "EHLO sym2.noone.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751741AbdF3H5P (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 30 Jun 2017 03:57:15 -0400
 Content-Disposition: inline
-In-Reply-To: <20170629150657.urgapbzmf3jy6jgp@node.shutemov.name>
-Sender: owner-linux-mm@kvack.org
-To: "Kirill A. Shutemov" <kirill@shutemov.name>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <mhng-b71fc2a8-a47a-49af-82e1-fb88c016d547@palmer-si-x1c4>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Palmer Dabbelt <palmer@dabbelt.com>
+Cc: peterz@infradead.org, mingo@redhat.com, mcgrof@kernel.org, viro@zeniv.linux.org.uk, sfr@canb.auug.org.au, nicolas.dichtel@6wind.com, rmk+kernel@armlinux.org.uk, msalter@redhat.com, will.deacon@arm.com, james.hogan@imgtec.com, paul.gortmaker@windriver.com, linux@roeck-us.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, albert@sifive.com
 
-
-* Kirill A. Shutemov <kirill@shutemov.name> wrote:
-
-> > > Can I apply them in this order cleanly, without breaking bisection:
-> > > 
-> > > >   x86/mm: Rename tasksize_32bit/64bit to task_size_32bit/64bit
-> > > >   x86/mpx: Do not allow MPX if we have mappings above 47-bit
-> > > >   x86/mm: Prepare to expose larger address space to userspace
-> > > >   x86/mm: Allow userspace have mapping above 47-bit
-> > > >   x86: Enable 5-level paging support
-> > > 
-> > > ?
-> > > 
-> > > I.e. I'd like to move the first patch last.
-> > > 
-> > > The reason is that we should first get all quirks and assumptions fixed, all 
-> > > facilities implemented - and only then enable 5-level paging as a final step which 
-> > > produces a well working kernel.
-> > > 
-> > > (This should also make it slightly easier to analyze any potential regressions in 
-> > > earlier patches.)
-> > 
-> > Just checked bisectability with this order on allmodconfig -- works fine.
+On 2017-06-30 at 00:52:44 +0200, Palmer Dabbelt <palmer@dabbelt.com> wrote:
+> On Thu, 29 Jun 2017 01:39:25 PDT (-0700), tklauser@distanz.ch wrote:
+> > On 2017-06-28 at 20:55:35 +0200, Palmer Dabbelt <palmer@dabbelt.com> wrote:
+> > [...]
+> >> diff --git a/arch/riscv/include/asm/device.h b/arch/riscv/include/asm/device.h
+> >> new file mode 100644
+> >> index 000000000000..28975e528d2f
+> >> --- /dev/null
+> >> +++ b/arch/riscv/include/asm/device.h
+> >> @@ -0,0 +1,27 @@
+> >> +/*
+> >> + * Copyright (C) 2016 SiFive
+> >> + *
+> >> + *   This program is free software; you can redistribute it and/or
+> >> + *   modify it under the terms of the GNU General Public License
+> >> + *   as published by the Free Software Foundation, version 2.
+> >> + *
+> >> + *   This program is distributed in the hope that it will be useful,
+> >> + *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+> >> + *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+> >> + *   GNU General Public License for more details.
+> >> + */
+> >> +
+> >> +
+> >> +#ifndef _ASM_RISCV_DEVICE_H
+> >> +#define _ASM_RISCV_DEVICE_H
+> >> +
+> >> +#include <linux/sysfs.h>
+> >> +
+> >> +struct dev_archdata {
+> >> +	struct dma_map_ops *dma_ops;
+> >> +};
+> >
+> > The dma_ops member isn't used in any arch code or driver from what I can
+> > tell (I checked against your riscv-for-submission-v3 branch). Could
+> > device.h from asm-generic be used instead, or did I miss something?
 > 
-> Ingo, if there's no objections, can we get these applied?
+> I think you're right.  I'll include this
+> 
+>   diff --git a/arch/riscv/include/asm/device.h b/arch/riscv/include/asm/device.h
+>   index 28975e528d2f..a310c2c26101 100644
+>   --- a/arch/riscv/include/asm/device.h
+>   +++ b/arch/riscv/include/asm/device.h
+>   @@ -11,17 +11,9 @@
+>     *   GNU General Public License for more details.
+>     */
+> 
+>   -
+>    #ifndef _ASM_RISCV_DEVICE_H
+>    #define _ASM_RISCV_DEVICE_H
+> 
+>   -#include <linux/sysfs.h>
+>   -
+>   -struct dev_archdata {
+>   -       struct dma_map_ops *dma_ops;
+>   -};
+>   -
+>   -struct pdev_archdata {
+>   -};
+>   +#include <asm-generic/device.h>
+> 
+>    #endif /* _ASM_RISCV_DEVICE_H */
+> 
+> in the v4
 
-Just this week, which is the final week of the development window, we had two 
-fixes for the 5-level pagetables commits, so we need to delay the rest to right 
-after -rc1.
+Better yet, remove arch/riscv/include/asm/device.h altogether and add device.h
+to generic-y in the asm/Kbuild file, as follows:
 
-Could you please resend them them (and any followup patches), in the suggested 
-order? I don't see any conceptual problems, so this is only about timing and 
-maximizing stability.
+diff --git a/arch/riscv/include/asm/Kbuild b/arch/riscv/include/asm/Kbuild
+index 710397395981..52b254e26378 100644
+--- a/arch/riscv/include/asm/Kbuild
++++ b/arch/riscv/include/asm/Kbuild
+@@ -3,6 +3,7 @@ generic-y += cacheflush.h
+ generic-y += checksum.h
+ generic-y += clkdev.h
+ generic-y += cputime.h
++generic-y += device.h
+ generic-y += div64.h
+ generic-y += dma.h
+ generic-y += dma-contiguous.h
+diff --git a/arch/riscv/include/asm/device.h b/arch/riscv/include/asm/device.h
+deleted file mode 100644
+index 28975e528d2f..000000000000
+--- a/arch/riscv/include/asm/device.h
++++ /dev/null
+@@ -1,27 +0,0 @@
+-/*
+- * Copyright (C) 2016 SiFive
+- *
+- *   This program is free software; you can redistribute it and/or
+- *   modify it under the terms of the GNU General Public License
+- *   as published by the Free Software Foundation, version 2.
+- *
+- *   This program is distributed in the hope that it will be useful,
+- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+- *   GNU General Public License for more details.
+- */
+-
+-
+-#ifndef _ASM_RISCV_DEVICE_H
+-#define _ASM_RISCV_DEVICE_H
+-
+-#include <linux/sysfs.h>
+-
+-struct dev_archdata {
+-       struct dma_map_ops *dma_ops;
+-};
+-
+-struct pdev_archdata {
+-};
+-
+-#endif /* _ASM_RISCV_DEVICE_H */
 
-Thanks,
-
-	Ingo
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+> 
+> >
+> >> +
+> >> +struct pdev_archdata {
+> >> +};
+> >> +
+> >> +#endif /* _ASM_RISCV_DEVICE_H */
+> 
+> Thanks!
+> 
