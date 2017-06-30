@@ -1,68 +1,127 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out01.mta.xmission.com ([166.70.13.231]:35145 "EHLO
+Received: from out01.mta.xmission.com ([166.70.13.231]:35345 "EHLO
         out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751581AbdF3Mr3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 30 Jun 2017 08:47:29 -0400
+        with ESMTP id S1752265AbdF3Mru (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 30 Jun 2017 08:47:50 -0400
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Fri, 30 Jun 2017 07:39:02 -0500
-Message-ID: <20170630123906.8865-4-ebiederm@xmission.com>
+Date: Fri, 30 Jun 2017 07:39:05 -0500
+Message-ID: <20170630123906.8865-7-ebiederm@xmission.com>
 In-Reply-To: <87efu22set.fsf@xmission.com>
 References: <87efu22set.fsf@xmission.com>
-Subject: [PATCH 4/8] signal/mips: Document a conflict with SI_USER with SIGFPE
+Subject: [PATCH 7/8] fcntl: Don't use ambiguous SIG_POLL si_codes
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Andy Lutomirski <luto@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, Andrei Vagin <avagin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Greg KH <greg@kroah.com>, Andrey Vagin <avagin@openvz.org>, Serge Hallyn <serge@hallyn.com>, Pavel Emelyanov <xemul@virtuozzo.com>, Cyrill Gorcunov <gorcunov@openvz.org>, Peter Zijlstra <peterz@infradead.org>, Willy Tarreau <w@1wt.eu>, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Linux Containers <containers@lists.linux-foundation.org>, Michael Kerrisk <mtk.manpages@gmail.com>, "Eric W. Biederman" <ebiederm@xmission.com>, Thiemo Seufer <ths@linux-mips.org>, Ralf Baechle <ralf@linux-mips.org>
-Message-ID: <20170630123902.oe-giMLJSQyalAY7OZrIgqAP-xCW9vkBHtLp2kQuyDU@z>
+Cc: Andy Lutomirski <luto@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, Andrei Vagin <avagin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Greg KH <greg@kroah.com>, Andrey Vagin <avagin@openvz.org>, Serge Hallyn <serge@hallyn.com>, Pavel Emelyanov <xemul@virtuozzo.com>, Cyrill Gorcunov <gorcunov@openvz.org>, Peter Zijlstra <peterz@infradead.org>, Willy Tarreau <w@1wt.eu>, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Linux Containers <containers@lists.linux-foundation.org>, Michael Kerrisk <mtk.manpages@gmail.com>, "Eric W. Biederman" <ebiederm@xmission.com>
+Message-ID: <20170630123905.OLMssmtU2c53wD_ncQ1kZN3qcbOh_b_MpwbBQ7Ev9E8@z>
 
-Setting si_code to __SI_FAULT results in a userspace seeing
-an si_code of 0.  This is the same si_code as SI_USER.  Posix
-and common sense requires that SI_USER not be a signal specific
-si_code.  As such this use of 0 for the si_code is a pretty
-horribly broken ABI.
+We have a weird and problematic intersection of features that when
+they all come together result in ambiguous siginfo values, that
+we can not support properly.
 
-This use of of __SI_FAULT is only a decade old.  Which compared
-to the other pieces of kernel code that has made this mistake
-is almost yesterday.
+- Supporting fcntl(F_SETSIG,...) with arbitrary valid signals.
 
-This is probably worth fixing but I don't know mips well enough
-to know what si_code to would be the proper one to use.
+- Using positive values for POLL_IN, POLL_OUT, POLL_MSG, ..., etc
+  that imply they are signal specific si_codes and using the
+  aforementioned arbitrary signal to deliver them.
 
-Cc: Thiemo Seufer <ths@linux-mips.org>
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Ref: 948a34cf3988 ("[MIPS] Maintain si_code field properly for FP exceptions")
+- Supporting injection of arbitrary siginfo values for debugging and
+  checkpoint/restore.
+
+The result is that just looking at siginfo si_codes of 1 to 6 are
+ambigious.  It could either be a signal specific si_code or it could
+be a generic si_code.
+
+For most of the kernel this is a non-issue but for sending signals
+with siginfo it is impossible to play back the kernel signals and
+get the same result.
+
+Strictly speaking when the si_code was changed from SI_SIGIO to
+POLL_IN and friends between 2.2 and 2.4 this functionality was not
+ambiguous, as only real time signals were supported.  Before 2.4 was
+released the kernel began supporting siginfo with non realtime signals
+so they could give details of why the signal was sent.
+
+The result is that if F_SETSIG is set to one of the signals with signal
+specific si_codes then user space can not know why the signal was sent.
+
+I grepped through a bunch of userspace programs using debian code
+search to get a feel for how often people choose a signal that results
+in an ambiguous si_code.  I only found one program doing so and it was
+using SIGCHLD to test the F_SETSIG functionality, and did not appear
+to be a real world usage.
+
+Therefore the ambiguity does not appears to be a real world problem in
+practice.  Remove the ambiguity while introducing the smallest chance
+of breakage by changing the si_code to SI_SIGIO when signals with
+signal specific si_codes are targeted.
+
+Fixes: v2.3.40 -- Added support for queueing non-rt signals
+Fixes: v2.3.21 -- Changed the si_code from SI_SIGIO
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/mips/include/uapi/asm/siginfo.h | 5 +++++
- arch/mips/kernel/traps.c             | 2 +-
- 2 files changed, 6 insertions(+), 1 deletion(-)
+ fs/fcntl.c                         | 11 +++++++++++
+ include/linux/signal.h             |  8 ++++++++
+ include/uapi/asm-generic/siginfo.h |  2 +-
+ 3 files changed, 20 insertions(+), 1 deletion(-)
 
-diff --git a/arch/mips/include/uapi/asm/siginfo.h b/arch/mips/include/uapi/asm/siginfo.h
-index 8069cf766603..0d80df888325 100644
---- a/arch/mips/include/uapi/asm/siginfo.h
-+++ b/arch/mips/include/uapi/asm/siginfo.h
-@@ -123,4 +123,9 @@ typedef struct siginfo {
- #define SI_TIMER __SI_CODE(__SI_TIMER, -3) /* sent by timer expiration */
- #define SI_MESGQ __SI_CODE(__SI_MESGQ, -4) /* sent by real time mesq state change */
- 
-+/*
-+ * SIGFPE si_codes
-+ */
-+#define FPE_FIXME	(__SI_FAULT|0)	/* Broken dup of SI_USER */
+diff --git a/fs/fcntl.c b/fs/fcntl.c
+index f4e7267d117f..3c4e17b0082a 100644
+--- a/fs/fcntl.c
++++ b/fs/fcntl.c
+@@ -629,6 +629,17 @@ static void send_sigio_to_task(struct task_struct *p,
+ 			si.si_signo = signum;
+ 			si.si_errno = 0;
+ 		        si.si_code  = reason;
++			/*
++			 * Posix definies POLL_IN and friends to be signal
++			 * specific si_codes for SIG_POLL.  Linux extended
++			 * these si_codes to other signals in a way that is
++			 * ambiguous if other signals also have signal
++			 * specific si_codes.  In that case use SI_SIGIO instead
++			 * to remove the ambiguity.
++			 */
++			if (sig_specific_sicodes(signum))
++				si.si_code = SI_SIGIO;
 +
- #endif /* _UAPI_ASM_SIGINFO_H */
-diff --git a/arch/mips/kernel/traps.c b/arch/mips/kernel/traps.c
-index 9681b5877140..477dfca99147 100644
---- a/arch/mips/kernel/traps.c
-+++ b/arch/mips/kernel/traps.c
-@@ -732,7 +732,7 @@ void force_fcr31_sig(unsigned long fcr31, void __user *fault_addr,
- 	else if (fcr31 & FPU_CSR_INE_X)
- 		si.si_code = FPE_FLTRES;
- 	else
--		si.si_code = __SI_FAULT;
-+		si.si_code = FPE_FIXME;
- 	force_sig_info(SIGFPE, &si, tsk);
- }
+ 			/* Make sure we are called with one of the POLL_*
+ 			   reasons, otherwise we could leak kernel stack into
+ 			   userspace.  */
+diff --git a/include/linux/signal.h b/include/linux/signal.h
+index 1f5a16620693..76aff5b861d2 100644
+--- a/include/linux/signal.h
++++ b/include/linux/signal.h
+@@ -385,10 +385,18 @@ int unhandled_signal(struct task_struct *tsk, int sig);
+         rt_sigmask(SIGCONT)   |  rt_sigmask(SIGCHLD)   | \
+ 	rt_sigmask(SIGWINCH)  |  rt_sigmask(SIGURG)    )
  
++#define SIG_SPECIFIC_SICODES_MASK (\
++	rt_sigmask(SIGILL)    |  rt_sigmask(SIGFPE)    | \
++	rt_sigmask(SIGSEGV)   |  rt_sigmask(SIGBUS)    | \
++	rt_sigmask(SIGTRAP)   |  rt_sigmask(SIGCHLD)   | \
++	rt_sigmask(SIGPOLL)   |  rt_sigmask(SIGSYS)    | \
++	SIGEMT_MASK                                    )
++
+ #define sig_kernel_only(sig)		siginmask(sig, SIG_KERNEL_ONLY_MASK)
+ #define sig_kernel_coredump(sig)	siginmask(sig, SIG_KERNEL_COREDUMP_MASK)
+ #define sig_kernel_ignore(sig)		siginmask(sig, SIG_KERNEL_IGNORE_MASK)
+ #define sig_kernel_stop(sig)		siginmask(sig, SIG_KERNEL_STOP_MASK)
++#define sig_specific_sicodes(sig)	siginmask(sig, SIG_SPECIFIC_SICODES_MASK)
+ 
+ #define sig_fatal(t, signr) \
+ 	(!siginmask(signr, SIG_KERNEL_IGNORE_MASK|SIG_KERNEL_STOP_MASK) && \
+diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
+index 1abaf62c86fc..e1081a6d842b 100644
+--- a/include/uapi/asm-generic/siginfo.h
++++ b/include/uapi/asm-generic/siginfo.h
+@@ -248,7 +248,7 @@ typedef struct siginfo {
+ #define NSIGCHLD	6
+ 
+ /*
+- * SIGPOLL si_codes
++ * SIGPOLL (or any other signal without signal specific si_codes) si_codes
+  */
+ #define POLL_IN		(__SI_POLL|1)	/* data input available */
+ #define POLL_OUT	(__SI_POLL|2)	/* output buffers available */
 -- 
 2.10.1
