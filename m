@@ -1,30 +1,61 @@
-From: =?iso-8859-2?Q?Horia_Geant=E3?= <horia.geanta@nxp.com>
-Subject: Re: [PATCH v3 4/4] crypto: caam: cleanup CONFIG_64BIT ifdefs when
- using io{read|write}64
-Date: Fri, 30 Jun 2017 06:18:11 +0000
-Message-ID: <HE1PR0401MB2585F67CA6DE08D083AA043998D30@HE1PR0401MB2585.eurprd04.prod.outlook.com>
-References: <20170629161000.15563-1-logang@deltatee.com>
- <20170629161000.15563-5-logang@deltatee.com>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH 0/5] Last bits for initial 5-level paging enabling
+Date: Fri, 30 Jun 2017 08:59:26 +0200
+Message-ID: <20170630065926.fcwax3odtla4dp4t@gmail.com>
+References: <20170622122608.80435-1-kirill.shutemov@linux.intel.com>
+ <20170623090601.njsmucxdy4rev6zw@gmail.com>
+ <20170623144915.4d6esghvicnczuaj@black.fi.intel.com>
+ <20170629150657.urgapbzmf3jy6jgp@node.shutemov.name>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="iso-8859-2"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-db5eur01on0052.outbound.protection.outlook.com ([104.47.2.52]:52032
-        "EHLO EUR01-DB5-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751823AbdF3GSR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 30 Jun 2017 02:18:17 -0400
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Logan Gunthorpe <logang@deltatee.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-ntb@googlegroups.com" <linux-ntb@googlegroups.com>, "linux-crypto@vger.kernel.org" <linux-crypto@vger.kernel.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Stephen Bates <sbates@raithlin.com>, Dan Douglass <dan.douglass@nxp.com>, Herbert Xu <herbert@gondor.apana.org.au>, "David S. Miller" <davem@davemloft.net>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <20170629150657.urgapbzmf3jy6jgp@node.shutemov.name>
+Sender: owner-linux-mm@kvack.org
+To: "Kirill A. Shutemov" <kirill@shutemov.name>
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On 6/29/2017 7:10 PM, Logan Gunthorpe wrote:=0A=
-> From: Horia Geant=E3 <horia.geanta@nxp.com>=0A=
-> =0A=
-> We can now make use of the io-64-nonatomic-hi-lo header to always=0A=
-Typo: we are using io-64-nonatomic-lo-hi, not hi-lo.=0A=
-=0A=
-Thanks,=0A=
-Horia=0A=
+
+* Kirill A. Shutemov <kirill@shutemov.name> wrote:
+
+> > > Can I apply them in this order cleanly, without breaking bisection:
+> > > 
+> > > >   x86/mm: Rename tasksize_32bit/64bit to task_size_32bit/64bit
+> > > >   x86/mpx: Do not allow MPX if we have mappings above 47-bit
+> > > >   x86/mm: Prepare to expose larger address space to userspace
+> > > >   x86/mm: Allow userspace have mapping above 47-bit
+> > > >   x86: Enable 5-level paging support
+> > > 
+> > > ?
+> > > 
+> > > I.e. I'd like to move the first patch last.
+> > > 
+> > > The reason is that we should first get all quirks and assumptions fixed, all 
+> > > facilities implemented - and only then enable 5-level paging as a final step which 
+> > > produces a well working kernel.
+> > > 
+> > > (This should also make it slightly easier to analyze any potential regressions in 
+> > > earlier patches.)
+> > 
+> > Just checked bisectability with this order on allmodconfig -- works fine.
+> 
+> Ingo, if there's no objections, can we get these applied?
+
+Just this week, which is the final week of the development window, we had two 
+fixes for the 5-level pagetables commits, so we need to delay the rest to right 
+after -rc1.
+
+Could you please resend them them (and any followup patches), in the suggested 
+order? I don't see any conceptual problems, so this is only about timing and 
+maximizing stability.
+
+Thanks,
+
+	Ingo
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
