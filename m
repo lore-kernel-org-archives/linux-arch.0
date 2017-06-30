@@ -1,19 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out01.mta.xmission.com ([166.70.13.231]:35074 "EHLO
+Received: from out01.mta.xmission.com ([166.70.13.231]:35145 "EHLO
         out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751545AbdF3Mqw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 30 Jun 2017 08:46:52 -0400
+        with ESMTP id S1751581AbdF3Mr3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 30 Jun 2017 08:47:29 -0400
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Fri, 30 Jun 2017 07:38:59 -0500
-Message-ID: <20170630123906.8865-1-ebiederm@xmission.com>
+Date: Fri, 30 Jun 2017 07:39:02 -0500
+Message-ID: <20170630123906.8865-4-ebiederm@xmission.com>
 In-Reply-To: <87efu22set.fsf@xmission.com>
 References: <87efu22set.fsf@xmission.com>
-Subject: [PATCH 1/8] signal/alpha: Document a conflict with SI_USER for SIGTRAP
+Subject: [PATCH 4/8] signal/mips: Document a conflict with SI_USER with SIGFPE
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Andy Lutomirski <luto@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, Andrei Vagin <avagin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Greg KH <greg@kroah.com>, Andrey Vagin <avagin@openvz.org>, Serge Hallyn <serge@hallyn.com>, Pavel Emelyanov <xemul@virtuozzo.com>, Cyrill Gorcunov <gorcunov@openvz.org>, Peter Zijlstra <peterz@infradead.org>, Willy Tarreau <w@1wt.eu>, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Linux Containers <containers@lists.linux-foundation.org>, Michael Kerrisk <mtk.manpages@gmail.com>, "Eric W. Biederman" <ebiederm@xmission.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, linux-alpha@vger.kernel.org
-Message-ID: <20170630123859.vPPNMAUDHVd4twEdGYJOlTcLakW1eovGt0UtCOvPDeM@z>
+Cc: Andy Lutomirski <luto@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, Andrei Vagin <avagin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Greg KH <greg@kroah.com>, Andrey Vagin <avagin@openvz.org>, Serge Hallyn <serge@hallyn.com>, Pavel Emelyanov <xemul@virtuozzo.com>, Cyrill Gorcunov <gorcunov@openvz.org>, Peter Zijlstra <peterz@infradead.org>, Willy Tarreau <w@1wt.eu>, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Linux Containers <containers@lists.linux-foundation.org>, Michael Kerrisk <mtk.manpages@gmail.com>, "Eric W. Biederman" <ebiederm@xmission.com>, Thiemo Seufer <ths@linux-mips.org>, Ralf Baechle <ralf@linux-mips.org>
+Message-ID: <20170630123902.oe-giMLJSQyalAY7OZrIgqAP-xCW9vkBHtLp2kQuyDU@z>
 
 Setting si_code to __SI_FAULT results in a userspace seeing
 an si_code of 0.  This is the same si_code as SI_USER.  Posix
@@ -21,69 +21,48 @@ and common sense requires that SI_USER not be a signal specific
 si_code.  As such this use of 0 for the si_code is a pretty
 horribly broken ABI.
 
-Given that alpha is on it's last legs I don't know that it is worth
-fixing this, but it is worth documenting what is going on so that
-no one decides to copy this bad decision.
+This use of of __SI_FAULT is only a decade old.  Which compared
+to the other pieces of kernel code that has made this mistake
+is almost yesterday.
 
-This was introduced during the 2.5 development cycle so this
-mess has had a long time for people to be able to depend upon it.
+This is probably worth fixing but I don't know mips well enough
+to know what si_code to would be the proper one to use.
 
-Cc: Richard Henderson <rth@twiddle.net>
-Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
-Cc: Matt Turner <mattst88@gmail.com>
-Cc: linux-alpha@vger.kernel.org
-History Tree: https://git.kernel.org/pub/scm/linux/kernel/git/tglx/history.git
-Ref: 0a635c7a84cf ("Fill in siginfo_t.")
+Cc: Thiemo Seufer <ths@linux-mips.org>
+Cc: Ralf Baechle <ralf@linux-mips.org>
+Ref: 948a34cf3988 ("[MIPS] Maintain si_code field properly for FP exceptions")
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/alpha/include/uapi/asm/siginfo.h | 5 +++++
- arch/alpha/kernel/traps.c             | 6 +++---
- 2 files changed, 8 insertions(+), 3 deletions(-)
+ arch/mips/include/uapi/asm/siginfo.h | 5 +++++
+ arch/mips/kernel/traps.c             | 2 +-
+ 2 files changed, 6 insertions(+), 1 deletion(-)
 
-diff --git a/arch/alpha/include/uapi/asm/siginfo.h b/arch/alpha/include/uapi/asm/siginfo.h
-index 9822362a8424..687e4972971b 100644
---- a/arch/alpha/include/uapi/asm/siginfo.h
-+++ b/arch/alpha/include/uapi/asm/siginfo.h
-@@ -6,4 +6,9 @@
- 
- #include <asm-generic/siginfo.h>
+diff --git a/arch/mips/include/uapi/asm/siginfo.h b/arch/mips/include/uapi/asm/siginfo.h
+index 8069cf766603..0d80df888325 100644
+--- a/arch/mips/include/uapi/asm/siginfo.h
++++ b/arch/mips/include/uapi/asm/siginfo.h
+@@ -123,4 +123,9 @@ typedef struct siginfo {
+ #define SI_TIMER __SI_CODE(__SI_TIMER, -3) /* sent by timer expiration */
+ #define SI_MESGQ __SI_CODE(__SI_MESGQ, -4) /* sent by real time mesq state change */
  
 +/*
-+ * SIGTRAP si_codes
++ * SIGFPE si_codes
 + */
-+#define TRAP_FIXME	(__SI_FAULT|0)	/* Broken dup of SI_USER */
++#define FPE_FIXME	(__SI_FAULT|0)	/* Broken dup of SI_USER */
 +
- #endif
-diff --git a/arch/alpha/kernel/traps.c b/arch/alpha/kernel/traps.c
-index 65bb102d985b..37c4fc91b215 100644
---- a/arch/alpha/kernel/traps.c
-+++ b/arch/alpha/kernel/traps.c
-@@ -278,7 +278,7 @@ do_entIF(unsigned long type, struct pt_regs *regs)
- 	      case 1: /* bugcheck */
- 		info.si_signo = SIGTRAP;
- 		info.si_errno = 0;
--		info.si_code = __SI_FAULT;
-+		info.si_code = TRAP_FIXME;
- 		info.si_addr = (void __user *) regs->pc;
- 		info.si_trapno = 0;
- 		send_sig_info(SIGTRAP, &info, current);
-@@ -318,7 +318,7 @@ do_entIF(unsigned long type, struct pt_regs *regs)
- 			break;
- 		case GEN_ROPRAND:
- 			signo = SIGFPE;
--			code = __SI_FAULT;
-+			code = TRAP_FIXME;
- 			break;
- 
- 		case GEN_DECOVF:
-@@ -340,7 +340,7 @@ do_entIF(unsigned long type, struct pt_regs *regs)
- 		case GEN_SUBRNG7:
- 		default:
- 			signo = SIGTRAP;
--			code = __SI_FAULT;
-+			code = TRAP_FIXME;
- 			break;
- 		}
+ #endif /* _UAPI_ASM_SIGINFO_H */
+diff --git a/arch/mips/kernel/traps.c b/arch/mips/kernel/traps.c
+index 9681b5877140..477dfca99147 100644
+--- a/arch/mips/kernel/traps.c
++++ b/arch/mips/kernel/traps.c
+@@ -732,7 +732,7 @@ void force_fcr31_sig(unsigned long fcr31, void __user *fault_addr,
+ 	else if (fcr31 & FPU_CSR_INE_X)
+ 		si.si_code = FPE_FLTRES;
+ 	else
+-		si.si_code = __SI_FAULT;
++		si.si_code = FPE_FIXME;
+ 	force_sig_info(SIGFPE, &si, tsk);
+ }
  
 -- 
 2.10.1
