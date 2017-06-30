@@ -1,91 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:43358 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1751584AbdF2X73 (ORCPT
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:48457 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1751695AbdF3ABq (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 29 Jun 2017 19:59:29 -0400
-Received: from pps.filterd (m0098419.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.20/8.16.0.20) with SMTP id v5TNx6Qo098034
-        for <linux-arch@vger.kernel.org>; Thu, 29 Jun 2017 19:59:24 -0400
-Received: from e16.ny.us.ibm.com (e16.ny.us.ibm.com [129.33.205.206])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 2bcsuwvy5m-1
+        Thu, 29 Jun 2017 20:01:46 -0400
+Received: from pps.filterd (m0098399.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.20/8.16.0.20) with SMTP id v5TNx3n7043102
+        for <linux-arch@vger.kernel.org>; Thu, 29 Jun 2017 20:01:46 -0400
+Received: from e14.ny.us.ibm.com (e14.ny.us.ibm.com [129.33.205.204])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2bd6t3ad3n-1
         (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Thu, 29 Jun 2017 19:59:23 -0400
+        for <linux-arch@vger.kernel.org>; Thu, 29 Jun 2017 20:01:45 -0400
 Received: from localhost
-        by e16.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        by e14.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
         for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Thu, 29 Jun 2017 19:59:23 -0400
-Date: Thu, 29 Jun 2017 16:59:18 -0700
+        Thu, 29 Jun 2017 20:01:44 -0400
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: [PATCH RFC 0/26] Remove spin_unlock_wait()
-Reply-To: paulmck@linux.vnet.ibm.com
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Message-ID: <20170629235918.GA6445@linux.vnet.ibm.com>
+Subject: [PATCH RFC 09/26] alpha: Remove spin_unlock_wait() arch-specific definitions
+Date: Thu, 29 Jun 2017 17:01:17 -0700
+In-Reply-To: <20170629235918.GA6445@linux.vnet.ibm.com>
+References: <20170629235918.GA6445@linux.vnet.ibm.com>
+Message-ID: <1498780894-8253-9-git-send-email-paulmck@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: netfilter-devel@vger.kernel.org, netdev@vger.kernel.org, oleg@redhat.com, akpm@linux-foundation.org, mingo@redhat.com, dave@stgolabs.net, manfred@colorfullife.com, tj@kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, will.deacon@arm.com, peterz@infradead.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, torvalds@linux-foundation.org
-Message-ID: <20170629235918.PyHulpE0KaUm7WHNqKeJ2koj4lrbVWTPy2xDHYzp8_g@z>
-
-Hello!
+Cc: netfilter-devel@vger.kernel.org, netdev@vger.kernel.org, oleg@redhat.com, akpm@linux-foundation.org, mingo@redhat.com, dave@stgolabs.net, manfred@colorfullife.com, tj@kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, will.deacon@arm.com, peterz@infradead.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, torvalds@linux-foundation.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, linux-alpha@vger.kernel.org
+Message-ID: <20170630000117.NcsGgxJopIUchl-7SLQFPzKDXyApZbQjaY90qzWrnTI@z>
 
 There is no agreed-upon definition of spin_unlock_wait()'s semantics,
 and it appears that all callers could do just as well with a lock/unlock
-pair.  This series therefore removes spin_unlock_wait() and changes
-its users to instead use a lock/unlock pair.  The commits are as follows,
-in three groups:
+pair.  This commit therefore removes the underlying arch-specific
+arch_spin_unlock_wait().
 
-1-7.	Change uses of spin_unlock_wait() and raw_spin_unlock_wait()
-	to instead use a spin_lock/spin_unlock pair.  These may be
-	applied in any order, but must be applied before any later
-	commits in this series.  The commit logs state why I believe
-	that these commits won't noticeably degrade performance.
+Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+Cc: Richard Henderson <rth@twiddle.net>
+Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
+Cc: Matt Turner <mattst88@gmail.com>
+Cc: <linux-alpha@vger.kernel.org>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Alan Stern <stern@rowland.harvard.edu>
+Cc: Andrea Parri <parri.andrea@gmail.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+---
+ arch/alpha/include/asm/spinlock.h | 5 -----
+ 1 file changed, 5 deletions(-)
 
-8.	Remove core-kernel definitions for spin_unlock_wait() and
-	raw_spin_unlock_wait().
-
-9-26.	Remove arch-specific definitions of arch_spin_unlock_wait().
-
-Thoughts?
-
-							Thanx, Paul
-
-------------------------------------------------------------------------
-
- arch/alpha/include/asm/spinlock.h    |    5 -
- arch/arc/include/asm/spinlock.h      |    5 -
- arch/arm/include/asm/spinlock.h      |   16 ----
- arch/arm64/include/asm/spinlock.h    |   58 +----------------
- arch/blackfin/include/asm/spinlock.h |    5 -
- arch/hexagon/include/asm/spinlock.h  |    5 -
- arch/ia64/include/asm/spinlock.h     |   21 ------
- arch/m32r/include/asm/spinlock.h     |    5 -
- arch/metag/include/asm/spinlock.h    |    5 -
- arch/mips/include/asm/spinlock.h     |   16 ----
- arch/mn10300/include/asm/spinlock.h  |    5 -
- arch/parisc/include/asm/spinlock.h   |    7 --
- arch/powerpc/include/asm/spinlock.h  |   33 ---------
- arch/s390/include/asm/spinlock.h     |    7 --
- arch/sh/include/asm/spinlock-cas.h   |    5 -
- arch/sh/include/asm/spinlock-llsc.h  |    5 -
- arch/sparc/include/asm/spinlock_32.h |    5 -
- arch/sparc/include/asm/spinlock_64.h |    5 -
- arch/tile/include/asm/spinlock_32.h  |    2 
- arch/tile/include/asm/spinlock_64.h  |    2 
- arch/tile/lib/spinlock_32.c          |   23 ------
- arch/tile/lib/spinlock_64.c          |   22 ------
- arch/xtensa/include/asm/spinlock.h   |    5 -
- drivers/ata/libata-eh.c              |    8 --
- include/asm-generic/qspinlock.h      |   14 ----
- include/linux/spinlock.h             |   31 ---------
- include/linux/spinlock_up.h          |    6 -
- ipc/sem.c                            |    3 
- kernel/exit.c                        |    3 
- kernel/locking/qspinlock.c           |  117 -----------------------------------
- kernel/sched/completion.c            |    9 --
- kernel/sched/core.c                  |    3 
- kernel/task_work.c                   |    3 
- net/netfilter/nf_conntrack_core.c    |   26 ++-----
- 34 files changed, 26 insertions(+), 464 deletions(-)
+diff --git a/arch/alpha/include/asm/spinlock.h b/arch/alpha/include/asm/spinlock.h
+index a40b9fc0c6c3..718ac0b64adf 100644
+--- a/arch/alpha/include/asm/spinlock.h
++++ b/arch/alpha/include/asm/spinlock.h
+@@ -16,11 +16,6 @@
+ #define arch_spin_lock_flags(lock, flags) arch_spin_lock(lock)
+ #define arch_spin_is_locked(x)	((x)->lock != 0)
+ 
+-static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
+-{
+-	smp_cond_load_acquire(&lock->lock, !VAL);
+-}
+-
+ static inline int arch_spin_value_unlocked(arch_spinlock_t lock)
+ {
+         return lock.lock == 0;
+-- 
+2.5.2
