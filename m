@@ -1,75 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:48303 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1751823AbdF3ABo (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 29 Jun 2017 20:01:44 -0400
-Received: from pps.filterd (m0098399.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.20/8.16.0.20) with SMTP id v5U013lV049449
-        for <linux-arch@vger.kernel.org>; Thu, 29 Jun 2017 20:01:43 -0400
-Received: from e18.ny.us.ibm.com (e18.ny.us.ibm.com [129.33.205.208])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2bd6t3ad1b-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Thu, 29 Jun 2017 20:01:43 -0400
-Received: from localhost
-        by e18.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Thu, 29 Jun 2017 20:01:41 -0400
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: [PATCH RFC 11/26] arm: Remove spin_unlock_wait() arch-specific definitions
-Date: Thu, 29 Jun 2017 17:01:19 -0700
-In-Reply-To: <20170629235918.GA6445@linux.vnet.ibm.com>
-References: <20170629235918.GA6445@linux.vnet.ibm.com>
-Message-ID: <1498780894-8253-11-git-send-email-paulmck@linux.vnet.ibm.com>
+Received: from mail-it0-f66.google.com ([209.85.214.66]:35429 "EHLO
+        mail-it0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751900AbdF3AKn (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Jun 2017 20:10:43 -0400
+MIME-Version: 1.0
+In-Reply-To: <CA+55aFxf=4+LEk6wSE3HPFdwSf_F0Ny9NRGXaA6daikY+TGbDg@mail.gmail.com>
+References: <20170629235918.GA6445@linux.vnet.ibm.com> <1498780894-8253-25-git-send-email-paulmck@linux.vnet.ibm.com>
+ <CA+55aFxf=4+LEk6wSE3HPFdwSf_F0Ny9NRGXaA6daikY+TGbDg@mail.gmail.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Thu, 29 Jun 2017 17:10:41 -0700
+Message-ID: <CA+55aFyogF0gpZ+5KHabFaYDhAq0awPzpSVj9S2q9EZnoY2eXQ@mail.gmail.com>
+Subject: Re: [PATCH RFC 25/26] tile: Remove spin_unlock_wait() arch-specific definitions
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: netfilter-devel@vger.kernel.org, netdev@vger.kernel.org, oleg@redhat.com, akpm@linux-foundation.org, mingo@redhat.com, dave@stgolabs.net, manfred@colorfullife.com, tj@kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, will.deacon@arm.com, peterz@infradead.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, torvalds@linux-foundation.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Russell King <linux@armlinux.org.uk>, linux-arm-kernel@lists.infradead.org
-Message-ID: <20170630000119.JsgUHUPrQ3tfQapj45rnEsPoPIxa6i3FzcfR5GW7JZE@z>
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, NetFilter <netfilter-devel@vger.kernel.org>, Network Development <netdev@vger.kernel.org>, Oleg Nesterov <oleg@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, Tejun Heo <tj@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Chris Metcalf <cmetcalf@mellanox.com>
+Message-ID: <20170630001041.dOfW_mrvoEZfCL9uFF1_vrRNYsCiSrG2zynR6DXHR7c@z>
 
-There is no agreed-upon definition of spin_unlock_wait()'s semantics,
-and it appears that all callers could do just as well with a lock/unlock
-pair.  This commit therefore removes the underlying arch-specific
-arch_spin_unlock_wait().
+On Thu, Jun 29, 2017 at 5:06 PM, Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
+>
+> Please don't make this one commit fopr every architecture.
+>
+> Once something gets removed, it gets removed. There's no point in
+> "remove it from architecture X". If there are no more users, we're
+> done with it, and making it be 25 patches with the same commit message
+> instead of just one doesn't help anybody.
 
-Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-Cc: Russell King <linux@armlinux.org.uk>
-Cc: <linux-arm-kernel@lists.infradead.org>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Alan Stern <stern@rowland.harvard.edu>
-Cc: Andrea Parri <parri.andrea@gmail.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
----
- arch/arm/include/asm/spinlock.h | 16 ----------------
- 1 file changed, 16 deletions(-)
+Just to clarify: I think the actual *users* are worth doing one by
+one, particularly if there are user-specific explanations of what that
+particular code wanted, and why spin_unlock_wait() doesn't really
+help.
 
-diff --git a/arch/arm/include/asm/spinlock.h b/arch/arm/include/asm/spinlock.h
-index 4bec45442072..c030143c18c6 100644
---- a/arch/arm/include/asm/spinlock.h
-+++ b/arch/arm/include/asm/spinlock.h
-@@ -52,22 +52,6 @@ static inline void dsb_sev(void)
-  * memory.
-  */
- 
--static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
--{
--	u16 owner = READ_ONCE(lock->tickets.owner);
--
--	for (;;) {
--		arch_spinlock_t tmp = READ_ONCE(*lock);
--
--		if (tmp.tickets.owner == tmp.tickets.next ||
--		    tmp.tickets.owner != owner)
--			break;
--
--		wfe();
--	}
--	smp_acquire__after_ctrl_dep();
--}
--
- #define arch_spin_lock_flags(lock, flags) arch_spin_lock(lock)
- 
- static inline void arch_spin_lock(arch_spinlock_t *lock)
--- 
-2.5.2
+And I think that you actually have those per-user insights by now,
+after looking at the long thread.
+
+So I'm not saying "do one patch for the whole series". One patch per
+removal of use is fine - in fact preferred.
+
+But once there are no actual more users, just remove all the
+architecture definitions in one go, because explaining the same thing
+several times doesn't actually help anything.
+
+In fact, *if* we end up ever resurrecting that thing, it's good if we
+can resurrect it in one go. Then we can resurrect the one or two users
+that turned out to matter after all and could come up with why some
+particular ordering was ok too.
+
+                   Linus
