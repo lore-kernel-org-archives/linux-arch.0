@@ -1,144 +1,88 @@
-From: Tobias Klauser <tklauser@distanz.ch>
-Subject: Re: [PATCH 6/9] RISC-V: Device, timer, IRQs, and the SBI
-Date: Fri, 30 Jun 2017 09:57:10 +0200
-Message-ID: <20170630075710.GC5851@distanz.ch>
-References: <20170629083924.GB5851@distanz.ch>
- <mhng-b71fc2a8-a47a-49af-82e1-fb88c016d547@palmer-si-x1c4>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH RFC 08/26] locking: Remove spin_unlock_wait() generic
+ definitions
+Date: Fri, 30 Jun 2017 10:19:29 +0100
+Message-ID: <20170630091928.GC9726@arm.com>
+References: <20170629235918.GA6445@linux.vnet.ibm.com>
+ <1498780894-8253-8-git-send-email-paulmck@linux.vnet.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from sym2.noone.org ([178.63.92.236]:36309 "EHLO sym2.noone.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751741AbdF3H5P (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 30 Jun 2017 03:57:15 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <mhng-b71fc2a8-a47a-49af-82e1-fb88c016d547@palmer-si-x1c4>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Palmer Dabbelt <palmer@dabbelt.com>
-Cc: peterz@infradead.org, mingo@redhat.com, mcgrof@kernel.org, viro@zeniv.linux.org.uk, sfr@canb.auug.org.au, nicolas.dichtel@6wind.com, rmk+kernel@armlinux.org.uk, msalter@redhat.com, will.deacon@arm.com, james.hogan@imgtec.com, paul.gortmaker@windriver.com, linux@roeck-us.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, albert@sifive.com
+In-Reply-To: <1498780894-8253-8-git-send-email-paulmck@linux.vnet.ibm.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: linux-kernel@vger.kernel.org, netfilter-devel@vger.kernel.org, netdev@vger.kernel.org, oleg@redhat.com, akpm@linux-foundation.org, mingo@redhat.com, dave@stgolabs.net, manfred@colorfullife.com, tj@kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, peterz@infradead.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, torvalds@linux-foundation.org
+List-Id: linux-arch.vger.kernel.org
 
-On 2017-06-30 at 00:52:44 +0200, Palmer Dabbelt <palmer@dabbelt.com> wrote:
-> On Thu, 29 Jun 2017 01:39:25 PDT (-0700), tklauser@distanz.ch wrote:
-> > On 2017-06-28 at 20:55:35 +0200, Palmer Dabbelt <palmer@dabbelt.com> wrote:
-> > [...]
-> >> diff --git a/arch/riscv/include/asm/device.h b/arch/riscv/include/asm/device.h
-> >> new file mode 100644
-> >> index 000000000000..28975e528d2f
-> >> --- /dev/null
-> >> +++ b/arch/riscv/include/asm/device.h
-> >> @@ -0,0 +1,27 @@
-> >> +/*
-> >> + * Copyright (C) 2016 SiFive
-> >> + *
-> >> + *   This program is free software; you can redistribute it and/or
-> >> + *   modify it under the terms of the GNU General Public License
-> >> + *   as published by the Free Software Foundation, version 2.
-> >> + *
-> >> + *   This program is distributed in the hope that it will be useful,
-> >> + *   but WITHOUT ANY WARRANTY; without even the implied warranty of
-> >> + *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-> >> + *   GNU General Public License for more details.
-> >> + */
-> >> +
-> >> +
-> >> +#ifndef _ASM_RISCV_DEVICE_H
-> >> +#define _ASM_RISCV_DEVICE_H
-> >> +
-> >> +#include <linux/sysfs.h>
-> >> +
-> >> +struct dev_archdata {
-> >> +	struct dma_map_ops *dma_ops;
-> >> +};
-> >
-> > The dma_ops member isn't used in any arch code or driver from what I can
-> > tell (I checked against your riscv-for-submission-v3 branch). Could
-> > device.h from asm-generic be used instead, or did I miss something?
+On Thu, Jun 29, 2017 at 05:01:16PM -0700, Paul E. McKenney wrote:
+> There is no agreed-upon definition of spin_unlock_wait()'s semantics,
+> and it appears that all callers could do just as well with a lock/unlock
+> pair.  This commit therefore removes spin_unlock_wait() and related
+> definitions from core code.
 > 
-> I think you're right.  I'll include this
-> 
->   diff --git a/arch/riscv/include/asm/device.h b/arch/riscv/include/asm/device.h
->   index 28975e528d2f..a310c2c26101 100644
->   --- a/arch/riscv/include/asm/device.h
->   +++ b/arch/riscv/include/asm/device.h
->   @@ -11,17 +11,9 @@
->     *   GNU General Public License for more details.
->     */
-> 
->   -
->    #ifndef _ASM_RISCV_DEVICE_H
->    #define _ASM_RISCV_DEVICE_H
-> 
->   -#include <linux/sysfs.h>
->   -
->   -struct dev_archdata {
->   -       struct dma_map_ops *dma_ops;
->   -};
->   -
->   -struct pdev_archdata {
->   -};
->   +#include <asm-generic/device.h>
-> 
->    #endif /* _ASM_RISCV_DEVICE_H */
-> 
-> in the v4
+> Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: Ingo Molnar <mingo@redhat.com>
+> Cc: Will Deacon <will.deacon@arm.com>
+> Cc: Peter Zijlstra <peterz@infradead.org>
+> Cc: Alan Stern <stern@rowland.harvard.edu>
+> Cc: Andrea Parri <parri.andrea@gmail.com>
+> Cc: Linus Torvalds <torvalds@linux-foundation.org>
+> ---
+>  include/asm-generic/qspinlock.h |  14 -----
+>  include/linux/spinlock.h        |  31 -----------
+>  include/linux/spinlock_up.h     |   6 ---
+>  kernel/locking/qspinlock.c      | 117 ----------------------------------------
+>  4 files changed, 168 deletions(-)
 
-Better yet, remove arch/riscv/include/asm/device.h altogether and add device.h
-to generic-y in the asm/Kbuild file, as follows:
+[...]
 
-diff --git a/arch/riscv/include/asm/Kbuild b/arch/riscv/include/asm/Kbuild
-index 710397395981..52b254e26378 100644
---- a/arch/riscv/include/asm/Kbuild
-+++ b/arch/riscv/include/asm/Kbuild
-@@ -3,6 +3,7 @@ generic-y += cacheflush.h
- generic-y += checksum.h
- generic-y += clkdev.h
- generic-y += cputime.h
-+generic-y += device.h
- generic-y += div64.h
- generic-y += dma.h
- generic-y += dma-contiguous.h
-diff --git a/arch/riscv/include/asm/device.h b/arch/riscv/include/asm/device.h
-deleted file mode 100644
-index 28975e528d2f..000000000000
---- a/arch/riscv/include/asm/device.h
-+++ /dev/null
-@@ -1,27 +0,0 @@
--/*
-- * Copyright (C) 2016 SiFive
-- *
-- *   This program is free software; you can redistribute it and/or
-- *   modify it under the terms of the GNU General Public License
-- *   as published by the Free Software Foundation, version 2.
-- *
-- *   This program is distributed in the hope that it will be useful,
-- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
-- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-- *   GNU General Public License for more details.
-- */
--
--
--#ifndef _ASM_RISCV_DEVICE_H
--#define _ASM_RISCV_DEVICE_H
--
--#include <linux/sysfs.h>
--
--struct dev_archdata {
--       struct dma_map_ops *dma_ops;
--};
--
--struct pdev_archdata {
--};
--
--#endif /* _ASM_RISCV_DEVICE_H */
+> diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
+> index b2caec7315af..64a9051e4c2c 100644
+> --- a/kernel/locking/qspinlock.c
+> +++ b/kernel/locking/qspinlock.c
+> @@ -267,123 +267,6 @@ static __always_inline u32  __pv_wait_head_or_lock(struct qspinlock *lock,
+>  #define queued_spin_lock_slowpath	native_queued_spin_lock_slowpath
+>  #endif
+>  
+> -/*
+> - * Various notes on spin_is_locked() and spin_unlock_wait(), which are
+> - * 'interesting' functions:
+> - *
+> - * PROBLEM: some architectures have an interesting issue with atomic ACQUIRE
+> - * operations in that the ACQUIRE applies to the LOAD _not_ the STORE (ARM64,
+> - * PPC). Also qspinlock has a similar issue per construction, the setting of
+> - * the locked byte can be unordered acquiring the lock proper.
+> - *
+> - * This gets to be 'interesting' in the following cases, where the /should/s
+> - * end up false because of this issue.
+> - *
+> - *
+> - * CASE 1:
+> - *
+> - * So the spin_is_locked() correctness issue comes from something like:
+> - *
+> - *   CPU0				CPU1
+> - *
+> - *   global_lock();			local_lock(i)
+> - *     spin_lock(&G)			  spin_lock(&L[i])
+> - *     for (i)				  if (!spin_is_locked(&G)) {
+> - *       spin_unlock_wait(&L[i]);	    smp_acquire__after_ctrl_dep();
+> - *					    return;
+> - *					  }
+> - *					  // deal with fail
+> - *
+> - * Where it is important CPU1 sees G locked or CPU0 sees L[i] locked such
+> - * that there is exclusion between the two critical sections.
+> - *
+> - * The load from spin_is_locked(&G) /should/ be constrained by the ACQUIRE from
+> - * spin_lock(&L[i]), and similarly the load(s) from spin_unlock_wait(&L[i])
+> - * /should/ be constrained by the ACQUIRE from spin_lock(&G).
+> - *
+> - * Similarly, later stuff is constrained by the ACQUIRE from CTRL+RMB.
 
-> 
-> >
-> >> +
-> >> +struct pdev_archdata {
-> >> +};
-> >> +
-> >> +#endif /* _ASM_RISCV_DEVICE_H */
-> 
-> Thanks!
-> 
+Might be worth keeping this comment about spin_is_locked, since we're not
+removing that guy just yet!
+
+Will
