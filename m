@@ -1,55 +1,70 @@
-From: Michael Ellerman <patch-notifications@ellerman.id.au>
-Subject: Re: [v2] spin loop primitives for busy waiting
-Date: Sun,  2 Jul 2017 21:01:38 +1000 (AEST)
-Message-ID: <3x0nQB3L7mz9sNw@ozlabs.org>
-References: <20170529022223.14793-1-npiggin@gmail.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([103.22.144.67]:50095 "EHLO ozlabs.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752303AbdGBLBl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 2 Jul 2017 07:01:41 -0400
-In-Reply-To: <20170529022223.14793-1-npiggin@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, Nicholas Piggin <npiggin@gmail.com>
+From: Helge Deller <deller@gmx.de>
+Subject: Re: [PATCH 1/8] signal/alpha: Document a conflict with SI_USER for
+ SIGTRAP
+Date: Sun, 2 Jul 2017 16:13:20 +0200
+Message-ID: <20170702141320.GA32254@ls3530.fritz.box>
+References: <87efu22set.fsf@xmission.com>
+ <20170630123906.8865-1-ebiederm@xmission.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-alpha-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20170630123906.8865-1-ebiederm@xmission.com>
+Sender: linux-alpha-owner@vger.kernel.org
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: linux-kernel@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, Andrei Vagin <avagin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Greg KH <greg@kroah.com>, Andrey Vagin <avagin@openvz.org>, Serge Hallyn <serge@hallyn.com>, Pavel Emelyanov <xemul@virtuozzo.com>, Cyrill Gorcunov <gorcunov@openvz.org>, Peter Zijlstra <peterz@infradead.org>, Willy Tarreau <w@1wt.eu>, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Linux Containers <containers@lists.linux-foundation.org>, Michael Kerrisk <mtk.manpages@gmail.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, 2017-05-29 at 02:22:23 UTC, Nicholas Piggin wrote:
-> Current busy-wait loops are implemented by repeatedly calling cpu_relax()
-> to give an arch option for a low-latency option to improve power and/or
-> SMT resource contention.
+* Eric W. Biederman <ebiederm@xmission.com>:
+> Setting si_code to __SI_FAULT results in a userspace seeing
+> an si_code of 0.  This is the same si_code as SI_USER.  Posix
+> and common sense requires that SI_USER not be a signal specific
+> si_code.  As such this use of 0 for the si_code is a pretty
+> horribly broken ABI.
 > 
-> This poses some difficulties for powerpc, which has SMT priority setting
-> instructions (priorities determine how ifetch cycles are apportioned).
-> powerpc's cpu_relax() is implemented by setting a low priority then
-> setting normal priority. This has several problems:
-> 
->  - Changing thread priority can have some execution cost and potential
->    impact to other threads in the core. It's inefficient to execute them
->    every time around a busy-wait loop.
-> 
->  - Depending on implementation details, a `low ; medium` sequence may
->    not have much if any affect. Some software with similar pattern
->    actually inserts a lot of nops between, in order to cause a few fetch
->    cycles with the low priority.
-> 
->  - The busy-wait loop runs with regular priority. This might only be a few
->    fetch cycles, but if there are several threads running such loops, they
->    could cause a noticable impact on a non-idle thread.
-> 
-> Implement spin_begin, spin_end primitives that can be used around busy
-> wait loops, which default to no-ops. And spin_cpu_relax which defaults to
-> cpu_relax.
-> 
-> This will allow architectures to hook the entry and exit of busy-wait
-> loops, and will allow powerpc to set low SMT priority at entry, and
-> normal priority at exit.
-> 
-> Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
-> Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+> Given that alpha is on it's last legs I don't know that it is worth
+> fixing this, but it is worth documenting what is going on so that
+> no one decides to copy this bad decision.
 
-Applied to powerpc next, thanks.
+The ABI was already broken, so IMHO I think it's better to somehow "fix"
+it instead. Agreed, alpha and some other architectures are already aged,
+but nevertheless most of them build in debian-ports.  Below is a
+suggested fix which reuses/misuses other existing trap codes instead.
 
-https://git.kernel.org/powerpc/c/fd851a3cdc196bfc1d229b5f223690
+Helge
 
-cheers
+Signed-off-by: Helge Deller <deller@gmx.de>
+
+diff --git a/arch/alpha/kernel/traps.c b/arch/alpha/kernel/traps.c
+index 65bb102..2ed37dd 100644
+--- a/arch/alpha/kernel/traps.c
++++ b/arch/alpha/kernel/traps.c
+@@ -278,7 +278,7 @@ do_entIF(unsigned long type, struct pt_regs *regs)
+ 	      case 1: /* bugcheck */
+ 		info.si_signo = SIGTRAP;
+ 		info.si_errno = 0;
+-		info.si_code = __SI_FAULT;
++		info.si_code = TRAP_HWBKPT;
+ 		info.si_addr = (void __user *) regs->pc;
+ 		info.si_trapno = 0;
+ 		send_sig_info(SIGTRAP, &info, current);
+@@ -318,7 +318,7 @@ do_entIF(unsigned long type, struct pt_regs *regs)
+ 			break;
+ 		case GEN_ROPRAND:
+ 			signo = SIGFPE;
+-			code = __SI_FAULT;
++			code = FPE_FLTSUB;
+ 			break;
+ 
+ 		case GEN_DECOVF:
+@@ -340,7 +340,7 @@ do_entIF(unsigned long type, struct pt_regs *regs)
+ 		case GEN_SUBRNG7:
+ 		default:
+ 			signo = SIGTRAP;
+-			code = __SI_FAULT;
++			code = TRAP_HWBKPT;
+ 			break;
+ 		}
+ 
+
+
