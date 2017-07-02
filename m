@@ -1,121 +1,55 @@
-From: Boqun Feng <boqun.feng@gmail.com>
-Subject: Re: [PATCH RFC 21/26] powerpc: Remove spin_unlock_wait()
- arch-specific definitions
-Date: Sun, 2 Jul 2017 11:58:07 +0800
-Message-ID: <20170702035807.tnzmkynyevfobt5a@tardis>
-References: <20170629235918.GA6445@linux.vnet.ibm.com>
- <1498780894-8253-21-git-send-email-paulmck@linux.vnet.ibm.com>
-Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-        protocol="application/pgp-signature"; boundary="7nfvfvnv5t6syok4"
+From: Michael Ellerman <patch-notifications@ellerman.id.au>
+Subject: Re: [v2] spin loop primitives for busy waiting
+Date: Sun,  2 Jul 2017 21:01:38 +1000 (AEST)
+Message-ID: <3x0nQB3L7mz9sNw@ozlabs.org>
+References: <20170529022223.14793-1-npiggin@gmail.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f67.google.com ([74.125.83.67]:35604 "EHLO
-        mail-pg0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751697AbdGBD43 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 1 Jul 2017 23:56:29 -0400
-Content-Disposition: inline
-In-Reply-To: <1498780894-8253-21-git-send-email-paulmck@linux.vnet.ibm.com>
+Received: from ozlabs.org ([103.22.144.67]:50095 "EHLO ozlabs.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752303AbdGBLBl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 2 Jul 2017 07:01:41 -0400
+In-Reply-To: <20170529022223.14793-1-npiggin@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, parri.andrea@gmail.com, dave@stgolabs.net, manfred@colorfullife.com, arnd@arndb.de, peterz@infradead.org, netdev@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, will.deacon@arm.com, oleg@redhat.com, mingo@redhat.com, netfilter-devel@vger.kernel.org, tj@kernel.org, stern@rowland.harvard.edu, akpm@linux-foundation.org, torvalds@linux-foundation.org, Paul Mackerras <paulus@samba.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, Nicholas Piggin <npiggin@gmail.com>
 
+On Mon, 2017-05-29 at 02:22:23 UTC, Nicholas Piggin wrote:
+> Current busy-wait loops are implemented by repeatedly calling cpu_relax()
+> to give an arch option for a low-latency option to improve power and/or
+> SMT resource contention.
+> 
+> This poses some difficulties for powerpc, which has SMT priority setting
+> instructions (priorities determine how ifetch cycles are apportioned).
+> powerpc's cpu_relax() is implemented by setting a low priority then
+> setting normal priority. This has several problems:
+> 
+>  - Changing thread priority can have some execution cost and potential
+>    impact to other threads in the core. It's inefficient to execute them
+>    every time around a busy-wait loop.
+> 
+>  - Depending on implementation details, a `low ; medium` sequence may
+>    not have much if any affect. Some software with similar pattern
+>    actually inserts a lot of nops between, in order to cause a few fetch
+>    cycles with the low priority.
+> 
+>  - The busy-wait loop runs with regular priority. This might only be a few
+>    fetch cycles, but if there are several threads running such loops, they
+>    could cause a noticable impact on a non-idle thread.
+> 
+> Implement spin_begin, spin_end primitives that can be used around busy
+> wait loops, which default to no-ops. And spin_cpu_relax which defaults to
+> cpu_relax.
+> 
+> This will allow architectures to hook the entry and exit of busy-wait
+> loops, and will allow powerpc to set low SMT priority at entry, and
+> normal priority at exit.
+> 
+> Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
+> Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 
---7nfvfvnv5t6syok4
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Applied to powerpc next, thanks.
 
-On Thu, Jun 29, 2017 at 05:01:29PM -0700, Paul E. McKenney wrote:
-> There is no agreed-upon definition of spin_unlock_wait()'s semantics,
-> and it appears that all callers could do just as well with a lock/unlock
-> pair.  This commit therefore removes the underlying arch-specific
-> arch_spin_unlock_wait().
->=20
-> Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-> Cc: Paul Mackerras <paulus@samba.org>
-> Cc: Michael Ellerman <mpe@ellerman.id.au>
-> Cc: <linuxppc-dev@lists.ozlabs.org>
-> Cc: Will Deacon <will.deacon@arm.com>
-> Cc: Peter Zijlstra <peterz@infradead.org>
-> Cc: Alan Stern <stern@rowland.harvard.edu>
-> Cc: Andrea Parri <parri.andrea@gmail.com>
-> Cc: Linus Torvalds <torvalds@linux-foundation.org>
+https://git.kernel.org/powerpc/c/fd851a3cdc196bfc1d229b5f223690
 
-Acked-by: Boqun Feng <boqun.feng@gmail.com>
-
-Regards,
-Boqun
-
-> ---
->  arch/powerpc/include/asm/spinlock.h | 33 -------------------------------=
---
->  1 file changed, 33 deletions(-)
->=20
-> diff --git a/arch/powerpc/include/asm/spinlock.h b/arch/powerpc/include/a=
-sm/spinlock.h
-> index 8c1b913de6d7..d256e448ea49 100644
-> --- a/arch/powerpc/include/asm/spinlock.h
-> +++ b/arch/powerpc/include/asm/spinlock.h
-> @@ -170,39 +170,6 @@ static inline void arch_spin_unlock(arch_spinlock_t =
-*lock)
->  	lock->slock =3D 0;
->  }
-> =20
-> -static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
-> -{
-> -	arch_spinlock_t lock_val;
-> -
-> -	smp_mb();
-> -
-> -	/*
-> -	 * Atomically load and store back the lock value (unchanged). This
-> -	 * ensures that our observation of the lock value is ordered with
-> -	 * respect to other lock operations.
-> -	 */
-> -	__asm__ __volatile__(
-> -"1:	" PPC_LWARX(%0, 0, %2, 0) "\n"
-> -"	stwcx. %0, 0, %2\n"
-> -"	bne- 1b\n"
-> -	: "=3D&r" (lock_val), "+m" (*lock)
-> -	: "r" (lock)
-> -	: "cr0", "xer");
-> -
-> -	if (arch_spin_value_unlocked(lock_val))
-> -		goto out;
-> -
-> -	while (lock->slock) {
-> -		HMT_low();
-> -		if (SHARED_PROCESSOR)
-> -			__spin_yield(lock);
-> -	}
-> -	HMT_medium();
-> -
-> -out:
-> -	smp_mb();
-> -}
-> -
->  /*
->   * Read-write spinlocks, allowing multiple readers
->   * but only one writer.
-> --=20
-> 2.5.2
->=20
-
---7nfvfvnv5t6syok4
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iQEzBAABCAAdFiEEj5IosQTPz8XU1wRHSXnow7UH+rgFAllYbx4ACgkQSXnow7UH
-+rjJoAf9ER3wqVQgGOVwgLauCT8gfxl5xT9ZzXPdSZ8ZpBbbiS3hMKitAc/pBO8c
-HC/NF4DhvxyX7oogUcYIQgRGrvF1NbPpl5QwDsCmlaWSj7V/nU3R9TzOtjB0ToDq
-L8s0/R6PLQHixtjpgT06/X5xF2xPHoTdD8WzfBm03chtxAKhLvuWRhS/yU46Q9aE
-r0TMMq2oFtTiwH9SzL6avxd1h7hHqjAQUTLiJkncmGJpXS5bLUyxAQNw7zpWz252
-yYrdC6JDqVLTrjPoeUwZIUy1WqOzvIK9/Y/7RAOYTSSYi5FWqbRIcHPmI90EzQ0r
-fyAoYkKvRleSV1Lzv14RP7DLZse/tA==
-=u8hv
------END PGP SIGNATURE-----
-
---7nfvfvnv5t6syok4--
+cheers
