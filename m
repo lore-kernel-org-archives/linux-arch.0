@@ -1,448 +1,204 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-sn1nam01on0053.outbound.protection.outlook.com ([104.47.32.53]:10496
-        "EHLO NAM01-SN1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751792AbdFGTOC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 7 Jun 2017 15:14:02 -0400
-From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v6 03/34] x86, mpparse, x86/acpi, x86/PCI, x86/dmi,
- SFI: Use memremap for RAM mappings
-Date: Wed, 07 Jun 2017 14:13:41 -0500
-Message-ID: <20170607191341.28645.70439.stgit@tlendack-t1.amdoffice.net>
-In-Reply-To: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
-References: <20170607191309.28645.15241.stgit@tlendack-t1.amdoffice.net>
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:43854 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1752330AbdGBCAw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 1 Jul 2017 22:00:52 -0400
+Received: from pps.filterd (m0098399.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.20/8.16.0.20) with SMTP id v621wdjb072367
+        for <linux-arch@vger.kernel.org>; Sat, 1 Jul 2017 22:00:51 -0400
+Received: from e12.ny.us.ibm.com (e12.ny.us.ibm.com [129.33.205.202])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2beecvwee1-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Sat, 01 Jul 2017 22:00:51 -0400
+Received: from localhost
+        by e12.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+        Sat, 1 Jul 2017 22:00:50 -0400
+Date: Sat, 1 Jul 2017 19:00:45 -0700
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [PATCH RFC 01/26] netfilter: Replace spin_unlock_wait() with
+ lock/unlock pair
+Reply-To: paulmck@linux.vnet.ibm.com
+References: <20170629235918.GA6445@linux.vnet.ibm.com>
+ <1498780894-8253-1-git-send-email-paulmck@linux.vnet.ibm.com>
+ <a6642feb-2f3a-980f-5ed6-2deb79563e6b@colorfullife.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <a6642feb-2f3a-980f-5ed6-2deb79563e6b@colorfullife.com>
+Message-ID: <20170702020045.GR2393@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
-Cc: Rik van Riel <riel@redhat.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Dave Young <dyoung@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170607191341.31hbmtRz_g_Hjwsu7aTklNWs07AAuriJ00q2Hd-HtqQ@z>
+To: Manfred Spraul <manfred@colorfullife.com>
+Cc: linux-kernel@vger.kernel.org, netfilter-devel@vger.kernel.org, netdev@vger.kernel.org, oleg@redhat.com, akpm@linux-foundation.org, mingo@redhat.com, dave@stgolabs.net, tj@kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, will.deacon@arm.com, peterz@infradead.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, torvalds@linux-foundation.org, Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@blackhole.kfki.hu>, Florian Westphal <fw@strlen.de>, "David S. Miller" <davem@davemloft.net>, coreteam@netfilter.org
+Message-ID: <20170702020045.oQNVhLO2ofayTztoi1nT0C0kLmXBvZ4SnORCRUWJT68@z>
 
-The ioremap() function is intended for mapping MMIO. For RAM, the
-memremap() function should be used. Convert calls from ioremap() to
-memremap() when re-mapping RAM.
+On Sat, Jul 01, 2017 at 09:44:12PM +0200, Manfred Spraul wrote:
+> Hi Paul,
+> 
+> On 06/30/2017 02:01 AM, Paul E. McKenney wrote:
+> >There is no agreed-upon definition of spin_unlock_wait()'s semantics,
+> >and it appears that all callers could do just as well with a lock/unlock
+> >pair.  This commit therefore replaces the spin_unlock_wait() calls
+> >in nf_conntrack_lock() and nf_conntrack_all_lock() with spin_lock()
+> >followed immediately by spin_unlock().  These functions do not appear
+> >to be invoked on any fastpaths.
+> >
+> >Signed-off-by: Paul E. McKenney<paulmck@linux.vnet.ibm.com>
+> >Cc: Pablo Neira Ayuso<pablo@netfilter.org>
+> >Cc: Jozsef Kadlecsik<kadlec@blackhole.kfki.hu>
+> >Cc: Florian Westphal<fw@strlen.de>
+> >Cc: "David S. Miller"<davem@davemloft.net>
+> >Cc:<netfilter-devel@vger.kernel.org>
+> >Cc:<coreteam@netfilter.org>
+> >Cc:<netdev@vger.kernel.org>
+> >Cc: Will Deacon<will.deacon@arm.com>
+> >Cc: Peter Zijlstra<peterz@infradead.org>
+> >Cc: Alan Stern<stern@rowland.harvard.edu>
+> >Cc: Andrea Parri<parri.andrea@gmail.com>
+> >Cc: Linus Torvalds<torvalds@linux-foundation.org>
+> >---
+> >  net/netfilter/nf_conntrack_core.c | 26 ++++++++------------------
+> >  1 file changed, 8 insertions(+), 18 deletions(-)
+> >
+> >diff --git a/net/netfilter/nf_conntrack_core.c b/net/netfilter/nf_conntrack_core.c
+> >index e847dbaa0c6b..9f997859d160 100644
+> >--- a/net/netfilter/nf_conntrack_core.c
+> >+++ b/net/netfilter/nf_conntrack_core.c
+> >@@ -99,15 +99,11 @@ void nf_conntrack_lock(spinlock_t *lock) __acquires(lock)
+> >  	spin_lock(lock);
+> >  	while (unlikely(nf_conntrack_locks_all)) {
+> I think here an ACQUIRE is missing.
+> >  		spin_unlock(lock);
+> >-
+> >-		/*
+> >-		 * Order the 'nf_conntrack_locks_all' load vs. the
+> >-		 * spin_unlock_wait() loads below, to ensure
+> >-		 * that 'nf_conntrack_locks_all_lock' is indeed held:
+> >-		 */
+> >-		smp_rmb(); /* spin_lock(&nf_conntrack_locks_all_lock) */
+> >-		spin_unlock_wait(&nf_conntrack_locks_all_lock);
+> >+		/* Wait for nf_conntrack_locks_all_lock holder to release ... */
+> >+		spin_lock(&nf_conntrack_locks_all_lock);
+> >+		spin_unlock(&nf_conntrack_locks_all_lock);
+> >  		spin_lock(lock);
+> >+		/* ... and retry. */
+> >  	}
+> >  }
+> As far as I see, nf_conntrack_locks[] nests inside
+> nf_conntrack_lock_all_lock.
+> So
+>    spin_lock(&nf_conntrack_locks_all_lock);
+>    spin_lock(lock);
+>    spin_unlock(&nf_conntrack_locks_all_lock);
+> 
+> can replace the retry logic.
+> 
+> Correct? Then what about the attached patch?
 
-This will be used later by SME to control how the encryption mask is
-applied to memory mappings, with certain memory locations being mapped
-decrypted vs encrypted.
+At first glance, it looks correct to me, thank you!  I have replaced my
+patch with this one for testing and further review.
 
-Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
----
- arch/x86/include/asm/dmi.h   |    8 ++++----
- arch/x86/kernel/acpi/boot.c  |    6 +++---
- arch/x86/kernel/kdebugfs.c   |   34 +++++++++++-----------------------
- arch/x86/kernel/ksysfs.c     |   28 ++++++++++++++--------------
- arch/x86/kernel/mpparse.c    |   10 +++++-----
- arch/x86/pci/common.c        |    4 ++--
- drivers/firmware/dmi-sysfs.c |    5 +++--
- drivers/firmware/pcdp.c      |    4 ++--
- drivers/sfi/sfi_core.c       |   22 +++++++++++-----------
- 9 files changed, 55 insertions(+), 66 deletions(-)
+							Thanx, Paul
 
-diff --git a/arch/x86/include/asm/dmi.h b/arch/x86/include/asm/dmi.h
-index 3c69fed..a8e15b0 100644
---- a/arch/x86/include/asm/dmi.h
-+++ b/arch/x86/include/asm/dmi.h
-@@ -13,9 +13,9 @@ static __always_inline __init void *dmi_alloc(unsigned len)
- }
- 
- /* Use early IO mappings for DMI because it's initialized early */
--#define dmi_early_remap		early_ioremap
--#define dmi_early_unmap		early_iounmap
--#define dmi_remap		ioremap_cache
--#define dmi_unmap		iounmap
-+#define dmi_early_remap		early_memremap
-+#define dmi_early_unmap		early_memunmap
-+#define dmi_remap(_x, _l)	memremap(_x, _l, MEMREMAP_WB)
-+#define dmi_unmap(_x)		memunmap(_x)
- 
- #endif /* _ASM_X86_DMI_H */
-diff --git a/arch/x86/kernel/acpi/boot.c b/arch/x86/kernel/acpi/boot.c
-index 6bb6806..850160a 100644
---- a/arch/x86/kernel/acpi/boot.c
-+++ b/arch/x86/kernel/acpi/boot.c
-@@ -115,7 +115,7 @@
- #define	ACPI_INVALID_GSI		INT_MIN
- 
- /*
-- * This is just a simple wrapper around early_ioremap(),
-+ * This is just a simple wrapper around early_memremap(),
-  * with sanity checks for phys == 0 and size == 0.
-  */
- char *__init __acpi_map_table(unsigned long phys, unsigned long size)
-@@ -124,7 +124,7 @@ char *__init __acpi_map_table(unsigned long phys, unsigned long size)
- 	if (!phys || !size)
- 		return NULL;
- 
--	return early_ioremap(phys, size);
-+	return early_memremap(phys, size);
- }
- 
- void __init __acpi_unmap_table(char *map, unsigned long size)
-@@ -132,7 +132,7 @@ void __init __acpi_unmap_table(char *map, unsigned long size)
- 	if (!map || !size)
- 		return;
- 
--	early_iounmap(map, size);
-+	early_memunmap(map, size);
- }
- 
- #ifdef CONFIG_X86_LOCAL_APIC
-diff --git a/arch/x86/kernel/kdebugfs.c b/arch/x86/kernel/kdebugfs.c
-index 38b6458..fd6f8fb 100644
---- a/arch/x86/kernel/kdebugfs.c
-+++ b/arch/x86/kernel/kdebugfs.c
-@@ -33,7 +33,6 @@ static ssize_t setup_data_read(struct file *file, char __user *user_buf,
- 	struct setup_data_node *node = file->private_data;
- 	unsigned long remain;
- 	loff_t pos = *ppos;
--	struct page *pg;
- 	void *p;
- 	u64 pa;
- 
-@@ -47,18 +46,13 @@ static ssize_t setup_data_read(struct file *file, char __user *user_buf,
- 		count = node->len - pos;
- 
- 	pa = node->paddr + sizeof(struct setup_data) + pos;
--	pg = pfn_to_page((pa + count - 1) >> PAGE_SHIFT);
--	if (PageHighMem(pg)) {
--		p = ioremap_cache(pa, count);
--		if (!p)
--			return -ENXIO;
--	} else
--		p = __va(pa);
-+	p = memremap(pa, count, MEMREMAP_WB);
-+	if (!p)
-+		return -ENOMEM;
- 
- 	remain = copy_to_user(user_buf, p, count);
- 
--	if (PageHighMem(pg))
--		iounmap(p);
-+	memunmap(p);
- 
- 	if (remain)
- 		return -EFAULT;
-@@ -109,7 +103,6 @@ static int __init create_setup_data_nodes(struct dentry *parent)
- 	struct setup_data *data;
- 	int error;
- 	struct dentry *d;
--	struct page *pg;
- 	u64 pa_data;
- 	int no = 0;
- 
-@@ -126,16 +119,12 @@ static int __init create_setup_data_nodes(struct dentry *parent)
- 			goto err_dir;
- 		}
- 
--		pg = pfn_to_page((pa_data+sizeof(*data)-1) >> PAGE_SHIFT);
--		if (PageHighMem(pg)) {
--			data = ioremap_cache(pa_data, sizeof(*data));
--			if (!data) {
--				kfree(node);
--				error = -ENXIO;
--				goto err_dir;
--			}
--		} else
--			data = __va(pa_data);
-+		data = memremap(pa_data, sizeof(*data), MEMREMAP_WB);
-+		if (!data) {
-+			kfree(node);
-+			error = -ENOMEM;
-+			goto err_dir;
-+		}
- 
- 		node->paddr = pa_data;
- 		node->type = data->type;
-@@ -143,8 +132,7 @@ static int __init create_setup_data_nodes(struct dentry *parent)
- 		error = create_setup_data_node(d, no, node);
- 		pa_data = data->next;
- 
--		if (PageHighMem(pg))
--			iounmap(data);
-+		memunmap(data);
- 		if (error)
- 			goto err_dir;
- 		no++;
-diff --git a/arch/x86/kernel/ksysfs.c b/arch/x86/kernel/ksysfs.c
-index 4afc67f..ee51db9 100644
---- a/arch/x86/kernel/ksysfs.c
-+++ b/arch/x86/kernel/ksysfs.c
-@@ -16,8 +16,8 @@
- #include <linux/stat.h>
- #include <linux/slab.h>
- #include <linux/mm.h>
-+#include <linux/io.h>
- 
--#include <asm/io.h>
- #include <asm/setup.h>
- 
- static ssize_t version_show(struct kobject *kobj,
-@@ -79,12 +79,12 @@ static int get_setup_data_paddr(int nr, u64 *paddr)
- 			*paddr = pa_data;
- 			return 0;
- 		}
--		data = ioremap_cache(pa_data, sizeof(*data));
-+		data = memremap(pa_data, sizeof(*data), MEMREMAP_WB);
- 		if (!data)
- 			return -ENOMEM;
- 
- 		pa_data = data->next;
--		iounmap(data);
-+		memunmap(data);
- 		i++;
- 	}
- 	return -EINVAL;
-@@ -97,17 +97,17 @@ static int __init get_setup_data_size(int nr, size_t *size)
- 	u64 pa_data = boot_params.hdr.setup_data;
- 
- 	while (pa_data) {
--		data = ioremap_cache(pa_data, sizeof(*data));
-+		data = memremap(pa_data, sizeof(*data), MEMREMAP_WB);
- 		if (!data)
- 			return -ENOMEM;
- 		if (nr == i) {
- 			*size = data->len;
--			iounmap(data);
-+			memunmap(data);
- 			return 0;
- 		}
- 
- 		pa_data = data->next;
--		iounmap(data);
-+		memunmap(data);
- 		i++;
- 	}
- 	return -EINVAL;
-@@ -127,12 +127,12 @@ static ssize_t type_show(struct kobject *kobj,
- 	ret = get_setup_data_paddr(nr, &paddr);
- 	if (ret)
- 		return ret;
--	data = ioremap_cache(paddr, sizeof(*data));
-+	data = memremap(paddr, sizeof(*data), MEMREMAP_WB);
- 	if (!data)
- 		return -ENOMEM;
- 
- 	ret = sprintf(buf, "0x%x\n", data->type);
--	iounmap(data);
-+	memunmap(data);
- 	return ret;
- }
- 
-@@ -154,7 +154,7 @@ static ssize_t setup_data_data_read(struct file *fp,
- 	ret = get_setup_data_paddr(nr, &paddr);
- 	if (ret)
- 		return ret;
--	data = ioremap_cache(paddr, sizeof(*data));
-+	data = memremap(paddr, sizeof(*data), MEMREMAP_WB);
- 	if (!data)
- 		return -ENOMEM;
- 
-@@ -170,15 +170,15 @@ static ssize_t setup_data_data_read(struct file *fp,
- 		goto out;
- 
- 	ret = count;
--	p = ioremap_cache(paddr + sizeof(*data), data->len);
-+	p = memremap(paddr + sizeof(*data), data->len, MEMREMAP_WB);
- 	if (!p) {
- 		ret = -ENOMEM;
- 		goto out;
- 	}
- 	memcpy(buf, p + off, count);
--	iounmap(p);
-+	memunmap(p);
- out:
--	iounmap(data);
-+	memunmap(data);
- 	return ret;
- }
- 
-@@ -250,13 +250,13 @@ static int __init get_setup_data_total_num(u64 pa_data, int *nr)
- 	*nr = 0;
- 	while (pa_data) {
- 		*nr += 1;
--		data = ioremap_cache(pa_data, sizeof(*data));
-+		data = memremap(pa_data, sizeof(*data), MEMREMAP_WB);
- 		if (!data) {
- 			ret = -ENOMEM;
- 			goto out;
- 		}
- 		pa_data = data->next;
--		iounmap(data);
-+		memunmap(data);
- 	}
- 
- out:
-diff --git a/arch/x86/kernel/mpparse.c b/arch/x86/kernel/mpparse.c
-index 0d904d7..fd37f39 100644
---- a/arch/x86/kernel/mpparse.c
-+++ b/arch/x86/kernel/mpparse.c
-@@ -436,9 +436,9 @@ static unsigned long __init get_mpc_size(unsigned long physptr)
- 	struct mpc_table *mpc;
- 	unsigned long size;
- 
--	mpc = early_ioremap(physptr, PAGE_SIZE);
-+	mpc = early_memremap(physptr, PAGE_SIZE);
- 	size = mpc->length;
--	early_iounmap(mpc, PAGE_SIZE);
-+	early_memunmap(mpc, PAGE_SIZE);
- 	apic_printk(APIC_VERBOSE, "  mpc: %lx-%lx\n", physptr, physptr + size);
- 
- 	return size;
-@@ -450,7 +450,7 @@ static int __init check_physptr(struct mpf_intel *mpf, unsigned int early)
- 	unsigned long size;
- 
- 	size = get_mpc_size(mpf->physptr);
--	mpc = early_ioremap(mpf->physptr, size);
-+	mpc = early_memremap(mpf->physptr, size);
- 	/*
- 	 * Read the physical hardware table.  Anything here will
- 	 * override the defaults.
-@@ -461,10 +461,10 @@ static int __init check_physptr(struct mpf_intel *mpf, unsigned int early)
- #endif
- 		pr_err("BIOS bug, MP table errors detected!...\n");
- 		pr_cont("... disabling SMP support. (tell your hw vendor)\n");
--		early_iounmap(mpc, size);
-+		early_memunmap(mpc, size);
- 		return -1;
- 	}
--	early_iounmap(mpc, size);
-+	early_memunmap(mpc, size);
- 
- 	if (early)
- 		return -1;
-diff --git a/arch/x86/pci/common.c b/arch/x86/pci/common.c
-index 190e718..08cf71c 100644
---- a/arch/x86/pci/common.c
-+++ b/arch/x86/pci/common.c
-@@ -691,7 +691,7 @@ int pcibios_add_device(struct pci_dev *dev)
- 
- 	pa_data = boot_params.hdr.setup_data;
- 	while (pa_data) {
--		data = ioremap(pa_data, sizeof(*rom));
-+		data = memremap(pa_data, sizeof(*rom), MEMREMAP_WB);
- 		if (!data)
- 			return -ENOMEM;
- 
-@@ -710,7 +710,7 @@ int pcibios_add_device(struct pci_dev *dev)
- 			}
- 		}
- 		pa_data = data->next;
--		iounmap(data);
-+		memunmap(data);
- 	}
- 	set_dma_domain_ops(dev);
- 	set_dev_domain_options(dev);
-diff --git a/drivers/firmware/dmi-sysfs.c b/drivers/firmware/dmi-sysfs.c
-index ef76e5e..d5de6ee 100644
---- a/drivers/firmware/dmi-sysfs.c
-+++ b/drivers/firmware/dmi-sysfs.c
-@@ -25,6 +25,7 @@
- #include <linux/slab.h>
- #include <linux/list.h>
- #include <linux/io.h>
-+#include <asm/dmi.h>
- 
- #define MAX_ENTRY_TYPE 255 /* Most of these aren't used, but we consider
- 			      the top entry type is only 8 bits */
-@@ -380,7 +381,7 @@ static ssize_t dmi_sel_raw_read_phys32(struct dmi_sysfs_entry *entry,
- 	u8 __iomem *mapped;
- 	ssize_t wrote = 0;
- 
--	mapped = ioremap(sel->access_method_address, sel->area_length);
-+	mapped = dmi_remap(sel->access_method_address, sel->area_length);
- 	if (!mapped)
- 		return -EIO;
- 
-@@ -390,7 +391,7 @@ static ssize_t dmi_sel_raw_read_phys32(struct dmi_sysfs_entry *entry,
- 		wrote++;
- 	}
- 
--	iounmap(mapped);
-+	dmi_unmap(mapped);
- 	return wrote;
- }
- 
-diff --git a/drivers/firmware/pcdp.c b/drivers/firmware/pcdp.c
-index 75273a25..e83d6ae 100644
---- a/drivers/firmware/pcdp.c
-+++ b/drivers/firmware/pcdp.c
-@@ -95,7 +95,7 @@
- 	if (efi.hcdp == EFI_INVALID_TABLE_ADDR)
- 		return -ENODEV;
- 
--	pcdp = early_ioremap(efi.hcdp, 4096);
-+	pcdp = early_memremap(efi.hcdp, 4096);
- 	printk(KERN_INFO "PCDP: v%d at 0x%lx\n", pcdp->rev, efi.hcdp);
- 
- 	if (strstr(cmdline, "console=hcdp")) {
-@@ -131,6 +131,6 @@
- 	}
- 
- out:
--	early_iounmap(pcdp, 4096);
-+	early_memunmap(pcdp, 4096);
- 	return rc;
- }
-diff --git a/drivers/sfi/sfi_core.c b/drivers/sfi/sfi_core.c
-index 296db7a..d5ce534 100644
---- a/drivers/sfi/sfi_core.c
-+++ b/drivers/sfi/sfi_core.c
-@@ -86,13 +86,13 @@
- /*
-  * FW creates and saves the SFI tables in memory. When these tables get
-  * used, they may need to be mapped to virtual address space, and the mapping
-- * can happen before or after the ioremap() is ready, so a flag is needed
-+ * can happen before or after the memremap() is ready, so a flag is needed
-  * to indicating this
-  */
--static u32 sfi_use_ioremap __read_mostly;
-+static u32 sfi_use_memremap __read_mostly;
- 
- /*
-- * sfi_un/map_memory calls early_ioremap/iounmap which is a __init function
-+ * sfi_un/map_memory calls early_memremap/memunmap which is a __init function
-  * and introduces section mismatch. So use __ref to make it calm.
-  */
- static void __iomem * __ref sfi_map_memory(u64 phys, u32 size)
-@@ -100,10 +100,10 @@ static void __iomem * __ref sfi_map_memory(u64 phys, u32 size)
- 	if (!phys || !size)
- 		return NULL;
- 
--	if (sfi_use_ioremap)
--		return ioremap_cache(phys, size);
-+	if (sfi_use_memremap)
-+		return memremap(phys, size, MEMREMAP_WB);
- 	else
--		return early_ioremap(phys, size);
-+		return early_memremap(phys, size);
- }
- 
- static void __ref sfi_unmap_memory(void __iomem *virt, u32 size)
-@@ -111,10 +111,10 @@ static void __ref sfi_unmap_memory(void __iomem *virt, u32 size)
- 	if (!virt || !size)
- 		return;
- 
--	if (sfi_use_ioremap)
--		iounmap(virt);
-+	if (sfi_use_memremap)
-+		memunmap(virt);
- 	else
--		early_iounmap(virt, size);
-+		early_memunmap(virt, size);
- }
- 
- static void sfi_print_table_header(unsigned long long pa,
-@@ -507,8 +507,8 @@ void __init sfi_init_late(void)
- 	length = syst_va->header.len;
- 	sfi_unmap_memory(syst_va, sizeof(struct sfi_table_simple));
- 
--	/* Use ioremap now after it is ready */
--	sfi_use_ioremap = 1;
-+	/* Use memremap now after it is ready */
-+	sfi_use_memremap = 1;
- 	syst_va = sfi_map_memory(syst_pa, length);
- 
- 	sfi_acpi_init();
+> --
+>     Manfred
+> 
+> 
+
+> >From 453e7a77f3756d939c754031b092cbdfbd149559 Mon Sep 17 00:00:00 2001
+> From: Manfred Spraul <manfred@colorfullife.com>
+> Date: Sun, 21 Aug 2016 07:17:55 +0200
+> Subject: [PATCH] net/netfilter/nf_conntrack_core: Fix net_conntrack_lock()
+> 
+> As we want to remove spin_unlock_wait() and replace it with explicit
+> spin_lock()/spin_unlock() calls, we can use this to simplify the
+> locking.
+> 
+> In addition:
+> - Reading nf_conntrack_locks_all needs ACQUIRE memory ordering.
+> - The new code avoids the backwards loop.
+> 
+> Only slightly tested, I did not manage to trigger calls to
+> nf_conntrack_all_lock().
+> 
+> Fixes: b16c29191dc8
+> Signed-off-by: Manfred Spraul <manfred@colorfullife.com>
+> Cc: <stable@vger.kernel.org>
+> Cc: Sasha Levin <sasha.levin@oracle.com>
+> Cc: Pablo Neira Ayuso <pablo@netfilter.org>
+> Cc: netfilter-devel@vger.kernel.org
+> ---
+>  net/netfilter/nf_conntrack_core.c | 44 +++++++++++++++++++++------------------
+>  1 file changed, 24 insertions(+), 20 deletions(-)
+> 
+> diff --git a/net/netfilter/nf_conntrack_core.c b/net/netfilter/nf_conntrack_core.c
+> index e847dba..1193565 100644
+> --- a/net/netfilter/nf_conntrack_core.c
+> +++ b/net/netfilter/nf_conntrack_core.c
+> @@ -96,19 +96,24 @@ static struct conntrack_gc_work conntrack_gc_work;
+> 
+>  void nf_conntrack_lock(spinlock_t *lock) __acquires(lock)
+>  {
+> +	/* 1) Acquire the lock */
+>  	spin_lock(lock);
+> -	while (unlikely(nf_conntrack_locks_all)) {
+> -		spin_unlock(lock);
+> 
+> -		/*
+> -		 * Order the 'nf_conntrack_locks_all' load vs. the
+> -		 * spin_unlock_wait() loads below, to ensure
+> -		 * that 'nf_conntrack_locks_all_lock' is indeed held:
+> -		 */
+> -		smp_rmb(); /* spin_lock(&nf_conntrack_locks_all_lock) */
+> -		spin_unlock_wait(&nf_conntrack_locks_all_lock);
+> -		spin_lock(lock);
+> -	}
+> +	/* 2) read nf_conntrack_locks_all, with ACQUIRE semantics */
+> +	if (likely(smp_load_acquire(&nf_conntrack_locks_all) == false))
+> +		return;
+> +
+> +	/* fast path failed, unlock */
+> +	spin_unlock(lock);
+> +
+> +	/* Slow path 1) get global lock */
+> +	spin_lock(&nf_conntrack_locks_all_lock);
+> +
+> +	/* Slow path 2) get the lock we want */
+> +	spin_lock(lock);
+> +
+> +	/* Slow path 3) release the global lock */
+> +	spin_unlock(&nf_conntrack_locks_all_lock);
+>  }
+>  EXPORT_SYMBOL_GPL(nf_conntrack_lock);
+> 
+> @@ -149,18 +154,17 @@ static void nf_conntrack_all_lock(void)
+>  	int i;
+> 
+>  	spin_lock(&nf_conntrack_locks_all_lock);
+> -	nf_conntrack_locks_all = true;
+> 
+> -	/*
+> -	 * Order the above store of 'nf_conntrack_locks_all' against
+> -	 * the spin_unlock_wait() loads below, such that if
+> -	 * nf_conntrack_lock() observes 'nf_conntrack_locks_all'
+> -	 * we must observe nf_conntrack_locks[] held:
+> -	 */
+> -	smp_mb(); /* spin_lock(&nf_conntrack_locks_all_lock) */
+> +	nf_conntrack_locks_all = true;
+> 
+>  	for (i = 0; i < CONNTRACK_LOCKS; i++) {
+> -		spin_unlock_wait(&nf_conntrack_locks[i]);
+> +		spin_lock(&nf_conntrack_locks[i]);
+> +
+> +		/* This spin_unlock provides the "release" to ensure that
+> +		 * nf_conntrack_locks_all==true is visible to everyone that
+> +		 * acquired spin_lock(&nf_conntrack_locks[]).
+> +		 */
+> +		spin_unlock(&nf_conntrack_locks[i]);
+>  	}
+>  }
+> 
+> -- 
+> 2.9.4
+> 
