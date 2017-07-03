@@ -1,44 +1,56 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH RFC 08/26] locking: Remove spin_unlock_wait() generic definitions
-Date: Mon, 3 Jul 2017 09:40:22 -0700
-Message-ID: <CA+55aFzA+dk8P-wWFX_rYE09A-3uCL8_7ZNG4jC1+c0x4COQkQ@mail.gmail.com>
-References: <20170629235918.GA6445@linux.vnet.ibm.com> <1498780894-8253-8-git-send-email-paulmck@linux.vnet.ibm.com>
- <20170630091928.GC9726@arm.com> <20170630123815.GT2393@linux.vnet.ibm.com>
- <20170630131339.GA14118@arm.com> <20170630221840.GI2393@linux.vnet.ibm.com>
- <20170703131514.GE1573@arm.com> <20170703161851.GY2393@linux.vnet.ibm.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH RFC 08/26] locking: Remove spin_unlock_wait() generic
+ definitions
+Date: Mon, 3 Jul 2017 18:13:38 +0100
+Message-ID: <20170703171338.GG1573@arm.com>
+References: <20170629235918.GA6445@linux.vnet.ibm.com>
+ <1498780894-8253-8-git-send-email-paulmck@linux.vnet.ibm.com>
+ <20170630091928.GC9726@arm.com>
+ <20170630123815.GT2393@linux.vnet.ibm.com>
+ <20170630131339.GA14118@arm.com>
+ <20170630221840.GI2393@linux.vnet.ibm.com>
+ <20170703131514.GE1573@arm.com>
+ <20170703161851.GY2393@linux.vnet.ibm.com>
+ <CA+55aFzA+dk8P-wWFX_rYE09A-3uCL8_7ZNG4jC1+c0x4COQkQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f45.google.com ([209.85.218.45]:33269 "EHLO
-        mail-oi0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S932087AbdGCQkX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 3 Jul 2017 12:40:23 -0400
-In-Reply-To: <20170703161851.GY2393@linux.vnet.ibm.com>
+Received: from foss.arm.com ([217.140.101.70]:36910 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1755330AbdGCRNk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 3 Jul 2017 13:13:40 -0400
+Content-Disposition: inline
+In-Reply-To: <CA+55aFzA+dk8P-wWFX_rYE09A-3uCL8_7ZNG4jC1+c0x4COQkQ@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul McKenney <paulmck@linux.vnet.ibm.com>
-Cc: Will Deacon <will.deacon@arm.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, NetFilter <netfilter-devel@vger.kernel.org>, Network Development <netdev@vger.kernel.org>, Oleg Nesterov <oleg@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, Tejun Heo <tj@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, NetFilter <netfilter-devel@vger.kernel.org>, Network Development <netdev@vger.kernel.org>, Oleg Nesterov <oleg@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, Tejun Heo <tj@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>
 
-On Mon, Jul 3, 2017 at 9:18 AM, Paul E. McKenney
-<paulmck@linux.vnet.ibm.com> wrote:
->
-> Agreed, and my next step is to look at spin_lock() followed by
-> spin_is_locked(), not necessarily the same lock.
+On Mon, Jul 03, 2017 at 09:40:22AM -0700, Linus Torvalds wrote:
+> On Mon, Jul 3, 2017 at 9:18 AM, Paul E. McKenney
+> <paulmck@linux.vnet.ibm.com> wrote:
+> >
+> > Agreed, and my next step is to look at spin_lock() followed by
+> > spin_is_locked(), not necessarily the same lock.
+> 
+> Hmm. Most (all?) "spin_is_locked()" really should be about the same
+> thread that took the lock (ie it's about asserts and lock debugging).
+> 
+> The optimistic ABBA avoidance pattern for spinlocks *should* be
+> 
+>     spin_lock(inner)
+>     ...
+>     if (!try_lock(outer)) {
+>            spin_unlock(inner);
+>            .. do them in the right order ..
+> 
+> so I don't think spin_is_locked() should have any memory barriers.
+> 
+> In fact, the core function for spin_is_locked() is arguably
+> arch_spin_value_unlocked() which doesn't even do the access itself.
 
-Hmm. Most (all?) "spin_is_locked()" really should be about the same
-thread that took the lock (ie it's about asserts and lock debugging).
+Yeah, but there's some spaced-out stuff going on in kgdb_cpu_enter where
+it looks to me like raw_spin_is_locked is used for synchronization. My
+eyes are hurting looking at it, though.
 
-The optimistic ABBA avoidance pattern for spinlocks *should* be
-
-    spin_lock(inner)
-    ...
-    if (!try_lock(outer)) {
-           spin_unlock(inner);
-           .. do them in the right order ..
-
-so I don't think spin_is_locked() should have any memory barriers.
-
-In fact, the core function for spin_is_locked() is arguably
-arch_spin_value_unlocked() which doesn't even do the access itself.
-
-                       Linus
+Will
