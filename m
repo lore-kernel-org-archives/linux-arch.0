@@ -1,67 +1,44 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH RFC 08/26] locking: Remove spin_unlock_wait() generic
- definitions
-Date: Mon, 3 Jul 2017 09:18:51 -0700
-Message-ID: <20170703161851.GY2393@linux.vnet.ibm.com>
-References: <20170629235918.GA6445@linux.vnet.ibm.com>
- <1498780894-8253-8-git-send-email-paulmck@linux.vnet.ibm.com>
- <20170630091928.GC9726@arm.com>
- <20170630123815.GT2393@linux.vnet.ibm.com>
- <20170630131339.GA14118@arm.com>
- <20170630221840.GI2393@linux.vnet.ibm.com>
- <20170703131514.GE1573@arm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCH RFC 08/26] locking: Remove spin_unlock_wait() generic definitions
+Date: Mon, 3 Jul 2017 09:40:22 -0700
+Message-ID: <CA+55aFzA+dk8P-wWFX_rYE09A-3uCL8_7ZNG4jC1+c0x4COQkQ@mail.gmail.com>
+References: <20170629235918.GA6445@linux.vnet.ibm.com> <1498780894-8253-8-git-send-email-paulmck@linux.vnet.ibm.com>
+ <20170630091928.GC9726@arm.com> <20170630123815.GT2393@linux.vnet.ibm.com>
+ <20170630131339.GA14118@arm.com> <20170630221840.GI2393@linux.vnet.ibm.com>
+ <20170703131514.GE1573@arm.com> <20170703161851.GY2393@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <netfilter-devel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20170703131514.GE1573@arm.com>
-Sender: netfilter-devel-owner@vger.kernel.org
-To: Will Deacon <will.deacon@arm.com>
-Cc: linux-kernel@vger.kernel.org, netfilter-devel@vger.kernel.org, netdev@vger.kernel.org, oleg@redhat.com, akpm@linux-foundation.org, mingo@redhat.com, dave@stgolabs.net, manfred@colorfullife.com, tj@kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, peterz@infradead.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, torvalds@linux-foundation.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-oi0-f45.google.com ([209.85.218.45]:33269 "EHLO
+        mail-oi0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S932087AbdGCQkX (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 3 Jul 2017 12:40:23 -0400
+In-Reply-To: <20170703161851.GY2393@linux.vnet.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Paul McKenney <paulmck@linux.vnet.ibm.com>
+Cc: Will Deacon <will.deacon@arm.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, NetFilter <netfilter-devel@vger.kernel.org>, Network Development <netdev@vger.kernel.org>, Oleg Nesterov <oleg@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, Tejun Heo <tj@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>
 
-On Mon, Jul 03, 2017 at 02:15:14PM +0100, Will Deacon wrote:
-> On Fri, Jun 30, 2017 at 03:18:40PM -0700, Paul E. McKenney wrote:
-> > On Fri, Jun 30, 2017 at 02:13:39PM +0100, Will Deacon wrote:
-> > > On Fri, Jun 30, 2017 at 05:38:15AM -0700, Paul E. McKenney wrote:
-> > > > I also need to check all uses of spin_is_locked().  There might no
-> > > > longer be any that rely on any particular ordering...
-> > > 
-> > > Right. I think we're looking for the "insane case" as per 38b850a73034
-> > > (which was apparently used by ipc/sem.c at the time, but no longer).
-> > > 
-> > > There's a usage in kernel/debug/debug_core.c, but it doesn't fill me with
-> > > joy.
-> > 
-> > That is indeed an interesting one...  But my first round will be what
-> > semantics the implementations seem to provide:
-> > 
-> > Acquire courtesy of TSO: s390, sparc, x86.
-> > Acquire: ia64 (in reality fully ordered).
-> > Control dependency: alpha, arc, arm, blackfin, hexagon, m32r, mn10300, tile,
-> > 	xtensa.
-> > Control dependency plus leading full barrier: arm64, powerpc.
-> > UP-only: c6x, cris, frv, h8300, m68k, microblaze nios2, openrisc, um, unicore32.
-> > 
-> > Special cases:
-> > 	metag: Acquire if !CONFIG_METAG_SMP_WRITE_REORDERING.
-> > 	       Otherwise control dependency?
-> > 	mips: Control dependency, acquire if CONFIG_CPU_CAVIUM_OCTEON.
-> > 	parisc: Acquire courtesy of TSO, but why barrier in smp_load_acquire?
-> > 	sh: Acquire if one of SH4A, SH5, or J2, otherwise acquire?  UP-only?
-> > 
-> > Are these correct, or am I missing something with any of them?
-> 
-> That looks about right but, at least on ARM, I think we have to consider
-> the semantics of spin_is_locked with respect to the other spin_* functions,
-> rather than in isolation.
-> 
-> For example, ARM only has a control dependency, but spin_lock has a trailing
-> smp_mb() and spin_unlock has both leading and trailing smp_mb().
+On Mon, Jul 3, 2017 at 9:18 AM, Paul E. McKenney
+<paulmck@linux.vnet.ibm.com> wrote:
+>
+> Agreed, and my next step is to look at spin_lock() followed by
+> spin_is_locked(), not necessarily the same lock.
 
-Agreed, and my next step is to look at spin_lock() followed by
-spin_is_locked(), not necessarily the same lock.
+Hmm. Most (all?) "spin_is_locked()" really should be about the same
+thread that took the lock (ie it's about asserts and lock debugging).
 
-							Thanx, Paul
+The optimistic ABBA avoidance pattern for spinlocks *should* be
 
+    spin_lock(inner)
+    ...
+    if (!try_lock(outer)) {
+           spin_unlock(inner);
+           .. do them in the right order ..
+
+so I don't think spin_is_locked() should have any memory barriers.
+
+In fact, the core function for spin_is_locked() is arguably
+arch_spin_value_unlocked() which doesn't even do the access itself.
+
+                       Linus
