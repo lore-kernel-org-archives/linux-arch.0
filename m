@@ -1,74 +1,83 @@
-From: <tchidrenplytoo@aim.com>
-Subject: (unknown)
-Date: Sun, 02 Jul 2017 18:44:40 -0000
-Message-ID: <149902108043.29695.1107711051069851440@permonline.ru>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH 1/1] futex: remove duplicated code and fix UB
+Date: Mon, 3 Jul 2017 12:18:28 +0200 (CEST)
+Message-ID: <alpine.DEB.2.20.1707031211120.2188@nanos>
+References: <20170621115318.2781-1-jslaby@suse.cz>
+ <alpine.DEB.2.20.1706230017520.2221@nanos>
+ <80af8d81-4522-de2d-8289-1ab46565505a@suse.cz>
 Mime-Version: 1.0
-Content-Type: application/zip; name="EMAIL_23646323904760_linux-arch.zip"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 90.150.122.132.permonline.ru ([90.150.122.132]:49606 "HELO
-        permonline.ru" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org
-        with SMTP id S1751760AbdGBSop (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 2 Jul 2017 14:44:45 -0400
-Subject: 
-Content-Disposition: attachment
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
+In-Reply-To: <80af8d81-4522-de2d-8289-1ab46565505a@suse.cz>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
+List-Post: <mailto:linux-snps-arc@lists.infradead.org>
+List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
+Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
+To: Jiri Slaby <jslaby@suse.cz>
+Cc: linux-mips@linux-mips.org, Rich Felker <dalias@libc.org>, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, peterz@infradead.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Will Deacon <will.deacon@arm.com>, Max Filippov <jcmvbkbc@gmail.com>, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, sparclinux@vger.kernel.org, Jonas Bonn <jonas@southpole.se>, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, linux-hexagon@vger.kernel.org, Helge Deller <deller@gmx.de>, x86@kernel.org, "James E.J. Bottomley" <jejb@parisc-linux.org>, mingo@redhat.com, Catalin Marinas <catalin.marinas@arm.com>, dvhart@infradead.org, Matt Turner <mattst88@gmail.com>, linux-snps-arc@lists.infradead.org, Fenghua Yu <fenghua.yu@intel.com>, Arnd Bergmann <arnd@arndb.de>, linux-xtensa@linux-xtensa.org
+List-Id: linux-arch.vger.kernel.org
 
-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
+On Mon, 26 Jun 2017, Jiri Slaby wrote:
+> On 06/23/2017, 09:51 AM, Thomas Gleixner wrote:
+> > On Wed, 21 Jun 2017, Jiri Slaby wrote:
+> >> diff --git a/arch/arm64/include/asm/futex.h b/arch/arm64/include/asm/futex.h
+> >> index f32b42e8725d..5bb2fd4674e7 100644
+> >> --- a/arch/arm64/include/asm/futex.h
+> >> +++ b/arch/arm64/include/asm/futex.h
+> >> @@ -48,20 +48,10 @@ do {									\
+> >>  } while (0)
+> >>  
+> >>  static inline int
+> >> -futex_atomic_op_inuser(unsigned int encoded_op, u32 __user *uaddr)
+> > 
+> > That unsigned int seems to be a change from the arm64 tree in next. It's
+> > not upstream and it'll cause a (easy to resolve) conflict.
+> 
+> Ugh, I thought the arm64 is in upstream already. Note that this patch
+> just takes what is in this arm64 fix and makes it effective for all
+> architectures. So I will wait with v2 until it merges upstream.
+
+Ok.
+
+> > Yes, we probably can't change that anymore, but at least we should make it
+> > very explicit and add a comment to that effect.
+> 
+> Something like this or do you want a comment yet?
+>         unsigned int op =         (encoded_op & 0x70000000) >> 28;
+>         unsigned int cmp =        (encoded_op & 0x0f000000) >> 24;
+>         int oparg = sign_extend32((encoded_op & 0x00fff000) >> 12, 12);
+>         int cmparg = sign_extend32(encoded_op & 0x00000fff, 12);
+
+Yes, that makes sense.
+
+There is also the issue with the shift. See this thread for further
+reference:
+
+  http://lkml.kernel.org/r/alpine.DEB.2.20.1706282353190.1890@nanos
+
+The gist is:
+
+  "Anything using a shift value < 0 or > 31 will get crap as a
+   result. Rightfully so because it's just undefined.
+
+   Yes I know that the insanity of user space is unlimited, but anything
+   attempting this is so broken that we cannot break it further by making
+   that shift arg unsigned and actually limit it to 0-31"
+
+So we should make that case explicit as well.
+
+        if (encoded_op & (FUTEX_OP_OPARG_SHIFT << 28)) {
+		if (oparg < 0 || oparg > 31)
+			return -EINVAL;
+                oparg = 1 << oparg;
+	}
+
+Thanks,
+
+	tglx
