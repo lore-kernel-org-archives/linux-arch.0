@@ -1,77 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([146.0.238.70]:42733 "EHLO
-        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752310AbdGCKUI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 3 Jul 2017 06:20:08 -0400
-Date: Mon, 3 Jul 2017 12:18:28 +0200 (CEST)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH 1/1] futex: remove duplicated code and fix UB
-In-Reply-To: <80af8d81-4522-de2d-8289-1ab46565505a@suse.cz>
-Message-ID: <alpine.DEB.2.20.1707031211120.2188@nanos>
-References: <20170621115318.2781-1-jslaby@suse.cz> <alpine.DEB.2.20.1706230017520.2221@nanos> <80af8d81-4522-de2d-8289-1ab46565505a@suse.cz>
+Received: from foss.arm.com ([217.140.101.70]:33726 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1754292AbdGCNPQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 3 Jul 2017 09:15:16 -0400
+Date: Mon, 3 Jul 2017 14:15:14 +0100
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH RFC 08/26] locking: Remove spin_unlock_wait() generic
+ definitions
+Message-ID: <20170703131514.GE1573@arm.com>
+References: <20170629235918.GA6445@linux.vnet.ibm.com>
+ <1498780894-8253-8-git-send-email-paulmck@linux.vnet.ibm.com>
+ <20170630091928.GC9726@arm.com>
+ <20170630123815.GT2393@linux.vnet.ibm.com>
+ <20170630131339.GA14118@arm.com>
+ <20170630221840.GI2393@linux.vnet.ibm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20170630221840.GI2393@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jiri Slaby <jslaby@suse.cz>
-Cc: Will Deacon <will.deacon@arm.com>, mingo@redhat.com, peterz@infradead.org, dvhart@infradead.org, linux-kernel@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, "H. Peter Anvin" <hpa@zytor.com>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org
-Message-ID: <20170703101828.pegwgGTIapE6Kcr6ZRhIgUDLmYTS8X5CJrdDxMaz2j0@z>
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: linux-kernel@vger.kernel.org, netfilter-devel@vger.kernel.org, netdev@vger.kernel.org, oleg@redhat.com, akpm@linux-foundation.org, mingo@redhat.com, dave@stgolabs.net, manfred@colorfullife.com, tj@kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, peterz@infradead.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, torvalds@linux-foundation.org
+Message-ID: <20170703131514.8-hT4dZHsoL41huEmYfNCqKOOWw_zuNeK7US7WZ89B8@z>
 
-On Mon, 26 Jun 2017, Jiri Slaby wrote:
-> On 06/23/2017, 09:51 AM, Thomas Gleixner wrote:
-> > On Wed, 21 Jun 2017, Jiri Slaby wrote:
-> >> diff --git a/arch/arm64/include/asm/futex.h b/arch/arm64/include/asm/futex.h
-> >> index f32b42e8725d..5bb2fd4674e7 100644
-> >> --- a/arch/arm64/include/asm/futex.h
-> >> +++ b/arch/arm64/include/asm/futex.h
-> >> @@ -48,20 +48,10 @@ do {									\
-> >>  } while (0)
-> >>  
-> >>  static inline int
-> >> -futex_atomic_op_inuser(unsigned int encoded_op, u32 __user *uaddr)
+On Fri, Jun 30, 2017 at 03:18:40PM -0700, Paul E. McKenney wrote:
+> On Fri, Jun 30, 2017 at 02:13:39PM +0100, Will Deacon wrote:
+> > On Fri, Jun 30, 2017 at 05:38:15AM -0700, Paul E. McKenney wrote:
+> > > I also need to check all uses of spin_is_locked().  There might no
+> > > longer be any that rely on any particular ordering...
 > > 
-> > That unsigned int seems to be a change from the arm64 tree in next. It's
-> > not upstream and it'll cause a (easy to resolve) conflict.
+> > Right. I think we're looking for the "insane case" as per 38b850a73034
+> > (which was apparently used by ipc/sem.c at the time, but no longer).
+> > 
+> > There's a usage in kernel/debug/debug_core.c, but it doesn't fill me with
+> > joy.
 > 
-> Ugh, I thought the arm64 is in upstream already. Note that this patch
-> just takes what is in this arm64 fix and makes it effective for all
-> architectures. So I will wait with v2 until it merges upstream.
-
-Ok.
-
-> > Yes, we probably can't change that anymore, but at least we should make it
-> > very explicit and add a comment to that effect.
+> That is indeed an interesting one...  But my first round will be what
+> semantics the implementations seem to provide:
 > 
-> Something like this or do you want a comment yet?
->         unsigned int op =         (encoded_op & 0x70000000) >> 28;
->         unsigned int cmp =        (encoded_op & 0x0f000000) >> 24;
->         int oparg = sign_extend32((encoded_op & 0x00fff000) >> 12, 12);
->         int cmparg = sign_extend32(encoded_op & 0x00000fff, 12);
+> Acquire courtesy of TSO: s390, sparc, x86.
+> Acquire: ia64 (in reality fully ordered).
+> Control dependency: alpha, arc, arm, blackfin, hexagon, m32r, mn10300, tile,
+> 	xtensa.
+> Control dependency plus leading full barrier: arm64, powerpc.
+> UP-only: c6x, cris, frv, h8300, m68k, microblaze nios2, openrisc, um, unicore32.
+> 
+> Special cases:
+> 	metag: Acquire if !CONFIG_METAG_SMP_WRITE_REORDERING.
+> 	       Otherwise control dependency?
+> 	mips: Control dependency, acquire if CONFIG_CPU_CAVIUM_OCTEON.
+> 	parisc: Acquire courtesy of TSO, but why barrier in smp_load_acquire?
+> 	sh: Acquire if one of SH4A, SH5, or J2, otherwise acquire?  UP-only?
+> 
+> Are these correct, or am I missing something with any of them?
 
-Yes, that makes sense.
+That looks about right but, at least on ARM, I think we have to consider
+the semantics of spin_is_locked with respect to the other spin_* functions,
+rather than in isolation.
 
-There is also the issue with the shift. See this thread for further
-reference:
+For example, ARM only has a control dependency, but spin_lock has a trailing
+smp_mb() and spin_unlock has both leading and trailing smp_mb().
 
-  http://lkml.kernel.org/r/alpine.DEB.2.20.1706282353190.1890@nanos
-
-The gist is:
-
-  "Anything using a shift value < 0 or > 31 will get crap as a
-   result. Rightfully so because it's just undefined.
-
-   Yes I know that the insanity of user space is unlimited, but anything
-   attempting this is so broken that we cannot break it further by making
-   that shift arg unsigned and actually limit it to 0-31"
-
-So we should make that case explicit as well.
-
-        if (encoded_op & (FUTEX_OP_OPARG_SHIFT << 28)) {
-		if (oparg < 0 || oparg > 31)
-			return -EINVAL;
-                oparg = 1 << oparg;
-	}
-
-Thanks,
-
-	tglx
+Will
