@@ -1,91 +1,74 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH RFC 08/26] locking: Remove spin_unlock_wait() generic
- definitions
-Date: Mon, 3 Jul 2017 17:54:38 -0700
-Message-ID: <20170704005438.GA19389@linux.vnet.ibm.com>
-References: <20170630123815.GT2393@linux.vnet.ibm.com>
- <20170630131339.GA14118@arm.com>
- <20170630221840.GI2393@linux.vnet.ibm.com>
- <20170703131514.GE1573@arm.com>
- <20170703161851.GY2393@linux.vnet.ibm.com>
- <CA+55aFzA+dk8P-wWFX_rYE09A-3uCL8_7ZNG4jC1+c0x4COQkQ@mail.gmail.com>
- <20170703171338.GG1573@arm.com>
- <20170703223011.GI2393@linux.vnet.ibm.com>
- <CA+55aFy4QPFypce_N0jC-QjhTU9GKZ2i11HewKKOfo0hCHn7Sw@mail.gmail.com>
- <20170704003936.GJ2393@linux.vnet.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: <h.gerritsen12@chello.nl>
+Subject: (unknown)
+Date: Tue, 04 Jul 2017 10:50:48 -0000
+Message-ID: <149916544865.12492.15892931591698248485@interra.ru>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: application/zip; name="EMAIL_46564219859_linux-arch.zip"
+Content-Transfer-Encoding: base64
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:53302 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1750980AbdGDAyo (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 3 Jul 2017 20:54:44 -0400
-Received: from pps.filterd (m0098416.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.20/8.16.0.20) with SMTP id v640rmxm071973
-        for <linux-arch@vger.kernel.org>; Mon, 3 Jul 2017 20:54:44 -0400
-Received: from e18.ny.us.ibm.com (e18.ny.us.ibm.com [129.33.205.208])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 2bfjk4cwyc-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Mon, 03 Jul 2017 20:54:43 -0400
-Received: from localhost
-        by e18.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Mon, 3 Jul 2017 20:54:43 -0400
-Content-Disposition: inline
-In-Reply-To: <20170704003936.GJ2393@linux.vnet.ibm.com>
+Received: from 95.163.211.178.revda.interra.ru ([178.211.163.95]:50545 "HELO
+        interra.ru" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with SMTP
+        id S1752052AbdGDKuw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 4 Jul 2017 06:50:52 -0400
+Content-Disposition: attachment
+Subject: 
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Will Deacon <will.deacon@arm.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, NetFilter <netfilter-devel@vger.kernel.org>, Network Development <netdev@vger.kernel.org>, Oleg Nesterov <oleg@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, Tejun Heo <tj@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>
+To: linux-arch@vger.kernel.org
 
-On Mon, Jul 03, 2017 at 05:39:36PM -0700, Paul E. McKenney wrote:
-> On Mon, Jul 03, 2017 at 03:49:42PM -0700, Linus Torvalds wrote:
-> > On Mon, Jul 3, 2017 at 3:30 PM, Paul E. McKenney
-> > <paulmck@linux.vnet.ibm.com> wrote:
-> > >
-> > > That certainly is one interesting function, isn't it?  I wonder what
-> > > happens if you replace the raw_spin_is_locked() calls with an
-> > > unlock under a trylock check?  ;-)
-> > 
-> > Deadlock due to interrupts again?
-> 
-> Unless I am missing something subtle, the kgdb_cpu_enter() function in
-> question has a local_irq_save() over the "interesting" portion of its
-> workings, so interrupt-handler self-deadlock should not happen.
-> 
-> > Didn't your spin_unlock_wait() patches teach you anything? Checking
-> > state is fundamentally different from taking the lock. Even a trylock.
-> 
-> That was an embarrassing bug, no two ways about it.  :-/
-> 
-> > I guess you could try with the irqsave versions. But no, we're not doing that.
-> 
-> Again, no need in this case.
-> 
-> But I agree with Will's assessment of this function...
-> 
-> The raw_spin_is_locked() looks to be asking if -any- CPU holds the
-> dbg_slave_lock, and the answer could of course change immediately
-> on return from raw_spin_is_locked().  Perhaps the theory is that
-> if other CPU holds the lock, this CPU is supposed to be subjected to
-> kgdb_roundup_cpus().  Except that the CPU that held dbg_slave_lock might
-> be just about to release that lock.  Odd.
-> 
-> Seems like there should be a get_online_cpus() somewhere, but maybe
-> that constraint is to be manually enforced.
-
-Except that invoking get_online_cpus() from an exception handler would
-be of course be a spectacularly bad idea.  I would feel better if the
-num_online_cpus() was under the local_irq_save(), but perhaps this code
-is relying on the stop_machine().  Except that it appears we could
-deadlock with offline waiting for stop_machine() to complete and kdbg
-waiting for all CPUs to report, including those in stop_machine().
-
-Looks like the current situation is "Don't use kdbg if there is any
-possibility of CPU-hotplug operations."  Not necessarily an unreasonable
-restriction.
-
-But I need to let me eyes heal a bit before looking at this more.
-
-							Thanx, Paul
+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
