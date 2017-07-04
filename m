@@ -1,60 +1,78 @@
-From: <tchidrenplytoo@aim.com>
-Subject: (unknown)
-Date: Tue, 04 Jul 2017 19:53:42 -0000
-Message-ID: <149919802265.29697.17357748612436831650@zaural.ru>
+From: Karsten Merker <merker@debian.org>
+Subject: Re: [patches] Re: [PATCH 1/9] RISC-V: Init and Halt Code
+Date: Tue, 4 Jul 2017 23:17:50 +0200
+Message-ID: <20170704211749.jqgfbgjqzm2bcppy@excalibur.cnev.de>
+References: <20170704195102.3974-1-palmer@dabbelt.com>
+ <20170704195102.3974-2-palmer@dabbelt.com>
+ <alpine.DEB.2.20.1707042224560.2131@nanos>
 Mime-Version: 1.0
-Content-Type: application/zip; name="EBAY_725260156512_linux-arch.zip"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ws248.zone31-163-162.zaural.ru ([31.163.162.248]:47978 "HELO
-        zaural.ru" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with SMTP
-        id S1752634AbdGDTyC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 4 Jul 2017 15:54:02 -0400
-Content-Disposition: attachment
-Subject: 
+Received: from mout.kundenserver.de ([212.227.126.187]:55593 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752204AbdGDVTe (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 4 Jul 2017 17:19:34 -0400
+Content-Disposition: inline
+In-Reply-To: <alpine.DEB.2.20.1707042224560.2131@nanos>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+To: Palmer Dabbelt <palmer@dabbelt.com>, Thomas Gleixner <tglx@linutronix.de>
+Cc: patches@groups.riscv.org, peterz@infradead.org, mingo@redhat.com, mcgrof@kernel.org, viro@zeniv.linux.org.uk, sfr@canb.auug.org.au, nicolas.dichtel@6wind.com, rmk+kernel@armlinux.org.uk, msalter@redhat.com, tklauser@distanz.ch, will.deacon@arm.com, james.hogan@imgtec.com, paul.gortmaker@windriver.com, linux@roeck-us.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, albert@sifive.com
 
-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
+On Tue, Jul 04, 2017 at 10:37:37PM +0200, Thomas Gleixner wrote:
+> On Tue, 4 Jul 2017, Palmer Dabbelt wrote:
+
+> > +unsigned long riscv_timebase;
+> > +
+> > +static int next_event(unsigned long delta, struct clock_event_device *ce)
+> > +{
+> > +	BUG_ON(ce != timer_riscv_device(smp_processor_id()));
+> > +	sbi_set_timer(get_cycles64() + delta);
+> > +	return 0;
+> > +}
+> > +
+> > +static unsigned long long rdtime(struct clocksource *cs)
+> > +{
+> > +	BUG_ON(cs != timer_riscv_source(smp_processor_id()));
+> > +	return get_cycles64();
+> > +}
+> > +
+> > +void riscv_timer_interrupt(void)
+> > +{
+> > +	int cpu = smp_processor_id();
+> > +	struct clock_event_device *evdev = timer_riscv_device(cpu);
+> > +
+> > +	evdev->event_handler(evdev);
+> > +}
+> > +
+> > +void __init time_init(void)
+> > +{
+> > +	struct device_node *cpu;
+> > +	u32 prop;
+> > +	int cpu_id = smp_processor_id();
+> > +
+> > +	cpu = of_find_node_by_path("/cpus");
+> > +	if (!cpu || of_property_read_u32(cpu, "timebase-frequency", &prop))
+> > +		panic(KERN_WARNING "RISC-V system with no 'timebase-frequency' in DTS\n");
+> > +	riscv_timebase = prop;
+> > +
+> > +	lpj_fine = riscv_timebase / HZ;
+> > +
+> > +	timer_riscv_init(cpu_id, riscv_timebase, &rdtime, &next_event);
+> 
+> This function is nowhere.... Neither can I find the header file.
+
+It is part of the RISC-V clock driver patchset, please cf.
+https://github.com/riscv/riscv-linux/commit/0705a31372d4714e54c5104e02021441785c1fd5
+
+https://github.com/riscv/riscv-linux/commits/riscv-for-submission-v4
+has the various RISC-V-related driver patchsets merged in (in
+addition to this arch patchset).
+
+Regards,
+Karsten
+-- 
+Gem. Par. 28 Abs. 4 Bundesdatenschutzgesetz widerspreche ich der Nutzung
+sowie der Weitergabe meiner personenbezogenen Daten für Zwecke der
+Werbung sowie der Markt- oder Meinungsforschung.
