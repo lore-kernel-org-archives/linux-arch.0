@@ -1,14 +1,20 @@
 From: Palmer Dabbelt <palmer@dabbelt.com>
 Subject: [PATCH 2/9] RISC-V: Atomic and Locking Code
 Date: Tue,  4 Jul 2017 12:50:55 -0700
-Message-ID: <20170704195102.3974-3-palmer@dabbelt.com>
+Message-ID: <20170704195102.3974-3-palmer__13327.7998575524$1499198047$gmane$org@dabbelt.com>
 References: <20170704195102.3974-1-palmer@dabbelt.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pf0-f194.google.com ([209.85.192.194]:33099 "EHLO
+        mail-pf0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752303AbdGDTv0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 4 Jul 2017 15:51:26 -0400
+Received: by mail-pf0-f194.google.com with SMTP id e199so31769200pfh.0
+        for <linux-arch@vger.kernel.org>; Tue, 04 Jul 2017 12:51:26 -0700 (PDT)
 In-Reply-To: <20170704195102.3974-1-palmer@dabbelt.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: peterz@infradead.org, mingo@redhat.com, mcgrof@kernel.org, viro@zeniv.linux.org.uk, sfr@canb.auug.org.au, nicolas.dichtel@6wind.com, rmk+kernel@armlinux.org.uk, msalter@redhat.com, tklauser@distanz.ch, will.deacon@arm.com, james.hogan@imgtec.com, paul.gortmaker@windriver.com, linux@roeck-us.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, albert@sifive.com, patches@groups.riscv.org
 Cc: Palmer Dabbelt <palmer@dabbelt.com>
-List-Id: linux-arch.vger.kernel.org
 
 This contains all the code that directly interfaces with the RISC-V
 memory model.  While this code corforms to the current RISC-V ISA
