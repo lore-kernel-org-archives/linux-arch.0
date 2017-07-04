@@ -1,1155 +1,900 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f194.google.com ([209.85.192.194]:35270 "EHLO
-        mail-pf0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752169AbdGDTvY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 4 Jul 2017 15:51:24 -0400
-Received: by mail-pf0-f194.google.com with SMTP id q85so2482275pfq.2
-        for <linux-arch@vger.kernel.org>; Tue, 04 Jul 2017 12:51:24 -0700 (PDT)
+Received: from mail-pg0-f66.google.com ([74.125.83.66]:33143 "EHLO
+        mail-pg0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752434AbdGDTvj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 4 Jul 2017 15:51:39 -0400
+Received: by mail-pg0-f66.google.com with SMTP id u62so28511431pgb.0
+        for <linux-arch@vger.kernel.org>; Tue, 04 Jul 2017 12:51:39 -0700 (PDT)
 From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: [PATCH 1/9] RISC-V: Init and Halt Code
-Date: Tue,  4 Jul 2017 12:50:54 -0700
-Message-ID: <20170704195102.3974-2-palmer@dabbelt.com>
+Subject: [PATCH 9/9] RISC-V: Build Infastructure
+Date: Tue,  4 Jul 2017 12:51:02 -0700
+Message-ID: <20170704195102.3974-10-palmer@dabbelt.com>
 In-Reply-To: <20170704195102.3974-1-palmer@dabbelt.com>
 References: <20170704195102.3974-1-palmer@dabbelt.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: peterz@infradead.org, mingo@redhat.com, mcgrof@kernel.org, viro@zeniv.linux.org.uk, sfr@canb.auug.org.au, nicolas.dichtel@6wind.com, rmk+kernel@armlinux.org.uk, msalter@redhat.com, tklauser@distanz.ch, will.deacon@arm.com, james.hogan@imgtec.com, paul.gortmaker@windriver.com, linux@roeck-us.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, albert@sifive.com, patches@groups.riscv.org
 Cc: Palmer Dabbelt <palmer@dabbelt.com>
-Message-ID: <20170704195054.-DqZQOL8xJyHfgu_ciYey05kD4HUY5fEpVOfiykXiYk@z>
+Message-ID: <20170704195102.B1q782yKLyOQVKxE50YlQpu7lYrkIMgRYpAfYhU7uoQ@z>
 
-This contains the various __init C functions, the initial assembly
-kernel entry point, and the code to reset the system.  When a file was
-init-related, it contains
+This patch contains all the build infastructure that actually enables
+the RISC-V port.  This includes Makefiles, linker scripts, and Kconfig
+files.  It also contains the only top-level change, which adds RISC-V to
+the list of architectures that need a sed run to produce the ARCH
+variable when building locally.
 
 Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
 ---
- arch/riscv/include/asm/bug.h   |  88 +++++++++++++++
- arch/riscv/include/asm/cache.h |  22 ++++
- arch/riscv/include/asm/smp.h   |  41 +++++++
- arch/riscv/kernel/cacheinfo.c  | 105 ++++++++++++++++++
- arch/riscv/kernel/cpu.c        |  89 +++++++++++++++
- arch/riscv/kernel/head.S       | 152 +++++++++++++++++++++++++
- arch/riscv/kernel/irq.c        |  20 ++++
- arch/riscv/kernel/reset.c      |  36 ++++++
- arch/riscv/kernel/setup.c      | 246 +++++++++++++++++++++++++++++++++++++++++
- arch/riscv/kernel/smp.c        | 110 ++++++++++++++++++
- arch/riscv/kernel/smpboot.c    | 114 +++++++++++++++++++
- arch/riscv/kernel/time.c       |  61 ++++++++++
- arch/riscv/kernel/traps.c      | 184 ++++++++++++++++++++++++++++++
- arch/riscv/kernel/vdso.c       | 125 +++++++++++++++++++++
- arch/riscv/mm/init.c           |  70 ++++++++++++
- 15 files changed, 1463 insertions(+)
- create mode 100644 arch/riscv/include/asm/bug.h
- create mode 100644 arch/riscv/include/asm/cache.h
- create mode 100644 arch/riscv/include/asm/smp.h
- create mode 100644 arch/riscv/kernel/cacheinfo.c
- create mode 100644 arch/riscv/kernel/cpu.c
- create mode 100644 arch/riscv/kernel/head.S
- create mode 100644 arch/riscv/kernel/irq.c
- create mode 100644 arch/riscv/kernel/reset.c
- create mode 100644 arch/riscv/kernel/setup.c
- create mode 100644 arch/riscv/kernel/smp.c
- create mode 100644 arch/riscv/kernel/smpboot.c
- create mode 100644 arch/riscv/kernel/time.c
- create mode 100644 arch/riscv/kernel/traps.c
- create mode 100644 arch/riscv/kernel/vdso.c
- create mode 100644 arch/riscv/mm/init.c
+ Makefile                                  |   3 +-
+ arch/riscv/Kconfig                        | 304 ++++++++++++++++++++++++++++++
+ arch/riscv/Makefile                       |  64 +++++++
+ arch/riscv/configs/freedom-u500_defconfig |  52 +++++
+ arch/riscv/configs/spike32_defconfig      |  50 +++++
+ arch/riscv/configs/spike64_defconfig      |  46 +++++
+ arch/riscv/include/asm/Kbuild             |  61 ++++++
+ arch/riscv/include/uapi/asm/Kbuild        |   4 +
+ arch/riscv/kernel/.gitignore              |   1 +
+ arch/riscv/kernel/Makefile                |  33 ++++
+ arch/riscv/kernel/vdso/Makefile           |  61 ++++++
+ arch/riscv/kernel/vdso/vdso.lds.S         |  77 ++++++++
+ arch/riscv/kernel/vmlinux.lds.S           |  92 +++++++++
+ arch/riscv/lib/Makefile                   |   6 +
+ arch/riscv/mm/Makefile                    |   4 +
+ 15 files changed, 857 insertions(+), 1 deletion(-)
+ create mode 100644 arch/riscv/Kconfig
+ create mode 100644 arch/riscv/Makefile
+ create mode 100644 arch/riscv/configs/freedom-u500_defconfig
+ create mode 100644 arch/riscv/configs/spike32_defconfig
+ create mode 100644 arch/riscv/configs/spike64_defconfig
+ create mode 100644 arch/riscv/include/asm/Kbuild
+ create mode 100644 arch/riscv/include/uapi/asm/Kbuild
+ create mode 100644 arch/riscv/kernel/.gitignore
+ create mode 100644 arch/riscv/kernel/Makefile
+ create mode 100644 arch/riscv/kernel/vdso/Makefile
+ create mode 100644 arch/riscv/kernel/vdso/vdso.lds.S
+ create mode 100644 arch/riscv/kernel/vmlinux.lds.S
+ create mode 100644 arch/riscv/lib/Makefile
+ create mode 100644 arch/riscv/mm/Makefile
 
-diff --git a/arch/riscv/include/asm/bug.h b/arch/riscv/include/asm/bug.h
+diff --git a/Makefile b/Makefile
+index 283c6236438e..a7c77b6586b9 100644
+--- a/Makefile
++++ b/Makefile
+@@ -232,7 +232,8 @@ SUBARCH := $(shell uname -m | sed -e s/i.86/x86/ -e s/x86_64/x86/ \
+ 				  -e s/arm.*/arm/ -e s/sa110/arm/ \
+ 				  -e s/s390x/s390/ -e s/parisc64/parisc/ \
+ 				  -e s/ppc.*/powerpc/ -e s/mips.*/mips/ \
+-				  -e s/sh[234].*/sh/ -e s/aarch64.*/arm64/ )
++				  -e s/sh[234].*/sh/ -e s/aarch64.*/arm64/ \
++				  -e s/riscv.*/riscv/)
+ 
+ # Cross compiling and selecting different set of gcc/bin-utils
+ # ---------------------------------------------------------------------------
+diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
 new file mode 100644
-index 000000000000..e2f690c20729
+index 000000000000..9f587af28910
 --- /dev/null
-+++ b/arch/riscv/include/asm/bug.h
-@@ -0,0 +1,88 @@
-+/*
-+ * Copyright (C) 2012 Regents of the University of California
-+ *
-+ *   This program is free software; you can redistribute it and/or
-+ *   modify it under the terms of the GNU General Public License
-+ *   as published by the Free Software Foundation, version 2.
-+ *
-+ *   This program is distributed in the hope that it will be useful,
-+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ *   GNU General Public License for more details.
-+ */
++++ b/arch/riscv/Kconfig
+@@ -0,0 +1,304 @@
++#
++# For a description of the syntax of this configuration file,
++# see Documentation/kbuild/kconfig-language.txt.
++#
 +
-+#ifndef _ASM_RISCV_BUG_H
-+#define _ASM_RISCV_BUG_H
++config RISCV
++	def_bool y
++	select OF
++	select OF_EARLY_FLATTREE
++	select OF_IRQ
++	select ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
++	select ARCH_WANT_FRAME_POINTERS
++	select CLONE_BACKWARDS
++	select COMMON_CLK
++	select GENERIC_CLOCKEVENTS
++	select GENERIC_CPU_DEVICES
++	select GENERIC_IRQ_SHOW
++	select GENERIC_PCI_IOMAP
++	select GENERIC_STRNCPY_FROM_USER
++	select GENERIC_STRNLEN_USER
++	select GENERIC_SMP_IDLE_THREAD
++	select GENERIC_ATOMIC64 if !64BIT || !ISA_A
++	select ARCH_WANT_OPTIONAL_GPIOLIB
++	select HAVE_MEMBLOCK
++	select HAVE_DMA_API_DEBUG
++	select HAVE_DMA_CONTIGUOUS
++	select HAVE_GENERIC_DMA_COHERENT
++	select IRQ_DOMAIN
++	select NO_BOOTMEM
++	select ISA_A if SMP
++	select SYSRISCV_ATOMIC if !ISA_A
++	select SPARSE_IRQ
++	select SYSCTL_EXCEPTION_TRACE
++	select HAVE_ARCH_TRACEHOOK
++	select MODULES_USE_ELF_RELA if MODULES
++	select THREAD_INFO_IN_TASK
++	select RISCV_IRQ_INTC
++	select RISCV_TIMER
 +
-+#include <linux/compiler.h>
-+#include <linux/const.h>
-+#include <linux/types.h>
++config MMU
++	def_bool y
 +
-+#include <asm/asm.h>
++# even on 32-bit, physical (and DMA) addresses are > 32-bits
++config ARCH_PHYS_ADDR_T_64BIT
++	def_bool y
 +
-+#ifdef CONFIG_GENERIC_BUG
-+#define __BUG_INSN	_AC(0x00100073, UL) /* sbreak */
++config ARCH_DMA_ADDR_T_64BIT
++	def_bool y
 +
-+#ifndef __ASSEMBLY__
-+typedef u32 bug_insn_t;
++config STACKTRACE_SUPPORT
++	def_bool y
 +
-+#ifdef CONFIG_GENERIC_BUG_RELATIVE_POINTERS
-+#define __BUG_ENTRY_ADDR	INT " 1b - 2b"
-+#define __BUG_ENTRY_FILE	INT " %0 - 2b"
-+#else
-+#define __BUG_ENTRY_ADDR	RISCV_PTR " 1b"
-+#define __BUG_ENTRY_FILE	RISCV_PTR " %0"
-+#endif
++config RWSEM_GENERIC_SPINLOCK
++	def_bool y
 +
-+#ifdef CONFIG_DEBUG_BUGVERBOSE
-+#define __BUG_ENTRY			\
-+	__BUG_ENTRY_ADDR "\n\t"		\
-+	__BUG_ENTRY_FILE "\n\t"		\
-+	SHORT " %1"
-+#else
-+#define __BUG_ENTRY			\
-+	__BUG_ENTRY_ADDR
-+#endif
++config GENERIC_BUG
++	def_bool y
++	depends on BUG
++	select GENERIC_BUG_RELATIVE_POINTERS if 64BIT
 +
-+#define BUG()							\
-+do {								\
-+	__asm__ __volatile__ (					\
-+		"1:\n\t"					\
-+			"sbreak\n"				\
-+			".pushsection __bug_table,\"a\"\n\t"	\
-+		"2:\n\t"					\
-+			__BUG_ENTRY "\n\t"			\
-+			".org 2b + %2\n\t"			\
-+			".popsection"				\
-+		:						\
-+		: "i" (__FILE__), "i" (__LINE__),		\
-+		  "i" (sizeof(struct bug_entry)));		\
-+	unreachable();						\
-+} while (0)
-+#endif /* !__ASSEMBLY__ */
-+#else /* CONFIG_GENERIC_BUG */
-+#ifndef __ASSEMBLY__
-+#define BUG()							\
-+do {								\
-+	__asm__ __volatile__ ("sbreak\n");			\
-+	unreachable();						\
-+} while (0)
-+#endif /* !__ASSEMBLY__ */
-+#endif /* CONFIG_GENERIC_BUG */
++config GENERIC_BUG_RELATIVE_POINTERS
++	bool
 +
-+#define HAVE_ARCH_BUG
++config GENERIC_CALIBRATE_DELAY
++	def_bool y
 +
-+#include <asm-generic/bug.h>
++config GENERIC_CSUM
++	def_bool y
 +
-+#ifndef __ASSEMBLY__
++config GENERIC_HWEIGHT
++	def_bool y
 +
-+struct pt_regs;
-+struct task_struct;
++config PGTABLE_LEVELS
++	int
++	default 3 if 64BIT
++	default 2
 +
-+extern void die(struct pt_regs *regs, const char *str);
-+extern void do_trap(struct pt_regs *regs, int signo, int code,
-+	unsigned long addr, struct task_struct *tsk);
++config HAVE_KPROBES
++	def_bool n
 +
-+#endif /* !__ASSEMBLY__ */
++config DMA_NOOP_OPS
++	def_bool y
 +
-+#endif /* _ASM_RISCV_BUG_H */
-diff --git a/arch/riscv/include/asm/cache.h b/arch/riscv/include/asm/cache.h
++menu "Platform type"
++
++config SMP
++	bool "Symmetric Multi-Processing"
++	help
++	  This enables support for systems with more than one CPU.  If
++	  you say N here, the kernel will run on single and
++	  multiprocessor machines, but will use only one CPU of a
++	  multiprocessor machine. If you say Y here, the kernel will run
++	  on many, but not all, single processor machines. On a single
++	  processor machine, the kernel will run faster if you say N
++	  here.
++
++	  If you don't know what to do here, say N.
++
++config NR_CPUS
++	int "Maximum number of CPUs (2-32)"
++	range 2 32
++	depends on SMP
++	default "8"
++
++config CPU_SUPPORTS_32BIT_KERNEL
++	bool
++config CPU_SUPPORTS_64BIT_KERNEL
++	bool
++
++choice
++	prompt "Base ISA"
++	default ARCH_RV64I
++
++config ARCH_RV32I
++	bool "RV32I"
++	select CPU_SUPPORTS_32BIT_KERNEL
++	select 32BIT
++	select GENERIC_ASHLDI3
++	select GENERIC_ASHRDI3
++	select GENERIC_LSHRDI3
++
++config ARCH_RV64I
++	bool "RV64I"
++	select CPU_SUPPORTS_64BIT_KERNEL
++	select 64BIT
++
++endchoice
++
++choice
++	prompt "CPU Tuning"
++	default TUNE_GENERIC
++
++config TUNE_GENERIC
++	bool "generic"
++
++endchoice
++
++config ISA_C
++	bool "Emit compressed instructions when building Linux"
++	default n
++	help
++	   Adds "C" to the ISA subsets that the toolchain is allowed to emit
++	   when building Linux, which results in compressed instructions in the
++	   Linux binary.
++
++	   If you don't know what to do here, say Y.
++
++config ISA_A
++	bool "Emit atomic instructions when building Linux"
++	default y
++	help
++	   Adds "A" to the ISA subsets that the toolchain is allowed to emit
++	   when building Linux, which results in atomic instructions in the
++	   Linux binary.
++
++	   If you don't know what to do here, say Y.
++
++config RV_PUM
++	def_bool y
++	prompt "Protect User Memory" if EXPERT
++	---help---
++	  Protect User Memory (PUM) prevents the kernel from inadvertently
++	  accessing user-space memory.  There is a small performance cost
++	  and kernel size increase if this is enabled.
++
++	  If unsure, say Y.
++
++endmenu
++
++menu "Kernel type"
++
++choice
++	prompt "Kernel code model"
++	default 64BIT
++
++config 32BIT
++	bool "32-bit kernel"
++	depends on CPU_SUPPORTS_32BIT_KERNEL
++	help
++	  Select this option to build a 32-bit kernel.
++
++config 64BIT
++	bool "64-bit kernel"
++	depends on CPU_SUPPORTS_64BIT_KERNEL
++	help
++	  Select this option to build a 64-bit kernel.
++
++endchoice
++
++source "mm/Kconfig"
++
++source "kernel/Kconfig.preempt"
++
++source "kernel/Kconfig.hz"
++
++endmenu
++
++menu "Bus support"
++
++config PCI
++	bool "PCI support"
++	select PCI_MSI
++	help
++	  This feature enables support for PCI bus system. If you say Y
++	  here, the kernel will include drivers and infrastructure code
++	  to support PCI bus devices.
++
++	  If you don't know what to do here, say Y.
++
++config PCI_DOMAINS
++	def_bool PCI
++
++config PCI_DOMAINS_GENERIC
++	def_bool PCI
++
++source "drivers/pci/Kconfig"
++
++endmenu
++
++source "init/Kconfig"
++
++source "kernel/Kconfig.freezer"
++
++menu "Executable file formats"
++
++source "fs/Kconfig.binfmt"
++
++endmenu
++
++menu "Power management options"
++
++source kernel/power/Kconfig
++
++endmenu
++
++source "net/Kconfig"
++
++source "drivers/Kconfig"
++
++source "fs/Kconfig"
++
++menu "Kernel hacking"
++
++config CMDLINE_BOOL
++	bool "Built-in kernel command line"
++	default n
++	help
++	  For most platforms, it is firmware or second stage bootloader
++	  that by default specifies the kernel command line options.
++	  However, it might be necessary or advantageous to either override
++	  the default kernel command line or add a few extra options to it.
++	  For such cases, this option allows hardcoding command line options
++	  directly into the kernel.
++
++	  For that, choose 'Y' here and fill in the extra boot parameters
++	  in CONFIG_CMDLINE.
++
++	  The built-in options will be concatenated to the default command
++	  line if CMDLINE_OVERRIDE is set to 'N'. Otherwise, the default
++	  command line will be ignored and replaced by the built-in string.
++
++config CMDLINE
++	string "Built-in kernel command string"
++	depends on CMDLINE_BOOL
++	default ""
++	help
++	  Supply command-line options at build time by entering them here.
++
++config CMDLINE_OVERRIDE
++	bool "Built-in command line overrides bootloader arguments"
++	default n
++	depends on CMDLINE_BOOL
++	help
++	  Set this option to 'Y' to have the kernel ignore the bootloader
++	  or firmware command line.  Instead, the built-in command line
++	  will be used exclusively.
++
++	  If you don't know what to do here, say N.
++
++config EARLY_PRINTK
++	bool "Early printk"
++	default n
++	help
++	  This option enables special console drivers which allow the kernel
++	  to print messages very early in the bootup process.
++
++	  This is useful for kernel debugging when your machine crashes very
++	  early before the console code is initialized. For normal operation
++	  it is not recommended because it looks ugly and doesn't cooperate
++	  with klogd/syslogd or the X server. You should normally N here,
++	  unless you want to debug such a crash.
++
++
++source "lib/Kconfig.debug"
++
++config CMDLINE_BOOL
++	bool
++endmenu
++
++source "security/Kconfig"
++
++source "crypto/Kconfig"
++
++source "lib/Kconfig"
+diff --git a/arch/riscv/Makefile b/arch/riscv/Makefile
 new file mode 100644
-index 000000000000..e8f0d1110d74
+index 000000000000..66c4a5e383f9
 --- /dev/null
-+++ b/arch/riscv/include/asm/cache.h
-@@ -0,0 +1,22 @@
-+/*
-+ * Copyright (C) 2017 Chen Liqin <liqin.chen@sunplusct.com>
-+ * Copyright (C) 2012 Regents of the University of California
-+ *
-+ *   This program is free software; you can redistribute it and/or
-+ *   modify it under the terms of the GNU General Public License
-+ *   as published by the Free Software Foundation, version 2.
-+ *
-+ *   This program is distributed in the hope that it will be useful,
-+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ *   GNU General Public License for more details.
-+ */
++++ b/arch/riscv/Makefile
+@@ -0,0 +1,64 @@
++# This file is included by the global makefile so that you can add your own
++# architecture-specific flags and dependencies. Remember to do have actions
++# for "archclean" and "archdep" for cleaning up and making dependencies for
++# this architecture
++#
++# This file is subject to the terms and conditions of the GNU General Public
++# License.  See the file "COPYING" in the main directory of this archive
++# for more details.
++#
 +
-+#ifndef _ASM_RISCV_CACHE_H
-+#define _ASM_RISCV_CACHE_H
++LDFLAGS         :=
++OBJCOPYFLAGS    := -O binary
++LDFLAGS_vmlinux :=
++KBUILD_AFLAGS_MODULE += -fPIC
++KBUILD_CFLAGS_MODULE += -fPIC
 +
-+#define L1_CACHE_SHIFT		6
++KBUILD_DEFCONFIG = spike64_defconfig
 +
-+#define L1_CACHE_BYTES		(1 << L1_CACHE_SHIFT)
++export BITS
++ifeq ($(CONFIG_ARCH_RV64I),y)
++	BITS := 64
++	UTS_MACHINE := riscv64
 +
-+#endif /* _ASM_RISCV_CACHE_H */
-diff --git a/arch/riscv/include/asm/smp.h b/arch/riscv/include/asm/smp.h
++	KBUILD_CFLAGS += -mabi=lp64
++	KBUILD_AFLAGS += -mabi=lp64
++	KBUILD_MARCH = rv64im
++	LDFLAGS += -melf64lriscv
++else
++	BITS := 32
++	UTS_MACHINE := riscv32
++
++	KBUILD_CFLAGS += -mabi=ilp32
++	KBUILD_AFLAGS += -mabi=ilp32
++	KBUILD_MARCH = rv32im
++	LDFLAGS += -melf32lriscv
++endif
++
++KBUILD_CFLAGS += -Wall
++
++ifeq ($(CONFIG_ISA_A),y)
++	KBUILD_ARCH_A = a
++endif
++ifeq ($(CONFIG_ISA_C),y)
++	KBUILD_ARCH_C = c
++endif
++
++KBUILD_AFLAGS += -march=$(KBUILD_MARCH)$(KBUILD_ARCH_A)fd$(KBUILD_ARCH_C)
++
++KBUILD_CFLAGS += -march=$(KBUILD_MARCH)$(KBUILD_ARCH_A)$(KBUILD_ARCH_C)
++KBUILD_CFLAGS += -mno-save-restore
++
++# GCC versions that support the "-mstrict-align" option default to allowing
++# unaligned accesses.  While unaligned accesses are explicitly allowed in the
++# RISC-V ISA, they're emulated by machine mode traps on all extant
++# architectures.  It's faster to have GCC emit only aligned accesses.
++KBUILD_CFLAGS += $(call cc-option,-mstrict-align)
++
++head-y := arch/riscv/kernel/head.o
++
++core-y += arch/riscv/kernel/ arch/riscv/mm/
++
++libs-y += arch/riscv/lib/
++
++all: vmlinux
+diff --git a/arch/riscv/configs/freedom-u500_defconfig b/arch/riscv/configs/freedom-u500_defconfig
 new file mode 100644
-index 000000000000..f61f8c25f95b
+index 000000000000..b580dc5c8feb
 --- /dev/null
-+++ b/arch/riscv/include/asm/smp.h
-@@ -0,0 +1,41 @@
-+/*
-+ * Copyright (C) 2012 Regents of the University of California
-+ *
-+ *   This program is free software; you can redistribute it and/or
-+ *   modify it under the terms of the GNU General Public License
-+ *   as published by the Free Software Foundation, version 2.
-+ *
-+ *   This program is distributed in the hope that it will be useful,
-+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ *   GNU General Public License for more details.
-+ */
-+
-+#ifndef _ASM_RISCV_SMP_H
-+#define _ASM_RISCV_SMP_H
-+
-+#include <linux/cpumask.h>
-+#include <linux/irqreturn.h>
-+
-+#ifdef CONFIG_SMP
-+
-+/* SMP initialization hook for setup_arch */
-+void __init init_clockevent(void);
-+
-+/* SMP initialization hook for setup_arch */
-+void __init setup_smp(void);
-+
-+/* Hook for the generic smp_call_function_many() routine. */
-+void arch_send_call_function_ipi_mask(struct cpumask *mask);
-+
-+/* Hook for the generic smp_call_function_single() routine. */
-+void arch_send_call_function_single_ipi(int cpu);
-+
-+#define raw_smp_processor_id() (current_thread_info()->cpu)
-+
-+/* Interprocessor interrupt handler */
-+irqreturn_t handle_ipi(void);
-+
-+#endif /* CONFIG_SMP */
-+
-+#endif /* _ASM_RISCV_SMP_H */
-diff --git a/arch/riscv/kernel/cacheinfo.c b/arch/riscv/kernel/cacheinfo.c
++++ b/arch/riscv/configs/freedom-u500_defconfig
+@@ -0,0 +1,52 @@
++CONFIG_DEFAULT_HOSTNAME="ucbvax"
++# CONFIG_CROSS_MEMORY_ATTACH is not set
++# CONFIG_FHANDLE is not set
++CONFIG_NAMESPACES=y
++# CONFIG_SGETMASK_SYSCALL is not set
++CONFIG_EMBEDDED=y
++# CONFIG_BLK_DEV_BSG is not set
++CONFIG_PARTITION_ADVANCED=y
++# CONFIG_EFI_PARTITION is not set
++# CONFIG_IOSCHED_DEADLINE is not set
++# CONFIG_COMPACTION is not set
++CONFIG_HZ_100=y
++CONFIG_PCI_MSI=y
++CONFIG_NET=y
++CONFIG_UNIX=y
++CONFIG_INET=y
++# CONFIG_INET_XFRM_MODE_TRANSPORT is not set
++# CONFIG_INET_XFRM_MODE_TUNNEL is not set
++# CONFIG_INET_XFRM_MODE_BEET is not set
++# CONFIG_INET_DIAG is not set
++# CONFIG_IPV6 is not set
++# CONFIG_WIRELESS is not set
++CONFIG_DEVTMPFS=y
++CONFIG_DEVTMPFS_MOUNT=y
++# CONFIG_FIRMWARE_IN_KERNEL is not set
++CONFIG_OF=y
++# CONFIG_BLK_DEV is not set
++# CONFIG_INPUT_KEYBOARD is not set
++# CONFIG_INPUT_MOUSE is not set
++# CONFIG_VT is not set
++CONFIG_DEVKMEM=y
++# CONFIG_HW_RANDOM is not set
++# CONFIG_HWMON is not set
++CONFIG_FB=y
++# CONFIG_USB_SUPPORT is not set
++# CONFIG_IOMMU_SUPPORT is not set
++CONFIG_EXT2_FS=y
++# CONFIG_FILE_LOCKING is not set
++# CONFIG_DNOTIFY is not set
++# CONFIG_INOTIFY_USER is not set
++# CONFIG_PROC_PAGE_MONITOR is not set
++# CONFIG_SYSFS is not set
++CONFIG_TMPFS=y
++# CONFIG_MISC_FILESYSTEMS is not set
++# CONFIG_NETWORK_FILESYSTEMS is not set
++CONFIG_PRINTK_TIME=y
++# CONFIG_UNUSED_SYMBOLS is not set
++CONFIG_DEBUG_SECTION_MISMATCH=y
++# CONFIG_FRAME_POINTER is not set
++# CONFIG_EARLY_PRINTK is not set
++# CONFIG_CRYPTO_HW is not set
++CONFIG_TTY=y
+diff --git a/arch/riscv/configs/spike32_defconfig b/arch/riscv/configs/spike32_defconfig
 new file mode 100644
-index 000000000000..10ed2749e246
+index 000000000000..cf3431e94311
 --- /dev/null
-+++ b/arch/riscv/kernel/cacheinfo.c
-@@ -0,0 +1,105 @@
-+/*
-+ * Copyright (C) 2017 SiFive
-+ *
-+ *   This program is free software; you can redistribute it and/or
-+ *   modify it under the terms of the GNU General Public License
-+ *   as published by the Free Software Foundation, version 2.
-+ *
-+ *   This program is distributed in the hope that it will be useful,
-+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ *   GNU General Public License for more details.
-+ */
-+
-+#include <linux/cacheinfo.h>
-+#include <linux/cpu.h>
-+#include <linux/of.h>
-+#include <linux/of_device.h>
-+
-+static void ci_leaf_init(struct cacheinfo *this_leaf,
-+			 struct device_node *node,
-+			 enum cache_type type, unsigned int level)
-+{
-+	this_leaf->of_node = node;
-+	this_leaf->level = level;
-+	this_leaf->type = type;
-+	/* not a sector cache */
-+	this_leaf->physical_line_partition = 1;
-+	/* TODO: Add to DTS */
-+	this_leaf->attributes =
-+		CACHE_WRITE_BACK
-+		| CACHE_READ_ALLOCATE
-+		| CACHE_WRITE_ALLOCATE;
-+}
-+
-+static int __init_cache_level(unsigned int cpu)
-+{
-+	struct cpu_cacheinfo *this_cpu_ci = get_cpu_cacheinfo(cpu);
-+	struct device_node *np = of_cpu_device_node_get(cpu);
-+	int levels = 0, leaves = 0, level;
-+
-+	if (of_property_read_bool(np, "cache-size"))
-+		++leaves;
-+	if (of_property_read_bool(np, "i-cache-size"))
-+		++leaves;
-+	if (of_property_read_bool(np, "d-cache-size"))
-+		++leaves;
-+	if (leaves > 0)
-+		levels = 1;
-+
-+	while ((np = of_find_next_cache_node(np))) {
-+		if (!of_device_is_compatible(np, "cache"))
-+			break;
-+		if (of_property_read_u32(np, "cache-level", &level))
-+			break;
-+		if (level <= levels)
-+			break;
-+		if (of_property_read_bool(np, "cache-size"))
-+			++leaves;
-+		if (of_property_read_bool(np, "i-cache-size"))
-+			++leaves;
-+		if (of_property_read_bool(np, "d-cache-size"))
-+			++leaves;
-+		levels = level;
-+	}
-+
-+	this_cpu_ci->num_levels = levels;
-+	this_cpu_ci->num_leaves = leaves;
-+	return 0;
-+}
-+
-+static int __populate_cache_leaves(unsigned int cpu)
-+{
-+	struct cpu_cacheinfo *this_cpu_ci = get_cpu_cacheinfo(cpu);
-+	struct cacheinfo *this_leaf = this_cpu_ci->info_list;
-+	struct device_node *np = of_cpu_device_node_get(cpu);
-+	int levels = 1, level = 1;
-+
-+	if (of_property_read_bool(np, "cache-size"))
-+		ci_leaf_init(this_leaf++, np, CACHE_TYPE_UNIFIED, level);
-+	if (of_property_read_bool(np, "i-cache-size"))
-+		ci_leaf_init(this_leaf++, np, CACHE_TYPE_INST, level);
-+	if (of_property_read_bool(np, "d-cache-size"))
-+		ci_leaf_init(this_leaf++, np, CACHE_TYPE_DATA, level);
-+
-+	while ((np = of_find_next_cache_node(np))) {
-+		if (!of_device_is_compatible(np, "cache"))
-+			break;
-+		if (of_property_read_u32(np, "cache-level", &level))
-+			break;
-+		if (level <= levels)
-+			break;
-+		if (of_property_read_bool(np, "cache-size"))
-+			ci_leaf_init(this_leaf++, np, CACHE_TYPE_UNIFIED, level);
-+		if (of_property_read_bool(np, "i-cache-size"))
-+			ci_leaf_init(this_leaf++, np, CACHE_TYPE_INST, level);
-+		if (of_property_read_bool(np, "d-cache-size"))
-+			ci_leaf_init(this_leaf++, np, CACHE_TYPE_DATA, level);
-+		levels = level;
-+	}
-+
-+	return 0;
-+}
-+
-+DEFINE_SMP_CALL_CACHE_FUNCTION(init_cache_level)
-+DEFINE_SMP_CALL_CACHE_FUNCTION(populate_cache_leaves)
-diff --git a/arch/riscv/kernel/cpu.c b/arch/riscv/kernel/cpu.c
++++ b/arch/riscv/configs/spike32_defconfig
+@@ -0,0 +1,50 @@
++CONFIG_64BIT=n
++CONFIG_32BIT=y
++CONFIG_ARCH_RV64I=n
++CONFIG_ARCH_RV32I=y
++CONFIG_PCI=y
++CONFIG_DEFAULT_HOSTNAME="ucbvax"
++# CONFIG_CROSS_MEMORY_ATTACH is not set
++# CONFIG_FHANDLE is not set
++CONFIG_NAMESPACES=y
++CONFIG_EMBEDDED=y
++# CONFIG_BLK_DEV_BSG is not set
++CONFIG_PARTITION_ADVANCED=y
++# CONFIG_EFI_PARTITION is not set
++# CONFIG_IOSCHED_DEADLINE is not set
++CONFIG_NET=y
++CONFIG_UNIX=y
++CONFIG_INET=y
++# CONFIG_INET_XFRM_MODE_TRANSPORT is not set
++# CONFIG_INET_XFRM_MODE_TUNNEL is not set
++# CONFIG_INET_XFRM_MODE_BEET is not set
++# CONFIG_INET_DIAG is not set
++# CONFIG_IPV6 is not set
++# CONFIG_WIRELESS is not set
++CONFIG_DEVTMPFS=y
++CONFIG_DEVTMPFS_MOUNT=y
++# CONFIG_FIRMWARE_IN_KERNEL is not set
++# CONFIG_BLK_DEV is not set
++# CONFIG_INPUT_KEYBOARD is not set
++# CONFIG_INPUT_MOUSE is not set
++# CONFIG_VT is not set
++CONFIG_DEVKMEM=y
++# CONFIG_HW_RANDOM is not set
++# CONFIG_HWMON is not set
++CONFIG_FB=y
++# CONFIG_USB_SUPPORT is not set
++# CONFIG_IOMMU_SUPPORT is not set
++CONFIG_EXT2_FS=y
++# CONFIG_FILE_LOCKING is not set
++# CONFIG_DNOTIFY is not set
++# CONFIG_INOTIFY_USER is not set
++# CONFIG_PROC_PAGE_MONITOR is not set
++# CONFIG_SYSFS is not set
++CONFIG_TMPFS=y
++# CONFIG_MISC_FILESYSTEMS is not set
++# CONFIG_NETWORK_FILESYSTEMS is not set
++CONFIG_PRINTK_TIME=y
++CONFIG_DEBUG_SECTION_MISMATCH=y
++# CONFIG_FRAME_POINTER is not set
++# CONFIG_CRYPTO_HW is not set
++CONFIG_TTY=y
+diff --git a/arch/riscv/configs/spike64_defconfig b/arch/riscv/configs/spike64_defconfig
 new file mode 100644
-index 000000000000..20004bd7a216
+index 000000000000..5ad6644df541
 --- /dev/null
-+++ b/arch/riscv/kernel/cpu.c
-@@ -0,0 +1,89 @@
-+/*
-+ * Copyright (C) 2012 Regents of the University of California
-+ *
-+ *   This program is free software; you can redistribute it and/or
-+ *   modify it under the terms of the GNU General Public License
-+ *   as published by the Free Software Foundation, version 2.
-+ *
-+ *   This program is distributed in the hope that it will be useful,
-+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ *   GNU General Public License for more details.
-+ */
-+
-+#include <linux/init.h>
-+#include <linux/seq_file.h>
-+#include <linux/of.h>
-+
-+/* Return -1 if not a valid hart */
-+int riscv_of_processor_hart(struct device_node *node)
-+{
-+	const char *isa, *status;
-+	u32 hart;
-+
-+	if (!of_device_is_compatible(node, "riscv"))
-+		return -(ENODEV);
-+	if (of_property_read_u32(node, "reg", &hart)
-+	    || hart >= NR_CPUS)
-+		return -(ENODEV);
-+	if (of_property_read_string(node, "status", &status)
-+	    || strcmp(status, "okay"))
-+		return -(ENODEV);
-+	if (of_property_read_string(node, "riscv,isa", &isa)
-+	    || isa[0] != 'r'
-+	    || isa[1] != 'v')
-+		return -(ENODEV);
-+
-+	return hart;
-+}
-+
-+#ifdef CONFIG_PROC_FS
-+
-+static void *c_start(struct seq_file *m, loff_t *pos)
-+{
-+	*pos = cpumask_next(*pos - 1, cpu_online_mask);
-+	if ((*pos) < nr_cpu_ids)
-+		return (void *)(uintptr_t)(1 + *pos);
-+	return NULL;
-+}
-+
-+static void *c_next(struct seq_file *m, void *v, loff_t *pos)
-+{
-+	(*pos)++;
-+	return c_start(m, pos);
-+}
-+
-+static void c_stop(struct seq_file *m, void *v)
-+{
-+}
-+
-+static int c_show(struct seq_file *m, void *v)
-+{
-+	unsigned long hart_id = (unsigned long)v - 1;
-+	struct device_node *node = of_get_cpu_node(hart_id, NULL);
-+	const char *compat, *isa, *mmu;
-+
-+	seq_printf(m, "hart\t: %lu\n", hart_id);
-+	if (!of_property_read_string(node, "riscv,isa", &isa)
-+	    && isa[0] == 'r'
-+	    && isa[1] == 'v')
-+		seq_printf(m, "isa\t: %s\n", isa);
-+	if (!of_property_read_string(node, "mmu-type", &mmu)
-+	    && !strncmp(mmu, "riscv,", 6))
-+		seq_printf(m, "mmu\t: %s\n", mmu+6);
-+	if (!of_property_read_string(node, "compatible", &compat)
-+	    && strcmp(compat, "riscv"))
-+		seq_printf(m, "uarch\t: %s\n", compat);
-+	seq_puts(m, "\n");
-+
-+	return 0;
-+}
-+
-+const struct seq_operations cpuinfo_op = {
-+	.start	= c_start,
-+	.next	= c_next,
-+	.stop	= c_stop,
-+	.show	= c_show
-+};
-+
-+#endif /* CONFIG_PROC_FS */
-diff --git a/arch/riscv/kernel/head.S b/arch/riscv/kernel/head.S
++++ b/arch/riscv/configs/spike64_defconfig
+@@ -0,0 +1,46 @@
++CONFIG_PCI=y
++CONFIG_DEFAULT_HOSTNAME="ucbvax"
++# CONFIG_CROSS_MEMORY_ATTACH is not set
++# CONFIG_FHANDLE is not set
++CONFIG_NAMESPACES=y
++CONFIG_EMBEDDED=y
++# CONFIG_BLK_DEV_BSG is not set
++CONFIG_PARTITION_ADVANCED=y
++# CONFIG_EFI_PARTITION is not set
++# CONFIG_IOSCHED_DEADLINE is not set
++CONFIG_NET=y
++CONFIG_UNIX=y
++CONFIG_INET=y
++# CONFIG_INET_XFRM_MODE_TRANSPORT is not set
++# CONFIG_INET_XFRM_MODE_TUNNEL is not set
++# CONFIG_INET_XFRM_MODE_BEET is not set
++# CONFIG_INET_DIAG is not set
++# CONFIG_IPV6 is not set
++# CONFIG_WIRELESS is not set
++CONFIG_DEVTMPFS=y
++CONFIG_DEVTMPFS_MOUNT=y
++# CONFIG_FIRMWARE_IN_KERNEL is not set
++# CONFIG_BLK_DEV is not set
++# CONFIG_INPUT_KEYBOARD is not set
++# CONFIG_INPUT_MOUSE is not set
++# CONFIG_VT is not set
++CONFIG_DEVKMEM=y
++# CONFIG_HW_RANDOM is not set
++# CONFIG_HWMON is not set
++CONFIG_FB=y
++# CONFIG_USB_SUPPORT is not set
++# CONFIG_IOMMU_SUPPORT is not set
++CONFIG_EXT2_FS=y
++# CONFIG_FILE_LOCKING is not set
++# CONFIG_DNOTIFY is not set
++# CONFIG_INOTIFY_USER is not set
++# CONFIG_PROC_PAGE_MONITOR is not set
++# CONFIG_SYSFS is not set
++CONFIG_TMPFS=y
++# CONFIG_MISC_FILESYSTEMS is not set
++# CONFIG_NETWORK_FILESYSTEMS is not set
++CONFIG_PRINTK_TIME=y
++CONFIG_DEBUG_SECTION_MISMATCH=y
++# CONFIG_FRAME_POINTER is not set
++# CONFIG_CRYPTO_HW is not set
++CONFIG_TTY=y
+diff --git a/arch/riscv/include/asm/Kbuild b/arch/riscv/include/asm/Kbuild
 new file mode 100644
-index 000000000000..504c368238c2
+index 000000000000..18158be62a2b
 --- /dev/null
-+++ b/arch/riscv/kernel/head.S
-@@ -0,0 +1,152 @@
-+/*
-+ * Copyright (C) 2012 Regents of the University of California
-+ *
-+ *   This program is free software; you can redistribute it and/or
-+ *   modify it under the terms of the GNU General Public License
-+ *   as published by the Free Software Foundation, version 2.
-+ *
-+ *   This program is distributed in the hope that it will be useful,
-+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ *   GNU General Public License for more details.
-+ */
-+
-+#include <asm/thread_info.h>
-+#include <asm/asm-offsets.h>
-+#include <asm/asm.h>
-+#include <linux/init.h>
-+#include <linux/linkage.h>
-+#include <asm/thread_info.h>
-+#include <asm/page.h>
-+#include <asm/csr.h>
-+
-+__INIT
-+ENTRY(_start)
-+	/* Mask all interrupts */
-+	csrw sie, zero
-+
-+	/*
-+	 * Disable FPU to detect illegal usage of
-+	 * floating point in kernel space
-+	 */
-+	li t0, SR_FS
-+	csrc sstatus, t0
-+
-+#ifndef CONFIG_RV_PUM
-+	/* Allow access to user memory */
-+	li t0, SR_SUM
-+	csrs sstatus, t0
-+#endif
-+
-+#ifdef CONFIG_ISA_A
-+	/* Pick one hart to run the main boot sequence */
-+	la a3, hart_lottery
-+	li a2, 1
-+	amoadd.w a3, a2, (a3)
-+	bnez a3, .Lsecondary_start
-+#else
-+	/*
-+	 * We don't have atomic support, so the boot hart must be picked
-+	 * staticly.  Hart 0 is the only sane choice.
-+	 */
-+	bnez a0, .Lsecondary_park
-+#endif
-+
-+	/* Save hart ID and DTB physical address */
-+	mv s0, a0
-+	mv s1, a1
-+
-+	/* Initialize page tables and relocate to virtual addresses */
-+	la sp, init_thread_union + THREAD_SIZE
-+	call setup_vm
-+	call relocate
-+
-+	/* Restore C environment */
-+	la tp, init_task
-+
-+	la sp, init_thread_union
-+	li a0, ASM_THREAD_SIZE
-+	add sp, sp, a0
-+
-+	/* Start the kernel */
-+	mv a0, s0
-+	mv a1, s1
-+	call sbi_save
-+	tail start_kernel
-+
-+relocate:
-+	/* Relocate return address */
-+	li a1, PAGE_OFFSET
-+	la a0, _start
-+	sub a1, a1, a0
-+	add ra, ra, a1
-+
-+	/* Point stvec to virtual address of intruction after sptbr write */
-+	la a0, 1f
-+	add a0, a0, a1
-+	csrw stvec, a0
-+
-+	/* Compute sptbr for kernel page tables, but don't load it yet */
-+	la a2, swapper_pg_dir
-+	srl a2, a2, PAGE_SHIFT
-+	li a1, SPTBR_MODE
-+	or a2, a2, a1
-+
-+	/*
-+	 * Load trampoline page directory, which will cause us to trap to
-+	 * stvec if VA != PA, or simply fall through if VA == PA
-+	 */
-+	la a0, trampoline_pg_dir
-+	srl a0, a0, PAGE_SHIFT
-+	or a0, a0, a1
-+	sfence.vma
-+	csrw sptbr, a0
-+1:
-+	/* Set trap vector to spin forever to help debug */
-+	la a0, .Lsecondary_park
-+	csrw stvec, a0
-+
-+	/* Load the global pointer */
-+	la gp, __global_pointer$
-+
-+	/* Switch to kernel page tables */
-+	csrw sptbr, a2
-+
-+	ret
-+
-+.Lsecondary_start:
-+#ifdef CONFIG_SMP
-+	li a1, CONFIG_NR_CPUS
-+	bgeu a0, a1, .Lsecondary_park
-+
-+	la a1, __cpu_up_stack_pointer
-+	slli a0, a0, LGREG
-+	add a0, a0, a1
-+
-+.Lwait_for_cpu_up:
-+	REG_L sp, (a0)
-+	beqz sp, .Lwait_for_cpu_up
-+	fence
-+
-+	/* Enable virtual memory and relocate to virtual address */
-+	call relocate
-+
-+	/* Initialize task_struct pointer */
-+	li tp, -THREAD_SIZE
-+	add tp, tp, sp
-+
-+	tail smp_callin
-+#endif
-+
-+.Lsecondary_park:
-+	/* We lack SMP support or have too many harts, so park this hart */
-+	wfi
-+	j .Lsecondary_park
-+END(_start)
-+
-+__PAGE_ALIGNED_BSS
-+	/* Empty zero page */
-+	.balign PAGE_SIZE
-+ENTRY(empty_zero_page)
-+	.fill (empty_zero_page + PAGE_SIZE) - ., 1, 0x00
-+END(empty_zero_page)
-diff --git a/arch/riscv/kernel/irq.c b/arch/riscv/kernel/irq.c
-new file mode 100644
-index 000000000000..737d7cce2c6d
---- /dev/null
-+++ b/arch/riscv/kernel/irq.c
-@@ -0,0 +1,20 @@
-+/*
-+ * Copyright (C) 2012 Regents of the University of California
-+ * Copyright (C) 2017 SiFive
-+ *
-+ *   This program is free software; you can redistribute it and/or
-+ *   modify it under the terms of the GNU General Public License
-+ *   as published by the Free Software Foundation, version 2.
-+ *
-+ *   This program is distributed in the hope that it will be useful,
-+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ *   GNU General Public License for more details.
-+ */
-+
-+#include <linux/irqchip.h>
-+
-+void __init init_IRQ(void)
-+{
-+	irqchip_init();
-+}
-diff --git a/arch/riscv/kernel/reset.c b/arch/riscv/kernel/reset.c
-new file mode 100644
-index 000000000000..2a53d26ffdd6
---- /dev/null
-+++ b/arch/riscv/kernel/reset.c
-@@ -0,0 +1,36 @@
-+/*
-+ * Copyright (C) 2012 Regents of the University of California
-+ *
-+ *   This program is free software; you can redistribute it and/or
-+ *   modify it under the terms of the GNU General Public License
-+ *   as published by the Free Software Foundation, version 2.
-+ *
-+ *   This program is distributed in the hope that it will be useful,
-+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ *   GNU General Public License for more details.
-+ */
-+
-+#include <linux/reboot.h>
-+#include <linux/export.h>
-+#include <asm/sbi.h>
-+
-+void (*pm_power_off)(void) = machine_power_off;
-+EXPORT_SYMBOL(pm_power_off);
-+
-+void machine_restart(char *cmd)
-+{
-+	do_kernel_restart(cmd);
-+	while (1);
-+}
-+
-+void machine_halt(void)
-+{
-+	machine_power_off();
-+}
-+
-+void machine_power_off(void)
-+{
-+	sbi_shutdown();
-+	while (1);
-+}
-diff --git a/arch/riscv/kernel/setup.c b/arch/riscv/kernel/setup.c
-new file mode 100644
-index 000000000000..319fad96f537
---- /dev/null
-+++ b/arch/riscv/kernel/setup.c
-@@ -0,0 +1,246 @@
-+/*
-+ * Copyright (C) 2009 Sunplus Core Technology Co., Ltd.
-+ *  Chen Liqin <liqin.chen@sunplusct.com>
-+ *  Lennox Wu <lennox.wu@sunplusct.com>
-+ * Copyright (C) 2012 Regents of the University of California
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, see the file COPYING, or write
-+ * to the Free Software Foundation, Inc.,
-+ */
-+
-+#include <linux/init.h>
-+#include <linux/mm.h>
-+#include <linux/memblock.h>
-+#include <linux/sched.h>
-+#include <linux/initrd.h>
-+#include <linux/console.h>
-+#include <linux/screen_info.h>
-+#include <linux/of_fdt.h>
-+#include <linux/of_platform.h>
-+#include <linux/sched/task.h>
-+
-+#include <asm/setup.h>
-+#include <asm/sections.h>
-+#include <asm/pgtable.h>
-+#include <asm/smp.h>
-+#include <asm/sbi.h>
-+#include <asm/tlbflush.h>
-+#include <asm/thread_info.h>
-+
-+#ifdef CONFIG_DUMMY_CONSOLE
-+struct screen_info screen_info = {
-+	.orig_video_lines	= 30,
-+	.orig_video_cols	= 80,
-+	.orig_video_mode	= 0,
-+	.orig_video_ega_bx	= 0,
-+	.orig_video_isVGA	= 1,
-+	.orig_video_points	= 8
-+};
-+#endif
-+
-+#ifdef CONFIG_CMDLINE_BOOL
-+static char __initdata builtin_cmdline[COMMAND_LINE_SIZE] = CONFIG_CMDLINE;
-+#endif /* CONFIG_CMDLINE_BOOL */
-+
-+unsigned long va_pa_offset;
-+unsigned long pfn_base;
-+
-+/* The lucky hart to first increment this variable will boot the other cores */
-+atomic_t hart_lottery;
-+
-+#ifdef CONFIG_BLK_DEV_INITRD
-+static void __init setup_initrd(void)
-+{
-+	extern char __initramfs_start[];
-+	extern unsigned long __initramfs_size;
-+	unsigned long size;
-+
-+	if (__initramfs_size > 0) {
-+		initrd_start = (unsigned long)(&__initramfs_start);
-+		initrd_end = initrd_start + __initramfs_size;
-+	}
-+
-+	if (initrd_start >= initrd_end) {
-+		printk(KERN_INFO "initrd not found or empty");
-+		goto disable;
-+	}
-+	if (__pa(initrd_end) > PFN_PHYS(max_low_pfn)) {
-+		printk(KERN_ERR "initrd extends beyond end of memory");
-+		goto disable;
-+	}
-+
-+	size =  initrd_end - initrd_start;
-+	memblock_reserve(__pa(initrd_start), size);
-+	initrd_below_start_ok = 1;
-+
-+	printk(KERN_INFO "Initial ramdisk at: 0x%p (%lu bytes)\n",
-+		(void *)(initrd_start), size);
-+	return;
-+disable:
-+	pr_cont(" - disabling initrd\n");
-+	initrd_start = 0;
-+	initrd_end = 0;
-+}
-+#endif /* CONFIG_BLK_DEV_INITRD */
-+
-+pgd_t swapper_pg_dir[PTRS_PER_PGD] __page_aligned_bss;
-+pgd_t trampoline_pg_dir[PTRS_PER_PGD] __initdata __aligned(PAGE_SIZE);
-+
-+#ifndef __PAGETABLE_PMD_FOLDED
-+#define NUM_SWAPPER_PMDS ((uintptr_t)-PAGE_OFFSET >> PGDIR_SHIFT)
-+pmd_t swapper_pmd[PTRS_PER_PMD*((-PAGE_OFFSET)/PGDIR_SIZE)] __page_aligned_bss;
-+pmd_t trampoline_pmd[PTRS_PER_PGD] __initdata __aligned(PAGE_SIZE);
-+#endif
-+
-+asmlinkage void __init setup_vm(void)
-+{
-+	extern char _start;
-+	uintptr_t i;
-+	uintptr_t pa = (uintptr_t) &_start;
-+	pgprot_t prot = __pgprot(pgprot_val(PAGE_KERNEL) | _PAGE_EXEC);
-+
-+	va_pa_offset = PAGE_OFFSET - pa;
-+	pfn_base = PFN_DOWN(pa);
-+
-+	/* Sanity check alignment and size */
-+	BUG_ON((PAGE_OFFSET % PGDIR_SIZE) != 0);
-+	BUG_ON((pa % (PAGE_SIZE * PTRS_PER_PTE)) != 0);
-+
-+#ifndef __PAGETABLE_PMD_FOLDED
-+	trampoline_pg_dir[(PAGE_OFFSET >> PGDIR_SHIFT) % PTRS_PER_PGD] =
-+		pfn_pgd(PFN_DOWN((uintptr_t)trampoline_pmd),
-+			__pgprot(_PAGE_TABLE));
-+	trampoline_pmd[0] = pfn_pmd(PFN_DOWN(pa), prot);
-+
-+	for (i = 0; i < (-PAGE_OFFSET)/PGDIR_SIZE; ++i) {
-+		size_t o = (PAGE_OFFSET >> PGDIR_SHIFT) % PTRS_PER_PGD + i;
-+		swapper_pg_dir[o] =
-+			pfn_pgd(PFN_DOWN((uintptr_t)swapper_pmd) + i,
-+				__pgprot(_PAGE_TABLE));
-+	}
-+	for (i = 0; i < ARRAY_SIZE(swapper_pmd); i++)
-+		swapper_pmd[i] = pfn_pmd(PFN_DOWN(pa + i * PMD_SIZE), prot);
-+#else
-+	trampoline_pg_dir[(PAGE_OFFSET >> PGDIR_SHIFT) % PTRS_PER_PGD] =
-+		pfn_pgd(PFN_DOWN(pa), prot);
-+
-+	for (i = 0; i < (-PAGE_OFFSET)/PGDIR_SIZE; ++i) {
-+		size_t o = (PAGE_OFFSET >> PGDIR_SHIFT) % PTRS_PER_PGD + i;
-+		swapper_pg_dir[o] =
-+			pfn_pgd(PFN_DOWN(pa + i * PGDIR_SIZE), prot);
-+	}
-+#endif
-+}
-+
-+void __init sbi_save(unsigned int hartid, void *dtb)
-+{
-+	early_init_dt_scan(__va(dtb));
-+}
-+
-+/*
-+ * Allow the user to manually add a memory region (in case DTS is broken);
-+ * "mem_end=nn[KkMmGg]"
-+ */
-+static int __init mem_end_override(char *p)
-+{
-+	resource_size_t base, end;
-+
-+	if (!p)
-+		return -EINVAL;
-+	base = (uintptr_t) __pa(PAGE_OFFSET);
-+	end = memparse(p, &p) & PMD_MASK;
-+	if (end == 0)
-+		return -EINVAL;
-+	memblock_add(base, end - base);
-+	return 0;
-+}
-+early_param("mem_end", mem_end_override);
-+
-+static void __init setup_bootmem(void)
-+{
-+	struct memblock_region *reg;
-+	phys_addr_t mem_size = 0;
-+
-+	/* Find the memory region containing the kernel */
-+	for_each_memblock(memory, reg) {
-+		phys_addr_t vmlinux_end = __pa(_end);
-+		phys_addr_t end = reg->base + reg->size;
-+
-+		if (reg->base <= vmlinux_end && vmlinux_end <= end) {
-+			/*
-+			 * Reserve from the start of the region to the end of
-+			 * the kernel
-+			 */
-+			memblock_reserve(reg->base, vmlinux_end - reg->base);
-+			mem_size = min(reg->size, (phys_addr_t)-PAGE_OFFSET);
-+		}
-+	}
-+	BUG_ON(mem_size == 0);
-+
-+	set_max_mapnr(PFN_DOWN(mem_size));
-+	max_low_pfn = pfn_base + PFN_DOWN(mem_size);
-+
-+#ifdef CONFIG_BLK_DEV_INITRD
-+	setup_initrd();
-+#endif /* CONFIG_BLK_DEV_INITRD */
-+
-+	early_init_fdt_reserve_self();
-+	early_init_fdt_scan_reserved_mem();
-+	memblock_allow_resize();
-+	memblock_dump_all();
-+}
-+
-+void __init setup_arch(char **cmdline_p)
-+{
-+#ifdef CONFIG_CMDLINE_BOOL
-+#ifdef CONFIG_CMDLINE_OVERRIDE
-+	strlcpy(boot_command_line, builtin_cmdline, COMMAND_LINE_SIZE);
-+#else
-+	if (builtin_cmdline[0] != '\0') {
-+		/* Append bootloader command line to built-in */
-+		strlcat(builtin_cmdline, " ", COMMAND_LINE_SIZE);
-+		strlcat(builtin_cmdline, boot_command_line, COMMAND_LINE_SIZE);
-+		strlcpy(boot_command_line, builtin_cmdline, COMMAND_LINE_SIZE);
-+	}
-+#endif /* CONFIG_CMDLINE_OVERRIDE */
-+#endif /* CONFIG_CMDLINE_BOOL */
-+	*cmdline_p = boot_command_line;
-+
-+	parse_early_param();
-+
-+	init_mm.start_code = (unsigned long) _stext;
-+	init_mm.end_code   = (unsigned long) _etext;
-+	init_mm.end_data   = (unsigned long) _edata;
-+	init_mm.brk        = (unsigned long) _end;
-+
-+	setup_bootmem();
-+	paging_init();
-+	unflatten_device_tree();
-+
-+#ifdef CONFIG_SMP
-+	setup_smp();
-+#endif
-+
-+#ifdef CONFIG_DUMMY_CONSOLE
-+	conswitchp = &dummy_con;
-+#endif
-+
-+	riscv_fill_hwcap();
-+}
-+
-+static int __init riscv_device_init(void)
-+{
-+	return of_platform_populate(NULL, of_default_bus_match_table, NULL, NULL);
-+}
-+subsys_initcall_sync(riscv_device_init);
-diff --git a/arch/riscv/kernel/smp.c b/arch/riscv/kernel/smp.c
-new file mode 100644
-index 000000000000..b4a71ec5906f
---- /dev/null
-+++ b/arch/riscv/kernel/smp.c
-@@ -0,0 +1,110 @@
-+/*
-+ * SMP initialisation and IPI support
-+ * Based on arch/arm64/kernel/smp.c
-+ *
-+ * Copyright (C) 2012 ARM Ltd.
-+ * Copyright (C) 2015 Regents of the University of California
-+ * Copyright (C) 2017 SiFive
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+
-+#include <linux/interrupt.h>
-+#include <linux/smp.h>
-+#include <linux/sched.h>
-+
-+#include <asm/sbi.h>
-+#include <asm/tlbflush.h>
-+#include <asm/cacheflush.h>
-+
-+/* A collection of single bit ipi messages.  */
-+static struct {
-+	unsigned long bits ____cacheline_aligned;
-+} ipi_data[NR_CPUS] __cacheline_aligned;
-+
-+enum ipi_message_type {
-+	IPI_RESCHEDULE,
-+	IPI_CALL_FUNC,
-+	IPI_MAX
-+};
-+
-+irqreturn_t handle_ipi(void)
-+{
-+	unsigned long *pending_ipis = &ipi_data[smp_processor_id()].bits;
-+
-+	/* Clear pending IPI */
-+	csr_clear(sip, SIE_SSIE);
-+
-+	while (true) {
-+		unsigned long ops;
-+
-+		/* Order bit clearing and data access. */
-+		mb();
-+
-+		ops = xchg(pending_ipis, 0);
-+		if (ops == 0)
-+			return IRQ_HANDLED;
-+
-+		if (ops & (1 << IPI_RESCHEDULE))
-+			scheduler_ipi();
-+
-+		if (ops & (1 << IPI_CALL_FUNC))
-+			generic_smp_call_function_interrupt();
-+
-+		BUG_ON((ops >> IPI_MAX) != 0);
-+
-+		/* Order data access and bit testing. */
-+		mb();
-+	}
-+
-+	return IRQ_HANDLED;
-+}
-+
-+static void
-+send_ipi_message(const struct cpumask *to_whom, enum ipi_message_type operation)
-+{
-+	int i;
-+
-+	mb();
-+	for_each_cpu(i, to_whom)
-+		set_bit(operation, &ipi_data[i].bits);
-+
-+	mb();
-+	sbi_send_ipi(cpumask_bits(to_whom));
-+}
-+
-+void arch_send_call_function_ipi_mask(struct cpumask *mask)
-+{
-+	send_ipi_message(mask, IPI_CALL_FUNC);
-+}
-+
-+void arch_send_call_function_single_ipi(int cpu)
-+{
-+	send_ipi_message(cpumask_of(cpu), IPI_CALL_FUNC);
-+}
-+
-+static void ipi_stop(void *unused)
-+{
-+	while (1)
-+		wait_for_interrupt();
-+}
-+
-+void smp_send_stop(void)
-+{
-+	on_each_cpu(ipi_stop, NULL, 1);
-+}
-+
-+void smp_send_reschedule(int cpu)
-+{
-+	send_ipi_message(cpumask_of(cpu), IPI_RESCHEDULE);
-+}
-diff --git a/arch/riscv/kernel/smpboot.c b/arch/riscv/kernel/smpboot.c
-new file mode 100644
-index 000000000000..e5c7f1aafda9
---- /dev/null
-+++ b/arch/riscv/kernel/smpboot.c
-@@ -0,0 +1,114 @@
-+/*
-+ * SMP initialisation and IPI support
-+ * Based on arch/arm64/kernel/smp.c
-+ *
-+ * Copyright (C) 2012 ARM Ltd.
-+ * Copyright (C) 2015 Regents of the University of California
-+ * Copyright (C) 2017 SiFive
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ */
-+
-+#include <linux/module.h>
-+#include <linux/init.h>
-+#include <linux/kernel.h>
-+#include <linux/mm.h>
-+#include <linux/sched.h>
-+#include <linux/kernel_stat.h>
-+#include <linux/notifier.h>
-+#include <linux/cpu.h>
-+#include <linux/percpu.h>
-+#include <linux/delay.h>
-+#include <linux/err.h>
-+#include <linux/irq.h>
-+#include <linux/of.h>
-+#include <linux/sched/task_stack.h>
-+#include <asm/irq.h>
-+#include <asm/mmu_context.h>
-+#include <asm/tlbflush.h>
-+#include <asm/sections.h>
-+#include <asm/sbi.h>
-+
-+void *__cpu_up_stack_pointer[NR_CPUS];
-+
-+void __init smp_prepare_boot_cpu(void)
-+{
-+}
-+
-+void __init smp_prepare_cpus(unsigned int max_cpus)
-+{
-+}
-+
-+void __init setup_smp(void)
-+{
-+	struct device_node *dn = NULL;
-+	int hart, im_okay_therefore_i_am = 0;
-+
-+	while ((dn = of_find_node_by_type(dn, "cpu"))) {
-+		hart = riscv_of_processor_hart(dn);
-+		if (hart >= 0) {
-+			set_cpu_possible(hart, true);
-+			set_cpu_present(hart, true);
-+			if (hart == smp_processor_id()) {
-+				BUG_ON(im_okay_therefore_i_am);
-+				im_okay_therefore_i_am = 1;
-+			}
-+		}
-+	}
-+
-+	BUG_ON(!im_okay_therefore_i_am);
-+}
-+
-+int __cpu_up(unsigned int cpu, struct task_struct *tidle)
-+{
-+	/* Signal cpu to start */
-+	mb();
-+	__cpu_up_stack_pointer[cpu] = task_stack_page(tidle) + THREAD_SIZE;
-+
-+	while (!cpu_online(cpu))
-+		cpu_relax();
-+
-+	return 0;
-+}
-+
-+void __init smp_cpus_done(unsigned int max_cpus)
-+{
-+}
-+
-+/*
-+ * C entry point for a secondary processor.
-+ */
-+asmlinkage void __init smp_callin(void)
-+{
-+	struct mm_struct *mm = &init_mm;
-+
-+	/* All kernel threads share the same mm context.  */
-+	atomic_inc(&mm->mm_count);
-+	current->active_mm = mm;
-+
-+	trap_init();
-+	init_clockevent();
-+	notify_cpu_starting(smp_processor_id());
-+	set_cpu_online(smp_processor_id(), 1);
-+
-+	/*
-+	 * Write SIE again now that this hart is online, to catch any IRQ
-+	 * enable/disable events that happened between trap_init() and
-+	 * set_cpu_online().
-+	 */
-+	csr_write(sie,
-+		  SIE_SSIE | atomic_long_read(&per_cpu(riscv_early_sie, hart))
-+		);
-+
-+	local_flush_tlb_all();
-+	local_irq_enable();
-+	preempt_disable();
-+	cpu_startup_entry(CPUHP_AP_ONLINE_IDLE);
-+}
-diff --git a/arch/riscv/kernel/time.c b/arch/riscv/kernel/time.c
-new file mode 100644
-index 000000000000..6bba2e6f2a84
---- /dev/null
-+++ b/arch/riscv/kernel/time.c
++++ b/arch/riscv/include/asm/Kbuild
 @@ -0,0 +1,61 @@
++generic-y += bugs.h
++generic-y += cacheflush.h
++generic-y += checksum.h
++generic-y += clkdev.h
++generic-y += cputime.h
++generic-y += device.h
++generic-y += div64.h
++generic-y += dma.h
++generic-y += dma-contiguous.h
++generic-y += emergency-restart.h
++generic-y += errno.h
++generic-y += exec.h
++generic-y += fb.h
++generic-y += fcntl.h
++generic-y += ftrace.h
++generic-y += futex.h
++generic-y += hardirq.h
++generic-y += hash.h
++generic-y += hw_irq.h
++generic-y += ioctl.h
++generic-y += ioctls.h
++generic-y += ipcbuf.h
++generic-y += irq_regs.h
++generic-y += irq_work.h
++generic-y += kdebug.h
++generic-y += kmap_types.h
++generic-y += kvm_para.h
++generic-y += local.h
++generic-y += mm-arch-hooks.h
++generic-y += mman.h
++generic-y += module.h
++generic-y += msgbuf.h
++generic-y += mutex.h
++generic-y += param.h
++generic-y += percpu.h
++generic-y += poll.h
++generic-y += posix_types.h
++generic-y += preempt.h
++generic-y += resource.h
++generic-y += scatterlist.h
++generic-y += sections.h
++generic-y += sembuf.h
++generic-y += setup.h
++generic-y += shmbuf.h
++generic-y += shmparam.h
++generic-y += signal.h
++generic-y += socket.h
++generic-y += sockios.h
++generic-y += stat.h
++generic-y += statfs.h
++generic-y += swab.h
++generic-y += termbits.h
++generic-y += termios.h
++generic-y += topology.h
++generic-y += trace_clock.h
++generic-y += types.h
++generic-y += unaligned.h
++generic-y += user.h
++generic-y += vga.h
++generic-y += vmlinux.lds.h
++generic-y += xor.h
+diff --git a/arch/riscv/include/uapi/asm/Kbuild b/arch/riscv/include/uapi/asm/Kbuild
+new file mode 100644
+index 000000000000..0727570a49b2
+--- /dev/null
++++ b/arch/riscv/include/uapi/asm/Kbuild
+@@ -0,0 +1,4 @@
++# UAPI Header export list
++include include/uapi/asm-generic/Kbuild.asm
++
++generic-y += setup.h
+diff --git a/arch/riscv/kernel/.gitignore b/arch/riscv/kernel/.gitignore
+new file mode 100644
+index 000000000000..b51634f6a7cd
+--- /dev/null
++++ b/arch/riscv/kernel/.gitignore
+@@ -0,0 +1 @@
++/vmlinux.lds
+diff --git a/arch/riscv/kernel/Makefile b/arch/riscv/kernel/Makefile
+new file mode 100644
+index 000000000000..ab8baf7bd142
+--- /dev/null
++++ b/arch/riscv/kernel/Makefile
+@@ -0,0 +1,33 @@
++#
++# Makefile for the RISC-V Linux kernel
++#
++
++extra-y += head.o
++extra-y += vmlinux.lds
++
++obj-y	+= cpu.o
++obj-y	+= cpufeature.o
++obj-y	+= entry.o
++obj-y	+= irq.o
++obj-y	+= process.o
++obj-y	+= ptrace.o
++obj-y	+= reset.o
++obj-y	+= setup.o
++obj-y	+= signal.o
++obj-y	+= syscall_table.o
++obj-y	+= sys_riscv.o
++obj-y	+= time.o
++obj-y	+= traps.o
++obj-y	+= riscv_ksyms.o
++obj-y	+= stacktrace.o
++obj-y	+= vdso.o
++obj-y	+= cacheinfo.o
++obj-y	+= vdso/
++
++CFLAGS_setup.o := -mcmodel=medany
++
++obj-$(CONFIG_SMP)		+= smpboot.o
++obj-$(CONFIG_SMP)		+= smp.o
++obj-$(CONFIG_MODULES)		+= module.o
++
++clean:
+diff --git a/arch/riscv/kernel/vdso/Makefile b/arch/riscv/kernel/vdso/Makefile
+new file mode 100644
+index 000000000000..1f272425e889
+--- /dev/null
++++ b/arch/riscv/kernel/vdso/Makefile
+@@ -0,0 +1,61 @@
++# Derived from arch/{arm64,tile}/kernel/vdso/Makefile
++
++obj-vdso := sigreturn.o cmpxchg32.o cmpxchg64.o
++
++# Build rules
++targets := $(obj-vdso) vdso.so vdso.so.dbg
++obj-vdso := $(addprefix $(obj)/, $(obj-vdso))
++
++#ccflags-y := -shared -fno-common -fno-builtin
++#ccflags-y += -nostdlib -Wl,-soname=linux-vdso.so.1 \
++		$(call cc-ldoption, -Wl$(comma)--hash-style=sysv)
++
++CFLAGS_vdso.so = $(c_flags)
++CFLAGS_vdso.so.dbg = -shared -s -Wl,-soname=linux-vdso.so.1 \
++	$(call cc-ldoption, -Wl$(comma)--hash-style=sysv)
++CFLAGS_vdso_syms.o = -r
++
++obj-y += vdso.o
++
++# We also create a special relocatable object that should mirror the symbol
++# table and layout of the linked DSO.  With ld -R we can then refer to
++# these symbols in the kernel code rather than hand-coded addresses.
++extra-y += vdso.lds vdso-syms.o
++$(obj)/built-in.o: $(obj)/vdso-syms.o
++$(obj)/built-in.o: ld_flags += -R $(obj)/vdso-syms.o
++
++CPPFLAGS_vdso.lds += -P -C -U$(ARCH)
++
++# Force dependency
++$(obj)/vdso.o : $(obj)/vdso.so
++
++# Link rule for the *.so file; *.lds must be first
++$(obj)/vdso.so.dbg: $(src)/vdso.lds $(obj-vdso)
++	$(call if_changed,vdsold)
++$(obj)/vdso-syms.o: $(src)/vdso.lds $(obj-vdso)
++	$(call if_changed,vdsold)
++
++# Strip rule for the *.so file
++$(obj)/%.so: OBJCOPYFLAGS := -S
++$(obj)/%.so: $(obj)/%.so.dbg FORCE
++	$(call if_changed,objcopy)
++
++# Assembly rules for the *.S files
++$(obj-vdso): %.o: %.S
++	$(call if_changed_dep,vdsoas)
++
++# Actual build commands
++quiet_cmd_vdsold = VDSOLD  $@
++      cmd_vdsold = $(CC) $(c_flags) -nostdlib $(CFLAGS_$(@F)) -Wl,-n -Wl,-T $^ -o $@
++quiet_cmd_vdsoas = VDSOAS  $@
++      cmd_vdsoas = $(CC) $(a_flags) -c -o $@ $<
++
++# Install commands for the unstripped file
++quiet_cmd_vdso_install = INSTALL $@
++      cmd_vdso_install = cp $(obj)/$@.dbg $(MODLIB)/vdso/$@
++
++vdso.so: $(obj)/vdso.so.dbg
++	@mkdir -p $(MODLIB)/vdso
++	$(call cmd,vdso_install)
++
++vdso_install: vdso.so
+diff --git a/arch/riscv/kernel/vdso/vdso.lds.S b/arch/riscv/kernel/vdso/vdso.lds.S
+new file mode 100644
+index 000000000000..7142e1aafc30
+--- /dev/null
++++ b/arch/riscv/kernel/vdso/vdso.lds.S
+@@ -0,0 +1,77 @@
++/*
++ * Copyright (C) 2012 Regents of the University of California
++ *
++ *   This program is free software; you can redistribute it and/or
++ *   modify it under the terms of the GNU General Public License
++ *   as published by the Free Software Foundation, version 2.
++ *
++ *   This program is distributed in the hope that it will be useful,
++ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ *   GNU General Public License for more details.
++ */
++
++OUTPUT_ARCH(riscv)
++
++SECTIONS
++{
++	. = SIZEOF_HEADERS;
++
++	.hash		: { *(.hash) }			:text
++	.gnu.hash	: { *(.gnu.hash) }
++	.dynsym		: { *(.dynsym) }
++	.dynstr		: { *(.dynstr) }
++	.gnu.version	: { *(.gnu.version) }
++	.gnu.version_d	: { *(.gnu.version_d) }
++	.gnu.version_r	: { *(.gnu.version_r) }
++
++	.note		: { *(.note.*) }		:text	:note
++	.dynamic	: { *(.dynamic) }		:text	:dynamic
++
++	.eh_frame_hdr	: { *(.eh_frame_hdr) }		:text	:eh_frame_hdr
++	.eh_frame	: { KEEP (*(.eh_frame)) }	:text
++
++	.rodata		: { *(.rodata .rodata.* .gnu.linkonce.r.*) }
++
++	/*
++	 * This linker script is used both with -r and with -shared.
++	 * For the layouts to match, we need to skip more than enough
++	 * space for the dynamic symbol table, etc. If this amount is
++	 * insufficient, ld -shared will error; simply increase it here.
++	 */
++	. = 0x800;
++	.text		: { *(.text .text.*) }		:text
++
++	.data		: {
++		*(.got.plt) *(.got)
++		*(.data .data.* .gnu.linkonce.d.*)
++		*(.dynbss)
++		*(.bss .bss.* .gnu.linkonce.b.*)
++	}
++}
++
++/*
++ * We must supply the ELF program headers explicitly to get just one
++ * PT_LOAD segment, and set the flags explicitly to make segments read-only.
++ */
++PHDRS
++{
++	text		PT_LOAD		FLAGS(5) FILEHDR PHDRS; /* PF_R|PF_X */
++	dynamic		PT_DYNAMIC	FLAGS(4);		/* PF_R */
++	note		PT_NOTE		FLAGS(4);		/* PF_R */
++	eh_frame_hdr	PT_GNU_EH_FRAME;
++}
++
++/*
++ * This controls what symbols we export from the DSO.
++ */
++VERSION
++{
++	LINUX_2.6 {
++	global:
++		__vdso_rt_sigreturn;
++		__vdso_cmpxchg32;
++		__vdso_cmpxchg64;
++	local: *;
++	};
++}
+diff --git a/arch/riscv/kernel/vmlinux.lds.S b/arch/riscv/kernel/vmlinux.lds.S
+new file mode 100644
+index 000000000000..ece84991609c
+--- /dev/null
++++ b/arch/riscv/kernel/vmlinux.lds.S
+@@ -0,0 +1,92 @@
 +/*
 + * Copyright (C) 2012 Regents of the University of California
 + * Copyright (C) 2017 SiFive
@@ -1164,449 +909,105 @@ index 000000000000..6bba2e6f2a84
 + *   GNU General Public License for more details.
 + */
 +
-+#include <linux/clocksource.h>
-+#include <linux/clockchips.h>
-+#include <linux/delay.h>
-+#include <linux/timer_riscv.h>
++#define LOAD_OFFSET PAGE_OFFSET
++#include <asm/vmlinux.lds.h>
++#include <asm/page.h>
++#include <asm/cache.h>
++#include <asm/thread_info.h>
 +
-+#include <asm/sbi.h>
++OUTPUT_ARCH(riscv)
++ENTRY(_start)
 +
-+unsigned long riscv_timebase;
++jiffies = jiffies_64;
 +
-+static int next_event(unsigned long delta, struct clock_event_device *ce)
++SECTIONS
 +{
-+	BUG_ON(ce != timer_riscv_device(smp_processor_id()));
-+	sbi_set_timer(get_cycles64() + delta);
-+	return 0;
++	/* Beginning of code and text segment */
++	. = LOAD_OFFSET;
++	_start = .;
++	__init_begin = .;
++	HEAD_TEXT_SECTION
++	INIT_TEXT_SECTION(PAGE_SIZE)
++	INIT_DATA_SECTION(16)
++	/* we have to discard exit text and such at runtime, not link time */
++	.exit.text :
++	{
++		EXIT_TEXT
++	}
++	.exit.data :
++	{
++		EXIT_DATA
++	}
++	PERCPU_SECTION(L1_CACHE_BYTES)
++	__init_end = .;
++
++	.text : {
++		_text = .;
++		_stext = .;
++		TEXT_TEXT
++		SCHED_TEXT
++		CPUIDLE_TEXT
++		LOCK_TEXT
++		KPROBES_TEXT
++		ENTRY_TEXT
++		IRQENTRY_TEXT
++		*(.fixup)
++		_etext = .;
++	}
++
++	/* Start of data section */
++	_sdata = .;
++	RO_DATA_SECTION(L1_CACHE_BYTES)
++	.srodata : {
++		*(.srodata*)
++	}
++
++	RW_DATA_SECTION(L1_CACHE_BYTES, PAGE_SIZE, THREAD_SIZE)
++	.sdata : {
++		__global_pointer$ = . + 0x800;
++		*(.sdata*)
++		/* End of data section */
++		_edata = .;
++		*(.sbss*)
++	}
++
++	BSS_SECTION(0, 0, 0)
++
++	EXCEPTION_TABLE(0x10)
++	NOTES
++
++	.rel.dyn : {
++		*(.rel.dyn*)
++	}
++
++	_end = .;
++
++	STABS_DEBUG
++	DWARF_DEBUG
++
++	DISCARDS
 +}
-+
-+static unsigned long long rdtime(struct clocksource *cs)
-+{
-+	BUG_ON(cs != timer_riscv_source(smp_processor_id()));
-+	return get_cycles64();
-+}
-+
-+void riscv_timer_interrupt(void)
-+{
-+	int cpu = smp_processor_id();
-+	struct clock_event_device *evdev = timer_riscv_device(cpu);
-+
-+	evdev->event_handler(evdev);
-+}
-+
-+void __init time_init(void)
-+{
-+	struct device_node *cpu;
-+	u32 prop;
-+	int cpu_id = smp_processor_id();
-+
-+	cpu = of_find_node_by_path("/cpus");
-+	if (!cpu || of_property_read_u32(cpu, "timebase-frequency", &prop))
-+		panic(KERN_WARNING "RISC-V system with no 'timebase-frequency' in DTS\n");
-+	riscv_timebase = prop;
-+
-+	lpj_fine = riscv_timebase / HZ;
-+
-+	timer_riscv_init(cpu_id, riscv_timebase, &rdtime, &next_event);
-+
-+	csr_set(sie, SIE_STIE);
-+}
-diff --git a/arch/riscv/kernel/traps.c b/arch/riscv/kernel/traps.c
+diff --git a/arch/riscv/lib/Makefile b/arch/riscv/lib/Makefile
 new file mode 100644
-index 000000000000..2175a39bed1c
+index 000000000000..596c2ca40d63
 --- /dev/null
-+++ b/arch/riscv/kernel/traps.c
-@@ -0,0 +1,184 @@
-+/*
-+ * Copyright (C) 2012 Regents of the University of California
-+ *
-+ *   This program is free software; you can redistribute it and/or
-+ *   modify it under the terms of the GNU General Public License
-+ *   as published by the Free Software Foundation, version 2.
-+ *
-+ *   This program is distributed in the hope that it will be useful,
-+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ *   GNU General Public License for more details.
-+ */
++++ b/arch/riscv/lib/Makefile
+@@ -0,0 +1,6 @@
++lib-y	+= delay.o
++lib-y	+= memcpy.o
++lib-y	+= memset.o
++lib-y	+= uaccess.o
 +
-+#include <linux/kernel.h>
-+#include <linux/init.h>
-+#include <linux/sched.h>
-+#include <linux/sched/debug.h>
-+#include <linux/sched/signal.h>
-+#include <linux/signal.h>
-+#include <linux/kdebug.h>
-+#include <linux/uaccess.h>
-+#include <linux/mm.h>
-+#include <linux/module.h>
-+#include <linux/irq.h>
-+
-+#include <asm/processor.h>
-+#include <asm/ptrace.h>
-+#include <asm/csr.h>
-+
-+int show_unhandled_signals = 1;
-+
-+extern asmlinkage void handle_exception(void);
-+
-+static DEFINE_SPINLOCK(die_lock);
-+
-+void die(struct pt_regs *regs, const char *str)
-+{
-+	static int die_counter;
-+	int ret;
-+
-+	oops_enter();
-+
-+	spin_lock_irq(&die_lock);
-+	console_verbose();
-+	bust_spinlocks(1);
-+
-+	pr_emerg("%s [#%d]\n", str, ++die_counter);
-+	print_modules();
-+	show_regs(regs);
-+
-+	ret = notify_die(DIE_OOPS, str, regs, 0, regs->scause, SIGSEGV);
-+
-+	bust_spinlocks(0);
-+	add_taint(TAINT_DIE, LOCKDEP_NOW_UNRELIABLE);
-+	spin_unlock_irq(&die_lock);
-+	oops_exit();
-+
-+	if (in_interrupt())
-+		panic("Fatal exception in interrupt");
-+	if (panic_on_oops)
-+		panic("Fatal exception");
-+	if (ret != NOTIFY_STOP)
-+		do_exit(SIGSEGV);
-+}
-+
-+static inline void do_trap_siginfo(int signo, int code,
-+	unsigned long addr, struct task_struct *tsk)
-+{
-+	siginfo_t info;
-+
-+	info.si_signo = signo;
-+	info.si_errno = 0;
-+	info.si_code = code;
-+	info.si_addr = (void __user *)addr;
-+	force_sig_info(signo, &info, tsk);
-+}
-+
-+void do_trap(struct pt_regs *regs, int signo, int code,
-+	unsigned long addr, struct task_struct *tsk)
-+{
-+	if (show_unhandled_signals && unhandled_signal(tsk, signo)
-+	    && printk_ratelimit()) {
-+		pr_info("%s[%d]: unhandled signal %d code 0x%x at 0x" REG_FMT,
-+			tsk->comm, task_pid_nr(tsk), signo, code, addr);
-+		print_vma_addr(KERN_CONT " in ", GET_IP(regs));
-+		pr_cont("\n");
-+		show_regs(regs);
-+	}
-+
-+	do_trap_siginfo(signo, code, addr, tsk);
-+}
-+
-+static void do_trap_error(struct pt_regs *regs, int signo, int code,
-+	unsigned long addr, const char *str)
-+{
-+	if (user_mode(regs)) {
-+		do_trap(regs, signo, code, addr, current);
-+	} else {
-+		if (!fixup_exception(regs))
-+			die(regs, str);
-+	}
-+}
-+
-+#define DO_ERROR_INFO(name, signo, code, str)				\
-+asmlinkage void name(struct pt_regs *regs)				\
-+{									\
-+	do_trap_error(regs, signo, code, regs->sepc, "Oops - " str);	\
-+}
-+
-+DO_ERROR_INFO(do_trap_unknown,
-+	SIGILL, ILL_ILLTRP, "unknown exception");
-+DO_ERROR_INFO(do_trap_insn_misaligned,
-+	SIGBUS, BUS_ADRALN, "instruction address misaligned");
-+DO_ERROR_INFO(do_trap_insn_fault,
-+	SIGBUS, BUS_ADRALN, "instruction access fault");
-+DO_ERROR_INFO(do_trap_insn_illegal,
-+	SIGILL, ILL_ILLOPC, "illegal instruction");
-+DO_ERROR_INFO(do_trap_load_misaligned,
-+	SIGBUS, BUS_ADRALN, "load address misaligned");
-+DO_ERROR_INFO(do_trap_load_fault,
-+	SIGSEGV, SEGV_ACCERR, "load access fault");
-+DO_ERROR_INFO(do_trap_store_misaligned,
-+	SIGBUS, BUS_ADRALN, "store (or AMO) address misaligned");
-+DO_ERROR_INFO(do_trap_store_fault,
-+	SIGSEGV, SEGV_ACCERR, "store (or AMO) access fault");
-+DO_ERROR_INFO(do_trap_ecall_u,
-+	SIGILL, ILL_ILLTRP, "environment call from U-mode");
-+DO_ERROR_INFO(do_trap_ecall_s,
-+	SIGILL, ILL_ILLTRP, "environment call from S-mode");
-+DO_ERROR_INFO(do_trap_ecall_m,
-+	SIGILL, ILL_ILLTRP, "environment call from M-mode");
-+
-+asmlinkage void do_trap_break(struct pt_regs *regs)
-+{
-+#ifdef CONFIG_GENERIC_BUG
-+	if (!user_mode(regs)) {
-+		enum bug_trap_type type;
-+
-+		type = report_bug(regs->sepc, regs);
-+		switch (type) {
-+		case BUG_TRAP_TYPE_NONE:
-+			break;
-+		case BUG_TRAP_TYPE_WARN:
-+			regs->sepc += sizeof(bug_insn_t);
-+			return;
-+		case BUG_TRAP_TYPE_BUG:
-+			die(regs, "Kernel BUG");
-+		}
-+	}
-+#endif /* CONFIG_GENERIC_BUG */
-+
-+	do_trap_siginfo(SIGTRAP, TRAP_BRKPT, regs->sepc, current);
-+	regs->sepc += 0x4;
-+}
-+
-+#ifdef CONFIG_GENERIC_BUG
-+int is_valid_bugaddr(unsigned long pc)
-+{
-+	bug_insn_t insn;
-+
-+	if (pc < PAGE_OFFSET)
-+		return 0;
-+	if (probe_kernel_address((bug_insn_t __user *)pc, insn))
-+		return 0;
-+	return (insn == __BUG_INSN);
-+}
-+#endif /* CONFIG_GENERIC_BUG */
-+
-+void __init trap_init(void)
-+{
-+	int hart = smp_processor_id();
-+
-+	/*
-+	 * Set sup0 scratch register to 0, indicating to exception vector
-+	 * that we are presently executing in the kernel
-+	 */
-+	csr_write(sscratch, 0);
-+	/* Set the exception vector address */
-+	csr_write(stvec, &handle_exception);
-+	/* Enable software interrupts and setup initial mask */
-+	csr_write(sie,
-+		  SIE_SSIE | atomic_long_read(&per_cpu(riscv_early_sie, hart))
-+		);
-+}
-diff --git a/arch/riscv/kernel/vdso.c b/arch/riscv/kernel/vdso.c
++lib-$(CONFIG_32BIT) += udivdi3.o
+diff --git a/arch/riscv/mm/Makefile b/arch/riscv/mm/Makefile
 new file mode 100644
-index 000000000000..e8a178df8144
+index 000000000000..81f7d9ce6d88
 --- /dev/null
-+++ b/arch/riscv/kernel/vdso.c
-@@ -0,0 +1,125 @@
-+/*
-+ * Copyright (C) 2004 Benjamin Herrenschmidt, IBM Corp.
-+ *                    <benh@kernel.crashing.org>
-+ * Copyright (C) 2012 ARM Limited
-+ * Copyright (C) 2015 Regents of the University of California
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+
-+#include <linux/mm.h>
-+#include <linux/slab.h>
-+#include <linux/binfmts.h>
-+#include <linux/err.h>
-+
-+#include <asm/vdso.h>
-+
-+extern char vdso_start[], vdso_end[];
-+
-+static unsigned int vdso_pages;
-+static struct page **vdso_pagelist;
-+
-+/*
-+ * The vDSO data page.
-+ */
-+static union {
-+	struct vdso_data	data;
-+	u8			page[PAGE_SIZE];
-+} vdso_data_store __page_aligned_data;
-+struct vdso_data *vdso_data = &vdso_data_store.data;
-+
-+static int __init vdso_init(void)
-+{
-+	unsigned int i;
-+
-+	vdso_pages = (vdso_end - vdso_start) >> PAGE_SHIFT;
-+	vdso_pagelist =
-+		kcalloc(vdso_pages + 1, sizeof(struct page *), GFP_KERNEL);
-+	if (unlikely(vdso_pagelist == NULL)) {
-+		pr_err("vdso: pagelist allocation failed\n");
-+		return -ENOMEM;
-+	}
-+
-+	for (i = 0; i < vdso_pages; i++) {
-+		struct page *pg;
-+
-+		pg = virt_to_page(vdso_start + (i << PAGE_SHIFT));
-+		ClearPageReserved(pg);
-+		vdso_pagelist[i] = pg;
-+	}
-+	vdso_pagelist[i] = virt_to_page(vdso_data);
-+
-+	return 0;
-+}
-+arch_initcall(vdso_init);
-+
-+int arch_setup_additional_pages(struct linux_binprm *bprm,
-+	int uses_interp)
-+{
-+	struct mm_struct *mm = current->mm;
-+	unsigned long vdso_base, vdso_len;
-+	int ret;
-+
-+	vdso_len = (vdso_pages + 1) << PAGE_SHIFT;
-+
-+	down_write(&mm->mmap_sem);
-+	vdso_base = get_unmapped_area(NULL, 0, vdso_len, 0, 0);
-+	if (unlikely(IS_ERR_VALUE(vdso_base))) {
-+		ret = vdso_base;
-+		goto end;
-+	}
-+
-+	/*
-+	 * Put vDSO base into mm struct. We need to do this before calling
-+	 * install_special_mapping or the perf counter mmap tracking code
-+	 * will fail to recognise it as a vDSO (since arch_vma_name fails).
-+	 */
-+	mm->context.vdso = (void *)vdso_base;
-+
-+	ret = install_special_mapping(mm, vdso_base, vdso_len,
-+		(VM_READ | VM_EXEC | VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC),
-+		vdso_pagelist);
-+
-+	if (unlikely(ret))
-+		mm->context.vdso = NULL;
-+
-+end:
-+	up_write(&mm->mmap_sem);
-+	return ret;
-+}
-+
-+const char *arch_vma_name(struct vm_area_struct *vma)
-+{
-+	if (vma->vm_mm && (vma->vm_start == (long)vma->vm_mm->context.vdso))
-+		return "[vdso]";
-+	return NULL;
-+}
-+
-+/*
-+ * Function stubs to prevent linker errors when AT_SYSINFO_EHDR is defined
-+ */
-+
-+int in_gate_area_no_mm(unsigned long addr)
-+{
-+	return 0;
-+}
-+
-+int in_gate_area(struct mm_struct *mm, unsigned long addr)
-+{
-+	return 0;
-+}
-+
-+struct vm_area_struct *get_gate_vma(struct mm_struct *mm)
-+{
-+	return NULL;
-+}
-diff --git a/arch/riscv/mm/init.c b/arch/riscv/mm/init.c
-new file mode 100644
-index 000000000000..9f4bee5e51fd
---- /dev/null
-+++ b/arch/riscv/mm/init.c
-@@ -0,0 +1,70 @@
-+/*
-+ * Copyright (C) 2012 Regents of the University of California
-+ *
-+ *   This program is free software; you can redistribute it and/or
-+ *   modify it under the terms of the GNU General Public License
-+ *   as published by the Free Software Foundation, version 2.
-+ *
-+ *   This program is distributed in the hope that it will be useful,
-+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ *   GNU General Public License for more details.
-+ */
-+
-+#include <linux/init.h>
-+#include <linux/mm.h>
-+#include <linux/bootmem.h>
-+#include <linux/initrd.h>
-+#include <linux/memblock.h>
-+#include <linux/swap.h>
-+
-+#include <asm/tlbflush.h>
-+#include <asm/sections.h>
-+#include <asm/pgtable.h>
-+#include <asm/io.h>
-+
-+static void __init zone_sizes_init(void)
-+{
-+	unsigned long zones_size[MAX_NR_ZONES];
-+
-+	memset(zones_size, 0, sizeof(zones_size));
-+	zones_size[ZONE_NORMAL] = max_mapnr;
-+	free_area_init_node(0, zones_size, pfn_base, NULL);
-+}
-+
-+void setup_zero_page(void)
-+{
-+	memset((void *)empty_zero_page, 0, PAGE_SIZE);
-+}
-+
-+void __init paging_init(void)
-+{
-+	init_mm.pgd = (pgd_t *)pfn_to_virt(csr_read(sptbr));
-+
-+	setup_zero_page();
-+	local_flush_tlb_all();
-+	zone_sizes_init();
-+}
-+
-+void __init mem_init(void)
-+{
-+#ifdef CONFIG_FLATMEM
-+	BUG_ON(!mem_map);
-+#endif /* CONFIG_FLATMEM */
-+
-+	high_memory = (void *)(__va(PFN_PHYS(max_low_pfn)));
-+	free_all_bootmem();
-+
-+	mem_init_print_info(NULL);
-+}
-+
-+void free_initmem(void)
-+{
-+	free_initmem_default(0);
-+}
-+
-+#ifdef CONFIG_BLK_DEV_INITRD
-+void free_initrd_mem(unsigned long start, unsigned long end)
-+{
-+}
-+#endif /* CONFIG_BLK_DEV_INITRD */
++++ b/arch/riscv/mm/Makefile
+@@ -0,0 +1,4 @@
++obj-y += init.o
++obj-y += fault.o
++obj-y += extable.o
++obj-y += ioremap.o
 -- 
 2.13.0
