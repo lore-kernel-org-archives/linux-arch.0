@@ -1,74 +1,71 @@
-From: <h.gerritsen12@chello.nl>
-Subject: (unknown)
-Date: Tue, 04 Jul 2017 10:50:48 -0000
-Message-ID: <149916544865.12492.15892931591698248485@interra.ru>
-Mime-Version: 1.0
-Content-Type: application/zip; name="EMAIL_46564219859_linux-arch.zip"
-Content-Transfer-Encoding: base64
+From: Palmer Dabbelt <palmer@dabbelt.com>
+Subject: RISC-V Linux Port v4
+Date: Tue,  4 Jul 2017 12:50:53 -0700
+Message-ID: <20170704195102.3974-1-palmer@dabbelt.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 95.163.211.178.revda.interra.ru ([178.211.163.95]:50545 "HELO
-        interra.ru" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with SMTP
-        id S1752052AbdGDKuw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 4 Jul 2017 06:50:52 -0400
-Content-Disposition: attachment
-Subject: 
+Received: from mail-pf0-f193.google.com ([209.85.192.193]:35844 "EHLO
+        mail-pf0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752162AbdGDTvW (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 4 Jul 2017 15:51:22 -0400
+Received: by mail-pf0-f193.google.com with SMTP id z6so31801718pfk.3
+        for <linux-arch@vger.kernel.org>; Tue, 04 Jul 2017 12:51:22 -0700 (PDT)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+To: peterz@infradead.org, mingo@redhat.com, mcgrof@kernel.org, viro@zeniv.linux.org.uk, sfr@canb.auug.org.au, nicolas.dichtel@6wind.com, rmk+kernel@armlinux.org.uk, msalter@redhat.com, tklauser@distanz.ch, will.deacon@arm.com, james.hogan@imgtec.com, paul.gortmaker@windriver.com, linux@roeck-us.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, albert@sifive.com, patches@groups.riscv.org
 
-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
+Thanks to everyone who has participated in the review process so far.  There
+have only been a few changes since the v3 patch set:
+
+ * The cmpxchg64 syscall is no longer enabled on 32-bit systems.  It's not
+   possible to provide this on SMP systems, and it's not necessary as glibc
+   knows not to call it.
+
+ * We provide a ELF_HWCAP so users can determine the ISA of the machine the
+   kernel is running on.
+
+ * The multi-line comments are in a better form.
+
+ * There were a handful of headers that could be replaced with the asm-generic
+   versions, and a few unnecessary definitions.
+
+ * We no longer use printk, but instead use pr_*.
+
+ * A few Kconfig and defconfig entries have been cleaned up.
+
+Since things have really calmed down, I think it would be good to try and get
+this into 4.13 (ie, during this merge window).  This might let us get into the
+upcoming glibc release as well.  Does that seem possible?
+
+Like last time, in case one gets eaten by the mailing list this is also
+available as a git tree on our Git Hub
+
+  https://github.com/riscv/riscv-linux/tree/riscv-for-submission-arch-v4
+
+This patch set just contains the arch code, we have various drivers that are
+required to build and boot a RISC-V system.  A tree that contains this patch
+set merged with all our other patch sets lives at
+
+  https://github.com/riscv/riscv-linux/tree/riscv-for-submission-v4
+
+  a83d4bb70b76 pci: Add a generic, weakly-linked pcibios_fixup_bus
+  a3445d3b4ff1 pci: Add a generic, weakly-linked pcibios_align_resource
+  d97ac4f5bb1d Merge branch 'riscv-for-submission-arch-v4' into riscv-for-submission-v4
+  0705a31372d4 Merge branch 'riscv-for-submission-clk-v2' into riscv-for-submission-v4
+  a6c8eb9af199 Merge branch 'riscv-for-submission-irq-v2' into riscv-for-submission-v4
+  3e5b46967f66 Merge branch 'riscv-for-submission-lib-v2' into riscv-for-submission-v4
+  8ca3c2cdefed Merge branch 'riscv-for-submission-pci-v3' into riscv-for-submission-v4
+  e1aa9abddfa8 Merge branch 'riscv-for-submission-tty-v2' into riscv-for-submission-v4
+
+If you're going to try to build or boot the kernel, I'd recommend using that.
+
+Thanks to everyone who has helped review our port!
+
+[PATCH 1/9] RISC-V: Init and Halt Code
+[PATCH 2/9] RISC-V: Atomic and Locking Code
+[PATCH 3/9] RISC-V: Generic library routines and assembly
+[PATCH 4/9] RISC-V: ELF and module implementation
+[PATCH 5/9] RISC-V: Task implementation
+[PATCH 6/9] RISC-V: Device, timer, IRQs, and the SBI
+[PATCH 7/9] RISC-V: Paging and MMU
+[PATCH 8/9] RISC-V: User-facing API
+[PATCH 9/9] RISC-V: Build Infastructure
