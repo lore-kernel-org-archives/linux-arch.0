@@ -1,136 +1,144 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f193.google.com ([209.85.216.193]:35315 "EHLO
-        mail-qt0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752982AbdGEVX0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Jul 2017 17:23:26 -0400
+Received: from mail-qk0-f195.google.com ([209.85.220.195]:36519 "EHLO
+        mail-qk0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752887AbdGEVXO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Jul 2017 17:23:14 -0400
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v5 19/38] powerpc: introduce execute-only pkey
-Date: Wed,  5 Jul 2017 14:21:56 -0700
-Message-ID: <1499289735-14220-20-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v5 16/38] powerpc: implementation for arch_set_user_pkey_access()
+Date: Wed,  5 Jul 2017 14:21:53 -0700
+Message-ID: <1499289735-14220-17-git-send-email-linuxram@us.ibm.com>
 In-Reply-To: <1499289735-14220-1-git-send-email-linuxram@us.ibm.com>
 References: <1499289735-14220-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
-Message-ID: <20170705212156.usDD7kl7M86DNueJh9lpl_LdEH9KmO0uUj2xtIZdT_A@z>
+Message-ID: <20170705212153.5yCidR2HlUtqBtonV2loUuyWezo91JYDOFUaPcKoP-k@z>
 
-This patch provides the implementation of execute-only pkey.
-The architecture-independent  expects the ability to create
-and manage a special key which has execute-only permission.
+This patch provides the detailed implementation for
+a user to allocate a key and enable it in the hardware.
+
+It provides the plumbing, but it  cannot be  used  yet
+till the  system  call  is implemented. The next patch
+will do so.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/include/asm/book3s/64/mmu.h |    1 +
- arch/powerpc/include/asm/pkeys.h         |    6 +++-
- arch/powerpc/mm/pkeys.c                  |   59 ++++++++++++++++++++++++++++++
- 3 files changed, 65 insertions(+), 1 deletions(-)
+ arch/powerpc/include/asm/pkeys.h |    8 ++++-
+ arch/powerpc/mm/Makefile         |    1 +
+ arch/powerpc/mm/pkeys.c          |   66 ++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 74 insertions(+), 1 deletions(-)
+ create mode 100644 arch/powerpc/mm/pkeys.c
 
-diff --git a/arch/powerpc/include/asm/book3s/64/mmu.h b/arch/powerpc/include/asm/book3s/64/mmu.h
-index 104ad72..0c0a2a8 100644
---- a/arch/powerpc/include/asm/book3s/64/mmu.h
-+++ b/arch/powerpc/include/asm/book3s/64/mmu.h
-@@ -116,6 +116,7 @@ struct patb_entry {
- 	 * bit unset -> key available for allocation
- 	 */
- 	u32 pkey_allocation_map;
-+	s16 execute_only_pkey; /* key holding execute-only protection */
- #endif
- } mm_context_t;
- 
 diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
-index 1495342..4b01c37 100644
+index 9345767..1495342 100644
 --- a/arch/powerpc/include/asm/pkeys.h
 +++ b/arch/powerpc/include/asm/pkeys.h
-@@ -86,11 +86,13 @@ static inline int mm_pkey_free(struct mm_struct *mm, int pkey)
-  * Try to dedicate one of the protection keys to be used as an
-  * execute-only protection key.
-  */
-+extern int __execute_only_pkey(struct mm_struct *mm);
- static inline int execute_only_pkey(struct mm_struct *mm)
- {
--	return 0;
-+	return __execute_only_pkey(mm);
- }
+@@ -2,6 +2,10 @@
+ #define _ASM_PPC64_PKEYS_H
  
-+
- static inline int arch_override_mprotect_pkey(struct vm_area_struct *vma,
- 		int prot, int pkey)
- {
-@@ -108,5 +110,7 @@ static inline int arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
- static inline void pkey_mm_init(struct mm_struct *mm)
- {
- 	mm_pkey_allocation_map(mm) = PKEY_INITIAL_ALLOCAION;
-+	/* -1 means unallocated or invalid */
-+	mm->context.execute_only_pkey = -1;
- }
- #endif /*_ASM_PPC64_PKEYS_H */
-diff --git a/arch/powerpc/mm/pkeys.c b/arch/powerpc/mm/pkeys.c
-index d3ba167..6c90317 100644
---- a/arch/powerpc/mm/pkeys.c
-+++ b/arch/powerpc/mm/pkeys.c
-@@ -64,3 +64,62 @@ int __arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
- 
+ #define arch_max_pkey()  32
++#define AMR_AD_BIT 0x1UL
++#define AMR_WD_BIT 0x2UL
++#define IAMR_EX_BIT 0x1UL
++#define AMR_BITS_PER_PKEY 2
+ #define ARCH_VM_PKEY_FLAGS (VM_PKEY_BIT0 | VM_PKEY_BIT1 | VM_PKEY_BIT2 | \
+ 				VM_PKEY_BIT3 | VM_PKEY_BIT4)
+ /*
+@@ -93,10 +97,12 @@ static inline int arch_override_mprotect_pkey(struct vm_area_struct *vma,
  	return 0;
  }
+ 
++extern int __arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
++		unsigned long init_val);
+ static inline int arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
+ 		unsigned long init_val)
+ {
+-	return 0;
++	return __arch_set_user_pkey_access(tsk, pkey, init_val);
+ }
+ 
+ static inline void pkey_mm_init(struct mm_struct *mm)
+diff --git a/arch/powerpc/mm/Makefile b/arch/powerpc/mm/Makefile
+index 7414034..8cc2ff1 100644
+--- a/arch/powerpc/mm/Makefile
++++ b/arch/powerpc/mm/Makefile
+@@ -45,3 +45,4 @@ obj-$(CONFIG_PPC_COPRO_BASE)	+= copro_fault.o
+ obj-$(CONFIG_SPAPR_TCE_IOMMU)	+= mmu_context_iommu.o
+ obj-$(CONFIG_PPC_PTDUMP)	+= dump_linuxpagetables.o
+ obj-$(CONFIG_PPC_HTDUMP)	+= dump_hashpagetable.o
++obj-$(CONFIG_PPC64_MEMORY_PROTECTION_KEYS)	+= pkeys.o
+diff --git a/arch/powerpc/mm/pkeys.c b/arch/powerpc/mm/pkeys.c
+new file mode 100644
+index 0000000..d3ba167
+--- /dev/null
++++ b/arch/powerpc/mm/pkeys.c
+@@ -0,0 +1,66 @@
++/*
++ * PowerPC Memory Protection Keys management
++ * Copyright (c) 2015, Intel Corporation.
++ * Copyright (c) 2017, IBM Corporation.
++ *
++ * This program is free software; you can redistribute it and/or modify it
++ * under the terms and conditions of the GNU General Public License,
++ * version 2, as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope it will be useful, but WITHOUT
++ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
++ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
++ * more details.
++ */
++#include <linux/pkeys.h>                /* PKEY_*                       */
++#include <uapi/asm-generic/mman-common.h>
 +
-+#define pkeyshift(pkey) ((arch_max_pkey()-pkey-1) * AMR_BITS_PER_PKEY)
-+
-+static inline bool pkey_allows_readwrite(int pkey)
++/*
++ * set the access right in AMR IAMR and UAMOR register
++ * for @pkey to that specified in @init_val.
++ */
++int __arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
++		unsigned long init_val)
 +{
-+	int pkey_shift = pkeyshift(pkey);
++	u64 old_amr, old_uamor, old_iamr;
++	int pkey_shift = (arch_max_pkey()-pkey-1) * AMR_BITS_PER_PKEY;
++	u64 new_amr_bits = 0x0ul;
++	u64 new_iamr_bits = 0x0ul;
++	u64 new_uamor_bits = 0x3ul;
 +
-+	if (!(read_uamor() & (0x3UL << pkey_shift)))
-+		return true;
-+
-+	return !(read_amr() & ((AMR_AD_BIT|AMR_WD_BIT) << pkey_shift));
-+}
-+
-+int __execute_only_pkey(struct mm_struct *mm)
-+{
-+	bool need_to_set_mm_pkey = false;
-+	int execute_only_pkey = mm->context.execute_only_pkey;
-+	int ret;
-+
-+	/* Do we need to assign a pkey for mm's execute-only maps? */
-+	if (execute_only_pkey == -1) {
-+		/* Go allocate one to use, which might fail */
-+		execute_only_pkey = mm_pkey_alloc(mm);
-+		if (execute_only_pkey < 0)
-+			return -1;
-+		need_to_set_mm_pkey = true;
-+	}
++	/* Set the bits we need in AMR:  */
++	if (init_val & PKEY_DISABLE_ACCESS)
++		new_amr_bits |= AMR_AD_BIT | AMR_WD_BIT;
++	if (init_val & PKEY_DISABLE_WRITE)
++		new_amr_bits |= AMR_WD_BIT;
 +
 +	/*
-+	 * We do not want to go through the relatively costly
-+	 * dance to set AMR if we do not need to.  Check it
-+	 * first and assume that if the execute-only pkey is
-+	 * readwrite-disabled than we do not have to set it
-+	 * ourselves.
++	 * By default execute is disabled.
++	 * To enable execute, PKEY_ENABLE_EXECUTE
++	 * needs to be specified.
 +	 */
-+	if (!need_to_set_mm_pkey &&
-+	    !pkey_allows_readwrite(execute_only_pkey))
-+		return execute_only_pkey;
++	if ((init_val & PKEY_DISABLE_EXECUTE))
++		new_iamr_bits |= IAMR_EX_BIT;
 +
-+	/*
-+	 * Set up AMR so that it denies access for everything
-+	 * other than execution.
-+	 */
-+	ret = __arch_set_user_pkey_access(current, execute_only_pkey,
-+			(PKEY_DISABLE_ACCESS | PKEY_DISABLE_WRITE));
-+	/*
-+	 * If the AMR-set operation failed somehow, just return
-+	 * 0 and effectively disable execute-only support.
-+	 */
-+	if (ret) {
-+		mm_set_pkey_free(mm, execute_only_pkey);
-+		return -1;
-+	}
++	/* Shift the bits in to the correct place in AMR for pkey: */
++	new_amr_bits	<<= pkey_shift;
++	new_iamr_bits	<<= pkey_shift;
++	new_uamor_bits	<<= pkey_shift;
 +
-+	/* We got one, store it and use it from here on out */
-+	if (need_to_set_mm_pkey)
-+		mm->context.execute_only_pkey = execute_only_pkey;
-+	return execute_only_pkey;
++	/* Get old AMR and mask off any old bits in place: */
++	old_amr	= read_amr();
++	old_amr	&= ~((u64)(AMR_AD_BIT|AMR_WD_BIT) << pkey_shift);
++
++	old_iamr = read_iamr();
++	old_iamr &= ~(0x3ul << pkey_shift);
++
++	old_uamor = read_uamor();
++	old_uamor &= ~(0x3ul << pkey_shift);
++
++	/* Write old part along with new part: */
++	write_amr(old_amr | new_amr_bits);
++	write_iamr(old_iamr | new_iamr_bits);
++	write_uamor(old_uamor | new_uamor_bits);
++
++	return 0;
 +}
 -- 
 1.7.1
