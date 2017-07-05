@@ -1,111 +1,103 @@
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v5 21/38] powerpc: implementation for arch_override_mprotect_pkey()
-Date: Wed,  5 Jul 2017 14:21:58 -0700
-Message-ID: <1499289735-14220-22-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v5 15/38] powerpc: helper function to read,write AMR,IAMR,UAMOR registers
+Date: Wed,  5 Jul 2017 14:21:52 -0700
+Message-ID: <1499289735-14220-16-git-send-email-linuxram@us.ibm.com>
 References: <1499289735-14220-1-git-send-email-linuxram@us.ibm.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1499289735-14220-1-git-send-email-linuxram@us.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: owner-linux-mm@kvack.org
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
 List-Id: linux-arch.vger.kernel.org
 
-arch independent code calls arch_override_mprotect_pkey()
-to return a pkey that best matches the requested protection.
+Implements helper functions to read and write the key related
+registers; AMR, IAMR, UAMOR.
 
-This patch provides the implementation.
+AMR register tracks the read,write permission of a key
+IAMR register tracks the execute permission of a key
+UAMOR register enables and disables a key
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/include/asm/pkeys.h |   10 ++++++-
- arch/powerpc/mm/pkeys.c          |   47 ++++++++++++++++++++++++++++++++++++++
- 2 files changed, 55 insertions(+), 2 deletions(-)
+ arch/powerpc/include/asm/book3s/64/pgtable.h |   60 ++++++++++++++++++++++++++
+ 1 files changed, 60 insertions(+), 0 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
-index f148e84..20846c2 100644
---- a/arch/powerpc/include/asm/pkeys.h
-+++ b/arch/powerpc/include/asm/pkeys.h
-@@ -13,6 +13,11 @@ static inline u64 pkey_to_vmflag_bits(u16 pkey)
- 		((pkey & 0x10UL) ? VM_PKEY_BIT4 : 0x0UL));
+diff --git a/arch/powerpc/include/asm/book3s/64/pgtable.h b/arch/powerpc/include/asm/book3s/64/pgtable.h
+index 85bc987..435d6a7 100644
+--- a/arch/powerpc/include/asm/book3s/64/pgtable.h
++++ b/arch/powerpc/include/asm/book3s/64/pgtable.h
+@@ -428,6 +428,66 @@ static inline void huge_ptep_set_wrprotect(struct mm_struct *mm,
+ 		pte_update(mm, addr, ptep, 0, _PAGE_PRIVILEGED, 1);
  }
  
-+static inline int vma_pkey(struct vm_area_struct *vma)
++#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
++
++#include <asm/reg.h>
++static inline u64 read_amr(void)
 +{
-+	return (vma->vm_flags & ARCH_VM_PKEY_FLAGS) >> VM_PKEY_SHIFT;
++	return mfspr(SPRN_AMR);
++}
++static inline void write_amr(u64 value)
++{
++	mtspr(SPRN_AMR, value);
++}
++static inline u64 read_iamr(void)
++{
++	return mfspr(SPRN_IAMR);
++}
++static inline void write_iamr(u64 value)
++{
++	mtspr(SPRN_IAMR, value);
++}
++static inline u64 read_uamor(void)
++{
++	return mfspr(SPRN_UAMOR);
++}
++static inline void write_uamor(u64 value)
++{
++	mtspr(SPRN_UAMOR, value);
 +}
 +
- #define arch_max_pkey()  32
- #define AMR_AD_BIT 0x1UL
- #define AMR_WD_BIT 0x2UL
-@@ -102,11 +107,12 @@ static inline int execute_only_pkey(struct mm_struct *mm)
- 	return __execute_only_pkey(mm);
- }
- 
--
-+extern int __arch_override_mprotect_pkey(struct vm_area_struct *vma,
-+		int prot, int pkey);
- static inline int arch_override_mprotect_pkey(struct vm_area_struct *vma,
- 		int prot, int pkey)
- {
--	return 0;
-+	return __arch_override_mprotect_pkey(vma, prot, pkey);
- }
- 
- extern int __arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
-diff --git a/arch/powerpc/mm/pkeys.c b/arch/powerpc/mm/pkeys.c
-index 6c90317..c60a045 100644
---- a/arch/powerpc/mm/pkeys.c
-+++ b/arch/powerpc/mm/pkeys.c
-@@ -123,3 +123,50 @@ int __execute_only_pkey(struct mm_struct *mm)
- 		mm->context.execute_only_pkey = execute_only_pkey;
- 	return execute_only_pkey;
- }
++#else /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
 +
-+static inline bool vma_is_pkey_exec_only(struct vm_area_struct *vma)
++static inline u64 read_amr(void)
 +{
-+	/* Do this check first since the vm_flags should be hot */
-+	if ((vma->vm_flags & (VM_READ | VM_WRITE | VM_EXEC)) != VM_EXEC)
-+		return false;
-+
-+	return (vma_pkey(vma) == vma->vm_mm->context.execute_only_pkey);
++	WARN(1, "%s called with MEMORY PROTECTION KEYS disabled\n", __func__);
++	return -1;
++}
++static inline void write_amr(u64 value)
++{
++	WARN(1, "%s called with MEMORY PROTECTION KEYS disabled\n", __func__);
++}
++static inline u64 read_uamor(void)
++{
++	WARN(1, "%s called with MEMORY PROTECTION KEYS disabled\n", __func__);
++	return -1;
++}
++static inline void write_uamor(u64 value)
++{
++	WARN(1, "%s called with MEMORY PROTECTION KEYS disabled\n", __func__);
++}
++static inline u64 read_iamr(void)
++{
++	WARN(1, "%s called with MEMORY PROTECTION KEYS disabled\n", __func__);
++	return -1;
++}
++static inline void write_iamr(u64 value)
++{
++	WARN(1, "%s called with MEMORY PROTECTION KEYS disabled\n", __func__);
 +}
 +
-+/*
-+ * This should only be called for *plain* mprotect calls.
-+ */
-+int __arch_override_mprotect_pkey(struct vm_area_struct *vma, int prot,
-+		int pkey)
-+{
-+	/*
-+	 * Is this an mprotect_pkey() call?  If so, never
-+	 * override the value that came from the user.
-+	 */
-+	if (pkey != -1)
-+		return pkey;
++#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
 +
-+	/*
-+	 * If the currently associated pkey is execute-only,
-+	 * but the requested protection requires read or write,
-+	 * move it back to the default pkey.
-+	 */
-+	if (vma_is_pkey_exec_only(vma) &&
-+	    (prot & (PROT_READ|PROT_WRITE)))
-+		return 0;
-+
-+	/*
-+	 * the requested protection is execute-only. Hence
-+	 * lets use a execute-only pkey.
-+	 */
-+	if (prot == PROT_EXEC) {
-+		pkey = execute_only_pkey(vma->vm_mm);
-+		if (pkey > 0)
-+			return pkey;
-+	}
-+
-+	/*
-+	 * nothing to override.
-+	 */
-+	return vma_pkey(vma);
-+}
+ #define __HAVE_ARCH_PTEP_GET_AND_CLEAR
+ static inline pte_t ptep_get_and_clear(struct mm_struct *mm,
+ 				       unsigned long addr, pte_t *ptep)
 -- 
 1.7.1
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
