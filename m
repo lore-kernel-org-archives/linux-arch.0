@@ -1,87 +1,95 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f193.google.com ([209.85.220.193]:33199 "EHLO
-        mail-qk0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752876AbdGEVXN (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Jul 2017 17:23:13 -0400
+Received: from mail-qt0-f193.google.com ([209.85.216.193]:33574 "EHLO
+        mail-qt0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752926AbdGEVX2 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Jul 2017 17:23:28 -0400
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v5 18/38] powerpc: store and restore the pkey state across context switches
-Date: Wed,  5 Jul 2017 14:21:55 -0700
-Message-ID: <1499289735-14220-19-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v5 24/38] powerpc: Program HPTE key protection bits
+Date: Wed,  5 Jul 2017 14:22:01 -0700
+Message-ID: <1499289735-14220-25-git-send-email-linuxram@us.ibm.com>
 In-Reply-To: <1499289735-14220-1-git-send-email-linuxram@us.ibm.com>
 References: <1499289735-14220-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
-Message-ID: <20170705212155.s5exoePS2_Eeb7fJOU-m5nhP_SxSXMkBRyKvVynCW6o@z>
+Message-ID: <20170705212201.yI38WEB1tgKSjeUIl3UueqD7FfFlwLp84zKcNBnNtZY@z>
 
-Store and restore the AMR, IAMR and UMOR register state of the task
-before scheduling out and after scheduling in, respectively.
+Map the PTE protection key bits to the HPTE key protection bits,
+while creating HPTE  entries.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/include/asm/processor.h |    5 +++++
- arch/powerpc/kernel/process.c        |   18 ++++++++++++++++++
- 2 files changed, 23 insertions(+), 0 deletions(-)
+ arch/powerpc/include/asm/book3s/64/mmu-hash.h |    5 +++++
+ arch/powerpc/include/asm/pkeys.h              |    9 +++++++++
+ arch/powerpc/mm/hash_utils_64.c               |    5 +++++
+ 3 files changed, 19 insertions(+), 0 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/processor.h b/arch/powerpc/include/asm/processor.h
-index a2123f2..1f714df 100644
---- a/arch/powerpc/include/asm/processor.h
-+++ b/arch/powerpc/include/asm/processor.h
-@@ -310,6 +310,11 @@ struct thread_struct {
- 	struct thread_vr_state ckvr_state; /* Checkpointed VR state */
- 	unsigned long	ckvrsave; /* Checkpointed VRSAVE */
- #endif /* CONFIG_PPC_TRANSACTIONAL_MEM */
-+#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
-+	unsigned long	amr;
-+	unsigned long	iamr;
-+	unsigned long	uamor;
-+#endif
- #ifdef CONFIG_KVM_BOOK3S_32_HANDLER
- 	void*		kvm_shadow_vcpu; /* KVM internal data */
- #endif /* CONFIG_KVM_BOOK3S_32_HANDLER */
-diff --git a/arch/powerpc/kernel/process.c b/arch/powerpc/kernel/process.c
-index baae104..37d001a 100644
---- a/arch/powerpc/kernel/process.c
-+++ b/arch/powerpc/kernel/process.c
-@@ -1096,6 +1096,11 @@ static inline void save_sprs(struct thread_struct *t)
- 		t->tar = mfspr(SPRN_TAR);
- 	}
- #endif
-+#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
-+	t->amr = mfspr(SPRN_AMR);
-+	t->iamr = mfspr(SPRN_IAMR);
-+	t->uamor = mfspr(SPRN_UAMOR);
-+#endif
+diff --git a/arch/powerpc/include/asm/book3s/64/mmu-hash.h b/arch/powerpc/include/asm/book3s/64/mmu-hash.h
+index 6981a52..f7a6ed3 100644
+--- a/arch/powerpc/include/asm/book3s/64/mmu-hash.h
++++ b/arch/powerpc/include/asm/book3s/64/mmu-hash.h
+@@ -90,6 +90,8 @@
+ #define HPTE_R_PP0		ASM_CONST(0x8000000000000000)
+ #define HPTE_R_TS		ASM_CONST(0x4000000000000000)
+ #define HPTE_R_KEY_HI		ASM_CONST(0x3000000000000000)
++#define HPTE_R_KEY_BIT0		ASM_CONST(0x2000000000000000)
++#define HPTE_R_KEY_BIT1		ASM_CONST(0x1000000000000000)
+ #define HPTE_R_RPN_SHIFT	12
+ #define HPTE_R_RPN		ASM_CONST(0x0ffffffffffff000)
+ #define HPTE_R_RPN_3_0		ASM_CONST(0x01fffffffffff000)
+@@ -104,6 +106,9 @@
+ #define HPTE_R_C		ASM_CONST(0x0000000000000080)
+ #define HPTE_R_R		ASM_CONST(0x0000000000000100)
+ #define HPTE_R_KEY_LO		ASM_CONST(0x0000000000000e00)
++#define HPTE_R_KEY_BIT2		ASM_CONST(0x0000000000000800)
++#define HPTE_R_KEY_BIT3		ASM_CONST(0x0000000000000400)
++#define HPTE_R_KEY_BIT4		ASM_CONST(0x0000000000000200)
+ 
+ #define HPTE_V_1TB_SEG		ASM_CONST(0x4000000000000000)
+ #define HPTE_V_VRMA_MASK	ASM_CONST(0x4001ffffff000000)
+diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
+index c681de9..6477b87 100644
+--- a/arch/powerpc/include/asm/pkeys.h
++++ b/arch/powerpc/include/asm/pkeys.h
+@@ -22,6 +22,15 @@ static inline u64 vmflag_to_page_pkey_bits(u64 vm_flags)
+ 		((vm_flags & VM_PKEY_BIT4) ? H_PAGE_PKEY_BIT0 : 0x0UL));
  }
  
- static inline void restore_sprs(struct thread_struct *old_thread,
-@@ -1131,6 +1136,14 @@ static inline void restore_sprs(struct thread_struct *old_thread,
- 			mtspr(SPRN_TAR, new_thread->tar);
- 	}
- #endif
-+#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
-+	if (old_thread->amr != new_thread->amr)
-+		mtspr(SPRN_AMR, new_thread->amr);
-+	if (old_thread->iamr != new_thread->iamr)
-+		mtspr(SPRN_IAMR, new_thread->iamr);
-+	if (old_thread->uamor != new_thread->uamor)
-+		mtspr(SPRN_UAMOR, new_thread->uamor);
-+#endif
- }
++static inline u64 pte_to_hpte_pkey_bits(u64 pteflags)
++{
++	return (((pteflags & H_PAGE_PKEY_BIT0) ? HPTE_R_KEY_BIT0 : 0x0UL) |
++		((pteflags & H_PAGE_PKEY_BIT1) ? HPTE_R_KEY_BIT1 : 0x0UL) |
++		((pteflags & H_PAGE_PKEY_BIT2) ? HPTE_R_KEY_BIT2 : 0x0UL) |
++		((pteflags & H_PAGE_PKEY_BIT3) ? HPTE_R_KEY_BIT3 : 0x0UL) |
++		((pteflags & H_PAGE_PKEY_BIT4) ? HPTE_R_KEY_BIT4 : 0x0UL));
++}
++
+ static inline int vma_pkey(struct vm_area_struct *vma)
+ {
+ 	return (vma->vm_flags & ARCH_VM_PKEY_FLAGS) >> VM_PKEY_SHIFT;
+diff --git a/arch/powerpc/mm/hash_utils_64.c b/arch/powerpc/mm/hash_utils_64.c
+index d863696..1e74529 100644
+--- a/arch/powerpc/mm/hash_utils_64.c
++++ b/arch/powerpc/mm/hash_utils_64.c
+@@ -35,6 +35,7 @@
+ #include <linux/memblock.h>
+ #include <linux/context_tracking.h>
+ #include <linux/libfdt.h>
++#include <linux/pkeys.h>
  
- struct task_struct *__switch_to(struct task_struct *prev,
-@@ -1686,6 +1699,11 @@ void start_thread(struct pt_regs *regs, unsigned long start, unsigned long sp)
- 	current->thread.tm_texasr = 0;
- 	current->thread.tm_tfiar = 0;
- #endif /* CONFIG_PPC_TRANSACTIONAL_MEM */
+ #include <asm/debugfs.h>
+ #include <asm/processor.h>
+@@ -230,6 +231,10 @@ unsigned long htab_convert_pte_flags(unsigned long pteflags)
+ 		 */
+ 		rflags |= HPTE_R_M;
+ 
 +#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
-+	current->thread.amr   = 0x0ul;
-+	current->thread.iamr  = 0x0ul;
-+	current->thread.uamor = 0x0ul;
-+#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
++	rflags |= pte_to_hpte_pkey_bits(pteflags);
++#endif
++
+ 	return rflags;
  }
- EXPORT_SYMBOL(start_thread);
  
 -- 
 1.7.1
