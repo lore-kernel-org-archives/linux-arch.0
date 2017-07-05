@@ -1,144 +1,116 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f195.google.com ([209.85.220.195]:36519 "EHLO
-        mail-qk0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752887AbdGEVXO (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Jul 2017 17:23:14 -0400
+Received: from mail-qt0-f195.google.com ([209.85.216.195]:35340 "EHLO
+        mail-qt0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752926AbdGEVXV (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Jul 2017 17:23:21 -0400
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v5 16/38] powerpc: implementation for arch_set_user_pkey_access()
-Date: Wed,  5 Jul 2017 14:21:53 -0700
-Message-ID: <1499289735-14220-17-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v5 21/38] powerpc: implementation for arch_override_mprotect_pkey()
+Date: Wed,  5 Jul 2017 14:21:58 -0700
+Message-ID: <1499289735-14220-22-git-send-email-linuxram@us.ibm.com>
 In-Reply-To: <1499289735-14220-1-git-send-email-linuxram@us.ibm.com>
 References: <1499289735-14220-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
-Message-ID: <20170705212153.5yCidR2HlUtqBtonV2loUuyWezo91JYDOFUaPcKoP-k@z>
+Message-ID: <20170705212158.-irIEHwM0l8K94W8PMG2IXaLABAm9n1sJgMxKcItCjk@z>
 
-This patch provides the detailed implementation for
-a user to allocate a key and enable it in the hardware.
+arch independent code calls arch_override_mprotect_pkey()
+to return a pkey that best matches the requested protection.
 
-It provides the plumbing, but it  cannot be  used  yet
-till the  system  call  is implemented. The next patch
-will do so.
+This patch provides the implementation.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/include/asm/pkeys.h |    8 ++++-
- arch/powerpc/mm/Makefile         |    1 +
- arch/powerpc/mm/pkeys.c          |   66 ++++++++++++++++++++++++++++++++++++++
- 3 files changed, 74 insertions(+), 1 deletions(-)
- create mode 100644 arch/powerpc/mm/pkeys.c
+ arch/powerpc/include/asm/pkeys.h |   10 ++++++-
+ arch/powerpc/mm/pkeys.c          |   47 ++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 55 insertions(+), 2 deletions(-)
 
 diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
-index 9345767..1495342 100644
+index f148e84..20846c2 100644
 --- a/arch/powerpc/include/asm/pkeys.h
 +++ b/arch/powerpc/include/asm/pkeys.h
-@@ -2,6 +2,10 @@
- #define _ASM_PPC64_PKEYS_H
- 
- #define arch_max_pkey()  32
-+#define AMR_AD_BIT 0x1UL
-+#define AMR_WD_BIT 0x2UL
-+#define IAMR_EX_BIT 0x1UL
-+#define AMR_BITS_PER_PKEY 2
- #define ARCH_VM_PKEY_FLAGS (VM_PKEY_BIT0 | VM_PKEY_BIT1 | VM_PKEY_BIT2 | \
- 				VM_PKEY_BIT3 | VM_PKEY_BIT4)
- /*
-@@ -93,10 +97,12 @@ static inline int arch_override_mprotect_pkey(struct vm_area_struct *vma,
- 	return 0;
+@@ -13,6 +13,11 @@ static inline u64 pkey_to_vmflag_bits(u16 pkey)
+ 		((pkey & 0x10UL) ? VM_PKEY_BIT4 : 0x0UL));
  }
  
-+extern int __arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
-+		unsigned long init_val);
- static inline int arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
- 		unsigned long init_val)
++static inline int vma_pkey(struct vm_area_struct *vma)
++{
++	return (vma->vm_flags & ARCH_VM_PKEY_FLAGS) >> VM_PKEY_SHIFT;
++}
++
+ #define arch_max_pkey()  32
+ #define AMR_AD_BIT 0x1UL
+ #define AMR_WD_BIT 0x2UL
+@@ -102,11 +107,12 @@ static inline int execute_only_pkey(struct mm_struct *mm)
+ 	return __execute_only_pkey(mm);
+ }
+ 
+-
++extern int __arch_override_mprotect_pkey(struct vm_area_struct *vma,
++		int prot, int pkey);
+ static inline int arch_override_mprotect_pkey(struct vm_area_struct *vma,
+ 		int prot, int pkey)
  {
 -	return 0;
-+	return __arch_set_user_pkey_access(tsk, pkey, init_val);
++	return __arch_override_mprotect_pkey(vma, prot, pkey);
  }
  
- static inline void pkey_mm_init(struct mm_struct *mm)
-diff --git a/arch/powerpc/mm/Makefile b/arch/powerpc/mm/Makefile
-index 7414034..8cc2ff1 100644
---- a/arch/powerpc/mm/Makefile
-+++ b/arch/powerpc/mm/Makefile
-@@ -45,3 +45,4 @@ obj-$(CONFIG_PPC_COPRO_BASE)	+= copro_fault.o
- obj-$(CONFIG_SPAPR_TCE_IOMMU)	+= mmu_context_iommu.o
- obj-$(CONFIG_PPC_PTDUMP)	+= dump_linuxpagetables.o
- obj-$(CONFIG_PPC_HTDUMP)	+= dump_hashpagetable.o
-+obj-$(CONFIG_PPC64_MEMORY_PROTECTION_KEYS)	+= pkeys.o
+ extern int __arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
 diff --git a/arch/powerpc/mm/pkeys.c b/arch/powerpc/mm/pkeys.c
-new file mode 100644
-index 0000000..d3ba167
---- /dev/null
+index 6c90317..c60a045 100644
+--- a/arch/powerpc/mm/pkeys.c
 +++ b/arch/powerpc/mm/pkeys.c
-@@ -0,0 +1,66 @@
-+/*
-+ * PowerPC Memory Protection Keys management
-+ * Copyright (c) 2015, Intel Corporation.
-+ * Copyright (c) 2017, IBM Corporation.
-+ *
-+ * This program is free software; you can redistribute it and/or modify it
-+ * under the terms and conditions of the GNU General Public License,
-+ * version 2, as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope it will be useful, but WITHOUT
-+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
-+ * more details.
-+ */
-+#include <linux/pkeys.h>                /* PKEY_*                       */
-+#include <uapi/asm-generic/mman-common.h>
+@@ -123,3 +123,50 @@ int __execute_only_pkey(struct mm_struct *mm)
+ 		mm->context.execute_only_pkey = execute_only_pkey;
+ 	return execute_only_pkey;
+ }
 +
-+/*
-+ * set the access right in AMR IAMR and UAMOR register
-+ * for @pkey to that specified in @init_val.
-+ */
-+int __arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
-+		unsigned long init_val)
++static inline bool vma_is_pkey_exec_only(struct vm_area_struct *vma)
 +{
-+	u64 old_amr, old_uamor, old_iamr;
-+	int pkey_shift = (arch_max_pkey()-pkey-1) * AMR_BITS_PER_PKEY;
-+	u64 new_amr_bits = 0x0ul;
-+	u64 new_iamr_bits = 0x0ul;
-+	u64 new_uamor_bits = 0x3ul;
++	/* Do this check first since the vm_flags should be hot */
++	if ((vma->vm_flags & (VM_READ | VM_WRITE | VM_EXEC)) != VM_EXEC)
++		return false;
 +
-+	/* Set the bits we need in AMR:  */
-+	if (init_val & PKEY_DISABLE_ACCESS)
-+		new_amr_bits |= AMR_AD_BIT | AMR_WD_BIT;
-+	if (init_val & PKEY_DISABLE_WRITE)
-+		new_amr_bits |= AMR_WD_BIT;
++	return (vma_pkey(vma) == vma->vm_mm->context.execute_only_pkey);
++}
++
++/*
++ * This should only be called for *plain* mprotect calls.
++ */
++int __arch_override_mprotect_pkey(struct vm_area_struct *vma, int prot,
++		int pkey)
++{
++	/*
++	 * Is this an mprotect_pkey() call?  If so, never
++	 * override the value that came from the user.
++	 */
++	if (pkey != -1)
++		return pkey;
 +
 +	/*
-+	 * By default execute is disabled.
-+	 * To enable execute, PKEY_ENABLE_EXECUTE
-+	 * needs to be specified.
++	 * If the currently associated pkey is execute-only,
++	 * but the requested protection requires read or write,
++	 * move it back to the default pkey.
 +	 */
-+	if ((init_val & PKEY_DISABLE_EXECUTE))
-+		new_iamr_bits |= IAMR_EX_BIT;
++	if (vma_is_pkey_exec_only(vma) &&
++	    (prot & (PROT_READ|PROT_WRITE)))
++		return 0;
 +
-+	/* Shift the bits in to the correct place in AMR for pkey: */
-+	new_amr_bits	<<= pkey_shift;
-+	new_iamr_bits	<<= pkey_shift;
-+	new_uamor_bits	<<= pkey_shift;
++	/*
++	 * the requested protection is execute-only. Hence
++	 * lets use a execute-only pkey.
++	 */
++	if (prot == PROT_EXEC) {
++		pkey = execute_only_pkey(vma->vm_mm);
++		if (pkey > 0)
++			return pkey;
++	}
 +
-+	/* Get old AMR and mask off any old bits in place: */
-+	old_amr	= read_amr();
-+	old_amr	&= ~((u64)(AMR_AD_BIT|AMR_WD_BIT) << pkey_shift);
-+
-+	old_iamr = read_iamr();
-+	old_iamr &= ~(0x3ul << pkey_shift);
-+
-+	old_uamor = read_uamor();
-+	old_uamor &= ~(0x3ul << pkey_shift);
-+
-+	/* Write old part along with new part: */
-+	write_amr(old_amr | new_amr_bits);
-+	write_iamr(old_iamr | new_iamr_bits);
-+	write_uamor(old_uamor | new_uamor_bits);
-+
-+	return 0;
++	/*
++	 * nothing to override.
++	 */
++	return vma_pkey(vma);
 +}
 -- 
 1.7.1
