@@ -1,215 +1,200 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 2/9] RISC-V: Atomic and Locking Code
-Date: Wed, 5 Jul 2017 10:43:21 +0200
-Message-ID: <20170705084321.hqy4qsm45mv772k4@hirez.programming.kicks-ass.net>
+From: James Hogan <james.hogan@imgtec.com>
+Subject: Re: [PATCH 8/9] RISC-V: User-facing API
+Date: Wed, 5 Jul 2017 11:24:33 +0100
+Message-ID: <20170705102433.GC6973@jhogan-linux.le.imgtec.org>
 References: <20170704195102.3974-1-palmer@dabbelt.com>
- <20170704195102.3974-3-palmer@dabbelt.com>
+ <20170704195102.3974-9-palmer@dabbelt.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: multipart/signed; micalg=pgp-sha256;
+        protocol="application/pgp-signature"; boundary="RnqofTe3AZPmi90i"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([65.50.211.133]:36951 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750885AbdGEIn5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Jul 2017 04:43:57 -0400
+Received: from mailapp01.imgtec.com ([195.59.15.196]:8243 "EHLO
+        imgpgp01.kl.imgtec.org" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+        with ESMTP id S1751699AbdGEKYg (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Jul 2017 06:24:36 -0400
 Content-Disposition: inline
-In-Reply-To: <20170704195102.3974-3-palmer@dabbelt.com>
+In-Reply-To: <20170704195102.3974-9-palmer@dabbelt.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Palmer Dabbelt <palmer@dabbelt.com>
-Cc: mingo@redhat.com, mcgrof@kernel.org, viro@zeniv.linux.org.uk, sfr@canb.auug.org.au, nicolas.dichtel@6wind.com, rmk+kernel@armlinux.org.uk, msalter@redhat.com, tklauser@distanz.ch, will.deacon@arm.com, james.hogan@imgtec.com, paul.gortmaker@windriver.com, linux@roeck-us.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, albert@sifive.com, patches@groups.riscv.org
+Cc: peterz@infradead.org, mingo@redhat.com, mcgrof@kernel.org, viro@zeniv.linux.org.uk, sfr@canb.auug.org.au, nicolas.dichtel@6wind.com, rmk+kernel@armlinux.org.uk, msalter@redhat.com, tklauser@distanz.ch, will.deacon@arm.com, paul.gortmaker@windriver.com, linux@roeck-us.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, albert@sifive.com, patches@groups.riscv.org
 
-On Tue, Jul 04, 2017 at 12:50:55PM -0700, Palmer Dabbelt wrote:
-> +/*
-> + * FIXME: I could only find documentation that atomic_{add,sub,inc,dec} are
-> + * barrier-free.  I'm assuming that and/or/xor have the same constraints as the
-> + * others.
-> + */
+--RnqofTe3AZPmi90i
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
 
-Yes.. we have new documentation in the work to which I would post a link
-but for some reason copy/paste stopped working again (Konsole does that
-at times and is #$%#$%#4# annoying).
+On Tue, Jul 04, 2017 at 12:51:01PM -0700, Palmer Dabbelt wrote:
+> diff --git a/arch/riscv/kernel/ptrace.c b/arch/riscv/kernel/ptrace.c
+> new file mode 100644
+> index 000000000000..2720d5e97354
+> --- /dev/null
+> +++ b/arch/riscv/kernel/ptrace.c
+> @@ -0,0 +1,138 @@
 
-Ha, found it using google...
-
-  https://marc.info/?l=linux-kernel&m=14972790112580
-
-
-> +
-
-> +/*
-> + * atomic_{cmp,}xchg is required to have exactly the same ordering semantics as
-> + * {cmp,}xchg and the operations that return, so they need a barrier.  We just
-> + * use the other implementations directly.
-> + */
-
-cmpxchg triggers an extra rule; all conditional operations only need to
-imply barriers on success. So a cmpxchg that fails, need not imply any
-ordering what so ever.
-
-> +/*
-> + * Our atomic operations set the AQ and RL bits and therefor we don't need to
-> + * fence around atomics.
-> + */
-> +#define __smb_mb__before_atomic()	barrier()
-> +#define __smb_mb__after_atomic()	barrier()
-
-Ah, not quite... you need full barriers here. Because your regular
-atomic ops imply no ordering what so ever.
-
-> +/*
-> + * These barries are meant to prevent memory operations inside a spinlock from
-> + * moving outside of that spinlock.  Since we set the AQ and RL bits when
-> + * entering or leaving spinlocks, no additional fence needs to be performed.
-> + */
-> +#define smb_mb__before_spinlock()	barrier()
-> +#define smb_mb__after_spinlock()	barrier()
-
-Also probably not true. I _think_ you want a full barrier here, but
-given the total lack of documentation on your end and the fact I've not
-yet read the spinlock (which I suppose is below) I cannot yet state
-more.
-
-
-> +
-> +/* FIXME: I don't think RISC-V is allowed to perform a speculative load. */
-> +#define smp_acquire__after_ctrl_dep()	barrier()
-
-That would be a very weird thing to disallow... speculative loads are
-teh awesome ;-) Note you can get the very same effect from caches when
-your stores are not globally atomic.
-
-> +/*
-> + * The RISC-V ISA doesn't support byte or half-word AMOs, so we fall back to a
-> + * regular store and a fence here.  Otherwise we emit an AMO with an AQ or RL
-> + * bit set and allow the microarchitecture to avoid the other half of the AMO.
-> + */
-> +#define __smp_store_release(p, v)					\
-> +do {									\
-> +	union { typeof(*p) __val; char __c[1]; } __u =			\
-> +		{ .__val = (__force typeof(*p)) (v) };			\
-> +	compiletime_assert_atomic_type(*p);				\
-> +	switch (sizeof(*p)) {						\
-> +	case 1:								\
-> +	case 2:								\
-> +		smb_mb();						\
-> +		WRITE_ONCE(*p, __u.__val);				\
-> +		break;							\
-> +	case 4:								\
-> +		__asm__ __volatile__ (					\
-> +			"amoswap.w.rl zero, %1, %0"			\
-> +			: "+A" (*p), "r" (__u.__val)			\
-> +			: 						\
-> +			: "memory");					\
-> +		break;							\
-> +	case 8:								\
-> +		__asm__ __volatile__ (					\
-> +			"amoswap.d.rl zero, %1, %0"			\
-> +			: "+A" (*p), "r" (__u.__val)			\
-> +			: 						\
-> +			: "memory");					\
-> +		break;							\
-> +	}								\
-> +} while (0)
-> +
-> +#define __smp_load_acquire(p)						\
-> +do {									\
-> +	union { typeof(*p) __val; char __c[1]; } __u =			\
-> +		{ .__val = (__force typeof(*p)) (v) };			\
-> +	compiletime_assert_atomic_type(*p);				\
-> +	switch (sizeof(*p)) {						\
-> +	case 1:								\
-> +	case 2:								\
-> +		__u.__val = READ_ONCE(*p);				\
-> +		smb_mb();						\
-> +		break;							\
-> +	case 4:								\
-> +		__asm__ __volatile__ (					\
-> +			"amoor.w.aq %1, zero, %0"			\
-> +			: "+A" (*p)					\
-> +			: "=r" (__u.__val)				\
-> +			: "memory");					\
-> +		break;							\
-> +	case 8:								\
-> +		__asm__ __volatile__ (					\
-> +			"amoor.d.aq %1, zero, %0"			\
-> +			: "+A" (*p)					\
-> +			: "=r" (__u.__val)				\
-> +			: "memory");					\
-> +		break;							\
-> +	}								\
-> +	__u.__val;							\
-> +} while (0)
-
-'creative' use of amoswap and amoor :-)
-
-You should really look at a normal load with ordering instruction
-though, that amoor.aq is a rmw and will promote the cacheline to
-exclusive (and dirty it).
-
-> +/*
-> + * Simple spin lock operations.  These provide no fairness guarantees.
-> + */
-> +
-> +/* FIXME: Replace this with a ticket lock, like MIPS. */
-> +
-> +#define arch_spin_lock_flags(lock, flags) arch_spin_lock(lock)
-> +#define arch_spin_is_locked(x)	((x)->lock != 0)
-> +#define arch_spin_unlock_wait(x) \
-> +		do { cpu_relax(); } while ((x)->lock)
-> +
-> +static inline void arch_spin_unlock(arch_spinlock_t *lock)
+> +/* Put registers back to task. */
+> +static void putregs(struct task_struct *child, struct pt_regs *uregs)
 > +{
-> +	__asm__ __volatile__ (
-> +		"amoswap.w.rl x0, x0, %0"
-> +		: "=A" (lock->lock)
-> +		:: "memory");
+> +	struct pt_regs *regs = task_pt_regs(child);
+> +	*regs = *uregs;
 > +}
 > +
-> +static inline int arch_spin_trylock(arch_spinlock_t *lock)
+> +static int riscv_gpr_get(struct task_struct *target,
+> +			 const struct user_regset *regset,
+> +			 unsigned int pos, unsigned int count,
+> +			 void *kbuf, void __user *ubuf)
 > +{
-> +	int tmp = 1, busy;
+> +	struct pt_regs *regs;
 > +
-> +	__asm__ __volatile__ (
-> +		"amoswap.w.aq %0, %2, %1"
-> +		: "=r" (busy), "+A" (lock->lock)
-> +		: "r" (tmp)
-> +		: "memory");
-> +
-> +	return !busy;
+> +	regs = task_pt_regs(target);
+> +	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, regs, 0,
+> +				   sizeof(*regs));
+
+sizeof(struct pt_regs) > sizeof(struct user_regs_struct), which allows
+supervisor registers to be copied too. I think you should be using
+sizeof(struct user_regs_struct) instead.
+
 > +}
 > +
-> +static inline void arch_spin_lock(arch_spinlock_t *lock)
+> +static int riscv_gpr_set(struct task_struct *target,
+> +			 const struct user_regset *regset,
+> +			 unsigned int pos, unsigned int count,
+> +			 const void *kbuf, const void __user *ubuf)
 > +{
-> +	while (1) {
-> +		if (arch_spin_is_locked(lock))
-> +			continue;
+> +	int ret;
+> +	struct pt_regs regs;
 > +
-> +		if (arch_spin_trylock(lock))
-> +			break;
-> +	}
+> +	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, &regs, 0,
+> +				 sizeof(regs));
+
+same
+
+> +	if (ret)
+> +		return ret;
+> +
+> +	putregs(target, &regs);
+
+you're still copying via the stack without initialising the non-written
+fields. If userland does a short PTRACE_SETREGSET the remaining fields
+will be copied from the uninitialised kernel stack and accessible to
+userland via PTRACE_GETREGSET.
+
+Even if the user does a full sizeof(struct user_regs_struct) (not
+pt_regs) PTRACE_SETREGSET the supervisor registers will be overwritten
+with uninitialised stack content.
+
+> diff --git a/arch/riscv/kernel/sys_riscv.c b/arch/riscv/kernel/sys_riscv.c
+> new file mode 100644
+> index 000000000000..4419604ff46c
+> --- /dev/null
+> +++ b/arch/riscv/kernel/sys_riscv.c
+
+> +SYSCALL_DEFINE3(sysriscv_cmpxchg32, u32 __user *, ptr, u32, new, u32, old)
+> +{
+> +	u32 prev;
+> +	unsigned int err;
+> +
+> +	if (!access_ok(VERIFY_WRITE, ptr, sizeof(*ptr)))
+> +		return -EFAULT;
+> +
+> +#ifdef CONFIG_ISA_A
+> +	err = 0;
+> +	prev = cmpxchg32(ptr, old, new);
+
+I think this needs a special version of cmpxchg (or for cmpxchg to be
+modified) with fixup protection to return -EFAULT in case the page isn't
+mapped or is paged out/read only.
+
+> +#else
+> +	preempt_disable();
+> +	err = __get_user(prev, ptr);
+> +	if (likely(!err && prev == old))
+> +		err = __put_user(new, ptr);
+> +	preempt_enable();
+> +#endif
+> +
+> +	return unlikely(err) ? err : prev;
 > +}
+> +
+> +SYSCALL_DEFINE3(sysriscv_cmpxchg64, u64 __user *, ptr, u64, new, u64, old)
+> +{
+> +#ifdef CONFIG_64BIT
+> +	u64 prev;
+> +	unsigned int err;
+> +
+> +	if (!access_ok(VERIFY_WRITE, ptr, sizeof(*ptr)))
+> +		return -EFAULT;
+> +
+> +#ifdef CONFIG_ISA_A
+> +	err = 0;
+> +	prev = cmpxchg64(ptr, old, new);
 
-OK, so back to smp_mb__{before,after}_spinlock(), that wants to order
-things like:
+Likewise
 
-	wakeup:					block:
+> +#else
+> +	preempt_disable();
+> +	err = __get_user(prev, ptr);
+> +	if (likely(!err && prev == old))
+> +		err = __put_user(new, ptr);
+> +	preempt_enable();
+> +#endif
+> +	return unlikely(err) ? err : prev;
+> +#else
+> +	return -ENOTSUPP;
 
-	COND = 1;				p->state = UNINTERRUPTIBLE;
-						smp_mb();
-	smp_mb__before_spinlock();
-	spin_lock(&lock);			if (!COND)
-						  schedule()
-	if (p->state & state)
-		goto out;
+I think -ENOSYS is more standard for missing/unimplemented system calls.
 
+A better way IMO would be to #ifdef the definitions in unistd.h, then
+the __NR_* definitions could also be more accurately extracted from the
+kernel headers, and you could just ifdef CONFIG_64BIT the whole syscall
+implementation, i.e.:
 
-And here it is important that the COND store not happen _after_ the
-p->state load.
+> diff --git a/arch/riscv/include/uapi/asm/unistd.h b/arch/riscv/include/uapi/asm/unistd.h
+> new file mode 100644
+> index 000000000000..37a5429cc896
+> --- /dev/null
+> +++ b/arch/riscv/include/uapi/asm/unistd.h
+> @@ -0,0 +1,23 @@
 
-Now, your spin_lock() only implies the AQ thing, which should only
-constraint later load/stores but does nothing for the prior load/stores.
-So our COND store can drop into the lock and even happen after the
-p->state load.
+> +/*
+> + * These system calls add support for AMOs on RISC-V systems without support
+> + * for the A extension.
+> + */
+> +#define __NR_sysriscv_cmpxchg32		(__NR_arch_specific_syscall + 0)
+> +__SYSCALL(__NR_sysriscv_cmpxchg32, sys_sysriscv_cmpxchg32)
 
-So you very much want your smp_mb__{before,after}_spinlock thingies to
-be full barriers.
++ifdef WHATEVER_BUILTIN_GCC_DEFINES_FOR_64BIT_RISCV_ABI
+
+In case its helpful the following should list builtin preprocessor
+defines for given CFLAGS:
+${CROSS_COMPILE}gcc ${CFLAGS} -dM -E -</dev/null
+
+> +#define __NR_sysriscv_cmpxchg64		(__NR_arch_specific_syscall + 1)
+> +__SYSCALL(__NR_sysriscv_cmpxchg64, sys_sysriscv_cmpxchg64)
+
++endif
+
+Cheers
+James
+
+--RnqofTe3AZPmi90i
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
+
+-----BEGIN PGP SIGNATURE-----
+
+iQIzBAEBCAAdFiEEd80NauSabkiESfLYbAtpk944dnoFAllcvlgACgkQbAtpk944
+dnoxyQ//cYBO9fY1OynLI3WYXliJkLSsyUy34QRQnZ2dLHfPd44eEscx0Fwz4fDS
+LMVkblV4bMxbKjkgmIFJN3zBoKb5hBPbSbOq6mZ9PMUdPCYF9IRSp0T4Z328T+QX
+7gwQDHYF8OBDbnbUcVXmklD+cdI0T8faq1Dn23JQDEgm9zQhpUL/MluONSCDgfTT
+gS6SYZMbuPVj4VzeK+3QAUIPd17hXzeHp6K1D1pBD0/1BHlhrRbYZd/ZAb8ML6zQ
+3hAf+Cua2wZYsdMyhWxjBvmwy0ekd5ViwAWUlg5PDEGt45SBofVqXiFnXKbBcFu6
+2t5GM+SFDMRp7a0vhmd+lKT2JCckYaePRDIOkZVV/bi6DNwZch4ijJAfyneK8XE4
+q+pprvOmPjEWjZqGSQaJ8W8/uS2Xu7ulUGwdt2/V5x9e96eD6Ioq8kBrc56Q2cOr
+Yj9aabS748y/dcaUiVBf8kDprAlPiEeDWwAARdOxPkz9DIsu4GJneGhYm715O1vc
+UEK7ScerLVOdyESNbn0zEBSJtC+CyH1bGEBRPFGtocqrlQfwodKzZW8o1fBbsCl2
+9rYE+F2zP6wUErhoLzJbS7rhtU7uN89seUmtS41Zb4eJCv47TxccI24jg1JI0tIX
+O4ukU1jGkiXbKAYuhRfrKZm0tKakTPNgxMN+qEa6hiV7/ExcWuY=
+=eX0z
+-----END PGP SIGNATURE-----
+
+--RnqofTe3AZPmi90i--
