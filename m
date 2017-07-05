@@ -1,96 +1,101 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f193.google.com ([209.85.220.193]:35107 "EHLO
-        mail-qk0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752534AbdGEVWh (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Jul 2017 17:22:37 -0400
-From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v5 03/38] powerpc: introduce pte_set_hash_slot() helper
-Date: Wed,  5 Jul 2017 14:21:40 -0700
-Message-ID: <1499289735-14220-4-git-send-email-linuxram@us.ibm.com>
-In-Reply-To: <1499289735-14220-1-git-send-email-linuxram@us.ibm.com>
-References: <1499289735-14220-1-git-send-email-linuxram@us.ibm.com>
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:54955 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1752510AbdGEXaB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Jul 2017 19:30:01 -0400
+Received: from pps.filterd (m0098409.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.20/8.16.0.20) with SMTP id v65NSsh4020365
+        for <linux-arch@vger.kernel.org>; Wed, 5 Jul 2017 19:30:01 -0400
+Received: from e16.ny.us.ibm.com (e16.ny.us.ibm.com [129.33.205.206])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2bh4tbkggv-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Wed, 05 Jul 2017 19:30:00 -0400
+Received: from localhost
+        by e16.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+        Wed, 5 Jul 2017 19:29:59 -0400
+Date: Wed, 5 Jul 2017 16:29:55 -0700
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: [PATCH v2 0/9] Remove spin_unlock_wait()
+Reply-To: paulmck@linux.vnet.ibm.com
+References: <20170629235918.GA6445@linux.vnet.ibm.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20170629235918.GA6445@linux.vnet.ibm.com>
+Message-ID: <20170705232955.GA15992@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
-Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
-Message-ID: <20170705212140.UHc8oyHFw0LNyFw8hYeVkN4e4Zo86zC1dND-VZTvOgk@z>
+To: linux-kernel@vger.kernel.org
+Cc: netfilter-devel@vger.kernel.org, netdev@vger.kernel.org, oleg@redhat.com, akpm@linux-foundation.org, mingo@redhat.com, dave@stgolabs.net, manfred@colorfullife.com, tj@kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, will.deacon@arm.com, peterz@infradead.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, torvalds@linux-foundation.org
+Message-ID: <20170705232955.3w9Zs0YdDCE0UQc6BOI6i-ZhejwzIKW3sBAWNeYbUgE@z>
 
-Introduce pte_set_hash_slot().It  sets the (H_PAGE_F_SECOND|H_PAGE_F_GIX)
-bits at  the   appropriate   location   in   the   PTE  of  4K  PTE.  For
-64K PTE, it  sets  the  bits  in  the  second  part  of  the  PTE. Though
-the implementation  for the former just needs the slot parameter, it does
-take some additional parameters to keep the prototype consistent.
+Hello!
 
-This function  will  be  handy  as  we   work   towards  re-arranging the
-bits in the later patches.
+There is no agreed-upon definition of spin_unlock_wait()'s semantics,
+and it appears that all callers could do just as well with a lock/unlock
+pair.  This series therefore removes spin_unlock_wait() and changes
+its users to instead use a lock/unlock pair.  The commits are as follows,
+in three groups:
 
-Signed-off-by: Ram Pai <linuxram@us.ibm.com>
----
- arch/powerpc/include/asm/book3s/64/hash-4k.h  |   15 +++++++++++++++
- arch/powerpc/include/asm/book3s/64/hash-64k.h |   25 +++++++++++++++++++++++++
- 2 files changed, 40 insertions(+), 0 deletions(-)
+1-7.	Change uses of spin_unlock_wait() and raw_spin_unlock_wait()
+	to instead use a spin_lock/spin_unlock pair.  These may be
+	applied in any order, but must be applied before any later
+	commits in this series.  The commit logs state why I believe
+	that these commits won't noticeably degrade performance.
 
-diff --git a/arch/powerpc/include/asm/book3s/64/hash-4k.h b/arch/powerpc/include/asm/book3s/64/hash-4k.h
-index 1e60099..d17ed52 100644
---- a/arch/powerpc/include/asm/book3s/64/hash-4k.h
-+++ b/arch/powerpc/include/asm/book3s/64/hash-4k.h
-@@ -53,6 +53,21 @@ static inline int hash__hugepd_ok(hugepd_t hpd)
- }
- #endif
- 
-+/*
-+ * 4k pte format is  different  from  64k  pte  format.  Saving  the
-+ * hash_slot is just a matter of returning the pte bits that need to
-+ * be modified. On 64k pte, things are a  little  more  involved and
-+ * hence  needs   many   more  parameters  to  accomplish  the  same.
-+ * However we  want  to abstract this out from the caller by keeping
-+ * the prototype consistent across the two formats.
-+ */
-+static inline unsigned long pte_set_hash_slot(pte_t *ptep, real_pte_t rpte,
-+			unsigned int subpg_index, unsigned long slot)
-+{
-+	return (slot << H_PAGE_F_GIX_SHIFT) &
-+		(H_PAGE_F_SECOND | H_PAGE_F_GIX);
-+}
-+
- #ifdef CONFIG_TRANSPARENT_HUGEPAGE
- 
- static inline char *get_hpte_slot_array(pmd_t *pmdp)
-diff --git a/arch/powerpc/include/asm/book3s/64/hash-64k.h b/arch/powerpc/include/asm/book3s/64/hash-64k.h
-index c281f18..89ef5a9 100644
---- a/arch/powerpc/include/asm/book3s/64/hash-64k.h
-+++ b/arch/powerpc/include/asm/book3s/64/hash-64k.h
-@@ -67,6 +67,31 @@ static inline unsigned long __rpte_to_hidx(real_pte_t rpte, unsigned long index)
- 	return ((rpte.hidx >> (index<<2)) & 0xfUL);
- }
- 
-+/*
-+ * Commit the hash slot and return pte bits that needs to be modified.
-+ * The caller is expected to modify the pte bits accordingly and
-+ * commit the pte to memory.
-+ */
-+static inline unsigned long pte_set_hash_slot(pte_t *ptep, real_pte_t rpte,
-+		unsigned int subpg_index, unsigned long slot)
-+{
-+	unsigned long *hidxp = (unsigned long *)(ptep + PTRS_PER_PTE);
-+
-+	rpte.hidx &= ~(0xfUL << (subpg_index << 2));
-+	*hidxp = rpte.hidx  | (slot << (subpg_index << 2));
-+	/*
-+	 * Commit the hidx bits to memory before returning.
-+	 * Anyone reading  pte  must  ensure hidx bits are
-+	 * read  only  after  reading the pte by using the
-+	 * read-side  barrier  smp_rmb(). __real_pte() can
-+	 * help ensure that.
-+	 */
-+	smp_wmb();
-+
-+	/* no pte bits to be modified, return 0x0UL */
-+	return 0x0UL;
-+}
-+
- #define __rpte_to_pte(r)	((r).pte)
- extern bool __rpte_sub_valid(real_pte_t rpte, unsigned long index);
- /*
--- 
-1.7.1
+8.	Remove core-kernel definitions for spin_unlock_wait() and
+	raw_spin_unlock_wait().
+
+9.	Remove arch-specific definitions of arch_spin_unlock_wait().
+
+Changes since v1:
+
+o	Disable interrupts where needed, thus avoiding embarrassing
+	interrupt-based self-deadlocks.
+
+o	Substitute Manfred's patch for contrack_lock (#1 above).
+
+o	Substitute Oleg's patch for task_work (#2 above).
+
+o	Use more efficient barrier based on Arnd Bergmann feedback.
+
+							Thanx, Paul
+
+------------------------------------------------------------------------
+
+ arch/alpha/include/asm/spinlock.h    |    5 -
+ arch/arc/include/asm/spinlock.h      |    5 -
+ arch/arm/include/asm/spinlock.h      |   16 ----
+ arch/arm64/include/asm/spinlock.h    |   58 +----------------
+ arch/blackfin/include/asm/spinlock.h |    5 -
+ arch/hexagon/include/asm/spinlock.h  |    5 -
+ arch/ia64/include/asm/spinlock.h     |   21 ------
+ arch/m32r/include/asm/spinlock.h     |    5 -
+ arch/metag/include/asm/spinlock.h    |    5 -
+ arch/mips/include/asm/spinlock.h     |   16 ----
+ arch/mn10300/include/asm/spinlock.h  |    5 -
+ arch/parisc/include/asm/spinlock.h   |    7 --
+ arch/powerpc/include/asm/spinlock.h  |   33 ---------
+ arch/s390/include/asm/spinlock.h     |    7 --
+ arch/sh/include/asm/spinlock-cas.h   |    5 -
+ arch/sh/include/asm/spinlock-llsc.h  |    5 -
+ arch/sparc/include/asm/spinlock_32.h |    5 -
+ arch/sparc/include/asm/spinlock_64.h |    5 -
+ arch/tile/include/asm/spinlock_32.h  |    2 
+ arch/tile/include/asm/spinlock_64.h  |    2 
+ arch/tile/lib/spinlock_32.c          |   23 ------
+ arch/tile/lib/spinlock_64.c          |   22 ------
+ arch/xtensa/include/asm/spinlock.h   |    5 -
+ drivers/ata/libata-eh.c              |    8 --
+ include/asm-generic/qspinlock.h      |   14 ----
+ include/linux/spinlock.h             |   31 ---------
+ include/linux/spinlock_up.h          |    6 -
+ ipc/sem.c                            |    3 
+ kernel/exit.c                        |    3 
+ kernel/locking/qspinlock.c           |  117 -----------------------------------
+ kernel/sched/completion.c            |    9 --
+ kernel/sched/core.c                  |    5 -
+ kernel/task_work.c                   |    8 --
+ net/netfilter/nf_conntrack_core.c    |   44 +++++++------
+ 34 files changed, 43 insertions(+), 472 deletions(-)
