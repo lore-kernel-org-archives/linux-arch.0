@@ -1,85 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f193.google.com ([209.85.216.193]:36301 "EHLO
-        mail-qt0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753028AbdGEVX2 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Jul 2017 17:23:28 -0400
+Received: from mail-qk0-f196.google.com ([209.85.220.196]:33056 "EHLO
+        mail-qk0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752642AbdGEVWv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Jul 2017 17:22:51 -0400
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v5 20/38] powerpc: ability to associate pkey to a vma
-Date: Wed,  5 Jul 2017 14:21:57 -0700
-Message-ID: <1499289735-14220-21-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v5 07/38] powerpc: use helper functions in __hash_page_huge() for 64K PTE
+Date: Wed,  5 Jul 2017 14:21:44 -0700
+Message-ID: <1499289735-14220-8-git-send-email-linuxram@us.ibm.com>
 In-Reply-To: <1499289735-14220-1-git-send-email-linuxram@us.ibm.com>
 References: <1499289735-14220-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
-Message-ID: <20170705212157.xOY2e5SWKfrHrblu1QhaQeOg6QBJlvABSkLIp-8Mz-g@z>
+Message-ID: <20170705212144.DFGNWpi-_X9N0HwTNQkYIGmoy2yWfVqvlwBt3eKbbPs@z>
 
-arch-independent code expects the arch to  map
-a  pkey  into the vma's protection bit setting.
-The patch provides that ability.
+replace redundant code in __hash_page_huge() with helper
+functions pte_get_hash_gslot() and pte_set_hash_slot()
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/include/asm/mman.h  |    8 +++++++-
- arch/powerpc/include/asm/pkeys.h |   14 ++++++++++++--
- 2 files changed, 19 insertions(+), 3 deletions(-)
+ arch/powerpc/mm/hugetlbpage-hash64.c |   24 ++++--------------------
+ 1 files changed, 4 insertions(+), 20 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/mman.h b/arch/powerpc/include/asm/mman.h
-index 30922f6..067eec2 100644
---- a/arch/powerpc/include/asm/mman.h
-+++ b/arch/powerpc/include/asm/mman.h
-@@ -13,6 +13,7 @@
- 
- #include <asm/cputable.h>
- #include <linux/mm.h>
-+#include <linux/pkeys.h>
- #include <asm/cpu_has_feature.h>
- 
- /*
-@@ -22,7 +23,12 @@
- static inline unsigned long arch_calc_vm_prot_bits(unsigned long prot,
- 		unsigned long pkey)
+diff --git a/arch/powerpc/mm/hugetlbpage-hash64.c b/arch/powerpc/mm/hugetlbpage-hash64.c
+index 6f7aee3..e6dcd50 100644
+--- a/arch/powerpc/mm/hugetlbpage-hash64.c
++++ b/arch/powerpc/mm/hugetlbpage-hash64.c
+@@ -23,7 +23,6 @@ int __hash_page_huge(unsigned long ea, unsigned long access, unsigned long vsid,
+ 		     int ssize, unsigned int shift, unsigned int mmu_psize)
  {
--	return (prot & PROT_SAO) ? VM_SAO : 0;
-+#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
-+	return (((prot & PROT_SAO) ? VM_SAO : 0) |
-+			pkey_to_vmflag_bits(pkey));
-+#else
-+	return ((prot & PROT_SAO) ? VM_SAO : 0);
-+#endif
- }
- #define arch_calc_vm_prot_bits(prot, pkey) arch_calc_vm_prot_bits(prot, pkey)
+ 	real_pte_t rpte;
+-	unsigned long *hidxp;
+ 	unsigned long vpn;
+ 	unsigned long old_pte, new_pte;
+ 	unsigned long rflags, pa, sz;
+@@ -74,16 +73,10 @@ int __hash_page_huge(unsigned long ea, unsigned long access, unsigned long vsid,
+ 	/* Check if pte already has an hpte (case 2) */
+ 	if (unlikely(old_pte & H_PAGE_HASHPTE)) {
+ 		/* There MIGHT be an HPTE for this pte */
+-		unsigned long hash, slot, hidx;
++		unsigned long gslot;
  
-diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
-index 4b01c37..f148e84 100644
---- a/arch/powerpc/include/asm/pkeys.h
-+++ b/arch/powerpc/include/asm/pkeys.h
-@@ -1,13 +1,23 @@
- #ifndef _ASM_PPC64_PKEYS_H
- #define _ASM_PPC64_PKEYS_H
+-		hash = hpt_hash(vpn, shift, ssize);
+-		hidx = __rpte_to_hidx(rpte, 0);
+-		if (hidx & _PTEIDX_SECONDARY)
+-			hash = ~hash;
+-		slot = (hash & htab_hash_mask) * HPTES_PER_GROUP;
+-		slot += hidx & _PTEIDX_GROUP_IX;
+-
+-		if (mmu_hash_ops.hpte_updatepp(slot, rflags, vpn, mmu_psize,
++		gslot = pte_get_hash_gslot(vpn, shift, ssize, rpte, 0);
++		if (mmu_hash_ops.hpte_updatepp(gslot, rflags, vpn, mmu_psize,
+ 					       mmu_psize, ssize, flags) == -1)
+ 			old_pte &= ~_PAGE_HPTEFLAGS;
+ 	}
+@@ -110,16 +103,7 @@ int __hash_page_huge(unsigned long ea, unsigned long access, unsigned long vsid,
+ 			return -1;
+ 		}
  
-+#define ARCH_VM_PKEY_FLAGS (VM_PKEY_BIT0 | VM_PKEY_BIT1 | VM_PKEY_BIT2 | \
-+				VM_PKEY_BIT3 | VM_PKEY_BIT4)
-+
-+static inline u64 pkey_to_vmflag_bits(u16 pkey)
-+{
-+	return (((pkey & 0x1UL) ? VM_PKEY_BIT0 : 0x0UL) |
-+		((pkey & 0x2UL) ? VM_PKEY_BIT1 : 0x0UL) |
-+		((pkey & 0x4UL) ? VM_PKEY_BIT2 : 0x0UL) |
-+		((pkey & 0x8UL) ? VM_PKEY_BIT3 : 0x0UL) |
-+		((pkey & 0x10UL) ? VM_PKEY_BIT4 : 0x0UL));
-+}
-+
- #define arch_max_pkey()  32
- #define AMR_AD_BIT 0x1UL
- #define AMR_WD_BIT 0x2UL
- #define IAMR_EX_BIT 0x1UL
- #define AMR_BITS_PER_PKEY 2
--#define ARCH_VM_PKEY_FLAGS (VM_PKEY_BIT0 | VM_PKEY_BIT1 | VM_PKEY_BIT2 | \
--				VM_PKEY_BIT3 | VM_PKEY_BIT4)
- /*
-  * Bits are in BE format.
-  * NOTE: key 31, 1, 0 are not used.
+-		/*
+-		 * Insert slot number & secondary bit in PTE second half.
+-		 */
+-		hidxp = (unsigned long *)(ptep + PTRS_PER_PTE);
+-		rpte.hidx &= ~(0xfUL);
+-		*hidxp = rpte.hidx  | (slot & 0xfUL);
+-		/*
+-		 * check __real_pte for details on matching smp_rmb()
+-		 */
+-		smp_wmb();
++		new_pte |= pte_set_hash_slot(ptep, rpte, 0, slot);
+ 	}
+ 
+ 	/*
 -- 
 1.7.1
