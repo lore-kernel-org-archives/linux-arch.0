@@ -1,87 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f196.google.com ([209.85.216.196]:33668 "EHLO
-        mail-qt0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753066AbdGEVXk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Jul 2017 17:23:40 -0400
+Received: from mail-qt0-f193.google.com ([209.85.216.193]:34446 "EHLO
+        mail-qt0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753071AbdGEVXi (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Jul 2017 17:23:38 -0400
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v5 29/38] powerpc: Handle exceptions caused by pkey violation
-Date: Wed,  5 Jul 2017 14:22:06 -0700
-Message-ID: <1499289735-14220-30-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v5 26/38] powerpc: check key protection for user page access
+Date: Wed,  5 Jul 2017 14:22:03 -0700
+Message-ID: <1499289735-14220-27-git-send-email-linuxram@us.ibm.com>
 In-Reply-To: <1499289735-14220-1-git-send-email-linuxram@us.ibm.com>
 References: <1499289735-14220-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
-Message-ID: <20170705212206.IvbK569H_Qfnald9iwth3Nfs70GkReaBfmvanntzJDY@z>
+Message-ID: <20170705212203.h0gHmOxqhSyOgNG5SqJK4yWcnlTDEfAB8MDP4Ow6k_Y@z>
 
-Handle Data and  Instruction exceptions caused by memory
-protection-key.
-
-The CPU will detect the key fault if the HPTE is already
-programmed with the key.
-
-However if the HPTE is not  hashed, a key fault will not
-be detected by the  hardware. The   software will detect
-pkey violation in such a case.
+Make sure that the kernel does not access user pages without
+checking their key-protection.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/include/asm/reg.h |    2 +-
- arch/powerpc/mm/fault.c        |   21 +++++++++++++++++++++
- 2 files changed, 22 insertions(+), 1 deletions(-)
+ arch/powerpc/include/asm/book3s/64/pgtable.h |   14 ++++++++++++++
+ 1 files changed, 14 insertions(+), 0 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/reg.h b/arch/powerpc/include/asm/reg.h
-index ba110dd..6e2a860 100644
---- a/arch/powerpc/include/asm/reg.h
-+++ b/arch/powerpc/include/asm/reg.h
-@@ -286,7 +286,7 @@
- #define   DSISR_SET_RC		0x00040000	/* Failed setting of R/C bits */
- #define   DSISR_PGDIRFAULT      0x00020000      /* Fault on page directory */
- #define   DSISR_PAGE_FAULT_MASK (DSISR_BIT32 | DSISR_PAGEATTR_CONFLT | \
--				DSISR_BADACCESS | DSISR_BIT43)
-+			DSISR_BADACCESS | DSISR_KEYFAULT | DSISR_BIT43)
- #define SPRN_TBRL	0x10C	/* Time Base Read Lower Register (user, R/O) */
- #define SPRN_TBRU	0x10D	/* Time Base Read Upper Register (user, R/O) */
- #define SPRN_CIR	0x11B	/* Chip Information Register (hyper, R/0) */
-diff --git a/arch/powerpc/mm/fault.c b/arch/powerpc/mm/fault.c
-index 3a7d580..ea74fe2 100644
---- a/arch/powerpc/mm/fault.c
-+++ b/arch/powerpc/mm/fault.c
-@@ -261,6 +261,13 @@ int do_page_fault(struct pt_regs *regs, unsigned long address,
- 	}
- #endif
+diff --git a/arch/powerpc/include/asm/book3s/64/pgtable.h b/arch/powerpc/include/asm/book3s/64/pgtable.h
+index aad205c..d590f30 100644
+--- a/arch/powerpc/include/asm/book3s/64/pgtable.h
++++ b/arch/powerpc/include/asm/book3s/64/pgtable.h
+@@ -476,6 +476,20 @@ static inline void write_uamor(u64 value)
  
-+#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
-+	if (error_code & DSISR_KEYFAULT) {
-+		code = SEGV_PKUERR;
-+		goto bad_area_nosemaphore;
-+	}
-+#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
-+
- 	/* We restore the interrupt state now */
- 	if (!arch_irq_disabled_regs(regs))
- 		local_irq_enable();
-@@ -441,6 +448,20 @@ int do_page_fault(struct pt_regs *regs, unsigned long address,
- 		WARN_ON_ONCE(error_code & DSISR_PROTFAULT);
- #endif /* CONFIG_PPC_STD_MMU */
+ extern bool arch_pte_access_permitted(u64 pte, bool write, bool execute);
  
-+#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
-+	if (!arch_vma_access_permitted(vma, flags & FAULT_FLAG_WRITE,
-+			is_exec, 0)) {
-+		code = SEGV_PKUERR;
-+		goto bad_area;
-+	}
-+#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
++#define pte_access_permitted(pte, write) \
++	(pte_present(pte) && \
++	 ((!(write) || pte_write(pte)) && \
++	  arch_pte_access_permitted(pte_val(pte), !!write, 0)))
 +
++/*
++ * We store key in pmd for huge tlb pages. So need
++ * to check for key protection.
++ */
++#define pmd_access_permitted(pmd, write) \
++	(pmd_present(pmd) && \
++	 ((!(write) || pmd_write(pmd)) && \
++	  arch_pte_access_permitted(pmd_val(pmd), !!write, 0)))
 +
-+	/* handle_mm_fault() needs to know if its a instruction access
-+	 * fault.
-+	 */
-+	if (is_exec)
-+		flags |= FAULT_FLAG_INSTRUCTION;
- 	/*
- 	 * If for any reason at all we couldn't handle the fault,
- 	 * make sure we exit gracefully rather than endlessly redo
+ #else /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
+ 
+ static inline u64 read_amr(void)
 -- 
 1.7.1
