@@ -1,121 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.gmx.net ([212.227.15.19]:54478 "EHLO mout.gmx.net"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752399AbdGDVzp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 4 Jul 2017 17:55:45 -0400
-Date: Tue, 4 Jul 2017 23:54:01 +0200
-From: Jonathan =?utf-8?Q?Neusch=C3=A4fer?= <j.neuschaefer@gmx.net>
-Subject: Re: [patches] [PATCH 1/9] RISC-V: Init and Halt Code
-Message-ID: <20170704215401.whmxuedbu3jd7uf5@latitude>
-References: <20170704195102.3974-1-palmer@dabbelt.com>
- <20170704195102.3974-2-palmer@dabbelt.com>
-MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-        protocol="application/pgp-signature"; boundary="5f6agwiozkxzrbl4"
-Content-Disposition: inline
-In-Reply-To: <20170704195102.3974-2-palmer@dabbelt.com>
+Received: from mail-qk0-f193.google.com ([209.85.220.193]:34501 "EHLO
+        mail-qk0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752642AbdGEVWo (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Jul 2017 17:22:44 -0400
+From: Ram Pai <linuxram@us.ibm.com>
+Subject: [RFC v5 04/38] powerpc: introduce pte_get_hash_gslot() helper
+Date: Wed,  5 Jul 2017 14:21:41 -0700
+Message-ID: <1499289735-14220-5-git-send-email-linuxram@us.ibm.com>
+In-Reply-To: <1499289735-14220-1-git-send-email-linuxram@us.ibm.com>
+References: <1499289735-14220-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: patches@groups.riscv.org
-Cc: peterz@infradead.org, mingo@redhat.com, mcgrof@kernel.org, viro@zeniv.linux.org.uk, sfr@canb.auug.org.au, nicolas.dichtel@6wind.com, rmk+kernel@armlinux.org.uk, msalter@redhat.com, tklauser@distanz.ch, will.deacon@arm.com, james.hogan@imgtec.com, paul.gortmaker@windriver.com, linux@roeck-us.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, albert@sifive.com, Palmer Dabbelt <palmer@dabbelt.com>
-Message-ID: <20170704215401.9UK5prwWFG0HprhOITkyIDFNpYpJrhSgD59fDDc1Dv8@z>
+To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
+Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
+Message-ID: <20170705212141.55lxxUugwtJoz_JypIYOO_DOto-Crn1pORDGZEenEfk@z>
 
+Introduce pte_get_hash_gslot()() which returns the slot number of the
+HPTE in the global hash table.
 
---5f6agwiozkxzrbl4
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+This function will come in handy as we work towards re-arranging the
+PTE bits in the later patches.
 
-Hi, below are some small comments.
+Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+---
+ arch/powerpc/include/asm/book3s/64/hash.h |    3 +++
+ arch/powerpc/mm/hash_utils_64.c           |   18 ++++++++++++++++++
+ 2 files changed, 21 insertions(+), 0 deletions(-)
 
-On Tue, Jul 04, 2017 at 12:50:54PM -0700, Palmer Dabbelt wrote:
-> This contains the various __init C functions, the initial assembly
-> kernel entry point, and the code to reset the system.  When a file was
-> init-related, it contains
-
-It contains what?
-
-> Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
-[...]
-
-> +#ifdef CONFIG_GENERIC_BUG
-> +#define __BUG_INSN	_AC(0x00100073, UL) /* sbreak */
-
-This should be ebreak, not sbreak, in Priv Spec 1.10, AFAICT.
-I guess binutils still understands sbreak, but it's nicer to stick to
-the spec, IMHO.
-
-> +#define BUG()							\
-> +do {								\
-> +	__asm__ __volatile__ (					\
-> +		"1:\n\t"					\
-> +			"sbreak\n"				\
-
-ebreak
-
-> +			".pushsection __bug_table,\"a\"\n\t"	\
-> +		"2:\n\t"					\
-> +			__BUG_ENTRY "\n\t"			\
-> +			".org 2b + %2\n\t"			\
-> +			".popsection"				\
-> +		:						\
-> +		: "i" (__FILE__), "i" (__LINE__),		\
-> +		  "i" (sizeof(struct bug_entry)));		\
-> +	unreachable();						\
-> +} while (0)
-> +#endif /* !__ASSEMBLY__ */
-> +#else /* CONFIG_GENERIC_BUG */
-> +#ifndef __ASSEMBLY__
-> +#define BUG()							\
-> +do {								\
-> +	__asm__ __volatile__ ("sbreak\n");			\
-
-ebreak
-
-> +	unreachable();						\
-> +} while (0)
-> +#endif /* !__ASSEMBLY__ */
-> +#endif /* CONFIG_GENERIC_BUG */
-[...]
-
-> +#define DO_ERROR_INFO(name, signo, code, str)				\
-> +asmlinkage void name(struct pt_regs *regs)				\
-> +{									\
-> +	do_trap_error(regs, signo, code, regs->sepc, "Oops - " str);	\
-> +}
-> +
-> +DO_ERROR_INFO(do_trap_unknown,
-> +	SIGILL, ILL_ILLTRP, "unknown exception");
-> +DO_ERROR_INFO(do_trap_insn_misaligned,
-> +	SIGBUS, BUS_ADRALN, "instruction address misaligned");
-> +DO_ERROR_INFO(do_trap_insn_fault,
-> +	SIGBUS, BUS_ADRALN, "instruction access fault");
-
-For a general instruction access fault, BUS_ADRALN seems wrong. A
-variant of SIGSEGV seems more appropriate, IMHO.
-
-
-Jonathan Neusch=C3=A4fer
-
---5f6agwiozkxzrbl4
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1
-
-iQIcBAABAgAGBQJZXA5wAAoJEAgwRJqO81/bWI8QAKAMZsol9wgY7Gr3UlBVe7sM
-y9wkWSnWE9byQjuDObmd4Bu31Te/6dvPYZbMUthygY/pIDrCq89Tb6urILKMMPzB
-6TmtYCWwitgn37FhiOa0qkh3LPoiVJP6N/zE2hATFxoTXWPiNjEW7qIDLymks5E5
-bfst0l+8dc320hzezSF1X0GQ6dUzTDBlN7oD1CYEiVX3PhjjIiYLlA+glf6yBbhn
-nlo1tHigJ8FNRYun2QExyNX45/nzRrmPTPwr9O39Gv3HJrPtxmb9B/xRrPcE/j1m
-pEhJtzDBjFPntNqTij4tGAxOaZ7I5j9fORmwlPMkioFPptI0UrddC/jHFWv+1yw6
-7p77grekfRY7WeF1wA4aPRWvG9AREp6ggEDqohRuyI3wv7TQ31BgI7YT2T2OxMct
-YeN1LWQnMM0QL3TDMNdhexOizNfzX33mNEZiCUjNlpvo1eDwk0tlVKPGHNGsZVt9
-dVIqpy+VY3Zs+lOpi0fcydQwNz1kvbPuLNiQwcWLPUoambuMXZplmMMOcJxPBaRH
-qh13E10z/pzNSg6W/TrS5TvB76sYegYMpOLMbbjeaj4KzD2vwJc6zPGy9Ig5FMJM
-ITCh/AEQCAMerorLbGHfGFnmeY+wdDKDfYulGQQlTpOBbMIgwSObTbIILhmYokB7
-g4anEWTYrloLQPHR57Mo
-=pXaG
------END PGP SIGNATURE-----
-
---5f6agwiozkxzrbl4--
+diff --git a/arch/powerpc/include/asm/book3s/64/hash.h b/arch/powerpc/include/asm/book3s/64/hash.h
+index d27f885..277158c 100644
+--- a/arch/powerpc/include/asm/book3s/64/hash.h
++++ b/arch/powerpc/include/asm/book3s/64/hash.h
+@@ -156,6 +156,9 @@ static inline int hash__pte_none(pte_t pte)
+ 	return (pte_val(pte) & ~H_PTE_NONE_MASK) == 0;
+ }
+ 
++unsigned long pte_get_hash_gslot(unsigned long vpn, unsigned long shift,
++		int ssize, real_pte_t rpte, unsigned int subpg_index);
++
+ /* This low level function performs the actual PTE insertion
+  * Setting the PTE depends on the MMU type and other factors. It's
+  * an horrible mess that I'm not going to try to clean up now but
+diff --git a/arch/powerpc/mm/hash_utils_64.c b/arch/powerpc/mm/hash_utils_64.c
+index 1b494d0..d3604da 100644
+--- a/arch/powerpc/mm/hash_utils_64.c
++++ b/arch/powerpc/mm/hash_utils_64.c
+@@ -1591,6 +1591,24 @@ static inline void tm_flush_hash_page(int local)
+ }
+ #endif
+ 
++/*
++ * return the global hash slot, corresponding to the given
++ * pte, which contains the hpte.
++ */
++unsigned long pte_get_hash_gslot(unsigned long vpn, unsigned long shift,
++		int ssize, real_pte_t rpte, unsigned int subpg_index)
++{
++	unsigned long hash, slot, hidx;
++
++	hash = hpt_hash(vpn, shift, ssize);
++	hidx = __rpte_to_hidx(rpte, subpg_index);
++	if (hidx & _PTEIDX_SECONDARY)
++		hash = ~hash;
++	slot = (hash & htab_hash_mask) * HPTES_PER_GROUP;
++	slot += hidx & _PTEIDX_GROUP_IX;
++	return slot;
++}
++
+ /* WARNING: This is called from hash_low_64.S, if you change this prototype,
+  *          do not forget to update the assembly call site !
+  */
+-- 
+1.7.1
