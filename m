@@ -1,130 +1,136 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f195.google.com ([209.85.220.195]:34761 "EHLO
-        mail-qk0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752933AbdGEVXX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Jul 2017 17:23:23 -0400
+Received: from mail-qt0-f193.google.com ([209.85.216.193]:35315 "EHLO
+        mail-qt0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752982AbdGEVX0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Jul 2017 17:23:26 -0400
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v5 22/38] powerpc: map vma key-protection bits to pte key bits.
-Date: Wed,  5 Jul 2017 14:21:59 -0700
-Message-ID: <1499289735-14220-23-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v5 19/38] powerpc: introduce execute-only pkey
+Date: Wed,  5 Jul 2017 14:21:56 -0700
+Message-ID: <1499289735-14220-20-git-send-email-linuxram@us.ibm.com>
 In-Reply-To: <1499289735-14220-1-git-send-email-linuxram@us.ibm.com>
 References: <1499289735-14220-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
-Message-ID: <20170705212159.zgzJrcT8RPIsSEiZyDo9K5d9sQlP60f08jf3dIsTSx8@z>
+Message-ID: <20170705212156.usDD7kl7M86DNueJh9lpl_LdEH9KmO0uUj2xtIZdT_A@z>
 
-map the pkey bits in the pte  from the key protection
-bits of the vma.
-
-The pte bits used for pkey are 3,4,5,6 and 57. The first
-four bits are the same four bits that were freed up initially
-in this patch series. remember? :-) Without those four bits
-this patch would'nt be possible.
+This patch provides the implementation of execute-only pkey.
+The architecture-independent  expects the ability to create
+and manage a special key which has execute-only permission.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/include/asm/book3s/64/pgtable.h |   20 +++++++++++++++++++-
- arch/powerpc/include/asm/mman.h              |    8 ++++++++
- arch/powerpc/include/asm/pkeys.h             |    9 +++++++++
- 3 files changed, 36 insertions(+), 1 deletions(-)
+ arch/powerpc/include/asm/book3s/64/mmu.h |    1 +
+ arch/powerpc/include/asm/pkeys.h         |    6 +++-
+ arch/powerpc/mm/pkeys.c                  |   59 ++++++++++++++++++++++++++++++
+ 3 files changed, 65 insertions(+), 1 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/book3s/64/pgtable.h b/arch/powerpc/include/asm/book3s/64/pgtable.h
-index 435d6a7..d9c87c4 100644
---- a/arch/powerpc/include/asm/book3s/64/pgtable.h
-+++ b/arch/powerpc/include/asm/book3s/64/pgtable.h
-@@ -37,6 +37,7 @@
- #define _RPAGE_RSV2		0x0800000000000000UL
- #define _RPAGE_RSV3		0x0400000000000000UL
- #define _RPAGE_RSV4		0x0200000000000000UL
-+#define _RPAGE_RSV5		0x00040UL
+diff --git a/arch/powerpc/include/asm/book3s/64/mmu.h b/arch/powerpc/include/asm/book3s/64/mmu.h
+index 104ad72..0c0a2a8 100644
+--- a/arch/powerpc/include/asm/book3s/64/mmu.h
++++ b/arch/powerpc/include/asm/book3s/64/mmu.h
+@@ -116,6 +116,7 @@ struct patb_entry {
+ 	 * bit unset -> key available for allocation
+ 	 */
+ 	u32 pkey_allocation_map;
++	s16 execute_only_pkey; /* key holding execute-only protection */
+ #endif
+ } mm_context_t;
  
- #define _PAGE_PTE		0x4000000000000000UL	/* distinguishes PTEs from pointers */
- #define _PAGE_PRESENT		0x8000000000000000UL	/* pte contains a translation */
-@@ -56,6 +57,20 @@
- /* Max physical address bit as per radix table */
- #define _RPAGE_PA_MAX		57
- 
-+#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
-+#define H_PAGE_PKEY_BIT0	_RPAGE_RSV1
-+#define H_PAGE_PKEY_BIT1	_RPAGE_RSV2
-+#define H_PAGE_PKEY_BIT2	_RPAGE_RSV3
-+#define H_PAGE_PKEY_BIT3	_RPAGE_RSV4
-+#define H_PAGE_PKEY_BIT4	_RPAGE_RSV5
-+#else /*  CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
-+#define H_PAGE_PKEY_BIT0	0
-+#define H_PAGE_PKEY_BIT1	0
-+#define H_PAGE_PKEY_BIT2	0
-+#define H_PAGE_PKEY_BIT3	0
-+#define H_PAGE_PKEY_BIT4	0
-+#endif /*  CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
-+
- /*
-  * Max physical address bit we will use for now.
-  *
-@@ -116,13 +131,16 @@
- #define _PAGE_CHG_MASK	(PTE_RPN_MASK | _PAGE_HPTEFLAGS | _PAGE_DIRTY | \
- 			 _PAGE_ACCESSED | _PAGE_SPECIAL | _PAGE_PTE |	\
- 			 _PAGE_SOFT_DIRTY)
-+
-+#define H_PAGE_PKEY  (H_PAGE_PKEY_BIT0 | H_PAGE_PKEY_BIT1 | H_PAGE_PKEY_BIT2 | \
-+			H_PAGE_PKEY_BIT3 | H_PAGE_PKEY_BIT4)
- /*
-  * Mask of bits returned by pte_pgprot()
-  */
- #define PAGE_PROT_BITS  (_PAGE_SAO | _PAGE_NON_IDEMPOTENT | _PAGE_TOLERANT | \
- 			 H_PAGE_4K_PFN | _PAGE_PRIVILEGED | _PAGE_ACCESSED | \
- 			 _PAGE_READ | _PAGE_WRITE |  _PAGE_DIRTY | _PAGE_EXEC | \
--			 _PAGE_SOFT_DIRTY)
-+			 _PAGE_SOFT_DIRTY | H_PAGE_PKEY)
- /*
-  * We define 2 sets of base prot bits, one for basic pages (ie,
-  * cacheable kernel and user pages) and one for non cacheable
-diff --git a/arch/powerpc/include/asm/mman.h b/arch/powerpc/include/asm/mman.h
-index 067eec2..3f7220f 100644
---- a/arch/powerpc/include/asm/mman.h
-+++ b/arch/powerpc/include/asm/mman.h
-@@ -32,12 +32,20 @@ static inline unsigned long arch_calc_vm_prot_bits(unsigned long prot,
- }
- #define arch_calc_vm_prot_bits(prot, pkey) arch_calc_vm_prot_bits(prot, pkey)
- 
-+
- static inline pgprot_t arch_vm_get_page_prot(unsigned long vm_flags)
- {
-+#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
-+	return (vm_flags & VM_SAO) ?
-+		__pgprot(_PAGE_SAO | vmflag_to_page_pkey_bits(vm_flags)) :
-+		__pgprot(0 | vmflag_to_page_pkey_bits(vm_flags));
-+#else
- 	return (vm_flags & VM_SAO) ? __pgprot(_PAGE_SAO) : __pgprot(0);
-+#endif
- }
- #define arch_vm_get_page_prot(vm_flags) arch_vm_get_page_prot(vm_flags)
- 
-+
- static inline bool arch_validate_prot(unsigned long prot)
- {
- 	if (prot & ~(PROT_READ | PROT_WRITE | PROT_EXEC | PROT_SEM | PROT_SAO))
 diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
-index 20846c2..c681de9 100644
+index 1495342..4b01c37 100644
 --- a/arch/powerpc/include/asm/pkeys.h
 +++ b/arch/powerpc/include/asm/pkeys.h
-@@ -13,6 +13,15 @@ static inline u64 pkey_to_vmflag_bits(u16 pkey)
- 		((pkey & 0x10UL) ? VM_PKEY_BIT4 : 0x0UL));
+@@ -86,11 +86,13 @@ static inline int mm_pkey_free(struct mm_struct *mm, int pkey)
+  * Try to dedicate one of the protection keys to be used as an
+  * execute-only protection key.
+  */
++extern int __execute_only_pkey(struct mm_struct *mm);
+ static inline int execute_only_pkey(struct mm_struct *mm)
+ {
+-	return 0;
++	return __execute_only_pkey(mm);
  }
  
-+static inline u64 vmflag_to_page_pkey_bits(u64 vm_flags)
++
+ static inline int arch_override_mprotect_pkey(struct vm_area_struct *vma,
+ 		int prot, int pkey)
+ {
+@@ -108,5 +110,7 @@ static inline int arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
+ static inline void pkey_mm_init(struct mm_struct *mm)
+ {
+ 	mm_pkey_allocation_map(mm) = PKEY_INITIAL_ALLOCAION;
++	/* -1 means unallocated or invalid */
++	mm->context.execute_only_pkey = -1;
+ }
+ #endif /*_ASM_PPC64_PKEYS_H */
+diff --git a/arch/powerpc/mm/pkeys.c b/arch/powerpc/mm/pkeys.c
+index d3ba167..6c90317 100644
+--- a/arch/powerpc/mm/pkeys.c
++++ b/arch/powerpc/mm/pkeys.c
+@@ -64,3 +64,62 @@ int __arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
+ 
+ 	return 0;
+ }
++
++#define pkeyshift(pkey) ((arch_max_pkey()-pkey-1) * AMR_BITS_PER_PKEY)
++
++static inline bool pkey_allows_readwrite(int pkey)
 +{
-+	return (((vm_flags & VM_PKEY_BIT0) ? H_PAGE_PKEY_BIT4 : 0x0UL) |
-+		((vm_flags & VM_PKEY_BIT1) ? H_PAGE_PKEY_BIT3 : 0x0UL) |
-+		((vm_flags & VM_PKEY_BIT2) ? H_PAGE_PKEY_BIT2 : 0x0UL) |
-+		((vm_flags & VM_PKEY_BIT3) ? H_PAGE_PKEY_BIT1 : 0x0UL) |
-+		((vm_flags & VM_PKEY_BIT4) ? H_PAGE_PKEY_BIT0 : 0x0UL));
++	int pkey_shift = pkeyshift(pkey);
++
++	if (!(read_uamor() & (0x3UL << pkey_shift)))
++		return true;
++
++	return !(read_amr() & ((AMR_AD_BIT|AMR_WD_BIT) << pkey_shift));
 +}
 +
- static inline int vma_pkey(struct vm_area_struct *vma)
- {
- 	return (vma->vm_flags & ARCH_VM_PKEY_FLAGS) >> VM_PKEY_SHIFT;
++int __execute_only_pkey(struct mm_struct *mm)
++{
++	bool need_to_set_mm_pkey = false;
++	int execute_only_pkey = mm->context.execute_only_pkey;
++	int ret;
++
++	/* Do we need to assign a pkey for mm's execute-only maps? */
++	if (execute_only_pkey == -1) {
++		/* Go allocate one to use, which might fail */
++		execute_only_pkey = mm_pkey_alloc(mm);
++		if (execute_only_pkey < 0)
++			return -1;
++		need_to_set_mm_pkey = true;
++	}
++
++	/*
++	 * We do not want to go through the relatively costly
++	 * dance to set AMR if we do not need to.  Check it
++	 * first and assume that if the execute-only pkey is
++	 * readwrite-disabled than we do not have to set it
++	 * ourselves.
++	 */
++	if (!need_to_set_mm_pkey &&
++	    !pkey_allows_readwrite(execute_only_pkey))
++		return execute_only_pkey;
++
++	/*
++	 * Set up AMR so that it denies access for everything
++	 * other than execution.
++	 */
++	ret = __arch_set_user_pkey_access(current, execute_only_pkey,
++			(PKEY_DISABLE_ACCESS | PKEY_DISABLE_WRITE));
++	/*
++	 * If the AMR-set operation failed somehow, just return
++	 * 0 and effectively disable execute-only support.
++	 */
++	if (ret) {
++		mm_set_pkey_free(mm, execute_only_pkey);
++		return -1;
++	}
++
++	/* We got one, store it and use it from here on out */
++	if (need_to_set_mm_pkey)
++		mm->context.execute_only_pkey = execute_only_pkey;
++	return execute_only_pkey;
++}
 -- 
 1.7.1
