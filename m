@@ -1,7 +1,7 @@
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v5 31/38] powerpc: introduce get_pte_pkey() helper
-Date: Wed,  5 Jul 2017 14:22:08 -0700
-Message-ID: <1499289735-14220-32-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v5 33/38] powerpc: Deliver SEGV signal on pkey violation
+Date: Wed,  5 Jul 2017 14:22:10 -0700
+Message-ID: <1499289735-14220-34-git-send-email-linuxram@us.ibm.com>
 References: <1499289735-14220-1-git-send-email-linuxram@us.ibm.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1499289735-14220-1-git-send-email-linuxram@us.ibm.com>
@@ -10,70 +10,105 @@ To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
 List-Id: linux-arch.vger.kernel.org
 
-get_pte_pkey() helper returns the pkey associated with
-a address corresponding to a given mm_struct.
+The value of the AMR register at the time of exception
+is made available in gp_regs[PT_AMR] of the siginfo.
+
+The value of the pkey, whose protection got violated,
+is made available in si_pkey field of the siginfo structure.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/include/asm/book3s/64/mmu-hash.h |    5 ++++
- arch/powerpc/mm/hash_utils_64.c               |   28 +++++++++++++++++++++++++
- 2 files changed, 33 insertions(+), 0 deletions(-)
+ arch/powerpc/include/uapi/asm/ptrace.h |    3 ++-
+ arch/powerpc/kernel/signal_32.c        |    5 +++++
+ arch/powerpc/kernel/signal_64.c        |    4 ++++
+ arch/powerpc/kernel/traps.c            |   14 ++++++++++++++
+ 4 files changed, 25 insertions(+), 1 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/book3s/64/mmu-hash.h b/arch/powerpc/include/asm/book3s/64/mmu-hash.h
-index f7a6ed3..369f9ff 100644
---- a/arch/powerpc/include/asm/book3s/64/mmu-hash.h
-+++ b/arch/powerpc/include/asm/book3s/64/mmu-hash.h
-@@ -450,6 +450,11 @@ extern int hash_page(unsigned long ea, unsigned long access, unsigned long trap,
- int __hash_page_huge(unsigned long ea, unsigned long access, unsigned long vsid,
- 		     pte_t *ptep, unsigned long trap, unsigned long flags,
- 		     int ssize, unsigned int shift, unsigned int mmu_psize);
-+
+diff --git a/arch/powerpc/include/uapi/asm/ptrace.h b/arch/powerpc/include/uapi/asm/ptrace.h
+index 8036b38..7ec2428 100644
+--- a/arch/powerpc/include/uapi/asm/ptrace.h
++++ b/arch/powerpc/include/uapi/asm/ptrace.h
+@@ -108,8 +108,9 @@ struct pt_regs {
+ #define PT_DAR	41
+ #define PT_DSISR 42
+ #define PT_RESULT 43
+-#define PT_DSCR 44
+ #define PT_REGS_COUNT 44
++#define PT_DSCR 44
++#define PT_AMR	45
+ 
+ #define PT_FPR0	48	/* each FP reg occupies 2 slots in this space */
+ 
+diff --git a/arch/powerpc/kernel/signal_32.c b/arch/powerpc/kernel/signal_32.c
+index 97bb138..9c4a7f3 100644
+--- a/arch/powerpc/kernel/signal_32.c
++++ b/arch/powerpc/kernel/signal_32.c
+@@ -500,6 +500,11 @@ static int save_user_regs(struct pt_regs *regs, struct mcontext __user *frame,
+ 				   (unsigned long) &frame->tramp[2]);
+ 	}
+ 
 +#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
-+u16 get_pte_pkey(struct mm_struct *mm, unsigned long address);
-+#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
++	if (__put_user(get_paca()->paca_amr, &frame->mc_gregs[PT_AMR]))
++		return 1;
++#endif /*  CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
 +
- #ifdef CONFIG_TRANSPARENT_HUGEPAGE
- extern int __hash_page_thp(unsigned long ea, unsigned long access,
- 			   unsigned long vsid, pmd_t *pmdp, unsigned long trap,
-diff --git a/arch/powerpc/mm/hash_utils_64.c b/arch/powerpc/mm/hash_utils_64.c
-index 1e74529..591990c 100644
---- a/arch/powerpc/mm/hash_utils_64.c
-+++ b/arch/powerpc/mm/hash_utils_64.c
-@@ -1573,6 +1573,34 @@ void hash_preload(struct mm_struct *mm, unsigned long ea,
- 	local_irq_restore(flags);
+ 	return 0;
+ }
+ 
+diff --git a/arch/powerpc/kernel/signal_64.c b/arch/powerpc/kernel/signal_64.c
+index c83c115..86a4262 100644
+--- a/arch/powerpc/kernel/signal_64.c
++++ b/arch/powerpc/kernel/signal_64.c
+@@ -174,6 +174,10 @@ static long setup_sigcontext(struct sigcontext __user *sc,
+ 	if (set != NULL)
+ 		err |=  __put_user(set->sig[0], &sc->oldmask);
+ 
++#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
++	err |= __put_user(get_paca()->paca_amr, &sc->gp_regs[PT_AMR]);
++#endif /*  CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
++
+ 	return err;
+ }
+ 
+diff --git a/arch/powerpc/kernel/traps.c b/arch/powerpc/kernel/traps.c
+index d4e545d..cc0a8c4 100644
+--- a/arch/powerpc/kernel/traps.c
++++ b/arch/powerpc/kernel/traps.c
+@@ -20,6 +20,7 @@
+ #include <linux/sched/debug.h>
+ #include <linux/kernel.h>
+ #include <linux/mm.h>
++#include <linux/pkeys.h>
+ #include <linux/stddef.h>
+ #include <linux/unistd.h>
+ #include <linux/ptrace.h>
+@@ -247,6 +248,14 @@ void user_single_step_siginfo(struct task_struct *tsk,
+ 	info->si_addr = (void __user *)regs->nip;
  }
  
 +#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
-+/*
-+ * return the protection key associated with the given address
-+ * and the mm_struct.
-+ */
-+u16 get_pte_pkey(struct mm_struct *mm, unsigned long address)
++static void fill_sig_info_pkey(int si_code, siginfo_t *info, unsigned long addr)
 +{
-+	pte_t *ptep;
-+	u16 pkey = 0;
-+	unsigned long flags;
-+
-+	if (REGION_ID(address) == VMALLOC_REGION_ID)
-+		mm = &init_mm;
-+
-+	if (!mm || !mm->pgd)
-+		return 0;
-+
-+	local_irq_save(flags);
-+	ptep = find_linux_pte_or_hugepte(mm->pgd, address,
-+			NULL, NULL);
-+	if (ptep)
-+		pkey = pte_to_pkey_bits(pte_val(READ_ONCE(*ptep)));
-+	local_irq_restore(flags);
-+
-+	return pkey;
++	WARN_ON(si_code != SEGV_PKUERR);
++	info->si_pkey = get_paca()->paca_pkey;
 +}
 +#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
 +
- #ifdef CONFIG_PPC_TRANSACTIONAL_MEM
- static inline void tm_flush_hash_page(int local)
+ void _exception(int signr, struct pt_regs *regs, int code, unsigned long addr)
  {
+ 	siginfo_t info;
+@@ -274,6 +283,11 @@ void _exception(int signr, struct pt_regs *regs, int code, unsigned long addr)
+ 	info.si_signo = signr;
+ 	info.si_code = code;
+ 	info.si_addr = (void __user *) addr;
++
++#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
++	fill_sig_info_pkey(code, &info, addr);
++#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
++
+ 	force_sig_info(signr, &info, current);
+ }
+ 
 -- 
 1.7.1
 
