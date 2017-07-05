@@ -1,142 +1,102 @@
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v5 38/38] Documentation: PowerPC specific updates to memory protection keys
-Date: Wed,  5 Jul 2017 14:22:15 -0700
-Message-ID: <1499289735-14220-39-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v5 25/38] powerpc: helper to validate key-access permissions of a pte
+Date: Wed,  5 Jul 2017 14:22:02 -0700
+Message-ID: <1499289735-14220-26-git-send-email-linuxram@us.ibm.com>
 References: <1499289735-14220-1-git-send-email-linuxram@us.ibm.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f195.google.com ([209.85.216.195]:35599 "EHLO
-        mail-qt0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752086AbdGEVYC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Jul 2017 17:24:02 -0400
+Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1499289735-14220-1-git-send-email-linuxram@us.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: owner-linux-mm@kvack.org
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
+List-Id: linux-arch.vger.kernel.org
 
-Add documentation updates that capture PowerPC specific changes.
+helper function that checks if the read/write/execute is allowed
+on the pte.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- Documentation/vm/protection-keys.txt |   85 ++++++++++++++++++++++++++--------
- 1 files changed, 65 insertions(+), 20 deletions(-)
+ arch/powerpc/include/asm/book3s/64/pgtable.h |    2 +
+ arch/powerpc/include/asm/pkeys.h             |    9 +++++++
+ arch/powerpc/mm/pkeys.c                      |   31 ++++++++++++++++++++++++++
+ 3 files changed, 42 insertions(+), 0 deletions(-)
 
-diff --git a/Documentation/vm/protection-keys.txt b/Documentation/vm/protection-keys.txt
-index b643045..d50b6ab 100644
---- a/Documentation/vm/protection-keys.txt
-+++ b/Documentation/vm/protection-keys.txt
-@@ -1,21 +1,46 @@
--Memory Protection Keys for Userspace (PKU aka PKEYs) is a CPU feature
--which will be found on future Intel CPUs.
-+Memory Protection Keys for Userspace (PKU aka PKEYs) is a CPU feature found in
-+new generation of intel CPUs and on PowerPC 7 and higher CPUs.
+diff --git a/arch/powerpc/include/asm/book3s/64/pgtable.h b/arch/powerpc/include/asm/book3s/64/pgtable.h
+index d9c87c4..aad205c 100644
+--- a/arch/powerpc/include/asm/book3s/64/pgtable.h
++++ b/arch/powerpc/include/asm/book3s/64/pgtable.h
+@@ -474,6 +474,8 @@ static inline void write_uamor(u64 value)
+ 	mtspr(SPRN_UAMOR, value);
+ }
  
- Memory Protection Keys provides a mechanism for enforcing page-based
--protections, but without requiring modification of the page tables
--when an application changes protection domains.  It works by
--dedicating 4 previously ignored bits in each page table entry to a
--"protection key", giving 16 possible keys.
--
--There is also a new user-accessible register (PKRU) with two separate
--bits (Access Disable and Write Disable) for each key.  Being a CPU
--register, PKRU is inherently thread-local, potentially giving each
--thread a different set of protections from every other thread.
--
--There are two new instructions (RDPKRU/WRPKRU) for reading and writing
--to the new register.  The feature is only available in 64-bit mode,
--even though there is theoretically space in the PAE PTEs.  These
--permissions are enforced on data access only and have no effect on
-+protections, but without requiring modification of the page tables when an
-+application changes protection domains.
++extern bool arch_pte_access_permitted(u64 pte, bool write, bool execute);
 +
-+
-+On Intel:
-+
-+	It works by dedicating 4 previously ignored bits in each page table
-+	entry to a "protection key", giving 16 possible keys.
-+
-+	There is also a new user-accessible register (PKRU) with two separate
-+	bits (Access Disable and Write Disable) for each key.  Being a CPU
-+	register, PKRU is inherently thread-local, potentially giving each
-+	thread a different set of protections from every other thread.
-+
-+	There are two new instructions (RDPKRU/WRPKRU) for reading and writing
-+	to the new register.  The feature is only available in 64-bit mode,
-+	even though there is theoretically space in the PAE PTEs.  These
-+	permissions are enforced on data access only and have no effect on
-+	instruction fetches.
-+
-+
-+On PowerPC:
-+
-+	It works by dedicating 5 page table entry bits to a "protection key",
-+	giving 32 possible keys.
-+
-+	There  is  a  user-accessible  register (AMR)  with  two separate bits;
-+	Access Disable and  Write  Disable, for  each key.  Being  a  CPU
-+	register,  AMR  is inherently  thread-local,  potentially  giving  each
-+	thread a different set of protections from every other thread.  NOTE:
-+	Disabling read permission does not disable write and vice-versa.
-+
-+	The feature is available on 64-bit HPTE mode only.
-+	'mtspr 0xd, mem' reads the AMR register
-+	'mfspr mem, 0xd' writes into the AMR register.
-+
-+
-+
-+Permissions are enforced on data access only and have no effect on
- instruction fetches.
+ #else /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
  
- =========================== Syscalls ===========================
-@@ -28,9 +53,9 @@ There are 3 system calls which directly interact with pkeys:
- 			  unsigned long prot, int pkey);
+ static inline u64 read_amr(void)
+diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
+index 6477b87..01f2bfc 100644
+--- a/arch/powerpc/include/asm/pkeys.h
++++ b/arch/powerpc/include/asm/pkeys.h
+@@ -31,6 +31,15 @@ static inline u64 pte_to_hpte_pkey_bits(u64 pteflags)
+ 		((pteflags & H_PAGE_PKEY_BIT4) ? HPTE_R_KEY_BIT4 : 0x0UL));
+ }
  
- Before a pkey can be used, it must first be allocated with
--pkey_alloc().  An application calls the WRPKRU instruction
-+pkey_alloc().  An application calls the WRPKRU/AMR instruction
- directly in order to change access permissions to memory covered
--with a key.  In this example WRPKRU is wrapped by a C function
-+with a key.  In this example WRPKRU/AMR is wrapped by a C function
- called pkey_set().
- 
- 	int real_prot = PROT_READ|PROT_WRITE;
-@@ -52,11 +77,11 @@ is no longer in use:
- 	munmap(ptr, PAGE_SIZE);
- 	pkey_free(pkey);
- 
--(Note: pkey_set() is a wrapper for the RDPKRU and WRPKRU instructions.
-+(Note: pkey_set() is a wrapper for the RDPKRU,WRPKRU or AMR instructions.
-  An example implementation can be found in
-  tools/testing/selftests/x86/protection_keys.c)
- 
--=========================== Behavior ===========================
-+=========================== Behavior =================================
- 
- The kernel attempts to make protection keys consistent with the
- behavior of a plain mprotect().  For instance if you do this:
-@@ -83,3 +108,23 @@ with a read():
- The kernel will send a SIGSEGV in both cases, but si_code will be set
- to SEGV_PKERR when violating protection keys versus SEGV_ACCERR when
- the plain mprotect() permissions are violated.
++static inline u16 pte_to_pkey_bits(u64 pteflags)
++{
++	return (((pteflags & H_PAGE_PKEY_BIT0) ? 0x10 : 0x0UL) |
++		((pteflags & H_PAGE_PKEY_BIT1) ? 0x8 : 0x0UL) |
++		((pteflags & H_PAGE_PKEY_BIT2) ? 0x4 : 0x0UL) |
++		((pteflags & H_PAGE_PKEY_BIT3) ? 0x2 : 0x0UL) |
++		((pteflags & H_PAGE_PKEY_BIT4) ? 0x1 : 0x0UL));
++}
 +
+ static inline int vma_pkey(struct vm_area_struct *vma)
+ {
+ 	return (vma->vm_flags & ARCH_VM_PKEY_FLAGS) >> VM_PKEY_SHIFT;
+diff --git a/arch/powerpc/mm/pkeys.c b/arch/powerpc/mm/pkeys.c
+index c60a045..044a17d 100644
+--- a/arch/powerpc/mm/pkeys.c
++++ b/arch/powerpc/mm/pkeys.c
+@@ -170,3 +170,34 @@ int __arch_override_mprotect_pkey(struct vm_area_struct *vma, int prot,
+ 	 */
+ 	return vma_pkey(vma);
+ }
 +
-+====================================================================
-+		Semantic differences
++static bool pkey_access_permitted(int pkey, bool write, bool execute)
++{
++	int pkey_shift;
++	u64 amr;
 +
-+The following semantic differences exist between x86 and power.
++	if (!pkey)
++		return true;
 +
-+a) powerpc allows creation of a key with execute-disabled.  The following
-+	is allowed on powerpc.
-+	pkey = pkey_alloc(0, PKEY_DISABLE_WRITE | PKEY_DISABLE_ACCESS |
-+			PKEY_DISABLE_EXECUTE);
-+   x86 disallows PKEY_DISABLE_EXECUTE during key creation.
++	pkey_shift = pkeyshift(pkey);
++	if (!(read_uamor() & (0x3UL << pkey_shift)))
++		return true;
 +
-+b) changing the permission bits of a key from a signal handler does not
-+   persist on x86. The PKRU specific fpregs entry needs to be modified
-+   for it to persist.  On powerpc the permission bits of the key can be
-+   modified by programming the AMR register from the signal handler.
-+   The changes persists across signal boundaries.
++	if (execute && !(read_iamr() & (IAMR_EX_BIT << pkey_shift)))
++		return true;
 +
-+=====================================================================
++	if (!write) {
++		amr = read_amr();
++		if (!(amr & (AMR_AD_BIT << pkey_shift)))
++			return true;
++	}
++
++	amr = read_amr(); /* delay reading amr uptil absolutely needed */
++	return (write && !(amr & (AMR_WD_BIT << pkey_shift)));
++}
++
++bool arch_pte_access_permitted(u64 pte, bool write, bool execute)
++{
++	return pkey_access_permitted(pte_to_pkey_bits(pte),
++			write, execute);
++}
 -- 
 1.7.1
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
