@@ -1,48 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f193.google.com ([209.85.220.193]:34523 "EHLO
-        mail-qk0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752123AbdGEVWl (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Jul 2017 17:22:41 -0400
+Received: from mail-qt0-f193.google.com ([209.85.216.193]:36149 "EHLO
+        mail-qt0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751784AbdGEVXB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Jul 2017 17:23:01 -0400
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v5 05/38] powerpc: capture the PTE format changes in the dump pte report
-Date: Wed,  5 Jul 2017 14:21:42 -0700
-Message-ID: <1499289735-14220-6-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v5 09/38] powerpc: use helper functions in __hash_page_4K() for 4K PTE
+Date: Wed,  5 Jul 2017 14:21:46 -0700
+Message-ID: <1499289735-14220-10-git-send-email-linuxram@us.ibm.com>
 In-Reply-To: <1499289735-14220-1-git-send-email-linuxram@us.ibm.com>
 References: <1499289735-14220-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
-Message-ID: <20170705212142.kL0gXtom_CyvgQnHsFZUM2KXZWNUh9NwVfuqpKA7iWw@z>
+Message-ID: <20170705212146.ZKrcJkbBCjXYoS3cS-Q0xC8OG6q91Ux5Qg1Qj0ZPDyo@z>
 
-The H_PAGE_F_SECOND,H_PAGE_F_GIX are not in the 64K main-PTE.
-capture these changes in the dump pte report.
+replace redundant code with helper functions
+pte_get_hash_gslot() and pte_set_hash_slot()
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/mm/dump_linuxpagetables.c |    3 ++-
- 1 files changed, 2 insertions(+), 1 deletions(-)
+ arch/powerpc/mm/hash64_4k.c |   14 ++++++--------
+ 1 files changed, 6 insertions(+), 8 deletions(-)
 
-diff --git a/arch/powerpc/mm/dump_linuxpagetables.c b/arch/powerpc/mm/dump_linuxpagetables.c
-index 44fe483..5627edd 100644
---- a/arch/powerpc/mm/dump_linuxpagetables.c
-+++ b/arch/powerpc/mm/dump_linuxpagetables.c
-@@ -213,7 +213,7 @@ struct flag_info {
- 		.val	= H_PAGE_4K_PFN,
- 		.set	= "4K_pfn",
- 	}, {
--#endif
-+#else /* CONFIG_PPC_64K_PAGES */
- 		.mask	= H_PAGE_F_GIX,
- 		.val	= H_PAGE_F_GIX,
- 		.set	= "f_gix",
-@@ -224,6 +224,7 @@ struct flag_info {
- 		.val	= H_PAGE_F_SECOND,
- 		.set	= "f_second",
- 	}, {
-+#endif /* CONFIG_PPC_64K_PAGES */
- #endif
- 		.mask	= _PAGE_SPECIAL,
- 		.val	= _PAGE_SPECIAL,
+diff --git a/arch/powerpc/mm/hash64_4k.c b/arch/powerpc/mm/hash64_4k.c
+index 6fa450c..a1eebc1 100644
+--- a/arch/powerpc/mm/hash64_4k.c
++++ b/arch/powerpc/mm/hash64_4k.c
+@@ -20,6 +20,7 @@ int __hash_page_4K(unsigned long ea, unsigned long access, unsigned long vsid,
+ 		   pte_t *ptep, unsigned long trap, unsigned long flags,
+ 		   int ssize, int subpg_prot)
+ {
++	real_pte_t rpte;
+ 	unsigned long hpte_group;
+ 	unsigned long rflags, pa;
+ 	unsigned long old_pte, new_pte;
+@@ -54,6 +55,7 @@ int __hash_page_4K(unsigned long ea, unsigned long access, unsigned long vsid,
+ 	 * need to add in 0x1 if it's a read-only user page
+ 	 */
+ 	rflags = htab_convert_pte_flags(new_pte);
++	rpte = __real_pte(__pte(old_pte), ptep);
+ 
+ 	if (cpu_has_feature(CPU_FTR_NOEXECUTE) &&
+ 	    !cpu_has_feature(CPU_FTR_COHERENT_ICACHE))
+@@ -64,13 +66,10 @@ int __hash_page_4K(unsigned long ea, unsigned long access, unsigned long vsid,
+ 		/*
+ 		 * There MIGHT be an HPTE for this pte
+ 		 */
+-		hash = hpt_hash(vpn, shift, ssize);
+-		if (old_pte & H_PAGE_F_SECOND)
+-			hash = ~hash;
+-		slot = (hash & htab_hash_mask) * HPTES_PER_GROUP;
+-		slot += (old_pte & H_PAGE_F_GIX) >> H_PAGE_F_GIX_SHIFT;
++		unsigned long gslot = pte_get_hash_gslot(vpn, shift,
++						ssize, rpte, 0);
+ 
+-		if (mmu_hash_ops.hpte_updatepp(slot, rflags, vpn, MMU_PAGE_4K,
++		if (mmu_hash_ops.hpte_updatepp(gslot, rflags, vpn, MMU_PAGE_4K,
+ 					       MMU_PAGE_4K, ssize, flags) == -1)
+ 			old_pte &= ~_PAGE_HPTEFLAGS;
+ 	}
+@@ -118,8 +117,7 @@ int __hash_page_4K(unsigned long ea, unsigned long access, unsigned long vsid,
+ 			return -1;
+ 		}
+ 		new_pte = (new_pte & ~_PAGE_HPTEFLAGS) | H_PAGE_HASHPTE;
+-		new_pte |= (slot << H_PAGE_F_GIX_SHIFT) &
+-			(H_PAGE_F_SECOND | H_PAGE_F_GIX);
++		new_pte |= pte_set_hash_slot(ptep, rpte, 0, slot);
+ 	}
+ 	*ptep = __pte(new_pte & ~H_PAGE_BUSY);
+ 	return 0;
 -- 
 1.7.1
