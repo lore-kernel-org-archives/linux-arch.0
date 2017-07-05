@@ -1,145 +1,90 @@
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v5 16/38] powerpc: implementation for arch_set_user_pkey_access()
-Date: Wed,  5 Jul 2017 14:21:53 -0700
-Message-ID: <1499289735-14220-17-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v5 24/38] powerpc: Program HPTE key protection bits
+Date: Wed,  5 Jul 2017 14:22:01 -0700
+Message-ID: <1499289735-14220-25-git-send-email-linuxram@us.ibm.com>
 References: <1499289735-14220-1-git-send-email-linuxram@us.ibm.com>
-Return-path: <owner-linux-mm@kvack.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1499289735-14220-1-git-send-email-linuxram@us.ibm.com>
-Sender: owner-linux-mm@kvack.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
 List-Id: linux-arch.vger.kernel.org
 
-This patch provides the detailed implementation for
-a user to allocate a key and enable it in the hardware.
-
-It provides the plumbing, but it  cannot be  used  yet
-till the  system  call  is implemented. The next patch
-will do so.
+Map the PTE protection key bits to the HPTE key protection bits,
+while creating HPTE  entries.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/include/asm/pkeys.h |    8 ++++-
- arch/powerpc/mm/Makefile         |    1 +
- arch/powerpc/mm/pkeys.c          |   66 ++++++++++++++++++++++++++++++++++++++
- 3 files changed, 74 insertions(+), 1 deletions(-)
- create mode 100644 arch/powerpc/mm/pkeys.c
+ arch/powerpc/include/asm/book3s/64/mmu-hash.h |    5 +++++
+ arch/powerpc/include/asm/pkeys.h              |    9 +++++++++
+ arch/powerpc/mm/hash_utils_64.c               |    5 +++++
+ 3 files changed, 19 insertions(+), 0 deletions(-)
 
+diff --git a/arch/powerpc/include/asm/book3s/64/mmu-hash.h b/arch/powerpc/include/asm/book3s/64/mmu-hash.h
+index 6981a52..f7a6ed3 100644
+--- a/arch/powerpc/include/asm/book3s/64/mmu-hash.h
++++ b/arch/powerpc/include/asm/book3s/64/mmu-hash.h
+@@ -90,6 +90,8 @@
+ #define HPTE_R_PP0		ASM_CONST(0x8000000000000000)
+ #define HPTE_R_TS		ASM_CONST(0x4000000000000000)
+ #define HPTE_R_KEY_HI		ASM_CONST(0x3000000000000000)
++#define HPTE_R_KEY_BIT0		ASM_CONST(0x2000000000000000)
++#define HPTE_R_KEY_BIT1		ASM_CONST(0x1000000000000000)
+ #define HPTE_R_RPN_SHIFT	12
+ #define HPTE_R_RPN		ASM_CONST(0x0ffffffffffff000)
+ #define HPTE_R_RPN_3_0		ASM_CONST(0x01fffffffffff000)
+@@ -104,6 +106,9 @@
+ #define HPTE_R_C		ASM_CONST(0x0000000000000080)
+ #define HPTE_R_R		ASM_CONST(0x0000000000000100)
+ #define HPTE_R_KEY_LO		ASM_CONST(0x0000000000000e00)
++#define HPTE_R_KEY_BIT2		ASM_CONST(0x0000000000000800)
++#define HPTE_R_KEY_BIT3		ASM_CONST(0x0000000000000400)
++#define HPTE_R_KEY_BIT4		ASM_CONST(0x0000000000000200)
+ 
+ #define HPTE_V_1TB_SEG		ASM_CONST(0x4000000000000000)
+ #define HPTE_V_VRMA_MASK	ASM_CONST(0x4001ffffff000000)
 diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
-index 9345767..1495342 100644
+index c681de9..6477b87 100644
 --- a/arch/powerpc/include/asm/pkeys.h
 +++ b/arch/powerpc/include/asm/pkeys.h
-@@ -2,6 +2,10 @@
- #define _ASM_PPC64_PKEYS_H
- 
- #define arch_max_pkey()  32
-+#define AMR_AD_BIT 0x1UL
-+#define AMR_WD_BIT 0x2UL
-+#define IAMR_EX_BIT 0x1UL
-+#define AMR_BITS_PER_PKEY 2
- #define ARCH_VM_PKEY_FLAGS (VM_PKEY_BIT0 | VM_PKEY_BIT1 | VM_PKEY_BIT2 | \
- 				VM_PKEY_BIT3 | VM_PKEY_BIT4)
- /*
-@@ -93,10 +97,12 @@ static inline int arch_override_mprotect_pkey(struct vm_area_struct *vma,
- 	return 0;
+@@ -22,6 +22,15 @@ static inline u64 vmflag_to_page_pkey_bits(u64 vm_flags)
+ 		((vm_flags & VM_PKEY_BIT4) ? H_PAGE_PKEY_BIT0 : 0x0UL));
  }
  
-+extern int __arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
-+		unsigned long init_val);
- static inline int arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
- 		unsigned long init_val)
- {
--	return 0;
-+	return __arch_set_user_pkey_access(tsk, pkey, init_val);
- }
- 
- static inline void pkey_mm_init(struct mm_struct *mm)
-diff --git a/arch/powerpc/mm/Makefile b/arch/powerpc/mm/Makefile
-index 7414034..8cc2ff1 100644
---- a/arch/powerpc/mm/Makefile
-+++ b/arch/powerpc/mm/Makefile
-@@ -45,3 +45,4 @@ obj-$(CONFIG_PPC_COPRO_BASE)	+= copro_fault.o
- obj-$(CONFIG_SPAPR_TCE_IOMMU)	+= mmu_context_iommu.o
- obj-$(CONFIG_PPC_PTDUMP)	+= dump_linuxpagetables.o
- obj-$(CONFIG_PPC_HTDUMP)	+= dump_hashpagetable.o
-+obj-$(CONFIG_PPC64_MEMORY_PROTECTION_KEYS)	+= pkeys.o
-diff --git a/arch/powerpc/mm/pkeys.c b/arch/powerpc/mm/pkeys.c
-new file mode 100644
-index 0000000..d3ba167
---- /dev/null
-+++ b/arch/powerpc/mm/pkeys.c
-@@ -0,0 +1,66 @@
-+/*
-+ * PowerPC Memory Protection Keys management
-+ * Copyright (c) 2015, Intel Corporation.
-+ * Copyright (c) 2017, IBM Corporation.
-+ *
-+ * This program is free software; you can redistribute it and/or modify it
-+ * under the terms and conditions of the GNU General Public License,
-+ * version 2, as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope it will be useful, but WITHOUT
-+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
-+ * more details.
-+ */
-+#include <linux/pkeys.h>                /* PKEY_*                       */
-+#include <uapi/asm-generic/mman-common.h>
-+
-+/*
-+ * set the access right in AMR IAMR and UAMOR register
-+ * for @pkey to that specified in @init_val.
-+ */
-+int __arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
-+		unsigned long init_val)
++static inline u64 pte_to_hpte_pkey_bits(u64 pteflags)
 +{
-+	u64 old_amr, old_uamor, old_iamr;
-+	int pkey_shift = (arch_max_pkey()-pkey-1) * AMR_BITS_PER_PKEY;
-+	u64 new_amr_bits = 0x0ul;
-+	u64 new_iamr_bits = 0x0ul;
-+	u64 new_uamor_bits = 0x3ul;
-+
-+	/* Set the bits we need in AMR:  */
-+	if (init_val & PKEY_DISABLE_ACCESS)
-+		new_amr_bits |= AMR_AD_BIT | AMR_WD_BIT;
-+	if (init_val & PKEY_DISABLE_WRITE)
-+		new_amr_bits |= AMR_WD_BIT;
-+
-+	/*
-+	 * By default execute is disabled.
-+	 * To enable execute, PKEY_ENABLE_EXECUTE
-+	 * needs to be specified.
-+	 */
-+	if ((init_val & PKEY_DISABLE_EXECUTE))
-+		new_iamr_bits |= IAMR_EX_BIT;
-+
-+	/* Shift the bits in to the correct place in AMR for pkey: */
-+	new_amr_bits	<<= pkey_shift;
-+	new_iamr_bits	<<= pkey_shift;
-+	new_uamor_bits	<<= pkey_shift;
-+
-+	/* Get old AMR and mask off any old bits in place: */
-+	old_amr	= read_amr();
-+	old_amr	&= ~((u64)(AMR_AD_BIT|AMR_WD_BIT) << pkey_shift);
-+
-+	old_iamr = read_iamr();
-+	old_iamr &= ~(0x3ul << pkey_shift);
-+
-+	old_uamor = read_uamor();
-+	old_uamor &= ~(0x3ul << pkey_shift);
-+
-+	/* Write old part along with new part: */
-+	write_amr(old_amr | new_amr_bits);
-+	write_iamr(old_iamr | new_iamr_bits);
-+	write_uamor(old_uamor | new_uamor_bits);
-+
-+	return 0;
++	return (((pteflags & H_PAGE_PKEY_BIT0) ? HPTE_R_KEY_BIT0 : 0x0UL) |
++		((pteflags & H_PAGE_PKEY_BIT1) ? HPTE_R_KEY_BIT1 : 0x0UL) |
++		((pteflags & H_PAGE_PKEY_BIT2) ? HPTE_R_KEY_BIT2 : 0x0UL) |
++		((pteflags & H_PAGE_PKEY_BIT3) ? HPTE_R_KEY_BIT3 : 0x0UL) |
++		((pteflags & H_PAGE_PKEY_BIT4) ? HPTE_R_KEY_BIT4 : 0x0UL));
 +}
++
+ static inline int vma_pkey(struct vm_area_struct *vma)
+ {
+ 	return (vma->vm_flags & ARCH_VM_PKEY_FLAGS) >> VM_PKEY_SHIFT;
+diff --git a/arch/powerpc/mm/hash_utils_64.c b/arch/powerpc/mm/hash_utils_64.c
+index d863696..1e74529 100644
+--- a/arch/powerpc/mm/hash_utils_64.c
++++ b/arch/powerpc/mm/hash_utils_64.c
+@@ -35,6 +35,7 @@
+ #include <linux/memblock.h>
+ #include <linux/context_tracking.h>
+ #include <linux/libfdt.h>
++#include <linux/pkeys.h>
+ 
+ #include <asm/debugfs.h>
+ #include <asm/processor.h>
+@@ -230,6 +231,10 @@ unsigned long htab_convert_pte_flags(unsigned long pteflags)
+ 		 */
+ 		rflags |= HPTE_R_M;
+ 
++#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
++	rflags |= pte_to_hpte_pkey_bits(pteflags);
++#endif
++
+ 	return rflags;
+ }
+ 
 -- 
 1.7.1
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
