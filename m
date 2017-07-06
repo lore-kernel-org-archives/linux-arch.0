@@ -1,62 +1,162 @@
-From: Alan Stern <stern@rowland.harvard.edu>
-Subject: Re: [PATCH v2 0/9] Remove spin_unlock_wait()
-Date: Thu, 6 Jul 2017 15:37:31 -0400 (EDT)
-Message-ID: <Pine.LNX.4.44L0.1707061534010.1581-100000@iolanthe.rowland.org>
-References: <20170706165426.lcewgpuluythinhz@hirez.programming.kicks-ass.net>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [PATCH v2 1/9] net/netfilter/nf_conntrack_core: Fix
+ net_conntrack_lock()
+Date: Thu, 6 Jul 2017 13:26:42 -0700
+Message-ID: <20170706202642.GQ2393@linux.vnet.ibm.com>
+References: <20170705232955.GA15992@linux.vnet.ibm.com>
+ <1499297503-23852-1-git-send-email-paulmck@linux.vnet.ibm.com>
+ <113516eb-8615-4468-0127-1a491d34c83c@colorfullife.com>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from iolanthe.rowland.org ([192.131.102.54]:33258 "HELO
-        iolanthe.rowland.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with SMTP id S1751813AbdGFThc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Jul 2017 15:37:32 -0400
-In-Reply-To: <20170706165426.lcewgpuluythinhz@hirez.programming.kicks-ass.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, David Laight <David.Laight@ACULAB.COM>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netfilter-devel@vger.kernel.org" <netfilter-devel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "oleg@redhat.com" <oleg@redhat.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@redhat.com" <mingo@redhat.com>, "dave@stgolabs.net" <dave@stgolabs.net>, "manfred@colorfullife.com" <manfred@colorfullife.com>, "tj@kernel.org" <tj@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "will.deacon@arm.com" <will.deacon@arm.com>, "parri.andrea@gmail.com" <parri.andrea@gmail.com>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <113516eb-8615-4468-0127-1a491d34c83c@colorfullife.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Manfred Spraul <manfred@colorfullife.com>
+Cc: linux-kernel@vger.kernel.org, netfilter-devel@vger.kernel.org, netdev@vger.kernel.org, oleg@redhat.com, akpm@linux-foundation.org, mingo@redhat.com, dave@stgolabs.net, tj@kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, will.deacon@arm.com, peterz@infradead.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, torvalds@linux-foundation.org, stable@vger.kernel.org, Sasha Levin <sasha.levin@oracle.com>, Pablo Neira Ayuso <pablo@netfilter.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, 6 Jul 2017, Peter Zijlstra wrote:
-
-> On Thu, Jul 06, 2017 at 12:49:12PM -0400, Alan Stern wrote:
-> > On Thu, 6 Jul 2017, Paul E. McKenney wrote:
-> > 
-> > > On Thu, Jul 06, 2017 at 06:10:47PM +0200, Peter Zijlstra wrote:
-> > > > On Thu, Jul 06, 2017 at 08:21:10AM -0700, Paul E. McKenney wrote:
-> > > > > And yes, there are architecture-specific optimizations for an
-> > > > > empty spin_lock()/spin_unlock() critical section, and the current
-> > > > > arch_spin_unlock_wait() implementations show some of these optimizations.
-> > > > > But I expect that performance benefits would need to be demonstrated at
-> > > > > the system level.
-> > > > 
-> > > > I do in fact contended there are any optimizations for the exact
-> > > > lock+unlock semantics.
-> > > 
-> > > You lost me on this one.
-> > > 
-> > > > The current spin_unlock_wait() is weaker. Most notably it will not (with
-> > > > exception of ARM64/PPC for other reasons) cause waits on other CPUs.
-> > > 
-> > > Agreed, weaker semantics allow more optimizations.  So use cases needing
-> > > only the weaker semantics should more readily show performance benefits.
-> > > But either way, we need compelling use cases, and I do not believe that
-> > > any of the existing spin_unlock_wait() calls are compelling.  Perhaps I
-> > > am confused, but I am not seeing it for any of them.
-> > 
-> > If somebody really wants the full spin_unlock_wait semantics and
-> > doesn't want to interfere with other CPUs, wouldn't synchronize_sched()
-> > or something similar do the job?  It wouldn't be as efficient as
-> > lock+unlock, but it also wouldn't affect other CPUs.
+On Thu, Jul 06, 2017 at 08:45:59PM +0200, Manfred Spraul wrote:
+> Hi Paul,
 > 
-> So please don't do that. That'll create massive pain for RT. Also I
-> don't think it works. The whole point was that spin_unlock_wait() is
-> _cheaper_ than lock()+unlock(). If it gets to be more expensive there is
-> absolutely no point in using it.
+> On 07/06/2017 01:31 AM, Paul E. McKenney wrote:
+> >From: Manfred Spraul <manfred@colorfullife.com>
+> >
+> >As we want to remove spin_unlock_wait() and replace it with explicit
+> >spin_lock()/spin_unlock() calls, we can use this to simplify the
+> >locking.
+> >
+> >In addition:
+> >- Reading nf_conntrack_locks_all needs ACQUIRE memory ordering.
+> >- The new code avoids the backwards loop.
+> >
+> >Only slightly tested, I did not manage to trigger calls to
+> >nf_conntrack_all_lock().
+> 
+> If you want:
+> Attached would be V2, with adapted comments.
 
-Of course; that is obvious.
+I do like the improved comments, thank you!  Queued, and will be part
+of a later v3 of the series.
 
-I was making a rhetorical point: You should not try to justify
-spin_unlock_wait() on the basis that it doesn't cause waits on other
-CPUs.
+							Thanx, Paul
 
-Alan Stern
+> --
+>     Manfred
+
+> >From e3562faa1bc96e883108505e05deecaf38c87a26 Mon Sep 17 00:00:00 2001
+> From: Manfred Spraul <manfred@colorfullife.com>
+> Date: Sun, 21 Aug 2016 07:17:55 +0200
+> Subject: [PATCH 1/2] net/netfilter/nf_conntrack_core: Fix net_conntrack_lock()
+> 
+> As we want to remove spin_unlock_wait() and replace it with explicit
+> spin_lock()/spin_unlock() calls, we can use this to simplify the
+> locking.
+> 
+> In addition:
+> - Reading nf_conntrack_locks_all needs ACQUIRE memory ordering.
+> - The new code avoids the backwards loop.
+> 
+> Only slightly tested, I did not manage to trigger calls to
+> nf_conntrack_all_lock().
+> 
+> V2: With improved comments, to clearly show how the barriers
+>     pair.
+> 
+> Fixes: b16c29191dc8
+> Signed-off-by: Manfred Spraul <manfred@colorfullife.com>
+> Cc: <stable@vger.kernel.org>
+> Cc: Alan Stern <stern@rowland.harvard.edu>
+> Cc: Sasha Levin <sasha.levin@oracle.com>
+> Cc: Pablo Neira Ayuso <pablo@netfilter.org>
+> Cc: netfilter-devel@vger.kernel.org
+> ---
+>  net/netfilter/nf_conntrack_core.c | 52 ++++++++++++++++++++++-----------------
+>  1 file changed, 29 insertions(+), 23 deletions(-)
+> 
+> diff --git a/net/netfilter/nf_conntrack_core.c b/net/netfilter/nf_conntrack_core.c
+> index 9979f46..51390fe 100644
+> --- a/net/netfilter/nf_conntrack_core.c
+> +++ b/net/netfilter/nf_conntrack_core.c
+> @@ -96,19 +96,26 @@ static struct conntrack_gc_work conntrack_gc_work;
+> 
+>  void nf_conntrack_lock(spinlock_t *lock) __acquires(lock)
+>  {
+> +	/* 1) Acquire the lock */
+>  	spin_lock(lock);
+> -	while (unlikely(nf_conntrack_locks_all)) {
+> -		spin_unlock(lock);
+> 
+> -		/*
+> -		 * Order the 'nf_conntrack_locks_all' load vs. the
+> -		 * spin_unlock_wait() loads below, to ensure
+> -		 * that 'nf_conntrack_locks_all_lock' is indeed held:
+> -		 */
+> -		smp_rmb(); /* spin_lock(&nf_conntrack_locks_all_lock) */
+> -		spin_unlock_wait(&nf_conntrack_locks_all_lock);
+> -		spin_lock(lock);
+> -	}
+> +	/* 2) read nf_conntrack_locks_all, with ACQUIRE semantics
+> +	 * It pairs with the smp_store_release() in nf_conntrack_all_unlock()
+> +	 */
+> +	if (likely(smp_load_acquire(&nf_conntrack_locks_all) == false))
+> +		return;
+> +
+> +	/* fast path failed, unlock */
+> +	spin_unlock(lock);
+> +
+> +	/* Slow path 1) get global lock */
+> +	spin_lock(&nf_conntrack_locks_all_lock);
+> +
+> +	/* Slow path 2) get the lock we want */
+> +	spin_lock(lock);
+> +
+> +	/* Slow path 3) release the global lock */
+> +	spin_unlock(&nf_conntrack_locks_all_lock);
+>  }
+>  EXPORT_SYMBOL_GPL(nf_conntrack_lock);
+> 
+> @@ -149,28 +156,27 @@ static void nf_conntrack_all_lock(void)
+>  	int i;
+> 
+>  	spin_lock(&nf_conntrack_locks_all_lock);
+> -	nf_conntrack_locks_all = true;
+> 
+> -	/*
+> -	 * Order the above store of 'nf_conntrack_locks_all' against
+> -	 * the spin_unlock_wait() loads below, such that if
+> -	 * nf_conntrack_lock() observes 'nf_conntrack_locks_all'
+> -	 * we must observe nf_conntrack_locks[] held:
+> -	 */
+> -	smp_mb(); /* spin_lock(&nf_conntrack_locks_all_lock) */
+> +	nf_conntrack_locks_all = true;
+> 
+>  	for (i = 0; i < CONNTRACK_LOCKS; i++) {
+> -		spin_unlock_wait(&nf_conntrack_locks[i]);
+> +		spin_lock(&nf_conntrack_locks[i]);
+> +
+> +		/* This spin_unlock provides the "release" to ensure that
+> +		 * nf_conntrack_locks_all==true is visible to everyone that
+> +		 * acquired spin_lock(&nf_conntrack_locks[]).
+> +		 */
+> +		spin_unlock(&nf_conntrack_locks[i]);
+>  	}
+>  }
+> 
+>  static void nf_conntrack_all_unlock(void)
+>  {
+> -	/*
+> -	 * All prior stores must be complete before we clear
+> +	/* All prior stores must be complete before we clear
+>  	 * 'nf_conntrack_locks_all'. Otherwise nf_conntrack_lock()
+>  	 * might observe the false value but not the entire
+> -	 * critical section:
+> +	 * critical section.
+> +	 * It pairs with the smp_load_acquire() in nf_conntrack_lock()
+>  	 */
+>  	smp_store_release(&nf_conntrack_locks_all, false);
+>  	spin_unlock(&nf_conntrack_locks_all_lock);
+> -- 
+> 2.9.4
+> 
