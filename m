@@ -1,12 +1,23 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:40328 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750970AbdGFRIv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 6 Jul 2017 13:08:51 -0400
-Date: Thu, 6 Jul 2017 18:08:50 +0100
-From: Will Deacon <will.deacon@arm.com>
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:58512 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1751765AbdGFRSl (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Jul 2017 13:18:41 -0400
+Received: from pps.filterd (m0098404.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.20/8.16.0.20) with SMTP id v66HIcpL066163
+        for <linux-arch@vger.kernel.org>; Thu, 6 Jul 2017 13:18:40 -0400
+Received: from e19.ny.us.ibm.com (e19.ny.us.ibm.com [129.33.205.209])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2bhqu7vh0d-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Thu, 06 Jul 2017 13:18:40 -0400
+Received: from localhost
+        by e19.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+        Thu, 6 Jul 2017 13:18:39 -0400
+Date: Thu, 6 Jul 2017 10:18:32 -0700
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 Subject: Re: [PATCH v2 0/9] Remove spin_unlock_wait()
-Message-ID: <20170706170850.GI15574@arm.com>
+Reply-To: paulmck@linux.vnet.ibm.com
 References: <20170629235918.GA6445@linux.vnet.ibm.com>
  <20170705232955.GA15992@linux.vnet.ibm.com>
  <063D6719AE5E284EB5DD2968C1650D6DD0033F01@AcuExch.aculab.com>
@@ -17,11 +28,12 @@ MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
 In-Reply-To: <20170706165036.v4u5rbz56si4emw5@hirez.programming.kicks-ass.net>
+Message-ID: <20170706171832.GH2393@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>
-Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, David Laight <David.Laight@ACULAB.COM>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netfilter-devel@vger.kernel.org" <netfilter-devel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "oleg@redhat.com" <oleg@redhat.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@redhat.com" <mingo@redhat.com>, "dave@stgolabs.net" <dave@stgolabs.net>, "manfred@colorfullife.com" <manfred@colorfullife.com>, "tj@kernel.org" <tj@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "stern@rowland.harvard.edu" <stern@rowland.harvard.edu>, "parri.andrea@gmail.com" <parri.andrea@gmail.com>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>
-Message-ID: <20170706170850.-_cNoUrwGROpz-TYR2U5c-dM7U12NqMxrE7vgSiz2og@z>
+Cc: David Laight <David.Laight@ACULAB.COM>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netfilter-devel@vger.kernel.org" <netfilter-devel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "oleg@redhat.com" <oleg@redhat.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@redhat.com" <mingo@redhat.com>, "dave@stgolabs.net" <dave@stgolabs.net>, "manfred@colorfullife.com" <manfred@colorfullife.com>, "tj@kernel.org" <tj@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "will.deacon@arm.com" <will.deacon@arm.com>, "stern@rowland.harvard.edu" <stern@rowland.harvard.edu>, "parri.andrea@gmail.com" <parri.andrea@gmail.com>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>
+Message-ID: <20170706171832.YHn5TFQg59cfbR35qvOD_rTdfaAJjG8RAHbZvivj_Lw@z>
 
 On Thu, Jul 06, 2017 at 06:50:36PM +0200, Peter Zijlstra wrote:
 > On Thu, Jul 06, 2017 at 09:20:24AM -0700, Paul E. McKenney wrote:
@@ -41,7 +53,9 @@ On Thu, Jul 06, 2017 at 06:50:36PM +0200, Peter Zijlstra wrote:
 > > semantics and a compelling use case with compelling performance benefits.
 > 
 > Ha!, but what would constitute 'good semantics' ?
-> 
+
+At this point, it beats the heck out of me!  ;-)
+
 > The current thing is something along the lines of:
 > 
 >   "Waits for the currently observed critical section
@@ -62,9 +76,11 @@ On Thu, Jul 06, 2017 at 06:50:36PM +0200, Peter Zijlstra wrote:
 > conflicted on the whole thing. On the one hand its a nice optimization,
 > on the other hand I don't want to have to keep fixing these bugs.
 
-As I've said, I'd be keen to see us drop this and bring it back if/when we
-get a compelling use-case along with performance numbers. At that point,
-we'd be in a better position to define the semantics anyway, knowing what
-exactly is expected by the use-case.
+Yeah, if I had seen a compelling use case...  Oleg's task_work case was
+closest, but given that it involved a task-local lock that shouldn't
+be all -that- heavily contended, it is hard to see there being all that
+much difference.
 
-Will
+But maybe I am missing something here?  Wouldn't be the first time...
+
+							Thanx, Paul
