@@ -1,97 +1,171 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH v2 0/9] Remove spin_unlock_wait()
-Date: Thu, 6 Jul 2017 08:21:10 -0700
-Message-ID: <20170706152110.GZ2393@linux.vnet.ibm.com>
-References: <20170629235918.GA6445@linux.vnet.ibm.com>
- <20170705232955.GA15992@linux.vnet.ibm.com>
- <063D6719AE5E284EB5DD2968C1650D6DD0033F01@AcuExch.aculab.com>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Dave P Martin <Dave.Martin@arm.com>
+Subject: Re: [PATCH 8/9] RISC-V: User-facing API
+Date: Thu, 6 Jul 2017 16:34:47 +0100
+Message-ID: <20170706153446.GI3965@e103592.cambridge.arm.com>
+References: <20170704195102.3974-1-palmer@dabbelt.com>
+ <20170704195102.3974-9-palmer@dabbelt.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:48282 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1751765AbdGFPVS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Jul 2017 11:21:18 -0400
-Received: from pps.filterd (m0098417.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.20/8.16.0.20) with SMTP id v66FJLnY130965
-        for <linux-arch@vger.kernel.org>; Thu, 6 Jul 2017 11:21:17 -0400
-Received: from e19.ny.us.ibm.com (e19.ny.us.ibm.com [129.33.205.209])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2bhjy8nyw9-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Thu, 06 Jul 2017 11:21:17 -0400
-Received: from localhost
-        by e19.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Thu, 6 Jul 2017 11:21:16 -0400
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:39440 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751765AbdGFPe7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 6 Jul 2017 11:34:59 -0400
 Content-Disposition: inline
-In-Reply-To: <063D6719AE5E284EB5DD2968C1650D6DD0033F01@AcuExch.aculab.com>
+In-Reply-To: <20170704195102.3974-9-palmer@dabbelt.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Laight <David.Laight@ACULAB.COM>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netfilter-devel@vger.kernel.org" <netfilter-devel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "oleg@redhat.com" <oleg@redhat.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@redhat.com" <mingo@redhat.com>, "dave@stgolabs.net" <dave@stgolabs.net>, "manfred@colorfullife.com" <manfred@colorfullife.com>, "tj@kernel.org" <tj@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "will.deacon@arm.com" <will.deacon@arm.com>, "peterz@infradead.org" <peterz@infradead.org>, "stern@rowland.harvard.edu" <stern@rowland.harvard.edu>, "parri.andrea@gmail.com" <parri.andrea@gmail.com>, "torvalds@linux-foundation.org" <torvalds@linux>
+To: Palmer Dabbelt <palmer@dabbelt.com>
+Cc: peterz@infradead.org, mingo@redhat.com, mcgrof@kernel.org, viro@zeniv.linux.org.uk, sfr@canb.auug.org.au, nicolas.dichtel@6wind.com, rmk+kernel@armlinux.org.uk, msalter@redhat.com, tklauser@distanz.ch, will.deacon@arm.com, james.hogan@imgtec.com, paul.gortmaker@windriver.com, linux@roeck-us.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, albert@sifive.com, patches@groups.riscv.org
 
-On Thu, Jul 06, 2017 at 02:12:24PM +0000, David Laight wrote:
-> From: Paul E. McKenney
-> > Sent: 06 July 2017 00:30
-> > There is no agreed-upon definition of spin_unlock_wait()'s semantics,
-> > and it appears that all callers could do just as well with a lock/unlock
-> > pair.  This series therefore removes spin_unlock_wait() and changes
-> > its users to instead use a lock/unlock pair.  The commits are as follows,
-> > in three groups:
-> > 
-> > 1-7.	Change uses of spin_unlock_wait() and raw_spin_unlock_wait()
-> > 	to instead use a spin_lock/spin_unlock pair.  These may be
-> > 	applied in any order, but must be applied before any later
-> > 	commits in this series.  The commit logs state why I believe
-> > 	that these commits won't noticeably degrade performance.
+On Wed, Jul 05, 2017 at 09:49:36AM -0700, Palmer Dabbelt wrote:
+> On Mon, 03 Jul 2017 16:06:39 PDT (-0700), james.hogan@imgtec.com wrote:
+> > On Thu, Jun 29, 2017 at 02:42:38PM -0700, Palmer Dabbelt wrote:
+> >> On Wed, 28 Jun 2017 15:42:37 PDT (-0700), james.hogan@imgtec.com wrote:
+> >> > On Wed, Jun 28, 2017 at 11:55:37AM -0700, Palmer Dabbelt wrote:
+> >> >> diff --git a/arch/riscv/include/uapi/asm/ucontext.h b/arch/riscv/include/uapi/asm/ucontext.h
+> >> >> new file mode 100644
+> >> >> index 000000000000..52eff9febcfd
+> >> >> --- /dev/null
+> >> >> +++ b/arch/riscv/include/uapi/asm/ucontext.h
+> >> > ...
+> >> >> +struct ucontext {
+> >> >> +	unsigned long	  uc_flags;
+> >> >> +	struct ucontext	 *uc_link;
+> >> >> +	stack_t		  uc_stack;
+> >> >> +	sigset_t	  uc_sigmask;
+> >> >> +	/* glibc uses a 1024-bit sigset_t */
+> >> >> +	__u8		  __unused[1024 / 8 - sizeof(sigset_t)];
+> >> >> +	/* last for future expansion */
+> >> >> +	struct sigcontext uc_mcontext;
+> >> >> +};
+> >> >
+> >> > Any particular reason not to use the asm-generic ucontext?
+> >>
+> >> In the generic ucontext, 'uc_sigmask' is at the end of the structure so it can
+> >> be expanded.  Since we want our mcontext to be expandable as well, we
+> >> pre-allocate some expandable space for sigmask and then put mcontext at the
+> >> end.
+> >>
+> >> We stole this idea from arm64.
+> >
+> > Curious. __unused seems like overkill to be honest given that expanding
+> > the number of signals up to 128 causes other issues (as discovered on
+> > MIPS e.g. the waitpid() status, with stopsig not fitting below the exit
+> > code (shift 8) and core dump flag (bit 7)), but perhaps it could be
+> > carefully expanded by splitting the stopsig field.
 > 
-> I can't help feeling that it might be better to have a spin_lock_sync()
-> call that is equivalent to a spin_lock/spin_unlock pair.
-> The default implementation being an inline function that does exactly that.
-> This would let an architecture implement a more efficient version.
+> Sorry, I don't understand the intricacies of this in the slightest.  In general
+> we try to avoid surprises in software land in RISC-V, so whenever we do
+> something we go look at the most popular architectures (Intel and ARM) and try
+> to ensure we don't paint ourselves into any corners that they didn't.
+
+I think Catalin was concerned that putting uc_sigmask at the end breaks
+extensibility of sigcontext.
+
+[Catalin, please comment if I'm misquoting you ;) ]
+
+
+Generic ucontext seems broken in any case, when kernel/user sigset_t
+sizes differ:
+
+sigset_t oldmask, newmask;
+
+void handler(int n, siginfo_t *si, void *uc_)
+{
+	ucontext_t *uc = uc_;
+
+	oldmask = uc->uc_sigmask; uc->uc_sigmask = newmask;
+}
+
+With generic ucontext, this can overrun and corrupt memory if the user/
+kernel sigset_t sizes differ.  The only fix is to reserve space in
+ucontext for the larger of the two sigset sizes, which generic ucontext
+does not do.
+
+There's also the problem you comment on where only 7 bits of signal
+number are available in wait() status values: with 0x7f being magic and
+0 not a valid signal number, that probably allows up to 126 signals.
+An arch could possibly have its own definitions to get beyond this, but
+it's all done by magic numbers and open-coding in core code today.
+
+i.e., the "extensibility" in generic ucontext may be bogus.
+
+
+So, you can commit to a sane maximum number of signals (say, 64) in
+your ABI, but this means that your libc sigset_t size probably needs to
+match and you can never grow beyond that without an ABI break.
+
+Or you can reserve enough space in ucontext for the userspace sigset_t.
+Using generic signal.h and ucontext.h effectively commits you to max 64
+signals AFAICT.  The extra space may be permanently wasted, but that's
+preferable to memory corruption.
+
+
+(Note, I don't know myself where the "1024" comes from.  Are there any
+POSIXish systems implementing anywhere near that number of signals?  Is
+there a real usecase for it?  Maybe it's just overzealous
+futureproofing?)
+
+> > Looks harmless here I suppose so I defer to others. If it is the
+> > preferred approach does it make sense to make it the "default" for new
+> > architectures at some point?
 > 
-> It might even be that this is the defined semantics of spin_unlock_wait().
+> Again, this isn't really my thing, but we chose this because we thought it was
+> the sane way to do it.  Unless we're doing something silly, I don't see why it
+> wouldn't be a reasonable default.  This is predicated on having expandable
+> architectural state, otherwise putting sigmask at the end seems sane.
 
-That was in fact my first proposal, see the comment header in current
-mainline for spin_unlock_wait() in include/linux/spinlock.h.  But Linus
-quite rightly pointed out that if spin_unlock_wait() was to be defined in
-this way, we should get rid of spin_unlock_wait() entirely, especially
-given that there are not very many calls to spin_unlock_wait() and
-also given that none of them are particularly performance critical.
-Hence the current patch set, which does just that.
+Note, the contents of sigcontext are nonportable but are nonetheless
+ABI, and some userspace software does expect to be able to poke about in
+there, modify the signal return state, etc.
 
-> Note that it can only be useful to do a spin_lock/unlock pair if it is
-> impossible for another code path to try to acquire the lock.
-> (Or, at least, the code can't care if the lock is acquired just after.)
+Additionally the whole signal frame cannot safely exceed MINSIGSTKSZ in
+size (which looks like 2K if you're relying on generic signal.h -- not
+a big number when compared against upcoming vector architectures).
 
-Indeed!  As Oleg Nesterov pointed out, a spin_lock()/spin_unlock() pair
-is sort of like synchronize_rcu() for a given lock, where that lock's
-critical sections play the role of RCU read-side critical sections.
-So anything before the pair is visible to later critical sections, and
-anything in prior critical sections is visible to anything after the pair.
-But again, as Linus pointed out, if we are going to have these semantics,
-just do spin_lock() immediately followed by spin_unlock().
+Going beyond MINSIGSTKSZ is a user ABI break, as is any non-probeable
+change to the contents of struct sigcontext, including changes to its
+size.
 
-> So if it can de determined that the lock isn't held (a READ_ONCE()
-> might be enough) the lock itself need not be acquired (with the
-> associated slow bus cycles).
 
-If you want the full semantics of a spin_lock()/spin_unlock() pair,
-you need a full memory barrier before the READ_ONCE(), even on x86.
-Without that memory barrier, you don't get the effect of the release
-implicit in spin_unlock().
+We are burned by this on arm64 with SVE: arm64 has its own MINSIGSTKSZ
+(5K), which is not enough for the biggest possible SVE implemetations
+(over 8K for the SVE state alone).  I have some proposals to mitigate
+this [1], but a complete solution is not possible.
 
-For weaker architectures, such as PowerPC and ARM, a READ_ONCE()
-does -not- suffice, not at all, even with smp_mb() before and after.
-I encourage you to take a look at arch_spin_unlock_wait() in arm64
-and powerpc if youi are interested.  There were also some lengthy LKML
-threads discussing this about 18 months ago that could be illuminating.
+Without any flags, size or version field or some kind of extensible
+list structure, you would likely have trouble extending your sigcontext
+without ABI breaks.
 
-And yes, there are architecture-specific optimizations for an
-empty spin_lock()/spin_unlock() critical section, and the current
-arch_spin_unlock_wait() implementations show some of these optimizations.
-But I expect that performance benefits would need to be demonstrated at
-the system level.
 
-							Thanx, Paul
+The ucontext API is unfortunately fundamentally broken, especially with
+regard to extensibility.  It's debatable whether the context argument
+to sigaction handlers should have been ucontext_t, but we seem to be
+stuck with it.  POSIX no longer attempts to specify most of the de
+facto ucontext API behaviour, but it persists because there are things
+that userspace can't do any other way.
+
+In principle we could cook up a new signal interface, and a new arch
+could avoid the current and legacy interfaces entirely.
+
+For example, the signal context could be made properly extensible, and
+a cookie could be registered for each handler so that libc can wrap
+signal handlers without the need for runtime-generated trampolines.
+Then a POSIX compatibilty interface could be implemented in libc.
+
+Could be a tough sell though -- and there's a fair risk we'd come up
+with something that is still broken.
+
+
+Cheers
+---Dave
+
+[1] [RFC PATCH v2 0/6] Signal frame expansion support
+http://lists.infradead.org/pipermail/linux-arm-kernel/2017-April/501163.html
+
+(Now merged, except for the AT_MINSIGSTKSZ auxv entry to report the
+signal frame size -- since we won't need this until later and it could
+benefit from more discussion and it would be good to build some
+consensus around it if possible.  I plan to talk about this and
+related topics at Plumbers.)
