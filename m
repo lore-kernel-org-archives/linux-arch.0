@@ -1,46 +1,97 @@
-From: David Laight <David.Laight@ACULAB.COM>
-Subject: RE: [PATCH v2 0/9] Remove spin_unlock_wait()
-Date: Thu, 6 Jul 2017 14:12:24 +0000
-Message-ID: <063D6719AE5E284EB5DD2968C1650D6DD0033F01@AcuExch.aculab.com>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [PATCH v2 0/9] Remove spin_unlock_wait()
+Date: Thu, 6 Jul 2017 08:21:10 -0700
+Message-ID: <20170706152110.GZ2393@linux.vnet.ibm.com>
 References: <20170629235918.GA6445@linux.vnet.ibm.com>
  <20170705232955.GA15992@linux.vnet.ibm.com>
+ <063D6719AE5E284EB5DD2968C1650D6DD0033F01@AcuExch.aculab.com>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset="Windows-1252"
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20170705232955.GA15992@linux.vnet.ibm.com>
-Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: "'paulmck@linux.vnet.ibm.com'" <paulmck@linux.vnet.ibm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Cc: "netfilter-devel@vger.kernel.org" <netfilter-devel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "oleg@redhat.com" <oleg@redhat.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@redhat.com" <mingo@redhat.com>, "dave@stgolabs.net" <dave@stgolabs.net>, "manfred@colorfullife.com" <manfred@colorfullife.com>, "tj@kernel.org" <tj@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "will.deacon@arm.com" <will.deacon@arm.com>, "peterz@infradead.org" <peterz@infradead.org>, "stern@rowland.harvard.edu" <stern@rowland.harvard.edu>, "parri.andrea@gmail.com" <parri.andrea@gmail.com>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:48282 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1751765AbdGFPVS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Jul 2017 11:21:18 -0400
+Received: from pps.filterd (m0098417.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.20/8.16.0.20) with SMTP id v66FJLnY130965
+        for <linux-arch@vger.kernel.org>; Thu, 6 Jul 2017 11:21:17 -0400
+Received: from e19.ny.us.ibm.com (e19.ny.us.ibm.com [129.33.205.209])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2bhjy8nyw9-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Thu, 06 Jul 2017 11:21:17 -0400
+Received: from localhost
+        by e19.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+        Thu, 6 Jul 2017 11:21:16 -0400
+Content-Disposition: inline
+In-Reply-To: <063D6719AE5E284EB5DD2968C1650D6DD0033F01@AcuExch.aculab.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Laight <David.Laight@ACULAB.COM>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netfilter-devel@vger.kernel.org" <netfilter-devel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "oleg@redhat.com" <oleg@redhat.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@redhat.com" <mingo@redhat.com>, "dave@stgolabs.net" <dave@stgolabs.net>, "manfred@colorfullife.com" <manfred@colorfullife.com>, "tj@kernel.org" <tj@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "will.deacon@arm.com" <will.deacon@arm.com>, "peterz@infradead.org" <peterz@infradead.org>, "stern@rowland.harvard.edu" <stern@rowland.harvard.edu>, "parri.andrea@gmail.com" <parri.andrea@gmail.com>, "torvalds@linux-foundation.org" <torvalds@linux>
 
-From: Paul E. McKenney
-> Sent: 06 July 2017 00:30
-> There is no agreed-upon definition of spin_unlock_wait()'s semantics,
-> and it appears that all callers could do just as well with a lock/unlock
-> pair.  This series therefore removes spin_unlock_wait() and changes
-> its users to instead use a lock/unlock pair.  The commits are as follows,
-> in three groups:
+On Thu, Jul 06, 2017 at 02:12:24PM +0000, David Laight wrote:
+> From: Paul E. McKenney
+> > Sent: 06 July 2017 00:30
+> > There is no agreed-upon definition of spin_unlock_wait()'s semantics,
+> > and it appears that all callers could do just as well with a lock/unlock
+> > pair.  This series therefore removes spin_unlock_wait() and changes
+> > its users to instead use a lock/unlock pair.  The commits are as follows,
+> > in three groups:
+> > 
+> > 1-7.	Change uses of spin_unlock_wait() and raw_spin_unlock_wait()
+> > 	to instead use a spin_lock/spin_unlock pair.  These may be
+> > 	applied in any order, but must be applied before any later
+> > 	commits in this series.  The commit logs state why I believe
+> > 	that these commits won't noticeably degrade performance.
 > 
-> 1-7.	Change uses of spin_unlock_wait() and raw_spin_unlock_wait()
-> 	to instead use a spin_lock/spin_unlock pair.  These may be
-> 	applied in any order, but must be applied before any later
-> 	commits in this series.  The commit logs state why I believe
-> 	that these commits won't noticeably degrade performance.
+> I can't help feeling that it might be better to have a spin_lock_sync()
+> call that is equivalent to a spin_lock/spin_unlock pair.
+> The default implementation being an inline function that does exactly that.
+> This would let an architecture implement a more efficient version.
+> 
+> It might even be that this is the defined semantics of spin_unlock_wait().
 
-I can't help feeling that it might be better to have a spin_lock_sync()
-call that is equivalent to a spin_lock/spin_unlock pair.
-The default implementation being an inline function that does exactly that.
-This would let an architecture implement a more efficient version.
+That was in fact my first proposal, see the comment header in current
+mainline for spin_unlock_wait() in include/linux/spinlock.h.  But Linus
+quite rightly pointed out that if spin_unlock_wait() was to be defined in
+this way, we should get rid of spin_unlock_wait() entirely, especially
+given that there are not very many calls to spin_unlock_wait() and
+also given that none of them are particularly performance critical.
+Hence the current patch set, which does just that.
 
-It might even be that this is the defined semantics of spin_unlock_wait().
+> Note that it can only be useful to do a spin_lock/unlock pair if it is
+> impossible for another code path to try to acquire the lock.
+> (Or, at least, the code can't care if the lock is acquired just after.)
 
-Note that it can only be useful to do a spin_lock/unlock pair if it is
-impossible for another code path to try to acquire the lock.
-(Or, at least, the code can't care if the lock is acquired just after.)
-So if it can de determined that the lock isn't held (a READ_ONCE()
-might be enough) the lock itself need not be acquired (with the
-associated slow bus cycles).
+Indeed!  As Oleg Nesterov pointed out, a spin_lock()/spin_unlock() pair
+is sort of like synchronize_rcu() for a given lock, where that lock's
+critical sections play the role of RCU read-side critical sections.
+So anything before the pair is visible to later critical sections, and
+anything in prior critical sections is visible to anything after the pair.
+But again, as Linus pointed out, if we are going to have these semantics,
+just do spin_lock() immediately followed by spin_unlock().
 
-	David
+> So if it can de determined that the lock isn't held (a READ_ONCE()
+> might be enough) the lock itself need not be acquired (with the
+> associated slow bus cycles).
+
+If you want the full semantics of a spin_lock()/spin_unlock() pair,
+you need a full memory barrier before the READ_ONCE(), even on x86.
+Without that memory barrier, you don't get the effect of the release
+implicit in spin_unlock().
+
+For weaker architectures, such as PowerPC and ARM, a READ_ONCE()
+does -not- suffice, not at all, even with smp_mb() before and after.
+I encourage you to take a look at arch_spin_unlock_wait() in arm64
+and powerpc if youi are interested.  There were also some lengthy LKML
+threads discussing this about 18 months ago that could be illuminating.
+
+And yes, there are architecture-specific optimizations for an
+empty spin_lock()/spin_unlock() critical section, and the current
+arch_spin_unlock_wait() implementations show some of these optimizations.
+But I expect that performance benefits would need to be demonstrated at
+the system level.
+
+							Thanx, Paul
