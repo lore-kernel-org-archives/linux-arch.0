@@ -1,58 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f195.google.com ([209.85.128.195]:36825 "EHLO
-        mail-wr0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751874AbdGFSne (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Jul 2017 14:43:34 -0400
-Received: by mail-wr0-f195.google.com with SMTP id 77so2364755wrb.3
-        for <linux-arch@vger.kernel.org>; Thu, 06 Jul 2017 11:43:33 -0700 (PDT)
-Subject: Re: [PATCH RFC 01/26] netfilter: Replace spin_unlock_wait() with
- lock/unlock pair
-References: <Pine.LNX.4.44L0.1707031543170.2027-100000@iolanthe.rowland.org>
+Received: from mail-wr0-f193.google.com ([209.85.128.193]:35755 "EHLO
+        mail-wr0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752469AbdGFSqE (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Jul 2017 14:46:04 -0400
+Received: by mail-wr0-f193.google.com with SMTP id z45so2404359wrb.2
+        for <linux-arch@vger.kernel.org>; Thu, 06 Jul 2017 11:46:03 -0700 (PDT)
+Subject: Re: [PATCH v2 1/9] net/netfilter/nf_conntrack_core: Fix
+ net_conntrack_lock()
+References: <20170705232955.GA15992@linux.vnet.ibm.com>
+ <1499297503-23852-1-git-send-email-paulmck@linux.vnet.ibm.com>
 From: Manfred Spraul <manfred@colorfullife.com>
-Message-ID: <ee509620-8ba5-be45-743e-f077a457c01d@colorfullife.com>
-Date: Thu, 6 Jul 2017 20:43:28 +0200
+Message-ID: <113516eb-8615-4468-0127-1a491d34c83c@colorfullife.com>
+Date: Thu, 6 Jul 2017 20:45:59 +0200
 MIME-Version: 1.0
-In-Reply-To: <Pine.LNX.4.44L0.1707031543170.2027-100000@iolanthe.rowland.org>
+In-Reply-To: <1499297503-23852-1-git-send-email-paulmck@linux.vnet.ibm.com>
 Content-Type: multipart/mixed;
- boundary="------------564DE116543083334572D59F"
+ boundary="------------8805E1252AD032F77ACB3F79"
 Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alan Stern <stern@rowland.harvard.edu>
-Cc: paulmck@linux.vnet.ibm.com, linux-kernel@vger.kernel.org, netfilter-devel@vger.kernel.org, netdev@vger.kernel.org, oleg@redhat.com, akpm@linux-foundation.org, mingo@redhat.com, dave@stgolabs.net, tj@kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, will.deacon@arm.com, peterz@infradead.org, parri.andrea@gmail.com, torvalds@linux-foundation.org, Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@blackhole.kfki.hu>, Florian Westphal <fw@strlen.de>, "David S. Miller" <davem@davemloft.net>, coreteam@netfilter.org, 1vier1@web.de
-Message-ID: <20170706184328.7OJIUgtmjXrMQCcXYAmuMxjalqOcCw1AQnnaK9EcqwQ@z>
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org
+Cc: netfilter-devel@vger.kernel.org, netdev@vger.kernel.org, oleg@redhat.com, akpm@linux-foundation.org, mingo@redhat.com, dave@stgolabs.net, tj@kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, will.deacon@arm.com, peterz@infradead.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, torvalds@linux-foundation.org, stable@vger.kernel.org, Sasha Levin <sasha.levin@oracle.com>, Pablo Neira Ayuso <pablo@netfilter.org>
+Message-ID: <20170706184559.kqJMrgzjO6IvHTKfMnJyBATTxehWk6bzNzveRN28dkI@z>
 
 This is a multi-part message in MIME format.
---------------564DE116543083334572D59F
+--------------8805E1252AD032F77ACB3F79
 Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Transfer-Encoding: 7bit
 
-Hi Alan,
+Hi Paul,
 
-On 07/03/2017 09:57 PM, Alan Stern wrote:
+On 07/06/2017 01:31 AM, Paul E. McKenney wrote:
+> From: Manfred Spraul <manfred@colorfullife.com>
 >
-> (Alternatively, you could make nf_conntrack_all_unlock() do a
-> lock+unlock on all the locks in the array, just like
-> nf_conntrack_all_lock().  But of course, that would be a lot less
-> efficient.)
-Hmmmm.
+> As we want to remove spin_unlock_wait() and replace it with explicit
+> spin_lock()/spin_unlock() calls, we can use this to simplify the
+> locking.
+>
+> In addition:
+> - Reading nf_conntrack_locks_all needs ACQUIRE memory ordering.
+> - The new code avoids the backwards loop.
+>
+> Only slightly tested, I did not manage to trigger calls to
+> nf_conntrack_all_lock().
 
-Someone with a weakly ordered system who can test this?
-semop() has a very short hotpath.
+If you want:
+Attached would be V2, with adapted comments.
 
-Either with aim9.shared_memory.ops_per_sec or
-
-#sem-scalebench -t 10 -m 0
-https://github.com/manfred-colorfu/ipcscale/blob/master/sem-scalebench.cpp
 --
      Manfred
 
---------------564DE116543083334572D59F
+--------------8805E1252AD032F77ACB3F79
 Content-Type: text/x-patch;
- name="0002-ipc-sem.c-avoid-smp_load_acuqire-in-the-hot-path.patch"
+ name="0001-net-netfilter-nf_conntrack_core-Fix-net_conntrack_lo.patch"
 Content-Transfer-Encoding: 7bit
 Content-Disposition: attachment;
- filename*0="0002-ipc-sem.c-avoid-smp_load_acuqire-in-the-hot-path.patch"
+ filename*0="0001-net-netfilter-nf_conntrack_core-Fix-net_conntrack_lo.pa";
+ filename*1="tch"
 
 
---------------564DE116543083334572D59F--
+--------------8805E1252AD032F77ACB3F79--
