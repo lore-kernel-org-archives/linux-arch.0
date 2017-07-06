@@ -1,70 +1,153 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH v2 0/9] Remove spin_unlock_wait()
-Date: Thu, 6 Jul 2017 10:29:16 -0700
-Message-ID: <20170706172916.GK2393@linux.vnet.ibm.com>
-References: <20170629235918.GA6445@linux.vnet.ibm.com>
- <20170705232955.GA15992@linux.vnet.ibm.com>
- <063D6719AE5E284EB5DD2968C1650D6DD0033F01@AcuExch.aculab.com>
- <20170706160555.xc63yydk77gmttae@hirez.programming.kicks-ass.net>
- <20170706162024.GD2393@linux.vnet.ibm.com>
- <20170706165036.v4u5rbz56si4emw5@hirez.programming.kicks-ass.net>
- <20170706170850.GI15574@arm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Manfred Spraul <manfred@colorfullife.com>
+Subject: Re: [PATCH RFC 01/26] netfilter: Replace spin_unlock_wait() with
+ lock/unlock pair
+Date: Thu, 6 Jul 2017 20:43:28 +0200
+Message-ID: <ee509620-8ba5-be45-743e-f077a457c01d@colorfullife.com>
+References: <Pine.LNX.4.44L0.1707031543170.2027-100000@iolanthe.rowland.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20170706170850.GI15574@arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Will Deacon <will.deacon@arm.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, David Laight <David.Laight@ACULAB.COM>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netfilter-devel@vger.kernel.org" <netfilter-devel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "oleg@redhat.com" <oleg@redhat.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@redhat.com" <mingo@redhat.com>, "dave@stgolabs.net" <dave@stgolabs.net>, "manfred@colorfullife.com" <manfred@colorfullife.com>, "tj@kernel.org" <tj@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "stern@rowland.harvard.edu" <stern@rowland.harvard.edu>, "parri.andrea@gmail.com" <parri.andrea@gmail.com>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.o>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: multipart/mixed;
+ boundary="------------564DE116543083334572D59F"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wr0-f195.google.com ([209.85.128.195]:36825 "EHLO
+        mail-wr0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751874AbdGFSne (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Jul 2017 14:43:34 -0400
+Received: by mail-wr0-f195.google.com with SMTP id 77so2364755wrb.3
+        for <linux-arch@vger.kernel.org>; Thu, 06 Jul 2017 11:43:33 -0700 (PDT)
+In-Reply-To: <Pine.LNX.4.44L0.1707031543170.2027-100000@iolanthe.rowland.org>
+Content-Language: en-US
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Alan Stern <stern@rowland.harvard.edu>
+Cc: paulmck@linux.vnet.ibm.com, linux-kernel@vger.kernel.org, netfilter-devel@vger.kernel.org, netdev@vger.kernel.org, oleg@redhat.com, akpm@linux-foundation.org, mingo@redhat.com, dave@stgolabs.net, tj@kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, will.deacon@arm.com, peterz@infradead.org, parri.andrea@gmail.com, torvalds@linux-foundation.org, Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@blackhole.kfki.hu>, Florian Westphal <fw@strlen.de>, "David S. Miller" <davem@davemloft.net>, coreteam@netfilter.org, 1vier1@web.de
 
-On Thu, Jul 06, 2017 at 06:08:50PM +0100, Will Deacon wrote:
-> On Thu, Jul 06, 2017 at 06:50:36PM +0200, Peter Zijlstra wrote:
-> > On Thu, Jul 06, 2017 at 09:20:24AM -0700, Paul E. McKenney wrote:
-> > > On Thu, Jul 06, 2017 at 06:05:55PM +0200, Peter Zijlstra wrote:
-> > > > On Thu, Jul 06, 2017 at 02:12:24PM +0000, David Laight wrote:
-> > > > > From: Paul E. McKenney
-> > > 
-> > > [ . . . ]
-> > > 
-> > > > Now on the one hand I feel like Oleg that it would be a shame to loose
-> > > > the optimization, OTOH this thing is really really tricky to use,
-> > > > and has lead to a number of bugs already.
-> > > 
-> > > I do agree, it is a bit sad to see these optimizations go.  So, should
-> > > this make mainline, I will be tagging the commits that spin_unlock_wait()
-> > > so that they can be easily reverted should someone come up with good
-> > > semantics and a compelling use case with compelling performance benefits.
-> > 
-> > Ha!, but what would constitute 'good semantics' ?
-> > 
-> > The current thing is something along the lines of:
-> > 
-> >   "Waits for the currently observed critical section
-> >    to complete with ACQUIRE ordering such that it will observe
-> >    whatever state was left by said critical section."
-> > 
-> > With the 'obvious' benefit of limited interference on those actually
-> > wanting to acquire the lock, and a shorter wait time on our side too,
-> > since we only need to wait for completion of the current section, and
-> > not for however many contender are before us.
-> > 
-> > Not sure I have an actual (micro) benchmark that shows a difference
-> > though.
-> > 
-> > 
-> > 
-> > Is this all good enough to retain the thing, I dunno. Like I said, I'm
-> > conflicted on the whole thing. On the one hand its a nice optimization,
-> > on the other hand I don't want to have to keep fixing these bugs.
-> 
-> As I've said, I'd be keen to see us drop this and bring it back if/when we
-> get a compelling use-case along with performance numbers. At that point,
-> we'd be in a better position to define the semantics anyway, knowing what
-> exactly is expected by the use-case.
+This is a multi-part message in MIME format.
+--------------564DE116543083334572D59F
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
 
-Hear, hear!!!  ;-)
+Hi Alan,
 
-							Thanx, Paul
+On 07/03/2017 09:57 PM, Alan Stern wrote:
+>
+> (Alternatively, you could make nf_conntrack_all_unlock() do a
+> lock+unlock on all the locks in the array, just like
+> nf_conntrack_all_lock().  But of course, that would be a lot less
+> efficient.)
+Hmmmm.
+
+Someone with a weakly ordered system who can test this?
+semop() has a very short hotpath.
+
+Either with aim9.shared_memory.ops_per_sec or
+
+#sem-scalebench -t 10 -m 0
+https://github.com/manfred-colorfu/ipcscale/blob/master/sem-scalebench.cpp
+--
+     Manfred
+
+--------------564DE116543083334572D59F
+Content-Type: text/x-patch;
+ name="0002-ipc-sem.c-avoid-smp_load_acuqire-in-the-hot-path.patch"
+Content-Transfer-Encoding: 7bit
+Content-Disposition: attachment;
+ filename*0="0002-ipc-sem.c-avoid-smp_load_acuqire-in-the-hot-path.patch"
+
+From b549e0281b66124b62aa94543f91b0e616abaf52 Mon Sep 17 00:00:00 2001
+From: Manfred Spraul <manfred@colorfullife.com>
+Date: Thu, 6 Jul 2017 20:05:44 +0200
+Subject: [PATCH 2/2] ipc/sem.c: avoid smp_load_acuqire() in the hot-path
+
+Alan Stern came up with an interesting idea:
+If we perform a spin_lock()/spin_unlock() pair in the slow path, then
+we can skip the smp_load_acquire() in the hot path.
+
+What do you think?
+
+* When we removed the smp_mb() from the hot path, it was a user space
+  visible speed-up of 11%:
+
+  https://lists.01.org/pipermail/lkp/2017-February/005520.html
+
+* On x86, there is no improvement - as smp_load_acquire is READ_ONCE().
+
+* Slowing down the slow path should not hurt:
+  Due to the hysteresis code, the slow path is at least factor 10
+  rarer than it was before.
+
+Especially: Who is able to test it?
+
+Signed-off-by: Manfred Spraul <manfred@colorfullife.com>
+Cc: Alan Stern <stern@rowland.harvard.edu>
+---
+ ipc/sem.c | 33 +++++++++++++++++++--------------
+ 1 file changed, 19 insertions(+), 14 deletions(-)
+
+diff --git a/ipc/sem.c b/ipc/sem.c
+index 947dc23..75a4358 100644
+--- a/ipc/sem.c
++++ b/ipc/sem.c
+@@ -186,16 +186,15 @@ static int sysvipc_sem_proc_show(struct seq_file *s, void *it);
+  *	* either local or global sem_lock() for read.
+  *
+  * Memory ordering:
+- * Most ordering is enforced by using spin_lock() and spin_unlock().
++ * All ordering is enforced by using spin_lock() and spin_unlock().
+  * The special case is use_global_lock:
+  * Setting it from non-zero to 0 is a RELEASE, this is ensured by
+- * using smp_store_release().
+- * Testing if it is non-zero is an ACQUIRE, this is ensured by using
+- * smp_load_acquire().
+- * Setting it from 0 to non-zero must be ordered with regards to
+- * this smp_load_acquire(), this is guaranteed because the smp_load_acquire()
+- * is inside a spin_lock() and after a write from 0 to non-zero a
+- * spin_lock()+spin_unlock() is done.
++ * performing spin_lock()/spin_lock() on every semaphore before setting to
++ * non-zero.
++ * Setting it from 0 to non-zero is an ACQUIRE, this is ensured by
++ * performing spin_lock()/spin_lock() on every semaphore after setting to
++ * non-zero.
++ * Testing if it is non-zero is within spin_lock(), no need for a barrier.
+  */
+ 
+ #define sc_semmsl	sem_ctls[0]
+@@ -325,13 +324,20 @@ static void complexmode_tryleave(struct sem_array *sma)
+ 		return;
+ 	}
+ 	if (sma->use_global_lock == 1) {
++		int i;
++		struct sem *sem;
+ 		/*
+ 		 * Immediately after setting use_global_lock to 0,
+-		 * a simple op can start. Thus: all memory writes
+-		 * performed by the current operation must be visible
+-		 * before we set use_global_lock to 0.
++		 * a simple op can start.
++		 * Perform a full lock/unlock, to guarantee memory
++		 * ordering.
+ 		 */
+-		smp_store_release(&sma->use_global_lock, 0);
++		for (i = 0; i < sma->sem_nsems; i++) {
++			sem = sma->sem_base + i;
++			spin_lock(&sem->lock);
++			spin_unlock(&sem->lock);
++		}
++		sma->use_global_lock = 0;
+ 	} else {
+ 		sma->use_global_lock--;
+ 	}
+@@ -379,8 +385,7 @@ static inline int sem_lock(struct sem_array *sma, struct sembuf *sops,
+ 		 */
+ 		spin_lock(&sem->lock);
+ 
+-		/* pairs with smp_store_release() */
+-		if (!smp_load_acquire(&sma->use_global_lock)) {
++		if (!sma->use_global_lock) {
+ 			/* fast path successful! */
+ 			return sops->sem_num;
+ 		}
+-- 
+2.9.4
+
+
+--------------564DE116543083334572D59F--
