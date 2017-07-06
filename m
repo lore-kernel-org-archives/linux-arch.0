@@ -1,34 +1,46 @@
-From: Kirill Tkhai <ktkhai@virtuozzo.com>
-Subject: Re: [PATCH 2/7] rwsem-spinlock: Add killable versions of
- rwsem_down_read_failed()
-Date: Thu, 6 Jul 2017 12:45:26 +0300
-Message-ID: <edcdffb3-f9f3-cfcf-43c8-ca854e011010@virtuozzo.com>
-References: <149789463636.9059.16943955939303454611.stgit@localhost.localdomain>
- <149789534632.9059.2901382369609922565.stgit@localhost.localdomain>
- <20170706080447.a7emouoysilqex4p@hirez.programming.kicks-ass.net>
+From: David Laight <David.Laight@ACULAB.COM>
+Subject: RE: [PATCH v2 0/9] Remove spin_unlock_wait()
+Date: Thu, 6 Jul 2017 14:12:24 +0000
+Message-ID: <063D6719AE5E284EB5DD2968C1650D6DD0033F01@AcuExch.aculab.com>
+References: <20170629235918.GA6445@linux.vnet.ibm.com>
+ <20170705232955.GA15992@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-eopbgr40101.outbound.protection.outlook.com ([40.107.4.101]:20672
-        "EHLO EUR03-DB5-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751868AbdGFJqJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 6 Jul 2017 05:46:09 -0400
-In-Reply-To: <20170706080447.a7emouoysilqex4p@hirez.programming.kicks-ass.net>
+Content-Type: text/plain; charset="Windows-1252"
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20170705232955.GA15992@linux.vnet.ibm.com>
 Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: linux-ia64@vger.kernel.org, avagin@virtuozzo.com, heiko.carstens@de.ibm.com, hpa@zytor.com, gorcunov@virtuozzo.com, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, x86@kernel.org, mingo@redhat.com, mattst88@gmail.com, fenghua.yu@intel.com, arnd@arndb.de, ink@jurassic.park.msu.ru, tglx@linutronix.de, rth@twiddle.net, tony.luck@intel.com, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, schwidefsky@de.ibm.com, davem@davemloft.net
+Sender: linux-kernel-owner@vger.kernel.org
+To: "'paulmck@linux.vnet.ibm.com'" <paulmck@linux.vnet.ibm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Cc: "netfilter-devel@vger.kernel.org" <netfilter-devel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "oleg@redhat.com" <oleg@redhat.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@redhat.com" <mingo@redhat.com>, "dave@stgolabs.net" <dave@stgolabs.net>, "manfred@colorfullife.com" <manfred@colorfullife.com>, "tj@kernel.org" <tj@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "will.deacon@arm.com" <will.deacon@arm.com>, "peterz@infradead.org" <peterz@infradead.org>, "stern@rowland.harvard.edu" <stern@rowland.harvard.edu>, "parri.andrea@gmail.com" <parri.andrea@gmail.com>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>
+List-Id: linux-arch.vger.kernel.org
 
-On 06.07.2017 11:04, Peter Zijlstra wrote:
-> On Mon, Jun 19, 2017 at 09:02:26PM +0300, Kirill Tkhai wrote:
+From: Paul E. McKenney
+> Sent: 06 July 2017 00:30
+> There is no agreed-upon definition of spin_unlock_wait()'s semantics,
+> and it appears that all callers could do just as well with a lock/unlock
+> pair.  This series therefore removes spin_unlock_wait() and changes
+> its users to instead use a lock/unlock pair.  The commits are as follows,
+> in three groups:
 > 
->> Subject: [PATCH 2/7] rwsem-spinlock: Add killable versions of rwsem_down_read_failed()
-> 
->>  kernel/locking/rwsem-xadd.c |   33 ++++++++++++++++++++++++++++++---
-> 
-> Fixed that subject for your ;-)
+> 1-7.	Change uses of spin_unlock_wait() and raw_spin_unlock_wait()
+> 	to instead use a spin_lock/spin_unlock pair.  These may be
+> 	applied in any order, but must be applied before any later
+> 	commits in this series.  The commit logs state why I believe
+> 	that these commits won't noticeably degrade performance.
 
-Thanks :)
+I can't help feeling that it might be better to have a spin_lock_sync()
+call that is equivalent to a spin_lock/spin_unlock pair.
+The default implementation being an inline function that does exactly that.
+This would let an architecture implement a more efficient version.
+
+It might even be that this is the defined semantics of spin_unlock_wait().
+
+Note that it can only be useful to do a spin_lock/unlock pair if it is
+impossible for another code path to try to acquire the lock.
+(Or, at least, the code can't care if the lock is acquired just after.)
+So if it can de determined that the lock isn't held (a READ_ONCE()
+might be enough) the lock itself need not be acquired (with the
+associated slow bus cycles).
+
+	David
