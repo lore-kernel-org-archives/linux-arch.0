@@ -1,24 +1,48 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 2/7] rwsem-spinlock: Add killable versions of
- rwsem_down_read_failed()
-Date: Thu, 6 Jul 2017 10:04:47 +0200
-Message-ID: <20170706080447.a7emouoysilqex4p@hirez.programming.kicks-ass.net>
-References: <149789463636.9059.16943955939303454611.stgit@localhost.localdomain>
- <149789534632.9059.2901382369609922565.stgit@localhost.localdomain>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH 8/9] RISC-V: User-facing API
+Date: Thu, 6 Jul 2017 09:55:03 +0100
+Message-ID: <20170706085503.GA15053@arm.com>
+References: <20170704195102.3974-1-palmer@dabbelt.com>
+ <20170704195102.3974-9-palmer@dabbelt.com>
+ <20170706020141.GA1965@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-ia64-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:35244 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1750778AbdGFIzE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 6 Jul 2017 04:55:04 -0400
 Content-Disposition: inline
-In-Reply-To: <149789534632.9059.2901382369609922565.stgit@localhost.localdomain>
-Sender: linux-ia64-owner@vger.kernel.org
-To: Kirill Tkhai <ktkhai@virtuozzo.com>
-Cc: linux-ia64@vger.kernel.org, avagin@virtuozzo.com, heiko.carstens@de.ibm.com, hpa@zytor.com, gorcunov@virtuozzo.com, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, x86@kernel.org, mingo@redhat.com, mattst88@gmail.com, fenghua.yu@intel.com, arnd@arndb.de, ink@jurassic.park.msu.ru, tglx@linutronix.de, rth@twiddle.net, tony.luck@intel.com, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, schwidefsky@de.ibm.com, davem@davemloft.net
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20170706020141.GA1965@infradead.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Christoph Hellwig <hch@infradead.org>
+Cc: Palmer Dabbelt <palmer@dabbelt.com>, peterz@infradead.org, mingo@redhat.com, mcgrof@kernel.org, viro@zeniv.linux.org.uk, sfr@canb.auug.org.au, nicolas.dichtel@6wind.com, rmk+kernel@armlinux.org.uk, msalter@redhat.com, tklauser@distanz.ch, james.hogan@imgtec.com, paul.gortmaker@windriver.com, linux@roeck-us.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, albert@sifive.com, patches@groups.riscv.org, mathieu.desnoyers@efficios.com
 
-On Mon, Jun 19, 2017 at 09:02:26PM +0300, Kirill Tkhai wrote:
+On Wed, Jul 05, 2017 at 07:01:41PM -0700, Christoph Hellwig wrote:
+> I'm a bit concerned about these cmpxchg syscalls, and I'd like to
+> understand if my concerns are justified.
+> 
+> For a new instruction set that starts out in the 201x years we really
+> should have cmpxchg as a mandatory instruction - if not in the CPU
+> it should be in the Linux ABI so that we don't have to deal with a mess
+> where programs will either need an indirection for CPUs that have
+> cmpxchg capabilities vs those that don't, and we don't need to worry
+> if given binaries work on all CPUs.
 
-> Subject: [PATCH 2/7] rwsem-spinlock: Add killable versions of rwsem_down_read_failed()
+Agreed on the indirection; it feels like this is something that should be in
+the vDSO, which could use the cmpxchg instruction if it's available, or
+otherwise just uses plain loads and stores. In the latter case, the kernel
+can then detect if you're preempted in the vdso critical region and restart
+the cmpxchg (we do something similar for arch/arm/, but it's slightly
+simpler with the vectors page (see entry-armv.S).
 
->  kernel/locking/rwsem-xadd.c |   33 ++++++++++++++++++++++++++++++---
+Alternatively, we could revisit the restartable sequences work from Mathieu,
+but I think that's stalled pending real-world performance data.
 
-Fixed that subject for your ;-)
+> What keeps from from declaring that the RISV-A extension is mandatory
+> for Linux?
+
+Or that!
+
+Will
