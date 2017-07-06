@@ -1,86 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:56003 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1751813AbdGFR3Y (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Jul 2017 13:29:24 -0400
-Received: from pps.filterd (m0098419.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.20/8.16.0.20) with SMTP id v66HSgZ1090156
-        for <linux-arch@vger.kernel.org>; Thu, 6 Jul 2017 13:29:23 -0400
-Received: from e16.ny.us.ibm.com (e16.ny.us.ibm.com [129.33.205.206])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 2bhqu8cv78-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Thu, 06 Jul 2017 13:29:23 -0400
-Received: from localhost
-        by e16.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Thu, 6 Jul 2017 13:29:23 -0400
-Date: Thu, 6 Jul 2017 10:29:16 -0700
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH v2 0/9] Remove spin_unlock_wait()
-Reply-To: paulmck@linux.vnet.ibm.com
-References: <20170629235918.GA6445@linux.vnet.ibm.com>
- <20170705232955.GA15992@linux.vnet.ibm.com>
- <063D6719AE5E284EB5DD2968C1650D6DD0033F01@AcuExch.aculab.com>
- <20170706160555.xc63yydk77gmttae@hirez.programming.kicks-ass.net>
- <20170706162024.GD2393@linux.vnet.ibm.com>
- <20170706165036.v4u5rbz56si4emw5@hirez.programming.kicks-ass.net>
- <20170706170850.GI15574@arm.com>
+Received: from mail-wr0-f195.google.com ([209.85.128.195]:36825 "EHLO
+        mail-wr0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751874AbdGFSne (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Jul 2017 14:43:34 -0400
+Received: by mail-wr0-f195.google.com with SMTP id 77so2364755wrb.3
+        for <linux-arch@vger.kernel.org>; Thu, 06 Jul 2017 11:43:33 -0700 (PDT)
+Subject: Re: [PATCH RFC 01/26] netfilter: Replace spin_unlock_wait() with
+ lock/unlock pair
+References: <Pine.LNX.4.44L0.1707031543170.2027-100000@iolanthe.rowland.org>
+From: Manfred Spraul <manfred@colorfullife.com>
+Message-ID: <ee509620-8ba5-be45-743e-f077a457c01d@colorfullife.com>
+Date: Thu, 6 Jul 2017 20:43:28 +0200
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20170706170850.GI15574@arm.com>
-Message-ID: <20170706172916.GK2393@linux.vnet.ibm.com>
+In-Reply-To: <Pine.LNX.4.44L0.1707031543170.2027-100000@iolanthe.rowland.org>
+Content-Type: multipart/mixed;
+ boundary="------------564DE116543083334572D59F"
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, David Laight <David.Laight@ACULAB.COM>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netfilter-devel@vger.kernel.org" <netfilter-devel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "oleg@redhat.com" <oleg@redhat.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@redhat.com" <mingo@redhat.com>, "dave@stgolabs.net" <dave@stgolabs.net>, "manfred@colorfullife.com" <manfred@colorfullife.com>, "tj@kernel.org" <tj@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "stern@rowland.harvard.edu" <stern@rowland.harvard.edu>, "parri.andrea@gmail.com" <parri.andrea@gmail.com>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>
-Message-ID: <20170706172916.GblxW9t25FVIY55oIPoLfYb2kh-i_EBg-C1Yw8eGS10@z>
+To: Alan Stern <stern@rowland.harvard.edu>
+Cc: paulmck@linux.vnet.ibm.com, linux-kernel@vger.kernel.org, netfilter-devel@vger.kernel.org, netdev@vger.kernel.org, oleg@redhat.com, akpm@linux-foundation.org, mingo@redhat.com, dave@stgolabs.net, tj@kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, will.deacon@arm.com, peterz@infradead.org, parri.andrea@gmail.com, torvalds@linux-foundation.org, Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@blackhole.kfki.hu>, Florian Westphal <fw@strlen.de>, "David S. Miller" <davem@davemloft.net>, coreteam@netfilter.org, 1vier1@web.de
+Message-ID: <20170706184328.7OJIUgtmjXrMQCcXYAmuMxjalqOcCw1AQnnaK9EcqwQ@z>
 
-On Thu, Jul 06, 2017 at 06:08:50PM +0100, Will Deacon wrote:
-> On Thu, Jul 06, 2017 at 06:50:36PM +0200, Peter Zijlstra wrote:
-> > On Thu, Jul 06, 2017 at 09:20:24AM -0700, Paul E. McKenney wrote:
-> > > On Thu, Jul 06, 2017 at 06:05:55PM +0200, Peter Zijlstra wrote:
-> > > > On Thu, Jul 06, 2017 at 02:12:24PM +0000, David Laight wrote:
-> > > > > From: Paul E. McKenney
-> > > 
-> > > [ . . . ]
-> > > 
-> > > > Now on the one hand I feel like Oleg that it would be a shame to loose
-> > > > the optimization, OTOH this thing is really really tricky to use,
-> > > > and has lead to a number of bugs already.
-> > > 
-> > > I do agree, it is a bit sad to see these optimizations go.  So, should
-> > > this make mainline, I will be tagging the commits that spin_unlock_wait()
-> > > so that they can be easily reverted should someone come up with good
-> > > semantics and a compelling use case with compelling performance benefits.
-> > 
-> > Ha!, but what would constitute 'good semantics' ?
-> > 
-> > The current thing is something along the lines of:
-> > 
-> >   "Waits for the currently observed critical section
-> >    to complete with ACQUIRE ordering such that it will observe
-> >    whatever state was left by said critical section."
-> > 
-> > With the 'obvious' benefit of limited interference on those actually
-> > wanting to acquire the lock, and a shorter wait time on our side too,
-> > since we only need to wait for completion of the current section, and
-> > not for however many contender are before us.
-> > 
-> > Not sure I have an actual (micro) benchmark that shows a difference
-> > though.
-> > 
-> > 
-> > 
-> > Is this all good enough to retain the thing, I dunno. Like I said, I'm
-> > conflicted on the whole thing. On the one hand its a nice optimization,
-> > on the other hand I don't want to have to keep fixing these bugs.
-> 
-> As I've said, I'd be keen to see us drop this and bring it back if/when we
-> get a compelling use-case along with performance numbers. At that point,
-> we'd be in a better position to define the semantics anyway, knowing what
-> exactly is expected by the use-case.
+This is a multi-part message in MIME format.
+--------------564DE116543083334572D59F
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
 
-Hear, hear!!!  ;-)
+Hi Alan,
 
-							Thanx, Paul
+On 07/03/2017 09:57 PM, Alan Stern wrote:
+>
+> (Alternatively, you could make nf_conntrack_all_unlock() do a
+> lock+unlock on all the locks in the array, just like
+> nf_conntrack_all_lock().  But of course, that would be a lot less
+> efficient.)
+Hmmmm.
+
+Someone with a weakly ordered system who can test this?
+semop() has a very short hotpath.
+
+Either with aim9.shared_memory.ops_per_sec or
+
+#sem-scalebench -t 10 -m 0
+https://github.com/manfred-colorfu/ipcscale/blob/master/sem-scalebench.cpp
+--
+     Manfred
+
+--------------564DE116543083334572D59F
+Content-Type: text/x-patch;
+ name="0002-ipc-sem.c-avoid-smp_load_acuqire-in-the-hot-path.patch"
+Content-Transfer-Encoding: 7bit
+Content-Disposition: attachment;
+ filename*0="0002-ipc-sem.c-avoid-smp_load_acuqire-in-the-hot-path.patch"
+
+
+--------------564DE116543083334572D59F--
