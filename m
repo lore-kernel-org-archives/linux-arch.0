@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-co1nam03on0043.outbound.protection.outlook.com ([104.47.40.43]:7968
-        "EHLO NAM03-CO1-obe.outbound.protection.outlook.com"
+Received: from mail-dm3nam03on0061.outbound.protection.outlook.com ([104.47.41.61]:25563
+        "EHLO NAM03-DM3-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752702AbdGGNmF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 7 Jul 2017 09:42:05 -0400
+        id S1752782AbdGGNkt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 7 Jul 2017 09:40:49 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v9 19/38] x86/mm: Add support to access boot related data in
- the clear
-Date: Fri, 07 Jul 2017 08:41:32 -0500
-Message-ID: <20170707134132.29711.85399.stgit@tlendack-t1.amdoffice.net>
+Subject: [PATCH v9 14/38] x86/mm: Insure that boot memory areas are mapped
+ properly
+Date: Fri, 07 Jul 2017 08:40:40 -0500
+Message-ID: <20170707134040.29711.20829.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20170707133804.29711.1616.stgit@tlendack-t1.amdoffice.net>
 References: <20170707133804.29711.1616.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -18,351 +18,263 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>
-Message-ID: <20170707134132.dYP7GLWT_4OEA0jIfhsk5A7ZgHxCL9o4WcmZp3dDdoo@z>
+Message-ID: <20170707134040.RIIUyKdvp7xR-5nTRhuauHe9jA86I3Zx5yor77euMgY@z>
 
-Boot data (such as EFI related data) is not encrypted when the system is
-booted because UEFI/BIOS does not run with SME active. In order to access
-this data properly it needs to be mapped decrypted.
+The boot data and command line data are present in memory in a decrypted
+state and are copied early in the boot process.  The early page fault
+support will map these areas as encrypted, so before attempting to copy
+them, add decrypted mappings so the data is accessed properly when copied.
 
-Update early_memremap() to provide an arch specific routine to modify the
-pagetable protection attributes before they are applied to the new
-mapping. This is used to remove the encryption mask for boot related data.
+For the initrd, encrypt this data in place. Since the future mapping of
+the initrd area will be mapped as encrypted the data will be accessed
+properly.
 
-Update memremap() to provide an arch specific routine to determine if RAM
-remapping is allowed.  RAM remapping will cause an encrypted mapping to be
-generated. By preventing RAM remapping, ioremap_cache() will be used
-instead, which will provide a decrypted mapping of the boot related data.
-
-Reviewed-by: Matt Fleming <matt@codeblueprint.co.uk>
-Reviewed-by: Borislav Petkov <bp@suse.de>
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/include/asm/io.h |    5 +
- arch/x86/mm/ioremap.c     |  179 +++++++++++++++++++++++++++++++++++++++++++++
- include/linux/io.h        |    2 +
- kernel/memremap.c         |   20 ++++-
- mm/early_ioremap.c        |   18 ++++-
- 5 files changed, 217 insertions(+), 7 deletions(-)
+ arch/x86/include/asm/mem_encrypt.h |    6 +++
+ arch/x86/include/asm/pgtable.h     |    3 ++
+ arch/x86/kernel/head64.c           |   30 +++++++++++++++--
+ arch/x86/kernel/setup.c            |    9 +++++
+ arch/x86/mm/kasan_init_64.c        |    2 +
+ arch/x86/mm/mem_encrypt.c          |   63 ++++++++++++++++++++++++++++++++++++
+ 6 files changed, 108 insertions(+), 5 deletions(-)
 
-diff --git a/arch/x86/include/asm/io.h b/arch/x86/include/asm/io.h
-index 7afb0e2..09c5557 100644
---- a/arch/x86/include/asm/io.h
-+++ b/arch/x86/include/asm/io.h
-@@ -381,4 +381,9 @@ extern int __must_check arch_phys_wc_add(unsigned long base,
- #define arch_io_reserve_memtype_wc arch_io_reserve_memtype_wc
- #endif
+diff --git a/arch/x86/include/asm/mem_encrypt.h b/arch/x86/include/asm/mem_encrypt.h
+index 8baa35b..ab1fe77 100644
+--- a/arch/x86/include/asm/mem_encrypt.h
++++ b/arch/x86/include/asm/mem_encrypt.h
+@@ -26,6 +26,9 @@ void __init sme_early_encrypt(resource_size_t paddr,
+ void __init sme_early_decrypt(resource_size_t paddr,
+ 			      unsigned long size);
  
-+extern bool arch_memremap_can_ram_remap(resource_size_t offset,
-+					unsigned long size,
-+					unsigned long flags);
-+#define arch_memremap_can_ram_remap arch_memremap_can_ram_remap
++void __init sme_map_bootdata(char *real_mode_data);
++void __init sme_unmap_bootdata(char *real_mode_data);
 +
- #endif /* _ASM_X86_IO_H */
-diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
-index 26db273..ee33838 100644
---- a/arch/x86/mm/ioremap.c
-+++ b/arch/x86/mm/ioremap.c
-@@ -14,6 +14,7 @@
- #include <linux/vmalloc.h>
- #include <linux/mmiotrace.h>
- #include <linux/mem_encrypt.h>
-+#include <linux/efi.h>
+ void __init sme_early_init(void);
  
- #include <asm/set_memory.h>
- #include <asm/e820/api.h>
-@@ -22,6 +23,7 @@
- #include <asm/tlbflush.h>
- #include <asm/pgalloc.h>
- #include <asm/pat.h>
-+#include <asm/setup.h>
+ void __init sme_encrypt_kernel(void);
+@@ -40,6 +43,9 @@ static inline void __init sme_early_encrypt(resource_size_t paddr,
+ static inline void __init sme_early_decrypt(resource_size_t paddr,
+ 					    unsigned long size) { }
  
- #include "physaddr.h"
++static inline void __init sme_map_bootdata(char *real_mode_data) { }
++static inline void __init sme_unmap_bootdata(char *real_mode_data) { }
++
+ static inline void __init sme_early_init(void) { }
  
-@@ -414,6 +416,183 @@ void unxlate_dev_mem_ptr(phys_addr_t phys, void *addr)
- 	iounmap((void __iomem *)((unsigned long)addr & PAGE_MASK));
+ static inline void __init sme_encrypt_kernel(void) { }
+diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
+index c6452cb..bbeae4a 100644
+--- a/arch/x86/include/asm/pgtable.h
++++ b/arch/x86/include/asm/pgtable.h
+@@ -23,6 +23,9 @@
+ #ifndef __ASSEMBLY__
+ #include <asm/x86_init.h>
+ 
++extern pgd_t early_top_pgt[PTRS_PER_PGD];
++int __init __early_make_pgtable(unsigned long address, pmdval_t pmd);
++
+ void ptdump_walk_pgd_level(struct seq_file *m, pgd_t *pgd);
+ void ptdump_walk_pgd_level_checkwx(void);
+ 
+diff --git a/arch/x86/kernel/head64.c b/arch/x86/kernel/head64.c
+index 5cd0b72..0cdb53b 100644
+--- a/arch/x86/kernel/head64.c
++++ b/arch/x86/kernel/head64.c
+@@ -34,7 +34,6 @@
+ /*
+  * Manage page tables very early on.
+  */
+-extern pgd_t early_top_pgt[PTRS_PER_PGD];
+ extern pmd_t early_dynamic_pgts[EARLY_DYNAMIC_PAGE_TABLES][PTRS_PER_PMD];
+ static unsigned int __initdata next_early_pgt;
+ pmdval_t early_pmd_flags = __PAGE_KERNEL_LARGE & ~(_PAGE_GLOBAL | _PAGE_NX);
+@@ -181,13 +180,13 @@ static void __init reset_early_page_tables(void)
  }
  
-+/*
-+ * Examine the physical address to determine if it is an area of memory
-+ * that should be mapped decrypted.  If the memory is not part of the
-+ * kernel usable area it was accessed and created decrypted, so these
-+ * areas should be mapped decrypted.
-+ */
-+static bool memremap_should_map_decrypted(resource_size_t phys_addr,
-+					  unsigned long size)
-+{
-+	/* Check if the address is outside kernel usable area */
-+	switch (e820__get_entry_type(phys_addr, phys_addr + size - 1)) {
-+	case E820_TYPE_RESERVED:
-+	case E820_TYPE_ACPI:
-+	case E820_TYPE_NVS:
-+	case E820_TYPE_UNUSABLE:
-+		return true;
-+	default:
-+		break;
-+	}
-+
-+	return false;
-+}
-+
-+/*
-+ * Examine the physical address to determine if it is EFI data. Check
-+ * it against the boot params structure and EFI tables and memory types.
-+ */
-+static bool memremap_is_efi_data(resource_size_t phys_addr,
-+				 unsigned long size)
-+{
-+	u64 paddr;
-+
-+	/* Check if the address is part of EFI boot/runtime data */
-+	if (!efi_enabled(EFI_BOOT))
-+		return false;
-+
-+	paddr = boot_params.efi_info.efi_memmap_hi;
-+	paddr <<= 32;
-+	paddr |= boot_params.efi_info.efi_memmap;
-+	if (phys_addr == paddr)
-+		return true;
-+
-+	paddr = boot_params.efi_info.efi_systab_hi;
-+	paddr <<= 32;
-+	paddr |= boot_params.efi_info.efi_systab;
-+	if (phys_addr == paddr)
-+		return true;
-+
-+	if (efi_is_table_address(phys_addr))
-+		return true;
-+
-+	switch (efi_mem_type(phys_addr)) {
-+	case EFI_BOOT_SERVICES_DATA:
-+	case EFI_RUNTIME_SERVICES_DATA:
-+		return true;
-+	default:
-+		break;
-+	}
-+
-+	return false;
-+}
-+
-+/*
-+ * Examine the physical address to determine if it is boot data by checking
-+ * it against the boot params setup_data chain.
-+ */
-+static bool memremap_is_setup_data(resource_size_t phys_addr,
-+				   unsigned long size)
-+{
-+	struct setup_data *data;
-+	u64 paddr, paddr_next;
-+
-+	paddr = boot_params.hdr.setup_data;
-+	while (paddr) {
-+		unsigned int len;
-+
-+		if (phys_addr == paddr)
-+			return true;
-+
-+		data = memremap(paddr, sizeof(*data),
-+				MEMREMAP_WB | MEMREMAP_DEC);
-+
-+		paddr_next = data->next;
-+		len = data->len;
-+
-+		memunmap(data);
-+
-+		if ((phys_addr > paddr) && (phys_addr < (paddr + len)))
-+			return true;
-+
-+		paddr = paddr_next;
-+	}
-+
-+	return false;
-+}
-+
-+/*
-+ * Examine the physical address to determine if it is boot data by checking
-+ * it against the boot params setup_data chain (early boot version).
-+ */
-+static bool __init early_memremap_is_setup_data(resource_size_t phys_addr,
-+						unsigned long size)
-+{
-+	struct setup_data *data;
-+	u64 paddr, paddr_next;
-+
-+	paddr = boot_params.hdr.setup_data;
-+	while (paddr) {
-+		unsigned int len;
-+
-+		if (phys_addr == paddr)
-+			return true;
-+
-+		data = early_memremap_decrypted(paddr, sizeof(*data));
-+
-+		paddr_next = data->next;
-+		len = data->len;
-+
-+		early_memunmap(data, sizeof(*data));
-+
-+		if ((phys_addr > paddr) && (phys_addr < (paddr + len)))
-+			return true;
-+
-+		paddr = paddr_next;
-+	}
-+
-+	return false;
-+}
-+
-+/*
-+ * Architecture function to determine if RAM remap is allowed. By default, a
-+ * RAM remap will map the data as encrypted. Determine if a RAM remap should
-+ * not be done so that the data will be mapped decrypted.
-+ */
-+bool arch_memremap_can_ram_remap(resource_size_t phys_addr, unsigned long size,
-+				 unsigned long flags)
-+{
-+	if (!sme_active())
-+		return true;
-+
-+	if (flags & MEMREMAP_ENC)
-+		return true;
-+
-+	if (flags & MEMREMAP_DEC)
-+		return false;
-+
-+	if (memremap_is_setup_data(phys_addr, size) ||
-+	    memremap_is_efi_data(phys_addr, size) ||
-+	    memremap_should_map_decrypted(phys_addr, size))
-+		return false;
-+
-+	return true;
-+}
-+
-+/*
-+ * Architecture override of __weak function to adjust the protection attributes
-+ * used when remapping memory. By default, early_memremap() will map the data
-+ * as encrypted. Determine if an encrypted mapping should not be done and set
-+ * the appropriate protection attributes.
-+ */
-+pgprot_t __init early_memremap_pgprot_adjust(resource_size_t phys_addr,
-+					     unsigned long size,
-+					     pgprot_t prot)
-+{
-+	if (!sme_active())
-+		return prot;
-+
-+	if (early_memremap_is_setup_data(phys_addr, size) ||
-+	    memremap_is_efi_data(phys_addr, size) ||
-+	    memremap_should_map_decrypted(phys_addr, size))
-+		prot = pgprot_decrypted(prot);
-+	else
-+		prot = pgprot_encrypted(prot);
-+
-+	return prot;
-+}
-+
- #ifdef CONFIG_ARCH_USE_MEMREMAP_PROT
- /* Remap memory with encryption */
- void __init *early_memremap_encrypted(resource_size_t phys_addr,
-diff --git a/include/linux/io.h b/include/linux/io.h
-index 2195d9e..32e30e8 100644
---- a/include/linux/io.h
-+++ b/include/linux/io.h
-@@ -157,6 +157,8 @@ enum {
- 	MEMREMAP_WB = 1 << 0,
- 	MEMREMAP_WT = 1 << 1,
- 	MEMREMAP_WC = 1 << 2,
-+	MEMREMAP_ENC = 1 << 3,
-+	MEMREMAP_DEC = 1 << 4,
- };
- 
- void *memremap(resource_size_t offset, size_t size, unsigned long flags);
-diff --git a/kernel/memremap.c b/kernel/memremap.c
-index 23a6483..9b4fbd5 100644
---- a/kernel/memremap.c
-+++ b/kernel/memremap.c
-@@ -34,13 +34,24 @@ static void *arch_memremap_wb(resource_size_t offset, unsigned long size)
- }
- #endif
- 
--static void *try_ram_remap(resource_size_t offset, size_t size)
-+#ifndef arch_memremap_can_ram_remap
-+static bool arch_memremap_can_ram_remap(resource_size_t offset, size_t size,
-+					unsigned long flags)
-+{
-+	return true;
-+}
-+#endif
-+
-+static void *try_ram_remap(resource_size_t offset, size_t size,
-+			   unsigned long flags)
+ /* Create a new PMD entry */
+-int __init early_make_pgtable(unsigned long address)
++int __init __early_make_pgtable(unsigned long address, pmdval_t pmd)
  {
- 	unsigned long pfn = PHYS_PFN(offset);
+ 	unsigned long physaddr = address - __PAGE_OFFSET;
+ 	pgdval_t pgd, *pgd_p;
+ 	p4dval_t p4d, *p4d_p;
+ 	pudval_t pud, *pud_p;
+-	pmdval_t pmd, *pmd_p;
++	pmdval_t *pmd_p;
  
- 	/* In the simple case just return the existing linear address */
--	if (pfn_valid(pfn) && !PageHighMem(pfn_to_page(pfn)))
-+	if (pfn_valid(pfn) && !PageHighMem(pfn_to_page(pfn)) &&
-+	    arch_memremap_can_ram_remap(offset, size, flags))
- 		return __va(offset);
-+
- 	return NULL; /* fallback to arch_memremap_wb */
- }
- 
-@@ -48,7 +59,8 @@ static void *try_ram_remap(resource_size_t offset, size_t size)
-  * memremap() - remap an iomem_resource as cacheable memory
-  * @offset: iomem resource start address
-  * @size: size of remap
-- * @flags: any of MEMREMAP_WB, MEMREMAP_WT and MEMREMAP_WC
-+ * @flags: any of MEMREMAP_WB, MEMREMAP_WT, MEMREMAP_WC,
-+ *		  MEMREMAP_ENC, MEMREMAP_DEC
-  *
-  * memremap() is "ioremap" for cases where it is known that the resource
-  * being mapped does not have i/o side effects and the __iomem
-@@ -95,7 +107,7 @@ void *memremap(resource_size_t offset, size_t size, unsigned long flags)
- 		 * the requested range is potentially in System RAM.
- 		 */
- 		if (is_ram == REGION_INTERSECTS)
--			addr = try_ram_remap(offset, size);
-+			addr = try_ram_remap(offset, size, flags);
- 		if (!addr)
- 			addr = arch_memremap_wb(offset, size);
+ 	/* Invalid address or early pgt is done ?  */
+ 	if (physaddr >= MAXMEM || read_cr3_pa() != __pa_nodebug(early_top_pgt))
+@@ -246,12 +245,21 @@ int __init early_make_pgtable(unsigned long address)
+ 		memset(pmd_p, 0, sizeof(*pmd_p) * PTRS_PER_PMD);
+ 		*pud_p = (pudval_t)pmd_p - __START_KERNEL_map + phys_base + _KERNPG_TABLE;
  	}
-diff --git a/mm/early_ioremap.c b/mm/early_ioremap.c
-index d7d30da..b1dd4a9 100644
---- a/mm/early_ioremap.c
-+++ b/mm/early_ioremap.c
-@@ -30,6 +30,13 @@ static int __init early_ioremap_debug_setup(char *str)
+-	pmd = (physaddr & PMD_MASK) + early_pmd_flags;
+ 	pmd_p[pmd_index(address)] = pmd;
  
- static int after_paging_init __initdata;
+ 	return 0;
+ }
  
-+pgprot_t __init __weak early_memremap_pgprot_adjust(resource_size_t phys_addr,
-+						    unsigned long size,
-+						    pgprot_t prot)
++int __init early_make_pgtable(unsigned long address)
 +{
-+	return prot;
++	unsigned long physaddr = address - __PAGE_OFFSET;
++	pmdval_t pmd;
++
++	pmd = (physaddr & PMD_MASK) + early_pmd_flags;
++
++	return __early_make_pgtable(address, pmd);
 +}
 +
- void __init __weak early_ioremap_shutdown(void)
- {
- }
-@@ -215,14 +222,19 @@ void __init early_iounmap(void __iomem *addr, unsigned long size)
- void __init *
- early_memremap(resource_size_t phys_addr, unsigned long size)
- {
--	return (__force void *)__early_ioremap(phys_addr, size,
--					       FIXMAP_PAGE_NORMAL);
-+	pgprot_t prot = early_memremap_pgprot_adjust(phys_addr, size,
-+						     FIXMAP_PAGE_NORMAL);
-+
-+	return (__force void *)__early_ioremap(phys_addr, size, prot);
- }
- #ifdef FIXMAP_PAGE_RO
- void __init *
- early_memremap_ro(resource_size_t phys_addr, unsigned long size)
- {
--	return (__force void *)__early_ioremap(phys_addr, size, FIXMAP_PAGE_RO);
-+	pgprot_t prot = early_memremap_pgprot_adjust(phys_addr, size,
-+						     FIXMAP_PAGE_RO);
-+
-+	return (__force void *)__early_ioremap(phys_addr, size, prot);
- }
- #endif
+ /* Don't add a printk in there. printk relies on the PDA which is not initialized 
+    yet. */
+ static void __init clear_bss(void)
+@@ -274,6 +282,12 @@ static void __init copy_bootdata(char *real_mode_data)
+ 	char * command_line;
+ 	unsigned long cmd_line_ptr;
  
++	/*
++	 * If SME is active, this will create decrypted mappings of the
++	 * boot data in advance of the copy operations.
++	 */
++	sme_map_bootdata(real_mode_data);
++
+ 	memcpy(&boot_params, real_mode_data, sizeof boot_params);
+ 	sanitize_boot_params(&boot_params);
+ 	cmd_line_ptr = get_cmd_line_ptr();
+@@ -281,6 +295,14 @@ static void __init copy_bootdata(char *real_mode_data)
+ 		command_line = __va(cmd_line_ptr);
+ 		memcpy(boot_command_line, command_line, COMMAND_LINE_SIZE);
+ 	}
++
++	/*
++	 * The old boot data is no longer needed and won't be reserved,
++	 * freeing up that memory for use by the system. If SME is active,
++	 * we need to remove the mappings that were created so that the
++	 * memory doesn't remain mapped as decrypted.
++	 */
++	sme_unmap_bootdata(real_mode_data);
+ }
+ 
+ asmlinkage __visible void __init x86_64_start_kernel(char * real_mode_data)
+diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
+index 3486d04..0bfe0c1 100644
+--- a/arch/x86/kernel/setup.c
++++ b/arch/x86/kernel/setup.c
+@@ -69,6 +69,7 @@
+ #include <linux/crash_dump.h>
+ #include <linux/tboot.h>
+ #include <linux/jiffies.h>
++#include <linux/mem_encrypt.h>
+ 
+ #include <linux/usb/xhci-dbgp.h>
+ #include <video/edid.h>
+@@ -374,6 +375,14 @@ static void __init reserve_initrd(void)
+ 	    !ramdisk_image || !ramdisk_size)
+ 		return;		/* No initrd provided by bootloader */
+ 
++	/*
++	 * If SME is active, this memory will be marked encrypted by the
++	 * kernel when it is accessed (including relocation). However, the
++	 * ramdisk image was loaded decrypted by the bootloader, so make
++	 * sure that it is encrypted before accessing it.
++	 */
++	sme_early_encrypt(ramdisk_image, ramdisk_end - ramdisk_image);
++
+ 	initrd_start = 0;
+ 
+ 	mapped_size = memblock_mem_size(max_pfn_mapped);
+diff --git a/arch/x86/mm/kasan_init_64.c b/arch/x86/mm/kasan_init_64.c
+index d7cc830..1b8791f 100644
+--- a/arch/x86/mm/kasan_init_64.c
++++ b/arch/x86/mm/kasan_init_64.c
+@@ -11,8 +11,8 @@
+ #include <asm/e820/types.h>
+ #include <asm/tlbflush.h>
+ #include <asm/sections.h>
++#include <asm/pgtable.h>
+ 
+-extern pgd_t early_top_pgt[PTRS_PER_PGD];
+ extern struct range pfn_mapped[E820_MAX_ENTRIES];
+ 
+ static int __init map_range(struct range *range)
+diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
+index 54bb73c..0843d02 100644
+--- a/arch/x86/mm/mem_encrypt.c
++++ b/arch/x86/mm/mem_encrypt.c
+@@ -16,6 +16,8 @@
+ 
+ #include <asm/tlbflush.h>
+ #include <asm/fixmap.h>
++#include <asm/setup.h>
++#include <asm/bootparam.h>
+ 
+ /*
+  * Since SME related variables are set early in the boot process they must
+@@ -98,6 +100,67 @@ void __init sme_early_decrypt(resource_size_t paddr, unsigned long size)
+ 	__sme_early_enc_dec(paddr, size, false);
+ }
+ 
++static void __init __sme_early_map_unmap_mem(void *vaddr, unsigned long size,
++					     bool map)
++{
++	unsigned long paddr = (unsigned long)vaddr - __PAGE_OFFSET;
++	pmdval_t pmd_flags, pmd;
++
++	/* Use early_pmd_flags but remove the encryption mask */
++	pmd_flags = __sme_clr(early_pmd_flags);
++
++	do {
++		pmd = map ? (paddr & PMD_MASK) + pmd_flags : 0;
++		__early_make_pgtable((unsigned long)vaddr, pmd);
++
++		vaddr += PMD_SIZE;
++		paddr += PMD_SIZE;
++		size = (size <= PMD_SIZE) ? 0 : size - PMD_SIZE;
++	} while (size);
++
++	__native_flush_tlb();
++}
++
++void __init sme_unmap_bootdata(char *real_mode_data)
++{
++	struct boot_params *boot_data;
++	unsigned long cmdline_paddr;
++
++	if (!sme_active())
++		return;
++
++	/* Get the command line address before unmapping the real_mode_data */
++	boot_data = (struct boot_params *)real_mode_data;
++	cmdline_paddr = boot_data->hdr.cmd_line_ptr | ((u64)boot_data->ext_cmd_line_ptr << 32);
++
++	__sme_early_map_unmap_mem(real_mode_data, sizeof(boot_params), false);
++
++	if (!cmdline_paddr)
++		return;
++
++	__sme_early_map_unmap_mem(__va(cmdline_paddr), COMMAND_LINE_SIZE, false);
++}
++
++void __init sme_map_bootdata(char *real_mode_data)
++{
++	struct boot_params *boot_data;
++	unsigned long cmdline_paddr;
++
++	if (!sme_active())
++		return;
++
++	__sme_early_map_unmap_mem(real_mode_data, sizeof(boot_params), true);
++
++	/* Get the command line address after mapping the real_mode_data */
++	boot_data = (struct boot_params *)real_mode_data;
++	cmdline_paddr = boot_data->hdr.cmd_line_ptr | ((u64)boot_data->ext_cmd_line_ptr << 32);
++
++	if (!cmdline_paddr)
++		return;
++
++	__sme_early_map_unmap_mem(__va(cmdline_paddr), COMMAND_LINE_SIZE, true);
++}
++
+ void __init sme_early_init(void)
+ {
+ 	unsigned int i;
