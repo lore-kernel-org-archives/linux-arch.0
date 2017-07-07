@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2nam03on0088.outbound.protection.outlook.com ([104.47.42.88]:1600
-        "EHLO NAM03-BY2-obe.outbound.protection.outlook.com"
+Received: from mail-dm3nam03on0049.outbound.protection.outlook.com ([104.47.41.49]:23100
+        "EHLO NAM03-DM3-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752760AbdGGNmg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 7 Jul 2017 09:42:36 -0400
+        id S1753115AbdGGNm5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 7 Jul 2017 09:42:57 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v9 23/38] x86/realmode: Decrypt trampoline area if memory
- encryption is active
-Date: Fri, 07 Jul 2017 08:42:24 -0500
-Message-ID: <20170707134224.29711.90107.stgit@tlendack-t1.amdoffice.net>
+Subject: [PATCH v9 25/38] swiotlb: Add warnings for use of bounce buffers
+ with SME
+Date: Fri, 07 Jul 2017 08:42:49 -0500
+Message-ID: <20170707134249.29711.3050.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20170707133804.29711.1616.stgit@tlendack-t1.amdoffice.net>
 References: <20170707133804.29711.1616.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -18,42 +18,77 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>
-Message-ID: <20170707134224.lHvSX7ScdrH47TdwLX7Z1OZ1v82Vppd4at3OBMjlV4U@z>
+Message-ID: <20170707134249.W9AqEcmkjNnx4Hk-u5BJDq2FxXV6RjWG-L1cAl0zk04@z>
 
-When Secure Memory Encryption is enabled, the trampoline area must not
-be encrypted. A CPU running in real mode will not be able to decrypt
-memory that has been encrypted because it will not be able to use addresses
-with the memory encryption mask.
+Add warnings to let the user know when bounce buffers are being used for
+DMA when SME is active.  Since the bounce buffers are not in encrypted
+memory, these notifications are to allow the user to determine some
+appropriate action - if necessary.  Actions can range from utilizing an
+IOMMU, replacing the device with another device that can support 64-bit
+DMA, ignoring the message if the device isn't used much, etc.
 
-Reviewed-by: Borislav Petkov <bp@suse.de>
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/realmode/init.c |    8 ++++++++
- 1 file changed, 8 insertions(+)
+ include/linux/dma-mapping.h |   13 +++++++++++++
+ lib/swiotlb.c               |    3 +++
+ 2 files changed, 16 insertions(+)
 
-diff --git a/arch/x86/realmode/init.c b/arch/x86/realmode/init.c
-index cd4be19..d6ddc7e 100644
---- a/arch/x86/realmode/init.c
-+++ b/arch/x86/realmode/init.c
-@@ -1,6 +1,7 @@
- #include <linux/io.h>
- #include <linux/slab.h>
- #include <linux/memblock.h>
+diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
+index 4f3eece..a156c40 100644
+--- a/include/linux/dma-mapping.h
++++ b/include/linux/dma-mapping.h
+@@ -10,6 +10,7 @@
+ #include <linux/scatterlist.h>
+ #include <linux/kmemcheck.h>
+ #include <linux/bug.h>
 +#include <linux/mem_encrypt.h>
  
- #include <asm/set_memory.h>
- #include <asm/pgtable.h>
-@@ -59,6 +60,13 @@ static void __init setup_real_mode(void)
+ /**
+  * List of possible attributes associated with a DMA mapping. The semantics
+@@ -554,6 +555,12 @@ static inline int dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
+ #endif
+ }
  
- 	base = (unsigned char *)real_mode_header;
- 
-+	/*
-+	 * If SME is active, the trampoline area will need to be in
-+	 * decrypted memory in order to bring up other processors
-+	 * successfully.
-+	 */
-+	set_memory_decrypted((unsigned long)base, size >> PAGE_SHIFT);
++static inline void dma_check_mask(struct device *dev, u64 mask)
++{
++	if (sme_active() && (mask < (((u64)sme_get_me_mask() << 1) - 1)))
++		dev_warn(dev, "SME is active, device will require DMA bounce buffers\n");
++}
 +
- 	memcpy(base, real_mode_blob, size);
+ #ifndef HAVE_ARCH_DMA_SUPPORTED
+ static inline int dma_supported(struct device *dev, u64 mask)
+ {
+@@ -577,6 +584,9 @@ static inline int dma_set_mask(struct device *dev, u64 mask)
  
- 	phys_base = __pa(base);
+ 	if (!dev->dma_mask || !dma_supported(dev, mask))
+ 		return -EIO;
++
++	dma_check_mask(dev, mask);
++
+ 	*dev->dma_mask = mask;
+ 	return 0;
+ }
+@@ -596,6 +606,9 @@ static inline int dma_set_coherent_mask(struct device *dev, u64 mask)
+ {
+ 	if (!dma_supported(dev, mask))
+ 		return -EIO;
++
++	dma_check_mask(dev, mask);
++
+ 	dev->coherent_dma_mask = mask;
+ 	return 0;
+ }
+diff --git a/lib/swiotlb.c b/lib/swiotlb.c
+index 04ac91a..8c6c83e 100644
+--- a/lib/swiotlb.c
++++ b/lib/swiotlb.c
+@@ -507,6 +507,9 @@ phys_addr_t swiotlb_tbl_map_single(struct device *hwdev,
+ 	if (no_iotlb_memory)
+ 		panic("Can not allocate SWIOTLB buffer earlier and can't now provide you with the DMA bounce buffer");
+ 
++	if (sme_active())
++		pr_warn_once("SME is active and system is using DMA bounce buffers\n");
++
+ 	mask = dma_get_seg_boundary(hwdev);
+ 
+ 	tbl_dma_addr &= mask;
