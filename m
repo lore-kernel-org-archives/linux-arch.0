@@ -1,45 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f193.google.com ([209.85.128.193]:33919 "EHLO
-        mail-wr0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751034AbdGGRsD (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 7 Jul 2017 13:48:03 -0400
-Received: by mail-wr0-f193.google.com with SMTP id k67so9121362wrc.1
-        for <linux-arch@vger.kernel.org>; Fri, 07 Jul 2017 10:48:02 -0700 (PDT)
-Subject: Re: [PATCH v2 0/9] Remove spin_unlock_wait()
-References: <20170629235918.GA6445@linux.vnet.ibm.com>
- <20170705232955.GA15992@linux.vnet.ibm.com>
- <063D6719AE5E284EB5DD2968C1650D6DD0033F01@AcuExch.aculab.com>
- <20170706160555.xc63yydk77gmttae@hirez.programming.kicks-ass.net>
- <20170706162024.GD2393@linux.vnet.ibm.com>
- <20170706165036.v4u5rbz56si4emw5@hirez.programming.kicks-ass.net>
- <20170707083128.wqk6msuuhtyykhpu@gmail.com>
-From: Manfred Spraul <manfred@colorfullife.com>
-Message-ID: <48164d9a-f291-94f3-e0b1-98bb312bf846@colorfullife.com>
-Date: Fri, 7 Jul 2017 19:47:58 +0200
-MIME-Version: 1.0
-In-Reply-To: <20170707083128.wqk6msuuhtyykhpu@gmail.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Content-Language: en-US
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:39864 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1752602AbdGGT24 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 7 Jul 2017 15:28:56 -0400
+Received: from pps.filterd (m0098417.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.20/8.16.0.20) with SMTP id v67JSon6046954
+        for <linux-arch@vger.kernel.org>; Fri, 7 Jul 2017 15:28:50 -0400
+Received: from e11.ny.us.ibm.com (e11.ny.us.ibm.com [129.33.205.201])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2bjfhvhv3d-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Fri, 07 Jul 2017 15:28:50 -0400
+Received: from localhost
+        by e11.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+        Fri, 7 Jul 2017 15:28:34 -0400
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: [PATCH v3 7/9] drivers/ata: Replace spin_unlock_wait() with lock/unlock pair
+Date: Fri,  7 Jul 2017 12:28:24 -0700
+In-Reply-To: <20170707192704.GA6144@linux.vnet.ibm.com>
+References: <20170707192704.GA6144@linux.vnet.ibm.com>
+Message-ID: <1499455706-9398-7-git-send-email-paulmck@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>
-Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, David Laight <David.Laight@ACULAB.COM>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netfilter-devel@vger.kernel.org" <netfilter-devel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "oleg@redhat.com" <oleg@redhat.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@redhat.com" <mingo@redhat.com>, "dave@stgolabs.net" <dave@stgolabs.net>, "tj@kernel.org" <tj@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "will.deacon@arm.com" <will.deacon@arm.com>, "stern@rowland.harvard.edu" <stern@rowland.harvard.edu>, "parri.andrea@gmail.com" <parri.andrea@gmail.com>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>
-Message-ID: <20170707174758.99cdCwUg2oqk6sT4pi1mvDeeXsRZfbgFluvUjltSLsU@z>
+To: linux-kernel@vger.kernel.org
+Cc: netfilter-devel@vger.kernel.org, netdev@vger.kernel.org, oleg@redhat.com, akpm@linux-foundation.org, mingo@redhat.com, dave@stgolabs.net, manfred@colorfullife.com, tj@kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, will.deacon@arm.com, peterz@infradead.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, torvalds@linux-foundation.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-ide@vger.kernel.org
+Message-ID: <20170707192824.eEWFA3cMYFjwo1zzAAvmC_if415H-V7JEXc9xJAdGi0@z>
 
-Hi Ingo,
+There is no agreed-upon definition of spin_unlock_wait()'s semantics,
+and it appears that all callers could do just as well with a lock/unlock
+pair.  This commit therefore eliminates the spin_unlock_wait() call and
+associated else-clause and hoists the then-clause's lock and unlock out of
+the "if" statement.  This should be safe from a performance perspective
+because according to Tejun there should be few if any drivers that don't
+set their own error handler.
 
-On 07/07/2017 10:31 AM, Ingo Molnar wrote:
->
-> There's another, probably just as significant advantage: queued_spin_unlock_wait()
-> is 'read-only', while spin_lock()+spin_unlock() dirties the lock cache line. On
-> any bigger system this should make a very measurable difference - if
-> spin_unlock_wait() is ever used in a performance critical code path.
-At least for ipc/sem:
-Dirtying the cacheline (in the slow path) allows to remove a smp_mb() in 
-the hot path.
-So for sem_lock(), I either need a primitive that dirties the cacheline 
-or sem_lock() must continue to use spin_lock()/spin_unlock().
+Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+Acked-by: Tejun Heo <tj@kernel.org>
+Cc: <linux-ide@vger.kernel.org>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Alan Stern <stern@rowland.harvard.edu>
+Cc: Andrea Parri <parri.andrea@gmail.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+---
+ drivers/ata/libata-eh.c | 8 +++-----
+ 1 file changed, 3 insertions(+), 5 deletions(-)
 
---
-     Manfred
+diff --git a/drivers/ata/libata-eh.c b/drivers/ata/libata-eh.c
+index ef68232b5222..779f6f18c1f4 100644
+--- a/drivers/ata/libata-eh.c
++++ b/drivers/ata/libata-eh.c
+@@ -645,12 +645,11 @@ void ata_scsi_cmd_error_handler(struct Scsi_Host *host, struct ata_port *ap,
+ 	 * completions are honored.  A scmd is determined to have
+ 	 * timed out iff its associated qc is active and not failed.
+ 	 */
++	spin_lock_irqsave(ap->lock, flags);
+ 	if (ap->ops->error_handler) {
+ 		struct scsi_cmnd *scmd, *tmp;
+ 		int nr_timedout = 0;
+ 
+-		spin_lock_irqsave(ap->lock, flags);
+-
+ 		/* This must occur under the ap->lock as we don't want
+ 		   a polled recovery to race the real interrupt handler
+ 
+@@ -700,12 +699,11 @@ void ata_scsi_cmd_error_handler(struct Scsi_Host *host, struct ata_port *ap,
+ 		if (nr_timedout)
+ 			__ata_port_freeze(ap);
+ 
+-		spin_unlock_irqrestore(ap->lock, flags);
+ 
+ 		/* initialize eh_tries */
+ 		ap->eh_tries = ATA_EH_MAX_TRIES;
+-	} else
+-		spin_unlock_wait(ap->lock);
++	}
++	spin_unlock_irqrestore(ap->lock, flags);
+ 
+ }
+ EXPORT_SYMBOL(ata_scsi_cmd_error_handler);
+-- 
+2.5.2
