@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-dm3nam03on0051.outbound.protection.outlook.com ([104.47.41.51]:19221
-        "EHLO NAM03-DM3-obe.outbound.protection.outlook.com"
+Received: from mail-by2nam01on0084.outbound.protection.outlook.com ([104.47.34.84]:21728
+        "EHLO NAM01-BY2-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752546AbdGGNi7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 7 Jul 2017 09:38:59 -0400
+        id S1752305AbdGGNid (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 7 Jul 2017 09:38:33 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v9 04/38] x86/CPU/AMD: Add the Secure Memory Encryption CPU
- feature
-Date: Fri, 07 Jul 2017 08:38:50 -0500
-Message-ID: <20170707133850.29711.29549.stgit@tlendack-t1.amdoffice.net>
+Subject: [PATCH v9 02/38] x86/mm/pat: Set write-protect cache mode for full
+ PAT support
+Date: Fri, 07 Jul 2017 08:38:27 -0500
+Message-ID: <20170707133827.29711.32805.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20170707133804.29711.1616.stgit@tlendack-t1.amdoffice.net>
 References: <20170707133804.29711.1616.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -18,81 +18,45 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>
-Message-ID: <20170707133850.W4Wi02uPvPtTXm2-otdB9krAcQVY80MIrSxCBQ-YqWY@z>
+Message-ID: <20170707133827.3Ymu2XwOw_QtuylxqXDj8jm4FAlb5KRCZ8BOvmFXiIM@z>
 
-Update the CPU features to include identifying and reporting on the
-Secure Memory Encryption (SME) feature.  SME is identified by CPUID
-0x8000001f, but requires BIOS support to enable it (set bit 23 of
-MSR_K8_SYSCFG).  Only show the SME feature as available if reported by
-CPUID and enabled by BIOS.
+For processors that support PAT, set the write-protect cache mode
+(_PAGE_CACHE_MODE_WP) entry to the actual write-protect value (x05).
 
-Reviewed-by: Borislav Petkov <bp@suse.de>
+Acked-by: Borislav Petkov <bp@suse.de>
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/include/asm/cpufeatures.h |    1 +
- arch/x86/include/asm/msr-index.h   |    2 ++
- arch/x86/kernel/cpu/amd.c          |   13 +++++++++++++
- arch/x86/kernel/cpu/scattered.c    |    1 +
- 4 files changed, 17 insertions(+)
+ arch/x86/mm/pat.c |    6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/arch/x86/include/asm/cpufeatures.h b/arch/x86/include/asm/cpufeatures.h
-index 2701e5f..2b692df 100644
---- a/arch/x86/include/asm/cpufeatures.h
-+++ b/arch/x86/include/asm/cpufeatures.h
-@@ -196,6 +196,7 @@
+diff --git a/arch/x86/mm/pat.c b/arch/x86/mm/pat.c
+index 4597950..88990ab 100644
+--- a/arch/x86/mm/pat.c
++++ b/arch/x86/mm/pat.c
+@@ -293,7 +293,7 @@ void init_cache_modes(void)
+  * pat_init - Initialize PAT MSR and PAT table
+  *
+  * This function initializes PAT MSR and PAT table with an OS-defined value
+- * to enable additional cache attributes, WC and WT.
++ * to enable additional cache attributes, WC, WT and WP.
+  *
+  * This function must be called on all CPUs using the specific sequence of
+  * operations defined in Intel SDM. mtrr_rendezvous_handler() provides this
+@@ -352,7 +352,7 @@ void pat_init(void)
+ 		 *      010    2    UC-: _PAGE_CACHE_MODE_UC_MINUS
+ 		 *      011    3    UC : _PAGE_CACHE_MODE_UC
+ 		 *      100    4    WB : Reserved
+-		 *      101    5    WC : Reserved
++		 *      101    5    WP : _PAGE_CACHE_MODE_WP
+ 		 *      110    6    UC-: Reserved
+ 		 *      111    7    WT : _PAGE_CACHE_MODE_WT
+ 		 *
+@@ -360,7 +360,7 @@ void pat_init(void)
+ 		 * corresponding types in the presence of PAT errata.
+ 		 */
+ 		pat = PAT(0, WB) | PAT(1, WC) | PAT(2, UC_MINUS) | PAT(3, UC) |
+-		      PAT(4, WB) | PAT(5, WC) | PAT(6, UC_MINUS) | PAT(7, WT);
++		      PAT(4, WB) | PAT(5, WP) | PAT(6, UC_MINUS) | PAT(7, WT);
+ 	}
  
- #define X86_FEATURE_HW_PSTATE	( 7*32+ 8) /* AMD HW-PState */
- #define X86_FEATURE_PROC_FEEDBACK ( 7*32+ 9) /* AMD ProcFeedbackInterface */
-+#define X86_FEATURE_SME		( 7*32+10) /* AMD Secure Memory Encryption */
- 
- #define X86_FEATURE_INTEL_PPIN	( 7*32+14) /* Intel Processor Inventory Number */
- #define X86_FEATURE_INTEL_PT	( 7*32+15) /* Intel Processor Trace */
-diff --git a/arch/x86/include/asm/msr-index.h b/arch/x86/include/asm/msr-index.h
-index 18b1623..460ac01 100644
---- a/arch/x86/include/asm/msr-index.h
-+++ b/arch/x86/include/asm/msr-index.h
-@@ -352,6 +352,8 @@
- #define MSR_K8_TOP_MEM1			0xc001001a
- #define MSR_K8_TOP_MEM2			0xc001001d
- #define MSR_K8_SYSCFG			0xc0010010
-+#define MSR_K8_SYSCFG_MEM_ENCRYPT_BIT	23
-+#define MSR_K8_SYSCFG_MEM_ENCRYPT	BIT_ULL(MSR_K8_SYSCFG_MEM_ENCRYPT_BIT)
- #define MSR_K8_INT_PENDING_MSG		0xc0010055
- /* C1E active bits in int pending message */
- #define K8_INTP_C1E_ACTIVE_MASK		0x18000000
-diff --git a/arch/x86/kernel/cpu/amd.c b/arch/x86/kernel/cpu/amd.c
-index bb5abe8..c47ceee 100644
---- a/arch/x86/kernel/cpu/amd.c
-+++ b/arch/x86/kernel/cpu/amd.c
-@@ -611,6 +611,19 @@ static void early_init_amd(struct cpuinfo_x86 *c)
- 	 */
- 	if (cpu_has_amd_erratum(c, amd_erratum_400))
- 		set_cpu_bug(c, X86_BUG_AMD_E400);
-+
-+	/*
-+	 * BIOS support is required for SME. If BIOS has not enabled SME
-+	 * then don't advertise the feature (set in scattered.c)
-+	 */
-+	if (cpu_has(c, X86_FEATURE_SME)) {
-+		u64 msr;
-+
-+		/* Check if SME is enabled */
-+		rdmsrl(MSR_K8_SYSCFG, msr);
-+		if (!(msr & MSR_K8_SYSCFG_MEM_ENCRYPT))
-+			clear_cpu_cap(c, X86_FEATURE_SME);
-+	}
- }
- 
- static void init_amd_k8(struct cpuinfo_x86 *c)
-diff --git a/arch/x86/kernel/cpu/scattered.c b/arch/x86/kernel/cpu/scattered.c
-index 23c2350..05459ad 100644
---- a/arch/x86/kernel/cpu/scattered.c
-+++ b/arch/x86/kernel/cpu/scattered.c
-@@ -31,6 +31,7 @@ struct cpuid_bit {
- 	{ X86_FEATURE_HW_PSTATE,	CPUID_EDX,  7, 0x80000007, 0 },
- 	{ X86_FEATURE_CPB,		CPUID_EDX,  9, 0x80000007, 0 },
- 	{ X86_FEATURE_PROC_FEEDBACK,    CPUID_EDX, 11, 0x80000007, 0 },
-+	{ X86_FEATURE_SME,		CPUID_EAX,  0, 0x8000001f, 0 },
- 	{ 0, 0, 0, 0, 0 }
- };
- 
+ 	if (!boot_cpu_done) {
