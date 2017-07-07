@@ -1,13 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-cys01nam02on0046.outbound.protection.outlook.com ([104.47.37.46]:47765
-        "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
+Received: from mail-by2nam01on0070.outbound.protection.outlook.com ([104.47.34.70]:19040
+        "EHLO NAM01-BY2-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751868AbdGGNjr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 7 Jul 2017 09:39:47 -0400
+        id S1753021AbdGGNmY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 7 Jul 2017 09:42:24 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v9 07/38] x86/mm: Remove phys_to_virt() usage in ioremap()
-Date: Fri, 07 Jul 2017 08:39:26 -0500
-Message-ID: <20170707133925.29711.39301.stgit@tlendack-t1.amdoffice.net>
+Subject: [PATCH v9 22/38] x86/mm: Add support for changing the memory
+ encryption attribute
+Date: Fri, 07 Jul 2017 08:42:09 -0500
+Message-ID: <20170707134209.29711.14421.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20170707133804.29711.1616.stgit@tlendack-t1.amdoffice.net>
 References: <20170707133804.29711.1616.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -17,48 +18,112 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>
-Message-ID: <20170707133926.AKIjaAiHD-AWM91sTDFvqDcrKItckA4dTi8aKIk3gCk@z>
+Message-ID: <20170707134209.roiY5E1E_U9cDB-VTf8dWcbMgBnXmW3iyMSKu-MX8sA@z>
 
-Currently there is a check if the address being mapped is in the ISA
-range (is_ISA_range()), and if it is, then phys_to_virt() is used to
-perform the mapping. When SME is active, the default is to add pagetable
-mappings with the encryption bit set unless specifically overridden. The
-resulting pagetable mapping from phys_to_virt() will result in a mapping
-that has the encryption bit set. With SME, the use of ioremap() is
-intended to generate pagetable mappings that do not have the encryption
-bit set through the use of the PAGE_KERNEL_IO protection value.
+Add support for changing the memory encryption attribute for one or more
+memory pages. This will be useful when we have to change the AP trampoline
+area to not be encrypted. Or when we need to change the SWIOTLB area to
+not be encrypted in support of devices that can't support the encryption
+mask range.
 
-Rather than special case the SME scenario, remove the ISA range check and
-usage of phys_to_virt() and have ISA range mappings continue through the
-remaining ioremap() path.
-
+Reviewed-by: Borislav Petkov <bp@suse.de>
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/mm/ioremap.c |    7 +------
- 1 file changed, 1 insertion(+), 6 deletions(-)
+ arch/x86/include/asm/set_memory.h |    3 ++
+ arch/x86/mm/pageattr.c            |   62 +++++++++++++++++++++++++++++++++++++
+ 2 files changed, 65 insertions(+)
 
-diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
-index 4c1b5fd..bfc3e2d 100644
---- a/arch/x86/mm/ioremap.c
-+++ b/arch/x86/mm/ioremap.c
-@@ -13,6 +13,7 @@
- #include <linux/slab.h>
- #include <linux/vmalloc.h>
- #include <linux/mmiotrace.h>
-+#include <linux/mem_encrypt.h>
+diff --git a/arch/x86/include/asm/set_memory.h b/arch/x86/include/asm/set_memory.h
+index eaec6c3..cd71273 100644
+--- a/arch/x86/include/asm/set_memory.h
++++ b/arch/x86/include/asm/set_memory.h
+@@ -11,6 +11,7 @@
+  * Executability : eXeutable, NoteXecutable
+  * Read/Write    : ReadOnly, ReadWrite
+  * Presence      : NotPresent
++ * Encryption    : Encrypted, Decrypted
+  *
+  * Within a category, the attributes are mutually exclusive.
+  *
+@@ -42,6 +43,8 @@
+ int set_memory_wb(unsigned long addr, int numpages);
+ int set_memory_np(unsigned long addr, int numpages);
+ int set_memory_4k(unsigned long addr, int numpages);
++int set_memory_encrypted(unsigned long addr, int numpages);
++int set_memory_decrypted(unsigned long addr, int numpages);
  
- #include <asm/set_memory.h>
- #include <asm/e820/api.h>
-@@ -106,12 +107,6 @@ static void __iomem *__ioremap_caller(resource_size_t phys_addr,
- 	}
+ int set_memory_array_uc(unsigned long *addr, int addrinarray);
+ int set_memory_array_wc(unsigned long *addr, int addrinarray);
+diff --git a/arch/x86/mm/pageattr.c b/arch/x86/mm/pageattr.c
+index e7d3866..d9e09fb 100644
+--- a/arch/x86/mm/pageattr.c
++++ b/arch/x86/mm/pageattr.c
+@@ -1769,6 +1769,68 @@ int set_memory_4k(unsigned long addr, int numpages)
+ 					__pgprot(0), 1, 0, NULL);
+ }
  
- 	/*
--	 * Don't remap the low PCI/ISA area, it's always mapped..
--	 */
--	if (is_ISA_range(phys_addr, last_addr))
--		return (__force void __iomem *)phys_to_virt(phys_addr);
--
--	/*
- 	 * Don't allow anybody to remap normal RAM that we're using..
- 	 */
- 	pfn      = phys_addr >> PAGE_SHIFT;
++static int __set_memory_enc_dec(unsigned long addr, int numpages, bool enc)
++{
++	struct cpa_data cpa;
++	unsigned long start;
++	int ret;
++
++	/* Nothing to do if the SME is not active */
++	if (!sme_active())
++		return 0;
++
++	/* Should not be working on unaligned addresses */
++	if (WARN_ONCE(addr & ~PAGE_MASK, "misaligned address: %#lx\n", addr))
++		addr &= PAGE_MASK;
++
++	start = addr;
++
++	memset(&cpa, 0, sizeof(cpa));
++	cpa.vaddr = &addr;
++	cpa.numpages = numpages;
++	cpa.mask_set = enc ? __pgprot(_PAGE_ENC) : __pgprot(0);
++	cpa.mask_clr = enc ? __pgprot(0) : __pgprot(_PAGE_ENC);
++	cpa.pgd = init_mm.pgd;
++
++	/* Must avoid aliasing mappings in the highmem code */
++	kmap_flush_unused();
++	vm_unmap_aliases();
++
++	/*
++	 * Before changing the encryption attribute, we need to flush caches.
++	 */
++	if (static_cpu_has(X86_FEATURE_CLFLUSH))
++		cpa_flush_range(start, numpages, 1);
++	else
++		cpa_flush_all(1);
++
++	ret = __change_page_attr_set_clr(&cpa, 1);
++
++	/*
++	 * After changing the encryption attribute, we need to flush TLBs
++	 * again in case any speculative TLB caching occurred (but no need
++	 * to flush caches again).  We could just use cpa_flush_all(), but
++	 * in case TLB flushing gets optimized in the cpa_flush_range()
++	 * path use the same logic as above.
++	 */
++	if (static_cpu_has(X86_FEATURE_CLFLUSH))
++		cpa_flush_range(start, numpages, 0);
++	else
++		cpa_flush_all(0);
++
++	return ret;
++}
++
++int set_memory_encrypted(unsigned long addr, int numpages)
++{
++	return __set_memory_enc_dec(addr, numpages, true);
++}
++
++int set_memory_decrypted(unsigned long addr, int numpages)
++{
++	return __set_memory_enc_dec(addr, numpages, false);
++}
++
+ int set_pages_uc(struct page *page, int numpages)
+ {
+ 	unsigned long addr = (unsigned long)page_address(page);
