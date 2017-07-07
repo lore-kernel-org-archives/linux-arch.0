@@ -1,48 +1,35 @@
-From: Balbir Singh <bsingharora@gmail.com>
-Subject: Re: [RFC v5 01/38] powerpc: Free up four 64K PTE bits in 4K backed
- HPTE pages
-Date: Fri, 07 Jul 2017 17:25:58 +1000
-Message-ID: <1499412358.23251.7.camel@gmail.com>
-References: <1499289735-14220-1-git-send-email-linuxram@us.ibm.com>
-	 <1499289735-14220-2-git-send-email-linuxram@us.ibm.com>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH v2 0/9] Remove spin_unlock_wait()
+Date: Fri, 7 Jul 2017 10:06:21 +0200
+Message-ID: <20170707080621.dmhw2ryes7n3kgag@gmail.com>
+References: <20170629235918.GA6445@linux.vnet.ibm.com>
+ <20170705232955.GA15992@linux.vnet.ibm.com>
+ <063D6719AE5E284EB5DD2968C1650D6DD0033F01@AcuExch.aculab.com>
+ <20170706160555.xc63yydk77gmttae@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1499289735-14220-2-git-send-email-linuxram@us.ibm.com>
-Sender: owner-linux-mm@kvack.org
-To: Ram Pai <linuxram@us.ibm.com>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
-Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, dave.hansen@intel.com, hbabu@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20170706160555.xc63yydk77gmttae@hirez.programming.kicks-ass.net>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: David Laight <David.Laight@ACULAB.COM>, "'paulmck@linux.vnet.ibm.com'" <paulmck@linux.vnet.ibm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netfilter-devel@vger.kernel.org" <netfilter-devel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "oleg@redhat.com" <oleg@redhat.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@redhat.com" <mingo@redhat.com>, "dave@stgolabs.net" <dave@stgolabs.net>, "manfred@colorfullife.com" <manfred@colorfullife.com>, "tj@kernel.org" <tj@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "will.deacon@arm.com" <will.deacon@arm.com>, "stern@rowland.harvard.edu" <stern@rowland.harvard.edu>, "parri.andrea@gmail.com" <parri.andrea@gmail>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, 2017-07-05 at 14:21 -0700, Ram Pai wrote:
-> Rearrange 64K PTE bits to  free  up  bits 3, 4, 5  and  6,
-> in the 4K backed HPTE pages.These bits continue to be used
-> for 64K backed HPTE pages in this patch, but will be freed
-> up in the next patch. The  bit  numbers are big-endian  as
-> defined in the ISA3.0
+
+* Peter Zijlstra <peterz@infradead.org> wrote:
+
+> > It might even be that this is the defined semantics of spin_unlock_wait().
 > 
-> The patch does the following change to the 4k htpe backed
-> 64K PTE's format.
->
+> As is, spin_unlock_wait() is somewhat ill defined. IIRC it grew from an 
+> optimization by Oleg and subsequently got used elsewhere. And it being the 
+> subtle bugger it is, there were bugs.
 
-The diagrams make the patch much easier to understand, thanks!
+I believe the historical, original spin_unlock_wait() came from early SMP 
+optimizations of the networking code - and then spread elsewhere, step by step. 
+All but one of the networking uses went away since then - so I don't think there's 
+any original usecase left.
 
-<snip>
- 
-> NOTE:even though bits 3, 4, 5, 6, 7 are  not  used  when
-> the  64K  PTE is backed by 4k HPTE,  they continue to be
-> used  if  the  PTE  gets  backed  by 64k HPTE.  The next
-> patch will decouple that aswell, and truely  release the
-> bits.
->
+Thanks,
 
-<snip>
-
-Balbir Singh. 
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+	Ingo
