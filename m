@@ -1,155 +1,48 @@
-From: Boqun Feng <boqun.feng@gmail.com>
-Subject: Re: [PATCH 2/9] RISC-V: Atomic and Locking Code
-Date: Fri, 7 Jul 2017 10:14:25 +0800
-Message-ID: <20170707021425.sssqytbf3gmbklwe@tardis>
-References: <20170705084321.hqy4qsm45mv772k4@hirez.programming.kicks-ass.net>
- <mhng-c4e3a5d8-59ae-4db5-b6df-2d44fa07e83c@palmer-si-x1c4>
+From: Balbir Singh <bsingharora@gmail.com>
+Subject: Re: [RFC v5 01/38] powerpc: Free up four 64K PTE bits in 4K backed
+ HPTE pages
+Date: Fri, 07 Jul 2017 17:25:58 +1000
+Message-ID: <1499412358.23251.7.camel@gmail.com>
+References: <1499289735-14220-1-git-send-email-linuxram@us.ibm.com>
+	 <1499289735-14220-2-git-send-email-linuxram@us.ibm.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-        protocol="application/pgp-signature"; boundary="yjxopaj2akqdak22"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f196.google.com ([209.85.192.196]:33560 "EHLO
-        mail-pf0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753234AbdGGCOf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Jul 2017 22:14:35 -0400
-Content-Disposition: inline
-In-Reply-To: <mhng-c4e3a5d8-59ae-4db5-b6df-2d44fa07e83c@palmer-si-x1c4>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Palmer Dabbelt <palmer@dabbelt.com>
-Cc: peterz@infradead.org, mingo@redhat.com, mcgrof@kernel.org, viro@zeniv.linux.org.uk, sfr@canb.auug.org.au, nicolas.dichtel@6wind.com, rmk+kernel@armlinux.org.uk, msalter@redhat.com, tklauser@distanz.ch, will.deacon@arm.com, james.hogan@imgtec.com, paul.gortmaker@windriver.com, linux@roeck-us.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, albert@sifive.com, patches@groups.riscv.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <1499289735-14220-2-git-send-email-linuxram@us.ibm.com>
+Sender: owner-linux-mm@kvack.org
+To: Ram Pai <linuxram@us.ibm.com>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
+Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, dave.hansen@intel.com, hbabu@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
+List-Id: linux-arch.vger.kernel.org
 
+On Wed, 2017-07-05 at 14:21 -0700, Ram Pai wrote:
+> Rearrange 64K PTE bits to  free  up  bits 3, 4, 5  and  6,
+> in the 4K backed HPTE pages.These bits continue to be used
+> for 64K backed HPTE pages in this patch, but will be freed
+> up in the next patch. The  bit  numbers are big-endian  as
+> defined in the ISA3.0
+> 
+> The patch does the following change to the 4k htpe backed
+> 64K PTE's format.
+>
 
---yjxopaj2akqdak22
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+The diagrams make the patch much easier to understand, thanks!
 
-On Thu, Jul 06, 2017 at 06:04:13PM -0700, Palmer Dabbelt wrote:
-[...]
-> >> +#define __smp_load_acquire(p)						\
-> >> +do {									\
-> >> +	union { typeof(*p) __val; char __c[1]; } __u =3D			\
-> >> +		{ .__val =3D (__force typeof(*p)) (v) };			\
-> >> +	compiletime_assert_atomic_type(*p);				\
-> >> +	switch (sizeof(*p)) {						\
-> >> +	case 1:								\
-> >> +	case 2:								\
-> >> +		__u.__val =3D READ_ONCE(*p);				\
-> >> +		smb_mb();						\
-> >> +		break;							\
-> >> +	case 4:								\
-> >> +		__asm__ __volatile__ (					\
-> >> +			"amoor.w.aq %1, zero, %0"			\
-> >> +			: "+A" (*p)					\
-> >> +			: "=3Dr" (__u.__val)				\
-> >> +			: "memory");					\
-> >> +		break;							\
-> >> +	case 8:								\
-> >> +		__asm__ __volatile__ (					\
-> >> +			"amoor.d.aq %1, zero, %0"			\
-> >> +			: "+A" (*p)					\
-> >> +			: "=3Dr" (__u.__val)				\
-> >> +			: "memory");					\
-> >> +		break;							\
-> >> +	}								\
-> >> +	__u.__val;							\
-> >> +} while (0)
-> >
-> > 'creative' use of amoswap and amoor :-)
-> >
-> > You should really look at a normal load with ordering instruction
-> > though, that amoor.aq is a rmw and will promote the cacheline to
-> > exclusive (and dirty it).
->=20
-> The thought here was that implementations could elide the MW by pattern
-> matching the "zero" (x0, the architectural zero register) forms of AMOs w=
-here
-> it's interesting.  I talked to one of our microarchitecture guys, and whi=
-le he
-> agrees that's easy he points out that eliding half the AMO may wreak havo=
-c on
-> the consistency model.  Since we're not sure what the memory model is act=
-ually
-> going to look like, we thought it'd be best to just write the simplest co=
-de
-> here
->=20
->   /*
->    * TODO_RISCV_MEMORY_MODEL: While we could emit AMOs for the W and D si=
-zed
->    * accesses here, it's questionable if that actually helps or not: the =
-lack of
->    * offsets in the AMOs means they're usually preceded by an addi, so th=
-ey
->    * probably won't save code space.  For now we'll just emit the fence.
->    */
->   #define __smp_store_release(p, v)                                      =
- \
->   ({                                                                     =
- \
->           compiletime_assert_atomic_type(*p);                            =
- \
->           smp_mb();                                                      =
- \
->           WRITE_ONCE(*p, v);                                             =
- \
->   })
->=20
->   #define __smp_load_acquire(p)                                          =
- \
->   ({                                                                     =
- \
->           union{typeof(*p) __p; long __l;} __u;                          =
- \
+<snip>
+ 
+> NOTE:even though bits 3, 4, 5, 6, 7 are  not  used  when
+> the  64K  PTE is backed by 4k HPTE,  they continue to be
+> used  if  the  PTE  gets  backed  by 64k HPTE.  The next
+> patch will decouple that aswell, and truely  release the
+> bits.
+>
 
-AFAICT, there seems to be an endian issue if you do this. No?
+<snip>
 
-Let us assume typeof(*p) is char and *p =3D=3D 1, and on a big endian 32bit
-platform:
+Balbir Singh. 
 
->           compiletime_assert_atomic_type(*p);                            =
- \
->           __u.__l =3D READ_ONCE(*p);                                     =
-   \
-
-	READ_ONCE(*p) is 1 so
-	__u.__l is 0x00 00 00 01 now
-
->           smp_mb();                                                      =
- \
->           __u.__p;                                                       =
- \
-
-	__u.__p is then 0x00.
-
-Am I missing something here?
-
-Even so why not use the simple definition as in include/asm-generic/barrier=
-=2Eh?
-
-Regards,
-Boqun
-
-
-
->   })
->=20
-[...]
-
---yjxopaj2akqdak22
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iQEzBAABCAAdFiEEj5IosQTPz8XU1wRHSXnow7UH+rgFAlle7n0ACgkQSXnow7UH
-+rhG5QgAlNYGKN3609sb0Lq6b+lBeZ3agL20lUs8PD3lIxwpVkqtw2TdLVSAwwl0
-k8ffV/q1G4qHmiBtYEvCcOSDRpfsZIpeQnBHTAmMHb6svSwQ4kCNdgLqdEudmd4t
-Xj3AIRyMmsbSpMMqhUcDCPkTWjxDndeYbEoLa7DU0x/oaMllYElIZmYbq9K7w13A
-NT51zTTXIGp1/V3aOhR+L76J0HpUt1IeaNOKVfmWFOs9MDHILVdPJF2Z3bxMJzrr
-+2IDTqN5wCwHtkzWAD4bJSUPELaDP9pezxNS5MSimERRNkunhEK6/qYq2j/Qwh62
-0x4VvPlMUfxXYaDmrljHDqZqIca+cg==
-=+c/U
------END PGP SIGNATURE-----
-
---yjxopaj2akqdak22--
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
