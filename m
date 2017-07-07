@@ -1,14 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2nam03on0079.outbound.protection.outlook.com ([104.47.42.79]:65173
-        "EHLO NAM03-BY2-obe.outbound.protection.outlook.com"
+Received: from mail-cys01nam02on0047.outbound.protection.outlook.com ([104.47.37.47]:24392
+        "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752491AbdGGNkk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 7 Jul 2017 09:40:40 -0400
+        id S1752867AbdGGNlL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 7 Jul 2017 09:41:11 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v9 13/38] x86/mm: Add support for early encrypt/decrypt of
- memory
-Date: Fri, 07 Jul 2017 08:40:29 -0500
-Message-ID: <20170707134028.29711.87630.stgit@tlendack-t1.amdoffice.net>
+Subject: [PATCH v9 16/38] efi: Add an EFI table address match function
+Date: Fri, 07 Jul 2017 08:41:00 -0500
+Message-ID: <20170707134100.29711.4834.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20170707133804.29711.1616.stgit@tlendack-t1.amdoffice.net>
 References: <20170707133804.29711.1616.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -18,141 +17,92 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>
-Message-ID: <20170707134029.pC5dHi1x4tqga8ov2GTRFqbBe0JXK7xWhxG-MM1t7D4@z>
+Message-ID: <20170707134100.NP0rSpB6xrPeEco-tRZl9PoCX0rgvwBYyYQwsf7oCrg@z>
 
-Add support to be able to either encrypt or decrypt data in place during
-the early stages of booting the kernel. This does not change the memory
-encryption attribute - it is used for ensuring that data present in either
-an encrypted or decrypted memory area is in the proper state (for example
-the initrd will have been loaded by the boot loader and will not be
-encrypted, but the memory that it resides in is marked as encrypted).
+Add a function that will determine if a supplied physical address matches
+the address of an EFI table.
 
+Reviewed-by: Matt Fleming <matt@codeblueprint.co.uk>
 Reviewed-by: Borislav Petkov <bp@suse.de>
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/include/asm/mem_encrypt.h |   10 +++++
- arch/x86/mm/mem_encrypt.c          |   76 ++++++++++++++++++++++++++++++++++++
- 2 files changed, 86 insertions(+)
+ drivers/firmware/efi/efi.c |   33 +++++++++++++++++++++++++++++++++
+ include/linux/efi.h        |    7 +++++++
+ 2 files changed, 40 insertions(+)
 
-diff --git a/arch/x86/include/asm/mem_encrypt.h b/arch/x86/include/asm/mem_encrypt.h
-index dbae7a5..8baa35b 100644
---- a/arch/x86/include/asm/mem_encrypt.h
-+++ b/arch/x86/include/asm/mem_encrypt.h
-@@ -21,6 +21,11 @@
+diff --git a/drivers/firmware/efi/efi.c b/drivers/firmware/efi/efi.c
+index 045d6d3..69d4d13 100644
+--- a/drivers/firmware/efi/efi.c
++++ b/drivers/firmware/efi/efi.c
+@@ -55,6 +55,25 @@ struct efi __read_mostly efi = {
+ };
+ EXPORT_SYMBOL(efi);
  
- extern unsigned long sme_me_mask;
- 
-+void __init sme_early_encrypt(resource_size_t paddr,
-+			      unsigned long size);
-+void __init sme_early_decrypt(resource_size_t paddr,
-+			      unsigned long size);
++static unsigned long *efi_tables[] = {
++	&efi.mps,
++	&efi.acpi,
++	&efi.acpi20,
++	&efi.smbios,
++	&efi.smbios3,
++	&efi.sal_systab,
++	&efi.boot_info,
++	&efi.hcdp,
++	&efi.uga,
++	&efi.uv_systab,
++	&efi.fw_vendor,
++	&efi.runtime,
++	&efi.config_table,
++	&efi.esrt,
++	&efi.properties_table,
++	&efi.mem_attr_table,
++};
 +
- void __init sme_early_init(void);
- 
- void __init sme_encrypt_kernel(void);
-@@ -30,6 +35,11 @@
- 
- #define sme_me_mask	0UL
- 
-+static inline void __init sme_early_encrypt(resource_size_t paddr,
-+					    unsigned long size) { }
-+static inline void __init sme_early_decrypt(resource_size_t paddr,
-+					    unsigned long size) { }
-+
- static inline void __init sme_early_init(void) { }
- 
- static inline void __init sme_encrypt_kernel(void) { }
-diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
-index f973d3d..54bb73c 100644
---- a/arch/x86/mm/mem_encrypt.c
-+++ b/arch/x86/mm/mem_encrypt.c
-@@ -14,6 +14,9 @@
- #include <linux/init.h>
- #include <linux/mm.h>
- 
-+#include <asm/tlbflush.h>
-+#include <asm/fixmap.h>
-+
- /*
-  * Since SME related variables are set early in the boot process they must
-  * reside in the .data section so as not to be zeroed out when the .bss
-@@ -22,6 +25,79 @@
- unsigned long sme_me_mask __section(.data) = 0;
- EXPORT_SYMBOL_GPL(sme_me_mask);
- 
-+/* Buffer used for early in-place encryption by BSP, no locking needed */
-+static char sme_early_buffer[PAGE_SIZE] __aligned(PAGE_SIZE);
-+
-+/*
-+ * This routine does not change the underlying encryption setting of the
-+ * page(s) that map this memory. It assumes that eventually the memory is
-+ * meant to be accessed as either encrypted or decrypted but the contents
-+ * are currently not in the desired state.
-+ *
-+ * This routine follows the steps outlined in the AMD64 Architecture
-+ * Programmer's Manual Volume 2, Section 7.10.8 Encrypt-in-Place.
-+ */
-+static void __init __sme_early_enc_dec(resource_size_t paddr,
-+				       unsigned long size, bool enc)
-+{
-+	void *src, *dst;
-+	size_t len;
-+
-+	if (!sme_me_mask)
-+		return;
-+
-+	local_flush_tlb();
-+	wbinvd();
-+
-+	/*
-+	 * There are limited number of early mapping slots, so map (at most)
-+	 * one page at time.
-+	 */
-+	while (size) {
-+		len = min_t(size_t, sizeof(sme_early_buffer), size);
-+
-+		/*
-+		 * Create mappings for the current and desired format of
-+		 * the memory. Use a write-protected mapping for the source.
-+		 */
-+		src = enc ? early_memremap_decrypted_wp(paddr, len) :
-+			    early_memremap_encrypted_wp(paddr, len);
-+
-+		dst = enc ? early_memremap_encrypted(paddr, len) :
-+			    early_memremap_decrypted(paddr, len);
-+
-+		/*
-+		 * If a mapping can't be obtained to perform the operation,
-+		 * then eventual access of that area in the desired mode
-+		 * will cause a crash.
-+		 */
-+		BUG_ON(!src || !dst);
-+
-+		/*
-+		 * Use a temporary buffer, of cache-line multiple size, to
-+		 * avoid data corruption as documented in the APM.
-+		 */
-+		memcpy(sme_early_buffer, src, len);
-+		memcpy(dst, sme_early_buffer, len);
-+
-+		early_memunmap(dst, len);
-+		early_memunmap(src, len);
-+
-+		paddr += len;
-+		size -= len;
-+	}
-+}
-+
-+void __init sme_early_encrypt(resource_size_t paddr, unsigned long size)
-+{
-+	__sme_early_enc_dec(paddr, size, true);
-+}
-+
-+void __init sme_early_decrypt(resource_size_t paddr, unsigned long size)
-+{
-+	__sme_early_enc_dec(paddr, size, false);
-+}
-+
- void __init sme_early_init(void)
+ static bool disable_runtime;
+ static int __init setup_noefi(char *arg)
  {
- 	unsigned int i;
+@@ -855,6 +874,20 @@ int efi_status_to_err(efi_status_t status)
+ 	return err;
+ }
+ 
++bool efi_is_table_address(unsigned long phys_addr)
++{
++	unsigned int i;
++
++	if (phys_addr == EFI_INVALID_TABLE_ADDR)
++		return false;
++
++	for (i = 0; i < ARRAY_SIZE(efi_tables); i++)
++		if (*(efi_tables[i]) == phys_addr)
++			return true;
++
++	return false;
++}
++
+ #ifdef CONFIG_KEXEC
+ static int update_efi_random_seed(struct notifier_block *nb,
+ 				  unsigned long code, void *unused)
+diff --git a/include/linux/efi.h b/include/linux/efi.h
+index 8269bcb..8e24f09 100644
+--- a/include/linux/efi.h
++++ b/include/linux/efi.h
+@@ -1091,6 +1091,8 @@ static inline bool efi_enabled(int feature)
+ 	return test_bit(feature, &efi.flags) != 0;
+ }
+ extern void efi_reboot(enum reboot_mode reboot_mode, const char *__unused);
++
++extern bool efi_is_table_address(unsigned long phys_addr);
+ #else
+ static inline bool efi_enabled(int feature)
+ {
+@@ -1104,6 +1106,11 @@ static inline bool efi_enabled(int feature)
+ {
+ 	return false;
+ }
++
++static inline bool efi_is_table_address(unsigned long phys_addr)
++{
++	return false;
++}
+ #endif
+ 
+ extern int efi_status_to_err(efi_status_t status);
