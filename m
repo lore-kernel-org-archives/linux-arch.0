@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2nam03on0049.outbound.protection.outlook.com ([104.47.42.49]:44576
+Received: from mail-by2nam03on0088.outbound.protection.outlook.com ([104.47.42.88]:1600
         "EHLO NAM03-BY2-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752921AbdGGNlb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 7 Jul 2017 09:41:31 -0400
+        id S1752760AbdGGNmg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 7 Jul 2017 09:42:36 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v9 18/38] x86/efi: Update EFI pagetable creation to work
- with SME
-Date: Fri, 07 Jul 2017 08:41:22 -0500
-Message-ID: <20170707134122.29711.68794.stgit@tlendack-t1.amdoffice.net>
+Subject: [PATCH v9 23/38] x86/realmode: Decrypt trampoline area if memory
+ encryption is active
+Date: Fri, 07 Jul 2017 08:42:24 -0500
+Message-ID: <20170707134224.29711.90107.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20170707133804.29711.1616.stgit@tlendack-t1.amdoffice.net>
 References: <20170707133804.29711.1616.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -18,68 +18,42 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>
-Message-ID: <20170707134122.uFuZdj2S5_WawBAJcLZLjXc5nyj14E9T3ArrhdgT0LA@z>
+Message-ID: <20170707134224.lHvSX7ScdrH47TdwLX7Z1OZ1v82Vppd4at3OBMjlV4U@z>
 
-When SME is active, pagetable entries created for EFI need to have the
-encryption mask set as necessary.
+When Secure Memory Encryption is enabled, the trampoline area must not
+be encrypted. A CPU running in real mode will not be able to decrypt
+memory that has been encrypted because it will not be able to use addresses
+with the memory encryption mask.
 
-When the new pagetable pages are allocated they are mapped encrypted. So,
-update the efi_pgt value that will be used in cr3 to include the encryption
-mask so that the PGD table can be read successfully. The pagetable mapping
-as well as the kernel are also added to the pagetable mapping as encrypted.
-All other EFI mappings are mapped decrypted (tables, etc.).
-
-Reviewed-by: Matt Fleming <matt@codeblueprint.co.uk>
 Reviewed-by: Borislav Petkov <bp@suse.de>
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/platform/efi/efi_64.c |   15 +++++++++++----
- 1 file changed, 11 insertions(+), 4 deletions(-)
+ arch/x86/realmode/init.c |    8 ++++++++
+ 1 file changed, 8 insertions(+)
 
-diff --git a/arch/x86/platform/efi/efi_64.c b/arch/x86/platform/efi/efi_64.c
-index 9bf72f5..12e8388 100644
---- a/arch/x86/platform/efi/efi_64.c
-+++ b/arch/x86/platform/efi/efi_64.c
-@@ -327,7 +327,7 @@ void efi_sync_low_kernel_mappings(void)
+diff --git a/arch/x86/realmode/init.c b/arch/x86/realmode/init.c
+index cd4be19..d6ddc7e 100644
+--- a/arch/x86/realmode/init.c
++++ b/arch/x86/realmode/init.c
+@@ -1,6 +1,7 @@
+ #include <linux/io.h>
+ #include <linux/slab.h>
+ #include <linux/memblock.h>
++#include <linux/mem_encrypt.h>
  
- int __init efi_setup_page_tables(unsigned long pa_memmap, unsigned num_pages)
- {
--	unsigned long pfn, text;
-+	unsigned long pfn, text, pf;
- 	struct page *page;
- 	unsigned npages;
- 	pgd_t *pgd;
-@@ -335,7 +335,12 @@ int __init efi_setup_page_tables(unsigned long pa_memmap, unsigned num_pages)
- 	if (efi_enabled(EFI_OLD_MEMMAP))
- 		return 0;
+ #include <asm/set_memory.h>
+ #include <asm/pgtable.h>
+@@ -59,6 +60,13 @@ static void __init setup_real_mode(void)
  
--	efi_scratch.efi_pgt = (pgd_t *)__pa(efi_pgd);
+ 	base = (unsigned char *)real_mode_header;
+ 
 +	/*
-+	 * Since the PGD is encrypted, set the encryption mask so that when
-+	 * this value is loaded into cr3 the PGD will be decrypted during
-+	 * the pagetable walk.
++	 * If SME is active, the trampoline area will need to be in
++	 * decrypted memory in order to bring up other processors
++	 * successfully.
 +	 */
-+	efi_scratch.efi_pgt = (pgd_t *)__sme_pa(efi_pgd);
- 	pgd = efi_pgd;
++	set_memory_decrypted((unsigned long)base, size >> PAGE_SHIFT);
++
+ 	memcpy(base, real_mode_blob, size);
  
- 	/*
-@@ -345,7 +350,8 @@ int __init efi_setup_page_tables(unsigned long pa_memmap, unsigned num_pages)
- 	 * phys_efi_set_virtual_address_map().
- 	 */
- 	pfn = pa_memmap >> PAGE_SHIFT;
--	if (kernel_map_pages_in_pgd(pgd, pfn, pa_memmap, num_pages, _PAGE_NX | _PAGE_RW)) {
-+	pf = _PAGE_NX | _PAGE_RW | _PAGE_ENC;
-+	if (kernel_map_pages_in_pgd(pgd, pfn, pa_memmap, num_pages, pf)) {
- 		pr_err("Error ident-mapping new memmap (0x%lx)!\n", pa_memmap);
- 		return 1;
- 	}
-@@ -388,7 +394,8 @@ int __init efi_setup_page_tables(unsigned long pa_memmap, unsigned num_pages)
- 	text = __pa(_text);
- 	pfn = text >> PAGE_SHIFT;
- 
--	if (kernel_map_pages_in_pgd(pgd, pfn, text, npages, _PAGE_RW)) {
-+	pf = _PAGE_RW | _PAGE_ENC;
-+	if (kernel_map_pages_in_pgd(pgd, pfn, text, npages, pf)) {
- 		pr_err("Failed to map kernel text 1:1\n");
- 		return 1;
- 	}
+ 	phys_base = __pa(base);
