@@ -1,13 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn3nam01on0047.outbound.protection.outlook.com ([104.47.33.47]:41408
-        "EHLO NAM01-BN3-obe.outbound.protection.outlook.com"
+Received: from mail-cys01nam02on0055.outbound.protection.outlook.com ([104.47.37.55]:58144
+        "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752614AbdGGNoz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 7 Jul 2017 09:44:55 -0400
+        id S1752734AbdGGNnT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 7 Jul 2017 09:43:19 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v9 35/38] x86/mm: Add support to encrypt the kernel in-place
-Date: Fri, 07 Jul 2017 08:44:41 -0500
-Message-ID: <20170707134441.29711.59525.stgit@tlendack-t1.amdoffice.net>
+Subject: [PATCH v9 27/38] iommu/amd: Allow the AMD IOMMU to work with memory
+ encryption
+Date: Fri, 07 Jul 2017 08:43:08 -0500
+Message-ID: <20170707134308.29711.87493.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20170707133804.29711.1616.stgit@tlendack-t1.amdoffice.net>
 References: <20170707133804.29711.1616.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -17,530 +18,271 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>
-Message-ID: <20170707134441.72I8LEElpOStV1U-9A8RZj4KkAwIsptgENr4ekrm5UE@z>
+Message-ID: <20170707134308.4LFLmDEptQ2NG-TW4-8y4oRicxuaAHWdrnlmSaaczig@z>
 
-Add the support to encrypt the kernel in-place. This is done by creating
-new page mappings for the kernel - a decrypted write-protected mapping
-and an encrypted mapping. The kernel is encrypted by copying it through
-a temporary buffer.
+The IOMMU is programmed with physical addresses for the various tables
+and buffers that are used to communicate between the device and the
+driver. When the driver allocates this memory it is encrypted. In order
+for the IOMMU to access the memory as encrypted the encryption mask needs
+to be included in these physical addresses during configuration.
 
+The PTE entries created by the IOMMU should also include the encryption
+mask so that when the device behind the IOMMU performs a DMA, the DMA
+will be performed to encrypted memory.
+
+Acked-by: Joerg Roedel <jroedel@suse.de>
+Reviewed-by: Borislav Petkov <bp@suse.de>
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/include/asm/mem_encrypt.h |    6 +
- arch/x86/mm/Makefile               |    1 
- arch/x86/mm/mem_encrypt.c          |  310 ++++++++++++++++++++++++++++++++++++
- arch/x86/mm/mem_encrypt_boot.S     |  149 +++++++++++++++++
- 4 files changed, 466 insertions(+)
- create mode 100644 arch/x86/mm/mem_encrypt_boot.S
+ drivers/iommu/amd_iommu.c       |   30 ++++++++++++++++--------------
+ drivers/iommu/amd_iommu_init.c  |   34 ++++++++++++++++++++++++++++------
+ drivers/iommu/amd_iommu_proto.h |   10 ++++++++++
+ drivers/iommu/amd_iommu_types.h |    2 +-
+ 4 files changed, 55 insertions(+), 21 deletions(-)
 
-diff --git a/arch/x86/include/asm/mem_encrypt.h b/arch/x86/include/asm/mem_encrypt.h
-index 70e55f6..7122c36 100644
---- a/arch/x86/include/asm/mem_encrypt.h
-+++ b/arch/x86/include/asm/mem_encrypt.h
-@@ -21,6 +21,12 @@
+diff --git a/drivers/iommu/amd_iommu.c b/drivers/iommu/amd_iommu.c
+index 5c9759e..a0a39f6 100644
+--- a/drivers/iommu/amd_iommu.c
++++ b/drivers/iommu/amd_iommu.c
+@@ -544,7 +544,7 @@ static void dump_dte_entry(u16 devid)
  
- extern unsigned long sme_me_mask;
- 
-+void sme_encrypt_execute(unsigned long encrypted_kernel_vaddr,
-+			 unsigned long decrypted_kernel_vaddr,
-+			 unsigned long kernel_len,
-+			 unsigned long encryption_wa,
-+			 unsigned long encryption_pgd);
-+
- void __init sme_early_encrypt(resource_size_t paddr,
- 			      unsigned long size);
- void __init sme_early_decrypt(resource_size_t paddr,
-diff --git a/arch/x86/mm/Makefile b/arch/x86/mm/Makefile
-index a94a7b6..72bf8c0 100644
---- a/arch/x86/mm/Makefile
-+++ b/arch/x86/mm/Makefile
-@@ -40,3 +40,4 @@ obj-$(CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS) += pkeys.o
- obj-$(CONFIG_RANDOMIZE_MEMORY) += kaslr.o
- 
- obj-$(CONFIG_AMD_MEM_ENCRYPT)	+= mem_encrypt.o
-+obj-$(CONFIG_AMD_MEM_ENCRYPT)	+= mem_encrypt_boot.o
-diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
-index a7400ec..e5d5439 100644
---- a/arch/x86/mm/mem_encrypt.c
-+++ b/arch/x86/mm/mem_encrypt.c
-@@ -21,6 +21,8 @@
- #include <asm/setup.h>
- #include <asm/bootparam.h>
- #include <asm/set_memory.h>
-+#include <asm/cacheflush.h>
-+#include <asm/sections.h>
- 
- /*
-  * Since SME related variables are set early in the boot process they must
-@@ -199,8 +201,316 @@ void swiotlb_set_mem_attributes(void *vaddr, unsigned long size)
- 	set_memory_decrypted((unsigned long)vaddr, size >> PAGE_SHIFT);
- }
- 
-+static void __init sme_clear_pgd(pgd_t *pgd_base, unsigned long start,
-+				 unsigned long end)
-+{
-+	unsigned long pgd_start, pgd_end, pgd_size;
-+	pgd_t *pgd_p;
-+
-+	pgd_start = start & PGDIR_MASK;
-+	pgd_end = end & PGDIR_MASK;
-+
-+	pgd_size = (((pgd_end - pgd_start) / PGDIR_SIZE) + 1);
-+	pgd_size *= sizeof(pgd_t);
-+
-+	pgd_p = pgd_base + pgd_index(start);
-+
-+	memset(pgd_p, 0, pgd_size);
-+}
-+
-+#define PGD_FLAGS	_KERNPG_TABLE_NOENC
-+#define P4D_FLAGS	_KERNPG_TABLE_NOENC
-+#define PUD_FLAGS	_KERNPG_TABLE_NOENC
-+#define PMD_FLAGS	(__PAGE_KERNEL_LARGE_EXEC & ~_PAGE_GLOBAL)
-+
-+static void __init *sme_populate_pgd(pgd_t *pgd_base, void *pgtable_area,
-+				     unsigned long vaddr, pmdval_t pmd_val)
-+{
-+	pgd_t *pgd_p;
-+	p4d_t *p4d_p;
-+	pud_t *pud_p;
-+	pmd_t *pmd_p;
-+
-+	pgd_p = pgd_base + pgd_index(vaddr);
-+	if (native_pgd_val(*pgd_p)) {
-+		if (IS_ENABLED(CONFIG_X86_5LEVEL))
-+			p4d_p = (p4d_t *)(native_pgd_val(*pgd_p) & ~PTE_FLAGS_MASK);
-+		else
-+			pud_p = (pud_t *)(native_pgd_val(*pgd_p) & ~PTE_FLAGS_MASK);
-+	} else {
-+		pgd_t pgd;
-+
-+		if (IS_ENABLED(CONFIG_X86_5LEVEL)) {
-+			p4d_p = pgtable_area;
-+			memset(p4d_p, 0, sizeof(*p4d_p) * PTRS_PER_P4D);
-+			pgtable_area += sizeof(*p4d_p) * PTRS_PER_P4D;
-+
-+			pgd = native_make_pgd((pgdval_t)p4d_p + PGD_FLAGS);
-+		} else {
-+			pud_p = pgtable_area;
-+			memset(pud_p, 0, sizeof(*pud_p) * PTRS_PER_PUD);
-+			pgtable_area += sizeof(*pud_p) * PTRS_PER_PUD;
-+
-+			pgd = native_make_pgd((pgdval_t)pud_p + PGD_FLAGS);
-+		}
-+		native_set_pgd(pgd_p, pgd);
-+	}
-+
-+	if (IS_ENABLED(CONFIG_X86_5LEVEL)) {
-+		p4d_p += p4d_index(vaddr);
-+		if (native_p4d_val(*p4d_p)) {
-+			pud_p = (pud_t *)(native_p4d_val(*p4d_p) & ~PTE_FLAGS_MASK);
-+		} else {
-+			p4d_t p4d;
-+
-+			pud_p = pgtable_area;
-+			memset(pud_p, 0, sizeof(*pud_p) * PTRS_PER_PUD);
-+			pgtable_area += sizeof(*pud_p) * PTRS_PER_PUD;
-+
-+			p4d = native_make_p4d((pudval_t)pud_p + P4D_FLAGS);
-+			native_set_p4d(p4d_p, p4d);
-+		}
-+	}
-+
-+	pud_p += pud_index(vaddr);
-+	if (native_pud_val(*pud_p)) {
-+		if (native_pud_val(*pud_p) & _PAGE_PSE)
-+			goto out;
-+
-+		pmd_p = (pmd_t *)(native_pud_val(*pud_p) & ~PTE_FLAGS_MASK);
-+	} else {
-+		pud_t pud;
-+
-+		pmd_p = pgtable_area;
-+		memset(pmd_p, 0, sizeof(*pmd_p) * PTRS_PER_PMD);
-+		pgtable_area += sizeof(*pmd_p) * PTRS_PER_PMD;
-+
-+		pud = native_make_pud((pmdval_t)pmd_p + PUD_FLAGS);
-+		native_set_pud(pud_p, pud);
-+	}
-+
-+	pmd_p += pmd_index(vaddr);
-+	if (!native_pmd_val(*pmd_p) || !(native_pmd_val(*pmd_p) & _PAGE_PSE))
-+		native_set_pmd(pmd_p, native_make_pmd(pmd_val));
-+
-+out:
-+	return pgtable_area;
-+}
-+
-+static unsigned long __init sme_pgtable_calc(unsigned long len)
-+{
-+	unsigned long p4d_size, pud_size, pmd_size;
-+	unsigned long total;
-+
-+	/*
-+	 * Perform a relatively simplistic calculation of the pagetable
-+	 * entries that are needed. That mappings will be covered by 2MB
-+	 * PMD entries so we can conservatively calculate the required
-+	 * number of P4D, PUD and PMD structures needed to perform the
-+	 * mappings. Incrementing the count for each covers the case where
-+	 * the addresses cross entries.
-+	 */
-+	if (IS_ENABLED(CONFIG_X86_5LEVEL)) {
-+		p4d_size = (ALIGN(len, PGDIR_SIZE) / PGDIR_SIZE) + 1;
-+		p4d_size *= sizeof(p4d_t) * PTRS_PER_P4D;
-+		pud_size = (ALIGN(len, P4D_SIZE) / P4D_SIZE) + 1;
-+		pud_size *= sizeof(pud_t) * PTRS_PER_PUD;
-+	} else {
-+		p4d_size = 0;
-+		pud_size = (ALIGN(len, PGDIR_SIZE) / PGDIR_SIZE) + 1;
-+		pud_size *= sizeof(pud_t) * PTRS_PER_PUD;
-+	}
-+	pmd_size = (ALIGN(len, PUD_SIZE) / PUD_SIZE) + 1;
-+	pmd_size *= sizeof(pmd_t) * PTRS_PER_PMD;
-+
-+	total = p4d_size + pud_size + pmd_size;
-+
-+	/*
-+	 * Now calculate the added pagetable structures needed to populate
-+	 * the new pagetables.
-+	 */
-+	if (IS_ENABLED(CONFIG_X86_5LEVEL)) {
-+		p4d_size = ALIGN(total, PGDIR_SIZE) / PGDIR_SIZE;
-+		p4d_size *= sizeof(p4d_t) * PTRS_PER_P4D;
-+		pud_size = ALIGN(total, P4D_SIZE) / P4D_SIZE;
-+		pud_size *= sizeof(pud_t) * PTRS_PER_PUD;
-+	} else {
-+		p4d_size = 0;
-+		pud_size = ALIGN(total, PGDIR_SIZE) / PGDIR_SIZE;
-+		pud_size *= sizeof(pud_t) * PTRS_PER_PUD;
-+	}
-+	pmd_size = ALIGN(total, PUD_SIZE) / PUD_SIZE;
-+	pmd_size *= sizeof(pmd_t) * PTRS_PER_PMD;
-+
-+	total += p4d_size + pud_size + pmd_size;
-+
-+	return total;
-+}
-+
- void __init sme_encrypt_kernel(void)
+ static void dump_command(unsigned long phys_addr)
  {
-+	unsigned long workarea_start, workarea_end, workarea_len;
-+	unsigned long execute_start, execute_end, execute_len;
-+	unsigned long kernel_start, kernel_end, kernel_len;
-+	unsigned long pgtable_area_len;
-+	unsigned long paddr, pmd_flags;
-+	unsigned long decrypted_base;
-+	void *pgtable_area;
-+	pgd_t *pgd;
+-	struct iommu_cmd *cmd = phys_to_virt(phys_addr);
++	struct iommu_cmd *cmd = iommu_phys_to_virt(phys_addr);
+ 	int i;
+ 
+ 	for (i = 0; i < 4; ++i)
+@@ -865,11 +865,13 @@ static void copy_cmd_to_buffer(struct amd_iommu *iommu,
+ 
+ static void build_completion_wait(struct iommu_cmd *cmd, u64 address)
+ {
++	u64 paddr = iommu_virt_to_phys((void *)address);
 +
-+	if (!sme_active())
-+		return;
-+
-+	/*
-+	 * Prepare for encrypting the kernel by building new pagetables with
-+	 * the necessary attributes needed to encrypt the kernel in place.
-+	 *
-+	 *   One range of virtual addresses will map the memory occupied
-+	 *   by the kernel as encrypted.
-+	 *
-+	 *   Another range of virtual addresses will map the memory occupied
-+	 *   by the kernel as decrypted and write-protected.
-+	 *
-+	 *     The use of write-protect attribute will prevent any of the
-+	 *     memory from being cached.
-+	 */
-+
-+	/* Physical addresses gives us the identity mapped virtual addresses */
-+	kernel_start = __pa_symbol(_text);
-+	kernel_end = ALIGN(__pa_symbol(_end), PMD_PAGE_SIZE);
-+	kernel_len = kernel_end - kernel_start;
-+
-+	/* Set the encryption workarea to be immediately after the kernel */
-+	workarea_start = kernel_end;
-+
-+	/*
-+	 * Calculate required number of workarea bytes needed:
-+	 *   executable encryption area size:
-+	 *     stack page (PAGE_SIZE)
-+	 *     encryption routine page (PAGE_SIZE)
-+	 *     intermediate copy buffer (PMD_PAGE_SIZE)
-+	 *   pagetable structures for the encryption of the kernel
-+	 *   pagetable structures for workarea (in case not currently mapped)
-+	 */
-+	execute_start = workarea_start;
-+	execute_end = execute_start + (PAGE_SIZE * 2) + PMD_PAGE_SIZE;
-+	execute_len = execute_end - execute_start;
-+
-+	/*
-+	 * One PGD for both encrypted and decrypted mappings and a set of
-+	 * PUDs and PMDs for each of the encrypted and decrypted mappings.
-+	 */
-+	pgtable_area_len = sizeof(pgd_t) * PTRS_PER_PGD;
-+	pgtable_area_len += sme_pgtable_calc(execute_end - kernel_start) * 2;
-+
-+	/* PUDs and PMDs needed in the current pagetables for the workarea */
-+	pgtable_area_len += sme_pgtable_calc(execute_len + pgtable_area_len);
-+
-+	/*
-+	 * The total workarea includes the executable encryption area and
-+	 * the pagetable area.
-+	 */
-+	workarea_len = execute_len + pgtable_area_len;
-+	workarea_end = workarea_start + workarea_len;
-+
-+	/*
-+	 * Set the address to the start of where newly created pagetable
-+	 * structures (PGDs, PUDs and PMDs) will be allocated. New pagetable
-+	 * structures are created when the workarea is added to the current
-+	 * pagetables and when the new encrypted and decrypted kernel
-+	 * mappings are populated.
-+	 */
-+	pgtable_area = (void *)execute_end;
-+
-+	/*
-+	 * Make sure the current pagetable structure has entries for
-+	 * addressing the workarea.
-+	 */
-+	pgd = (pgd_t *)native_read_cr3_pa();
-+	paddr = workarea_start;
-+	while (paddr < workarea_end) {
-+		pgtable_area = sme_populate_pgd(pgd, pgtable_area,
-+						paddr,
-+						paddr + PMD_FLAGS);
-+
-+		paddr += PMD_PAGE_SIZE;
-+	}
-+
-+	/* Flush the TLB - no globals so cr3 is enough */
-+	native_write_cr3(__native_read_cr3());
-+
-+	/*
-+	 * A new pagetable structure is being built to allow for the kernel
-+	 * to be encrypted. It starts with an empty PGD that will then be
-+	 * populated with new PUDs and PMDs as the encrypted and decrypted
-+	 * kernel mappings are created.
-+	 */
-+	pgd = pgtable_area;
-+	memset(pgd, 0, sizeof(*pgd) * PTRS_PER_PGD);
-+	pgtable_area += sizeof(*pgd) * PTRS_PER_PGD;
-+
-+	/* Add encrypted kernel (identity) mappings */
-+	pmd_flags = PMD_FLAGS | _PAGE_ENC;
-+	paddr = kernel_start;
-+	while (paddr < kernel_end) {
-+		pgtable_area = sme_populate_pgd(pgd, pgtable_area,
-+						paddr,
-+						paddr + pmd_flags);
-+
-+		paddr += PMD_PAGE_SIZE;
-+	}
-+
-+	/*
-+	 * A different PGD index/entry must be used to get different
-+	 * pagetable entries for the decrypted mapping. Choose the next
-+	 * PGD index and convert it to a virtual address to be used as
-+	 * the base of the mapping.
-+	 */
-+	decrypted_base = (pgd_index(workarea_end) + 1) & (PTRS_PER_PGD - 1);
-+	decrypted_base <<= PGDIR_SHIFT;
-+
-+	/* Add decrypted, write-protected kernel (non-identity) mappings */
-+	pmd_flags = (PMD_FLAGS & ~_PAGE_CACHE_MASK) | (_PAGE_PAT | _PAGE_PWT);
-+	paddr = kernel_start;
-+	while (paddr < kernel_end) {
-+		pgtable_area = sme_populate_pgd(pgd, pgtable_area,
-+						paddr + decrypted_base,
-+						paddr + pmd_flags);
-+
-+		paddr += PMD_PAGE_SIZE;
-+	}
-+
-+	/* Add decrypted workarea mappings to both kernel mappings */
-+	paddr = workarea_start;
-+	while (paddr < workarea_end) {
-+		pgtable_area = sme_populate_pgd(pgd, pgtable_area,
-+						paddr,
-+						paddr + PMD_FLAGS);
-+
-+		pgtable_area = sme_populate_pgd(pgd, pgtable_area,
-+						paddr + decrypted_base,
-+						paddr + PMD_FLAGS);
-+
-+		paddr += PMD_PAGE_SIZE;
-+	}
-+
-+	/* Perform the encryption */
-+	sme_encrypt_execute(kernel_start, kernel_start + decrypted_base,
-+			    kernel_len, workarea_start, (unsigned long)pgd);
-+
-+	/*
-+	 * At this point we are running encrypted.  Remove the mappings for
-+	 * the decrypted areas - all that is needed for this is to remove
-+	 * the PGD entry/entries.
-+	 */
-+	sme_clear_pgd(pgd, kernel_start + decrypted_base,
-+		      kernel_end + decrypted_base);
-+
-+	sme_clear_pgd(pgd, workarea_start + decrypted_base,
-+		      workarea_end + decrypted_base);
-+
-+	/* Flush the TLB - no globals so cr3 is enough */
-+	native_write_cr3(__native_read_cr3());
+ 	WARN_ON(address & 0x7ULL);
+ 
+ 	memset(cmd, 0, sizeof(*cmd));
+-	cmd->data[0] = lower_32_bits(__pa(address)) | CMD_COMPL_WAIT_STORE_MASK;
+-	cmd->data[1] = upper_32_bits(__pa(address));
++	cmd->data[0] = lower_32_bits(paddr) | CMD_COMPL_WAIT_STORE_MASK;
++	cmd->data[1] = upper_32_bits(paddr);
+ 	cmd->data[2] = 1;
+ 	CMD_SET_TYPE(cmd, CMD_COMPL_WAIT);
+ }
+@@ -1328,7 +1330,7 @@ static bool increase_address_space(struct protection_domain *domain,
+ 		return false;
+ 
+ 	*pte             = PM_LEVEL_PDE(domain->mode,
+-					virt_to_phys(domain->pt_root));
++					iommu_virt_to_phys(domain->pt_root));
+ 	domain->pt_root  = pte;
+ 	domain->mode    += 1;
+ 	domain->updated  = true;
+@@ -1365,7 +1367,7 @@ static u64 *alloc_pte(struct protection_domain *domain,
+ 			if (!page)
+ 				return NULL;
+ 
+-			__npte = PM_LEVEL_PDE(level, virt_to_phys(page));
++			__npte = PM_LEVEL_PDE(level, iommu_virt_to_phys(page));
+ 
+ 			/* pte could have been changed somewhere. */
+ 			if (cmpxchg64(pte, __pte, __npte) != __pte) {
+@@ -1481,10 +1483,10 @@ static int iommu_map_page(struct protection_domain *dom,
+ 			return -EBUSY;
+ 
+ 	if (count > 1) {
+-		__pte = PAGE_SIZE_PTE(phys_addr, page_size);
++		__pte = PAGE_SIZE_PTE(__sme_set(phys_addr), page_size);
+ 		__pte |= PM_LEVEL_ENC(7) | IOMMU_PTE_P | IOMMU_PTE_FC;
+ 	} else
+-		__pte = phys_addr | IOMMU_PTE_P | IOMMU_PTE_FC;
++		__pte = __sme_set(phys_addr) | IOMMU_PTE_P | IOMMU_PTE_FC;
+ 
+ 	if (prot & IOMMU_PROT_IR)
+ 		__pte |= IOMMU_PTE_IR;
+@@ -1700,7 +1702,7 @@ static void free_gcr3_tbl_level1(u64 *tbl)
+ 		if (!(tbl[i] & GCR3_VALID))
+ 			continue;
+ 
+-		ptr = __va(tbl[i] & PAGE_MASK);
++		ptr = iommu_phys_to_virt(tbl[i] & PAGE_MASK);
+ 
+ 		free_page((unsigned long)ptr);
+ 	}
+@@ -1715,7 +1717,7 @@ static void free_gcr3_tbl_level2(u64 *tbl)
+ 		if (!(tbl[i] & GCR3_VALID))
+ 			continue;
+ 
+-		ptr = __va(tbl[i] & PAGE_MASK);
++		ptr = iommu_phys_to_virt(tbl[i] & PAGE_MASK);
+ 
+ 		free_gcr3_tbl_level1(ptr);
+ 	}
+@@ -1807,7 +1809,7 @@ static void set_dte_entry(u16 devid, struct protection_domain *domain, bool ats)
+ 	u64 flags = 0;
+ 
+ 	if (domain->mode != PAGE_MODE_NONE)
+-		pte_root = virt_to_phys(domain->pt_root);
++		pte_root = iommu_virt_to_phys(domain->pt_root);
+ 
+ 	pte_root |= (domain->mode & DEV_ENTRY_MODE_MASK)
+ 		    << DEV_ENTRY_MODE_SHIFT;
+@@ -1819,7 +1821,7 @@ static void set_dte_entry(u16 devid, struct protection_domain *domain, bool ats)
+ 		flags |= DTE_FLAG_IOTLB;
+ 
+ 	if (domain->flags & PD_IOMMUV2_MASK) {
+-		u64 gcr3 = __pa(domain->gcr3_tbl);
++		u64 gcr3 = iommu_virt_to_phys(domain->gcr3_tbl);
+ 		u64 glx  = domain->glx;
+ 		u64 tmp;
+ 
+@@ -3470,10 +3472,10 @@ static u64 *__get_gcr3_pte(u64 *root, int level, int pasid, bool alloc)
+ 			if (root == NULL)
+ 				return NULL;
+ 
+-			*pte = __pa(root) | GCR3_VALID;
++			*pte = iommu_virt_to_phys(root) | GCR3_VALID;
+ 		}
+ 
+-		root = __va(*pte & PAGE_MASK);
++		root = iommu_phys_to_virt(*pte & PAGE_MASK);
+ 
+ 		level -= 1;
+ 	}
+@@ -3652,7 +3654,7 @@ static void set_dte_irq_entry(u16 devid, struct irq_remap_table *table)
+ 
+ 	dte	= amd_iommu_dev_table[devid].data[2];
+ 	dte	&= ~DTE_IRQ_PHYS_ADDR_MASK;
+-	dte	|= virt_to_phys(table->table);
++	dte	|= iommu_virt_to_phys(table->table);
+ 	dte	|= DTE_IRQ_REMAP_INTCTL;
+ 	dte	|= DTE_IRQ_TABLE_LEN;
+ 	dte	|= DTE_IRQ_REMAP_ENABLE;
+diff --git a/drivers/iommu/amd_iommu_init.c b/drivers/iommu/amd_iommu_init.c
+index 5a11328..096538c 100644
+--- a/drivers/iommu/amd_iommu_init.c
++++ b/drivers/iommu/amd_iommu_init.c
+@@ -29,6 +29,7 @@
+ #include <linux/export.h>
+ #include <linux/iommu.h>
+ #include <linux/kmemleak.h>
++#include <linux/mem_encrypt.h>
+ #include <asm/pci-direct.h>
+ #include <asm/iommu.h>
+ #include <asm/gart.h>
+@@ -346,7 +347,7 @@ static void iommu_set_device_table(struct amd_iommu *iommu)
+ 
+ 	BUG_ON(iommu->mmio_base == NULL);
+ 
+-	entry = virt_to_phys(amd_iommu_dev_table);
++	entry = iommu_virt_to_phys(amd_iommu_dev_table);
+ 	entry |= (dev_table_size >> 12) - 1;
+ 	memcpy_toio(iommu->mmio_base + MMIO_DEV_TABLE_OFFSET,
+ 			&entry, sizeof(entry));
+@@ -602,7 +603,7 @@ static void iommu_enable_command_buffer(struct amd_iommu *iommu)
+ 
+ 	BUG_ON(iommu->cmd_buf == NULL);
+ 
+-	entry = (u64)virt_to_phys(iommu->cmd_buf);
++	entry = iommu_virt_to_phys(iommu->cmd_buf);
+ 	entry |= MMIO_CMD_SIZE_512;
+ 
+ 	memcpy_toio(iommu->mmio_base + MMIO_CMD_BUF_OFFSET,
+@@ -631,7 +632,7 @@ static void iommu_enable_event_buffer(struct amd_iommu *iommu)
+ 
+ 	BUG_ON(iommu->evt_buf == NULL);
+ 
+-	entry = (u64)virt_to_phys(iommu->evt_buf) | EVT_LEN_MASK;
++	entry = iommu_virt_to_phys(iommu->evt_buf) | EVT_LEN_MASK;
+ 
+ 	memcpy_toio(iommu->mmio_base + MMIO_EVT_BUF_OFFSET,
+ 		    &entry, sizeof(entry));
+@@ -664,7 +665,7 @@ static void iommu_enable_ppr_log(struct amd_iommu *iommu)
+ 	if (iommu->ppr_log == NULL)
+ 		return;
+ 
+-	entry = (u64)virt_to_phys(iommu->ppr_log) | PPR_LOG_SIZE_512;
++	entry = iommu_virt_to_phys(iommu->ppr_log) | PPR_LOG_SIZE_512;
+ 
+ 	memcpy_toio(iommu->mmio_base + MMIO_PPR_LOG_OFFSET,
+ 		    &entry, sizeof(entry));
+@@ -744,10 +745,10 @@ static int iommu_init_ga_log(struct amd_iommu *iommu)
+ 	if (!iommu->ga_log_tail)
+ 		goto err_out;
+ 
+-	entry = (u64)virt_to_phys(iommu->ga_log) | GA_LOG_SIZE_512;
++	entry = iommu_virt_to_phys(iommu->ga_log) | GA_LOG_SIZE_512;
+ 	memcpy_toio(iommu->mmio_base + MMIO_GA_LOG_BASE_OFFSET,
+ 		    &entry, sizeof(entry));
+-	entry = ((u64)virt_to_phys(iommu->ga_log) & 0xFFFFFFFFFFFFFULL) & ~7ULL;
++	entry = (iommu_virt_to_phys(iommu->ga_log) & 0xFFFFFFFFFFFFFULL) & ~7ULL;
+ 	memcpy_toio(iommu->mmio_base + MMIO_GA_LOG_TAIL_OFFSET,
+ 		    &entry, sizeof(entry));
+ 	writel(0x00, iommu->mmio_base + MMIO_GA_HEAD_OFFSET);
+@@ -2535,6 +2536,24 @@ static int __init amd_iommu_init(void)
+ 	return ret;
  }
  
- void __init sme_enable(void)
-diff --git a/arch/x86/mm/mem_encrypt_boot.S b/arch/x86/mm/mem_encrypt_boot.S
-new file mode 100644
-index 0000000..b327e04
---- /dev/null
-+++ b/arch/x86/mm/mem_encrypt_boot.S
-@@ -0,0 +1,149 @@
-+/*
-+ * AMD Memory Encryption Support
-+ *
-+ * Copyright (C) 2016 Advanced Micro Devices, Inc.
-+ *
-+ * Author: Tom Lendacky <thomas.lendacky@amd.com>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
++static bool amd_iommu_sme_check(void)
++{
++	if (!sme_active() || (boot_cpu_data.x86 != 0x17))
++		return true;
 +
-+#include <linux/linkage.h>
-+#include <asm/pgtable.h>
-+#include <asm/page.h>
-+#include <asm/processor-flags.h>
-+#include <asm/msr-index.h>
-+#include <asm/frame.h>
++	/* For Fam17h, a specific level of support is required */
++	if (boot_cpu_data.microcode >= 0x08001205)
++		return true;
 +
-+	.text
-+	.code64
-+ENTRY(sme_encrypt_execute)
++	if ((boot_cpu_data.microcode >= 0x08001126) &&
++	    (boot_cpu_data.microcode <= 0x080011ff))
++		return true;
 +
-+	/*
-+	 * Entry parameters:
-+	 *   RDI - virtual address for the encrypted kernel mapping
-+	 *   RSI - virtual address for the decrypted kernel mapping
-+	 *   RDX - length of kernel
-+	 *   RCX - virtual address of the encryption workarea, including:
-+	 *     - stack page (PAGE_SIZE)
-+	 *     - encryption routine page (PAGE_SIZE)
-+	 *     - intermediate copy buffer (PMD_PAGE_SIZE)
-+	 *    R8 - physcial address of the pagetables to use for encryption
-+	 */
++	pr_notice("AMD-Vi: IOMMU not currently supported when SME is active\n");
 +
-+	FRAME_BEGIN			/* RBP now has original stack pointer */
++	return false;
++}
 +
-+	/* Set up a one page stack in the non-encrypted memory area */
-+	movq	%rcx, %rax		/* Workarea stack page */
-+	leaq	PAGE_SIZE(%rax), %rsp	/* Set new stack pointer */
-+	addq	$PAGE_SIZE, %rax	/* Workarea encryption routine */
+ /****************************************************************************
+  *
+  * Early detect code. This code runs at IOMMU detection time in the DMA
+@@ -2552,6 +2571,9 @@ int __init amd_iommu_detect(void)
+ 	if (amd_iommu_disabled)
+ 		return -ENODEV;
+ 
++	if (!amd_iommu_sme_check())
++		return -ENODEV;
 +
-+	push	%r12
-+	movq	%rdi, %r10		/* Encrypted kernel */
-+	movq	%rsi, %r11		/* Decrypted kernel */
-+	movq	%rdx, %r12		/* Kernel length */
+ 	ret = iommu_go_to_state(IOMMU_IVRS_DETECTED);
+ 	if (ret)
+ 		return ret;
+diff --git a/drivers/iommu/amd_iommu_proto.h b/drivers/iommu/amd_iommu_proto.h
+index 466260f..3f12fb2 100644
+--- a/drivers/iommu/amd_iommu_proto.h
++++ b/drivers/iommu/amd_iommu_proto.h
+@@ -87,4 +87,14 @@ static inline bool iommu_feature(struct amd_iommu *iommu, u64 f)
+ 	return !!(iommu->features & f);
+ }
+ 
++static inline u64 iommu_virt_to_phys(void *vaddr)
++{
++	return (u64)__sme_set(virt_to_phys(vaddr));
++}
 +
-+	/* Copy encryption routine into the workarea */
-+	movq	%rax, %rdi				/* Workarea encryption routine */
-+	leaq	__enc_copy(%rip), %rsi			/* Encryption routine */
-+	movq	$(.L__enc_copy_end - __enc_copy), %rcx	/* Encryption routine length */
-+	rep	movsb
++static inline void *iommu_phys_to_virt(unsigned long paddr)
++{
++	return phys_to_virt(__sme_clr(paddr));
++}
 +
-+	/* Setup registers for call */
-+	movq	%r10, %rdi		/* Encrypted kernel */
-+	movq	%r11, %rsi		/* Decrypted kernel */
-+	movq	%r8, %rdx		/* Pagetables used for encryption */
-+	movq	%r12, %rcx		/* Kernel length */
-+	movq	%rax, %r8		/* Workarea encryption routine */
-+	addq	$PAGE_SIZE, %r8		/* Workarea intermediate copy buffer */
-+
-+	call	*%rax			/* Call the encryption routine */
-+
-+	pop	%r12
-+
-+	movq	%rbp, %rsp		/* Restore original stack pointer */
-+	FRAME_END
-+
-+	ret
-+ENDPROC(sme_encrypt_execute)
-+
-+ENTRY(__enc_copy)
-+/*
-+ * Routine used to encrypt kernel.
-+ *   This routine must be run outside of the kernel proper since
-+ *   the kernel will be encrypted during the process. So this
-+ *   routine is defined here and then copied to an area outside
-+ *   of the kernel where it will remain and run decrypted
-+ *   during execution.
-+ *
-+ *   On entry the registers must be:
-+ *     RDI - virtual address for the encrypted kernel mapping
-+ *     RSI - virtual address for the decrypted kernel mapping
-+ *     RDX - address of the pagetables to use for encryption
-+ *     RCX - length of kernel
-+ *      R8 - intermediate copy buffer
-+ *
-+ *     RAX - points to this routine
-+ *
-+ * The kernel will be encrypted by copying from the non-encrypted
-+ * kernel space to an intermediate buffer and then copying from the
-+ * intermediate buffer back to the encrypted kernel space. The physical
-+ * addresses of the two kernel space mappings are the same which
-+ * results in the kernel being encrypted "in place".
-+ */
-+	/* Enable the new page tables */
-+	mov	%rdx, %cr3
-+
-+	/* Flush any global TLBs */
-+	mov	%cr4, %rdx
-+	andq	$~X86_CR4_PGE, %rdx
-+	mov	%rdx, %cr4
-+	orq	$X86_CR4_PGE, %rdx
-+	mov	%rdx, %cr4
-+
-+	/* Set the PAT register PA5 entry to write-protect */
-+	push	%rcx
-+	movl	$MSR_IA32_CR_PAT, %ecx
-+	rdmsr
-+	push	%rdx			/* Save original PAT value */
-+	andl	$0xffff00ff, %edx	/* Clear PA5 */
-+	orl	$0x00000500, %edx	/* Set PA5 to WP */
-+	wrmsr
-+	pop	%rdx			/* RDX contains original PAT value */
-+	pop	%rcx
-+
-+	movq	%rcx, %r9		/* Save kernel length */
-+	movq	%rdi, %r10		/* Save encrypted kernel address */
-+	movq	%rsi, %r11		/* Save decrypted kernel address */
-+
-+	wbinvd				/* Invalidate any cache entries */
-+
-+	/* Copy/encrypt 2MB at a time */
-+1:
-+	movq	%r11, %rsi		/* Source - decrypted kernel */
-+	movq	%r8, %rdi		/* Dest   - intermediate copy buffer */
-+	movq	$PMD_PAGE_SIZE, %rcx	/* 2MB length */
-+	rep	movsb
-+
-+	movq	%r8, %rsi		/* Source - intermediate copy buffer */
-+	movq	%r10, %rdi		/* Dest   - encrypted kernel */
-+	movq	$PMD_PAGE_SIZE, %rcx	/* 2MB length */
-+	rep	movsb
-+
-+	addq	$PMD_PAGE_SIZE, %r11
-+	addq	$PMD_PAGE_SIZE, %r10
-+	subq	$PMD_PAGE_SIZE, %r9	/* Kernel length decrement */
-+	jnz	1b			/* Kernel length not zero? */
-+
-+	/* Restore PAT register */
-+	push	%rdx			/* Save original PAT value */
-+	movl	$MSR_IA32_CR_PAT, %ecx
-+	rdmsr
-+	pop	%rdx			/* Restore original PAT value */
-+	wrmsr
-+
-+	ret
-+.L__enc_copy_end:
-+ENDPROC(__enc_copy)
+ #endif /* _ASM_X86_AMD_IOMMU_PROTO_H  */
+diff --git a/drivers/iommu/amd_iommu_types.h b/drivers/iommu/amd_iommu_types.h
+index 4de8f41..3ce587d 100644
+--- a/drivers/iommu/amd_iommu_types.h
++++ b/drivers/iommu/amd_iommu_types.h
+@@ -343,7 +343,7 @@
+ 
+ #define IOMMU_PAGE_MASK (((1ULL << 52) - 1) & ~0xfffULL)
+ #define IOMMU_PTE_PRESENT(pte) ((pte) & IOMMU_PTE_P)
+-#define IOMMU_PTE_PAGE(pte) (phys_to_virt((pte) & IOMMU_PAGE_MASK))
++#define IOMMU_PTE_PAGE(pte) (iommu_phys_to_virt((pte) & IOMMU_PAGE_MASK))
+ #define IOMMU_PTE_MODE(pte) (((pte) >> 9) & 0x07)
+ 
+ #define IOMMU_PROT_MASK 0x03
