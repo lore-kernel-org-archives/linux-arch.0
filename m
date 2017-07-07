@@ -1,140 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:58922 "EHLO
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:57818 "EHLO
         mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1752578AbdGGT2x (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 7 Jul 2017 15:28:53 -0400
-Received: from pps.filterd (m0098421.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.20/8.16.0.20) with SMTP id v67JSk6d079098
-        for <linux-arch@vger.kernel.org>; Fri, 7 Jul 2017 15:28:47 -0400
-Received: from e12.ny.us.ibm.com (e12.ny.us.ibm.com [129.33.205.202])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2bjdxd5afn-1
+        by vger.kernel.org with ESMTP id S1751659AbdGGT2d (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 7 Jul 2017 15:28:33 -0400
+Received: from pps.filterd (m0098419.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.20/8.16.0.20) with SMTP id v67JSUkn090401
+        for <linux-arch@vger.kernel.org>; Fri, 7 Jul 2017 15:28:33 -0400
+Received: from e16.ny.us.ibm.com (e16.ny.us.ibm.com [129.33.205.206])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2bjaqanwvu-1
         (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Fri, 07 Jul 2017 15:28:46 -0400
+        for <linux-arch@vger.kernel.org>; Fri, 07 Jul 2017 15:28:33 -0400
 Received: from localhost
-        by e12.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        by e16.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
         for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Fri, 7 Jul 2017 15:28:33 -0400
+        Fri, 7 Jul 2017 15:28:32 -0400
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: [PATCH v3 1/9] net/netfilter/nf_conntrack_core: Fix net_conntrack_lock()
-Date: Fri,  7 Jul 2017 12:28:18 -0700
+Subject: [PATCH v3 4/9] completion: Replace spin_unlock_wait() with lock/unlock pair
+Date: Fri,  7 Jul 2017 12:28:21 -0700
 In-Reply-To: <20170707192704.GA6144@linux.vnet.ibm.com>
 References: <20170707192704.GA6144@linux.vnet.ibm.com>
-Message-ID: <1499455706-9398-1-git-send-email-paulmck@linux.vnet.ibm.com>
+Message-ID: <1499455706-9398-4-git-send-email-paulmck@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: netfilter-devel@vger.kernel.org, netdev@vger.kernel.org, oleg@redhat.com, akpm@linux-foundation.org, mingo@redhat.com, dave@stgolabs.net, manfred@colorfullife.com, tj@kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, will.deacon@arm.com, peterz@infradead.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, torvalds@linux-foundation.org, stable@vger.kernel.org, Sasha Levin <sasha.levin@oracle.com>, Pablo Neira Ayuso <pablo@netfilter.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Message-ID: <20170707192818.HfZY3ZslNoZTtSrSdAyqx_HmPWCbd5zdedWhrptcELs@z>
+Cc: netfilter-devel@vger.kernel.org, netdev@vger.kernel.org, oleg@redhat.com, akpm@linux-foundation.org, mingo@redhat.com, dave@stgolabs.net, manfred@colorfullife.com, tj@kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, will.deacon@arm.com, peterz@infradead.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, torvalds@linux-foundation.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Message-ID: <20170707192821.D3O7MFF233a4nfbnOfMEpf2hzpITBJ8DK9vOrlHXsIU@z>
 
-From: Manfred Spraul <manfred@colorfullife.com>
+There is no agreed-upon definition of spin_unlock_wait()'s semantics,
+and it appears that all callers could do just as well with a lock/unlock
+pair.  This commit therefore replaces the spin_unlock_wait() call in
+completion_done() with spin_lock() followed immediately by spin_unlock().
+This should be safe from a performance perspective because the lock
+will be held only the wakeup happens really quickly.
 
-As we want to remove spin_unlock_wait() and replace it with explicit
-spin_lock()/spin_unlock() calls, we can use this to simplify the
-locking.
-
-In addition:
-- Reading nf_conntrack_locks_all needs ACQUIRE memory ordering.
-- The new code avoids the backwards loop.
-
-Only slightly tested, I did not manage to trigger calls to
-nf_conntrack_all_lock().
-
-V2: With improved comments, to clearly show how the barriers
-    pair.
-
-Fixes: b16c29191dc8 ("netfilter: nf_conntrack: use safer way to lock all buckets")
-Signed-off-by: Manfred Spraul <manfred@colorfullife.com>
-Cc: <stable@vger.kernel.org>
-Cc: Alan Stern <stern@rowland.harvard.edu>
-Cc: Sasha Levin <sasha.levin@oracle.com>
-Cc: Pablo Neira Ayuso <pablo@netfilter.org>
-Cc: netfilter-devel@vger.kernel.org
 Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: Alan Stern <stern@rowland.harvard.edu>
+Cc: Andrea Parri <parri.andrea@gmail.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
 ---
- net/netfilter/nf_conntrack_core.c | 52 ++++++++++++++++++++++-----------------
- 1 file changed, 29 insertions(+), 23 deletions(-)
+ kernel/sched/completion.c | 9 ++-------
+ 1 file changed, 2 insertions(+), 7 deletions(-)
 
-diff --git a/net/netfilter/nf_conntrack_core.c b/net/netfilter/nf_conntrack_core.c
-index e847dbaa0c6b..e0560c41e371 100644
---- a/net/netfilter/nf_conntrack_core.c
-+++ b/net/netfilter/nf_conntrack_core.c
-@@ -96,19 +96,26 @@ static struct conntrack_gc_work conntrack_gc_work;
- 
- void nf_conntrack_lock(spinlock_t *lock) __acquires(lock)
- {
-+	/* 1) Acquire the lock */
- 	spin_lock(lock);
--	while (unlikely(nf_conntrack_locks_all)) {
--		spin_unlock(lock);
- 
--		/*
--		 * Order the 'nf_conntrack_locks_all' load vs. the
--		 * spin_unlock_wait() loads below, to ensure
--		 * that 'nf_conntrack_locks_all_lock' is indeed held:
--		 */
--		smp_rmb(); /* spin_lock(&nf_conntrack_locks_all_lock) */
--		spin_unlock_wait(&nf_conntrack_locks_all_lock);
--		spin_lock(lock);
--	}
-+	/* 2) read nf_conntrack_locks_all, with ACQUIRE semantics
-+	 * It pairs with the smp_store_release() in nf_conntrack_all_unlock()
-+	 */
-+	if (likely(smp_load_acquire(&nf_conntrack_locks_all) == false))
-+		return;
-+
-+	/* fast path failed, unlock */
-+	spin_unlock(lock);
-+
-+	/* Slow path 1) get global lock */
-+	spin_lock(&nf_conntrack_locks_all_lock);
-+
-+	/* Slow path 2) get the lock we want */
-+	spin_lock(lock);
-+
-+	/* Slow path 3) release the global lock */
-+	spin_unlock(&nf_conntrack_locks_all_lock);
- }
- EXPORT_SYMBOL_GPL(nf_conntrack_lock);
- 
-@@ -149,28 +156,27 @@ static void nf_conntrack_all_lock(void)
- 	int i;
- 
- 	spin_lock(&nf_conntrack_locks_all_lock);
--	nf_conntrack_locks_all = true;
- 
--	/*
--	 * Order the above store of 'nf_conntrack_locks_all' against
--	 * the spin_unlock_wait() loads below, such that if
--	 * nf_conntrack_lock() observes 'nf_conntrack_locks_all'
--	 * we must observe nf_conntrack_locks[] held:
--	 */
--	smp_mb(); /* spin_lock(&nf_conntrack_locks_all_lock) */
-+	nf_conntrack_locks_all = true;
- 
- 	for (i = 0; i < CONNTRACK_LOCKS; i++) {
--		spin_unlock_wait(&nf_conntrack_locks[i]);
-+		spin_lock(&nf_conntrack_locks[i]);
-+
-+		/* This spin_unlock provides the "release" to ensure that
-+		 * nf_conntrack_locks_all==true is visible to everyone that
-+		 * acquired spin_lock(&nf_conntrack_locks[]).
-+		 */
-+		spin_unlock(&nf_conntrack_locks[i]);
- 	}
- }
- 
- static void nf_conntrack_all_unlock(void)
- {
--	/*
--	 * All prior stores must be complete before we clear
-+	/* All prior stores must be complete before we clear
- 	 * 'nf_conntrack_locks_all'. Otherwise nf_conntrack_lock()
- 	 * might observe the false value but not the entire
--	 * critical section:
-+	 * critical section.
-+	 * It pairs with the smp_load_acquire() in nf_conntrack_lock()
+diff --git a/kernel/sched/completion.c b/kernel/sched/completion.c
+index 53f9558fa925..3e66712e1964 100644
+--- a/kernel/sched/completion.c
++++ b/kernel/sched/completion.c
+@@ -307,14 +307,9 @@ bool completion_done(struct completion *x)
+ 	 * If ->done, we need to wait for complete() to release ->wait.lock
+ 	 * otherwise we can end up freeing the completion before complete()
+ 	 * is done referencing it.
+-	 *
+-	 * The RMB pairs with complete()'s RELEASE of ->wait.lock and orders
+-	 * the loads of ->done and ->wait.lock such that we cannot observe
+-	 * the lock before complete() acquires it while observing the ->done
+-	 * after it's acquired the lock.
  	 */
- 	smp_store_release(&nf_conntrack_locks_all, false);
- 	spin_unlock(&nf_conntrack_locks_all_lock);
+-	smp_rmb();
+-	spin_unlock_wait(&x->wait.lock);
++	spin_lock_irq(&x->wait.lock);
++	spin_unlock_irq(&x->wait.lock);
+ 	return true;
+ }
+ EXPORT_SYMBOL(completion_done);
 -- 
 2.5.2
