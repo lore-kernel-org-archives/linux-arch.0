@@ -1,69 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:57818 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1751659AbdGGT2d (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 7 Jul 2017 15:28:33 -0400
-Received: from pps.filterd (m0098419.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.20/8.16.0.20) with SMTP id v67JSUkn090401
-        for <linux-arch@vger.kernel.org>; Fri, 7 Jul 2017 15:28:33 -0400
-Received: from e16.ny.us.ibm.com (e16.ny.us.ibm.com [129.33.205.206])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 2bjaqanwvu-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Fri, 07 Jul 2017 15:28:33 -0400
-Received: from localhost
-        by e16.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Fri, 7 Jul 2017 15:28:32 -0400
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: [PATCH v3 4/9] completion: Replace spin_unlock_wait() with lock/unlock pair
-Date: Fri,  7 Jul 2017 12:28:21 -0700
-In-Reply-To: <20170707192704.GA6144@linux.vnet.ibm.com>
-References: <20170707192704.GA6144@linux.vnet.ibm.com>
-Message-ID: <1499455706-9398-4-git-send-email-paulmck@linux.vnet.ibm.com>
+Received: from mail-wr0-f181.google.com ([209.85.128.181]:33825 "EHLO
+        mail-wr0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751927AbdGHIfs (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 8 Jul 2017 04:35:48 -0400
+Date: Sat, 8 Jul 2017 10:35:43 +0200
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH v2 0/9] Remove spin_unlock_wait()
+Message-ID: <20170708083543.tnr7yyhojmyiluw4@gmail.com>
+References: <20170629235918.GA6445@linux.vnet.ibm.com>
+ <20170705232955.GA15992@linux.vnet.ibm.com>
+ <063D6719AE5E284EB5DD2968C1650D6DD0033F01@AcuExch.aculab.com>
+ <20170706160555.xc63yydk77gmttae@hirez.programming.kicks-ass.net>
+ <20170706162024.GD2393@linux.vnet.ibm.com>
+ <20170706165036.v4u5rbz56si4emw5@hirez.programming.kicks-ass.net>
+ <20170707083128.wqk6msuuhtyykhpu@gmail.com>
+ <48164d9a-f291-94f3-e0b1-98bb312bf846@colorfullife.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <48164d9a-f291-94f3-e0b1-98bb312bf846@colorfullife.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: netfilter-devel@vger.kernel.org, netdev@vger.kernel.org, oleg@redhat.com, akpm@linux-foundation.org, mingo@redhat.com, dave@stgolabs.net, manfred@colorfullife.com, tj@kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, will.deacon@arm.com, peterz@infradead.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, torvalds@linux-foundation.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Message-ID: <20170707192821.D3O7MFF233a4nfbnOfMEpf2hzpITBJ8DK9vOrlHXsIU@z>
+To: Manfred Spraul <manfred@colorfullife.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, David Laight <David.Laight@ACULAB.COM>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netfilter-devel@vger.kernel.org" <netfilter-devel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "oleg@redhat.com" <oleg@redhat.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@redhat.com" <mingo@redhat.com>, "dave@stgolabs.net" <dave@stgolabs.net>, "tj@kernel.org" <tj@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "will.deacon@arm.com" <will.deacon@arm.com>, "stern@rowland.harvard.edu" <stern@rowland.harvard.edu>, "parri.andrea@gmail.com" <parri.andrea@gmail.com>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>
+Message-ID: <20170708083543.IWT_PEts1wrsGyXEc5VbhsH1ljqUp7S9LXKHmzC3RGg@z>
 
-There is no agreed-upon definition of spin_unlock_wait()'s semantics,
-and it appears that all callers could do just as well with a lock/unlock
-pair.  This commit therefore replaces the spin_unlock_wait() call in
-completion_done() with spin_lock() followed immediately by spin_unlock().
-This should be safe from a performance perspective because the lock
-will be held only the wakeup happens really quickly.
 
-Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: Alan Stern <stern@rowland.harvard.edu>
-Cc: Andrea Parri <parri.andrea@gmail.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
----
- kernel/sched/completion.c | 9 ++-------
- 1 file changed, 2 insertions(+), 7 deletions(-)
+* Manfred Spraul <manfred@colorfullife.com> wrote:
 
-diff --git a/kernel/sched/completion.c b/kernel/sched/completion.c
-index 53f9558fa925..3e66712e1964 100644
---- a/kernel/sched/completion.c
-+++ b/kernel/sched/completion.c
-@@ -307,14 +307,9 @@ bool completion_done(struct completion *x)
- 	 * If ->done, we need to wait for complete() to release ->wait.lock
- 	 * otherwise we can end up freeing the completion before complete()
- 	 * is done referencing it.
--	 *
--	 * The RMB pairs with complete()'s RELEASE of ->wait.lock and orders
--	 * the loads of ->done and ->wait.lock such that we cannot observe
--	 * the lock before complete() acquires it while observing the ->done
--	 * after it's acquired the lock.
- 	 */
--	smp_rmb();
--	spin_unlock_wait(&x->wait.lock);
-+	spin_lock_irq(&x->wait.lock);
-+	spin_unlock_irq(&x->wait.lock);
- 	return true;
- }
- EXPORT_SYMBOL(completion_done);
--- 
-2.5.2
+> Hi Ingo,
+> 
+> On 07/07/2017 10:31 AM, Ingo Molnar wrote:
+> > 
+> > There's another, probably just as significant advantage: queued_spin_unlock_wait()
+> > is 'read-only', while spin_lock()+spin_unlock() dirties the lock cache line. On
+> > any bigger system this should make a very measurable difference - if
+> > spin_unlock_wait() is ever used in a performance critical code path.
+> At least for ipc/sem:
+> Dirtying the cacheline (in the slow path) allows to remove a smp_mb() in the
+> hot path.
+> So for sem_lock(), I either need a primitive that dirties the cacheline or
+> sem_lock() must continue to use spin_lock()/spin_unlock().
+
+Technically you could use spin_trylock()+spin_unlock() and avoid the lock acquire 
+spinning on spin_unlock() and get very close to the slow path performance of a 
+pure cacheline-dirtying behavior.
+
+But adding something like spin_barrier(), which purely dirties the lock cacheline, 
+would be even faster, right?
+
+Thanks,
+
+	Ingo
