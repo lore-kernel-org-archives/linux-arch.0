@@ -1,46 +1,26 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:51624 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1752715AbdGHOp6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 8 Jul 2017 10:45:58 -0400
-Received: from pps.filterd (m0098396.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id v68EiHYQ061404
-        for <linux-arch@vger.kernel.org>; Sat, 8 Jul 2017 10:45:58 -0400
-Received: from e16.ny.us.ibm.com (e16.ny.us.ibm.com [129.33.205.206])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2bjuknyseh-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Sat, 08 Jul 2017 10:45:58 -0400
-Received: from localhost
-        by e16.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Sat, 8 Jul 2017 10:45:56 -0400
-Date: Sat, 8 Jul 2017 07:45:50 -0700
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Received: from netrider.rowland.org ([192.131.102.5]:47681 "HELO
+        netrider.rowland.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with SMTP id S1752847AbdGHQVz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 8 Jul 2017 12:21:55 -0400
+Date: Sat, 8 Jul 2017 12:21:53 -0400 (EDT)
+From: Alan Stern <stern@rowland.harvard.edu>
 Subject: Re: [PATCH v2 0/9] Remove spin_unlock_wait()
-Reply-To: paulmck@linux.vnet.ibm.com
-References: <20170705232955.GA15992@linux.vnet.ibm.com>
- <063D6719AE5E284EB5DD2968C1650D6DD0033F01@AcuExch.aculab.com>
- <20170706160555.xc63yydk77gmttae@hirez.programming.kicks-ass.net>
- <20170706162024.GD2393@linux.vnet.ibm.com>
- <20170706165036.v4u5rbz56si4emw5@hirez.programming.kicks-ass.net>
- <20170707083128.wqk6msuuhtyykhpu@gmail.com>
- <48164d9a-f291-94f3-e0b1-98bb312bf846@colorfullife.com>
- <20170708083543.tnr7yyhojmyiluw4@gmail.com>
- <20170708113946.GN2393@linux.vnet.ibm.com>
- <20170708123018.qiwmyf3x43i4pgsg@gmail.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
 In-Reply-To: <20170708123018.qiwmyf3x43i4pgsg@gmail.com>
-Message-ID: <20170708144550.GQ2393@linux.vnet.ibm.com>
+Message-ID: <Pine.LNX.4.44L0.1707081157020.17878-100000@netrider.rowland.org>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@kernel.org>
-Cc: Manfred Spraul <manfred@colorfullife.com>, Peter Zijlstra <peterz@infradead.org>, David Laight <David.Laight@ACULAB.COM>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netfilter-devel@vger.kernel.org" <netfilter-devel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "oleg@redhat.com" <oleg@redhat.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@redhat.com" <mingo@redhat.com>, "dave@stgolabs.net" <dave@stgolabs.net>, "tj@kernel.org" <tj@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "will.deacon@arm.com" <will.deacon@arm.com>, "stern@rowland.harvard.edu" <stern@rowland.harvard.edu>, "parri.andrea@gmail.com" <parri.andrea@gmail.com>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>
-Message-ID: <20170708144550.Ko5z1yaVTMJZDwxaguUBFy1DLHQVvDBVJzbnq51G3Yk@z>
+Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Manfred Spraul <manfred@colorfullife.com>, Peter Zijlstra <peterz@infradead.org>, David Laight <David.Laight@ACULAB.COM>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netfilter-devel@vger.kernel.org" <netfilter-devel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "oleg@redhat.com" <oleg@redhat.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@redhat.com" <mingo@redhat.com>, "dave@stgolabs.net" <dave@stgolabs.net>, "tj@kernel.org" <tj@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "will.deacon@arm.com" <will.deacon@arm.com>, "parri.andrea@gmail.com" <parri.andrea@gmail.com>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>
+Message-ID: <20170708162153.E2KQU3Jp_NBgIJ6qY3fyJZrnbD2xNANQeLEBueV45kA@z>
 
-On Sat, Jul 08, 2017 at 02:30:19PM +0200, Ingo Molnar wrote:
-> 
+Pardon me for barging in, but I found this whole interchange extremely 
+confusing...
+
+On Sat, 8 Jul 2017, Ingo Molnar wrote:
+
 > * Paul E. McKenney <paulmck@linux.vnet.ibm.com> wrote:
 > 
 > > On Sat, Jul 08, 2017 at 10:35:43AM +0200, Ingo Molnar wrote:
@@ -60,11 +40,19 @@ On Sat, Jul 08, 2017 at 02:30:19PM +0200, Ingo Molnar wrote:
 > > > > hot path.
 > > > > So for sem_lock(), I either need a primitive that dirties the cacheline or
 > > > > sem_lock() must continue to use spin_lock()/spin_unlock().
-> > > 
+
+This statement doesn't seem to make sense.  Did Manfred mean to write 
+"smp_mb()" instead of "spin_lock()/spin_unlock()"?
+
 > > > Technically you could use spin_trylock()+spin_unlock() and avoid the lock acquire 
 > > > spinning on spin_unlock() and get very close to the slow path performance of a 
 > > > pure cacheline-dirtying behavior.
-> > > 
+
+This is even more confusing.  Did Ingo mean to suggest using 
+"spin_trylock()+spin_unlock()" in place of "spin_lock()+spin_unlock()" 
+could provide the desired ordering guarantee without delaying other 
+CPUs that may try to acquire the lock?  That seems highly questionable.
+
 > > > But adding something like spin_barrier(), which purely dirties the lock cacheline, 
 > > > would be even faster, right?
 > > 
@@ -79,19 +67,21 @@ On Sat, Jul 08, 2017 at 02:30:19PM +0200, Ingo Molnar wrote:
 > 	if (spin_trylock(lock))
 > 		spin_unlock(lock);
 > }
-> 
+
+How could this possibly be a generic version of spin_unlock_wait()?  
+It does nothing at all (with no ordering properties) if some other CPU
+currently holds the lock, whereas the real spin_unlock_wait() would
+wait until the other CPU released the lock (or possibly longer).
+
+And if no other CPU currently holds the lock, this has exactly the same
+performance properties as spin_lock()+spin_unlock(), so what's the
+advantage?
+
+Alan Stern
+
 > ... and perhaps rename it to spin_barrier() [or whatever proper name there would 
 > be]?
-
-As lockdep, 0day Test Robot, Linus Torvalds, and several others let me
-know in response to my original (thankfully RFC!) patch series, this needs
-to disable irqs to work in the general case.  For example, if the lock
-in question is an irq-disabling lock, you take an interrupt just after
-a successful spin_trylock(), and that interrupt acquires the same lock,
-the actuarial statistics of your kernel degrade sharply and suddenly.
-
-What I get for sending out untested patches!  :-/
-
+> 
 > Architectures can still optimize it, to remove the small window where the lock is 
 > held locally - as long as the ordering is at least as strong as the generic 
 > version.
@@ -108,15 +98,7 @@ What I get for sending out untested patches!  :-/
 >    held locally - if there's such instructions available.
 > 
 > Was this proposed before, or am I missing something?
-
-It was sort of proposed...
-
-https://marc.info/?l=linux-arch&m=149912878628355&w=2
-
-But do we have a situation where normal usage of spin_lock() and
-spin_unlock() is causing performance or scalability trouble?
-
-(We do have at least one situation in fnic that appears to be buggy use of
-spin_is_locked(), and proposing a patch for that case in on my todo list.)
-
-							Thanx, Paul
+> 
+> Thanks,
+> 
+> 	Ingo
