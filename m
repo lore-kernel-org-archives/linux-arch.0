@@ -1,73 +1,106 @@
-From: Brian Gerst <brgerst@gmail.com>
-Subject: Re: [PATCH v9 07/38] x86/mm: Remove phys_to_virt() usage in ioremap()
-Date: Sat, 8 Jul 2017 08:57:27 -0400
-Message-ID: <CAMzpN2h=AAF6OVfeGJnf5va2Msmd_BPU5BrVENvs0zGQtRMdzQ@mail.gmail.com>
-References: <20170707133804.29711.1616.stgit@tlendack-t1.amdoffice.net> <20170707133925.29711.39301.stgit@tlendack-t1.amdoffice.net>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [PATCH v2 0/9] Remove spin_unlock_wait()
+Date: Sat, 8 Jul 2017 07:45:50 -0700
+Message-ID: <20170708144550.GQ2393@linux.vnet.ibm.com>
+References: <20170705232955.GA15992@linux.vnet.ibm.com>
+ <063D6719AE5E284EB5DD2968C1650D6DD0033F01@AcuExch.aculab.com>
+ <20170706160555.xc63yydk77gmttae@hirez.programming.kicks-ass.net>
+ <20170706162024.GD2393@linux.vnet.ibm.com>
+ <20170706165036.v4u5rbz56si4emw5@hirez.programming.kicks-ass.net>
+ <20170707083128.wqk6msuuhtyykhpu@gmail.com>
+ <48164d9a-f291-94f3-e0b1-98bb312bf846@colorfullife.com>
+ <20170708083543.tnr7yyhojmyiluw4@gmail.com>
+ <20170708113946.GN2393@linux.vnet.ibm.com>
+ <20170708123018.qiwmyf3x43i4pgsg@gmail.com>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20170707133925.29711.39301.stgit@tlendack-t1.amdoffice.net>
-Sender: owner-linux-mm@kvack.org
-To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, the arch/x86 maintainers <x86@kernel.org>, kexec@lists.infradead.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, Linux-MM <linux-mm@kvack.org>, iommu@lists.linux-foundation.org, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20170708123018.qiwmyf3x43i4pgsg@gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Manfred Spraul <manfred@colorfullife.com>, Peter Zijlstra <peterz@infradead.org>, David Laight <David.Laight@ACULAB.COM>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netfilter-devel@vger.kernel.org" <netfilter-devel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "oleg@redhat.com" <oleg@redhat.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@redhat.com" <mingo@redhat.com>, "dave@stgolabs.net" <dave@stgolabs.net>, "tj@kernel.org" <tj@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "will.deacon@arm.com" <will.deacon@arm.com>, "stern@rowland.harvard.edu" <stern@rowland.harvard.edu>, "parri.andrea@gmail.com" <parri.andrea@gmail.com>, torvalds@linux-fou
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jul 7, 2017 at 9:39 AM, Tom Lendacky <thomas.lendacky@amd.com> wrote:
-> Currently there is a check if the address being mapped is in the ISA
-> range (is_ISA_range()), and if it is, then phys_to_virt() is used to
-> perform the mapping. When SME is active, the default is to add pagetable
-> mappings with the encryption bit set unless specifically overridden. The
-> resulting pagetable mapping from phys_to_virt() will result in a mapping
-> that has the encryption bit set. With SME, the use of ioremap() is
-> intended to generate pagetable mappings that do not have the encryption
-> bit set through the use of the PAGE_KERNEL_IO protection value.
->
-> Rather than special case the SME scenario, remove the ISA range check and
-> usage of phys_to_virt() and have ISA range mappings continue through the
-> remaining ioremap() path.
->
-> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
-> ---
->  arch/x86/mm/ioremap.c |    7 +------
->  1 file changed, 1 insertion(+), 6 deletions(-)
->
-> diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
-> index 4c1b5fd..bfc3e2d 100644
-> --- a/arch/x86/mm/ioremap.c
-> +++ b/arch/x86/mm/ioremap.c
-> @@ -13,6 +13,7 @@
->  #include <linux/slab.h>
->  #include <linux/vmalloc.h>
->  #include <linux/mmiotrace.h>
-> +#include <linux/mem_encrypt.h>
->
->  #include <asm/set_memory.h>
->  #include <asm/e820/api.h>
-> @@ -106,12 +107,6 @@ static void __iomem *__ioremap_caller(resource_size_t phys_addr,
->         }
->
->         /*
-> -        * Don't remap the low PCI/ISA area, it's always mapped..
-> -        */
-> -       if (is_ISA_range(phys_addr, last_addr))
-> -               return (__force void __iomem *)phys_to_virt(phys_addr);
-> -
-> -       /*
->          * Don't allow anybody to remap normal RAM that we're using..
->          */
->         pfn      = phys_addr >> PAGE_SHIFT;
->
+On Sat, Jul 08, 2017 at 02:30:19PM +0200, Ingo Molnar wrote:
+> 
+> * Paul E. McKenney <paulmck@linux.vnet.ibm.com> wrote:
+> 
+> > On Sat, Jul 08, 2017 at 10:35:43AM +0200, Ingo Molnar wrote:
+> > > 
+> > > * Manfred Spraul <manfred@colorfullife.com> wrote:
+> > > 
+> > > > Hi Ingo,
+> > > > 
+> > > > On 07/07/2017 10:31 AM, Ingo Molnar wrote:
+> > > > > 
+> > > > > There's another, probably just as significant advantage: queued_spin_unlock_wait()
+> > > > > is 'read-only', while spin_lock()+spin_unlock() dirties the lock cache line. On
+> > > > > any bigger system this should make a very measurable difference - if
+> > > > > spin_unlock_wait() is ever used in a performance critical code path.
+> > > > At least for ipc/sem:
+> > > > Dirtying the cacheline (in the slow path) allows to remove a smp_mb() in the
+> > > > hot path.
+> > > > So for sem_lock(), I either need a primitive that dirties the cacheline or
+> > > > sem_lock() must continue to use spin_lock()/spin_unlock().
+> > > 
+> > > Technically you could use spin_trylock()+spin_unlock() and avoid the lock acquire 
+> > > spinning on spin_unlock() and get very close to the slow path performance of a 
+> > > pure cacheline-dirtying behavior.
+> > > 
+> > > But adding something like spin_barrier(), which purely dirties the lock cacheline, 
+> > > would be even faster, right?
+> > 
+> > Interestingly enough, the arm64 and powerpc implementations of
+> > spin_unlock_wait() were very close to what it sounds like you are
+> > describing.
+> 
+> So could we perhaps solve all our problems by defining the generic version thusly:
+> 
+> void spin_unlock_wait(spinlock_t *lock)
+> {
+> 	if (spin_trylock(lock))
+> 		spin_unlock(lock);
+> }
+> 
+> ... and perhaps rename it to spin_barrier() [or whatever proper name there would 
+> be]?
 
-Removing this also affects 32-bit, which is more likely to access
-legacy devices in this range.  Put in a check for SME instead
-(provided you follow my recommendations to not set the SME feature bit
-on 32-bit even when the processor supports it).
+As lockdep, 0day Test Robot, Linus Torvalds, and several others let me
+know in response to my original (thankfully RFC!) patch series, this needs
+to disable irqs to work in the general case.  For example, if the lock
+in question is an irq-disabling lock, you take an interrupt just after
+a successful spin_trylock(), and that interrupt acquires the same lock,
+the actuarial statistics of your kernel degrade sharply and suddenly.
 
---
-Brian Gerst
+What I get for sending out untested patches!  :-/
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+> Architectures can still optimize it, to remove the small window where the lock is 
+> held locally - as long as the ordering is at least as strong as the generic 
+> version.
+> 
+> This would have various advantages:
+> 
+>  - semantics are well-defined
+> 
+>  - the generic implementation is already pretty well optimized (no spinning)
+> 
+>  - it would make it usable for the IPC performance optimization
+> 
+>  - architectures could still optimize it to eliminate the window where the lock is
+>    held locally - if there's such instructions available.
+> 
+> Was this proposed before, or am I missing something?
+
+It was sort of proposed...
+
+https://marc.info/?l=linux-arch&m=149912878628355&w=2
+
+But do we have a situation where normal usage of spin_lock() and
+spin_unlock() is causing performance or scalability trouble?
+
+(We do have at least one situation in fnic that appears to be buggy use of
+spin_is_locked(), and proposing a patch for that case in on my todo list.)
+
+							Thanx, Paul
