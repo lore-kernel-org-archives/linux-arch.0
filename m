@@ -1,43 +1,69 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH v9 00/38] x86: Secure Memory Encryption (AMD)
-Date: Sat, 8 Jul 2017 11:24:26 +0200
-Message-ID: <20170708092426.prf7xmmnv6xvdqx4@gmail.com>
-References: <20170707133804.29711.1616.stgit@tlendack-t1.amdoffice.net>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [PATCH v2 0/9] Remove spin_unlock_wait()
+Date: Sat, 8 Jul 2017 04:39:46 -0700
+Message-ID: <20170708113946.GN2393@linux.vnet.ibm.com>
+References: <20170629235918.GA6445@linux.vnet.ibm.com>
+ <20170705232955.GA15992@linux.vnet.ibm.com>
+ <063D6719AE5E284EB5DD2968C1650D6DD0033F01@AcuExch.aculab.com>
+ <20170706160555.xc63yydk77gmttae@hirez.programming.kicks-ass.net>
+ <20170706162024.GD2393@linux.vnet.ibm.com>
+ <20170706165036.v4u5rbz56si4emw5@hirez.programming.kicks-ass.net>
+ <20170707083128.wqk6msuuhtyykhpu@gmail.com>
+ <48164d9a-f291-94f3-e0b1-98bb312bf846@colorfullife.com>
+ <20170708083543.tnr7yyhojmyiluw4@gmail.com>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:38822 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1750863AbdGHLjy (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 8 Jul 2017 07:39:54 -0400
+Received: from pps.filterd (m0098413.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id v68BcXGg126754
+        for <linux-arch@vger.kernel.org>; Sat, 8 Jul 2017 07:39:53 -0400
+Received: from e15.ny.us.ibm.com (e15.ny.us.ibm.com [129.33.205.205])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2bjv02bhjk-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Sat, 08 Jul 2017 07:39:53 -0400
+Received: from localhost
+        by e15.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+        Sat, 8 Jul 2017 07:39:53 -0400
 Content-Disposition: inline
-In-Reply-To: <20170707133804.29711.1616.stgit@tlendack-t1.amdoffice.net>
-Sender: owner-linux-mm@kvack.org
-To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@or>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20170708083543.tnr7yyhojmyiluw4@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Manfred Spraul <manfred@colorfullife.com>, Peter Zijlstra <peterz@infradead.org>, David Laight <David.Laight@ACULAB.COM>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netfilter-devel@vger.kernel.org" <netfilter-devel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "oleg@redhat.com" <oleg@redhat.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@redhat.com" <mingo@redhat.com>, "dave@stgolabs.net" <dave@stgolabs.net>, "tj@kernel.org" <tj@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "will.deacon@arm.com" <will.deacon@arm.com>, "stern@rowland.harvard.edu" <stern@rowland.harvard.edu>, "parri.andrea@gmail.com" <parri.andrea@gmail.com>, torvalds@linux-fou
 
+On Sat, Jul 08, 2017 at 10:35:43AM +0200, Ingo Molnar wrote:
+> 
+> * Manfred Spraul <manfred@colorfullife.com> wrote:
+> 
+> > Hi Ingo,
+> > 
+> > On 07/07/2017 10:31 AM, Ingo Molnar wrote:
+> > > 
+> > > There's another, probably just as significant advantage: queued_spin_unlock_wait()
+> > > is 'read-only', while spin_lock()+spin_unlock() dirties the lock cache line. On
+> > > any bigger system this should make a very measurable difference - if
+> > > spin_unlock_wait() is ever used in a performance critical code path.
+> > At least for ipc/sem:
+> > Dirtying the cacheline (in the slow path) allows to remove a smp_mb() in the
+> > hot path.
+> > So for sem_lock(), I either need a primitive that dirties the cacheline or
+> > sem_lock() must continue to use spin_lock()/spin_unlock().
+> 
+> Technically you could use spin_trylock()+spin_unlock() and avoid the lock acquire 
+> spinning on spin_unlock() and get very close to the slow path performance of a 
+> pure cacheline-dirtying behavior.
+> 
+> But adding something like spin_barrier(), which purely dirties the lock cacheline, 
+> would be even faster, right?
 
-* Tom Lendacky <thomas.lendacky@amd.com> wrote:
+Interestingly enough, the arm64 and powerpc implementations of
+spin_unlock_wait() were very close to what it sounds like you are
+describing.
 
-> This patch series provides support for AMD's new Secure Memory Encryption (SME)
-> feature.
-
-I'm wondering, what's the typical performance hit to DRAM access latency when SME 
-is enabled?
-
-On that same note, if the performance hit is noticeable I'd expect SME to not be 
-enabled in native kernels typically - but still it looks like a useful hardware 
-feature. Since it's controlled at the page table level, have you considered 
-allowing SME-activated vmas via mmap(), even on kernels that are otherwise not 
-using encrypted DRAM?
-
-One would think that putting encryption keys into such encrypted RAM regions would 
-generally improve robustness against various physical space attacks that want to 
-extract keys but don't have full control of the CPU.
-
-Thanks,
-
-	Ingo
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+							Thanx, Paul
