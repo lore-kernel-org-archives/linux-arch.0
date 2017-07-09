@@ -1,7 +1,7 @@
 From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH v2 28/28] kbuild: remove wrapper files handling from Makefile.headersinst
-Date: Mon, 10 Jul 2017 03:33:00 +0900
-Message-ID: <1499625180-8067-29-git-send-email-yamada.masahiro@socionext.com>
+Subject: [PATCH v2 27/28] kbuild: split exported generic header creation into uapi-asm-generic
+Date: Mon, 10 Jul 2017 03:32:59 +0900
+Message-ID: <1499625180-8067-28-git-send-email-yamada.masahiro@socionext.com>
 References: <1499625180-8067-1-git-send-email-yamada.masahiro@socionext.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1499625180-8067-1-git-send-email-yamada.masahiro@socionext.com>
@@ -10,48 +10,42 @@ To: linux-kbuild@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Masahiro Yamada <yamada.masahiro@socionext.com>, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-scripts/Makefike.headersinst creates asm-generic wrappers by itself
-because scripts/Makefile.asm-generic created some of exported wrappers
-outside uapi directories.
-
-Now this distortion has been fixed.  scripts/Makefile.headersinst can
-simply copy wrappers created by scripts/Makefile.asm-generic.
+When we install headers, we are interested only in headers under uapi
+directories.  Split out uapi-asm-generic target and make headers_install
+depend on it.  It will avoid generating unneeded asm-generic wrappers.
 
 Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
 ---
 
- scripts/Makefile.headersinst | 11 +----------
- 1 file changed, 1 insertion(+), 10 deletions(-)
+ Makefile | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
 
-diff --git a/scripts/Makefile.headersinst b/scripts/Makefile.headersinst
-index e6343b34182a..343d586e566e 100644
---- a/scripts/Makefile.headersinst
-+++ b/scripts/Makefile.headersinst
-@@ -52,14 +52,8 @@ genhdr-files  := $(filter-out $(header-files), $(genhdr-files))
- install-file  := $(installdir)/.install
- check-file    := $(installdir)/.check
+diff --git a/Makefile b/Makefile
+index 70c414b15859..f75a93fa9975 100644
+--- a/Makefile
++++ b/Makefile
+@@ -456,10 +456,11 @@ ifneq ($(KBUILD_SRC),)
+ endif
  
--# generic-y list all files an architecture uses from asm-generic
--# Use this to build a list of headers which require a wrapper
--generic-files := $(notdir $(wildcard $(srctree)/include/uapi/asm-generic/*.h))
--wrapper-files := $(filter $(generic-files), $(generic-y))
--wrapper-files := $(filter-out $(header-files), $(wrapper-files))
--
- # all headers files for this dir
--all-files     := $(header-files) $(genhdr-files) $(wrapper-files)
-+all-files     := $(header-files) $(genhdr-files)
- output-files  := $(addprefix $(installdir)/, $(all-files))
+ # Support for using generic headers in asm-generic
+-PHONY += asm-generic
+-asm-generic:
++PHONY += asm-generic uapi-asm-generic
++asm-generic: uapi-asm-generic
+ 	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.asm-generic \
+ 	            src=asm obj=arch/$(SRCARCH)/include/generated/asm
++uapi-asm-generic:
+ 	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.asm-generic \
+ 	            src=uapi/asm obj=arch/$(SRCARCH)/include/generated/uapi/asm
  
- ifneq ($(mandatory-y),)
-@@ -83,9 +77,6 @@ quiet_cmd_install = INSTALL $(printdir) ($(words $(all-files))\
-       cmd_install = \
-         $(CONFIG_SHELL) $< $(installdir) $(srcdir) $(header-files); \
-         $(CONFIG_SHELL) $< $(installdir) $(gendir) $(genhdr-files); \
--        for F in $(wrapper-files); do                                   \
--                echo "\#include <asm-generic/$$F>" > $(installdir)/$$F;    \
--        done;                                                           \
-         touch $@
+@@ -1143,7 +1144,7 @@ PHONY += archscripts
+ archscripts:
  
- quiet_cmd_remove = REMOVE  $(unwanted)
+ PHONY += __headers
+-__headers: $(version_h) scripts_basic asm-generic archheaders archscripts
++__headers: $(version_h) scripts_basic uapi-asm-generic archheaders archscripts
+ 	$(Q)$(MAKE) $(build)=scripts build_unifdef
+ 
+ PHONY += headers_install_all
 -- 
 2.7.4
