@@ -1,62 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from conuserg-08.nifty.com ([210.131.2.75]:46202 "EHLO
+Received: from conuserg-08.nifty.com ([210.131.2.75]:45812 "EHLO
         conuserg-08.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753223AbdGISdv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 9 Jul 2017 14:33:51 -0400
+        with ESMTP id S1752624AbdGISdY (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 9 Jul 2017 14:33:24 -0400
 From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH v2 28/28] kbuild: remove wrapper files handling from Makefile.headersinst
-Date: Mon, 10 Jul 2017 03:33:00 +0900
-Message-ID: <1499625180-8067-29-git-send-email-yamada.masahiro@socionext.com>
+Subject: [PATCH v2 22/28] sparc: move generic-y of exported headers to uapi/asm/Kbuild
+Date: Mon, 10 Jul 2017 03:32:54 +0900
+Message-ID: <1499625180-8067-23-git-send-email-yamada.masahiro@socionext.com>
 In-Reply-To: <1499625180-8067-1-git-send-email-yamada.masahiro@socionext.com>
 References: <1499625180-8067-1-git-send-email-yamada.masahiro@socionext.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kbuild@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Masahiro Yamada <yamada.masahiro@socionext.com>, linux-kernel@vger.kernel.org
-Message-ID: <20170709183300.zNhXOhj8VyuJcc1SLXE1tngXzE_n5XmomOMjfaehVqE@z>
+Message-ID: <20170709183254.PUvJU3q_vteOYuV2XqlGwA02_1ZgH0niZZmNaeDU8PY@z>
 
-scripts/Makefike.headersinst creates asm-generic wrappers by itself
-because scripts/Makefile.asm-generic created some of exported wrappers
-outside uapi directories.
+Since commit fcc8487d477a ("uapi: export all headers under uapi
+directories"), all (and only) headers under uapi directories are
+exported, but asm-generic wrappers are still exceptions.
 
-Now this distortion has been fixed.  scripts/Makefile.headersinst can
-simply copy wrappers created by scripts/Makefile.asm-generic.
+To complete de-coupling the uapi from kernel headers, move generic-y
+of exported headers to uapi/asm/Kbuild.
+
+With this change, "make headers_install" will just need to parse
+uapi/asm/Kbuild to build up exported headers.
 
 Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
 ---
 
- scripts/Makefile.headersinst | 11 +----------
- 1 file changed, 1 insertion(+), 10 deletions(-)
+ arch/sparc/include/asm/Kbuild      | 1 -
+ arch/sparc/include/uapi/asm/Kbuild | 2 ++
+ 2 files changed, 2 insertions(+), 1 deletion(-)
 
-diff --git a/scripts/Makefile.headersinst b/scripts/Makefile.headersinst
-index e6343b34182a..343d586e566e 100644
---- a/scripts/Makefile.headersinst
-+++ b/scripts/Makefile.headersinst
-@@ -52,14 +52,8 @@ genhdr-files  := $(filter-out $(header-files), $(genhdr-files))
- install-file  := $(installdir)/.install
- check-file    := $(installdir)/.check
- 
--# generic-y list all files an architecture uses from asm-generic
--# Use this to build a list of headers which require a wrapper
--generic-files := $(notdir $(wildcard $(srctree)/include/uapi/asm-generic/*.h))
--wrapper-files := $(filter $(generic-files), $(generic-y))
--wrapper-files := $(filter-out $(header-files), $(wrapper-files))
--
- # all headers files for this dir
--all-files     := $(header-files) $(genhdr-files) $(wrapper-files)
-+all-files     := $(header-files) $(genhdr-files)
- output-files  := $(addprefix $(installdir)/, $(all-files))
- 
- ifneq ($(mandatory-y),)
-@@ -83,9 +77,6 @@ quiet_cmd_install = INSTALL $(printdir) ($(words $(all-files))\
-       cmd_install = \
-         $(CONFIG_SHELL) $< $(installdir) $(srcdir) $(header-files); \
-         $(CONFIG_SHELL) $< $(installdir) $(gendir) $(genhdr-files); \
--        for F in $(wrapper-files); do                                   \
--                echo "\#include <asm-generic/$$F>" > $(installdir)/$$F;    \
--        done;                                                           \
-         touch $@
- 
- quiet_cmd_remove = REMOVE  $(unwanted)
+diff --git a/arch/sparc/include/asm/Kbuild b/arch/sparc/include/asm/Kbuild
+index e9e837bc3158..80ddc01f57ac 100644
+--- a/arch/sparc/include/asm/Kbuild
++++ b/arch/sparc/include/asm/Kbuild
+@@ -18,5 +18,4 @@ generic-y += preempt.h
+ generic-y += rwsem.h
+ generic-y += serial.h
+ generic-y += trace_clock.h
+-generic-y += types.h
+ generic-y += word-at-a-time.h
+diff --git a/arch/sparc/include/uapi/asm/Kbuild b/arch/sparc/include/uapi/asm/Kbuild
+index b15bf6bc0e94..2178c78c7c1a 100644
+--- a/arch/sparc/include/uapi/asm/Kbuild
++++ b/arch/sparc/include/uapi/asm/Kbuild
+@@ -1,2 +1,4 @@
+ # UAPI Header export list
+ include include/uapi/asm-generic/Kbuild.asm
++
++generic-y += types.h
 -- 
 2.7.4
