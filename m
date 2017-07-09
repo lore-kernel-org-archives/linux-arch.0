@@ -1,134 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from conuserg-08.nifty.com ([210.131.2.75]:45734 "EHLO
+Received: from conuserg-08.nifty.com ([210.131.2.75]:46201 "EHLO
         conuserg-08.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752569AbdGISdT (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 9 Jul 2017 14:33:19 -0400
+        with ESMTP id S1753223AbdGISd4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 9 Jul 2017 14:33:56 -0400
 From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH v2 11/28] hexagon: move generic-y of exported headers to uapi/asm/Kbuild
-Date: Mon, 10 Jul 2017 03:32:43 +0900
-Message-ID: <1499625180-8067-12-git-send-email-yamada.masahiro@socionext.com>
+Subject: [PATCH v2 27/28] kbuild: split exported generic header creation into uapi-asm-generic
+Date: Mon, 10 Jul 2017 03:32:59 +0900
+Message-ID: <1499625180-8067-28-git-send-email-yamada.masahiro@socionext.com>
 In-Reply-To: <1499625180-8067-1-git-send-email-yamada.masahiro@socionext.com>
 References: <1499625180-8067-1-git-send-email-yamada.masahiro@socionext.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kbuild@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Masahiro Yamada <yamada.masahiro@socionext.com>, linux-kernel@vger.kernel.org
-Message-ID: <20170709183243.Qs4ZlzYdEipt6DOXLH4ZAtvNYtqlhoMK2LBf1M2hvxM@z>
+Message-ID: <20170709183259.xgLI0OWBQ1G788kwUkGAcKgwD1Ha2jxNCSt5njjot6U@z>
 
-Since commit fcc8487d477a ("uapi: export all headers under uapi
-directories"), all (and only) headers under uapi directories are
-exported, but asm-generic wrappers are still exceptions.
-
-To complete de-coupling the uapi from kernel headers, move generic-y
-of exported headers to uapi/asm/Kbuild.
-
-With this change, "make headers_install" will just need to parse
-uapi/asm/Kbuild to build up exported headers.
-
-Also, move "generic-y += kprobes.h" up in order to keep the entries
-sorted.
+When we install headers, we are interested only in headers under uapi
+directories.  Split out uapi-asm-generic target and make headers_install
+depend on it.  It will avoid generating unneeded asm-generic wrappers.
 
 Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
 ---
 
- arch/hexagon/include/asm/Kbuild      | 24 +-----------------------
- arch/hexagon/include/uapi/asm/Kbuild | 22 ++++++++++++++++++++++
- 2 files changed, 23 insertions(+), 23 deletions(-)
+ Makefile | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
 
-diff --git a/arch/hexagon/include/asm/Kbuild b/arch/hexagon/include/asm/Kbuild
-index 0fc9cb04e6ad..34013683d123 100644
---- a/arch/hexagon/include/asm/Kbuild
-+++ b/arch/hexagon/include/asm/Kbuild
-@@ -1,4 +1,3 @@
--generic-y += auxvec.h
- generic-y += barrier.h
- generic-y += bug.h
- generic-y += bugs.h
-@@ -7,53 +6,32 @@ generic-y += current.h
- generic-y += device.h
- generic-y += div64.h
- generic-y += emergency-restart.h
--generic-y += errno.h
- generic-y += extable.h
- generic-y += fb.h
--generic-y += fcntl.h
- generic-y += ftrace.h
- generic-y += hardirq.h
- generic-y += hw_irq.h
--generic-y += ioctl.h
--generic-y += ioctls.h
- generic-y += iomap.h
--generic-y += ipcbuf.h
- generic-y += irq_regs.h
- generic-y += irq_work.h
- generic-y += kdebug.h
- generic-y += kmap_types.h
-+generic-y += kprobes.h
- generic-y += local.h
- generic-y += local64.h
- generic-y += mcs_spinlock.h
- generic-y += mm-arch-hooks.h
--generic-y += mman.h
--generic-y += msgbuf.h
- generic-y += pci.h
- generic-y += percpu.h
--generic-y += poll.h
--generic-y += posix_types.h
- generic-y += preempt.h
--generic-y += resource.h
- generic-y += rwsem.h
- generic-y += sections.h
- generic-y += segment.h
--generic-y += sembuf.h
- generic-y += serial.h
--generic-y += shmbuf.h
--generic-y += shmparam.h
- generic-y += sizes.h
--generic-y += socket.h
--generic-y += sockios.h
--generic-y += stat.h
--generic-y += statfs.h
--generic-y += termbits.h
--generic-y += termios.h
- generic-y += topology.h
- generic-y += trace_clock.h
--generic-y += types.h
--generic-y += ucontext.h
- generic-y += unaligned.h
- generic-y += vga.h
- generic-y += word-at-a-time.h
- generic-y += xor.h
--generic-y += kprobes.h
-diff --git a/arch/hexagon/include/uapi/asm/Kbuild b/arch/hexagon/include/uapi/asm/Kbuild
-index b55fc2ae1e8c..cb5df3aad3a8 100644
---- a/arch/hexagon/include/uapi/asm/Kbuild
-+++ b/arch/hexagon/include/uapi/asm/Kbuild
-@@ -1,4 +1,26 @@
- # UAPI Header export list
- include include/uapi/asm-generic/Kbuild.asm
+diff --git a/Makefile b/Makefile
+index 70c414b15859..f75a93fa9975 100644
+--- a/Makefile
++++ b/Makefile
+@@ -456,10 +456,11 @@ ifneq ($(KBUILD_SRC),)
+ endif
  
-+generic-y += auxvec.h
-+generic-y += errno.h
-+generic-y += fcntl.h
-+generic-y += ioctl.h
-+generic-y += ioctls.h
-+generic-y += ipcbuf.h
-+generic-y += mman.h
-+generic-y += msgbuf.h
-+generic-y += poll.h
-+generic-y += posix_types.h
-+generic-y += resource.h
-+generic-y += sembuf.h
-+generic-y += shmbuf.h
-+generic-y += shmparam.h
- generic-y += siginfo.h
-+generic-y += socket.h
-+generic-y += sockios.h
-+generic-y += stat.h
-+generic-y += statfs.h
-+generic-y += termbits.h
-+generic-y += termios.h
-+generic-y += types.h
-+generic-y += ucontext.h
+ # Support for using generic headers in asm-generic
+-PHONY += asm-generic
+-asm-generic:
++PHONY += asm-generic uapi-asm-generic
++asm-generic: uapi-asm-generic
+ 	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.asm-generic \
+ 	            src=asm obj=arch/$(SRCARCH)/include/generated/asm
++uapi-asm-generic:
+ 	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.asm-generic \
+ 	            src=uapi/asm obj=arch/$(SRCARCH)/include/generated/uapi/asm
+ 
+@@ -1143,7 +1144,7 @@ PHONY += archscripts
+ archscripts:
+ 
+ PHONY += __headers
+-__headers: $(version_h) scripts_basic asm-generic archheaders archscripts
++__headers: $(version_h) scripts_basic uapi-asm-generic archheaders archscripts
+ 	$(Q)$(MAKE) $(build)=scripts build_unifdef
+ 
+ PHONY += headers_install_all
 -- 
 2.7.4
