@@ -1,7 +1,7 @@
 From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH v2 24/28] unicore32: move generic-y of exported headers to uapi/asm/Kbuild
-Date: Mon, 10 Jul 2017 03:32:56 +0900
-Message-ID: <1499625180-8067-25-git-send-email-yamada.masahiro@socionext.com>
+Subject: [PATCH v2 28/28] kbuild: remove wrapper files handling from Makefile.headersinst
+Date: Mon, 10 Jul 2017 03:33:00 +0900
+Message-ID: <1499625180-8067-29-git-send-email-yamada.masahiro@socionext.com>
 References: <1499625180-8067-1-git-send-email-yamada.masahiro@socionext.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1499625180-8067-1-git-send-email-yamada.masahiro@socionext.com>
@@ -10,134 +10,48 @@ To: linux-kbuild@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Masahiro Yamada <yamada.masahiro@socionext.com>, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Since commit fcc8487d477a ("uapi: export all headers under uapi
-directories"), all (and only) headers under uapi directories are
-exported, but asm-generic wrappers are still exceptions.
+scripts/Makefike.headersinst creates asm-generic wrappers by itself
+because scripts/Makefile.asm-generic created some of exported wrappers
+outside uapi directories.
 
-To complete de-coupling the uapi from kernel headers, move generic-y
-of exported headers to uapi/asm/Kbuild.
-
-With this change, "make headers_install" will just need to parse
-uapi/asm/Kbuild to build up exported headers.
-
-Also, move "generic-y += kprobes.h" up in order to keep the entries
-sorted.
+Now this distortion has been fixed.  scripts/Makefile.headersinst can
+simply copy wrappers created by scripts/Makefile.asm-generic.
 
 Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
 ---
 
- arch/unicore32/include/asm/Kbuild      | 30 +-----------------------------
- arch/unicore32/include/uapi/asm/Kbuild | 27 +++++++++++++++++++++++++++
- 2 files changed, 28 insertions(+), 29 deletions(-)
+ scripts/Makefile.headersinst | 11 +----------
+ 1 file changed, 1 insertion(+), 10 deletions(-)
 
-diff --git a/arch/unicore32/include/asm/Kbuild b/arch/unicore32/include/asm/Kbuild
-index 7a53a55341de..fda7e2153086 100644
---- a/arch/unicore32/include/asm/Kbuild
-+++ b/arch/unicore32/include/asm/Kbuild
-@@ -1,66 +1,38 @@
--
- generic-y += atomic.h
--generic-y += auxvec.h
--generic-y += bitsperlong.h
- generic-y += bugs.h
- generic-y += clkdev.h
- generic-y += current.h
- generic-y += device.h
- generic-y += div64.h
- generic-y += emergency-restart.h
--generic-y += errno.h
- generic-y += exec.h
- generic-y += extable.h
- generic-y += fb.h
--generic-y += fcntl.h
- generic-y += ftrace.h
- generic-y += futex.h
- generic-y += hardirq.h
- generic-y += hw_irq.h
--generic-y += ioctl.h
--generic-y += ioctls.h
--generic-y += ipcbuf.h
- generic-y += irq_regs.h
- generic-y += irq_work.h
- generic-y += kdebug.h
- generic-y += kmap_types.h
-+generic-y += kprobes.h
- generic-y += local.h
- generic-y += mcs_spinlock.h
- generic-y += mm-arch-hooks.h
--generic-y += mman.h
- generic-y += module.h
--generic-y += msgbuf.h
--generic-y += param.h
- generic-y += parport.h
- generic-y += percpu.h
--generic-y += poll.h
--generic-y += posix_types.h
- generic-y += preempt.h
--generic-y += resource.h
- generic-y += sections.h
- generic-y += segment.h
--generic-y += sembuf.h
- generic-y += serial.h
--generic-y += setup.h
--generic-y += shmbuf.h
--generic-y += shmparam.h
--generic-y += signal.h
- generic-y += sizes.h
--generic-y += socket.h
--generic-y += sockios.h
--generic-y += stat.h
--generic-y += statfs.h
--generic-y += swab.h
- generic-y += syscalls.h
--generic-y += termbits.h
--generic-y += termios.h
- generic-y += topology.h
- generic-y += trace_clock.h
--generic-y += types.h
--generic-y += ucontext.h
- generic-y += unaligned.h
- generic-y += user.h
- generic-y += vga.h
- generic-y += word-at-a-time.h
- generic-y += xor.h
--generic-y += kprobes.h
-diff --git a/arch/unicore32/include/uapi/asm/Kbuild b/arch/unicore32/include/uapi/asm/Kbuild
-index 1c44d3b3eba0..759a71411169 100644
---- a/arch/unicore32/include/uapi/asm/Kbuild
-+++ b/arch/unicore32/include/uapi/asm/Kbuild
-@@ -1,5 +1,32 @@
- # UAPI Header export list
- include include/uapi/asm-generic/Kbuild.asm
+diff --git a/scripts/Makefile.headersinst b/scripts/Makefile.headersinst
+index e6343b34182a..343d586e566e 100644
+--- a/scripts/Makefile.headersinst
++++ b/scripts/Makefile.headersinst
+@@ -52,14 +52,8 @@ genhdr-files  := $(filter-out $(header-files), $(genhdr-files))
+ install-file  := $(installdir)/.install
+ check-file    := $(installdir)/.check
  
-+generic-y += auxvec.h
-+generic-y += bitsperlong.h
-+generic-y += errno.h
-+generic-y += fcntl.h
-+generic-y += ioctl.h
-+generic-y += ioctls.h
-+generic-y += ipcbuf.h
- generic-y += kvm_para.h
-+generic-y += mman.h
-+generic-y += msgbuf.h
-+generic-y += param.h
-+generic-y += poll.h
-+generic-y += posix_types.h
-+generic-y += resource.h
-+generic-y += sembuf.h
-+generic-y += setup.h
-+generic-y += shmbuf.h
-+generic-y += shmparam.h
- generic-y += siginfo.h
-+generic-y += signal.h
-+generic-y += socket.h
-+generic-y += sockios.h
-+generic-y += stat.h
-+generic-y += statfs.h
-+generic-y += swab.h
-+generic-y += termbits.h
-+generic-y += termios.h
-+generic-y += types.h
-+generic-y += ucontext.h
+-# generic-y list all files an architecture uses from asm-generic
+-# Use this to build a list of headers which require a wrapper
+-generic-files := $(notdir $(wildcard $(srctree)/include/uapi/asm-generic/*.h))
+-wrapper-files := $(filter $(generic-files), $(generic-y))
+-wrapper-files := $(filter-out $(header-files), $(wrapper-files))
+-
+ # all headers files for this dir
+-all-files     := $(header-files) $(genhdr-files) $(wrapper-files)
++all-files     := $(header-files) $(genhdr-files)
+ output-files  := $(addprefix $(installdir)/, $(all-files))
+ 
+ ifneq ($(mandatory-y),)
+@@ -83,9 +77,6 @@ quiet_cmd_install = INSTALL $(printdir) ($(words $(all-files))\
+       cmd_install = \
+         $(CONFIG_SHELL) $< $(installdir) $(srcdir) $(header-files); \
+         $(CONFIG_SHELL) $< $(installdir) $(gendir) $(genhdr-files); \
+-        for F in $(wrapper-files); do                                   \
+-                echo "\#include <asm-generic/$$F>" > $(installdir)/$$F;    \
+-        done;                                                           \
+         touch $@
+ 
+ quiet_cmd_remove = REMOVE  $(unwanted)
 -- 
 2.7.4
