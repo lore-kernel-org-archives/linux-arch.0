@@ -1,51 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from conuserg-08.nifty.com ([210.131.2.75]:45692 "EHLO
+Received: from conuserg-08.nifty.com ([210.131.2.75]:45698 "EHLO
         conuserg-08.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752532AbdGISdR (ORCPT
+        with ESMTP id S1752554AbdGISdR (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Sun, 9 Jul 2017 14:33:17 -0400
 From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH v2 01/28] kbuild: remove useless $(gen) variable in Makefile.headersinst
-Date: Mon, 10 Jul 2017 03:32:33 +0900
-Message-ID: <1499625180-8067-2-git-send-email-yamada.masahiro@socionext.com>
+Subject: [PATCH v2 03/28] kbuild: pass dst= to Makefile.headersinst from top Makefile
+Date: Mon, 10 Jul 2017 03:32:35 +0900
+Message-ID: <1499625180-8067-4-git-send-email-yamada.masahiro@socionext.com>
 In-Reply-To: <1499625180-8067-1-git-send-email-yamada.masahiro@socionext.com>
 References: <1499625180-8067-1-git-send-email-yamada.masahiro@socionext.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kbuild@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Masahiro Yamada <yamada.masahiro@socionext.com>, linux-kernel@vger.kernel.org
-Message-ID: <20170709183233.I3gfJjskuWxTSpnjPsiwJijCKEYJYRBBp1mBCU_mjD4@z>
+Message-ID: <20170709183235.igN7njwo0mzMcmF2fi5kHCZ84Wv6R186Q29Gt0jyrz8@z>
 
-We have no true case for the $(if $(gen), ...) conditional.  Drop it
-to simplify the gendir calculation.
+We can always pass dst= from the top Makefile.  This will simplify
+the logic in Makefile.headersinst.
 
 Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
 ---
 
- scripts/Makefile.headersinst | 5 +----
- 1 file changed, 1 insertion(+), 4 deletions(-)
+ Makefile                     | 4 ++--
+ scripts/Makefile.headersinst | 8 ++------
+ 2 files changed, 4 insertions(+), 8 deletions(-)
 
+diff --git a/Makefile b/Makefile
+index ce5875628740..70c414b15859 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1154,7 +1154,7 @@ PHONY += headers_install
+ headers_install: __headers
+ 	$(if $(wildcard $(srctree)/arch/$(hdr-arch)/include/uapi/asm/Kbuild),, \
+ 	  $(error Headers not exportable for the $(SRCARCH) architecture))
+-	$(Q)$(MAKE) $(hdr-inst)=include/uapi
++	$(Q)$(MAKE) $(hdr-inst)=include/uapi dst=include
+ 	$(Q)$(MAKE) $(hdr-inst)=arch/$(hdr-arch)/include/uapi $(hdr-dst)
+ 
+ PHONY += headers_check_all
+@@ -1163,7 +1163,7 @@ headers_check_all: headers_install_all
+ 
+ PHONY += headers_check
+ headers_check: headers_install
+-	$(Q)$(MAKE) $(hdr-inst)=include/uapi HDRCHECK=1
++	$(Q)$(MAKE) $(hdr-inst)=include/uapi dst=include HDRCHECK=1
+ 	$(Q)$(MAKE) $(hdr-inst)=arch/$(hdr-arch)/include/uapi $(hdr-dst) HDRCHECK=1
+ 
+ # ---------------------------------------------------------------------------
 diff --git a/scripts/Makefile.headersinst b/scripts/Makefile.headersinst
-index c583a1e1bd3c..4e9287bfdf28 100644
+index 4e9287bfdf28..e9147f05ea77 100644
 --- a/scripts/Makefile.headersinst
 +++ b/scripts/Makefile.headersinst
-@@ -39,9 +39,6 @@ skip-inst := $(if $(filter %/uapi,$(obj)),1)
+@@ -23,15 +23,12 @@ subdirs       := $(patsubst $(srcdir)/%/,%,\
+ 		 $(filter-out $(srcdir)/,\
+ 		 $(sort $(dir $(wildcard $(srcdir)/*/)))))
  
- ifeq ($(skip-inst),)
- 
--# generated header directory
--gen := $(if $(gen),$(gen),$(subst include/,include/generated/,$(obj)))
+-# caller may set destination dir (when installing to asm/)
+-_dst          := $(if $(dst),$(dst),$(obj))
 -
- # Kbuild file is optional
- kbuild-file := $(srctree)/$(obj)/Kbuild
- -include $(kbuild-file)
-@@ -53,7 +50,7 @@ endif
+ # Recursion
+ __headers: $(subdirs)
  
- installdir    := $(INSTALL_HDR_PATH)/$(subst uapi/,,$(_dst))
+ .PHONY: $(subdirs)
+ $(subdirs):
+-	$(Q)$(MAKE) $(hdr-inst)=$(obj)/$@ dst=$(_dst)/$@
++	$(Q)$(MAKE) $(hdr-inst)=$(obj)/$@ dst=$(dst)/$@
  
--gendir        := $(objtree)/$(gen)
-+gendir        := $(objtree)/$(subst include/,include/generated/,$(obj))
+ # Skip header install/check for include/uapi and arch/$(hdr-arch)/include/uapi.
+ # We have only sub-directories there.
+@@ -48,8 +45,7 @@ ifneq ($(wildcard $(old-kbuild-file)),)
+ include $(old-kbuild-file)
+ endif
+ 
+-installdir    := $(INSTALL_HDR_PATH)/$(subst uapi/,,$(_dst))
+-
++installdir    := $(INSTALL_HDR_PATH)/$(dst)
+ gendir        := $(objtree)/$(subst include/,include/generated/,$(obj))
  header-files  := $(notdir $(wildcard $(srcdir)/*.h))
  header-files  += $(notdir $(wildcard $(srcdir)/*.agh))
- header-files  := $(filter-out $(no-export-headers), $(header-files))
 -- 
 2.7.4
