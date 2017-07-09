@@ -1,77 +1,124 @@
 From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH v2 03/28] kbuild: pass dst= to Makefile.headersinst from top Makefile
-Date: Mon, 10 Jul 2017 03:32:35 +0900
-Message-ID: <1499625180-8067-4-git-send-email-yamada.masahiro@socionext.com>
+Subject: [PATCH v2 06/28] arc: move generic-y of exported headers to uapi/asm/Kbuild
+Date: Mon, 10 Jul 2017 03:32:38 +0900
+Message-ID: <1499625180-8067-7-git-send-email-yamada.masahiro@socionext.com>
 References: <1499625180-8067-1-git-send-email-yamada.masahiro@socionext.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from conuserg-08.nifty.com ([210.131.2.75]:45700 "EHLO
+        conuserg-08.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752533AbdGISdR (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 9 Jul 2017 14:33:17 -0400
 In-Reply-To: <1499625180-8067-1-git-send-email-yamada.masahiro@socionext.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-kbuild@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Masahiro Yamada <yamada.masahiro@socionext.com>, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
 
-We can always pass dst= from the top Makefile.  This will simplify
-the logic in Makefile.headersinst.
+Since commit fcc8487d477a ("uapi: export all headers under uapi
+directories"), all (and only) headers under uapi directories are
+exported, but asm-generic wrappers are still exceptions.
+
+To complete de-coupling the uapi from kernel headers, move generic-y
+of exported headers to uapi/asm/Kbuild.
+
+With this change, "make headers_install" will just need to parse
+uapi/asm/Kbuild to build up exported headers.
 
 Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
 ---
 
- Makefile                     | 4 ++--
- scripts/Makefile.headersinst | 8 ++------
- 2 files changed, 4 insertions(+), 8 deletions(-)
+ arch/arc/include/asm/Kbuild      | 24 ------------------------
+ arch/arc/include/uapi/asm/Kbuild | 24 ++++++++++++++++++++++++
+ 2 files changed, 24 insertions(+), 24 deletions(-)
 
-diff --git a/Makefile b/Makefile
-index ce5875628740..70c414b15859 100644
---- a/Makefile
-+++ b/Makefile
-@@ -1154,7 +1154,7 @@ PHONY += headers_install
- headers_install: __headers
- 	$(if $(wildcard $(srctree)/arch/$(hdr-arch)/include/uapi/asm/Kbuild),, \
- 	  $(error Headers not exportable for the $(SRCARCH) architecture))
--	$(Q)$(MAKE) $(hdr-inst)=include/uapi
-+	$(Q)$(MAKE) $(hdr-inst)=include/uapi dst=include
- 	$(Q)$(MAKE) $(hdr-inst)=arch/$(hdr-arch)/include/uapi $(hdr-dst)
+diff --git a/arch/arc/include/asm/Kbuild b/arch/arc/include/asm/Kbuild
+index 3e74ca5e6402..353dae386b2f 100644
+--- a/arch/arc/include/asm/Kbuild
++++ b/arch/arc/include/asm/Kbuild
+@@ -1,51 +1,27 @@
+-generic-y += auxvec.h
+-generic-y += bitsperlong.h
+ generic-y += bugs.h
+ generic-y += clkdev.h
+ generic-y += device.h
+ generic-y += div64.h
+ generic-y += emergency-restart.h
+-generic-y += errno.h
+ generic-y += extable.h
+ generic-y += fb.h
+-generic-y += fcntl.h
+ generic-y += ftrace.h
+ generic-y += hardirq.h
+ generic-y += hw_irq.h
+-generic-y += ioctl.h
+-generic-y += ioctls.h
+-generic-y += ipcbuf.h
+ generic-y += irq_regs.h
+ generic-y += irq_work.h
+ generic-y += kmap_types.h
+-generic-y += kvm_para.h
+ generic-y += local.h
+ generic-y += local64.h
+ generic-y += mcs_spinlock.h
+ generic-y += mm-arch-hooks.h
+-generic-y += mman.h
+-generic-y += msgbuf.h
+ generic-y += msi.h
+-generic-y += param.h
+ generic-y += parport.h
+ generic-y += pci.h
+ generic-y += percpu.h
+-generic-y += poll.h
+-generic-y += posix_types.h
+ generic-y += preempt.h
+-generic-y += resource.h
+-generic-y += sembuf.h
+-generic-y += shmbuf.h
+-generic-y += socket.h
+-generic-y += sockios.h
+-generic-y += stat.h
+-generic-y += statfs.h
+-generic-y += termbits.h
+-generic-y += termios.h
+ generic-y += topology.h
+ generic-y += trace_clock.h
+-generic-y += types.h
+-generic-y += ucontext.h
+ generic-y += user.h
+ generic-y += vga.h
+ generic-y += word-at-a-time.h
+diff --git a/arch/arc/include/uapi/asm/Kbuild b/arch/arc/include/uapi/asm/Kbuild
+index b55fc2ae1e8c..fa6d0ff4ff89 100644
+--- a/arch/arc/include/uapi/asm/Kbuild
++++ b/arch/arc/include/uapi/asm/Kbuild
+@@ -1,4 +1,28 @@
+ # UAPI Header export list
+ include include/uapi/asm-generic/Kbuild.asm
  
- PHONY += headers_check_all
-@@ -1163,7 +1163,7 @@ headers_check_all: headers_install_all
- 
- PHONY += headers_check
- headers_check: headers_install
--	$(Q)$(MAKE) $(hdr-inst)=include/uapi HDRCHECK=1
-+	$(Q)$(MAKE) $(hdr-inst)=include/uapi dst=include HDRCHECK=1
- 	$(Q)$(MAKE) $(hdr-inst)=arch/$(hdr-arch)/include/uapi $(hdr-dst) HDRCHECK=1
- 
- # ---------------------------------------------------------------------------
-diff --git a/scripts/Makefile.headersinst b/scripts/Makefile.headersinst
-index 4e9287bfdf28..e9147f05ea77 100644
---- a/scripts/Makefile.headersinst
-+++ b/scripts/Makefile.headersinst
-@@ -23,15 +23,12 @@ subdirs       := $(patsubst $(srcdir)/%/,%,\
- 		 $(filter-out $(srcdir)/,\
- 		 $(sort $(dir $(wildcard $(srcdir)/*/)))))
- 
--# caller may set destination dir (when installing to asm/)
--_dst          := $(if $(dst),$(dst),$(obj))
--
- # Recursion
- __headers: $(subdirs)
- 
- .PHONY: $(subdirs)
- $(subdirs):
--	$(Q)$(MAKE) $(hdr-inst)=$(obj)/$@ dst=$(_dst)/$@
-+	$(Q)$(MAKE) $(hdr-inst)=$(obj)/$@ dst=$(dst)/$@
- 
- # Skip header install/check for include/uapi and arch/$(hdr-arch)/include/uapi.
- # We have only sub-directories there.
-@@ -48,8 +45,7 @@ ifneq ($(wildcard $(old-kbuild-file)),)
- include $(old-kbuild-file)
- endif
- 
--installdir    := $(INSTALL_HDR_PATH)/$(subst uapi/,,$(_dst))
--
-+installdir    := $(INSTALL_HDR_PATH)/$(dst)
- gendir        := $(objtree)/$(subst include/,include/generated/,$(obj))
- header-files  := $(notdir $(wildcard $(srcdir)/*.h))
- header-files  += $(notdir $(wildcard $(srcdir)/*.agh))
++generic-y += auxvec.h
++generic-y += bitsperlong.h
++generic-y += errno.h
++generic-y += fcntl.h
++generic-y += ioctl.h
++generic-y += ioctls.h
++generic-y += ipcbuf.h
++generic-y += kvm_para.h
++generic-y += mman.h
++generic-y += msgbuf.h
++generic-y += param.h
++generic-y += poll.h
++generic-y += posix_types.h
++generic-y += resource.h
++generic-y += sembuf.h
++generic-y += shmbuf.h
+ generic-y += siginfo.h
++generic-y += socket.h
++generic-y += sockios.h
++generic-y += stat.h
++generic-y += statfs.h
++generic-y += termbits.h
++generic-y += termios.h
++generic-y += types.h
++generic-y += ucontext.h
 -- 
 2.7.4
