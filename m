@@ -1,104 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from netrider.rowland.org ([192.131.102.5]:47681 "HELO
-        netrider.rowland.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with SMTP id S1752847AbdGHQVz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 8 Jul 2017 12:21:55 -0400
-Date: Sat, 8 Jul 2017 12:21:53 -0400 (EDT)
-From: Alan Stern <stern@rowland.harvard.edu>
-Subject: Re: [PATCH v2 0/9] Remove spin_unlock_wait()
-In-Reply-To: <20170708123018.qiwmyf3x43i4pgsg@gmail.com>
-Message-ID: <Pine.LNX.4.44L0.1707081157020.17878-100000@netrider.rowland.org>
+Received: from mail-wr0-f195.google.com ([209.85.128.195]:36570 "EHLO
+        mail-wr0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751946AbdGIJF4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 9 Jul 2017 05:05:56 -0400
+Date: Sun, 9 Jul 2017 11:05:51 +0200
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [RFC PATCH] x86: enable dead code and data elimination (LTO)
+Message-ID: <20170709090551.bm2c55ctt3togim7@gmail.com>
+References: <20170709031333.29443-1-npiggin@gmail.com>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20170709031333.29443-1-npiggin@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Manfred Spraul <manfred@colorfullife.com>, Peter Zijlstra <peterz@infradead.org>, David Laight <David.Laight@ACULAB.COM>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netfilter-devel@vger.kernel.org" <netfilter-devel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "oleg@redhat.com" <oleg@redhat.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@redhat.com" <mingo@redhat.com>, "dave@stgolabs.net" <dave@stgolabs.net>, "tj@kernel.org" <tj@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "will.deacon@arm.com" <will.deacon@arm.com>, "parri.andrea@gmail.com" <parri.andrea@gmail.com>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>
-Message-ID: <20170708162153.E2KQU3Jp_NBgIJ6qY3fyJZrnbD2xNANQeLEBueV45kA@z>
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Nicolas Pitre <nicolas.pitre@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Paul Burton <paul.burton@imgtec.com>, Linus Torvalds <torvalds@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20170709090551.chcwqijISwpgaERTk_RxS9XvITzYUIvdPfPTij0AgoA@z>
 
-Pardon me for barging in, but I found this whole interchange extremely 
-confusing...
 
-On Sat, 8 Jul 2017, Ingo Molnar wrote:
+* Nicholas Piggin <npiggin@gmail.com> wrote:
 
-> * Paul E. McKenney <paulmck@linux.vnet.ibm.com> wrote:
-> 
-> > On Sat, Jul 08, 2017 at 10:35:43AM +0200, Ingo Molnar wrote:
-> > > 
-> > > * Manfred Spraul <manfred@colorfullife.com> wrote:
-> > > 
-> > > > Hi Ingo,
-> > > > 
-> > > > On 07/07/2017 10:31 AM, Ingo Molnar wrote:
-> > > > > 
-> > > > > There's another, probably just as significant advantage: queued_spin_unlock_wait()
-> > > > > is 'read-only', while spin_lock()+spin_unlock() dirties the lock cache line. On
-> > > > > any bigger system this should make a very measurable difference - if
-> > > > > spin_unlock_wait() is ever used in a performance critical code path.
-> > > > At least for ipc/sem:
-> > > > Dirtying the cacheline (in the slow path) allows to remove a smp_mb() in the
-> > > > hot path.
-> > > > So for sem_lock(), I either need a primitive that dirties the cacheline or
-> > > > sem_lock() must continue to use spin_lock()/spin_unlock().
+> FYI, easiest way to check if you forgot to KEEP a linker table is
+> to look at `readelf -S vmlinux` differences, and to see what is
+> being trimmed, look at nm differences or use --print-gc-sections
+> LD option to see what symbols you're trimming. Linker tables,
+> boot entry, and exception entry tends to require anchoring.
 
-This statement doesn't seem to make sense.  Did Manfred mean to write 
-"smp_mb()" instead of "spin_lock()/spin_unlock()"?
+Could you please add a debug build target to display all discarded 
+symbols/sections? Something like:
 
-> > > Technically you could use spin_trylock()+spin_unlock() and avoid the lock acquire 
-> > > spinning on spin_unlock() and get very close to the slow path performance of a 
-> > > pure cacheline-dirtying behavior.
+	make lto-check
 
-This is even more confusing.  Did Ingo mean to suggest using 
-"spin_trylock()+spin_unlock()" in place of "spin_lock()+spin_unlock()" 
-could provide the desired ordering guarantee without delaying other 
-CPUs that may try to acquire the lock?  That seems highly questionable.
+... or so?
 
-> > > But adding something like spin_barrier(), which purely dirties the lock cacheline, 
-> > > would be even faster, right?
-> > 
-> > Interestingly enough, the arm64 and powerpc implementations of
-> > spin_unlock_wait() were very close to what it sounds like you are
-> > describing.
-> 
-> So could we perhaps solve all our problems by defining the generic version thusly:
-> 
-> void spin_unlock_wait(spinlock_t *lock)
-> {
-> 	if (spin_trylock(lock))
-> 		spin_unlock(lock);
-> }
+Thanks,
 
-How could this possibly be a generic version of spin_unlock_wait()?  
-It does nothing at all (with no ordering properties) if some other CPU
-currently holds the lock, whereas the real spin_unlock_wait() would
-wait until the other CPU released the lock (or possibly longer).
-
-And if no other CPU currently holds the lock, this has exactly the same
-performance properties as spin_lock()+spin_unlock(), so what's the
-advantage?
-
-Alan Stern
-
-> ... and perhaps rename it to spin_barrier() [or whatever proper name there would 
-> be]?
-> 
-> Architectures can still optimize it, to remove the small window where the lock is 
-> held locally - as long as the ordering is at least as strong as the generic 
-> version.
-> 
-> This would have various advantages:
-> 
->  - semantics are well-defined
-> 
->  - the generic implementation is already pretty well optimized (no spinning)
-> 
->  - it would make it usable for the IPC performance optimization
-> 
->  - architectures could still optimize it to eliminate the window where the lock is
->    held locally - if there's such instructions available.
-> 
-> Was this proposed before, or am I missing something?
-> 
-> Thanks,
-> 
-> 	Ingo
+	Ingo
