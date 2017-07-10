@@ -1,65 +1,130 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-dm3nam03on0043.outbound.protection.outlook.com ([104.47.41.43]:30205
-        "EHLO NAM03-DM3-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1754594AbdGJSEX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 10 Jul 2017 14:04:23 -0400
-Subject: Re: [PATCH v9 00/38] x86: Secure Memory Encryption (AMD)
-References: <20170707133804.29711.1616.stgit@tlendack-t1.amdoffice.net>
- <20170708092426.prf7xmmnv6xvdqx4@gmail.com>
-From: Tom Lendacky <thomas.lendacky@amd.com>
-Message-ID: <fce185d2-4420-7255-6331-6231c643c8c7@amd.com>
-Date: Mon, 10 Jul 2017 13:04:11 -0500
+Received: from mail-lf0-f66.google.com ([209.85.215.66]:36789 "EHLO
+        mail-lf0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S932124AbdGJSrI (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 10 Jul 2017 14:47:08 -0400
+Received: by mail-lf0-f66.google.com with SMTP id f28so11840634lfi.3
+        for <linux-arch@vger.kernel.org>; Mon, 10 Jul 2017 11:47:07 -0700 (PDT)
+Date: Mon, 10 Jul 2017 21:47:04 +0300
+From: "Kirill A. Shutemov" <kirill@shutemov.name>
+Subject: Re: KASAN vs. boot-time switching between 4- and 5-level paging
+Message-ID: <20170710184704.realchrhzpblqqlk@node.shutemov.name>
+References: <CACT4Y+YyFWg3fbj4ta3tSKoeBaw7hbL2YoBatAFiFB1_cMg9=Q@mail.gmail.com>
+ <71e11033-f95c-887f-4e4e-351bcc3df71e@virtuozzo.com>
+ <CACT4Y+bSTOeJtDDZVmkff=qqJFesA_b6uTG__EAn4AvDLw0jzQ@mail.gmail.com>
+ <c4f11000-6138-c6ab-d075-2c4bd6a14943@virtuozzo.com>
+ <75acbed7-6a08-692f-61b5-2b44f66ec0d8@virtuozzo.com>
+ <bc95be68-8c68-2a45-c530-acbc6c90a231@virtuozzo.com>
+ <20170710123346.7y3jnftqgpingim3@node.shutemov.name>
+ <CACT4Y+aRbC7_wvDv8ahH_JwY6P6SFoLg-kdwWHJx5j1stX_P_w@mail.gmail.com>
+ <20170710141713.7aox3edx6o7lrrie@node.shutemov.name>
+ <03A6D7ED-300C-4431-9EB5-67C7A3EA4A2E@amacapital.net>
 MIME-Version: 1.0
-In-Reply-To: <20170708092426.prf7xmmnv6xvdqx4@gmail.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <03A6D7ED-300C-4431-9EB5-67C7A3EA4A2E@amacapital.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>
-Message-ID: <20170710180411.jo0S_LN7YY6boCmCPNKekqtSylSITPLg36lJEgziXms@z>
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, "x86@kernel.org" <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, linux-arch@vger.kernel.org, "linux-mm@kvack.org" <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>
+Message-ID: <20170710184704.ykwFHiMTns_k_40f_PMkA_cEcNfwKM9jkMoLRYNni6g@z>
 
-
-
-On 7/8/2017 4:24 AM, Ingo Molnar wrote:
+On Mon, Jul 10, 2017 at 08:56:37AM -0700, Andy Lutomirski wrote:
 > 
-> * Tom Lendacky <thomas.lendacky@amd.com> wrote:
 > 
->> This patch series provides support for AMD's new Secure Memory Encryption (SME)
->> feature.
+> > On Jul 10, 2017, at 7:17 AM, Kirill A. Shutemov <kirill@shutemov.name> wrote:
+> > 
+> >> On Mon, Jul 10, 2017 at 02:43:17PM +0200, Dmitry Vyukov wrote:
+> >> On Mon, Jul 10, 2017 at 2:33 PM, Kirill A. Shutemov
+> >> <kirill@shutemov.name> wrote:
+> >>> On Thu, Jun 01, 2017 at 05:56:30PM +0300, Andrey Ryabinin wrote:
+> >>>>> On 05/29/2017 03:46 PM, Andrey Ryabinin wrote:
+> >>>>> On 05/29/2017 02:45 PM, Andrey Ryabinin wrote:
+> >>>>>>>>>> Looks like KASAN will be a problem for boot-time paging mode switching.
+> >>>>>>>>>> It wants to know CONFIG_KASAN_SHADOW_OFFSET at compile-time to pass to
+> >>>>>>>>>> gcc -fasan-shadow-offset=. But this value varies between paging modes...
+> >>>>>>>>>> 
+> >>>>>>>>>> I don't see how to solve it. Folks, any ideas?
+> >>>>>>>>> 
+> >>>>>>>>> +kasan-dev
+> >>>>>>>>> 
+> >>>>>>>>> I wonder if we can use the same offset for both modes. If we use
+> >>>>>>>>> 0xFFDFFC0000000000 as start of shadow for 5 levels, then the same
+> >>>>>>>>> offset that we use for 4 levels (0xdffffc0000000000) will also work
+> >>>>>>>>> for 5 levels. Namely, ending of 5 level shadow will overlap with 4
+> >>>>>>>>> level mapping (both end at 0xfffffbffffffffff), but 5 level mapping
+> >>>>>>>>> extends towards lower addresses. The current 5 level start of shadow
+> >>>>>>>>> is actually close -- 0xffd8000000000000 and it seems that the required
+> >>>>>>>>> space after it is unused at the moment (at least looking at mm.txt).
+> >>>>>>>>> So just try to move it to 0xFFDFFC0000000000?
+> >>>>>>>>> 
+> >>>>>>>> 
+> >>>>>>>> Yeah, this should work, but note that 0xFFDFFC0000000000 is not PGDIR aligned address. Our init code
+> >>>>>>>> assumes that kasan shadow stars and ends on the PGDIR aligned address.
+> >>>>>>>> Fortunately this is fixable, we'd need two more pages for page tables to map unaligned start/end
+> >>>>>>>> of the shadow.
+> >>>>>>> 
+> >>>>>>> I think we can extend the shadow backwards (to the current address),
+> >>>>>>> provided that it does not affect shadow offset that we pass to
+> >>>>>>> compiler.
+> >>>>>> 
+> >>>>>> I thought about this. We can round down shadow start to 0xffdf000000000000, but we can't
+> >>>>>> round up shadow end, because in that case shadow would end at 0xffffffffffffffff.
+> >>>>>> So we still need at least one more page to cover unaligned end.
+> >>>>> 
+> >>>>> Actually, I'm wrong here. I assumed that we would need an additional page to store p4d entries,
+> >>>>> but in fact we don't need it, as such page should already exist. It's the same last pgd where kernel image
+> >>>>> is mapped.
+> >>>>> 
+> >>>> 
+> >>>> 
+> >>>> Something like bellow might work. It's just a proposal to demonstrate the idea, so some code might look ugly.
+> >>>> And it's only build-tested.
+> >>> 
+> >>> [Sorry for loong delay.]
+> >>> 
+> >>> The patch works for me for legacy boot. But it breaks EFI boot with
+> >>> 5-level paging. And I struggle to understand why.
+> >>> 
+> >>> What I see is many page faults at mm/kasan/kasan.c:758 --
+> >>> "DEFINE_ASAN_LOAD_STORE(4)". Handling one of them I get double-fault at
+> >>> arch/x86/kernel/head_64.S:298 -- "pushq %r14", which ends up with triple
+> >>> fault.
+> >>> 
+> >>> Any ideas?
+> >> 
+> >> 
+> >> Just playing the role of the rubber duck:
+> >> - what is the fault address?
+> >> - is it within the shadow range?
+> >> - was the shadow mapped already?
+> > 
+> > I misread trace. The initial fault is at arch/x86/kernel/head_64.S:270,
+> > which is ".endr" in definition of early_idt_handler_array.
+> > 
+> > The fault address for all three faults is 0xffffffff7ffffff8, which is
+> > outside shadow range. It's just before kernel text mapping.
+> > 
+> > Codewise, it happens in load_ucode_bsp() -- after kasan_early_init(), but
+> > before kasan_init().
 > 
-> I'm wondering, what's the typical performance hit to DRAM access latency when SME
-> is enabled?
-
-It's about an extra 10 cycles of DRAM latency when performing an
-encryption or decryption operation.
-
+> My theory is that, in 5 level mode, the early IDT code isn't all mapped
+> in the page tables.  This could sometimes be papered over by lazy page
+> table setup, but lazy setup can't handle faults in the page fault code
+> or data structures.
 > 
-> On that same note, if the performance hit is noticeable I'd expect SME to not be
-> enabled in native kernels typically - but still it looks like a useful hardware
+> EFI sometimes uses separate page tables, which could contribute.
 
-In some internal testing we've seen about 1.5% or less reduction in
-performance. Of course it all depends on the workload: the number of
-memory accesses, cache friendliness, etc.
+As far as I can see all involved code is within the same page:
 
-> feature. Since it's controlled at the page table level, have you considered
-> allowing SME-activated vmas via mmap(), even on kernels that are otherwise not
-> using encrypted DRAM?
+(gdb) p/x &x86_64_start_kernel
+$1 = 0xffffffff84bad2ae
+(gdb) p/x &early_idt_handler_array
+$2 = 0xffffffff84bad000
+(gdb) p/x &early_idt_handler_common
+$3 = 0xffffffff84bad120
+(gdb) p/x &early_make_pgtable
+$4 = 0xffffffff84bad3b4
 
-That is definitely something to consider as an additional SME-related
-feature and something I can look into after this.
-
-Thanks,
-Tom
-
-> 
-> One would think that putting encryption keys into such encrypted RAM regions would
-> generally improve robustness against various physical space attacks that want to
-> extract keys but don't have full control of the CPU.
-> 
-> Thanks,
-> 
-> 	Ingo
-> 
+-- 
+ Kirill A. Shutemov
