@@ -1,130 +1,80 @@
-From: Andy Lutomirski <luto@kernel.org>
-Subject: Re: KASAN vs. boot-time switching between 4- and 5-level paging
-Date: Mon, 10 Jul 2017 13:07:13 -0700
-Message-ID: <CALCETrVJQ_u-agPm8fFHAW1UJY=VLowdbM+gXyjFCb586r0V3g@mail.gmail.com>
-References: <CACT4Y+YyFWg3fbj4ta3tSKoeBaw7hbL2YoBatAFiFB1_cMg9=Q@mail.gmail.com>
- <71e11033-f95c-887f-4e4e-351bcc3df71e@virtuozzo.com> <CACT4Y+bSTOeJtDDZVmkff=qqJFesA_b6uTG__EAn4AvDLw0jzQ@mail.gmail.com>
- <c4f11000-6138-c6ab-d075-2c4bd6a14943@virtuozzo.com> <75acbed7-6a08-692f-61b5-2b44f66ec0d8@virtuozzo.com>
- <bc95be68-8c68-2a45-c530-acbc6c90a231@virtuozzo.com> <20170710123346.7y3jnftqgpingim3@node.shutemov.name>
- <CACT4Y+aRbC7_wvDv8ahH_JwY6P6SFoLg-kdwWHJx5j1stX_P_w@mail.gmail.com>
- <20170710141713.7aox3edx6o7lrrie@node.shutemov.name> <03A6D7ED-300C-4431-9EB5-67C7A3EA4A2E@amacapital.net>
- <20170710184704.realchrhzpblqqlk@node.shutemov.name>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20170710184704.realchrhzpblqqlk@node.shutemov.name>
-Sender: owner-linux-mm@kvack.org
-To: "Kirill A. Shutemov" <kirill@shutemov.name>
-Cc: Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, "x86@kernel.org" <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>
-List-Id: linux-arch.vger.kernel.org
+From: Palmer Dabbelt <palmer@dabbelt.com>
+Subject: Re: [PATCH 8/9] RISC-V: User-facing API
+Date: Mon, 10 Jul 2017 13:18:23 -0700 (PDT)
+Message-ID: <mhng-70bfae2b-3aa2-4d9b-b4a1-b6662fc86917@palmer-si-x1c4>
+References: <mhng-f92ef7c4-049a-4a71-be12-c600d1d7858b@palmer-si-x1c4>
+Mime-Version: 1.0 (MHng)
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pf0-f195.google.com ([209.85.192.195]:34377 "EHLO
+        mail-pf0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752191AbdGJUSY (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 10 Jul 2017 16:18:24 -0400
+Received: by mail-pf0-f195.google.com with SMTP id c24so15899119pfe.1
+        for <linux-arch@vger.kernel.org>; Mon, 10 Jul 2017 13:18:24 -0700 (PDT)
+In-Reply-To: <mhng-f92ef7c4-049a-4a71-be12-c600d1d7858b@palmer-si-x1c4>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: will.deacon@arm.com
+Cc: hch@infradead.org, peterz@infradead.org, mingo@redhat.com, mcgrof@kernel.org, viro@zeniv.linux.org.uk, sfr@canb.auug.org.au, nicolas.dichtel@6wind.com, rmk+kernel@armlinux.org.uk, msalter@redhat.com, tklauser@distanz.ch, james.hogan@imgtec.com, paul.gortmaker@windriver.com, linux@roeck-us.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, albert@sifive.com, patches@groups.riscv.org, mathieu.desnoyers@efficios.com
 
-On Mon, Jul 10, 2017 at 11:47 AM, Kirill A. Shutemov
-<kirill@shutemov.name> wrote:
-> On Mon, Jul 10, 2017 at 08:56:37AM -0700, Andy Lutomirski wrote:
->>
->>
->> > On Jul 10, 2017, at 7:17 AM, Kirill A. Shutemov <kirill@shutemov.name> wrote:
->> >
->> >> On Mon, Jul 10, 2017 at 02:43:17PM +0200, Dmitry Vyukov wrote:
->> >> On Mon, Jul 10, 2017 at 2:33 PM, Kirill A. Shutemov
->> >> <kirill@shutemov.name> wrote:
->> >>> On Thu, Jun 01, 2017 at 05:56:30PM +0300, Andrey Ryabinin wrote:
->> >>>>> On 05/29/2017 03:46 PM, Andrey Ryabinin wrote:
->> >>>>> On 05/29/2017 02:45 PM, Andrey Ryabinin wrote:
->> >>>>>>>>>> Looks like KASAN will be a problem for boot-time paging mode switching.
->> >>>>>>>>>> It wants to know CONFIG_KASAN_SHADOW_OFFSET at compile-time to pass to
->> >>>>>>>>>> gcc -fasan-shadow-offset=. But this value varies between paging modes...
->> >>>>>>>>>>
->> >>>>>>>>>> I don't see how to solve it. Folks, any ideas?
->> >>>>>>>>>
->> >>>>>>>>> +kasan-dev
->> >>>>>>>>>
->> >>>>>>>>> I wonder if we can use the same offset for both modes. If we use
->> >>>>>>>>> 0xFFDFFC0000000000 as start of shadow for 5 levels, then the same
->> >>>>>>>>> offset that we use for 4 levels (0xdffffc0000000000) will also work
->> >>>>>>>>> for 5 levels. Namely, ending of 5 level shadow will overlap with 4
->> >>>>>>>>> level mapping (both end at 0xfffffbffffffffff), but 5 level mapping
->> >>>>>>>>> extends towards lower addresses. The current 5 level start of shadow
->> >>>>>>>>> is actually close -- 0xffd8000000000000 and it seems that the required
->> >>>>>>>>> space after it is unused at the moment (at least looking at mm.txt).
->> >>>>>>>>> So just try to move it to 0xFFDFFC0000000000?
->> >>>>>>>>>
->> >>>>>>>>
->> >>>>>>>> Yeah, this should work, but note that 0xFFDFFC0000000000 is not PGDIR aligned address. Our init code
->> >>>>>>>> assumes that kasan shadow stars and ends on the PGDIR aligned address.
->> >>>>>>>> Fortunately this is fixable, we'd need two more pages for page tables to map unaligned start/end
->> >>>>>>>> of the shadow.
->> >>>>>>>
->> >>>>>>> I think we can extend the shadow backwards (to the current address),
->> >>>>>>> provided that it does not affect shadow offset that we pass to
->> >>>>>>> compiler.
->> >>>>>>
->> >>>>>> I thought about this. We can round down shadow start to 0xffdf000000000000, but we can't
->> >>>>>> round up shadow end, because in that case shadow would end at 0xffffffffffffffff.
->> >>>>>> So we still need at least one more page to cover unaligned end.
->> >>>>>
->> >>>>> Actually, I'm wrong here. I assumed that we would need an additional page to store p4d entries,
->> >>>>> but in fact we don't need it, as such page should already exist. It's the same last pgd where kernel image
->> >>>>> is mapped.
->> >>>>>
->> >>>>
->> >>>>
->> >>>> Something like bellow might work. It's just a proposal to demonstrate the idea, so some code might look ugly.
->> >>>> And it's only build-tested.
->> >>>
->> >>> [Sorry for loong delay.]
->> >>>
->> >>> The patch works for me for legacy boot. But it breaks EFI boot with
->> >>> 5-level paging. And I struggle to understand why.
->> >>>
->> >>> What I see is many page faults at mm/kasan/kasan.c:758 --
->> >>> "DEFINE_ASAN_LOAD_STORE(4)". Handling one of them I get double-fault at
->> >>> arch/x86/kernel/head_64.S:298 -- "pushq %r14", which ends up with triple
->> >>> fault.
->> >>>
->> >>> Any ideas?
->> >>
->> >>
->> >> Just playing the role of the rubber duck:
->> >> - what is the fault address?
->> >> - is it within the shadow range?
->> >> - was the shadow mapped already?
->> >
->> > I misread trace. The initial fault is at arch/x86/kernel/head_64.S:270,
->> > which is ".endr" in definition of early_idt_handler_array.
->> >
->> > The fault address for all three faults is 0xffffffff7ffffff8, which is
->> > outside shadow range. It's just before kernel text mapping.
->> >
->> > Codewise, it happens in load_ucode_bsp() -- after kasan_early_init(), but
->> > before kasan_init().
->>
->> My theory is that, in 5 level mode, the early IDT code isn't all mapped
->> in the page tables.  This could sometimes be papered over by lazy page
->> table setup, but lazy setup can't handle faults in the page fault code
->> or data structures.
->>
->> EFI sometimes uses separate page tables, which could contribute.
+On Mon, 10 Jul 2017 13:00:29 PDT (-0700), Palmer Dabbelt wrote:
+> On Thu, 06 Jul 2017 08:45:13 PDT (-0700), will.deacon@arm.com wrote:
+>> On Thu, Jul 06, 2017 at 08:34:27AM -0700, Christoph Hellwig wrote:
+>>> On Thu, Jul 06, 2017 at 09:55:03AM +0100, Will Deacon wrote:
+>>> > Agreed on the indirection; it feels like this is something that should be in
+>>> > the vDSO, which could use the cmpxchg instruction if it's available, or
+>>> > otherwise just uses plain loads and stores.
 >
-> As far as I can see all involved code is within the same page:
+> These are already in the vDSO, and use the corresponding atomic instructions on
+> systems with the A extension.  The vDSO routines call the system calls in non-A
+> systems.  As far as I can tell that's necessary to preserve atomicity, which we
+> currently do by disabling scheduling.  If there's a way to do this without
+> entering the kernel then I'd be happy to support it, but I'm not sure how we
+> could maintain atomicity using only regular loads and stores.
 >
-> (gdb) p/x &x86_64_start_kernel
-> $1 = 0xffffffff84bad2ae
-> (gdb) p/x &early_idt_handler_array
-> $2 = 0xffffffff84bad000
-> (gdb) p/x &early_idt_handler_common
-> $3 = 0xffffffff84bad120
-> (gdb) p/x &early_make_pgtable
-> $4 = 0xffffffff84bad3b4
+>>> Even that seems like a lot of indirection for something that is in
+>>> the critical fast path for synchronization.  I really can't understand
+>>> how a new ISA / ABI could even come up with an idea as stupid as making
+>>> essential synchronization primitives optional.
+>>
+>> No disagreement there!
 >
+> The default set of multilibs on Linux are:
+>
+>  * rv32imac: 32-bit; Multiply, Atomic, and Compressed extensions
+>  * rv32imafdc: like above, but with single+double float
+>  * rv64imac: 64-bit, Multiply, Atomic and Compressed
+>  * rv64imafdc: like above, but with single+double float
+>
+> all of which support the A extension.  We certainly don't plan on building any
+> systems that support Linux without the A extension at SiFive, so I'm fine
+> removing the system call -- this was originally added by a user, so there was
+> at least enough interest for someone to add the system call.
+>
+> We've found people are retrofitting other cores to run RISC-V, and I could
+> certainly imagine an older design that lacks a beefy enough memory system to
+> support our atomics (which are LR/SC based) being a design that might arise.
+> There's a lot of systems where people don't seem to care that much about the
+> performance and just want something to work -- if they're on such a tiny system
+> they can't implement the A extension then they're probably not going to be
+> doing a lot of atomics anyway, so maybe it doesn't matter if atomics are slow.
+> As the cost for supporting these A-less systems seems fairly small, it seemed
+> like the right thing to do -- one of the points of making RISC-V have many
+> optional extensions was to let people pick the ones they view as important.
+> Since I don't know the performance constraints of their systems or the cost of
+> implementing the A extension in their design, I'm not really qualified to tell
+> them a cmpxchg syscall is a bad idea.
+>
+> I'm fine either way here: if someone's core can't support the A extension they
+> can always just buy one that does (ideally from us :)).  If it was up to be I'd
+> leave the calls in there, as I generally don't like to tell users we won't
+> support their use case, but since you guys seem to know a lot more about this
+> than I do I'll just leave the decision up to you.
+>
+> If you want the system call (and the corresponding vDSO entry, which will be
+> unnecessary if we mandate A) gone then I'll remove it for our v5.  Just give me
+> a heads up.
+>
+> Thanks, and sorry for wasting your time!
 
-Can you give the disassembly of the backtrace lines?  Blaming the
-.endr doesn't make much sense to me.
-
-Or maybe Andrey will figure it out quickly.
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+I mangled this message when sending it so I'm trying again.
