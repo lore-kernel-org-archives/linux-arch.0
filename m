@@ -1,48 +1,81 @@
-From: Ram Pai <linuxram@us.ibm.com>
-Subject: Re: [RFC v5 00/38] powerpc: Memory Protection Keys
-Date: Mon, 10 Jul 2017 10:15:36 -0700
-Message-ID: <20170710171536.GA5716@ram.oc3035372033.ibm.com>
-References: <1499289735-14220-1-git-send-email-linuxram@us.ibm.com>
- <d9030b2c-493b-94c4-8c97-8aaec3be34ba@linux.vnet.ibm.com>
- <20170710060544.GF5713@ram.oc3035372033.ibm.com>
-Reply-To: Ram Pai <linuxram@us.ibm.com>
+From: Manfred Spraul <manfred@colorfullife.com>
+Subject: Re: [PATCH v2 0/9] Remove spin_unlock_wait()
+Date: Mon, 10 Jul 2017 19:22:19 +0200
+Message-ID: <fd375869-ca43-b58f-025d-bd1e873e136a@colorfullife.com>
+References: <Pine.LNX.4.44L0.1707081157020.17878-100000@netrider.rowland.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20170710060544.GF5713@ram.oc3035372033.ibm.com>
-Sender: owner-linux-mm@kvack.org
-To: Anshuman Khandual <khandual@linux.vnet.ibm.com>
-Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <Pine.LNX.4.44L0.1707081157020.17878-100000@netrider.rowland.org>
+Content-Language: en-US
+Sender: linux-kernel-owner@vger.kernel.org
+To: Alan Stern <stern@rowland.harvard.edu>, Ingo Molnar <mingo@kernel.org>
+Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>, David Laight <David.Laight@ACULAB.COM>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netfilter-devel@vger.kernel.org" <netfilter-devel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "oleg@redhat.com" <oleg@redhat.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@redhat.com" <mingo@redhat.com>, "dave@stgolabs.net" <dave@stgolabs.net>, "tj@kernel.org" <tj@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "will.deacon@arm.com" <will.deacon@arm.com>, "parri.andrea@gmail.com" <parri.andrea@gmail.com>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Sun, Jul 09, 2017 at 11:05:44PM -0700, Ram Pai wrote:
-> On Mon, Jul 10, 2017 at 11:13:23AM +0530, Anshuman Khandual wrote:
-> > On 07/06/2017 02:51 AM, Ram Pai wrote:
-.....
-> 
-> > do you have data points to show the difference in
-> > performance between this version and the last one where
-> > we skipped the bits from PTE and directly programmed the
-> > HPTE entries looking into VMA bits.
-> 
-> No. I dont. I am hoping you can help me out with this.
-Anshuman,
-	The last version where we skipped the PTE bits is guaranteed
-	to be bad/horrible. For one it has a bug, since it accesses
-	the vma without a lock. And even if we did take a lock, it
-	will slow down the page-hash path un-acceptably. So there is
-	no point measuring the performance of that design.
+Hi Alan,
 
-	I think the number we want to measure is -- the performance 
-	with the current design and comparing that to the performance
-	without memkey feature. We want to find if there is
-	any degradation by adding this feature.
+On 07/08/2017 06:21 PM, Alan Stern wrote:
+> Pardon me for barging in, but I found this whole interchange extremely
+> confusing...
+>
+> On Sat, 8 Jul 2017, Ingo Molnar wrote:
+>
+>> * Paul E. McKenney <paulmck@linux.vnet.ibm.com> wrote:
+>>
+>>> On Sat, Jul 08, 2017 at 10:35:43AM +0200, Ingo Molnar wrote:
+>>>> * Manfred Spraul <manfred@colorfullife.com> wrote:
+>>>>
+>>>>> Hi Ingo,
+>>>>>
+>>>>> On 07/07/2017 10:31 AM, Ingo Molnar wrote:
+>>>>>> There's another, probably just as significant advantage: queued_spin_unlock_wait()
+>>>>>> is 'read-only', while spin_lock()+spin_unlock() dirties the lock cache line. On
+>>>>>> any bigger system this should make a very measurable difference - if
+>>>>>> spin_unlock_wait() is ever used in a performance critical code path.
+>>>>> At least for ipc/sem:
+>>>>> Dirtying the cacheline (in the slow path) allows to remove a smp_mb() in the
+>>>>> hot path.
+>>>>> So for sem_lock(), I either need a primitive that dirties the cacheline or
+>>>>> sem_lock() must continue to use spin_lock()/spin_unlock().
+> This statement doesn't seem to make sense.  Did Manfred mean to write
+> "smp_mb()" instead of "spin_lock()/spin_unlock()"?
+Option 1:
+     fastpath:
+         spin_lock(local_lock)
+         smp_mb(); [[1]]
+         smp_load_acquire(global_flag);
+     slow path:
+         global_flag = 1;
+         smp_mb();
+         <spin_unlock_wait_without_cacheline_dirtying>
 
-RP
+Option 2:
+     fastpath:
+         spin_lock(local_lock);
+         smp_load_acquire(global_flag)
+     slow path:
+         global_flag = 1;
+         spin_lock(local_lock);spin_unlock(local_lock).
+
+Rational:
+The ACQUIRE from spin_lock is at the read of local_lock, not at the write.
+i.e.: Without the smp_mb() at [[1]], the CPU can do:
+         read local_lock;
+         read global_flag;
+         write local_lock;
+For Option 2, the smp_mb() is not required, because fast path and slow 
+path acquire the same lock.
+
+>>>> Technically you could use spin_trylock()+spin_unlock() and avoid the lock acquire
+>>>> spinning on spin_unlock() and get very close to the slow path performance of a
+>>>> pure cacheline-dirtying behavior.
+> This is even more confusing.  Did Ingo mean to suggest using
+> "spin_trylock()+spin_unlock()" in place of "spin_lock()+spin_unlock()"
+> could provide the desired ordering guarantee without delaying other
+> CPUs that may try to acquire the lock?  That seems highly questionable.
+I agree :-)
 
 --
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+     Manfred
