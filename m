@@ -1,84 +1,90 @@
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: Re: [PATCH v2 00/28] kbuild: complete UAPI de-coupling and cleanup scripts/Makefile.headersinst
-Date: Mon, 10 Jul 2017 18:12:28 +0900
-Message-ID: <CAK7LNASdy7Lm+Bos2usOUeEPrCYzTdfVk1T79zm9v8JOTNEBZg@mail.gmail.com>
-References: <1499625180-8067-1-git-send-email-yamada.masahiro@socionext.com> <20170710084208.GA25874@ravnborg.org>
+From: "Kirill A. Shutemov" <kirill@shutemov.name>
+Subject: Re: KASAN vs. boot-time switching between 4- and 5-level paging
+Date: Mon, 10 Jul 2017 15:33:46 +0300
+Message-ID: <20170710123346.7y3jnftqgpingim3@node.shutemov.name>
+References: <20170525203334.867-1-kirill.shutemov@linux.intel.com>
+ <20170525203334.867-8-kirill.shutemov@linux.intel.com>
+ <20170526221059.o4kyt3ijdweurz6j@node.shutemov.name>
+ <CACT4Y+YyFWg3fbj4ta3tSKoeBaw7hbL2YoBatAFiFB1_cMg9=Q@mail.gmail.com>
+ <71e11033-f95c-887f-4e4e-351bcc3df71e@virtuozzo.com>
+ <CACT4Y+bSTOeJtDDZVmkff=qqJFesA_b6uTG__EAn4AvDLw0jzQ@mail.gmail.com>
+ <c4f11000-6138-c6ab-d075-2c4bd6a14943@virtuozzo.com>
+ <75acbed7-6a08-692f-61b5-2b44f66ec0d8@virtuozzo.com>
+ <bc95be68-8c68-2a45-c530-acbc6c90a231@virtuozzo.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from conssluserg-03.nifty.com ([210.131.2.82]:36420 "EHLO
-        conssluserg-03.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751674AbdGJJMs (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 10 Jul 2017 05:12:48 -0400
-In-Reply-To: <20170710084208.GA25874@ravnborg.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <bc95be68-8c68-2a45-c530-acbc6c90a231@virtuozzo.com>
+Sender: owner-linux-mm@kvack.org
+To: Andrey Ryabinin <aryabinin@virtuozzo.com>
+Cc: Dmitry Vyukov <dvyukov@google.com>, Alexander Potapenko <glider@google.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, "x86@kernel.org" <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, "linux-mm@kvack.org" <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>
+List-Id: linux-arch.vger.kernel.org
 
-Hi Sam,
+On Thu, Jun 01, 2017 at 05:56:30PM +0300, Andrey Ryabinin wrote:
+> On 05/29/2017 03:46 PM, Andrey Ryabinin wrote:
+> > On 05/29/2017 02:45 PM, Andrey Ryabinin wrote:
+> >>>>>> Looks like KASAN will be a problem for boot-time paging mode switching.
+> >>>>>> It wants to know CONFIG_KASAN_SHADOW_OFFSET at compile-time to pass to
+> >>>>>> gcc -fasan-shadow-offset=. But this value varies between paging modes...
+> >>>>>>
+> >>>>>> I don't see how to solve it. Folks, any ideas?
+> >>>>>
+> >>>>> +kasan-dev
+> >>>>>
+> >>>>> I wonder if we can use the same offset for both modes. If we use
+> >>>>> 0xFFDFFC0000000000 as start of shadow for 5 levels, then the same
+> >>>>> offset that we use for 4 levels (0xdffffc0000000000) will also work
+> >>>>> for 5 levels. Namely, ending of 5 level shadow will overlap with 4
+> >>>>> level mapping (both end at 0xfffffbffffffffff), but 5 level mapping
+> >>>>> extends towards lower addresses. The current 5 level start of shadow
+> >>>>> is actually close -- 0xffd8000000000000 and it seems that the required
+> >>>>> space after it is unused at the moment (at least looking at mm.txt).
+> >>>>> So just try to move it to 0xFFDFFC0000000000?
+> >>>>>
+> >>>>
+> >>>> Yeah, this should work, but note that 0xFFDFFC0000000000 is not PGDIR aligned address. Our init code
+> >>>> assumes that kasan shadow stars and ends on the PGDIR aligned address.
+> >>>> Fortunately this is fixable, we'd need two more pages for page tables to map unaligned start/end
+> >>>> of the shadow.
+> >>>
+> >>> I think we can extend the shadow backwards (to the current address),
+> >>> provided that it does not affect shadow offset that we pass to
+> >>> compiler.
+> >>
+> >> I thought about this. We can round down shadow start to 0xffdf000000000000, but we can't
+> >> round up shadow end, because in that case shadow would end at 0xffffffffffffffff.
+> >> So we still need at least one more page to cover unaligned end.
+> > 
+> > Actually, I'm wrong here. I assumed that we would need an additional page to store p4d entries,
+> > but in fact we don't need it, as such page should already exist. It's the same last pgd where kernel image
+> > is mapped.
+> > 
+> 
+> 
+> Something like bellow might work. It's just a proposal to demonstrate the idea, so some code might look ugly.
+> And it's only build-tested.
 
+[Sorry for loong delay.]
 
-2017-07-10 17:42 GMT+09:00 Sam Ravnborg <sam@ravnborg.org>:
-> Hi Masahiro.
->
-> On Mon, Jul 10, 2017 at 03:32:32AM +0900, Masahiro Yamada wrote:
->> In v4.12-rc1, we had a big progress for headers_install.
->> All (and only) headers under UAPI directories are exported.
->> However, asm-generic wrappers are still exceptions because
->> most of arch/*/include/asm/Kbuild include "generic-y" for
->> exported headers.  As a result, many of generic-wrappers to be
->> exported are generated outside UAPI directories.
->>
->> To finish de-coupling UAPI, "generic-y" for exported headers
->> should be moved to arch/*/include/uapi/asm/Kbuild.
->>
->> With those cleanups, the logic of headers_install will become
->> even simpler.  UAPI will be completely self-contained.
->>
->> This series is based on:
->> commit 19bf2e0ef18ec8a7284ecc83459a2664cb885cd5
->>
->> Changes for v2:
->>   - rebase on the latest in the mainline in order to avoid merge conflicts
->
-> Series looks good.
->
-> In several of your patches assignments are moved to the arch
-> specific uapi file, but the same assignment are already present in
-> include/uapi/asm-generic/Kbuild.asm so the assignment is redundant.
->
-> For example:
-> $ARCH uapi Kbuild:
-> generic-y += errno.h
->
-> uapi/asm-generic Kbuild:
-> mandatory-y += errno.h
->
-> As this patch-set is touching all arch files this
-> could be a good opportunity to clean this up too.
->
-> But maybe mandatory-y and generic-y do something different,
-> and both are needed. In wich cases all is good.
->
+The patch works for me for legacy boot. But it breaks EFI boot with
+5-level paging. And I struggle to understand why.
 
-Thanks for your review, and you have a good point.
+What I see is many page faults at mm/kasan/kasan.c:758 --
+"DEFINE_ASAN_LOAD_STORE(4)". Handling one of them I get double-fault at
+arch/x86/kernel/head_64.S:298 -- "pushq %r14", which ends up with triple
+fault.
 
-If neither arch-own header implementation is found
-nor generic-y is specified, the build system can automatically generate
-generic wrappers for "mandatory" headers.
+Any ideas?
 
-I also considered of it, but I wanted to take my time.
-
-I simply moved generic-y without introducing any logical change
-in order to make this series less controversial.
-
-One point of forcing explicit generic-y might be,
-to give arch maintainers an opportunity to judge
-if falling back to asm-generic one works or not.
-
-
+If you want to play with this by yourself, qemu supports la57 -- use
+-cpu "qemu64,+la57".
 
 -- 
-Best Regards
-Masahiro Yamada
+ Kirill A. Shutemov
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
