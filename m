@@ -1,64 +1,111 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f67.google.com ([74.125.83.67]:34004 "EHLO
+Received: from mail-pg0-f67.google.com ([74.125.83.67]:33989 "EHLO
         mail-pg0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754609AbdGJUjv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 10 Jul 2017 16:39:51 -0400
-Received: by mail-pg0-f67.google.com with SMTP id j186so14010668pge.1
-        for <linux-arch@vger.kernel.org>; Mon, 10 Jul 2017 13:39:51 -0700 (PDT)
-Date: Mon, 10 Jul 2017 13:39:49 -0700 (PDT)
-Subject: Re: [patches] [PATCH 1/9] RISC-V: Init and Halt Code
-In-Reply-To: <20170707125855.rgqp432a62kmskhr@latitude>
+        with ESMTP id S1754319AbdGJUjs (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 10 Jul 2017 16:39:48 -0400
+Received: by mail-pg0-f67.google.com with SMTP id j186so14010415pge.1
+        for <linux-arch@vger.kernel.org>; Mon, 10 Jul 2017 13:39:47 -0700 (PDT)
+Date: Mon, 10 Jul 2017 13:39:46 -0700 (PDT)
+Subject: Re: [PATCH 2/9] RISC-V: Atomic and Locking Code
+In-Reply-To: <20170707021425.sssqytbf3gmbklwe@tardis>
 From: Palmer Dabbelt <palmer@dabbelt.com>
-Message-ID: <mhng-0e729a6d-ca23-471e-85d5-93286e735b53@palmer-si-x1c4>
+Message-ID: <mhng-c615d286-e127-43cd-8357-1d9e20f086b9@palmer-si-x1c4>
 Mime-Version: 1.0 (MHng)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Cc: j.neuschaefer@gmx.net, patches@groups.riscv.org, peterz@infradead.org, mingo@redhat.com, mcgrof@kernel.org, viro@zeniv.linux.org.uk, sfr@canb.auug.org.au, nicolas.dichtel@6wind.com, rmk+kernel@armlinux.org.uk, msalter@redhat.com, tklauser@distanz.ch, will.deacon@arm.com, james.hogan@imgtec.com, paul.gortmaker@windriver.com, linux@roeck-us.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, albert@sifive.com
-Message-ID: <20170710203949.ps2YLzJuWbpPBtjA9FPW7CqsaNPt7R6dRBLEMafoL5U@z>
+To: boqun.feng@gmail.com
+Cc: peterz@infradead.org, mingo@redhat.com, mcgrof@kernel.org, viro@zeniv.linux.org.uk, sfr@canb.auug.org.au, nicolas.dichtel@6wind.com, rmk+kernel@armlinux.org.uk, msalter@redhat.com, tklauser@distanz.ch, will.deacon@arm.com, james.hogan@imgtec.com, paul.gortmaker@windriver.com, linux@roeck-us.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, albert@sifive.com, patches@groups.riscv.org
+Message-ID: <20170710203946.ipCgOT14Qbrg2mKPzqKbWvopybjD3eXw3-EcxojmdMI@z>
 
-On Fri, 07 Jul 2017 05:58:55 PDT (-0700), j.neuschaefer@gmx.net wrote:
-> On Thu, Jul 06, 2017 at 03:34:39PM -0700, Palmer Dabbelt wrote:
->> On Tue, 04 Jul 2017 14:54:01 PDT (-0700), j.neuschaefer@gmx.net wrote:
+On Thu, 06 Jul 2017 19:14:25 PDT (-0700), boqun.feng@gmail.com wrote:
+> On Thu, Jul 06, 2017 at 06:04:13PM -0700, Palmer Dabbelt wrote:
 > [...]
->> >> +#define DO_ERROR_INFO(name, signo, code, str)				\
->> >> +asmlinkage void name(struct pt_regs *regs)				\
->> >> +{									\
->> >> +	do_trap_error(regs, signo, code, regs->sepc, "Oops - " str);	\
->> >> +}
->> >> +
->> >> +DO_ERROR_INFO(do_trap_unknown,
->> >> +	SIGILL, ILL_ILLTRP, "unknown exception");
->> >> +DO_ERROR_INFO(do_trap_insn_misaligned,
->> >> +	SIGBUS, BUS_ADRALN, "instruction address misaligned");
->> >> +DO_ERROR_INFO(do_trap_insn_fault,
->> >> +	SIGBUS, BUS_ADRALN, "instruction access fault");
+>> >> +#define __smp_load_acquire(p)						\
+>> >> +do {									\
+>> >> +	union { typeof(*p) __val; char __c[1]; } __u =			\
+>> >> +		{ .__val = (__force typeof(*p)) (v) };			\
+>> >> +	compiletime_assert_atomic_type(*p);				\
+>> >> +	switch (sizeof(*p)) {						\
+>> >> +	case 1:								\
+>> >> +	case 2:								\
+>> >> +		__u.__val = READ_ONCE(*p);				\
+>> >> +		smb_mb();						\
+>> >> +		break;							\
+>> >> +	case 4:								\
+>> >> +		__asm__ __volatile__ (					\
+>> >> +			"amoor.w.aq %1, zero, %0"			\
+>> >> +			: "+A" (*p)					\
+>> >> +			: "=r" (__u.__val)				\
+>> >> +			: "memory");					\
+>> >> +		break;							\
+>> >> +	case 8:								\
+>> >> +		__asm__ __volatile__ (					\
+>> >> +			"amoor.d.aq %1, zero, %0"			\
+>> >> +			: "+A" (*p)					\
+>> >> +			: "=r" (__u.__val)				\
+>> >> +			: "memory");					\
+>> >> +		break;							\
+>> >> +	}								\
+>> >> +	__u.__val;							\
+>> >> +} while (0)
 >> >
->> > For a general instruction access fault, BUS_ADRALN seems wrong. A
->> > variant of SIGSEGV seems more appropriate, IMHO.
+>> > 'creative' use of amoswap and amoor :-)
+>> >
+>> > You should really look at a normal load with ordering instruction
+>> > though, that amoor.aq is a rmw and will promote the cacheline to
+>> > exclusive (and dirty it).
 >>
->> How does this look?
+>> The thought here was that implementations could elide the MW by pattern
+>> matching the "zero" (x0, the architectural zero register) forms of AMOs where
+>> it's interesting.  I talked to one of our microarchitecture guys, and while he
+>> agrees that's easy he points out that eliding half the AMO may wreak havoc on
+>> the consistency model.  Since we're not sure what the memory model is actually
+>> going to look like, we thought it'd be best to just write the simplest code
+>> here
 >>
->>   diff --git a/arch/riscv/kernel/traps.c b/arch/riscv/kernel/traps.c
->>   index 4c693b5b9980..3ce9ac6e736e 100644
->>   --- a/arch/riscv/kernel/traps.c
->>   +++ b/arch/riscv/kernel/traps.c
->>   @@ -112,7 +112,7 @@ DO_ERROR_INFO(do_trap_unknown,
->>    DO_ERROR_INFO(do_trap_insn_misaligned,
->>           SIGBUS, BUS_ADRALN, "instruction address misaligned");
->>    DO_ERROR_INFO(do_trap_insn_fault,
->>   -       SIGBUS, BUS_ADRALN, "instruction access fault");
->>   +       SIGBUS, SEGV_ACCERR, "instruction access fault");
->>    DO_ERROR_INFO(do_trap_insn_illegal,
->>           SIGILL, ILL_ILLOPC, "illegal instruction");
->>    DO_ERROR_INFO(do_trap_load_misaligned,
+>>   /*
+>>    * TODO_RISCV_MEMORY_MODEL: While we could emit AMOs for the W and D sized
+>>    * accesses here, it's questionable if that actually helps or not: the lack of
+>>    * offsets in the AMOs means they're usually preceded by an addi, so they
+>>    * probably won't save code space.  For now we'll just emit the fence.
+>>    */
+>>   #define __smp_store_release(p, v)                                       \
+>>   ({                                                                      \
+>>           compiletime_assert_atomic_type(*p);                             \
+>>           smp_mb();                                                       \
+>>           WRITE_ONCE(*p, v);                                              \
+>>   })
+>>
+>>   #define __smp_load_acquire(p)                                           \
+>>   ({                                                                      \
+>>           union{typeof(*p) __p; long __l;} __u;                           \
 >
-> I'm not familiar with the trap handling infrastructure, but looking at
-> include/uapi/asm-generic/siginfo.h, SEGV_ACCERR would alias to
-> BUS_ADRERR (both are defined as (__SI_FAULT|2)). So if you use SEGV_*,
-> you need to use SIGSEGV, too.
+> AFAICT, there seems to be an endian issue if you do this. No?
 >
-> With DO_ERROR_INFO(..., SIGSEGV, SEGV_ACCERR, ...); it looks good to me.
+> Let us assume typeof(*p) is char and *p == 1, and on a big endian 32bit
+> platform:
+>
+>>           compiletime_assert_atomic_type(*p);                             \
+>>           __u.__l = READ_ONCE(*p);                                        \
+>
+> 	READ_ONCE(*p) is 1 so
+> 	__u.__l is 0x00 00 00 01 now
+>
+>>           smp_mb();                                                       \
+>>           __u.__p;                                                        \
+>
+> 	__u.__p is then 0x00.
+>
+> Am I missing something here?
 
-Oh, sorry, I wasn't paying attention.  It should be fixed now.
+We're little endian (though I might have still screwed it up).  I didn't really
+bother looking because...
+
+> Even so why not use the simple definition as in include/asm-generic/barrier.h?
+
+...that's much better -- I forgot there were generic versions, as we used to
+have a much more complicated one.
+
+  https://github.com/riscv/riscv-linux/commit/910d2bf4c3c349b670a1d839462e32e122ac70a5
 
 Thanks!
