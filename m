@@ -1,131 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f47.google.com ([74.125.83.47]:34549 "EHLO
-        mail-pg0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754453AbdGJP4l (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 10 Jul 2017 11:56:41 -0400
-Received: by mail-pg0-f47.google.com with SMTP id t186so51857183pgb.1
-        for <linux-arch@vger.kernel.org>; Mon, 10 Jul 2017 08:56:40 -0700 (PDT)
-Content-Type: text/plain;
-        charset=us-ascii
-Mime-Version: 1.0 (1.0)
-Subject: Re: KASAN vs. boot-time switching between 4- and 5-level paging
-From: Andy Lutomirski <luto@amacapital.net>
-In-Reply-To: <20170710141713.7aox3edx6o7lrrie@node.shutemov.name>
-Date: Mon, 10 Jul 2017 08:56:37 -0700
-Content-Transfer-Encoding: quoted-printable
-Message-ID: <03A6D7ED-300C-4431-9EB5-67C7A3EA4A2E@amacapital.net>
-References: <20170525203334.867-8-kirill.shutemov@linux.intel.com> <20170526221059.o4kyt3ijdweurz6j@node.shutemov.name> <CACT4Y+YyFWg3fbj4ta3tSKoeBaw7hbL2YoBatAFiFB1_cMg9=Q@mail.gmail.com> <71e11033-f95c-887f-4e4e-351bcc3df71e@virtuozzo.com> <CACT4Y+bSTOeJtDDZVmkff=qqJFesA_b6uTG__EAn4AvDLw0jzQ@mail.gmail.com> <c4f11000-6138-c6ab-d075-2c4bd6a14943@virtuozzo.com> <75acbed7-6a08-692f-61b5-2b44f66ec0d8@virtuozzo.com> <bc95be68-8c68-2a45-c530-acbc6c90a231@virtuozzo.com> <20170710123346.7y3jnftqgpingim3@node.shutemov.name> <CACT4Y+aRbC7_wvDv8ahH_JwY6P6SFoLg-kdwWHJx5j1stX_P_w@mail.gmail.com> <20170710141713.7aox3edx6o7lrrie@node.shutemov.name>
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:44189 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S932067AbdGJRQA (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 10 Jul 2017 13:16:00 -0400
+Received: from pps.filterd (m0098399.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id v6AHEAKg019326
+        for <linux-arch@vger.kernel.org>; Mon, 10 Jul 2017 13:15:55 -0400
+Received: from e31.co.us.ibm.com (e31.co.us.ibm.com [32.97.110.149])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2bmb55q149-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Mon, 10 Jul 2017 13:15:54 -0400
+Received: from localhost
+        by e31.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <linuxram@us.ibm.com>;
+        Mon, 10 Jul 2017 11:15:53 -0600
+Date: Mon, 10 Jul 2017 10:15:36 -0700
+From: Ram Pai <linuxram@us.ibm.com>
+Subject: Re: [RFC v5 00/38] powerpc: Memory Protection Keys
+Reply-To: Ram Pai <linuxram@us.ibm.com>
+References: <1499289735-14220-1-git-send-email-linuxram@us.ibm.com>
+ <d9030b2c-493b-94c4-8c97-8aaec3be34ba@linux.vnet.ibm.com>
+ <20170710060544.GF5713@ram.oc3035372033.ibm.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20170710060544.GF5713@ram.oc3035372033.ibm.com>
+Message-ID: <20170710171536.GA5716@ram.oc3035372033.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Kirill A. Shutemov" <kirill@shutemov.name>
-Cc: Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, "x86@kernel.org" <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, linux-arch@vger.kernel.org, "linux-mm@kvack.org" <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>
-Message-ID: <20170710155637.O4KV1IxfBYz5GgdcgB2ICoRmrJrUEl3CKjOd_jDQm2M@z>
+To: Anshuman Khandual <khandual@linux.vnet.ibm.com>
+Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
+Message-ID: <20170710171536.uzzmsuhfn184bNT3qJv1McByiImx9u17DrWeKgwom5k@z>
 
+On Sun, Jul 09, 2017 at 11:05:44PM -0700, Ram Pai wrote:
+> On Mon, Jul 10, 2017 at 11:13:23AM +0530, Anshuman Khandual wrote:
+> > On 07/06/2017 02:51 AM, Ram Pai wrote:
+.....
+> 
+> > do you have data points to show the difference in
+> > performance between this version and the last one where
+> > we skipped the bits from PTE and directly programmed the
+> > HPTE entries looking into VMA bits.
+> 
+> No. I dont. I am hoping you can help me out with this.
+Anshuman,
+	The last version where we skipped the PTE bits is guaranteed
+	to be bad/horrible. For one it has a bug, since it accesses
+	the vma without a lock. And even if we did take a lock, it
+	will slow down the page-hash path un-acceptably. So there is
+	no point measuring the performance of that design.
 
+	I think the number we want to measure is -- the performance 
+	with the current design and comparing that to the performance
+	without memkey feature. We want to find if there is
+	any degradation by adding this feature.
 
-> On Jul 10, 2017, at 7:17 AM, Kirill A. Shutemov <kirill@shutemov.name> wro=
-te:
->=20
->> On Mon, Jul 10, 2017 at 02:43:17PM +0200, Dmitry Vyukov wrote:
->> On Mon, Jul 10, 2017 at 2:33 PM, Kirill A. Shutemov
->> <kirill@shutemov.name> wrote:
->>> On Thu, Jun 01, 2017 at 05:56:30PM +0300, Andrey Ryabinin wrote:
->>>>> On 05/29/2017 03:46 PM, Andrey Ryabinin wrote:
->>>>> On 05/29/2017 02:45 PM, Andrey Ryabinin wrote:
->>>>>>>>>> Looks like KASAN will be a problem for boot-time paging mode swit=
-ching.
->>>>>>>>>> It wants to know CONFIG_KASAN_SHADOW_OFFSET at compile-time to pa=
-ss to
->>>>>>>>>> gcc -fasan-shadow-offset=3D. But this value varies between paging=
- modes...
->>>>>>>>>>=20
->>>>>>>>>> I don't see how to solve it. Folks, any ideas?
->>>>>>>>>=20
->>>>>>>>> +kasan-dev
->>>>>>>>>=20
->>>>>>>>> I wonder if we can use the same offset for both modes. If we use
->>>>>>>>> 0xFFDFFC0000000000 as start of shadow for 5 levels, then the same
->>>>>>>>> offset that we use for 4 levels (0xdffffc0000000000) will also wor=
-k
->>>>>>>>> for 5 levels. Namely, ending of 5 level shadow will overlap with 4=
-
->>>>>>>>> level mapping (both end at 0xfffffbffffffffff), but 5 level mappin=
-g
->>>>>>>>> extends towards lower addresses. The current 5 level start of shad=
-ow
->>>>>>>>> is actually close -- 0xffd8000000000000 and it seems that the requ=
-ired
->>>>>>>>> space after it is unused at the moment (at least looking at mm.txt=
-).
->>>>>>>>> So just try to move it to 0xFFDFFC0000000000?
->>>>>>>>>=20
->>>>>>>>=20
->>>>>>>> Yeah, this should work, but note that 0xFFDFFC0000000000 is not PGD=
-IR aligned address. Our init code
->>>>>>>> assumes that kasan shadow stars and ends on the PGDIR aligned addre=
-ss.
->>>>>>>> Fortunately this is fixable, we'd need two more pages for page tabl=
-es to map unaligned start/end
->>>>>>>> of the shadow.
->>>>>>>=20
->>>>>>> I think we can extend the shadow backwards (to the current address),=
-
->>>>>>> provided that it does not affect shadow offset that we pass to
->>>>>>> compiler.
->>>>>>=20
->>>>>> I thought about this. We can round down shadow start to 0xffdf0000000=
-00000, but we can't
->>>>>> round up shadow end, because in that case shadow would end at 0xfffff=
-fffffffffff.
->>>>>> So we still need at least one more page to cover unaligned end.
->>>>>=20
->>>>> Actually, I'm wrong here. I assumed that we would need an additional p=
-age to store p4d entries,
->>>>> but in fact we don't need it, as such page should already exist. It's t=
-he same last pgd where kernel image
->>>>> is mapped.
->>>>>=20
->>>>=20
->>>>=20
->>>> Something like bellow might work. It's just a proposal to demonstrate t=
-he idea, so some code might look ugly.
->>>> And it's only build-tested.
->>>=20
->>> [Sorry for loong delay.]
->>>=20
->>> The patch works for me for legacy boot. But it breaks EFI boot with
->>> 5-level paging. And I struggle to understand why.
->>>=20
->>> What I see is many page faults at mm/kasan/kasan.c:758 --
->>> "DEFINE_ASAN_LOAD_STORE(4)". Handling one of them I get double-fault at
->>> arch/x86/kernel/head_64.S:298 -- "pushq %r14", which ends up with triple=
-
->>> fault.
->>>=20
->>> Any ideas?
->>=20
->>=20
->> Just playing the role of the rubber duck:
->> - what is the fault address?
->> - is it within the shadow range?
->> - was the shadow mapped already?
->=20
-> I misread trace. The initial fault is at arch/x86/kernel/head_64.S:270,
-> which is ".endr" in definition of early_idt_handler_array.
->=20
-> The fault address for all three faults is 0xffffffff7ffffff8, which is
-> outside shadow range. It's just before kernel text mapping.
->=20
-> Codewise, it happens in load_ucode_bsp() -- after kasan_early_init(), but
-> before kasan_init().
-
-My theory is that, in 5 level mode, the early IDT code isn't all mapped in t=
-he page tables.  This could sometimes be papered over by lazy page table set=
-up, but lazy setup can't handle faults in the page fault code or data struct=
-ures.
-
-EFI sometimes uses separate page tables, which could contribute.
-
->=20
-> --=20
-> Kirill A. Shutemov
+RP
