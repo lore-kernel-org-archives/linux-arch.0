@@ -1,88 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f194.google.com ([209.85.128.194]:36218 "EHLO
-        mail-wr0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S933060AbdGJRW3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 10 Jul 2017 13:22:29 -0400
-Received: by mail-wr0-f194.google.com with SMTP id 77so26310185wrb.3
-        for <linux-arch@vger.kernel.org>; Mon, 10 Jul 2017 10:22:28 -0700 (PDT)
-Subject: Re: [PATCH v2 0/9] Remove spin_unlock_wait()
-References: <Pine.LNX.4.44L0.1707081157020.17878-100000@netrider.rowland.org>
-From: Manfred Spraul <manfred@colorfullife.com>
-Message-ID: <fd375869-ca43-b58f-025d-bd1e873e136a@colorfullife.com>
-Date: Mon, 10 Jul 2017 19:22:19 +0200
+Received: from mail-dm3nam03on0043.outbound.protection.outlook.com ([104.47.41.43]:30205
+        "EHLO NAM03-DM3-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1754594AbdGJSEX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 10 Jul 2017 14:04:23 -0400
+Subject: Re: [PATCH v9 00/38] x86: Secure Memory Encryption (AMD)
+References: <20170707133804.29711.1616.stgit@tlendack-t1.amdoffice.net>
+ <20170708092426.prf7xmmnv6xvdqx4@gmail.com>
+From: Tom Lendacky <thomas.lendacky@amd.com>
+Message-ID: <fce185d2-4420-7255-6331-6231c643c8c7@amd.com>
+Date: Mon, 10 Jul 2017 13:04:11 -0500
 MIME-Version: 1.0
-In-Reply-To: <Pine.LNX.4.44L0.1707081157020.17878-100000@netrider.rowland.org>
+In-Reply-To: <20170708092426.prf7xmmnv6xvdqx4@gmail.com>
 Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
 Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alan Stern <stern@rowland.harvard.edu>, Ingo Molnar <mingo@kernel.org>
-Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>, David Laight <David.Laight@ACULAB.COM>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netfilter-devel@vger.kernel.org" <netfilter-devel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "oleg@redhat.com" <oleg@redhat.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@redhat.com" <mingo@redhat.com>, "dave@stgolabs.net" <dave@stgolabs.net>, "tj@kernel.org" <tj@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "will.deacon@arm.com" <will.deacon@arm.com>, "parri.andrea@gmail.com" <parri.andrea@gmail.com>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>
-Message-ID: <20170710172219.BlmNdvh2UfABlCF3qyJYvcI_GsfapYXzvIeJGjbkHss@z>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, xen-devel@lists.xen.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>
+Message-ID: <20170710180411.jo0S_LN7YY6boCmCPNKekqtSylSITPLg36lJEgziXms@z>
 
-Hi Alan,
 
-On 07/08/2017 06:21 PM, Alan Stern wrote:
-> Pardon me for barging in, but I found this whole interchange extremely
-> confusing...
->
-> On Sat, 8 Jul 2017, Ingo Molnar wrote:
->
->> * Paul E. McKenney <paulmck@linux.vnet.ibm.com> wrote:
->>
->>> On Sat, Jul 08, 2017 at 10:35:43AM +0200, Ingo Molnar wrote:
->>>> * Manfred Spraul <manfred@colorfullife.com> wrote:
->>>>
->>>>> Hi Ingo,
->>>>>
->>>>> On 07/07/2017 10:31 AM, Ingo Molnar wrote:
->>>>>> There's another, probably just as significant advantage: queued_spin_unlock_wait()
->>>>>> is 'read-only', while spin_lock()+spin_unlock() dirties the lock cache line. On
->>>>>> any bigger system this should make a very measurable difference - if
->>>>>> spin_unlock_wait() is ever used in a performance critical code path.
->>>>> At least for ipc/sem:
->>>>> Dirtying the cacheline (in the slow path) allows to remove a smp_mb() in the
->>>>> hot path.
->>>>> So for sem_lock(), I either need a primitive that dirties the cacheline or
->>>>> sem_lock() must continue to use spin_lock()/spin_unlock().
-> This statement doesn't seem to make sense.  Did Manfred mean to write
-> "smp_mb()" instead of "spin_lock()/spin_unlock()"?
-Option 1:
-     fastpath:
-         spin_lock(local_lock)
-         smp_mb(); [[1]]
-         smp_load_acquire(global_flag);
-     slow path:
-         global_flag = 1;
-         smp_mb();
-         <spin_unlock_wait_without_cacheline_dirtying>
 
-Option 2:
-     fastpath:
-         spin_lock(local_lock);
-         smp_load_acquire(global_flag)
-     slow path:
-         global_flag = 1;
-         spin_lock(local_lock);spin_unlock(local_lock).
+On 7/8/2017 4:24 AM, Ingo Molnar wrote:
+> 
+> * Tom Lendacky <thomas.lendacky@amd.com> wrote:
+> 
+>> This patch series provides support for AMD's new Secure Memory Encryption (SME)
+>> feature.
+> 
+> I'm wondering, what's the typical performance hit to DRAM access latency when SME
+> is enabled?
 
-Rational:
-The ACQUIRE from spin_lock is at the read of local_lock, not at the write.
-i.e.: Without the smp_mb() at [[1]], the CPU can do:
-         read local_lock;
-         read global_flag;
-         write local_lock;
-For Option 2, the smp_mb() is not required, because fast path and slow 
-path acquire the same lock.
+It's about an extra 10 cycles of DRAM latency when performing an
+encryption or decryption operation.
 
->>>> Technically you could use spin_trylock()+spin_unlock() and avoid the lock acquire
->>>> spinning on spin_unlock() and get very close to the slow path performance of a
->>>> pure cacheline-dirtying behavior.
-> This is even more confusing.  Did Ingo mean to suggest using
-> "spin_trylock()+spin_unlock()" in place of "spin_lock()+spin_unlock()"
-> could provide the desired ordering guarantee without delaying other
-> CPUs that may try to acquire the lock?  That seems highly questionable.
-I agree :-)
+> 
+> On that same note, if the performance hit is noticeable I'd expect SME to not be
+> enabled in native kernels typically - but still it looks like a useful hardware
 
---
-     Manfred
+In some internal testing we've seen about 1.5% or less reduction in
+performance. Of course it all depends on the workload: the number of
+memory accesses, cache friendliness, etc.
+
+> feature. Since it's controlled at the page table level, have you considered
+> allowing SME-activated vmas via mmap(), even on kernels that are otherwise not
+> using encrypted DRAM?
+
+That is definitely something to consider as an additional SME-related
+feature and something I can look into after this.
+
+Thanks,
+Tom
+
+> 
+> One would think that putting encryption keys into such encrypted RAM regions would
+> generally improve robustness against various physical space attacks that want to
+> extract keys but don't have full control of the CPU.
+> 
+> Thanks,
+> 
+> 	Ingo
+> 
