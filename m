@@ -1,141 +1,42 @@
-From: Gleb Fotengauer-Malinovskiy <glebfm@altlinux.org>
-Subject: [PATCH] tty: Fix TIOCGPTPEER ioctl definition
-Date: Tue, 11 Jul 2017 03:12:17 +0300
-Message-ID: <20170711001207.GA11642@glebfm.cloud.tilaa.com>
+From: Andy Lutomirski <luto@kernel.org>
+Subject: Re: KASAN vs. boot-time switching between 4- and 5-level paging
+Date: Mon, 10 Jul 2017 17:30:38 -0700
+Message-ID: <CALCETrW6pWzpdf1MVx_ytaYYuVGBsF7R+JowEsKqd3i=vCwJ_w@mail.gmail.com>
+References: <CACT4Y+bSTOeJtDDZVmkff=qqJFesA_b6uTG__EAn4AvDLw0jzQ@mail.gmail.com>
+ <c4f11000-6138-c6ab-d075-2c4bd6a14943@virtuozzo.com> <75acbed7-6a08-692f-61b5-2b44f66ec0d8@virtuozzo.com>
+ <bc95be68-8c68-2a45-c530-acbc6c90a231@virtuozzo.com> <20170710123346.7y3jnftqgpingim3@node.shutemov.name>
+ <CACT4Y+aRbC7_wvDv8ahH_JwY6P6SFoLg-kdwWHJx5j1stX_P_w@mail.gmail.com>
+ <20170710141713.7aox3edx6o7lrrie@node.shutemov.name> <03A6D7ED-300C-4431-9EB5-67C7A3EA4A2E@amacapital.net>
+ <20170710184704.realchrhzpblqqlk@node.shutemov.name> <CALCETrVJQ_u-agPm8fFHAW1UJY=VLowdbM+gXyjFCb586r0V3g@mail.gmail.com>
+ <20170710212403.7ycczkhhki3vrgac@node.shutemov.name>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from vmicros1.altlinux.org ([194.107.17.57]:53058 "EHLO
-        vmicros1.altlinux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754927AbdGKAMe (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 10 Jul 2017 20:12:34 -0400
-Content-Disposition: inline
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Aleksa Sarai <asarai@suse.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: Jiri Slaby <jslaby@suse.com>, Arnd Bergmann <arnd@arndb.de>, Christian Brauner <christian.brauner@ubuntu.com>, Valentin Rothberg <vrothberg@suse.com>, "Dmitry V. Levin" <ldv@altlinux.org>, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20170710212403.7ycczkhhki3vrgac@node.shutemov.name>
+Sender: owner-linux-mm@kvack.org
+To: "Kirill A. Shutemov" <kirill@shutemov.name>
+Cc: Andy Lutomirski <luto@kernel.org>, Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, "x86@kernel.org" <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>
+List-Id: linux-arch.vger.kernel.org
 
-This ioctl does nothing to justify an _IOC_READ or _IOC_WRITE flag
-because it doesn't copy anything from/to userspace to access the
-argument.
+On Mon, Jul 10, 2017 at 2:24 PM, Kirill A. Shutemov
+<kirill@shutemov.name> wrote:
+> On Mon, Jul 10, 2017 at 01:07:13PM -0700, Andy Lutomirski wrote:
+>> Can you give the disassembly of the backtrace lines?  Blaming the
+>> .endr doesn't make much sense to me.
+>
+> I don't have backtrace. It's before printk() is functional. I only see
+> triple fault and reboot.
+>
+> I had to rely on qemu tracing and gdb.
 
-Fixes: 54ebbfb1 ("tty: add TIOCGPTPEER ioctl")
-Signed-off-by: Gleb Fotengauer-Malinovskiy <glebfm@altlinux.org>
----
- arch/alpha/include/uapi/asm/ioctls.h   | 2 +-
- arch/mips/include/uapi/asm/ioctls.h    | 2 +-
- arch/parisc/include/uapi/asm/ioctls.h  | 2 +-
- arch/powerpc/include/uapi/asm/ioctls.h | 2 +-
- arch/sh/include/uapi/asm/ioctls.h      | 2 +-
- arch/sparc/include/uapi/asm/ioctls.h   | 2 +-
- arch/xtensa/include/uapi/asm/ioctls.h  | 2 +-
- include/uapi/asm-generic/ioctls.h      | 2 +-
- 8 files changed, 8 insertions(+), 8 deletions(-)
+Can you ask GDB or objtool to disassemble around those addresses?  Can
+you also attach the big dump that QEMU throws out that shows register
+state?  In particular, CR2, CR3, and CR4 could be useful.
 
-diff --git a/arch/alpha/include/uapi/asm/ioctls.h b/arch/alpha/include/uapi/asm/ioctls.h
-index ff67b837..1cd7dc7 100644
---- a/arch/alpha/include/uapi/asm/ioctls.h
-+++ b/arch/alpha/include/uapi/asm/ioctls.h
-@@ -100,7 +100,7 @@
- #define TIOCGPKT	_IOR('T', 0x38, int) /* Get packet mode state */
- #define TIOCGPTLCK	_IOR('T', 0x39, int) /* Get Pty lock state */
- #define TIOCGEXCL	_IOR('T', 0x40, int) /* Get exclusive mode state */
--#define TIOCGPTPEER	_IOR('T', 0x41, int) /* Safely open the slave */
-+#define TIOCGPTPEER	_IO('T', 0x41) /* Safely open the slave */
- 
- #define TIOCSERCONFIG	0x5453
- #define TIOCSERGWILD	0x5454
-diff --git a/arch/mips/include/uapi/asm/ioctls.h b/arch/mips/include/uapi/asm/ioctls.h
-index 68e19b6..1609cb0 100644
---- a/arch/mips/include/uapi/asm/ioctls.h
-+++ b/arch/mips/include/uapi/asm/ioctls.h
-@@ -91,7 +91,7 @@
- #define TIOCGPKT	_IOR('T', 0x38, int) /* Get packet mode state */
- #define TIOCGPTLCK	_IOR('T', 0x39, int) /* Get Pty lock state */
- #define TIOCGEXCL	_IOR('T', 0x40, int) /* Get exclusive mode state */
--#define TIOCGPTPEER	_IOR('T', 0x41, int) /* Safely open the slave */
-+#define TIOCGPTPEER	_IO('T', 0x41) /* Safely open the slave */
- 
- /* I hope the range from 0x5480 on is free ... */
- #define TIOCSCTTY	0x5480		/* become controlling tty */
-diff --git a/arch/parisc/include/uapi/asm/ioctls.h b/arch/parisc/include/uapi/asm/ioctls.h
-index 674c68a..d0e3321 100644
---- a/arch/parisc/include/uapi/asm/ioctls.h
-+++ b/arch/parisc/include/uapi/asm/ioctls.h
-@@ -60,7 +60,7 @@
- #define TIOCGPKT	_IOR('T', 0x38, int) /* Get packet mode state */
- #define TIOCGPTLCK	_IOR('T', 0x39, int) /* Get Pty lock state */
- #define TIOCGEXCL	_IOR('T', 0x40, int) /* Get exclusive mode state */
--#define TIOCGPTPEER	_IOR('T', 0x41, int) /* Safely open the slave */
-+#define TIOCGPTPEER	_IO('T', 0x41) /* Safely open the slave */
- 
- #define FIONCLEX	0x5450  /* these numbers need to be adjusted. */
- #define FIOCLEX		0x5451
-diff --git a/arch/powerpc/include/uapi/asm/ioctls.h b/arch/powerpc/include/uapi/asm/ioctls.h
-index bfd609a..e3b1046 100644
---- a/arch/powerpc/include/uapi/asm/ioctls.h
-+++ b/arch/powerpc/include/uapi/asm/ioctls.h
-@@ -100,7 +100,7 @@
- #define TIOCGPKT	_IOR('T', 0x38, int) /* Get packet mode state */
- #define TIOCGPTLCK	_IOR('T', 0x39, int) /* Get Pty lock state */
- #define TIOCGEXCL	_IOR('T', 0x40, int) /* Get exclusive mode state */
--#define TIOCGPTPEER	_IOR('T', 0x41, int) /* Safely open the slave */
-+#define TIOCGPTPEER	_IO('T', 0x41) /* Safely open the slave */
- 
- #define TIOCSERCONFIG	0x5453
- #define TIOCSERGWILD	0x5454
-diff --git a/arch/sh/include/uapi/asm/ioctls.h b/arch/sh/include/uapi/asm/ioctls.h
-index eec7901..787bac9 100644
---- a/arch/sh/include/uapi/asm/ioctls.h
-+++ b/arch/sh/include/uapi/asm/ioctls.h
-@@ -93,7 +93,7 @@
- #define TIOCGPKT	_IOR('T', 0x38, int) /* Get packet mode state */
- #define TIOCGPTLCK	_IOR('T', 0x39, int) /* Get Pty lock state */
- #define TIOCGEXCL	_IOR('T', 0x40, int) /* Get exclusive mode state */
--#define TIOCGPTPEER	_IOR('T', 0x41, int) /* Safely open the slave */
-+#define TIOCGPTPEER	_IO('T', 0x41) /* Safely open the slave */
- 
- #define TIOCSERCONFIG	_IO('T', 83) /* 0x5453 */
- #define TIOCSERGWILD	_IOR('T', 84,  int) /* 0x5454 */
-diff --git a/arch/sparc/include/uapi/asm/ioctls.h b/arch/sparc/include/uapi/asm/ioctls.h
-index 6d27398..f5df72b 100644
---- a/arch/sparc/include/uapi/asm/ioctls.h
-+++ b/arch/sparc/include/uapi/asm/ioctls.h
-@@ -88,7 +88,7 @@
- #define TIOCGPTN	_IOR('t', 134, unsigned int) /* Get Pty Number */
- #define TIOCSPTLCK	_IOW('t', 135, int) /* Lock/unlock PTY */
- #define TIOCSIG		_IOW('t', 136, int) /* Generate signal on Pty slave */
--#define TIOCGPTPEER	_IOR('t', 137, int) /* Safely open the slave */
-+#define TIOCGPTPEER	_IO('t', 137) /* Safely open the slave */
- 
- /* Little f */
- #define FIOCLEX		_IO('f', 1)
-diff --git a/arch/xtensa/include/uapi/asm/ioctls.h b/arch/xtensa/include/uapi/asm/ioctls.h
-index 98b004e..47d82c0 100644
---- a/arch/xtensa/include/uapi/asm/ioctls.h
-+++ b/arch/xtensa/include/uapi/asm/ioctls.h
-@@ -105,7 +105,7 @@
- #define TIOCGPKT	_IOR('T', 0x38, int) /* Get packet mode state */
- #define TIOCGPTLCK	_IOR('T', 0x39, int) /* Get Pty lock state */
- #define TIOCGEXCL	_IOR('T', 0x40, int) /* Get exclusive mode state */
--#define TIOCGPTPEER	_IOR('T', 0x41, int) /* Safely open the slave */
-+#define TIOCGPTPEER	_IO('T', 0x41) /* Safely open the slave */
- 
- #define TIOCSERCONFIG	_IO('T', 83)
- #define TIOCSERGWILD	_IOR('T', 84,  int)
-diff --git a/include/uapi/asm-generic/ioctls.h b/include/uapi/asm-generic/ioctls.h
-index 06d5f7d..14baf9f2 100644
---- a/include/uapi/asm-generic/ioctls.h
-+++ b/include/uapi/asm-generic/ioctls.h
-@@ -77,7 +77,7 @@
- #define TIOCGPKT	_IOR('T', 0x38, int) /* Get packet mode state */
- #define TIOCGPTLCK	_IOR('T', 0x39, int) /* Get Pty lock state */
- #define TIOCGEXCL	_IOR('T', 0x40, int) /* Get exclusive mode state */
--#define TIOCGPTPEER	_IOR('T', 0x41, int) /* Safely open the slave */
-+#define TIOCGPTPEER	_IO('T', 0x41) /* Safely open the slave */
- 
- #define FIONCLEX	0x5450
- #define FIOCLEX		0x5451
+--Andy
 
--- 
-glebfm
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
