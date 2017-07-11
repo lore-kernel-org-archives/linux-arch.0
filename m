@@ -1,162 +1,121 @@
-From: Dave Hansen <dave.hansen@intel.com>
-Subject: Re: [RFC v5 38/38] Documentation: PowerPC specific updates to memory
- protection keys
-Date: Tue, 11 Jul 2017 11:23:29 -0700
-Message-ID: <d0f1dc9b-7e10-3692-3922-abdbe4706428@intel.com>
-References: <1499289735-14220-1-git-send-email-linuxram@us.ibm.com>
- <1499289735-14220-39-git-send-email-linuxram@us.ibm.com>
+From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Subject: Re: KASAN vs. boot-time switching between 4- and 5-level paging
+Date: Tue, 11 Jul 2017 22:05:54 +0300
+Message-ID: <20170711190554.zxkpjeg2bt65wtir@black.fi.intel.com>
+References: <20170710184704.realchrhzpblqqlk@node.shutemov.name>
+ <CALCETrVJQ_u-agPm8fFHAW1UJY=VLowdbM+gXyjFCb586r0V3g@mail.gmail.com>
+ <20170710212403.7ycczkhhki3vrgac@node.shutemov.name>
+ <CALCETrW6pWzpdf1MVx_ytaYYuVGBsF7R+JowEsKqd3i=vCwJ_w@mail.gmail.com>
+ <20170711103548.mkv5w7dd5gpdenne@node.shutemov.name>
+ <CALCETrVpNUq3-zEu1Q1O77N8r4kv4kFdefXp7XEs3Hpf-JPAjg@mail.gmail.com>
+ <d3caf8c4-4575-c1b5-6b0f-95527efaf2f9@virtuozzo.com>
+ <f11d9e07-6b31-1add-7677-6a29d15ab608@virtuozzo.com>
+ <20170711170332.wlaudicepkg35dmm@node.shutemov.name>
+ <e9a395f4-018e-4c8c-2098-170172e438f3@virtuozzo.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1499289735-14220-39-git-send-email-linuxram@us.ibm.com>
-Content-Language: en-US
+Content-Disposition: inline
+In-Reply-To: <e9a395f4-018e-4c8c-2098-170172e438f3@virtuozzo.com>
 Sender: owner-linux-mm@kvack.org
-To: Ram Pai <linuxram@us.ibm.com>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
-Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
+To: Andrey Ryabinin <aryabinin@virtuozzo.com>
+Cc: "Kirill A. Shutemov" <kirill@shutemov.name>, Andy Lutomirski <luto@kernel.org>, Dmitry Vyukov <dvyukov@google.com>, Alexander Potapenko <glider@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, "x86@kernel.org" <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 07/05/2017 02:22 PM, Ram Pai wrote:
-> Add documentation updates that capture PowerPC specific changes.
+> > Can use your Signed-off-by for a [cleaned up version of your] patch?
 > 
-> Signed-off-by: Ram Pai <linuxram@us.ibm.com>
-> ---
->  Documentation/vm/protection-keys.txt |   85 ++++++++++++++++++++++++++--------
->  1 files changed, 65 insertions(+), 20 deletions(-)
-> 
-> diff --git a/Documentation/vm/protection-keys.txt b/Documentation/vm/protection-keys.txt
-> index b643045..d50b6ab 100644
-> --- a/Documentation/vm/protection-keys.txt
-> +++ b/Documentation/vm/protection-keys.txt
-> @@ -1,21 +1,46 @@
-> -Memory Protection Keys for Userspace (PKU aka PKEYs) is a CPU feature
-> -which will be found on future Intel CPUs.
-> +Memory Protection Keys for Userspace (PKU aka PKEYs) is a CPU feature found in
-> +new generation of intel CPUs and on PowerPC 7 and higher CPUs.
+> Sure.
 
-Please try not to change the wording here.  I really did mean to
-literally put "future Intel CPUs."  Also, you broke my nice wrapping. :)
+Another KASAN-releated issue: dumping page tables for KASAN shadow memory
+region takes unreasonable time due to kasan_zero_p?? mapped there.
 
-I'm also thinking that this needs to be more generic.  The ppc _CPU_
-feature is *NOT* for userspace-only, right?
+The patch below helps. Any objections?
 
->  Memory Protection Keys provides a mechanism for enforcing page-based
-> -protections, but without requiring modification of the page tables
-> -when an application changes protection domains.  It works by
-> -dedicating 4 previously ignored bits in each page table entry to a
-> -"protection key", giving 16 possible keys.
-> -
-> -There is also a new user-accessible register (PKRU) with two separate
-> -bits (Access Disable and Write Disable) for each key.  Being a CPU
-> -register, PKRU is inherently thread-local, potentially giving each
-> -thread a different set of protections from every other thread.
-> -
-> -There are two new instructions (RDPKRU/WRPKRU) for reading and writing
-> -to the new register.  The feature is only available in 64-bit mode,
-> -even though there is theoretically space in the PAE PTEs.  These
-> -permissions are enforced on data access only and have no effect on
-> +protections, but without requiring modification of the page tables when an
-> +application changes protection domains.
-> +
-> +
-> +On Intel:
-> +
-> +	It works by dedicating 4 previously ignored bits in each page table
-> +	entry to a "protection key", giving 16 possible keys.
-> +
-> +	There is also a new user-accessible register (PKRU) with two separate
-> +	bits (Access Disable and Write Disable) for each key.  Being a CPU
-> +	register, PKRU is inherently thread-local, potentially giving each
-> +	thread a different set of protections from every other thread.
-> +
-> +	There are two new instructions (RDPKRU/WRPKRU) for reading and writing
-> +	to the new register.  The feature is only available in 64-bit mode,
-> +	even though there is theoretically space in the PAE PTEs.  These
-> +	permissions are enforced on data access only and have no effect on
-> +	instruction fetches.
-> +
-> +
-> +On PowerPC:
-> +
-> +	It works by dedicating 5 page table entry bits to a "protection key",
-> +	giving 32 possible keys.
-> +
-> +	There  is  a  user-accessible  register (AMR)  with  two separate bits;
-> +	Access Disable and  Write  Disable, for  each key.  Being  a  CPU
-> +	register,  AMR  is inherently  thread-local,  potentially  giving  each
-> +	thread a different set of protections from every other thread.  NOTE:
-> +	Disabling read permission does not disable write and vice-versa.
-> +
-> +	The feature is available on 64-bit HPTE mode only.
-> +	'mtspr 0xd, mem' reads the AMR register
-> +	'mfspr mem, 0xd' writes into the AMR register.
-
-The whole "being a CPU register" bits seem pretty common.  Should it be
-in the leading paragraph that is shared?
-
-> +Permissions are enforced on data access only and have no effect on
->  instruction fetches.
-
-Shouldn't we mention the ppc support for execute-disable here too?
-
-Also, *does* this apply to ppc?  You have it both in this common area
-and in the x86 portion.
-
->  =========================== Syscalls ===========================
-> @@ -28,9 +53,9 @@ There are 3 system calls which directly interact with pkeys:
->  			  unsigned long prot, int pkey);
->  
->  Before a pkey can be used, it must first be allocated with
-> -pkey_alloc().  An application calls the WRPKRU instruction
-> +pkey_alloc().  An application calls the WRPKRU/AMR instruction
->  directly in order to change access permissions to memory covered
-> -with a key.  In this example WRPKRU is wrapped by a C function
-> +with a key.  In this example WRPKRU/AMR is wrapped by a C function
->  called pkey_set().
->  
->  	int real_prot = PROT_READ|PROT_WRITE;
-> @@ -52,11 +77,11 @@ is no longer in use:
->  	munmap(ptr, PAGE_SIZE);
->  	pkey_free(pkey);
->  
-> -(Note: pkey_set() is a wrapper for the RDPKRU and WRPKRU instructions.
-> +(Note: pkey_set() is a wrapper for the RDPKRU,WRPKRU or AMR instructions.
->   An example implementation can be found in
->   tools/testing/selftests/x86/protection_keys.c)
->  
-> -=========================== Behavior ===========================
-> +=========================== Behavior =================================
->  
->  The kernel attempts to make protection keys consistent with the
->  behavior of a plain mprotect().  For instance if you do this:
-> @@ -83,3 +108,23 @@ with a read():
->  The kernel will send a SIGSEGV in both cases, but si_code will be set
->  to SEGV_PKERR when violating protection keys versus SEGV_ACCERR when
->  the plain mprotect() permissions are violated.
-> +
-> +
-> +====================================================================
-> +		Semantic differences
-> +
-> +The following semantic differences exist between x86 and power.
-> +
-> +a) powerpc allows creation of a key with execute-disabled.  The following
-> +	is allowed on powerpc.
-> +	pkey = pkey_alloc(0, PKEY_DISABLE_WRITE | PKEY_DISABLE_ACCESS |
-> +			PKEY_DISABLE_EXECUTE);
-> +   x86 disallows PKEY_DISABLE_EXECUTE during key creation.
-
-It isn't that powerpc supports *creation* of the key.  It doesn't
-support setting PKEY_DISABLE_EXECUTE, period, which implies that you
-can't set it at pkey_alloc().  That's a pretty important distinction, IMNHO.
-
-> +b) changing the permission bits of a key from a signal handler does not
-> +   persist on x86. The PKRU specific fpregs entry needs to be modified
-> +   for it to persist.  On powerpc the permission bits of the key can be
-> +   modified by programming the AMR register from the signal handler.
-> +   The changes persists across signal boundaries.
-
-^"changes persist", not "persists".
+diff --git a/arch/x86/mm/dump_pagetables.c b/arch/x86/mm/dump_pagetables.c
+index b371ab68f2d4..8601153c34e7 100644
+--- a/arch/x86/mm/dump_pagetables.c
++++ b/arch/x86/mm/dump_pagetables.c
+@@ -17,8 +17,8 @@
+ #include <linux/init.h>
+ #include <linux/sched.h>
+ #include <linux/seq_file.h>
++#include <linux/kasan.h>
+ 
+-#include <asm/kasan.h>
+ #include <asm/pgtable.h>
+ 
+ /*
+@@ -291,10 +291,15 @@ static void note_page(struct seq_file *m, struct pg_state *st,
+ static void walk_pte_level(struct seq_file *m, struct pg_state *st, pmd_t addr, unsigned long P)
+ {
+ 	int i;
++	unsigned long pte_addr;
+ 	pte_t *start;
+ 	pgprotval_t prot;
+ 
+-	start = (pte_t *)pmd_page_vaddr(addr);
++	pte_addr = pmd_page_vaddr(addr);
++	if (__pa(pte_addr) == __pa(kasan_zero_pte))
++		return;
++
++	start = (pte_t *)pte_addr;
+ 	for (i = 0; i < PTRS_PER_PTE; i++) {
+ 		prot = pte_flags(*start);
+ 		st->current_address = normalize_addr(P + i * PTE_LEVEL_MULT);
+@@ -308,10 +313,15 @@ static void walk_pte_level(struct seq_file *m, struct pg_state *st, pmd_t addr,
+ static void walk_pmd_level(struct seq_file *m, struct pg_state *st, pud_t addr, unsigned long P)
+ {
+ 	int i;
++	unsigned long pmd_addr;
+ 	pmd_t *start;
+ 	pgprotval_t prot;
+ 
+-	start = (pmd_t *)pud_page_vaddr(addr);
++	pmd_addr = pud_page_vaddr(addr);
++	if (__pa(pmd_addr) == __pa(kasan_zero_pmd))
++		return;
++
++	start = (pmd_t *)pmd_addr;
+ 	for (i = 0; i < PTRS_PER_PMD; i++) {
+ 		st->current_address = normalize_addr(P + i * PMD_LEVEL_MULT);
+ 		if (!pmd_none(*start)) {
+@@ -350,12 +360,16 @@ static bool pud_already_checked(pud_t *prev_pud, pud_t *pud, bool checkwx)
+ static void walk_pud_level(struct seq_file *m, struct pg_state *st, p4d_t addr, unsigned long P)
+ {
+ 	int i;
++	unsigned long pud_addr;
+ 	pud_t *start;
+ 	pgprotval_t prot;
+ 	pud_t *prev_pud = NULL;
+ 
+-	start = (pud_t *)p4d_page_vaddr(addr);
++	pud_addr = p4d_page_vaddr(addr);
++	if (__pa(pud_addr) == __pa(kasan_zero_pud))
++		return;
+ 
++	start = (pud_t *)pud_addr;
+ 	for (i = 0; i < PTRS_PER_PUD; i++) {
+ 		st->current_address = normalize_addr(P + i * PUD_LEVEL_MULT);
+ 		if (!pud_none(*start) &&
+@@ -386,11 +400,15 @@ static void walk_pud_level(struct seq_file *m, struct pg_state *st, p4d_t addr,
+ static void walk_p4d_level(struct seq_file *m, struct pg_state *st, pgd_t addr, unsigned long P)
+ {
+ 	int i;
++	unsigned long p4d_addr;
+ 	p4d_t *start;
+ 	pgprotval_t prot;
+ 
+-	start = (p4d_t *)pgd_page_vaddr(addr);
++	p4d_addr = pgd_page_vaddr(addr);
++	if (__pa(p4d_addr) == __pa(kasan_zero_p4d))
++		return;
+ 
++	start = (p4d_t *)p4d_addr;
+ 	for (i = 0; i < PTRS_PER_P4D; i++) {
+ 		st->current_address = normalize_addr(P + i * P4D_LEVEL_MULT);
+ 		if (!p4d_none(*start)) {
+-- 
+ Kirill A. Shutemov
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
