@@ -1,55 +1,30 @@
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: [PATCH 2/2] arm: mm: abort uaccess retries upon fatal signal
-Date: Tue, 11 Jul 2017 15:19:23 +0100
-Message-ID: <1499782763-31418-3-git-send-email-mark.rutland@arm.com>
-References: <1499782763-31418-1-git-send-email-mark.rutland@arm.com>
+From: David Laight <David.Laight@ACULAB.COM>
+Subject: RE: [PATCH] tty: Fix TIOCGPTPEER ioctl definition
+Date: Tue, 11 Jul 2017 14:23:29 +0000
+Message-ID: <063D6719AE5E284EB5DD2968C1650D6DD003758C@AcuExch.aculab.com>
+References: <20170711001207.GA11642@glebfm.cloud.tilaa.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="Windows-1252"
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1499782763-31418-1-git-send-email-mark.rutland@arm.com>
+In-Reply-To: <20170711001207.GA11642@glebfm.cloud.tilaa.com>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Russell King <linux@armlinux.org.uk>
-Cc: catalin.marinas@arm.com, james.morse@arm.com, labbott@redhat.com, mark.rutland@arm.com, stable@vger.kernel.org, steve.capper@arm.com, will.deacon@arm.com, viro@zeniv.linux.org.uk, peterz@infradead.org, luto@amacapital.net
+To: 'Gleb Fotengauer-Malinovskiy' <glebfm@altlinux.org>, Aleksa Sarai <asarai@suse.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, Valentin Rothberg <vrothberg@suse.com>, "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "Dmitry V. Levin" <ldv@altlinux.org>, Jiri Slaby <jslaby@suse.com>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, Christian Brauner <christian.brauner@ubuntu.com>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>
 List-Id: linux-arch.vger.kernel.org
 
-When there's a fatal signal pending, arm's do_page_fault()
-implementation returns 0. The intent is that we'll return to the
-faulting userspace instruction, delivering the signal on the way.
+From: Linuxppc-dev  Gleb Fotengauer-Malinovskiy
+> Sent: 11 July 2017 01:12
+> This ioctl does nothing to justify an _IOC_READ or _IOC_WRITE flag
+> because it doesn't copy anything from/to userspace to access the
+> argument.
+> 
+> Fixes: 54ebbfb1 ("tty: add TIOCGPTPEER ioctl")
+...
+> -#define TIOCGPTPEER	_IOR('T', 0x41, int) /* Safely open the slave */
+> +#define TIOCGPTPEER	_IO('T', 0x41) /* Safely open the slave */
 
-However, if we take a fatal signal during fixing up a uaccess, this
-results in a return to the faulting kernel instruction, which will be
-instantly retried, resulting in the same fault being taken forever. As
-the task never reaches userspace, the signal is not delivered, and the
-task is left unkillable. While the task is stuck in this state, it can
-inhibit the forward progress of the system.
+This is a user API change. When was the ioctl added?
 
-To avoid this, we must ensure that when a fatal signal is pending, we
-apply any necessary fixup for a faulting kernel instruction. Thus we
-will return to an error path, and it is up to that code to make forward
-progress towards delivering the fatal signal.
-
-Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-Reviewed-by: Steve Capper <steve.capper@arm.com>
-Cc: Russell King <linux@armlinux.org.uk>
-Cc: stable@vger.kernel.org
----
- arch/arm/mm/fault.c | 5 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
-
-diff --git a/arch/arm/mm/fault.c b/arch/arm/mm/fault.c
-index ff8b0aa..42f5853 100644
---- a/arch/arm/mm/fault.c
-+++ b/arch/arm/mm/fault.c
-@@ -315,8 +315,11 @@ static inline bool access_error(unsigned int fsr, struct vm_area_struct *vma)
- 	 * signal first. We do not need to release the mmap_sem because
- 	 * it would already be released in __lock_page_or_retry in
- 	 * mm/filemap.c. */
--	if ((fault & VM_FAULT_RETRY) && fatal_signal_pending(current))
-+	if ((fault & VM_FAULT_RETRY) && fatal_signal_pending(current)) {
-+		if (!user_mode(regs))
-+			goto no_context;
- 		return 0;
-+	}
- 
- 	/*
- 	 * Major/minor page fault accounting is only done on the
--- 
-1.9.1
+	David
