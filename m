@@ -1,43 +1,94 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:46364 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932607AbdGKPLw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 11 Jul 2017 11:11:52 -0400
-Date: Tue, 11 Jul 2017 16:10:53 +0100
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCH 0/2] Fatal signal handing within uaccess faults
-Message-ID: <20170711151053.GG2681@leverpostej>
-References: <1499782590-31366-1-git-send-email-mark.rutland@arm.com>
- <CALCETrX_T5=9Y77Z7VrM+YcpoFiJkhUGFNTOh2KbuG+7cey-bw@mail.gmail.com>
+Received: from mail-he1eur01on0095.outbound.protection.outlook.com ([104.47.0.95]:43232
+        "EHLO EUR01-HE1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S932365AbdGKPNb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 11 Jul 2017 11:13:31 -0400
+Subject: Re: KASAN vs. boot-time switching between 4- and 5-level paging
+References: <75acbed7-6a08-692f-61b5-2b44f66ec0d8@virtuozzo.com>
+ <bc95be68-8c68-2a45-c530-acbc6c90a231@virtuozzo.com>
+ <20170710123346.7y3jnftqgpingim3@node.shutemov.name>
+ <CACT4Y+aRbC7_wvDv8ahH_JwY6P6SFoLg-kdwWHJx5j1stX_P_w@mail.gmail.com>
+ <20170710141713.7aox3edx6o7lrrie@node.shutemov.name>
+ <03A6D7ED-300C-4431-9EB5-67C7A3EA4A2E@amacapital.net>
+ <20170710184704.realchrhzpblqqlk@node.shutemov.name>
+ <CALCETrVJQ_u-agPm8fFHAW1UJY=VLowdbM+gXyjFCb586r0V3g@mail.gmail.com>
+ <20170710212403.7ycczkhhki3vrgac@node.shutemov.name>
+ <CALCETrW6pWzpdf1MVx_ytaYYuVGBsF7R+JowEsKqd3i=vCwJ_w@mail.gmail.com>
+ <20170711103548.mkv5w7dd5gpdenne@node.shutemov.name>
+ <CALCETrVpNUq3-zEu1Q1O77N8r4kv4kFdefXp7XEs3Hpf-JPAjg@mail.gmail.com>
+From: Andrey Ryabinin <aryabinin@virtuozzo.com>
+Message-ID: <d3caf8c4-4575-c1b5-6b0f-95527efaf2f9@virtuozzo.com>
+Date: Tue, 11 Jul 2017 18:15:29 +0300
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CALCETrX_T5=9Y77Z7VrM+YcpoFiJkhUGFNTOh2KbuG+7cey-bw@mail.gmail.com>
+In-Reply-To: <CALCETrVpNUq3-zEu1Q1O77N8r4kv4kFdefXp7XEs3Hpf-JPAjg@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: linux-arm-kerne@lists.infradead.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, James Morse <james.morse@arm.com>, Laura Abbott <labbott@redhat.com>, Russell King <linux@armlinux.org.uk>, stable <stable@vger.kernel.org>, steve.capper@arm.com, Will Deacon <will.deacon@arm.com>, Al Viro <viro@zeniv.linux.org.uk>, Peter Zijlstra <peterz@infradead.org>
-Message-ID: <20170711151053.1lxJIBbdy5lxXwpEo0XusNB1dhVEjeGHf-oN1wczuaU@z>
+To: Andy Lutomirski <luto@kernel.org>, "Kirill A. Shutemov" <kirill@shutemov.name>
+Cc: Dmitry Vyukov <dvyukov@google.com>, Alexander Potapenko <glider@google.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, "x86@kernel.org" <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>
+Message-ID: <20170711151529.En4ZxQCKmlaz-uobu2e0X8vFYUK4qW4ERHCvZHuZaBY@z>
 
-On Tue, Jul 11, 2017 at 08:04:50AM -0700, Andy Lutomirski wrote:
-> On Tue, Jul 11, 2017 at 7:16 AM, Mark Rutland <mark.rutland@arm.com> wrote:
-> > Hi,
-> >
-> > Arch maintainer tl;dr: most arch fault code doesn't handle fatal signals
-> > correctly, allowing unprivileged users to create an unkillable task which can
-> > lock up the system. Please check whether your arch is affected.
+
+
+On 07/11/2017 06:06 PM, Andy Lutomirski wrote:
+> On Tue, Jul 11, 2017 at 3:35 AM, Kirill A. Shutemov
+> <kirill@shutemov.name> wrote:
+>> On Mon, Jul 10, 2017 at 05:30:38PM -0700, Andy Lutomirski wrote:
+>>> On Mon, Jul 10, 2017 at 2:24 PM, Kirill A. Shutemov
+>>> <kirill@shutemov.name> wrote:
+>>>> On Mon, Jul 10, 2017 at 01:07:13PM -0700, Andy Lutomirski wrote:
+>>>>> Can you give the disassembly of the backtrace lines?  Blaming the
+>>>>> .endr doesn't make much sense to me.
+>>>>
+>>>> I don't have backtrace. It's before printk() is functional. I only see
+>>>> triple fault and reboot.
+>>>>
+>>>> I had to rely on qemu tracing and gdb.
+>>>
+>>> Can you ask GDB or objtool to disassemble around those addresses?  Can
+>>> you also attach the big dump that QEMU throws out that shows register
+>>> state?  In particular, CR2, CR3, and CR4 could be useful.
+>>
+>> The last three execptions:
+>>
+>> check_exception old: 0xffffffff new 0xe, cr2: 0xffffffff7ffffff8, rip: 0xffffffff84bb3036
+>> RAX=00000000ffffffff RBX=ffffffff800000d8 RCX=ffffffff84be4021 RDX=dffffc0000000000
+>> RSI=0000000000000006 RDI=ffffffff84c57000 RBP=ffffffff800000c8 RSP=ffffffff80000000
 > 
-> I haven't tested for real, but brief inspection of the code suggests
-> that x86 is okay.
+> So RSP was 0xffffffff80000000, a push happened, and we tried to write
+> to 0xffffffff7ffffff8, which failed.
+> 
+>> check_exception old: 0xe new 0xe, cr2: 0xffffffff7ffffff8, rip: 0xffffffff84bb3141
+>> RAX=00000000ffffffff RBX=ffffffff800000d8 RCX=ffffffff84be4021 RDX=dffffc0000000000
+>> RSI=0000000000000006 RDI=ffffffff84c57000 RBP=ffffffff800000c8 RSP=ffffffff80000000
+> 
+> And #PF doesn't use IST, so it double-faulted.
+> 
+> Either the stack isn't mapped in the page tables, RSP is corrupt, or
+> there's a genuine stack overflow here.
+> 
 
-AFAICT, yes.
+I reproduced this, and this is kasan bug:
 
-As mentioned later on in the message, I beleive it's been ok since
-commit:
+   │0xffffffff84864897 <x86_early_init_platform_quirks+5>   mov    $0xffffffff83f1d0b8,%rdi 
+   │0xffffffff8486489e <x86_early_init_platform_quirks+12>  movabs $0xdffffc0000000000,%rax 
+   │0xffffffff848648a8 <x86_early_init_platform_quirks+22>  push   %rbp
+   │0xffffffff848648a9 <x86_early_init_platform_quirks+23>  mov    %rdi,%rdx  
+   │0xffffffff848648ac <x86_early_init_platform_quirks+26>  shr    $0x3,%rdx
+   │0xffffffff848648b0 <x86_early_init_platform_quirks+30>  mov    %rsp,%rbp
+  >│0xffffffff848648b3 <x86_early_init_platform_quirks+33>  mov    (%rdx,%rax,1),%al
 
-  26178ec11ef3c6c8 ("x86: mm: consolidate VM_FAULT_RETRY handling")
+we crash on the last move which is a read from shadow
 
-... and my test-case didn't trigger anything in local testing on my
-desktop.
+(gdb) p/x $rdx 
+$1 = 0x1ffffffff07e3a17
+(gdb) p/x $rax
+$2 = 0xdffffc0000000000
 
-Mark.
+(gdb) p/x 0xdffffc0000000000 + 0x1ffffffff07e3a17
+$4 = 0xfffffbfff07e3a17
+(gdb) p/x *0xfffffbfff07e3a17
+Cannot access memory at address 0xfffffbfff07e3a17
