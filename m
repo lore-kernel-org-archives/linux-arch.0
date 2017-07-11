@@ -1,101 +1,66 @@
-From: Anshuman Khandual <khandual@linux.vnet.ibm.com>
-Subject: Re: [RFC v5 31/38] powerpc: introduce get_pte_pkey() helper
-Date: Tue, 11 Jul 2017 16:52:40 +0530
-Message-ID: <94b76f58-1002-b3a7-7269-67129c795f25@linux.vnet.ibm.com>
-References: <1499289735-14220-1-git-send-email-linuxram@us.ibm.com>
- <1499289735-14220-32-git-send-email-linuxram@us.ibm.com>
- <58e0d9ff-727f-c960-5c5f-16d19a89e181@linux.vnet.ibm.com>
- <20170710055502.GC5713@ram.oc3035372033.ibm.com>
+From: Brian Gerst <brgerst@gmail.com>
+Subject: Re: [PATCH v9 07/38] x86/mm: Remove phys_to_virt() usage in ioremap()
+Date: Tue, 11 Jul 2017 08:00:32 -0400
+Message-ID: <CAMzpN2gZHis6_Y_B+DQmuY_ojBqoGBTCd2go+sM53pPaScTq+g@mail.gmail.com>
+References: <20170707133804.29711.1616.stgit@tlendack-t1.amdoffice.net>
+ <20170707133925.29711.39301.stgit@tlendack-t1.amdoffice.net>
+ <CAMzpN2h=AAF6OVfeGJnf5va2Msmd_BPU5BrVENvs0zGQtRMdzQ@mail.gmail.com>
+ <ca43df91-163e-82ce-1d40-c17cfc90e957@amd.com> <CAMzpN2gq0TZbgy-3PUixwvL+6ECX5bOdE0XZsLtGFXA+-Embeg@mail.gmail.com>
+ <CAK8P3a3oBgE8ggAjVX6mtWKWwBmw3gYzgTqF3fh9KsQyEgL31g@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:51354 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1750929AbdGKLYH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 11 Jul 2017 07:24:07 -0400
-Received: from pps.filterd (m0098394.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id v6BBO2bT089916
-        for <linux-arch@vger.kernel.org>; Tue, 11 Jul 2017 07:24:07 -0400
-Received: from e23smtp02.au.ibm.com (e23smtp02.au.ibm.com [202.81.31.144])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2bmc3gkpk8-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Tue, 11 Jul 2017 07:24:06 -0400
-Received: from localhost
-        by e23smtp02.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <khandual@linux.vnet.ibm.com>;
-        Tue, 11 Jul 2017 21:24:04 +1000
-In-Reply-To: <20170710055502.GC5713@ram.oc3035372033.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ram Pai <linuxram@us.ibm.com>, Anshuman Khandual <khandual@linux.vnet.ibm.com>
-Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <CAK8P3a3oBgE8ggAjVX6mtWKWwBmw3gYzgTqF3fh9KsQyEgL31g@mail.gmail.com>
+Sender: owner-linux-mm@kvack.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Tom Lendacky <thomas.lendacky@amd.com>, linux-arch <linux-arch@vger.kernel.org>, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, the arch/x86 maintainers <x86@kernel.org>, kexec@lists.infradead.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>, xen-devel@lists.xen.org, Linux-MM <linux-mm@kvack.org>, "open list:IOMMU DRIVERS" <iommu@lists.linux-foundation.org>, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey
+List-Id: linux-arch.vger.kernel.org
 
-On 07/10/2017 11:25 AM, Ram Pai wrote:
-> On Mon, Jul 10, 2017 at 08:41:30AM +0530, Anshuman Khandual wrote:
->> On 07/06/2017 02:52 AM, Ram Pai wrote:
->>> get_pte_pkey() helper returns the pkey associated with
->>> a address corresponding to a given mm_struct.
+On Tue, Jul 11, 2017 at 4:35 AM, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Tue, Jul 11, 2017 at 6:58 AM, Brian Gerst <brgerst@gmail.com> wrote:
+>> On Mon, Jul 10, 2017 at 3:50 PM, Tom Lendacky <thomas.lendacky@amd.com> wrote:
+>>> On 7/8/2017 7:57 AM, Brian Gerst wrote:
+>>>> On Fri, Jul 7, 2017 at 9:39 AM, Tom Lendacky <thomas.lendacky@amd.com>
 >>>
->>> Signed-off-by: Ram Pai <linuxram@us.ibm.com>
->>> ---
->>>  arch/powerpc/include/asm/book3s/64/mmu-hash.h |    5 ++++
->>>  arch/powerpc/mm/hash_utils_64.c               |   28 +++++++++++++++++++++++++
->>>  2 files changed, 33 insertions(+), 0 deletions(-)
+>>> I originally had a check for SME here in a previous version of the
+>>> patch.  Thomas Gleixner recommended removing the check so that the code
+>>> path was always exercised regardless of the state of SME in order to
+>>> better detect issues:
 >>>
->>> diff --git a/arch/powerpc/include/asm/book3s/64/mmu-hash.h b/arch/powerpc/include/asm/book3s/64/mmu-hash.h
->>> index f7a6ed3..369f9ff 100644
->>> --- a/arch/powerpc/include/asm/book3s/64/mmu-hash.h
->>> +++ b/arch/powerpc/include/asm/book3s/64/mmu-hash.h
->>> @@ -450,6 +450,11 @@ extern int hash_page(unsigned long ea, unsigned long access, unsigned long trap,
->>>  int __hash_page_huge(unsigned long ea, unsigned long access, unsigned long vsid,
->>>  		     pte_t *ptep, unsigned long trap, unsigned long flags,
->>>  		     int ssize, unsigned int shift, unsigned int mmu_psize);
->>> +
->>> +#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
->>> +u16 get_pte_pkey(struct mm_struct *mm, unsigned long address);
->>> +#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
->>> +
->>>  #ifdef CONFIG_TRANSPARENT_HUGEPAGE
->>>  extern int __hash_page_thp(unsigned long ea, unsigned long access,
->>>  			   unsigned long vsid, pmd_t *pmdp, unsigned long trap,
->>> diff --git a/arch/powerpc/mm/hash_utils_64.c b/arch/powerpc/mm/hash_utils_64.c
->>> index 1e74529..591990c 100644
->>> --- a/arch/powerpc/mm/hash_utils_64.c
->>> +++ b/arch/powerpc/mm/hash_utils_64.c
->>> @@ -1573,6 +1573,34 @@ void hash_preload(struct mm_struct *mm, unsigned long ea,
->>>  	local_irq_restore(flags);
->>>  }
->>>  
->>> +#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
->>> +/*
->>> + * return the protection key associated with the given address
->>> + * and the mm_struct.
->>> + */
->>> +u16 get_pte_pkey(struct mm_struct *mm, unsigned long address)
->>> +{
->>> +	pte_t *ptep;
->>> +	u16 pkey = 0;
->>> +	unsigned long flags;
->>> +
->>> +	if (REGION_ID(address) == VMALLOC_REGION_ID)
->>> +		mm = &init_mm;
+>>> http://marc.info/?l=linux-kernel&m=149803067811436&w=2
 >>
->> IIUC, protection keys are only applicable for user space. This
->> function is getting used to populate siginfo structure. Then how
->> can we ever request this for any address in VMALLOC region.
-> 
-> make sense. this check is not needed.
-> 
->>
->>> +
->>> +	if (!mm || !mm->pgd)
->>> +		return 0;
->>
->> Is this really required at this stage ?
-> 
-> its a sanity check to gaurd against bad inputs. See a problem?
+>> Looking a bit closer, this shortcut doesn't set the caching
+>> attributes.  So it's probably best to get rid of it anyways.  Also
+>> note, there is a corresponding check in iounmap().
 
+Perhaps the iounmap() check should be kept for now for safety, since
+some drivers (vga16fb for example) call iounmap() blindly even if the
+mapping wasn't returned from ioremap().  Maybe add a warning when an
+ISA address is passed to iounmap().
 
-I mean its okay, thought it to be unnecessary. Your call.
+> Could that cause regressions if a driver relies on (write-through)
+> cacheable access to the VGA frame buffer RAM or an read-only
+> cached access to an option ROM but now gets uncached access?
+
+Yes there could be some surprises in drivers use the normal ioremap()
+call which is uncached but were expecting the default write-through
+mapping.
+
+> I also tried to find out whether we can stop mapping the ISA MMIO
+> area into the linear mapping, but at least the VGA code uses
+> VGA_MAP_MEM() to get access to the same pointers. I'm pretty
+> sure this got copied incorrectly into most other architectures, but
+> it is definitely still used on x86 with vga16fb/vgacon/mdacon.
+
+Changing VGA_MAP_MEM() to use ioremap_wt() would take care of that.
+Although, looking at the mdacon/vgacon, they don't have support for
+unmapping the frame buffer if they are built modular.
+
+--
+Brian Gerst
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
