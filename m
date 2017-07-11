@@ -1,62 +1,71 @@
-From: Michal Hocko <mhocko@kernel.org>
-Subject: Re: [RFC v5 00/38] powerpc: Memory Protection Keys
-Date: Tue, 11 Jul 2017 16:52:46 +0200
-Message-ID: <20170711145246.GA11917@dhcp22.suse.cz>
-References: <1499289735-14220-1-git-send-email-linuxram@us.ibm.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH 1/2] arm64: mm: abort uaccess retries upon fatal signal
+Date: Tue, 11 Jul 2017 15:58:49 +0100
+Message-ID: <20170711145849.GE13977@arm.com>
+References: <1499782763-31418-1-git-send-email-mark.rutland@arm.com>
+ <1499782763-31418-2-git-send-email-mark.rutland@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:42777 "EHLO mx1.suse.de"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S932779AbdGKOwv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 11 Jul 2017 10:52:51 -0400
+Return-path: <stable-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <1499289735-14220-1-git-send-email-linuxram@us.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ram Pai <linuxram@us.ibm.com>
-Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
+In-Reply-To: <1499782763-31418-2-git-send-email-mark.rutland@arm.com>
+Sender: stable-owner@vger.kernel.org
+To: Mark Rutland <mark.rutland@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, catalin.marinas@arm.com, james.morse@arm.com, labbott@redhat.com, linux@armlinux.org.uk, stable@vger.kernel.org, steve.capper@arm.com, viro@zeniv.linux.org.uk, peterz@infradead.org, luto@amacapital.net
+List-Id: linux-arch.vger.kernel.org
 
-On Wed 05-07-17 14:21:37, Ram Pai wrote:
-> Memory protection keys enable applications to protect its
-> address space from inadvertent access or corruption from
-> itself.
+On Tue, Jul 11, 2017 at 03:19:22PM +0100, Mark Rutland wrote:
+> When there's a fatal signal pending, arm64's do_page_fault()
+> implementation returns 0. The intent is that we'll return to the
+> faulting userspace instruction, delivering the signal on the way.
 > 
-> The overall idea:
+> However, if we take a fatal signal during fixing up a uaccess, this
+> results in a return to the faulting kernel instruction, which will be
+> instantly retried, resulting in the same fault being taken forever. As
+> the task never reaches userspace, the signal is not delivered, and the
+> task is left unkillable. While the task is stuck in this state, it can
+> inhibit the forward progress of the system.
 > 
->  A process allocates a   key  and associates it with
->  an  address  range  within    its   address   space.
->  The process  then  can  dynamically  set read/write 
->  permissions on  the   key   without  involving  the 
->  kernel. Any  code that  violates   the  permissions
->  of  the address space; as defined by its associated
->  key, will receive a segmentation fault.
+> To avoid this, we must ensure that when a fatal signal is pending, we
+> apply any necessary fixup for a faulting kernel instruction. Thus we
+> will return to an error path, and it is up to that code to make forward
+> progress towards delivering the fatal signal.
 > 
-> This patch series enables the feature on PPC64 HPTE
-> platform.
+> Signed-off-by: Mark Rutland <mark.rutland@arm.com>
+> Reviewed-by: Steve Capper <steve.capper@arm.com>
+> Tested-by: Steve Capper <steve.capper@arm.com>
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: James Morse <james.morse@arm.com>
+> Cc: Laura Abbott <labbott@redhat.com>
+> Cc: Will Deacon <will.deacon@arm.com>
+> Cc: stable@vger.kernel.org
+> ---
+>  arch/arm64/mm/fault.c | 5 ++++-
+>  1 file changed, 4 insertions(+), 1 deletion(-)
 > 
-> ISA3.0 section 5.7.13 describes the detailed specifications.
+> diff --git a/arch/arm64/mm/fault.c b/arch/arm64/mm/fault.c
+> index 37b95df..3952d5e 100644
+> --- a/arch/arm64/mm/fault.c
+> +++ b/arch/arm64/mm/fault.c
+> @@ -397,8 +397,11 @@ static int __kprobes do_page_fault(unsigned long addr, unsigned int esr,
+>  	 * signal first. We do not need to release the mmap_sem because it
+>  	 * would already be released in __lock_page_or_retry in mm/filemap.c.
+>  	 */
+> -	if ((fault & VM_FAULT_RETRY) && fatal_signal_pending(current))
+> +	if ((fault & VM_FAULT_RETRY) && fatal_signal_pending(current)) {
+> +		if (!user_mode(regs))
+> +			goto no_context;
+>  		return 0;
+> +	}
 
-Could you describe the highlevel design of this feature in the cover
-letter. I have tried to get some idea from the patchset but it was
-really far from trivial. Patches are not very well split up (many
-helpers are added without their users etc..). 
+This will need rebasing at -rc1 (take a look at current HEAD).
 
-> 
-> Testing:
-> 	This patch series has passed all the protection key
-> 	tests available in  the selftests directory.
-> 	The tests are updated to work on both x86 and powerpc.
-> 
-> version v5:
-> 	(1) reverted back to the old design -- store the 
-> 	    key in the pte, instead of bypassing it.
-> 	    The v4 design slowed down the hash page path.
+Also, I think it introduces a weird corner case where we take a page fault
+when writing the signal frame to the user stack to deliver a SIGSEGV. If
+we end up with VM_FAULT_RETRY and somebody has sent a SIGKILL to the task,
+then we'll fail setup_sigframe and force an un-handleable SIGSEGV instead
+of SIGKILL.
 
-This surprised me a lot but I couldn't find the respective code. Why do
-you need to store anything in the pte? My understanding of PKEYs is that
-the setup and teardown should be very cheap and so no page tables have
-to updated. Or do I just misunderstand what you wrote here?
--- 
-Michal Hocko
-SUSE Labs
+The end result (task is killed) is the same, but the fatal signal is wrong.
+
+Will
