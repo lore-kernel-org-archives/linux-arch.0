@@ -1,194 +1,145 @@
-From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: [PATCH] tty: Fix TIOCGPTPEER ioctl definition
-Date: Tue, 11 Jul 2017 11:03:43 +0100
-Message-ID: <20170711100343.GP31455@jhogan-linux.le.imgtec.org>
-References: <20170711001207.GA11642@glebfm.cloud.tilaa.com>
+From: "Kirill A. Shutemov" <kirill@shutemov.name>
+Subject: Re: KASAN vs. boot-time switching between 4- and 5-level paging
+Date: Tue, 11 Jul 2017 13:35:48 +0300
+Message-ID: <20170711103548.mkv5w7dd5gpdenne@node.shutemov.name>
+References: <75acbed7-6a08-692f-61b5-2b44f66ec0d8@virtuozzo.com>
+ <bc95be68-8c68-2a45-c530-acbc6c90a231@virtuozzo.com>
+ <20170710123346.7y3jnftqgpingim3@node.shutemov.name>
+ <CACT4Y+aRbC7_wvDv8ahH_JwY6P6SFoLg-kdwWHJx5j1stX_P_w@mail.gmail.com>
+ <20170710141713.7aox3edx6o7lrrie@node.shutemov.name>
+ <03A6D7ED-300C-4431-9EB5-67C7A3EA4A2E@amacapital.net>
+ <20170710184704.realchrhzpblqqlk@node.shutemov.name>
+ <CALCETrVJQ_u-agPm8fFHAW1UJY=VLowdbM+gXyjFCb586r0V3g@mail.gmail.com>
+ <20170710212403.7ycczkhhki3vrgac@node.shutemov.name>
+ <CALCETrW6pWzpdf1MVx_ytaYYuVGBsF7R+JowEsKqd3i=vCwJ_w@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-        protocol="application/pgp-signature"; boundary="Zfao1/4IORAeFOVj"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mailapp01.imgtec.com ([195.59.15.196]:26962 "EHLO
-        imgpgp01.kl.imgtec.org" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-        with ESMTP id S1755309AbdGKKDr (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 11 Jul 2017 06:03:47 -0400
+Received: from mail-lf0-f68.google.com ([209.85.215.68]:34624 "EHLO
+        mail-lf0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753647AbdGKKfw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 11 Jul 2017 06:35:52 -0400
+Received: by mail-lf0-f68.google.com with SMTP id g21so13784795lfk.1
+        for <linux-arch@vger.kernel.org>; Tue, 11 Jul 2017 03:35:52 -0700 (PDT)
 Content-Disposition: inline
-In-Reply-To: <20170711001207.GA11642@glebfm.cloud.tilaa.com>
+In-Reply-To: <CALCETrW6pWzpdf1MVx_ytaYYuVGBsF7R+JowEsKqd3i=vCwJ_w@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Gleb Fotengauer-Malinovskiy <glebfm@altlinux.org>
-Cc: Aleksa Sarai <asarai@suse.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.com>, Arnd Bergmann <arnd@arndb.de>, Christian Brauner <christian.brauner@ubuntu.com>, Valentin Rothberg <vrothberg@suse.com>, "Dmitry V. Levin" <ldv@altlinux.org>, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org
+To: Andy Lutomirski <luto@kernel.org>
+Cc: Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, "x86@kernel.org" <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>
 
---Zfao1/4IORAeFOVj
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+On Mon, Jul 10, 2017 at 05:30:38PM -0700, Andy Lutomirski wrote:
+> On Mon, Jul 10, 2017 at 2:24 PM, Kirill A. Shutemov
+> <kirill@shutemov.name> wrote:
+> > On Mon, Jul 10, 2017 at 01:07:13PM -0700, Andy Lutomirski wrote:
+> >> Can you give the disassembly of the backtrace lines?  Blaming the
+> >> .endr doesn't make much sense to me.
+> >
+> > I don't have backtrace. It's before printk() is functional. I only see
+> > triple fault and reboot.
+> >
+> > I had to rely on qemu tracing and gdb.
+> 
+> Can you ask GDB or objtool to disassemble around those addresses?  Can
+> you also attach the big dump that QEMU throws out that shows register
+> state?  In particular, CR2, CR3, and CR4 could be useful.
 
-On Tue, Jul 11, 2017 at 03:12:17AM +0300, Gleb Fotengauer-Malinovskiy wrote:
-> This ioctl does nothing to justify an _IOC_READ or _IOC_WRITE flag
-> because it doesn't copy anything from/to userspace to access the
-> argument.
->=20
-> Fixes: 54ebbfb1 ("tty: add TIOCGPTPEER ioctl")
+The last three execptions:
 
-I think its recommended these days to include at least 12 nibbles of
-commit hash, i.e.
+check_exception old: 0xffffffff new 0xe, cr2: 0xffffffff7ffffff8, rip: 0xffffffff84bb3036
+RAX=00000000ffffffff RBX=ffffffff800000d8 RCX=ffffffff84be4021 RDX=dffffc0000000000
+RSI=0000000000000006 RDI=ffffffff84c57000 RBP=ffffffff800000c8 RSP=ffffffff80000000
+R8 =6d756e2032616476 R9 =2f7665642f3d746f R10=6f72203053797474 R11=3d656c6f736e6f63
+R12=0000000000000006 R13=000000003fffb000 R14=ffffffff82a07ed8 R15=000000000140008e
+RIP=ffffffff84bb3036 RFL=00000006 [-----P-] CPL=0 II=0 A20=1 SMM=0 HLT=0
+ES =0000 0000000000000000 00000000 00000000
+CS =0010 0000000000000000 ffffffff 00af9b00 DPL=0 CS64 [-RA]
+SS =0000 0000000000000000 ffffffff 00c09300 DPL=0 DS   [-WA]
+DS =0000 0000000000000000 00000000 00000000
+FS =0000 0000000000000000 00000000 00000000
+GS =0000 ffffffff84b8f000 00000000 00000000
+LDT=0000 0000000000000000 0000ffff 00008200 DPL=0 LDT
+TR =0000 0000000000000000 0000ffff 00008b00 DPL=0 TSS64-busy
+GDT=     ffffffff84ba1000 0000007f
+IDT=     ffffffff84d92000 00000fff
+CR0=80050033 CR2=ffffffff7ffffff8 CR3=0000000009c58000 CR4=000010a0
+DR0=0000000000000000 DR1=0000000000000000 DR2=0000000000000000 DR3=0000000000000000
+DR6=00000000ffff0ff0 DR7=0000000000000400
+EFER=0000000000000d01
 
-Fixes: 54ebbfb16034 ("tty: add TIOCGPTPEER ioctl")
+check_exception old: 0xe new 0xe, cr2: 0xffffffff7ffffff8, rip: 0xffffffff84bb3141
+RAX=00000000ffffffff RBX=ffffffff800000d8 RCX=ffffffff84be4021 RDX=dffffc0000000000
+RSI=0000000000000006 RDI=ffffffff84c57000 RBP=ffffffff800000c8 RSP=ffffffff80000000
+R8 =6d756e2032616476 R9 =2f7665642f3d746f R10=6f72203053797474 R11=3d656c6f736e6f63
+R12=0000000000000006 R13=000000003fffb000 R14=ffffffff82a07ed8 R15=000000000140008e
+RIP=ffffffff84bb3141 RFL=00000006 [-----P-] CPL=0 II=0 A20=1 SMM=0 HLT=0
+ES =0000 0000000000000000 00000000 00000000
+CS =0010 0000000000000000 ffffffff 00af9b00 DPL=0 CS64 [-RA]
+SS =0000 0000000000000000 ffffffff 00c09300 DPL=0 DS   [-WA]
+DS =0000 0000000000000000 00000000 00000000
+FS =0000 0000000000000000 00000000 00000000
+GS =0000 ffffffff84b8f000 00000000 00000000
+LDT=0000 0000000000000000 0000ffff 00008200 DPL=0 LDT
+TR =0000 0000000000000000 0000ffff 00008b00 DPL=0 TSS64-busy
+GDT=     ffffffff84ba1000 0000007f
+IDT=     ffffffff84d92000 00000fff
+CR0=80050033 CR2=ffffffff7ffffff8 CR3=0000000009c58000 CR4=000010a0
+DR0=0000000000000000 DR1=0000000000000000 DR2=0000000000000000 DR3=0000000000000000
+DR6=00000000ffff0ff0 DR7=0000000000000400
+EFER=0000000000000d01
 
-(consider setting your git default to 12 with this):
-git config core.abbrev 12
+check_exception old: 0x8 new 0xe, cr2: 0xffffffff7ffffff8, rip: 0xffffffff84bb3141
+RAX=00000000ffffffff RBX=ffffffff800000d8 RCX=ffffffff84be4021 RDX=dffffc0000000000
+RSI=0000000000000006 RDI=ffffffff84c57000 RBP=ffffffff800000c8 RSP=ffffffff80000000
+R8 =6d756e2032616476 R9 =2f7665642f3d746f R10=6f72203053797474 R11=3d656c6f736e6f63
+R12=0000000000000006 R13=000000003fffb000 R14=ffffffff82a07ed8 R15=000000000140008e
+RIP=ffffffff84bb3141 RFL=00000006 [-----P-] CPL=0 II=0 A20=1 SMM=0 HLT=0
+ES =0000 0000000000000000 00000000 00000000
+CS =0010 0000000000000000 ffffffff 00af9b00 DPL=0 CS64 [-RA]
+SS =0000 0000000000000000 ffffffff 00c09300 DPL=0 DS   [-WA]
+DS =0000 0000000000000000 00000000 00000000
+FS =0000 0000000000000000 00000000 00000000
+GS =0000 ffffffff84b8f000 00000000 00000000
+LDT=0000 0000000000000000 0000ffff 00008200 DPL=0 LDT
+TR =0000 0000000000000000 0000ffff 00008b00 DPL=0 TSS64-busy
+GDT=     ffffffff84ba1000 0000007f
+IDT=     ffffffff84d92000 00000fff
+CR0=80050033 CR2=ffffffff7ffffff8 CR3=0000000009c58000 CR4=000010a0
+DR0=0000000000000000 DR1=0000000000000000 DR2=0000000000000000 DR3=0000000000000000
+DR6=00000000ffff0ff0 DR7=0000000000000400
+EFER=0000000000000d01
+Triple fault
 
-Cheers
-James
+Dump of assembler code for function early_idt_handler_array:
+   0xffffffff84bb3000 <+0>:     pushq  $0x0
+   0xffffffff84bb3002 <+2>:     pushq  $0x0
+   0xffffffff84bb3004 <+4>:     jmpq   0xffffffff84bb3120 <early_idt_handler_common>
+   0xffffffff84bb3009 <+9>:     pushq  $0x0
+   0xffffffff84bb300b <+11>:    pushq  $0x1
+   0xffffffff84bb300d <+13>:    jmpq   0xffffffff84bb3120 <early_idt_handler_common>
+   0xffffffff84bb3012 <+18>:    pushq  $0x0
+   0xffffffff84bb3014 <+20>:    pushq  $0x2
+   0xffffffff84bb3016 <+22>:    jmpq   0xffffffff84bb3120 <early_idt_handler_common>
+   0xffffffff84bb301b <+27>:    pushq  $0x0
+   0xffffffff84bb301d <+29>:    pushq  $0x3
+   0xffffffff84bb301f <+31>:    jmpq   0xffffffff84bb3120 <early_idt_handler_common>
+   0xffffffff84bb3024 <+36>:    pushq  $0x0
+   0xffffffff84bb3026 <+38>:    pushq  $0x4
+   0xffffffff84bb3028 <+40>:    jmpq   0xffffffff84bb3120 <early_idt_handler_common>
+   0xffffffff84bb302d <+45>:    pushq  $0x0
+   0xffffffff84bb302f <+47>:    pushq  $0x5
+   0xffffffff84bb3031 <+49>:    jmpq   0xffffffff84bb3120 <early_idt_handler_common>
+=> 0xffffffff84bb3036 <+54>:    pushq  $0x0
+   0xffffffff84bb3038 <+56>:    pushq  $0x6
+   0xffffffff84bb303a <+58>:    jmpq   0xffffffff84bb3120 <early_idt_handler_common>
+   0xffffffff84bb303f <+63>:    pushq  $0x0
+   0xffffffff84bb3041 <+65>:    pushq  $0x7
+   0xffffffff84bb3043 <+67>:    jmpq   0xffffffff84bb3120 <early_idt_handler_common>
+   0xffffffff84bb3048 <+72>:    pushq  $0x8
+   0xffffffff84bb304a <+74>:    jmpq   0xffffffff84bb3120 <early_idt_handler_common>
+   0xffffffff84bb304f <+79>:    int3
+   0xffffffff84bb3050 <+80>:    int3
+...
 
-> Signed-off-by: Gleb Fotengauer-Malinovskiy <glebfm@altlinux.org>
-> ---
->  arch/alpha/include/uapi/asm/ioctls.h   | 2 +-
->  arch/mips/include/uapi/asm/ioctls.h    | 2 +-
->  arch/parisc/include/uapi/asm/ioctls.h  | 2 +-
->  arch/powerpc/include/uapi/asm/ioctls.h | 2 +-
->  arch/sh/include/uapi/asm/ioctls.h      | 2 +-
->  arch/sparc/include/uapi/asm/ioctls.h   | 2 +-
->  arch/xtensa/include/uapi/asm/ioctls.h  | 2 +-
->  include/uapi/asm-generic/ioctls.h      | 2 +-
->  8 files changed, 8 insertions(+), 8 deletions(-)
->=20
-> diff --git a/arch/alpha/include/uapi/asm/ioctls.h b/arch/alpha/include/ua=
-pi/asm/ioctls.h
-> index ff67b837..1cd7dc7 100644
-> --- a/arch/alpha/include/uapi/asm/ioctls.h
-> +++ b/arch/alpha/include/uapi/asm/ioctls.h
-> @@ -100,7 +100,7 @@
->  #define TIOCGPKT	_IOR('T', 0x38, int) /* Get packet mode state */
->  #define TIOCGPTLCK	_IOR('T', 0x39, int) /* Get Pty lock state */
->  #define TIOCGEXCL	_IOR('T', 0x40, int) /* Get exclusive mode state */
-> -#define TIOCGPTPEER	_IOR('T', 0x41, int) /* Safely open the slave */
-> +#define TIOCGPTPEER	_IO('T', 0x41) /* Safely open the slave */
-> =20
->  #define TIOCSERCONFIG	0x5453
->  #define TIOCSERGWILD	0x5454
-> diff --git a/arch/mips/include/uapi/asm/ioctls.h b/arch/mips/include/uapi=
-/asm/ioctls.h
-> index 68e19b6..1609cb0 100644
-> --- a/arch/mips/include/uapi/asm/ioctls.h
-> +++ b/arch/mips/include/uapi/asm/ioctls.h
-> @@ -91,7 +91,7 @@
->  #define TIOCGPKT	_IOR('T', 0x38, int) /* Get packet mode state */
->  #define TIOCGPTLCK	_IOR('T', 0x39, int) /* Get Pty lock state */
->  #define TIOCGEXCL	_IOR('T', 0x40, int) /* Get exclusive mode state */
-> -#define TIOCGPTPEER	_IOR('T', 0x41, int) /* Safely open the slave */
-> +#define TIOCGPTPEER	_IO('T', 0x41) /* Safely open the slave */
-> =20
->  /* I hope the range from 0x5480 on is free ... */
->  #define TIOCSCTTY	0x5480		/* become controlling tty */
-> diff --git a/arch/parisc/include/uapi/asm/ioctls.h b/arch/parisc/include/=
-uapi/asm/ioctls.h
-> index 674c68a..d0e3321 100644
-> --- a/arch/parisc/include/uapi/asm/ioctls.h
-> +++ b/arch/parisc/include/uapi/asm/ioctls.h
-> @@ -60,7 +60,7 @@
->  #define TIOCGPKT	_IOR('T', 0x38, int) /* Get packet mode state */
->  #define TIOCGPTLCK	_IOR('T', 0x39, int) /* Get Pty lock state */
->  #define TIOCGEXCL	_IOR('T', 0x40, int) /* Get exclusive mode state */
-> -#define TIOCGPTPEER	_IOR('T', 0x41, int) /* Safely open the slave */
-> +#define TIOCGPTPEER	_IO('T', 0x41) /* Safely open the slave */
-> =20
->  #define FIONCLEX	0x5450  /* these numbers need to be adjusted. */
->  #define FIOCLEX		0x5451
-> diff --git a/arch/powerpc/include/uapi/asm/ioctls.h b/arch/powerpc/includ=
-e/uapi/asm/ioctls.h
-> index bfd609a..e3b1046 100644
-> --- a/arch/powerpc/include/uapi/asm/ioctls.h
-> +++ b/arch/powerpc/include/uapi/asm/ioctls.h
-> @@ -100,7 +100,7 @@
->  #define TIOCGPKT	_IOR('T', 0x38, int) /* Get packet mode state */
->  #define TIOCGPTLCK	_IOR('T', 0x39, int) /* Get Pty lock state */
->  #define TIOCGEXCL	_IOR('T', 0x40, int) /* Get exclusive mode state */
-> -#define TIOCGPTPEER	_IOR('T', 0x41, int) /* Safely open the slave */
-> +#define TIOCGPTPEER	_IO('T', 0x41) /* Safely open the slave */
-> =20
->  #define TIOCSERCONFIG	0x5453
->  #define TIOCSERGWILD	0x5454
-> diff --git a/arch/sh/include/uapi/asm/ioctls.h b/arch/sh/include/uapi/asm=
-/ioctls.h
-> index eec7901..787bac9 100644
-> --- a/arch/sh/include/uapi/asm/ioctls.h
-> +++ b/arch/sh/include/uapi/asm/ioctls.h
-> @@ -93,7 +93,7 @@
->  #define TIOCGPKT	_IOR('T', 0x38, int) /* Get packet mode state */
->  #define TIOCGPTLCK	_IOR('T', 0x39, int) /* Get Pty lock state */
->  #define TIOCGEXCL	_IOR('T', 0x40, int) /* Get exclusive mode state */
-> -#define TIOCGPTPEER	_IOR('T', 0x41, int) /* Safely open the slave */
-> +#define TIOCGPTPEER	_IO('T', 0x41) /* Safely open the slave */
-> =20
->  #define TIOCSERCONFIG	_IO('T', 83) /* 0x5453 */
->  #define TIOCSERGWILD	_IOR('T', 84,  int) /* 0x5454 */
-> diff --git a/arch/sparc/include/uapi/asm/ioctls.h b/arch/sparc/include/ua=
-pi/asm/ioctls.h
-> index 6d27398..f5df72b 100644
-> --- a/arch/sparc/include/uapi/asm/ioctls.h
-> +++ b/arch/sparc/include/uapi/asm/ioctls.h
-> @@ -88,7 +88,7 @@
->  #define TIOCGPTN	_IOR('t', 134, unsigned int) /* Get Pty Number */
->  #define TIOCSPTLCK	_IOW('t', 135, int) /* Lock/unlock PTY */
->  #define TIOCSIG		_IOW('t', 136, int) /* Generate signal on Pty slave */
-> -#define TIOCGPTPEER	_IOR('t', 137, int) /* Safely open the slave */
-> +#define TIOCGPTPEER	_IO('t', 137) /* Safely open the slave */
-> =20
->  /* Little f */
->  #define FIOCLEX		_IO('f', 1)
-> diff --git a/arch/xtensa/include/uapi/asm/ioctls.h b/arch/xtensa/include/=
-uapi/asm/ioctls.h
-> index 98b004e..47d82c0 100644
-> --- a/arch/xtensa/include/uapi/asm/ioctls.h
-> +++ b/arch/xtensa/include/uapi/asm/ioctls.h
-> @@ -105,7 +105,7 @@
->  #define TIOCGPKT	_IOR('T', 0x38, int) /* Get packet mode state */
->  #define TIOCGPTLCK	_IOR('T', 0x39, int) /* Get Pty lock state */
->  #define TIOCGEXCL	_IOR('T', 0x40, int) /* Get exclusive mode state */
-> -#define TIOCGPTPEER	_IOR('T', 0x41, int) /* Safely open the slave */
-> +#define TIOCGPTPEER	_IO('T', 0x41) /* Safely open the slave */
-> =20
->  #define TIOCSERCONFIG	_IO('T', 83)
->  #define TIOCSERGWILD	_IOR('T', 84,  int)
-> diff --git a/include/uapi/asm-generic/ioctls.h b/include/uapi/asm-generic=
-/ioctls.h
-> index 06d5f7d..14baf9f2 100644
-> --- a/include/uapi/asm-generic/ioctls.h
-> +++ b/include/uapi/asm-generic/ioctls.h
-> @@ -77,7 +77,7 @@
->  #define TIOCGPKT	_IOR('T', 0x38, int) /* Get packet mode state */
->  #define TIOCGPTLCK	_IOR('T', 0x39, int) /* Get Pty lock state */
->  #define TIOCGEXCL	_IOR('T', 0x40, int) /* Get exclusive mode state */
-> -#define TIOCGPTPEER	_IOR('T', 0x41, int) /* Safely open the slave */
-> +#define TIOCGPTPEER	_IO('T', 0x41) /* Safely open the slave */
-> =20
->  #define FIONCLEX	0x5450
->  #define FIOCLEX		0x5451
->=20
-> --=20
-> glebfm
->=20
-
---Zfao1/4IORAeFOVj
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
-
------BEGIN PGP SIGNATURE-----
-
-iQIzBAEBCAAdFiEEd80NauSabkiESfLYbAtpk944dnoFAllkonYACgkQbAtpk944
-dnr0zA/9HKpKqlgodicAvtqRseBGnkcEEKwmoKGq0rDDYUaoa7kW+9uKE8p2TJE6
-jygBer5aCyRXY9z6+l6DYGaY2YxFWoe0mp7gdD49/4Cde+zGH4DX7ePZPnAG+uit
-fweeIo9oG2f8Q4hnv6cD9Pi1svYugfZIPz5WuuI7LixlW87RbZONgpJqzgjiuRqv
-n+/8HOqMIecu8UzQ940XaRA2YfoEJ4aqTVQXXbcSpcov/C/Jk0gUbch8HSSnuG4Z
-UP1my0m61lKjmuIJhRK2lGcCprZfIuZyJmuTZySJjnEwCYChxkUkW1jmHUnoGREI
-Go74baDV4H8e2AOmMzSn5wmRoU+evbgmyrSLT+qvvWfUxGYL3cKUg8SzRZLW3yvE
-H7+q0gzMuYlAUeyQWxsyfuX28AqyHLgBxkvegO9AgET2QLgmv5S9uRGaGCXP8ct9
-002gG6oqkHqB+FS0WI41R7svCx+QgYyxBNxkZPNA5/1VNbJGfMpr16BvOR9ARQO6
-GcGnfsB61DcZrJLOHrYIyC5jPbpYyd3f60AU2cencEqiiO0IRmjFNB0Dspmf8CC9
-BX5FJGlGgYVSODi8RAbWLWYdmXAKrt6+V0aBGqHOuNclC7TAC4dB02BYynTBRs0/
-IFFylTMJwEm41p6tkrTnyG8SgAEK7ZU0SoZjJSpk+hENBUvRKqI=
-=qoHc
------END PGP SIGNATURE-----
-
---Zfao1/4IORAeFOVj--
+-- 
+ Kirill A. Shutemov
