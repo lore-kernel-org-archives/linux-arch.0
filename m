@@ -1,94 +1,58 @@
-From: Andrey Ryabinin <aryabinin@virtuozzo.com>
-Subject: Re: KASAN vs. boot-time switching between 4- and 5-level paging
-Date: Tue, 11 Jul 2017 18:15:29 +0300
-Message-ID: <d3caf8c4-4575-c1b5-6b0f-95527efaf2f9@virtuozzo.com>
-References: <75acbed7-6a08-692f-61b5-2b44f66ec0d8@virtuozzo.com>
- <bc95be68-8c68-2a45-c530-acbc6c90a231@virtuozzo.com>
- <20170710123346.7y3jnftqgpingim3@node.shutemov.name>
- <CACT4Y+aRbC7_wvDv8ahH_JwY6P6SFoLg-kdwWHJx5j1stX_P_w@mail.gmail.com>
- <20170710141713.7aox3edx6o7lrrie@node.shutemov.name>
- <03A6D7ED-300C-4431-9EB5-67C7A3EA4A2E@amacapital.net>
- <20170710184704.realchrhzpblqqlk@node.shutemov.name>
- <CALCETrVJQ_u-agPm8fFHAW1UJY=VLowdbM+gXyjFCb586r0V3g@mail.gmail.com>
- <20170710212403.7ycczkhhki3vrgac@node.shutemov.name>
- <CALCETrW6pWzpdf1MVx_ytaYYuVGBsF7R+JowEsKqd3i=vCwJ_w@mail.gmail.com>
- <20170711103548.mkv5w7dd5gpdenne@node.shutemov.name>
- <CALCETrVpNUq3-zEu1Q1O77N8r4kv4kFdefXp7XEs3Hpf-JPAjg@mail.gmail.com>
+From: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
+Subject: Re: [PATCH v9 04/38] x86/CPU/AMD: Add the Secure Memory Encryption
+ CPU feature
+Date: Tue, 11 Jul 2017 10:14:34 -0500
+Message-ID: <df089d57-3785-c669-6c3b-6f90f77c3658@amd.com>
+References: <20170707133804.29711.1616.stgit@tlendack-t1.amdoffice.net>
+ <20170707133850.29711.29549.stgit@tlendack-t1.amdoffice.net>
+ <CAMzpN2j-gXvx2wAp3EvQB70Mr_oz0MSUzG=c-mhu-bnRiQGaFQ@mail.gmail.com>
+ <f5657d4a-aa15-9602-bb36-1a3cfe7fbcc1@amd.com>
+ <CAMzpN2hqYMVwhDRTGEhcUxqN2+6ToMmy6NBUutYJgPoOJEH4uQ@mail.gmail.com>
+ <20170711055659.GA4554@nazgul.tnic>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <CALCETrVpNUq3-zEu1Q1O77N8r4kv4kFdefXp7XEs3Hpf-JPAjg@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-efi-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <20170711055659.GA4554-K5JNixvcfoxupOikMc4+xw@public.gmane.org>
 Content-Language: en-US
-Sender: owner-linux-mm@kvack.org
-To: Andy Lutomirski <luto@kernel.org>, "Kirill A. Shutemov" <kirill@shutemov.name>
-Cc: Dmitry Vyukov <dvyukov@google.com>, Alexander Potapenko <glider@google.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, "x86@kernel.org" <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>
+Sender: linux-efi-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>, Brian Gerst <brgerst-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Cc: linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, the arch/x86 maintainers <x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, kexec-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, xen-devel-GuqFBffKawuEi8DpZVb4nw@public.gmane.org, Linux-MM <linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org>, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Brijesh Singh <brijesh.singh-5C7GfCeVMHo@public.gmane.org>, Toshimitsu Kani <toshi.kani-ZPxbGqLxI0U@public.gmane.org>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Larry Woodman <lwoodman-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, Joerg Roedel <joro-zLv9SwRftAIdnm+yROfE0A@public.gmane.org>, "Michael S. Tsirkin" <mst-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Ingo
 List-Id: linux-arch.vger.kernel.org
 
-
-
-On 07/11/2017 06:06 PM, Andy Lutomirski wrote:
-> On Tue, Jul 11, 2017 at 3:35 AM, Kirill A. Shutemov
-> <kirill@shutemov.name> wrote:
->> On Mon, Jul 10, 2017 at 05:30:38PM -0700, Andy Lutomirski wrote:
->>> On Mon, Jul 10, 2017 at 2:24 PM, Kirill A. Shutemov
->>> <kirill@shutemov.name> wrote:
->>>> On Mon, Jul 10, 2017 at 01:07:13PM -0700, Andy Lutomirski wrote:
->>>>> Can you give the disassembly of the backtrace lines?  Blaming the
->>>>> .endr doesn't make much sense to me.
->>>>
->>>> I don't have backtrace. It's before printk() is functional. I only see
->>>> triple fault and reboot.
->>>>
->>>> I had to rely on qemu tracing and gdb.
->>>
->>> Can you ask GDB or objtool to disassemble around those addresses?  Can
->>> you also attach the big dump that QEMU throws out that shows register
->>> state?  In particular, CR2, CR3, and CR4 could be useful.
+On 7/11/2017 12:56 AM, Borislav Petkov wrote:
+> On Tue, Jul 11, 2017 at 01:07:46AM -0400, Brian Gerst wrote:
+>>> If I make the scattered feature support conditional on CONFIG_X86_64
+>>> (based on comment below) then cpu_has() will always be false unless
+>>> CONFIG_X86_64 is enabled. So this won't need to be wrapped by the
+>>> #ifdef.
 >>
->> The last three execptions:
->>
->> check_exception old: 0xffffffff new 0xe, cr2: 0xffffffff7ffffff8, rip: 0xffffffff84bb3036
->> RAX=00000000ffffffff RBX=ffffffff800000d8 RCX=ffffffff84be4021 RDX=dffffc0000000000
->> RSI=0000000000000006 RDI=ffffffff84c57000 RBP=ffffffff800000c8 RSP=ffffffff80000000
+>> If you change it to use cpu_feature_enabled(), gcc will see that it is
+>> disabled and eliminate the dead code at compile time.
 > 
-> So RSP was 0xffffffff80000000, a push happened, and we tried to write
-> to 0xffffffff7ffffff8, which failed.
+> Just do this:
 > 
->> check_exception old: 0xe new 0xe, cr2: 0xffffffff7ffffff8, rip: 0xffffffff84bb3141
->> RAX=00000000ffffffff RBX=ffffffff800000d8 RCX=ffffffff84be4021 RDX=dffffc0000000000
->> RSI=0000000000000006 RDI=ffffffff84c57000 RBP=ffffffff800000c8 RSP=ffffffff80000000
+>         if (cpu_has(c, X86_FEATURE_SME)) {
+> 	       if (IS_ENABLED(CONFIG_X86_32)) {
+>                         clear_cpu_cap(c, X86_FEATURE_SME);
+> 	       } else {
+> 		       u64 msr;
 > 
-> And #PF doesn't use IST, so it double-faulted.
+> 		       /* Check if SME is enabled */
+> 	              rdmsrl(MSR_K8_SYSCFG, msr);
+> 	              if (!(msr & MSR_K8_SYSCFG_MEM_ENCRYPT))
+> 	                      clear_cpu_cap(c, X86_FEATURE_SME);
+> 	       }
+>         }
 > 
-> Either the stack isn't mapped in the page tables, RSP is corrupt, or
-> there's a genuine stack overflow here.
+> so that it is explicit that we disable it on 32-bit and we can save us
+> the ifdeffery elsewhere.
+
+I'll use this method for the change and avoid the #ifdefs.
+
+Thanks,
+Tom
+
 > 
-
-I reproduced this, and this is kasan bug:
-
-   │0xffffffff84864897 <x86_early_init_platform_quirks+5>   mov    $0xffffffff83f1d0b8,%rdi 
-   │0xffffffff8486489e <x86_early_init_platform_quirks+12>  movabs $0xdffffc0000000000,%rax 
-   │0xffffffff848648a8 <x86_early_init_platform_quirks+22>  push   %rbp
-   │0xffffffff848648a9 <x86_early_init_platform_quirks+23>  mov    %rdi,%rdx  
-   │0xffffffff848648ac <x86_early_init_platform_quirks+26>  shr    $0x3,%rdx
-   │0xffffffff848648b0 <x86_early_init_platform_quirks+30>  mov    %rsp,%rbp
-  >│0xffffffff848648b3 <x86_early_init_platform_quirks+33>  mov    (%rdx,%rax,1),%al
-
-we crash on the last move which is a read from shadow
-
-(gdb) p/x $rdx 
-$1 = 0x1ffffffff07e3a17
-(gdb) p/x $rax
-$2 = 0xdffffc0000000000
-
-(gdb) p/x 0xdffffc0000000000 + 0x1ffffffff07e3a17
-$4 = 0xfffffbfff07e3a17
-(gdb) p/x *0xfffffbfff07e3a17
-Cannot access memory at address 0xfffffbfff07e3a17
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+> Thanks.
+> 
