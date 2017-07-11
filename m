@@ -1,65 +1,128 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f65.google.com ([209.85.213.65]:34479 "EHLO
-        mail-vk0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752533AbdGKMAd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 11 Jul 2017 08:00:33 -0400
-MIME-Version: 1.0
-In-Reply-To: <CAK8P3a3oBgE8ggAjVX6mtWKWwBmw3gYzgTqF3fh9KsQyEgL31g@mail.gmail.com>
-References: <20170707133804.29711.1616.stgit@tlendack-t1.amdoffice.net>
- <20170707133925.29711.39301.stgit@tlendack-t1.amdoffice.net>
- <CAMzpN2h=AAF6OVfeGJnf5va2Msmd_BPU5BrVENvs0zGQtRMdzQ@mail.gmail.com>
- <ca43df91-163e-82ce-1d40-c17cfc90e957@amd.com> <CAMzpN2gq0TZbgy-3PUixwvL+6ECX5bOdE0XZsLtGFXA+-Embeg@mail.gmail.com>
- <CAK8P3a3oBgE8ggAjVX6mtWKWwBmw3gYzgTqF3fh9KsQyEgL31g@mail.gmail.com>
-From: Brian Gerst <brgerst@gmail.com>
-Date: Tue, 11 Jul 2017 08:00:32 -0400
-Message-ID: <CAMzpN2gZHis6_Y_B+DQmuY_ojBqoGBTCd2go+sM53pPaScTq+g@mail.gmail.com>
-Subject: Re: [PATCH v9 07/38] x86/mm: Remove phys_to_virt() usage in ioremap()
-Content-Type: text/plain; charset="UTF-8"
+Received: from foss.arm.com ([217.140.101.70]:45412 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1755854AbdGKORh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 11 Jul 2017 10:17:37 -0400
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: [PATCH 0/2] Fatal signal handing within uaccess faults
+Date: Tue, 11 Jul 2017 15:16:28 +0100
+Message-ID: <1499782590-31366-1-git-send-email-mark.rutland@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Tom Lendacky <thomas.lendacky@amd.com>, linux-arch <linux-arch@vger.kernel.org>, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, the arch/x86 maintainers <x86@kernel.org>, kexec@lists.infradead.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>, xen-devel@lists.xen.org, Linux-MM <linux-mm@kvack.org>, "open list:IOMMU DRIVERS" <iommu@lists.linux-foundation.org>, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dave Young <dyoung@redhat.com>, Rik van Riel <riel@redhat.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Dmitry Vyukov <dvyukov@google.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>
-Message-ID: <20170711120032.j1AuGtKiozqmtqkguTsD1C7GNg6YWkf2pdvLDXpLHZ0@z>
+To: linux-arm-kerne@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: catalin.marinas@arm.com, james.morse@arm.com, labbott@redhat.com, linux@armlinux.org.uk, mark.rutland@arm.com, stable@vger.kernel.org, steve.capper@arm.com, will.deacon@arm.com, viro@zeniv.linux.org.uk, peterz@infradead.org, luto@amacapital.net
+Message-ID: <20170711141628.MuccCutfdGDI23SkRBUwyOwBdUNBu_Xt7MF9za4iZDs@z>
 
-On Tue, Jul 11, 2017 at 4:35 AM, Arnd Bergmann <arnd@arndb.de> wrote:
-> On Tue, Jul 11, 2017 at 6:58 AM, Brian Gerst <brgerst@gmail.com> wrote:
->> On Mon, Jul 10, 2017 at 3:50 PM, Tom Lendacky <thomas.lendacky@amd.com> wrote:
->>> On 7/8/2017 7:57 AM, Brian Gerst wrote:
->>>> On Fri, Jul 7, 2017 at 9:39 AM, Tom Lendacky <thomas.lendacky@amd.com>
->>>
->>> I originally had a check for SME here in a previous version of the
->>> patch.  Thomas Gleixner recommended removing the check so that the code
->>> path was always exercised regardless of the state of SME in order to
->>> better detect issues:
->>>
->>> http://marc.info/?l=linux-kernel&m=149803067811436&w=2
->>
->> Looking a bit closer, this shortcut doesn't set the caching
->> attributes.  So it's probably best to get rid of it anyways.  Also
->> note, there is a corresponding check in iounmap().
+Hi,
 
-Perhaps the iounmap() check should be kept for now for safety, since
-some drivers (vga16fb for example) call iounmap() blindly even if the
-mapping wasn't returned from ioremap().  Maybe add a warning when an
-ISA address is passed to iounmap().
+Arch maintainer tl;dr: most arch fault code doesn't handle fatal signals
+correctly, allowing unprivileged users to create an unkillable task which can
+lock up the system. Please check whether your arch is affected.
 
-> Could that cause regressions if a driver relies on (write-through)
-> cacheable access to the VGA frame buffer RAM or an read-only
-> cached access to an option ROM but now gets uncached access?
+AFAICT, most arches don't correctly handle a fatal signal interrupting a
+uaccess fault. They attempt to bail out, returning to the faulting context
+without bothering to handle the fault, but forget to apply the uaccess fixup.
+Consequently, the uaccess gets replayed, and the same thing happens forver.
 
-Yes there could be some surprises in drivers use the normal ioremap()
-call which is uncached but were expecting the default write-through
-mapping.
+When this occurs, the relevant task never returns to userspace, never handles
+the fatal signal, and is stuck in an unkillable (though interruptible and
+preemptible) state. The task can inhibit forward progress of the rest of the
+system, leading to RCU stalls and lockups.
 
-> I also tried to find out whether we can stop mapping the ISA MMIO
-> area into the linear mapping, but at least the VGA code uses
-> VGA_MAP_MEM() to get access to the same pointers. I'm pretty
-> sure this got copied incorrectly into most other architectures, but
-> it is definitely still used on x86 with vga16fb/vgacon/mdacon.
+It's possible for an unprivileged user to trigger this deliberately using the
+userfaultfd syscall, as demonstrated by the test case at the end of this email
+(note: requires CONFIG_USERFAULTFD to be selected). I am not sure if this is
+the only way of triggering the issue.
 
-Changing VGA_MAP_MEM() to use ioremap_wt() would take care of that.
-Although, looking at the mdacon/vgacon, they don't have support for
-unmapping the frame buffer if they are built modular.
+I stumbled upon this while fuzzing arm64 with Syzkaller. I've verified that
+both arm and arm64 have the issue, and by inspection is seems that the majority
+of other architectures are affected.
 
---
-Brian Gerst
+It looks like this was fixed up for x86 in 2014 with commit:
+
+  26178ec11ef3c6c8 ("x86: mm: consolidate VM_FAULT_RETRY handling")
+
+... but most other architectures never received a similar fixup.
+
+The duplication (and divergence) of this logic is unfortunate. It's largely
+copy-paste code that could be consolidated under mm/.
+
+Until we end up refactoring this, and so as to be sutiable for backporting,
+this series fixes arm and arm64 in-place. I've not touched other architectures
+as I don't have the relevant hardwre or arch knowledge.
+
+Thanks,
+Mark.
+
+----
+#include <errno.h>
+#include <linux/userfaultfd.h>
+#include <stdio.h>
+#include <sys/ioctl.h>
+#include <sys/mman.h>
+#include <sys/syscall.h>
+#include <sys/vfs.h>
+#include <unistd.h>
+
+int main(int argc, char *argv[])
+{
+	void *mem;
+	long pagesz;
+	int uffd, ret;
+	struct uffdio_api api = {
+		.api = UFFD_API
+	};
+	struct uffdio_register reg;
+       
+	pagesz = sysconf(_SC_PAGESIZE);
+	if (pagesz < 0) {
+		return errno;
+	}
+
+	mem = mmap(NULL, pagesz, PROT_READ | PROT_WRITE,
+		   MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+	if (mem == MAP_FAILED)
+		return errno;
+
+	uffd = syscall(__NR_userfaultfd, 0);
+	if (uffd < 0)
+		return errno;
+
+	ret = ioctl(uffd, UFFDIO_API, &api);
+	if (ret < 0)
+		return errno;
+
+	reg = (struct uffdio_register) {
+		.range = {
+			.start = (unsigned long)mem,
+			.len = pagesz
+		},
+		.mode = UFFDIO_REGISTER_MODE_MISSING
+	};
+
+	ret = ioctl(uffd, UFFDIO_REGISTER, &reg);
+	if (ret < 0)
+		return errno;
+
+	/*
+	 * Force an arbitrary uaccess to memory monitored by the userfaultfd.
+	 * This will block, but when a SIGKILL is sent, will consume all
+	 * available CPU time without being killed, and may inhibit forward
+	 * progress of the system.
+	 */
+	ret = fstatfs(0, (struct statfs *)mem);
+
+	return 0;
+}
+----
+
+Mark Rutland (2):
+  arm64: mm: abort uaccess retries upon fatal signal
+  arm: mm: abort uaccess retries upon fatal signal
+
+ arch/arm/mm/fault.c   | 5 ++++-
+ arch/arm64/mm/fault.c | 5 ++++-
+ 2 files changed, 8 insertions(+), 2 deletions(-)
+
+-- 
+1.9.1
