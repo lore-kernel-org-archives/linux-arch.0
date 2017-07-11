@@ -1,34 +1,123 @@
-From: Christoph Hellwig <hch@infradead.org>
-Subject: Re: [PATCH 8/9] RISC-V: User-facing API
-Date: Tue, 11 Jul 2017 06:55:28 -0700
-Message-ID: <20170711135528.GA11417@infradead.org>
-References: <20170706154512.GD15574@arm.com>
- <mhng-f92ef7c4-049a-4a71-be12-c600d1d7858b@palmer-si-x1c4>
- <20170711132215.GD13977@arm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([65.50.211.133]:36611 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755513AbdGKNzm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 11 Jul 2017 09:55:42 -0400
-Content-Disposition: inline
-In-Reply-To: <20170711132215.GD13977@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Palmer Dabbelt <palmer@dabbelt.com>, hch@infradead.org, peterz@infradead.org, mingo@redhat.com, sfr@canb.auug.org.au, nicolas.dichtel@6wind.com, tklauser@distanz.ch, james.hogan@imgtec.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mathieu.desnoyers@efficios.com
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: [PATCH 0/2] Fatal signal handing within uaccess faults
+Date: Tue, 11 Jul 2017 15:16:28 +0100
+Message-ID: <1499782590-31366-1-git-send-email-mark.rutland@arm.com>
+Return-path: <stable-owner@vger.kernel.org>
+Sender: stable-owner@vger.kernel.org
+To: linux-arm-kerne@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: catalin.marinas@arm.com, james.morse@arm.com, labbott@redhat.com, linux@armlinux.org.uk, mark.rutland@arm.com, stable@vger.kernel.org, steve.capper@arm.com, will.deacon@arm.com, viro@zeniv.linux.org.uk, peterz@infradead.org, luto@amacapital.net
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jul 11, 2017 at 02:22:15PM +0100, Will Deacon wrote:
-> The problem is that by supporting these hypothetical designs that can't do
-> atomics, you hurt sensible designs that *can* do the atomics because you
-> force them to take an additional indirection that could otherwise be
-> avoided.
+Hi,
 
-Agreed.  But the new patchset seems to remove it already, so I guess
-we're fine on the kernel side.  Now we just need to make sure the
-glibc API doesn't use any indirections.
+Arch maintainer tl;dr: most arch fault code doesn't handle fatal signals
+correctly, allowing unprivileged users to create an unkillable task which can
+lock up the system. Please check whether your arch is affected.
 
-Note that it might make sense to emit these for very low end nommu
-designs.  Maybe even running Linux, but in that case they'll just need
-a special non-standard ABI for very limited use cases.
+AFAICT, most arches don't correctly handle a fatal signal interrupting a
+uaccess fault. They attempt to bail out, returning to the faulting context
+without bothering to handle the fault, but forget to apply the uaccess fixup.
+Consequently, the uaccess gets replayed, and the same thing happens forver.
+
+When this occurs, the relevant task never returns to userspace, never handles
+the fatal signal, and is stuck in an unkillable (though interruptible and
+preemptible) state. The task can inhibit forward progress of the rest of the
+system, leading to RCU stalls and lockups.
+
+It's possible for an unprivileged user to trigger this deliberately using the
+userfaultfd syscall, as demonstrated by the test case at the end of this email
+(note: requires CONFIG_USERFAULTFD to be selected). I am not sure if this is
+the only way of triggering the issue.
+
+I stumbled upon this while fuzzing arm64 with Syzkaller. I've verified that
+both arm and arm64 have the issue, and by inspection is seems that the majority
+of other architectures are affected.
+
+It looks like this was fixed up for x86 in 2014 with commit:
+
+  26178ec11ef3c6c8 ("x86: mm: consolidate VM_FAULT_RETRY handling")
+
+... but most other architectures never received a similar fixup.
+
+The duplication (and divergence) of this logic is unfortunate. It's largely
+copy-paste code that could be consolidated under mm/.
+
+Until we end up refactoring this, and so as to be sutiable for backporting,
+this series fixes arm and arm64 in-place. I've not touched other architectures
+as I don't have the relevant hardwre or arch knowledge.
+
+Thanks,
+Mark.
+
+----
+#include <errno.h>
+#include <linux/userfaultfd.h>
+#include <stdio.h>
+#include <sys/ioctl.h>
+#include <sys/mman.h>
+#include <sys/syscall.h>
+#include <sys/vfs.h>
+#include <unistd.h>
+
+int main(int argc, char *argv[])
+{
+	void *mem;
+	long pagesz;
+	int uffd, ret;
+	struct uffdio_api api = {
+		.api = UFFD_API
+	};
+	struct uffdio_register reg;
+       
+	pagesz = sysconf(_SC_PAGESIZE);
+	if (pagesz < 0) {
+		return errno;
+	}
+
+	mem = mmap(NULL, pagesz, PROT_READ | PROT_WRITE,
+		   MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+	if (mem == MAP_FAILED)
+		return errno;
+
+	uffd = syscall(__NR_userfaultfd, 0);
+	if (uffd < 0)
+		return errno;
+
+	ret = ioctl(uffd, UFFDIO_API, &api);
+	if (ret < 0)
+		return errno;
+
+	reg = (struct uffdio_register) {
+		.range = {
+			.start = (unsigned long)mem,
+			.len = pagesz
+		},
+		.mode = UFFDIO_REGISTER_MODE_MISSING
+	};
+
+	ret = ioctl(uffd, UFFDIO_REGISTER, &reg);
+	if (ret < 0)
+		return errno;
+
+	/*
+	 * Force an arbitrary uaccess to memory monitored by the userfaultfd.
+	 * This will block, but when a SIGKILL is sent, will consume all
+	 * available CPU time without being killed, and may inhibit forward
+	 * progress of the system.
+	 */
+	ret = fstatfs(0, (struct statfs *)mem);
+
+	return 0;
+}
+----
+
+Mark Rutland (2):
+  arm64: mm: abort uaccess retries upon fatal signal
+  arm: mm: abort uaccess retries upon fatal signal
+
+ arch/arm/mm/fault.c   | 5 ++++-
+ arch/arm64/mm/fault.c | 5 ++++-
+ 2 files changed, 8 insertions(+), 2 deletions(-)
+
+-- 
+1.9.1
