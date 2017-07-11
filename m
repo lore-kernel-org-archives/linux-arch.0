@@ -1,66 +1,78 @@
-From: Brian Gerst <brgerst@gmail.com>
-Subject: Re: [PATCH v9 07/38] x86/mm: Remove phys_to_virt() usage in ioremap()
-Date: Tue, 11 Jul 2017 08:00:32 -0400
-Message-ID: <CAMzpN2gZHis6_Y_B+DQmuY_ojBqoGBTCd2go+sM53pPaScTq+g@mail.gmail.com>
-References: <20170707133804.29711.1616.stgit@tlendack-t1.amdoffice.net>
- <20170707133925.29711.39301.stgit@tlendack-t1.amdoffice.net>
- <CAMzpN2h=AAF6OVfeGJnf5va2Msmd_BPU5BrVENvs0zGQtRMdzQ@mail.gmail.com>
- <ca43df91-163e-82ce-1d40-c17cfc90e957@amd.com> <CAMzpN2gq0TZbgy-3PUixwvL+6ECX5bOdE0XZsLtGFXA+-Embeg@mail.gmail.com>
- <CAK8P3a3oBgE8ggAjVX6mtWKWwBmw3gYzgTqF3fh9KsQyEgL31g@mail.gmail.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH 8/9] RISC-V: User-facing API
+Date: Tue, 11 Jul 2017 14:22:15 +0100
+Message-ID: <20170711132215.GD13977@arm.com>
+References: <20170706154512.GD15574@arm.com>
+ <mhng-f92ef7c4-049a-4a71-be12-c600d1d7858b@palmer-si-x1c4>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <CAK8P3a3oBgE8ggAjVX6mtWKWwBmw3gYzgTqF3fh9KsQyEgL31g@mail.gmail.com>
-Sender: owner-linux-mm@kvack.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Tom Lendacky <thomas.lendacky@amd.com>, linux-arch <linux-arch@vger.kernel.org>, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, the arch/x86 maintainers <x86@kernel.org>, kexec@lists.infradead.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>, xen-devel@lists.xen.org, Linux-MM <linux-mm@kvack.org>, "open list:IOMMU DRIVERS" <iommu@lists.linux-foundation.org>, Brijesh Singh <brijesh.singh@amd.com>, Toshimitsu Kani <toshi.kani@hpe.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Larry Woodman <lwoodman@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, "Michael S. Tsirkin" <mst@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrey
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:44876 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752577AbdGKNWO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 11 Jul 2017 09:22:14 -0400
+Content-Disposition: inline
+In-Reply-To: <mhng-f92ef7c4-049a-4a71-be12-c600d1d7858b@palmer-si-x1c4>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Palmer Dabbelt <palmer@dabbelt.com>
+Cc: hch@infradead.org, peterz@infradead.org, mingo@redhat.com, sfr@canb.auug.org.au, nicolas.dichtel@6wind.com, tklauser@distanz.ch, james.hogan@imgtec.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mathieu.desnoyers@efficios.com
 
-On Tue, Jul 11, 2017 at 4:35 AM, Arnd Bergmann <arnd@arndb.de> wrote:
-> On Tue, Jul 11, 2017 at 6:58 AM, Brian Gerst <brgerst@gmail.com> wrote:
->> On Mon, Jul 10, 2017 at 3:50 PM, Tom Lendacky <thomas.lendacky@amd.com> wrote:
->>> On 7/8/2017 7:57 AM, Brian Gerst wrote:
->>>> On Fri, Jul 7, 2017 at 9:39 AM, Tom Lendacky <thomas.lendacky@amd.com>
->>>
->>> I originally had a check for SME here in a previous version of the
->>> patch.  Thomas Gleixner recommended removing the check so that the code
->>> path was always exercised regardless of the state of SME in order to
->>> better detect issues:
->>>
->>> http://marc.info/?l=linux-kernel&m=149803067811436&w=2
->>
->> Looking a bit closer, this shortcut doesn't set the caching
->> attributes.  So it's probably best to get rid of it anyways.  Also
->> note, there is a corresponding check in iounmap().
+On Mon, Jul 10, 2017 at 01:00:29PM -0700, Palmer Dabbelt wrote:
+> On Thu, 06 Jul 2017 08:45:13 PDT (-0700), will.deacon@arm.com wrote:
+> > On Thu, Jul 06, 2017 at 08:34:27AM -0700, Christoph Hellwig wrote:
+> >> On Thu, Jul 06, 2017 at 09:55:03AM +0100, Will Deacon wrote:
+> >> > Agreed on the indirection; it feels like this is something that should be in
+> >> > the vDSO, which could use the cmpxchg instruction if it's available, or
+> >> > otherwise just uses plain loads and stores.
+> 
+> These are already in the vDSO, and use the corresponding atomic instructions on
+> systems with the A extension.  The vDSO routines call the system calls in non-A
+> systems.  As far as I can tell that's necessary to preserve atomicity, which we
+> currently do by disabling scheduling.  If there's a way to do this without
+> entering the kernel then I'd be happy to support it, but I'm not sure how we
+> could maintain atomicity using only regular loads and stores.
 
-Perhaps the iounmap() check should be kept for now for safety, since
-some drivers (vga16fb for example) call iounmap() blindly even if the
-mapping wasn't returned from ioremap().  Maybe add a warning when an
-ISA address is passed to iounmap().
+Take a look at the ARM code I mentioned. You can do away with the syscall if
+you notice that you preempt a thread inside the critical section of the
+vDSO, and, in that case you resume execution at a known "restart" address.
 
-> Could that cause regressions if a driver relies on (write-through)
-> cacheable access to the VGA frame buffer RAM or an read-only
-> cached access to an option ROM but now gets uncached access?
+> >> Even that seems like a lot of indirection for something that is in
+> >> the critical fast path for synchronization.  I really can't understand
+> >> how a new ISA / ABI could even come up with an idea as stupid as making
+> >> essential synchronization primitives optional.
+> >
+> > No disagreement there!
+> 
+> The default set of multilibs on Linux are:
+> 
+>  * rv32imac: 32-bit; Multiply, Atomic, and Compressed extensions
+>  * rv32imafdc: like above, but with single+double float
+>  * rv64imac: 64-bit, Multiply, Atomic and Compressed
+>  * rv64imafdc: like above, but with single+double float
+> 
+> all of which support the A extension.  We certainly don't plan on building any
+> systems that support Linux without the A extension at SiFive, so I'm fine
+> removing the system call -- this was originally added by a user, so there was
+> at least enough interest for someone to add the system call.
+> 
+> We've found people are retrofitting other cores to run RISC-V, and I could
+> certainly imagine an older design that lacks a beefy enough memory system to
+> support our atomics (which are LR/SC based) being a design that might arise.
+> There's a lot of systems where people don't seem to care that much about the
+> performance and just want something to work -- if they're on such a tiny system
+> they can't implement the A extension then they're probably not going to be
+> doing a lot of atomics anyway, so maybe it doesn't matter if atomics are slow.
+> As the cost for supporting these A-less systems seems fairly small, it seemed
+> like the right thing to do -- one of the points of making RISC-V have many
+> optional extensions was to let people pick the ones they view as important.
+> Since I don't know the performance constraints of their systems or the cost of
+> implementing the A extension in their design, I'm not really qualified to tell
+> them a cmpxchg syscall is a bad idea.
 
-Yes there could be some surprises in drivers use the normal ioremap()
-call which is uncached but were expecting the default write-through
-mapping.
+The problem is that by supporting these hypothetical designs that can't do
+atomics, you hurt sensible designs that *can* do the atomics because you
+force them to take an additional indirection that could otherwise be
+avoided.
 
-> I also tried to find out whether we can stop mapping the ISA MMIO
-> area into the linear mapping, but at least the VGA code uses
-> VGA_MAP_MEM() to get access to the same pointers. I'm pretty
-> sure this got copied incorrectly into most other architectures, but
-> it is definitely still used on x86 with vga16fb/vgacon/mdacon.
-
-Changing VGA_MAP_MEM() to use ioremap_wt() would take care of that.
-Although, looking at the mdacon/vgacon, they don't have support for
-unmapping the frame buffer if they are built modular.
-
---
-Brian Gerst
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Will
