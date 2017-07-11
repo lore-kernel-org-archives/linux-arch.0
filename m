@@ -1,25 +1,61 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: Re: [PATCH 0/2] Fatal signal handing within uaccess faults
-Date: Tue, 11 Jul 2017 08:04:50 -0700
-Message-ID: <CALCETrX_T5=9Y77Z7VrM+YcpoFiJkhUGFNTOh2KbuG+7cey-bw@mail.gmail.com>
-References: <1499782590-31366-1-git-send-email-mark.rutland@arm.com>
+From: Andy Lutomirski <luto@kernel.org>
+Subject: Re: KASAN vs. boot-time switching between 4- and 5-level paging
+Date: Tue, 11 Jul 2017 08:06:57 -0700
+Message-ID: <CALCETrVpNUq3-zEu1Q1O77N8r4kv4kFdefXp7XEs3Hpf-JPAjg@mail.gmail.com>
+References: <75acbed7-6a08-692f-61b5-2b44f66ec0d8@virtuozzo.com>
+ <bc95be68-8c68-2a45-c530-acbc6c90a231@virtuozzo.com> <20170710123346.7y3jnftqgpingim3@node.shutemov.name>
+ <CACT4Y+aRbC7_wvDv8ahH_JwY6P6SFoLg-kdwWHJx5j1stX_P_w@mail.gmail.com>
+ <20170710141713.7aox3edx6o7lrrie@node.shutemov.name> <03A6D7ED-300C-4431-9EB5-67C7A3EA4A2E@amacapital.net>
+ <20170710184704.realchrhzpblqqlk@node.shutemov.name> <CALCETrVJQ_u-agPm8fFHAW1UJY=VLowdbM+gXyjFCb586r0V3g@mail.gmail.com>
+ <20170710212403.7ycczkhhki3vrgac@node.shutemov.name> <CALCETrW6pWzpdf1MVx_ytaYYuVGBsF7R+JowEsKqd3i=vCwJ_w@mail.gmail.com>
+ <20170711103548.mkv5w7dd5gpdenne@node.shutemov.name>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <stable-owner@vger.kernel.org>
-In-Reply-To: <1499782590-31366-1-git-send-email-mark.rutland@arm.com>
-Sender: stable-owner@vger.kernel.org
-To: Mark Rutland <mark.rutland@arm.com>
-Cc: linux-arm-kerne@lists.infradead.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, James Morse <james.morse@arm.com>, Laura Abbott <labbott@redhat.com>, Russell King <linux@armlinux.org.uk>, stable <stable@vger.kernel.org>, steve.capper@arm.com, Will Deacon <will.deacon@arm.com>, Al Viro <viro@zeniv.linux.org.uk>, Peter Zijlstra <peterz@infradead.org>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20170711103548.mkv5w7dd5gpdenne@node.shutemov.name>
+Sender: owner-linux-mm@kvack.org
+To: "Kirill A. Shutemov" <kirill@shutemov.name>
+Cc: Andy Lutomirski <luto@kernel.org>, Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, "x86@kernel.org" <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jul 11, 2017 at 7:16 AM, Mark Rutland <mark.rutland@arm.com> wrote:
-> Hi,
+On Tue, Jul 11, 2017 at 3:35 AM, Kirill A. Shutemov
+<kirill@shutemov.name> wrote:
+> On Mon, Jul 10, 2017 at 05:30:38PM -0700, Andy Lutomirski wrote:
+>> On Mon, Jul 10, 2017 at 2:24 PM, Kirill A. Shutemov
+>> <kirill@shutemov.name> wrote:
+>> > On Mon, Jul 10, 2017 at 01:07:13PM -0700, Andy Lutomirski wrote:
+>> >> Can you give the disassembly of the backtrace lines?  Blaming the
+>> >> .endr doesn't make much sense to me.
+>> >
+>> > I don't have backtrace. It's before printk() is functional. I only see
+>> > triple fault and reboot.
+>> >
+>> > I had to rely on qemu tracing and gdb.
+>>
+>> Can you ask GDB or objtool to disassemble around those addresses?  Can
+>> you also attach the big dump that QEMU throws out that shows register
+>> state?  In particular, CR2, CR3, and CR4 could be useful.
 >
-> Arch maintainer tl;dr: most arch fault code doesn't handle fatal signals
-> correctly, allowing unprivileged users to create an unkillable task which can
-> lock up the system. Please check whether your arch is affected.
+> The last three execptions:
+>
+> check_exception old: 0xffffffff new 0xe, cr2: 0xffffffff7ffffff8, rip: 0xffffffff84bb3036
+> RAX=00000000ffffffff RBX=ffffffff800000d8 RCX=ffffffff84be4021 RDX=dffffc0000000000
+> RSI=0000000000000006 RDI=ffffffff84c57000 RBP=ffffffff800000c8 RSP=ffffffff80000000
 
-I haven't tested for real, but brief inspection of the code suggests
-that x86 is okay.
+So RSP was 0xffffffff80000000, a push happened, and we tried to write
+to 0xffffffff7ffffff8, which failed.
 
---Andy
+> check_exception old: 0xe new 0xe, cr2: 0xffffffff7ffffff8, rip: 0xffffffff84bb3141
+> RAX=00000000ffffffff RBX=ffffffff800000d8 RCX=ffffffff84be4021 RDX=dffffc0000000000
+> RSI=0000000000000006 RDI=ffffffff84c57000 RBP=ffffffff800000c8 RSP=ffffffff80000000
+
+And #PF doesn't use IST, so it double-faulted.
+
+Either the stack isn't mapped in the page tables, RSP is corrupt, or
+there's a genuine stack overflow here.
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
