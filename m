@@ -1,49 +1,60 @@
-From: James Morse <james.morse@arm.com>
-Subject: Re: [PATCH 1/2] arm64: mm: abort uaccess retries upon fatal signal
-Date: Wed, 12 Jul 2017 18:18:55 +0100
-Message-ID: <596659FF.7070605@arm.com>
-References: <1499782763-31418-1-git-send-email-mark.rutland@arm.com> <1499782763-31418-2-git-send-email-mark.rutland@arm.com>
+From: Ram Pai <linuxram@us.ibm.com>
+Subject: Re: [RFC v5 36/38] selftest: PowerPC specific test updates to memory
+ protection keys
+Date: Wed, 12 Jul 2017 14:57:29 -0700
+Message-ID: <20170712215729.GC5525@ram.oc3035372033.ibm.com>
+References: <1499289735-14220-1-git-send-email-linuxram@us.ibm.com>
+ <1499289735-14220-37-git-send-email-linuxram@us.ibm.com>
+ <c0e2eab4-a724-5155-4ae9-03b37e4b9f54@intel.com>
+Reply-To: Ram Pai <linuxram@us.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:57248 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932076AbdGLRT4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 12 Jul 2017 13:19:56 -0400
-In-Reply-To: <1499782763-31418-2-git-send-email-mark.rutland@arm.com>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:51916 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1752021AbdGLV5q (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 12 Jul 2017 17:57:46 -0400
+Received: from pps.filterd (m0098417.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id v6CLrXJB045855
+        for <linux-arch@vger.kernel.org>; Wed, 12 Jul 2017 17:57:45 -0400
+Received: from e17.ny.us.ibm.com (e17.ny.us.ibm.com [129.33.205.207])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2bnt3nm6dv-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Wed, 12 Jul 2017 17:57:45 -0400
+Received: from localhost
+        by e17.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <linuxram@us.ibm.com>;
+        Wed, 12 Jul 2017 17:57:44 -0400
+Content-Disposition: inline
+In-Reply-To: <c0e2eab4-a724-5155-4ae9-03b37e4b9f54@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Rutland <mark.rutland@arm.com>, linux-arch@vger.kernel.org
-Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, catalin.marinas@arm.com, labbott@redhat.com, linux@armlinux.org.uk, stable@vger.kernel.org, steve.capper@arm.com, will.deacon@arm.com, viro@zeniv.linux.org.uk, peterz@infradead.org, luto@amacapital.net
+To: Dave Hansen <dave.hansen@intel.com>
+Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
 
-Hi Mark,
-
-On 11/07/17 15:19, Mark Rutland wrote:
-> When there's a fatal signal pending, arm64's do_page_fault()
-> implementation returns 0. The intent is that we'll return to the
-> faulting userspace instruction, delivering the signal on the way.
+On Tue, Jul 11, 2017 at 10:33:09AM -0700, Dave Hansen wrote:
+> On 07/05/2017 02:22 PM, Ram Pai wrote:
+> > Abstracted out the arch specific code into the header file, and
+> > added powerpc specific changes.
+> > 
+> > a) added 4k-backed hpte, memory allocator, powerpc specific.
+> > b) added three test case where the key is associated after the page is
+> > 	accessed/allocated/mapped.
+> > c) cleaned up the code to make checkpatch.pl happy
 > 
-> However, if we take a fatal signal during fixing up a uaccess, this
-> results in a return to the faulting kernel instruction, which will be
-> instantly retried, resulting in the same fault being taken forever. As
-> the task never reaches userspace, the signal is not delivered, and the
-> task is left unkillable. While the task is stuck in this state, it can
-> inhibit the forward progress of the system.
-> 
-> To avoid this, we must ensure that when a fatal signal is pending, we
-> apply any necessary fixup for a faulting kernel instruction. Thus we
-> will return to an error path, and it is up to that code to make forward
-> progress towards delivering the fatal signal.
+> There's a *lot* of churn here.  If it breaks, I'm going to have a heck
+> of a time figuring out which hunk broke.  Is there any way to break this
+> up into a series of things that we have a chance at bisecting?
 
-VM_FAULT_RETRY's 'I released your locks' behaviour is pretty nasty, but this
-looks right. FWIW:
-Reviewed-by: James Morse <james.morse@arm.com>
+Just finished breaking down the changes into 20 gradual increments.
+I have pushed it to my github tree at
 
-I also gave this a spin through LTP on Juno, based on v4.12-defconfig:
-Tested-by: James Morse <james.morse@arm.com>
+https://github.com/rampai/memorykeys.git
+branch is memkey.v6-rc3
 
+See if it works for you. I am sure I would have broken something on
+x86 since I dont have a x86 platform to test.
 
-Thanks,
-
-James
+Let me know, Thanks,
+RP
