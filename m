@@ -1,50 +1,127 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:42072 "EHLO mx1.suse.de"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1756657AbdGLHju (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 12 Jul 2017 03:39:50 -0400
-Date: Wed, 12 Jul 2017 09:39:45 +0200
-From: Michal Hocko <mhocko@kernel.org>
-Subject: Re: [RFC v5 00/38] powerpc: Memory Protection Keys
-Message-ID: <20170712073945.GC28912@dhcp22.suse.cz>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:47534 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1752402AbdGLWXr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 12 Jul 2017 18:23:47 -0400
+Received: from pps.filterd (m0098414.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id v6CMNllJ080586
+        for <linux-arch@vger.kernel.org>; Wed, 12 Jul 2017 18:23:47 -0400
+Received: from e13.ny.us.ibm.com (e13.ny.us.ibm.com [129.33.205.203])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2bnt3nmudr-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Wed, 12 Jul 2017 18:23:47 -0400
+Received: from localhost
+        by e13.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <linuxram@us.ibm.com>;
+        Wed, 12 Jul 2017 18:23:41 -0400
+Date: Wed, 12 Jul 2017 15:23:31 -0700
+From: Ram Pai <linuxram@us.ibm.com>
+Subject: Re: [RFC v5 11/38] mm: introduce an additional vma bit for powerpc
+ pkey
+Reply-To: Ram Pai <linuxram@us.ibm.com>
 References: <1499289735-14220-1-git-send-email-linuxram@us.ibm.com>
- <20170711145246.GA11917@dhcp22.suse.cz>
- <20170711193257.GB5525@ram.oc3035372033.ibm.com>
- <20170712072337.GB28912@dhcp22.suse.cz>
+ <1499289735-14220-12-git-send-email-linuxram@us.ibm.com>
+ <290636b0-aafd-9bcd-d309-4cff41ce923c@intel.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20170712072337.GB28912@dhcp22.suse.cz>
+In-Reply-To: <290636b0-aafd-9bcd-d309-4cff41ce923c@intel.com>
+Message-ID: <20170712222331.GD5525@ram.oc3035372033.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ram Pai <linuxram@us.ibm.com>
-Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
-Message-ID: <20170712073945.T7Ft5WI4lZ5q2XQGlockLzXnBW4Osfftmuq8pXuG3Mg@z>
+To: Dave Hansen <dave.hansen@intel.com>
+Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
+Message-ID: <20170712222331.GEhkcBuM6ga2rsSvFDwfyHwEeiBajkQ43mOPh0-wprc@z>
 
-On Wed 12-07-17 09:23:37, Michal Hocko wrote:
-> On Tue 11-07-17 12:32:57, Ram Pai wrote:
-[...]
-> > Ideally the MMU looks at the PTE for keys, in order to enforce
-> > protection. This is the case with x86 and is the case with power9 Radix
-> > page table. Hence the keys have to be programmed into the PTE.
+On Tue, Jul 11, 2017 at 11:10:46AM -0700, Dave Hansen wrote:
+> On 07/05/2017 02:21 PM, Ram Pai wrote:
+> > Currently there are only 4bits in the vma flags to support 16 keys
+> > on x86.  powerpc supports 32 keys, which needs 5bits. This patch
+> > introduces an addition bit in the vma flags.
+> > 
+> > Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+> > ---
+> >  fs/proc/task_mmu.c |    6 +++++-
+> >  include/linux/mm.h |   18 +++++++++++++-----
+> >  2 files changed, 18 insertions(+), 6 deletions(-)
+> > 
+> > diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
+> > index f0c8b33..2ddc298 100644
+> > --- a/fs/proc/task_mmu.c
+> > +++ b/fs/proc/task_mmu.c
+> > @@ -666,12 +666,16 @@ static void show_smap_vma_flags(struct seq_file *m, struct vm_area_struct *vma)
+> >  		[ilog2(VM_MERGEABLE)]	= "mg",
+> >  		[ilog2(VM_UFFD_MISSING)]= "um",
+> >  		[ilog2(VM_UFFD_WP)]	= "uw",
+> > -#ifdef CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS
+> > +#ifdef CONFIG_ARCH_HAS_PKEYS
+> >  		/* These come out via ProtectionKey: */
+> >  		[ilog2(VM_PKEY_BIT0)]	= "",
+> >  		[ilog2(VM_PKEY_BIT1)]	= "",
+> >  		[ilog2(VM_PKEY_BIT2)]	= "",
+> >  		[ilog2(VM_PKEY_BIT3)]	= "",
+> > +#endif /* CONFIG_ARCH_HAS_PKEYS */
+> > +#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
+> > +		/* Additional bit in ProtectionKey: */
+> > +		[ilog2(VM_PKEY_BIT4)]	= "",
+> >  #endif
 > 
-> But x86 doesn't update ptes for PKEYs, that would be just too expensive.
-> You could use standard mprotect to do the same...
+> I'd probably just leave the #ifdef out and eat the byte or whatever of
+> storage that this costs us on x86.
 
-OK, this seems to be a misunderstanding and confusion on my end.
-do_mprotect_pkey does mprotect_fixup even for the pkey path which is
-quite surprising to me. I guess my misunderstanding comes from
-Documentation/x86/protection-keys.txt
-"
-Memory Protection Keys provides a mechanism for enforcing page-based
-protections, but without requiring modification of the page tables
-when an application changes protection domains.  It works by
-dedicating 4 previously ignored bits in each page table entry to a
-"protection key", giving 16 possible keys.
-"
+fine with me.
 
-So please disregard my previous comments about page tables and sorry
-about the confusion.
--- 
-Michal Hocko
-SUSE Labs
+> 
+> >  	};
+> >  	size_t i;
+> > diff --git a/include/linux/mm.h b/include/linux/mm.h
+> > index 7cb17c6..3d35bcc 100644
+> > --- a/include/linux/mm.h
+> > +++ b/include/linux/mm.h
+> > @@ -208,21 +208,29 @@ extern int overcommit_kbytes_handler(struct ctl_table *, int, void __user *,
+> >  #define VM_HIGH_ARCH_BIT_1	33	/* bit only usable on 64-bit architectures */
+> >  #define VM_HIGH_ARCH_BIT_2	34	/* bit only usable on 64-bit architectures */
+> >  #define VM_HIGH_ARCH_BIT_3	35	/* bit only usable on 64-bit architectures */
+> > +#define VM_HIGH_ARCH_BIT_4	36	/* bit only usable on 64-bit arch */
+> 
+> Please just copy the above lines.
+
+Just copying over makes checkpatch.pl unhappy. It exceeds 80 columns.
+
+> 
+> >  #define VM_HIGH_ARCH_0	BIT(VM_HIGH_ARCH_BIT_0)
+> >  #define VM_HIGH_ARCH_1	BIT(VM_HIGH_ARCH_BIT_1)
+> >  #define VM_HIGH_ARCH_2	BIT(VM_HIGH_ARCH_BIT_2)
+> >  #define VM_HIGH_ARCH_3	BIT(VM_HIGH_ARCH_BIT_3)
+> > +#define VM_HIGH_ARCH_4	BIT(VM_HIGH_ARCH_BIT_4)
+> >  #endif /* CONFIG_ARCH_USES_HIGH_VMA_FLAGS */
+> >  
+> > -#if defined(CONFIG_X86)
+> > -# define VM_PAT		VM_ARCH_1	/* PAT reserves whole VMA at once (x86) */
+> > -#if defined (CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS)
+> > +#ifdef CONFIG_ARCH_HAS_PKEYS
+> >  # define VM_PKEY_SHIFT	VM_HIGH_ARCH_BIT_0
+> > -# define VM_PKEY_BIT0	VM_HIGH_ARCH_0	/* A protection key is a 4-bit value */
+> > +# define VM_PKEY_BIT0	VM_HIGH_ARCH_0
+> >  # define VM_PKEY_BIT1	VM_HIGH_ARCH_1
+> >  # define VM_PKEY_BIT2	VM_HIGH_ARCH_2
+> >  # define VM_PKEY_BIT3	VM_HIGH_ARCH_3
+> > -#endif
+> > +#endif /* CONFIG_ARCH_HAS_PKEYS */
+> 
+> We have the space here, so can we just say that it's 4-bits on x86 and 5
+> on ppc?
+
+sure.
+
+> 
+> > +#if defined(CONFIG_PPC64_MEMORY_PROTECTION_KEYS)
+> > +# define VM_PKEY_BIT4	VM_HIGH_ARCH_4 /* additional key bit used on ppc64 */
+> > +#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
+> 
+> Why bother #ifdef'ing a #define?
+
+ok. 
+
+RP
