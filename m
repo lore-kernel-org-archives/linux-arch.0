@@ -1,116 +1,146 @@
-From: Ram Pai <linuxram@us.ibm.com>
-Subject: Re: [RFC v5 11/38] mm: introduce an additional vma bit for powerpc
- pkey
-Date: Wed, 12 Jul 2017 15:23:31 -0700
-Message-ID: <20170712222331.GD5525@ram.oc3035372033.ibm.com>
-References: <1499289735-14220-1-git-send-email-linuxram@us.ibm.com>
- <1499289735-14220-12-git-send-email-linuxram@us.ibm.com>
- <290636b0-aafd-9bcd-d309-4cff41ce923c@intel.com>
-Reply-To: Ram Pai <linuxram@us.ibm.com>
+From: Andrei Vagin <avagin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>
+Subject: Re: [PATCH 8/8] signal: Remove kernel interal si_code magic
+Date: Wed, 12 Jul 2017 15:36:04 -0700
+Message-ID: <20170712223557.GA21885@outlook.office365.com>
+References: <87efu22set.fsf@xmission.com>
+	<20170630123906.8865-8-ebiederm@xmission.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <containers-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
 Content-Disposition: inline
-In-Reply-To: <290636b0-aafd-9bcd-d309-4cff41ce923c@intel.com>
-Sender: owner-linux-mm@kvack.org
-To: Dave Hansen <dave.hansen@intel.com>
-Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
+In-Reply-To: <20170630123906.8865-8-ebiederm-aS9lmoZGLiVWk0Htik3J/w@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/containers>,
+	<mailto:containers-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/containers/>
+List-Post: <mailto:containers-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:containers-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/containers>,
+	<mailto:containers-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: containers-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: containers-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: "Eric W. Biederman" <ebiederm-aS9lmoZGLiVWk0Htik3J/w@public.gmane.org>
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Andrey Vagin <avagin-GEFAQzZX7r8dnm+yROfE0A@public.gmane.org>, Greg KH <greg-U8xfFu+wG4EAvxtiuMwx3w@public.gmane.org>, Linux Containers <containers-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>, Oleg Nesterov <oleg-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Al Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Cyrill Gorcunov <gorcunov-GEFAQzZX7r8dnm+yROfE0A@public.gmane.org>, Michael Kerrisk <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Pavel Emelyanov <xemul-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Willy Tarreau <w@1wt.eu>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jul 11, 2017 at 11:10:46AM -0700, Dave Hansen wrote:
-> On 07/05/2017 02:21 PM, Ram Pai wrote:
-> > Currently there are only 4bits in the vma flags to support 16 keys
-> > on x86.  powerpc supports 32 keys, which needs 5bits. This patch
-> > introduces an addition bit in the vma flags.
-> > 
-> > Signed-off-by: Ram Pai <linuxram@us.ibm.com>
-> > ---
-> >  fs/proc/task_mmu.c |    6 +++++-
-> >  include/linux/mm.h |   18 +++++++++++++-----
-> >  2 files changed, 18 insertions(+), 6 deletions(-)
-> > 
-> > diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
-> > index f0c8b33..2ddc298 100644
-> > --- a/fs/proc/task_mmu.c
-> > +++ b/fs/proc/task_mmu.c
-> > @@ -666,12 +666,16 @@ static void show_smap_vma_flags(struct seq_file *m, struct vm_area_struct *vma)
-> >  		[ilog2(VM_MERGEABLE)]	= "mg",
-> >  		[ilog2(VM_UFFD_MISSING)]= "um",
-> >  		[ilog2(VM_UFFD_WP)]	= "uw",
-> > -#ifdef CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS
-> > +#ifdef CONFIG_ARCH_HAS_PKEYS
-> >  		/* These come out via ProtectionKey: */
-> >  		[ilog2(VM_PKEY_BIT0)]	= "",
-> >  		[ilog2(VM_PKEY_BIT1)]	= "",
-> >  		[ilog2(VM_PKEY_BIT2)]	= "",
-> >  		[ilog2(VM_PKEY_BIT3)]	= "",
-> > +#endif /* CONFIG_ARCH_HAS_PKEYS */
-> > +#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
-> > +		/* Additional bit in ProtectionKey: */
-> > +		[ilog2(VM_PKEY_BIT4)]	= "",
-> >  #endif
+On Fri, Jun 30, 2017 at 07:39:06AM -0500, Eric W. Biederman wrote:
+> struct siginfo is a union and the kernel since 2.4 has been hiding a union
+> tag in the high 16bits of si_code using the values:
+> __SI_KILL
+> __SI_TIMER
+> __SI_POLL
+> __SI_FAULT
+> __SI_CHLD
+> __SI_RT
+> __SI_MESGQ
+> __SI_SYS
 > 
-> I'd probably just leave the #ifdef out and eat the byte or whatever of
-> storage that this costs us on x86.
-
-fine with me.
-
+> While this looks plausible on the surface, in practice this situation has
+> not worked well.
 > 
-> >  	};
-> >  	size_t i;
-> > diff --git a/include/linux/mm.h b/include/linux/mm.h
-> > index 7cb17c6..3d35bcc 100644
-> > --- a/include/linux/mm.h
-> > +++ b/include/linux/mm.h
-> > @@ -208,21 +208,29 @@ extern int overcommit_kbytes_handler(struct ctl_table *, int, void __user *,
-> >  #define VM_HIGH_ARCH_BIT_1	33	/* bit only usable on 64-bit architectures */
-> >  #define VM_HIGH_ARCH_BIT_2	34	/* bit only usable on 64-bit architectures */
-> >  #define VM_HIGH_ARCH_BIT_3	35	/* bit only usable on 64-bit architectures */
-> > +#define VM_HIGH_ARCH_BIT_4	36	/* bit only usable on 64-bit arch */
+> - Injected positive signals are not copied to user space properly
+>   unless they have these magic high bits set.
 > 
-> Please just copy the above lines.
-
-Just copying over makes checkpatch.pl unhappy. It exceeds 80 columns.
-
+> - Injected positive signals are not reported properly by signalfd
+>   unless they have these magic high bits set.
 > 
-> >  #define VM_HIGH_ARCH_0	BIT(VM_HIGH_ARCH_BIT_0)
-> >  #define VM_HIGH_ARCH_1	BIT(VM_HIGH_ARCH_BIT_1)
-> >  #define VM_HIGH_ARCH_2	BIT(VM_HIGH_ARCH_BIT_2)
-> >  #define VM_HIGH_ARCH_3	BIT(VM_HIGH_ARCH_BIT_3)
-> > +#define VM_HIGH_ARCH_4	BIT(VM_HIGH_ARCH_BIT_4)
-> >  #endif /* CONFIG_ARCH_USES_HIGH_VMA_FLAGS */
-> >  
-> > -#if defined(CONFIG_X86)
-> > -# define VM_PAT		VM_ARCH_1	/* PAT reserves whole VMA at once (x86) */
-> > -#if defined (CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS)
-> > +#ifdef CONFIG_ARCH_HAS_PKEYS
-> >  # define VM_PKEY_SHIFT	VM_HIGH_ARCH_BIT_0
-> > -# define VM_PKEY_BIT0	VM_HIGH_ARCH_0	/* A protection key is a 4-bit value */
-> > +# define VM_PKEY_BIT0	VM_HIGH_ARCH_0
-> >  # define VM_PKEY_BIT1	VM_HIGH_ARCH_1
-> >  # define VM_PKEY_BIT2	VM_HIGH_ARCH_2
-> >  # define VM_PKEY_BIT3	VM_HIGH_ARCH_3
-> > -#endif
-> > +#endif /* CONFIG_ARCH_HAS_PKEYS */
+> - These kernel internal values leaked to userspace via ptrace_peek_siginfo
 > 
-> We have the space here, so can we just say that it's 4-bits on x86 and 5
-> on ppc?
-
-sure.
-
+> - It was possible to inject these kernel internal values and cause the
+>   the kernel to misbehave.
 > 
-> > +#if defined(CONFIG_PPC64_MEMORY_PROTECTION_KEYS)
-> > +# define VM_PKEY_BIT4	VM_HIGH_ARCH_4 /* additional key bit used on ppc64 */
-> > +#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
+> - Kernel developers got confused and expected these kernel internal values
+>   in userspace in kernel self tests.
 > 
-> Why bother #ifdef'ing a #define?
+> - Kernel developers got confused and set si_code to __SI_FAULT which
+>   is SI_USER in userspace which causes userspace to think an ordinary user
+>   sent the signal and that it was not kernel generated.
+> 
+> - The values make it impossible to reorganize the code to transform
+>   siginfo_copy_to_user into a plain copy_to_user.  As si_code must
+>   be massaged before being passed to userspace.
+> 
+> So remove these kernel internal si codes and make the kernel code simpler
+> and more maintainable.
+> 
+> To replace these kernel internal magic si_codes introduce the helper
+> function siginfo_layout, that takes a signal number and an si_code and
+> computes which union member of siginfo is being used.  Have
+> siginfo_layout return an enumeration so that gcc will have enough
+> information to warn if a switch statement does not handle all of union
+> members.
+> 
+> A couple of architectures have a messed up ABI that defines signal
+> specific duplications of SI_USER which causes more special cases in
+> siginfo_layout than I would like.  The good news is only problem
+> architectures pay the cost.
+> 
+> Update all of the code that used the previous magic __SI_ values to
+> use the new SIL_ values and to call siginfo_layout to get those
+> values.  Escept where not all of the cases are handled remove the
+> defaults in the switch statements so that if a new case is missed in
+> the future the lack will show up at compile time.
+> 
+> Modify the code that copies siginfo si_code to userspace to just copy
+> the value and not cast si_code to a short first.  The high bits are no
+> longer used to hold a magic union member.
+> 
+> Fixup the siginfo header files to stop including the __SI_ values in
+> their constants and for the headers that were missing it to properly
+> update the number of si_codes for each signal type.
+> 
+> The fixes to copy_siginfo_from_user32 implementations has the
+> interesting property that several of them perviously should never have
+> worked as the __SI_ values they depended up where kernel internal.
+> With that dependency gone those implementations should work much
+> better.
+> 
+> The idea of not passing the __SI_ values out to userspace and then
+> not reinserting them has been tested with criu and criu worked without
+> changes.
+> 
+> Signed-off-by: "Eric W. Biederman" <ebiederm-aS9lmoZGLiVWk0Htik3J/w@public.gmane.org>
+> ---
+>  arch/alpha/include/uapi/asm/siginfo.h    |   2 +-
+>  arch/arm64/kernel/signal32.c             |  23 +++----
+>  arch/blackfin/include/uapi/asm/siginfo.h |  30 +++++----
+>  arch/frv/include/uapi/asm/siginfo.h      |   2 +-
+>  arch/ia64/include/uapi/asm/siginfo.h     |  20 +++---
+>  arch/ia64/kernel/signal.c                |  17 +++---
+>  arch/mips/include/uapi/asm/siginfo.h     |   6 +-
+>  arch/mips/kernel/signal32.c              |  19 +++---
+>  arch/parisc/kernel/signal32.c            |  31 +++++-----
+>  arch/powerpc/kernel/signal_32.c          |  20 +++---
+>  arch/s390/kernel/compat_signal.c         |  32 +++++-----
+>  arch/sparc/include/uapi/asm/siginfo.h    |   4 +-
+>  arch/sparc/kernel/signal32.c             |  16 ++---
+>  arch/tile/include/uapi/asm/siginfo.h     |   4 +-
+>  arch/tile/kernel/compat_signal.c         |  18 +++---
+>  arch/tile/kernel/traps.c                 |   1 -
+>  arch/x86/kernel/signal_compat.c          |  21 +++----
+>  fs/fcntl.c                               |   2 +-
+>  fs/signalfd.c                            |  22 +++----
+>  include/asm-generic/siginfo.h            |  22 ++++---
+>  include/uapi/asm-generic/siginfo.h       | 102 ++++++++++++++-----------------
+>  kernel/compat.c                          |   2 -
+>  kernel/exit.c                            |   6 +-
+>  kernel/ptrace.c                          |   6 +-
+>  kernel/signal.c                          |  72 ++++++++++++++++------
+>  25 files changed, 254 insertions(+), 246 deletions(-)
+> 
+<...>
+> diff --git a/arch/tile/kernel/traps.c b/arch/tile/kernel/traps.c
+> index 54804866f238..4433d1dc28e6 100644
+> --- a/arch/tile/kernel/traps.c
+> +++ b/arch/tile/kernel/traps.c
+> @@ -188,7 +188,6 @@ static int special_ill(tile_bundle_bits bundle, int *sigp, int *codep)
+>  
+>  	/* Make it the requested signal. */
+>  	*sigp = sig;
+> -	*codep = code | __SI_FAULT;
 
-ok. 
+Are you sure that we don't need to set codep here?
 
-RP
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+>  	return 1;
+>  }
+>  
