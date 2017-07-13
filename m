@@ -1,111 +1,105 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:40828 "EHLO gate.crashing.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752434AbdGLWyh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 12 Jul 2017 18:54:37 -0400
-Message-ID: <1499900032.2865.46.camel@kernel.crashing.org>
-Subject: Re: [RFC v5 00/38] powerpc: Memory Protection Keys
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Date: Thu, 13 Jul 2017 08:53:52 +1000
-In-Reply-To: <20170712072337.GB28912@dhcp22.suse.cz>
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:37249 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1750877AbdGMHzT (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 13 Jul 2017 03:55:19 -0400
+Received: from pps.filterd (m0098394.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id v6D7rbkv036586
+        for <linux-arch@vger.kernel.org>; Thu, 13 Jul 2017 03:55:18 -0400
+Received: from e35.co.us.ibm.com (e35.co.us.ibm.com [32.97.110.153])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2bnt3r4mct-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Thu, 13 Jul 2017 03:55:18 -0400
+Received: from localhost
+        by e35.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <linuxram@us.ibm.com>;
+        Thu, 13 Jul 2017 01:55:17 -0600
+Date: Thu, 13 Jul 2017 00:55:02 -0700
+From: Ram Pai <linuxram@us.ibm.com>
+Subject: Re: [RFC v5 15/38] powerpc: helper function to read,write
+ AMR,IAMR,UAMOR registers
+Reply-To: Ram Pai <linuxram@us.ibm.com>
 References: <1499289735-14220-1-git-send-email-linuxram@us.ibm.com>
-         <20170711145246.GA11917@dhcp22.suse.cz>
-         <20170711193257.GB5525@ram.oc3035372033.ibm.com>
-         <20170712072337.GB28912@dhcp22.suse.cz>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+ <1499289735-14220-16-git-send-email-linuxram@us.ibm.com>
+ <20170712152601.3b2f52ed@firefly.ozlabs.ibm.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20170712152601.3b2f52ed@firefly.ozlabs.ibm.com>
+Message-ID: <20170713075502.GG5525@ram.oc3035372033.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Hocko <mhocko@kernel.org>, Ram Pai <linuxram@us.ibm.com>
-Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
-Message-ID: <20170712225352.R_4aEX89jRi8p4CuD_Ry9cj3lTBiizbRSzqpQcDalZA@z>
+To: Balbir Singh <bsingharora@gmail.com>
+Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, dave.hansen@intel.com, hbabu@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
+Message-ID: <20170713075502.yUk_rcK9KNgS3DLAsU882wH7vhYYpYX13I0z5-LQiQ4@z>
 
-On Wed, 2017-07-12 at 09:23 +0200, Michal Hocko wrote:
+On Wed, Jul 12, 2017 at 03:26:01PM +1000, Balbir Singh wrote:
+> On Wed,  5 Jul 2017 14:21:52 -0700
+> Ram Pai <linuxram@us.ibm.com> wrote:
 > 
+> > Implements helper functions to read and write the key related
+> > registers; AMR, IAMR, UAMOR.
 > > 
-> > Ideally the MMU looks at the PTE for keys, in order to enforce
-> > protection. This is the case with x86 and is the case with power9 Radix
-> > page table. Hence the keys have to be programmed into the PTE.
+> > AMR register tracks the read,write permission of a key
+> > IAMR register tracks the execute permission of a key
+> > UAMOR register enables and disables a key
+> > 
+> > Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+> > ---
+> >  arch/powerpc/include/asm/book3s/64/pgtable.h |   60 ++++++++++++++++++++++++++
+> >  1 files changed, 60 insertions(+), 0 deletions(-)
+> > 
+> > diff --git a/arch/powerpc/include/asm/book3s/64/pgtable.h b/arch/powerpc/include/asm/book3s/64/pgtable.h
+> > index 85bc987..435d6a7 100644
+> > --- a/arch/powerpc/include/asm/book3s/64/pgtable.h
+> > +++ b/arch/powerpc/include/asm/book3s/64/pgtable.h
+> > @@ -428,6 +428,66 @@ static inline void huge_ptep_set_wrprotect(struct mm_struct *mm,
+> >  		pte_update(mm, addr, ptep, 0, _PAGE_PRIVILEGED, 1);
+> >  }
+> >  
+> > +#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
+> > +
+> > +#include <asm/reg.h>
+> > +static inline u64 read_amr(void)
+> > +{
+> > +	return mfspr(SPRN_AMR);
+> > +}
+> > +static inline void write_amr(u64 value)
+> > +{
+> > +	mtspr(SPRN_AMR, value);
+> > +}
+> > +static inline u64 read_iamr(void)
+> > +{
+> > +	return mfspr(SPRN_IAMR);
+> > +}
+> > +static inline void write_iamr(u64 value)
+> > +{
+> > +	mtspr(SPRN_IAMR, value);
+> > +}
+> > +static inline u64 read_uamor(void)
+> > +{
+> > +	return mfspr(SPRN_UAMOR);
+> > +}
+> > +static inline void write_uamor(u64 value)
+> > +{
+> > +	mtspr(SPRN_UAMOR, value);
+> > +}
+> > +
+> > +#else /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
+> > +
+> > +static inline u64 read_amr(void)
+> > +{
+> > +	WARN(1, "%s called with MEMORY PROTECTION KEYS disabled\n", __func__);
+> > +	return -1;
+> > +}
 > 
-> But x86 doesn't update ptes for PKEYs, that would be just too expensive.
-> You could use standard mprotect to do the same...
+> Why do we need to have a version here if we are going to WARN(), why not
+> let the compilation fail if called from outside of CONFIG_PPC64_MEMORY_PROTECTION_KEYS?
+> Is that the intention?
 
-What do you mean ? x86 ends up in mprotect_fixup -> change_protection()
-which will update the PTEs just the same as we do.
+I did not want to stop someone; kernel module for example, from calling
+these interfaces from outside the pkey domain.
 
-Changing the key for a page is a form mprotect. Changing the access
-permissions for keys is different, for us it's a special register
-(AMR).
-
-I don't understand why you think we are doing any differently than x86
-here.
-
-> > However with HPT on power, these keys do not necessarily have to be
-> > programmed into the PTE. We could bypass the Linux Page Table Entry(PTE)
-> > and instead just program them into the Hash Page Table(HPTE), since
-> > the MMU does not refer the PTE but refers the HPTE. The last version
-> > of the page attempted to do that.   It worked as follows:
-> > 
-> > a) when a address range is requested to be associated with a key; by the
-> >    application through key_mprotect() system call, the kernel
-> >    stores that key in the vmas corresponding to that address
-> >    range.
-> > 
-> > b) Whenever there is a hash page fault for that address, the fault
-> >    handler reads the key from the VMA and programs the key into the
-> >    HPTE. __hash_page() is the function that does that.
-> 
-> What causes the fault here?
-
-The hardware. With the hash MMU, the HW walks a hash table which is
-effectively a large in-memory TLB extension. When a page isn't found
-there, a  "hash fault" is generated allowing Linux to populate that
-hash table with the content of the corresponding PTE. 
-
-> > c) Once the hpte is programmed, the MMU can sense key violations and
-> >    generate key-faults.
-> > 
-> > The problem is with step (b).  This step is really a very critical
-> > path which is performance sensitive. We dont want to add any delays.
-> > However if we want to access the key from the vma, we will have to
-> > hold the vma semaphore, and that is a big NO-NO. As a result, this
-> > design had to be dropped.
-> > 
-> > 
-> > 
-> > I reverted back to the old design i.e the design in v4 version. In this
-> > version we do the following:
-> > 
-> > a) when a address range is requested to be associated with a key; by the
-> >    application through key_mprotect() system call, the kernel
-> >    stores that key in the vmas corresponding to that address
-> >    range. Also the kernel programs the key into Linux PTE coresponding to all the
-> >    pages associated with the address range.
-> 
-> OK, so how is this any different from the regular mprotect then?
-
-It takes the key argument. This is nothing new. This was done for x86
-already, we are just re-using the infrastructure. Look at
-do_mprotect_pkey() in mm/mprotect.c today. It's all the same code,
-pkey_mprotect() is just mprotect with an added key argument.
-
-> > b) Whenever there is a hash page fault for that address, the fault
-> >    handler reads the key from the Linux PTE and programs the key into 
-> >    the HPTE.
-> > 
-> > c) Once the HPTE is programmed, the MMU can sense key violations and
-> >    generate key-faults.
-> > 
-> > 
-> > Since step (b) in this case has easy access to the Linux PTE, and hence
-> > to the key, it is fast to access it and program the HPTE. Thus we avoid
-> > taking any performance hit on this critical path.
-> > 
-> > Hope this explains the rationale,
-> > 
-> > 
-> > As promised here is the high level design:
-> 
-> I will read through that later
-> [...]
+Either way can be argued to be correct, I suppose.
+RP
