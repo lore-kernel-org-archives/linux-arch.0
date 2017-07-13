@@ -1,71 +1,72 @@
-From: Andrey Ryabinin <aryabinin@virtuozzo.com>
-Subject: Re: KASAN vs. boot-time switching between 4- and 5-level paging
-Date: Thu, 13 Jul 2017 17:19:22 +0300
-Message-ID: <e201423e-5f4e-8bd6-144a-2374f7b7bb3f@virtuozzo.com>
-References: <CALCETrW6pWzpdf1MVx_ytaYYuVGBsF7R+JowEsKqd3i=vCwJ_w@mail.gmail.com>
- <20170711103548.mkv5w7dd5gpdenne@node.shutemov.name>
- <CALCETrVpNUq3-zEu1Q1O77N8r4kv4kFdefXp7XEs3Hpf-JPAjg@mail.gmail.com>
- <d3caf8c4-4575-c1b5-6b0f-95527efaf2f9@virtuozzo.com>
- <f11d9e07-6b31-1add-7677-6a29d15ab608@virtuozzo.com>
- <20170711170332.wlaudicepkg35dmm@node.shutemov.name>
- <e9a395f4-018e-4c8c-2098-170172e438f3@virtuozzo.com>
- <20170711190554.zxkpjeg2bt65wtir@black.fi.intel.com>
- <20939b37-efd8-2d32-0040-3682fff927c2@virtuozzo.com>
- <20170713135228.vhvpe7mqdcqzpslw@node.shutemov.name>
- <20170713141528.rwuz5n2p57omq6wi@node.shutemov.name>
+From: Ram Pai <linuxram@us.ibm.com>
+Subject: Re: [RFC v5 34/38] procfs: display the protection-key number
+ associated with a vma
+Date: Thu, 13 Jul 2017 10:04:11 -0700
+Message-ID: <20170713170411.GI5525@ram.oc3035372033.ibm.com>
+References: <1499289735-14220-1-git-send-email-linuxram@us.ibm.com>
+ <1499289735-14220-35-git-send-email-linuxram@us.ibm.com>
+ <8b0827c9-9fc9-c2d5-d1a5-52d9eef8965e@intel.com>
+ <20170713080348.GH5525@ram.oc3035372033.ibm.com>
+ <e3355a7a-8899-b69d-968a-6862c29633a2@intel.com>
+Reply-To: Ram Pai <linuxram@us.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20170713141528.rwuz5n2p57omq6wi@node.shutemov.name>
-Content-Language: en-US
-Sender: owner-linux-mm@kvack.org
-To: "Kirill A. Shutemov" <kirill@shutemov.name>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Dmitry Vyukov <dvyukov@google.com>, Alexander Potapenko <glider@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, "x86@kernel.org" <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-doc-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <e3355a7a-8899-b69d-968a-6862c29633a2@intel.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: Dave Hansen <dave.hansen@intel.com>
+Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com
 List-Id: linux-arch.vger.kernel.org
 
-
-
-On 07/13/2017 05:15 PM, Kirill A. Shutemov wrote:
-
->>
->> Hm. I don't see this:
->>
->> ...
->> [    0.247532] 0xff9e938000000000-0xff9f000000000000      111104G                               p4d
->> [    0.247733] 0xff9f000000000000-0xffff000000000000          24P                               pgd
->> [    0.248066] 0xffff000000000000-0xffffff0000000000         255T                               p4d
->> [    0.248290] ---[ ESPfix Area ]---
->> [    0.248393] 0xffffff0000000000-0xffffff8000000000         512G                               p4d
->> [    0.248663] 0xffffff8000000000-0xffffffef00000000         444G                               pud
->> [    0.248892] ---[ EFI Runtime Services ]---
->> [    0.248996] 0xffffffef00000000-0xfffffffec0000000          63G                               pud
->> [    0.249308] 0xfffffffec0000000-0xfffffffefe400000         996M                               pmd
->> ...
->>
->> Do you have commit "x86/dump_pagetables: Generalize address normalization"
->> in your tree?
->>
-
-Nope. Applied now, it helped.
-
->> https://git.kernel.org/pub/scm/linux/kernel/git/kas/linux.git/commit/?h=la57/boot-switching/v2&id=13327fec85ffe95d9c8a3f57ba174bf5d5c1fb01
->>
->>> As for KASAN, I think it would be better just to make it work faster,
->>> the patch below demonstrates the idea.
->>
->> Okay, let me test this.
+On Thu, Jul 13, 2017 at 07:07:48AM -0700, Dave Hansen wrote:
+> On 07/13/2017 01:03 AM, Ram Pai wrote:
+> > On Tue, Jul 11, 2017 at 11:13:56AM -0700, Dave Hansen wrote:
+> >> On 07/05/2017 02:22 PM, Ram Pai wrote:
+> >>> +#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
+> >>> +void arch_show_smap(struct seq_file *m, struct vm_area_struct *vma)
+> >>> +{
+> >>> +	seq_printf(m, "ProtectionKey:  %8u\n", vma_pkey(vma));
+> >>> +}
+> >>> +#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
+> >>
+> >> This seems like kinda silly unnecessary duplication.  Could we just put
+> >> this in the fs/proc/ code and #ifdef it on ARCH_HAS_PKEYS?
+> > 
+> > Well x86 predicates it based on availability of X86_FEATURE_OSPKE.
+> > 
+> > powerpc doesn't need that check or any similar check. So trying to
+> > generalize the code does not save much IMHO.
 > 
-> The patch works for me.
-> 
-> The problem is not exclusive to 5-level paging, so could you prepare and
-> push proper patch upstream?
-> 
+> I know all your hardware doesn't support it. :)
 
-Sure, will do
+Wow! you bring a good point which I had not considered yet. I need some
+runtime checks for RPT.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+But regardless, my above statement is still partially true. x86
+predicates it based on availability of X86_FEATURE_OSPKE, and powerpc
+should predicate it based on HPT. So we have our own
+customized checks. Hence a unified function won't suffice.
+
+> 
+> So, for instance, if you are running on a new POWER9 with radix page
+> tables, you will just always output "ProtectionKey: 0" in every VMA,
+> regardless?
+> 
+> > maybe have a seperate inline function that does
+> > seq_printf(m, "ProtectionKey:  %8u\n", vma_pkey(vma));
+> > and is called from x86 and powerpc's arch_show_smap()?
+> > At least will keep the string format captured in 
+> > one single place.
+> 
+> Now that we have two architectures, is there a strong reason we can't
+> just have an arch_pkeys_enabled(), and stick the seq_printf() back in
+> generic code?
+
+correct. that looks like the correct approach. Was trying to avoid
+touching arch neutral code. But this approach will force me
+do so. Will do.
+
+-- 
+Ram Pai
+
