@@ -1,14 +1,10 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f67.google.com ([74.125.82.67]:32990 "EHLO
-        mail-wm0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752129AbdGMOPb (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 13 Jul 2017 10:15:31 -0400
-Received: by mail-wm0-f67.google.com with SMTP id j85so5381637wmj.0
-        for <linux-arch@vger.kernel.org>; Thu, 13 Jul 2017 07:15:31 -0700 (PDT)
-Date: Thu, 13 Jul 2017 17:15:28 +0300
-From: "Kirill A. Shutemov" <kirill@shutemov.name>
+Received: from mail-he1eur01on0102.outbound.protection.outlook.com ([104.47.0.102]:16873
+        "EHLO EUR01-HE1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1751981AbdGMOR2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 13 Jul 2017 10:17:28 -0400
 Subject: Re: KASAN vs. boot-time switching between 4- and 5-level paging
-Message-ID: <20170713141528.rwuz5n2p57omq6wi@node.shutemov.name>
 References: <CALCETrW6pWzpdf1MVx_ytaYYuVGBsF7R+JowEsKqd3i=vCwJ_w@mail.gmail.com>
  <20170711103548.mkv5w7dd5gpdenne@node.shutemov.name>
  <CALCETrVpNUq3-zEu1Q1O77N8r4kv4kFdefXp7XEs3Hpf-JPAjg@mail.gmail.com>
@@ -19,93 +15,57 @@ References: <CALCETrW6pWzpdf1MVx_ytaYYuVGBsF7R+JowEsKqd3i=vCwJ_w@mail.gmail.com>
  <20170711190554.zxkpjeg2bt65wtir@black.fi.intel.com>
  <20939b37-efd8-2d32-0040-3682fff927c2@virtuozzo.com>
  <20170713135228.vhvpe7mqdcqzpslw@node.shutemov.name>
+ <20170713141528.rwuz5n2p57omq6wi@node.shutemov.name>
+From: Andrey Ryabinin <aryabinin@virtuozzo.com>
+Message-ID: <e201423e-5f4e-8bd6-144a-2374f7b7bb3f@virtuozzo.com>
+Date: Thu, 13 Jul 2017 17:19:22 +0300
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20170713135228.vhvpe7mqdcqzpslw@node.shutemov.name>
+In-Reply-To: <20170713141528.rwuz5n2p57omq6wi@node.shutemov.name>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrey Ryabinin <aryabinin@virtuozzo.com>
+To: "Kirill A. Shutemov" <kirill@shutemov.name>
 Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Dmitry Vyukov <dvyukov@google.com>, Alexander Potapenko <glider@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, "x86@kernel.org" <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>
-Message-ID: <20170713141528.0qSm3suCFpTnRnF5k911anANFT7i0k__L7GjKVj8ofM@z>
+Message-ID: <20170713141922.xr163nnW-LRBJxOfRFcEvpDAJyl9aTfwYfhBKhL_hbQ@z>
 
-On Thu, Jul 13, 2017 at 04:52:28PM +0300, Kirill A. Shutemov wrote:
-> On Thu, Jul 13, 2017 at 03:58:29PM +0300, Andrey Ryabinin wrote:
-> > On 07/11/2017 10:05 PM, Kirill A. Shutemov wrote:
-> > >>> Can use your Signed-off-by for a [cleaned up version of your] patch?
-> > >>
-> > >> Sure.
-> > > 
-> > > Another KASAN-releated issue: dumping page tables for KASAN shadow memory
-> > > region takes unreasonable time due to kasan_zero_p?? mapped there.
-> > > 
-> > > The patch below helps. Any objections?
-> > > 
-> > 
-> > Well, page tables dump doesn't work at all on 5-level paging.
-> > E.g. I've got this nonsense: 
-> > 
-> > ....
-> > ---[ Kernel Space ]---
-> > 0xffff800000000000-0xffff808000000000         512G                               pud
-> > ---[ Low Kernel Mapping ]---
-> > 0xffff808000000000-0xffff810000000000         512G                               pud
-> > ---[ vmalloc() Area ]---
-> > 0xffff810000000000-0xffff818000000000         512G                               pud
-> > ---[ Vmemmap ]---
-> > 0xffff818000000000-0xffffff0000000000      128512G                               pud
-> > ---[ ESPfix Area ]---
-> > 0xffffff0000000000-0x0000000000000000           1T                               pud
-> > 0x0000000000000000-0x0000000000000000           0E                               pgd
-> > 0x0000000000000000-0x0000000000001000           4K     RW     PCD         GLB NX pte
-> > 0x0000000000001000-0x0000000000002000           4K                               pte
-> > 0x0000000000002000-0x0000000000003000           4K     ro                 GLB NX pte
-> > 0x0000000000003000-0x0000000000004000           4K                               pte
-> > 0x0000000000004000-0x0000000000007000          12K     RW                 GLB NX pte
-> > 0x0000000000007000-0x0000000000008000           4K                               pte
-> > 0x0000000000008000-0x0000000000108000           1M     RW                 GLB NX pte
-> > 0x0000000000108000-0x0000000000109000           4K                               pte
-> > 0x0000000000109000-0x0000000000189000         512K     RW                 GLB NX pte
-> > 0x0000000000189000-0x000000000018a000           4K                               pte
-> > 0x000000000018a000-0x000000000018e000          16K     RW                 GLB NX pte
-> > 0x000000000018e000-0x000000000018f000           4K                               pte
-> > 0x000000000018f000-0x0000000000193000          16K     RW                 GLB NX pte
-> > 0x0000000000193000-0x0000000000194000           4K                               pte
-> > ... 304 entries skipped ... 
-> > ---[ EFI Runtime Services ]---
-> > 0xffffffef00000000-0xffffffff80000000          66G                               pud
-> > ---[ High Kernel Mapping ]---
-> > 0xffffffff80000000-0xffffffffc0000000           1G                               pud
-> > ...
-> 
-> Hm. I don't see this:
-> 
-> ...
-> [    0.247532] 0xff9e938000000000-0xff9f000000000000      111104G                               p4d
-> [    0.247733] 0xff9f000000000000-0xffff000000000000          24P                               pgd
-> [    0.248066] 0xffff000000000000-0xffffff0000000000         255T                               p4d
-> [    0.248290] ---[ ESPfix Area ]---
-> [    0.248393] 0xffffff0000000000-0xffffff8000000000         512G                               p4d
-> [    0.248663] 0xffffff8000000000-0xffffffef00000000         444G                               pud
-> [    0.248892] ---[ EFI Runtime Services ]---
-> [    0.248996] 0xffffffef00000000-0xfffffffec0000000          63G                               pud
-> [    0.249308] 0xfffffffec0000000-0xfffffffefe400000         996M                               pmd
-> ...
-> 
-> Do you have commit "x86/dump_pagetables: Generalize address normalization"
-> in your tree?
-> 
-> https://git.kernel.org/pub/scm/linux/kernel/git/kas/linux.git/commit/?h=la57/boot-switching/v2&id=13327fec85ffe95d9c8a3f57ba174bf5d5c1fb01
-> 
-> > As for KASAN, I think it would be better just to make it work faster,
-> > the patch below demonstrates the idea.
-> 
-> Okay, let me test this.
 
-The patch works for me.
 
-The problem is not exclusive to 5-level paging, so could you prepare and
-push proper patch upstream?
+On 07/13/2017 05:15 PM, Kirill A. Shutemov wrote:
 
--- 
- Kirill A. Shutemov
+>>
+>> Hm. I don't see this:
+>>
+>> ...
+>> [    0.247532] 0xff9e938000000000-0xff9f000000000000      111104G                               p4d
+>> [    0.247733] 0xff9f000000000000-0xffff000000000000          24P                               pgd
+>> [    0.248066] 0xffff000000000000-0xffffff0000000000         255T                               p4d
+>> [    0.248290] ---[ ESPfix Area ]---
+>> [    0.248393] 0xffffff0000000000-0xffffff8000000000         512G                               p4d
+>> [    0.248663] 0xffffff8000000000-0xffffffef00000000         444G                               pud
+>> [    0.248892] ---[ EFI Runtime Services ]---
+>> [    0.248996] 0xffffffef00000000-0xfffffffec0000000          63G                               pud
+>> [    0.249308] 0xfffffffec0000000-0xfffffffefe400000         996M                               pmd
+>> ...
+>>
+>> Do you have commit "x86/dump_pagetables: Generalize address normalization"
+>> in your tree?
+>>
+
+Nope. Applied now, it helped.
+
+>> https://git.kernel.org/pub/scm/linux/kernel/git/kas/linux.git/commit/?h=la57/boot-switching/v2&id=13327fec85ffe95d9c8a3f57ba174bf5d5c1fb01
+>>
+>>> As for KASAN, I think it would be better just to make it work faster,
+>>> the patch below demonstrates the idea.
+>>
+>> Okay, let me test this.
+> 
+> The patch works for me.
+> 
+> The problem is not exclusive to 5-level paging, so could you prepare and
+> push proper patch upstream?
+> 
+
+Sure, will do
