@@ -1,94 +1,169 @@
-From: Balbir Singh <bsingharora@gmail.com>
-Subject: Re: [RFC v5 15/38] powerpc: helper function to read,write
- AMR,IAMR,UAMOR registers
-Date: Thu, 13 Jul 2017 19:49:05 +1000
-Message-ID: <CAKTCnzmDd2K0gc=0gvNn7Q_QBPqmQdwppnpU-J9B1AMva7w8sA@mail.gmail.com>
-References: <1499289735-14220-1-git-send-email-linuxram@us.ibm.com>
- <1499289735-14220-16-git-send-email-linuxram@us.ibm.com> <20170712152601.3b2f52ed@firefly.ozlabs.ibm.com>
- <20170713075502.GG5525@ram.oc3035372033.ibm.com>
+From: Andrey Ryabinin <aryabinin@virtuozzo.com>
+Subject: Re: KASAN vs. boot-time switching between 4- and 5-level paging
+Date: Thu, 13 Jul 2017 15:58:29 +0300
+Message-ID: <20939b37-efd8-2d32-0040-3682fff927c2@virtuozzo.com>
+References: <20170710184704.realchrhzpblqqlk@node.shutemov.name>
+ <CALCETrVJQ_u-agPm8fFHAW1UJY=VLowdbM+gXyjFCb586r0V3g@mail.gmail.com>
+ <20170710212403.7ycczkhhki3vrgac@node.shutemov.name>
+ <CALCETrW6pWzpdf1MVx_ytaYYuVGBsF7R+JowEsKqd3i=vCwJ_w@mail.gmail.com>
+ <20170711103548.mkv5w7dd5gpdenne@node.shutemov.name>
+ <CALCETrVpNUq3-zEu1Q1O77N8r4kv4kFdefXp7XEs3Hpf-JPAjg@mail.gmail.com>
+ <d3caf8c4-4575-c1b5-6b0f-95527efaf2f9@virtuozzo.com>
+ <f11d9e07-6b31-1add-7677-6a29d15ab608@virtuozzo.com>
+ <20170711170332.wlaudicepkg35dmm@node.shutemov.name>
+ <e9a395f4-018e-4c8c-2098-170172e438f3@virtuozzo.com>
+ <20170711190554.zxkpjeg2bt65wtir@black.fi.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20170713075502.GG5525@ram.oc3035372033.ibm.com>
+In-Reply-To: <20170711190554.zxkpjeg2bt65wtir@black.fi.intel.com>
+Content-Language: en-US
 Sender: owner-linux-mm@kvack.org
-To: Ram Pai <linuxram@us.ibm.com>
-Cc: "open list:LINUX FOR POWERPC (32-BIT AND 64-BIT)" <linuxppc-dev@lists.ozlabs.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-kselftest@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Anshuman Khandual <khandual@linux.vnet.ibm.com>, Aneesh Kumar KV <aneesh.kumar@linux.vnet.ibm.com>, Dave Hansen <dave.hansen@intel.com>, Haren Myneni/Beaverton/IBM <hbabu@us.ibm.com>, Arnd Bergmann <arnd@arndb.de>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, Jonathan Corbet <corbet@lwn.net>, Ingo Molnar <mingo@redhat.com>
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: "Kirill A. Shutemov" <kirill@shutemov.name>, Andy Lutomirski <luto@kernel.org>, Dmitry Vyukov <dvyukov@google.com>, Alexander Potapenko <glider@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, "x86@kernel.org" <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jul 13, 2017 at 5:55 PM, Ram Pai <linuxram@us.ibm.com> wrote:
-> On Wed, Jul 12, 2017 at 03:26:01PM +1000, Balbir Singh wrote:
->> On Wed,  5 Jul 2017 14:21:52 -0700
->> Ram Pai <linuxram@us.ibm.com> wrote:
+On 07/11/2017 10:05 PM, Kirill A. Shutemov wrote:
+>>> Can use your Signed-off-by for a [cleaned up version of your] patch?
 >>
->> > Implements helper functions to read and write the key related
->> > registers; AMR, IAMR, UAMOR.
->> >
->> > AMR register tracks the read,write permission of a key
->> > IAMR register tracks the execute permission of a key
->> > UAMOR register enables and disables a key
->> >
->> > Signed-off-by: Ram Pai <linuxram@us.ibm.com>
->> > ---
->> >  arch/powerpc/include/asm/book3s/64/pgtable.h |   60 ++++++++++++++++++++++++++
->> >  1 files changed, 60 insertions(+), 0 deletions(-)
->> >
->> > diff --git a/arch/powerpc/include/asm/book3s/64/pgtable.h b/arch/powerpc/include/asm/book3s/64/pgtable.h
->> > index 85bc987..435d6a7 100644
->> > --- a/arch/powerpc/include/asm/book3s/64/pgtable.h
->> > +++ b/arch/powerpc/include/asm/book3s/64/pgtable.h
->> > @@ -428,6 +428,66 @@ static inline void huge_ptep_set_wrprotect(struct mm_struct *mm,
->> >             pte_update(mm, addr, ptep, 0, _PAGE_PRIVILEGED, 1);
->> >  }
->> >
->> > +#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
->> > +
->> > +#include <asm/reg.h>
->> > +static inline u64 read_amr(void)
->> > +{
->> > +   return mfspr(SPRN_AMR);
->> > +}
->> > +static inline void write_amr(u64 value)
->> > +{
->> > +   mtspr(SPRN_AMR, value);
->> > +}
->> > +static inline u64 read_iamr(void)
->> > +{
->> > +   return mfspr(SPRN_IAMR);
->> > +}
->> > +static inline void write_iamr(u64 value)
->> > +{
->> > +   mtspr(SPRN_IAMR, value);
->> > +}
->> > +static inline u64 read_uamor(void)
->> > +{
->> > +   return mfspr(SPRN_UAMOR);
->> > +}
->> > +static inline void write_uamor(u64 value)
->> > +{
->> > +   mtspr(SPRN_UAMOR, value);
->> > +}
->> > +
->> > +#else /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
->> > +
->> > +static inline u64 read_amr(void)
->> > +{
->> > +   WARN(1, "%s called with MEMORY PROTECTION KEYS disabled\n", __func__);
->> > +   return -1;
->> > +}
->>
->> Why do we need to have a version here if we are going to WARN(), why not
->> let the compilation fail if called from outside of CONFIG_PPC64_MEMORY_PROTECTION_KEYS?
->> Is that the intention?
->
-> I did not want to stop someone; kernel module for example, from calling
-> these interfaces from outside the pkey domain.
->
-> Either way can be argued to be correct, I suppose.
+>> Sure.
+> 
+> Another KASAN-releated issue: dumping page tables for KASAN shadow memory
+> region takes unreasonable time due to kasan_zero_p?? mapped there.
+> 
+> The patch below helps. Any objections?
+> 
 
-Nope, build failures are better than run time failures, otherwise the
-kernel will split its guts warning and warning here.
+Well, page tables dump doesn't work at all on 5-level paging.
+E.g. I've got this nonsense: 
 
-Balbir Singh.
+....
+---[ Kernel Space ]---
+0xffff800000000000-0xffff808000000000         512G                               pud
+---[ Low Kernel Mapping ]---
+0xffff808000000000-0xffff810000000000         512G                               pud
+---[ vmalloc() Area ]---
+0xffff810000000000-0xffff818000000000         512G                               pud
+---[ Vmemmap ]---
+0xffff818000000000-0xffffff0000000000      128512G                               pud
+---[ ESPfix Area ]---
+0xffffff0000000000-0x0000000000000000           1T                               pud
+0x0000000000000000-0x0000000000000000           0E                               pgd
+0x0000000000000000-0x0000000000001000           4K     RW     PCD         GLB NX pte
+0x0000000000001000-0x0000000000002000           4K                               pte
+0x0000000000002000-0x0000000000003000           4K     ro                 GLB NX pte
+0x0000000000003000-0x0000000000004000           4K                               pte
+0x0000000000004000-0x0000000000007000          12K     RW                 GLB NX pte
+0x0000000000007000-0x0000000000008000           4K                               pte
+0x0000000000008000-0x0000000000108000           1M     RW                 GLB NX pte
+0x0000000000108000-0x0000000000109000           4K                               pte
+0x0000000000109000-0x0000000000189000         512K     RW                 GLB NX pte
+0x0000000000189000-0x000000000018a000           4K                               pte
+0x000000000018a000-0x000000000018e000          16K     RW                 GLB NX pte
+0x000000000018e000-0x000000000018f000           4K                               pte
+0x000000000018f000-0x0000000000193000          16K     RW                 GLB NX pte
+0x0000000000193000-0x0000000000194000           4K                               pte
+... 304 entries skipped ... 
+---[ EFI Runtime Services ]---
+0xffffffef00000000-0xffffffff80000000          66G                               pud
+---[ High Kernel Mapping ]---
+0xffffffff80000000-0xffffffffc0000000           1G                               pud
+...
+
+
+
+As for KASAN, I think it would be better just to make it work faster, the patch below demonstrates the idea.
+
+
+
+---
+ arch/x86/mm/dump_pagetables.c | 22 ++++++++++++++++------
+ 1 file changed, 16 insertions(+), 6 deletions(-)
+
+diff --git a/arch/x86/mm/dump_pagetables.c b/arch/x86/mm/dump_pagetables.c
+index 0470826d2bdc..36515fba86b0 100644
+--- a/arch/x86/mm/dump_pagetables.c
++++ b/arch/x86/mm/dump_pagetables.c
+@@ -13,6 +13,7 @@
+  */
+ 
+ #include <linux/debugfs.h>
++#include <linux/kasan.h>
+ #include <linux/mm.h>
+ #include <linux/init.h>
+ #include <linux/sched.h>
+@@ -307,16 +308,19 @@ static void walk_pte_level(struct seq_file *m, struct pg_state *st, pmd_t addr,
+ static void walk_pmd_level(struct seq_file *m, struct pg_state *st, pud_t addr, unsigned long P)
+ {
+ 	int i;
+-	pmd_t *start;
++	pmd_t *start, *pmd_addr;
+ 	pgprotval_t prot;
+ 
+-	start = (pmd_t *)pud_page_vaddr(addr);
++	pmd_addr = start = (pmd_t *)pud_page_vaddr(addr);
+ 	for (i = 0; i < PTRS_PER_PMD; i++) {
+ 		st->current_address = normalize_addr(P + i * PMD_LEVEL_MULT);
+ 		if (!pmd_none(*start)) {
+ 			if (pmd_large(*start) || !pmd_present(*start)) {
+ 				prot = pmd_flags(*start);
+ 				note_page(m, st, __pgprot(prot), 3);
++			} else if (__pa(pmd_addr) == __pa(kasan_zero_pmd)) {
++				prot = pte_flags(kasan_zero_pte[0]);
++				note_page(m, st, __pgprot(prot), 4);
+ 			} else {
+ 				walk_pte_level(m, st, *start,
+ 					       P + i * PMD_LEVEL_MULT);
+@@ -349,11 +353,11 @@ static bool pud_already_checked(pud_t *prev_pud, pud_t *pud, bool checkwx)
+ static void walk_pud_level(struct seq_file *m, struct pg_state *st, p4d_t addr, unsigned long P)
+ {
+ 	int i;
+-	pud_t *start;
++	pud_t *start, *pud_addr;
+ 	pgprotval_t prot;
+ 	pud_t *prev_pud = NULL;
+ 
+-	start = (pud_t *)p4d_page_vaddr(addr);
++	pud_addr = start = (pud_t *)p4d_page_vaddr(addr);
+ 
+ 	for (i = 0; i < PTRS_PER_PUD; i++) {
+ 		st->current_address = normalize_addr(P + i * PUD_LEVEL_MULT);
+@@ -362,6 +366,9 @@ static void walk_pud_level(struct seq_file *m, struct pg_state *st, p4d_t addr,
+ 			if (pud_large(*start) || !pud_present(*start)) {
+ 				prot = pud_flags(*start);
+ 				note_page(m, st, __pgprot(prot), 2);
++			} else if (__pa(pud_addr) == __pa(kasan_zero_pud)) {
++				prot = pte_flags(kasan_zero_pte[0]);
++				note_page(m, st, __pgprot(prot), 4);
+ 			} else {
+ 				walk_pmd_level(m, st, *start,
+ 					       P + i * PUD_LEVEL_MULT);
+@@ -385,10 +392,10 @@ static void walk_pud_level(struct seq_file *m, struct pg_state *st, p4d_t addr,
+ static void walk_p4d_level(struct seq_file *m, struct pg_state *st, pgd_t addr, unsigned long P)
+ {
+ 	int i;
+-	p4d_t *start;
++	p4d_t *start, *p4d_addr;
+ 	pgprotval_t prot;
+ 
+-	start = (p4d_t *)pgd_page_vaddr(addr);
++	p4d_addr = start = (p4d_t *)pgd_page_vaddr(addr);
+ 
+ 	for (i = 0; i < PTRS_PER_P4D; i++) {
+ 		st->current_address = normalize_addr(P + i * P4D_LEVEL_MULT);
+@@ -396,6 +403,9 @@ static void walk_p4d_level(struct seq_file *m, struct pg_state *st, pgd_t addr,
+ 			if (p4d_large(*start) || !p4d_present(*start)) {
+ 				prot = p4d_flags(*start);
+ 				note_page(m, st, __pgprot(prot), 2);
++			} else if (__pa(p4d_addr) == __pa(kasan_zero_p4d)) {
++				prot = pte_flags(kasan_zero_pte[0]);
++				note_page(m, st, __pgprot(prot), 4);
+ 			} else {
+ 				walk_pud_level(m, st, *start,
+ 					       P + i * P4D_LEVEL_MULT);
+-- 
+2.13.0
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
