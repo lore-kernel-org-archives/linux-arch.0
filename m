@@ -1,106 +1,106 @@
-From: Ram Pai <linuxram@us.ibm.com>
-Subject: Re: [RFC v5 15/38] powerpc: helper function to read,write
- AMR,IAMR,UAMOR registers
-Date: Thu, 13 Jul 2017 16:29:16 -0700
-Message-ID: <20170713232916.GK5525@ram.oc3035372033.ibm.com>
-References: <1499289735-14220-1-git-send-email-linuxram@us.ibm.com>
- <1499289735-14220-16-git-send-email-linuxram@us.ibm.com>
- <20170712152601.3b2f52ed@firefly.ozlabs.ibm.com>
- <20170713075502.GG5525@ram.oc3035372033.ibm.com>
- <CAKTCnzmDd2K0gc=0gvNn7Q_QBPqmQdwppnpU-J9B1AMva7w8sA@mail.gmail.com>
-Reply-To: Ram Pai <linuxram@us.ibm.com>
+From: ebiederm-aS9lmoZGLiVWk0Htik3J/w@public.gmane.org (Eric W. Biederman)
+Subject: Re: [PATCH 1/8] signal/alpha: Document a conflict with SI_USER for SIGTRAP
+Date: Fri, 14 Jul 2017 05:59:06 -0500
+Message-ID: <87fudz5lol.fsf@xmission.com>
+References: <87efu22set.fsf@xmission.com>
+        <20170630123906.8865-1-ebiederm@xmission.com>
+        <20170702141320.GA32254@ls3530.fritz.box>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-doc-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAKTCnzmDd2K0gc=0gvNn7Q_QBPqmQdwppnpU-J9B1AMva7w8sA@mail.gmail.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: Balbir Singh <bsingharora@gmail.com>
-Cc: "open list:LINUX FOR POWERPC (32-BIT AND 64-BIT)" <linuxppc-dev@lists.ozlabs.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-kselftest@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Anshuman Khandual <khandual@linux.vnet.ibm.com>, Aneesh Kumar KV <aneesh.kumar@linux.vnet.ibm.com>, Dave Hansen <dave.hansen@intel.com>, Haren Myneni/Beaverton/IBM <hbabu@us.ibm.com>, Arnd Bergmann <arnd@arndb.de>, "akpm@linux-foundation.org" <akpm@linux-foundation.or>
+Content-Type: text/plain
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <20170702141320.GA32254-PwtjyNU/e7vkVFMGpb/cPg@public.gmane.org> (Helge Deller's message
+        of "Sun, 2 Jul 2017 16:13:20 +0200")
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Helge Deller <deller-Mmb7MZpHnFY@public.gmane.org>
+Cc: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Al Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, Oleg Nesterov <oleg-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrei Vagin <avagin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Greg KH <greg-U8xfFu+wG4EAvxtiuMwx3w@public.gmane.org>, Andrey Vagin <avagin-GEFAQzZX7r8dnm+yROfE0A@public.gmane.org>, Serge Hallyn <serge-A9i7LUbDfNHQT0dZR+AlfA@public.gmane.org>, Pavel Emelyanov <xemul-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Cyrill Gorcunov <gorcunov-GEFAQzZX7r8dnm+yROfE0A@public.gmane.org>, Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Willy Tarreau <w@1wt.eu>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Linux Containers <containers-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>, Michael Kerrisk <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Richard Henderson <rth-hL46jP5Bxq7R7s880joybQ@public.gmane.org>, Ivan Kokshaysky <ink-biIs/Y0ymYJMZLIVYojuPNP0rXTJTi09@public.gmane.org>, Matt Turner <mattst88-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jul 13, 2017 at 07:49:05PM +1000, Balbir Singh wrote:
-> On Thu, Jul 13, 2017 at 5:55 PM, Ram Pai <linuxram@us.ibm.com> wrote:
-> > On Wed, Jul 12, 2017 at 03:26:01PM +1000, Balbir Singh wrote:
-> >> On Wed,  5 Jul 2017 14:21:52 -0700
-> >> Ram Pai <linuxram@us.ibm.com> wrote:
-> >>
-> >> > Implements helper functions to read and write the key related
-> >> > registers; AMR, IAMR, UAMOR.
-> >> >
-> >> > AMR register tracks the read,write permission of a key
-> >> > IAMR register tracks the execute permission of a key
-> >> > UAMOR register enables and disables a key
-> >> >
-> >> > Signed-off-by: Ram Pai <linuxram@us.ibm.com>
-> >> > ---
-> >> >  arch/powerpc/include/asm/book3s/64/pgtable.h |   60 ++++++++++++++++++++++++++
-> >> >  1 files changed, 60 insertions(+), 0 deletions(-)
-> >> >
-> >> > diff --git a/arch/powerpc/include/asm/book3s/64/pgtable.h b/arch/powerpc/include/asm/book3s/64/pgtable.h
-> >> > index 85bc987..435d6a7 100644
-> >> > --- a/arch/powerpc/include/asm/book3s/64/pgtable.h
-> >> > +++ b/arch/powerpc/include/asm/book3s/64/pgtable.h
-> >> > @@ -428,6 +428,66 @@ static inline void huge_ptep_set_wrprotect(struct mm_struct *mm,
-> >> >             pte_update(mm, addr, ptep, 0, _PAGE_PRIVILEGED, 1);
-> >> >  }
-> >> >
-> >> > +#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
-> >> > +
-> >> > +#include <asm/reg.h>
-> >> > +static inline u64 read_amr(void)
-> >> > +{
-> >> > +   return mfspr(SPRN_AMR);
-> >> > +}
-> >> > +static inline void write_amr(u64 value)
-> >> > +{
-> >> > +   mtspr(SPRN_AMR, value);
-> >> > +}
-> >> > +static inline u64 read_iamr(void)
-> >> > +{
-> >> > +   return mfspr(SPRN_IAMR);
-> >> > +}
-> >> > +static inline void write_iamr(u64 value)
-> >> > +{
-> >> > +   mtspr(SPRN_IAMR, value);
-> >> > +}
-> >> > +static inline u64 read_uamor(void)
-> >> > +{
-> >> > +   return mfspr(SPRN_UAMOR);
-> >> > +}
-> >> > +static inline void write_uamor(u64 value)
-> >> > +{
-> >> > +   mtspr(SPRN_UAMOR, value);
-> >> > +}
-> >> > +
-> >> > +#else /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
-> >> > +
-> >> > +static inline u64 read_amr(void)
-> >> > +{
-> >> > +   WARN(1, "%s called with MEMORY PROTECTION KEYS disabled\n", __func__);
-> >> > +   return -1;
-> >> > +}
-> >>
-> >> Why do we need to have a version here if we are going to WARN(), why not
-> >> let the compilation fail if called from outside of CONFIG_PPC64_MEMORY_PROTECTION_KEYS?
-> >> Is that the intention?
-> >
-> > I did not want to stop someone; kernel module for example, from calling
-> > these interfaces from outside the pkey domain.
-> >
-> > Either way can be argued to be correct, I suppose.
-> 
-> Nope, build failures are better than run time failures, otherwise the
-> kernel will split its guts warning and warning here.
-> 
+Helge Deller <deller-Mmb7MZpHnFY@public.gmane.org> writes:
 
-Well these are helper functions that can be called by anyone under
-any situation. I will rather have them defined unconditionally; under
-no ifdefs.  No spewing of warnings anymore. The registers will
-be read or written as told. It just makes sense that way.
+> * Eric W. Biederman <ebiederm-aS9lmoZGLiVWk0Htik3J/w@public.gmane.org>:
+>> Setting si_code to __SI_FAULT results in a userspace seeing
+>> an si_code of 0.  This is the same si_code as SI_USER.  Posix
+>> and common sense requires that SI_USER not be a signal specific
+>> si_code.  As such this use of 0 for the si_code is a pretty
+>> horribly broken ABI.
+>> 
+>> Given that alpha is on it's last legs I don't know that it is worth
+>> fixing this, but it is worth documenting what is going on so that
+>> no one decides to copy this bad decision.
+>
+> The ABI was already broken, so IMHO I think it's better to somehow "fix"
+> it instead. Agreed, alpha and some other architectures are already aged,
+> but nevertheless most of them build in debian-ports.  Below is a
+> suggested fix which reuses/misuses other existing trap codes instead.
 
-RP
+The conflict with SI_USER is real.  I don't know that we have any actual
+applications that are suffering.
 
--- 
-Ram Pai
+I simply don't have the architecture specific references handy to know
+in which cases the oddities will happen let alone test them.  Plus at
+least for ia64 and alpha those architectures don't appear to be
+receiving updates for new syscalls, and no new hardware is being built
+so I don't know how much longer they will last.
 
+That is building for alpha gives:
+>   CALL    /home/eric/projects/linux/linux-exit-cleanups/scripts/checksyscalls.sh
+> <stdin>:1239:2: warning: #warning syscall seccomp not implemented [-Wcpp]
+> <stdin>:1248:2: warning: #warning syscall bpf not implemented [-Wcpp]
+> <stdin>:1299:2: warning: #warning syscall userfaultfd not implemented [-Wcpp]
+> <stdin>:1302:2: warning: #warning syscall membarrier not implemented [-Wcpp]
+> <stdin>:1305:2: warning: #warning syscall mlock2 not implemented [-Wcpp]
+> <stdin>:1308:2: warning: #warning syscall copy_file_range not implemented [-Wcpp]
+> <stdin>:1311:2: warning: #warning syscall preadv2 not implemented [-Wcpp]
+> <stdin>:1314:2: warning: #warning syscall pwritev2 not implemented [-Wcpp]
+> <stdin>:1317:2: warning: #warning syscall pkey_mprotect not implemented [-Wcpp]
+> <stdin>:1320:2: warning: #warning syscall pkey_alloc not implemented [-Wcpp]
+> <stdin>:1323:2: warning: #warning syscall pkey_free not implemented [-Wcpp]
+> <stdin>:1326:2: warning: #warning syscall statx not implemented [-Wcpp]
+
+But a real fix like you have shown if you can get it approved by the
+alpha architecture maintainers I am more than happy to see, and would
+very much prefer.
+
+You certainly noticed that the middle case was SIGFPE when I missed
+that.
+
+Unfortunately I don't currently have the competence to judge the
+effects of your patch.
+
+Eric
+
+> Helge
+>
+> Signed-off-by: Helge Deller <deller-Mmb7MZpHnFY@public.gmane.org>
+>
+> diff --git a/arch/alpha/kernel/traps.c b/arch/alpha/kernel/traps.c
+> index 65bb102..2ed37dd 100644
+> --- a/arch/alpha/kernel/traps.c
+> +++ b/arch/alpha/kernel/traps.c
+> @@ -278,7 +278,7 @@ do_entIF(unsigned long type, struct pt_regs *regs)
+>  	      case 1: /* bugcheck */
+>  		info.si_signo = SIGTRAP;
+>  		info.si_errno = 0;
+> -		info.si_code = __SI_FAULT;
+> +		info.si_code = TRAP_HWBKPT;
+>  		info.si_addr = (void __user *) regs->pc;
+>  		info.si_trapno = 0;
+>  		send_sig_info(SIGTRAP, &info, current);
+> @@ -318,7 +318,7 @@ do_entIF(unsigned long type, struct pt_regs *regs)
+>  			break;
+>  		case GEN_ROPRAND:
+>  			signo = SIGFPE;
+> -			code = __SI_FAULT;
+> +			code = FPE_FLTSUB;
+>  			break;
+>  
+>  		case GEN_DECOVF:
+> @@ -340,7 +340,7 @@ do_entIF(unsigned long type, struct pt_regs *regs)
+>  		case GEN_SUBRNG7:
+>  		default:
+>  			signo = SIGTRAP;
+> -			code = __SI_FAULT;
+> +			code = TRAP_HWBKPT;
+>  			break;
+>  		}
+>  
