@@ -1,109 +1,47 @@
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v6 27/62] powerpc: helper to validate key-access permissions of a pte
-Date: Sat, 15 Jul 2017 20:56:29 -0700
-Message-ID: <1500177424-13695-28-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v6 47/62] selftest/vm: fixed bugs in pkey_disable_clear()
+Date: Sat, 15 Jul 2017 20:56:49 -0700
+Message-ID: <1500177424-13695-48-git-send-email-linuxram@us.ibm.com>
 References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
-Return-path: <owner-linux-mm@kvack.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
-Sender: owner-linux-mm@kvack.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, mhocko@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-helper function that checks if the read/write/execute is allowed
-on the pte.
+instead of clearing the bits, pkey_disable_clear() was setting
+the bits. Fixed it.
+
+Also fixed a wrong assertion in that function. When bits are
+cleared, the resulting bit value will be less than the original.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/include/asm/book3s/64/pgtable.h |    4 +++
- arch/powerpc/include/asm/pkeys.h             |   12 +++++++++
- arch/powerpc/mm/pkeys.c                      |   33 ++++++++++++++++++++++++++
- 3 files changed, 49 insertions(+), 0 deletions(-)
+ tools/testing/selftests/vm/protection_keys.c |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/book3s/64/pgtable.h b/arch/powerpc/include/asm/book3s/64/pgtable.h
-index 30d7f55..0056e58 100644
---- a/arch/powerpc/include/asm/book3s/64/pgtable.h
-+++ b/arch/powerpc/include/asm/book3s/64/pgtable.h
-@@ -472,6 +472,10 @@ static inline void write_uamor(u64 value)
- 	mtspr(SPRN_UAMOR, value);
+diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
+index b2d7879..0f2d1ce 100644
+--- a/tools/testing/selftests/vm/protection_keys.c
++++ b/tools/testing/selftests/vm/protection_keys.c
+@@ -461,7 +461,7 @@ void pkey_disable_clear(int pkey, int flags)
+ 			pkey, pkey, pkey_rights);
+ 	pkey_assert(pkey_rights >= 0);
+ 
+-	pkey_rights |= flags;
++	pkey_rights &= ~flags;
+ 
+ 	ret = pkey_set(pkey, pkey_rights, 0);
+ 	/* pkey_reg and flags have the same format */
+@@ -475,7 +475,7 @@ void pkey_disable_clear(int pkey, int flags)
+ 	dprintf1("%s(%d) pkey_reg: 0x%016lx\n", __func__,
+ 			pkey, rdpkey_reg());
+ 	if (flags)
+-		assert(rdpkey_reg() > orig_pkey_reg);
++		assert(rdpkey_reg() < orig_pkey_reg);
  }
  
-+#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
-+extern bool arch_pte_access_permitted(u64 pte, bool write, bool execute);
-+#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
-+
- #define __HAVE_ARCH_PTEP_GET_AND_CLEAR
- static inline pte_t ptep_get_and_clear(struct mm_struct *mm,
- 				       unsigned long addr, pte_t *ptep)
-diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
-index bbb5d85..7a9aade 100644
---- a/arch/powerpc/include/asm/pkeys.h
-+++ b/arch/powerpc/include/asm/pkeys.h
-@@ -53,6 +53,18 @@ static inline u64 pte_to_hpte_pkey_bits(u64 pteflags)
- 		((pteflags & H_PAGE_PKEY_BIT4) ? HPTE_R_KEY_BIT4 : 0x0UL));
- }
- 
-+static inline u16 pte_to_pkey_bits(u64 pteflags)
-+{
-+	if (!pkey_inited)
-+		return 0x0UL;
-+
-+	return (((pteflags & H_PAGE_PKEY_BIT0) ? 0x10 : 0x0UL) |
-+		((pteflags & H_PAGE_PKEY_BIT1) ? 0x8 : 0x0UL) |
-+		((pteflags & H_PAGE_PKEY_BIT2) ? 0x4 : 0x0UL) |
-+		((pteflags & H_PAGE_PKEY_BIT3) ? 0x2 : 0x0UL) |
-+		((pteflags & H_PAGE_PKEY_BIT4) ? 0x1 : 0x0UL));
-+}
-+
- static inline int vma_pkey(struct vm_area_struct *vma)
- {
- 	if (!pkey_inited)
-diff --git a/arch/powerpc/mm/pkeys.c b/arch/powerpc/mm/pkeys.c
-index 403f5ae..1794e17 100644
---- a/arch/powerpc/mm/pkeys.c
-+++ b/arch/powerpc/mm/pkeys.c
-@@ -201,3 +201,36 @@ int __arch_override_mprotect_pkey(struct vm_area_struct *vma, int prot,
- 	 */
- 	return vma_pkey(vma);
- }
-+
-+static bool pkey_access_permitted(int pkey, bool write, bool execute)
-+{
-+	int pkey_shift;
-+	u64 amr;
-+
-+	if (!pkey)
-+		return true;
-+
-+	pkey_shift = pkeyshift(pkey);
-+	if (!(read_uamor() & (0x3UL << pkey_shift)))
-+		return true;
-+
-+	if (execute && !(read_iamr() & (IAMR_EX_BIT << pkey_shift)))
-+		return true;
-+
-+	if (!write) {
-+		amr = read_amr();
-+		if (!(amr & (AMR_RD_BIT << pkey_shift)))
-+			return true;
-+	}
-+
-+	amr = read_amr(); /* delay reading amr uptil absolutely needed */
-+	return (write && !(amr & (AMR_WR_BIT << pkey_shift)));
-+}
-+
-+bool arch_pte_access_permitted(u64 pte, bool write, bool execute)
-+{
-+	if (!pkey_inited)
-+		return true;
-+	return pkey_access_permitted(pte_to_pkey_bits(pte),
-+			write, execute);
-+}
+ void pkey_write_allow(int pkey)
 -- 
 1.7.1
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
