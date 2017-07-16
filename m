@@ -1,97 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga06.intel.com ([134.134.136.31]:55661 "EHLO mga06.intel.com"
+Received: from mga09.intel.com ([134.134.136.24]:29858 "EHLO mga09.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751221AbdGPXAC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S1751209AbdGPXAC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Sun, 16 Jul 2017 19:00:02 -0400
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 2/8] x86/dump_pagetables: Fix printout of p4d level
-Date: Mon, 17 Jul 2017 01:59:48 +0300
-Message-ID: <20170716225954.74185-3-kirill.shutemov@linux.intel.com>
-In-Reply-To: <20170716225954.74185-1-kirill.shutemov@linux.intel.com>
-References: <20170716225954.74185-1-kirill.shutemov@linux.intel.com>
+Subject: [PATCH 0/8] 5-level paging enabling for v4.14
+Date: Mon, 17 Jul 2017 01:59:46 +0300
+Message-ID: <20170716225954.74185-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20170716225948.dwWQmdSADj60fCLTVmO5CTj8ehgJHzQTMFgbaePI3OU@z>
+Message-ID: <20170716225946.X-pP7_MMXivMwfHYOX_U2bbrufrJ7oVz_ShFa-AzOTA@z>
 
-Modify printk_prot() and callers to print out additional page table
-level correctly.
+Hi,
 
-Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
----
- arch/x86/mm/dump_pagetables.c | 18 +++++++++---------
- 1 file changed, 9 insertions(+), 9 deletions(-)
+As Ingo requested, I'm resending the rebased patchset after merge window to be
+queued for v4.14.
 
-diff --git a/arch/x86/mm/dump_pagetables.c b/arch/x86/mm/dump_pagetables.c
-index a824d575bb84..b371ab68f2d4 100644
---- a/arch/x86/mm/dump_pagetables.c
-+++ b/arch/x86/mm/dump_pagetables.c
-@@ -138,7 +138,7 @@ static void printk_prot(struct seq_file *m, pgprot_t prot, int level, bool dmsg)
- {
- 	pgprotval_t pr = pgprot_val(prot);
- 	static const char * const level_name[] =
--		{ "cr3", "pgd", "pud", "pmd", "pte" };
-+		{ "cr3", "pgd", "p4d", "pud", "pmd", "pte" };
- 
- 	if (!pgprot_val(prot)) {
- 		/* Not present */
-@@ -162,12 +162,12 @@ static void printk_prot(struct seq_file *m, pgprot_t prot, int level, bool dmsg)
- 			pt_dump_cont_printf(m, dmsg, "    ");
- 
- 		/* Bit 7 has a different meaning on level 3 vs 4 */
--		if (level <= 3 && pr & _PAGE_PSE)
-+		if (level <= 4 && pr & _PAGE_PSE)
- 			pt_dump_cont_printf(m, dmsg, "PSE ");
- 		else
- 			pt_dump_cont_printf(m, dmsg, "    ");
--		if ((level == 4 && pr & _PAGE_PAT) ||
--		    ((level == 3 || level == 2) && pr & _PAGE_PAT_LARGE))
-+		if ((level == 5 && pr & _PAGE_PAT) ||
-+		    ((level == 4 || level == 3) && pr & _PAGE_PAT_LARGE))
- 			pt_dump_cont_printf(m, dmsg, "PAT ");
- 		else
- 			pt_dump_cont_printf(m, dmsg, "    ");
-@@ -298,7 +298,7 @@ static void walk_pte_level(struct seq_file *m, struct pg_state *st, pmd_t addr,
- 	for (i = 0; i < PTRS_PER_PTE; i++) {
- 		prot = pte_flags(*start);
- 		st->current_address = normalize_addr(P + i * PTE_LEVEL_MULT);
--		note_page(m, st, __pgprot(prot), 4);
-+		note_page(m, st, __pgprot(prot), 5);
- 		start++;
- 	}
- }
-@@ -317,13 +317,13 @@ static void walk_pmd_level(struct seq_file *m, struct pg_state *st, pud_t addr,
- 		if (!pmd_none(*start)) {
- 			if (pmd_large(*start) || !pmd_present(*start)) {
- 				prot = pmd_flags(*start);
--				note_page(m, st, __pgprot(prot), 3);
-+				note_page(m, st, __pgprot(prot), 4);
- 			} else {
- 				walk_pte_level(m, st, *start,
- 					       P + i * PMD_LEVEL_MULT);
- 			}
- 		} else
--			note_page(m, st, __pgprot(0), 3);
-+			note_page(m, st, __pgprot(0), 4);
- 		start++;
- 	}
- }
-@@ -362,13 +362,13 @@ static void walk_pud_level(struct seq_file *m, struct pg_state *st, p4d_t addr,
- 		    !pud_already_checked(prev_pud, start, st->check_wx)) {
- 			if (pud_large(*start) || !pud_present(*start)) {
- 				prot = pud_flags(*start);
--				note_page(m, st, __pgprot(prot), 2);
-+				note_page(m, st, __pgprot(prot), 3);
- 			} else {
- 				walk_pmd_level(m, st, *start,
- 					       P + i * PUD_LEVEL_MULT);
- 			}
- 		} else
--			note_page(m, st, __pgprot(0), 2);
-+			note_page(m, st, __pgprot(0), 3);
- 
- 		prev_pud = start;
- 		start++;
+The patches was reordered and few more fixes added: for Xen and dump_pagetables.
+
+Please consider applying.
+
+Kirill A. Shutemov (8):
+  x86/dump_pagetables: Generalize address normalization
+  x86/dump_pagetables: Fix printout of p4d level
+  x86/xen: Redefine XEN_ELFNOTE_INIT_P2M using PUD_SIZE * PTRS_PER_PUD
+  x86/mm: Rename tasksize_32bit/64bit to task_size_32bit/64bit
+  x86/mpx: Do not allow MPX if we have mappings above 47-bit
+  x86/mm: Prepare to expose larger address space to userspace
+  x86/mm: Allow userspace have mapping above 47-bit
+  x86: Enable 5-level paging support
+
+ Documentation/x86/x86_64/5level-paging.txt | 64 ++++++++++++++++++++++++++++++
+ arch/x86/Kconfig                           | 18 +++++++++
+ arch/x86/include/asm/elf.h                 |  4 +-
+ arch/x86/include/asm/mpx.h                 |  9 +++++
+ arch/x86/include/asm/processor.h           | 12 ++++--
+ arch/x86/kernel/sys_x86_64.c               | 30 ++++++++++++--
+ arch/x86/mm/dump_pagetables.c              | 29 +++++++-------
+ arch/x86/mm/hugetlbpage.c                  | 27 +++++++++++--
+ arch/x86/mm/mmap.c                         | 12 +++---
+ arch/x86/mm/mpx.c                          | 33 ++++++++++++++-
+ arch/x86/xen/Kconfig                       |  5 +++
+ arch/x86/xen/xen-head.S                    |  2 +-
+ 12 files changed, 210 insertions(+), 35 deletions(-)
+ create mode 100644 Documentation/x86/x86_64/5level-paging.txt
+
 -- 
 2.11.0
