@@ -1,137 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f193.google.com ([209.85.220.193]:36118 "EHLO
-        mail-qk0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751723AbdGPD6y (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 15 Jul 2017 23:58:54 -0400
-From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v6 21/62] powerpc: introduce execute-only pkey
-Date: Sat, 15 Jul 2017 20:56:23 -0700
-Message-ID: <1500177424-13695-22-git-send-email-linuxram@us.ibm.com>
-In-Reply-To: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
-References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
+Received: from mga04.intel.com ([192.55.52.120]:65001 "EHLO mga04.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751134AbdGPXAB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 16 Jul 2017 19:00:01 -0400
+From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Subject: [PATCH 3/8] x86/xen: Redefine XEN_ELFNOTE_INIT_P2M using PUD_SIZE * PTRS_PER_PUD
+Date: Mon, 17 Jul 2017 01:59:49 +0300
+Message-ID: <20170716225954.74185-4-kirill.shutemov@linux.intel.com>
+In-Reply-To: <20170716225954.74185-1-kirill.shutemov@linux.intel.com>
+References: <20170716225954.74185-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
-Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, mhocko@kernel.org
-Message-ID: <20170716035623.YJyuRvT5sbqIzUkjJ_J0YZ86Qo76oJpu6KC48HPecJ0@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Message-ID: <20170716225949.gWwYSB2jQ2WTJmhvi2epQu2Vv3UzlWlHkX7R3bFVPmU@z>
 
-This patch provides the implementation of execute-only pkey.
-The architecture-independent  expects the ability to create
-and manage a special key which has execute-only permission.
+XEN_ELFNOTE_INIT_P2M has to be 512GB for both 4- and 5-level paging.
+(PUD_SIZE * PTRS_PER_PUD) would do this.
 
-Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+Unfortunately, we cannot use P4D_SIZE, which would fit here. With
+current headers structure it cannot be used in assembly, if p4d
+level is folded.
+
+Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
- arch/powerpc/include/asm/book3s/64/mmu.h |    1 +
- arch/powerpc/include/asm/pkeys.h         |    8 ++++-
- arch/powerpc/mm/pkeys.c                  |   57 ++++++++++++++++++++++++++++++
- 3 files changed, 65 insertions(+), 1 deletions(-)
+ arch/x86/xen/xen-head.S | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/powerpc/include/asm/book3s/64/mmu.h b/arch/powerpc/include/asm/book3s/64/mmu.h
-index 104ad72..0c0a2a8 100644
---- a/arch/powerpc/include/asm/book3s/64/mmu.h
-+++ b/arch/powerpc/include/asm/book3s/64/mmu.h
-@@ -116,6 +116,7 @@ struct patb_entry {
- 	 * bit unset -> key available for allocation
- 	 */
- 	u32 pkey_allocation_map;
-+	s16 execute_only_pkey; /* key holding execute-only protection */
+diff --git a/arch/x86/xen/xen-head.S b/arch/x86/xen/xen-head.S
+index 72a8e6adebe6..a7525e95d53f 100644
+--- a/arch/x86/xen/xen-head.S
++++ b/arch/x86/xen/xen-head.S
+@@ -58,7 +58,7 @@ ENTRY(hypercall_page)
+ #else
+ 	ELFNOTE(Xen, XEN_ELFNOTE_VIRT_BASE,      _ASM_PTR __START_KERNEL_map)
+ 	/* Map the p2m table to a 512GB-aligned user address. */
+-	ELFNOTE(Xen, XEN_ELFNOTE_INIT_P2M,       .quad PGDIR_SIZE)
++	ELFNOTE(Xen, XEN_ELFNOTE_INIT_P2M,       .quad (PUD_SIZE * PTRS_PER_PUD))
  #endif
- } mm_context_t;
- 
-diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
-index 0e744f1..1864148 100644
---- a/arch/powerpc/include/asm/pkeys.h
-+++ b/arch/powerpc/include/asm/pkeys.h
-@@ -118,11 +118,15 @@ static inline int mm_pkey_free(struct mm_struct *mm, int pkey)
-  * Try to dedicate one of the protection keys to be used as an
-  * execute-only protection key.
-  */
-+extern int __execute_only_pkey(struct mm_struct *mm);
- static inline int execute_only_pkey(struct mm_struct *mm)
- {
--	return 0;
-+	if (!pkey_inited)
-+		return -1;
-+	return __execute_only_pkey(mm);
- }
- 
-+
- static inline int arch_override_mprotect_pkey(struct vm_area_struct *vma,
- 		int prot, int pkey)
- {
-@@ -144,6 +148,8 @@ static inline void pkey_mm_init(struct mm_struct *mm)
- 	if (!pkey_inited)
- 		return;
- 	mm_pkey_allocation_map(mm) = PKEY_INITIAL_ALLOCAION;
-+	/* -1 means unallocated or invalid */
-+	mm->context.execute_only_pkey = -1;
- }
- 
- static inline void pkey_initialize(void)
-diff --git a/arch/powerpc/mm/pkeys.c b/arch/powerpc/mm/pkeys.c
-index b9ad98d..34e8557 100644
---- a/arch/powerpc/mm/pkeys.c
-+++ b/arch/powerpc/mm/pkeys.c
-@@ -97,3 +97,60 @@ int __arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
- 	init_iamr(pkey, new_iamr_bits);
- 	return 0;
- }
-+
-+static inline bool pkey_allows_readwrite(int pkey)
-+{
-+	int pkey_shift = pkeyshift(pkey);
-+
-+	if (!(read_uamor() & (0x3UL << pkey_shift)))
-+		return true;
-+
-+	return !(read_amr() & ((AMR_RD_BIT|AMR_WR_BIT) << pkey_shift));
-+}
-+
-+int __execute_only_pkey(struct mm_struct *mm)
-+{
-+	bool need_to_set_mm_pkey = false;
-+	int execute_only_pkey = mm->context.execute_only_pkey;
-+	int ret;
-+
-+	/* Do we need to assign a pkey for mm's execute-only maps? */
-+	if (execute_only_pkey == -1) {
-+		/* Go allocate one to use, which might fail */
-+		execute_only_pkey = mm_pkey_alloc(mm);
-+		if (execute_only_pkey < 0)
-+			return -1;
-+		need_to_set_mm_pkey = true;
-+	}
-+
-+	/*
-+	 * We do not want to go through the relatively costly
-+	 * dance to set AMR if we do not need to.  Check it
-+	 * first and assume that if the execute-only pkey is
-+	 * readwrite-disabled than we do not have to set it
-+	 * ourselves.
-+	 */
-+	if (!need_to_set_mm_pkey &&
-+	    !pkey_allows_readwrite(execute_only_pkey))
-+		return execute_only_pkey;
-+
-+	/*
-+	 * Set up AMR so that it denies access for everything
-+	 * other than execution.
-+	 */
-+	ret = __arch_set_user_pkey_access(current, execute_only_pkey,
-+			(PKEY_DISABLE_ACCESS | PKEY_DISABLE_WRITE));
-+	/*
-+	 * If the AMR-set operation failed somehow, just return
-+	 * 0 and effectively disable execute-only support.
-+	 */
-+	if (ret) {
-+		mm_set_pkey_free(mm, execute_only_pkey);
-+		return -1;
-+	}
-+
-+	/* We got one, store it and use it from here on out */
-+	if (need_to_set_mm_pkey)
-+		mm->context.execute_only_pkey = execute_only_pkey;
-+	return execute_only_pkey;
-+}
+ #ifdef CONFIG_XEN_PV
+ 	ELFNOTE(Xen, XEN_ELFNOTE_ENTRY,          _ASM_PTR startup_xen)
 -- 
-1.7.1
+2.11.0
