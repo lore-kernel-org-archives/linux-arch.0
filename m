@@ -1,44 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f195.google.com ([209.85.220.195]:32816 "EHLO
-        mail-qk0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752213AbdGPD7g (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 15 Jul 2017 23:59:36 -0400
+Received: from mail-qk0-f193.google.com ([209.85.220.193]:34434 "EHLO
+        mail-qk0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752117AbdGPD70 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 15 Jul 2017 23:59:26 -0400
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v6 38/62] powerpc: implementation for arch_pkeys_enabled()
-Date: Sat, 15 Jul 2017 20:56:40 -0700
-Message-ID: <1500177424-13695-39-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v6 34/62] powerpc: capture the violated protection key on fault
+Date: Sat, 15 Jul 2017 20:56:36 -0700
+Message-ID: <1500177424-13695-35-git-send-email-linuxram@us.ibm.com>
 In-Reply-To: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
 References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, mhocko@kernel.org
-Message-ID: <20170716035640.Zfq2yTzxypyGErwf8V7XTZJYeOrSkTgqgwWYlhUrLFE@z>
+Message-ID: <20170716035636.7GXlKDGPY5TpA36XVCkLW59kWtyv0zvlMdhTd5BCUzU@z>
 
-arch_pkeys_enabled() returns true if the cpu
-supports protection key, and the kernel has it
-enabled.
+Capture the protection key that got violated in paca.
+This value will be later used to inform the signal
+handler.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/include/asm/pkeys.h |    5 +++++
- 1 files changed, 5 insertions(+), 0 deletions(-)
+ arch/powerpc/include/asm/paca.h   |    1 +
+ arch/powerpc/kernel/asm-offsets.c |    1 +
+ arch/powerpc/mm/fault.c           |    8 ++++++++
+ 3 files changed, 10 insertions(+), 0 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
-index 7a9aade..ea43cb2 100644
---- a/arch/powerpc/include/asm/pkeys.h
-+++ b/arch/powerpc/include/asm/pkeys.h
-@@ -201,6 +201,11 @@ static inline int arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
- 	return __arch_set_user_pkey_access(tsk, pkey, init_val);
- }
+diff --git a/arch/powerpc/include/asm/paca.h b/arch/powerpc/include/asm/paca.h
+index c8bd1fc..0c06188 100644
+--- a/arch/powerpc/include/asm/paca.h
++++ b/arch/powerpc/include/asm/paca.h
+@@ -94,6 +94,7 @@ struct paca_struct {
+ 	u64 dscr_default;		/* per-CPU default DSCR */
+ #ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
+ 	u64 paca_amr;			/* value of amr at exception */
++	u16 paca_pkey;                  /* exception causing pkey */
+ #endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
  
-+static inline bool arch_pkeys_enabled(void)
-+{
-+	return pkey_inited;
-+}
-+
- static inline void pkey_mm_init(struct mm_struct *mm)
- {
- 	if (!pkey_inited)
+ #ifdef CONFIG_PPC_STD_MMU_64
+diff --git a/arch/powerpc/kernel/asm-offsets.c b/arch/powerpc/kernel/asm-offsets.c
+index 17f5d8a..7dff862 100644
+--- a/arch/powerpc/kernel/asm-offsets.c
++++ b/arch/powerpc/kernel/asm-offsets.c
+@@ -244,6 +244,7 @@ int main(void)
+ 
+ #ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
+ 	OFFSET(PACA_AMR, paca_struct, paca_amr);
++	OFFSET(PACA_PKEY, paca_struct, paca_pkey);
+ #endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
+ 
+ 	OFFSET(ACCOUNT_STARTTIME, paca_struct, accounting.starttime);
+diff --git a/arch/powerpc/mm/fault.c b/arch/powerpc/mm/fault.c
+index a6710f5..6423277 100644
+--- a/arch/powerpc/mm/fault.c
++++ b/arch/powerpc/mm/fault.c
+@@ -265,6 +265,7 @@ int do_page_fault(struct pt_regs *regs, unsigned long address,
+ 	if (error_code & DSISR_KEYFAULT) {
+ 		code = SEGV_PKUERR;
+ 		get_paca()->paca_amr = read_amr();
++		get_paca()->paca_pkey = get_pte_pkey(current->mm, address);
+ 		goto bad_area_nosemaphore;
+ 	}
+ #endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
+@@ -453,6 +454,13 @@ int do_page_fault(struct pt_regs *regs, unsigned long address,
+ 	if (!arch_vma_access_permitted(vma, flags & FAULT_FLAG_WRITE,
+ 			is_exec, 0)) {
+ 		get_paca()->paca_amr = read_amr();
++		/*
++		 * The pgd-pdt...pmd-pte tree may not  have  been fully setup.
++		 * Hence we cannot walk the tree to locate the pte, to locate
++		 * the key. Hence  lets  call  vma_pkey() to get the key here
++		 * instead of get_pte_pkey().
++		 */
++		get_paca()->paca_pkey = vma_pkey(vma);
+ 		code = SEGV_PKUERR;
+ 		goto bad_area;
+ 	}
 -- 
 1.7.1
