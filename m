@@ -1,68 +1,90 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f194.google.com ([209.85.216.194]:34773 "EHLO
-        mail-qt0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751379AbdGPD6g (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 15 Jul 2017 23:58:36 -0400
+Received: from mail-qk0-f195.google.com ([209.85.220.195]:35006 "EHLO
+        mail-qk0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751348AbdGPD6W (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 15 Jul 2017 23:58:22 -0400
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v6 14/62] powerpc: helper function to read,write AMR,IAMR,UAMOR registers
-Date: Sat, 15 Jul 2017 20:56:16 -0700
-Message-ID: <1500177424-13695-15-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v6 08/62] powerpc: use helper functions in __hash_page_4K() for 64K PTE
+Date: Sat, 15 Jul 2017 20:56:10 -0700
+Message-ID: <1500177424-13695-9-git-send-email-linuxram@us.ibm.com>
 In-Reply-To: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
 References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, mhocko@kernel.org
-Message-ID: <20170716035616.4zwh4Q29bN5fU9tsFm9d8QFm3JtG9Aj1ZUXkUIU0k04@z>
+Message-ID: <20170716035610.h1mIUJSIeqG-4oSQnTR8c0XZJD-MAismAPAn9xHOUFg@z>
 
-Implements helper functions to read and write the key related
-registers; AMR, IAMR, UAMOR.
-
-AMR register tracks the read,write permission of a key
-IAMR register tracks the execute permission of a key
-UAMOR register enables and disables a key
+replace redundant code in __hash_page_4K() with helper
+functions pte_get_hash_gslot() and pte_set_hash_slot()
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/include/asm/book3s/64/pgtable.h |   26 ++++++++++++++++++++++++++
- 1 files changed, 26 insertions(+), 0 deletions(-)
+ arch/powerpc/mm/hash64_64k.c |   34 +++++++++-------------------------
+ 1 files changed, 9 insertions(+), 25 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/book3s/64/pgtable.h b/arch/powerpc/include/asm/book3s/64/pgtable.h
-index 85bc987..d4da0e9 100644
---- a/arch/powerpc/include/asm/book3s/64/pgtable.h
-+++ b/arch/powerpc/include/asm/book3s/64/pgtable.h
-@@ -428,6 +428,32 @@ static inline void huge_ptep_set_wrprotect(struct mm_struct *mm,
- 		pte_update(mm, addr, ptep, 0, _PAGE_PRIVILEGED, 1);
- }
+diff --git a/arch/powerpc/mm/hash64_64k.c b/arch/powerpc/mm/hash64_64k.c
+index 645f621..c658cb5 100644
+--- a/arch/powerpc/mm/hash64_64k.c
++++ b/arch/powerpc/mm/hash64_64k.c
+@@ -39,9 +39,8 @@ int __hash_page_4K(unsigned long ea, unsigned long access, unsigned long vsid,
+ {
+ 	real_pte_t rpte;
+ 	unsigned long hpte_group;
+-	unsigned long *hidxp;
+ 	unsigned int subpg_index;
+-	unsigned long rflags, pa, hidx;
++	unsigned long rflags, pa;
+ 	unsigned long old_pte, new_pte, subpg_pte;
+ 	unsigned long vpn, hash, slot, gslot;
+ 	unsigned long shift = mmu_psize_defs[MMU_PAGE_4K].shift;
+@@ -114,18 +113,13 @@ int __hash_page_4K(unsigned long ea, unsigned long access, unsigned long vsid,
+ 	if (__rpte_sub_valid(rpte, subpg_index)) {
+ 		int ret;
  
-+#include <asm/reg.h>
-+static inline u64 read_amr(void)
-+{
-+	return mfspr(SPRN_AMR);
-+}
-+static inline void write_amr(u64 value)
-+{
-+	mtspr(SPRN_AMR, value);
-+}
-+static inline u64 read_iamr(void)
-+{
-+	return mfspr(SPRN_IAMR);
-+}
-+static inline void write_iamr(u64 value)
-+{
-+	mtspr(SPRN_IAMR, value);
-+}
-+static inline u64 read_uamor(void)
-+{
-+	return mfspr(SPRN_UAMOR);
-+}
-+static inline void write_uamor(u64 value)
-+{
-+	mtspr(SPRN_UAMOR, value);
-+}
+-		hash = hpt_hash(vpn, shift, ssize);
+-		hidx = __rpte_to_hidx(rpte, subpg_index);
+-		if (hidx & _PTEIDX_SECONDARY)
+-			hash = ~hash;
+-		slot = (hash & htab_hash_mask) * HPTES_PER_GROUP;
+-		slot += hidx & _PTEIDX_GROUP_IX;
+-
+-		ret = mmu_hash_ops.hpte_updatepp(slot, rflags, vpn,
++		gslot = pte_get_hash_gslot(vpn, shift, ssize, rpte,
++				subpg_index);
++		ret = mmu_hash_ops.hpte_updatepp(gslot, rflags, vpn,
+ 						 MMU_PAGE_4K, MMU_PAGE_4K,
+ 						 ssize, flags);
+ 		/*
+-		 *if we failed because typically the HPTE wasn't really here
++		 * if we failed because typically the HPTE wasn't really here
+ 		 * we try an insertion.
+ 		 */
+ 		if (ret == -1)
+@@ -221,20 +215,10 @@ int __hash_page_4K(unsigned long ea, unsigned long access, unsigned long vsid,
+ 				   MMU_PAGE_4K, MMU_PAGE_4K, old_pte);
+ 		return -1;
+ 	}
+-	/*
+-	 * Insert slot number & secondary bit in PTE second half,
+-	 * clear H_PAGE_BUSY and set appropriate HPTE slot bit
+-	 * Since we have H_PAGE_BUSY set on ptep, we can be sure
+-	 * nobody is undating hidx.
+-	 */
+-	hidxp = (unsigned long *)(ptep + PTRS_PER_PTE);
+-	rpte.hidx &= ~(0xfUL << (subpg_index << 2));
+-	*hidxp = rpte.hidx  | (slot << (subpg_index << 2));
+-	/*
+-	 * check __real_pte for details on matching smp_rmb()
+-	 */
+-	smp_wmb();
+-	new_pte |=  H_PAGE_HASHPTE;
 +
- #define __HAVE_ARCH_PTEP_GET_AND_CLEAR
- static inline pte_t ptep_get_and_clear(struct mm_struct *mm,
- 				       unsigned long addr, pte_t *ptep)
++	new_pte |= pte_set_hash_slot(ptep, rpte, subpg_index, slot);
++	new_pte |= H_PAGE_HASHPTE;
++
+ 	*ptep = __pte(new_pte & ~H_PAGE_BUSY);
+ 	return 0;
+ }
 -- 
 1.7.1
