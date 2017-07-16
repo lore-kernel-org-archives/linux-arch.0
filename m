@@ -1,7 +1,7 @@
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v6 04/62] powerpc: introduce pte_get_hash_gslot() helper
-Date: Sat, 15 Jul 2017 20:56:06 -0700
-Message-ID: <1500177424-13695-5-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v6 07/62] powerpc: use helper functions in __hash_page_huge() for 64K PTE
+Date: Sat, 15 Jul 2017 20:56:09 -0700
+Message-ID: <1500177424-13695-8-git-send-email-linuxram@us.ibm.com>
 References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
@@ -10,61 +10,64 @@ To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, mhocko@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Introduce pte_get_hash_gslot()() which returns the slot number of the
-HPTE in the global hash table.
-
-This function will come in handy as we work towards re-arranging the
-PTE bits in the later patches.
+replace redundant code in __hash_page_huge() with helper
+functions pte_get_hash_gslot() and pte_set_hash_slot()
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/include/asm/book3s/64/hash.h |    3 +++
- arch/powerpc/mm/hash_utils_64.c           |   18 ++++++++++++++++++
- 2 files changed, 21 insertions(+), 0 deletions(-)
+ arch/powerpc/mm/hugetlbpage-hash64.c |   24 ++++--------------------
+ 1 files changed, 4 insertions(+), 20 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/book3s/64/hash.h b/arch/powerpc/include/asm/book3s/64/hash.h
-index d27f885..277158c 100644
---- a/arch/powerpc/include/asm/book3s/64/hash.h
-+++ b/arch/powerpc/include/asm/book3s/64/hash.h
-@@ -156,6 +156,9 @@ static inline int hash__pte_none(pte_t pte)
- 	return (pte_val(pte) & ~H_PTE_NONE_MASK) == 0;
- }
+diff --git a/arch/powerpc/mm/hugetlbpage-hash64.c b/arch/powerpc/mm/hugetlbpage-hash64.c
+index 6f7aee3..e6dcd50 100644
+--- a/arch/powerpc/mm/hugetlbpage-hash64.c
++++ b/arch/powerpc/mm/hugetlbpage-hash64.c
+@@ -23,7 +23,6 @@ int __hash_page_huge(unsigned long ea, unsigned long access, unsigned long vsid,
+ 		     int ssize, unsigned int shift, unsigned int mmu_psize)
+ {
+ 	real_pte_t rpte;
+-	unsigned long *hidxp;
+ 	unsigned long vpn;
+ 	unsigned long old_pte, new_pte;
+ 	unsigned long rflags, pa, sz;
+@@ -74,16 +73,10 @@ int __hash_page_huge(unsigned long ea, unsigned long access, unsigned long vsid,
+ 	/* Check if pte already has an hpte (case 2) */
+ 	if (unlikely(old_pte & H_PAGE_HASHPTE)) {
+ 		/* There MIGHT be an HPTE for this pte */
+-		unsigned long hash, slot, hidx;
++		unsigned long gslot;
  
-+unsigned long pte_get_hash_gslot(unsigned long vpn, unsigned long shift,
-+		int ssize, real_pte_t rpte, unsigned int subpg_index);
-+
- /* This low level function performs the actual PTE insertion
-  * Setting the PTE depends on the MMU type and other factors. It's
-  * an horrible mess that I'm not going to try to clean up now but
-diff --git a/arch/powerpc/mm/hash_utils_64.c b/arch/powerpc/mm/hash_utils_64.c
-index 1b494d0..d3604da 100644
---- a/arch/powerpc/mm/hash_utils_64.c
-+++ b/arch/powerpc/mm/hash_utils_64.c
-@@ -1591,6 +1591,24 @@ static inline void tm_flush_hash_page(int local)
- }
- #endif
+-		hash = hpt_hash(vpn, shift, ssize);
+-		hidx = __rpte_to_hidx(rpte, 0);
+-		if (hidx & _PTEIDX_SECONDARY)
+-			hash = ~hash;
+-		slot = (hash & htab_hash_mask) * HPTES_PER_GROUP;
+-		slot += hidx & _PTEIDX_GROUP_IX;
+-
+-		if (mmu_hash_ops.hpte_updatepp(slot, rflags, vpn, mmu_psize,
++		gslot = pte_get_hash_gslot(vpn, shift, ssize, rpte, 0);
++		if (mmu_hash_ops.hpte_updatepp(gslot, rflags, vpn, mmu_psize,
+ 					       mmu_psize, ssize, flags) == -1)
+ 			old_pte &= ~_PAGE_HPTEFLAGS;
+ 	}
+@@ -110,16 +103,7 @@ int __hash_page_huge(unsigned long ea, unsigned long access, unsigned long vsid,
+ 			return -1;
+ 		}
  
-+/*
-+ * return the global hash slot, corresponding to the given
-+ * pte, which contains the hpte.
-+ */
-+unsigned long pte_get_hash_gslot(unsigned long vpn, unsigned long shift,
-+		int ssize, real_pte_t rpte, unsigned int subpg_index)
-+{
-+	unsigned long hash, slot, hidx;
-+
-+	hash = hpt_hash(vpn, shift, ssize);
-+	hidx = __rpte_to_hidx(rpte, subpg_index);
-+	if (hidx & _PTEIDX_SECONDARY)
-+		hash = ~hash;
-+	slot = (hash & htab_hash_mask) * HPTES_PER_GROUP;
-+	slot += hidx & _PTEIDX_GROUP_IX;
-+	return slot;
-+}
-+
- /* WARNING: This is called from hash_low_64.S, if you change this prototype,
-  *          do not forget to update the assembly call site !
-  */
+-		/*
+-		 * Insert slot number & secondary bit in PTE second half.
+-		 */
+-		hidxp = (unsigned long *)(ptep + PTRS_PER_PTE);
+-		rpte.hidx &= ~(0xfUL);
+-		*hidxp = rpte.hidx  | (slot & 0xfUL);
+-		/*
+-		 * check __real_pte for details on matching smp_rmb()
+-		 */
+-		smp_wmb();
++		new_pte |= pte_set_hash_slot(ptep, rpte, 0, slot);
+ 	}
+ 
+ 	/*
 -- 
 1.7.1
 
