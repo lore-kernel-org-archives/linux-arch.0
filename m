@@ -1,7 +1,7 @@
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 7/8] x86/mm: Allow userspace have mapping above 47-bit
-Date: Mon, 17 Jul 2017 01:59:53 +0300
-Message-ID: <20170716225954.74185-8-kirill.shutemov@linux.intel.com>
+Subject: [PATCH 2/8] x86/dump_pagetables: Fix printout of p4d level
+Date: Mon, 17 Jul 2017 01:59:48 +0300
+Message-ID: <20170716225954.74185-3-kirill.shutemov@linux.intel.com>
 References: <20170716225954.74185-1-kirill.shutemov@linux.intel.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <20170716225954.74185-1-kirill.shutemov@linux.intel.com>
@@ -10,30 +10,84 @@ To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-fo
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-All bits and pieces now in place and we can allow userspace to have VMAs
-above 47-bit.
+Modify printk_prot() and callers to print out additional page table
+level correctly.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
- arch/x86/include/asm/processor.h | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ arch/x86/mm/dump_pagetables.c | 18 +++++++++---------
+ 1 file changed, 9 insertions(+), 9 deletions(-)
 
-diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
-index 91362921eb05..06d4dd8aca5d 100644
---- a/arch/x86/include/asm/processor.h
-+++ b/arch/x86/include/asm/processor.h
-@@ -844,9 +844,9 @@ static inline void spin_lock_prefetch(const void *x)
-  * particular problem by preventing anything from being mapped
-  * at the maximum canonical address.
-  */
--#define TASK_SIZE_MAX	((1UL << 47) - PAGE_SIZE)
-+#define TASK_SIZE_MAX	((1UL << __VIRTUAL_MASK_SHIFT) - PAGE_SIZE)
+diff --git a/arch/x86/mm/dump_pagetables.c b/arch/x86/mm/dump_pagetables.c
+index a824d575bb84..b371ab68f2d4 100644
+--- a/arch/x86/mm/dump_pagetables.c
++++ b/arch/x86/mm/dump_pagetables.c
+@@ -138,7 +138,7 @@ static void printk_prot(struct seq_file *m, pgprot_t prot, int level, bool dmsg)
+ {
+ 	pgprotval_t pr = pgprot_val(prot);
+ 	static const char * const level_name[] =
+-		{ "cr3", "pgd", "pud", "pmd", "pte" };
++		{ "cr3", "pgd", "p4d", "pud", "pmd", "pte" };
  
--#define DEFAULT_MAP_WINDOW	TASK_SIZE_MAX
-+#define DEFAULT_MAP_WINDOW	((1UL << 47) - PAGE_SIZE)
+ 	if (!pgprot_val(prot)) {
+ 		/* Not present */
+@@ -162,12 +162,12 @@ static void printk_prot(struct seq_file *m, pgprot_t prot, int level, bool dmsg)
+ 			pt_dump_cont_printf(m, dmsg, "    ");
  
- /* This decides where the kernel will search for a free chunk of vm
-  * space during mmap's.
+ 		/* Bit 7 has a different meaning on level 3 vs 4 */
+-		if (level <= 3 && pr & _PAGE_PSE)
++		if (level <= 4 && pr & _PAGE_PSE)
+ 			pt_dump_cont_printf(m, dmsg, "PSE ");
+ 		else
+ 			pt_dump_cont_printf(m, dmsg, "    ");
+-		if ((level == 4 && pr & _PAGE_PAT) ||
+-		    ((level == 3 || level == 2) && pr & _PAGE_PAT_LARGE))
++		if ((level == 5 && pr & _PAGE_PAT) ||
++		    ((level == 4 || level == 3) && pr & _PAGE_PAT_LARGE))
+ 			pt_dump_cont_printf(m, dmsg, "PAT ");
+ 		else
+ 			pt_dump_cont_printf(m, dmsg, "    ");
+@@ -298,7 +298,7 @@ static void walk_pte_level(struct seq_file *m, struct pg_state *st, pmd_t addr,
+ 	for (i = 0; i < PTRS_PER_PTE; i++) {
+ 		prot = pte_flags(*start);
+ 		st->current_address = normalize_addr(P + i * PTE_LEVEL_MULT);
+-		note_page(m, st, __pgprot(prot), 4);
++		note_page(m, st, __pgprot(prot), 5);
+ 		start++;
+ 	}
+ }
+@@ -317,13 +317,13 @@ static void walk_pmd_level(struct seq_file *m, struct pg_state *st, pud_t addr,
+ 		if (!pmd_none(*start)) {
+ 			if (pmd_large(*start) || !pmd_present(*start)) {
+ 				prot = pmd_flags(*start);
+-				note_page(m, st, __pgprot(prot), 3);
++				note_page(m, st, __pgprot(prot), 4);
+ 			} else {
+ 				walk_pte_level(m, st, *start,
+ 					       P + i * PMD_LEVEL_MULT);
+ 			}
+ 		} else
+-			note_page(m, st, __pgprot(0), 3);
++			note_page(m, st, __pgprot(0), 4);
+ 		start++;
+ 	}
+ }
+@@ -362,13 +362,13 @@ static void walk_pud_level(struct seq_file *m, struct pg_state *st, p4d_t addr,
+ 		    !pud_already_checked(prev_pud, start, st->check_wx)) {
+ 			if (pud_large(*start) || !pud_present(*start)) {
+ 				prot = pud_flags(*start);
+-				note_page(m, st, __pgprot(prot), 2);
++				note_page(m, st, __pgprot(prot), 3);
+ 			} else {
+ 				walk_pmd_level(m, st, *start,
+ 					       P + i * PUD_LEVEL_MULT);
+ 			}
+ 		} else
+-			note_page(m, st, __pgprot(0), 2);
++			note_page(m, st, __pgprot(0), 3);
+ 
+ 		prev_pud = start;
+ 		start++;
 -- 
 2.11.0
 
