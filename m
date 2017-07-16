@@ -1,58 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f196.google.com ([209.85.220.196]:36404 "EHLO
-        mail-qk0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752551AbdGPEA3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 16 Jul 2017 00:00:29 -0400
+Received: from mail-qk0-f194.google.com ([209.85.220.194]:35392 "EHLO
+        mail-qk0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751634AbdGPEA1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 16 Jul 2017 00:00:27 -0400
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v6 59/62] selftest/vm: detect write violation on a mapped access-denied-key page
-Date: Sat, 15 Jul 2017 20:57:01 -0700
-Message-ID: <1500177424-13695-60-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v6 58/62] selftest/vm: detect no write key-violation on a freed key
+Date: Sat, 15 Jul 2017 20:57:00 -0700
+Message-ID: <1500177424-13695-59-git-send-email-linuxram@us.ibm.com>
 In-Reply-To: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
 References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, mhocko@kernel.org
-Message-ID: <20170716035701.hOEJPcYIXPTTJZsLJ_27YXMUa1AYdaPK8KyqB-WAG4g@z>
+Message-ID: <20170716035700.FcLknMRHhKkXcqGdDV0uJ2y8AceZ2-gs3u3XCvffxuM@z>
 
-detect write-violation on a page to which access-disabled
-key is associated much after the page is mapped.
+a write-denied key should not trigger any key violation
+after the key has been freed.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- tools/testing/selftests/vm/protection_keys.c |   13 +++++++++++++
- 1 files changed, 13 insertions(+), 0 deletions(-)
+ tools/testing/selftests/vm/protection_keys.c |   18 ++++++++++++++++++
+ 1 files changed, 18 insertions(+), 0 deletions(-)
 
 diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index 07df8cf..d9474f9 100644
+index e35cef5..07df8cf 100644
 --- a/tools/testing/selftests/vm/protection_keys.c
 +++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -1092,6 +1092,18 @@ void test_write_of_access_disabled_region(int *ptr, u16 pkey)
+@@ -1068,6 +1068,23 @@ void test_write_of_write_disabled_region(int *ptr, u16 pkey)
  	*ptr = __LINE__;
  	expected_pkey_fault(pkey);
  }
 +
-+void test_write_of_access_disabled_region_with_page_already_mapped(int *ptr,
-+			u16 pkey)
++void test_write_of_write_disabled_but_freed_key_region(int *ptr, u16 pkey)
 +{
++	dprintf1("disabling write access to PKEY[%02d], doing write\n", pkey);
 +	*ptr = __LINE__;
-+	dprintf1("disabling access; after accessing the page, "
-+		" to PKEY[%02d], doing write\n", pkey);
-+	pkey_access_deny(pkey);
++	do_not_expect_pkey_fault();
++
++	pkey_write_deny(pkey);
 +	*ptr = __LINE__;
 +	expected_pkey_fault(pkey);
++
++	pkey_write_deny(pkey);
++	sys_pkey_free(pkey);
++	*ptr = __LINE__;
++	do_not_expect_pkey_fault();
 +}
 +
- void test_kernel_write_of_access_disabled_region(int *ptr, u16 pkey)
+ void test_write_of_access_disabled_region(int *ptr, u16 pkey)
  {
- 	int ret;
-@@ -1377,6 +1389,7 @@ void test_mprotect_pkey_on_unsupported_cpu(int *ptr, u16 pkey)
- 	test_write_of_write_disabled_region,
- 	test_write_of_write_disabled_region_with_page_already_mapped,
- 	test_write_of_access_disabled_region,
-+	test_write_of_access_disabled_region_with_page_already_mapped,
- 	test_kernel_write_of_access_disabled_region,
- 	test_kernel_write_of_write_disabled_region,
- 	test_kernel_gup_of_access_disabled_region,
+ 	dprintf1("disabling access to PKEY[%02d], doing write\n", pkey);
+@@ -1370,6 +1387,7 @@ void test_mprotect_pkey_on_unsupported_cpu(int *ptr, u16 pkey)
+ 	test_pkey_syscalls_bad_args,
+ 	test_pkey_alloc_exhaust,
+ 	test_read_of_access_disabled_but_freed_key_region,
++	test_write_of_write_disabled_but_freed_key_region,
+ };
+ 
+ void run_tests_once(void)
 -- 
 1.7.1
