@@ -1,79 +1,88 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f196.google.com ([209.85.220.196]:35079 "EHLO
-        mail-qk0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751517AbdGPD6s (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 15 Jul 2017 23:58:48 -0400
+Received: from mail-qk0-f193.google.com ([209.85.220.193]:35175 "EHLO
+        mail-qk0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752028AbdGPD7S (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 15 Jul 2017 23:59:18 -0400
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v6 19/62] powerpc: ability to create execute-disabled pkeys
-Date: Sat, 15 Jul 2017 20:56:21 -0700
-Message-ID: <1500177424-13695-20-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v6 31/62] powerpc: Handle exceptions caused by pkey violation
+Date: Sat, 15 Jul 2017 20:56:33 -0700
+Message-ID: <1500177424-13695-32-git-send-email-linuxram@us.ibm.com>
 In-Reply-To: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
 References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, mhocko@kernel.org
-Message-ID: <20170716035621.vYMqE04fYIZH9YV40ZqKep4D64bAROanEDnCUnfR2BQ@z>
+Message-ID: <20170716035633.6PHOkg1K5ujITxbgILbw_uJWMn4zk54qJLv-O_C2O2Y@z>
 
-powerpc has hardware support to disable execute on a pkey.
-This patch enables the ability to create execute-disabled
-keys.
+Handle Data and  Instruction exceptions caused by memory
+protection-key.
+
+The CPU will detect the key fault if the HPTE is already
+programmed with the key.
+
+However if the HPTE is not  hashed, a key fault will not
+be detected by the  hardware. The   software will detect
+pkey violation in such a case.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/include/asm/pkeys.h |   12 ++++++++++++
- arch/powerpc/mm/pkeys.c          |   10 ++++++++++
- 2 files changed, 22 insertions(+), 0 deletions(-)
+ arch/powerpc/include/asm/reg.h |    3 ++-
+ arch/powerpc/mm/fault.c        |   21 +++++++++++++++++++++
+ 2 files changed, 23 insertions(+), 1 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
-index 1943e6b..0e744f1 100644
---- a/arch/powerpc/include/asm/pkeys.h
-+++ b/arch/powerpc/include/asm/pkeys.h
-@@ -2,6 +2,18 @@
- #define _ASM_PPC64_PKEYS_H
+diff --git a/arch/powerpc/include/asm/reg.h b/arch/powerpc/include/asm/reg.h
+index ee04bc0..b7cbc8c 100644
+--- a/arch/powerpc/include/asm/reg.h
++++ b/arch/powerpc/include/asm/reg.h
+@@ -286,7 +286,8 @@
+ #define   DSISR_SET_RC		0x00040000	/* Failed setting of R/C bits */
+ #define   DSISR_PGDIRFAULT      0x00020000      /* Fault on page directory */
+ #define   DSISR_PAGE_FAULT_MASK (DSISR_BIT32 | DSISR_PAGEATTR_CONFLT | \
+-				DSISR_BADACCESS | DSISR_DABRMATCH | DSISR_BIT43)
++				DSISR_BADACCESS | DSISR_KEYFAULT | \
++				DSISR_DABRMATCH | DSISR_BIT43)
+ #define SPRN_TBRL	0x10C	/* Time Base Read Lower Register (user, R/O) */
+ #define SPRN_TBRU	0x10D	/* Time Base Read Upper Register (user, R/O) */
+ #define SPRN_CIR	0x11B	/* Chip Information Register (hyper, R/0) */
+diff --git a/arch/powerpc/mm/fault.c b/arch/powerpc/mm/fault.c
+index 3a7d580..ea74fe2 100644
+--- a/arch/powerpc/mm/fault.c
++++ b/arch/powerpc/mm/fault.c
+@@ -261,6 +261,13 @@ int do_page_fault(struct pt_regs *regs, unsigned long address,
+ 	}
+ #endif
  
- extern bool pkey_inited;
-+/* override any generic PKEY Permission defines */
-+#undef  PKEY_DISABLE_ACCESS
-+#define PKEY_DISABLE_ACCESS    0x1
-+#undef  PKEY_DISABLE_WRITE
-+#define PKEY_DISABLE_WRITE     0x2
-+#undef  PKEY_DISABLE_EXECUTE
-+#define PKEY_DISABLE_EXECUTE   0x4
-+#undef  PKEY_ACCESS_MASK
-+#define PKEY_ACCESS_MASK       (PKEY_DISABLE_ACCESS |\
-+				PKEY_DISABLE_WRITE  |\
-+				PKEY_DISABLE_EXECUTE)
++#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
++	if (error_code & DSISR_KEYFAULT) {
++		code = SEGV_PKUERR;
++		goto bad_area_nosemaphore;
++	}
++#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
 +
- #define arch_max_pkey()  32
- #define AMR_RD_BIT 0x1UL
- #define AMR_WR_BIT 0x2UL
-diff --git a/arch/powerpc/mm/pkeys.c b/arch/powerpc/mm/pkeys.c
-index 98d0391..b9ad98d 100644
---- a/arch/powerpc/mm/pkeys.c
-+++ b/arch/powerpc/mm/pkeys.c
-@@ -73,6 +73,7 @@ int __arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
- 		unsigned long init_val)
- {
- 	u64 new_amr_bits = 0x0ul;
-+	u64 new_iamr_bits = 0x0ul;
+ 	/* We restore the interrupt state now */
+ 	if (!arch_irq_disabled_regs(regs))
+ 		local_irq_enable();
+@@ -441,6 +448,20 @@ int do_page_fault(struct pt_regs *regs, unsigned long address,
+ 		WARN_ON_ONCE(error_code & DSISR_PROTFAULT);
+ #endif /* CONFIG_PPC_STD_MMU */
  
- 	if (!is_pkey_enabled(pkey))
- 		return -1;
-@@ -85,5 +86,14 @@ int __arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
- 
- 	init_amr(pkey, new_amr_bits);
- 
-+	/*
-+	 * By default execute is disabled.
-+	 * To enable execute, PKEY_ENABLE_EXECUTE
-+	 * needs to be specified.
++#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
++	if (!arch_vma_access_permitted(vma, flags & FAULT_FLAG_WRITE,
++			is_exec, 0)) {
++		code = SEGV_PKUERR;
++		goto bad_area;
++	}
++#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
++
++
++	/* handle_mm_fault() needs to know if its a instruction access
++	 * fault.
 +	 */
-+	if ((init_val & PKEY_DISABLE_EXECUTE))
-+		new_iamr_bits |= IAMR_EX_BIT;
-+
-+	init_iamr(pkey, new_iamr_bits);
- 	return 0;
- }
++	if (is_exec)
++		flags |= FAULT_FLAG_INSTRUCTION;
+ 	/*
+ 	 * If for any reason at all we couldn't handle the fault,
+ 	 * make sure we exit gracefully rather than endlessly redo
 -- 
 1.7.1
