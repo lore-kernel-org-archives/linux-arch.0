@@ -1,133 +1,67 @@
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v6 23/62] powerpc: implementation for arch_override_mprotect_pkey()
-Date: Sat, 15 Jul 2017 20:56:25 -0700
-Message-ID: <1500177424-13695-24-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v6 16/62] powerpc: cleaup AMR,iAMR when a key is allocated or freed
+Date: Sat, 15 Jul 2017 20:56:18 -0700
+Message-ID: <1500177424-13695-17-git-send-email-linuxram@us.ibm.com>
 References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
-Return-path: <linux-doc-owner@vger.kernel.org>
+Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
-Sender: linux-doc-owner@vger.kernel.org
+Sender: owner-linux-mm@kvack.org
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, mhocko@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-arch independent code calls arch_override_mprotect_pkey()
-to return a pkey that best matches the requested protection.
-
-This patch provides the implementation.
+cleanup the bits corresponding to a key in the AMR, and IAMR
+register, when the key is newly allocated/activated or is freed.
+We dont want some residual bits cause the hardware enforce
+unintended behavior when the key is activated or freed.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/include/asm/mmu_context.h |    5 +++
- arch/powerpc/include/asm/pkeys.h       |   14 ++++++++-
- arch/powerpc/mm/pkeys.c                |   47 ++++++++++++++++++++++++++++++++
- 3 files changed, 64 insertions(+), 2 deletions(-)
+ arch/powerpc/include/asm/pkeys.h |   12 ++++++++++++
+ 1 files changed, 12 insertions(+), 0 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/mmu_context.h b/arch/powerpc/include/asm/mmu_context.h
-index 4705dab..7232484 100644
---- a/arch/powerpc/include/asm/mmu_context.h
-+++ b/arch/powerpc/include/asm/mmu_context.h
-@@ -185,6 +185,11 @@ static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
- #ifndef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
- #define pkey_initialize()
- #define pkey_mm_init(mm)
-+
-+static inline int vma_pkey(struct vm_area_struct *vma)
-+{
-+	return 0;
-+}
- #endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
- 
- #endif /* __KERNEL__ */
 diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
-index c92b049..94013af 100644
+index 4327842..7f5c21d 100644
 --- a/arch/powerpc/include/asm/pkeys.h
 +++ b/arch/powerpc/include/asm/pkeys.h
-@@ -29,6 +29,13 @@ static inline u64 pkey_to_vmflag_bits(u16 pkey)
- 		((pkey & 0x10UL) ? VM_PKEY_BIT4 : 0x0UL));
+@@ -42,6 +42,8 @@ static inline bool mm_pkey_is_allocated(struct mm_struct *mm, int pkey)
+ 		mm_set_pkey_is_allocated(mm, pkey));
  }
  
-+static inline int vma_pkey(struct vm_area_struct *vma)
-+{
-+	if (!pkey_inited)
-+		return 0;
-+	return (vma->vm_flags & ARCH_VM_PKEY_FLAGS) >> VM_PKEY_SHIFT;
-+}
++extern void __arch_activate_pkey(int pkey);
++extern void __arch_deactivate_pkey(int pkey);
+ /*
+  * Returns a positive, 5-bit key on success, or -1 on failure.
+  */
+@@ -70,6 +72,12 @@ static inline int mm_pkey_alloc(struct mm_struct *mm)
+ 		ffz((u32)mm_pkey_allocation_map(mm))
+ 		- 1;
+ 	mm_set_pkey_allocated(mm, ret);
 +
- #define arch_max_pkey()  32
- #define AMR_RD_BIT 0x1UL
- #define AMR_WR_BIT 0x2UL
-@@ -138,11 +145,14 @@ static inline int execute_only_pkey(struct mm_struct *mm)
- 	return __execute_only_pkey(mm);
++	/*
++	 * enable the key in the hardware
++	 */
++	if (ret > 0)
++		__arch_activate_pkey(ret);
+ 	return ret;
  }
  
--
-+extern int __arch_override_mprotect_pkey(struct vm_area_struct *vma,
-+		int prot, int pkey);
- static inline int arch_override_mprotect_pkey(struct vm_area_struct *vma,
- 		int prot, int pkey)
- {
--	return 0;
-+	if (!pkey_inited)
-+		return 0;
-+	return __arch_override_mprotect_pkey(vma, prot, pkey);
- }
+@@ -81,6 +89,10 @@ static inline int mm_pkey_free(struct mm_struct *mm, int pkey)
+ 	if (!mm_pkey_is_allocated(mm, pkey))
+ 		return -EINVAL;
  
- extern int __arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
-diff --git a/arch/powerpc/mm/pkeys.c b/arch/powerpc/mm/pkeys.c
-index 34e8557..403f5ae 100644
---- a/arch/powerpc/mm/pkeys.c
-+++ b/arch/powerpc/mm/pkeys.c
-@@ -154,3 +154,50 @@ int __execute_only_pkey(struct mm_struct *mm)
- 		mm->context.execute_only_pkey = execute_only_pkey;
- 	return execute_only_pkey;
- }
-+
-+static inline bool vma_is_pkey_exec_only(struct vm_area_struct *vma)
-+{
-+	/* Do this check first since the vm_flags should be hot */
-+	if ((vma->vm_flags & (VM_READ | VM_WRITE | VM_EXEC)) != VM_EXEC)
-+		return false;
-+
-+	return (vma_pkey(vma) == vma->vm_mm->context.execute_only_pkey);
-+}
-+
-+/*
-+ * This should only be called for *plain* mprotect calls.
-+ */
-+int __arch_override_mprotect_pkey(struct vm_area_struct *vma, int prot,
-+		int pkey)
-+{
 +	/*
-+	 * Is this an mprotect_pkey() call?  If so, never
-+	 * override the value that came from the user.
++	 * Disable the key in the hardware
 +	 */
-+	if (pkey != -1)
-+		return pkey;
-+
-+	/*
-+	 * If the currently associated pkey is execute-only,
-+	 * but the requested protection requires read or write,
-+	 * move it back to the default pkey.
-+	 */
-+	if (vma_is_pkey_exec_only(vma) &&
-+	    (prot & (PROT_READ|PROT_WRITE)))
-+		return 0;
-+
-+	/*
-+	 * the requested protection is execute-only. Hence
-+	 * lets use a execute-only pkey.
-+	 */
-+	if (prot == PROT_EXEC) {
-+		pkey = execute_only_pkey(vma->vm_mm);
-+		if (pkey > 0)
-+			return pkey;
-+	}
-+
-+	/*
-+	 * nothing to override.
-+	 */
-+	return vma_pkey(vma);
-+}
++	__arch_deactivate_pkey(pkey);
+ 	mm_set_pkey_free(mm, pkey);
+ 
+ 	return 0;
 -- 
 1.7.1
 
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
