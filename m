@@ -1,138 +1,75 @@
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v6 21/62] powerpc: introduce execute-only pkey
-Date: Sat, 15 Jul 2017 20:56:23 -0700
-Message-ID: <1500177424-13695-22-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v6 33/62] powerpc: introduce get_pte_pkey() helper
+Date: Sat, 15 Jul 2017 20:56:35 -0700
+Message-ID: <1500177424-13695-34-git-send-email-linuxram@us.ibm.com>
 References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
-Return-path: <owner-linux-mm@kvack.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
-Sender: owner-linux-mm@kvack.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, mhocko@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-This patch provides the implementation of execute-only pkey.
-The architecture-independent  expects the ability to create
-and manage a special key which has execute-only permission.
+get_pte_pkey() helper returns the pkey associated with
+a address corresponding to a given mm_struct.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/include/asm/book3s/64/mmu.h |    1 +
- arch/powerpc/include/asm/pkeys.h         |    8 ++++-
- arch/powerpc/mm/pkeys.c                  |   57 ++++++++++++++++++++++++++++++
- 3 files changed, 65 insertions(+), 1 deletions(-)
+ arch/powerpc/include/asm/book3s/64/mmu-hash.h |    5 +++++
+ arch/powerpc/mm/hash_utils_64.c               |   25 +++++++++++++++++++++++++
+ 2 files changed, 30 insertions(+), 0 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/book3s/64/mmu.h b/arch/powerpc/include/asm/book3s/64/mmu.h
-index 104ad72..0c0a2a8 100644
---- a/arch/powerpc/include/asm/book3s/64/mmu.h
-+++ b/arch/powerpc/include/asm/book3s/64/mmu.h
-@@ -116,6 +116,7 @@ struct patb_entry {
- 	 * bit unset -> key available for allocation
- 	 */
- 	u32 pkey_allocation_map;
-+	s16 execute_only_pkey; /* key holding execute-only protection */
- #endif
- } mm_context_t;
- 
-diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
-index 0e744f1..1864148 100644
---- a/arch/powerpc/include/asm/pkeys.h
-+++ b/arch/powerpc/include/asm/pkeys.h
-@@ -118,11 +118,15 @@ static inline int mm_pkey_free(struct mm_struct *mm, int pkey)
-  * Try to dedicate one of the protection keys to be used as an
-  * execute-only protection key.
-  */
-+extern int __execute_only_pkey(struct mm_struct *mm);
- static inline int execute_only_pkey(struct mm_struct *mm)
- {
--	return 0;
-+	if (!pkey_inited)
-+		return -1;
-+	return __execute_only_pkey(mm);
- }
- 
+diff --git a/arch/powerpc/include/asm/book3s/64/mmu-hash.h b/arch/powerpc/include/asm/book3s/64/mmu-hash.h
+index f7a6ed3..369f9ff 100644
+--- a/arch/powerpc/include/asm/book3s/64/mmu-hash.h
++++ b/arch/powerpc/include/asm/book3s/64/mmu-hash.h
+@@ -450,6 +450,11 @@ extern int hash_page(unsigned long ea, unsigned long access, unsigned long trap,
+ int __hash_page_huge(unsigned long ea, unsigned long access, unsigned long vsid,
+ 		     pte_t *ptep, unsigned long trap, unsigned long flags,
+ 		     int ssize, unsigned int shift, unsigned int mmu_psize);
 +
- static inline int arch_override_mprotect_pkey(struct vm_area_struct *vma,
- 		int prot, int pkey)
- {
-@@ -144,6 +148,8 @@ static inline void pkey_mm_init(struct mm_struct *mm)
- 	if (!pkey_inited)
- 		return;
- 	mm_pkey_allocation_map(mm) = PKEY_INITIAL_ALLOCAION;
-+	/* -1 means unallocated or invalid */
-+	mm->context.execute_only_pkey = -1;
++#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
++u16 get_pte_pkey(struct mm_struct *mm, unsigned long address);
++#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
++
+ #ifdef CONFIG_TRANSPARENT_HUGEPAGE
+ extern int __hash_page_thp(unsigned long ea, unsigned long access,
+ 			   unsigned long vsid, pmd_t *pmdp, unsigned long trap,
+diff --git a/arch/powerpc/mm/hash_utils_64.c b/arch/powerpc/mm/hash_utils_64.c
+index 1e74529..6bc8e91 100644
+--- a/arch/powerpc/mm/hash_utils_64.c
++++ b/arch/powerpc/mm/hash_utils_64.c
+@@ -1573,6 +1573,31 @@ void hash_preload(struct mm_struct *mm, unsigned long ea,
+ 	local_irq_restore(flags);
  }
  
- static inline void pkey_initialize(void)
-diff --git a/arch/powerpc/mm/pkeys.c b/arch/powerpc/mm/pkeys.c
-index b9ad98d..34e8557 100644
---- a/arch/powerpc/mm/pkeys.c
-+++ b/arch/powerpc/mm/pkeys.c
-@@ -97,3 +97,60 @@ int __arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
- 	init_iamr(pkey, new_iamr_bits);
- 	return 0;
- }
-+
-+static inline bool pkey_allows_readwrite(int pkey)
++#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
++/*
++ * return the protection key associated with the given address
++ * and the mm_struct.
++ */
++u16 get_pte_pkey(struct mm_struct *mm, unsigned long address)
 +{
-+	int pkey_shift = pkeyshift(pkey);
++	pte_t *ptep;
++	u16 pkey = 0;
++	unsigned long flags;
 +
-+	if (!(read_uamor() & (0x3UL << pkey_shift)))
-+		return true;
++	if (!mm || !mm->pgd)
++		return 0;
 +
-+	return !(read_amr() & ((AMR_RD_BIT|AMR_WR_BIT) << pkey_shift));
++	local_irq_save(flags);
++	ptep = find_linux_pte_or_hugepte(mm->pgd, address,
++			NULL, NULL);
++	if (ptep)
++		pkey = pte_to_pkey_bits(pte_val(READ_ONCE(*ptep)));
++	local_irq_restore(flags);
++
++	return pkey;
 +}
++#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
 +
-+int __execute_only_pkey(struct mm_struct *mm)
-+{
-+	bool need_to_set_mm_pkey = false;
-+	int execute_only_pkey = mm->context.execute_only_pkey;
-+	int ret;
-+
-+	/* Do we need to assign a pkey for mm's execute-only maps? */
-+	if (execute_only_pkey == -1) {
-+		/* Go allocate one to use, which might fail */
-+		execute_only_pkey = mm_pkey_alloc(mm);
-+		if (execute_only_pkey < 0)
-+			return -1;
-+		need_to_set_mm_pkey = true;
-+	}
-+
-+	/*
-+	 * We do not want to go through the relatively costly
-+	 * dance to set AMR if we do not need to.  Check it
-+	 * first and assume that if the execute-only pkey is
-+	 * readwrite-disabled than we do not have to set it
-+	 * ourselves.
-+	 */
-+	if (!need_to_set_mm_pkey &&
-+	    !pkey_allows_readwrite(execute_only_pkey))
-+		return execute_only_pkey;
-+
-+	/*
-+	 * Set up AMR so that it denies access for everything
-+	 * other than execution.
-+	 */
-+	ret = __arch_set_user_pkey_access(current, execute_only_pkey,
-+			(PKEY_DISABLE_ACCESS | PKEY_DISABLE_WRITE));
-+	/*
-+	 * If the AMR-set operation failed somehow, just return
-+	 * 0 and effectively disable execute-only support.
-+	 */
-+	if (ret) {
-+		mm_set_pkey_free(mm, execute_only_pkey);
-+		return -1;
-+	}
-+
-+	/* We got one, store it and use it from here on out */
-+	if (need_to_set_mm_pkey)
-+		mm->context.execute_only_pkey = execute_only_pkey;
-+	return execute_only_pkey;
-+}
+ #ifdef CONFIG_PPC_TRANSACTIONAL_MEM
+ static inline void tm_flush_hash_page(int local)
+ {
 -- 
 1.7.1
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
