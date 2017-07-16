@@ -1,67 +1,85 @@
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v6 16/62] powerpc: cleaup AMR,iAMR when a key is allocated or freed
-Date: Sat, 15 Jul 2017 20:56:18 -0700
-Message-ID: <1500177424-13695-17-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v6 26/62] powerpc: Program HPTE key protection bits
+Date: Sat, 15 Jul 2017 20:56:28 -0700
+Message-ID: <1500177424-13695-27-git-send-email-linuxram@us.ibm.com>
 References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
-Return-path: <owner-linux-mm@kvack.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
-Sender: owner-linux-mm@kvack.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, mhocko@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-cleanup the bits corresponding to a key in the AMR, and IAMR
-register, when the key is newly allocated/activated or is freed.
-We dont want some residual bits cause the hardware enforce
-unintended behavior when the key is activated or freed.
+Map the PTE protection key bits to the HPTE key protection bits,
+while creating HPTE  entries.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/include/asm/pkeys.h |   12 ++++++++++++
- 1 files changed, 12 insertions(+), 0 deletions(-)
+ arch/powerpc/include/asm/book3s/64/mmu-hash.h |    5 +++++
+ arch/powerpc/include/asm/pkeys.h              |   12 ++++++++++++
+ arch/powerpc/mm/hash_utils_64.c               |    4 ++++
+ 3 files changed, 21 insertions(+), 0 deletions(-)
 
+diff --git a/arch/powerpc/include/asm/book3s/64/mmu-hash.h b/arch/powerpc/include/asm/book3s/64/mmu-hash.h
+index 6981a52..f7a6ed3 100644
+--- a/arch/powerpc/include/asm/book3s/64/mmu-hash.h
++++ b/arch/powerpc/include/asm/book3s/64/mmu-hash.h
+@@ -90,6 +90,8 @@
+ #define HPTE_R_PP0		ASM_CONST(0x8000000000000000)
+ #define HPTE_R_TS		ASM_CONST(0x4000000000000000)
+ #define HPTE_R_KEY_HI		ASM_CONST(0x3000000000000000)
++#define HPTE_R_KEY_BIT0		ASM_CONST(0x2000000000000000)
++#define HPTE_R_KEY_BIT1		ASM_CONST(0x1000000000000000)
+ #define HPTE_R_RPN_SHIFT	12
+ #define HPTE_R_RPN		ASM_CONST(0x0ffffffffffff000)
+ #define HPTE_R_RPN_3_0		ASM_CONST(0x01fffffffffff000)
+@@ -104,6 +106,9 @@
+ #define HPTE_R_C		ASM_CONST(0x0000000000000080)
+ #define HPTE_R_R		ASM_CONST(0x0000000000000100)
+ #define HPTE_R_KEY_LO		ASM_CONST(0x0000000000000e00)
++#define HPTE_R_KEY_BIT2		ASM_CONST(0x0000000000000800)
++#define HPTE_R_KEY_BIT3		ASM_CONST(0x0000000000000400)
++#define HPTE_R_KEY_BIT4		ASM_CONST(0x0000000000000200)
+ 
+ #define HPTE_V_1TB_SEG		ASM_CONST(0x4000000000000000)
+ #define HPTE_V_VRMA_MASK	ASM_CONST(0x4001ffffff000000)
 diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
-index 4327842..7f5c21d 100644
+index ad39db0..bbb5d85 100644
 --- a/arch/powerpc/include/asm/pkeys.h
 +++ b/arch/powerpc/include/asm/pkeys.h
-@@ -42,6 +42,8 @@ static inline bool mm_pkey_is_allocated(struct mm_struct *mm, int pkey)
- 		mm_set_pkey_is_allocated(mm, pkey));
+@@ -41,6 +41,18 @@ static inline u64 vmflag_to_page_pkey_bits(u64 vm_flags)
+ 		((vm_flags & VM_PKEY_BIT4) ? H_PAGE_PKEY_BIT0 : 0x0UL));
  }
  
-+extern void __arch_activate_pkey(int pkey);
-+extern void __arch_deactivate_pkey(int pkey);
- /*
-  * Returns a positive, 5-bit key on success, or -1 on failure.
-  */
-@@ -70,6 +72,12 @@ static inline int mm_pkey_alloc(struct mm_struct *mm)
- 		ffz((u32)mm_pkey_allocation_map(mm))
- 		- 1;
- 	mm_set_pkey_allocated(mm, ret);
++static inline u64 pte_to_hpte_pkey_bits(u64 pteflags)
++{
++	if (!pkey_inited)
++		return 0x0UL;
 +
-+	/*
-+	 * enable the key in the hardware
-+	 */
-+	if (ret > 0)
-+		__arch_activate_pkey(ret);
- 	return ret;
++	return (((pteflags & H_PAGE_PKEY_BIT0) ? HPTE_R_KEY_BIT0 : 0x0UL) |
++		((pteflags & H_PAGE_PKEY_BIT1) ? HPTE_R_KEY_BIT1 : 0x0UL) |
++		((pteflags & H_PAGE_PKEY_BIT2) ? HPTE_R_KEY_BIT2 : 0x0UL) |
++		((pteflags & H_PAGE_PKEY_BIT3) ? HPTE_R_KEY_BIT3 : 0x0UL) |
++		((pteflags & H_PAGE_PKEY_BIT4) ? HPTE_R_KEY_BIT4 : 0x0UL));
++}
++
+ static inline int vma_pkey(struct vm_area_struct *vma)
+ {
+ 	if (!pkey_inited)
+diff --git a/arch/powerpc/mm/hash_utils_64.c b/arch/powerpc/mm/hash_utils_64.c
+index f88423b..1e74529 100644
+--- a/arch/powerpc/mm/hash_utils_64.c
++++ b/arch/powerpc/mm/hash_utils_64.c
+@@ -231,6 +231,10 @@ unsigned long htab_convert_pte_flags(unsigned long pteflags)
+ 		 */
+ 		rflags |= HPTE_R_M;
+ 
++#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
++	rflags |= pte_to_hpte_pkey_bits(pteflags);
++#endif
++
+ 	return rflags;
  }
  
-@@ -81,6 +89,10 @@ static inline int mm_pkey_free(struct mm_struct *mm, int pkey)
- 	if (!mm_pkey_is_allocated(mm, pkey))
- 		return -EINVAL;
- 
-+	/*
-+	 * Disable the key in the hardware
-+	 */
-+	__arch_deactivate_pkey(pkey);
- 	mm_set_pkey_free(mm, pkey);
- 
- 	return 0;
 -- 
 1.7.1
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
