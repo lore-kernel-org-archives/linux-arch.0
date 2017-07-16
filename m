@@ -1,57 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f193.google.com ([209.85.220.193]:36386 "EHLO
-        mail-qk0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751609AbdGPEAY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 16 Jul 2017 00:00:24 -0400
+Received: from mail-qt0-f194.google.com ([209.85.216.194]:36078 "EHLO
+        mail-qt0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751513AbdGPEAT (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 16 Jul 2017 00:00:19 -0400
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v6 57/62] selftest/vm: associate key on a mapped page and detect write violation
-Date: Sat, 15 Jul 2017 20:56:59 -0700
-Message-ID: <1500177424-13695-58-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v6 55/62] selftest/vm: associate key on a mapped page and detect access violation
+Date: Sat, 15 Jul 2017 20:56:57 -0700
+Message-ID: <1500177424-13695-56-git-send-email-linuxram@us.ibm.com>
 In-Reply-To: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
 References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, mhocko@kernel.org
-Message-ID: <20170716035659.hPOHpeoAzPy8W4mTsNjSBLY-Wpz13SrpY4OjQPN0fWg@z>
+Message-ID: <20170716035657.mMHRgrnv_Z0M-jFBXBh6ibOqZ7vyx0nwG478ojG5XYA@z>
 
-detect write-violation on a page to which write-disabled
+detect access-violation on a page to which access-disabled
 key is associated much after the page is mapped.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- tools/testing/selftests/vm/protection_keys.c |   12 ++++++++++++
- 1 files changed, 12 insertions(+), 0 deletions(-)
+ tools/testing/selftests/vm/protection_keys.c |   19 +++++++++++++++++++
+ 1 files changed, 19 insertions(+), 0 deletions(-)
 
 diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index 47c23cc..e35cef5 100644
+index 37645a5..bf27bcd 100644
 --- a/tools/testing/selftests/vm/protection_keys.c
 +++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -1050,6 +1050,17 @@ void test_read_of_access_disabled_but_freed_key_region(int *ptr, u16 pkey)
- 	do_not_expect_pkey_fault();
+@@ -1008,6 +1008,24 @@ void test_read_of_access_disabled_region(int *ptr, u16 pkey)
+ 	dprintf1("*ptr: %d\n", ptr_contents);
+ 	expected_pkey_fault(pkey);
  }
- 
-+void test_write_of_write_disabled_region_with_page_already_mapped(int *ptr,
++
++void test_read_of_access_disabled_region_with_page_already_mapped(int *ptr,
 +		u16 pkey)
 +{
-+	*ptr = __LINE__;
-+	dprintf1("disabling write access; after accessing the page, "
-+		"to PKEY[%02d], doing write\n", pkey);
-+	pkey_write_deny(pkey);
-+	*ptr = __LINE__;
++	int ptr_contents;
++
++	dprintf1("disabling access to PKEY[%02d], doing read @ %p\n",
++				pkey, ptr);
++	ptr_contents = read_ptr(ptr);
++	dprintf1("reading ptr before disabling the read : %d\n",
++			ptr_contents);
++	rdpkey_reg();
++	pkey_access_deny(pkey);
++	ptr_contents = read_ptr(ptr);
++	dprintf1("*ptr: %d\n", ptr_contents);
 +	expected_pkey_fault(pkey);
 +}
 +
  void test_write_of_write_disabled_region(int *ptr, u16 pkey)
  {
  	dprintf1("disabling write access to PKEY[%02d], doing write\n", pkey);
-@@ -1347,6 +1358,7 @@ void test_mprotect_pkey_on_unsupported_cpu(int *ptr, u16 pkey)
+@@ -1303,6 +1321,7 @@ void test_mprotect_pkey_on_unsupported_cpu(int *ptr, u16 pkey)
+ void (*pkey_tests[])(int *ptr, u16 pkey) = {
+ 	test_read_of_write_disabled_region,
  	test_read_of_access_disabled_region,
- 	test_read_of_access_disabled_region_with_page_already_mapped,
++	test_read_of_access_disabled_region_with_page_already_mapped,
  	test_write_of_write_disabled_region,
-+	test_write_of_write_disabled_region_with_page_already_mapped,
  	test_write_of_access_disabled_region,
  	test_kernel_write_of_access_disabled_region,
- 	test_kernel_write_of_write_disabled_region,
 -- 
 1.7.1
