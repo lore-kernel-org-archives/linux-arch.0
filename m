@@ -1,7 +1,7 @@
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v6 31/62] powerpc: Handle exceptions caused by pkey violation
-Date: Sat, 15 Jul 2017 20:56:33 -0700
-Message-ID: <1500177424-13695-32-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v6 29/62] powerpc: Macro the mask used for checking DSI exception
+Date: Sat, 15 Jul 2017 20:56:31 -0700
+Message-ID: <1500177424-13695-30-git-send-email-linuxram@us.ibm.com>
 References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
@@ -10,74 +10,54 @@ To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, mhocko@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Handle Data and  Instruction exceptions caused by memory
-protection-key.
-
-The CPU will detect the key fault if the HPTE is already
-programmed with the key.
-
-However if the HPTE is not  hashed, a key fault will not
-be detected by the  hardware. The   software will detect
-pkey violation in such a case.
+Replace the magic number used to check for DSI exception
+with a meaningful value.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/include/asm/reg.h |    3 ++-
- arch/powerpc/mm/fault.c        |   21 +++++++++++++++++++++
- 2 files changed, 23 insertions(+), 1 deletions(-)
+ arch/powerpc/include/asm/reg.h       |    7 ++++++-
+ arch/powerpc/kernel/exceptions-64s.S |    2 +-
+ 2 files changed, 7 insertions(+), 2 deletions(-)
 
 diff --git a/arch/powerpc/include/asm/reg.h b/arch/powerpc/include/asm/reg.h
-index ee04bc0..b7cbc8c 100644
+index 7e50e47..ee04bc0 100644
 --- a/arch/powerpc/include/asm/reg.h
 +++ b/arch/powerpc/include/asm/reg.h
-@@ -286,7 +286,8 @@
+@@ -272,16 +272,21 @@
+ #define SPRN_DAR	0x013	/* Data Address Register */
+ #define SPRN_DBCR	0x136	/* e300 Data Breakpoint Control Reg */
+ #define SPRN_DSISR	0x012	/* Data Storage Interrupt Status Register */
++#define   DSISR_BIT32		0x80000000	/* not defined */
+ #define   DSISR_NOHPTE		0x40000000	/* no translation found */
++#define   DSISR_PAGEATTR_CONFLT	0x20000000	/* page attribute conflict */
++#define   DSISR_BIT35		0x10000000	/* not defined */
+ #define   DSISR_PROTFAULT	0x08000000	/* protection fault */
+ #define   DSISR_BADACCESS	0x04000000	/* bad access to CI or G */
+ #define   DSISR_ISSTORE		0x02000000	/* access was a store */
+ #define   DSISR_DABRMATCH	0x00400000	/* hit data breakpoint */
+-#define   DSISR_NOSEGMENT	0x00200000	/* SLB miss */
+ #define   DSISR_KEYFAULT	0x00200000	/* Key fault */
++#define   DSISR_BIT43		0x00100000	/* not defined */
+ #define   DSISR_UNSUPP_MMU	0x00080000	/* Unsupported MMU config */
  #define   DSISR_SET_RC		0x00040000	/* Failed setting of R/C bits */
  #define   DSISR_PGDIRFAULT      0x00020000      /* Fault on page directory */
- #define   DSISR_PAGE_FAULT_MASK (DSISR_BIT32 | DSISR_PAGEATTR_CONFLT | \
--				DSISR_BADACCESS | DSISR_DABRMATCH | DSISR_BIT43)
-+				DSISR_BADACCESS | DSISR_KEYFAULT | \
-+				DSISR_DABRMATCH | DSISR_BIT43)
++#define   DSISR_PAGE_FAULT_MASK (DSISR_BIT32 | DSISR_PAGEATTR_CONFLT | \
++				DSISR_BADACCESS | DSISR_DABRMATCH | DSISR_BIT43)
  #define SPRN_TBRL	0x10C	/* Time Base Read Lower Register (user, R/O) */
  #define SPRN_TBRU	0x10D	/* Time Base Read Upper Register (user, R/O) */
  #define SPRN_CIR	0x11B	/* Chip Information Register (hyper, R/0) */
-diff --git a/arch/powerpc/mm/fault.c b/arch/powerpc/mm/fault.c
-index 3a7d580..ea74fe2 100644
---- a/arch/powerpc/mm/fault.c
-+++ b/arch/powerpc/mm/fault.c
-@@ -261,6 +261,13 @@ int do_page_fault(struct pt_regs *regs, unsigned long address,
- 	}
- #endif
- 
-+#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
-+	if (error_code & DSISR_KEYFAULT) {
-+		code = SEGV_PKUERR;
-+		goto bad_area_nosemaphore;
-+	}
-+#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
-+
- 	/* We restore the interrupt state now */
- 	if (!arch_irq_disabled_regs(regs))
- 		local_irq_enable();
-@@ -441,6 +448,20 @@ int do_page_fault(struct pt_regs *regs, unsigned long address,
- 		WARN_ON_ONCE(error_code & DSISR_PROTFAULT);
- #endif /* CONFIG_PPC_STD_MMU */
- 
-+#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
-+	if (!arch_vma_access_permitted(vma, flags & FAULT_FLAG_WRITE,
-+			is_exec, 0)) {
-+		code = SEGV_PKUERR;
-+		goto bad_area;
-+	}
-+#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
-+
-+
-+	/* handle_mm_fault() needs to know if its a instruction access
-+	 * fault.
-+	 */
-+	if (is_exec)
-+		flags |= FAULT_FLAG_INSTRUCTION;
- 	/*
- 	 * If for any reason at all we couldn't handle the fault,
- 	 * make sure we exit gracefully rather than endlessly redo
+diff --git a/arch/powerpc/kernel/exceptions-64s.S b/arch/powerpc/kernel/exceptions-64s.S
+index b886795..e154bfe 100644
+--- a/arch/powerpc/kernel/exceptions-64s.S
++++ b/arch/powerpc/kernel/exceptions-64s.S
+@@ -1411,7 +1411,7 @@ USE_TEXT_SECTION()
+ 	.balign	IFETCH_ALIGN_BYTES
+ do_hash_page:
+ #ifdef CONFIG_PPC_STD_MMU_64
+-	andis.	r0,r4,0xa450		/* weird error? */
++	andis.	r0,r4,DSISR_PAGE_FAULT_MASK@h
+ 	bne-	handle_page_fault	/* if not, try to insert a HPTE */
+ 	CURRENT_THREAD_INFO(r11, r1)
+ 	lwz	r0,TI_PREEMPT(r11)	/* If we're in an "NMI" */
 -- 
 1.7.1
