@@ -1,81 +1,207 @@
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v6 34/62] powerpc: capture the violated protection key on fault
-Date: Sat, 15 Jul 2017 20:56:36 -0700
-Message-ID: <1500177424-13695-35-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v6 61/62] Documentation/x86: Move protecton key documentation to arch neutral directory
+Date: Sat, 15 Jul 2017 20:57:03 -0700
+Message-ID: <1500177424-13695-62-git-send-email-linuxram@us.ibm.com>
 References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
-Return-path: <owner-linux-mm@kvack.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
-Sender: owner-linux-mm@kvack.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, mhocko@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Capture the protection key that got violated in paca.
-This value will be later used to inform the signal
-handler.
+Since PowerPC and Intel both support memory protection keys, moving
+the documenation to arch-neutral directory.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/include/asm/paca.h   |    1 +
- arch/powerpc/kernel/asm-offsets.c |    1 +
- arch/powerpc/mm/fault.c           |    8 ++++++++
- 3 files changed, 10 insertions(+), 0 deletions(-)
+ Documentation/vm/protection-keys.txt  |   85 +++++++++++++++++++++++++++++++++
+ Documentation/x86/protection-keys.txt |   85 ---------------------------------
+ 2 files changed, 85 insertions(+), 85 deletions(-)
+ create mode 100644 Documentation/vm/protection-keys.txt
+ delete mode 100644 Documentation/x86/protection-keys.txt
 
-diff --git a/arch/powerpc/include/asm/paca.h b/arch/powerpc/include/asm/paca.h
-index c8bd1fc..0c06188 100644
---- a/arch/powerpc/include/asm/paca.h
-+++ b/arch/powerpc/include/asm/paca.h
-@@ -94,6 +94,7 @@ struct paca_struct {
- 	u64 dscr_default;		/* per-CPU default DSCR */
- #ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
- 	u64 paca_amr;			/* value of amr at exception */
-+	u16 paca_pkey;                  /* exception causing pkey */
- #endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
- 
- #ifdef CONFIG_PPC_STD_MMU_64
-diff --git a/arch/powerpc/kernel/asm-offsets.c b/arch/powerpc/kernel/asm-offsets.c
-index 17f5d8a..7dff862 100644
---- a/arch/powerpc/kernel/asm-offsets.c
-+++ b/arch/powerpc/kernel/asm-offsets.c
-@@ -244,6 +244,7 @@ int main(void)
- 
- #ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
- 	OFFSET(PACA_AMR, paca_struct, paca_amr);
-+	OFFSET(PACA_PKEY, paca_struct, paca_pkey);
- #endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
- 
- 	OFFSET(ACCOUNT_STARTTIME, paca_struct, accounting.starttime);
-diff --git a/arch/powerpc/mm/fault.c b/arch/powerpc/mm/fault.c
-index a6710f5..6423277 100644
---- a/arch/powerpc/mm/fault.c
-+++ b/arch/powerpc/mm/fault.c
-@@ -265,6 +265,7 @@ int do_page_fault(struct pt_regs *regs, unsigned long address,
- 	if (error_code & DSISR_KEYFAULT) {
- 		code = SEGV_PKUERR;
- 		get_paca()->paca_amr = read_amr();
-+		get_paca()->paca_pkey = get_pte_pkey(current->mm, address);
- 		goto bad_area_nosemaphore;
- 	}
- #endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
-@@ -453,6 +454,13 @@ int do_page_fault(struct pt_regs *regs, unsigned long address,
- 	if (!arch_vma_access_permitted(vma, flags & FAULT_FLAG_WRITE,
- 			is_exec, 0)) {
- 		get_paca()->paca_amr = read_amr();
-+		/*
-+		 * The pgd-pdt...pmd-pte tree may not  have  been fully setup.
-+		 * Hence we cannot walk the tree to locate the pte, to locate
-+		 * the key. Hence  lets  call  vma_pkey() to get the key here
-+		 * instead of get_pte_pkey().
-+		 */
-+		get_paca()->paca_pkey = vma_pkey(vma);
- 		code = SEGV_PKUERR;
- 		goto bad_area;
- 	}
+diff --git a/Documentation/vm/protection-keys.txt b/Documentation/vm/protection-keys.txt
+new file mode 100644
+index 0000000..b643045
+--- /dev/null
++++ b/Documentation/vm/protection-keys.txt
+@@ -0,0 +1,85 @@
++Memory Protection Keys for Userspace (PKU aka PKEYs) is a CPU feature
++which will be found on future Intel CPUs.
++
++Memory Protection Keys provides a mechanism for enforcing page-based
++protections, but without requiring modification of the page tables
++when an application changes protection domains.  It works by
++dedicating 4 previously ignored bits in each page table entry to a
++"protection key", giving 16 possible keys.
++
++There is also a new user-accessible register (PKRU) with two separate
++bits (Access Disable and Write Disable) for each key.  Being a CPU
++register, PKRU is inherently thread-local, potentially giving each
++thread a different set of protections from every other thread.
++
++There are two new instructions (RDPKRU/WRPKRU) for reading and writing
++to the new register.  The feature is only available in 64-bit mode,
++even though there is theoretically space in the PAE PTEs.  These
++permissions are enforced on data access only and have no effect on
++instruction fetches.
++
++=========================== Syscalls ===========================
++
++There are 3 system calls which directly interact with pkeys:
++
++	int pkey_alloc(unsigned long flags, unsigned long init_access_rights)
++	int pkey_free(int pkey);
++	int pkey_mprotect(unsigned long start, size_t len,
++			  unsigned long prot, int pkey);
++
++Before a pkey can be used, it must first be allocated with
++pkey_alloc().  An application calls the WRPKRU instruction
++directly in order to change access permissions to memory covered
++with a key.  In this example WRPKRU is wrapped by a C function
++called pkey_set().
++
++	int real_prot = PROT_READ|PROT_WRITE;
++	pkey = pkey_alloc(0, PKEY_DENY_WRITE);
++	ptr = mmap(NULL, PAGE_SIZE, PROT_NONE, MAP_ANONYMOUS|MAP_PRIVATE, -1, 0);
++	ret = pkey_mprotect(ptr, PAGE_SIZE, real_prot, pkey);
++	... application runs here
++
++Now, if the application needs to update the data at 'ptr', it can
++gain access, do the update, then remove its write access:
++
++	pkey_set(pkey, 0); // clear PKEY_DENY_WRITE
++	*ptr = foo; // assign something
++	pkey_set(pkey, PKEY_DENY_WRITE); // set PKEY_DENY_WRITE again
++
++Now when it frees the memory, it will also free the pkey since it
++is no longer in use:
++
++	munmap(ptr, PAGE_SIZE);
++	pkey_free(pkey);
++
++(Note: pkey_set() is a wrapper for the RDPKRU and WRPKRU instructions.
++ An example implementation can be found in
++ tools/testing/selftests/x86/protection_keys.c)
++
++=========================== Behavior ===========================
++
++The kernel attempts to make protection keys consistent with the
++behavior of a plain mprotect().  For instance if you do this:
++
++	mprotect(ptr, size, PROT_NONE);
++	something(ptr);
++
++you can expect the same effects with protection keys when doing this:
++
++	pkey = pkey_alloc(0, PKEY_DISABLE_WRITE | PKEY_DISABLE_READ);
++	pkey_mprotect(ptr, size, PROT_READ|PROT_WRITE, pkey);
++	something(ptr);
++
++That should be true whether something() is a direct access to 'ptr'
++like:
++
++	*ptr = foo;
++
++or when the kernel does the access on the application's behalf like
++with a read():
++
++	read(fd, ptr, 1);
++
++The kernel will send a SIGSEGV in both cases, but si_code will be set
++to SEGV_PKERR when violating protection keys versus SEGV_ACCERR when
++the plain mprotect() permissions are violated.
+diff --git a/Documentation/x86/protection-keys.txt b/Documentation/x86/protection-keys.txt
+deleted file mode 100644
+index b643045..0000000
+--- a/Documentation/x86/protection-keys.txt
++++ /dev/null
+@@ -1,85 +0,0 @@
+-Memory Protection Keys for Userspace (PKU aka PKEYs) is a CPU feature
+-which will be found on future Intel CPUs.
+-
+-Memory Protection Keys provides a mechanism for enforcing page-based
+-protections, but without requiring modification of the page tables
+-when an application changes protection domains.  It works by
+-dedicating 4 previously ignored bits in each page table entry to a
+-"protection key", giving 16 possible keys.
+-
+-There is also a new user-accessible register (PKRU) with two separate
+-bits (Access Disable and Write Disable) for each key.  Being a CPU
+-register, PKRU is inherently thread-local, potentially giving each
+-thread a different set of protections from every other thread.
+-
+-There are two new instructions (RDPKRU/WRPKRU) for reading and writing
+-to the new register.  The feature is only available in 64-bit mode,
+-even though there is theoretically space in the PAE PTEs.  These
+-permissions are enforced on data access only and have no effect on
+-instruction fetches.
+-
+-=========================== Syscalls ===========================
+-
+-There are 3 system calls which directly interact with pkeys:
+-
+-	int pkey_alloc(unsigned long flags, unsigned long init_access_rights)
+-	int pkey_free(int pkey);
+-	int pkey_mprotect(unsigned long start, size_t len,
+-			  unsigned long prot, int pkey);
+-
+-Before a pkey can be used, it must first be allocated with
+-pkey_alloc().  An application calls the WRPKRU instruction
+-directly in order to change access permissions to memory covered
+-with a key.  In this example WRPKRU is wrapped by a C function
+-called pkey_set().
+-
+-	int real_prot = PROT_READ|PROT_WRITE;
+-	pkey = pkey_alloc(0, PKEY_DENY_WRITE);
+-	ptr = mmap(NULL, PAGE_SIZE, PROT_NONE, MAP_ANONYMOUS|MAP_PRIVATE, -1, 0);
+-	ret = pkey_mprotect(ptr, PAGE_SIZE, real_prot, pkey);
+-	... application runs here
+-
+-Now, if the application needs to update the data at 'ptr', it can
+-gain access, do the update, then remove its write access:
+-
+-	pkey_set(pkey, 0); // clear PKEY_DENY_WRITE
+-	*ptr = foo; // assign something
+-	pkey_set(pkey, PKEY_DENY_WRITE); // set PKEY_DENY_WRITE again
+-
+-Now when it frees the memory, it will also free the pkey since it
+-is no longer in use:
+-
+-	munmap(ptr, PAGE_SIZE);
+-	pkey_free(pkey);
+-
+-(Note: pkey_set() is a wrapper for the RDPKRU and WRPKRU instructions.
+- An example implementation can be found in
+- tools/testing/selftests/x86/protection_keys.c)
+-
+-=========================== Behavior ===========================
+-
+-The kernel attempts to make protection keys consistent with the
+-behavior of a plain mprotect().  For instance if you do this:
+-
+-	mprotect(ptr, size, PROT_NONE);
+-	something(ptr);
+-
+-you can expect the same effects with protection keys when doing this:
+-
+-	pkey = pkey_alloc(0, PKEY_DISABLE_WRITE | PKEY_DISABLE_READ);
+-	pkey_mprotect(ptr, size, PROT_READ|PROT_WRITE, pkey);
+-	something(ptr);
+-
+-That should be true whether something() is a direct access to 'ptr'
+-like:
+-
+-	*ptr = foo;
+-
+-or when the kernel does the access on the application's behalf like
+-with a read():
+-
+-	read(fd, ptr, 1);
+-
+-The kernel will send a SIGSEGV in both cases, but si_code will be set
+-to SEGV_PKERR when violating protection keys versus SEGV_ACCERR when
+-the plain mprotect() permissions are violated.
 -- 
 1.7.1
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
