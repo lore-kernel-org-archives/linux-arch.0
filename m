@@ -1,66 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f194.google.com ([209.85.220.194]:36090 "EHLO
-        mail-qk0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751317AbdGPD6l (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 15 Jul 2017 23:58:41 -0400
+Received: from mail-qt0-f194.google.com ([209.85.216.194]:35329 "EHLO
+        mail-qt0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751355AbdGPD6Y (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 15 Jul 2017 23:58:24 -0400
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v6 16/62] powerpc: cleaup AMR,iAMR when a key is allocated or freed
-Date: Sat, 15 Jul 2017 20:56:18 -0700
-Message-ID: <1500177424-13695-17-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v6 09/62] powerpc: use helper functions in __hash_page_4K() for 4K PTE
+Date: Sat, 15 Jul 2017 20:56:11 -0700
+Message-ID: <1500177424-13695-10-git-send-email-linuxram@us.ibm.com>
 In-Reply-To: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
 References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, mhocko@kernel.org
-Message-ID: <20170716035618.i6yIq0rvuTChSvn4I3h9kV2oH2nx5lrHxo8dRoyl74A@z>
+Message-ID: <20170716035611.6wxkBQoNWVL94OlmB-rrpHAbwk77KOSPbQFwH2dAjsQ@z>
 
-cleanup the bits corresponding to a key in the AMR, and IAMR
-register, when the key is newly allocated/activated or is freed.
-We dont want some residual bits cause the hardware enforce
-unintended behavior when the key is activated or freed.
+replace redundant code with helper functions
+pte_get_hash_gslot() and pte_set_hash_slot()
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/include/asm/pkeys.h |   12 ++++++++++++
- 1 files changed, 12 insertions(+), 0 deletions(-)
+ arch/powerpc/mm/hash64_4k.c |   14 ++++++--------
+ 1 files changed, 6 insertions(+), 8 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
-index 4327842..7f5c21d 100644
---- a/arch/powerpc/include/asm/pkeys.h
-+++ b/arch/powerpc/include/asm/pkeys.h
-@@ -42,6 +42,8 @@ static inline bool mm_pkey_is_allocated(struct mm_struct *mm, int pkey)
- 		mm_set_pkey_is_allocated(mm, pkey));
- }
+diff --git a/arch/powerpc/mm/hash64_4k.c b/arch/powerpc/mm/hash64_4k.c
+index 6fa450c..a1eebc1 100644
+--- a/arch/powerpc/mm/hash64_4k.c
++++ b/arch/powerpc/mm/hash64_4k.c
+@@ -20,6 +20,7 @@ int __hash_page_4K(unsigned long ea, unsigned long access, unsigned long vsid,
+ 		   pte_t *ptep, unsigned long trap, unsigned long flags,
+ 		   int ssize, int subpg_prot)
+ {
++	real_pte_t rpte;
+ 	unsigned long hpte_group;
+ 	unsigned long rflags, pa;
+ 	unsigned long old_pte, new_pte;
+@@ -54,6 +55,7 @@ int __hash_page_4K(unsigned long ea, unsigned long access, unsigned long vsid,
+ 	 * need to add in 0x1 if it's a read-only user page
+ 	 */
+ 	rflags = htab_convert_pte_flags(new_pte);
++	rpte = __real_pte(__pte(old_pte), ptep);
  
-+extern void __arch_activate_pkey(int pkey);
-+extern void __arch_deactivate_pkey(int pkey);
- /*
-  * Returns a positive, 5-bit key on success, or -1 on failure.
-  */
-@@ -70,6 +72,12 @@ static inline int mm_pkey_alloc(struct mm_struct *mm)
- 		ffz((u32)mm_pkey_allocation_map(mm))
- 		- 1;
- 	mm_set_pkey_allocated(mm, ret);
-+
-+	/*
-+	 * enable the key in the hardware
-+	 */
-+	if (ret > 0)
-+		__arch_activate_pkey(ret);
- 	return ret;
- }
+ 	if (cpu_has_feature(CPU_FTR_NOEXECUTE) &&
+ 	    !cpu_has_feature(CPU_FTR_COHERENT_ICACHE))
+@@ -64,13 +66,10 @@ int __hash_page_4K(unsigned long ea, unsigned long access, unsigned long vsid,
+ 		/*
+ 		 * There MIGHT be an HPTE for this pte
+ 		 */
+-		hash = hpt_hash(vpn, shift, ssize);
+-		if (old_pte & H_PAGE_F_SECOND)
+-			hash = ~hash;
+-		slot = (hash & htab_hash_mask) * HPTES_PER_GROUP;
+-		slot += (old_pte & H_PAGE_F_GIX) >> H_PAGE_F_GIX_SHIFT;
++		unsigned long gslot = pte_get_hash_gslot(vpn, shift,
++						ssize, rpte, 0);
  
-@@ -81,6 +89,10 @@ static inline int mm_pkey_free(struct mm_struct *mm, int pkey)
- 	if (!mm_pkey_is_allocated(mm, pkey))
- 		return -EINVAL;
- 
-+	/*
-+	 * Disable the key in the hardware
-+	 */
-+	__arch_deactivate_pkey(pkey);
- 	mm_set_pkey_free(mm, pkey);
- 
+-		if (mmu_hash_ops.hpte_updatepp(slot, rflags, vpn, MMU_PAGE_4K,
++		if (mmu_hash_ops.hpte_updatepp(gslot, rflags, vpn, MMU_PAGE_4K,
+ 					       MMU_PAGE_4K, ssize, flags) == -1)
+ 			old_pte &= ~_PAGE_HPTEFLAGS;
+ 	}
+@@ -118,8 +117,7 @@ int __hash_page_4K(unsigned long ea, unsigned long access, unsigned long vsid,
+ 			return -1;
+ 		}
+ 		new_pte = (new_pte & ~_PAGE_HPTEFLAGS) | H_PAGE_HASHPTE;
+-		new_pte |= (slot << H_PAGE_F_GIX_SHIFT) &
+-			(H_PAGE_F_SECOND | H_PAGE_F_GIX);
++		new_pte |= pte_set_hash_slot(ptep, rpte, 0, slot);
+ 	}
+ 	*ptep = __pte(new_pte & ~H_PAGE_BUSY);
  	return 0;
 -- 
 1.7.1
