@@ -1,7 +1,7 @@
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 2/8] x86/dump_pagetables: Fix printout of p4d level
-Date: Mon, 17 Jul 2017 01:59:48 +0300
-Message-ID: <20170716225954.74185-3-kirill.shutemov@linux.intel.com>
+Subject: [PATCH 5/8] x86/mpx: Do not allow MPX if we have mappings above 47-bit
+Date: Mon, 17 Jul 2017 01:59:51 +0300
+Message-ID: <20170716225954.74185-6-kirill.shutemov@linux.intel.com>
 References: <20170716225954.74185-1-kirill.shutemov@linux.intel.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <20170716225954.74185-1-kirill.shutemov@linux.intel.com>
@@ -10,84 +10,187 @@ To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-fo
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-Modify printk_prot() and callers to print out additional page table
-level correctly.
+MPX (without MAWA extension) cannot handle addresses above 47-bit, so we
+need to make sure that MPX cannot be enabled if we already have VMA above
+the boundary and forbid creating such VMAs once MPX is enabled.
+
+The patch implements mpx_unmapped_area_check() which is called from all
+variants of get_unmapped_area() to check if the requested address fits
+mpx.
+
+On enabling MPX, we check if we already have any vma above 47-bit
+boundary and forbit the enabling if we do.
+
+As long as DEFAULT_MAP_WINDOW is equal to TASK_SIZE_MAX, the change is
+nop. It will change when we allow userspace to have mappings above
+47-bits.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
- arch/x86/mm/dump_pagetables.c | 18 +++++++++---------
- 1 file changed, 9 insertions(+), 9 deletions(-)
+ arch/x86/include/asm/mpx.h       |  9 +++++++++
+ arch/x86/include/asm/processor.h |  3 +++
+ arch/x86/kernel/sys_x86_64.c     |  9 +++++++++
+ arch/x86/mm/hugetlbpage.c        |  6 ++++++
+ arch/x86/mm/mpx.c                | 33 ++++++++++++++++++++++++++++++++-
+ 5 files changed, 59 insertions(+), 1 deletion(-)
 
-diff --git a/arch/x86/mm/dump_pagetables.c b/arch/x86/mm/dump_pagetables.c
-index a824d575bb84..b371ab68f2d4 100644
---- a/arch/x86/mm/dump_pagetables.c
-+++ b/arch/x86/mm/dump_pagetables.c
-@@ -138,7 +138,7 @@ static void printk_prot(struct seq_file *m, pgprot_t prot, int level, bool dmsg)
+diff --git a/arch/x86/include/asm/mpx.h b/arch/x86/include/asm/mpx.h
+index a0d662be4c5b..7d7404756bb4 100644
+--- a/arch/x86/include/asm/mpx.h
++++ b/arch/x86/include/asm/mpx.h
+@@ -73,6 +73,9 @@ static inline void mpx_mm_init(struct mm_struct *mm)
+ }
+ void mpx_notify_unmap(struct mm_struct *mm, struct vm_area_struct *vma,
+ 		      unsigned long start, unsigned long end);
++
++unsigned long mpx_unmapped_area_check(unsigned long addr, unsigned long len,
++		unsigned long flags);
+ #else
+ static inline siginfo_t *mpx_generate_siginfo(struct pt_regs *regs)
  {
- 	pgprotval_t pr = pgprot_val(prot);
- 	static const char * const level_name[] =
--		{ "cr3", "pgd", "pud", "pmd", "pte" };
-+		{ "cr3", "pgd", "p4d", "pud", "pmd", "pte" };
- 
- 	if (!pgprot_val(prot)) {
- 		/* Not present */
-@@ -162,12 +162,12 @@ static void printk_prot(struct seq_file *m, pgprot_t prot, int level, bool dmsg)
- 			pt_dump_cont_printf(m, dmsg, "    ");
- 
- 		/* Bit 7 has a different meaning on level 3 vs 4 */
--		if (level <= 3 && pr & _PAGE_PSE)
-+		if (level <= 4 && pr & _PAGE_PSE)
- 			pt_dump_cont_printf(m, dmsg, "PSE ");
- 		else
- 			pt_dump_cont_printf(m, dmsg, "    ");
--		if ((level == 4 && pr & _PAGE_PAT) ||
--		    ((level == 3 || level == 2) && pr & _PAGE_PAT_LARGE))
-+		if ((level == 5 && pr & _PAGE_PAT) ||
-+		    ((level == 4 || level == 3) && pr & _PAGE_PAT_LARGE))
- 			pt_dump_cont_printf(m, dmsg, "PAT ");
- 		else
- 			pt_dump_cont_printf(m, dmsg, "    ");
-@@ -298,7 +298,7 @@ static void walk_pte_level(struct seq_file *m, struct pg_state *st, pmd_t addr,
- 	for (i = 0; i < PTRS_PER_PTE; i++) {
- 		prot = pte_flags(*start);
- 		st->current_address = normalize_addr(P + i * PTE_LEVEL_MULT);
--		note_page(m, st, __pgprot(prot), 4);
-+		note_page(m, st, __pgprot(prot), 5);
- 		start++;
- 	}
+@@ -94,6 +97,12 @@ static inline void mpx_notify_unmap(struct mm_struct *mm,
+ 				    unsigned long start, unsigned long end)
+ {
  }
-@@ -317,13 +317,13 @@ static void walk_pmd_level(struct seq_file *m, struct pg_state *st, pud_t addr,
- 		if (!pmd_none(*start)) {
- 			if (pmd_large(*start) || !pmd_present(*start)) {
- 				prot = pmd_flags(*start);
--				note_page(m, st, __pgprot(prot), 3);
-+				note_page(m, st, __pgprot(prot), 4);
- 			} else {
- 				walk_pte_level(m, st, *start,
- 					       P + i * PMD_LEVEL_MULT);
- 			}
- 		} else
--			note_page(m, st, __pgprot(0), 3);
-+			note_page(m, st, __pgprot(0), 4);
- 		start++;
- 	}
- }
-@@ -362,13 +362,13 @@ static void walk_pud_level(struct seq_file *m, struct pg_state *st, p4d_t addr,
- 		    !pud_already_checked(prev_pud, start, st->check_wx)) {
- 			if (pud_large(*start) || !pud_present(*start)) {
- 				prot = pud_flags(*start);
--				note_page(m, st, __pgprot(prot), 2);
-+				note_page(m, st, __pgprot(prot), 3);
- 			} else {
- 				walk_pmd_level(m, st, *start,
- 					       P + i * PUD_LEVEL_MULT);
- 			}
- 		} else
--			note_page(m, st, __pgprot(0), 2);
-+			note_page(m, st, __pgprot(0), 3);
++
++static inline unsigned long mpx_unmapped_area_check(unsigned long addr,
++		unsigned long len, unsigned long flags)
++{
++	return addr;
++}
+ #endif /* CONFIG_X86_INTEL_MPX */
  
- 		prev_pud = start;
- 		start++;
+ #endif /* _ASM_X86_MPX_H */
+diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
+index 6a79547e8ee0..52b5a24dd56d 100644
+--- a/arch/x86/include/asm/processor.h
++++ b/arch/x86/include/asm/processor.h
+@@ -803,6 +803,7 @@ static inline void spin_lock_prefetch(const void *x)
+ #define IA32_PAGE_OFFSET	PAGE_OFFSET
+ #define TASK_SIZE		PAGE_OFFSET
+ #define TASK_SIZE_MAX		TASK_SIZE
++#define DEFAULT_MAP_WINDOW	TASK_SIZE
+ #define STACK_TOP		TASK_SIZE
+ #define STACK_TOP_MAX		STACK_TOP
+ 
+@@ -844,6 +845,8 @@ static inline void spin_lock_prefetch(const void *x)
+  */
+ #define TASK_SIZE_MAX	((1UL << 47) - PAGE_SIZE)
+ 
++#define DEFAULT_MAP_WINDOW	TASK_SIZE_MAX
++
+ /* This decides where the kernel will search for a free chunk of vm
+  * space during mmap's.
+  */
+diff --git a/arch/x86/kernel/sys_x86_64.c b/arch/x86/kernel/sys_x86_64.c
+index 89bd0d6460e1..f840e895d871 100644
+--- a/arch/x86/kernel/sys_x86_64.c
++++ b/arch/x86/kernel/sys_x86_64.c
+@@ -21,6 +21,7 @@
+ #include <asm/compat.h>
+ #include <asm/ia32.h>
+ #include <asm/syscalls.h>
++#include <asm/mpx.h>
+ 
+ /*
+  * Align a virtual address to avoid aliasing in the I$ on AMD F15h.
+@@ -132,6 +133,10 @@ arch_get_unmapped_area(struct file *filp, unsigned long addr,
+ 	struct vm_unmapped_area_info info;
+ 	unsigned long begin, end;
+ 
++	addr = mpx_unmapped_area_check(addr, len, flags);
++	if (IS_ERR_VALUE(addr))
++		return addr;
++
+ 	if (flags & MAP_FIXED)
+ 		return addr;
+ 
+@@ -171,6 +176,10 @@ arch_get_unmapped_area_topdown(struct file *filp, const unsigned long addr0,
+ 	unsigned long addr = addr0;
+ 	struct vm_unmapped_area_info info;
+ 
++	addr = mpx_unmapped_area_check(addr, len, flags);
++	if (IS_ERR_VALUE(addr))
++		return addr;
++
+ 	/* requested length too big for entire address space */
+ 	if (len > TASK_SIZE)
+ 		return -ENOMEM;
+diff --git a/arch/x86/mm/hugetlbpage.c b/arch/x86/mm/hugetlbpage.c
+index 868f02cf58ce..3cf89ad00f87 100644
+--- a/arch/x86/mm/hugetlbpage.c
++++ b/arch/x86/mm/hugetlbpage.c
+@@ -18,6 +18,7 @@
+ #include <asm/tlbflush.h>
+ #include <asm/pgalloc.h>
+ #include <asm/elf.h>
++#include <asm/mpx.h>
+ 
+ #if 0	/* This is just for testing */
+ struct page *
+@@ -135,6 +136,11 @@ hugetlb_get_unmapped_area(struct file *file, unsigned long addr,
+ 
+ 	if (len & ~huge_page_mask(h))
+ 		return -EINVAL;
++
++	addr = mpx_unmapped_area_check(addr, len, flags);
++	if (IS_ERR_VALUE(addr))
++		return addr;
++
+ 	if (len > TASK_SIZE)
+ 		return -ENOMEM;
+ 
+diff --git a/arch/x86/mm/mpx.c b/arch/x86/mm/mpx.c
+index 1c34b767c84c..8c8da27e8549 100644
+--- a/arch/x86/mm/mpx.c
++++ b/arch/x86/mm/mpx.c
+@@ -355,10 +355,19 @@ int mpx_enable_management(void)
+ 	 */
+ 	bd_base = mpx_get_bounds_dir();
+ 	down_write(&mm->mmap_sem);
++
++	/* MPX doesn't support addresses above 47-bits yet. */
++	if (find_vma(mm, DEFAULT_MAP_WINDOW)) {
++		pr_warn_once("%s (%d): MPX cannot handle addresses "
++				"above 47-bits. Disabling.",
++				current->comm, current->pid);
++		ret = -ENXIO;
++		goto out;
++	}
+ 	mm->context.bd_addr = bd_base;
+ 	if (mm->context.bd_addr == MPX_INVALID_BOUNDS_DIR)
+ 		ret = -ENXIO;
+-
++out:
+ 	up_write(&mm->mmap_sem);
+ 	return ret;
+ }
+@@ -1030,3 +1039,25 @@ void mpx_notify_unmap(struct mm_struct *mm, struct vm_area_struct *vma,
+ 	if (ret)
+ 		force_sig(SIGSEGV, current);
+ }
++
++/* MPX cannot handle addresses above 47-bits yet. */
++unsigned long mpx_unmapped_area_check(unsigned long addr, unsigned long len,
++		unsigned long flags)
++{
++	if (!kernel_managing_mpx_tables(current->mm))
++		return addr;
++	if (addr + len <= DEFAULT_MAP_WINDOW)
++		return addr;
++	if (flags & MAP_FIXED)
++		return -ENOMEM;
++
++	/*
++	 * Requested len is larger than whole area we're allowed to map in.
++	 * Resetting hinting address wouldn't do much good -- fail early.
++	 */
++	if (len > DEFAULT_MAP_WINDOW)
++		return -ENOMEM;
++
++	/* Look for unmap area within DEFAULT_MAP_WINDOW */
++	return 0;
++}
 -- 
 2.11.0
 
