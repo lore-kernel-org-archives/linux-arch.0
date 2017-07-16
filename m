@@ -1,73 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f195.google.com ([209.85.220.195]:35298 "EHLO
-        mail-qk0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750829AbdGPEAD (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 16 Jul 2017 00:00:03 -0400
+Received: from mail-qt0-f194.google.com ([209.85.216.194]:36090 "EHLO
+        mail-qt0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751552AbdGPEAW (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 16 Jul 2017 00:00:22 -0400
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v6 49/62] selftest/vm: fix alloc_random_pkey() to make it really random
-Date: Sat, 15 Jul 2017 20:56:51 -0700
-Message-ID: <1500177424-13695-50-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v6 56/62] selftest/vm: detect no key violation on a freed key
+Date: Sat, 15 Jul 2017 20:56:58 -0700
+Message-ID: <1500177424-13695-57-git-send-email-linuxram@us.ibm.com>
 In-Reply-To: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
 References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, mhocko@kernel.org
-Message-ID: <20170716035651.Lr0uc0poDbJD8yiC9NblUHd3n3dxvvZLQ2c8y5wXp5g@z>
+Message-ID: <20170716035658.vXUR5R8e1zvbvXIMFVaG7bIaY7VFMR7tRd9um3_iRbQ@z>
 
-alloc_random_pkey() was allocating the same pkey every time.
-Not all pkeys were geting tested. fixed it.
+a access-denied key should not trigger any key violation
+after the key has been freed.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- tools/testing/selftests/vm/protection_keys.c |   10 +++++++---
- 1 files changed, 7 insertions(+), 3 deletions(-)
+ tools/testing/selftests/vm/protection_keys.c |   25 +++++++++++++++++++++++++
+ 1 files changed, 25 insertions(+), 0 deletions(-)
 
 diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index 4f4ce36..1c8ef39 100644
+index bf27bcd..47c23cc 100644
 --- a/tools/testing/selftests/vm/protection_keys.c
 +++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -23,6 +23,7 @@
- #define _GNU_SOURCE
- #include <errno.h>
- #include <linux/futex.h>
-+#include <time.h>
- #include <sys/time.h>
- #include <sys/syscall.h>
- #include <string.h>
-@@ -602,13 +603,15 @@ int alloc_random_pkey(void)
- 	int alloced_pkeys[NR_PKEYS];
- 	int nr_alloced = 0;
- 	int random_index;
-+
- 	memset(alloced_pkeys, 0, sizeof(alloced_pkeys));
-+	srand((unsigned int)time(NULL));
- 
- 	/* allocate every possible key and make a note of which ones we got */
- 	max_nr_pkey_allocs = NR_PKEYS;
--	max_nr_pkey_allocs = 1;
- 	for (i = 0; i < max_nr_pkey_allocs; i++) {
- 		int new_pkey = alloc_pkey();
-+
- 		if (new_pkey < 0)
- 			break;
- 		alloced_pkeys[nr_alloced++] = new_pkey;
-@@ -624,13 +627,14 @@ int alloc_random_pkey(void)
- 	/* go through the allocated ones that we did not want and free them */
- 	for (i = 0; i < nr_alloced; i++) {
- 		int free_ret;
-+
- 		if (!alloced_pkeys[i])
- 			continue;
- 		free_ret = sys_pkey_free(alloced_pkeys[i]);
- 		pkey_assert(!free_ret);
- 	}
--	dprintf1("%s()::%d, ret: %d pkey_reg: 0x%x shadow: 0x%x\n", __func__,
--			__LINE__, ret, __rdpkey_reg(), shadow_pkey_reg);
-+	dprintf1("%s()::%d, ret: %d pkey_reg: 0x%x shadow: 0x%016lx\n",
-+		__func__, __LINE__, ret, __rdpkey_reg(), shadow_pkey_reg);
- 	return ret;
+@@ -1026,6 +1026,30 @@ void test_read_of_access_disabled_region_with_page_already_mapped(int *ptr,
+ 	expected_pkey_fault(pkey);
  }
  
++void test_read_of_access_disabled_but_freed_key_region(int *ptr, u16 pkey)
++{
++	int ptr_contents;
++
++	dprintf1("disabling access to PKEY[%02d], doing read @ %p\n",
++			 pkey, ptr);
++
++	/* read the content */
++	ptr_contents = read_ptr(ptr);
++	do_not_expect_pkey_fault();
++
++	/* deny key access */
++	pkey_access_deny(pkey);
++	ptr_contents = read_ptr(ptr);
++	dprintf1("*ptr: %d\n", ptr_contents);
++	expected_pkey_fault(pkey);
++
++	/* free the key without restoring access */
++	pkey_access_deny(pkey);
++	sys_pkey_free(pkey);
++	ptr_contents = read_ptr(ptr);
++	do_not_expect_pkey_fault();
++}
++
+ void test_write_of_write_disabled_region(int *ptr, u16 pkey)
+ {
+ 	dprintf1("disabling write access to PKEY[%02d], doing write\n", pkey);
+@@ -1333,6 +1357,7 @@ void test_mprotect_pkey_on_unsupported_cpu(int *ptr, u16 pkey)
+ 	test_pkey_syscalls_on_non_allocated_pkey,
+ 	test_pkey_syscalls_bad_args,
+ 	test_pkey_alloc_exhaust,
++	test_read_of_access_disabled_but_freed_key_region,
+ };
+ 
+ void run_tests_once(void)
 -- 
 1.7.1
