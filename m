@@ -1,96 +1,201 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f193.google.com ([209.85.220.193]:34975 "EHLO
-        mail-qk0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751223AbdGPD6J (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 15 Jul 2017 23:58:09 -0400
+Received: from mail-qk0-f195.google.com ([209.85.220.195]:33649 "EHLO
+        mail-qk0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751379AbdGPD63 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 15 Jul 2017 23:58:29 -0400
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v6 03/62] powerpc: introduce pte_set_hash_slot() helper
-Date: Sat, 15 Jul 2017 20:56:05 -0700
-Message-ID: <1500177424-13695-4-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v6 11/62] powerpc: initial pkey plumbing
+Date: Sat, 15 Jul 2017 20:56:13 -0700
+Message-ID: <1500177424-13695-12-git-send-email-linuxram@us.ibm.com>
 In-Reply-To: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
 References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, mhocko@kernel.org
-Message-ID: <20170716035605.b4aDv_v-Yq6lrp1D6HpdW9X_8pH5TARsfoOsGxotVM4@z>
+Message-ID: <20170716035613.xuWdGeDF5l6Lc-0Z1tHnuvoHx50E7TrAbd6RmqdENmo@z>
 
-Introduce pte_set_hash_slot().It  sets the (H_PAGE_F_SECOND|H_PAGE_F_GIX)
-bits at  the   appropriate   location   in   the   PTE  of  4K  PTE.  For
-64K PTE, it  sets  the  bits  in  the  second  part  of  the  PTE. Though
-the implementation  for the former just needs the slot parameter, it does
-take some additional parameters to keep the prototype consistent.
-
-This function  will  be  handy  as  we   work   towards  re-arranging the
-bits in the later patches.
+basic setup to initialize the pkey system. Only 64K kernel in HPT
+mode, enables the pkey system.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/include/asm/book3s/64/hash-4k.h  |   15 +++++++++++++++
- arch/powerpc/include/asm/book3s/64/hash-64k.h |   25 +++++++++++++++++++++++++
- 2 files changed, 40 insertions(+), 0 deletions(-)
+ arch/powerpc/Kconfig                   |   16 ++++++++++
+ arch/powerpc/include/asm/mmu_context.h |    5 +++
+ arch/powerpc/include/asm/pkeys.h       |   51 ++++++++++++++++++++++++++++++++
+ arch/powerpc/kernel/setup_64.c         |    4 ++
+ arch/powerpc/mm/Makefile               |    1 +
+ arch/powerpc/mm/hash_utils_64.c        |    1 +
+ arch/powerpc/mm/pkeys.c                |   18 +++++++++++
+ 7 files changed, 96 insertions(+), 0 deletions(-)
+ create mode 100644 arch/powerpc/include/asm/pkeys.h
+ create mode 100644 arch/powerpc/mm/pkeys.c
 
-diff --git a/arch/powerpc/include/asm/book3s/64/hash-4k.h b/arch/powerpc/include/asm/book3s/64/hash-4k.h
-index d2cf949..dc153c6 100644
---- a/arch/powerpc/include/asm/book3s/64/hash-4k.h
-+++ b/arch/powerpc/include/asm/book3s/64/hash-4k.h
-@@ -53,6 +53,21 @@ static inline int hash__hugepd_ok(hugepd_t hpd)
- }
- #endif
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index bf4391d..5c60fd6 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -855,6 +855,22 @@ config SECCOMP
  
-+/*
-+ * 4k pte format is  different  from  64k  pte  format.  Saving  the
-+ * hash_slot is just a matter of returning the pte bits that need to
-+ * be modified. On 64k pte, things are a  little  more  involved and
-+ * hence  needs   many   more  parameters  to  accomplish  the  same.
-+ * However we  want  to abstract this out from the caller by keeping
-+ * the prototype consistent across the two formats.
-+ */
-+static inline unsigned long pte_set_hash_slot(pte_t *ptep, real_pte_t rpte,
-+			unsigned int subpg_index, unsigned long slot)
+ 	  If unsure, say Y. Only embedded should say N here.
+ 
++config PPC64_MEMORY_PROTECTION_KEYS
++	prompt "PowerPC Memory Protection Keys"
++	def_bool y
++	# Note: only available in 64-bit mode
++	depends on PPC64 && PPC_64K_PAGES
++	select ARCH_USES_HIGH_VMA_FLAGS
++	select ARCH_HAS_PKEYS
++	---help---
++	  Memory Protection Keys provides a mechanism for enforcing
++	  page-based protections, but without requiring modification of the
++	  page tables when an application changes protection domains.
++
++	  For details, see Documentation/vm/protection-keys.txt
++
++	  If unsure, say y.
++
+ endmenu
+ 
+ config ISA_DMA_API
+diff --git a/arch/powerpc/include/asm/mmu_context.h b/arch/powerpc/include/asm/mmu_context.h
+index da7e943..4b93547 100644
+--- a/arch/powerpc/include/asm/mmu_context.h
++++ b/arch/powerpc/include/asm/mmu_context.h
+@@ -181,5 +181,10 @@ static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
+ 	/* by default, allow everything */
+ 	return true;
+ }
++
++#ifndef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
++#define pkey_initialize()
++#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
++
+ #endif /* __KERNEL__ */
+ #endif /* __ASM_POWERPC_MMU_CONTEXT_H */
+diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
+new file mode 100644
+index 0000000..203d7de
+--- /dev/null
++++ b/arch/powerpc/include/asm/pkeys.h
+@@ -0,0 +1,51 @@
++#ifndef _ASM_PPC64_PKEYS_H
++#define _ASM_PPC64_PKEYS_H
++
++extern bool pkey_inited;
++#define ARCH_VM_PKEY_FLAGS 0
++
++static inline bool mm_pkey_is_allocated(struct mm_struct *mm, int pkey)
 +{
-+	return (slot << H_PAGE_F_GIX_SHIFT) &
-+		(H_PAGE_F_SECOND | H_PAGE_F_GIX);
++	return (pkey == 0);
 +}
 +
- #ifdef CONFIG_TRANSPARENT_HUGEPAGE
- 
- static inline char *get_hpte_slot_array(pmd_t *pmdp)
-diff --git a/arch/powerpc/include/asm/book3s/64/hash-64k.h b/arch/powerpc/include/asm/book3s/64/hash-64k.h
-index c281f18..89ef5a9 100644
---- a/arch/powerpc/include/asm/book3s/64/hash-64k.h
-+++ b/arch/powerpc/include/asm/book3s/64/hash-64k.h
-@@ -67,6 +67,31 @@ static inline unsigned long __rpte_to_hidx(real_pte_t rpte, unsigned long index)
- 	return ((rpte.hidx >> (index<<2)) & 0xfUL);
- }
- 
-+/*
-+ * Commit the hash slot and return pte bits that needs to be modified.
-+ * The caller is expected to modify the pte bits accordingly and
-+ * commit the pte to memory.
-+ */
-+static inline unsigned long pte_set_hash_slot(pte_t *ptep, real_pte_t rpte,
-+		unsigned int subpg_index, unsigned long slot)
++static inline int mm_pkey_alloc(struct mm_struct *mm)
 +{
-+	unsigned long *hidxp = (unsigned long *)(ptep + PTRS_PER_PTE);
-+
-+	rpte.hidx &= ~(0xfUL << (subpg_index << 2));
-+	*hidxp = rpte.hidx  | (slot << (subpg_index << 2));
-+	/*
-+	 * Commit the hidx bits to memory before returning.
-+	 * Anyone reading  pte  must  ensure hidx bits are
-+	 * read  only  after  reading the pte by using the
-+	 * read-side  barrier  smp_rmb(). __real_pte() can
-+	 * help ensure that.
-+	 */
-+	smp_wmb();
-+
-+	/* no pte bits to be modified, return 0x0UL */
-+	return 0x0UL;
++	return -1;
 +}
 +
- #define __rpte_to_pte(r)	((r).pte)
- extern bool __rpte_sub_valid(real_pte_t rpte, unsigned long index);
- /*
++static inline int mm_pkey_free(struct mm_struct *mm, int pkey)
++{
++	return -EINVAL;
++}
++
++/*
++ * Try to dedicate one of the protection keys to be used as an
++ * execute-only protection key.
++ */
++static inline int execute_only_pkey(struct mm_struct *mm)
++{
++	return 0;
++}
++
++static inline int arch_override_mprotect_pkey(struct vm_area_struct *vma,
++		int prot, int pkey)
++{
++	return 0;
++}
++
++static inline int arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
++		unsigned long init_val)
++{
++	return 0;
++}
++
++static inline void pkey_initialize(void)
++{
++#ifdef CONFIG_PPC_64K_PAGES
++	pkey_inited = !radix_enabled();
++#else
++	pkey_inited = false;
++#endif
++}
++#endif /*_ASM_PPC64_PKEYS_H */
+diff --git a/arch/powerpc/kernel/setup_64.c b/arch/powerpc/kernel/setup_64.c
+index 4640f6d..50accab 100644
+--- a/arch/powerpc/kernel/setup_64.c
++++ b/arch/powerpc/kernel/setup_64.c
+@@ -37,6 +37,7 @@
+ #include <linux/memblock.h>
+ #include <linux/memory.h>
+ #include <linux/nmi.h>
++#include <linux/pkeys.h>
+ 
+ #include <asm/io.h>
+ #include <asm/kdump.h>
+@@ -316,6 +317,9 @@ void __init early_setup(unsigned long dt_ptr)
+ 	/* Initialize the hash table or TLB handling */
+ 	early_init_mmu();
+ 
++	/* initialize the key subsystem */
++	pkey_initialize();
++
+ 	/*
+ 	 * At this point, we can let interrupts switch to virtual mode
+ 	 * (the MMU has been setup), so adjust the MSR in the PACA to
+diff --git a/arch/powerpc/mm/Makefile b/arch/powerpc/mm/Makefile
+index 7414034..8cc2ff1 100644
+--- a/arch/powerpc/mm/Makefile
++++ b/arch/powerpc/mm/Makefile
+@@ -45,3 +45,4 @@ obj-$(CONFIG_PPC_COPRO_BASE)	+= copro_fault.o
+ obj-$(CONFIG_SPAPR_TCE_IOMMU)	+= mmu_context_iommu.o
+ obj-$(CONFIG_PPC_PTDUMP)	+= dump_linuxpagetables.o
+ obj-$(CONFIG_PPC_HTDUMP)	+= dump_hashpagetable.o
++obj-$(CONFIG_PPC64_MEMORY_PROTECTION_KEYS)	+= pkeys.o
+diff --git a/arch/powerpc/mm/hash_utils_64.c b/arch/powerpc/mm/hash_utils_64.c
+index d863696..f88423b 100644
+--- a/arch/powerpc/mm/hash_utils_64.c
++++ b/arch/powerpc/mm/hash_utils_64.c
+@@ -35,6 +35,7 @@
+ #include <linux/memblock.h>
+ #include <linux/context_tracking.h>
+ #include <linux/libfdt.h>
++#include <linux/pkeys.h>
+ 
+ #include <asm/debugfs.h>
+ #include <asm/processor.h>
+diff --git a/arch/powerpc/mm/pkeys.c b/arch/powerpc/mm/pkeys.c
+new file mode 100644
+index 0000000..c3acee1
+--- /dev/null
++++ b/arch/powerpc/mm/pkeys.c
+@@ -0,0 +1,18 @@
++/*
++ * PowerPC Memory Protection Keys management
++ * Copyright (c) 2015, Intel Corporation.
++ * Copyright (c) 2017, IBM Corporation.
++ *
++ * This program is free software; you can redistribute it and/or modify it
++ * under the terms and conditions of the GNU General Public License,
++ * version 2, as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope it will be useful, but WITHOUT
++ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
++ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
++ * more details.
++ */
++#include <uapi/asm-generic/mman-common.h>
++#include <linux/pkeys.h>                /* PKEY_*                       */
++
++bool pkey_inited;
 -- 
 1.7.1
