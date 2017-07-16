@@ -1,199 +1,109 @@
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v6 43/62] selftest/vm: move generic definitions to header file
-Date: Sat, 15 Jul 2017 20:56:45 -0700
-Message-ID: <1500177424-13695-44-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v6 27/62] powerpc: helper to validate key-access permissions of a pte
+Date: Sat, 15 Jul 2017 20:56:29 -0700
+Message-ID: <1500177424-13695-28-git-send-email-linuxram@us.ibm.com>
 References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: owner-linux-mm@kvack.org
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, mhocko@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Moved all the generic definition and helper functions to the
-header file
+helper function that checks if the read/write/execute is allowed
+on the pte.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- tools/testing/selftests/vm/pkey-helpers.h    |   62 +++++++++++++++++++++++--
- tools/testing/selftests/vm/protection_keys.c |   54 ----------------------
- 2 files changed, 57 insertions(+), 59 deletions(-)
+ arch/powerpc/include/asm/book3s/64/pgtable.h |    4 +++
+ arch/powerpc/include/asm/pkeys.h             |   12 +++++++++
+ arch/powerpc/mm/pkeys.c                      |   33 ++++++++++++++++++++++++++
+ 3 files changed, 49 insertions(+), 0 deletions(-)
 
-diff --git a/tools/testing/selftests/vm/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
-index 2d9887a..f378bc2 100644
---- a/tools/testing/selftests/vm/pkey-helpers.h
-+++ b/tools/testing/selftests/vm/pkey-helpers.h
-@@ -12,8 +12,31 @@
- #include <ucontext.h>
- #include <sys/mman.h>
- 
-+/* Define some kernel-like types */
-+#define  u8 uint8_t
-+#define u16 uint16_t
-+#define u32 uint32_t
-+#define u64 uint64_t
-+
-+#ifdef __i386__
-+#define SYS_mprotect_key 380
-+#define SYS_pkey_alloc	 381
-+#define SYS_pkey_free	 382
-+#define REG_IP_IDX REG_EIP
-+#define si_pkey_offset 0x14
-+#else
-+#define SYS_mprotect_key 329
-+#define SYS_pkey_alloc	 330
-+#define SYS_pkey_free	 331
-+#define REG_IP_IDX REG_RIP
-+#define si_pkey_offset 0x20
-+#endif
-+
- #define NR_PKEYS 16
- #define PKEY_BITS_PER_PKEY 2
-+#define PKEY_DISABLE_ACCESS    0x1
-+#define PKEY_DISABLE_WRITE     0x2
-+#define HPAGE_SIZE	(1UL<<21)
- 
- #ifndef DEBUG_LEVEL
- #define DEBUG_LEVEL 0
-@@ -137,11 +160,6 @@ static inline void __pkey_write_allow(int pkey, int do_allow_write)
- 	dprintf4("pkey_reg now: %08x\n", rdpkey_reg());
+diff --git a/arch/powerpc/include/asm/book3s/64/pgtable.h b/arch/powerpc/include/asm/book3s/64/pgtable.h
+index 30d7f55..0056e58 100644
+--- a/arch/powerpc/include/asm/book3s/64/pgtable.h
++++ b/arch/powerpc/include/asm/book3s/64/pgtable.h
+@@ -472,6 +472,10 @@ static inline void write_uamor(u64 value)
+ 	mtspr(SPRN_UAMOR, value);
  }
  
--#define PROT_PKEY0     0x10            /* protection key value (bit 0) */
--#define PROT_PKEY1     0x20            /* protection key value (bit 1) */
--#define PROT_PKEY2     0x40            /* protection key value (bit 2) */
--#define PROT_PKEY3     0x80            /* protection key value (bit 3) */
--
- #define PAGE_SIZE 4096
- #define MB	(1<<20)
- 
-@@ -219,4 +237,38 @@ int pkey_reg_xstate_offset(void)
- 	return xstate_offset;
++#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
++extern bool arch_pte_access_permitted(u64 pte, bool write, bool execute);
++#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
++
+ #define __HAVE_ARCH_PTEP_GET_AND_CLEAR
+ static inline pte_t ptep_get_and_clear(struct mm_struct *mm,
+ 				       unsigned long addr, pte_t *ptep)
+diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
+index bbb5d85..7a9aade 100644
+--- a/arch/powerpc/include/asm/pkeys.h
++++ b/arch/powerpc/include/asm/pkeys.h
+@@ -53,6 +53,18 @@ static inline u64 pte_to_hpte_pkey_bits(u64 pteflags)
+ 		((pteflags & H_PAGE_PKEY_BIT4) ? HPTE_R_KEY_BIT4 : 0x0UL));
  }
  
-+static inline void __page_o_noops(void)
++static inline u16 pte_to_pkey_bits(u64 pteflags)
 +{
-+	/* 8-bytes of instruction * 512 bytes = 1 page */
-+	asm(".rept 512 ; nopl 0x7eeeeeee(%eax) ; .endr");
++	if (!pkey_inited)
++		return 0x0UL;
++
++	return (((pteflags & H_PAGE_PKEY_BIT0) ? 0x10 : 0x0UL) |
++		((pteflags & H_PAGE_PKEY_BIT1) ? 0x8 : 0x0UL) |
++		((pteflags & H_PAGE_PKEY_BIT2) ? 0x4 : 0x0UL) |
++		((pteflags & H_PAGE_PKEY_BIT3) ? 0x2 : 0x0UL) |
++		((pteflags & H_PAGE_PKEY_BIT4) ? 0x1 : 0x0UL));
 +}
 +
- #endif /* _PKEYS_HELPER_H */
-+
-+#define ARRAY_SIZE(x) (sizeof(x) / sizeof(*(x)))
-+#define ALIGN_UP(x, align_to)	(((x) + ((align_to)-1)) & ~((align_to)-1))
-+#define ALIGN_DOWN(x, align_to) ((x) & ~((align_to)-1))
-+#define ALIGN_PTR_UP(p, ptr_align_to)	\
-+		((typeof(p))ALIGN_UP((unsigned long)(p), ptr_align_to))
-+#define ALIGN_PTR_DOWN(p, ptr_align_to) \
-+	((typeof(p))ALIGN_DOWN((unsigned long)(p), ptr_align_to))
-+#define __stringify_1(x...)     #x
-+#define __stringify(x...)       __stringify_1(x)
-+
-+#define PTR_ERR_ENOTSUP ((void *)-ENOTSUP)
-+
-+int dprint_in_signal;
-+char dprint_in_signal_buffer[DPRINT_IN_SIGNAL_BUF_SIZE];
-+
-+extern void abort_hooks(void);
-+#define pkey_assert(condition) do {		\
-+	if (!(condition)) {			\
-+		dprintf0("assert() at %s::%d test_nr: %d iteration: %d\n", \
-+				__FILE__, __LINE__,	\
-+				test_nr, iteration_nr);	\
-+		dprintf0("errno at assert: %d", errno);	\
-+		abort_hooks();			\
-+		assert(condition);		\
-+	}					\
-+} while (0)
-+#define raw_assert(cond) assert(cond)
-diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index 2a237e2..c345ff8 100644
---- a/tools/testing/selftests/vm/protection_keys.c
-+++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -48,34 +48,9 @@
- int test_nr;
- 
- unsigned int shadow_pkey_reg;
--
--#define HPAGE_SIZE	(1UL<<21)
--#define ARRAY_SIZE(x) (sizeof(x) / sizeof(*(x)))
--#define ALIGN_UP(x, align_to)	(((x) + ((align_to)-1)) & ~((align_to)-1))
--#define ALIGN_DOWN(x, align_to) ((x) & ~((align_to)-1))
--#define ALIGN_PTR_UP(p, ptr_align_to)	((typeof(p))ALIGN_UP((unsigned long)(p),	ptr_align_to))
--#define ALIGN_PTR_DOWN(p, ptr_align_to)	((typeof(p))ALIGN_DOWN((unsigned long)(p),	ptr_align_to))
--#define __stringify_1(x...)     #x
--#define __stringify(x...)       __stringify_1(x)
--
--#define PTR_ERR_ENOTSUP ((void *)-ENOTSUP)
--
- int dprint_in_signal;
- char dprint_in_signal_buffer[DPRINT_IN_SIGNAL_BUF_SIZE];
- 
--extern void abort_hooks(void);
--#define pkey_assert(condition) do {		\
--	if (!(condition)) {			\
--		dprintf0("assert() at %s::%d test_nr: %d iteration: %d\n", \
--				__FILE__, __LINE__,	\
--				test_nr, iteration_nr);	\
--		dprintf0("errno at assert: %d", errno);	\
--		abort_hooks();			\
--		assert(condition);		\
--	}					\
--} while (0)
--#define raw_assert(cond) assert(cond)
--
- void cat_into_file(char *str, char *file)
+ static inline int vma_pkey(struct vm_area_struct *vma)
  {
- 	int fd = open(file, O_RDWR);
-@@ -153,12 +128,6 @@ void abort_hooks(void)
- #endif
+ 	if (!pkey_inited)
+diff --git a/arch/powerpc/mm/pkeys.c b/arch/powerpc/mm/pkeys.c
+index 403f5ae..1794e17 100644
+--- a/arch/powerpc/mm/pkeys.c
++++ b/arch/powerpc/mm/pkeys.c
+@@ -201,3 +201,36 @@ int __arch_override_mprotect_pkey(struct vm_area_struct *vma, int prot,
+ 	 */
+ 	return vma_pkey(vma);
  }
- 
--static inline void __page_o_noops(void)
--{
--	/* 8-bytes of instruction * 512 bytes = 1 page */
--	asm(".rept 512 ; nopl 0x7eeeeeee(%eax) ; .endr");
--}
--
- /*
-  * This attempts to have roughly a page of instructions followed by a few
-  * instructions that do a write, and another page of instructions.  That
-@@ -181,26 +150,6 @@ void lots_o_noops_around_write(int *write_to_me)
- 	dprintf3("%s() done\n", __func__);
- }
- 
--/* Define some kernel-like types */
--#define  u8 uint8_t
--#define u16 uint16_t
--#define u32 uint32_t
--#define u64 uint64_t
--
--#ifdef __i386__
--#define SYS_mprotect_key 380
--#define SYS_pkey_alloc	 381
--#define SYS_pkey_free	 382
--#define REG_IP_IDX REG_EIP
--#define si_pkey_offset 0x14
--#else
--#define SYS_mprotect_key 329
--#define SYS_pkey_alloc	 330
--#define SYS_pkey_free	 331
--#define REG_IP_IDX REG_RIP
--#define si_pkey_offset 0x20
--#endif
--
- void dump_mem(void *dumpme, int len_bytes)
- {
- 	char *c = (void *)dumpme;
-@@ -412,9 +361,6 @@ void dumpit(char *f)
- 	close(fd);
- }
- 
--#define PKEY_DISABLE_ACCESS    0x1
--#define PKEY_DISABLE_WRITE     0x2
--
- u32 pkey_get(int pkey, unsigned long flags)
- {
- 	u32 mask = (PKEY_DISABLE_ACCESS|PKEY_DISABLE_WRITE);
++
++static bool pkey_access_permitted(int pkey, bool write, bool execute)
++{
++	int pkey_shift;
++	u64 amr;
++
++	if (!pkey)
++		return true;
++
++	pkey_shift = pkeyshift(pkey);
++	if (!(read_uamor() & (0x3UL << pkey_shift)))
++		return true;
++
++	if (execute && !(read_iamr() & (IAMR_EX_BIT << pkey_shift)))
++		return true;
++
++	if (!write) {
++		amr = read_amr();
++		if (!(amr & (AMR_RD_BIT << pkey_shift)))
++			return true;
++	}
++
++	amr = read_amr(); /* delay reading amr uptil absolutely needed */
++	return (write && !(amr & (AMR_WR_BIT << pkey_shift)));
++}
++
++bool arch_pte_access_permitted(u64 pte, bool write, bool execute)
++{
++	if (!pkey_inited)
++		return true;
++	return pkey_access_permitted(pte_to_pkey_bits(pte),
++			write, execute);
++}
 -- 
 1.7.1
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
