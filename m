@@ -1,65 +1,83 @@
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v6 56/62] selftest/vm: detect no key violation on a freed key
-Date: Sat, 15 Jul 2017 20:56:58 -0700
-Message-ID: <1500177424-13695-57-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v6 32/62] powerpc: capture AMR register content on pkey violation
+Date: Sat, 15 Jul 2017 20:56:34 -0700
+Message-ID: <1500177424-13695-33-git-send-email-linuxram@us.ibm.com>
 References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: owner-linux-mm@kvack.org
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, mhocko@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-a access-denied key should not trigger any key violation
-after the key has been freed.
+capture AMR register contents, and save it in paca
+whenever a pkey violation is detected.
+
+This value will be needed to deliver pkey-violation
+signal to the task.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- tools/testing/selftests/vm/protection_keys.c |   25 +++++++++++++++++++++++++
- 1 files changed, 25 insertions(+), 0 deletions(-)
+ arch/powerpc/include/asm/paca.h   |    3 +++
+ arch/powerpc/kernel/asm-offsets.c |    5 +++++
+ arch/powerpc/mm/fault.c           |    2 ++
+ 3 files changed, 10 insertions(+), 0 deletions(-)
 
-diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index bf27bcd..47c23cc 100644
---- a/tools/testing/selftests/vm/protection_keys.c
-+++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -1026,6 +1026,30 @@ void test_read_of_access_disabled_region_with_page_already_mapped(int *ptr,
- 	expected_pkey_fault(pkey);
- }
+diff --git a/arch/powerpc/include/asm/paca.h b/arch/powerpc/include/asm/paca.h
+index 1c09f8f..c8bd1fc 100644
+--- a/arch/powerpc/include/asm/paca.h
++++ b/arch/powerpc/include/asm/paca.h
+@@ -92,6 +92,9 @@ struct paca_struct {
+ 	struct dtl_entry *dispatch_log_end;
+ #endif /* CONFIG_PPC_STD_MMU_64 */
+ 	u64 dscr_default;		/* per-CPU default DSCR */
++#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
++	u64 paca_amr;			/* value of amr at exception */
++#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
  
-+void test_read_of_access_disabled_but_freed_key_region(int *ptr, u16 pkey)
-+{
-+	int ptr_contents;
+ #ifdef CONFIG_PPC_STD_MMU_64
+ 	/*
+diff --git a/arch/powerpc/kernel/asm-offsets.c b/arch/powerpc/kernel/asm-offsets.c
+index 709e234..17f5d8a 100644
+--- a/arch/powerpc/kernel/asm-offsets.c
++++ b/arch/powerpc/kernel/asm-offsets.c
+@@ -241,6 +241,11 @@ int main(void)
+ 	OFFSET(PACAHWCPUID, paca_struct, hw_cpu_id);
+ 	OFFSET(PACAKEXECSTATE, paca_struct, kexec_state);
+ 	OFFSET(PACA_DSCR_DEFAULT, paca_struct, dscr_default);
 +
-+	dprintf1("disabling access to PKEY[%02d], doing read @ %p\n",
-+			 pkey, ptr);
++#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
++	OFFSET(PACA_AMR, paca_struct, paca_amr);
++#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
 +
-+	/* read the content */
-+	ptr_contents = read_ptr(ptr);
-+	do_not_expect_pkey_fault();
-+
-+	/* deny key access */
-+	pkey_access_deny(pkey);
-+	ptr_contents = read_ptr(ptr);
-+	dprintf1("*ptr: %d\n", ptr_contents);
-+	expected_pkey_fault(pkey);
-+
-+	/* free the key without restoring access */
-+	pkey_access_deny(pkey);
-+	sys_pkey_free(pkey);
-+	ptr_contents = read_ptr(ptr);
-+	do_not_expect_pkey_fault();
-+}
-+
- void test_write_of_write_disabled_region(int *ptr, u16 pkey)
- {
- 	dprintf1("disabling write access to PKEY[%02d], doing write\n", pkey);
-@@ -1333,6 +1357,7 @@ void test_mprotect_pkey_on_unsupported_cpu(int *ptr, u16 pkey)
- 	test_pkey_syscalls_on_non_allocated_pkey,
- 	test_pkey_syscalls_bad_args,
- 	test_pkey_alloc_exhaust,
-+	test_read_of_access_disabled_but_freed_key_region,
- };
- 
- void run_tests_once(void)
+ 	OFFSET(ACCOUNT_STARTTIME, paca_struct, accounting.starttime);
+ 	OFFSET(ACCOUNT_STARTTIME_USER, paca_struct, accounting.starttime_user);
+ 	OFFSET(ACCOUNT_USER_TIME, paca_struct, accounting.utime);
+diff --git a/arch/powerpc/mm/fault.c b/arch/powerpc/mm/fault.c
+index ea74fe2..a6710f5 100644
+--- a/arch/powerpc/mm/fault.c
++++ b/arch/powerpc/mm/fault.c
+@@ -264,6 +264,7 @@ int do_page_fault(struct pt_regs *regs, unsigned long address,
+ #ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
+ 	if (error_code & DSISR_KEYFAULT) {
+ 		code = SEGV_PKUERR;
++		get_paca()->paca_amr = read_amr();
+ 		goto bad_area_nosemaphore;
+ 	}
+ #endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
+@@ -451,6 +452,7 @@ int do_page_fault(struct pt_regs *regs, unsigned long address,
+ #ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
+ 	if (!arch_vma_access_permitted(vma, flags & FAULT_FLAG_WRITE,
+ 			is_exec, 0)) {
++		get_paca()->paca_amr = read_amr();
+ 		code = SEGV_PKUERR;
+ 		goto bad_area;
+ 	}
 -- 
 1.7.1
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
