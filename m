@@ -1,137 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f196.google.com ([209.85.220.196]:34337 "EHLO
-        mail-qk0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751768AbdGPD67 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 15 Jul 2017 23:58:59 -0400
+Received: from mail-qk0-f194.google.com ([209.85.220.194]:36102 "EHLO
+        mail-qk0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751477AbdGPD6q (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 15 Jul 2017 23:58:46 -0400
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v6 23/62] powerpc: implementation for arch_override_mprotect_pkey()
-Date: Sat, 15 Jul 2017 20:56:25 -0700
-Message-ID: <1500177424-13695-24-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v6 18/62] powerpc: sys_pkey_alloc() and sys_pkey_free() system calls
+Date: Sat, 15 Jul 2017 20:56:20 -0700
+Message-ID: <1500177424-13695-19-git-send-email-linuxram@us.ibm.com>
 In-Reply-To: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
 References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, mhocko@kernel.org
-Message-ID: <20170716035625.Q0R-iyCtJ5ZbndHtsH7ADXOCJMKCWMIw5Wx7F8638DY@z>
+Message-ID: <20170716035620.DfZt9sL-6ewa-BF_kOsBD637UJxlFDdT-kRV6O33AEQ@z>
 
-arch independent code calls arch_override_mprotect_pkey()
-to return a pkey that best matches the requested protection.
-
-This patch provides the implementation.
+Finally this patch provides the ability for a process to
+allocate and free a protection key.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/include/asm/mmu_context.h |    5 +++
- arch/powerpc/include/asm/pkeys.h       |   14 ++++++++-
- arch/powerpc/mm/pkeys.c                |   47 ++++++++++++++++++++++++++++++++
- 3 files changed, 64 insertions(+), 2 deletions(-)
+ arch/powerpc/include/asm/systbl.h      |    2 ++
+ arch/powerpc/include/asm/unistd.h      |    4 +---
+ arch/powerpc/include/uapi/asm/unistd.h |    2 ++
+ 3 files changed, 5 insertions(+), 3 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/mmu_context.h b/arch/powerpc/include/asm/mmu_context.h
-index 4705dab..7232484 100644
---- a/arch/powerpc/include/asm/mmu_context.h
-+++ b/arch/powerpc/include/asm/mmu_context.h
-@@ -185,6 +185,11 @@ static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
- #ifndef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
- #define pkey_initialize()
- #define pkey_mm_init(mm)
-+
-+static inline int vma_pkey(struct vm_area_struct *vma)
-+{
-+	return 0;
-+}
- #endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
+diff --git a/arch/powerpc/include/asm/systbl.h b/arch/powerpc/include/asm/systbl.h
+index 1c94708..22dd776 100644
+--- a/arch/powerpc/include/asm/systbl.h
++++ b/arch/powerpc/include/asm/systbl.h
+@@ -388,3 +388,5 @@
+ COMPAT_SYS_SPU(pwritev2)
+ SYSCALL(kexec_file_load)
+ SYSCALL(statx)
++SYSCALL(pkey_alloc)
++SYSCALL(pkey_free)
+diff --git a/arch/powerpc/include/asm/unistd.h b/arch/powerpc/include/asm/unistd.h
+index 9ba11db..e0273bc 100644
+--- a/arch/powerpc/include/asm/unistd.h
++++ b/arch/powerpc/include/asm/unistd.h
+@@ -12,13 +12,11 @@
+ #include <uapi/asm/unistd.h>
  
- #endif /* __KERNEL__ */
-diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
-index c92b049..94013af 100644
---- a/arch/powerpc/include/asm/pkeys.h
-+++ b/arch/powerpc/include/asm/pkeys.h
-@@ -29,6 +29,13 @@ static inline u64 pkey_to_vmflag_bits(u16 pkey)
- 		((pkey & 0x10UL) ? VM_PKEY_BIT4 : 0x0UL));
- }
  
-+static inline int vma_pkey(struct vm_area_struct *vma)
-+{
-+	if (!pkey_inited)
-+		return 0;
-+	return (vma->vm_flags & ARCH_VM_PKEY_FLAGS) >> VM_PKEY_SHIFT;
-+}
-+
- #define arch_max_pkey()  32
- #define AMR_RD_BIT 0x1UL
- #define AMR_WR_BIT 0x2UL
-@@ -138,11 +145,14 @@ static inline int execute_only_pkey(struct mm_struct *mm)
- 	return __execute_only_pkey(mm);
- }
+-#define NR_syscalls		384
++#define NR_syscalls		386
  
--
-+extern int __arch_override_mprotect_pkey(struct vm_area_struct *vma,
-+		int prot, int pkey);
- static inline int arch_override_mprotect_pkey(struct vm_area_struct *vma,
- 		int prot, int pkey)
- {
--	return 0;
-+	if (!pkey_inited)
-+		return 0;
-+	return __arch_override_mprotect_pkey(vma, prot, pkey);
- }
+ #define __NR__exit __NR_exit
  
- extern int __arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
-diff --git a/arch/powerpc/mm/pkeys.c b/arch/powerpc/mm/pkeys.c
-index 34e8557..403f5ae 100644
---- a/arch/powerpc/mm/pkeys.c
-+++ b/arch/powerpc/mm/pkeys.c
-@@ -154,3 +154,50 @@ int __execute_only_pkey(struct mm_struct *mm)
- 		mm->context.execute_only_pkey = execute_only_pkey;
- 	return execute_only_pkey;
- }
-+
-+static inline bool vma_is_pkey_exec_only(struct vm_area_struct *vma)
-+{
-+	/* Do this check first since the vm_flags should be hot */
-+	if ((vma->vm_flags & (VM_READ | VM_WRITE | VM_EXEC)) != VM_EXEC)
-+		return false;
-+
-+	return (vma_pkey(vma) == vma->vm_mm->context.execute_only_pkey);
-+}
-+
-+/*
-+ * This should only be called for *plain* mprotect calls.
-+ */
-+int __arch_override_mprotect_pkey(struct vm_area_struct *vma, int prot,
-+		int pkey)
-+{
-+	/*
-+	 * Is this an mprotect_pkey() call?  If so, never
-+	 * override the value that came from the user.
-+	 */
-+	if (pkey != -1)
-+		return pkey;
-+
-+	/*
-+	 * If the currently associated pkey is execute-only,
-+	 * but the requested protection requires read or write,
-+	 * move it back to the default pkey.
-+	 */
-+	if (vma_is_pkey_exec_only(vma) &&
-+	    (prot & (PROT_READ|PROT_WRITE)))
-+		return 0;
-+
-+	/*
-+	 * the requested protection is execute-only. Hence
-+	 * lets use a execute-only pkey.
-+	 */
-+	if (prot == PROT_EXEC) {
-+		pkey = execute_only_pkey(vma->vm_mm);
-+		if (pkey > 0)
-+			return pkey;
-+	}
-+
-+	/*
-+	 * nothing to override.
-+	 */
-+	return vma_pkey(vma);
-+}
+ #define __IGNORE_pkey_mprotect
+-#define __IGNORE_pkey_alloc
+-#define __IGNORE_pkey_free
+ 
+ #ifndef __ASSEMBLY__
+ 
+diff --git a/arch/powerpc/include/uapi/asm/unistd.h b/arch/powerpc/include/uapi/asm/unistd.h
+index b85f142..7993a07 100644
+--- a/arch/powerpc/include/uapi/asm/unistd.h
++++ b/arch/powerpc/include/uapi/asm/unistd.h
+@@ -394,5 +394,7 @@
+ #define __NR_pwritev2		381
+ #define __NR_kexec_file_load	382
+ #define __NR_statx		383
++#define __NR_pkey_alloc		384
++#define __NR_pkey_free		385
+ 
+ #endif /* _UAPI_ASM_POWERPC_UNISTD_H_ */
 -- 
 1.7.1
