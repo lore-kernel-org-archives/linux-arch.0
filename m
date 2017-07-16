@@ -1,52 +1,108 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f196.google.com ([209.85.220.196]:35157 "EHLO
+Received: from mail-qk0-f196.google.com ([209.85.220.196]:35146 "EHLO
         mail-qk0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751929AbdGPD7L (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 15 Jul 2017 23:59:11 -0400
+        with ESMTP id S1751935AbdGPD7I (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 15 Jul 2017 23:59:08 -0400
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v6 28/62] powerpc: check key protection for user page access
-Date: Sat, 15 Jul 2017 20:56:30 -0700
-Message-ID: <1500177424-13695-29-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v6 27/62] powerpc: helper to validate key-access permissions of a pte
+Date: Sat, 15 Jul 2017 20:56:29 -0700
+Message-ID: <1500177424-13695-28-git-send-email-linuxram@us.ibm.com>
 In-Reply-To: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
 References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, mhocko@kernel.org
-Message-ID: <20170716035630.livNx-UaN47kr8FOcb_1Tt4YVbINncVSQodnVUmgdOY@z>
+Message-ID: <20170716035629.gtFl_QO9IsqLy8X30GZPTOkvwZjdJnX8XUX40m2IHDg@z>
 
-Make sure that the kernel does not access user pages without
-checking their key-protection.
+helper function that checks if the read/write/execute is allowed
+on the pte.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/include/asm/book3s/64/pgtable.h |   14 ++++++++++++++
- 1 files changed, 14 insertions(+), 0 deletions(-)
+ arch/powerpc/include/asm/book3s/64/pgtable.h |    4 +++
+ arch/powerpc/include/asm/pkeys.h             |   12 +++++++++
+ arch/powerpc/mm/pkeys.c                      |   33 ++++++++++++++++++++++++++
+ 3 files changed, 49 insertions(+), 0 deletions(-)
 
 diff --git a/arch/powerpc/include/asm/book3s/64/pgtable.h b/arch/powerpc/include/asm/book3s/64/pgtable.h
-index 0056e58..425d98b 100644
+index 30d7f55..0056e58 100644
 --- a/arch/powerpc/include/asm/book3s/64/pgtable.h
 +++ b/arch/powerpc/include/asm/book3s/64/pgtable.h
-@@ -474,6 +474,20 @@ static inline void write_uamor(u64 value)
+@@ -472,6 +472,10 @@ static inline void write_uamor(u64 value)
+ 	mtspr(SPRN_UAMOR, value);
+ }
  
- #ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
- extern bool arch_pte_access_permitted(u64 pte, bool write, bool execute);
++#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
++extern bool arch_pte_access_permitted(u64 pte, bool write, bool execute);
++#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
 +
-+#define pte_access_permitted(pte, write) \
-+	(pte_present(pte) && \
-+	 ((!(write) || pte_write(pte)) && \
-+	  arch_pte_access_permitted(pte_val(pte), !!write, 0)))
-+
-+/*
-+ * We store key in pmd for huge tlb pages. So need
-+ * to check for key protection.
-+ */
-+#define pmd_access_permitted(pmd, write) \
-+	(pmd_present(pmd) && \
-+	 ((!(write) || pmd_write(pmd)) && \
-+	  arch_pte_access_permitted(pmd_val(pmd), !!write, 0)))
- #endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
- 
  #define __HAVE_ARCH_PTEP_GET_AND_CLEAR
+ static inline pte_t ptep_get_and_clear(struct mm_struct *mm,
+ 				       unsigned long addr, pte_t *ptep)
+diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
+index bbb5d85..7a9aade 100644
+--- a/arch/powerpc/include/asm/pkeys.h
++++ b/arch/powerpc/include/asm/pkeys.h
+@@ -53,6 +53,18 @@ static inline u64 pte_to_hpte_pkey_bits(u64 pteflags)
+ 		((pteflags & H_PAGE_PKEY_BIT4) ? HPTE_R_KEY_BIT4 : 0x0UL));
+ }
+ 
++static inline u16 pte_to_pkey_bits(u64 pteflags)
++{
++	if (!pkey_inited)
++		return 0x0UL;
++
++	return (((pteflags & H_PAGE_PKEY_BIT0) ? 0x10 : 0x0UL) |
++		((pteflags & H_PAGE_PKEY_BIT1) ? 0x8 : 0x0UL) |
++		((pteflags & H_PAGE_PKEY_BIT2) ? 0x4 : 0x0UL) |
++		((pteflags & H_PAGE_PKEY_BIT3) ? 0x2 : 0x0UL) |
++		((pteflags & H_PAGE_PKEY_BIT4) ? 0x1 : 0x0UL));
++}
++
+ static inline int vma_pkey(struct vm_area_struct *vma)
+ {
+ 	if (!pkey_inited)
+diff --git a/arch/powerpc/mm/pkeys.c b/arch/powerpc/mm/pkeys.c
+index 403f5ae..1794e17 100644
+--- a/arch/powerpc/mm/pkeys.c
++++ b/arch/powerpc/mm/pkeys.c
+@@ -201,3 +201,36 @@ int __arch_override_mprotect_pkey(struct vm_area_struct *vma, int prot,
+ 	 */
+ 	return vma_pkey(vma);
+ }
++
++static bool pkey_access_permitted(int pkey, bool write, bool execute)
++{
++	int pkey_shift;
++	u64 amr;
++
++	if (!pkey)
++		return true;
++
++	pkey_shift = pkeyshift(pkey);
++	if (!(read_uamor() & (0x3UL << pkey_shift)))
++		return true;
++
++	if (execute && !(read_iamr() & (IAMR_EX_BIT << pkey_shift)))
++		return true;
++
++	if (!write) {
++		amr = read_amr();
++		if (!(amr & (AMR_RD_BIT << pkey_shift)))
++			return true;
++	}
++
++	amr = read_amr(); /* delay reading amr uptil absolutely needed */
++	return (write && !(amr & (AMR_WR_BIT << pkey_shift)));
++}
++
++bool arch_pte_access_permitted(u64 pte, bool write, bool execute)
++{
++	if (!pkey_inited)
++		return true;
++	return pkey_access_permitted(pte_to_pkey_bits(pte),
++			write, execute);
++}
 -- 
 1.7.1
