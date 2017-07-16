@@ -1,47 +1,48 @@
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v6 51/62] selftest/vm: pkey register should match shadow pkey
-Date: Sat, 15 Jul 2017 20:56:53 -0700
-Message-ID: <1500177424-13695-52-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v6 54/62] selftest/vm: fix an assertion in test_pkey_alloc_exhaust()
+Date: Sat, 15 Jul 2017 20:56:56 -0700
+Message-ID: <1500177424-13695-55-git-send-email-linuxram@us.ibm.com>
 References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f193.google.com ([209.85.216.193]:35648 "EHLO
-        mail-qt0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750829AbdGPEAJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 16 Jul 2017 00:00:09 -0400
+Return-path: <linux-doc-owner@vger.kernel.org>
 In-Reply-To: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-doc-owner@vger.kernel.org
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, mhocko@kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-expected_pkey_fault() is comparing the contents of pkey
-register with 0. This may not be true all the time. There
-could be bits set by default by the architecture
-which can never be changed. Hence compare the value against
-shadow pkey register, which is supposed to track the bits
-accurately all throughout
+The maximum number of keys that can be allocated has to
+take into consideration that some keys are reserved by
+the architecture of specific purpose and cannot be allocated.
+
+Fix the assertion in test_pkey_alloc_exhaust()
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- tools/testing/selftests/vm/protection_keys.c |    4 ++--
- 1 files changed, 2 insertions(+), 2 deletions(-)
+ tools/testing/selftests/vm/protection_keys.c |   10 +++++-----
+ 1 files changed, 5 insertions(+), 5 deletions(-)
 
 diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index 20bab6d..f21e177 100644
+index 1a28c88..37645a5 100644
 --- a/tools/testing/selftests/vm/protection_keys.c
 +++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -926,10 +926,10 @@ void expected_pkey_fault(int pkey)
- 	pkey_assert(last_pkey_faults + 1 == pkey_faults);
- 	pkey_assert(last_si_pkey == pkey);
- 	/*
--	 * The signal handler shold have cleared out PKEY register to let the
-+	 * The signal handler shold have cleared out pkey-register to let the
- 	 * test program continue.  We now have to restore it.
- 	 */
--	if (__rdpkey_reg() != 0)
-+	if (__rdpkey_reg() != shadow_pkey_reg)
- 		pkey_assert(0);
+@@ -1159,12 +1159,12 @@ void test_pkey_alloc_exhaust(int *ptr, u16 pkey)
+ 	pkey_assert(i < NR_PKEYS*2);
  
- 	__wrpkey_reg(shadow_pkey_reg);
+ 	/*
+-	 * There are 16 pkeys supported in hardware.  One is taken
+-	 * up for the default (0) and another can be taken up by
+-	 * an execute-only mapping.  Ensure that we can allocate
+-	 * at least 14 (16-2).
++	 * There are NR_PKEYS pkeys supported in hardware.  NR_RESERVED_KEYS
++	 * are reserved. One can be taken up by an execute-only mapping.
++	 * Ensure that we can allocate at least the remaining.
+ 	 */
+-	pkey_assert(i >= NR_PKEYS-2);
++	pkey_assert(i >= (NR_PKEYS-NR_RESERVED_PKEYS-1));
++
+ 
+ 	for (i = 0; i < nr_allocated_pkeys; i++) {
+ 		err = sys_pkey_free(allocated_pkeys[i]);
 -- 
 1.7.1
+
