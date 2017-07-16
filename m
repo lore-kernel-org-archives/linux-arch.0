@@ -1,47 +1,113 @@
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 0/8] 5-level paging enabling for v4.14
-Date: Mon, 17 Jul 2017 01:59:46 +0300
-Message-ID: <20170716225954.74185-1-kirill.shutemov@linux.intel.com>
+Subject: [PATCH 4/8] x86/mm: Rename tasksize_32bit/64bit to task_size_32bit/64bit
+Date: Mon, 17 Jul 2017 01:59:50 +0300
+Message-ID: <20170716225954.74185-5-kirill.shutemov@linux.intel.com>
+References: <20170716225954.74185-1-kirill.shutemov@linux.intel.com>
 Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20170716225954.74185-1-kirill.shutemov@linux.intel.com>
 Sender: owner-linux-mm@kvack.org
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-Hi,
+Rename these helpers to be consistent with spelling of TASK_SIZE and
+related constants.
 
-As Ingo requested, I'm resending the rebased patchset after merge window to be
-queued for v4.14.
+Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+---
+ arch/x86/include/asm/elf.h   |  4 ++--
+ arch/x86/kernel/sys_x86_64.c |  2 +-
+ arch/x86/mm/hugetlbpage.c    |  2 +-
+ arch/x86/mm/mmap.c           | 10 +++++-----
+ 4 files changed, 9 insertions(+), 9 deletions(-)
 
-The patches was reordered and few more fixes added: for Xen and dump_pagetables.
-
-Please consider applying.
-
-Kirill A. Shutemov (8):
-  x86/dump_pagetables: Generalize address normalization
-  x86/dump_pagetables: Fix printout of p4d level
-  x86/xen: Redefine XEN_ELFNOTE_INIT_P2M using PUD_SIZE * PTRS_PER_PUD
-  x86/mm: Rename tasksize_32bit/64bit to task_size_32bit/64bit
-  x86/mpx: Do not allow MPX if we have mappings above 47-bit
-  x86/mm: Prepare to expose larger address space to userspace
-  x86/mm: Allow userspace have mapping above 47-bit
-  x86: Enable 5-level paging support
-
- Documentation/x86/x86_64/5level-paging.txt | 64 ++++++++++++++++++++++++++++++
- arch/x86/Kconfig                           | 18 +++++++++
- arch/x86/include/asm/elf.h                 |  4 +-
- arch/x86/include/asm/mpx.h                 |  9 +++++
- arch/x86/include/asm/processor.h           | 12 ++++--
- arch/x86/kernel/sys_x86_64.c               | 30 ++++++++++++--
- arch/x86/mm/dump_pagetables.c              | 29 +++++++-------
- arch/x86/mm/hugetlbpage.c                  | 27 +++++++++++--
- arch/x86/mm/mmap.c                         | 12 +++---
- arch/x86/mm/mpx.c                          | 33 ++++++++++++++-
- arch/x86/xen/Kconfig                       |  5 +++
- arch/x86/xen/xen-head.S                    |  2 +-
- 12 files changed, 210 insertions(+), 35 deletions(-)
- create mode 100644 Documentation/x86/x86_64/5level-paging.txt
-
+diff --git a/arch/x86/include/asm/elf.h b/arch/x86/include/asm/elf.h
+index 1c18d83d3f09..c7090ef1388e 100644
+--- a/arch/x86/include/asm/elf.h
++++ b/arch/x86/include/asm/elf.h
+@@ -304,8 +304,8 @@ static inline int mmap_is_ia32(void)
+ 		test_thread_flag(TIF_ADDR32));
+ }
+ 
+-extern unsigned long tasksize_32bit(void);
+-extern unsigned long tasksize_64bit(void);
++extern unsigned long task_size_32bit(void);
++extern unsigned long task_size_64bit(void);
+ extern unsigned long get_mmap_base(int is_legacy);
+ 
+ #ifdef CONFIG_X86_32
+diff --git a/arch/x86/kernel/sys_x86_64.c b/arch/x86/kernel/sys_x86_64.c
+index 213ddf3e937d..89bd0d6460e1 100644
+--- a/arch/x86/kernel/sys_x86_64.c
++++ b/arch/x86/kernel/sys_x86_64.c
+@@ -120,7 +120,7 @@ static void find_start_end(unsigned long flags, unsigned long *begin,
+ 	}
+ 
+ 	*begin	= get_mmap_base(1);
+-	*end	= in_compat_syscall() ? tasksize_32bit() : tasksize_64bit();
++	*end	= in_compat_syscall() ? task_size_32bit() : task_size_64bit();
+ }
+ 
+ unsigned long
+diff --git a/arch/x86/mm/hugetlbpage.c b/arch/x86/mm/hugetlbpage.c
+index 2824607df108..868f02cf58ce 100644
+--- a/arch/x86/mm/hugetlbpage.c
++++ b/arch/x86/mm/hugetlbpage.c
+@@ -86,7 +86,7 @@ static unsigned long hugetlb_get_unmapped_area_bottomup(struct file *file,
+ 	info.length = len;
+ 	info.low_limit = get_mmap_base(1);
+ 	info.high_limit = in_compat_syscall() ?
+-		tasksize_32bit() : tasksize_64bit();
++		task_size_32bit() : task_size_64bit();
+ 	info.align_mask = PAGE_MASK & ~huge_page_mask(h);
+ 	info.align_offset = 0;
+ 	return vm_unmapped_area(&info);
+diff --git a/arch/x86/mm/mmap.c b/arch/x86/mm/mmap.c
+index 229d04a83f85..d2586913c8d0 100644
+--- a/arch/x86/mm/mmap.c
++++ b/arch/x86/mm/mmap.c
+@@ -37,12 +37,12 @@ struct va_alignment __read_mostly va_align = {
+ 	.flags = -1,
+ };
+ 
+-unsigned long tasksize_32bit(void)
++unsigned long task_size_32bit(void)
+ {
+ 	return IA32_PAGE_OFFSET;
+ }
+ 
+-unsigned long tasksize_64bit(void)
++unsigned long task_size_64bit(void)
+ {
+ 	return TASK_SIZE_MAX;
+ }
+@@ -52,7 +52,7 @@ static unsigned long stack_maxrandom_size(unsigned long task_size)
+ 	unsigned long max = 0;
+ 	if ((current->flags & PF_RANDOMIZE) &&
+ 		!(current->personality & ADDR_NO_RANDOMIZE)) {
+-		max = (-1UL) & __STACK_RND_MASK(task_size == tasksize_32bit());
++		max = (-1UL) & __STACK_RND_MASK(task_size == task_size_32bit());
+ 		max <<= PAGE_SHIFT;
+ 	}
+ 
+@@ -142,7 +142,7 @@ void arch_pick_mmap_layout(struct mm_struct *mm)
+ 		mm->get_unmapped_area = arch_get_unmapped_area_topdown;
+ 
+ 	arch_pick_mmap_base(&mm->mmap_base, &mm->mmap_legacy_base,
+-			arch_rnd(mmap64_rnd_bits), tasksize_64bit());
++			arch_rnd(mmap64_rnd_bits), task_size_64bit());
+ 
+ #ifdef CONFIG_HAVE_ARCH_COMPAT_MMAP_BASES
+ 	/*
+@@ -152,7 +152,7 @@ void arch_pick_mmap_layout(struct mm_struct *mm)
+ 	 * mmap_base, the compat syscall uses mmap_compat_base.
+ 	 */
+ 	arch_pick_mmap_base(&mm->mmap_compat_base, &mm->mmap_compat_legacy_base,
+-			arch_rnd(mmap32_rnd_bits), tasksize_32bit());
++			arch_rnd(mmap32_rnd_bits), task_size_32bit());
+ #endif
+ }
+ 
 -- 
 2.11.0
 
