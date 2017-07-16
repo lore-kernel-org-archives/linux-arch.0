@@ -1,68 +1,53 @@
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v6 49/62] selftest/vm: fix alloc_random_pkey() to make it really random
-Date: Sat, 15 Jul 2017 20:56:51 -0700
-Message-ID: <1500177424-13695-50-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v6 28/62] powerpc: check key protection for user page access
+Date: Sat, 15 Jul 2017 20:56:30 -0700
+Message-ID: <1500177424-13695-29-git-send-email-linuxram@us.ibm.com>
 References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: owner-linux-mm@kvack.org
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, mhocko@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-alloc_random_pkey() was allocating the same pkey every time.
-Not all pkeys were geting tested. fixed it.
+Make sure that the kernel does not access user pages without
+checking their key-protection.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- tools/testing/selftests/vm/protection_keys.c |   10 +++++++---
- 1 files changed, 7 insertions(+), 3 deletions(-)
+ arch/powerpc/include/asm/book3s/64/pgtable.h |   14 ++++++++++++++
+ 1 files changed, 14 insertions(+), 0 deletions(-)
 
-diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index 4f4ce36..1c8ef39 100644
---- a/tools/testing/selftests/vm/protection_keys.c
-+++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -23,6 +23,7 @@
- #define _GNU_SOURCE
- #include <errno.h>
- #include <linux/futex.h>
-+#include <time.h>
- #include <sys/time.h>
- #include <sys/syscall.h>
- #include <string.h>
-@@ -602,13 +603,15 @@ int alloc_random_pkey(void)
- 	int alloced_pkeys[NR_PKEYS];
- 	int nr_alloced = 0;
- 	int random_index;
-+
- 	memset(alloced_pkeys, 0, sizeof(alloced_pkeys));
-+	srand((unsigned int)time(NULL));
+diff --git a/arch/powerpc/include/asm/book3s/64/pgtable.h b/arch/powerpc/include/asm/book3s/64/pgtable.h
+index 0056e58..425d98b 100644
+--- a/arch/powerpc/include/asm/book3s/64/pgtable.h
++++ b/arch/powerpc/include/asm/book3s/64/pgtable.h
+@@ -474,6 +474,20 @@ static inline void write_uamor(u64 value)
  
- 	/* allocate every possible key and make a note of which ones we got */
- 	max_nr_pkey_allocs = NR_PKEYS;
--	max_nr_pkey_allocs = 1;
- 	for (i = 0; i < max_nr_pkey_allocs; i++) {
- 		int new_pkey = alloc_pkey();
+ #ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
+ extern bool arch_pte_access_permitted(u64 pte, bool write, bool execute);
 +
- 		if (new_pkey < 0)
- 			break;
- 		alloced_pkeys[nr_alloced++] = new_pkey;
-@@ -624,13 +627,14 @@ int alloc_random_pkey(void)
- 	/* go through the allocated ones that we did not want and free them */
- 	for (i = 0; i < nr_alloced; i++) {
- 		int free_ret;
++#define pte_access_permitted(pte, write) \
++	(pte_present(pte) && \
++	 ((!(write) || pte_write(pte)) && \
++	  arch_pte_access_permitted(pte_val(pte), !!write, 0)))
 +
- 		if (!alloced_pkeys[i])
- 			continue;
- 		free_ret = sys_pkey_free(alloced_pkeys[i]);
- 		pkey_assert(!free_ret);
- 	}
--	dprintf1("%s()::%d, ret: %d pkey_reg: 0x%x shadow: 0x%x\n", __func__,
--			__LINE__, ret, __rdpkey_reg(), shadow_pkey_reg);
-+	dprintf1("%s()::%d, ret: %d pkey_reg: 0x%x shadow: 0x%016lx\n",
-+		__func__, __LINE__, ret, __rdpkey_reg(), shadow_pkey_reg);
- 	return ret;
- }
++/*
++ * We store key in pmd for huge tlb pages. So need
++ * to check for key protection.
++ */
++#define pmd_access_permitted(pmd, write) \
++	(pmd_present(pmd) && \
++	 ((!(write) || pmd_write(pmd)) && \
++	  arch_pte_access_permitted(pmd_val(pmd), !!write, 0)))
+ #endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
  
+ #define __HAVE_ARCH_PTEP_GET_AND_CLEAR
 -- 
 1.7.1
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
