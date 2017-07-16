@@ -1,74 +1,91 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f194.google.com ([209.85.216.194]:35329 "EHLO
-        mail-qt0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751355AbdGPD6Y (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 15 Jul 2017 23:58:24 -0400
+Received: from mail-qk0-f196.google.com ([209.85.220.196]:34272 "EHLO
+        mail-qk0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751378AbdGPD6b (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 15 Jul 2017 23:58:31 -0400
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v6 09/62] powerpc: use helper functions in __hash_page_4K() for 4K PTE
-Date: Sat, 15 Jul 2017 20:56:11 -0700
-Message-ID: <1500177424-13695-10-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v6 12/62] mm: introduce an additional vma bit for powerpc pkey
+Date: Sat, 15 Jul 2017 20:56:14 -0700
+Message-ID: <1500177424-13695-13-git-send-email-linuxram@us.ibm.com>
 In-Reply-To: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
 References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, mhocko@kernel.org
-Message-ID: <20170716035611.6wxkBQoNWVL94OlmB-rrpHAbwk77KOSPbQFwH2dAjsQ@z>
+Message-ID: <20170716035614.Uz5hDPvjaRyoRzAVUfHl_oa96JWyljDHs5k1MWaiIS0@z>
 
-replace redundant code with helper functions
-pte_get_hash_gslot() and pte_set_hash_slot()
+Currently only 4bits are allocated in the vma flags to hold 16
+keys. This is sufficient for x86. PowerPC  supports  32  keys,
+which needs 5bits. This patch allocates an  additional bit.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/mm/hash64_4k.c |   14 ++++++--------
- 1 files changed, 6 insertions(+), 8 deletions(-)
+ fs/proc/task_mmu.c |    6 ++++--
+ include/linux/mm.h |   20 ++++++++++++++------
+ 2 files changed, 18 insertions(+), 8 deletions(-)
 
-diff --git a/arch/powerpc/mm/hash64_4k.c b/arch/powerpc/mm/hash64_4k.c
-index 6fa450c..a1eebc1 100644
---- a/arch/powerpc/mm/hash64_4k.c
-+++ b/arch/powerpc/mm/hash64_4k.c
-@@ -20,6 +20,7 @@ int __hash_page_4K(unsigned long ea, unsigned long access, unsigned long vsid,
- 		   pte_t *ptep, unsigned long trap, unsigned long flags,
- 		   int ssize, int subpg_prot)
- {
-+	real_pte_t rpte;
- 	unsigned long hpte_group;
- 	unsigned long rflags, pa;
- 	unsigned long old_pte, new_pte;
-@@ -54,6 +55,7 @@ int __hash_page_4K(unsigned long ea, unsigned long access, unsigned long vsid,
- 	 * need to add in 0x1 if it's a read-only user page
- 	 */
- 	rflags = htab_convert_pte_flags(new_pte);
-+	rpte = __real_pte(__pte(old_pte), ptep);
+diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
+index 520802d..e5710bc 100644
+--- a/fs/proc/task_mmu.c
++++ b/fs/proc/task_mmu.c
+@@ -662,13 +662,15 @@ static void show_smap_vma_flags(struct seq_file *m, struct vm_area_struct *vma)
+ 		[ilog2(VM_MERGEABLE)]	= "mg",
+ 		[ilog2(VM_UFFD_MISSING)]= "um",
+ 		[ilog2(VM_UFFD_WP)]	= "uw",
+-#ifdef CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS
++#ifdef CONFIG_ARCH_HAS_PKEYS
+ 		/* These come out via ProtectionKey: */
+ 		[ilog2(VM_PKEY_BIT0)]	= "",
+ 		[ilog2(VM_PKEY_BIT1)]	= "",
+ 		[ilog2(VM_PKEY_BIT2)]	= "",
+ 		[ilog2(VM_PKEY_BIT3)]	= "",
+-#endif
++		/* Additional bit used by ppc64 */
++		[ilog2(VM_PKEY_BIT4)]	= "",
++#endif /* CONFIG_ARCH_HAS_PKEYS */
+ 	};
+ 	size_t i;
  
- 	if (cpu_has_feature(CPU_FTR_NOEXECUTE) &&
- 	    !cpu_has_feature(CPU_FTR_COHERENT_ICACHE))
-@@ -64,13 +66,10 @@ int __hash_page_4K(unsigned long ea, unsigned long access, unsigned long vsid,
- 		/*
- 		 * There MIGHT be an HPTE for this pte
- 		 */
--		hash = hpt_hash(vpn, shift, ssize);
--		if (old_pte & H_PAGE_F_SECOND)
--			hash = ~hash;
--		slot = (hash & htab_hash_mask) * HPTES_PER_GROUP;
--		slot += (old_pte & H_PAGE_F_GIX) >> H_PAGE_F_GIX_SHIFT;
-+		unsigned long gslot = pte_get_hash_gslot(vpn, shift,
-+						ssize, rpte, 0);
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index 6f543a4..095e2e7 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -208,21 +208,29 @@ extern int overcommit_kbytes_handler(struct ctl_table *, int, void __user *,
+ #define VM_HIGH_ARCH_BIT_1	33	/* bit only usable on 64-bit architectures */
+ #define VM_HIGH_ARCH_BIT_2	34	/* bit only usable on 64-bit architectures */
+ #define VM_HIGH_ARCH_BIT_3	35	/* bit only usable on 64-bit architectures */
++#define VM_HIGH_ARCH_BIT_4	36	/* bit only usable on 64-bit architectures */
+ #define VM_HIGH_ARCH_0	BIT(VM_HIGH_ARCH_BIT_0)
+ #define VM_HIGH_ARCH_1	BIT(VM_HIGH_ARCH_BIT_1)
+ #define VM_HIGH_ARCH_2	BIT(VM_HIGH_ARCH_BIT_2)
+ #define VM_HIGH_ARCH_3	BIT(VM_HIGH_ARCH_BIT_3)
++#define VM_HIGH_ARCH_4	BIT(VM_HIGH_ARCH_BIT_4)
+ #endif /* CONFIG_ARCH_USES_HIGH_VMA_FLAGS */
  
--		if (mmu_hash_ops.hpte_updatepp(slot, rflags, vpn, MMU_PAGE_4K,
-+		if (mmu_hash_ops.hpte_updatepp(gslot, rflags, vpn, MMU_PAGE_4K,
- 					       MMU_PAGE_4K, ssize, flags) == -1)
- 			old_pte &= ~_PAGE_HPTEFLAGS;
- 	}
-@@ -118,8 +117,7 @@ int __hash_page_4K(unsigned long ea, unsigned long access, unsigned long vsid,
- 			return -1;
- 		}
- 		new_pte = (new_pte & ~_PAGE_HPTEFLAGS) | H_PAGE_HASHPTE;
--		new_pte |= (slot << H_PAGE_F_GIX_SHIFT) &
--			(H_PAGE_F_SECOND | H_PAGE_F_GIX);
-+		new_pte |= pte_set_hash_slot(ptep, rpte, 0, slot);
- 	}
- 	*ptep = __pte(new_pte & ~H_PAGE_BUSY);
- 	return 0;
+-#if defined(CONFIG_X86)
+-# define VM_PAT		VM_ARCH_1	/* PAT reserves whole VMA at once (x86) */
+-#if defined (CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS)
++#ifdef CONFIG_ARCH_HAS_PKEYS
+ # define VM_PKEY_SHIFT	VM_HIGH_ARCH_BIT_0
+-# define VM_PKEY_BIT0	VM_HIGH_ARCH_0	/* A protection key is a 4-bit value */
+-# define VM_PKEY_BIT1	VM_HIGH_ARCH_1
++# define VM_PKEY_BIT0	VM_HIGH_ARCH_0 /* A protection key is a 4-bit value */
++# define VM_PKEY_BIT1	VM_HIGH_ARCH_1 /* on x86 and 5-bit value on ppc64   */
+ # define VM_PKEY_BIT2	VM_HIGH_ARCH_2
+ # define VM_PKEY_BIT3	VM_HIGH_ARCH_3
+-#endif
++# define VM_PKEY_BIT4	VM_HIGH_ARCH_4
++#endif /* CONFIG_ARCH_HAS_PKEYS */
++
++#if defined(CONFIG_PPC64_MEMORY_PROTECTION_KEYS)
++#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
++
++
++#if defined(CONFIG_X86)
++# define VM_PAT		VM_ARCH_1	/* PAT reserves whole VMA at once (x86) */
+ #elif defined(CONFIG_PPC)
+ # define VM_SAO		VM_ARCH_1	/* Strong Access Ordering (powerpc) */
+ #elif defined(CONFIG_PARISC)
 -- 
 1.7.1
