@@ -1,73 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f193.google.com ([209.85.220.193]:34549 "EHLO
-        mail-qk0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750842AbdGPEAG (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 16 Jul 2017 00:00:06 -0400
+Received: from mail-qt0-f193.google.com ([209.85.216.193]:33987 "EHLO
+        mail-qt0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752372AbdGPEAB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 16 Jul 2017 00:00:01 -0400
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v6 50/62] selftest/vm: introduce two arch independent abstraction
-Date: Sat, 15 Jul 2017 20:56:52 -0700
-Message-ID: <1500177424-13695-51-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v6 48/62] selftest/vm: clear the bits in shadow reg when a pkey is freed.
+Date: Sat, 15 Jul 2017 20:56:50 -0700
+Message-ID: <1500177424-13695-49-git-send-email-linuxram@us.ibm.com>
 In-Reply-To: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
 References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, mhocko@kernel.org
-Message-ID: <20170716035652.IxKKQU5YfHiicMq6kQR0V9Pn2paWTtFm9G70QAVr59k@z>
+Message-ID: <20170716035650.e4YFClQbebPnjJuHNk5n-av44MFnJW4gXuiZNPNaI9w@z>
 
-open_hugepage_file() <- opens the huge page file
-get_start_key() <--  provides the first non-reserved key.
+When a key is freed, the  key  is  no  more  effective.
+Clear the bits corresponding to the pkey in the shadow
+register. Otherwise  it  will carry some spurious bits
+which can trigger false-positive asserts.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- tools/testing/selftests/vm/pkey-helpers.h    |   11 +++++++++++
- tools/testing/selftests/vm/protection_keys.c |    6 +++---
- 2 files changed, 14 insertions(+), 3 deletions(-)
+ tools/testing/selftests/vm/protection_keys.c |    3 +++
+ 1 files changed, 3 insertions(+), 0 deletions(-)
 
-diff --git a/tools/testing/selftests/vm/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
-index f50b5f2..5211019 100644
---- a/tools/testing/selftests/vm/pkey-helpers.h
-+++ b/tools/testing/selftests/vm/pkey-helpers.h
-@@ -300,3 +300,14 @@ static inline void __page_o_noops(void)
- 	}					\
- } while (0)
- #define raw_assert(cond) assert(cond)
-+
-+static inline int open_hugepage_file(int flag)
-+{
-+	return open("/sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages",
-+		 O_RDONLY);
-+}
-+
-+static inline int get_start_key(void)
-+{
-+	return 1;
-+}
 diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index 1c8ef39..20bab6d 100644
+index 0f2d1ce..4f4ce36 100644
 --- a/tools/testing/selftests/vm/protection_keys.c
 +++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -809,7 +809,7 @@ void setup_hugetlbfs(void)
- 	 * Now go make sure that we got the pages and that they
- 	 * are 2M pages.  Someone might have made 1G the default.
- 	 */
--	fd = open("/sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages", O_RDONLY);
-+	fd = open_hugepage_file(O_RDONLY);
- 	if (fd < 0) {
- 		perror("opening sysfs 2M hugetlb config");
- 		return;
-@@ -1087,10 +1087,10 @@ void test_kernel_gup_write_to_write_disabled_region(int *ptr, u16 pkey)
- void test_pkey_syscalls_on_non_allocated_pkey(int *ptr, u16 pkey)
+@@ -582,6 +582,9 @@ int alloc_pkey(void)
+ int sys_pkey_free(unsigned long pkey)
  {
- 	int err;
--	int i;
-+	int i = get_start_key();
- 
- 	/* Note: 0 is the default pkey, so don't mess with it */
--	for (i = 1; i < NR_PKEYS; i++) {
-+	for (; i < NR_PKEYS; i++) {
- 		if (pkey == i)
- 			continue;
- 
+ 	int ret = syscall(SYS_pkey_free, pkey);
++
++	if (!ret)
++		shadow_pkey_reg &= reset_bits(pkey, PKEY_DISABLE_ACCESS);
+ 	dprintf1("%s(pkey=%ld) syscall ret: %d\n", __func__, pkey, ret);
+ 	return ret;
+ }
 -- 
 1.7.1
