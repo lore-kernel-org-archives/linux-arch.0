@@ -1,59 +1,87 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f196.google.com ([209.85.216.196]:36762 "EHLO
-        mail-qt0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751317AbdGPD60 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 15 Jul 2017 23:58:26 -0400
+Received: from mail-qk0-f194.google.com ([209.85.220.194]:35085 "EHLO
+        mail-qk0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751546AbdGPD6v (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 15 Jul 2017 23:58:51 -0400
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v6 10/62] powerpc: use helper functions in flush_hash_page()
-Date: Sat, 15 Jul 2017 20:56:12 -0700
-Message-ID: <1500177424-13695-11-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v6 20/62] powerpc: store and restore the pkey state across context switches
+Date: Sat, 15 Jul 2017 20:56:22 -0700
+Message-ID: <1500177424-13695-21-git-send-email-linuxram@us.ibm.com>
 In-Reply-To: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
 References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, mhocko@kernel.org
-Message-ID: <20170716035612.rOrIBOE3iBQdNBJM0QCQulyNe2dzF6MTk8EGLC0t7-Y@z>
+Message-ID: <20170716035622.ZaN-nzQjNwTYaxWxXrx68tSbWfQWq27ipHIH-N2Dslk@z>
 
-replace redundant code in flush_hash_page() with helper function
-pte_get_hash_gslot().
+Store and restore the AMR, IAMR and UMOR register state of the task
+before scheduling out and after scheduling in, respectively.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/mm/hash_utils_64.c |   13 ++++---------
- 1 files changed, 4 insertions(+), 9 deletions(-)
+ arch/powerpc/include/asm/processor.h |    5 +++++
+ arch/powerpc/kernel/process.c        |   18 ++++++++++++++++++
+ 2 files changed, 23 insertions(+), 0 deletions(-)
 
-diff --git a/arch/powerpc/mm/hash_utils_64.c b/arch/powerpc/mm/hash_utils_64.c
-index d3604da..d863696 100644
---- a/arch/powerpc/mm/hash_utils_64.c
-+++ b/arch/powerpc/mm/hash_utils_64.c
-@@ -1615,23 +1615,18 @@ unsigned long pte_get_hash_gslot(unsigned long vpn, unsigned long shift,
- void flush_hash_page(unsigned long vpn, real_pte_t pte, int psize, int ssize,
- 		     unsigned long flags)
- {
--	unsigned long hash, index, shift, hidx, slot;
-+	unsigned long index, shift, gslot;
- 	int local = flags & HPTE_LOCAL_UPDATE;
+diff --git a/arch/powerpc/include/asm/processor.h b/arch/powerpc/include/asm/processor.h
+index 1189d04..dcb1cf0 100644
+--- a/arch/powerpc/include/asm/processor.h
++++ b/arch/powerpc/include/asm/processor.h
+@@ -309,6 +309,11 @@ struct thread_struct {
+ 	struct thread_vr_state ckvr_state; /* Checkpointed VR state */
+ 	unsigned long	ckvrsave; /* Checkpointed VRSAVE */
+ #endif /* CONFIG_PPC_TRANSACTIONAL_MEM */
++#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
++	unsigned long	amr;
++	unsigned long	iamr;
++	unsigned long	uamor;
++#endif
+ #ifdef CONFIG_KVM_BOOK3S_32_HANDLER
+ 	void*		kvm_shadow_vcpu; /* KVM internal data */
+ #endif /* CONFIG_KVM_BOOK3S_32_HANDLER */
+diff --git a/arch/powerpc/kernel/process.c b/arch/powerpc/kernel/process.c
+index 2ad725e..9429361 100644
+--- a/arch/powerpc/kernel/process.c
++++ b/arch/powerpc/kernel/process.c
+@@ -1096,6 +1096,11 @@ static inline void save_sprs(struct thread_struct *t)
+ 		t->tar = mfspr(SPRN_TAR);
+ 	}
+ #endif
++#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
++	t->amr = mfspr(SPRN_AMR);
++	t->iamr = mfspr(SPRN_IAMR);
++	t->uamor = mfspr(SPRN_UAMOR);
++#endif
+ }
  
- 	DBG_LOW("flush_hash_page(vpn=%016lx)\n", vpn);
- 	pte_iterate_hashed_subpages(pte, psize, vpn, index, shift) {
--		hash = hpt_hash(vpn, shift, ssize);
--		hidx = __rpte_to_hidx(pte, index);
--		if (hidx & _PTEIDX_SECONDARY)
--			hash = ~hash;
--		slot = (hash & htab_hash_mask) * HPTES_PER_GROUP;
--		slot += hidx & _PTEIDX_GROUP_IX;
--		DBG_LOW(" sub %ld: hash=%lx, hidx=%lx\n", index, slot, hidx);
-+		gslot = pte_get_hash_gslot(vpn, shift, ssize, pte, index);
-+		DBG_LOW(" sub %ld: gslot=%lx\n", index, gslot);
- 		/*
- 		 * We use same base page size and actual psize, because we don't
- 		 * use these functions for hugepage
- 		 */
--		mmu_hash_ops.hpte_invalidate(slot, vpn, psize, psize,
-+		mmu_hash_ops.hpte_invalidate(gslot, vpn, psize, psize,
- 					     ssize, local);
- 	} pte_iterate_hashed_end();
+ static inline void restore_sprs(struct thread_struct *old_thread,
+@@ -1131,6 +1136,14 @@ static inline void restore_sprs(struct thread_struct *old_thread,
+ 			mtspr(SPRN_TAR, new_thread->tar);
+ 	}
+ #endif
++#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
++	if (old_thread->amr != new_thread->amr)
++		mtspr(SPRN_AMR, new_thread->amr);
++	if (old_thread->iamr != new_thread->iamr)
++		mtspr(SPRN_IAMR, new_thread->iamr);
++	if (old_thread->uamor != new_thread->uamor)
++		mtspr(SPRN_UAMOR, new_thread->uamor);
++#endif
+ }
+ 
+ struct task_struct *__switch_to(struct task_struct *prev,
+@@ -1689,6 +1702,11 @@ void start_thread(struct pt_regs *regs, unsigned long start, unsigned long sp)
+ 	current->thread.tm_tfiar = 0;
+ 	current->thread.load_tm = 0;
+ #endif /* CONFIG_PPC_TRANSACTIONAL_MEM */
++#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
++	current->thread.amr   = 0x0ul;
++	current->thread.iamr  = 0x0ul;
++	current->thread.uamor = 0x0ul;
++#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
+ }
+ EXPORT_SYMBOL(start_thread);
  
 -- 
 1.7.1
