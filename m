@@ -1,91 +1,193 @@
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v6 15/62] powerpc: helper functions to initialize AMR, IAMR and UMOR registers
-Date: Sat, 15 Jul 2017 20:56:17 -0700
-Message-ID: <1500177424-13695-16-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v6 13/62] powerpc: track allocation status of all pkeys
+Date: Sat, 15 Jul 2017 20:56:15 -0700
+Message-ID: <1500177424-13695-14-git-send-email-linuxram@us.ibm.com>
 References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f195.google.com ([209.85.220.195]:36083 "EHLO
-        mail-qk0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751437AbdGPD6j (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 15 Jul 2017 23:58:39 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, mhocko@kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Introduce helper functions that can initialize the bits in the AMR,
-IAMR and UMOR register; the bits that correspond to the given pkey.
+Total 32 keys are supported on powerpc. However pkey 0,1
+and 31 are reserved. So effectively we have 29 pkeys.
+
+This patch keeps track of reserved keys, allocated  keys
+and keys that are currently free.
+
+Also it  adds  skeletal  functions  and macros, that the
+architecture-independent code expects to be available.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/include/asm/pkeys.h |    1 +
- arch/powerpc/mm/pkeys.c          |   44 ++++++++++++++++++++++++++++++++++++++
- 2 files changed, 45 insertions(+), 0 deletions(-)
+ arch/powerpc/include/asm/book3s/64/mmu.h |    9 +++
+ arch/powerpc/include/asm/mmu_context.h   |    1 +
+ arch/powerpc/include/asm/pkeys.h         |   81 ++++++++++++++++++++++++++++--
+ arch/powerpc/mm/mmu_context_book3s64.c   |    2 +
+ 4 files changed, 89 insertions(+), 4 deletions(-)
 
+diff --git a/arch/powerpc/include/asm/book3s/64/mmu.h b/arch/powerpc/include/asm/book3s/64/mmu.h
+index 77529a3..104ad72 100644
+--- a/arch/powerpc/include/asm/book3s/64/mmu.h
++++ b/arch/powerpc/include/asm/book3s/64/mmu.h
+@@ -108,6 +108,15 @@ struct patb_entry {
+ #ifdef CONFIG_SPAPR_TCE_IOMMU
+ 	struct list_head iommu_group_mem_list;
+ #endif
++
++#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
++	/*
++	 * Each bit represents one protection key.
++	 * bit set   -> key allocated
++	 * bit unset -> key available for allocation
++	 */
++	u32 pkey_allocation_map;
++#endif
+ } mm_context_t;
+ 
+ /*
+diff --git a/arch/powerpc/include/asm/mmu_context.h b/arch/powerpc/include/asm/mmu_context.h
+index 4b93547..4705dab 100644
+--- a/arch/powerpc/include/asm/mmu_context.h
++++ b/arch/powerpc/include/asm/mmu_context.h
+@@ -184,6 +184,7 @@ static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
+ 
+ #ifndef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
+ #define pkey_initialize()
++#define pkey_mm_init(mm)
+ #endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
+ 
+ #endif /* __KERNEL__ */
 diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
-index 09b268e..4327842 100644
+index 203d7de..09b268e 100644
 --- a/arch/powerpc/include/asm/pkeys.h
 +++ b/arch/powerpc/include/asm/pkeys.h
-@@ -5,6 +5,7 @@
- #define arch_max_pkey()  32
- #define ARCH_VM_PKEY_FLAGS (VM_PKEY_BIT0 | VM_PKEY_BIT1 | VM_PKEY_BIT2 | \
- 				VM_PKEY_BIT3 | VM_PKEY_BIT4)
-+#define AMR_BITS_PER_PKEY 2
- /*
-  * Bits are in BE format.
-  * NOTE: key 31, 1, 0 are not used.
-diff --git a/arch/powerpc/mm/pkeys.c b/arch/powerpc/mm/pkeys.c
-index c3acee1..04ee361 100644
---- a/arch/powerpc/mm/pkeys.c
-+++ b/arch/powerpc/mm/pkeys.c
-@@ -16,3 +16,47 @@
- #include <linux/pkeys.h>                /* PKEY_*                       */
+@@ -2,21 +2,87 @@
+ #define _ASM_PPC64_PKEYS_H
  
- bool pkey_inited;
-+#define pkeyshift(pkey) ((arch_max_pkey()-pkey-1) * AMR_BITS_PER_PKEY)
+ extern bool pkey_inited;
+-#define ARCH_VM_PKEY_FLAGS 0
++#define arch_max_pkey()  32
++#define ARCH_VM_PKEY_FLAGS (VM_PKEY_BIT0 | VM_PKEY_BIT1 | VM_PKEY_BIT2 | \
++				VM_PKEY_BIT3 | VM_PKEY_BIT4)
++/*
++ * Bits are in BE format.
++ * NOTE: key 31, 1, 0 are not used.
++ * key 0 is used by default. It give read/write/execute permission.
++ * key 31 is reserved by the hypervisor.
++ * key 1 is recommended to be not used.
++ * PowerISA(3.0) page 1015, programming note.
++ */
++#define PKEY_INITIAL_ALLOCAION  0xc0000001
 +
-+static inline void init_amr(int pkey, u8 init_bits)
-+{
-+	u64 new_amr_bits = (((u64)init_bits & 0x3UL) << pkeyshift(pkey));
-+	u64 old_amr = read_amr() & ~((u64)(0x3ul) << pkeyshift(pkey));
++#define pkeybit_mask(pkey) (0x1 << (arch_max_pkey() - pkey - 1))
 +
-+	write_amr(old_amr | new_amr_bits);
++#define mm_pkey_allocation_map(mm)	(mm->context.pkey_allocation_map)
++
++#define mm_set_pkey_allocated(mm, pkey) {	\
++	mm_pkey_allocation_map(mm) |= pkeybit_mask(pkey); \
 +}
 +
-+static inline void init_iamr(int pkey, u8 init_bits)
-+{
-+	u64 new_iamr_bits = (((u64)init_bits & 0x3UL) << pkeyshift(pkey));
-+	u64 old_iamr = read_iamr() & ~((u64)(0x3ul) << pkeyshift(pkey));
-+
-+	write_amr(old_iamr | new_iamr_bits);
++#define mm_set_pkey_free(mm, pkey) {	\
++	mm_pkey_allocation_map(mm) &= ~pkeybit_mask(pkey);	\
 +}
 +
-+static void pkey_status_change(int pkey, bool enable)
++#define mm_set_pkey_is_allocated(mm, pkey)	\
++	(mm_pkey_allocation_map(mm) & pkeybit_mask(pkey))
++
++#define mm_set_pkey_is_reserved(mm, pkey) (PKEY_INITIAL_ALLOCAION & \
++					pkeybit_mask(pkey))
+ 
+ static inline bool mm_pkey_is_allocated(struct mm_struct *mm, int pkey)
+ {
+-	return (pkey == 0);
++	/* a reserved key is never considered as 'explicitly allocated' */
++	return ((pkey < arch_max_pkey()) &&
++		!mm_set_pkey_is_reserved(mm, pkey) &&
++		mm_set_pkey_is_allocated(mm, pkey));
+ }
+ 
++/*
++ * Returns a positive, 5-bit key on success, or -1 on failure.
++ */
+ static inline int mm_pkey_alloc(struct mm_struct *mm)
+ {
+-	return -1;
++	/*
++	 * Note: this is the one and only place we make sure
++	 * that the pkey is valid as far as the hardware is
++	 * concerned.  The rest of the kernel trusts that
++	 * only good, valid pkeys come out of here.
++	 */
++	u32 all_pkeys_mask = (u32)(~(0x0));
++	int ret;
++
++	if (!pkey_inited)
++		return -1;
++	/*
++	 * Are we out of pkeys?  We must handle this specially
++	 * because ffz() behavior is undefined if there are no
++	 * zeros.
++	 */
++	if (mm_pkey_allocation_map(mm) == all_pkeys_mask)
++		return -1;
++
++	ret = arch_max_pkey() -
++		ffz((u32)mm_pkey_allocation_map(mm))
++		- 1;
++	mm_set_pkey_allocated(mm, ret);
++	return ret;
+ }
+ 
+ static inline int mm_pkey_free(struct mm_struct *mm, int pkey)
+ {
+-	return -EINVAL;
++	if (!pkey_inited)
++		return -1;
++
++	if (!mm_pkey_is_allocated(mm, pkey))
++		return -EINVAL;
++
++	mm_set_pkey_free(mm, pkey);
++
++	return 0;
+ }
+ 
+ /*
+@@ -40,6 +106,13 @@ static inline int arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
+ 	return 0;
+ }
+ 
++static inline void pkey_mm_init(struct mm_struct *mm)
 +{
-+	u64 old_uamor;
-+
-+	/* reset the AMR and IAMR bits for this key */
-+	init_amr(pkey, 0x0);
-+	init_iamr(pkey, 0x0);
-+
-+	/* enable/disable key */
-+	old_uamor = read_uamor();
-+	if (enable)
-+		old_uamor |= (0x3ul << pkeyshift(pkey));
-+	else
-+		old_uamor &= ~(0x3ul << pkeyshift(pkey));
-+	write_uamor(old_uamor);
++	if (!pkey_inited)
++		return;
++	mm_pkey_allocation_map(mm) = PKEY_INITIAL_ALLOCAION;
 +}
 +
-+void __arch_activate_pkey(int pkey)
-+{
-+	pkey_status_change(pkey, true);
-+}
-+
-+void __arch_deactivate_pkey(int pkey)
-+{
-+	pkey_status_change(pkey, false);
-+}
+ static inline void pkey_initialize(void)
+ {
+ #ifdef CONFIG_PPC_64K_PAGES
+diff --git a/arch/powerpc/mm/mmu_context_book3s64.c b/arch/powerpc/mm/mmu_context_book3s64.c
+index a3edf81..34a16f3 100644
+--- a/arch/powerpc/mm/mmu_context_book3s64.c
++++ b/arch/powerpc/mm/mmu_context_book3s64.c
+@@ -16,6 +16,7 @@
+ #include <linux/string.h>
+ #include <linux/types.h>
+ #include <linux/mm.h>
++#include <linux/pkeys.h>
+ #include <linux/spinlock.h>
+ #include <linux/idr.h>
+ #include <linux/export.h>
+@@ -120,6 +121,7 @@ static int hash__init_new_context(struct mm_struct *mm)
+ 
+ 	subpage_prot_init_new_context(mm);
+ 
++	pkey_mm_init(mm);
+ 	return index;
+ }
+ 
 -- 
 1.7.1
