@@ -1,108 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f196.google.com ([209.85.220.196]:35146 "EHLO
-        mail-qk0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751935AbdGPD7I (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 15 Jul 2017 23:59:08 -0400
+Received: from mail-qt0-f194.google.com ([209.85.216.194]:36862 "EHLO
+        mail-qt0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751732AbdGPD7D (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 15 Jul 2017 23:59:03 -0400
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v6 27/62] powerpc: helper to validate key-access permissions of a pte
-Date: Sat, 15 Jul 2017 20:56:29 -0700
-Message-ID: <1500177424-13695-28-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v6 25/62] powerpc: sys_pkey_mprotect() system call
+Date: Sat, 15 Jul 2017 20:56:27 -0700
+Message-ID: <1500177424-13695-26-git-send-email-linuxram@us.ibm.com>
 In-Reply-To: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
 References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, mhocko@kernel.org
-Message-ID: <20170716035629.gtFl_QO9IsqLy8X30GZPTOkvwZjdJnX8XUX40m2IHDg@z>
+Message-ID: <20170716035627.2d6j-CLFqZqI2vdtphsoOOR3HmBrmIHMKq52Bz5OrzM@z>
 
-helper function that checks if the read/write/execute is allowed
-on the pte.
+Patch provides the ability for a process to
+associate a pkey with a address range.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/include/asm/book3s/64/pgtable.h |    4 +++
- arch/powerpc/include/asm/pkeys.h             |   12 +++++++++
- arch/powerpc/mm/pkeys.c                      |   33 ++++++++++++++++++++++++++
- 3 files changed, 49 insertions(+), 0 deletions(-)
+ arch/powerpc/include/asm/systbl.h      |    1 +
+ arch/powerpc/include/asm/unistd.h      |    4 +---
+ arch/powerpc/include/uapi/asm/unistd.h |    1 +
+ 3 files changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/book3s/64/pgtable.h b/arch/powerpc/include/asm/book3s/64/pgtable.h
-index 30d7f55..0056e58 100644
---- a/arch/powerpc/include/asm/book3s/64/pgtable.h
-+++ b/arch/powerpc/include/asm/book3s/64/pgtable.h
-@@ -472,6 +472,10 @@ static inline void write_uamor(u64 value)
- 	mtspr(SPRN_UAMOR, value);
- }
+diff --git a/arch/powerpc/include/asm/systbl.h b/arch/powerpc/include/asm/systbl.h
+index 22dd776..b33b551 100644
+--- a/arch/powerpc/include/asm/systbl.h
++++ b/arch/powerpc/include/asm/systbl.h
+@@ -390,3 +390,4 @@
+ SYSCALL(statx)
+ SYSCALL(pkey_alloc)
+ SYSCALL(pkey_free)
++SYSCALL(pkey_mprotect)
+diff --git a/arch/powerpc/include/asm/unistd.h b/arch/powerpc/include/asm/unistd.h
+index e0273bc..daf1ba9 100644
+--- a/arch/powerpc/include/asm/unistd.h
++++ b/arch/powerpc/include/asm/unistd.h
+@@ -12,12 +12,10 @@
+ #include <uapi/asm/unistd.h>
  
-+#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
-+extern bool arch_pte_access_permitted(u64 pte, bool write, bool execute);
-+#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
-+
- #define __HAVE_ARCH_PTEP_GET_AND_CLEAR
- static inline pte_t ptep_get_and_clear(struct mm_struct *mm,
- 				       unsigned long addr, pte_t *ptep)
-diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
-index bbb5d85..7a9aade 100644
---- a/arch/powerpc/include/asm/pkeys.h
-+++ b/arch/powerpc/include/asm/pkeys.h
-@@ -53,6 +53,18 @@ static inline u64 pte_to_hpte_pkey_bits(u64 pteflags)
- 		((pteflags & H_PAGE_PKEY_BIT4) ? HPTE_R_KEY_BIT4 : 0x0UL));
- }
  
-+static inline u16 pte_to_pkey_bits(u64 pteflags)
-+{
-+	if (!pkey_inited)
-+		return 0x0UL;
-+
-+	return (((pteflags & H_PAGE_PKEY_BIT0) ? 0x10 : 0x0UL) |
-+		((pteflags & H_PAGE_PKEY_BIT1) ? 0x8 : 0x0UL) |
-+		((pteflags & H_PAGE_PKEY_BIT2) ? 0x4 : 0x0UL) |
-+		((pteflags & H_PAGE_PKEY_BIT3) ? 0x2 : 0x0UL) |
-+		((pteflags & H_PAGE_PKEY_BIT4) ? 0x1 : 0x0UL));
-+}
-+
- static inline int vma_pkey(struct vm_area_struct *vma)
- {
- 	if (!pkey_inited)
-diff --git a/arch/powerpc/mm/pkeys.c b/arch/powerpc/mm/pkeys.c
-index 403f5ae..1794e17 100644
---- a/arch/powerpc/mm/pkeys.c
-+++ b/arch/powerpc/mm/pkeys.c
-@@ -201,3 +201,36 @@ int __arch_override_mprotect_pkey(struct vm_area_struct *vma, int prot,
- 	 */
- 	return vma_pkey(vma);
- }
-+
-+static bool pkey_access_permitted(int pkey, bool write, bool execute)
-+{
-+	int pkey_shift;
-+	u64 amr;
-+
-+	if (!pkey)
-+		return true;
-+
-+	pkey_shift = pkeyshift(pkey);
-+	if (!(read_uamor() & (0x3UL << pkey_shift)))
-+		return true;
-+
-+	if (execute && !(read_iamr() & (IAMR_EX_BIT << pkey_shift)))
-+		return true;
-+
-+	if (!write) {
-+		amr = read_amr();
-+		if (!(amr & (AMR_RD_BIT << pkey_shift)))
-+			return true;
-+	}
-+
-+	amr = read_amr(); /* delay reading amr uptil absolutely needed */
-+	return (write && !(amr & (AMR_WR_BIT << pkey_shift)));
-+}
-+
-+bool arch_pte_access_permitted(u64 pte, bool write, bool execute)
-+{
-+	if (!pkey_inited)
-+		return true;
-+	return pkey_access_permitted(pte_to_pkey_bits(pte),
-+			write, execute);
-+}
+-#define NR_syscalls		386
++#define NR_syscalls		387
+ 
+ #define __NR__exit __NR_exit
+ 
+-#define __IGNORE_pkey_mprotect
+-
+ #ifndef __ASSEMBLY__
+ 
+ #include <linux/types.h>
+diff --git a/arch/powerpc/include/uapi/asm/unistd.h b/arch/powerpc/include/uapi/asm/unistd.h
+index 7993a07..71ae45e 100644
+--- a/arch/powerpc/include/uapi/asm/unistd.h
++++ b/arch/powerpc/include/uapi/asm/unistd.h
+@@ -396,5 +396,6 @@
+ #define __NR_statx		383
+ #define __NR_pkey_alloc		384
+ #define __NR_pkey_free		385
++#define __NR_pkey_mprotect	386
+ 
+ #endif /* _UAPI_ASM_POWERPC_UNISTD_H_ */
 -- 
 1.7.1
