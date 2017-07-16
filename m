@@ -1,104 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f193.google.com ([209.85.216.193]:33390 "EHLO
-        mail-qt0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751999AbdGPD7P (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 15 Jul 2017 23:59:15 -0400
+Received: from mail-qk0-f196.google.com ([209.85.220.196]:35157 "EHLO
+        mail-qk0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751929AbdGPD7L (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 15 Jul 2017 23:59:11 -0400
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v6 30/62] powerpc: implementation for arch_vma_access_permitted()
-Date: Sat, 15 Jul 2017 20:56:32 -0700
-Message-ID: <1500177424-13695-31-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v6 28/62] powerpc: check key protection for user page access
+Date: Sat, 15 Jul 2017 20:56:30 -0700
+Message-ID: <1500177424-13695-29-git-send-email-linuxram@us.ibm.com>
 In-Reply-To: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
 References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, mhocko@kernel.org
-Message-ID: <20170716035632.byqHVn6qlG34xH6R6UD_Bh6vjQMJugQBM0yiQ3GLB_g@z>
+Message-ID: <20170716035630.livNx-UaN47kr8FOcb_1Tt4YVbINncVSQodnVUmgdOY@z>
 
-This patch provides the implementation for
-arch_vma_access_permitted(). Returns true if the
-requested access is allowed by pkey associated with the
-vma.
+Make sure that the kernel does not access user pages without
+checking their key-protection.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/include/asm/mmu_context.h |    5 +++-
- arch/powerpc/mm/pkeys.c                |   43 ++++++++++++++++++++++++++++++++
- 2 files changed, 47 insertions(+), 1 deletions(-)
+ arch/powerpc/include/asm/book3s/64/pgtable.h |   14 ++++++++++++++
+ 1 files changed, 14 insertions(+), 0 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/mmu_context.h b/arch/powerpc/include/asm/mmu_context.h
-index 7232484..635d4a6 100644
---- a/arch/powerpc/include/asm/mmu_context.h
-+++ b/arch/powerpc/include/asm/mmu_context.h
-@@ -175,6 +175,10 @@ static inline void arch_bprm_mm_init(struct mm_struct *mm,
- {
- }
+diff --git a/arch/powerpc/include/asm/book3s/64/pgtable.h b/arch/powerpc/include/asm/book3s/64/pgtable.h
+index 0056e58..425d98b 100644
+--- a/arch/powerpc/include/asm/book3s/64/pgtable.h
++++ b/arch/powerpc/include/asm/book3s/64/pgtable.h
+@@ -474,6 +474,20 @@ static inline void write_uamor(u64 value)
  
-+#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
-+bool arch_vma_access_permitted(struct vm_area_struct *vma,
-+			bool write, bool execute, bool foreign);
-+#else /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
- static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
- 		bool write, bool execute, bool foreign)
- {
-@@ -182,7 +186,6 @@ static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
- 	return true;
- }
- 
--#ifndef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
- #define pkey_initialize()
- #define pkey_mm_init(mm)
- 
-diff --git a/arch/powerpc/mm/pkeys.c b/arch/powerpc/mm/pkeys.c
-index 1794e17..9999ce1 100644
---- a/arch/powerpc/mm/pkeys.c
-+++ b/arch/powerpc/mm/pkeys.c
-@@ -234,3 +234,46 @@ bool arch_pte_access_permitted(u64 pte, bool write, bool execute)
- 	return pkey_access_permitted(pte_to_pkey_bits(pte),
- 			write, execute);
- }
+ #ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
+ extern bool arch_pte_access_permitted(u64 pte, bool write, bool execute);
++
++#define pte_access_permitted(pte, write) \
++	(pte_present(pte) && \
++	 ((!(write) || pte_write(pte)) && \
++	  arch_pte_access_permitted(pte_val(pte), !!write, 0)))
 +
 +/*
-+ * We only want to enforce protection keys on the current process
-+ * because we effectively have no access to AMR/IAMR for other
-+ * processes or any way to tell *which * AMR/IAMR in a threaded
-+ * process we could use.
-+ *
-+ * So do not enforce things if the VMA is not from the current
-+ * mm, or if we are in a kernel thread.
++ * We store key in pmd for huge tlb pages. So need
++ * to check for key protection.
 + */
-+static inline bool vma_is_foreign(struct vm_area_struct *vma)
-+{
-+	if (!current->mm)
-+		return true;
-+	/*
-+	 * if the VMA is from another process, then AMR/IAMR has no
-+	 * relevance and should not be enforced.
-+	 */
-+	if (current->mm != vma->vm_mm)
-+		return true;
-+
-+	return false;
-+}
-+
-+bool arch_vma_access_permitted(struct vm_area_struct *vma,
-+		bool write, bool execute, bool foreign)
-+{
-+	int pkey;
-+
-+	if (!pkey_inited)
-+		return true;
-+
-+	/* allow access if the VMA is not one from this process */
-+	if (foreign || vma_is_foreign(vma))
-+		return true;
-+
-+	pkey = vma_pkey(vma);
-+
-+	if (!pkey)
-+		return true;
-+
-+	return pkey_access_permitted(pkey, write, execute);
-+}
++#define pmd_access_permitted(pmd, write) \
++	(pmd_present(pmd) && \
++	 ((!(write) || pmd_write(pmd)) && \
++	  arch_pte_access_permitted(pmd_val(pmd), !!write, 0)))
+ #endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
+ 
+ #define __HAVE_ARCH_PTEP_GET_AND_CLEAR
 -- 
 1.7.1
