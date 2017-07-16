@@ -1,75 +1,91 @@
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [RFC v6 09/62] powerpc: use helper functions in __hash_page_4K() for 4K PTE
-Date: Sat, 15 Jul 2017 20:56:11 -0700
-Message-ID: <1500177424-13695-10-git-send-email-linuxram@us.ibm.com>
+Subject: [RFC v6 15/62] powerpc: helper functions to initialize AMR, IAMR and UMOR registers
+Date: Sat, 15 Jul 2017 20:56:17 -0700
+Message-ID: <1500177424-13695-16-git-send-email-linuxram@us.ibm.com>
 References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
-Return-path: <owner-linux-mm@kvack.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-qk0-f195.google.com ([209.85.220.195]:36083 "EHLO
+        mail-qk0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751437AbdGPD6j (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 15 Jul 2017 23:58:39 -0400
 In-Reply-To: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
-Sender: owner-linux-mm@kvack.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, linuxram@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, mhocko@kernel.org
-List-Id: linux-arch.vger.kernel.org
 
-replace redundant code with helper functions
-pte_get_hash_gslot() and pte_set_hash_slot()
+Introduce helper functions that can initialize the bits in the AMR,
+IAMR and UMOR register; the bits that correspond to the given pkey.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/mm/hash64_4k.c |   14 ++++++--------
- 1 files changed, 6 insertions(+), 8 deletions(-)
+ arch/powerpc/include/asm/pkeys.h |    1 +
+ arch/powerpc/mm/pkeys.c          |   44 ++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 45 insertions(+), 0 deletions(-)
 
-diff --git a/arch/powerpc/mm/hash64_4k.c b/arch/powerpc/mm/hash64_4k.c
-index 6fa450c..a1eebc1 100644
---- a/arch/powerpc/mm/hash64_4k.c
-+++ b/arch/powerpc/mm/hash64_4k.c
-@@ -20,6 +20,7 @@ int __hash_page_4K(unsigned long ea, unsigned long access, unsigned long vsid,
- 		   pte_t *ptep, unsigned long trap, unsigned long flags,
- 		   int ssize, int subpg_prot)
- {
-+	real_pte_t rpte;
- 	unsigned long hpte_group;
- 	unsigned long rflags, pa;
- 	unsigned long old_pte, new_pte;
-@@ -54,6 +55,7 @@ int __hash_page_4K(unsigned long ea, unsigned long access, unsigned long vsid,
- 	 * need to add in 0x1 if it's a read-only user page
- 	 */
- 	rflags = htab_convert_pte_flags(new_pte);
-+	rpte = __real_pte(__pte(old_pte), ptep);
+diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
+index 09b268e..4327842 100644
+--- a/arch/powerpc/include/asm/pkeys.h
++++ b/arch/powerpc/include/asm/pkeys.h
+@@ -5,6 +5,7 @@
+ #define arch_max_pkey()  32
+ #define ARCH_VM_PKEY_FLAGS (VM_PKEY_BIT0 | VM_PKEY_BIT1 | VM_PKEY_BIT2 | \
+ 				VM_PKEY_BIT3 | VM_PKEY_BIT4)
++#define AMR_BITS_PER_PKEY 2
+ /*
+  * Bits are in BE format.
+  * NOTE: key 31, 1, 0 are not used.
+diff --git a/arch/powerpc/mm/pkeys.c b/arch/powerpc/mm/pkeys.c
+index c3acee1..04ee361 100644
+--- a/arch/powerpc/mm/pkeys.c
++++ b/arch/powerpc/mm/pkeys.c
+@@ -16,3 +16,47 @@
+ #include <linux/pkeys.h>                /* PKEY_*                       */
  
- 	if (cpu_has_feature(CPU_FTR_NOEXECUTE) &&
- 	    !cpu_has_feature(CPU_FTR_COHERENT_ICACHE))
-@@ -64,13 +66,10 @@ int __hash_page_4K(unsigned long ea, unsigned long access, unsigned long vsid,
- 		/*
- 		 * There MIGHT be an HPTE for this pte
- 		 */
--		hash = hpt_hash(vpn, shift, ssize);
--		if (old_pte & H_PAGE_F_SECOND)
--			hash = ~hash;
--		slot = (hash & htab_hash_mask) * HPTES_PER_GROUP;
--		slot += (old_pte & H_PAGE_F_GIX) >> H_PAGE_F_GIX_SHIFT;
-+		unsigned long gslot = pte_get_hash_gslot(vpn, shift,
-+						ssize, rpte, 0);
- 
--		if (mmu_hash_ops.hpte_updatepp(slot, rflags, vpn, MMU_PAGE_4K,
-+		if (mmu_hash_ops.hpte_updatepp(gslot, rflags, vpn, MMU_PAGE_4K,
- 					       MMU_PAGE_4K, ssize, flags) == -1)
- 			old_pte &= ~_PAGE_HPTEFLAGS;
- 	}
-@@ -118,8 +117,7 @@ int __hash_page_4K(unsigned long ea, unsigned long access, unsigned long vsid,
- 			return -1;
- 		}
- 		new_pte = (new_pte & ~_PAGE_HPTEFLAGS) | H_PAGE_HASHPTE;
--		new_pte |= (slot << H_PAGE_F_GIX_SHIFT) &
--			(H_PAGE_F_SECOND | H_PAGE_F_GIX);
-+		new_pte |= pte_set_hash_slot(ptep, rpte, 0, slot);
- 	}
- 	*ptep = __pte(new_pte & ~H_PAGE_BUSY);
- 	return 0;
+ bool pkey_inited;
++#define pkeyshift(pkey) ((arch_max_pkey()-pkey-1) * AMR_BITS_PER_PKEY)
++
++static inline void init_amr(int pkey, u8 init_bits)
++{
++	u64 new_amr_bits = (((u64)init_bits & 0x3UL) << pkeyshift(pkey));
++	u64 old_amr = read_amr() & ~((u64)(0x3ul) << pkeyshift(pkey));
++
++	write_amr(old_amr | new_amr_bits);
++}
++
++static inline void init_iamr(int pkey, u8 init_bits)
++{
++	u64 new_iamr_bits = (((u64)init_bits & 0x3UL) << pkeyshift(pkey));
++	u64 old_iamr = read_iamr() & ~((u64)(0x3ul) << pkeyshift(pkey));
++
++	write_amr(old_iamr | new_iamr_bits);
++}
++
++static void pkey_status_change(int pkey, bool enable)
++{
++	u64 old_uamor;
++
++	/* reset the AMR and IAMR bits for this key */
++	init_amr(pkey, 0x0);
++	init_iamr(pkey, 0x0);
++
++	/* enable/disable key */
++	old_uamor = read_uamor();
++	if (enable)
++		old_uamor |= (0x3ul << pkeyshift(pkey));
++	else
++		old_uamor &= ~(0x3ul << pkeyshift(pkey));
++	write_uamor(old_uamor);
++}
++
++void __arch_activate_pkey(int pkey)
++{
++	pkey_status_change(pkey, true);
++}
++
++void __arch_deactivate_pkey(int pkey)
++{
++	pkey_status_change(pkey, false);
++}
 -- 
 1.7.1
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
