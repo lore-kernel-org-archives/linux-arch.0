@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn3nam01on0058.outbound.protection.outlook.com ([104.47.33.58]:39086
+Received: from mail-bn3nam01on0076.outbound.protection.outlook.com ([104.47.33.76]:46539
         "EHLO NAM01-BN3-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751607AbdGQVMn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 17 Jul 2017 17:12:43 -0400
+        id S1751317AbdGQVLx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 17 Jul 2017 17:11:53 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v10 27/38] iommu/amd: Allow the AMD IOMMU to work with memory encryption
-Date: Mon, 17 Jul 2017 16:10:24 -0500
-Message-ID: <3053631ea25ba8b1601c351cb7c541c496f6d9bc.1500319216.git.thomas.lendacky@amd.com>
+Subject: [PATCH v10 14/38] x86/mm: Insure that boot memory areas are mapped properly
+Date: Mon, 17 Jul 2017 16:10:11 -0500
+Message-ID: <bb0d430b41efefd45ee515aaf0979dcfda8b6a44.1500319216.git.thomas.lendacky@amd.com>
 In-Reply-To: <cover.1500319216.git.thomas.lendacky@amd.com>
 References: <cover.1500319216.git.thomas.lendacky@amd.com>
 MIME-Version: 1.0
@@ -15,276 +15,266 @@ Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, kvm@vger.kernel.org, kasan-dev@googlegroups.com
-Cc: =?UTF-8?q?Radim=20Kr=C4=8Dm=C3=A1=C5=99?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Paolo Bonzini <pbonzini@redhat.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>, Rik van Riel <riel@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Dave Young <dyoung@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, "Michael S. Tsirkin" <mst@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, iommu@lists.linux-foundation.org, Joerg Roedel <jroedel@suse.de>
-Message-ID: <20170717211024.wyZUbGFUZ9Ei11vLgSr2iOOxbV-WsfvLMB1gEnxWPYw@z>
+Cc: =?UTF-8?q?Radim=20Kr=C4=8Dm=C3=A1=C5=99?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Paolo Bonzini <pbonzini@redhat.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>, Rik van Riel <riel@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Dave Young <dyoung@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, "Michael S. Tsirkin" <mst@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>
+Message-ID: <20170717211011.CQyX6myvSd0_EhxvQomAyBFGyWyPqhhUX6hhiDxcULQ@z>
 
-The IOMMU is programmed with physical addresses for the various tables
-and buffers that are used to communicate between the device and the
-driver. When the driver allocates this memory it is encrypted. In order
-for the IOMMU to access the memory as encrypted the encryption mask needs
-to be included in these physical addresses during configuration.
+The boot data and command line data are present in memory in a decrypted
+state and are copied early in the boot process.  The early page fault
+support will map these areas as encrypted, so before attempting to copy
+them, add decrypted mappings so the data is accessed properly when copied.
 
-The PTE entries created by the IOMMU should also include the encryption
-mask so that when the device behind the IOMMU performs a DMA, the DMA
-will be performed to encrypted memory.
+For the initrd, encrypt this data in place. Since the future mapping of
+the initrd area will be mapped as encrypted the data will be accessed
+properly.
 
-Cc: <iommu@lists.linux-foundation.org>
-Cc: Joerg Roedel <jroedel@suse.de>
-Acked-by: Joerg Roedel <jroedel@suse.de>
-Reviewed-by: Borislav Petkov <bp@suse.de>
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- drivers/iommu/amd_iommu.c       | 30 ++++++++++++++++--------------
- drivers/iommu/amd_iommu_init.c  | 34 ++++++++++++++++++++++++++++------
- drivers/iommu/amd_iommu_proto.h | 10 ++++++++++
- drivers/iommu/amd_iommu_types.h |  2 +-
- 4 files changed, 55 insertions(+), 21 deletions(-)
+ arch/x86/include/asm/mem_encrypt.h |  6 ++++
+ arch/x86/include/asm/pgtable.h     |  3 ++
+ arch/x86/kernel/head64.c           | 30 +++++++++++++++---
+ arch/x86/kernel/setup.c            |  9 ++++++
+ arch/x86/mm/kasan_init_64.c        |  2 +-
+ arch/x86/mm/mem_encrypt.c          | 63 ++++++++++++++++++++++++++++++++++++++
+ 6 files changed, 108 insertions(+), 5 deletions(-)
 
-diff --git a/drivers/iommu/amd_iommu.c b/drivers/iommu/amd_iommu.c
-index 688e775..abc6ca6 100644
---- a/drivers/iommu/amd_iommu.c
-+++ b/drivers/iommu/amd_iommu.c
-@@ -575,7 +575,7 @@ static void dump_dte_entry(u16 devid)
+diff --git a/arch/x86/include/asm/mem_encrypt.h b/arch/x86/include/asm/mem_encrypt.h
+index 8baa35b..ab1fe77 100644
+--- a/arch/x86/include/asm/mem_encrypt.h
++++ b/arch/x86/include/asm/mem_encrypt.h
+@@ -26,6 +26,9 @@ void __init sme_early_encrypt(resource_size_t paddr,
+ void __init sme_early_decrypt(resource_size_t paddr,
+ 			      unsigned long size);
  
- static void dump_command(unsigned long phys_addr)
- {
--	struct iommu_cmd *cmd = phys_to_virt(phys_addr);
-+	struct iommu_cmd *cmd = iommu_phys_to_virt(phys_addr);
- 	int i;
- 
- 	for (i = 0; i < 4; ++i)
-@@ -919,11 +919,13 @@ static void copy_cmd_to_buffer(struct amd_iommu *iommu,
- 
- static void build_completion_wait(struct iommu_cmd *cmd, u64 address)
- {
-+	u64 paddr = iommu_virt_to_phys((void *)address);
++void __init sme_map_bootdata(char *real_mode_data);
++void __init sme_unmap_bootdata(char *real_mode_data);
 +
- 	WARN_ON(address & 0x7ULL);
+ void __init sme_early_init(void);
  
- 	memset(cmd, 0, sizeof(*cmd));
--	cmd->data[0] = lower_32_bits(__pa(address)) | CMD_COMPL_WAIT_STORE_MASK;
--	cmd->data[1] = upper_32_bits(__pa(address));
-+	cmd->data[0] = lower_32_bits(paddr) | CMD_COMPL_WAIT_STORE_MASK;
-+	cmd->data[1] = upper_32_bits(paddr);
- 	cmd->data[2] = 1;
- 	CMD_SET_TYPE(cmd, CMD_COMPL_WAIT);
+ void __init sme_encrypt_kernel(void);
+@@ -40,6 +43,9 @@ static inline void __init sme_early_encrypt(resource_size_t paddr,
+ static inline void __init sme_early_decrypt(resource_size_t paddr,
+ 					    unsigned long size) { }
+ 
++static inline void __init sme_map_bootdata(char *real_mode_data) { }
++static inline void __init sme_unmap_bootdata(char *real_mode_data) { }
++
+ static inline void __init sme_early_init(void) { }
+ 
+ static inline void __init sme_encrypt_kernel(void) { }
+diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
+index c6452cb..bbeae4a 100644
+--- a/arch/x86/include/asm/pgtable.h
++++ b/arch/x86/include/asm/pgtable.h
+@@ -23,6 +23,9 @@
+ #ifndef __ASSEMBLY__
+ #include <asm/x86_init.h>
+ 
++extern pgd_t early_top_pgt[PTRS_PER_PGD];
++int __init __early_make_pgtable(unsigned long address, pmdval_t pmd);
++
+ void ptdump_walk_pgd_level(struct seq_file *m, pgd_t *pgd);
+ void ptdump_walk_pgd_level_checkwx(void);
+ 
+diff --git a/arch/x86/kernel/head64.c b/arch/x86/kernel/head64.c
+index 5cd0b72..0cdb53b 100644
+--- a/arch/x86/kernel/head64.c
++++ b/arch/x86/kernel/head64.c
+@@ -34,7 +34,6 @@
+ /*
+  * Manage page tables very early on.
+  */
+-extern pgd_t early_top_pgt[PTRS_PER_PGD];
+ extern pmd_t early_dynamic_pgts[EARLY_DYNAMIC_PAGE_TABLES][PTRS_PER_PMD];
+ static unsigned int __initdata next_early_pgt;
+ pmdval_t early_pmd_flags = __PAGE_KERNEL_LARGE & ~(_PAGE_GLOBAL | _PAGE_NX);
+@@ -181,13 +180,13 @@ static void __init reset_early_page_tables(void)
  }
-@@ -1383,7 +1385,7 @@ static bool increase_address_space(struct protection_domain *domain,
- 		return false;
  
- 	*pte             = PM_LEVEL_PDE(domain->mode,
--					virt_to_phys(domain->pt_root));
-+					iommu_virt_to_phys(domain->pt_root));
- 	domain->pt_root  = pte;
- 	domain->mode    += 1;
- 	domain->updated  = true;
-@@ -1420,7 +1422,7 @@ static u64 *alloc_pte(struct protection_domain *domain,
- 			if (!page)
- 				return NULL;
+ /* Create a new PMD entry */
+-int __init early_make_pgtable(unsigned long address)
++int __init __early_make_pgtable(unsigned long address, pmdval_t pmd)
+ {
+ 	unsigned long physaddr = address - __PAGE_OFFSET;
+ 	pgdval_t pgd, *pgd_p;
+ 	p4dval_t p4d, *p4d_p;
+ 	pudval_t pud, *pud_p;
+-	pmdval_t pmd, *pmd_p;
++	pmdval_t *pmd_p;
  
--			__npte = PM_LEVEL_PDE(level, virt_to_phys(page));
-+			__npte = PM_LEVEL_PDE(level, iommu_virt_to_phys(page));
- 
- 			/* pte could have been changed somewhere. */
- 			if (cmpxchg64(pte, __pte, __npte) != __pte) {
-@@ -1536,10 +1538,10 @@ static int iommu_map_page(struct protection_domain *dom,
- 			return -EBUSY;
- 
- 	if (count > 1) {
--		__pte = PAGE_SIZE_PTE(phys_addr, page_size);
-+		__pte = PAGE_SIZE_PTE(__sme_set(phys_addr), page_size);
- 		__pte |= PM_LEVEL_ENC(7) | IOMMU_PTE_P | IOMMU_PTE_FC;
- 	} else
--		__pte = phys_addr | IOMMU_PTE_P | IOMMU_PTE_FC;
-+		__pte = __sme_set(phys_addr) | IOMMU_PTE_P | IOMMU_PTE_FC;
- 
- 	if (prot & IOMMU_PROT_IR)
- 		__pte |= IOMMU_PTE_IR;
-@@ -1755,7 +1757,7 @@ static void free_gcr3_tbl_level1(u64 *tbl)
- 		if (!(tbl[i] & GCR3_VALID))
- 			continue;
- 
--		ptr = __va(tbl[i] & PAGE_MASK);
-+		ptr = iommu_phys_to_virt(tbl[i] & PAGE_MASK);
- 
- 		free_page((unsigned long)ptr);
+ 	/* Invalid address or early pgt is done ?  */
+ 	if (physaddr >= MAXMEM || read_cr3_pa() != __pa_nodebug(early_top_pgt))
+@@ -246,12 +245,21 @@ int __init early_make_pgtable(unsigned long address)
+ 		memset(pmd_p, 0, sizeof(*pmd_p) * PTRS_PER_PMD);
+ 		*pud_p = (pudval_t)pmd_p - __START_KERNEL_map + phys_base + _KERNPG_TABLE;
  	}
-@@ -1770,7 +1772,7 @@ static void free_gcr3_tbl_level2(u64 *tbl)
- 		if (!(tbl[i] & GCR3_VALID))
- 			continue;
+-	pmd = (physaddr & PMD_MASK) + early_pmd_flags;
+ 	pmd_p[pmd_index(address)] = pmd;
  
--		ptr = __va(tbl[i] & PAGE_MASK);
-+		ptr = iommu_phys_to_virt(tbl[i] & PAGE_MASK);
+ 	return 0;
+ }
  
- 		free_gcr3_tbl_level1(ptr);
++int __init early_make_pgtable(unsigned long address)
++{
++	unsigned long physaddr = address - __PAGE_OFFSET;
++	pmdval_t pmd;
++
++	pmd = (physaddr & PMD_MASK) + early_pmd_flags;
++
++	return __early_make_pgtable(address, pmd);
++}
++
+ /* Don't add a printk in there. printk relies on the PDA which is not initialized 
+    yet. */
+ static void __init clear_bss(void)
+@@ -274,6 +282,12 @@ static void __init copy_bootdata(char *real_mode_data)
+ 	char * command_line;
+ 	unsigned long cmd_line_ptr;
+ 
++	/*
++	 * If SME is active, this will create decrypted mappings of the
++	 * boot data in advance of the copy operations.
++	 */
++	sme_map_bootdata(real_mode_data);
++
+ 	memcpy(&boot_params, real_mode_data, sizeof boot_params);
+ 	sanitize_boot_params(&boot_params);
+ 	cmd_line_ptr = get_cmd_line_ptr();
+@@ -281,6 +295,14 @@ static void __init copy_bootdata(char *real_mode_data)
+ 		command_line = __va(cmd_line_ptr);
+ 		memcpy(boot_command_line, command_line, COMMAND_LINE_SIZE);
  	}
-@@ -2049,7 +2051,7 @@ static void set_dte_entry(u16 devid, struct protection_domain *domain, bool ats)
- 	u64 flags = 0;
++
++	/*
++	 * The old boot data is no longer needed and won't be reserved,
++	 * freeing up that memory for use by the system. If SME is active,
++	 * we need to remove the mappings that were created so that the
++	 * memory doesn't remain mapped as decrypted.
++	 */
++	sme_unmap_bootdata(real_mode_data);
+ }
  
- 	if (domain->mode != PAGE_MODE_NONE)
--		pte_root = virt_to_phys(domain->pt_root);
-+		pte_root = iommu_virt_to_phys(domain->pt_root);
- 
- 	pte_root |= (domain->mode & DEV_ENTRY_MODE_MASK)
- 		    << DEV_ENTRY_MODE_SHIFT;
-@@ -2061,7 +2063,7 @@ static void set_dte_entry(u16 devid, struct protection_domain *domain, bool ats)
- 		flags |= DTE_FLAG_IOTLB;
- 
- 	if (domain->flags & PD_IOMMUV2_MASK) {
--		u64 gcr3 = __pa(domain->gcr3_tbl);
-+		u64 gcr3 = iommu_virt_to_phys(domain->gcr3_tbl);
- 		u64 glx  = domain->glx;
- 		u64 tmp;
- 
-@@ -3606,10 +3608,10 @@ static u64 *__get_gcr3_pte(u64 *root, int level, int pasid, bool alloc)
- 			if (root == NULL)
- 				return NULL;
- 
--			*pte = __pa(root) | GCR3_VALID;
-+			*pte = iommu_virt_to_phys(root) | GCR3_VALID;
- 		}
- 
--		root = __va(*pte & PAGE_MASK);
-+		root = iommu_phys_to_virt(*pte & PAGE_MASK);
- 
- 		level -= 1;
- 	}
-@@ -3788,7 +3790,7 @@ static void set_dte_irq_entry(u16 devid, struct irq_remap_table *table)
- 
- 	dte	= amd_iommu_dev_table[devid].data[2];
- 	dte	&= ~DTE_IRQ_PHYS_ADDR_MASK;
--	dte	|= virt_to_phys(table->table);
-+	dte	|= iommu_virt_to_phys(table->table);
- 	dte	|= DTE_IRQ_REMAP_INTCTL;
- 	dte	|= DTE_IRQ_TABLE_LEN;
- 	dte	|= DTE_IRQ_REMAP_ENABLE;
-diff --git a/drivers/iommu/amd_iommu_init.c b/drivers/iommu/amd_iommu_init.c
-index 5cc597b..42ff9a8 100644
---- a/drivers/iommu/amd_iommu_init.c
-+++ b/drivers/iommu/amd_iommu_init.c
-@@ -30,6 +30,7 @@
- #include <linux/iommu.h>
- #include <linux/kmemleak.h>
+ asmlinkage __visible void __init x86_64_start_kernel(char * real_mode_data)
+diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
+index 3486d04..0bfe0c1 100644
+--- a/arch/x86/kernel/setup.c
++++ b/arch/x86/kernel/setup.c
+@@ -69,6 +69,7 @@
  #include <linux/crash_dump.h>
+ #include <linux/tboot.h>
+ #include <linux/jiffies.h>
 +#include <linux/mem_encrypt.h>
- #include <asm/pci-direct.h>
- #include <asm/iommu.h>
- #include <asm/gart.h>
-@@ -348,7 +349,7 @@ static void iommu_set_device_table(struct amd_iommu *iommu)
  
- 	BUG_ON(iommu->mmio_base == NULL);
+ #include <linux/usb/xhci-dbgp.h>
+ #include <video/edid.h>
+@@ -374,6 +375,14 @@ static void __init reserve_initrd(void)
+ 	    !ramdisk_image || !ramdisk_size)
+ 		return;		/* No initrd provided by bootloader */
  
--	entry = virt_to_phys(amd_iommu_dev_table);
-+	entry = iommu_virt_to_phys(amd_iommu_dev_table);
- 	entry |= (dev_table_size >> 12) - 1;
- 	memcpy_toio(iommu->mmio_base + MMIO_DEV_TABLE_OFFSET,
- 			&entry, sizeof(entry));
-@@ -606,7 +607,7 @@ static void iommu_enable_command_buffer(struct amd_iommu *iommu)
++	/*
++	 * If SME is active, this memory will be marked encrypted by the
++	 * kernel when it is accessed (including relocation). However, the
++	 * ramdisk image was loaded decrypted by the bootloader, so make
++	 * sure that it is encrypted before accessing it.
++	 */
++	sme_early_encrypt(ramdisk_image, ramdisk_end - ramdisk_image);
++
+ 	initrd_start = 0;
  
- 	BUG_ON(iommu->cmd_buf == NULL);
+ 	mapped_size = memblock_mem_size(max_pfn_mapped);
+diff --git a/arch/x86/mm/kasan_init_64.c b/arch/x86/mm/kasan_init_64.c
+index 39d4daf..bc84b73 100644
+--- a/arch/x86/mm/kasan_init_64.c
++++ b/arch/x86/mm/kasan_init_64.c
+@@ -11,8 +11,8 @@
+ #include <asm/e820/types.h>
+ #include <asm/tlbflush.h>
+ #include <asm/sections.h>
++#include <asm/pgtable.h>
  
--	entry = (u64)virt_to_phys(iommu->cmd_buf);
-+	entry = iommu_virt_to_phys(iommu->cmd_buf);
- 	entry |= MMIO_CMD_SIZE_512;
+-extern pgd_t early_top_pgt[PTRS_PER_PGD];
+ extern struct range pfn_mapped[E820_MAX_ENTRIES];
  
- 	memcpy_toio(iommu->mmio_base + MMIO_CMD_BUF_OFFSET,
-@@ -635,7 +636,7 @@ static void iommu_enable_event_buffer(struct amd_iommu *iommu)
+ static int __init map_range(struct range *range)
+diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
+index 54bb73c..0843d02 100644
+--- a/arch/x86/mm/mem_encrypt.c
++++ b/arch/x86/mm/mem_encrypt.c
+@@ -16,6 +16,8 @@
  
- 	BUG_ON(iommu->evt_buf == NULL);
+ #include <asm/tlbflush.h>
+ #include <asm/fixmap.h>
++#include <asm/setup.h>
++#include <asm/bootparam.h>
  
--	entry = (u64)virt_to_phys(iommu->evt_buf) | EVT_LEN_MASK;
-+	entry = iommu_virt_to_phys(iommu->evt_buf) | EVT_LEN_MASK;
- 
- 	memcpy_toio(iommu->mmio_base + MMIO_EVT_BUF_OFFSET,
- 		    &entry, sizeof(entry));
-@@ -668,7 +669,7 @@ static void iommu_enable_ppr_log(struct amd_iommu *iommu)
- 	if (iommu->ppr_log == NULL)
- 		return;
- 
--	entry = (u64)virt_to_phys(iommu->ppr_log) | PPR_LOG_SIZE_512;
-+	entry = iommu_virt_to_phys(iommu->ppr_log) | PPR_LOG_SIZE_512;
- 
- 	memcpy_toio(iommu->mmio_base + MMIO_PPR_LOG_OFFSET,
- 		    &entry, sizeof(entry));
-@@ -748,10 +749,10 @@ static int iommu_init_ga_log(struct amd_iommu *iommu)
- 	if (!iommu->ga_log_tail)
- 		goto err_out;
- 
--	entry = (u64)virt_to_phys(iommu->ga_log) | GA_LOG_SIZE_512;
-+	entry = iommu_virt_to_phys(iommu->ga_log) | GA_LOG_SIZE_512;
- 	memcpy_toio(iommu->mmio_base + MMIO_GA_LOG_BASE_OFFSET,
- 		    &entry, sizeof(entry));
--	entry = ((u64)virt_to_phys(iommu->ga_log) & 0xFFFFFFFFFFFFFULL) & ~7ULL;
-+	entry = (iommu_virt_to_phys(iommu->ga_log) & 0xFFFFFFFFFFFFFULL) & ~7ULL;
- 	memcpy_toio(iommu->mmio_base + MMIO_GA_LOG_TAIL_OFFSET,
- 		    &entry, sizeof(entry));
- 	writel(0x00, iommu->mmio_base + MMIO_GA_HEAD_OFFSET);
-@@ -2564,6 +2565,24 @@ static int __init amd_iommu_init(void)
- 	return ret;
+ /*
+  * Since SME related variables are set early in the boot process they must
+@@ -98,6 +100,67 @@ void __init sme_early_decrypt(resource_size_t paddr, unsigned long size)
+ 	__sme_early_enc_dec(paddr, size, false);
  }
  
-+static bool amd_iommu_sme_check(void)
++static void __init __sme_early_map_unmap_mem(void *vaddr, unsigned long size,
++					     bool map)
 +{
-+	if (!sme_active() || (boot_cpu_data.x86 != 0x17))
-+		return true;
++	unsigned long paddr = (unsigned long)vaddr - __PAGE_OFFSET;
++	pmdval_t pmd_flags, pmd;
 +
-+	/* For Fam17h, a specific level of support is required */
-+	if (boot_cpu_data.microcode >= 0x08001205)
-+		return true;
++	/* Use early_pmd_flags but remove the encryption mask */
++	pmd_flags = __sme_clr(early_pmd_flags);
 +
-+	if ((boot_cpu_data.microcode >= 0x08001126) &&
-+	    (boot_cpu_data.microcode <= 0x080011ff))
-+		return true;
++	do {
++		pmd = map ? (paddr & PMD_MASK) + pmd_flags : 0;
++		__early_make_pgtable((unsigned long)vaddr, pmd);
 +
-+	pr_notice("AMD-Vi: IOMMU not currently supported when SME is active\n");
++		vaddr += PMD_SIZE;
++		paddr += PMD_SIZE;
++		size = (size <= PMD_SIZE) ? 0 : size - PMD_SIZE;
++	} while (size);
 +
-+	return false;
++	__native_flush_tlb();
 +}
 +
- /****************************************************************************
-  *
-  * Early detect code. This code runs at IOMMU detection time in the DMA
-@@ -2578,6 +2597,9 @@ int __init amd_iommu_detect(void)
- 	if (no_iommu || (iommu_detected && !gart_iommu_aperture))
- 		return -ENODEV;
- 
-+	if (!amd_iommu_sme_check())
-+		return -ENODEV;
-+
- 	ret = iommu_go_to_state(IOMMU_IVRS_DETECTED);
- 	if (ret)
- 		return ret;
-diff --git a/drivers/iommu/amd_iommu_proto.h b/drivers/iommu/amd_iommu_proto.h
-index 466260f..3f12fb2 100644
---- a/drivers/iommu/amd_iommu_proto.h
-+++ b/drivers/iommu/amd_iommu_proto.h
-@@ -87,4 +87,14 @@ static inline bool iommu_feature(struct amd_iommu *iommu, u64 f)
- 	return !!(iommu->features & f);
- }
- 
-+static inline u64 iommu_virt_to_phys(void *vaddr)
++void __init sme_unmap_bootdata(char *real_mode_data)
 +{
-+	return (u64)__sme_set(virt_to_phys(vaddr));
++	struct boot_params *boot_data;
++	unsigned long cmdline_paddr;
++
++	if (!sme_active())
++		return;
++
++	/* Get the command line address before unmapping the real_mode_data */
++	boot_data = (struct boot_params *)real_mode_data;
++	cmdline_paddr = boot_data->hdr.cmd_line_ptr | ((u64)boot_data->ext_cmd_line_ptr << 32);
++
++	__sme_early_map_unmap_mem(real_mode_data, sizeof(boot_params), false);
++
++	if (!cmdline_paddr)
++		return;
++
++	__sme_early_map_unmap_mem(__va(cmdline_paddr), COMMAND_LINE_SIZE, false);
 +}
 +
-+static inline void *iommu_phys_to_virt(unsigned long paddr)
++void __init sme_map_bootdata(char *real_mode_data)
 +{
-+	return phys_to_virt(__sme_clr(paddr));
++	struct boot_params *boot_data;
++	unsigned long cmdline_paddr;
++
++	if (!sme_active())
++		return;
++
++	__sme_early_map_unmap_mem(real_mode_data, sizeof(boot_params), true);
++
++	/* Get the command line address after mapping the real_mode_data */
++	boot_data = (struct boot_params *)real_mode_data;
++	cmdline_paddr = boot_data->hdr.cmd_line_ptr | ((u64)boot_data->ext_cmd_line_ptr << 32);
++
++	if (!cmdline_paddr)
++		return;
++
++	__sme_early_map_unmap_mem(__va(cmdline_paddr), COMMAND_LINE_SIZE, true);
 +}
 +
- #endif /* _ASM_X86_AMD_IOMMU_PROTO_H  */
-diff --git a/drivers/iommu/amd_iommu_types.h b/drivers/iommu/amd_iommu_types.h
-index 294a409..8591f43 100644
---- a/drivers/iommu/amd_iommu_types.h
-+++ b/drivers/iommu/amd_iommu_types.h
-@@ -344,7 +344,7 @@
- 
- #define IOMMU_PAGE_MASK (((1ULL << 52) - 1) & ~0xfffULL)
- #define IOMMU_PTE_PRESENT(pte) ((pte) & IOMMU_PTE_P)
--#define IOMMU_PTE_PAGE(pte) (phys_to_virt((pte) & IOMMU_PAGE_MASK))
-+#define IOMMU_PTE_PAGE(pte) (iommu_phys_to_virt((pte) & IOMMU_PAGE_MASK))
- #define IOMMU_PTE_MODE(pte) (((pte) >> 9) & 0x07)
- 
- #define IOMMU_PROT_MASK 0x03
+ void __init sme_early_init(void)
+ {
+ 	unsigned int i;
 -- 
 1.9.1
