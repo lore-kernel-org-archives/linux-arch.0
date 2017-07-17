@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn3nam01on0076.outbound.protection.outlook.com ([104.47.33.76]:46539
+Received: from mail-bn3nam01on0065.outbound.protection.outlook.com ([104.47.33.65]:52969
         "EHLO NAM01-BN3-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751882AbdGQVL6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 17 Jul 2017 17:11:58 -0400
+        id S1752013AbdGQVMO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 17 Jul 2017 17:12:14 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v10 16/38] efi: Add an EFI table address match function
-Date: Mon, 17 Jul 2017 16:10:13 -0500
-Message-ID: <e1e06441d80f44776df391e0e4cb485b345b7518.1500319216.git.thomas.lendacky@amd.com>
+Subject: [PATCH v10 20/38] x86, mpparse: Use memremap to map the mpf and mpc data
+Date: Mon, 17 Jul 2017 16:10:17 -0500
+Message-ID: <d9464b0d7c861021ed8f494e4a40d6cd10f1eddd.1500319216.git.thomas.lendacky@amd.com>
 In-Reply-To: <cover.1500319216.git.thomas.lendacky@amd.com>
 References: <cover.1500319216.git.thomas.lendacky@amd.com>
 MIME-Version: 1.0
@@ -16,94 +16,253 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, kvm@vger.kernel.org, kasan-dev@googlegroups.com
 Cc: =?UTF-8?q?Radim=20Kr=C4=8Dm=C3=A1=C5=99?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Paolo Bonzini <pbonzini@redhat.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>, Rik van Riel <riel@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Dave Young <dyoung@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, "Michael S. Tsirkin" <mst@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>
-Message-ID: <20170717211013._8z_Pyu29FWeNm63UXFyY1qTYRNoNVxfp0iy_w5sy6U@z>
+Message-ID: <20170717211017.eEFQWOWKAIe5ZBwCr7_7d8feHvZ9luEMijnOZIzD9Xk@z>
 
-Add a function that will determine if a supplied physical address matches
-the address of an EFI table.
+The SMP MP-table is built by UEFI and placed in memory in a decrypted
+state. These tables are accessed using a mix of early_memremap(),
+early_memunmap(), phys_to_virt() and virt_to_phys(). Change all accesses
+to use early_memremap()/early_memunmap(). This allows for proper setting
+of the encryption mask so that the data can be successfully accessed when
+SME is active.
 
-Reviewed-by: Matt Fleming <matt@codeblueprint.co.uk>
 Reviewed-by: Borislav Petkov <bp@suse.de>
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- drivers/firmware/efi/efi.c | 33 +++++++++++++++++++++++++++++++++
- include/linux/efi.h        |  7 +++++++
- 2 files changed, 40 insertions(+)
+ arch/x86/kernel/mpparse.c | 98 +++++++++++++++++++++++++++++++++--------------
+ 1 file changed, 70 insertions(+), 28 deletions(-)
 
-diff --git a/drivers/firmware/efi/efi.c b/drivers/firmware/efi/efi.c
-index 045d6d3..69d4d13 100644
---- a/drivers/firmware/efi/efi.c
-+++ b/drivers/firmware/efi/efi.c
-@@ -55,6 +55,25 @@ struct efi __read_mostly efi = {
- };
- EXPORT_SYMBOL(efi);
- 
-+static unsigned long *efi_tables[] = {
-+	&efi.mps,
-+	&efi.acpi,
-+	&efi.acpi20,
-+	&efi.smbios,
-+	&efi.smbios3,
-+	&efi.sal_systab,
-+	&efi.boot_info,
-+	&efi.hcdp,
-+	&efi.uga,
-+	&efi.uv_systab,
-+	&efi.fw_vendor,
-+	&efi.runtime,
-+	&efi.config_table,
-+	&efi.esrt,
-+	&efi.properties_table,
-+	&efi.mem_attr_table,
-+};
-+
- static bool disable_runtime;
- static int __init setup_noefi(char *arg)
- {
-@@ -855,6 +874,20 @@ int efi_status_to_err(efi_status_t status)
- 	return err;
+diff --git a/arch/x86/kernel/mpparse.c b/arch/x86/kernel/mpparse.c
+index fd37f39..5cbb317 100644
+--- a/arch/x86/kernel/mpparse.c
++++ b/arch/x86/kernel/mpparse.c
+@@ -429,7 +429,7 @@ static inline void __init construct_default_ISA_mptable(int mpc_default_type)
+ 	}
  }
  
-+bool efi_is_table_address(unsigned long phys_addr)
-+{
-+	unsigned int i;
-+
-+	if (phys_addr == EFI_INVALID_TABLE_ADDR)
-+		return false;
-+
-+	for (i = 0; i < ARRAY_SIZE(efi_tables); i++)
-+		if (*(efi_tables[i]) == phys_addr)
-+			return true;
-+
-+	return false;
-+}
-+
- #ifdef CONFIG_KEXEC
- static int update_efi_random_seed(struct notifier_block *nb,
- 				  unsigned long code, void *unused)
-diff --git a/include/linux/efi.h b/include/linux/efi.h
-index 8269bcb..8e24f09 100644
---- a/include/linux/efi.h
-+++ b/include/linux/efi.h
-@@ -1091,6 +1091,8 @@ static inline bool efi_enabled(int feature)
- 	return test_bit(feature, &efi.flags) != 0;
- }
- extern void efi_reboot(enum reboot_mode reboot_mode, const char *__unused);
-+
-+extern bool efi_is_table_address(unsigned long phys_addr);
- #else
- static inline bool efi_enabled(int feature)
+-static struct mpf_intel *mpf_found;
++static unsigned long mpf_base;
+ 
+ static unsigned long __init get_mpc_size(unsigned long physptr)
  {
-@@ -1104,6 +1106,11 @@ static inline bool efi_enabled(int feature)
- {
- 	return false;
- }
+@@ -451,6 +451,7 @@ static int __init check_physptr(struct mpf_intel *mpf, unsigned int early)
+ 
+ 	size = get_mpc_size(mpf->physptr);
+ 	mpc = early_memremap(mpf->physptr, size);
 +
-+static inline bool efi_is_table_address(unsigned long phys_addr)
-+{
-+	return false;
-+}
+ 	/*
+ 	 * Read the physical hardware table.  Anything here will
+ 	 * override the defaults.
+@@ -497,12 +498,12 @@ static int __init check_physptr(struct mpf_intel *mpf, unsigned int early)
+  */
+ void __init default_get_smp_config(unsigned int early)
+ {
+-	struct mpf_intel *mpf = mpf_found;
++	struct mpf_intel *mpf;
+ 
+ 	if (!smp_found_config)
+ 		return;
+ 
+-	if (!mpf)
++	if (!mpf_base)
+ 		return;
+ 
+ 	if (acpi_lapic && early)
+@@ -515,6 +516,12 @@ void __init default_get_smp_config(unsigned int early)
+ 	if (acpi_lapic && acpi_ioapic)
+ 		return;
+ 
++	mpf = early_memremap(mpf_base, sizeof(*mpf));
++	if (!mpf) {
++		pr_err("MPTABLE: error mapping MP table\n");
++		return;
++	}
++
+ 	pr_info("Intel MultiProcessor Specification v1.%d\n",
+ 		mpf->specification);
+ #if defined(CONFIG_X86_LOCAL_APIC) && defined(CONFIG_X86_32)
+@@ -529,7 +536,7 @@ void __init default_get_smp_config(unsigned int early)
+ 	/*
+ 	 * Now see if we need to read further.
+ 	 */
+-	if (mpf->feature1 != 0) {
++	if (mpf->feature1) {
+ 		if (early) {
+ 			/*
+ 			 * local APIC has default address
+@@ -542,8 +549,10 @@ void __init default_get_smp_config(unsigned int early)
+ 		construct_default_ISA_mptable(mpf->feature1);
+ 
+ 	} else if (mpf->physptr) {
+-		if (check_physptr(mpf, early))
++		if (check_physptr(mpf, early)) {
++			early_memunmap(mpf, sizeof(*mpf));
+ 			return;
++		}
+ 	} else
+ 		BUG();
+ 
+@@ -552,6 +561,8 @@ void __init default_get_smp_config(unsigned int early)
+ 	/*
+ 	 * Only use the first configuration found.
+ 	 */
++
++	early_memunmap(mpf, sizeof(*mpf));
+ }
+ 
+ static void __init smp_reserve_memory(struct mpf_intel *mpf)
+@@ -561,15 +572,16 @@ static void __init smp_reserve_memory(struct mpf_intel *mpf)
+ 
+ static int __init smp_scan_config(unsigned long base, unsigned long length)
+ {
+-	unsigned int *bp = phys_to_virt(base);
++	unsigned int *bp;
+ 	struct mpf_intel *mpf;
+-	unsigned long mem;
++	int ret = 0;
+ 
+ 	apic_printk(APIC_VERBOSE, "Scan for SMP in [mem %#010lx-%#010lx]\n",
+ 		    base, base + length - 1);
+ 	BUILD_BUG_ON(sizeof(*mpf) != 16);
+ 
+ 	while (length > 0) {
++		bp = early_memremap(base, length);
+ 		mpf = (struct mpf_intel *)bp;
+ 		if ((*bp == SMP_MAGIC_IDENT) &&
+ 		    (mpf->length == 1) &&
+@@ -579,24 +591,26 @@ static int __init smp_scan_config(unsigned long base, unsigned long length)
+ #ifdef CONFIG_X86_LOCAL_APIC
+ 			smp_found_config = 1;
  #endif
+-			mpf_found = mpf;
++			mpf_base = base;
  
- extern int efi_status_to_err(efi_status_t status);
+-			pr_info("found SMP MP-table at [mem %#010llx-%#010llx] mapped at [%p]\n",
+-				(unsigned long long) virt_to_phys(mpf),
+-				(unsigned long long) virt_to_phys(mpf) +
+-				sizeof(*mpf) - 1, mpf);
++			pr_info("found SMP MP-table at [mem %#010lx-%#010lx] mapped at [%p]\n",
++				base, base + sizeof(*mpf) - 1, mpf);
+ 
+-			mem = virt_to_phys(mpf);
+-			memblock_reserve(mem, sizeof(*mpf));
++			memblock_reserve(base, sizeof(*mpf));
+ 			if (mpf->physptr)
+ 				smp_reserve_memory(mpf);
+ 
+-			return 1;
++			ret = 1;
+ 		}
+-		bp += 4;
++		early_memunmap(bp, length);
++
++		if (ret)
++			break;
++
++		base += 16;
+ 		length -= 16;
+ 	}
+-	return 0;
++	return ret;
+ }
+ 
+ void __init default_find_smp_config(void)
+@@ -838,29 +852,40 @@ static int __init update_mp_table(void)
+ 	char oem[10];
+ 	struct mpf_intel *mpf;
+ 	struct mpc_table *mpc, *mpc_new;
++	unsigned long size;
+ 
+ 	if (!enable_update_mptable)
+ 		return 0;
+ 
+-	mpf = mpf_found;
+-	if (!mpf)
++	if (!mpf_base)
++		return 0;
++
++	mpf = early_memremap(mpf_base, sizeof(*mpf));
++	if (!mpf) {
++		pr_err("MPTABLE: mpf early_memremap() failed\n");
+ 		return 0;
++	}
+ 
+ 	/*
+ 	 * Now see if we need to go further.
+ 	 */
+-	if (mpf->feature1 != 0)
+-		return 0;
++	if (mpf->feature1)
++		goto do_unmap_mpf;
+ 
+ 	if (!mpf->physptr)
+-		return 0;
++		goto do_unmap_mpf;
+ 
+-	mpc = phys_to_virt(mpf->physptr);
++	size = get_mpc_size(mpf->physptr);
++	mpc = early_memremap(mpf->physptr, size);
++	if (!mpc) {
++		pr_err("MPTABLE: mpc early_memremap() failed\n");
++		goto do_unmap_mpf;
++	}
+ 
+ 	if (!smp_check_mpc(mpc, oem, str))
+-		return 0;
++		goto do_unmap_mpc;
+ 
+-	pr_info("mpf: %llx\n", (u64)virt_to_phys(mpf));
++	pr_info("mpf: %llx\n", (u64)mpf_base);
+ 	pr_info("physptr: %x\n", mpf->physptr);
+ 
+ 	if (mpc_new_phys && mpc->length > mpc_new_length) {
+@@ -878,21 +903,32 @@ static int __init update_mp_table(void)
+ 		new = mpf_checksum((unsigned char *)mpc, mpc->length);
+ 		if (old == new) {
+ 			pr_info("mpc is readonly, please try alloc_mptable instead\n");
+-			return 0;
++			goto do_unmap_mpc;
+ 		}
+ 		pr_info("use in-position replacing\n");
+ 	} else {
++		mpc_new = early_memremap(mpc_new_phys, mpc_new_length);
++		if (!mpc_new) {
++			pr_err("MPTABLE: new mpc early_memremap() failed\n");
++			goto do_unmap_mpc;
++		}
+ 		mpf->physptr = mpc_new_phys;
+-		mpc_new = phys_to_virt(mpc_new_phys);
+ 		memcpy(mpc_new, mpc, mpc->length);
++		early_memunmap(mpc, size);
+ 		mpc = mpc_new;
++		size = mpc_new_length;
+ 		/* check if we can modify that */
+ 		if (mpc_new_phys - mpf->physptr) {
+ 			struct mpf_intel *mpf_new;
+ 			/* steal 16 bytes from [0, 1k) */
++			mpf_new = early_memremap(0x400 - 16, sizeof(*mpf_new));
++			if (!mpf_new) {
++				pr_err("MPTABLE: new mpf early_memremap() failed\n");
++				goto do_unmap_mpc;
++			}
+ 			pr_info("mpf new: %x\n", 0x400 - 16);
+-			mpf_new = phys_to_virt(0x400 - 16);
+ 			memcpy(mpf_new, mpf, 16);
++			early_memunmap(mpf, sizeof(*mpf));
+ 			mpf = mpf_new;
+ 			mpf->physptr = mpc_new_phys;
+ 		}
+@@ -909,6 +945,12 @@ static int __init update_mp_table(void)
+ 	 */
+ 	replace_intsrc_all(mpc, mpc_new_phys, mpc_new_length);
+ 
++do_unmap_mpc:
++	early_memunmap(mpc, size);
++
++do_unmap_mpf:
++	early_memunmap(mpf, sizeof(*mpf));
++
+ 	return 0;
+ }
+ 
 -- 
 1.9.1
