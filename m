@@ -2,12 +2,12 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from mail-bn3nam01on0058.outbound.protection.outlook.com ([104.47.33.58]:39086
         "EHLO NAM01-BN3-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752365AbdGQVNb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 17 Jul 2017 17:13:31 -0400
+        id S1751510AbdGQVMx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 17 Jul 2017 17:12:53 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v10 38/38] x86/mm: Add support to make use of Secure Memory Encryption
-Date: Mon, 17 Jul 2017 16:10:35 -0500
-Message-ID: <5f0da2fd4cce63f556117549e2c89c170072209f.1500319216.git.thomas.lendacky@amd.com>
+Subject: [PATCH v10 29/38] x86, drm, fbdev: Do not specify encrypted memory for video mappings
+Date: Mon, 17 Jul 2017 16:10:26 -0500
+Message-ID: <a19436f30424402e01f63a09b32ab103272acced.1500319216.git.thomas.lendacky@amd.com>
 In-Reply-To: <cover.1500319216.git.thomas.lendacky@amd.com>
 References: <cover.1500319216.git.thomas.lendacky@amd.com>
 MIME-Version: 1.0
@@ -16,182 +16,197 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, kvm@vger.kernel.org, kasan-dev@googlegroups.com
 Cc: =?UTF-8?q?Radim=20Kr=C4=8Dm=C3=A1=C5=99?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Paolo Bonzini <pbonzini@redhat.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>, Rik van Riel <riel@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Dave Young <dyoung@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, "Michael S. Tsirkin" <mst@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>
-Message-ID: <20170717211035.LqzKVbEXuwHJE3QrPVhMVg7DCDPMnx7DWVjeFU8GIqo@z>
+Message-ID: <20170717211026.q5_nEvZQKVfGPWZiH2HrAnyjcHhZ4KIYisCh0EBcadY@z>
 
-Add support to check if SME has been enabled and if memory encryption
-should be activated (checking of command line option based on the
-configuration of the default state).  If memory encryption is to be
-activated, then the encryption mask is set and the kernel is encrypted
-"in place."
+Since video memory needs to be accessed decrypted, be sure that the
+memory encryption mask is not set for the video ranges.
 
+Reviewed-by: Borislav Petkov <bp@suse.de>
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/include/asm/mem_encrypt.h |  6 ++-
- arch/x86/kernel/head64.c           |  5 ++-
- arch/x86/mm/mem_encrypt.c          | 77 +++++++++++++++++++++++++++++++++++++-
- 3 files changed, 83 insertions(+), 5 deletions(-)
+ arch/x86/include/asm/vga.h       | 14 +++++++++++++-
+ arch/x86/mm/pageattr.c           |  2 ++
+ drivers/gpu/drm/drm_gem.c        |  2 ++
+ drivers/gpu/drm/drm_vm.c         |  4 ++++
+ drivers/gpu/drm/ttm/ttm_bo_vm.c  |  7 +++++--
+ drivers/gpu/drm/udl/udl_fb.c     |  4 ++++
+ drivers/video/fbdev/core/fbmem.c | 12 ++++++++++++
+ 7 files changed, 42 insertions(+), 3 deletions(-)
 
-diff --git a/arch/x86/include/asm/mem_encrypt.h b/arch/x86/include/asm/mem_encrypt.h
-index 7122c36..8e618fc 100644
---- a/arch/x86/include/asm/mem_encrypt.h
-+++ b/arch/x86/include/asm/mem_encrypt.h
-@@ -17,6 +17,8 @@
+diff --git a/arch/x86/include/asm/vga.h b/arch/x86/include/asm/vga.h
+index c4b9dc2..9f42bee 100644
+--- a/arch/x86/include/asm/vga.h
++++ b/arch/x86/include/asm/vga.h
+@@ -7,12 +7,24 @@
+ #ifndef _ASM_X86_VGA_H
+ #define _ASM_X86_VGA_H
  
- #include <linux/init.h>
- 
-+#include <asm/bootparam.h>
++#include <asm/set_memory.h>
 +
- #ifdef CONFIG_AMD_MEM_ENCRYPT
+ /*
+  *	On the PC, we can just recalculate addresses and then
+  *	access the videoram directly without any black magic.
++ *	To support memory encryption however, we need to access
++ *	the videoram as decrypted memory.
+  */
  
- extern unsigned long sme_me_mask;
-@@ -38,7 +40,7 @@ void __init sme_early_decrypt(resource_size_t paddr,
- void __init sme_early_init(void);
+-#define VGA_MAP_MEM(x, s) (unsigned long)phys_to_virt(x)
++#define VGA_MAP_MEM(x, s)					\
++({								\
++	unsigned long start = (unsigned long)phys_to_virt(x);	\
++								\
++	if (IS_ENABLED(CONFIG_AMD_MEM_ENCRYPT))			\
++		set_memory_decrypted(start, (s) >> PAGE_SHIFT);	\
++								\
++	start;							\
++})
  
- void __init sme_encrypt_kernel(void);
--void __init sme_enable(void);
-+void __init sme_enable(struct boot_params *bp);
- 
- /* Architecture __weak replacement functions */
- void __init mem_encrypt_init(void);
-@@ -60,7 +62,7 @@ static inline void __init sme_unmap_bootdata(char *real_mode_data) { }
- static inline void __init sme_early_init(void) { }
- 
- static inline void __init sme_encrypt_kernel(void) { }
--static inline void __init sme_enable(void) { }
-+static inline void __init sme_enable(struct boot_params *bp) { }
- 
- #endif	/* CONFIG_AMD_MEM_ENCRYPT */
- 
-diff --git a/arch/x86/kernel/head64.c b/arch/x86/kernel/head64.c
-index 0cdb53b..925b292 100644
---- a/arch/x86/kernel/head64.c
-+++ b/arch/x86/kernel/head64.c
-@@ -45,7 +45,8 @@ static void __head *fixup_pointer(void *ptr, unsigned long physaddr)
- 	return ptr - (void *)_text + (void *)physaddr;
- }
- 
--unsigned long __head __startup_64(unsigned long physaddr)
-+unsigned long __head __startup_64(unsigned long physaddr,
-+				  struct boot_params *bp)
+ #define vga_readb(x) (*(x))
+ #define vga_writeb(x, y) (*(y) = (x))
+diff --git a/arch/x86/mm/pageattr.c b/arch/x86/mm/pageattr.c
+index 9c8ea12..dfb7d65 100644
+--- a/arch/x86/mm/pageattr.c
++++ b/arch/x86/mm/pageattr.c
+@@ -1831,11 +1831,13 @@ int set_memory_encrypted(unsigned long addr, int numpages)
  {
- 	unsigned long load_delta, *p;
- 	unsigned long pgtable_flags;
-@@ -70,7 +71,7 @@ unsigned long __head __startup_64(unsigned long physaddr)
- 		for (;;);
+ 	return __set_memory_enc_dec(addr, numpages, true);
+ }
++EXPORT_SYMBOL_GPL(set_memory_encrypted);
  
- 	/* Activate Secure Memory Encryption (SME) if supported and enabled */
--	sme_enable();
-+	sme_enable(bp);
+ int set_memory_decrypted(unsigned long addr, int numpages)
+ {
+ 	return __set_memory_enc_dec(addr, numpages, false);
+ }
++EXPORT_SYMBOL_GPL(set_memory_decrypted);
  
- 	/* Include the SME encryption mask in the fixup value */
- 	load_delta += sme_get_me_mask();
-diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
-index e5d5439..053d540 100644
---- a/arch/x86/mm/mem_encrypt.c
-+++ b/arch/x86/mm/mem_encrypt.c
-@@ -15,6 +15,7 @@
- #include <linux/mm.h>
- #include <linux/dma-mapping.h>
- #include <linux/swiotlb.h>
+ int set_pages_uc(struct page *page, int numpages)
+ {
+diff --git a/drivers/gpu/drm/drm_gem.c b/drivers/gpu/drm/drm_gem.c
+index 8dc1106..7a61a07 100644
+--- a/drivers/gpu/drm/drm_gem.c
++++ b/drivers/gpu/drm/drm_gem.c
+@@ -36,6 +36,7 @@
+ #include <linux/pagemap.h>
+ #include <linux/shmem_fs.h>
+ #include <linux/dma-buf.h>
++#include <linux/mem_encrypt.h>
+ #include <drm/drmP.h>
+ #include <drm/drm_vma_manager.h>
+ #include <drm/drm_gem.h>
+@@ -928,6 +929,7 @@ int drm_gem_mmap_obj(struct drm_gem_object *obj, unsigned long obj_size,
+ 	vma->vm_ops = dev->driver->gem_vm_ops;
+ 	vma->vm_private_data = obj;
+ 	vma->vm_page_prot = pgprot_writecombine(vm_get_page_prot(vma->vm_flags));
++	vma->vm_page_prot = pgprot_decrypted(vma->vm_page_prot);
+ 
+ 	/* Take a ref for this mapping of the object, so that the fault
+ 	 * handler can dereference the mmap offset's pointer to the object.
+diff --git a/drivers/gpu/drm/drm_vm.c b/drivers/gpu/drm/drm_vm.c
+index 1170b32..ed4bcbf 100644
+--- a/drivers/gpu/drm/drm_vm.c
++++ b/drivers/gpu/drm/drm_vm.c
+@@ -40,6 +40,7 @@
+ #include <linux/efi.h>
+ #include <linux/slab.h>
+ #endif
++#include <linux/mem_encrypt.h>
+ #include <asm/pgtable.h>
+ #include "drm_internal.h"
+ #include "drm_legacy.h"
+@@ -58,6 +59,9 @@ static pgprot_t drm_io_prot(struct drm_local_map *map,
+ {
+ 	pgprot_t tmp = vm_get_page_prot(vma->vm_flags);
+ 
++	/* We don't want graphics memory to be mapped encrypted */
++	tmp = pgprot_decrypted(tmp);
++
+ #if defined(__i386__) || defined(__x86_64__) || defined(__powerpc__)
+ 	if (map->type == _DRM_REGISTERS && !(map->flags & _DRM_WRITE_COMBINING))
+ 		tmp = pgprot_noncached(tmp);
+diff --git a/drivers/gpu/drm/ttm/ttm_bo_vm.c b/drivers/gpu/drm/ttm/ttm_bo_vm.c
+index b442d12..84fb009 100644
+--- a/drivers/gpu/drm/ttm/ttm_bo_vm.c
++++ b/drivers/gpu/drm/ttm/ttm_bo_vm.c
+@@ -39,6 +39,7 @@
+ #include <linux/rbtree.h>
+ #include <linux/module.h>
+ #include <linux/uaccess.h>
 +#include <linux/mem_encrypt.h>
  
- #include <asm/tlbflush.h>
- #include <asm/fixmap.h>
-@@ -23,6 +24,13 @@
- #include <asm/set_memory.h>
- #include <asm/cacheflush.h>
- #include <asm/sections.h>
-+#include <asm/processor-flags.h>
-+#include <asm/msr.h>
-+#include <asm/cmdline.h>
-+
-+static char sme_cmdline_arg[] __initdata = "mem_encrypt";
-+static char sme_cmdline_on[]  __initdata = "on";
-+static char sme_cmdline_off[] __initdata = "off";
+ #define TTM_BO_VM_NUM_PREFAULT 16
  
- /*
-  * Since SME related variables are set early in the boot process they must
-@@ -190,6 +198,8 @@ void __init mem_encrypt_init(void)
+@@ -230,9 +231,11 @@ static int ttm_bo_vm_fault(struct vm_fault *vmf)
+ 	 * first page.
+ 	 */
+ 	for (i = 0; i < TTM_BO_VM_NUM_PREFAULT; ++i) {
+-		if (bo->mem.bus.is_iomem)
++		if (bo->mem.bus.is_iomem) {
++			/* Iomem should not be marked encrypted */
++			cvma.vm_page_prot = pgprot_decrypted(cvma.vm_page_prot);
+ 			pfn = bdev->driver->io_mem_pfn(bo, page_offset);
+-		else {
++		} else {
+ 			page = ttm->pages[page_offset];
+ 			if (unlikely(!page && i == 0)) {
+ 				retval = VM_FAULT_OOM;
+diff --git a/drivers/gpu/drm/udl/udl_fb.c b/drivers/gpu/drm/udl/udl_fb.c
+index 4a65003..92e1690 100644
+--- a/drivers/gpu/drm/udl/udl_fb.c
++++ b/drivers/gpu/drm/udl/udl_fb.c
+@@ -14,6 +14,7 @@
+ #include <linux/slab.h>
+ #include <linux/fb.h>
+ #include <linux/dma-buf.h>
++#include <linux/mem_encrypt.h>
  
- 	/* Call into SWIOTLB to update the SWIOTLB DMA buffers */
- 	swiotlb_update_mem_attributes();
-+
-+	pr_info("AMD Secure Memory Encryption (SME) active\n");
- }
+ #include <drm/drmP.h>
+ #include <drm/drm_crtc.h>
+@@ -169,6 +170,9 @@ static int udl_fb_mmap(struct fb_info *info, struct vm_area_struct *vma)
+ 	pr_notice("mmap() framebuffer addr:%lu size:%lu\n",
+ 		  pos, size);
  
- void swiotlb_set_mem_attributes(void *vaddr, unsigned long size)
-@@ -513,6 +523,71 @@ void __init sme_encrypt_kernel(void)
- 	native_write_cr3(__native_read_cr3());
- }
++	/* We don't want the framebuffer to be mapped encrypted */
++	vma->vm_page_prot = pgprot_decrypted(vma->vm_page_prot);
++
+ 	while (size > 0) {
+ 		page = vmalloc_to_pfn((void *)pos);
+ 		if (remap_pfn_range(vma, start, page, PAGE_SIZE, PAGE_SHARED))
+diff --git a/drivers/video/fbdev/core/fbmem.c b/drivers/video/fbdev/core/fbmem.c
+index 7a42238..25e862c 100644
+--- a/drivers/video/fbdev/core/fbmem.c
++++ b/drivers/video/fbdev/core/fbmem.c
+@@ -32,6 +32,7 @@
+ #include <linux/device.h>
+ #include <linux/efi.h>
+ #include <linux/fb.h>
++#include <linux/mem_encrypt.h>
  
--void __init sme_enable(void)
-+void __init __nostackp sme_enable(struct boot_params *bp)
- {
-+	const char *cmdline_ptr, *cmdline_arg, *cmdline_on, *cmdline_off;
-+	unsigned int eax, ebx, ecx, edx;
-+	bool active_by_default;
-+	unsigned long me_mask;
-+	char buffer[16];
-+	u64 msr;
+ #include <asm/fb.h>
+ 
+@@ -1396,6 +1397,12 @@ static long fb_compat_ioctl(struct file *file, unsigned int cmd,
+ 	mutex_lock(&info->mm_lock);
+ 	if (fb->fb_mmap) {
+ 		int res;
 +
-+	/* Check for the SME support leaf */
-+	eax = 0x80000000;
-+	ecx = 0;
-+	native_cpuid(&eax, &ebx, &ecx, &edx);
-+	if (eax < 0x8000001f)
-+		return;
-+
++		/*
++		 * The framebuffer needs to be accessed decrypted, be sure
++		 * SME protection is removed ahead of the call
++		 */
++		vma->vm_page_prot = pgprot_decrypted(vma->vm_page_prot);
+ 		res = fb->fb_mmap(info, vma);
+ 		mutex_unlock(&info->mm_lock);
+ 		return res;
+@@ -1421,6 +1428,11 @@ static long fb_compat_ioctl(struct file *file, unsigned int cmd,
+ 	mutex_unlock(&info->mm_lock);
+ 
+ 	vma->vm_page_prot = vm_get_page_prot(vma->vm_flags);
 +	/*
-+	 * Check for the SME feature:
-+	 *   CPUID Fn8000_001F[EAX] - Bit 0
-+	 *     Secure Memory Encryption support
-+	 *   CPUID Fn8000_001F[EBX] - Bits 5:0
-+	 *     Pagetable bit position used to indicate encryption
++	 * The framebuffer needs to be accessed decrypted, be sure
++	 * SME protection is removed
 +	 */
-+	eax = 0x8000001f;
-+	ecx = 0;
-+	native_cpuid(&eax, &ebx, &ecx, &edx);
-+	if (!(eax & 1))
-+		return;
-+
-+	me_mask = 1UL << (ebx & 0x3f);
-+
-+	/* Check if SME is enabled */
-+	msr = __rdmsr(MSR_K8_SYSCFG);
-+	if (!(msr & MSR_K8_SYSCFG_MEM_ENCRYPT))
-+		return;
-+
-+	/*
-+	 * Fixups have not been applied to phys_base yet and we're running
-+	 * identity mapped, so we must obtain the address to the SME command
-+	 * line argument data using rip-relative addressing.
-+	 */
-+	asm ("lea sme_cmdline_arg(%%rip), %0"
-+	     : "=r" (cmdline_arg)
-+	     : "p" (sme_cmdline_arg));
-+	asm ("lea sme_cmdline_on(%%rip), %0"
-+	     : "=r" (cmdline_on)
-+	     : "p" (sme_cmdline_on));
-+	asm ("lea sme_cmdline_off(%%rip), %0"
-+	     : "=r" (cmdline_off)
-+	     : "p" (sme_cmdline_off));
-+
-+	if (IS_ENABLED(CONFIG_AMD_MEM_ENCRYPT_ACTIVE_BY_DEFAULT))
-+		active_by_default = true;
-+	else
-+		active_by_default = false;
-+
-+	cmdline_ptr = (const char *)((u64)bp->hdr.cmd_line_ptr |
-+				     ((u64)bp->ext_cmd_line_ptr << 32));
-+
-+	cmdline_find_option(cmdline_ptr, cmdline_arg, buffer, sizeof(buffer));
-+
-+	if (!strncmp(buffer, cmdline_on, sizeof(buffer)))
-+		sme_me_mask = me_mask;
-+	else if (!strncmp(buffer, cmdline_off, sizeof(buffer)))
-+		sme_me_mask = 0;
-+	else
-+		sme_me_mask = active_by_default ? me_mask : 0;
- }
++	vma->vm_page_prot = pgprot_decrypted(vma->vm_page_prot);
+ 	fb_pgprotect(file, vma, start);
+ 
+ 	return vm_iomap_memory(vma, start, len);
 -- 
 1.9.1
