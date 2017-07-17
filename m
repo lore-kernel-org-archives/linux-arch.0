@@ -1,38 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:56546 "EHLO
-        mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751306AbdGQNrw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 17 Jul 2017 09:47:52 -0400
-Date: Mon, 17 Jul 2017 15:47:46 +0200
-From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: Re: [PATCH] [PING] Fix TIOCGPTPEER ioctl definition
-Message-ID: <20170717134746.GA19574@kroah.com>
-References: <20170717132946.GK21910@glebfm.cloud.tilaa.com>
+Received: from smtprelay.synopsys.com ([198.182.47.9]:36188 "EHLO
+        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751346AbdGQQGk (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 17 Jul 2017 12:06:40 -0400
+Subject: Re: semantics of dma_map_single()
+References: <dc128260-6641-828a-3bb6-c2f0b4f09f78@synopsys.com>
+ <20170717064220.GA15807@lst.de>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Message-ID: <23203d16-da54-99c7-0eba-c082eba120d7@synopsys.com>
+Date: Mon, 17 Jul 2017 09:06:29 -0700
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20170717132946.GK21910@glebfm.cloud.tilaa.com>
+In-Reply-To: <20170717064220.GA15807@lst.de>
+Content-Type: text/plain; charset="utf-8"; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Gleb Fotengauer-Malinovskiy <glebfm@altlinux.org>
-Cc: Aleksa Sarai <asarai@suse.de>, David Laight <David.Laight@ACULAB.COM>, James Hogan <james.hogan@imgtec.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, Valentin Rothberg <vrothberg@suse.com>, "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "Dmitry V. Levin" <ldv@altlinux.org>, Jiri Slaby <jslaby@suse.com>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, Christian Brauner <christian.brauner@ubuntu.com>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>
-Message-ID: <20170717134746.IJaR-EkWrJjA7kw0FfBaT4-1veJ5bIxRMfagiWQasgw@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, bart.vanassche@sandisk.com, Alexander Duyck <alexander.h.duyck@intel.com>, Krzysztof Kozlowski <k.kozlowski@samsung.com>, Andrew Morton <akpm@linux-foundation.org>, lkml <linux-kernel@vger.kernel.org>, arcml <linux-snps-arc@lists.infradead.org>
+Message-ID: <20170717160629.DUhFQa84BWWgaLQRjklotz-SxK_aJkBafpfLoghcWCE@z>
 
-On Mon, Jul 17, 2017 at 04:29:46PM +0300, Gleb Fotengauer-Malinovskiy wrote:
-> This ioctl does nothing to justify an _IOC_READ or _IOC_WRITE flag
-> because it doesn't copy anything from/to userspace to access the
-> argument.
-> 
-> Fixes: 54ebbfb16034 ("tty: add TIOCGPTPEER ioctl")
-> Signed-off-by: Gleb Fotengauer-Malinovskiy <glebfm@altlinux.org>
-> Acked-by: Aleksa Sarai <asarai@suse.de>
-> Acked-by: Arnd Bergmann <arnd@arndb.de>
+Hi Christoph,
 
+On 07/16/2017 11:42 PM, Christoph Hellwig wrote:
+> I would expect that it would support any contiguous range in
+> the kernel mapping (e.g. no vmalloc and friends).  But it's not
+> documented anywhere, and if no in kernel users makes use of that
+> fact at the moment it might be better to document a page size
+> limitation and add asserts to enforce it.
 
-Why the PING?  -rc1 just happened, so I am only now able to apply the
-patch to the tree.  Please relax, you are behind about 800+ other
-patches in my queue...
+My first thought was indeed to add a BUG_ON for @size > PAGE_SIZE (also accounting 
+for offset etc), but I have a feeling this will cause too many breakages. So 
+perhaps it would be better to add the fact to Documentation that it can handle any 
+physically contiguous range.
 
-thanks,
-
-greg k-h
+-Vineet
