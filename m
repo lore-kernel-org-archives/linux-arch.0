@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn3nam01on0071.outbound.protection.outlook.com ([104.47.33.71]:3344
+Received: from mail-bn3nam01on0076.outbound.protection.outlook.com ([104.47.33.76]:46539
         "EHLO NAM01-BN3-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751771AbdGQVL0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 17 Jul 2017 17:11:26 -0400
+        id S1751508AbdGQVL4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 17 Jul 2017 17:11:56 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v10 09/38] x86/mm: Simplify p[g4um]d_page() macros
-Date: Mon, 17 Jul 2017 16:10:06 -0500
-Message-ID: <e61eb533a6d0aac941db2723d8aa63ef6b882dee.1500319216.git.thomas.lendacky@amd.com>
+Subject: [PATCH v10 15/38] x86/boot/e820: Add support to determine the E820 type of an address
+Date: Mon, 17 Jul 2017 16:10:12 -0500
+Message-ID: <b797aaa588803bf33263d5dd8c32377668fa931a.1500319216.git.thomas.lendacky@amd.com>
 In-Reply-To: <cover.1500319216.git.thomas.lendacky@amd.com>
 References: <cover.1500319216.git.thomas.lendacky@amd.com>
 MIME-Version: 1.0
@@ -16,72 +16,75 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, kvm@vger.kernel.org, kasan-dev@googlegroups.com
 Cc: =?UTF-8?q?Radim=20Kr=C4=8Dm=C3=A1=C5=99?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Paolo Bonzini <pbonzini@redhat.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>, Rik van Riel <riel@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Dave Young <dyoung@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, "Michael S. Tsirkin" <mst@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>
-Message-ID: <20170717211006.nxX4dr471dNearBChC3helrSsLKdxXEnMEyuhCEJvMk@z>
+Message-ID: <20170717211012.IVZ8eJfZlAUNEMXpuBmhXN4zsikWepTKIKmo00jlNeQ@z>
 
-Create a pgd_pfn() macro similar to the p[4um]d_pfn() macros and then
-use the p[g4um]d_pfn() macros in the p[g4um]d_page() macros instead of
-duplicating the code.
+Add a function that will return the E820 type associated with an address
+range.
 
 Reviewed-by: Borislav Petkov <bp@suse.de>
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/include/asm/pgtable.h | 16 +++++++++-------
- 1 file changed, 9 insertions(+), 7 deletions(-)
+ arch/x86/include/asm/e820/api.h |  2 ++
+ arch/x86/kernel/e820.c          | 26 +++++++++++++++++++++++---
+ 2 files changed, 25 insertions(+), 3 deletions(-)
 
-diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
-index 77037b6..b64ea52 100644
---- a/arch/x86/include/asm/pgtable.h
-+++ b/arch/x86/include/asm/pgtable.h
-@@ -195,6 +195,11 @@ static inline unsigned long p4d_pfn(p4d_t p4d)
- 	return (p4d_val(p4d) & p4d_pfn_mask(p4d)) >> PAGE_SHIFT;
- }
+diff --git a/arch/x86/include/asm/e820/api.h b/arch/x86/include/asm/e820/api.h
+index a504adc..cd266d8 100644
+--- a/arch/x86/include/asm/e820/api.h
++++ b/arch/x86/include/asm/e820/api.h
+@@ -39,6 +39,8 @@
+ extern void e820__reallocate_tables(void);
+ extern void e820__register_nosave_regions(unsigned long limit_pfn);
  
-+static inline unsigned long pgd_pfn(pgd_t pgd)
-+{
-+	return (pgd_val(pgd) & PTE_PFN_MASK) >> PAGE_SHIFT;
++extern int  e820__get_entry_type(u64 start, u64 end);
++
+ /*
+  * Returns true iff the specified range [start,end) is completely contained inside
+  * the ISA region.
+diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
+index 532da61..71c11ad 100644
+--- a/arch/x86/kernel/e820.c
++++ b/arch/x86/kernel/e820.c
+@@ -96,7 +96,8 @@ bool e820__mapped_any(u64 start, u64 end, enum e820_type type)
+  * Note: this function only works correctly once the E820 table is sorted and
+  * not-overlapping (at least for the range specified), which is the case normally.
+  */
+-bool __init e820__mapped_all(u64 start, u64 end, enum e820_type type)
++static struct e820_entry *__e820__mapped_all(u64 start, u64 end,
++					     enum e820_type type)
+ {
+ 	int i;
+ 
+@@ -122,9 +123,28 @@ bool __init e820__mapped_all(u64 start, u64 end, enum e820_type type)
+ 		 * coverage of the desired range exists:
+ 		 */
+ 		if (start >= end)
+-			return 1;
++			return entry;
+ 	}
+-	return 0;
++
++	return NULL;
 +}
 +
- static inline int p4d_large(p4d_t p4d)
- {
- 	/* No 512 GiB pages yet */
-@@ -704,8 +709,7 @@ static inline unsigned long pmd_page_vaddr(pmd_t pmd)
-  * Currently stuck as a macro due to indirect forward reference to
-  * linux/mmzone.h's __section_mem_map_addr() definition:
-  */
--#define pmd_page(pmd)		\
--	pfn_to_page((pmd_val(pmd) & pmd_pfn_mask(pmd)) >> PAGE_SHIFT)
-+#define pmd_page(pmd)	pfn_to_page(pmd_pfn(pmd))
++/*
++ * This function checks if the entire range <start,end> is mapped with type.
++ */
++bool __init e820__mapped_all(u64 start, u64 end, enum e820_type type)
++{
++	return __e820__mapped_all(start, end, type);
++}
++
++/*
++ * This function returns the type associated with the range <start,end>.
++ */
++int e820__get_entry_type(u64 start, u64 end)
++{
++	struct e820_entry *entry = __e820__mapped_all(start, end, 0);
++
++	return entry ? entry->type : -EINVAL;
+ }
  
  /*
-  * the pmd page can be thought of an array like this: pmd_t[PTRS_PER_PMD]
-@@ -773,8 +777,7 @@ static inline unsigned long pud_page_vaddr(pud_t pud)
-  * Currently stuck as a macro due to indirect forward reference to
-  * linux/mmzone.h's __section_mem_map_addr() definition:
-  */
--#define pud_page(pud)		\
--	pfn_to_page((pud_val(pud) & pud_pfn_mask(pud)) >> PAGE_SHIFT)
-+#define pud_page(pud)	pfn_to_page(pud_pfn(pud))
- 
- /* Find an entry in the second-level page table.. */
- static inline pmd_t *pmd_offset(pud_t *pud, unsigned long address)
-@@ -824,8 +827,7 @@ static inline unsigned long p4d_page_vaddr(p4d_t p4d)
-  * Currently stuck as a macro due to indirect forward reference to
-  * linux/mmzone.h's __section_mem_map_addr() definition:
-  */
--#define p4d_page(p4d)		\
--	pfn_to_page((p4d_val(p4d) & p4d_pfn_mask(p4d)) >> PAGE_SHIFT)
-+#define p4d_page(p4d)	pfn_to_page(p4d_pfn(p4d))
- 
- /* Find an entry in the third-level page table.. */
- static inline pud_t *pud_offset(p4d_t *p4d, unsigned long address)
-@@ -859,7 +861,7 @@ static inline unsigned long pgd_page_vaddr(pgd_t pgd)
-  * Currently stuck as a macro due to indirect forward reference to
-  * linux/mmzone.h's __section_mem_map_addr() definition:
-  */
--#define pgd_page(pgd)		pfn_to_page(pgd_val(pgd) >> PAGE_SHIFT)
-+#define pgd_page(pgd)	pfn_to_page(pgd_pfn(pgd))
- 
- /* to find an entry in a page-table-directory. */
- static inline p4d_t *p4d_offset(pgd_t *pgd, unsigned long address)
 -- 
 1.9.1
