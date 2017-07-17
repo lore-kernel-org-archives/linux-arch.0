@@ -2,12 +2,12 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from mail-bn3nam01on0076.outbound.protection.outlook.com ([104.47.33.76]:46539
         "EHLO NAM01-BN3-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751367AbdGQVLu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 17 Jul 2017 17:11:50 -0400
+        id S1751440AbdGQVLe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 17 Jul 2017 17:11:34 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [PATCH v10 13/38] x86/mm: Add support for early encrypt/decrypt of memory
-Date: Mon, 17 Jul 2017 16:10:10 -0500
-Message-ID: <f9968e9432cd6c4b57ef245729be04ff18852225.1500319216.git.thomas.lendacky@amd.com>
+Subject: [PATCH v10 11/38] x86/mm: Add SME support for read_cr3_pa()
+Date: Mon, 17 Jul 2017 16:10:08 -0500
+Message-ID: <767b085c384a46f67f451f8589903a462c7ff68a.1500319216.git.thomas.lendacky@amd.com>
 In-Reply-To: <cover.1500319216.git.thomas.lendacky@amd.com>
 References: <cover.1500319216.git.thomas.lendacky@amd.com>
 MIME-Version: 1.0
@@ -16,143 +16,61 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, kvm@vger.kernel.org, kasan-dev@googlegroups.com
 Cc: =?UTF-8?q?Radim=20Kr=C4=8Dm=C3=A1=C5=99?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Paolo Bonzini <pbonzini@redhat.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>, Rik van Riel <riel@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Dave Young <dyoung@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, "Michael S. Tsirkin" <mst@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>
-Message-ID: <20170717211010.OS7MO43onc5mMz9YbzNHjdnJB6mKaXIOZcOTEzvDU1Q@z>
+Message-ID: <20170717211008.y0HZHqdG1jToOrp5Vg-YVQU5MUu1diOXDr0-iT3hx0A@z>
 
-Add support to be able to either encrypt or decrypt data in place during
-the early stages of booting the kernel. This does not change the memory
-encryption attribute - it is used for ensuring that data present in either
-an encrypted or decrypted memory area is in the proper state (for example
-the initrd will have been loaded by the boot loader and will not be
-encrypted, but the memory that it resides in is marked as encrypted).
+The cr3 register entry can contain the SME encryption mask that indicates
+the PGD is encrypted.  The encryption mask should not be used when
+creating a virtual address from the cr3 register, so remove the SME
+encryption mask in the read_cr3_pa() function.
+
+During early boot SME will need to use a native version of read_cr3_pa(),
+so create native_read_cr3_pa().
 
 Reviewed-by: Borislav Petkov <bp@suse.de>
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/include/asm/mem_encrypt.h | 10 +++++
- arch/x86/mm/mem_encrypt.c          | 76 ++++++++++++++++++++++++++++++++++++++
- 2 files changed, 86 insertions(+)
+ arch/x86/include/asm/processor-flags.h | 5 +++--
+ arch/x86/include/asm/processor.h       | 5 +++++
+ 2 files changed, 8 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/include/asm/mem_encrypt.h b/arch/x86/include/asm/mem_encrypt.h
-index dbae7a5..8baa35b 100644
---- a/arch/x86/include/asm/mem_encrypt.h
-+++ b/arch/x86/include/asm/mem_encrypt.h
-@@ -21,6 +21,11 @@
+diff --git a/arch/x86/include/asm/processor-flags.h b/arch/x86/include/asm/processor-flags.h
+index 79aa2f9..f5d3e50 100644
+--- a/arch/x86/include/asm/processor-flags.h
++++ b/arch/x86/include/asm/processor-flags.h
+@@ -2,6 +2,7 @@
+ #define _ASM_X86_PROCESSOR_FLAGS_H
  
- extern unsigned long sme_me_mask;
+ #include <uapi/asm/processor-flags.h>
++#include <linux/mem_encrypt.h>
  
-+void __init sme_early_encrypt(resource_size_t paddr,
-+			      unsigned long size);
-+void __init sme_early_decrypt(resource_size_t paddr,
-+			      unsigned long size);
-+
- void __init sme_early_init(void);
- 
- void __init sme_encrypt_kernel(void);
-@@ -30,6 +35,11 @@
- 
- #define sme_me_mask	0UL
- 
-+static inline void __init sme_early_encrypt(resource_size_t paddr,
-+					    unsigned long size) { }
-+static inline void __init sme_early_decrypt(resource_size_t paddr,
-+					    unsigned long size) { }
-+
- static inline void __init sme_early_init(void) { }
- 
- static inline void __init sme_encrypt_kernel(void) { }
-diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
-index f973d3d..54bb73c 100644
---- a/arch/x86/mm/mem_encrypt.c
-+++ b/arch/x86/mm/mem_encrypt.c
-@@ -14,6 +14,9 @@
- #include <linux/init.h>
- #include <linux/mm.h>
- 
-+#include <asm/tlbflush.h>
-+#include <asm/fixmap.h>
-+
+ #ifdef CONFIG_VM86
+ #define X86_VM_MASK	X86_EFLAGS_VM
+@@ -32,8 +33,8 @@
+  * CR3_ADDR_MASK is the mask used by read_cr3_pa().
+  */
+ #ifdef CONFIG_X86_64
+-/* Mask off the address space ID bits. */
+-#define CR3_ADDR_MASK 0x7FFFFFFFFFFFF000ull
++/* Mask off the address space ID and SME encryption bits. */
++#define CR3_ADDR_MASK __sme_clr(0x7FFFFFFFFFFFF000ull)
+ #define CR3_PCID_MASK 0xFFFull
+ #else
  /*
-  * Since SME related variables are set early in the boot process they must
-  * reside in the .data section so as not to be zeroed out when the .bss
-@@ -22,6 +25,79 @@
- unsigned long sme_me_mask __section(.data) = 0;
- EXPORT_SYMBOL_GPL(sme_me_mask);
+diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
+index a68f70c..973709d 100644
+--- a/arch/x86/include/asm/processor.h
++++ b/arch/x86/include/asm/processor.h
+@@ -240,6 +240,11 @@ static inline unsigned long read_cr3_pa(void)
+ 	return __read_cr3() & CR3_ADDR_MASK;
+ }
  
-+/* Buffer used for early in-place encryption by BSP, no locking needed */
-+static char sme_early_buffer[PAGE_SIZE] __aligned(PAGE_SIZE);
-+
-+/*
-+ * This routine does not change the underlying encryption setting of the
-+ * page(s) that map this memory. It assumes that eventually the memory is
-+ * meant to be accessed as either encrypted or decrypted but the contents
-+ * are currently not in the desired state.
-+ *
-+ * This routine follows the steps outlined in the AMD64 Architecture
-+ * Programmer's Manual Volume 2, Section 7.10.8 Encrypt-in-Place.
-+ */
-+static void __init __sme_early_enc_dec(resource_size_t paddr,
-+				       unsigned long size, bool enc)
++static inline unsigned long native_read_cr3_pa(void)
 +{
-+	void *src, *dst;
-+	size_t len;
-+
-+	if (!sme_me_mask)
-+		return;
-+
-+	local_flush_tlb();
-+	wbinvd();
-+
-+	/*
-+	 * There are limited number of early mapping slots, so map (at most)
-+	 * one page at time.
-+	 */
-+	while (size) {
-+		len = min_t(size_t, sizeof(sme_early_buffer), size);
-+
-+		/*
-+		 * Create mappings for the current and desired format of
-+		 * the memory. Use a write-protected mapping for the source.
-+		 */
-+		src = enc ? early_memremap_decrypted_wp(paddr, len) :
-+			    early_memremap_encrypted_wp(paddr, len);
-+
-+		dst = enc ? early_memremap_encrypted(paddr, len) :
-+			    early_memremap_decrypted(paddr, len);
-+
-+		/*
-+		 * If a mapping can't be obtained to perform the operation,
-+		 * then eventual access of that area in the desired mode
-+		 * will cause a crash.
-+		 */
-+		BUG_ON(!src || !dst);
-+
-+		/*
-+		 * Use a temporary buffer, of cache-line multiple size, to
-+		 * avoid data corruption as documented in the APM.
-+		 */
-+		memcpy(sme_early_buffer, src, len);
-+		memcpy(dst, sme_early_buffer, len);
-+
-+		early_memunmap(dst, len);
-+		early_memunmap(src, len);
-+
-+		paddr += len;
-+		size -= len;
-+	}
++	return __native_read_cr3() & CR3_ADDR_MASK;
 +}
 +
-+void __init sme_early_encrypt(resource_size_t paddr, unsigned long size)
-+{
-+	__sme_early_enc_dec(paddr, size, true);
-+}
-+
-+void __init sme_early_decrypt(resource_size_t paddr, unsigned long size)
-+{
-+	__sme_early_enc_dec(paddr, size, false);
-+}
-+
- void __init sme_early_init(void)
+ static inline void load_cr3(pgd_t *pgdir)
  {
- 	unsigned int i;
+ 	write_cr3(__sme_pa(pgdir));
 -- 
 1.9.1
