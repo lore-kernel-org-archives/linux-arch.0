@@ -1,107 +1,40 @@
-From: <tchidrenplytoo@aim.com>
-Subject: (unknown)
-Date: Mon, 17 Jul 2017 01:20:13 -0000
-Message-ID: <150025441355.17620.14609265322255058068@isurgut.ru>
+From: Juergen Gross <jgross@suse.com>
+Subject: Re: [PATCH 3/8] x86/xen: Redefine XEN_ELFNOTE_INIT_P2M using PUD_SIZE
+ * PTRS_PER_PUD
+Date: Mon, 17 Jul 2017 07:45:24 +0200
+Message-ID: <de750662-faee-ce5b-526e-3f03ab87419d@suse.com>
+References: <20170716225954.74185-1-kirill.shutemov@linux.intel.com>
+ <20170716225954.74185-4-kirill.shutemov@linux.intel.com>
 Mime-Version: 1.0
-Content-Type: application/zip; name="EMAIL_34446_linux-arch.zip
-Content-Transfer-Encoding: base64
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 188-19-15-177.pppoe-adsl.isurgut.ru ([188.19.15.177]:34890 "HELO
-        isurgut.ru" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with SMTP
-        id S1751219AbdGQBUR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 16 Jul 2017 21:20:17 -0400
-Content-Disposition: attachment
-Subject: 
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20170716225954.74185-4-kirill.shutemov@linux.intel.com>
+Content-Language: de-DE
+Sender: owner-linux-mm@kvack.org
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-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
+On 17/07/17 00:59, Kirill A. Shutemov wrote:
+> XEN_ELFNOTE_INIT_P2M has to be 512GB for both 4- and 5-level paging.
+> (PUD_SIZE * PTRS_PER_PUD) would do this.
+> 
+> Unfortunately, we cannot use P4D_SIZE, which would fit here. With
+> current headers structure it cannot be used in assembly, if p4d
+> level is folded.
+> 
+> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+
+Reviewed-by: Juergen Gross <jgross@suse.com>
+
+
+Thanks,
+
+Juergen
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
