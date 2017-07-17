@@ -1,39 +1,25 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:36051 "EHLO mx1.suse.de"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751248AbdGQFp2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 17 Jul 2017 01:45:28 -0400
-Subject: Re: [PATCH 3/8] x86/xen: Redefine XEN_ELFNOTE_INIT_P2M using PUD_SIZE
- * PTRS_PER_PUD
-References: <20170716225954.74185-1-kirill.shutemov@linux.intel.com>
- <20170716225954.74185-4-kirill.shutemov@linux.intel.com>
-From: Juergen Gross <jgross@suse.com>
-Message-ID: <de750662-faee-ce5b-526e-3f03ab87419d@suse.com>
-Date: Mon, 17 Jul 2017 07:45:24 +0200
+Received: from verein.lst.de ([213.95.11.211]:49594 "EHLO newverein.lst.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751253AbdGQGmW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 17 Jul 2017 02:42:22 -0400
+Date: Mon, 17 Jul 2017 08:42:20 +0200
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: semantics of dma_map_single()
+Message-ID: <20170717064220.GA15807@lst.de>
+References: <dc128260-6641-828a-3bb6-c2f0b4f09f78@synopsys.com>
 MIME-Version: 1.0
-In-Reply-To: <20170716225954.74185-4-kirill.shutemov@linux.intel.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: de-DE
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <dc128260-6641-828a-3bb6-c2f0b4f09f78@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
-Message-ID: <20170717054524.l6onGuiFEZqdSUaf5wPHjYQQ90fHu8sMRDx8hJSlgYc@z>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Christoph Hellwig <hch@lst.de>, bart.vanassche@sandisk.com, Alexander Duyck <alexander.h.duyck@intel.com>, Krzysztof Kozlowski <k.kozlowski@samsung.com>, Andrew Morton <akpm@linux-foundation.org>, lkml <linux-kernel@vger.kernel.org>, arcml <linux-snps-arc@lists.infradead.org>
+Message-ID: <20170717064220.8mkkLBJ3exp_15qun5mkPt8RjWwhkb6Jzi0Xakw743o@z>
 
-On 17/07/17 00:59, Kirill A. Shutemov wrote:
-> XEN_ELFNOTE_INIT_P2M has to be 512GB for both 4- and 5-level paging.
-> (PUD_SIZE * PTRS_PER_PUD) would do this.
-> 
-> Unfortunately, we cannot use P4D_SIZE, which would fit here. With
-> current headers structure it cannot be used in assembly, if p4d
-> level is folded.
-> 
-> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-
-Reviewed-by: Juergen Gross <jgross@suse.com>
-
-
-Thanks,
-
-Juergen
+I would expect that it would support any contiguous range in
+the kernel mapping (e.g. no vmalloc and friends).  But it's not
+documented anywhere, and if no in kernel users makes use of that
+fact at the moment it might be better to document a page size
+limitation and add asserts to enforce it.
