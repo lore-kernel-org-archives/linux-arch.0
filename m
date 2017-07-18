@@ -1,59 +1,97 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out01.mta.xmission.com ([166.70.13.231]:41381 "EHLO
-        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751399AbdGRNpo (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Jul 2017 09:45:44 -0400
-From: ebiederm@xmission.com (Eric W. Biederman)
-References: <87efu22set.fsf@xmission.com>
-        <20170630123906.8865-1-ebiederm@xmission.com>
-        <20170702141320.GA32254@ls3530.fritz.box>
-        <87fudz5lol.fsf@xmission.com> <20170717081438.rdbwspz25bn6oz7h@tower>
-Date: Tue, 18 Jul 2017 08:37:36 -0500
-In-Reply-To: <20170717081438.rdbwspz25bn6oz7h@tower> (Michael Cree's message
-        of "Mon, 17 Jul 2017 20:14:38 +1200")
-Message-ID: <87fudthnmn.fsf@xmission.com>
+Received: from mail-cys01nam02on0051.outbound.protection.outlook.com ([104.47.37.51]:6896
+        "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1751409AbdGRN5N (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 18 Jul 2017 09:57:13 -0400
+Subject: Re: [PATCH v10 37/38] compiler-gcc.h: Introduce __nostackp function
+ attribute
+References: <cover.1500319216.git.thomas.lendacky@amd.com>
+ <0576fd5c74440ad0250f16ac6609ecf587812456.1500319216.git.thomas.lendacky@amd.com>
+ <20170718093631.pnamvdrkmzcjz64j@gmail.com>
+From: Tom Lendacky <thomas.lendacky@amd.com>
+Message-ID: <b9b7d092-cb15-bc2e-6675-a36a78a5db6f@amd.com>
+Date: Tue, 18 Jul 2017 08:56:56 -0500
 MIME-Version: 1.0
-Content-Type: text/plain
-Subject: Re: [PATCH 1/8] signal/alpha: Document a conflict with SI_USER for SIGTRAP
+In-Reply-To: <20170718093631.pnamvdrkmzcjz64j@gmail.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michael Cree <mcree@orcon.net.nz>
-Cc: Helge Deller <deller@gmx.de>, linux-kernel@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, Andrei Vagin <avagin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Greg KH <greg@kroah.com>, Andrey Vagin <avagin@openvz.org>, Serge Hallyn <serge@hallyn.com>, Pavel Emelyanov <xemul@virtuozzo.com>, Cyrill Gorcunov <gorcunov@openvz.org>, Peter Zijlstra <peterz@infradead.org>, Willy Tarreau <w@1wt.eu>, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Linux Containers <containers@lists.linux-foundation.org>, Michael Kerrisk <mtk.manpages@gmail.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, linux-alpha@vger.kernel.org
-Message-ID: <20170718133736.ZqCyE6WElVXf8HdJMzZV-EZhxLHkAZa7c3Lo8E_w_gU@z>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, kvm@vger.kernel.org, kasan-dev@googlegroups.com, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Paolo Bonzini <pbonzini@redhat.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>, Rik van Riel <riel@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Dave Young <dyoung@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, "Michael S. Tsirkin" <mst@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>
+Message-ID: <20170718135656.Ii6oMXB8Rp8bsqslEK_jTWIeYvoauEEzmzXAV9dJ8G0@z>
 
-Michael Cree <mcree@orcon.net.nz> writes:
+On 7/18/2017 4:36 AM, Ingo Molnar wrote:
+> 
+> * Tom Lendacky <thomas.lendacky@amd.com> wrote:
+> 
+>> Create a new function attribute, __nostackp, that can used to turn off
+>> stack protection on a per function basis.
+>>
+>> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+>> ---
+>>   include/linux/compiler-gcc.h | 2 ++
+>>   include/linux/compiler.h     | 4 ++++
+>>   2 files changed, 6 insertions(+)
+>>
+>> diff --git a/include/linux/compiler-gcc.h b/include/linux/compiler-gcc.h
+>> index cd4bbe8..682063b 100644
+>> --- a/include/linux/compiler-gcc.h
+>> +++ b/include/linux/compiler-gcc.h
+>> @@ -166,6 +166,8 @@
+>>   
+>>   #if GCC_VERSION >= 40100
+>>   # define __compiletime_object_size(obj) __builtin_object_size(obj, 0)
+>> +
+>> +#define __nostackp	__attribute__((__optimize__("no-stack-protector")))
+>>   #endif
+>>   
+>>   #if GCC_VERSION >= 40300
+>> diff --git a/include/linux/compiler.h b/include/linux/compiler.h
+>> index 219f82f..63cbca1 100644
+>> --- a/include/linux/compiler.h
+>> +++ b/include/linux/compiler.h
+>> @@ -470,6 +470,10 @@ static __always_inline void __write_once_size(volatile void *p, void *res, int s
+>>   #define __visible
+>>   #endif
+>>   
+>> +#ifndef __nostackp
+>> +#define __nostackp
+>> +#endif
+> 
+> So I changed this from the hard to read and ambiguous "__nostackp" abbreviation
+> (does it mean 'no stack pointer?') to "__nostackprotector", plus added this detail
+> to the changelog:
+> 
+> | ( This is needed by the SME in-place kernel memory encryption feature,
+> |   which activates encryption in its sme_enable() function and thus changes the
+> |   visible value of the stack protection cookie on function return. )
+> 
+> Agreed?
 
-> On Fri, Jul 14, 2017 at 05:59:06AM -0500, Eric W. Biederman wrote:
->> in which cases the oddities will happen let alone test them.  Plus at
->> least for ia64 and alpha those architectures don't appear to be
->> receiving updates for new syscalls, and no new hardware is being built
->> so I don't know how much longer they will last.
->> 
->> That is building for alpha gives:
->> >   CALL    /home/eric/projects/linux/linux-exit-cleanups/scripts/checksyscalls.sh
->> > <stdin>:1239:2: warning: #warning syscall seccomp not implemented [-Wcpp]
->> > <stdin>:1248:2: warning: #warning syscall bpf not implemented [-Wcpp]
->> > <stdin>:1299:2: warning: #warning syscall userfaultfd not implemented [-Wcpp]
->> > <stdin>:1302:2: warning: #warning syscall membarrier not implemented [-Wcpp]
->> > <stdin>:1305:2: warning: #warning syscall mlock2 not implemented [-Wcpp]
->> > <stdin>:1308:2: warning: #warning syscall copy_file_range not implemented [-Wcpp]
->> > <stdin>:1311:2: warning: #warning syscall preadv2 not implemented [-Wcpp]
->> > <stdin>:1314:2: warning: #warning syscall pwritev2 not implemented [-Wcpp]
->> > <stdin>:1317:2: warning: #warning syscall pkey_mprotect not implemented [-Wcpp]
->> > <stdin>:1320:2: warning: #warning syscall pkey_alloc not implemented [-Wcpp]
->> > <stdin>:1323:2: warning: #warning syscall pkey_free not implemented [-Wcpp]
->> > <stdin>:1326:2: warning: #warning syscall statx not implemented [-Wcpp]
->
-> Patches to wire up most of those syscalls on Alpha was posted recently
-> along with others to fix module loading, etc., but unfortunately they
-> do not appear to have been applied during the merge window...
+Hi Ingo,
 
-Odd.
+I debugged this to needing "__nostackprotector" because sme_enable()
+is called very early in the boot process before everything is properly
+setup to fully support stack protection when KASLR is enabled. Without
+this attribute the call to sme_enable() would fail even if encryption
+was disabled with the "mem_encrypt=off" command line option.
 
-In general wiring up system calls is something that can even happen in
--rc2 or -rc3 as system calls get added in -rc1 and then the
-architectures have a chance to send in the small patches wiring the up.
-At least that is how I understand the usual rules for being a non-x86
-architecture.
+If KASLR wasn't enabled, then everything worked fine without the
+"__nostackprotector" attribute, encryption enabled or not.
 
-Eric
+The stack protection support is activated because of the 16-byte
+character buffer in the sme_enable() routine.  I think we'll find that
+if a character buffer greater than 8 bytes is added to, for example,
+__startup_64, then this attribute will need to be added to that routine.
+
+Thanks,
+Tom
+
+> 
+> Thanks,
+> 
+> 	Ingo
+> 
