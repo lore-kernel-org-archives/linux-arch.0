@@ -1,76 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out03.mta.xmission.com ([166.70.13.233]:59622 "EHLO
-        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751401AbdGRNvX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Jul 2017 09:51:23 -0400
-From: ebiederm@xmission.com (Eric W. Biederman)
-References: <87efu22set.fsf@xmission.com>
-        <20170630123906.8865-3-ebiederm@xmission.com>
-        <20170630.124505.736865959393416284.davem@davemloft.net>
-        <8737ahwdgr.fsf@xmission.com>
-Date: Tue, 18 Jul 2017 08:43:14 -0500
-In-Reply-To: <8737ahwdgr.fsf@xmission.com> (Eric W. Biederman's message of
-        "Fri, 30 Jun 2017 13:13:40 -0500")
-Message-ID: <878tjlhnd9.fsf@xmission.com>
+Received: from mail-bl2nam02on0064.outbound.protection.outlook.com ([104.47.38.64]:50262
+        "EHLO NAM02-BL2-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1751408AbdGROCV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 18 Jul 2017 10:02:21 -0400
+Subject: Re: [PATCH v10 00/38] x86: Secure Memory Encryption (AMD)
+References: <cover.1500319216.git.thomas.lendacky@amd.com>
+ <alpine.DEB.2.20.1707181402340.1945@nanos>
+From: Tom Lendacky <thomas.lendacky@amd.com>
+Message-ID: <d43d315c-6797-b51e-58a8-05b5f98951d0@amd.com>
+Date: Tue, 18 Jul 2017 09:02:08 -0500
 MIME-Version: 1.0
-Content-Type: text/plain
-Subject: Re: [PATCH 3/8] signal/sparc: Document a conflict with SI_USER with SIGFPE
+In-Reply-To: <alpine.DEB.2.20.1707181402340.1945@nanos>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
-Cc: linux-kernel@vger.kernel.org, luto@kernel.org, torvalds@linux-foundation.org, viro@zeniv.linux.org.uk, oleg@redhat.com, avagin@virtuozzo.com, tglx@linutronix.de, greg@kroah.com, avagin@openvz.org, serge@hallyn.com, xemul@virtuozzo.com, gorcunov@openvz.org, peterz@infradead.org, w@1wt.eu, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, containers@lists.linux-foundation.org, mtk.manpages@gmail.com, sparclinux@vger.kernel.org
-Message-ID: <20170718134314.Ng3elSNoD7_vs-Bpr-zrhGz8OmGFcebuHEp6dnVe3Qs@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, kvm@vger.kernel.org, kasan-dev@googlegroups.com, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Paolo Bonzini <pbonzini@redhat.com>, Alexander Potapenko <glider@google.com>, Dmitry Vyukov <dvyukov@google.com>, Rik van Riel <riel@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Dave Young <dyoung@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, "Michael S. Tsirkin" <mst@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, iommu@lists.linux-foundation.org, Joerg Roedel <joro@8bytes.org>, kexec@lists.infradead.org, xen-devel@lists.xen.org, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>
+Message-ID: <20170718140208.mfl5fQ2cPWs0dZWsGK_TihNTKqKYuzOxOJSOtY2kGtk@z>
 
-ebiederm@xmission.com (Eric W. Biederman) writes:
-
-> David Miller <davem@davemloft.net> writes:
->
->> From: "Eric W. Biederman" <ebiederm@xmission.com>
->> Date: Fri, 30 Jun 2017 07:39:01 -0500
+On 7/18/2017 7:03 AM, Thomas Gleixner wrote:
+> On Mon, 17 Jul 2017, Tom Lendacky wrote:
+>> This patch series provides support for AMD's new Secure Memory Encryption (SME)
+>> feature.
 >>
->>> diff --git a/arch/sparc/include/uapi/asm/siginfo.h b/arch/sparc/include/uapi/asm/siginfo.h
->>> index 2d9b79ccaa50..6bc5c677e92f 100644
->>> --- a/arch/sparc/include/uapi/asm/siginfo.h
->>> +++ b/arch/sparc/include/uapi/asm/siginfo.h
->>> @@ -17,6 +17,11 @@
->>>  #define SI_NOINFO	32767		/* no information in siginfo_t */
->>>  
->>>  /*
->>> + * SIGFPE si_codes
->>> + */
->>> +#define FPE_FIXME	(__SI_FAULT|0)	/* Broken dup of SI_USER */
->>> +
->>> +/*
->>>   * SIGEMT si_codes
->>>   */
->>>  #define EMT_TAGOVF	(__SI_FAULT|1)	/* tag overflow */
+>> SME can be used to mark individual pages of memory as encrypted through the
+>> page tables. A page of memory that is marked encrypted will be automatically
+>> decrypted when read from DRAM and will be automatically encrypted when
+>> written to DRAM. Details on SME can found in the links below.
 >>
->> It's one thing to say FIXME in a comment in a kernel local header or
->> C file.
+>> The SME feature is identified through a CPUID function and enabled through
+>> the SYSCFG MSR. Once enabled, page table entries will determine how the
+>> memory is accessed. If a page table entry has the memory encryption mask set,
+>> then that memory will be accessed as encrypted memory. The memory encryption
+>> mask (as well as other related information) is determined from settings
+>> returned through the same CPUID function that identifies the presence of the
+>> feature.
 >>
->> It's quite another to put this into the name of a macro which has
->> visibility in the global user compilation namespace.
+>> The approach that this patch series takes is to encrypt everything possible
+>> starting early in the boot where the kernel is encrypted. Using the page
+>> table macros the encryption mask can be incorporated into all page table
+>> entries and page allocations. By updating the protection map, userspace
+>> allocations are also marked encrypted. Certain data must be accounted for
+>> as having been placed in memory before SME was enabled (EFI, initrd, etc.)
+>> and accessed accordingly.
 >>
->> I don't think you should really do that.
->
-> Good point.
->
-> Sigh.   It almost fits because we did do something off in the uapi
-> exported to userspace and we don't have a header file definition for
-> that case.
->
-> Still.  At this point arch/sparc/include/asm/siginfo.h is
-> a better fit for that definition.
->
-> I will respin and fix that.
+>> This patch series is a pre-cursor to another AMD processor feature called
+>> Secure Encrypted Virtualization (SEV). The support for SEV will build upon
+>> the SME support and will be submitted later. Details on SEV can be found
+>> in the links below.
+> 
+> Well done series. Thanks to all people involved, especially Tom and Boris!
+> It was a pleasure to review that.
+> 
+> Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
 
-Except arch/<arch>/include/asm/siginfo.h has now been eliminated.
-So these definitions have to be
-#ifdef __KERNEL__
-#define ..._FIXME
-#endif
+A big thanks from me to everyone that helped review this.  I truly
+appreciate all the time that everyone put into this - especially Boris,
+who helped guide this series from the start.
 
-In the uapi but not visible in the headers outside of the kernel.
-Which seems appropriate for these values.
+Thanks,
+Tom
 
-Eric
+> 
