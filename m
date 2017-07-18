@@ -1,80 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out03.mta.xmission.com ([166.70.13.233]:35179 "EHLO
+Received: from out03.mta.xmission.com ([166.70.13.233]:35123 "EHLO
         out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751413AbdGROQX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Jul 2017 10:16:23 -0400
+        with ESMTP id S1751684AbdGROQH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Jul 2017 10:16:07 -0400
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Tue, 18 Jul 2017 09:06:49 -0500
-Message-ID: <20170718140651.15973-5-ebiederm@xmission.com>
+Date: Tue, 18 Jul 2017 09:06:47 -0500
+Message-ID: <20170718140651.15973-3-ebiederm@xmission.com>
 In-Reply-To: <87o9shg7t7.fsf_-_@xmission.com>
 References: <87o9shg7t7.fsf_-_@xmission.com>
-Subject: [PATCH 5/7] signal/testing: Don't look for __SI_FAULT in userspace
+Subject: [PATCH 3/7] signal/sparc: Document a conflict with SI_USER with SIGFPE
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Andy Lutomirski <luto@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, Andrei Vagin <avagin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Greg KH <greg@kroah.com>, Andrey Vagin <avagin@openvz.org>, Serge Hallyn <serge@hallyn.com>, Pavel Emelyanov <xemul@virtuozzo.com>, Cyrill Gorcunov <gorcunov@openvz.org>, Peter Zijlstra <peterz@infradead.org>, Willy Tarreau <w@1wt.eu>, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Linux Containers <containers@lists.linux-foundation.org>, Michael Kerrisk <mtk.manpages@gmail.com>, "Eric W. Biederman" <ebiederm@xmission.com>, Dave Hansen <dave.hansen@linux.intel.com>
-Message-ID: <20170718140649.mDCtvDdqBf3MHEJC0B8dmm7k8b1JWLPOeGVmUdDHArY@z>
+Cc: Andy Lutomirski <luto@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, Andrei Vagin <avagin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Greg KH <greg@kroah.com>, Andrey Vagin <avagin@openvz.org>, Serge Hallyn <serge@hallyn.com>, Pavel Emelyanov <xemul@virtuozzo.com>, Cyrill Gorcunov <gorcunov@openvz.org>, Peter Zijlstra <peterz@infradead.org>, Willy Tarreau <w@1wt.eu>, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Linux Containers <containers@lists.linux-foundation.org>, Michael Kerrisk <mtk.manpages@gmail.com>, "Eric W. Biederman" <ebiederm@xmission.com>, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org
+Message-ID: <20170718140647.nTi9SrDWDgM_WnXsVlJu5NHT1EjnysHvCMiFHuUd3gg@z>
 
-Fix the debug print statements in these tests where they reference
-si_codes and in particular __SI_FAULT.  __SI_FAULT is a kernel
-internal value and should never be seen by userspace.
+Setting si_code to __SI_FAULT results in a userspace seeing
+an si_code of 0.  This is the same si_code as SI_USER.  Posix
+and common sense requires that SI_USER not be a signal specific
+si_code.  As such this use of 0 for the si_code is a pretty
+horribly broken ABI.
 
-While I am in there also fix si_code_str.  si_codes are an enumeration
-there are not a bitmap so == and not & is the apropriate operation to
-test for an si_code.
+This was introduced in 2.3.41 so this mess has had a long time for
+people to be able to start depending on it.
 
-Cc: Dave Hansen <dave.hansen@linux.intel.com>
-Fixes: 5f23f6d082a9 ("x86/pkeys: Add self-tests")
-Fixes: e754aedc26ef ("x86/mpx, selftests: Add MPX self test")
+As this bug has existed for 17 years already I don't know if it is
+worth fixing.  It is definitely worth documenting what is going
+on so that no one decides to copy this bad decision.
+
+Cc: "David S. Miller" <davem@davemloft.net>
+Cc: sparclinux@vger.kernel.org
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- tools/testing/selftests/x86/mpx-mini-test.c   |  3 +--
- tools/testing/selftests/x86/protection_keys.c | 13 ++++++-------
- 2 files changed, 7 insertions(+), 9 deletions(-)
+ arch/sparc/include/uapi/asm/siginfo.h | 7 +++++++
+ arch/sparc/kernel/traps_32.c          | 2 +-
+ arch/sparc/kernel/traps_64.c          | 2 +-
+ 3 files changed, 9 insertions(+), 2 deletions(-)
 
-diff --git a/tools/testing/selftests/x86/mpx-mini-test.c b/tools/testing/selftests/x86/mpx-mini-test.c
-index a8df159a8924..ec0f6b45ce8b 100644
---- a/tools/testing/selftests/x86/mpx-mini-test.c
-+++ b/tools/testing/selftests/x86/mpx-mini-test.c
-@@ -391,8 +391,7 @@ void handler(int signum, siginfo_t *si, void *vucontext)
- 		br_count++;
- 		dprintf1("#BR 0x%jx (total seen: %d)\n", status, br_count);
+diff --git a/arch/sparc/include/uapi/asm/siginfo.h b/arch/sparc/include/uapi/asm/siginfo.h
+index 2d9b79ccaa50..da2126e0c536 100644
+--- a/arch/sparc/include/uapi/asm/siginfo.h
++++ b/arch/sparc/include/uapi/asm/siginfo.h
+@@ -17,6 +17,13 @@
+ #define SI_NOINFO	32767		/* no information in siginfo_t */
  
--#define __SI_FAULT      (3 << 16)
--#define SEGV_BNDERR     (__SI_FAULT|3)  /* failed address bound checks */
-+#define SEGV_BNDERR     3  /* failed address bound checks */
- 
- 		dprintf2("Saw a #BR! status 0x%jx at %016lx br_reason: %jx\n",
- 				status, ip, br_reason);
-diff --git a/tools/testing/selftests/x86/protection_keys.c b/tools/testing/selftests/x86/protection_keys.c
-index 3237bc010e1c..23927845518d 100644
---- a/tools/testing/selftests/x86/protection_keys.c
-+++ b/tools/testing/selftests/x86/protection_keys.c
-@@ -212,19 +212,18 @@ void dump_mem(void *dumpme, int len_bytes)
- 	}
- }
- 
--#define __SI_FAULT      (3 << 16)
--#define SEGV_BNDERR     (__SI_FAULT|3)  /* failed address bound checks */
--#define SEGV_PKUERR     (__SI_FAULT|4)
-+#define SEGV_BNDERR     3  /* failed address bound checks */
-+#define SEGV_PKUERR     4
- 
- static char *si_code_str(int si_code)
- {
--	if (si_code & SEGV_MAPERR)
-+	if (si_code == SEGV_MAPERR)
- 		return "SEGV_MAPERR";
--	if (si_code & SEGV_ACCERR)
-+	if (si_code == SEGV_ACCERR)
- 		return "SEGV_ACCERR";
--	if (si_code & SEGV_BNDERR)
-+	if (si_code == SEGV_BNDERR)
- 		return "SEGV_BNDERR";
--	if (si_code & SEGV_PKUERR)
-+	if (si_code == SEGV_PKUERR)
- 		return "SEGV_PKUERR";
- 	return "UNKNOWN";
- }
+ /*
++ * SIGFPE si_codes
++ */
++#ifdef __KERNEL__
++#define FPE_FIXME	(__SI_FAULT|0)	/* Broken dup of SI_USER */
++#endif /* __KERNEL__ */
++
++/*
+  * SIGEMT si_codes
+  */
+ #define EMT_TAGOVF	(__SI_FAULT|1)	/* tag overflow */
+diff --git a/arch/sparc/kernel/traps_32.c b/arch/sparc/kernel/traps_32.c
+index 466d4aed06c7..581cf35ee7e3 100644
+--- a/arch/sparc/kernel/traps_32.c
++++ b/arch/sparc/kernel/traps_32.c
+@@ -306,7 +306,7 @@ void do_fpe_trap(struct pt_regs *regs, unsigned long pc, unsigned long npc,
+ 	info.si_errno = 0;
+ 	info.si_addr = (void __user *)pc;
+ 	info.si_trapno = 0;
+-	info.si_code = __SI_FAULT;
++	info.si_code = FPE_FIXME;
+ 	if ((fsr & 0x1c000) == (1 << 14)) {
+ 		if (fsr & 0x10)
+ 			info.si_code = FPE_FLTINV;
+diff --git a/arch/sparc/kernel/traps_64.c b/arch/sparc/kernel/traps_64.c
+index 196ee5eb4d48..e882e128faa3 100644
+--- a/arch/sparc/kernel/traps_64.c
++++ b/arch/sparc/kernel/traps_64.c
+@@ -2258,7 +2258,7 @@ static void do_fpe_common(struct pt_regs *regs)
+ 		info.si_errno = 0;
+ 		info.si_addr = (void __user *)regs->tpc;
+ 		info.si_trapno = 0;
+-		info.si_code = __SI_FAULT;
++		info.si_code = FPE_FIXME;
+ 		if ((fsr & 0x1c000) == (1 << 14)) {
+ 			if (fsr & 0x10)
+ 				info.si_code = FPE_FLTINV;
 -- 
 2.10.1
