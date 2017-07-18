@@ -1,78 +1,112 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f66.google.com ([209.85.218.66]:32822 "EHLO
-        mail-oi0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751457AbdGRQ5K (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Jul 2017 12:57:10 -0400
+Received: from ale.deltatee.com ([207.54.116.67]:36472 "EHLO ale.deltatee.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751446AbdGRQzg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 18 Jul 2017 12:55:36 -0400
+From: Logan Gunthorpe <logang@deltatee.com>
+Date: Tue, 18 Jul 2017 10:55:28 -0600
+Message-ID: <20170718165528.7383-6-logang@deltatee.com>
+In-Reply-To: <20170718165528.7383-1-logang@deltatee.com>
+References: <20170718165528.7383-1-logang@deltatee.com>
 MIME-Version: 1.0
-In-Reply-To: <20170718140651.15973-7-ebiederm@xmission.com>
-References: <87o9shg7t7.fsf_-_@xmission.com> <20170718140651.15973-7-ebiederm@xmission.com>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Tue, 18 Jul 2017 09:57:09 -0700
-Message-ID: <CA+55aFyKsmf+BpYjcH30MGpHTDJ=zgYPx6kwyEB9CXXFxj_xsw@mail.gmail.com>
-Subject: Re: [PATCH 7/7] signal: Remove kernel interal si_code magic
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Subject: [PATCH v4 5/5] crypto: caam: cleanup CONFIG_64BIT ifdefs when using io{read|write}64
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, Andrei Vagin <avagin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Greg KH <greg@kroah.com>, Andrey Vagin <avagin@openvz.org>, Serge Hallyn <serge@hallyn.com>, Pavel Emelyanov <xemul@virtuozzo.com>, Cyrill Gorcunov <gorcunov@openvz.org>, Peter Zijlstra <peterz@infradead.org>, Willy Tarreau <w@1wt.eu>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Linux Containers <containers@lists.linux-foundation.org>, Michael Kerrisk <mtk.manpages@gmail.com>
-Message-ID: <20170718165709.y5bnAGeiW1_ep3Y5rNi1fMMfx3uYETfMyRuc4-efjfU@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Stephen Bates <sbates@raithlin.com>, Logan Gunthorpe <logang@deltatee.com>, Dan Douglass <dan.douglass@nxp.com>, Herbert Xu <herbert@gondor.apana.org.au>, "David S. Miller" <davem@davemloft.net>
+Message-ID: <20170718165528.sDTwqqr1-8dZ2jytW2z1PosVB6DgxK20vUI7lRZSSHM@z>
 
-On Tue, Jul 18, 2017 at 7:06 AM, Eric W. Biederman
-<ebiederm@xmission.com> wrote:
-> struct siginfo is a union and the kernel since 2.4 has been hiding a union
-> tag in the high 16bits of si_code using the values:
-> __SI_KILL
-> __SI_TIMER
-> __SI_POLL
-> __SI_FAULT
-> __SI_CHLD
-> __SI_RT
-> __SI_MESGQ
-> __SI_SYS
->
-> While this looks plausible on the surface, in practice this situation has
-> not worked well.
+From: Horia Geantă <horia.geanta@nxp.com>
 
-So on the whole I think we just need to do this, but the part I really
-hate about this series is still this the siginfo_layout() part.
+We can now make use of the io-64-nonatomic-lo-hi header to always
+provide 64 bit IO operations. So this patch cleans up the extra
+CONFIG_64BIT ifdefs.
 
-I can well believe that it is needed for the compat case. siginfo is a
-piece of crap crazy type, and re-ordering fields for compat is
-something we are always going to have to do.
+To be consistent with CAAM engine HW spec: in case of 64-bit registers,
+irrespective of device endianness, the lower address should be read from
+/ written to first, followed by the upper address. Indeed the I/O
+accessors in CAAM driver currently don't follow the spec, however this
+is a good opportunity to fix the code.
 
-But for the native case, the *only* reason we do not just copy the
-siginfo as-is seems to be that it's just too big, due to other bad
-design decisions in siginfo ("let's make sure it's big enough by
-allocating 512 bytes for it).
+Signed-off-by: Horia Geantă <horia.geanta@nxp.com>
+Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
+Cc: Horia Geantă <horia.geanta@nxp.com>
+Cc: Dan Douglass <dan.douglass@nxp.com>
+Cc: Herbert Xu <herbert@gondor.apana.org.au>
+Cc: "David S. Miller" <davem@davemloft.net>
+---
+ drivers/crypto/caam/regs.h | 35 +++++------------------------------
+ 1 file changed, 5 insertions(+), 30 deletions(-)
 
-And afaik, absolutely nobody uses more than about 36 bytes of that
-512-byte _sifields union (and that one use is SIGILL with three
-pointers and three integers and some padding.
-
-So why don't we just say "screw this idiotic layout crap, and just
-unconditionally copy that much smaller maximum of bytes"?
-
-Leave that layout thing purely for compat handling.
-
-Yes, yes, there's a couple of small gotchas's:
-
- - "_sys_private" for posix timers, and it would have to be moved to
-the end of the structure so that it doesn't get copied.
-
- - make sure those 36 bytes are cleared when allocating the siginfo
-(this should be trivial) so that we don't leak any other memory.
-
-But on the whole, it looks pretty straightforward to just get rid of
-those stupid layout things, and make them purely about compat stuff.
-
-Please?
-
-The si_code stuff clearly needs to be done regardless, so much of this
-patch series looks good to me.  But if we're doign this cleanup, can't
-we please go that one extra step and get rid of the crazy "let's treat
-the union as different types", and just treat it as a largely opaque
-thing.
-
-Pretty please?
-
-                  Linus
+diff --git a/drivers/crypto/caam/regs.h b/drivers/crypto/caam/regs.h
+index 84d2f838a063..0c45505458e7 100644
+--- a/drivers/crypto/caam/regs.h
++++ b/drivers/crypto/caam/regs.h
+@@ -9,7 +9,7 @@
+ 
+ #include <linux/types.h>
+ #include <linux/bitops.h>
+-#include <linux/io.h>
++#include <linux/io-64-nonatomic-lo-hi.h>
+ 
+ /*
+  * Architecture-specific register access methods
+@@ -134,50 +134,25 @@ static inline void clrsetbits_32(void __iomem *reg, u32 clear, u32 set)
+  *    base + 0x0000 : least-significant 32 bits
+  *    base + 0x0004 : most-significant 32 bits
+  */
+-#ifdef CONFIG_64BIT
+ static inline void wr_reg64(void __iomem *reg, u64 data)
+ {
++#ifndef CONFIG_CRYPTO_DEV_FSL_CAAM_IMX
+ 	if (caam_little_end)
+ 		iowrite64(data, reg);
+ 	else
+-		iowrite64be(data, reg);
+-}
+-
+-static inline u64 rd_reg64(void __iomem *reg)
+-{
+-	if (caam_little_end)
+-		return ioread64(reg);
+-	else
+-		return ioread64be(reg);
+-}
+-
+-#else /* CONFIG_64BIT */
+-static inline void wr_reg64(void __iomem *reg, u64 data)
+-{
+-#ifndef CONFIG_CRYPTO_DEV_FSL_CAAM_IMX
+-	if (caam_little_end) {
+-		wr_reg32((u32 __iomem *)(reg) + 1, data >> 32);
+-		wr_reg32((u32 __iomem *)(reg), data);
+-	} else
+ #endif
+-	{
+-		wr_reg32((u32 __iomem *)(reg), data >> 32);
+-		wr_reg32((u32 __iomem *)(reg) + 1, data);
+-	}
++		iowrite64be(data, reg);
+ }
+ 
+ static inline u64 rd_reg64(void __iomem *reg)
+ {
+ #ifndef CONFIG_CRYPTO_DEV_FSL_CAAM_IMX
+ 	if (caam_little_end)
+-		return ((u64)rd_reg32((u32 __iomem *)(reg) + 1) << 32 |
+-			(u64)rd_reg32((u32 __iomem *)(reg)));
++		return ioread64(reg);
+ 	else
+ #endif
+-		return ((u64)rd_reg32((u32 __iomem *)(reg)) << 32 |
+-			(u64)rd_reg32((u32 __iomem *)(reg) + 1));
++		return ioread64be(reg);
+ }
+-#endif /* CONFIG_64BIT  */
+ 
+ #ifdef CONFIG_ARCH_DMA_ADDR_T_64BIT
+ #ifdef CONFIG_SOC_IMX7D
+-- 
+2.11.0
