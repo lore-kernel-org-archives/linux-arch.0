@@ -1,69 +1,118 @@
-From: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
-Subject: Re: [PATCH v10 00/38] x86: Secure Memory Encryption (AMD)
-Date: Tue, 18 Jul 2017 09:02:08 -0500
-Message-ID: <d43d315c-6797-b51e-58a8-05b5f98951d0@amd.com>
-References: <cover.1500319216.git.thomas.lendacky@amd.com>
-	<alpine.DEB.2.20.1707181402340.1945@nanos>
+From: ebiederm@xmission.com (Eric W. Biederman)
+Subject: [PATCH v2 0/7] signal: Fix sending signals with siginfo
+Date: Tue, 18 Jul 2017 09:04:36 -0500
+Message-ID: <87o9shg7t7.fsf_-_@xmission.com>
+References: <87lgot2loq.fsf@xmission.com> <87zid90vye.fsf_-_@xmission.com>
+        <20170615225426.GP31671@ZenIV.linux.org.uk>
+        <87poe4zrs1.fsf@xmission.com>
+        <CA+55aFxpv+gchzs7AYgSC8feAOV=B6mjFgBVm4Kx+83J2CNE-w@mail.gmail.com>
+        <87poe3vsa9.fsf@xmission.com>
+        <CALCETrX=SquyR8JZqHDNx=_FQKQo-0u9AxfdUwJs_hujVO2A-g@mail.gmail.com>
+        <87h8zfua59.fsf@xmission.com>
+        <CALCETrWPBn31Dye=81r2ZMainNOnDy5c_QxbU2uRjnJs0ie=Zg@mail.gmail.com>
+        <87r2yjsuwl.fsf@xmission.com> <20170616191602.GA10675@1wt.eu>
+        <87bmp5y7nj.fsf_-_@xmission.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <alpine.DEB.2.20.1707181402340.1945@nanos>
-Content-Language: en-US
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>
-Cc: linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Brijesh Singh <brijesh.singh-5C7GfCeVMHo@public.gmane.org>, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Larry Woodman <lwoodman-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Toshimitsu Kani <toshi.kani-ZPxbGqLxI0U@public.gmane.org>, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrey Ryabinin <aryabinin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Dave Young <dyoung-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Rik van Riel <riel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Boris Ostrovsky <boris.ostrovsky-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Juergen Gross <jgross-IBi9RG/b67k@public.gmane.org>, kexec-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-kernel@vg
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from out02.mta.xmission.com ([166.70.13.232]:37036 "EHLO
+        out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751402AbdGROMh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Jul 2017 10:12:37 -0400
+In-Reply-To: <87bmp5y7nj.fsf_-_@xmission.com> (Eric W. Biederman's message of
+        "Fri, 30 Jun 2017 07:36:16 -0500")
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org
+Cc: Andy Lutomirski <luto@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, Andrei Vagin <avagin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Greg KH <greg@kroah.com>, Andrey Vagin <avagin@openvz.org>, Serge Hallyn <serge@hallyn.com>, Pavel Emelyanov <xemul@virtuozzo.com>, Cyrill Gorcunov <gorcunov@openvz.org>, Peter Zijlstra <peterz@infradead.org>, Willy Tarreau <w@1wt.eu>, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Linux Containers <containers@lists.linux-foundation.org>, Michael Kerrisk <mtk.manpages@gmail.com>
 
-On 7/18/2017 7:03 AM, Thomas Gleixner wrote:
-> On Mon, 17 Jul 2017, Tom Lendacky wrote:
->> This patch series provides support for AMD's new Secure Memory Encryption (SME)
->> feature.
->>
->> SME can be used to mark individual pages of memory as encrypted through the
->> page tables. A page of memory that is marked encrypted will be automatically
->> decrypted when read from DRAM and will be automatically encrypted when
->> written to DRAM. Details on SME can found in the links below.
->>
->> The SME feature is identified through a CPUID function and enabled through
->> the SYSCFG MSR. Once enabled, page table entries will determine how the
->> memory is accessed. If a page table entry has the memory encryption mask set,
->> then that memory will be accessed as encrypted memory. The memory encryption
->> mask (as well as other related information) is determined from settings
->> returned through the same CPUID function that identifies the presence of the
->> feature.
->>
->> The approach that this patch series takes is to encrypt everything possible
->> starting early in the boot where the kernel is encrypted. Using the page
->> table macros the encryption mask can be incorporated into all page table
->> entries and page allocations. By updating the protection map, userspace
->> allocations are also marked encrypted. Certain data must be accounted for
->> as having been placed in memory before SME was enabled (EFI, initrd, etc.)
->> and accessed accordingly.
->>
->> This patch series is a pre-cursor to another AMD processor feature called
->> Secure Encrypted Virtualization (SEV). The support for SEV will build upon
->> the SME support and will be submitted later. Details on SEV can be found
->> in the links below.
-> 
-> Well done series. Thanks to all people involved, especially Tom and Boris!
-> It was a pleasure to review that.
-> 
-> Reviewed-by: Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>
 
-A big thanks from me to everyone that helped review this.  I truly
-appreciate all the time that everyone put into this - especially Boris,
-who helped guide this series from the start.
+Today sending a signal with rt_sigqueueinfo and receving it on
+a signalfd does not work reliably.  The issue is that reading
+a signalfd instead of returning a siginfo returns a signalfd_siginfo and
+the kernel must convert from one to the other.
 
-Thanks,
-Tom
+The kernel does not currently have the code to deduce which union
+members of struct siginfo are in use.
 
-> 
+In this patchset I fix that by introducing a new function siginfo_layout
+that can look at a siginfo and report which union member of struct
+siginfo is in use.  Before that I clean up how we populate struct
+siginfo.
+
+The siginfo structure has two key members si_signo and si_code.  Some
+si_codes are signal specific and for those it takes si_signo and si_code
+to indicate the members of siginfo that are valid.  The rest of the
+si_code values are signal independent like SI_USER, SI_KERNEL, SI_QUEUE,
+and SI_TIMER and only si_code is needed to indicate which members of
+siginfo are valid.
+
+At least that is how POSIX documents them, and how common sense would
+indicate they should function.  In practice we have been rather sloppy
+about maintaining the ABI in linux and we have some exceptions.  We have
+a couple of buggy architectures that make SI_USER mean something
+different when combined with SIGFPE or SIGTRAP.  Worse we have
+fcntl(F_SETSIG) which results in the si_codes POLL_IN, POLL_OUT,
+POLL_MSG, POLL_ERR, POLL_PRI, POLL_HUP being sent with any arbitrary
+signal, while the values are in a range that overlaps the signal
+specific si_codes.
+
+Thankfully the ambiguous cases with the POLL_NNN si_codes are for
+things no sane persion would do that so we can rectify the situtation.
+AKA no one cares so we won't cause a regression fixing it.
+
+As part of fixing this I stop leaking the __SI_xxxx codes to userspace
+and stop storing them in the high 16bits of si_code.  Making the kernel
+code fundamentally simpler.  We have already confirmed that the one
+application that would see this difference in kernel behavior CRIU won't
+be affected by this change as it copies values verbatim from one kernel
+interface to another.
+
+v2:
+   - Benchmarked the code to confirm no performance changes are visible.
+   - Reworked the first couple of patches so that TRAP_FIXME and
+     FPE_FIXME are not exported to userspace.
+   - Rebased on top of the siginfo cleanup that came in v4.13-rc1
+   - Updated alpha to use both TRAP_FIXME and FPE_FIXME
+
+Eric W. Biederman (7):
+      signal/alpha: Document a conflict with SI_USER for SIGTRAP
+      signal/ia64: Document a conflict with SI_USER with SIGFPE
+      signal/sparc: Document a conflict with SI_USER with SIGFPE
+      signal/mips: Document a conflict with SI_USER with SIGFPE
+      signal/testing: Don't look for __SI_FAULT in userspace
+      fcntl: Don't use ambiguous SIG_POLL si_codes
+      signal: Remove kernel interal si_code magic
+
+ arch/alpha/include/uapi/asm/siginfo.h         |  14 ++++
+ arch/alpha/kernel/traps.c                     |   6 +-
+ arch/arm64/kernel/signal32.c                  |  23 ++----
+ arch/blackfin/include/uapi/asm/siginfo.h      |  30 ++++---
+ arch/frv/include/uapi/asm/siginfo.h           |   2 +-
+ arch/ia64/include/uapi/asm/siginfo.h          |  21 +++--
+ arch/ia64/kernel/signal.c                     |  17 ++--
+ arch/ia64/kernel/traps.c                      |   4 +-
+ arch/mips/include/uapi/asm/siginfo.h          |  11 ++-
+ arch/mips/kernel/signal32.c                   |  19 ++---
+ arch/mips/kernel/traps.c                      |   2 +-
+ arch/parisc/kernel/signal32.c                 |  31 ++++---
+ arch/powerpc/kernel/signal_32.c               |  20 ++---
+ arch/s390/kernel/compat_signal.c              |  32 ++++---
+ arch/sparc/include/uapi/asm/siginfo.h         |   9 +-
+ arch/sparc/kernel/signal32.c                  |  16 ++--
+ arch/sparc/kernel/traps_32.c                  |   2 +-
+ arch/sparc/kernel/traps_64.c                  |   2 +-
+ arch/tile/include/uapi/asm/siginfo.h          |   4 +-
+ arch/tile/kernel/compat_signal.c              |  18 ++--
+ arch/tile/kernel/traps.c                      |   2 +-
+ arch/x86/kernel/signal_compat.c               |  21 ++---
+ fs/fcntl.c                                    |  13 ++-
+ fs/signalfd.c                                 |  22 ++---
+ include/linux/signal.h                        |  22 +++++
+ include/uapi/asm-generic/siginfo.h            | 115 +++++++++++---------------
+ kernel/exit.c                                 |   4 +-
+ kernel/ptrace.c                               |   6 +-
+ kernel/signal.c                               |  72 ++++++++++++----
+ tools/testing/selftests/x86/mpx-mini-test.c   |   3 +-
+ tools/testing/selftests/x86/protection_keys.c |  13 ++-
+ 31 files changed, 318 insertions(+), 258 deletions(-)
