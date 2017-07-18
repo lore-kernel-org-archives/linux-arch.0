@@ -1,89 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from esa5.dell-outbound.iphmx.com ([68.232.153.95]:23842 "EHLO
-        esa5.dell-outbound.iphmx.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1751402AbdGRSBj (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 18 Jul 2017 14:01:39 -0400
-From: "Allen Hubbe" <Allen.Hubbe@dell.com>
-References: <20170718165528.7383-1-logang@deltatee.com> <20170718165528.7383-5-logang@deltatee.com>
-In-Reply-To: <20170718165528.7383-5-logang@deltatee.com>
-Subject: RE: [PATCH v4 4/5] ntb: ntb_hw_intel: use io-64-nonatomic instead of in-driver hacks
-Date: Tue, 18 Jul 2017 13:49:51 -0400
-Message-ID: <000201d2ffee$42c4aa90$c84dffb0$@dell.com>
+Received: from mail-qk0-f194.google.com ([209.85.220.194]:33114 "EHLO
+        mail-qk0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751847AbdGRSXF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Jul 2017 14:23:05 -0400
+Subject: Re: [PATCH 1/7] signal/alpha: Document a conflict with SI_USER for
+ SIGTRAP
+References: <87o9shg7t7.fsf_-_@xmission.com>
+ <20170718140651.15973-1-ebiederm@xmission.com>
+From: Richard Henderson <rth@twiddle.net>
+Message-ID: <e0e3c779-b00b-dc86-60f5-12f54e8d5f3a@twiddle.net>
+Date: Tue, 18 Jul 2017 08:22:52 -1000
 MIME-Version: 1.0
-Content-Type: text/plain;
-        charset="utf-8"
+In-Reply-To: <20170718140651.15973-1-ebiederm@xmission.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
 Content-Transfer-Encoding: 7bit
-Content-Language: en-us
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: 'Logan Gunthorpe' <logang@deltatee.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org
-Cc: 'Arnd Bergmann' <arnd@arndb.de>, 'Greg Kroah-Hartman' <gregkh@linuxfoundation.org>, =?utf-8?Q?'Horia_Geant=C4=83'?= <horia.geanta@nxp.com>, 'Stephen Bates' <sbates@raithlin.com>, 'Jon Mason' <jdmason@kudzu.us>
-Message-ID: <20170718174951.Vx8oyzq8ljk9KamVBWm4CoHqGBdkGbHIRdHc2MNuGL4@z>
+To: "Eric W. Biederman" <ebiederm@xmission.com>, linux-kernel@vger.kernel.org
+Cc: Andy Lutomirski <luto@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, Andrei Vagin <avagin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Greg KH <greg@kroah.com>, Andrey Vagin <avagin@openvz.org>, Serge Hallyn <serge@hallyn.com>, Pavel Emelyanov <xemul@virtuozzo.com>, Cyrill Gorcunov <gorcunov@openvz.org>, Peter Zijlstra <peterz@infradead.org>, Willy Tarreau <w@1wt.eu>, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Linux Containers <containers@lists.linux-foundation.org>, Michael Kerrisk <mtk.manpages@gmail.com>, Helge Deller <deller@gmx.de>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, linux-alpha@vger.kernel.org
+Message-ID: <20170718182252.kHtxy-DuLFsB25MWINafyVrBQ9iDpQziWbyLwwUQvSo@z>
 
-From: Logan Gunthorpe
-> Now that ioread64 and iowrite64 are available in io-64-nonatomic,
-> we can remove the hack at the top of ntb_hw_intel.c and replace it
-> with an include.
+On 07/18/2017 04:06 AM, Eric W. Biederman wrote:
+> Setting si_code to __SI_FAULT results in a userspace seeing
+> an si_code of 0.  This is the same si_code as SI_USER.  Posix
+> and common sense requires that SI_USER not be a signal specific
+> si_code.  As such this use of 0 for the si_code is a pretty
+> horribly broken ABI.
 > 
-> Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
-> Cc: Jon Mason <jdmason@kudzu.us>
-> Cc: Allen Hubbe <Allen.Hubbe@emc.com>
-> Acked-by: Dave Jiang <dave.jiang@intel.com>
-
-Acked-by: Allen Hubbe <Allen.Hubbe@dell.com>
-
+> Given that alpha is on it's last legs I don't know that it is worth
+> fixing this, but it is worth documenting what is going on so that
+> no one decides to copy this bad decision.
+> 
+> This was introduced during the 2.5 development cycle so this
+> mess has had a long time for people to be able to depend upon it.
+> 
+> v2: Added FPE_FIXME for alpha as Helge Deller<deller@gmx.de>  pointed out
+>      with his alternate patch one of the cases is SIGFPE not SIGTRAP.
+> 
+> Cc: Helge Deller<deller@gmx.de>
+> Cc: Richard Henderson<rth@twiddle.net>
+> Cc: Ivan Kokshaysky<ink@jurassic.park.msu.ru>
+> Cc: Matt Turner<mattst88@gmail.com>
+> Cc:linux-alpha@vger.kernel.org
+> History Tree:https://git.kernel.org/pub/scm/linux/kernel/git/tglx/history.git
+> Ref: 0a635c7a84cf ("Fill in siginfo_t.")
+> Signed-off-by: "Eric W. Biederman"<ebiederm@xmission.com>
 > ---
->  drivers/ntb/hw/intel/ntb_hw_intel.c | 30 +-----------------------------
->  1 file changed, 1 insertion(+), 29 deletions(-)
-> 
-> diff --git a/drivers/ntb/hw/intel/ntb_hw_intel.c b/drivers/ntb/hw/intel/ntb_hw_intel.c
-> index 2557e2c05b90..606c90f59d4b 100644
-> --- a/drivers/ntb/hw/intel/ntb_hw_intel.c
-> +++ b/drivers/ntb/hw/intel/ntb_hw_intel.c
-> @@ -59,6 +59,7 @@
->  #include <linux/random.h>
->  #include <linux/slab.h>
->  #include <linux/ntb.h>
-> +#include <linux/io-64-nonatomic-lo-hi.h>
-> 
->  #include "ntb_hw_intel.h"
-> 
-> @@ -155,35 +156,6 @@ MODULE_PARM_DESC(xeon_b2b_dsd_bar5_addr32,
->  static inline enum ntb_topo xeon_ppd_topo(struct intel_ntb_dev *ndev, u8 ppd);
->  static int xeon_init_isr(struct intel_ntb_dev *ndev);
-> 
-> -#ifndef ioread64
-> -#ifdef readq
-> -#define ioread64 readq
-> -#else
-> -#define ioread64 _ioread64
-> -static inline u64 _ioread64(void __iomem *mmio)
-> -{
-> -	u64 low, high;
-> -
-> -	low = ioread32(mmio);
-> -	high = ioread32(mmio + sizeof(u32));
-> -	return low | (high << 32);
-> -}
-> -#endif
-> -#endif
-> -
-> -#ifndef iowrite64
-> -#ifdef writeq
-> -#define iowrite64 writeq
-> -#else
-> -#define iowrite64 _iowrite64
-> -static inline void _iowrite64(u64 val, void __iomem *mmio)
-> -{
-> -	iowrite32(val, mmio);
-> -	iowrite32(val >> 32, mmio + sizeof(u32));
-> -}
-> -#endif
-> -#endif
-> -
->  static inline int pdev_is_atom(struct pci_dev *pdev)
->  {
->  	switch (pdev->device) {
-> --
-> 2.11.0
+>   arch/alpha/include/uapi/asm/siginfo.h | 14 ++++++++++++++
+>   arch/alpha/kernel/traps.c             |  6 +++---
+>   2 files changed, 17 insertions(+), 3 deletions(-)
+
+Acked-by: Richard Henderson <rth@twiddle.net>
+
+
+r~
