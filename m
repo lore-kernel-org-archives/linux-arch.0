@@ -1,53 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([146.0.238.70]:37763 "EHLO
-        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751336AbdGRMEC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Jul 2017 08:04:02 -0400
-Date: Tue, 18 Jul 2017 14:03:53 +0200 (CEST)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH v10 00/38] x86: Secure Memory Encryption (AMD)
-In-Reply-To: <cover.1500319216.git.thomas.lendacky@amd.com>
-Message-ID: <alpine.DEB.2.20.1707181402340.1945@nanos>
-References: <cover.1500319216.git.thomas.lendacky@amd.com>
+Received: from out01.mta.xmission.com ([166.70.13.231]:41381 "EHLO
+        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751399AbdGRNpo (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Jul 2017 09:45:44 -0400
+From: ebiederm@xmission.com (Eric W. Biederman)
+References: <87efu22set.fsf@xmission.com>
+        <20170630123906.8865-1-ebiederm@xmission.com>
+        <20170702141320.GA32254@ls3530.fritz.box>
+        <87fudz5lol.fsf@xmission.com> <20170717081438.rdbwspz25bn6oz7h@tower>
+Date: Tue, 18 Jul 2017 08:37:36 -0500
+In-Reply-To: <20170717081438.rdbwspz25bn6oz7h@tower> (Michael Cree's message
+        of "Mon, 17 Jul 2017 20:14:38 +1200")
+Message-ID: <87fudthnmn.fsf@xmission.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain
+Subject: Re: [PATCH 1/8] signal/alpha: Document a conflict with SI_USER for SIGTRAP
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, kvm@vger.kernel.org, kasan-dev@googlegroups.com, =?ISO-8859-2?Q?Radim_Kr=E8m=E1=F8?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Paolo Bonzini <pbonzini@redhat.com>, Alexander Potapenko <glider@google.com>, Dmitry Vyukov <dvyukov@google.com>, Rik van Riel <riel@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Dave Young <dyoung@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, "Michael S. Tsirkin" <mst@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, iommu@lists.linux-foundation.org, Joerg Roedel <joro@8bytes.org>, kexec@lists.infradead.org, xen-devel@lists.xen.org, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>
-Message-ID: <20170718120353.EEpv8O3QNC6Aq5zz_UwqGZ0IqxxeZX4vuqxUwOi9Lvc@z>
+To: Michael Cree <mcree@orcon.net.nz>
+Cc: Helge Deller <deller@gmx.de>, linux-kernel@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, Andrei Vagin <avagin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Greg KH <greg@kroah.com>, Andrey Vagin <avagin@openvz.org>, Serge Hallyn <serge@hallyn.com>, Pavel Emelyanov <xemul@virtuozzo.com>, Cyrill Gorcunov <gorcunov@openvz.org>, Peter Zijlstra <peterz@infradead.org>, Willy Tarreau <w@1wt.eu>, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Linux Containers <containers@lists.linux-foundation.org>, Michael Kerrisk <mtk.manpages@gmail.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, linux-alpha@vger.kernel.org
+Message-ID: <20170718133736.ZqCyE6WElVXf8HdJMzZV-EZhxLHkAZa7c3Lo8E_w_gU@z>
 
-On Mon, 17 Jul 2017, Tom Lendacky wrote:
-> This patch series provides support for AMD's new Secure Memory Encryption (SME)
-> feature.
-> 
-> SME can be used to mark individual pages of memory as encrypted through the
-> page tables. A page of memory that is marked encrypted will be automatically
-> decrypted when read from DRAM and will be automatically encrypted when
-> written to DRAM. Details on SME can found in the links below.
-> 
-> The SME feature is identified through a CPUID function and enabled through
-> the SYSCFG MSR. Once enabled, page table entries will determine how the
-> memory is accessed. If a page table entry has the memory encryption mask set,
-> then that memory will be accessed as encrypted memory. The memory encryption
-> mask (as well as other related information) is determined from settings
-> returned through the same CPUID function that identifies the presence of the
-> feature.
-> 
-> The approach that this patch series takes is to encrypt everything possible
-> starting early in the boot where the kernel is encrypted. Using the page
-> table macros the encryption mask can be incorporated into all page table
-> entries and page allocations. By updating the protection map, userspace
-> allocations are also marked encrypted. Certain data must be accounted for
-> as having been placed in memory before SME was enabled (EFI, initrd, etc.)
-> and accessed accordingly.
-> 
-> This patch series is a pre-cursor to another AMD processor feature called
-> Secure Encrypted Virtualization (SEV). The support for SEV will build upon
-> the SME support and will be submitted later. Details on SEV can be found
-> in the links below.
+Michael Cree <mcree@orcon.net.nz> writes:
 
-Well done series. Thanks to all people involved, especially Tom and Boris!
-It was a pleasure to review that.
+> On Fri, Jul 14, 2017 at 05:59:06AM -0500, Eric W. Biederman wrote:
+>> in which cases the oddities will happen let alone test them.  Plus at
+>> least for ia64 and alpha those architectures don't appear to be
+>> receiving updates for new syscalls, and no new hardware is being built
+>> so I don't know how much longer they will last.
+>> 
+>> That is building for alpha gives:
+>> >   CALL    /home/eric/projects/linux/linux-exit-cleanups/scripts/checksyscalls.sh
+>> > <stdin>:1239:2: warning: #warning syscall seccomp not implemented [-Wcpp]
+>> > <stdin>:1248:2: warning: #warning syscall bpf not implemented [-Wcpp]
+>> > <stdin>:1299:2: warning: #warning syscall userfaultfd not implemented [-Wcpp]
+>> > <stdin>:1302:2: warning: #warning syscall membarrier not implemented [-Wcpp]
+>> > <stdin>:1305:2: warning: #warning syscall mlock2 not implemented [-Wcpp]
+>> > <stdin>:1308:2: warning: #warning syscall copy_file_range not implemented [-Wcpp]
+>> > <stdin>:1311:2: warning: #warning syscall preadv2 not implemented [-Wcpp]
+>> > <stdin>:1314:2: warning: #warning syscall pwritev2 not implemented [-Wcpp]
+>> > <stdin>:1317:2: warning: #warning syscall pkey_mprotect not implemented [-Wcpp]
+>> > <stdin>:1320:2: warning: #warning syscall pkey_alloc not implemented [-Wcpp]
+>> > <stdin>:1323:2: warning: #warning syscall pkey_free not implemented [-Wcpp]
+>> > <stdin>:1326:2: warning: #warning syscall statx not implemented [-Wcpp]
+>
+> Patches to wire up most of those syscalls on Alpha was posted recently
+> along with others to fix module loading, etc., but unfortunately they
+> do not appear to have been applied during the merge window...
 
-Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
+Odd.
+
+In general wiring up system calls is something that can even happen in
+-rc2 or -rc3 as system calls get added in -rc1 and then the
+architectures have a chance to send in the small patches wiring the up.
+At least that is how I understand the usual rules for being a non-x86
+architecture.
+
+Eric
