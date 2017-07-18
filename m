@@ -1,67 +1,102 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bl2nam02on0064.outbound.protection.outlook.com ([104.47.38.64]:50262
-        "EHLO NAM02-BL2-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751408AbdGROCV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 18 Jul 2017 10:02:21 -0400
-Subject: Re: [PATCH v10 00/38] x86: Secure Memory Encryption (AMD)
-References: <cover.1500319216.git.thomas.lendacky@amd.com>
- <alpine.DEB.2.20.1707181402340.1945@nanos>
-From: Tom Lendacky <thomas.lendacky@amd.com>
-Message-ID: <d43d315c-6797-b51e-58a8-05b5f98951d0@amd.com>
-Date: Tue, 18 Jul 2017 09:02:08 -0500
-MIME-Version: 1.0
-In-Reply-To: <alpine.DEB.2.20.1707181402340.1945@nanos>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Received: from out01.mta.xmission.com ([166.70.13.231]:46233 "EHLO
+        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751715AbdGROPt (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Jul 2017 10:15:49 -0400
+From: "Eric W. Biederman" <ebiederm@xmission.com>
+Date: Tue, 18 Jul 2017 09:06:45 -0500
+Message-ID: <20170718140651.15973-1-ebiederm@xmission.com>
+In-Reply-To: <87o9shg7t7.fsf_-_@xmission.com>
+References: <87o9shg7t7.fsf_-_@xmission.com>
+Subject: [PATCH 1/7] signal/alpha: Document a conflict with SI_USER for SIGTRAP
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, kvm@vger.kernel.org, kasan-dev@googlegroups.com, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Paolo Bonzini <pbonzini@redhat.com>, Alexander Potapenko <glider@google.com>, Dmitry Vyukov <dvyukov@google.com>, Rik van Riel <riel@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Dave Young <dyoung@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, "Michael S. Tsirkin" <mst@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, iommu@lists.linux-foundation.org, Joerg Roedel <joro@8bytes.org>, kexec@lists.infradead.org, xen-devel@lists.xen.org, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>
-Message-ID: <20170718140208.mfl5fQ2cPWs0dZWsGK_TihNTKqKYuzOxOJSOtY2kGtk@z>
+To: linux-kernel@vger.kernel.org
+Cc: Andy Lutomirski <luto@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, Andrei Vagin <avagin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Greg KH <greg@kroah.com>, Andrey Vagin <avagin@openvz.org>, Serge Hallyn <serge@hallyn.com>, Pavel Emelyanov <xemul@virtuozzo.com>, Cyrill Gorcunov <gorcunov@openvz.org>, Peter Zijlstra <peterz@infradead.org>, Willy Tarreau <w@1wt.eu>, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Linux Containers <containers@lists.linux-foundation.org>, Michael Kerrisk <mtk.manpages@gmail.com>, "Eric W. Biederman" <ebiederm@xmission.com>, Helge Deller <deller@gmx.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, linux-alpha@vger.kernel.org
+Message-ID: <20170718140645.46rXoPNVM7XdNXx1Kht6DNow9e4UZiGBSUxcjA0ZkEc@z>
 
-On 7/18/2017 7:03 AM, Thomas Gleixner wrote:
-> On Mon, 17 Jul 2017, Tom Lendacky wrote:
->> This patch series provides support for AMD's new Secure Memory Encryption (SME)
->> feature.
->>
->> SME can be used to mark individual pages of memory as encrypted through the
->> page tables. A page of memory that is marked encrypted will be automatically
->> decrypted when read from DRAM and will be automatically encrypted when
->> written to DRAM. Details on SME can found in the links below.
->>
->> The SME feature is identified through a CPUID function and enabled through
->> the SYSCFG MSR. Once enabled, page table entries will determine how the
->> memory is accessed. If a page table entry has the memory encryption mask set,
->> then that memory will be accessed as encrypted memory. The memory encryption
->> mask (as well as other related information) is determined from settings
->> returned through the same CPUID function that identifies the presence of the
->> feature.
->>
->> The approach that this patch series takes is to encrypt everything possible
->> starting early in the boot where the kernel is encrypted. Using the page
->> table macros the encryption mask can be incorporated into all page table
->> entries and page allocations. By updating the protection map, userspace
->> allocations are also marked encrypted. Certain data must be accounted for
->> as having been placed in memory before SME was enabled (EFI, initrd, etc.)
->> and accessed accordingly.
->>
->> This patch series is a pre-cursor to another AMD processor feature called
->> Secure Encrypted Virtualization (SEV). The support for SEV will build upon
->> the SME support and will be submitted later. Details on SEV can be found
->> in the links below.
-> 
-> Well done series. Thanks to all people involved, especially Tom and Boris!
-> It was a pleasure to review that.
-> 
-> Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
+Setting si_code to __SI_FAULT results in a userspace seeing
+an si_code of 0.  This is the same si_code as SI_USER.  Posix
+and common sense requires that SI_USER not be a signal specific
+si_code.  As such this use of 0 for the si_code is a pretty
+horribly broken ABI.
 
-A big thanks from me to everyone that helped review this.  I truly
-appreciate all the time that everyone put into this - especially Boris,
-who helped guide this series from the start.
+Given that alpha is on it's last legs I don't know that it is worth
+fixing this, but it is worth documenting what is going on so that
+no one decides to copy this bad decision.
 
-Thanks,
-Tom
+This was introduced during the 2.5 development cycle so this
+mess has had a long time for people to be able to depend upon it.
 
-> 
+v2: Added FPE_FIXME for alpha as Helge Deller <deller@gmx.de> pointed out
+    with his alternate patch one of the cases is SIGFPE not SIGTRAP.
+
+Cc: Helge Deller <deller@gmx.de>
+Cc: Richard Henderson <rth@twiddle.net>
+Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
+Cc: Matt Turner <mattst88@gmail.com>
+Cc: linux-alpha@vger.kernel.org
+History Tree: https://git.kernel.org/pub/scm/linux/kernel/git/tglx/history.git
+Ref: 0a635c7a84cf ("Fill in siginfo_t.")
+Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
+---
+ arch/alpha/include/uapi/asm/siginfo.h | 14 ++++++++++++++
+ arch/alpha/kernel/traps.c             |  6 +++---
+ 2 files changed, 17 insertions(+), 3 deletions(-)
+
+diff --git a/arch/alpha/include/uapi/asm/siginfo.h b/arch/alpha/include/uapi/asm/siginfo.h
+index 9822362a8424..972f547d9e41 100644
+--- a/arch/alpha/include/uapi/asm/siginfo.h
++++ b/arch/alpha/include/uapi/asm/siginfo.h
+@@ -6,4 +6,18 @@
+ 
+ #include <asm-generic/siginfo.h>
+ 
++/*
++ * SIGFPE si_codes
++ */
++#ifdef __KERNEL__
++#define FPE_FIXME	(__SI_FAULT|0)	/* Broken dup of SI_USER */
++#endif /* __KERNEL__ */
++
++/*
++ * SIGTRAP si_codes
++ */
++#ifdef __KERNEL__
++#define TRAP_FIXME	(__SI_FAULT|0)	/* Broken dup of SI_USER */
++#endif /* __KERNEL__ */
++
+ #endif
+diff --git a/arch/alpha/kernel/traps.c b/arch/alpha/kernel/traps.c
+index 65bb102d985b..e94f4b73ac04 100644
+--- a/arch/alpha/kernel/traps.c
++++ b/arch/alpha/kernel/traps.c
+@@ -278,7 +278,7 @@ do_entIF(unsigned long type, struct pt_regs *regs)
+ 	      case 1: /* bugcheck */
+ 		info.si_signo = SIGTRAP;
+ 		info.si_errno = 0;
+-		info.si_code = __SI_FAULT;
++		info.si_code = TRAP_FIXME;
+ 		info.si_addr = (void __user *) regs->pc;
+ 		info.si_trapno = 0;
+ 		send_sig_info(SIGTRAP, &info, current);
+@@ -318,7 +318,7 @@ do_entIF(unsigned long type, struct pt_regs *regs)
+ 			break;
+ 		case GEN_ROPRAND:
+ 			signo = SIGFPE;
+-			code = __SI_FAULT;
++			code = FPE_FIXME;
+ 			break;
+ 
+ 		case GEN_DECOVF:
+@@ -340,7 +340,7 @@ do_entIF(unsigned long type, struct pt_regs *regs)
+ 		case GEN_SUBRNG7:
+ 		default:
+ 			signo = SIGTRAP;
+-			code = __SI_FAULT;
++			code = TRAP_FIXME;
+ 			break;
+ 		}
+ 
+-- 
+2.10.1
