@@ -1,97 +1,76 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-cys01nam02on0051.outbound.protection.outlook.com ([104.47.37.51]:6896
-        "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751409AbdGRN5N (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 18 Jul 2017 09:57:13 -0400
-Subject: Re: [PATCH v10 37/38] compiler-gcc.h: Introduce __nostackp function
- attribute
-References: <cover.1500319216.git.thomas.lendacky@amd.com>
- <0576fd5c74440ad0250f16ac6609ecf587812456.1500319216.git.thomas.lendacky@amd.com>
- <20170718093631.pnamvdrkmzcjz64j@gmail.com>
-From: Tom Lendacky <thomas.lendacky@amd.com>
-Message-ID: <b9b7d092-cb15-bc2e-6675-a36a78a5db6f@amd.com>
-Date: Tue, 18 Jul 2017 08:56:56 -0500
+Received: from out03.mta.xmission.com ([166.70.13.233]:59622 "EHLO
+        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751401AbdGRNvX (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Jul 2017 09:51:23 -0400
+From: ebiederm@xmission.com (Eric W. Biederman)
+References: <87efu22set.fsf@xmission.com>
+        <20170630123906.8865-3-ebiederm@xmission.com>
+        <20170630.124505.736865959393416284.davem@davemloft.net>
+        <8737ahwdgr.fsf@xmission.com>
+Date: Tue, 18 Jul 2017 08:43:14 -0500
+In-Reply-To: <8737ahwdgr.fsf@xmission.com> (Eric W. Biederman's message of
+        "Fri, 30 Jun 2017 13:13:40 -0500")
+Message-ID: <878tjlhnd9.fsf@xmission.com>
 MIME-Version: 1.0
-In-Reply-To: <20170718093631.pnamvdrkmzcjz64j@gmail.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain
+Subject: Re: [PATCH 3/8] signal/sparc: Document a conflict with SI_USER with SIGFPE
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, kvm@vger.kernel.org, kasan-dev@googlegroups.com, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Paolo Bonzini <pbonzini@redhat.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>, Rik van Riel <riel@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Dave Young <dyoung@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, "Michael S. Tsirkin" <mst@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>
-Message-ID: <20170718135656.Ii6oMXB8Rp8bsqslEK_jTWIeYvoauEEzmzXAV9dJ8G0@z>
+To: David Miller <davem@davemloft.net>
+Cc: linux-kernel@vger.kernel.org, luto@kernel.org, torvalds@linux-foundation.org, viro@zeniv.linux.org.uk, oleg@redhat.com, avagin@virtuozzo.com, tglx@linutronix.de, greg@kroah.com, avagin@openvz.org, serge@hallyn.com, xemul@virtuozzo.com, gorcunov@openvz.org, peterz@infradead.org, w@1wt.eu, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, containers@lists.linux-foundation.org, mtk.manpages@gmail.com, sparclinux@vger.kernel.org
+Message-ID: <20170718134314.Ng3elSNoD7_vs-Bpr-zrhGz8OmGFcebuHEp6dnVe3Qs@z>
 
-On 7/18/2017 4:36 AM, Ingo Molnar wrote:
-> 
-> * Tom Lendacky <thomas.lendacky@amd.com> wrote:
-> 
->> Create a new function attribute, __nostackp, that can used to turn off
->> stack protection on a per function basis.
+ebiederm@xmission.com (Eric W. Biederman) writes:
+
+> David Miller <davem@davemloft.net> writes:
+>
+>> From: "Eric W. Biederman" <ebiederm@xmission.com>
+>> Date: Fri, 30 Jun 2017 07:39:01 -0500
 >>
->> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
->> ---
->>   include/linux/compiler-gcc.h | 2 ++
->>   include/linux/compiler.h     | 4 ++++
->>   2 files changed, 6 insertions(+)
+>>> diff --git a/arch/sparc/include/uapi/asm/siginfo.h b/arch/sparc/include/uapi/asm/siginfo.h
+>>> index 2d9b79ccaa50..6bc5c677e92f 100644
+>>> --- a/arch/sparc/include/uapi/asm/siginfo.h
+>>> +++ b/arch/sparc/include/uapi/asm/siginfo.h
+>>> @@ -17,6 +17,11 @@
+>>>  #define SI_NOINFO	32767		/* no information in siginfo_t */
+>>>  
+>>>  /*
+>>> + * SIGFPE si_codes
+>>> + */
+>>> +#define FPE_FIXME	(__SI_FAULT|0)	/* Broken dup of SI_USER */
+>>> +
+>>> +/*
+>>>   * SIGEMT si_codes
+>>>   */
+>>>  #define EMT_TAGOVF	(__SI_FAULT|1)	/* tag overflow */
 >>
->> diff --git a/include/linux/compiler-gcc.h b/include/linux/compiler-gcc.h
->> index cd4bbe8..682063b 100644
->> --- a/include/linux/compiler-gcc.h
->> +++ b/include/linux/compiler-gcc.h
->> @@ -166,6 +166,8 @@
->>   
->>   #if GCC_VERSION >= 40100
->>   # define __compiletime_object_size(obj) __builtin_object_size(obj, 0)
->> +
->> +#define __nostackp	__attribute__((__optimize__("no-stack-protector")))
->>   #endif
->>   
->>   #if GCC_VERSION >= 40300
->> diff --git a/include/linux/compiler.h b/include/linux/compiler.h
->> index 219f82f..63cbca1 100644
->> --- a/include/linux/compiler.h
->> +++ b/include/linux/compiler.h
->> @@ -470,6 +470,10 @@ static __always_inline void __write_once_size(volatile void *p, void *res, int s
->>   #define __visible
->>   #endif
->>   
->> +#ifndef __nostackp
->> +#define __nostackp
->> +#endif
-> 
-> So I changed this from the hard to read and ambiguous "__nostackp" abbreviation
-> (does it mean 'no stack pointer?') to "__nostackprotector", plus added this detail
-> to the changelog:
-> 
-> | ( This is needed by the SME in-place kernel memory encryption feature,
-> |   which activates encryption in its sme_enable() function and thus changes the
-> |   visible value of the stack protection cookie on function return. )
-> 
-> Agreed?
+>> It's one thing to say FIXME in a comment in a kernel local header or
+>> C file.
+>>
+>> It's quite another to put this into the name of a macro which has
+>> visibility in the global user compilation namespace.
+>>
+>> I don't think you should really do that.
+>
+> Good point.
+>
+> Sigh.   It almost fits because we did do something off in the uapi
+> exported to userspace and we don't have a header file definition for
+> that case.
+>
+> Still.  At this point arch/sparc/include/asm/siginfo.h is
+> a better fit for that definition.
+>
+> I will respin and fix that.
 
-Hi Ingo,
+Except arch/<arch>/include/asm/siginfo.h has now been eliminated.
+So these definitions have to be
+#ifdef __KERNEL__
+#define ..._FIXME
+#endif
 
-I debugged this to needing "__nostackprotector" because sme_enable()
-is called very early in the boot process before everything is properly
-setup to fully support stack protection when KASLR is enabled. Without
-this attribute the call to sme_enable() would fail even if encryption
-was disabled with the "mem_encrypt=off" command line option.
+In the uapi but not visible in the headers outside of the kernel.
+Which seems appropriate for these values.
 
-If KASLR wasn't enabled, then everything worked fine without the
-"__nostackprotector" attribute, encryption enabled or not.
-
-The stack protection support is activated because of the 16-byte
-character buffer in the sme_enable() routine.  I think we'll find that
-if a character buffer greater than 8 bytes is added to, for example,
-__startup_64, then this attribute will need to be added to that routine.
-
-Thanks,
-Tom
-
-> 
-> Thanks,
-> 
-> 	Ingo
-> 
+Eric
