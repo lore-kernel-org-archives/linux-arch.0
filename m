@@ -1,107 +1,35 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v6 1/2] x86/asm: Add suffix macro for GEN_*_RMWcc()
-Date: Tue, 18 Jul 2017 17:03:33 -0700
-Message-ID: <1500422614-94821-2-git-send-email-keescook@chromium.org>
-References: <1500422614-94821-1-git-send-email-keescook@chromium.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f172.google.com ([209.85.192.172]:33296 "EHLO
-        mail-pf0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752599AbdGSADm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Jul 2017 20:03:42 -0400
-Received: by mail-pf0-f172.google.com with SMTP id s70so9543091pfs.0
-        for <linux-arch@vger.kernel.org>; Tue, 18 Jul 2017 17:03:42 -0700 (PDT)
-In-Reply-To: <1500422614-94821-1-git-send-email-keescook@chromium.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Christoph Hellwig <hch@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: [RFC 21/22] x86/module: Add support for mcmodel large and PLTs
+Date: Tue, 18 Jul 2017 18:35:05 -0700
+Message-ID: <c0bc2d98-d6eb-e3db-3799-2e28e9919f3d@zytor.com>
+References: <20170718223333.110371-1-thgarnie@google.com>
+ <20170718223333.110371-22-thgarnie@google.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Return-path: <kernel-hardening-return-9025-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+In-Reply-To: <20170718223333.110371-22-thgarnie@google.com>
+Content-Language: en-US
+To: Thomas Garnier <thgarnie@google.com>, Herbert Xu <herbert@gondor.apana.org.au>, "David S . Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Matthias Kaehlcke <mka@chromium.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, Paolo Bonzini <pbonzini@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Joerg Roedel <joro@8bytes.org>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@alien8.de>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Brian Gerst <brgerst@gmail.com>, Borislav Petkov <bp@suse.de>, Christian Borntraeger <borntraeger@de.ibm.com>
+Cc: x86@kernel.org, linux-crypto@vger.kernel.org, linux-kernel@vger.kernel.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linux-sparse@vger.kernel.org, kernel-hardening@lists.openwall.com
+List-Id: linux-arch.vger.kernel.org
 
-The coming x86 refcount protection needs to be able to add trailing
-instructions to the GEN_*_RMWcc() operations. This extracts the
-difference between the goto/non-goto cases so the helper macros
-can be defined outside the #ifdef cases. Additionally adds argument
-naming to the resulting asm for referencing from suffixed
-instructions, and adds clobbers for "cc", and "cx" to let suffixes
-use _ASM_CX, and retain any set flags.
+On 07/18/17 15:33, Thomas Garnier wrote:
+> With PIE support and KASLR extended range, the modules may be further
+> away from the kernel than before breaking mcmodel=kernel expectations.
+> 
+> Add an option to build modules with mcmodel=large. The modules generated
+> code will make no assumptions on placement in memory.
+> 
+> Despite this option, modules still expect kernel functions to be within
+> 2G and generate relative calls. To solve this issue, the PLT arm64 code
+> was adapted for x86_64. When a relative relocation go outside its range,
+> a dynamic PLT entry is used to correctly jump to the destination.
 
-Signed-off-by: Kees Cook <keescook@chromium.org>
----
- arch/x86/include/asm/rmwcc.h | 37 ++++++++++++++++++++++++-------------
- 1 file changed, 24 insertions(+), 13 deletions(-)
+Why large as opposed to medium or medium-PIC?
 
-diff --git a/arch/x86/include/asm/rmwcc.h b/arch/x86/include/asm/rmwcc.h
-index 661dd305694a..045f99211a99 100644
---- a/arch/x86/include/asm/rmwcc.h
-+++ b/arch/x86/include/asm/rmwcc.h
-@@ -1,45 +1,56 @@
- #ifndef _ASM_X86_RMWcc
- #define _ASM_X86_RMWcc
- 
-+#define __CLOBBERS_MEM		"memory"
-+#define __CLOBBERS_MEM_CC_CX	"memory", "cc", "cx"
-+
- #if !defined(__GCC_ASM_FLAG_OUTPUTS__) && defined(CC_HAVE_ASM_GOTO)
- 
- /* Use asm goto */
- 
--#define __GEN_RMWcc(fullop, var, cc, ...)				\
-+#define __GEN_RMWcc(fullop, var, cc, clobbers, ...)			\
- do {									\
- 	asm_volatile_goto (fullop "; j" #cc " %l[cc_label]"		\
--			: : "m" (var), ## __VA_ARGS__ 			\
--			: "memory" : cc_label);				\
-+			: : [counter] "m" (var), ## __VA_ARGS__		\
-+			: clobbers : cc_label);				\
- 	return 0;							\
- cc_label:								\
- 	return 1;							\
- } while (0)
- 
--#define GEN_UNARY_RMWcc(op, var, arg0, cc) 				\
--	__GEN_RMWcc(op " " arg0, var, cc)
-+#define __BINARY_RMWcc_ARG	" %1, "
- 
--#define GEN_BINARY_RMWcc(op, var, vcon, val, arg0, cc)			\
--	__GEN_RMWcc(op " %1, " arg0, var, cc, vcon (val))
- 
- #else /* defined(__GCC_ASM_FLAG_OUTPUTS__) || !defined(CC_HAVE_ASM_GOTO) */
- 
- /* Use flags output or a set instruction */
- 
--#define __GEN_RMWcc(fullop, var, cc, ...)				\
-+#define __GEN_RMWcc(fullop, var, cc, clobbers, ...)			\
- do {									\
- 	bool c;								\
- 	asm volatile (fullop ";" CC_SET(cc)				\
--			: "+m" (var), CC_OUT(cc) (c)			\
--			: __VA_ARGS__ : "memory");			\
-+			: [counter] "+m" (var), CC_OUT(cc) (c)		\
-+			: __VA_ARGS__ : clobbers);			\
- 	return c;							\
- } while (0)
- 
-+#define __BINARY_RMWcc_ARG	" %2, "
-+
-+#endif /* defined(__GCC_ASM_FLAG_OUTPUTS__) || !defined(CC_HAVE_ASM_GOTO) */
-+
- #define GEN_UNARY_RMWcc(op, var, arg0, cc)				\
--	__GEN_RMWcc(op " " arg0, var, cc)
-+	__GEN_RMWcc(op " " arg0, var, cc, __CLOBBERS_MEM)
-+
-+#define GEN_UNARY_SUFFIXED_RMWcc(op, suffix, var, arg0, cc)		\
-+	__GEN_RMWcc(op " " arg0 "\n\t" suffix, var, cc,			\
-+		    __CLOBBERS_MEM_CC_CX)
- 
- #define GEN_BINARY_RMWcc(op, var, vcon, val, arg0, cc)			\
--	__GEN_RMWcc(op " %2, " arg0, var, cc, vcon (val))
-+	__GEN_RMWcc(op __BINARY_RMWcc_ARG arg0, var, cc,		\
-+		    __CLOBBERS_MEM, vcon (val))
- 
--#endif /* defined(__GCC_ASM_FLAG_OUTPUTS__) || !defined(CC_HAVE_ASM_GOTO) */
-+#define GEN_BINARY_SUFFIXED_RMWcc(op, suffix, var, vcon, val, arg0, cc)	\
-+	__GEN_RMWcc(op __BINARY_RMWcc_ARG arg0 "\n\t" suffix, var, cc,	\
-+		    __CLOBBERS_MEM_CC_CX, vcon (val))
- 
- #endif /* _ASM_X86_RMWcc */
--- 
-2.7.4
+	-hpa
