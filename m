@@ -1,82 +1,96 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:42240 "EHLO foss.arm.com"
+Received: from mx1.redhat.com ([209.132.183.28]:56412 "EHLO mx1.redhat.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932661AbdGSQCo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 19 Jul 2017 12:02:44 -0400
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: [PATCH 02/11] asm-generic: mm_hooks: allow hooks to be overridden individually
-Date: Wed, 19 Jul 2017 17:01:23 +0100
-Message-ID: <1500480092-28480-3-git-send-email-mark.rutland@arm.com>
-In-Reply-To: <1500480092-28480-1-git-send-email-mark.rutland@arm.com>
-References: <1500480092-28480-1-git-send-email-mark.rutland@arm.com>
+        id S1751968AbdGSThX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 19 Jul 2017 15:37:23 -0400
+Date: Wed, 19 Jul 2017 14:37:18 -0500
+From: Josh Poimboeuf <jpoimboe@redhat.com>
+Subject: Re: [PATCH v6 2/2] x86/refcount: Implement fast refcount overflow
+ protection
+Message-ID: <20170719193718.bvkkde5apbboudrk@treble>
+References: <1500422614-94821-1-git-send-email-keescook@chromium.org>
+ <1500422614-94821-3-git-send-email-keescook@chromium.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <1500422614-94821-3-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arm-kernel@lists.infradead.org
-Cc: arnd@arndb.de, catalin.marinas@arm.com, christoffer.dall@linaro.org, Dave.Martin@arm.com, jiong.wang@arm.com, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, marc.zyngier@arm.com, mark.rutland@arm.com, suzuki.poulose@arm.com, will.deacon@arm.com, yao.qi@arm.com, linux-kernel@vger.kernel.org, kernel-hardening@lists.openwall.com
-Message-ID: <20170719160123.FLi7vQkrRid4saU0z999pg3bGE7y68d8x4X1--s275Y@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Christoph Hellwig <hch@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-kernel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
+Message-ID: <20170719193718.Vbv-liMQhTCIXMtRgqcUeVkQIq5FVe3EfWRVXYk5_Jc@z>
 
-Currently, an architecture must either implement all of the mm hooks
-itself, or use all of those provided by the asm-generic implementation.
-When an architecture only needs to override a single hook, it must copy
-the stub implementations from the asm-generic version.
+On Tue, Jul 18, 2017 at 05:03:34PM -0700, Kees Cook wrote:
+> +/*
+> + * Body of refcount error handling: in .text.unlikely, saved into CX the
+> + * address of the refcount that has entered a bad state, and trigger an
+> + * exception. Fixup address is back in regular execution flow in .text.
+> + */
+> +#define _REFCOUNT_EXCEPTION				\
+> +	".pushsection .text.unlikely\n"			\
+> +	"111:\tlea %[counter], %%" _ASM_CX "\n"		\
+> +	"112:\t" ASM_UD0 "\n"				\
+> +	".popsection\n"					\
+> +	"113:\n"					\
+> +	_ASM_EXTABLE_REFCOUNT(112b, 113b)
 
-To avoid this repetition, allow each hook to be overridden indiviually,
-by placing each under an #ifndef block. As architectures providing their
-own hooks can't include this file today, this shouldn't adversely affect
-any existing hooks.
+This confuses the freshly merged objtool 2.0, which is now too smart for
+its own good.  It's reporting some errors like:
 
-Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org
----
- include/asm-generic/mm_hooks.h | 11 +++++++++++
- 1 file changed, 11 insertions(+)
+  >> kernel/sched/autogroup.o: warning: objtool: sched_autogroup_exit()+0x48: return with modified stack frame
+  >> kernel/sched/autogroup.o: warning: objtool: .text.unlikely+0x27: stack state mismatch: reg1[3]=-2-40 reg2[3]=-2-24
+  >> kernel/sched/autogroup.o: warning: objtool: sched_autogroup_exit()+0x14: stack state mismatch: reg1[3]=-2-40 reg2[3]=-2-24
 
-diff --git a/include/asm-generic/mm_hooks.h b/include/asm-generic/mm_hooks.h
-index 41e5b67..b4bf1b8 100644
---- a/include/asm-generic/mm_hooks.h
-+++ b/include/asm-generic/mm_hooks.h
-@@ -6,30 +6,41 @@
- #ifndef _ASM_GENERIC_MM_HOOKS_H
- #define _ASM_GENERIC_MM_HOOKS_H
+Because the UD instructions are used for both WARN and BUG, objtool
+doesn't know whether control flow continues past the instruction.  So in
+cases like this, it needs an "unreachable" annotation.
+
+Here's a patch to fix it, feel free to squash it into yours:
+
+
+diff --git a/arch/x86/include/asm/refcount.h b/arch/x86/include/asm/refcount.h
+index 13b91e850a02..e7587db3487c 100644
+--- a/arch/x86/include/asm/refcount.h
++++ b/arch/x86/include/asm/refcount.h
+@@ -15,6 +15,7 @@
+ 	".pushsection .text.unlikely\n"			\
+ 	"111:\tlea %[counter], %%" _ASM_CX "\n"		\
+ 	"112:\t" ASM_UD0 "\n"				\
++	ASM_UNREACHABLE					\
+ 	".popsection\n"					\
+ 	"113:\n"					\
+ 	_ASM_EXTABLE_REFCOUNT(112b, 113b)
+diff --git a/include/linux/compiler-gcc.h b/include/linux/compiler-gcc.h
+index cd4bbe8242bd..85e0b8f42ca0 100644
+--- a/include/linux/compiler-gcc.h
++++ b/include/linux/compiler-gcc.h
+@@ -202,15 +202,25 @@
+ #endif
  
-+#ifndef arch_dup_mmap
- static inline void arch_dup_mmap(struct mm_struct *oldmm,
- 				 struct mm_struct *mm)
- {
- }
-+#endif
- 
-+#ifndef arch_exit_mmap
- static inline void arch_exit_mmap(struct mm_struct *mm)
- {
- }
-+#endif
- 
-+#ifndef arch_unmap
- static inline void arch_unmap(struct mm_struct *mm,
- 			struct vm_area_struct *vma,
- 			unsigned long start, unsigned long end)
- {
- }
-+#endif
- 
-+#ifndef arch_bprm_mm_init
- static inline void arch_bprm_mm_init(struct mm_struct *mm,
- 				     struct vm_area_struct *vma)
- {
- }
-+#endif
- 
-+#ifndef arch_vma_access_permitted
- static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
- 		bool write, bool execute, bool foreign)
- {
- 	/* by default, allow everything */
- 	return true;
- }
-+#endif
+ #ifdef CONFIG_STACK_VALIDATION
 +
- #endif	/* _ASM_GENERIC_MM_HOOKS_H */
--- 
-1.9.1
+ #define annotate_unreachable() ({					\
+ 	asm("%c0:\t\n"							\
+-	    ".pushsection .discard.unreachable\t\n"			\
+-	    ".long %c0b - .\t\n"					\
+-	    ".popsection\t\n" : : "i" (__LINE__));			\
++	    ".pushsection .discard.unreachable\n\t"			\
++	    ".long %c0b - .\n\t"					\
++	    ".popsection\n\t" : : "i" (__LINE__));			\
+ })
++
++#define ASM_UNREACHABLE							\
++	"999: .pushsection .discard.unreachable\n\t"			\
++	".long 999b - .\n\t"						\
++	".popsection\n\t"
++
+ #else
++
+ #define annotate_unreachable()
+-#endif
++#define ASM_UNREACHABLE
++
++#endif /* CONFIG_STACK_VALIDATION */
+ 
+ /*
+  * Mark a position in code as unreachable.  This can be used to
