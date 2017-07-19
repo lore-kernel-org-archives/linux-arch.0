@@ -1,50 +1,57 @@
-From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Subject: Re: [RFC 06/22] kvm: Adapt assembly for PIE support
-Date: Wed, 19 Jul 2017 23:58:07 +0100
-Message-ID: <CAKv+Gu_0o+PrMAWRSP5Y4R7QO87+zAYf=B=VDF1icqJvWL0PoA@mail.gmail.com>
-References: <20170718223333.110371-1-thgarnie@google.com> <20170718223333.110371-7-thgarnie@google.com>
- <CAMzpN2gF7QxDbVG-6ad3Qarcn1N_JT5tit9CMvQL95LQGeZivA@mail.gmail.com>
- <CAJcbSZGqY=btU=+eWfgdhF0je0Yn_GxkymFHn+OV-1BuzgbRYw@mail.gmail.com> <0cdd02e1-8bf2-41cd-f085-c338c2fd8e25@zytor.com>
+From: Josh Poimboeuf <jpoimboe@redhat.com>
+Subject: Re: [PATCH v6 2/2] x86/refcount: Implement fast refcount overflow
+ protection
+Date: Wed, 19 Jul 2017 18:01:29 -0500
+Message-ID: <20170719230129.w52tkcmv5ys7zqsk@treble>
+References: <1500422614-94821-1-git-send-email-keescook@chromium.org>
+ <1500422614-94821-3-git-send-email-keescook@chromium.org>
+ <20170719193718.bvkkde5apbboudrk@treble>
+ <CAGXu5jKqqRJ3H0fwwc5W14U14p-QzTe1=UWJggA2yxLuj23ZTA@mail.gmail.com>
+ <20170719195249.akr6m2x65mhtsyvf@treble>
+ <CAGXu5j+zeCU083g6fDEcXM-CYEHYfbkd1cbWoUTJP_0WtyYRpA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <kernel-hardening-return-9072-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <0cdd02e1-8bf2-41cd-f085-c338c2fd8e25@zytor.com>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Thomas Garnier <thgarnie@google.com>, Brian Gerst <brgerst@gmail.com>, Herbert Xu <herbert@gondor.apana.org.au>, "David S . Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Matthias Kaehlcke <mka@chromium.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, Paolo Bonzini <pbonzini@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Joerg Roedel <joro@8bytes.org>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@alien8.de>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Borislav Petkov <bp@suse.de>, Christian Borntraeger <borntraeger@de.ibm.com>, "Rafael J . Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Pavel Machek <pavel@ucw.c>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=utf-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:53068 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1755768AbdGSXBf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 19 Jul 2017 19:01:35 -0400
+Content-Disposition: inline
+In-Reply-To: <CAGXu5j+zeCU083g6fDEcXM-CYEHYfbkd1cbWoUTJP_0WtyYRpA@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Kees Cook <keescook@chromium.org>
+Cc: Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Christoph Hellwig <hch@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.>
 
-On 19 July 2017 at 23:27, H. Peter Anvin <hpa@zytor.com> wrote:
-> On 07/19/17 08:40, Thomas Garnier wrote:
->>>
->>> This doesn't look right.  It's accessing a per-cpu variable.  The
->>> per-cpu section is an absolute, zero-based section and not subject to
->>> relocation.
->>
->> PIE does not respect the zero-based section, it tries to have
->> everything relative. Patch 16/22 also adapt per-cpu to work with PIE
->> (while keeping the zero absolute design by default).
->>
->
-> This is silly.  The right thing is for PIE is to be explicitly absolute,
-> without (%rip).  The use of (%rip) memory references for percpu is just
-> an optimization.
->
+On Wed, Jul 19, 2017 at 03:50:14PM -0700, Kees Cook wrote:
+> >> >  })
+> >> > +
+> >> > +#define ASM_UNREACHABLE                                                        \
+> >> > +       "999: .pushsection .discard.unreachable\n\t"                    \
+> >> > +       ".long 999b - .\n\t"                                            \
+> >> > +       ".popsection\n\t"
+> >>
+> >> Just so I understand, we'll get a single byte added for each exception
+> >> case, but it'll get discarded during final link?
+> >
+> > I think it's four bytes actually, but yeah, the section gets stripped at
+> > vmlinux link time.
+> 
+> Right, yes.
+> 
+> BTW, I think this needs compiler.h coverage instead of the #else in
+> compiler-gcc.h (since it's different from how annotate_unreachable is
+> used only in compiler-gcc.h. I'll adjust.
 
-Sadly, there is an issue in binutils that may prevent us from doing
-this as cleanly as we would want.
+Ah, right.  Sounds good.
 
-For historical reasons, bfd.ld emits special symbols like
-__GLOBAL_OFFSET_TABLE__ as absolute symbols with a section index of
-SHN_ABS, even though it is quite obvious that they are relative like
-any other symbol that points into the image. Unfortunately, this means
-that binutils needs to emit R_X86_64_RELATIVE relocations even for
-SHN_ABS symbols, which means we lose the ability to use both absolute
-and relocatable symbols in the same PIE image (unless the reloc tool
-can filter them out)
+> Also, in looking at CONFIG_STACK_VALIDATION, do you want it to just
+> warn and skip, or do you want to error out the build if validation
+> isn't available but it's in the .config?
 
-More info here:
-https://sourceware.org/bugzilla/show_bug.cgi?id=19818
+I think the current warn and skip behavior is fine.  It's usually not a
+life-or-death matter, and if it is, you'll be checking the warnings
+anyway.
+
+-- 
+Josh
