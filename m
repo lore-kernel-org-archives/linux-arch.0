@@ -1,33 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ale.deltatee.com ([207.54.116.67]:41909 "EHLO ale.deltatee.com"
+Received: from foss.arm.com ([217.140.101.70]:42240 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753628AbdGSQEc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 19 Jul 2017 12:04:32 -0400
-References: <20170718165528.7383-1-logang@deltatee.com>
- <20170718165528.7383-2-logang@deltatee.com>
- <87iniphsug.fsf@concordia.ellerman.id.au>
-From: Logan Gunthorpe <logang@deltatee.com>
-Message-ID: <15b6ea7d-5817-c0cd-aee4-c8a52d8808f9@deltatee.com>
-Date: Wed, 19 Jul 2017 10:04:06 -0600
-MIME-Version: 1.0
-In-Reply-To: <87iniphsug.fsf@concordia.ellerman.id.au>
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
-Subject: Re: [PATCH v4 1/5] powerpc: io.h: move iomap.h include so that it can
- use readq/writeq defs
+        id S932661AbdGSQCo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 19 Jul 2017 12:02:44 -0400
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: [PATCH 02/11] asm-generic: mm_hooks: allow hooks to be overridden individually
+Date: Wed, 19 Jul 2017 17:01:23 +0100
+Message-ID: <1500480092-28480-3-git-send-email-mark.rutland@arm.com>
+In-Reply-To: <1500480092-28480-1-git-send-email-mark.rutland@arm.com>
+References: <1500480092-28480-1-git-send-email-mark.rutland@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michael Ellerman <mpe@ellerman.id.au>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, =?UTF-8?Q?Horia_Geant=c4=83?= <horia.geanta@nxp.com>, Stephen Bates <sbates@raithlin.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Nicholas Piggin <npiggin@gmail.com>, Suresh Warrier <warrier@linux.vnet.ibm.com>, Oliver O'Halloran <oohall@gmail.com>
-Message-ID: <20170719160406.Tuxk6yjKbw9cCA9z9-hwgApsu7y9vWm6Z4vUk92tAr0@z>
+To: linux-arm-kernel@lists.infradead.org
+Cc: arnd@arndb.de, catalin.marinas@arm.com, christoffer.dall@linaro.org, Dave.Martin@arm.com, jiong.wang@arm.com, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, marc.zyngier@arm.com, mark.rutland@arm.com, suzuki.poulose@arm.com, will.deacon@arm.com, yao.qi@arm.com, linux-kernel@vger.kernel.org, kernel-hardening@lists.openwall.com
+Message-ID: <20170719160123.FLi7vQkrRid4saU0z999pg3bGE7y68d8x4X1--s275Y@z>
 
+Currently, an architecture must either implement all of the mm hooks
+itself, or use all of those provided by the asm-generic implementation.
+When an architecture only needs to override a single hook, it must copy
+the stub implementations from the asm-generic version.
 
+To avoid this repetition, allow each hook to be overridden indiviually,
+by placing each under an #ifndef block. As architectures providing their
+own hooks can't include this file today, this shouldn't adversely affect
+any existing hooks.
 
-On 18/07/17 11:57 PM, Michael Ellerman wrote:
-> Seems fair enough, have you tested it at all?
+Signed-off-by: Mark Rutland <mark.rutland@arm.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org
+---
+ include/asm-generic/mm_hooks.h | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
 
-It's only been compile tested and the kbuild robot has beat up on it a bit.
-
-Thanks,
-
-Logan
+diff --git a/include/asm-generic/mm_hooks.h b/include/asm-generic/mm_hooks.h
+index 41e5b67..b4bf1b8 100644
+--- a/include/asm-generic/mm_hooks.h
++++ b/include/asm-generic/mm_hooks.h
+@@ -6,30 +6,41 @@
+ #ifndef _ASM_GENERIC_MM_HOOKS_H
+ #define _ASM_GENERIC_MM_HOOKS_H
+ 
++#ifndef arch_dup_mmap
+ static inline void arch_dup_mmap(struct mm_struct *oldmm,
+ 				 struct mm_struct *mm)
+ {
+ }
++#endif
+ 
++#ifndef arch_exit_mmap
+ static inline void arch_exit_mmap(struct mm_struct *mm)
+ {
+ }
++#endif
+ 
++#ifndef arch_unmap
+ static inline void arch_unmap(struct mm_struct *mm,
+ 			struct vm_area_struct *vma,
+ 			unsigned long start, unsigned long end)
+ {
+ }
++#endif
+ 
++#ifndef arch_bprm_mm_init
+ static inline void arch_bprm_mm_init(struct mm_struct *mm,
+ 				     struct vm_area_struct *vma)
+ {
+ }
++#endif
+ 
++#ifndef arch_vma_access_permitted
+ static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
+ 		bool write, bool execute, bool foreign)
+ {
+ 	/* by default, allow everything */
+ 	return true;
+ }
++#endif
++
+ #endif	/* _ASM_GENERIC_MM_HOOKS_H */
+-- 
+1.9.1
