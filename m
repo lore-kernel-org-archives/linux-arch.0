@@ -1,40 +1,39 @@
-From: Brian Gerst <brgerst@gmail.com>
-Subject: Re: [RFC 21/22] x86/module: Add support for mcmodel large and PLTs
-Date: Tue, 18 Jul 2017 23:59:49 -0400
-Message-ID: <CAMzpN2j+Z27uudHXqqMhbk=s=pnk7LdA2FPkgmsdZzO3ysemsQ@mail.gmail.com>
-References: <20170718223333.110371-1-thgarnie@google.com> <20170718223333.110371-22-thgarnie@google.com>
- <c0bc2d98-d6eb-e3db-3799-2e28e9919f3d@zytor.com>
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [PATCH v4 1/5] powerpc: io.h: move iomap.h include so that it can use readq/writeq defs
+Date: Wed, 19 Jul 2017 15:57:11 +1000
+Message-ID: <87iniphsug.fsf@concordia.ellerman.id.au>
+References: <20170718165528.7383-1-logang@deltatee.com> <20170718165528.7383-2-logang@deltatee.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <kernel-hardening-return-9028-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <c0bc2d98-d6eb-e3db-3799-2e28e9919f3d@zytor.com>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Thomas Garnier <thgarnie@google.com>, Herbert Xu <herbert@gondor.apana.org.au>, "David S . Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Matthias Kaehlcke <mka@chromium.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, Paolo Bonzini <pbonzini@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Joerg Roedel <joro@8bytes.org>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@alien8.de>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Borislav Petkov <bp@suse.de>, Christian Borntraeger <borntraeger@de.ibm.com>, "Rafael J . Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Pavel Machek <pavel@ucw.cz>, Tejun Heo <tj@kernel.org>Ch
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from ozlabs.org ([103.22.144.67]:57075 "EHLO ozlabs.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752109AbdGSF5Q (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 19 Jul 2017 01:57:16 -0400
+In-Reply-To: <20170718165528.7383-2-logang@deltatee.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Horia =?utf-8?Q?Geant=C4=83?= <horia.geanta@nxp.com>, Stephen Bates <sbates@raithlin.com>, Logan Gunthorpe <logang@deltatee.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Nicholas Piggin <npiggin@gmail.com>, Suresh Warrier <warrier@linux.vnet.ibm.com>, Oliver O'Halloran <oohall@gmail.com>
 
-On Tue, Jul 18, 2017 at 9:35 PM, H. Peter Anvin <hpa@zytor.com> wrote:
-> On 07/18/17 15:33, Thomas Garnier wrote:
->> With PIE support and KASLR extended range, the modules may be further
->> away from the kernel than before breaking mcmodel=kernel expectations.
->>
->> Add an option to build modules with mcmodel=large. The modules generated
->> code will make no assumptions on placement in memory.
->>
->> Despite this option, modules still expect kernel functions to be within
->> 2G and generate relative calls. To solve this issue, the PLT arm64 code
->> was adapted for x86_64. When a relative relocation go outside its range,
->> a dynamic PLT entry is used to correctly jump to the destination.
+Logan Gunthorpe <logang@deltatee.com> writes:
+
+> Subsequent patches in this series makes use of the readq and writeq
+> defines in iomap.h. However, as is, they get missed on the powerpc
+> platform seeing the include comes before the define. This patch
+> moves the include down to fix this.
 >
-> Why large as opposed to medium or medium-PIC?
+> Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
+> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+> Cc: Paul Mackerras <paulus@samba.org>
+> Cc: Michael Ellerman <mpe@ellerman.id.au>
+> Cc: Nicholas Piggin <npiggin@gmail.com>
+> Cc: Suresh Warrier <warrier@linux.vnet.ibm.com>
+> Cc: "Oliver O'Halloran" <oohall@gmail.com>
+> ---
+>  arch/powerpc/include/asm/io.h | 4 ++--
+>  1 file changed, 2 insertions(+), 2 deletions(-)
 
-Or for that matter, why not small-PIC?  We aren't changing the size of
-the kernel to be larger than 2G text or data.  Small-PIC would still
-allow it to be placed anywhere in the address space, and would
-generate far better code.
+Seems fair enough, have you tested it at all?
 
---
-Brian Gerst
+cheers
