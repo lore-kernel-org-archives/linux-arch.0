@@ -1,117 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:42252 "EHLO foss.arm.com"
+Received: from ale.deltatee.com ([207.54.116.67]:41909 "EHLO ale.deltatee.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932593AbdGSQCs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 19 Jul 2017 12:02:48 -0400
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: [PATCH 03/11] arm64: add pointer authentication register bits
-Date: Wed, 19 Jul 2017 17:01:24 +0100
-Message-ID: <1500480092-28480-4-git-send-email-mark.rutland@arm.com>
-In-Reply-To: <1500480092-28480-1-git-send-email-mark.rutland@arm.com>
-References: <1500480092-28480-1-git-send-email-mark.rutland@arm.com>
+        id S1753628AbdGSQEc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 19 Jul 2017 12:04:32 -0400
+References: <20170718165528.7383-1-logang@deltatee.com>
+ <20170718165528.7383-2-logang@deltatee.com>
+ <87iniphsug.fsf@concordia.ellerman.id.au>
+From: Logan Gunthorpe <logang@deltatee.com>
+Message-ID: <15b6ea7d-5817-c0cd-aee4-c8a52d8808f9@deltatee.com>
+Date: Wed, 19 Jul 2017 10:04:06 -0600
+MIME-Version: 1.0
+In-Reply-To: <87iniphsug.fsf@concordia.ellerman.id.au>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
+Subject: Re: [PATCH v4 1/5] powerpc: io.h: move iomap.h include so that it can
+ use readq/writeq defs
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arm-kernel@lists.infradead.org
-Cc: arnd@arndb.de, catalin.marinas@arm.com, christoffer.dall@linaro.org, Dave.Martin@arm.com, jiong.wang@arm.com, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, marc.zyngier@arm.com, mark.rutland@arm.com, suzuki.poulose@arm.com, will.deacon@arm.com, yao.qi@arm.com, linux-kernel@vger.kernel.org, kernel-hardening@lists.openwall.com
-Message-ID: <20170719160124.uGAijBClMv-LZY_7yvIcC3A4ExIG8OsC_JNoHW-sdmA@z>
+To: Michael Ellerman <mpe@ellerman.id.au>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, =?UTF-8?Q?Horia_Geant=c4=83?= <horia.geanta@nxp.com>, Stephen Bates <sbates@raithlin.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Nicholas Piggin <npiggin@gmail.com>, Suresh Warrier <warrier@linux.vnet.ibm.com>, Oliver O'Halloran <oohall@gmail.com>
+Message-ID: <20170719160406.Tuxk6yjKbw9cCA9z9-hwgApsu7y9vWm6Z4vUk92tAr0@z>
 
-The ARMv8.3 pointer authentication extension adds:
 
-* New fields in ID_AA64ISAR1 to report the presence of pointer
-  authentication functionality.
 
-* New control bits in SCTLR_ELx to enable this functionality.
+On 18/07/17 11:57 PM, Michael Ellerman wrote:
+> Seems fair enough, have you tested it at all?
 
-* New system registers to hold the keys necessary for this
-  functionality.
+It's only been compile tested and the kbuild robot has beat up on it a bit.
 
-* A new ESR_ELx.EC code used when the new instructions are affected by
-  configurable traps
+Thanks,
 
-This patch adds the relevant definitions to <asm/sysreg.h> and
-<asm/esr.h> for these, to be used by subsequent patches.
-
-Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Suzuki K Poulose <suzuki.poulose@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
----
- arch/arm64/include/asm/esr.h    |  3 ++-
- arch/arm64/include/asm/sysreg.h | 30 ++++++++++++++++++++++++++++++
- 2 files changed, 32 insertions(+), 1 deletion(-)
-
-diff --git a/arch/arm64/include/asm/esr.h b/arch/arm64/include/asm/esr.h
-index 8cabd57..f6ebc1f 100644
---- a/arch/arm64/include/asm/esr.h
-+++ b/arch/arm64/include/asm/esr.h
-@@ -30,7 +30,8 @@
- #define ESR_ELx_EC_CP14_LS	(0x06)
- #define ESR_ELx_EC_FP_ASIMD	(0x07)
- #define ESR_ELx_EC_CP10_ID	(0x08)
--/* Unallocated EC: 0x09 - 0x0B */
-+#define ESR_ELx_EC_PAC		(0x09)
-+/* Unallocated EC: 0x0A - 0x0B */
- #define ESR_ELx_EC_CP14_64	(0x0C)
- /* Unallocated EC: 0x0d */
- #define ESR_ELx_EC_ILL		(0x0E)
-diff --git a/arch/arm64/include/asm/sysreg.h b/arch/arm64/include/asm/sysreg.h
-index 16e44fa..d902cc5 100644
---- a/arch/arm64/include/asm/sysreg.h
-+++ b/arch/arm64/include/asm/sysreg.h
-@@ -164,6 +164,19 @@
- #define SYS_TTBR1_EL1			sys_reg(3, 0, 2, 0, 1)
- #define SYS_TCR_EL1			sys_reg(3, 0, 2, 0, 2)
- 
-+#define SYS_APIAKEYLO_EL1		sys_reg(3, 0, 2, 1, 0)
-+#define SYS_APIAKEYHI_EL1		sys_reg(3, 0, 2, 1, 1)
-+#define SYS_APIBKEYLO_EL1		sys_reg(3, 0, 2, 1, 2)
-+#define SYS_APIBKEYHI_EL1		sys_reg(3, 0, 2, 1, 3)
-+
-+#define SYS_APDAKEYLO_EL1		sys_reg(3, 0, 2, 2, 0)
-+#define SYS_APDAKEYHI_EL1		sys_reg(3, 0, 2, 2, 1)
-+#define SYS_APDBKEYLO_EL1		sys_reg(3, 0, 2, 2, 2)
-+#define SYS_APDBKEYHI_EL1		sys_reg(3, 0, 2, 2, 3)
-+
-+#define SYS_APGAKEYLO_EL1		sys_reg(3, 0, 2, 3, 0)
-+#define SYS_APGAKEYHI_EL1		sys_reg(3, 0, 2, 3, 1)
-+
- #define SYS_ICC_PMR_EL1			sys_reg(3, 0, 4, 6, 0)
- 
- #define SYS_AFSR0_EL1			sys_reg(3, 0, 5, 1, 0)
-@@ -296,7 +309,11 @@
- #define SYS_ICH_LR15_EL2		__SYS__LR8_EL2(7)
- 
- /* Common SCTLR_ELx flags. */
-+#define SCTLR_ELx_ENIA	(1 << 31)
-+#define SCTLR_ELx_ENIB	(1 << 30)
-+#define SCTLR_ELx_ENDA	(1 << 27)
- #define SCTLR_ELx_EE    (1 << 25)
-+#define SCTLR_ELx_ENDB	(1 << 13)
- #define SCTLR_ELx_I	(1 << 12)
- #define SCTLR_ELx_SA	(1 << 3)
- #define SCTLR_ELx_C	(1 << 2)
-@@ -326,9 +343,22 @@
- #define ID_AA64ISAR0_AES_SHIFT		4
- 
- /* id_aa64isar1 */
-+#define ID_AA64ISAR1_GPI_SHIFT		28
-+#define ID_AA64ISAR1_GPA_SHIFT		24
- #define ID_AA64ISAR1_LRCPC_SHIFT	20
- #define ID_AA64ISAR1_FCMA_SHIFT		16
- #define ID_AA64ISAR1_JSCVT_SHIFT	12
-+#define ID_AA64ISAR1_APA_SHIFT		4
-+#define ID_AA64ISAR1_API_SHIFT		8
-+
-+#define ID_AA64ISAR1_APA_NI		0x0
-+#define ID_AA64ISAR1_APA_ARCHITECTED	0x1
-+#define ID_AA64ISAR1_API_NI		0x0
-+#define ID_AA64ISAR1_API_IMP_DEF	0x1
-+#define ID_AA64ISAR1_GPA_NI		0x0
-+#define ID_AA64ISAR1_GPA_ARCHITECTED	0x1
-+#define ID_AA64ISAR1_GPI_NI		0x0
-+#define ID_AA64ISAR1_GPI_IMP_DEF	0x1
- 
- /* id_aa64pfr0 */
- #define ID_AA64PFR0_GIC_SHIFT		24
--- 
-1.9.1
+Logan
