@@ -1,46 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ale.deltatee.com ([207.54.116.67]:45929 "EHLO ale.deltatee.com"
+Received: from mx1.redhat.com ([209.132.183.28]:55630 "EHLO mx1.redhat.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S965298AbdGTPjw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 20 Jul 2017 11:39:52 -0400
-References: <20170718165528.7383-1-logang@deltatee.com>
- <20170718165528.7383-2-logang@deltatee.com>
- <87iniphsug.fsf@concordia.ellerman.id.au>
- <15b6ea7d-5817-c0cd-aee4-c8a52d8808f9@deltatee.com>
- <VI1PR0401MB2591205D2621B5FEB4EAE2CC98A70@VI1PR0401MB2591.eurprd04.prod.outlook.com>
- <VI1PR0401MB259189A76FFD80DC02ACCF8998A70@VI1PR0401MB2591.eurprd04.prod.outlook.com>
-From: Logan Gunthorpe <logang@deltatee.com>
-Message-ID: <edcc1102-d29f-cd19-4103-8ea6719d5f12@deltatee.com>
-Date: Thu, 20 Jul 2017 09:39:33 -0600
+        id S965130AbdGTQQI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 20 Jul 2017 12:16:08 -0400
+Date: Thu, 20 Jul 2017 18:16:04 +0200
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: Re: [PATCH 6/7] fcntl: Don't use ambiguous SIG_POLL si_codes
+Message-ID: <20170720161603.GA14430@redhat.com>
+References: <87o9shg7t7.fsf_-_@xmission.com>
+ <20170718140651.15973-6-ebiederm@xmission.com>
 MIME-Version: 1.0
-In-Reply-To: <VI1PR0401MB259189A76FFD80DC02ACCF8998A70@VI1PR0401MB2591.eurprd04.prod.outlook.com>
-Content-Type: text/plain; charset=iso-8859-2
-Content-Transfer-Encoding: 8bit
-Subject: Re: [PATCH v4 1/5] powerpc: io.h: move iomap.h include so that it can
- use readq/writeq defs
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20170718140651.15973-6-ebiederm@xmission.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: =?UTF-8?Q?Horia_Geant=c4=83?= <horia.geanta@nxp.com>, Michael Ellerman <mpe@ellerman.id.au>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-ntb@googlegroups.com" <linux-ntb@googlegroups.com>, "linux-crypto@vger.kernel.org" <linux-crypto@vger.kernel.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Stephen Bates <sbates@raithlin.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Nicholas Piggin <npiggin@gmail.com>, Suresh Warrier <warrier@linux.vnet.ibm.com>, Oliver O'Halloran <oohall@gmail.com>
-Message-ID: <20170720153933.9m_f9F75hFCt-llly1u2x-6tlnAwNOw8luLNGxZumSs@z>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: linux-kernel@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Andrei Vagin <avagin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Greg KH <greg@kroah.com>, Andrey Vagin <avagin@openvz.org>, Serge Hallyn <serge@hallyn.com>, Pavel Emelyanov <xemul@virtuozzo.com>, Cyrill Gorcunov <gorcunov@openvz.org>, Peter Zijlstra <peterz@infradead.org>, Willy Tarreau <w@1wt.eu>, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Linux Containers <containers@lists.linux-foundation.org>, Michael Kerrisk <mtk.manpages@gmail.com>
+Message-ID: <20170720161604.PiWz-tlx8ZVfRK7k3gCbR2HNRCVK_K_-oXBWYidSkWQ@z>
 
+On 07/18, Eric W. Biederman wrote:
+>
+> -			BUG_ON((reason & __SI_MASK) != __SI_POLL);
+> +			BUG_ON((reason < POLL_IN) || (reason > NSIGPOLL));
+                                                      ^^^^^^^^^^^^^^^^^
+looks obviously wrong? Say, POLL_IN is obviously > NSIGPOLL == 6.
 
+Probably you meant
 
-On 20/07/17 06:36 AM, Horia Geantã wrote:
-> include/asm-generic/iomap.h is included before
-> include/linux/io-64-nonatomic-lo-hi.h:
-> 
-> include/linux/io.h -> arch/powerpc/include/asm/io.h ->
-> include/asm-generic/iomap.h
-> 
-> Thus, the "extern" version of ioread64_lo_hi and friends will be used
-> (and not the inline version from io-64-nonatomic-lo-hi.h).
-> 
-> But for this kernel .config:
-> -CONFIG_GENERIC_IOMAP=n and
-> -there is no implementation of io{read|write}64[be]{_lo_hi|_hi_lo} in
-> arch/powerpc/kernel/iomap.c
+			BUG_ON((reason < POLL_IN) || (reason - POLL_IN > NSIGPOLL)
 
-Ah, thanks for the triage. I'll take a look at fixing this for a v5.
+?
 
-Logan
+but this contradicts with the next line:
+
+>  			if (reason - POLL_IN >= NSIGPOLL)
+>  				si.si_band  = ~0L;
+
+confused...
+
+Oleg.
