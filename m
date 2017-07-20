@@ -1,78 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-eopbgr00061.outbound.protection.outlook.com ([40.107.0.61]:11388
-        "EHLO EUR02-AM5-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S934643AbdGTMgL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 20 Jul 2017 08:36:11 -0400
-From: =?iso-8859-2?Q?Horia_Geant=E3?= <horia.geanta@nxp.com>
-Subject: Re: [PATCH v4 1/5] powerpc: io.h: move iomap.h include so that it can
- use readq/writeq defs
-Date: Thu, 20 Jul 2017 12:36:07 +0000
-Message-ID: <VI1PR0401MB259189A76FFD80DC02ACCF8998A70@VI1PR0401MB2591.eurprd04.prod.outlook.com>
-References: <20170718165528.7383-1-logang@deltatee.com>
- <20170718165528.7383-2-logang@deltatee.com>
- <87iniphsug.fsf@concordia.ellerman.id.au>
- <15b6ea7d-5817-c0cd-aee4-c8a52d8808f9@deltatee.com>
- <VI1PR0401MB2591205D2621B5FEB4EAE2CC98A70@VI1PR0401MB2591.eurprd04.prod.outlook.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="iso-8859-2"
-Content-Transfer-Encoding: quoted-printable
+Received: from mx1.redhat.com ([209.132.183.28]:56492 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S936208AbdGTMuw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 20 Jul 2017 08:50:52 -0400
+Subject: [PATCH 5/5] Unroll INIT_STRUCT_PID
+From: David Howells <dhowells@redhat.com>
+Date: Thu, 20 Jul 2017 13:50:48 +0100
+Message-ID: <150055504878.20414.2817022733059449213.stgit@warthog.procyon.org.uk>
+In-Reply-To: <150055501157.20414.14957264566013145790.stgit@warthog.procyon.org.uk>
+References: <150055501157.20414.14957264566013145790.stgit@warthog.procyon.org.uk>
 MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Logan Gunthorpe <logang@deltatee.com>, Michael Ellerman <mpe@ellerman.id.au>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-ntb@googlegroups.com" <linux-ntb@googlegroups.com>, "linux-crypto@vger.kernel.org" <linux-crypto@vger.kernel.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Stephen Bates <sbates@raithlin.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Nicholas Piggin <npiggin@gmail.com>, Suresh Warrier <warrier@linux.vnet.ibm.com>, Oliver O'Halloran <oohall@gmail.com>
-Message-ID: <20170720123607.iDq1RO3QWK1xg5HUCJ5pdjXAyYiwMF4adD1xlOovl9s@z>
+To: mingo@kernel.org
+Cc: linux-arch@vger.kernel.org, dhowells@redhat.com, linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20170720125048.vCZoFu4PWryvhDbAr2dts1-8FIKV3wflBsLPhFRwMWk@z>
 
-On 7/20/2017 1:27 PM, Horia Geant=E3 wrote:=0A=
-> On 7/19/2017 7:04 PM, Logan Gunthorpe wrote:=0A=
->>=0A=
->>=0A=
->> On 18/07/17 11:57 PM, Michael Ellerman wrote:=0A=
->>> Seems fair enough, have you tested it at all?=0A=
->>=0A=
->> It's only been compile tested and the kbuild robot has beat up on it a b=
-it.=0A=
->>=0A=
-> Looks like the patch set does not compile on PPC (.config generated=0A=
-> using make corenet64_smp_defconfig):=0A=
-> =0A=
-> [...]=0A=
->   LD      vmlinux.o=0A=
->   MODPOST vmlinux.o=0A=
-> drivers/crypto/caam/jr.o: In function `rd_reg64':=0A=
-> /home/b05471/repos/cryptodev-2.6/drivers/crypto/caam/regs.h:154:=0A=
-> undefined reference to `.ioread64be_lo_hi'=0A=
-> /home/b05471/repos/cryptodev-2.6/drivers/crypto/caam/regs.h:151:=0A=
-> undefined reference to `.ioread64_lo_hi'=0A=
-> /home/b05471/repos/cryptodev-2.6/drivers/crypto/caam/regs.h:151:=0A=
-> undefined reference to `.ioread64_lo_hi'=0A=
-> /home/b05471/repos/cryptodev-2.6/drivers/crypto/caam/regs.h:154:=0A=
-> undefined reference to `.ioread64be_lo_hi'=0A=
-> drivers/crypto/caam/jr.o: In function `wr_reg64':=0A=
-> /home/b05471/repos/cryptodev-2.6/drivers/crypto/caam/regs.h:141:=0A=
-> undefined reference to `.iowrite64_lo_hi'=0A=
-> /home/b05471/repos/cryptodev-2.6/drivers/crypto/caam/regs.h:141:=0A=
-> undefined reference to `.iowrite64_lo_hi'=0A=
-> /home/b05471/repos/cryptodev-2.6/drivers/crypto/caam/regs.h:144:=0A=
-> undefined reference to `.iowrite64be_lo_hi'=0A=
-> /home/b05471/repos/cryptodev-2.6/drivers/crypto/caam/regs.h:144:=0A=
-> undefined reference to `.iowrite64be_lo_hi'=0A=
-> make: *** [vmlinux] Error 1=0A=
-> =0A=
-include/asm-generic/iomap.h is included before=0A=
-include/linux/io-64-nonatomic-lo-hi.h:=0A=
-=0A=
-include/linux/io.h -> arch/powerpc/include/asm/io.h ->=0A=
-include/asm-generic/iomap.h=0A=
-=0A=
-Thus, the "extern" version of ioread64_lo_hi and friends will be used=0A=
-(and not the inline version from io-64-nonatomic-lo-hi.h).=0A=
-=0A=
-But for this kernel .config:=0A=
--CONFIG_GENERIC_IOMAP=3Dn and=0A=
--there is no implementation of io{read|write}64[be]{_lo_hi|_hi_lo} in=0A=
-arch/powerpc/kernel/iomap.c=0A=
-=0A=
-Regards,=0A=
-Horia=0A=
+Unroll INIT_STRUCT_PID in the single place that uses it.  There doesn't
+seem any point in the macro.
+
+Signed-off-by: David Howells <dhowells@redhat.com>
+---
+
+ include/linux/init_task.h |   15 ---------------
+ kernel/pid.c              |   15 ++++++++++++++-
+ 2 files changed, 14 insertions(+), 16 deletions(-)
+
+diff --git a/include/linux/init_task.h b/include/linux/init_task.h
+index fc51c709d19d..4d181cc252cf 100644
+--- a/include/linux/init_task.h
++++ b/include/linux/init_task.h
+@@ -46,21 +46,6 @@ extern struct cred init_cred;
+ #endif
+ 
+ 
+-#define INIT_STRUCT_PID {						\
+-	.count 		= ATOMIC_INIT(1),				\
+-	.tasks		= {						\
+-		{ .first = NULL },					\
+-		{ .first = NULL },					\
+-		{ .first = NULL },					\
+-	},								\
+-	.level		= 0,						\
+-	.numbers	= { {						\
+-		.nr		= 0,					\
+-		.ns		= &init_pid_ns,				\
+-		.pid_chain	= { .next = NULL, .pprev = NULL },	\
+-	}, }								\
+-}
+-
+ #define INIT_PID_LINK(type) 					\
+ {								\
+ 	.node = {						\
+diff --git a/kernel/pid.c b/kernel/pid.c
+index 731c4e528f4e..d276a050d73e 100644
+--- a/kernel/pid.c
++++ b/kernel/pid.c
+@@ -44,7 +44,20 @@
+ 	hash_long((unsigned long)nr + (unsigned long)ns, pidhash_shift)
+ static struct hlist_head *pid_hash;
+ static unsigned int pidhash_shift = 4;
+-struct pid init_struct_pid = INIT_STRUCT_PID;
++struct pid init_struct_pid = {
++	.count 		= ATOMIC_INIT(1),
++	.tasks		= {
++		{ .first = NULL },
++		{ .first = NULL },
++		{ .first = NULL },
++	},
++	.level		= 0,
++	.numbers	= { {
++		.nr		= 0,
++		.ns		= &init_pid_ns,
++		.pid_chain	= { .next = NULL, .pprev = NULL },
++	}, }
++};
+ 
+ int pid_max = PID_MAX_DEFAULT;
+ 
