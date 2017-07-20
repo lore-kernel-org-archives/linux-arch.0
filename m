@@ -1,64 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([65.50.211.136]:60193 "EHLO mail.zytor.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932791AbdGTARI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 19 Jul 2017 20:17:08 -0400
-From: "H. Peter Anvin" <hpa@zytor.com>
-Message-Id: <201707192348.v6JNm8Rg003916@mail.zytor.com>
-Date: Wed, 19 Jul 2017 16:47:45 -0700
-In-Reply-To: <CAKv+Gu_0o+PrMAWRSP5Y4R7QO87+zAYf=B=VDF1icqJvWL0PoA@mail.gmail.com>
-References: <20170718223333.110371-1-thgarnie@google.com> <20170718223333.110371-7-thgarnie@google.com> <CAMzpN2gF7QxDbVG-6ad3Qarcn1N_JT5tit9CMvQL95LQGeZivA@mail.gmail.com> <CAJcbSZGqY=btU=+eWfgdhF0je0Yn_GxkymFHn+OV-1BuzgbRYw@mail.gmail.com> <0cdd02e1-8bf2-41cd-f085-c338c2fd8e25@zytor.com> <CAKv+Gu_0o+PrMAWRSP5Y4R7QO87+zAYf=B=VDF1icqJvWL0PoA@mail.gmail.com>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:34747 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S933105AbdGTFwI (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 20 Jul 2017 01:52:08 -0400
+Received: from pps.filterd (m0098419.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id v6K5oKDC058957
+        for <linux-arch@vger.kernel.org>; Thu, 20 Jul 2017 01:52:07 -0400
+Received: from e23smtp01.au.ibm.com (e23smtp01.au.ibm.com [202.81.31.143])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2btpg48gj6-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Thu, 20 Jul 2017 01:52:07 -0400
+Received: from localhost
+        by e23smtp01.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <aneesh.kumar@linux.vnet.ibm.com>;
+        Thu, 20 Jul 2017 15:52:04 +1000
+From: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
+Subject: Re: [RFC v6 01/62] powerpc: Free up four 64K PTE bits in 4K backed HPTE pages
+In-Reply-To: <1500177424-13695-2-git-send-email-linuxram@us.ibm.com>
+References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com> <1500177424-13695-2-git-send-email-linuxram@us.ibm.com>
+Date: Thu, 20 Jul 2017 11:21:51 +0530
 MIME-Version: 1.0
-Content-Type: text/plain;
- charset=utf-8
-Content-Transfer-Encoding: 8BIT
-Subject: Re: [RFC 06/22] kvm: Adapt assembly for PIE support
+Content-Type: text/plain
+Message-ID: <87d18vr6yw.fsf@skywalker.in.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Cc: Thomas Garnier <thgarnie@google.com>, Brian Gerst <brgerst@gmail.com>, Herbert Xu <herbert@gondor.apana.org.au>, "David S . Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Matthias Kaehlcke <mka@chromium.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, Paolo Bonzini <pbonzini@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Joerg Roedel <joro@8bytes.org>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@alien8.de>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Borislav Petkov <bp@suse.de>, Christian Borntraeger <borntraeger@de.ibm.com>, "Rafael J . Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Pavel Machek <pavel@ucw.cz>, Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@linux.com>, Kees Cook <keescook@chromium.org>, Paul.Gortmaker@zytor.com
+To: Ram Pai <linuxram@us.ibm.com>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org
+Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, mhocko@kernel.org
+Message-ID: <20170720055151.ZXjYgUqQDo8ETAgTXJiJgP_shZomnQNJSSKI6OayWzI@z>
 
-<paul.gortmaker@windriver.com>,Chris Metcalf <cmetcalf@mellanox.com>,"Paul E . McKenney" <paulmck@linux.vnet.ibm.com>,Andrew Morton <akpm@linux-foundation.org>,Christopher Li <sparse@chrisli.org>,Dou Liyang <douly.fnst@cn.fujitsu.com>,Masahiro Yamada <yamada.masahiro@socionext.com>,Daniel Borkmann <daniel@iogearbox.net>,Markus Trippelsdorf <markus@trippelsdorf.de>,Peter Foley <pefoley2@pefoley.com>,Steven Rostedt <rostedt@goodmis.org>,Tim Chen <tim.c.chen@linux.intel.com>,Catalin Marinas <catalin.marinas@arm.com>,Matthew Wilcox <mawilcox@microsoft.com>,Michal Hocko <mhocko@suse.com>,Rob Landley <rob@landley.net>,Jiri Kosina <jkosina@suse.cz>,"H . J . Lu" <hjl.tools@gmail.com>,Paul Bolle <pebolle@tiscali.nl>,Baoquan He <bhe@redhat.com>,Daniel Micay <danielmicay@gmail.com>,the arch/x86 maintainers <x86@kernel.org>,"linux-crypto@vger.kernel.org" <linux-crypto@vger.kernel.org>,Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,xen-devel@lists.xenproject.org,kvm list
-<kvm@vger.kernel.org>,linux-pm <linux-pm@vger.kernel.org>,linux-arch <linux-arch@vger.kernel.org>,Linux-Sparse <linux-sparse@vger.kernel.org>,Kernel Hardening <kernel-hardening@lists.openwall.com>
-From: hpa@zytor.com
-Message-ID: <83BA7600-BC8D-4C91-812C-DD2A0BF4474B@zytor.com>
 
-On July 19, 2017 3:58:07 PM PDT, Ard Biesheuvel <ard.biesheuvel@linaro.org> wrote:
->On 19 July 2017 at 23:27, H. Peter Anvin <hpa@zytor.com> wrote:
->> On 07/19/17 08:40, Thomas Garnier wrote:
->>>>
->>>> This doesn't look right.  It's accessing a per-cpu variable.  The
->>>> per-cpu section is an absolute, zero-based section and not subject
->to
->>>> relocation.
->>>
->>> PIE does not respect the zero-based section, it tries to have
->>> everything relative. Patch 16/22 also adapt per-cpu to work with PIE
->>> (while keeping the zero absolute design by default).
->>>
->>
->> This is silly.  The right thing is for PIE is to be explicitly
->absolute,
->> without (%rip).  The use of (%rip) memory references for percpu is
->just
->> an optimization.
->>
->
->Sadly, there is an issue in binutils that may prevent us from doing
->this as cleanly as we would want.
->
->For historical reasons, bfd.ld emits special symbols like
->__GLOBAL_OFFSET_TABLE__ as absolute symbols with a section index of
->SHN_ABS, even though it is quite obvious that they are relative like
->any other symbol that points into the image. Unfortunately, this means
->that binutils needs to emit R_X86_64_RELATIVE relocations even for
->SHN_ABS symbols, which means we lose the ability to use both absolute
->and relocatable symbols in the same PIE image (unless the reloc tool
->can filter them out)
->
->More info here:
->https://sourceware.org/bugzilla/show_bug.cgi?id=19818
+.....
 
-The reloc tool already has the ability to filter symbols.
--- 
-Sent from my Android device with K-9 Mail. Please excuse my brevity.
+>  	/*
+> @@ -116,8 +104,8 @@ int __hash_page_4K(unsigned long ea, unsigned long access, unsigned long vsid,
+>  		 * On hash insert failure we use old pte value and we don't
+>  		 * want slot information there if we have a insert failure.
+>  		 */
+> -		old_pte &= ~(H_PAGE_HASHPTE | H_PAGE_F_GIX | H_PAGE_F_SECOND);
+> -		new_pte &= ~(H_PAGE_HASHPTE | H_PAGE_F_GIX | H_PAGE_F_SECOND);
+> +		old_pte &= ~(H_PAGE_HASHPTE);
+> +		new_pte &= ~(H_PAGE_HASHPTE);
+>  		goto htab_insert_hpte;
+>  	}
+
+With the current path order and above hunk we will breaks the bisect I guess. With the above, when
+we convert a 64k hpte to 4khpte, since this is the first patch, we
+should clear that H_PAGE_F_GIX and H_PAGE_F_SECOND. We still use them
+for 64k. I guess you should move this hunk to second patch.
+
+
+-aneesh
