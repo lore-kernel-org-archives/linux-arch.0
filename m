@@ -1,72 +1,116 @@
-From: =?iso-8859-2?Q?Horia_Geant=E3?= <horia.geanta@nxp.com>
-Subject: Re: [PATCH v4 1/5] powerpc: io.h: move iomap.h include so that it can
- use readq/writeq defs
-Date: Thu, 20 Jul 2017 12:36:07 +0000
-Message-ID: <VI1PR0401MB259189A76FFD80DC02ACCF8998A70@VI1PR0401MB2591.eurprd04.prod.outlook.com>
-References: <20170718165528.7383-1-logang@deltatee.com>
- <20170718165528.7383-2-logang@deltatee.com>
- <87iniphsug.fsf@concordia.ellerman.id.au>
- <15b6ea7d-5817-c0cd-aee4-c8a52d8808f9@deltatee.com>
- <VI1PR0401MB2591205D2621B5FEB4EAE2CC98A70@VI1PR0401MB2591.eurprd04.prod.outlook.com>
+From: David Howells <dhowells@redhat.com>
+Subject: [PATCH 0/5] Consolidate init_task handling
+Date: Thu, 20 Jul 2017 13:50:11 +0100
+Message-ID: <150055501157.20414.14957264566013145790.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="iso-8859-2"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-crypto-owner@vger.kernel.org>
-Content-Language: en-US
-Sender: linux-crypto-owner@vger.kernel.org
-To: Logan Gunthorpe <logang@deltatee.com>, Michael Ellerman <mpe@ellerman.id.au>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-ntb@googlegroups.com" <linux-ntb@googlegroups.com>, "linux-crypto@vger.kernel.org" <linux-crypto@vger.kernel.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Stephen Bates <sbates@raithlin.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Nicholas Piggin <npiggin@gmail.com>, Suresh Warrier <warrier@linux.vnet.ibm.com>, Oliver O'Halloran <oohall@gmail.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:57940 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S935144AbdGTMuN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 20 Jul 2017 08:50:13 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: mingo@kernel.org
+Cc: linux-arch@vger.kernel.org, dhowells@redhat.com, linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On 7/20/2017 1:27 PM, Horia Geant=E3 wrote:=0A=
-> On 7/19/2017 7:04 PM, Logan Gunthorpe wrote:=0A=
->>=0A=
->>=0A=
->> On 18/07/17 11:57 PM, Michael Ellerman wrote:=0A=
->>> Seems fair enough, have you tested it at all?=0A=
->>=0A=
->> It's only been compile tested and the kbuild robot has beat up on it a b=
-it.=0A=
->>=0A=
-> Looks like the patch set does not compile on PPC (.config generated=0A=
-> using make corenet64_smp_defconfig):=0A=
-> =0A=
-> [...]=0A=
->   LD      vmlinux.o=0A=
->   MODPOST vmlinux.o=0A=
-> drivers/crypto/caam/jr.o: In function `rd_reg64':=0A=
-> /home/b05471/repos/cryptodev-2.6/drivers/crypto/caam/regs.h:154:=0A=
-> undefined reference to `.ioread64be_lo_hi'=0A=
-> /home/b05471/repos/cryptodev-2.6/drivers/crypto/caam/regs.h:151:=0A=
-> undefined reference to `.ioread64_lo_hi'=0A=
-> /home/b05471/repos/cryptodev-2.6/drivers/crypto/caam/regs.h:151:=0A=
-> undefined reference to `.ioread64_lo_hi'=0A=
-> /home/b05471/repos/cryptodev-2.6/drivers/crypto/caam/regs.h:154:=0A=
-> undefined reference to `.ioread64be_lo_hi'=0A=
-> drivers/crypto/caam/jr.o: In function `wr_reg64':=0A=
-> /home/b05471/repos/cryptodev-2.6/drivers/crypto/caam/regs.h:141:=0A=
-> undefined reference to `.iowrite64_lo_hi'=0A=
-> /home/b05471/repos/cryptodev-2.6/drivers/crypto/caam/regs.h:141:=0A=
-> undefined reference to `.iowrite64_lo_hi'=0A=
-> /home/b05471/repos/cryptodev-2.6/drivers/crypto/caam/regs.h:144:=0A=
-> undefined reference to `.iowrite64be_lo_hi'=0A=
-> /home/b05471/repos/cryptodev-2.6/drivers/crypto/caam/regs.h:144:=0A=
-> undefined reference to `.iowrite64be_lo_hi'=0A=
-> make: *** [vmlinux] Error 1=0A=
-> =0A=
-include/asm-generic/iomap.h is included before=0A=
-include/linux/io-64-nonatomic-lo-hi.h:=0A=
-=0A=
-include/linux/io.h -> arch/powerpc/include/asm/io.h ->=0A=
-include/asm-generic/iomap.h=0A=
-=0A=
-Thus, the "extern" version of ioread64_lo_hi and friends will be used=0A=
-(and not the inline version from io-64-nonatomic-lo-hi.h).=0A=
-=0A=
-But for this kernel .config:=0A=
--CONFIG_GENERIC_IOMAP=3Dn and=0A=
--there is no implementation of io{read|write}64[be]{_lo_hi|_hi_lo} in=0A=
-arch/powerpc/kernel/iomap.c=0A=
-=0A=
-Regards,=0A=
-Horia=0A=
+
+Hi Ingo,
+
+Is this something that could be taken into the tip tree?  It's a series of
+patches that consolidate init_task handling:
+
+ (1) Alter the INIT_TASK_DATA linker script macro to set init_thread_union
+     and init_stack rather than defining these in C.
+
+     Insert init_task and init_thread_into into the init_stack area in the
+     linker script as appropriate to the configuration, with different
+     section markers so that they end up correctly ordered.
+
+     We can then get merge ia64's init_task.c into the main one.
+
+We then have a bunch of single-use INIT_*() macros that seem only to be
+macros because they used to be used per-arch.  We can then unroll these in
+place of the user and get rid of a few lines and a lot of backslashes.
+
+ (2) Unroll INIT_TASK().
+
+ (3) Unroll various small INIT_*() macros that are defined conditionally.
+     Unroll them and surround them by #if[n]def/#endif in the .c file as it
+     takes fewer lines.
+
+ (4) Unroll INIT_SIGNALS() and INIT_SIGHAND().
+
+ (5) Unroll INIT_STRUCT_PID.
+
+The patches can be found here also:
+
+	http://git.kernel.org/cgit/linux/kernel/git/dhowells/linux-fs.git/log/?h=init_task
+
+David
+---
+David Howells (5):
+      Construct init thread stack in the linker script rather than by union
+      Unroll INIT_TASK() in init/init_task.c
+      Unroll various INIT_* macros
+      Unroll the INIT_SIGNALS and INIT_SIGHAND macros
+      Unroll INIT_STRUCT_PID
+
+
+ arch/Kconfig                              |    4 
+ arch/alpha/include/asm/thread_info.h      |    3 
+ arch/arc/include/asm/thread_info.h        |    3 
+ arch/arm/include/asm/thread_info.h        |    3 
+ arch/arm64/include/asm/thread_info.h      |    2 
+ arch/blackfin/include/asm/thread_info.h   |    2 
+ arch/c6x/include/asm/thread_info.h        |    3 
+ arch/cris/include/asm/processor.h         |    2 
+ arch/cris/include/asm/thread_info.h       |    2 
+ arch/frv/include/asm/thread_info.h        |    3 
+ arch/h8300/include/asm/thread_info.h      |    3 
+ arch/hexagon/include/asm/thread_info.h    |    3 
+ arch/ia64/Kconfig                         |    2 
+ arch/ia64/Makefile                        |    2 
+ arch/ia64/include/asm/thread_info.h       |    4 
+ arch/ia64/kernel/Makefile                 |    2 
+ arch/ia64/kernel/init_task.c              |   43 -----
+ arch/ia64/kernel/vmlinux.lds.S            |    1 
+ arch/m32r/include/asm/thread_info.h       |    3 
+ arch/m68k/include/asm/thread_info.h       |    4 
+ arch/metag/include/asm/thread_info.h      |    3 
+ arch/microblaze/include/asm/thread_info.h |    3 
+ arch/mips/include/asm/thread_info.h       |    3 
+ arch/mn10300/include/asm/thread_info.h    |    2 
+ arch/nios2/include/asm/thread_info.h      |    3 
+ arch/openrisc/include/asm/processor.h     |    2 
+ arch/openrisc/include/asm/thread_info.h   |    2 
+ arch/parisc/include/asm/thread_info.h     |    3 
+ arch/powerpc/include/asm/thread_info.h    |    3 
+ arch/s390/include/asm/thread_info.h       |    2 
+ arch/score/include/asm/thread_info.h      |    3 
+ arch/sh/include/asm/thread_info.h         |    3 
+ arch/sparc/include/asm/thread_info_32.h   |    3 
+ arch/sparc/include/asm/thread_info_64.h   |    3 
+ arch/tile/include/asm/thread_info.h       |    3 
+ arch/um/include/asm/processor-generic.h   |    2 
+ arch/um/include/asm/thread_info.h         |    9 -
+ arch/um/include/asm/vmlinux.lds.h         |    2 
+ arch/um/kernel/dyn.lds.S                  |    2 
+ arch/um/kernel/um_arch.c                  |    2 
+ arch/um/kernel/uml.lds.S                  |    2 
+ arch/unicore32/include/asm/thread_info.h  |    3 
+ arch/x86/include/asm/thread_info.h        |    2 
+ arch/xtensa/include/asm/thread_info.h     |    3 
+ include/asm-generic/vmlinux.lds.h         |    4 
+ include/linux/ftrace.h                    |   12 -
+ include/linux/init_task.h                 |  264 +----------------------------
+ include/linux/irqflags.h                  |    2 
+ include/linux/lockdep.h                   |    3 
+ include/linux/sched.h                     |    9 +
+ init/Makefile                             |    2 
+ init/init_task.c                          |  173 ++++++++++++++++++-
+ kernel/pid.c                              |   15 ++
+ 53 files changed, 219 insertions(+), 427 deletions(-)
+ delete mode 100644 arch/ia64/kernel/init_task.c
+ create mode 100644 arch/um/include/asm/vmlinux.lds.h
