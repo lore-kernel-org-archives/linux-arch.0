@@ -1,54 +1,42 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v6 0/2] x86: Implement fast refcount overflow protection
-Date: Thu, 20 Jul 2017 10:15:33 -0700
-Message-ID: <CAGXu5jK0t0Xfj1oTUg51USEaJ7je+KMNoE0irfYNon2aAmhg7g@mail.gmail.com>
-References: <1500422614-94821-1-git-send-email-keescook@chromium.org> <20170720091106.kigtr6zy7pjgk2s6@gmail.com>
+From: Ram Pai <linuxram@us.ibm.com>
+Subject: Re: [RFC v6 01/62] powerpc: Free up four 64K PTE bits in 4K backed
+ HPTE pages
+Date: Thu, 20 Jul 2017 15:03:58 -0700
+Message-ID: <20170720220358.GH5487@ram.oc3035372033.ibm.com>
+References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
+ <1500177424-13695-2-git-send-email-linuxram@us.ibm.com>
+ <87d18vr6yw.fsf@skywalker.in.ibm.com>
+Reply-To: Ram Pai <linuxram@us.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f169.google.com ([209.85.223.169]:38223 "EHLO
-        mail-io0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S933714AbdGTRPf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Jul 2017 13:15:35 -0400
-Received: by mail-io0-f169.google.com with SMTP id g13so13989788ioj.5
-        for <linux-arch@vger.kernel.org>; Thu, 20 Jul 2017 10:15:35 -0700 (PDT)
-In-Reply-To: <20170720091106.kigtr6zy7pjgk2s6@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Christoph Hellwig <hch@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@dave>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <87d18vr6yw.fsf@skywalker.in.ibm.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
+Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, mhocko@kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jul 20, 2017 at 2:11 AM, Ingo Molnar <mingo@kernel.org> wrote:
-> Could you please also create a tabulated quick-comparison of the three variants,
-> of all key properties, about behavior, feature and tradeoff differences?
->
-> Something like:
->
->                                 !ARCH_HAS_REFCOUNT      ARCH_HAS_REFCOUNT=y     REFCOUNT_FULL=y
->
-> avg fast path instructions:     5                       3                       10
-> behavior on overflow:           unsafe, silent          safe,   verbose         safe,   verbose
-> behavior on underflow:          unsafe, silent          unsafe, verbose         unsafe, verbose
-> ...
->
-> etc. - note that this table is just a quick mockup with wild guesses. (Please add
-> more comparisons of other aspects as well.)
->
-> Such a comparison would make it easier for arch, subsystem and distribution
-> maintainers to decide on which variant to use/enable.
+On Thu, Jul 20, 2017 at 11:21:51AM +0530, Aneesh Kumar K.V wrote:
+> 
+> .....
+> 
+> >  	/*
+> > @@ -116,8 +104,8 @@ int __hash_page_4K(unsigned long ea, unsigned long access, unsigned long vsid,
+> >  		 * On hash insert failure we use old pte value and we don't
+> >  		 * want slot information there if we have a insert failure.
+> >  		 */
+> > -		old_pte &= ~(H_PAGE_HASHPTE | H_PAGE_F_GIX | H_PAGE_F_SECOND);
+> > -		new_pte &= ~(H_PAGE_HASHPTE | H_PAGE_F_GIX | H_PAGE_F_SECOND);
+> > +		old_pte &= ~(H_PAGE_HASHPTE);
+> > +		new_pte &= ~(H_PAGE_HASHPTE);
+> >  		goto htab_insert_hpte;
+> >  	}
+> 
+> With the current path order and above hunk we will breaks the bisect I guess. With the above, when
+> we convert a 64k hpte to 4khpte, since this is the first patch, we
+> should clear that H_PAGE_F_GIX and H_PAGE_F_SECOND. We still use them
+> for 64k. I guess you should move this hunk to second patch.
 
-Sure, I can write this up. I'm not sure "safe"/"unsafe" is quite that
-clean. The differences between -full and -fast are pretty subtle, but
-I think I can describe it using the updated LKDTM tests I've written
-to compare the two. There are conditions that -fast doesn't catch, but
-those cases aren't actually useful for the overflow defense.
-
-As for "avg fast path instructions", do you mean the resulting
-assembly for each refcount API function? I think it's going to look
-something like "1   2   45", but I'll write it up.
-
--Kees
-
--- 
-Kees Cook
-Pixel Security
+true. it should move to the next patch. Will fix it.
+RP
