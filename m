@@ -1,92 +1,85 @@
-From: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
-Subject: Re: [RFC v6 27/62] powerpc: helper to validate key-access permissions of a pte
-Date: Fri, 21 Jul 2017 12:21:50 +0530
-Message-ID: <87k232p9ix.fsf@skywalker.in.ibm.com>
-References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com> <1500177424-13695-28-git-send-email-linuxram@us.ibm.com> <87mv7zpq1k.fsf@skywalker.in.ibm.com> <20170720221504.GJ5487@ram.oc3035372033.ibm.com>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH v6 0/2] x86: Implement fast refcount overflow protection
+Date: Fri, 21 Jul 2017 09:50:20 +0200
+Message-ID: <20170721075020.uh22zix3oylsviez@gmail.com>
+References: <1500422614-94821-1-git-send-email-keescook@chromium.org>
+ <20170720091106.kigtr6zy7pjgk2s6@gmail.com>
+ <CAGXu5jK0t0Xfj1oTUg51USEaJ7je+KMNoE0irfYNon2aAmhg7g@mail.gmail.com>
+ <CAGXu5jKM_gThfVoTxPE8vX-9GhBMd+ZYbwky5jUKJNevYxd50Q@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <20170720221504.GJ5487@ram.oc3035372033.ibm.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: Ram Pai <linuxram@us.ibm.com>
-Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, mhocko@kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wm0-f67.google.com ([74.125.82.67]:37187 "EHLO
+        mail-wm0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753448AbdGUHuZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Jul 2017 03:50:25 -0400
+Content-Disposition: inline
+In-Reply-To: <CAGXu5jKM_gThfVoTxPE8vX-9GhBMd+ZYbwky5jUKJNevYxd50Q@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Kees Cook <keescook@chromium.org>
+Cc: Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Christoph Hellwig <hch@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@dave>
 
-Ram Pai <linuxram@us.ibm.com> writes:
 
-> On Thu, Jul 20, 2017 at 12:12:47PM +0530, Aneesh Kumar K.V wrote:
->> Ram Pai <linuxram@us.ibm.com> writes:
->> 
->> > helper function that checks if the read/write/execute is allowed
->> > on the pte.
->> >
->> > Signed-off-by: Ram Pai <linuxram@us.ibm.com>
->> > ---
->> >  arch/powerpc/include/asm/book3s/64/pgtable.h |    4 +++
->> >  arch/powerpc/include/asm/pkeys.h             |   12 +++++++++
->> >  arch/powerpc/mm/pkeys.c                      |   33 ++++++++++++++++++++++++++
->> >  3 files changed, 49 insertions(+), 0 deletions(-)
->> >
->> > diff --git a/arch/powerpc/include/asm/book3s/64/pgtable.h b/arch/powerpc/include/asm/book3s/64/pgtable.h
->> > index 30d7f55..0056e58 100644
->> > --- a/arch/powerpc/include/asm/book3s/64/pgtable.h
->> > +++ b/arch/powerpc/include/asm/book3s/64/pgtable.h
->> > @@ -472,6 +472,10 @@ static inline void write_uamor(u64 value)
->> >  	mtspr(SPRN_UAMOR, value);
->> >  }
->> >
->> > +#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
->> > +extern bool arch_pte_access_permitted(u64 pte, bool write, bool execute);
->> > +#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
->> > +
->> >  #define __HAVE_ARCH_PTEP_GET_AND_CLEAR
->> >  static inline pte_t ptep_get_and_clear(struct mm_struct *mm,
->> >  				       unsigned long addr, pte_t *ptep)
->> > diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
->> > index bbb5d85..7a9aade 100644
->> > --- a/arch/powerpc/include/asm/pkeys.h
->> > +++ b/arch/powerpc/include/asm/pkeys.h
->> > @@ -53,6 +53,18 @@ static inline u64 pte_to_hpte_pkey_bits(u64 pteflags)
->> >  		((pteflags & H_PAGE_PKEY_BIT4) ? HPTE_R_KEY_BIT4 : 0x0UL));
->> >  }
->> >
->> > +static inline u16 pte_to_pkey_bits(u64 pteflags)
->> > +{
->> > +	if (!pkey_inited)
->> > +		return 0x0UL;
->> 
->> Do we really need that above check ? We should always find it
->> peky_inited to be set. 
->
-> Yes. there are cases where pkey_inited is not enabled. 
-> a) if the MMU is radix.
-That should be be a feature check
+* Kees Cook <keescook@chromium.org> wrote:
 
-> b) if the PAGE size is 4k.
+> On Thu, Jul 20, 2017 at 10:15 AM, Kees Cook <keescook@chromium.org> wrote:
+> > On Thu, Jul 20, 2017 at 2:11 AM, Ingo Molnar <mingo@kernel.org> wrote:
+> >> Could you please also create a tabulated quick-comparison of the three variants,
+> >> of all key properties, about behavior, feature and tradeoff differences?
+> >>
+> >> Something like:
+> >>
+> >>                                 !ARCH_HAS_REFCOUNT      ARCH_HAS_REFCOUNT=y     REFCOUNT_FULL=y
+> >>
+> >> avg fast path instructions:     5                       3                       10
+> >> behavior on overflow:           unsafe, silent          safe,   verbose         safe,   verbose
+> >> behavior on underflow:          unsafe, silent          unsafe, verbose         unsafe, verbose
+> >> ...
+> >>
+> >> etc. - note that this table is just a quick mockup with wild guesses. (Please add
+> >> more comparisons of other aspects as well.)
+> >>
+> >> Such a comparison would make it easier for arch, subsystem and distribution
+> >> maintainers to decide on which variant to use/enable.
+> >
+> > Sure, I can write this up. I'm not sure "safe"/"unsafe" is quite that
+> > clean. The differences between -full and -fast are pretty subtle, but
+> > I think I can describe it using the updated LKDTM tests I've written
+> > to compare the two. There are conditions that -fast doesn't catch, but
+> > those cases aren't actually useful for the overflow defense.
+> >
+> > As for "avg fast path instructions", do you mean the resulting
+> > assembly for each refcount API function? I think it's going to look
+> > something like "1   2   45", but I'll write it up.
+> 
+> So, doing a worst-case timing of a loop of inc() to INT_MAX and then
+> dec_and_test() back to zero, I see this out of perf:
+> 
+> atomic
+> 25255.114805      task-clock (msec)
+>  82249267387      cycles
+>  11208720041      instructions
+> 
+> refcount-fast
+> 25259.577583      task-clock (msec)
+>  82211446892      cycles
+>  15486246572      instructions
+> 
+> refcount-full
+> 44625.923432      task-clock (msec)
+> 144814735193      cycles
+> 105937495952      instructions
+> 
+> I'll still summarize all this in the v7 series, but I think that
+> really clarifies the differences: 1.5x more instructions in -fast, but
+> nearly identical cycles and clock. Using -full sees a large change (as
+> expected).
 
-That is a kernel config change
+Ok, that's pretty convincig - I'd suggest including a cicles row in the table
+instead of an instructions row: number of instructions is indeed slightly
+misleading in this case.
 
-> c) if the device tree says the feature is not available
-> d) if the CPU is of a older generation. P6 and older.
+Thanks,
 
-Both feature check.
-
-how about doing something like
-
-static inline u16 pte_to_pkey_bits(u64 pteflags)
-{
-	if (!(pteflags & H_PAGE_KEY_MASK))
-		return 0x0UL;
-
-	return (((pteflags & H_PAGE_PKEY_BIT0) ? 0x10 : 0x0UL) |
-		((pteflags & H_PAGE_PKEY_BIT1) ? 0x8 : 0x0UL) |
-		((pteflags & H_PAGE_PKEY_BIT2) ? 0x4 : 0x0UL) |
-		((pteflags & H_PAGE_PKEY_BIT3) ? 0x2 : 0x0UL) |
-		((pteflags & H_PAGE_PKEY_BIT4) ? 0x1 : 0x0UL));
-}
-
-We still have to look at the code generated to see it is really saving
-something.
-
--aneesh
-
+	Ingo
