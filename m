@@ -1,86 +1,98 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f67.google.com ([74.125.82.67]:37187 "EHLO
-        mail-wm0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753448AbdGUHuZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Jul 2017 03:50:25 -0400
-Date: Fri, 21 Jul 2017 09:50:20 +0200
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH v6 0/2] x86: Implement fast refcount overflow protection
-Message-ID: <20170721075020.uh22zix3oylsviez@gmail.com>
-References: <1500422614-94821-1-git-send-email-keescook@chromium.org>
- <20170720091106.kigtr6zy7pjgk2s6@gmail.com>
- <CAGXu5jK0t0Xfj1oTUg51USEaJ7je+KMNoE0irfYNon2aAmhg7g@mail.gmail.com>
- <CAGXu5jKM_gThfVoTxPE8vX-9GhBMd+ZYbwky5jUKJNevYxd50Q@mail.gmail.com>
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:38696 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752091AbdGURFO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 21 Jul 2017 13:05:14 -0400
+Date: Fri, 21 Jul 2017 18:05:09 +0100
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [PATCH 00/11] ARMv8.3 pointer authentication userspace support
+Message-ID: <20170721170509.GC1538@e103592.cambridge.arm.com>
+References: <1500480092-28480-1-git-send-email-mark.rutland@arm.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <CAGXu5jKM_gThfVoTxPE8vX-9GhBMd+ZYbwky5jUKJNevYxd50Q@mail.gmail.com>
+In-Reply-To: <1500480092-28480-1-git-send-email-mark.rutland@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Christoph Hellwig <hch@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
-Message-ID: <20170721075020.Rg94we0p0Y6WVeXhEIsWxk31FG3BCh3gUWXKZAava5Y@z>
+To: Mark Rutland <mark.rutland@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, arnd@arndb.de, jiong.wang@arm.com, marc.zyngier@arm.com, catalin.marinas@arm.com, yao.qi@arm.com, suzuki.poulose@arm.com, will.deacon@arm.com, linux-kernel@vger.kernel.org, kernel-hardening@lists.openwall.com, kvmarm@lists.cs.columbia.edu, christoffer.dall@linaro.org
+Message-ID: <20170721170509.iGjFIfh5x3yoN4_sT2d6UUKUOxu8bxi6eGCiqM-Xfzc@z>
 
-
-* Kees Cook <keescook@chromium.org> wrote:
-
-> On Thu, Jul 20, 2017 at 10:15 AM, Kees Cook <keescook@chromium.org> wrote:
-> > On Thu, Jul 20, 2017 at 2:11 AM, Ingo Molnar <mingo@kernel.org> wrote:
-> >> Could you please also create a tabulated quick-comparison of the three variants,
-> >> of all key properties, about behavior, feature and tradeoff differences?
-> >>
-> >> Something like:
-> >>
-> >>                                 !ARCH_HAS_REFCOUNT      ARCH_HAS_REFCOUNT=y     REFCOUNT_FULL=y
-> >>
-> >> avg fast path instructions:     5                       3                       10
-> >> behavior on overflow:           unsafe, silent          safe,   verbose         safe,   verbose
-> >> behavior on underflow:          unsafe, silent          unsafe, verbose         unsafe, verbose
-> >> ...
-> >>
-> >> etc. - note that this table is just a quick mockup with wild guesses. (Please add
-> >> more comparisons of other aspects as well.)
-> >>
-> >> Such a comparison would make it easier for arch, subsystem and distribution
-> >> maintainers to decide on which variant to use/enable.
-> >
-> > Sure, I can write this up. I'm not sure "safe"/"unsafe" is quite that
-> > clean. The differences between -full and -fast are pretty subtle, but
-> > I think I can describe it using the updated LKDTM tests I've written
-> > to compare the two. There are conditions that -fast doesn't catch, but
-> > those cases aren't actually useful for the overflow defense.
-> >
-> > As for "avg fast path instructions", do you mean the resulting
-> > assembly for each refcount API function? I think it's going to look
-> > something like "1   2   45", but I'll write it up.
+On Wed, Jul 19, 2017 at 05:01:21PM +0100, Mark Rutland wrote:
+> This series adds support for the ARMv8.3 pointer authentication extension.
 > 
-> So, doing a worst-case timing of a loop of inc() to INT_MAX and then
-> dec_and_test() back to zero, I see this out of perf:
+> Since RFC [1]:
+> * Make the KVM context switch (semi-lazy)
+> * Rebase to v4.13-rc1
+> * Improve pointer authentication documentation
+> * Add hwcap documentation
+> * Various minor cleanups
 > 
-> atomic
-> 25255.114805      task-clock (msec)
->  82249267387      cycles
->  11208720041      instructions
-> 
-> refcount-fast
-> 25259.577583      task-clock (msec)
->  82211446892      cycles
->  15486246572      instructions
-> 
-> refcount-full
-> 44625.923432      task-clock (msec)
-> 144814735193      cycles
-> 105937495952      instructions
-> 
-> I'll still summarize all this in the v7 series, but I think that
-> really clarifies the differences: 1.5x more instructions in -fast, but
-> nearly identical cycles and clock. Using -full sees a large change (as
-> expected).
+> I've pushed the series to the arm64/pointer-auth branch [2] of my linux tree.
+> I've also pushed out a necessary bootwrapper patch to the pointer-auth branch
+> [3] of my bootwrapper repo.
 
-Ok, that's pretty convincig - I'd suggest including a cicles row in the table
-instead of an instructions row: number of instructions is indeed slightly
-misleading in this case.
+[...]
 
-Thanks,
+> Open questions
+> ==============
+> 
+> * Should keys be per-thread rather than per-process?
+> 
+>   My understanding is that glibc can't (currently) handle threads having
+>   different keys, but it might be that another libc would prefer per-thread
 
-	Ingo
+Can you elaborate?
+
+It's not valid to do a function return from one thread to another.
+
+>   keys. If desired, we could add a mechanism for a thread to re-initialize its
+>   keys without an exec*().
+
+Switching from per-process to per-thread keys would be an ABI break
+unless it's opt-in.
+
+> * Do we need a separate hwcap for XPAC* instructions?
+> 
+>   Library code performing stack unwinding may need to interoperate with other
+>   code which may or may not be using pointer authentication. It may be
+>   desirable to use XPAC* rather than attempting authentication and/or acquiring
+>   the PAC masks via ptrace.
+> 
+>   As we may expose APIBKey (potentially separately from APIAKey) in future,
+>   HWCAP_APIA cannot be used to determine when these instruction can/should be
+>   used.
+
+Can the availability of XPAC* be determined from the feature regs, or
+is that insufficient?
+
+This is a little different from the keys, which the kernel must
+provision / allow to be set in order for them to be useful.
+
+> * Should we expose a per-process data key now, to go with the insn key?
+> 
+>   I don't currently have a use-case for this.
+> 
+> * Should we expose generic authentication (i.e. APGAKey)?
+> 
+>   I don't currently have a use-case for this.
+
+I guess there's no ABI impact for adding these later, so maybe it's not
+urgent if nobody shouts.
+
+> * Should the kernel remove PACs when unwinding user stacks?
+> 
+>   This is simple to do, but it's arguably placing a policy in the kernel as to
+>   what we expect user stacks to look like. Regardless, userspace will have to
+>   perform this when unwinding with DWARF.
+
+Not sure.  This is arguably not more gross than related things the
+kernel already does, and may be inefficient for userspace to do e.g.,
+when capturing perf backtraces.  Still gross though.
+
+Side question: do you know whether there will be DWARF / ELF annotations
+for this?  Since ptr auth is a compile-time option, it is plausible that
+an attribute could be added to indicate that an image uses it.
+
+Cheers
+---Dave
