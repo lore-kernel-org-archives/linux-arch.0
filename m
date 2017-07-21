@@ -1,124 +1,107 @@
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH 01/11] arm64: docs: describe ELF hwcaps
-Date: Fri, 21 Jul 2017 18:05:24 +0100
-Message-ID: <20170721170523.GD1538@e103592.cambridge.arm.com>
-References: <1500480092-28480-1-git-send-email-mark.rutland@arm.com>
- <1500480092-28480-2-git-send-email-mark.rutland@arm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <kvmarm-bounces@lists.cs.columbia.edu>
-Content-Disposition: inline
-In-Reply-To: <1500480092-28480-2-git-send-email-mark.rutland@arm.com>
-List-Unsubscribe: <https://lists.cs.columbia.edu/mailman/options/kvmarm>,
- <mailto:kvmarm-request@lists.cs.columbia.edu?subject=unsubscribe>
-List-Archive: <https://lists.cs.columbia.edu/pipermail/kvmarm>
-List-Post: <mailto:kvmarm@lists.cs.columbia.edu>
-List-Help: <mailto:kvmarm-request@lists.cs.columbia.edu?subject=help>
-List-Subscribe: <https://lists.cs.columbia.edu/mailman/listinfo/kvmarm>,
- <mailto:kvmarm-request@lists.cs.columbia.edu?subject=subscribe>
-Errors-To: kvmarm-bounces@lists.cs.columbia.edu
-Sender: kvmarm-bounces@lists.cs.columbia.edu
-To: Mark Rutland <mark.rutland@arm.com>
-Cc: linux-arch@vger.kernel.org, arnd@arndb.de, jiong.wang@arm.com, marc.zyngier@arm.com, catalin.marinas@arm.com, yao.qi@arm.com, will.deacon@arm.com, linux-kernel@vger.kernel.org, kernel-hardening@lists.openwall.com, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
-List-Id: linux-arch.vger.kernel.org
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: [PATCH] [RESEND] mtd: only use __xipram annotation when XIP_KERNEL is set
+Date: Fri, 21 Jul 2017 22:26:25 +0200
+Message-ID: <20170721202636.3361536-1-arnd@arndb.de>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mout.kundenserver.de ([212.227.126.130]:54485 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752811AbdGUU2p (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Jul 2017 16:28:45 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>, David Woodhouse <dwmw2@infradead.org>, Brian Norris <computersforpeace@gmail.com>, Boris Brezillon <boris.brezillon@free-electrons.com>, Marek Vasut <marek.vasut@gmail.com>, Richard Weinberger <richard@nod.at>, Cyrille Pitchen <cyrille.pitchen@wedev4u.fr>
+Cc: Russell King <linux@armlinux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Nicholas Piggin <npiggin@gmail.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Michal Marek <mmarek@suse.com>, Linus Walleij <linus.walleij@linaro.org>, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>, Chris Metcalf <cmetcalf@mellanox.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mtd@lists.infradead.org
 
-On Wed, Jul 19, 2017 at 05:01:22PM +0100, Mark Rutland wrote:
-> We don't document our ELF hwcaps, leaving developers to interpret them
-> according to hearsay, guesswork, or (in exceptional cases) inspection of
-> the current kernel code.
-> 
-> This is less than optimal, and it would be far better if we had some
-> definitive description of each of the ELF hwcaps that developers could
-> refer to.
-> 
-> This patch adds a document describing the (native) arm64 ELF hwcaps.
+When XIP_KERNEL is enabled, some functions are defined in the .data
+ELF section because we require them to be in RAM whenever we communicate
+with the flash chip. However this causes problems when FTRACE is
+enabled and gcc emits calls to __gnu_mcount_nc in the function
+prolog:
 
-Minor nit: what do the hwcaps have to do with ELF really?  Can we just
-call them "hwcaps"?
+drivers/built-in.o: In function `cfi_chip_setup':
+:(.data+0x272fc): relocation truncated to fit: R_ARM_CALL against symbol `__gnu_mcount_nc' defined in .text section in arch/arm/kernel/built-in.o
+drivers/built-in.o: In function `cfi_probe_chip':
+:(.data+0x27de8): relocation truncated to fit: R_ARM_CALL against symbol `__gnu_mcount_nc' defined in .text section in arch/arm/kernel/built-in.o
+/tmp/ccY172rP.s: Assembler messages:
+/tmp/ccY172rP.s:70: Warning: ignoring changed section attributes for .data
+/tmp/ccY172rP.s: Error: 1 warning, treating warnings as errors
+make[5]: *** [drivers/mtd/chips/cfi_probe.o] Error 1
+/tmp/ccK4rjeO.s: Assembler messages:
+/tmp/ccK4rjeO.s:421: Warning: ignoring changed section attributes for .data
+/tmp/ccK4rjeO.s: Error: 1 warning, treating warnings as errors
+make[5]: *** [drivers/mtd/chips/cfi_util.o] Error 1
+/tmp/ccUvhCYR.s: Assembler messages:
+/tmp/ccUvhCYR.s:1895: Warning: ignoring changed section attributes for .data
+/tmp/ccUvhCYR.s: Error: 1 warning, treating warnings as errors
 
-I'm not sure of the history here.
+Specifically, this does not work because the .data section is not
+marked executable, which leads LD to not generate trampolines for
+long calls.
 
-> Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Dave Martin <Dave.Martin@arm.com>
-> Cc: Suzuki K Poulose <suzuki.poulose@arm.com>
-> Cc: Will Deacon <will.deacon@arm.com>
-> ---
->  Documentation/arm64/elf_hwcaps.txt | 133 +++++++++++++++++++++++++++++++++++++
->  1 file changed, 133 insertions(+)
->  create mode 100644 Documentation/arm64/elf_hwcaps.txt
-> 
-> diff --git a/Documentation/arm64/elf_hwcaps.txt b/Documentation/arm64/elf_hwcaps.txt
-> new file mode 100644
-> index 0000000..7bc2921
-> --- /dev/null
-> +++ b/Documentation/arm64/elf_hwcaps.txt
-> @@ -0,0 +1,133 @@
-> +ARM64 ELF hwcaps
-> +================
-> +
-> +This document describes the usage and semantics of the arm64 ELF hwcaps.
-> +
-> +
-> +1. Introduction
-> +---------------
-> +
-> +Some hardware or software features are only available on some CPU
-> +implementations, and/or with certain kernel configurations, but have no
-> +architected discovery mechanism available to userspace code at EL0. The
-> +kernel exposes the presence of these features to userspace through a set
-> +of flags called hwcaps, exposed in the auxilliary vector.
-> +
-> +Userspace software can test for features by acquiring the AT_HWCAP entry
-> +of the auxilliary vector, and testing whether the relevant flags are
-> +set, e.g.
-> +
-> +bool floating_point_is_present(void)
-> +{
-> +	unsigned long hwcaps = getauxval(AT_HWCAP);
-> +	if (hwcaps & HWCAP_FP)
-> +		return true;
-> +
-> +	return false;
-> +}
-> +
-> +Where software relies on a feature described by a hwcap, it should check
-> +the relevant hwcap flag to verify that the feature is present before
-> +attempting to make use of the feature.
-> +
-> +Features cannot be probed reliably through other means. When a feature
-> +is not available, attempting to use it may result in unpredictable
+This moves the __xipram functions into their own .xiptext section instead.
+The section is still placed next to .data and located in RAM but is marked
+executable, which avoids the build errors.
 
-This says that features cannot be probed reliably via the (emulated) ID
-registers available with HWCAP_CPUID.
+Also, we only need to place the XIP functions into a separate section
+if both CONFIG_XIP_KERNEL and CONFIG_MTD_XIP are set: When only MTD_XIP
+is used, the whole kernel is still in RAM and we do not need to worry
+about pulling out the rug under it. When only XIP_KERNEL but not MTD_XIP
+is set, the kernel is in some form of ROM, but we never write to it.
 
-So, what use is the ID register emulation?
+Note that MTD_XIP has been broken on ARM since around 2011 or 2012. I
+have sent another patch[2] to fix compilation, which I plan to merge
+through arm-soc unless there are objections. The obvious alternative
+to that would be to completely rip out the MTD_XIP support from the
+kernel, since obviously nobody has been using it in a long while.
 
-For each of hwcaps and cpuid, a particular feature may be reported as
-present (y), absent (n), or not described at all (x):
+Link: [1] https://patchwork.kernel.org/patch/8109771/
+Link: [2] https://patchwork.kernel.org/patch/9855225/
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+---
+ include/asm-generic/vmlinux.lds.h |  1 +
+ include/linux/mtd/xip.h           | 10 ++++++----
+ 2 files changed, 7 insertions(+), 4 deletions(-)
 
-hwcap>    x n y
-cpuid:
-   x      N N Y
-   n      N N
-   y      Y   Y
-
-I've filled in the straightforward cases, where software may (Y) or must
-not (N) use the feature.
-
-In the cases left blank, hwcap and cpuid disagree.
-
-Are we confident that should never be observed -- i.e., it's a kernel
-bug if seen?  If so, we can fill Ys in there.  But we need to be clear
-about cases where the hwcap doesn't mean exactly the same as the
-corresponding CPUID feature.  The hwcap may tell software it can assume
-that certain kernel ABI extensions related to that CPU feature are
-available for example.
-
-This also affects how HWCAP_CPUID is described below.
-
-[...]
-
-Cheers
----Dave
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index da0be9a8d1de..ff507c178327 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -203,6 +203,7 @@
+  * pull in .data..stuff which has its own requirements. Same for bss.
+  */
+ #define DATA_DATA							\
++	*(.xiptext)							\
+ 	*(.data .data.[0-9a-zA-Z_]*)					\
+ 	*(.ref.data)							\
+ 	*(.data..shared_aligned) /* percpu related */			\
+diff --git a/include/linux/mtd/xip.h b/include/linux/mtd/xip.h
+index abed4dec5c2f..e373690cce0a 100644
+--- a/include/linux/mtd/xip.h
++++ b/include/linux/mtd/xip.h
+@@ -30,7 +30,9 @@
+  * obviously not be running from flash.  The __xipram is therefore marking
+  * those functions so they get relocated to ram.
+  */
+-#define __xipram noinline __attribute__ ((__section__ (".data")))
++#ifdef CONFIG_XIP_KERNEL
++#define __xipram noinline __attribute__ ((__section__ (".xiptext")))
++#endif
+ 
+ /*
+  * Each architecture has to provide the following macros.  They must access
+@@ -90,10 +92,10 @@
+ #define xip_cpu_idle()  do { } while (0)
+ #endif
+ 
+-#else
++#endif /* CONFIG_MTD_XIP */
+ 
++#ifndef __xipram
+ #define __xipram
+-
+-#endif /* CONFIG_MTD_XIP */
++#endif
+ 
+ #endif /* __LINUX_MTD_XIP_H__ */
+-- 
+2.9.0
