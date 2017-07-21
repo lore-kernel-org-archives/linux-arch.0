@@ -1,128 +1,102 @@
-From: Ram Pai <linuxram@us.ibm.com>
-Subject: Re: [RFC v6 27/62] powerpc: helper to validate key-access
- permissions of a pte
-Date: Fri, 21 Jul 2017 09:42:30 -0700
-Message-ID: <20170721164230.GK5487@ram.oc3035372033.ibm.com>
-References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
- <1500177424-13695-28-git-send-email-linuxram@us.ibm.com>
- <87mv7zpq1k.fsf@skywalker.in.ibm.com>
- <20170720221504.GJ5487@ram.oc3035372033.ibm.com>
- <87k232p9ix.fsf@skywalker.in.ibm.com>
-Reply-To: Ram Pai <linuxram@us.ibm.com>
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [PATCH 00/11] ARMv8.3 pointer authentication userspace support
+Date: Fri, 21 Jul 2017 18:05:09 +0100
+Message-ID: <20170721170509.GC1538@e103592.cambridge.arm.com>
+References: <1500480092-28480-1-git-send-email-mark.rutland@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:39745 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1752780AbdGUQmq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 21 Jul 2017 12:42:46 -0400
-Received: from pps.filterd (m0098421.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id v6LGd45t024630
-        for <linux-arch@vger.kernel.org>; Fri, 21 Jul 2017 12:42:45 -0400
-Received: from e16.ny.us.ibm.com (e16.ny.us.ibm.com [129.33.205.206])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2bugucvh78-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Fri, 21 Jul 2017 12:42:45 -0400
-Received: from localhost
-        by e16.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <linuxram@us.ibm.com>;
-        Fri, 21 Jul 2017 12:42:45 -0400
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <kvmarm-bounces@lists.cs.columbia.edu>
 Content-Disposition: inline
-In-Reply-To: <87k232p9ix.fsf@skywalker.in.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
-Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, mhocko@kernel.org
+In-Reply-To: <1500480092-28480-1-git-send-email-mark.rutland@arm.com>
+List-Unsubscribe: <https://lists.cs.columbia.edu/mailman/options/kvmarm>,
+ <mailto:kvmarm-request@lists.cs.columbia.edu?subject=unsubscribe>
+List-Archive: <https://lists.cs.columbia.edu/pipermail/kvmarm>
+List-Post: <mailto:kvmarm@lists.cs.columbia.edu>
+List-Help: <mailto:kvmarm-request@lists.cs.columbia.edu?subject=help>
+List-Subscribe: <https://lists.cs.columbia.edu/mailman/listinfo/kvmarm>,
+ <mailto:kvmarm-request@lists.cs.columbia.edu?subject=subscribe>
+Errors-To: kvmarm-bounces@lists.cs.columbia.edu
+Sender: kvmarm-bounces@lists.cs.columbia.edu
+To: Mark Rutland <mark.rutland@arm.com>
+Cc: linux-arch@vger.kernel.org, arnd@arndb.de, jiong.wang@arm.com, marc.zyngier@arm.com, catalin.marinas@arm.com, yao.qi@arm.com, will.deacon@arm.com, linux-kernel@vger.kernel.org, kernel-hardening@lists.openwall.com, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jul 21, 2017 at 12:21:50PM +0530, Aneesh Kumar K.V wrote:
-> Ram Pai <linuxram@us.ibm.com> writes:
+On Wed, Jul 19, 2017 at 05:01:21PM +0100, Mark Rutland wrote:
+> This series adds support for the ARMv8.3 pointer authentication extension.
 > 
-> > On Thu, Jul 20, 2017 at 12:12:47PM +0530, Aneesh Kumar K.V wrote:
-> >> Ram Pai <linuxram@us.ibm.com> writes:
-> >> 
-> >> > helper function that checks if the read/write/execute is allowed
-> >> > on the pte.
-> >> >
-> >> > Signed-off-by: Ram Pai <linuxram@us.ibm.com>
-> >> > ---
-> >> >  arch/powerpc/include/asm/book3s/64/pgtable.h |    4 +++
-> >> >  arch/powerpc/include/asm/pkeys.h             |   12 +++++++++
-> >> >  arch/powerpc/mm/pkeys.c                      |   33 ++++++++++++++++++++++++++
-> >> >  3 files changed, 49 insertions(+), 0 deletions(-)
-> >> >
-> >> > diff --git a/arch/powerpc/include/asm/book3s/64/pgtable.h b/arch/powerpc/include/asm/book3s/64/pgtable.h
-> >> > index 30d7f55..0056e58 100644
-> >> > --- a/arch/powerpc/include/asm/book3s/64/pgtable.h
-> >> > +++ b/arch/powerpc/include/asm/book3s/64/pgtable.h
-> >> > @@ -472,6 +472,10 @@ static inline void write_uamor(u64 value)
-> >> >  	mtspr(SPRN_UAMOR, value);
-> >> >  }
-> >> >
-> >> > +#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
-> >> > +extern bool arch_pte_access_permitted(u64 pte, bool write, bool execute);
-> >> > +#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
-> >> > +
-> >> >  #define __HAVE_ARCH_PTEP_GET_AND_CLEAR
-> >> >  static inline pte_t ptep_get_and_clear(struct mm_struct *mm,
-> >> >  				       unsigned long addr, pte_t *ptep)
-> >> > diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
-> >> > index bbb5d85..7a9aade 100644
-> >> > --- a/arch/powerpc/include/asm/pkeys.h
-> >> > +++ b/arch/powerpc/include/asm/pkeys.h
-> >> > @@ -53,6 +53,18 @@ static inline u64 pte_to_hpte_pkey_bits(u64 pteflags)
-> >> >  		((pteflags & H_PAGE_PKEY_BIT4) ? HPTE_R_KEY_BIT4 : 0x0UL));
-> >> >  }
-> >> >
-> >> > +static inline u16 pte_to_pkey_bits(u64 pteflags)
-> >> > +{
-> >> > +	if (!pkey_inited)
-> >> > +		return 0x0UL;
-> >> 
-> >> Do we really need that above check ? We should always find it
-> >> peky_inited to be set. 
-> >
-> > Yes. there are cases where pkey_inited is not enabled. 
-> > a) if the MMU is radix.
-> That should be be a feature check
+> Since RFC [1]:
+> * Make the KVM context switch (semi-lazy)
+> * Rebase to v4.13-rc1
+> * Improve pointer authentication documentation
+> * Add hwcap documentation
+> * Various minor cleanups
 > 
-> > b) if the PAGE size is 4k.
+> I've pushed the series to the arm64/pointer-auth branch [2] of my linux tree.
+> I've also pushed out a necessary bootwrapper patch to the pointer-auth branch
+> [3] of my bootwrapper repo.
+
+[...]
+
+> Open questions
+> ==============
 > 
-> That is a kernel config change
+> * Should keys be per-thread rather than per-process?
 > 
-> > c) if the device tree says the feature is not available
-> > d) if the CPU is of a older generation. P6 and older.
+>   My understanding is that glibc can't (currently) handle threads having
+>   different keys, but it might be that another libc would prefer per-thread
+
+Can you elaborate?
+
+It's not valid to do a function return from one thread to another.
+
+>   keys. If desired, we could add a mechanism for a thread to re-initialize its
+>   keys without an exec*().
+
+Switching from per-process to per-thread keys would be an ABI break
+unless it's opt-in.
+
+> * Do we need a separate hwcap for XPAC* instructions?
 > 
-> Both feature check.
+>   Library code performing stack unwinding may need to interoperate with other
+>   code which may or may not be using pointer authentication. It may be
+>   desirable to use XPAC* rather than attempting authentication and/or acquiring
+>   the PAC masks via ptrace.
 > 
-> how about doing something like
+>   As we may expose APIBKey (potentially separately from APIAKey) in future,
+>   HWCAP_APIA cannot be used to determine when these instruction can/should be
+>   used.
+
+Can the availability of XPAC* be determined from the feature regs, or
+is that insufficient?
+
+This is a little different from the keys, which the kernel must
+provision / allow to be set in order for them to be useful.
+
+> * Should we expose a per-process data key now, to go with the insn key?
 > 
-> static inline u16 pte_to_pkey_bits(u64 pteflags)
-> {
-> 	if (!(pteflags & H_PAGE_KEY_MASK))
-> 		return 0x0UL;
-
-This check accomplishes the same thing as the return below.
-When (pteflag & H_PAGE_KEY_MASK) is 0,
-the code below returns the same 0x0UL. 
-
-
-
+>   I don't currently have a use-case for this.
 > 
-> 	return (((pteflags & H_PAGE_PKEY_BIT0) ? 0x10 : 0x0UL) |
-> 		((pteflags & H_PAGE_PKEY_BIT1) ? 0x8 : 0x0UL) |
-> 		((pteflags & H_PAGE_PKEY_BIT2) ? 0x4 : 0x0UL) |
-> 		((pteflags & H_PAGE_PKEY_BIT3) ? 0x2 : 0x0UL) |
-> 		((pteflags & H_PAGE_PKEY_BIT4) ? 0x1 : 0x0UL));
-> }
+> * Should we expose generic authentication (i.e. APGAKey)?
+> 
+>   I don't currently have a use-case for this.
 
-The idea  behind
-	       if (!pkey_inited)
-	               return 0x0UL;
+I guess there's no ABI impact for adding these later, so maybe it's not
+urgent if nobody shouts.
 
-was to not interpret the ptebits if we knew they were not initialized
-to begin with. 
+> * Should the kernel remove PACs when unwinding user stacks?
+> 
+>   This is simple to do, but it's arguably placing a policy in the kernel as to
+>   what we expect user stacks to look like. Regardless, userspace will have to
+>   perform this when unwinding with DWARF.
 
+Not sure.  This is arguably not more gross than related things the
+kernel already does, and may be inefficient for userspace to do e.g.,
+when capturing perf backtraces.  Still gross though.
 
--- 
-Ram Pai
+Side question: do you know whether there will be DWARF / ELF annotations
+for this?  Since ptr auth is a compile-time option, it is plausible that
+an attribute could be added to indicate that an image uses it.
+
+Cheers
+---Dave
