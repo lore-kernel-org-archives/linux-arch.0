@@ -1,107 +1,76 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH] [RESEND] mtd: only use __xipram annotation when XIP_KERNEL is set
-Date: Fri, 21 Jul 2017 22:26:25 +0200
-Message-ID: <20170721202636.3361536-1-arnd@arndb.de>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH v6 0/2] x86: Implement fast refcount overflow protection
+Date: Fri, 21 Jul 2017 14:22:55 -0700
+Message-ID: <20170721142255.586224f0db9cf0714e654859@linux-foundation.org>
+References: <1500422614-94821-1-git-send-email-keescook@chromium.org>
+        <20170720091106.kigtr6zy7pjgk2s6@gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.130]:54485 "EHLO
-        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752811AbdGUU2p (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Jul 2017 16:28:45 -0400
+Received: from mail.linuxfoundation.org ([140.211.169.12]:33360 "EHLO
+        mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752811AbdGUVW5 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Jul 2017 17:22:57 -0400
+In-Reply-To: <20170720091106.kigtr6zy7pjgk2s6@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>, David Woodhouse <dwmw2@infradead.org>, Brian Norris <computersforpeace@gmail.com>, Boris Brezillon <boris.brezillon@free-electrons.com>, Marek Vasut <marek.vasut@gmail.com>, Richard Weinberger <richard@nod.at>, Cyrille Pitchen <cyrille.pitchen@wedev4u.fr>
-Cc: Russell King <linux@armlinux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Nicholas Piggin <npiggin@gmail.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Michal Marek <mmarek@suse.com>, Linus Walleij <linus.walleij@linaro.org>, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>, Chris Metcalf <cmetcalf@mellanox.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mtd@lists.infradead.org
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Christoph Hellwig <hch@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.ne>
 
-When XIP_KERNEL is enabled, some functions are defined in the .data
-ELF section because we require them to be in RAM whenever we communicate
-with the flash chip. However this causes problems when FTRACE is
-enabled and gcc emits calls to __gnu_mcount_nc in the function
-prolog:
+On Thu, 20 Jul 2017 11:11:06 +0200 Ingo Molnar <mingo@kernel.org> wrote:
 
-drivers/built-in.o: In function `cfi_chip_setup':
-:(.data+0x272fc): relocation truncated to fit: R_ARM_CALL against symbol `__gnu_mcount_nc' defined in .text section in arch/arm/kernel/built-in.o
-drivers/built-in.o: In function `cfi_probe_chip':
-:(.data+0x27de8): relocation truncated to fit: R_ARM_CALL against symbol `__gnu_mcount_nc' defined in .text section in arch/arm/kernel/built-in.o
-/tmp/ccY172rP.s: Assembler messages:
-/tmp/ccY172rP.s:70: Warning: ignoring changed section attributes for .data
-/tmp/ccY172rP.s: Error: 1 warning, treating warnings as errors
-make[5]: *** [drivers/mtd/chips/cfi_probe.o] Error 1
-/tmp/ccK4rjeO.s: Assembler messages:
-/tmp/ccK4rjeO.s:421: Warning: ignoring changed section attributes for .data
-/tmp/ccK4rjeO.s: Error: 1 warning, treating warnings as errors
-make[5]: *** [drivers/mtd/chips/cfi_util.o] Error 1
-/tmp/ccUvhCYR.s: Assembler messages:
-/tmp/ccUvhCYR.s:1895: Warning: ignoring changed section attributes for .data
-/tmp/ccUvhCYR.s: Error: 1 warning, treating warnings as errors
+> 
+> * Kees Cook <keescook@chromium.org> wrote:
+> 
+> > This implements refcount_t overflow protection on x86 without a noticeable
+> > performance impact, though without the fuller checking of REFCOUNT_FULL.
+> > This is done by duplicating the existing atomic_t refcount implementation
+> > but with normally a single instruction added to detect if the refcount
+> > has gone negative (i.e. wrapped past INT_MAX or below zero). When
+> > detected, the handler saturates the refcount_t to INT_MIN / 2. With this
+> > overflow protection, the erroneous reference release that would follow
+> > a wrap back to zero is blocked from happening, avoiding the class of
+> > refcount-over-increment use-after-free vulnerabilities entirely.
+> > 
+> > Only the overflow case of refcounting can be perfectly protected, since it
+> > can be detected and stopped before the reference is freed and left to be
+> > abused by an attacker. This implementation also notices some of the "dec
+> > to 0 without test", and "below 0" cases. However, these only indicate that
+> > a use-after-free may have already happened. Such notifications are likely
+> > avoidable by an attacker that has already exploited a use-after-free
+> > vulnerability, but it's better to have them than allow such conditions to
+> > remain universally silent.
+> > 
+> > On first overflow detection, the refcount value is reset to INT_MIN / 2
+> > (which serves as a saturation value), the offending process is killed,
+> > and a report and stack trace are produced. When operations detect only
+> > negative value results (such as changing an already saturated value),
+> > saturation still happens but no notification is performed (since the
+> > value was already saturated).
+> > 
+> > On the matter of races, since the entire range beyond INT_MAX but before
+> > 0 is negative, every operation at INT_MIN / 2 will trap, leaving no
+> > overflow-only race condition.
+> > 
+> > As for performance, this implementation adds a single "js" instruction
+> > to the regular execution flow of a copy of the standard atomic_t refcount
+> > operations. (The non-"and_test" refcount_dec() function, which is uncommon
+> > in regular refcount design patterns, has an additional "jz" instruction
+> > to detect reaching exactly zero.) Since this is a forward jump, it is by
+> > default the non-predicted path, which will be reinforced by dynamic branch
+> > prediction. The result is this protection having virtually no measurable
+> > change in performance over standard atomic_t operations. The error path,
+> > located in .text.unlikely, saves the refcount location and then uses UD0
+> > to fire a refcount exception handler, which resets the refcount, handles
+> > reporting, and returns to regular execution. This keeps the changes to
+> > .text size minimal, avoiding return jumps and open-coded calls to the
+> > error reporting routine.
+> 
+> Pretty nice!
+> 
 
-Specifically, this does not work because the .data section is not
-marked executable, which leads LD to not generate trampolines for
-long calls.
+Yes, this is a relief.
 
-This moves the __xipram functions into their own .xiptext section instead.
-The section is still placed next to .data and located in RAM but is marked
-executable, which avoids the build errors.
-
-Also, we only need to place the XIP functions into a separate section
-if both CONFIG_XIP_KERNEL and CONFIG_MTD_XIP are set: When only MTD_XIP
-is used, the whole kernel is still in RAM and we do not need to worry
-about pulling out the rug under it. When only XIP_KERNEL but not MTD_XIP
-is set, the kernel is in some form of ROM, but we never write to it.
-
-Note that MTD_XIP has been broken on ARM since around 2011 or 2012. I
-have sent another patch[2] to fix compilation, which I plan to merge
-through arm-soc unless there are objections. The obvious alternative
-to that would be to completely rip out the MTD_XIP support from the
-kernel, since obviously nobody has been using it in a long while.
-
-Link: [1] https://patchwork.kernel.org/patch/8109771/
-Link: [2] https://patchwork.kernel.org/patch/9855225/
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>
----
- include/asm-generic/vmlinux.lds.h |  1 +
- include/linux/mtd/xip.h           | 10 ++++++----
- 2 files changed, 7 insertions(+), 4 deletions(-)
-
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index da0be9a8d1de..ff507c178327 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -203,6 +203,7 @@
-  * pull in .data..stuff which has its own requirements. Same for bss.
-  */
- #define DATA_DATA							\
-+	*(.xiptext)							\
- 	*(.data .data.[0-9a-zA-Z_]*)					\
- 	*(.ref.data)							\
- 	*(.data..shared_aligned) /* percpu related */			\
-diff --git a/include/linux/mtd/xip.h b/include/linux/mtd/xip.h
-index abed4dec5c2f..e373690cce0a 100644
---- a/include/linux/mtd/xip.h
-+++ b/include/linux/mtd/xip.h
-@@ -30,7 +30,9 @@
-  * obviously not be running from flash.  The __xipram is therefore marking
-  * those functions so they get relocated to ram.
-  */
--#define __xipram noinline __attribute__ ((__section__ (".data")))
-+#ifdef CONFIG_XIP_KERNEL
-+#define __xipram noinline __attribute__ ((__section__ (".xiptext")))
-+#endif
- 
- /*
-  * Each architecture has to provide the following macros.  They must access
-@@ -90,10 +92,10 @@
- #define xip_cpu_idle()  do { } while (0)
- #endif
- 
--#else
-+#endif /* CONFIG_MTD_XIP */
- 
-+#ifndef __xipram
- #define __xipram
--
--#endif /* CONFIG_MTD_XIP */
-+#endif
- 
- #endif /* __LINUX_MTD_XIP_H__ */
--- 
-2.9.0
+Do we have a feeling for how feasible/difficult it will be for other
+architectures to implement such a thing?
