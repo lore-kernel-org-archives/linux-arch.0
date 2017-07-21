@@ -1,77 +1,63 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v6 0/2] x86: Implement fast refcount overflow protection
-Date: Thu, 20 Jul 2017 15:53:25 -0700
-Message-ID: <CAGXu5jKM_gThfVoTxPE8vX-9GhBMd+ZYbwky5jUKJNevYxd50Q@mail.gmail.com>
-References: <1500422614-94821-1-git-send-email-keescook@chromium.org>
- <20170720091106.kigtr6zy7pjgk2s6@gmail.com> <CAGXu5jK0t0Xfj1oTUg51USEaJ7je+KMNoE0irfYNon2aAmhg7g@mail.gmail.com>
+From: ebiederm@xmission.com (Eric W. Biederman)
+Subject: Re: [PATCH 6/7] fcntl: Don't use ambiguous SIG_POLL si_codes
+Date: Thu, 20 Jul 2017 21:33:52 -0500
+Message-ID: <87lgni7c33.fsf@xmission.com>
+References: <87o9shg7t7.fsf_-_@xmission.com>
+        <20170718140651.15973-6-ebiederm@xmission.com>
+        <20170720161603.GA14430@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <kernel-hardening-return-9092-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-Sender: keescook@google.com
-In-Reply-To: <CAGXu5jK0t0Xfj1oTUg51USEaJ7je+KMNoE0irfYNon2aAmhg7g@mail.gmail.com>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Christoph Hellwig <hch@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from out01.mta.xmission.com ([166.70.13.231]:58474 "EHLO
+        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S965991AbdGUCl6 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Jul 2017 22:41:58 -0400
+In-Reply-To: <20170720161603.GA14430@redhat.com> (Oleg Nesterov's message of
+        "Thu, 20 Jul 2017 18:16:04 +0200")
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Oleg Nesterov <oleg@redhat.com>
+Cc: linux-kernel@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Andrei Vagin <avagin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Greg KH <greg@kroah.com>, Andrey Vagin <avagin@openvz.org>, Serge Hallyn <serge@hallyn.com>, Pavel Emelyanov <xemul@virtuozzo.com>, Cyrill Gorcunov <gorcunov@openvz.org>, Peter Zijlstra <peterz@infradead.org>, Willy Tarreau <w@1wt.eu>, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Linux Containers <containers@lists.linux-foundation.org>, Michael Kerrisk <mtk.manpages@gmail.com>
 
-On Thu, Jul 20, 2017 at 10:15 AM, Kees Cook <keescook@chromium.org> wrote:
-> On Thu, Jul 20, 2017 at 2:11 AM, Ingo Molnar <mingo@kernel.org> wrote:
->> Could you please also create a tabulated quick-comparison of the three variants,
->> of all key properties, about behavior, feature and tradeoff differences?
+
+
+Oleg Nesterov <oleg@redhat.com> writes:
+
+> On 07/18, Eric W. Biederman wrote:
 >>
->> Something like:
->>
->>                                 !ARCH_HAS_REFCOUNT      ARCH_HAS_REFCOUNT=y     REFCOUNT_FULL=y
->>
->> avg fast path instructions:     5                       3                       10
->> behavior on overflow:           unsafe, silent          safe,   verbose         safe,   verbose
->> behavior on underflow:          unsafe, silent          unsafe, verbose         unsafe, verbose
->> ...
->>
->> etc. - note that this table is just a quick mockup with wild guesses. (Please add
->> more comparisons of other aspects as well.)
->>
->> Such a comparison would make it easier for arch, subsystem and distribution
->> maintainers to decide on which variant to use/enable.
+>> -			BUG_ON((reason & __SI_MASK) != __SI_POLL);
+>> +			BUG_ON((reason < POLL_IN) || (reason > NSIGPOLL));
+>                                                       ^^^^^^^^^^^^^^^^^
+> looks obviously wrong? Say, POLL_IN is obviously > NSIGPOLL == 6.
+
+Strictly speaking that code is wrong until the next patch
+when I remove __SI_POLL.  That is my mistake.
+
+When the values are not their messed up internal kernel variants
+the code works fine and makes sense.
+
+#define POLL_IN		1	/* data input available */
+#define POLL_OUT	2	/* output buffers available */
+#define POLL_MSG	3	/* input message available */
+#define POLL_ERR	4	/* i/o error */
+#define POLL_PRI	5	/* high priority input available */
+#define POLL_HUP	6	/* device disconnected */
+#define NSIGPOLL	6
+
+> Probably you meant
 >
-> Sure, I can write this up. I'm not sure "safe"/"unsafe" is quite that
-> clean. The differences between -full and -fast are pretty subtle, but
-> I think I can describe it using the updated LKDTM tests I've written
-> to compare the two. There are conditions that -fast doesn't catch, but
-> those cases aren't actually useful for the overflow defense.
+> 			BUG_ON((reason < POLL_IN) || (reason - POLL_IN > NSIGPOLL)
 >
-> As for "avg fast path instructions", do you mean the resulting
-> assembly for each refcount API function? I think it's going to look
-> something like "1   2   45", but I'll write it up.
+> ?
+>
+> but this contradicts with the next line:
 
-So, doing a worst-case timing of a loop of inc() to INT_MAX and then
-dec_and_test() back to zero, I see this out of perf:
+>>  			if (reason - POLL_IN >= NSIGPOLL)
+>>  				si.si_band  = ~0L;
+>
+> confused...
 
-atomic
-25255.114805      task-clock (msec)
- 82249267387      cycles
- 11208720041      instructions
+I am mystified why we test for a condition that we have been bugging on
+for ages.
 
-refcount-fast
-25259.577583      task-clock (msec)
- 82211446892      cycles
- 15486246572      instructions
-
-refcount-full
-44625.923432      task-clock (msec)
-144814735193      cycles
-105937495952      instructions
-
-I'll still summarize all this in the v7 series, but I think that
-really clarifies the differences: 1.5x more instructions in -fast, but
-nearly identical cycles and clock. Using -full sees a large change (as
-expected).
-
--Kees
-
--- 
-Kees Cook
-Pixel Security
+Eric
