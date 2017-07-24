@@ -1,72 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:35840 "EHLO
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:35792 "EHLO
         foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932936AbdGXRd7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 24 Jul 2017 13:33:59 -0400
+        id S932545AbdGXRde (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 24 Jul 2017 13:33:34 -0400
 From: Punit Agrawal <punit.agrawal@arm.com>
-Subject: [RFC PATCH 2/2] mm/hugetlb: Support swap entries in huge_pte_offset()
-Date: Mon, 24 Jul 2017 18:33:18 +0100
-Message-ID: <20170724173318.966-3-punit.agrawal@arm.com>
-In-Reply-To: <20170724173318.966-1-punit.agrawal@arm.com>
-References: <20170724173318.966-1-punit.agrawal@arm.com>
+Subject: [RFC PATCH 0/2] Clarify huge_pte_offset() semantics
+Date: Mon, 24 Jul 2017 18:33:16 +0100
+Message-ID: <20170724173318.966-1-punit.agrawal@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
 Cc: Punit Agrawal <punit.agrawal@arm.com>, Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, steve.capper@arm.com, will.deacon@arm.com, catalin.marinas@arm.com, kirill.shutemov@linux.intel.com, Michal Hocko <mhocko@suse.com>, Mike Kravetz <mike.kravetz@oracle.com>
-Message-ID: <20170724173318.7kGKsPzn1_W8JtOUutwa6oKio3QuBGoIthTRlruc1X8@z>
+Message-ID: <20170724173316.qU7GbPaN9ucJwQZLCGgAfrvUYZhWBHyBhGOK18Q26Ng@z>
 
-Although huge_pte_offset() returns NULL when encountering swap page
-table entries, the callers of huge_pte_offset() correctly handling swap
-entries.
+Hi,
 
-Add support to the huge_pte_offset() to return the swap entries when it
-encounters them during the page table walks.
+The generic implementation of huge_pte_offset() has inconsistent
+behaviour when looking up hugepage PUDs vs PMDs entries that are not
+present (returning NULL vs pte_t*).
 
-Also update the function documentation to explicitly state this
-behaviour. This is to help clarify expectations for architecture
-specific implementations of huge_pte_offset().
+Similarly, it returns NULL when encountering swap entries although all
+the callers have special checks to properly deal with swap entries.
 
-Signed-off-by: Punit Agrawal <punit.agrawal@arm.com>
----
- mm/hugetlb.c | 14 ++++++++------
- 1 file changed, 8 insertions(+), 6 deletions(-)
+Without clear semantics, it is difficult to determine what is the
+expected behaviour of huge_pte_offset() without going through all the
+scenarios where it used.
 
-diff --git a/mm/hugetlb.c b/mm/hugetlb.c
-index 686eb6fa9eb1..72dd1139a8e4 100644
---- a/mm/hugetlb.c
-+++ b/mm/hugetlb.c
-@@ -4607,8 +4607,8 @@ pte_t *huge_pte_alloc(struct mm_struct *mm,
-  * huge_pte_offset() - Walk the page table to resolve the hugepage
-  * entry at address @addr
-  *
-- * Return: Pointer to page table entry (PUD or PMD) for address @addr
-- * or NULL if the entry is not present.
-+ * Return: Pointer to page table or swap entry (PUD or PMD) for address @addr
-+ * or NULL if the entry is p*d_none().
-  */
- pte_t *huge_pte_offset(struct mm_struct *mm,
- 		       unsigned long addr, unsigned long sz)
-@@ -4626,15 +4626,17 @@ pte_t *huge_pte_offset(struct mm_struct *mm,
- 		return NULL;
- 
- 	pud = pud_offset(p4d, addr);
--	if (!pud_present(*pud))
-+	if (pud_none(*pud))
- 		return NULL;
--	if (pud_huge(*pud))
-+	/* hugepage or swap? */
-+	if (pud_huge(*pud) || !pud_present(*pud))
- 		return (pte_t *)pud;
- 
- 	pmd = pmd_offset(pud, addr);
--	if (!pmd_present(*pmd))
-+	if (pmd_none(*pmd))
- 		return NULL;
--	if (pmd_huge(*pmd))
-+	/* hugepage or swap? */
-+	if (pmd_huge(*pmd) || !pmd_present(*pmd))
- 		return (pte_t *) pmd;
- 
- 	return NULL;
+I faced this recently when updating the arm64 implementation of
+huge_pte_offset() to handle swap entries (related to enabling poisoned
+memeory)[0]. And will come across again when I update it for
+contiguous hugepage support now that core changes have been merged.
+
+To address these issues, this small series -
+
+* makes huge_pte_offset() consistent between PUD and PMDs
+* adds support for returning swap entries
+* and most importantly, documents the expected behaviour of
+  huge_pte_offset()
+
+All feedback welcome.
+
+Thanks,
+Punit
+
+[0]
+
+Punit Agrawal (2):
+  mm/hugetlb: Make huge_pte_offset() consistent between PUD and PMD
+    entries
+  mm/hugetlb: Support swap entries in huge_pte_offset()
+
+ mm/hugetlb.c | 22 +++++++++++++++++++---
+ 1 file changed, 19 insertions(+), 3 deletions(-)
+
 -- 
 2.11.0
