@@ -1,40 +1,36 @@
-From: Michael Ellerman <mpe@ellerman.id.au>
+From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [PATCH v6 0/2] x86: Implement fast refcount overflow protection
-Date: Mon, 24 Jul 2017 16:38:06 +1000
-Message-ID: <87zibujq5t.fsf@concordia.ellerman.id.au>
-References: <1500422614-94821-1-git-send-email-keescook@chromium.org> <20170720091106.kigtr6zy7pjgk2s6@gmail.com> <20170721142255.586224f0db9cf0714e654859@linux-foundation.org> <CAGXu5j+QU7OXWA_oMaLUsDnS4yyfNx8-1f_ywHX=o88kqE7=JQ@mail.gmail.com>
+Date: Mon, 24 Jul 2017 10:44:55 +0200
+Message-ID: <20170724084455.o5asa55fckgyjri2@hirez.programming.kicks-ass.net>
+References: <1500422614-94821-1-git-send-email-keescook@chromium.org>
+ <20170720091106.kigtr6zy7pjgk2s6@gmail.com>
+ <20170721142255.586224f0db9cf0714e654859@linux-foundation.org>
+ <CAGXu5j+QU7OXWA_oMaLUsDnS4yyfNx8-1f_ywHX=o88kqE7=JQ@mail.gmail.com>
+ <87zibujq5t.fsf@concordia.ellerman.id.au>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([103.22.144.67]:46249 "EHLO ozlabs.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751663AbdGXGiK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 24 Jul 2017 02:38:10 -0400
-In-Reply-To: <CAGXu5j+QU7OXWA_oMaLUsDnS4yyfNx8-1f_ywHX=o88kqE7=JQ@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Christoph Hellwig <hch@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <kernel-hardening-return-9107-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+Content-Disposition: inline
+In-Reply-To: <87zibujq5t.fsf@concordia.ellerman.id.au>
+To: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Kees Cook <keescook@chromium.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Christoph Hellwig <hch@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, LKML <linux-kernel@vger.kernel.org>, linux-ar
+List-Id: linux-arch.vger.kernel.org
 
-Kees Cook <keescook@chromium.org> writes:
-> On Fri, Jul 21, 2017 at 2:22 PM, Andrew Morton
->>
->> Do we have a feeling for how feasible/difficult it will be for other
->> architectures to implement such a thing?
->
-> The PaX atomic_t overflow protection this is heavily based on was
-> ported to a number of architectures (arm, powerpc, mips, sparc), so I
-> suspect it shouldn't be too hard to adapt those for the more narrow
-> refcount_t protection:
-> https://forums.grsecurity.net/viewtopic.php?f=7&t=4173
+On Mon, Jul 24, 2017 at 04:38:06PM +1000, Michael Ellerman wrote:
 
-The ppc code there appears to be 32-bit only and has other issues so
-probably isn't something we'd use.
+> What I'm not entirely clear on is what the best trade off is in terms of
+> overhead vs checks. The summary of behaviour between the fast and full
+> versions you promised Ingo will help there I think.
 
-I don't think there should be any fundamental problem implementing it.
+That's something that's probably completely different for PPC than it is
+for x86. Both because your primitive is LL/SC and thus the saturation
+semantics we need a cmpxchg loop for are more natural in your case
+anyway, and the fact that your LL/SC is horrendously slow in any case.
 
-What I'm not entirely clear on is what the best trade off is in terms of
-overhead vs checks. The summary of behaviour between the fast and full
-versions you promised Ingo will help there I think.
-
-cheers
+Also, I still haven't seen an actual benchmark where our cmpxchg loop
+actually regresses anything, just a lot of yelling about potential
+regressions :/
