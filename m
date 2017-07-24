@@ -1,142 +1,160 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f172.google.com ([209.85.223.172]:36814 "EHLO
-        mail-io0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754320AbdGXSZP (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Jul 2017 14:25:15 -0400
-Received: by mail-io0-f172.google.com with SMTP id g35so13861558ioi.3
-        for <linux-arch@vger.kernel.org>; Mon, 24 Jul 2017 11:25:14 -0700 (PDT)
-MIME-Version: 1.0
-In-Reply-To: <20170724090710.o66r5r2pwxgwor7t@gmail.com>
-References: <1500855620-73004-1-git-send-email-keescook@chromium.org>
- <1500855620-73004-4-git-send-email-keescook@chromium.org> <20170724090710.o66r5r2pwxgwor7t@gmail.com>
+Received: from mail-pg0-f49.google.com ([74.125.83.49]:38585 "EHLO
+        mail-pg0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754127AbdGXSfx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Jul 2017 14:35:53 -0400
+Received: by mail-pg0-f49.google.com with SMTP id s4so60455648pgr.5
+        for <linux-arch@vger.kernel.org>; Mon, 24 Jul 2017 11:35:53 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Date: Mon, 24 Jul 2017 11:25:13 -0700
-Message-ID: <CAGXu5jKYnLu8B4Js-F4s5WPu0c3vDfhOnxV2qjd_WDdf6KucEQ@mail.gmail.com>
-Subject: Re: [PATCH v7 3/3] x86/refcount: Implement fast refcount overflow protection
-Content-Type: text/plain; charset="UTF-8"
+Subject: [PATCH v8 0/3] x86: Implement fast refcount overflow protection
+Date: Mon, 24 Jul 2017 11:35:46 -0700
+Message-ID: <1500921349-10803-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@kernel.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Christoph Hellwig <hch@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>
-Message-ID: <20170724182513.6gLI1ETREwmskDYLjgVOni1e72X2Rt0qlElO0mF0VRs@z>
+Cc: Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Christoph Hellwig <hch@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-kernel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
+Message-ID: <20170724183546.J100whkC8pSsVnizE0Q1u4vnSMjvktGzsDJqL0pDV_g@z>
 
-On Mon, Jul 24, 2017 at 2:07 AM, Ingo Molnar <mingo@kernel.org> wrote:
->
-> * Kees Cook <keescook@chromium.org> wrote:
->
->> +config ARCH_HAS_REFCOUNT
->> +     bool
->> +     help
->> +       An architecture selects this when it has implemented refcount_t
->> +       using primitizes that provide a faster runtime at the expense
->> +       of some full refcount state checks. The refcount overflow condition,
->> +       however, must be retained. Catching overflows is the primary
->> +       security concern for protecting against bugs in reference counts.
->
-> s/primitizes/primitives
+This series implements a fast refcount overflow protection for x86,
+which is needed to provide coverage for the several refcount-overflow
+use-after-free flaws the kernel has seen over the last many years.
 
-And, as an aside for anyone curious, I've just added this to my .vimrc:
+Patch 1 provides support for adding additional assembly to the GEN_*_RMWcc
+macros, patch 2 adds a new ASM_UNREACHABLE suggested by Josh, and patch 3
+does the real work. (I left Josh's Reviewed-by since the exception handler
+code has remained the same.)
 
-" Enable spell checking in Kconfig files
-autocmd BufEnter Kconfig* set spell
-" Enable spell checking in git commit edits
-autocmd BufEnter COMMIT_EDITMSG set spell
+Patch 3's full commit log:
 
-I'm always forgetting to double-check the spellchecker mode, and in
-those files, it should just be enabled by default. :P
 
-> also, the 'faster runtime' and the whole explanation reads a bit weird to me,
-> how about something like:
->
->        An architecture selects this when it has implemented refcount_t
->        using open coded assembly primitives that provide an optimized
->        refcount_t implementation, possibly at the expense of some full
->        refcount state checks of CONFIG_REFCOUNT_FULL=y.
->
->        The refcount overflow check behavior, however, must be retained.
->        Catching overflows is the primary security concern for protecting
->        against bugs in reference counts.
+This implements refcount_t overflow protection on x86 without a noticeable
+performance impact, though without the fuller checking of REFCOUNT_FULL.
+This is done by duplicating the existing atomic_t refcount implementation
+but with normally a single instruction added to detect if the refcount
+has gone negative (e.g. wrapped past INT_MAX or below zero). When detected,
+the handler saturates the refcount_t to INT_MIN / 2. With this overflow
+protection, the erroneous reference release that would follow a wrap back
+to zero is blocked from happening, avoiding the class of refcount-overflow
+use-after-free vulnerabilities entirely.
 
-Yeah, this is much clearer, thanks! I've replaced this for v8.
+Only the overflow case of refcounting can be perfectly protected, since
+it can be detected and stopped before the reference is freed and left to
+abused by an attacker. There isn't a way to block early decrements,
+and while REFCOUNT_FULL stops increment-from-zero cases (which would
+be the state _after_ an early decrement and stops potential double-free
+conditions), this fast implementation does not, since it would require
+the more expensive cmpxchg loops. Since the overflow case is much more
+common (e.g. missing a "put" during an error path), this protection
+provides real-world protection. For example, the two public refcount
+overflow use-after-free exploits published in 2016 would have been
+rendered unexploitable:
 
->> --- a/arch/x86/Kconfig
->> +++ b/arch/x86/Kconfig
->> @@ -55,6 +55,7 @@ config X86
->>       select ARCH_HAS_KCOV                    if X86_64
->>       select ARCH_HAS_MMIO_FLUSH
->>       select ARCH_HAS_PMEM_API                if X86_64
->> +     select ARCH_HAS_REFCOUNT
->>       select ARCH_HAS_UACCESS_FLUSHCACHE      if X86_64
->>       select ARCH_HAS_SET_MEMORY
->>       select ARCH_HAS_SG_CHAIN
->
-> Just wonderin, how was the 32-bit kernel tested?
+http://perception-point.io/2016/01/14/analysis-and-exploitation-of-a-linux-kernel-vulnerability-cve-2016-0728/
 
-I've got a qemu image for 32-bit too. Behavior and timing are
-similarly matched. I've got updates to LKDTM that provide test
-coverage of the refcount API. (I was going to send that via the
-drivers tree, with some other LKDTM updates.) If you want to see it, a
-not-quite-final version is here:
-https://git.kernel.org/pub/scm/linux/kernel/git/kees/linux.git/commit/?h=kspp/fast-refcount/ud/v6&id=5ebc36fd39a3c58bca770b81030626cf779103ee
+http://cyseclabs.com/page?n=02012016
 
->> +/*
->> + * Body of refcount error handling: in .text.unlikely, saved into CX the
->> + * address of the refcount that has entered a bad state, and trigger an
->> + * exception. Fixup address is back in regular execution flow in .text.
->
-> I had to read this 4 times to parse it (and even now I'm unsure whether I parsed
-> it correctly) - could this explanation be transformed to simpler, more
-> straightforward English?
+This implementation does, however, notice an unchecked decement to zero
+(i.e. caller used refcount_dec() instead of refcount_dec_and_test() and it
+resulted in a zero). Decrements under zero are noticed (since they will
+have resulted in a negative value), though this only indicates that a
+use-after-free may have already happened. Such notifications are likely
+avoidable by an attacker that has already exploited a use-after-free
+vulnerability, but it's better to have them reported than allow such
+conditions to remain universally silent.
 
-I've rewritten this now; hopefully it will be easier to parse.
+On first overflow detection, the refcount value is reset to INT_MIN / 2
+(which serves as a saturation value) and a report and stack trace are
+produced. When operations detect only negative value results (such as
+changing an already saturated value), saturation still happens but no
+notification is performed (since the value was already saturated).
 
->
->> + */
->> +#define _REFCOUNT_EXCEPTION                          \
->> +     ".pushsection .text.unlikely\n"                 \
->> +     "111:\tlea %[counter], %%" _ASM_CX "\n"         \
->> +     "112:\t" ASM_UD0 "\n"                           \
->> +     ASM_UNREACHABLE                                 \
->> +     ".popsection\n"                                 \
->> +     "113:\n"                                        \
->> +     _ASM_EXTABLE_REFCOUNT(112b, 113b)
->
-> Would it be technically possible to use named labels instead of these random
-> numbered labels?
+On the matter of races, since the entire range beyond INT_MAX but before
+0 is negative, every operation at INT_MIN / 2 will trap, leaving no
+overflow-only race condition.
 
-My understanding was that using numbered labels allows us to have
-repeated labels in the same function. (i.e. NUMb and NUMf can't, I
-think, be done with text labels.)
+As for performance, this implementation adds a single "js" instruction
+to the regular execution flow of a copy of the standard atomic_t refcount
+operations. (The non-"and_test" refcount_dec() function, which is uncommon
+in regular refcount design patterns, has an additional "jz" instruction
+to detect reaching exactly zero.) Since this is a forward jump, it is by
+default the non-predicted path, which will be reinforced by dynamic branch
+prediction. The result is this protection having virtually no measurable
+change in performance over standard atomic_t operations. The error path,
+located in .text.unlikely, saves the refcount location and then uses UD0
+to fire a refcount exception handler, which resets the refcount, handles
+reporting, and returns to regular execution. This keeps the changes to
+.text size minimal, avoiding return jumps and open-coded calls to the
+error reporting routine.
 
->> +     /*
->> +      * This function has been called because either a negative refcount
->> +      * value was seen by any of the refcount functions, or a zero
->> +      * refcount value was seen by refcount_dec().
->> +      *
->> +      * If we crossed from INT_MAX to INT_MIN, the OF flag (result
->> +      * wrapped around) will be set. Additionally, seeing the refcount
->> +      * reach 0 will set the ZF flag. In each of these cases we want a
->> +      * report, since it's a boundary condition.
->
-> Small nit: 'ZF' stands for 'zero flag' - so we should either write 'zero flag' or
-> 'ZF' - 'ZF flag' is kind of redundant.
+Example assembly comparison:
 
-True! I'll fix this (and the "OF flag" usage above there).
+refcount_inc before
+.text:
+ffffffff81546149:       f0 ff 45 f4             lock incl -0xc(%rbp)
 
->> +#else
->> +static inline void refcount_error_report(struct pt_regs *regs,
->> +                                      const char *msg) { }
->
-> By now you should know that for x86 code you should not break lines in such an
-> ugly fashion, right? :-)
+refcount_inc after
+.text:
+ffffffff81546149:       f0 ff 45 f4             lock incl -0xc(%rbp)
+ffffffff8154614d:       0f 88 80 d5 17 00       js     ffffffff816c36d3
+...
+.text.unlikely:
+ffffffff816c36d3:       48 8d 4d f4             lea    -0xc(%rbp),%rcx
+ffffffff816c36d7:       0f ff                   (bad)
 
-Yes, I agonized over this because I hated the look of each variation I
-tried here. I'll try again. :)
+These are the cycle counts comparing a loop of refcount_inc() from 1
+to INT_MAX and back down to 0 (via refcount_dec_and_test()), between
+unprotected refcount_t (atomic_t), fully protected REFCOUNT_FULL
+(refcount_t-full), and this overflow-protected refcount (refcount_t-fast):
 
-Thanks for the review!
+2147483646 refcount_inc()s and 2147483647 refcount_dec_and_test()s:
+                        cycles  protections
+atomic_t           82249267387  none
+refcount_t-fast    82211446892  overflow, untested dec-to-zero
+refcount_t-full   144814735193  overflow, untested dec-to-zero, inc-from-zero
+
+This code is a modified version of the x86 PAX_REFCOUNT atomic_t
+overflow defense from the last public patch of PaX/grsecurity, based
+on my understanding of the code. Changes or omissions from the original
+code are mine and don't reflect the original grsecurity/PaX code. Thanks
+to PaX Team for various suggestions for improvement for repurposing this
+code to be a refcount-only protection.
+
+
+Thanks!
 
 -Kees
 
--- 
-Kees Cook
-Pixel Security
+v8:
+- spelling fixes/rephrasings of Kconfig and comments; mingo
+- fix style nits; mingo
+
+v7:
+- add unreachable annotation; josh
+- improve inc/add_not_zero code
+- drop process killing (either we catch it or we don't)
+- refactor error report into WARN
+
+v6:
+- use single saturation value (INT_MIN / 2)
+- detect refcount_dec() to zero and saturate
+
+v5:
+- add unchecked atomic_t implementation when !CONFIG_REFCOUNT_FULL
+- use "leal" again, as in v3 for more flexible reset handling
+- provide better underflow detection, with saturation
+
+v4:
+- switch to js from jns to gain static branch prediction benefits
+- use .text.unlikely for js target, effectively making handler __cold
+- use UD0 with refcount exception handler instead of int 0x81
+- Kconfig defaults on when arch has support
+
+v3:
+- drop named text sections until we need to distinguish sizes/directions
+- reset value immediately instead of passing back to handler
+- drop needless export; josh
+
+v2:
+- fix instruction pointer decrement bug; thejh
+- switch to js; pax-team
+- improve commit log
