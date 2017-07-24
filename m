@@ -1,44 +1,141 @@
-From: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
-Subject: Re: Simplfying copy_siginfo_to_user
-Date: Mon, 24 Jul 2017 10:43:34 -0700
-Message-ID: <CA+55aFyH5W2doo9vxXta_-pXfNXqQ19d7z48k1hmfAot+aJvMw@mail.gmail.com>
-References: <87o9shg7t7.fsf_-_@xmission.com>
-	<20170718140651.15973-7-ebiederm@xmission.com>
-	<CA+55aFyKsmf+BpYjcH30MGpHTDJ=zgYPx6kwyEB9CXXFxj_xsw@mail.gmail.com>
-	<878tjlbqpt.fsf@xmission.com> <8760ek5ics.fsf_-_@xmission.com>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH v7 3/3] x86/refcount: Implement fast refcount overflow protection
+Date: Mon, 24 Jul 2017 11:25:13 -0700
+Message-ID: <CAGXu5jKYnLu8B4Js-F4s5WPu0c3vDfhOnxV2qjd_WDdf6KucEQ@mail.gmail.com>
+References: <1500855620-73004-1-git-send-email-keescook@chromium.org>
+ <1500855620-73004-4-git-send-email-keescook@chromium.org> <20170724090710.o66r5r2pwxgwor7t@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <containers-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <8760ek5ics.fsf_-_-aS9lmoZGLiVWk0Htik3J/w@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/containers>,
-	<mailto:containers-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/containers/>
-List-Post: <mailto:containers-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:containers-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/containers>,
-	<mailto:containers-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: containers-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: containers-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: "Eric W. Biederman" <ebiederm-aS9lmoZGLiVWk0Htik3J/w@public.gmane.org>
-Cc: "linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Andrei Vagin <avagin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Greg KH <greg-U8xfFu+wG4EAvxtiuMwx3w@public.gmane.org>, Linux Containers <containers-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>, Pavel Emelyanov <xemul-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Oleg Nesterov <oleg-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Al Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Linux API <linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Cyrill Gorcunov <gorcunov-GEFAQzZX7r8dnm+yROfE0A@public.gmane.org>, Michael Kerrisk <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Willy Tarreau <w@1wt.eu>, Andrey Vagin <avagin-GEFAQzZX7r8dnm+yROfE0A@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-io0-f172.google.com ([209.85.223.172]:36814 "EHLO
+        mail-io0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754320AbdGXSZP (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Jul 2017 14:25:15 -0400
+Received: by mail-io0-f172.google.com with SMTP id g35so13861558ioi.3
+        for <linux-arch@vger.kernel.org>; Mon, 24 Jul 2017 11:25:14 -0700 (PDT)
+In-Reply-To: <20170724090710.o66r5r2pwxgwor7t@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Christoph Hellwig <hch@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@dave>
 
-On Sat, Jul 22, 2017 at 1:25 PM, Eric W. Biederman
-<ebiederm-aS9lmoZGLiVWk0Htik3J/w@public.gmane.org> wrote:
-> I played with some clever changes such as limiting the copy to 48 bytes,
-> disabling the memset and the like but I could not get a strong enough
-> signal to say that any one change removed the extra or a clear part of
-> it 20ns.
+On Mon, Jul 24, 2017 at 2:07 AM, Ingo Molnar <mingo@kernel.org> wrote:
+>
+> * Kees Cook <keescook@chromium.org> wrote:
+>
+>> +config ARCH_HAS_REFCOUNT
+>> +     bool
+>> +     help
+>> +       An architecture selects this when it has implemented refcount_t
+>> +       using primitizes that provide a faster runtime at the expense
+>> +       of some full refcount state checks. The refcount overflow condition,
+>> +       however, must be retained. Catching overflows is the primary
+>> +       security concern for protecting against bugs in reference counts.
+>
+> s/primitizes/primitives
 
-What CPU did you use? Because the SMAP bit in particular matters.
+And, as an aside for anyone curious, I've just added this to my .vimrc:
 
-The field-by-field copies are extremely slow on modern CPU's that
-implement SMAP, unless you also use the special "unsafe_put_user()"
-code (or the nasty old put_user_ex() code that some of the x86 signal
-code uses).
+" Enable spell checking in Kconfig files
+autocmd BufEnter Kconfig* set spell
+" Enable spell checking in git commit edits
+autocmd BufEnter COMMIT_EDITMSG set spell
 
-So one of the advantages of just copy_to_user() ends up being visible
-only on Broadwell+ (or whatever the SMAP cutoff is).
+I'm always forgetting to double-check the spellchecker mode, and in
+those files, it should just be enabled by default. :P
 
-                 Linus
+> also, the 'faster runtime' and the whole explanation reads a bit weird to me,
+> how about something like:
+>
+>        An architecture selects this when it has implemented refcount_t
+>        using open coded assembly primitives that provide an optimized
+>        refcount_t implementation, possibly at the expense of some full
+>        refcount state checks of CONFIG_REFCOUNT_FULL=y.
+>
+>        The refcount overflow check behavior, however, must be retained.
+>        Catching overflows is the primary security concern for protecting
+>        against bugs in reference counts.
+
+Yeah, this is much clearer, thanks! I've replaced this for v8.
+
+>> --- a/arch/x86/Kconfig
+>> +++ b/arch/x86/Kconfig
+>> @@ -55,6 +55,7 @@ config X86
+>>       select ARCH_HAS_KCOV                    if X86_64
+>>       select ARCH_HAS_MMIO_FLUSH
+>>       select ARCH_HAS_PMEM_API                if X86_64
+>> +     select ARCH_HAS_REFCOUNT
+>>       select ARCH_HAS_UACCESS_FLUSHCACHE      if X86_64
+>>       select ARCH_HAS_SET_MEMORY
+>>       select ARCH_HAS_SG_CHAIN
+>
+> Just wonderin, how was the 32-bit kernel tested?
+
+I've got a qemu image for 32-bit too. Behavior and timing are
+similarly matched. I've got updates to LKDTM that provide test
+coverage of the refcount API. (I was going to send that via the
+drivers tree, with some other LKDTM updates.) If you want to see it, a
+not-quite-final version is here:
+https://git.kernel.org/pub/scm/linux/kernel/git/kees/linux.git/commit/?h=kspp/fast-refcount/ud/v6&id=5ebc36fd39a3c58bca770b81030626cf779103ee
+
+>> +/*
+>> + * Body of refcount error handling: in .text.unlikely, saved into CX the
+>> + * address of the refcount that has entered a bad state, and trigger an
+>> + * exception. Fixup address is back in regular execution flow in .text.
+>
+> I had to read this 4 times to parse it (and even now I'm unsure whether I parsed
+> it correctly) - could this explanation be transformed to simpler, more
+> straightforward English?
+
+I've rewritten this now; hopefully it will be easier to parse.
+
+>
+>> + */
+>> +#define _REFCOUNT_EXCEPTION                          \
+>> +     ".pushsection .text.unlikely\n"                 \
+>> +     "111:\tlea %[counter], %%" _ASM_CX "\n"         \
+>> +     "112:\t" ASM_UD0 "\n"                           \
+>> +     ASM_UNREACHABLE                                 \
+>> +     ".popsection\n"                                 \
+>> +     "113:\n"                                        \
+>> +     _ASM_EXTABLE_REFCOUNT(112b, 113b)
+>
+> Would it be technically possible to use named labels instead of these random
+> numbered labels?
+
+My understanding was that using numbered labels allows us to have
+repeated labels in the same function. (i.e. NUMb and NUMf can't, I
+think, be done with text labels.)
+
+>> +     /*
+>> +      * This function has been called because either a negative refcount
+>> +      * value was seen by any of the refcount functions, or a zero
+>> +      * refcount value was seen by refcount_dec().
+>> +      *
+>> +      * If we crossed from INT_MAX to INT_MIN, the OF flag (result
+>> +      * wrapped around) will be set. Additionally, seeing the refcount
+>> +      * reach 0 will set the ZF flag. In each of these cases we want a
+>> +      * report, since it's a boundary condition.
+>
+> Small nit: 'ZF' stands for 'zero flag' - so we should either write 'zero flag' or
+> 'ZF' - 'ZF flag' is kind of redundant.
+
+True! I'll fix this (and the "OF flag" usage above there).
+
+>> +#else
+>> +static inline void refcount_error_report(struct pt_regs *regs,
+>> +                                      const char *msg) { }
+>
+> By now you should know that for x86 code you should not break lines in such an
+> ugly fashion, right? :-)
+
+Yes, I agonized over this because I hated the look of each variation I
+tried here. I'll try again. :)
+
+Thanks for the review!
+
+-Kees
+
+-- 
+Kees Cook
+Pixel Security
