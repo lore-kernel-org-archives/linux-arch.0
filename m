@@ -1,53 +1,50 @@
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [PATCH v6 0/2] x86: Implement fast refcount overflow protection
-Date: Mon, 24 Jul 2017 22:09:32 +1000
-Message-ID: <87k22yjatf.fsf@concordia.ellerman.id.au>
-References: <1500422614-94821-1-git-send-email-keescook@chromium.org> <20170720091106.kigtr6zy7pjgk2s6@gmail.com> <20170721142255.586224f0db9cf0714e654859@linux-foundation.org> <CAGXu5j+QU7OXWA_oMaLUsDnS4yyfNx8-1f_ywHX=o88kqE7=JQ@mail.gmail.com> <87zibujq5t.fsf@concordia.ellerman.id.au> <20170724084455.o5asa55fckgyjri2@hirez.programming.kicks-ass.net>
+From: "Kirill A. Shutemov" <kirill@shutemov.name>
+Subject: Re: KASAN vs. boot-time switching between 4- and 5-level paging
+Date: Mon, 24 Jul 2017 15:13:31 +0300
+Message-ID: <20170724121331.k3fl4xjrsmznqk2t@node.shutemov.name>
+References: <CALCETrVpNUq3-zEu1Q1O77N8r4kv4kFdefXp7XEs3Hpf-JPAjg@mail.gmail.com>
+ <d3caf8c4-4575-c1b5-6b0f-95527efaf2f9@virtuozzo.com>
+ <f11d9e07-6b31-1add-7677-6a29d15ab608@virtuozzo.com>
+ <20170711170332.wlaudicepkg35dmm@node.shutemov.name>
+ <e9a395f4-018e-4c8c-2098-170172e438f3@virtuozzo.com>
+ <20170711190554.zxkpjeg2bt65wtir@black.fi.intel.com>
+ <20939b37-efd8-2d32-0040-3682fff927c2@virtuozzo.com>
+ <20170713135228.vhvpe7mqdcqzpslw@node.shutemov.name>
+ <20170713141528.rwuz5n2p57omq6wi@node.shutemov.name>
+ <e201423e-5f4e-8bd6-144a-2374f7b7bb3f@virtuozzo.com>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([103.22.144.67]:50257 "EHLO ozlabs.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751482AbdGXMJh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 24 Jul 2017 08:09:37 -0400
-In-Reply-To: <20170724084455.o5asa55fckgyjri2@hirez.programming.kicks-ass.net>
+Received: from mail-wm0-f53.google.com ([74.125.82.53]:38782 "EHLO
+        mail-wm0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753271AbdGXMNh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Jul 2017 08:13:37 -0400
+Received: by mail-wm0-f53.google.com with SMTP id m85so15655177wma.1
+        for <linux-arch@vger.kernel.org>; Mon, 24 Jul 2017 05:13:37 -0700 (PDT)
+Content-Disposition: inline
+In-Reply-To: <e201423e-5f4e-8bd6-144a-2374f7b7bb3f@virtuozzo.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Kees Cook <keescook@chromium.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Christoph Hellwig <hch@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>
+To: Andrey Ryabinin <aryabinin@virtuozzo.com>
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Dmitry Vyukov <dvyukov@google.com>, Alexander Potapenko <glider@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, "x86@kernel.org" <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>
 
-Peter Zijlstra <peterz@infradead.org> writes:
+On Thu, Jul 13, 2017 at 05:19:22PM +0300, Andrey Ryabinin wrote:
+> >> https://git.kernel.org/pub/scm/linux/kernel/git/kas/linux.git/commit/?h=la57/boot-switching/v2&id=13327fec85ffe95d9c8a3f57ba174bf5d5c1fb01
+> >>
+> >>> As for KASAN, I think it would be better just to make it work faster,
+> >>> the patch below demonstrates the idea.
+> >>
+> >> Okay, let me test this.
+> > 
+> > The patch works for me.
+> > 
+> > The problem is not exclusive to 5-level paging, so could you prepare and
+> > push proper patch upstream?
+> > 
+> 
+> Sure, will do
 
-> On Mon, Jul 24, 2017 at 04:38:06PM +1000, Michael Ellerman wrote:
->
->> What I'm not entirely clear on is what the best trade off is in terms of
->> overhead vs checks. The summary of behaviour between the fast and full
->> versions you promised Ingo will help there I think.
->
-> That's something that's probably completely different for PPC than it is
-> for x86.
+Andrey, any follow up on this?
 
-Yeah definitely. I guess I see the x86 version as a lower bound on the
-semantics we'd need to implement and still claim to implement the
-refcount stuff.
-
-> Both because your primitive is LL/SC and thus the saturation
-> semantics we need a cmpxchg loop for are more natural in your case
-
-Yay!
-
-> anyway, and the fact that your LL/SC is horrendously slow in any case.
-
-Boo :/
-
-Just kidding. I suspect you're right that we can probably pack a
-reasonable amount of tests in the body of the LL/SC and not notice.
-
-> Also, I still haven't seen an actual benchmark where our cmpxchg loop
-> actually regresses anything, just a lot of yelling about potential
-> regressions :/
-
-Heh yeah. Though I have looked at the code it generates on PPC and it's
-not sleek, though I guess that's not a benchmark is it :)
-
-cheers
+-- 
+ Kirill A. Shutemov
