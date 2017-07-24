@@ -1,54 +1,92 @@
-From: Andrey Ryabinin <aryabinin@virtuozzo.com>
-Subject: Re: KASAN vs. boot-time switching between 4- and 5-level paging
-Date: Mon, 24 Jul 2017 17:07:08 +0300
-Message-ID: <ba973011-e46c-d034-00ee-77d494c62e5a@virtuozzo.com>
-References: <CALCETrVpNUq3-zEu1Q1O77N8r4kv4kFdefXp7XEs3Hpf-JPAjg@mail.gmail.com>
- <d3caf8c4-4575-c1b5-6b0f-95527efaf2f9@virtuozzo.com>
- <f11d9e07-6b31-1add-7677-6a29d15ab608@virtuozzo.com>
- <20170711170332.wlaudicepkg35dmm@node.shutemov.name>
- <e9a395f4-018e-4c8c-2098-170172e438f3@virtuozzo.com>
- <20170711190554.zxkpjeg2bt65wtir@black.fi.intel.com>
- <20939b37-efd8-2d32-0040-3682fff927c2@virtuozzo.com>
- <20170713135228.vhvpe7mqdcqzpslw@node.shutemov.name>
- <20170713141528.rwuz5n2p57omq6wi@node.shutemov.name>
- <e201423e-5f4e-8bd6-144a-2374f7b7bb3f@virtuozzo.com>
- <20170724121331.k3fl4xjrsmznqk2t@node.shutemov.name>
+From: Thomas Garnier <thgarnie@google.com>
+Subject: Re: [RFC 21/22] x86/module: Add support for mcmodel large and PLTs
+Date: Mon, 24 Jul 2017 09:32:58 -0700
+Message-ID: <CAJcbSZF=gCLRzqAzPgb46CJ6YDibUK0bG0NsVsAqV6jOHzZskA@mail.gmail.com>
+References: <20170718223333.110371-1-thgarnie@google.com> <20170718223333.110371-22-thgarnie@google.com>
+ <c0bc2d98-d6eb-e3db-3799-2e28e9919f3d@zytor.com> <CAMzpN2j+Z27uudHXqqMhbk=s=pnk7LdA2FPkgmsdZzO3ysemsQ@mail.gmail.com>
+ <CAJcbSZFphkF8bcodkcwpK-oi3D7GTQXyTkOLPkmtWSPLPkvB0Q@mail.gmail.com> <CAMzpN2jWTS8R5V6i5q=bq4NGW_svELw5bjgWTOX=Ow3ddWx-6Q@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ve1eur01on0134.outbound.protection.outlook.com ([104.47.1.134]:48576
-        "EHLO EUR01-VE1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752853AbdGXOEr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 24 Jul 2017 10:04:47 -0400
-In-Reply-To: <20170724121331.k3fl4xjrsmznqk2t@node.shutemov.name>
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Kirill A. Shutemov" <kirill@shutemov.name>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Dmitry Vyukov <dvyukov@google.com>, Alexander Potapenko <glider@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, "x86@kernel.org" <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <kernel-hardening-return-9115-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+In-Reply-To: <CAMzpN2jWTS8R5V6i5q=bq4NGW_svELw5bjgWTOX=Ow3ddWx-6Q@mail.gmail.com>
+To: Brian Gerst <brgerst@gmail.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, Herbert Xu <herbert@gondor.apana.org.au>, "David S . Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Matthias Kaehlcke <mka@chromium.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, Paolo Bonzini <pbonzini@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Joerg Roedel <joro@8bytes.org>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@alien8.de>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Borislav Petkov <bp@suse.de>, Christian Borntraeger <borntraeger@de.ibm.com>, "Rafael J . Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Pavel Machek <pavel@ucw.cz>, Tejun Heo <tj@kernel.org>Christ
+List-Id: linux-arch.vger.kernel.org
 
-
-
-On 07/24/2017 03:13 PM, Kirill A. Shutemov wrote:
-> On Thu, Jul 13, 2017 at 05:19:22PM +0300, Andrey Ryabinin wrote:
->>>> https://git.kernel.org/pub/scm/linux/kernel/git/kas/linux.git/commit/?h=la57/boot-switching/v2&id=13327fec85ffe95d9c8a3f57ba174bf5d5c1fb01
+On Wed, Jul 19, 2017 at 10:34 AM, Brian Gerst <brgerst@gmail.com> wrote:
+> On Wed, Jul 19, 2017 at 11:58 AM, Thomas Garnier <thgarnie@google.com> wrote:
+>> On Tue, Jul 18, 2017 at 8:59 PM, Brian Gerst <brgerst@gmail.com> wrote:
+>>> On Tue, Jul 18, 2017 at 9:35 PM, H. Peter Anvin <hpa@zytor.com> wrote:
+>>>> On 07/18/17 15:33, Thomas Garnier wrote:
+>>>>> With PIE support and KASLR extended range, the modules may be further
+>>>>> away from the kernel than before breaking mcmodel=kernel expectations.
+>>>>>
+>>>>> Add an option to build modules with mcmodel=large. The modules generated
+>>>>> code will make no assumptions on placement in memory.
+>>>>>
+>>>>> Despite this option, modules still expect kernel functions to be within
+>>>>> 2G and generate relative calls. To solve this issue, the PLT arm64 code
+>>>>> was adapted for x86_64. When a relative relocation go outside its range,
+>>>>> a dynamic PLT entry is used to correctly jump to the destination.
 >>>>
->>>>> As for KASAN, I think it would be better just to make it work faster,
->>>>> the patch below demonstrates the idea.
->>>>
->>>> Okay, let me test this.
+>>>> Why large as opposed to medium or medium-PIC?
 >>>
->>> The patch works for me.
->>>
->>> The problem is not exclusive to 5-level paging, so could you prepare and
->>> push proper patch upstream?
->>>
+>>> Or for that matter, why not small-PIC?  We aren't changing the size of
+>>> the kernel to be larger than 2G text or data.  Small-PIC would still
+>>> allow it to be placed anywhere in the address space, and would
+>>> generate far better code.
 >>
->> Sure, will do
-> 
-> Andrey, any follow up on this?
-> 
+>> My understanding was that small=PIC and medium=PIC assume that the
+>> module code is in the lower 2G of memory. I will do additional testing
+>> on the modules to confirm that.
+>
+> That is only for small/medium absolute (non-PIC) code.  Think about
+> userspace shared libraries.  They are not limited to being mapped in
+> the lower 2G of the address space.
 
-Sorry, I've been busy a bit. Will send patch shortly
+I built lkdtm with mcmodel=(kernel, small, medium & large).
+
+Comparing the same instruction and its relocation in lkdtm
+(lkdtm_register_cpoint).
+
+On mcmodel=kernel:
+
+     1b8:       48 c7 c7 00 00 00 00    mov    $0x0,%rdi
+                        1bb: R_X86_64_32S       .rodata.str1.8+0x50
+
+On mcmodel=small and mcmodel=medium:
+
+     1b8:       bf 00 00 00 00          mov    $0x0,%edi
+     1b9: R_X86_64_32        .rodata.str1.8+0x50
+
+On mcmodel=large:
+
+     235:       48 bf 00 00 00 00 00    movabs $0x0,%rdi
+     23c:       00 00 00
+                        237: R_X86_64_64        .rodata.str1.8+0x50
+
+The kernel mcmodel extends the sign of the address. It assumes you are
+in the top 2G of the address space. So the relocated pointer
+0x8XXXXXXX becomes 0xFFFFFFFF8XXXXXXX.
+
+The small and medium mcmodels assume the pointer is within the lower
+part of the address space. The generate pointer has the 32-bit high
+part to zero. You can only map the module between 0 and 0xFFFFFFFF.
+
+The large mcmodel can handle a full 64-bit pointer.
+
+That's why I use the large mcmodel on modules. I cannot use PIE due to
+how the modules are linked.
+
+>
+> --
+> Brian Gerst
+
+
+
+-- 
+Thomas
