@@ -1,44 +1,53 @@
-From: Yao Qi <yao.qi@arm.com>
-Subject: Re: [PATCH 00/11] ARMv8.3 pointer authentication userspace support
-Date: Mon, 24 Jul 2017 12:52:12 +0100
-Message-ID: <46daaf0b-6b90-61cc-a25f-4177641d1613@arm.com>
-References: <1500480092-28480-1-git-send-email-mark.rutland@arm.com>
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [PATCH v6 0/2] x86: Implement fast refcount overflow protection
+Date: Mon, 24 Jul 2017 22:09:32 +1000
+Message-ID: <87k22yjatf.fsf@concordia.ellerman.id.au>
+References: <1500422614-94821-1-git-send-email-keescook@chromium.org> <20170720091106.kigtr6zy7pjgk2s6@gmail.com> <20170721142255.586224f0db9cf0714e654859@linux-foundation.org> <CAGXu5j+QU7OXWA_oMaLUsDnS4yyfNx8-1f_ywHX=o88kqE7=JQ@mail.gmail.com> <87zibujq5t.fsf@concordia.ellerman.id.au> <20170724084455.o5asa55fckgyjri2@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252; format=flowed
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-he1eur01on0048.outbound.protection.outlook.com ([104.47.0.48]:43008
-        "EHLO EUR01-HE1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752988AbdGXLwZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 24 Jul 2017 07:52:25 -0400
-In-Reply-To: <1500480092-28480-1-git-send-email-mark.rutland@arm.com>
+Received: from ozlabs.org ([103.22.144.67]:50257 "EHLO ozlabs.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751482AbdGXMJh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 24 Jul 2017 08:09:37 -0400
+In-Reply-To: <20170724084455.o5asa55fckgyjri2@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Rutland <mark.rutland@arm.com>, linux-arm-kernel@lists.infradead.org
-Cc: arnd@arndb.de, catalin.marinas@arm.com, christoffer.dall@linaro.org, Dave.Martin@arm.com, jiong.wang@arm.com, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, marc.zyngier@arm.com, suzuki.poulose@arm.com, will.deacon@arm.com, linux-kernel@vger.kernel.org, kernel-hardening@lists.openwall.com
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Kees Cook <keescook@chromium.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Christoph Hellwig <hch@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>
 
-On 19/07/17 17:01, Mark Rutland wrote:
-> * Should the kernel remove PACs when unwinding user stacks?
+Peter Zijlstra <peterz@infradead.org> writes:
+
+> On Mon, Jul 24, 2017 at 04:38:06PM +1000, Michael Ellerman wrote:
 >
->   This is simple to do, but it's arguably placing a policy in the kernel =
-as to
->   what we expect user stacks to look like. Regardless, userspace will hav=
-e to
->   perform this when unwinding with DWARF.
+>> What I'm not entirely clear on is what the best trade off is in terms of
+>> overhead vs checks. The summary of behaviour between the fast and full
+>> versions you promised Ingo will help there I think.
+>
+> That's something that's probably completely different for PPC than it is
+> for x86.
 
-I am not sure what do you mean.  Do you mean stripping a PAC from a
-pointer during unwinding, so that user space can unwind the program
-without being aware of PAC?  Can kernel remove PAC from all instruction
-pointers?  Note that user space debugger may try to unwind in coredump,
-so if the contents dumped into coredump including PAC bits, debuggers
-still have to be aware of PAC (unless kernel can remove all PAC bits
-during coredump too).
+Yeah definitely. I guess I see the x86 version as a lower bound on the
+semantics we'd need to implement and still claim to implement the
+refcount stuff.
 
-IMO, kernel needs to tell the truth to reflect the process/task state
-to the user space, and leave the user space to consume.
-IMPORTANT NOTICE: The contents of this email and any attachments are confid=
-ential and may also be privileged. If you are not the intended recipient, p=
-lease notify the sender immediately and do not disclose the contents to any=
- other person, use it for any purpose, or store or copy the information in =
-any medium. Thank you.
+> Both because your primitive is LL/SC and thus the saturation
+> semantics we need a cmpxchg loop for are more natural in your case
+
+Yay!
+
+> anyway, and the fact that your LL/SC is horrendously slow in any case.
+
+Boo :/
+
+Just kidding. I suspect you're right that we can probably pack a
+reasonable amount of tests in the body of the LL/SC and not notice.
+
+> Also, I still haven't seen an actual benchmark where our cmpxchg loop
+> actually regresses anything, just a lot of yelling about potential
+> regressions :/
+
+Heh yeah. Though I have looked at the code it generates on PPC and it's
+not sleek, though I guess that's not a benchmark is it :)
+
+cheers
