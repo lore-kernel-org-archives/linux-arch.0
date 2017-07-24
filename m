@@ -1,87 +1,104 @@
-From: ebiederm-aS9lmoZGLiVWk0Htik3J/w@public.gmane.org (Eric W. Biederman)
-Subject: Simplfying copy_siginfo_to_user
-Date: Sat, 22 Jul 2017 15:25:55 -0500
-Message-ID: <8760ek5ics.fsf_-_@xmission.com>
-References: <87o9shg7t7.fsf_-_@xmission.com>
-	<20170718140651.15973-7-ebiederm@xmission.com>
-	<CA+55aFyKsmf+BpYjcH30MGpHTDJ=zgYPx6kwyEB9CXXFxj_xsw@mail.gmail.com>
-	<878tjlbqpt.fsf@xmission.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <containers-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <878tjlbqpt.fsf-aS9lmoZGLiVWk0Htik3J/w@public.gmane.org> (Eric W. Biederman's message of
-	"Tue, 18 Jul 2017 12:27:26 -0500")
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/containers>,
-	<mailto:containers-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/containers/>
-List-Post: <mailto:containers-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:containers-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/containers>,
-	<mailto:containers-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: containers-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: containers-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
-Cc: "linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Andrei Vagin <avagin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Greg KH <greg-U8xfFu+wG4EAvxtiuMwx3w@public.gmane.org>, Linux Containers <containers-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>, Pavel Emelyanov <xemul-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Oleg Nesterov <oleg-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Al Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Linux API <linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Cyrill Gorcunov <gorcunov-GEFAQzZX7r8dnm+yROfE0A@public.gmane.org>, Michael Kerrisk <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Willy Tarreau <w@1wt.eu>, Andrey Vagin <avagin-GEFAQzZX7r8dnm+yROfE0A@public.gmane.org>
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH v7 1/3] x86/asm: Add suffix macro for GEN_*_RMWcc()
+Date: Sun, 23 Jul 2017 17:20:18 -0700
+Message-ID: <1500855620-73004-2-git-send-email-keescook@chromium.org>
+References: <1500855620-73004-1-git-send-email-keescook@chromium.org>
+Return-path: <kernel-hardening-return-9100-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+In-Reply-To: <1500855620-73004-1-git-send-email-keescook@chromium.org>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Christoph Hellwig <hch@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, linux-kernel@vger.kernel.orglinu
 List-Id: linux-arch.vger.kernel.org
 
-ebiederm-aS9lmoZGLiVWk0Htik3J/w@public.gmane.org (Eric W. Biederman) writes:
+The coming x86 refcount protection needs to be able to add trailing
+instructions to the GEN_*_RMWcc() operations. This extracts the
+difference between the goto/non-goto cases so the helper macros
+can be defined outside the #ifdef cases. Additionally adds argument
+naming to the resulting asm for referencing from suffixed
+instructions, and adds clobbers for "cc", and "cx" to let suffixes
+use _ASM_CX, and retain any set flags.
 
-> Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org> writes:
->
->> On Tue, Jul 18, 2017 at 7:06 AM, Eric W. Biederman
->> <ebiederm-aS9lmoZGLiVWk0Htik3J/w@public.gmane.org> wrote:
->>> struct siginfo is a union and the kernel since 2.4 has been hiding a union
->>> tag in the high 16bits of si_code using the values:
->>> __SI_KILL
->>> __SI_TIMER
->>> __SI_POLL
->>> __SI_FAULT
->>> __SI_CHLD
->>> __SI_RT
->>> __SI_MESGQ
->>> __SI_SYS
->>>
->>> While this looks plausible on the surface, in practice this situation has
->>> not worked well.
->>
->> So on the whole I think we just need to do this, but the part I really
->> hate about this series is still this the siginfo_layout() part.
->>
->> I can well believe that it is needed for the compat case. siginfo is a
->> piece of crap crazy type, and re-ordering fields for compat is
->> something we are always going to have to do.
->>
->> But for the native case, the *only* reason we do not just copy the
->> siginfo as-is seems to be that it's just too big, due to other bad
->> design decisions in siginfo ("let's make sure it's big enough by
->> allocating 512 bytes for it).
->>
->> And afaik, absolutely nobody uses more than about 36 bytes of that
->> 512-byte _sifields union (and that one use is SIGILL with three
->> pointers and three integers and some padding.
->>
->> So why don't we just say "screw this idiotic layout crap, and just
->> unconditionally copy that much smaller maximum of bytes"?
->>
->> Leave that layout thing purely for compat handling.
->
-> I completely agree.
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+ arch/x86/include/asm/rmwcc.h | 37 ++++++++++++++++++++++++-------------
+ 1 file changed, 24 insertions(+), 13 deletions(-)
 
-So I just did some measurements to see what the performance impact is of
-doing the simple and obvious thing of always copying the entire siginfo
-around.  There is a fair amount of variation in my timings but for
-the whole change I see about a 20ns increase in time taken to send
-a signal with siginfo from the current process to the current process.
-AKA timing kill(getpid(),...). 
-
-I played with some clever changes such as limiting the copy to 48 bytes,
-disabling the memset and the like but I could not get a strong enough
-signal to say that any one change removed the extra or a clear part of
-it 20ns.
-
-Do we care about those 20ns for signal deliver?  I suspect from my
-previous numbers that if Andy can get signal delivery to use sysret
-it will more than make up for the small increase in cost here.
-
-Eric
+diff --git a/arch/x86/include/asm/rmwcc.h b/arch/x86/include/asm/rmwcc.h
+index 661dd305694a..045f99211a99 100644
+--- a/arch/x86/include/asm/rmwcc.h
++++ b/arch/x86/include/asm/rmwcc.h
+@@ -1,45 +1,56 @@
+ #ifndef _ASM_X86_RMWcc
+ #define _ASM_X86_RMWcc
+ 
++#define __CLOBBERS_MEM		"memory"
++#define __CLOBBERS_MEM_CC_CX	"memory", "cc", "cx"
++
+ #if !defined(__GCC_ASM_FLAG_OUTPUTS__) && defined(CC_HAVE_ASM_GOTO)
+ 
+ /* Use asm goto */
+ 
+-#define __GEN_RMWcc(fullop, var, cc, ...)				\
++#define __GEN_RMWcc(fullop, var, cc, clobbers, ...)			\
+ do {									\
+ 	asm_volatile_goto (fullop "; j" #cc " %l[cc_label]"		\
+-			: : "m" (var), ## __VA_ARGS__ 			\
+-			: "memory" : cc_label);				\
++			: : [counter] "m" (var), ## __VA_ARGS__		\
++			: clobbers : cc_label);				\
+ 	return 0;							\
+ cc_label:								\
+ 	return 1;							\
+ } while (0)
+ 
+-#define GEN_UNARY_RMWcc(op, var, arg0, cc) 				\
+-	__GEN_RMWcc(op " " arg0, var, cc)
++#define __BINARY_RMWcc_ARG	" %1, "
+ 
+-#define GEN_BINARY_RMWcc(op, var, vcon, val, arg0, cc)			\
+-	__GEN_RMWcc(op " %1, " arg0, var, cc, vcon (val))
+ 
+ #else /* defined(__GCC_ASM_FLAG_OUTPUTS__) || !defined(CC_HAVE_ASM_GOTO) */
+ 
+ /* Use flags output or a set instruction */
+ 
+-#define __GEN_RMWcc(fullop, var, cc, ...)				\
++#define __GEN_RMWcc(fullop, var, cc, clobbers, ...)			\
+ do {									\
+ 	bool c;								\
+ 	asm volatile (fullop ";" CC_SET(cc)				\
+-			: "+m" (var), CC_OUT(cc) (c)			\
+-			: __VA_ARGS__ : "memory");			\
++			: [counter] "+m" (var), CC_OUT(cc) (c)		\
++			: __VA_ARGS__ : clobbers);			\
+ 	return c;							\
+ } while (0)
+ 
++#define __BINARY_RMWcc_ARG	" %2, "
++
++#endif /* defined(__GCC_ASM_FLAG_OUTPUTS__) || !defined(CC_HAVE_ASM_GOTO) */
++
+ #define GEN_UNARY_RMWcc(op, var, arg0, cc)				\
+-	__GEN_RMWcc(op " " arg0, var, cc)
++	__GEN_RMWcc(op " " arg0, var, cc, __CLOBBERS_MEM)
++
++#define GEN_UNARY_SUFFIXED_RMWcc(op, suffix, var, arg0, cc)		\
++	__GEN_RMWcc(op " " arg0 "\n\t" suffix, var, cc,			\
++		    __CLOBBERS_MEM_CC_CX)
+ 
+ #define GEN_BINARY_RMWcc(op, var, vcon, val, arg0, cc)			\
+-	__GEN_RMWcc(op " %2, " arg0, var, cc, vcon (val))
++	__GEN_RMWcc(op __BINARY_RMWcc_ARG arg0, var, cc,		\
++		    __CLOBBERS_MEM, vcon (val))
+ 
+-#endif /* defined(__GCC_ASM_FLAG_OUTPUTS__) || !defined(CC_HAVE_ASM_GOTO) */
++#define GEN_BINARY_SUFFIXED_RMWcc(op, suffix, var, vcon, val, arg0, cc)	\
++	__GEN_RMWcc(op __BINARY_RMWcc_ARG arg0 "\n\t" suffix, var, cc,	\
++		    __CLOBBERS_MEM_CC_CX, vcon (val))
+ 
+ #endif /* _ASM_X86_RMWcc */
+-- 
+2.7.4
