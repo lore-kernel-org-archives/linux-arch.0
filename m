@@ -1,75 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:35816 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932915AbdGXRds (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 24 Jul 2017 13:33:48 -0400
-From: Punit Agrawal <punit.agrawal@arm.com>
-Subject: [RFC PATCH 1/2] mm/hugetlb: Make huge_pte_offset() consistent between PUD and PMD entries
-Date: Mon, 24 Jul 2017 18:33:17 +0100
-Message-ID: <20170724173318.966-2-punit.agrawal@arm.com>
-In-Reply-To: <20170724173318.966-1-punit.agrawal@arm.com>
-References: <20170724173318.966-1-punit.agrawal@arm.com>
+Received: from mail-oi0-f65.google.com ([209.85.218.65]:35120 "EHLO
+        mail-oi0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754175AbdGXRng (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Jul 2017 13:43:36 -0400
+MIME-Version: 1.0
+In-Reply-To: <8760ek5ics.fsf_-_@xmission.com>
+References: <87o9shg7t7.fsf_-_@xmission.com> <20170718140651.15973-7-ebiederm@xmission.com>
+ <CA+55aFyKsmf+BpYjcH30MGpHTDJ=zgYPx6kwyEB9CXXFxj_xsw@mail.gmail.com>
+ <878tjlbqpt.fsf@xmission.com> <8760ek5ics.fsf_-_@xmission.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Mon, 24 Jul 2017 10:43:34 -0700
+Message-ID: <CA+55aFyH5W2doo9vxXta_-pXfNXqQ19d7z48k1hmfAot+aJvMw@mail.gmail.com>
+Subject: Re: Simplfying copy_siginfo_to_user
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Punit Agrawal <punit.agrawal@arm.com>, Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, steve.capper@arm.com, will.deacon@arm.com, catalin.marinas@arm.com, kirill.shutemov@linux.intel.com, Michal Hocko <mhocko@suse.com>, Mike Kravetz <mike.kravetz@oracle.com>
-Message-ID: <20170724173317.9wtPDssEJTNU-KRV1djn3LtVqJEeuDX2RJ025CawuV4@z>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, Andrei Vagin <avagin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Greg KH <greg@kroah.com>, Andrey Vagin <avagin@openvz.org>, Serge Hallyn <serge@hallyn.com>, Pavel Emelyanov <xemul@virtuozzo.com>, Cyrill Gorcunov <gorcunov@openvz.org>, Peter Zijlstra <peterz@infradead.org>, Willy Tarreau <w@1wt.eu>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Linux Containers <containers@lists.linux-foundation.org>, Michael Kerrisk <mtk.manpages@gmail.com>
+Message-ID: <20170724174334.wWg2qJVwA1q1GuPaPkisy98PUu-mhSQon_8ehWPiDrY@z>
 
-When walking the page tables to resolve an address that points to
-!present_p*d() entry, huge_pte_offset() returns inconsistent values
-depending on the level of page table (PUD or PMD).
+On Sat, Jul 22, 2017 at 1:25 PM, Eric W. Biederman
+<ebiederm@xmission.com> wrote:
+> I played with some clever changes such as limiting the copy to 48 bytes,
+> disabling the memset and the like but I could not get a strong enough
+> signal to say that any one change removed the extra or a clear part of
+> it 20ns.
 
-In the case of a PUD entry, it returns NULL while in the case of a PMD
-entry, it returns a pointer to the page table entry.
+What CPU did you use? Because the SMAP bit in particular matters.
 
-Make huge_pte_offset() consistent by always returning NULL on
-encountering a !present_p*d() entry. Document the behaviour to clarify
-the expected semantics of this function.
+The field-by-field copies are extremely slow on modern CPU's that
+implement SMAP, unless you also use the special "unsafe_put_user()"
+code (or the nasty old put_user_ex() code that some of the x86 signal
+code uses).
 
-Signed-off-by: Punit Agrawal <punit.agrawal@arm.com>
----
- mm/hugetlb.c | 16 +++++++++++++++-
- 1 file changed, 15 insertions(+), 1 deletion(-)
+So one of the advantages of just copy_to_user() ends up being visible
+only on Broadwell+ (or whatever the SMAP cutoff is).
 
-diff --git a/mm/hugetlb.c b/mm/hugetlb.c
-index bc48ee783dd9..686eb6fa9eb1 100644
---- a/mm/hugetlb.c
-+++ b/mm/hugetlb.c
-@@ -4603,6 +4603,13 @@ pte_t *huge_pte_alloc(struct mm_struct *mm,
- 	return pte;
- }
- 
-+/*
-+ * huge_pte_offset() - Walk the page table to resolve the hugepage
-+ * entry at address @addr
-+ *
-+ * Return: Pointer to page table entry (PUD or PMD) for address @addr
-+ * or NULL if the entry is not present.
-+ */
- pte_t *huge_pte_offset(struct mm_struct *mm,
- 		       unsigned long addr, unsigned long sz)
- {
-@@ -4617,13 +4624,20 @@ pte_t *huge_pte_offset(struct mm_struct *mm,
- 	p4d = p4d_offset(pgd, addr);
- 	if (!p4d_present(*p4d))
- 		return NULL;
-+
- 	pud = pud_offset(p4d, addr);
- 	if (!pud_present(*pud))
- 		return NULL;
- 	if (pud_huge(*pud))
- 		return (pte_t *)pud;
-+
- 	pmd = pmd_offset(pud, addr);
--	return (pte_t *) pmd;
-+	if (!pmd_present(*pmd))
-+		return NULL;
-+	if (pmd_huge(*pmd))
-+		return (pte_t *) pmd;
-+
-+	return NULL;
- }
- 
- #endif /* CONFIG_ARCH_WANT_GENERAL_HUGETLB */
--- 
-2.11.0
+                 Linus
