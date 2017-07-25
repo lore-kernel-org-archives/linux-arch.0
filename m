@@ -1,29 +1,60 @@
-From: Yao Qi <yao.qi@arm.com>
-Subject: Re: [PATCH 00/11] ARMv8.3 pointer authentication userspace support
-Date: Tue, 25 Jul 2017 12:32:10 +0100
-Message-ID: <bb507ee1-c7ba-4c73-0d0f-058c4821793c@arm.com>
-References: <1500480092-28480-1-git-send-email-mark.rutland@arm.com>
+From: Li Kun <hw.likun@huawei.com>
+Subject: Re: [kernel-hardening] [PATCH v8 3/3] x86/refcount: Implement fast
+ refcount overflow protection
+Date: Tue, 25 Jul 2017 20:03:08 +0800
+Message-ID: <7e7918c6-7186-47f4-4b37-2fc55db1e678@huawei.com>
+References: <1500921349-10803-1-git-send-email-keescook@chromium.org>
+ <1500921349-10803-4-git-send-email-keescook@chromium.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252; format=flowed
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1500480092-28480-1-git-send-email-mark.rutland@arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Mark Rutland <mark.rutland@arm.com>, linux-arm-kernel@lists.infradead.org
-Cc: arnd@arndb.de, catalin.marinas@arm.com, christoffer.dall@linaro.org, Dave.Martin@arm.com, jiong.wang@arm.com, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, marc.zyngier@arm.com, suzuki.poulose@arm.com, will.deacon@arm.com, linux-kernel@vger.kernel.org, kernel-hardening@lists.openwall.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="windows-1252"; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from szxga05-in.huawei.com ([45.249.212.191]:2106 "EHLO
+        szxga05-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750732AbdGYMF1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Jul 2017 08:05:27 -0400
+In-Reply-To: <1500921349-10803-4-git-send-email-keescook@chromium.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@kernel.org>
+Cc: Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Christoph Hellwig <hch@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>"David S. Miller" <dave>
 
-On 19/07/17 17:01, Mark Rutland wrote:
-> If authentication fails, bits are set in the pointer such that it is guar=
-anteed
-> to cause a fault if used.
+Hi Kees,
 
-How does user space know the fault is caused by authentication fail?
-When GDB is debugging a program, and it failed in pointer
-authentication, I assume GDB only knows that the program receives signal
-SIGSEGV, but how does GDB or user know why does the program get SIGSEGV?
-IMPORTANT NOTICE: The contents of this email and any attachments are confid=
-ential and may also be privileged. If you are not the intended recipient, p=
-lease notify the sender immediately and do not disclose the contents to any=
- other person, use it for any purpose, or store or copy the information in =
-any medium. Thank you.
+
+on 2017/7/25 2:35, Kees Cook wrote:
+> +static __always_inline __must_check
+> +int __refcount_add_unless(refcount_t *r, int a, int u)
+> +{
+> +	int c, new;
+> +
+> +	c = atomic_read(&(r->refs));
+> +	do {
+> +		if (unlikely(c == u))
+> +			break;
+> +
+> +		asm volatile("addl %2,%0\n\t"
+> +			REFCOUNT_CHECK_LT_ZERO
+> +			: "=r" (new)
+> +			: "0" (c), "ir" (a),
+> +			  [counter] "m" (r->refs.counter)
+> +			: "cc", "cx");
+here when the result LT_ZERO, you will saturate the r->refs.counter and 
+make the
+
+atomic_try_cmpxchg(&(r->refs), &c, new) bound to fail first time.
+
+maybe we can just saturate the value of variable "new" ?
+  
+
+
+> +
+> +	} while (!atomic_try_cmpxchg(&(r->refs), &c, new));
+> +
+> +	return c;
+> +}
+> +
+
+-- 
+Best Regards
+Li Kun
