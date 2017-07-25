@@ -1,195 +1,87 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga05-in.huawei.com ([45.249.212.191]:2107 "EHLO
-        szxga05-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751651AbdGYON3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Jul 2017 10:13:29 -0400
-Subject: Re: [kernel-hardening] [PATCH 00/11] ARMv8.3 pointer authentication
- userspace support
-References: <1500480092-28480-1-git-send-email-mark.rutland@arm.com>
-From: Li Kun <hw.likun@huawei.com>
-Message-ID: <b28dcd14-7b4c-b4f3-830b-dbd436200df9@huawei.com>
-Date: Tue, 25 Jul 2017 22:12:24 +0800
+Received: from foss.arm.com ([217.140.101.70]:48570 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752444AbdGYOh7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 25 Jul 2017 10:37:59 -0400
+From: Punit Agrawal <punit.agrawal@arm.com>
+Subject: Re: [RFC PATCH 1/2] mm/hugetlb: Make huge_pte_offset() consistent between PUD and PMD entries
+References: <20170724173318.966-1-punit.agrawal@arm.com>
+        <20170724173318.966-2-punit.agrawal@arm.com>
+        <20170725122907.bvmubwcfmqalp6r3@localhost>
+Date: Tue, 25 Jul 2017 15:37:57 +0100
+In-Reply-To: <20170725122907.bvmubwcfmqalp6r3@localhost> (Catalin Marinas's
+        message of "Tue, 25 Jul 2017 13:29:07 +0100")
+Message-ID: <87k22wk2ey.fsf@e105922-lin.cambridge.arm.com>
 MIME-Version: 1.0
-In-Reply-To: <1500480092-28480-1-git-send-email-mark.rutland@arm.com>
-Content-Type: text/plain; charset="UTF-8"; format=flowed
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Rutland <mark.rutland@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, arnd@arndb.de, catalin.marinas@arm.com, christoffer.dall@linaro.org, Dave.Martin@arm.com, jiong.wang@arm.com, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, marc.zyngier@arm.com, suzuki.poulose@arm.com, will.deacon@arm.com, yao.qi@arm.com, linux-kernel@vger.kernel.org, kernel-hardening@lists.openwall.com
-Message-ID: <20170725141224.MUZeUrVbbFl54Eb2FW9wYdO9GiJu6ldtL9-7vU0ZaQY@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, steve.capper@arm.com, will.deacon@arm.com, kirill.shutemov@linux.intel.com, Michal Hocko <mhocko@suse.com>, Mike Kravetz <mike.kravetz@oracle.com>
+Message-ID: <20170725143757.tXGG75MoPQfBzn-36eEsKZQtA7pUd18mUVFt4qWNLNc@z>
 
-Hi Mark,
+Catalin Marinas <catalin.marinas@arm.com> writes:
 
-Could you please give us some information about the impact to 
-performance to help us evaluating
+> Hi Punit,
+>
+> On Mon, Jul 24, 2017 at 06:33:17PM +0100, Punit Agrawal wrote:
+>> When walking the page tables to resolve an address that points to
+>> !present_p*d() entry, huge_pte_offset() returns inconsistent values
+>> depending on the level of page table (PUD or PMD).
+>> 
+>> In the case of a PUD entry, it returns NULL while in the case of a PMD
+>> entry, it returns a pointer to the page table entry.
+>> 
+>> Make huge_pte_offset() consistent by always returning NULL on
+>> encountering a !present_p*d() entry. Document the behaviour to clarify
+>> the expected semantics of this function.
+>
+> Nitpick: "p*d_present" instead of "present_p*d".
 
-the influence to the system?
+Thanks for spotting. Fixed both the instances locally.
 
-Thanks a lot.
+>
+>> diff --git a/mm/hugetlb.c b/mm/hugetlb.c
+>> index bc48ee783dd9..686eb6fa9eb1 100644
+>> --- a/mm/hugetlb.c
+>> +++ b/mm/hugetlb.c
+>> @@ -4603,6 +4603,13 @@ pte_t *huge_pte_alloc(struct mm_struct *mm,
+>>  	return pte;
+>>  }
+>>  
+>> +/*
+>> + * huge_pte_offset() - Walk the page table to resolve the hugepage
+>> + * entry at address @addr
+>> + *
+>> + * Return: Pointer to page table entry (PUD or PMD) for address @addr
+>> + * or NULL if the entry is not present.
+>> + */
+>>  pte_t *huge_pte_offset(struct mm_struct *mm,
+>>  		       unsigned long addr, unsigned long sz)
+>>  {
+>> @@ -4617,13 +4624,20 @@ pte_t *huge_pte_offset(struct mm_struct *mm,
+>>  	p4d = p4d_offset(pgd, addr);
+>>  	if (!p4d_present(*p4d))
+>>  		return NULL;
+>> +
+>>  	pud = pud_offset(p4d, addr);
+>>  	if (!pud_present(*pud))
+>>  		return NULL;
+>>  	if (pud_huge(*pud))
+>>  		return (pte_t *)pud;
+>> +
+>>  	pmd = pmd_offset(pud, addr);
+>> -	return (pte_t *) pmd;
+>> +	if (!pmd_present(*pmd))
+>> +		return NULL;
+>
+> This breaks the current behaviour for swap entries in the pmd (for pud
+> is already broken but maybe no-one uses them). It is fixed in the
+> subsequent patch together with the pud but the series is no longer
+> bisectable. Maybe it's better if you fold the two patches together (or
+> change the order, though I'm not sure how readable it is).
 
+I missed the change in behaviour for pmd swap entries. I'll squash the
+two patches and re-post.
 
-Best Regards
-
-
-在 2017/7/20 0:01, Mark Rutland 写道:
-> This series adds support for the ARMv8.3 pointer authentication extension.
->
-> Since RFC [1]:
-> * Make the KVM context switch (semi-lazy)
-> * Rebase to v4.13-rc1
-> * Improve pointer authentication documentation
-> * Add hwcap documentation
-> * Various minor cleanups
->
-> I've pushed the series to the arm64/pointer-auth branch [2] of my linux tree.
-> I've also pushed out a necessary bootwrapper patch to the pointer-auth branch
-> [3] of my bootwrapper repo.
->
->
-> Extension Overview
-> ==================
->
-> The ARMv8.3 pointer authentication extension adds functionality to detect
-> modification of pointer values, mitigating certain classes of attack such as
-> stack smashing, and making return oriented programming attacks harder
->
-> The extension introduces the concept of a pointer authentication code (PAC),
-> which is stored in some upper bits of pointers. Each PAC is derived from the
-> original pointer, another 64-bit value (e.g. the stack pointer), and a secret
-> 128-bit key.
->
-> New instructions are added which can be used to:
->
-> * Insert a PAC into a pointer
-> * Strip a PAC from a pointer
-> * Authenticate strip a PAC from a pointer
->
-> If authentication succeeds, the code is removed, yielding the original pointer.
-> If authentication fails, bits are set in the pointer such that it is guaranteed
-> to cause a fault if used.
->
-> These instructions can make use of four keys:
->
-> * APIAKey (A.K.A. Instruction A key)
-> * APIBKey (A.K.A. Instruction B key)
-> * APDAKey (A.K.A. Data A key)
-> * APDBKey (A.K.A. Data B Key)
->
-> A subset of these instruction encodings have been allocated from the HINT
-> space, and will operate as NOPs on any ARMv8 parts which do not feature the
-> extension (or if purposefully disabled by the kernel). Software using only this
-> subset of the instructions should function correctly on all ARMv8-A parts.
->
-> Additionally, instructions are added to authenticate small blocks of memory in
-> similar fashion, using APGAKey (A.K.A. Generic key).
->
->
-> This Series
-> ===========
->
-> This series enables the use of instructions using APIAKey, which is initialised
-> and maintained per-process (shared by all threads). This series does not add
-> support for APIBKey, APDAKey, APDBKey, nor APGAKey. The series only supports
-> the use of an architected algorithm.
->
-> I've given this some basic testing with a homebrew test suite. More ideally,
-> we'd add some tests to the kernel source tree.
->
-> I've added some basic KVM support, but this doesn't cater for systems with
-> mismatched support. Looking forward, we'll need ID register emulation in KVM so
-> that we can hide features from guests to cater for such cases.
->
->
-> Open questions
-> ==============
->
-> * Should keys be per-thread rather than per-process?
->
->    My understanding is that glibc can't (currently) handle threads having
->    different keys, but it might be that another libc would prefer per-thread
->    keys. If desired, we could add a mechanism for a thread to re-initialize its
->    keys without an exec*().
->
-> * Do we need a separate hwcap for XPAC* instructions?
->
->    Library code performing stack unwinding may need to interoperate with other
->    code which may or may not be using pointer authentication. It may be
->    desirable to use XPAC* rather than attempting authentication and/or acquiring
->    the PAC masks via ptrace.
->
->    As we may expose APIBKey (potentially separately from APIAKey) in future,
->    HWCAP_APIA cannot be used to determine when these instruction can/should be
->    used.
->
-> * Should we expose a per-process data key now, to go with the insn key?
->
->    I don't currently have a use-case for this.
->
-> * Should we expose generic authentication (i.e. APGAKey)?
->
->    I don't currently have a use-case for this.
->
-> * Should the kernel remove PACs when unwinding user stacks?
->
->    This is simple to do, but it's arguably placing a policy in the kernel as to
->    what we expect user stacks to look like. Regardless, userspace will have to
->    perform this when unwinding with DWARF.
->
-> Thanks,
-> Mark.
->
-> [1] http://lists.infradead.org/pipermail/linux-arm-kernel/2017-April/498941.html
-> [2] git://git.kernel.org/pub/scm/linux/kernel/git/mark/linux.git arm64/pointer-auth
-> [3] git://git.kernel.org/pub/scm/linux/kernel/git/mark/boot-wrapper-aarch64.git pointer-auth
->
-> Mark Rutland (11):
->    arm64: docs: describe ELF hwcaps
->    asm-generic: mm_hooks: allow hooks to be overridden individually
->    arm64: add pointer authentication register bits
->    arm64/cpufeature: add ARMv8.3 id_aa64isar1 bits
->    arm64/cpufeature: detect pointer authentication
->    arm64: Don't trap host pointer auth use to EL2
->    arm64: add basic pointer authentication support
->    arm64: expose user PAC bit positions via ptrace
->    arm64/kvm: preserve host HCR_EL2 value
->    arm64/kvm: context-switch ptrauth registers
->    arm64: docs: document pointer authentication
->
->   Documentation/arm64/booting.txt                |   8 ++
->   Documentation/arm64/elf_hwcaps.txt             | 138 +++++++++++++++++++++++++
->   Documentation/arm64/pointer-authentication.txt |  85 +++++++++++++++
->   arch/arm64/Kconfig                             |  23 +++++
->   arch/arm64/include/asm/cpucaps.h               |   4 +-
->   arch/arm64/include/asm/esr.h                   |   3 +-
->   arch/arm64/include/asm/kvm_arm.h               |   3 +-
->   arch/arm64/include/asm/kvm_host.h              |  28 ++++-
->   arch/arm64/include/asm/kvm_hyp.h               |   7 ++
->   arch/arm64/include/asm/mmu.h                   |   5 +
->   arch/arm64/include/asm/mmu_context.h           |  25 ++++-
->   arch/arm64/include/asm/pointer_auth.h          |  97 +++++++++++++++++
->   arch/arm64/include/asm/sysreg.h                |  30 ++++++
->   arch/arm64/include/uapi/asm/hwcap.h            |   1 +
->   arch/arm64/include/uapi/asm/ptrace.h           |   5 +
->   arch/arm64/kernel/cpufeature.c                 |  39 ++++++-
->   arch/arm64/kernel/cpuinfo.c                    |   1 +
->   arch/arm64/kernel/head.S                       |  19 +++-
->   arch/arm64/kernel/ptrace.c                     |  39 +++++++
->   arch/arm64/kvm/handle_exit.c                   |  21 ++++
->   arch/arm64/kvm/hyp/Makefile                    |   1 +
->   arch/arm64/kvm/hyp/ptrauth-sr.c                |  91 ++++++++++++++++
->   arch/arm64/kvm/hyp/switch.c                    |   9 +-
->   arch/arm64/kvm/hyp/tlb.c                       |   6 +-
->   arch/arm64/kvm/sys_regs.c                      |  32 ++++++
->   include/asm-generic/mm_hooks.h                 |  11 ++
->   include/uapi/linux/elf.h                       |   1 +
->   27 files changed, 719 insertions(+), 13 deletions(-)
->   create mode 100644 Documentation/arm64/elf_hwcaps.txt
->   create mode 100644 Documentation/arm64/pointer-authentication.txt
->   create mode 100644 arch/arm64/include/asm/pointer_auth.h
->   create mode 100644 arch/arm64/kvm/hyp/ptrauth-sr.c
->
-
--- 
-Best Regards
-Li Kun
+Thanks for the review.
