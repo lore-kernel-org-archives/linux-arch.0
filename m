@@ -1,110 +1,96 @@
-From: tip-bot for Kees Cook <tipbot@zytor.com>
-Subject: [tip:x86/asm] x86/asm: Add ASM_UNREACHABLE
-Date: Tue, 25 Jul 2017 06:49:02 -0700
-Message-ID: <tip-aa5d1b81500e6059190f18fe25a7617682321910@git.kernel.org>
-References: <1500921349-10803-3-git-send-email-keescook@chromium.org>
-Reply-To: arnd@arndb.de, riel@redhat.com, linux-kernel@vger.kernel.org,
-          hch@infradead.org, mingo@kernel.org,
-          James.Bottomley@hansenpartnership.com, tglx@linutronix.de,
-          hpa@zytor.com, ishkamiel@gmail.com, keescook@chromium.org,
-          davem@davemloft.net, linux-arch@vger.kernel.org,
-          torvalds@linux-foundation.org, jannh@google.com,
-          jpoimboe@redhat.com, serge@hallyn.com, manfred@colorfullife.com,
-          peterz@infradead.org, ebiederm@xmission.com,
-          gregkh@linuxfoundation.org, akpm@linux-foundation.org,
-          elena.reshetova@intel.com, adobriyan@gmail.com,
-          dave@stgolabs.net, ebiggers3@gmail.com
+From: Jiong Wang <Jiong.Wang@arm.com>
+Subject: Re: [PATCH 00/11] ARMv8.3 pointer authentication userspace support
+Date: Tue, 25 Jul 2017 14:00:56 +0000
+Message-ID: <DB6PR0802MB2405BBA6E6D545F35F0154A39FB80@DB6PR0802MB2405.eurprd08.prod.outlook.com>
+References: <1500480092-28480-1-git-send-email-mark.rutland@arm.com>
+ <20170721170509.GC1538@e103592.cambridge.arm.com>,<20170725120630.GA8116@leverpostej>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1500921349-10803-3-git-send-email-keescook@chromium.org>
-Content-Disposition: inline
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-tip-commits@vger.kernel.org
-Cc: elena.reshetova@intel.com, akpm@linux-foundation.org, dave@stgolabs.net, adobriyan@gmail.com, ebiggers3@gmail.com, jannh@google.com, torvalds@linux-foundation.org, jpoimboe@redhat.com, manfred@colorfullife.com, peterz@infradead.org, serge@hallyn.com, ebiederm@xmission.com, gregkh@linuxfoundation.org, hpa@zytor.com, tglx@linutronix.de, ishkamiel@gmail.com, keescook@chromium.org, davem@davemloft.net, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, riel@redhat.com, arnd@arndb.de, mingo@kernel.org, hch@infradead.org, James.Bottomley@hansenpartnership.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-db5eur01on0056.outbound.protection.outlook.com ([104.47.2.56]:56842
+        "EHLO EUR01-DB5-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1751127AbdGYOA6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 25 Jul 2017 10:00:58 -0400
+In-Reply-To: <20170725120630.GA8116@leverpostej>
+Content-Language: en-GB
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dave P Martin <Dave.Martin@arm.com>
+Cc: "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, Marc Zyngier <Marc.Zyngier@arm.com>, Catalin Marinas <Catalin.Marinas@arm.com>, Yao Qi <Yao.Qi@arm.com>, Suzuki Poulose <Suzuki.Poulose@arm.com>, Will Deacon <Will.Deacon@arm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, "kvmarm@lists.cs.columbia.edu" <kvmarm@lists.cs.columbia.edu>, "christoffer.dall@linaro.org" <christoffer.dall@linaro.org>, Mark Rutland <Mark.Rutland@arm.com>
 
-Commit-ID:  aa5d1b81500e6059190f18fe25a7617682321910
-Gitweb:     http://git.kernel.org/tip/aa5d1b81500e6059190f18fe25a7617682321910
-Author:     Kees Cook <keescook@chromium.org>
-AuthorDate: Mon, 24 Jul 2017 11:35:48 -0700
-Committer:  Ingo Molnar <mingo@kernel.org>
-CommitDate: Tue, 25 Jul 2017 11:18:09 +0200
+> > * Should the kernel remove PACs when unwinding user stacks?
+> >
+> >   This is simple to do, but it's arguably placing a policy in the kerne=
+l as to
+> >   what we expect user stacks to look like. Regardless, userspace will h=
+ave to
+> >   perform this when unwinding with DWARF.
+>>
+>> Not sure.  This is arguably not more gross than related things the
+>> kernel already does, and may be inefficient for userspace to do e.g.,
+>> when capturing perf backtraces.  Still gross though.
+>>
+>> Side question: do you know whether there will be DWARF / ELF annotations
+>> for this?  Since ptr auth is a compile-time option, it is plausible that
+>> an attribute could be added to indicate that an image uses it.
 
-x86/asm: Add ASM_UNREACHABLE
+> Jiong, Yao, can you answer this?
+>
+> I think that there's DWARF metadata for unwinding, but I'm not sure
+> there's an ELF annotation on an image.
+>
+> Note that you may link with libraries which may or may not use pointer
+> auth, so a single process can have a mixture of code using pointer auth,
+> and code which does not.
 
-This creates an unreachable annotation in asm for CONFIG_STACK_VALIDATION=y.
-While here, adjust earlier uses of \t\n into \n\t.
+Yes, there is new DWARF frame information for pointer authentication to des=
+cribe
+the signing status at instruction level.  There is no ELF annotation on an =
+image.
 
-Suggested-by: Josh Poimboeuf <jpoimboe@redhat.com>
-Signed-off-by: Kees Cook <keescook@chromium.org>
-Cc: Alexey Dobriyan <adobriyan@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Christoph Hellwig <hch@infradead.org>
-Cc: David S. Miller <davem@davemloft.net>
-Cc: Davidlohr Bueso <dave@stgolabs.net>
-Cc: Elena Reshetova <elena.reshetova@intel.com>
-Cc: Eric Biggers <ebiggers3@gmail.com>
-Cc: Eric W. Biederman <ebiederm@xmission.com>
-Cc: Greg KH <gregkh@linuxfoundation.org>
-Cc: Hans Liljestrand <ishkamiel@gmail.com>
-Cc: James Bottomley <James.Bottomley@hansenpartnership.com>
-Cc: Jann Horn <jannh@google.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Manfred Spraul <manfred@colorfullife.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Rik van Riel <riel@redhat.com>
-Cc: Serge E. Hallyn <serge@hallyn.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: arozansk@redhat.com
-Cc: axboe@kernel.dk
-Cc: kernel-hardening@lists.openwall.com
-Cc: linux-arch <linux-arch@vger.kernel.org>
-Link: http://lkml.kernel.org/r/1500921349-10803-3-git-send-email-keescook@chromium.org
-Signed-off-by: Ingo Molnar <mingo@kernel.org>
----
- include/linux/compiler-gcc.h | 13 +++++++++----
- include/linux/compiler.h     |  3 +++
- 2 files changed, 12 insertions(+), 4 deletions(-)
+As the use cases of pointer authentication extension in GCC are about retur=
+n
+address signing.  The DWARF extension is mostly around describing signed LR=
+ so
+the unwinder could have a way to figure out the original value of it to con=
+tinue
+unwinding.
 
-diff --git a/include/linux/compiler-gcc.h b/include/linux/compiler-gcc.h
-index cd4bbe8..179375b 100644
---- a/include/linux/compiler-gcc.h
-+++ b/include/linux/compiler-gcc.h
-@@ -203,11 +203,16 @@
- 
- #ifdef CONFIG_STACK_VALIDATION
- #define annotate_unreachable() ({					\
--	asm("%c0:\t\n"							\
--	    ".pushsection .discard.unreachable\t\n"			\
--	    ".long %c0b - .\t\n"					\
--	    ".popsection\t\n" : : "i" (__LINE__));			\
-+	asm("%c0:\n\t"							\
-+	    ".pushsection .discard.unreachable\n\t"			\
-+	    ".long %c0b - .\n\t"					\
-+	    ".popsection\n\t" : : "i" (__LINE__));			\
- })
-+#define ASM_UNREACHABLE							\
-+	"999:\n\t"							\
-+	".pushsection .discard.unreachable\n\t"				\
-+	".long 999b - .\n\t"						\
-+	".popsection\n\t"
- #else
- #define annotate_unreachable()
- #endif
-diff --git a/include/linux/compiler.h b/include/linux/compiler.h
-index 219f82f..641f591 100644
---- a/include/linux/compiler.h
-+++ b/include/linux/compiler.h
-@@ -185,6 +185,9 @@ void ftrace_likely_update(struct ftrace_likely_data *f, int val,
- #endif
- 
- /* Unreachable code */
-+#ifndef ASM_UNREACHABLE
-+# define ASM_UNREACHABLE
-+#endif
- #ifndef unreachable
- # define unreachable() do { } while (1)
- #endif
+In general, whenever return address, i.e. LR register, is mangled or restor=
+ed by
+hardware instruction, compiler (or assembly writer) is expected to generate=
+ a
+DW_CFA_AARCH64_negate_ra_state CFA instruction.
+
+For DWARF unwinder, during unwinding, whenever a DW_CFA_AARCH64_negate_ra_s=
+tate
+is hit, the unwinder toggle the LR signing status and kept it in bit zero (=
+lsb)
+of a new DWARF register AARCH64_DWARF_PAUTH_RA_STATE whose value must be ho=
+nored
+later when unwinding the value of LR. If the lsb of AARCH64_DWARF_PAUTH_RA_=
+STATE
+is set, it means the return address is mangled, then the unwinder needs to
+restore LR by either masking off the signature (userspace unwinders need pt=
+race
+interface to get this) or executing signature strip instruction (can only b=
+e
+done by native unwinder) or executing authentication instruction (can only =
+be
+done by native unwinder).
+
+Please see the following links for more details:
+  https://gcc.gnu.org/ml/gcc-patches/2017-01/msg00376.html
+  https://gcc.gnu.org/ml/gcc-patches/2016-11/msg03010.html
+
+
+Regards,
+Jiong
+
+IMPORTANT NOTICE: The contents of this email and any attachments are confid=
+ential and may also be privileged. If you are not the intended recipient, p=
+lease notify the sender immediately and do not disclose the contents to any=
+ other person, use it for any purpose, or store or copy the information in =
+any medium. Thank you.
