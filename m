@@ -1,41 +1,29 @@
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH 2/3] of: remove arch/$(SRCARCH)/boot/dts from include search path for CPP
-Date: Tue, 25 Jul 2017 11:23:35 +0900
-Message-ID: <1500949416-24105-3-git-send-email-yamada.masahiro@socionext.com>
-References: <1500949416-24105-1-git-send-email-yamada.masahiro@socionext.com>
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <1500949416-24105-1-git-send-email-yamada.masahiro@socionext.com>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: devicetree@vger.kernel.org, Rob Herring <robh@kernel.org>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Omar Sandoval <osandov@osandov.com>, Gaurav Minocha <gaurav.minocha.os@gmail.com>, Grant Likely <grant.likely@linaro.org>, Frank Rowand <frowand.list@gmail.com>, Mark Rutland <mark.rutland@arm.com>, Olof Johansson <olof@lixom.net>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <yamada.masahiro@socionext.com>, Michal Marek <mmarek@suse.com>, linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org
+From: Yao Qi <yao.qi@arm.com>
+Subject: Re: [PATCH 00/11] ARMv8.3 pointer authentication userspace support
+Date: Tue, 25 Jul 2017 12:32:10 +0100
+Message-ID: <bb507ee1-c7ba-4c73-0d0f-058c4821793c@arm.com>
+References: <1500480092-28480-1-git-send-email-mark.rutland@arm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=windows-1252; format=flowed
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1500480092-28480-1-git-send-email-mark.rutland@arm.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Mark Rutland <mark.rutland@arm.com>, linux-arm-kernel@lists.infradead.org
+Cc: arnd@arndb.de, catalin.marinas@arm.com, christoffer.dall@linaro.org, Dave.Martin@arm.com, jiong.wang@arm.com, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, marc.zyngier@arm.com, suzuki.poulose@arm.com, will.deacon@arm.com, linux-kernel@vger.kernel.org, kernel-hardening@lists.openwall.com
 List-Id: linux-arch.vger.kernel.org
 
-Having arch/$(SRCARCH)/boot/dts as an include search path is not
-very useful these days because some architectures such as ARM64,
-MIPS have no DT in this directory.  Instead, they have DT in vendor
-sub-directories.
+On 19/07/17 17:01, Mark Rutland wrote:
+> If authentication fails, bits are set in the pointer such that it is guar=
+anteed
+> to cause a fault if used.
 
-With some DT files in ARM and PowerPC fixed, we can now drop this
-include search path.
-
-Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
----
-
- scripts/Makefile.lib | 1 -
- 1 file changed, 1 deletion(-)
-
-diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
-index 011d464d2132..9c8f38ac2620 100644
---- a/scripts/Makefile.lib
-+++ b/scripts/Makefile.lib
-@@ -174,7 +174,6 @@ cpp_flags      = -Wp,-MD,$(depfile) $(NOSTDINC_FLAGS) $(LINUXINCLUDE)     \
- ld_flags       = $(LDFLAGS) $(ldflags-y)
- 
- dtc_cpp_flags  = -Wp,-MD,$(depfile).pre.tmp -nostdinc                    \
--		 -I$(srctree)/arch/$(SRCARCH)/boot/dts                   \
- 		 -I$(srctree)/scripts/dtc/include-prefixes               \
- 		 -undef -D__DTS__
- 
--- 
-2.7.4
-
+How does user space know the fault is caused by authentication fail?
+When GDB is debugging a program, and it failed in pointer
+authentication, I assume GDB only knows that the program receives signal
+SIGSEGV, but how does GDB or user know why does the program get SIGSEGV?
+IMPORTANT NOTICE: The contents of this email and any attachments are confid=
+ential and may also be privileged. If you are not the intended recipient, p=
+lease notify the sender immediately and do not disclose the contents to any=
+ other person, use it for any purpose, or store or copy the information in =
+any medium. Thank you.
