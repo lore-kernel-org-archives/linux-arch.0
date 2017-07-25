@@ -1,55 +1,26 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out02.mta.xmission.com ([166.70.13.232]:58952 "EHLO
-        out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1756437AbdGXTKN (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Jul 2017 15:10:13 -0400
-From: ebiederm@xmission.com (Eric W. Biederman)
-References: <87o9shg7t7.fsf_-_@xmission.com>
-        <20170718140651.15973-7-ebiederm@xmission.com>
-        <CA+55aFyKsmf+BpYjcH30MGpHTDJ=zgYPx6kwyEB9CXXFxj_xsw@mail.gmail.com>
-        <878tjlbqpt.fsf@xmission.com> <8760ek5ics.fsf_-_@xmission.com>
-        <CA+55aFyH5W2doo9vxXta_-pXfNXqQ19d7z48k1hmfAot+aJvMw@mail.gmail.com>
-Date: Mon, 24 Jul 2017 14:01:59 -0500
-In-Reply-To: <CA+55aFyH5W2doo9vxXta_-pXfNXqQ19d7z48k1hmfAot+aJvMw@mail.gmail.com>
-        (Linus Torvalds's message of "Mon, 24 Jul 2017 10:43:34 -0700")
-Message-ID: <87r2x54q1k.fsf@xmission.com>
-MIME-Version: 1.0
-Content-Type: text/plain
-Subject: Re: Simplfying copy_siginfo_to_user
+Received: from conuserg-09.nifty.com ([210.131.2.76]:37835 "EHLO
+        conuserg-09.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754004AbdGYC0Z (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Jul 2017 22:26:25 -0400
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Subject: [PATCH 0/3] devicetree: cleanup and improve DT cross-arch reference
+Date: Tue, 25 Jul 2017 11:23:33 +0900
+Message-ID: <1500949416-24105-1-git-send-email-yamada.masahiro@socionext.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, Andrei Vagin <avagin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Greg KH <greg@kroah.com>, Andrey Vagin <avagin@openvz.org>, Serge Hallyn <serge@hallyn.com>, Pavel Emelyanov <xemul@virtuozzo.com>, Cyrill Gorcunov <gorcunov@openvz.org>, Peter Zijlstra <peterz@infradead.org>, Willy Tarreau <w@1wt.eu>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Linux Containers <containers@lists.linux-foundation.org>, Michael Kerrisk <mtk.manpages@gmail.com>
-Message-ID: <20170724190159.lCQvq8n362zG0sKQo96CiZUrXaZFsWJ4x_qm3LsXtak@z>
+To: devicetree@vger.kernel.org, Rob Herring <robh@kernel.org>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Omar Sandoval <osandov@osandov.com>, Gaurav Minocha <gaurav.minocha.os@gmail.com>, Grant Likely <grant.likely@linaro.org>, Frank Rowand <frowand.list@gmail.com>, Mark Rutland <mark.rutland@arm.com>, Olof Johansson <olof@lixom.net>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <yamada.masahiro@socionext.com>, Michal Marek <mmarek@suse.com>, linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org
+Message-ID: <20170725022333.ReEZ0mTE8Qu6EMtl5d8-LQWUtMftrSshoeT4RNY8WbM@z>
 
-Linus Torvalds <torvalds@linux-foundation.org> writes:
 
-> On Sat, Jul 22, 2017 at 1:25 PM, Eric W. Biederman
-> <ebiederm@xmission.com> wrote:
->> I played with some clever changes such as limiting the copy to 48 bytes,
->> disabling the memset and the like but I could not get a strong enough
->> signal to say that any one change removed the extra or a clear part of
->> it 20ns.
->
-> What CPU did you use? Because the SMAP bit in particular matters.
->
-> The field-by-field copies are extremely slow on modern CPU's that
-> implement SMAP, unless you also use the special "unsafe_put_user()"
-> code (or the nasty old put_user_ex() code that some of the x86 signal
-> code uses).
->
-> So one of the advantages of just copy_to_user() ends up being visible
-> only on Broadwell+ (or whatever the SMAP cutoff is).
+Masahiro Yamada (3):
+  of: remove drivers/of/testcase-data from include search path for CPP
+  of: remove arch/$(SRCARCH)/boot/dts from include search path for CPP
+  of: search scripts/dtc/include-prefixes path for both CPP and DTC
 
-Good point.
+ scripts/Makefile.lib | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
-The cpu I was testing on was an AMD A10.  I don't actually have a cpu
-that supports SMAP handy.
-
-If you would like I can post the minimal patches and benckmark so anyone
-who is interested could reproduce this for themselves.
-
-I suspect that if it is down to only 20ns without SMAP this will
-definitely be a performance improvement in the presence of SMAP.
-
-Eric
+-- 
+2.7.4
