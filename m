@@ -1,115 +1,195 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([65.50.211.136]:60941 "EHLO
-        terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752011AbdGYN56 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Jul 2017 09:57:58 -0400
-Date: Tue, 25 Jul 2017 06:49:02 -0700
-From: tip-bot for Kees Cook <tipbot@zytor.com>
-Message-ID: <tip-aa5d1b81500e6059190f18fe25a7617682321910@git.kernel.org>
-Reply-To: arnd@arndb.de, riel@redhat.com, linux-kernel@vger.kernel.org,
-          hch@infradead.org, mingo@kernel.org,
-          James.Bottomley@hansenpartnership.com, tglx@linutronix.de,
-          hpa@zytor.com, ishkamiel@gmail.com, keescook@chromium.org,
-          davem@davemloft.net, linux-arch@vger.kernel.org,
-          torvalds@linux-foundation.org, jannh@google.com,
-          jpoimboe@redhat.com, serge@hallyn.com, manfred@colorfullife.com,
-          peterz@infradead.org, ebiederm@xmission.com,
-          gregkh@linuxfoundation.org, akpm@linux-foundation.org,
-          elena.reshetova@intel.com, adobriyan@gmail.com,
-          dave@stgolabs.net, ebiggers3@gmail.com
-In-Reply-To: <1500921349-10803-3-git-send-email-keescook@chromium.org>
-References: <1500921349-10803-3-git-send-email-keescook@chromium.org>
-Subject: [tip:x86/asm] x86/asm: Add ASM_UNREACHABLE
+Received: from szxga05-in.huawei.com ([45.249.212.191]:2107 "EHLO
+        szxga05-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751651AbdGYON3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Jul 2017 10:13:29 -0400
+Subject: Re: [kernel-hardening] [PATCH 00/11] ARMv8.3 pointer authentication
+ userspace support
+References: <1500480092-28480-1-git-send-email-mark.rutland@arm.com>
+From: Li Kun <hw.likun@huawei.com>
+Message-ID: <b28dcd14-7b4c-b4f3-830b-dbd436200df9@huawei.com>
+Date: Tue, 25 Jul 2017 22:12:24 +0800
 MIME-Version: 1.0
+In-Reply-To: <1500480092-28480-1-git-send-email-mark.rutland@arm.com>
+Content-Type: text/plain; charset="UTF-8"; format=flowed
 Content-Transfer-Encoding: 8bit
-Content-Type: text/plain; charset=UTF-8
-Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-tip-commits@vger.kernel.org
-Cc: elena.reshetova@intel.com, akpm@linux-foundation.org, dave@stgolabs.net, adobriyan@gmail.com, ebiggers3@gmail.com, jannh@google.com, torvalds@linux-foundation.org, jpoimboe@redhat.com, manfred@colorfullife.com, peterz@infradead.org, serge@hallyn.com, ebiederm@xmission.com, gregkh@linuxfoundation.org, hpa@zytor.com, tglx@linutronix.de, ishkamiel@gmail.com, keescook@chromium.org, davem@davemloft.net, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, riel@redhat.com, arnd@arndb.de, mingo@kernel.org, hch@infradead.org, James.Bottomley@hansenpartnership.com
-Message-ID: <20170725134902.g0tJAS2bOBko1BFigOfp4qVif0egR8NFQ6K01E76cfg@z>
+To: Mark Rutland <mark.rutland@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, arnd@arndb.de, catalin.marinas@arm.com, christoffer.dall@linaro.org, Dave.Martin@arm.com, jiong.wang@arm.com, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, marc.zyngier@arm.com, suzuki.poulose@arm.com, will.deacon@arm.com, yao.qi@arm.com, linux-kernel@vger.kernel.org, kernel-hardening@lists.openwall.com
+Message-ID: <20170725141224.MUZeUrVbbFl54Eb2FW9wYdO9GiJu6ldtL9-7vU0ZaQY@z>
 
-Commit-ID:  aa5d1b81500e6059190f18fe25a7617682321910
-Gitweb:     http://git.kernel.org/tip/aa5d1b81500e6059190f18fe25a7617682321910
-Author:     Kees Cook <keescook@chromium.org>
-AuthorDate: Mon, 24 Jul 2017 11:35:48 -0700
-Committer:  Ingo Molnar <mingo@kernel.org>
-CommitDate: Tue, 25 Jul 2017 11:18:09 +0200
+Hi Mark,
 
-x86/asm: Add ASM_UNREACHABLE
+Could you please give us some information about the impact to 
+performance to help us evaluating
 
-This creates an unreachable annotation in asm for CONFIG_STACK_VALIDATION=y.
-While here, adjust earlier uses of \t\n into \n\t.
+the influence to the system?
 
-Suggested-by: Josh Poimboeuf <jpoimboe@redhat.com>
-Signed-off-by: Kees Cook <keescook@chromium.org>
-Cc: Alexey Dobriyan <adobriyan@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Christoph Hellwig <hch@infradead.org>
-Cc: David S. Miller <davem@davemloft.net>
-Cc: Davidlohr Bueso <dave@stgolabs.net>
-Cc: Elena Reshetova <elena.reshetova@intel.com>
-Cc: Eric Biggers <ebiggers3@gmail.com>
-Cc: Eric W. Biederman <ebiederm@xmission.com>
-Cc: Greg KH <gregkh@linuxfoundation.org>
-Cc: Hans Liljestrand <ishkamiel@gmail.com>
-Cc: James Bottomley <James.Bottomley@hansenpartnership.com>
-Cc: Jann Horn <jannh@google.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Manfred Spraul <manfred@colorfullife.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Rik van Riel <riel@redhat.com>
-Cc: Serge E. Hallyn <serge@hallyn.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: arozansk@redhat.com
-Cc: axboe@kernel.dk
-Cc: kernel-hardening@lists.openwall.com
-Cc: linux-arch <linux-arch@vger.kernel.org>
-Link: http://lkml.kernel.org/r/1500921349-10803-3-git-send-email-keescook@chromium.org
-Signed-off-by: Ingo Molnar <mingo@kernel.org>
----
- include/linux/compiler-gcc.h | 13 +++++++++----
- include/linux/compiler.h     |  3 +++
- 2 files changed, 12 insertions(+), 4 deletions(-)
+Thanks a lot.
 
-diff --git a/include/linux/compiler-gcc.h b/include/linux/compiler-gcc.h
-index cd4bbe8..179375b 100644
---- a/include/linux/compiler-gcc.h
-+++ b/include/linux/compiler-gcc.h
-@@ -203,11 +203,16 @@
- 
- #ifdef CONFIG_STACK_VALIDATION
- #define annotate_unreachable() ({					\
--	asm("%c0:\t\n"							\
--	    ".pushsection .discard.unreachable\t\n"			\
--	    ".long %c0b - .\t\n"					\
--	    ".popsection\t\n" : : "i" (__LINE__));			\
-+	asm("%c0:\n\t"							\
-+	    ".pushsection .discard.unreachable\n\t"			\
-+	    ".long %c0b - .\n\t"					\
-+	    ".popsection\n\t" : : "i" (__LINE__));			\
- })
-+#define ASM_UNREACHABLE							\
-+	"999:\n\t"							\
-+	".pushsection .discard.unreachable\n\t"				\
-+	".long 999b - .\n\t"						\
-+	".popsection\n\t"
- #else
- #define annotate_unreachable()
- #endif
-diff --git a/include/linux/compiler.h b/include/linux/compiler.h
-index 219f82f..641f591 100644
---- a/include/linux/compiler.h
-+++ b/include/linux/compiler.h
-@@ -185,6 +185,9 @@ void ftrace_likely_update(struct ftrace_likely_data *f, int val,
- #endif
- 
- /* Unreachable code */
-+#ifndef ASM_UNREACHABLE
-+# define ASM_UNREACHABLE
-+#endif
- #ifndef unreachable
- # define unreachable() do { } while (1)
- #endif
+
+Best Regards
+
+
+在 2017/7/20 0:01, Mark Rutland 写道:
+> This series adds support for the ARMv8.3 pointer authentication extension.
+>
+> Since RFC [1]:
+> * Make the KVM context switch (semi-lazy)
+> * Rebase to v4.13-rc1
+> * Improve pointer authentication documentation
+> * Add hwcap documentation
+> * Various minor cleanups
+>
+> I've pushed the series to the arm64/pointer-auth branch [2] of my linux tree.
+> I've also pushed out a necessary bootwrapper patch to the pointer-auth branch
+> [3] of my bootwrapper repo.
+>
+>
+> Extension Overview
+> ==================
+>
+> The ARMv8.3 pointer authentication extension adds functionality to detect
+> modification of pointer values, mitigating certain classes of attack such as
+> stack smashing, and making return oriented programming attacks harder
+>
+> The extension introduces the concept of a pointer authentication code (PAC),
+> which is stored in some upper bits of pointers. Each PAC is derived from the
+> original pointer, another 64-bit value (e.g. the stack pointer), and a secret
+> 128-bit key.
+>
+> New instructions are added which can be used to:
+>
+> * Insert a PAC into a pointer
+> * Strip a PAC from a pointer
+> * Authenticate strip a PAC from a pointer
+>
+> If authentication succeeds, the code is removed, yielding the original pointer.
+> If authentication fails, bits are set in the pointer such that it is guaranteed
+> to cause a fault if used.
+>
+> These instructions can make use of four keys:
+>
+> * APIAKey (A.K.A. Instruction A key)
+> * APIBKey (A.K.A. Instruction B key)
+> * APDAKey (A.K.A. Data A key)
+> * APDBKey (A.K.A. Data B Key)
+>
+> A subset of these instruction encodings have been allocated from the HINT
+> space, and will operate as NOPs on any ARMv8 parts which do not feature the
+> extension (or if purposefully disabled by the kernel). Software using only this
+> subset of the instructions should function correctly on all ARMv8-A parts.
+>
+> Additionally, instructions are added to authenticate small blocks of memory in
+> similar fashion, using APGAKey (A.K.A. Generic key).
+>
+>
+> This Series
+> ===========
+>
+> This series enables the use of instructions using APIAKey, which is initialised
+> and maintained per-process (shared by all threads). This series does not add
+> support for APIBKey, APDAKey, APDBKey, nor APGAKey. The series only supports
+> the use of an architected algorithm.
+>
+> I've given this some basic testing with a homebrew test suite. More ideally,
+> we'd add some tests to the kernel source tree.
+>
+> I've added some basic KVM support, but this doesn't cater for systems with
+> mismatched support. Looking forward, we'll need ID register emulation in KVM so
+> that we can hide features from guests to cater for such cases.
+>
+>
+> Open questions
+> ==============
+>
+> * Should keys be per-thread rather than per-process?
+>
+>    My understanding is that glibc can't (currently) handle threads having
+>    different keys, but it might be that another libc would prefer per-thread
+>    keys. If desired, we could add a mechanism for a thread to re-initialize its
+>    keys without an exec*().
+>
+> * Do we need a separate hwcap for XPAC* instructions?
+>
+>    Library code performing stack unwinding may need to interoperate with other
+>    code which may or may not be using pointer authentication. It may be
+>    desirable to use XPAC* rather than attempting authentication and/or acquiring
+>    the PAC masks via ptrace.
+>
+>    As we may expose APIBKey (potentially separately from APIAKey) in future,
+>    HWCAP_APIA cannot be used to determine when these instruction can/should be
+>    used.
+>
+> * Should we expose a per-process data key now, to go with the insn key?
+>
+>    I don't currently have a use-case for this.
+>
+> * Should we expose generic authentication (i.e. APGAKey)?
+>
+>    I don't currently have a use-case for this.
+>
+> * Should the kernel remove PACs when unwinding user stacks?
+>
+>    This is simple to do, but it's arguably placing a policy in the kernel as to
+>    what we expect user stacks to look like. Regardless, userspace will have to
+>    perform this when unwinding with DWARF.
+>
+> Thanks,
+> Mark.
+>
+> [1] http://lists.infradead.org/pipermail/linux-arm-kernel/2017-April/498941.html
+> [2] git://git.kernel.org/pub/scm/linux/kernel/git/mark/linux.git arm64/pointer-auth
+> [3] git://git.kernel.org/pub/scm/linux/kernel/git/mark/boot-wrapper-aarch64.git pointer-auth
+>
+> Mark Rutland (11):
+>    arm64: docs: describe ELF hwcaps
+>    asm-generic: mm_hooks: allow hooks to be overridden individually
+>    arm64: add pointer authentication register bits
+>    arm64/cpufeature: add ARMv8.3 id_aa64isar1 bits
+>    arm64/cpufeature: detect pointer authentication
+>    arm64: Don't trap host pointer auth use to EL2
+>    arm64: add basic pointer authentication support
+>    arm64: expose user PAC bit positions via ptrace
+>    arm64/kvm: preserve host HCR_EL2 value
+>    arm64/kvm: context-switch ptrauth registers
+>    arm64: docs: document pointer authentication
+>
+>   Documentation/arm64/booting.txt                |   8 ++
+>   Documentation/arm64/elf_hwcaps.txt             | 138 +++++++++++++++++++++++++
+>   Documentation/arm64/pointer-authentication.txt |  85 +++++++++++++++
+>   arch/arm64/Kconfig                             |  23 +++++
+>   arch/arm64/include/asm/cpucaps.h               |   4 +-
+>   arch/arm64/include/asm/esr.h                   |   3 +-
+>   arch/arm64/include/asm/kvm_arm.h               |   3 +-
+>   arch/arm64/include/asm/kvm_host.h              |  28 ++++-
+>   arch/arm64/include/asm/kvm_hyp.h               |   7 ++
+>   arch/arm64/include/asm/mmu.h                   |   5 +
+>   arch/arm64/include/asm/mmu_context.h           |  25 ++++-
+>   arch/arm64/include/asm/pointer_auth.h          |  97 +++++++++++++++++
+>   arch/arm64/include/asm/sysreg.h                |  30 ++++++
+>   arch/arm64/include/uapi/asm/hwcap.h            |   1 +
+>   arch/arm64/include/uapi/asm/ptrace.h           |   5 +
+>   arch/arm64/kernel/cpufeature.c                 |  39 ++++++-
+>   arch/arm64/kernel/cpuinfo.c                    |   1 +
+>   arch/arm64/kernel/head.S                       |  19 +++-
+>   arch/arm64/kernel/ptrace.c                     |  39 +++++++
+>   arch/arm64/kvm/handle_exit.c                   |  21 ++++
+>   arch/arm64/kvm/hyp/Makefile                    |   1 +
+>   arch/arm64/kvm/hyp/ptrauth-sr.c                |  91 ++++++++++++++++
+>   arch/arm64/kvm/hyp/switch.c                    |   9 +-
+>   arch/arm64/kvm/hyp/tlb.c                       |   6 +-
+>   arch/arm64/kvm/sys_regs.c                      |  32 ++++++
+>   include/asm-generic/mm_hooks.h                 |  11 ++
+>   include/uapi/linux/elf.h                       |   1 +
+>   27 files changed, 719 insertions(+), 13 deletions(-)
+>   create mode 100644 Documentation/arm64/elf_hwcaps.txt
+>   create mode 100644 Documentation/arm64/pointer-authentication.txt
+>   create mode 100644 arch/arm64/include/asm/pointer_auth.h
+>   create mode 100644 arch/arm64/kvm/hyp/ptrauth-sr.c
+>
+
+-- 
+Best Regards
+Li Kun
