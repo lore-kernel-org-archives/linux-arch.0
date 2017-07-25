@@ -1,87 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:49678 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752144AbdGYPle (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 25 Jul 2017 11:41:34 -0400
-From: Punit Agrawal <punit.agrawal@arm.com>
-Subject: [PATCH 1/1] mm/hugetlb: Make huge_pte_offset() consistent and document behaviour
-Date: Tue, 25 Jul 2017 16:41:14 +0100
-Message-ID: <20170725154114.24131-2-punit.agrawal@arm.com>
-In-Reply-To: <20170725154114.24131-1-punit.agrawal@arm.com>
-References: <20170725154114.24131-1-punit.agrawal@arm.com>
+Received: from mail-it0-f42.google.com ([209.85.214.42]:33100 "EHLO
+        mail-it0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750757AbdGYTLK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Jul 2017 15:11:10 -0400
+Received: by mail-it0-f42.google.com with SMTP id v127so12341269itd.0
+        for <linux-arch@vger.kernel.org>; Tue, 25 Jul 2017 12:11:09 -0700 (PDT)
+MIME-Version: 1.0
+In-Reply-To: <7e7918c6-7186-47f4-4b37-2fc55db1e678@huawei.com>
+References: <1500921349-10803-1-git-send-email-keescook@chromium.org>
+ <1500921349-10803-4-git-send-email-keescook@chromium.org> <7e7918c6-7186-47f4-4b37-2fc55db1e678@huawei.com>
+From: Kees Cook <keescook@chromium.org>
+Date: Tue, 25 Jul 2017 12:11:08 -0700
+Message-ID: <CAGXu5jLD-ju_XHppVgDgUo1eSPoYKMqrzKS0PguvMAt5ddOoOw@mail.gmail.com>
+Subject: Re: [kernel-hardening] [PATCH v8 3/3] x86/refcount: Implement fast
+ refcount overflow protection
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Punit Agrawal <punit.agrawal@arm.com>, Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, steve.capper@arm.com, will.deacon@arm.com, catalin.marinas@arm.com, kirill.shutemov@linux.intel.com, Michal Hocko <mhocko@suse.com>, Mike Kravetz <mike.kravetz@oracle.com>
-Message-ID: <20170725154114.3YmBMHszfyeBGuYselkKr-DbbaBVR9qf7zTlDM6_znk@z>
+To: Li Kun <hw.likun@huawei.com>
+Cc: Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Christoph Hellwig <hch@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
+Message-ID: <20170725191108.S5lGzcSWPEZnsL7rXP1CwDNbJCZY6aUelYp8E1B3feM@z>
 
-When walking the page tables to resolve an address that points to
-!p*d_present() entry, huge_pte_offset() returns inconsistent values
-depending on the level of page table (PUD or PMD).
+On Tue, Jul 25, 2017 at 5:03 AM, Li Kun <hw.likun@huawei.com> wrote:
+> Hi Kees,
+>
+>
+> on 2017/7/25 2:35, Kees Cook wrote:
+>>
+>> +static __always_inline __must_check
+>> +int __refcount_add_unless(refcount_t *r, int a, int u)
+>> +{
+>> +       int c, new;
+>> +
+>> +       c = atomic_read(&(r->refs));
+>> +       do {
+>> +               if (unlikely(c == u))
+>> +                       break;
+>> +
+>> +               asm volatile("addl %2,%0\n\t"
+>> +                       REFCOUNT_CHECK_LT_ZERO
+>> +                       : "=r" (new)
+>> +                       : "0" (c), "ir" (a),
+>> +                         [counter] "m" (r->refs.counter)
+>> +                       : "cc", "cx");
+>> +
+>> +       } while (!atomic_try_cmpxchg(&(r->refs), &c, new));
+>> +
+>> +       return c;
+>> +}
+>
+> here when the result LT_ZERO, you will saturate the r->refs.counter and make
+> the
+>
+> atomic_try_cmpxchg(&(r->refs), &c, new) bound to fail first time.
+>
+> maybe we can just saturate the value of variable "new" ?
 
-It returns NULL in the case of a PUD entry while in the case of a PMD
-entry, it returns a pointer to the page table entry.
+Oh, good catch! Thanks. Actually, it's even worse than that: we'll
+exit this function without the refcount being correctly saturated. The
+final result will be INT_MIN / 2 + a. It's not terrible, but I should
+have noticed this in testing. (There was a gap in my testing for the
+_not_zero() overflows, which I've fixed now...)
 
-A similar inconsitency exists when handling swap entries - returns NULL
-for a PUD entry while a pointer to the pte_t is retured for the PMD
-entry.
+I'll figure this out or revert to the logic I was using in v6...
 
-Update huge_pte_offset() to make the behaviour consistent - return NULL
-in the case of p*d_none() and a pointer to the pte_t for hugepage or
-swap entries.
+-Kees
 
-Document the behaviour to clarify the expected behaviour of this
-function. This is to set clear semantics for architecture specific
-implementations of huge_pte_offset().
-
-Signed-off-by: Punit Agrawal <punit.agrawal@arm.com>
----
- mm/hugetlb.c | 22 +++++++++++++++++++---
- 1 file changed, 19 insertions(+), 3 deletions(-)
-
-diff --git a/mm/hugetlb.c b/mm/hugetlb.c
-index bc48ee783dd9..72dd1139a8e4 100644
---- a/mm/hugetlb.c
-+++ b/mm/hugetlb.c
-@@ -4603,6 +4603,13 @@ pte_t *huge_pte_alloc(struct mm_struct *mm,
- 	return pte;
- }
- 
-+/*
-+ * huge_pte_offset() - Walk the page table to resolve the hugepage
-+ * entry at address @addr
-+ *
-+ * Return: Pointer to page table or swap entry (PUD or PMD) for address @addr
-+ * or NULL if the entry is p*d_none().
-+ */
- pte_t *huge_pte_offset(struct mm_struct *mm,
- 		       unsigned long addr, unsigned long sz)
- {
-@@ -4617,13 +4624,22 @@ pte_t *huge_pte_offset(struct mm_struct *mm,
- 	p4d = p4d_offset(pgd, addr);
- 	if (!p4d_present(*p4d))
- 		return NULL;
-+
- 	pud = pud_offset(p4d, addr);
--	if (!pud_present(*pud))
-+	if (pud_none(*pud))
- 		return NULL;
--	if (pud_huge(*pud))
-+	/* hugepage or swap? */
-+	if (pud_huge(*pud) || !pud_present(*pud))
- 		return (pte_t *)pud;
-+
- 	pmd = pmd_offset(pud, addr);
--	return (pte_t *) pmd;
-+	if (pmd_none(*pmd))
-+		return NULL;
-+	/* hugepage or swap? */
-+	if (pmd_huge(*pmd) || !pmd_present(*pmd))
-+		return (pte_t *) pmd;
-+
-+	return NULL;
- }
- 
- #endif /* CONFIG_ARCH_WANT_GENERAL_HUGETLB */
 -- 
-2.11.0
+Kees Cook
+Pixel Security
