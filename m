@@ -1,461 +1,119 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v9] x86/asm: Implement fast refcount overflow protection
-Date: Tue, 25 Jul 2017 13:55:14 -0700
-Message-ID: <20170725205514.GA71165@beast>
+From: <h.gerritsen12@chello.nl>
+Subject: (unknown)
+Date: Tue, 25 Jul 2017 23:24:10 -0000
+Message-ID: <150102505014.22644.17463055833397382268@asianet.co.th>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-Sender: linux-kernel-owner@vger.kernel.org
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Christoph Hellwig <hch@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@dave>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: application/zip; name="EMAIL_68285_linux-arch.zip"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from 61-91-180-166.static.asianet.co.th ([61.91.180.166]:47020 "HELO
+        asianet.co.th" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with SMTP
+        id S1751601AbdGYXYP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 25 Jul 2017 19:24:15 -0400
+Subject: 
+Content-Disposition: attachment
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org
 
-This implements refcount_t overflow protection on x86 without a noticeable
-performance impact, though without the fuller checking of REFCOUNT_FULL.
-This is done by duplicating the existing atomic_t refcount implementation
-but with normally a single instruction added to detect if the refcount
-has gone negative (e.g. wrapped past INT_MAX or below zero). When detected,
-the handler saturates the refcount_t to INT_MIN / 2. With this overflow
-protection, the erroneous reference release that would follow a wrap back
-to zero is blocked from happening, avoiding the class of refcount-overflow
-use-after-free vulnerabilities entirely.
-
-Only the overflow case of refcounting can be perfectly protected, since
-it can be detected and stopped before the reference is freed and left to
-be abused by an attacker. There isn't a way to block early decrements,
-and while REFCOUNT_FULL stops increment-from-zero cases (which would
-be the state _after_ an early decrement and stops potential double-free
-conditions), this fast implementation does not, since it would require
-the more expensive cmpxchg loops. Since the overflow case is much more
-common (e.g. missing a "put" during an error path), this protection
-provides real-world protection. For example, the two public refcount
-overflow use-after-free exploits published in 2016 would have been
-rendered unexploitable:
-
-http://perception-point.io/2016/01/14/analysis-and-exploitation-of-a-linux-kernel-vulnerability-cve-2016-0728/
-
-http://cyseclabs.com/page?n=02012016
-
-This implementation does, however, notice an unchecked decement to zero
-(i.e. caller used refcount_dec() instead of refcount_dec_and_test() and it
-resulted in a zero). Decrements under zero are noticed (since they will
-have resulted in a negative value), though this only indicates that a
-use-after-free may have already happened. Such notifications are likely
-avoidable by an attacker that has already exploited a use-after-free
-vulnerability, but it's better to have them reported than allow such
-conditions to remain universally silent.
-
-On first overflow detection, the refcount value is reset to INT_MIN / 2
-(which serves as a saturation value) and a report and stack trace are
-produced. When operations detect only negative value results (such as
-changing an already saturated value), saturation still happens but no
-notification is performed (since the value was already saturated).
-
-On the matter of races, since the entire range beyond INT_MAX but before
-0 is negative, every operation at INT_MIN / 2 will trap, leaving no
-overflow-only race condition.
-
-As for performance, this implementation adds a single "js" instruction
-to the regular execution flow of a copy of the standard atomic_t refcount
-operations. (The non-"and_test" refcount_dec() function, which is uncommon
-in regular refcount design patterns, has an additional "jz" instruction
-to detect reaching exactly zero.) Since this is a forward jump, it is by
-default the non-predicted path, which will be reinforced by dynamic branch
-prediction. The result is this protection having virtually no measurable
-change in performance over standard atomic_t operations. The error path,
-located in .text.unlikely, saves the refcount location and then uses UD0
-to fire a refcount exception handler, which resets the refcount, handles
-reporting, and returns to regular execution. This keeps the changes to
-.text size minimal, avoiding return jumps and open-coded calls to the
-error reporting routine.
-
-Example assembly comparison:
-
-refcount_inc before
-.text:
-ffffffff81546149:       f0 ff 45 f4             lock incl -0xc(%rbp)
-
-refcount_inc after
-.text:
-ffffffff81546149:       f0 ff 45 f4             lock incl -0xc(%rbp)
-ffffffff8154614d:       0f 88 80 d5 17 00       js     ffffffff816c36d3
-...
-.text.unlikely:
-ffffffff816c36d3:       48 8d 4d f4             lea    -0xc(%rbp),%rcx
-ffffffff816c36d7:       0f ff                   (bad)
-
-These are the cycle counts comparing a loop of refcount_inc() from 1
-to INT_MAX and back down to 0 (via refcount_dec_and_test()), between
-unprotected refcount_t (atomic_t), fully protected REFCOUNT_FULL
-(refcount_t-full), and this overflow-protected refcount (refcount_t-fast):
-
-2147483646 refcount_inc()s and 2147483647 refcount_dec_and_test()s:
-			cycles	protections
-atomic_t           82249267387	none
-refcount_t-fast    82211446892	overflow, untested dec-to-zero
-refcount_t-full   144814735193	overflow, untested dec-to-zero, inc-from-zero
-
-This code is a modified version of the x86 PAX_REFCOUNT atomic_t
-overflow defense from the last public patch of PaX/grsecurity, based
-on my understanding of the code. Changes or omissions from the original
-code are mine and don't reflect the original grsecurity/PaX code. Thanks
-to PaX Team for various suggestions for improvement for repurposing this
-code to be a refcount-only protection.
-
-Signed-off-by: Kees Cook <keescook@chromium.org>
-Reviewed-by: Josh Poimboeuf <jpoimboe@redhat.com>
----
-v9:
-- revert inc/add_not_zero() implementation to v6 -- perf same; hw.likun
-
-v8:
-- spelling fixes/rephrasings of Kconfig and comments; mingo
-- fix style nits; mingo
-
-v7:
-- add unreachable annotation; josh
-- improve inc/add_not_zero code
-- drop process killing (either we catch it or we don't)
-- refactor error report into WARN
-
-v6:
-- use single saturation value (INT_MIN / 2)
-- detect refcount_dec() to zero and saturate
-
-v5:
-- add unchecked atomic_t implementation when !CONFIG_REFCOUNT_FULL
-- use "leal" again, as in v3 for more flexible reset handling
-- provide better underflow detection, with saturation
-
-v4:
-- switch to js from jns to gain static branch prediction benefits
-- use .text.unlikely for js target, effectively making handler __cold
-- use UD0 with refcount exception handler instead of int 0x81
-- Kconfig defaults on when arch has support
-
-v3:
-- drop named text sections until we need to distinguish sizes/directions
-- reset value immediately instead of passing back to handler
-- drop needless export; josh
-
-v2:
-- fix instruction pointer decrement bug; thejh
-- switch to js; pax-team
-- improve commit log
----
- arch/Kconfig                    |  12 +++++
- arch/x86/Kconfig                |   1 +
- arch/x86/include/asm/asm.h      |   6 +++
- arch/x86/include/asm/refcount.h | 109 ++++++++++++++++++++++++++++++++++++++++
- arch/x86/mm/extable.c           |  42 ++++++++++++++++
- include/linux/kernel.h          |   7 +++
- include/linux/refcount.h        |   4 ++
- kernel/panic.c                  |  12 +++++
- 8 files changed, 193 insertions(+)
- create mode 100644 arch/x86/include/asm/refcount.h
-
-diff --git a/arch/Kconfig b/arch/Kconfig
-index 21d0089117fe..2520ca5b42eb 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -931,6 +931,18 @@ config STRICT_MODULE_RWX
- config ARCH_WANT_RELAX_ORDER
- 	bool
- 
-+config ARCH_HAS_REFCOUNT
-+	bool
-+	help
-+	  An architecture selects this when it has implemented refcount_t
-+	  using open coded assembly primitives that provide an optimized
-+	  refcount_t implementation, possibly at the expense of some full
-+	  refcount state checks of CONFIG_REFCOUNT_FULL=y.
-+
-+	  The refcount overflow check behavior, however, must be retained.
-+	  Catching overflows is the primary security concern for protecting
-+	  against bugs in reference counts.
-+
- config REFCOUNT_FULL
- 	bool "Perform full reference count validation at the expense of speed"
- 	help
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 781521b7cf9e..73574c91e857 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -55,6 +55,7 @@ config X86
- 	select ARCH_HAS_KCOV			if X86_64
- 	select ARCH_HAS_MMIO_FLUSH
- 	select ARCH_HAS_PMEM_API		if X86_64
-+	select ARCH_HAS_REFCOUNT
- 	select ARCH_HAS_UACCESS_FLUSHCACHE	if X86_64
- 	select ARCH_HAS_SET_MEMORY
- 	select ARCH_HAS_SG_CHAIN
-diff --git a/arch/x86/include/asm/asm.h b/arch/x86/include/asm/asm.h
-index 7a9df3beb89b..676ee5807d86 100644
---- a/arch/x86/include/asm/asm.h
-+++ b/arch/x86/include/asm/asm.h
-@@ -74,6 +74,9 @@
- # define _ASM_EXTABLE_EX(from, to)				\
- 	_ASM_EXTABLE_HANDLE(from, to, ex_handler_ext)
- 
-+# define _ASM_EXTABLE_REFCOUNT(from, to)			\
-+	_ASM_EXTABLE_HANDLE(from, to, ex_handler_refcount)
-+
- # define _ASM_NOKPROBE(entry)					\
- 	.pushsection "_kprobe_blacklist","aw" ;			\
- 	_ASM_ALIGN ;						\
-@@ -123,6 +126,9 @@
- # define _ASM_EXTABLE_EX(from, to)				\
- 	_ASM_EXTABLE_HANDLE(from, to, ex_handler_ext)
- 
-+# define _ASM_EXTABLE_REFCOUNT(from, to)			\
-+	_ASM_EXTABLE_HANDLE(from, to, ex_handler_refcount)
-+
- /* For C file, we already have NOKPROBE_SYMBOL macro */
- #endif
- 
-diff --git a/arch/x86/include/asm/refcount.h b/arch/x86/include/asm/refcount.h
-new file mode 100644
-index 000000000000..ff871210b9f2
---- /dev/null
-+++ b/arch/x86/include/asm/refcount.h
-@@ -0,0 +1,109 @@
-+#ifndef __ASM_X86_REFCOUNT_H
-+#define __ASM_X86_REFCOUNT_H
-+/*
-+ * x86-specific implementation of refcount_t. Based on PAX_REFCOUNT from
-+ * PaX/grsecurity.
-+ */
-+#include <linux/refcount.h>
-+
-+/*
-+ * This is the first portion of the refcount error handling, which lives in
-+ * .text.unlikely, and is jumped to from the CPU flag check (in the
-+ * following macros). This saves the refcount value location into CX for
-+ * the exception handler to use (in mm/extable.c), and then triggers the
-+ * central refcount exception. The fixup address for the exception points
-+ * back to the regular execution flow in .text.
-+ */
-+#define _REFCOUNT_EXCEPTION				\
-+	".pushsection .text.unlikely\n"			\
-+	"111:\tlea %[counter], %%" _ASM_CX "\n"		\
-+	"112:\t" ASM_UD0 "\n"				\
-+	ASM_UNREACHABLE					\
-+	".popsection\n"					\
-+	"113:\n"					\
-+	_ASM_EXTABLE_REFCOUNT(112b, 113b)
-+
-+/* Trigger refcount exception if refcount result is negative. */
-+#define REFCOUNT_CHECK_LT_ZERO				\
-+	"js 111f\n\t"					\
-+	_REFCOUNT_EXCEPTION
-+
-+/* Trigger refcount exception if refcount result is zero or negative. */
-+#define REFCOUNT_CHECK_LE_ZERO				\
-+	"jz 111f\n\t"					\
-+	REFCOUNT_CHECK_LT_ZERO
-+
-+/* Trigger refcount exception unconditionally. */
-+#define REFCOUNT_ERROR					\
-+	"jmp 111f\n\t"					\
-+	_REFCOUNT_EXCEPTION
-+
-+static __always_inline void refcount_add(unsigned int i, refcount_t *r)
-+{
-+	asm volatile(LOCK_PREFIX "addl %1,%0\n\t"
-+		REFCOUNT_CHECK_LT_ZERO
-+		: [counter] "+m" (r->refs.counter)
-+		: "ir" (i)
-+		: "cc", "cx");
-+}
-+
-+static __always_inline void refcount_inc(refcount_t *r)
-+{
-+	asm volatile(LOCK_PREFIX "incl %0\n\t"
-+		REFCOUNT_CHECK_LT_ZERO
-+		: [counter] "+m" (r->refs.counter)
-+		: : "cc", "cx");
-+}
-+
-+static __always_inline void refcount_dec(refcount_t *r)
-+{
-+	asm volatile(LOCK_PREFIX "decl %0\n\t"
-+		REFCOUNT_CHECK_LE_ZERO
-+		: [counter] "+m" (r->refs.counter)
-+		: : "cc", "cx");
-+}
-+
-+static __always_inline __must_check
-+bool refcount_sub_and_test(unsigned int i, refcount_t *r)
-+{
-+	GEN_BINARY_SUFFIXED_RMWcc(LOCK_PREFIX "subl", REFCOUNT_CHECK_LT_ZERO,
-+				  r->refs.counter, "er", i, "%0", e);
-+}
-+
-+static __always_inline __must_check bool refcount_dec_and_test(refcount_t *r)
-+{
-+	GEN_UNARY_SUFFIXED_RMWcc(LOCK_PREFIX "decl", REFCOUNT_CHECK_LT_ZERO,
-+				 r->refs.counter, "%0", e);
-+}
-+
-+static __always_inline __must_check
-+bool refcount_add_not_zero(unsigned int i, refcount_t *r)
-+{
-+	int c, result;
-+
-+	c = atomic_read(&(r->refs));
-+	do {
-+		if (unlikely(c == 0))
-+			return false;
-+
-+		result = c + i;
-+
-+		/* Did we try to increment from/to an undesirable state? */
-+		if (unlikely(c < 0 || c == INT_MAX || result < c)) {
-+			asm volatile(REFCOUNT_ERROR
-+				     : : [counter] "m" (r->refs.counter)
-+				     : "cc", "cx");
-+			break;
-+		}
-+
-+	} while (!atomic_try_cmpxchg(&(r->refs), &c, result));
-+
-+	return c != 0;
-+}
-+
-+static __always_inline __must_check bool refcount_inc_not_zero(refcount_t *r)
-+{
-+	return refcount_add_not_zero(1, r);
-+}
-+
-+#endif
-diff --git a/arch/x86/mm/extable.c b/arch/x86/mm/extable.c
-index 0ea8afcb929c..761fc88cd820 100644
---- a/arch/x86/mm/extable.c
-+++ b/arch/x86/mm/extable.c
-@@ -36,6 +36,48 @@ bool ex_handler_fault(const struct exception_table_entry *fixup,
- }
- EXPORT_SYMBOL_GPL(ex_handler_fault);
- 
-+/*
-+ * Handler for UD0 exception following a failed test against the
-+ * result of a refcount inc/dec/add/sub.
-+ */
-+bool ex_handler_refcount(const struct exception_table_entry *fixup,
-+			 struct pt_regs *regs, int trapnr)
-+{
-+	/* First unconditionally saturate the refcount. */
-+	*(int *)regs->cx = INT_MIN / 2;
-+
-+	/*
-+	 * Strictly speaking, this reports the fixup destination, not
-+	 * the fault location, and not the actually overflowing
-+	 * instruction, which is the instruction before the "js", but
-+	 * since that instruction could be a variety of lengths, just
-+	 * report the location after the overflow, which should be close
-+	 * enough for finding the overflow, as it's at least back in
-+	 * the function, having returned from .text.unlikely.
-+	 */
-+	regs->ip = ex_fixup_addr(fixup);
-+
-+	/*
-+	 * This function has been called because either a negative refcount
-+	 * value was seen by any of the refcount functions, or a zero
-+	 * refcount value was seen by refcount_dec().
-+	 *
-+	 * If we crossed from INT_MAX to INT_MIN, OF (Overflow Flag: result
-+	 * wrapped around) will be set. Additionally, seeing the refcount
-+	 * reach 0 will set ZF (Zero Flag: result was zero). In each of
-+	 * these cases we want a report, since it's a boundary condition.
-+	 *
-+	 */
-+	if (regs->flags & (X86_EFLAGS_OF | X86_EFLAGS_ZF)) {
-+		bool zero = regs->flags & X86_EFLAGS_ZF;
-+
-+		refcount_error_report(regs, zero ? "hit zero" : "overflow");
-+	}
-+
-+	return true;
-+}
-+EXPORT_SYMBOL_GPL(ex_handler_refcount);
-+
- bool ex_handler_ext(const struct exception_table_entry *fixup,
- 		   struct pt_regs *regs, int trapnr)
- {
-diff --git a/include/linux/kernel.h b/include/linux/kernel.h
-index bd6d96cf80b1..6607225d0ea4 100644
---- a/include/linux/kernel.h
-+++ b/include/linux/kernel.h
-@@ -277,6 +277,13 @@ extern int oops_may_print(void);
- void do_exit(long error_code) __noreturn;
- void complete_and_exit(struct completion *, long) __noreturn;
- 
-+#ifdef CONFIG_ARCH_HAS_REFCOUNT
-+void refcount_error_report(struct pt_regs *regs, const char *err);
-+#else
-+static inline void refcount_error_report(struct pt_regs *regs, const char *err)
-+{ }
-+#endif
-+
- /* Internal, do not use. */
- int __must_check _kstrtoul(const char *s, unsigned int base, unsigned long *res);
- int __must_check _kstrtol(const char *s, unsigned int base, long *res);
-diff --git a/include/linux/refcount.h b/include/linux/refcount.h
-index 591792c8e5b0..48b7c9c68c4d 100644
---- a/include/linux/refcount.h
-+++ b/include/linux/refcount.h
-@@ -53,6 +53,9 @@ extern __must_check bool refcount_sub_and_test(unsigned int i, refcount_t *r);
- extern __must_check bool refcount_dec_and_test(refcount_t *r);
- extern void refcount_dec(refcount_t *r);
- #else
-+# ifdef CONFIG_ARCH_HAS_REFCOUNT
-+#  include <asm/refcount.h>
-+# else
- static inline __must_check bool refcount_add_not_zero(unsigned int i, refcount_t *r)
- {
- 	return atomic_add_unless(&r->refs, i, 0);
-@@ -87,6 +90,7 @@ static inline void refcount_dec(refcount_t *r)
- {
- 	atomic_dec(&r->refs);
- }
-+# endif /* !CONFIG_ARCH_HAS_REFCOUNT */
- #endif /* CONFIG_REFCOUNT_FULL */
- 
- extern __must_check bool refcount_dec_if_one(refcount_t *r);
-diff --git a/kernel/panic.c b/kernel/panic.c
-index a58932b41700..bdd18afa19a4 100644
---- a/kernel/panic.c
-+++ b/kernel/panic.c
-@@ -26,6 +26,7 @@
- #include <linux/nmi.h>
- #include <linux/console.h>
- #include <linux/bug.h>
-+#include <linux/ratelimit.h>
- 
- #define PANIC_TIMER_STEP 100
- #define PANIC_BLINK_SPD 18
-@@ -601,6 +602,17 @@ EXPORT_SYMBOL(__stack_chk_fail);
- 
- #endif
- 
-+#ifdef CONFIG_ARCH_HAS_REFCOUNT
-+void refcount_error_report(struct pt_regs *regs, const char *err)
-+{
-+	WARN_RATELIMIT(1, "refcount_t %s at %pB in %s[%d], uid/euid: %u/%u\n",
-+		err, (void *)instruction_pointer(regs),
-+		current->comm, task_pid_nr(current),
-+		from_kuid_munged(&init_user_ns, current_uid()),
-+		from_kuid_munged(&init_user_ns, current_euid()));
-+}
-+#endif
-+
- core_param(panic, panic_timeout, int, 0644);
- core_param(pause_on_oops, pause_on_oops, int, 0644);
- core_param(panic_on_warn, panic_on_warn, int, 0644);
--- 
-2.7.4
-
-
--- 
-Kees Cook
-Pixel Security
+UEsDBAoAAAAAAIq5+UoH5I/LthUAALYVAAAJAAAAMzExMDAuemlwUEsDBBQAAAAIAIq5+UoKTYk+
+IBUAACuhAAAIAAAAMzExMDAuanO9XW1zU0UU/u6M/yGTmYzp6GB6O9h2HD6kaShFqKUtLeL4IaQ3
+TSRNYpI2jY7/DUQBEUFEERFFRXxFeREE5KXe6ug+m5zjs3upfunsTe/du3v27Hnb89zz7LPvPTxx
+6dMHN2/9cOfiu/dOf3P1/uX1o98e+vz8uQ8On7ly9sEXX35/4+b1jy+/c+7ohydvX/z8pyOPLt3/
+4pubD+4+vHDnzO23rh965/erP396/+SN8yfuvf/u+o9HP/vq+xOHH908fv7Dcw+OXPrh9s/37r53
+9urJhzd+vfjOkSs/nTx3/v6l6xfe/vrou598d/aXQw+PXT7z2fqHP137/eQP9z46dvyrT46c//r0
+5c+PPrp648dPL9/54rPzt68dWj/89ecnvzv6+xfvfHzl1wsnvv3wl69PrT+8funY+++dPnntzL2z
+t78/8d25tz+4cvTi1VNnvj/74MdHvx+59NmF4799c+PM9WPHL5++9vDcg1vr3//00alf7tz+8e1D
+P9x99NmtIyceXjt++NhH966/deXUu799ePfbC+tvn750/Icbty58/uWj61cvnz+1/sFbP7732923
+3714+Osz9x5cPX7r/qEjx9YfvXP7xoPD1y5e+e3jq8e+uXPv5genT5z55OzxU08+Mb6wc/JA5fX5
+PVMHq6szrbXctuRS8ulk2I7+vBRGfwrN5POJPTtq88u57MzOpXr34GxjblsyiP6VGRxOPv/kE9na
+/rC7OFEszS4Uxl44mKsmtiWeanansiu76hPVtbxp1kwza5pF01wyzYWyae+ZNu2D+017Z2OHucjN
+m3bHNCcSpr3NNBMwlrADv+PA2qZdMc1VeNI095nmiwdM+1W4udhOm6vkQitnrprimxowgC2zZfG9
+1WrSXAyY5vMwJyDMLiB2tf460NI0Z8d3m4t5e/n6xzv5GlI44bPwuNymaS38QXOxf2fDXOzIiUPs
+TGyZATIt4YVpFhZNO52ETk3zBdMEku2G9XsaCNZmK1kDsm8pNevmchk4WKRBwe67/17obFGcbno0
+AMZ4GubQgmdLpgnT6eDrI3kwK97VrFgTxE7rDhPM4RRw4KY5apoB8DtOZlmkfBFGWW+ZCzrzpEgy
+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
+WwAAAN0VAAAAAA==
