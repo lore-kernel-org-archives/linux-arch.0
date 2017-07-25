@@ -1,82 +1,67 @@
-From: Punit Agrawal <punit.agrawal@arm.com>
-Subject: [PATCH 1/1] mm/hugetlb: Make huge_pte_offset() consistent and document behaviour
-Date: Tue, 25 Jul 2017 16:41:14 +0100
-Message-ID: <20170725154114.24131-2-punit.agrawal@arm.com>
-References: <20170725154114.24131-1-punit.agrawal@arm.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20170725154114.24131-1-punit.agrawal@arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Punit Agrawal <punit.agrawal@arm.com>, Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, steve.capper@arm.com, will.deacon@arm.com, catalin.marinas@arm.com, kirill.shutemov@linux.intel.com, Michal Hocko <mhocko@suse.com>, Mike Kravetz <mike.kravetz@oracle.com>
-List-Id: linux-arch.vger.kernel.org
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [PATCH 00/11] ARMv8.3 pointer authentication userspace support
+Date: Tue, 25 Jul 2017 17:01:16 +0100
+Message-ID: <20170725160116.GB12749@leverpostej>
+References: <1500480092-28480-1-git-send-email-mark.rutland@arm.com>
+ <bb507ee1-c7ba-4c73-0d0f-058c4821793c@arm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:50074 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752377AbdGYQCU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 25 Jul 2017 12:02:20 -0400
+Content-Disposition: inline
+In-Reply-To: <bb507ee1-c7ba-4c73-0d0f-058c4821793c@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Yao Qi <yao.qi@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, arnd@arndb.de, catalin.marinas@arm.com, christoffer.dall@linaro.org, Dave.Martin@arm.com, jiong.wang@arm.com, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, marc.zyngier@arm.com, suzuki.poulose@arm.com, will.deacon@arm.com, linux-kernel@vger.kernel.org, kernel-hardening@lists.openwall.com
 
-When walking the page tables to resolve an address that points to
-!p*d_present() entry, huge_pte_offset() returns inconsistent values
-depending on the level of page table (PUD or PMD).
+Hi,
 
-It returns NULL in the case of a PUD entry while in the case of a PMD
-entry, it returns a pointer to the page table entry.
+On Tue, Jul 25, 2017 at 12:32:10PM +0100, Yao Qi wrote:
+> On 19/07/17 17:01, Mark Rutland wrote:
+> > If authentication fails, bits are set in the pointer such that it is
+> > guaranteed to cause a fault if used.
+> 
+> How does user space know the fault is caused by authentication fail?
 
-A similar inconsitency exists when handling swap entries - returns NULL
-for a PUD entry while a pointer to the pte_t is retured for the PMD
-entry.
+Strictly speaking, it does not, and neither does the kernel.
 
-Update huge_pte_offset() to make the behaviour consistent - return NULL
-in the case of p*d_none() and a pointer to the pte_t for hugepage or
-swap entries.
+In general, it cannot know whether this is the case, as an
+authentication failure does not result in an immediate exception.
 
-Document the behaviour to clarify the expected behaviour of this
-function. This is to set clear semantics for architecture specific
-implementations of huge_pte_offset().
+> When GDB is debugging a program, and it failed in pointer
+> authentication, I assume GDB only knows that the program receives signal
+> SIGSEGV, but how does GDB or user know why does the program get SIGSEGV?
 
-Signed-off-by: Punit Agrawal <punit.agrawal@arm.com>
----
- mm/hugetlb.c | 22 +++++++++++++++++++---
- 1 file changed, 19 insertions(+), 3 deletions(-)
+I think in practice, the user has to determine this for themselves. I do
+not believe that it is possible to reliably determine whether a given
+fault was caused by an authentication failure.
 
-diff --git a/mm/hugetlb.c b/mm/hugetlb.c
-index bc48ee783dd9..72dd1139a8e4 100644
---- a/mm/hugetlb.c
-+++ b/mm/hugetlb.c
-@@ -4603,6 +4603,13 @@ pte_t *huge_pte_alloc(struct mm_struct *mm,
- 	return pte;
- }
- 
-+/*
-+ * huge_pte_offset() - Walk the page table to resolve the hugepage
-+ * entry at address @addr
-+ *
-+ * Return: Pointer to page table or swap entry (PUD or PMD) for address @addr
-+ * or NULL if the entry is p*d_none().
-+ */
- pte_t *huge_pte_offset(struct mm_struct *mm,
- 		       unsigned long addr, unsigned long sz)
- {
-@@ -4617,13 +4624,22 @@ pte_t *huge_pte_offset(struct mm_struct *mm,
- 	p4d = p4d_offset(pgd, addr);
- 	if (!p4d_present(*p4d))
- 		return NULL;
-+
- 	pud = pud_offset(p4d, addr);
--	if (!pud_present(*pud))
-+	if (pud_none(*pud))
- 		return NULL;
--	if (pud_huge(*pud))
-+	/* hugepage or swap? */
-+	if (pud_huge(*pud) || !pud_present(*pud))
- 		return (pte_t *)pud;
-+
- 	pmd = pmd_offset(pud, addr);
--	return (pte_t *) pmd;
-+	if (pmd_none(*pmd))
-+		return NULL;
-+	/* hugepage or swap? */
-+	if (pmd_huge(*pmd) || !pmd_present(*pmd))
-+		return (pte_t *) pmd;
-+
-+	return NULL;
- }
- 
- #endif /* CONFIG_ARCH_WANT_GENERAL_HUGETLB */
--- 
-2.11.0
+For example, consider an authentication failure in a function epilogue:
+
+	ldp	x29, x30, [sp], #FRAME_SIZE
+	autiasp
+	ret
+
+When AUTIASP fails to authenticate the x30 value, it ensures that x30 is
+a faulting value, by forcing some of the high bits to particular values,
+but that's all. A user can set those bits in the same way.
+
+The RET loads the LR value into the PC, which subsequently triggers an
+instruction abort for the PC value (i.e. we branch to the bogus address
+*then* take a fault at that address).
+
+At that point, we have no information to determine what the CPU was
+executing before it branched to the bogus address. So we cannot know how
+the address was generated, and therefore cannot know if it was an
+authentication failure.
+
+For data pointers, you could generate bogus pointers with a large
+out-of-bounds array index, whereby the bogus pointer looked like the
+result of a pointer authentication failure.
+
+Thanks,
+Mark.
