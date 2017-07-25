@@ -1,26 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from conuserg-09.nifty.com ([210.131.2.76]:37835 "EHLO
+Received: from conuserg-09.nifty.com ([210.131.2.76]:37829 "EHLO
         conuserg-09.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754004AbdGYC0Z (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Jul 2017 22:26:25 -0400
+        with ESMTP id S1754061AbdGYC00 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Jul 2017 22:26:26 -0400
 From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH 0/3] devicetree: cleanup and improve DT cross-arch reference
-Date: Tue, 25 Jul 2017 11:23:33 +0900
-Message-ID: <1500949416-24105-1-git-send-email-yamada.masahiro@socionext.com>
+Subject: [PATCH 2/3] of: remove arch/$(SRCARCH)/boot/dts from include search path for CPP
+Date: Tue, 25 Jul 2017 11:23:35 +0900
+Message-ID: <1500949416-24105-3-git-send-email-yamada.masahiro@socionext.com>
+In-Reply-To: <1500949416-24105-1-git-send-email-yamada.masahiro@socionext.com>
+References: <1500949416-24105-1-git-send-email-yamada.masahiro@socionext.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: devicetree@vger.kernel.org, Rob Herring <robh@kernel.org>
 Cc: linux-arch <linux-arch@vger.kernel.org>, Omar Sandoval <osandov@osandov.com>, Gaurav Minocha <gaurav.minocha.os@gmail.com>, Grant Likely <grant.likely@linaro.org>, Frank Rowand <frowand.list@gmail.com>, Mark Rutland <mark.rutland@arm.com>, Olof Johansson <olof@lixom.net>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <yamada.masahiro@socionext.com>, Michal Marek <mmarek@suse.com>, linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org
-Message-ID: <20170725022333.ReEZ0mTE8Qu6EMtl5d8-LQWUtMftrSshoeT4RNY8WbM@z>
+Message-ID: <20170725022335.HXLZWXPehKHdMbggeVBisZyvaBI1vanpyoTo9zGWdXc@z>
 
+Having arch/$(SRCARCH)/boot/dts as an include search path is not
+very useful these days because some architectures such as ARM64,
+MIPS have no DT in this directory.  Instead, they have DT in vendor
+sub-directories.
 
-Masahiro Yamada (3):
-  of: remove drivers/of/testcase-data from include search path for CPP
-  of: remove arch/$(SRCARCH)/boot/dts from include search path for CPP
-  of: search scripts/dtc/include-prefixes path for both CPP and DTC
+With some DT files in ARM and PowerPC fixed, we can now drop this
+include search path.
 
- scripts/Makefile.lib | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+---
 
+ scripts/Makefile.lib | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
+index 011d464d2132..9c8f38ac2620 100644
+--- a/scripts/Makefile.lib
++++ b/scripts/Makefile.lib
+@@ -174,7 +174,6 @@ cpp_flags      = -Wp,-MD,$(depfile) $(NOSTDINC_FLAGS) $(LINUXINCLUDE)     \
+ ld_flags       = $(LDFLAGS) $(ldflags-y)
+ 
+ dtc_cpp_flags  = -Wp,-MD,$(depfile).pre.tmp -nostdinc                    \
+-		 -I$(srctree)/arch/$(SRCARCH)/boot/dts                   \
+ 		 -I$(srctree)/scripts/dtc/include-prefixes               \
+ 		 -undef -D__DTS__
+ 
 -- 
 2.7.4
