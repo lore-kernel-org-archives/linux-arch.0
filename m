@@ -1,99 +1,115 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:46076 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751089AbdGYMHy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 25 Jul 2017 08:07:54 -0400
-Date: Tue, 25 Jul 2017 13:06:43 +0100
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCH 00/11] ARMv8.3 pointer authentication userspace support
-Message-ID: <20170725120630.GA8116@leverpostej>
-References: <1500480092-28480-1-git-send-email-mark.rutland@arm.com>
- <20170721170509.GC1538@e103592.cambridge.arm.com>
+Received: from terminus.zytor.com ([65.50.211.136]:60941 "EHLO
+        terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752011AbdGYN56 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Jul 2017 09:57:58 -0400
+Date: Tue, 25 Jul 2017 06:49:02 -0700
+From: tip-bot for Kees Cook <tipbot@zytor.com>
+Message-ID: <tip-aa5d1b81500e6059190f18fe25a7617682321910@git.kernel.org>
+Reply-To: arnd@arndb.de, riel@redhat.com, linux-kernel@vger.kernel.org,
+          hch@infradead.org, mingo@kernel.org,
+          James.Bottomley@hansenpartnership.com, tglx@linutronix.de,
+          hpa@zytor.com, ishkamiel@gmail.com, keescook@chromium.org,
+          davem@davemloft.net, linux-arch@vger.kernel.org,
+          torvalds@linux-foundation.org, jannh@google.com,
+          jpoimboe@redhat.com, serge@hallyn.com, manfred@colorfullife.com,
+          peterz@infradead.org, ebiederm@xmission.com,
+          gregkh@linuxfoundation.org, akpm@linux-foundation.org,
+          elena.reshetova@intel.com, adobriyan@gmail.com,
+          dave@stgolabs.net, ebiggers3@gmail.com
+In-Reply-To: <1500921349-10803-3-git-send-email-keescook@chromium.org>
+References: <1500921349-10803-3-git-send-email-keescook@chromium.org>
+Subject: [tip:x86/asm] x86/asm: Add ASM_UNREACHABLE
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=UTF-8
 Content-Disposition: inline
-In-Reply-To: <20170721170509.GC1538@e103592.cambridge.arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, arnd@arndb.de, jiong.wang@arm.com, marc.zyngier@arm.com, catalin.marinas@arm.com, yao.qi@arm.com, suzuki.poulose@arm.com, will.deacon@arm.com, linux-kernel@vger.kernel.org, kernel-hardening@lists.openwall.com, kvmarm@lists.cs.columbia.edu, christoffer.dall@linaro.org
-Message-ID: <20170725120643.QwMetCCPoihR8kG_zqhkUJEwSbVUvJ4j69QMUe7TA04@z>
+To: linux-tip-commits@vger.kernel.org
+Cc: elena.reshetova@intel.com, akpm@linux-foundation.org, dave@stgolabs.net, adobriyan@gmail.com, ebiggers3@gmail.com, jannh@google.com, torvalds@linux-foundation.org, jpoimboe@redhat.com, manfred@colorfullife.com, peterz@infradead.org, serge@hallyn.com, ebiederm@xmission.com, gregkh@linuxfoundation.org, hpa@zytor.com, tglx@linutronix.de, ishkamiel@gmail.com, keescook@chromium.org, davem@davemloft.net, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, riel@redhat.com, arnd@arndb.de, mingo@kernel.org, hch@infradead.org, James.Bottomley@hansenpartnership.com
+Message-ID: <20170725134902.g0tJAS2bOBko1BFigOfp4qVif0egR8NFQ6K01E76cfg@z>
 
-On Fri, Jul 21, 2017 at 06:05:09PM +0100, Dave Martin wrote:
-> On Wed, Jul 19, 2017 at 05:01:21PM +0100, Mark Rutland wrote:
-> > This series adds support for the ARMv8.3 pointer authentication extension.
+Commit-ID:  aa5d1b81500e6059190f18fe25a7617682321910
+Gitweb:     http://git.kernel.org/tip/aa5d1b81500e6059190f18fe25a7617682321910
+Author:     Kees Cook <keescook@chromium.org>
+AuthorDate: Mon, 24 Jul 2017 11:35:48 -0700
+Committer:  Ingo Molnar <mingo@kernel.org>
+CommitDate: Tue, 25 Jul 2017 11:18:09 +0200
 
-> > Open questions
-> > ==============
-> > 
-> > * Should keys be per-thread rather than per-process?
-> > 
-> >   My understanding is that glibc can't (currently) handle threads having
-> >   different keys, but it might be that another libc would prefer per-thread
-> 
-> Can you elaborate?
-> 
-> It's not valid to do a function return from one thread to another.
+x86/asm: Add ASM_UNREACHABLE
 
-Regardless of whether it's valid per the C spec or POSIX, some people
-use {set,get}context and {set,long}jmp in this manner (IIRC, QEMU does
-this), and my understanding is that similar tricks are in use in the
-bowels of glibc.
+This creates an unreachable annotation in asm for CONFIG_STACK_VALIDATION=y.
+While here, adjust earlier uses of \t\n into \n\t.
 
-Otherwise, my preference would be to have per-thread keys from day one.
+Suggested-by: Josh Poimboeuf <jpoimboe@redhat.com>
+Signed-off-by: Kees Cook <keescook@chromium.org>
+Cc: Alexey Dobriyan <adobriyan@gmail.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Christoph Hellwig <hch@infradead.org>
+Cc: David S. Miller <davem@davemloft.net>
+Cc: Davidlohr Bueso <dave@stgolabs.net>
+Cc: Elena Reshetova <elena.reshetova@intel.com>
+Cc: Eric Biggers <ebiggers3@gmail.com>
+Cc: Eric W. Biederman <ebiederm@xmission.com>
+Cc: Greg KH <gregkh@linuxfoundation.org>
+Cc: Hans Liljestrand <ishkamiel@gmail.com>
+Cc: James Bottomley <James.Bottomley@hansenpartnership.com>
+Cc: Jann Horn <jannh@google.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Manfred Spraul <manfred@colorfullife.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Rik van Riel <riel@redhat.com>
+Cc: Serge E. Hallyn <serge@hallyn.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: arozansk@redhat.com
+Cc: axboe@kernel.dk
+Cc: kernel-hardening@lists.openwall.com
+Cc: linux-arch <linux-arch@vger.kernel.org>
+Link: http://lkml.kernel.org/r/1500921349-10803-3-git-send-email-keescook@chromium.org
+Signed-off-by: Ingo Molnar <mingo@kernel.org>
+---
+ include/linux/compiler-gcc.h | 13 +++++++++----
+ include/linux/compiler.h     |  3 +++
+ 2 files changed, 12 insertions(+), 4 deletions(-)
 
-> >   keys. If desired, we could add a mechanism for a thread to re-initialize its
-> >   keys without an exec*().
-> 
-> Switching from per-process to per-thread keys would be an ABI break
-> unless it's opt-in.
-
-Indeed, which is why I suggested an opt-in mechanism.
-
-> > * Do we need a separate hwcap for XPAC* instructions?
-> > 
-> >   Library code performing stack unwinding may need to interoperate with other
-> >   code which may or may not be using pointer authentication. It may be
-> >   desirable to use XPAC* rather than attempting authentication and/or acquiring
-> >   the PAC masks via ptrace.
-> > 
-> >   As we may expose APIBKey (potentially separately from APIAKey) in future,
-> >   HWCAP_APIA cannot be used to determine when these instruction can/should be
-> >   used.
-> 
-> Can the availability of XPAC* be determined from the feature regs, or
-> is that insufficient?
-
-I'd forgotten to fix up the id reg emulation to enable this, but this
-should be sufficient when wired up.
-
-The painful part is that there are several fields which can imply XPAC*
-are present, so userspace has to remember to check all of those fields.
-
-[...]
-
-> > * Should the kernel remove PACs when unwinding user stacks?
-> > 
-> >   This is simple to do, but it's arguably placing a policy in the kernel as to
-> >   what we expect user stacks to look like. Regardless, userspace will have to
-> >   perform this when unwinding with DWARF.
-> 
-> Not sure.  This is arguably not more gross than related things the
-> kernel already does, and may be inefficient for userspace to do e.g.,
-> when capturing perf backtraces.  Still gross though.
-> 
-> Side question: do you know whether there will be DWARF / ELF annotations
-> for this?  Since ptr auth is a compile-time option, it is plausible that
-> an attribute could be added to indicate that an image uses it.
-
-Jiong, Yao, can you answer this?
-
-I think that there's DWARF metadata for unwinding, but I'm not sure
-there's an ELF annotation on an image.
-
-Note that you may link with libraries which may or may not use pointer
-auth, so a single process can have a mixture of code using pointer auth,
-and code which does not.
-
-Thanks,
-Mark.
+diff --git a/include/linux/compiler-gcc.h b/include/linux/compiler-gcc.h
+index cd4bbe8..179375b 100644
+--- a/include/linux/compiler-gcc.h
++++ b/include/linux/compiler-gcc.h
+@@ -203,11 +203,16 @@
+ 
+ #ifdef CONFIG_STACK_VALIDATION
+ #define annotate_unreachable() ({					\
+-	asm("%c0:\t\n"							\
+-	    ".pushsection .discard.unreachable\t\n"			\
+-	    ".long %c0b - .\t\n"					\
+-	    ".popsection\t\n" : : "i" (__LINE__));			\
++	asm("%c0:\n\t"							\
++	    ".pushsection .discard.unreachable\n\t"			\
++	    ".long %c0b - .\n\t"					\
++	    ".popsection\n\t" : : "i" (__LINE__));			\
+ })
++#define ASM_UNREACHABLE							\
++	"999:\n\t"							\
++	".pushsection .discard.unreachable\n\t"				\
++	".long 999b - .\n\t"						\
++	".popsection\n\t"
+ #else
+ #define annotate_unreachable()
+ #endif
+diff --git a/include/linux/compiler.h b/include/linux/compiler.h
+index 219f82f..641f591 100644
+--- a/include/linux/compiler.h
++++ b/include/linux/compiler.h
+@@ -185,6 +185,9 @@ void ftrace_likely_update(struct ftrace_likely_data *f, int val,
+ #endif
+ 
+ /* Unreachable code */
++#ifndef ASM_UNREACHABLE
++# define ASM_UNREACHABLE
++#endif
+ #ifndef unreachable
+ # define unreachable() do { } while (1)
+ #endif
