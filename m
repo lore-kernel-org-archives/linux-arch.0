@@ -1,99 +1,79 @@
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [RFC 7/9] arm64: expose PAC bit positions via ptrace
-Date: Tue, 25 Jul 2017 13:11:48 +0100
-Message-ID: <20170725121145.GB6321@e103592.cambridge.arm.com>
-References: <1491232765-32501-1-git-send-email-mark.rutland@arm.com>
- <1491232765-32501-8-git-send-email-mark.rutland@arm.com>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [RFC PATCH 1/2] mm/hugetlb: Make huge_pte_offset() consistent
+ between PUD and PMD entries
+Date: Tue, 25 Jul 2017 13:29:07 +0100
+Message-ID: <20170725122907.bvmubwcfmqalp6r3@localhost>
+References: <20170724173318.966-1-punit.agrawal@arm.com>
+ <20170724173318.966-2-punit.agrawal@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:46136 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750732AbdGYMLx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 25 Jul 2017 08:11:53 -0400
+Received: from foss.arm.com ([217.140.101.70]:46378 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1750732AbdGYM3L (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 25 Jul 2017 08:29:11 -0400
 Content-Disposition: inline
-In-Reply-To: <1491232765-32501-8-git-send-email-mark.rutland@arm.com>
+In-Reply-To: <20170724173318.966-2-punit.agrawal@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Rutland <mark.rutland@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, arnd@arndb.de, jiong.wang@arm.com, marc.zyngier@arm.com, catalin.marinas@arm.com, suzuki.poulose@arm.com, will.deacon@arm.com, linux-kernel@vger.kernel.org, kvmarm@lists.cs.columbia.edu, christoffer.dall@linaro.org
+To: Punit Agrawal <punit.agrawal@arm.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, steve.capper@arm.com, will.deacon@arm.com, kirill.shutemov@linux.intel.com, Michal Hocko <mhocko@suse.com>, Mike Kravetz <mike.kravetz@oracle.com>
 
-On Mon, Apr 03, 2017 at 04:19:23PM +0100, Mark Rutland wrote:
-> When pointer authentication is in use, data/instruction pointers have a
-> number of PAC bits inserted into them. The number and position of these
-> bits depends on the configured TCR_ELx.TxSZ and whether tagging is
-> enabled. ARMv8.3 allows tagging to differ for instruction and data
-> pointers.
+Hi Punit,
+
+On Mon, Jul 24, 2017 at 06:33:17PM +0100, Punit Agrawal wrote:
+> When walking the page tables to resolve an address that points to
+> !present_p*d() entry, huge_pte_offset() returns inconsistent values
+> depending on the level of page table (PUD or PMD).
 > 
-> For userspace debuggers to unwind the stack and/or to follow pointer
-> chains, they need to be able to remove the PAC bits before attempting to
-> use a pointer.
+> In the case of a PUD entry, it returns NULL while in the case of a PMD
+> entry, it returns a pointer to the page table entry.
 > 
-> This patch adds a new structure with masks describing the location of
-> PAC bits in instruction and data pointers, which userspace can query via
-> PTRACE_GETREGSET. By clearing these bits from pointers, userspace can
-> acquire the PAC-less versions.
-> 
-> This new regset is exposed when the kernel is built with (user) pointer
-> authentication support, and the feature is enabled.  Otherwise, it is
-> hidden.
-> 
-> Note that even if the feature is available and enabled, we cannot
-> determine whether userspace is making use of the feature, so debuggers
-> need to cope with this case regardless.
-> 
-> Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Jiong Wang <jiong.wang@arm.com>
-> Cc: Will Deacon <will.deacon@arm.com>
-> ---
->  arch/arm64/include/asm/pointer_auth.h |  8 +++++++
->  arch/arm64/include/uapi/asm/ptrace.h  |  5 +++++
->  arch/arm64/kernel/ptrace.c            | 39 +++++++++++++++++++++++++++++++++++
->  include/uapi/linux/elf.h              |  1 +
->  4 files changed, 53 insertions(+)
-> 
-> diff --git a/arch/arm64/include/asm/pointer_auth.h b/arch/arm64/include/asm/pointer_auth.h
-> index 345df24..ed505fe 100644
-> --- a/arch/arm64/include/asm/pointer_auth.h
-> +++ b/arch/arm64/include/asm/pointer_auth.h
-> @@ -16,9 +16,11 @@
->  #ifndef __ASM_POINTER_AUTH_H
->  #define __ASM_POINTER_AUTH_H
->  
-> +#include <linux/bitops.h>
->  #include <linux/random.h>
->  
->  #include <asm/cpufeature.h>
-> +#include <asm/memory.h>
->  #include <asm/sysreg.h>
->  
->  #ifdef CONFIG_ARM64_POINTER_AUTHENTICATION
-> @@ -70,6 +72,12 @@ static inline void ptrauth_keys_dup(struct ptrauth_keys *old,
->  	*new = *old;
+> Make huge_pte_offset() consistent by always returning NULL on
+> encountering a !present_p*d() entry. Document the behaviour to clarify
+> the expected semantics of this function.
+
+Nitpick: "p*d_present" instead of "present_p*d".
+
+> diff --git a/mm/hugetlb.c b/mm/hugetlb.c
+> index bc48ee783dd9..686eb6fa9eb1 100644
+> --- a/mm/hugetlb.c
+> +++ b/mm/hugetlb.c
+> @@ -4603,6 +4603,13 @@ pte_t *huge_pte_alloc(struct mm_struct *mm,
+>  	return pte;
 >  }
 >  
 > +/*
-> + * The pointer bits used by a pointer authentication code.
-> + * If we were to use tagged pointers, bits 63:56 would also apply.
+> + * huge_pte_offset() - Walk the page table to resolve the hugepage
+> + * entry at address @addr
+> + *
+> + * Return: Pointer to page table entry (PUD or PMD) for address @addr
+> + * or NULL if the entry is not present.
 > + */
-> +#define ptrauth_pac_mask() 	GENMASK(54, VA_BITS)
+>  pte_t *huge_pte_offset(struct mm_struct *mm,
+>  		       unsigned long addr, unsigned long sz)
+>  {
+> @@ -4617,13 +4624,20 @@ pte_t *huge_pte_offset(struct mm_struct *mm,
+>  	p4d = p4d_offset(pgd, addr);
+>  	if (!p4d_present(*p4d))
+>  		return NULL;
+> +
+>  	pud = pud_offset(p4d, addr);
+>  	if (!pud_present(*pud))
+>  		return NULL;
+>  	if (pud_huge(*pud))
+>  		return (pte_t *)pud;
+> +
+>  	pmd = pmd_offset(pud, addr);
+> -	return (pte_t *) pmd;
+> +	if (!pmd_present(*pmd))
+> +		return NULL;
 
-Tagged pointers _are_ enabled for userspace by default, no?
+This breaks the current behaviour for swap entries in the pmd (for pud
+is already broken but maybe no-one uses them). It is fixed in the
+subsequent patch together with the pud but the series is no longer
+bisectable. Maybe it's better if you fold the two patches together (or
+change the order, though I'm not sure how readable it is).
 
-[...]
-
-> diff --git a/include/uapi/linux/elf.h b/include/uapi/linux/elf.h
-> index b59ee07..cae3d1e 100644
-> --- a/include/uapi/linux/elf.h
-> +++ b/include/uapi/linux/elf.h
-> @@ -414,6 +414,7 @@
->  #define NT_ARM_HW_BREAK	0x402		/* ARM hardware breakpoint registers */
->  #define NT_ARM_HW_WATCH	0x403		/* ARM hardware watchpoint registers */
->  #define NT_ARM_SYSTEM_CALL	0x404	/* ARM system call number */
-> +#define NT_ARM_PAC_MASK		0x405	/* ARM pointer authentication code masks */
-
-The is the value tentatively assigned to NT_ARM_SVE.
-
-Cheers
----Dave
+-- 
+Catalin
