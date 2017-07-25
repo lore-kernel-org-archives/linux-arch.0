@@ -1,55 +1,22 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: Simplfying copy_siginfo_to_user
-Date: Tue, 25 Jul 2017 02:37:57 +0100
-Message-ID: <20170725013756.GH2063@ZenIV.linux.org.uk>
-References: <87o9shg7t7.fsf_-_@xmission.com>
- <20170718140651.15973-7-ebiederm@xmission.com>
- <CA+55aFyKsmf+BpYjcH30MGpHTDJ=zgYPx6kwyEB9CXXFxj_xsw@mail.gmail.com>
- <878tjlbqpt.fsf@xmission.com>
- <8760ek5ics.fsf_-_@xmission.com>
- <CA+55aFyH5W2doo9vxXta_-pXfNXqQ19d7z48k1hmfAot+aJvMw@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:53992 "EHLO
-        ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751944AbdGYBiF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Jul 2017 21:38:05 -0400
-Content-Disposition: inline
-In-Reply-To: <CA+55aFyH5W2doo9vxXta_-pXfNXqQ19d7z48k1hmfAot+aJvMw@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@kernel.org>, Oleg Nesterov <oleg@redhat.com>, Andrei Vagin <avagin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Greg KH <greg@kroah.com>, Andrey Vagin <avagin@openvz.org>, Serge Hallyn <serge@hallyn.com>, Pavel Emelyanov <xemul@virtuozzo.com>, Cyrill Gorcunov <gorcunov@openvz.org>, Peter Zijlstra <peterz@infradead.org>, Willy Tarreau <w@1wt.eu>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Linux Containers <containers@lists.linux-foundation.org>, Michael Kerrisk <mtk.manpages@gmail.com>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Subject: [PATCH 0/3] devicetree: cleanup and improve DT cross-arch reference
+Date: Tue, 25 Jul 2017 11:23:33 +0900
+Message-ID: <1500949416-24105-1-git-send-email-yamada.masahiro@socionext.com>
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: devicetree@vger.kernel.org, Rob Herring <robh@kernel.org>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Omar Sandoval <osandov@osandov.com>, Gaurav Minocha <gaurav.minocha.os@gmail.com>, Grant Likely <grant.likely@linaro.org>, Frank Rowand <frowand.list@gmail.com>, Mark Rutland <mark.rutland@arm.com>, Olof Johansson <olof@lixom.net>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <yamada.masahiro@socionext.com>, Michal Marek <mmarek@suse.com>, linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jul 24, 2017 at 10:43:34AM -0700, Linus Torvalds wrote:
-> On Sat, Jul 22, 2017 at 1:25 PM, Eric W. Biederman
-> <ebiederm@xmission.com> wrote:
-> > I played with some clever changes such as limiting the copy to 48 bytes,
-> > disabling the memset and the like but I could not get a strong enough
-> > signal to say that any one change removed the extra or a clear part of
-> > it 20ns.
-> 
-> What CPU did you use? Because the SMAP bit in particular matters.
-> 
-> The field-by-field copies are extremely slow on modern CPU's that
-> implement SMAP, unless you also use the special "unsafe_put_user()"
-> code (or the nasty old put_user_ex() code that some of the x86 signal
-> code uses).
-> 
-> So one of the advantages of just copy_to_user() ends up being visible
-> only on Broadwell+ (or whatever the SMAP cutoff is).
 
-Guys, could you take a look at vfs.git#work.siginfo?  I'd been pretty
-much buried lately (and probably will for several more weeks - long-distance
-moves *suck*), so that thing got stalled, but it might be worth a look.
+Masahiro Yamada (3):
+  of: remove drivers/of/testcase-data from include search path for CPP
+  of: remove arch/$(SRCARCH)/boot/dts from include search path for CPP
+  of: search scripts/dtc/include-prefixes path for both CPP and DTC
 
-The code generated in copy_siginfo_to_user() in it looks reasonably good,
-we don't copy more than we need and all copying to userland is done
-by copy_to_user() - one call per call of copy_siginfo_to_user(), so
-SMAP crap is not an issue.
+ scripts/Makefile.lib | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
-The next thing I hope to do is converting compat side of that thing to
-the same; that got stalled.
+-- 
+2.7.4
 
-Al "Buried in boxes" Viro...
