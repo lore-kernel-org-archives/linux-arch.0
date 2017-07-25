@@ -1,281 +1,87 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:49382 "EHLO
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:49678 "EHLO
         foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752380AbdGYP04 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 25 Jul 2017 11:26:56 -0400
-Date: Tue, 25 Jul 2017 16:26:50 +0100
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH 07/11] arm64: add basic pointer authentication support
-Message-ID: <20170725152649.GE6321@e103592.cambridge.arm.com>
-References: <1500480092-28480-1-git-send-email-mark.rutland@arm.com>
- <1500480092-28480-8-git-send-email-mark.rutland@arm.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1500480092-28480-8-git-send-email-mark.rutland@arm.com>
+        id S1752144AbdGYPle (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 25 Jul 2017 11:41:34 -0400
+From: Punit Agrawal <punit.agrawal@arm.com>
+Subject: [PATCH 1/1] mm/hugetlb: Make huge_pte_offset() consistent and document behaviour
+Date: Tue, 25 Jul 2017 16:41:14 +0100
+Message-ID: <20170725154114.24131-2-punit.agrawal@arm.com>
+In-Reply-To: <20170725154114.24131-1-punit.agrawal@arm.com>
+References: <20170725154114.24131-1-punit.agrawal@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Rutland <mark.rutland@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, arnd@arndb.de, jiong.wang@arm.com, marc.zyngier@arm.com, catalin.marinas@arm.com, yao.qi@arm.com, suzuki.poulose@arm.com, will.deacon@arm.com, linux-kernel@vger.kernel.org, kernel-hardening@lists.openwall.com, kvmarm@lists.cs.columbia.edu, christoffer.dall@linaro.org
-Message-ID: <20170725152650.vJJhMd5PhDcWeoP77j-ZjdfDdYRAHyhSoYZ44m63Br8@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Punit Agrawal <punit.agrawal@arm.com>, Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, steve.capper@arm.com, will.deacon@arm.com, catalin.marinas@arm.com, kirill.shutemov@linux.intel.com, Michal Hocko <mhocko@suse.com>, Mike Kravetz <mike.kravetz@oracle.com>
+Message-ID: <20170725154114.3YmBMHszfyeBGuYselkKr-DbbaBVR9qf7zTlDM6_znk@z>
 
-On Wed, Jul 19, 2017 at 05:01:28PM +0100, Mark Rutland wrote:
-> This patch adds basic support for pointer authentication, allowing
-> userspace to make use of APIAKey. The kernel maintains an APIAKey value
-> for each process (shared by all threads within), which is initialised to
-> a random value at exec() time.
-> 
-> Instructions using other keys (APIBKey, APDAKey, APDBKey) are disabled,
-> and will behave as NOPs. These may be made use of in future patches.
-> 
-> No support is added for the generic key (APGAKey), though this cannot be
-> trapped or made to behave as a NOP. Its presence is not advertised with
-> a hwcap.
-> 
-> Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Suzuki K Poulose <suzuki.poulose@arm.com>
-> Cc: Will Deacon <will.deacon@arm.com>
-> ---
->  arch/arm64/Kconfig                    | 23 +++++++++
->  arch/arm64/include/asm/mmu.h          |  5 ++
->  arch/arm64/include/asm/mmu_context.h  | 25 +++++++++-
->  arch/arm64/include/asm/pointer_auth.h | 89 +++++++++++++++++++++++++++++++++++
->  arch/arm64/include/uapi/asm/hwcap.h   |  1 +
->  arch/arm64/kernel/cpufeature.c        | 11 +++++
->  arch/arm64/kernel/cpuinfo.c           |  1 +
->  7 files changed, 153 insertions(+), 2 deletions(-)
->  create mode 100644 arch/arm64/include/asm/pointer_auth.h
-> 
-> diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-> index dfd9086..15a9931 100644
-> --- a/arch/arm64/Kconfig
-> +++ b/arch/arm64/Kconfig
-> @@ -962,6 +962,29 @@ config ARM64_UAO
->  
->  endmenu
->  
-> +menu "ARMv8.3 architectural features"
-> +
-> +config ARM64_POINTER_AUTHENTICATION
-> +	bool "Enable support for pointer authentication"
-> +	default y
-> +	help
-> +	  Pointer authentication (part of the ARMv8.3 Extensions) provides
-> +	  instructions for signing and authenticating pointers against secret
-> +	  keys, which can be used to mitigate Return Oriented Programming (ROP)
-> +	  and other attacks.
-> +
-> +	  This option enables these instructions at EL0 (i.e. for userspace).
-> +
-> +	  Choosing this option will cause the kernel to initialise secret keys
-> +	  for each process at exec() time, with these keys being
-> +	  context-switched along with the process.
-> +
-> +	  The feature is detected at runtime. If the feature is not present in
-> +	  hardware it will not be advertised to userspace nor will it be
-> +	  enabled.
+When walking the page tables to resolve an address that points to
+!p*d_present() entry, huge_pte_offset() returns inconsistent values
+depending on the level of page table (PUD or PMD).
 
-Should we describe which keys are supported here, or will this option
-always turn on all the keys/instructions that the kernel implements to
-date?
+It returns NULL in the case of a PUD entry while in the case of a PMD
+entry, it returns a pointer to the page table entry.
 
-> +
-> +endmenu
-> +
->  config ARM64_MODULE_CMODEL_LARGE
->  	bool
->  
-> diff --git a/arch/arm64/include/asm/mmu.h b/arch/arm64/include/asm/mmu.h
-> index 5468c83..6a848f3 100644
-> --- a/arch/arm64/include/asm/mmu.h
-> +++ b/arch/arm64/include/asm/mmu.h
-> @@ -16,10 +16,15 @@
->  #ifndef __ASM_MMU_H
->  #define __ASM_MMU_H
->  
-> +#include <asm/pointer_auth.h>
-> +
->  typedef struct {
->  	atomic64_t	id;
->  	void		*vdso;
->  	unsigned long	flags;
-> +#ifdef CONFIG_ARM64_POINTER_AUTHENTICATION
-> +	struct ptrauth_keys	ptrauth_keys;
-> +#endif
->  } mm_context_t;
->  
->  /*
-> diff --git a/arch/arm64/include/asm/mmu_context.h b/arch/arm64/include/asm/mmu_context.h
-> index 3257895a..06757a5 100644
-> --- a/arch/arm64/include/asm/mmu_context.h
-> +++ b/arch/arm64/include/asm/mmu_context.h
-> @@ -31,7 +31,6 @@
->  #include <asm/cacheflush.h>
->  #include <asm/cpufeature.h>
->  #include <asm/proc-fns.h>
-> -#include <asm-generic/mm_hooks.h>
->  #include <asm/cputype.h>
->  #include <asm/pgtable.h>
->  #include <asm/sysreg.h>
-> @@ -154,7 +153,14 @@ static inline void cpu_replace_ttbr1(pgd_t *pgd)
->  #define destroy_context(mm)		do { } while(0)
->  void check_and_switch_context(struct mm_struct *mm, unsigned int cpu);
->  
-> -#define init_new_context(tsk,mm)	({ atomic64_set(&(mm)->context.id, 0); 0; })
-> +static inline int init_new_context(struct task_struct *tsk,
-> +			struct mm_struct *mm)
-> +{
-> +	atomic64_set(&mm->context.id, 0);
-> +	mm_ctx_ptrauth_init(&mm->context);
+A similar inconsitency exists when handling swap entries - returns NULL
+for a PUD entry while a pointer to the pte_t is retured for the PMD
+entry.
 
-For this stuff in general, I wonder whether we should move this code
-away from mm and to thread_strct and the process/thread paths, otherwise
-we'll just have to move it all around later if ptrauth is ever to be
-supported per-thread.
+Update huge_pte_offset() to make the behaviour consistent - return NULL
+in the case of p*d_none() and a pointer to the pte_t for hugepage or
+swap entries.
 
-This would also remove the need to have individually overridable arch
-mm hooks.
+Document the behaviour to clarify the expected behaviour of this
+function. This is to set clear semantics for architecture specific
+implementations of huge_pte_offset().
 
-Adding an extra 16 bytes to thread_struct is probably not the end of the
-world.  thread_struct is already well over half a K.  We could de-dupe
-by refcounting or similar, but it may not be worth the complexity.
+Signed-off-by: Punit Agrawal <punit.agrawal@arm.com>
+---
+ mm/hugetlb.c | 22 +++++++++++++++++++---
+ 1 file changed, 19 insertions(+), 3 deletions(-)
 
-> +
-> +	return 0;
-> +}
->  
->  /*
->   * This is called when "tsk" is about to enter lazy TLB mode.
-> @@ -200,6 +206,8 @@ static inline void __switch_mm(struct mm_struct *next)
->  		return;
->  	}
->  
-> +	mm_ctx_ptrauth_switch(&next->context);
-> +
->  	check_and_switch_context(next, cpu);
->  }
->  
-> @@ -226,6 +234,19 @@ static inline void __switch_mm(struct mm_struct *next)
->  
->  void verify_cpu_asid_bits(void);
->  
-> +static inline void arch_dup_mmap(struct mm_struct *oldmm,
-> +				 struct mm_struct *mm)
-> +{
-> +	mm_ctx_ptrauth_dup(&oldmm->context, &mm->context);
-> +}
-> +#define arch_dup_mmap arch_dup_mmap
-> +
-> +/*
-> + * We need to override arch_dup_mmap before including the generic hooks, which
-> + * are otherwise sufficient for us.
-> + */
-> +#include <asm-generic/mm_hooks.h>
-> +
->  #endif /* !__ASSEMBLY__ */
->  
->  #endif /* !__ASM_MMU_CONTEXT_H */
-> diff --git a/arch/arm64/include/asm/pointer_auth.h b/arch/arm64/include/asm/pointer_auth.h
-> new file mode 100644
-> index 0000000..964da0c
-> --- /dev/null
-> +++ b/arch/arm64/include/asm/pointer_auth.h
-> @@ -0,0 +1,89 @@
-> +/*
-> + * Copyright (C) 2016 ARM Ltd.
-> + *
-> + * This program is free software; you can redistribute it and/or modify
-> + * it under the terms of the GNU General Public License version 2 as
-> + * published by the Free Software Foundation.
-> + *
-> + * This program is distributed in the hope that it will be useful,
-> + * but WITHOUT ANY WARRANTY; without even the implied warranty of
-> + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-> + * GNU General Public License for more details.
-> + *
-> + * You should have received a copy of the GNU General Public License
-> + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-> + */
-> +#ifndef __ASM_POINTER_AUTH_H
-> +#define __ASM_POINTER_AUTH_H
-> +
-> +#include <linux/random.h>
-> +
-> +#include <asm/cpufeature.h>
-> +#include <asm/sysreg.h>
-> +
-> +#ifdef CONFIG_ARM64_POINTER_AUTHENTICATION
-> +/*
-> + * Each key is a 128-bit quantity which is split accross a pair of 64-bit
-> + * registers (Lo and Hi).
-> + */
-> +struct ptrauth_key {
-> +	unsigned long lo, hi;
-> +};
-> +
-> +/*
-> + * We give each process its own instruction A key (APIAKey), which is shared by
-> + * all threads. This is inherited upon fork(), and reinitialised upon exec*().
-> + * All other keys are currently unused, with APIBKey, APDAKey, and APBAKey
-> + * instructions behaving as NOPs.
-> + */
-> +struct ptrauth_keys {
-> +	struct ptrauth_key apia;
-> +};
-> +
-> +static inline void ptrauth_keys_init(struct ptrauth_keys *keys)
-> +{
-> +	if (!cpus_have_const_cap(ARM64_HAS_ADDRESS_AUTH))
-> +		return;
-> +
-> +	get_random_bytes(keys, sizeof(*keys));
-> +}
-> +
-> +#define __ptrauth_key_install(k, v)			\
-> +do {							\
-> +	write_sysreg_s(v.lo, SYS_ ## k ## KEYLO_EL1);	\
-> +	write_sysreg_s(v.hi, SYS_ ## k ## KEYHI_EL1);	\
-
-(v)
-
-though moderately crazy usage would be required in order for this to go
-wrong.
-
-> +} while (0)
-> +
-> +static inline void ptrauth_keys_switch(struct ptrauth_keys *keys)
-> +{
-> +	if (!cpus_have_const_cap(ARM64_HAS_ADDRESS_AUTH))
-> +		return;
-> +
-> +	__ptrauth_key_install(APIA, keys->apia);
-> +}
-> +
-> +static inline void ptrauth_keys_dup(struct ptrauth_keys *old,
-> +				    struct ptrauth_keys *new)
-> +{
-> +	if (!cpus_have_const_cap(ARM64_HAS_ADDRESS_AUTH))
-> +		return;
-> +
-> +	*new = *old;
-
-This seems an odd thing to do.  Surely, by design we never want two
-processes to share the same keys?  Don't we always proceed to nuke
-the keys via mm_ctx_ptrauth_init() anyway?
-
-> +}
-> +
-> +#define mm_ctx_ptrauth_init(ctx) \
-> +	ptrauth_keys_init(&(ctx)->ptrauth_keys)
-> +
-> +#define mm_ctx_ptrauth_switch(ctx) \
-> +	ptrauth_keys_switch(&(ctx)->ptrauth_keys)
-> +
-> +#define mm_ctx_ptrauth_dup(oldctx, newctx) \
-> +	ptrauth_keys_dup(&(oldctx)->ptrauth_keys, &(newctx)->ptrauth_keys)
-
-[...]
-
-Cheers
----Dave
+diff --git a/mm/hugetlb.c b/mm/hugetlb.c
+index bc48ee783dd9..72dd1139a8e4 100644
+--- a/mm/hugetlb.c
++++ b/mm/hugetlb.c
+@@ -4603,6 +4603,13 @@ pte_t *huge_pte_alloc(struct mm_struct *mm,
+ 	return pte;
+ }
+ 
++/*
++ * huge_pte_offset() - Walk the page table to resolve the hugepage
++ * entry at address @addr
++ *
++ * Return: Pointer to page table or swap entry (PUD or PMD) for address @addr
++ * or NULL if the entry is p*d_none().
++ */
+ pte_t *huge_pte_offset(struct mm_struct *mm,
+ 		       unsigned long addr, unsigned long sz)
+ {
+@@ -4617,13 +4624,22 @@ pte_t *huge_pte_offset(struct mm_struct *mm,
+ 	p4d = p4d_offset(pgd, addr);
+ 	if (!p4d_present(*p4d))
+ 		return NULL;
++
+ 	pud = pud_offset(p4d, addr);
+-	if (!pud_present(*pud))
++	if (pud_none(*pud))
+ 		return NULL;
+-	if (pud_huge(*pud))
++	/* hugepage or swap? */
++	if (pud_huge(*pud) || !pud_present(*pud))
+ 		return (pte_t *)pud;
++
+ 	pmd = pmd_offset(pud, addr);
+-	return (pte_t *) pmd;
++	if (pmd_none(*pmd))
++		return NULL;
++	/* hugepage or swap? */
++	if (pmd_huge(*pmd) || !pmd_present(*pmd))
++		return (pte_t *) pmd;
++
++	return NULL;
+ }
+ 
+ #endif /* CONFIG_ARCH_WANT_GENERAL_HUGETLB */
+-- 
+2.11.0
