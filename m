@@ -1,50 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cn.fujitsu.com ([59.151.112.132]:39238 "EHLO
-        heian.cn.fujitsu.com" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org
-        with ESMTP id S1751596AbdGZNfE (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 26 Jul 2017 09:35:04 -0400
-From: Dou Liyang <douly.fnst@cn.fujitsu.com>
-Subject: [PATCH 11/11] asm-generic: numa: Remove the unused parent_node() macro
-Date: Wed, 26 Jul 2017 21:34:36 +0800
-Message-ID: <1501076076-1974-12-git-send-email-douly.fnst@cn.fujitsu.com>
-In-Reply-To: <1501076076-1974-1-git-send-email-douly.fnst@cn.fujitsu.com>
-References: <1501076076-1974-1-git-send-email-douly.fnst@cn.fujitsu.com>
+Received: from ale.deltatee.com ([207.54.116.67]:41389 "EHLO ale.deltatee.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751150AbdGZXTX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 26 Jul 2017 19:19:23 -0400
+From: Logan Gunthorpe <logang@deltatee.com>
+Date: Wed, 26 Jul 2017 17:19:11 -0600
+Message-ID: <20170726231917.6073-1-logang@deltatee.com>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Subject: [PATCH v5 0/6] make io{read|write}64 globally usable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: mpe@ellerman.id.au, Dou Liyang <douly.fnst@cn.fujitsu.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
-Message-ID: <20170726133436.bUEzS9_8rOE-Uk7mIgKePg5XETBoJNXeWvf9P9iknAE@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Stephen Bates <sbates@raithlin.com>, Logan Gunthorpe <logang@deltatee.com>
+Message-ID: <20170726231911.aKk2vnFbS9rHQivy-U39W5BKh7CQLehEghAzvrZhdEw@z>
 
-Commit a7be6e5a7f8d ("mm: drop useless local parameters of
-__register_one_node()") removes the last user of parent_node().
+Changes since v4:
+- Add functions so the powerpc implementation of iomap.c compiles. (As
+noticed by Horia)
 
-The parent_node() macro in generic situation is unnecessary.
+Changes since v3:
 
-Remove it for cleanup.
+- I noticed powerpc didn't use the appropriate functions seeing
+readq/writeq were not defined when iomap.h was included. Thus I've
+included a patch to adjust this
+- Fixed some mistakes with a couple of the defines in io-64-nonatomic*
+headers
+- Fixed a typo noticed by Horia.
 
-Reported-by: Michael Ellerman <mpe@ellerman.id.au>
-Signed-off-by: Dou Liyang <douly.fnst@cn.fujitsu.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org
----
- include/asm-generic/topology.h | 3 ---
- 1 file changed, 3 deletions(-)
+(earlier versions were drastically different)
 
-diff --git a/include/asm-generic/topology.h b/include/asm-generic/topology.h
-index fc824e2..a91d842 100644
---- a/include/asm-generic/topology.h
-+++ b/include/asm-generic/topology.h
-@@ -44,9 +44,6 @@
- #define cpu_to_mem(cpu)		((void)(cpu),0)
- #endif
- 
--#ifndef parent_node
--#define parent_node(node)	((void)(node),0)
--#endif
- #ifndef cpumask_of_node
- #define cpumask_of_node(node)	((void)node, cpu_online_mask)
- #endif
--- 
-2.5.5
+
+Horia Geantă (1):
+  crypto: caam: cleanup CONFIG_64BIT ifdefs when using io{read|write}64
+
+Logan Gunthorpe (5):
+  powerpc: io.h: move iomap.h include so that it can use readq/writeq
+    defs
+  powerpc: iomap.c: introduce io{read|write}64_{lo_hi|hi_lo}
+  iomap: introduce io{read|write}64_{lo_hi|hi_lo}
+  io-64-nonatomic: add io{read|write}64[be]{_lo_hi|_hi_lo} macros
+  ntb: ntb_hw_intel: use io-64-nonatomic instead of in-driver hacks
+
+ arch/powerpc/include/asm/io.h         |   6 +-
+ arch/powerpc/kernel/iomap.c           |  40 +++++++++++
+ drivers/crypto/caam/regs.h            |  35 ++-------
+ drivers/ntb/hw/intel/ntb_hw_intel.c   |  30 +-------
+ include/asm-generic/iomap.h           |  26 +++++--
+ include/linux/io-64-nonatomic-hi-lo.h |  60 ++++++++++++++++
+ include/linux/io-64-nonatomic-lo-hi.h |  60 ++++++++++++++++
+ lib/iomap.c                           | 132 ++++++++++++++++++++++++++++++++++
+ 8 files changed, 322 insertions(+), 67 deletions(-)
+
+--
+2.11.0
