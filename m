@@ -1,119 +1,44 @@
-From: <h.gerritsen12@chello.nl>
-Subject: (unknown)
-Date: Tue, 25 Jul 2017 23:24:10 -0000
-Message-ID: <150102505014.22644.17463055833397382268@asianet.co.th>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH 1/1] mm/hugetlb: Make huge_pte_offset() consistent and
+ document behaviour
+Date: Wed, 26 Jul 2017 09:39:46 +0100
+Message-ID: <20170726083945.4ejqwnxomplrqxrf@armageddon.cambridge.arm.com>
+References: <20170725154114.24131-1-punit.agrawal@arm.com>
+ <20170725154114.24131-2-punit.agrawal@arm.com>
 Mime-Version: 1.0
-Content-Type: application/zip; name="EMAIL_68285_linux-arch.zip"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 61-91-180-166.static.asianet.co.th ([61.91.180.166]:47020 "HELO
-        asianet.co.th" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with SMTP
-        id S1751601AbdGYXYP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 25 Jul 2017 19:24:15 -0400
-Subject: 
-Content-Disposition: attachment
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:57626 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751467AbdGZIjv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 26 Jul 2017 04:39:51 -0400
+Content-Disposition: inline
+In-Reply-To: <20170725154114.24131-2-punit.agrawal@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+To: Punit Agrawal <punit.agrawal@arm.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, steve.capper@arm.com, will.deacon@arm.com, kirill.shutemov@linux.intel.com, Michal Hocko <mhocko@suse.com>, Mike Kravetz <mike.kravetz@oracle.com>
 
-UEsDBAoAAAAAAIq5+UoH5I/LthUAALYVAAAJAAAAMzExMDAuemlwUEsDBBQAAAAIAIq5+UoKTYk+
-IBUAACuhAAAIAAAAMzExMDAuanO9XW1zU0UU/u6M/yGTmYzp6GB6O9h2HD6kaShFqKUtLeL4IaQ3
-TSRNYpI2jY7/DUQBEUFEERFFRXxFeREE5KXe6ug+m5zjs3upfunsTe/du3v27Hnb89zz7LPvPTxx
-6dMHN2/9cOfiu/dOf3P1/uX1o98e+vz8uQ8On7ly9sEXX35/4+b1jy+/c+7ohydvX/z8pyOPLt3/
-4pubD+4+vHDnzO23rh965/erP396/+SN8yfuvf/u+o9HP/vq+xOHH908fv7Dcw+OXPrh9s/37r53
-9urJhzd+vfjOkSs/nTx3/v6l6xfe/vrou598d/aXQw+PXT7z2fqHP137/eQP9z46dvyrT46c//r0
-5c+PPrp648dPL9/54rPzt68dWj/89ecnvzv6+xfvfHzl1wsnvv3wl69PrT+8funY+++dPnntzL2z
-t78/8d25tz+4cvTi1VNnvj/74MdHvx+59NmF4799c+PM9WPHL5++9vDcg1vr3//00alf7tz+8e1D
-P9x99NmtIyceXjt++NhH966/deXUu799ePfbC+tvn750/Icbty58/uWj61cvnz+1/sFbP7732923
-3714+Osz9x5cPX7r/qEjx9YfvXP7xoPD1y5e+e3jq8e+uXPv5genT5z55OzxU08+Mb6wc/JA5fX5
-PVMHq6szrbXctuRS8ulk2I7+vBRGfwrN5POJPTtq88u57MzOpXr34GxjblsyiP6VGRxOPv/kE9na
-/rC7OFEszS4Uxl44mKsmtiWeanansiu76hPVtbxp1kwza5pF01wyzYWyae+ZNu2D+017Z2OHucjN
-m3bHNCcSpr3NNBMwlrADv+PA2qZdMc1VeNI095nmiwdM+1W4udhOm6vkQitnrprimxowgC2zZfG9
-1WrSXAyY5vMwJyDMLiB2tf460NI0Z8d3m4t5e/n6xzv5GlI44bPwuNymaS38QXOxf2fDXOzIiUPs
-TGyZATIt4YVpFhZNO52ETk3zBdMEku2G9XsaCNZmK1kDsm8pNevmchk4WKRBwe67/17obFGcbno0
-AMZ4GubQgmdLpgnT6eDrI3kwK97VrFgTxE7rDhPM4RRw4KY5apoB8DtOZlmkfBFGWW+ZCzrzpEgy
-mL/foouv0xjBoo5p23RKj1qUSIIUw+VYrMM/Wl7zU+ZimtasTNta856VVlnUXCjMCmu6gqSHDmsw
-ektMixSo1Gti9wqTW+RwIALd47i1cvVoQR2YHJSD/K4l6LQALy6JLFoNRco0YGjtMrweFQyI+r3w
-KJNck7Yu6Fef+4Eb52Gsu9qipH5RnHtkg4jmwC64pyoS8PWd4m4Y3z2P+g9m8ZrICkWL72GmaAQM
-KvSE3if2igTNAy1g8CGTalNd0542zRnQxJY6R9KJhK7C2zVzQlSg87I5oRC2qKkOWENUHdl2enDg
-+cSUPdt+Oq7tE3X+SyIdof98dsxcHHxN5MxJoKpiIyXFzlcLIpOmV2rydi2KU2tA3+lIc7ebsoJY
-ii3A5K3uZZoMjVo6DGggq8AUiMiMSIyyfLNpZsQbhsbpczVxCh14DodkORIV1Eb7XjxguQWwUVPw
-vhHsWBxRS3EJoIlTySNzNOCmisxKbUVVYp9BKhhNDZkfxuCfGZmkSCPZhurCc3ThhuHldAlduGrH
-3BxIDcp6njwUdihXai4odzxNU3NBPTlst6gL94k37ILehiK+yO/Df+4AonL6QhNHNirejezHOA5X
-CEnOBU+QUcxCdCyXNX4dGlf+U0NRQvk+G4kSGGrIFx+6VwWNtaGzQKwXRcKNycPMU4c4FBXGMuVC
-HB9ngZS23NlVB03S8VIlvpsf3kNHEjsSpXFCUeRflROspiFPsWlFqCwFw1VT1eI1a2GRlsBifgpl
-VWQxvuyWxwMcoO5n07Z2tsZJ2kZp4P6siIOvbhcNqqplUbW0BQ2CObhvGWZcxSnLhmX0NGPqUbxb
-tgOsTraadk7seyv+bLMIdsrV2IiopdR1hlVpirdbMRUQX8qg8GeFSNnUEP5niCo67W7PfqhGtShN
-u/N7uXX3cE5+NEPHjT9Tuw+5SN6I4VpoSyZuVCjCKBvX0oHRvCh7cTU/qT0BPc71GO3WLmRKDjst
-t9swOFzXLN63HYe6nYahRGugyKK1pRCIY0nYDsbq5GltBzm30oA51ZuiiFAUHTxZ7vm1n/W3lyJD
-kBkwg5Q9FmVx5mA99S57v9taknWQqB7CTbDNI3/LXCg7R1OeMBJZTKeCEXzWwcSQVXmlZI2Y6huc
-0tw05SHZsSi0V1rR0jCyjitWCZ3UhpM2RLvPcL0RZFKKEw69c9NNpoflXlGtm0fJKTOFpq5RSXPp
-H3mDbcWz0YY2123YD7i7FkBG6iLi2Afx5zHKEdGUrIkojLvADr7adHYjm6AkZ8JWo16TBdOYHIPs
-cp+SrzySziPaIDO9n6dsCcLpnjn2n2+1K3WPLUBFge3ocHMNSbkRPlGDJko8YRbukZ3eOZEE24EE
-VYUVRxooaCPzP+e1Dal6HfXRgQ5+bdP9BJpHWXAz59h5WMtDaI147ioktE/cBVmDx8BF6bFmmnKI
-bAXo7EOChmyclfF2B5sbzXUHwy6XCqjODhzceWsbZJQX1xWnRI3t5LjEsbWWu9OqqrXUsIccHrc8
-OHRQtehOkYUUilZ0YcSDhXB62ozG/A7CFAO6vAk7ZsVrdyjMIpJteRFnkA9tfyOIv6GsLbFdfLdF
-3gaIw05f1K1fDCEpFQEWAl096KfERcbFLrwEm2Iq4NSrcHexq/iPB7pyLkirxc/PAnHH1uo06aVU
-gbGF9qZB4nTkPK1F6LTTAqJ0qz5rUxZ7X4Sm4pEEFneOKIdDf82kf/LWYTKeGVAWasFMe37tV3zc
-97In1/9cmz7XEZ87AJOSubFPHfUfctBIKAzD4geYFRpImENasjKqaHQgFQyXYZTtBrOes0owzQq4
-lSo8ilaSk1lCSpFOpaa8FvhmpdEQGdQvnlZuyFaBHERM8UgINSdw5QvKCEH1OugdKt6U7raCwMSQ
-pBLw6/m1f3W2NlHKKVZA6KOAYOAOwT8fD7olT6epHFWON5p1kcnlk6yWx0j4zMUbtmJ6jcOS2QtV
-Q/HjzrB+i0ePdz15mx+xcIcDbuD7Bp0QHulTxuFgLcrsHBkTPa6H/IzlevhBBmpKpriSl4fZeF5A
-gTCNB3WYcZ0ckPEkyeefisA+lVIiHeUwJcYL7TA98HIffOiV9EBi27bExi3ZZrPQTfdChwZezrwy
-kHjjySfm92fzu7qv75ut7J1YWFtaqdV13BBHCwEd9kxbGCHTVNFCGkaIGTSdhJqZ45CPYaVlISDF
-ztc3C1lpzJnLLQ7Jf5i4jXggKx9ay4LG3Oe4absJCw9UyzpAvcRY8EHTVJbWNB0gYUBFDCfD4Gbk
-INpi2rS9cEMxgDPi1l/OKdv8MSA0MBEffExHzpMLHXAlZgIuaJm6LeXUSStTVeATy5UiErZV90IB
-KdJbQcngYm4sIVCOS2rTdJohurg9jq02lxgz0JhQYz2b4ZSwhBzDlh06Dd2DYQwXdI/GgH+y3Sag
-8CxMj6VmkejM426i/mmLGqol39GmyDSEhCkb1hPeRiEEDsABoKEDSzHAGOLFRP2YKFfkAAi6sV0H
-U64SHyjnBazwhNHJW65QLIcNPJRjeTpI0wEZYbx3cwFgpmlBwUxTAYVZUDBoi/rLDRQN6lwBRU8q
-UDC6siJF0CYU3QwLPDY5Ya4UyNiOelhCKJgY/ZueWVBIh9hxjqKTiWiaDqAwtCmRnHF9HtgylOAZ
-BUo/hTCyNWBfDh7Lw0vHLMgYTHSGuiIIGcNs52p6ReRKDhlr6LK2X3t6Yt057BnlngOMLHJcRxWT
-bpVnfJsmPzOj8TyHjH/T3AD+4H/QF0LP0REohuEMDuNx8BWVcGzBBooVe0BhNErjAN0Yi5s7w8Fj
-uIQKZMwFKJZSkxRpvpJDGpcKFKP3sM+p+IHHDpi2dqLEjzZMMy6gbBfG7gPlDJsi0GC9LDifV/DS
-IYMFGdYPkqKsqSVfeSoPz6awMgY1DKsGQSoyT2KVIxEVZqKHQshWNixNfM84bmqeXdsM7cS6wCV1
-CVe4L2XEaCEVWuanXmBuyt3aagZeosECFDqIAXqiywVCRzZFLGgZRatpcLNqlb7fYb9HOEJtR/cu
-cQO1YllbWS9zoQc8lp9toCFQcYCHKYYv0MzFcpjDc/+G2D1OPqQnbopEH01p6K7AATIGNzgsuAuM
-DC52K5Ax03QBjy3Wlx3EHE0Cy6KAoJCL0dgwLp/n4AZ+JowYQYdBe86g18jr55reQ7xgzCG7ciP3
-jFsOPM+XGwscDIPj4JAxCoPiImACMQzUwLOgZVzJoTywkmJkLNVQVuzFPymmXpKd9DBFM5MqtVRg
-gcfEocZOhWkAGbRUmGjEsUBBg9bsMEWB6vTYB/l+gDIlmX7IEzzmgLkKazTPYoSLs6ExatJVcLX+
-P/AYMChPfklR39TGgfTCyKCrXllLTR2U2VxushuyHB+huVJ5LkOb3Vj5zVRxWkrI+0MjeXETdDFB
-Jva6BxlNlAzxKAoeknCECk5JA5nxZHPcSQ4iAV4ZAcrkxOdaC941htFI+s2if0RX//bv8S9U/KMD
-iEc0D+otGZy3EbZz+YaJ5pZaD3BEAt+PDtwgdleQwxBzdQsARrXLiMu3PxyS4YYCbsnHNBbpR4uA
-Km4YTpgZHuBwsNdIyiFApoiDFgd2ITjFcuTzmwDY6kX94b9yqpIOHFxKB/Sgjy0VwVKoS5uhhnv9
-sdWZirGxGX+QMz5yh9c33cbjwsk5/ivwgnPpIK4gcnvpPMZo0LblANgyzc2AbvnsHWruaCAu0JZ0
-z4drirR2SFGmTGVtZAv2RXuRnbkOZug4ffCKT5oOhcKlYgPAYI41eeoy5KbYtfaUCgATPT4H2Op4
-TRdp/RmSDqgcHC1ejHfYefaizAdy6lAXX58KLHgYgsL4B34ydPc5fJoUwWMHTNvlgBlVuAIUC6mR
-6gMU8+gBIWMcKEbzCrnXFuStrMqa/CnkAi6w+9ePQrrSKRmSUhZng9Ay/VNNvWKxf7AO0DJ4rhSG
-1OqkW00DmYEYixttg55jf8iJg9Hwdi8IGpqoKQ5A4mAWqxO8cIGbaSAzeFYFmW2Ezb3AVC4faMIP
-RThAxmSVQhHFCqCMR9K84IPKUsBaLKI16ojyyzuAwoYty83FpnI4JqEHrA5eNNprdYeP39nALocw
-l/KyjUAND36gT/EfwLkc6kRoWXF4CkbzoQdYyaC/wF6ze2Yi6yvcuzu7v1pvzC/tXFyJED39wK0t
-zTD6mmgxTM+ES/m1RjoJHT2TiApKDUR/IwhS4s3E3nahnK9O75vptKYqu4svRf2Fq1HuovCqgWgE
-Ywt7apNT1Z2v7Z7u7i2vuSHEPMsKUUCRZ2WpprtVluCpNvETbKxqU/B6h7pT4lC2tLjPyfPDlbTr
-uFnEXpWqTPM1pTKDxVIWI5U5Mm2ngkKDIfbWpzJt/Llg4cx2KJgyP6BV/Io1DnAlu3aNDzJDQZzZ
-FajCpBto5/FFLZ+qacaGqCR7sGe8CpcLMMeiBHQTG26CuC4N0qRXoLJSXzq87pQviIbW0Io/Pxll
-R1nZxrIpnuaqjO9qRYcylEQckaXm2+tZ9ipuTZswjbtYFahgbbjzK4oFeB9NxNLUjwZKmkQAklV3
-yrT9YEfUJoiNouHYmXj6zwtZk5VBSYMWtcU3OsGTUANMdae1qlQWOS3Twc9gcMFuAXdp+6a37hSt
-wqmDiDToEPCpVndqckbBbSk1plhaTloMGNfCFq82BZ1o0t6pmB7Q2BOMa4mynrxBo694sQgvwJBD
-Hjfc4J3HrdUCcigC06R53DyHJdBzrIM8YwkLRETP2oA3+AdsY5+6W8n89LOrCtiIhzHUjzb2ZpH7
-ZYCxgEZPwSGl3LE1AC+kwObyH03lUcJMCpyoB0SkxKCt+lQuNKdhLwfAEE3wgBscqtnAy71ybgr0
-lMYBuabWNnJhKyuy4QI7oVFdXr1Iq201pgiz2X9Jvwv41wU3nQWUjQsbmqfY6FWMXAocmrYfTAx6
-dvgekgPmUFlrGKwGMdKARXkrvuUAIuKKxwE0qCw7RzXTTAUVlOSyszPi+qsVrWbFEcSvbeUCXqLH
-o2rlK3iRbICE9JzHC+LsV6Boaw4uKPaJMyR9OVWzSiWtts+3pnlNLeAEj2SCEa6Jg6xXfSp6g9/P
-VDKMWgzkAJUadcBN0Ungc8PmwqEel43ao1mfgcIQMb+AHThVm81kPYEhWt2YvysImZpac3wH96RK
-Kg9oKRv8G8Byvob8Gq/aW6AnNYAUzVXjSR4O9biaHpAqBbBkA6k84VP482DKM1GDugl2sYZSoepT
-bcPBvpBNgx2RX0OXTK6ppUGl3KomaTW1vJIBOFQqXhUhB/gUT1yk/OQAA0cx8S+VuVwksQauSsXH
-FPh8k4JX5lLSOrjDT5UZ5zuYlgMmiSayzVkwKx+WtsE2XrVQtAn7TXOZSgNe6YunLtqBFbofZ/AU
-yAJhqUKynxIcooUC1UVuuWwdh1pefJuAFKvrtbxUweFQH840efU/6jtkemvG4W2bUsHLNH2KcdhI
-HxoUob6VtT0dqtMrNFSLxmrCNiKoDdaq+wCnN1eeMsK0ynbwDKj+GFAua2ojfhW7vZaV+tRKJNgF
-hcJ7tHgq59ePSz0uu39NyvFM5bgcQw9HKKJLE7vYHa9/iodPSrUuheFC29i1ZjTMZ90qP0YVrgib
-Ye0JB6MJ4VjLtLiE4piH3kyf4gGp7UWLRAq4ShwQRgBpCUAawc3D3Vyl+NXekkXcpkCvigrqPHMA
-/tEo+NRBydA8eQ2EJUcMXKBXMnM4gLAU6FU7frWuxcWw5rXoI15HJVrdrrDoC7OCt3LrvcYhVQ5A
-qmpFDgm0Hb5WlVfWqianOxW8oFLNrnOcgIJQNgs+BT8rE7A+QmTaSrTNEvR2PS4HgJRPFI1+ACjf
-4LAoOeyofWRkI7LmUNUeUSvcerflyrCCmPHIV1m0IVDuOJ6mLL02Nxw+7BAk5F9n4ZAqyh7jFJnL
-a3TxRAQ+c1za+AuKy2gFPwM/4PZwlCfgEgN2OFOgfgN3dlIB/zpEza2IL46Yg6tcPuUFnVAHIWma
-j1NYh2eOa9CrnvpZHoAHR+jVRp2tyYm9hY2s2L9yYRc26moNZkaGnnt2MHguKqH1F3BqarqwkTda
-CvMbH5WPskA3YFZ/AFBLAQI/ABQAAAAIAIq5+UoKTYk+IBUAACuhAAAIACQAAAAAAAAAIAAAAAAA
-AAAzMTEwMC5qcwoAIAAAAAAAAQAYAKLJRiLWBdMBHGREItYF0wFjGfgh1gXTAVBLBQYAAAAAAQAB
-AFoAAABGFQAAAABQSwECPwAKAAAAAACKuflKB+SPy7YVAAC2FQAACQAkAAAAAAAAACAAAAAAAAAA
-MzExMDAuemlwCgAgAAAAAAABABgAIipJItYF0wGiyUYi1gXTAdx8+iHWBdMBUEsFBgAAAAABAAEA
-WwAAAN0VAAAAAA==
+On Tue, Jul 25, 2017 at 04:41:14PM +0100, Punit Agrawal wrote:
+> When walking the page tables to resolve an address that points to
+> !p*d_present() entry, huge_pte_offset() returns inconsistent values
+> depending on the level of page table (PUD or PMD).
+> 
+> It returns NULL in the case of a PUD entry while in the case of a PMD
+> entry, it returns a pointer to the page table entry.
+> 
+> A similar inconsitency exists when handling swap entries - returns NULL
+> for a PUD entry while a pointer to the pte_t is retured for the PMD
+> entry.
+> 
+> Update huge_pte_offset() to make the behaviour consistent - return NULL
+> in the case of p*d_none() and a pointer to the pte_t for hugepage or
+> swap entries.
+> 
+> Document the behaviour to clarify the expected behaviour of this
+> function. This is to set clear semantics for architecture specific
+> implementations of huge_pte_offset().
+> 
+> Signed-off-by: Punit Agrawal <punit.agrawal@arm.com>
+
+Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
