@@ -1,45 +1,68 @@
-From: Dou Liyang <douly.fnst@cn.fujitsu.com>
-Subject: [PATCH 11/11] asm-generic: numa: Remove the unused parent_node() macro
-Date: Wed, 26 Jul 2017 21:34:36 +0800
-Message-ID: <1501076076-1974-12-git-send-email-douly.fnst@cn.fujitsu.com>
-References: <1501076076-1974-1-git-send-email-douly.fnst@cn.fujitsu.com>
+From: <municlerk@cityofjarrell.com>
+Subject: (unknown)
+Date: Wed, 26 Jul 2017 20:08:05 -0000
+Message-ID: <150109968508.2158.2381946150252081224@hinet.net>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1501076076-1974-1-git-send-email-douly.fnst@cn.fujitsu.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: mpe@ellerman.id.au, Dou Liyang <douly.fnst@cn.fujitsu.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: application/zip; name="EMAIL_2092813_linux-arch.zip"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from 61-216-129-49.HINET-IP.hinet.net ([61.216.129.49]:39916 "HELO
+        hinet.net" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with SMTP
+        id S1751612AbdGZUIK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 26 Jul 2017 16:08:10 -0400
+Content-Disposition: attachment
+Subject: 
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org
 
-Commit a7be6e5a7f8d ("mm: drop useless local parameters of
-__register_one_node()") removes the last user of parent_node().
-
-The parent_node() macro in generic situation is unnecessary.
-
-Remove it for cleanup.
-
-Reported-by: Michael Ellerman <mpe@ellerman.id.au>
-Signed-off-by: Dou Liyang <douly.fnst@cn.fujitsu.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org
----
- include/asm-generic/topology.h | 3 ---
- 1 file changed, 3 deletions(-)
-
-diff --git a/include/asm-generic/topology.h b/include/asm-generic/topology.h
-index fc824e2..a91d842 100644
---- a/include/asm-generic/topology.h
-+++ b/include/asm-generic/topology.h
-@@ -44,9 +44,6 @@
- #define cpu_to_mem(cpu)		((void)(cpu),0)
- #endif
- 
--#ifndef parent_node
--#define parent_node(node)	((void)(node),0)
--#endif
- #ifndef cpumask_of_node
- #define cpumask_of_node(node)	((void)node, cpu_online_mask)
- #endif
--- 
-2.5.5
+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
+AHkKAAAAAA==
