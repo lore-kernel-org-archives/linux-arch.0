@@ -1,69 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:46340 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751428AbdG0M61 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 27 Jul 2017 08:58:27 -0400
-From: Punit Agrawal <punit.agrawal@arm.com>
-Subject: Re: [PATCH 1/1] mm/hugetlb: Make huge_pte_offset() consistent and document behaviour
-References: <20170725154114.24131-1-punit.agrawal@arm.com>
-        <20170725154114.24131-2-punit.agrawal@arm.com>
-        <20170726085038.GB2981@dhcp22.suse.cz>
-        <20170726085325.GC2981@dhcp22.suse.cz>
-        <87bmo7jt31.fsf@e105922-lin.cambridge.arm.com>
-        <20170726123357.GP2981@dhcp22.suse.cz>
-        <20170726124704.GQ2981@dhcp22.suse.cz>
-        <8760efjp98.fsf@e105922-lin.cambridge.arm.com>
-        <9b3b3585-f984-e592-122c-ed23c8558069@oracle.com>
-Date: Thu, 27 Jul 2017 13:58:25 +0100
-In-Reply-To: <9b3b3585-f984-e592-122c-ed23c8558069@oracle.com> (Mike Kravetz's
-        message of "Wed, 26 Jul 2017 20:16:31 -0700")
-Message-ID: <87o9s6hw9a.fsf@e105922-lin.cambridge.arm.com>
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:46899 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1751747AbdG0OCD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 27 Jul 2017 10:02:03 -0400
+Received: from pps.filterd (m0098410.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id v6RDxsjA035077
+        for <linux-arch@vger.kernel.org>; Thu, 27 Jul 2017 10:02:03 -0400
+Received: from e24smtp02.br.ibm.com (e24smtp02.br.ibm.com [32.104.18.86])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2bye2dsxrm-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Thu, 27 Jul 2017 10:02:02 -0400
+Received: from localhost
+        by e24smtp02.br.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <bauerman@linux.vnet.ibm.com>;
+        Thu, 27 Jul 2017 11:01:58 -0300
+References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com> <1500177424-13695-14-git-send-email-linuxram@us.ibm.com>
+From: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
+Subject: Re: [RFC v6 13/62] powerpc: track allocation status of all pkeys
+In-reply-to: <1500177424-13695-14-git-send-email-linuxram@us.ibm.com>
+Date: Thu, 27 Jul 2017 11:01:44 -0300
 MIME-Version: 1.0
 Content-Type: text/plain
+Message-ID: <87eft23rnb.fsf@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mike Kravetz <mike.kravetz@oracle.com>
-Cc: Michal Hocko <mhocko@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, steve.capper@arm.com, will.deacon@arm.com, catalin.marinas@arm.com, kirill.shutemov@linux.intel.com
-Message-ID: <20170727125825.H2eVPTdQuwoubiSnQYdbR2-fdKk2OEmcLb9QEIk5Mh8@z>
+To: Ram Pai <linuxram@us.ibm.com>
+Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, arnd@arndb.de, corbet@lwn.net, mhocko@kernel.org, dave.hansen@intel.com, mingo@redhat.com, paulus@samba.org, aneesh.kumar@linux.vnet.ibm.com, akpm@linux-foundation.org, khandual@linux.vnet.ibm.com
+Message-ID: <20170727140144.ffAjWlxNSc9VsEX4hR1a9gUn8C5bqW1VdSpdczyGzag@z>
 
-Mike Kravetz <mike.kravetz@oracle.com> writes:
 
-> On 07/26/2017 06:34 AM, Punit Agrawal wrote:
->> Michal Hocko <mhocko@kernel.org> writes:
->> 
->>> On Wed 26-07-17 14:33:57, Michal Hocko wrote:
->>>> On Wed 26-07-17 13:11:46, Punit Agrawal wrote:
->>> [...]
->>>>> I've been running tests from mce-test suite and libhugetlbfs for similar
->>>>> changes we did on arm64. There could be assumptions that were not
->>>>> exercised but I'm not sure how to check for all the possible usages.
->>>>>
->>>>> Do you have any other suggestions that can help improve confidence in
->>>>> the patch?
->>>>
->>>> Unfortunatelly I don't. I just know there were many subtle assumptions
->>>> all over the place so I am rather careful to not touch the code unless
->>>> really necessary.
->>>>
->>>> That being said, I am not opposing your patch.
->>>
->>> Let me be more specific. I am not opposing your patch but we should
->>> definitely need more reviewers to have a look. I am not seeing any
->>> immediate problems with it but I do not see a large improvements either
->>> (slightly less nightmare doesn't make me sleep all that well ;)). So I
->>> will leave the decisions to others.
->> 
->> I hear you - I'd definitely appreciate more eyes on the code change and
->> description.
+Hello Ram,
+
+I'm still going through the patches and haven't formed a full picture of
+the feature in my mind yet, so my comments today won't be particularly
+insightful...
+
+But hopefully the comments that I currently have will be helpful anyway.
+
+Ram Pai <linuxram@us.ibm.com> writes:
+> diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
+> index 203d7de..09b268e 100644
+> --- a/arch/powerpc/include/asm/pkeys.h
+> +++ b/arch/powerpc/include/asm/pkeys.h
+> @@ -2,21 +2,87 @@
+>  #define _ASM_PPC64_PKEYS_H
 >
-> I like the change in semantics for the routine.  Like you, I examined all
-> callers of huge_pte_offset() and it appears that they will not be impacted
-> by your change.
->
-> My only concern is that arch specific versions of huge_pte_offset, may
-> not (yet) follow the new semantic.  Someone could potentially introduce
-> a new huge_pte_offset call and depend on the new 'documented' semantics.
-> Yet, an unmodified arch specific version of huge_pte_offset might have
-> different semantics.  I have not reviewed all the arch specific instances
-> of the routine to know if this is even possible.  Just curious if you
-> examined these, or perhaps you think this is not an issue?
+>  extern bool pkey_inited;
+> -#define ARCH_VM_PKEY_FLAGS 0
+> +#define arch_max_pkey()  32
+> +#define ARCH_VM_PKEY_FLAGS (VM_PKEY_BIT0 | VM_PKEY_BIT1 | VM_PKEY_BIT2 | \
+> +				VM_PKEY_BIT3 | VM_PKEY_BIT4)
+> +/*
+> + * Bits are in BE format.
+> + * NOTE: key 31, 1, 0 are not used.
+> + * key 0 is used by default. It give read/write/execute permission.
+> + * key 31 is reserved by the hypervisor.
+> + * key 1 is recommended to be not used.
+> + * PowerISA(3.0) page 1015, programming note.
+> + */
+> +#define PKEY_INITIAL_ALLOCAION  0xc0000001
+
+There's a typo in the macro name, should be "ALLOCATION".
+
+-- 
+Thiago Jung Bauermann
+IBM Linux Technology Center
