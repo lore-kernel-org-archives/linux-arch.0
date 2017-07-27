@@ -1,75 +1,64 @@
-From: Punit Agrawal <punit.agrawal@arm.com>
-Subject: Re: [PATCH 1/1] mm/hugetlb: Make huge_pte_offset() consistent and document behaviour
-Date: Thu, 27 Jul 2017 13:58:25 +0100
-Message-ID: <87o9s6hw9a.fsf@e105922-lin.cambridge.arm.com>
-References: <20170725154114.24131-1-punit.agrawal@arm.com>
-        <20170725154114.24131-2-punit.agrawal@arm.com>
-        <20170726085038.GB2981@dhcp22.suse.cz>
-        <20170726085325.GC2981@dhcp22.suse.cz>
-        <87bmo7jt31.fsf@e105922-lin.cambridge.arm.com>
-        <20170726123357.GP2981@dhcp22.suse.cz>
-        <20170726124704.GQ2981@dhcp22.suse.cz>
-        <8760efjp98.fsf@e105922-lin.cambridge.arm.com>
-        <9b3b3585-f984-e592-122c-ed23c8558069@oracle.com>
+From: <nfrankiyamu@centrum.cz>
+Subject: (unknown)
+Date: Thu, 27 Jul 2017 13:00:01 -0000
+Message-ID: <150116040151.20843.14219423632118398814@hinet.net>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <9b3b3585-f984-e592-122c-ed23c8558069@oracle.com> (Mike Kravetz's
-        message of "Wed, 26 Jul 2017 20:16:31 -0700")
-Sender: linux-kernel-owner@vger.kernel.org
-To: Mike Kravetz <mike.kravetz@oracle.com>
-Cc: Michal Hocko <mhocko@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, steve.capper@arm.com, will.deacon@arm.com, catalin.marinas@arm.com, kirill.shutemov@linux.intel.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: application/zip; name="EMAIL_47662874919894_linux-arch.zip"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from 61-223-63-172.dynamic-ip.hinet.net ([61.223.63.172]:40927 "HELO
+        hinet.net" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with SMTP
+        id S1751565AbdG0NAd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 27 Jul 2017 09:00:33 -0400
+Content-Disposition: attachment
+Subject: 
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org
 
-Mike Kravetz <mike.kravetz@oracle.com> writes:
-
-> On 07/26/2017 06:34 AM, Punit Agrawal wrote:
->> Michal Hocko <mhocko@kernel.org> writes:
->> 
->>> On Wed 26-07-17 14:33:57, Michal Hocko wrote:
->>>> On Wed 26-07-17 13:11:46, Punit Agrawal wrote:
->>> [...]
->>>>> I've been running tests from mce-test suite and libhugetlbfs for similar
->>>>> changes we did on arm64. There could be assumptions that were not
->>>>> exercised but I'm not sure how to check for all the possible usages.
->>>>>
->>>>> Do you have any other suggestions that can help improve confidence in
->>>>> the patch?
->>>>
->>>> Unfortunatelly I don't. I just know there were many subtle assumptions
->>>> all over the place so I am rather careful to not touch the code unless
->>>> really necessary.
->>>>
->>>> That being said, I am not opposing your patch.
->>>
->>> Let me be more specific. I am not opposing your patch but we should
->>> definitely need more reviewers to have a look. I am not seeing any
->>> immediate problems with it but I do not see a large improvements either
->>> (slightly less nightmare doesn't make me sleep all that well ;)). So I
->>> will leave the decisions to others.
->> 
->> I hear you - I'd definitely appreciate more eyes on the code change and
->> description.
->
-> I like the change in semantics for the routine.  Like you, I examined all
-> callers of huge_pte_offset() and it appears that they will not be impacted
-> by your change.
->
-> My only concern is that arch specific versions of huge_pte_offset, may
-> not (yet) follow the new semantic.  Someone could potentially introduce
-> a new huge_pte_offset call and depend on the new 'documented' semantics.
-> Yet, an unmodified arch specific version of huge_pte_offset might have
-> different semantics.  I have not reviewed all the arch specific instances
-> of the routine to know if this is even possible.  Just curious if you
-> examined these, or perhaps you think this is not an issue?
-
-From checking through the implementations of huge_pte_offset()
-architectures, the change shouldn't break anything. (I also cc'd the
-posting to linux-arch for architecture maintainers to take more notice).
-
-This is because existing users actively deal with the different returned
-values (NULL, huge pte_t*, swap pte_t*) and are not checking explicitly
-for pmd or pud.
-
-Guarding against future users is more tricky - it would definitely help
-to align all the implementations.
+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
