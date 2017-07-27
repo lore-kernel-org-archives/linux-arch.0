@@ -1,77 +1,54 @@
 From: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
-Subject: Re: [RFC v6 20/62] powerpc: store and restore the pkey state across context switches
-Date: Thu, 27 Jul 2017 14:32:59 -0300
-Message-ID: <878tj94wfo.fsf@linux.vnet.ibm.com>
-References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com> <1500177424-13695-21-git-send-email-linuxram@us.ibm.com>
+Subject: Re: [RFC v6 15/62] powerpc: helper functions to initialize AMR, IAMR and UMOR registers
+Date: Thu, 27 Jul 2017 17:40:44 -0300
+Message-ID: <877eyt4nqr.fsf@linux.vnet.ibm.com>
+References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com> <1500177424-13695-16-git-send-email-linuxram@us.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:48526 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1751518AbdG0RdQ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 27 Jul 2017 13:33:16 -0400
-Received: from pps.filterd (m0098414.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id v6RHSZJv068328
-        for <linux-arch@vger.kernel.org>; Thu, 27 Jul 2017 13:33:15 -0400
-Received: from e24smtp01.br.ibm.com (e24smtp01.br.ibm.com [32.104.18.85])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 2byjfueb0u-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Thu, 27 Jul 2017 13:33:15 -0400
-Received: from localhost
-        by e24smtp01.br.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <bauerman@linux.vnet.ibm.com>;
-        Thu, 27 Jul 2017 14:33:13 -0300
-In-reply-to: <1500177424-13695-21-git-send-email-linuxram@us.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-reply-to: <1500177424-13695-16-git-send-email-linuxram@us.ibm.com>
+Sender: linux-doc-owner@vger.kernel.org
 To: Ram Pai <linuxram@us.ibm.com>
 Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, arnd@arndb.de, corbet@lwn.net, mhocko@kernel.org, dave.hansen@intel.com, mingo@redhat.com, paulus@samba.org, aneesh.kumar@linux.vnet.ibm.com, akpm@linux-foundation.org, khandual@linux.vnet.ibm.com
+List-Id: linux-arch.vger.kernel.org
 
 
 Ram Pai <linuxram@us.ibm.com> writes:
 
-> Store and restore the AMR, IAMR and UMOR register state of the task
-> before scheduling out and after scheduling in, respectively.
+> Introduce helper functions that can initialize the bits in the AMR,
+> IAMR and UMOR register; the bits that correspond to the given pkey.
 >
 > Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 
-s/UMOR/UAMOR/
+s/UMOR/UAMOR/ here and in the subject as well.
 
-> diff --git a/arch/powerpc/kernel/process.c b/arch/powerpc/kernel/process.c
-> index 2ad725e..9429361 100644
-> --- a/arch/powerpc/kernel/process.c
-> +++ b/arch/powerpc/kernel/process.c
-> @@ -1096,6 +1096,11 @@ static inline void save_sprs(struct thread_struct *t)
->  		t->tar = mfspr(SPRN_TAR);
->  	}
->  #endif
-> +#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
-> +	t->amr = mfspr(SPRN_AMR);
-> +	t->iamr = mfspr(SPRN_IAMR);
-> +	t->uamor = mfspr(SPRN_UAMOR);
-> +#endif
->  }
+> --- a/arch/powerpc/mm/pkeys.c
+> +++ b/arch/powerpc/mm/pkeys.c
+> @@ -16,3 +16,47 @@
+>  #include <linux/pkeys.h>                /* PKEY_*                       */
 >
->  static inline void restore_sprs(struct thread_struct *old_thread,
-> @@ -1131,6 +1136,14 @@ static inline void restore_sprs(struct thread_struct *old_thread,
->  			mtspr(SPRN_TAR, new_thread->tar);
->  	}
->  #endif
-> +#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
-> +	if (old_thread->amr != new_thread->amr)
-> +		mtspr(SPRN_AMR, new_thread->amr);
-> +	if (old_thread->iamr != new_thread->iamr)
-> +		mtspr(SPRN_IAMR, new_thread->iamr);
-> +	if (old_thread->uamor != new_thread->uamor)
-> +		mtspr(SPRN_UAMOR, new_thread->uamor);
-> +#endif
->  }
+>  bool pkey_inited;
+> +#define pkeyshift(pkey) ((arch_max_pkey()-pkey-1) * AMR_BITS_PER_PKEY)
+> +
+> +static inline void init_amr(int pkey, u8 init_bits)
+> +{
+> +	u64 new_amr_bits = (((u64)init_bits & 0x3UL) << pkeyshift(pkey));
+> +	u64 old_amr = read_amr() & ~((u64)(0x3ul) << pkeyshift(pkey));
+> +
+> +	write_amr(old_amr | new_amr_bits);
+> +}
+> +
+> +static inline void init_iamr(int pkey, u8 init_bits)
+> +{
+> +	u64 new_iamr_bits = (((u64)init_bits & 0x3UL) << pkeyshift(pkey));
+> +	u64 old_iamr = read_iamr() & ~((u64)(0x3ul) << pkeyshift(pkey));
+> +
+> +	write_amr(old_iamr | new_iamr_bits);
+> +}
 
-Shouldn't the saving and restoring of the SPRs be guarded by a check for
-whether memory protection keys are enabled? What happens when trying to
-access these registers on a CPU which doesn't have them?
+init_iamr should call write_iamr, not write_amr.
 
 -- 
 Thiago Jung Bauermann
 IBM Linux Technology Center
+
