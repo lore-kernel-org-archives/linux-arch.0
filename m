@@ -1,97 +1,77 @@
 From: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
-Subject: Re: [RFC v6 19/62] powerpc: ability to create execute-disabled pkeys
-Date: Thu, 27 Jul 2017 12:34:57 -0300
-Message-ID: <87a83p51we.fsf@linux.vnet.ibm.com>
-References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com> <1500177424-13695-20-git-send-email-linuxram@us.ibm.com> <87bmo63p7c.fsf@linux.vnet.ibm.com>
+Subject: Re: [RFC v6 20/62] powerpc: store and restore the pkey state across context switches
+Date: Thu, 27 Jul 2017 14:32:59 -0300
+Message-ID: <878tj94wfo.fsf@linux.vnet.ibm.com>
+References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com> <1500177424-13695-21-git-send-email-linuxram@us.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <owner-linux-mm@kvack.org>
-In-reply-to: <87bmo63p7c.fsf@linux.vnet.ibm.com>
-Sender: owner-linux-mm@kvack.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:48526 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1751518AbdG0RdQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 27 Jul 2017 13:33:16 -0400
+Received: from pps.filterd (m0098414.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id v6RHSZJv068328
+        for <linux-arch@vger.kernel.org>; Thu, 27 Jul 2017 13:33:15 -0400
+Received: from e24smtp01.br.ibm.com (e24smtp01.br.ibm.com [32.104.18.85])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2byjfueb0u-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Thu, 27 Jul 2017 13:33:15 -0400
+Received: from localhost
+        by e24smtp01.br.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <bauerman@linux.vnet.ibm.com>;
+        Thu, 27 Jul 2017 14:33:13 -0300
+In-reply-to: <1500177424-13695-21-git-send-email-linuxram@us.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Ram Pai <linuxram@us.ibm.com>
 Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, arnd@arndb.de, corbet@lwn.net, mhocko@kernel.org, dave.hansen@intel.com, mingo@redhat.com, paulus@samba.org, aneesh.kumar@linux.vnet.ibm.com, akpm@linux-foundation.org, khandual@linux.vnet.ibm.com
-List-Id: linux-arch.vger.kernel.org
 
 
-Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com> writes:
-> diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
-> index e31f5ee8e81f..67e6a3a343ae 100644
-> --- a/arch/powerpc/include/asm/pkeys.h
-> +++ b/arch/powerpc/include/asm/pkeys.h
-> @@ -4,17 +4,6 @@
->  #include <asm/firmware.h>
->  
->  extern bool pkey_inited;
-> -/* override any generic PKEY Permission defines */
-> -#undef  PKEY_DISABLE_ACCESS
-> -#define PKEY_DISABLE_ACCESS    0x1
-> -#undef  PKEY_DISABLE_WRITE
-> -#define PKEY_DISABLE_WRITE     0x2
-> -#undef  PKEY_DISABLE_EXECUTE
-> -#define PKEY_DISABLE_EXECUTE   0x4
-> -#undef  PKEY_ACCESS_MASK
-> -#define PKEY_ACCESS_MASK       (PKEY_DISABLE_ACCESS |\
-> -				PKEY_DISABLE_WRITE  |\
-> -				PKEY_DISABLE_EXECUTE)
->  
->  #define ARCH_VM_PKEY_FLAGS (VM_PKEY_BIT0 | VM_PKEY_BIT1 | VM_PKEY_BIT2 | \
->  				VM_PKEY_BIT3 | VM_PKEY_BIT4)
-> diff --git a/arch/powerpc/include/uapi/asm/mman.h b/arch/powerpc/include/uapi/asm/mman.h
-> index ab45cc2f3101..dee43feb7c53 100644
-> --- a/arch/powerpc/include/uapi/asm/mman.h
-> +++ b/arch/powerpc/include/uapi/asm/mman.h
-> @@ -45,4 +45,6 @@
->  #define MAP_HUGE_1GB	(30 << MAP_HUGE_SHIFT)	/* 1GB   HugeTLB Page */
->  #define MAP_HUGE_16GB	(34 << MAP_HUGE_SHIFT)	/* 16GB  HugeTLB Page */
->  
-> +#define PKEY_DISABLE_EXECUTE   0x4
-> +
->  #endif /* _UAPI_ASM_POWERPC_MMAN_H */
-> diff --git a/arch/powerpc/mm/pkeys.c b/arch/powerpc/mm/pkeys.c
-> index 72eb9a1bde79..777f8f8dff47 100644
-> --- a/arch/powerpc/mm/pkeys.c
-> +++ b/arch/powerpc/mm/pkeys.c
-> @@ -12,7 +12,7 @@
->   * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
->   * more details.
->   */
-> -#include <uapi/asm-generic/mman-common.h>
-> +#include <asm/mman.h>
->  #include <linux/pkeys.h>                /* PKEY_*                       */
->  
->  bool pkey_inited;
-> diff --git a/include/uapi/asm-generic/mman-common.h b/include/uapi/asm-generic/mman-common.h
-> index 8c27db0c5c08..93e3841d9ada 100644
-> --- a/include/uapi/asm-generic/mman-common.h
-> +++ b/include/uapi/asm-generic/mman-common.h
-> @@ -74,7 +74,15 @@
->  
->  #define PKEY_DISABLE_ACCESS	0x1
->  #define PKEY_DISABLE_WRITE	0x2
-> +
-> +/* The arch-specific code may define PKEY_DISABLE_EXECUTE */
-> +#ifdef PKEY_DISABLE_EXECUTE
-> +#define PKEY_ACCESS_MASK       (PKEY_DISABLE_ACCESS |	\
-> +				PKEY_DISABLE_WRITE  |	\
-> +				PKEY_DISABLE_EXECUTE)
-> +#else
->  #define PKEY_ACCESS_MASK	(PKEY_DISABLE_ACCESS |\
->  				 PKEY_DISABLE_WRITE)
+Ram Pai <linuxram@us.ibm.com> writes:
+
+> Store and restore the AMR, IAMR and UMOR register state of the task
+> before scheduling out and after scheduling in, respectively.
+>
+> Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+
+s/UMOR/UAMOR/
+
+> diff --git a/arch/powerpc/kernel/process.c b/arch/powerpc/kernel/process.c
+> index 2ad725e..9429361 100644
+> --- a/arch/powerpc/kernel/process.c
+> +++ b/arch/powerpc/kernel/process.c
+> @@ -1096,6 +1096,11 @@ static inline void save_sprs(struct thread_struct *t)
+>  		t->tar = mfspr(SPRN_TAR);
+>  	}
+>  #endif
+> +#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
+> +	t->amr = mfspr(SPRN_AMR);
+> +	t->iamr = mfspr(SPRN_IAMR);
+> +	t->uamor = mfspr(SPRN_UAMOR);
 > +#endif
->  
->  #endif /* __ASM_GENERIC_MMAN_COMMON_H */
+>  }
+>
+>  static inline void restore_sprs(struct thread_struct *old_thread,
+> @@ -1131,6 +1136,14 @@ static inline void restore_sprs(struct thread_struct *old_thread,
+>  			mtspr(SPRN_TAR, new_thread->tar);
+>  	}
+>  #endif
+> +#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
+> +	if (old_thread->amr != new_thread->amr)
+> +		mtspr(SPRN_AMR, new_thread->amr);
+> +	if (old_thread->iamr != new_thread->iamr)
+> +		mtspr(SPRN_IAMR, new_thread->iamr);
+> +	if (old_thread->uamor != new_thread->uamor)
+> +		mtspr(SPRN_UAMOR, new_thread->uamor);
+> +#endif
+>  }
 
-Actually, I just noticed that arch/powerpc/include/uapi/asm/mman.h
-includes <asm-generic/mman-common.h>, so for the #ifdef above to work
-the former has to #define PKEY_DISABLE_EXECUTE before including the
-latter.
+Shouldn't the saving and restoring of the SPRs be guarded by a check for
+whether memory protection keys are enabled? What happens when trying to
+access these registers on a CPU which doesn't have them?
 
 -- 
 Thiago Jung Bauermann
 IBM Linux Technology Center
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
