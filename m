@@ -1,79 +1,69 @@
-From: Logan Gunthorpe <logang@deltatee.com>
-Subject: [PATCH v5 5/6] ntb: ntb_hw_intel: use io-64-nonatomic instead of in-driver hacks
-Date: Wed, 26 Jul 2017 17:19:16 -0600
-Message-ID: <20170726231917.6073-6-logang@deltatee.com>
-References: <20170726231917.6073-1-logang@deltatee.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ale.deltatee.com ([207.54.116.67]:41397 "EHLO ale.deltatee.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751175AbdGZXTY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 26 Jul 2017 19:19:24 -0400
-In-Reply-To: <20170726231917.6073-1-logang@deltatee.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Stephen Bates <sbates@raithlin.com>, Logan Gunthorpe <logang@deltatee.com>, Jon Mason <jdmason@kudzu.us>, Allen Hubbe <Allen.Hubbe@emc.com>
+From: Mike Kravetz <mike.kravetz@oracle.com>
+Subject: Re: [PATCH 1/1] mm/hugetlb: Make huge_pte_offset() consistent and
+ document behaviour
+Date: Wed, 26 Jul 2017 20:16:31 -0700
+Message-ID: <9b3b3585-f984-e592-122c-ed23c8558069@oracle.com>
+References: <20170725154114.24131-1-punit.agrawal@arm.com>
+ <20170725154114.24131-2-punit.agrawal@arm.com>
+ <20170726085038.GB2981@dhcp22.suse.cz> <20170726085325.GC2981@dhcp22.suse.cz>
+ <87bmo7jt31.fsf@e105922-lin.cambridge.arm.com>
+ <20170726123357.GP2981@dhcp22.suse.cz> <20170726124704.GQ2981@dhcp22.suse.cz>
+ <8760efjp98.fsf@e105922-lin.cambridge.arm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <8760efjp98.fsf@e105922-lin.cambridge.arm.com>
+Sender: owner-linux-mm@kvack.org
+To: Punit Agrawal <punit.agrawal@arm.com>, Michal Hocko <mhocko@kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, steve.capper@arm.com, will.deacon@arm.com, catalin.marinas@arm.com, kirill.shutemov@linux.intel.com
+List-Id: linux-arch.vger.kernel.org
 
-Now that ioread64 and iowrite64 are available in io-64-nonatomic,
-we can remove the hack at the top of ntb_hw_intel.c and replace it
-with an include.
+On 07/26/2017 06:34 AM, Punit Agrawal wrote:
+> Michal Hocko <mhocko@kernel.org> writes:
+> 
+>> On Wed 26-07-17 14:33:57, Michal Hocko wrote:
+>>> On Wed 26-07-17 13:11:46, Punit Agrawal wrote:
+>> [...]
+>>>> I've been running tests from mce-test suite and libhugetlbfs for similar
+>>>> changes we did on arm64. There could be assumptions that were not
+>>>> exercised but I'm not sure how to check for all the possible usages.
+>>>>
+>>>> Do you have any other suggestions that can help improve confidence in
+>>>> the patch?
+>>>
+>>> Unfortunatelly I don't. I just know there were many subtle assumptions
+>>> all over the place so I am rather careful to not touch the code unless
+>>> really necessary.
+>>>
+>>> That being said, I am not opposing your patch.
+>>
+>> Let me be more specific. I am not opposing your patch but we should
+>> definitely need more reviewers to have a look. I am not seeing any
+>> immediate problems with it but I do not see a large improvements either
+>> (slightly less nightmare doesn't make me sleep all that well ;)). So I
+>> will leave the decisions to others.
+> 
+> I hear you - I'd definitely appreciate more eyes on the code change and
+> description.
 
-Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
-Cc: Jon Mason <jdmason@kudzu.us>
-Cc: Allen Hubbe <Allen.Hubbe@emc.com>
-Acked-by: Dave Jiang <dave.jiang@intel.com>
-Acked-by: Allen Hubbe <Allen.Hubbe@dell.com>
----
- drivers/ntb/hw/intel/ntb_hw_intel.c | 30 +-----------------------------
- 1 file changed, 1 insertion(+), 29 deletions(-)
+I like the change in semantics for the routine.  Like you, I examined all
+callers of huge_pte_offset() and it appears that they will not be impacted
+by your change.
 
-diff --git a/drivers/ntb/hw/intel/ntb_hw_intel.c b/drivers/ntb/hw/intel/ntb_hw_intel.c
-index 2557e2c05b90..606c90f59d4b 100644
---- a/drivers/ntb/hw/intel/ntb_hw_intel.c
-+++ b/drivers/ntb/hw/intel/ntb_hw_intel.c
-@@ -59,6 +59,7 @@
- #include <linux/random.h>
- #include <linux/slab.h>
- #include <linux/ntb.h>
-+#include <linux/io-64-nonatomic-lo-hi.h>
- 
- #include "ntb_hw_intel.h"
- 
-@@ -155,35 +156,6 @@ MODULE_PARM_DESC(xeon_b2b_dsd_bar5_addr32,
- static inline enum ntb_topo xeon_ppd_topo(struct intel_ntb_dev *ndev, u8 ppd);
- static int xeon_init_isr(struct intel_ntb_dev *ndev);
- 
--#ifndef ioread64
--#ifdef readq
--#define ioread64 readq
--#else
--#define ioread64 _ioread64
--static inline u64 _ioread64(void __iomem *mmio)
--{
--	u64 low, high;
--
--	low = ioread32(mmio);
--	high = ioread32(mmio + sizeof(u32));
--	return low | (high << 32);
--}
--#endif
--#endif
--
--#ifndef iowrite64
--#ifdef writeq
--#define iowrite64 writeq
--#else
--#define iowrite64 _iowrite64
--static inline void _iowrite64(u64 val, void __iomem *mmio)
--{
--	iowrite32(val, mmio);
--	iowrite32(val >> 32, mmio + sizeof(u32));
--}
--#endif
--#endif
--
- static inline int pdev_is_atom(struct pci_dev *pdev)
- {
- 	switch (pdev->device) {
+My only concern is that arch specific versions of huge_pte_offset, may
+not (yet) follow the new semantic.  Someone could potentially introduce
+a new huge_pte_offset call and depend on the new 'documented' semantics.
+Yet, an unmodified arch specific version of huge_pte_offset might have
+different semantics.  I have not reviewed all the arch specific instances
+of the routine to know if this is even possible.  Just curious if you
+examined these, or perhaps you think this is not an issue?
+
 -- 
-2.11.0
+Mike Kravetz
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
