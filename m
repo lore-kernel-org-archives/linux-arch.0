@@ -1,64 +1,52 @@
-From: <nfrankiyamu@centrum.cz>
-Subject: (unknown)
-Date: Thu, 27 Jul 2017 13:00:01 -0000
-Message-ID: <150116040151.20843.14219423632118398814@hinet.net>
+From: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
+Subject: Re: [RFC v6 13/62] powerpc: track allocation status of all pkeys
+Date: Thu, 27 Jul 2017 11:01:44 -0300
+Message-ID: <87eft23rnb.fsf@linux.vnet.ibm.com>
+References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com> <1500177424-13695-14-git-send-email-linuxram@us.ibm.com>
 Mime-Version: 1.0
-Content-Type: application/zip; name="EMAIL_47662874919894_linux-arch.zip"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 61-223-63-172.dynamic-ip.hinet.net ([61.223.63.172]:40927 "HELO
-        hinet.net" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with SMTP
-        id S1751565AbdG0NAd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 27 Jul 2017 09:00:33 -0400
-Content-Disposition: attachment
-Subject: 
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+Content-Type: text/plain
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-reply-to: <1500177424-13695-14-git-send-email-linuxram@us.ibm.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: Ram Pai <linuxram@us.ibm.com>
+Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, arnd@arndb.de, corbet@lwn.net, mhocko@kernel.org, dave.hansen@intel.com, mingo@redhat.com, paulus@samba.org, aneesh.kumar@linux.vnet.ibm.com, akpm@linux-foundation.org, khandual@linux.vnet.ibm.com
+List-Id: linux-arch.vger.kernel.org
 
-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
+
+Hello Ram,
+
+I'm still going through the patches and haven't formed a full picture of
+the feature in my mind yet, so my comments today won't be particularly
+insightful...
+
+But hopefully the comments that I currently have will be helpful anyway.
+
+Ram Pai <linuxram@us.ibm.com> writes:
+> diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
+> index 203d7de..09b268e 100644
+> --- a/arch/powerpc/include/asm/pkeys.h
+> +++ b/arch/powerpc/include/asm/pkeys.h
+> @@ -2,21 +2,87 @@
+>  #define _ASM_PPC64_PKEYS_H
+>
+>  extern bool pkey_inited;
+> -#define ARCH_VM_PKEY_FLAGS 0
+> +#define arch_max_pkey()  32
+> +#define ARCH_VM_PKEY_FLAGS (VM_PKEY_BIT0 | VM_PKEY_BIT1 | VM_PKEY_BIT2 | \
+> +				VM_PKEY_BIT3 | VM_PKEY_BIT4)
+> +/*
+> + * Bits are in BE format.
+> + * NOTE: key 31, 1, 0 are not used.
+> + * key 0 is used by default. It give read/write/execute permission.
+> + * key 31 is reserved by the hypervisor.
+> + * key 1 is recommended to be not used.
+> + * PowerISA(3.0) page 1015, programming note.
+> + */
+> +#define PKEY_INITIAL_ALLOCAION  0xc0000001
+
+There's a typo in the macro name, should be "ALLOCATION".
+
+-- 
+Thiago Jung Bauermann
+IBM Linux Technology Center
+
