@@ -1,96 +1,76 @@
-From: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
-Subject: Re: [RFC v6 21/62] powerpc: introduce execute-only pkey
-Date: Fri, 28 Jul 2017 19:17:13 -0300
-Message-ID: <87shhgdx5i.fsf@linux.vnet.ibm.com>
-References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com> <1500177424-13695-22-git-send-email-linuxram@us.ibm.com>
+From: Ram Pai <linuxram@us.ibm.com>
+Subject: Re: [RFC v6 13/62] powerpc: track allocation status of all pkeys
+Date: Sat, 29 Jul 2017 15:43:05 -0700
+Message-ID: <20170729224305.GE5664@ram.oc3035372033.ibm.com>
+References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
+ <1500177424-13695-14-git-send-email-linuxram@us.ibm.com>
+ <87eft23rnb.fsf@linux.vnet.ibm.com>
+Reply-To: Ram Pai <linuxram@us.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: quoted-printable
 Return-path: <owner-linux-mm@kvack.org>
-In-reply-to: <1500177424-13695-22-git-send-email-linuxram@us.ibm.com>
+Content-Disposition: inline
+In-Reply-To: <87eft23rnb.fsf@linux.vnet.ibm.com>
 Sender: owner-linux-mm@kvack.org
-To: Ram Pai <linuxram@us.ibm.com>
+To: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
 Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, arnd@arndb.de, corbet@lwn.net, mhocko@kernel.org, dave.hansen@intel.com, mingo@redhat.com, paulus@samba.org, aneesh.kumar@linux.vnet.ibm.com, akpm@linux-foundation.org, khandual@linux.vnet.ibm.com
 List-Id: linux-arch.vger.kernel.org
 
+On Thu, Jul 27, 2017 at 11:01:44AM -0300, Thiago Jung Bauermann wrote:
+>=20
+> Hello Ram,
+>=20
+> I'm still going through the patches and haven't formed a full picture of
+> the feature in my mind yet, so my comments today won't be particularly
+> insightful...
+>=20
+> But hopefully the comments that I currently have will be helpful anyway.
 
-Ram Pai <linuxram@us.ibm.com> writes:
-> --- a/arch/powerpc/mm/pkeys.c
-> +++ b/arch/powerpc/mm/pkeys.c
-> @@ -97,3 +97,60 @@ int __arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
->  	init_iamr(pkey, new_iamr_bits);
->  	return 0;
->  }
-> +
-> +static inline bool pkey_allows_readwrite(int pkey)
-> +{
-> +	int pkey_shift = pkeyshift(pkey);
-> +
-> +	if (!(read_uamor() & (0x3UL << pkey_shift)))
-> +		return true;
-> +
-> +	return !(read_amr() & ((AMR_RD_BIT|AMR_WR_BIT) << pkey_shift));
-> +}
-> +
-> +int __execute_only_pkey(struct mm_struct *mm)
-> +{
-> +	bool need_to_set_mm_pkey = false;
-> +	int execute_only_pkey = mm->context.execute_only_pkey;
-> +	int ret;
-> +
-> +	/* Do we need to assign a pkey for mm's execute-only maps? */
-> +	if (execute_only_pkey == -1) {
-> +		/* Go allocate one to use, which might fail */
-> +		execute_only_pkey = mm_pkey_alloc(mm);
-> +		if (execute_only_pkey < 0)
-> +			return -1;
-> +		need_to_set_mm_pkey = true;
-> +	}
-> +
-> +	/*
-> +	 * We do not want to go through the relatively costly
-> +	 * dance to set AMR if we do not need to.  Check it
-> +	 * first and assume that if the execute-only pkey is
-> +	 * readwrite-disabled than we do not have to set it
-> +	 * ourselves.
-> +	 */
-> +	if (!need_to_set_mm_pkey &&
-> +	    !pkey_allows_readwrite(execute_only_pkey))
-> +		return execute_only_pkey;
-> +
-> +	/*
-> +	 * Set up AMR so that it denies access for everything
-> +	 * other than execution.
-> +	 */
-> +	ret = __arch_set_user_pkey_access(current, execute_only_pkey,
-> +			(PKEY_DISABLE_ACCESS | PKEY_DISABLE_WRITE));
-> +	/*
-> +	 * If the AMR-set operation failed somehow, just return
-> +	 * 0 and effectively disable execute-only support.
-> +	 */
-> +	if (ret) {
-> +		mm_set_pkey_free(mm, execute_only_pkey);
-> +		return -1;
-> +	}
-> +
-> +	/* We got one, store it and use it from here on out */
-> +	if (need_to_set_mm_pkey)
-> +		mm->context.execute_only_pkey = execute_only_pkey;
-> +	return execute_only_pkey;
-> +}
+sure. thanx for taking the time to look through the patches.
 
-If you follow the code flow in __execute_only_pkey, the AMR and UAMOR
-are read 3 times in total, and AMR is written twice. IAMR is read and
-written twice. Since they are SPRs and access to them is slow (or isn't
-it?), is it worth it to read them once in __execute_only_pkey and pass
-down their values to the callees, and then write them once at the end of
-the function?
+>=20
+> Ram Pai <linuxram@us.ibm.com> writes:
+> > diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/as=
+m/pkeys.h
+> > index 203d7de..09b268e 100644
+> > --- a/arch/powerpc/include/asm/pkeys.h
+> > +++ b/arch/powerpc/include/asm/pkeys.h
+> > @@ -2,21 +2,87 @@
+> >  #define _ASM_PPC64_PKEYS_H
+> >
+> >  extern bool pkey_inited;
+> > -#define ARCH_VM_PKEY_FLAGS 0
+> > +#define arch_max_pkey()  32
+> > +#define ARCH_VM_PKEY_FLAGS (VM_PKEY_BIT0 | VM_PKEY_BIT1 | VM_PKEY_BIT2=
+ | \
+> > +				VM_PKEY_BIT3 | VM_PKEY_BIT4)
+> > +/*
+> > + * Bits are in BE format.
+> > + * NOTE: key 31, 1, 0 are not used.
+> > + * key 0 is used by default. It give read/write/execute permission.
+> > + * key 31 is reserved by the hypervisor.
+> > + * key 1 is recommended to be not used.
+> > + * PowerISA(3.0) page 1015, programming note.
+> > + */
+> > +#define PKEY_INITIAL_ALLOCAION  0xc0000001
+>=20
+> There's a typo in the macro name, should be "ALLOCATION".
 
-This function is used both by the mmap syscall and the mprotect syscall
-(but not by pkey_mprotect) if the requested protection is execute-only.
+Thanks fixed it. The new version of the code, calculates the
+allocation_mask at runtime, depending on the number of keys specified by
+the device tree as well as other factors.  So the above macro is
+replaced by a variable 'initial_allocation_mask'.
 
--- 
-Thiago Jung Bauermann
-IBM Linux Technology Center
+RP
+
+>=20
+> --=20
+> Thiago Jung Bauermann
+> IBM Linux Technology Center
+
+--=20
+Ram Pai
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
