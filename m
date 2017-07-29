@@ -1,74 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:55290 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1751969AbdG2W7U (ORCPT
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:45004 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1752593AbdG2Xbc (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 29 Jul 2017 18:59:20 -0400
-Received: from pps.filterd (m0098393.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id v6TMwWAW014710
-        for <linux-arch@vger.kernel.org>; Sat, 29 Jul 2017 18:59:19 -0400
-Received: from e14.ny.us.ibm.com (e14.ny.us.ibm.com [129.33.205.204])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2c0k8rb063-1
+        Sat, 29 Jul 2017 19:31:32 -0400
+Received: from pps.filterd (m0098416.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id v6TNSvAi096235
+        for <linux-arch@vger.kernel.org>; Sat, 29 Jul 2017 19:31:31 -0400
+Received: from e35.co.us.ibm.com (e35.co.us.ibm.com [32.97.110.153])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2c0m06j1n7-1
         (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Sat, 29 Jul 2017 18:59:19 -0400
+        for <linux-arch@vger.kernel.org>; Sat, 29 Jul 2017 19:31:31 -0400
 Received: from localhost
-        by e14.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        by e35.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
         for <linux-arch@vger.kernel.org> from <linuxram@us.ibm.com>;
-        Sat, 29 Jul 2017 18:59:18 -0400
-Date: Sat, 29 Jul 2017 15:59:04 -0700
+        Sat, 29 Jul 2017 17:31:31 -0600
+Date: Sat, 29 Jul 2017 16:31:13 -0700
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: Re: [RFC v6 17/62] powerpc: implementation for
- arch_set_user_pkey_access()
+Subject: Re: [RFC v6 20/62] powerpc: store and restore the pkey state across
+ context switches
 Reply-To: Ram Pai <linuxram@us.ibm.com>
 References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
- <1500177424-13695-18-git-send-email-linuxram@us.ibm.com>
- <87d18m3r07.fsf@linux.vnet.ibm.com>
+ <1500177424-13695-21-git-send-email-linuxram@us.ibm.com>
+ <878tj94wfo.fsf@linux.vnet.ibm.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <87d18m3r07.fsf@linux.vnet.ibm.com>
-Message-ID: <20170729225904.GF5664@ram.oc3035372033.ibm.com>
+In-Reply-To: <878tj94wfo.fsf@linux.vnet.ibm.com>
+Message-ID: <20170729233113.GH5664@ram.oc3035372033.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
 Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, arnd@arndb.de, corbet@lwn.net, mhocko@kernel.org, dave.hansen@intel.com, mingo@redhat.com, paulus@samba.org, aneesh.kumar@linux.vnet.ibm.com, akpm@linux-foundation.org, khandual@linux.vnet.ibm.com
-Message-ID: <20170729225904.hCUPyM0k-KLhqV3JI7P9XVnzKzm_SlXFwkPAVpKt5Kk@z>
+Message-ID: <20170729233113.sbfPxvAW8eKEiyeHfmbOZwTNYfafqnWRlQGF4MH0d6s@z>
 
-On Thu, Jul 27, 2017 at 11:15:36AM -0300, Thiago Jung Bauermann wrote:
+On Thu, Jul 27, 2017 at 02:32:59PM -0300, Thiago Jung Bauermann wrote:
 > 
 > Ram Pai <linuxram@us.ibm.com> writes:
-> > @@ -113,10 +117,14 @@ static inline int arch_override_mprotect_pkey(struct vm_area_struct *vma,
-> >  	return 0;
+> 
+> > Store and restore the AMR, IAMR and UMOR register state of the task
+> > before scheduling out and after scheduling in, respectively.
+> >
+> > Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+> 
+> s/UMOR/UAMOR/
+> 
+> > diff --git a/arch/powerpc/kernel/process.c b/arch/powerpc/kernel/process.c
+> > index 2ad725e..9429361 100644
+> > --- a/arch/powerpc/kernel/process.c
+> > +++ b/arch/powerpc/kernel/process.c
+> > @@ -1096,6 +1096,11 @@ static inline void save_sprs(struct thread_struct *t)
+> >  		t->tar = mfspr(SPRN_TAR);
+> >  	}
+> >  #endif
+> > +#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
+> > +	t->amr = mfspr(SPRN_AMR);
+> > +	t->iamr = mfspr(SPRN_IAMR);
+> > +	t->uamor = mfspr(SPRN_UAMOR);
+> > +#endif
 > >  }
 > >
-> > +extern int __arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
-> > +		unsigned long init_val);
-> >  static inline int arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
-> >  		unsigned long init_val)
-> >  {
-> > -	return 0;
-> > +	if (!pkey_inited)
-> > +		return -1;
-> > +	return __arch_set_user_pkey_access(tsk, pkey, init_val);
+> >  static inline void restore_sprs(struct thread_struct *old_thread,
+> > @@ -1131,6 +1136,14 @@ static inline void restore_sprs(struct thread_struct *old_thread,
+> >  			mtspr(SPRN_TAR, new_thread->tar);
+> >  	}
+> >  #endif
+> > +#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
+> > +	if (old_thread->amr != new_thread->amr)
+> > +		mtspr(SPRN_AMR, new_thread->amr);
+> > +	if (old_thread->iamr != new_thread->iamr)
+> > +		mtspr(SPRN_IAMR, new_thread->iamr);
+> > +	if (old_thread->uamor != new_thread->uamor)
+> > +		mtspr(SPRN_UAMOR, new_thread->uamor);
+> > +#endif
 > >  }
 > 
-> If non-zero, the return value of this function will be passed to
-> userspace by the pkey_alloc syscall. Shouldn't it be returning an errno
-> macro such as -EPERM?
+> Shouldn't the saving and restoring of the SPRs be guarded by a check for
+> whether memory protection keys are enabled? What happens when trying to
+> access these registers on a CPU which doesn't have them?
 
-Yes. it should be -EINVAL.  fixed it.
-
-> 
-> Also, why are there both arch_set_user_pkey_access and
-> __arch_set_user_pkey_access? Is it a speed optimization so that the
-> early return is inlined into the caller? Ditto for execute_only_pkey
-> and __arch_override_mprotect_pkey.
-
-arch_set_user_pkey_access() is the interface expected by the
-architecture independent code.  The __arch_set_user_pkey_access() is an
-powerpc internal function that implements the bulk of the work. It can
-be called by any of the pkeys internal code only. This gives me the
-flexibility to change implementation without having to worry about
-changing the interface.
+Good point. need to guard it.  However; i think, these registers have been
+available since power6.
 
 RP
