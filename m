@@ -1,46 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f41.google.com ([209.85.218.41]:34013 "EHLO
-        mail-oi0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753963AbdG3QDc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 30 Jul 2017 12:03:32 -0400
+Received: from ozlabs.org ([103.22.144.67]:43301 "EHLO ozlabs.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752315AbdGaM7Q (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 31 Jul 2017 08:59:16 -0400
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [RFC v6 19/62] powerpc: ability to create execute-disabled pkeys
+In-Reply-To: <20170729232446.GG5664@ram.oc3035372033.ibm.com>
+References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com> <1500177424-13695-20-git-send-email-linuxram@us.ibm.com> <87bmo63p7c.fsf@linux.vnet.ibm.com> <20170729232446.GG5664@ram.oc3035372033.ibm.com>
+Date: Mon, 31 Jul 2017 22:59:14 +1000
+Message-ID: <87zibk4va5.fsf@concordia.ellerman.id.au>
 MIME-Version: 1.0
-In-Reply-To: <20170726231917.6073-4-logang@deltatee.com>
-References: <20170726231917.6073-1-logang@deltatee.com> <20170726231917.6073-4-logang@deltatee.com>
-From: Andy Shevchenko <andy.shevchenko@gmail.com>
-Date: Sun, 30 Jul 2017 19:03:30 +0300
-Message-ID: <CAHp75Vcv7UCpnGY+mL7CMU5u9hCUxwaYWNsg58BoWBJGAFX4tQ@mail.gmail.com>
-Subject: Re: [PATCH v5 3/6] iomap: introduce io{read|write}64_{lo_hi|hi_lo}
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Logan Gunthorpe <logang@deltatee.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-ntb@googlegroups.com, linux-crypto <linux-crypto@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, =?UTF-8?Q?Horia_Geant=C4=83?= <horia.geanta@nxp.com>, Stephen Bates <sbates@raithlin.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Suresh Warrier <warrier@linux.vnet.ibm.com>, Nicholas Piggin <npiggin@gmail.com>
-Message-ID: <20170730160330.RpnVXLBfeKjnFGxniOMix-qOn3cWz6EpnAqOJDlFe0U@z>
+To: Ram Pai <linuxram@us.ibm.com>, Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
+Cc: linux-arch@vger.kernel.org, corbet@lwn.net, arnd@arndb.de, linux-doc@vger.kernel.org, x86@kernel.org, dave.hansen@intel.com, linux-kernel@vger.kernel.org, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, paulus@samba.org, aneesh.kumar@linux.vnet.ibm.com, linux-kselftest@vger.kernel.org, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org, khandual@linux.vnet.ibm.com
+Message-ID: <20170731125914.eit39HBo3XcElE_s73gyENUbMS4odZ2uLkRPYllYmgU@z>
 
-On Thu, Jul 27, 2017 at 2:19 AM, Logan Gunthorpe <logang@deltatee.com> wrote:
-> In order to provide non-atomic functions for io{read|write}64 that will
-> use readq and writeq when appropriate. We define a number of variants
-> of these functions in the generic iomap that will do non-atomic
-> operations on pio but atomic operations on mmio.
+Ram Pai <linuxram@us.ibm.com> writes:
+
+> On Thu, Jul 27, 2017 at 11:54:31AM -0300, Thiago Jung Bauermann wrote:
+>> 
+>> Ram Pai <linuxram@us.ibm.com> writes:
+>> 
+>> > --- a/arch/powerpc/include/asm/pkeys.h
+>> > +++ b/arch/powerpc/include/asm/pkeys.h
+>> > @@ -2,6 +2,18 @@
+>> >  #define _ASM_PPC64_PKEYS_H
+>> >
+>> >  extern bool pkey_inited;
+>> > +/* override any generic PKEY Permission defines */
+>> > +#undef  PKEY_DISABLE_ACCESS
+>> > +#define PKEY_DISABLE_ACCESS    0x1
+>> > +#undef  PKEY_DISABLE_WRITE
+>> > +#define PKEY_DISABLE_WRITE     0x2
+>> > +#undef  PKEY_DISABLE_EXECUTE
+>> > +#define PKEY_DISABLE_EXECUTE   0x4
+>> > +#undef  PKEY_ACCESS_MASK
+>> > +#define PKEY_ACCESS_MASK       (PKEY_DISABLE_ACCESS |\
+>> > +				PKEY_DISABLE_WRITE  |\
+>> > +				PKEY_DISABLE_EXECUTE)
+>> > +
+>> 
+>> Is it ok to #undef macros from another header? Especially since said
+>> header is in uapi (include/uapi/asm-generic/mman-common.h).
+>> 
+>> Also, it's unnecessary to undef the _ACCESS and _WRITE macros since they
+>> are identical to the original definition. And since these macros are
+>> originally defined in an uapi header, the powerpc-specific ones should
+>> be in an uapi header as well, if I understand it correctly.
 >
-> These functions are only defined if readq and writeq are defined. If
-> they are not, then the wrappers that always use non-atomic operations
-> from include/linux/io-64-nonatomic*.h will be used.
+> The architectural neutral code allows the implementation to define the
+> macros to its taste. powerpc headers due to legacy reason includes the
+> include/uapi/asm-generic/mman-common.h header. That header includes the
+> generic definitions of only PKEY_DISABLE_ACCESS and PKEY_DISABLE_WRITE.
+> Unfortunately we end up importing them. I dont want to depend on them.
+> Any changes there could effect us. Example if the generic uapi header
+> changed PKEY_DISABLE_ACCESS to 0x4, we will have a conflict with
+> PKEY_DISABLE_EXECUTE.  Hence I undef them and define the it my way.
 
-Don't you see here a slight problem?
+Don't do that.
 
-In some cases we want to substitute atomic in favour of non-atomic
-when both are defined.
-So, please don't do this "smartly".
+The generic header can't change the values, it's an ABI.
 
-> +u64 ioread64_lo_hi(void __iomem *addr)
-> +{
-> +       IO_COND(addr, return pio_read64_lo_hi(port), return readq(addr));
-> +       return 0xffffffffffffffffLL;
-> +}
+Doing it this way risks the uapi value diverging from the value used in
+the powerpc code (due to a change in the powerpc version), which would
+mean userspace and the kernel wouldn't agree on what the values meant
+... which would be exciting.
 
-U missed u.
-
--- 
-With Best Regards,
-Andy Shevchenko
+cheers
