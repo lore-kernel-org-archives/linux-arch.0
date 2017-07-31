@@ -1,36 +1,43 @@
-From: Andy Shevchenko <andy.shevchenko@gmail.com>
-Subject: Re: [PATCH v5 3/6] iomap: introduce io{read|write}64_{lo_hi|hi_lo}
-Date: Mon, 31 Jul 2017 21:11:41 +0300
-Message-ID: <CAHp75VcX7SeYyp6OEYLQLaAk-eHzbFV05wGC+dD2OeCcnxY6TQ@mail.gmail.com>
-References: <20170726231917.6073-1-logang@deltatee.com> <20170726231917.6073-4-logang@deltatee.com>
- <CAHp75Vcv7UCpnGY+mL7CMU5u9hCUxwaYWNsg58BoWBJGAFX4tQ@mail.gmail.com>
- <5c52d908-3b77-c5c6-99a7-1164d878ac95@deltatee.com> <CAHp75Ve619EE9ePy2zj+MjS7-MW3u_k2BQ5kc9iFBMYYQ9nMWQ@mail.gmail.com>
- <3a4c9453-20be-8164-85eb-5ad4d596a299@deltatee.com> <CAHp75VdE-xRHDEfmmURtoak6+4Vga4szLnDkGjtJHm47DZRCAQ@mail.gmail.com>
- <65ca8848-3a99-bda8-5165-9453b70316fa@deltatee.com> <CAHp75VdOh+aa771g=T-f=XMkS5nY-7VFK6miqyxw0dOA8YOJyw@mail.gmail.com>
- <c5208a76-e94b-0203-3591-81b14e7fd888@deltatee.com>
+From: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
+Subject: Re: [RFC v6 13/62] powerpc: track allocation status of all pkeys
+Date: Mon, 31 Jul 2017 15:15:55 -0300
+Message-ID: <87d18g5v6s.fsf@linux.vnet.ibm.com>
+References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com> <1500177424-13695-14-git-send-email-linuxram@us.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <c5208a76-e94b-0203-3591-81b14e7fd888@deltatee.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Logan Gunthorpe <logang@deltatee.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-ntb@googlegroups.com, linux-crypto <linux-crypto@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, =?UTF-8?Q?Horia_Geant=C4=83?= <horia.geanta@nxp.com>, Stephen Bates <sbates@raithlin.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Suresh Warrier <warrier@linux.vnet.ibm.com>, Nicholas Piggin <npiggin@gmail.com>
+Content-Type: text/plain
+Return-path: <owner-linux-mm@kvack.org>
+In-reply-to: <1500177424-13695-14-git-send-email-linuxram@us.ibm.com>
+Sender: owner-linux-mm@kvack.org
+To: Ram Pai <linuxram@us.ibm.com>
+Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, arnd@arndb.de, corbet@lwn.net, mhocko@kernel.org, dave.hansen@intel.com, mingo@redhat.com, paulus@samba.org, aneesh.kumar@linux.vnet.ibm.com, akpm@linux-foundation.org, khandual@linux.vnet.ibm.com
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jul 31, 2017 at 9:04 PM, Logan Gunthorpe <logang@deltatee.com> wrote:
->
->
-> On 31/07/17 12:03 PM, Andy Shevchenko wrote:
->>
->> Per commit 3a044178cccf they are exactly created for this kind of cases.
->>
->
-> Sure, ok, and my patchset provides the same set of functions to satisfy
-> such a use.
 
-Okay, please, Cc me for next version, I think I need fresh view on it.
-Thanks!
+Ram Pai <linuxram@us.ibm.com> writes:
+>  static inline int mm_pkey_free(struct mm_struct *mm, int pkey)
+>  {
+> -	return -EINVAL;
+> +	if (!pkey_inited)
+> +		return -1;
+
+Sorry, I missed this earlier but the pkey_free syscall will pass this
+value to userspace so it needs to be an errno as well (-EINVAL?).
+
+> +
+> +	if (!mm_pkey_is_allocated(mm, pkey))
+> +		return -EINVAL;
+> +
+> +	mm_set_pkey_free(mm, pkey);
+> +
+> +	return 0;
+>  }
 
 -- 
-With Best Regards,
-Andy Shevchenko
+Thiago Jung Bauermann
+IBM Linux Technology Center
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
