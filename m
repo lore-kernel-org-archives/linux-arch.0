@@ -1,54 +1,228 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:51314 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1751126AbdGaSQM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 31 Jul 2017 14:16:12 -0400
-Received: from pps.filterd (m0098416.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id v6VIECcf122705
-        for <linux-arch@vger.kernel.org>; Mon, 31 Jul 2017 14:16:12 -0400
-Received: from e24smtp04.br.ibm.com (e24smtp04.br.ibm.com [32.104.18.25])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 2c26dsswwg-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Mon, 31 Jul 2017 14:16:11 -0400
-Received: from localhost
-        by e24smtp04.br.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <bauerman@linux.vnet.ibm.com>;
-        Mon, 31 Jul 2017 15:16:09 -0300
-References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com> <1500177424-13695-14-git-send-email-linuxram@us.ibm.com>
-From: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
-Subject: Re: [RFC v6 13/62] powerpc: track allocation status of all pkeys
-In-reply-to: <1500177424-13695-14-git-send-email-linuxram@us.ibm.com>
-Date: Mon, 31 Jul 2017 15:15:55 -0300
-MIME-Version: 1.0
-Content-Type: text/plain
-Message-ID: <87d18g5v6s.fsf@linux.vnet.ibm.com>
+Received: from userp1040.oracle.com ([156.151.31.81]:47450 "EHLO
+        userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750967AbdGaS52 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 31 Jul 2017 14:57:28 -0400
+From: Mike Kravetz <mike.kravetz@oracle.com>
+Subject: [PATCH 2/3] mm: arch: Consolidate mmap hugetlb size encodings
+Date: Mon, 31 Jul 2017 11:56:25 -0700
+Message-ID: <1501527386-10736-3-git-send-email-mike.kravetz@oracle.com>
+In-Reply-To: <1501527386-10736-1-git-send-email-mike.kravetz@oracle.com>
+References: <1501527386-10736-1-git-send-email-mike.kravetz@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ram Pai <linuxram@us.ibm.com>
-Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, arnd@arndb.de, corbet@lwn.net, mhocko@kernel.org, dave.hansen@intel.com, mingo@redhat.com, paulus@samba.org, aneesh.kumar@linux.vnet.ibm.com, akpm@linux-foundation.org, khandual@linux.vnet.ibm.com
-Message-ID: <20170731181555.FY4h2jvLS6y2wwjROMasJZd0IIcY5lMiDGWO7rfUqb0@z>
+To: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Matthew Wilcox <willy@infradead.org>, Michal Hocko <mhocko@kernel.org>, akpm@linux-foundation.org, ak@linux.intel.com, mtk.manpages@gmail.com, Davidlohr Bueso <dbueso@suse.de>, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, aarcange@redhat.com, Arnd Bergmann <arnd@arndb.de>, Mike Kravetz <mike.kravetz@oracle.com>
+Message-ID: <20170731185625.RusAzoz4ZP51gYkdt1uzMSkujVEj3EkYnq3mNiBGb8M@z>
 
+A non-default huge page size can be encoded in the flags argument
+of the mmap system call.  The definitions for these encodings are
+in arch specific header files.  However, all architectures use the
+same values.
 
-Ram Pai <linuxram@us.ibm.com> writes:
->  static inline int mm_pkey_free(struct mm_struct *mm, int pkey)
->  {
-> -	return -EINVAL;
-> +	if (!pkey_inited)
-> +		return -1;
+Consolidate all the definitions in the primary user header file
+(uapi/linux/mman.h).  Include definitions for all known huge page
+sizes.  Use the generic encoding definitions in hugetlb_encode.h
+as the basis for these definitions.
 
-Sorry, I missed this earlier but the pkey_free syscall will pass this
-value to userspace so it needs to be an errno as well (-EINVAL?).
+Signed-off-by: Mike Kravetz <mike.kravetz@oracle.com>
+---
+ arch/alpha/include/uapi/asm/mman.h     | 11 -----------
+ arch/mips/include/uapi/asm/mman.h      | 11 -----------
+ arch/parisc/include/uapi/asm/mman.h    | 11 -----------
+ arch/powerpc/include/uapi/asm/mman.h   | 16 ----------------
+ arch/x86/include/uapi/asm/mman.h       |  3 ---
+ arch/xtensa/include/uapi/asm/mman.h    | 11 -----------
+ include/uapi/asm-generic/mman-common.h | 11 -----------
+ include/uapi/linux/mman.h              | 22 ++++++++++++++++++++++
+ 8 files changed, 22 insertions(+), 74 deletions(-)
 
-> +
-> +	if (!mm_pkey_is_allocated(mm, pkey))
-> +		return -EINVAL;
-> +
-> +	mm_set_pkey_free(mm, pkey);
-> +
-> +	return 0;
->  }
-
+diff --git a/arch/alpha/include/uapi/asm/mman.h b/arch/alpha/include/uapi/asm/mman.h
+index 02760f6..13b52aa 100644
+--- a/arch/alpha/include/uapi/asm/mman.h
++++ b/arch/alpha/include/uapi/asm/mman.h
+@@ -67,17 +67,6 @@
+ /* compatibility flags */
+ #define MAP_FILE	0
+ 
+-/*
+- * When MAP_HUGETLB is set bits [26:31] encode the log2 of the huge page size.
+- * This gives us 6 bits, which is enough until someone invents 128 bit address
+- * spaces.
+- *
+- * Assume these are all power of twos.
+- * When 0 use the default page size.
+- */
+-#define MAP_HUGE_SHIFT	26
+-#define MAP_HUGE_MASK	0x3f
+-
+ #define PKEY_DISABLE_ACCESS	0x1
+ #define PKEY_DISABLE_WRITE	0x2
+ #define PKEY_ACCESS_MASK	(PKEY_DISABLE_ACCESS |\
+diff --git a/arch/mips/include/uapi/asm/mman.h b/arch/mips/include/uapi/asm/mman.h
+index 655e2fb..398eebc 100644
+--- a/arch/mips/include/uapi/asm/mman.h
++++ b/arch/mips/include/uapi/asm/mman.h
+@@ -94,17 +94,6 @@
+ /* compatibility flags */
+ #define MAP_FILE	0
+ 
+-/*
+- * When MAP_HUGETLB is set bits [26:31] encode the log2 of the huge page size.
+- * This gives us 6 bits, which is enough until someone invents 128 bit address
+- * spaces.
+- *
+- * Assume these are all power of twos.
+- * When 0 use the default page size.
+- */
+-#define MAP_HUGE_SHIFT	26
+-#define MAP_HUGE_MASK	0x3f
+-
+ #define PKEY_DISABLE_ACCESS	0x1
+ #define PKEY_DISABLE_WRITE	0x2
+ #define PKEY_ACCESS_MASK	(PKEY_DISABLE_ACCESS |\
+diff --git a/arch/parisc/include/uapi/asm/mman.h b/arch/parisc/include/uapi/asm/mman.h
+index 5979745..9cd0e8c 100644
+--- a/arch/parisc/include/uapi/asm/mman.h
++++ b/arch/parisc/include/uapi/asm/mman.h
+@@ -64,17 +64,6 @@
+ #define MAP_FILE	0
+ #define MAP_VARIABLE	0
+ 
+-/*
+- * When MAP_HUGETLB is set bits [26:31] encode the log2 of the huge page size.
+- * This gives us 6 bits, which is enough until someone invents 128 bit address
+- * spaces.
+- *
+- * Assume these are all power of twos.
+- * When 0 use the default page size.
+- */
+-#define MAP_HUGE_SHIFT	26
+-#define MAP_HUGE_MASK	0x3f
+-
+ #define PKEY_DISABLE_ACCESS	0x1
+ #define PKEY_DISABLE_WRITE	0x2
+ #define PKEY_ACCESS_MASK	(PKEY_DISABLE_ACCESS |\
+diff --git a/arch/powerpc/include/uapi/asm/mman.h b/arch/powerpc/include/uapi/asm/mman.h
+index ab45cc2..03c06ba 100644
+--- a/arch/powerpc/include/uapi/asm/mman.h
++++ b/arch/powerpc/include/uapi/asm/mman.h
+@@ -29,20 +29,4 @@
+ #define MAP_STACK	0x20000		/* give out an address that is best suited for process/thread stacks */
+ #define MAP_HUGETLB	0x40000		/* create a huge page mapping */
+ 
+-/*
+- * When MAP_HUGETLB is set, bits [26:31] of the flags argument to mmap(2),
+- * encode the log2 of the huge page size. A value of zero indicates that the
+- * default huge page size should be used. To use a non-default huge page size,
+- * one of these defines can be used, or the size can be encoded by hand. Note
+- * that on most systems only a subset, or possibly none, of these sizes will be
+- * available.
+- */
+-#define MAP_HUGE_512KB	(19 << MAP_HUGE_SHIFT)	/* 512KB HugeTLB Page */
+-#define MAP_HUGE_1MB	(20 << MAP_HUGE_SHIFT)	/* 1MB   HugeTLB Page */
+-#define MAP_HUGE_2MB	(21 << MAP_HUGE_SHIFT)	/* 2MB   HugeTLB Page */
+-#define MAP_HUGE_8MB	(23 << MAP_HUGE_SHIFT)	/* 8MB   HugeTLB Page */
+-#define MAP_HUGE_16MB	(24 << MAP_HUGE_SHIFT)	/* 16MB  HugeTLB Page */
+-#define MAP_HUGE_1GB	(30 << MAP_HUGE_SHIFT)	/* 1GB   HugeTLB Page */
+-#define MAP_HUGE_16GB	(34 << MAP_HUGE_SHIFT)	/* 16GB  HugeTLB Page */
+-
+ #endif /* _UAPI_ASM_POWERPC_MMAN_H */
+diff --git a/arch/x86/include/uapi/asm/mman.h b/arch/x86/include/uapi/asm/mman.h
+index 39bca7f..3be08f0 100644
+--- a/arch/x86/include/uapi/asm/mman.h
++++ b/arch/x86/include/uapi/asm/mman.h
+@@ -3,9 +3,6 @@
+ 
+ #define MAP_32BIT	0x40		/* only give out 32bit addresses */
+ 
+-#define MAP_HUGE_2MB    (21 << MAP_HUGE_SHIFT)
+-#define MAP_HUGE_1GB    (30 << MAP_HUGE_SHIFT)
+-
+ #ifdef CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS
+ /*
+  * Take the 4 protection key bits out of the vma->vm_flags
+diff --git a/arch/xtensa/include/uapi/asm/mman.h b/arch/xtensa/include/uapi/asm/mman.h
+index 24365b3..8ce77a2 100644
+--- a/arch/xtensa/include/uapi/asm/mman.h
++++ b/arch/xtensa/include/uapi/asm/mman.h
+@@ -106,17 +106,6 @@
+ /* compatibility flags */
+ #define MAP_FILE	0
+ 
+-/*
+- * When MAP_HUGETLB is set bits [26:31] encode the log2 of the huge page size.
+- * This gives us 6 bits, which is enough until someone invents 128 bit address
+- * spaces.
+- *
+- * Assume these are all power of twos.
+- * When 0 use the default page size.
+- */
+-#define MAP_HUGE_SHIFT	26
+-#define MAP_HUGE_MASK	0x3f
+-
+ #define PKEY_DISABLE_ACCESS	0x1
+ #define PKEY_DISABLE_WRITE	0x2
+ #define PKEY_ACCESS_MASK	(PKEY_DISABLE_ACCESS |\
+diff --git a/include/uapi/asm-generic/mman-common.h b/include/uapi/asm-generic/mman-common.h
+index 8c27db0..d248f3c 100644
+--- a/include/uapi/asm-generic/mman-common.h
++++ b/include/uapi/asm-generic/mman-common.h
+@@ -61,17 +61,6 @@
+ /* compatibility flags */
+ #define MAP_FILE	0
+ 
+-/*
+- * When MAP_HUGETLB is set bits [26:31] encode the log2 of the huge page size.
+- * This gives us 6 bits, which is enough until someone invents 128 bit address
+- * spaces.
+- *
+- * Assume these are all power of twos.
+- * When 0 use the default page size.
+- */
+-#define MAP_HUGE_SHIFT	26
+-#define MAP_HUGE_MASK	0x3f
+-
+ #define PKEY_DISABLE_ACCESS	0x1
+ #define PKEY_DISABLE_WRITE	0x2
+ #define PKEY_ACCESS_MASK	(PKEY_DISABLE_ACCESS |\
+diff --git a/include/uapi/linux/mman.h b/include/uapi/linux/mman.h
+index ade4acd..a937480 100644
+--- a/include/uapi/linux/mman.h
++++ b/include/uapi/linux/mman.h
+@@ -2,6 +2,7 @@
+ #define _UAPI_LINUX_MMAN_H
+ 
+ #include <asm/mman.h>
++#include <asm-generic/hugetlb_encode.h>
+ 
+ #define MREMAP_MAYMOVE	1
+ #define MREMAP_FIXED	2
+@@ -10,4 +11,25 @@
+ #define OVERCOMMIT_ALWAYS		1
+ #define OVERCOMMIT_NEVER		2
+ 
++/*
++ * Huge page size encoding when MAP_HUGETLB is specified, and a huge page
++ * size other than the default is desired.  See hugetlb_encode.h.
++ * All known huge page size encodings are provided here.  It is the
++ * responsibility of the application to know which sizes are supported on
++ * the running system.  See mmap(2) man page for details.
++ */
++#define MAP_HUGE_SHIFT	HUGETLB_FLAG_ENCODE_SHIFT
++#define MAP_HUGE_MASK	HUGETLB_FLAG_ENCODE_MASK
++
++#define MAP_HUGE_64KB	HUGETLB_FLAG_ENCODE_64KB
++#define MAP_HUGE_512KB	HUGETLB_FLAG_ENCODE_512KB
++#define MAP_HUGE_1MB	HUGETLB_FLAG_ENCODE_1MB
++#define MAP_HUGE_2MB	HUGETLB_FLAG_ENCODE_2MB
++#define MAP_HUGE_8MB	HUGETLB_FLAG_ENCODE_8MB
++#define MAP_HUGE_16MB	HUGETLB_FLAG_ENCODE_16MB
++#define MAP_HUGE_256MB	HUGETLB_FLAG_ENCODE_256MB
++#define MAP_HUGE_1GB	HUGETLB_FLAG_ENCODE_1GB
++#define MAP_HUGE_2GB	HUGETLB_FLAG_ENCODE_2GB
++#define MAP_HUGE_16GB	HUGETLB_FLAG_ENCODE_16GB
++
+ #endif /* _UAPI_LINUX_MMAN_H */
 -- 
-Thiago Jung Bauermann
-IBM Linux Technology Center
+2.7.5
