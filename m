@@ -1,84 +1,48 @@
-From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: Re: Simplfying copy_siginfo_to_user
-Date: Mon, 31 Jul 2017 11:37:41 -0500
-Message-ID: <87mv7k1s16.fsf@xmission.com>
-References: <87o9shg7t7.fsf_-_@xmission.com>
-        <20170718140651.15973-7-ebiederm@xmission.com>
-        <CA+55aFyKsmf+BpYjcH30MGpHTDJ=zgYPx6kwyEB9CXXFxj_xsw@mail.gmail.com>
-        <878tjlbqpt.fsf@xmission.com> <8760ek5ics.fsf_-_@xmission.com>
-        <CA+55aFyH5W2doo9vxXta_-pXfNXqQ19d7z48k1hmfAot+aJvMw@mail.gmail.com>
-        <20170725013756.GH2063@ZenIV.linux.org.uk>
+From: Andy Shevchenko <andy.shevchenko@gmail.com>
+Subject: Re: [PATCH v5 3/6] iomap: introduce io{read|write}64_{lo_hi|hi_lo}
+Date: Mon, 31 Jul 2017 20:58:25 +0300
+Message-ID: <CAHp75VdE-xRHDEfmmURtoak6+4Vga4szLnDkGjtJHm47DZRCAQ@mail.gmail.com>
+References: <20170726231917.6073-1-logang@deltatee.com> <20170726231917.6073-4-logang@deltatee.com>
+ <CAHp75Vcv7UCpnGY+mL7CMU5u9hCUxwaYWNsg58BoWBJGAFX4tQ@mail.gmail.com>
+ <5c52d908-3b77-c5c6-99a7-1164d878ac95@deltatee.com> <CAHp75Ve619EE9ePy2zj+MjS7-MW3u_k2BQ5kc9iFBMYYQ9nMWQ@mail.gmail.com>
+ <3a4c9453-20be-8164-85eb-5ad4d596a299@deltatee.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from out03.mta.xmission.com ([166.70.13.233]:52908 "EHLO
-        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750854AbdGaQqD (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 31 Jul 2017 12:46:03 -0400
-In-Reply-To: <20170725013756.GH2063@ZenIV.linux.org.uk> (Al Viro's message of
-        "Tue, 25 Jul 2017 02:37:57 +0100")
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@kernel.org>, Oleg Nesterov <oleg@redhat.com>, Andrei Vagin <avagin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Greg KH <greg@kroah.com>, Andrey Vagin <avagin@openvz.org>, Serge Hallyn <serge@hallyn.com>, Pavel Emelyanov <xemul@virtuozzo.com>, Cyrill Gorcunov <gorcunov@openvz.org>, Peter Zijlstra <peterz@infradead.org>, Willy Tarreau <w@1wt.eu>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Linux Containers <containers@lists.linux-foundation.org>, Michael Kerrisk <mtk.manpages@gmail.com>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <3a4c9453-20be-8164-85eb-5ad4d596a299@deltatee.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Logan Gunthorpe <logang@deltatee.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-ntb@googlegroups.com, linux-crypto <linux-crypto@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, =?UTF-8?Q?Horia_Geant=C4=83?= <horia.geanta@nxp.com>, Stephen Bates <sbates@raithlin.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Suresh Warrier <warrier@linux.vnet.ibm.com>, Nicholas Piggin <npiggin@gmail.com>
+List-Id: linux-arch.vger.kernel.org
 
-Al Viro <viro@ZenIV.linux.org.uk> writes:
-
-2> On Mon, Jul 24, 2017 at 10:43:34AM -0700, Linus Torvalds wrote:
->> On Sat, Jul 22, 2017 at 1:25 PM, Eric W. Biederman
->> <ebiederm@xmission.com> wrote:
->> > I played with some clever changes such as limiting the copy to 48 bytes,
->> > disabling the memset and the like but I could not get a strong enough
->> > signal to say that any one change removed the extra or a clear part of
->> > it 20ns.
->> 
->> What CPU did you use? Because the SMAP bit in particular matters.
->> 
->> The field-by-field copies are extremely slow on modern CPU's that
->> implement SMAP, unless you also use the special "unsafe_put_user()"
->> code (or the nasty old put_user_ex() code that some of the x86 signal
->> code uses).
->> 
->> So one of the advantages of just copy_to_user() ends up being visible
->> only on Broadwell+ (or whatever the SMAP cutoff is).
+On Mon, Jul 31, 2017 at 7:31 PM, Logan Gunthorpe <logang@deltatee.com> wrote:
+> On 31/07/17 10:10 AM, Andy Shevchenko wrote:
+>> Some drivers (hardware) would like to have non-atomic MMIO accesses
+>> when readq() defined
 >
-> Guys, could you take a look at vfs.git#work.siginfo?  I'd been pretty
-> much buried lately (and probably will for several more weeks - long-distance
-> moves *suck*), so that thing got stalled, but it might be worth a
-> look.
+> Huh? But that's the whole point of the io64-nonatomic header. If a
+> driver wants a specific non-atomic access they should just code two 32
+> bit accesses.
 
-There is some good stuff in there.  If you don't mind I am going to
-cherry pick out your unification of struct siginfo and struct compat_siginfo.
+You mean to call them directly as lo_hi_XXX() or hi_lo_XXX() ?
+Yes it would work.
 
-> The code generated in copy_siginfo_to_user() in it looks reasonably good,
-> we don't copy more than we need and all copying to userland is done
-> by copy_to_user() - one call per call of copy_siginfo_to_user(), so
-> SMAP crap is not an issue.
+>> In case of readq() / writeq() it's defined by the order of inclusion:
+>>
+>> 1)
+>> include <...non-atomic...>
+>> include <linux/io.h>
+>>
+>> Always non-atomic will be used.
+>
+> I'm afraid you're wrong about this. The io-64-nonatomic-xx header
+> includes linux/io.h. Thus the order of the includes doesn't matter and
+> it will always auto switch. In any case, making an interface do
+> different things depending on the order of include files is *completely*
+> insane.
 
-There is actually a core problem with doing things that way.  You rely
-on having the siginfo union member stored in the high bits of si_code.
+Yes, you are right. I was thinking about something unrelated.
 
-I have just fixed that in my tree and replaced using the high bits
-with calling the function siginfo_layout.
-
-It has been a significant problem storing the union member differently
-in the kernel than in userspace.  It has allowed for some pretty
-horrendous gaffs in the archictecures changing the meaning of SI_USER
-when specific signals are delivered over.  It has also meant that ptrace
-siginfo injection and tg_sigqueueinfo have been broken for some signals
-almost since the interface was added.
-
-Without any optimization and just changing the code to be copy_to_user
-I am seeing a maybe 2% slowdown.  Given that no one has seemed to care
-overly for the performance of signal delivery I suspect an almost
-unmeasurable slowdown is a reasonable tradeoff for simpler code.
-
-> The next thing I hope to do is converting compat side of that thing to
-> the same; that got stalled.
-
-All of that said your precise copying code appears reasonable and quite
-nice so I may adopt it on the compat side.
-
-> Al "Buried in boxes" Viro...
-
-Eric "Also Buried in boxes" Biederman
+-- 
+With Best Regards,
+Andy Shevchenko
