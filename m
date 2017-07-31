@@ -1,88 +1,141 @@
-From: Andy Shevchenko <andy.shevchenko@gmail.com>
-Subject: Re: [PATCH v5 3/6] iomap: introduce io{read|write}64_{lo_hi|hi_lo}
-Date: Mon, 31 Jul 2017 19:10:59 +0300
-Message-ID: <CAHp75Ve619EE9ePy2zj+MjS7-MW3u_k2BQ5kc9iFBMYYQ9nMWQ@mail.gmail.com>
-References: <20170726231917.6073-1-logang@deltatee.com> <20170726231917.6073-4-logang@deltatee.com>
- <CAHp75Vcv7UCpnGY+mL7CMU5u9hCUxwaYWNsg58BoWBJGAFX4tQ@mail.gmail.com> <5c52d908-3b77-c5c6-99a7-1164d878ac95@deltatee.com>
+From: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
+Subject: Re: [RFC v6 21/62] powerpc: introduce execute-only pkey
+Date: Mon, 31 Jul 2017 13:19:40 -0300
+Message-ID: <87efsw60kj.fsf@linux.vnet.ibm.com>
+References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com> <1500177424-13695-22-git-send-email-linuxram@us.ibm.com> <87shhgdx5i.fsf@linux.vnet.ibm.com> <20170730005137.GK5664@ram.oc3035372033.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-crypto-owner@vger.kernel.org>
-In-Reply-To: <5c52d908-3b77-c5c6-99a7-1164d878ac95@deltatee.com>
-Sender: linux-crypto-owner@vger.kernel.org
-To: Logan Gunthorpe <logang@deltatee.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-ntb@googlegroups.com, linux-crypto <linux-crypto@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, =?UTF-8?Q?Horia_Geant=C4=83?= <horia.geanta@nxp.com>, Stephen Bates <sbates@raithlin.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Suresh Warrier <warrier@linux.vnet.ibm.com>, Nicholas Piggin <npiggin@gmail.com>
+Content-Type: text/plain
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-reply-to: <20170730005137.GK5664@ram.oc3035372033.ibm.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: Ram Pai <linuxram@us.ibm.com>
+Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, arnd@arndb.de, corbet@lwn.net, mhocko@kernel.org, dave.hansen@intel.com, mingo@redhat.com, paulus@samba.org, aneesh.kumar@linux.vnet.ibm.com, akpm@linux-foundation.org, khandual@linux.vnet.ibm.com
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jul 31, 2017 at 6:55 PM, Logan Gunthorpe <logang@deltatee.com> wrote:
-> On 30/07/17 10:03 AM, Andy Shevchenko wrote:
->> On Thu, Jul 27, 2017 at 2:19 AM, Logan Gunthorpe <logang@deltatee.com> wrote:
->>> In order to provide non-atomic functions for io{read|write}64 that will
->>> use readq and writeq when appropriate. We define a number of variants
->>> of these functions in the generic iomap that will do non-atomic
->>> operations on pio but atomic operations on mmio.
->>>
->>> These functions are only defined if readq and writeq are defined. If
->>> they are not, then the wrappers that always use non-atomic operations
->>> from include/linux/io-64-nonatomic*.h will be used.
->>
->> Don't you see here a slight problem?
->>
->> In some cases we want to substitute atomic in favour of non-atomic
->> when both are defined.
->> So, please don't do this "smartly".
+
+Ram Pai <linuxram@us.ibm.com> writes:
+
+> On Fri, Jul 28, 2017 at 07:17:13PM -0300, Thiago Jung Bauermann wrote:
+>> 
+>> Ram Pai <linuxram@us.ibm.com> writes:
+>> > --- a/arch/powerpc/mm/pkeys.c
+>> > +++ b/arch/powerpc/mm/pkeys.c
+>> > @@ -97,3 +97,60 @@ int __arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
+>> >  	init_iamr(pkey, new_iamr_bits);
+>> >  	return 0;
+>> >  }
+>> > +
+>> > +static inline bool pkey_allows_readwrite(int pkey)
+>> > +{
+>> > +	int pkey_shift = pkeyshift(pkey);
+>> > +
+>> > +	if (!(read_uamor() & (0x3UL << pkey_shift)))
+>> > +		return true;
+>> > +
+>> > +	return !(read_amr() & ((AMR_RD_BIT|AMR_WR_BIT) << pkey_shift));
+>> > +}
+>> > +
+>> > +int __execute_only_pkey(struct mm_struct *mm)
+>> > +{
+>> > +	bool need_to_set_mm_pkey = false;
+>> > +	int execute_only_pkey = mm->context.execute_only_pkey;
+>> > +	int ret;
+>> > +
+>> > +	/* Do we need to assign a pkey for mm's execute-only maps? */
+>> > +	if (execute_only_pkey == -1) {
+>> > +		/* Go allocate one to use, which might fail */
+>> > +		execute_only_pkey = mm_pkey_alloc(mm);
+>> > +		if (execute_only_pkey < 0)
+>> > +			return -1;
+>> > +		need_to_set_mm_pkey = true;
+>> > +	}
+>> > +
+>> > +	/*
+>> > +	 * We do not want to go through the relatively costly
+>> > +	 * dance to set AMR if we do not need to.  Check it
+>> > +	 * first and assume that if the execute-only pkey is
+>> > +	 * readwrite-disabled than we do not have to set it
+>> > +	 * ourselves.
+>> > +	 */
+>> > +	if (!need_to_set_mm_pkey &&
+>> > +	    !pkey_allows_readwrite(execute_only_pkey))
+> 		^^^^^
+> 	Here uamor and amr is read once each.
+
+You are right. What confused me was that the call to mm_pkey_alloc above
+also reads uamor and amr (and also iamr, and writes to all of those) but
+if that function is called, then need_to_set_mm_pkey is true and
+pkey_allows_readwrite won't be called.
+
+>> > +		return execute_only_pkey;
+>> > +
+>> > +	/*
+>> > +	 * Set up AMR so that it denies access for everything
+>> > +	 * other than execution.
+>> > +	 */
+>> > +	ret = __arch_set_user_pkey_access(current, execute_only_pkey,
+>> > +			(PKEY_DISABLE_ACCESS | PKEY_DISABLE_WRITE));
+> 		^^^^^^^
+> 		here amr and iamr are written once each if the
+> 		the function returns successfully.
+
+__arch_set_user_pkey_access also reads uamor for the second time in its
+call to is_pkey_enabled, and reads amr for the second time as well in
+its calls to init_amr. The first reads are in either
+pkey_allows_readwrite or pkey_status_change (called from
+__arch_activate_pkey).
+
+If need_to_set_mm_pkey is true, then the iamr read in init_iamr is the
+2nd one during __execute_only_pkey's execution. In this case the writes
+to amr and iamr will be the 2nd ones as well. The first reads and writes
+are in pkey_status_change.
+
+>> > +	/*
+>> > +	 * If the AMR-set operation failed somehow, just return
+>> > +	 * 0 and effectively disable execute-only support.
+>> > +	 */
+>> > +	if (ret) {
+>> > +		mm_set_pkey_free(mm, execute_only_pkey);
+> 		^^^
+> 		here only if __arch_set_user_pkey_access() fails
+> 		amr and iamr and uamor will be written once each.
+
+I assume the error case isn't perfomance sensitive and didn't account
+for mm_set_pkey_free in my analysis.
+
+>> > +		return -1;
+>> > +	}
+>> > +
+>> > +	/* We got one, store it and use it from here on out */
+>> > +	if (need_to_set_mm_pkey)
+>> > +		mm->context.execute_only_pkey = execute_only_pkey;
+>> > +	return execute_only_pkey;
+>> > +}
+>> 
+>> If you follow the code flow in __execute_only_pkey, the AMR and UAMOR
+>> are read 3 times in total, and AMR is written twice. IAMR is read and
+>> written twice. Since they are SPRs and access to them is slow (or isn't
+>> it?), is it worth it to read them once in __execute_only_pkey and pass
+>> down their values to the callees, and then write them once at the end of
+>> the function?
 >
-> I'm not sure what you mean here. The driver should use ioread64 and
-> include an io-64-nonatomic header. Then there are three cases:
->
-> 1) The arch has no atomic 64 bit io operations defined. In this case it
-> uses the non-atomic inline function in the io-64-nonatomic header.
+> If my calculations are right: 
+> 	uamor may be read once and may be written once.
+> 	amr may be read once and is written once.
+> 	iamr is written once.
+> So not that bad, i think.
 
-Okay
-
-> 2) The arch uses CONFIG_GENERIC_IOMAP and has readq defined, but not
-> ioread64 defined (likely because pio can't do atomic 64 bit operations
-> but mmio can). In this case we need to use the ioread64_xx functions
-> defined in iomap.c which do atomic mmio and non-atomic pio.
-
-Not okay.
-
-Some drivers (hardware) would like to have non-atomic MMIO accesses
-when readq() defined
-
-> 3) The arch has ioread64 defined so the atomic operation is used.
-
-Not okay. Same reason as above.
-
-In case of readq() / writeq() it's defined by the order of inclusion:
-
-1)
-include <...non-atomic...>
-include <linux/io.h>
-
-Always non-atomic will be used.
-
-2)
-include <linux/io.h>
-include <...non-atomic...>
-
-Auto switch like you described.
-
-I don't like above solution, since it's fragile, but few drivers depend on that.
-
-If you wish to do it always like 2) perhaps we need to split accessors
-to ones for fixed bus width and ones for atomic/non-atomic cases.
-OTOH, it would be done by introducing
-memcpyXX_fromio()
-memcpyXX_toio()
-memsetXX_io()
-
-Where XX = 64, 32, 16, 8.
-
-Note, that ioreadXX_rep() is not the same as above.
-
-P.S. I have done a table of comparison between IO accessors in Linux
-kernel and it looks hell out of being consistent.
+If I'm following the code correctly:
+    if need_to_set_mm_pkey = true:
+        uamor is read twice and written once.
+        amr is read twice and written twice.
+        iamr is read twice and written twice.
+    if need_to_set_mm_pkey = false:
+        uamor is read twice.
+        amr is read once or twice (depending on the value of uamor) and written once.
+        iamr is read once and written once.
 
 -- 
-With Best Regards,
-Andy Shevchenko
+Thiago Jung Bauermann
+IBM Linux Technology Center
+
