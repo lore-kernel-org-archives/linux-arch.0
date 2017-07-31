@@ -1,40 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ale.deltatee.com ([207.54.116.67]:56781 "EHLO ale.deltatee.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751052AbdGaSFG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 31 Jul 2017 14:05:06 -0400
-References: <20170726231917.6073-1-logang@deltatee.com>
- <20170726231917.6073-4-logang@deltatee.com>
- <CAHp75Vcv7UCpnGY+mL7CMU5u9hCUxwaYWNsg58BoWBJGAFX4tQ@mail.gmail.com>
- <5c52d908-3b77-c5c6-99a7-1164d878ac95@deltatee.com>
- <CAHp75Ve619EE9ePy2zj+MjS7-MW3u_k2BQ5kc9iFBMYYQ9nMWQ@mail.gmail.com>
- <3a4c9453-20be-8164-85eb-5ad4d596a299@deltatee.com>
- <CAHp75VdE-xRHDEfmmURtoak6+4Vga4szLnDkGjtJHm47DZRCAQ@mail.gmail.com>
- <65ca8848-3a99-bda8-5165-9453b70316fa@deltatee.com>
- <CAHp75VdOh+aa771g=T-f=XMkS5nY-7VFK6miqyxw0dOA8YOJyw@mail.gmail.com>
-From: Logan Gunthorpe <logang@deltatee.com>
-Message-ID: <c5208a76-e94b-0203-3591-81b14e7fd888@deltatee.com>
-Date: Mon, 31 Jul 2017 12:04:56 -0600
+Received: from mail-oi0-f65.google.com ([209.85.218.65]:36609 "EHLO
+        mail-oi0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751307AbdGaSLm (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 31 Jul 2017 14:11:42 -0400
 MIME-Version: 1.0
-In-Reply-To: <CAHp75VdOh+aa771g=T-f=XMkS5nY-7VFK6miqyxw0dOA8YOJyw@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <c5208a76-e94b-0203-3591-81b14e7fd888@deltatee.com>
+References: <20170726231917.6073-1-logang@deltatee.com> <20170726231917.6073-4-logang@deltatee.com>
+ <CAHp75Vcv7UCpnGY+mL7CMU5u9hCUxwaYWNsg58BoWBJGAFX4tQ@mail.gmail.com>
+ <5c52d908-3b77-c5c6-99a7-1164d878ac95@deltatee.com> <CAHp75Ve619EE9ePy2zj+MjS7-MW3u_k2BQ5kc9iFBMYYQ9nMWQ@mail.gmail.com>
+ <3a4c9453-20be-8164-85eb-5ad4d596a299@deltatee.com> <CAHp75VdE-xRHDEfmmURtoak6+4Vga4szLnDkGjtJHm47DZRCAQ@mail.gmail.com>
+ <65ca8848-3a99-bda8-5165-9453b70316fa@deltatee.com> <CAHp75VdOh+aa771g=T-f=XMkS5nY-7VFK6miqyxw0dOA8YOJyw@mail.gmail.com>
+ <c5208a76-e94b-0203-3591-81b14e7fd888@deltatee.com>
+From: Andy Shevchenko <andy.shevchenko@gmail.com>
+Date: Mon, 31 Jul 2017 21:11:41 +0300
+Message-ID: <CAHp75VcX7SeYyp6OEYLQLaAk-eHzbFV05wGC+dD2OeCcnxY6TQ@mail.gmail.com>
 Subject: Re: [PATCH v5 3/6] iomap: introduce io{read|write}64_{lo_hi|hi_lo}
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Shevchenko <andy.shevchenko@gmail.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-ntb@googlegroups.com, linux-crypto <linux-crypto@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, =?UTF-8?Q?Horia_Geant=c4=83?= <horia.geanta@nxp.com>, Stephen Bates <sbates@raithlin.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Suresh Warrier <warrier@linux.vnet.ibm.com>, Nicholas Piggin <npiggin@gmail.com>
-Message-ID: <20170731180456.Z7dz7XkVGGFENySWbCCd1H-vb8unOp6UR2h0m6ETXUs@z>
+To: Logan Gunthorpe <logang@deltatee.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-ntb@googlegroups.com, linux-crypto <linux-crypto@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, =?UTF-8?Q?Horia_Geant=C4=83?= <horia.geanta@nxp.com>, Stephen Bates <sbates@raithlin.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Suresh Warrier <warrier@linux.vnet.ibm.com>, Nicholas Piggin <npiggin@gmail.com>
+Message-ID: <20170731181141.fSC_uVjbix3HY2T0nTkLSYouAzB_jwUt8f_aybaHags@z>
 
+On Mon, Jul 31, 2017 at 9:04 PM, Logan Gunthorpe <logang@deltatee.com> wrote:
+>
+>
+> On 31/07/17 12:03 PM, Andy Shevchenko wrote:
+>>
+>> Per commit 3a044178cccf they are exactly created for this kind of cases.
+>>
+>
+> Sure, ok, and my patchset provides the same set of functions to satisfy
+> such a use.
 
+Okay, please, Cc me for next version, I think I need fresh view on it.
+Thanks!
 
-On 31/07/17 12:03 PM, Andy Shevchenko wrote:
-> 
-> Per commit 3a044178cccf they are exactly created for this kind of cases.
-> 
-
-Sure, ok, and my patchset provides the same set of functions to satisfy
-such a use.
-
-Logan
+-- 
+With Best Regards,
+Andy Shevchenko
