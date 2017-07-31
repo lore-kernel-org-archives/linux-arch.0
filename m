@@ -1,229 +1,558 @@
-From: Mike Kravetz <mike.kravetz@oracle.com>
-Subject: [PATCH 2/3] mm: arch: Consolidate mmap hugetlb size encodings
-Date: Mon, 31 Jul 2017 11:56:25 -0700
-Message-ID: <1501527386-10736-3-git-send-email-mike.kravetz@oracle.com>
-References: <1501527386-10736-1-git-send-email-mike.kravetz@oracle.com>
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1501527386-10736-1-git-send-email-mike.kravetz@oracle.com>
-Sender: owner-linux-mm@kvack.org
-To: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Matthew Wilcox <willy@infradead.org>, Michal Hocko <mhocko@kernel.org>, akpm@linux-foundation.org, ak@linux.intel.com, mtk.manpages@gmail.com, Davidlohr Bueso <dbueso@suse.de>, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, aarcange@redhat.com, Arnd Bergmann <arnd@arndb.de>, Mike Kravetz <mike.kravetz@oracle.com>
-List-Id: linux-arch.vger.kernel.org
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: [PATCH v2 tip/core/rcu 10/10] arch: Remove spin_unlock_wait() arch-specific definitions
+Date: Mon, 31 Jul 2017 15:58:17 -0700
+Message-ID: <1501541897-5225-10-git-send-email-paulmck@linux.vnet.ibm.com>
+References: <20170731225754.GB2674@linux.vnet.ibm.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:48357 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1751976AbdGaW6Y (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 31 Jul 2017 18:58:24 -0400
+Received: from pps.filterd (m0098394.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id v6VMtsun105841
+        for <linux-arch@vger.kernel.org>; Mon, 31 Jul 2017 18:58:23 -0400
+Received: from e14.ny.us.ibm.com (e14.ny.us.ibm.com [129.33.205.204])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2c2c2surpy-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Mon, 31 Jul 2017 18:58:23 -0400
+Received: from localhost
+        by e14.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+        Mon, 31 Jul 2017 18:58:22 -0400
+In-Reply-To: <20170731225754.GB2674@linux.vnet.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org
+Cc: mingo@kernel.org, jiangshanlai@gmail.com, dipankar@in.ibm.com, akpm@linux-foundation.org, mathieu.desnoyers@efficios.com, josh@joshtriplett.org, tglx@linutronix.de, peterz@infradead.org, rostedt@goodmis.org, dhowells@redhat.com, edumazet@google.com, fweisbec@gmail.com, oleg@redhat.com, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-arch@vger.kernel.org, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>
 
-A non-default huge page size can be encoded in the flags argument
-of the mmap system call.  The definitions for these encodings are
-in arch specific header files.  However, all architectures use the
-same values.
+There is no agreed-upon definition of spin_unlock_wait()'s semantics,
+and it appears that all callers could do just as well with a lock/unlock
+pair.  This commit therefore removes the underlying arch-specific
+arch_spin_unlock_wait() for all architectures providing them.
 
-Consolidate all the definitions in the primary user header file
-(uapi/linux/mman.h).  Include definitions for all known huge page
-sizes.  Use the generic encoding definitions in hugetlb_encode.h
-as the basis for these definitions.
-
-Signed-off-by: Mike Kravetz <mike.kravetz@oracle.com>
+Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+Cc: <linux-arch@vger.kernel.org>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Alan Stern <stern@rowland.harvard.edu>
+Cc: Andrea Parri <parri.andrea@gmail.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Acked-by: Will Deacon <will.deacon@arm.com>
+Acked-by: Boqun Feng <boqun.feng@gmail.com>
 ---
- arch/alpha/include/uapi/asm/mman.h     | 11 -----------
- arch/mips/include/uapi/asm/mman.h      | 11 -----------
- arch/parisc/include/uapi/asm/mman.h    | 11 -----------
- arch/powerpc/include/uapi/asm/mman.h   | 16 ----------------
- arch/x86/include/uapi/asm/mman.h       |  3 ---
- arch/xtensa/include/uapi/asm/mman.h    | 11 -----------
- include/uapi/asm-generic/mman-common.h | 11 -----------
- include/uapi/linux/mman.h              | 22 ++++++++++++++++++++++
- 8 files changed, 22 insertions(+), 74 deletions(-)
+ arch/alpha/include/asm/spinlock.h    |  5 ----
+ arch/arc/include/asm/spinlock.h      |  5 ----
+ arch/arm/include/asm/spinlock.h      | 16 ----------
+ arch/arm64/include/asm/spinlock.h    | 58 ++++--------------------------------
+ arch/blackfin/include/asm/spinlock.h |  5 ----
+ arch/hexagon/include/asm/spinlock.h  |  5 ----
+ arch/ia64/include/asm/spinlock.h     | 21 -------------
+ arch/m32r/include/asm/spinlock.h     |  5 ----
+ arch/metag/include/asm/spinlock.h    |  5 ----
+ arch/mn10300/include/asm/spinlock.h  |  5 ----
+ arch/parisc/include/asm/spinlock.h   |  7 -----
+ arch/powerpc/include/asm/spinlock.h  | 33 --------------------
+ arch/s390/include/asm/spinlock.h     |  7 -----
+ arch/sh/include/asm/spinlock-cas.h   |  5 ----
+ arch/sh/include/asm/spinlock-llsc.h  |  5 ----
+ arch/sparc/include/asm/spinlock_32.h |  5 ----
+ arch/tile/include/asm/spinlock_32.h  |  2 --
+ arch/tile/include/asm/spinlock_64.h  |  2 --
+ arch/tile/lib/spinlock_32.c          | 23 --------------
+ arch/tile/lib/spinlock_64.c          | 22 --------------
+ arch/xtensa/include/asm/spinlock.h   |  5 ----
+ 21 files changed, 5 insertions(+), 241 deletions(-)
 
-diff --git a/arch/alpha/include/uapi/asm/mman.h b/arch/alpha/include/uapi/asm/mman.h
-index 02760f6..13b52aa 100644
---- a/arch/alpha/include/uapi/asm/mman.h
-+++ b/arch/alpha/include/uapi/asm/mman.h
-@@ -67,17 +67,6 @@
- /* compatibility flags */
- #define MAP_FILE	0
+diff --git a/arch/alpha/include/asm/spinlock.h b/arch/alpha/include/asm/spinlock.h
+index a40b9fc0c6c3..718ac0b64adf 100644
+--- a/arch/alpha/include/asm/spinlock.h
++++ b/arch/alpha/include/asm/spinlock.h
+@@ -16,11 +16,6 @@
+ #define arch_spin_lock_flags(lock, flags) arch_spin_lock(lock)
+ #define arch_spin_is_locked(x)	((x)->lock != 0)
  
--/*
-- * When MAP_HUGETLB is set bits [26:31] encode the log2 of the huge page size.
-- * This gives us 6 bits, which is enough until someone invents 128 bit address
-- * spaces.
-- *
-- * Assume these are all power of twos.
-- * When 0 use the default page size.
-- */
--#define MAP_HUGE_SHIFT	26
--#define MAP_HUGE_MASK	0x3f
+-static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
+-{
+-	smp_cond_load_acquire(&lock->lock, !VAL);
+-}
 -
- #define PKEY_DISABLE_ACCESS	0x1
- #define PKEY_DISABLE_WRITE	0x2
- #define PKEY_ACCESS_MASK	(PKEY_DISABLE_ACCESS |\
-diff --git a/arch/mips/include/uapi/asm/mman.h b/arch/mips/include/uapi/asm/mman.h
-index 655e2fb..398eebc 100644
---- a/arch/mips/include/uapi/asm/mman.h
-+++ b/arch/mips/include/uapi/asm/mman.h
-@@ -94,17 +94,6 @@
- /* compatibility flags */
- #define MAP_FILE	0
+ static inline int arch_spin_value_unlocked(arch_spinlock_t lock)
+ {
+         return lock.lock == 0;
+diff --git a/arch/arc/include/asm/spinlock.h b/arch/arc/include/asm/spinlock.h
+index 233d5ffe6ec7..a325e6a36523 100644
+--- a/arch/arc/include/asm/spinlock.h
++++ b/arch/arc/include/asm/spinlock.h
+@@ -16,11 +16,6 @@
+ #define arch_spin_is_locked(x)	((x)->slock != __ARCH_SPIN_LOCK_UNLOCKED__)
+ #define arch_spin_lock_flags(lock, flags)	arch_spin_lock(lock)
  
--/*
-- * When MAP_HUGETLB is set bits [26:31] encode the log2 of the huge page size.
-- * This gives us 6 bits, which is enough until someone invents 128 bit address
-- * spaces.
-- *
-- * Assume these are all power of twos.
-- * When 0 use the default page size.
-- */
--#define MAP_HUGE_SHIFT	26
--#define MAP_HUGE_MASK	0x3f
+-static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
+-{
+-	smp_cond_load_acquire(&lock->slock, !VAL);
+-}
 -
- #define PKEY_DISABLE_ACCESS	0x1
- #define PKEY_DISABLE_WRITE	0x2
- #define PKEY_ACCESS_MASK	(PKEY_DISABLE_ACCESS |\
-diff --git a/arch/parisc/include/uapi/asm/mman.h b/arch/parisc/include/uapi/asm/mman.h
-index 5979745..9cd0e8c 100644
---- a/arch/parisc/include/uapi/asm/mman.h
-+++ b/arch/parisc/include/uapi/asm/mman.h
-@@ -64,17 +64,6 @@
- #define MAP_FILE	0
- #define MAP_VARIABLE	0
+ #ifdef CONFIG_ARC_HAS_LLSC
  
--/*
-- * When MAP_HUGETLB is set bits [26:31] encode the log2 of the huge page size.
-- * This gives us 6 bits, which is enough until someone invents 128 bit address
-- * spaces.
-- *
-- * Assume these are all power of twos.
-- * When 0 use the default page size.
-- */
--#define MAP_HUGE_SHIFT	26
--#define MAP_HUGE_MASK	0x3f
+ static inline void arch_spin_lock(arch_spinlock_t *lock)
+diff --git a/arch/arm/include/asm/spinlock.h b/arch/arm/include/asm/spinlock.h
+index 4bec45442072..c030143c18c6 100644
+--- a/arch/arm/include/asm/spinlock.h
++++ b/arch/arm/include/asm/spinlock.h
+@@ -52,22 +52,6 @@ static inline void dsb_sev(void)
+  * memory.
+  */
+ 
+-static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
+-{
+-	u16 owner = READ_ONCE(lock->tickets.owner);
 -
- #define PKEY_DISABLE_ACCESS	0x1
- #define PKEY_DISABLE_WRITE	0x2
- #define PKEY_ACCESS_MASK	(PKEY_DISABLE_ACCESS |\
-diff --git a/arch/powerpc/include/uapi/asm/mman.h b/arch/powerpc/include/uapi/asm/mman.h
-index ab45cc2..03c06ba 100644
---- a/arch/powerpc/include/uapi/asm/mman.h
-+++ b/arch/powerpc/include/uapi/asm/mman.h
-@@ -29,20 +29,4 @@
- #define MAP_STACK	0x20000		/* give out an address that is best suited for process/thread stacks */
- #define MAP_HUGETLB	0x40000		/* create a huge page mapping */
- 
--/*
-- * When MAP_HUGETLB is set, bits [26:31] of the flags argument to mmap(2),
-- * encode the log2 of the huge page size. A value of zero indicates that the
-- * default huge page size should be used. To use a non-default huge page size,
-- * one of these defines can be used, or the size can be encoded by hand. Note
-- * that on most systems only a subset, or possibly none, of these sizes will be
-- * available.
-- */
--#define MAP_HUGE_512KB	(19 << MAP_HUGE_SHIFT)	/* 512KB HugeTLB Page */
--#define MAP_HUGE_1MB	(20 << MAP_HUGE_SHIFT)	/* 1MB   HugeTLB Page */
--#define MAP_HUGE_2MB	(21 << MAP_HUGE_SHIFT)	/* 2MB   HugeTLB Page */
--#define MAP_HUGE_8MB	(23 << MAP_HUGE_SHIFT)	/* 8MB   HugeTLB Page */
--#define MAP_HUGE_16MB	(24 << MAP_HUGE_SHIFT)	/* 16MB  HugeTLB Page */
--#define MAP_HUGE_1GB	(30 << MAP_HUGE_SHIFT)	/* 1GB   HugeTLB Page */
--#define MAP_HUGE_16GB	(34 << MAP_HUGE_SHIFT)	/* 16GB  HugeTLB Page */
+-	for (;;) {
+-		arch_spinlock_t tmp = READ_ONCE(*lock);
 -
- #endif /* _UAPI_ASM_POWERPC_MMAN_H */
-diff --git a/arch/x86/include/uapi/asm/mman.h b/arch/x86/include/uapi/asm/mman.h
-index 39bca7f..3be08f0 100644
---- a/arch/x86/include/uapi/asm/mman.h
-+++ b/arch/x86/include/uapi/asm/mman.h
-@@ -3,9 +3,6 @@
- 
- #define MAP_32BIT	0x40		/* only give out 32bit addresses */
- 
--#define MAP_HUGE_2MB    (21 << MAP_HUGE_SHIFT)
--#define MAP_HUGE_1GB    (30 << MAP_HUGE_SHIFT)
+-		if (tmp.tickets.owner == tmp.tickets.next ||
+-		    tmp.tickets.owner != owner)
+-			break;
 -
- #ifdef CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS
+-		wfe();
+-	}
+-	smp_acquire__after_ctrl_dep();
+-}
+-
+ #define arch_spin_lock_flags(lock, flags) arch_spin_lock(lock)
+ 
+ static inline void arch_spin_lock(arch_spinlock_t *lock)
+diff --git a/arch/arm64/include/asm/spinlock.h b/arch/arm64/include/asm/spinlock.h
+index cae331d553f8..f445bd7f2b9f 100644
+--- a/arch/arm64/include/asm/spinlock.h
++++ b/arch/arm64/include/asm/spinlock.h
+@@ -26,58 +26,6 @@
+  * The memory barriers are implicit with the load-acquire and store-release
+  * instructions.
+  */
+-static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
+-{
+-	unsigned int tmp;
+-	arch_spinlock_t lockval;
+-	u32 owner;
+-
+-	/*
+-	 * Ensure prior spin_lock operations to other locks have completed
+-	 * on this CPU before we test whether "lock" is locked.
+-	 */
+-	smp_mb();
+-	owner = READ_ONCE(lock->owner) << 16;
+-
+-	asm volatile(
+-"	sevl\n"
+-"1:	wfe\n"
+-"2:	ldaxr	%w0, %2\n"
+-	/* Is the lock free? */
+-"	eor	%w1, %w0, %w0, ror #16\n"
+-"	cbz	%w1, 3f\n"
+-	/* Lock taken -- has there been a subsequent unlock->lock transition? */
+-"	eor	%w1, %w3, %w0, lsl #16\n"
+-"	cbz	%w1, 1b\n"
+-	/*
+-	 * The owner has been updated, so there was an unlock->lock
+-	 * transition that we missed. That means we can rely on the
+-	 * store-release of the unlock operation paired with the
+-	 * load-acquire of the lock operation to publish any of our
+-	 * previous stores to the new lock owner and therefore don't
+-	 * need to bother with the writeback below.
+-	 */
+-"	b	4f\n"
+-"3:\n"
+-	/*
+-	 * Serialise against any concurrent lockers by writing back the
+-	 * unlocked lock value
+-	 */
+-	ARM64_LSE_ATOMIC_INSN(
+-	/* LL/SC */
+-"	stxr	%w1, %w0, %2\n"
+-	__nops(2),
+-	/* LSE atomics */
+-"	mov	%w1, %w0\n"
+-"	cas	%w0, %w0, %2\n"
+-"	eor	%w1, %w1, %w0\n")
+-	/* Somebody else wrote to the lock, GOTO 10 and reload the value */
+-"	cbnz	%w1, 2b\n"
+-"4:"
+-	: "=&r" (lockval), "=&r" (tmp), "+Q" (*lock)
+-	: "r" (owner)
+-	: "memory");
+-}
+ 
+ #define arch_spin_lock_flags(lock, flags) arch_spin_lock(lock)
+ 
+@@ -176,7 +124,11 @@ static inline int arch_spin_value_unlocked(arch_spinlock_t lock)
+ 
+ static inline int arch_spin_is_locked(arch_spinlock_t *lock)
+ {
+-	smp_mb(); /* See arch_spin_unlock_wait */
++	/*
++	 * Ensure prior spin_lock operations to other locks have completed
++	 * on this CPU before we test whether "lock" is locked.
++	 */
++	smp_mb(); /* ^^^ */
+ 	return !arch_spin_value_unlocked(READ_ONCE(*lock));
+ }
+ 
+diff --git a/arch/blackfin/include/asm/spinlock.h b/arch/blackfin/include/asm/spinlock.h
+index c58f4a83ed6f..f6431439d15d 100644
+--- a/arch/blackfin/include/asm/spinlock.h
++++ b/arch/blackfin/include/asm/spinlock.h
+@@ -48,11 +48,6 @@ static inline void arch_spin_unlock(arch_spinlock_t *lock)
+ 	__raw_spin_unlock_asm(&lock->lock);
+ }
+ 
+-static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
+-{
+-	smp_cond_load_acquire(&lock->lock, !VAL);
+-}
+-
+ static inline int arch_read_can_lock(arch_rwlock_t *rw)
+ {
+ 	return __raw_uncached_fetch_asm(&rw->lock) > 0;
+diff --git a/arch/hexagon/include/asm/spinlock.h b/arch/hexagon/include/asm/spinlock.h
+index a1c55788c5d6..53a8d5885887 100644
+--- a/arch/hexagon/include/asm/spinlock.h
++++ b/arch/hexagon/include/asm/spinlock.h
+@@ -179,11 +179,6 @@ static inline unsigned int arch_spin_trylock(arch_spinlock_t *lock)
+  */
+ #define arch_spin_lock_flags(lock, flags) arch_spin_lock(lock)
+ 
+-static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
+-{
+-	smp_cond_load_acquire(&lock->lock, !VAL);
+-}
+-
+ #define arch_spin_is_locked(x) ((x)->lock != 0)
+ 
+ #define arch_read_lock_flags(lock, flags) arch_read_lock(lock)
+diff --git a/arch/ia64/include/asm/spinlock.h b/arch/ia64/include/asm/spinlock.h
+index ca9e76149a4a..df2c121164b8 100644
+--- a/arch/ia64/include/asm/spinlock.h
++++ b/arch/ia64/include/asm/spinlock.h
+@@ -76,22 +76,6 @@ static __always_inline void __ticket_spin_unlock(arch_spinlock_t *lock)
+ 	ACCESS_ONCE(*p) = (tmp + 2) & ~1;
+ }
+ 
+-static __always_inline void __ticket_spin_unlock_wait(arch_spinlock_t *lock)
+-{
+-	int	*p = (int *)&lock->lock, ticket;
+-
+-	ia64_invala();
+-
+-	for (;;) {
+-		asm volatile ("ld4.c.nc %0=[%1]" : "=r"(ticket) : "r"(p) : "memory");
+-		if (!(((ticket >> TICKET_SHIFT) ^ ticket) & TICKET_MASK))
+-			return;
+-		cpu_relax();
+-	}
+-
+-	smp_acquire__after_ctrl_dep();
+-}
+-
+ static inline int __ticket_spin_is_locked(arch_spinlock_t *lock)
+ {
+ 	long tmp = ACCESS_ONCE(lock->lock);
+@@ -143,11 +127,6 @@ static __always_inline void arch_spin_lock_flags(arch_spinlock_t *lock,
+ 	arch_spin_lock(lock);
+ }
+ 
+-static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
+-{
+-	__ticket_spin_unlock_wait(lock);
+-}
+-
+ #define arch_read_can_lock(rw)		(*(volatile int *)(rw) >= 0)
+ #define arch_write_can_lock(rw)	(*(volatile int *)(rw) == 0)
+ 
+diff --git a/arch/m32r/include/asm/spinlock.h b/arch/m32r/include/asm/spinlock.h
+index 323c7fc953cd..a56825592b90 100644
+--- a/arch/m32r/include/asm/spinlock.h
++++ b/arch/m32r/include/asm/spinlock.h
+@@ -30,11 +30,6 @@
+ #define arch_spin_is_locked(x)		(*(volatile int *)(&(x)->slock) <= 0)
+ #define arch_spin_lock_flags(lock, flags) arch_spin_lock(lock)
+ 
+-static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
+-{
+-	smp_cond_load_acquire(&lock->slock, VAL > 0);
+-}
+-
+ /**
+  * arch_spin_trylock - Try spin lock and return a result
+  * @lock: Pointer to the lock variable
+diff --git a/arch/metag/include/asm/spinlock.h b/arch/metag/include/asm/spinlock.h
+index c0c7a22be1ae..ddf7fe5708a6 100644
+--- a/arch/metag/include/asm/spinlock.h
++++ b/arch/metag/include/asm/spinlock.h
+@@ -15,11 +15,6 @@
+  * locked.
+  */
+ 
+-static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
+-{
+-	smp_cond_load_acquire(&lock->lock, !VAL);
+-}
+-
+ #define arch_spin_lock_flags(lock, flags) arch_spin_lock(lock)
+ 
+ #define	arch_read_lock_flags(lock, flags) arch_read_lock(lock)
+diff --git a/arch/mn10300/include/asm/spinlock.h b/arch/mn10300/include/asm/spinlock.h
+index 9c7b8f7942d8..fe413b41df6c 100644
+--- a/arch/mn10300/include/asm/spinlock.h
++++ b/arch/mn10300/include/asm/spinlock.h
+@@ -26,11 +26,6 @@
+ 
+ #define arch_spin_is_locked(x)	(*(volatile signed char *)(&(x)->slock) != 0)
+ 
+-static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
+-{
+-	smp_cond_load_acquire(&lock->slock, !VAL);
+-}
+-
+ static inline void arch_spin_unlock(arch_spinlock_t *lock)
+ {
+ 	asm volatile(
+diff --git a/arch/parisc/include/asm/spinlock.h b/arch/parisc/include/asm/spinlock.h
+index e32936cd7f10..55bfe4affca3 100644
+--- a/arch/parisc/include/asm/spinlock.h
++++ b/arch/parisc/include/asm/spinlock.h
+@@ -14,13 +14,6 @@ static inline int arch_spin_is_locked(arch_spinlock_t *x)
+ 
+ #define arch_spin_lock(lock) arch_spin_lock_flags(lock, 0)
+ 
+-static inline void arch_spin_unlock_wait(arch_spinlock_t *x)
+-{
+-	volatile unsigned int *a = __ldcw_align(x);
+-
+-	smp_cond_load_acquire(a, VAL);
+-}
+-
+ static inline void arch_spin_lock_flags(arch_spinlock_t *x,
+ 					 unsigned long flags)
+ {
+diff --git a/arch/powerpc/include/asm/spinlock.h b/arch/powerpc/include/asm/spinlock.h
+index 8c1b913de6d7..d256e448ea49 100644
+--- a/arch/powerpc/include/asm/spinlock.h
++++ b/arch/powerpc/include/asm/spinlock.h
+@@ -170,39 +170,6 @@ static inline void arch_spin_unlock(arch_spinlock_t *lock)
+ 	lock->slock = 0;
+ }
+ 
+-static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
+-{
+-	arch_spinlock_t lock_val;
+-
+-	smp_mb();
+-
+-	/*
+-	 * Atomically load and store back the lock value (unchanged). This
+-	 * ensures that our observation of the lock value is ordered with
+-	 * respect to other lock operations.
+-	 */
+-	__asm__ __volatile__(
+-"1:	" PPC_LWARX(%0, 0, %2, 0) "\n"
+-"	stwcx. %0, 0, %2\n"
+-"	bne- 1b\n"
+-	: "=&r" (lock_val), "+m" (*lock)
+-	: "r" (lock)
+-	: "cr0", "xer");
+-
+-	if (arch_spin_value_unlocked(lock_val))
+-		goto out;
+-
+-	while (lock->slock) {
+-		HMT_low();
+-		if (SHARED_PROCESSOR)
+-			__spin_yield(lock);
+-	}
+-	HMT_medium();
+-
+-out:
+-	smp_mb();
+-}
+-
  /*
-  * Take the 4 protection key bits out of the vma->vm_flags
-diff --git a/arch/xtensa/include/uapi/asm/mman.h b/arch/xtensa/include/uapi/asm/mman.h
-index 24365b3..8ce77a2 100644
---- a/arch/xtensa/include/uapi/asm/mman.h
-+++ b/arch/xtensa/include/uapi/asm/mman.h
-@@ -106,17 +106,6 @@
- /* compatibility flags */
- #define MAP_FILE	0
+  * Read-write spinlocks, allowing multiple readers
+  * but only one writer.
+diff --git a/arch/s390/include/asm/spinlock.h b/arch/s390/include/asm/spinlock.h
+index f7838ecd83c6..217ee5210c32 100644
+--- a/arch/s390/include/asm/spinlock.h
++++ b/arch/s390/include/asm/spinlock.h
+@@ -98,13 +98,6 @@ static inline void arch_spin_unlock(arch_spinlock_t *lp)
+ 		: "cc", "memory");
+ }
  
--/*
-- * When MAP_HUGETLB is set bits [26:31] encode the log2 of the huge page size.
-- * This gives us 6 bits, which is enough until someone invents 128 bit address
-- * spaces.
-- *
-- * Assume these are all power of twos.
-- * When 0 use the default page size.
-- */
--#define MAP_HUGE_SHIFT	26
--#define MAP_HUGE_MASK	0x3f
+-static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
+-{
+-	while (arch_spin_is_locked(lock))
+-		arch_spin_relax(lock);
+-	smp_acquire__after_ctrl_dep();
+-}
 -
- #define PKEY_DISABLE_ACCESS	0x1
- #define PKEY_DISABLE_WRITE	0x2
- #define PKEY_ACCESS_MASK	(PKEY_DISABLE_ACCESS |\
-diff --git a/include/uapi/asm-generic/mman-common.h b/include/uapi/asm-generic/mman-common.h
-index 8c27db0..d248f3c 100644
---- a/include/uapi/asm-generic/mman-common.h
-+++ b/include/uapi/asm-generic/mman-common.h
-@@ -61,17 +61,6 @@
- /* compatibility flags */
- #define MAP_FILE	0
+ /*
+  * Read-write spinlocks, allowing multiple readers
+  * but only one writer.
+diff --git a/arch/sh/include/asm/spinlock-cas.h b/arch/sh/include/asm/spinlock-cas.h
+index c46e8cc7b515..5ed7dbbd94ff 100644
+--- a/arch/sh/include/asm/spinlock-cas.h
++++ b/arch/sh/include/asm/spinlock-cas.h
+@@ -29,11 +29,6 @@ static inline unsigned __sl_cas(volatile unsigned *p, unsigned old, unsigned new
+ #define arch_spin_is_locked(x)		((x)->lock <= 0)
+ #define arch_spin_lock_flags(lock, flags) arch_spin_lock(lock)
  
--/*
-- * When MAP_HUGETLB is set bits [26:31] encode the log2 of the huge page size.
-- * This gives us 6 bits, which is enough until someone invents 128 bit address
-- * spaces.
-- *
-- * Assume these are all power of twos.
-- * When 0 use the default page size.
-- */
--#define MAP_HUGE_SHIFT	26
--#define MAP_HUGE_MASK	0x3f
+-static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
+-{
+-	smp_cond_load_acquire(&lock->lock, VAL > 0);
+-}
 -
- #define PKEY_DISABLE_ACCESS	0x1
- #define PKEY_DISABLE_WRITE	0x2
- #define PKEY_ACCESS_MASK	(PKEY_DISABLE_ACCESS |\
-diff --git a/include/uapi/linux/mman.h b/include/uapi/linux/mman.h
-index ade4acd..a937480 100644
---- a/include/uapi/linux/mman.h
-+++ b/include/uapi/linux/mman.h
-@@ -2,6 +2,7 @@
- #define _UAPI_LINUX_MMAN_H
+ static inline void arch_spin_lock(arch_spinlock_t *lock)
+ {
+ 	while (!__sl_cas(&lock->lock, 1, 0));
+diff --git a/arch/sh/include/asm/spinlock-llsc.h b/arch/sh/include/asm/spinlock-llsc.h
+index cec78143fa83..f77263aae760 100644
+--- a/arch/sh/include/asm/spinlock-llsc.h
++++ b/arch/sh/include/asm/spinlock-llsc.h
+@@ -21,11 +21,6 @@
+ #define arch_spin_is_locked(x)		((x)->lock <= 0)
+ #define arch_spin_lock_flags(lock, flags) arch_spin_lock(lock)
  
- #include <asm/mman.h>
-+#include <asm-generic/hugetlb_encode.h>
+-static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
+-{
+-	smp_cond_load_acquire(&lock->lock, VAL > 0);
+-}
+-
+ /*
+  * Simple spin lock operations.  There are two variants, one clears IRQ's
+  * on the local processor, one does not.
+diff --git a/arch/sparc/include/asm/spinlock_32.h b/arch/sparc/include/asm/spinlock_32.h
+index 8011e79f59c9..67345b2dc408 100644
+--- a/arch/sparc/include/asm/spinlock_32.h
++++ b/arch/sparc/include/asm/spinlock_32.h
+@@ -14,11 +14,6 @@
  
- #define MREMAP_MAYMOVE	1
- #define MREMAP_FIXED	2
-@@ -10,4 +11,25 @@
- #define OVERCOMMIT_ALWAYS		1
- #define OVERCOMMIT_NEVER		2
+ #define arch_spin_is_locked(lock) (*((volatile unsigned char *)(lock)) != 0)
  
-+/*
-+ * Huge page size encoding when MAP_HUGETLB is specified, and a huge page
-+ * size other than the default is desired.  See hugetlb_encode.h.
-+ * All known huge page size encodings are provided here.  It is the
-+ * responsibility of the application to know which sizes are supported on
-+ * the running system.  See mmap(2) man page for details.
-+ */
-+#define MAP_HUGE_SHIFT	HUGETLB_FLAG_ENCODE_SHIFT
-+#define MAP_HUGE_MASK	HUGETLB_FLAG_ENCODE_MASK
-+
-+#define MAP_HUGE_64KB	HUGETLB_FLAG_ENCODE_64KB
-+#define MAP_HUGE_512KB	HUGETLB_FLAG_ENCODE_512KB
-+#define MAP_HUGE_1MB	HUGETLB_FLAG_ENCODE_1MB
-+#define MAP_HUGE_2MB	HUGETLB_FLAG_ENCODE_2MB
-+#define MAP_HUGE_8MB	HUGETLB_FLAG_ENCODE_8MB
-+#define MAP_HUGE_16MB	HUGETLB_FLAG_ENCODE_16MB
-+#define MAP_HUGE_256MB	HUGETLB_FLAG_ENCODE_256MB
-+#define MAP_HUGE_1GB	HUGETLB_FLAG_ENCODE_1GB
-+#define MAP_HUGE_2GB	HUGETLB_FLAG_ENCODE_2GB
-+#define MAP_HUGE_16GB	HUGETLB_FLAG_ENCODE_16GB
-+
- #endif /* _UAPI_LINUX_MMAN_H */
+-static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
+-{
+-	smp_cond_load_acquire(&lock->lock, !VAL);
+-}
+-
+ static inline void arch_spin_lock(arch_spinlock_t *lock)
+ {
+ 	__asm__ __volatile__(
+diff --git a/arch/tile/include/asm/spinlock_32.h b/arch/tile/include/asm/spinlock_32.h
+index b14b1ba5bf9c..cba8ba9b8da6 100644
+--- a/arch/tile/include/asm/spinlock_32.h
++++ b/arch/tile/include/asm/spinlock_32.h
+@@ -64,8 +64,6 @@ static inline void arch_spin_unlock(arch_spinlock_t *lock)
+ 	lock->current_ticket = old_ticket + TICKET_QUANTUM;
+ }
+ 
+-void arch_spin_unlock_wait(arch_spinlock_t *lock);
+-
+ /*
+  * Read-write spinlocks, allowing multiple readers
+  * but only one writer.
+diff --git a/arch/tile/include/asm/spinlock_64.h b/arch/tile/include/asm/spinlock_64.h
+index b9718fb4e74a..9a2c2d605752 100644
+--- a/arch/tile/include/asm/spinlock_64.h
++++ b/arch/tile/include/asm/spinlock_64.h
+@@ -58,8 +58,6 @@ static inline void arch_spin_unlock(arch_spinlock_t *lock)
+ 	__insn_fetchadd4(&lock->lock, 1U << __ARCH_SPIN_CURRENT_SHIFT);
+ }
+ 
+-void arch_spin_unlock_wait(arch_spinlock_t *lock);
+-
+ void arch_spin_lock_slow(arch_spinlock_t *lock, u32 val);
+ 
+ /* Grab the "next" ticket number and bump it atomically.
+diff --git a/arch/tile/lib/spinlock_32.c b/arch/tile/lib/spinlock_32.c
+index 076c6cc43113..db9333f2447c 100644
+--- a/arch/tile/lib/spinlock_32.c
++++ b/arch/tile/lib/spinlock_32.c
+@@ -62,29 +62,6 @@ int arch_spin_trylock(arch_spinlock_t *lock)
+ }
+ EXPORT_SYMBOL(arch_spin_trylock);
+ 
+-void arch_spin_unlock_wait(arch_spinlock_t *lock)
+-{
+-	u32 iterations = 0;
+-	int curr = READ_ONCE(lock->current_ticket);
+-	int next = READ_ONCE(lock->next_ticket);
+-
+-	/* Return immediately if unlocked. */
+-	if (next == curr)
+-		return;
+-
+-	/* Wait until the current locker has released the lock. */
+-	do {
+-		delay_backoff(iterations++);
+-	} while (READ_ONCE(lock->current_ticket) == curr);
+-
+-	/*
+-	 * The TILE architecture doesn't do read speculation; therefore
+-	 * a control dependency guarantees a LOAD->{LOAD,STORE} order.
+-	 */
+-	barrier();
+-}
+-EXPORT_SYMBOL(arch_spin_unlock_wait);
+-
+ /*
+  * The low byte is always reserved to be the marker for a "tns" operation
+  * since the low bit is set to "1" by a tns.  The next seven bits are
+diff --git a/arch/tile/lib/spinlock_64.c b/arch/tile/lib/spinlock_64.c
+index a4b5b2cbce93..de414c22892f 100644
+--- a/arch/tile/lib/spinlock_64.c
++++ b/arch/tile/lib/spinlock_64.c
+@@ -62,28 +62,6 @@ int arch_spin_trylock(arch_spinlock_t *lock)
+ }
+ EXPORT_SYMBOL(arch_spin_trylock);
+ 
+-void arch_spin_unlock_wait(arch_spinlock_t *lock)
+-{
+-	u32 iterations = 0;
+-	u32 val = READ_ONCE(lock->lock);
+-	u32 curr = arch_spin_current(val);
+-
+-	/* Return immediately if unlocked. */
+-	if (arch_spin_next(val) == curr)
+-		return;
+-
+-	/* Wait until the current locker has released the lock. */
+-	do {
+-		delay_backoff(iterations++);
+-	} while (arch_spin_current(READ_ONCE(lock->lock)) == curr);
+-
+-	/*
+-	 * The TILE architecture doesn't do read speculation; therefore
+-	 * a control dependency guarantees a LOAD->{LOAD,STORE} order.
+-	 */
+-	barrier();
+-}
+-EXPORT_SYMBOL(arch_spin_unlock_wait);
+ 
+ /*
+  * If the read lock fails due to a writer, we retry periodically
+diff --git a/arch/xtensa/include/asm/spinlock.h b/arch/xtensa/include/asm/spinlock.h
+index a36221cf6363..3bb49681ee24 100644
+--- a/arch/xtensa/include/asm/spinlock.h
++++ b/arch/xtensa/include/asm/spinlock.h
+@@ -33,11 +33,6 @@
+ 
+ #define arch_spin_is_locked(x) ((x)->slock != 0)
+ 
+-static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
+-{
+-	smp_cond_load_acquire(&lock->slock, !VAL);
+-}
+-
+ #define arch_spin_lock_flags(lock, flags) arch_spin_lock(lock)
+ 
+ static inline void arch_spin_lock(arch_spinlock_t *lock)
 -- 
-2.7.5
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+2.5.2
