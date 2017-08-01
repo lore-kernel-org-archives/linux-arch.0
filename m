@@ -1,67 +1,105 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:55096 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1751837AbdHAQOX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 1 Aug 2017 12:14:23 -0400
-Received: from pps.filterd (m0098393.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id v71G8eHg025101
-        for <linux-arch@vger.kernel.org>; Tue, 1 Aug 2017 12:14:23 -0400
-Received: from e24smtp01.br.ibm.com (e24smtp01.br.ibm.com [32.104.18.85])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2c2v1vtx97-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Tue, 01 Aug 2017 12:14:22 -0400
-Received: from localhost
-        by e24smtp01.br.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <bauerman@linux.vnet.ibm.com>;
-        Tue, 1 Aug 2017 13:14:19 -0300
-References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com> <1500177424-13695-22-git-send-email-linuxram@us.ibm.com> <87shhgdx5i.fsf@linux.vnet.ibm.com> <87d18fu6o1.fsf@concordia.ellerman.id.au>
-From: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
-Subject: Re: [RFC v6 21/62] powerpc: introduce execute-only pkey
-In-reply-to: <87d18fu6o1.fsf@concordia.ellerman.id.au>
-Date: Tue, 01 Aug 2017 13:14:02 -0300
+Received: from mail-qk0-f194.google.com ([209.85.220.194]:34941 "EHLO
+        mail-qk0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751923AbdHARrZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 1 Aug 2017 13:47:25 -0400
+Received: by mail-qk0-f194.google.com with SMTP id a77so2265105qkb.2
+        for <linux-arch@vger.kernel.org>; Tue, 01 Aug 2017 10:47:25 -0700 (PDT)
+Date: Tue, 1 Aug 2017 13:47:22 -0400
+From: Jon Mason <jdmason@kudzu.us>
+Subject: Re: [PATCH v5 5/6] ntb: ntb_hw_intel: use io-64-nonatomic instead of
+ in-driver hacks
+Message-ID: <20170801174722.GB4186@kudzu.us>
+References: <20170726231917.6073-1-logang@deltatee.com>
+ <20170726231917.6073-6-logang@deltatee.com>
 MIME-Version: 1.0
-Content-Type: text/plain
-Message-ID: <87d18fw9it.fsf@linux.vnet.ibm.com>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20170726231917.6073-6-logang@deltatee.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Ram Pai <linuxram@us.ibm.com>, linux-arch@vger.kernel.org, corbet@lwn.net, arnd@arndb.de, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, mhocko@kernel.org, linux-mm@kvack.org, dave.hansen@intel.com, mingo@redhat.com, paulus@samba.org, aneesh.kumar@linux.vnet.ibm.com, linux-kselftest@vger.kernel.org, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org, khandual@linux.vnet.ibm.com
-Message-ID: <20170801161402.eJZIvbBLvSQ0qVva5AH_jndQ0HTuDAZOgGQeDcrGaoc@z>
+To: Logan Gunthorpe <logang@deltatee.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Horia =?utf-8?Q?Geant=C4=83?= <horia.geanta@nxp.com>, Stephen Bates <sbates@raithlin.com>, Allen Hubbe <Allen.Hubbe@emc.com>
+Message-ID: <20170801174722.wcgTvW1qeeoacqoUhkCeeaiglqQB-P-5FiDGVCOxUwM@z>
 
+On Wed, Jul 26, 2017 at 05:19:16PM -0600, Logan Gunthorpe wrote:
+> Now that ioread64 and iowrite64 are available in io-64-nonatomic,
+> we can remove the hack at the top of ntb_hw_intel.c and replace it
+> with an include.
+> 
+> Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
+> Cc: Jon Mason <jdmason@kudzu.us>
 
-Michael Ellerman <mpe@ellerman.id.au> writes:
+This is okay by me, but I'm assuming that this patch will go through
+as part of the series (and not via my tree).  If this changes, please
+let me know.
 
-> Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com> writes:
->> Ram Pai <linuxram@us.ibm.com> writes:
-> ...
->>> +
->>> +	/* We got one, store it and use it from here on out */
->>> +	if (need_to_set_mm_pkey)
->>> +		mm->context.execute_only_pkey = execute_only_pkey;
->>> +	return execute_only_pkey;
->>> +}
->>
->> If you follow the code flow in __execute_only_pkey, the AMR and UAMOR
->> are read 3 times in total, and AMR is written twice. IAMR is read and
->> written twice. Since they are SPRs and access to them is slow (or isn't
->> it?),
->
-> SPRs read/writes are slow, but they're not *that* slow in comparison to
-> a system call (which I think is where this code is being called?).
+Acked-by: Jon Mason <jdmason@kudzu.us>
 
-Yes, this code runs on mprotect and mmap syscalls if the memory is
-requested to have execute but not read nor write permissions.
+> Cc: Allen Hubbe <Allen.Hubbe@emc.com>
 
-> So we should try to avoid too many SPR read/writes, but at the same time
-> we can accept more than the minimum if it makes the code much easier to
-> follow.
+You already have Allen's Ack below.  So, you can remove this :)
 
-Ok. Ram had asked me to suggest a way to optimize the SPR reads and
-writes and I came up with the patch below. Do you think it's worth it?
-
-The patch applies on top of this series, but if Ram includes it I think
-he would break it up and merge it into the other patches.
-
--- 
-Thiago Jung Bauermann
-IBM Linux Technology Center
+> Acked-by: Dave Jiang <dave.jiang@intel.com>
+> Acked-by: Allen Hubbe <Allen.Hubbe@dell.com>
+> ---
+>  drivers/ntb/hw/intel/ntb_hw_intel.c | 30 +-----------------------------
+>  1 file changed, 1 insertion(+), 29 deletions(-)
+> 
+> diff --git a/drivers/ntb/hw/intel/ntb_hw_intel.c b/drivers/ntb/hw/intel/ntb_hw_intel.c
+> index 2557e2c05b90..606c90f59d4b 100644
+> --- a/drivers/ntb/hw/intel/ntb_hw_intel.c
+> +++ b/drivers/ntb/hw/intel/ntb_hw_intel.c
+> @@ -59,6 +59,7 @@
+>  #include <linux/random.h>
+>  #include <linux/slab.h>
+>  #include <linux/ntb.h>
+> +#include <linux/io-64-nonatomic-lo-hi.h>
+>  
+>  #include "ntb_hw_intel.h"
+>  
+> @@ -155,35 +156,6 @@ MODULE_PARM_DESC(xeon_b2b_dsd_bar5_addr32,
+>  static inline enum ntb_topo xeon_ppd_topo(struct intel_ntb_dev *ndev, u8 ppd);
+>  static int xeon_init_isr(struct intel_ntb_dev *ndev);
+>  
+> -#ifndef ioread64
+> -#ifdef readq
+> -#define ioread64 readq
+> -#else
+> -#define ioread64 _ioread64
+> -static inline u64 _ioread64(void __iomem *mmio)
+> -{
+> -	u64 low, high;
+> -
+> -	low = ioread32(mmio);
+> -	high = ioread32(mmio + sizeof(u32));
+> -	return low | (high << 32);
+> -}
+> -#endif
+> -#endif
+> -
+> -#ifndef iowrite64
+> -#ifdef writeq
+> -#define iowrite64 writeq
+> -#else
+> -#define iowrite64 _iowrite64
+> -static inline void _iowrite64(u64 val, void __iomem *mmio)
+> -{
+> -	iowrite32(val, mmio);
+> -	iowrite32(val >> 32, mmio + sizeof(u32));
+> -}
+> -#endif
+> -#endif
+> -
+>  static inline int pdev_is_atom(struct pci_dev *pdev)
+>  {
+>  	switch (pdev->device) {
+> -- 
+> 2.11.0
+> 
+> -- 
+> You received this message because you are subscribed to the Google Groups "linux-ntb" group.
+> To unsubscribe from this group and stop receiving emails from it, send an email to linux-ntb+unsubscribe@googlegroups.com.
+> To post to this group, send email to linux-ntb@googlegroups.com.
+> To view this discussion on the web visit https://groups.google.com/d/msgid/linux-ntb/20170726231917.6073-6-logang%40deltatee.com.
+> For more options, visit https://groups.google.com/d/optout.
