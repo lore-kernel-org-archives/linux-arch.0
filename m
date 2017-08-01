@@ -1,41 +1,89 @@
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [RFC v6 21/62] powerpc: introduce execute-only pkey
-Date: Tue, 01 Aug 2017 16:46:22 +1000
-Message-ID: <87d18fu6o1.fsf@concordia.ellerman.id.au>
-References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com> <1500177424-13695-22-git-send-email-linuxram@us.ibm.com> <87shhgdx5i.fsf@linux.vnet.ibm.com>
+From: Michal Hocko <mhocko@kernel.org>
+Subject: Re: [PATCH 1/3] mm:hugetlb: Define system call hugetlb size
+ encodings in single file
+Date: Tue, 1 Aug 2017 10:57:59 +0200
+Message-ID: <20170801085759.GC15774@dhcp22.suse.cz>
+References: <1501527386-10736-1-git-send-email-mike.kravetz@oracle.com>
+ <1501527386-10736-2-git-send-email-mike.kravetz@oracle.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([103.22.144.67]:34897 "EHLO ozlabs.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751003AbdHAGqY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 1 Aug 2017 02:46:24 -0400
-In-Reply-To: <87shhgdx5i.fsf@linux.vnet.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>, Ram Pai <linuxram@us.ibm.com>
-Cc: linux-arch@vger.kernel.org, corbet@lwn.net, arnd@arndb.de, linux-doc@vger.kernel.org, x86@kernel.org, dave.hansen@intel.com, linux-kernel@vger.kernel.org, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, paulus@samba.org, aneesh.kumar@linux.vnet.ibm.com, linux-kselftest@vger.kernel.org, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org, khandual@linux.vnet.ibm.com
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <1501527386-10736-2-git-send-email-mike.kravetz@oracle.com>
+Sender: owner-linux-mm@kvack.org
+To: Mike Kravetz <mike.kravetz@oracle.com>
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Matthew Wilcox <willy@infradead.org>, akpm@linux-foundation.org, ak@linux.intel.com, mtk.manpages@gmail.com, Davidlohr Bueso <dbueso@suse.de>, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, aarcange@redhat.com, Arnd Bergmann <arnd@arndb.de>
+List-Id: linux-arch.vger.kernel.org
 
-Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com> writes:
-> Ram Pai <linuxram@us.ibm.com> writes:
-...
->> +
->> +	/* We got one, store it and use it from here on out */
->> +	if (need_to_set_mm_pkey)
->> +		mm->context.execute_only_pkey = execute_only_pkey;
->> +	return execute_only_pkey;
->> +}
->
-> If you follow the code flow in __execute_only_pkey, the AMR and UAMOR
-> are read 3 times in total, and AMR is written twice. IAMR is read and
-> written twice. Since they are SPRs and access to them is slow (or isn't
-> it?),
+On Mon 31-07-17 11:56:24, Mike Kravetz wrote:
+> If hugetlb pages are requested in mmap or shmget system calls,  a huge
+> page size other than default can be requested.  This is accomplished by
+> encoding the log2 of the huge page size in the upper bits of the flag
+> argument.  asm-generic and arch specific headers all define the same
+> values for these encodings.
+> 
+> Put common definitions in a single header file.  The primary uapi
+> header files for mmap and shm will use these definitions as a basis
+> for definitions specific to those system calls.
+> 
+> Signed-off-by: Mike Kravetz <mike.kravetz@oracle.com>
 
-SPRs read/writes are slow, but they're not *that* slow in comparison to
-a system call (which I think is where this code is being called?).
+Acked-by: Michal Hocko <mhocko@suse.com>
 
-So we should try to avoid too many SPR read/writes, but at the same time
-we can accept more than the minimum if it makes the code much easier to
-follow.
+> ---
+>  include/uapi/asm-generic/hugetlb_encode.h | 34 +++++++++++++++++++++++++++++++
+>  1 file changed, 34 insertions(+)
+>  create mode 100644 include/uapi/asm-generic/hugetlb_encode.h
+> 
+> diff --git a/include/uapi/asm-generic/hugetlb_encode.h b/include/uapi/asm-generic/hugetlb_encode.h
+> new file mode 100644
+> index 0000000..e4732d3
+> --- /dev/null
+> +++ b/include/uapi/asm-generic/hugetlb_encode.h
+> @@ -0,0 +1,34 @@
+> +#ifndef _ASM_GENERIC_HUGETLB_ENCODE_H_
+> +#define _ASM_GENERIC_HUGETLB_ENCODE_H_
+> +
+> +/*
+> + * Several system calls take a flag to request "hugetlb" huge pages.
+> + * Without further specification, these system calls will use the
+> + * system's default huge page size.  If a system supports multiple
+> + * huge page sizes, the desired huge page size can be specified in
+> + * bits [26:31] of the flag arguments.  The value in these 6 bits
+> + * will encode the log2 of the huge page size.
+> + *
+> + * The following definitions are associated with this huge page size
+> + * encoding in flag arguments.  System call specific header files
+> + * that use this encoding should include this file.  They can then
+> + * provide definitions based on these with their own specific prefix.
+> + * for example:
+> + * #define MAP_HUGE_SHIFT HUGETLB_FLAG_ENCODE_SHIFT
+> + */
+> +
+> +#define HUGETLB_FLAG_ENCODE_SHIFT	26
+> +#define HUGETLB_FLAG_ENCODE_MASK	0x3f
+> +
+> +#define HUGETLB_FLAG_ENCODE_64KB	(16 << HUGETLB_FLAG_ENCODE_SHIFT)
+> +#define HUGETLB_FLAG_ENCODE_512KB	(19 << HUGETLB_FLAG_ENCODE_SHIFT)
+> +#define HUGETLB_FLAG_ENCODE_1MB		(20 << HUGETLB_FLAG_ENCODE_SHIFT)
+> +#define HUGETLB_FLAG_ENCODE_2MB		(21 << HUGETLB_FLAG_ENCODE_SHIFT)
+> +#define HUGETLB_FLAG_ENCODE_8MB		(23 << HUGETLB_FLAG_ENCODE_SHIFT)
+> +#define HUGETLB_FLAG_ENCODE_16MB	(24 << HUGETLB_FLAG_ENCODE_SHIFT)
+> +#define HUGETLB_FLAG_ENCODE_256MB	(28 << HUGETLB_FLAG_ENCODE_SHIFT)
+> +#define HUGETLB_FLAG_ENCODE_1GB		(30 << HUGETLB_FLAG_ENCODE_SHIFT)
+> +#define HUGETLB_FLAG_ENCODE_2GB		(31 << HUGETLB_FLAG_ENCODE_SHIFT)
+> +#define HUGETLB_FLAG_ENCODE_16GB	(34 << HUGETLB_FLAG_ENCODE_SHIFT)
+> +
+> +#endif /* _ASM_GENERIC_HUGETLB_ENCODE_H_ */
+> -- 
+> 2.7.5
 
-cheers
+-- 
+Michal Hocko
+SUSE Labs
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
