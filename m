@@ -1,98 +1,68 @@
-From: Jon Mason <jdmason@kudzu.us>
-Subject: Re: [PATCH v5 5/6] ntb: ntb_hw_intel: use io-64-nonatomic instead of
- in-driver hacks
-Date: Tue, 1 Aug 2017 13:47:22 -0400
-Message-ID: <20170801174722.GB4186@kudzu.us>
-References: <20170726231917.6073-1-logang@deltatee.com>
- <20170726231917.6073-6-logang@deltatee.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-crypto-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20170726231917.6073-6-logang@deltatee.com>
-Sender: linux-crypto-owner@vger.kernel.org
-To: Logan Gunthorpe <logang@deltatee.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Horia =?utf-8?Q?Geant=C4=83?= <horia.geanta@nxp.com>, Stephen Bates <sbates@raithlin.com>, Allen Hubbe <Allen.Hubbe@emc.com>
+From: Nadav Amit <nadav.amit@gmail.com>
+Subject: Re: [PATCH v2 1/4] mm: refactoring TLB gathering API
+Date: Tue, 1 Aug 2017 17:46:14 -0700
+Message-ID: <59138710-3EFB-4D59-BD5B-D97CAFEBF098@gmail.com>
+References: <1501566977-20293-1-git-send-email-minchan@kernel.org>
+ <1501566977-20293-2-git-send-email-minchan@kernel.org>
+ <20170801103032.h7tnxryoxx7k7aqg@techsingularity.net>
+Mime-Version: 1.0 (Mac OS X Mail 10.3 \(3273\))
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20170801103032.h7tnxryoxx7k7aqg@techsingularity.net>
+Sender: owner-linux-mm@kvack.org
+To: Minchan Kim <minchan@kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, "open list:MEMORY MANAGEMENT" <linux-mm@kvack.org>, kernel-team <kernel-team@lge.com>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Tony Luck <tony.luck@intel.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, "David S. Miller" <davem@davemloft.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Jeff Dike <jdike@addtoit.com>, linux-arch@vger.kernel.org, Mel Gorman <mgorman@techsingularity.net>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jul 26, 2017 at 05:19:16PM -0600, Logan Gunthorpe wrote:
-> Now that ioread64 and iowrite64 are available in io-64-nonatomic,
-> we can remove the hack at the top of ntb_hw_intel.c and replace it
-> with an include.
-> 
-> Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
-> Cc: Jon Mason <jdmason@kudzu.us>
+Mel Gorman <mgorman@techsingularity.net> wrote:
 
-This is okay by me, but I'm assuming that this patch will go through
-as part of the series (and not via my tree).  If this changes, please
-let me know.
+> On Tue, Aug 01, 2017 at 02:56:14PM +0900, Minchan Kim wrote:
+>> This patch is ready for solving race problems caused by TLB batch.
+>=20
+> s/is ready/is a preparatory patch/
+>=20
+>> For that, we will increase/decrease TLB flush pending count of
+>> mm_struct whenever tlb_[gather|finish]_mmu is called.
+>>=20
+>> Before making it simple, this patch separates architecture specific
+>> part and rename it to arch_tlb_[gather|finish]_mmu and generic part
+>> just calls it.
+>>=20
+>> It shouldn't change any behavior.
+>>=20
+>> Cc: Ingo Molnar <mingo@redhat.com>
+>> Cc: Russell King <linux@armlinux.org.uk>
+>> Cc: Tony Luck <tony.luck@intel.com>
+>> Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+>> Cc: "David S. Miller" <davem@davemloft.net>
+>> Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+>> Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+>> Cc: Jeff Dike <jdike@addtoit.com>
+>> Cc: linux-arch@vger.kernel.org
+>> Cc: Nadav Amit <nadav.amit@gmail.com>
+>> Cc: Mel Gorman <mgorman@techsingularity.net>
+>> Signed-off-by: Minchan Kim <minchan@kernel.org>
+>=20
+> You could alias arch_generic_tlb_finish_mmu as arch_tlb_gather_mmu
+> simiilar to how other arch-generic helpers are done to avoid some
+> #ifdeffery but otherwise
 
-Acked-by: Jon Mason <jdmason@kudzu.us>
+Minchan,
 
-> Cc: Allen Hubbe <Allen.Hubbe@emc.com>
+Andrew wishes me to send one series that combines both series. What =
+about
+this comment from Mel? It seems you intentionally did not want to alias
+them...
 
-You already have Allen's Ack below.  So, you can remove this :)
+BTW: patch 4 should add =E2=80=9C#include <asm/tlb.h>" - I=E2=80=99ll =
+add it.=20
 
-> Acked-by: Dave Jiang <dave.jiang@intel.com>
-> Acked-by: Allen Hubbe <Allen.Hubbe@dell.com>
-> ---
->  drivers/ntb/hw/intel/ntb_hw_intel.c | 30 +-----------------------------
->  1 file changed, 1 insertion(+), 29 deletions(-)
-> 
-> diff --git a/drivers/ntb/hw/intel/ntb_hw_intel.c b/drivers/ntb/hw/intel/ntb_hw_intel.c
-> index 2557e2c05b90..606c90f59d4b 100644
-> --- a/drivers/ntb/hw/intel/ntb_hw_intel.c
-> +++ b/drivers/ntb/hw/intel/ntb_hw_intel.c
-> @@ -59,6 +59,7 @@
->  #include <linux/random.h>
->  #include <linux/slab.h>
->  #include <linux/ntb.h>
-> +#include <linux/io-64-nonatomic-lo-hi.h>
->  
->  #include "ntb_hw_intel.h"
->  
-> @@ -155,35 +156,6 @@ MODULE_PARM_DESC(xeon_b2b_dsd_bar5_addr32,
->  static inline enum ntb_topo xeon_ppd_topo(struct intel_ntb_dev *ndev, u8 ppd);
->  static int xeon_init_isr(struct intel_ntb_dev *ndev);
->  
-> -#ifndef ioread64
-> -#ifdef readq
-> -#define ioread64 readq
-> -#else
-> -#define ioread64 _ioread64
-> -static inline u64 _ioread64(void __iomem *mmio)
-> -{
-> -	u64 low, high;
-> -
-> -	low = ioread32(mmio);
-> -	high = ioread32(mmio + sizeof(u32));
-> -	return low | (high << 32);
-> -}
-> -#endif
-> -#endif
-> -
-> -#ifndef iowrite64
-> -#ifdef writeq
-> -#define iowrite64 writeq
-> -#else
-> -#define iowrite64 _iowrite64
-> -static inline void _iowrite64(u64 val, void __iomem *mmio)
-> -{
-> -	iowrite32(val, mmio);
-> -	iowrite32(val >> 32, mmio + sizeof(u32));
-> -}
-> -#endif
-> -#endif
-> -
->  static inline int pdev_is_atom(struct pci_dev *pdev)
->  {
->  	switch (pdev->device) {
-> -- 
-> 2.11.0
-> 
-> -- 
-> You received this message because you are subscribed to the Google Groups "linux-ntb" group.
-> To unsubscribe from this group and stop receiving emails from it, send an email to linux-ntb+unsubscribe@googlegroups.com.
-> To post to this group, send email to linux-ntb@googlegroups.com.
-> To view this discussion on the web visit https://groups.google.com/d/msgid/linux-ntb/20170726231917.6073-6-logang%40deltatee.com.
-> For more options, visit https://groups.google.com/d/optout.
+Thanks,
+Nadav=
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
