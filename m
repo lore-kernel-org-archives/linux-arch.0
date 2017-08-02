@@ -1,62 +1,28 @@
-From: Minchan Kim <minchan@kernel.org>
-Subject: Re: [PATCH v2 1/4] mm: refactoring TLB gathering API
-Date: Wed, 2 Aug 2017 09:56:54 +0900
-Message-ID: <20170802005654.GB6388@bbox>
-References: <1501566977-20293-1-git-send-email-minchan@kernel.org>
- <1501566977-20293-2-git-send-email-minchan@kernel.org>
- <20170801103032.h7tnxryoxx7k7aqg@techsingularity.net>
+From: "Singer Valve" <jmarcos@luc.edu>
+Subject: Re: Extremely important and Urgent
+Date: Tue, 01 Aug 2017 20:46:09 -0700
+Message-ID: <BN6PR05MB293233BFED3E4A216437A02FB1B00__47243.8191216954$1501645578$gmane$org@BN6PR05MB2932.namprd05.prod.outlook.com>
+Reply-To: E.Chabrelie@qq.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from LGEAMRELO11.lge.com ([156.147.23.51]:39786 "EHLO
-        lgeamrelo11.lge.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751655AbdHBA44 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 1 Aug 2017 20:56:56 -0400
-Content-Disposition: inline
-In-Reply-To: <20170801103032.h7tnxryoxx7k7aqg@techsingularity.net>
+Received: from mail-dm3nam03hn0224.outbound.protection.outlook.com ([104.47.41.224]:18504
+        "EHLO NAM03-DM3-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1751768AbdHBDqF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 1 Aug 2017 23:46:05 -0400
+Content-Description: Mail message body
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mel Gorman <mgorman@techsingularity.net>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, kernel-team <kernel-team@lge.com>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Tony Luck <tony.luck@intel.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, "David S. Miller" <davem@davemloft.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Jeff Dike <jdike@addtoit.com>, linux-arch@vger.kernel.org, Nadav Amit <nadav.amit@gmail.com>
+To: Recipients <jmarcos@luc.edu>
 
-Hi Mel,
+I am getting in touch with you regarding an extremely important and urgent =
+matter.
 
-On Tue, Aug 01, 2017 at 11:30:55AM +0100, Mel Gorman wrote:
-> On Tue, Aug 01, 2017 at 02:56:14PM +0900, Minchan Kim wrote:
-> > This patch is ready for solving race problems caused by TLB batch.
-> 
-> s/is ready/is a preparatory patch/
-> 
-> > For that, we will increase/decrease TLB flush pending count of
-> > mm_struct whenever tlb_[gather|finish]_mmu is called.
-> > 
-> > Before making it simple, this patch separates architecture specific
-> > part and rename it to arch_tlb_[gather|finish]_mmu and generic part
-> > just calls it.
-> > 
-> > It shouldn't change any behavior.
-> > 
-> > Cc: Ingo Molnar <mingo@redhat.com>
-> > Cc: Russell King <linux@armlinux.org.uk>
-> > Cc: Tony Luck <tony.luck@intel.com>
-> > Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-> > Cc: "David S. Miller" <davem@davemloft.net>
-> > Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-> > Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-> > Cc: Jeff Dike <jdike@addtoit.com>
-> > Cc: linux-arch@vger.kernel.org
-> > Cc: Nadav Amit <nadav.amit@gmail.com>
-> > Cc: Mel Gorman <mgorman@techsingularity.net>
-> > Signed-off-by: Minchan Kim <minchan@kernel.org>
-> 
-> You could alias arch_generic_tlb_finish_mmu as arch_tlb_gather_mmu
-> simiilar to how other arch-generic helpers are done to avoid some
-> #ifdeffery but otherwise
+If you would oblige me the opportunity, I shall provide you with details up=
+on your response.
 
-Good idea. With Andrew's suggestion, Nadav will resend whole series
-including his patchset. I asked to him to fix it when he respin.
+Faithfully, =
 
-> 
-> Acked-by: Mel Gorman <mgorman@techsingularity.net>
-
-Thanks for the review!
+Ms. Singer Valve
