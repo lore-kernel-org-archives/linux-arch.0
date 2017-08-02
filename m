@@ -1,237 +1,118 @@
-From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Subject: [RFC PATCH] module: use relative references for __ksymtab entries
-Date: Wed,  2 Aug 2017 14:46:32 +0100
-Message-ID: <20170802134632.19040-1-ard.biesheuvel@linaro.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>, Jessica Yu <jeyu@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Kees Cook <keescook@chromium.org>, Thomas Garnier <thgarnie@google.com>, Nicolas Pitre <nico@linaro.org>
+From: Thomas Garnier <thgarnie@google.com>
+Subject: Re: [RFC 16/22] x86/percpu: Adapt percpu for PIE support
+Date: Wed, 2 Aug 2017 09:42:36 -0700
+Message-ID: <CAJcbSZF5-gVg=Q6yAV2ymHo+SC6Go=vQHXMR0UTdKH2Jbe-s-g@mail.gmail.com>
+References: <20170718223333.110371-1-thgarnie@google.com> <20170718223333.110371-17-thgarnie@google.com>
+ <CAMzpN2g5YkFZTY7yfvG03QUKc-=asKMZbqke9g4e2oT_pgg7Yw@mail.gmail.com>
+ <CAJcbSZFXrDZikh9P5M81ztkiMv7EhO4x0bzBdYE8RYC=HMZgqg@mail.gmail.com>
+ <25a2974a-fbb4-ea4b-d090-582d6d0de7fd@zytor.com> <CAJcbSZHuOhMHW6OTyt7-vZkPLS3XRQ48gpkF-TyohXpDW+825w@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <kernel-hardening-return-9210-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+In-Reply-To: <CAJcbSZHuOhMHW6OTyt7-vZkPLS3XRQ48gpkF-TyohXpDW+825w@mail.gmail.com>
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Brian Gerst <brgerst@gmail.com>, Herbert Xu <herbert@gondor.apana.org.au>, "David S . Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Matthias Kaehlcke <mka@chromium.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, Paolo Bonzini <pbonzini@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Joerg Roedel <joro@8bytes.org>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@alien8.de>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Borislav Petkov <bp@suse.de>, Christian Borntraeger <borntraeger@de.ibm.com>, "Rafael J . Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Pavel Machek <pavel@ucw.cz>, Tejun Heo <tj@kernel.org>, Christo
 List-Id: linux-arch.vger.kernel.org
 
-An ordinary arm64 defconfig build has ~64 KB worth of __ksymtab
-entries, each consisting of two 64-bit fields containing absolute
-references, to the symbol itself and to a char array containing
-its name, respectively.
+On Thu, Jul 20, 2017 at 7:26 AM, Thomas Garnier <thgarnie@google.com> wrote:
+> On Wed, Jul 19, 2017 at 4:33 PM, H. Peter Anvin <hpa@zytor.com> wrote:
+>> On 07/19/17 11:26, Thomas Garnier wrote:
+>>> On Tue, Jul 18, 2017 at 8:08 PM, Brian Gerst <brgerst@gmail.com> wrote:
+>>>> On Tue, Jul 18, 2017 at 6:33 PM, Thomas Garnier <thgarnie@google.com> wrote:
+>>>>> Perpcu uses a clever design where the .percu ELF section has a virtual
+>>>>> address of zero and the relocation code avoid relocating specific
+>>>>> symbols. It makes the code simple and easily adaptable with or without
+>>>>> SMP support.
+>>>>>
+>>>>> This design is incompatible with PIE because generated code always try to
+>>>>> access the zero virtual address relative to the default mapping address.
+>>>>> It becomes impossible when KASLR is configured to go below -2G. This
+>>>>> patch solves this problem by removing the zero mapping and adapting the GS
+>>>>> base to be relative to the expected address. These changes are done only
+>>>>> when PIE is enabled. The original implementation is kept as-is
+>>>>> by default.
+>>>>
+>>>> The reason the per-cpu section is zero-based on x86-64 is to
+>>>> workaround GCC hardcoding the stack protector canary at %gs:40.  So
+>>>> this patch is incompatible with CONFIG_STACK_PROTECTOR.
+>>>
+>>> Ok, that make sense. I don't want this feature to not work with
+>>> CONFIG_CC_STACKPROTECTOR*. One way to fix that would be adding a GDT
+>>> entry for gs so gs:40 points to the correct memory address and
+>>> gs:[rip+XX] works correctly through the MSR.
+>>
+>> What are you talking about?  A GDT entry and the MSR do the same thing,
+>> except that a GDT entry is limited to an offset of 0-0xffffffff (which
+>> doesn't work for us, obviously.)
+>>
+>
+> A GDT entry would allow gs:0x40 to be valid while all gs:[rip+XX]
+> addresses uses the MSR.
+>
+> I didn't tested it but that was used on the RFG mitigation [1]. The fs
+> segment register was used for both thread storage and shadow stack.
+>
+> [1] http://xlab.tencent.com/en/2016/11/02/return-flow-guard/
+>
 
-When we build the same configuration with KASLR enabled, we end
-up with an additional ~192 KB of relocations in the .init section,
-i.e., one 24 byte entry for each absolute reference, which all need
-to be processed at boot time.
+Small update on that.
 
-Given how the struct kernel_symbol that describes each entry is
-completely local to module.c (except for the references emitted
-by EXPORT_SYMBOL() itself), we can easily modify it to contain
-two 32-bit relative references instead. This reduces the size of
-the __ksymtab section by 50% for all 64-bit architectures, and
-gets rid of the runtime relocations entirely for architectures
-implementing KASLR, either via standard PIE linking (arm64) or
-using custom host tools (x86).
+I noticed that not only we have the problem of gs:0x40 not being
+accessible. The compiler will default to the fs register if
+mcmodel=kernel is not set.
 
-Since EXPORT_SYMBOL() no longer refers to struct kernel_symbol,
-move the definition into module.c, which is its only user.
+On the next patch set, I am going to add support for
+-mstack-protector-guard=global so a global variable can be used
+instead of the segment register. Similar approach than ARM/ARM64.
 
-Note that the binary search involving __ksymtab contents relies
-on each section being sorted by symbol name. This is implemented
-based on the input section names, not the names in the ksymtab
-entries, so this patch does not interfere with that.
+Following this patch, I will work with gcc and llvm to add
+-mstack-protector-reg=<segment register> support similar to PowerPC.
+This way we can have gs used even without mcmodel=kernel. Once that's
+an option, I can setup the GDT as described in the previous email
+(similar to RFG).
 
-Cc: Jessica Yu <jeyu@kernel.org>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Russell King <linux@armlinux.org.uk>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Ingo Molnar <mingo@kernel.org>
-Cc: Kees Cook <keescook@chromium.org>
-Cc: Thomas Garnier <thgarnie@google.com>
-Cc: Nicolas Pitre <nico@linaro.org>
-Signed-off-by: Ard Biesheuvel <ard.biesheuvel@linaro.org>
----
+Let me know what you think about this approach.
 
-Note that ARM requires a little tweak to ensure that the unwind
-info related to the discarded code is discarded as well. I'm sure
-there will be an arch or two where something similar may be required.
+>>> Given the separate
+>>> discussion on mcmodel, I am going first to check if we can move from
+>>> PIE to PIC with a mcmodel=small or medium that would remove the percpu
+>>> change requirement. I tried before without success but I understand
+>>> better percpu and other components so maybe I can make it work.
+>>
+>>>> This is silly.  The right thing is for PIE is to be explicitly absolute,
+>>>> without (%rip).  The use of (%rip) memory references for percpu is just
+>>>> an optimization.
+>>>
+>>> I agree that it is odd but that's how the compiler generates code. I
+>>> will re-explore PIC options with mcmodel=small or medium, as mentioned
+>>> on other threads.
+>>
+>> Why should the way compiler generates code affect the way we do things
+>> in assembly?
+>>
+>> That being said, the compiler now has support for generating this kind
+>> of code explicitly via the __seg_gs pointer modifier.  That should let
+>> us drop the __percpu_prefix and just use variables directly.  I suspect
+>> we want to declare percpu variables as "volatile __seg_gs" to account
+>> for the possibility of CPU switches.
+>>
+>> Older compilers won't be able to work with this, of course, but I think
+>> that it is acceptable for those older compilers to not be able to
+>> support PIE.
+>>
+>>         -hpa
+>>
+>
+>
+>
+> --
+> Thomas
 
- arch/arm/kernel/vmlinux.lds.S |  1 +
- include/asm-generic/export.h  | 10 +------
- include/linux/export.h        | 27 +++++++++--------
- kernel/module.c               | 31 ++++++++++++++++----
- 4 files changed, 42 insertions(+), 27 deletions(-)
 
-diff --git a/arch/arm/kernel/vmlinux.lds.S b/arch/arm/kernel/vmlinux.lds.S
-index c83a7ba737d6..4bdba75e510c 100644
---- a/arch/arm/kernel/vmlinux.lds.S
-+++ b/arch/arm/kernel/vmlinux.lds.S
-@@ -89,6 +89,7 @@ SECTIONS
- #endif
- 		*(.discard)
- 		*(.discard.*)
-+		*(.ARM.exidx.discard)
- 	}
- 
- 	. = PAGE_OFFSET + TEXT_OFFSET;
-diff --git a/include/asm-generic/export.h b/include/asm-generic/export.h
-index 719db1968d81..fac5b2e6df37 100644
---- a/include/asm-generic/export.h
-+++ b/include/asm-generic/export.h
-@@ -4,17 +4,9 @@
- #ifndef KSYM_FUNC
- #define KSYM_FUNC(x) x
- #endif
--#ifdef CONFIG_64BIT
--#define __put .quad
- #ifndef KSYM_ALIGN
- #define KSYM_ALIGN 8
- #endif
--#else
--#define __put .long
--#ifndef KSYM_ALIGN
--#define KSYM_ALIGN 4
--#endif
--#endif
- #ifndef KCRC_ALIGN
- #define KCRC_ALIGN 4
- #endif
-@@ -35,7 +27,7 @@
- 	.section ___ksymtab\sec+\name,"a"
- 	.balign KSYM_ALIGN
- KSYM(__ksymtab_\name):
--	__put \val, KSYM(__kstrtab_\name)
-+	.long \val - ., KSYM(__kstrtab_\name) - .
- 	.previous
- 	.section __ksymtab_strings,"a"
- KSYM(__kstrtab_\name):
-diff --git a/include/linux/export.h b/include/linux/export.h
-index 1a1dfdb2a5c6..06d673799ac8 100644
---- a/include/linux/export.h
-+++ b/include/linux/export.h
-@@ -24,12 +24,6 @@
- #define VMLINUX_SYMBOL_STR(x) __VMLINUX_SYMBOL_STR(x)
- 
- #ifndef __ASSEMBLY__
--struct kernel_symbol
--{
--	unsigned long value;
--	const char *name;
--};
--
- #ifdef MODULE
- extern struct module __this_module;
- #define THIS_MODULE (&__this_module)
-@@ -60,17 +54,26 @@ extern struct module __this_module;
- #define __CRC_SYMBOL(sym, sec)
- #endif
- 
--/* For every exported symbol, place a struct in the __ksymtab section */
-+/*
-+ * For every exported symbol, place a struct in the __ksymtab section.
-+ * Note that we have to visibly take the address of sym, so the compiler
-+ * is forced to emit it, rather than inlining it or removing it
-+ * altogether. Do so in a way that avoids taking the address statically,
-+ * and emit that code into a section that is discarded by the linker.
-+ */
- #define ___EXPORT_SYMBOL(sym, sec)					\
- 	extern typeof(sym) sym;						\
- 	__CRC_SYMBOL(sym, sec)						\
- 	static const char __kstrtab_##sym[]				\
--	__attribute__((section("__ksymtab_strings"), aligned(1)))	\
-+	__attribute__((section("__ksymtab_strings"), used, aligned(1)))	\
- 	= VMLINUX_SYMBOL_STR(sym);					\
--	static const struct kernel_symbol __ksymtab_##sym		\
--	__used								\
--	__attribute__((section("___ksymtab" sec "+" #sym), used))	\
--	= { (unsigned long)&sym, __kstrtab_##sym }
-+	static void * __attribute__((section(".discard"), used))	\
-+			__discard_##sym(void) { return (void *)&sym; }	\
-+	asm("	.section \"___ksymtab" sec "+" #sym "\", \"a\"	\n"	\
-+	    "	.balign	8					\n"	\
-+	    "	.long "	VMLINUX_SYMBOL_STR(sym) "- .		\n"	\
-+	    "	.long "	VMLINUX_SYMBOL_STR(__kstrtab_##sym) "- .\n"	\
-+	    "	.previous					\n")
- 
- #if defined(__KSYM_DEPS__)
- 
-diff --git a/kernel/module.c b/kernel/module.c
-index 40f983cbea81..f09529f695f9 100644
---- a/kernel/module.c
-+++ b/kernel/module.c
-@@ -88,6 +88,12 @@
- /* If this is set, the section belongs in the init part of the module */
- #define INIT_OFFSET_MASK (1UL << (BITS_PER_LONG-1))
- 
-+struct kernel_symbol
-+{
-+	signed int value_offset;
-+	signed int name_offset;
-+};
-+
- /*
-  * Mutex protects:
-  * 1) List of modules (also safely readable with preempt_disable),
-@@ -539,12 +545,23 @@ static bool check_symbol(const struct symsearch *syms,
- 	return true;
- }
- 
-+static unsigned long kernel_symbol_value(const struct kernel_symbol *sym)
-+{
-+	return (unsigned long)&sym->value_offset + sym->value_offset;
-+}
-+
-+static const char *kernel_symbol_name(const struct kernel_symbol *sym)
-+{
-+	return (const char *)((unsigned long)&sym->name_offset +
-+			      sym->name_offset);
-+}
-+
- static int cmp_name(const void *va, const void *vb)
- {
- 	const char *a;
- 	const struct kernel_symbol *b;
- 	a = va; b = vb;
--	return strcmp(a, b->name);
-+	return strcmp(a, kernel_symbol_name(b));
- }
- 
- static bool find_symbol_in_section(const struct symsearch *syms,
-@@ -2190,7 +2207,7 @@ void *__symbol_get(const char *symbol)
- 		sym = NULL;
- 	preempt_enable();
- 
--	return sym ? (void *)sym->value : NULL;
-+	return sym ? (void *)kernel_symbol_value(sym) : NULL;
- }
- EXPORT_SYMBOL_GPL(__symbol_get);
- 
-@@ -2220,10 +2237,12 @@ static int verify_export_symbols(struct module *mod)
- 
- 	for (i = 0; i < ARRAY_SIZE(arr); i++) {
- 		for (s = arr[i].sym; s < arr[i].sym + arr[i].num; s++) {
--			if (find_symbol(s->name, &owner, NULL, true, false)) {
-+			if (find_symbol(kernel_symbol_name(s), &owner, NULL,
-+					true, false)) {
- 				pr_err("%s: exports duplicate symbol %s"
- 				       " (owned by %s)\n",
--				       mod->name, s->name, module_name(owner));
-+				       mod->name, kernel_symbol_name(s),
-+				       module_name(owner));
- 				return -ENOEXEC;
- 			}
- 		}
-@@ -2272,7 +2291,7 @@ static int simplify_symbols(struct module *mod, const struct load_info *info)
- 			ksym = resolve_symbol_wait(mod, info, name);
- 			/* Ok if resolved.  */
- 			if (ksym && !IS_ERR(ksym)) {
--				sym[i].st_value = ksym->value;
-+				sym[i].st_value = kernel_symbol_value(ksym);
- 				break;
- 			}
- 
-@@ -2532,7 +2551,7 @@ static int is_exported(const char *name, unsigned long value,
- 		ks = lookup_symbol(name, __start___ksymtab, __stop___ksymtab);
- 	else
- 		ks = lookup_symbol(name, mod->syms, mod->syms + mod->num_syms);
--	return ks != NULL && ks->value == value;
-+	return ks != NULL && kernel_symbol_value(ks) == value;
- }
- 
- /* As per nm */
+
 -- 
-2.11.0
+Thomas
