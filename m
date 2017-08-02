@@ -1,62 +1,36 @@
-From: Thomas Garnier <thgarnie@google.com>
-Subject: Re: [RFC 16/22] x86/percpu: Adapt percpu for PIE support
-Date: Wed, 2 Aug 2017 11:05:38 -0700
-Message-ID: <CAJcbSZH+v_Kr_WkjLvzkTOX7RLWkZB7yPqe2SPXnRvgP8PuGPA@mail.gmail.com>
-References: <20170718223333.110371-1-thgarnie@google.com> <20170718223333.110371-17-thgarnie@google.com>
- <CAMzpN2g5YkFZTY7yfvG03QUKc-=asKMZbqke9g4e2oT_pgg7Yw@mail.gmail.com>
- <CAJcbSZFXrDZikh9P5M81ztkiMv7EhO4x0bzBdYE8RYC=HMZgqg@mail.gmail.com>
- <25a2974a-fbb4-ea4b-d090-582d6d0de7fd@zytor.com> <CAJcbSZHuOhMHW6OTyt7-vZkPLS3XRQ48gpkF-TyohXpDW+825w@mail.gmail.com>
- <CAJcbSZF5-gVg=Q6yAV2ymHo+SC6Go=vQHXMR0UTdKH2Jbe-s-g@mail.gmail.com> <CAGXu5jLhg5d0rxkfTGDjNxcsqd9BH8BSOPEOn=PBKx_dYeq8ow@mail.gmail.com>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH v9] x86/asm: Implement fast refcount overflow protection
+Date: Wed, 2 Aug 2017 11:54:24 -0700
+Message-ID: <CAGXu5j+BRkTM3X6NuHoyU4FTs154wQtunOKF2cQDaHKyKNzpFQ@mail.gmail.com>
+References: <20170725205514.GA71165@beast>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <kernel-hardening-return-9213-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <CAGXu5jLhg5d0rxkfTGDjNxcsqd9BH8BSOPEOn=PBKx_dYeq8ow@mail.gmail.com>
-To: Kees Cook <keescook@chromium.org>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, Brian Gerst <brgerst@gmail.com>, Herbert Xu <herbert@gondor.apana.org.au>, "David S . Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Matthias Kaehlcke <mka@chromium.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, Paolo Bonzini <pbonzini@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Joerg Roedel <joro@8bytes.org>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@alien8.de>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Borislav Petkov <bp@suse.de>, Christian Borntraeger <borntraeger@de.ibm.com>, "Rafael J . Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Pavel Machek <pavel@ucw.cz>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20170725205514.GA71165@beast>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Christoph Hellwig <hch@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@dave>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Aug 2, 2017 at 9:56 AM, Kees Cook <keescook@chromium.org> wrote:
-> On Wed, Aug 2, 2017 at 9:42 AM, Thomas Garnier <thgarnie@google.com> wrote:
->> I noticed that not only we have the problem of gs:0x40 not being
->> accessible. The compiler will default to the fs register if
->> mcmodel=kernel is not set.
->>
->> On the next patch set, I am going to add support for
->> -mstack-protector-guard=global so a global variable can be used
->> instead of the segment register. Similar approach than ARM/ARM64.
->
-> While this is probably understood, I have to point out that this would
-> be a major regression for the stack protection on x86.
+On Tue, Jul 25, 2017 at 1:55 PM, Kees Cook <keescook@chromium.org> wrote:
+> This implements refcount_t overflow protection on x86 without a noticeable
+> performance impact, though without the fuller checking of REFCOUNT_FULL.
+> This is done by duplicating the existing atomic_t refcount implementation
+> but with normally a single instruction added to detect if the refcount
+> has gone negative (e.g. wrapped past INT_MAX or below zero). When detected,
+> the handler saturates the refcount_t to INT_MIN / 2. With this overflow
+> protection, the erroneous reference release that would follow a wrap back
+> to zero is blocked from happening, avoiding the class of refcount-overflow
+> use-after-free vulnerabilities entirely.
 
-I agree, the optimal solution will be using updated gcc/clang.
+Hi Ingo,
 
->
->> Following this patch, I will work with gcc and llvm to add
->> -mstack-protector-reg=<segment register> support similar to PowerPC.
->> This way we can have gs used even without mcmodel=kernel. Once that's
->> an option, I can setup the GDT as described in the previous email
->> (similar to RFG).
->
-> It would be much nicer if we could teach gcc about the percpu area
-> instead. This would let us solve the global stack protector problem on
-> the other architectures:
-> http://www.openwall.com/lists/kernel-hardening/2017/06/27/6
+Friendly ping. Is there anything remaining for this patch to go into -tip?
 
-Yes, while I am looking at gcc I will take a look at other
-architecture to see if I can help there too.
+Thanks!
 
->
-> -Kees
->
-> --
-> Kees Cook
-> Pixel Security
-
-
+-Kees
 
 -- 
-Thomas
+Kees Cook
+Pixel Security
