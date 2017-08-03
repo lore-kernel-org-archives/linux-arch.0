@@ -1,52 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f174.google.com ([209.85.223.174]:34803 "EHLO
-        mail-io0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751629AbdHCR5K (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 3 Aug 2017 13:57:10 -0400
-Received: by mail-io0-f174.google.com with SMTP id o9so9957380iod.1
-        for <linux-arch@vger.kernel.org>; Thu, 03 Aug 2017 10:57:10 -0700 (PDT)
+Received: from ale.deltatee.com ([207.54.116.67]:41723 "EHLO ale.deltatee.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751754AbdHCSaW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 3 Aug 2017 14:30:22 -0400
+From: Logan Gunthorpe <logang@deltatee.com>
+Date: Thu,  3 Aug 2017 12:30:11 -0600
+Message-ID: <20170803183018.5889-1-logang@deltatee.com>
 MIME-Version: 1.0
-In-Reply-To: <1500480092-28480-2-git-send-email-mark.rutland@arm.com>
-References: <1500480092-28480-1-git-send-email-mark.rutland@arm.com> <1500480092-28480-2-git-send-email-mark.rutland@arm.com>
-From: Kees Cook <keescook@chromium.org>
-Date: Thu, 3 Aug 2017 10:57:08 -0700
-Message-ID: <CAGXu5jJnhy5F698QFmXrMb3szmtXnfzqc+=QsukG4+p2k9xEdg@mail.gmail.com>
-Subject: Re: [PATCH 01/11] arm64: docs: describe ELF hwcaps
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Subject: [PATCH v6 0/7] make io{read|write}64 globally usable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Rutland <mark.rutland@arm.com>
-Cc: "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Martin <Dave.Martin@arm.com>, jiong.wang@arm.com, kvmarm@lists.cs.columbia.edu, linux-arch <linux-arch@vger.kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, "Suzuki K. Poulose" <suzuki.poulose@arm.com>, Will Deacon <will.deacon@arm.com>, yao.qi@arm.com, LKML <linux-kernel@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>
-Message-ID: <20170803175708.AhvitXJPJqv3gtfKdFOzYGMiUOouyMjEUVqHMobzFJE@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Stephen Bates <sbates@raithlin.com>, Logan Gunthorpe <logang@deltatee.com>
+Message-ID: <20170803183011.BwgizCEcztoaJrRySKwMVLEuPQU-8ZBhCSOZ-Kb1Ge8@z>
 
-On Wed, Jul 19, 2017 at 9:01 AM, Mark Rutland <mark.rutland@arm.com> wrote:
-> We don't document our ELF hwcaps, leaving developers to interpret them
-> according to hearsay, guesswork, or (in exceptional cases) inspection of
-> the current kernel code.
->
-> This is less than optimal, and it would be far better if we had some
-> definitive description of each of the ELF hwcaps that developers could
-> refer to.
->
-> This patch adds a document describing the (native) arm64 ELF hwcaps.
->
-> Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Dave Martin <Dave.Martin@arm.com>
-> Cc: Suzuki K Poulose <suzuki.poulose@arm.com>
-> Cc: Will Deacon <will.deacon@arm.com>
-> ---
->  Documentation/arm64/elf_hwcaps.txt | 133 +++++++++++++++++++++++++++++++++++++
+Changes since v5:
+- Added a fix to the tilcdc driver to ensure it doesn't use the
+  non-atomic operation. (This includes adding io{read|write}64[be]_is_nonatomic
+  defines).
 
-With the kernel docs moving to ReST markup[1], perhaps reformat this
-to a .rst file and link to it from somewhere sensible in the ReST
-tree, perhaps the userspace API section in
-Documentation/userspace-api/index.rst?
+Changes since v4:
+- Add functions so the powerpc implementation of iomap.c compiles. (As
+  noticed by Horia)
 
--Kees
+Changes since v3:
 
-[1] https://www.kernel.org/doc/html/latest/doc-guide/sphinx.html
+- I noticed powerpc didn't use the appropriate functions seeing
+  readq/writeq were not defined when iomap.h was included. Thus I've
+  included a patch to adjust this
+- Fixed some mistakes with a couple of the defines in io-64-nonatomic*
+  headers
+- Fixed a typo noticed by Horia.
 
--- 
-Kees Cook
-Pixel Security
+(earlier versions were drastically different)
+
+Horia Geantă (1):
+  crypto: caam: cleanup CONFIG_64BIT ifdefs when using io{read|write}64
+
+Logan Gunthorpe (6):
+  drm/tilcdc: ensure nonatomic iowrite64 is not used
+  powerpc: io.h: move iomap.h include so that it can use readq/writeq
+    defs
+  powerpc: iomap.c: introduce io{read|write}64_{lo_hi|hi_lo}
+  iomap: introduce io{read|write}64_{lo_hi|hi_lo}
+  io-64-nonatomic: add io{read|write}64[be]{_lo_hi|_hi_lo} macros
+  ntb: ntb_hw_intel: use io-64-nonatomic instead of in-driver hacks
+
+ arch/powerpc/include/asm/io.h         |   6 +-
+ arch/powerpc/kernel/iomap.c           |  40 +++++++++++
+ drivers/crypto/caam/regs.h            |  35 ++-------
+ drivers/gpu/drm/tilcdc/tilcdc_regs.h  |   2 +-
+ drivers/ntb/hw/intel/ntb_hw_intel.c   |  30 +-------
+ include/asm-generic/iomap.h           |  26 +++++--
+ include/linux/io-64-nonatomic-hi-lo.h |  64 +++++++++++++++++
+ include/linux/io-64-nonatomic-lo-hi.h |  64 +++++++++++++++++
+ lib/iomap.c                           | 132 ++++++++++++++++++++++++++++++++++
+ 9 files changed, 331 insertions(+), 68 deletions(-)
+
+--
+2.11.0
