@@ -1,36 +1,68 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v9] x86/asm: Implement fast refcount overflow protection
-Date: Wed, 2 Aug 2017 11:54:24 -0700
-Message-ID: <CAGXu5j+BRkTM3X6NuHoyU4FTs154wQtunOKF2cQDaHKyKNzpFQ@mail.gmail.com>
-References: <20170725205514.GA71165@beast>
+From: Masami Hiramatsu <mhiramat@kernel.org>
+Subject: [PATCH -tip v9 0/5] kprobes related bugfix
+Date: Thu,  3 Aug 2017 11:33:58 +0900
+Message-ID: <150172762859.27216.16741726568669538542.stgit@devbox>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20170725205514.GA71165@beast>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Christoph Hellwig <hch@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Jann Horn <jannh@google.com>, Eric Biggers <ebiggers3@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Hans Liljestrand <ishkamiel@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Alexey Dobriyan <adobriyan@gmail.com>, "Serge E. Hallyn" <serge@hallyn.com>, arozansk@redhat.com, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, "axboe@kernel.dk" <axboe@kernel.dk>, James Bottomley <James.Bottomley@hansenpartnership.com>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@dave>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:46366 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751206AbdHCCet (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 2 Aug 2017 22:34:49 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
+Cc: Francis Deslauriers <francis.deslauriers@efficios.com>, mathieu.desnoyers@efficios.com, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Masami Hiramatsu <mhiramat@kernel.org>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, "David S . Miller" <davem@davemloft.net>, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, linux-cris-kernel@axis.com, linux-arch@vger.kernel.org
 
-On Tue, Jul 25, 2017 at 1:55 PM, Kees Cook <keescook@chromium.org> wrote:
-> This implements refcount_t overflow protection on x86 without a noticeable
-> performance impact, though without the fuller checking of REFCOUNT_FULL.
-> This is done by duplicating the existing atomic_t refcount implementation
-> but with normally a single instruction added to detect if the refcount
-> has gone negative (e.g. wrapped past INT_MAX or below zero). When detected,
-> the handler saturates the refcount_t to INT_MIN / 2. With this overflow
-> protection, the erroneous reference release that would follow a wrap back
-> to zero is blocked from happening, avoiding the class of refcount-overflow
-> use-after-free vulnerabilities entirely.
+Hi,
 
-Hi Ingo,
+Here are the 9th version of the series to fix kprobes not
+to optimize on the functions in irqentry text ([5/5]).
+To check the irqentry text always, [4/5] makes irqentry
+text section unconditional.
 
-Friendly ping. Is there anything remaining for this patch to go into -tip?
+This involves some other cleanups on h8300, xtensa, and
+cris ports, because those sources declare section 
+start/end symbol as single characters, but generic
+sections.h declares it as character arrays. So it leads
+build errors if we apply [4/5].
 
-Thanks!
+Changes in v9
+ - Add cris cleanup patch (3/5).
 
--Kees
+BTW, in this series I just give a minimum fix for
+arch dependent code, since this is a series to fix
+a bug in x86 optprobe. However, IMHO, we should
+revisit these "local _stext/_etext references" and
+replace it with just including asm/sections.h.
+And also, I would like to expose is_kernel_text()
+as a generic routine for arch dependent code
+so that they can use it.
 
--- 
-Kees Cook
-Pixel Security
+Thank you,
+
+---
+
+Masami Hiramatsu (5):
+      h8300: mark _stext and _etext as char-arrays, not single char
+      xtensa: mark _stext and _end as char-arrays, not single char
+      cris: mark _stext and _end as char-arrays, not single char
+      irq: Make irqentry text section unconditional
+      [BUGFIX] kprobes/x86: Do not jump-optimize kprobes on irq entry code
+
+
+ arch/arm/include/asm/traps.h         |    7 -------
+ arch/arm64/include/asm/traps.h       |    7 -------
+ arch/cris/arch-v32/mach-a3/arbiter.c |    4 ++--
+ arch/cris/arch-v32/mach-fs/arbiter.c |    4 ++--
+ arch/cris/kernel/traps.c             |    6 +++---
+ arch/h8300/include/asm/traps.h       |    6 +++---
+ arch/x86/entry/entry_64.S            |    9 ++-------
+ arch/x86/kernel/kprobes/opt.c        |    9 ++++++---
+ arch/x86/kernel/unwind_frame.c       |    2 --
+ arch/xtensa/kernel/setup.c           |    6 +++---
+ include/asm-generic/sections.h       |    4 ++++
+ include/asm-generic/vmlinux.lds.h    |    8 --------
+ include/linux/interrupt.h            |   14 +-------------
+ 13 files changed, 26 insertions(+), 60 deletions(-)
