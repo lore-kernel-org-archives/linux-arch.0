@@ -1,68 +1,45 @@
 From: Masami Hiramatsu <mhiramat@kernel.org>
-Subject: [PATCH -tip v9 0/5] kprobes related bugfix
-Date: Thu,  3 Aug 2017 11:33:58 +0900
-Message-ID: <150172762859.27216.16741726568669538542.stgit@devbox>
+Subject: [PATCH -tip v9 1/5] h8300: mark _stext and _etext as char-arrays, not single char
+Date: Thu,  3 Aug 2017 11:35:04 +0900
+Message-ID: <150172769415.27216.12021110228384155707.stgit@devbox>
+References: <150172762859.27216.16741726568669538542.stgit@devbox>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:46366 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:46814 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751206AbdHCCet (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 2 Aug 2017 22:34:49 -0400
+        id S1751188AbdHCCfy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 2 Aug 2017 22:35:54 -0400
+In-Reply-To: <150172762859.27216.16741726568669538542.stgit@devbox>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
 Cc: Francis Deslauriers <francis.deslauriers@efficios.com>, mathieu.desnoyers@efficios.com, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Masami Hiramatsu <mhiramat@kernel.org>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, "David S . Miller" <davem@davemloft.net>, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, linux-cris-kernel@axis.com, linux-arch@vger.kernel.org
 
-Hi,
+Mark _stext and _etext as character arrays instead of
+single character, as same as include/asm-generic/sections.h
+does.
 
-Here are the 9th version of the series to fix kprobes not
-to optimize on the functions in irqentry text ([5/5]).
-To check the irqentry text always, [4/5] makes irqentry
-text section unconditional.
-
-This involves some other cleanups on h8300, xtensa, and
-cris ports, because those sources declare section 
-start/end symbol as single characters, but generic
-sections.h declares it as character arrays. So it leads
-build errors if we apply [4/5].
-
-Changes in v9
- - Add cris cleanup patch (3/5).
-
-BTW, in this series I just give a minimum fix for
-arch dependent code, since this is a series to fix
-a bug in x86 optprobe. However, IMHO, we should
-revisit these "local _stext/_etext references" and
-replace it with just including asm/sections.h.
-And also, I would like to expose is_kernel_text()
-as a generic routine for arch dependent code
-so that they can use it.
-
-Thank you,
-
+Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
 ---
+ arch/h8300/include/asm/traps.h |    6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
 
-Masami Hiramatsu (5):
-      h8300: mark _stext and _etext as char-arrays, not single char
-      xtensa: mark _stext and _end as char-arrays, not single char
-      cris: mark _stext and _end as char-arrays, not single char
-      irq: Make irqentry text section unconditional
-      [BUGFIX] kprobes/x86: Do not jump-optimize kprobes on irq entry code
-
-
- arch/arm/include/asm/traps.h         |    7 -------
- arch/arm64/include/asm/traps.h       |    7 -------
- arch/cris/arch-v32/mach-a3/arbiter.c |    4 ++--
- arch/cris/arch-v32/mach-fs/arbiter.c |    4 ++--
- arch/cris/kernel/traps.c             |    6 +++---
- arch/h8300/include/asm/traps.h       |    6 +++---
- arch/x86/entry/entry_64.S            |    9 ++-------
- arch/x86/kernel/kprobes/opt.c        |    9 ++++++---
- arch/x86/kernel/unwind_frame.c       |    2 --
- arch/xtensa/kernel/setup.c           |    6 +++---
- include/asm-generic/sections.h       |    4 ++++
- include/asm-generic/vmlinux.lds.h    |    8 --------
- include/linux/interrupt.h            |   14 +-------------
- 13 files changed, 26 insertions(+), 60 deletions(-)
+diff --git a/arch/h8300/include/asm/traps.h b/arch/h8300/include/asm/traps.h
+index 15e701130b27..1c5a30ec2df8 100644
+--- a/arch/h8300/include/asm/traps.h
++++ b/arch/h8300/include/asm/traps.h
+@@ -33,9 +33,9 @@ extern unsigned long *_interrupt_redirect_table;
+ #define TRAP2_VEC 10
+ #define TRAP3_VEC 11
+ 
+-extern char _start, _etext;
++extern char _start[], _etext[];
+ #define check_kernel_text(addr) \
+-	((addr >= (unsigned long)(&_start)) && \
+-	 (addr <  (unsigned long)(&_etext)) && !(addr & 1))
++	((addr >= (unsigned long)(_start)) && \
++	 (addr <  (unsigned long)(_etext)) && !(addr & 1))
+ 
+ #endif /* _H8300_TRAPS_H */
