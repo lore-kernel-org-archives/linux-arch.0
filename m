@@ -1,12 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:46366 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:47172 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751206AbdHCCet (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 2 Aug 2017 22:34:49 -0400
+        id S1751946AbdHCCkS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 2 Aug 2017 22:40:18 -0400
 From: Masami Hiramatsu <mhiramat@kernel.org>
-Subject: [PATCH -tip v9 0/5] kprobes related bugfix
-Date: Thu,  3 Aug 2017 11:33:58 +0900
-Message-ID: <150172762859.27216.16741726568669538542.stgit@devbox>
+Subject: [PATCH -tip v9 5/5] [BUGFIX] kprobes/x86: Do not jump-optimize kprobes on irq entry code
+Date: Thu,  3 Aug 2017 11:39:26 +0900
+Message-ID: <150172795654.27216.9824039077047777477.stgit@devbox>
+In-Reply-To: <150172762859.27216.16741726568669538542.stgit@devbox>
+References: <150172762859.27216.16741726568669538542.stgit@devbox>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
@@ -14,59 +16,52 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
 Cc: Francis Deslauriers <francis.deslauriers@efficios.com>, mathieu.desnoyers@efficios.com, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Masami Hiramatsu <mhiramat@kernel.org>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, "David S . Miller" <davem@davemloft.net>, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, linux-cris-kernel@axis.com, linux-arch@vger.kernel.org
-Message-ID: <20170803023358.5IGdiQZNKZBx5AqkiYEOnLbVvWSQVHFaznM3kI8HPeU@z>
+Message-ID: <20170803023926.jZOVkBHWy8Lb_CkN0L5Wsd2VySUj56Uv3d8e6kJoUFQ@z>
 
-Hi,
+Since the kernel segment registers are not prepared at the
+entry of irq-entry code, if a kprobe on such code is
+jump-optimized, accessing per-cpu variables may cause
+kernel panic.
+However, if the kprobe is not optimized, it kicks int3
+exception and set segment registers correctly.
 
-Here are the 9th version of the series to fix kprobes not
-to optimize on the functions in irqentry text ([5/5]).
-To check the irqentry text always, [4/5] makes irqentry
-text section unconditional.
+This checks probe-address and if it is in irq-entry code,
+it prohibits optimizing such kprobes. This means we can
+continuously probing such interrupt handlers by kprobes
+but it is not optimized anymore.
 
-This involves some other cleanups on h8300, xtensa, and
-cris ports, because those sources declare section 
-start/end symbol as single characters, but generic
-sections.h declares it as character arrays. So it leads
-build errors if we apply [4/5].
-
-Changes in v9
- - Add cris cleanup patch (3/5).
-
-BTW, in this series I just give a minimum fix for
-arch dependent code, since this is a series to fix
-a bug in x86 optprobe. However, IMHO, we should
-revisit these "local _stext/_etext references" and
-replace it with just including asm/sections.h.
-And also, I would like to expose is_kernel_text()
-as a generic routine for arch dependent code
-so that they can use it.
-
-Thank you,
-
+Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
+Reported-by: Francis Deslauriers <francis.deslauriers@efficios.com>
+Tested-by: Francis Deslauriers <francis.deslauriers@efficios.com>
 ---
+ arch/x86/kernel/kprobes/opt.c |    9 ++++++---
+ 1 file changed, 6 insertions(+), 3 deletions(-)
 
-Masami Hiramatsu (5):
-      h8300: mark _stext and _etext as char-arrays, not single char
-      xtensa: mark _stext and _end as char-arrays, not single char
-      cris: mark _stext and _end as char-arrays, not single char
-      irq: Make irqentry text section unconditional
-      [BUGFIX] kprobes/x86: Do not jump-optimize kprobes on irq entry code
-
-
- arch/arm/include/asm/traps.h         |    7 -------
- arch/arm64/include/asm/traps.h       |    7 -------
- arch/cris/arch-v32/mach-a3/arbiter.c |    4 ++--
- arch/cris/arch-v32/mach-fs/arbiter.c |    4 ++--
- arch/cris/kernel/traps.c             |    6 +++---
- arch/h8300/include/asm/traps.h       |    6 +++---
- arch/x86/entry/entry_64.S            |    9 ++-------
- arch/x86/kernel/kprobes/opt.c        |    9 ++++++---
- arch/x86/kernel/unwind_frame.c       |    2 --
- arch/xtensa/kernel/setup.c           |    6 +++---
- include/asm-generic/sections.h       |    4 ++++
- include/asm-generic/vmlinux.lds.h    |    8 --------
- include/linux/interrupt.h            |   14 +-------------
- 13 files changed, 26 insertions(+), 60 deletions(-)
-
---
-Masami Hiramatsu
+diff --git a/arch/x86/kernel/kprobes/opt.c b/arch/x86/kernel/kprobes/opt.c
+index 69ea0bc1cfa3..4f98aad38237 100644
+--- a/arch/x86/kernel/kprobes/opt.c
++++ b/arch/x86/kernel/kprobes/opt.c
+@@ -39,6 +39,7 @@
+ #include <asm/insn.h>
+ #include <asm/debugreg.h>
+ #include <asm/set_memory.h>
++#include <asm/sections.h>
+ 
+ #include "common.h"
+ 
+@@ -251,10 +252,12 @@ static int can_optimize(unsigned long paddr)
+ 
+ 	/*
+ 	 * Do not optimize in the entry code due to the unstable
+-	 * stack handling.
++	 * stack handling and registers setup.
+ 	 */
+-	if ((paddr >= (unsigned long)__entry_text_start) &&
+-	    (paddr <  (unsigned long)__entry_text_end))
++	if (((paddr >= (unsigned long)__entry_text_start) &&
++	     (paddr <  (unsigned long)__entry_text_end)) ||
++	    ((paddr >= (unsigned long)__irqentry_text_start) &&
++	     (paddr <  (unsigned long)__irqentry_text_end)))
+ 		return 0;
+ 
+ 	/* Check there is enough space for a relative jump. */
