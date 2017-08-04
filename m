@@ -1,74 +1,37 @@
-From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: [PATCH] uapi: fix another asm/shmbuf.h userspace compilation
- error
-Date: Fri, 4 Aug 2017 16:22:04 +0100
-Message-ID: <20170804152203.GA31455@jhogan-linux.le.imgtec.org>
-References: <20170302004607.GE27132@altlinux.org>
- <CAK8P3a1=-Q=gVRyk+PwqxTeTPXa4yrmqWKG7SyZng2d7bcbG=g@mail.gmail.com>
+From: Logan Gunthorpe <logang@deltatee.com>
+Subject: Re: [PATCH v6 1/7] drm/tilcdc: ensure nonatomic iowrite64 is not used
+Date: Fri, 4 Aug 2017 09:47:37 -0600
+Message-ID: <15c19bbe-a178-5c60-530e-14229bfdc906@deltatee.com>
+References: <20170803183018.5889-1-logang@deltatee.com>
+ <20170803183018.5889-2-logang@deltatee.com>
+ <2b41b02c-07e3-b927-f276-a29480f94285@ti.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-        protocol="application/pgp-signature"; boundary="ofekNuVaYCKmvJ0U"
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mailapp01.imgtec.com ([195.59.15.196]:45299 "EHLO
-        mailapp01.imgtec.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752064AbdHDPWH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 4 Aug 2017 11:22:07 -0400
-Content-Disposition: inline
-In-Reply-To: <CAK8P3a1=-Q=gVRyk+PwqxTeTPXa4yrmqWKG7SyZng2d7bcbG=g@mail.gmail.com>
+Received: from ale.deltatee.com ([207.54.116.67]:44828 "EHLO ale.deltatee.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752177AbdHDPrs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 4 Aug 2017 11:47:48 -0400
+In-Reply-To: <2b41b02c-07e3-b927-f276-a29480f94285@ti.com>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: "Dmitry V. Levin" <ldv@altlinux.org>, linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-xtensa@linux-xtensa.org, Heiko Carstens <heiko.carstens@de.ibm.com>, David Howells <dhowells@redhat.com>, Max Filippov <jcmvbkbc@gmail.com>, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, sparclinux@vger.kernel.org, Hans-Christian Egtvedt <egtvedt@samfundet.no>, linux-arch <linux-arch@vger.kernel.org>, linux-s390@vger.kernel.org, linux-am33-list@redhat.com, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Fenghua Yu <fenghua.yu@intel.com>, Thomas Gleixner <tglx@linutronix.de>, Chris Zankel <chris@zankel.net>, Tony Luck <tony.luck@intel.com>, Linux Kernel Mailing List <linux-kernel@vg>
+To: Tomi Valkeinen <tomi.valkeinen@ti.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, Jyri Sarha <jsarha@ti.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?Q?Horia_Geant=c4=83?= <horia.geanta@nxp.com>, Stephen Bates <sbates@raithlin.com>, David Airlie <airlied@linux.ie>
 
---ofekNuVaYCKmvJ0U
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
 
-On Thu, Mar 02, 2017 at 02:07:20PM +0100, Arnd Bergmann wrote:
-> On Thu, Mar 2, 2017 at 1:46 AM, Dmitry V. Levin <ldv@altlinux.org> wrote:
-> > Replace size_t with __kernel_size_t to fix asm/shmbuf.h userspace
-> > compilation errors like this:
-> >
-> > /usr/include/asm-generic/shmbuf.h:28:2: error: unknown type name 'size_=
-t'
-> >   size_t   shm_segsz; /* size of segment (bytes) */
-> >
-> > x32 is the only architecture where sizeof(size_t) is less than
-> > sizeof(__kernel_size_t), but as the kernel treats shm_segsz field as
-> > __kernel_size_t anyway, UAPI should follow.  Thanks to little-endiannes
-> > of x32 and 64-bit alignment of the field following shm_segsz, this
-> > change doesn't break ABI, and the difference doesn't manifest itself
-> > easily.
-> >
-> > Signed-off-by: Dmitry V. Levin <ldv@altlinux.org>
->=20
-> Acked-by: Arnd Bergmann <arnd@arndb.de>
 
-Out of interest, is there a plan for merging these patches from Dmitry?
+On 04/08/17 07:03 AM, Tomi Valkeinen wrote:
+> I haven't really followed the discussion on this, but if the tilcdc's
+> use of iowrite64 causes (real) problems/complications elsewhere, I think
+> we could drop it.
 
-Cheers
-James
+Well, that's up to you. The patch I submitted should still be correct
+though, and if arm ever gets a proper atomic iowrite64 implementation it
+would be good to use it. So in an annotative sense it's nice to keep the
+function call in there.
 
---ofekNuVaYCKmvJ0U
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
+Thanks,
 
------BEGIN PGP SIGNATURE-----
-
-iQIzBAEBCAAdFiEEd80NauSabkiESfLYbAtpk944dnoFAlmEkRMACgkQbAtpk944
-dnrAMg/+K3doXr6onSUJPfVtAuAORRxr6EypmBdFZs5/qV4cwNTkljJ0c/yGAKaM
-fUM6pJ9n56h7YGG0/y2m+YCI56TPWyh8HnoKTNyhgDtg+Sn1e2Ub4dXyEjYdQhXN
-TMTzPsP/COyFkrStEulbLuGoaU4t7UMFk5nU7FTQ1BpCeyuEO5opnUpA3JMZwehK
-KK7orqZYUE+iZ8QfbEXiuHr68EsvpMeHj0z6WNkXD/8gRzSFTMqf5wHFpm3cNTJ7
-3BRJx3LOkkE3amkPOm1kIOPWkMAEIFF11hRc79e4Wpkak6tnoCowkLvVNadB+UH2
-bb5BTgwifuU83lrWsqC6gzs6e4PR0DEAgQofoLy5uGQjVgYqJ970Q8/Cl4xsfvcL
-qVVFp8oGN5oZoXFiMWhYVQydG4m9TaruA2vOZK3F9fdrNBmd4t+fNxF+l3CTfa79
-dAGLliqjUunWrW8WBrFmIySw9Sxl8DbJKyl0jxaJUbfGCnmsmkCZO4fP8h3BK37Y
-mjMPsH3AjUnkBSLRBK+d261LMYCBgMY/SpUWwR7RqRbtxrqO7voVeNcyXQ1c4tVE
-cYJhQpy57wjDKE0luxGSU0o1ATJst6xcL+URKTvRoxIWrkZXUBPnwfusoedLqTxd
-f5AIFSEhwz7t8hBSEweo8qITuBmr86QmyKPwYN4R9xkonfb2Kis=
-=9M2T
------END PGP SIGNATURE-----
-
---ofekNuVaYCKmvJ0U--
+Logan
