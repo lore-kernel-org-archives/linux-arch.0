@@ -1,79 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ale.deltatee.com ([207.54.116.67]:41729 "EHLO ale.deltatee.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751857AbdHCSaX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 3 Aug 2017 14:30:23 -0400
-From: Logan Gunthorpe <logang@deltatee.com>
-Date: Thu,  3 Aug 2017 12:30:17 -0600
-Message-ID: <20170803183018.5889-7-logang@deltatee.com>
-In-Reply-To: <20170803183018.5889-1-logang@deltatee.com>
-References: <20170803183018.5889-1-logang@deltatee.com>
-Subject: [PATCH v6 6/7] ntb: ntb_hw_intel: use io-64-nonatomic instead of in-driver hacks
+Received: from mail-oi0-f67.google.com ([209.85.218.67]:36618 "EHLO
+        mail-oi0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752006AbdHDJAG (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 4 Aug 2017 05:00:06 -0400
+MIME-Version: 1.0
+In-Reply-To: <20170804093550.41e5936c@bbrezillon>
+References: <20170721202636.3361536-1-arnd@arndb.de> <20170804093550.41e5936c@bbrezillon>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Fri, 4 Aug 2017 11:00:05 +0200
+Message-ID: <CAK8P3a2Zvsc880ZYy9aaQ1fOJeO50uJc92OKMK0QxCcTzwGPsg@mail.gmail.com>
+Subject: Re: [PATCH] [RESEND] mtd: only use __xipram annotation when
+ XIP_KERNEL is set
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Stephen Bates <sbates@raithlin.com>, Logan Gunthorpe <logang@deltatee.com>
-Message-ID: <20170803183017._f_76I6882kG0mskSKNXmRqESshEULEEMe44uk1iUvA@z>
+To: Boris Brezillon <boris.brezillon@free-electrons.com>
+Cc: David Woodhouse <dwmw2@infradead.org>, Brian Norris <computersforpeace@gmail.com>, Marek Vasut <marek.vasut@gmail.com>, Richard Weinberger <richard@nod.at>, Cyrille Pitchen <cyrille.pitchen@wedev4u.fr>, Russell King <linux@armlinux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Nicholas Piggin <npiggin@gmail.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Michal Marek <mmarek@suse.com>, Linus Walleij <linus.walleij@linaro.org>, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>, Chris Metcalf <cmetcalf@mellanox.com>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-mtd <linux-mtd@lists.infradead.org>
+Message-ID: <20170804090005.sC_Ijdn2SpVzqeitY4M4opZPXA33nBmONxQQlz5IzSI@z>
 
-Now that ioread64 and iowrite64 are available in io-64-nonatomic,
-we can remove the hack at the top of ntb_hw_intel.c and replace it
-with an include.
+On Fri, Aug 4, 2017 at 9:35 AM, Boris Brezillon
+<boris.brezillon@free-electrons.com> wrote:
+> On Fri, 21 Jul 2017 22:26:25 +0200
+> Arnd Bergmann <arnd@arndb.de> wrote:
 
-Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
-Acked-by: Dave Jiang <dave.jiang@intel.com>
-Acked-by: Allen Hubbe <Allen.Hubbe@dell.com>
-Acked-by: Jon Mason <jdmason@kudzu.us>
----
- drivers/ntb/hw/intel/ntb_hw_intel.c | 30 +-----------------------------
- 1 file changed, 1 insertion(+), 29 deletions(-)
+>> Note that MTD_XIP has been broken on ARM since around 2011 or 2012. I
+>> have sent another patch[2] to fix compilation, which I plan to merge
+>> through arm-soc unless there are objections. The obvious alternative
+>> to that would be to completely rip out the MTD_XIP support from the
+>> kernel, since obviously nobody has been using it in a long while.
+>>
+>> Link: [1] https://patchwork.kernel.org/patch/8109771/
+>> Link: [2] https://patchwork.kernel.org/patch/9855225/
+>> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+>> ---
+>>  include/asm-generic/vmlinux.lds.h |  1 +
+>>  include/linux/mtd/xip.h           | 10 ++++++----
+>
+> For the MTD part,
+>
+> Acked-by: Boris Brezillon <boris.brezillon@free-electrons.com>
 
-diff --git a/drivers/ntb/hw/intel/ntb_hw_intel.c b/drivers/ntb/hw/intel/ntb_hw_intel.c
-index 2557e2c05b90..606c90f59d4b 100644
---- a/drivers/ntb/hw/intel/ntb_hw_intel.c
-+++ b/drivers/ntb/hw/intel/ntb_hw_intel.c
-@@ -59,6 +59,7 @@
- #include <linux/random.h>
- #include <linux/slab.h>
- #include <linux/ntb.h>
-+#include <linux/io-64-nonatomic-lo-hi.h>
- 
- #include "ntb_hw_intel.h"
- 
-@@ -155,35 +156,6 @@ MODULE_PARM_DESC(xeon_b2b_dsd_bar5_addr32,
- static inline enum ntb_topo xeon_ppd_topo(struct intel_ntb_dev *ndev, u8 ppd);
- static int xeon_init_isr(struct intel_ntb_dev *ndev);
- 
--#ifndef ioread64
--#ifdef readq
--#define ioread64 readq
--#else
--#define ioread64 _ioread64
--static inline u64 _ioread64(void __iomem *mmio)
--{
--	u64 low, high;
--
--	low = ioread32(mmio);
--	high = ioread32(mmio + sizeof(u32));
--	return low | (high << 32);
--}
--#endif
--#endif
--
--#ifndef iowrite64
--#ifdef writeq
--#define iowrite64 writeq
--#else
--#define iowrite64 _iowrite64
--static inline void _iowrite64(u64 val, void __iomem *mmio)
--{
--	iowrite32(val, mmio);
--	iowrite32(val >> 32, mmio + sizeof(u32));
--}
--#endif
--#endif
--
- static inline int pdev_is_atom(struct pci_dev *pdev)
- {
- 	switch (pdev->device) {
--- 
-2.11.0
+Thanks. If you don't mind, could you just apply the patch to the mtd tree?
+
+      Arnd
