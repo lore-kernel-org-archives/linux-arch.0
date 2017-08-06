@@ -1,15 +1,15 @@
 From: kbuild test robot <lkp@intel.com>
 Subject: Re: [PATCH v2] module: use relative references for __ksymtab entries
-Date: Sun, 6 Aug 2017 22:05:09 +0800
-Message-ID: <201708062207.UFQh9NQv%fengguang.wu@intel.com>
+Date: Sun, 6 Aug 2017 23:10:01 +0800
+Message-ID: <201708062357.YqRmu8ag%fengguang.wu@intel.com>
 References: <20170806124624.22915-1-ard.biesheuvel@linaro.org>
 Mime-Version: 1.0
-Content-Type: multipart/mixed; boundary="mP3DRpeJDSE+ciuQ"
+Content-Type: multipart/mixed; boundary="45Z9DzgjV8m4Oswq"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga03.intel.com ([134.134.136.65]:29071 "EHLO mga03.intel.com"
+Received: from mga04.intel.com ([192.55.52.120]:57205 "EHLO mga04.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751341AbdHFOGB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 6 Aug 2017 10:06:01 -0400
+        id S1751300AbdHFPKS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 6 Aug 2017 11:10:18 -0400
 Content-Disposition: inline
 In-Reply-To: <20170806124624.22915-1-ard.biesheuvel@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
@@ -17,7 +17,7 @@ List-ID: <linux-arch.vger.kernel.org>
 Cc: kbuild-all@01.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Jessica Yu <jeyu@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Kees Cook <keescook@chromium.org>, Thomas Garnier <thgarnie@google.com>, Nicolas Pitre <nico@linaro.org>
 
 
---mP3DRpeJDSE+ciuQ
+--45Z9DzgjV8m4Oswq
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
 
@@ -34,62 +34,76 @@ reproduce:
         # save the attached .config to linux build tree
         make ARCH=x86_64 
 
-All errors (new ones prefixed by >>):
+All error/warnings (new ones prefixed by >>):
 
    In file included from include/asm-generic/percpu.h:6:0,
                     from arch/x86/include/asm/percpu.h:542,
-                    from arch/x86/include/asm/current.h:5,
-                    from include/linux/mutex.h:13,
-                    from kernel//locking/lockdep.c:29:
->> include/linux/percpu-defs.h:92:26: error: __pcpu_unique_cpu_lock_stats causes a section type conflict with __discard_lockdep_off
+                    from arch/x86/include/asm/preempt.h:5,
+                    from include/linux/preempt.h:80,
+                    from include/linux/spinlock.h:50,
+                    from include/linux/mmzone.h:7,
+                    from include/linux/gfp.h:5,
+                    from include/linux/slab.h:14,
+                    from kernel/fork.c:14:
+>> include/linux/percpu-defs.h:92:26: error: __pcpu_unique_cached_stacks causes a section type conflict with __discard_lockdep_tasklist_lock_is_held
      __PCPU_DUMMY_ATTRS char __pcpu_unique_##name;   \
                              ^
    include/linux/percpu-defs.h:116:2: note: in expansion of macro 'DEFINE_PER_CPU_SECTION'
      DEFINE_PER_CPU_SECTION(type, name, "")
      ^~~~~~~~~~~~~~~~~~~~~~
-   kernel//locking/lockdep.c:156:8: note: in expansion of macro 'DEFINE_PER_CPU'
-    static DEFINE_PER_CPU(struct lock_class_stats[MAX_LOCKDEP_KEYS], cpu_lock_stats);
+   kernel/fork.c:181:8: note: in expansion of macro 'DEFINE_PER_CPU'
+    static DEFINE_PER_CPU(struct vm_struct *, cached_stacks[NR_CACHED_STACKS]);
            ^~~~~~~~~~~~~~
    In file included from include/linux/linkage.h:6:0,
                     from include/linux/kernel.h:6,
-                    from arch/x86/include/asm/percpu.h:44,
-                    from arch/x86/include/asm/current.h:5,
-                    from include/linux/mutex.h:13,
-                    from kernel//locking/lockdep.c:29:
-   include/linux/export.h:71:4: note: '__discard_lockdep_off' was declared here
+                    from include/asm-generic/bug.h:15,
+                    from arch/x86/include/asm/bug.h:81,
+                    from include/linux/bug.h:4,
+                    from include/linux/mmdebug.h:4,
+                    from include/linux/gfp.h:4,
+                    from include/linux/slab.h:14,
+                    from kernel/fork.c:14:
+   include/linux/export.h:71:4: note: '__discard_lockdep_tasklist_lock_is_held' was declared here
        __discard_##sym(void) { return (void *)&sym; } \
        ^
    include/linux/export.h:104:25: note: in expansion of macro '___EXPORT_SYMBOL'
     #define __EXPORT_SYMBOL ___EXPORT_SYMBOL
                             ^~~~~~~~~~~~~~~~
-   include/linux/export.h:108:2: note: in expansion of macro '__EXPORT_SYMBOL'
-     __EXPORT_SYMBOL(sym, "")
+   include/linux/export.h:111:2: note: in expansion of macro '__EXPORT_SYMBOL'
+     __EXPORT_SYMBOL(sym, "_gpl")
      ^~~~~~~~~~~~~~~
-   kernel//locking/lockdep.c:329:1: note: in expansion of macro 'EXPORT_SYMBOL'
-    EXPORT_SYMBOL(lockdep_off);
-    ^~~~~~~~~~~~~
+   kernel/fork.c:131:1: note: in expansion of macro 'EXPORT_SYMBOL_GPL'
+    EXPORT_SYMBOL_GPL(lockdep_tasklist_lock_is_held);
+    ^~~~~~~~~~~~~~~~~
 --
    In file included from include/asm-generic/percpu.h:6:0,
                     from arch/x86/include/asm/percpu.h:542,
-                    from arch/x86/include/asm/current.h:5,
-                    from include/linux/mutex.h:13,
-                    from kernel///locking/lockdep.c:29:
->> include/linux/percpu-defs.h:92:26: error: __pcpu_unique_cpu_lock_stats causes a section type conflict with __discard_lockdep_off
+                    from arch/x86/include/asm/preempt.h:5,
+                    from include/linux/preempt.h:80,
+                    from include/linux/spinlock.h:50,
+                    from include/linux/mmzone.h:7,
+                    from include/linux/gfp.h:5,
+                    from include/linux/slab.h:14,
+                    from mm/slab.c:89:
+>> include/linux/percpu-defs.h:92:26: error: __pcpu_unique_slab_reap_node causes a section type conflict with __discard_kmem_cache_alloc
      __PCPU_DUMMY_ATTRS char __pcpu_unique_##name;   \
                              ^
    include/linux/percpu-defs.h:116:2: note: in expansion of macro 'DEFINE_PER_CPU_SECTION'
      DEFINE_PER_CPU_SECTION(type, name, "")
      ^~~~~~~~~~~~~~~~~~~~~~
-   kernel///locking/lockdep.c:156:8: note: in expansion of macro 'DEFINE_PER_CPU'
-    static DEFINE_PER_CPU(struct lock_class_stats[MAX_LOCKDEP_KEYS], cpu_lock_stats);
+>> mm/slab.c:524:8: note: in expansion of macro 'DEFINE_PER_CPU'
+    static DEFINE_PER_CPU(unsigned long, slab_reap_node);
            ^~~~~~~~~~~~~~
    In file included from include/linux/linkage.h:6:0,
                     from include/linux/kernel.h:6,
-                    from arch/x86/include/asm/percpu.h:44,
-                    from arch/x86/include/asm/current.h:5,
-                    from include/linux/mutex.h:13,
-                    from kernel///locking/lockdep.c:29:
-   include/linux/export.h:71:4: note: '__discard_lockdep_off' was declared here
+                    from include/asm-generic/bug.h:15,
+                    from arch/x86/include/asm/bug.h:81,
+                    from include/linux/bug.h:4,
+                    from include/linux/mmdebug.h:4,
+                    from include/linux/gfp.h:4,
+                    from include/linux/slab.h:14,
+                    from mm/slab.c:89:
+   include/linux/export.h:71:4: note: '__discard_kmem_cache_alloc' was declared here
        __discard_##sym(void) { return (void *)&sym; } \
        ^
    include/linux/export.h:104:25: note: in expansion of macro '___EXPORT_SYMBOL'
@@ -98,8 +112,8 @@ All errors (new ones prefixed by >>):
    include/linux/export.h:108:2: note: in expansion of macro '__EXPORT_SYMBOL'
      __EXPORT_SYMBOL(sym, "")
      ^~~~~~~~~~~~~~~
-   kernel///locking/lockdep.c:329:1: note: in expansion of macro 'EXPORT_SYMBOL'
-    EXPORT_SYMBOL(lockdep_off);
+   mm/slab.c:3567:1: note: in expansion of macro 'EXPORT_SYMBOL'
+    EXPORT_SYMBOL(kmem_cache_alloc);
     ^~~~~~~~~~~~~
 
 vim +92 include/linux/percpu-defs.h
@@ -181,12 +195,12 @@ dd17c8f7 Rusty Russell 2009-10-29  101  	extern __PCPU_ATTRS(sec) __typeof__(typ
 0-DAY kernel test infrastructure                Open Source Technology Center
 https://lists.01.org/pipermail/kbuild-all                   Intel Corporation
 
---mP3DRpeJDSE+ciuQ
+--45Z9DzgjV8m4Oswq
 Content-Type: application/gzip
 Content-Disposition: attachment; filename=".config.gz"
 Content-Transfer-Encoding: base64
 
-H4sICJUfh1kAAy5jb25maWcAjDxLc9s40vf5FarMd9g9ZGI7iTdbX/kAgaCEEUkwAChZvrA8
+H4sICPcnh1kAAy5jb25maWcAjDxLc9s40vf5FarMd9g9ZGI7iTdbX/kAgaCEEUkwAChZvrA8
 tpJxrWNn/did+ffb3eADAEFlckjC7gYINBr9pn7+6ecFe315/Hb9cndzfX//5+Lr4eHwdP1y
 uF18ubs//P8iU4tK2YXIpP0FiIu7h9c/3v3x6bw9/7D48Mvp+19O3j7dvF9sDk8Ph/sFf3z4
 cvf1FSa4e3z46eefuKpyuQLapbQXf/aPlzQ8eB4fZGWsbriVqmozwVUm9IhUja0b2+ZKl8xe
@@ -915,4 +929,4 @@ EyIIRjGzfZgT6mKE0oKdFrLKEjRYBvHMNOXvY4wPKgw4J2Ba4T3fN1lCOBnwG+mXfy+dEpZ/
 zyylTItOZDkpXbSYm6YyWqvPohYnBAOY+agabeisK9xkzKeiegv7LieGjiZCWVBSTMhW2pgC
 4H8BXPi5KvB3AgA=
 
---mP3DRpeJDSE+ciuQ--
+--45Z9DzgjV8m4Oswq--
