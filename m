@@ -1,49 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kapsi.fi ([91.232.154.25]:45636 "EHLO mail.kapsi.fi"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751396AbdHFRZA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 6 Aug 2017 13:25:00 -0400
-From: Mikko Rapeli <mikko.rapeli@iki.fi>
-Subject: [PATCH v06 09/36] uapi asm-generic/sembuf.h: include asm/posix_types.h and asm/ipcbuf.h
-Date: Sun,  6 Aug 2017 18:44:00 +0200
-Message-ID: <20170806164428.2273-10-mikko.rapeli@iki.fi>
-In-Reply-To: <20170806164428.2273-1-mikko.rapeli@iki.fi>
-References: <20170806164428.2273-1-mikko.rapeli@iki.fi>
+Received: from mail-oi0-f42.google.com ([209.85.218.42]:35935 "EHLO
+        mail-oi0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751857AbdHGRlk (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 7 Aug 2017 13:41:40 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <alpine.DEB.2.00.1708071706290.17596@tp.orcam.me.uk>
+References: <87o9shg7t7.fsf_-_@xmission.com> <20170718140651.15973-4-ebiederm@xmission.com>
+ <alpine.DEB.2.00.1708071706290.17596@tp.orcam.me.uk>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Mon, 7 Aug 2017 10:41:39 -0700
+Message-ID: <CA+55aFx3ss90b4x2bo4si80kQUjMVL1zUX3Oxvu04OE14nUtFw@mail.gmail.com>
+Subject: Re: [PATCH 4/7] signal/mips: Document a conflict with SI_USER with SIGFPE
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-api@vger.kernel.org
-Cc: Mikko Rapeli <mikko.rapeli@iki.fi>, "H . J . Lu" <hjl.tools@gmail.com>, "H . Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
-Message-ID: <20170806164400.EljYRF-VEeeb66cS82A2BDd9W7DNo_C397h34erEmCc@z>
+To: "Maciej W. Rozycki" <macro@imgtec.com>
+Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, Andrei Vagin <avagin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Greg KH <greg@kroah.com>, Andrey Vagin <avagin@openvz.org>, Serge Hallyn <serge@hallyn.com>, Pavel Emelyanov <xemul@virtuozzo.com>, Cyrill Gorcunov <gorcunov@openvz.org>, Peter Zijlstra <peterz@infradead.org>, Willy Tarreau <w@1wt.eu>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Linux Containers <containers@lists.linux-foundation.org>, Michael Kerrisk <mtk.manpages@gmail.com>, Ralf Baechle <ralf@linux-mips.org>
+Message-ID: <20170807174139.nX44UkKxvnCc39n1W-ySI4Z60SBCTSTfj8aHIsz0Cx4@z>
 
-Fixes userspace compilation errors like:
+On Mon, Aug 7, 2017 at 9:18 AM, Maciej W. Rozycki <macro@imgtec.com> wrote:
+>
+>  So what would be the right value of `si_code' to use here for such an
+> unexpected exception condition?  I think `BUG()' would be too big a
+> hammer here.  Or wouldn't it?
 
-error: field ‘msg_perm’ has incomplete type
-struct ipc64_perm msg_perm;
-error: unknown type name ‘__kernel_ulong_t’
+Hell no. NEVER EVER BUG().
 
-Signed-off-by: Mikko Rapeli <mikko.rapeli@iki.fi>
-Acked-by: Arnd Bergmann <arnd@arndb.de>
-Cc: H.J. Lu <hjl.tools@gmail.com>
-Cc: H. Peter Anvin <hpa@zytor.com>
----
- include/uapi/asm-generic/sembuf.h | 2 ++
- 1 file changed, 2 insertions(+)
+The only case to use BUG() is if there is some core data structure
+(say, kernel stack) that is so corrupted that you know you cannot
+continue. That's the *only* valid use.
 
-diff --git a/include/uapi/asm-generic/sembuf.h b/include/uapi/asm-generic/sembuf.h
-index 4cb2c13e5090..17d523f86923 100644
---- a/include/uapi/asm-generic/sembuf.h
-+++ b/include/uapi/asm-generic/sembuf.h
-@@ -2,6 +2,8 @@
- #define __ASM_GENERIC_SEMBUF_H
- 
- #include <asm/bitsperlong.h>
-+#include <asm/posix_types.h>
-+#include <asm/ipcbuf.h>
- 
- /*
-  * The semid64_ds structure for x86 architecture.
--- 
-2.13.3
+If this is a "this condition cannot happen" issue, then just remove
+the damn conditional. It's pointless. Adding a BUG() to show "this
+cannot happen" is not acceptable.
+
+                        Linus
