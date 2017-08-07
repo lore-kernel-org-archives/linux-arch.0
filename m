@@ -1,44 +1,45 @@
-From: Mikko Rapeli <mikko.rapeli@iki.fi>
-Subject: [PATCH v06 09/36] uapi asm-generic/sembuf.h: include asm/posix_types.h and asm/ipcbuf.h
-Date: Sun,  6 Aug 2017 18:44:00 +0200
-Message-ID: <20170806164428.2273-10-mikko.rapeli@iki.fi>
-References: <20170806164428.2273-1-mikko.rapeli@iki.fi>
+From: "Maciej W. Rozycki" <macro@imgtec.com>
+Subject: Re: [PATCH 4/7] signal/mips: Document a conflict with SI_USER with
+ SIGFPE
+Date: Mon, 7 Aug 2017 17:18:11 +0100
+Message-ID: <alpine.DEB.2.00.1708071706290.17596@tp.orcam.me.uk>
+References: <87o9shg7t7.fsf_-_@xmission.com> <20170718140651.15973-4-ebiederm@xmission.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20170806164428.2273-1-mikko.rapeli@iki.fi>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, linux-api@vger.kernel.org
-Cc: Mikko Rapeli <mikko.rapeli@iki.fi>, "H . J . Lu" <hjl.tools@gmail.com>, "H . Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="US-ASCII"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mailapp01.imgtec.com ([195.59.15.196]:52846 "EHLO
+        mailapp01.imgtec.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751564AbdHGQSd (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 7 Aug 2017 12:18:33 -0400
+In-Reply-To: <20170718140651.15973-4-ebiederm@xmission.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: linux-kernel@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, Andrei Vagin <avagin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Greg KH <greg@kroah.com>, Andrey Vagin <avagin@openvz.org>, Serge Hallyn <serge@hallyn.com>, Pavel Emelyanov <xemul@virtuozzo.com>, Cyrill Gorcunov <gorcunov@openvz.org>, Peter Zijlstra <peterz@infradead.org>, Willy Tarreau <w@1wt.eu>, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Linux Containers <containers@lists.linux-foundation.org>, Michael Kerrisk <mtk.manpages@gmail.com>, Ralf Baechle <ralf@linux-mips.org>
 
-Fixes userspace compilation errors like:
+On Tue, 18 Jul 2017, Eric W. Biederman wrote:
 
-error: field ‘msg_perm’ has incomplete type
-struct ipc64_perm msg_perm;
-error: unknown type name ‘__kernel_ulong_t’
+> diff --git a/arch/mips/kernel/traps.c b/arch/mips/kernel/traps.c
+> index b68b4d0726d3..6c9cca9c5341 100644
+> --- a/arch/mips/kernel/traps.c
+> +++ b/arch/mips/kernel/traps.c
+> @@ -735,7 +735,7 @@ void force_fcr31_sig(unsigned long fcr31, void __user *fault_addr,
+>  	else if (fcr31 & FPU_CSR_INE_X)
+>  		si.si_code = FPE_FLTRES;
+>  	else
+> -		si.si_code = __SI_FAULT;
+> +		si.si_code = FPE_FIXME;
 
-Signed-off-by: Mikko Rapeli <mikko.rapeli@iki.fi>
-Acked-by: Arnd Bergmann <arnd@arndb.de>
-Cc: H.J. Lu <hjl.tools@gmail.com>
-Cc: H. Peter Anvin <hpa@zytor.com>
----
- include/uapi/asm-generic/sembuf.h | 2 ++
- 1 file changed, 2 insertions(+)
+ This is an "impossible" state to reach unless your hardware is on fire.  
+One or more of the FCSR Cause bits will have been set (in `fcr31') or the 
+FPE exception would not have happened.
 
-diff --git a/include/uapi/asm-generic/sembuf.h b/include/uapi/asm-generic/sembuf.h
-index 4cb2c13e5090..17d523f86923 100644
---- a/include/uapi/asm-generic/sembuf.h
-+++ b/include/uapi/asm-generic/sembuf.h
-@@ -2,6 +2,8 @@
- #define __ASM_GENERIC_SEMBUF_H
- 
- #include <asm/bitsperlong.h>
-+#include <asm/posix_types.h>
-+#include <asm/ipcbuf.h>
- 
- /*
-  * The semid64_ds structure for x86 architecture.
--- 
-2.13.3
+ Of course there could be a simulator bug, or we could have breakage 
+somewhere causing `process_fpemu_return' to be called with SIGFPE and 
+inconsistent `fcr31'.  So we need to handle it somehow.
+
+ So what would be the right value of `si_code' to use here for such an 
+unexpected exception condition?  I think `BUG()' would be too big a 
+hammer here.  Or wouldn't it?
+
+  Maciej
