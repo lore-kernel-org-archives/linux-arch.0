@@ -1,45 +1,32 @@
-From: "Maciej W. Rozycki" <macro@imgtec.com>
-Subject: Re: [PATCH 4/7] signal/mips: Document a conflict with SI_USER with
- SIGFPE
-Date: Mon, 7 Aug 2017 17:18:11 +0100
-Message-ID: <alpine.DEB.2.00.1708071706290.17596@tp.orcam.me.uk>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCH 4/7] signal/mips: Document a conflict with SI_USER with SIGFPE
+Date: Mon, 7 Aug 2017 10:41:39 -0700
+Message-ID: <CA+55aFx3ss90b4x2bo4si80kQUjMVL1zUX3Oxvu04OE14nUtFw@mail.gmail.com>
 References: <87o9shg7t7.fsf_-_@xmission.com> <20170718140651.15973-4-ebiederm@xmission.com>
+ <alpine.DEB.2.00.1708071706290.17596@tp.orcam.me.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="US-ASCII"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mailapp01.imgtec.com ([195.59.15.196]:52846 "EHLO
-        mailapp01.imgtec.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751564AbdHGQSd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 7 Aug 2017 12:18:33 -0400
-In-Reply-To: <20170718140651.15973-4-ebiederm@xmission.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: linux-kernel@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, Andrei Vagin <avagin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Greg KH <greg@kroah.com>, Andrey Vagin <avagin@openvz.org>, Serge Hallyn <serge@hallyn.com>, Pavel Emelyanov <xemul@virtuozzo.com>, Cyrill Gorcunov <gorcunov@openvz.org>, Peter Zijlstra <peterz@infradead.org>, Willy Tarreau <w@1wt.eu>, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Linux Containers <containers@lists.linux-foundation.org>, Michael Kerrisk <mtk.manpages@gmail.com>, Ralf Baechle <ralf@linux-mips.org>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <alpine.DEB.2.00.1708071706290.17596@tp.orcam.me.uk>
+Sender: linux-kernel-owner@vger.kernel.org
+To: "Maciej W. Rozycki" <macro@imgtec.com>
+Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, Andrei Vagin <avagin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Greg KH <greg@kroah.com>, Andrey Vagin <avagin@openvz.org>, Serge Hallyn <serge@hallyn.com>, Pavel Emelyanov <xemul@virtuozzo.com>, Cyrill Gorcunov <gorcunov@openvz.org>, Peter Zijlstra <peterz@infradead.org>, Willy Tarreau <w@1wt.eu>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Linux Containers <containers@lists.linux-foundation.org>, Michael Kerrisk <mtk.manpages@gmail.com>, Ralf Baechle <ralf@linux-mips.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, 18 Jul 2017, Eric W. Biederman wrote:
+On Mon, Aug 7, 2017 at 9:18 AM, Maciej W. Rozycki <macro@imgtec.com> wrote:
+>
+>  So what would be the right value of `si_code' to use here for such an
+> unexpected exception condition?  I think `BUG()' would be too big a
+> hammer here.  Or wouldn't it?
 
-> diff --git a/arch/mips/kernel/traps.c b/arch/mips/kernel/traps.c
-> index b68b4d0726d3..6c9cca9c5341 100644
-> --- a/arch/mips/kernel/traps.c
-> +++ b/arch/mips/kernel/traps.c
-> @@ -735,7 +735,7 @@ void force_fcr31_sig(unsigned long fcr31, void __user *fault_addr,
->  	else if (fcr31 & FPU_CSR_INE_X)
->  		si.si_code = FPE_FLTRES;
->  	else
-> -		si.si_code = __SI_FAULT;
-> +		si.si_code = FPE_FIXME;
+Hell no. NEVER EVER BUG().
 
- This is an "impossible" state to reach unless your hardware is on fire.  
-One or more of the FCSR Cause bits will have been set (in `fcr31') or the 
-FPE exception would not have happened.
+The only case to use BUG() is if there is some core data structure
+(say, kernel stack) that is so corrupted that you know you cannot
+continue. That's the *only* valid use.
 
- Of course there could be a simulator bug, or we could have breakage 
-somewhere causing `process_fpemu_return' to be called with SIGFPE and 
-inconsistent `fcr31'.  So we need to handle it somehow.
+If this is a "this condition cannot happen" issue, then just remove
+the damn conditional. It's pointless. Adding a BUG() to show "this
+cannot happen" is not acceptable.
 
- So what would be the right value of `si_code' to use here for such an 
-unexpected exception condition?  I think `BUG()' would be too big a 
-hammer here.  Or wouldn't it?
-
-  Maciej
+                        Linus
