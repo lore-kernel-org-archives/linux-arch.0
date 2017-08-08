@@ -1,79 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from LGEAMRELO11.lge.com ([156.147.23.51]:47165 "EHLO
-        lgeamrelo11.lge.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750818AbdHHIIY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 8 Aug 2017 04:08:24 -0400
-Date: Tue, 8 Aug 2017 17:08:21 +0900
-From: Minchan Kim <minchan@kernel.org>
-Subject: Re: [lkp-robot] [mm]  7674270022:  will-it-scale.per_process_ops
- -19.3% regression
-Message-ID: <20170808080821.GA31730@bbox>
-References: <20170802000818.4760-7-namit@vmware.com>
- <20170808011923.GE25554@yexl-desktop>
- <20170808022830.GA28570@bbox>
- <93CA4B47-95C2-43A2-8E92-B142CAB1DAF7@gmail.com>
- <970B5DC5-BFC2-461E-AC46-F71B3691D301@gmail.com>
+Received: from out03.mta.xmission.com ([166.70.13.233]:56155 "EHLO
+        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752470AbdHHPhs (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 8 Aug 2017 11:37:48 -0400
+From: ebiederm@xmission.com (Eric W. Biederman)
+References: <87o9shg7t7.fsf_-_@xmission.com>
+        <20170718140651.15973-4-ebiederm@xmission.com>
+        <alpine.DEB.2.00.1708071706290.17596@tp.orcam.me.uk>
+Date: Tue, 08 Aug 2017 10:29:18 -0500
+In-Reply-To: <alpine.DEB.2.00.1708071706290.17596@tp.orcam.me.uk> (Maciej
+        W. Rozycki's message of "Mon, 7 Aug 2017 17:18:11 +0100")
+Message-ID: <87mv7agjsh.fsf@xmission.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <970B5DC5-BFC2-461E-AC46-F71B3691D301@gmail.com>
+Content-Type: text/plain
+Subject: Re: [PATCH 4/7] signal/mips: Document a conflict with SI_USER with SIGFPE
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nadav Amit <nadav.amit@gmail.com>
-Cc: kernel test robot <xiaolong.ye@intel.com>, "open list:MEMORY MANAGEMENT" <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Tony Luck <tony.luck@intel.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, "David S. Miller" <davem@davemloft.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Jeff Dike <jdike@addtoit.com>, linux-arch@vger.kernel.org, lkp@01.org
-Message-ID: <20170808080821.6MaCpkO692TJaoRZUEBhajFFnPkA7yaxWFu6j15fMLw@z>
+To: "Maciej W. Rozycki" <macro@imgtec.com>
+Cc: linux-kernel@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, Andrei Vagin <avagin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Greg KH <greg@kroah.com>, Andrey Vagin <avagin@openvz.org>, Serge Hallyn <serge@hallyn.com>, Pavel Emelyanov <xemul@virtuozzo.com>, Cyrill Gorcunov <gorcunov@openvz.org>, Peter Zijlstra <peterz@infradead.org>, Willy Tarreau <w@1wt.eu>, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Linux Containers <containers@lists.linux-foundation.org>, Michael Kerrisk <mtk.manpages@gmail.com>, Ralf Baechle <ralf@linux-mips.org>
+Message-ID: <20170808152918.nomoZMyIlMd2ZLu7R-CpnpRNP_1ltX4lzOsrHyqRqPY@z>
 
-On Mon, Aug 07, 2017 at 10:51:00PM -0700, Nadav Amit wrote:
-> Nadav Amit <nadav.amit@gmail.com> wrote:
-> 
-> > Minchan Kim <minchan@kernel.org> wrote:
-> > 
-> >> Hi,
-> >> 
-> >> On Tue, Aug 08, 2017 at 09:19:23AM +0800, kernel test robot wrote:
-> >>> Greeting,
-> >>> 
-> >>> FYI, we noticed a -19.3% regression of will-it-scale.per_process_ops due to commit:
-> >>> 
-> >>> 
-> >>> commit: 76742700225cad9df49f05399381ac3f1ec3dc60 ("mm: fix MADV_[FREE|DONTNEED] TLB flush miss problem")
-> >>> url: https://github.com/0day-ci/linux/commits/Nadav-Amit/mm-migrate-prevent-racy-access-to-tlb_flush_pending/20170802-205715
-> >>> 
-> >>> 
-> >>> in testcase: will-it-scale
-> >>> on test machine: 88 threads Intel(R) Xeon(R) CPU E5-2699 v4 @ 2.20GHz with 64G memory
-> >>> with following parameters:
-> >>> 
-> >>> 	nr_task: 16
-> >>> 	mode: process
-> >>> 	test: brk1
-> >>> 	cpufreq_governor: performance
-> >>> 
-> >>> test-description: Will It Scale takes a testcase and runs it from 1 through to n parallel copies to see if the testcase will scale. It builds both a process and threads based test in order to see any differences between the two.
-> >>> test-url: https://github.com/antonblanchard/will-it-scale
-> >> 
-> >> Thanks for the report.
-> >> Could you explain what kinds of workload you are testing?
-> >> 
-> >> Does it calls frequently madvise(MADV_DONTNEED) in parallel on multiple
-> >> threads?
-> > 
-> > According to the description it is "testcase:brk increase/decrease of one
-> > page”. According to the mode it spawns multiple processes, not threads.
-> > 
-> > Since a single page is unmapped each time, and the iTLB-loads increase
-> > dramatically, I would suspect that for some reason a full TLB flush is
-> > caused during do_munmap().
-> > 
-> > If I find some free time, I’ll try to profile the workload - but feel free
-> > to beat me to it.
-> 
-> The root-cause appears to be that tlb_finish_mmu() does not call
-> dec_tlb_flush_pending() - as it should. Any chance you can take care of it?
+"Maciej W. Rozycki" <macro@imgtec.com> writes:
 
-Oops, but with second looking, it seems it's not my fault. ;-)
-https://marc.info/?l=linux-mm&m=150156699114088&w=2
+> On Tue, 18 Jul 2017, Eric W. Biederman wrote:
+>
+>> diff --git a/arch/mips/kernel/traps.c b/arch/mips/kernel/traps.c
+>> index b68b4d0726d3..6c9cca9c5341 100644
+>> --- a/arch/mips/kernel/traps.c
+>> +++ b/arch/mips/kernel/traps.c
+>> @@ -735,7 +735,7 @@ void force_fcr31_sig(unsigned long fcr31, void __user *fault_addr,
+>>  	else if (fcr31 & FPU_CSR_INE_X)
+>>  		si.si_code = FPE_FLTRES;
+>>  	else
+>> -		si.si_code = __SI_FAULT;
+>> +		si.si_code = FPE_FIXME;
+>
+>  This is an "impossible" state to reach unless your hardware is on fire.  
+> One or more of the FCSR Cause bits will have been set (in `fcr31') or the 
+> FPE exception would not have happened.
+>
+>  Of course there could be a simulator bug, or we could have breakage 
+> somewhere causing `process_fpemu_return' to be called with SIGFPE and 
+> inconsistent `fcr31'.  So we need to handle it somehow.
+>
+>  So what would be the right value of `si_code' to use here for such an 
+> unexpected exception condition?  I think `BUG()' would be too big a 
+> hammer here.  Or wouldn't it?
 
-Anyway, thanks for the pointing out.
-xiaolong.ye, could you retest with this fix?
+The possible solutions I can think of are:
+
+WARN_ON_ONCE with a comment.
+
+Add a new si_code to uapi/asm-generic/siginfo.h perhaps FPE_IMPOSSIBLE.
+Like syscall numbers si_codes are cheap.
+
+Call force_sig() instead of force_sig_info, using just a generic
+si_code.
+
+If this is truly impossible and the compiler doesn't complain just drop
+the code.
+
+Eric
