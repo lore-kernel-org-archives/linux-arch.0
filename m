@@ -1,67 +1,100 @@
-From: <h.gerritsen12@chello.nl>
-Subject: (unknown)
-Date: Tue, 08 Aug 2017 20:55:08 -0000
-Message-ID: <150222570869.22644.17620484242030831985@168-194-80-73.celerium.net.br>
+From: "Dmitry V. Levin" <ldv@altlinux.org>
+Subject: Re: [PATCH v06 08/36] uapi asm-generic/shmbuf.h: include fixes
+Date: Wed, 9 Aug 2017 01:42:53 +0300
+Message-ID: <20170808224253.GB10552@altlinux.org>
+References: <20170806164428.2273-1-mikko.rapeli@iki.fi>
+ <20170806164428.2273-9-mikko.rapeli@iki.fi>
 Mime-Version: 1.0
-Content-Type: application/zip; name="940383335057.zip"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 168-194-80-73.celerium.net.br ([168.194.80.73]:52758 "HELO
-        168-194-80-73.celerium.net.br" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with SMTP id S1752246AbdHHUzO (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 8 Aug 2017 16:55:14 -0400
-Subject: 
-Content-Disposition: attachment
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+Content-Type: multipart/signed; micalg=pgp-sha256;
+        protocol="application/pgp-signature"; boundary="uZ3hkaAS1mZxFaxD"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20170806164428.2273-9-mikko.rapeli@iki.fi>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Mikko Rapeli <mikko.rapeli@iki.fi>
+Cc: linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, "H . J . Lu" <hjl.tools@gmail.com>, "H . Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-UEsDBAoAAAAAAGelCEv04T2jTwoAAE8KAAAJAAAAMTk3NzQuemlwUEsDBBQAAAAIAGelCEudSFez
-uQkAAHI1AAAIAAAAMTk3NzQuanO1W1mP0lAUfjfxPyAJCtHo2HEcjZmHsg0IDAx02IwPpRRa6EZb
-No3/3Y4m9xz0s72j8UHz0d7l7Fu1PRv2XG0XqUbXvBt5du4q98zsH8q3o6nb6O0E0gVyBCoKtPUE
-pM2RQAYdE5hge54u1MOC+KGcRVZBET/PBKIl51XwkG1BdO1pi0JnqkRkLJC9A/vHXQFnAq1ooREz
-ot8hshQgI4sucEjE7KQaqSAIHJvJFBEukC8QyQLSVFDeM7kKVC4ABTCpn6l0fSjgkXalK/CSLkrX
-JDMRAek+biYNTWDtXsUFYgZaCx3NrGXPTsRGgm1DIGYkK7CQHYTYfYcIpdedwbgjfrSRXyhMNDVA
-HtrOBEeoBylBNHPzIWVC80EPVXkND2JaQCLVXbhYIG4H6Ss9FiwkrfIh4YMbRJYdQPWrRH+3mu43
-pHsuNIG49JgoFHTme3rIw0OWWlEOCaEw9ygs3juw+CWvQeIQapArLvHkE+1QTDeRUqXdFSDEoUHa
-sAN0H1MmTheEJMkocKfFvkryTfdVee0GemxBpclnc2gg6eY/CEzDRlVM3XfmZCRhhI7JSN6a6VJK
-ppNZPkbF0APcjB6W+a7CRQWs4Q+x0iVT7bt0C+8w/mS1QKahAxedg2LFhfqAFoxWqignoi3yDwWS
-fovP4QpO9Hr+T1egt+jhZYURcwaz98MNRZFUOnnBgZ7BxMaD0UliYaGnQf5HVQqnoAZqMNZ2eNI2
-r1wDZrSHi6QCg1mB8W3F5FNB4Vxluqin3ld3yXd2oPo3IzqYXC+KaUG6Dl0uN3YtRdS5S9d6XAuB
-FTC9gq0LgTIS/PnrdPuaEzVJ6wUjXgXm/gXLBxGTRGZNqyRNhtaTNP8BELY3z4hv9DDd2WW7JpuY
-5qJITwTc1Xq8oSCW4tQ2dEsml05nugXAt7Id5jmtS317hh/+Sf6/SxC2svQ+o6IikWbU6ZQiuUa6
-5GxZoe4PZaBk0CeSGcUhpC/dPyiQHlmYTt2T3cozHb7OcBd27AknfxCwwCNSj80qvXR/Jk+S7rFB
-JOmjKRsp3vfoKVhZBmXWHE5sTqJeuhFktn8CZRi47koKoUdsRHZsM+4l7VZ+DlA4RwFF2lMYx4xR
-aQcZ0Eo0R9CIc5BcbYeVWsq7gEVni+dFntMKfGr0x3Yfz/4GcUaw4m0suN4B3OCULN0EMKrT1RzB
-7gUlcFoI2+8aKnSNLYn+RCegd+Ra4gWkbPJUlL+oTmXdRvZA6esSi0OL/axUprBtD6eezOL13xiQ
-5C2XVZz6TyPj77vg+XDWb0g23+9Imty7TyYwl2jcj10Fe4hloikU8wc0+WaOYf6hy1domzuHIzHz
-INnLKIVT25MeyNSJBigcloD3gJaQhJceR+D0Tr6LTpypihYT5JEIfiAKfKBE9qXpmF4Bz44opEWp
-PQDWQ9XzgxBQuAD9DEt00p1NFUxkbTiQSh3dxkAyzgkVFh0/p+NRfOOmme7GtFT2M0XVR18sabfs
-mJvFAcB5FJuypQ1jIWPiLRByrZnBzDRVqLFsQw3nC8gKvNTSRafNf2G8sMS5tIibGI5W1GRaBIdE
-AuFpkRmddPG/m7kpKSjXRDX4g8ZG4NSTQZJAcKIkPUbAEyU2SIKWcwlHS7IlAVMlenvBv++T+eix
-zm69CNH8vJCVJqA9ZY+5EGNR6ugnjNMDEYzqBmprZSdH6O1l6pYLopsLmp6eMva7okBq9+Z/MQJP
-t5Gk+JEu18/+sDhzHJ1RBfkgoZseX8rPzfq6dyY73jyXLUdZ5Qz8PV8qfXj24fGj/q5prccDc3Wj
-6kcj3NT2s+SfORWf7frubX00sYKdQHooYE4gU6DySMBQE3BRE9AQ6K56bIsfHYEGAq0FUgU6+Alh
-Ht23z6l0YvKdmkgaC9gVaLYCJLP9AhXzdEMEVvZtAXu06yVgokEXtR0B6fiSQB9yFdofgEtp+0Yg
-T6AWsXkn0Eci04+BsBNhMt0JxJQokLaoGXRw9SigtBIPAvov+3Ttsk9K0edM8o1WuwMk9nwAFBba
-JJIlKWRBC3wBXYEqlh6S0GnFHJhJUaD3CtDec6I08heAwj1yIRPxJxBkVCAbGAFmnThkrAtk6QJi
-YfyNDFyizgjBoYmMYlrNVUqrM1UKznUxX4BtnymZ8SUQZDC/tz3a5++jhHSoG6gSgeR1IxBk5g88
-YNIpkGzpCGSKHjM7kxZEQDE+bcowYHnZcJEgSWS6LJcENE5ESmwCmdBrM85F9IN2AWQza43+Siok
-DBy/foQt6KAZhpwYgQ4Si5UejwbQJx9A7/81bEByQKfHFlLGPwech1gmUw/TCnfNuZ3qkEbs0/sj
-rB3A/gXQdOtYbm9ItivK7kvAzwGYbA8oM3dF8LWAFwCdvX518fqt+HkJGMhRtUZM0a1fJlSDsMqF
-pGZ1XL+OfK2iQYIrg6wSq9W9O6mjOi9JshnZBsYnNS7SWqal1hGUYu0NHbHK0hJTTolJdErkN+m4
-ITmwoy+IPBDwNW+8Iwnkrlilmik9sj2BYKXaA64Td0CCMCxUSakgEmMxC4TlDXhgDqOR0LI18Kz0
-MjQDRzfMYt9c1g68rci/yOWX+VLyd770IdfpW/vabFRdjuf1jVvpDkztKnn9PG/GyV8TM/lLD/Mf
-cvXV3XIxnFT7W+faizS/EV/lleTlWfLn9WWy4PGjV6+G1u1EnTrtUW0ZBfvB2re1Wf9Ls+Ft4177
-1tl3DPWo91uHm0G1EUeBO531ylpzrDftw8eK4c9Hm3jQuXXW7mTW35X3+mxzuN5NgqhidMP28s7z
-b7x95E+/7BaVa23dj9Vm25kNP1bd0NavDzO1Pzzutr2uVltOWlE1KN+uZtPBTX09vrX04dafOAu1
-12iZ7WbPMWrV27hvD7bdQJ9vltflyfRm3zrebUJ/2p+vg+HBUEeW3k5Gp/vG2JzMOou+c9Ms9yrr
-/bJl+NcfXc8ebwZaezPt1EfV4SJequNdo+nXvvRb7cF21B77CQem1t/cNGtGVLlN+t7r2GzMeuvB
-qn/8oob+7XDf9roVzd5o+968c1w3t6uDM/3oNUaWu3z8yF7kip65z1X12CyWPgFdfS6WcldXuftF
-ahjqx+Lveip9Ovtcyn3NTWbOdvclvLPqq2lD1bvNxJtA+5005fVqr1y7ud445qobHT9Ode9Ht6Y7
-xd/OSCxoPd61R5XjTF/UWlHvJln6639c+s0W78cA+efTj83N8D4CmNG9m/ee5+8nA6fm+e2nEIqz
-sPdlUi3vfgbZQRJS79l+8+b9hfL+PrBflp4+RYueXOXenr25OH//6vzNm9eKopQSUfzk5Re67y/7
-DlBLAQI/ABQAAAAIAGelCEudSFezuQkAAHI1AAAIACQAAAAAAAAAIAAAAAAAAAAxOTc3NC5qcwoA
-IAAAAAAAAQAYAK7a65/BENMBrtrrn8EQ0wGu2uufwRDTAVBLBQYAAAAAAQABAFoAAADfCQAAAABQ
-SwECPwAKAAAAAABnpQhL9OE9o08KAABPCgAACQAkAAAAAAAAACAAAAAAAAAAMTk3NzQuemlwCgAg
-AAAAAAABABgAz2b1n8EQ0wH8AfOfwRDTAfwB85/BENMBUEsFBgAAAAABAAEAWwAAAHYKAAAAAA==
+
+--uZ3hkaAS1mZxFaxD
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
+
+On Sun, Aug 06, 2017 at 06:43:59PM +0200, Mikko Rapeli wrote:
+> Include linux/types.h and asm/msgbuf.h and use __kernel_size_t instead
+> of size_t.
+>=20
+> Fixes userspace compilation errors like:
+>=20
+> error: field =E2=80=98shm_perm=E2=80=99 has incomplete type
+> struct ipc64_perm shm_perm; /* operation perms */
+> error: unknown type name =E2=80=98size_t=E2=80=99
+> error: unknown type name =E2=80=98__kernel_time_t=E2=80=99
+>=20
+> Signed-off-by: Mikko Rapeli <mikko.rapeli@iki.fi>
+> Acked-by: Arnd Bergmann <arnd@arndb.de>
+> Cc: H.J. Lu <hjl.tools@gmail.com>
+> Cc: H. Peter Anvin <hpa@zytor.com>
+> ---
+>  include/uapi/asm-generic/shmbuf.h | 4 +++-
+>  1 file changed, 3 insertions(+), 1 deletion(-)
+>=20
+> diff --git a/include/uapi/asm-generic/shmbuf.h b/include/uapi/asm-generic=
+/shmbuf.h
+> index 7e9fb2f0853b..ae867ad1e5e4 100644
+> --- a/include/uapi/asm-generic/shmbuf.h
+> +++ b/include/uapi/asm-generic/shmbuf.h
+> @@ -1,7 +1,9 @@
+>  #ifndef __ASM_GENERIC_SHMBUF_H
+>  #define __ASM_GENERIC_SHMBUF_H
+> =20
+> +#include <linux/types.h>
+>  #include <asm/bitsperlong.h>
+> +#include <asm/msgbuf.h>
+> =20
+>  /*
+>   * The shmid64_ds structure for x86 architecture.
+> @@ -24,7 +26,7 @@
+> =20
+>  struct shmid64_ds {
+>  	struct ipc64_perm	shm_perm;	/* operation perms */
+> -	size_t			shm_segsz;	/* size of segment (bytes) */
+> +	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
+>  	__kernel_time_t		shm_atime;	/* last attach time */
+>  #if __BITS_PER_LONG !=3D 64
+>  	unsigned long		__unused1;
+
+Surprisingly enough, this replacement of size_t with __kernel_size_t
+is not just correct, it's a fix for a more subtle bug on x32, see
+http://lkml.kernel.org/r/20170302004607.GE27132@altlinux.org
+
+I recommend splitting the change into "include" fix and "size_t" fix
+like I did some time ago, see
+http://lkml.kernel.org/r/20170302002253.GC27132@altlinux.org
+
+
+--=20
+ldv
+
+--uZ3hkaAS1mZxFaxD
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQIcBAEBCAAGBQJZij5tAAoJEAVFT+BVnCUIweMQAKZrlENzLYUCtXydISn5o2Ee
+stLaTJi4J+Lylb2x1QiBhg5UIdpHzpObYM9f2OltD03w/BmpVQPdeMxHjzylGQYB
+1ZkeWhm532LcxYQe8hM328nAB5k7CHlK3NcIp4+UPpdgnBXelc1YU/VJMvuwGM+U
+ERAoUtVh5hUOlvv+OQpU1utwZQPJwHWl62j9hwhbn40dFv4nWsSl6VVhtgksaXvR
+FjrQC/qIOEiP9441VXLIlJ/jOW2glELD72XG1+eT4h7Cn39wy/GCY+74JKq8iO6E
+fyxrbMTE0tbpOmQe6Qkq7iQmIzQS5oubD8/tq8rMkqcWSjPEZ1Xp1uhURP0EREK8
+MoOAqGXONdayyE3XSbvfYyK8aMtgHrQv82RmLpA4HX3GS+pblenHoG9rkvzt/8Re
+vh4XT9K+FHnmjbtlwbUDCimQ6v3LqUkC4AhT3XPz1SbofvH19pxqubTItRqTfqlD
+80TugJSR+aSF0f13zacVw74mDH0V54bColkfYoPUDB20L/uj6PNDJhRHgEe852eu
+zDAc3xY0aVndwy6kDJRKnwXL3lwGsFLbn5ahgIPhTpe3S4ImiKB7XfBuW/mGCvMQ
+t2OQVlDGiam4StcZL2gJZomvJrYxdAUYhkObIl+1f0NO8U9YzFDqKUaIdje2X8vy
+Qm64i9YgcJT0ZuWU89LH
+=+vYo
+-----END PGP SIGNATURE-----
+
+--uZ3hkaAS1mZxFaxD--
