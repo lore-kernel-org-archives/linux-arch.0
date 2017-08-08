@@ -1,63 +1,105 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out03.mta.xmission.com ([166.70.13.233]:56155 "EHLO
-        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752470AbdHHPhs (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 8 Aug 2017 11:37:48 -0400
-From: ebiederm@xmission.com (Eric W. Biederman)
-References: <87o9shg7t7.fsf_-_@xmission.com>
-        <20170718140651.15973-4-ebiederm@xmission.com>
-        <alpine.DEB.2.00.1708071706290.17596@tp.orcam.me.uk>
-Date: Tue, 08 Aug 2017 10:29:18 -0500
-In-Reply-To: <alpine.DEB.2.00.1708071706290.17596@tp.orcam.me.uk> (Maciej
-        W. Rozycki's message of "Mon, 7 Aug 2017 17:18:11 +0100")
-Message-ID: <87mv7agjsh.fsf@xmission.com>
+Received: from vmicros1.altlinux.org ([194.107.17.57]:45118 "EHLO
+        vmicros1.altlinux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752467AbdHHWmz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 8 Aug 2017 18:42:55 -0400
+Date: Wed, 9 Aug 2017 01:42:53 +0300
+From: "Dmitry V. Levin" <ldv@altlinux.org>
+Subject: Re: [PATCH v06 08/36] uapi asm-generic/shmbuf.h: include fixes
+Message-ID: <20170808224253.GB10552@altlinux.org>
+References: <20170806164428.2273-1-mikko.rapeli@iki.fi>
+ <20170806164428.2273-9-mikko.rapeli@iki.fi>
 MIME-Version: 1.0
-Content-Type: text/plain
-Subject: Re: [PATCH 4/7] signal/mips: Document a conflict with SI_USER with SIGFPE
+Content-Type: multipart/signed; micalg=pgp-sha256;
+        protocol="application/pgp-signature"; boundary="uZ3hkaAS1mZxFaxD"
+Content-Disposition: inline
+In-Reply-To: <20170806164428.2273-9-mikko.rapeli@iki.fi>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Maciej W. Rozycki" <macro@imgtec.com>
-Cc: linux-kernel@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, Andrei Vagin <avagin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Greg KH <greg@kroah.com>, Andrey Vagin <avagin@openvz.org>, Serge Hallyn <serge@hallyn.com>, Pavel Emelyanov <xemul@virtuozzo.com>, Cyrill Gorcunov <gorcunov@openvz.org>, Peter Zijlstra <peterz@infradead.org>, Willy Tarreau <w@1wt.eu>, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Linux Containers <containers@lists.linux-foundation.org>, Michael Kerrisk <mtk.manpages@gmail.com>, Ralf Baechle <ralf@linux-mips.org>
-Message-ID: <20170808152918.nomoZMyIlMd2ZLu7R-CpnpRNP_1ltX4lzOsrHyqRqPY@z>
+To: Mikko Rapeli <mikko.rapeli@iki.fi>
+Cc: linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, "H . J . Lu" <hjl.tools@gmail.com>, "H . Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+Message-ID: <20170808224253.zxDbbX-QY7WczvKH6giHLdglDQUho7L-yBwV53h-Hhs@z>
 
-"Maciej W. Rozycki" <macro@imgtec.com> writes:
 
-> On Tue, 18 Jul 2017, Eric W. Biederman wrote:
->
->> diff --git a/arch/mips/kernel/traps.c b/arch/mips/kernel/traps.c
->> index b68b4d0726d3..6c9cca9c5341 100644
->> --- a/arch/mips/kernel/traps.c
->> +++ b/arch/mips/kernel/traps.c
->> @@ -735,7 +735,7 @@ void force_fcr31_sig(unsigned long fcr31, void __user *fault_addr,
->>  	else if (fcr31 & FPU_CSR_INE_X)
->>  		si.si_code = FPE_FLTRES;
->>  	else
->> -		si.si_code = __SI_FAULT;
->> +		si.si_code = FPE_FIXME;
->
->  This is an "impossible" state to reach unless your hardware is on fire.  
-> One or more of the FCSR Cause bits will have been set (in `fcr31') or the 
-> FPE exception would not have happened.
->
->  Of course there could be a simulator bug, or we could have breakage 
-> somewhere causing `process_fpemu_return' to be called with SIGFPE and 
-> inconsistent `fcr31'.  So we need to handle it somehow.
->
->  So what would be the right value of `si_code' to use here for such an 
-> unexpected exception condition?  I think `BUG()' would be too big a 
-> hammer here.  Or wouldn't it?
+--uZ3hkaAS1mZxFaxD
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-The possible solutions I can think of are:
+On Sun, Aug 06, 2017 at 06:43:59PM +0200, Mikko Rapeli wrote:
+> Include linux/types.h and asm/msgbuf.h and use __kernel_size_t instead
+> of size_t.
+>=20
+> Fixes userspace compilation errors like:
+>=20
+> error: field =E2=80=98shm_perm=E2=80=99 has incomplete type
+> struct ipc64_perm shm_perm; /* operation perms */
+> error: unknown type name =E2=80=98size_t=E2=80=99
+> error: unknown type name =E2=80=98__kernel_time_t=E2=80=99
+>=20
+> Signed-off-by: Mikko Rapeli <mikko.rapeli@iki.fi>
+> Acked-by: Arnd Bergmann <arnd@arndb.de>
+> Cc: H.J. Lu <hjl.tools@gmail.com>
+> Cc: H. Peter Anvin <hpa@zytor.com>
+> ---
+>  include/uapi/asm-generic/shmbuf.h | 4 +++-
+>  1 file changed, 3 insertions(+), 1 deletion(-)
+>=20
+> diff --git a/include/uapi/asm-generic/shmbuf.h b/include/uapi/asm-generic=
+/shmbuf.h
+> index 7e9fb2f0853b..ae867ad1e5e4 100644
+> --- a/include/uapi/asm-generic/shmbuf.h
+> +++ b/include/uapi/asm-generic/shmbuf.h
+> @@ -1,7 +1,9 @@
+>  #ifndef __ASM_GENERIC_SHMBUF_H
+>  #define __ASM_GENERIC_SHMBUF_H
+> =20
+> +#include <linux/types.h>
+>  #include <asm/bitsperlong.h>
+> +#include <asm/msgbuf.h>
+> =20
+>  /*
+>   * The shmid64_ds structure for x86 architecture.
+> @@ -24,7 +26,7 @@
+> =20
+>  struct shmid64_ds {
+>  	struct ipc64_perm	shm_perm;	/* operation perms */
+> -	size_t			shm_segsz;	/* size of segment (bytes) */
+> +	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
+>  	__kernel_time_t		shm_atime;	/* last attach time */
+>  #if __BITS_PER_LONG !=3D 64
+>  	unsigned long		__unused1;
 
-WARN_ON_ONCE with a comment.
+Surprisingly enough, this replacement of size_t with __kernel_size_t
+is not just correct, it's a fix for a more subtle bug on x32, see
+http://lkml.kernel.org/r/20170302004607.GE27132@altlinux.org
 
-Add a new si_code to uapi/asm-generic/siginfo.h perhaps FPE_IMPOSSIBLE.
-Like syscall numbers si_codes are cheap.
+I recommend splitting the change into "include" fix and "size_t" fix
+like I did some time ago, see
+http://lkml.kernel.org/r/20170302002253.GC27132@altlinux.org
 
-Call force_sig() instead of force_sig_info, using just a generic
-si_code.
 
-If this is truly impossible and the compiler doesn't complain just drop
-the code.
+--=20
+ldv
 
-Eric
+--uZ3hkaAS1mZxFaxD
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQIcBAEBCAAGBQJZij5tAAoJEAVFT+BVnCUIweMQAKZrlENzLYUCtXydISn5o2Ee
+stLaTJi4J+Lylb2x1QiBhg5UIdpHzpObYM9f2OltD03w/BmpVQPdeMxHjzylGQYB
+1ZkeWhm532LcxYQe8hM328nAB5k7CHlK3NcIp4+UPpdgnBXelc1YU/VJMvuwGM+U
+ERAoUtVh5hUOlvv+OQpU1utwZQPJwHWl62j9hwhbn40dFv4nWsSl6VVhtgksaXvR
+FjrQC/qIOEiP9441VXLIlJ/jOW2glELD72XG1+eT4h7Cn39wy/GCY+74JKq8iO6E
+fyxrbMTE0tbpOmQe6Qkq7iQmIzQS5oubD8/tq8rMkqcWSjPEZ1Xp1uhURP0EREK8
+MoOAqGXONdayyE3XSbvfYyK8aMtgHrQv82RmLpA4HX3GS+pblenHoG9rkvzt/8Re
+vh4XT9K+FHnmjbtlwbUDCimQ6v3LqUkC4AhT3XPz1SbofvH19pxqubTItRqTfqlD
+80TugJSR+aSF0f13zacVw74mDH0V54bColkfYoPUDB20L/uj6PNDJhRHgEe852eu
+zDAc3xY0aVndwy6kDJRKnwXL3lwGsFLbn5ahgIPhTpe3S4ImiKB7XfBuW/mGCvMQ
+t2OQVlDGiam4StcZL2gJZomvJrYxdAUYhkObIl+1f0NO8U9YzFDqKUaIdje2X8vy
+Qm64i9YgcJT0ZuWU89LH
+=+vYo
+-----END PGP SIGNATURE-----
+
+--uZ3hkaAS1mZxFaxD--
