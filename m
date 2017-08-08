@@ -1,37 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f42.google.com ([209.85.218.42]:35935 "EHLO
-        mail-oi0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751857AbdHGRlk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 7 Aug 2017 13:41:40 -0400
+Received: from LGEAMRELO11.lge.com ([156.147.23.51]:44692 "EHLO
+        lgeamrelo11.lge.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751755AbdHHC2c (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 7 Aug 2017 22:28:32 -0400
+Date: Tue, 8 Aug 2017 11:28:30 +0900
+From: Minchan Kim <minchan@kernel.org>
+Subject: Re: [lkp-robot] [mm]  7674270022:  will-it-scale.per_process_ops
+ -19.3% regression
+Message-ID: <20170808022830.GA28570@bbox>
+References: <20170802000818.4760-7-namit@vmware.com>
+ <20170808011923.GE25554@yexl-desktop>
 MIME-Version: 1.0
-In-Reply-To: <alpine.DEB.2.00.1708071706290.17596@tp.orcam.me.uk>
-References: <87o9shg7t7.fsf_-_@xmission.com> <20170718140651.15973-4-ebiederm@xmission.com>
- <alpine.DEB.2.00.1708071706290.17596@tp.orcam.me.uk>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Mon, 7 Aug 2017 10:41:39 -0700
-Message-ID: <CA+55aFx3ss90b4x2bo4si80kQUjMVL1zUX3Oxvu04OE14nUtFw@mail.gmail.com>
-Subject: Re: [PATCH 4/7] signal/mips: Document a conflict with SI_USER with SIGFPE
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20170808011923.GE25554@yexl-desktop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Maciej W. Rozycki" <macro@imgtec.com>
-Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, Andrei Vagin <avagin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Greg KH <greg@kroah.com>, Andrey Vagin <avagin@openvz.org>, Serge Hallyn <serge@hallyn.com>, Pavel Emelyanov <xemul@virtuozzo.com>, Cyrill Gorcunov <gorcunov@openvz.org>, Peter Zijlstra <peterz@infradead.org>, Willy Tarreau <w@1wt.eu>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Linux Containers <containers@lists.linux-foundation.org>, Michael Kerrisk <mtk.manpages@gmail.com>, Ralf Baechle <ralf@linux-mips.org>
-Message-ID: <20170807174139.nX44UkKxvnCc39n1W-ySI4Z60SBCTSTfj8aHIsz0Cx4@z>
+To: kernel test robot <xiaolong.ye@intel.com>
+Cc: Nadav Amit <namit@vmware.com>, linux-mm@kvack.org, nadav.amit@gmail.com, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Tony Luck <tony.luck@intel.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, "David S. Miller" <davem@davemloft.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Jeff Dike <jdike@addtoit.com>, linux-arch@vger.kernel.org, lkp@01.org
+Message-ID: <20170808022830.zmrDW1aaxC66J0yjsj--eE7ZO0qy9jM5N6dw9hc93Ag@z>
 
-On Mon, Aug 7, 2017 at 9:18 AM, Maciej W. Rozycki <macro@imgtec.com> wrote:
->
->  So what would be the right value of `si_code' to use here for such an
-> unexpected exception condition?  I think `BUG()' would be too big a
-> hammer here.  Or wouldn't it?
+Hi,
 
-Hell no. NEVER EVER BUG().
+On Tue, Aug 08, 2017 at 09:19:23AM +0800, kernel test robot wrote:
+> 
+> Greeting,
+> 
+> FYI, we noticed a -19.3% regression of will-it-scale.per_process_ops due to commit:
+> 
+> 
+> commit: 76742700225cad9df49f05399381ac3f1ec3dc60 ("mm: fix MADV_[FREE|DONTNEED] TLB flush miss problem")
+> url: https://github.com/0day-ci/linux/commits/Nadav-Amit/mm-migrate-prevent-racy-access-to-tlb_flush_pending/20170802-205715
+> 
+> 
+> in testcase: will-it-scale
+> on test machine: 88 threads Intel(R) Xeon(R) CPU E5-2699 v4 @ 2.20GHz with 64G memory
+> with following parameters:
+> 
+> 	nr_task: 16
+> 	mode: process
+> 	test: brk1
+> 	cpufreq_governor: performance
+> 
+> test-description: Will It Scale takes a testcase and runs it from 1 through to n parallel copies to see if the testcase will scale. It builds both a process and threads based test in order to see any differences between the two.
+> test-url: https://github.com/antonblanchard/will-it-scale
 
-The only case to use BUG() is if there is some core data structure
-(say, kernel stack) that is so corrupted that you know you cannot
-continue. That's the *only* valid use.
+Thanks for the report.
+Could you explain what kinds of workload you are testing?
 
-If this is a "this condition cannot happen" issue, then just remove
-the damn conditional. It's pointless. Adding a BUG() to show "this
-cannot happen" is not acceptable.
-
-                        Linus
+Does it calls frequently madvise(MADV_DONTNEED) in parallel on multiple
+threads?
