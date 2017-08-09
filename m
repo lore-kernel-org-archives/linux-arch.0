@@ -1,48 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:47270 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752590AbdHIMHi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 9 Aug 2017 08:07:38 -0400
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: [PATCH 16/27] arm64/sve: Preserve SVE registers around kernel-mode NEON use
-Date: Wed,  9 Aug 2017 13:05:22 +0100
-Message-ID: <1502280338-23002-17-git-send-email-Dave.Martin@arm.com>
-In-Reply-To: <1502280338-23002-1-git-send-email-Dave.Martin@arm.com>
-References: <1502280338-23002-1-git-send-email-Dave.Martin@arm.com>
+Received: from userp1040.oracle.com ([156.151.31.81]:19301 "EHLO
+        userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752047AbdHIV2D (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 Aug 2017 17:28:03 -0400
+From: Khalid Aziz <khalid.aziz@oracle.com>
+Subject: [PATCH v7 1/9] signals, sparc: Add signal codes for ADI violations
+Date: Wed,  9 Aug 2017 15:25:54 -0600
+Message-ID: <732a806f1e46d6b6082d7a2e712d991eb3ac5300.1502219353.git.khalid.aziz@oracle.com>
+In-Reply-To: <cover.1502219353.git.khalid.aziz@oracle.com>
+References: <cover.1502219353.git.khalid.aziz@oracle.com>
+In-Reply-To: <cover.1502219353.git.khalid.aziz@oracle.com>
+References: <cover.1502219353.git.khalid.aziz@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arm-kernel@lists.infradead.org
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu, libc-alpha@sourceware.org, linux-arch@vger.kernel.org
-Message-ID: <20170809120522.d-q2UDnnF0JQg5QETFQc-JqwvZ5qIyrRMnzLzhkqW68@z>
+To: arnd@arndb.de, davem@davemloft.net, dave.hansen@linux.intel.com
+Cc: Khalid Aziz <khalid.aziz@oracle.com>, hpa@zytor.com, 0x7f454c46@gmail.com, tglx@linutronix.de, mingo@redhat.com, x86@kernel.org, jroedel@suse.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, sparclinux@vger.kernel.org, Khalid Aziz <khalid@gonehiking.org>
+Message-ID: <20170809212554.cOsrVBx7EYE4jlTzUTEz9E8wRpY5nKtVi2Cfnc1oWWU@z>
 
-Kernel-mode NEON will corrupt the SVE vector registers, due to the
-way they alias the FPSIMD vector registers in the hardware.
+SPARC M7 processor introduces a new feature - Application Data
+Integrity (ADI). ADI allows MMU to  catch rogue accesses to memory.
+When a rogue access occurs, MMU blocks the access and raises an
+exception. In response to the exception, kernel sends the offending
+task a SIGSEGV with si_code that indicates the nature of exception.
+This patch adds three new signal codes specific to ADI feature:
 
-This patch ensures that any live SVE register content for the task
-is saved by kernel_neon_begin().  The data will be restored in the
-usual way on return to userspace.
+1. ADI is not enabled for the address and task attempted to access
+   memory using ADI
+2. Task attempted to access memory using wrong ADI tag and caused
+   a deferred exception.
+3. Task attempted to access memory using wrong ADI tag and caused
+   a precise exception.
 
-Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+Signed-off-by: Khalid Aziz <khalid.aziz@oracle.com>
+Cc: Khalid Aziz <khalid@gonehiking.org>
 ---
- arch/arm64/kernel/fpsimd.c | 6 ++++--
- 1 file changed, 4 insertions(+), 2 deletions(-)
+ arch/x86/kernel/signal_compat.c    | 2 +-
+ include/uapi/asm-generic/siginfo.h | 5 ++++-
+ 2 files changed, 5 insertions(+), 2 deletions(-)
 
-diff --git a/arch/arm64/kernel/fpsimd.c b/arch/arm64/kernel/fpsimd.c
-index 955c873..b7fb836 100644
---- a/arch/arm64/kernel/fpsimd.c
-+++ b/arch/arm64/kernel/fpsimd.c
-@@ -758,8 +758,10 @@ void kernel_neon_begin(void)
- 	__this_cpu_write(kernel_neon_busy, true);
+diff --git a/arch/x86/kernel/signal_compat.c b/arch/x86/kernel/signal_compat.c
+index 71beb28600d4..e6e0b50230c3 100644
+--- a/arch/x86/kernel/signal_compat.c
++++ b/arch/x86/kernel/signal_compat.c
+@@ -26,7 +26,7 @@ static inline void signal_compat_build_tests(void)
+ 	 */
+ 	BUILD_BUG_ON(NSIGILL  != 8);
+ 	BUILD_BUG_ON(NSIGFPE  != 8);
+-	BUILD_BUG_ON(NSIGSEGV != 4);
++	BUILD_BUG_ON(NSIGSEGV != 7);
+ 	BUILD_BUG_ON(NSIGBUS  != 5);
+ 	BUILD_BUG_ON(NSIGTRAP != 4);
+ 	BUILD_BUG_ON(NSIGCHLD != 6);
+diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
+index 1abaf62c86fc..24468643ee9d 100644
+--- a/include/uapi/asm-generic/siginfo.h
++++ b/include/uapi/asm-generic/siginfo.h
+@@ -213,7 +213,10 @@ typedef struct siginfo {
+ #define SEGV_ACCERR	(__SI_FAULT|2)	/* invalid permissions for mapped object */
+ #define SEGV_BNDERR	(__SI_FAULT|3)  /* failed address bound checks */
+ #define SEGV_PKUERR	(__SI_FAULT|4)  /* failed protection key checks */
+-#define NSIGSEGV	4
++#define SEGV_ACCADI	(__SI_FAULT|5)	/* ADI not enabled for mapped object */
++#define SEGV_ADIDERR	(__SI_FAULT|6)	/* Disrupting MCD error */
++#define SEGV_ADIPERR	(__SI_FAULT|7)	/* Precise MCD exception */
++#define NSIGSEGV	7
  
- 	/* Save unsaved task fpsimd state, if any: */
--	if (current->mm && !test_and_set_thread_flag(TIF_FOREIGN_FPSTATE))
--		fpsimd_save_state(&current->thread.fpsimd_state);
-+	if (current->mm) {
-+		task_fpsimd_save();
-+		set_thread_flag(TIF_FOREIGN_FPSTATE);
-+	}
- 
- 	/* Invalidate any task state remaining in the fpsimd regs: */
- 	__this_cpu_write(fpsimd_last_state, NULL);
+ /*
+  * SIGBUS si_codes
 -- 
-2.1.4
+2.11.0
