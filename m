@@ -1,8 +1,8 @@
 From: Ye Xiaolong <xiaolong.ye@intel.com>
 Subject: Re: [lkp-robot] [mm]  7674270022:  will-it-scale.per_process_ops
  -19.3% regression
-Date: Wed, 9 Aug 2017 09:25:19 +0800
-Message-ID: <20170809012519.GB29499@yexl-desktop>
+Date: Wed, 9 Aug 2017 10:59:02 +0800
+Message-ID: <20170809025902.GA17616@yexl-desktop>
 References: <20170802000818.4760-7-namit@vmware.com>
  <20170808011923.GE25554@yexl-desktop>
  <20170808022830.GA28570@bbox>
@@ -12,17 +12,13 @@ References: <20170802000818.4760-7-namit@vmware.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga06.intel.com ([134.134.136.31]:59125 "EHLO mga06.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752486AbdHIB0Z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 8 Aug 2017 21:26:25 -0400
+Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
 In-Reply-To: <20170808080821.GA31730@bbox>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: owner-linux-mm@kvack.org
 To: Minchan Kim <minchan@kernel.org>
 Cc: Nadav Amit <nadav.amit@gmail.com>, "open list:MEMORY MANAGEMENT" <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Tony Luck <tony.luck@intel.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, "David S. Miller" <davem@davemloft.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Jeff Dike <jdike@addtoit.com>, linux-arch@vger.kernel.org, lkp@01.org
+List-Id: linux-arch.vger.kernel.org
 
 On 08/08, Minchan Kim wrote:
 >On Mon, Aug 07, 2017 at 10:51:00PM -0700, Nadav Amit wrote:
@@ -78,12 +74,26 @@ On 08/08, Minchan Kim wrote:
 >
 >Anyway, thanks for the pointing out.
 >xiaolong.ye, could you retest with this fix?
+>
 
-Sure, I'll provide the result later.
+I've queued tests for 5 times and results show this patch (e8f682574e4 "mm:
+decrease tlb flush pending count in tlb_finish_mmu") does help recover the
+performance back.
+
+378005bdbac0a2ec  76742700225cad9df49f053993  e8f682574e45b6406dadfffeb4  
+----------------  --------------------------  --------------------------  
+         %stddev      change         %stddev      change         %stddev
+             \          |                \          |                \  
+   3405093             -19%    2747088              -2%    3348752        will-it-scale.per_process_ops
+      1280 ±  3%        -2%       1257 ±  3%        -6%       1207        vmstat.system.cs
+      2702 ± 18%        11%       3002 ± 19%        17%       3156 ± 18%  numa-vmstat.node0.nr_mapped
+     10765 ± 18%        11%      11964 ± 19%        17%      12588 ± 18%  numa-meminfo.node0.Mapped
+      0.00 ± 47%       -40%       0.00 ± 45%       -84%       0.00 ± 42%  mpstat.cpu.soft%
 
 Thanks,
 Xiaolong
->
+
+
 From 83012114c9cd9304f0d55d899bb4b9329d0e22ac Mon Sep 17 00:00:00 2001
 >From: Minchan Kim <minchan@kernel.org>
 >Date: Tue, 8 Aug 2017 17:05:19 +0900
@@ -113,3 +123,9 @@ From 83012114c9cd9304f0d55d899bb4b9329d0e22ac Mon Sep 17 00:00:00 2001
 >-- 
 >2.7.4
 >
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
