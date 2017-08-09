@@ -1,105 +1,130 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from vmicros1.altlinux.org ([194.107.17.57]:45118 "EHLO
-        vmicros1.altlinux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752467AbdHHWmz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 8 Aug 2017 18:42:55 -0400
-Date: Wed, 9 Aug 2017 01:42:53 +0300
-From: "Dmitry V. Levin" <ldv@altlinux.org>
-Subject: Re: [PATCH v06 08/36] uapi asm-generic/shmbuf.h: include fixes
-Message-ID: <20170808224253.GB10552@altlinux.org>
-References: <20170806164428.2273-1-mikko.rapeli@iki.fi>
- <20170806164428.2273-9-mikko.rapeli@iki.fi>
+Received: from mga02.intel.com ([134.134.136.20]:44155 "EHLO mga02.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751919AbdHIDAI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 8 Aug 2017 23:00:08 -0400
+Date: Wed, 9 Aug 2017 10:59:02 +0800
+From: Ye Xiaolong <xiaolong.ye@intel.com>
+Subject: Re: [lkp-robot] [mm]  7674270022:  will-it-scale.per_process_ops
+ -19.3% regression
+Message-ID: <20170809025902.GA17616@yexl-desktop>
+References: <20170802000818.4760-7-namit@vmware.com>
+ <20170808011923.GE25554@yexl-desktop>
+ <20170808022830.GA28570@bbox>
+ <93CA4B47-95C2-43A2-8E92-B142CAB1DAF7@gmail.com>
+ <970B5DC5-BFC2-461E-AC46-F71B3691D301@gmail.com>
+ <20170808080821.GA31730@bbox>
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-        protocol="application/pgp-signature"; boundary="uZ3hkaAS1mZxFaxD"
-Content-Disposition: inline
-In-Reply-To: <20170806164428.2273-9-mikko.rapeli@iki.fi>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Mikko Rapeli <mikko.rapeli@iki.fi>
-Cc: linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, "H . J . Lu" <hjl.tools@gmail.com>, "H . Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
-Message-ID: <20170808224253.zxDbbX-QY7WczvKH6giHLdglDQUho7L-yBwV53h-Hhs@z>
-
-
---uZ3hkaAS1mZxFaxD
 Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <20170808080821.GA31730@bbox>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Minchan Kim <minchan@kernel.org>
+Cc: Nadav Amit <nadav.amit@gmail.com>, "open list:MEMORY MANAGEMENT" <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Tony Luck <tony.luck@intel.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, "David S. Miller" <davem@davemloft.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Jeff Dike <jdike@addtoit.com>, linux-arch@vger.kernel.org, lkp@01.org
+Message-ID: <20170809025902.qcgvdUXsp1amA_XjzRXsUySZQs-6LwuqYKizlPJ_cOs@z>
 
-On Sun, Aug 06, 2017 at 06:43:59PM +0200, Mikko Rapeli wrote:
-> Include linux/types.h and asm/msgbuf.h and use __kernel_size_t instead
-> of size_t.
->=20
-> Fixes userspace compilation errors like:
->=20
-> error: field =E2=80=98shm_perm=E2=80=99 has incomplete type
-> struct ipc64_perm shm_perm; /* operation perms */
-> error: unknown type name =E2=80=98size_t=E2=80=99
-> error: unknown type name =E2=80=98__kernel_time_t=E2=80=99
->=20
-> Signed-off-by: Mikko Rapeli <mikko.rapeli@iki.fi>
-> Acked-by: Arnd Bergmann <arnd@arndb.de>
-> Cc: H.J. Lu <hjl.tools@gmail.com>
-> Cc: H. Peter Anvin <hpa@zytor.com>
-> ---
->  include/uapi/asm-generic/shmbuf.h | 4 +++-
->  1 file changed, 3 insertions(+), 1 deletion(-)
->=20
-> diff --git a/include/uapi/asm-generic/shmbuf.h b/include/uapi/asm-generic=
-/shmbuf.h
-> index 7e9fb2f0853b..ae867ad1e5e4 100644
-> --- a/include/uapi/asm-generic/shmbuf.h
-> +++ b/include/uapi/asm-generic/shmbuf.h
-> @@ -1,7 +1,9 @@
->  #ifndef __ASM_GENERIC_SHMBUF_H
->  #define __ASM_GENERIC_SHMBUF_H
-> =20
-> +#include <linux/types.h>
->  #include <asm/bitsperlong.h>
-> +#include <asm/msgbuf.h>
-> =20
->  /*
->   * The shmid64_ds structure for x86 architecture.
-> @@ -24,7 +26,7 @@
-> =20
->  struct shmid64_ds {
->  	struct ipc64_perm	shm_perm;	/* operation perms */
-> -	size_t			shm_segsz;	/* size of segment (bytes) */
-> +	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
->  	__kernel_time_t		shm_atime;	/* last attach time */
->  #if __BITS_PER_LONG !=3D 64
->  	unsigned long		__unused1;
+On 08/08, Minchan Kim wrote:
+>On Mon, Aug 07, 2017 at 10:51:00PM -0700, Nadav Amit wrote:
+>> Nadav Amit <nadav.amit@gmail.com> wrote:
+>> 
+>> > Minchan Kim <minchan@kernel.org> wrote:
+>> > 
+>> >> Hi,
+>> >> 
+>> >> On Tue, Aug 08, 2017 at 09:19:23AM +0800, kernel test robot wrote:
+>> >>> Greeting,
+>> >>> 
+>> >>> FYI, we noticed a -19.3% regression of will-it-scale.per_process_ops due to commit:
+>> >>> 
+>> >>> 
+>> >>> commit: 76742700225cad9df49f05399381ac3f1ec3dc60 ("mm: fix MADV_[FREE|DONTNEED] TLB flush miss problem")
+>> >>> url: https://github.com/0day-ci/linux/commits/Nadav-Amit/mm-migrate-prevent-racy-access-to-tlb_flush_pending/20170802-205715
+>> >>> 
+>> >>> 
+>> >>> in testcase: will-it-scale
+>> >>> on test machine: 88 threads Intel(R) Xeon(R) CPU E5-2699 v4 @ 2.20GHz with 64G memory
+>> >>> with following parameters:
+>> >>> 
+>> >>> 	nr_task: 16
+>> >>> 	mode: process
+>> >>> 	test: brk1
+>> >>> 	cpufreq_governor: performance
+>> >>> 
+>> >>> test-description: Will It Scale takes a testcase and runs it from 1 through to n parallel copies to see if the testcase will scale. It builds both a process and threads based test in order to see any differences between the two.
+>> >>> test-url: https://github.com/antonblanchard/will-it-scale
+>> >> 
+>> >> Thanks for the report.
+>> >> Could you explain what kinds of workload you are testing?
+>> >> 
+>> >> Does it calls frequently madvise(MADV_DONTNEED) in parallel on multiple
+>> >> threads?
+>> > 
+>> > According to the description it is "testcase:brk increase/decrease of one
+>> > page”. According to the mode it spawns multiple processes, not threads.
+>> > 
+>> > Since a single page is unmapped each time, and the iTLB-loads increase
+>> > dramatically, I would suspect that for some reason a full TLB flush is
+>> > caused during do_munmap().
+>> > 
+>> > If I find some free time, I’ll try to profile the workload - but feel free
+>> > to beat me to it.
+>> 
+>> The root-cause appears to be that tlb_finish_mmu() does not call
+>> dec_tlb_flush_pending() - as it should. Any chance you can take care of it?
+>
+>Oops, but with second looking, it seems it's not my fault. ;-)
+>https://marc.info/?l=linux-mm&m=150156699114088&w=2
+>
+>Anyway, thanks for the pointing out.
+>xiaolong.ye, could you retest with this fix?
+>
 
-Surprisingly enough, this replacement of size_t with __kernel_size_t
-is not just correct, it's a fix for a more subtle bug on x32, see
-http://lkml.kernel.org/r/20170302004607.GE27132@altlinux.org
+I've queued tests for 5 times and results show this patch (e8f682574e4 "mm:
+decrease tlb flush pending count in tlb_finish_mmu") does help recover the
+performance back.
 
-I recommend splitting the change into "include" fix and "size_t" fix
-like I did some time ago, see
-http://lkml.kernel.org/r/20170302002253.GC27132@altlinux.org
+378005bdbac0a2ec  76742700225cad9df49f053993  e8f682574e45b6406dadfffeb4  
+----------------  --------------------------  --------------------------  
+         %stddev      change         %stddev      change         %stddev
+             \          |                \          |                \  
+   3405093             -19%    2747088              -2%    3348752        will-it-scale.per_process_ops
+      1280 ±  3%        -2%       1257 ±  3%        -6%       1207        vmstat.system.cs
+      2702 ± 18%        11%       3002 ± 19%        17%       3156 ± 18%  numa-vmstat.node0.nr_mapped
+     10765 ± 18%        11%      11964 ± 19%        17%      12588 ± 18%  numa-meminfo.node0.Mapped
+      0.00 ± 47%       -40%       0.00 ± 45%       -84%       0.00 ± 42%  mpstat.cpu.soft%
+
+Thanks,
+Xiaolong
 
 
---=20
-ldv
-
---uZ3hkaAS1mZxFaxD
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iQIcBAEBCAAGBQJZij5tAAoJEAVFT+BVnCUIweMQAKZrlENzLYUCtXydISn5o2Ee
-stLaTJi4J+Lylb2x1QiBhg5UIdpHzpObYM9f2OltD03w/BmpVQPdeMxHjzylGQYB
-1ZkeWhm532LcxYQe8hM328nAB5k7CHlK3NcIp4+UPpdgnBXelc1YU/VJMvuwGM+U
-ERAoUtVh5hUOlvv+OQpU1utwZQPJwHWl62j9hwhbn40dFv4nWsSl6VVhtgksaXvR
-FjrQC/qIOEiP9441VXLIlJ/jOW2glELD72XG1+eT4h7Cn39wy/GCY+74JKq8iO6E
-fyxrbMTE0tbpOmQe6Qkq7iQmIzQS5oubD8/tq8rMkqcWSjPEZ1Xp1uhURP0EREK8
-MoOAqGXONdayyE3XSbvfYyK8aMtgHrQv82RmLpA4HX3GS+pblenHoG9rkvzt/8Re
-vh4XT9K+FHnmjbtlwbUDCimQ6v3LqUkC4AhT3XPz1SbofvH19pxqubTItRqTfqlD
-80TugJSR+aSF0f13zacVw74mDH0V54bColkfYoPUDB20L/uj6PNDJhRHgEe852eu
-zDAc3xY0aVndwy6kDJRKnwXL3lwGsFLbn5ahgIPhTpe3S4ImiKB7XfBuW/mGCvMQ
-t2OQVlDGiam4StcZL2gJZomvJrYxdAUYhkObIl+1f0NO8U9YzFDqKUaIdje2X8vy
-Qm64i9YgcJT0ZuWU89LH
-=+vYo
------END PGP SIGNATURE-----
-
---uZ3hkaAS1mZxFaxD--
+From 83012114c9cd9304f0d55d899bb4b9329d0e22ac Mon Sep 17 00:00:00 2001
+>From: Minchan Kim <minchan@kernel.org>
+>Date: Tue, 8 Aug 2017 17:05:19 +0900
+>Subject: [PATCH] mm: decrease tlb flush pending count in tlb_finish_mmu
+>
+>The tlb pending count increased by tlb_gather_mmu should be decreased
+>at tlb_finish_mmu. Otherwise, A lot of TLB happens which makes
+>performance regression.
+>
+>Signed-off-by: Minchan Kim <minchan@kernel.org>
+>---
+> mm/memory.c | 1 +
+> 1 file changed, 1 insertion(+)
+>
+>diff --git a/mm/memory.c b/mm/memory.c
+>index 34b1fcb829e4..ad2617552f55 100644
+>--- a/mm/memory.c
+>+++ b/mm/memory.c
+>@@ -423,6 +423,7 @@ void tlb_finish_mmu(struct mmu_gather *tlb,
+> 	bool force = mm_tlb_flush_nested(tlb->mm);
+> 
+> 	arch_tlb_finish_mmu(tlb, start, end, force);
+>+	dec_tlb_flush_pending(tlb->mm);
+> }
+> 
+> /*
+>-- 
+>2.7.4
+>
