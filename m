@@ -1,174 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:47118 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:47388 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752653AbdHIMGu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 9 Aug 2017 08:06:50 -0400
+        id S1752461AbdHIMIN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 9 Aug 2017 08:08:13 -0400
 From: Dave Martin <Dave.Martin@arm.com>
-Subject: [PATCH 09/27] arm64/sve: Signal frame and context structure definition
-Date: Wed,  9 Aug 2017 13:05:15 +0100
-Message-ID: <1502280338-23002-10-git-send-email-Dave.Martin@arm.com>
+Subject: [PATCH 21/27] arm64/sve: KVM: Prevent guests from using SVE
+Date: Wed,  9 Aug 2017 13:05:27 +0100
+Message-ID: <1502280338-23002-22-git-send-email-Dave.Martin@arm.com>
 In-Reply-To: <1502280338-23002-1-git-send-email-Dave.Martin@arm.com>
 References: <1502280338-23002-1-git-send-email-Dave.Martin@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu, libc-alpha@sourceware.org, linux-arch@vger.kernel.org, gdb@sourceware.org, Alan Hayward <alan.hayward@arm.com>, Yao Qi <Yao.Qi@arm.com>
-Message-ID: <20170809120515.jnXVaNM7q96ydXpd4eozVIofQwfM1w2JW8-XIQpEzEk@z>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu, libc-alpha@sourceware.org, linux-arch@vger.kernel.org, Christoffer Dall <christoffer.dall@linaro.org>, Marc Zyngier <marc.zyngier@arm.com>
+Message-ID: <20170809120527.-SlMSRSoeTZqZQwfz7EEjnGcjjbBNUmMtP8KszvgGOE@z>
 
-This patch defines the representation that will be used for the SVE
-register state in the signal frame, and implements support for
-saving and restoring the SVE registers around signals.
+Until KVM has full SVE support, guests must not be allowed to
+execute SVE instructions.
 
-The same layout will also be used for the in-kernel task state.
-
-Due to the variability of the SVE vector length, it is not possible
-to define a fixed C struct to describe all the registers.  Instead,
-Macros are defined in sigcontext.h to facilitate access to the
-parts of the structure.
+This patch enables the necessary traps, and also ensures that the
+traps are disabled again on exit from the guest so that the host
+can still use SVE if it wants to.
 
 Signed-off-by: Dave Martin <Dave.Martin@arm.com>
 ---
- arch/arm64/include/uapi/asm/sigcontext.h | 113 ++++++++++++++++++++++++++++++-
- 1 file changed, 112 insertions(+), 1 deletion(-)
+ arch/arm64/include/asm/kvm_arm.h | 3 ++-
+ arch/arm64/kvm/hyp/switch.c      | 6 +++---
+ 2 files changed, 5 insertions(+), 4 deletions(-)
 
-diff --git a/arch/arm64/include/uapi/asm/sigcontext.h b/arch/arm64/include/uapi/asm/sigcontext.h
-index f0a76b9..0533bdf 100644
---- a/arch/arm64/include/uapi/asm/sigcontext.h
-+++ b/arch/arm64/include/uapi/asm/sigcontext.h
-@@ -16,6 +16,8 @@
- #ifndef _UAPI__ASM_SIGCONTEXT_H
- #define _UAPI__ASM_SIGCONTEXT_H
+diff --git a/arch/arm64/include/asm/kvm_arm.h b/arch/arm64/include/asm/kvm_arm.h
+index dbf0537..8a19651 100644
+--- a/arch/arm64/include/asm/kvm_arm.h
++++ b/arch/arm64/include/asm/kvm_arm.h
+@@ -186,7 +186,7 @@
+ #define CPTR_EL2_TTA	(1 << 20)
+ #define CPTR_EL2_TFP	(1 << CPTR_EL2_TFP_SHIFT)
+ #define CPTR_EL2_TZ	(1 << 8)
+-#define CPTR_EL2_DEFAULT	0x000033ff
++#define CPTR_EL2_DEFAULT	(0x000033ff & ~CPTR_EL2_TZ)
  
-+#ifndef __ASSEMBLY__
-+
- #include <linux/types.h>
+ /* Hyp Debug Configuration Register bits */
+ #define MDCR_EL2_TPMS		(1 << 14)
+@@ -237,5 +237,6 @@
  
- /*
-@@ -41,10 +43,11 @@ struct sigcontext {
-  *
-  *	0x210		fpsimd_context
-  *	 0x10		esr_context
-+ *	0x8a0		sve_context (vl <= 64) (optional)
-  *	 0x20		extra_context (optional)
-  *	 0x10		terminator (null _aarch64_ctx)
-  *
-- *	0xdb0		(reserved for future allocation)
-+ *	0x510		(reserved for future allocation)
-  *
-  * New records that can exceed this space need to be opt-in for userspace, so
-  * that an expanded signal frame is not generated unexpectedly.  The mechanism
-@@ -116,4 +119,112 @@ struct extra_context {
- 	__u32 __reserved[3];
- };
+ #define CPACR_EL1_FPEN		(3 << 20)
+ #define CPACR_EL1_TTA		(1 << 28)
++#define CPACR_EL1_DEFAULT	(CPACR_EL1_FPEN | CPACR_EL1_ZEN_EL1EN)
  
-+#define SVE_MAGIC	0x53564501
-+
-+struct sve_context {
-+	struct _aarch64_ctx head;
-+	__u16 vl;
-+	__u16 __reserved[3];
-+};
-+
-+#endif /* !__ASSEMBLY__ */
-+
-+/*
-+ * The SVE architecture leaves space for future expansion of the
-+ * vector length beyond its initial architectural limit of 2048 bits
-+ * (16 quadwords).
-+ */
-+#define SVE_VQ_MIN		1
-+#define SVE_VQ_MAX		0x200
-+
-+#define SVE_VL_MIN		(SVE_VQ_MIN * 0x10)
-+#define SVE_VL_MAX		(SVE_VQ_MAX * 0x10)
-+
-+#define SVE_NUM_ZREGS		32
-+#define SVE_NUM_PREGS		16
-+
-+#define sve_vl_valid(vl) \
-+	((vl) % 0x10 == 0 && (vl) >= SVE_VL_MIN && (vl) <= SVE_VL_MAX)
-+#define sve_vq_from_vl(vl)	((vl) / 0x10)
-+#define sve_vl_from_vq(vq)	((vq) * 0x10)
-+
-+/*
-+ * If the SVE registers are currently live for the thread at signal delivery,
-+ * sve_context.head.size >=
-+ *	SVE_SIG_CONTEXT_SIZE(sve_vq_from_vl(sve_context.vl))
-+ * and the register data may be accessed using the SVE_SIG_*() macros.
-+ *
-+ * If sve_context.head.size <
-+ *	SVE_SIG_CONTEXT_SIZE(sve_vq_from_vl(sve_context.vl)),
-+ * the SVE registers were not live for the thread and no register data
-+ * is included: in this case, the SVE_SIG_*() macros should not be
-+ * used except for this check.
-+ *
-+ * The same convention applies when returning from a signal: a caller
-+ * will need to remove or resize the sve_context block if it wants to
-+ * make the SVE registers live when they were previously non-live or
-+ * vice-versa.  This may require the the caller to allocate fresh
-+ * memory and/or move other context blocks in the signal frame.
-+ *
-+ * Changing the vector length during signal return is not permitted:
-+ * sve_context.vl must equal the thread's current vector length when
-+ * doing a sigreturn.
-+ *
-+ *
-+ * Note: for all these macros, the "vq" argument denotes the SVE
-+ * vector length in quadwords (i.e., units of 128 bits).
-+ *
-+ * The correct way to obtain vq is to use sve_vq_from_vl(vl).  The
-+ * result is valid if and only if sve_vl_valid(vl) is true.  This is
-+ * guaranteed for a struct sve_context written by the kernel.
-+ *
-+ *
-+ * Additional macros describe the contents and layout of the payload.
-+ * For each, SVE_SIG_x_OFFSET(args) is the start offset relative to
-+ * the start of struct sve_context, and SVE_SIG_x_SIZE(args) is the
-+ * size in bytes:
-+ *
-+ *	x	type				description
-+ *	-	----				-----------
-+ *	REGS					the entire SVE context
-+ *
-+ *	ZREGS	__uint128_t[SVE_NUM_ZREGS][vq]	all Z-registers
-+ *	ZREG	__uint128_t[vq]			individual Z-register Zn
-+ *
-+ *	PREGS	uint16_t[SVE_NUM_PREGS][vq]	all P-registers
-+ *	PREG	uint16_t[vq]			individual P-register Pn
-+ *
-+ *	FFR	uint16_t[vq]			first-fault status register
-+ *
-+ * Additional data might be appended in the future.
-+ */
-+
-+#define SVE_SIG_ZREG_SIZE(vq)	((__u32)(vq) * 16)
-+#define SVE_SIG_PREG_SIZE(vq)	((__u32)(vq) * 2)
-+#define SVE_SIG_FFR_SIZE(vq)	SVE_SIG_PREG_SIZE(vq)
-+
-+#define SVE_SIG_REGS_OFFSET	((sizeof(struct sve_context) + 15) / 16 * 16)
-+
-+#define SVE_SIG_ZREGS_OFFSET	SVE_SIG_REGS_OFFSET
-+#define SVE_SIG_ZREG_OFFSET(vq, n) \
-+	(SVE_SIG_ZREGS_OFFSET + SVE_SIG_ZREG_SIZE(vq) * (n))
-+#define SVE_SIG_ZREGS_SIZE(vq) \
-+	(SVE_SIG_ZREG_OFFSET(vq, SVE_NUM_ZREGS) - SVE_SIG_ZREGS_OFFSET)
-+
-+#define SVE_SIG_PREGS_OFFSET(vq) \
-+	(SVE_SIG_ZREGS_OFFSET + SVE_SIG_ZREGS_SIZE(vq))
-+#define SVE_SIG_PREG_OFFSET(vq, n) \
-+	(SVE_SIG_PREGS_OFFSET(vq) + SVE_SIG_PREG_SIZE(vq) * (n))
-+#define SVE_SIG_PREGS_SIZE(vq) \
-+	(SVE_SIG_PREG_OFFSET(vq, SVE_NUM_PREGS) - SVE_SIG_PREGS_OFFSET(vq))
-+
-+#define SVE_SIG_FFR_OFFSET(vq) \
-+	(SVE_SIG_PREGS_OFFSET(vq) + SVE_SIG_PREGS_SIZE(vq))
-+
-+#define SVE_SIG_REGS_SIZE(vq) \
-+	(SVE_SIG_FFR_OFFSET(vq) + SVE_SIG_FFR_SIZE(vq) - SVE_SIG_REGS_OFFSET)
-+
-+#define SVE_SIG_CONTEXT_SIZE(vq) (SVE_SIG_REGS_OFFSET + SVE_SIG_REGS_SIZE(vq))
-+
-+
- #endif /* _UAPI__ASM_SIGCONTEXT_H */
+ #endif /* __ARM64_KVM_ARM_H__ */
+diff --git a/arch/arm64/kvm/hyp/switch.c b/arch/arm64/kvm/hyp/switch.c
+index 35a90b8..951f3eb 100644
+--- a/arch/arm64/kvm/hyp/switch.c
++++ b/arch/arm64/kvm/hyp/switch.c
+@@ -48,7 +48,7 @@ static void __hyp_text __activate_traps_vhe(void)
+ 
+ 	val = read_sysreg(cpacr_el1);
+ 	val |= CPACR_EL1_TTA;
+-	val &= ~CPACR_EL1_FPEN;
++	val &= ~(CPACR_EL1_FPEN | CPACR_EL1_ZEN);
+ 	write_sysreg(val, cpacr_el1);
+ 
+ 	write_sysreg(__kvm_hyp_vector, vbar_el1);
+@@ -59,7 +59,7 @@ static void __hyp_text __activate_traps_nvhe(void)
+ 	u64 val;
+ 
+ 	val = CPTR_EL2_DEFAULT;
+-	val |= CPTR_EL2_TTA | CPTR_EL2_TFP;
++	val |= CPTR_EL2_TTA | CPTR_EL2_TFP | CPTR_EL2_TZ;
+ 	write_sysreg(val, cptr_el2);
+ }
+ 
+@@ -117,7 +117,7 @@ static void __hyp_text __deactivate_traps_vhe(void)
+ 
+ 	write_sysreg(mdcr_el2, mdcr_el2);
+ 	write_sysreg(HCR_HOST_VHE_FLAGS, hcr_el2);
+-	write_sysreg(CPACR_EL1_FPEN, cpacr_el1);
++	write_sysreg(CPACR_EL1_DEFAULT, cpacr_el1);
+ 	write_sysreg(vectors, vbar_el1);
+ }
+ 
 -- 
 2.1.4
