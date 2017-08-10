@@ -1,131 +1,364 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f67.google.com ([74.125.83.67]:37899 "EHLO
-        mail-pg0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750868AbdHJEOz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 10 Aug 2017 00:14:55 -0400
-Content-Type: text/plain; charset=utf-8
-Mime-Version: 1.0 (Mac OS X Mail 10.3 \(3273\))
-Subject: Re: [lkp-robot] [mm]  7674270022:  will-it-scale.per_process_ops
- -19.3% regression
-From: Nadav Amit <nadav.amit@gmail.com>
-In-Reply-To: <20170810041353.GB2042@bbox>
-Date: Wed, 9 Aug 2017 21:14:50 -0700
-Content-Transfer-Encoding: quoted-printable
-Message-ID: <80589593-6F0E-4421-9279-681D5B388100@gmail.com>
-References: <20170802000818.4760-7-namit@vmware.com>
- <20170808011923.GE25554@yexl-desktop> <20170808022830.GA28570@bbox>
- <93CA4B47-95C2-43A2-8E92-B142CAB1DAF7@gmail.com>
- <970B5DC5-BFC2-461E-AC46-F71B3691D301@gmail.com>
- <20170808080821.GA31730@bbox> <20170809025902.GA17616@yexl-desktop>
- <20170810041353.GB2042@bbox>
+Received: from mail-lf0-f65.google.com ([209.85.215.65]:38173 "EHLO
+        mail-lf0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752504AbdHJSqe (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 10 Aug 2017 14:46:34 -0400
+From: Andrei Vagin <avagin@openvz.org>
+Subject: [PATCH] [RFC] vm: add a syscall to map a process memory into a pipe
+Date: Thu, 10 Aug 2017 11:46:16 -0700
+Message-ID: <20170810184616.22726-1-avagin@openvz.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Minchan Kim <minchan@kernel.org>
-Cc: Ye Xiaolong <xiaolong.ye@intel.com>, "open list:MEMORY MANAGEMENT" <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Tony Luck <tony.luck@intel.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, "David S. Miller" <davem@davemloft.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Jeff Dike <jdike@addtoit.com>, linux-arch@vger.kernel.org, lkp@01.org
-Message-ID: <20170810041450.d03IRlXrv8rcjFARw2w3MFTdZL0buzZo1OLItCZfNKI@z>
+To: Alexander Viro <viro@zeniv.linux.org.uk>
+Cc: linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, criu@openvz.org, Andrei Vagin <avagin@openvz.org>, Arnd Bergmann <arnd@arndb.de>, Pavel Emelyanov <xemul@virtuozzo.com>, Michael Kerrisk <mtk.manpages@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20170810184616.L8Rm5En_ZMA7Sh_6m7IQUnicS8DudxkgsKcBcG2ZV5g@z>
 
-Minchan Kim <minchan@kernel.org> wrote:
+It is a hybrid of process_vm_readv() and vmsplice().
 
-> On Wed, Aug 09, 2017 at 10:59:02AM +0800, Ye Xiaolong wrote:
->> On 08/08, Minchan Kim wrote:
->>> On Mon, Aug 07, 2017 at 10:51:00PM -0700, Nadav Amit wrote:
->>>> Nadav Amit <nadav.amit@gmail.com> wrote:
->>>>=20
->>>>> Minchan Kim <minchan@kernel.org> wrote:
->>>>>=20
->>>>>> Hi,
->>>>>>=20
->>>>>> On Tue, Aug 08, 2017 at 09:19:23AM +0800, kernel test robot =
-wrote:
->>>>>>> Greeting,
->>>>>>>=20
->>>>>>> FYI, we noticed a -19.3% regression of =
-will-it-scale.per_process_ops due to commit:
->>>>>>>=20
->>>>>>>=20
->>>>>>> commit: 76742700225cad9df49f05399381ac3f1ec3dc60 ("mm: fix =
-MADV_[FREE|DONTNEED] TLB flush miss problem")
->>>>>>> url: =
-https://github.com/0day-ci/linux/commits/Nadav-Amit/mm-migrate-prevent-rac=
-y-access-to-tlb_flush_pending/20170802-205715
->>>>>>>=20
->>>>>>>=20
->>>>>>> in testcase: will-it-scale
->>>>>>> on test machine: 88 threads Intel(R) Xeon(R) CPU E5-2699 v4 @ =
-2.20GHz with 64G memory
->>>>>>> with following parameters:
->>>>>>>=20
->>>>>>> 	nr_task: 16
->>>>>>> 	mode: process
->>>>>>> 	test: brk1
->>>>>>> 	cpufreq_governor: performance
->>>>>>>=20
->>>>>>> test-description: Will It Scale takes a testcase and runs it =
-from 1 through to n parallel copies to see if the testcase will scale. =
-It builds both a process and threads based test in order to see any =
-differences between the two.
->>>>>>> test-url: https://github.com/antonblanchard/will-it-scale
->>>>>>=20
->>>>>> Thanks for the report.
->>>>>> Could you explain what kinds of workload you are testing?
->>>>>>=20
->>>>>> Does it calls frequently madvise(MADV_DONTNEED) in parallel on =
-multiple
->>>>>> threads?
->>>>>=20
->>>>> According to the description it is "testcase:brk increase/decrease =
-of one
->>>>> page=E2=80=9D. According to the mode it spawns multiple processes, =
-not threads.
->>>>>=20
->>>>> Since a single page is unmapped each time, and the iTLB-loads =
-increase
->>>>> dramatically, I would suspect that for some reason a full TLB =
-flush is
->>>>> caused during do_munmap().
->>>>>=20
->>>>> If I find some free time, I=E2=80=99ll try to profile the workload =
-- but feel free
->>>>> to beat me to it.
->>>>=20
->>>> The root-cause appears to be that tlb_finish_mmu() does not call
->>>> dec_tlb_flush_pending() - as it should. Any chance you can take =
-care of it?
->>>=20
->>> Oops, but with second looking, it seems it's not my fault. ;-)
->>> https://marc.info/?l=3Dlinux-mm&m=3D150156699114088&w=3D2
->>>=20
->>> Anyway, thanks for the pointing out.
->>> xiaolong.ye, could you retest with this fix?
->>=20
->> I've queued tests for 5 times and results show this patch =
-(e8f682574e4 "mm:
->> decrease tlb flush pending count in tlb_finish_mmu") does help =
-recover the
->> performance back.
->>=20
->> 378005bdbac0a2ec  76742700225cad9df49f053993  =
-e8f682574e45b6406dadfffeb4 =20
->> ----------------  --------------------------  =
--------------------------- =20
->>         %stddev      change         %stddev      change         =
-%stddev
->>             \          |                \          |                \ =
-=20
->>   3405093             -19%    2747088              -2%    3348752     =
-   will-it-scale.per_process_ops
->>      1280 =C2=B1  3%        -2%       1257 =C2=B1  3%        -6%      =
- 1207        vmstat.system.cs
->>      2702 =C2=B1 18%        11%       3002 =C2=B1 19%        17%      =
- 3156 =C2=B1 18%  numa-vmstat.node0.nr_mapped
->>     10765 =C2=B1 18%        11%      11964 =C2=B1 19%        17%      =
-12588 =C2=B1 18%  numa-meminfo.node0.Mapped
->>      0.00 =C2=B1 47%       -40%       0.00 =C2=B1 45%       -84%      =
- 0.00 =C2=B1 42%  mpstat.cpu.soft%
->>=20
->> Thanks,
->> Xiaolong
->=20
-> Thanks for the testing!
+vmsplice can map memory from a current address space into a pipe.
+process_vm_readv can read memory of another process.
 
-Sorry again for screwing your patch, Minchan.
+A new system call can map memory of another process into a pipe.
+
+ssize_t process_vmsplice(pid_t pid, int fd, const struct iovec *iov,
+                        unsigned long nr_segs, unsigned int flags)
+
+All arguments are identical with vmsplice except pid which specifies a
+target process.
+
+Currently if we want to dump a process memory to a file or to a socket,
+we can use process_vm_readv() + write(), but it works slow, because data
+are copied into a temporary user-space buffer.
+
+A second way is to use vmsplice() + splice(). It is more effective,
+because data are not copied into a temporary buffer, but here is another
+problem. vmsplice works with the currect address space, so it can be
+used only if we inject our code into a target process.
+
+The second way suffers from a few other issues:
+* a process has to be stopped to run a parasite code
+* a number of pipes is limited, so it may be impossible to dump all
+  memory in one iteration, and we have to stop process and inject our
+  code a few times.
+* pages in pipes are unreclaimable, so it isn't good to hold a lot of
+  memory in pipes.
+
+The introduced syscall allows to use a second way without injecting any
+code into a target process.
+
+My experiments shows that process_vmsplice() + splice() works two time
+faster than process_vm_readv() + write().
+
+It is particularly useful on a pre-dump stage. On this stage we enable a
+memory tracker, and then we are dumping  a process memory while a
+process continues work. On the first iteration we are dumping all
+memory, and then we are dumpung only modified memory from a previous
+iteration.  After a few pre-dump operations, a process is stopped and
+dumped finally. The pre-dump operations allow to significantly decrease
+a process downtime, when a process is migrated to another host.
+
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Pavel Emelyanov <xemul@virtuozzo.com>
+Cc: Michael Kerrisk <mtk.manpages@gmail.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Signed-off-by: Andrei Vagin <avagin@openvz.org>
+---
+ fs/splice.c                       | 219 ++++++++++++++++++++++++++++++++++++++
+ include/linux/compat.h            |   3 +
+ include/linux/syscalls.h          |   4 +
+ include/uapi/asm-generic/unistd.h |   5 +-
+ 4 files changed, 230 insertions(+), 1 deletion(-)
+
+diff --git a/fs/splice.c b/fs/splice.c
+index ae41201..4b050a4 100644
+--- a/fs/splice.c
++++ b/fs/splice.c
+@@ -34,6 +34,7 @@
+ #include <linux/socket.h>
+ #include <linux/compat.h>
+ #include <linux/sched/signal.h>
++#include <linux/sched/mm.h>
+ 
+ #include "internal.h"
+ 
+@@ -1374,6 +1375,201 @@ SYSCALL_DEFINE4(vmsplice, int, fd, const struct iovec __user *, iov,
+ 	return error;
+ }
+ 
++/*
++ * Map pages from a specified task into a pipe
++ */
++static int remote_single_vec_to_pipe(struct task_struct *task,
++			struct mm_struct *mm,
++			const struct iovec *rvec,
++			struct pipe_inode_info *pipe,
++			unsigned int flags,
++			size_t *total)
++{
++	struct pipe_buffer buf = {
++		.ops = &user_page_pipe_buf_ops,
++		.flags = flags
++	};
++	unsigned long addr = (unsigned long) rvec->iov_base;
++	unsigned long pa = addr & PAGE_MASK;
++	unsigned long start_offset = addr - pa;
++	unsigned long nr_pages;
++	ssize_t len = rvec->iov_len;
++	struct page *process_pages[16];
++	bool failed = false;
++	int ret = 0;
++
++	nr_pages = (addr + len - 1) / PAGE_SIZE - addr / PAGE_SIZE + 1;
++	while (nr_pages) {
++		long pages = min(nr_pages, 16UL);
++		int locked = 1, n;
++		ssize_t copied;
++
++		/*
++		 * Get the pages we're interested in.  We must
++		 * access remotely because task/mm might not
++		 * current/current->mm
++		 */
++		down_read(&mm->mmap_sem);
++		pages = get_user_pages_remote(task, mm, pa, pages, flags,
++					      process_pages, NULL, &locked);
++		if (locked)
++			up_read(&mm->mmap_sem);
++		if (pages <= 0) {
++			failed = true;
++			ret = -EFAULT;
++			break;
++		}
++
++		copied = pages * PAGE_SIZE - start_offset;
++		if (copied > len)
++			copied = len;
++		len -= copied;
++
++		for (n = 0; copied; n++, start_offset = 0) {
++			int size = min_t(int, copied, PAGE_SIZE - start_offset);
++
++			if (!failed) {
++				buf.page = process_pages[n];
++				buf.offset = start_offset;
++				buf.len = size;
++				ret = add_to_pipe(pipe, &buf);
++				if (unlikely(ret < 0))
++					failed = true;
++				else
++					*total += ret;
++			} else {
++				put_page(process_pages[n]);
++			}
++			copied -= size;
++		}
++		if (failed)
++			break;
++		start_offset = 0;
++		nr_pages -= pages;
++		pa += pages * PAGE_SIZE;
++	}
++	return ret < 0 ? ret : 0;
++}
++
++static ssize_t remote_iovec_to_pipe(struct task_struct *task,
++			struct mm_struct *mm,
++			const struct iovec *rvec,
++			unsigned long riovcnt,
++			struct pipe_inode_info *pipe,
++			unsigned int flags)
++{
++	size_t total = 0;
++	int ret = 0, i;
++
++	for (i = 0; i < riovcnt; i++) {
++		/* Work out address and page range required */
++		if (rvec[i].iov_len == 0)
++			continue;
++
++		ret = remote_single_vec_to_pipe(
++				task, mm, &rvec[i], pipe, flags, &total);
++		if (ret < 0)
++			break;
++	}
++	return total ? total : ret;
++}
++
++static long process_vmsplice_to_pipe(struct task_struct *task,
++				struct mm_struct *mm, struct file *file,
++				const struct iovec __user *uiov,
++				unsigned long nr_segs, unsigned int flags)
++{
++	struct pipe_inode_info *pipe;
++	struct iovec iovstack[UIO_FASTIOV];
++	struct iovec *iov = iovstack;
++	unsigned int buf_flag = 0;
++	long ret;
++
++	if (flags & SPLICE_F_GIFT)
++		buf_flag = PIPE_BUF_FLAG_GIFT;
++
++	pipe = get_pipe_info(file);
++	if (!pipe)
++		return -EBADF;
++
++	ret = rw_copy_check_uvector(CHECK_IOVEC_ONLY, uiov, nr_segs,
++					UIO_FASTIOV, iovstack, &iov);
++	if (ret < 0)
++		return ret;
++
++	pipe_lock(pipe);
++	ret = wait_for_space(pipe, flags);
++	if (!ret)
++		ret = remote_iovec_to_pipe(task, mm, iov,
++						nr_segs, pipe, buf_flag);
++	pipe_unlock(pipe);
++	if (ret > 0)
++		wakeup_pipe_readers(pipe);
++
++	if (iov != iovstack)
++		kfree(iov);
++	return ret;
++}
++
++/* process_vmsplice splices a process address range into a pipe. */
++SYSCALL_DEFINE5(process_vmsplice, int, pid, int, fd,
++		const struct iovec __user *, iov,
++		unsigned long, nr_segs, unsigned int, flags)
++{
++	struct task_struct *task;
++	struct mm_struct *mm;
++	struct fd f;
++	long ret;
++
++	if (unlikely(flags & ~SPLICE_F_ALL))
++		return -EINVAL;
++	if (unlikely(nr_segs > UIO_MAXIOV))
++		return -EINVAL;
++	else if (unlikely(!nr_segs))
++		return 0;
++
++	f = fdget(fd);
++	if (!f.file)
++		return -EBADF;
++
++	/* Get process information */
++	rcu_read_lock();
++	task = find_task_by_vpid(pid);
++	if (task)
++		get_task_struct(task);
++	rcu_read_unlock();
++	if (!task) {
++		ret = -ESRCH;
++		goto out_fput;
++	}
++
++	mm = mm_access(task, PTRACE_MODE_ATTACH_REALCREDS);
++	if (!mm || IS_ERR(mm)) {
++		ret = IS_ERR(mm) ? PTR_ERR(mm) : -ESRCH;
++		/*
++		 * Explicitly map EACCES to EPERM as EPERM is a more a
++		 * appropriate error code for process_vw_readv/writev
++		 */
++		if (ret == -EACCES)
++			ret = -EPERM;
++		goto put_task_struct;
++	}
++
++	ret = -EBADF;
++	if (f.file->f_mode & FMODE_WRITE)
++		ret = process_vmsplice_to_pipe(task, mm, f.file,
++						iov, nr_segs, flags);
++	mmput(mm);
++
++put_task_struct:
++	put_task_struct(task);
++
++out_fput:
++	fdput(f);
++
++	return ret;
++}
++
+ #ifdef CONFIG_COMPAT
+ COMPAT_SYSCALL_DEFINE4(vmsplice, int, fd, const struct compat_iovec __user *, iov32,
+ 		    unsigned int, nr_segs, unsigned int, flags)
+@@ -1393,6 +1589,29 @@ COMPAT_SYSCALL_DEFINE4(vmsplice, int, fd, const struct compat_iovec __user *, io
+ 	}
+ 	return sys_vmsplice(fd, iov, nr_segs, flags);
+ }
++
++COMPAT_SYSCALL_DEFINE5(process_vmsplice, pid_t, pid, int, fd,
++			const struct compat_iovec __user *, iov32,
++			unsigned int, nr_segs, unsigned int, flags)
++{
++	struct iovec __user *iov;
++	unsigned int i;
++
++	if (nr_segs > UIO_MAXIOV)
++		return -EINVAL;
++
++	iov = compat_alloc_user_space(nr_segs * sizeof(struct iovec));
++	for (i = 0; i < nr_segs; i++) {
++		struct compat_iovec v;
++
++		if (get_user(v.iov_base, &iov32[i].iov_base) ||
++		    get_user(v.iov_len, &iov32[i].iov_len) ||
++		    put_user(compat_ptr(v.iov_base), &iov[i].iov_base) ||
++		    put_user(v.iov_len, &iov[i].iov_len))
++			return -EFAULT;
++	}
++	return sys_process_vmsplice(pid, fd, iov, nr_segs, flags);
++}
+ #endif
+ 
+ SYSCALL_DEFINE6(splice, int, fd_in, loff_t __user *, off_in,
+diff --git a/include/linux/compat.h b/include/linux/compat.h
+index 5a6a109..3590cc7 100644
+--- a/include/linux/compat.h
++++ b/include/linux/compat.h
+@@ -550,6 +550,9 @@ asmlinkage long compat_sys_getdents(unsigned int fd,
+ 				    unsigned int count);
+ asmlinkage long compat_sys_vmsplice(int fd, const struct compat_iovec __user *,
+ 				    unsigned int nr_segs, unsigned int flags);
++asmlinkage long compat_sys_process_vmsplice(pid_t pid, int fd,
++				    const struct compat_iovec __user *,
++				    unsigned int nr_segs, unsigned int flags);
+ asmlinkage long compat_sys_open(const char __user *filename, int flags,
+ 				umode_t mode);
+ asmlinkage long compat_sys_openat(int dfd, const char __user *filename,
+diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
+index 3cb15ea..49bdf96 100644
+--- a/include/linux/syscalls.h
++++ b/include/linux/syscalls.h
+@@ -906,4 +906,8 @@ asmlinkage long sys_pkey_free(int pkey);
+ asmlinkage long sys_statx(int dfd, const char __user *path, unsigned flags,
+ 			  unsigned mask, struct statx __user *buffer);
+ 
++asmlinkage long sys_process_vmsplice(pid_t pid,
++			int fd, const struct iovec __user *iov,
++			unsigned long nr_segs, unsigned int flags);
++
+ #endif
+diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
+index 061185a..d18019d 100644
+--- a/include/uapi/asm-generic/unistd.h
++++ b/include/uapi/asm-generic/unistd.h
+@@ -731,9 +731,12 @@ __SYSCALL(__NR_pkey_alloc,    sys_pkey_alloc)
+ __SYSCALL(__NR_pkey_free,     sys_pkey_free)
+ #define __NR_statx 291
+ __SYSCALL(__NR_statx,     sys_statx)
++#define __NR_process_vmsplice 292
++__SC_COMP(__NR_process_vmsplice, sys_process_vmsplice,
++	  compat_sys_process_vmsplice)
+ 
+ #undef __NR_syscalls
+-#define __NR_syscalls 292
++#define __NR_syscalls 293
+ 
+ /*
+  * All syscalls below here should go away really,
+-- 
+2.9.4
