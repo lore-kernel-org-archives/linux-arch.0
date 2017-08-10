@@ -1,144 +1,103 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from aserp1040.oracle.com ([141.146.126.69]:22930 "EHLO
-        aserp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752444AbdHIV2e (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 Aug 2017 17:28:34 -0400
-From: Khalid Aziz <khalid.aziz@oracle.com>
-Subject: [PATCH v7 2/9] mm, swap: Add infrastructure for saving page metadata on swap
-Date: Wed,  9 Aug 2017 15:25:55 -0600
-Message-ID: <87ff7a44c45bd6a146102c6e6033ee7810d9ebb5.1502219353.git.khalid.aziz@oracle.com>
-In-Reply-To: <cover.1502219353.git.khalid.aziz@oracle.com>
-References: <cover.1502219353.git.khalid.aziz@oracle.com>
-In-Reply-To: <cover.1502219353.git.khalid.aziz@oracle.com>
-References: <cover.1502219353.git.khalid.aziz@oracle.com>
+Received: from LGEAMRELO12.lge.com ([156.147.23.52]:42429 "EHLO
+        lgeamrelo12.lge.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750735AbdHJENz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 10 Aug 2017 00:13:55 -0400
+Date: Thu, 10 Aug 2017 13:13:53 +0900
+From: Minchan Kim <minchan@kernel.org>
+Subject: Re: [lkp-robot] [mm]  7674270022:  will-it-scale.per_process_ops
+ -19.3% regression
+Message-ID: <20170810041353.GB2042@bbox>
+References: <20170802000818.4760-7-namit@vmware.com>
+ <20170808011923.GE25554@yexl-desktop>
+ <20170808022830.GA28570@bbox>
+ <93CA4B47-95C2-43A2-8E92-B142CAB1DAF7@gmail.com>
+ <970B5DC5-BFC2-461E-AC46-F71B3691D301@gmail.com>
+ <20170808080821.GA31730@bbox>
+ <20170809025902.GA17616@yexl-desktop>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <20170809025902.GA17616@yexl-desktop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org, davem@davemloft.net, dave.hansen@linux.intel.com, arnd@arndb.de
-Cc: Khalid Aziz <khalid.aziz@oracle.com>, kirill.shutemov@linux.intel.com, mhocko@suse.com, jack@suse.cz, ross.zwisler@linux.intel.com, aneesh.kumar@linux.vnet.ibm.com, dave.jiang@intel.com, willy@infradead.org, hughd@google.com, minchan@kernel.org, hannes@cmpxchg.org, hillf.zj@alibaba-inc.com, shli@fb.com, mingo@kernel.org, jmarchan@redhat.com, lstoakes@gmail.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, sparclinux@vger.kernel.org, Khalid Aziz <khalid@gonehiking.org>
-Message-ID: <20170809212555.yt209_mMPMsMH2EjhmeDRAgKf0BSAUXTRK9VJ4X1708@z>
+To: Ye Xiaolong <xiaolong.ye@intel.com>
+Cc: Nadav Amit <nadav.amit@gmail.com>, "open list:MEMORY MANAGEMENT" <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Tony Luck <tony.luck@intel.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, "David S. Miller" <davem@davemloft.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Jeff Dike <jdike@addtoit.com>, linux-arch@vger.kernel.org, lkp@01.org
+Message-ID: <20170810041353.GYTuWG7fk3Cyb2t1qM1dHIOFTiLitkXSIGdcDwAXrTo@z>
 
+On Wed, Aug 09, 2017 at 10:59:02AM +0800, Ye Xiaolong wrote:
+> On 08/08, Minchan Kim wrote:
+> >On Mon, Aug 07, 2017 at 10:51:00PM -0700, Nadav Amit wrote:
+> >> Nadav Amit <nadav.amit@gmail.com> wrote:
+> >> 
+> >> > Minchan Kim <minchan@kernel.org> wrote:
+> >> > 
+> >> >> Hi,
+> >> >> 
+> >> >> On Tue, Aug 08, 2017 at 09:19:23AM +0800, kernel test robot wrote:
+> >> >>> Greeting,
+> >> >>> 
+> >> >>> FYI, we noticed a -19.3% regression of will-it-scale.per_process_ops due to commit:
+> >> >>> 
+> >> >>> 
+> >> >>> commit: 76742700225cad9df49f05399381ac3f1ec3dc60 ("mm: fix MADV_[FREE|DONTNEED] TLB flush miss problem")
+> >> >>> url: https://github.com/0day-ci/linux/commits/Nadav-Amit/mm-migrate-prevent-racy-access-to-tlb_flush_pending/20170802-205715
+> >> >>> 
+> >> >>> 
+> >> >>> in testcase: will-it-scale
+> >> >>> on test machine: 88 threads Intel(R) Xeon(R) CPU E5-2699 v4 @ 2.20GHz with 64G memory
+> >> >>> with following parameters:
+> >> >>> 
+> >> >>> 	nr_task: 16
+> >> >>> 	mode: process
+> >> >>> 	test: brk1
+> >> >>> 	cpufreq_governor: performance
+> >> >>> 
+> >> >>> test-description: Will It Scale takes a testcase and runs it from 1 through to n parallel copies to see if the testcase will scale. It builds both a process and threads based test in order to see any differences between the two.
+> >> >>> test-url: https://github.com/antonblanchard/will-it-scale
+> >> >> 
+> >> >> Thanks for the report.
+> >> >> Could you explain what kinds of workload you are testing?
+> >> >> 
+> >> >> Does it calls frequently madvise(MADV_DONTNEED) in parallel on multiple
+> >> >> threads?
+> >> > 
+> >> > According to the description it is "testcase:brk increase/decrease of one
+> >> > page”. According to the mode it spawns multiple processes, not threads.
+> >> > 
+> >> > Since a single page is unmapped each time, and the iTLB-loads increase
+> >> > dramatically, I would suspect that for some reason a full TLB flush is
+> >> > caused during do_munmap().
+> >> > 
+> >> > If I find some free time, I’ll try to profile the workload - but feel free
+> >> > to beat me to it.
+> >> 
+> >> The root-cause appears to be that tlb_finish_mmu() does not call
+> >> dec_tlb_flush_pending() - as it should. Any chance you can take care of it?
+> >
+> >Oops, but with second looking, it seems it's not my fault. ;-)
+> >https://marc.info/?l=linux-mm&m=150156699114088&w=2
+> >
+> >Anyway, thanks for the pointing out.
+> >xiaolong.ye, could you retest with this fix?
+> >
+> 
+> I've queued tests for 5 times and results show this patch (e8f682574e4 "mm:
+> decrease tlb flush pending count in tlb_finish_mmu") does help recover the
+> performance back.
+> 
+> 378005bdbac0a2ec  76742700225cad9df49f053993  e8f682574e45b6406dadfffeb4  
+> ----------------  --------------------------  --------------------------  
+>          %stddev      change         %stddev      change         %stddev
+>              \          |                \          |                \  
+>    3405093             -19%    2747088              -2%    3348752        will-it-scale.per_process_ops
+>       1280 ±  3%        -2%       1257 ±  3%        -6%       1207        vmstat.system.cs
+>       2702 ± 18%        11%       3002 ± 19%        17%       3156 ± 18%  numa-vmstat.node0.nr_mapped
+>      10765 ± 18%        11%      11964 ± 19%        17%      12588 ± 18%  numa-meminfo.node0.Mapped
+>       0.00 ± 47%       -40%       0.00 ± 45%       -84%       0.00 ± 42%  mpstat.cpu.soft%
+> 
+> Thanks,
+> Xiaolong
 
-If a processor supports special metadata for a page, for example ADI
-version tags on SPARC M7, this metadata must be saved when the page is
-swapped out. The same metadata must be restored when the page is swapped
-back in. This patch adds two new architecture specific functions -
-arch_do_swap_page() to be called when a page is swapped in, and
-arch_unmap_one() to be called when a page is being unmapped for swap
-out. These architecture hooks allow page metadata to be saved if the
-architecture supports it.
-
-Signed-off-by: Khalid Aziz <khalid.aziz@oracle.com>
-Cc: Khalid Aziz <khalid@gonehiking.org>
-Acked-by: Jerome Marchand <jmarchan@redhat.com>
----
-v6:
-	- Updated parameter list for arch_do_swap_page() and
-	  arch_unmap_one()
-v5:
-	- Replaced set_swp_pte() function with new architecture
-	  functions arch_do_swap_page() and arch_unmap_one()
-
- include/asm-generic/pgtable.h | 36 ++++++++++++++++++++++++++++++++++++
- mm/memory.c                   |  1 +
- mm/rmap.c                     | 13 +++++++++++++
- 3 files changed, 50 insertions(+)
-
-diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-index 7dfa767dc680..15668c2470b4 100644
---- a/include/asm-generic/pgtable.h
-+++ b/include/asm-generic/pgtable.h
-@@ -392,6 +392,42 @@ static inline int pud_same(pud_t pud_a, pud_t pud_b)
- #endif /* CONFIG_TRANSPARENT_HUGEPAGE */
- #endif
- 
-+#ifndef __HAVE_ARCH_DO_SWAP_PAGE
-+/*
-+ * Some architectures support metadata associated with a page. When a
-+ * page is being swapped out, this metadata must be saved so it can be
-+ * restored when the page is swapped back in. SPARC M7 and newer
-+ * processors support an ADI (Application Data Integrity) tag for the
-+ * page as metadata for the page. arch_do_swap_page() can restore this
-+ * metadata when a page is swapped back in.
-+ */
-+static inline void arch_do_swap_page(struct mm_struct *mm,
-+				     struct vm_area_struct *vma,
-+				     unsigned long addr,
-+				     pte_t pte, pte_t oldpte)
-+{
-+
-+}
-+#endif
-+
-+#ifndef __HAVE_ARCH_UNMAP_ONE
-+/*
-+ * Some architectures support metadata associated with a page. When a
-+ * page is being swapped out, this metadata must be saved so it can be
-+ * restored when the page is swapped back in. SPARC M7 and newer
-+ * processors support an ADI (Application Data Integrity) tag for the
-+ * page as metadata for the page. arch_unmap_one() can save this
-+ * metadata on a swap-out of a page.
-+ */
-+static inline int arch_unmap_one(struct mm_struct *mm,
-+				  struct vm_area_struct *vma,
-+				  unsigned long addr,
-+				  pte_t orig_pte)
-+{
-+	return 0;
-+}
-+#endif
-+
- #ifndef __HAVE_ARCH_PGD_OFFSET_GATE
- #define pgd_offset_gate(mm, addr)	pgd_offset(mm, addr)
- #endif
-diff --git a/mm/memory.c b/mm/memory.c
-index bb11c474857e..eb92e4f94d3b 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -2798,6 +2798,7 @@ int do_swap_page(struct vm_fault *vmf)
- 	if (pte_swp_soft_dirty(vmf->orig_pte))
- 		pte = pte_mksoft_dirty(pte);
- 	set_pte_at(vma->vm_mm, vmf->address, vmf->pte, pte);
-+	arch_do_swap_page(vma->vm_mm, vma, vmf->address, pte, vmf->orig_pte);
- 	vmf->orig_pte = pte;
- 	if (page == swapcache) {
- 		do_page_add_anon_rmap(page, vma, vmf->address, exclusive);
-diff --git a/mm/rmap.c b/mm/rmap.c
-index d405f0e0ee96..5ff2a7943c57 100644
---- a/mm/rmap.c
-+++ b/mm/rmap.c
-@@ -1399,6 +1399,12 @@ static bool try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
- 				(flags & TTU_MIGRATION)) {
- 			swp_entry_t entry;
- 			pte_t swp_pte;
-+
-+			if (arch_unmap_one(mm, vma, address, pteval) < 0) {
-+				set_pte_at(mm, address, pvmw.pte, pteval);
-+				ret = false;
-+				page_vma_mapped_walk_done(&pvmw);
-+				break;
- 			/*
- 			 * Store the pfn of the page in a special migration
- 			 * pte. do_swap_page() will wait until the migration
-@@ -1410,6 +1416,7 @@ static bool try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
- 			if (pte_soft_dirty(pteval))
- 				swp_pte = pte_swp_mksoft_dirty(swp_pte);
- 			set_pte_at(mm, address, pvmw.pte, swp_pte);
-+			}
- 		} else if (PageAnon(page)) {
- 			swp_entry_t entry = { .val = page_private(subpage) };
- 			pte_t swp_pte;
-@@ -1448,6 +1455,12 @@ static bool try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
- 				page_vma_mapped_walk_done(&pvmw);
- 				break;
- 			}
-+			if (arch_unmap_one(mm, vma, address, pteval) < 0) {
-+				set_pte_at(mm, address, pvmw.pte, pteval);
-+				ret = false;
-+				page_vma_mapped_walk_done(&pvmw);
-+				break;
-+			}
- 			if (list_empty(&mm->mmlist)) {
- 				spin_lock(&mmlist_lock);
- 				if (list_empty(&mm->mmlist))
--- 
-2.11.0
+Thanks for the testing!
