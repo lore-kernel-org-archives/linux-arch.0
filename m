@@ -1,55 +1,359 @@
-From: Thomas Garnier <thgarnie@google.com>
-Subject: [RFC v2 14/23] x86/paravirt: Adapt assembly for PIE
-	support
-Date: Thu, 10 Aug 2017 10:26:06 -0700
-Message-ID: <20170810172615.51965-15-thgarnie@google.com>
-References: <20170810172615.51965-1-thgarnie@google.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <xen-devel-bounces@lists.xen.org>
-In-Reply-To: <20170810172615.51965-1-thgarnie@google.com>
-List-Unsubscribe: <https://lists.xen.org/cgi-bin/mailman/options/xen-devel>,
- <mailto:xen-devel-request@lists.xen.org?subject=unsubscribe>
-List-Post: <mailto:xen-devel@lists.xen.org>
-List-Help: <mailto:xen-devel-request@lists.xen.org?subject=help>
-List-Subscribe: <https://lists.xen.org/cgi-bin/mailman/listinfo/xen-devel>,
- <mailto:xen-devel-request@lists.xen.org?subject=subscribe>
-Errors-To: xen-devel-bounces@lists.xen.org
-Sender: "Xen-devel" <xen-devel-bounces@lists.xen.org>
-To: Herbert Xu <herbert@gondor.apana.org.au>, "David S . Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Thomas Garnier <thgarnie@google.com>, Matthias Kaehlcke <mka@chromium.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, Paolo Bonzini <pbonzini@redhat.com>, =?UTF-8?q?Radim=20Kr=C4=8Dm=C3=A1=C5=99?= <rkrcmar@redhat.com>, Joerg Roedel <joro@8bytes.org>, Tom Lendacky <thomas.lendacky@amd.com>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Brian Gerst <brgerst@gmail.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, "Rafael J . Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Pavel Machek <pavel@ucw.cz>
-Cc: linux-arch@vger.kernel.org, kvm@vger.kernel.org, linux-pm@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, linux-sparse@vger.kernel.org, linux-crypto@vger.kernel.org, kernel-hardening@lists.openwall.com, xen-devel@lists.xenproject.org
+From: Andrei Vagin <avagin-GEFAQzZX7r8dnm+yROfE0A@public.gmane.org>
+Subject: [PATCH] [RFC] vm: add a syscall to map a process memory into a pipe
+Date: Thu, 10 Aug 2017 11:46:16 -0700
+Message-ID: <20170810184616.22726-1-avagin@openvz.org>
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Alexander Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>
+Cc: linux-fsdevel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, criu-GEFAQzZX7r8dnm+yROfE0A@public.gmane.org, Andrei Vagin <avagin-GEFAQzZX7r8dnm+yROfE0A@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Pavel Emelyanov <xemul-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Michael Kerrisk <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-aWYgUElFIGlzIGVuYWJsZWQsIHN3aXRjaCB0aGUgcGFyYXZpcnQgYXNzZW1ibHkgY29uc3RyYWlu
-dHMgdG8gYmUKY29tcGF0aWJsZS4gVGhlICVjL2kgY29uc3RyYWlucyBnZW5lcmF0ZSBzbWFsbGVy
-IGNvZGUgc28gaXMga2VwdCBieQpkZWZhdWx0LgoKUG9zaXRpb24gSW5kZXBlbmRlbnQgRXhlY3V0
-YWJsZSAoUElFKSBzdXBwb3J0IHdpbGwgYWxsb3cgdG8gZXh0ZW5kZWQgdGhlCktBU0xSIHJhbmRv
-bWl6YXRpb24gcmFuZ2UgYmVsb3cgdGhlIC0yRyBtZW1vcnkgbGltaXQuCgpTaWduZWQtb2ZmLWJ5
-OiBUaG9tYXMgR2FybmllciA8dGhnYXJuaWVAZ29vZ2xlLmNvbT4KLS0tCiBhcmNoL3g4Ni9pbmNs
-dWRlL2FzbS9wYXJhdmlydF90eXBlcy5oIHwgMTIgKysrKysrKysrKy0tCiAxIGZpbGUgY2hhbmdl
-ZCwgMTAgaW5zZXJ0aW9ucygrKSwgMiBkZWxldGlvbnMoLSkKCmRpZmYgLS1naXQgYS9hcmNoL3g4
-Ni9pbmNsdWRlL2FzbS9wYXJhdmlydF90eXBlcy5oIGIvYXJjaC94ODYvaW5jbHVkZS9hc20vcGFy
-YXZpcnRfdHlwZXMuaAppbmRleCA5ZmZjMzZiZmU0Y2QuLjZmNjdjMTA2NzJlYyAxMDA2NDQKLS0t
-IGEvYXJjaC94ODYvaW5jbHVkZS9hc20vcGFyYXZpcnRfdHlwZXMuaAorKysgYi9hcmNoL3g4Ni9p
-bmNsdWRlL2FzbS9wYXJhdmlydF90eXBlcy5oCkBAIC0zNDcsOSArMzQ3LDE3IEBAIGV4dGVybiBz
-dHJ1Y3QgcHZfbG9ja19vcHMgcHZfbG9ja19vcHM7CiAjZGVmaW5lIFBBUkFWSVJUX1BBVENIKHgp
-CQkJCQlcCiAJKG9mZnNldG9mKHN0cnVjdCBwYXJhdmlydF9wYXRjaF90ZW1wbGF0ZSwgeCkgLyBz
-aXplb2Yodm9pZCAqKSkKIAorI2lmZGVmIENPTkZJR19YODZfUElFCisjZGVmaW5lIHBhcmF2aXJ0
-X29wcHRyX2NhbGwgImEiCisjZGVmaW5lIHBhcmF2aXJ0X29wcHRyX3R5cGUgInAiCisjZWxzZQor
-I2RlZmluZSBwYXJhdmlydF9vcHB0cl9jYWxsICJjIgorI2RlZmluZSBwYXJhdmlydF9vcHB0cl90
-eXBlICJpIgorI2VuZGlmCisKICNkZWZpbmUgcGFyYXZpcnRfdHlwZShvcCkJCQkJXAogCVtwYXJh
-dmlydF90eXBlbnVtXSAiaSIgKFBBUkFWSVJUX1BBVENIKG9wKSksCVwKLQlbcGFyYXZpcnRfb3Bw
-dHJdICJpIiAoJihvcCkpCisJW3BhcmF2aXJ0X29wcHRyXSBwYXJhdmlydF9vcHB0cl90eXBlICgm
-KG9wKSkKICNkZWZpbmUgcGFyYXZpcnRfY2xvYmJlcihjbG9iYmVyKQkJXAogCVtwYXJhdmlydF9j
-bG9iYmVyXSAiaSIgKGNsb2JiZXIpCiAKQEAgLTQwMyw3ICs0MTEsNyBAQCBpbnQgcGFyYXZpcnRf
-ZGlzYWJsZV9pb3NwYWNlKHZvaWQpOwogICogb2Zmc2V0IGludG8gdGhlIHBhcmF2aXJ0X3BhdGNo
-X3RlbXBsYXRlIHN0cnVjdHVyZSwgYW5kIGNhbiB0aGVyZWZvcmUgYmUKICAqIGZyZWVseSBjb252
-ZXJ0ZWQgYmFjayBpbnRvIGEgc3RydWN0dXJlIG9mZnNldC4KICAqLwotI2RlZmluZSBQQVJBVklS
-VF9DQUxMCSJjYWxsIColY1twYXJhdmlydF9vcHB0cl07IgorI2RlZmluZSBQQVJBVklSVF9DQUxM
-CSJjYWxsIColIiBwYXJhdmlydF9vcHB0cl9jYWxsICJbcGFyYXZpcnRfb3BwdHJdOyIKIAogLyoK
-ICAqIFRoZXNlIG1hY3JvcyBhcmUgaW50ZW5kZWQgdG8gd3JhcCBjYWxscyB0aHJvdWdoIG9uZSBv
-ZiB0aGUgcGFyYXZpcnQKLS0gCjIuMTQuMC40MzQuZzk4MDk2ZmQ3YTgtZ29vZwoKCl9fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fClhlbi1kZXZlbCBtYWlsaW5n
-IGxpc3QKWGVuLWRldmVsQGxpc3RzLnhlbi5vcmcKaHR0cHM6Ly9saXN0cy54ZW4ub3JnL3hlbi1k
-ZXZlbAo=
+It is a hybrid of process_vm_readv() and vmsplice().
+
+vmsplice can map memory from a current address space into a pipe.
+process_vm_readv can read memory of another process.
+
+A new system call can map memory of another process into a pipe.
+
+ssize_t process_vmsplice(pid_t pid, int fd, const struct iovec *iov,
+                        unsigned long nr_segs, unsigned int flags)
+
+All arguments are identical with vmsplice except pid which specifies a
+target process.
+
+Currently if we want to dump a process memory to a file or to a socket,
+we can use process_vm_readv() + write(), but it works slow, because data
+are copied into a temporary user-space buffer.
+
+A second way is to use vmsplice() + splice(). It is more effective,
+because data are not copied into a temporary buffer, but here is another
+problem. vmsplice works with the currect address space, so it can be
+used only if we inject our code into a target process.
+
+The second way suffers from a few other issues:
+* a process has to be stopped to run a parasite code
+* a number of pipes is limited, so it may be impossible to dump all
+  memory in one iteration, and we have to stop process and inject our
+  code a few times.
+* pages in pipes are unreclaimable, so it isn't good to hold a lot of
+  memory in pipes.
+
+The introduced syscall allows to use a second way without injecting any
+code into a target process.
+
+My experiments shows that process_vmsplice() + splice() works two time
+faster than process_vm_readv() + write().
+
+It is particularly useful on a pre-dump stage. On this stage we enable a
+memory tracker, and then we are dumping  a process memory while a
+process continues work. On the first iteration we are dumping all
+memory, and then we are dumpung only modified memory from a previous
+iteration.  After a few pre-dump operations, a process is stopped and
+dumped finally. The pre-dump operations allow to significantly decrease
+a process downtime, when a process is migrated to another host.
+
+Cc: Alexander Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>
+Cc: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
+Cc: Pavel Emelyanov <xemul-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>
+Cc: Michael Kerrisk <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Cc: Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>
+Cc: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
+Signed-off-by: Andrei Vagin <avagin-GEFAQzZX7r8dnm+yROfE0A@public.gmane.org>
+---
+ fs/splice.c                       | 219 ++++++++++++++++++++++++++++++++++++++
+ include/linux/compat.h            |   3 +
+ include/linux/syscalls.h          |   4 +
+ include/uapi/asm-generic/unistd.h |   5 +-
+ 4 files changed, 230 insertions(+), 1 deletion(-)
+
+diff --git a/fs/splice.c b/fs/splice.c
+index ae41201..4b050a4 100644
+--- a/fs/splice.c
++++ b/fs/splice.c
+@@ -34,6 +34,7 @@
+ #include <linux/socket.h>
+ #include <linux/compat.h>
+ #include <linux/sched/signal.h>
++#include <linux/sched/mm.h>
+ 
+ #include "internal.h"
+ 
+@@ -1374,6 +1375,201 @@ SYSCALL_DEFINE4(vmsplice, int, fd, const struct iovec __user *, iov,
+ 	return error;
+ }
+ 
++/*
++ * Map pages from a specified task into a pipe
++ */
++static int remote_single_vec_to_pipe(struct task_struct *task,
++			struct mm_struct *mm,
++			const struct iovec *rvec,
++			struct pipe_inode_info *pipe,
++			unsigned int flags,
++			size_t *total)
++{
++	struct pipe_buffer buf = {
++		.ops = &user_page_pipe_buf_ops,
++		.flags = flags
++	};
++	unsigned long addr = (unsigned long) rvec->iov_base;
++	unsigned long pa = addr & PAGE_MASK;
++	unsigned long start_offset = addr - pa;
++	unsigned long nr_pages;
++	ssize_t len = rvec->iov_len;
++	struct page *process_pages[16];
++	bool failed = false;
++	int ret = 0;
++
++	nr_pages = (addr + len - 1) / PAGE_SIZE - addr / PAGE_SIZE + 1;
++	while (nr_pages) {
++		long pages = min(nr_pages, 16UL);
++		int locked = 1, n;
++		ssize_t copied;
++
++		/*
++		 * Get the pages we're interested in.  We must
++		 * access remotely because task/mm might not
++		 * current/current->mm
++		 */
++		down_read(&mm->mmap_sem);
++		pages = get_user_pages_remote(task, mm, pa, pages, flags,
++					      process_pages, NULL, &locked);
++		if (locked)
++			up_read(&mm->mmap_sem);
++		if (pages <= 0) {
++			failed = true;
++			ret = -EFAULT;
++			break;
++		}
++
++		copied = pages * PAGE_SIZE - start_offset;
++		if (copied > len)
++			copied = len;
++		len -= copied;
++
++		for (n = 0; copied; n++, start_offset = 0) {
++			int size = min_t(int, copied, PAGE_SIZE - start_offset);
++
++			if (!failed) {
++				buf.page = process_pages[n];
++				buf.offset = start_offset;
++				buf.len = size;
++				ret = add_to_pipe(pipe, &buf);
++				if (unlikely(ret < 0))
++					failed = true;
++				else
++					*total += ret;
++			} else {
++				put_page(process_pages[n]);
++			}
++			copied -= size;
++		}
++		if (failed)
++			break;
++		start_offset = 0;
++		nr_pages -= pages;
++		pa += pages * PAGE_SIZE;
++	}
++	return ret < 0 ? ret : 0;
++}
++
++static ssize_t remote_iovec_to_pipe(struct task_struct *task,
++			struct mm_struct *mm,
++			const struct iovec *rvec,
++			unsigned long riovcnt,
++			struct pipe_inode_info *pipe,
++			unsigned int flags)
++{
++	size_t total = 0;
++	int ret = 0, i;
++
++	for (i = 0; i < riovcnt; i++) {
++		/* Work out address and page range required */
++		if (rvec[i].iov_len == 0)
++			continue;
++
++		ret = remote_single_vec_to_pipe(
++				task, mm, &rvec[i], pipe, flags, &total);
++		if (ret < 0)
++			break;
++	}
++	return total ? total : ret;
++}
++
++static long process_vmsplice_to_pipe(struct task_struct *task,
++				struct mm_struct *mm, struct file *file,
++				const struct iovec __user *uiov,
++				unsigned long nr_segs, unsigned int flags)
++{
++	struct pipe_inode_info *pipe;
++	struct iovec iovstack[UIO_FASTIOV];
++	struct iovec *iov = iovstack;
++	unsigned int buf_flag = 0;
++	long ret;
++
++	if (flags & SPLICE_F_GIFT)
++		buf_flag = PIPE_BUF_FLAG_GIFT;
++
++	pipe = get_pipe_info(file);
++	if (!pipe)
++		return -EBADF;
++
++	ret = rw_copy_check_uvector(CHECK_IOVEC_ONLY, uiov, nr_segs,
++					UIO_FASTIOV, iovstack, &iov);
++	if (ret < 0)
++		return ret;
++
++	pipe_lock(pipe);
++	ret = wait_for_space(pipe, flags);
++	if (!ret)
++		ret = remote_iovec_to_pipe(task, mm, iov,
++						nr_segs, pipe, buf_flag);
++	pipe_unlock(pipe);
++	if (ret > 0)
++		wakeup_pipe_readers(pipe);
++
++	if (iov != iovstack)
++		kfree(iov);
++	return ret;
++}
++
++/* process_vmsplice splices a process address range into a pipe. */
++SYSCALL_DEFINE5(process_vmsplice, int, pid, int, fd,
++		const struct iovec __user *, iov,
++		unsigned long, nr_segs, unsigned int, flags)
++{
++	struct task_struct *task;
++	struct mm_struct *mm;
++	struct fd f;
++	long ret;
++
++	if (unlikely(flags & ~SPLICE_F_ALL))
++		return -EINVAL;
++	if (unlikely(nr_segs > UIO_MAXIOV))
++		return -EINVAL;
++	else if (unlikely(!nr_segs))
++		return 0;
++
++	f = fdget(fd);
++	if (!f.file)
++		return -EBADF;
++
++	/* Get process information */
++	rcu_read_lock();
++	task = find_task_by_vpid(pid);
++	if (task)
++		get_task_struct(task);
++	rcu_read_unlock();
++	if (!task) {
++		ret = -ESRCH;
++		goto out_fput;
++	}
++
++	mm = mm_access(task, PTRACE_MODE_ATTACH_REALCREDS);
++	if (!mm || IS_ERR(mm)) {
++		ret = IS_ERR(mm) ? PTR_ERR(mm) : -ESRCH;
++		/*
++		 * Explicitly map EACCES to EPERM as EPERM is a more a
++		 * appropriate error code for process_vw_readv/writev
++		 */
++		if (ret == -EACCES)
++			ret = -EPERM;
++		goto put_task_struct;
++	}
++
++	ret = -EBADF;
++	if (f.file->f_mode & FMODE_WRITE)
++		ret = process_vmsplice_to_pipe(task, mm, f.file,
++						iov, nr_segs, flags);
++	mmput(mm);
++
++put_task_struct:
++	put_task_struct(task);
++
++out_fput:
++	fdput(f);
++
++	return ret;
++}
++
+ #ifdef CONFIG_COMPAT
+ COMPAT_SYSCALL_DEFINE4(vmsplice, int, fd, const struct compat_iovec __user *, iov32,
+ 		    unsigned int, nr_segs, unsigned int, flags)
+@@ -1393,6 +1589,29 @@ COMPAT_SYSCALL_DEFINE4(vmsplice, int, fd, const struct compat_iovec __user *, io
+ 	}
+ 	return sys_vmsplice(fd, iov, nr_segs, flags);
+ }
++
++COMPAT_SYSCALL_DEFINE5(process_vmsplice, pid_t, pid, int, fd,
++			const struct compat_iovec __user *, iov32,
++			unsigned int, nr_segs, unsigned int, flags)
++{
++	struct iovec __user *iov;
++	unsigned int i;
++
++	if (nr_segs > UIO_MAXIOV)
++		return -EINVAL;
++
++	iov = compat_alloc_user_space(nr_segs * sizeof(struct iovec));
++	for (i = 0; i < nr_segs; i++) {
++		struct compat_iovec v;
++
++		if (get_user(v.iov_base, &iov32[i].iov_base) ||
++		    get_user(v.iov_len, &iov32[i].iov_len) ||
++		    put_user(compat_ptr(v.iov_base), &iov[i].iov_base) ||
++		    put_user(v.iov_len, &iov[i].iov_len))
++			return -EFAULT;
++	}
++	return sys_process_vmsplice(pid, fd, iov, nr_segs, flags);
++}
+ #endif
+ 
+ SYSCALL_DEFINE6(splice, int, fd_in, loff_t __user *, off_in,
+diff --git a/include/linux/compat.h b/include/linux/compat.h
+index 5a6a109..3590cc7 100644
+--- a/include/linux/compat.h
++++ b/include/linux/compat.h
+@@ -550,6 +550,9 @@ asmlinkage long compat_sys_getdents(unsigned int fd,
+ 				    unsigned int count);
+ asmlinkage long compat_sys_vmsplice(int fd, const struct compat_iovec __user *,
+ 				    unsigned int nr_segs, unsigned int flags);
++asmlinkage long compat_sys_process_vmsplice(pid_t pid, int fd,
++				    const struct compat_iovec __user *,
++				    unsigned int nr_segs, unsigned int flags);
+ asmlinkage long compat_sys_open(const char __user *filename, int flags,
+ 				umode_t mode);
+ asmlinkage long compat_sys_openat(int dfd, const char __user *filename,
+diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
+index 3cb15ea..49bdf96 100644
+--- a/include/linux/syscalls.h
++++ b/include/linux/syscalls.h
+@@ -906,4 +906,8 @@ asmlinkage long sys_pkey_free(int pkey);
+ asmlinkage long sys_statx(int dfd, const char __user *path, unsigned flags,
+ 			  unsigned mask, struct statx __user *buffer);
+ 
++asmlinkage long sys_process_vmsplice(pid_t pid,
++			int fd, const struct iovec __user *iov,
++			unsigned long nr_segs, unsigned int flags);
++
+ #endif
+diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
+index 061185a..d18019d 100644
+--- a/include/uapi/asm-generic/unistd.h
++++ b/include/uapi/asm-generic/unistd.h
+@@ -731,9 +731,12 @@ __SYSCALL(__NR_pkey_alloc,    sys_pkey_alloc)
+ __SYSCALL(__NR_pkey_free,     sys_pkey_free)
+ #define __NR_statx 291
+ __SYSCALL(__NR_statx,     sys_statx)
++#define __NR_process_vmsplice 292
++__SC_COMP(__NR_process_vmsplice, sys_process_vmsplice,
++	  compat_sys_process_vmsplice)
+ 
+ #undef __NR_syscalls
+-#define __NR_syscalls 292
++#define __NR_syscalls 293
+ 
+ /*
+  * All syscalls below here should go away really,
+-- 
+2.9.4
