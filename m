@@ -1,77 +1,138 @@
-From: Minchan Kim <minchan@kernel.org>
-Subject: Re: [lkp-robot] [mm]  7674270022:  will-it-scale.per_process_ops
- -19.3% regression
-Date: Thu, 10 Aug 2017 13:20:40 +0900
-Message-ID: <20170810042040.GA2249@bbox>
-References: <20170802000818.4760-7-namit@vmware.com>
- <20170808011923.GE25554@yexl-desktop>
- <20170808022830.GA28570@bbox>
- <93CA4B47-95C2-43A2-8E92-B142CAB1DAF7@gmail.com>
- <970B5DC5-BFC2-461E-AC46-F71B3691D301@gmail.com>
- <20170808080821.GA31730@bbox>
- <20170809025902.GA17616@yexl-desktop>
- <20170810041353.GB2042@bbox>
- <80589593-6F0E-4421-9279-681D5B388100@gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from LGEAMRELO13.lge.com ([156.147.23.53]:40014 "EHLO
-        lgeamrelo13.lge.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750735AbdHJEUm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 10 Aug 2017 00:20:42 -0400
-Content-Disposition: inline
-In-Reply-To: <80589593-6F0E-4421-9279-681D5B388100@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Nadav Amit <nadav.amit@gmail.com>
-Cc: Ye Xiaolong <xiaolong.ye@intel.com>, "open list:MEMORY MANAGEMENT" <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Tony Luck <tony.luck@intel.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, "David S. Miller" <davem@davemloft.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Jeff Dike <jdike@addtoit.com>, linux-arch@vger.kernel.org, lkp@01.org
+From: Thomas Garnier <thgarnie@google.com>
+Subject: x86: PIE support and option to extend KASLR randomization
+Date: Thu, 10 Aug 2017 10:25:52 -0700
+Message-ID: <20170810172615.51965-1-thgarnie@google.com>
+Return-path: <kernel-hardening-return-9309-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+To: Herbert Xu <herbert@gondor.apana.org.au>, "David S . Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Thomas Garnier <thgarnie@google.com>, Matthias Kaehlcke <mka@chromium.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, Paolo Bonzini <pbonzini@redhat.com>, =?UTF-8?q?Radim=20Kr=C4=8Dm=C3=A1=C5=99?= <rkrcmar@redhat.com>, Joerg Roedel <joro@8bytes.org>, Tom Lendacky <thomas.lendacky@amd.com>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Brian Gerst <brgerst@gmail.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, "Rafael J . Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Pavel Machek <pavel>
+Cc: x86@kernel.org, linux-crypto@vger.kernel.org, linux-kernel@vger.kernel.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linux-sparse@vger.kernel.org, kernel-hardening@lists.openwall.com
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Aug 09, 2017 at 09:14:50PM -0700, Nadav Amit wrote:
+Changes:
+ - v2:
+   - Add support for global stack cookie while compiler default to fs without
+     mcmodel=kernel
+   - Change patch 7 to correctly jump out of the identity mapping on kexec load
+     preserve.
 
-Hi Nadav,
+These patches make the changes necessary to build the kernel as Position
+Independent Executable (PIE) on x86_64. A PIE kernel can be relocated below
+the top 2G of the virtual address space. It allows to optionally extend the
+KASLR randomization range from 1G to 3G.
 
-< snip >
+Thanks a lot to Ard Biesheuvel & Kees Cook on their feedback on compiler
+changes, PIE support and KASLR in general.
 
-> >>>>> According to the description it is "testcase:brk increase/decrease of one
-> >>>>> page”. According to the mode it spawns multiple processes, not threads.
-> >>>>> 
-> >>>>> Since a single page is unmapped each time, and the iTLB-loads increase
-> >>>>> dramatically, I would suspect that for some reason a full TLB flush is
-> >>>>> caused during do_munmap().
-> >>>>> 
-> >>>>> If I find some free time, I’ll try to profile the workload - but feel free
-> >>>>> to beat me to it.
-> >>>> 
-> >>>> The root-cause appears to be that tlb_finish_mmu() does not call
-> >>>> dec_tlb_flush_pending() - as it should. Any chance you can take care of it?
-> >>> 
-> >>> Oops, but with second looking, it seems it's not my fault. ;-)
-> >>> https://marc.info/?l=linux-mm&m=150156699114088&w=2
-> >>> 
-> >>> Anyway, thanks for the pointing out.
-> >>> xiaolong.ye, could you retest with this fix?
-> >> 
-> >> I've queued tests for 5 times and results show this patch (e8f682574e4 "mm:
-> >> decrease tlb flush pending count in tlb_finish_mmu") does help recover the
-> >> performance back.
-> >> 
-> >> 378005bdbac0a2ec  76742700225cad9df49f053993  e8f682574e45b6406dadfffeb4  
-> >> ----------------  --------------------------  --------------------------  
-> >>         %stddev      change         %stddev      change         %stddev
-> >>             \          |                \          |                \  
-> >>   3405093             -19%    2747088              -2%    3348752        will-it-scale.per_process_ops
-> >>      1280 ±  3%        -2%       1257 ±  3%        -6%       1207        vmstat.system.cs
-> >>      2702 ± 18%        11%       3002 ± 19%        17%       3156 ± 18%  numa-vmstat.node0.nr_mapped
-> >>     10765 ± 18%        11%      11964 ± 19%        17%      12588 ± 18%  numa-meminfo.node0.Mapped
-> >>      0.00 ± 47%       -40%       0.00 ± 45%       -84%       0.00 ± 42%  mpstat.cpu.soft%
-> >> 
-> >> Thanks,
-> >> Xiaolong
-> > 
-> > Thanks for the testing!
-> 
-> Sorry again for screwing your patch, Minchan.
+The patches:
+ - 1-3, 5-15: Change in assembly code to be PIE compliant.
+ - 4: Add a new _ASM_GET_PTR macro to fetch a symbol address generically.
+ - 16: Adapt percpu design to work correctly when PIE is enabled.
+ - 17: Provide an option to default visibility to hidden except for key symbols.
+       It removes errors between compilation units.
+ - 18: Adapt relocation tool to handle PIE binary correctly.
+ - 19: Add support for global cookie
+ - 20: Add the CONFIG_X86_PIE option (off by default)
+ - 21: Adapt relocation tool to generate a 64-bit relocation table.
+ - 22: Add options to build modules as mcmodel=large and dynamically create a
+       PLT for relative references out of range (adapted from arm64).
+ - 23: Add the CONFIG_RANDOMIZE_BASE_LARGE option to increase relocation range
+       from 1G to 3G (off by default).
 
-Never mind! It always happens. :)
-In this chance, I really appreciates your insight/testing/cooperation!
+Performance/Size impact:
+
+Hackbench (50% and 1600% loads):
+ - PIE disabled: no significant change (-0.50% / +0.50%)
+ - PIE enabled: 7% to 8% on half load, 10% on heavy load.
+
+These results are aligned with the different research on user-mode PIE
+impact on cpu intensive benchmarks (around 10% on x86_64).
+
+slab_test (average of 10 runs):
+ - PIE disabled: no significant change (-1% / +1%)
+ - PIE enabled: 3% to 4%
+
+Kernbench (average of 10 Half and Optimal runs):
+ Elapsed Time:
+ - PIE disabled: no significant change (-0.22% / +0.06%)
+ - PIE enabled: around 0.50%
+ System Time:
+ - PIE disabled: no significant change (-0.99% / -1.28%)
+ - PIE enabled: 5% to 6%
+
+Size of vmlinux (Ubuntu configuration):
+ File size:
+ - PIE disabled: 472928672 bytes (-0.000169% from baseline)
+ - PIE enabled: 216878461 bytes (-54.14% from baseline)
+ .text sections:
+ - PIE disabled: 9373572 bytes (+0.04% from baseline)
+ - PIE enabled: 9499138 bytes (+1.38% from baseline)
+
+The big decrease in vmlinux file size is due to the lower number of
+relocations appended to the file.
+
+diffstat:
+ arch/x86/Kconfig                             |   42 +++++
+ arch/x86/Makefile                            |   28 +++
+ arch/x86/boot/boot.h                         |    2 
+ arch/x86/boot/compressed/Makefile            |    5 
+ arch/x86/boot/compressed/misc.c              |   10 +
+ arch/x86/crypto/aes-x86_64-asm_64.S          |   45 +++---
+ arch/x86/crypto/aesni-intel_asm.S            |   14 +
+ arch/x86/crypto/aesni-intel_avx-x86_64.S     |    6 
+ arch/x86/crypto/camellia-aesni-avx-asm_64.S  |   42 ++---
+ arch/x86/crypto/camellia-aesni-avx2-asm_64.S |   44 +++---
+ arch/x86/crypto/camellia-x86_64-asm_64.S     |    8 -
+ arch/x86/crypto/cast5-avx-x86_64-asm_64.S    |   50 +++---
+ arch/x86/crypto/cast6-avx-x86_64-asm_64.S    |   44 +++---
+ arch/x86/crypto/des3_ede-asm_64.S            |   96 ++++++++-----
+ arch/x86/crypto/ghash-clmulni-intel_asm.S    |    4 
+ arch/x86/crypto/glue_helper-asm-avx.S        |    4 
+ arch/x86/crypto/glue_helper-asm-avx2.S       |    6 
+ arch/x86/entry/entry_32.S                    |    3 
+ arch/x86/entry/entry_64.S                    |   29 ++-
+ arch/x86/include/asm/asm.h                   |   13 +
+ arch/x86/include/asm/bug.h                   |    2 
+ arch/x86/include/asm/jump_label.h            |    8 -
+ arch/x86/include/asm/kvm_host.h              |    6 
+ arch/x86/include/asm/module.h                |   17 ++
+ arch/x86/include/asm/page_64_types.h         |    9 +
+ arch/x86/include/asm/paravirt_types.h        |   12 +
+ arch/x86/include/asm/percpu.h                |   25 ++-
+ arch/x86/include/asm/pm-trace.h              |    2 
+ arch/x86/include/asm/processor.h             |   11 -
+ arch/x86/include/asm/setup.h                 |    2 
+ arch/x86/include/asm/stackprotector.h        |   19 +-
+ arch/x86/kernel/Makefile                     |    2 
+ arch/x86/kernel/acpi/wakeup_64.S             |   31 ++--
+ arch/x86/kernel/asm-offsets.c                |    3 
+ arch/x86/kernel/asm-offsets_32.c             |    3 
+ arch/x86/kernel/asm-offsets_64.c             |    3 
+ arch/x86/kernel/cpu/common.c                 |    7 
+ arch/x86/kernel/head64.c                     |   30 +++-
+ arch/x86/kernel/head_32.S                    |    3 
+ arch/x86/kernel/head_64.S                    |   46 +++++-
+ arch/x86/kernel/kvm.c                        |    6 
+ arch/x86/kernel/module-plts.c                |  198 +++++++++++++++++++++++++++
+ arch/x86/kernel/module.c                     |   18 +-
+ arch/x86/kernel/module.lds                   |    4 
+ arch/x86/kernel/process.c                    |    5 
+ arch/x86/kernel/relocate_kernel_64.S         |    8 -
+ arch/x86/kernel/setup_percpu.c               |    2 
+ arch/x86/kernel/vmlinux.lds.S                |   13 +
+ arch/x86/kvm/svm.c                           |    4 
+ arch/x86/lib/cmpxchg16b_emu.S                |    8 -
+ arch/x86/power/hibernate_asm_64.S            |    4 
+ arch/x86/tools/relocs.c                      |  134 +++++++++++++++---
+ arch/x86/tools/relocs.h                      |    4 
+ arch/x86/tools/relocs_common.c               |   15 +-
+ arch/x86/xen/xen-asm.S                       |   12 -
+ arch/x86/xen/xen-asm.h                       |    3 
+ arch/x86/xen/xen-head.S                      |    9 -
+ include/asm-generic/sections.h               |    6 
+ include/linux/compiler.h                     |    8 +
+ init/Kconfig                                 |    9 +
+ kernel/kallsyms.c                            |   16 +-
+ 61 files changed, 923 insertions(+), 299 deletions(-)
