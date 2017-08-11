@@ -1,35 +1,61 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v6 4/7] mm: refactoring TLB gathering API
-Date: Fri, 11 Aug 2017 11:23:34 +0200
-Message-ID: <20170811092334.rmeazkklvordrmrl@hirez.programming.kicks-ass.net>
-References: <20170802000818.4760-1-namit@vmware.com>
- <20170802000818.4760-5-namit@vmware.com>
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [PATCH 00/11] ARMv8.3 pointer authentication userspace support
+Date: Fri, 11 Aug 2017 12:29:23 +0100
+Message-ID: <20170811112922.GE12985@leverpostej>
+References: <1500480092-28480-1-git-send-email-mark.rutland@arm.com>
+ <20170721170509.GC1538@e103592.cambridge.arm.com>
+ <20170725120630.GA8116@leverpostej>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:43280 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752096AbdHKLad (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 11 Aug 2017 07:30:33 -0400
 Content-Disposition: inline
-In-Reply-To: <20170802000818.4760-5-namit@vmware.com>
-Sender: owner-linux-mm@kvack.org
-To: Nadav Amit <namit@vmware.com>
-Cc: linux-mm@kvack.org, nadav.amit@gmail.com, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, Minchan Kim <minchan@kernel.org>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Tony Luck <tony.luck@intel.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, "David S. Miller" <davem@davemloft.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Jeff Dike <jdike@addtoit.com>, linux-arch@vger.kernel.org, Mel Gorman <mgorman@techsingularity.net>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20170725120630.GA8116@leverpostej>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-arch@vger.kernel.org, arnd@arndb.de, jiong.wang@arm.com, marc.zyngier@arm.com, catalin.marinas@arm.com, yao.qi@arm.com, will.deacon@arm.com, linux-kernel@vger.kernel.org, kernel-hardening@lists.openwall.com, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
 
-On Tue, Aug 01, 2017 at 05:08:15PM -0700, Nadav Amit wrote:
-> From: Minchan Kim <minchan@kernel.org>
+On Tue, Jul 25, 2017 at 01:06:43PM +0100, Mark Rutland wrote:
+> On Fri, Jul 21, 2017 at 06:05:09PM +0100, Dave Martin wrote:
+> > On Wed, Jul 19, 2017 at 05:01:21PM +0100, Mark Rutland wrote:
+> > > This series adds support for the ARMv8.3 pointer authentication extension.
 > 
-> This patch is a preparatory patch for solving race problems caused by
-> TLB batch.  For that, we will increase/decrease TLB flush pending count
-> of mm_struct whenever tlb_[gather|finish]_mmu is called.
+> > > Open questions
+> > > ==============
+> > > 
+> > > * Should keys be per-thread rather than per-process?
+> > > 
+> > >   My understanding is that glibc can't (currently) handle threads having
+> > >   different keys, but it might be that another libc would prefer per-thread
+> > 
+> > Can you elaborate?
+> > 
+> > It's not valid to do a function return from one thread to another.
 > 
-> Before making it simple, this patch separates architecture specific
-> part and rename it to arch_tlb_[gather|finish]_mmu and generic part
-> just calls it.
+> Regardless of whether it's valid per the C spec or POSIX, some people
+> use {set,get}context and {set,long}jmp in this manner (IIRC, QEMU does
+> this), and my understanding is that similar tricks are in use in the
+> bowels of glibc.
+> 
+> Otherwise, my preference would be to have per-thread keys from day one.
 
-I absolutely hate this. We should unify this stuff, not diverge it
-further.
+Having considered comments I've received elsewhere, I've reversed my
+position here. I think per-process keys are the more
+sensible default since:
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+* This will allow us to protect function pointers in shared
+  datastructures such as vtables.
+
+* Tasks have their own stacks, and values leaked from one stack cannot
+  be used to spoof return addresses on another.
+
+* If an attacker can take control of one thread, they've already gained
+  code execution and/or primitives that can be used to attack the
+  process by other means.
+
+Thanks,
+Mark.
