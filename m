@@ -1,89 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f45.google.com ([209.85.214.45]:36151 "EHLO
-        mail-it0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752950AbdHJTnF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 10 Aug 2017 15:43:05 -0400
-Received: by mail-it0-f45.google.com with SMTP id 77so18512346itj.1
-        for <linux-arch@vger.kernel.org>; Thu, 10 Aug 2017 12:43:05 -0700 (PDT)
+Received: from foss.arm.com ([217.140.101.70]:41460 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751842AbdHKIpZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 11 Aug 2017 04:45:25 -0400
+Date: Fri, 11 Aug 2017 09:45:19 +0100
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [PATCH 07/11] arm64: add basic pointer authentication support
+Message-ID: <20170811084516.GQ6321@e103592.cambridge.arm.com>
+References: <1500480092-28480-1-git-send-email-mark.rutland@arm.com>
+ <1500480092-28480-8-git-send-email-mark.rutland@arm.com>
+ <5a919df5-7f6d-2c6c-9c8e-e28fcebd4920@arm.com>
 MIME-Version: 1.0
-In-Reply-To: <20170810184616.22726-1-avagin@openvz.org>
-References: <20170810184616.22726-1-avagin@openvz.org>
-From: Jann Horn <jannh@google.com>
-Date: Thu, 10 Aug 2017 21:42:44 +0200
-Message-ID: <CAG48ez2Q+rTWUB_VfLhCFvawXLigpJXVxoNgZ28UhS+vHu_vdg@mail.gmail.com>
-Subject: Re: [PATCH] [RFC] vm: add a syscall to map a process memory into a pipe
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <5a919df5-7f6d-2c6c-9c8e-e28fcebd4920@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrei Vagin <avagin@openvz.org>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>, linux-fsdevel@vger.kernel.org, kernel list <linux-kernel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, criu@openvz.org, Arnd Bergmann <arnd@arndb.de>, Pavel Emelyanov <xemul@virtuozzo.com>, Michael Kerrisk <mtk.manpages@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20170810194244.TfmM5waD7HHMDdC7u8rVTtFEwWM22pJY764DTxLqz6I@z>
+To: Yao Qi <yao.qi@arm.com>
+Cc: Mark Rutland <mark.rutland@arm.com>, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, arnd@arndb.de, jiong.wang@arm.com, marc.zyngier@arm.com, catalin.marinas@arm.com, suzuki.poulose@arm.com, will.deacon@arm.com, linux-kernel@vger.kernel.org, kernel-hardening@lists.openwall.com, kvmarm@lists.cs.columbia.edu, christoffer.dall@linaro.org
+Message-ID: <20170811084519.r26mI9lyfIoeFbQ0SlAmhsAzDfOsmDlRSfgV8P1Jw08@z>
 
-On Thu, Aug 10, 2017 at 8:46 PM, Andrei Vagin <avagin@openvz.org> wrote:
-> It is a hybrid of process_vm_readv() and vmsplice().
->
-> vmsplice can map memory from a current address space into a pipe.
-> process_vm_readv can read memory of another process.
-[...]
-> +/*
-> + * Map pages from a specified task into a pipe
-> + */
-> +static int remote_single_vec_to_pipe(struct task_struct *task,
-> +                       struct mm_struct *mm,
-> +                       const struct iovec *rvec,
-> +                       struct pipe_inode_info *pipe,
-> +                       unsigned int flags,
-> +                       size_t *total)
-> +{
-> +       struct pipe_buffer buf = {
-> +               .ops = &user_page_pipe_buf_ops,
-> +               .flags = flags
-> +       };
-[...]
-> +       while (nr_pages) {
-[...]
-> +               /*
-> +                * Get the pages we're interested in.  We must
-> +                * access remotely because task/mm might not
-> +                * current/current->mm
-> +                */
-> +               down_read(&mm->mmap_sem);
-> +               pages = get_user_pages_remote(task, mm, pa, pages, flags,
-> +                                             process_pages, NULL, &locked);
+On Fri, Aug 11, 2017 at 08:46:28AM +0100, Yao Qi wrote:
+> Hi Mark,
+> 
+> On 19/07/17 17:01, Mark Rutland wrote:
+> >+#define HWCAP_APIA           (1 << 16)
+> 
+> Can you rename it to HWCAP_ARM64_APIA or HWCAP_ARM_APIA?  When we
+> use it in user space, at least in GDB, we usually do this,
+> 
+> #ifndef HWCAP_APIA
+> #define HWCAP_APIA (1 << 16)
+> #endif
+> 
+> However, the code use this macro can be compiled on !arm64 host.
+> If HWCAP_APIA is defined on other !arm64 host and its value is not
+> (1 << 16), the program "aarch64_hwcap & HWCAP_APIA ? XXX : XXX;" is
+> wrong, and compiler doesn't complain.
+> 
+> I notice that mips, mn10300, sparc, and s390 define their HWCAP this
+> way, like HWCAP_SPARC_FLUSH, HWCAP_MIPS_R6, HWCAP_S390_DFP, etc.
 
-This fifth "flags" argument of get_user_pages_remote() should contain
-GUP flags (FOLL_*), but it looks like you're actually passing in 0 or
-PIPE_BUF_FLAG_GIFT, which will be interpreted as FOLL_GET?
-(See the snippets quoted below.) This looks like a bug.
+(Sticking my oar in because this would apply to HWCAP_SVE too.)
 
-Maybe use a more meaningful variable name than "flags".
+It would have been a good idea I guess, but historically arm, arm64, x86
+(for the one HWCAP2_* flag I can find) and unicore32 don't do this.
+That can't change now without an API break, and changing the naming
+scheme just for new hwcaps just seems messy.
 
-> +static ssize_t remote_iovec_to_pipe(struct task_struct *task,
-> +                       struct mm_struct *mm,
-> +                       const struct iovec *rvec,
-> +                       unsigned long riovcnt,
-> +                       struct pipe_inode_info *pipe,
-> +                       unsigned int flags)
-> +{
+Including multiple arches' headers in the same compilation unit isn't
+guaranteed to work sensibly at all AFAICT -- it seems best no to rely
+on it.
+
+In the above, you could be doing something like
+
+#ifdef HWCAP_APIA
+#if HWCAP_APIA != (1 << 16)
+#error "HWCAP_APIA value mismatch"
+#else
+#undef HWCAP_APIA
+#endif
+#endif
+
+#define HWCAP_APIA (1 << 16)
+
+...or...
+
+#define HWCAP_ARM64_APIA (1 << 16)
+
+(i.e., unconditionally, and with a well-behaved compile-time error if
+there is a definition already).
+
 [...]
-> +               ret = remote_single_vec_to_pipe(
-> +                               task, mm, &rvec[i], pipe, flags, &total);
-[...]
-> +}
-> +
-> +static long process_vmsplice_to_pipe(struct task_struct *task,
-> +                               struct mm_struct *mm, struct file *file,
-> +                               const struct iovec __user *uiov,
-> +                               unsigned long nr_segs, unsigned int flags)
-> +{
-[...]
-> +       unsigned int buf_flag = 0;
-[...]
-> +       if (flags & SPLICE_F_GIFT)
-> +               buf_flag = PIPE_BUF_FLAG_GIFT;
-[...]
-> +       if (!ret)
-> +               ret = remote_iovec_to_pipe(task, mm, iov,
-> +                                               nr_segs, pipe, buf_flag);
-[...]
-> +}
+
+Cheers
+---Dave
