@@ -1,61 +1,77 @@
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCH 00/11] ARMv8.3 pointer authentication userspace support
-Date: Fri, 11 Aug 2017 12:29:23 +0100
-Message-ID: <20170811112922.GE12985@leverpostej>
-References: <1500480092-28480-1-git-send-email-mark.rutland@arm.com>
- <20170721170509.GC1538@e103592.cambridge.arm.com>
- <20170725120630.GA8116@leverpostej>
+From: Pavel Machek <pavel@ucw.cz>
+Subject: Re: [RFC v2 13/23] x86/power/64: Adapt assembly for PIE support
+Date: Fri, 11 Aug 2017 14:36:18 +0200
+Message-ID: <20170811123618.GC16126@amd>
+References: <20170810172615.51965-1-thgarnie@google.com>
+ <20170810172615.51965-14-thgarnie@google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:43280 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752096AbdHKLad (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 11 Aug 2017 07:30:33 -0400
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature"; boundary="vOmOzSkFvhd7u8Ms"
+Return-path: <kernel-hardening-return-9337-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
 Content-Disposition: inline
-In-Reply-To: <20170725120630.GA8116@leverpostej>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-arch@vger.kernel.org, arnd@arndb.de, jiong.wang@arm.com, marc.zyngier@arm.com, catalin.marinas@arm.com, yao.qi@arm.com, will.deacon@arm.com, linux-kernel@vger.kernel.org, kernel-hardening@lists.openwall.com, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
+In-Reply-To: <20170810172615.51965-14-thgarnie@google.com>
+To: Thomas Garnier <thgarnie@google.com>
+Cc: Herbert Xu <herbert@gondor.apana.org.au>, "David S . Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Matthias Kaehlcke <mka@chromium.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, Paolo Bonzini <pbonzini@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Joerg Roedel <joro@8bytes.org>, Tom Lendacky <thomas.lendacky@amd.com>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Brian Gerst <brgerst@gmail.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, "Rafael J . Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@linux.com>, Paul
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jul 25, 2017 at 01:06:43PM +0100, Mark Rutland wrote:
-> On Fri, Jul 21, 2017 at 06:05:09PM +0100, Dave Martin wrote:
-> > On Wed, Jul 19, 2017 at 05:01:21PM +0100, Mark Rutland wrote:
-> > > This series adds support for the ARMv8.3 pointer authentication extension.
-> 
-> > > Open questions
-> > > ==============
-> > > 
-> > > * Should keys be per-thread rather than per-process?
-> > > 
-> > >   My understanding is that glibc can't (currently) handle threads having
-> > >   different keys, but it might be that another libc would prefer per-thread
-> > 
-> > Can you elaborate?
-> > 
-> > It's not valid to do a function return from one thread to another.
-> 
-> Regardless of whether it's valid per the C spec or POSIX, some people
-> use {set,get}context and {set,long}jmp in this manner (IIRC, QEMU does
-> this), and my understanding is that similar tricks are in use in the
-> bowels of glibc.
-> 
-> Otherwise, my preference would be to have per-thread keys from day one.
 
-Having considered comments I've received elsewhere, I've reversed my
-position here. I think per-process keys are the more
-sensible default since:
+--vOmOzSkFvhd7u8Ms
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-* This will allow us to protect function pointers in shared
-  datastructures such as vtables.
+On Thu 2017-08-10 10:26:05, Thomas Garnier wrote:
+> Change the assembly code to use only relative references of symbols for t=
+he
+> kernel to be PIE compatible.
+>=20
+> Position Independent Executable (PIE) support will allow to extended the
+> KASLR randomization range below the -2G memory limit.
+>=20
+> Signed-off-by: Thomas Garnier <thgarnie@google.com>
 
-* Tasks have their own stacks, and values leaked from one stack cannot
-  be used to spoof return addresses on another.
+Acked-by: Pavel Machek <pavel@ucw.cz>
 
-* If an attacker can take control of one thread, they've already gained
-  code execution and/or primitives that can be used to attack the
-  process by other means.
+> --- a/arch/x86/power/hibernate_asm_64.S
+> +++ b/arch/x86/power/hibernate_asm_64.S
+> @@ -24,7 +24,7 @@
+>  #include <asm/frame.h>
+> =20
+>  ENTRY(swsusp_arch_suspend)
+> -	movq	$saved_context, %rax
+> +	leaq	saved_context(%rip), %rax
+>  	movq	%rsp, pt_regs_sp(%rax)
+>  	movq	%rbp, pt_regs_bp(%rax)
+>  	movq	%rsi, pt_regs_si(%rax)
+> @@ -115,7 +115,7 @@ ENTRY(restore_registers)
+>  	movq	%rax, %cr4;  # turn PGE back on
+> =20
+>  	/* We don't restore %rax, it must be 0 anyway */
+> -	movq	$saved_context, %rax
+> +	leaq	saved_context(%rip), %rax
+>  	movq	pt_regs_sp(%rax), %rsp
+>  	movq	pt_regs_bp(%rax), %rbp
+>  	movq	pt_regs_si(%rax), %rsi
 
-Thanks,
-Mark.
+--=20
+(english) http://www.livejournal.com/~pavelmachek
+(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blo=
+g.html
+
+--vOmOzSkFvhd7u8Ms
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1
+
+iEYEARECAAYFAlmNpMIACgkQMOfwapXb+vJG3ACfVMzKXQzx7J3rvbkT2TBtbrjp
+JrUAnR5LW+sxtWmaznI1DNIMBYBOlQXY
+=ii2P
+-----END PGP SIGNATURE-----
+
+--vOmOzSkFvhd7u8Ms--
