@@ -1,29 +1,51 @@
-From: "Mayrhofer Family" <info@charity.com>
-Subject: Re: Grant-
-Date: Sat, 12 Aug 2017 11:47:49 +0800
-Message-ID: <20170812035124.4B1B5263960@amza.camis.pub.ro>
-Reply-To: tmason9w4r@gmail.com
+From: Nadav Amit <namit@vmware.com>
+Subject: Re: [PATCH v6 6/7] mm: fix MADV_[FREE|DONTNEED] TLB flush miss
+ problem
+Date: Sun, 13 Aug 2017 06:14:21 +0000
+Message-ID: <E340B75B-2830-4E6D-BF0A-2C58A7002CF1@vmware.com>
+References: <20170802000818.4760-1-namit@vmware.com>
+ <20170802000818.4760-7-namit@vmware.com>
+ <20170811133020.zozuuhbw72lzolj5@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="iso-8859-1"
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.camis.pub.ro ([141.85.199.96]:45220 "EHLO
-        amza.camis.pub.ro" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-        with ESMTP id S1750972AbdHLHKj (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 12 Aug 2017 03:10:39 -0400
-Content-Description: Mail message body
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Recipients <info@charity.com>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20170811133020.zozuuhbw72lzolj5@hirez.programming.kicks-ass.net>
+Content-Language: en-US
+Content-ID: <D0DC5E77A78A8F44A29F3FB55D8F7E44@namprd05.prod.outlook.com>
+Sender: owner-linux-mm@kvack.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: "open list:MEMORY MANAGEMENT" <linux-mm@kvack.org>, Linux Kernel Mailing
+ List <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Minchan Kim <minchan@kernel.org>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Tony Luck <tony.luck@intel.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, "David S.
+ Miller" <davem@davemloft.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Jeff Dike <jdike@addtoit.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-Good Day,
+UGV0ZXIgWmlqbHN0cmEgPHBldGVyekBpbmZyYWRlYWQub3JnPiB3cm90ZToNCg0KPiBPbiBUdWUs
+IEF1ZyAwMSwgMjAxNyBhdCAwNTowODoxN1BNIC0wNzAwLCBOYWRhdiBBbWl0IHdyb3RlOg0KPj4g
+dm9pZCB0bGJfZmluaXNoX21tdShzdHJ1Y3QgbW11X2dhdGhlciAqdGxiLA0KPj4gCQl1bnNpZ25l
+ZCBsb25nIHN0YXJ0LCB1bnNpZ25lZCBsb25nIGVuZCkNCj4+IHsNCj4+IC0JYXJjaF90bGJfZmlu
+aXNoX21tdSh0bGIsIHN0YXJ0LCBlbmQpOw0KPj4gKwkvKg0KPj4gKwkgKiBJZiB0aGVyZSBhcmUg
+cGFyYWxsZWwgdGhyZWFkcyBhcmUgZG9pbmcgUFRFIGNoYW5nZXMgb24gc2FtZSByYW5nZQ0KPj4g
+KwkgKiB1bmRlciBub24tZXhjbHVzaXZlIGxvY2soZS5nLiwgbW1hcF9zZW0gcmVhZC1zaWRlKSBi
+dXQgZGVmZXIgVExCDQo+PiArCSAqIGZsdXNoIGJ5IGJhdGNoaW5nLCBhIHRocmVhZCBoYXMgc3Rh
+YmxlIFRMQiBlbnRyeSBjYW4gZmFpbCB0byBmbHVzaA0KPj4gKwkgKiB0aGUgVExCIGJ5IG9ic2Vy
+dmluZyBwdGVfbm9uZXwhcHRlX2RpcnR5LCBmb3IgZXhhbXBsZSBzbyBmbHVzaCBUTEINCj4+ICsJ
+ICogZm9yY2VmdWxseSBpZiB3ZSBkZXRlY3QgcGFyYWxsZWwgUFRFIGJhdGNoaW5nIHRocmVhZHMu
+DQo+PiArCSAqLw0KPj4gKwlib29sIGZvcmNlID0gbW1fdGxiX2ZsdXNoX25lc3RlZCh0bGItPm1t
+KTsNCj4+ICsNCj4+ICsJYXJjaF90bGJfZmluaXNoX21tdSh0bGIsIHN0YXJ0LCBlbmQsIGZvcmNl
+KTsNCj4+IH0NCj4gDQo+IEkgZG9uJ3QgdW5kZXJzdGFuZCB0aGUgY29tbWVudCBub3IgdGhlIG9y
+ZGVyaW5nLiBXaGF0IGd1YXJhbnRlZXMgd2Ugc2VlDQo+IHRoZSBpbmNyZW1lbnQgaWYgd2UgbmVl
+ZCB0bz8NCg0KVGhlIGNvbW1lbnQgcmVnYXJkcyB0aGUgcHJvYmxlbSB0aGF0IGlzIGRlc2NyaWJl
+ZCBpbiB0aGUgY2hhbmdlLWxvZywgYW5kIGENCmxvbmcgdGhyZWFkIHRoYXQgaXMgcmVmZXJlbmNl
+ZCBpbiBpdC4gU28gdGhlIHF1ZXN0aW9uIGlzIHdoZXRoZXIg4oCcSSBkb27igJl0DQp1bmRlcnN0
+YW5k4oCdIG1lYW5zIOKAnEkgZG9u4oCZdCB1bmRlcnN0YW5k4oCdIG9yIOKAnGl0IGlzIG5vdCBj
+bGVhciBlbm91Z2jigJ0uIEnigJlsbA0KYmUgZ2xhZCB0byBhZGRyZXNzIGVpdGhlciBvbmUgLSBq
+dXN0IHNheSB3aGljaC4NCg0KQXMgZm9yIHRoZSBvcmRlcmluZyAtIEkgdHJpZWQgdG8gY2xhcmlm
+eSBpdCBpbiB0aGUgdGhyZWFkIG9mIHRoZSBjb21taXQuIExldA0KbWUga25vdyBpZiBpdCBpcyBj
+bGVhciBub3cuDQoNClJlZ2FyZHMsDQpOYWRhdg0KDQo=
 
-My wife and I have awarded you with a donation of $ 1,000,000.00 Dollars from part of our Jackpot Lottery of 50 Million Dollars, respond with your details for claims.
-
-We await your earliest response and God Bless you.
-
-Friedrich And Annand Mayrhofer.
-
----
-This email has been checked for viruses by Avast antivirus software.
-https://www.avast.com/antivirus
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
