@@ -1,96 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-he1eur01on0137.outbound.protection.outlook.com ([104.47.0.137]:52128
-        "EHLO EUR01-HE1-obe.outbound.protection.outlook.com"
+Received: from mail-co1nam03on0083.outbound.protection.outlook.com ([104.47.40.83]:64240
+        "EHLO NAM03-CO1-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752408AbdHLGLJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 12 Aug 2017 02:11:09 -0400
-Date: Fri, 11 Aug 2017 23:10:49 -0700
-From: Andrei Vagin <avagin@virtuozzo.com>
-Subject: Re: [PATCH] [RFC] vm: add a syscall to map a process memory into a
- pipe
-Message-ID: <20170812061048.GA31744@outlook.office365.com>
-References: <20170810184616.22726-1-avagin@openvz.org>
- <CAG48ez2Q+rTWUB_VfLhCFvawXLigpJXVxoNgZ28UhS+vHu_vdg@mail.gmail.com>
+        id S1750863AbdHMGOZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 13 Aug 2017 02:14:25 -0400
+From: Nadav Amit <namit@vmware.com>
+Subject: Re: [PATCH v6 6/7] mm: fix MADV_[FREE|DONTNEED] TLB flush miss
+ problem
+Date: Sun, 13 Aug 2017 06:14:21 +0000
+Message-ID: <E340B75B-2830-4E6D-BF0A-2C58A7002CF1@vmware.com>
+References: <20170802000818.4760-1-namit@vmware.com>
+ <20170802000818.4760-7-namit@vmware.com>
+ <20170811133020.zozuuhbw72lzolj5@hirez.programming.kicks-ass.net>
+In-Reply-To: <20170811133020.zozuuhbw72lzolj5@hirez.programming.kicks-ass.net>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <D0DC5E77A78A8F44A29F3FB55D8F7E44@namprd05.prod.outlook.com>
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
-Content-Type: text/plain; charset=koi8-r
-Content-Disposition: inline
-In-Reply-To: <CAG48ez2Q+rTWUB_VfLhCFvawXLigpJXVxoNgZ28UhS+vHu_vdg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jann Horn <jannh@google.com>
-Cc: Andrei Vagin <avagin@openvz.org>, Alexander Viro <viro@zeniv.linux.org.uk>, linux-fsdevel@vger.kernel.org, kernel list <linux-kernel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, criu@openvz.org, Arnd Bergmann <arnd@arndb.de>, Pavel Emelyanov <xemul@virtuozzo.com>, Michael Kerrisk <mtk.manpages@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20170812061049.Xk1xfj58qeBxT3RyrTTsYbrO6TMP3blsGmuPKz20ijw@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: "open list:MEMORY MANAGEMENT" <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Minchan Kim <minchan@kernel.org>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Tony Luck <tony.luck@intel.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, "David S. Miller" <davem@davemloft.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Jeff Dike <jdike@addtoit.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20170813061421.IHOszS4YixNVwxAl9v4pEZO1KM-NVceTAhC7i7pKFNg@z>
 
-On Thu, Aug 10, 2017 at 09:42:44PM +0200, Jann Horn wrote:
-> On Thu, Aug 10, 2017 at 8:46 PM, Andrei Vagin <avagin@openvz.org> wrote:
-> > It is a hybrid of process_vm_readv() and vmsplice().
-> >
-> > vmsplice can map memory from a current address space into a pipe.
-> > process_vm_readv can read memory of another process.
-> [...]
-> > +/*
-> > + * Map pages from a specified task into a pipe
-> > + */
-> > +static int remote_single_vec_to_pipe(struct task_struct *task,
-> > +                       struct mm_struct *mm,
-> > +                       const struct iovec *rvec,
-> > +                       struct pipe_inode_info *pipe,
-> > +                       unsigned int flags,
-> > +                       size_t *total)
-> > +{
-> > +       struct pipe_buffer buf = {
-> > +               .ops = &user_page_pipe_buf_ops,
-> > +               .flags = flags
-> > +       };
-> [...]
-> > +       while (nr_pages) {
-> [...]
-> > +               /*
-> > +                * Get the pages we're interested in.  We must
-> > +                * access remotely because task/mm might not
-> > +                * current/current->mm
-> > +                */
-> > +               down_read(&mm->mmap_sem);
-> > +               pages = get_user_pages_remote(task, mm, pa, pages, flags,
-> > +                                             process_pages, NULL, &locked);
-> 
-> This fifth "flags" argument of get_user_pages_remote() should contain
-> GUP flags (FOLL_*), but it looks like you're actually passing in 0 or
-> PIPE_BUF_FLAG_GIFT, which will be interpreted as FOLL_GET?
-> (See the snippets quoted below.) This looks like a bug.
-> 
-> Maybe use a more meaningful variable name than "flags".
-
-Good catch. I will fix and rename the variable. get_user_pages_remote
-has to be called with zero flags here. Thank you.
-
-> 
-> > +static ssize_t remote_iovec_to_pipe(struct task_struct *task,
-> > +                       struct mm_struct *mm,
-> > +                       const struct iovec *rvec,
-> > +                       unsigned long riovcnt,
-> > +                       struct pipe_inode_info *pipe,
-> > +                       unsigned int flags)
-> > +{
-> [...]
-> > +               ret = remote_single_vec_to_pipe(
-> > +                               task, mm, &rvec[i], pipe, flags, &total);
-> [...]
-> > +}
-> > +
-> > +static long process_vmsplice_to_pipe(struct task_struct *task,
-> > +                               struct mm_struct *mm, struct file *file,
-> > +                               const struct iovec __user *uiov,
-> > +                               unsigned long nr_segs, unsigned int flags)
-> > +{
-> [...]
-> > +       unsigned int buf_flag = 0;
-> [...]
-> > +       if (flags & SPLICE_F_GIFT)
-> > +               buf_flag = PIPE_BUF_FLAG_GIFT;
-> [...]
-> > +       if (!ret)
-> > +               ret = remote_iovec_to_pipe(task, mm, iov,
-> > +                                               nr_segs, pipe, buf_flag);
-> [...]
-> > +}
+UGV0ZXIgWmlqbHN0cmEgPHBldGVyekBpbmZyYWRlYWQub3JnPiB3cm90ZToNCg0KPiBPbiBUdWUs
+IEF1ZyAwMSwgMjAxNyBhdCAwNTowODoxN1BNIC0wNzAwLCBOYWRhdiBBbWl0IHdyb3RlOg0KPj4g
+dm9pZCB0bGJfZmluaXNoX21tdShzdHJ1Y3QgbW11X2dhdGhlciAqdGxiLA0KPj4gCQl1bnNpZ25l
+ZCBsb25nIHN0YXJ0LCB1bnNpZ25lZCBsb25nIGVuZCkNCj4+IHsNCj4+IC0JYXJjaF90bGJfZmlu
+aXNoX21tdSh0bGIsIHN0YXJ0LCBlbmQpOw0KPj4gKwkvKg0KPj4gKwkgKiBJZiB0aGVyZSBhcmUg
+cGFyYWxsZWwgdGhyZWFkcyBhcmUgZG9pbmcgUFRFIGNoYW5nZXMgb24gc2FtZSByYW5nZQ0KPj4g
+KwkgKiB1bmRlciBub24tZXhjbHVzaXZlIGxvY2soZS5nLiwgbW1hcF9zZW0gcmVhZC1zaWRlKSBi
+dXQgZGVmZXIgVExCDQo+PiArCSAqIGZsdXNoIGJ5IGJhdGNoaW5nLCBhIHRocmVhZCBoYXMgc3Rh
+YmxlIFRMQiBlbnRyeSBjYW4gZmFpbCB0byBmbHVzaA0KPj4gKwkgKiB0aGUgVExCIGJ5IG9ic2Vy
+dmluZyBwdGVfbm9uZXwhcHRlX2RpcnR5LCBmb3IgZXhhbXBsZSBzbyBmbHVzaCBUTEINCj4+ICsJ
+ICogZm9yY2VmdWxseSBpZiB3ZSBkZXRlY3QgcGFyYWxsZWwgUFRFIGJhdGNoaW5nIHRocmVhZHMu
+DQo+PiArCSAqLw0KPj4gKwlib29sIGZvcmNlID0gbW1fdGxiX2ZsdXNoX25lc3RlZCh0bGItPm1t
+KTsNCj4+ICsNCj4+ICsJYXJjaF90bGJfZmluaXNoX21tdSh0bGIsIHN0YXJ0LCBlbmQsIGZvcmNl
+KTsNCj4+IH0NCj4gDQo+IEkgZG9uJ3QgdW5kZXJzdGFuZCB0aGUgY29tbWVudCBub3IgdGhlIG9y
+ZGVyaW5nLiBXaGF0IGd1YXJhbnRlZXMgd2Ugc2VlDQo+IHRoZSBpbmNyZW1lbnQgaWYgd2UgbmVl
+ZCB0bz8NCg0KVGhlIGNvbW1lbnQgcmVnYXJkcyB0aGUgcHJvYmxlbSB0aGF0IGlzIGRlc2NyaWJl
+ZCBpbiB0aGUgY2hhbmdlLWxvZywgYW5kIGENCmxvbmcgdGhyZWFkIHRoYXQgaXMgcmVmZXJlbmNl
+ZCBpbiBpdC4gU28gdGhlIHF1ZXN0aW9uIGlzIHdoZXRoZXIg4oCcSSBkb27igJl0DQp1bmRlcnN0
+YW5k4oCdIG1lYW5zIOKAnEkgZG9u4oCZdCB1bmRlcnN0YW5k4oCdIG9yIOKAnGl0IGlzIG5vdCBj
+bGVhciBlbm91Z2jigJ0uIEnigJlsbA0KYmUgZ2xhZCB0byBhZGRyZXNzIGVpdGhlciBvbmUgLSBq
+dXN0IHNheSB3aGljaC4NCg0KQXMgZm9yIHRoZSBvcmRlcmluZyAtIEkgdHJpZWQgdG8gY2xhcmlm
+eSBpdCBpbiB0aGUgdGhyZWFkIG9mIHRoZSBjb21taXQuIExldA0KbWUga25vdyBpZiBpdCBpcyBj
+bGVhciBub3cuDQoNClJlZ2FyZHMsDQpOYWRhdg0KDQo=
