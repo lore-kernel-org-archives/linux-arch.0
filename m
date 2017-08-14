@@ -1,99 +1,122 @@
 From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Subject: [PATCH 0/5] add support for relative references in special sections
-Date: Mon, 14 Aug 2017 11:52:26 +0100
-Message-ID: <20170814105231.14608-1-ard.biesheuvel@linaro.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f175.google.com ([209.85.128.175]:34563 "EHLO
-        mail-wr0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752741AbdHNKw7 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 14 Aug 2017 06:52:59 -0400
-Received: by mail-wr0-f175.google.com with SMTP id l9so10570671wrl.1
-        for <linux-arch@vger.kernel.org>; Mon, 14 Aug 2017 03:52:58 -0700 (PDT)
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Subject: [PATCH 1/5] arch: enable relative relocations for arm64, power, x86, s390 and x86
+Date: Mon, 14 Aug 2017 11:52:27 +0100
+Message-ID: <20170814105231.14608-2-ard.biesheuvel@linaro.org>
+References: <20170814105231.14608-1-ard.biesheuvel@linaro.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20170814105231.14608-1-ard.biesheuvel@linaro.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Heiko Carstens <heiko.carstens@de.ibm.com>, Kees Cook <keescook@chromium.org>, Will Deacon <will.deacon@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, Thomas Garnier <thgarnie@google.com>, Thomas Gleixner <tglx@linutronix.de>, "Serge E. Hallyn" <serge@hallyn.com>, Bjorn Helgaas <bhelgaas@google.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Catalin Marinas <catalin.marinas@arm.com>, Petr Mladek <pmladek@suse.com>, Ingo Molnar <mingo@redhat.com>, James Morris <james.l.morris@oracle.com>, Andrew Morton <akpm@linux-foundation.org>, Nicolas Pitre <nico@linaro.org>, Steven Rostedt <rostedt@goodmis.org>
+List-Id: linux-arch.vger.kernel.org
 
-This adds support for emitting special sections such as initcall arrays,
-PCI fixups and tracepoints as relative references rather than absolute
-references. This reduces the size by 50% on 64-bit architectures, but
-more importantly, it removes the need for carrying relocation metadata
-for these sections in relocatables kernels (e.g., for KASLR) that need
-to fix up these absolute references at boot time. On arm64, this reduces
-the vmlinux footprint of such a reference by 8x (8 byte absolute reference
-+ 24 byte RELA entry vs 4 byte relative reference)
+Before updating certain subsystems to use place relative 32-bit
+relocations in special sections, to save space  and reduce the
+number of absolute relocations that need to be processed at runtime
+by relocatable kernels, introduce a new Kconfig symbol and define it
+for some architectures that should be able to support and benefit
+from it.
 
-Patch #2 was sent out before as a single patch. This series supersedes
-the previous submission. This version makes relative ksymtab entries
-dependent on the new Kconfig symbol HAVE_ARCH_PREL32_RELOCATIONS rather
-than trying to infer from kbuild test robot replies for which architectures
-it should be blacklisted.
-
-Patch #1 introduces the new Kconfig symbol HAVE_ARCH_PREL32_RELOCATIONS,
-and sets it for the main architectures that are expected to benefit most
-from this feature, i.e., 64-bit architectures, and ones that use runtime
-relocation.
-
-Patches #3 - #5 implement relative references for initcallls, PCI fixups
-and tracepoints, respectively, all of which produce sections with order
-~1000 entries on an arm64 defconfig kernel with tracing enabled. This
-means we save about 28 KB of vmlinux space for each of these patches.
-
-For the arm64 kernel, all patches combined reduce the size of vmlinux
-by about 300 KB.
-
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: Kees Cook <keescook@chromium.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
 Cc: Will Deacon <will.deacon@arm.com>
-Cc: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Thomas Garnier <thgarnie@google.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: "Serge E. Hallyn" <serge@hallyn.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>
 Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Paul Mackerras <paulus@samba.org>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Petr Mladek <pmladek@suse.com>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: James Morris <james.l.morris@oracle.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Nicolas Pitre <nico@linaro.org>
-Cc: Steven Rostedt <rostedt@goodmis.org>
+Cc: Michael Ellerman <mpe@ellerman.id.au>
 Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Sergey Senozhatsky <sergey.senozhatsky@gmail.com>
-Cc: Jessica Yu <jeyu@kernel.org>
-
-Ard Biesheuvel (5):
-  arch: enable relative relocations for arm64, power, x86, s390 and x86
-  module: use relative references for __ksymtab entries
-  init: allow initcall tables to be emitted using relative references
-  drivers: pci: add support for relative addressing in quirk tables
-  kernel: tracepoints: add support for relative references
-
- arch/Kconfig                    | 10 +++++
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: x86@kernel.org
+Signed-off-by: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+---
+ arch/Kconfig                    | 10 ++++++++++
  arch/arm64/Kconfig              |  1 +
  arch/arm64/kernel/vmlinux.lds.S |  2 +-
  arch/powerpc/Kconfig            |  1 +
  arch/s390/Kconfig               |  1 +
  arch/x86/Kconfig                |  1 +
- arch/x86/include/asm/Kbuild     |  1 +
- arch/x86/include/asm/export.h   |  4 --
- drivers/pci/quirks.c            | 13 ++++--
- include/asm-generic/export.h    | 12 ++++-
- include/linux/compiler.h        | 11 +++++
- include/linux/export.h          | 47 +++++++++++++++-----
- include/linux/init.h            | 44 +++++++++++++-----
- include/linux/pci.h             | 20 +++++++++
- include/linux/tracepoint.h      | 19 ++++++--
- init/main.c                     | 32 ++++++-------
- kernel/module.c                 | 33 +++++++++++---
- kernel/printk/printk.c          |  4 +-
- kernel/tracepoint.c             | 19 +++++---
- security/security.c             |  4 +-
- 20 files changed, 212 insertions(+), 67 deletions(-)
- delete mode 100644 arch/x86/include/asm/export.h
+ 6 files changed, 15 insertions(+), 1 deletion(-)
 
+diff --git a/arch/Kconfig b/arch/Kconfig
+index 21d0089117fe..4e77d8e8697e 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -940,4 +940,14 @@ config REFCOUNT_FULL
+ 	  against various use-after-free conditions that can be used in
+ 	  security flaw exploits.
+ 
++config HAVE_ARCH_PREL32_RELOCATIONS
++	bool
++	help
++	  May be selected by an architecture if it supports place-relative
++	  32-bit relocations, both in the toolchain and in the module loader,
++	  in which case relative references can be used in special sections
++	  for PCI fixup, initcalls etc which are only half the size on 64 bit
++	  architectures, and don't require runtime relocation on relocatable
++	  kernels.
++
+ source "kernel/gcov/Kconfig"
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index dfd908630631..ce05d2d8143e 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -72,6 +72,7 @@ config ARM64
+ 	select HAVE_ARCH_KGDB
+ 	select HAVE_ARCH_MMAP_RND_BITS
+ 	select HAVE_ARCH_MMAP_RND_COMPAT_BITS if COMPAT
++	select HAVE_ARCH_PREL32_RELOCATIONS
+ 	select HAVE_ARCH_SECCOMP_FILTER
+ 	select HAVE_ARCH_TRACEHOOK
+ 	select HAVE_ARCH_TRANSPARENT_HUGEPAGE
+diff --git a/arch/arm64/kernel/vmlinux.lds.S b/arch/arm64/kernel/vmlinux.lds.S
+index 987a00ee446c..5849bd4e2b06 100644
+--- a/arch/arm64/kernel/vmlinux.lds.S
++++ b/arch/arm64/kernel/vmlinux.lds.S
+@@ -171,7 +171,7 @@ SECTIONS
+ 		CON_INITCALL
+ 		SECURITY_INITCALL
+ 		INIT_RAM_FS
+-		*(.init.rodata.* .init.bss)	/* from the EFI stub */
++		*(.init.rodata.* .init.bss .init.discard.*)	/* from the EFI stub */
+ 	}
+ 	.exit.data : {
+ 		ARM_EXIT_KEEP(EXIT_DATA)
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 36f858c37ca7..f7e60ed5bdd0 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -163,6 +163,7 @@ config PPC
+ 	select HAVE_ARCH_KGDB
+ 	select HAVE_ARCH_MMAP_RND_BITS
+ 	select HAVE_ARCH_MMAP_RND_COMPAT_BITS	if COMPAT
++	select HAVE_ARCH_PREL32_RELOCATIONS
+ 	select HAVE_ARCH_SECCOMP_FILTER
+ 	select HAVE_ARCH_TRACEHOOK
+ 	select ARCH_HAS_STRICT_KERNEL_RWX	if (PPC_BOOK3S_64 && !RELOCATABLE && !HIBERNATION)
+diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
+index 7eeb75d758c1..1206cc7daa0d 100644
+--- a/arch/s390/Kconfig
++++ b/arch/s390/Kconfig
+@@ -127,6 +127,7 @@ config S390
+ 	select HAVE_ARCH_AUDITSYSCALL
+ 	select HAVE_ARCH_JUMP_LABEL
+ 	select CPU_NO_EFFICIENT_FFS if !HAVE_MARCH_Z9_109_FEATURES
++	select HAVE_ARCH_PREL32_RELOCATIONS
+ 	select HAVE_ARCH_SECCOMP_FILTER
+ 	select HAVE_ARCH_SOFT_DIRTY
+ 	select HAVE_ARCH_TRACEHOOK
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 781521b7cf9e..77246125883e 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -112,6 +112,7 @@ config X86
+ 	select HAVE_ARCH_MMAP_RND_BITS		if MMU
+ 	select HAVE_ARCH_MMAP_RND_COMPAT_BITS	if MMU && COMPAT
+ 	select HAVE_ARCH_COMPAT_MMAP_BASES	if MMU && COMPAT
++	select HAVE_ARCH_PREL32_RELOCATIONS
+ 	select HAVE_ARCH_SECCOMP_FILTER
+ 	select HAVE_ARCH_TRACEHOOK
+ 	select HAVE_ARCH_TRANSPARENT_HUGEPAGE
 -- 
 2.11.0
