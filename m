@@ -1,112 +1,99 @@
-From: Minchan Kim <minchan@kernel.org>
-Subject: Re: [PATCH v6 6/7] mm: fix MADV_[FREE|DONTNEED] TLB flush miss
- problem
-Date: Mon, 14 Aug 2017 10:26:17 +0900
-Message-ID: <20170814012617.GB25427@bbox>
-References: <20170802000818.4760-1-namit@vmware.com>
- <20170802000818.4760-7-namit@vmware.com>
- <20170811133020.zozuuhbw72lzolj5@hirez.programming.kicks-ass.net>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Subject: [PATCH 0/5] add support for relative references in special sections
+Date: Mon, 14 Aug 2017 11:52:26 +0100
+Message-ID: <20170814105231.14608-1-ard.biesheuvel@linaro.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from LGEAMRELO13.lge.com ([156.147.23.53]:58483 "EHLO
-        lgeamrelo13.lge.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751406AbdHNB0T (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 13 Aug 2017 21:26:19 -0400
-Content-Disposition: inline
-In-Reply-To: <20170811133020.zozuuhbw72lzolj5@hirez.programming.kicks-ass.net>
+Received: from mail-wr0-f175.google.com ([209.85.128.175]:34563 "EHLO
+        mail-wr0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752741AbdHNKw7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 14 Aug 2017 06:52:59 -0400
+Received: by mail-wr0-f175.google.com with SMTP id l9so10570671wrl.1
+        for <linux-arch@vger.kernel.org>; Mon, 14 Aug 2017 03:52:58 -0700 (PDT)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Nadav Amit <namit@vmware.com>, linux-mm@kvack.org, nadav.amit@gmail.com, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Tony Luck <tony.luck@intel.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, "David S. Miller" <davem@davemloft.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Jeff Dike <jdike@addtoit.com>, linux-arch@vger.kernel.org
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Heiko Carstens <heiko.carstens@de.ibm.com>, Kees Cook <keescook@chromium.org>, Will Deacon <will.deacon@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, Thomas Garnier <thgarnie@google.com>, Thomas Gleixner <tglx@linutronix.de>, "Serge E. Hallyn" <serge@hallyn.com>, Bjorn Helgaas <bhelgaas@google.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Catalin Marinas <catalin.marinas@arm.com>, Petr Mladek <pmladek@suse.com>, Ingo Molnar <mingo@redhat.com>, James Morris <james.l.morris@oracle.com>, Andrew Morton <akpm@linux-foundation.org>, Nicolas Pitre <nico@linaro.org>, Steven Rostedt <rostedt@goodmis.org>
 
-Hi Peter,
+This adds support for emitting special sections such as initcall arrays,
+PCI fixups and tracepoints as relative references rather than absolute
+references. This reduces the size by 50% on 64-bit architectures, but
+more importantly, it removes the need for carrying relocation metadata
+for these sections in relocatables kernels (e.g., for KASLR) that need
+to fix up these absolute references at boot time. On arm64, this reduces
+the vmlinux footprint of such a reference by 8x (8 byte absolute reference
++ 24 byte RELA entry vs 4 byte relative reference)
 
-On Fri, Aug 11, 2017 at 03:30:20PM +0200, Peter Zijlstra wrote:
-> On Tue, Aug 01, 2017 at 05:08:17PM -0700, Nadav Amit wrote:
-> >  void tlb_finish_mmu(struct mmu_gather *tlb,
-> >  		unsigned long start, unsigned long end)
-> >  {
-> > -	arch_tlb_finish_mmu(tlb, start, end);
-> > +	/*
-> > +	 * If there are parallel threads are doing PTE changes on same range
-> > +	 * under non-exclusive lock(e.g., mmap_sem read-side) but defer TLB
-> > +	 * flush by batching, a thread has stable TLB entry can fail to flush
-> > +	 * the TLB by observing pte_none|!pte_dirty, for example so flush TLB
-> > +	 * forcefully if we detect parallel PTE batching threads.
-> > +	 */
-> > +	bool force = mm_tlb_flush_nested(tlb->mm);
-> > +
-> > +	arch_tlb_finish_mmu(tlb, start, end, force);
-> >  }
-> 
-> I don't understand the comment nor the ordering. What guarantees we see
-> the increment if we need to?
+Patch #2 was sent out before as a single patch. This series supersedes
+the previous submission. This version makes relative ksymtab entries
+dependent on the new Kconfig symbol HAVE_ARCH_PREL32_RELOCATIONS rather
+than trying to infer from kbuild test robot replies for which architectures
+it should be blacklisted.
 
-How about this about commenting part?
+Patch #1 introduces the new Kconfig symbol HAVE_ARCH_PREL32_RELOCATIONS,
+and sets it for the main architectures that are expected to benefit most
+from this feature, i.e., 64-bit architectures, and ones that use runtime
+relocation.
 
-From 05f06fd6aba14447a9ca2df8b810fbcf9a58e14b Mon Sep 17 00:00:00 2001
-From: Minchan Kim <minchan@kernel.org>
-Date: Mon, 14 Aug 2017 10:16:56 +0900
-Subject: [PATCH] mm: add describable comment for TLB batch race
+Patches #3 - #5 implement relative references for initcallls, PCI fixups
+and tracepoints, respectively, all of which produce sections with order
+~1000 entries on an arm64 defconfig kernel with tracing enabled. This
+means we save about 28 KB of vmlinux space for each of these patches.
 
-[1] is a rather subtle/complicated bug so that it's hard to
-understand it with limited code comment.
+For the arm64 kernel, all patches combined reduce the size of vmlinux
+by about 300 KB.
 
-This patch adds a sequence diagaram to explain the problem
-more easily, I hope.
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Kees Cook <keescook@chromium.org>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Thomas Garnier <thgarnie@google.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: "Serge E. Hallyn" <serge@hallyn.com>
+Cc: Bjorn Helgaas <bhelgaas@google.com>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Petr Mladek <pmladek@suse.com>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: James Morris <james.l.morris@oracle.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Nicolas Pitre <nico@linaro.org>
+Cc: Steven Rostedt <rostedt@goodmis.org>
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Sergey Senozhatsky <sergey.senozhatsky@gmail.com>
+Cc: Jessica Yu <jeyu@kernel.org>
 
-[1] 99baac21e458, mm: fix MADV_[FREE|DONTNEED] TLB flush miss problem
+Ard Biesheuvel (5):
+  arch: enable relative relocations for arm64, power, x86, s390 and x86
+  module: use relative references for __ksymtab entries
+  init: allow initcall tables to be emitted using relative references
+  drivers: pci: add support for relative addressing in quirk tables
+  kernel: tracepoints: add support for relative references
 
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Nadav Amit <namit@vmware.com>
-Cc: Mel Gorman <mgorman@techsingularity.net>
-Signed-off-by: Minchan Kim <minchan@kernel.org>
----
- mm/memory.c | 25 +++++++++++++++++++++++++
- 1 file changed, 25 insertions(+)
+ arch/Kconfig                    | 10 +++++
+ arch/arm64/Kconfig              |  1 +
+ arch/arm64/kernel/vmlinux.lds.S |  2 +-
+ arch/powerpc/Kconfig            |  1 +
+ arch/s390/Kconfig               |  1 +
+ arch/x86/Kconfig                |  1 +
+ arch/x86/include/asm/Kbuild     |  1 +
+ arch/x86/include/asm/export.h   |  4 --
+ drivers/pci/quirks.c            | 13 ++++--
+ include/asm-generic/export.h    | 12 ++++-
+ include/linux/compiler.h        | 11 +++++
+ include/linux/export.h          | 47 +++++++++++++++-----
+ include/linux/init.h            | 44 +++++++++++++-----
+ include/linux/pci.h             | 20 +++++++++
+ include/linux/tracepoint.h      | 19 ++++++--
+ init/main.c                     | 32 ++++++-------
+ kernel/module.c                 | 33 +++++++++++---
+ kernel/printk/printk.c          |  4 +-
+ kernel/tracepoint.c             | 19 +++++---
+ security/security.c             |  4 +-
+ 20 files changed, 212 insertions(+), 67 deletions(-)
+ delete mode 100644 arch/x86/include/asm/export.h
 
-diff --git a/mm/memory.c b/mm/memory.c
-index bcbe56f52163..f571b0eb9816 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -413,12 +413,37 @@ void tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm,
- void tlb_finish_mmu(struct mmu_gather *tlb,
- 		unsigned long start, unsigned long end)
- {
-+
-+
- 	/*
- 	 * If there are parallel threads are doing PTE changes on same range
- 	 * under non-exclusive lock(e.g., mmap_sem read-side) but defer TLB
- 	 * flush by batching, a thread has stable TLB entry can fail to flush
- 	 * the TLB by observing pte_none|!pte_dirty, for example so flush TLB
- 	 * forcefully if we detect parallel PTE batching threads.
-+	 *
-+	 * Example: MADV_DONTNEED stale TLB problem on same range
-+	 *
-+	 * CPU 0				CPU 1
-+	 * *a = 1;
-+	 *					MADV_DONTNEED
-+	 * MADV_DONTNEED			tlb_gather_mmu
-+	 * tlb_gather_mmu
-+	 * down_read(mmap_sem)			down_read(mmap_sem)
-+	 *					pte_lock
-+	 *					pte_get_and_clear
-+	 *					tlb_remove_tlb_entry
-+	 *					pte_unlock
-+	 * pte_lock
-+	 * found out the pte is none
-+	 * pte_unlock
-+	 * tlb_finish_mmu doesn't flush
-+	 *
-+	 * Access the address with stale TLB
-+	 * *a = 2;ie, success without segfault
-+	 *					tlb_finish_mmu flush on range
-+	 *					but it is too late.
-+	 *
- 	 */
- 	bool force = mm_tlb_flush_nested(tlb->mm);
- 
 -- 
-2.7.4
+2.11.0
