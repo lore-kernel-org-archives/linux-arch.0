@@ -1,129 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f180.google.com ([209.85.128.180]:36030 "EHLO
-        mail-wr0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752748AbdHNKxE (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 14 Aug 2017 06:53:04 -0400
-Received: by mail-wr0-f180.google.com with SMTP id y41so8602658wrd.3
-        for <linux-arch@vger.kernel.org>; Mon, 14 Aug 2017 03:53:03 -0700 (PDT)
-From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Subject: [PATCH 1/5] arch: enable relative relocations for arm64, power, x86, s390 and x86
-Date: Mon, 14 Aug 2017 11:52:27 +0100
-Message-ID: <20170814105231.14608-2-ard.biesheuvel@linaro.org>
-In-Reply-To: <20170814105231.14608-1-ard.biesheuvel@linaro.org>
-References: <20170814105231.14608-1-ard.biesheuvel@linaro.org>
+Received: from mail-oi0-f66.google.com ([209.85.218.66]:35483 "EHLO
+        mail-oi0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752336AbdHNOjF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 14 Aug 2017 10:39:05 -0400
+MIME-Version: 1.0
+In-Reply-To: <20170814120807.GB3305@osiris>
+References: <c8a10777-9da1-461e-0b69-2c1280fa0ee7@linux.vnet.ibm.com>
+ <49c5e39b-a7d9-1e2d-24ec-57852f7d1e51@linux.vnet.ibm.com> <CAADnVQKpaF+3EZKMtMBdKLatEQGytqc9YJQQSSFRFQ=7THpvTw@mail.gmail.com>
+ <598492A6.10707@iogearbox.net> <20170814120807.GB3305@osiris>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Mon, 14 Aug 2017 16:39:03 +0200
+Message-ID: <CAK8P3a2zr9E4NyJjcGR86Qm=1=1iMiWrDxcRrJC8vBhVr7qjUA@mail.gmail.com>
+Subject: Re: Fwd: struct pt_regs missing in /usr/include/ tree for eBPF
+ program compile
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Heiko Carstens <heiko.carstens@de.ibm.com>, Kees Cook <keescook@chromium.org>, Will Deacon <will.deacon@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, Thomas Garnier <thgarnie@google.com>, Thomas Gleixner <tglx@linutronix.de>, "Serge E. Hallyn" <serge@hallyn.com>, Bjorn Helgaas <bhelgaas@google.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Catalin Marinas <catalin.marinas@arm.com>, Petr Mladek <pmladek@suse.com>, Ingo Molnar <mingo@redhat.com>, James Morris <james.l.morris@oracle.com>, Andrew Morton <akpm@linux-foundation.org>, Nicolas Pitre <nico@linaro.org>, Steven Rostedt <rostedt@goodmis.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Sergey Senozhatsky <sergey.senozhatsky@gmail.com>, Jessica Yu <jeyu@kernel.org>, x86@kernel.org
-Message-ID: <20170814105227.4NPsvRz4S6pMZQUCcavZPiUM0MFT4XhxGqC4oMiqGIg@z>
+To: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Daniel Borkmann <daniel@iogearbox.net>, Thomas-Mich Richter <tmricht@linux.vnet.ibm.com>, ast@kernel.org, Hendrik Brueckner <brueckner@linux.vnet.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Michael Holzheu <holzheu@linux.vnet.ibm.com>, David Miller <davem@davemloft.net>, yhs@fb.com, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20170814143903.akdlEhTKQZa06y-rQr-N1ylIozY6TzA8gYcItzdTDwg@z>
 
-Before updating certain subsystems to use place relative 32-bit
-relocations in special sections, to save space  and reduce the
-number of absolute relocations that need to be processed at runtime
-by relocatable kernels, introduce a new Kconfig symbol and define it
-for some architectures that should be able to support and benefit
-from it.
+On Mon, Aug 14, 2017 at 2:08 PM, Heiko Carstens
+<heiko.carstens@de.ibm.com> wrote:
+>
+> I really don't think that struct pt_regs is part of uapi and should be
+> exported. We did change the layout of the pt_regs structure more than once
+> and would like to be able to do so in the future as well.
 
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: x86@kernel.org
-Signed-off-by: Ard Biesheuvel <ard.biesheuvel@linaro.org>
----
- arch/Kconfig                    | 10 ++++++++++
- arch/arm64/Kconfig              |  1 +
- arch/arm64/kernel/vmlinux.lds.S |  2 +-
- arch/powerpc/Kconfig            |  1 +
- arch/s390/Kconfig               |  1 +
- arch/x86/Kconfig                |  1 +
- 6 files changed, 15 insertions(+), 1 deletion(-)
+On some architectures, pt_regs is definitely part of the uapi, as
+we define sigcontext in terms of pt_regs:
 
-diff --git a/arch/Kconfig b/arch/Kconfig
-index 21d0089117fe..4e77d8e8697e 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -940,4 +940,14 @@ config REFCOUNT_FULL
- 	  against various use-after-free conditions that can be used in
- 	  security flaw exploits.
- 
-+config HAVE_ARCH_PREL32_RELOCATIONS
-+	bool
-+	help
-+	  May be selected by an architecture if it supports place-relative
-+	  32-bit relocations, both in the toolchain and in the module loader,
-+	  in which case relative references can be used in special sections
-+	  for PCI fixup, initcalls etc which are only half the size on 64 bit
-+	  architectures, and don't require runtime relocation on relocatable
-+	  kernels.
-+
- source "kernel/gcov/Kconfig"
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index dfd908630631..ce05d2d8143e 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -72,6 +72,7 @@ config ARM64
- 	select HAVE_ARCH_KGDB
- 	select HAVE_ARCH_MMAP_RND_BITS
- 	select HAVE_ARCH_MMAP_RND_COMPAT_BITS if COMPAT
-+	select HAVE_ARCH_PREL32_RELOCATIONS
- 	select HAVE_ARCH_SECCOMP_FILTER
- 	select HAVE_ARCH_TRACEHOOK
- 	select HAVE_ARCH_TRANSPARENT_HUGEPAGE
-diff --git a/arch/arm64/kernel/vmlinux.lds.S b/arch/arm64/kernel/vmlinux.lds.S
-index 987a00ee446c..5849bd4e2b06 100644
---- a/arch/arm64/kernel/vmlinux.lds.S
-+++ b/arch/arm64/kernel/vmlinux.lds.S
-@@ -171,7 +171,7 @@ SECTIONS
- 		CON_INITCALL
- 		SECURITY_INITCALL
- 		INIT_RAM_FS
--		*(.init.rodata.* .init.bss)	/* from the EFI stub */
-+		*(.init.rodata.* .init.bss .init.discard.*)	/* from the EFI stub */
- 	}
- 	.exit.data : {
- 		ARM_EXIT_KEEP(EXIT_DATA)
-diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index 36f858c37ca7..f7e60ed5bdd0 100644
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -163,6 +163,7 @@ config PPC
- 	select HAVE_ARCH_KGDB
- 	select HAVE_ARCH_MMAP_RND_BITS
- 	select HAVE_ARCH_MMAP_RND_COMPAT_BITS	if COMPAT
-+	select HAVE_ARCH_PREL32_RELOCATIONS
- 	select HAVE_ARCH_SECCOMP_FILTER
- 	select HAVE_ARCH_TRACEHOOK
- 	select ARCH_HAS_STRICT_KERNEL_RWX	if (PPC_BOOK3S_64 && !RELOCATABLE && !HIBERNATION)
-diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
-index 7eeb75d758c1..1206cc7daa0d 100644
---- a/arch/s390/Kconfig
-+++ b/arch/s390/Kconfig
-@@ -127,6 +127,7 @@ config S390
- 	select HAVE_ARCH_AUDITSYSCALL
- 	select HAVE_ARCH_JUMP_LABEL
- 	select CPU_NO_EFFICIENT_FFS if !HAVE_MARCH_Z9_109_FEATURES
-+	select HAVE_ARCH_PREL32_RELOCATIONS
- 	select HAVE_ARCH_SECCOMP_FILTER
- 	select HAVE_ARCH_SOFT_DIRTY
- 	select HAVE_ARCH_TRACEHOOK
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 781521b7cf9e..77246125883e 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -112,6 +112,7 @@ config X86
- 	select HAVE_ARCH_MMAP_RND_BITS		if MMU
- 	select HAVE_ARCH_MMAP_RND_COMPAT_BITS	if MMU && COMPAT
- 	select HAVE_ARCH_COMPAT_MMAP_BASES	if MMU && COMPAT
-+	select HAVE_ARCH_PREL32_RELOCATIONS
- 	select HAVE_ARCH_SECCOMP_FILTER
- 	select HAVE_ARCH_TRACEHOOK
- 	select HAVE_ARCH_TRANSPARENT_HUGEPAGE
--- 
-2.11.0
+arch/cris/include/uapi/asm/sigcontext.h:        struct pt_regs regs;
+/* needs to be first */
+arch/m32r/include/uapi/asm/sigcontext.h:        struct pt_regs *sc_pt_regs;
+arch/microblaze/include/uapi/asm/sigcontext.h:  struct pt_regs regs;
+arch/powerpc/include/uapi/asm/sigcontext.h:     struct pt_regs  __user *regs;
+arch/tile/include/uapi/asm/sigcontext.h: * struct sigcontext has the
+same shape as struct pt_regs,
+arch/unicore32/include/uapi/asm/sigcontext.h:   struct pt_regs regs;
+
+On other architectures, they just use the same layout but different names.
+
+arm32 also uses pt_regs in struct kvm_regs, the other ones don't:
+
+arch/arm/include/uapi/asm/kvm.h:        struct pt_regs usr_regs;
+ /* R0_usr - R14_usr, PC, CPSR */
+
+> In addition what about compat processes? Most architectures define their
+> struct pt_regs with "unsigned long" members, which have different sizes for
+> 32/64 bit, while the structure on the kernel stack contains 64 bit
+> members. And as far as I know the bpf test cases want to access the kernel
+> stack, no? Then this seems to be broken also.
+
+Right.
+
+      Arnd
