@@ -1,99 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:54580 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752421AbdHOQdT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 15 Aug 2017 12:33:19 -0400
-Subject: Re: [PATCH 21/27] arm64/sve: KVM: Prevent guests from using SVE
-References: <1502280338-23002-1-git-send-email-Dave.Martin@arm.com>
- <1502280338-23002-22-git-send-email-Dave.Martin@arm.com>
-From: Marc Zyngier <marc.zyngier@arm.com>
-Message-ID: <0f5b14a8-4d04-61e4-05e8-92cd55c8bee9@arm.com>
-Date: Tue, 15 Aug 2017 17:33:15 +0100
+Received: from mail-io0-f171.google.com ([209.85.223.171]:34051 "EHLO
+        mail-io0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753612AbdHORhU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 15 Aug 2017 13:37:20 -0400
+Received: by mail-io0-f171.google.com with SMTP id o9so5612848iod.1
+        for <linux-arch@vger.kernel.org>; Tue, 15 Aug 2017 10:37:20 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <1502280338-23002-22-git-send-email-Dave.Martin@arm.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-GB
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <1502280338-23002-17-git-send-email-Dave.Martin@arm.com>
+References: <1502280338-23002-1-git-send-email-Dave.Martin@arm.com> <1502280338-23002-17-git-send-email-Dave.Martin@arm.com>
+From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Date: Tue, 15 Aug 2017 18:37:19 +0100
+Message-ID: <CAKv+Gu_1LdHuSP1fAeiNNc9PbAw8MQBP2tYhWFJ+szv=nQjHvQ@mail.gmail.com>
+Subject: Re: [PATCH 16/27] arm64/sve: Preserve SVE registers around
+ kernel-mode NEON use
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>, linux-arm-kernel@lists.infradead.org
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu, libc-alpha@sourceware.org, linux-arch@vger.kernel.org, Christoffer Dall <christoffer.dall@linaro.org>
-Message-ID: <20170815163315.uDvZGetS7MsXEAKL5edsU-vBj5PirkFwpTD-i1qpirU@z>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, "kvmarm@lists.cs.columbia.edu" <kvmarm@lists.cs.columbia.edu>, libc-alpha@sourceware.org, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20170815173719.JzN36LLPhJxf0mcLyISNkvMhvjx70aCyjFTy1Ewp1tQ@z>
 
-On 09/08/17 13:05, Dave Martin wrote:
-> Until KVM has full SVE support, guests must not be allowed to
-> execute SVE instructions.
-> 
-> This patch enables the necessary traps, and also ensures that the
-> traps are disabled again on exit from the guest so that the host
-> can still use SVE if it wants to.
-> 
+On 9 August 2017 at 13:05, Dave Martin <Dave.Martin@arm.com> wrote:
+> Kernel-mode NEON will corrupt the SVE vector registers, due to the
+> way they alias the FPSIMD vector registers in the hardware.
+>
+> This patch ensures that any live SVE register content for the task
+> is saved by kernel_neon_begin().  The data will be restored in the
+> usual way on return to userspace.
+>
 > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
 > ---
->  arch/arm64/include/asm/kvm_arm.h | 3 ++-
->  arch/arm64/kvm/hyp/switch.c      | 6 +++---
->  2 files changed, 5 insertions(+), 4 deletions(-)
-> 
-> diff --git a/arch/arm64/include/asm/kvm_arm.h b/arch/arm64/include/asm/kvm_arm.h
-> index dbf0537..8a19651 100644
-> --- a/arch/arm64/include/asm/kvm_arm.h
-> +++ b/arch/arm64/include/asm/kvm_arm.h
-> @@ -186,7 +186,7 @@
->  #define CPTR_EL2_TTA	(1 << 20)
->  #define CPTR_EL2_TFP	(1 << CPTR_EL2_TFP_SHIFT)
->  #define CPTR_EL2_TZ	(1 << 8)
-> -#define CPTR_EL2_DEFAULT	0x000033ff
-> +#define CPTR_EL2_DEFAULT	(0x000033ff & ~CPTR_EL2_TZ)
+>  arch/arm64/kernel/fpsimd.c | 6 ++++--
+>  1 file changed, 4 insertions(+), 2 deletions(-)
+>
+> diff --git a/arch/arm64/kernel/fpsimd.c b/arch/arm64/kernel/fpsimd.c
+> index 955c873..b7fb836 100644
+> --- a/arch/arm64/kernel/fpsimd.c
+> +++ b/arch/arm64/kernel/fpsimd.c
+> @@ -758,8 +758,10 @@ void kernel_neon_begin(void)
+>         __this_cpu_write(kernel_neon_busy, true);
+>
+>         /* Save unsaved task fpsimd state, if any: */
+> -       if (current->mm && !test_and_set_thread_flag(TIF_FOREIGN_FPSTATE))
+> -               fpsimd_save_state(&current->thread.fpsimd_state);
+> +       if (current->mm) {
+> +               task_fpsimd_save();
+> +               set_thread_flag(TIF_FOREIGN_FPSTATE);
+> +       }
+>
+>         /* Invalidate any task state remaining in the fpsimd regs: */
+>         __this_cpu_write(fpsimd_last_state, NULL);
 
-I must say I'm not overly fond of this construct. I'd rather introduce a
-RES1 field that matches the v8.2 description, instead of this ugly
-constant and something that clears it.
-
->  
->  /* Hyp Debug Configuration Register bits */
->  #define MDCR_EL2_TPMS		(1 << 14)
-> @@ -237,5 +237,6 @@
->  
->  #define CPACR_EL1_FPEN		(3 << 20)
->  #define CPACR_EL1_TTA		(1 << 28)
-> +#define CPACR_EL1_DEFAULT	(CPACR_EL1_FPEN | CPACR_EL1_ZEN_EL1EN)
->  
->  #endif /* __ARM64_KVM_ARM_H__ */
-> diff --git a/arch/arm64/kvm/hyp/switch.c b/arch/arm64/kvm/hyp/switch.c
-> index 35a90b8..951f3eb 100644
-> --- a/arch/arm64/kvm/hyp/switch.c
-> +++ b/arch/arm64/kvm/hyp/switch.c
-> @@ -48,7 +48,7 @@ static void __hyp_text __activate_traps_vhe(void)
->  
->  	val = read_sysreg(cpacr_el1);
->  	val |= CPACR_EL1_TTA;
-> -	val &= ~CPACR_EL1_FPEN;
-> +	val &= ~(CPACR_EL1_FPEN | CPACR_EL1_ZEN);
->  	write_sysreg(val, cpacr_el1);
->  
->  	write_sysreg(__kvm_hyp_vector, vbar_el1);
-> @@ -59,7 +59,7 @@ static void __hyp_text __activate_traps_nvhe(void)
->  	u64 val;
->  
->  	val = CPTR_EL2_DEFAULT;
-> -	val |= CPTR_EL2_TTA | CPTR_EL2_TFP;
-> +	val |= CPTR_EL2_TTA | CPTR_EL2_TFP | CPTR_EL2_TZ;
->  	write_sysreg(val, cptr_el2);
->  }
->  
-> @@ -117,7 +117,7 @@ static void __hyp_text __deactivate_traps_vhe(void)
->  
->  	write_sysreg(mdcr_el2, mdcr_el2);
->  	write_sysreg(HCR_HOST_VHE_FLAGS, hcr_el2);
-> -	write_sysreg(CPACR_EL1_FPEN, cpacr_el1);
-> +	write_sysreg(CPACR_EL1_DEFAULT, cpacr_el1);
->  	write_sysreg(vectors, vbar_el1);
->  }
->  
-> 
-
-Thanks,
-
-	M.
--- 
-Jazz is not dead. It just smells funny...
+Reviewed-by: Ard Biesheuvel <ard.biesheuvel@linaro.org>
