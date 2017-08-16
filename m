@@ -1,87 +1,60 @@
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH 21/27] arm64/sve: KVM: Prevent guests from using SVE
-Date: Wed, 16 Aug 2017 12:35:19 +0100
-Message-ID: <20170816113519.GE6321@e103592.cambridge.arm.com>
-References: <1502280338-23002-1-git-send-email-Dave.Martin@arm.com>
- <1502280338-23002-22-git-send-email-Dave.Martin@arm.com>
- <0f5b14a8-4d04-61e4-05e8-92cd55c8bee9@arm.com>
- <20170816105013.GZ6321@e103592.cambridge.arm.com>
- <3cb51836-9677-5eb5-cc07-361eee674806@arm.com>
+From: Khalid Aziz <khalid.aziz@oracle.com>
+Subject: Re: [PATCH v7 2/9] mm, swap: Add infrastructure for saving page
+ metadata on swap
+Date: Wed, 16 Aug 2017 08:34:42 -0600
+Message-ID: <05c64690-fa24-7104-4f1f-d98ff54863bc@oracle.com>
+References: <cover.1502219353.git.khalid.aziz@oracle.com>
+ <cover.1502219353.git.khalid.aziz@oracle.com>
+ <87ff7a44c45bd6a146102c6e6033ee7810d9ebb5.1502219353.git.khalid.aziz@oracle.com>
+ <20170815.215326.1833101229202321710.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:34374 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751624AbdHPLfY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 16 Aug 2017 07:35:24 -0400
-Content-Disposition: inline
-In-Reply-To: <3cb51836-9677-5eb5-cc07-361eee674806@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Marc Zyngier <marc.zyngier@arm.com>
-Cc: linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20170815.215326.1833101229202321710.davem@davemloft.net>
+Content-Language: en-US
+Sender: owner-linux-mm@kvack.org
+To: David Miller <davem@davemloft.net>
+Cc: akpm@linux-foundation.org, dave.hansen@linux.intel.com, arnd@arndb.de, kirill.shutemov@linux.intel.com, mhocko@suse.com, jack@suse.cz, ross.zwisler@linux.intel.com, aneesh.kumar@linux.vnet.ibm.com, dave.jiang@intel.com, willy@infradead.org, hughd@google.com, minchan@kernel.org, hannes@cmpxchg.org, hillf.zj@alibaba-inc.com, shli@fb.com, mingo@kernel.org, jmarchan@redhat.com, lstoakes@gmail.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, sparclinux@vger.kernel.org, khalid@gonehiking.org
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Aug 16, 2017 at 12:20:41PM +0100, Marc Zyngier wrote:
-> On 16/08/17 11:50, Dave Martin wrote:
-> > On Tue, Aug 15, 2017 at 05:33:15PM +0100, Marc Zyngier wrote:
-> >> On 09/08/17 13:05, Dave Martin wrote:
-> >>> Until KVM has full SVE support, guests must not be allowed to
-> >>> execute SVE instructions.
-> >>>
-> >>> This patch enables the necessary traps, and also ensures that the
-> >>> traps are disabled again on exit from the guest so that the host
-> >>> can still use SVE if it wants to.
-> >>>
-> >>> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> >>> ---
-> >>>  arch/arm64/include/asm/kvm_arm.h | 3 ++-
-> >>>  arch/arm64/kvm/hyp/switch.c      | 6 +++---
-> >>>  2 files changed, 5 insertions(+), 4 deletions(-)
-> >>>
-> >>> diff --git a/arch/arm64/include/asm/kvm_arm.h b/arch/arm64/include/asm/kvm_arm.h
-> >>> index dbf0537..8a19651 100644
-> >>> --- a/arch/arm64/include/asm/kvm_arm.h
-> >>> +++ b/arch/arm64/include/asm/kvm_arm.h
-> >>> @@ -186,7 +186,7 @@
-> >>>  #define CPTR_EL2_TTA	(1 << 20)
-> >>>  #define CPTR_EL2_TFP	(1 << CPTR_EL2_TFP_SHIFT)
-> >>>  #define CPTR_EL2_TZ	(1 << 8)
-> >>> -#define CPTR_EL2_DEFAULT	0x000033ff
-> >>> +#define CPTR_EL2_DEFAULT	(0x000033ff & ~CPTR_EL2_TZ)
-> >>
-> >> I must say I'm not overly fond of this construct. I'd rather introduce a
-> >> RES1 field that matches the v8.2 description, instead of this ugly
-> >> constant and something that clears it.
-> > 
-> > Sorry, I don't get your meaning here.  v8.2 neither immediately predates
-> > or postdates SVE.  
+On 08/15/2017 10:53 PM, David Miller wrote:
+> From: Khalid Aziz <khalid.aziz@oracle.com>
+> Date: Wed,  9 Aug 2017 15:25:55 -0600
 > 
-> The ARMv8 ARM (DDI406B_a, D7.2.19) says otherwise. This bit is only
-> defined as having a possibility of being 0 on an v8.2 implementation if
-> SVE is implemented.
-
-Right.  I was confused by the v8.2 reference, since if this weren't true
-for v8.0 of the architecture, we couldn't simply change a compile time
-constant here.  In fact, there's a compatible retroactive change to all
-arch versions >= v8.0.
-
-> > What are you propsing?
+>> @@ -1399,6 +1399,12 @@ static bool try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
+>>   				(flags & TTU_MIGRATION)) {
+>>   			swp_entry_t entry;
+>>   			pte_t swp_pte;
+>> +
+>> +			if (arch_unmap_one(mm, vma, address, pteval) < 0) {
+>> +				set_pte_at(mm, address, pvmw.pte, pteval);
+>> +				ret = false;
+>> +				page_vma_mapped_walk_done(&pvmw);
+>> +				break;
+>>   			/*
+>>   			 * Store the pfn of the page in a special migration
+>>   			 * pte. do_swap_page() will wait until the migration
+>> @@ -1410,6 +1416,7 @@ static bool try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
+>>   			if (pte_soft_dirty(pteval))
+>>   				swp_pte = pte_swp_mksoft_dirty(swp_pte);
+>>   			set_pte_at(mm, address, pvmw.pte, swp_pte);
+>> +			}
 > 
-> What I'm proposing is:
-> 
-> #define CPTR_EL2_RES1		0x32ff
-> #define CPTR_EL2_DEFAULT	CPTR_EL2_RES1
-> 
-> and none of that pointless constant clearing.
-> 
-> > I guess we could just write 0x000032ff now that the only meaning the
-> > architecture can ever assign to bit 8 is known.
-> Exactly.
+> This basic block doesn't look right.  I think the new closing brace is
+> intended to be right after the new break; statement.  If not at the
+> very least the indentation of the existing code in there needs to be
+> adjusted.
 
-OK, good -- I'll change that.
+Hi Dave,
 
-I was trying to avoid magic numberness, but it's a bit futile when
-talking about RESx bits.
+Thanks. That brace needs to move up right after break. I will fix that.
 
-Cheers
----Dave
+--
+Khalid
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
