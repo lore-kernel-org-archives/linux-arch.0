@@ -1,54 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f171.google.com ([209.85.223.171]:34051 "EHLO
-        mail-io0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753612AbdHORhU (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 15 Aug 2017 13:37:20 -0400
-Received: by mail-io0-f171.google.com with SMTP id o9so5612848iod.1
-        for <linux-arch@vger.kernel.org>; Tue, 15 Aug 2017 10:37:20 -0700 (PDT)
-MIME-Version: 1.0
-In-Reply-To: <1502280338-23002-17-git-send-email-Dave.Martin@arm.com>
-References: <1502280338-23002-1-git-send-email-Dave.Martin@arm.com> <1502280338-23002-17-git-send-email-Dave.Martin@arm.com>
-From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Date: Tue, 15 Aug 2017 18:37:19 +0100
-Message-ID: <CAKv+Gu_1LdHuSP1fAeiNNc9PbAw8MQBP2tYhWFJ+szv=nQjHvQ@mail.gmail.com>
-Subject: Re: [PATCH 16/27] arm64/sve: Preserve SVE registers around
- kernel-mode NEON use
-Content-Type: text/plain; charset="UTF-8"
+Received: from shards.monkeyblade.net ([184.105.139.130]:48284 "EHLO
+        shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751071AbdHPEx2 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 16 Aug 2017 00:53:28 -0400
+Date: Tue, 15 Aug 2017 21:53:26 -0700 (PDT)
+Message-ID: <20170815.215326.1833101229202321710.davem@davemloft.net>
+Subject: Re: [PATCH v7 2/9] mm, swap: Add infrastructure for saving page
+ metadata on swap
+From: David Miller <davem@davemloft.net>
+In-Reply-To: <87ff7a44c45bd6a146102c6e6033ee7810d9ebb5.1502219353.git.khalid.aziz@oracle.com>
+References: <cover.1502219353.git.khalid.aziz@oracle.com>
+        <cover.1502219353.git.khalid.aziz@oracle.com>
+        <87ff7a44c45bd6a146102c6e6033ee7810d9ebb5.1502219353.git.khalid.aziz@oracle.com>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, "kvmarm@lists.cs.columbia.edu" <kvmarm@lists.cs.columbia.edu>, libc-alpha@sourceware.org, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20170815173719.JzN36LLPhJxf0mcLyISNkvMhvjx70aCyjFTy1Ewp1tQ@z>
+To: khalid.aziz@oracle.com
+Cc: akpm@linux-foundation.org, dave.hansen@linux.intel.com, arnd@arndb.de, kirill.shutemov@linux.intel.com, mhocko@suse.com, jack@suse.cz, ross.zwisler@linux.intel.com, aneesh.kumar@linux.vnet.ibm.com, dave.jiang@intel.com, willy@infradead.org, hughd@google.com, minchan@kernel.org, hannes@cmpxchg.org, hillf.zj@alibaba-inc.com, shli@fb.com, mingo@kernel.org, jmarchan@redhat.com, lstoakes@gmail.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, sparclinux@vger.kernel.org, khalid@gonehiking.org
+Message-ID: <20170816045326.B7YIP5c5PQz1fd_3VqUWJk73amc4xYQIZUJnVU2cnKI@z>
 
-On 9 August 2017 at 13:05, Dave Martin <Dave.Martin@arm.com> wrote:
-> Kernel-mode NEON will corrupt the SVE vector registers, due to the
-> way they alias the FPSIMD vector registers in the hardware.
->
-> This patch ensures that any live SVE register content for the task
-> is saved by kernel_neon_begin().  The data will be restored in the
-> usual way on return to userspace.
->
-> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> ---
->  arch/arm64/kernel/fpsimd.c | 6 ++++--
->  1 file changed, 4 insertions(+), 2 deletions(-)
->
-> diff --git a/arch/arm64/kernel/fpsimd.c b/arch/arm64/kernel/fpsimd.c
-> index 955c873..b7fb836 100644
-> --- a/arch/arm64/kernel/fpsimd.c
-> +++ b/arch/arm64/kernel/fpsimd.c
-> @@ -758,8 +758,10 @@ void kernel_neon_begin(void)
->         __this_cpu_write(kernel_neon_busy, true);
->
->         /* Save unsaved task fpsimd state, if any: */
-> -       if (current->mm && !test_and_set_thread_flag(TIF_FOREIGN_FPSTATE))
-> -               fpsimd_save_state(&current->thread.fpsimd_state);
-> +       if (current->mm) {
-> +               task_fpsimd_save();
-> +               set_thread_flag(TIF_FOREIGN_FPSTATE);
-> +       }
->
->         /* Invalidate any task state remaining in the fpsimd regs: */
->         __this_cpu_write(fpsimd_last_state, NULL);
+From: Khalid Aziz <khalid.aziz@oracle.com>
+Date: Wed,  9 Aug 2017 15:25:55 -0600
 
-Reviewed-by: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+> @@ -1399,6 +1399,12 @@ static bool try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
+>  				(flags & TTU_MIGRATION)) {
+>  			swp_entry_t entry;
+>  			pte_t swp_pte;
+> +
+> +			if (arch_unmap_one(mm, vma, address, pteval) < 0) {
+> +				set_pte_at(mm, address, pvmw.pte, pteval);
+> +				ret = false;
+> +				page_vma_mapped_walk_done(&pvmw);
+> +				break;
+>  			/*
+>  			 * Store the pfn of the page in a special migration
+>  			 * pte. do_swap_page() will wait until the migration
+> @@ -1410,6 +1416,7 @@ static bool try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
+>  			if (pte_soft_dirty(pteval))
+>  				swp_pte = pte_swp_mksoft_dirty(swp_pte);
+>  			set_pte_at(mm, address, pvmw.pte, swp_pte);
+> +			}
+
+This basic block doesn't look right.  I think the new closing brace is
+intended to be right after the new break; statement.  If not at the
+very least the indentation of the existing code in there needs to be
+adjusted.
