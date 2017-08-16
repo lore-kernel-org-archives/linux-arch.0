@@ -1,85 +1,66 @@
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH 23/27] arm64/sve: KVM: Hide SVE from CPU features exposed
- to guests
-Date: Wed, 16 Aug 2017 11:54:38 +0100
-Message-ID: <20170816105438.GA6321@e103592.cambridge.arm.com>
-References: <1502280338-23002-1-git-send-email-Dave.Martin@arm.com>
- <1502280338-23002-24-git-send-email-Dave.Martin@arm.com>
- <39b6ee07-1258-e733-3495-38b0d31ab800@arm.com>
+From: Masami Hiramatsu <mhiramat@kernel.org>
+Subject: Re: [PATCH -tip v9 3/5] cris: mark _stext and _end as char-arrays,
+ not single char
+Date: Wed, 16 Aug 2017 20:01:33 +0900
+Message-ID: <20170816200133.1abbd36d5b5621f6f4b7f639@kernel.org>
+References: <150172762859.27216.16741726568669538542.stgit@devbox>
+        <150172782555.27216.2805751327900543374.stgit@devbox>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:33774 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751068AbdHPKyn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 16 Aug 2017 06:54:43 -0400
-Content-Disposition: inline
-In-Reply-To: <39b6ee07-1258-e733-3495-38b0d31ab800@arm.com>
+Received: from mail.kernel.org ([198.145.29.99]:53766 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751530AbdHPLBo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 16 Aug 2017 07:01:44 -0400
+In-Reply-To: <150172782555.27216.2805751327900543374.stgit@devbox>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marc Zyngier <marc.zyngier@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu, Christoffer Dall <christoffer.dall@linaro.org>
+To: Masami Hiramatsu <mhiramat@kernel.org>
+Cc: Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Francis Deslauriers <francis.deslauriers@efficios.com>, mathieu.desnoyers@efficios.com, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, "David S . Miller" <davem@davemloft.net>, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, linux-cris-kernel@axis.com, linux-arch@vger.kernel.org
 
-On Tue, Aug 15, 2017 at 05:37:55PM +0100, Marc Zyngier wrote:
-> On 09/08/17 13:05, Dave Martin wrote:
-> > KVM guests cannot currently use SVE, because SVE is always
-> > configured to trap to EL2.
-> > 
-> > However, a guest that sees SVE reported as present in
-> > ID_AA64PFR0_EL1 may legitimately expect that SVE works and try to
-> > use it.  Instead of working, the guest will receive an injected
-> > undef exception, which may cause the guest to oops or go into a
-> > spin.
-> > 
-> > To avoid misleading the guest into believing that SVE will work,
-> > this patch masks out the SVE field from ID_AA64PFR0_EL1 when a
-> > guest attempts to read this register.  No support is explicitly
-> > added for ID_AA64ZFR0_EL1 either, so that is still emulated as
-> > reading as zero, which is consistent with SVE not being
-> > implemented.
-> > 
-> > This is a temporary measure, and will be removed in a later series
-> > when full KVM support for SVE is implemented.
-> > 
-> > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> > ---
-> >  arch/arm64/kvm/sys_regs.c | 14 +++++++++++++-
-> >  1 file changed, 13 insertions(+), 1 deletion(-)
-> > 
-> > diff --git a/arch/arm64/kvm/sys_regs.c b/arch/arm64/kvm/sys_regs.c
-> > index 6583dd7..9e8c54e 100644
-> > --- a/arch/arm64/kvm/sys_regs.c
-> > +++ b/arch/arm64/kvm/sys_regs.c
-> > @@ -897,8 +897,20 @@ static u64 read_id_reg(struct sys_reg_desc const *r, bool raz)
-> >  {
-> >  	u32 id = sys_reg((u32)r->Op0, (u32)r->Op1,
-> >  			 (u32)r->CRn, (u32)r->CRm, (u32)r->Op2);
-> > +	u64 val = raz ? 0 : read_sanitised_ftr_reg(id);
-> >  
-> > -	return raz ? 0 : read_sanitised_ftr_reg(id);
-> > +	if (id == SYS_ID_AA64PFR0_EL1) {
-> > +		static bool printed;
-> > +
-> > +		if ((val & (0xfUL << ID_AA64PFR0_SVE_SHIFT)) && !printed) {
-> > +			kvm_info("SVE unsupported for guests, suppressing\n");
-> > +			printed = true;
-> > +		}
+On Thu,  3 Aug 2017 11:37:15 +0900
+Masami Hiramatsu <mhiramat@kernel.org> wrote:
+
+> diff --git a/arch/cris/kernel/traps.c b/arch/cris/kernel/traps.c
+> index a01636a12a6e..d98131c45bb5 100644
+> --- a/arch/cris/kernel/traps.c
+> +++ b/arch/cris/kernel/traps.c
+> @@ -42,7 +42,7 @@ void (*nmi_handler)(struct pt_regs *);
+>  void show_trace(unsigned long *stack)
+>  {
+>  	unsigned long addr, module_start, module_end;
+> -	extern char _stext, _etext;
+> +	extern char _stext[], _etext[];
+>  	int i;
+>  
+>  	pr_err("\nCall Trace: ");
+> @@ -69,8 +69,8 @@ void show_trace(unsigned long *stack)
+>  		 * down the cause of the crash will be able to figure
+>  		 * out the call path that was taken.
+>  		 */
+> -		if (((addr >= (unsigned long)&_stext) &&
+> -		     (addr <= (unsigned long)&_etext)) ||
+> +		if (((addr >= (unsigned long)_stext) &&
+> +		     (addr <= (unsigned long)_etext)) ||
+>  		    ((addr >= module_start) && (addr <= module_end))) {
+
+BTW, I would like to ask cris people, this seems to check over 1 byte,
+since _etext and module_end will be placed at the next byte of the real
+address area.
+As same as other arch, Should it be 
+
+(addr < (unsigned long)_etext)
+
+or are there any other reason?
+
+Thank you,
+
+
+>  #ifdef CONFIG_KALLSYMS
+>  			print_ip_sym(addr);
 > 
-> Ideally, this should be a vcpu_unimpl_once(). But:
-> - it doesn't exist
-> - vcpu_unimpl looks hopelessly x86 specific
 
-Yeah, I looked for an appropriate function and didn't find one ... and
-writing one just for this seemed overkill.
 
-> How about turning it into a pr_err_once() instead?
-
-Can do, though should it be an err?
-
-No error has occurred here, rather I want people who discover that their
-guest mysteriously doesn't see SVE gets a clue about why.
-
-[...]
-
-Cheers
----Dave
+-- 
+Masami Hiramatsu <mhiramat@kernel.org>
