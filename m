@@ -1,66 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:48132 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750903AbdHQKqP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 17 Aug 2017 06:46:15 -0400
-Subject: Re: [PATCH 15/27] arm64/sve: Probe SVE capabilities and usable vector
- lengths
-References: <1502280338-23002-1-git-send-email-Dave.Martin@arm.com>
- <1502280338-23002-16-git-send-email-Dave.Martin@arm.com>
- <07268b07-c5f4-38d6-257d-5864cb6752c1@arm.com>
- <20170817100424.GI6321@e103592.cambridge.arm.com>
-From: Suzuki K Poulose <Suzuki.Poulose@arm.com>
-Message-ID: <5cd3b5c8-acea-044e-c503-a7e8ad0180f8@arm.com>
-Date: Thu, 17 Aug 2017 11:46:12 +0100
+Received: from mail.free-electrons.com ([62.4.15.54]:34487 "EHLO
+        mail.free-electrons.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753067AbdHQNBb (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 17 Aug 2017 09:01:31 -0400
+Date: Thu, 17 Aug 2017 15:01:18 +0200
+From: Boris Brezillon <boris.brezillon@free-electrons.com>
+Subject: Re: [PATCH] [RESEND] mtd: only use __xipram annotation when
+ XIP_KERNEL is set
+Message-ID: <20170817150118.3c4d8214@bbrezillon>
+In-Reply-To: <CAK8P3a2Zvsc880ZYy9aaQ1fOJeO50uJc92OKMK0QxCcTzwGPsg@mail.gmail.com>
+References: <20170721202636.3361536-1-arnd@arndb.de>
+        <20170804093550.41e5936c@bbrezillon>
+        <CAK8P3a2Zvsc880ZYy9aaQ1fOJeO50uJc92OKMK0QxCcTzwGPsg@mail.gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <20170817100424.GI6321@e103592.cambridge.arm.com>
-Content-Type: text/plain; charset=us-ascii; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu
-Message-ID: <20170817104612.QJ7cyq4uz4hErYmI60TIth1JvlawxlWXGEOmq53VVrI@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: David Woodhouse <dwmw2@infradead.org>, Brian Norris <computersforpeace@gmail.com>, Marek Vasut <marek.vasut@gmail.com>, Richard Weinberger <richard@nod.at>, Cyrille Pitchen <cyrille.pitchen@wedev4u.fr>, Russell King <linux@armlinux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Nicholas Piggin <npiggin@gmail.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Michal Marek <mmarek@suse.com>, Linus Walleij <linus.walleij@linaro.org>, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>, Chris Metcalf <cmetcalf@mellanox.com>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-mtd <linux-mtd@lists.infradead.org>
+Message-ID: <20170817130118.pMP2HPU9FQhOCXhh6NBeaii8OAK5H3ZrEh0R1B-Yc04@z>
 
-On 17/08/17 11:04, Dave Martin wrote:
-> On Wed, Aug 16, 2017 at 06:48:01PM +0100, Suzuki K Poulose wrote:
->> On 09/08/17 13:05, Dave Martin wrote:
->>> [This sender failed our fraud detection checks and may not be who they appear to be. Learn about spoofing at http://aka.ms/LearnAboutSpoofing]
->
-> Any idea what this is ^ ?  I don't know if this is caused by me or you,
-> but I only seem to see it on subthreads you've replied to.
->
+Le Fri, 4 Aug 2017 11:00:05 +0200,
+Arnd Bergmann <arnd@arndb.de> a écrit :
 
-Dave,
+> On Fri, Aug 4, 2017 at 9:35 AM, Boris Brezillon
+> <boris.brezillon@free-electrons.com> wrote:
+> > On Fri, 21 Jul 2017 22:26:25 +0200
+> > Arnd Bergmann <arnd@arndb.de> wrote:  
+> 
+> >> Note that MTD_XIP has been broken on ARM since around 2011 or 2012. I
+> >> have sent another patch[2] to fix compilation, which I plan to merge
+> >> through arm-soc unless there are objections. The obvious alternative
+> >> to that would be to completely rip out the MTD_XIP support from the
+> >> kernel, since obviously nobody has been using it in a long while.
+> >>
+> >> Link: [1] https://patchwork.kernel.org/patch/8109771/
+> >> Link: [2] https://patchwork.kernel.org/patch/9855225/
+> >> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+> >> ---
+> >>  include/asm-generic/vmlinux.lds.h |  1 +
+> >>  include/linux/mtd/xip.h           | 10 ++++++----  
+> >
+> > For the MTD part,
+> >
+> > Acked-by: Boris Brezillon <boris.brezillon@free-electrons.com>  
+> 
+> Thanks. If you don't mind, could you just apply the patch to the mtd tree?
 
-Sorry about that, should have trimmed that. It looks like the mail server is unhappy
-about email received via kvmarm list and I don't know why.
+Applied to l2-mtd/master.
 
->>
->>> +void __init sve_setup(void)
->>> +{
->>> +       u64 zcr;
->>> +       unsigned int max_vl;
->>> +
->>> +       if (!system_supports_sve())
->>> +               return;
->>> +
->>> +       /*
->>> +        * The architecture mandates 128-bit vectors be supported, and
->>> +        * the code assumes elsewhere that sve_vq_map is non-empty:
->>> +        */
->>> +       BUG_ON(!test_bit(vq_to_bit(1), sve_vq_map));
->>> +
->>> +       sve_vq_map_finalised = true;
->>
->> We have something local in cpufeature.c, sys_caps_initialised. May be we could
->> reuse it here ? With or without that change, FWIW.
->
-> I'll take a look at that.  Inventing that here seemed a little ugly, and
-> this is all driven from the cpufreatures code anyway now which ensures a
-> certain ordering.
->
-> If I can reuse sys_caps_initialised for this, I will -- seems pointless
-> to reinvent it.
+Thanks,
 
-Suzuki
+Boris
+
+> 
+>       Arnd
