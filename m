@@ -1,470 +1,69 @@
-From: tip-bot for Kees Cook <tipbot@zytor.com>
-Subject: [tip:locking/core] locking/refcounts, x86/asm: Implement fast
- refcount overflow protection
-Date: Thu, 17 Aug 2017 03:20:18 -0700
-Message-ID: <tip-7a46ec0e2f4850407de5e1d19a44edee6efa58ec@git.kernel.org>
-References: <20170815161924.GA133115@beast>
-Reply-To: jpoimboe@redhat.com, dave@stgolabs.net, manfred@colorfullife.com,
-          serge@hallyn.com, akpm@linux-foundation.org, arnd@arndb.de,
-          hch@infradead.org, ishkamiel@gmail.com, peterz@infradead.org,
-          keescook@chromium.org, ebiggers3@gmail.com, riel@redhat.com,
-          ebiederm@xmission.com, davem@davemloft.net,
-          torvalds@linux-foundation.org, linux-kernel@vger.kernel.org,
-          mingo@kernel.org, James.Bottomley@hansenpartnership.com,
-          elena.reshetova@intel.com, adobriyan@gmail.com, jannh@google.com,
-          hpa@zytor.com, tglx@linutronix.de, linux-arch@vger.kernel.org,
-          gregkh@linuxfoundation.org
+From: Suzuki K Poulose <Suzuki.Poulose@arm.com>
+Subject: Re: [PATCH 15/27] arm64/sve: Probe SVE capabilities and usable vector
+ lengths
+Date: Thu, 17 Aug 2017 11:46:12 +0100
+Message-ID: <5cd3b5c8-acea-044e-c503-a7e8ad0180f8@arm.com>
+References: <1502280338-23002-1-git-send-email-Dave.Martin@arm.com>
+ <1502280338-23002-16-git-send-email-Dave.Martin@arm.com>
+ <07268b07-c5f4-38d6-257d-5864cb6752c1@arm.com>
+ <20170817100424.GI6321@e103592.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([65.50.211.136]:38443 "EHLO
-        terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750978AbdHQK3c (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 17 Aug 2017 06:29:32 -0400
-In-Reply-To: <20170815161924.GA133115@beast>
-Content-Disposition: inline
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-tip-commits@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, gregkh@linuxfoundation.org, jannh@google.com, hpa@zytor.com, tglx@linutronix.de, linux-kernel@vger.kernel.org, elena.reshetova@intel.com, adobriyan@gmail.com, mingo@kernel.org, James.Bottomley@hansenpartnership.com, torvalds@linux-foundation.org, ebiederm@xmission.com, davem@davemloft.net, riel@redhat.com, ebiggers3@gmail.com, keescook@chromium.org, peterz@infradead.org, akpm@linux-foundation.org, serge@hallyn.com, manfred@colorfullife.com, jpoimboe@redhat.com, dave@stgolabs.net, ishkamiel@gmail.com, hch@infradead.org, arnd@arndb.de
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Transfer-Encoding: 7bit
+Return-path: <kvmarm-bounces@lists.cs.columbia.edu>
+In-Reply-To: <20170817100424.GI6321@e103592.cambridge.arm.com>
+List-Unsubscribe: <https://lists.cs.columbia.edu/mailman/options/kvmarm>,
+ <mailto:kvmarm-request@lists.cs.columbia.edu?subject=unsubscribe>
+List-Archive: <https://lists.cs.columbia.edu/pipermail/kvmarm>
+List-Post: <mailto:kvmarm@lists.cs.columbia.edu>
+List-Help: <mailto:kvmarm-request@lists.cs.columbia.edu?subject=help>
+List-Subscribe: <https://lists.cs.columbia.edu/mailman/listinfo/kvmarm>,
+ <mailto:kvmarm-request@lists.cs.columbia.edu?subject=subscribe>
+Errors-To: kvmarm-bounces@lists.cs.columbia.edu
+Sender: kvmarm-bounces@lists.cs.columbia.edu
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
+List-Id: linux-arch.vger.kernel.org
 
-Commit-ID:  7a46ec0e2f4850407de5e1d19a44edee6efa58ec
-Gitweb:     http://git.kernel.org/tip/7a46ec0e2f4850407de5e1d19a44edee6efa58ec
-Author:     Kees Cook <keescook@chromium.org>
-AuthorDate: Tue, 15 Aug 2017 09:19:24 -0700
-Committer:  Ingo Molnar <mingo@kernel.org>
-CommitDate: Thu, 17 Aug 2017 10:40:26 +0200
+On 17/08/17 11:04, Dave Martin wrote:
+> On Wed, Aug 16, 2017 at 06:48:01PM +0100, Suzuki K Poulose wrote:
+>> On 09/08/17 13:05, Dave Martin wrote:
+>>> [This sender failed our fraud detection checks and may not be who they appear to be. Learn about spoofing at http://aka.ms/LearnAboutSpoofing]
+>
+> Any idea what this is ^ ?  I don't know if this is caused by me or you,
+> but I only seem to see it on subthreads you've replied to.
+>
 
-locking/refcounts, x86/asm: Implement fast refcount overflow protection
+Dave,
 
-This implements refcount_t overflow protection on x86 without a noticeable
-performance impact, though without the fuller checking of REFCOUNT_FULL.
+Sorry about that, should have trimmed that. It looks like the mail server is unhappy
+about email received via kvmarm list and I don't know why.
 
-This is done by duplicating the existing atomic_t refcount implementation
-but with normally a single instruction added to detect if the refcount
-has gone negative (e.g. wrapped past INT_MAX or below zero). When detected,
-the handler saturates the refcount_t to INT_MIN / 2. With this overflow
-protection, the erroneous reference release that would follow a wrap back
-to zero is blocked from happening, avoiding the class of refcount-overflow
-use-after-free vulnerabilities entirely.
+>>
+>>> +void __init sve_setup(void)
+>>> +{
+>>> +       u64 zcr;
+>>> +       unsigned int max_vl;
+>>> +
+>>> +       if (!system_supports_sve())
+>>> +               return;
+>>> +
+>>> +       /*
+>>> +        * The architecture mandates 128-bit vectors be supported, and
+>>> +        * the code assumes elsewhere that sve_vq_map is non-empty:
+>>> +        */
+>>> +       BUG_ON(!test_bit(vq_to_bit(1), sve_vq_map));
+>>> +
+>>> +       sve_vq_map_finalised = true;
+>>
+>> We have something local in cpufeature.c, sys_caps_initialised. May be we could
+>> reuse it here ? With or without that change, FWIW.
+>
+> I'll take a look at that.  Inventing that here seemed a little ugly, and
+> this is all driven from the cpufreatures code anyway now which ensures a
+> certain ordering.
+>
+> If I can reuse sys_caps_initialised for this, I will -- seems pointless
+> to reinvent it.
 
-Only the overflow case of refcounting can be perfectly protected, since
-it can be detected and stopped before the reference is freed and left to
-be abused by an attacker. There isn't a way to block early decrements,
-and while REFCOUNT_FULL stops increment-from-zero cases (which would
-be the state _after_ an early decrement and stops potential double-free
-conditions), this fast implementation does not, since it would require
-the more expensive cmpxchg loops. Since the overflow case is much more
-common (e.g. missing a "put" during an error path), this protection
-provides real-world protection. For example, the two public refcount
-overflow use-after-free exploits published in 2016 would have been
-rendered unexploitable:
-
-  http://perception-point.io/2016/01/14/analysis-and-exploitation-of-a-linux-kernel-vulnerability-cve-2016-0728/
-
-  http://cyseclabs.com/page?n=02012016
-
-This implementation does, however, notice an unchecked decrement to zero
-(i.e. caller used refcount_dec() instead of refcount_dec_and_test() and it
-resulted in a zero). Decrements under zero are noticed (since they will
-have resulted in a negative value), though this only indicates that a
-use-after-free may have already happened. Such notifications are likely
-avoidable by an attacker that has already exploited a use-after-free
-vulnerability, but it's better to have them reported than allow such
-conditions to remain universally silent.
-
-On first overflow detection, the refcount value is reset to INT_MIN / 2
-(which serves as a saturation value) and a report and stack trace are
-produced. When operations detect only negative value results (such as
-changing an already saturated value), saturation still happens but no
-notification is performed (since the value was already saturated).
-
-On the matter of races, since the entire range beyond INT_MAX but before
-0 is negative, every operation at INT_MIN / 2 will trap, leaving no
-overflow-only race condition.
-
-As for performance, this implementation adds a single "js" instruction
-to the regular execution flow of a copy of the standard atomic_t refcount
-operations. (The non-"and_test" refcount_dec() function, which is uncommon
-in regular refcount design patterns, has an additional "jz" instruction
-to detect reaching exactly zero.) Since this is a forward jump, it is by
-default the non-predicted path, which will be reinforced by dynamic branch
-prediction. The result is this protection having virtually no measurable
-change in performance over standard atomic_t operations. The error path,
-located in .text.unlikely, saves the refcount location and then uses UD0
-to fire a refcount exception handler, which resets the refcount, handles
-reporting, and returns to regular execution. This keeps the changes to
-.text size minimal, avoiding return jumps and open-coded calls to the
-error reporting routine.
-
-Example assembly comparison:
-
-refcount_inc() before:
-
-  .text:
-  ffffffff81546149:       f0 ff 45 f4             lock incl -0xc(%rbp)
-
-refcount_inc() after:
-
-  .text:
-  ffffffff81546149:       f0 ff 45 f4             lock incl -0xc(%rbp)
-  ffffffff8154614d:       0f 88 80 d5 17 00       js     ffffffff816c36d3
-  ...
-  .text.unlikely:
-  ffffffff816c36d3:       48 8d 4d f4             lea    -0xc(%rbp),%rcx
-  ffffffff816c36d7:       0f ff                   (bad)
-
-These are the cycle counts comparing a loop of refcount_inc() from 1
-to INT_MAX and back down to 0 (via refcount_dec_and_test()), between
-unprotected refcount_t (atomic_t), fully protected REFCOUNT_FULL
-(refcount_t-full), and this overflow-protected refcount (refcount_t-fast):
-
-  2147483646 refcount_inc()s and 2147483647 refcount_dec_and_test()s:
-		    cycles		protections
-  atomic_t           82249267387	none
-  refcount_t-fast    82211446892	overflow, untested dec-to-zero
-  refcount_t-full   144814735193	overflow, untested dec-to-zero, inc-from-zero
-
-This code is a modified version of the x86 PAX_REFCOUNT atomic_t
-overflow defense from the last public patch of PaX/grsecurity, based
-on my understanding of the code. Changes or omissions from the original
-code are mine and don't reflect the original grsecurity/PaX code. Thanks
-to PaX Team for various suggestions for improvement for repurposing this
-code to be a refcount-only protection.
-
-Signed-off-by: Kees Cook <keescook@chromium.org>
-Reviewed-by: Josh Poimboeuf <jpoimboe@redhat.com>
-Cc: Alexey Dobriyan <adobriyan@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Christoph Hellwig <hch@infradead.org>
-Cc: David S. Miller <davem@davemloft.net>
-Cc: Davidlohr Bueso <dave@stgolabs.net>
-Cc: Elena Reshetova <elena.reshetova@intel.com>
-Cc: Eric Biggers <ebiggers3@gmail.com>
-Cc: Eric W. Biederman <ebiederm@xmission.com>
-Cc: Greg KH <gregkh@linuxfoundation.org>
-Cc: Hans Liljestrand <ishkamiel@gmail.com>
-Cc: James Bottomley <James.Bottomley@hansenpartnership.com>
-Cc: Jann Horn <jannh@google.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Manfred Spraul <manfred@colorfullife.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Rik van Riel <riel@redhat.com>
-Cc: Serge E. Hallyn <serge@hallyn.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: arozansk@redhat.com
-Cc: axboe@kernel.dk
-Cc: kernel-hardening@lists.openwall.com
-Cc: linux-arch <linux-arch@vger.kernel.org>
-Link: http://lkml.kernel.org/r/20170815161924.GA133115@beast
-Signed-off-by: Ingo Molnar <mingo@kernel.org>
----
- arch/Kconfig                    |  12 +++++
- arch/x86/Kconfig                |   1 +
- arch/x86/include/asm/asm.h      |   6 +++
- arch/x86/include/asm/refcount.h | 109 ++++++++++++++++++++++++++++++++++++++++
- arch/x86/mm/extable.c           |  42 ++++++++++++++++
- include/linux/kernel.h          |   7 +++
- include/linux/refcount.h        |   4 ++
- kernel/panic.c                  |  12 +++++
- 8 files changed, 193 insertions(+)
-
-diff --git a/arch/Kconfig b/arch/Kconfig
-index 21d0089..2520ca5 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -931,6 +931,18 @@ config STRICT_MODULE_RWX
- config ARCH_WANT_RELAX_ORDER
- 	bool
- 
-+config ARCH_HAS_REFCOUNT
-+	bool
-+	help
-+	  An architecture selects this when it has implemented refcount_t
-+	  using open coded assembly primitives that provide an optimized
-+	  refcount_t implementation, possibly at the expense of some full
-+	  refcount state checks of CONFIG_REFCOUNT_FULL=y.
-+
-+	  The refcount overflow check behavior, however, must be retained.
-+	  Catching overflows is the primary security concern for protecting
-+	  against bugs in reference counts.
-+
- config REFCOUNT_FULL
- 	bool "Perform full reference count validation at the expense of speed"
- 	help
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 781521b..73574c9 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -55,6 +55,7 @@ config X86
- 	select ARCH_HAS_KCOV			if X86_64
- 	select ARCH_HAS_MMIO_FLUSH
- 	select ARCH_HAS_PMEM_API		if X86_64
-+	select ARCH_HAS_REFCOUNT
- 	select ARCH_HAS_UACCESS_FLUSHCACHE	if X86_64
- 	select ARCH_HAS_SET_MEMORY
- 	select ARCH_HAS_SG_CHAIN
-diff --git a/arch/x86/include/asm/asm.h b/arch/x86/include/asm/asm.h
-index 7a9df3b..676ee58 100644
---- a/arch/x86/include/asm/asm.h
-+++ b/arch/x86/include/asm/asm.h
-@@ -74,6 +74,9 @@
- # define _ASM_EXTABLE_EX(from, to)				\
- 	_ASM_EXTABLE_HANDLE(from, to, ex_handler_ext)
- 
-+# define _ASM_EXTABLE_REFCOUNT(from, to)			\
-+	_ASM_EXTABLE_HANDLE(from, to, ex_handler_refcount)
-+
- # define _ASM_NOKPROBE(entry)					\
- 	.pushsection "_kprobe_blacklist","aw" ;			\
- 	_ASM_ALIGN ;						\
-@@ -123,6 +126,9 @@
- # define _ASM_EXTABLE_EX(from, to)				\
- 	_ASM_EXTABLE_HANDLE(from, to, ex_handler_ext)
- 
-+# define _ASM_EXTABLE_REFCOUNT(from, to)			\
-+	_ASM_EXTABLE_HANDLE(from, to, ex_handler_refcount)
-+
- /* For C file, we already have NOKPROBE_SYMBOL macro */
- #endif
- 
-diff --git a/arch/x86/include/asm/refcount.h b/arch/x86/include/asm/refcount.h
-new file mode 100644
-index 0000000..ff87121
---- /dev/null
-+++ b/arch/x86/include/asm/refcount.h
-@@ -0,0 +1,109 @@
-+#ifndef __ASM_X86_REFCOUNT_H
-+#define __ASM_X86_REFCOUNT_H
-+/*
-+ * x86-specific implementation of refcount_t. Based on PAX_REFCOUNT from
-+ * PaX/grsecurity.
-+ */
-+#include <linux/refcount.h>
-+
-+/*
-+ * This is the first portion of the refcount error handling, which lives in
-+ * .text.unlikely, and is jumped to from the CPU flag check (in the
-+ * following macros). This saves the refcount value location into CX for
-+ * the exception handler to use (in mm/extable.c), and then triggers the
-+ * central refcount exception. The fixup address for the exception points
-+ * back to the regular execution flow in .text.
-+ */
-+#define _REFCOUNT_EXCEPTION				\
-+	".pushsection .text.unlikely\n"			\
-+	"111:\tlea %[counter], %%" _ASM_CX "\n"		\
-+	"112:\t" ASM_UD0 "\n"				\
-+	ASM_UNREACHABLE					\
-+	".popsection\n"					\
-+	"113:\n"					\
-+	_ASM_EXTABLE_REFCOUNT(112b, 113b)
-+
-+/* Trigger refcount exception if refcount result is negative. */
-+#define REFCOUNT_CHECK_LT_ZERO				\
-+	"js 111f\n\t"					\
-+	_REFCOUNT_EXCEPTION
-+
-+/* Trigger refcount exception if refcount result is zero or negative. */
-+#define REFCOUNT_CHECK_LE_ZERO				\
-+	"jz 111f\n\t"					\
-+	REFCOUNT_CHECK_LT_ZERO
-+
-+/* Trigger refcount exception unconditionally. */
-+#define REFCOUNT_ERROR					\
-+	"jmp 111f\n\t"					\
-+	_REFCOUNT_EXCEPTION
-+
-+static __always_inline void refcount_add(unsigned int i, refcount_t *r)
-+{
-+	asm volatile(LOCK_PREFIX "addl %1,%0\n\t"
-+		REFCOUNT_CHECK_LT_ZERO
-+		: [counter] "+m" (r->refs.counter)
-+		: "ir" (i)
-+		: "cc", "cx");
-+}
-+
-+static __always_inline void refcount_inc(refcount_t *r)
-+{
-+	asm volatile(LOCK_PREFIX "incl %0\n\t"
-+		REFCOUNT_CHECK_LT_ZERO
-+		: [counter] "+m" (r->refs.counter)
-+		: : "cc", "cx");
-+}
-+
-+static __always_inline void refcount_dec(refcount_t *r)
-+{
-+	asm volatile(LOCK_PREFIX "decl %0\n\t"
-+		REFCOUNT_CHECK_LE_ZERO
-+		: [counter] "+m" (r->refs.counter)
-+		: : "cc", "cx");
-+}
-+
-+static __always_inline __must_check
-+bool refcount_sub_and_test(unsigned int i, refcount_t *r)
-+{
-+	GEN_BINARY_SUFFIXED_RMWcc(LOCK_PREFIX "subl", REFCOUNT_CHECK_LT_ZERO,
-+				  r->refs.counter, "er", i, "%0", e);
-+}
-+
-+static __always_inline __must_check bool refcount_dec_and_test(refcount_t *r)
-+{
-+	GEN_UNARY_SUFFIXED_RMWcc(LOCK_PREFIX "decl", REFCOUNT_CHECK_LT_ZERO,
-+				 r->refs.counter, "%0", e);
-+}
-+
-+static __always_inline __must_check
-+bool refcount_add_not_zero(unsigned int i, refcount_t *r)
-+{
-+	int c, result;
-+
-+	c = atomic_read(&(r->refs));
-+	do {
-+		if (unlikely(c == 0))
-+			return false;
-+
-+		result = c + i;
-+
-+		/* Did we try to increment from/to an undesirable state? */
-+		if (unlikely(c < 0 || c == INT_MAX || result < c)) {
-+			asm volatile(REFCOUNT_ERROR
-+				     : : [counter] "m" (r->refs.counter)
-+				     : "cc", "cx");
-+			break;
-+		}
-+
-+	} while (!atomic_try_cmpxchg(&(r->refs), &c, result));
-+
-+	return c != 0;
-+}
-+
-+static __always_inline __must_check bool refcount_inc_not_zero(refcount_t *r)
-+{
-+	return refcount_add_not_zero(1, r);
-+}
-+
-+#endif
-diff --git a/arch/x86/mm/extable.c b/arch/x86/mm/extable.c
-index 0ea8afc..761fc88 100644
---- a/arch/x86/mm/extable.c
-+++ b/arch/x86/mm/extable.c
-@@ -36,6 +36,48 @@ bool ex_handler_fault(const struct exception_table_entry *fixup,
- }
- EXPORT_SYMBOL_GPL(ex_handler_fault);
- 
-+/*
-+ * Handler for UD0 exception following a failed test against the
-+ * result of a refcount inc/dec/add/sub.
-+ */
-+bool ex_handler_refcount(const struct exception_table_entry *fixup,
-+			 struct pt_regs *regs, int trapnr)
-+{
-+	/* First unconditionally saturate the refcount. */
-+	*(int *)regs->cx = INT_MIN / 2;
-+
-+	/*
-+	 * Strictly speaking, this reports the fixup destination, not
-+	 * the fault location, and not the actually overflowing
-+	 * instruction, which is the instruction before the "js", but
-+	 * since that instruction could be a variety of lengths, just
-+	 * report the location after the overflow, which should be close
-+	 * enough for finding the overflow, as it's at least back in
-+	 * the function, having returned from .text.unlikely.
-+	 */
-+	regs->ip = ex_fixup_addr(fixup);
-+
-+	/*
-+	 * This function has been called because either a negative refcount
-+	 * value was seen by any of the refcount functions, or a zero
-+	 * refcount value was seen by refcount_dec().
-+	 *
-+	 * If we crossed from INT_MAX to INT_MIN, OF (Overflow Flag: result
-+	 * wrapped around) will be set. Additionally, seeing the refcount
-+	 * reach 0 will set ZF (Zero Flag: result was zero). In each of
-+	 * these cases we want a report, since it's a boundary condition.
-+	 *
-+	 */
-+	if (regs->flags & (X86_EFLAGS_OF | X86_EFLAGS_ZF)) {
-+		bool zero = regs->flags & X86_EFLAGS_ZF;
-+
-+		refcount_error_report(regs, zero ? "hit zero" : "overflow");
-+	}
-+
-+	return true;
-+}
-+EXPORT_SYMBOL_GPL(ex_handler_refcount);
-+
- bool ex_handler_ext(const struct exception_table_entry *fixup,
- 		   struct pt_regs *regs, int trapnr)
- {
-diff --git a/include/linux/kernel.h b/include/linux/kernel.h
-index bd6d96c..6607225 100644
---- a/include/linux/kernel.h
-+++ b/include/linux/kernel.h
-@@ -277,6 +277,13 @@ extern int oops_may_print(void);
- void do_exit(long error_code) __noreturn;
- void complete_and_exit(struct completion *, long) __noreturn;
- 
-+#ifdef CONFIG_ARCH_HAS_REFCOUNT
-+void refcount_error_report(struct pt_regs *regs, const char *err);
-+#else
-+static inline void refcount_error_report(struct pt_regs *regs, const char *err)
-+{ }
-+#endif
-+
- /* Internal, do not use. */
- int __must_check _kstrtoul(const char *s, unsigned int base, unsigned long *res);
- int __must_check _kstrtol(const char *s, unsigned int base, long *res);
-diff --git a/include/linux/refcount.h b/include/linux/refcount.h
-index 591792c..48b7c9c 100644
---- a/include/linux/refcount.h
-+++ b/include/linux/refcount.h
-@@ -53,6 +53,9 @@ extern __must_check bool refcount_sub_and_test(unsigned int i, refcount_t *r);
- extern __must_check bool refcount_dec_and_test(refcount_t *r);
- extern void refcount_dec(refcount_t *r);
- #else
-+# ifdef CONFIG_ARCH_HAS_REFCOUNT
-+#  include <asm/refcount.h>
-+# else
- static inline __must_check bool refcount_add_not_zero(unsigned int i, refcount_t *r)
- {
- 	return atomic_add_unless(&r->refs, i, 0);
-@@ -87,6 +90,7 @@ static inline void refcount_dec(refcount_t *r)
- {
- 	atomic_dec(&r->refs);
- }
-+# endif /* !CONFIG_ARCH_HAS_REFCOUNT */
- #endif /* CONFIG_REFCOUNT_FULL */
- 
- extern __must_check bool refcount_dec_if_one(refcount_t *r);
-diff --git a/kernel/panic.c b/kernel/panic.c
-index a58932b..bdd18af 100644
---- a/kernel/panic.c
-+++ b/kernel/panic.c
-@@ -26,6 +26,7 @@
- #include <linux/nmi.h>
- #include <linux/console.h>
- #include <linux/bug.h>
-+#include <linux/ratelimit.h>
- 
- #define PANIC_TIMER_STEP 100
- #define PANIC_BLINK_SPD 18
-@@ -601,6 +602,17 @@ EXPORT_SYMBOL(__stack_chk_fail);
- 
- #endif
- 
-+#ifdef CONFIG_ARCH_HAS_REFCOUNT
-+void refcount_error_report(struct pt_regs *regs, const char *err)
-+{
-+	WARN_RATELIMIT(1, "refcount_t %s at %pB in %s[%d], uid/euid: %u/%u\n",
-+		err, (void *)instruction_pointer(regs),
-+		current->comm, task_pid_nr(current),
-+		from_kuid_munged(&init_user_ns, current_uid()),
-+		from_kuid_munged(&init_user_ns, current_euid()));
-+}
-+#endif
-+
- core_param(panic, panic_timeout, int, 0644);
- core_param(pause_on_oops, pause_on_oops, int, 0644);
- core_param(panic_on_warn, panic_on_warn, int, 0644);
+Suzuki
