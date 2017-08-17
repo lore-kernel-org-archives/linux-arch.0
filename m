@@ -1,59 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from userp1040.oracle.com ([156.151.31.81]:34824 "EHLO
-        userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751530AbdHPOhM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 16 Aug 2017 10:37:12 -0400
-Subject: Re: [PATCH v7 2/9] mm, swap: Add infrastructure for saving page
- metadata on swap
-References: <cover.1502219353.git.khalid.aziz@oracle.com>
- <cover.1502219353.git.khalid.aziz@oracle.com>
- <87ff7a44c45bd6a146102c6e6033ee7810d9ebb5.1502219353.git.khalid.aziz@oracle.com>
- <20170815.215326.1833101229202321710.davem@davemloft.net>
-From: Khalid Aziz <khalid.aziz@oracle.com>
-Message-ID: <05c64690-fa24-7104-4f1f-d98ff54863bc@oracle.com>
-Date: Wed, 16 Aug 2017 08:34:42 -0600
+Received: from mail.kernel.org ([198.145.29.99]:58462 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1750741AbdHQHNk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 17 Aug 2017 03:13:40 -0400
+From: Masami Hiramatsu <mhiramat@kernel.org>
+Subject: [PATCH -tip 0/4] Add section address checking helper
+Date: Thu, 17 Aug 2017 16:12:48 +0900
+Message-ID: <150295395797.14424.968407208436624832.stgit@devbox>
 MIME-Version: 1.0
-In-Reply-To: <20170815.215326.1833101229202321710.davem@davemloft.net>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
-Cc: akpm@linux-foundation.org, dave.hansen@linux.intel.com, arnd@arndb.de, kirill.shutemov@linux.intel.com, mhocko@suse.com, jack@suse.cz, ross.zwisler@linux.intel.com, aneesh.kumar@linux.vnet.ibm.com, dave.jiang@intel.com, willy@infradead.org, hughd@google.com, minchan@kernel.org, hannes@cmpxchg.org, hillf.zj@alibaba-inc.com, shli@fb.com, mingo@kernel.org, jmarchan@redhat.com, lstoakes@gmail.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, sparclinux@vger.kernel.org, khalid@gonehiking.org
-Message-ID: <20170816143442.o9ubKhDeIqLdDvIbBcNoSUHLMvQKxqyFU2Spd95Cwhk@z>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Thierry Reding <treding@nvidia.com>, Peter Zijlstra <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Masami Hiramatsu <mhiramat@kernel.org>
+Message-ID: <20170817071248.JJFBMGf7GraTaSAGJXxlE8tbxcKm13R2LTdtQ1qd5Xc@z>
 
-On 08/15/2017 10:53 PM, David Miller wrote:
-> From: Khalid Aziz <khalid.aziz@oracle.com>
-> Date: Wed,  9 Aug 2017 15:25:55 -0600
-> 
->> @@ -1399,6 +1399,12 @@ static bool try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
->>   				(flags & TTU_MIGRATION)) {
->>   			swp_entry_t entry;
->>   			pte_t swp_pte;
->> +
->> +			if (arch_unmap_one(mm, vma, address, pteval) < 0) {
->> +				set_pte_at(mm, address, pvmw.pte, pteval);
->> +				ret = false;
->> +				page_vma_mapped_walk_done(&pvmw);
->> +				break;
->>   			/*
->>   			 * Store the pfn of the page in a special migration
->>   			 * pte. do_swap_page() will wait until the migration
->> @@ -1410,6 +1416,7 @@ static bool try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
->>   			if (pte_soft_dirty(pteval))
->>   				swp_pte = pte_swp_mksoft_dirty(swp_pte);
->>   			set_pte_at(mm, address, pvmw.pte, swp_pte);
->> +			}
-> 
-> This basic block doesn't look right.  I think the new closing brace is
-> intended to be right after the new break; statement.  If not at the
-> very least the indentation of the existing code in there needs to be
-> adjusted.
+Hi,
 
-Hi Dave,
+This series adds some address checking helpers in sections.h
+so that each one doesn't need to implement it individually.
+This series contains basically cleanup patches. Each patch
+replaces some checking code with helper function but changes
+no behavior.
 
-Thanks. That brace needs to move up right after break. I will fix that.
+ - [1/4]: x86: add in_entry_text() helper to cleanup kprobes
+	  and unwind_frame code.
+ - [2/4]: arm: move in_exception_text() to asm/sections.h and
+	  cleanup using memory_contains().
+ - [3/4]: arm64: move in_exception_text() to asm/sections.h and
+	  cleanup using memory_contains().
+ - [4/4]: add in_init_text() and in_core_text() and use it in
+	  kernel/extable.c and kernel/kallsyms.c, also this
+	  cleanup core_kernel_data using memory_contains().
+
+By the way, I found core_kernel_text() and is_kernel_text()
+has different behavior, is_kernel_text() checks arch dependent
+text area and in_gate_area_no_mm(), but core_kernel_text()
+doesn't. (and core_kernel_text() checks inittext section
+while booting up)
+Can we ignore this difference or better to merge it?
+
+Thank you,
+---
+
+Masami Hiramatsu (4):
+      x86: Add in_entry_text() helper function
+      arm: Cleanup in_exception_text() and move it in asm/sections.h
+      arm64: Cleanup in_exception_text() and move it in asm/sections.h
+      extable: kallsyms: Add in_init_text() and in_core_text() helper
+
+
+ arch/arm/include/asm/sections.h   |   17 +++++++++++++++++
+ arch/arm/include/asm/traps.h      |   22 +---------------------
+ arch/arm64/include/asm/sections.h |   16 ++++++++++++++++
+ arch/arm64/include/asm/traps.h    |   16 ----------------
+ arch/x86/include/asm/sections.h   |   15 +++++++++++++++
+ arch/x86/kernel/kprobes/opt.c     |    5 +----
+ arch/x86/kernel/unwind_frame.c    |   15 +--------------
+ include/asm-generic/sections.h    |   24 ++++++++++++++++++++++++
+ kernel/extable.c                  |   18 ++++--------------
+ kernel/kallsyms.c                 |   14 +++-----------
+ 10 files changed, 82 insertions(+), 80 deletions(-)
 
 --
-Khalid
+Masami Hiramatsu (Linaro)
