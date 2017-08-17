@@ -1,156 +1,60 @@
-From: Masami Hiramatsu <mhiramat@kernel.org>
-Subject: [PATCH -tip 4/4] extable: kallsyms: Add in_init_text() and in_core_text() helper
-Date: Thu, 17 Aug 2017 16:17:11 +0900
-Message-ID: <150295422137.14424.6418378586511440462.stgit@devbox>
-References: <150295395797.14424.968407208436624832.stgit@devbox>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: x86: PIE support and option to extend KASLR randomization
+Date: Thu, 17 Aug 2017 10:09:20 +0200
+Message-ID: <20170817080920.5ljlkktngw2cisfg@gmail.com>
+References: <20170810172615.51965-1-thgarnie@google.com>
+ <20170811124127.kkb5pnkljz4umxuj@gmail.com>
+ <CAJcbSZFTX3uiS2g8JriS6+z_+WrG8z3hrQo4OSuyHpiyUDJWYA@mail.gmail.com>
+ <20170815075609.mmzbfwritjzvrpsn@gmail.com>
+ <CAJcbSZE+TiY2whT94WqCJNXzR=2ATOHcQ10H5RqBZA1j=k1VHQ@mail.gmail.com>
+ <20170816151235.oamkdva6cwpc4cex@gmail.com>
+ <CAJcbSZFM_zpL1av1JVaow8NdsGeH+6oZKeDnMPdXR0PGfynzsg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <150295395797.14424.968407208436624832.stgit@devbox>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Thierry Reding <treding@nvidia.com>, Peter Zijlstra <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Masami Hiramatsu <mhiramat@kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <kernel-hardening-return-9498-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+Sender: Ingo Molnar <mingo.kernel.org@gmail.com>
+Content-Disposition: inline
+In-Reply-To: <CAJcbSZFM_zpL1av1JVaow8NdsGeH+6oZKeDnMPdXR0PGfynzsg@mail.gmail.com>
+To: Thomas Garnier <thgarnie@google.com>
+Cc: Herbert Xu <herbert@gondor.apana.org.au>, "David S . Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Matthias Kaehlcke <mka@chromium.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, Paolo Bonzini <pbonzini@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Joerg Roedel <joro@8bytes.org>, Tom Lendacky <thomas.lendacky@amd.com>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Brian Gerst <brgerst@gmail.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, "Rafael J . Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Pavel Machek <pavel@ucw.cz>, Tejun Heo <tj@kernel.org>, Christoph
 List-Id: linux-arch.vger.kernel.org
 
-Add in_init_text() and in_core_text() helper to check the
-address is in between _sinittext and _einittext, and
-in between _stext and _etext correspondingly.
 
-This changes extable.c and kallsyms.c to use these helpers
-and memory_contains() helper.
+* Thomas Garnier <thgarnie@google.com> wrote:
 
-Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
----
-  BTW, is_kernel_text() and core_kernel_text() seem different.
-  is_kernel_text() checks arch dependent area and
-  in_gate_area_no_mm(), but core_kernel_text() doesn't.
-  Can we ignore this differences?
----
- include/asm-generic/sections.h |   24 ++++++++++++++++++++++++
- kernel/extable.c               |   18 ++++--------------
- kernel/kallsyms.c              |   14 +++-----------
- 3 files changed, 31 insertions(+), 25 deletions(-)
+> > > -model=small/medium assume you are on the low 32-bit. It generates 
+> > > instructions where the virtual addresses have the high 32-bit to be zero.
+> >
+> > How are these assumptions hardcoded by GCC? Most of the instructions should be 
+> > relocatable straight away, as most call/jump/branch instructions are 
+> > RIP-relative.
+> 
+> I think PIE is capable to use relative instructions well. mcmodel=large assumes 
+> symbols can be anywhere.
 
-diff --git a/include/asm-generic/sections.h b/include/asm-generic/sections.h
-index e5da44eddd2f..25ef53fc594c 100644
---- a/include/asm-generic/sections.h
-+++ b/include/asm-generic/sections.h
-@@ -135,4 +135,28 @@ static inline bool init_section_intersects(void *virt, size_t size)
- 	return memory_intersects(__init_begin, __init_end, virt, size);
- }
- 
-+/**
-+ * in_init_text - check if an address is in between _sinittext and _einittext.
-+ * @addr: virtual address to be checked
-+ *
-+ * Returns: true if the address specified by @addr is in between _sinittext
-+ * and _einittext, false otherwise.
-+ */
-+static inline bool in_init_text(unsigned long addr)
-+{
-+	return memory_contains(_sinittext, _einittext, (void *)addr, 0);
-+}
-+
-+/**
-+ * in_core_text - check if an address is in between _stext and _etext.
-+ * @addr: virtual address to be checked
-+ *
-+ * Returns: true if the address specified by @addr is in between _stext
-+ * and _etext, false otherwise.
-+ */
-+static inline bool in_core_text(unsigned long addr)
-+{
-+	return memory_contains(_stext, _etext, (void *)addr, 0);
-+}
-+
- #endif /* _ASM_GENERIC_SECTIONS_H_ */
-diff --git a/kernel/extable.c b/kernel/extable.c
-index 38c2412401a1..d8b365c8c916 100644
---- a/kernel/extable.c
-+++ b/kernel/extable.c
-@@ -62,22 +62,13 @@ const struct exception_table_entry *search_exception_tables(unsigned long addr)
- 	return e;
- }
- 
--static inline int init_kernel_text(unsigned long addr)
--{
--	if (addr >= (unsigned long)_sinittext &&
--	    addr < (unsigned long)_einittext)
--		return 1;
--	return 0;
--}
--
- int notrace core_kernel_text(unsigned long addr)
- {
--	if (addr >= (unsigned long)_stext &&
--	    addr < (unsigned long)_etext)
-+	if (in_core_text(addr))
- 		return 1;
- 
- 	if (system_state < SYSTEM_RUNNING &&
--	    init_kernel_text(addr))
-+	    in_init_text(addr))
- 		return 1;
- 	return 0;
- }
-@@ -94,8 +85,7 @@ int notrace core_kernel_text(unsigned long addr)
-  */
- int core_kernel_data(unsigned long addr)
- {
--	if (addr >= (unsigned long)_sdata &&
--	    addr < (unsigned long)_edata)
-+	if (memory_contains(_sdata, _edata, (void *)addr, 0))
- 		return 1;
- 	return 0;
- }
-@@ -120,7 +110,7 @@ int __kernel_text_address(unsigned long addr)
- 	 * Since we are after the module-symbols check, there's
- 	 * no danger of address overlap:
- 	 */
--	if (init_kernel_text(addr))
-+	if (in_init_text(addr))
- 		return 1;
- 	return 0;
- }
-diff --git a/kernel/kallsyms.c b/kernel/kallsyms.c
-index 127e7cfafa55..b1443e845dbd 100644
---- a/kernel/kallsyms.c
-+++ b/kernel/kallsyms.c
-@@ -51,17 +51,9 @@ extern const u16 kallsyms_token_index[] __weak;
- 
- extern const unsigned long kallsyms_markers[] __weak;
- 
--static inline int is_kernel_inittext(unsigned long addr)
--{
--	if (addr >= (unsigned long)_sinittext
--	    && addr <= (unsigned long)_einittext)
--		return 1;
--	return 0;
--}
--
- static inline int is_kernel_text(unsigned long addr)
- {
--	if ((addr >= (unsigned long)_stext && addr <= (unsigned long)_etext) ||
-+	if (in_core_text(addr) ||
- 	    arch_is_kernel_text(addr))
- 		return 1;
- 	return in_gate_area_no_mm(addr);
-@@ -79,7 +71,7 @@ static int is_ksym_addr(unsigned long addr)
- 	if (IS_ENABLED(CONFIG_KALLSYMS_ALL))
- 		return is_kernel(addr);
- 
--	return is_kernel_text(addr) || is_kernel_inittext(addr);
-+	return is_kernel_text(addr) || in_init_text(addr);
- }
- 
- /*
-@@ -272,7 +264,7 @@ static unsigned long get_symbol_pos(unsigned long addr,
- 
- 	/* If we found no next symbol, we use the end of the section. */
- 	if (!symbol_end) {
--		if (is_kernel_inittext(addr))
-+		if (in_init_text(addr))
- 			symbol_end = (unsigned long)_einittext;
- 		else if (IS_ENABLED(CONFIG_KALLSYMS_ALL))
- 			symbol_end = (unsigned long)_end;
+So if the numbers in your changelog and Kconfig text cannot be trusted, there's 
+this description of the size impact which I suspect is less susceptible to 
+measurement error:
+
++         The kernel and modules will generate slightly more assembly (1 to 2%
++         increase on the .text sections). The vmlinux binary will be
++         significantly smaller due to less relocations.
+
+... but describing a 1-2% kernel text size increase as "slightly more assembly" 
+shows a gratituous disregard to kernel code generation quality! In reality that's 
+a huge size increase that in most cases will almost directly transfer to a 1-2% 
+slowdown for kernel intense workloads.
+
+Where does that size increase come from, if PIE is capable of using relative 
+instructins well? Does it come from the loss of a generic register and the 
+resulting increase in register pressure, stack spills, etc.?
+
+So I'm still unhappy about this all, and about the attitude surrounding it.
+
+Thanks,
+
+	Ingo
