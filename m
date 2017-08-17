@@ -1,161 +1,235 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:59018 "EHLO mail.kernel.org"
+Received: from foss.arm.com ([217.140.101.70]:47270 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750857AbdHQHSC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 17 Aug 2017 03:18:02 -0400
-From: Masami Hiramatsu <mhiramat@kernel.org>
-Subject: [PATCH -tip 4/4] extable: kallsyms: Add in_init_text() and in_core_text() helper
-Date: Thu, 17 Aug 2017 16:17:11 +0900
-Message-ID: <150295422137.14424.6418378586511440462.stgit@devbox>
-In-Reply-To: <150295395797.14424.968407208436624832.stgit@devbox>
-References: <150295395797.14424.968407208436624832.stgit@devbox>
+        id S1751552AbdHQJ5J (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 17 Aug 2017 05:57:09 -0400
+Date: Thu, 17 Aug 2017 10:57:04 +0100
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [PATCH 02/27] arm64: KVM: Hide unsupported AArch64 CPU features
+ from guests
+Message-ID: <20170817095703.GG6321@e103592.cambridge.arm.com>
+References: <1502280338-23002-1-git-send-email-Dave.Martin@arm.com>
+ <1502280338-23002-3-git-send-email-Dave.Martin@arm.com>
+ <9397d41c-f6f2-af7e-913e-a09f85ecc6bb@arm.com>
+ <20170816203112.GF6321@e103592.cambridge.arm.com>
+ <fcaa83e4-8917-a713-ae57-81a39be057d2@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <fcaa83e4-8917-a713-ae57-81a39be057d2@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Thierry Reding <treding@nvidia.com>, Peter Zijlstra <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Masami Hiramatsu <mhiramat@kernel.org>
-Message-ID: <20170817071711.ycnpu8JLcTUS5-lSUv_U7ljuNWIRvBBJXvaitIV0qzg@z>
+To: Marc Zyngier <marc.zyngier@arm.com>
+Cc: linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
+Message-ID: <20170817095704.vAKeSlCmy56iSWP5WGk5YL5TsnyAtR-_3mE_hjIBZAA@z>
 
-Add in_init_text() and in_core_text() helper to check the
-address is in between _sinittext and _einittext, and
-in between _stext and _etext correspondingly.
+On Thu, Aug 17, 2017 at 09:45:51AM +0100, Marc Zyngier wrote:
+> On 16/08/17 21:32, Dave Martin wrote:
+> > On Wed, Aug 16, 2017 at 12:10:38PM +0100, Marc Zyngier wrote:
+> >> On 09/08/17 13:05, Dave Martin wrote:
+> >>> Currently, a guest kernel sees the true CPU feature registers
+> >>> (ID_*_EL1) when it reads them using MRS instructions.  This means
+> >>> that the guest will observe features that are present in the
+> >>> hardware but the host doesn't understand or doesn't provide support
+> >>> for.  A guest may legimitately try to use such a feature as per the
+> >>> architecture, but use of the feature may trap instead of working
+> >>> normally, triggering undef injection into the guest.
+> >>>
+> >>> This is not a problem for the host, but the guest may go wrong when
+> >>> running on newer hardware than the host knows about.
+> >>>
+> >>> This patch hides from guest VMs any AArch64-specific CPU features
+> >>> that the host doesn't support, by exposing to the guest the
+> >>> sanitised versions of the registers computed by the cpufeatures
+> >>> framework, instead of the true hardware registers.  To achieve
+> >>> this, HCR_EL2.TID3 is now set for AArch64 guests, and emulation
+> >>> code is added to KVM to report the sanitised versions of the
+> >>> affected registers in response to MRS and register reads from
+> >>> userspace.
+> >>>
+> >>> The affected registers are removed from invariant_sys_regs[] (since
+> >>> the invariant_sys_regs handling is no longer quite correct for
+> >>> them) and added to sys_reg_desgs[], with appropriate access(),
+> >>> get_user() and set_user() methods.  No runtime vcpu storage is
+> >>> allocated for the registers: instead, they are read on demand from
+> >>> the cpufeatures framework.  This may need modification in the
+> >>> future if there is a need for userspace to customise the features
+> >>> visible to the guest.
+> >>>
+> >>> Attempts by userspace to write the registers are handled similarly
+> >>> to the current invariant_sys_regs handling: writes are permitted,
+> >>> but only if they don't attempt to change the value.  This is
+> >>> sufficient to support VM snapshot/restore from userspace.
+> >>>
+> >>> Because of the additional registers, restoring a VM on an older
+> >>> kernel may not work unless userspace knows how to handle the extra
+> >>> VM registers exposed to the KVM user ABI by this patch.
+> >>>
+> >>> Under the principle of least damage, this patch makes no attempt to
+> >>> handle any of the other registers currently in
+> >>> invariant_sys_regs[], or to emulate registers for AArch32: however,
+> >>> these could be handled in a similar way in future, as necessary.
+> >>>
+> >>> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> >>> ---
+> >>>  arch/arm64/kvm/hyp/switch.c |   6 ++
+> >>>  arch/arm64/kvm/sys_regs.c   | 224 +++++++++++++++++++++++++++++++++++---------
+> >>>  2 files changed, 185 insertions(+), 45 deletions(-)
 
-This changes extable.c and kallsyms.c to use these helpers
-and memory_contains() helper.
+[...]
 
-Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
----
-  BTW, is_kernel_text() and core_kernel_text() seem different.
-  is_kernel_text() checks arch dependent area and
-  in_gate_area_no_mm(), but core_kernel_text() doesn't.
-  Can we ignore this differences?
----
- include/asm-generic/sections.h |   24 ++++++++++++++++++++++++
- kernel/extable.c               |   18 ++++--------------
- kernel/kallsyms.c              |   14 +++-----------
- 3 files changed, 31 insertions(+), 25 deletions(-)
+> >>> +static bool __access_id_reg(struct kvm_vcpu *vcpu,
+> >>> +			    struct sys_reg_params *p,
+> >>> +			    const struct sys_reg_desc const *r,
+> >>> +			    bool raz)
+> >>> +{
+> >>> +	if (p->is_write) {
+> >>> +		kvm_inject_undefined(vcpu);
+> >>> +		return false;
+> >>> +	}
+> >>
+> >> I don't think this is supposed to happen (should have UNDEF-ed at EL1).
+> >> You can call write_to_read_only() in that case, which will spit out a
+> >> warning and inject the exception.
+> > 
+> > I'll check this -- sounds about right.
+> > 
+> > If is should never happen, should I just delete that code or BUG()?  I
+> > notice a BUG_ON() for a similar situation in access_vm_reg() for example.
+> > 
+> > Or do we not quite trust hardware not to get this wrong?
+> > (It feels like the kind of thing that could slip through validation
+> > and/or would be considered not worth a respin, but it seems wrong to
+> > work around a theoretical hardware bug before it's confirmed to exist,
+> > unless we think for some reason that it's really likely.)
+> 
+> That's the way we handle this for the rest of the accessors. We used to
+> have a BUG_ON(), but it is pretty silly to kill the whole system for
+> such a small deviation from the architecture. And maybe it is useless,
+> but it doesn't hurt either.
 
-diff --git a/include/asm-generic/sections.h b/include/asm-generic/sections.h
-index e5da44eddd2f..25ef53fc594c 100644
---- a/include/asm-generic/sections.h
-+++ b/include/asm-generic/sections.h
-@@ -135,4 +135,28 @@ static inline bool init_section_intersects(void *virt, size_t size)
- 	return memory_intersects(__init_begin, __init_end, virt, size);
- }
- 
-+/**
-+ * in_init_text - check if an address is in between _sinittext and _einittext.
-+ * @addr: virtual address to be checked
-+ *
-+ * Returns: true if the address specified by @addr is in between _sinittext
-+ * and _einittext, false otherwise.
-+ */
-+static inline bool in_init_text(unsigned long addr)
-+{
-+	return memory_contains(_sinittext, _einittext, (void *)addr, 0);
-+}
-+
-+/**
-+ * in_core_text - check if an address is in between _stext and _etext.
-+ * @addr: virtual address to be checked
-+ *
-+ * Returns: true if the address specified by @addr is in between _stext
-+ * and _etext, false otherwise.
-+ */
-+static inline bool in_core_text(unsigned long addr)
-+{
-+	return memory_contains(_stext, _etext, (void *)addr, 0);
-+}
-+
- #endif /* _ASM_GENERIC_SECTIONS_H_ */
-diff --git a/kernel/extable.c b/kernel/extable.c
-index 38c2412401a1..d8b365c8c916 100644
---- a/kernel/extable.c
-+++ b/kernel/extable.c
-@@ -62,22 +62,13 @@ const struct exception_table_entry *search_exception_tables(unsigned long addr)
- 	return e;
- }
- 
--static inline int init_kernel_text(unsigned long addr)
--{
--	if (addr >= (unsigned long)_sinittext &&
--	    addr < (unsigned long)_einittext)
--		return 1;
--	return 0;
--}
--
- int notrace core_kernel_text(unsigned long addr)
- {
--	if (addr >= (unsigned long)_stext &&
--	    addr < (unsigned long)_etext)
-+	if (in_core_text(addr))
- 		return 1;
- 
- 	if (system_state < SYSTEM_RUNNING &&
--	    init_kernel_text(addr))
-+	    in_init_text(addr))
- 		return 1;
- 	return 0;
- }
-@@ -94,8 +85,7 @@ int notrace core_kernel_text(unsigned long addr)
-  */
- int core_kernel_data(unsigned long addr)
- {
--	if (addr >= (unsigned long)_sdata &&
--	    addr < (unsigned long)_edata)
-+	if (memory_contains(_sdata, _edata, (void *)addr, 0))
- 		return 1;
- 	return 0;
- }
-@@ -120,7 +110,7 @@ int __kernel_text_address(unsigned long addr)
- 	 * Since we are after the module-symbols check, there's
- 	 * no danger of address overlap:
- 	 */
--	if (init_kernel_text(addr))
-+	if (in_init_text(addr))
- 		return 1;
- 	return 0;
- }
-diff --git a/kernel/kallsyms.c b/kernel/kallsyms.c
-index 127e7cfafa55..b1443e845dbd 100644
---- a/kernel/kallsyms.c
-+++ b/kernel/kallsyms.c
-@@ -51,17 +51,9 @@ extern const u16 kallsyms_token_index[] __weak;
- 
- extern const unsigned long kallsyms_markers[] __weak;
- 
--static inline int is_kernel_inittext(unsigned long addr)
--{
--	if (addr >= (unsigned long)_sinittext
--	    && addr <= (unsigned long)_einittext)
--		return 1;
--	return 0;
--}
--
- static inline int is_kernel_text(unsigned long addr)
- {
--	if ((addr >= (unsigned long)_stext && addr <= (unsigned long)_etext) ||
-+	if (in_core_text(addr) ||
- 	    arch_is_kernel_text(addr))
- 		return 1;
- 	return in_gate_area_no_mm(addr);
-@@ -79,7 +71,7 @@ static int is_ksym_addr(unsigned long addr)
- 	if (IS_ENABLED(CONFIG_KALLSYMS_ALL))
- 		return is_kernel(addr);
- 
--	return is_kernel_text(addr) || is_kernel_inittext(addr);
-+	return is_kernel_text(addr) || in_init_text(addr);
- }
- 
- /*
-@@ -272,7 +264,7 @@ static unsigned long get_symbol_pos(unsigned long addr,
- 
- 	/* If we found no next symbol, we use the end of the section. */
- 	if (!symbol_end) {
--		if (is_kernel_inittext(addr))
-+		if (in_init_text(addr))
- 			symbol_end = (unsigned long)_einittext;
- 		else if (IS_ENABLED(CONFIG_KALLSYMS_ALL))
- 			symbol_end = (unsigned long)_end;
+OK, that makes sense -- I'll follow the precedent here and call
+write_to_read_only() if this happens.
+
+> >>> +
+> >>> +	p->regval = read_id_reg(r, raz);
+> >>> +	return true;
+> >>> +}
+> > 
+> > [...]
+> > 
+> >>> @@ -944,6 +1073,32 @@ static const struct sys_reg_desc sys_reg_descs[] = {
+> >>>  	{ SYS_DESC(SYS_DBGVCR32_EL2), NULL, reset_val, DBGVCR32_EL2, 0 },
+> >>>  
+> >>>  	{ SYS_DESC(SYS_MPIDR_EL1), NULL, reset_mpidr, MPIDR_EL1 },
+> >>> +
+> >>> +	/*
+> >>> +	 * All non-RAZ feature registers listed here must also be
+> >>> +	 * present in arm64_ftr_regs[].
+> >>> +	 */
+> >>> +
+> >>> +	/* AArch64 mappings of the AArch32 ID registers */
+> >>> +	/* ID_AFR0_EL1 not exposed to guests for now */
+> >>> +	ID(PFR0),	ID(PFR1),	ID(DFR0),	_ID_RAZ(1,3),
+> >>> +	ID(MMFR0),	ID(MMFR1),	ID(MMFR2),	ID(MMFR3),
+> >>> +	ID(ISAR0),	ID(ISAR1),	ID(ISAR2),	ID(ISAR3),
+> >>> +	ID(ISAR4),	ID(ISAR5),	ID(MMFR4),	_ID_RAZ(2,7),
+> >>> +	_ID(MVFR0),	_ID(MVFR1),	_ID(MVFR2),	_ID_RAZ(3,3),
+> >>> +	_ID_RAZ(3,4),	_ID_RAZ(3,5),	_ID_RAZ(3,6),	_ID_RAZ(3,7),
+> >>
+> >> #bikeshed:
+> >>
+> >> OK, this is giving me a headache. Too many variants with similar names.
+> >> ID and _ID
+> >> I'm also slightly perplexed with the amalgamation of RAZ because the
+> >> register is not defined yet in the architecture, and RAZ because we
+> >> don't expose it (like ID_AFR0_EL1). Yes, there is a number of comments
+> > 
+> > This "raz" overloading already seems present in other places, such as the
+> > cpufeatures code.  (Which is not necessarily a good reason for adding
+> > more of it...)
+> > 
+> >> to document that, but the code should aim to be be self-documenting. How
+> >> about IDRAZ() for those we want to "hide", and IDRSV for encodings that
+> >> are not allocated yet? It would look like this:
+> >>
+> >> 	IDREG(ID_PFR0),		IDREG(ID_PFR1),		IDREG(ID_DFR0),
+> >> 	IDRAZ(ID_AFR0),		IDREG(ID_MMFR0),	IDREG(ID_MMFR1),
+> >> 	IDREG(ID_MMFR2),	IDREG(ID_MMFR3),	IDREG(ID_ISAR0),
+> >> 	IDREG(ID_ISAR1),	IDREG(ID_ISAR2),	IDREG(ID_ISAR3),
+> >> 	IDREG(ID_ISAR4),	IDREG(ID_ISAR5),	IDREG(ID_MMFR4),
+> >> 	IDRSV(2,7),		IDREG(MVFR0),		IDREG(MVFR1),
+> >> 	IDREG(MVFR2),		IDRSV(3,3),		IDRSV(3,4),	
+> >> 	IDRSV(3,5),		IDRSV(3,6),		IDRSV(3,7),
+> >>
+> >> Yes, only 3 a line. Lines are cheap. And yes, they also have similar
+> >> names, but I said #bikeshed.
+> > 
+> > So, point taken, but the main reason for making this a table was to make
+> > it easy to see by eye how the entries map to the encoding while hacking
+> > this up, which helped me to make sure no entries were missed or in the
+> > wrong place etc.
+> > 
+> > With 3 entries per line that visual map is lost, and with 2 entries per
+> > line it's debatable whether it's worth having multiple entries per line
+> > at all.
+> 
+> Let's be clear. I don't care at all about the number of entries per
+> line. I can widen my editor to 200 columns if I need to. If you think 4
+> is the way, keep it to 4.
+> 
+> My point is about the readability of both the macros and the
+> identifiers, and your initial proposal did seem to lack on both counts.
+
+Agreed, I was just trying to explain why it ended up that way in the
+first place, and I'm happy to change it.
+
+> > So now that the table exists maybe we should just have one entry per
+> > line like everything else -- it really depends on which option you think
+> > is best for ongoing maintenance.
+> > 
+> > 
+> > Having one per line allows much less cryptic names, allowing the
+> > temptingly short but ambiguous "RAZ" to be avoided:
+> > 
+> > 	ID_SANITISED(ID_ISAR5),
+> > 	ID_RAZ_FOR_GUEST(ID_AFR0),
+> > 	ID_UNALLOCATED(crm, op2)
+> > 
+> > With a whole line and different lengths, it's easier to pick out
+> > the different cases by eye, so they don't all look like IDRXX (and are a
+> > more tasteful colour perhaps).
+> > 
+> > Blank lines and/or comments can split the list into sensible blocks for
+> > readability if needed.
+> > 
+> > If you're happy with naming along those broad lines then I'm happy to
+> > see what it looks like.
+> 
+> Sure. If you're happy with that, so am I.
+> 
+> >>> +
+> >>> +	/* AArch64 ID registers */
+> >>> +	ID(AA64PFR0),	ID(AA64PFR1),	_ID_RAZ(4,2),	_ID_RAZ(4,3),
+> >>> +	_ID_RAZ(4,4),	_ID_RAZ(4,5),	_ID_RAZ(4,6),	_ID_RAZ(4,7),
+> >>> +	ID(AA64DFR0),	ID(AA64DFR1),	_ID_RAZ(5,2),	_ID_RAZ(5,3),
+> >>> +	/* ID_AA64AFR0_EL1 and ID_AA64AFR0_EL1 not exposed to guests for now */
+> > 
+> > There are no sysreg definitions for IA_AA64AFR{0,1}_EL1 yet.
+> > 
+> > If we want to macroise those rather than just commenting, I guess
+> > they'll need adding in sysreg.h.  I'd prefer not to imply these are
+> > "unallocated" or similar when the architecture does define them.
+> > 
+> > Can I take it there's no problem with zombie entries in sysreg.h so long
+> > as they're at least referenced somewhere?  (Arguably they wouldn't be
+> > zombies then, but hopefully you see what I mean.)
+> 
+> That'd be the right thing to do. The register exists, and KVM handles it
+> by returning 0 when a guest reads it. So I'd argue that it *must* be
+> defined in sysreg.h, and given its full visibility in that table.
+
+OK, sounds good -- I'll reroll with that change.
+
+Cheers
+---Dave
