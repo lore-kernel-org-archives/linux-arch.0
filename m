@@ -1,53 +1,70 @@
-From: Boris Brezillon <boris.brezillon@free-electrons.com>
-Subject: Re: [PATCH] [RESEND] mtd: only use __xipram annotation when
- XIP_KERNEL is set
-Date: Thu, 17 Aug 2017 15:01:18 +0200
-Message-ID: <20170817150118.3c4d8214@bbrezillon>
-References: <20170721202636.3361536-1-arnd@arndb.de>
-        <20170804093550.41e5936c@bbrezillon>
-        <CAK8P3a2Zvsc880ZYy9aaQ1fOJeO50uJc92OKMK0QxCcTzwGPsg@mail.gmail.com>
+From: Thomas Garnier <thgarnie@google.com>
+Subject: Re: x86: PIE support and option to extend KASLR randomization
+Date: Thu, 17 Aug 2017 07:10:31 -0700
+Message-ID: <CAJcbSZGbtc-i0X1NiBAvZA7cxpGkwSLKNB7oDNCsFxOCdhkR_g@mail.gmail.com>
+References: <20170810172615.51965-1-thgarnie@google.com> <20170811124127.kkb5pnkljz4umxuj@gmail.com>
+ <CAJcbSZFTX3uiS2g8JriS6+z_+WrG8z3hrQo4OSuyHpiyUDJWYA@mail.gmail.com>
+ <20170815075609.mmzbfwritjzvrpsn@gmail.com> <CAJcbSZE+TiY2whT94WqCJNXzR=2ATOHcQ10H5RqBZA1j=k1VHQ@mail.gmail.com>
+ <20170816151235.oamkdva6cwpc4cex@gmail.com> <CAJcbSZFM_zpL1av1JVaow8NdsGeH+6oZKeDnMPdXR0PGfynzsg@mail.gmail.com>
+ <20170817080920.5ljlkktngw2cisfg@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAK8P3a2Zvsc880ZYy9aaQ1fOJeO50uJc92OKMK0QxCcTzwGPsg@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: David Woodhouse <dwmw2@infradead.org>, Brian Norris <computersforpeace@gmail.com>, Marek Vasut <marek.vasut@gmail.com>, Richard Weinberger <richard@nod.at>, Cyrille Pitchen <cyrille.pitchen@wedev4u.fr>, Russell King <linux@armlinux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Nicholas Piggin <npiggin@gmail.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Michal Marek <mmarek@suse.com>, Linus Walleij <linus.walleij@linaro.org>, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>, Chris Metcalf <cmetcalf@mellanox.com>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-mtd <linux-mtd@lists.infradead.org>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <kernel-hardening-return-9500-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+In-Reply-To: <20170817080920.5ljlkktngw2cisfg@gmail.com>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Herbert Xu <herbert@gondor.apana.org.au>, "David S . Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Matthias Kaehlcke <mka@chromium.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, Paolo Bonzini <pbonzini@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Joerg Roedel <joro@8bytes.org>, Tom Lendacky <thomas.lendacky@amd.com>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Brian Gerst <brgerst@gmail.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, "Rafael J . Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Pavel Machek <pavel@ucw.cz>, Tejun Heo <tj@kernel.org>, Christoph
 List-Id: linux-arch.vger.kernel.org
 
-Le Fri, 4 Aug 2017 11:00:05 +0200,
-Arnd Bergmann <arnd@arndb.de> a écrit :
-
-> On Fri, Aug 4, 2017 at 9:35 AM, Boris Brezillon
-> <boris.brezillon@free-electrons.com> wrote:
-> > On Fri, 21 Jul 2017 22:26:25 +0200
-> > Arnd Bergmann <arnd@arndb.de> wrote:  
-> 
-> >> Note that MTD_XIP has been broken on ARM since around 2011 or 2012. I
-> >> have sent another patch[2] to fix compilation, which I plan to merge
-> >> through arm-soc unless there are objections. The obvious alternative
-> >> to that would be to completely rip out the MTD_XIP support from the
-> >> kernel, since obviously nobody has been using it in a long while.
-> >>
-> >> Link: [1] https://patchwork.kernel.org/patch/8109771/
-> >> Link: [2] https://patchwork.kernel.org/patch/9855225/
-> >> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-> >> ---
-> >>  include/asm-generic/vmlinux.lds.h |  1 +
-> >>  include/linux/mtd/xip.h           | 10 ++++++----  
+On Thu, Aug 17, 2017 at 1:09 AM, Ingo Molnar <mingo@kernel.org> wrote:
+>
+>
+> * Thomas Garnier <thgarnie@google.com> wrote:
+>
+> > > > -model=small/medium assume you are on the low 32-bit. It generates
+> > > > instructions where the virtual addresses have the high 32-bit to be zero.
+> > >
+> > > How are these assumptions hardcoded by GCC? Most of the instructions should be
+> > > relocatable straight away, as most call/jump/branch instructions are
+> > > RIP-relative.
 > >
-> > For the MTD part,
-> >
-> > Acked-by: Boris Brezillon <boris.brezillon@free-electrons.com>  
-> 
-> Thanks. If you don't mind, could you just apply the patch to the mtd tree?
+> > I think PIE is capable to use relative instructions well. mcmodel=large assumes
+> > symbols can be anywhere.
+>
+> So if the numbers in your changelog and Kconfig text cannot be trusted, there's
+> this description of the size impact which I suspect is less susceptible to
+> measurement error:
+>
+> +         The kernel and modules will generate slightly more assembly (1 to 2%
+> +         increase on the .text sections). The vmlinux binary will be
+> +         significantly smaller due to less relocations.
+>
+> ... but describing a 1-2% kernel text size increase as "slightly more assembly"
+> shows a gratituous disregard to kernel code generation quality! In reality that's
+> a huge size increase that in most cases will almost directly transfer to a 1-2%
+> slowdown for kernel intense workloads.
+>
+>
+> Where does that size increase come from, if PIE is capable of using relative
+> instructins well? Does it come from the loss of a generic register and the
+> resulting increase in register pressure, stack spills, etc.?
 
-Applied to l2-mtd/master.
+I will try to gather more information on the size increase. The size
+increase might be smaller with gcc 4.9 given performance was much
+better.
 
-Thanks,
+>
+> So I'm still unhappy about this all, and about the attitude surrounding it.
+>
+> Thanks,
+>
+>         Ingo
 
-Boris
 
-> 
->       Arnd
+
+
+-- 
+Thomas
