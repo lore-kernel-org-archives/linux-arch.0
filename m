@@ -1,83 +1,110 @@
-From: Boris Lukashev <blukashev@sempervictus.com>
-Subject: Re: Re: x86: PIE support and option to extend
- KASLR randomization
-Date: Thu, 17 Aug 2017 10:12:19 -0400
-Message-ID: <CAFUG7CdUEFYANSGRuNX0Xt1TJ0Z7f+M_ERgR03dUVxVqLENLpw@mail.gmail.com>
-References: <20170810172615.51965-1-thgarnie@google.com> <20170811124127.kkb5pnkljz4umxuj@gmail.com>
- <CAJcbSZFTX3uiS2g8JriS6+z_+WrG8z3hrQo4OSuyHpiyUDJWYA@mail.gmail.com>
- <20170815075609.mmzbfwritjzvrpsn@gmail.com> <CAJcbSZE+TiY2whT94WqCJNXzR=2ATOHcQ10H5RqBZA1j=k1VHQ@mail.gmail.com>
- <20170816151235.oamkdva6cwpc4cex@gmail.com> <CAJcbSZFM_zpL1av1JVaow8NdsGeH+6oZKeDnMPdXR0PGfynzsg@mail.gmail.com>
- <20170817080920.5ljlkktngw2cisfg@gmail.com>
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [PATCH 11/27] arm64/sve: Core task context handling
+Date: Thu, 17 Aug 2017 17:42:36 +0100
+Message-ID: <20170817164233.GJ6321@e103592.cambridge.arm.com>
+References: <1502280338-23002-1-git-send-email-Dave.Martin@arm.com>
+ <1502280338-23002-12-git-send-email-Dave.Martin@arm.com>
+ <CAKv+Gu-Rei0LP9q77+KHtD4JqM-6j4XvQjG7oCLrjHx2M5DA7g@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <kernel-hardening-return-9501-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <20170817080920.5ljlkktngw2cisfg@gmail.com>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Thomas Garnier <thgarnie@google.com>, Herbert Xu <herbert@gondor.apana.org.au>, "David S . Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Matthias Kaehlcke <mka@chromium.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, Paolo Bonzini <pbonzini@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Joerg Roedel <joro@8bytes.org>, Tom Lendacky <thomas.lendacky@amd.com>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Brian Gerst <brgerst@gmail.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, "Rafael J . Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Pavel Machek <pavel@ucw.cz>T
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:52788 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751637AbdHQQmk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 17 Aug 2017 12:42:40 -0400
+Content-Disposition: inline
+In-Reply-To: <CAKv+Gu-Rei0LP9q77+KHtD4JqM-6j4XvQjG7oCLrjHx2M5DA7g@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, libc-alpha@sourceware.org, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, "kvmarm@lists.cs.columbia.edu" <kvmarm@lists.cs.columbia.edu>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
 
-On Thu, Aug 17, 2017 at 4:09 AM, Ingo Molnar <mingo@kernel.org> wrote:
->
-> * Thomas Garnier <thgarnie@google.com> wrote:
->
->> > > -model=small/medium assume you are on the low 32-bit. It generates
->> > > instructions where the virtual addresses have the high 32-bit to be zero.
->> >
->> > How are these assumptions hardcoded by GCC? Most of the instructions should be
->> > relocatable straight away, as most call/jump/branch instructions are
->> > RIP-relative.
->>
->> I think PIE is capable to use relative instructions well. mcmodel=large assumes
->> symbols can be anywhere.
->
-> So if the numbers in your changelog and Kconfig text cannot be trusted, there's
-> this description of the size impact which I suspect is less susceptible to
-> measurement error:
->
-> +         The kernel and modules will generate slightly more assembly (1 to 2%
-> +         increase on the .text sections). The vmlinux binary will be
-> +         significantly smaller due to less relocations.
->
-> ... but describing a 1-2% kernel text size increase as "slightly more assembly"
-> shows a gratituous disregard to kernel code generation quality! In reality that's
-> a huge size increase that in most cases will almost directly transfer to a 1-2%
-> slowdown for kernel intense workloads.
->
-> Where does that size increase come from, if PIE is capable of using relative
-> instructins well? Does it come from the loss of a generic register and the
-> resulting increase in register pressure, stack spills, etc.?
->
-> So I'm still unhappy about this all, and about the attitude surrounding it.
->
-> Thanks,
->
->         Ingo
+On Tue, Aug 15, 2017 at 06:31:05PM +0100, Ard Biesheuvel wrote:
+> Hi Dave,
+> 
+> On 9 August 2017 at 13:05, Dave Martin <Dave.Martin@arm.com> wrote:
+> > This patch adds the core support for switching and managing the SVE
+> > architectural state of user tasks.
 
-Is the expectation then to have security functions also decrease size
-and operational latency? Seems a bit unrealistic if so.
-1-2% performance hit on systems which have become at least several
-hundred % faster over recent years is not a significant performance
-regression compared to the baseline before.
-While nobody is saying that performance and size concerns are
-irrelevant, the paradigm of leveraging single digit losses in
-performance metrics as a reason to leave security functions out has
-made Linux the equivalent of the broad side of the barn in security
-terms.
-If it has real-world benefit to the security posture of the system, it
-should be a configurable option for users to decide if a percentage
-point or two of op time is worth the mitigation/improvement provided
-in security terms.
+[...]
 
-Separately, reading this thread i've noticed that people are using
-different compiler versions in their efforts which makes any of these
-sub 10% deltas moot - building a kernel with GCC4.9 vs 7.1 has more of
-an impact, and not having all the same compiler flags available (like
-the no PLT thing) flat out creates confusion. Shouldn't all of these
-tests be executed on a standardized build config and toolchain?
+> > +static u64 sve_cpacr_trap_on(u64 cpacr)
+> > +{
+> > +       return cpacr & ~(u64)CPACR_EL1_ZEN_EL0EN;
+> > +}
+> > +
+> > +static u64 sve_cpacr_trap_off(u64 cpacr)
+> > +{
+> > +       return cpacr | CPACR_EL1_ZEN_EL0EN;
+> > +}
+> > +
+> > +static void change_cpacr(u64 old, u64 new)
+> > +{
+> > +       if (old != new)
+> > +               write_sysreg(new, CPACR_EL1);
+> > +}
 
-Thanks,
--Boris
+[...]
+
+> > +static void task_fpsimd_load(void)
+> > +{
+> > +       if (system_supports_sve() && test_thread_flag(TIF_SVE)) {
+> > +               unsigned int vl = current->thread.sve_vl;
+> > +
+> > +               BUG_ON(!sve_vl_valid(vl));
+> > +               sve_load_state(sve_pffr(current),
+> > +                              &current->thread.fpsimd_state.fpsr,
+> > +                              sve_vq_from_vl(vl) - 1);
+> > +       } else
+> > +               fpsimd_load_state(&current->thread.fpsimd_state);
+> > +
+> 
+> Please use braces consistently on all branches of an if ()
+> 
+> > +       if (system_supports_sve()) {
+> > +               u64 cpacr = read_sysreg(CPACR_EL1);
+> > +               u64 new_cpacr;
+> > +
+> > +               /* Toggle SVE trapping for userspace if needed */
+> > +               if (test_thread_flag(TIF_SVE))
+> > +                       new_cpacr = sve_cpacr_trap_off(cpacr);
+> > +               else
+> > +                       new_cpacr = sve_cpacr_trap_on(cpacr);
+> > +
+> > +               change_cpacr(cpacr, new_cpacr);
+> 
+> I understand you want to avoid setting CPACR to the same value, but
+> this does look a bit clunky IMO. Wouldn't it be much better to have a
+> generic accessor with a mask and a value that encapsulates this?
+
+For this I now have:
+
+static void change_cpacr(u64 val, u64 mask)
+{
+	u64 cpacr = read_sysreg(CPACR_EL1);
+	u64 new = (cpacr & ~mask) | val;
+
+	if (new != cpacr)
+		write_sysreg(new, CPACR_EL1);
+}
+
+static void sve_cpacr_trap_on(void)
+{
+	change_cpacr(0, CPACR_EL1_ZEN_EL0EN);
+}
+
+static void sve_cpacr_trap_off(void)
+{
+	change_cpacr(CPACR_EL1_ZEN_EL0EN, CPACR_EL1_ZEN_EL0EN);
+}
+
+
+This is stilla little verbose, but fairly clean.  Possibly this was the
+sort of thing you meant by a generic accessor.
+
+What do you think?
+
+[...]
+
+Cheers
+---Dave
