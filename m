@@ -1,112 +1,93 @@
-From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Subject: Re: [PATCH 11/27] arm64/sve: Core task context handling
-Date: Thu, 17 Aug 2017 17:46:44 +0100
-Message-ID: <CAKv+Gu-dgsOcW032P2Zk36Rk4C-FUuJuWSkWox_-wPX+NHY2sA@mail.gmail.com>
-References: <1502280338-23002-1-git-send-email-Dave.Martin@arm.com>
- <1502280338-23002-12-git-send-email-Dave.Martin@arm.com> <CAKv+Gu-Rei0LP9q77+KHtD4JqM-6j4XvQjG7oCLrjHx2M5DA7g@mail.gmail.com>
- <20170817164233.GJ6321@e103592.cambridge.arm.com>
+From: Ram Pai <linuxram@us.ibm.com>
+Subject: Re: [RFC v6 21/62] powerpc: introduce execute-only pkey
+Date: Thu, 17 Aug 2017 16:42:31 -0700
+Message-ID: <20170817234231.GA5445@ram.oc3035372033.ibm.com>
+References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
+ <1500177424-13695-22-git-send-email-linuxram@us.ibm.com>
+ <87shhgdx5i.fsf@linux.vnet.ibm.com>
+ <87d18fu6o1.fsf@concordia.ellerman.id.au>
+ <87d18fw9it.fsf@linux.vnet.ibm.com>
+ <871sous3xd.fsf@concordia.ellerman.id.au>
+ <20170817233555.GC5427@ram.oc3035372033.ibm.com>
+Reply-To: Ram Pai <linuxram@us.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f52.google.com ([209.85.214.52]:35240 "EHLO
-        mail-it0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752031AbdHQQqp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 17 Aug 2017 12:46:45 -0400
-Received: by mail-it0-f52.google.com with SMTP id 76so33524688ith.0
-        for <linux-arch@vger.kernel.org>; Thu, 17 Aug 2017 09:46:45 -0700 (PDT)
-In-Reply-To: <20170817164233.GJ6321@e103592.cambridge.arm.com>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:32866 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1753402AbdHQXmp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 17 Aug 2017 19:42:45 -0400
+Received: from pps.filterd (m0098419.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id v7HNd7du015988
+        for <linux-arch@vger.kernel.org>; Thu, 17 Aug 2017 19:42:44 -0400
+Received: from e15.ny.us.ibm.com (e15.ny.us.ibm.com [129.33.205.205])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2cdg4qx8xj-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Thu, 17 Aug 2017 19:42:44 -0400
+Received: from localhost
+        by e15.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <linuxram@us.ibm.com>;
+        Thu, 17 Aug 2017 19:42:43 -0400
+Content-Disposition: inline
+In-Reply-To: <20170817233555.GC5427@ram.oc3035372033.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, libc-alpha@sourceware.org, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, "kvmarm@lists.cs.columbia.edu" <kvmarm@lists.cs.columbia.edu>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+To: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>, linux-arch@vger.kernel.org, corbet@lwn.net, arnd@arndb.de, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, mhocko@kernel.org, linux-mm@kvack.org, dave.hansen@intel.com, mingo@redhat.com, paulus@samba.org, aneesh.kumar@linux.vnet.ibm.com, linux-kselftest@vger.kernel.org, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org, khandual@linux.vnet.ibm.com
 
-On 17 August 2017 at 17:42, Dave Martin <Dave.Martin@arm.com> wrote:
-> On Tue, Aug 15, 2017 at 06:31:05PM +0100, Ard Biesheuvel wrote:
->> Hi Dave,
->>
->> On 9 August 2017 at 13:05, Dave Martin <Dave.Martin@arm.com> wrote:
->> > This patch adds the core support for switching and managing the SVE
->> > architectural state of user tasks.
->
-> [...]
->
->> > +static u64 sve_cpacr_trap_on(u64 cpacr)
->> > +{
->> > +       return cpacr & ~(u64)CPACR_EL1_ZEN_EL0EN;
->> > +}
->> > +
->> > +static u64 sve_cpacr_trap_off(u64 cpacr)
->> > +{
->> > +       return cpacr | CPACR_EL1_ZEN_EL0EN;
->> > +}
->> > +
->> > +static void change_cpacr(u64 old, u64 new)
->> > +{
->> > +       if (old != new)
->> > +               write_sysreg(new, CPACR_EL1);
->> > +}
->
-> [...]
->
->> > +static void task_fpsimd_load(void)
->> > +{
->> > +       if (system_supports_sve() && test_thread_flag(TIF_SVE)) {
->> > +               unsigned int vl = current->thread.sve_vl;
->> > +
->> > +               BUG_ON(!sve_vl_valid(vl));
->> > +               sve_load_state(sve_pffr(current),
->> > +                              &current->thread.fpsimd_state.fpsr,
->> > +                              sve_vq_from_vl(vl) - 1);
->> > +       } else
->> > +               fpsimd_load_state(&current->thread.fpsimd_state);
->> > +
->>
->> Please use braces consistently on all branches of an if ()
->>
->> > +       if (system_supports_sve()) {
->> > +               u64 cpacr = read_sysreg(CPACR_EL1);
->> > +               u64 new_cpacr;
->> > +
->> > +               /* Toggle SVE trapping for userspace if needed */
->> > +               if (test_thread_flag(TIF_SVE))
->> > +                       new_cpacr = sve_cpacr_trap_off(cpacr);
->> > +               else
->> > +                       new_cpacr = sve_cpacr_trap_on(cpacr);
->> > +
->> > +               change_cpacr(cpacr, new_cpacr);
->>
->> I understand you want to avoid setting CPACR to the same value, but
->> this does look a bit clunky IMO. Wouldn't it be much better to have a
->> generic accessor with a mask and a value that encapsulates this?
->
-> For this I now have:
->
-> static void change_cpacr(u64 val, u64 mask)
-> {
->         u64 cpacr = read_sysreg(CPACR_EL1);
->         u64 new = (cpacr & ~mask) | val;
->
->         if (new != cpacr)
->                 write_sysreg(new, CPACR_EL1);
-> }
->
-> static void sve_cpacr_trap_on(void)
-> {
->         change_cpacr(0, CPACR_EL1_ZEN_EL0EN);
-> }
->
-> static void sve_cpacr_trap_off(void)
-> {
->         change_cpacr(CPACR_EL1_ZEN_EL0EN, CPACR_EL1_ZEN_EL0EN);
-> }
->
->
-> This is stilla little verbose, but fairly clean.  Possibly this was the
-> sort of thing you meant by a generic accessor.
->
-> What do you think?
->
+On Thu, Aug 17, 2017 at 04:35:55PM -0700, Ram Pai wrote:
+> On Wed, Aug 02, 2017 at 07:40:46PM +1000, Michael Ellerman wrote:
+> > Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com> writes:
+> > 
+> > > Michael Ellerman <mpe@ellerman.id.au> writes:
+> > >
+> > >> Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com> writes:
+> > >>> Ram Pai <linuxram@us.ibm.com> writes:
+> > >> ...
+> > >>>> +
+> > >>>> +	/* We got one, store it and use it from here on out */
+> > >>>> +	if (need_to_set_mm_pkey)
+> > >>>> +		mm->context.execute_only_pkey = execute_only_pkey;
+> > >>>> +	return execute_only_pkey;
+> > >>>> +}
+> > >>>
+> > >>> If you follow the code flow in __execute_only_pkey, the AMR and UAMOR
+> > >>> are read 3 times in total, and AMR is written twice. IAMR is read and
+> > >>> written twice. Since they are SPRs and access to them is slow (or isn't
+> > >>> it?),
+> > >>
+> > >> SPRs read/writes are slow, but they're not *that* slow in comparison to
+> > >> a system call (which I think is where this code is being called?).
+> > >
+> > > Yes, this code runs on mprotect and mmap syscalls if the memory is
+> > > requested to have execute but not read nor write permissions.
+> > 
+> > Yep. That's not in the fast path for key usage, ie. the fast path is
+> > userspace changing the AMR itself, and the overhead of a syscall is
+> > already hundreds of cycles.
+> > 
+> > >> So we should try to avoid too many SPR read/writes, but at the same time
+> > >> we can accept more than the minimum if it makes the code much easier to
+> > >> follow.
+> > >
+> > > Ok. Ram had asked me to suggest a way to optimize the SPR reads and
+> > > writes and I came up with the patch below. Do you think it's worth it?
+> > 
+> > At a glance no I don't think it is. Sorry you spent that much time on it.
+> > 
+> > I think we can probably reduce the number of SPR accesses without
+> > needing to go to that level of complexity.
+> > 
+> > But don't throw the patch away, I may eat my words once I have the full
+> > series applied and am looking at it hard - at the moment I'm just
+> > reviewing the patches piecemeal as I get time.
+> 
 
-In my opinion, this does look a lot better. Having mask/val pairs like
-this is a fairly common pattern, so it should be quite obvious to most
-readers what is going on.
+Thiago's patch does save some cycles. I dont feel like throwing his
+work. I agree, It should be considered after applying all the patches. 
+ 
+RP
+
+-- 
+Ram Pai
