@@ -1,68 +1,138 @@
-From: Alex =?utf-8?Q?Benn=C3=A9e?= <alex.bennee@linaro.org>
-Subject: Re: [PATCH 04/27] arm64: Port deprecated instruction emulation to new
- sysctl interface
-Date: Fri, 18 Aug 2017 13:09:21 +0100
-Message-ID: <87mv6xhyby.fsf@linaro.org>
-References: <1502280338-23002-1-git-send-email-Dave.Martin@arm.com>
- <1502280338-23002-5-git-send-email-Dave.Martin@arm.com>
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [PATCH v2 6/6] kernel: tracepoints: add support for relative
+ references
+Date: Fri, 18 Aug 2017 09:43:38 -0400
+Message-ID: <20170818094338.5370cdad@gandalf.local.home>
+References: <20170818112624.24991-1-ard.biesheuvel@linaro.org>
+        <20170818112624.24991-7-ard.biesheuvel@linaro.org>
+        <CAKv+Gu8tA58HaD4cBMqrBagQfCd55mZ3H1JVpECY+xEqOOuVVA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <kvmarm-bounces@lists.cs.columbia.edu>
-In-reply-to: <1502280338-23002-5-git-send-email-Dave.Martin@arm.com>
-List-Unsubscribe: <https://lists.cs.columbia.edu/mailman/options/kvmarm>,
- <mailto:kvmarm-request@lists.cs.columbia.edu?subject=unsubscribe>
-List-Archive: <https://lists.cs.columbia.edu/pipermail/kvmarm>
-List-Post: <mailto:kvmarm@lists.cs.columbia.edu>
-List-Help: <mailto:kvmarm-request@lists.cs.columbia.edu?subject=help>
-List-Subscribe: <https://lists.cs.columbia.edu/mailman/listinfo/kvmarm>,
- <mailto:kvmarm-request@lists.cs.columbia.edu?subject=subscribe>
-Errors-To: kvmarm-bounces@lists.cs.columbia.edu
-Sender: kvmarm-bounces@lists.cs.columbia.edu
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CAKv+Gu8tA58HaD4cBMqrBagQfCd55mZ3H1JVpECY+xEqOOuVVA@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Heiko Carstens <heiko.carstens@de.ibm.com>, Kees Cook <keescook@chromium.org>, Will Deacon <will.deacon@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, Thomas Garnier <thgarnie@google.com>, Thomas Gleixner <tglx@linutronix.de>, "Serge E. Hallyn" <serge@hallyn.com>, Bjorn Helgaas <bhelgaas@google.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Catalin Marinas <catalin.marinas@arm.com>, Petr Mladek <pmladek@suse.com>, Ingo Molnar <mingo@redhat.com>, James Morris <james.l.morris@oracle.com>, Andrew Morton <akpm@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-CkRhdmUgTWFydGluIDxEYXZlLk1hcnRpbkBhcm0uY29tPiB3cml0ZXM6Cgo+IEN1cnJlbnRseSwg
-YXJtdjhfZGVwcmVjdGVkLmMgdGFrZXMgY2hhcmdlIG9mIHRoZSAiYWJpIiBzeXNjdGwKPiBkaXJl
-Y3RvcnksIHdoaWNoIG1ha2VzIGxpZmUgZGlmZmljdWx0IGZvciBvdGhlciBjb2RlIHRoYXQgd2Fu
-dHMgdG8KPiByZWdpc3RlciBzeXNjdGxzIGluIHRoZSBzYW1lIGRpcmVjdG9yeS4KPgo+IFRoZXJl
-IGlzIGEgIm5ldyIgWzFdIHN5c2N0bCByZWdpc3RyYXRpb24gaW50ZXJmYWNlIHRoYXQgcmVtb3Zl
-cyB0aGUKPiBuZWVkIHRvIGRlZmluZSBjdGxfdGFibGVzIGZvciBwYXJlbnQgZGlyZWN0b3JpZXMg
-ZXhwbGljaXRseSwgd2hpY2gKPiBpcyBpZGVhbCBoZXJlLgo+Cj4gVGhpcyBwYXRjaCBwb3J0cyBy
-ZWdpc3Rlcl9pbnNuX2VtdWxhdGlvbl9zeXNjdGwoKSBvdmVyIHRvIHRoZQo+IHJlZ2lzdGVyX3N5
-c2N0bCgpIGludGVyZmFjZSBhbmQgcmVtb3ZlcyB0aGUgcmVkdW5kYW50IGN0bF90YWJsZSBmb3IK
-PiAiYWJpIi4KPgo+IFNpZ25lZC1vZmYtYnk6IERhdmUgTWFydGluIDxEYXZlLk1hcnRpbkBhcm0u
-Y29tPgoKUmV2aWV3ZWQtYnk6IEFsZXggQmVubsOpZSA8YWxleC5iZW5uZWVAbGluYXJvLm9yZz4K
-Cj4KPiBbMV0gZmVhNDc4ZDQxMDFhIChzeXNjdGw6IEFkZCByZWdpc3Rlcl9zeXNjdGwgZm9yIG5v
-cm1hbCBzeXNjdGwKPiB1c2VycykKPiBUaGUgY29tbWl0IG1lc3NhZ2Ugbm90ZXMgYW4gaW50ZW50
-IHRvIHBvcnQgdXNlcnMgb2YgdGhlCj4gcHJlLWV4aXN0aW5nIGludGVyZmFjZXMgb3ZlciB0byBy
-ZWdpc3Rlcl9zeXNjdGwoKSwgdGhvdWdoIHRoZQo+IG51bWJlciBvZiB1c2VycyBvZiB0aGUgbmV3
-IGludGVyZmFjZSBjdXJyZW50bHkgYXBwZWFycyBuZWdsaWdpYmxlLgo+IC0tLQo+ICBhcmNoL2Fy
-bTY0L2tlcm5lbC9hcm12OF9kZXByZWNhdGVkLmMgfCAxNSArKystLS0tLS0tLS0tLS0KPiAgMSBm
-aWxlIGNoYW5nZWQsIDMgaW5zZXJ0aW9ucygrKSwgMTIgZGVsZXRpb25zKC0pCj4KPiBkaWZmIC0t
-Z2l0IGEvYXJjaC9hcm02NC9rZXJuZWwvYXJtdjhfZGVwcmVjYXRlZC5jIGIvYXJjaC9hcm02NC9r
-ZXJuZWwvYXJtdjhfZGVwcmVjYXRlZC5jCj4gaW5kZXggZjBlNmQ3MS4uZTE1ZWIyZCAxMDA2NDQK
-PiAtLS0gYS9hcmNoL2FybTY0L2tlcm5lbC9hcm12OF9kZXByZWNhdGVkLmMKPiArKysgYi9hcmNo
-L2FybTY0L2tlcm5lbC9hcm12OF9kZXByZWNhdGVkLmMKPiBAQCAtMjI4LDE1ICsyMjgsNyBAQCBz
-dGF0aWMgaW50IGVtdWxhdGlvbl9wcm9jX2hhbmRsZXIoc3RydWN0IGN0bF90YWJsZSAqdGFibGUs
-IGludCB3cml0ZSwKPiAgCXJldHVybiByZXQ7Cj4gIH0KPgo+IC1zdGF0aWMgc3RydWN0IGN0bF90
-YWJsZSBjdGxfYWJpW10gPSB7Cj4gLQl7Cj4gLQkJLnByb2NuYW1lID0gImFiaSIsCj4gLQkJLm1v
-ZGUgPSAwNTU1LAo+IC0JfSwKPiAtCXsgfQo+IC19Owo+IC0KPiAtc3RhdGljIHZvaWQgX19pbml0
-IHJlZ2lzdGVyX2luc25fZW11bGF0aW9uX3N5c2N0bChzdHJ1Y3QgY3RsX3RhYmxlICp0YWJsZSkK
-PiArc3RhdGljIHZvaWQgX19pbml0IHJlZ2lzdGVyX2luc25fZW11bGF0aW9uX3N5c2N0bCh2b2lk
-KQo+ICB7Cj4gIAl1bnNpZ25lZCBsb25nIGZsYWdzOwo+ICAJaW50IGkgPSAwOwo+IEBAIC0yNjIs
-OCArMjU0LDcgQEAgc3RhdGljIHZvaWQgX19pbml0IHJlZ2lzdGVyX2luc25fZW11bGF0aW9uX3N5
-c2N0bChzdHJ1Y3QgY3RsX3RhYmxlICp0YWJsZSkKPiAgCX0KPiAgCXJhd19zcGluX3VubG9ja19p
-cnFyZXN0b3JlKCZpbnNuX2VtdWxhdGlvbl9sb2NrLCBmbGFncyk7Cj4KPiAtCXRhYmxlLT5jaGls
-ZCA9IGluc25zX3N5c2N0bDsKPiAtCXJlZ2lzdGVyX3N5c2N0bF90YWJsZSh0YWJsZSk7Cj4gKwly
-ZWdpc3Rlcl9zeXNjdGwoImFiaSIsIGluc25zX3N5c2N0bCk7Cj4gIH0KPgo+ICAvKgo+IEBAIC02
-NDQsNyArNjM1LDcgQEAgc3RhdGljIGludCBfX2luaXQgYXJtdjhfZGVwcmVjYXRlZF9pbml0KHZv
-aWQpCj4gIAljcHVocF9zZXR1cF9zdGF0ZV9ub2NhbGxzKENQVUhQX0FQX0FSTTY0X0lTTkRFUF9T
-VEFSVElORywKPiAgCQkJCSAgImFybTY0L2lzbmRlcDpzdGFydGluZyIsCj4gIAkJCQkgIHJ1bl9h
-bGxfaW5zbl9zZXRfaHdfbW9kZSwgTlVMTCk7Cj4gLQlyZWdpc3Rlcl9pbnNuX2VtdWxhdGlvbl9z
-eXNjdGwoY3RsX2FiaSk7Cj4gKwlyZWdpc3Rlcl9pbnNuX2VtdWxhdGlvbl9zeXNjdGwoKTsKPgo+
-ICAJcmV0dXJuIDA7Cj4gIH0KCgotLQpBbGV4IEJlbm7DqWUKX19fX19fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX18Ka3ZtYXJtIG1haWxpbmcgbGlzdAprdm1hcm1AbGlz
-dHMuY3MuY29sdW1iaWEuZWR1Cmh0dHBzOi8vbGlzdHMuY3MuY29sdW1iaWEuZWR1L21haWxtYW4v
-bGlzdGluZm8va3ZtYXJtCg==
+On Fri, 18 Aug 2017 12:44:17 +0100
+Ard Biesheuvel <ard.biesheuvel@linaro.org> wrote:
+
+> On 18 August 2017 at 12:26, Ard Biesheuvel <ard.biesheuvel@linaro.org> wrote:
+> > To avoid the need for relocating absolute references to tracepoint
+> > structures at boot time when running relocatable kernels (which may
+> > take a disproportionate amount of space), add the option to emit
+> > these tables as relative references instead.
+> >
+> > Cc: Steven Rostedt <rostedt@goodmis.org>
+> > Cc: Ingo Molnar <mingo@redhat.com>
+> > Signed-off-by: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+> > ---
+> >  include/linux/tracepoint.h | 42 ++++++++++++++++++--
+> >  kernel/tracepoint.c        |  7 +---
+> >  2 files changed, 40 insertions(+), 9 deletions(-)
+> >
+> > diff --git a/include/linux/tracepoint.h b/include/linux/tracepoint.h
+> > index a26ffbe09e71..68701821933a 100644
+> > --- a/include/linux/tracepoint.h
+> > +++ b/include/linux/tracepoint.h
+> > @@ -228,6 +228,42 @@ extern void syscall_unregfunc(void);
+> >                 return static_key_false(&__tracepoint_##name.key);      \
+> >         }
+> >
+> > +#ifdef CONFIG_HAVE_ARCH_PREL32_RELOCATIONS
+> > +#define __TRACEPOINT_ENTRY(name)                                       \
+> > +       asm("   .section \"__tracepoints_ptrs\", \"a\"\n"               \
+> > +           "   .balign 4\n"                                            \
+> > +           "   .long " VMLINUX_SYMBOL_STR(__tracepoint_##name) " - .\n"\
+> > +           "   .previous\n")
+> > +
+> > +struct tracepoint_entry_t {
+> > +       int tp_offset;
+> > +};
+> > +
+> > +static inline
+> > +struct tracepoint *tracepoint_from_entry(const struct tracepoint_entry_t *ent)
+> > +{
+> > +       return (struct tracepoint *)((unsigned long)ent + ent->tp_offset);
+> > +}
+> > +#else
+> > +#define __TRACEPOINT_ENTRY(name)                                        \
+> > +       static struct tracepoint * const __tracepoint_ptr_##name __used  \
+> > +       __attribute__((section("__tracepoints_ptrs"))) =                 \
+> > +               &__tracepoint_##name
+> > +
+> > +struct tracepoint_entry_t {
+> > +       struct tracepoint *tp;
+> > +};
+> > +
+> > +static inline
+> > +struct tracepoint *tracepoint_from_entry(const struct tracepoint_entry_t *ent)
+> > +{
+> > +       return ent->tp;
+> > +}
+> > +#endif
+> > +
+> > +extern struct tracepoint_entry_t const __start___tracepoints_ptrs[];
+> > +extern struct tracepoint_entry_t const __stop___tracepoints_ptrs[];
+> > +  
+> 
+> It appears the stuff above needs to be move inside the double-include
+> guard (which oddly enough does not cover the entire file)
+
+Why was this moved to the header file? To fulfill some checkpatch
+warning?
+
+-- Steve
+
+> 
+> >  /*
+> >   * We have no guarantee that gcc and the linker won't up-align the tracepoint
+> >   * structures, so we create an array of pointers that will be used for iteration
+> > @@ -237,11 +273,9 @@ extern void syscall_unregfunc(void);
+> >         static const char __tpstrtab_##name[]                            \
+> >         __attribute__((section("__tracepoints_strings"))) = #name;       \
+> >         struct tracepoint __tracepoint_##name                            \
+> > -       __attribute__((section("__tracepoints"))) =                      \
+> > +       __attribute__((section("__tracepoints"))) __used =               \
+> >                 { __tpstrtab_##name, STATIC_KEY_INIT_FALSE, reg, unreg, NULL };\
+> > -       static struct tracepoint * const __tracepoint_ptr_##name __used  \
+> > -       __attribute__((section("__tracepoints_ptrs"))) =                 \
+> > -               &__tracepoint_##name;
+> > +       __TRACEPOINT_ENTRY(name);
+> >
+> >  #define DEFINE_TRACE(name)                                             \
+> >         DEFINE_TRACE_FN(name, NULL, NULL);
+> > diff --git a/kernel/tracepoint.c b/kernel/tracepoint.c
+> > index 685c50ae6300..21bc41454fd6 100644
+> > --- a/kernel/tracepoint.c
+> > +++ b/kernel/tracepoint.c
+> > @@ -28,9 +28,6 @@
+> >  #include <linux/sched/task.h>
+> >  #include <linux/static_key.h>
+> >
+> > -extern struct tracepoint * const __start___tracepoints_ptrs[];
+> > -extern struct tracepoint * const __stop___tracepoints_ptrs[];
+> > -
+> >  /* Set to 1 to enable tracepoint debug output */
+> >  static const int tracepoint_debug;
+> >
+> > @@ -508,12 +505,12 @@ static void for_each_tracepoint_range(struct tracepoint * const *begin,
+> >                 void (*fct)(struct tracepoint *tp, void *priv),
+> >                 void *priv)
+> >  {
+> > -       struct tracepoint * const *iter;
+> > +       struct tracepoint_entry_t const *iter;
+> >
+> >         if (!begin)
+> >                 return;
+> >         for (iter = begin; iter < end; iter++)
+> > -               fct(*iter, priv);
+> > +               fct(tracepoint_from_entry(iter), priv);
+> >  }
+> >
+> >  /**
+> > --
+> > 2.11.0
+> >  
