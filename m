@@ -1,53 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f47.google.com ([209.85.214.47]:37930 "EHLO
-        mail-it0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752114AbdHRNyc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 Aug 2017 09:54:32 -0400
-Received: by mail-it0-f47.google.com with SMTP id o72so6319600ita.1
-        for <linux-arch@vger.kernel.org>; Fri, 18 Aug 2017 06:54:32 -0700 (PDT)
-MIME-Version: 1.0
-In-Reply-To: <20170818095206.565b6e4c@gandalf.local.home>
-References: <20170818112624.24991-1-ard.biesheuvel@linaro.org>
- <20170818112624.24991-7-ard.biesheuvel@linaro.org> <CAKv+Gu8tA58HaD4cBMqrBagQfCd55mZ3H1JVpECY+xEqOOuVVA@mail.gmail.com>
- <20170818094338.5370cdad@gandalf.local.home> <CAKv+Gu-Uoj6sboXOhwme5dgQpmJ=cECu==5Pn0HNHTw2VxNz5g@mail.gmail.com>
- <20170818095206.565b6e4c@gandalf.local.home>
-From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Date: Fri, 18 Aug 2017 14:54:31 +0100
-Message-ID: <CAKv+Gu_QrCkx6-9c9q1tSktNVpvhZ0bJ4nCqd7-LnXvbS=dYig@mail.gmail.com>
-Subject: Re: [PATCH v2 6/6] kernel: tracepoints: add support for relative references
-Content-Type: text/plain; charset="UTF-8"
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:36370 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751106AbdHROyl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 18 Aug 2017 10:54:41 -0400
+From: Punit Agrawal <punit.agrawal@arm.com>
+Subject: [PATCH v2] mm/hugetlb.c: make huge_pte_offset() consistent and document behaviour
+Date: Fri, 18 Aug 2017 15:54:15 +0100
+Message-ID: <20170818145415.7588-1-punit.agrawal@arm.com>
+In-Reply-To: <20170725154114.24131-2-punit.agrawal@arm.com>
+References: <20170725154114.24131-2-punit.agrawal@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Heiko Carstens <heiko.carstens@de.ibm.com>, Kees Cook <keescook@chromium.org>, Will Deacon <will.deacon@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, Thomas Garnier <thgarnie@google.com>, Thomas Gleixner <tglx@linutronix.de>, "Serge E. Hallyn" <serge@hallyn.com>, Bjorn Helgaas <bhelgaas@google.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Catalin Marinas <catalin.marinas@arm.com>, Petr Mladek <pmladek@suse.com>, Ingo Molnar <mingo@redhat.com>, James Morris <james.l.morris@oracle.com>, Andrew Morton <akpm@linux-foundation.org>, Joe Perches <joe@perches.com>, Nicolas Pitre <nico@linaro.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Sergey Senozhatsky <sergey.senozhatsky@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andy Whitcroft <apw@canonical.com>, Jessica Yu <jeyu@kernel.org>
-Message-ID: <20170818135431.unP7SkMpD_hINvWH6MWq40UeBb2wI0fdmtJFhRvL6CY@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Punit Agrawal <punit.agrawal@arm.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>, Steve Capper <steve.capper@arm.com>, Will Deacon <will.deacon@arm.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Michal Hocko <mhocko@suse.com>, Mike Kravetz <mike.kravetz@oracle.com>
+Message-ID: <20170818145415.QNLQliqSHCsJLECH0mxjfzr1YSVgNqKNC0XeM-bZ7wI@z>
 
-On 18 August 2017 at 14:52, Steven Rostedt <rostedt@goodmis.org> wrote:
-> On Fri, 18 Aug 2017 14:44:15 +0100
-> Ard Biesheuvel <ard.biesheuvel@linaro.org> wrote:
->
->> >> It appears the stuff above needs to be move inside the double-include
->> >> guard (which oddly enough does not cover the entire file)
->> >
->> > Why was this moved to the header file? To fulfill some checkpatch
->> > warning?
->> >
->>
->> Yes.
->
-> My preference is to ignore that checkpatch warning. The section
-> variables are created by linker magic, and not normal "extern"
-> variables. They are only used in one location, and I like to keep them
-> where they are used, and not be something other places might think they
-> can be used. In other words, keep them by the C code, and out of
-> headers.
->
-> Tracepoints and linker/asm work always triggers a lot of bogus
-> checkpatch warnings. Which is unfortunate. :-/
->
+When walking the page tables to resolve an address that points to
+!p*d_present() entry, huge_pte_offset() returns inconsistent values
+depending on the level of page table (PUD or PMD).
 
-Actually, I couldn't agree more. I will backpedal on the checkpatch
-appeasement in v3 in general.
+It returns NULL in the case of a PUD entry while in the case of a PMD
+entry, it returns a pointer to the page table entry.
 
-Thanks,
-Ard.
+A similar inconsitency exists when handling swap entries - returns NULL
+for a PUD entry while a pointer to the pte_t is retured for the PMD entry.
+
+Update huge_pte_offset() to make the behaviour consistent - return a
+pointer to the pte_t for hugepage or swap entries. Only return NULL in
+instances where we have a p*d_none() entry and the size parameter
+doesn't match the hugepage size at this level of the page table.
+
+Document the behaviour to clarify the expected behaviour of this function.
+This is to set clear semantics for architecture specific implementations
+of huge_pte_offset().
+
+Signed-off-by: Punit Agrawal <punit.agrawal@arm.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>
+Cc: Steve Capper <steve.capper@arm.com>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+Cc: Michal Hocko <mhocko@suse.com>
+Cc: Mike Kravetz <mike.kravetz@oracle.com>
+---
+
+Hi Andrew,
