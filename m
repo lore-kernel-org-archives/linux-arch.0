@@ -1,67 +1,159 @@
-From: Jesper Nilsson <jesper.nilsson@axis.com>
-Subject: Re: [PATCH -tip v9 3/5] cris: mark _stext and _end as char-arrays,
- not single char
-Date: Fri, 18 Aug 2017 20:38:33 +0200
-Message-ID: <20170818183833.GG16480@axis.com>
-References: <150172762859.27216.16741726568669538542.stgit@devbox>
- <150172782555.27216.2805751327900543374.stgit@devbox>
- <20170816200133.1abbd36d5b5621f6f4b7f639@kernel.org>
+From: Mike Kravetz <mike.kravetz@oracle.com>
+Subject: Re: [PATCH v2] mm/hugetlb.c: make huge_pte_offset() consistent and
+ document behaviour
+Date: Fri, 18 Aug 2017 14:29:18 -0700
+Message-ID: <3de49294-f6f8-2623-1778-56a3b092f2a5@oracle.com>
+References: <20170725154114.24131-2-punit.agrawal@arm.com>
+ <20170818145415.7588-1-punit.agrawal@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bes.se.axis.com ([195.60.68.10]:51211 "EHLO bes.se.axis.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750971AbdHRSig (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 18 Aug 2017 14:38:36 -0400
-Content-Disposition: inline
-In-Reply-To: <20170816200133.1abbd36d5b5621f6f4b7f639@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Masami Hiramatsu <mhiramat@kernel.org>
-Cc: Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Francis Deslauriers <francis.deslauriers@efficios.com>, mathieu.desnoyers@efficios.com, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, "David S . Miller" <davem@davemloft.net>, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jespern@axis.com>, linux-cris-kernel@axis.com, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20170818145415.7588-1-punit.agrawal@arm.com>
+Content-Language: en-US
+Sender: owner-linux-mm@kvack.org
+To: Punit Agrawal <punit.agrawal@arm.com>, Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>, Steve Capper <steve.capper@arm.com>, Will Deacon <will.deacon@arm.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Michal Hocko <mhocko@suse.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Aug 16, 2017 at 08:01:33PM +0900, Masami Hiramatsu wrote:
-> On Thu,  3 Aug 2017 11:37:15 +0900
-> Masami Hiramatsu <mhiramat@kernel.org> wrote:
+On 08/18/2017 07:54 AM, Punit Agrawal wrote:
+> When walking the page tables to resolve an address that points to
+> !p*d_present() entry, huge_pte_offset() returns inconsistent values
+> depending on the level of page table (PUD or PMD).
 > 
-> > diff --git a/arch/cris/kernel/traps.c b/arch/cris/kernel/traps.c
-> > index a01636a12a6e..d98131c45bb5 100644
-> > --- a/arch/cris/kernel/traps.c
-> > +++ b/arch/cris/kernel/traps.c
-> > @@ -42,7 +42,7 @@ void (*nmi_handler)(struct pt_regs *);
-> >  void show_trace(unsigned long *stack)
-> >  {
-> >  	unsigned long addr, module_start, module_end;
-> > -	extern char _stext, _etext;
-> > +	extern char _stext[], _etext[];
-> >  	int i;
-> >  
-> >  	pr_err("\nCall Trace: ");
-> > @@ -69,8 +69,8 @@ void show_trace(unsigned long *stack)
-> >  		 * down the cause of the crash will be able to figure
-> >  		 * out the call path that was taken.
-> >  		 */
-> > -		if (((addr >= (unsigned long)&_stext) &&
-> > -		     (addr <= (unsigned long)&_etext)) ||
-> > +		if (((addr >= (unsigned long)_stext) &&
-> > +		     (addr <= (unsigned long)_etext)) ||
-> >  		    ((addr >= module_start) && (addr <= module_end))) {
+> It returns NULL in the case of a PUD entry while in the case of a PMD
+> entry, it returns a pointer to the page table entry.
 > 
-> BTW, I would like to ask cris people, this seems to check over 1 byte,
-> since _etext and module_end will be placed at the next byte of the real
-> address area.
-> As same as other arch, Should it be 
+> A similar inconsitency exists when handling swap entries - returns NULL
+> for a PUD entry while a pointer to the pte_t is retured for the PMD entry.
 > 
-> (addr < (unsigned long)_etext)
+> Update huge_pte_offset() to make the behaviour consistent - return a
+> pointer to the pte_t for hugepage or swap entries. Only return NULL in
+> instances where we have a p*d_none() entry and the size parameter
+> doesn't match the hugepage size at this level of the page table.
 > 
-> or are there any other reason?
+> Document the behaviour to clarify the expected behaviour of this function.
+> This is to set clear semantics for architecture specific implementations
+> of huge_pte_offset().
+> 
+> Signed-off-by: Punit Agrawal <punit.agrawal@arm.com>
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>
+> Cc: Steve Capper <steve.capper@arm.com>
+> Cc: Will Deacon <will.deacon@arm.com>
+> Cc: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+> Cc: Michal Hocko <mhocko@suse.com>
+> Cc: Mike Kravetz <mike.kravetz@oracle.com>
+> ---
+> 
+> Hi Andrew,
+> 
+> From discussions on the arm64 implementation of huge_pte_offset()[0]
+> we realised that there is benefit from returning a pte_t* in the case
+> of p*d_none().
+> 
+> The fault handling code in hugetlb_fault() can handle p*d_none()
+> entries and saves an extra round trip to huge_pte_alloc(). Other
+> callers of huge_pte_offset() should be ok as well.
 
-As far as I can tell, this is non-intentional.
+Yes, this change would eliminate that call to huge_pte_alloc() in
+hugetlb_fault().  However, huge_pte_offset() is now returning a pointer
+to a p*d_none() pte in some instances where it would have previously
+returned NULL.  Correct?
 
-> Thank you,
+I went through the callers, and like you am fairly confident that they
+can handle this situation.  But, returning  p*d_none() instead of NULL
+does change the execution path in several routines such as
+copy_hugetlb_page_range, __unmap_hugepage_range hugetlb_change_protection,
+and follow_hugetlb_page.  If huge_pte_alloc() returns NULL to these
+routines, they do a quick continue, exit, etc.  If they are returned
+a pointer, they typically lock the page table(s) and then check for
+p*d_none() before continuing, exiting, etc.  So, it appears that these
+routines could potentially slow down a bit with this change (in the specific
+case of p*d_none).
 
-> Masami Hiramatsu <mhiramat@kernel.org>
+I 'think' one could argue that the the fault case is more important.  So,
+the savings there would outweigh any potential slowdown in the other
+routines.
 
-/^JN - Jesper Nilsson
+IMO, this new version of the patch has more potential for issues than
+the previous version.  It would be helpful if others could take a look.
+
+One thing I am still 'thinking' about is how this patch could potentially
+change behavior in huge_pmd_share.  With the patch, pmd sharing could
+potentially be set up in situations (pmd_none) where it previously would
+not have been set up.  I don't think this is an issue, but any changes to
+this concerns me.
+
 -- 
-               Jesper Nilsson -- jesper.nilsson@axis.com
+Mike Kravetz
+
+> 
+> Apologies for sending a late update but I thought if we are defining
+> the semantics, it's worth getting them right.
+> 
+> Could you please pick this version please?
+> 
+> Thanks,
+> Punit
+> 
+> [0] http://www.spinics.net/lists/linux-mm/msg133699.html
+> 
+> v2: 
+> 
+>  mm/hugetlb.c | 24 +++++++++++++++++++++---
+>  1 file changed, 21 insertions(+), 3 deletions(-)
+> 
+> diff --git a/mm/hugetlb.c b/mm/hugetlb.c
+> index 31e207cb399b..1d54a131bdd5 100644
+> --- a/mm/hugetlb.c
+> +++ b/mm/hugetlb.c
+> @@ -4600,6 +4600,15 @@ pte_t *huge_pte_alloc(struct mm_struct *mm,
+>  	return pte;
+>  }
+>  
+> +/*
+> + * huge_pte_offset() - Walk the page table to resolve the hugepage
+> + * entry at address @addr
+> + *
+> + * Return: Pointer to page table or swap entry (PUD or PMD) for
+> + * address @addr, or NULL if a p*d_none() entry is encountered and the
+> + * size @sz doesn't match the hugepage size at this level of the page
+> + * table.
+> + */
+>  pte_t *huge_pte_offset(struct mm_struct *mm,
+>  		       unsigned long addr, unsigned long sz)
+>  {
+> @@ -4614,13 +4623,22 @@ pte_t *huge_pte_offset(struct mm_struct *mm,
+>  	p4d = p4d_offset(pgd, addr);
+>  	if (!p4d_present(*p4d))
+>  		return NULL;
+> +
+>  	pud = pud_offset(p4d, addr);
+> -	if (!pud_present(*pud))
+> +	if (sz != PUD_SIZE && pud_none(*pud))
+>  		return NULL;
+> -	if (pud_huge(*pud))
+> +	/* hugepage or swap? */
+> +	if (pud_huge(*pud) || !pud_present(*pud))
+>  		return (pte_t *)pud;
+> +
+>  	pmd = pmd_offset(pud, addr);
+> -	return (pte_t *) pmd;
+> +	if (sz != PMD_SIZE && pmd_none(*pmd))
+> +		return NULL;
+> +	/* hugepage or swap? */
+> +	if (pmd_huge(*pmd) || !pmd_present(*pmd))
+> +		return (pte_t *)pmd;
+> +
+> +	return NULL;
+>  }
+>  
+>  #endif /* CONFIG_ARCH_WANT_GENERAL_HUGETLB */
+> 
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
