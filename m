@@ -1,62 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f51.google.com ([74.125.82.51]:37948 "EHLO
-        mail-wm0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752572AbdHRQga (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 Aug 2017 12:36:30 -0400
-Received: by mail-wm0-f51.google.com with SMTP id l19so3939693wmi.1
-        for <linux-arch@vger.kernel.org>; Fri, 18 Aug 2017 09:36:29 -0700 (PDT)
-References: <1502280338-23002-1-git-send-email-Dave.Martin@arm.com> <1502280338-23002-6-git-send-email-Dave.Martin@arm.com>
-From: Alex =?utf-8?Q?Benn=C3=A9e?= <alex.bennee@linaro.org>
-Subject: Re: [PATCH 05/27] arm64: fpsimd: Simplify uses of {set, clear}_ti_thread_flag()
-In-reply-to: <1502280338-23002-6-git-send-email-Dave.Martin@arm.com>
-Date: Fri, 18 Aug 2017 17:36:27 +0100
-Message-ID: <87efs8lto4.fsf@linaro.org>
+Received: from mail-wr0-f193.google.com ([209.85.128.193]:34203 "EHLO
+        mail-wr0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750971AbdHRR6p (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 Aug 2017 13:58:45 -0400
+Date: Fri, 18 Aug 2017 19:58:40 +0200
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH 5/5] kernel: tracepoints: add support for relative
+ references
+Message-ID: <20170818175840.outgxwdf7t5xjnyk@gmail.com>
+References: <20170814105231.14608-1-ard.biesheuvel@linaro.org>
+ <20170814105231.14608-6-ard.biesheuvel@linaro.org>
+ <20170818082616.vyk5z5s2kicc66ip@gmail.com>
+ <CAKv+Gu8KfR989AXv6HGhG=xJsze-RQpKt3A1jiZ-djHdKXeMrg@mail.gmail.com>
+ <CAKv+Gu-XKSCno32+bHQ-HM51hUvmQKc=DTw1q0FAKU_JR5kYsQ@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAKv+Gu-XKSCno32+bHQ-HM51hUvmQKc=DTw1q0FAKU_JR5kYsQ@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu
-Message-ID: <20170818163627.v9cJxDEGbbH5juxO4cToBZGGjSINIpuOILpeeTbhcBA@z>
+To: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Heiko Carstens <heiko.carstens@de.ibm.com>, Kees Cook <keescook@chromium.org>, Will Deacon <will.deacon@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, Thomas Garnier <thgarnie@google.com>, Thomas Gleixner <tglx@linutronix.de>, "Serge E. Hallyn" <serge@hallyn.com>, Bjorn Helgaas <bhelgaas@google.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Catalin Marinas <catalin.marinas@arm.com>, Petr Mladek <pmladek@suse.com>, Ingo Molnar <mingo@redhat.com>, James Morris <james.l.morris@oracle.com>, Andrew Morton <akpm@linux-foundation.org>, Nicolas Pitre <nico@linaro.org>, Steven Rostedt <rostedt@goodmis.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Sergey Senozhatsky <sergey.senozhatsky@gmail.com>, Jessica Yu <jeyu@kernel.org>
+Message-ID: <20170818175840.Jzs0iweK3vRjJJLdeM0c5FwK4YS0KEvLwcy3frdgRxY@z>
 
 
-Dave Martin <Dave.Martin@arm.com> writes:
+* Ard Biesheuvel <ard.biesheuvel@linaro.org> wrote:
 
-> The existing FPSIMD context switch code contains a couple of
-> instances of {set,clear}_ti_thread(task_thread_info(task)).  Since
-> there are thread flag manipulators that operate directly on
-> task_struct, this verbosity isn't strictly needed.
->
-> For consistency, this patch simplifies the affected calls.  This
-> should have no impact on behaviour.
->
-> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> On 18 August 2017 at 09:36, Ard Biesheuvel <ard.biesheuvel@linaro.org> wrote:
+> > On 18 August 2017 at 09:26, Ingo Molnar <mingo@kernel.org> wrote:
+> >>
+> >> * Ard Biesheuvel <ard.biesheuvel@linaro.org> wrote:
+> >>
+> >>> -static void for_each_tracepoint_range(struct tracepoint * const *begin,
+> >>> -             struct tracepoint * const *end,
+> >>> +static void for_each_tracepoint_range(const void *begin, const void *end,
+> >>>               void (*fct)(struct tracepoint *tp, void *priv),
+> >>>               void *priv)
+> >>>  {
+> >>> +#ifdef CONFIG_HAVE_ARCH_PREL32_RELOCATIONS
+> >>> +     const signed int *iter;
+> >>> +
+> >>> +     if (!begin)
+> >>> +             return;
+> >>> +     for (iter = begin; iter < (signed int *)end; iter++) {
+> >>> +             fct((struct tracepoint *)((unsigned long)iter + *iter), priv);
+> >>> +     }
+> >>
+> >> I think checkpatch is correct here to complain about the unnecessary curly braces
+> >> here.
+> >>
+> >
+> > Fair enough. I will clean up to the extent feasible.
+> >
+> 
+> OK, in an honest attempt to at least remove as many of the checkpatch
+> errors as I can,  [...]
 
-Reviewed-by: Alex Bennée <alex.bennee@linaro.org>
+Note that I actually agreed with your list of checkpatch bogosities - the one I 
+commented on was the only thing that needed fixing, IMHO.
 
-> ---
->  arch/arm64/kernel/fpsimd.c | 6 ++----
->  1 file changed, 2 insertions(+), 4 deletions(-)
->
-> diff --git a/arch/arm64/kernel/fpsimd.c b/arch/arm64/kernel/fpsimd.c
-> index 138fcfa..9c1f268e 100644
-> --- a/arch/arm64/kernel/fpsimd.c
-> +++ b/arch/arm64/kernel/fpsimd.c
-> @@ -159,11 +159,9 @@ void fpsimd_thread_switch(struct task_struct *next)
->
->  		if (__this_cpu_read(fpsimd_last_state) == st
->  		    && st->cpu == smp_processor_id())
-> -			clear_ti_thread_flag(task_thread_info(next),
-> -					     TIF_FOREIGN_FPSTATE);
-> +			clear_tsk_thread_flag(next, TIF_FOREIGN_FPSTATE);
->  		else
-> -			set_ti_thread_flag(task_thread_info(next),
-> -					   TIF_FOREIGN_FPSTATE);
-> +			set_tsk_thread_flag(next, TIF_FOREIGN_FPSTATE);
->  	}
->  }
+Thanks,
 
-
---
-Alex Bennée
+	Ingo
