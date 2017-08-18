@@ -1,95 +1,143 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f182.google.com ([209.85.128.182]:38746 "EHLO
-        mail-wr0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752237AbdHRMJX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 Aug 2017 08:09:23 -0400
-Received: by mail-wr0-f182.google.com with SMTP id 5so44943524wrz.5
-        for <linux-arch@vger.kernel.org>; Fri, 18 Aug 2017 05:09:23 -0700 (PDT)
-References: <1502280338-23002-1-git-send-email-Dave.Martin@arm.com> <1502280338-23002-5-git-send-email-Dave.Martin@arm.com>
-From: Alex =?utf-8?Q?Benn=C3=A9e?= <alex.bennee@linaro.org>
-Subject: Re: [PATCH 04/27] arm64: Port deprecated instruction emulation to new sysctl interface
-In-reply-to: <1502280338-23002-5-git-send-email-Dave.Martin@arm.com>
-Date: Fri, 18 Aug 2017 13:09:21 +0100
-Message-ID: <87mv6xhyby.fsf@linaro.org>
+Received: from mail.kernel.org ([198.145.29.99]:58090 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752541AbdHRNnn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 18 Aug 2017 09:43:43 -0400
+Date: Fri, 18 Aug 2017 09:43:38 -0400
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [PATCH v2 6/6] kernel: tracepoints: add support for relative
+ references
+Message-ID: <20170818094338.5370cdad@gandalf.local.home>
+In-Reply-To: <CAKv+Gu8tA58HaD4cBMqrBagQfCd55mZ3H1JVpECY+xEqOOuVVA@mail.gmail.com>
+References: <20170818112624.24991-1-ard.biesheuvel@linaro.org>
+        <20170818112624.24991-7-ard.biesheuvel@linaro.org>
+        <CAKv+Gu8tA58HaD4cBMqrBagQfCd55mZ3H1JVpECY+xEqOOuVVA@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu
-Message-ID: <20170818120921.SHZuYkDqnSO5jMuKmd14MEpctzk0W-b70-rFCZwVoPQ@z>
+To: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Heiko Carstens <heiko.carstens@de.ibm.com>, Kees Cook <keescook@chromium.org>, Will Deacon <will.deacon@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, Thomas Garnier <thgarnie@google.com>, Thomas Gleixner <tglx@linutronix.de>, "Serge E. Hallyn" <serge@hallyn.com>, Bjorn Helgaas <bhelgaas@google.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Catalin Marinas <catalin.marinas@arm.com>, Petr Mladek <pmladek@suse.com>, Ingo Molnar <mingo@redhat.com>, James Morris <james.l.morris@oracle.com>, Andrew Morton <akpm@linux-foundation.org>, Joe Perches <joe@perches.com>, Nicolas Pitre <nico@linaro.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Sergey Senozhatsky <sergey.senozhatsky@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andy Whitcroft <apw@canonical.com>, Jessica Yu <jeyu@kernel.org>
+Message-ID: <20170818134338.Q7bWMVKExgEeQFeWi5acvdO5y7vefWp9D9a1TxnsqIE@z>
 
+On Fri, 18 Aug 2017 12:44:17 +0100
+Ard Biesheuvel <ard.biesheuvel@linaro.org> wrote:
 
-Dave Martin <Dave.Martin@arm.com> writes:
+> On 18 August 2017 at 12:26, Ard Biesheuvel <ard.biesheuvel@linaro.org> wrote:
+> > To avoid the need for relocating absolute references to tracepoint
+> > structures at boot time when running relocatable kernels (which may
+> > take a disproportionate amount of space), add the option to emit
+> > these tables as relative references instead.
+> >
+> > Cc: Steven Rostedt <rostedt@goodmis.org>
+> > Cc: Ingo Molnar <mingo@redhat.com>
+> > Signed-off-by: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+> > ---
+> >  include/linux/tracepoint.h | 42 ++++++++++++++++++--
+> >  kernel/tracepoint.c        |  7 +---
+> >  2 files changed, 40 insertions(+), 9 deletions(-)
+> >
+> > diff --git a/include/linux/tracepoint.h b/include/linux/tracepoint.h
+> > index a26ffbe09e71..68701821933a 100644
+> > --- a/include/linux/tracepoint.h
+> > +++ b/include/linux/tracepoint.h
+> > @@ -228,6 +228,42 @@ extern void syscall_unregfunc(void);
+> >                 return static_key_false(&__tracepoint_##name.key);      \
+> >         }
+> >
+> > +#ifdef CONFIG_HAVE_ARCH_PREL32_RELOCATIONS
+> > +#define __TRACEPOINT_ENTRY(name)                                       \
+> > +       asm("   .section \"__tracepoints_ptrs\", \"a\"\n"               \
+> > +           "   .balign 4\n"                                            \
+> > +           "   .long " VMLINUX_SYMBOL_STR(__tracepoint_##name) " - .\n"\
+> > +           "   .previous\n")
+> > +
+> > +struct tracepoint_entry_t {
+> > +       int tp_offset;
+> > +};
+> > +
+> > +static inline
+> > +struct tracepoint *tracepoint_from_entry(const struct tracepoint_entry_t *ent)
+> > +{
+> > +       return (struct tracepoint *)((unsigned long)ent + ent->tp_offset);
+> > +}
+> > +#else
+> > +#define __TRACEPOINT_ENTRY(name)                                        \
+> > +       static struct tracepoint * const __tracepoint_ptr_##name __used  \
+> > +       __attribute__((section("__tracepoints_ptrs"))) =                 \
+> > +               &__tracepoint_##name
+> > +
+> > +struct tracepoint_entry_t {
+> > +       struct tracepoint *tp;
+> > +};
+> > +
+> > +static inline
+> > +struct tracepoint *tracepoint_from_entry(const struct tracepoint_entry_t *ent)
+> > +{
+> > +       return ent->tp;
+> > +}
+> > +#endif
+> > +
+> > +extern struct tracepoint_entry_t const __start___tracepoints_ptrs[];
+> > +extern struct tracepoint_entry_t const __stop___tracepoints_ptrs[];
+> > +  
+> 
+> It appears the stuff above needs to be move inside the double-include
+> guard (which oddly enough does not cover the entire file)
 
-> Currently, armv8_deprected.c takes charge of the "abi" sysctl
-> directory, which makes life difficult for other code that wants to
-> register sysctls in the same directory.
->
-> There is a "new" [1] sysctl registration interface that removes the
-> need to define ctl_tables for parent directories explicitly, which
-> is ideal here.
->
-> This patch ports register_insn_emulation_sysctl() over to the
-> register_sysctl() interface and removes the redundant ctl_table for
-> "abi".
->
-> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+Why was this moved to the header file? To fulfill some checkpatch
+warning?
 
-Reviewed-by: Alex Bennée <alex.bennee@linaro.org>
+-- Steve
 
->
-> [1] fea478d4101a (sysctl: Add register_sysctl for normal sysctl
-> users)
-> The commit message notes an intent to port users of the
-> pre-existing interfaces over to register_sysctl(), though the
-> number of users of the new interface currently appears negligible.
-> ---
->  arch/arm64/kernel/armv8_deprecated.c | 15 +++------------
->  1 file changed, 3 insertions(+), 12 deletions(-)
->
-> diff --git a/arch/arm64/kernel/armv8_deprecated.c b/arch/arm64/kernel/armv8_deprecated.c
-> index f0e6d71..e15eb2d 100644
-> --- a/arch/arm64/kernel/armv8_deprecated.c
-> +++ b/arch/arm64/kernel/armv8_deprecated.c
-> @@ -228,15 +228,7 @@ static int emulation_proc_handler(struct ctl_table *table, int write,
->  	return ret;
->  }
->
-> -static struct ctl_table ctl_abi[] = {
-> -	{
-> -		.procname = "abi",
-> -		.mode = 0555,
-> -	},
-> -	{ }
-> -};
-> -
-> -static void __init register_insn_emulation_sysctl(struct ctl_table *table)
-> +static void __init register_insn_emulation_sysctl(void)
->  {
->  	unsigned long flags;
->  	int i = 0;
-> @@ -262,8 +254,7 @@ static void __init register_insn_emulation_sysctl(struct ctl_table *table)
->  	}
->  	raw_spin_unlock_irqrestore(&insn_emulation_lock, flags);
->
-> -	table->child = insns_sysctl;
-> -	register_sysctl_table(table);
-> +	register_sysctl("abi", insns_sysctl);
->  }
->
->  /*
-> @@ -644,7 +635,7 @@ static int __init armv8_deprecated_init(void)
->  	cpuhp_setup_state_nocalls(CPUHP_AP_ARM64_ISNDEP_STARTING,
->  				  "arm64/isndep:starting",
->  				  run_all_insn_set_hw_mode, NULL);
-> -	register_insn_emulation_sysctl(ctl_abi);
-> +	register_insn_emulation_sysctl();
->
->  	return 0;
->  }
-
-
---
-Alex Bennée
+> 
+> >  /*
+> >   * We have no guarantee that gcc and the linker won't up-align the tracepoint
+> >   * structures, so we create an array of pointers that will be used for iteration
+> > @@ -237,11 +273,9 @@ extern void syscall_unregfunc(void);
+> >         static const char __tpstrtab_##name[]                            \
+> >         __attribute__((section("__tracepoints_strings"))) = #name;       \
+> >         struct tracepoint __tracepoint_##name                            \
+> > -       __attribute__((section("__tracepoints"))) =                      \
+> > +       __attribute__((section("__tracepoints"))) __used =               \
+> >                 { __tpstrtab_##name, STATIC_KEY_INIT_FALSE, reg, unreg, NULL };\
+> > -       static struct tracepoint * const __tracepoint_ptr_##name __used  \
+> > -       __attribute__((section("__tracepoints_ptrs"))) =                 \
+> > -               &__tracepoint_##name;
+> > +       __TRACEPOINT_ENTRY(name);
+> >
+> >  #define DEFINE_TRACE(name)                                             \
+> >         DEFINE_TRACE_FN(name, NULL, NULL);
+> > diff --git a/kernel/tracepoint.c b/kernel/tracepoint.c
+> > index 685c50ae6300..21bc41454fd6 100644
+> > --- a/kernel/tracepoint.c
+> > +++ b/kernel/tracepoint.c
+> > @@ -28,9 +28,6 @@
+> >  #include <linux/sched/task.h>
+> >  #include <linux/static_key.h>
+> >
+> > -extern struct tracepoint * const __start___tracepoints_ptrs[];
+> > -extern struct tracepoint * const __stop___tracepoints_ptrs[];
+> > -
+> >  /* Set to 1 to enable tracepoint debug output */
+> >  static const int tracepoint_debug;
+> >
+> > @@ -508,12 +505,12 @@ static void for_each_tracepoint_range(struct tracepoint * const *begin,
+> >                 void (*fct)(struct tracepoint *tp, void *priv),
+> >                 void *priv)
+> >  {
+> > -       struct tracepoint * const *iter;
+> > +       struct tracepoint_entry_t const *iter;
+> >
+> >         if (!begin)
+> >                 return;
+> >         for (iter = begin; iter < end; iter++)
+> > -               fct(*iter, priv);
+> > +               fct(tracepoint_from_entry(iter), priv);
+> >  }
+> >
+> >  /**
+> > --
+> > 2.11.0
+> >  
