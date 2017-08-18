@@ -1,124 +1,108 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f178.google.com ([209.85.128.178]:33413 "EHLO
-        mail-wr0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750920AbdHRL1O (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 Aug 2017 07:27:14 -0400
-Received: by mail-wr0-f178.google.com with SMTP id b65so67589706wrd.0
-        for <linux-arch@vger.kernel.org>; Fri, 18 Aug 2017 04:27:13 -0700 (PDT)
+Received: from mail-wr0-f172.google.com ([209.85.128.172]:35797 "EHLO
+        mail-wr0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751853AbdHRL1J (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 Aug 2017 07:27:09 -0400
+Received: by mail-wr0-f172.google.com with SMTP id 49so58879924wrw.2
+        for <linux-arch@vger.kernel.org>; Fri, 18 Aug 2017 04:27:08 -0700 (PDT)
 From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Subject: [PATCH v2 6/6] kernel: tracepoints: add support for relative references
-Date: Fri, 18 Aug 2017 12:26:24 +0100
-Message-ID: <20170818112624.24991-7-ard.biesheuvel@linaro.org>
+Subject: [PATCH v2 5/6] drivers: pci: add support for relative addressing in quirk tables
+Date: Fri, 18 Aug 2017 12:26:23 +0100
+Message-ID: <20170818112624.24991-6-ard.biesheuvel@linaro.org>
 In-Reply-To: <20170818112624.24991-1-ard.biesheuvel@linaro.org>
 References: <20170818112624.24991-1-ard.biesheuvel@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Heiko Carstens <heiko.carstens@de.ibm.com>, Kees Cook <keescook@chromium.org>, Will Deacon <will.deacon@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, Thomas Garnier <thgarnie@google.com>, Thomas Gleixner <tglx@linutronix.de>, "Serge E. Hallyn" <serge@hallyn.com>, Bjorn Helgaas <bhelgaas@google.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Catalin Marinas <catalin.marinas@arm.com>, Petr Mladek <pmladek@suse.com>, Ingo Molnar <mingo@redhat.com>, James Morris <james.l.morris@oracle.com>, Andrew Morton <akpm@linux-foundation.org>, Joe Perches <joe@perches.com>, Nicolas Pitre <nico@linaro.org>, Steven Rostedt <rostedt@goodmis.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Sergey Senozhatsky <sergey.senozhatsky@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andy Whitcroft <apw@canonical.com>, Jessica Yu <jeyu@kernel.org>
-Message-ID: <20170818112624.AVWksoECi1uCPB4CuQPRQcxZQrHA7SOOuJLOeyS6DU4@z>
+Message-ID: <20170818112623.1kS3TWblJTf4C8XMMw2RmqjeBBXozbX3VjCQR8iT2Zc@z>
 
-To avoid the need for relocating absolute references to tracepoint
-structures at boot time when running relocatable kernels (which may
-take a disproportionate amount of space), add the option to emit
-these tables as relative references instead.
+Allow the PCI quirk tables to be emitted in a way that avoids absolute
+references to the hook functions. This reduces the size of the entries,
+and, more importantly, makes them invariant under runtime relocation
+(e.g., for KASLR)
 
-Cc: Steven Rostedt <rostedt@goodmis.org>
-Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Bjorn Helgaas <bhelgaas@google.com>
 Signed-off-by: Ard Biesheuvel <ard.biesheuvel@linaro.org>
 ---
- include/linux/tracepoint.h | 42 ++++++++++++++++++--
- kernel/tracepoint.c        |  7 +---
- 2 files changed, 40 insertions(+), 9 deletions(-)
+ drivers/pci/quirks.c |  6 ++--
+ include/linux/pci.h  | 32 ++++++++++++++++++++
+ 2 files changed, 35 insertions(+), 3 deletions(-)
 
-diff --git a/include/linux/tracepoint.h b/include/linux/tracepoint.h
-index a26ffbe09e71..68701821933a 100644
---- a/include/linux/tracepoint.h
-+++ b/include/linux/tracepoint.h
-@@ -228,6 +228,42 @@ extern void syscall_unregfunc(void);
- 		return static_key_false(&__tracepoint_##name.key);	\
- 	}
+diff --git a/drivers/pci/quirks.c b/drivers/pci/quirks.c
+index 6967c6b4cf6b..0a7ba8c7f1f6 100644
+--- a/drivers/pci/quirks.c
++++ b/drivers/pci/quirks.c
+@@ -3547,9 +3547,9 @@ static void pci_do_fixups(struct pci_dev *dev, struct pci_fixup *f,
+ 		     f->vendor == (u16) PCI_ANY_ID) &&
+ 		    (f->device == dev->device ||
+ 		     f->device == (u16) PCI_ANY_ID)) {
+-			calltime = fixup_debug_start(dev, f->hook);
+-			f->hook(dev);
+-			fixup_debug_report(dev, calltime, f->hook);
++			calltime = fixup_debug_start(dev, pci_fixup_hook(f));
++			pci_fixup_hook(f)(dev);
++			fixup_debug_report(dev, calltime, pci_fixup_hook(f));
+ 		}
+ }
+ 
+diff --git a/include/linux/pci.h b/include/linux/pci.h
+index a75c13673852..58eb4e7a15c3 100644
+--- a/include/linux/pci.h
++++ b/include/linux/pci.h
+@@ -1735,7 +1735,11 @@ struct pci_fixup {
+ 	u16 device;		/* You can use PCI_ANY_ID here of course */
+ 	u32 class;		/* You can use PCI_ANY_ID here too */
+ 	unsigned int class_shift;	/* should be 0, 8, 16 */
++#ifdef CONFIG_HAVE_ARCH_PREL32_RELOCATIONS
++	int hook_offset;
++#else
+ 	void (*hook)(struct pci_dev *dev);
++#endif
+ };
+ 
+ enum pci_fixup_pass {
+@@ -1749,6 +1753,27 @@ enum pci_fixup_pass {
+ 	pci_fixup_suspend_late,	/* pci_device_suspend_late() */
+ };
  
 +#ifdef CONFIG_HAVE_ARCH_PREL32_RELOCATIONS
-+#define __TRACEPOINT_ENTRY(name)					\
-+	asm("	.section \"__tracepoints_ptrs\", \"a\"\n"		\
-+	    "	.balign 4\n"						\
-+	    "	.long " VMLINUX_SYMBOL_STR(__tracepoint_##name) " - .\n"\
-+	    "	.previous\n")
-+
-+struct tracepoint_entry_t {
-+	int tp_offset;
-+};
++#define __DECLARE_PCI_FIXUP_SECTION(sec, name, vendor, device, class,	\
++				    class_shift, hook)			\
++	__ADDRESSABLE(hook)						\
++	asm(".section "	#sec ", \"a\"\n"				\
++	    ".balign	16\n"						\
++	    ".short "	#vendor ", " #device "\n"			\
++	    ".long "	#class ", " #class_shift "\n"			\
++	    ".long "	VMLINUX_SYMBOL_STR(hook) " - .\n"		\
++	    ".previous\n")
++#define DECLARE_PCI_FIXUP_SECTION(sec, name, vendor, device, class,	\
++				  class_shift, hook)			\
++	__DECLARE_PCI_FIXUP_SECTION(sec, name, vendor, device, class,	\
++				  class_shift, hook)
 +
 +static inline
-+struct tracepoint *tracepoint_from_entry(const struct tracepoint_entry_t *ent)
++void (*pci_fixup_hook(const struct pci_fixup *f))(struct pci_dev *)
 +{
-+	return (struct tracepoint *)((unsigned long)ent + ent->tp_offset);
++	return (void *)((unsigned long)&f->hook_offset + f->hook_offset);
 +}
 +#else
-+#define __TRACEPOINT_ENTRY(name)					 \
-+	static struct tracepoint * const __tracepoint_ptr_##name __used	 \
-+	__attribute__((section("__tracepoints_ptrs"))) =		 \
-+		&__tracepoint_##name
-+
-+struct tracepoint_entry_t {
-+	struct tracepoint *tp;
-+};
-+
+ /* Anonymous variables would be nice... */
+ #define DECLARE_PCI_FIXUP_SECTION(section, name, vendor, device, class,	\
+ 				  class_shift, hook)			\
+@@ -1756,6 +1781,13 @@ enum pci_fixup_pass {
+ 	__attribute__((__section__(#section), aligned((sizeof(void *)))))    \
+ 		= { vendor, device, class, class_shift, hook };
+ 
 +static inline
-+struct tracepoint *tracepoint_from_entry(const struct tracepoint_entry_t *ent)
++void (*pci_fixup_hook(const struct pci_fixup *f))(struct pci_dev *)
 +{
-+	return ent->tp;
++	return f->hook;
 +}
 +#endif
 +
-+extern struct tracepoint_entry_t const __start___tracepoints_ptrs[];
-+extern struct tracepoint_entry_t const __stop___tracepoints_ptrs[];
-+
- /*
-  * We have no guarantee that gcc and the linker won't up-align the tracepoint
-  * structures, so we create an array of pointers that will be used for iteration
-@@ -237,11 +273,9 @@ extern void syscall_unregfunc(void);
- 	static const char __tpstrtab_##name[]				 \
- 	__attribute__((section("__tracepoints_strings"))) = #name;	 \
- 	struct tracepoint __tracepoint_##name				 \
--	__attribute__((section("__tracepoints"))) =			 \
-+	__attribute__((section("__tracepoints"))) __used =		 \
- 		{ __tpstrtab_##name, STATIC_KEY_INIT_FALSE, reg, unreg, NULL };\
--	static struct tracepoint * const __tracepoint_ptr_##name __used	 \
--	__attribute__((section("__tracepoints_ptrs"))) =		 \
--		&__tracepoint_##name;
-+	__TRACEPOINT_ENTRY(name);
- 
- #define DEFINE_TRACE(name)						\
- 	DEFINE_TRACE_FN(name, NULL, NULL);
-diff --git a/kernel/tracepoint.c b/kernel/tracepoint.c
-index 685c50ae6300..21bc41454fd6 100644
---- a/kernel/tracepoint.c
-+++ b/kernel/tracepoint.c
-@@ -28,9 +28,6 @@
- #include <linux/sched/task.h>
- #include <linux/static_key.h>
- 
--extern struct tracepoint * const __start___tracepoints_ptrs[];
--extern struct tracepoint * const __stop___tracepoints_ptrs[];
--
- /* Set to 1 to enable tracepoint debug output */
- static const int tracepoint_debug;
- 
-@@ -508,12 +505,12 @@ static void for_each_tracepoint_range(struct tracepoint * const *begin,
- 		void (*fct)(struct tracepoint *tp, void *priv),
- 		void *priv)
- {
--	struct tracepoint * const *iter;
-+	struct tracepoint_entry_t const *iter;
- 
- 	if (!begin)
- 		return;
- 	for (iter = begin; iter < end; iter++)
--		fct(*iter, priv);
-+		fct(tracepoint_from_entry(iter), priv);
- }
- 
- /**
+ #define DECLARE_PCI_FIXUP_CLASS_EARLY(vendor, device, class,		\
+ 					 class_shift, hook)		\
+ 	DECLARE_PCI_FIXUP_SECTION(.pci_fixup_early,			\
 -- 
 2.11.0
