@@ -1,126 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f177.google.com ([209.85.223.177]:36298 "EHLO
-        mail-io0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751054AbdHRGMo (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 Aug 2017 02:12:44 -0400
-Received: by mail-io0-f177.google.com with SMTP id g35so30069292ioi.3
-        for <linux-arch@vger.kernel.org>; Thu, 17 Aug 2017 23:12:43 -0700 (PDT)
+Received: from mail-pg0-f65.google.com ([74.125.83.65]:38693 "EHLO
+        mail-pg0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750709AbdHRG3m (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 Aug 2017 02:29:42 -0400
+Date: Fri, 18 Aug 2017 15:29:57 +0900
+From: Sergey Senozhatsky <sergey.senozhatsky.work@gmail.com>
+Subject: Re: [PATCH 0/5] add support for relative references in special
+ sections
+Message-ID: <20170818062944.GB495@jagdpanzerIV.localdomain>
+References: <20170814105231.14608-1-ard.biesheuvel@linaro.org>
+ <20170818055655.GA495@jagdpanzerIV.localdomain>
+ <CAKv+Gu9MBz68SMpQFbw33qvOwbGYYVO=5HHuLESUtsa0qsBP5g@mail.gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <20170818055655.GA495@jagdpanzerIV.localdomain>
-References: <20170814105231.14608-1-ard.biesheuvel@linaro.org> <20170818055655.GA495@jagdpanzerIV.localdomain>
-From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Date: Fri, 18 Aug 2017 07:12:42 +0100
-Message-ID: <CAKv+Gu9MBz68SMpQFbw33qvOwbGYYVO=5HHuLESUtsa0qsBP5g@mail.gmail.com>
-Subject: Re: [PATCH 0/5] add support for relative references in special sections
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAKv+Gu9MBz68SMpQFbw33qvOwbGYYVO=5HHuLESUtsa0qsBP5g@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sergey Senozhatsky <sergey.senozhatsky.work@gmail.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Heiko Carstens <heiko.carstens@de.ibm.com>, Kees Cook <keescook@chromium.org>, Will Deacon <will.deacon@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, Thomas Garnier <thgarnie@google.com>, Thomas Gleixner <tglx@linutronix.de>, "Serge E. Hallyn" <serge@hallyn.com>, Bjorn Helgaas <bhelgaas@google.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Catalin Marinas <catalin.marinas@arm.com>, Petr Mladek <pmladek@suse.com>, Ingo Molnar <mingo@redhat.com>, James Morris <james.l.morris@oracle.com>, Andrew Morton <akpm@linux-foundation.org>, Nicolas Pitre <nico@linaro.org>, Steven Rostedt <rostedt@goodmis.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Sergey Senozhatsky <sergey.senozhatsky@gmail.com>, Jessica Yu <jeyu@kernel.org>
-Message-ID: <20170818061242.zfCbNfBVBIB5BrM2A1NX9zXLGtebvOqc7EKRq310lbQ@z>
+To: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Cc: Sergey Senozhatsky <sergey.senozhatsky.work@gmail.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Heiko Carstens <heiko.carstens@de.ibm.com>, Kees Cook <keescook@chromium.org>, Will Deacon <will.deacon@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, Thomas Garnier <thgarnie@google.com>, Thomas Gleixner <tglx@linutronix.de>, "Serge E. Hallyn" <serge@hallyn.com>, Bjorn Helgaas <bhelgaas@google.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Catalin Marinas <catalin.marinas@arm.com>, Petr Mladek <pmladek@suse.com>, Ingo Molnar <mingo@redhat.com>, James Morris <james.l.morris@oracle.com>, Andrew Morton <akpm@linux-foundation.org>, Nicolas Pitre <nico@linaro.org>, Steven Rostedt <rostedt@goodmis.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Sergey Senozhatsky <sergey.senozhatsky@gmail.com>, Jessica Yu <jeyu@kernel.org>
+Message-ID: <20170818062957.4co8g1WDLpA9f4Zage5UJoe0dO7oSqpYSW_5ss1noSw@z>
 
-Hi Sergey,
+Hi Ard,
 
-Thanks for taking a look
+On (08/18/17 07:12), Ard Biesheuvel wrote:
+> Hi Sergey,
+> 
+> Thanks for taking a look
+> 
+> On 18 August 2017 at 06:56, Sergey Senozhatsky
+> <sergey.senozhatsky.work@gmail.com> wrote:
+> > On (08/14/17 11:52), Ard Biesheuvel wrote:
+> >> This adds support for emitting special sections such as initcall arrays,
+> >> PCI fixups and tracepoints as relative references rather than absolute
+> >> references. This reduces the size by 50% on 64-bit architectures, but
+> >> more importantly, it removes the need for carrying relocation metadata
+> >> for these sections in relocatables kernels (e.g., for KASLR) that need
+> >> to fix up these absolute references at boot time. On arm64, this reduces
+> >> the vmlinux footprint of such a reference by 8x (8 byte absolute reference
+> >> + 24 byte RELA entry vs 4 byte relative reference)
+> > [..]
+> >
+> > a side note,
+> > checkpatch complaints quite a lot.
+> >
+[..]
+> I will clean up the meaningful ones in v2, but please don't expect
+> this series to be checkpatch clean: it simply doesn't deal with inline
+> asm very well, and some of this code predates checkpatch by a decade,
+> and I'd rather not mix up rather tricky functional changes with
+> checkpatch cleanup duty.
 
-On 18 August 2017 at 06:56, Sergey Senozhatsky
-<sergey.senozhatsky.work@gmail.com> wrote:
-> On (08/14/17 11:52), Ard Biesheuvel wrote:
->> This adds support for emitting special sections such as initcall arrays,
->> PCI fixups and tracepoints as relative references rather than absolute
->> references. This reduces the size by 50% on 64-bit architectures, but
->> more importantly, it removes the need for carrying relocation metadata
->> for these sections in relocatables kernels (e.g., for KASLR) that need
->> to fix up these absolute references at boot time. On arm64, this reduces
->> the vmlinux footprint of such a reference by 8x (8 byte absolute reference
->> + 24 byte RELA entry vs 4 byte relative reference)
-> [..]
->
-> a side note,
-> checkpatch complaints quite a lot.
->
+sure. thanks.
 
-Yeah, fair point. Many of them are debatable or completely bogus, though:
+I'm running two x86 boxes with the patch set applied, for
+several days, with no issues being observed. it does save
+some memory (well, several pages in my case) even on "tiny"
+kernels configs.
 
-ERROR: "foo * bar" should be "foo *bar"
-#114: FILE: include/linux/compiler.h:600:
-+ static void * __attribute__((section(".discard.text"), used)) \
-
-I think it is rather common to keep whitespace between * and what
-follows if it is not the identifier.
-
-ERROR: Macros with complex values should be enclosed in parentheses
-#147: FILE: include/linux/export.h:64:
-+#define __KSYMTAB_ENTRY(sym, sec) \
-+ __ADDRESSABLE(sym) \
-+ asm(" .section \"___ksymtab" sec "+" #sym "\", \"a\" \n" \
-+    " .balign 8 \n" \
-+    VMLINUX_SYMBOL_STR(__ksymtab_##sym) ": \n" \
-+    " .long " VMLINUX_SYMBOL_STR(sym) "- . \n" \
-+    " .long " VMLINUX_SYMBOL_STR(__kstrtab_##sym) "- .\n" \
-+    " .previous \n")
-
-WARNING: do not add new typedefs
-#29: FILE: include/linux/init.h:114:
-+typedef signed int initcall_entry_t;
-
-WARNING: do not add new typedefs
-#36: FILE: include/linux/init.h:121:
-+typedef initcall_t initcall_entry_t;
-
-This is a typedef that accompanies the existing typedef for
-initcall_t, and it is the only way to parameterise this code without a
-ton of changes to duplicate all extern declarations of initcall
-arrays.
-
-ERROR: Macros with multiple statements should be enclosed in a do - while loop
-#55: FILE: include/linux/init.h:181:
-+#define ___define_initcall(fn, id, __sec) \
-+ __ADDRESSABLE(fn) \
-+ asm(".section \"" #__sec ".init\", \"a\" \n" \
-+ "__initcall_" #fn #id ": \n" \
-+    ".long " VMLINUX_SYMBOL_STR(fn) " - . \n" \
-+    ".previous \n");
-
-This one is bogus. This macro is only used in file scope.
-
-WARNING: externs should be avoided in .c files
-#109: FILE: init/main.c:837:
-+extern initcall_entry_t __initcall0_start[];
-
-This changes the type of the existing initcall array declarations, and
-I don't think moving them to a .h file for no other reason than to
-appease checkpatch is pointless.
-
-WARNING: unnecessary whitespace before a quoted newline
-#63: FILE: include/linux/pci.h:1759:
-+ asm(".section " #sec ", \"a\" \n" \
-
-WARNING: unnecessary whitespace before a quoted newline
-#64: FILE: include/linux/pci.h:1760:
-+    ".balign 16 \n" \
-
-WARNING: unnecessary whitespace before a quoted newline
-#65: FILE: include/linux/pci.h:1761:
-+    ".short " #vendor ", " #device " \n" \
-
-These are not newlines that end up as strings in the program, and I
-think it makes little sense to make the inline asm less readable by
-putting the \n right after the text.
-
-WARNING: braces {} are not necessary for single statement blocks
-#83: FILE: kernel/tracepoint.c:515:
-+ for (iter = begin; iter < (signed int *)end; iter++) {
-+ fct((struct tracepoint *)((unsigned long)iter + *iter), priv);
-+ }
-
-This simply mirrors the existing code in the other branch of the if ()
-
-I will clean up the meaningful ones in v2, but please don't expect
-this series to be checkpatch clean: it simply doesn't deal with inline
-asm very well, and some of this code predates checkpatch by a decade,
-and I'd rather not mix up rather tricky functional changes with
-checkpatch cleanup duty.
-
--- 
-Ard.
+	-ss
