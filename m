@@ -1,64 +1,158 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f170.google.com ([209.85.223.170]:38199 "EHLO
-        mail-io0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750993AbdHRSR6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 Aug 2017 14:17:58 -0400
-Received: by mail-io0-f170.google.com with SMTP id g71so35530333ioe.5
-        for <linux-arch@vger.kernel.org>; Fri, 18 Aug 2017 11:17:58 -0700 (PDT)
+Received: from userp1040.oracle.com ([156.151.31.81]:21250 "EHLO
+        userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751126AbdHRVaF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 Aug 2017 17:30:05 -0400
+Subject: Re: [PATCH v2] mm/hugetlb.c: make huge_pte_offset() consistent and
+ document behaviour
+References: <20170725154114.24131-2-punit.agrawal@arm.com>
+ <20170818145415.7588-1-punit.agrawal@arm.com>
+From: Mike Kravetz <mike.kravetz@oracle.com>
+Message-ID: <3de49294-f6f8-2623-1778-56a3b092f2a5@oracle.com>
+Date: Fri, 18 Aug 2017 14:29:18 -0700
 MIME-Version: 1.0
-In-Reply-To: <20170818175840.outgxwdf7t5xjnyk@gmail.com>
-References: <20170814105231.14608-1-ard.biesheuvel@linaro.org>
- <20170814105231.14608-6-ard.biesheuvel@linaro.org> <20170818082616.vyk5z5s2kicc66ip@gmail.com>
- <CAKv+Gu8KfR989AXv6HGhG=xJsze-RQpKt3A1jiZ-djHdKXeMrg@mail.gmail.com>
- <CAKv+Gu-XKSCno32+bHQ-HM51hUvmQKc=DTw1q0FAKU_JR5kYsQ@mail.gmail.com> <20170818175840.outgxwdf7t5xjnyk@gmail.com>
-From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Date: Fri, 18 Aug 2017 19:17:57 +0100
-Message-ID: <CAKv+Gu8D_YM1aeNk0aGgPU+Ct2P8sZz2-0L9F0OxPt_to4rd6g@mail.gmail.com>
-Subject: Re: [PATCH 5/5] kernel: tracepoints: add support for relative references
-Content-Type: text/plain; charset="UTF-8"
+In-Reply-To: <20170818145415.7588-1-punit.agrawal@arm.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Heiko Carstens <heiko.carstens@de.ibm.com>, Kees Cook <keescook@chromium.org>, Will Deacon <will.deacon@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, Thomas Garnier <thgarnie@google.com>, Thomas Gleixner <tglx@linutronix.de>, "Serge E. Hallyn" <serge@hallyn.com>, Bjorn Helgaas <bhelgaas@google.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Catalin Marinas <catalin.marinas@arm.com>, Petr Mladek <pmladek@suse.com>, Ingo Molnar <mingo@redhat.com>, James Morris <james.l.morris@oracle.com>, Andrew Morton <akpm@linux-foundation.org>, Nicolas Pitre <nico@linaro.org>, Steven Rostedt <rostedt@goodmis.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Sergey Senozhatsky <sergey.senozhatsky@gmail.com>, Jessica Yu <jeyu@kernel.org>
-Message-ID: <20170818181757.2Y8yGyplkpNFQUyOxPvWzjKvhzq8mRkqmsOyjD-RjSM@z>
+To: Punit Agrawal <punit.agrawal@arm.com>, Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>, Steve Capper <steve.capper@arm.com>, Will Deacon <will.deacon@arm.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Michal Hocko <mhocko@suse.com>
+Message-ID: <20170818212918.nJsqSAePC5Nc-WwHtI0zBOwwwpJhNa1RRrXKQet9Q8Y@z>
 
-On 18 August 2017 at 18:58, Ingo Molnar <mingo@kernel.org> wrote:
->
-> * Ard Biesheuvel <ard.biesheuvel@linaro.org> wrote:
->
->> On 18 August 2017 at 09:36, Ard Biesheuvel <ard.biesheuvel@linaro.org> wrote:
->> > On 18 August 2017 at 09:26, Ingo Molnar <mingo@kernel.org> wrote:
->> >>
->> >> * Ard Biesheuvel <ard.biesheuvel@linaro.org> wrote:
->> >>
->> >>> -static void for_each_tracepoint_range(struct tracepoint * const *begin,
->> >>> -             struct tracepoint * const *end,
->> >>> +static void for_each_tracepoint_range(const void *begin, const void *end,
->> >>>               void (*fct)(struct tracepoint *tp, void *priv),
->> >>>               void *priv)
->> >>>  {
->> >>> +#ifdef CONFIG_HAVE_ARCH_PREL32_RELOCATIONS
->> >>> +     const signed int *iter;
->> >>> +
->> >>> +     if (!begin)
->> >>> +             return;
->> >>> +     for (iter = begin; iter < (signed int *)end; iter++) {
->> >>> +             fct((struct tracepoint *)((unsigned long)iter + *iter), priv);
->> >>> +     }
->> >>
->> >> I think checkpatch is correct here to complain about the unnecessary curly braces
->> >> here.
->> >>
->> >
->> > Fair enough. I will clean up to the extent feasible.
->> >
->>
->> OK, in an honest attempt to at least remove as many of the checkpatch
->> errors as I can,  [...]
->
-> Note that I actually agreed with your list of checkpatch bogosities - the one I
-> commented on was the only thing that needed fixing, IMHO.
->
+On 08/18/2017 07:54 AM, Punit Agrawal wrote:
+> When walking the page tables to resolve an address that points to
+> !p*d_present() entry, huge_pte_offset() returns inconsistent values
+> depending on the level of page table (PUD or PMD).
+> 
+> It returns NULL in the case of a PUD entry while in the case of a PMD
+> entry, it returns a pointer to the page table entry.
+> 
+> A similar inconsitency exists when handling swap entries - returns NULL
+> for a PUD entry while a pointer to the pte_t is retured for the PMD entry.
+> 
+> Update huge_pte_offset() to make the behaviour consistent - return a
+> pointer to the pte_t for hugepage or swap entries. Only return NULL in
+> instances where we have a p*d_none() entry and the size parameter
+> doesn't match the hugepage size at this level of the page table.
+> 
+> Document the behaviour to clarify the expected behaviour of this function.
+> This is to set clear semantics for architecture specific implementations
+> of huge_pte_offset().
+> 
+> Signed-off-by: Punit Agrawal <punit.agrawal@arm.com>
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>
+> Cc: Steve Capper <steve.capper@arm.com>
+> Cc: Will Deacon <will.deacon@arm.com>
+> Cc: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+> Cc: Michal Hocko <mhocko@suse.com>
+> Cc: Mike Kravetz <mike.kravetz@oracle.com>
+> ---
+> 
+> Hi Andrew,
+> 
+> From discussions on the arm64 implementation of huge_pte_offset()[0]
+> we realised that there is benefit from returning a pte_t* in the case
+> of p*d_none().
+> 
+> The fault handling code in hugetlb_fault() can handle p*d_none()
+> entries and saves an extra round trip to huge_pte_alloc(). Other
+> callers of huge_pte_offset() should be ok as well.
 
-Ah ok. Well, I think the code has improved slightly in some ways as a
-result, so I will just back out the bogus changes for v3.
+Yes, this change would eliminate that call to huge_pte_alloc() in
+hugetlb_fault().  However, huge_pte_offset() is now returning a pointer
+to a p*d_none() pte in some instances where it would have previously
+returned NULL.  Correct?
+
+I went through the callers, and like you am fairly confident that they
+can handle this situation.  But, returning  p*d_none() instead of NULL
+does change the execution path in several routines such as
+copy_hugetlb_page_range, __unmap_hugepage_range hugetlb_change_protection,
+and follow_hugetlb_page.  If huge_pte_alloc() returns NULL to these
+routines, they do a quick continue, exit, etc.  If they are returned
+a pointer, they typically lock the page table(s) and then check for
+p*d_none() before continuing, exiting, etc.  So, it appears that these
+routines could potentially slow down a bit with this change (in the specific
+case of p*d_none).
+
+I 'think' one could argue that the the fault case is more important.  So,
+the savings there would outweigh any potential slowdown in the other
+routines.
+
+IMO, this new version of the patch has more potential for issues than
+the previous version.  It would be helpful if others could take a look.
+
+One thing I am still 'thinking' about is how this patch could potentially
+change behavior in huge_pmd_share.  With the patch, pmd sharing could
+potentially be set up in situations (pmd_none) where it previously would
+not have been set up.  I don't think this is an issue, but any changes to
+this concerns me.
+
+-- 
+Mike Kravetz
+
+> 
+> Apologies for sending a late update but I thought if we are defining
+> the semantics, it's worth getting them right.
+> 
+> Could you please pick this version please?
+> 
+> Thanks,
+> Punit
+> 
+> [0] http://www.spinics.net/lists/linux-mm/msg133699.html
+> 
+> v2: 
+> 
+>  mm/hugetlb.c | 24 +++++++++++++++++++++---
+>  1 file changed, 21 insertions(+), 3 deletions(-)
+> 
+> diff --git a/mm/hugetlb.c b/mm/hugetlb.c
+> index 31e207cb399b..1d54a131bdd5 100644
+> --- a/mm/hugetlb.c
+> +++ b/mm/hugetlb.c
+> @@ -4600,6 +4600,15 @@ pte_t *huge_pte_alloc(struct mm_struct *mm,
+>  	return pte;
+>  }
+>  
+> +/*
+> + * huge_pte_offset() - Walk the page table to resolve the hugepage
+> + * entry at address @addr
+> + *
+> + * Return: Pointer to page table or swap entry (PUD or PMD) for
+> + * address @addr, or NULL if a p*d_none() entry is encountered and the
+> + * size @sz doesn't match the hugepage size at this level of the page
+> + * table.
+> + */
+>  pte_t *huge_pte_offset(struct mm_struct *mm,
+>  		       unsigned long addr, unsigned long sz)
+>  {
+> @@ -4614,13 +4623,22 @@ pte_t *huge_pte_offset(struct mm_struct *mm,
+>  	p4d = p4d_offset(pgd, addr);
+>  	if (!p4d_present(*p4d))
+>  		return NULL;
+> +
+>  	pud = pud_offset(p4d, addr);
+> -	if (!pud_present(*pud))
+> +	if (sz != PUD_SIZE && pud_none(*pud))
+>  		return NULL;
+> -	if (pud_huge(*pud))
+> +	/* hugepage or swap? */
+> +	if (pud_huge(*pud) || !pud_present(*pud))
+>  		return (pte_t *)pud;
+> +
+>  	pmd = pmd_offset(pud, addr);
+> -	return (pte_t *) pmd;
+> +	if (sz != PMD_SIZE && pmd_none(*pmd))
+> +		return NULL;
+> +	/* hugepage or swap? */
+> +	if (pmd_huge(*pmd) || !pmd_present(*pmd))
+> +		return (pte_t *)pmd;
+> +
+> +	return NULL;
+>  }
+>  
+>  #endif /* CONFIG_ARCH_WANT_GENERAL_HUGETLB */
+> 
