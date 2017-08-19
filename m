@@ -1,156 +1,90 @@
-From: Mike Kravetz <mike.kravetz@oracle.com>
-Subject: Re: [PATCH v2] mm/hugetlb.c: make huge_pte_offset() consistent and
- document behaviour
-Date: Fri, 18 Aug 2017 14:29:18 -0700
-Message-ID: <3de49294-f6f8-2623-1778-56a3b092f2a5@oracle.com>
-References: <20170725154114.24131-2-punit.agrawal@arm.com>
- <20170818145415.7588-1-punit.agrawal@arm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+From: Ricardo Neri <ricardo.neri-calderon@linux.intel.com>
+Subject: [PATCH v8 02/28] x86/boot: Relocate definition of the initial state of CR0
+Date: Fri, 18 Aug 2017 17:27:43 -0700
+Message-ID: <20170819002809.111312-3-ricardo.neri-calderon@linux.intel.com>
+References: <20170819002809.111312-1-ricardo.neri-calderon@linux.intel.com>
 Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20170818145415.7588-1-punit.agrawal@arm.com>
-Content-Language: en-US
+In-Reply-To: <20170819002809.111312-1-ricardo.neri-calderon@linux.intel.com>
 Sender: owner-linux-mm@kvack.org
-To: Punit Agrawal <punit.agrawal@arm.com>, Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>, Steve Capper <steve.capper@arm.com>, Will Deacon <will.deacon@arm.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Michal Hocko <mhocko@suse.com>
+To: Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>
+Cc: Peter Zijlstra <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Brian Gerst <brgerst@gmail.com>, Chris Metcalf <cmetcalf@mellanox.com>, Dave Hansen <dave.hansen@linux.intel.com>, Paolo Bonzini <pbonzini@redhat.com>, Liang Z Li <liang.z.li@intel.com>, Masami Hiramatsu <mhiramat@kernel.org>, Huang Rui <ray.huang@amd.com>, Jiri Slaby <jslaby@suse.cz>, Jonathan Corbet <corbet@lwn.net>, "Michael S. Tsirkin" <mst@redhat.com>, Paul Gortmaker <paul.gortmaker@windriver.com>, Vlastimil Babka <vbabka@suse.cz>, Chen Yucong <slaoub@gmail.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Shuah Khan <shuah@kernel.org>, linux-kernel@vger.kernel.org, x86@kernel.org, ricardo.neri@intel.com, Ricardo Neri <ricardo.neri-calderon@linux.intel.com>, Andy Lutomirski <luto@amacapital.net>, Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@intel.com>, Denys
 List-Id: linux-arch.vger.kernel.org
 
-On 08/18/2017 07:54 AM, Punit Agrawal wrote:
-> When walking the page tables to resolve an address that points to
-> !p*d_present() entry, huge_pte_offset() returns inconsistent values
-> depending on the level of page table (PUD or PMD).
-> 
-> It returns NULL in the case of a PUD entry while in the case of a PMD
-> entry, it returns a pointer to the page table entry.
-> 
-> A similar inconsitency exists when handling swap entries - returns NULL
-> for a PUD entry while a pointer to the pte_t is retured for the PMD entry.
-> 
-> Update huge_pte_offset() to make the behaviour consistent - return a
-> pointer to the pte_t for hugepage or swap entries. Only return NULL in
-> instances where we have a p*d_none() entry and the size parameter
-> doesn't match the hugepage size at this level of the page table.
-> 
-> Document the behaviour to clarify the expected behaviour of this function.
-> This is to set clear semantics for architecture specific implementations
-> of huge_pte_offset().
-> 
-> Signed-off-by: Punit Agrawal <punit.agrawal@arm.com>
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>
-> Cc: Steve Capper <steve.capper@arm.com>
-> Cc: Will Deacon <will.deacon@arm.com>
-> Cc: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-> Cc: Michal Hocko <mhocko@suse.com>
-> Cc: Mike Kravetz <mike.kravetz@oracle.com>
-> ---
-> 
-> Hi Andrew,
-> 
-> From discussions on the arm64 implementation of huge_pte_offset()[0]
-> we realised that there is benefit from returning a pte_t* in the case
-> of p*d_none().
-> 
-> The fault handling code in hugetlb_fault() can handle p*d_none()
-> entries and saves an extra round trip to huge_pte_alloc(). Other
-> callers of huge_pte_offset() should be ok as well.
+Both head_32.S and head_64.S utilize the same value to initialize the
+control register CR0. Also, other parts of the kernel might want to access
+to this initial definition (e.g., emulation code for User-Mode Instruction
+Prevention uses this state to provide a sane dummy value for CR0 when
+emulating the smsw instruction). Thus, relocate this definition to a
+header file from which it can be conveniently accessed.
 
-Yes, this change would eliminate that call to huge_pte_alloc() in
-hugetlb_fault().  However, huge_pte_offset() is now returning a pointer
-to a p*d_none() pte in some instances where it would have previously
-returned NULL.  Correct?
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Andy Lutomirski <luto@amacapital.net>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: Brian Gerst <brgerst@gmail.com>
+Cc: Dave Hansen <dave.hansen@intel.com>
+Cc: Denys Vlasenko <dvlasenk@redhat.com>
+Cc: H. Peter Anvin <hpa@zytor.com>
+Cc: Josh Poimboeuf <jpoimboe@redhat.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-arch@vger.kernel.org
+Cc: linux-mm@kvack.org
+Suggested-by: Borislav Petkov <bp@alien8.de>
+Signed-off-by: Ricardo Neri <ricardo.neri-calderon@linux.intel.com>
+---
+ arch/x86/include/uapi/asm/processor-flags.h | 6 ++++++
+ arch/x86/kernel/head_32.S                   | 3 ---
+ arch/x86/kernel/head_64.S                   | 3 ---
+ 3 files changed, 6 insertions(+), 6 deletions(-)
 
-I went through the callers, and like you am fairly confident that they
-can handle this situation.  But, returning  p*d_none() instead of NULL
-does change the execution path in several routines such as
-copy_hugetlb_page_range, __unmap_hugepage_range hugetlb_change_protection,
-and follow_hugetlb_page.  If huge_pte_alloc() returns NULL to these
-routines, they do a quick continue, exit, etc.  If they are returned
-a pointer, they typically lock the page table(s) and then check for
-p*d_none() before continuing, exiting, etc.  So, it appears that these
-routines could potentially slow down a bit with this change (in the specific
-case of p*d_none).
-
-I 'think' one could argue that the the fault case is more important.  So,
-the savings there would outweigh any potential slowdown in the other
-routines.
-
-IMO, this new version of the patch has more potential for issues than
-the previous version.  It would be helpful if others could take a look.
-
-One thing I am still 'thinking' about is how this patch could potentially
-change behavior in huge_pmd_share.  With the patch, pmd sharing could
-potentially be set up in situations (pmd_none) where it previously would
-not have been set up.  I don't think this is an issue, but any changes to
-this concerns me.
-
+diff --git a/arch/x86/include/uapi/asm/processor-flags.h b/arch/x86/include/uapi/asm/processor-flags.h
+index 185f3d10c194..aae1f2aa7563 100644
+--- a/arch/x86/include/uapi/asm/processor-flags.h
++++ b/arch/x86/include/uapi/asm/processor-flags.h
+@@ -151,5 +151,11 @@
+ #define CX86_ARR_BASE	0xc4
+ #define CX86_RCR_BASE	0xdc
+ 
++/*
++ * Initial state of CR0 for head_32/64.S
++ */
++#define CR0_STATE	(X86_CR0_PE | X86_CR0_MP | X86_CR0_ET | \
++			 X86_CR0_NE | X86_CR0_WP | X86_CR0_AM | \
++			 X86_CR0_PG)
+ 
+ #endif /* _UAPI_ASM_X86_PROCESSOR_FLAGS_H */
+diff --git a/arch/x86/kernel/head_32.S b/arch/x86/kernel/head_32.S
+index 0332664eb158..f64059835863 100644
+--- a/arch/x86/kernel/head_32.S
++++ b/arch/x86/kernel/head_32.S
+@@ -213,9 +213,6 @@ ENTRY(startup_32_smp)
+ #endif
+ 
+ .Ldefault_entry:
+-#define CR0_STATE	(X86_CR0_PE | X86_CR0_MP | X86_CR0_ET | \
+-			 X86_CR0_NE | X86_CR0_WP | X86_CR0_AM | \
+-			 X86_CR0_PG)
+ 	movl $(CR0_STATE & ~X86_CR0_PG),%eax
+ 	movl %eax,%cr0
+ 
+diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
+index 513cbb012ecc..5e1bfdd86b5b 100644
+--- a/arch/x86/kernel/head_64.S
++++ b/arch/x86/kernel/head_64.S
+@@ -149,9 +149,6 @@ ENTRY(secondary_startup_64)
+ 1:	wrmsr				/* Make changes effective */
+ 
+ 	/* Setup cr0 */
+-#define CR0_STATE	(X86_CR0_PE | X86_CR0_MP | X86_CR0_ET | \
+-			 X86_CR0_NE | X86_CR0_WP | X86_CR0_AM | \
+-			 X86_CR0_PG)
+ 	movl	$CR0_STATE, %eax
+ 	/* Make changes effective */
+ 	movq	%rax, %cr0
 -- 
-Mike Kravetz
-
-> 
-> Apologies for sending a late update but I thought if we are defining
-> the semantics, it's worth getting them right.
-> 
-> Could you please pick this version please?
-> 
-> Thanks,
-> Punit
-> 
-> [0] http://www.spinics.net/lists/linux-mm/msg133699.html
-> 
-> v2: 
-> 
->  mm/hugetlb.c | 24 +++++++++++++++++++++---
->  1 file changed, 21 insertions(+), 3 deletions(-)
-> 
-> diff --git a/mm/hugetlb.c b/mm/hugetlb.c
-> index 31e207cb399b..1d54a131bdd5 100644
-> --- a/mm/hugetlb.c
-> +++ b/mm/hugetlb.c
-> @@ -4600,6 +4600,15 @@ pte_t *huge_pte_alloc(struct mm_struct *mm,
->  	return pte;
->  }
->  
-> +/*
-> + * huge_pte_offset() - Walk the page table to resolve the hugepage
-> + * entry at address @addr
-> + *
-> + * Return: Pointer to page table or swap entry (PUD or PMD) for
-> + * address @addr, or NULL if a p*d_none() entry is encountered and the
-> + * size @sz doesn't match the hugepage size at this level of the page
-> + * table.
-> + */
->  pte_t *huge_pte_offset(struct mm_struct *mm,
->  		       unsigned long addr, unsigned long sz)
->  {
-> @@ -4614,13 +4623,22 @@ pte_t *huge_pte_offset(struct mm_struct *mm,
->  	p4d = p4d_offset(pgd, addr);
->  	if (!p4d_present(*p4d))
->  		return NULL;
-> +
->  	pud = pud_offset(p4d, addr);
-> -	if (!pud_present(*pud))
-> +	if (sz != PUD_SIZE && pud_none(*pud))
->  		return NULL;
-> -	if (pud_huge(*pud))
-> +	/* hugepage or swap? */
-> +	if (pud_huge(*pud) || !pud_present(*pud))
->  		return (pte_t *)pud;
-> +
->  	pmd = pmd_offset(pud, addr);
-> -	return (pte_t *) pmd;
-> +	if (sz != PMD_SIZE && pmd_none(*pmd))
-> +		return NULL;
-> +	/* hugepage or swap? */
-> +	if (pmd_huge(*pmd) || !pmd_present(*pmd))
-> +		return (pte_t *)pmd;
-> +
-> +	return NULL;
->  }
->  
->  #endif /* CONFIG_ARCH_WANT_GENERAL_HUGETLB */
-> 
+2.13.0
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
