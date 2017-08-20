@@ -1,68 +1,34 @@
-From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: Re: [RFC v6 35/62] powerpc: Deliver SEGV signal on pkey violation
-Date: Sat, 19 Aug 2017 14:09:58 -0500
-Message-ID: <87d17rnzll.fsf@xmission.com>
-References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
-        <1500177424-13695-36-git-send-email-linuxram@us.ibm.com>
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [PATCH v3 5/5] kernel: tracepoints: add support for relative
+ references
+Date: Sun, 20 Aug 2017 10:51:44 -0400
+Message-ID: <20170820105144.3e8269e7@gandalf.local.home>
+References: <20170819181035.969-1-ard.biesheuvel@linaro.org>
+        <20170819181035.969-6-ard.biesheuvel@linaro.org>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from out03.mta.xmission.com ([166.70.13.233]:40597 "EHLO
-        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751171AbdHSTKM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 19 Aug 2017 15:10:12 -0400
-In-Reply-To: <1500177424-13695-36-git-send-email-linuxram@us.ibm.com> (Ram
-        Pai's message of "Sat, 15 Jul 2017 20:56:37 -0700")
+Received: from mail.kernel.org ([198.145.29.99]:39502 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752560AbdHTOvt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 20 Aug 2017 10:51:49 -0400
+In-Reply-To: <20170819181035.969-6-ard.biesheuvel@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ram Pai <linuxram@us.ibm.com>
-Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, mhocko@kernel.org
+To: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Heiko Carstens <heiko.carstens@de.ibm.com>, Kees Cook <keescook@chromium.org>, Will Deacon <will.deacon@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, Thomas Garnier <thgarnie@google.com>, Thomas Gleixner <tglx@linutronix.de>, "Serge E. Hallyn" <serge@hallyn.com>, Bjorn Helgaas <bhelgaas@google.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Catalin Marinas <catalin.marinas@arm.com>, Petr Mladek <pmladek@suse.com>, Ingo Molnar <mingo@redhat.com>, James Morris <james.l.morris@oracle.com>, Andrew Morton <akpm@linux-foundation.org>, Nicolas Pitre <nico@linaro.org>Martin Schwidefsky <sc>
 
-Ram Pai <linuxram@us.ibm.com> writes:
+On Sat, 19 Aug 2017 19:10:35 +0100
+Ard Biesheuvel <ard.biesheuvel@linaro.org> wrote:
 
-> diff --git a/arch/powerpc/kernel/traps.c b/arch/powerpc/kernel/traps.c
-> index d4e545d..fe1e7c7 100644
-> --- a/arch/powerpc/kernel/traps.c
-> +++ b/arch/powerpc/kernel/traps.c
-> @@ -20,6 +20,7 @@
->  #include <linux/sched/debug.h>
->  #include <linux/kernel.h>
->  #include <linux/mm.h>
-> +#include <linux/pkeys.h>
->  #include <linux/stddef.h>
->  #include <linux/unistd.h>
->  #include <linux/ptrace.h>
-> @@ -247,6 +248,15 @@ void user_single_step_siginfo(struct task_struct *tsk,
->  	info->si_addr = (void __user *)regs->nip;
->  }
->  
-> +#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
-> +static void fill_sig_info_pkey(int si_code, siginfo_t *info, unsigned long addr)
-> +{
-> +	if (si_code != SEGV_PKUERR)
-> +		return;
+> To avoid the need for relocating absolute references to tracepoint
+> structures at boot time when running relocatable kernels (which may
+> take a disproportionate amount of space), add the option to emit
+> these tables as relative references instead.
+> 
 
-Given that SEGV_PKUERR is a signal specific si_code this test is
-insufficient to detect an pkey error.  You also need to check
-that signr == SIGSEGV
+This patch looks fine. But I want to test the series before giving it
+my Acked-by. I wont be able to do that till Tuesday at the earliest.
 
-> +	info->si_pkey = get_paca()->paca_pkey;
-> +}
-> +#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
-> +
->  void _exception(int signr, struct pt_regs *regs, int code, unsigned long addr)
->  {
->  	siginfo_t info;
-> @@ -274,6 +284,11 @@ void _exception(int signr, struct pt_regs *regs, int code, unsigned long addr)
->  	info.si_signo = signr;
->  	info.si_code = code;
->  	info.si_addr = (void __user *) addr;
-> +
-> +#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
-> +	fill_sig_info_pkey(code, &info, addr);
-> +#endif /* CONFIG_PPC64_MEMORY_PROTECTION_KEYS */
-> +
->  	force_sig_info(signr, &info, current);
->  }
-
-Eric
+-- Steve
