@@ -1,89 +1,128 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f177.google.com ([209.85.128.177]:34124 "EHLO
-        mail-wr0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754114AbdHUPeN (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 21 Aug 2017 11:34:13 -0400
-Received: by mail-wr0-f177.google.com with SMTP id p14so33751442wrg.1
-        for <linux-arch@vger.kernel.org>; Mon, 21 Aug 2017 08:34:13 -0700 (PDT)
-References: <1502280338-23002-1-git-send-email-Dave.Martin@arm.com> <1502280338-23002-7-git-send-email-Dave.Martin@arm.com> <87a82t5kos.fsf@linaro.org> <8760dh5cbl.fsf@linaro.org> <20170821142627.GQ6321@e103592.cambridge.arm.com> <871so55613.fsf@linaro.org> <20170821151957.GS6321@e103592.cambridge.arm.com>
-From: Alex =?utf-8?Q?Benn=C3=A9e?= <alex.bennee@linaro.org>
-Subject: Re: [PATCH 06/27] arm64/sve: System register and exception syndrome definitions
-In-reply-to: <20170821151957.GS6321@e103592.cambridge.arm.com>
-Date: Mon, 21 Aug 2017 16:34:11 +0100
-Message-ID: <87ziat3pfw.fsf@linaro.org>
+Received: from userp1040.oracle.com ([156.151.31.81]:23021 "EHLO
+        userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754035AbdHUVat (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 21 Aug 2017 17:30:49 -0400
+Subject: Re: [PATCH v2] mm/hugetlb.c: make huge_pte_offset() consistent and
+ document behaviour
+References: <20170725154114.24131-2-punit.agrawal@arm.com>
+ <20170818145415.7588-1-punit.agrawal@arm.com>
+ <3de49294-f6f8-2623-1778-56a3b092f2a5@oracle.com>
+ <20170821180741.4ns2s4wp3t2r6mpi@armageddon.cambridge.arm.com>
+From: Mike Kravetz <mike.kravetz@oracle.com>
+Message-ID: <b64b8eb3-3fe5-5bad-eb01-1bc8a87378d5@oracle.com>
+Date: Mon, 21 Aug 2017 14:30:33 -0700
 MIME-Version: 1.0
+In-Reply-To: <20170821180741.4ns2s4wp3t2r6mpi@armageddon.cambridge.arm.com>
 Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
-Message-ID: <20170821153411.W9HEp9bYAl3jkeSriXau6miQ3M6d36_Olf6tJho9wHY@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Punit Agrawal <punit.agrawal@arm.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>, Steve Capper <steve.capper@arm.com>, Will Deacon <will.deacon@arm.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Michal Hocko <mhocko@suse.com>
+Message-ID: <20170821213033.9-G_6ZzhBOUPEwJcrVQIdgGoV6nrW5oG757f_Y-9ZP8@z>
 
-
-Dave Martin <Dave.Martin@arm.com> writes:
-
-> On Mon, Aug 21, 2017 at 03:50:32PM +0100, Alex Bennée wrote:
->> Dave Martin <Dave.Martin@arm.com> writes:
->> > On Mon, Aug 21, 2017 at 01:34:38PM +0100, Alex Bennée wrote:
->
-> [...]
->
->> >> > Dave Martin <Dave.Martin@arm.com> writes:
->
-> [...]
->
->> >> >> +#define ZCR_ELx_LEN_SHIFT	0
->> >> >> +#define ZCR_ELx_LEN_SIZE	9
->> >> >> +#define ZCR_ELx_LEN_MASK	0x1ff
->> >> >> +
->> >>
->> >> LEN should be 0/4/0xf
->> >>
->> >> LEN, bits [3:0]
->> >>
->> >> Constrains the scalable vector register length for EL1 and EL0 to
->> >> (LEN+1)x128 bits.
->> >
->> > The SVE supplement is not very explicit about the meaning of bits [8:4],
->> > but they are reserved to extend the LEN field in the future, in case
->> > that's ever needed for future architecture revisions.  I've aimed for
->> > Linux to cope with this.
->> >
->> > Basically bits [8:4] are read-as-zero, write-ignore today, but in
->> > the future some or all of them may be LEN field bits.
->> >
->> > In particular, this means that writing all bits [8:0] with 1 will
->> > configure the largest supported vector length, even on future
->> > architecture versions that may have a larger LEN field.
+On 08/21/2017 11:07 AM, Catalin Marinas wrote:
+> On Fri, Aug 18, 2017 at 02:29:18PM -0700, Mike Kravetz wrote:
+>> On 08/18/2017 07:54 AM, Punit Agrawal wrote:
+>>> When walking the page tables to resolve an address that points to
+>>> !p*d_present() entry, huge_pte_offset() returns inconsistent values
+>>> depending on the level of page table (PUD or PMD).
+>>>
+>>> It returns NULL in the case of a PUD entry while in the case of a PMD
+>>> entry, it returns a pointer to the page table entry.
+>>>
+>>> A similar inconsitency exists when handling swap entries - returns NULL
+>>> for a PUD entry while a pointer to the pte_t is retured for the PMD entry.
+>>>
+>>> Update huge_pte_offset() to make the behaviour consistent - return a
+>>> pointer to the pte_t for hugepage or swap entries. Only return NULL in
+>>> instances where we have a p*d_none() entry and the size parameter
+>>> doesn't match the hugepage size at this level of the page table.
+>>>
+>>> Document the behaviour to clarify the expected behaviour of this function.
+>>> This is to set clear semantics for architecture specific implementations
+>>> of huge_pte_offset().
+>>>
+>>> Signed-off-by: Punit Agrawal <punit.agrawal@arm.com>
+>>> Cc: Catalin Marinas <catalin.marinas@arm.com>
+>>> Cc: Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>
+>>> Cc: Steve Capper <steve.capper@arm.com>
+>>> Cc: Will Deacon <will.deacon@arm.com>
+>>> Cc: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+>>> Cc: Michal Hocko <mhocko@suse.com>
+>>> Cc: Mike Kravetz <mike.kravetz@oracle.com>
+>>> ---
+>>>
+>>> Hi Andrew,
+>>>
+>>> From discussions on the arm64 implementation of huge_pte_offset()[0]
+>>> we realised that there is benefit from returning a pte_t* in the case
+>>> of p*d_none().
+>>>
+>>> The fault handling code in hugetlb_fault() can handle p*d_none()
+>>> entries and saves an extra round trip to huge_pte_alloc(). Other
+>>> callers of huge_pte_offset() should be ok as well.
 >>
->> Ahh ok. It's not clear from the html and it is certainly implied in the
->> supplement (2.1.1) that the architectural max is:
->>
->>   The size of every vector register is an IMPLEMENTATION DEFINED
->>   multiple of 128 bits, up to an architectural maximum of 2048 bits.
->>
->> >
->> > It didn't seem useful to distinguish the two classes of bits here.
->>
->> Maybe a comment clarifying would be useful then?
->
-> OK, I think I can say something like:
->
-> /*
->  * The ZCR_ELx_LEN_* definitions intentionally include bits [8:4]
->  * which are reserved by the SVE architecture for future expansion of
->  * the LEN field, with compatible semantics.
->  */
->
-> Any good?
+>> Yes, this change would eliminate that call to huge_pte_alloc() in
+>> hugetlb_fault().  However, huge_pte_offset() is now returning a pointer
+>> to a p*d_none() pte in some instances where it would have previously
+>> returned NULL.  Correct?
+> 
+> Yes (whether it was previously the right thing to return is a different
+> matter; that's what we are trying to clarify in the generic code so that
+> we can have similar semantics on arm64).
+> 
+>> I went through the callers, and like you am fairly confident that they
+>> can handle this situation.  But, returning  p*d_none() instead of NULL
+>> does change the execution path in several routines such as
+>> copy_hugetlb_page_range, __unmap_hugepage_range hugetlb_change_protection,
+>> and follow_hugetlb_page.  If huge_pte_alloc() returns NULL to these
+>> routines, they do a quick continue, exit, etc.  If they are returned
+>> a pointer, they typically lock the page table(s) and then check for
+>> p*d_none() before continuing, exiting, etc.  So, it appears that these
+>> routines could potentially slow down a bit with this change (in the specific
+>> case of p*d_none).
+> 
+> Arguably (well, my interpretation), it should return a NULL only if the
+> entry is a table entry, potentially pointing to a next level (pmd). In
+> the pud case, this means that sz < PUD_SIZE.
+> 
+> If the pud is a last level huge page entry (either present or !present),
+> huge_pte_offset() should return the pointer to it and never NULL. If the
+> entry is a swap or migration one (pte_present() == false) with the
+> current code we don't even enter the corresponding checks in
+> copy_hugetlb_page_range().
+> 
+> I also assume that the ptl __unmap_hugepage_range() is taken to avoid
+> some race when the entry is a huge page (present or not). If such race
+> doesn't exist, we could as well check the huge_pte_none() outside the
+> locked region (which is what the current huge_pte_offset() does with
+> !pud_present()).
+> 
+> IMHO, while the current generic huge_pte_offset() avoids some code paths
+> in the functions you mentioned, the results are not always correct
+> (missing swap/migration entries or potentially racy).
 
-Works for me ;-)
+Thanks Catalin,
 
->
-> Cheers
-> ---Dave
+The more I look at this code and think about it, the more I like it.  As
+Michal previously mentioned, changes in this area can break things in subtle
+ways.  That is why I was cautious and asked for more people to look at it.
+My primary concerns with these changes in this area were:
+- Any potential changes in behavior.  I think this has been sufficiently
+  explored.  While there may be small differences in behavior (for the
+  better), this change should not introduce any bugs/breakage.
+- Other arch specific implementations are not aligned with the new
+  behavior.  Again, this should not cause any issues.  Punit (and I) have
+  looked at the arch specific implementations for issues and found none.
+  In addition, since we are not changing any of the 'calling code', no
+  issues should be introduced for arch specific implementations.
 
+I like the new semantics and did not find any issues.
 
---
-Alex Bennée
+Reviewed-by: Mike Kravetz <mike.kravetz@oracle.com>
+
+-- 
+Mike Kravetz
