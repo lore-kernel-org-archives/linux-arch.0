@@ -1,90 +1,99 @@
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCH 1/2] arm64: mm: abort uaccess retries upon fatal signal
-Date: Mon, 21 Aug 2017 14:42:03 +0100
-Message-ID: <20170821134202.GA5418@leverpostej>
-References: <1499782763-31418-1-git-send-email-mark.rutland@arm.com>
- <1499782763-31418-2-git-send-email-mark.rutland@arm.com>
- <20170711145849.GE13977@arm.com>
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [PATCH 06/27] arm64/sve: System register and exception syndrome
+ definitions
+Date: Mon, 21 Aug 2017 14:56:54 +0100
+Message-ID: <20170821135654.GP6321@e103592.cambridge.arm.com>
+References: <1502280338-23002-1-git-send-email-Dave.Martin@arm.com>
+ <1502280338-23002-7-git-send-email-Dave.Martin@arm.com>
+ <87a82t5kos.fsf@linaro.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <stable-owner@vger.kernel.org>
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+Return-path: <kvmarm-bounces@lists.cs.columbia.edu>
 Content-Disposition: inline
-In-Reply-To: <20170711145849.GE13977@arm.com>
-Sender: stable-owner@vger.kernel.org
-To: Will Deacon <will.deacon@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, catalin.marinas@arm.com, james.morse@arm.com, labbott@redhat.com, linux@armlinux.org.uk, stable@vger.kernel.org, steve.capper@arm.com, viro@zeniv.linux.org.uk, peterz@infradead.org, luto@amacapital.net
+In-Reply-To: <87a82t5kos.fsf@linaro.org>
+List-Unsubscribe: <https://lists.cs.columbia.edu/mailman/options/kvmarm>,
+ <mailto:kvmarm-request@lists.cs.columbia.edu?subject=unsubscribe>
+List-Archive: <https://lists.cs.columbia.edu/pipermail/kvmarm>
+List-Post: <mailto:kvmarm@lists.cs.columbia.edu>
+List-Help: <mailto:kvmarm-request@lists.cs.columbia.edu?subject=help>
+List-Subscribe: <https://lists.cs.columbia.edu/mailman/listinfo/kvmarm>,
+ <mailto:kvmarm-request@lists.cs.columbia.edu?subject=subscribe>
+Errors-To: kvmarm-bounces@lists.cs.columbia.edu
+Sender: kvmarm-bounces@lists.cs.columbia.edu
+To: Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>
+Cc: linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jul 11, 2017 at 03:58:49PM +0100, Will Deacon wrote:
-> On Tue, Jul 11, 2017 at 03:19:22PM +0100, Mark Rutland wrote:
-> > When there's a fatal signal pending, arm64's do_page_fault()
-> > implementation returns 0. The intent is that we'll return to the
-> > faulting userspace instruction, delivering the signal on the way.
-> > 
-> > However, if we take a fatal signal during fixing up a uaccess, this
-> > results in a return to the faulting kernel instruction, which will be
-> > instantly retried, resulting in the same fault being taken forever. As
-> > the task never reaches userspace, the signal is not delivered, and the
-> > task is left unkillable. While the task is stuck in this state, it can
-> > inhibit the forward progress of the system.
-> > 
-> > To avoid this, we must ensure that when a fatal signal is pending, we
-> > apply any necessary fixup for a faulting kernel instruction. Thus we
-> > will return to an error path, and it is up to that code to make forward
-> > progress towards delivering the fatal signal.
-> > 
-> > Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-> > Reviewed-by: Steve Capper <steve.capper@arm.com>
-> > Tested-by: Steve Capper <steve.capper@arm.com>
-> > Cc: Catalin Marinas <catalin.marinas@arm.com>
-> > Cc: James Morse <james.morse@arm.com>
-> > Cc: Laura Abbott <labbott@redhat.com>
-> > Cc: Will Deacon <will.deacon@arm.com>
-> > Cc: stable@vger.kernel.org
+On Mon, Aug 21, 2017 at 10:33:55AM +0100, Alex Benn=E9e wrote:
+> =
+
+> Dave Martin <Dave.Martin@arm.com> writes:
+> =
+
+> > The SVE architecture adds some system registers, ID register fields
+> > and a dedicated ESR exception class.
+> >
+> > This patch adds the appropriate definitions that will be needed by
+> > the kernel.
+> >
+> > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
 > > ---
-> >  arch/arm64/mm/fault.c | 5 ++++-
-> >  1 file changed, 4 insertions(+), 1 deletion(-)
-> > 
-> > diff --git a/arch/arm64/mm/fault.c b/arch/arm64/mm/fault.c
-> > index 37b95df..3952d5e 100644
-> > --- a/arch/arm64/mm/fault.c
-> > +++ b/arch/arm64/mm/fault.c
-> > @@ -397,8 +397,11 @@ static int __kprobes do_page_fault(unsigned long addr, unsigned int esr,
-> >  	 * signal first. We do not need to release the mmap_sem because it
-> >  	 * would already be released in __lock_page_or_retry in mm/filemap.c.
-> >  	 */
-> > -	if ((fault & VM_FAULT_RETRY) && fatal_signal_pending(current))
-> > +	if ((fault & VM_FAULT_RETRY) && fatal_signal_pending(current)) {
-> > +		if (!user_mode(regs))
-> > +			goto no_context;
-> >  		return 0;
-> > +	}
-> 
-> This will need rebasing at -rc1 (take a look at current HEAD).
-> 
-> Also, I think it introduces a weird corner case where we take a page fault
-> when writing the signal frame to the user stack to deliver a SIGSEGV. If
-> we end up with VM_FAULT_RETRY and somebody has sent a SIGKILL to the task,
-> then we'll fail setup_sigframe and force an un-handleable SIGSEGV instead
-> of SIGKILL.
-> 
-> The end result (task is killed) is the same, but the fatal signal is wrong.
+> >  arch/arm64/include/asm/esr.h     |  3 ++-
+> >  arch/arm64/include/asm/kvm_arm.h |  1 +
+> >  arch/arm64/include/asm/sysreg.h  | 16 ++++++++++++++++
+> >  arch/arm64/kernel/traps.c        |  1 +
+> >  4 files changed, 20 insertions(+), 1 deletion(-)
 
-That doesn't seem to be the case, testing on v4.13-rc5.
+[...]
 
-I used sigaltstack() to use the userfaultfd region as signal stack,
-registerd a SIGSEGV handler, and dereferenced NULL. The task locks up,
-but when killed with a SIGINT or SIGKILL, the exit status reflects that
-signal, rather than the SIGSEGV.
+> > diff --git a/arch/arm64/include/asm/sysreg.h b/arch/arm64/include/asm/s=
+ysreg.h
+> > index 248339e..2d259e8 100644
+> > --- a/arch/arm64/include/asm/sysreg.h
+> > +++ b/arch/arm64/include/asm/sysreg.h
 
-If I move the SIGINT handler onto the userfaultfd-monitored stack, then
-delivering SIGINT hangs, but can be killed with SIGKILL, and the exit
-status reflects that SIGKILL.
+[...]
 
-As you say, it does look like we'd try to set up a deferred SIGSEGV for
-the failed signal delivery.
+> > +#define SYS_ZCR_EL1			sys_reg(3, 0, 1, 2, 0)
+> > +
+> =
 
-I haven't yet figured out exactly how that works; I'll keep digging.
+> I'll have to take these on trust. They are mentioned in both the ARM ARM
+> and the SVE supplement but I can't see any actual definitions of them.
 
-Thanks,
-Mark.
+[I note from subsequent replies you've now found this in the
+accompanying HTML]
+
+[...]
+
+> > +#define CPACR_EL1_ZEN_EL1EN	(1 << 16)
+> > +#define CPACR_EL1_ZEN_EL0EN	(1 << 17)
+> > +#define CPACR_EL1_ZEN		(CPACR_EL1_ZEN_EL1EN |
+> > CPACR_EL1_ZEN_EL0EN)
+> =
+
+> This is a little weird as it is a 2 bit field in which 00 and 11 are not
+> simply the sum of their bits. If the code wrote CPACR_EL1_ZEN_EL0EN |
+> CPACR_EL1_ZEN_EL1EN to the CPACR_EL1 you wouldn't get the expected behavi=
+our.
+
+This seemed natural-ish if you believe that disabling at EL1 implies
+disabling at EL0.  This is consistent with the way the traps at EL2/3
+work, and lack of this property would be a sort of privilege inversion.
+
+The meanings of the bits are not orthogonal, but it's still useful to be
+able to twiddle EL0EN by itself when EL1EN is set (since we wan't to
+control access for EL0 but leave EL1 access enabled).
+
+Maybe comments would be sufficient:
+
+#define CPACR_EL1_ZEN_EL1EN ... /* enable EL1 access */
+#define CPACR_EL1_ZEN_EL0EN ... /* enable EL0 access, if EL1EN is also set =
+*/
+
+I'm not sure how to make the names both reasonably terse and self-
+escribing, but I'm open to ideas.
+
+Cheers
+---Dave
