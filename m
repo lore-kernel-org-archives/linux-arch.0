@@ -1,166 +1,48 @@
-From: Alex =?utf-8?Q?Benn=C3=A9e?= <alex.bennee@linaro.org>
-Subject: Re: [PATCH 06/27] arm64/sve: System register and exception syndrome definitions
-Date: Mon, 21 Aug 2017 13:34:38 +0100
-Message-ID: <8760dh5cbl.fsf@linaro.org>
-References: <1502280338-23002-1-git-send-email-Dave.Martin@arm.com> <1502280338-23002-7-git-send-email-Dave.Martin@arm.com> <87a82t5kos.fsf@linaro.org>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: x86: PIE support and option to extend KASLR randomization
+Date: Mon, 21 Aug 2017 15:32:22 +0200
+Message-ID: <20170821133222.2ek6bhqgdeoymxsg@hirez.programming.kicks-ass.net>
+References: <20170810172615.51965-1-thgarnie@google.com>
+ <20170811124127.kkb5pnkljz4umxuj@gmail.com>
+ <CAJcbSZFTX3uiS2g8JriS6+z_+WrG8z3hrQo4OSuyHpiyUDJWYA@mail.gmail.com>
+ <20170815075609.mmzbfwritjzvrpsn@gmail.com>
+ <CAJcbSZE+TiY2whT94WqCJNXzR=2ATOHcQ10H5RqBZA1j=k1VHQ@mail.gmail.com>
+ <20170816151235.oamkdva6cwpc4cex@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f175.google.com ([209.85.128.175]:33380 "EHLO
-        mail-wr0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753677AbdHUMel (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 21 Aug 2017 08:34:41 -0400
-Received: by mail-wr0-f175.google.com with SMTP id 30so25254518wrk.0
-        for <linux-arch@vger.kernel.org>; Mon, 21 Aug 2017 05:34:40 -0700 (PDT)
-In-reply-to: <87a82t5kos.fsf@linaro.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu
+Content-Type: text/plain; charset=us-ascii
+Return-path: <kernel-hardening-return-9535-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+Content-Disposition: inline
+In-Reply-To: <20170816151235.oamkdva6cwpc4cex@gmail.com>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Thomas Garnier <thgarnie@google.com>, Herbert Xu <herbert@gondor.apana.org.au>, "David S . Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Matthias Kaehlcke <mka@chromium.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, Paolo Bonzini <pbonzini@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Joerg Roedel <joro@8bytes.org>, Tom Lendacky <thomas.lendacky@amd.com>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Brian Gerst <brgerst@gmail.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, "Rafael J . Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Pavel Machek <pavel@ucw.cz>, Tejun Heo <tj@kernel.org>, Christoph
+List-Id: linux-arch.vger.kernel.org
 
+On Wed, Aug 16, 2017 at 05:12:35PM +0200, Ingo Molnar wrote:
+> Unfortunately mcmodel=large looks pretty heavy too AFAICS, at the machine 
+> instruction level.
+> 
+> Function calls look like this:
+> 
+>  -mcmodel=medium:
+> 
+>    757:   e8 98 ff ff ff          callq  6f4 <test_code>
+> 
+>  -mcmodel=large
+> 
+>    77b:   48 b8 10 f7 df ff ff    movabs $0xffffffffffdff710,%rax
+>    782:   ff ff ff 
+>    785:   48 8d 04 03             lea    (%rbx,%rax,1),%rax
+>    789:   ff d0                   callq  *%rax
+> 
+> And we'd do this for _EVERY_ function call in the kernel. That kind of crap is 
+> totally unacceptable.
 
-Alex Bennée <alex.bennee@linaro.org> writes:
+So why does this need to be computed for every single call? How often
+will we move the kernel around at runtime?
 
-> Dave Martin <Dave.Martin@arm.com> writes:
->
->> The SVE architecture adds some system registers, ID register fields
->> and a dedicated ESR exception class.
->>
->> This patch adds the appropriate definitions that will be needed by
->> the kernel.
->>
->> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
->> ---
->>  arch/arm64/include/asm/esr.h     |  3 ++-
->>  arch/arm64/include/asm/kvm_arm.h |  1 +
->>  arch/arm64/include/asm/sysreg.h  | 16 ++++++++++++++++
->>  arch/arm64/kernel/traps.c        |  1 +
->>  4 files changed, 20 insertions(+), 1 deletion(-)
->>
->> diff --git a/arch/arm64/include/asm/esr.h b/arch/arm64/include/asm/esr.h
->> index 8cabd57..813629e 100644
->> --- a/arch/arm64/include/asm/esr.h
->> +++ b/arch/arm64/include/asm/esr.h
->> @@ -43,7 +43,8 @@
->>  #define ESR_ELx_EC_HVC64	(0x16)
->>  #define ESR_ELx_EC_SMC64	(0x17)
->>  #define ESR_ELx_EC_SYS64	(0x18)
->> -/* Unallocated EC: 0x19 - 0x1E */
->> +#define ESR_ELx_EC_SVE		(0x19)
->> +/* Unallocated EC: 0x1A - 0x1E */
->>  #define ESR_ELx_EC_IMP_DEF	(0x1f)
->>  #define ESR_ELx_EC_IABT_LOW	(0x20)
->>  #define ESR_ELx_EC_IABT_CUR	(0x21)
->> diff --git a/arch/arm64/include/asm/kvm_arm.h b/arch/arm64/include/asm/kvm_arm.h
->> index 61d694c..dbf0537 100644
->> --- a/arch/arm64/include/asm/kvm_arm.h
->> +++ b/arch/arm64/include/asm/kvm_arm.h
->> @@ -185,6 +185,7 @@
->>  #define CPTR_EL2_TCPAC	(1 << 31)
->>  #define CPTR_EL2_TTA	(1 << 20)
->>  #define CPTR_EL2_TFP	(1 << CPTR_EL2_TFP_SHIFT)
->> +#define CPTR_EL2_TZ	(1 << 8)
->>  #define CPTR_EL2_DEFAULT	0x000033ff
->>
->>  /* Hyp Debug Configuration Register bits */
->> diff --git a/arch/arm64/include/asm/sysreg.h b/arch/arm64/include/asm/sysreg.h
->> index 248339e..2d259e8 100644
->> --- a/arch/arm64/include/asm/sysreg.h
->> +++ b/arch/arm64/include/asm/sysreg.h
->> @@ -145,6 +145,7 @@
->>
->>  #define SYS_ID_AA64PFR0_EL1		sys_reg(3, 0, 0, 4, 0)
->>  #define SYS_ID_AA64PFR1_EL1		sys_reg(3, 0, 0, 4, 1)
->> +#define SYS_ID_AA64ZFR0_EL1		sys_reg(3, 0, 0, 4, 4)
->>
->>  #define SYS_ID_AA64DFR0_EL1		sys_reg(3, 0, 0, 5, 0)
->>  #define SYS_ID_AA64DFR1_EL1		sys_reg(3, 0, 0, 5, 1)
->> @@ -160,6 +161,8 @@
->>  #define SYS_ACTLR_EL1			sys_reg(3, 0, 1, 0, 1)
->>  #define SYS_CPACR_EL1			sys_reg(3, 0, 1, 0, 2)
->>
->> +#define SYS_ZCR_EL1			sys_reg(3, 0, 1, 2, 0)
->> +
->
-> I'll have to take these on trust. They are mentioned in both the ARM ARM
-> and the SVE supplement but I can't see any actual definitions of them.
->
->>  #define SYS_TTBR0_EL1			sys_reg(3, 0, 2, 0, 0)
->>  #define SYS_TTBR1_EL1			sys_reg(3, 0, 2, 0, 1)
->>  #define SYS_TCR_EL1			sys_reg(3, 0, 2, 0, 2)
->> @@ -250,6 +253,8 @@
->>
->>  #define SYS_PMCCFILTR_EL0		sys_reg (3, 3, 14, 15, 7)
->>
->> +#define SYS_ZCR_EL2			sys_reg(3, 4, 1, 2, 0)
->> +
-
-OK no I'm working directly from the unpacked ZIP file with the rest of
-the details I think this should be:
-
-  #define SYS_ZCR_EL2			sys_reg(3, 5, 1, 2, 0)
-
-e.g. op1 = 101 / 5
-
->>  #define SYS_DACR32_EL2			sys_reg(3, 4, 3, 0, 0)
->>  #define SYS_IFSR32_EL2			sys_reg(3, 4, 5, 0, 1)
->>  #define SYS_FPEXC32_EL2			sys_reg(3, 4, 5, 3, 0)
->> @@ -331,6 +336,7 @@
->>  #define ID_AA64ISAR1_JSCVT_SHIFT	12
->>
->>  /* id_aa64pfr0 */
->> +#define ID_AA64PFR0_SVE_SHIFT		32
->>  #define ID_AA64PFR0_GIC_SHIFT		24
->>  #define ID_AA64PFR0_ASIMD_SHIFT		20
->>  #define ID_AA64PFR0_FP_SHIFT		16
->> @@ -339,6 +345,7 @@
->>  #define ID_AA64PFR0_EL1_SHIFT		4
->>  #define ID_AA64PFR0_EL0_SHIFT		0
->>
->> +#define ID_AA64PFR0_SVE			0x1
->>  #define ID_AA64PFR0_FP_NI		0xf
->>  #define ID_AA64PFR0_FP_SUPPORTED	0x0
->>  #define ID_AA64PFR0_ASIMD_NI		0xf
->> @@ -440,6 +447,15 @@
->>  #endif
->>
->>
->> +#define ZCR_ELx_LEN_SHIFT	0
->> +#define ZCR_ELx_LEN_SIZE	9
->> +#define ZCR_ELx_LEN_MASK	0x1ff
->> +
-
-LEN should be 0/4/0xf
-
-LEN, bits [3:0]
-
-Constrains the scalable vector register length for EL1 and EL0 to (LEN+1)x128 bits.
-
-
->> +#define CPACR_EL1_ZEN_EL1EN	(1 << 16)
->> +#define CPACR_EL1_ZEN_EL0EN	(1 << 17)
->> +#define CPACR_EL1_ZEN		(CPACR_EL1_ZEN_EL1EN |
->> CPACR_EL1_ZEN_EL0EN)
->
-> This is a little weird as it is a 2 bit field in which 00 and 11 are not
-> simply the sum of their bits. If the code wrote CPACR_EL1_ZEN_EL0EN |
-> CPACR_EL1_ZEN_EL1EN to the CPACR_EL1 you wouldn't get the expected behaviour.
->
->> +
->> +
->>  /* Safe value for MPIDR_EL1: Bit31:RES1, Bit30:U:0, Bit24:MT:0 */
->>  #define SYS_MPIDR_SAFE_VAL		(1UL << 31)
->>
->> diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
->> index 0f047e9..8964795 100644
->> --- a/arch/arm64/kernel/traps.c
->> +++ b/arch/arm64/kernel/traps.c
->> @@ -621,6 +621,7 @@ static const char *esr_class_str[] = {
->>  	[ESR_ELx_EC_HVC64]		= "HVC (AArch64)",
->>  	[ESR_ELx_EC_SMC64]		= "SMC (AArch64)",
->>  	[ESR_ELx_EC_SYS64]		= "MSR/MRS (AArch64)",
->> +	[ESR_ELx_EC_SVE]		= "SVE",
->>  	[ESR_ELx_EC_IMP_DEF]		= "EL3 IMP DEF",
->>  	[ESR_ELx_EC_IABT_LOW]		= "IABT (lower EL)",
->>  	[ESR_ELx_EC_IABT_CUR]		= "IABT (current EL)",
+Why can't we process the relocation at load time and then discard the
+relocation tables along with the rest of __init ?
