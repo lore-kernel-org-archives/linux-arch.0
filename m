@@ -1,35 +1,153 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:39502 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752560AbdHTOvt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 20 Aug 2017 10:51:49 -0400
-Date: Sun, 20 Aug 2017 10:51:44 -0400
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH v3 5/5] kernel: tracepoints: add support for relative
- references
-Message-ID: <20170820105144.3e8269e7@gandalf.local.home>
-In-Reply-To: <20170819181035.969-6-ard.biesheuvel@linaro.org>
-References: <20170819181035.969-1-ard.biesheuvel@linaro.org>
-        <20170819181035.969-6-ard.biesheuvel@linaro.org>
+Received: from mail-wr0-f175.google.com ([209.85.128.175]:36849 "EHLO
+        mail-wr0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752965AbdHUJd6 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 21 Aug 2017 05:33:58 -0400
+Received: by mail-wr0-f175.google.com with SMTP id f8so57735354wrf.3
+        for <linux-arch@vger.kernel.org>; Mon, 21 Aug 2017 02:33:57 -0700 (PDT)
+References: <1502280338-23002-1-git-send-email-Dave.Martin@arm.com> <1502280338-23002-7-git-send-email-Dave.Martin@arm.com>
+From: Alex =?utf-8?Q?Benn=C3=A9e?= <alex.bennee@linaro.org>
+Subject: Re: [PATCH 06/27] arm64/sve: System register and exception syndrome definitions
+In-reply-to: <1502280338-23002-7-git-send-email-Dave.Martin@arm.com>
+Date: Mon, 21 Aug 2017 10:33:55 +0100
+Message-ID: <87a82t5kos.fsf@linaro.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Heiko Carstens <heiko.carstens@de.ibm.com>, Kees Cook <keescook@chromium.org>, Will Deacon <will.deacon@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, Thomas Garnier <thgarnie@google.com>, Thomas Gleixner <tglx@linutronix.de>, "Serge E. Hallyn" <serge@hallyn.com>, Bjorn Helgaas <bhelgaas@google.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Catalin Marinas <catalin.marinas@arm.com>, Petr Mladek <pmladek@suse.com>, Ingo Molnar <mingo@redhat.com>, James Morris <james.l.morris@oracle.com>, Andrew Morton <akpm@linux-foundation.org>, Nicolas Pitre <nico@linaro.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Sergey Senozhatsky <sergey.senozhatsky@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, Jessica Yu <jeyu@kernel.org>
-Message-ID: <20170820145144.jA4xGb73OrgEz6uD1nzsN9h7AiZ6Xw9VCeqd4qheu0g@z>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu
+Message-ID: <20170821093355.ZxL66EiEqny5R9_Q1xGF4XNEJlFnj1HX76XhGW5Ul28@z>
 
-On Sat, 19 Aug 2017 19:10:35 +0100
-Ard Biesheuvel <ard.biesheuvel@linaro.org> wrote:
 
-> To avoid the need for relocating absolute references to tracepoint
-> structures at boot time when running relocatable kernels (which may
-> take a disproportionate amount of space), add the option to emit
-> these tables as relative references instead.
-> 
+Dave Martin <Dave.Martin@arm.com> writes:
 
-This patch looks fine. But I want to test the series before giving it
-my Acked-by. I wont be able to do that till Tuesday at the earliest.
+> The SVE architecture adds some system registers, ID register fields
+> and a dedicated ESR exception class.
+>
+> This patch adds the appropriate definitions that will be needed by
+> the kernel.
+>
+> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> ---
+>  arch/arm64/include/asm/esr.h     |  3 ++-
+>  arch/arm64/include/asm/kvm_arm.h |  1 +
+>  arch/arm64/include/asm/sysreg.h  | 16 ++++++++++++++++
+>  arch/arm64/kernel/traps.c        |  1 +
+>  4 files changed, 20 insertions(+), 1 deletion(-)
+>
+> diff --git a/arch/arm64/include/asm/esr.h b/arch/arm64/include/asm/esr.h
+> index 8cabd57..813629e 100644
+> --- a/arch/arm64/include/asm/esr.h
+> +++ b/arch/arm64/include/asm/esr.h
+> @@ -43,7 +43,8 @@
+>  #define ESR_ELx_EC_HVC64	(0x16)
+>  #define ESR_ELx_EC_SMC64	(0x17)
+>  #define ESR_ELx_EC_SYS64	(0x18)
+> -/* Unallocated EC: 0x19 - 0x1E */
+> +#define ESR_ELx_EC_SVE		(0x19)
+> +/* Unallocated EC: 0x1A - 0x1E */
+>  #define ESR_ELx_EC_IMP_DEF	(0x1f)
+>  #define ESR_ELx_EC_IABT_LOW	(0x20)
+>  #define ESR_ELx_EC_IABT_CUR	(0x21)
+> diff --git a/arch/arm64/include/asm/kvm_arm.h b/arch/arm64/include/asm/kvm_arm.h
+> index 61d694c..dbf0537 100644
+> --- a/arch/arm64/include/asm/kvm_arm.h
+> +++ b/arch/arm64/include/asm/kvm_arm.h
+> @@ -185,6 +185,7 @@
+>  #define CPTR_EL2_TCPAC	(1 << 31)
+>  #define CPTR_EL2_TTA	(1 << 20)
+>  #define CPTR_EL2_TFP	(1 << CPTR_EL2_TFP_SHIFT)
+> +#define CPTR_EL2_TZ	(1 << 8)
+>  #define CPTR_EL2_DEFAULT	0x000033ff
+>
+>  /* Hyp Debug Configuration Register bits */
+> diff --git a/arch/arm64/include/asm/sysreg.h b/arch/arm64/include/asm/sysreg.h
+> index 248339e..2d259e8 100644
+> --- a/arch/arm64/include/asm/sysreg.h
+> +++ b/arch/arm64/include/asm/sysreg.h
+> @@ -145,6 +145,7 @@
+>
+>  #define SYS_ID_AA64PFR0_EL1		sys_reg(3, 0, 0, 4, 0)
+>  #define SYS_ID_AA64PFR1_EL1		sys_reg(3, 0, 0, 4, 1)
+> +#define SYS_ID_AA64ZFR0_EL1		sys_reg(3, 0, 0, 4, 4)
+>
+>  #define SYS_ID_AA64DFR0_EL1		sys_reg(3, 0, 0, 5, 0)
+>  #define SYS_ID_AA64DFR1_EL1		sys_reg(3, 0, 0, 5, 1)
+> @@ -160,6 +161,8 @@
+>  #define SYS_ACTLR_EL1			sys_reg(3, 0, 1, 0, 1)
+>  #define SYS_CPACR_EL1			sys_reg(3, 0, 1, 0, 2)
+>
+> +#define SYS_ZCR_EL1			sys_reg(3, 0, 1, 2, 0)
+> +
 
--- Steve
+I'll have to take these on trust. They are mentioned in both the ARM ARM
+and the SVE supplement but I can't see any actual definitions of them.
+
+>  #define SYS_TTBR0_EL1			sys_reg(3, 0, 2, 0, 0)
+>  #define SYS_TTBR1_EL1			sys_reg(3, 0, 2, 0, 1)
+>  #define SYS_TCR_EL1			sys_reg(3, 0, 2, 0, 2)
+> @@ -250,6 +253,8 @@
+>
+>  #define SYS_PMCCFILTR_EL0		sys_reg (3, 3, 14, 15, 7)
+>
+> +#define SYS_ZCR_EL2			sys_reg(3, 4, 1, 2, 0)
+> +
+>  #define SYS_DACR32_EL2			sys_reg(3, 4, 3, 0, 0)
+>  #define SYS_IFSR32_EL2			sys_reg(3, 4, 5, 0, 1)
+>  #define SYS_FPEXC32_EL2			sys_reg(3, 4, 5, 3, 0)
+> @@ -331,6 +336,7 @@
+>  #define ID_AA64ISAR1_JSCVT_SHIFT	12
+>
+>  /* id_aa64pfr0 */
+> +#define ID_AA64PFR0_SVE_SHIFT		32
+>  #define ID_AA64PFR0_GIC_SHIFT		24
+>  #define ID_AA64PFR0_ASIMD_SHIFT		20
+>  #define ID_AA64PFR0_FP_SHIFT		16
+> @@ -339,6 +345,7 @@
+>  #define ID_AA64PFR0_EL1_SHIFT		4
+>  #define ID_AA64PFR0_EL0_SHIFT		0
+>
+> +#define ID_AA64PFR0_SVE			0x1
+>  #define ID_AA64PFR0_FP_NI		0xf
+>  #define ID_AA64PFR0_FP_SUPPORTED	0x0
+>  #define ID_AA64PFR0_ASIMD_NI		0xf
+> @@ -440,6 +447,15 @@
+>  #endif
+>
+>
+> +#define ZCR_ELx_LEN_SHIFT	0
+> +#define ZCR_ELx_LEN_SIZE	9
+> +#define ZCR_ELx_LEN_MASK	0x1ff
+> +
+> +#define CPACR_EL1_ZEN_EL1EN	(1 << 16)
+> +#define CPACR_EL1_ZEN_EL0EN	(1 << 17)
+> +#define CPACR_EL1_ZEN		(CPACR_EL1_ZEN_EL1EN |
+> CPACR_EL1_ZEN_EL0EN)
+
+This is a little weird as it is a 2 bit field in which 00 and 11 are not
+simply the sum of their bits. If the code wrote CPACR_EL1_ZEN_EL0EN |
+CPACR_EL1_ZEN_EL1EN to the CPACR_EL1 you wouldn't get the expected behaviour.
+
+> +
+> +
+>  /* Safe value for MPIDR_EL1: Bit31:RES1, Bit30:U:0, Bit24:MT:0 */
+>  #define SYS_MPIDR_SAFE_VAL		(1UL << 31)
+>
+> diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
+> index 0f047e9..8964795 100644
+> --- a/arch/arm64/kernel/traps.c
+> +++ b/arch/arm64/kernel/traps.c
+> @@ -621,6 +621,7 @@ static const char *esr_class_str[] = {
+>  	[ESR_ELx_EC_HVC64]		= "HVC (AArch64)",
+>  	[ESR_ELx_EC_SMC64]		= "SMC (AArch64)",
+>  	[ESR_ELx_EC_SYS64]		= "MSR/MRS (AArch64)",
+> +	[ESR_ELx_EC_SVE]		= "SVE",
+>  	[ESR_ELx_EC_IMP_DEF]		= "EL3 IMP DEF",
+>  	[ESR_ELx_EC_IABT_LOW]		= "IABT (lower EL)",
+>  	[ESR_ELx_EC_IABT_CUR]		= "IABT (current EL)",
+
+
+--
+Alex Bennée
