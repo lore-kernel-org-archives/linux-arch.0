@@ -1,562 +1,151 @@
-From: "tip-bot for Paul E. McKenney" <tipbot@zytor.com>
-Subject: [tip:core/rcu] arch: Remove spin_unlock_wait() arch-specific
- definitions
-Date: Mon, 21 Aug 2017 02:15:13 -0700
-Message-ID: <tip-952111d7db02573e7165e338de8d4871fa447b21@git.kernel.org>
-Reply-To: tglx@linutronix.de, will.deacon@arm.com,
-          torvalds@linux-foundation.org, peterz@infradead.org,
-          linux-kernel@vger.kernel.org, paulmck@linux.vnet.ibm.com,
-          parri.andrea@gmail.com, hpa@zytor.com,
-          linux-arch@vger.kernel.org, stern@rowland.harvard.edu,
-          boqun.feng@gmail.com, mingo@kernel.org
+From: Alex =?utf-8?Q?Benn=C3=A9e?= <alex.bennee@linaro.org>
+Subject: Re: [PATCH 06/27] arm64/sve: System register and exception syndrome definitions
+Date: Mon, 21 Aug 2017 10:33:55 +0100
+Message-ID: <87a82t5kos.fsf@linaro.org>
+References: <1502280338-23002-1-git-send-email-Dave.Martin@arm.com> <1502280338-23002-7-git-send-email-Dave.Martin@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([65.50.211.136]:41605 "EHLO
-        terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751866AbdHUJUG (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 21 Aug 2017 05:20:06 -0400
-Content-Disposition: inline
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-tip-commits@vger.kernel.org
-Cc: mingo@kernel.org, boqun.feng@gmail.com, stern@rowland.harvard.edu, linux-arch@vger.kernel.org, hpa@zytor.com, parri.andrea@gmail.com, paulmck@linux.vnet.ibm.com, peterz@infradead.org, torvalds@linux-foundation.org, tglx@linutronix.de, will.deacon@arm.com
+Return-path: <libc-alpha-return-83536-glibc-alpha=m.gmane.org@sourceware.org>
+List-Unsubscribe: <mailto:libc-alpha-unsubscribe-glibc-alpha=m.gmane.org@sourceware.org>
+List-Subscribe: <mailto:libc-alpha-subscribe@sourceware.org>
+List-Archive: <http://sourceware.org/ml/libc-alpha/>
+List-Post: <mailto:libc-alpha@sourceware.org>
+List-Help: <mailto:libc-alpha-help@sourceware.org>, <http://sourceware.org/ml/#faqs>
+Sender: libc-alpha-owner@sourceware.org
+In-reply-to: <1502280338-23002-7-git-send-email-Dave.Martin@arm.com>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu
+List-Id: linux-arch.vger.kernel.org
 
-Commit-ID:  952111d7db02573e7165e338de8d4871fa447b21
-Gitweb:     http://git.kernel.org/tip/952111d7db02573e7165e338de8d4871fa447b21
-Author:     Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-AuthorDate: Thu, 29 Jun 2017 15:53:02 -0700
-Committer:  Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-CommitDate: Thu, 17 Aug 2017 08:08:59 -0700
 
-arch: Remove spin_unlock_wait() arch-specific definitions
+Dave Martin <Dave.Martin@arm.com> writes:
 
-There is no agreed-upon definition of spin_unlock_wait()'s semantics,
-and it appears that all callers could do just as well with a lock/unlock
-pair.  This commit therefore removes the underlying arch-specific
-arch_spin_unlock_wait() for all architectures providing them.
+> The SVE architecture adds some system registers, ID register fields
+> and a dedicated ESR exception class.
+>
+> This patch adds the appropriate definitions that will be needed by
+> the kernel.
+>
+> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> ---
+>  arch/arm64/include/asm/esr.h     |  3 ++-
+>  arch/arm64/include/asm/kvm_arm.h |  1 +
+>  arch/arm64/include/asm/sysreg.h  | 16 ++++++++++++++++
+>  arch/arm64/kernel/traps.c        |  1 +
+>  4 files changed, 20 insertions(+), 1 deletion(-)
+>
+> diff --git a/arch/arm64/include/asm/esr.h b/arch/arm64/include/asm/esr.h
+> index 8cabd57..813629e 100644
+> --- a/arch/arm64/include/asm/esr.h
+> +++ b/arch/arm64/include/asm/esr.h
+> @@ -43,7 +43,8 @@
+>  #define ESR_ELx_EC_HVC64	(0x16)
+>  #define ESR_ELx_EC_SMC64	(0x17)
+>  #define ESR_ELx_EC_SYS64	(0x18)
+> -/* Unallocated EC: 0x19 - 0x1E */
+> +#define ESR_ELx_EC_SVE		(0x19)
+> +/* Unallocated EC: 0x1A - 0x1E */
+>  #define ESR_ELx_EC_IMP_DEF	(0x1f)
+>  #define ESR_ELx_EC_IABT_LOW	(0x20)
+>  #define ESR_ELx_EC_IABT_CUR	(0x21)
+> diff --git a/arch/arm64/include/asm/kvm_arm.h b/arch/arm64/include/asm/kvm_arm.h
+> index 61d694c..dbf0537 100644
+> --- a/arch/arm64/include/asm/kvm_arm.h
+> +++ b/arch/arm64/include/asm/kvm_arm.h
+> @@ -185,6 +185,7 @@
+>  #define CPTR_EL2_TCPAC	(1 << 31)
+>  #define CPTR_EL2_TTA	(1 << 20)
+>  #define CPTR_EL2_TFP	(1 << CPTR_EL2_TFP_SHIFT)
+> +#define CPTR_EL2_TZ	(1 << 8)
+>  #define CPTR_EL2_DEFAULT	0x000033ff
+>
+>  /* Hyp Debug Configuration Register bits */
+> diff --git a/arch/arm64/include/asm/sysreg.h b/arch/arm64/include/asm/sysreg.h
+> index 248339e..2d259e8 100644
+> --- a/arch/arm64/include/asm/sysreg.h
+> +++ b/arch/arm64/include/asm/sysreg.h
+> @@ -145,6 +145,7 @@
+>
+>  #define SYS_ID_AA64PFR0_EL1		sys_reg(3, 0, 0, 4, 0)
+>  #define SYS_ID_AA64PFR1_EL1		sys_reg(3, 0, 0, 4, 1)
+> +#define SYS_ID_AA64ZFR0_EL1		sys_reg(3, 0, 0, 4, 4)
+>
+>  #define SYS_ID_AA64DFR0_EL1		sys_reg(3, 0, 0, 5, 0)
+>  #define SYS_ID_AA64DFR1_EL1		sys_reg(3, 0, 0, 5, 1)
+> @@ -160,6 +161,8 @@
+>  #define SYS_ACTLR_EL1			sys_reg(3, 0, 1, 0, 1)
+>  #define SYS_CPACR_EL1			sys_reg(3, 0, 1, 0, 2)
+>
+> +#define SYS_ZCR_EL1			sys_reg(3, 0, 1, 2, 0)
+> +
 
-Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-Cc: <linux-arch@vger.kernel.org>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Alan Stern <stern@rowland.harvard.edu>
-Cc: Andrea Parri <parri.andrea@gmail.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Acked-by: Will Deacon <will.deacon@arm.com>
-Acked-by: Boqun Feng <boqun.feng@gmail.com>
----
- arch/alpha/include/asm/spinlock.h    |  5 ----
- arch/arc/include/asm/spinlock.h      |  5 ----
- arch/arm/include/asm/spinlock.h      | 16 ----------
- arch/arm64/include/asm/spinlock.h    | 58 ++++--------------------------------
- arch/blackfin/include/asm/spinlock.h |  5 ----
- arch/hexagon/include/asm/spinlock.h  |  5 ----
- arch/ia64/include/asm/spinlock.h     | 21 -------------
- arch/m32r/include/asm/spinlock.h     |  5 ----
- arch/metag/include/asm/spinlock.h    |  5 ----
- arch/mn10300/include/asm/spinlock.h  |  5 ----
- arch/parisc/include/asm/spinlock.h   |  7 -----
- arch/powerpc/include/asm/spinlock.h  | 33 --------------------
- arch/s390/include/asm/spinlock.h     |  7 -----
- arch/sh/include/asm/spinlock-cas.h   |  5 ----
- arch/sh/include/asm/spinlock-llsc.h  |  5 ----
- arch/sparc/include/asm/spinlock_32.h |  5 ----
- arch/tile/include/asm/spinlock_32.h  |  2 --
- arch/tile/include/asm/spinlock_64.h  |  2 --
- arch/tile/lib/spinlock_32.c          | 23 --------------
- arch/tile/lib/spinlock_64.c          | 22 --------------
- arch/xtensa/include/asm/spinlock.h   |  5 ----
- 21 files changed, 5 insertions(+), 241 deletions(-)
+I'll have to take these on trust. They are mentioned in both the ARM ARM
+and the SVE supplement but I can't see any actual definitions of them.
 
-diff --git a/arch/alpha/include/asm/spinlock.h b/arch/alpha/include/asm/spinlock.h
-index a40b9fc..718ac0b 100644
---- a/arch/alpha/include/asm/spinlock.h
-+++ b/arch/alpha/include/asm/spinlock.h
-@@ -16,11 +16,6 @@
- #define arch_spin_lock_flags(lock, flags) arch_spin_lock(lock)
- #define arch_spin_is_locked(x)	((x)->lock != 0)
- 
--static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
--{
--	smp_cond_load_acquire(&lock->lock, !VAL);
--}
--
- static inline int arch_spin_value_unlocked(arch_spinlock_t lock)
- {
-         return lock.lock == 0;
-diff --git a/arch/arc/include/asm/spinlock.h b/arch/arc/include/asm/spinlock.h
-index 233d5ff..a325e6a 100644
---- a/arch/arc/include/asm/spinlock.h
-+++ b/arch/arc/include/asm/spinlock.h
-@@ -16,11 +16,6 @@
- #define arch_spin_is_locked(x)	((x)->slock != __ARCH_SPIN_LOCK_UNLOCKED__)
- #define arch_spin_lock_flags(lock, flags)	arch_spin_lock(lock)
- 
--static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
--{
--	smp_cond_load_acquire(&lock->slock, !VAL);
--}
--
- #ifdef CONFIG_ARC_HAS_LLSC
- 
- static inline void arch_spin_lock(arch_spinlock_t *lock)
-diff --git a/arch/arm/include/asm/spinlock.h b/arch/arm/include/asm/spinlock.h
-index 4bec454..c030143 100644
---- a/arch/arm/include/asm/spinlock.h
-+++ b/arch/arm/include/asm/spinlock.h
-@@ -52,22 +52,6 @@ static inline void dsb_sev(void)
-  * memory.
-  */
- 
--static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
--{
--	u16 owner = READ_ONCE(lock->tickets.owner);
--
--	for (;;) {
--		arch_spinlock_t tmp = READ_ONCE(*lock);
--
--		if (tmp.tickets.owner == tmp.tickets.next ||
--		    tmp.tickets.owner != owner)
--			break;
--
--		wfe();
--	}
--	smp_acquire__after_ctrl_dep();
--}
--
- #define arch_spin_lock_flags(lock, flags) arch_spin_lock(lock)
- 
- static inline void arch_spin_lock(arch_spinlock_t *lock)
-diff --git a/arch/arm64/include/asm/spinlock.h b/arch/arm64/include/asm/spinlock.h
-index cae331d..f445bd7 100644
---- a/arch/arm64/include/asm/spinlock.h
-+++ b/arch/arm64/include/asm/spinlock.h
-@@ -26,58 +26,6 @@
-  * The memory barriers are implicit with the load-acquire and store-release
-  * instructions.
-  */
--static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
--{
--	unsigned int tmp;
--	arch_spinlock_t lockval;
--	u32 owner;
--
--	/*
--	 * Ensure prior spin_lock operations to other locks have completed
--	 * on this CPU before we test whether "lock" is locked.
--	 */
--	smp_mb();
--	owner = READ_ONCE(lock->owner) << 16;
--
--	asm volatile(
--"	sevl\n"
--"1:	wfe\n"
--"2:	ldaxr	%w0, %2\n"
--	/* Is the lock free? */
--"	eor	%w1, %w0, %w0, ror #16\n"
--"	cbz	%w1, 3f\n"
--	/* Lock taken -- has there been a subsequent unlock->lock transition? */
--"	eor	%w1, %w3, %w0, lsl #16\n"
--"	cbz	%w1, 1b\n"
--	/*
--	 * The owner has been updated, so there was an unlock->lock
--	 * transition that we missed. That means we can rely on the
--	 * store-release of the unlock operation paired with the
--	 * load-acquire of the lock operation to publish any of our
--	 * previous stores to the new lock owner and therefore don't
--	 * need to bother with the writeback below.
--	 */
--"	b	4f\n"
--"3:\n"
--	/*
--	 * Serialise against any concurrent lockers by writing back the
--	 * unlocked lock value
--	 */
--	ARM64_LSE_ATOMIC_INSN(
--	/* LL/SC */
--"	stxr	%w1, %w0, %2\n"
--	__nops(2),
--	/* LSE atomics */
--"	mov	%w1, %w0\n"
--"	cas	%w0, %w0, %2\n"
--"	eor	%w1, %w1, %w0\n")
--	/* Somebody else wrote to the lock, GOTO 10 and reload the value */
--"	cbnz	%w1, 2b\n"
--"4:"
--	: "=&r" (lockval), "=&r" (tmp), "+Q" (*lock)
--	: "r" (owner)
--	: "memory");
--}
- 
- #define arch_spin_lock_flags(lock, flags) arch_spin_lock(lock)
- 
-@@ -176,7 +124,11 @@ static inline int arch_spin_value_unlocked(arch_spinlock_t lock)
- 
- static inline int arch_spin_is_locked(arch_spinlock_t *lock)
- {
--	smp_mb(); /* See arch_spin_unlock_wait */
-+	/*
-+	 * Ensure prior spin_lock operations to other locks have completed
-+	 * on this CPU before we test whether "lock" is locked.
-+	 */
-+	smp_mb(); /* ^^^ */
- 	return !arch_spin_value_unlocked(READ_ONCE(*lock));
- }
- 
-diff --git a/arch/blackfin/include/asm/spinlock.h b/arch/blackfin/include/asm/spinlock.h
-index c58f4a8..f643143 100644
---- a/arch/blackfin/include/asm/spinlock.h
-+++ b/arch/blackfin/include/asm/spinlock.h
-@@ -48,11 +48,6 @@ static inline void arch_spin_unlock(arch_spinlock_t *lock)
- 	__raw_spin_unlock_asm(&lock->lock);
- }
- 
--static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
--{
--	smp_cond_load_acquire(&lock->lock, !VAL);
--}
--
- static inline int arch_read_can_lock(arch_rwlock_t *rw)
- {
- 	return __raw_uncached_fetch_asm(&rw->lock) > 0;
-diff --git a/arch/hexagon/include/asm/spinlock.h b/arch/hexagon/include/asm/spinlock.h
-index a1c5578..53a8d58 100644
---- a/arch/hexagon/include/asm/spinlock.h
-+++ b/arch/hexagon/include/asm/spinlock.h
-@@ -179,11 +179,6 @@ static inline unsigned int arch_spin_trylock(arch_spinlock_t *lock)
-  */
- #define arch_spin_lock_flags(lock, flags) arch_spin_lock(lock)
- 
--static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
--{
--	smp_cond_load_acquire(&lock->lock, !VAL);
--}
--
- #define arch_spin_is_locked(x) ((x)->lock != 0)
- 
- #define arch_read_lock_flags(lock, flags) arch_read_lock(lock)
-diff --git a/arch/ia64/include/asm/spinlock.h b/arch/ia64/include/asm/spinlock.h
-index ca9e761..df2c121 100644
---- a/arch/ia64/include/asm/spinlock.h
-+++ b/arch/ia64/include/asm/spinlock.h
-@@ -76,22 +76,6 @@ static __always_inline void __ticket_spin_unlock(arch_spinlock_t *lock)
- 	ACCESS_ONCE(*p) = (tmp + 2) & ~1;
- }
- 
--static __always_inline void __ticket_spin_unlock_wait(arch_spinlock_t *lock)
--{
--	int	*p = (int *)&lock->lock, ticket;
--
--	ia64_invala();
--
--	for (;;) {
--		asm volatile ("ld4.c.nc %0=[%1]" : "=r"(ticket) : "r"(p) : "memory");
--		if (!(((ticket >> TICKET_SHIFT) ^ ticket) & TICKET_MASK))
--			return;
--		cpu_relax();
--	}
--
--	smp_acquire__after_ctrl_dep();
--}
--
- static inline int __ticket_spin_is_locked(arch_spinlock_t *lock)
- {
- 	long tmp = ACCESS_ONCE(lock->lock);
-@@ -143,11 +127,6 @@ static __always_inline void arch_spin_lock_flags(arch_spinlock_t *lock,
- 	arch_spin_lock(lock);
- }
- 
--static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
--{
--	__ticket_spin_unlock_wait(lock);
--}
--
- #define arch_read_can_lock(rw)		(*(volatile int *)(rw) >= 0)
- #define arch_write_can_lock(rw)	(*(volatile int *)(rw) == 0)
- 
-diff --git a/arch/m32r/include/asm/spinlock.h b/arch/m32r/include/asm/spinlock.h
-index 323c7fc..a568255 100644
---- a/arch/m32r/include/asm/spinlock.h
-+++ b/arch/m32r/include/asm/spinlock.h
-@@ -30,11 +30,6 @@
- #define arch_spin_is_locked(x)		(*(volatile int *)(&(x)->slock) <= 0)
- #define arch_spin_lock_flags(lock, flags) arch_spin_lock(lock)
- 
--static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
--{
--	smp_cond_load_acquire(&lock->slock, VAL > 0);
--}
--
- /**
-  * arch_spin_trylock - Try spin lock and return a result
-  * @lock: Pointer to the lock variable
-diff --git a/arch/metag/include/asm/spinlock.h b/arch/metag/include/asm/spinlock.h
-index c0c7a22..ddf7fe5 100644
---- a/arch/metag/include/asm/spinlock.h
-+++ b/arch/metag/include/asm/spinlock.h
-@@ -15,11 +15,6 @@
-  * locked.
-  */
- 
--static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
--{
--	smp_cond_load_acquire(&lock->lock, !VAL);
--}
--
- #define arch_spin_lock_flags(lock, flags) arch_spin_lock(lock)
- 
- #define	arch_read_lock_flags(lock, flags) arch_read_lock(lock)
-diff --git a/arch/mn10300/include/asm/spinlock.h b/arch/mn10300/include/asm/spinlock.h
-index 9c7b8f7..fe413b4 100644
---- a/arch/mn10300/include/asm/spinlock.h
-+++ b/arch/mn10300/include/asm/spinlock.h
-@@ -26,11 +26,6 @@
- 
- #define arch_spin_is_locked(x)	(*(volatile signed char *)(&(x)->slock) != 0)
- 
--static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
--{
--	smp_cond_load_acquire(&lock->slock, !VAL);
--}
--
- static inline void arch_spin_unlock(arch_spinlock_t *lock)
- {
- 	asm volatile(
-diff --git a/arch/parisc/include/asm/spinlock.h b/arch/parisc/include/asm/spinlock.h
-index e32936c..55bfe4a 100644
---- a/arch/parisc/include/asm/spinlock.h
-+++ b/arch/parisc/include/asm/spinlock.h
-@@ -14,13 +14,6 @@ static inline int arch_spin_is_locked(arch_spinlock_t *x)
- 
- #define arch_spin_lock(lock) arch_spin_lock_flags(lock, 0)
- 
--static inline void arch_spin_unlock_wait(arch_spinlock_t *x)
--{
--	volatile unsigned int *a = __ldcw_align(x);
--
--	smp_cond_load_acquire(a, VAL);
--}
--
- static inline void arch_spin_lock_flags(arch_spinlock_t *x,
- 					 unsigned long flags)
- {
-diff --git a/arch/powerpc/include/asm/spinlock.h b/arch/powerpc/include/asm/spinlock.h
-index 8c1b913..d256e44 100644
---- a/arch/powerpc/include/asm/spinlock.h
-+++ b/arch/powerpc/include/asm/spinlock.h
-@@ -170,39 +170,6 @@ static inline void arch_spin_unlock(arch_spinlock_t *lock)
- 	lock->slock = 0;
- }
- 
--static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
--{
--	arch_spinlock_t lock_val;
--
--	smp_mb();
--
--	/*
--	 * Atomically load and store back the lock value (unchanged). This
--	 * ensures that our observation of the lock value is ordered with
--	 * respect to other lock operations.
--	 */
--	__asm__ __volatile__(
--"1:	" PPC_LWARX(%0, 0, %2, 0) "\n"
--"	stwcx. %0, 0, %2\n"
--"	bne- 1b\n"
--	: "=&r" (lock_val), "+m" (*lock)
--	: "r" (lock)
--	: "cr0", "xer");
--
--	if (arch_spin_value_unlocked(lock_val))
--		goto out;
--
--	while (lock->slock) {
--		HMT_low();
--		if (SHARED_PROCESSOR)
--			__spin_yield(lock);
--	}
--	HMT_medium();
--
--out:
--	smp_mb();
--}
--
- /*
-  * Read-write spinlocks, allowing multiple readers
-  * but only one writer.
-diff --git a/arch/s390/include/asm/spinlock.h b/arch/s390/include/asm/spinlock.h
-index f7838ec..217ee52 100644
---- a/arch/s390/include/asm/spinlock.h
-+++ b/arch/s390/include/asm/spinlock.h
-@@ -98,13 +98,6 @@ static inline void arch_spin_unlock(arch_spinlock_t *lp)
- 		: "cc", "memory");
- }
- 
--static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
--{
--	while (arch_spin_is_locked(lock))
--		arch_spin_relax(lock);
--	smp_acquire__after_ctrl_dep();
--}
--
- /*
-  * Read-write spinlocks, allowing multiple readers
-  * but only one writer.
-diff --git a/arch/sh/include/asm/spinlock-cas.h b/arch/sh/include/asm/spinlock-cas.h
-index c46e8cc..5ed7dbb 100644
---- a/arch/sh/include/asm/spinlock-cas.h
-+++ b/arch/sh/include/asm/spinlock-cas.h
-@@ -29,11 +29,6 @@ static inline unsigned __sl_cas(volatile unsigned *p, unsigned old, unsigned new
- #define arch_spin_is_locked(x)		((x)->lock <= 0)
- #define arch_spin_lock_flags(lock, flags) arch_spin_lock(lock)
- 
--static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
--{
--	smp_cond_load_acquire(&lock->lock, VAL > 0);
--}
--
- static inline void arch_spin_lock(arch_spinlock_t *lock)
- {
- 	while (!__sl_cas(&lock->lock, 1, 0));
-diff --git a/arch/sh/include/asm/spinlock-llsc.h b/arch/sh/include/asm/spinlock-llsc.h
-index cec7814..f77263a 100644
---- a/arch/sh/include/asm/spinlock-llsc.h
-+++ b/arch/sh/include/asm/spinlock-llsc.h
-@@ -21,11 +21,6 @@
- #define arch_spin_is_locked(x)		((x)->lock <= 0)
- #define arch_spin_lock_flags(lock, flags) arch_spin_lock(lock)
- 
--static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
--{
--	smp_cond_load_acquire(&lock->lock, VAL > 0);
--}
--
- /*
-  * Simple spin lock operations.  There are two variants, one clears IRQ's
-  * on the local processor, one does not.
-diff --git a/arch/sparc/include/asm/spinlock_32.h b/arch/sparc/include/asm/spinlock_32.h
-index 8011e79..67345b2 100644
---- a/arch/sparc/include/asm/spinlock_32.h
-+++ b/arch/sparc/include/asm/spinlock_32.h
-@@ -14,11 +14,6 @@
- 
- #define arch_spin_is_locked(lock) (*((volatile unsigned char *)(lock)) != 0)
- 
--static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
--{
--	smp_cond_load_acquire(&lock->lock, !VAL);
--}
--
- static inline void arch_spin_lock(arch_spinlock_t *lock)
- {
- 	__asm__ __volatile__(
-diff --git a/arch/tile/include/asm/spinlock_32.h b/arch/tile/include/asm/spinlock_32.h
-index b14b1ba..cba8ba9 100644
---- a/arch/tile/include/asm/spinlock_32.h
-+++ b/arch/tile/include/asm/spinlock_32.h
-@@ -64,8 +64,6 @@ static inline void arch_spin_unlock(arch_spinlock_t *lock)
- 	lock->current_ticket = old_ticket + TICKET_QUANTUM;
- }
- 
--void arch_spin_unlock_wait(arch_spinlock_t *lock);
--
- /*
-  * Read-write spinlocks, allowing multiple readers
-  * but only one writer.
-diff --git a/arch/tile/include/asm/spinlock_64.h b/arch/tile/include/asm/spinlock_64.h
-index b9718fb..9a2c2d6 100644
---- a/arch/tile/include/asm/spinlock_64.h
-+++ b/arch/tile/include/asm/spinlock_64.h
-@@ -58,8 +58,6 @@ static inline void arch_spin_unlock(arch_spinlock_t *lock)
- 	__insn_fetchadd4(&lock->lock, 1U << __ARCH_SPIN_CURRENT_SHIFT);
- }
- 
--void arch_spin_unlock_wait(arch_spinlock_t *lock);
--
- void arch_spin_lock_slow(arch_spinlock_t *lock, u32 val);
- 
- /* Grab the "next" ticket number and bump it atomically.
-diff --git a/arch/tile/lib/spinlock_32.c b/arch/tile/lib/spinlock_32.c
-index 076c6cc..db9333f 100644
---- a/arch/tile/lib/spinlock_32.c
-+++ b/arch/tile/lib/spinlock_32.c
-@@ -62,29 +62,6 @@ int arch_spin_trylock(arch_spinlock_t *lock)
- }
- EXPORT_SYMBOL(arch_spin_trylock);
- 
--void arch_spin_unlock_wait(arch_spinlock_t *lock)
--{
--	u32 iterations = 0;
--	int curr = READ_ONCE(lock->current_ticket);
--	int next = READ_ONCE(lock->next_ticket);
--
--	/* Return immediately if unlocked. */
--	if (next == curr)
--		return;
--
--	/* Wait until the current locker has released the lock. */
--	do {
--		delay_backoff(iterations++);
--	} while (READ_ONCE(lock->current_ticket) == curr);
--
--	/*
--	 * The TILE architecture doesn't do read speculation; therefore
--	 * a control dependency guarantees a LOAD->{LOAD,STORE} order.
--	 */
--	barrier();
--}
--EXPORT_SYMBOL(arch_spin_unlock_wait);
--
- /*
-  * The low byte is always reserved to be the marker for a "tns" operation
-  * since the low bit is set to "1" by a tns.  The next seven bits are
-diff --git a/arch/tile/lib/spinlock_64.c b/arch/tile/lib/spinlock_64.c
-index a4b5b2c..de414c2 100644
---- a/arch/tile/lib/spinlock_64.c
-+++ b/arch/tile/lib/spinlock_64.c
-@@ -62,28 +62,6 @@ int arch_spin_trylock(arch_spinlock_t *lock)
- }
- EXPORT_SYMBOL(arch_spin_trylock);
- 
--void arch_spin_unlock_wait(arch_spinlock_t *lock)
--{
--	u32 iterations = 0;
--	u32 val = READ_ONCE(lock->lock);
--	u32 curr = arch_spin_current(val);
--
--	/* Return immediately if unlocked. */
--	if (arch_spin_next(val) == curr)
--		return;
--
--	/* Wait until the current locker has released the lock. */
--	do {
--		delay_backoff(iterations++);
--	} while (arch_spin_current(READ_ONCE(lock->lock)) == curr);
--
--	/*
--	 * The TILE architecture doesn't do read speculation; therefore
--	 * a control dependency guarantees a LOAD->{LOAD,STORE} order.
--	 */
--	barrier();
--}
--EXPORT_SYMBOL(arch_spin_unlock_wait);
- 
- /*
-  * If the read lock fails due to a writer, we retry periodically
-diff --git a/arch/xtensa/include/asm/spinlock.h b/arch/xtensa/include/asm/spinlock.h
-index a36221c..3bb4968 100644
---- a/arch/xtensa/include/asm/spinlock.h
-+++ b/arch/xtensa/include/asm/spinlock.h
-@@ -33,11 +33,6 @@
- 
- #define arch_spin_is_locked(x) ((x)->slock != 0)
- 
--static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
--{
--	smp_cond_load_acquire(&lock->slock, !VAL);
--}
--
- #define arch_spin_lock_flags(lock, flags) arch_spin_lock(lock)
- 
- static inline void arch_spin_lock(arch_spinlock_t *lock)
+>  #define SYS_TTBR0_EL1			sys_reg(3, 0, 2, 0, 0)
+>  #define SYS_TTBR1_EL1			sys_reg(3, 0, 2, 0, 1)
+>  #define SYS_TCR_EL1			sys_reg(3, 0, 2, 0, 2)
+> @@ -250,6 +253,8 @@
+>
+>  #define SYS_PMCCFILTR_EL0		sys_reg (3, 3, 14, 15, 7)
+>
+> +#define SYS_ZCR_EL2			sys_reg(3, 4, 1, 2, 0)
+> +
+>  #define SYS_DACR32_EL2			sys_reg(3, 4, 3, 0, 0)
+>  #define SYS_IFSR32_EL2			sys_reg(3, 4, 5, 0, 1)
+>  #define SYS_FPEXC32_EL2			sys_reg(3, 4, 5, 3, 0)
+> @@ -331,6 +336,7 @@
+>  #define ID_AA64ISAR1_JSCVT_SHIFT	12
+>
+>  /* id_aa64pfr0 */
+> +#define ID_AA64PFR0_SVE_SHIFT		32
+>  #define ID_AA64PFR0_GIC_SHIFT		24
+>  #define ID_AA64PFR0_ASIMD_SHIFT		20
+>  #define ID_AA64PFR0_FP_SHIFT		16
+> @@ -339,6 +345,7 @@
+>  #define ID_AA64PFR0_EL1_SHIFT		4
+>  #define ID_AA64PFR0_EL0_SHIFT		0
+>
+> +#define ID_AA64PFR0_SVE			0x1
+>  #define ID_AA64PFR0_FP_NI		0xf
+>  #define ID_AA64PFR0_FP_SUPPORTED	0x0
+>  #define ID_AA64PFR0_ASIMD_NI		0xf
+> @@ -440,6 +447,15 @@
+>  #endif
+>
+>
+> +#define ZCR_ELx_LEN_SHIFT	0
+> +#define ZCR_ELx_LEN_SIZE	9
+> +#define ZCR_ELx_LEN_MASK	0x1ff
+> +
+> +#define CPACR_EL1_ZEN_EL1EN	(1 << 16)
+> +#define CPACR_EL1_ZEN_EL0EN	(1 << 17)
+> +#define CPACR_EL1_ZEN		(CPACR_EL1_ZEN_EL1EN |
+> CPACR_EL1_ZEN_EL0EN)
+
+This is a little weird as it is a 2 bit field in which 00 and 11 are not
+simply the sum of their bits. If the code wrote CPACR_EL1_ZEN_EL0EN |
+CPACR_EL1_ZEN_EL1EN to the CPACR_EL1 you wouldn't get the expected behaviour.
+
+> +
+> +
+>  /* Safe value for MPIDR_EL1: Bit31:RES1, Bit30:U:0, Bit24:MT:0 */
+>  #define SYS_MPIDR_SAFE_VAL		(1UL << 31)
+>
+> diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
+> index 0f047e9..8964795 100644
+> --- a/arch/arm64/kernel/traps.c
+> +++ b/arch/arm64/kernel/traps.c
+> @@ -621,6 +621,7 @@ static const char *esr_class_str[] = {
+>  	[ESR_ELx_EC_HVC64]		= "HVC (AArch64)",
+>  	[ESR_ELx_EC_SMC64]		= "SMC (AArch64)",
+>  	[ESR_ELx_EC_SYS64]		= "MSR/MRS (AArch64)",
+> +	[ESR_ELx_EC_SVE]		= "SVE",
+>  	[ESR_ELx_EC_IMP_DEF]		= "EL3 IMP DEF",
+>  	[ESR_ELx_EC_IABT_LOW]		= "IABT (lower EL)",
+>  	[ESR_ELx_EC_IABT_CUR]		= "IABT (current EL)",
+
+
+--
+Alex Bennée
