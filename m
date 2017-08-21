@@ -1,36 +1,95 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: x86: PIE support and option to extend KASLR randomization
-Date: Mon, 21 Aug 2017 16:31:17 +0200
-Message-ID: <20170821143117.22sekggxizt3mhze@hirez.programming.kicks-ass.net>
-References: <20170810172615.51965-1-thgarnie@google.com>
- <20170811124127.kkb5pnkljz4umxuj@gmail.com>
- <CAJcbSZFTX3uiS2g8JriS6+z_+WrG8z3hrQo4OSuyHpiyUDJWYA@mail.gmail.com>
- <20170815075609.mmzbfwritjzvrpsn@gmail.com>
- <CAJcbSZE+TiY2whT94WqCJNXzR=2ATOHcQ10H5RqBZA1j=k1VHQ@mail.gmail.com>
+From: Alex =?utf-8?Q?Benn=C3=A9e?= <alex.bennee@linaro.org>
+Subject: Re: [PATCH 06/27] arm64/sve: System register and exception syndrome definitions
+Date: Mon, 21 Aug 2017 15:36:37 +0100
+Message-ID: <87378l56oa.fsf@linaro.org>
+References: <1502280338-23002-1-git-send-email-Dave.Martin@arm.com> <1502280338-23002-7-git-send-email-Dave.Martin@arm.com> <87a82t5kos.fsf@linaro.org> <20170821135654.GP6321@e103592.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <kernel-hardening-return-9537-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-Content-Disposition: inline
-In-Reply-To: <CAJcbSZE+TiY2whT94WqCJNXzR=2ATOHcQ10H5RqBZA1j=k1VHQ@mail.gmail.com>
-To: Thomas Garnier <thgarnie@google.com>
-Cc: Ingo Molnar <mingo@kernel.org>, Herbert Xu <herbert@gondor.apana.org.au>, "David S . Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Matthias Kaehlcke <mka@chromium.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, Paolo Bonzini <pbonzini@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Joerg Roedel <joro@8bytes.org>, Tom Lendacky <thomas.lendacky@amd.com>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Brian Gerst <brgerst@gmail.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, "Rafael J . Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Pavel Machek <pavel@ucw.cz>, Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@l>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wr0-f174.google.com ([209.85.128.174]:37664 "EHLO
+        mail-wr0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751738AbdHUOgr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 21 Aug 2017 10:36:47 -0400
+Received: by mail-wr0-f174.google.com with SMTP id z91so99422724wrc.4
+        for <linux-arch@vger.kernel.org>; Mon, 21 Aug 2017 07:36:47 -0700 (PDT)
+In-reply-to: <20170821135654.GP6321@e103592.cambridge.arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
 
-On Tue, Aug 15, 2017 at 07:20:38AM -0700, Thomas Garnier wrote:
-> On Tue, Aug 15, 2017 at 12:56 AM, Ingo Molnar <mingo@kernel.org> wrote:
 
-> > Have you considered a kernel with -mcmodel=small (or medium) instead of -fpie
-> > -mcmodel=large? We can pick a random 2GB window in the (non-kernel) canonical
-> > x86-64 address space to randomize the location of kernel text. The location of
-> > modules can be further randomized within that 2GB window.
-> 
-> -model=small/medium assume you are on the low 32-bit. It generates
-> instructions where the virtual addresses have the high 32-bit to be
-> zero.
+Dave Martin <Dave.Martin@arm.com> writes:
 
-That's a compiler fail, right? Because the SDM states that for "CALL
-rel32" the 32bit displacement is sign extended on x86_64.
+> On Mon, Aug 21, 2017 at 10:33:55AM +0100, Alex Bennée wrote:
+>>
+>> Dave Martin <Dave.Martin@arm.com> writes:
+>>
+>> > The SVE architecture adds some system registers, ID register fields
+>> > and a dedicated ESR exception class.
+>> >
+>> > This patch adds the appropriate definitions that will be needed by
+>> > the kernel.
+>> >
+>> > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+>> > ---
+>> >  arch/arm64/include/asm/esr.h     |  3 ++-
+>> >  arch/arm64/include/asm/kvm_arm.h |  1 +
+>> >  arch/arm64/include/asm/sysreg.h  | 16 ++++++++++++++++
+>> >  arch/arm64/kernel/traps.c        |  1 +
+>> >  4 files changed, 20 insertions(+), 1 deletion(-)
+>
+> [...]
+>
+>> > diff --git a/arch/arm64/include/asm/sysreg.h b/arch/arm64/include/asm/sysreg.h
+>> > index 248339e..2d259e8 100644
+>> > --- a/arch/arm64/include/asm/sysreg.h
+>> > +++ b/arch/arm64/include/asm/sysreg.h
+>
+> [...]
+>
+>> > +#define SYS_ZCR_EL1			sys_reg(3, 0, 1, 2, 0)
+>> > +
+>>
+>> I'll have to take these on trust. They are mentioned in both the ARM ARM
+>> and the SVE supplement but I can't see any actual definitions of them.
+>
+> [I note from subsequent replies you've now found this in the
+> accompanying HTML]
+>
+> [...]
+>
+>> > +#define CPACR_EL1_ZEN_EL1EN	(1 << 16)
+>> > +#define CPACR_EL1_ZEN_EL0EN	(1 << 17)
+>> > +#define CPACR_EL1_ZEN		(CPACR_EL1_ZEN_EL1EN |
+>> > CPACR_EL1_ZEN_EL0EN)
+>>
+>> This is a little weird as it is a 2 bit field in which 00 and 11 are not
+>> simply the sum of their bits. If the code wrote CPACR_EL1_ZEN_EL0EN |
+>> CPACR_EL1_ZEN_EL1EN to the CPACR_EL1 you wouldn't get the expected behaviour.
+>
+> This seemed natural-ish if you believe that disabling at EL1 implies
+> disabling at EL0.  This is consistent with the way the traps at EL2/3
+> work, and lack of this property would be a sort of privilege inversion.
+>
+> The meanings of the bits are not orthogonal, but it's still useful to be
+> able to twiddle EL0EN by itself when EL1EN is set (since we wan't to
+> control access for EL0 but leave EL1 access enabled).
+>
+> Maybe comments would be sufficient:
+>
+> #define CPACR_EL1_ZEN_EL1EN ... /* enable EL1 access */
+> #define CPACR_EL1_ZEN_EL0EN ... /* enable EL0 access, if EL1EN is also
+> set */
+
+Certainly it would help. I'll see as I go through the rest of the code
+but it looks like a potential bear trap we should at least mitigate.
+
+>
+> I'm not sure how to make the names both reasonably terse and self-
+> escribing, but I'm open to ideas.
+
+Sorry no decent ideas. Naming things is hard as they say.
+
+BTW see the follow-up mail for the other things I found....
