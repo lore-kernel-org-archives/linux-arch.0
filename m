@@ -1,79 +1,92 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:59306 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753946AbdHUOiX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 21 Aug 2017 10:38:23 -0400
-Date: Mon, 21 Aug 2017 15:38:18 +0100
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH 07/27] arm64/sve: Low-level SVE architectural state
- manipulation functions
-Message-ID: <20170821143818.GR6321@e103592.cambridge.arm.com>
-References: <1502280338-23002-1-git-send-email-Dave.Martin@arm.com>
- <1502280338-23002-8-git-send-email-Dave.Martin@arm.com>
- <878tid5ixn.fsf@linaro.org>
+Received: from mail-wr0-f170.google.com ([209.85.128.170]:35803 "EHLO
+        mail-wr0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753210AbdHUOuf (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 21 Aug 2017 10:50:35 -0400
+Received: by mail-wr0-f170.google.com with SMTP id k46so26560551wre.2
+        for <linux-arch@vger.kernel.org>; Mon, 21 Aug 2017 07:50:34 -0700 (PDT)
+References: <1502280338-23002-1-git-send-email-Dave.Martin@arm.com> <1502280338-23002-7-git-send-email-Dave.Martin@arm.com> <87a82t5kos.fsf@linaro.org> <8760dh5cbl.fsf@linaro.org> <20170821142627.GQ6321@e103592.cambridge.arm.com>
+From: Alex =?utf-8?Q?Benn=C3=A9e?= <alex.bennee@linaro.org>
+Subject: Re: [PATCH 06/27] arm64/sve: System register and exception syndrome definitions
+In-reply-to: <20170821142627.GQ6321@e103592.cambridge.arm.com>
+Date: Mon, 21 Aug 2017 15:50:32 +0100
+Message-ID: <871so55613.fsf@linaro.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Disposition: inline
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 8bit
-In-Reply-To: <878tid5ixn.fsf@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>
+To: Dave Martin <Dave.Martin@arm.com>
 Cc: linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
-Message-ID: <20170821143818.bwrIgzNgf_7LunXXasSMQppDILCKZ-A3TVtzKnoaYZU@z>
+Message-ID: <20170821145032.fsPHu6-e32NS4Ta3vtXYc9moqnUlt3sDV-3nxxWEaHY@z>
 
-On Mon, Aug 21, 2017 at 11:11:48AM +0100, Alex Benn�e wrote:
-> 
-> Dave Martin <Dave.Martin@arm.com> writes:
-> 
-> > Manipulating the SVE architectural state, including the vector and
-> > predicate registers, first-fault register and the vector length,
-> > requires the use of dedicated instructions added by SVE.
-> >
-> > This patch adds suitable assembly functions for saving and
-> > restoring the SVE registers and querying the vector length.
-> > Setting of the vector length is done as part of register restore.
-> >
-> > Since people building kernels may not all get an SVE-enabled
-> > toolchain for a while, this patch uses macros that generate
-> > explicit opcodes in place of assembler mnemonics.
-> >
-> > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> > ---
-> >  arch/arm64/include/asm/fpsimd.h       |   5 ++
-> >  arch/arm64/include/asm/fpsimdmacros.h | 137 ++++++++++++++++++++++++++++++++++
-> >  arch/arm64/kernel/entry-fpsimd.S      |  17 +++++
-> >  3 files changed, 159 insertions(+)
 
-[...]
+Dave Martin <Dave.Martin@arm.com> writes:
 
-> > diff --git a/arch/arm64/include/asm/fpsimdmacros.h b/arch/arm64/include/asm/fpsimdmacros.h
-> > index 0f5fdd3..5023064 100644
-> > --- a/arch/arm64/include/asm/fpsimdmacros.h
-> > +++ b/arch/arm64/include/asm/fpsimdmacros.h
+> On Mon, Aug 21, 2017 at 01:34:38PM +0100, Alex Bennée wrote:
+>>
+>> Alex Bennée <alex.bennee@linaro.org> writes:
+>>
+>> > Dave Martin <Dave.Martin@arm.com> writes:
+>
+> [...]
+>
+>> OK no I'm working directly from the unpacked ZIP file with the rest of
+>> the details I think this should be:
+>>
+>>   #define SYS_ZCR_EL2			sys_reg(3, 5, 1, 2, 0)
+>>
+>> e.g. op1 = 101 / 5
+>
+> No, that's the encoding for ZCR_EL12.  Where did you get this from?
 
-[...]
+Sorry my mistake, -ETOOMANYBITTABLES....
 
-> > +.macro _sve_str_v nz, nxbase, offset=0
-> > +	_sve_check_zreg \nz
-> > +	_check_general_reg \nxbase
-> > +	_check_num (\offset), -0x100, 0xff
-> > +	.inst	0xe5804000			\
-> > +		| (\nz)				\
-> > +		| ((\nxbase) << 5)		\
-> > +		| (((\offset) & 7) << 10)	\
-> > +		| (((\offset) & 0x1f8) << 13)
-> > +.endm
-> 
-> Can we have references to the ARM ARM titles (the section numbers keep
-> changing) for each hand-hacked instruction please. Otherwise it is
-> impossible to verify each one.
+>
+> (This encoding follows the general pattern of the v8.1 Virtualization
+> Host Extensions.)
+>
+> [...]
+>
+>> >> +#define ZCR_ELx_LEN_SHIFT	0
+>> >> +#define ZCR_ELx_LEN_SIZE	9
+>> >> +#define ZCR_ELx_LEN_MASK	0x1ff
+>> >> +
+>>
+>> LEN should be 0/4/0xf
+>>
+>> LEN, bits [3:0]
+>>
+>> Constrains the scalable vector register length for EL1 and EL0 to
+>> (LEN+1)x128 bits.
+>
+> The SVE supplement is not very explicit about the meaning of bits [8:4],
+> but they are reserved to extend the LEN field in the future, in case
+> that's ever needed for future architecture revisions.  I've aimed for
+> Linux to cope with this.
+>
+> Basically bits [8:4] are read-as-zero, write-ignore today, but in
+> the future some or all of them may be LEN field bits.
+>
+> In particular, this means that writing all bits [8:0] with 1 will
+> configure the largest supported vector length, even on future
+> architecture versions that may have a larger LEN field.
 
-That's fair -- will do.
+Ahh ok. It's not clear from the html and it is certainly implied in the
+supplement (2.1.1) that the architectural max is:
 
-The supplement didn't exist at the time I first wrote this code...
+  The size of every vector register is an IMPLEMENTATION DEFINED
+  multiple of 128 bits, up to an architectural maximum of 2048 bits.
 
-[...]
+>
+> It didn't seem useful to distinguish the two classes of bits here.
 
-Cheers
----Dave
+Maybe a comment clarifying would be useful then?
+
+>
+> Cheers
+> ---Dave
+
+
+--
+Alex Bennée
