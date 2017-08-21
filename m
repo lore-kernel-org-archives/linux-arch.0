@@ -1,74 +1,60 @@
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH 06/27] arm64/sve: System register and exception syndrome
- definitions
-Date: Mon, 21 Aug 2017 15:26:28 +0100
-Message-ID: <20170821142627.GQ6321@e103592.cambridge.arm.com>
-References: <1502280338-23002-1-git-send-email-Dave.Martin@arm.com>
- <1502280338-23002-7-git-send-email-Dave.Martin@arm.com>
- <87a82t5kos.fsf@linaro.org>
- <8760dh5cbl.fsf@linaro.org>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: x86: PIE support and option to extend KASLR randomization
+Date: Mon, 21 Aug 2017 16:28:54 +0200
+Message-ID: <20170821142854.dmuusnbc2tsrai3v@hirez.programming.kicks-ass.net>
+References: <20170810172615.51965-1-thgarnie@google.com>
+ <20170811124127.kkb5pnkljz4umxuj@gmail.com>
+ <CAJcbSZFTX3uiS2g8JriS6+z_+WrG8z3hrQo4OSuyHpiyUDJWYA@mail.gmail.com>
+ <20170815075609.mmzbfwritjzvrpsn@gmail.com>
+ <CAJcbSZE+TiY2whT94WqCJNXzR=2ATOHcQ10H5RqBZA1j=k1VHQ@mail.gmail.com>
+ <20170816151235.oamkdva6cwpc4cex@gmail.com>
+ <20170821133222.2ek6bhqgdeoymxsg@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:59052 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753206AbdHUO0c (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 21 Aug 2017 10:26:32 -0400
+Content-Type: text/plain; charset=us-ascii
+Return-path: <kernel-hardening-return-9536-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
 Content-Disposition: inline
-In-Reply-To: <8760dh5cbl.fsf@linaro.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>
-Cc: linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
+In-Reply-To: <20170821133222.2ek6bhqgdeoymxsg@hirez.programming.kicks-ass.net>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Thomas Garnier <thgarnie@google.com>, Herbert Xu <herbert@gondor.apana.org.au>, "David S . Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Matthias Kaehlcke <mka@chromium.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, Paolo Bonzini <pbonzini@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Joerg Roedel <joro@8bytes.org>, Tom Lendacky <thomas.lendacky@amd.com>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Brian Gerst <brgerst@gmail.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, "Rafael J . Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Pavel Machek <pavel@ucw.cz>, Tejun Heo <tj@kernel.org>, Christoph
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Aug 21, 2017 at 01:34:38PM +0100, Alex Bennée wrote:
+On Mon, Aug 21, 2017 at 03:32:22PM +0200, Peter Zijlstra wrote:
+> On Wed, Aug 16, 2017 at 05:12:35PM +0200, Ingo Molnar wrote:
+> > Unfortunately mcmodel=large looks pretty heavy too AFAICS, at the machine 
+> > instruction level.
+> > 
+> > Function calls look like this:
+> > 
+> >  -mcmodel=medium:
+> > 
+> >    757:   e8 98 ff ff ff          callq  6f4 <test_code>
+> > 
+> >  -mcmodel=large
+> > 
+> >    77b:   48 b8 10 f7 df ff ff    movabs $0xffffffffffdff710,%rax
+> >    782:   ff ff ff 
+> >    785:   48 8d 04 03             lea    (%rbx,%rax,1),%rax
+> >    789:   ff d0                   callq  *%rax
+> > 
+> > And we'd do this for _EVERY_ function call in the kernel. That kind of crap is 
+> > totally unacceptable.
 > 
-> Alex Bennée <alex.bennee@linaro.org> writes:
+> So why does this need to be computed for every single call? How often
+> will we move the kernel around at runtime?
 > 
-> > Dave Martin <Dave.Martin@arm.com> writes:
+> Why can't we process the relocation at load time and then discard the
+> relocation tables along with the rest of __init ?
 
-[...]
+Ah, I see, this is large mode and that needs to use MOVABS to load 64bit
+immediates. Still, small RIP relative should be able to live at any
+point as long as everything lives inside the same 2G relative range, so
+would still allow the goal of increasing the KASLR range.
 
-> OK no I'm working directly from the unpacked ZIP file with the rest of
-> the details I think this should be:
-> 
->   #define SYS_ZCR_EL2			sys_reg(3, 5, 1, 2, 0)
-> 
-> e.g. op1 = 101 / 5
-
-No, that's the encoding for ZCR_EL12.  Where did you get this from?
-
-(This encoding follows the general pattern of the v8.1 Virtualization
-Host Extensions.)
-
-[...]
-
-> >> +#define ZCR_ELx_LEN_SHIFT	0
-> >> +#define ZCR_ELx_LEN_SIZE	9
-> >> +#define ZCR_ELx_LEN_MASK	0x1ff
-> >> +
-> 
-> LEN should be 0/4/0xf
-> 
-> LEN, bits [3:0]
-> 
-> Constrains the scalable vector register length for EL1 and EL0 to
-> (LEN+1)x128 bits.
-
-The SVE supplement is not very explicit about the meaning of bits [8:4],
-but they are reserved to extend the LEN field in the future, in case
-that's ever needed for future architecture revisions.  I've aimed for
-Linux to cope with this.
-
-Basically bits [8:4] are read-as-zero, write-ignore today, but in
-the future some or all of them may be LEN field bits.
-
-In particular, this means that writing all bits [8:0] with 1 will
-configure the largest supported vector length, even on future
-architecture versions that may have a larger LEN field.
-
-It didn't seem useful to distinguish the two classes of bits here.
-
-Cheers
----Dave
+So I'm not seeing how we need large mode for that. That said, after
+reading up on all this, RIP relative will not be too pretty either,
+while CALL is naturally RIP relative, data still needs an explicit %rip
+offset, still loads better than the large model.
