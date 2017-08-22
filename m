@@ -1,79 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ale.deltatee.com ([207.54.116.67]:41146 "EHLO ale.deltatee.com"
+Received: from ale.deltatee.com ([207.54.116.67]:41142 "EHLO ale.deltatee.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751172AbdHVRCr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S1751157AbdHVRCr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Tue, 22 Aug 2017 13:02:47 -0400
 From: Logan Gunthorpe <logang@deltatee.com>
-Date: Tue, 22 Aug 2017 11:02:27 -0600
-Message-ID: <20170822170228.17196-7-logang@deltatee.com>
-In-Reply-To: <20170822170228.17196-1-logang@deltatee.com>
-References: <20170822170228.17196-1-logang@deltatee.com>
-Subject: [PATCH v7 6/7] ntb: ntb_hw_intel: use io-64-nonatomic instead of in-driver hacks
+Date: Tue, 22 Aug 2017 11:02:21 -0600
+Message-ID: <20170822170228.17196-1-logang@deltatee.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Subject: [PATCH v7 0/7] make io{read|write}64 globally usable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org
 Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Stephen Bates <sbates@raithlin.com>, Logan Gunthorpe <logang@deltatee.com>
-Message-ID: <20170822170227.Nr7tmhZl8VvSoz1gzL49ygLoGmhlYwYt4ZIZ8Eoei2k@z>
+Message-ID: <20170822170221.mj1Q6u9ayON-VlLMJPevqsYPvs9P8NeR6ex4mOLk9J0@z>
 
-Now that ioread64 and iowrite64 are available in io-64-nonatomic,
-we can remove the hack at the top of ntb_hw_intel.c and replace it
-with an include.
+This is just a resend seeing I've gotten no feedback in a couple weeks.
 
-Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
-Acked-by: Dave Jiang <dave.jiang@intel.com>
-Acked-by: Allen Hubbe <Allen.Hubbe@dell.com>
-Acked-by: Jon Mason <jdmason@kudzu.us>
----
- drivers/ntb/hw/intel/ntb_hw_intel.c | 30 +-----------------------------
- 1 file changed, 1 insertion(+), 29 deletions(-)
 
-diff --git a/drivers/ntb/hw/intel/ntb_hw_intel.c b/drivers/ntb/hw/intel/ntb_hw_intel.c
-index 2557e2c05b90..606c90f59d4b 100644
---- a/drivers/ntb/hw/intel/ntb_hw_intel.c
-+++ b/drivers/ntb/hw/intel/ntb_hw_intel.c
-@@ -59,6 +59,7 @@
- #include <linux/random.h>
- #include <linux/slab.h>
- #include <linux/ntb.h>
-+#include <linux/io-64-nonatomic-lo-hi.h>
- 
- #include "ntb_hw_intel.h"
- 
-@@ -155,35 +156,6 @@ MODULE_PARM_DESC(xeon_b2b_dsd_bar5_addr32,
- static inline enum ntb_topo xeon_ppd_topo(struct intel_ntb_dev *ndev, u8 ppd);
- static int xeon_init_isr(struct intel_ntb_dev *ndev);
- 
--#ifndef ioread64
--#ifdef readq
--#define ioread64 readq
--#else
--#define ioread64 _ioread64
--static inline u64 _ioread64(void __iomem *mmio)
--{
--	u64 low, high;
--
--	low = ioread32(mmio);
--	high = ioread32(mmio + sizeof(u32));
--	return low | (high << 32);
--}
--#endif
--#endif
--
--#ifndef iowrite64
--#ifdef writeq
--#define iowrite64 writeq
--#else
--#define iowrite64 _iowrite64
--static inline void _iowrite64(u64 val, void __iomem *mmio)
--{
--	iowrite32(val, mmio);
--	iowrite32(val >> 32, mmio + sizeof(u32));
--}
--#endif
--#endif
--
- static inline int pdev_is_atom(struct pci_dev *pdev)
- {
- 	switch (pdev->device) {
--- 
+Changes since v6:
+ ** none **
+
+Changes since v5:
+- Added a fix to the tilcdc driver to ensure it doesn't use the
+  non-atomic operation. (This includes adding io{read|write}64[be]_is_nonatomic
+  defines).
+
+Changes since v4:
+- Add functions so the powerpc implementation of iomap.c compiles. (As
+  noticed by Horia)
+
+Changes since v3:
+
+- I noticed powerpc didn't use the appropriate functions seeing
+  readq/writeq were not defined when iomap.h was included. Thus I've
+  included a patch to adjust this
+- Fixed some mistakes with a couple of the defines in io-64-nonatomic*
+  headers
+- Fixed a typo noticed by Horia.
+
+(earlier versions were drastically different)
+
+Horia Geantă (1):
+  crypto: caam: cleanup CONFIG_64BIT ifdefs when using io{read|write}64
+
+Logan Gunthorpe (6):
+  drm/tilcdc: ensure nonatomic iowrite64 is not used
+  powerpc: io.h: move iomap.h include so that it can use readq/writeq
+    defs
+  powerpc: iomap.c: introduce io{read|write}64_{lo_hi|hi_lo}
+  iomap: introduce io{read|write}64_{lo_hi|hi_lo}
+  io-64-nonatomic: add io{read|write}64[be]{_lo_hi|_hi_lo} macros
+  ntb: ntb_hw_intel: use io-64-nonatomic instead of in-driver hacks
+
+ arch/powerpc/include/asm/io.h         |   6 +-
+ arch/powerpc/kernel/iomap.c           |  40 +++++++++++
+ drivers/crypto/caam/regs.h            |  35 ++-------
+ drivers/gpu/drm/tilcdc/tilcdc_regs.h  |   2 +-
+ drivers/ntb/hw/intel/ntb_hw_intel.c   |  30 +-------
+ include/asm-generic/iomap.h           |  26 +++++--
+ include/linux/io-64-nonatomic-hi-lo.h |  64 +++++++++++++++++
+ include/linux/io-64-nonatomic-lo-hi.h |  64 +++++++++++++++++
+ lib/iomap.c                           | 132 ++++++++++++++++++++++++++++++++++
+ 9 files changed, 331 insertions(+), 68 deletions(-)
+
+--
 2.11.0
