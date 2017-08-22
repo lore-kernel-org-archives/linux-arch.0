@@ -1,68 +1,90 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:40876 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1751781AbdHVSIQ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 22 Aug 2017 14:08:16 -0400
-Received: from pps.filterd (m0098409.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id v7MI8BFx050686
-        for <linux-arch@vger.kernel.org>; Tue, 22 Aug 2017 14:08:15 -0400
-Received: from e32.co.us.ibm.com (e32.co.us.ibm.com [32.97.110.150])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2cgpmyk7nj-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Tue, 22 Aug 2017 14:08:13 -0400
-Received: from localhost
-        by e32.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <linuxram@us.ibm.com>;
-        Tue, 22 Aug 2017 12:06:50 -0600
-Date: Tue, 22 Aug 2017 11:06:37 -0700
-From: Ram Pai <linuxram@us.ibm.com>
-Subject: Re: [RFC v6 35/62] powerpc: Deliver SEGV signal on pkey violation
-Reply-To: Ram Pai <linuxram@us.ibm.com>
-References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
- <1500177424-13695-36-git-send-email-linuxram@us.ibm.com>
- <87d17rnzll.fsf@xmission.com>
+Received: from mail-wr0-f169.google.com ([209.85.128.169]:36958 "EHLO
+        mail-wr0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752229AbdHVSjv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 22 Aug 2017 14:39:51 -0400
+Received: by mail-wr0-f169.google.com with SMTP id z91so128146523wrc.4
+        for <linux-arch@vger.kernel.org>; Tue, 22 Aug 2017 11:39:51 -0700 (PDT)
+References: <1502280338-23002-1-git-send-email-Dave.Martin@arm.com> <1502280338-23002-12-git-send-email-Dave.Martin@arm.com> <87378jbmkg.fsf@linaro.org> <20170822171959.GX6321@e103592.cambridge.arm.com>
+From: Alex =?utf-8?Q?Benn=C3=A9e?= <alex.bennee@linaro.org>
+Subject: Re: [PATCH 11/27] arm64/sve: Core task context handling
+In-reply-to: <20170822171959.GX6321@e103592.cambridge.arm.com>
+Date: Tue, 22 Aug 2017 19:39:48 +0100
+Message-ID: <87ziara1l7.fsf@linaro.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <87d17rnzll.fsf@xmission.com>
-Message-ID: <20170822180637.GA17106@ram.oc3035372033.ibm.com>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, mhocko@kernel.org
-Message-ID: <20170822180637.46B6J2DjHBqwxGuTPaGqrunSU4fRjFZZiUeWNYX7Sro@z>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
+Message-ID: <20170822183948.zmAr-AWg4IB6NpHB0uf_wbv89Yh1_sagDFGZtscSjr8@z>
 
-On Sat, Aug 19, 2017 at 02:09:58PM -0500, Eric W. Biederman wrote:
-> Ram Pai <linuxram@us.ibm.com> writes:
-> 
-> > diff --git a/arch/powerpc/kernel/traps.c b/arch/powerpc/kernel/traps.c
-> > index d4e545d..fe1e7c7 100644
-> > --- a/arch/powerpc/kernel/traps.c
-> > +++ b/arch/powerpc/kernel/traps.c
-> > @@ -20,6 +20,7 @@
-> >  #include <linux/sched/debug.h>
-> >  #include <linux/kernel.h>
-> >  #include <linux/mm.h>
-> > +#include <linux/pkeys.h>
-> >  #include <linux/stddef.h>
-> >  #include <linux/unistd.h>
-> >  #include <linux/ptrace.h>
-> > @@ -247,6 +248,15 @@ void user_single_step_siginfo(struct task_struct *tsk,
-> >  	info->si_addr = (void __user *)regs->nip;
-> >  }
-> >  
-> > +#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
-> > +static void fill_sig_info_pkey(int si_code, siginfo_t *info, unsigned long addr)
-> > +{
-> > +	if (si_code != SEGV_PKUERR)
-> > +		return;
-> 
-> Given that SEGV_PKUERR is a signal specific si_code this test is
-> insufficient to detect an pkey error.  You also need to check
-> that signr == SIGSEGV
 
-true. will make it a more precise check.
+Dave Martin <Dave.Martin@arm.com> writes:
 
-Thanks
-RP
+> On Tue, Aug 22, 2017 at 05:21:19PM +0100, Alex Bennée wrote:
+>>
+>> Dave Martin <Dave.Martin@arm.com> writes:
+>
+> [...]
+>
+>> > --- a/arch/arm64/include/asm/processor.h
+>> > +++ b/arch/arm64/include/asm/processor.h
+>> > @@ -85,6 +85,8 @@ struct thread_struct {
+>> >  	unsigned long		tp2_value;
+>> >  #endif
+>> >  	struct fpsimd_state	fpsimd_state;
+>> > +	void			*sve_state;	/* SVE registers, if any */
+>> > +	u16			sve_vl;		/* SVE vector length */
+>>
+>> sve_vl is implicitly cast to unsigned int bellow - it should be
+>> consistent.
+>
+> Agreed -- I think this can just be unsigned int here, which is the type
+> I use everywhere except when encoding the vector length in the signal
+> frame and ptrace data.
+>
+> During development, there was an additional flags field here (now
+> merged into the thread_info flags).  u16 was big enough for the largest
+> architectural vector length, so it seemed "tidy" to make both u16s.
+> Elsewhere, this created a risk of overflow if you try to compute say
+> the size of the whole register file from a u16, so I generally used
+> unsigned int for local variables in functions that handle the vl.
+>
+>> Given the allocation functions rely on sve_vl being valid it might be
+>> worth noting where this is set/live from?
+>
+> Agreed, I need to look more closely at exactly how to justify the
+> soundness of this in order to thin out BUG_ONs.
+>
+> If you need any pointers, please ping me.  In the meantime, I would
+> rather not colour your judgement by infecting you with my assumptions ;)
+>
+>> >  	unsigned long		fault_address;	/* fault info */
+>> >  	unsigned long		fault_code;	/* ESR_EL1 value */
+>> >  	struct debug_info	debug;		/* debugging */
+>> > diff --git a/arch/arm64/include/asm/thread_info.h b/arch/arm64/include/asm/thread_info.h
+>> > index 46c3b93..1a4b30b 100644
+>> > --- a/arch/arm64/include/asm/thread_info.h
+>> > +++ b/arch/arm64/include/asm/thread_info.h
+>> <snip>
+>>
+>> And I see there are other comments from Ard.
+>
+> Yup, I've already picked those up.
+>
+> I'll be posting a v2 with feedback applied once I've reviewed the
+> existing BUG_ON()s -- should happen sometime this week.
+
+We shall see how far I get tomorrow - you won't get any more from me
+after that until I get back from holiday so don't delay v2 on my account
+;-)
+
+>
+> Cheers
+> ---Dave
+
+
+--
+Alex Bennée
