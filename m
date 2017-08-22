@@ -1,107 +1,78 @@
-From: Logan Gunthorpe <logang@deltatee.com>
-Subject: [PATCH v7 7/7] crypto: caam: cleanup CONFIG_64BIT ifdefs when using io{read|write}64
-Date: Tue, 22 Aug 2017 11:02:28 -0600
-Message-ID: <20170822170228.17196-8-logang@deltatee.com>
-References: <20170822170228.17196-1-logang@deltatee.com>
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [PATCH 11/27] arm64/sve: Core task context handling
+Date: Tue, 22 Aug 2017 18:19:59 +0100
+Message-ID: <20170822171959.GX6321@e103592.cambridge.arm.com>
+References: <1502280338-23002-1-git-send-email-Dave.Martin@arm.com>
+ <1502280338-23002-12-git-send-email-Dave.Martin@arm.com>
+ <87378jbmkg.fsf@linaro.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=iso-8859-1
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20170822170228.17196-1-logang@deltatee.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Stephen Bates <sbates@raithlin.com>, Logan Gunthorpe <logang@deltatee.com>, Dan Douglass <dan.douglass@nxp.com>, Herbert Xu <herbert@gondor.apana.org.au>, "David S. Miller" <davem@davemloft.net>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:47368 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751061AbdHVRUE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 22 Aug 2017 13:20:04 -0400
+Content-Disposition: inline
+In-Reply-To: <87378jbmkg.fsf@linaro.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>
+Cc: linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
 
-From: Horia Geantă <horia.geanta@nxp.com>
+On Tue, Aug 22, 2017 at 05:21:19PM +0100, Alex Benn�e wrote:
+> 
+> Dave Martin <Dave.Martin@arm.com> writes:
 
-We can now make use of the io-64-nonatomic-lo-hi header to always
-provide 64 bit IO operations. So this patch cleans up the extra
-CONFIG_64BIT ifdefs.
+[...]
 
-To be consistent with CAAM engine HW spec: in case of 64-bit registers,
-irrespective of device endianness, the lower address should be read from
-/ written to first, followed by the upper address. Indeed the I/O
-accessors in CAAM driver currently don't follow the spec, however this
-is a good opportunity to fix the code.
+> > --- a/arch/arm64/include/asm/processor.h
+> > +++ b/arch/arm64/include/asm/processor.h
+> > @@ -85,6 +85,8 @@ struct thread_struct {
+> >  	unsigned long		tp2_value;
+> >  #endif
+> >  	struct fpsimd_state	fpsimd_state;
+> > +	void			*sve_state;	/* SVE registers, if any */
+> > +	u16			sve_vl;		/* SVE vector length */
+> 
+> sve_vl is implicitly cast to unsigned int bellow - it should be
+> consistent.
 
-Signed-off-by: Horia Geantă <horia.geanta@nxp.com>
-Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
-Cc: Horia Geantă <horia.geanta@nxp.com>
-Cc: Dan Douglass <dan.douglass@nxp.com>
-Cc: Herbert Xu <herbert@gondor.apana.org.au>
-Cc: "David S. Miller" <davem@davemloft.net>
----
- drivers/crypto/caam/regs.h | 35 +++++------------------------------
- 1 file changed, 5 insertions(+), 30 deletions(-)
+Agreed -- I think this can just be unsigned int here, which is the type
+I use everywhere except when encoding the vector length in the signal
+frame and ptrace data.
 
-diff --git a/drivers/crypto/caam/regs.h b/drivers/crypto/caam/regs.h
-index 84d2f838a063..0c45505458e7 100644
---- a/drivers/crypto/caam/regs.h
-+++ b/drivers/crypto/caam/regs.h
-@@ -9,7 +9,7 @@
- 
- #include <linux/types.h>
- #include <linux/bitops.h>
--#include <linux/io.h>
-+#include <linux/io-64-nonatomic-lo-hi.h>
- 
- /*
-  * Architecture-specific register access methods
-@@ -134,50 +134,25 @@ static inline void clrsetbits_32(void __iomem *reg, u32 clear, u32 set)
-  *    base + 0x0000 : least-significant 32 bits
-  *    base + 0x0004 : most-significant 32 bits
-  */
--#ifdef CONFIG_64BIT
- static inline void wr_reg64(void __iomem *reg, u64 data)
- {
-+#ifndef CONFIG_CRYPTO_DEV_FSL_CAAM_IMX
- 	if (caam_little_end)
- 		iowrite64(data, reg);
- 	else
--		iowrite64be(data, reg);
--}
--
--static inline u64 rd_reg64(void __iomem *reg)
--{
--	if (caam_little_end)
--		return ioread64(reg);
--	else
--		return ioread64be(reg);
--}
--
--#else /* CONFIG_64BIT */
--static inline void wr_reg64(void __iomem *reg, u64 data)
--{
--#ifndef CONFIG_CRYPTO_DEV_FSL_CAAM_IMX
--	if (caam_little_end) {
--		wr_reg32((u32 __iomem *)(reg) + 1, data >> 32);
--		wr_reg32((u32 __iomem *)(reg), data);
--	} else
- #endif
--	{
--		wr_reg32((u32 __iomem *)(reg), data >> 32);
--		wr_reg32((u32 __iomem *)(reg) + 1, data);
--	}
-+		iowrite64be(data, reg);
- }
- 
- static inline u64 rd_reg64(void __iomem *reg)
- {
- #ifndef CONFIG_CRYPTO_DEV_FSL_CAAM_IMX
- 	if (caam_little_end)
--		return ((u64)rd_reg32((u32 __iomem *)(reg) + 1) << 32 |
--			(u64)rd_reg32((u32 __iomem *)(reg)));
-+		return ioread64(reg);
- 	else
- #endif
--		return ((u64)rd_reg32((u32 __iomem *)(reg)) << 32 |
--			(u64)rd_reg32((u32 __iomem *)(reg) + 1));
-+		return ioread64be(reg);
- }
--#endif /* CONFIG_64BIT  */
- 
- #ifdef CONFIG_ARCH_DMA_ADDR_T_64BIT
- #ifdef CONFIG_SOC_IMX7D
--- 
-2.11.0
+During development, there was an additional flags field here (now
+merged into the thread_info flags).  u16 was big enough for the largest
+architectural vector length, so it seemed "tidy" to make both u16s.
+Elsewhere, this created a risk of overflow if you try to compute say
+the size of the whole register file from a u16, so I generally used
+unsigned int for local variables in functions that handle the vl.
+
+> Given the allocation functions rely on sve_vl being valid it might be
+> worth noting where this is set/live from?
+
+Agreed, I need to look more closely at exactly how to justify the
+soundness of this in order to thin out BUG_ONs.
+
+If you need any pointers, please ping me.  In the meantime, I would
+rather not colour your judgement by infecting you with my assumptions ;)
+
+> >  	unsigned long		fault_address;	/* fault info */
+> >  	unsigned long		fault_code;	/* ESR_EL1 value */
+> >  	struct debug_info	debug;		/* debugging */
+> > diff --git a/arch/arm64/include/asm/thread_info.h b/arch/arm64/include/asm/thread_info.h
+> > index 46c3b93..1a4b30b 100644
+> > --- a/arch/arm64/include/asm/thread_info.h
+> > +++ b/arch/arm64/include/asm/thread_info.h
+> <snip>
+> 
+> And I see there are other comments from Ard.
+
+Yup, I've already picked those up.
+
+I'll be posting a v2 with feedback applied once I've reviewed the
+existing BUG_ON()s -- should happen sometime this week.
+
+Cheers
+---Dave
