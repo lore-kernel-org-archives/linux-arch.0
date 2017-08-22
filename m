@@ -1,72 +1,48 @@
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH 12/27] arm64/sve: Support vector length resetting for new
- processes
-Date: Tue, 22 Aug 2017 18:22:24 +0100
-Message-ID: <20170822172224.GY6321@e103592.cambridge.arm.com>
-References: <1502280338-23002-1-git-send-email-Dave.Martin@arm.com>
- <1502280338-23002-13-git-send-email-Dave.Martin@arm.com>
- <871so3bmj0.fsf@linaro.org>
+From: Andy Shevchenko <andy.shevchenko@gmail.com>
+Subject: Re: [PATCH v7 5/7] io-64-nonatomic: add io{read|write}64[be]{_lo_hi|_hi_lo}
+ macros
+Date: Tue, 22 Aug 2017 20:40:06 +0300
+Message-ID: <CAHp75Ve3gG6KdjVBmJZAw25uXRmzfCMUv1kFvg0TbhN7ebTqdw@mail.gmail.com>
+References: <20170822170228.17196-1-logang@deltatee.com> <20170822170228.17196-6-logang@deltatee.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="iso-8859-1"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <kvmarm-bounces@lists.cs.columbia.edu>
-Content-Disposition: inline
-In-Reply-To: <871so3bmj0.fsf@linaro.org>
-List-Unsubscribe: <https://lists.cs.columbia.edu/mailman/options/kvmarm>,
- <mailto:kvmarm-request@lists.cs.columbia.edu?subject=unsubscribe>
-List-Archive: <https://lists.cs.columbia.edu/pipermail/kvmarm>
-List-Post: <mailto:kvmarm@lists.cs.columbia.edu>
-List-Help: <mailto:kvmarm-request@lists.cs.columbia.edu?subject=help>
-List-Subscribe: <https://lists.cs.columbia.edu/mailman/listinfo/kvmarm>,
- <mailto:kvmarm-request@lists.cs.columbia.edu?subject=subscribe>
-Errors-To: kvmarm-bounces@lists.cs.columbia.edu
-Sender: kvmarm-bounces@lists.cs.columbia.edu
-To: Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>
-Cc: linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20170822170228.17196-6-logang@deltatee.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Logan Gunthorpe <logang@deltatee.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-ntb@googlegroups.com, linux-crypto <linux-crypto@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, =?UTF-8?Q?Horia_Geant=C4=83?= <horia.geanta@nxp.com>, Stephen Bates <sbates@raithlin.com>, Christoph Hellwig <hch@lst.de>, Alan Cox <gnomes@lxorguk.ukuu.org.uk>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Aug 22, 2017 at 05:22:11PM +0100, Alex Benn=E9e wrote:
-> =
+On Tue, Aug 22, 2017 at 8:02 PM, Logan Gunthorpe <logang@deltatee.com> wrote:
+> This patch adds generic io{read|write}64[be]{_lo_hi|_hi_lo} macros if
+> they are not already defined by the architecture. (As they are provided
+> by the generic iomap library).
+>
+> The patch also points io{read|write}64[be] to the variant specified by the
+> header name.
+>
+> This is because new drivers are encouraged to use ioreadXX, et al instead
+> of readX[1], et al -- and mixing ioreadXX with readq is pretty ugly.
+>
+> [1] ldd3: section 9.4.2
 
-> Dave Martin <Dave.Martin@arm.com> writes:
-> =
+ldd -> LDD
 
-> > It's desirable to be able to reset the vector length to some sane
-> > default for new processes, since the new binary and its libraries
-> > processes may or may not be SVE-aware.
-> >
-> > This patch tracks the desired post-exec vector length (if any) in a
-> > new thread member sve_vl_onexec, and adds a new thread flag
-> > TIF_SVE_VL_INHERIT to control whether to inherit or reset the
-> > vector length.  Currently these are inactive.  Subsequent patches
-> > will provide the capability to configure them.
-> >
-> > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> > ---
-> >  arch/arm64/include/asm/processor.h   |  1 +
-> >  arch/arm64/include/asm/thread_info.h |  1 +
-> >  arch/arm64/kernel/fpsimd.c           | 13 +++++++++++++
-> >  3 files changed, 15 insertions(+)
-> >
-> > diff --git a/arch/arm64/include/asm/processor.h b/arch/arm64/include/as=
-m/processor.h
-> > index 969feed..da8802a 100644
-> > --- a/arch/arm64/include/asm/processor.h
-> > +++ b/arch/arm64/include/asm/processor.h
-> > @@ -87,6 +87,7 @@ struct thread_struct {
-> >  	struct fpsimd_state	fpsimd_state;
-> >  	void			*sve_state;	/* SVE registers, if any */
-> >  	u16			sve_vl;		/* SVE vector length */
-> > +	u16			sve_vl_onexec;	/* SVE vl after next
-> > exec */
-> =
+It's a pretty outdated book, though quite many chapters are actual for
+these days.
 
-> Inconsistent size usage here as well...
+Recomendation is kinda arguable. I doubt modern architectures make
+difference between IO operations and MMIO.
+Does, for example, PCI requires some special signal (message / wire)
+handling when pio_*() accessors used vs. mmio_*() ones?
 
-Agreed, the same history applies as for sve_vl.  I'll replace this with
-an unsigned int.
+> cc: Christoph Hellwig <hch@lst.de>
+> cc: Arnd Bergmann <arnd@arndb.de>
+> cc: Alan Cox <gnomes@lxorguk.ukuu.org.uk>
+> cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 
-[...]
+cc -> Cc ?
 
-Cheers
----Dave
+-- 
+With Best Regards,
+Andy Shevchenko
