@@ -1,59 +1,41 @@
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH 09/27] arm64/sve: Signal frame and context structure
- definition
-Date: Tue, 22 Aug 2017 16:41:11 +0100
-Message-ID: <20170822154111.GW6321@e103592.cambridge.arm.com>
-References: <1502280338-23002-1-git-send-email-Dave.Martin@arm.com>
- <1502280338-23002-10-git-send-email-Dave.Martin@arm.com>
- <87y3qb52ez.fsf@linaro.org>
- <20170822111705.GT6321@e103592.cambridge.arm.com>
- <87tw0z4sk2.fsf@linaro.org>
- <20170822142135.GU6321@e103592.cambridge.arm.com>
- <87shgj4pc7.fsf@linaro.org>
+From: raymond pang <raymondpangxd@gmail.com>
+Subject: [PATCH] x86/ioapic: Correctly print IRTE's index field when enabling INTR
+Date: Tue, 22 Aug 2017 23:44:47 +0800
+Message-ID: <CAHG4imNDzpDyOVi7MByVrLQ=QFuOVqpzJ5F-Xs5z6OZphubj-Q@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:45960 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S933001AbdHVPlQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 22 Aug 2017 11:41:16 -0400
-Content-Disposition: inline
-In-Reply-To: <87shgj4pc7.fsf@linaro.org>
+Received: from mail-qt0-f194.google.com ([209.85.216.194]:33451 "EHLO
+        mail-qt0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S933040AbdHVPos (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 22 Aug 2017 11:44:48 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>
-Cc: linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, gdb@sourceware.org, Yao Qi <Yao.Qi@arm.com>, Alan Hayward <alan.hayward@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
+To: joro@8bytes.org, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, linux-arch@vger.kernel.org, x86@kernel.org
+Cc: linux-kernel@vger.kernel.org
 
-On Tue, Aug 22, 2017 at 04:03:20PM +0100, Alex Bennée wrote:
-> 
-> Dave Martin <Dave.Martin@arm.com> writes:
-> 
-> > On Tue, Aug 22, 2017 at 02:53:49PM +0100, Alex Bennée wrote:
+When enabling interrupt remap, IOAPIC's RTE contains interrupt_index
+field of IRTE. And this field is composed of index and index2 member of
+struct IR_IO_APIC_route_entry. Make io_apic_print_entries() correctly
+print interrupt index field.
 
-[...]
-
-> >> +
-> >> +#define SVE_VQ_BITS             128      /* 128 bits in one quadword */
-> >> +#define SVE_VQ_BYTES            (SVE_VQ_BITS / 8)
-> >> +
-> >
-> > I was trying to keep extraneous #defines to a minimum, since this is a
-> > uapi header, and people may depend on anything defined here.
-> >
-> > I think SVE_VQ_BYTES is reasonable to have, and this allows us to
-> > rewrite a few hard-coded 0x10s and 16s symbolically which is probably a
-> > good idea -- I'll add this.
-> >
-> > SVE_VQ_BITS looks redundant to me though.  It wouldn't be used for any
-> > purpose other than defining SVE_VQ_BYTES.
-> 
-> Yeah I was more concerned with getting rid of the magic 0x10's than
-> showing exactly how many bits something is.
-
-OK, I'll take SVE_VQ_BYTES and use it in the appropriate places.
-There are a few 0x10s/16s in the series that can use this instead
-of being open-coded.
-
-Cheers
----Dave
+Signed-off-by: Raymond Pang <raymondpangxd@gmail.com>
+---
+ arch/x86/kernel/apic/io_apic.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+diff --git a/arch/x86/kernel/apic/io_apic.c b/arch/x86/kernel/apic/io_apic.c
+index 237e9c2..70e48aa 100644
+--- a/arch/x86/kernel/apic/io_apic.c
++++ b/arch/x86/kernel/apic/io_apic.c
+@@ -1243,7 +1243,7 @@ static void io_apic_print_entries(unsigned int
+apic, unsigned int nr_entries)
+     entry.vector, entry.irr, entry.delivery_status);
+   if (ir_entry->format)
+    printk(KERN_DEBUG "%s, remapped, I(%04X),  Z(%X)\n",
+-          buf, (ir_entry->index << 15) | ir_entry->index,
++          buf, (ir_entry->index2 << 15) | ir_entry->index,
+           ir_entry->zero);
+   else
+    printk(KERN_DEBUG "%s, %s, D(%02X), M(%1d)\n",
+-- 
+1.9.1
