@@ -1,32 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ale.deltatee.com ([207.54.116.67]:41720 "EHLO ale.deltatee.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752174AbdHVR6T (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 22 Aug 2017 13:58:19 -0400
-References: <20170822170228.17196-1-logang@deltatee.com>
- <CAHp75Vd6O6vQFgU48tgMswhN0zT47Dqrvtf5JHLPrTVxR_DCrQ@mail.gmail.com>
-From: Logan Gunthorpe <logang@deltatee.com>
-Message-ID: <ce58849d-721f-0aae-6be7-aaedeb4cbe44@deltatee.com>
-Date: Tue, 22 Aug 2017 11:58:11 -0600
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:40876 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1751781AbdHVSIQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 22 Aug 2017 14:08:16 -0400
+Received: from pps.filterd (m0098409.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id v7MI8BFx050686
+        for <linux-arch@vger.kernel.org>; Tue, 22 Aug 2017 14:08:15 -0400
+Received: from e32.co.us.ibm.com (e32.co.us.ibm.com [32.97.110.150])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2cgpmyk7nj-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Tue, 22 Aug 2017 14:08:13 -0400
+Received: from localhost
+        by e32.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <linuxram@us.ibm.com>;
+        Tue, 22 Aug 2017 12:06:50 -0600
+Date: Tue, 22 Aug 2017 11:06:37 -0700
+From: Ram Pai <linuxram@us.ibm.com>
+Subject: Re: [RFC v6 35/62] powerpc: Deliver SEGV signal on pkey violation
+Reply-To: Ram Pai <linuxram@us.ibm.com>
+References: <1500177424-13695-1-git-send-email-linuxram@us.ibm.com>
+ <1500177424-13695-36-git-send-email-linuxram@us.ibm.com>
+ <87d17rnzll.fsf@xmission.com>
 MIME-Version: 1.0
-In-Reply-To: <CAHp75Vd6O6vQFgU48tgMswhN0zT47Dqrvtf5JHLPrTVxR_DCrQ@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
-Subject: Re: [PATCH v7 0/7] make io{read|write}64 globally usable
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <87d17rnzll.fsf@xmission.com>
+Message-ID: <20170822180637.GA17106@ram.oc3035372033.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Shevchenko <andy.shevchenko@gmail.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-ntb@googlegroups.com, linux-crypto <linux-crypto@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, =?UTF-8?Q?Horia_Geant=c4=83?= <horia.geanta@nxp.com>, Stephen Bates <sbates@raithlin.com>
-Message-ID: <20170822175811.ei7iyqeJ2kRzSKYi7Nv62uUN6-FX8q37L0q8wh5A-NU@z>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, dave.hansen@intel.com, hbabu@us.ibm.com, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, mhocko@kernel.org
+Message-ID: <20170822180637.46B6J2DjHBqwxGuTPaGqrunSU4fRjFZZiUeWNYX7Sro@z>
 
+On Sat, Aug 19, 2017 at 02:09:58PM -0500, Eric W. Biederman wrote:
+> Ram Pai <linuxram@us.ibm.com> writes:
+> 
+> > diff --git a/arch/powerpc/kernel/traps.c b/arch/powerpc/kernel/traps.c
+> > index d4e545d..fe1e7c7 100644
+> > --- a/arch/powerpc/kernel/traps.c
+> > +++ b/arch/powerpc/kernel/traps.c
+> > @@ -20,6 +20,7 @@
+> >  #include <linux/sched/debug.h>
+> >  #include <linux/kernel.h>
+> >  #include <linux/mm.h>
+> > +#include <linux/pkeys.h>
+> >  #include <linux/stddef.h>
+> >  #include <linux/unistd.h>
+> >  #include <linux/ptrace.h>
+> > @@ -247,6 +248,15 @@ void user_single_step_siginfo(struct task_struct *tsk,
+> >  	info->si_addr = (void __user *)regs->nip;
+> >  }
+> >  
+> > +#ifdef CONFIG_PPC64_MEMORY_PROTECTION_KEYS
+> > +static void fill_sig_info_pkey(int si_code, siginfo_t *info, unsigned long addr)
+> > +{
+> > +	if (si_code != SEGV_PKUERR)
+> > +		return;
+> 
+> Given that SEGV_PKUERR is a signal specific si_code this test is
+> insufficient to detect an pkey error.  You also need to check
+> that signr == SIGSEGV
 
+true. will make it a more precise check.
 
-On 22/08/17 11:43 AM, Andy Shevchenko wrote:
-> Overall quite a good clean up! Thanks!
-> After addressing my comments you may take my
-> Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
-
-Great, Thanks!
-
-Logan
+Thanks
+RP
