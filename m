@@ -1,210 +1,151 @@
-From: Alex =?utf-8?Q?Benn=C3=A9e?= <alex.bennee@linaro.org>
-Subject: Re: [PATCH 09/27] arm64/sve: Signal frame and context structure definition
-Date: Tue, 22 Aug 2017 11:22:44 +0100
-Message-ID: <87y3qb52ez.fsf@linaro.org>
-References: <1502280338-23002-1-git-send-email-Dave.Martin@arm.com> <1502280338-23002-10-git-send-email-Dave.Martin@arm.com>
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [PATCH 0/2] Fatal signal handing within uaccess faults
+Date: Tue, 22 Aug 2017 11:25:28 +0100
+Message-ID: <20170822102527.GA14671@leverpostej>
+References: <1499782590-31366-1-git-send-email-mark.rutland@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
-Return-path: <libc-alpha-return-83625-glibc-alpha=m.gmane.org@sourceware.org>
-List-Unsubscribe: <mailto:libc-alpha-unsubscribe-glibc-alpha=m.gmane.org@sourceware.org>
-List-Subscribe: <mailto:libc-alpha-subscribe@sourceware.org>
-List-Archive: <http://sourceware.org/ml/libc-alpha/>
-List-Post: <mailto:libc-alpha@sourceware.org>
-List-Help: <mailto:libc-alpha-help@sourceware.org>, <http://sourceware.org/ml/#faqs>
-Sender: libc-alpha-owner@sourceware.org
-In-reply-to: <1502280338-23002-10-git-send-email-Dave.Martin@arm.com>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, gdb@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Yao Qi <Yao.Qi@arm.com>, Alan Hayward <alan.hayward@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:41500 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S932352AbdHVK0p (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 22 Aug 2017 06:26:45 -0400
+Content-Disposition: inline
+In-Reply-To: <1499782590-31366-1-git-send-email-mark.rutland@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arm-kerne@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: catalin.marinas@arm.com, james.morse@arm.com, labbott@redhat.com, linux@armlinux.org.uk, stable@vger.kernel.org, steve.capper@arm.com, will.deacon@arm.com, viro@zeniv.linux.org.uk, peterz@infradead.org, luto@amacapital.net
 
+On Tue, Jul 11, 2017 at 03:16:28PM +0100, Mark Rutland wrote:
+> Hi,
+> 
+> Arch maintainer tl;dr: most arch fault code doesn't handle fatal signals
+> correctly, allowing unprivileged users to create an unkillable task which can
+> lock up the system. Please check whether your arch is affected.
 
-Dave Martin <Dave.Martin@arm.com> writes:
+From a glance at v4.13-rc5, I believe this affects:
 
-> This patch defines the representation that will be used for the SVE
-> register state in the signal frame, and implements support for
-> saving and restoring the SVE registers around signals.
->
-> The same layout will also be used for the in-kernel task state.
->
-> Due to the variability of the SVE vector length, it is not possible
-> to define a fixed C struct to describe all the registers.  Instead,
-> Macros are defined in sigcontext.h to facilitate access to the
-> parts of the structure.
->
-> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> ---
->  arch/arm64/include/uapi/asm/sigcontext.h | 113 ++++++++++++++++++++++++++++++-
->  1 file changed, 112 insertions(+), 1 deletion(-)
->
-> diff --git a/arch/arm64/include/uapi/asm/sigcontext.h b/arch/arm64/include/uapi/asm/sigcontext.h
-> index f0a76b9..0533bdf 100644
-> --- a/arch/arm64/include/uapi/asm/sigcontext.h
-> +++ b/arch/arm64/include/uapi/asm/sigcontext.h
-> @@ -16,6 +16,8 @@
->  #ifndef _UAPI__ASM_SIGCONTEXT_H
->  #define _UAPI__ASM_SIGCONTEXT_H
->
-> +#ifndef __ASSEMBLY__
-> +
->  #include <linux/types.h>
->
->  /*
-> @@ -41,10 +43,11 @@ struct sigcontext {
->   *
->   *	0x210		fpsimd_context
->   *	 0x10		esr_context
-> + *	0x8a0		sve_context (vl <= 64) (optional)
->   *	 0x20		extra_context (optional)
->   *	 0x10		terminator (null _aarch64_ctx)
->   *
-> - *	0xdb0		(reserved for future allocation)
-> + *	0x510		(reserved for future allocation)
->   *
->   * New records that can exceed this space need to be opt-in for userspace, so
->   * that an expanded signal frame is not generated unexpectedly.  The mechanism
-> @@ -116,4 +119,112 @@ struct extra_context {
->  	__u32 __reserved[3];
->  };
->
-> +#define SVE_MAGIC	0x53564501
-> +
-> +struct sve_context {
-> +	struct _aarch64_ctx head;
-> +	__u16 vl;
-> +	__u16 __reserved[3];
-> +};
-> +
-> +#endif /* !__ASSEMBLY__ */
-> +
-> +/*
-> + * The SVE architecture leaves space for future expansion of the
-> + * vector length beyond its initial architectural limit of 2048 bits
-> + * (16 quadwords).
-> + */
-> +#define SVE_VQ_MIN		1
-> +#define SVE_VQ_MAX		0x200
-> +
-> +#define SVE_VL_MIN		(SVE_VQ_MIN * 0x10)
-> +#define SVE_VL_MAX		(SVE_VQ_MAX * 0x10)
-> +
-> +#define SVE_NUM_ZREGS		32
-> +#define SVE_NUM_PREGS		16
-> +
-> +#define sve_vl_valid(vl) \
-> +	((vl) % 0x10 == 0 && (vl) >= SVE_VL_MIN && (vl) <= SVE_VL_MAX)
-> +#define sve_vq_from_vl(vl)	((vl) / 0x10)
-> +#define sve_vl_from_vq(vq)	((vq) * 0x10)
+	alpha, cris, hexagon, ia64, m68k, metag, microblaze, mips,
+	mn10300, nios2, openrisc, parisc, sparc (32-bit), tile,
+	unicore32, xtensa
 
-I got a little confused first time through over what VQ and VL where.
-Maybe it would make sense to expand a little more from first principles?
+... I'm not sure about:
 
-  /*
-   * The SVE architecture defines vector registers as a multiple of 128
-   * bit quadwords. The current architectural limit is 2048 bits (16
-   * quadwords) but there is room for future expansion beyond that.
-    */
+	arc, s390, sparc (64-bit)
 
-  #define SVE_VQ_BITS             128      /* 128 bits in one quadword */
-  #define SVE_VQ_BYTES            (SVE_VQ_BITS / 8)
+... and I think that the following are ok:
 
-  #define SVE_VQ_MIN		1
-  #define SVE_VQ_MAX		0x200    /* see ZCR_ELx[8:0] */
+	powerpc, sh, x86
 
-  #define SVE_VL_MIN_BYTES	(SVE_VQ_MIN * SVE_VQ_BYTES)
-  #define SVE_VL_MAX_BYTES	(SVE_VQ_MAX * SVE_VQ_BYTES)
+Thanks,
+Mark.
 
-  #define SVE_NUM_ZREGS		32
-  #define SVE_NUM_PREGS		16
-
-  #define sve_vl_valid(vl)						\
-          ((vl) % SVE_VQ_BYTES == 0 && (vl) >= SVE_VL_MIN && (vl) <= SVE_VL_MAX)
-  #define sve_vq_from_vl(vl)	((vl) / SVE_VQ_BYTES)
-  #define sve_vl_from_vq(vq)	((vq) * SVE_VQ_BYTES)
-
-
-> +
-> +/*
-> + * If the SVE registers are currently live for the thread at signal delivery,
-> + * sve_context.head.size >=
-> + *	SVE_SIG_CONTEXT_SIZE(sve_vq_from_vl(sve_context.vl))
-> + * and the register data may be accessed using the SVE_SIG_*() macros.
-> + *
-> + * If sve_context.head.size <
-> + *	SVE_SIG_CONTEXT_SIZE(sve_vq_from_vl(sve_context.vl)),
-> + * the SVE registers were not live for the thread and no register data
-> + * is included: in this case, the SVE_SIG_*() macros should not be
-> + * used except for this check.
-> + *
-> + * The same convention applies when returning from a signal: a caller
-> + * will need to remove or resize the sve_context block if it wants to
-> + * make the SVE registers live when they were previously non-live or
-> + * vice-versa.  This may require the the caller to allocate fresh
-> + * memory and/or move other context blocks in the signal frame.
-> + *
-> + * Changing the vector length during signal return is not permitted:
-> + * sve_context.vl must equal the thread's current vector length when
-> + * doing a sigreturn.
-> + *
-> + *
-> + * Note: for all these macros, the "vq" argument denotes the SVE
-> + * vector length in quadwords (i.e., units of 128 bits).
-> + *
-> + * The correct way to obtain vq is to use sve_vq_from_vl(vl).  The
-> + * result is valid if and only if sve_vl_valid(vl) is true.  This is
-> + * guaranteed for a struct sve_context written by the kernel.
-> + *
-> + *
-> + * Additional macros describe the contents and layout of the payload.
-> + * For each, SVE_SIG_x_OFFSET(args) is the start offset relative to
-> + * the start of struct sve_context, and SVE_SIG_x_SIZE(args) is the
-> + * size in bytes:
-> + *
-> + *	x	type				description
-> + *	-	----				-----------
-> + *	REGS					the entire SVE context
-> + *
-> + *	ZREGS	__uint128_t[SVE_NUM_ZREGS][vq]	all Z-registers
-> + *	ZREG	__uint128_t[vq]			individual Z-register Zn
-> + *
-> + *	PREGS	uint16_t[SVE_NUM_PREGS][vq]	all P-registers
-> + *	PREG	uint16_t[vq]			individual P-register Pn
-> + *
-> + *	FFR	uint16_t[vq]			first-fault status register
-> + *
-> + * Additional data might be appended in the future.
-> + */
-> +
-> +#define SVE_SIG_ZREG_SIZE(vq)	((__u32)(vq) * 16)
-> +#define SVE_SIG_PREG_SIZE(vq)	((__u32)(vq) * 2)
-> +#define SVE_SIG_FFR_SIZE(vq)	SVE_SIG_PREG_SIZE(vq)
-> +
-> +#define SVE_SIG_REGS_OFFSET	((sizeof(struct sve_context) + 15) / 16 * 16)
-> +
-> +#define SVE_SIG_ZREGS_OFFSET	SVE_SIG_REGS_OFFSET
-> +#define SVE_SIG_ZREG_OFFSET(vq, n) \
-> +	(SVE_SIG_ZREGS_OFFSET + SVE_SIG_ZREG_SIZE(vq) * (n))
-> +#define SVE_SIG_ZREGS_SIZE(vq) \
-> +	(SVE_SIG_ZREG_OFFSET(vq, SVE_NUM_ZREGS) - SVE_SIG_ZREGS_OFFSET)
-> +
-> +#define SVE_SIG_PREGS_OFFSET(vq) \
-> +	(SVE_SIG_ZREGS_OFFSET + SVE_SIG_ZREGS_SIZE(vq))
-> +#define SVE_SIG_PREG_OFFSET(vq, n) \
-> +	(SVE_SIG_PREGS_OFFSET(vq) + SVE_SIG_PREG_SIZE(vq) * (n))
-> +#define SVE_SIG_PREGS_SIZE(vq) \
-> +	(SVE_SIG_PREG_OFFSET(vq, SVE_NUM_PREGS) - SVE_SIG_PREGS_OFFSET(vq))
-> +
-> +#define SVE_SIG_FFR_OFFSET(vq) \
-> +	(SVE_SIG_PREGS_OFFSET(vq) + SVE_SIG_PREGS_SIZE(vq))
-> +
-> +#define SVE_SIG_REGS_SIZE(vq) \
-> +	(SVE_SIG_FFR_OFFSET(vq) + SVE_SIG_FFR_SIZE(vq) - SVE_SIG_REGS_OFFSET)
-> +
-> +#define SVE_SIG_CONTEXT_SIZE(vq) (SVE_SIG_REGS_OFFSET + SVE_SIG_REGS_SIZE(vq))
-> +
-> +
->  #endif /* _UAPI__ASM_SIGCONTEXT_H */
-
-
---
-Alex Bennée
+> AFAICT, most arches don't correctly handle a fatal signal interrupting a
+> uaccess fault. They attempt to bail out, returning to the faulting context
+> without bothering to handle the fault, but forget to apply the uaccess fixup.
+> Consequently, the uaccess gets replayed, and the same thing happens forver.
+> 
+> When this occurs, the relevant task never returns to userspace, never handles
+> the fatal signal, and is stuck in an unkillable (though interruptible and
+> preemptible) state. The task can inhibit forward progress of the rest of the
+> system, leading to RCU stalls and lockups.
+> 
+> It's possible for an unprivileged user to trigger this deliberately using the
+> userfaultfd syscall, as demonstrated by the test case at the end of this email
+> (note: requires CONFIG_USERFAULTFD to be selected). I am not sure if this is
+> the only way of triggering the issue.
+> 
+> I stumbled upon this while fuzzing arm64 with Syzkaller. I've verified that
+> both arm and arm64 have the issue, and by inspection is seems that the majority
+> of other architectures are affected.
+> 
+> It looks like this was fixed up for x86 in 2014 with commit:
+> 
+>   26178ec11ef3c6c8 ("x86: mm: consolidate VM_FAULT_RETRY handling")
+> 
+> ... but most other architectures never received a similar fixup.
+> 
+> The duplication (and divergence) of this logic is unfortunate. It's largely
+> copy-paste code that could be consolidated under mm/.
+> 
+> Until we end up refactoring this, and so as to be sutiable for backporting,
+> this series fixes arm and arm64 in-place. I've not touched other architectures
+> as I don't have the relevant hardwre or arch knowledge.
+> 
+> Thanks,
+> Mark.
+> 
+> ----
+> #include <errno.h>
+> #include <linux/userfaultfd.h>
+> #include <stdio.h>
+> #include <sys/ioctl.h>
+> #include <sys/mman.h>
+> #include <sys/syscall.h>
+> #include <sys/vfs.h>
+> #include <unistd.h>
+> 
+> int main(int argc, char *argv[])
+> {
+> 	void *mem;
+> 	long pagesz;
+> 	int uffd, ret;
+> 	struct uffdio_api api = {
+> 		.api = UFFD_API
+> 	};
+> 	struct uffdio_register reg;
+>        
+> 	pagesz = sysconf(_SC_PAGESIZE);
+> 	if (pagesz < 0) {
+> 		return errno;
+> 	}
+> 
+> 	mem = mmap(NULL, pagesz, PROT_READ | PROT_WRITE,
+> 		   MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+> 	if (mem == MAP_FAILED)
+> 		return errno;
+> 
+> 	uffd = syscall(__NR_userfaultfd, 0);
+> 	if (uffd < 0)
+> 		return errno;
+> 
+> 	ret = ioctl(uffd, UFFDIO_API, &api);
+> 	if (ret < 0)
+> 		return errno;
+> 
+> 	reg = (struct uffdio_register) {
+> 		.range = {
+> 			.start = (unsigned long)mem,
+> 			.len = pagesz
+> 		},
+> 		.mode = UFFDIO_REGISTER_MODE_MISSING
+> 	};
+> 
+> 	ret = ioctl(uffd, UFFDIO_REGISTER, &reg);
+> 	if (ret < 0)
+> 		return errno;
+> 
+> 	/*
+> 	 * Force an arbitrary uaccess to memory monitored by the userfaultfd.
+> 	 * This will block, but when a SIGKILL is sent, will consume all
+> 	 * available CPU time without being killed, and may inhibit forward
+> 	 * progress of the system.
+> 	 */
+> 	ret = fstatfs(0, (struct statfs *)mem);
+> 
+> 	return 0;
+> }
+> ----
+> 
+> Mark Rutland (2):
+>   arm64: mm: abort uaccess retries upon fatal signal
+>   arm: mm: abort uaccess retries upon fatal signal
+> 
+>  arch/arm/mm/fault.c   | 5 ++++-
+>  arch/arm64/mm/fault.c | 5 ++++-
+>  2 files changed, 8 insertions(+), 2 deletions(-)
+> 
+> -- 
+> 1.9.1
+> 
