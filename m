@@ -1,111 +1,136 @@
-From: Alex =?utf-8?Q?Benn=C3=A9e?= <alex.bennee@linaro.org>
-Subject: Re: [PATCH 10/27] arm64/sve: Low-level CPU setup
-Date: Tue, 22 Aug 2017 16:04:28 +0100
-Message-ID: <87r2w34pab.fsf@linaro.org>
-References: <1502280338-23002-1-git-send-email-Dave.Martin@arm.com> <1502280338-23002-11-git-send-email-Dave.Martin@arm.com>
+From: Punit Agrawal <punit.agrawal@arm.com>
+Subject: Re: [PATCH v2] mm/hugetlb.c: make huge_pte_offset() consistent and document behaviour
+Date: Tue, 22 Aug 2017 16:32:39 +0100
+Message-ID: <87shgjmxd4.fsf@e105922-lin.cambridge.arm.com>
+References: <20170725154114.24131-2-punit.agrawal@arm.com>
+	<20170818145415.7588-1-punit.agrawal@arm.com>
+	<3de49294-f6f8-2623-1778-56a3b092f2a5@oracle.com>
+	<20170821180741.4ns2s4wp3t2r6mpi@armageddon.cambridge.arm.com>
+	<b64b8eb3-3fe5-5bad-eb01-1bc8a87378d5@oracle.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f172.google.com ([209.85.128.172]:35692 "EHLO
-        mail-wr0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S932329AbdHVPEb (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 22 Aug 2017 11:04:31 -0400
-Received: by mail-wr0-f172.google.com with SMTP id k46so53478372wre.2
-        for <linux-arch@vger.kernel.org>; Tue, 22 Aug 2017 08:04:30 -0700 (PDT)
-In-reply-to: <1502280338-23002-11-git-send-email-Dave.Martin@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu
+Content-Type: text/plain
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <b64b8eb3-3fe5-5bad-eb01-1bc8a87378d5@oracle.com> (Mike Kravetz's
+	message of "Mon, 21 Aug 2017 14:30:33 -0700")
+Sender: owner-linux-mm@kvack.org
+To: Mike Kravetz <mike.kravetz@oracle.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>, Steve Capper <steve.capper@arm.com>, Will Deacon <will.deacon@arm.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Michal Hocko <mhocko@suse.com>
+List-Id: linux-arch.vger.kernel.org
 
+Hi Mike,
 
-Dave Martin <Dave.Martin@arm.com> writes:
+Mike Kravetz <mike.kravetz@oracle.com> writes:
 
-> To enable the kernel to use SVE, all SVE traps from EL1 must be
-> disabled.  To take maximum advantage of the hardware, the full
-> available vector length also needs to be enabled for EL1 by
-> programming ZCR_EL2.LEN.  (The kernel will program ZCR_EL1.LEN as
-> required, but this cannot override the limit set by ZCR_EL2.)
+> On 08/21/2017 11:07 AM, Catalin Marinas wrote:
+>> On Fri, Aug 18, 2017 at 02:29:18PM -0700, Mike Kravetz wrote:
+>>> On 08/18/2017 07:54 AM, Punit Agrawal wrote:
+>>>> When walking the page tables to resolve an address that points to
+>>>> !p*d_present() entry, huge_pte_offset() returns inconsistent values
+>>>> depending on the level of page table (PUD or PMD).
+>>>>
+>>>> It returns NULL in the case of a PUD entry while in the case of a PMD
+>>>> entry, it returns a pointer to the page table entry.
+>>>>
+>>>> A similar inconsitency exists when handling swap entries - returns NULL
+>>>> for a PUD entry while a pointer to the pte_t is retured for the PMD entry.
+>>>>
+>>>> Update huge_pte_offset() to make the behaviour consistent - return a
+>>>> pointer to the pte_t for hugepage or swap entries. Only return NULL in
+>>>> instances where we have a p*d_none() entry and the size parameter
+>>>> doesn't match the hugepage size at this level of the page table.
+>>>>
+>>>> Document the behaviour to clarify the expected behaviour of this function.
+>>>> This is to set clear semantics for architecture specific implementations
+>>>> of huge_pte_offset().
+>>>>
+>>>> Signed-off-by: Punit Agrawal <punit.agrawal@arm.com>
+>>>> Cc: Catalin Marinas <catalin.marinas@arm.com>
+>>>> Cc: Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>
+>>>> Cc: Steve Capper <steve.capper@arm.com>
+>>>> Cc: Will Deacon <will.deacon@arm.com>
+>>>> Cc: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+>>>> Cc: Michal Hocko <mhocko@suse.com>
+>>>> Cc: Mike Kravetz <mike.kravetz@oracle.com>
+>>>> ---
+>>>>
+>>>> Hi Andrew,
+>>>>
+>>>> From discussions on the arm64 implementation of huge_pte_offset()[0]
+>>>> we realised that there is benefit from returning a pte_t* in the case
+>>>> of p*d_none().
+>>>>
+>>>> The fault handling code in hugetlb_fault() can handle p*d_none()
+>>>> entries and saves an extra round trip to huge_pte_alloc(). Other
+>>>> callers of huge_pte_offset() should be ok as well.
+>>>
+>>> Yes, this change would eliminate that call to huge_pte_alloc() in
+>>> hugetlb_fault().  However, huge_pte_offset() is now returning a pointer
+>>> to a p*d_none() pte in some instances where it would have previously
+>>> returned NULL.  Correct?
+>> 
+>> Yes (whether it was previously the right thing to return is a different
+>> matter; that's what we are trying to clarify in the generic code so that
+>> we can have similar semantics on arm64).
+>> 
+>>> I went through the callers, and like you am fairly confident that they
+>>> can handle this situation.  But, returning  p*d_none() instead of NULL
+>>> does change the execution path in several routines such as
+>>> copy_hugetlb_page_range, __unmap_hugepage_range hugetlb_change_protection,
+>>> and follow_hugetlb_page.  If huge_pte_alloc() returns NULL to these
+>>> routines, they do a quick continue, exit, etc.  If they are returned
+>>> a pointer, they typically lock the page table(s) and then check for
+>>> p*d_none() before continuing, exiting, etc.  So, it appears that these
+>>> routines could potentially slow down a bit with this change (in the specific
+>>> case of p*d_none).
+>> 
+>> Arguably (well, my interpretation), it should return a NULL only if the
+>> entry is a table entry, potentially pointing to a next level (pmd). In
+>> the pud case, this means that sz < PUD_SIZE.
+>> 
+>> If the pud is a last level huge page entry (either present or !present),
+>> huge_pte_offset() should return the pointer to it and never NULL. If the
+>> entry is a swap or migration one (pte_present() == false) with the
+>> current code we don't even enter the corresponding checks in
+>> copy_hugetlb_page_range().
+>> 
+>> I also assume that the ptl __unmap_hugepage_range() is taken to avoid
+>> some race when the entry is a huge page (present or not). If such race
+>> doesn't exist, we could as well check the huge_pte_none() outside the
+>> locked region (which is what the current huge_pte_offset() does with
+>> !pud_present()).
+>> 
+>> IMHO, while the current generic huge_pte_offset() avoids some code paths
+>> in the functions you mentioned, the results are not always correct
+>> (missing swap/migration entries or potentially racy).
 >
-> In advance of full SVE support being implemented for userspace, it
-> also necessary to ensure that SVE traps from EL0 are enabled.
+> Thanks Catalin,
 >
-> This patch makes the appropriate changes to the primary and
-> secondary CPU initialisation code.
+> The more I look at this code and think about it, the more I like it.  As
+> Michal previously mentioned, changes in this area can break things in subtle
+> ways.  That is why I was cautious and asked for more people to look at it.
+> My primary concerns with these changes in this area were:
+> - Any potential changes in behavior.  I think this has been sufficiently
+>   explored.  While there may be small differences in behavior (for the
+>   better), this change should not introduce any bugs/breakage.
+> - Other arch specific implementations are not aligned with the new
+>   behavior.  Again, this should not cause any issues.  Punit (and I) have
+>   looked at the arch specific implementations for issues and found none.
+>   In addition, since we are not changing any of the 'calling code', no
+>   issues should be introduced for arch specific implementations.
 >
-> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> ---
->  arch/arm64/kernel/head.S | 13 ++++++++++++-
->  arch/arm64/mm/proc.S     | 14 ++++++++++++--
->  2 files changed, 24 insertions(+), 3 deletions(-)
+> I like the new semantics and did not find any issues.
 >
-> diff --git a/arch/arm64/kernel/head.S b/arch/arm64/kernel/head.S
-> index 973df7d..0ae1713 100644
-> --- a/arch/arm64/kernel/head.S
-> +++ b/arch/arm64/kernel/head.S
-> @@ -514,8 +514,19 @@ CPU_LE(	movk	x0, #0x30d0, lsl #16	)	// Clear EE and E0E on LE systems
->  	mov	x0, #0x33ff
->  	msr	cptr_el2, x0			// Disable copro. traps to EL2
->
-> +	/* SVE register access */
-> +	mrs	x1, id_aa64pfr0_el1
-> +	ubfx	x1, x1, #ID_AA64PFR0_SVE_SHIFT, #4
-> +	cbz	x1, 7f
-> +
-> +	bic	x0, x0, #CPTR_EL2_TZ		// Also disable SVE traps
-> +	msr	cptr_el2, x0			// Disable copro. traps
-> to EL2
+> Reviewed-by: Mike Kravetz <mike.kravetz@oracle.com>
 
-It seems a shame to write to cptr_el2 twice rather than compute and
-write.
+Thanks for reviewing the updated semantics against existing usage. I'll
+monitor the lists for any reported breakage but please do shout out if
+you notice any issues.
 
-> +	isb
+Thanks,
+Punit
 
-Especially as the second one needs an isb :-/
-
-But I don't see a much neater way of doing it so:
-
-Reviewed-by: Alex Bennée <alex.bennee@linaro.org>
-
-> +	mov	x1, #ZCR_ELx_LEN_MASK		// SVE: Enable full vector
-> +	msr_s	SYS_ZCR_EL2, x1			// length for EL1.
-> +
->  	/* Hypervisor stub */
-> -	adr_l	x0, __hyp_stub_vectors
-> +7:	adr_l	x0, __hyp_stub_vectors
->  	msr	vbar_el2, x0
->
->  	/* spsr */
-> diff --git a/arch/arm64/mm/proc.S b/arch/arm64/mm/proc.S
-> index 877d42f..dd22ef2 100644
-> --- a/arch/arm64/mm/proc.S
-> +++ b/arch/arm64/mm/proc.S
-> @@ -27,6 +27,7 @@
->  #include <asm/pgtable-hwdef.h>
->  #include <asm/cpufeature.h>
->  #include <asm/alternative.h>
-> +#include <asm/sysreg.h>
->
->  #ifdef CONFIG_ARM64_64K_PAGES
->  #define TCR_TG_FLAGS	TCR_TG0_64K | TCR_TG1_64K
-> @@ -186,8 +187,17 @@ ENTRY(__cpu_setup)
->  	tlbi	vmalle1				// Invalidate local TLB
->  	dsb	nsh
->
-> -	mov	x0, #3 << 20
-> -	msr	cpacr_el1, x0			// Enable FP/ASIMD
-> +	mov	x0, #3 << 20			// FEN
-> +
-> +	/* SVE */
-> +	mrs	x5, id_aa64pfr0_el1
-> +	ubfx	x5, x5, #ID_AA64PFR0_SVE_SHIFT, #4
-> +	cbz	x5, 1f
-> +
-> +	bic	x0, x0, #CPACR_EL1_ZEN
-> +	orr	x0, x0, #CPACR_EL1_ZEN_EL1EN	// SVE: trap for EL0, not EL1
-> +1:	msr	cpacr_el1, x0			// Enable FP/ASIMD
-> +
->  	mov	x0, #1 << 12			// Reset mdscr_el1 and disable
->  	msr	mdscr_el1, x0			// access to the DCC from EL0
->  	isb					// Unmask debug exceptions now,
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
