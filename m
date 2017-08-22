@@ -1,128 +1,212 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from userp1040.oracle.com ([156.151.31.81]:23021 "EHLO
-        userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754035AbdHUVat (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 21 Aug 2017 17:30:49 -0400
-Subject: Re: [PATCH v2] mm/hugetlb.c: make huge_pte_offset() consistent and
- document behaviour
-References: <20170725154114.24131-2-punit.agrawal@arm.com>
- <20170818145415.7588-1-punit.agrawal@arm.com>
- <3de49294-f6f8-2623-1778-56a3b092f2a5@oracle.com>
- <20170821180741.4ns2s4wp3t2r6mpi@armageddon.cambridge.arm.com>
-From: Mike Kravetz <mike.kravetz@oracle.com>
-Message-ID: <b64b8eb3-3fe5-5bad-eb01-1bc8a87378d5@oracle.com>
-Date: Mon, 21 Aug 2017 14:30:33 -0700
+Received: from mail-wr0-f177.google.com ([209.85.128.177]:37791 "EHLO
+        mail-wr0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S932317AbdHVKWr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 22 Aug 2017 06:22:47 -0400
+Received: by mail-wr0-f177.google.com with SMTP id z91so119318765wrc.4
+        for <linux-arch@vger.kernel.org>; Tue, 22 Aug 2017 03:22:46 -0700 (PDT)
+References: <1502280338-23002-1-git-send-email-Dave.Martin@arm.com> <1502280338-23002-10-git-send-email-Dave.Martin@arm.com>
+From: Alex =?utf-8?Q?Benn=C3=A9e?= <alex.bennee@linaro.org>
+Subject: Re: [PATCH 09/27] arm64/sve: Signal frame and context structure definition
+Message-ID: <87y3qb52ez.fsf@linaro.org>
+In-reply-to: <1502280338-23002-10-git-send-email-Dave.Martin@arm.com>
+Date: Tue, 22 Aug 2017 11:22:44 +0100
 MIME-Version: 1.0
-In-Reply-To: <20170821180741.4ns2s4wp3t2r6mpi@armageddon.cambridge.arm.com>
 Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Punit Agrawal <punit.agrawal@arm.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>, Steve Capper <steve.capper@arm.com>, Will Deacon <will.deacon@arm.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Michal Hocko <mhocko@suse.com>
-Message-ID: <20170821213033.9-G_6ZzhBOUPEwJcrVQIdgGoV6nrW5oG757f_Y-9ZP8@z>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, gdb@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Yao Qi <Yao.Qi@arm.com>, Alan Hayward <alan.hayward@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu
+Message-ID: <20170822102244._8cWrbadr83wJ2590NoNu_-Zfhm3IT9Gu-utFk4Q3EM@z>
 
-On 08/21/2017 11:07 AM, Catalin Marinas wrote:
-> On Fri, Aug 18, 2017 at 02:29:18PM -0700, Mike Kravetz wrote:
->> On 08/18/2017 07:54 AM, Punit Agrawal wrote:
->>> When walking the page tables to resolve an address that points to
->>> !p*d_present() entry, huge_pte_offset() returns inconsistent values
->>> depending on the level of page table (PUD or PMD).
->>>
->>> It returns NULL in the case of a PUD entry while in the case of a PMD
->>> entry, it returns a pointer to the page table entry.
->>>
->>> A similar inconsitency exists when handling swap entries - returns NULL
->>> for a PUD entry while a pointer to the pte_t is retured for the PMD entry.
->>>
->>> Update huge_pte_offset() to make the behaviour consistent - return a
->>> pointer to the pte_t for hugepage or swap entries. Only return NULL in
->>> instances where we have a p*d_none() entry and the size parameter
->>> doesn't match the hugepage size at this level of the page table.
->>>
->>> Document the behaviour to clarify the expected behaviour of this function.
->>> This is to set clear semantics for architecture specific implementations
->>> of huge_pte_offset().
->>>
->>> Signed-off-by: Punit Agrawal <punit.agrawal@arm.com>
->>> Cc: Catalin Marinas <catalin.marinas@arm.com>
->>> Cc: Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>
->>> Cc: Steve Capper <steve.capper@arm.com>
->>> Cc: Will Deacon <will.deacon@arm.com>
->>> Cc: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
->>> Cc: Michal Hocko <mhocko@suse.com>
->>> Cc: Mike Kravetz <mike.kravetz@oracle.com>
->>> ---
->>>
->>> Hi Andrew,
->>>
->>> From discussions on the arm64 implementation of huge_pte_offset()[0]
->>> we realised that there is benefit from returning a pte_t* in the case
->>> of p*d_none().
->>>
->>> The fault handling code in hugetlb_fault() can handle p*d_none()
->>> entries and saves an extra round trip to huge_pte_alloc(). Other
->>> callers of huge_pte_offset() should be ok as well.
->>
->> Yes, this change would eliminate that call to huge_pte_alloc() in
->> hugetlb_fault().  However, huge_pte_offset() is now returning a pointer
->> to a p*d_none() pte in some instances where it would have previously
->> returned NULL.  Correct?
-> 
-> Yes (whether it was previously the right thing to return is a different
-> matter; that's what we are trying to clarify in the generic code so that
-> we can have similar semantics on arm64).
-> 
->> I went through the callers, and like you am fairly confident that they
->> can handle this situation.  But, returning  p*d_none() instead of NULL
->> does change the execution path in several routines such as
->> copy_hugetlb_page_range, __unmap_hugepage_range hugetlb_change_protection,
->> and follow_hugetlb_page.  If huge_pte_alloc() returns NULL to these
->> routines, they do a quick continue, exit, etc.  If they are returned
->> a pointer, they typically lock the page table(s) and then check for
->> p*d_none() before continuing, exiting, etc.  So, it appears that these
->> routines could potentially slow down a bit with this change (in the specific
->> case of p*d_none).
-> 
-> Arguably (well, my interpretation), it should return a NULL only if the
-> entry is a table entry, potentially pointing to a next level (pmd). In
-> the pud case, this means that sz < PUD_SIZE.
-> 
-> If the pud is a last level huge page entry (either present or !present),
-> huge_pte_offset() should return the pointer to it and never NULL. If the
-> entry is a swap or migration one (pte_present() == false) with the
-> current code we don't even enter the corresponding checks in
-> copy_hugetlb_page_range().
-> 
-> I also assume that the ptl __unmap_hugepage_range() is taken to avoid
-> some race when the entry is a huge page (present or not). If such race
-> doesn't exist, we could as well check the huge_pte_none() outside the
-> locked region (which is what the current huge_pte_offset() does with
-> !pud_present()).
-> 
-> IMHO, while the current generic huge_pte_offset() avoids some code paths
-> in the functions you mentioned, the results are not always correct
-> (missing swap/migration entries or potentially racy).
 
-Thanks Catalin,
+Dave Martin <Dave.Martin@arm.com> writes:
 
-The more I look at this code and think about it, the more I like it.  As
-Michal previously mentioned, changes in this area can break things in subtle
-ways.  That is why I was cautious and asked for more people to look at it.
-My primary concerns with these changes in this area were:
-- Any potential changes in behavior.  I think this has been sufficiently
-  explored.  While there may be small differences in behavior (for the
-  better), this change should not introduce any bugs/breakage.
-- Other arch specific implementations are not aligned with the new
-  behavior.  Again, this should not cause any issues.  Punit (and I) have
-  looked at the arch specific implementations for issues and found none.
-  In addition, since we are not changing any of the 'calling code', no
-  issues should be introduced for arch specific implementations.
+> This patch defines the representation that will be used for the SVE
+> register state in the signal frame, and implements support for
+> saving and restoring the SVE registers around signals.
+>
+> The same layout will also be used for the in-kernel task state.
+>
+> Due to the variability of the SVE vector length, it is not possible
+> to define a fixed C struct to describe all the registers.  Instead,
+> Macros are defined in sigcontext.h to facilitate access to the
+> parts of the structure.
+>
+> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> ---
+>  arch/arm64/include/uapi/asm/sigcontext.h | 113 ++++++++++++++++++++++++++++++-
+>  1 file changed, 112 insertions(+), 1 deletion(-)
+>
+> diff --git a/arch/arm64/include/uapi/asm/sigcontext.h b/arch/arm64/include/uapi/asm/sigcontext.h
+> index f0a76b9..0533bdf 100644
+> --- a/arch/arm64/include/uapi/asm/sigcontext.h
+> +++ b/arch/arm64/include/uapi/asm/sigcontext.h
+> @@ -16,6 +16,8 @@
+>  #ifndef _UAPI__ASM_SIGCONTEXT_H
+>  #define _UAPI__ASM_SIGCONTEXT_H
+>
+> +#ifndef __ASSEMBLY__
+> +
+>  #include <linux/types.h>
+>
+>  /*
+> @@ -41,10 +43,11 @@ struct sigcontext {
+>   *
+>   *	0x210		fpsimd_context
+>   *	 0x10		esr_context
+> + *	0x8a0		sve_context (vl <= 64) (optional)
+>   *	 0x20		extra_context (optional)
+>   *	 0x10		terminator (null _aarch64_ctx)
+>   *
+> - *	0xdb0		(reserved for future allocation)
+> + *	0x510		(reserved for future allocation)
+>   *
+>   * New records that can exceed this space need to be opt-in for userspace, so
+>   * that an expanded signal frame is not generated unexpectedly.  The mechanism
+> @@ -116,4 +119,112 @@ struct extra_context {
+>  	__u32 __reserved[3];
+>  };
+>
+> +#define SVE_MAGIC	0x53564501
+> +
+> +struct sve_context {
+> +	struct _aarch64_ctx head;
+> +	__u16 vl;
+> +	__u16 __reserved[3];
+> +};
+> +
+> +#endif /* !__ASSEMBLY__ */
+> +
+> +/*
+> + * The SVE architecture leaves space for future expansion of the
+> + * vector length beyond its initial architectural limit of 2048 bits
+> + * (16 quadwords).
+> + */
+> +#define SVE_VQ_MIN		1
+> +#define SVE_VQ_MAX		0x200
+> +
+> +#define SVE_VL_MIN		(SVE_VQ_MIN * 0x10)
+> +#define SVE_VL_MAX		(SVE_VQ_MAX * 0x10)
+> +
+> +#define SVE_NUM_ZREGS		32
+> +#define SVE_NUM_PREGS		16
+> +
+> +#define sve_vl_valid(vl) \
+> +	((vl) % 0x10 == 0 && (vl) >= SVE_VL_MIN && (vl) <= SVE_VL_MAX)
+> +#define sve_vq_from_vl(vl)	((vl) / 0x10)
+> +#define sve_vl_from_vq(vq)	((vq) * 0x10)
 
-I like the new semantics and did not find any issues.
+I got a little confused first time through over what VQ and VL where.
+Maybe it would make sense to expand a little more from first principles?
 
-Reviewed-by: Mike Kravetz <mike.kravetz@oracle.com>
+  /*
+   * The SVE architecture defines vector registers as a multiple of 128
+   * bit quadwords. The current architectural limit is 2048 bits (16
+   * quadwords) but there is room for future expansion beyond that.
+    */
 
--- 
-Mike Kravetz
+  #define SVE_VQ_BITS             128      /* 128 bits in one quadword */
+  #define SVE_VQ_BYTES            (SVE_VQ_BITS / 8)
+
+  #define SVE_VQ_MIN		1
+  #define SVE_VQ_MAX		0x200    /* see ZCR_ELx[8:0] */
+
+  #define SVE_VL_MIN_BYTES	(SVE_VQ_MIN * SVE_VQ_BYTES)
+  #define SVE_VL_MAX_BYTES	(SVE_VQ_MAX * SVE_VQ_BYTES)
+
+  #define SVE_NUM_ZREGS		32
+  #define SVE_NUM_PREGS		16
+
+  #define sve_vl_valid(vl)						\
+          ((vl) % SVE_VQ_BYTES == 0 && (vl) >= SVE_VL_MIN && (vl) <= SVE_VL_MAX)
+  #define sve_vq_from_vl(vl)	((vl) / SVE_VQ_BYTES)
+  #define sve_vl_from_vq(vq)	((vq) * SVE_VQ_BYTES)
+
+
+> +
+> +/*
+> + * If the SVE registers are currently live for the thread at signal delivery,
+> + * sve_context.head.size >=
+> + *	SVE_SIG_CONTEXT_SIZE(sve_vq_from_vl(sve_context.vl))
+> + * and the register data may be accessed using the SVE_SIG_*() macros.
+> + *
+> + * If sve_context.head.size <
+> + *	SVE_SIG_CONTEXT_SIZE(sve_vq_from_vl(sve_context.vl)),
+> + * the SVE registers were not live for the thread and no register data
+> + * is included: in this case, the SVE_SIG_*() macros should not be
+> + * used except for this check.
+> + *
+> + * The same convention applies when returning from a signal: a caller
+> + * will need to remove or resize the sve_context block if it wants to
+> + * make the SVE registers live when they were previously non-live or
+> + * vice-versa.  This may require the the caller to allocate fresh
+> + * memory and/or move other context blocks in the signal frame.
+> + *
+> + * Changing the vector length during signal return is not permitted:
+> + * sve_context.vl must equal the thread's current vector length when
+> + * doing a sigreturn.
+> + *
+> + *
+> + * Note: for all these macros, the "vq" argument denotes the SVE
+> + * vector length in quadwords (i.e., units of 128 bits).
+> + *
+> + * The correct way to obtain vq is to use sve_vq_from_vl(vl).  The
+> + * result is valid if and only if sve_vl_valid(vl) is true.  This is
+> + * guaranteed for a struct sve_context written by the kernel.
+> + *
+> + *
+> + * Additional macros describe the contents and layout of the payload.
+> + * For each, SVE_SIG_x_OFFSET(args) is the start offset relative to
+> + * the start of struct sve_context, and SVE_SIG_x_SIZE(args) is the
+> + * size in bytes:
+> + *
+> + *	x	type				description
+> + *	-	----				-----------
+> + *	REGS					the entire SVE context
+> + *
+> + *	ZREGS	__uint128_t[SVE_NUM_ZREGS][vq]	all Z-registers
+> + *	ZREG	__uint128_t[vq]			individual Z-register Zn
+> + *
+> + *	PREGS	uint16_t[SVE_NUM_PREGS][vq]	all P-registers
+> + *	PREG	uint16_t[vq]			individual P-register Pn
+> + *
+> + *	FFR	uint16_t[vq]			first-fault status register
+> + *
+> + * Additional data might be appended in the future.
+> + */
+> +
+> +#define SVE_SIG_ZREG_SIZE(vq)	((__u32)(vq) * 16)
+> +#define SVE_SIG_PREG_SIZE(vq)	((__u32)(vq) * 2)
+> +#define SVE_SIG_FFR_SIZE(vq)	SVE_SIG_PREG_SIZE(vq)
+> +
+> +#define SVE_SIG_REGS_OFFSET	((sizeof(struct sve_context) + 15) / 16 * 16)
+> +
+> +#define SVE_SIG_ZREGS_OFFSET	SVE_SIG_REGS_OFFSET
+> +#define SVE_SIG_ZREG_OFFSET(vq, n) \
+> +	(SVE_SIG_ZREGS_OFFSET + SVE_SIG_ZREG_SIZE(vq) * (n))
+> +#define SVE_SIG_ZREGS_SIZE(vq) \
+> +	(SVE_SIG_ZREG_OFFSET(vq, SVE_NUM_ZREGS) - SVE_SIG_ZREGS_OFFSET)
+> +
+> +#define SVE_SIG_PREGS_OFFSET(vq) \
+> +	(SVE_SIG_ZREGS_OFFSET + SVE_SIG_ZREGS_SIZE(vq))
+> +#define SVE_SIG_PREG_OFFSET(vq, n) \
+> +	(SVE_SIG_PREGS_OFFSET(vq) + SVE_SIG_PREG_SIZE(vq) * (n))
+> +#define SVE_SIG_PREGS_SIZE(vq) \
+> +	(SVE_SIG_PREG_OFFSET(vq, SVE_NUM_PREGS) - SVE_SIG_PREGS_OFFSET(vq))
+> +
+> +#define SVE_SIG_FFR_OFFSET(vq) \
+> +	(SVE_SIG_PREGS_OFFSET(vq) + SVE_SIG_PREGS_SIZE(vq))
+> +
+> +#define SVE_SIG_REGS_SIZE(vq) \
+> +	(SVE_SIG_FFR_OFFSET(vq) + SVE_SIG_FFR_SIZE(vq) - SVE_SIG_REGS_OFFSET)
+> +
+> +#define SVE_SIG_CONTEXT_SIZE(vq) (SVE_SIG_REGS_OFFSET + SVE_SIG_REGS_SIZE(vq))
+> +
+> +
+>  #endif /* _UAPI__ASM_SIGCONTEXT_H */
+
+
+--
+Alex Bennée
