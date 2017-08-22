@@ -1,69 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ale.deltatee.com ([207.54.116.67]:41142 "EHLO ale.deltatee.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751157AbdHVRCr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 22 Aug 2017 13:02:47 -0400
-From: Logan Gunthorpe <logang@deltatee.com>
-Date: Tue, 22 Aug 2017 11:02:21 -0600
-Message-ID: <20170822170228.17196-1-logang@deltatee.com>
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:47458 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751244AbdHVRW2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 22 Aug 2017 13:22:28 -0400
+Date: Tue, 22 Aug 2017 18:22:24 +0100
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [PATCH 12/27] arm64/sve: Support vector length resetting for new
+ processes
+Message-ID: <20170822172224.GY6321@e103592.cambridge.arm.com>
+References: <1502280338-23002-1-git-send-email-Dave.Martin@arm.com>
+ <1502280338-23002-13-git-send-email-Dave.Martin@arm.com>
+ <871so3bmj0.fsf@linaro.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=iso-8859-1
+Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
-Subject: [PATCH v7 0/7] make io{read|write}64 globally usable
+In-Reply-To: <871so3bmj0.fsf@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Stephen Bates <sbates@raithlin.com>, Logan Gunthorpe <logang@deltatee.com>
-Message-ID: <20170822170221.mj1Q6u9ayON-VlLMJPevqsYPvs9P8NeR6ex4mOLk9J0@z>
+To: Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>
+Cc: linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
+Message-ID: <20170822172224.puMGSJkxg8smGFZmfEavxnMlo22RTLghQQQAJIhVZQU@z>
 
-This is just a resend seeing I've gotten no feedback in a couple weeks.
+On Tue, Aug 22, 2017 at 05:22:11PM +0100, Alex Bennée wrote:
+> 
+> Dave Martin <Dave.Martin@arm.com> writes:
+> 
+> > It's desirable to be able to reset the vector length to some sane
+> > default for new processes, since the new binary and its libraries
+> > processes may or may not be SVE-aware.
+> >
+> > This patch tracks the desired post-exec vector length (if any) in a
+> > new thread member sve_vl_onexec, and adds a new thread flag
+> > TIF_SVE_VL_INHERIT to control whether to inherit or reset the
+> > vector length.  Currently these are inactive.  Subsequent patches
+> > will provide the capability to configure them.
+> >
+> > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> > ---
+> >  arch/arm64/include/asm/processor.h   |  1 +
+> >  arch/arm64/include/asm/thread_info.h |  1 +
+> >  arch/arm64/kernel/fpsimd.c           | 13 +++++++++++++
+> >  3 files changed, 15 insertions(+)
+> >
+> > diff --git a/arch/arm64/include/asm/processor.h b/arch/arm64/include/asm/processor.h
+> > index 969feed..da8802a 100644
+> > --- a/arch/arm64/include/asm/processor.h
+> > +++ b/arch/arm64/include/asm/processor.h
+> > @@ -87,6 +87,7 @@ struct thread_struct {
+> >  	struct fpsimd_state	fpsimd_state;
+> >  	void			*sve_state;	/* SVE registers, if any */
+> >  	u16			sve_vl;		/* SVE vector length */
+> > +	u16			sve_vl_onexec;	/* SVE vl after next
+> > exec */
+> 
+> Inconsistent size usage here as well...
 
+Agreed, the same history applies as for sve_vl.  I'll replace this with
+an unsigned int.
 
-Changes since v6:
- ** none **
+[...]
 
-Changes since v5:
-- Added a fix to the tilcdc driver to ensure it doesn't use the
-  non-atomic operation. (This includes adding io{read|write}64[be]_is_nonatomic
-  defines).
-
-Changes since v4:
-- Add functions so the powerpc implementation of iomap.c compiles. (As
-  noticed by Horia)
-
-Changes since v3:
-
-- I noticed powerpc didn't use the appropriate functions seeing
-  readq/writeq were not defined when iomap.h was included. Thus I've
-  included a patch to adjust this
-- Fixed some mistakes with a couple of the defines in io-64-nonatomic*
-  headers
-- Fixed a typo noticed by Horia.
-
-(earlier versions were drastically different)
-
-Horia GeantÄƒ (1):
-  crypto: caam: cleanup CONFIG_64BIT ifdefs when using io{read|write}64
-
-Logan Gunthorpe (6):
-  drm/tilcdc: ensure nonatomic iowrite64 is not used
-  powerpc: io.h: move iomap.h include so that it can use readq/writeq
-    defs
-  powerpc: iomap.c: introduce io{read|write}64_{lo_hi|hi_lo}
-  iomap: introduce io{read|write}64_{lo_hi|hi_lo}
-  io-64-nonatomic: add io{read|write}64[be]{_lo_hi|_hi_lo} macros
-  ntb: ntb_hw_intel: use io-64-nonatomic instead of in-driver hacks
-
- arch/powerpc/include/asm/io.h         |   6 +-
- arch/powerpc/kernel/iomap.c           |  40 +++++++++++
- drivers/crypto/caam/regs.h            |  35 ++-------
- drivers/gpu/drm/tilcdc/tilcdc_regs.h  |   2 +-
- drivers/ntb/hw/intel/ntb_hw_intel.c   |  30 +-------
- include/asm-generic/iomap.h           |  26 +++++--
- include/linux/io-64-nonatomic-hi-lo.h |  64 +++++++++++++++++
- include/linux/io-64-nonatomic-lo-hi.h |  64 +++++++++++++++++
- lib/iomap.c                           | 132 ++++++++++++++++++++++++++++++++++
- 9 files changed, 331 insertions(+), 68 deletions(-)
-
---
-2.11.0
+Cheers
+---Dave
