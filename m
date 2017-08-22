@@ -1,135 +1,157 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:45686 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932946AbdHVPcl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 22 Aug 2017 11:32:41 -0400
-From: Punit Agrawal <punit.agrawal@arm.com>
-Subject: Re: [PATCH v2] mm/hugetlb.c: make huge_pte_offset() consistent and document behaviour
-References: <20170725154114.24131-2-punit.agrawal@arm.com>
-        <20170818145415.7588-1-punit.agrawal@arm.com>
-        <3de49294-f6f8-2623-1778-56a3b092f2a5@oracle.com>
-        <20170821180741.4ns2s4wp3t2r6mpi@armageddon.cambridge.arm.com>
-        <b64b8eb3-3fe5-5bad-eb01-1bc8a87378d5@oracle.com>
-Date: Tue, 22 Aug 2017 16:32:39 +0100
-In-Reply-To: <b64b8eb3-3fe5-5bad-eb01-1bc8a87378d5@oracle.com> (Mike Kravetz's
-        message of "Mon, 21 Aug 2017 14:30:33 -0700")
-Message-ID: <87shgjmxd4.fsf@e105922-lin.cambridge.arm.com>
+Received: from mail-wm0-f44.google.com ([74.125.82.44]:37578 "EHLO
+        mail-wm0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751115AbdHVQVW (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 22 Aug 2017 12:21:22 -0400
+Received: by mail-wm0-f44.google.com with SMTP id b189so1627233wmd.0
+        for <linux-arch@vger.kernel.org>; Tue, 22 Aug 2017 09:21:21 -0700 (PDT)
+References: <1502280338-23002-1-git-send-email-Dave.Martin@arm.com> <1502280338-23002-12-git-send-email-Dave.Martin@arm.com>
+From: Alex =?utf-8?Q?Benn=C3=A9e?= <alex.bennee@linaro.org>
+Subject: Re: [PATCH 11/27] arm64/sve: Core task context handling
+In-reply-to: <1502280338-23002-12-git-send-email-Dave.Martin@arm.com>
+Date: Tue, 22 Aug 2017 17:21:19 +0100
+Message-ID: <87378jbmkg.fsf@linaro.org>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mike Kravetz <mike.kravetz@oracle.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>, Steve Capper <steve.capper@arm.com>, Will Deacon <will.deacon@arm.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Michal Hocko <mhocko@suse.com>
-Message-ID: <20170822153239.nzPjeS9cd5CRjPiin28YymXJWEl99N5iPkknGNyp7es@z>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu
+Message-ID: <20170822162119.U2rNknHn6TxqRUx9xZsPj-m0tPbV_QuLLYH3Iue7mXI@z>
 
-Hi Mike,
 
-Mike Kravetz <mike.kravetz@oracle.com> writes:
+Dave Martin <Dave.Martin@arm.com> writes:
 
-> On 08/21/2017 11:07 AM, Catalin Marinas wrote:
->> On Fri, Aug 18, 2017 at 02:29:18PM -0700, Mike Kravetz wrote:
->>> On 08/18/2017 07:54 AM, Punit Agrawal wrote:
->>>> When walking the page tables to resolve an address that points to
->>>> !p*d_present() entry, huge_pte_offset() returns inconsistent values
->>>> depending on the level of page table (PUD or PMD).
->>>>
->>>> It returns NULL in the case of a PUD entry while in the case of a PMD
->>>> entry, it returns a pointer to the page table entry.
->>>>
->>>> A similar inconsitency exists when handling swap entries - returns NULL
->>>> for a PUD entry while a pointer to the pte_t is retured for the PMD entry.
->>>>
->>>> Update huge_pte_offset() to make the behaviour consistent - return a
->>>> pointer to the pte_t for hugepage or swap entries. Only return NULL in
->>>> instances where we have a p*d_none() entry and the size parameter
->>>> doesn't match the hugepage size at this level of the page table.
->>>>
->>>> Document the behaviour to clarify the expected behaviour of this function.
->>>> This is to set clear semantics for architecture specific implementations
->>>> of huge_pte_offset().
->>>>
->>>> Signed-off-by: Punit Agrawal <punit.agrawal@arm.com>
->>>> Cc: Catalin Marinas <catalin.marinas@arm.com>
->>>> Cc: Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>
->>>> Cc: Steve Capper <steve.capper@arm.com>
->>>> Cc: Will Deacon <will.deacon@arm.com>
->>>> Cc: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
->>>> Cc: Michal Hocko <mhocko@suse.com>
->>>> Cc: Mike Kravetz <mike.kravetz@oracle.com>
->>>> ---
->>>>
->>>> Hi Andrew,
->>>>
->>>> From discussions on the arm64 implementation of huge_pte_offset()[0]
->>>> we realised that there is benefit from returning a pte_t* in the case
->>>> of p*d_none().
->>>>
->>>> The fault handling code in hugetlb_fault() can handle p*d_none()
->>>> entries and saves an extra round trip to huge_pte_alloc(). Other
->>>> callers of huge_pte_offset() should be ok as well.
->>>
->>> Yes, this change would eliminate that call to huge_pte_alloc() in
->>> hugetlb_fault().  However, huge_pte_offset() is now returning a pointer
->>> to a p*d_none() pte in some instances where it would have previously
->>> returned NULL.  Correct?
->> 
->> Yes (whether it was previously the right thing to return is a different
->> matter; that's what we are trying to clarify in the generic code so that
->> we can have similar semantics on arm64).
->> 
->>> I went through the callers, and like you am fairly confident that they
->>> can handle this situation.  But, returning  p*d_none() instead of NULL
->>> does change the execution path in several routines such as
->>> copy_hugetlb_page_range, __unmap_hugepage_range hugetlb_change_protection,
->>> and follow_hugetlb_page.  If huge_pte_alloc() returns NULL to these
->>> routines, they do a quick continue, exit, etc.  If they are returned
->>> a pointer, they typically lock the page table(s) and then check for
->>> p*d_none() before continuing, exiting, etc.  So, it appears that these
->>> routines could potentially slow down a bit with this change (in the specific
->>> case of p*d_none).
->> 
->> Arguably (well, my interpretation), it should return a NULL only if the
->> entry is a table entry, potentially pointing to a next level (pmd). In
->> the pud case, this means that sz < PUD_SIZE.
->> 
->> If the pud is a last level huge page entry (either present or !present),
->> huge_pte_offset() should return the pointer to it and never NULL. If the
->> entry is a swap or migration one (pte_present() == false) with the
->> current code we don't even enter the corresponding checks in
->> copy_hugetlb_page_range().
->> 
->> I also assume that the ptl __unmap_hugepage_range() is taken to avoid
->> some race when the entry is a huge page (present or not). If such race
->> doesn't exist, we could as well check the huge_pte_none() outside the
->> locked region (which is what the current huge_pte_offset() does with
->> !pud_present()).
->> 
->> IMHO, while the current generic huge_pte_offset() avoids some code paths
->> in the functions you mentioned, the results are not always correct
->> (missing swap/migration entries or potentially racy).
+> This patch adds the core support for switching and managing the SVE
+> architectural state of user tasks.
 >
-> Thanks Catalin,
+> Calls to the existing FPSIMD low-level save/restore functions are
+> factored out as new functions task_fpsimd_{save,load}(), since SVE
+> now dynamically may or may not need to be handled at these points
+> depending on the kernel configuration, hardware features discovered
+> at boot, and the runtime state of the task.  To make these
+> decisions as fast as possible, const cpucaps are used where
+> feasible, via the system_supports_sve() helper.
 >
-> The more I look at this code and think about it, the more I like it.  As
-> Michal previously mentioned, changes in this area can break things in subtle
-> ways.  That is why I was cautious and asked for more people to look at it.
-> My primary concerns with these changes in this area were:
-> - Any potential changes in behavior.  I think this has been sufficiently
->   explored.  While there may be small differences in behavior (for the
->   better), this change should not introduce any bugs/breakage.
-> - Other arch specific implementations are not aligned with the new
->   behavior.  Again, this should not cause any issues.  Punit (and I) have
->   looked at the arch specific implementations for issues and found none.
->   In addition, since we are not changing any of the 'calling code', no
->   issues should be introduced for arch specific implementations.
+> The SVE registers are only tracked for threads that have explicitly
+> used SVE, indicated by the new thread flag TIF_SVE.  Otherwise, the
+> FPSIMD view of the architectural state is stored in
+> thread.fpsimd_state as usual.
 >
-> I like the new semantics and did not find any issues.
+> When in use, the SVE registers are not stored directly in
+> thread_struct due to their potentially large and variable size.
+> Because the task_struct slab allocator must be configured very
+> early during kernel boot, it is also tricky to configure it
+> correctly to match the maximum vector length provided by the
+> hardware, since this depends on examining secondary CPUs as well as
+> the primary.  Instead, a pointer sve_state in thread_struct points
+> to a dynamically allocated buffer containing the SVE register data,
+> and code is added to allocate, duplicate and free this buffer at
+> appropriate times.
 >
-> Reviewed-by: Mike Kravetz <mike.kravetz@oracle.com>
+> TIF_SVE is set when taking an SVE access trap from userspace, if
+> suitable hardware support has been detected.  This enables SVE for
+> the thread: a subsequent return to userspace will disable the trap
+> accordingly.  If such a trap is taken without sufficient hardware
+> support, SIGILL is sent to the thread instead as if an undefined
+> instruction had been executed: this may happen if userspace tries
+> to use SVE in a system where not all CPUs support it for example.
+>
+> The kernel may clear TIF_SVE and disable SVE for the thread
+> whenever an explicit syscall is made by userspace, though this is
+> considered an optimisation opportunity rather than a deterministic
+> guarantee: the kernel may not do this on every syscall, but it is
+> permitted to do so.  For backwards compatibility reasons and
+> conformance with the spirit of the base AArch64 procedure call
+> standard, the subset of the SVE register state that aliases the
+> FPSIMD registers is still preserved across a syscall even if this
+> happens.
+>
+> TIF_SVE is also cleared, and SVE disabled, on exec: this is an
+> obvious slow path and a hint that we are running a new binary that
+> may not use SVE.
+>
+> Code is added to sync data between thread.fpsimd_state and
+> thread.sve_state whenever enabling/disabling SVE, in a manner
+> consistent with the SVE architectural programmer's model.
+>
+> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> ---
+>  arch/arm64/include/asm/fpsimd.h      |  19 +++
+>  arch/arm64/include/asm/processor.h   |   2 +
+>  arch/arm64/include/asm/thread_info.h |   1 +
+>  arch/arm64/include/asm/traps.h       |   2 +
+>  arch/arm64/kernel/entry.S            |  14 +-
+>  arch/arm64/kernel/fpsimd.c           | 241 ++++++++++++++++++++++++++++++++++-
+>  arch/arm64/kernel/process.c          |   6 +-
+>  arch/arm64/kernel/traps.c            |   4 +-
+>  8 files changed, 279 insertions(+), 10 deletions(-)
+>
+> diff --git a/arch/arm64/include/asm/fpsimd.h b/arch/arm64/include/asm/fpsimd.h
+> index 026a7c7..72090a1 100644
+> --- a/arch/arm64/include/asm/fpsimd.h
+> +++ b/arch/arm64/include/asm/fpsimd.h
+> @@ -20,6 +20,8 @@
+>
+>  #ifndef __ASSEMBLY__
+>
+> +#include <linux/stddef.h>
+> +
+>  /*
+>   * FP/SIMD storage area has:
+>   *  - FPSR and FPCR
+> @@ -72,6 +74,23 @@ extern void sve_load_state(void const *state, u32 const *pfpsr,
+>  			   unsigned long vq_minus_1);
+>  extern unsigned int sve_get_vl(void);
+>
+> +#ifdef CONFIG_ARM64_SVE
+> +
+> +extern size_t sve_state_size(struct task_struct const *task);
+> +
+> +extern void sve_alloc(struct task_struct *task);
+> +extern void fpsimd_release_thread(struct task_struct *task);
+> +extern void fpsimd_dup_sve(struct task_struct *dst,
+> +			   struct task_struct const *src);
+> +
+> +#else /* ! CONFIG_ARM64_SVE */
+> +
+> +static void __maybe_unused sve_alloc(struct task_struct *task) { }
+> +static void __maybe_unused fpsimd_release_thread(struct task_struct *task) { }
+> +static void __maybe_unused fpsimd_dup_sve(struct task_struct *dst,
+> +					  struct task_struct const *src) { }
+> +#endif /* ! CONFIG_ARM64_SVE */
+> +
+>  /* For use by EFI runtime services calls only */
+>  extern void __efi_fpsimd_begin(void);
+>  extern void __efi_fpsimd_end(void);
+> diff --git a/arch/arm64/include/asm/processor.h b/arch/arm64/include/asm/processor.h
+> index b7334f1..969feed 100644
+> --- a/arch/arm64/include/asm/processor.h
+> +++ b/arch/arm64/include/asm/processor.h
+> @@ -85,6 +85,8 @@ struct thread_struct {
+>  	unsigned long		tp2_value;
+>  #endif
+>  	struct fpsimd_state	fpsimd_state;
+> +	void			*sve_state;	/* SVE registers, if any */
+> +	u16			sve_vl;		/* SVE vector length */
 
-Thanks for reviewing the updated semantics against existing usage. I'll
-monitor the lists for any reported breakage but please do shout out if
-you notice any issues.
+sve_vl is implicitly cast to unsigned int bellow - it should be
+consistent.
 
-Thanks,
-Punit
+Given the allocation functions rely on sve_vl being valid it might be
+worth noting where this is set/live from?
+
+>  	unsigned long		fault_address;	/* fault info */
+>  	unsigned long		fault_code;	/* ESR_EL1 value */
+>  	struct debug_info	debug;		/* debugging */
+> diff --git a/arch/arm64/include/asm/thread_info.h b/arch/arm64/include/asm/thread_info.h
+> index 46c3b93..1a4b30b 100644
+> --- a/arch/arm64/include/asm/thread_info.h
+> +++ b/arch/arm64/include/asm/thread_info.h
+<snip>
+
+And I see there are other comments from Ard.
+
+--
+Alex Bennée
