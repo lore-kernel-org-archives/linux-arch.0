@@ -1,79 +1,61 @@
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH 14/27] arm64/sve: Backend logic for setting the vector
- length
-Date: Wed, 23 Aug 2017 18:29:52 +0100
-Message-ID: <20170823172952.GB6321@e103592.cambridge.arm.com>
-References: <1502280338-23002-1-git-send-email-Dave.Martin@arm.com>
- <1502280338-23002-15-git-send-email-Dave.Martin@arm.com>
- <87shgi9u4h.fsf@linaro.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: 8bit
+From: Hoeun Ryu <hoeun.ryu@gmail.com>
+Subject: [RFC 0/3] add 64BIT_ATOMIC_ACCESS and 64BIT_ATOMIC_ALIGNED_ACCESS
+Date: Thu, 24 Aug 2017 14:42:54 +0900
+Message-ID: <1503553377-3646-1-git-send-email-hoeun.ryu@gmail.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:59492 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932204AbdHWR35 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 23 Aug 2017 13:29:57 -0400
-Content-Disposition: inline
-In-Reply-To: <87shgi9u4h.fsf@linaro.org>
+Received: from mail-pg0-f65.google.com ([74.125.83.65]:35687 "EHLO
+        mail-pg0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751019AbdHXFr1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 24 Aug 2017 01:47:27 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>
-Cc: linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, gdb@sourceware.org, Yao Qi <Yao.Qi@arm.com>, Alan Hayward <alan.hayward@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
+To: Kees Cook <keescook@chromium.org>, Andrew Morton <akpm@linux-foundation.org>, Nicholas Piggin <npiggin@gmail.com>, Ingo Molnar <mingo@kernel.org>, Michal Marek <mmarek@suse.com>, Laura Abbott <labbott@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@kernel.org>, mic@digikod.net, Russell King <linux@armlinux.org.uk>, Vladimir Murzin <vladimir.murzin@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Jonathan Austin <jonathan.austin@arm.com>, Masahiro Yamada <yamada.masahiro@socionext.com>, Mark Rutland <mark.rutland@arm.com>, Peter Zijlstra <peterz@infradead.org>
+Cc: linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, hoeun.ryu@gmail.com, linux-arch@vger.kernel.org
 
-On Wed, Aug 23, 2017 at 04:33:18PM +0100, Alex Bennée wrote:
-> 
-> Dave Martin <Dave.Martin@arm.com> writes:
-> 
-> > This patch implements the core logic for changing a task's vector
-> > length on request from userspace.  This will be used by the ptrace
-> > and prctl frontends that are implemented in later patches.
-> >
-> > The SVE architecture permits, but does not require, implementations
-> > to support vector lengths that are not a power of two.  To handle
-> > this, logic is added to check a requested vector length against a
-> > possibly sparse bitmap of available vector lengths at runtime, so
-> > that the best supported value can be chosen.
-> >
-> > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> > ---
-> >  arch/arm64/include/asm/fpsimd.h |   6 +++
-> >  arch/arm64/kernel/fpsimd.c      | 116 ++++++++++++++++++++++++++++++++++++++++
-> >  include/uapi/linux/prctl.h      |   5 ++
-> >  3 files changed, 127 insertions(+)
-> >
-> > diff --git a/arch/arm64/include/asm/fpsimd.h b/arch/arm64/include/asm/fpsimd.h
-> > index 7efd04e..39b26d2 100644
-> > --- a/arch/arm64/include/asm/fpsimd.h
-> > +++ b/arch/arm64/include/asm/fpsimd.h
-> > @@ -70,11 +70,15 @@ extern void fpsimd_update_current_state(struct fpsimd_state *state);
-> >
-> >  extern void fpsimd_flush_task_state(struct task_struct *target);
-> >
-> > +#define SVE_VL_ARCH_MAX 0x100
-> > +
-> 
-> Hmm this isn't the same as SVE_VL_MAX. Why aren't we using that?
+ On some 32-bit architectures, 64bit accesses are atomic when certain
+conditions are satisfied.
 
-There should probably be a comment on this.
+ For example, on LPAE (Large Physical Address Extension) enabled ARM
+architecture, 'ldrd/strd' (load/store doublewords) instructions are 64bit
+atomic as long as the address is 64-bit aligned. This feature is to
+guarantee atomic accesses on newly introduced 64bit wide descriptors in
+the translation tables, and 's/u64' variables can be accessed atomically
+when they are aligned(8) on LPAE enabled ARM architecture machines.
 
-SVE vector-length agnostic software needs to be able to assume that
-VL <= 256 (the SVE maximum), because some instructions won't work as
-expected if this is not the case, particularly TBL, where in a larger
-vector there's no guarantee that a vector index (which might be as small
-as a byte) can index a vector element (of which there could be >256).
+ Introducing 64BIT_ATOMIC_ACCESS and 64BIT_ATOMIC_ALIGNED_ACCESS, which
+can be true for the 32bit architectures as well as 64bit architectures.
 
-I really don't want to expose SVE_VL_ARCH_MAX to userspace, so that
-people are not tempted to design data structures and protocols that
-can't handle up to SVE_VL_MAX.  Exposing both together seemed to carry
-a high risk of confusion and misuse.
+ we can optimize some kernel codes using seqlock (timekeeping) or mimics
+of it (like in sched/cfq) simply to read or write 64bit variables.
+ The existing codes depend on CONFIG_64BIT to determine whether the 64bit
+variables can be directly accessed or need additional synchronization
+primitives like seqlock. CONFIG_64BIT_ATOMIC_ACCESS can be used instead of
+CONFIG_64BIT in the cases.
 
-Instead, I silently clamp to an SVE-compatible length (i.e.,
-SVE_VL_ARCH_MAX) in sve_set_vector_length().  If future architecture
-revisions support larger vectors later on, my plan is to require an
-extra "force flag" to be passed to override the clamp.
+ 64BIT_ATOMIC_ALIGNED_ACCESS can be used in the variable declaration to
+indicate the alignment requirement to the compiler
+(__attribute__((aligned(8)))) in the way of #ifdef.
 
-[...]
+ The last patch "sched: depend on 64BIT_ATOMIC_ACCESS to determine if to
+use min_vruntime_copy" is an example of this approach.
 
-Cheers
----Dave
+ I'd like to know what the architecture maintainers and kernel maintainers
+think about it. I think I can make more examples (mostly removing seqlock
+to access the 64bit variables on the machines) if this approach is
+accepted.
+
+Hoeun Ryu (3):
+  arch: add 64BIT_ATOMIC_ACCESS to support 64bit atomic access on 32bit
+    machines
+  arm: enable 64BIT_ATOMIC(_ALIGNED)_ACCESS on LPAE enabled machines
+  sched: depend on 64BIT_ATOMIC_ACCESS to determine if to use
+    min_vruntime_copy
+
+ arch/Kconfig         | 20 ++++++++++++++++++++
+ arch/arm/mm/Kconfig  |  2 ++
+ kernel/sched/fair.c  |  6 +++---
+ kernel/sched/sched.h |  6 +++++-
+ 4 files changed, 30 insertions(+), 4 deletions(-)
+
+-- 
+2.7.4
