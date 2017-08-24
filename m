@@ -1,77 +1,103 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v2 1/1] futex: remove duplicated code and fix UB
-Date: Thu, 24 Aug 2017 10:47:56 +0100
-Message-ID: <20170824094756.GA6346@arm.com>
-References: <20170824073105.3901-1-jslaby@suse.cz>
+From: Thomas Garnier <thgarnie@google.com>
+Subject: Re: x86: PIE support and option to extend KASLR randomization
+Date: Thu, 24 Aug 2017 14:13:38 -0700
+Message-ID: <CAJcbSZGhvwt=5ERtBHLJnwS=6AXBZLTMfrafzeUCqYy=-MKWDg@mail.gmail.com>
+References: <20170810172615.51965-1-thgarnie@google.com> <20170811124127.kkb5pnkljz4umxuj@gmail.com>
+ <CAJcbSZFTX3uiS2g8JriS6+z_+WrG8z3hrQo4OSuyHpiyUDJWYA@mail.gmail.com>
+ <20170815075609.mmzbfwritjzvrpsn@gmail.com> <CAJcbSZE+TiY2whT94WqCJNXzR=2ATOHcQ10H5RqBZA1j=k1VHQ@mail.gmail.com>
+ <20170816151235.oamkdva6cwpc4cex@gmail.com> <CAJcbSZFM_zpL1av1JVaow8NdsGeH+6oZKeDnMPdXR0PGfynzsg@mail.gmail.com>
+ <20170817080920.5ljlkktngw2cisfg@gmail.com> <CAJcbSZGbtc-i0X1NiBAvZA7cxpGkwSLKNB7oDNCsFxOCdhkR_g@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <sparclinux-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20170824073105.3901-1-jslaby@suse.cz>
-Sender: sparclinux-owner@vger.kernel.org
-To: Jiri Slaby <jslaby@suse.cz>
-Cc: tglx@linutronix.de, mingo@redhat.com, dvhart@infradead.org, peterz@infradead.org, linux-kernel@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paul>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <kernel-hardening-return-9555-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+In-Reply-To: <CAJcbSZGbtc-i0X1NiBAvZA7cxpGkwSLKNB7oDNCsFxOCdhkR_g@mail.gmail.com>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Herbert Xu <herbert@gondor.apana.org.au>, "David S . Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Matthias Kaehlcke <mka@chromium.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, Paolo Bonzini <pbonzini@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Joerg Roedel <joro@8bytes.org>, Tom Lendacky <thomas.lendacky@amd.com>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Brian Gerst <brgerst@gmail.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, "Rafael J . Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Pavel Machek <pavel@ucw.cz>, Tejun Heo <tj@kernel.org>, Christoph
 List-Id: linux-arch.vger.kernel.org
 
-Hi Jiri,
+On Thu, Aug 17, 2017 at 7:10 AM, Thomas Garnier <thgarnie@google.com> wrote:
+>
+> On Thu, Aug 17, 2017 at 1:09 AM, Ingo Molnar <mingo@kernel.org> wrote:
+> >
+> >
+> > * Thomas Garnier <thgarnie@google.com> wrote:
+> >
+> > > > > -model=small/medium assume you are on the low 32-bit. It generates
+> > > > > instructions where the virtual addresses have the high 32-bit to be zero.
+> > > >
+> > > > How are these assumptions hardcoded by GCC? Most of the instructions should be
+> > > > relocatable straight away, as most call/jump/branch instructions are
+> > > > RIP-relative.
+> > >
+> > > I think PIE is capable to use relative instructions well. mcmodel=large assumes
+> > > symbols can be anywhere.
+> >
+> > So if the numbers in your changelog and Kconfig text cannot be trusted, there's
+> > this description of the size impact which I suspect is less susceptible to
+> > measurement error:
+> >
+> > +         The kernel and modules will generate slightly more assembly (1 to 2%
+> > +         increase on the .text sections). The vmlinux binary will be
+> > +         significantly smaller due to less relocations.
+> >
+> > ... but describing a 1-2% kernel text size increase as "slightly more assembly"
+> > shows a gratituous disregard to kernel code generation quality! In reality that's
+> > a huge size increase that in most cases will almost directly transfer to a 1-2%
+> > slowdown for kernel intense workloads.
+> >
+> >
+> > Where does that size increase come from, if PIE is capable of using relative
+> > instructins well? Does it come from the loss of a generic register and the
+> > resulting increase in register pressure, stack spills, etc.?
+>
+> I will try to gather more information on the size increase. The size
+> increase might be smaller with gcc 4.9 given performance was much
+> better.
 
-On Thu, Aug 24, 2017 at 09:31:05AM +0200, Jiri Slaby wrote:
-> There is code duplicated over all architecture's headers for
-> futex_atomic_op_inuser. Namely op decoding, access_ok check for uaddr,
-> and comparison of the result.
-> 
-> Remove this duplication and leave up to the arches only the needed
-> assembly which is now in arch_futex_atomic_op_inuser.
-> 
-> This effectively distributes the Will Deacon's arm64 fix for undefined
-> behaviour reported by UBSAN to all architectures. The fix was done in
-> commit 5f16a046f8e1 (arm64: futex: Fix undefined behaviour with
-> FUTEX_OP_OPARG_SHIFT usage). Look there for an example dump.
-> 
-> And as suggested by Thomas, check for negative oparg too, because it was
-> also reported to cause undefined behaviour report.
-> 
-> Note that s390 removed access_ok check in d12a29703 ("s390/uaccess:
-> remove pointless access_ok() checks") as access_ok there returns true.
-> We introduce it back to the helper for the sake of simplicity (it gets
-> optimized away anyway).
+Coming back on this thread as I identified the root cause of the
+performance issue.
 
-For arm64 and the core code:
+My original performance testing was done with an Ubuntu generic
+configuration. This configuration has the CONFIG_FUNCTION_TRACER
+option which was incompatible with PIE. The tracer failed to replace
+the __fentry__ call by a nop slide on each traceable function because
+the instruction was not the one expected. If PIE is enabled, gcc
+generates a difference call instruction based on the GOT without
+checking the visibility options (basically call *__fentry__@GOTPCREL).
 
-Reviewed-by: Will Deacon <will.deacon@arm.com>
+With the fix for function tracing, the hackbench results have an
+average of +0.8 to +1.4% (from +8% to +10% before). With a default
+configuration, the numbers are closer to 0.8%.
 
-Although one minor thing on the core part:
+On the .text size, with gcc 4.9 I see +0.8% on default configuration
+and +1.180% on the ubuntu configuration.
 
-> diff --git a/kernel/futex.c b/kernel/futex.c
-> index 0939255fc750..3d38eaf05492 100644
-> --- a/kernel/futex.c
-> +++ b/kernel/futex.c
-> @@ -1551,6 +1551,45 @@ futex_wake(u32 __user *uaddr, unsigned int flags, int nr_wake, u32 bitset)
->  	return ret;
->  }
->  
-> +static int futex_atomic_op_inuser(unsigned int encoded_op, u32 __user *uaddr)
-> +{
-> +	unsigned int op =	  (encoded_op & 0x70000000) >> 28;
-> +	unsigned int cmp =	  (encoded_op & 0x0f000000) >> 24;
-> +	int oparg = sign_extend32((encoded_op & 0x00fff000) >> 12, 12);
-> +	int cmparg = sign_extend32(encoded_op & 0x00000fff, 12);
-> +	int oldval, ret;
-> +
-> +	if (encoded_op & (FUTEX_OP_OPARG_SHIFT << 28)) {
-> +		if (oparg < 0 || oparg > 31)
-> +			return -EINVAL;
-> +		oparg = 1 << oparg;
-> +	}
-> +
-> +	if (!access_ok(VERIFY_WRITE, uaddr, sizeof(u32)))
-> +		return -EFAULT;
-> +
-> +	ret = arch_futex_atomic_op_inuser(op, oparg, &oldval, uaddr);
-> +	if (ret)
-> +		return ret;
+Next iteration should have an updated set of performance metrics (will
+try to use gcc 6.0 or higher) and incorporate the fix on function
+tracing.
 
-We could move the pagefault_{disable,enable} calls here, and then remove
-them from the futex_atomic_op_inuser callsites elsewhere in futex.c
+Let me know if you have questions and feedback.
 
-Will
+>
+> >
+> > So I'm still unhappy about this all, and about the attitude surrounding it.
+> >
+> > Thanks,
+> >
+> >         Ingo
+>
+>
+>
+>
+> --
+> Thomas
+
+
+
+
+-- 
+Thomas
