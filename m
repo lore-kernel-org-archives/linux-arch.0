@@ -1,39 +1,77 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC 3/3] sched: depend on 64BIT_ATOMIC_ACCESS to determine if
- to use min_vruntime_copy
-Date: Thu, 24 Aug 2017 10:49:06 +0200
-Message-ID: <20170824084906.mtmj6rz4igo63dl5@hirez.programming.kicks-ass.net>
-References: <1503553377-3646-1-git-send-email-hoeun.ryu@gmail.com>
- <1503553377-3646-4-git-send-email-hoeun.ryu@gmail.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH v2 1/1] futex: remove duplicated code and fix UB
+Date: Thu, 24 Aug 2017 10:47:56 +0100
+Message-ID: <20170824094756.GA6346@arm.com>
+References: <20170824073105.3901-1-jslaby@suse.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <sparclinux-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <1503553377-3646-4-git-send-email-hoeun.ryu@gmail.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Hoeun Ryu <hoeun.ryu@gmail.com>
-Cc: Mark Rutland <mark.rutland@arm.com>, linux-arch@vger.kernel.org, Vladimir Murzin <vladimir.murzin@arm.com>, Kees Cook <keescook@chromium.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Russell King <linux@armlinux.org.uk>, Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org, Masahiro Yamada <yamada.masahiro@socionext.com>, Michal Marek <mmarek@suse.com>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@kernel.org>, mic@digikod.net, Andrew Morton <akpm@linux-foundation.org>, Laura Abbott <labbott@redhat.com>, Ingo Molnar <mingo@kernel.org>, linux-arm-kernel@lists.infradead.org, Jonathan Austin <jonathan.austin@arm.com>
+In-Reply-To: <20170824073105.3901-1-jslaby@suse.cz>
+Sender: sparclinux-owner@vger.kernel.org
+To: Jiri Slaby <jslaby@suse.cz>
+Cc: tglx@linutronix.de, mingo@redhat.com, dvhart@infradead.org, peterz@infradead.org, linux-kernel@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paul>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Aug 24, 2017 at 02:42:57PM +0900, Hoeun Ryu wrote:
-> +#ifndef CONFIG_64BIT_ATOMIC_ALIGNED_ACCESS
->  	u64 min_vruntime;
-> -#ifndef CONFIG_64BIT
-> +#else
-> +	u64 min_vruntime __attribute__((aligned(sizeof(u64))));
-> +#endif
+Hi Jiri,
 
-That's stupid, just make sure your platform defines u64 as naturally
-aligned when you have this 64BIT_ATOMIC foo.
+On Thu, Aug 24, 2017 at 09:31:05AM +0200, Jiri Slaby wrote:
+> There is code duplicated over all architecture's headers for
+> futex_atomic_op_inuser. Namely op decoding, access_ok check for uaddr,
+> and comparison of the result.
+> 
+> Remove this duplication and leave up to the arches only the needed
+> assembly which is now in arch_futex_atomic_op_inuser.
+> 
+> This effectively distributes the Will Deacon's arm64 fix for undefined
+> behaviour reported by UBSAN to all architectures. The fix was done in
+> commit 5f16a046f8e1 (arm64: futex: Fix undefined behaviour with
+> FUTEX_OP_OPARG_SHIFT usage). Look there for an example dump.
+> 
+> And as suggested by Thomas, check for negative oparg too, because it was
+> also reported to cause undefined behaviour report.
+> 
+> Note that s390 removed access_ok check in d12a29703 ("s390/uaccess:
+> remove pointless access_ok() checks") as access_ok there returns true.
+> We introduce it back to the helper for the sake of simplicity (it gets
+> optimized away anyway).
 
-Also, please try and dig out more 32bit archs that can use this and make
-sure to include performance numbers to justify this extra cruft.
+For arm64 and the core code:
+
+Reviewed-by: Will Deacon <will.deacon@arm.com>
+
+Although one minor thing on the core part:
+
+> diff --git a/kernel/futex.c b/kernel/futex.c
+> index 0939255fc750..3d38eaf05492 100644
+> --- a/kernel/futex.c
+> +++ b/kernel/futex.c
+> @@ -1551,6 +1551,45 @@ futex_wake(u32 __user *uaddr, unsigned int flags, int nr_wake, u32 bitset)
+>  	return ret;
+>  }
+>  
+> +static int futex_atomic_op_inuser(unsigned int encoded_op, u32 __user *uaddr)
+> +{
+> +	unsigned int op =	  (encoded_op & 0x70000000) >> 28;
+> +	unsigned int cmp =	  (encoded_op & 0x0f000000) >> 24;
+> +	int oparg = sign_extend32((encoded_op & 0x00fff000) >> 12, 12);
+> +	int cmparg = sign_extend32(encoded_op & 0x00000fff, 12);
+> +	int oldval, ret;
+> +
+> +	if (encoded_op & (FUTEX_OP_OPARG_SHIFT << 28)) {
+> +		if (oparg < 0 || oparg > 31)
+> +			return -EINVAL;
+> +		oparg = 1 << oparg;
+> +	}
+> +
+> +	if (!access_ok(VERIFY_WRITE, uaddr, sizeof(u32)))
+> +		return -EFAULT;
+> +
+> +	ret = arch_futex_atomic_op_inuser(op, oparg, &oldval, uaddr);
+> +	if (ret)
+> +		return ret;
+
+We could move the pagefault_{disable,enable} calls here, and then remove
+them from the futex_atomic_op_inuser callsites elsewhere in futex.c
+
+Will
