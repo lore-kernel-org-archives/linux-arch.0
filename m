@@ -1,7 +1,7 @@
 From: Hoeun Ryu <hoeun.ryu@gmail.com>
-Subject: [RFC 2/3] arm: enable 64BIT_ATOMIC(_ALIGNED)_ACCESS on LPAE enabled machines
-Date: Thu, 24 Aug 2017 14:42:56 +0900
-Message-ID: <1503553377-3646-3-git-send-email-hoeun.ryu@gmail.com>
+Subject: [RFC 3/3] sched: depend on 64BIT_ATOMIC_ACCESS to determine if to use min_vruntime_copy
+Date: Thu, 24 Aug 2017 14:42:57 +0900
+Message-ID: <1503553377-3646-4-git-send-email-hoeun.ryu@gmail.com>
 References: <1503553377-3646-1-git-send-email-hoeun.ryu@gmail.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1503553377-3646-1-git-send-email-hoeun.ryu@gmail.com>
@@ -10,34 +10,75 @@ To: Kees Cook <keescook@chromium.org>, Andrew Morton <akpm@linux-foundation.org>
 Cc: linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, hoeun.ryu@gmail.com, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
- 'ldrd/strd' (load/store doublewords) instructions are 64bit atomic as
-long as the address is 64-bit aligned on LPAE (Large Physical Address
-Extension) enabled architectures. This feature is to guarantee atomic
-accesses on newly introduced 64bit wide descriptors in the translation
-tables.
+ 'min_vruntime_copy' is copied when 'min_vruntime' is updated for cfq_rq
+and used to check if updating 'min_vruntime' is completed on reader side.
+ Because 'min_vruntime' variable is 64bit, we need a mimic of seqlock to
+check if the variable is not being updated on 32bit machines.
 
- Making 64BIT_ATOMIC_ACCESS true, some kernel codes to access 64bit
-variables can be optimized by omitting seqlock or the mimic of it.
- Also make 64BIT_ATOMIC_ALIGNED_ACCESS true, the 64bit atomic access is
-guarnteed only when the address is 64bit algined.
+ On 64BIT_ATOMIC_ACCESS enabled machines, 64bit accesses are atomic even
+though the machines are 32bit, so we can directly access 'min_vruntime'
+on the architectures.
+
+ Depend on CONFIG_64BIT_ATOMIC_ACCESS instead of CONFIG_64BIT to determine
+whether 'min_vruntime_copy' variable is used for synchronization or not.
+And align 'min_vruntime' by 8 if 64BIT_ATOMIC_ALIGNED_ACCESS is true
+because 64BIT_ATOMIC_ALIGNED_ACCESS enabled system can access the variable
+atomically only when it' aligned.
 
 Signed-off-by: Hoeun Ryu <hoeun.ryu@gmail.com>
 ---
- arch/arm/mm/Kconfig | 2 ++
- 1 file changed, 2 insertions(+)
+ kernel/sched/fair.c  | 6 +++---
+ kernel/sched/sched.h | 6 +++++-
+ 2 files changed, 8 insertions(+), 4 deletions(-)
 
-diff --git a/arch/arm/mm/Kconfig b/arch/arm/mm/Kconfig
-index 60cdfdc..3142572 100644
---- a/arch/arm/mm/Kconfig
-+++ b/arch/arm/mm/Kconfig
-@@ -660,6 +660,8 @@ config ARM_LPAE
- 	bool "Support for the Large Physical Address Extension"
- 	depends on MMU && CPU_32v7 && !CPU_32v6 && !CPU_32v5 && \
- 		!CPU_32v4 && !CPU_32v3
-+	select 64BIT_ATOMIC_ACCESS
-+	select 64BIT_ATOMIC_ALIGNED_ACCESS
- 	help
- 	  Say Y if you have an ARMv7 processor supporting the LPAE page
- 	  table format and you would like to access memory beyond the
+diff --git a/kernel/sched/fair.c b/kernel/sched/fair.c
+index c95880e..840658f 100644
+--- a/kernel/sched/fair.c
++++ b/kernel/sched/fair.c
+@@ -536,7 +536,7 @@ static void update_min_vruntime(struct cfs_rq *cfs_rq)
+ 
+ 	/* ensure we never gain time by being placed backwards. */
+ 	cfs_rq->min_vruntime = max_vruntime(cfs_rq->min_vruntime, vruntime);
+-#ifndef CONFIG_64BIT
++#ifndef CONFIG_64BIT_ATOMIC_ACCESS
+ 	smp_wmb();
+ 	cfs_rq->min_vruntime_copy = cfs_rq->min_vruntime;
+ #endif
+@@ -5975,7 +5975,7 @@ static void migrate_task_rq_fair(struct task_struct *p)
+ 		struct cfs_rq *cfs_rq = cfs_rq_of(se);
+ 		u64 min_vruntime;
+ 
+-#ifndef CONFIG_64BIT
++#ifndef CONFIG_64BIT_ATOMIC_ACCESS
+ 		u64 min_vruntime_copy;
+ 
+ 		do {
+@@ -9173,7 +9173,7 @@ void init_cfs_rq(struct cfs_rq *cfs_rq)
+ {
+ 	cfs_rq->tasks_timeline = RB_ROOT;
+ 	cfs_rq->min_vruntime = (u64)(-(1LL << 20));
+-#ifndef CONFIG_64BIT
++#ifndef CONFIG_64BIT_ATOMIC_ACCESS
+ 	cfs_rq->min_vruntime_copy = cfs_rq->min_vruntime;
+ #endif
+ #ifdef CONFIG_SMP
+diff --git a/kernel/sched/sched.h b/kernel/sched/sched.h
+index eeef1a3..870010b 100644
+--- a/kernel/sched/sched.h
++++ b/kernel/sched/sched.h
+@@ -421,8 +421,12 @@ struct cfs_rq {
+ 	unsigned int nr_running, h_nr_running;
+ 
+ 	u64 exec_clock;
++#ifndef CONFIG_64BIT_ATOMIC_ALIGNED_ACCESS
+ 	u64 min_vruntime;
+-#ifndef CONFIG_64BIT
++#else
++	u64 min_vruntime __attribute__((aligned(sizeof(u64))));
++#endif
++#ifndef CONFIG_64BIT_ATOMIC_ACCESS
+ 	u64 min_vruntime_copy;
+ #endif
+ 
 -- 
 2.7.4
