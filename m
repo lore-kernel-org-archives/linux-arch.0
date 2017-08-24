@@ -1,253 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f180.google.com ([209.85.128.180]:36923 "EHLO
-        mail-wr0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S932074AbdHWPdV (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 23 Aug 2017 11:33:21 -0400
-Received: by mail-wr0-f180.google.com with SMTP id z91so1522990wrc.4
-        for <linux-arch@vger.kernel.org>; Wed, 23 Aug 2017 08:33:20 -0700 (PDT)
-References: <1502280338-23002-1-git-send-email-Dave.Martin@arm.com> <1502280338-23002-15-git-send-email-Dave.Martin@arm.com>
-From: Alex =?utf-8?Q?Benn=C3=A9e?= <alex.bennee@linaro.org>
-Subject: Re: [PATCH 14/27] arm64/sve: Backend logic for setting the vector length
-In-reply-to: <1502280338-23002-15-git-send-email-Dave.Martin@arm.com>
-Date: Wed, 23 Aug 2017 16:33:18 +0100
-Message-ID: <87shgi9u4h.fsf@linaro.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
+Received: from mail-pg0-f65.google.com ([74.125.83.65]:34384 "EHLO
+        mail-pg0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751019AbdHXFrr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 24 Aug 2017 01:47:47 -0400
+From: Hoeun Ryu <hoeun.ryu@gmail.com>
+Subject: [RFC 2/3] arm: enable 64BIT_ATOMIC(_ALIGNED)_ACCESS on LPAE enabled machines
+Date: Thu, 24 Aug 2017 14:42:56 +0900
+Message-ID: <1503553377-3646-3-git-send-email-hoeun.ryu@gmail.com>
+In-Reply-To: <1503553377-3646-1-git-send-email-hoeun.ryu@gmail.com>
+References: <1503553377-3646-1-git-send-email-hoeun.ryu@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, gdb@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Yao Qi <Yao.Qi@arm.com>, Alan Hayward <alan.hayward@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu
-Message-ID: <20170823153318.wVDBocQL1DYjzagm7U_pXef0FbPTW1bjKfoPQhdr30Q@z>
+To: Kees Cook <keescook@chromium.org>, Andrew Morton <akpm@linux-foundation.org>, Nicholas Piggin <npiggin@gmail.com>, Ingo Molnar <mingo@kernel.org>, Michal Marek <mmarek@suse.com>, Laura Abbott <labbott@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@kernel.org>, mic@digikod.net, Russell King <linux@armlinux.org.uk>, Vladimir Murzin <vladimir.murzin@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Jonathan Austin <jonathan.austin@arm.com>, Masahiro Yamada <yamada.masahiro@socionext.com>, Mark Rutland <mark.rutland@arm.com>, Peter Zijlstra <peterz@infradead.org>
+Cc: linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, hoeun.ryu@gmail.com, linux-arch@vger.kernel.org
+Message-ID: <20170824054256.s-dgtH7beB13AfotDuOWPjAy79d8ZVS7nYVpGTvE_OI@z>
 
+ 'ldrd/strd' (load/store doublewords) instructions are 64bit atomic as
+long as the address is 64-bit aligned on LPAE (Large Physical Address
+Extension) enabled architectures. This feature is to guarantee atomic
+accesses on newly introduced 64bit wide descriptors in the translation
+tables.
 
-Dave Martin <Dave.Martin@arm.com> writes:
+ Making 64BIT_ATOMIC_ACCESS true, some kernel codes to access 64bit
+variables can be optimized by omitting seqlock or the mimic of it.
+ Also make 64BIT_ATOMIC_ALIGNED_ACCESS true, the 64bit atomic access is
+guarnteed only when the address is 64bit algined.
 
-> This patch implements the core logic for changing a task's vector
-> length on request from userspace.  This will be used by the ptrace
-> and prctl frontends that are implemented in later patches.
->
-> The SVE architecture permits, but does not require, implementations
-> to support vector lengths that are not a power of two.  To handle
-> this, logic is added to check a requested vector length against a
-> possibly sparse bitmap of available vector lengths at runtime, so
-> that the best supported value can be chosen.
->
-> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> ---
->  arch/arm64/include/asm/fpsimd.h |   6 +++
->  arch/arm64/kernel/fpsimd.c      | 116 ++++++++++++++++++++++++++++++++++++++++
->  include/uapi/linux/prctl.h      |   5 ++
->  3 files changed, 127 insertions(+)
->
-> diff --git a/arch/arm64/include/asm/fpsimd.h b/arch/arm64/include/asm/fpsimd.h
-> index 7efd04e..39b26d2 100644
-> --- a/arch/arm64/include/asm/fpsimd.h
-> +++ b/arch/arm64/include/asm/fpsimd.h
-> @@ -70,11 +70,15 @@ extern void fpsimd_update_current_state(struct fpsimd_state *state);
->
->  extern void fpsimd_flush_task_state(struct task_struct *target);
->
-> +#define SVE_VL_ARCH_MAX 0x100
-> +
+Signed-off-by: Hoeun Ryu <hoeun.ryu@gmail.com>
+---
+ arch/arm/mm/Kconfig | 2 ++
+ 1 file changed, 2 insertions(+)
 
-Hmm this isn't the same as SVE_VL_MAX. Why aren't we using that?
-
->  extern void sve_save_state(void *state, u32 *pfpsr);
->  extern void sve_load_state(void const *state, u32 const *pfpsr,
->  			   unsigned long vq_minus_1);
->  extern unsigned int sve_get_vl(void);
->
-> +extern int sve_max_vl;
-> +
->  #ifdef CONFIG_ARM64_SVE
->
->  extern size_t sve_state_size(struct task_struct const *task);
-> @@ -83,6 +87,8 @@ extern void sve_alloc(struct task_struct *task);
->  extern void fpsimd_release_thread(struct task_struct *task);
->  extern void fpsimd_dup_sve(struct task_struct *dst,
->  			   struct task_struct const *src);
-> +extern int sve_set_vector_length(struct task_struct *task,
-> +				 unsigned long vl, unsigned long flags);
->
->  #else /* ! CONFIG_ARM64_SVE */
->
-> diff --git a/arch/arm64/kernel/fpsimd.c b/arch/arm64/kernel/fpsimd.c
-> index e8674f6..bce95de 100644
-> --- a/arch/arm64/kernel/fpsimd.c
-> +++ b/arch/arm64/kernel/fpsimd.c
-> @@ -18,12 +18,14 @@
->   */
->
->  #include <linux/bottom_half.h>
-> +#include <linux/bitmap.h>
->  #include <linux/cpu.h>
->  #include <linux/cpu_pm.h>
->  #include <linux/kernel.h>
->  #include <linux/init.h>
->  #include <linux/percpu.h>
->  #include <linux/preempt.h>
-> +#include <linux/prctl.h>
->  #include <linux/ptrace.h>
->  #include <linux/sched/signal.h>
->  #include <linux/signal.h>
-> @@ -111,6 +113,20 @@ static DEFINE_PER_CPU(struct fpsimd_state *, fpsimd_last_state);
->  /* Default VL for tasks that don't set it explicitly: */
->  static int sve_default_vl = -1;
->
-> +#ifdef CONFIG_ARM64_SVE
-> +
-> +/* Maximum supported vector length across all CPUs (initially poisoned) */
-> +int sve_max_vl = -1;
-> +/* Set of available vector lengths, as vq_to_bit(vq): */
-> +static DECLARE_BITMAP(sve_vq_map, SVE_VQ_MAX);
-> +
-> +#else /* ! CONFIG_ARM64_SVE */
-> +
-> +/* Dummy declaration for code that will be optimised out: */
-> +extern DECLARE_BITMAP(sve_vq_map, SVE_VQ_MAX);
-> +
-> +#endif /* ! CONFIG_ARM64_SVE */
-> +
->  static void sve_free(struct task_struct *task)
->  {
->  	kfree(task->thread.sve_state);
-> @@ -148,6 +164,37 @@ static void change_cpacr(u64 old, u64 new)
->  		write_sysreg(new, CPACR_EL1);
->  }
->
-> +static unsigned int vq_to_bit(unsigned int vq)
-> +{
-> +	BUILD_BUG_ON(vq < 1 || vq > SVE_VQ_MAX);
-> +
-> +	return SVE_VQ_MAX - vq;
-> +}
-> +
-> +static unsigned int bit_to_vq(unsigned int bit)
-> +{
-> +	BUILD_BUG_ON(bit >= SVE_VQ_MAX);
-> +
-> +	return SVE_VQ_MAX - bit;
-> +}
-> +
-> +static unsigned int find_supported_vector_length(unsigned int vl)
-> +{
-> +	int bit;
-> +
-> +	BUG_ON(!sve_vl_valid(vl));
-> +
-> +	BUG_ON(!sve_vl_valid(sve_max_vl));
-> +	if (vl > sve_max_vl)
-> +		vl = sve_max_vl;
-> +
-> +	bit = find_next_bit(sve_vq_map, SVE_VQ_MAX,
-> +			    vq_to_bit(sve_vq_from_vl(vl)));
-> +	BUG_ON(bit < 0 || bit >= SVE_VQ_MAX);
-> +
-> +	return 16 * bit_to_vq(bit);
-> +}
-> +
->  #define ZREG(sve_state, vq, n) ((char *)(sve_state) +		\
->  	(SVE_SIG_ZREG_OFFSET(vq, n) - SVE_SIG_REGS_OFFSET))
->
-> @@ -235,6 +282,73 @@ void fpsimd_dup_sve(struct task_struct *dst, struct task_struct const *src)
->  	}
->  }
->
-> +int sve_set_vector_length(struct task_struct *task,
-> +			  unsigned long vl, unsigned long flags)
-> +{
-> +	BUG_ON(task == current && preemptible());
-> +
-> +	if (flags & ~(unsigned long)(PR_SVE_VL_INHERIT |
-> +				     PR_SVE_SET_VL_ONEXEC))
-> +		return -EINVAL;
-> +
-> +	if (!sve_vl_valid(vl))
-> +		return -EINVAL;
-> +
-> +	/*
-> +	 * Clamp to the maximum vector length that VL-agnostic SVE code can
-> +	 * work with.  A flag may be assigned in the future to allow setting
-> +	 * of larger vector lengths without confusing older software.
-> +	 */
-> +	if (vl > SVE_VL_ARCH_MAX)
-> +		vl = SVE_VL_ARCH_MAX;
-> +
-> +	vl = find_supported_vector_length(vl);
-> +
-> +	if (flags & (PR_SVE_VL_INHERIT |
-> +		     PR_SVE_SET_VL_ONEXEC))
-> +		task->thread.sve_vl_onexec = vl;
-> +	else
-> +		/* Reset VL to system default on next exec: */
-> +		task->thread.sve_vl_onexec = 0;
-> +
-> +	/* Only actually set the VL if not deferred: */
-> +	if (flags & PR_SVE_SET_VL_ONEXEC)
-> +		goto out;
-> +
-> +	/*
-> +	 * To ensure the FPSIMD bits of the SVE vector registers are preserved,
-> +	 * write any live register state back to task_struct, and convert to a
-> +	 * non-SVE thread.
-> +	 */
-> +	if (vl != task->thread.sve_vl) {
-> +		if (task == current) {
-> +			task_fpsimd_save();
-> +			set_thread_flag(TIF_FOREIGN_FPSTATE);
-> +		}
-> +
-> +		if (test_and_clear_tsk_thread_flag(task, TIF_SVE))
-> +			sve_to_fpsimd(task);
-> +
-> +		/*
-> +		 * Force reallocation of task SVE state to the correct size
-> +		 * on next use:
-> +		 */
-> +		sve_free(task);
-> +	}
-> +
-> +	task->thread.sve_vl = vl;
-> +
-> +	fpsimd_flush_task_state(task);
-> +
-> +out:
-> +	if (flags & PR_SVE_VL_INHERIT)
-> +		set_thread_flag(TIF_SVE_VL_INHERIT);
-> +	else
-> +		clear_thread_flag(TIF_SVE_VL_INHERIT);
-> +
-> +	return 0;
-> +}
-> +
->  void fpsimd_release_thread(struct task_struct *dead_task)
->  {
->  	sve_free(dead_task);
-> @@ -407,6 +521,8 @@ void fpsimd_flush_thread(void)
->  		 * If not, something went badly wrong.
->  		 */
->  		BUG_ON(!sve_vl_valid(current->thread.sve_vl));
-> +		BUG_ON(find_supported_vector_length(current->thread.sve_vl) !=
-> +		       current->thread.sve_vl);
->
->  		/*
->  		 * If the task is not set to inherit, ensure that the vector
-> diff --git a/include/uapi/linux/prctl.h b/include/uapi/linux/prctl.h
-> index a8d0759..1b64901 100644
-> --- a/include/uapi/linux/prctl.h
-> +++ b/include/uapi/linux/prctl.h
-> @@ -197,4 +197,9 @@ struct prctl_mm_map {
->  # define PR_CAP_AMBIENT_LOWER		3
->  # define PR_CAP_AMBIENT_CLEAR_ALL	4
->
-> +/* arm64 Scalable Vector Extension controls */
-> +# define PR_SVE_SET_VL_ONEXEC		(1 << 18) /* defer effect until exec */
-> +# define PR_SVE_VL_LEN_MASK		0xffff
-> +# define PR_SVE_VL_INHERIT		(1 << 17) /* inherit across exec */
-> +
->  #endif /* _LINUX_PRCTL_H */
-
-
---
-Alex Bennée
+diff --git a/arch/arm/mm/Kconfig b/arch/arm/mm/Kconfig
+index 60cdfdc..3142572 100644
+--- a/arch/arm/mm/Kconfig
++++ b/arch/arm/mm/Kconfig
+@@ -660,6 +660,8 @@ config ARM_LPAE
+ 	bool "Support for the Large Physical Address Extension"
+ 	depends on MMU && CPU_32v7 && !CPU_32v6 && !CPU_32v5 && \
+ 		!CPU_32v4 && !CPU_32v3
++	select 64BIT_ATOMIC_ACCESS
++	select 64BIT_ATOMIC_ALIGNED_ACCESS
+ 	help
+ 	  Say Y if you have an ARMv7 processor supporting the LPAE page
+ 	  table format and you would like to access memory beyond the
+-- 
+2.7.4
