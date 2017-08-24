@@ -1,89 +1,76 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f67.google.com ([74.125.83.67]:37044 "EHLO
-        mail-pg0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751019AbdHXFrz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 24 Aug 2017 01:47:55 -0400
+Received: from mail-pg0-f66.google.com ([74.125.83.66]:34328 "EHLO
+        mail-pg0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751019AbdHXFri (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 24 Aug 2017 01:47:38 -0400
 From: Hoeun Ryu <hoeun.ryu@gmail.com>
-Subject: [RFC 3/3] sched: depend on 64BIT_ATOMIC_ACCESS to determine if to use min_vruntime_copy
-Date: Thu, 24 Aug 2017 14:42:57 +0900
-Message-ID: <1503553377-3646-4-git-send-email-hoeun.ryu@gmail.com>
+Subject: [RFC 1/3] arch: add 64BIT_ATOMIC_ACCESS to support 64bit atomic access on 32bit machines
+Date: Thu, 24 Aug 2017 14:42:55 +0900
+Message-ID: <1503553377-3646-2-git-send-email-hoeun.ryu@gmail.com>
 In-Reply-To: <1503553377-3646-1-git-send-email-hoeun.ryu@gmail.com>
 References: <1503553377-3646-1-git-send-email-hoeun.ryu@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Kees Cook <keescook@chromium.org>, Andrew Morton <akpm@linux-foundation.org>, Nicholas Piggin <npiggin@gmail.com>, Ingo Molnar <mingo@kernel.org>, Michal Marek <mmarek@suse.com>, Laura Abbott <labbott@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@kernel.org>, mic@digikod.net, Russell King <linux@armlinux.org.uk>, Vladimir Murzin <vladimir.murzin@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Jonathan Austin <jonathan.austin@arm.com>, Masahiro Yamada <yamada.masahiro@socionext.com>, Mark Rutland <mark.rutland@arm.com>, Peter Zijlstra <peterz@infradead.org>
 Cc: linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, hoeun.ryu@gmail.com, linux-arch@vger.kernel.org
-Message-ID: <20170824054257.XlwGuT_8BN9EsakEajAD8nL9xy6rTbA9A5xyMbcrq3A@z>
+Message-ID: <20170824054255.46e4Adg2e-EgL6HjyWmsVrIZE8eLNQ-_b-cOB3lse5E@z>
 
- 'min_vruntime_copy' is copied when 'min_vruntime' is updated for cfq_rq
-and used to check if updating 'min_vruntime' is completed on reader side.
- Because 'min_vruntime' variable is 64bit, we need a mimic of seqlock to
-check if the variable is not being updated on 32bit machines.
+ On some 32-bit architectures, 64bit accesses are atomic when certain
+conditions are satisfied.
+ For example, on LPAE (Large Physical Address Extension) enabled ARM
+architecture, 'ldrd/strd' (load/store doublewords) instructions are 64bit
+atomic as long as the address is 64-bit aligned. This feature is to
+guarantee atomic accesses on newly introduced 64bit wide descriptors in
+the translation tables, and 's/u64' variables can be accessed atomically
+when they are aligned(8) on LPAE enabled ARM architecture machines.
 
- On 64BIT_ATOMIC_ACCESS enabled machines, 64bit accesses are atomic even
-though the machines are 32bit, so we can directly access 'min_vruntime'
-on the architectures.
-
- Depend on CONFIG_64BIT_ATOMIC_ACCESS instead of CONFIG_64BIT to determine
-whether 'min_vruntime_copy' variable is used for synchronization or not.
-And align 'min_vruntime' by 8 if 64BIT_ATOMIC_ALIGNED_ACCESS is true
-because 64BIT_ATOMIC_ALIGNED_ACCESS enabled system can access the variable
-atomically only when it' aligned.
+ Introducing 64BIT_ATOMIC_ACCESS and 64BIT_ATOMIC_ALIGNED_ACCESS, which
+can be true for the 32bit architectures as well as 64bit architectures,
+we can optimize some kernel codes using seqlock (timekeeping) or mimics
+of it (like in sched/cfq) simply to read or write 64bit variables.
+ The existing codes depend on CONFIG_64BIT to determine whether the 64bit
+variables can be directly accessed or need additional synchronization
+primitives like seqlock. CONFIG_64BIT_ATOMIC_ACCESS can be used instead of
+CONFIG_64BIT in the cases.
+ 64BIT_ATOMIC_ALIGNED_ACCESS can be used in the variable declaration to
+indicate the alignment requirement to the compiler
+(__attribute__((aligned(8)))) in the way of #ifdef.
 
 Signed-off-by: Hoeun Ryu <hoeun.ryu@gmail.com>
 ---
- kernel/sched/fair.c  | 6 +++---
- kernel/sched/sched.h | 6 +++++-
- 2 files changed, 8 insertions(+), 4 deletions(-)
+ arch/Kconfig | 20 ++++++++++++++++++++
+ 1 file changed, 20 insertions(+)
 
-diff --git a/kernel/sched/fair.c b/kernel/sched/fair.c
-index c95880e..840658f 100644
---- a/kernel/sched/fair.c
-+++ b/kernel/sched/fair.c
-@@ -536,7 +536,7 @@ static void update_min_vruntime(struct cfs_rq *cfs_rq)
+diff --git a/arch/Kconfig b/arch/Kconfig
+index 21d0089..1def331 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -115,6 +115,26 @@ config UPROBES
+ 	    managed by the kernel and kept transparent to the probed
+ 	    application. )
  
- 	/* ensure we never gain time by being placed backwards. */
- 	cfs_rq->min_vruntime = max_vruntime(cfs_rq->min_vruntime, vruntime);
--#ifndef CONFIG_64BIT
-+#ifndef CONFIG_64BIT_ATOMIC_ACCESS
- 	smp_wmb();
- 	cfs_rq->min_vruntime_copy = cfs_rq->min_vruntime;
- #endif
-@@ -5975,7 +5975,7 @@ static void migrate_task_rq_fair(struct task_struct *p)
- 		struct cfs_rq *cfs_rq = cfs_rq_of(se);
- 		u64 min_vruntime;
- 
--#ifndef CONFIG_64BIT
-+#ifndef CONFIG_64BIT_ATOMIC_ACCESS
- 		u64 min_vruntime_copy;
- 
- 		do {
-@@ -9173,7 +9173,7 @@ void init_cfs_rq(struct cfs_rq *cfs_rq)
- {
- 	cfs_rq->tasks_timeline = RB_ROOT;
- 	cfs_rq->min_vruntime = (u64)(-(1LL << 20));
--#ifndef CONFIG_64BIT
-+#ifndef CONFIG_64BIT_ATOMIC_ACCESS
- 	cfs_rq->min_vruntime_copy = cfs_rq->min_vruntime;
- #endif
- #ifdef CONFIG_SMP
-diff --git a/kernel/sched/sched.h b/kernel/sched/sched.h
-index eeef1a3..870010b 100644
---- a/kernel/sched/sched.h
-+++ b/kernel/sched/sched.h
-@@ -421,8 +421,12 @@ struct cfs_rq {
- 	unsigned int nr_running, h_nr_running;
- 
- 	u64 exec_clock;
-+#ifndef CONFIG_64BIT_ATOMIC_ALIGNED_ACCESS
- 	u64 min_vruntime;
--#ifndef CONFIG_64BIT
-+#else
-+	u64 min_vruntime __attribute__((aligned(sizeof(u64))));
-+#endif
-+#ifndef CONFIG_64BIT_ATOMIC_ACCESS
- 	u64 min_vruntime_copy;
- #endif
- 
++config 64BIT_ATOMIC_ACCESS
++	def_bool 64BIT
++	help
++	  On some 32bit architectures as well as 64bit architectures,
++	  64bit accesses are atomic when certain conditions are satisfied.
++
++	  This symbol should be selected by an architecture if 64 bit
++	  accesses can be atomic.
++
++config 64BIT_ATOMIC_ALIGNED_ACCESS
++	def_bool n
++	depends on 64BIT_ATOMIC_ACCESS
++	help
++	  On 64BIT_ATOMIC_ACCESS enabled system, the address should be
++	  aligned by 8 to guarantee the accesses are atomic.
++
++	  This symbol should be selected by an architecture if 64 bit
++	  accesses are required to be 64 bit aligned to guarantee that
++	  the 64bit accesses are atomic.
++
+ config HAVE_64BIT_ALIGNED_ACCESS
+ 	def_bool 64BIT && !HAVE_EFFICIENT_UNALIGNED_ACCESS
+ 	help
 -- 
 2.7.4
