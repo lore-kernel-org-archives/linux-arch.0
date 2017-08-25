@@ -1,82 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:38240 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751264AbdHXJrz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 24 Aug 2017 05:47:55 -0400
-Date: Thu, 24 Aug 2017 10:47:56 +0100
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v2 1/1] futex: remove duplicated code and fix UB
-Message-ID: <20170824094756.GA6346@arm.com>
-References: <20170824073105.3901-1-jslaby@suse.cz>
+Received: from mx2.suse.de ([195.135.220.15]:54450 "EHLO mx1.suse.de"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1757454AbdHYRlp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 25 Aug 2017 13:41:45 -0400
+Date: Fri, 25 Aug 2017 19:41:34 +0200
+From: Borislav Petkov <bp@suse.de>
+Subject: Re: [PATCH v8 02/28] x86/boot: Relocate definition of the initial
+ state of CR0
+Message-ID: <20170825174133.r5xhcv5utfipsujo@pd.tnic>
+References: <20170819002809.111312-1-ricardo.neri-calderon@linux.intel.com>
+ <20170819002809.111312-3-ricardo.neri-calderon@linux.intel.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <20170824073105.3901-1-jslaby@suse.cz>
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <20170819002809.111312-3-ricardo.neri-calderon@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jiri Slaby <jslaby@suse.cz>
-Cc: tglx@linutronix.de, mingo@redhat.com, dvhart@infradead.org, peterz@infradead.org, linux-kernel@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, "H. Peter Anvin" <hpa@zytor.com>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org
-Message-ID: <20170824094756.0mu6esGyyYEkZOmizWB6dUdzNkCxwkNdChVQQpQ_nVw@z>
+To: Ricardo Neri <ricardo.neri-calderon@linux.intel.com>
+Cc: Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Brian Gerst <brgerst@gmail.com>, Chris Metcalf <cmetcalf@mellanox.com>, Dave Hansen <dave.hansen@linux.intel.com>, Paolo Bonzini <pbonzini@redhat.com>, Liang Z Li <liang.z.li@intel.com>, Masami Hiramatsu <mhiramat@kernel.org>, Huang Rui <ray.huang@amd.com>, Jiri Slaby <jslaby@suse.cz>, Jonathan Corbet <corbet@lwn.net>, "Michael S. Tsirkin" <mst@redhat.com>, Paul Gortmaker <paul.gortmaker@windriver.com>, Vlastimil Babka <vbabka@suse.cz>, Chen Yucong <slaoub@gmail.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Shuah Khan <shuah@kernel.org>, linux-kernel@vger.kernel.org, x86@kernel.org, ricardo.neri@intel.com, Andy Lutomirski <luto@amacapital.net>, Dave Hansen <dave.hansen@intel.com>, Denys Vlasenko <dvlasenk@redhat.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Message-ID: <20170825174134.7xUKtEIlzQpfCGBYf0VOTaosh2BgW28pPUqfSoqMcoM@z>
 
-Hi Jiri,
+On Fri, Aug 18, 2017 at 05:27:43PM -0700, Ricardo Neri wrote:
+> Both head_32.S and head_64.S utilize the same value to initialize the
+> control register CR0. Also, other parts of the kernel might want to access
+> to this initial definition (e.g., emulation code for User-Mode Instruction
 
-On Thu, Aug 24, 2017 at 09:31:05AM +0200, Jiri Slaby wrote:
-> There is code duplicated over all architecture's headers for
-> futex_atomic_op_inuser. Namely op decoding, access_ok check for uaddr,
-> and comparison of the result.
+s/to //
+
+> Prevention uses this state to provide a sane dummy value for CR0 when
+> emulating the smsw instruction). Thus, relocate this definition to a
+> header file from which it can be conveniently accessed.
 > 
-> Remove this duplication and leave up to the arches only the needed
-> assembly which is now in arch_futex_atomic_op_inuser.
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+> Cc: Andy Lutomirski <luto@amacapital.net>
+> Cc: Andy Lutomirski <luto@kernel.org>
+> Cc: Borislav Petkov <bp@alien8.de>
+> Cc: Brian Gerst <brgerst@gmail.com>
+> Cc: Dave Hansen <dave.hansen@intel.com>
+> Cc: Denys Vlasenko <dvlasenk@redhat.com>
+> Cc: H. Peter Anvin <hpa@zytor.com>
+> Cc: Josh Poimboeuf <jpoimboe@redhat.com>
+> Cc: Linus Torvalds <torvalds@linux-foundation.org>
+> Cc: Peter Zijlstra <peterz@infradead.org>
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Cc: linux-arch@vger.kernel.org
+> Cc: linux-mm@kvack.org
+> Suggested-by: Borislav Petkov <bp@alien8.de>
+> Signed-off-by: Ricardo Neri <ricardo.neri-calderon@linux.intel.com>
+> ---
+>  arch/x86/include/uapi/asm/processor-flags.h | 6 ++++++
+>  arch/x86/kernel/head_32.S                   | 3 ---
+>  arch/x86/kernel/head_64.S                   | 3 ---
+>  3 files changed, 6 insertions(+), 6 deletions(-)
 > 
-> This effectively distributes the Will Deacon's arm64 fix for undefined
-> behaviour reported by UBSAN to all architectures. The fix was done in
-> commit 5f16a046f8e1 (arm64: futex: Fix undefined behaviour with
-> FUTEX_OP_OPARG_SHIFT usage). Look there for an example dump.
-> 
-> And as suggested by Thomas, check for negative oparg too, because it was
-> also reported to cause undefined behaviour report.
-> 
-> Note that s390 removed access_ok check in d12a29703 ("s390/uaccess:
-> remove pointless access_ok() checks") as access_ok there returns true.
-> We introduce it back to the helper for the sake of simplicity (it gets
-> optimized away anyway).
-
-For arm64 and the core code:
-
-Reviewed-by: Will Deacon <will.deacon@arm.com>
-
-Although one minor thing on the core part:
-
-> diff --git a/kernel/futex.c b/kernel/futex.c
-> index 0939255fc750..3d38eaf05492 100644
-> --- a/kernel/futex.c
-> +++ b/kernel/futex.c
-> @@ -1551,6 +1551,45 @@ futex_wake(u32 __user *uaddr, unsigned int flags, int nr_wake, u32 bitset)
->  	return ret;
->  }
+> diff --git a/arch/x86/include/uapi/asm/processor-flags.h b/arch/x86/include/uapi/asm/processor-flags.h
+> index 185f3d10c194..aae1f2aa7563 100644
+> --- a/arch/x86/include/uapi/asm/processor-flags.h
+> +++ b/arch/x86/include/uapi/asm/processor-flags.h
+> @@ -151,5 +151,11 @@
+>  #define CX86_ARR_BASE	0xc4
+>  #define CX86_RCR_BASE	0xdc
 >  
-> +static int futex_atomic_op_inuser(unsigned int encoded_op, u32 __user *uaddr)
-> +{
-> +	unsigned int op =	  (encoded_op & 0x70000000) >> 28;
-> +	unsigned int cmp =	  (encoded_op & 0x0f000000) >> 24;
-> +	int oparg = sign_extend32((encoded_op & 0x00fff000) >> 12, 12);
-> +	int cmparg = sign_extend32(encoded_op & 0x00000fff, 12);
-> +	int oldval, ret;
-> +
-> +	if (encoded_op & (FUTEX_OP_OPARG_SHIFT << 28)) {
-> +		if (oparg < 0 || oparg > 31)
-> +			return -EINVAL;
-> +		oparg = 1 << oparg;
-> +	}
-> +
-> +	if (!access_ok(VERIFY_WRITE, uaddr, sizeof(u32)))
-> +		return -EFAULT;
-> +
-> +	ret = arch_futex_atomic_op_inuser(op, oparg, &oldval, uaddr);
-> +	if (ret)
-> +		return ret;
+> +/*
+> + * Initial state of CR0 for head_32/64.S
+> + */
 
-We could move the pagefault_{disable,enable} calls here, and then remove
-them from the futex_atomic_op_inuser callsites elsewhere in futex.c
+No need for that comment.
 
-Will
+With the minor nitpicks addressed, you can add:
+
+Reviewed-by: Borislav Petkov <bp@suse.de>
+
+Thx.
+
+-- 
+Regards/Gruss,
+    Boris.
+
+SUSE Linux GmbH, GF: Felix Imendörffer, Jane Smithard, Graham Norton, HRB 21284 (AG Nürnberg)
+-- 
