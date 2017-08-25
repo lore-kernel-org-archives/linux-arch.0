@@ -1,81 +1,55 @@
-From: Borislav Petkov <bp@suse.de>
-Subject: Re: [PATCH v8 02/28] x86/boot: Relocate definition of the initial
- state of CR0
-Date: Fri, 25 Aug 2017 19:41:34 +0200
-Message-ID: <20170825174133.r5xhcv5utfipsujo@pd.tnic>
-References: <20170819002809.111312-1-ricardo.neri-calderon@linux.intel.com>
- <20170819002809.111312-3-ricardo.neri-calderon@linux.intel.com>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH v2 1/1] futex: remove duplicated code and fix UB
+Date: Fri, 25 Aug 2017 22:43:41 +0200 (CEST)
+Message-ID: <alpine.DEB.2.20.1708252243020.2124@nanos>
+References: <20170824073105.3901-1-jslaby@suse.cz>
+ <20170824094756.GA6346@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:54450 "EHLO mx1.suse.de"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1757454AbdHYRlp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 25 Aug 2017 13:41:45 -0400
-Content-Disposition: inline
-In-Reply-To: <20170819002809.111312-3-ricardo.neri-calderon@linux.intel.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ricardo Neri <ricardo.neri-calderon@linux.intel.com>
-Cc: Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Brian Gerst <brgerst@gmail.com>, Chris Metcalf <cmetcalf@mellanox.com>, Dave Hansen <dave.hansen@linux.intel.com>, Paolo Bonzini <pbonzini@redhat.com>, Liang Z Li <liang.z.li@intel.com>, Masami Hiramatsu <mhiramat@kernel.org>, Huang Rui <ray.huang@amd.com>, Jiri Slaby <jslaby@suse.cz>, Jonathan Corbet <corbet@lwn.net>, "Michael S. Tsirkin" <mst@redhat.com>, Paul Gortmaker <paul.gortmaker@windriver.com>, Vlastimil Babka <vbabka@suse.cz>, Chen Yucong <slaoub@gmail.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Shua
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20170824094756.GA6346@arm.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Will Deacon <will.deacon@arm.com>
+Cc: linux-mips@linux-mips.org, Rich Felker <dalias@libc.org>, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, peterz@infradead.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Max Filippov <jcmvbkbc@gmail.com>, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, sparclinux@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Jonas Bonn <jonas@southpole.se>, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, linux-hexagon@vger.kernel.org, Helge Deller <deller@gmx.de>, x86@kernel.org, "James E.J. Bottomley" <jejb@parisc-linux.org>, mingo@redhat.com, Catalin Marinas <catalin.marinas@arm.com>, dvhart@infradead.org, Matt Turner <mattst88@gmail.com>, linux-snps-arc@lists.infradead.org, Fenghua Yu <fenghua.yu@intel.com>, Arnd Bergmann <arnd@arndb.de>, linux-xtensa@linux-xtensa.org, Stefan Kristiansson <stefan>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Aug 18, 2017 at 05:27:43PM -0700, Ricardo Neri wrote:
-> Both head_32.S and head_64.S utilize the same value to initialize the
-> control register CR0. Also, other parts of the kernel might want to access
-> to this initial definition (e.g., emulation code for User-Mode Instruction
-
-s/to //
-
-> Prevention uses this state to provide a sane dummy value for CR0 when
-> emulating the smsw instruction). Thus, relocate this definition to a
-> header file from which it can be conveniently accessed.
+On Thu, 24 Aug 2017, Will Deacon wrote:
+> On Thu, Aug 24, 2017 at 09:31:05AM +0200, Jiri Slaby wrote:
+> > +static int futex_atomic_op_inuser(unsigned int encoded_op, u32 __user *uaddr)
+> > +{
+> > +	unsigned int op =	  (encoded_op & 0x70000000) >> 28;
+> > +	unsigned int cmp =	  (encoded_op & 0x0f000000) >> 24;
+> > +	int oparg = sign_extend32((encoded_op & 0x00fff000) >> 12, 12);
+> > +	int cmparg = sign_extend32(encoded_op & 0x00000fff, 12);
+> > +	int oldval, ret;
+> > +
+> > +	if (encoded_op & (FUTEX_OP_OPARG_SHIFT << 28)) {
+> > +		if (oparg < 0 || oparg > 31)
+> > +			return -EINVAL;
+> > +		oparg = 1 << oparg;
+> > +	}
+> > +
+> > +	if (!access_ok(VERIFY_WRITE, uaddr, sizeof(u32)))
+> > +		return -EFAULT;
+> > +
+> > +	ret = arch_futex_atomic_op_inuser(op, oparg, &oldval, uaddr);
+> > +	if (ret)
+> > +		return ret;
 > 
-> Cc: Andrew Morton <akpm@linux-foundation.org>
-> Cc: Andy Lutomirski <luto@amacapital.net>
-> Cc: Andy Lutomirski <luto@kernel.org>
-> Cc: Borislav Petkov <bp@alien8.de>
-> Cc: Brian Gerst <brgerst@gmail.com>
-> Cc: Dave Hansen <dave.hansen@intel.com>
-> Cc: Denys Vlasenko <dvlasenk@redhat.com>
-> Cc: H. Peter Anvin <hpa@zytor.com>
-> Cc: Josh Poimboeuf <jpoimboe@redhat.com>
-> Cc: Linus Torvalds <torvalds@linux-foundation.org>
-> Cc: Peter Zijlstra <peterz@infradead.org>
-> Cc: Thomas Gleixner <tglx@linutronix.de>
-> Cc: linux-arch@vger.kernel.org
-> Cc: linux-mm@kvack.org
-> Suggested-by: Borislav Petkov <bp@alien8.de>
-> Signed-off-by: Ricardo Neri <ricardo.neri-calderon@linux.intel.com>
-> ---
->  arch/x86/include/uapi/asm/processor-flags.h | 6 ++++++
->  arch/x86/kernel/head_32.S                   | 3 ---
->  arch/x86/kernel/head_64.S                   | 3 ---
->  3 files changed, 6 insertions(+), 6 deletions(-)
-> 
-> diff --git a/arch/x86/include/uapi/asm/processor-flags.h b/arch/x86/include/uapi/asm/processor-flags.h
-> index 185f3d10c194..aae1f2aa7563 100644
-> --- a/arch/x86/include/uapi/asm/processor-flags.h
-> +++ b/arch/x86/include/uapi/asm/processor-flags.h
-> @@ -151,5 +151,11 @@
->  #define CX86_ARR_BASE	0xc4
->  #define CX86_RCR_BASE	0xdc
->  
-> +/*
-> + * Initial state of CR0 for head_32/64.S
-> + */
+> We could move the pagefault_{disable,enable} calls here, and then remove
+> them from the futex_atomic_op_inuser callsites elsewhere in futex.c
 
-No need for that comment.
+Correct, but we can do that after getting this in.
 
-With the minor nitpicks addressed, you can add:
+Thanks,
 
-Reviewed-by: Borislav Petkov <bp@suse.de>
-
-Thx.
-
--- 
-Regards/Gruss,
-    Boris.
-
-SUSE Linux GmbH, GF: Felix Imendörffer, Jane Smithard, Graham Norton, HRB 21284 (AG Nürnberg)
--- 
+	tglx
