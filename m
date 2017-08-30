@@ -1,50 +1,140 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([146.0.238.70]:42702 "EHLO
-        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S932836AbdHYUpt (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 25 Aug 2017 16:45:49 -0400
-Date: Fri, 25 Aug 2017 22:43:41 +0200 (CEST)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH v2 1/1] futex: remove duplicated code and fix UB
-In-Reply-To: <20170824094756.GA6346@arm.com>
-Message-ID: <alpine.DEB.2.20.1708252243020.2124@nanos>
-References: <20170824073105.3901-1-jslaby@suse.cz> <20170824094756.GA6346@arm.com>
+Received: from mx2.suse.de ([195.135.220.15]:51191 "EHLO mx1.suse.de"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1751295AbdH3Htq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 30 Aug 2017 03:49:46 -0400
+Date: Wed, 30 Aug 2017 09:49:43 +0200
+From: Michal Hocko <mhocko@kernel.org>
+Subject: Re: [PATCH v2] mm/hugetlb.c: make huge_pte_offset() consistent and
+ document behaviour
+Message-ID: <20170830074943.f4jm42l2fdaordn2@dhcp22.suse.cz>
+References: <20170725154114.24131-2-punit.agrawal@arm.com>
+ <20170818145415.7588-1-punit.agrawal@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20170818145415.7588-1-punit.agrawal@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Jiri Slaby <jslaby@suse.cz>, mingo@redhat.com, dvhart@infradead.org, peterz@infradead.org, linux-kernel@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, "H. Peter Anvin" <hpa@zytor.com>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org
-Message-ID: <20170825204341.hAw0wQmvxbYPeYPqChVMeEoXQAxPiQl__bOKg8oBjrM@z>
+To: Punit Agrawal <punit.agrawal@arm.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>, Steve Capper <steve.capper@arm.com>, Will Deacon <will.deacon@arm.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Mike Kravetz <mike.kravetz@oracle.com>
+Message-ID: <20170830074943.L5lngni88NF0os336sbabupipq8CHgZvSVweh9J78v8@z>
 
-On Thu, 24 Aug 2017, Will Deacon wrote:
-> On Thu, Aug 24, 2017 at 09:31:05AM +0200, Jiri Slaby wrote:
-> > +static int futex_atomic_op_inuser(unsigned int encoded_op, u32 __user *uaddr)
-> > +{
-> > +	unsigned int op =	  (encoded_op & 0x70000000) >> 28;
-> > +	unsigned int cmp =	  (encoded_op & 0x0f000000) >> 24;
-> > +	int oparg = sign_extend32((encoded_op & 0x00fff000) >> 12, 12);
-> > +	int cmparg = sign_extend32(encoded_op & 0x00000fff, 12);
-> > +	int oldval, ret;
-> > +
-> > +	if (encoded_op & (FUTEX_OP_OPARG_SHIFT << 28)) {
-> > +		if (oparg < 0 || oparg > 31)
-> > +			return -EINVAL;
-> > +		oparg = 1 << oparg;
-> > +	}
-> > +
-> > +	if (!access_ok(VERIFY_WRITE, uaddr, sizeof(u32)))
-> > +		return -EFAULT;
-> > +
-> > +	ret = arch_futex_atomic_op_inuser(op, oparg, &oldval, uaddr);
-> > +	if (ret)
-> > +		return ret;
+On Fri 18-08-17 15:54:15, Punit Agrawal wrote:
+> When walking the page tables to resolve an address that points to
+> !p*d_present() entry, huge_pte_offset() returns inconsistent values
+> depending on the level of page table (PUD or PMD).
 > 
-> We could move the pagefault_{disable,enable} calls here, and then remove
-> them from the futex_atomic_op_inuser callsites elsewhere in futex.c
+> It returns NULL in the case of a PUD entry while in the case of a PMD
+> entry, it returns a pointer to the page table entry.
+> 
+> A similar inconsitency exists when handling swap entries - returns NULL
+> for a PUD entry while a pointer to the pte_t is retured for the PMD entry.
+> 
+> Update huge_pte_offset() to make the behaviour consistent - return a
+> pointer to the pte_t for hugepage or swap entries. Only return NULL in
+> instances where we have a p*d_none() entry and the size parameter
+> doesn't match the hugepage size at this level of the page table.
+> 
+> Document the behaviour to clarify the expected behaviour of this function.
+> This is to set clear semantics for architecture specific implementations
+> of huge_pte_offset().
+> 
+> Signed-off-by: Punit Agrawal <punit.agrawal@arm.com>
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>
+> Cc: Steve Capper <steve.capper@arm.com>
+> Cc: Will Deacon <will.deacon@arm.com>
+> Cc: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+> Cc: Michal Hocko <mhocko@suse.com>
+> Cc: Mike Kravetz <mike.kravetz@oracle.com>
 
-Correct, but we can do that after getting this in.
+I always thought that the weird semantic is a result of the hugetlb pte
+sharing. But now that I dug into history it has been added by
+02b0ccef903e ("[PATCH] hugetlb: check p?d_present in huge_pte_offset()")
+for a completely different reason. I suspec the weird semantic just
+wasn't noticed back then.
 
-Thanks,
+Anyway, I didn't find any problem with the patch
+Acked-by: Michal Hocko <mhocko@suse.com>
 
-	tglx
+> ---
+> 
+> Hi Andrew,
+> 
+> >From discussions on the arm64 implementation of huge_pte_offset()[0]
+> we realised that there is benefit from returning a pte_t* in the case
+> of p*d_none().
+> 
+> The fault handling code in hugetlb_fault() can handle p*d_none()
+> entries and saves an extra round trip to huge_pte_alloc(). Other
+> callers of huge_pte_offset() should be ok as well.
+> 
+> Apologies for sending a late update but I thought if we are defining
+> the semantics, it's worth getting them right.
+> 
+> Could you please pick this version please?
+> 
+> Thanks,
+> Punit
+> 
+> [0] http://www.spinics.net/lists/linux-mm/msg133699.html
+> 
+> v2: 
+> 
+>  mm/hugetlb.c | 24 +++++++++++++++++++++---
+>  1 file changed, 21 insertions(+), 3 deletions(-)
+> 
+> diff --git a/mm/hugetlb.c b/mm/hugetlb.c
+> index 31e207cb399b..1d54a131bdd5 100644
+> --- a/mm/hugetlb.c
+> +++ b/mm/hugetlb.c
+> @@ -4600,6 +4600,15 @@ pte_t *huge_pte_alloc(struct mm_struct *mm,
+>  	return pte;
+>  }
+>  
+> +/*
+> + * huge_pte_offset() - Walk the page table to resolve the hugepage
+> + * entry at address @addr
+> + *
+> + * Return: Pointer to page table or swap entry (PUD or PMD) for
+> + * address @addr, or NULL if a p*d_none() entry is encountered and the
+> + * size @sz doesn't match the hugepage size at this level of the page
+> + * table.
+> + */
+>  pte_t *huge_pte_offset(struct mm_struct *mm,
+>  		       unsigned long addr, unsigned long sz)
+>  {
+> @@ -4614,13 +4623,22 @@ pte_t *huge_pte_offset(struct mm_struct *mm,
+>  	p4d = p4d_offset(pgd, addr);
+>  	if (!p4d_present(*p4d))
+>  		return NULL;
+> +
+>  	pud = pud_offset(p4d, addr);
+> -	if (!pud_present(*pud))
+> +	if (sz != PUD_SIZE && pud_none(*pud))
+>  		return NULL;
+> -	if (pud_huge(*pud))
+> +	/* hugepage or swap? */
+> +	if (pud_huge(*pud) || !pud_present(*pud))
+>  		return (pte_t *)pud;
+> +
+>  	pmd = pmd_offset(pud, addr);
+> -	return (pte_t *) pmd;
+> +	if (sz != PMD_SIZE && pmd_none(*pmd))
+> +		return NULL;
+> +	/* hugepage or swap? */
+> +	if (pmd_huge(*pmd) || !pmd_present(*pmd))
+> +		return (pte_t *)pmd;
+> +
+> +	return NULL;
+>  }
+>  
+>  #endif /* CONFIG_ARCH_WANT_GENERAL_HUGETLB */
+> -- 
+> 2.13.2
+> 
+
+-- 
+Michal Hocko
+SUSE Labs
