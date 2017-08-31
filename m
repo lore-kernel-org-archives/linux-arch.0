@@ -1,43 +1,88 @@
-From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Subject: Re: [PATCH v3 5/5] kernel: tracepoints: add support for relative references
-Date: Wed, 30 Aug 2017 19:26:07 +0100
-Message-ID: <6AAA934E-D167-431D-8021-DD2EAF3409DD@linaro.org>
-References: <20170819181035.969-1-ard.biesheuvel@linaro.org> <20170819181035.969-6-ard.biesheuvel@linaro.org> <20170830141351.352baabe@gandalf.local.home>
-Mime-Version: 1.0 (1.0)
-Content-Type: text/plain;
-        charset=us-ascii
+From: Ricardo Neri <ricardo.neri-calderon@linux.intel.com>
+Subject: Re: [PATCH v8 02/28] x86/boot: Relocate definition of the initial
+ state of CR0
+Date: Wed, 30 Aug 2017 21:04:18 -0700
+Message-ID: <1504152258.51857.8.camel@ranerica-desktop>
+References: <20170819002809.111312-1-ricardo.neri-calderon@linux.intel.com>
+	 <20170819002809.111312-3-ricardo.neri-calderon@linux.intel.com>
+	 <20170825174133.r5xhcv5utfipsujo@pd.tnic>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f53.google.com ([74.125.82.53]:38832 "EHLO
-        mail-wm0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752734AbdH3S0L (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 30 Aug 2017 14:26:11 -0400
-Received: by mail-wm0-f53.google.com with SMTP id 187so6562540wmn.1
-        for <linux-arch@vger.kernel.org>; Wed, 30 Aug 2017 11:26:10 -0700 (PDT)
-In-Reply-To: <20170830141351.352baabe@gandalf.local.home>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Heiko Carstens <heiko.carstens@de.ibm.com>, Kees Cook <keescook@chromium.org>, Will Deacon <will.deacon@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, Thomas Garnier <thgarnie@google.com>, Thomas Gleixner <tglx@linutronix.de>, "Serge E. Hallyn" <serge@hallyn.com>, Bjorn Helgaas <bhelgaas@google.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Catalin Marinas <catalin.marinas@arm.com>, Petr Mladek <pmladek@suse.com>, Ingo Molnar <mingo@redhat.com>, James Morris <james.l.morris@oracle.com>, Andrew Morton <akpm@linux-foundation.org>, Nicolas Pitre <nico@linaro.org>Martin Schwidefsky <sc>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20170825174133.r5xhcv5utfipsujo@pd.tnic>
+Sender: owner-linux-mm@kvack.org
+To: Borislav Petkov <bp@suse.de>
+Cc: Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Brian Gerst <brgerst@gmail.com>, Chris Metcalf <cmetcalf@mellanox.com>, Dave Hansen <dave.hansen@linux.intel.com>, Paolo Bonzini <pbonzini@redhat.com>, Liang Z Li <liang.z.li@intel.com>, Masami Hiramatsu <mhiramat@kernel.org>, Huang Rui <ray.huang@amd.com>, Jiri Slaby <jslaby@suse.cz>, Jonathan Corbet <corbet@lwn.net>, "Michael S. Tsirkin" <mst@redhat.com>, Paul Gortmaker <paul.gortmaker@windriver.com>, Vlastimil Babka <vbabka@suse.cz>, Chen Yucong <slaoub@gmail.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Shuah Khan <shuah@kernel.org>, linux-kernel@vger.kernel.org, x86@kernel.org, Andy Lutomirski <luto@amacapital.net>Dave Hansen <dave.hansen>
+List-Id: linux-arch.vger.kernel.org
 
+On Fri, 2017-08-25 at 19:41 +0200, Borislav Petkov wrote:
 
+Thanks Borislav for your feedback!
 
-> On 30 Aug 2017, at 19:13, Steven Rostedt <rostedt@goodmis.org> wrote:
+> On Fri, Aug 18, 2017 at 05:27:43PM -0700, Ricardo Neri wrote:
+> > Both head_32.S and head_64.S utilize the same value to initialize the
+> > control register CR0. Also, other parts of the kernel might want to access
+> > to this initial definition (e.g., emulation code for User-Mode Instruction
 > 
-> On Sat, 19 Aug 2017 19:10:35 +0100
-> Ard Biesheuvel <ard.biesheuvel@linaro.org> wrote:
+> s/to //
 > 
->> To avoid the need for relocating absolute references to tracepoint
->> structures at boot time when running relocatable kernels (which may
->> take a disproportionate amount of space), add the option to emit
->> these tables as relative references instead.
->> 
->> Cc: Steven Rostedt <rostedt@goodmis.org>
-> 
-> I ran this through various tests (not my full test suite mind you), and
-> it appears to work as it has before.
-> 
-> Acked-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
-> 
+> > Prevention uses this state to provide a sane dummy value for CR0 when
 
-Thanks!
+I'll make this change.
+
+> > emulating the smsw instruction). Thus, relocate this definition to a
+> > header file from which it can be conveniently accessed.
+> > 
+> > Cc: Andrew Morton <akpm@linux-foundation.org>
+> > Cc: Andy Lutomirski <luto@amacapital.net>
+> > Cc: Andy Lutomirski <luto@kernel.org>
+> > Cc: Borislav Petkov <bp@alien8.de>
+> > Cc: Brian Gerst <brgerst@gmail.com>
+> > Cc: Dave Hansen <dave.hansen@intel.com>
+> > Cc: Denys Vlasenko <dvlasenk@redhat.com>
+> > Cc: H. Peter Anvin <hpa@zytor.com>
+> > Cc: Josh Poimboeuf <jpoimboe@redhat.com>
+> > Cc: Linus Torvalds <torvalds@linux-foundation.org>
+> > Cc: Peter Zijlstra <peterz@infradead.org>
+> > Cc: Thomas Gleixner <tglx@linutronix.de>
+> > Cc: linux-arch@vger.kernel.org
+> > Cc: linux-mm@kvack.org
+> > Suggested-by: Borislav Petkov <bp@alien8.de>
+> > Signed-off-by: Ricardo Neri <ricardo.neri-calderon@linux.intel.com>
+> > ---
+> >  arch/x86/include/uapi/asm/processor-flags.h | 6 ++++++
+> >  arch/x86/kernel/head_32.S                   | 3 ---
+> >  arch/x86/kernel/head_64.S                   | 3 ---
+> >  3 files changed, 6 insertions(+), 6 deletions(-)
+> > 
+> > diff --git a/arch/x86/include/uapi/asm/processor-flags.h b/arch/x86/include/uapi/asm/processor-flags.h
+> > index 185f3d10c194..aae1f2aa7563 100644
+> > --- a/arch/x86/include/uapi/asm/processor-flags.h
+> > +++ b/arch/x86/include/uapi/asm/processor-flags.h
+> > @@ -151,5 +151,11 @@
+> >  #define CX86_ARR_BASE	0xc4
+> >  #define CX86_RCR_BASE	0xdc
+> >  
+> > +/*
+> > + * Initial state of CR0 for head_32/64.S
+> > + */
+> 
+> No need for that comment.
+> 
+> With the minor nitpicks addressed, you can add:
+> 
+> Reviewed-by: Borislav Petkov <bp@suse.de>
+
+Thank you! Is it necessary for me to submit a v9 with these updates?
+Perhaps I can make these updates in branch for the maintainers to pull
+when/if this series is ack'ed.
+
+Thanks and BR,
+Ricardo
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
