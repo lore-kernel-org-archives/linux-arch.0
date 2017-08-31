@@ -1,43 +1,187 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:34428 "EHLO mx1.suse.de"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1750938AbdHaJve (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 31 Aug 2017 05:51:34 -0400
-Date: Thu, 31 Aug 2017 11:51:14 +0200
-From: Borislav Petkov <bp@suse.de>
-Subject: Re: [PATCH v8 02/28] x86/boot: Relocate definition of the initial
- state of CR0
-Message-ID: <20170831095113.huidayjchfsdabjz@pd.tnic>
-References: <20170819002809.111312-1-ricardo.neri-calderon@linux.intel.com>
- <20170819002809.111312-3-ricardo.neri-calderon@linux.intel.com>
- <20170825174133.r5xhcv5utfipsujo@pd.tnic>
- <1504152258.51857.8.camel@ranerica-desktop>
+Received: from foss.arm.com ([217.140.101.70]:58670 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752007AbdHaRBv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 31 Aug 2017 13:01:51 -0400
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: [PATCH v2 18/28] arm64/sve: Preserve SVE registers around EFI runtime service calls
+Date: Thu, 31 Aug 2017 18:00:50 +0100
+Message-ID: <1504198860-12951-19-git-send-email-Dave.Martin@arm.com>
+In-Reply-To: <1504198860-12951-1-git-send-email-Dave.Martin@arm.com>
+References: <1504198860-12951-1-git-send-email-Dave.Martin@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
-In-Reply-To: <1504152258.51857.8.camel@ranerica-desktop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ricardo Neri <ricardo.neri-calderon@linux.intel.com>
-Cc: Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Brian Gerst <brgerst@gmail.com>, Chris Metcalf <cmetcalf@mellanox.com>, Dave Hansen <dave.hansen@linux.intel.com>, Paolo Bonzini <pbonzini@redhat.com>, Masami Hiramatsu <mhiramat@kernel.org>, Huang Rui <ray.huang@amd.com>, Jiri Slaby <jslaby@suse.cz>, Jonathan Corbet <corbet@lwn.net>, "Michael S. Tsirkin" <mst@redhat.com>, Paul Gortmaker <paul.gortmaker@windriver.com>, Vlastimil Babka <vbabka@suse.cz>, Chen Yucong <slaoub@gmail.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Shuah Khan <shuah@kernel.org>, linux-kernel@vger.kernel.org, x86@kernel.org, Andy Lutomirski <luto@amacapital.net>, Dave Hansen <dave.hansen@intel.com>, Denys Vlasenko <dvlasenk@redhat.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Message-ID: <20170831095114.6001XFOmME2r_W9_5hRj5fApI-n2QB_XDmq2yunXVvc@z>
+To: linux-arm-kernel@lists.infradead.org
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, =?UTF-8?q?Alex=20Benn=C3=A9e?= <alex.bennee@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu, libc-alpha@sourceware.org, linux-arch@vger.kernel.org
+Message-ID: <20170831170050.1VcY7CrJ72XaQ33UbY0fqIVJym3HDM_sMZKoANV9cCc@z>
 
-On Wed, Aug 30, 2017 at 09:04:18PM -0700, Ricardo Neri wrote:
-> Thank you! Is it necessary for me to submit a v9 with these updates?
-> Perhaps I can make these updates in branch for the maintainers to pull
-> when/if this series is ack'ed.
+The EFI runtime services ABI allows EFI to make free use of the
+FPSIMD registers during EFI runtime service calls, subject to the
+callee-save requirements of the AArch64 procedure call standard.
 
-Don't do anything and let me go through the rest of them first. It is
-too late for this merge window anyway so we can take our time. Once you
-receive full feedback from me (and hopefully others) you can send what
-looks like to be a final v9 with all feedback incorporated. :-)
+However, the SVE architecture allows upper bits of the SVE vector
+registers to be zeroed as a side-effect of FPSIMD V-register
+writes.  This means that the SVE vector registers must be saved in
+their entirety in order to avoid data loss: non-SVE-aware EFI
+implementations cannot restore them correctly.
 
-Thx.
+The non-IRQ case is already handled gracefully by
+kernel_neon_begin().  For the IRQ case, this patch allocates a
+suitable per-CPU stash buffer for the full SVE register state and
+uses it to preserve the affected registers around EFI calls.  It is
+currently unclear how the EFI runtime services ABI will be
+clarified with respect to SVE, so it safest to assume that the
+predicate registers and FFR must be saved and restored too.
 
+No attempt is made to restore the restore the vector length after
+a call, for now.  It is deemed rather insane for EFI to change it,
+and contemporary EFI implementations certainly won't.
+
+Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+
+---
+
+Changes since v1
+----------------
+
+Requested by Ard Biesheuvel:
+
+* Fix unbalanced ifelse bracing to conform to the kernel coding style.
+
+* Make efi_sve_state_used static.
+
+Changes related to Alex Bennée's comments:
+
+* Migrate away from magic numbers for SVE_VQ_BYTES.
+
+Other:
+
+* Rename sve_kernel_mode_neon_setup() to sve_efi_setup().
+The EFI FPSIMD code is something semi-independent from kernel-mode NEON
+now, so the "neon" in the names no longer really makes sense.
+
+* Make the EFI FPSIMD setup code dependent on CONFIG_EFI (it's not
+supposed to work with CONFIG_EFI=n anyway).
+---
+ arch/arm64/kernel/fpsimd.c | 60 +++++++++++++++++++++++++++++++++++++++++-----
+ 1 file changed, 54 insertions(+), 6 deletions(-)
+
+diff --git a/arch/arm64/kernel/fpsimd.c b/arch/arm64/kernel/fpsimd.c
+index dd89acf..fff9fcf 100644
+--- a/arch/arm64/kernel/fpsimd.c
++++ b/arch/arm64/kernel/fpsimd.c
+@@ -118,11 +118,13 @@ static int sve_default_vl = -1;
+ int __ro_after_init sve_max_vl = -1;
+ /* Set of available vector lengths, as vq_to_bit(vq): */
+ static __ro_after_init DECLARE_BITMAP(sve_vq_map, SVE_VQ_MAX);
++static void __percpu *efi_sve_state;
+ 
+ #else /* ! CONFIG_ARM64_SVE */
+ 
+ /* Dummy declaration for code that will be optimised out: */
+ extern __ro_after_init DECLARE_BITMAP(sve_vq_map, SVE_VQ_MAX);
++extern void __percpu *efi_sve_state;
+ 
+ #endif /* ! CONFIG_ARM64_SVE */
+ 
+@@ -447,6 +449,23 @@ int sve_verify_vq_map(void)
+ 	return ret;
+ }
+ 
++static void __init sve_efi_setup(void)
++{
++	if (!IS_ENABLED(CONFIG_EFI))
++		return;
++
++	/*
++	 * alloc_percpu() warns and prints a backtrace if this goes wrong.
++	 * This is evidence of a crippled system and we are returning void,
++	 * so no attempt is made to handle this situation here.
++	 */
++	BUG_ON(!sve_vl_valid(sve_max_vl));
++	efi_sve_state = __alloc_percpu(
++		SVE_SIG_REGS_SIZE(sve_vq_from_vl(sve_max_vl)), SVE_VQ_BYTES);
++	if (!efi_sve_state)
++		panic("Cannot allocate percpu memory for EFI SVE save/restore");
++}
++
+ void __init sve_setup(void)
+ {
+ 	u64 zcr;
+@@ -482,6 +501,8 @@ void __init sve_setup(void)
+ 		sve_max_vl);
+ 	pr_info("SVE: default vector length %u bytes per vector\n",
+ 		sve_default_vl);
++
++	sve_efi_setup();
+ }
+ 
+ void fpsimd_release_thread(struct task_struct *dead_task)
+@@ -783,6 +804,7 @@ EXPORT_SYMBOL(kernel_neon_end);
+ 
+ static DEFINE_PER_CPU(struct fpsimd_state, efi_fpsimd_state);
+ static DEFINE_PER_CPU(bool, efi_fpsimd_state_used);
++static DEFINE_PER_CPU(bool, efi_sve_state_used);
+ 
+ /*
+  * EFI runtime services support functions
+@@ -808,10 +830,24 @@ void __efi_fpsimd_begin(void)
+ 
+ 	WARN_ON(preemptible());
+ 
+-	if (may_use_simd())
++	if (may_use_simd()) {
+ 		kernel_neon_begin();
+-	else {
+-		fpsimd_save_state(this_cpu_ptr(&efi_fpsimd_state));
++	} else {
++		/*
++		 * If !efi_sve_state, SVE can't be in use yet and doesn't need
++		 * preserving:
++		 */
++		if (system_supports_sve() && likely(efi_sve_state)) {
++			char *sve_state = this_cpu_ptr(efi_sve_state);
++
++			__this_cpu_write(efi_sve_state_used, true);
++
++			sve_save_state(sve_state + sve_ffr_offset(sve_max_vl),
++				       &this_cpu_ptr(&efi_fpsimd_state)->fpsr);
++		} else {
++			fpsimd_save_state(this_cpu_ptr(&efi_fpsimd_state));
++		}
++
+ 		__this_cpu_write(efi_fpsimd_state_used, true);
+ 	}
+ }
+@@ -824,10 +860,22 @@ void __efi_fpsimd_end(void)
+ 	if (!system_supports_fpsimd())
+ 		return;
+ 
+-	if (__this_cpu_xchg(efi_fpsimd_state_used, false))
+-		fpsimd_load_state(this_cpu_ptr(&efi_fpsimd_state));
+-	else
++	if (!__this_cpu_xchg(efi_fpsimd_state_used, false)) {
+ 		kernel_neon_end();
++	} else {
++		if (system_supports_sve() &&
++		    likely(__this_cpu_read(efi_sve_state_used))) {
++			char const *sve_state = this_cpu_ptr(efi_sve_state);
++
++			sve_load_state(sve_state + sve_ffr_offset(sve_max_vl),
++				       &this_cpu_ptr(&efi_fpsimd_state)->fpsr,
++				       sve_vq_from_vl(sve_get_vl()) - 1);
++
++			__this_cpu_write(efi_sve_state_used, false);
++		} else {
++			fpsimd_load_state(this_cpu_ptr(&efi_fpsimd_state));
++		}
++	}
+ }
+ 
+ #endif /* CONFIG_KERNEL_MODE_NEON */
 -- 
-Regards/Gruss,
-    Boris.
-
-SUSE Linux GmbH, GF: Felix Imendörffer, Jane Smithard, Graham Norton, HRB 21284 (AG Nürnberg)
--- 
+2.1.4
