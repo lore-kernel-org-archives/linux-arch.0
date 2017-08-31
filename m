@@ -1,187 +1,202 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:58670 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752007AbdHaRBv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 31 Aug 2017 13:01:51 -0400
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:58816 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751937AbdHaRCK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 31 Aug 2017 13:02:10 -0400
 From: Dave Martin <Dave.Martin@arm.com>
-Subject: [PATCH v2 18/28] arm64/sve: Preserve SVE registers around EFI runtime service calls
-Date: Thu, 31 Aug 2017 18:00:50 +0100
-Message-ID: <1504198860-12951-19-git-send-email-Dave.Martin@arm.com>
+Subject: [RFC PATCH v2 27/28] arm64: signal: Report signal frame size to userspace via auxv
+Date: Thu, 31 Aug 2017 18:00:59 +0100
+Message-ID: <1504198860-12951-28-git-send-email-Dave.Martin@arm.com>
 In-Reply-To: <1504198860-12951-1-git-send-email-Dave.Martin@arm.com>
 References: <1504198860-12951-1-git-send-email-Dave.Martin@arm.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, =?UTF-8?q?Alex=20Benn=C3=A9e?= <alex.bennee@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu, libc-alpha@sourceware.org, linux-arch@vger.kernel.org
-Message-ID: <20170831170050.1VcY7CrJ72XaQ33UbY0fqIVJym3HDM_sMZKoANV9cCc@z>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, =?UTF-8?q?Alex=20Benn=C3=A9e?= <alex.bennee@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu, libc-alpha@sourceware.org, linux-arch@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>
+Message-ID: <20170831170059.-_8_H-BcIWzl9Lq1WPPd7fe-lfvH10CXA1Lv2WNCXzY@z>
 
-The EFI runtime services ABI allows EFI to make free use of the
-FPSIMD registers during EFI runtime service calls, subject to the
-callee-save requirements of the AArch64 procedure call standard.
+Stateful CPU architecture extensions may require the signal frame
+to grow to a size that exceeds the arch's MINSIGSTKSZ #define.
+However, changing this #define is an ABI break.
 
-However, the SVE architecture allows upper bits of the SVE vector
-registers to be zeroed as a side-effect of FPSIMD V-register
-writes.  This means that the SVE vector registers must be saved in
-their entirety in order to avoid data loss: non-SVE-aware EFI
-implementations cannot restore them correctly.
+To allow userspace the option of determining the signal frame size
+in a more forwards-compatible way, this patch adds a new auxv entry
+tagged with AT_MINSIGSTKSZ, which provides the maximum signal frame
+size that the process can observe during its lifetime.
 
-The non-IRQ case is already handled gracefully by
-kernel_neon_begin().  For the IRQ case, this patch allocates a
-suitable per-CPU stash buffer for the full SVE register state and
-uses it to preserve the affected registers around EFI calls.  It is
-currently unclear how the EFI runtime services ABI will be
-clarified with respect to SVE, so it safest to assume that the
-predicate registers and FFR must be saved and restored too.
+If AT_MINSIGSTKSZ is absent from the aux vector, the caller can
+assume that the MINSIGSTKSZ #define is sufficient.  This allows for
+a consistent interface with older kernels that do not provide
+AT_MINSIGSTKSZ.
 
-No attempt is made to restore the restore the vector length after
-a call, for now.  It is deemed rather insane for EFI to change it,
-and contemporary EFI implementations certainly won't.
+The idea is that libc could expose this via sysconf() or some
+similar mechanism.
+
+There is deliberately no AT_SIGSTKSZ.  The kernel knows nothing
+about userspace's own stack overheads and should not pretend to
+know.
+
+For arm64:
+
+The primary motivation for this interface is the Scalable Vector
+Extension, which can require at least 4KB or so of extra space
+in the signal frame for the largest hardware implementations.
+
+To determine the correct value, a "Christmas tree" mode (via the
+add_all argument) is added to setup_sigframe_layout(), to simulate
+addition of all possible records to the signal frame at maximum
+possible size.
+
+If this procedure goes wrong somehow, resulting in a stupidly large
+frame layout and hence failure of sigframe_alloc() to allocate a
+record to the frame, then this is indicative of a kernel bug: the
+kernel's internal SIGFRAME_MAXSZ is supposed to sanity-check
+against generting frames that we consider _impossibly_ large.  In
+this case, SIGSTKSZ is returned as a "reasonable guess that is at
+least bigger than MINSIGSTKSZ" and we WARN().
 
 Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>
 
 ---
 
 Changes since v1
 ----------------
 
-Requested by Ard Biesheuvel:
+Related to Ard Biesheuvel's comments:
 
 * Fix unbalanced ifelse bracing to conform to the kernel coding style.
-
-* Make efi_sve_state_used static.
-
-Changes related to Alex Bennée's comments:
-
-* Migrate away from magic numbers for SVE_VQ_BYTES.
-
-Other:
-
-* Rename sve_kernel_mode_neon_setup() to sve_efi_setup().
-The EFI FPSIMD code is something semi-independent from kernel-mode NEON
-now, so the "neon" in the names no longer really makes sense.
-
-* Make the EFI FPSIMD setup code dependent on CONFIG_EFI (it's not
-supposed to work with CONFIG_EFI=n anyway).
 ---
- arch/arm64/kernel/fpsimd.c | 60 +++++++++++++++++++++++++++++++++++++++++-----
- 1 file changed, 54 insertions(+), 6 deletions(-)
+ arch/arm64/include/asm/elf.h         |  5 +++++
+ arch/arm64/include/asm/processor.h   |  3 +++
+ arch/arm64/include/uapi/asm/auxvec.h |  3 ++-
+ arch/arm64/kernel/signal.c           | 39 +++++++++++++++++++++++++++++++-----
+ 4 files changed, 44 insertions(+), 6 deletions(-)
 
-diff --git a/arch/arm64/kernel/fpsimd.c b/arch/arm64/kernel/fpsimd.c
-index dd89acf..fff9fcf 100644
---- a/arch/arm64/kernel/fpsimd.c
-+++ b/arch/arm64/kernel/fpsimd.c
-@@ -118,11 +118,13 @@ static int sve_default_vl = -1;
- int __ro_after_init sve_max_vl = -1;
- /* Set of available vector lengths, as vq_to_bit(vq): */
- static __ro_after_init DECLARE_BITMAP(sve_vq_map, SVE_VQ_MAX);
-+static void __percpu *efi_sve_state;
+diff --git a/arch/arm64/include/asm/elf.h b/arch/arm64/include/asm/elf.h
+index 33be513..8a2708a 100644
+--- a/arch/arm64/include/asm/elf.h
++++ b/arch/arm64/include/asm/elf.h
+@@ -24,6 +24,10 @@
+ #include <asm/ptrace.h>
+ #include <asm/user.h>
  
- #else /* ! CONFIG_ARM64_SVE */
- 
- /* Dummy declaration for code that will be optimised out: */
- extern __ro_after_init DECLARE_BITMAP(sve_vq_map, SVE_VQ_MAX);
-+extern void __percpu *efi_sve_state;
- 
- #endif /* ! CONFIG_ARM64_SVE */
- 
-@@ -447,6 +449,23 @@ int sve_verify_vq_map(void)
- 	return ret;
- }
- 
-+static void __init sve_efi_setup(void)
-+{
-+	if (!IS_ENABLED(CONFIG_EFI))
-+		return;
++#ifndef __ASSEMBLY__
++#include <asm/processor.h> /* for get_minsigstksz(), used by ARCH_DLINFO */
++#endif
 +
-+	/*
-+	 * alloc_percpu() warns and prints a backtrace if this goes wrong.
-+	 * This is evidence of a crippled system and we are returning void,
-+	 * so no attempt is made to handle this situation here.
-+	 */
-+	BUG_ON(!sve_vl_valid(sve_max_vl));
-+	efi_sve_state = __alloc_percpu(
-+		SVE_SIG_REGS_SIZE(sve_vq_from_vl(sve_max_vl)), SVE_VQ_BYTES);
-+	if (!efi_sve_state)
-+		panic("Cannot allocate percpu memory for EFI SVE save/restore");
-+}
-+
- void __init sve_setup(void)
- {
- 	u64 zcr;
-@@ -482,6 +501,8 @@ void __init sve_setup(void)
- 		sve_max_vl);
- 	pr_info("SVE: default vector length %u bytes per vector\n",
- 		sve_default_vl);
-+
-+	sve_efi_setup();
- }
- 
- void fpsimd_release_thread(struct task_struct *dead_task)
-@@ -783,6 +804,7 @@ EXPORT_SYMBOL(kernel_neon_end);
- 
- static DEFINE_PER_CPU(struct fpsimd_state, efi_fpsimd_state);
- static DEFINE_PER_CPU(bool, efi_fpsimd_state_used);
-+static DEFINE_PER_CPU(bool, efi_sve_state_used);
- 
  /*
-  * EFI runtime services support functions
-@@ -808,10 +830,24 @@ void __efi_fpsimd_begin(void)
+  * AArch64 static relocation types.
+  */
+@@ -148,6 +152,7 @@ typedef struct user_fpsimd_state elf_fpregset_t;
+ do {									\
+ 	NEW_AUX_ENT(AT_SYSINFO_EHDR,					\
+ 		    (elf_addr_t)current->mm->context.vdso);		\
++	NEW_AUX_ENT(AT_MINSIGSTKSZ, get_minsigstksz());			\
+ } while (0)
  
- 	WARN_ON(preemptible());
+ #define ARCH_HAS_SETUP_ADDITIONAL_PAGES
+diff --git a/arch/arm64/include/asm/processor.h b/arch/arm64/include/asm/processor.h
+index df66452..18af4bd 100644
+--- a/arch/arm64/include/asm/processor.h
++++ b/arch/arm64/include/asm/processor.h
+@@ -197,6 +197,9 @@ static inline void spin_lock_prefetch(const void *ptr)
+ int cpu_enable_pan(void *__unused);
+ int cpu_enable_cache_maint_trap(void *__unused);
  
--	if (may_use_simd())
-+	if (may_use_simd()) {
- 		kernel_neon_begin();
--	else {
--		fpsimd_save_state(this_cpu_ptr(&efi_fpsimd_state));
-+	} else {
-+		/*
-+		 * If !efi_sve_state, SVE can't be in use yet and doesn't need
-+		 * preserving:
-+		 */
-+		if (system_supports_sve() && likely(efi_sve_state)) {
-+			char *sve_state = this_cpu_ptr(efi_sve_state);
++/* User signal frame size discovery: */
++int get_minsigstksz(void);
 +
-+			__this_cpu_write(efi_sve_state_used, true);
-+
-+			sve_save_state(sve_state + sve_ffr_offset(sve_max_vl),
-+				       &this_cpu_ptr(&efi_fpsimd_state)->fpsr);
-+		} else {
-+			fpsimd_save_state(this_cpu_ptr(&efi_fpsimd_state));
-+		}
-+
- 		__this_cpu_write(efi_fpsimd_state_used, true);
- 	}
+ /* Userspace interface for PR_SVE_{SET,GET}_VL prctl()s: */
+ #define SVE_SET_VL(arg)	sve_set_current_vl(arg)
+ #define SVE_GET_VL()	sve_get_current_vl()
+diff --git a/arch/arm64/include/uapi/asm/auxvec.h b/arch/arm64/include/uapi/asm/auxvec.h
+index 4cf0c17..1d45b28 100644
+--- a/arch/arm64/include/uapi/asm/auxvec.h
++++ b/arch/arm64/include/uapi/asm/auxvec.h
+@@ -18,7 +18,8 @@
+ 
+ /* vDSO location */
+ #define AT_SYSINFO_EHDR	33
++#define AT_MINSIGSTKSZ	34	/* stack needed for signal delivery */
+ 
+-#define AT_VECTOR_SIZE_ARCH 1 /* entries in ARCH_DLINFO */
++#define AT_VECTOR_SIZE_ARCH 2 /* entries in ARCH_DLINFO */
+ 
+ #endif
+diff --git a/arch/arm64/kernel/signal.c b/arch/arm64/kernel/signal.c
+index c3f94cf..7a3d6d2 100644
+--- a/arch/arm64/kernel/signal.c
++++ b/arch/arm64/kernel/signal.c
+@@ -566,8 +566,15 @@ asmlinkage long sys_rt_sigreturn(struct pt_regs *regs)
+ 	return 0;
  }
-@@ -824,10 +860,22 @@ void __efi_fpsimd_end(void)
- 	if (!system_supports_fpsimd())
- 		return;
  
--	if (__this_cpu_xchg(efi_fpsimd_state_used, false))
--		fpsimd_load_state(this_cpu_ptr(&efi_fpsimd_state));
--	else
-+	if (!__this_cpu_xchg(efi_fpsimd_state_used, false)) {
- 		kernel_neon_end();
+-/* Determine the layout of optional records in the signal frame */
+-static int setup_sigframe_layout(struct rt_sigframe_user_layout *user)
++/*
++ * Determine the layout of optional records in the signal frame
++ *
++ * add_all: if true, lays out the biggest possible signal frame for
++ *	this task; otherwise, generates a layout for the current state
++ *	of the task.
++ */
++static int setup_sigframe_layout(struct rt_sigframe_user_layout *user,
++				 bool add_all)
+ {
+ 	int err;
+ 
+@@ -577,7 +584,7 @@ static int setup_sigframe_layout(struct rt_sigframe_user_layout *user)
+ 		return err;
+ 
+ 	/* fault information, if valid */
+-	if (current->thread.fault_code) {
++	if (add_all || current->thread.fault_code) {
+ 		err = sigframe_alloc(user, &user->esr_offset,
+ 				     sizeof(struct esr_context));
+ 		if (err)
+@@ -599,7 +606,6 @@ static int setup_sigframe_layout(struct rt_sigframe_user_layout *user)
+ 	return sigframe_alloc_end(user);
+ }
+ 
+-
+ static int setup_sigframe(struct rt_sigframe_user_layout *user,
+ 			  struct pt_regs *regs, sigset_t *set)
+ {
+@@ -697,7 +703,7 @@ static int get_sigframe(struct rt_sigframe_user_layout *user,
+ 	int err;
+ 
+ 	init_user_layout(user);
+-	err = setup_sigframe_layout(user);
++	err = setup_sigframe_layout(user, false);
+ 	if (err)
+ 		return err;
+ 
+@@ -931,3 +937,26 @@ asmlinkage void do_notify_resume(struct pt_regs *regs,
+ 		thread_flags = READ_ONCE(current_thread_info()->flags);
+ 	} while (thread_flags & _TIF_WORK_MASK);
+ }
++
++/*
++ * Determine the stack space required for guaranteed signal devliery.
++ * This function is used to populate AT_MINSIGSTKSZ at process startup.
++ */
++int get_minsigstksz(void)
++{
++	struct rt_sigframe_user_layout user;
++	int err;
++
++	init_user_layout(&user);
++	err = setup_sigframe_layout(&user, true);
++
++	if (err) {
++		WARN_ON(1);
++
++		return SIGSTKSZ;
 +	} else {
-+		if (system_supports_sve() &&
-+		    likely(__this_cpu_read(efi_sve_state_used))) {
-+			char const *sve_state = this_cpu_ptr(efi_sve_state);
-+
-+			sve_load_state(sve_state + sve_ffr_offset(sve_max_vl),
-+				       &this_cpu_ptr(&efi_fpsimd_state)->fpsr,
-+				       sve_vq_from_vl(sve_get_vl()) - 1);
-+
-+			__this_cpu_write(efi_sve_state_used, false);
-+		} else {
-+			fpsimd_load_state(this_cpu_ptr(&efi_fpsimd_state));
-+		}
++		return sigframe_size(&user) +
++			round_up(sizeof(struct frame_record), 16) +
++			16; /* max alignment padding */
 +	}
- }
- 
- #endif /* CONFIG_KERNEL_MODE_NEON */
++}
 -- 
 2.1.4
