@@ -1,50 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.cn.fujitsu.com ([183.91.158.132]:41089 "EHLO
+Received: from mail.cn.fujitsu.com ([183.91.158.132]:12496 "EHLO
         heian.cn.fujitsu.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-        with ESMTP id S1751443AbdIAC4w (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 31 Aug 2017 22:56:52 -0400
+        with ESMTP id S1751109AbdIAC4s (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 31 Aug 2017 22:56:48 -0400
 From: Dou Liyang <douly.fnst@cn.fujitsu.com>
-Subject: [PATCH v2 7/7] asm-generic: numa: Remove the unused parent_node() macro
-Date: Fri, 1 Sep 2017 10:56:39 +0800
-Message-ID: <1504234599-29533-8-git-send-email-douly.fnst@cn.fujitsu.com>
-In-Reply-To: <1504234599-29533-1-git-send-email-douly.fnst@cn.fujitsu.com>
-References: <1504234599-29533-1-git-send-email-douly.fnst@cn.fujitsu.com>
+Subject: [PATCH v2 0/7] Remove the parent_node() for each arch
+Date: Fri, 1 Sep 2017 10:56:32 +0800
+Message-ID: <1504234599-29533-1-git-send-email-douly.fnst@cn.fujitsu.com>
 MIME-Version: 1.0
 Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org, linux-kernel@vger.kernel.org
-Cc: Dou Liyang <douly.fnst@cn.fujitsu.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
-Message-ID: <20170901025639.-USPo1LvmUn-laNw1JJX3QoQW3OzjsI-EwZvmXi-rNs@z>
+Cc: Dou Liyang <douly.fnst@cn.fujitsu.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, linux-ia64@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, James Hogan <james.hogan@imgtec.com>, linux-mips@linux-mips.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Michael Holzheu <holzheu@linux.vnet.ibm.com>, linux-s390@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, linux-sh@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@mellanox.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+Message-ID: <20170901025632.MjqPbI4dK0US5A50BHJeuMRY3ya9B96nhDPWwaLONjk@z>
 
+Changelog:
+
+v1 --> v2:
+   --Remove the patches which have been add to each arch tree individually.
+      [01/11] arm64   ...Has been added to arm64 tree, Queued for 4.14
+      [03/11] metag   ...Has been added to the -mm tree
+      [05/11] powerpc ...Has been added to the powerpc tree
+      [10/11] x86     ...Has been added to the tip sched/core
+
+   --Rebase the remaining patches and repost.
+
+Michael reports the parent_node() will never be invoked since the
 Commit a7be6e5a7f8d ("mm: drop useless local parameters of
-__register_one_node()") removes the last user of parent_node().
+__register_one_node()") removes the last user of it. 
 
-The parent_node() macro in generic situation is unnecessary.
+So we start removing it from the topology.h headers for each arch.
 
-Remove it for cleanup.
-
-Reported-by: Michael Ellerman <mpe@ellerman.id.au>
-Signed-off-by: Dou Liyang <douly.fnst@cn.fujitsu.com>
+Cc: Tony Luck <tony.luck@intel.com>
+Cc: Fenghua Yu <fenghua.yu@intel.com>
+Cc: linux-ia64@vger.kernel.org
+Cc: Ralf Baechle <ralf@linux-mips.org>
+Cc: James Hogan <james.hogan@imgtec.com>
+Cc: linux-mips@linux-mips.org
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Michael Holzheu <holzheu@linux.vnet.ibm.com>
+Cc: linux-s390@vger.kernel.org
+Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+Cc: Rich Felker <dalias@libc.org>
+Cc: linux-sh@vger.kernel.org
+Cc: "David S. Miller" <davem@davemloft.net>
+Cc: sparclinux@vger.kernel.org
+Cc: Chris Metcalf <cmetcalf@mellanox.com>
 Cc: Arnd Bergmann <arnd@arndb.de>
 Cc: linux-arch@vger.kernel.org
----
- include/asm-generic/topology.h | 3 ---
- 1 file changed, 3 deletions(-)
+Cc: akpm@linux-foundation.org
 
-diff --git a/include/asm-generic/topology.h b/include/asm-generic/topology.h
-index 5d2add1..2388737 100644
---- a/include/asm-generic/topology.h
-+++ b/include/asm-generic/topology.h
-@@ -44,9 +44,6 @@
- #define cpu_to_mem(cpu)		((void)(cpu),0)
- #endif
- 
--#ifndef parent_node
--#define parent_node(node)	((void)(node),0)
--#endif
- #ifndef cpumask_of_node
-   #ifdef CONFIG_NEED_MULTIPLE_NODES
-     #define cpumask_of_node(node)	((node) == 0 ? cpu_online_mask : cpu_none_mask)
+Dou Liyang (7):
+  ia64: topology: Remove the unused parent_node() macro
+  MIPS: numa: Remove the unused parent_node() macro
+  s390/topology: Remove the unused parent_node() macro
+  sh/numa: Remove the unused parent_node() macro
+  sparc64/topology: Remove the unused parent_node() macro
+  tile/topology: Remove the unused parent_node() macro
+  asm-generic: numa: Remove the unused parent_node() macro
+
+ arch/ia64/include/asm/topology.h                 | 7 -------
+ arch/mips/include/asm/mach-ip27/topology.h       | 1 -
+ arch/mips/include/asm/mach-loongson64/topology.h | 1 -
+ arch/s390/include/asm/topology.h                 | 6 ------
+ arch/sh/include/asm/topology.h                   | 1 -
+ arch/sparc/include/asm/topology_64.h             | 2 --
+ arch/tile/include/asm/topology.h                 | 6 ------
+ include/asm-generic/topology.h                   | 3 ---
+ 8 files changed, 27 deletions(-)
+
 -- 
 2.5.5
