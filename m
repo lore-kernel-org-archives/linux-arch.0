@@ -1,75 +1,97 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.cn.fujitsu.com ([183.91.158.132]:12496 "EHLO
-        heian.cn.fujitsu.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-        with ESMTP id S1751109AbdIAC4s (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 31 Aug 2017 22:56:48 -0400
-From: Dou Liyang <douly.fnst@cn.fujitsu.com>
-Subject: [PATCH v2 0/7] Remove the parent_node() for each arch
-Date: Fri, 1 Sep 2017 10:56:32 +0800
-Message-ID: <1504234599-29533-1-git-send-email-douly.fnst@cn.fujitsu.com>
+Received: from mail-it0-f47.google.com ([209.85.214.47]:34961 "EHLO
+        mail-it0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751838AbdIBIMZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 2 Sep 2017 04:12:25 -0400
+Received: by mail-it0-f47.google.com with SMTP id c13so4037280itb.0
+        for <linux-arch@vger.kernel.org>; Sat, 02 Sep 2017 01:12:25 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain
+In-Reply-To: <CAGXu5j+h+OCG+aJPi5YwkzWeiJGL3mxUkijD_-x4vtjzV0YkPA@mail.gmail.com>
+References: <20170901202203.GA48925@beast> <CAKv+Gu88z=eNKmeaMcfDNjp4DGWSTdEfq9mfr6K+F86QL9WFug@mail.gmail.com>
+ <CAGXu5j+h+OCG+aJPi5YwkzWeiJGL3mxUkijD_-x4vtjzV0YkPA@mail.gmail.com>
+From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Date: Sat, 2 Sep 2017 09:12:24 +0100
+Message-ID: <CAKv+Gu-BMg8mZ94FQQqbkvOJYAWnCp2Xz-oSdLH+_uuFAWkTsw@mail.gmail.com>
+Subject: Re: [PATCH] locking/refcounts, x86/asm: Use unique .text section for
+ refcount exceptions
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org, linux-kernel@vger.kernel.org
-Cc: Dou Liyang <douly.fnst@cn.fujitsu.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, linux-ia64@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, James Hogan <james.hogan@imgtec.com>, linux-mips@linux-mips.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Michael Holzheu <holzheu@linux.vnet.ibm.com>, linux-s390@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, linux-sh@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@mellanox.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
-Message-ID: <20170901025632.MjqPbI4dK0US5A50BHJeuMRY3ya9B96nhDPWwaLONjk@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: Ingo Molnar <mingo@elte.hu>, "x86@kernel.org" <x86@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Mike Galbraith <efault@gmx.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "Reshetova, Elena" <elena.reshetova@intel.com>, Peter Zijlstra <peterz@infradead.org>
+Message-ID: <20170902081224.s5hhCzGZKcu3KddIeHfvUXf05-84RLO9bRSRLVspR38@z>
 
-Changelog:
+On 2 September 2017 at 03:58, Kees Cook <keescook@chromium.org> wrote:
+> On Fri, Sep 1, 2017 at 2:43 PM, Ard Biesheuvel
+> <ard.biesheuvel@linaro.org> wrote:
+>> On 1 September 2017 at 21:22, Kees Cook <keescook@chromium.org> wrote:
+>>> Using .text.unlikely for refcount exceptions isn't safe because gcc may
+>>> move entire functions into .text.unlikely (e.g. in6_dev_get()), which
+>>> would cause any uses of a protected refcount_t function to stay inline
+>>> with the function, triggering the protection unconditionally:
+>>>
+>>>         .section        .text.unlikely,"ax",@progbits
+>>>         .type   in6_dev_get, @function
+>>> in6_dev_getx:
+>>> .LFB4673:
+>>>         .loc 2 4128 0
+>>>         .cfi_startproc
+>>> ...
+>>>         lock; incl 480(%rbx)
+>>>         js 111f
+>>>         .pushsection .text.unlikely
+>>> 111:    lea 480(%rbx), %rcx
+>>> 112:    .byte 0x0f, 0xff
+>>> .popsection
+>>> 113:
+>>>
+>>> This creates a unique .text section and adds an additional test to the
+>>> exception handler to WARN in the case of having none of OF, SF, nor ZF
+>>> set so we can see things like this more easily in the future.
+>>>
+>>> Reported-by: Mike Galbraith <efault@gmx.de>
+>>> Fixes: 7a46ec0e2f48 ("locking/refcounts, x86/asm: Implement fast refcount overflow protection")
+>>> Signed-off-by: Kees Cook <keescook@chromium.org>
+>>> ---
+>>>  arch/x86/Kconfig                  | 2 +-
+>>>  arch/x86/include/asm/refcount.h   | 2 +-
+>>>  arch/x86/mm/extable.c             | 7 ++++++-
+>>>  include/asm-generic/vmlinux.lds.h | 1 +
+>>>  4 files changed, 9 insertions(+), 3 deletions(-)
+>>>
+>>> diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+>>> index eaa8ff41f424..c6acdcdb3fc6 100644
+>>> --- a/arch/x86/Kconfig
+>>> +++ b/arch/x86/Kconfig
+>>> @@ -56,7 +56,7 @@ config X86
+>>>         select ARCH_HAS_MMIO_FLUSH
+>>>         select ARCH_HAS_PMEM_API                if X86_64
+>>>         # Causing hangs/crashes, see the commit that added this change for details.
+>>> -       select ARCH_HAS_REFCOUNT                if BROKEN
+>>> +       select ARCH_HAS_REFCOUNT
+>>>         select ARCH_HAS_UACCESS_FLUSHCACHE      if X86_64
+>>>         select ARCH_HAS_SET_MEMORY
+>>>         select ARCH_HAS_SG_CHAIN
+>>> diff --git a/arch/x86/include/asm/refcount.h b/arch/x86/include/asm/refcount.h
+>>> index ff871210b9f2..4e44250e7d0d 100644
+>>> --- a/arch/x86/include/asm/refcount.h
+>>> +++ b/arch/x86/include/asm/refcount.h
+>>> @@ -15,7 +15,7 @@
+>>>   * back to the regular execution flow in .text.
+>>>   */
+>>>  #define _REFCOUNT_EXCEPTION                            \
+>>> -       ".pushsection .text.unlikely\n"                 \
+>>> +       ".pushsection .text..refcount\n"                \
+>>
+>> You could also use a .subsection here: those are always emitted out of
+>> line, but into the same section.
+>
+> I considered it (especially after looking to see how you handled it in
+> the arm64 port) but decided against it in favor of collecting them all
+> at the end with .text.unlikely.
+>
 
-v1 --> v2:
-   --Remove the patches which have been add to each arch tree individually.
-      [01/11] arm64   ...Has been added to arm64 tree, Queued for 4.14
-      [03/11] metag   ...Has been added to the -mm tree
-      [05/11] powerpc ...Has been added to the powerpc tree
-      [10/11] x86     ...Has been added to the tip sched/core
-
-   --Rebase the remaining patches and repost.
-
-Michael reports the parent_node() will never be invoked since the
-Commit a7be6e5a7f8d ("mm: drop useless local parameters of
-__register_one_node()") removes the last user of it. 
-
-So we start removing it from the topology.h headers for each arch.
-
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: Fenghua Yu <fenghua.yu@intel.com>
-Cc: linux-ia64@vger.kernel.org
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: James Hogan <james.hogan@imgtec.com>
-Cc: linux-mips@linux-mips.org
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: Michael Holzheu <holzheu@linux.vnet.ibm.com>
-Cc: linux-s390@vger.kernel.org
-Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-Cc: Rich Felker <dalias@libc.org>
-Cc: linux-sh@vger.kernel.org
-Cc: "David S. Miller" <davem@davemloft.net>
-Cc: sparclinux@vger.kernel.org
-Cc: Chris Metcalf <cmetcalf@mellanox.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org
-Cc: akpm@linux-foundation.org
-
-Dou Liyang (7):
-  ia64: topology: Remove the unused parent_node() macro
-  MIPS: numa: Remove the unused parent_node() macro
-  s390/topology: Remove the unused parent_node() macro
-  sh/numa: Remove the unused parent_node() macro
-  sparc64/topology: Remove the unused parent_node() macro
-  tile/topology: Remove the unused parent_node() macro
-  asm-generic: numa: Remove the unused parent_node() macro
-
- arch/ia64/include/asm/topology.h                 | 7 -------
- arch/mips/include/asm/mach-ip27/topology.h       | 1 -
- arch/mips/include/asm/mach-loongson64/topology.h | 1 -
- arch/s390/include/asm/topology.h                 | 6 ------
- arch/sh/include/asm/topology.h                   | 1 -
- arch/sparc/include/asm/topology_64.h             | 2 --
- arch/tile/include/asm/topology.h                 | 6 ------
- include/asm-generic/topology.h                   | 3 ---
- 8 files changed, 27 deletions(-)
-
--- 
-2.5.5
+OK. On arm64, I needed this because the out of line sequence refers
+back to the inline code, which resulted in section mismatches if the
+refcount API is used from __init code. If that problem does not exist
+on x86, I guess it doesn't matter.
