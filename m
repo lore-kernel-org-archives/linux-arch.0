@@ -1,73 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f175.google.com ([209.85.223.175]:36583 "EHLO
-        mail-io0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752752AbdIBTv7 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 2 Sep 2017 15:51:59 -0400
-Received: by mail-io0-f175.google.com with SMTP id f99so10940831ioi.3
-        for <linux-arch@vger.kernel.org>; Sat, 02 Sep 2017 12:51:58 -0700 (PDT)
-MIME-Version: 1.0
-In-Reply-To: <20170902102945.xb3rvd6ursb2s5a4@gmail.com>
-References: <20170901202203.GA48925@beast> <20170902102945.xb3rvd6ursb2s5a4@gmail.com>
+Received: from mail-pg0-f53.google.com ([74.125.83.53]:33171 "EHLO
+        mail-pg0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752759AbdIBUJx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 2 Sep 2017 16:09:53 -0400
+Received: by mail-pg0-f53.google.com with SMTP id t3so9080769pgt.0
+        for <linux-arch@vger.kernel.org>; Sat, 02 Sep 2017 13:09:53 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Date: Sat, 2 Sep 2017 12:51:57 -0700
-Message-ID: <CAGXu5jLcqge53KiK4x6eXPSqYqtmBJU9FyAQm3=ysaVA3A-hOA@mail.gmail.com>
-Subject: Re: [PATCH] locking/refcounts, x86/asm: Use unique .text section for
- refcount exceptions
-Content-Type: text/plain; charset="UTF-8"
+Subject: [PATCH v2 2/2] locking/refcounts, x86/asm: Enable CONFIG_ARCH_HAS_REFCOUNT
+Date: Sat,  2 Sep 2017 13:09:46 -0700
+Message-ID: <1504382986-49301-3-git-send-email-keescook@chromium.org>
+In-Reply-To: <1504382986-49301-1-git-send-email-keescook@chromium.org>
+References: <1504382986-49301-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Ingo Molnar <mingo@elte.hu>, "x86@kernel.org" <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Mike Galbraith <efault@gmx.de>, LKML <linux-kernel@vger.kernel.org>, "Reshetova, Elena" <elena.reshetova@intel.com>, Peter Zijlstra <peterz@infradead.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Message-ID: <20170902195157.3g5ijPor8PX2YKKErUBudJADQUyPsBbFxKajAng3-e8@z>
+To: Ingo Molnar <mingo@elte.hu>
+Cc: Kees Cook <keescook@chromium.org>, Mike Galbraith <efault@gmx.de>, "x86@kernel.org" <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, "Reshetova, Elena" <elena.reshetova@intel.com>, Peter Zijlstra <peterz@infradead.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Message-ID: <20170902200946.4aA2q7RA6JjoRcxfgUQrguISaoYIhj72Y-dGele87mY@z>
 
-On Sat, Sep 2, 2017 at 3:29 AM, Ingo Molnar <mingo@kernel.org> wrote:
->
-> * Kees Cook <keescook@chromium.org> wrote:
->
->> Using .text.unlikely for refcount exceptions isn't safe because gcc may
->> move entire functions into .text.unlikely (e.g. in6_dev_get()), which
->> would cause any uses of a protected refcount_t function to stay inline
->> with the function, triggering the protection unconditionally:
->>
->>         .section        .text.unlikely,"ax",@progbits
->>         .type   in6_dev_get, @function
->> in6_dev_getx:
->> .LFB4673:
->>         .loc 2 4128 0
->>         .cfi_startproc
->> ...
->>         lock; incl 480(%rbx)
->>         js 111f
->>         .pushsection .text.unlikely
->> 111:    lea 480(%rbx), %rcx
->> 112:    .byte 0x0f, 0xff
->> .popsection
->> 113:
->>
->> This creates a unique .text section and adds an additional test to the
->> exception handler to WARN in the case of having none of OF, SF, nor ZF
->> set so we can see things like this more easily in the future.
->>
->> Reported-by: Mike Galbraith <efault@gmx.de>
->> Fixes: 7a46ec0e2f48 ("locking/refcounts, x86/asm: Implement fast refcount overflow protection")
->> Signed-off-by: Kees Cook <keescook@chromium.org>
->> ---
->>  arch/x86/Kconfig                  | 2 +-
->>  arch/x86/include/asm/refcount.h   | 2 +-
->>  arch/x86/mm/extable.c             | 7 ++++++-
->>  include/asm-generic/vmlinux.lds.h | 1 +
->>  4 files changed, 9 insertions(+), 3 deletions(-)
->
-> Could you please split this into two patches: one that fixes the .unlikely bug,
-> the other that re-enables the optimized version?
->
-> Should there be any other problem with refcounts this would make any bisection
-> result more clear-cut.
+With the section inlining bug fixed for the x86 refcount protection,
+we can turn the config back on.
 
-Certainly!
+Cc: Mike Galbraith <efault@gmx.de>
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+ arch/x86/Kconfig | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
--Kees
-
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index eaa8ff41f424..c6acdcdb3fc6 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -56,7 +56,7 @@ config X86
+ 	select ARCH_HAS_MMIO_FLUSH
+ 	select ARCH_HAS_PMEM_API		if X86_64
+ 	# Causing hangs/crashes, see the commit that added this change for details.
+-	select ARCH_HAS_REFCOUNT		if BROKEN
++	select ARCH_HAS_REFCOUNT
+ 	select ARCH_HAS_UACCESS_FLUSHCACHE	if X86_64
+ 	select ARCH_HAS_SET_MEMORY
+ 	select ARCH_HAS_SG_CHAIN
 -- 
-Kees Cook
-Pixel Security
+2.7.4
