@@ -1,104 +1,70 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v2 1/2] locking/refcounts, x86/asm: Use unique .text section for refcount exceptions
-Date: Sat,  2 Sep 2017 13:09:45 -0700
-Message-ID: <1504382986-49301-2-git-send-email-keescook@chromium.org>
-References: <1504382986-49301-1-git-send-email-keescook@chromium.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1504382986-49301-1-git-send-email-keescook@chromium.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Ingo Molnar <mingo@elte.hu>
-Cc: Kees Cook <keescook@chromium.org>, Mike Galbraith <efault@gmx.de>, "x86@kernel.org" <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, "Reshetova, Elena" <elena.reshetova@intel.com>, Peter Zijlstra <peterz@infradead.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>
+From: Russell King - ARM Linux <linux@armlinux.org.uk>
+Subject: Re: [PATCH -tip 2/4] arm: Cleanup in_exception_text() and move it in
+ asm/sections.h
+Date: Sun, 3 Sep 2017 23:21:52 +0100
+Message-ID: <20170903222152.GA25743@n2100.armlinux.org.uk>
+References: <150295395797.14424.968407208436624832.stgit@devbox>
+ <150295409062.14424.11976553130089631456.stgit@devbox>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Disposition: inline
+In-Reply-To: <150295409062.14424.11976553130089631456.stgit@devbox>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Masami Hiramatsu <mhiramat@kernel.org>
+Cc: linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, x86@kernel.org, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Thierry Reding <treding@nvidia.com>, Ingo Molnar <mingo@kernel.org>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-Using .text.unlikely for refcount exceptions isn't safe because gcc may
-move entire functions into .text.unlikely (e.g. in6_dev_dev()), which
-would cause any uses of a protected refcount_t function to stay inline
-with the function, triggering the protection unconditionally:
+On Thu, Aug 17, 2017 at 04:15:00PM +0900, Masami Hiramatsu wrote:
+> Cleanup in_exception_text() using memory_contains() and
+> move it in asm/sections.h from asm/trap.h because
+> section symbols and memory_contains() are defined in
+> asm/sections.h.
+> 
+> Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
+> ---
+>  arch/arm/include/asm/sections.h |   17 +++++++++++++++++
+>  arch/arm/include/asm/traps.h    |   22 +---------------------
+>  2 files changed, 18 insertions(+), 21 deletions(-)
+> 
+> diff --git a/arch/arm/include/asm/sections.h b/arch/arm/include/asm/sections.h
+> index 803bbf2b20b8..76791cfc7619 100644
+> --- a/arch/arm/include/asm/sections.h
+> +++ b/arch/arm/include/asm/sections.h
+> @@ -4,5 +4,22 @@
+>  #include <asm-generic/sections.h>
+>  
+>  extern char _exiprom[];
+> +extern char __exception_text_start[], __exception_text_end[];
+> +
+> +/**
+> + * in_exception_text - check if an address is in exception_text or
+> + *			irqentry_text
+> + * @addr: virtual address to be checked
+> + *
+> + * Returns: true if the address specified by @addr is in the exception_text or
+> + * irqentry_text, false otherwise.
+> + */
+> +static inline bool in_exception_text(unsigned long addr)
+> +{
+> +	return memory_contains(__exception_text_start, __exception_text_end,
+> +			       (void *)addr, 0) ||
+> +		memory_contains(__irqentry_text_start, __irqentry_text_end,
+> +				(void *)addr, 0);
 
-        .section        .text.unlikely,"ax",@progbits
-        .type   in6_dev_get, @function
-in6_dev_getx:
-.LFB4673:
-        .loc 2 4128 0
-        .cfi_startproc
-...
-        lock; incl 480(%rbx)
-        js 111f
-        .pushsection .text.unlikely
-111:    lea 480(%rbx), %rcx
-112:    .byte 0x0f, 0xff
-.popsection
-113:
+Patch looks buggy - where is __irqentry_text_start and __irqentry_text_end
+declared?
 
-This creates a unique .text..refcount section and adds an additional
-test to the exception handler to WARN in the case of having none of OF,
-SF, nor ZF set so we can see things like this more easily in the future.
-
-The double dot for the section name keeps it out of the TEXT_MAIN macro
-namespace (see commit cb87481ee89db ("kbuild: linker script do not match C
-names unless LD_DEAD_CODE_DATA_ELIMINATION is configured"), which matches
-C names: [a-zA-Z0-9_] but not ".") to avoid collisions and so it can be
-put at the end with text.unlikely to keep the cold code together.
-
-Reported-by: Mike Galbraith <efault@gmx.de>
-Fixes: 7a46ec0e2f48 ("locking/refcounts, x86/asm: Implement fast refcount overflow protection")
-Signed-off-by: Kees Cook <keescook@chromium.org>
----
-This will apply to -tip with fuzz, but since the TEXT_MAIN delta is in -next
-and is targeted for stable, it seemed best to diff against -next.
----
- arch/x86/include/asm/refcount.h   | 2 +-
- arch/x86/mm/extable.c             | 7 ++++++-
- include/asm-generic/vmlinux.lds.h | 1 +
- 3 files changed, 8 insertions(+), 2 deletions(-)
-
-diff --git a/arch/x86/include/asm/refcount.h b/arch/x86/include/asm/refcount.h
-index ff871210b9f2..4e44250e7d0d 100644
---- a/arch/x86/include/asm/refcount.h
-+++ b/arch/x86/include/asm/refcount.h
-@@ -15,7 +15,7 @@
-  * back to the regular execution flow in .text.
-  */
- #define _REFCOUNT_EXCEPTION				\
--	".pushsection .text.unlikely\n"			\
-+	".pushsection .text..refcount\n"		\
- 	"111:\tlea %[counter], %%" _ASM_CX "\n"		\
- 	"112:\t" ASM_UD0 "\n"				\
- 	ASM_UNREACHABLE					\
-diff --git a/arch/x86/mm/extable.c b/arch/x86/mm/extable.c
-index c076f710de4c..cf0d74b47ae0 100644
---- a/arch/x86/mm/extable.c
-+++ b/arch/x86/mm/extable.c
-@@ -66,12 +66,17 @@ bool ex_handler_refcount(const struct exception_table_entry *fixup,
- 	 * wrapped around) will be set. Additionally, seeing the refcount
- 	 * reach 0 will set ZF (Zero Flag: result was zero). In each of
- 	 * these cases we want a report, since it's a boundary condition.
--	 *
-+	 * The SF case is not reported since it indicates post-boundary
-+	 * manipulations below zero or above INT_MAX. And if none of the
-+	 * flags are set, something has gone very wrong, so report it.
- 	 */
- 	if (regs->flags & (X86_EFLAGS_OF | X86_EFLAGS_ZF)) {
- 		bool zero = regs->flags & X86_EFLAGS_ZF;
- 
- 		refcount_error_report(regs, zero ? "hit zero" : "overflow");
-+	} else if ((regs->flags & X86_EFLAGS_SF) == 0) {
-+		/* Report if none of OF, ZF, nor SF are set. */
-+		refcount_error_report(regs, "unexpected saturation");
- 	}
- 
- 	return true;
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 8acfc1e099e1..e549bff87c5b 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -459,6 +459,7 @@
- #define TEXT_TEXT							\
- 		ALIGN_FUNCTION();					\
- 		*(.text.hot TEXT_MAIN .text.fixup .text.unlikely)	\
-+		*(.text..refcount)					\
- 		*(.ref.text)						\
- 	MEM_KEEP(init.text)						\
- 	MEM_KEEP(exit.text)						\
 -- 
-2.7.4
+RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
+FTTC broadband for 0.8mile line in suburbia: sync at 8.8Mbps down 630kbps up
+According to speedtest.net: 8.21Mbps down 510kbps up
