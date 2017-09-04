@@ -1,135 +1,77 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [tip:locking/core] locking/refcount: Create unchecked atomic_t
- implementation
-Date: Mon, 4 Sep 2017 14:37:24 +0200
-Message-ID: <20170904123724.5trepllnd25r4uyt@hirez.programming.kicks-ass.net>
-References: <20170621200026.GA115679@beast>
- <tip-fd25d19f6b8da315332bb75936605fb45d3ea981@git.kernel.org>
+From: Masami Hiramatsu <mhiramat@kernel.org>
+Subject: Re: [PATCH -tip 2/4] arm: Cleanup in_exception_text() and move it
+ in asm/sections.h
+Date: Tue, 5 Sep 2017 00:22:27 +0900
+Message-ID: <20170905002227.066c6d44386f881a99ccc620@kernel.org>
+References: <150295395797.14424.968407208436624832.stgit@devbox>
+        <150295409062.14424.11976553130089631456.stgit@devbox>
+        <20170903222152.GA25743@n2100.armlinux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <tip-fd25d19f6b8da315332bb75936605fb45d3ea981@git.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: davem@davemloft.net, arnd@arndb.de, manfred@colorfullife.com, riel@redhat.com, hpa@zytor.com, ebiggers3@gmail.com, elena.reshetova@intel.com, keescook@chromium.org, dwindsor@gmail.com, mingo@kernel.org, jannh@google.com, serge@hallyn.com, adobriyan@gmail.com, gregkh@linuxfoundation.org, ebiederm@xmission.com, ishkamiel@gmail.com, tglx@linutronix.de, hch@infradead.org, jpoimboe@redhat.com, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, dave@stgolabs.net, linux-arch@vger.kernel.org, James.Bottomley@hansenpartnership.com
-Cc: linux-tip-commits@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:38072 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1753764AbdIDPWc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 4 Sep 2017 11:22:32 -0400
+In-Reply-To: <20170903222152.GA25743@n2100.armlinux.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Russell King - ARM Linux <linux@armlinux.org.uk>
+Cc: Ingo Molnar <mingo@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Thierry Reding <treding@nvidia.com>, Peter Zijlstra <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Wed, Jun 28, 2017 at 09:58:15AM -0700, tip-bot for Kees Cook wrote:
-> locking/refcount: Create unchecked atomic_t implementation
+Hi Russell,
 
-This seems to do only half the job. Here's the rest.
+On Sun, 3 Sep 2017 23:21:52 +0100
+Russell King - ARM Linux <linux@armlinux.org.uk> wrote:
 
----
-Subject: locking/refcount: Finish unchecked atomic_t implementation
+> On Thu, Aug 17, 2017 at 04:15:00PM +0900, Masami Hiramatsu wrote:
+> > Cleanup in_exception_text() using memory_contains() and
+> > move it in asm/sections.h from asm/trap.h because
+> > section symbols and memory_contains() are defined in
+> > asm/sections.h.
+> > 
+> > Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
+> > ---
+> >  arch/arm/include/asm/sections.h |   17 +++++++++++++++++
+> >  arch/arm/include/asm/traps.h    |   22 +---------------------
+> >  2 files changed, 18 insertions(+), 21 deletions(-)
+> > 
+> > diff --git a/arch/arm/include/asm/sections.h b/arch/arm/include/asm/sections.h
+> > index 803bbf2b20b8..76791cfc7619 100644
+> > --- a/arch/arm/include/asm/sections.h
+> > +++ b/arch/arm/include/asm/sections.h
+> > @@ -4,5 +4,22 @@
+> >  #include <asm-generic/sections.h>
+> >  
+> >  extern char _exiprom[];
+> > +extern char __exception_text_start[], __exception_text_end[];
+> > +
+> > +/**
+> > + * in_exception_text - check if an address is in exception_text or
+> > + *			irqentry_text
+> > + * @addr: virtual address to be checked
+> > + *
+> > + * Returns: true if the address specified by @addr is in the exception_text or
+> > + * irqentry_text, false otherwise.
+> > + */
+> > +static inline bool in_exception_text(unsigned long addr)
+> > +{
+> > +	return memory_contains(__exception_text_start, __exception_text_end,
+> > +			       (void *)addr, 0) ||
+> > +		memory_contains(__irqentry_text_start, __irqentry_text_end,
+> > +				(void *)addr, 0);
+> 
+> Patch looks buggy - where is __irqentry_text_start and __irqentry_text_end
+> declared?
 
-For some reason the unchecked atomic_t implementation stopped half-way
-through, complete it it.
+Those are declared in asm-generic/sections.h by below patch (on -tip tree)
 
-Fixes: fd25d19f6b8d ("locking/refcount: Create unchecked atomic_t implementation")
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
----
- include/linux/refcount.h | 35 ++++++++++++++++++++++++++++++-----
- lib/Makefile             |  7 +++----
- lib/refcount.c           |  3 ---
- 3 files changed, 33 insertions(+), 12 deletions(-)
+https://patchwork.kernel.org/patch/9878033/
 
-diff --git a/include/linux/refcount.h b/include/linux/refcount.h
-index 48b7c9c68c4d..ef714e4347d9 100644
---- a/include/linux/refcount.h
-+++ b/include/linux/refcount.h
-@@ -52,10 +52,17 @@ extern __must_check bool refcount_sub_and_test(unsigned int i, refcount_t *r);
- 
- extern __must_check bool refcount_dec_and_test(refcount_t *r);
- extern void refcount_dec(refcount_t *r);
-+
-+extern __must_check bool refcount_dec_if_one(refcount_t *r);
-+extern __must_check bool refcount_dec_not_one(refcount_t *r);
-+extern __must_check bool refcount_dec_and_mutex_lock(refcount_t *r, struct mutex *lock);
-+extern __must_check bool refcount_dec_and_lock(refcount_t *r, spinlock_t *lock);
-+
- #else
- # ifdef CONFIG_ARCH_HAS_REFCOUNT
- #  include <asm/refcount.h>
- # else
-+
- static inline __must_check bool refcount_add_not_zero(unsigned int i, refcount_t *r)
- {
- 	return atomic_add_unless(&r->refs, i, 0);
-@@ -90,12 +97,30 @@ static inline void refcount_dec(refcount_t *r)
- {
- 	atomic_dec(&r->refs);
- }
-+
-+static inline __must_check bool refcount_dec_if_one(refcount_t *r)
-+{
-+	int val = 1;
-+
-+	return atomic_try_cmpxchg_release(&r->refs, &val, 0);
-+}
-+
-+static inline __must_check bool refcount_dec_not_one(refcount_t *r)
-+{
-+	return atomic_add_unless(&r->refs, -1, 1);
-+}
-+
-+static inline __must_check bool refcount_dec_and_mutex_lock(refcount_t *r, struct mutex *lock)
-+{
-+	return atomic_dec_and_mutex_lock(&r->refs, lock);
-+}
-+
-+static inline __must_check bool refcount_dec_and_lock(refcount_t *r, spinlock_t *lock)
-+{
-+	return atomic_dec_and_lock(&r->refs, lock);
-+}
-+
- # endif /* !CONFIG_ARCH_HAS_REFCOUNT */
- #endif /* CONFIG_REFCOUNT_FULL */
- 
--extern __must_check bool refcount_dec_if_one(refcount_t *r);
--extern __must_check bool refcount_dec_not_one(refcount_t *r);
--extern __must_check bool refcount_dec_and_mutex_lock(refcount_t *r, struct mutex *lock);
--extern __must_check bool refcount_dec_and_lock(refcount_t *r, spinlock_t *lock);
--
- #endif /* _LINUX_REFCOUNT_H */
-diff --git a/lib/Makefile b/lib/Makefile
-index 40c18372b301..b96859e69c57 100644
---- a/lib/Makefile
-+++ b/lib/Makefile
-@@ -38,12 +38,11 @@ obj-y += bcd.o div64.o sort.o parser.o debug_locks.o random32.o \
- 	 gcd.o lcm.o list_sort.o uuid.o flex_array.o iov_iter.o clz_ctz.o \
- 	 bsearch.o find_bit.o llist.o memweight.o kfifo.o \
- 	 percpu-refcount.o percpu_ida.o rhashtable.o reciprocal_div.o \
--	 once.o refcount.o usercopy.o errseq.o
--obj-y += string_helpers.o
-+	 once.o usercopy.o errseq.o string_helpers.o hexdump.o kstrtox.o
-+
-+obj-$(CONFIG_REFCOUNT_FULL) += refcount.o
- obj-$(CONFIG_TEST_STRING_HELPERS) += test-string_helpers.o
--obj-y += hexdump.o
- obj-$(CONFIG_TEST_HEXDUMP) += test_hexdump.o
--obj-y += kstrtox.o
- obj-$(CONFIG_TEST_BPF) += test_bpf.o
- obj-$(CONFIG_TEST_FIRMWARE) += test_firmware.o
- obj-$(CONFIG_TEST_SYSCTL) += test_sysctl.o
-diff --git a/lib/refcount.c b/lib/refcount.c
-index 5d0582a9480c..9f906783987e 100644
---- a/lib/refcount.c
-+++ b/lib/refcount.c
-@@ -37,8 +37,6 @@
- #include <linux/refcount.h>
- #include <linux/bug.h>
- 
--#ifdef CONFIG_REFCOUNT_FULL
--
- /**
-  * refcount_add_not_zero - add a value to a refcount unless it is 0
-  * @i: the value to add to the refcount
-@@ -227,7 +225,6 @@ void refcount_dec(refcount_t *r)
- 	WARN_ONCE(refcount_dec_and_test(r), "refcount_t: decrement hit 0; leaking memory.\n");
- }
- EXPORT_SYMBOL(refcount_dec);
--#endif /* CONFIG_REFCOUNT_FULL */
- 
- /**
-  * refcount_dec_if_one - decrement a refcount if it is 1
+So, I thougt it was a good time to clean up related code.
+
+Thank you,
+
+-- 
+Masami Hiramatsu <mhiramat@kernel.org>
