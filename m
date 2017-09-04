@@ -1,30 +1,45 @@
-From: Alexey Dobriyan <adobriyan@gmail.com>
+From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [tip:locking/core] locking/refcount: Create unchecked atomic_t
  implementation
-Date: Mon, 4 Sep 2017 20:34:44 +0300
-Message-ID: <20170904173444.GA7233@avx2>
+Date: Mon, 4 Sep 2017 21:35:27 +0200
+Message-ID: <20170904193527.GB17526@worktop.programming.kicks-ass.net>
 References: <20170621200026.GA115679@beast>
  <tip-fd25d19f6b8da315332bb75936605fb45d3ea981@git.kernel.org>
  <20170904123724.5trepllnd25r4uyt@hirez.programming.kicks-ass.net>
+ <CAGXu5jJdpFk0GNWiw6sswthf3=gAptmLi6xmQqMvUigUYDFsQg@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from bombadil.infradead.org ([65.50.211.133]:45516 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753953AbdIDTfj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 4 Sep 2017 15:35:39 -0400
 Content-Disposition: inline
-In-Reply-To: <20170904123724.5trepllnd25r4uyt@hirez.programming.kicks-ass.net>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: davem@davemloft.net, arnd@arndb.de, manfred@colorfullife.com, riel@redhat.com, hpa@zytor.com, ebiggers3@gmail.com, elena.reshetova@intel.com, keescook@chromium.org, dwindsor@gmail.com, mingo@kernel.org, jannh@google.com, serge@hallyn.com, gregkh@linuxfoundation.org, ebiederm@xmission.com, ishkamiel@gmail.com, tglx@linutronix.de, hch@infradead.org, jpoimboe@redhat.com, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, dave@stgolabs.net, linux-arch@vger.kernel.org, James.Bottomley@hansenpartnership.com, linux-tip-commits@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <CAGXu5jJdpFk0GNWiw6sswthf3=gAptmLi6xmQqMvUigUYDFsQg@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Kees Cook <keescook@chromium.org>
+Cc: "David S. Miller" <davem@davemloft.net>, Arnd Bergmann <arnd@arndb.de>, Manfred Spraul <manfred@colorfullife.com>, Rik van Riel <riel@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Eric Biggers <ebiggers3@gmail.com>, "Reshetova, Elena" <elena.reshetova@intel.com>, David Windsor <dwindsor@gmail.com>, Ingo Molnar <mingo@kernel.org>, Jann Horn <jannh@google.com>, "Serge E. Hallyn" <serge@hallyn.com>, Alexey Dobriyan <adobriyan@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Hans Liljestrand <ishkamiel@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Christoph Hellwig <hch@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, LKML <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-founda>
 
-On Mon, Sep 04, 2017 at 02:37:24PM +0200, Peter Zijlstra wrote:
-> -	 once.o refcount.o usercopy.o errseq.o
-> -obj-y += string_helpers.o
-> +	 once.o usercopy.o errseq.o string_helpers.o hexdump.o kstrtox.o
-> +
-> +obj-$(CONFIG_REFCOUNT_FULL) += refcount.o
->  obj-$(CONFIG_TEST_STRING_HELPERS) += test-string_helpers.o
-> -obj-y += hexdump.o
->  obj-$(CONFIG_TEST_HEXDUMP) += test_hexdump.o
-> -obj-y += kstrtox.o
+On Mon, Sep 04, 2017 at 10:11:37AM -0700, Kees Cook wrote:
+> On Mon, Sep 4, 2017 at 5:37 AM, Peter Zijlstra <peterz@infradead.org> wrote:
+> > On Wed, Jun 28, 2017 at 09:58:15AM -0700, tip-bot for Kees Cook wrote:
+> >> locking/refcount: Create unchecked atomic_t implementation
+> >
+> > This seems to do only half the job. Here's the rest.
+> >
+> > ---
+> > Subject: locking/refcount: Finish unchecked atomic_t implementation
+> >
+> > For some reason the unchecked atomic_t implementation stopped half-way
+> > through, complete it it.
+> 
+> Hmm? The reason is that the implementation of the remaining functions
+> is unchanged between full, unchecked, and x86.
 
-File per line so everything is not lumped together even if it is obj-y.
+But they're wasted code if !arch because the existing atomic functions
+are adequate (and I would argue better in case of atomic_add_unless).
+
+And arch implementations would certainly want to reimplement dec_not_one.
+
+Plus, you completely failed mention any of this.
