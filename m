@@ -1,56 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f66.google.com ([209.85.218.66]:38706 "EHLO
-        mail-oi0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751389AbdIEPLv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 5 Sep 2017 11:11:51 -0400
+Received: from mail.kernel.org ([198.145.29.99]:44456 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1754118AbdIEWEN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 5 Sep 2017 18:04:13 -0400
 MIME-Version: 1.0
-In-Reply-To: <20170905112727.13668-1-tklauser@distanz.ch>
-References: <20170905112727.13668-1-tklauser@distanz.ch>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Tue, 5 Sep 2017 17:11:50 +0200
-Message-ID: <CAK8P3a3R_12CdsL85tW+Y9cWMuQ0E-CMU9TyseLjj9GczbwnhA@mail.gmail.com>
-Subject: Re: [PATCH] asm-generic/io.h: remove unnecessary include of linux/vmalloc.h
+In-Reply-To: <1504625867.32565.34.camel@synopsys.com>
+References: <1504625867.32565.34.camel@synopsys.com>
+From: Rob Herring <robh@kernel.org>
+Date: Tue, 5 Sep 2017 17:03:51 -0500
+Message-ID: <CAL_JsqJ7c-raBnb0U+hL+hka7zN3XosX0pU1Sswoq16nbRFb+g@mail.gmail.com>
+Subject: Re: Setting CPU clock frequency on early boot
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tobias Klauser <tklauser@distanz.ch>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Message-ID: <20170905151150.4f0P4pRz-nTPccJCh4mvvhq3idAcrHrSr6rBMeXL0IU@z>
+To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Cc: "linux-clk@vger.kernel.org" <linux-clk@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "mturquette@baylibre.com" <mturquette@baylibre.com>, "sboyd@codeaurora.org" <sboyd@codeaurora.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>
+Message-ID: <20170905220351.EhESFEsthvzHxb6T-U5SV_yhya95OKUtR5TDWL2ypCM@z>
 
-On Tue, Sep 5, 2017 at 1:27 PM, Tobias Klauser <tklauser@distanz.ch> wrote:
-> Including linux/vmalloc.h in asm-generic/io.h isn't necessary since none
-> of the definitions are used in the header itself. Remove the include in
-> order to avoid potential header dependency problems if other headers
-> rely on implict inclusion of linux/vmalloc.h which means that changes
-> there could break unrelated parts.
+On Tue, Sep 5, 2017 at 10:37 AM, Alexey Brodkin
+<Alexey.Brodkin@synopsys.com> wrote:
+> Hello,
 >
-> Signed-off-by: Tobias Klauser <tklauser@distanz.ch>
-> ---
->  include/asm-generic/io.h | 1 -
->  1 file changed, 1 deletion(-)
+> I'd like to get some feedback on our idea as well as check
+> if somebody faces similar situations and if so what would be the best
+> way to implement some generic solution that suits everyone.
 >
-> diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-> index b4531e3b2120..d2d3bd163f5f 100644
-> --- a/include/asm-generic/io.h
-> +++ b/include/asm-generic/io.h
-> @@ -764,7 +764,6 @@ static inline void iowrite64_rep(volatile void __iomem *addr,
+> So that's our problem:
+> 1. On power-on hardware might start clocking CPU with either
+>    too high frequency (such that CPU may get stuck at some point)
+>    or too low frequency.
 >
->  #ifdef __KERNEL__
+>    That all sounds stupid but let me elaborate a bit here.
+>    I'm talking about FPGA-based devboards firmware for which
+>    (here I mean just image loaded in FPGA with CPU implementation
+>    but not some software yet) might not be stable or be even experimental.
 >
-> -#include <linux/vmalloc.h>
->  #define __io_virt(x) ((void __force *)(x))
+>    For example we may deal with dual-core or quad-core designs.
+>    Former might be OK running @100MHz and latter is only usable
+>    @75MHz and lower. The simplest solution might be to use some safe
+>    value before something like CPUfreq kicks in. But we don't yet have
+>    CPUfreq for ARC (we do plan to get it working sometime soon) which
+>    means simple change of CPU frequency once time-keeping infrastructure
+>    was brought-up is not an option... I.e. we'll end up with the system running
+>    much slower compared what could have been possible.
 >
->  #ifndef CONFIG_GENERIC_IOMAP
+> 2. Up until now we used to do dirty hacks in early platform init code.
+>    Namely (see axs103_early_init() in arch/arc/plat-axs10x/axs10x.c):
+>     1) Read CPU's "clock-frequency" from .dtb (remember we're on very early
+>        boot stage still so no expanded DevTree yet exists).
+>     2) Check how many cores we have and which freq is usable
+>     3) Update PLL settings right in place if new freq != existing in PLL.
+>
+>    Even though it is proven to work but with more platforms in the pipeline
+>    we'll need to copy-paste pretty much the same stuff across all affected
+>    plats. Which is not nice.
+>
+>    Moreover back in the day we didn't have a proper clk driver for CPU's PLL.
+>    Thus acting on PLL registers right in place was the only thing we were able
+>    to do. Now with introduction of normal clk driver
+>    (see drivers/clk/axs10x/pll_clock.c in linux-next) we'd like to utilize
+>    it and have a cleaner and more universal solution to the problem.
+>
+>    That's how it could be done - http://patchwork.ozlabs.org/patch/801240/
+>    Basically in architecture's time_init() we check if there's explicitly
+>    specified "clock-frequency" parameter in cpu's node in Device Tree and
+>    if there's one we set it via just instantiated clk driver.
 
-This seems like a good idea in principle, but I think it needs to be tested
-well before we apply it, to avoid breaking random drivers that forgot to
-add their own includes of that header.
+The patch looks generally okay. I'd move all the logic to the clock
+driver unless perhaps how to set the cpu freq is defined by the
+architecture.
 
-I've added your patch to my testing queue, but not to the asm-generic
-tree now. We should see if it leads to any randconfig build regressions
-on the architectures I normally test.
+> We may indeed proceed with mentioned solution for ARC but if that makes
+> sense for somebody else it might worth getting something similar in generic
+> init code. Any thoughts?
 
-Did you run into a specific problem with the #include, or did it just occur
-to you that it might help in general?
+If any ARM platforms are doing something similar, then it's done in
+their clock driver via of_clk_init. Or they just wait for cpufreq to
+kick in and expect the bootloader has initialized things to a
+reasonable frequency.
 
-      Arnd
+Rob
