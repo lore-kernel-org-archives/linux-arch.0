@@ -1,46 +1,89 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([65.50.211.133]:45516 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753953AbdIDTfj (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 4 Sep 2017 15:35:39 -0400
-Date: Mon, 4 Sep 2017 21:35:27 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [tip:locking/core] locking/refcount: Create unchecked atomic_t
- implementation
-Message-ID: <20170904193527.GB17526@worktop.programming.kicks-ass.net>
-References: <20170621200026.GA115679@beast>
- <tip-fd25d19f6b8da315332bb75936605fb45d3ea981@git.kernel.org>
- <20170904123724.5trepllnd25r4uyt@hirez.programming.kicks-ass.net>
- <CAGXu5jJdpFk0GNWiw6sswthf3=gAptmLi6xmQqMvUigUYDFsQg@mail.gmail.com>
+Received: from mail.kernel.org ([198.145.29.99]:34480 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751236AbdIEMsW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 5 Sep 2017 08:48:22 -0400
+Date: Tue, 5 Sep 2017 14:48:13 +0200
+From: Jessica Yu <jeyu@kernel.org>
+Subject: Re: kernel: tracepoints: add support for relative references
+Message-ID: <20170905124812.yzjm2gkxj5lkynuq@redbean>
+References: <20170819181035.969-1-ard.biesheuvel@linaro.org>
+ <20170819181035.969-6-ard.biesheuvel@linaro.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=us-ascii; format=flowed
 Content-Disposition: inline
-In-Reply-To: <CAGXu5jJdpFk0GNWiw6sswthf3=gAptmLi6xmQqMvUigUYDFsQg@mail.gmail.com>
+In-Reply-To: <20170819181035.969-6-ard.biesheuvel@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: "David S. Miller" <davem@davemloft.net>, Arnd Bergmann <arnd@arndb.de>, Manfred Spraul <manfred@colorfullife.com>, Rik van Riel <riel@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Eric Biggers <ebiggers3@gmail.com>, "Reshetova, Elena" <elena.reshetova@intel.com>, David Windsor <dwindsor@gmail.com>, Ingo Molnar <mingo@kernel.org>, Jann Horn <jannh@google.com>, "Serge E. Hallyn" <serge@hallyn.com>, Alexey Dobriyan <adobriyan@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Hans Liljestrand <ishkamiel@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Christoph Hellwig <hch@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, LKML <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Davidlohr Bueso <dave@stgolabs.net>, linux-arch <linux-arch@vger.kernel.org>, James Bottomley <James.Bottomley@hansenpartnership.com>, "linux-tip-commits@vger.kernel.org" <linux-tip-commits@vger.kernel.org>
-Message-ID: <20170904193527.XnjLrseF1CiNcaOFbLQE-cwRd4XrssbcTihtS6c3dHE@z>
+To: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Heiko Carstens <heiko.carstens@de.ibm.com>, Kees Cook <keescook@chromium.org>, Will Deacon <will.deacon@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, Thomas Garnier <thgarnie@google.com>, Thomas Gleixner <tglx@linutronix.de>, "Serge E. Hallyn" <serge@hallyn.com>, Bjorn Helgaas <bhelgaas@google.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Catalin Marinas <catalin.marinas@arm.com>, Petr Mladek <pmladek@suse.com>, Ingo Molnar <mingo@redhat.com>, James Morris <james.l.morris@oracle.com>, Andrew Morton <akpm@linux-foundation.org>, Nicolas Pitre <nico@linaro.org>, Steven Rostedt <rostedt@goodmis.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Sergey Senozhatsky <sergey.senozhatsky@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>
+Message-ID: <20170905124813.FRsiqzZJE6T--OISOa7zWt24Hokf_JRyAEsFMt-iQfA@z>
 
-On Mon, Sep 04, 2017 at 10:11:37AM -0700, Kees Cook wrote:
-> On Mon, Sep 4, 2017 at 5:37 AM, Peter Zijlstra <peterz@infradead.org> wrote:
-> > On Wed, Jun 28, 2017 at 09:58:15AM -0700, tip-bot for Kees Cook wrote:
-> >> locking/refcount: Create unchecked atomic_t implementation
-> >
-> > This seems to do only half the job. Here's the rest.
-> >
-> > ---
-> > Subject: locking/refcount: Finish unchecked atomic_t implementation
-> >
-> > For some reason the unchecked atomic_t implementation stopped half-way
-> > through, complete it it.
-> 
-> Hmm? The reason is that the implementation of the remaining functions
-> is unchanged between full, unchecked, and x86.
++++ Ard Biesheuvel [19/08/17 19:10 +0100]:
+>To avoid the need for relocating absolute references to tracepoint
+>structures at boot time when running relocatable kernels (which may
+>take a disproportionate amount of space), add the option to emit
+>these tables as relative references instead.
+>
+>Cc: Steven Rostedt <rostedt@goodmis.org>
+>Cc: Ingo Molnar <mingo@redhat.com>
+>Signed-off-by: Ard Biesheuvel <ard.biesheuvel@linaro.org>
 
-But they're wasted code if !arch because the existing atomic functions
-are adequate (and I would argue better in case of atomic_add_unless).
+Hi Ard,
 
-And arch implementations would certainly want to reimplement dec_not_one.
+While testing this patchset I ran into the following general protection
+fault when removing a module with tracepoints:
 
-Plus, you completely failed mention any of this.
+# rmmod kvm
+[   25.279049] general protection fault: 0000 [#1] SMP
+[   25.279385] Modules linked in: kvm(-) irqbypass
+[   25.279829] CPU: 0 PID: 125 Comm: rmmod Not tainted 4.13.0-rc2+ #1
+[   25.280007] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.10.2-1.fc26 04/01/2014
+[   25.280315] task: ffff9697db7c0000 task.stack: ffffa907802dc000
+[   25.280624] RIP: 0010:tracepoint_module_notify+0xd5/0x1d0
+[   25.280782] RSP: 0018:ffffa907802dfe68 EFLAGS: 00000287
+[   25.280963] RAX: ffffffffc02b6fb0 RBX: ffff9697ddb33440 RCX: ffffffffc02b70f0
+[   25.281168] RDX: 000163cc00016410 RSI: ffff9697df21d860 RDI: ffff9697de001900
+[   25.281371] RBP: ffffa907802dfe88 R08: 000000000001d860 R09: ffffffff941692b4
+[   25.281543] R10: fffff0ec4076ccc0 R11: 0000000000000300 R12: ffffffffc02ce740
+[   25.281716] R13: 0000000000000002 R14: ffffffffc02ce740 R15: 0000000000000000
+[   25.281917] FS:  0000000000a6e880(0000) GS:ffff9697df200000(0000) knlGS:0000000000000000
+[   25.282107] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   25.282254] CR2: 00000000004adfc0 CR3: 000000001f838000 CR4: 00000000000006f0
+[   25.282517] Call Trace:
+[   25.283019]  notifier_call_chain+0x4a/0x70
+[   25.283287]  blocking_notifier_call_chain+0x43/0x60
+[   25.283422]  SyS_delete_module+0x1b8/0x240
+[   25.283542]  ? SyS_chdir+0xc4/0xe0
+[   25.283648]  entry_SYSCALL_64_fastpath+0x1a/0xa5
+[   25.283863] RIP: 0033:0x4ba267
+[   25.283947] RSP: 002b:00007ffc3316bdf8 EFLAGS: 00000246 ORIG_RAX: 00000000000000b0
+[   25.284134] RAX: ffffffffffffffda RBX: 0000000000000000 RCX: 00000000004ba267
+[   25.284310] RDX: 0000000000000000 RSI: 0000000000000880 RDI: 00007ffc3316be00
+[   25.284511] RBP: 00007ffc3316be40 R08: 0000000000000003 R09: 0000000000000000
+[   25.284699] R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000637672
+[   25.284916] R13: 00007ffc3316c1b0 R14: 0000000000000000 R15: 0000000000000000
+[   25.285226] Code: 00 48 89 43 08 e8 9c b4 0d 00 49 8b 84 24 90 02 00 00 48 85 c0 74 28 41 8b 94 24 8c 02 00 00 48 8d 0c d0 48 39 c8 73 17 48 8b 10 <48> 83 7a 28 00 0f 85 e8 00 00 00 48 83 c0 08 48 39 c1 77 e9 48 
+[   25.286199] RIP: tracepoint_module_notify+0xd5/0x1d0 RSP: ffffa907802dfe68
+[   25.286708] ---[ end trace 04f35cade1663177 ]---
+
+The offending line is in tp_module_going_check_quiescent() (shown inlined):
+
+(gdb) list *(tracepoint_module_notify+0xd5)
+0xffffffff811692d5 is in tracepoint_module_notify (/home/jeyu/work/jeyu-linux/kernel/tracepoint.c:402).
+397             struct tracepoint * const *iter;
+398
+399             if (!begin)
+400                     return;
+401             for (iter = begin; iter < end; iter++)
+402                     WARN_ON_ONCE((*iter)->funcs);
+403     }
+404
+405     static int tracepoint_module_coming(struct module *mod)
+406     {
+
+The relative reference calculations need to be done here too.
+
+Thanks,
+
+Jessica
