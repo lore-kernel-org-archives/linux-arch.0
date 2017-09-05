@@ -1,76 +1,68 @@
-From: Tobias Klauser <tklauser@distanz.ch>
-Subject: Re: [PATCH] asm-generic/io.h: remove unnecessary include of
- linux/vmalloc.h
-Date: Tue, 5 Sep 2017 17:21:35 +0200
-Message-ID: <20170905152134.GB5028@distanz.ch>
-References: <20170905112727.13668-1-tklauser@distanz.ch>
- <CAK8P3a3R_12CdsL85tW+Y9cWMuQ0E-CMU9TyseLjj9GczbwnhA@mail.gmail.com>
+From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Subject: Setting CPU clock frequency on early boot
+Date: Tue, 5 Sep 2017 15:37:48 +0000
+Message-ID: <1504625867.32565.34.camel@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from sym2.noone.org ([178.63.92.236]:56121 "EHLO sym2.noone.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751480AbdIEPVi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 5 Sep 2017 11:21:38 -0400
-Content-Disposition: inline
-In-Reply-To: <CAK8P3a3R_12CdsL85tW+Y9cWMuQ0E-CMU9TyseLjj9GczbwnhA@mail.gmail.com>
+Received: from smtprelay.synopsys.com ([198.182.47.9]:59723 "EHLO
+        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751382AbdIEPhw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 5 Sep 2017 11:37:52 -0400
+Content-Language: en-US
+Content-ID: <502EFEDE5E8D314D9F7452DCDCE7CC7E@internal.synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+To: "linux-clk@vger.kernel.org" <linux-clk@vger.kernel.org>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "mturquette@baylibre.com" <mturquette@baylibre.com>, "sboyd@codeaurora.org" <sboyd@codeaurora.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>
 
-On 2017-09-05 at 17:11:50 +0200, Arnd Bergmann <arnd@arndb.de> wrote:
-> On Tue, Sep 5, 2017 at 1:27 PM, Tobias Klauser <tklauser@distanz.ch> wrote:
-> > Including linux/vmalloc.h in asm-generic/io.h isn't necessary since none
-> > of the definitions are used in the header itself. Remove the include in
-> > order to avoid potential header dependency problems if other headers
-> > rely on implict inclusion of linux/vmalloc.h which means that changes
-> > there could break unrelated parts.
-> >
-> > Signed-off-by: Tobias Klauser <tklauser@distanz.ch>
-> > ---
-> >  include/asm-generic/io.h | 1 -
-> >  1 file changed, 1 deletion(-)
-> >
-> > diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-> > index b4531e3b2120..d2d3bd163f5f 100644
-> > --- a/include/asm-generic/io.h
-> > +++ b/include/asm-generic/io.h
-> > @@ -764,7 +764,6 @@ static inline void iowrite64_rep(volatile void __iomem *addr,
-> >
-> >  #ifdef __KERNEL__
-> >
-> > -#include <linux/vmalloc.h>
-> >  #define __io_virt(x) ((void __force *)(x))
-> >
-> >  #ifndef CONFIG_GENERIC_IOMAP
-> 
-> This seems like a good idea in principle, but I think it needs to be tested
-> well before we apply it, to avoid breaking random drivers that forgot to
-> add their own includes of that header.
-
-Yes, this certainly needs extensive testing. I already did several
-randconfig builds on multiple platforms locally. Also, I sent the same
-patch a while ago to LKML already as a fix (which wasn't sufficient) [1]
-in order to get the kbuild test bot to test it ;)
-
-  [1] https://www.mail-archive.com/linux-kernel@vger.kernel.org/msg1392578.html
-
-And indeed, the kbuild test bot failed on multiple drivers as a result
-of me submitting this patch back then and I successively sent patches to
-fix the fallout. Now all of them are merged.
-
-> I've added your patch to my testing queue, but not to the asm-generic
-> tree now. We should see if it leads to any randconfig build regressions
-> on the architectures I normally test.
-
-Thanks!
-
-> Did you run into a specific problem with the #include, or did it just occur
-> to you that it might help in general?
-
-See above. Sorry, I should have mentioned it in the original patch
-submission but I forgot about the full history and only tried to
-reconstruct it now that you asked ;)
-
-Tobias
+SGVsbG8sDQoNCkknZCBsaWtlIHRvIGdldCBzb21lIGZlZWRiYWNrIG9uIG91ciBpZGVhIGFzIHdl
+bGwgYXMgY2hlY2sNCmlmIHNvbWVib2R5IGZhY2VzIHNpbWlsYXIgc2l0dWF0aW9ucyBhbmQgaWYg
+c28gd2hhdCB3b3VsZCBiZSB0aGUgYmVzdA0Kd2F5IHRvIGltcGxlbWVudCBzb21lIGdlbmVyaWMg
+c29sdXRpb24gdGhhdCBzdWl0cyBldmVyeW9uZS4NCg0KU28gdGhhdCdzIG91ciBwcm9ibGVtOg0K
+MS4gT24gcG93ZXItb24gaGFyZHdhcmUgbWlnaHQgc3RhcnQgY2xvY2tpbmcgQ1BVIHdpdGggZWl0
+aGVyDQrCoCDCoHRvbyBoaWdoIGZyZXF1ZW5jeSAoc3VjaCB0aGF0IENQVSBtYXkgZ2V0IHN0dWNr
+IGF0IHNvbWUgcG9pbnQpDQrCoCDCoG9yIHRvbyBsb3cgZnJlcXVlbmN5Lg0KDQrCoCDCoFRoYXQg
+YWxsIHNvdW5kcyBzdHVwaWQgYnV0IGxldCBtZSBlbGFib3JhdGUgYSBiaXQgaGVyZS4NCsKgIMKg
+SSdtIHRhbGtpbmcgYWJvdXQgRlBHQS1iYXNlZCBkZXZib2FyZHMgZmlybXdhcmUgZm9yIHdoaWNo
+DQrCoCDCoChoZXJlIEkgbWVhbiBqdXN0IGltYWdlIGxvYWRlZCBpbiBGUEdBIHdpdGggQ1BVIGlt
+cGxlbWVudGF0aW9uDQrCoCDCoGJ1dCBub3Qgc29tZSBzb2Z0d2FyZSB5ZXQpIG1pZ2h0IG5vdCBi
+ZSBzdGFibGUgb3IgYmUgZXZlbiBleHBlcmltZW50YWwuDQoNCsKgIMKgRm9yIGV4YW1wbGUgd2Ug
+bWF5IGRlYWwgd2l0aCBkdWFsLWNvcmUgb3IgcXVhZC1jb3JlIGRlc2lnbnMuDQrCoCDCoEZvcm1l
+ciBtaWdodCBiZSBPSyBydW5uaW5nIEAxMDBNSHogYW5kIGxhdHRlciBpcyBvbmx5IHVzYWJsZQ0K
+wqAgwqBANzVNSHogYW5kIGxvd2VyLiBUaGUgc2ltcGxlc3Qgc29sdXRpb24gbWlnaHQgYmUgdG8g
+dXNlIHNvbWUgc2FmZQ0KwqAgwqB2YWx1ZSBiZWZvcmUgc29tZXRoaW5nIGxpa2UgQ1BVZnJlcSBr
+aWNrcyBpbi4gQnV0IHdlIGRvbid0IHlldCBoYXZlDQrCoCDCoENQVWZyZXEgZm9yIEFSQyAod2Ug
+ZG8gcGxhbiB0byBnZXQgaXQgd29ya2luZyBzb21ldGltZSBzb29uKSB3aGljaA0KwqAgwqBtZWFu
+cyBzaW1wbGUgY2hhbmdlIG9mIENQVSBmcmVxdWVuY3kgb25jZSB0aW1lLWtlZXBpbmcgaW5mcmFz
+dHJ1Y3R1cmUNCsKgIMKgd2FzIGJyb3VnaHQtdXAgaXMgbm90IGFuIG9wdGlvbi4uLiBJLmUuIHdl
+J2xsIGVuZCB1cCB3aXRoIHRoZSBzeXN0ZW0gcnVubmluZw0KwqAgwqBtdWNoIHNsb3dlciBjb21w
+YXJlZCB3aGF0IGNvdWxkIGhhdmUgYmVlbiBwb3NzaWJsZS4NCg0KMi4gVXAgdW50aWwgbm93IHdl
+IHVzZWQgdG8gZG8gZGlydHkgaGFja3MgaW4gZWFybHkgcGxhdGZvcm0gaW5pdCBjb2RlLg0KwqAg
+wqBOYW1lbHkgKHNlZcKgYXhzMTAzX2Vhcmx5X2luaXQoKSBpbsKgYXJjaC9hcmMvcGxhdC1heHMx
+MHgvYXhzMTB4LmMpOg0KwqAgwqAgMSkgUmVhZCBDUFUncyAiY2xvY2stZnJlcXVlbmN5IiBmcm9t
+IC5kdGIgKHJlbWVtYmVyIHdlJ3JlIG9uIHZlcnkgZWFybHkNCsKgIMKgIMKgIMKgYm9vdCBzdGFn
+ZSBzdGlsbCBzbyBubyBleHBhbmRlZCBEZXZUcmVlIHlldCBleGlzdHMpLg0KwqAgwqAgMikgQ2hl
+Y2sgaG93IG1hbnkgY29yZXMgd2UgaGF2ZSBhbmQgd2hpY2ggZnJlcSBpcyB1c2FibGUNCsKgIMKg
+IDMpIFVwZGF0ZSBQTEwgc2V0dGluZ3MgcmlnaHQgaW4gcGxhY2UgaWYgbmV3IGZyZXEgIT0gZXhp
+c3RpbmcgaW4gUExMLg0KDQrCoCDCoEV2ZW4gdGhvdWdoIGl0IGlzIHByb3ZlbiB0byB3b3JrIGJ1
+dCB3aXRoIG1vcmUgcGxhdGZvcm1zIGluIHRoZSBwaXBlbGluZQ0KwqAgwqB3ZSdsbCBuZWVkIHRv
+IGNvcHktcGFzdGUgcHJldHR5IG11Y2ggdGhlIHNhbWUgc3R1ZmYgYWNyb3NzIGFsbCBhZmZlY3Rl
+ZA0KwqAgwqBwbGF0cy4gV2hpY2ggaXMgbm90IG5pY2UuDQoNCsKgIMKgTW9yZW92ZXIgYmFjayBp
+biB0aGUgZGF5IHdlIGRpZG4ndCBoYXZlIGEgcHJvcGVyIGNsayBkcml2ZXIgZm9yIENQVSdzIFBM
+TC4NCsKgIMKgVGh1cyBhY3Rpbmcgb24gUExMIHJlZ2lzdGVycyByaWdodCBpbiBwbGFjZSB3YXMg
+dGhlIG9ubHkgdGhpbmcgd2Ugd2VyZSBhYmxlDQrCoCDCoHRvIGRvLiBOb3cgd2l0aCBpbnRyb2R1
+Y3Rpb24gb2Ygbm9ybWFsIGNsayBkcml2ZXINCsKgIMKgKHNlZcKgZHJpdmVycy9jbGsvYXhzMTB4
+L3BsbF9jbG9jay5jIGluIGxpbnV4LW5leHQpIHdlJ2QgbGlrZSB0byB1dGlsaXplDQrCoCDCoGl0
+IGFuZCBoYXZlIGEgY2xlYW5lciBhbmQgbW9yZSB1bml2ZXJzYWwgc29sdXRpb24gdG8gdGhlIHBy
+b2JsZW0uDQoNCsKgIMKgVGhhdCdzIGhvdyBpdCBjb3VsZCBiZSBkb25lIC3CoGh0dHA6Ly9wYXRj
+aHdvcmsub3psYWJzLm9yZy9wYXRjaC84MDEyNDAvDQrCoCDCoEJhc2ljYWxseSBpbiBhcmNoaXRl
+Y3R1cmUncyB0aW1lX2luaXQoKSB3ZSBjaGVjayBpZiB0aGVyZSdzIGV4cGxpY2l0bHkNCsKgIMKg
+c3BlY2lmaWVkICJjbG9jay1mcmVxdWVuY3kiIHBhcmFtZXRlciBpbiBjcHUncyBub2RlIGluIERl
+dmljZSBUcmVlIGFuZA0KwqAgwqBpZiB0aGVyZSdzIG9uZSB3ZSBzZXQgaXQgdmlhIGp1c3QgaW5z
+dGFudGlhdGVkIGNsayBkcml2ZXIuDQoNCldlIG1heSBpbmRlZWQgcHJvY2VlZCB3aXRoIG1lbnRp
+b25lZCBzb2x1dGlvbiBmb3IgQVJDIGJ1dCBpZiB0aGF0IG1ha2VzDQpzZW5zZSBmb3Igc29tZWJv
+ZHkgZWxzZSBpdCBtaWdodCB3b3J0aCBnZXR0aW5nIHNvbWV0aGluZyBzaW1pbGFyIGluIGdlbmVy
+aWMNCmluaXQgY29kZS4gQW55IHRob3VnaHRzPw0KDQpBbGwgY29tbWVudHMgYW5kIHN1Z2dlc3Rp
+b25zIGFyZSBtb3JlIHRoYW4gd2VsY29tZS4NCg0KLUFsZXhleQ==
