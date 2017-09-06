@@ -1,94 +1,102 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: Setting CPU clock frequency on early boot
-Date: Tue, 5 Sep 2017 16:40:17 -0700
-Message-ID: <b8f7f407-303a-2f3c-1a16-bfb385204930@synopsys.com>
-References: <1504625867.32565.34.camel@synopsys.com>
- <CAL_JsqJ7c-raBnb0U+hL+hka7zN3XosX0pU1Sswoq16nbRFb+g@mail.gmail.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [tip:locking/core] locking/refcount: Create unchecked atomic_t
+ implementation
+Date: Wed, 6 Sep 2017 10:17:50 +0200
+Message-ID: <20170906081750.sjtpodtoh56fgr4o@hirez.programming.kicks-ass.net>
+References: <20170621200026.GA115679@beast>
+ <tip-fd25d19f6b8da315332bb75936605fb45d3ea981@git.kernel.org>
+ <20170904123724.5trepllnd25r4uyt@hirez.programming.kicks-ass.net>
+ <20170904173444.GA7233@avx2>
+ <20170904193643.GC17526@worktop.programming.kicks-ass.net>
+ <20170905181536.GA7482@avx2>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-clk-owner@vger.kernel.org>
-In-Reply-To: <CAL_JsqJ7c-raBnb0U+hL+hka7zN3XosX0pU1Sswoq16nbRFb+g@mail.gmail.com>
-Content-Language: en-US
-Sender: linux-clk-owner@vger.kernel.org
-To: Rob Herring <robh@kernel.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "mturquette@baylibre.com" <mturquette@baylibre.com>, "sboyd@codeaurora.org" <sboyd@codeaurora.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "linux-clk@vger.kernel.org" <linux-clk@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20170905181536.GA7482@avx2>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Alexey Dobriyan <adobriyan@gmail.com>
+Cc: davem@davemloft.net, arnd@arndb.de, manfred@colorfullife.com, riel@redhat.com, hpa@zytor.com, ebiggers3@gmail.com, elena.reshetova@intel.com, keescook@chromium.org, dwindsor@gmail.com, mingo@kernel.org, jannh@google.com, serge@hallyn.com, gregkh@linuxfoundation.org, ebiederm@xmission.com, ishkamiel@gmail.com, tglx@linutronix.de, hch@infradead.org, jpoimboe@redhat.com, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, dave@stgolabs.net, linux-arch@vger.kernel.org, James.Bottomley@hansenpartnership.com, linux-tip-commits@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 09/05/2017 03:04 PM, Rob Herring wrote:
-> On Tue, Sep 5, 2017 at 10:37 AM, Alexey Brodkin
-> <Alexey.Brodkin@synopsys.com> wrote:
->> Hello,
->>
->> I'd like to get some feedback on our idea as well as check
->> if somebody faces similar situations and if so what would be the best
->> way to implement some generic solution that suits everyone.
->>
->> So that's our problem:
->> 1. On power-on hardware might start clocking CPU with either
->>     too high frequency (such that CPU may get stuck at some point)
->>     or too low frequency.
->>
->>     That all sounds stupid but let me elaborate a bit here.
->>     I'm talking about FPGA-based devboards firmware for which
->>     (here I mean just image loaded in FPGA with CPU implementation
->>     but not some software yet) might not be stable or be even experimental.
->>
->>     For example we may deal with dual-core or quad-core designs.
->>     Former might be OK running @100MHz and latter is only usable
->>     @75MHz and lower. The simplest solution might be to use some safe
->>     value before something like CPUfreq kicks in. But we don't yet have
->>     CPUfreq for ARC (we do plan to get it working sometime soon)
+On Tue, Sep 05, 2017 at 09:15:36PM +0300, Alexey Dobriyan wrote:
 
-But even if we had cpufreq driver going - I don't think it would be usable for 
-doing large freq switches, since in current implementations of SoCs (or fpga), the 
-clk/pll etc driving core (and all timers etc) are not fixed like say ARM. And as 
-discussed before (and pointed to by tglx), timer subsys can't tolerate (on 
-purpose) such large drifts.
+> It is not a policy, just a "grassroot" movement to give people good
+> example and wait until someone is annoyed enough to mass convert
+> everything. -)
 
->> which
->>     means simple change of CPU frequency once time-keeping infrastructure
->>     was brought-up is not an option... I.e. we'll end up with the system running
->>     much slower compared what could have been possible.
->>
->> 2. Up until now we used to do dirty hacks in early platform init code.
->>     Namely (see axs103_early_init() in arch/arc/plat-axs10x/axs10x.c):
->>      1) Read CPU's "clock-frequency" from .dtb (remember we're on very early
->>         boot stage still so no expanded DevTree yet exists).
->>      2) Check how many cores we have and which freq is usable
->>      3) Update PLL settings right in place if new freq != existing in PLL.
->>
->>     Even though it is proven to work but with more platforms in the pipeline
->>     we'll need to copy-paste pretty much the same stuff across all affected
->>     plats. Which is not nice.
->>
->>     Moreover back in the day we didn't have a proper clk driver for CPU's PLL.
->>     Thus acting on PLL registers right in place was the only thing we were able
->>     to do. Now with introduction of normal clk driver
->>     (see drivers/clk/axs10x/pll_clock.c in linux-next) we'd like to utilize
->>     it and have a cleaner and more universal solution to the problem.
->>
->>     That's how it could be done - https://urldefense.proofpoint.com/v2/url?u=http-3A__patchwork.ozlabs.org_patch_801240_&d=DwICAg&c=DPL6_X_6JkXFx7AXWqB0tg&r=c14YS-cH-kdhTOW89KozFhBtBJgs1zXscZojEZQ0THs&m=wuUcceY8Cz5EhVklWLAgj7RzU3rvpanujvQ3qTJK0Gw&s=N5IBjq_eCyOf_GRkZskzqGhczBPTbxLJW_MUfauKvuA&e=
->>     Basically in architecture's time_init() we check if there's explicitly
->>     specified "clock-frequency" parameter in cpu's node in Device Tree and
->>     if there's one we set it via just instantiated clk driver.
-> The patch looks generally okay. I'd move all the logic to the clock
-> driver unless perhaps how to set the cpu freq is defined by the
-> architecture.
+Well, its a mess and I cleaned up the outliers.
 
-But the above patch is clk driver agnostic and it would have to be added each clk 
-driver (axs10x, hsdk - both in linux-next) ?
-Also note that this code is using a new / adhoc DT binding cpu-freq in cou node to 
-do the override - is that acceptable ?
+> Worked for fs/proc/Makefile .
 
--Vineet
+No, that file is still a mess; the below is what it would take to clean
+up according to your preferred pattern.
 
->
->> We may indeed proceed with mentioned solution for ARC but if that makes
->> sense for somebody else it might worth getting something similar in generic
->> init code. Any thoughts?
-> If any ARM platforms are doing something similar, then it's done in
-> their clock driver via of_clk_init. Or they just wait for cpufreq to
-> kick in and expect the bootloader has initialized things to a
-> reasonable frequency.
+So go spend an hour or so and write a script that cleans this all up and
+convince Linus to run it. Otherwise I really can't be arsed with this
+nonsense.
 
+---
+diff --git a/fs/proc/Makefile b/fs/proc/Makefile
+index 12c6922c913c..8c19ab50eb7f 100644
+--- a/fs/proc/Makefile
++++ b/fs/proc/Makefile
+@@ -5,29 +5,35 @@
+ obj-y   += proc.o
+ 
+ CFLAGS_task_mmu.o	+= $(call cc-option,-Wno-override-init,)
++
+ proc-y			:= nommu.o task_nommu.o
+ proc-$(CONFIG_MMU)	:= task_mmu.o
+ 
+-proc-y       += inode.o root.o base.o generic.o array.o \
+-		fd.o
+-proc-$(CONFIG_TTY)      += proc_tty.o
+-proc-y	+= cmdline.o
+-proc-y	+= consoles.o
+-proc-y	+= cpuinfo.o
+-proc-y	+= devices.o
+-proc-y	+= interrupts.o
+-proc-y	+= loadavg.o
+-proc-y	+= meminfo.o
+-proc-y	+= stat.o
+-proc-y	+= uptime.o
+-proc-y	+= version.o
+-proc-y	+= softirqs.o
+-proc-y	+= namespaces.o
+-proc-y	+= self.o
+-proc-y	+= thread_self.o
+-proc-$(CONFIG_PROC_SYSCTL)	+= proc_sysctl.o
+-proc-$(CONFIG_NET)		+= proc_net.o
+-proc-$(CONFIG_PROC_KCORE)	+= kcore.o
+-proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
+-proc-$(CONFIG_PRINTK)	+= kmsg.o
+-proc-$(CONFIG_PROC_PAGE_MONITOR)	+= page.o
++proc-y += array.o
++proc-y += base.o
++proc-y += cmdline.o
++proc-y += consoles.o
++proc-y += cpuinfo.o
++proc-y += devices.o
++proc-y += fd.o
++proc-y += generic.o
++proc-y += inode.o
++proc-y += interrupts.o
++proc-y += loadavg.o
++proc-y += meminfo.o
++proc-y += namespaces.o
++proc-y += root.o
++proc-y += self.o
++proc-y += softirqs.o
++proc-y += stat.o
++proc-y += thread_self.o
++proc-y += uptime.o
++proc-y += version.o
++
++PROC-$(config_net)		+= PROC_NET.O
++PROC-$(config_printk)		+= KMSG.O
++PROC-$(config_proc_kcore)	+= KCORE.O
++PROC-$(config_proc_page_monitor)+= PAGE.O
++PROC-$(config_proc_sysctl)	+= PROC_SYSCTL.O
++PROC-$(config_proc_vmcore)	+= VMCORE.O
++PROC-$(config_tty)		+= PROC_TTY.O
