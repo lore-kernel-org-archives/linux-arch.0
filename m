@@ -1,102 +1,120 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [tip:locking/core] locking/refcount: Create unchecked atomic_t
- implementation
-Date: Wed, 6 Sep 2017 10:17:50 +0200
-Message-ID: <20170906081750.sjtpodtoh56fgr4o@hirez.programming.kicks-ass.net>
-References: <20170621200026.GA115679@beast>
- <tip-fd25d19f6b8da315332bb75936605fb45d3ea981@git.kernel.org>
- <20170904123724.5trepllnd25r4uyt@hirez.programming.kicks-ass.net>
- <20170904173444.GA7233@avx2>
- <20170904193643.GC17526@worktop.programming.kicks-ass.net>
- <20170905181536.GA7482@avx2>
+From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Subject: Re: Setting CPU clock frequency on early boot
+Date: Wed, 6 Sep 2017 13:51:22 +0000
+Message-ID: <1504705881.3829.19.camel@synopsys.com>
+References: <1504625867.32565.34.camel@synopsys.com>
+         <CAL_JsqJ7c-raBnb0U+hL+hka7zN3XosX0pU1Sswoq16nbRFb+g@mail.gmail.com>
+         <b8f7f407-303a-2f3c-1a16-bfb385204930@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20170905181536.GA7482@avx2>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Alexey Dobriyan <adobriyan@gmail.com>
-Cc: davem@davemloft.net, arnd@arndb.de, manfred@colorfullife.com, riel@redhat.com, hpa@zytor.com, ebiggers3@gmail.com, elena.reshetova@intel.com, keescook@chromium.org, dwindsor@gmail.com, mingo@kernel.org, jannh@google.com, serge@hallyn.com, gregkh@linuxfoundation.org, ebiederm@xmission.com, ishkamiel@gmail.com, tglx@linutronix.de, hch@infradead.org, jpoimboe@redhat.com, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, dave@stgolabs.net, linux-arch@vger.kernel.org, James.Bottomley@hansenpartnership.com, linux-tip-commits@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtprelay4.synopsys.com ([198.182.47.9]:55276 "EHLO
+        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754633AbdIFNvm (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 6 Sep 2017 09:51:42 -0400
+In-Reply-To: <b8f7f407-303a-2f3c-1a16-bfb385204930@synopsys.com>
+Content-Language: en-US
+Content-ID: <2AA9E5E8E4F6744F9F38B2092299F103@internal.synopsys.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "robh@kernel.org" <robh@kernel.org>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: "linux-clk@vger.kernel.org" <linux-clk@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "mturquette@baylibre.com" <mturquette@baylibre.com>, "sboyd@codeaurora.org" <sboyd@codeaurora.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
 
-On Tue, Sep 05, 2017 at 09:15:36PM +0300, Alexey Dobriyan wrote:
-
-> It is not a policy, just a "grassroot" movement to give people good
-> example and wait until someone is annoyed enough to mass convert
-> everything. -)
-
-Well, its a mess and I cleaned up the outliers.
-
-> Worked for fs/proc/Makefile .
-
-No, that file is still a mess; the below is what it would take to clean
-up according to your preferred pattern.
-
-So go spend an hour or so and write a script that cleans this all up and
-convince Linus to run it. Otherwise I really can't be arsed with this
-nonsense.
-
----
-diff --git a/fs/proc/Makefile b/fs/proc/Makefile
-index 12c6922c913c..8c19ab50eb7f 100644
---- a/fs/proc/Makefile
-+++ b/fs/proc/Makefile
-@@ -5,29 +5,35 @@
- obj-y   += proc.o
- 
- CFLAGS_task_mmu.o	+= $(call cc-option,-Wno-override-init,)
-+
- proc-y			:= nommu.o task_nommu.o
- proc-$(CONFIG_MMU)	:= task_mmu.o
- 
--proc-y       += inode.o root.o base.o generic.o array.o \
--		fd.o
--proc-$(CONFIG_TTY)      += proc_tty.o
--proc-y	+= cmdline.o
--proc-y	+= consoles.o
--proc-y	+= cpuinfo.o
--proc-y	+= devices.o
--proc-y	+= interrupts.o
--proc-y	+= loadavg.o
--proc-y	+= meminfo.o
--proc-y	+= stat.o
--proc-y	+= uptime.o
--proc-y	+= version.o
--proc-y	+= softirqs.o
--proc-y	+= namespaces.o
--proc-y	+= self.o
--proc-y	+= thread_self.o
--proc-$(CONFIG_PROC_SYSCTL)	+= proc_sysctl.o
--proc-$(CONFIG_NET)		+= proc_net.o
--proc-$(CONFIG_PROC_KCORE)	+= kcore.o
--proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
--proc-$(CONFIG_PRINTK)	+= kmsg.o
--proc-$(CONFIG_PROC_PAGE_MONITOR)	+= page.o
-+proc-y += array.o
-+proc-y += base.o
-+proc-y += cmdline.o
-+proc-y += consoles.o
-+proc-y += cpuinfo.o
-+proc-y += devices.o
-+proc-y += fd.o
-+proc-y += generic.o
-+proc-y += inode.o
-+proc-y += interrupts.o
-+proc-y += loadavg.o
-+proc-y += meminfo.o
-+proc-y += namespaces.o
-+proc-y += root.o
-+proc-y += self.o
-+proc-y += softirqs.o
-+proc-y += stat.o
-+proc-y += thread_self.o
-+proc-y += uptime.o
-+proc-y += version.o
-+
-+PROC-$(config_net)		+= PROC_NET.O
-+PROC-$(config_printk)		+= KMSG.O
-+PROC-$(config_proc_kcore)	+= KCORE.O
-+PROC-$(config_proc_page_monitor)+= PAGE.O
-+PROC-$(config_proc_sysctl)	+= PROC_SYSCTL.O
-+PROC-$(config_proc_vmcore)	+= VMCORE.O
-+PROC-$(config_tty)		+= PROC_TTY.O
+SGkgVmluZWV0LCBSb2IsDQoNCk9uIFR1ZSwgMjAxNy0wOS0wNSBhdCAxNjo0MCAtMDcwMCwgVmlu
+ZWV0IEd1cHRhIHdyb3RlOg0KPiBPbiAwOS8wNS8yMDE3IDAzOjA0IFBNLCBSb2IgSGVycmluZyB3
+cm90ZToNCj4gPiANCj4gPiBPbiBUdWUsIFNlcCA1LCAyMDE3IGF0IDEwOjM3IEFNLCBBbGV4ZXkg
+QnJvZGtpbg0KPiA+IDxBbGV4ZXkuQnJvZGtpbkBzeW5vcHN5cy5jb20+IHdyb3RlOg0KPiA+ID4g
+DQo+ID4gPiBIZWxsbywNCj4gPiA+IA0KPiA+ID4gSSdkIGxpa2UgdG8gZ2V0IHNvbWUgZmVlZGJh
+Y2sgb24gb3VyIGlkZWEgYXMgd2VsbCBhcyBjaGVjaw0KPiA+ID4gaWYgc29tZWJvZHkgZmFjZXMg
+c2ltaWxhciBzaXR1YXRpb25zIGFuZCBpZiBzbyB3aGF0IHdvdWxkIGJlIHRoZSBiZXN0DQo+ID4g
+PiB3YXkgdG8gaW1wbGVtZW50IHNvbWUgZ2VuZXJpYyBzb2x1dGlvbiB0aGF0IHN1aXRzIGV2ZXJ5
+b25lLg0KPiA+ID4gDQo+ID4gPiBTbyB0aGF0J3Mgb3VyIHByb2JsZW06DQo+ID4gPiAxLiBPbiBw
+b3dlci1vbiBoYXJkd2FyZSBtaWdodCBzdGFydCBjbG9ja2luZyBDUFUgd2l0aCBlaXRoZXINCj4g
+PiA+IMKgwqDCoMKgdG9vIGhpZ2ggZnJlcXVlbmN5IChzdWNoIHRoYXQgQ1BVIG1heSBnZXQgc3R1
+Y2sgYXQgc29tZSBwb2ludCkNCj4gPiA+IMKgwqDCoMKgb3IgdG9vIGxvdyBmcmVxdWVuY3kuDQo+
+ID4gPiANCj4gPiA+IMKgwqDCoMKgVGhhdCBhbGwgc291bmRzIHN0dXBpZCBidXQgbGV0IG1lIGVs
+YWJvcmF0ZSBhIGJpdCBoZXJlLg0KPiA+ID4gwqDCoMKgwqBJJ20gdGFsa2luZyBhYm91dCBGUEdB
+LWJhc2VkIGRldmJvYXJkcyBmaXJtd2FyZSBmb3Igd2hpY2gNCj4gPiA+IMKgwqDCoMKgKGhlcmUg
+SSBtZWFuIGp1c3QgaW1hZ2UgbG9hZGVkIGluIEZQR0Egd2l0aCBDUFUgaW1wbGVtZW50YXRpb24N
+Cj4gPiA+IMKgwqDCoMKgYnV0IG5vdCBzb21lIHNvZnR3YXJlIHlldCkgbWlnaHQgbm90IGJlIHN0
+YWJsZSBvciBiZSBldmVuIGV4cGVyaW1lbnRhbC4NCj4gPiA+IA0KPiA+ID4gwqDCoMKgwqBGb3Ig
+ZXhhbXBsZSB3ZSBtYXkgZGVhbCB3aXRoIGR1YWwtY29yZSBvciBxdWFkLWNvcmUgZGVzaWducy4N
+Cj4gPiA+IMKgwqDCoMKgRm9ybWVyIG1pZ2h0IGJlIE9LIHJ1bm5pbmcgQDEwME1IeiBhbmQgbGF0
+dGVyIGlzIG9ubHkgdXNhYmxlDQo+ID4gPiDCoMKgwqDCoEA3NU1IeiBhbmQgbG93ZXIuIFRoZSBz
+aW1wbGVzdCBzb2x1dGlvbiBtaWdodCBiZSB0byB1c2Ugc29tZSBzYWZlDQo+ID4gPiDCoMKgwqDC
+oHZhbHVlIGJlZm9yZSBzb21ldGhpbmcgbGlrZSBDUFVmcmVxIGtpY2tzIGluLiBCdXQgd2UgZG9u
+J3QgeWV0IGhhdmUNCj4gPiA+IMKgwqDCoMKgQ1BVZnJlcSBmb3IgQVJDICh3ZSBkbyBwbGFuIHRv
+IGdldCBpdCB3b3JraW5nIHNvbWV0aW1lIHNvb24pDQo+IA0KPiBCdXQgZXZlbiBpZiB3ZSBoYWQg
+Y3B1ZnJlcSBkcml2ZXIgZ29pbmcgLSBJIGRvbid0IHRoaW5rIGl0IHdvdWxkIGJlIHVzYWJsZSBm
+b3LCoA0KPiBkb2luZyBsYXJnZSBmcmVxIHN3aXRjaGVzLCBzaW5jZSBpbiBjdXJyZW50IGltcGxl
+bWVudGF0aW9ucyBvZiBTb0NzIChvciBmcGdhKSwgdGhlwqANCj4gY2xrL3BsbCBldGMgZHJpdmlu
+ZyBjb3JlIChhbmQgYWxsIHRpbWVycyBldGMpIGFyZSBub3QgZml4ZWQgbGlrZSBzYXkgQVJNLiBB
+bmQgYXPCoA0KPiBkaXNjdXNzZWQgYmVmb3JlIChhbmQgcG9pbnRlZCB0byBieSB0Z2x4KSwgdGlt
+ZXIgc3Vic3lzIGNhbid0IHRvbGVyYXRlIChvbsKgDQo+IHB1cnBvc2UpIHN1Y2ggbGFyZ2UgZHJp
+ZnRzLg0KDQpFc3NlbnRpYWxseSBjcHVmcmVxIG9ubHkgbWFrZXMgc2Vuc2UgZm9yICJjb21wYXRp
+YmxlIiBzeXN0ZW1zIGFuZCB1bmZvcnR1bmF0ZWx5DQptb3N0IG9mIG91ciBjdXJyZW50IGJvYXJk
+cyBhcmUgbm90IGNhcGFibGUgZHVlIHRvIG1pc3NpbmcgY29uc3RhbnQgW2RlY291cGxlZCBmcm9t
+DQpDUFUgZnJlcXVlbmN5XSBjbG9jayBzb3VyY2UuIEJ1dCBsb29raW5nIGZvcndhcmQgd2UgYXJl
+IHBsYW5uaW5nIHRvIGltcHJvdmUgb24gdGhhdA0Kc28gdGhhdCBob3BlZnVsbHkgZXZlbiBvdXIg
+RlBHQS1iYXNlZCBib2FyZHMgd2lsbCBiZSB1c2FibGUgd2l0aCBjcHVmcmVxLg0KDQo+ID4gPiB3
+aGljaA0KPiA+ID4gwqDCoMKgwqBtZWFucyBzaW1wbGUgY2hhbmdlIG9mIENQVSBmcmVxdWVuY3kg
+b25jZSB0aW1lLWtlZXBpbmcgaW5mcmFzdHJ1Y3R1cmUNCj4gPiA+IMKgwqDCoMKgd2FzIGJyb3Vn
+aHQtdXAgaXMgbm90IGFuIG9wdGlvbi4uLiBJLmUuIHdlJ2xsIGVuZCB1cCB3aXRoIHRoZSBzeXN0
+ZW0gcnVubmluZw0KPiA+ID4gwqDCoMKgwqBtdWNoIHNsb3dlciBjb21wYXJlZCB3aGF0IGNvdWxk
+IGhhdmUgYmVlbiBwb3NzaWJsZS4NCj4gPiA+IA0KPiA+ID4gMi4gVXAgdW50aWwgbm93IHdlIHVz
+ZWQgdG8gZG8gZGlydHkgaGFja3MgaW4gZWFybHkgcGxhdGZvcm0gaW5pdCBjb2RlLg0KPiA+ID4g
+wqDCoMKgwqBOYW1lbHkgKHNlZSBheHMxMDNfZWFybHlfaW5pdCgpIGluIGFyY2gvYXJjL3BsYXQt
+YXhzMTB4L2F4czEweC5jKToNCj4gPiA+IMKgwqDCoMKgwqAxKSBSZWFkIENQVSdzICJjbG9jay1m
+cmVxdWVuY3kiIGZyb20gLmR0YiAocmVtZW1iZXIgd2UncmUgb24gdmVyeSBlYXJseQ0KPiA+ID4g
+wqDCoMKgwqDCoMKgwqDCoGJvb3Qgc3RhZ2Ugc3RpbGwgc28gbm8gZXhwYW5kZWQgRGV2VHJlZSB5
+ZXQgZXhpc3RzKS4NCj4gPiA+IMKgwqDCoMKgwqAyKSBDaGVjayBob3cgbWFueSBjb3JlcyB3ZSBo
+YXZlIGFuZCB3aGljaCBmcmVxIGlzIHVzYWJsZQ0KPiA+ID4gwqDCoMKgwqDCoDMpIFVwZGF0ZSBQ
+TEwgc2V0dGluZ3MgcmlnaHQgaW4gcGxhY2UgaWYgbmV3IGZyZXEgIT0gZXhpc3RpbmcgaW4gUExM
+Lg0KPiA+ID4gDQo+ID4gPiDCoMKgwqDCoEV2ZW4gdGhvdWdoIGl0IGlzIHByb3ZlbiB0byB3b3Jr
+IGJ1dCB3aXRoIG1vcmUgcGxhdGZvcm1zIGluIHRoZSBwaXBlbGluZQ0KPiA+ID4gwqDCoMKgwqB3
+ZSdsbCBuZWVkIHRvIGNvcHktcGFzdGUgcHJldHR5IG11Y2ggdGhlIHNhbWUgc3R1ZmYgYWNyb3Nz
+IGFsbCBhZmZlY3RlZA0KPiA+ID4gwqDCoMKgwqBwbGF0cy4gV2hpY2ggaXMgbm90IG5pY2UuDQo+
+ID4gPiANCj4gPiA+IMKgwqDCoMKgTW9yZW92ZXIgYmFjayBpbiB0aGUgZGF5IHdlIGRpZG4ndCBo
+YXZlIGEgcHJvcGVyIGNsayBkcml2ZXIgZm9yIENQVSdzIFBMTC4NCj4gPiA+IMKgwqDCoMKgVGh1
+cyBhY3Rpbmcgb24gUExMIHJlZ2lzdGVycyByaWdodCBpbiBwbGFjZSB3YXMgdGhlIG9ubHkgdGhp
+bmcgd2Ugd2VyZSBhYmxlDQo+ID4gPiDCoMKgwqDCoHRvIGRvLiBOb3cgd2l0aCBpbnRyb2R1Y3Rp
+b24gb2Ygbm9ybWFsIGNsayBkcml2ZXINCj4gPiA+IMKgwqDCoMKgKHNlZSBkcml2ZXJzL2Nsay9h
+eHMxMHgvcGxsX2Nsb2NrLmMgaW4gbGludXgtbmV4dCkgd2UnZCBsaWtlIHRvIHV0aWxpemUNCj4g
+PiA+IMKgwqDCoMKgaXQgYW5kIGhhdmUgYSBjbGVhbmVyIGFuZCBtb3JlIHVuaXZlcnNhbCBzb2x1
+dGlvbiB0byB0aGUgcHJvYmxlbS4NCj4gPiA+IA0KPiA+ID4gwqDCoMKgwqBUaGF0J3MgaG93IGl0
+IGNvdWxkIGJlIGRvbmUgLSBodHRwczovL3VybGRlZmVuc2UucHJvb2Zwb2ludC5jb20vdjIvdXJs
+P3U9aHR0cC0zQV9fcGF0Y2h3b3JrLm96bGFicy5vcmdfcGF0Y2hfODAxMjQwXyZkPUR3SUNBZyZj
+PURQTDZfWF82SmtYRg0KPiA+ID4geDdBWFdxQjB0ZyZyPWMxNFlTLWNILQ0KPiA+ID4ga2RoVE9X
+ODlLb3pGaEJ0QkpnczF6WHNjWm9qRVpRMFRIcyZtPXd1VWNjZVk4Q3o1RWhWa2xXTEFnajdSelUz
+cnZwYW51anZRM3FUSkswR3cmcz1ONUlCanFfZUN5T2ZfR1JrWnNrenFHaGN6QlBUYnhMSldfTVVm
+YXVLdnVBJmU9DQo+ID4gPiDCoMKgwqDCoEJhc2ljYWxseSBpbiBhcmNoaXRlY3R1cmUncyB0aW1l
+X2luaXQoKSB3ZSBjaGVjayBpZiB0aGVyZSdzIGV4cGxpY2l0bHkNCj4gPiA+IMKgwqDCoMKgc3Bl
+Y2lmaWVkICJjbG9jay1mcmVxdWVuY3kiIHBhcmFtZXRlciBpbiBjcHUncyBub2RlIGluIERldmlj
+ZSBUcmVlIGFuZA0KPiA+ID4gwqDCoMKgwqBpZiB0aGVyZSdzIG9uZSB3ZSBzZXQgaXQgdmlhIGp1
+c3QgaW5zdGFudGlhdGVkIGNsayBkcml2ZXIuDQo+ID4gVGhlIHBhdGNoIGxvb2tzIGdlbmVyYWxs
+eSBva2F5LiBJJ2QgbW92ZSBhbGwgdGhlIGxvZ2ljIHRvIHRoZSBjbG9jaw0KPiA+IGRyaXZlciB1
+bmxlc3MgcGVyaGFwcyBob3cgdG8gc2V0IHRoZSBjcHUgZnJlcSBpcyBkZWZpbmVkIGJ5IHRoZQ0K
+PiA+IGFyY2hpdGVjdHVyZS4NCg0KWWVhaCwgdGhhdCdzIGFuIGludGVyZXN0aW5nIHF1ZXN0aW9u
+LiBXZSBtYXkgaW5kZWVkIG1vdmUgbW9yZSBzbWFydHMgdG8gdGhlIGNsb2NrIGRyaXZlcg0KYnV0
+Og0KwqAxLiBXZSdsbCBoYXZlIGR1cGxpY2F0ZSBjb2RlIGluIGRpZmZlcmVudCBjbG9jayBkcml2
+ZXJzLiBFdmVuIHRvZGF5IHRoYXQga2luZCBvZiBjbG9jaw0KwqAgwqAgc2V0dXAgaXMgYXBwbGlj
+YWJsZSB0byBBWFMxMHggYW5kIEhTREsgcGxhdGZvcm1zIChhbmQgdGhleSB1c2UgZGlmZmVyZW50
+IGNsb2NrIGRyaXZlcnMpLg0KDQrCoDIuIFByaW50IG91dCBvZiBDUFUgZnJlcXVlbmN5IHdoaWNo
+IGlzIHVzZWQgZHVyaW5nIGJvb3QgcHJvY2VzcyBmb3IgdXMgaXMgaW1wb3J0YW50IGFzIHdlbGwN
+CsKgIMKgIGVzcGVjaWFsbHkgZHVyaW5nIGJyaW5nLXVwIG9mIG5ldyBIVy4NCg0KwqAzLiBJZiB0
+aGVyZSdzIG5vIGRlZGljYXRlZCAiY2xvY2stZnJlcXVlbmN5IiBwYXJhbWV0ZXIgaW4gQ1BVIG5v
+ZGUgd2Ugd29uJ3QNCsKgIMKgIGNoYW5nZSBhbnl0aGluZyBzbyB0aGF0IG5vbi1hZmZlY3RlZCBw
+bGF0Zm9ybXMgd2lsbCBsaXZlIGFzIHRoZXkgdXNlZCB0by4NCg0KVGhhdCBzYWlkIElNSE8gcHJv
+cG9zZWQgaW1wbGVtZW50YXRpb24gaXMgd2hhdCB3ZSB3YW50IHRvIGtlcCBmb3Igbm93Lg0KDQo+
+IEFsc28gbm90ZSB0aGF0IHRoaXMgY29kZSBpcyB1c2luZyBhIG5ldyAvIGFkaG9jIERUIGJpbmRp
+bmcgY3B1LWZyZXEgaW4gY291IG5vZGUgdG/CoA0KPiBkbyB0aGUgb3ZlcnJpZGUgLSBpcyB0aGF0
+IGFjY2VwdGFibGUgPw0KDQpJIHRoaW5rIHdlJ2xsIHN3aXRjaCB0byBtb3JlIGNvbW1vbiAiY2xv
+Y2stZnJlcXVlbmN5IiBpbiB0aGUgbmV4dCByZXNwaW4uDQpJbmRlZWQgImNwdS1mcmVxIiBtaWdo
+dCBiZSBhIGJpdCBtaXNsZWFkaW5nLg0KDQpBbHNvIEZXSVcgb25lIE1JUFMgcGxhdGZvcm0gdXNl
+cyBzb21ldGhpbmcgc2ltaWxhcg0KKGV2ZW4gdGhvdWdoIHRoZWlyIHByb3BlcnR5IG5hbWUgaXMg
+bm90IHN0YW5kYXJkIGJ1dCAibWlwcy1ocHQtZnJlcXVlbmN5IiksDQpzZWXCoGh0dHA6Ly9lbGl4
+aXIuZnJlZS1lbGVjdHJvbnMuY29tL2xpbnV4L2xhdGVzdC9zb3VyY2UvYXJjaC9taXBzL2Jvb3Qv
+ZHRzL2JyY20vYmNtMzM2OC5kdHNpI0wxMA0KaHR0cDovL2VsaXhpci5mcmVlLWVsZWN0cm9ucy5j
+b20vbGludXgvbGF0ZXN0L3NvdXJjZS9hcmNoL21pcHMvYm1pcHMvc2V0dXAuYyNMMTQxLg0KDQot
+QWxleGV5
