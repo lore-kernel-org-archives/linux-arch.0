@@ -1,61 +1,132 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:37118 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1752478AbdIFXLX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 6 Sep 2017 19:11:23 -0400
-Received: from pps.filterd (m0098394.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id v86NBAPQ027760
-        for <linux-arch@vger.kernel.org>; Wed, 6 Sep 2017 19:11:22 -0400
-Received: from e14.ny.us.ibm.com (e14.ny.us.ibm.com [129.33.205.204])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2ctpfk09b6-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Wed, 06 Sep 2017 19:11:22 -0400
-Received: from localhost
-        by e14.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Wed, 6 Sep 2017 19:11:20 -0400
-Date: Wed, 6 Sep 2017 16:11:17 -0700
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: LPC Linux Kernel Memory Workshop next week!
-Reply-To: paulmck@linux.vnet.ibm.com
+Received: from mgwkm02.jp.fujitsu.com ([202.219.69.169]:10328 "EHLO
+        mgwkm02.jp.fujitsu.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752783AbdIGFXJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 7 Sep 2017 01:23:09 -0400
+Received: from g01jpfmpwkw02.exch.g01.fujitsu.local (g01jpfmpwkw02.exch.g01.fujitsu.local [10.0.193.56])
+        by kw-mxauth.gw.nic.fujitsu.com (Postfix) with ESMTP id 3D14DAC013F
+        for <linux-arch@vger.kernel.org>; Thu,  7 Sep 2017 14:11:48 +0900 (JST)
+From: "Okamoto, Takayuki" <tokamoto@jp.fujitsu.com>
+Subject: RE: [PATCH v2 19/28] arm64/sve: ptrace and ELF coredump support
+Date: Thu, 7 Sep 2017 05:11:45 +0000
+Message-ID: <5FA513F682BE7F4EAAB8EE035D5B08E44109EBDF@G01JPEXMBKW02>
+References: <1504198860-12951-1-git-send-email-Dave.Martin@arm.com>
+ <1504198860-12951-20-git-send-email-Dave.Martin@arm.com>
+ <5FA513F682BE7F4EAAB8EE035D5B08E44109DFE8@G01JPEXMBKW02>
+ <20170906181634.GF6321@e103592.cambridge.arm.com>
+In-Reply-To: <20170906181634.GF6321@e103592.cambridge.arm.com>
+Content-Language: ja-JP
+Content-Type: text/plain; charset="gb2312"
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Message-ID: <20170906231117.GA21582@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: j.alglave@ucl.ac.uk, luc.maranget@inria.fr, parri.andrea@gmail.com, stern@rowland.harvard.edu, will.deacon@arm.com, kstewart@linuxfoundation.org, dhaval.giani@gmail.com, rostedt@goodmis.org, josh@joshtriplett.org, longman@redhat.com, dave@stgolabs.net
-Message-ID: <20170906231117.FtrbkbLFtgMSMoB3jGj-OtYbz7fZguXi8S_I8_lrykY@z>
+To: 'Dave Martin' <Dave.Martin@arm.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "libc-alpha@sourceware.org" <libc-alpha@sourceware.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "gdb@sourceware.org" <gdb@sourceware.org>, Yao Qi <Yao.Qi@arm.com>, Alan Hayward <alan.hayward@arm.com>, Will Deacon <will.deacon@arm.com>, Oleg Nesterov <oleg@redhat.com>, Richard Sandiford <richard.sandiford@arm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, =?gb2312?B?QWxleCBCZW5uqKZl?= <alex.bennee@linaro.org>, "kvmarm@lists.cs.columbia.edu" <kvmarm@lists.cs.columbia.edu>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20170907051145.xmoYS_Ys_RkkLSSsZh84k7Y-kDOLzAHv5L4-_MSNZ-M@z>
 
-Hello!
-
-Linux Plumbers Conference is coming up soon, and with it the Linux Kernel
-Memory Model Workshop.  You will get the most out of this workshop if
-you install the memory-model tools ahead of time.  Don't get me wrong, we
-are of course happy to help people with this installation, but we would
-be even more happy to help people use the tools and the memory model!
-Plus, if you install ahead of time, you have less need to worry about
-the condition of the Internet connection during the event.  ;-)
-
-Here are the installation steps:
-
-Installing the memory model and related tools:
-1. Install ocaml v4.01.0 or better: http://caml.inria.fr/download.en.html
-   (Or, likely easier, install your distro's version)
-   a. But if you choose to build it yourself, do yourself a favor and read
-      -all- of Step 5 before starting, or you will miss the "make world.opt"
-      shortcut
-   b. In addition, recent versions of ocaml require opam (see "herd"
-      README from next step)
-2. Download and install "herd" tool: http://diy.inria.fr/sources/index.html
-3. Download and install memory model itself:
-   https://github.com/aparri/memory-model
-4. (Optional) Download litmus tests: https://github.com/paulmckrcu/litmus
-
-Steps 1 and 2 are the most time-consuming, and thus the most beneficial
-to complete ahead of time.
-
-Hope to see you there!
-
-							Thanx, Paul
+SGkgRGF2ZSwNCg0KVGhhbmsgeW91IGZvciB5b3VyIHJlcGx5Lg0KDQo+IFlv
+dXIgZml4IGxvb2tzIGNvcnJlY3QgYW5kIHNlZW1zIHRvIHdvcmsuICBGb3Ig
+c3R5bGlzdGljIHJlYXNvbnMsIEkgbWF5DQo+IHdyaXRlIGl0IGxpa2UgdGhp
+cyBpbnN0ZWFkLCBidXQgdGhlIGVmZmVjdCBzaG91bGQgYmUgdGhlIHNhbWU6
+DQo+IA0KPiAJaGVhZGVyLT5tYXhfdmwgPSBzdmVfbWF4X3ZsOw0KPiAJaWYg
+KFdBUk5fT04oIXN2ZV92bF92YWxpZChzdmVfbWF4X3ZsKSkNCj4gCQloZWFk
+ZXItPm1heF92bCA9IGhlYWRlci0+dmw7DQoNCkl0IGlzIGJldHRlciB0aGFu
+IG15IGZpeC4NClBsZWFzZSwgYXBwbHkgaXQgYXQgbmV4dCB2ZXJzaW9uLg0K
+DQpCZXN0IHJlZ2FyZHMsDQpUYWtheXVraSBPa2Ftb3RvDQoNCj4gLS0tLS1P
+cmlnaW5hbCBNZXNzYWdlLS0tLS0NCj4gRnJvbTogbGludXgtYXJtLWtlcm5l
+bA0KPiBbbWFpbHRvOmxpbnV4LWFybS1rZXJuZWwtYm91bmNlc0BsaXN0cy5p
+bmZyYWRlYWQub3JnXSBPbiBCZWhhbGYgT2YgRGF2ZQ0KPiBNYXJ0aW4NCj4g
+U2VudDogVGh1cnNkYXksIFNlcHRlbWJlciA3LCAyMDE3IDM6MTcgQU0NCj4g
+VG86IE9rYW1vdG8sIFRha2F5dWtpIDx0b2thbW90b0BqcC5mdWppdHN1LmNv
+bT4NCj4gQ2M6IGxpbnV4LWFyY2hAdmdlci5rZXJuZWwub3JnOyBsaWJjLWFs
+cGhhQHNvdXJjZXdhcmUub3JnOyBBcmQNCj4gQmllc2hldXZlbCA8YXJkLmJp
+ZXNoZXV2ZWxAbGluYXJvLm9yZz47IFN6YWJvbGNzIE5hZ3kNCj4gPHN6YWJv
+bGNzLm5hZ3lAYXJtLmNvbT47IGdkYkBzb3VyY2V3YXJlLm9yZzsgWWFvIFFp
+IDxZYW8uUWlAYXJtLmNvbT47DQo+IEFsYW4gSGF5d2FyZCA8YWxhbi5oYXl3
+YXJkQGFybS5jb20+OyBXaWxsIERlYWNvbiA8d2lsbC5kZWFjb25AYXJtLmNv
+bT47DQo+IE9sZWcgTmVzdGVyb3YgPG9sZWdAcmVkaGF0LmNvbT47IFJpY2hh
+cmQgU2FuZGlmb3JkDQo+IDxyaWNoYXJkLnNhbmRpZm9yZEBhcm0uY29tPjsg
+QWxleGFuZGVyIFZpcm8gPHZpcm9AemVuaXYubGludXgub3JnLnVrPjsNCj4g
+Q2F0YWxpbiBNYXJpbmFzIDxjYXRhbGluLm1hcmluYXNAYXJtLmNvbT47IEFs
+ZXggQmVubqimZQ0KPiA8YWxleC5iZW5uZWVAbGluYXJvLm9yZz47IGt2bWFy
+bUBsaXN0cy5jcy5jb2x1bWJpYS5lZHU7DQo+IGxpbnV4LWFybS1rZXJuZWxA
+bGlzdHMuaW5mcmFkZWFkLm9yZw0KPiBTdWJqZWN0OiBSZTogW1BBVENIIHYy
+IDE5LzI4XSBhcm02NC9zdmU6IHB0cmFjZSBhbmQgRUxGIGNvcmVkdW1wIHN1
+cHBvcnQNCj4gDQo+IE9uIFdlZCwgU2VwIDA2LCAyMDE3IGF0IDA0OjIxOjUw
+UE0gKzAwMDAsIE9rYW1vdG8sIFRha2F5dWtpIHdyb3RlOg0KPiA+IEhpIERh
+dmUsDQo+ID4NCj4gPiBJIGFtIGFuIGVuZ2luZWVyIG9mIHRoZSBwb3N0SyBj
+b21wdXRlciBmcm9tIEZ1aml0c3UuDQo+ID4NCj4gPiBXaGVuIEkgdHJpZWQg
+dG8gcmVhZCAibWF4X3ZsIiBieSBwdHJhY2Ugd2l0aCB0aGlzIHBhdGNoIG9u
+IG91ciBsb2NhbCBTVkUNCj4gPiBzaW11bGF0b3IsIGl0IHdhcyByZWFkIGFz
+IHplcm8uDQo+ID4gSSB0aGluayB0aGUgY2F1c2Ugb2YgdGhpcyBpbmNpZGVu
+dCBpcyB0aGF0ICJtYXhfdmwiIGlzIHNldCBhcyAiaGVhZGVyLT52bCINCj4g
+PiBvbmx5IG9uIHdhcm5pbmcgY2FzZSBpbiBzdmVfaW5pdF9oZWFkZXJfZnJv
+bV90YXNrKCkuDQo+ID4gIm1heF92bCIgc2hvdWxkIGJlIHNldCB1cCBhbHNv
+IG9uIG5vcm1hbCBjYXNlLCBsaWtlIHRoZSBmb2xsb3dpbmcgcGF0Y2guDQo+
+ID4NCj4gPg0KPiA+IC0tLSBhL2FyY2gvYXJtNjQva2VybmVsL3B0cmFjZS5j
+DQo+ID4gKysrIGIvYXJjaC9hcm02NC9rZXJuZWwvcHRyYWNlLmMNCj4gPiBA
+QCAtNzU1LDYgKzc1NSw4IEBAIHN0YXRpYyB2b2lkIHN2ZV9pbml0X2hlYWRl
+cl9mcm9tX3Rhc2soc3RydWN0DQo+IHVzZXJfc3ZlX2hlYWRlciAqaGVhZGVy
+LA0KPiA+DQo+ID4gICAgICAgICBpZiAoV0FSTl9PTighc3ZlX3ZsX3ZhbGlk
+KHN2ZV9tYXhfdmwpKSkNCj4gPiAgICAgICAgICAgICAgICAgaGVhZGVyLT5t
+YXhfdmwgPSBoZWFkZXItPnZsOw0KPiA+ICsgICAgICAgZWxzZQ0KPiA+ICsg
+ICAgICAgICAgICAgICBoZWFkZXItPm1heF92bCA9IHN2ZV9tYXhfdmw7DQo+
+ID4NCj4gPiAgICAgICAgIGhlYWRlci0+c2l6ZSA9IFNWRV9QVF9TSVpFKHZx
+LCBoZWFkZXItPmZsYWdzKTsNCj4gPiAgICAgICAgIGhlYWRlci0+bWF4X3Np
+emUgPQ0KPiBTVkVfUFRfU0laRShzdmVfdnFfZnJvbV92bChoZWFkZXItPm1h
+eF92bCksDQo+IA0KPiBIaSwgdGhhbmtzIGZvciByZXBvcnRpbmcgdGhpcy4N
+Cj4gDQo+IEl0IGxvb2tzIGxpa2UgYSByZWZhY3RvcmluZyBtaXN0YWtlIEkg
+bWFkZSB3aGlsZSByZW1vdmluZyBCVUdfT04oKXMsDQo+IHdoaWNoIEkgbWlz
+c2VkIGluIG15IHRlc3RpbmcuDQo+IA0KPiBZb3VyIGZpeCBsb29rcyBjb3Jy
+ZWN0IGFuZCBzZWVtcyB0byB3b3JrLiAgRm9yIHN0eWxpc3RpYyByZWFzb25z
+LCBJIG1heQ0KPiB3cml0ZSBpdCBsaWtlIHRoaXMgaW5zdGVhZCwgYnV0IHRo
+ZSBlZmZlY3Qgc2hvdWxkIGJlIHRoZSBzYW1lOg0KPiANCj4gCWhlYWRlci0+
+bWF4X3ZsID0gc3ZlX21heF92bDsNCj4gCWlmIChXQVJOX09OKCFzdmVfdmxf
+dmFsaWQoc3ZlX21heF92bCkpDQo+IAkJaGVhZGVyLT5tYXhfdmwgPSBoZWFk
+ZXItPnZsOw0KPiANCj4gQ2hlZXJzDQo+IC0tLURhdmUNCj4gDQo+ID4NCj4g
+Pg0KPiA+IEJlc3QgcmVnYXJkcywNCj4gPiBUYWtheXVraSBPa2Ftb3RvDQo+
+ID4NCj4gPiAtLS0tLU9yaWdpbmFsIE1lc3NhZ2UtLS0tLQ0KPiA+IEZyb206
+IGdkYi1vd25lckBzb3VyY2V3YXJlLm9yZyBbbWFpbHRvOmdkYi1vd25lckBz
+b3VyY2V3YXJlLm9yZ10gT24NCj4gQmVoYWxmIE9mIERhdmUgTWFydGluDQo+
+ID4gU2VudDogRnJpZGF5LCBTZXB0ZW1iZXIgMSwgMjAxNyAyOjAxIEFNDQo+
+ID4gVG86IGxpbnV4LWFybS1rZXJuZWxAbGlzdHMuaW5mcmFkZWFkLm9yZw0K
+PiA+IENjOiBDYXRhbGluIE1hcmluYXMgPGNhdGFsaW4ubWFyaW5hc0Bhcm0u
+Y29tPjsgV2lsbCBEZWFjb24NCj4gPHdpbGwuZGVhY29uQGFybS5jb20+OyBB
+cmQgQmllc2hldXZlbCA8YXJkLmJpZXNoZXV2ZWxAbGluYXJvLm9yZz47IEFs
+ZXgNCj4gQmVubqimZSA8YWxleC5iZW5uZWVAbGluYXJvLm9yZz47IFN6YWJv
+bGNzIE5hZ3kgPHN6YWJvbGNzLm5hZ3lAYXJtLmNvbT47DQo+IFJpY2hhcmQg
+U2FuZGlmb3JkIDxyaWNoYXJkLnNhbmRpZm9yZEBhcm0uY29tPjsNCj4ga3Zt
+YXJtQGxpc3RzLmNzLmNvbHVtYmlhLmVkdTsgbGliYy1hbHBoYUBzb3VyY2V3
+YXJlLm9yZzsNCj4gbGludXgtYXJjaEB2Z2VyLmtlcm5lbC5vcmc7IGdkYkBz
+b3VyY2V3YXJlLm9yZzsgQWxhbiBIYXl3YXJkDQo+IDxhbGFuLmhheXdhcmRA
+YXJtLmNvbT47IFlhbyBRaSA8WWFvLlFpQGFybS5jb20+OyBPbGVnIE5lc3Rl
+cm92DQo+IDxvbGVnQHJlZGhhdC5jb20+OyBBbGV4YW5kZXIgVmlybyA8dmly
+b0B6ZW5pdi5saW51eC5vcmcudWs+DQo+ID4gU3ViamVjdDogW1BBVENIIHYy
+IDE5LzI4XSBhcm02NC9zdmU6IHB0cmFjZSBhbmQgRUxGIGNvcmVkdW1wIHN1
+cHBvcnQNCj4gPg0KPiANCj4gWy4uLl0NCj4gDQo+ID4gQEAgLTcwMiw2ICs3
+MzcsMjEwIEBAIHN0YXRpYyBpbnQgc3lzdGVtX2NhbGxfc2V0KHN0cnVjdCB0
+YXNrX3N0cnVjdA0KPiAqdGFyZ2V0LA0KPiA+ICAJcmV0dXJuIHJldDsNCj4g
+PiAgfQ0KPiA+DQo+ID4gKyNpZmRlZiBDT05GSUdfQVJNNjRfU1ZFDQo+ID4g
+Kw0KPiA+ICtzdGF0aWMgdm9pZCBzdmVfaW5pdF9oZWFkZXJfZnJvbV90YXNr
+KHN0cnVjdCB1c2VyX3N2ZV9oZWFkZXIgKmhlYWRlciwNCj4gPiArCQkJCSAg
+ICAgIHN0cnVjdCB0YXNrX3N0cnVjdCAqdGFyZ2V0KQ0KPiA+ICt7DQo+ID4g
+Kwl1bnNpZ25lZCBpbnQgdnE7DQo+ID4gKw0KPiA+ICsJbWVtc2V0KGhlYWRl
+ciwgMCwgc2l6ZW9mKCpoZWFkZXIpKTsNCj4gPiArDQo+ID4gKwloZWFkZXIt
+PmZsYWdzID0gdGVzdF90c2tfdGhyZWFkX2ZsYWcodGFyZ2V0LCBUSUZfU1ZF
+KSA/DQo+ID4gKwkJU1ZFX1BUX1JFR1NfU1ZFIDogU1ZFX1BUX1JFR1NfRlBT
+SU1EOw0KPiA+ICsJaWYgKHRlc3RfdHNrX3RocmVhZF9mbGFnKHRhcmdldCwg
+VElGX1NWRV9WTF9JTkhFUklUKSkNCj4gPiArCQloZWFkZXItPmZsYWdzIHw9
+IFNWRV9QVF9WTF9JTkhFUklUOw0KPiA+ICsNCj4gPiArCWhlYWRlci0+dmwg
+PSB0YXJnZXQtPnRocmVhZC5zdmVfdmw7DQo+ID4gKwl2cSA9IHN2ZV92cV9m
+cm9tX3ZsKGhlYWRlci0+dmwpOw0KPiA+ICsNCj4gPiArCWlmIChXQVJOX09O
+KCFzdmVfdmxfdmFsaWQoc3ZlX21heF92bCkpKQ0KPiA+ICsJCWhlYWRlci0+
+bWF4X3ZsID0gaGVhZGVyLT52bDsNCj4gPiArDQo+ID4gKwloZWFkZXItPnNp
+emUgPSBTVkVfUFRfU0laRSh2cSwgaGVhZGVyLT5mbGFncyk7DQo+ID4gKwlo
+ZWFkZXItPm1heF9zaXplID0gU1ZFX1BUX1NJWkUoc3ZlX3ZxX2Zyb21fdmwo
+aGVhZGVyLT5tYXhfdmwpLA0KPiA+ICsJCQkJICAgICAgU1ZFX1BUX1JFR1Nf
+U1ZFKTsNCj4gPiArfQ0KPiANCj4gWy4uLl0NCj4gDQo+IF9fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fDQo+IGxpbnV4
+LWFybS1rZXJuZWwgbWFpbGluZyBsaXN0DQo+IGxpbnV4LWFybS1rZXJuZWxA
+bGlzdHMuaW5mcmFkZWFkLm9yZw0KPiBodHRwOi8vbGlzdHMuaW5mcmFkZWFk
+Lm9yZy9tYWlsbWFuL2xpc3RpbmZvL2xpbnV4LWFybS1rZXJuZWwNCg0K
