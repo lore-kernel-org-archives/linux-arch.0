@@ -1,47 +1,53 @@
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH v2 19/28] arm64/sve: ptrace and ELF coredump support
-Date: Fri, 8 Sep 2017 14:11:40 +0100
-Message-ID: <20170908131136.GG6321@e103592.cambridge.arm.com>
-References: <1504198860-12951-1-git-send-email-Dave.Martin@arm.com>
- <1504198860-12951-20-git-send-email-Dave.Martin@arm.com>
- <5FA513F682BE7F4EAAB8EE035D5B08E44109DFE8@G01JPEXMBKW02>
- <20170906181634.GF6321@e103592.cambridge.arm.com>
- <5FA513F682BE7F4EAAB8EE035D5B08E44109EBDF@G01JPEXMBKW02>
+From: Stafford Horne <shorne@gmail.com>
+Subject: Re: [PATCH] openrisc: add forward declaration for struct
+ vm_area_struct
+Date: Sat, 9 Sep 2017 00:29:11 +0900
+Message-ID: <20170908152911.GQ2609@lianli.shorne-pla.net>
+References: <201709080345.bk1IOlp7%fengguang.wu@intel.com>
+ <20170908082508.14325-1-tklauser@distanz.ch>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:40124 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1755778AbdIHNLq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 8 Sep 2017 09:11:46 -0400
+Received: from mail-pf0-f193.google.com ([209.85.192.193]:34580 "EHLO
+        mail-pf0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1755916AbdIHP3O (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Sep 2017 11:29:14 -0400
+Received: by mail-pf0-f193.google.com with SMTP id g65so1345988pfe.1
+        for <linux-arch@vger.kernel.org>; Fri, 08 Sep 2017 08:29:14 -0700 (PDT)
 Content-Disposition: inline
-In-Reply-To: <5FA513F682BE7F4EAAB8EE035D5B08E44109EBDF@G01JPEXMBKW02>
+In-Reply-To: <20170908082508.14325-1-tklauser@distanz.ch>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Okamoto, Takayuki" <tokamoto@jp.fujitsu.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "libc-alpha@sourceware.org" <libc-alpha@sourceware.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "gdb@sourceware.org" <gdb@sourceware.org>, Yao Qi <Yao.Qi@arm.com>, Will Deacon <will.deacon@arm.com>, Oleg Nesterov <oleg@redhat.com>, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, Richard Sandiford <richard.sandiford@arm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Alan Hayward <alan.hayward@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, "kvmarm@lists.cs.columbia.edu" <kvmarm@lists.cs.columbia.edu>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+To: Tobias Klauser <tklauser@distanz.ch>
+Cc: Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Arnd Bergmann <arnd@arndb.de>, openrisc@lists.librecores.org, linux-arch@vger.kernel.org, kbuild-all@01.org, kbuild test robot <lkp@intel.com>
 
-On Thu, Sep 07, 2017 at 05:11:45AM +0000, Okamoto, Takayuki wrote:
-> Hi Dave,
+On Fri, Sep 08, 2017 at 10:25:08AM +0200, Tobias Klauser wrote:
+> After removing linux/vmalloc.h from asm-generic/io.h, the following
+> warning occurs on openrisc:
 > 
-> Thank you for your reply.
-> 
-> > Your fix looks correct and seems to work.  For stylistic reasons, I may
-> > write it like this instead, but the effect should be the same:
-> > 
-> > 	header->max_vl = sve_max_vl;
-> > 	if (WARN_ON(!sve_vl_valid(sve_max_vl))
-> > 		header->max_vl = header->vl;
-> 
-> It is better than my fix.
-> Please, apply it at next version.
+>    In file included from arch/openrisc/include/asm/io.h:33:0,
+>                     from include/linux/io.h:25,
+>                     from drivers/tty/serial/earlycon.c:19:
+>    arch/openrisc/include/asm/pgtable.h:424:2: warning: 'struct vm_area_struct' declared inside parameter list
+>      unsigned long address, pte_t *pte)
+>      ^
+[..]
+> @@ -414,6 +414,8 @@ static inline void pmd_set(pmd_t *pmdp, pte_t *ptep)
+>  
+>  extern pgd_t swapper_pg_dir[PTRS_PER_PGD]; /* defined in head.S */
+>  
+> +struct vm_area_struct;
+> +
 
-I've rebased to v4.13 and pushed a branch to track fixes against v2,
-here:
+Acked-by: Stafford Horne <shorne@gmail.com>
 
- * http://linux-arm.org/git?p=linux-dm.git;a=shortlog;h=refs/heads/sve/v2%2Bfixes
+I was kind of wondering whether is better to include linux/mm_types.h or
+linux/vmalloc.h here instead of the forward declaration.  But looking at
+how other architectures do it; about half do the forward declaration, and
+half use an include.  So I guess this is fine.
 
- * git://linux-arm.org/linux-dm.git sve/v2+fixes
+I noticed you were getting a lot of these patches done for removing
+linux/vmalloc.h from asm-generic/io.h.   Do you want me to push this
+through my queue or are you planning sending them through another route?
 
-Cheers
----Dave
+-Stafford
