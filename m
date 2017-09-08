@@ -1,49 +1,47 @@
-From: Tobias Klauser <tklauser@distanz.ch>
-Subject: [PATCH] openrisc: add forward declaration for struct vm_area_struct
-Date: Fri,  8 Sep 2017 10:25:08 +0200
-Message-ID: <20170908082508.14325-1-tklauser@distanz.ch>
-References: <201709080345.bk1IOlp7%fengguang.wu@intel.com>
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [PATCH v2 19/28] arm64/sve: ptrace and ELF coredump support
+Date: Fri, 8 Sep 2017 14:11:40 +0100
+Message-ID: <20170908131136.GG6321@e103592.cambridge.arm.com>
+References: <1504198860-12951-1-git-send-email-Dave.Martin@arm.com>
+ <1504198860-12951-20-git-send-email-Dave.Martin@arm.com>
+ <5FA513F682BE7F4EAAB8EE035D5B08E44109DFE8@G01JPEXMBKW02>
+ <20170906181634.GF6321@e103592.cambridge.arm.com>
+ <5FA513F682BE7F4EAAB8EE035D5B08E44109EBDF@G01JPEXMBKW02>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.zhinst.com ([212.126.164.98]:49958 "EHLO mail.zhinst.com"
+Received: from foss.arm.com ([217.140.101.70]:40124 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1754774AbdIHIZL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 8 Sep 2017 04:25:11 -0400
-In-Reply-To: <201709080345.bk1IOlp7%fengguang.wu@intel.com>
+        id S1755778AbdIHNLq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 8 Sep 2017 09:11:46 -0400
+Content-Disposition: inline
+In-Reply-To: <5FA513F682BE7F4EAAB8EE035D5B08E44109EBDF@G01JPEXMBKW02>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, openrisc@lists.librecores.org, linux-arch@vger.kernel.org, kbuild-all@01.org, kbuild test robot <lkp@intel.com>
+To: "Okamoto, Takayuki" <tokamoto@jp.fujitsu.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "libc-alpha@sourceware.org" <libc-alpha@sourceware.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "gdb@sourceware.org" <gdb@sourceware.org>, Yao Qi <Yao.Qi@arm.com>, Will Deacon <will.deacon@arm.com>, Oleg Nesterov <oleg@redhat.com>, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, Richard Sandiford <richard.sandiford@arm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Alan Hayward <alan.hayward@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, "kvmarm@lists.cs.columbia.edu" <kvmarm@lists.cs.columbia.edu>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
 
-After removing linux/vmalloc.h from asm-generic/io.h, the following
-warning occurs on openrisc:
+On Thu, Sep 07, 2017 at 05:11:45AM +0000, Okamoto, Takayuki wrote:
+> Hi Dave,
+> 
+> Thank you for your reply.
+> 
+> > Your fix looks correct and seems to work.  For stylistic reasons, I may
+> > write it like this instead, but the effect should be the same:
+> > 
+> > 	header->max_vl = sve_max_vl;
+> > 	if (WARN_ON(!sve_vl_valid(sve_max_vl))
+> > 		header->max_vl = header->vl;
+> 
+> It is better than my fix.
+> Please, apply it at next version.
 
-   In file included from arch/openrisc/include/asm/io.h:33:0,
-                    from include/linux/io.h:25,
-                    from drivers/tty/serial/earlycon.c:19:
-   arch/openrisc/include/asm/pgtable.h:424:2: warning: 'struct vm_area_struct' declared inside parameter list
-     unsigned long address, pte_t *pte)
-     ^
-   arch/openrisc/include/asm/pgtable.h:424:2: warning: its scope is only this definition or declaration, which is probably not what you want
+I've rebased to v4.13 and pushed a branch to track fixes against v2,
+here:
 
-Reported-by: kbuild test robot <lkp@intel.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Signed-off-by: Tobias Klauser <tklauser@distanz.ch>
----
- arch/openrisc/include/asm/pgtable.h | 2 ++
- 1 file changed, 2 insertions(+)
+ * http://linux-arm.org/git?p=linux-dm.git;a=shortlog;h=refs/heads/sve/v2%2Bfixes
 
-diff --git a/arch/openrisc/include/asm/pgtable.h b/arch/openrisc/include/asm/pgtable.h
-index ff97374ca069..71a6f08de8f2 100644
---- a/arch/openrisc/include/asm/pgtable.h
-+++ b/arch/openrisc/include/asm/pgtable.h
-@@ -414,6 +414,8 @@ static inline void pmd_set(pmd_t *pmdp, pte_t *ptep)
- 
- extern pgd_t swapper_pg_dir[PTRS_PER_PGD]; /* defined in head.S */
- 
-+struct vm_area_struct;
-+
- /*
-  * or32 doesn't have any external MMU info: the kernel page
-  * tables contain all the necessary information.
--- 
-2.13.0
+ * git://linux-arm.org/linux-dm.git sve/v2+fixes
+
+Cheers
+---Dave
