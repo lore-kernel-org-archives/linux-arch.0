@@ -1,119 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga02.intel.com ([134.134.136.20]:55085 "EHLO mga02.intel.com"
+Received: from mga09.intel.com ([134.134.136.24]:4415 "EHLO mga09.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751828AbdILPk3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 12 Sep 2017 11:40:29 -0400
+        id S1751824AbdILPk2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 12 Sep 2017 11:40:28 -0400
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv3 11/11] mm: Use updated pmdp_invalidate() interface to track dirty/accessed bits
-Date: Tue, 12 Sep 2017 18:39:41 +0300
-Message-ID: <20170912153941.47012-12-kirill.shutemov@linux.intel.com>
+Subject: [PATCHv3 10/11] mm: Do not loose dirty and access bits in pmdp_invalidate()
+Date: Tue, 12 Sep 2017 18:39:40 +0300
+Message-ID: <20170912153941.47012-11-kirill.shutemov@linux.intel.com>
 In-Reply-To: <20170912153941.47012-1-kirill.shutemov@linux.intel.com>
 References: <20170912153941.47012-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Ralf Baechle <ralf@linux-mips.org>, "David S. Miller" <davem@davemloft.net>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andrea Arcangeli <aarcange@redhat.com>
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20170912153941.7KyN7kT3796GOvdON-wGMCyJBuIudaKD9Ea2QR6nDUk@z>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Hugh Dickins <hughd@google.com>
+Message-ID: <20170912153940.MdS7a3pbU9jVn_rGK3wHq-Y4GhiERt49UuyqxGzi_2c@z>
 
-This patch uses modifed pmdp_invalidate(), that return previous value of pmd,
-to transfer dirty and accessed bits.
+Vlastimil noted that pmdp_invalidate() is not atomic and we can loose
+dirty and access bits if CPU sets them after pmdp dereference, but
+before set_pmd_at().
+
+The patch change pmdp_invalidate() to make the entry non-present atomically and
+return previous value of the entry. This value can be used to check if
+CPU set dirty/accessed bits under us.
+
+The race window is very small and I haven't seen any reports that can be
+attributed to the bug. For this reason, I don't think backporting to
+stable trees needed.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+Reported-by: Vlastimil Babka <vbabka@suse.cz>
+Cc: Hugh Dickins <hughd@google.com>
 ---
- fs/proc/task_mmu.c |  8 ++++----
- mm/huge_memory.c   | 29 ++++++++++++-----------------
- 2 files changed, 16 insertions(+), 21 deletions(-)
+ include/asm-generic/pgtable.h | 2 +-
+ mm/pgtable-generic.c          | 6 +++---
+ 2 files changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
-index 7b40e11ede9b..fe5bff79031a 100644
---- a/fs/proc/task_mmu.c
-+++ b/fs/proc/task_mmu.c
-@@ -979,14 +979,14 @@ static inline void clear_soft_dirty(struct vm_area_struct *vma,
- static inline void clear_soft_dirty_pmd(struct vm_area_struct *vma,
- 		unsigned long addr, pmd_t *pmdp)
+diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+index bf0889eb774d..9df1da175fb0 100644
+--- a/include/asm-generic/pgtable.h
++++ b/include/asm-generic/pgtable.h
+@@ -324,7 +324,7 @@ static inline pmd_t generic_pmdp_establish(struct vm_area_struct *vma,
+ #endif
+ 
+ #ifndef __HAVE_ARCH_PMDP_INVALIDATE
+-extern void pmdp_invalidate(struct vm_area_struct *vma, unsigned long address,
++extern pmd_t pmdp_invalidate(struct vm_area_struct *vma, unsigned long address,
+ 			    pmd_t *pmdp);
+ #endif
+ 
+diff --git a/mm/pgtable-generic.c b/mm/pgtable-generic.c
+index 1175f6a24fdb..3db8f2f76666 100644
+--- a/mm/pgtable-generic.c
++++ b/mm/pgtable-generic.c
+@@ -180,12 +180,12 @@ pgtable_t pgtable_trans_huge_withdraw(struct mm_struct *mm, pmd_t *pmdp)
+ #endif
+ 
+ #ifndef __HAVE_ARCH_PMDP_INVALIDATE
+-void pmdp_invalidate(struct vm_area_struct *vma, unsigned long address,
++pmd_t pmdp_invalidate(struct vm_area_struct *vma, unsigned long address,
+ 		     pmd_t *pmdp)
  {
--	pmd_t pmd = *pmdp;
-+	pmd_t old, pmd = *pmdp;
+-	pmd_t entry = *pmdp;
+-	set_pmd_at(vma->vm_mm, address, pmdp, pmd_mknotpresent(entry));
++	pmd_t old = pmdp_establish(vma, address, pmdp, pmd_mknotpresent(*pmdp));
+ 	flush_pmd_tlb_range(vma, address, address + HPAGE_PMD_SIZE);
++	return old;
+ }
+ #endif
  
- 	if (pmd_present(pmd)) {
- 		/* See comment in change_huge_pmd() */
--		pmdp_invalidate(vma, addr, pmdp);
--		if (pmd_dirty(*pmdp))
-+		old = pmdp_invalidate(vma, addr, pmdp);
-+		if (pmd_dirty(old))
- 			pmd = pmd_mkdirty(pmd);
--		if (pmd_young(*pmdp))
-+		if (pmd_young(old))
- 			pmd = pmd_mkyoung(pmd);
- 
- 		pmd = pmd_wrprotect(pmd);
-diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-index 269b5df58543..c288c3ce9658 100644
---- a/mm/huge_memory.c
-+++ b/mm/huge_memory.c
-@@ -1900,17 +1900,7 @@ int change_huge_pmd(struct vm_area_struct *vma, pmd_t *pmd,
- 	 * pmdp_invalidate() is required to make sure we don't miss
- 	 * dirty/young flags set by hardware.
- 	 */
--	entry = *pmd;
--	pmdp_invalidate(vma, addr, pmd);
--
--	/*
--	 * Recover dirty/young flags.  It relies on pmdp_invalidate to not
--	 * corrupt them.
--	 */
--	if (pmd_dirty(*pmd))
--		entry = pmd_mkdirty(entry);
--	if (pmd_young(*pmd))
--		entry = pmd_mkyoung(entry);
-+	entry = pmdp_invalidate(vma, addr, pmd);
- 
- 	entry = pmd_modify(entry, newprot);
- 	if (preserve_write)
-@@ -2051,8 +2041,8 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
- 	struct mm_struct *mm = vma->vm_mm;
- 	struct page *page;
- 	pgtable_t pgtable;
--	pmd_t _pmd;
--	bool young, write, dirty, soft_dirty, pmd_migration = false;
-+	pmd_t old, _pmd;
-+	bool young, write, soft_dirty, pmd_migration = false;
- 	unsigned long addr;
- 	int i;
- 
-@@ -2099,7 +2089,6 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
- 	page_ref_add(page, HPAGE_PMD_NR - 1);
- 	write = pmd_write(*pmd);
- 	young = pmd_young(*pmd);
--	dirty = pmd_dirty(*pmd);
- 	soft_dirty = pmd_soft_dirty(*pmd);
- 
- 	pmdp_huge_split_prepare(vma, haddr, pmd);
-@@ -2129,8 +2118,6 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
- 			if (soft_dirty)
- 				entry = pte_mksoft_dirty(entry);
- 		}
--		if (dirty)
--			SetPageDirty(page + i);
- 		pte = pte_offset_map(&_pmd, addr);
- 		BUG_ON(!pte_none(*pte));
- 		set_pte_at(mm, addr, pte, entry);
-@@ -2179,7 +2166,15 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
- 	 * and finally we write the non-huge version of the pmd entry with
- 	 * pmd_populate.
- 	 */
--	pmdp_invalidate(vma, haddr, pmd);
-+	old = pmdp_invalidate(vma, haddr, pmd);
-+
-+	/*
-+	 * Transfer dirty bit using value returned by pmd_invalidate() to be
-+	 * sure we don't race with CPU that can set the bit under us.
-+	 */
-+	if (pmd_dirty(old))
-+		SetPageDirty(page);
-+
- 	pmd_populate(mm, pmd, pgtable);
- 
- 	if (freeze) {
 -- 
 2.14.1
