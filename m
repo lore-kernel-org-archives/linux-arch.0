@@ -1,73 +1,91 @@
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH v2 10/28] arm64/sve: Low-level CPU setup
-Date: Wed, 13 Sep 2017 20:21:11 +0100
-Message-ID: <20170913192110.GE23415@e103592.cambridge.arm.com>
-References: <1504198860-12951-1-git-send-email-Dave.Martin@arm.com>
- <1504198860-12951-11-git-send-email-Dave.Martin@arm.com>
- <20170913133206.rwobtu7ft5nrsh4p@localhost>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <kvmarm-bounces@lists.cs.columbia.edu>
-Content-Disposition: inline
-In-Reply-To: <20170913133206.rwobtu7ft5nrsh4p@localhost>
-List-Unsubscribe: <https://lists.cs.columbia.edu/mailman/options/kvmarm>,
- <mailto:kvmarm-request@lists.cs.columbia.edu?subject=unsubscribe>
-List-Archive: <https://lists.cs.columbia.edu/pipermail/kvmarm>
-List-Post: <mailto:kvmarm@lists.cs.columbia.edu>
-List-Help: <mailto:kvmarm-request@lists.cs.columbia.edu?subject=help>
-List-Subscribe: <https://lists.cs.columbia.edu/mailman/listinfo/kvmarm>,
- <mailto:kvmarm-request@lists.cs.columbia.edu?subject=subscribe>
-Errors-To: kvmarm-bounces@lists.cs.columbia.edu
-Sender: kvmarm-bounces@lists.cs.columbia.edu
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, Will Deacon <will.deacon@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
+From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Subject: [PATCHv3 08/11] sparc64: update pmdp_invalidate to return old pmd value
+Date: Tue, 12 Sep 2017 18:39:38 +0300
+Message-ID: <20170912153941.47012-9-kirill.shutemov@linux.intel.com>
+References: <20170912153941.47012-1-kirill.shutemov@linux.intel.com>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20170912153941.47012-1-kirill.shutemov@linux.intel.com>
+Sender: owner-linux-mm@kvack.org
+To: Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Ralf Baechle <ralf@linux-mips.org>, "David S. Miller" <davem@davemloft.net>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andrea Arcangeli <aarcange@redhat.com>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Nitin Gupta <nitin.m.gupta@oracle.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Sep 13, 2017 at 06:32:06AM -0700, Catalin Marinas wrote:
-> On Thu, Aug 31, 2017 at 06:00:42PM +0100, Dave P Martin wrote:
-> > diff --git a/arch/arm64/mm/proc.S b/arch/arm64/mm/proc.S
-> > index 877d42f..dd22ef2 100644
-> > --- a/arch/arm64/mm/proc.S
-> > +++ b/arch/arm64/mm/proc.S
-> > @@ -27,6 +27,7 @@
-> >  #include <asm/pgtable-hwdef.h>
-> >  #include <asm/cpufeature.h>
-> >  #include <asm/alternative.h>
-> > +#include <asm/sysreg.h>
-> >  
-> >  #ifdef CONFIG_ARM64_64K_PAGES
-> >  #define TCR_TG_FLAGS	TCR_TG0_64K | TCR_TG1_64K
-> > @@ -186,8 +187,17 @@ ENTRY(__cpu_setup)
-> >  	tlbi	vmalle1				// Invalidate local TLB
-> >  	dsb	nsh
-> >  
-> > -	mov	x0, #3 << 20
-> > -	msr	cpacr_el1, x0			// Enable FP/ASIMD
-> > +	mov	x0, #3 << 20			// FEN
-> > +
-> > +	/* SVE */
-> > +	mrs	x5, id_aa64pfr0_el1
-> > +	ubfx	x5, x5, #ID_AA64PFR0_SVE_SHIFT, #4
-> > +	cbz	x5, 1f
-> > +
-> > +	bic	x0, x0, #CPACR_EL1_ZEN
-> > +	orr	x0, x0, #CPACR_EL1_ZEN_EL1EN	// SVE: trap for EL0, not EL1
-> > +1:	msr	cpacr_el1, x0			// Enable FP/ASIMD
-> 
-> For EL1, I wonder whether we could move this later to cpufeature.c. IIRC
-> I tried to do the same with FPSIMD but hit an issue with EFI run-time
-> services (I may be wrong though).
+From: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
 
-I'll take a look at this -- I believe it should be safe to disable this
-trap for EL1 relatively late.  This is needed before probing for
-available vector lengths, but apart from that the kernel shouldn't touch
-SVE until/unless some user task uses SVE.
+It's required to avoid loosing dirty and accessed bits.
 
-This would change if we eventually enable kernel-mode SVE, but I wouldn't
-expect that to get used in early boot before the cpufeatures code runs.
+Signed-off-by: Nitin Gupta <nitin.m.gupta@oracle.com>
+Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+---
+ arch/sparc/include/asm/pgtable_64.h |  2 +-
+ arch/sparc/mm/tlb.c                 | 23 ++++++++++++++++++-----
+ 2 files changed, 19 insertions(+), 6 deletions(-)
 
-Ard may have a view on this.
+diff --git a/arch/sparc/include/asm/pgtable_64.h b/arch/sparc/include/asm/pgtable_64.h
+index 4fefe3762083..83b06c98bb94 100644
+--- a/arch/sparc/include/asm/pgtable_64.h
++++ b/arch/sparc/include/asm/pgtable_64.h
+@@ -979,7 +979,7 @@ void update_mmu_cache_pmd(struct vm_area_struct *vma, unsigned long addr,
+ 			  pmd_t *pmd);
+ 
+ #define __HAVE_ARCH_PMDP_INVALIDATE
+-extern void pmdp_invalidate(struct vm_area_struct *vma, unsigned long address,
++extern pmd_t pmdp_invalidate(struct vm_area_struct *vma, unsigned long address,
+ 			    pmd_t *pmdp);
+ 
+ #define __HAVE_ARCH_PGTABLE_DEPOSIT
+diff --git a/arch/sparc/mm/tlb.c b/arch/sparc/mm/tlb.c
+index ee8066c3d96c..d36c65fc55cf 100644
+--- a/arch/sparc/mm/tlb.c
++++ b/arch/sparc/mm/tlb.c
+@@ -218,17 +218,28 @@ void set_pmd_at(struct mm_struct *mm, unsigned long addr,
+ 	}
+ }
+ 
++static inline pmd_t pmdp_establish(struct vm_area_struct *vma,
++		unsigned long address, pmd_t *pmdp, pmd_t pmd)
++{
++	pmd_t old;
++
++	{
++		old = *pmdp;
++	} while (cmpxchg64(&pmdp->pmd, old.pmd, pmd.pmd) != old.pmd);
++
++	return old;
++}
++
+ /*
+  * This routine is only called when splitting a THP
+  */
+-void pmdp_invalidate(struct vm_area_struct *vma, unsigned long address,
++pmd_t pmdp_invalidate(struct vm_area_struct *vma, unsigned long address,
+ 		     pmd_t *pmdp)
+ {
+-	pmd_t entry = *pmdp;
+-
+-	pmd_val(entry) &= ~_PAGE_VALID;
++	pmd_t old, entry;
+ 
+-	set_pmd_at(vma->vm_mm, address, pmdp, entry);
++	entry = __pmd(pmd_val(*pmdp) & ~_PAGE_VALID);
++	old = pmdp_establish(vma, address, pmdp, entry);
+ 	flush_tlb_range(vma, address, address + HPAGE_PMD_SIZE);
+ 
+ 	/*
+@@ -239,6 +250,8 @@ void pmdp_invalidate(struct vm_area_struct *vma, unsigned long address,
+ 	if ((pmd_val(entry) & _PAGE_PMD_HUGE) &&
+ 	    !is_huge_zero_page(pmd_page(entry)))
+ 		(vma->vm_mm)->context.thp_pte_count--;
++
++	return old;
+ }
+ 
+ void pgtable_trans_huge_deposit(struct mm_struct *mm, pmd_t *pmdp,
+-- 
+2.14.1
 
-Cheers
----Dave
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
