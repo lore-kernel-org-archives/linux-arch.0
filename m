@@ -1,44 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga04.intel.com ([192.55.52.120]:28346 "EHLO mga04.intel.com"
+Received: from mga02.intel.com ([134.134.136.20]:55809 "EHLO mga02.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751541AbdILPj7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 12 Sep 2017 11:39:59 -0400
+        id S1751638AbdILPjy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 12 Sep 2017 11:39:54 -0400
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv3 05/11] mips: Use generic_pmdp_establish as pmdp_establish
-Date: Tue, 12 Sep 2017 18:39:35 +0300
-Message-ID: <20170912153941.47012-6-kirill.shutemov@linux.intel.com>
+Subject: [PATCHv3 04/11] arm64: Provide pmdp_establish() helper
+Date: Tue, 12 Sep 2017 18:39:34 +0300
+Message-ID: <20170912153941.47012-5-kirill.shutemov@linux.intel.com>
 In-Reply-To: <20170912153941.47012-1-kirill.shutemov@linux.intel.com>
 References: <20170912153941.47012-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Ralf Baechle <ralf@linux-mips.org>, "David S. Miller" <davem@davemloft.net>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andrea Arcangeli <aarcange@redhat.com>
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, David Daney <david.daney@cavium.com>, linux-mips@linux-mips.org
-Message-ID: <20170912153935._huFbM8IDK1YnSUbh5pShaWcDzpftVm5_OFHOSEnbfQ@z>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>
+Message-ID: <20170912153934.DuxzKJ40yC7SMC_AV73bhNLdeZyFCQ2NdVj-gxoDJh0@z>
 
-MIPS doesn't support hardware dirty/accessed bits.
-generic_pmdp_establish() is suitable in this case.
+From: Catalin Marinas <catalin.marinas@arm.com>
 
+We need an atomic way to setup pmd page table entry, avoiding races with
+CPU setting dirty/accessed bits. This is required to implement
+pmdp_invalidate() that doesn't lose these bits.
+
+Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: David Daney <david.daney@cavium.com>
-Cc: linux-mips@linux-mips.org
 ---
- arch/mips/include/asm/pgtable.h | 3 +++
- 1 file changed, 3 insertions(+)
+ arch/arm64/include/asm/pgtable.h | 7 +++++++
+ 1 file changed, 7 insertions(+)
 
-diff --git a/arch/mips/include/asm/pgtable.h b/arch/mips/include/asm/pgtable.h
-index 9e9e94415d08..7b3a3139e82d 100644
---- a/arch/mips/include/asm/pgtable.h
-+++ b/arch/mips/include/asm/pgtable.h
-@@ -534,6 +534,9 @@ static inline int io_remap_pfn_range(struct vm_area_struct *vma,
- 
- #ifdef CONFIG_TRANSPARENT_HUGEPAGE
- 
-+/* We don't have hardware dirty/accessed bits, generic_pmdp_establish is fine.*/
-+#define pmdp_establish generic_pmdp_establish
+diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pgtable.h
+index bc4e92337d16..09bb86533d32 100644
+--- a/arch/arm64/include/asm/pgtable.h
++++ b/arch/arm64/include/asm/pgtable.h
+@@ -663,6 +663,13 @@ static inline void pmdp_set_wrprotect(struct mm_struct *mm,
+ {
+ 	ptep_set_wrprotect(mm, address, (pte_t *)pmdp);
+ }
 +
- #define has_transparent_hugepage has_transparent_hugepage
- extern int has_transparent_hugepage(void);
++#define pmdp_establish pmdp_establish
++static inline pmd_t pmdp_establish(struct vm_area_struct *vma,
++		unsigned long address, pmd_t *pmdp, pmd_t pmd)
++{
++	return __pmd(xchg_relaxed(&pmd_val(*pmdp), pmd_val(pmd)));
++}
+ #endif
  
+ extern pgd_t swapper_pg_dir[PTRS_PER_PGD];
 -- 
 2.14.1
