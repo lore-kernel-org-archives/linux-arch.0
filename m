@@ -1,120 +1,46 @@
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv3 11/11] mm: Use updated pmdp_invalidate() interface to track dirty/accessed bits
-Date: Tue, 12 Sep 2017 18:39:41 +0300
-Message-ID: <20170912153941.47012-12-kirill.shutemov@linux.intel.com>
+Subject: [PATCHv3 07/11] s390/mm: Modify pmdp_invalidate to return old value.
+Date: Tue, 12 Sep 2017 18:39:37 +0300
+Message-ID: <20170912153941.47012-8-kirill.shutemov@linux.intel.com>
 References: <20170912153941.47012-1-kirill.shutemov@linux.intel.com>
-Return-path: <owner-linux-mm@kvack.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mga03.intel.com ([134.134.136.65]:63695 "EHLO mga03.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751678AbdILPj6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 12 Sep 2017 11:39:58 -0400
 In-Reply-To: <20170912153941.47012-1-kirill.shutemov@linux.intel.com>
-Sender: owner-linux-mm@kvack.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Ralf Baechle <ralf@linux-mips.org>, "David S. Miller" <davem@davemloft.net>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andrea Arcangeli <aarcange@redhat.com>
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>
 
-This patch uses modifed pmdp_invalidate(), that return previous value of pmd,
-to transfer dirty and accessed bits.
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
 
+It's required to avoid loosing dirty and accessed bits.
+
+Signed-off-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
- fs/proc/task_mmu.c |  8 ++++----
- mm/huge_memory.c   | 29 ++++++++++++-----------------
- 2 files changed, 16 insertions(+), 21 deletions(-)
+ arch/s390/include/asm/pgtable.h | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
 
-diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
-index 7b40e11ede9b..fe5bff79031a 100644
---- a/fs/proc/task_mmu.c
-+++ b/fs/proc/task_mmu.c
-@@ -979,14 +979,14 @@ static inline void clear_soft_dirty(struct vm_area_struct *vma,
- static inline void clear_soft_dirty_pmd(struct vm_area_struct *vma,
- 		unsigned long addr, pmd_t *pmdp)
+diff --git a/arch/s390/include/asm/pgtable.h b/arch/s390/include/asm/pgtable.h
+index dce708e061ea..d3de8ddc55ec 100644
+--- a/arch/s390/include/asm/pgtable.h
++++ b/arch/s390/include/asm/pgtable.h
+@@ -1504,10 +1504,11 @@ static inline pmd_t pmdp_huge_clear_flush(struct vm_area_struct *vma,
+ }
+ 
+ #define __HAVE_ARCH_PMDP_INVALIDATE
+-static inline void pmdp_invalidate(struct vm_area_struct *vma,
++static inline pmd_t pmdp_invalidate(struct vm_area_struct *vma,
+ 				   unsigned long addr, pmd_t *pmdp)
  {
--	pmd_t pmd = *pmdp;
-+	pmd_t old, pmd = *pmdp;
+-	pmdp_xchg_direct(vma->vm_mm, addr, pmdp, __pmd(_SEGMENT_ENTRY_EMPTY));
++	return pmdp_xchg_direct(vma->vm_mm, addr, pmdp,
++			__pmd(_SEGMENT_ENTRY_EMPTY));
+ }
  
- 	if (pmd_present(pmd)) {
- 		/* See comment in change_huge_pmd() */
--		pmdp_invalidate(vma, addr, pmdp);
--		if (pmd_dirty(*pmdp))
-+		old = pmdp_invalidate(vma, addr, pmdp);
-+		if (pmd_dirty(old))
- 			pmd = pmd_mkdirty(pmd);
--		if (pmd_young(*pmdp))
-+		if (pmd_young(old))
- 			pmd = pmd_mkyoung(pmd);
- 
- 		pmd = pmd_wrprotect(pmd);
-diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-index 269b5df58543..c288c3ce9658 100644
---- a/mm/huge_memory.c
-+++ b/mm/huge_memory.c
-@@ -1900,17 +1900,7 @@ int change_huge_pmd(struct vm_area_struct *vma, pmd_t *pmd,
- 	 * pmdp_invalidate() is required to make sure we don't miss
- 	 * dirty/young flags set by hardware.
- 	 */
--	entry = *pmd;
--	pmdp_invalidate(vma, addr, pmd);
--
--	/*
--	 * Recover dirty/young flags.  It relies on pmdp_invalidate to not
--	 * corrupt them.
--	 */
--	if (pmd_dirty(*pmd))
--		entry = pmd_mkdirty(entry);
--	if (pmd_young(*pmd))
--		entry = pmd_mkyoung(entry);
-+	entry = pmdp_invalidate(vma, addr, pmd);
- 
- 	entry = pmd_modify(entry, newprot);
- 	if (preserve_write)
-@@ -2051,8 +2041,8 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
- 	struct mm_struct *mm = vma->vm_mm;
- 	struct page *page;
- 	pgtable_t pgtable;
--	pmd_t _pmd;
--	bool young, write, dirty, soft_dirty, pmd_migration = false;
-+	pmd_t old, _pmd;
-+	bool young, write, soft_dirty, pmd_migration = false;
- 	unsigned long addr;
- 	int i;
- 
-@@ -2099,7 +2089,6 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
- 	page_ref_add(page, HPAGE_PMD_NR - 1);
- 	write = pmd_write(*pmd);
- 	young = pmd_young(*pmd);
--	dirty = pmd_dirty(*pmd);
- 	soft_dirty = pmd_soft_dirty(*pmd);
- 
- 	pmdp_huge_split_prepare(vma, haddr, pmd);
-@@ -2129,8 +2118,6 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
- 			if (soft_dirty)
- 				entry = pte_mksoft_dirty(entry);
- 		}
--		if (dirty)
--			SetPageDirty(page + i);
- 		pte = pte_offset_map(&_pmd, addr);
- 		BUG_ON(!pte_none(*pte));
- 		set_pte_at(mm, addr, pte, entry);
-@@ -2179,7 +2166,15 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
- 	 * and finally we write the non-huge version of the pmd entry with
- 	 * pmd_populate.
- 	 */
--	pmdp_invalidate(vma, haddr, pmd);
-+	old = pmdp_invalidate(vma, haddr, pmd);
-+
-+	/*
-+	 * Transfer dirty bit using value returned by pmd_invalidate() to be
-+	 * sure we don't race with CPU that can set the bit under us.
-+	 */
-+	if (pmd_dirty(old))
-+		SetPageDirty(page);
-+
- 	pmd_populate(mm, pmd, pgtable);
- 
- 	if (freeze) {
+ #define __HAVE_ARCH_PMDP_SET_WRPROTECT
 -- 
 2.14.1
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
