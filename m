@@ -1,55 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga07.intel.com ([134.134.136.100]:23350 "EHLO mga07.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751541AbdILPjx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 12 Sep 2017 11:39:53 -0400
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv3 01/11] asm-generic: Provide generic_pmdp_establish()
-Date: Tue, 12 Sep 2017 18:39:31 +0300
-Message-ID: <20170912153941.47012-2-kirill.shutemov@linux.intel.com>
-In-Reply-To: <20170912153941.47012-1-kirill.shutemov@linux.intel.com>
-References: <20170912153941.47012-1-kirill.shutemov@linux.intel.com>
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:54652 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1751078AbdIMCJR (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 12 Sep 2017 22:09:17 -0400
+Received: from pps.filterd (m0098410.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id v8D28daU122846
+        for <linux-arch@vger.kernel.org>; Tue, 12 Sep 2017 22:09:17 -0400
+Received: from e23smtp05.au.ibm.com (e23smtp05.au.ibm.com [202.81.31.147])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2cxswxkjjg-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Tue, 12 Sep 2017 22:09:16 -0400
+Received: from localhost
+        by e23smtp05.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <aneesh.kumar@linux.vnet.ibm.com>;
+        Wed, 13 Sep 2017 12:09:14 +1000
+From: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
+Subject: Re: [PATCHv3 11/11] mm: Use updated pmdp_invalidate() interface to track dirty/accessed bits
+In-Reply-To: <20170912153941.47012-12-kirill.shutemov@linux.intel.com>
+References: <20170912153941.47012-1-kirill.shutemov@linux.intel.com> <20170912153941.47012-12-kirill.shutemov@linux.intel.com>
+Date: Wed, 13 Sep 2017 07:38:58 +0530
+MIME-Version: 1.0
+Content-Type: text/plain
+Message-ID: <87tw07uz7p.fsf@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Ralf Baechle <ralf@linux-mips.org>, "David S. Miller" <davem@davemloft.net>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andrea Arcangeli <aarcange@redhat.com>
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20170912153931.R1Eo5EiFzunPGLaQQISsc5mf3PrBkC22fbbuT3w76h8@z>
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Ralf Baechle <ralf@linux-mips.org>, "David S. Miller" <davem@davemloft.net>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andrea Arcangeli <aarcange@redhat.com>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+Message-ID: <20170913020858.f07VwoAu6ZABiHIWt3bue-6yFosTqha0IuvHByUTcPc@z>
 
-This is implementation of pmdp_establish() that is only suitable for an
-architecture that doesn't have hardware dirty/accessed bits. In this
-case we can't race with CPU which sets these bits and non-atomic
-approach is fine.
 
-Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
----
- include/asm-generic/pgtable.h | 15 +++++++++++++++
- 1 file changed, 15 insertions(+)
-
-diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-index 8e0243036564..bf0889eb774d 100644
---- a/include/asm-generic/pgtable.h
-+++ b/include/asm-generic/pgtable.h
-@@ -308,6 +308,21 @@ extern void pgtable_trans_huge_deposit(struct mm_struct *mm, pmd_t *pmdp,
- extern pgtable_t pgtable_trans_huge_withdraw(struct mm_struct *mm, pmd_t *pmdp);
- #endif
- 
-+#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-+/*
-+ * This is implementation of pmdp_establish() that is only suitable for an
-+ * architecture that doesn't have hardware dirty/accessed bits. In this case we
-+ * can't race with CPU which sets these bits and non-atomic aproach is fine.
-+ */
-+static inline pmd_t generic_pmdp_establish(struct vm_area_struct *vma,
-+		unsigned long address, pmd_t *pmdp, pmd_t pmd)
-+{
-+	pmd_t old_pmd = *pmdp;
-+	set_pmd_at(vma->vm_mm, address, pmdp, pmd);
-+	return old_pmd;
-+}
-+#endif
-+
- #ifndef __HAVE_ARCH_PMDP_INVALIDATE
- extern void pmdp_invalidate(struct vm_area_struct *vma, unsigned long address,
- 			    pmd_t *pmdp);
--- 
-2.14.1
+How about this additional patch ?. This results in code reduction.
