@@ -1,55 +1,93 @@
 From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH v2 14/28] arm64/sve: Backend logic for setting the vector
- length
-Date: Wed, 13 Sep 2017 20:06:12 +0100
-Message-ID: <20170913190611.GC23415@e103592.cambridge.arm.com>
+Subject: Re: [PATCH v2 11/28] arm64/sve: Core task context handling
+Date: Wed, 13 Sep 2017 20:17:07 +0100
+Message-ID: <20170913191707.GD23415@e103592.cambridge.arm.com>
 References: <1504198860-12951-1-git-send-email-Dave.Martin@arm.com>
- <1504198860-12951-15-git-send-email-Dave.Martin@arm.com>
- <20170913172911.3ca2h6cpju7etifi@localhost>
+ <1504198860-12951-12-git-send-email-Dave.Martin@arm.com>
+ <20170913172605.hjrwjf34kyy7coh4@localhost>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:56034 "EHLO
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:56176 "EHLO
         foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751412AbdIMTGR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 13 Sep 2017 15:06:17 -0400
+        id S1751444AbdIMTRM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 13 Sep 2017 15:17:12 -0400
 Content-Disposition: inline
-In-Reply-To: <20170913172911.3ca2h6cpju7etifi@localhost>
+In-Reply-To: <20170913172605.hjrwjf34kyy7coh4@localhost>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, Yao Qi <Yao.Qi@arm.com>, Alan Hayward <alan.hayward@arm.com>, Will Deacon <will.deacon@arm.com>, gdb@sourceware.org, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
+Cc: linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, Will Deacon <will.deacon@arm.com>, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
 
-On Wed, Sep 13, 2017 at 10:29:11AM -0700, Catalin Marinas wrote:
-> On Thu, Aug 31, 2017 at 06:00:46PM +0100, Dave P Martin wrote:
-> > This patch implements the core logic for changing a task's vector
-> > length on request from userspace.  This will be used by the ptrace
-> > and prctl frontends that are implemented in later patches.
-> > 
-> > The SVE architecture permits, but does not require, implementations
-> > to support vector lengths that are not a power of two.  To handle
-> > this, logic is added to check a requested vector length against a
-> > possibly sparse bitmap of available vector lengths at runtime, so
-> > that the best supported value can be chosen.
-> > 
-> > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> > Cc: Alex Bennée <alex.bennee@linaro.org>
+On Wed, Sep 13, 2017 at 10:26:05AM -0700, Catalin Marinas wrote:
+> On Thu, Aug 31, 2017 at 06:00:43PM +0100, Dave P Martin wrote:
+> > +el0_sve_acc:
+> > +	/*
+> > +	 * Scalable Vector Extension access
+> > +	 */
+> > +	enable_dbg
+> > +	ct_user_exit
+> > +	mov	x0, x25
+> > +	mov	x1, sp
+> > +	bl	do_sve_acc
+> > +	b	ret_to_user
 > 
-> Can this be merged with patch 20? It seems to add the PR_ definitions
-> which get actually used later when the prctl interface is added.
+> I think do_sve_acc() runs with interrupts disabled. We may have some
+> high latency for large SVE states.
 
-This patch is used both by patch 19 and by patch 20, which I preferred
-not to merge with each other: ptrace and prctl are significantly
-different things.
+Historically I wanted to play safe.
 
-The prctl bit definitions are added here because they are the canonical
-definitions used by both interfaces.  The ptrace #defines are based on
-them.
+I meant to change this to enable_dbg_and_irq now, but it looks like I
+forgot to do it.
 
-Does it make sense if I merge patch 20 into this one and apply patch 19
-on top?  This avoide the appearance of prctl #defines with no prctl
-implementation.
+I'll double-check that do_sve_acc() does nothing that makes it unsafe to
+enable irqs, but it should be OK.  It's certainly _intended_ to be
+irq-safe.
+
+> > +/*
+> > + * Trapped SVE access
+> > + */
+> > +void do_sve_acc(unsigned int esr, struct pt_regs *regs)
+> > +{
+> > +	/* Even if we chose not to use SVE, the hardware could still trap: */
+> > +	if (unlikely(!system_supports_sve()) || WARN_ON(is_compat_task())) {
+> > +		force_signal_inject(SIGILL, ILL_ILLOPC, regs, 0);
+> > +		return;
+> > +	}
+> > +
+> > +	task_fpsimd_save();
+> > +
+> > +	sve_alloc(current);
+> > +	fpsimd_to_sve(current);
+> > +	if (test_and_set_thread_flag(TIF_SVE))
+> > +		WARN_ON(1); /* SVE access shouldn't have trapped */
+> > +
+> > +	task_fpsimd_load();
+> > +}
+> 
+> When this function is entered, do we expect TIF_SVE to always be
+> cleared? It's worth adding a comment on the expected conditions. If
+
+Yes, and this is required for correctness, as you observe.
+
+I had a BUG_ON() here which I removed, but it makes sense to add a
+comment to capture the precondition here, and how it is satisfied.
+
+> that's the case, task_fpsimd_save() would only save the FPSIMD state
+> which is fine. However, you subsequently transfer the FPSIMD state to
+> SVE, set TIF_SVE and restore the full SVE state. If we don't care about
+> the SVE state here, can we call task_fpsimd_load() *before* setting
+> TIF_SVE?
+
+There should be no way to reach this code with TIF_SVE set, unless
+task_fpsimd_load() sets the CPACR trap bit wrongly, or the hardware is
+broken -- either of which is a bug.
+
+> I may as well have confused myself with the state bouncing between
+> FPSIMD and SVE (more reasons to document the data flow better ;)).
+
+Agreed, I think this does need more explanation...  I'm currently
+trying to figure out the best way to describe it.
 
 Cheers
 ---Dave
