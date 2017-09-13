@@ -1,117 +1,55 @@
-From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: [GIT PULL] namespace updates for 4.14-rc1
-Date: Mon, 11 Sep 2017 12:21:54 -0500
-Message-ID: <87mv61cfrh.fsf@xmission.com>
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [PATCH v2 14/28] arm64/sve: Backend logic for setting the vector
+ length
+Date: Wed, 13 Sep 2017 20:06:12 +0100
+Message-ID: <20170913190611.GC23415@e103592.cambridge.arm.com>
+References: <1504198860-12951-1-git-send-email-Dave.Martin@arm.com>
+ <1504198860-12951-15-git-send-email-Dave.Martin@arm.com>
+ <20170913172911.3ca2h6cpju7etifi@localhost>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, Linux Containers <containers@lists.linux-foundation.org>, linux-arch@vger.kernel.org, "Serge E. Hallyn" <serge@hallyn.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:56034 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751412AbdIMTGR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 13 Sep 2017 15:06:17 -0400
+Content-Disposition: inline
+In-Reply-To: <20170913172911.3ca2h6cpju7etifi@localhost>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, Yao Qi <Yao.Qi@arm.com>, Alan Hayward <alan.hayward@arm.com>, Will Deacon <will.deacon@arm.com>, gdb@sourceware.org, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
 
+On Wed, Sep 13, 2017 at 10:29:11AM -0700, Catalin Marinas wrote:
+> On Thu, Aug 31, 2017 at 06:00:46PM +0100, Dave P Martin wrote:
+> > This patch implements the core logic for changing a task's vector
+> > length on request from userspace.  This will be used by the ptrace
+> > and prctl frontends that are implemented in later patches.
+> > 
+> > The SVE architecture permits, but does not require, implementations
+> > to support vector lengths that are not a power of two.  To handle
+> > this, logic is added to check a requested vector length against a
+> > possibly sparse bitmap of available vector lengths at runtime, so
+> > that the best supported value can be chosen.
+> > 
+> > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> > Cc: Alex Bennée <alex.bennee@linaro.org>
+> 
+> Can this be merged with patch 20? It seems to add the PR_ definitions
+> which get actually used later when the prctl interface is added.
 
-Linus,
+This patch is used both by patch 19 and by patch 20, which I preferred
+not to merge with each other: ptrace and prctl are significantly
+different things.
 
-Please pull the for-linus branch from the git tree:
+The prctl bit definitions are added here because they are the canonical
+definitions used by both interfaces.  The ptrace #defines are based on
+them.
 
-   git://git.kernel.org/pub/scm/linux/kernel/git/ebiederm/user-namespace.git for-linus
+Does it make sense if I merge patch 20 into this one and apply patch 19
+on top?  This avoide the appearance of prctl #defines with no prctl
+implementation.
 
-   HEAD: 076a9bcacfc7ccbc2b3fdf3bd490718f6b182419 signal/mips: Remove FPE_FIXME usage from mips
-
-Life has been busy and I have not gotten half as much done this round as
-I would have liked.  I delayed it so that a minor conflict resolution
-with the mips tree could spend a little time in linux-next before I sent
-this pull request.
-
-This pull request includes two long delayed user namespace changes from
-Kirill Tkhai.  It also includes a very useful change from Serge Hallyn
-that allows the security capability attribute to be used inside of user
-namespaces.  The practical effect of this is people can now untar
-tarballs and install rpms in user namespaces.  It had been suggested to
-generalize this and encode some of the namespace information information
-in the xattr name.  Upon close inspection that makes the things that
-should be hard easy and the things that should be easy more expensive.
-
-Then there is my bugfix/cleanup for signal injection that removes
-the magic encoding of the siginfo union member from the kernel internal
-si_code.  The mips folks reported the case where I had used FPE_FIXME me
-is impossible so I have remove FPE_FIXME from mips, while at the same
-time including a return statement in that case to keep gcc from
-complaining about unitialized variables.
-
-I almost finished the work to get make copy_siginfo_to_user a trivial
-copy to user.  The code is available at:
-   git://git.kernel.org/pub/scm/linux/kernel/git/ebiederm/user-namespace.git neuter-copy_siginfo_to_user-v3
-But I did not have time/energy to get the code posted and reviewed before
-the merge window opened.
-
-I was able to see that the security excuse for just copying fields that
-we know are initialized doesn't work in practice there are buggy
-initializations that don't initialize the proper fields in siginfo.  So
-we still sometimes copy unitialized data to userspace.
-
-Eric W. Biederman (11):
-      signal/alpha: Document a conflict with SI_USER for SIGTRAP
-      signal/ia64: Document a conflict with SI_USER with SIGFPE
-      signal/sparc: Document a conflict with SI_USER with SIGFPE
-      signal/mips: Document a conflict with SI_USER with SIGFPE
-      signal/testing: Don't look for __SI_FAULT in userspace
-      userns,pidns: Verify the userns for new pid namespaces
-      fcntl: Don't use ambiguous SIG_POLL si_codes
-      signal: Remove kernel interal si_code magic
-      signal: Fix sending signals with siginfo
-      mips/signal: In force_fcr31_sig return in the impossible case
-      signal/mips: Remove FPE_FIXME usage from mips
-
-Kirill Tkhai (2):
-      security: Use user_namespace::level to avoid redundant iterations in cap_capable()
-      prctl: Allow local CAP_SYS_ADMIN changing exe_file
-
-Serge E. Hallyn (1):
-      Introduce v3 namespaced file capabilities
-
-
- arch/alpha/include/uapi/asm/siginfo.h         |  14 ++
- arch/alpha/kernel/traps.c                     |   6 +-
- arch/arm64/kernel/signal32.c                  |  23 +--
- arch/blackfin/include/uapi/asm/siginfo.h      |  30 ++-
- arch/frv/include/uapi/asm/siginfo.h           |   2 +-
- arch/ia64/include/uapi/asm/siginfo.h          |  21 +-
- arch/ia64/kernel/signal.c                     |  17 +-
- arch/ia64/kernel/traps.c                      |   4 +-
- arch/mips/include/uapi/asm/siginfo.h          |   4 +-
- arch/mips/kernel/signal32.c                   |  19 +-
- arch/mips/kernel/traps.c                      |   2 +-
- arch/parisc/kernel/signal32.c                 |  31 ++-
- arch/powerpc/kernel/signal_32.c               |  20 +-
- arch/s390/kernel/compat_signal.c              |  32 ++-
- arch/sparc/include/uapi/asm/siginfo.h         |   9 +-
- arch/sparc/kernel/signal32.c                  |  16 +-
- arch/sparc/kernel/traps_32.c                  |   2 +-
- arch/sparc/kernel/traps_64.c                  |   2 +-
- arch/tile/include/uapi/asm/siginfo.h          |   4 +-
- arch/tile/kernel/compat_signal.c              |  18 +-
- arch/tile/kernel/traps.c                      |   2 +-
- arch/x86/kernel/signal_compat.c               |  21 +-
- fs/fcntl.c                                    |  13 +-
- fs/signalfd.c                                 |  22 +-
- fs/xattr.c                                    |   6 +
- include/linux/capability.h                    |   2 +
- include/linux/security.h                      |   2 +
- include/linux/signal.h                        |  22 ++
- include/linux/user_namespace.h                |   9 +-
- include/uapi/asm-generic/siginfo.h            | 115 +++++------
- include/uapi/linux/capability.h               |  22 +-
- kernel/exit.c                                 |   4 +-
- kernel/pid_namespace.c                        |   4 +
- kernel/ptrace.c                               |   6 +-
- kernel/signal.c                               |  72 +++++--
- kernel/sys.c                                  |   8 +-
- kernel/user_namespace.c                       |  20 +-
- security/commoncap.c                          | 277 ++++++++++++++++++++++++--
- tools/testing/selftests/x86/mpx-mini-test.c   |   3 +-
- tools/testing/selftests/x86/protection_keys.c |  13 +-
- 40 files changed, 622 insertions(+), 297 deletions(-)
-
-Eric
+Cheers
+---Dave
