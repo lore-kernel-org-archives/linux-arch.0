@@ -1,259 +1,69 @@
-From: Alex =?utf-8?Q?Benn=C3=A9e?= <alex.bennee@linaro.org>
-Subject: Re: [PATCH v2 07/28] arm64/sve: Low-level SVE architectural state manipulation functions
-Date: Wed, 13 Sep 2017 16:39:40 +0100
-Message-ID: <87mv5ya9qb.fsf@linaro.org>
-References: <1504198860-12951-1-git-send-email-Dave.Martin@arm.com> <1504198860-12951-8-git-send-email-Dave.Martin@arm.com>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v2 11/28] arm64/sve: Core task context handling
+Date: Wed, 13 Sep 2017 10:26:05 -0700
+Message-ID: <20170913172605.hjrwjf34kyy7coh4@localhost>
+References: <1504198860-12951-1-git-send-email-Dave.Martin@arm.com>
+ <1504198860-12951-12-git-send-email-Dave.Martin@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f175.google.com ([209.85.128.175]:43876 "EHLO
-        mail-wr0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751062AbdIMPjm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 13 Sep 2017 11:39:42 -0400
-Received: by mail-wr0-f175.google.com with SMTP id a43so1434768wrc.0
-        for <linux-arch@vger.kernel.org>; Wed, 13 Sep 2017 08:39:42 -0700 (PDT)
-In-reply-to: <1504198860-12951-8-git-send-email-Dave.Martin@arm.com>
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:54862 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751120AbdIMR0J (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 13 Sep 2017 13:26:09 -0400
+Content-Disposition: inline
+In-Reply-To: <1504198860-12951-12-git-send-email-Dave.Martin@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu, libc-alpha@sourceware.org, linux-arch@vger.kernel.org
+Cc: linux-arm-kernel@lists.infradead.org, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu, libc-alpha@sourceware.org, linux-arch@vger.kernel.org
 
+On Thu, Aug 31, 2017 at 06:00:43PM +0100, Dave P Martin wrote:
+> +el0_sve_acc:
+> +	/*
+> +	 * Scalable Vector Extension access
+> +	 */
+> +	enable_dbg
+> +	ct_user_exit
+> +	mov	x0, x25
+> +	mov	x1, sp
+> +	bl	do_sve_acc
+> +	b	ret_to_user
 
-Dave Martin <Dave.Martin@arm.com> writes:
+I think do_sve_acc() runs with interrupts disabled. We may have some
+high latency for large SVE states.
 
-> Manipulating the SVE architectural state, including the vector and
-> predicate registers, first-fault register and the vector length,
-> requires the use of dedicated instructions added by SVE.
->
-> This patch adds suitable assembly functions for saving and
-> restoring the SVE registers and querying the vector length.
-> Setting of the vector length is done as part of register restore.
->
-> Since people building kernels may not all get an SVE-enabled
-> toolchain for a while, this patch uses macros that generate
-> explicit opcodes in place of assembler mnemonics.
->
-> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> Cc: Alex Bennée <alex.bennee@linaro.org>
+> +/*
+> + * Trapped SVE access
+> + */
+> +void do_sve_acc(unsigned int esr, struct pt_regs *regs)
+> +{
+> +	/* Even if we chose not to use SVE, the hardware could still trap: */
+> +	if (unlikely(!system_supports_sve()) || WARN_ON(is_compat_task())) {
+> +		force_signal_inject(SIGILL, ILL_ILLOPC, regs, 0);
+> +		return;
+> +	}
+> +
+> +	task_fpsimd_save();
+> +
+> +	sve_alloc(current);
+> +	fpsimd_to_sve(current);
+> +	if (test_and_set_thread_flag(TIF_SVE))
+> +		WARN_ON(1); /* SVE access shouldn't have trapped */
+> +
+> +	task_fpsimd_load();
+> +}
 
-It took me a while to find a way to properly dissemble the resulting
-binaries, in the end needing to run a native objdump in Stretch. I'd
-hopped my gdb-multiarch was bleeding edge enough but no ;-)
+When this function is entered, do we expect TIF_SVE to always be
+cleared? It's worth adding a comment on the expected conditions. If
+that's the case, task_fpsimd_save() would only save the FPSIMD state
+which is fine. However, you subsequently transfer the FPSIMD state to
+SVE, set TIF_SVE and restore the full SVE state. If we don't care about
+the SVE state here, can we call task_fpsimd_load() *before* setting
+TIF_SVE?
 
-Reviewed-by: Alex Bennée <alex.bennee@linaro.org>
+I may as well have confused myself with the state bouncing between
+FPSIMD and SVE (more reasons to document the data flow better ;)).
 
->
-> ---
->
-> Changes since v1
-> ----------------
->
-> Requested by Alex Bennée:
->
-> * Annotate instruction generation macros with the canonical
-> architectural syntax so that people can cross-reference more easily
-> against the architectural documentation.
-> ---
->  arch/arm64/include/asm/fpsimd.h       |   5 ++
->  arch/arm64/include/asm/fpsimdmacros.h | 148 ++++++++++++++++++++++++++++++++++
->  arch/arm64/kernel/entry-fpsimd.S      |  17 ++++
->  3 files changed, 170 insertions(+)
->
-> diff --git a/arch/arm64/include/asm/fpsimd.h b/arch/arm64/include/asm/fpsimd.h
-> index 410c481..026a7c7 100644
-> --- a/arch/arm64/include/asm/fpsimd.h
-> +++ b/arch/arm64/include/asm/fpsimd.h
-> @@ -67,6 +67,11 @@ extern void fpsimd_update_current_state(struct fpsimd_state *state);
->
->  extern void fpsimd_flush_task_state(struct task_struct *target);
->
-> +extern void sve_save_state(void *state, u32 *pfpsr);
-> +extern void sve_load_state(void const *state, u32 const *pfpsr,
-> +			   unsigned long vq_minus_1);
-> +extern unsigned int sve_get_vl(void);
-> +
->  /* For use by EFI runtime services calls only */
->  extern void __efi_fpsimd_begin(void);
->  extern void __efi_fpsimd_end(void);
-> diff --git a/arch/arm64/include/asm/fpsimdmacros.h b/arch/arm64/include/asm/fpsimdmacros.h
-> index 0f5fdd3..e050d76 100644
-> --- a/arch/arm64/include/asm/fpsimdmacros.h
-> +++ b/arch/arm64/include/asm/fpsimdmacros.h
-> @@ -75,3 +75,151 @@
->  	ldr	w\tmpnr, [\state, #16 * 2 + 4]
->  	fpsimd_restore_fpcr x\tmpnr, \state
->  .endm
-> +
-> +/* Sanity-check macros to help avoid encoding garbage instructions */
-> +
-> +.macro _check_general_reg nr
-> +	.if (\nr) < 0 || (\nr) > 30
-> +		.error "Bad register number \nr."
-> +	.endif
-> +.endm
-> +
-> +.macro _sve_check_zreg znr
-> +	.if (\znr) < 0 || (\znr) > 31
-> +		.error "Bad Scalable Vector Extension vector register number \znr."
-> +	.endif
-> +.endm
-> +
-> +.macro _sve_check_preg pnr
-> +	.if (\pnr) < 0 || (\pnr) > 15
-> +		.error "Bad Scalable Vector Extension predicate register number \pnr."
-> +	.endif
-> +.endm
-> +
-> +.macro _check_num n, min, max
-> +	.if (\n) < (\min) || (\n) > (\max)
-> +		.error "Number \n out of range [\min,\max]"
-> +	.endif
-> +.endm
-> +
-> +/* SVE instruction encodings for non-SVE-capable assemblers */
-> +
-> +/* STR (vector): STR Z\nz, [X\nxbase, #\offset, MUL VL] */
-> +.macro _sve_str_v nz, nxbase, offset=0
-> +	_sve_check_zreg \nz
-> +	_check_general_reg \nxbase
-> +	_check_num (\offset), -0x100, 0xff
-> +	.inst	0xe5804000			\
-> +		| (\nz)				\
-> +		| ((\nxbase) << 5)		\
-> +		| (((\offset) & 7) << 10)	\
-> +		| (((\offset) & 0x1f8) << 13)
-> +.endm
-> +
-> +/* LDR (vector): LDR Z\nz, [X\nxbase, #\offset, MUL VL] */
-> +.macro _sve_ldr_v nz, nxbase, offset=0
-> +	_sve_check_zreg \nz
-> +	_check_general_reg \nxbase
-> +	_check_num (\offset), -0x100, 0xff
-> +	.inst	0x85804000			\
-> +		| (\nz)				\
-> +		| ((\nxbase) << 5)		\
-> +		| (((\offset) & 7) << 10)	\
-> +		| (((\offset) & 0x1f8) << 13)
-> +.endm
-> +
-> +/* STR (predicate): STR P\np, [X\nxbase, #\offset, MUL VL] */
-> +.macro _sve_str_p np, nxbase, offset=0
-> +	_sve_check_preg \np
-> +	_check_general_reg \nxbase
-> +	_check_num (\offset), -0x100, 0xff
-> +	.inst	0xe5800000			\
-> +		| (\np)				\
-> +		| ((\nxbase) << 5)		\
-> +		| (((\offset) & 7) << 10)	\
-> +		| (((\offset) & 0x1f8) << 13)
-> +.endm
-> +
-> +/* LDR (predicate): LDR P\np, [X\nxbase, #\offset, MUL VL] */
-> +.macro _sve_ldr_p np, nxbase, offset=0
-> +	_sve_check_preg \np
-> +	_check_general_reg \nxbase
-> +	_check_num (\offset), -0x100, 0xff
-> +	.inst	0x85800000			\
-> +		| (\np)				\
-> +		| ((\nxbase) << 5)		\
-> +		| (((\offset) & 7) << 10)	\
-> +		| (((\offset) & 0x1f8) << 13)
-> +.endm
-> +
-> +/* RDVL X\nx, #\imm */
-> +.macro _sve_rdvl nx, imm
-> +	_check_general_reg \nx
-> +	_check_num (\imm), -0x20, 0x1f
-> +	.inst	0x04bf5000			\
-> +		| (\nx)				\
-> +		| (((\imm) & 0x3f) << 5)
-> +.endm
-> +
-> +/* RDFFR (unpredicated): RDFFR P\np.B */
-> +.macro _sve_rdffr np
-> +	_sve_check_preg \np
-> +	.inst	0x2519f000			\
-> +		| (\np)
-> +.endm
-> +
-> +/* WRFFR P\np.B */
-> +.macro _sve_wrffr np
-> +	_sve_check_preg \np
-> +	.inst	0x25289000			\
-> +		| ((\np) << 5)
-> +.endm
-> +
-> +.macro __for from:req, to:req
-> +	.if (\from) == (\to)
-> +		_for__body \from
-> +	.else
-> +		__for \from, (\from) + ((\to) - (\from)) / 2
-> +		__for (\from) + ((\to) - (\from)) / 2 + 1, \to
-> +	.endif
-> +.endm
-> +
-> +.macro _for var:req, from:req, to:req, insn:vararg
-> +	.macro _for__body \var:req
-> +		\insn
-> +	.endm
-> +
-> +	__for \from, \to
-> +
-> +	.purgem _for__body
-> +.endm
-> +
-> +.macro sve_save nxbase, xpfpsr, nxtmp
-> + _for n, 0, 31,	_sve_str_v	\n, \nxbase, \n - 34
-> + _for n, 0, 15,	_sve_str_p	\n, \nxbase, \n - 16
-> +		_sve_rdffr	0
-> +		_sve_str_p	0, \nxbase
-> +		_sve_ldr_p	0, \nxbase, -16
-> +
-> +		mrs		x\nxtmp, fpsr
-> +		str		w\nxtmp, [\xpfpsr]
-> +		mrs		x\nxtmp, fpcr
-> +		str		w\nxtmp, [\xpfpsr, #4]
-> +.endm
-> +
-> +.macro sve_load nxbase, xpfpsr, xvqminus1, nxtmp
-> +		mrs_s		x\nxtmp, SYS_ZCR_EL1
-> +		bic		x\nxtmp, x\nxtmp, ZCR_ELx_LEN_MASK
-> +		orr		x\nxtmp, x\nxtmp, \xvqminus1
-> +		msr_s		SYS_ZCR_EL1, x\nxtmp	// self-synchronising
-> +
-> + _for n, 0, 31,	_sve_ldr_v	\n, \nxbase, \n - 34
-> +		_sve_ldr_p	0, \nxbase
-> +		_sve_wrffr	0
-> + _for n, 0, 15,	_sve_ldr_p	\n, \nxbase, \n - 16
-> +
-> +		ldr		w\nxtmp, [\xpfpsr]
-> +		msr		fpsr, x\nxtmp
-> +		ldr		w\nxtmp, [\xpfpsr, #4]
-> +		msr		fpcr, x\nxtmp
-> +.endm
-> diff --git a/arch/arm64/kernel/entry-fpsimd.S b/arch/arm64/kernel/entry-fpsimd.S
-> index 6a27cd6..73f17bf 100644
-> --- a/arch/arm64/kernel/entry-fpsimd.S
-> +++ b/arch/arm64/kernel/entry-fpsimd.S
-> @@ -41,3 +41,20 @@ ENTRY(fpsimd_load_state)
->  	fpsimd_restore x0, 8
->  	ret
->  ENDPROC(fpsimd_load_state)
-> +
-> +#ifdef CONFIG_ARM64_SVE
-> +ENTRY(sve_save_state)
-> +	sve_save 0, x1, 2
-> +	ret
-> +ENDPROC(sve_save_state)
-> +
-> +ENTRY(sve_load_state)
-> +	sve_load 0, x1, x2, 3
-> +	ret
-> +ENDPROC(sve_load_state)
-> +
-> +ENTRY(sve_get_vl)
-> +	_sve_rdvl	0, 1
-> +	ret
-> +ENDPROC(sve_get_vl)
-> +#endif /* CONFIG_ARM64_SVE */
+-- 
+Catalin
