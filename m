@@ -1,69 +1,123 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:56240 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751444AbdIMTVP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 13 Sep 2017 15:21:15 -0400
-Date: Wed, 13 Sep 2017 20:21:11 +0100
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH v2 10/28] arm64/sve: Low-level CPU setup
-Message-ID: <20170913192110.GE23415@e103592.cambridge.arm.com>
-References: <1504198860-12951-1-git-send-email-Dave.Martin@arm.com>
- <1504198860-12951-11-git-send-email-Dave.Martin@arm.com>
- <20170913133206.rwobtu7ft5nrsh4p@localhost>
+Received: from mail-wr0-f178.google.com ([209.85.128.178]:45179 "EHLO
+        mail-wr0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751193AbdINIrI (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 14 Sep 2017 04:47:08 -0400
+Received: by mail-wr0-f178.google.com with SMTP id m18so4885670wrm.2
+        for <linux-arch@vger.kernel.org>; Thu, 14 Sep 2017 01:47:07 -0700 (PDT)
+References: <1504198860-12951-1-git-send-email-Dave.Martin@arm.com> <1504198860-12951-13-git-send-email-Dave.Martin@arm.com>
+From: Alex =?utf-8?Q?Benn=C3=A9e?= <alex.bennee@linaro.org>
+Subject: Re: [PATCH v2 12/28] arm64/sve: Support vector length resetting for new processes
+In-reply-to: <1504198860-12951-13-git-send-email-Dave.Martin@arm.com>
+Date: Thu, 14 Sep 2017 09:47:05 +0100
+Message-ID: <87k211acqe.fsf@linaro.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20170913133206.rwobtu7ft5nrsh4p@localhost>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, Will Deacon <will.deacon@arm.com>, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
-Message-ID: <20170913192111.9qMoKmAvPwSaph0-90P_7fOOU5HgzTGasuJHDXFjWAc@z>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu, libc-alpha@sourceware.org, linux-arch@vger.kernel.org
+Message-ID: <20170914084705.r1CBaMgP_WQPwhzR5Cm955B8qIJ-CJ98wTSJN-HsTkE@z>
 
-On Wed, Sep 13, 2017 at 06:32:06AM -0700, Catalin Marinas wrote:
-> On Thu, Aug 31, 2017 at 06:00:42PM +0100, Dave P Martin wrote:
-> > diff --git a/arch/arm64/mm/proc.S b/arch/arm64/mm/proc.S
-> > index 877d42f..dd22ef2 100644
-> > --- a/arch/arm64/mm/proc.S
-> > +++ b/arch/arm64/mm/proc.S
-> > @@ -27,6 +27,7 @@
-> >  #include <asm/pgtable-hwdef.h>
-> >  #include <asm/cpufeature.h>
-> >  #include <asm/alternative.h>
-> > +#include <asm/sysreg.h>
-> >  
-> >  #ifdef CONFIG_ARM64_64K_PAGES
-> >  #define TCR_TG_FLAGS	TCR_TG0_64K | TCR_TG1_64K
-> > @@ -186,8 +187,17 @@ ENTRY(__cpu_setup)
-> >  	tlbi	vmalle1				// Invalidate local TLB
-> >  	dsb	nsh
-> >  
-> > -	mov	x0, #3 << 20
-> > -	msr	cpacr_el1, x0			// Enable FP/ASIMD
-> > +	mov	x0, #3 << 20			// FEN
-> > +
-> > +	/* SVE */
-> > +	mrs	x5, id_aa64pfr0_el1
-> > +	ubfx	x5, x5, #ID_AA64PFR0_SVE_SHIFT, #4
-> > +	cbz	x5, 1f
-> > +
-> > +	bic	x0, x0, #CPACR_EL1_ZEN
-> > +	orr	x0, x0, #CPACR_EL1_ZEN_EL1EN	// SVE: trap for EL0, not EL1
-> > +1:	msr	cpacr_el1, x0			// Enable FP/ASIMD
-> 
-> For EL1, I wonder whether we could move this later to cpufeature.c. IIRC
-> I tried to do the same with FPSIMD but hit an issue with EFI run-time
-> services (I may be wrong though).
 
-I'll take a look at this -- I believe it should be safe to disable this
-trap for EL1 relatively late.  This is needed before probing for
-available vector lengths, but apart from that the kernel shouldn't touch
-SVE until/unless some user task uses SVE.
+Dave Martin <Dave.Martin@arm.com> writes:
 
-This would change if we eventually enable kernel-mode SVE, but I wouldn't
-expect that to get used in early boot before the cpufeatures code runs.
+> It's desirable to be able to reset the vector length to some sane
+> default for new processes, since the new binary and its libraries
+> processes may or may not be SVE-aware.
+>
+> This patch tracks the desired post-exec vector length (if any) in a
+> new thread member sve_vl_onexec, and adds a new thread flag
+> TIF_SVE_VL_INHERIT to control whether to inherit or reset the
+> vector length.  Currently these are inactive.  Subsequent patches
+> will provide the capability to configure them.
+>
+> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> Cc: Alex Bennée <alex.bennee@linaro.org>
 
-Ard may have a view on this.
+Reviewed-by: Alex Bennée <alex.bennee@linaro.org>
 
-Cheers
----Dave
+>
+> ---
+>
+> Changes since v1
+> ----------------
+>
+> Requested by Alex Bennée:
+>
+> * Make sve_vl_onexec an unsigned int: that's the type used virtually
+> everywhere else, and the memory saving is too minor to be interesting.
+> ---
+>  arch/arm64/include/asm/processor.h   |  1 +
+>  arch/arm64/include/asm/thread_info.h |  1 +
+>  arch/arm64/kernel/fpsimd.c           | 16 ++++++++++++----
+>  3 files changed, 14 insertions(+), 4 deletions(-)
+>
+> diff --git a/arch/arm64/include/asm/processor.h b/arch/arm64/include/asm/processor.h
+> index 4831d28..3faceac 100644
+> --- a/arch/arm64/include/asm/processor.h
+> +++ b/arch/arm64/include/asm/processor.h
+> @@ -87,6 +87,7 @@ struct thread_struct {
+>  	struct fpsimd_state	fpsimd_state;
+>  	void			*sve_state;	/* SVE registers, if any */
+>  	unsigned int		sve_vl;		/* SVE vector length */
+> +	unsigned int		sve_vl_onexec;	/* SVE vl after next exec */
+>  	unsigned long		fault_address;	/* fault info */
+>  	unsigned long		fault_code;	/* ESR_EL1 value */
+>  	struct debug_info	debug;		/* debugging */
+> diff --git a/arch/arm64/include/asm/thread_info.h b/arch/arm64/include/asm/thread_info.h
+> index f0880fc..d3568ab 100644
+> --- a/arch/arm64/include/asm/thread_info.h
+> +++ b/arch/arm64/include/asm/thread_info.h
+> @@ -92,6 +92,7 @@ void arch_setup_new_exec(void);
+>  #define TIF_SINGLESTEP		21
+>  #define TIF_32BIT		22	/* 32bit process */
+>  #define TIF_SVE			23	/* Scalable Vector Extension in use */
+> +#define TIF_SVE_VL_INHERIT	24	/* Inherit sve_vl_onexec across exec */
+>
+>  #define _TIF_SIGPENDING		(1 << TIF_SIGPENDING)
+>  #define _TIF_NEED_RESCHED	(1 << TIF_NEED_RESCHED)
+> diff --git a/arch/arm64/kernel/fpsimd.c b/arch/arm64/kernel/fpsimd.c
+> index 9b1ebd7..e20b44d 100644
+> --- a/arch/arm64/kernel/fpsimd.c
+> +++ b/arch/arm64/kernel/fpsimd.c
+> @@ -106,6 +106,9 @@
+>   */
+>  static DEFINE_PER_CPU(struct fpsimd_state *, fpsimd_last_state);
+>
+> +/* Default VL for tasks that don't set it explicitly: */
+> +static int sve_default_vl = SVE_VL_MIN;
+> +
+>  static void sve_free(struct task_struct *task)
+>  {
+>  	kfree(task->thread.sve_state);
+> @@ -380,15 +383,20 @@ void fpsimd_flush_thread(void)
+>  		 * If a bug causes this to go wrong, we make some noise and
+>  		 * try to fudge thread.sve_vl to a safe value here.
+>  		 */
+> -		vl = current->thread.sve_vl;
+> -
+> -		if (vl == 0)
+> -			vl = SVE_VL_MIN;
+> +		vl = current->thread.sve_vl_onexec ?
+> +			current->thread.sve_vl_onexec : sve_default_vl;
+>
+>  		if (WARN_ON(!sve_vl_valid(vl)))
+>  			vl = SVE_VL_MIN;
+>
+>  		current->thread.sve_vl = vl;
+> +
+> +		/*
+> +		 * If the task is not set to inherit, ensure that the vector
+> +		 * length will be reset by a subsequent exec:
+> +		 */
+> +		if (!test_thread_flag(TIF_SVE_VL_INHERIT))
+> +			current->thread.sve_vl_onexec = 0;
+>  	}
+>
+>  	set_thread_flag(TIF_FOREIGN_FPSTATE);
+
+
+--
+Alex Bennée
