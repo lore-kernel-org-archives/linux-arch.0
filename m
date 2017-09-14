@@ -1,18 +1,18 @@
 From: Alex =?utf-8?Q?Benn=C3=A9e?= <alex.bennee@linaro.org>
 Subject: Re: [PATCH v2 23/28] arm64/sve: KVM: Treat guest SVE use as undefined instruction execution
-Date: Thu, 14 Sep 2017 14:30:03 +0100
-Message-ID: <8760cl9zms.fsf@linaro.org>
+Date: Thu, 14 Sep 2017 14:31:13 +0100
+Message-ID: <874ls59zku.fsf@linaro.org>
 References: <1504198860-12951-1-git-send-email-Dave.Martin@arm.com> <1504198860-12951-24-git-send-email-Dave.Martin@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f41.google.com ([74.125.82.41]:43017 "EHLO
-        mail-wm0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751165AbdINNaG (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 14 Sep 2017 09:30:06 -0400
-Received: by mail-wm0-f41.google.com with SMTP id a137so5738186wma.0
-        for <linux-arch@vger.kernel.org>; Thu, 14 Sep 2017 06:30:05 -0700 (PDT)
+Received: from mail-wr0-f177.google.com ([209.85.128.177]:43651 "EHLO
+        mail-wr0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751165AbdINNbQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 14 Sep 2017 09:31:16 -0400
+Received: by mail-wr0-f177.google.com with SMTP id a43so5957506wrc.0
+        for <linux-arch@vger.kernel.org>; Thu, 14 Sep 2017 06:31:15 -0700 (PDT)
 In-reply-to: <1504198860-12951-24-git-send-email-Dave.Martin@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -27,11 +27,12 @@ Dave Martin <Dave.Martin@arm.com> writes:
 >
 > This patch injects an undefined instruction exception into the
 > guest in response to such an exception.
+
+I do wonder if this should be merged with the previous trap enabling
+patch though?
+
 >
 > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-
-Reviewed-by: Alex Bennée <alex.bennee@linaro.org>
-
 > ---
 >  arch/arm64/kvm/handle_exit.c | 8 ++++++++
 >  1 file changed, 8 insertions(+)
