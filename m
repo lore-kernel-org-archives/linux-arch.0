@@ -1,707 +1,213 @@
 From: Alex =?utf-8?Q?Benn=C3=A9e?= <alex.bennee@linaro.org>
-Subject: Re: [PATCH v2 19/28] arm64/sve: ptrace and ELF coredump support
-Date: Thu, 14 Sep 2017 13:57:08 +0100
-Message-ID: <87bmmda15n.fsf@linaro.org>
-References: <1504198860-12951-1-git-send-email-Dave.Martin@arm.com> <1504198860-12951-20-git-send-email-Dave.Martin@arm.com>
+Subject: Re: [PATCH v2 20/28] arm64/sve: Add prctl controls for userspace vector length management
+Date: Thu, 14 Sep 2017 14:02:50 +0100
+Message-ID: <87a81xa0w5.fsf@linaro.org>
+References: <1504198860-12951-1-git-send-email-Dave.Martin@arm.com> <1504198860-12951-21-git-send-email-Dave.Martin@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f54.google.com ([74.125.82.54]:43751 "EHLO
-        mail-wm0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751265AbdINM5L (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 14 Sep 2017 08:57:11 -0400
-Received: by mail-wm0-f54.google.com with SMTP id a137so5595315wma.0
-        for <linux-arch@vger.kernel.org>; Thu, 14 Sep 2017 05:57:10 -0700 (PDT)
-In-reply-to: <1504198860-12951-20-git-send-email-Dave.Martin@arm.com>
+Received: from mail-wm0-f46.google.com ([74.125.82.46]:46511 "EHLO
+        mail-wm0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751131AbdINNCx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 14 Sep 2017 09:02:53 -0400
+Received: by mail-wm0-f46.google.com with SMTP id i189so227929wmf.1
+        for <linux-arch@vger.kernel.org>; Thu, 14 Sep 2017 06:02:52 -0700 (PDT)
+In-reply-to: <1504198860-12951-21-git-send-email-Dave.Martin@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu, libc-alpha@sourceware.org, linux-arch@vger.kernel.org, gdb@sourceware.org, Alan Hayward <alan.hayward@arm.com>, Yao Qi <Yao.Qi@arm.com>, Oleg Nesterov <oleg@redhat.com>, Alexander Viro <viro@zeniv.linux.org.uk>
+Cc: linux-arm-kernel@lists.infradead.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu, libc-alpha@sourceware.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
 
 
 Dave Martin <Dave.Martin@arm.com> writes:
 
-> This patch defines and implements a new regset NT_ARM_SVE, which
-> describes a thread's SVE register state.  This allows a debugger to
-> manipulate the SVE state, as well as being included in ELF
-> coredumps for post-mortem debugging.
+> This patch adds two arm64-specific prctls, to permit userspace to
+> control its vector length:
 >
-> Because the regset size and layout are dependent on the thread's
-> current vector length, it is not possible to define a C struct to
-> describe the regset contents as is done for existing regsets.
-> Instead, and for the same reasons, NT_ARM_SVE is based on the
-> freeform variable-layout approach used for the SVE signal frame.
+>  * PR_SVE_SET_VL: set the thread's SVE vector length and vector
+>    length inheritance mode.
 >
-> Additionally, to reduce debug overhead when debugging threads that
-> might or might not have live SVE register state, NT_ARM_SVE may be
-> presented in one of two different formats: the old struct
-> user_fpsimd_state format is embedded for describing the state of a
-> thread with no live SVE state, whereas a new variable-layout
-> structure is embedded for describing live SVE state.  This avoids a
-> debugger needing to poll NT_PRFPREG in addition to NT_ARM_SVE, and
-> allows existing userspace code to handle the non-SVE case without
-> too much modification.
+>  * PR_SVE_GET_VL: get the same information.
 >
-> For this to work, NT_ARM_SVE is defined with a fixed-format header
-> of type struct user_sve_header, which the recipient can use to
-> figure out the content, size and layout of the reset of the regset.
-> Accessor macros are defined to allow the vector-length-dependent
-> parts of the regset to be manipulated.
+> Although these calls shadow instruction set features in the SVE
+> architecture, these prctls provide additional control: the vector
+> length inheritance mode is Linux-specific and nothing to do with
+> the architecture, and the architecture does not permit EL0 to set
+> its own vector length directly.  Both can be used in portable tools
+> without requiring the use of SVE instructions.
 >
-> Signed-off-by: Alan Hayward <alan.hayward@arm.com>
 > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> Cc: Alex Bennée <alex.bennee@linaro.org>
->
+
+Reviewed-by: Alex Bennée <alex.bennee@linaro.org>
+
 > ---
->
-> Changes since v1
-> ----------------
->
-> Other changes related to Alex Bennée's comments:
->
-> * Migrate to SVE_VQ_BYTES instead of magic numbers.
->
-> Requested by Alex Bennée:
->
-> * Thin out BUG_ON()s:
-> Redundant BUG_ON()s and ones that just check invariants are removed.
-> Important sanity-checks are migrated to WARN_ON()s, with some
-> minimal best-effort patch-up code.
->
-> Other:
->
-> * [ABI fix] Bail out with -EIO if attempting to set the
-> SVE regs for an unsupported VL, instead of misparsing the regset data.
->
-> * Replace some in-kernel open-coded arithmetic with ALIGN()/
-> DIV_ROUND_UP().
-> ---
->  arch/arm64/include/asm/fpsimd.h      |  13 +-
->  arch/arm64/include/uapi/asm/ptrace.h | 135 ++++++++++++++++++
->  arch/arm64/kernel/fpsimd.c           |  40 +++++-
->  arch/arm64/kernel/ptrace.c           | 270 +++++++++++++++++++++++++++++++++--
->  include/uapi/linux/elf.h             |   1 +
->  5 files changed, 449 insertions(+), 10 deletions(-)
+>  arch/arm64/include/asm/fpsimd.h    | 14 ++++++++++++
+>  arch/arm64/include/asm/processor.h |  4 ++++
+>  arch/arm64/kernel/fpsimd.c         | 46 ++++++++++++++++++++++++++++++++++++++
+>  include/uapi/linux/prctl.h         |  4 ++++
+>  kernel/sys.c                       | 12 ++++++++++
+>  5 files changed, 80 insertions(+)
 >
 > diff --git a/arch/arm64/include/asm/fpsimd.h b/arch/arm64/include/asm/fpsimd.h
-> index 6c22624..2723cca 100644
+> index 2723cca..d084968 100644
 > --- a/arch/arm64/include/asm/fpsimd.h
 > +++ b/arch/arm64/include/asm/fpsimd.h
-> @@ -38,13 +38,16 @@ struct fpsimd_state {
->  			__uint128_t vregs[32];
->  			u32 fpsr;
->  			u32 fpcr;
-> +			/*
-> +			 * For ptrace compatibility, pad to next 128-bit
-> +			 * boundary here if extending this struct.
-> +			 */
->  		};
->  	};
->  	/* the id of the last cpu to have restored this state */
->  	unsigned int cpu;
->  };
+> @@ -17,6 +17,7 @@
+>  #define __ASM_FP_H
 >
-> -
->  #if defined(__KERNEL__) && defined(CONFIG_COMPAT)
->  /* Masks for extracting the FPSR and FPCR from the FPSCR */
->  #define VFP_FPSCR_STAT_MASK	0xf800009f
-> @@ -89,6 +92,10 @@ extern void sve_alloc(struct task_struct *task);
->  extern void fpsimd_release_thread(struct task_struct *task);
->  extern void fpsimd_dup_sve(struct task_struct *dst,
->  			   struct task_struct const *src);
-> +extern void fpsimd_sync_to_sve(struct task_struct *task);
-> +extern void sve_sync_to_fpsimd(struct task_struct *task);
-> +extern void sve_sync_from_fpsimd_zeropad(struct task_struct *task);
-> +
+>  #include <asm/ptrace.h>
+> +#include <asm/errno.h>
+>
+>  #ifndef __ASSEMBLY__
+>
+> @@ -99,6 +100,9 @@ extern void sve_sync_from_fpsimd_zeropad(struct task_struct *task);
 >  extern int sve_set_vector_length(struct task_struct *task,
 >  				 unsigned long vl, unsigned long flags);
 >
-> @@ -103,6 +110,10 @@ static void __maybe_unused sve_alloc(struct task_struct *task) { }
->  static void __maybe_unused fpsimd_release_thread(struct task_struct *task) { }
->  static void __maybe_unused fpsimd_dup_sve(struct task_struct *dst,
->  					  struct task_struct const *src) { }
-> +static void __maybe_unused sve_sync_to_fpsimd(struct task_struct *task) { }
-> +static void __maybe_unused sve_sync_from_fpsimd_zeropad(
-> +	struct task_struct *task) { }
+> +extern int sve_set_current_vl(unsigned long arg);
+> +extern int sve_get_current_vl(void);
+> +
+>  extern void __init sve_init_vq_map(void);
+>  extern void sve_update_vq_map(void);
+>  extern int sve_verify_vq_map(void);
+> @@ -114,6 +118,16 @@ static void __maybe_unused sve_sync_to_fpsimd(struct task_struct *task) { }
+>  static void __maybe_unused sve_sync_from_fpsimd_zeropad(
+>  	struct task_struct *task) { }
+>
+> +static int __maybe_unused sve_set_current_vl(unsigned long arg)
+> +{
+> +	return -EINVAL;
+> +}
+> +
+> +static int __maybe_unused sve_get_current_vl(void)
+> +{
+> +	return -EINVAL;
+> +}
 > +
 >  static void __maybe_unused sve_init_vq_map(void) { }
 >  static void __maybe_unused sve_update_vq_map(void) { }
 >  static int __maybe_unused sve_verify_vq_map(void) { return 0; }
-> diff --git a/arch/arm64/include/uapi/asm/ptrace.h b/arch/arm64/include/uapi/asm/ptrace.h
-> index d1ff83d..1915ab0 100644
-> --- a/arch/arm64/include/uapi/asm/ptrace.h
-> +++ b/arch/arm64/include/uapi/asm/ptrace.h
-> @@ -22,6 +22,7 @@
->  #include <linux/types.h>
+> diff --git a/arch/arm64/include/asm/processor.h b/arch/arm64/include/asm/processor.h
+> index 3faceac..df66452 100644
+> --- a/arch/arm64/include/asm/processor.h
+> +++ b/arch/arm64/include/asm/processor.h
+> @@ -197,4 +197,8 @@ static inline void spin_lock_prefetch(const void *ptr)
+>  int cpu_enable_pan(void *__unused);
+>  int cpu_enable_cache_maint_trap(void *__unused);
 >
->  #include <asm/hwcap.h>
-> +#include <asm/sigcontext.h>
->
->
->  /*
-> @@ -63,6 +64,8 @@
->
->  #ifndef __ASSEMBLY__
->
-> +#include <linux/prctl.h>
+> +/* Userspace interface for PR_SVE_{SET,GET}_VL prctl()s: */
+> +#define SVE_SET_VL(arg)	sve_set_current_vl(arg)
+> +#define SVE_GET_VL()	sve_get_current_vl()
 > +
->  /*
->   * User structures for general purpose, floating point and debug registers.
->   */
-> @@ -90,6 +93,138 @@ struct user_hwdebug_state {
->  	}		dbg_regs[16];
->  };
->
-> +/* SVE/FP/SIMD state (NT_ARM_SVE) */
-> +
-> +struct user_sve_header {
-> +	__u32 size; /* total meaningful regset content in bytes */
-> +	__u32 max_size; /* maxmium possible size for this thread */
-> +	__u16 vl; /* current vector length */
-> +	__u16 max_vl; /* maximum possible vector length */
-> +	__u16 flags;
-> +	__u16 __reserved;
-> +};
-> +
-> +/* Definitions for user_sve_header.flags: */
-> +#define SVE_PT_REGS_MASK		(1 << 0)
-> +
-> +/* Flags: must be kept in sync with prctl interface in
-> <linux/ptrace.h> */
-
-Which flags? We base some on PR_foo flags but we seem to shift them
-anyway so where is the requirement for them to match from?
-
-> +#define SVE_PT_REGS_FPSIMD		0
-> +#define SVE_PT_REGS_SVE			SVE_PT_REGS_MASK
-> +
-> +#define SVE_PT_VL_INHERIT		(PR_SVE_VL_INHERIT >> 16)
-> +#define SVE_PT_VL_ONEXEC		(PR_SVE_SET_VL_ONEXEC >> 16)
-> +
-> +
-> +/*
-> + * The remainder of the SVE state follows struct user_sve_header.  The
-> + * total size of the SVE state (including header) depends on the
-> + * metadata in the header:  SVE_PT_SIZE(vq, flags) gives the total size
-> + * of the state in bytes, including the header.
-> + *
-> + * Refer to <asm/sigcontext.h> for details of how to pass the correct
-> + * "vq" argument to these macros.
-> + */
-> +
-> +/* Offset from the start of struct user_sve_header to the register data */
-> +#define SVE_PT_REGS_OFFSET					\
-> +	((sizeof(struct sve_context) + (SVE_VQ_BYTES - 1))	\
-> +		/ SVE_VQ_BYTES * SVE_VQ_BYTES)
-> +
-> +/*
-> + * The register data content and layout depends on the value of the
-> + * flags field.
-> + */
-> +
-> +/*
-> + * (flags & SVE_PT_REGS_MASK) == SVE_PT_REGS_FPSIMD case:
-> + *
-> + * The payload starts at offset SVE_PT_FPSIMD_OFFSET, and is of type
-> + * struct user_fpsimd_state.  Additional data might be appended in the
-> + * future: use SVE_PT_FPSIMD_SIZE(vq, flags) to compute the total size.
-> + * SVE_PT_FPSIMD_SIZE(vq, flags) will never be less than
-> + * sizeof(struct user_fpsimd_state).
-> + */
-> +
-> +#define SVE_PT_FPSIMD_OFFSET		SVE_PT_REGS_OFFSET
-> +
-> +#define SVE_PT_FPSIMD_SIZE(vq, flags)	(sizeof(struct user_fpsimd_state))
-> +
-> +/*
-> + * (flags & SVE_PT_REGS_MASK) == SVE_PT_REGS_SVE case:
-> + *
-> + * The payload starts at offset SVE_PT_SVE_OFFSET, and is of size
-> + * SVE_PT_SVE_SIZE(vq, flags).
-> + *
-> + * Additional macros describe the contents and layout of the payload.
-> + * For each, SVE_PT_SVE_x_OFFSET(args) is the start offset relative to
-> + * the start of struct user_sve_header, and SVE_PT_SVE_x_SIZE(args) is
-> + * the size in bytes:
-> + *
-> + *	x	type				description
-> + *	-	----				-----------
-> + *	ZREGS		\
-> + *	ZREG		|
-> + *	PREGS		| refer to <asm/sigcontext.h>
-> + *	PREG		|
-> + *	FFR		/
-> + *
-> + *	FPSR	uint32_t			FPSR
-> + *	FPCR	uint32_t			FPCR
-> + *
-> + * Additional data might be appended in the future.
-> + */
-> +
-> +#define SVE_PT_SVE_ZREG_SIZE(vq)	SVE_SIG_ZREG_SIZE(vq)
-> +#define SVE_PT_SVE_PREG_SIZE(vq)	SVE_SIG_PREG_SIZE(vq)
-> +#define SVE_PT_SVE_FFR_SIZE(vq)		SVE_SIG_FFR_SIZE(vq)
-> +#define SVE_PT_SVE_FPSR_SIZE		sizeof(__u32)
-> +#define SVE_PT_SVE_FPCR_SIZE		sizeof(__u32)
-> +
-> +#define __SVE_SIG_TO_PT(offset) \
-> +	((offset) - SVE_SIG_REGS_OFFSET + SVE_PT_REGS_OFFSET)
-> +
-> +#define SVE_PT_SVE_OFFSET		SVE_PT_REGS_OFFSET
-> +
-> +#define SVE_PT_SVE_ZREGS_OFFSET \
-> +	__SVE_SIG_TO_PT(SVE_SIG_ZREGS_OFFSET)
-> +#define SVE_PT_SVE_ZREG_OFFSET(vq, n) \
-> +	__SVE_SIG_TO_PT(SVE_SIG_ZREG_OFFSET(vq, n))
-> +#define SVE_PT_SVE_ZREGS_SIZE(vq) \
-> +	(SVE_PT_SVE_ZREG_OFFSET(vq, SVE_NUM_ZREGS) - SVE_PT_SVE_ZREGS_OFFSET)
-> +
-> +#define SVE_PT_SVE_PREGS_OFFSET(vq) \
-> +	__SVE_SIG_TO_PT(SVE_SIG_PREGS_OFFSET(vq))
-> +#define SVE_PT_SVE_PREG_OFFSET(vq, n) \
-> +	__SVE_SIG_TO_PT(SVE_SIG_PREG_OFFSET(vq, n))
-> +#define SVE_PT_SVE_PREGS_SIZE(vq) \
-> +	(SVE_PT_SVE_PREG_OFFSET(vq, SVE_NUM_PREGS) - \
-> +		SVE_PT_SVE_PREGS_OFFSET(vq))
-> +
-> +#define SVE_PT_SVE_FFR_OFFSET(vq) \
-> +	__SVE_SIG_TO_PT(SVE_SIG_FFR_OFFSET(vq))
-> +
-> +#define SVE_PT_SVE_FPSR_OFFSET(vq)				\
-> +	((SVE_PT_SVE_FFR_OFFSET(vq) + SVE_PT_SVE_FFR_SIZE(vq) +	\
-> +			(SVE_VQ_BYTES - 1))			\
-> +		/ SVE_VQ_BYTES * SVE_VQ_BYTES)
-> +#define SVE_PT_SVE_FPCR_OFFSET(vq) \
-> +	(SVE_PT_SVE_FPSR_OFFSET(vq) + SVE_PT_SVE_FPSR_SIZE)
-> +
-> +/*
-> + * Any future extension appended after FPCR must be aligned to the next
-> + * 128-bit boundary.
-> + */
-> +
-> +#define SVE_PT_SVE_SIZE(vq, flags)					\
-> +	((SVE_PT_SVE_FPCR_OFFSET(vq) + SVE_PT_SVE_FPCR_SIZE		\
-> +			- SVE_PT_SVE_OFFSET + (SVE_VQ_BYTES - 1))	\
-> +		/ SVE_VQ_BYTES * SVE_VQ_BYTES)
-> +
-> +#define SVE_PT_SIZE(vq, flags)						\
-> +	 (((flags) & SVE_PT_REGS_MASK) == SVE_PT_REGS_SVE ?		\
-> +		  SVE_PT_SVE_OFFSET + SVE_PT_SVE_SIZE(vq, flags)	\
-> +		: SVE_PT_FPSIMD_OFFSET + SVE_PT_FPSIMD_SIZE(vq, flags))
-> +
->  #endif /* __ASSEMBLY__ */
->
->  #endif /* _UAPI__ASM_PTRACE_H */
+>  #endif /* __ASM_PROCESSOR_H */
 > diff --git a/arch/arm64/kernel/fpsimd.c b/arch/arm64/kernel/fpsimd.c
-> index fff9fcf..361c019 100644
+> index 361c019..42e8331 100644
 > --- a/arch/arm64/kernel/fpsimd.c
 > +++ b/arch/arm64/kernel/fpsimd.c
-> @@ -303,6 +303,37 @@ void sve_alloc(struct task_struct *task)
->  	BUG_ON(!task->thread.sve_state);
->  }
->
-> +void fpsimd_sync_to_sve(struct task_struct *task)
-> +{
-> +	if (!test_tsk_thread_flag(task, TIF_SVE))
-> +		fpsimd_to_sve(task);
-> +}
-> +
-> +void sve_sync_to_fpsimd(struct task_struct *task)
-> +{
-> +	if (test_tsk_thread_flag(task, TIF_SVE))
-> +		sve_to_fpsimd(task);
-> +}
-> +
-> +void sve_sync_from_fpsimd_zeropad(struct task_struct *task)
-> +{
-> +	unsigned int vq;
-> +	void *sst = task->thread.sve_state;
-> +	struct fpsimd_state const *fst = &task->thread.fpsimd_state;
-> +	unsigned int i;
-> +
-> +	if (!test_tsk_thread_flag(task, TIF_SVE))
-> +		return;
-> +
-> +	vq = sve_vq_from_vl(task->thread.sve_vl);
-> +
-> +	memset(sst, 0, SVE_SIG_REGS_SIZE(vq));
-> +
-> +	for (i = 0; i < 32; ++i)
-> +		memcpy(ZREG(sst, vq, i), &fst->vregs[i],
-> +		       sizeof(fst->vregs[i]));
-> +}
-> +
->  /*
->   * Handle SVE state across fork():
->   *
-> @@ -459,10 +490,17 @@ static void __init sve_efi_setup(void)
->  	 * This is evidence of a crippled system and we are returning void,
->  	 * so no attempt is made to handle this situation here.
->  	 */
-> -	BUG_ON(!sve_vl_valid(sve_max_vl));
-> +	if (!sve_vl_valid(sve_max_vl))
-> +		goto fail;
-> +
->  	efi_sve_state = __alloc_percpu(
->  		SVE_SIG_REGS_SIZE(sve_vq_from_vl(sve_max_vl)), SVE_VQ_BYTES);
->  	if (!efi_sve_state)
-> +		goto fail;
-> +
-> +	return;
-> +
-> +fail:
->  		panic("Cannot allocate percpu memory for EFI SVE save/restore");
->  }
->
-> diff --git a/arch/arm64/kernel/ptrace.c b/arch/arm64/kernel/ptrace.c
-> index 9cbb612..5ef4735b 100644
-> --- a/arch/arm64/kernel/ptrace.c
-> +++ b/arch/arm64/kernel/ptrace.c
-> @@ -32,6 +32,7 @@
->  #include <linux/security.h>
+> @@ -27,6 +27,7 @@
+>  #include <linux/kernel.h>
 >  #include <linux/init.h>
->  #include <linux/signal.h>
-> +#include <linux/string.h>
->  #include <linux/uaccess.h>
->  #include <linux/perf_event.h>
->  #include <linux/hw_breakpoint.h>
-> @@ -40,6 +41,7 @@
->  #include <linux/elf.h>
->
->  #include <asm/compat.h>
-> +#include <asm/cpufeature.h>
->  #include <asm/debug-monitors.h>
->  #include <asm/pgtable.h>
->  #include <asm/stacktrace.h>
-> @@ -618,33 +620,66 @@ static int gpr_set(struct task_struct *target, const struct user_regset *regset,
->  /*
->   * TODO: update fp accessors for lazy context switching (sync/flush hwstate)
->   */
-> -static int fpr_get(struct task_struct *target, const struct user_regset *regset,
-> -		   unsigned int pos, unsigned int count,
-> -		   void *kbuf, void __user *ubuf)
-> +static int __fpr_get(struct task_struct *target,
-> +		     const struct user_regset *regset,
-> +		     unsigned int pos, unsigned int count,
-> +		     void *kbuf, void __user *ubuf, unsigned int start_pos)
->  {
->  	struct user_fpsimd_state *uregs;
-> +
-> +	sve_sync_to_fpsimd(target);
-> +
->  	uregs = &target->thread.fpsimd_state.user_fpsimd;
->
-> +	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, uregs,
-> +				   start_pos, start_pos + sizeof(*uregs));
-> +}
-> +
-> +static int fpr_get(struct task_struct *target, const struct user_regset *regset,
-> +		   unsigned int pos, unsigned int count,
-> +		   void *kbuf, void __user *ubuf)
-> +{
->  	if (target == current)
->  		fpsimd_preserve_current_state();
->
-> -	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, uregs, 0, -1);
-> +	return __fpr_get(target, regset, pos, count, kbuf, ubuf, 0);
+>  #include <linux/percpu.h>
+> +#include <linux/prctl.h>
+>  #include <linux/preempt.h>
+>  #include <linux/prctl.h>
+>  #include <linux/ptrace.h>
+> @@ -420,6 +421,51 @@ int sve_set_vector_length(struct task_struct *task,
+>  	return 0;
 >  }
 >
-> -static int fpr_set(struct task_struct *target, const struct user_regset *regset,
-> -		   unsigned int pos, unsigned int count,
-> -		   const void *kbuf, const void __user *ubuf)
-> +static int __fpr_set(struct task_struct *target,
-> +		     const struct user_regset *regset,
-> +		     unsigned int pos, unsigned int count,
-> +		     const void *kbuf, const void __user *ubuf,
-> +		     unsigned int start_pos)
->  {
->  	int ret;
->  	struct user_fpsimd_state newstate =
->  		target->thread.fpsimd_state.user_fpsimd;
->
-> -	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, &newstate, 0, -1);
-> +	sve_sync_to_fpsimd(target);
+> +/*
+> + * Encode the current vector length and flags for return.
+> + * This is only required for prctl(): ptrace has separate fields
+> + */
+> +static int sve_prctl_status(void)
+> +{
+> +	int ret = current->thread.sve_vl;
 > +
-> +	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, &newstate,
-> +				 start_pos, start_pos + sizeof(newstate));
->  	if (ret)
->  		return ret;
->
->  	target->thread.fpsimd_state.user_fpsimd = newstate;
+> +	if (test_thread_flag(TIF_SVE_VL_INHERIT))
+> +		ret |= PR_SVE_VL_INHERIT;
 > +
 > +	return ret;
 > +}
 > +
-> +static int fpr_set(struct task_struct *target, const struct user_regset *regset,
-> +		   unsigned int pos, unsigned int count,
-> +		   const void *kbuf, const void __user *ubuf)
+> +/* PR_SVE_SET_VL */
+> +int sve_set_current_vl(unsigned long arg)
 > +{
+> +	unsigned long vl, flags;
 > +	int ret;
 > +
-> +	ret = __fpr_set(target, regset, pos, count, kbuf, ubuf, 0);
+> +	vl = arg & PR_SVE_VL_LEN_MASK;
+> +	flags = arg & ~vl;
+> +
+> +	if (!system_supports_sve())
+> +		return -EINVAL;
+> +
+> +	preempt_disable();
+> +	ret = sve_set_vector_length(current, vl, flags);
+> +	preempt_enable();
+> +
 > +	if (ret)
 > +		return ret;
 > +
-> +	sve_sync_from_fpsimd_zeropad(target);
->  	fpsimd_flush_task_state(target);
+> +	return sve_prctl_status();
+> +}
 > +
->  	return ret;
->  }
+> +/* PR_SVE_GET_VL */
+> +int sve_get_current_vl(void)
+> +{
+> +	if (!system_supports_sve())
+> +		return -EINVAL;
+> +
+> +	return sve_prctl_status();
+> +}
+> +
+>  static unsigned long *sve_alloc_vq_map(void)
+>  {
+>  	return kzalloc(BITS_TO_LONGS(SVE_VQ_MAX) * sizeof(unsigned long),
+> diff --git a/include/uapi/linux/prctl.h b/include/uapi/linux/prctl.h
+> index 1b64901..1ef9370 100644
+> --- a/include/uapi/linux/prctl.h
+> +++ b/include/uapi/linux/prctl.h
+> @@ -198,7 +198,11 @@ struct prctl_mm_map {
+>  # define PR_CAP_AMBIENT_CLEAR_ALL	4
 >
-> @@ -702,6 +737,210 @@ static int system_call_set(struct task_struct *target,
->  	return ret;
->  }
+>  /* arm64 Scalable Vector Extension controls */
+> +/* Flag values must be kept in sync with ptrace NT_ARM_SVE interface */
+> +#define PR_SVE_SET_VL			48	/* set task vector length */
+>  # define PR_SVE_SET_VL_ONEXEC		(1 << 18) /* defer effect until exec */
+> +#define PR_SVE_GET_VL			49	/* get task vector length */
+> +/* Bits common to PR_SVE_SET_VL and PR_SVE_GET_VL */
+>  # define PR_SVE_VL_LEN_MASK		0xffff
+>  # define PR_SVE_VL_INHERIT		(1 << 17) /* inherit across exec */
 >
-> +#ifdef CONFIG_ARM64_SVE
-> +
-> +static void sve_init_header_from_task(struct user_sve_header *header,
-> +				      struct task_struct *target)
-> +{
-> +	unsigned int vq;
-> +
-> +	memset(header, 0, sizeof(*header));
-> +
-> +	header->flags = test_tsk_thread_flag(target, TIF_SVE) ?
-> +		SVE_PT_REGS_SVE : SVE_PT_REGS_FPSIMD;
-> +	if (test_tsk_thread_flag(target, TIF_SVE_VL_INHERIT))
-> +		header->flags |= SVE_PT_VL_INHERIT;
-> +
-> +	header->vl = target->thread.sve_vl;
-> +	vq = sve_vq_from_vl(header->vl);
-> +
-> +	if (WARN_ON(!sve_vl_valid(sve_max_vl)))
-> +		header->max_vl = header->vl;
-> +
-> +	header->size = SVE_PT_SIZE(vq, header->flags);
-> +	header->max_size = SVE_PT_SIZE(sve_vq_from_vl(header->max_vl),
-> +				      SVE_PT_REGS_SVE);
-> +}
-> +
-> +static unsigned int sve_size_from_header(struct user_sve_header const *header)
-> +{
-> +	return ALIGN(header->size, SVE_VQ_BYTES);
-> +}
-> +
-> +static unsigned int sve_get_size(struct task_struct *target,
-> +				 const struct user_regset *regset)
-> +{
-> +	struct user_sve_header header;
-> +
-> +	if (!system_supports_sve())
-> +		return 0;
-> +
-> +	sve_init_header_from_task(&header, target);
-> +	return sve_size_from_header(&header);
-> +}
-> +
-> +static int sve_get(struct task_struct *target,
-> +		   const struct user_regset *regset,
-> +		   unsigned int pos, unsigned int count,
-> +		   void *kbuf, void __user *ubuf)
-> +{
-> +	int ret;
-> +	struct user_sve_header header;
-> +	unsigned int vq;
-> +	unsigned long start, end;
-> +
-> +	if (!system_supports_sve())
-> +		return -EINVAL;
-> +
-> +	/* Header */
-> +	sve_init_header_from_task(&header, target);
-> +	vq = sve_vq_from_vl(header.vl);
-> +
-> +	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf, &header,
-> +				  0, sizeof(header));
-> +	if (ret)
-> +		return ret;
-> +
-> +	if (target == current)
-> +		fpsimd_preserve_current_state();
-> +
-> +	/* Registers: FPSIMD-only case */
-> +
-> +	BUILD_BUG_ON(SVE_PT_FPSIMD_OFFSET != sizeof(header));
-> +	if ((header.flags & SVE_PT_REGS_MASK) == SVE_PT_REGS_FPSIMD)
-> +		return __fpr_get(target, regset, pos, count, kbuf, ubuf,
-> +				 SVE_PT_FPSIMD_OFFSET);
-> +
-> +	/* Otherwise: full SVE case */
-> +
-> +	BUILD_BUG_ON(SVE_PT_SVE_OFFSET != sizeof(header));
-> +	start = SVE_PT_SVE_OFFSET;
-> +	end = SVE_PT_SVE_FFR_OFFSET(vq) + SVE_PT_SVE_FFR_SIZE(vq);
-> +	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
-> +				  target->thread.sve_state,
-> +				  start, end);
-> +	if (ret)
-> +		return ret;
-> +
-> +	start = end;
-> +	end = SVE_PT_SVE_FPSR_OFFSET(vq);
-> +	ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
-> +				       start, end);
-> +	if (ret)
-> +		return ret;
-> +
-> +	/*
-> +	 * Copy fpsr, and fpcr which must follow contiguously in
-> +	 * struct fpsimd_state:
-> +	 */
-> +	start = end;
-> +	end = SVE_PT_SVE_FPCR_OFFSET(vq) + SVE_PT_SVE_FPCR_SIZE;
-> +	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
-> +				  &target->thread.fpsimd_state.fpsr,
-> +				  start, end);
-> +	if (ret)
-> +		return ret;
-> +
-> +	start = end;
-> +	end = sve_size_from_header(&header);
-> +	return user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
-> +					start, end);
-> +}
-> +
-> +static int sve_set(struct task_struct *target,
-> +		   const struct user_regset *regset,
-> +		   unsigned int pos, unsigned int count,
-> +		   const void *kbuf, const void __user *ubuf)
-> +{
-> +	int ret;
-> +	struct user_sve_header header;
-> +	unsigned int vq;
-> +	unsigned long start, end;
-> +
-> +	if (!system_supports_sve())
-> +		return -EINVAL;
-> +
-> +	/* Header */
-> +	if (count < sizeof(header))
-> +		return -EINVAL;
-> +	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, &header,
-> +				 0, sizeof(header));
-> +	if (ret)
-> +		goto out;
-> +
-> +	/*
-> +	 * Apart from PT_SVE_REGS_MASK, all PT_SVE_* flags are consumed by
-> +	 * sve_set_vector_length(), which will also validate them for us:
-> +	 */
-> +	ret = sve_set_vector_length(target, header.vl,
-> +				    header.flags & ~SVE_PT_REGS_MASK);
-> +	if (ret)
-> +		goto out;
-> +
-> +	/* Actual VL set may be less than the user asked for: */
-> +	vq = sve_vq_from_vl(target->thread.sve_vl);
-> +
-> +	/* Registers: FPSIMD-only case */
-> +
-> +	BUILD_BUG_ON(SVE_PT_FPSIMD_OFFSET != sizeof(header));
-> +	if ((header.flags & SVE_PT_REGS_MASK) == SVE_PT_REGS_FPSIMD) {
-> +		sve_sync_to_fpsimd(target);
-> +
-> +		ret = __fpr_set(target, regset, pos, count, kbuf, ubuf,
-> +				SVE_PT_FPSIMD_OFFSET);
-> +		clear_tsk_thread_flag(target, TIF_SVE);
-> +		goto out;
-> +	}
-> +
-> +	/* Otherwise: full SVE case */
-> +
-> +	/*
-> +	 * If setting a different VL from the requested VL and there is
-> +	 * register data, the data layout will be wrong: don't even
-> +	 * try to set the registers in this case.
-> +	 */
-> +	if (count && vq != sve_vq_from_vl(header.vl)) {
-> +		ret = -EIO;
-> +		goto out;
-> +	}
-> +
-> +	sve_alloc(target);
-> +	fpsimd_sync_to_sve(target);
-> +	set_tsk_thread_flag(target, TIF_SVE);
-> +
-> +	BUILD_BUG_ON(SVE_PT_SVE_OFFSET != sizeof(header));
-> +	start = SVE_PT_SVE_OFFSET;
-> +	end = SVE_PT_SVE_FFR_OFFSET(vq) + SVE_PT_SVE_FFR_SIZE(vq);
-> +	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
-> +				 target->thread.sve_state,
-> +				 start, end);
-> +	if (ret)
-> +		goto out;
-> +
-> +	start = end;
-> +	end = SVE_PT_SVE_FPSR_OFFSET(vq);
-> +	ret = user_regset_copyin_ignore(&pos, &count, &kbuf, &ubuf,
-> +					start, end);
-> +	if (ret)
-> +		goto out;
-> +
-> +	/*
-> +	 * Copy fpsr, and fpcr which must follow contiguously in
-> +	 * struct fpsimd_state:
-> +	 */
-> +	start = end;
-> +	end = SVE_PT_SVE_FPCR_OFFSET(vq) + SVE_PT_SVE_FPCR_SIZE;
-> +	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
-> +				 &target->thread.fpsimd_state.fpsr,
-> +				 start, end);
-> +
-> +out:
-> +	fpsimd_flush_task_state(target);
-> +	return ret;
-> +}
-> +
-> +#endif /* CONFIG_ARM64_SVE */
-> +
->  enum aarch64_regset {
->  	REGSET_GPR,
->  	REGSET_FPR,
-> @@ -711,6 +950,9 @@ enum aarch64_regset {
->  	REGSET_HW_WATCH,
+> diff --git a/kernel/sys.c b/kernel/sys.c
+> index 2855ee7..f8215a6 100644
+> --- a/kernel/sys.c
+> +++ b/kernel/sys.c
+> @@ -110,6 +110,12 @@
+>  #ifndef SET_FP_MODE
+>  # define SET_FP_MODE(a,b)	(-EINVAL)
 >  #endif
->  	REGSET_SYSTEM_CALL,
-> +#ifdef CONFIG_ARM64_SVE
-> +	REGSET_SVE,
+> +#ifndef SVE_SET_VL
+> +# define SVE_SET_VL(a)		(-EINVAL)
 > +#endif
->  };
->
->  static const struct user_regset aarch64_regsets[] = {
-> @@ -768,6 +1010,18 @@ static const struct user_regset aarch64_regsets[] = {
->  		.get = system_call_get,
->  		.set = system_call_set,
->  	},
-> +#ifdef CONFIG_ARM64_SVE
-> +	[REGSET_SVE] = { /* Scalable Vector Extension */
-> +		.core_note_type = NT_ARM_SVE,
-> +		.n = DIV_ROUND_UP(SVE_PT_SIZE(SVE_VQ_MAX, SVE_PT_REGS_SVE),
-> +				  SVE_VQ_BYTES),
-> +		.size = SVE_VQ_BYTES,
-> +		.align = SVE_VQ_BYTES,
-> +		.get = sve_get,
-> +		.set = sve_set,
-> +		.get_size = sve_get_size,
-> +	},
+> +#ifndef SVE_GET_VL
+> +# define SVE_GET_VL()		(-EINVAL)
 > +#endif
->  };
 >
->  static const struct user_regset_view user_aarch64_view = {
-> diff --git a/include/uapi/linux/elf.h b/include/uapi/linux/elf.h
-> index b5280db..735b8f4 100644
-> --- a/include/uapi/linux/elf.h
-> +++ b/include/uapi/linux/elf.h
-> @@ -416,6 +416,7 @@ typedef struct elf64_shdr {
->  #define NT_ARM_HW_BREAK	0x402		/* ARM hardware breakpoint registers */
->  #define NT_ARM_HW_WATCH	0x403		/* ARM hardware watchpoint registers */
->  #define NT_ARM_SYSTEM_CALL	0x404	/* ARM system call number */
-> +#define NT_ARM_SVE	0x405		/* ARM Scalable Vector Extension registers */
->  #define NT_METAG_CBUF	0x500		/* Metag catch buffer registers */
->  #define NT_METAG_RPIPE	0x501		/* Metag read pipeline state */
->  #define NT_METAG_TLS	0x502		/* Metag TLS pointer */
-
-Otherwise:
-
-Reviewed-by: Alex Bennée <alex.bennee@linaro.org>
+>  /*
+>   * this is where the system-wide overflow UID and GID are defined, for
+> @@ -2389,6 +2395,12 @@ SYSCALL_DEFINE5(prctl, int, option, unsigned long, arg2, unsigned long, arg3,
+>  	case PR_GET_FP_MODE:
+>  		error = GET_FP_MODE(me);
+>  		break;
+> +	case PR_SVE_SET_VL:
+> +		error = SVE_SET_VL(arg2);
+> +		break;
+> +	case PR_SVE_GET_VL:
+> +		error = SVE_GET_VL();
+> +		break;
+>  	default:
+>  		error = -EINVAL;
+>  		break;
