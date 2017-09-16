@@ -1,77 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f193.google.com ([209.85.220.193]:38075 "EHLO
-        mail-qk0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751413AbdIPBVg (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 15 Sep 2017 21:21:36 -0400
+Received: from mail-qt0-f196.google.com ([209.85.216.196]:35757 "EHLO
+        mail-qt0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751117AbdIPBVa (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 15 Sep 2017 21:21:30 -0400
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [PATCH 2/6] mm, x86 : introduce arch_pkeys_enabled()
-Date: Fri, 15 Sep 2017 18:21:06 -0700
-Message-ID: <1505524870-4783-3-git-send-email-linuxram@us.ibm.com>
-In-Reply-To: <1505524870-4783-1-git-send-email-linuxram@us.ibm.com>
-References: <1505524870-4783-1-git-send-email-linuxram@us.ibm.com>
+Subject: [PATCH 0/6] mm, x86, powerpc: Memory Protection Keys enhancement
+Date: Fri, 15 Sep 2017 18:21:04 -0700
+Message-ID: <1505524870-4783-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org
 Cc: arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com
-Message-ID: <20170916012106.LMWIMeylfcYAWr3PCgcYUoFXQDZnNI5tGG2ILnG_rQc@z>
+Message-ID: <20170916012104.fpzjvhGs3lg8KgfhINkYUzs-NNXEhCXm8n8DaekNBlw@z>
 
-Arch neutral code needs to know if the architecture supports
-protection  keys  to  display protection key in smaps. Hence
-introducing arch_pkeys_enabled().
+The patch-series enhances memory protection keys feature.
 
-This patch also provides x86 implementation for
-arch_pkeys_enabled().
+The patch(1)  introduces  an  additional  vma bit to support 32
+pkeys.  PowerPC supports 32 pkeys.
 
-Signed-off-by: Ram Pai <linuxram@us.ibm.com>
----
- arch/x86/include/asm/pkeys.h |    1 +
- arch/x86/kernel/fpu/xstate.c |    5 +++++
- include/linux/pkeys.h        |    5 +++++
- 3 files changed, 11 insertions(+), 0 deletions(-)
+The patch(2,3)  introduces a new interface arch_pkeys_enabled(),
+this  interface  can   be used by arch-neutral code to display
+protection key value in smap.
 
-diff --git a/arch/x86/include/asm/pkeys.h b/arch/x86/include/asm/pkeys.h
-index b3b09b9..fa82799 100644
---- a/arch/x86/include/asm/pkeys.h
-+++ b/arch/x86/include/asm/pkeys.h
-@@ -5,6 +5,7 @@
- 
- extern int arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
- 		unsigned long init_val);
-+extern bool arch_pkeys_enabled(void);
- 
- /*
-  * Try to dedicate one of the protection keys to be used as an
-diff --git a/arch/x86/kernel/fpu/xstate.c b/arch/x86/kernel/fpu/xstate.c
-index c24ac1e..df594b8 100644
---- a/arch/x86/kernel/fpu/xstate.c
-+++ b/arch/x86/kernel/fpu/xstate.c
-@@ -918,6 +918,11 @@ int arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
- 
- 	return 0;
- }
-+
-+bool arch_pkeys_enabled(void)
-+{
-+	return boot_cpu_has(X86_FEATURE_OSPKE);
-+}
- #endif /* ! CONFIG_ARCH_HAS_PKEYS */
- 
- /*
-diff --git a/include/linux/pkeys.h b/include/linux/pkeys.h
-index a1bacf1..d120810 100644
---- a/include/linux/pkeys.h
-+++ b/include/linux/pkeys.h
-@@ -34,6 +34,11 @@ static inline int arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
- 	return 0;
- }
- 
-+static inline bool arch_pkeys_enabled(void)
-+{
-+	return false;
-+}
-+
- static inline void copy_init_pkru_to_fpregs(void)
- {
- }
--- 
-1.7.1
+The patch(4) introduces a syfs interface, to display the static
+attributes  of the protection key. Eg: max number of keys.
+
+The last two patches, (5,6) update documentation.
+
+A separate patch series that enhances selftest will follow. The
+entire  patch  series  that  enables  pkeys  on  powerpc  is at 
+https://github.com/rampai/memorykeys.git memkey.v9-rc1
+
+Testing:
+-------
+This  patches are tested on powerpc platform using a
+enhaced set of selftests.
+Could not test on x86 since I do not have access to
+one with pkey support.
+
+History:
+-------
+version v3:
+	(1) sysfs interface - thanks Thiago.
+	(2) Documentation update.
+
+version v2:
+	(1) Documentation   is   updated   to  better 
+		capture the semantics.
+	(2) introduced   arch_pkeys_enabled() to find
+       		if an arch enables pkeys.  Correspond-
+		ing change in logic that displays key
+		value in smaps.
+	(3) code  rearranged  in many places based on
+       		comments from   Dave Hansen,   Balbir,
+	       	Anshuman.	
+version v1: Initial version
+
+Ram Pai (5):
+  mm: introduce an additional vma bit for powerpc pkey
+  mm, x86 : introduce arch_pkeys_enabled()
+  mm: display pkey in smaps if arch_pkeys_enabled() is true
+  Documentation/x86: Move protecton key documentation to arch neutral
+    directory
+  Documentation/vm: PowerPC specific updates to memory protection keys
+
+Thiago Jung Bauermann (1):
+  mm/mprotect, powerpc/mm/pkeys, x86/mm/pkeys: Add sysfs interface
+
+ Documentation/vm/protection-keys.txt  |  160 +++++++++++++++++++++++++++++++++
+ Documentation/x86/protection-keys.txt |   85 -----------------
+ arch/powerpc/include/asm/pkeys.h      |    2 +
+ arch/powerpc/mm/pkeys.c               |   20 ++++
+ arch/x86/include/asm/mmu_context.h    |    4 +-
+ arch/x86/include/asm/pkeys.h          |    2 +
+ arch/x86/kernel/fpu/xstate.c          |    5 +
+ arch/x86/kernel/setup.c               |    8 --
+ arch/x86/mm/pkeys.c                   |    8 ++
+ fs/proc/task_mmu.c                    |   17 ++--
+ include/linux/mm.h                    |   16 ++--
+ include/linux/pkeys.h                 |    9 ++
+ mm/mprotect.c                         |   88 ++++++++++++++++++
+ 13 files changed, 317 insertions(+), 107 deletions(-)
+ create mode 100644 Documentation/vm/protection-keys.txt
+ delete mode 100644 Documentation/x86/protection-keys.txt
