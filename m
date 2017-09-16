@@ -1,97 +1,188 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f173.google.com ([209.85.128.173]:53029 "EHLO
-        mail-wr0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751316AbdINNcM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 14 Sep 2017 09:32:12 -0400
-Received: by mail-wr0-f173.google.com with SMTP id c23so338196wrg.9
-        for <linux-arch@vger.kernel.org>; Thu, 14 Sep 2017 06:32:11 -0700 (PDT)
-References: <1504198860-12951-1-git-send-email-Dave.Martin@arm.com> <1504198860-12951-25-git-send-email-Dave.Martin@arm.com>
-From: Alex =?utf-8?Q?Benn=C3=A9e?= <alex.bennee@linaro.org>
-Subject: Re: [PATCH v2 24/28] arm64/sve: KVM: Hide SVE from CPU features exposed to guests
-In-reply-to: <1504198860-12951-25-git-send-email-Dave.Martin@arm.com>
-Date: Thu, 14 Sep 2017 14:32:09 +0100
-Message-ID: <87377p9zja.fsf@linaro.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
+Received: from mail-qk0-f195.google.com ([209.85.220.195]:33167 "EHLO
+        mail-qk0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751555AbdIPBVr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 15 Sep 2017 21:21:47 -0400
+From: Ram Pai <linuxram@us.ibm.com>
+Subject: [PATCH 6/6] Documentation/vm: PowerPC specific updates to memory protection keys
+Date: Fri, 15 Sep 2017 18:21:10 -0700
+Message-ID: <1505524870-4783-7-git-send-email-linuxram@us.ibm.com>
+In-Reply-To: <1505524870-4783-1-git-send-email-linuxram@us.ibm.com>
+References: <1505524870-4783-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu, libc-alpha@sourceware.org, linux-arch@vger.kernel.org, Christoffer Dall <christoffer.dall@linaro.org>, Marc Zyngier <marc.zyngier@arm.com>
-Message-ID: <20170914133209.c0XGtDJbzRLP9VXCUk_MjyrN4-of5PdwuAedkRSv5bw@z>
+To: mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org
+Cc: arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com
+Message-ID: <20170916012110.FpIuONoQg6AcXiFe54nIWvMFWD47YaHvrOMz6D8JnSM@z>
 
+Add documentation updates that capture PowerPC specific changes.
 
-Dave Martin <Dave.Martin@arm.com> writes:
+Signed-off-by: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
+Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+---
+ Documentation/vm/protection-keys.txt |  125 +++++++++++++++++++++++++++-------
+ 1 files changed, 100 insertions(+), 25 deletions(-)
 
-> KVM guests cannot currently use SVE, because SVE is always
-> configured to trap to EL2.
->
-> However, a guest that sees SVE reported as present in
-> ID_AA64PFR0_EL1 may legitimately expect that SVE works and try to
-> use it.  Instead of working, the guest will receive an injected
-> undef exception, which may cause the guest to oops or go into a
-> spin.
->
-> To avoid misleading the guest into believing that SVE will work,
-> this patch masks out the SVE field from ID_AA64PFR0_EL1 when a
-> guest attempts to read this register.  No support is explicitly
-> added for ID_AA64ZFR0_EL1 either, so that is still emulated as
-> reading as zero, which is consistent with SVE not being
-> implemented.
->
-> This is a temporary measure, and will be removed in a later series
-> when full KVM support for SVE is implemented.
->
-> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> Cc: Marc Zyngier <marc.zyngier@arm.com>
-
-Reviewed-by: Alex Bennée <alex.bennee@linaro.org>
-
->
-> ---
->
-> Changes since v1
-> ----------------
->
-> Requested by Marc Zyngier:
->
-> * Use pr_err() instead inventing "kvm_info_once" ad-hoc.
-> ---
->  arch/arm64/kvm/sys_regs.c | 12 +++++++++++-
->  1 file changed, 11 insertions(+), 1 deletion(-)
->
-> diff --git a/arch/arm64/kvm/sys_regs.c b/arch/arm64/kvm/sys_regs.c
-> index b1f7552..a0ee9b0 100644
-> --- a/arch/arm64/kvm/sys_regs.c
-> +++ b/arch/arm64/kvm/sys_regs.c
-> @@ -23,6 +23,7 @@
->  #include <linux/bsearch.h>
->  #include <linux/kvm_host.h>
->  #include <linux/mm.h>
-> +#include <linux/printk.h>
->  #include <linux/uaccess.h>
->
->  #include <asm/cacheflush.h>
-> @@ -897,8 +898,17 @@ static u64 read_id_reg(struct sys_reg_desc const *r, bool raz)
->  {
->  	u32 id = sys_reg((u32)r->Op0, (u32)r->Op1,
->  			 (u32)r->CRn, (u32)r->CRm, (u32)r->Op2);
-> +	u64 val = raz ? 0 : read_sanitised_ftr_reg(id);
->
-> -	return raz ? 0 : read_sanitised_ftr_reg(id);
-> +	if (id == SYS_ID_AA64PFR0_EL1) {
-> +		if (val & (0xfUL << ID_AA64PFR0_SVE_SHIFT))
-> +			pr_err_once("kvm [%i]: SVE unsupported for guests, suppressing\n",
-> +				    task_pid_nr(current));
-> +
-> +		val &= ~(0xfUL << ID_AA64PFR0_SVE_SHIFT);
-> +	}
-> +
-> +	return val;
->  }
->
->  /* cpufeature ID register access trap handlers */
-
-
---
-Alex Bennée
+diff --git a/Documentation/vm/protection-keys.txt b/Documentation/vm/protection-keys.txt
+index b643045..ef5f73b 100644
+--- a/Documentation/vm/protection-keys.txt
++++ b/Documentation/vm/protection-keys.txt
+@@ -1,22 +1,45 @@
+-Memory Protection Keys for Userspace (PKU aka PKEYs) is a CPU feature
+-which will be found on future Intel CPUs.
+-
+-Memory Protection Keys provides a mechanism for enforcing page-based
+-protections, but without requiring modification of the page tables
+-when an application changes protection domains.  It works by
+-dedicating 4 previously ignored bits in each page table entry to a
+-"protection key", giving 16 possible keys.
+-
+-There is also a new user-accessible register (PKRU) with two separate
+-bits (Access Disable and Write Disable) for each key.  Being a CPU
+-register, PKRU is inherently thread-local, potentially giving each
+-thread a different set of protections from every other thread.
+-
+-There are two new instructions (RDPKRU/WRPKRU) for reading and writing
+-to the new register.  The feature is only available in 64-bit mode,
+-even though there is theoretically space in the PAE PTEs.  These
+-permissions are enforced on data access only and have no effect on
+-instruction fetches.
++Memory Protection Keys for Userspace (PKU aka PKEYs) is a CPU feature found on
++future Intel CPUs and on PowerPC 5 and higher CPUs.
++
++Memory Protection Keys provide a mechanism for enforcing page-based
++protections, but without requiring modification of the page tables when an
++application changes protection domains.
++
++It works by dedicating bits in each page table entry to a "protection key".
++There is also a user-accessible register with two separate bits for each
++key.  Being a CPU register, the user-accessible register is inherently
++thread-local, potentially giving each thread a different set of protections
++from every other thread.
++
++On Intel:
++
++	Four previously bits are used the page table entry giving 16 possible keys.
++
++	The user accessible register(PKRU) has a bit each per key to disable
++	access and to disable write.
++
++	The feature is only available in 64-bit mode, even though there is
++	theoretically space in the PAE PTEs.  These permissions are enforced on
++	data access only and have no effect on instruction fetches.
++
++On PowerPC:
++
++	Five bits in the page table entry are used giving 32 possible keys.
++	This support is currently for Hash Page Table mode only.
++
++	The user accessible register(AMR) has a bit each per key to disable
++	read and write. Access disable can be achieved by disabling
++	read and write.
++
++	'mtspr 0xd, mem' reads the AMR register
++	'mfspr mem, 0xd' writes into the AMR register.
++
++	Execution can  be  disabled by allocating a key with execute-disabled
++	permission. The execute-permissions on the key; however, cannot be
++	changed through a user accessible register. The CPU will not allow
++	execution of instruction in pages that are associated with
++	execute-disabled key.
++
+ 
+ =========================== Syscalls ===========================
+ 
+@@ -28,9 +51,9 @@ There are 3 system calls which directly interact with pkeys:
+ 			  unsigned long prot, int pkey);
+ 
+ Before a pkey can be used, it must first be allocated with
+-pkey_alloc().  An application calls the WRPKRU instruction
++pkey_alloc().  An application calls the WRPKRU/AMR instruction
+ directly in order to change access permissions to memory covered
+-with a key.  In this example WRPKRU is wrapped by a C function
++with a key.  In this example WRPKRU/AMR is wrapped by a C function
+ called pkey_set().
+ 
+ 	int real_prot = PROT_READ|PROT_WRITE;
+@@ -52,11 +75,11 @@ is no longer in use:
+ 	munmap(ptr, PAGE_SIZE);
+ 	pkey_free(pkey);
+ 
+-(Note: pkey_set() is a wrapper for the RDPKRU and WRPKRU instructions.
++(Note: pkey_set() is a wrapper for the RDPKRU,WRPKRU or AMR instructions.
+  An example implementation can be found in
+- tools/testing/selftests/x86/protection_keys.c)
++ tools/testing/selftests/vm/protection_keys.c)
+ 
+-=========================== Behavior ===========================
++=========================== Behavior =================================
+ 
+ The kernel attempts to make protection keys consistent with the
+ behavior of a plain mprotect().  For instance if you do this:
+@@ -66,7 +89,7 @@ behavior of a plain mprotect().  For instance if you do this:
+ 
+ you can expect the same effects with protection keys when doing this:
+ 
+-	pkey = pkey_alloc(0, PKEY_DISABLE_WRITE | PKEY_DISABLE_READ);
++	pkey = pkey_alloc(0, PKEY_DISABLE_ACCESS);
+ 	pkey_mprotect(ptr, size, PROT_READ|PROT_WRITE, pkey);
+ 	something(ptr);
+ 
+@@ -83,3 +106,55 @@ with a read():
+ The kernel will send a SIGSEGV in both cases, but si_code will be set
+ to SEGV_PKERR when violating protection keys versus SEGV_ACCERR when
+ the plain mprotect() permissions are violated.
++
++========================== sysfs Interface ==========================
++
++Information about support of protection keys on the system can be
++found in the /sys/kernel/mm/protection_keys directory, which
++contains the following files:
++
++- total_keys: Shows the number of keys supported by the hardware.
++    Not all of those keys may be available for use by a process
++    because the platform or operating system may reserve some keys
++    for their own use.
++
++- usable_keys: Shows the minimum number of keys guaranteed to be
++    available for use by a process. In other words: total_keys minus
++    the keys reserved by the platform or operating system. This
++    number doesn't change to reflect keys that are already being
++    used by the process reading the file.
++
++    There may be one more key available than what is advertised in
++    this file because the kernel may use one key for mprotect()
++    calls setting up memory with execute-only permissions. This file
++    assumes that this key is being used, but if it is not the
++    process will have one more key it can use for other purposes.
++
++- disable_access_supported: Tells whether the system supports keys
++    which disallow reading from a given page (i.e., the
++    PKEY_DISABLE_ACCESS flag is supported).
++
++- disable_write_supported: Tells whether the system supports keys
++    which disallow writing to a given page (i.e., the
++    PKEY_DISABLE_WRITE flag is supported).
++
++- disable_execute_supported: Tells whether the system supports keys
++    which disallow code execution from a given page (i.e., the
++    PKEY_DISABLE_EXECUTE flag is supported).
++
++====================================================================
++		Semantic differences
++
++The following semantic differences exist between x86 and power.
++
++a) powerpc (PowerPC8 onwards) *also* allows creation of a key with
++   execute-disabled.
++	The following is allowed
++	pkey = pkey_alloc(0, PKEY_DISABLE_EXECUTE);
++
++b) changes to the key permission bits from a signal handler do not
++   persist on x86. The PKRU specific  fpregs  entry  need   to  be
++   modified for it to persist.  On powerpc the key  permission can
++   be  modified  by  programming  the AMR register from the signal
++   handler. The changes persist across signal boundaries.
++=====================================================================
+-- 
+1.7.1
