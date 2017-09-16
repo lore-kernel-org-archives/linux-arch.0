@@ -1,7 +1,7 @@
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [PATCH 6/6] Documentation/vm: PowerPC specific updates to memory protection keys
-Date: Fri, 15 Sep 2017 18:21:10 -0700
-Message-ID: <1505524870-4783-7-git-send-email-linuxram@us.ibm.com>
+Subject: [PATCH 4/6] mm/mprotect, powerpc/mm/pkeys, x86/mm/pkeys: Add sysfs interface
+Date: Fri, 15 Sep 2017 18:21:08 -0700
+Message-ID: <1505524870-4783-5-git-send-email-linuxram@us.ibm.com>
 References: <1505524870-4783-1-git-send-email-linuxram@us.ibm.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1505524870-4783-1-git-send-email-linuxram@us.ibm.com>
@@ -10,175 +10,263 @@ To: mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.
 Cc: arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com
 List-Id: linux-arch.vger.kernel.org
 
-Add documentation updates that capture PowerPC specific changes.
+From: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
 
-Signed-off-by: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
+Expose useful information for programs using memory protection keys.
+Provide implementation for powerpc and x86.
+
+On a powerpc system with pkeys support, here is what is shown:
+
+$ head /sys/kernel/mm/protection_keys/*
+==> /sys/kernel/mm/protection_keys/disable_access_supported <==
+true
+
+==> /sys/kernel/mm/protection_keys/disable_execute_supported <==
+true
+
+==> /sys/kernel/mm/protection_keys/disable_write_supported <==
+true
+
+==> /sys/kernel/mm/protection_keys/total_keys <==
+32
+
+==> /sys/kernel/mm/protection_keys/usable_keys <==
+29
+
+And on an x86 without pkeys support:
+
+$ head /sys/kernel/mm/protection_keys/*
+==> /sys/kernel/mm/protection_keys/disable_access_supported <==
+false
+
+==> /sys/kernel/mm/protection_keys/disable_execute_supported <==
+false
+
+==> /sys/kernel/mm/protection_keys/disable_write_supported <==
+false
+
+==> /sys/kernel/mm/protection_keys/total_keys <==
+1
+
+==> /sys/kernel/mm/protection_keys/usable_keys <==
+0
+
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+Signed-off-by: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
 ---
- Documentation/vm/protection-keys.txt |  125 +++++++++++++++++++++++++++-------
- 1 files changed, 100 insertions(+), 25 deletions(-)
+ arch/powerpc/include/asm/pkeys.h   |    2 +
+ arch/powerpc/mm/pkeys.c            |   20 ++++++++
+ arch/x86/include/asm/mmu_context.h |    4 +-
+ arch/x86/include/asm/pkeys.h       |    1 +
+ arch/x86/mm/pkeys.c                |    8 +++
+ include/linux/pkeys.h              |    4 ++
+ mm/mprotect.c                      |   88 ++++++++++++++++++++++++++++++++++++
+ 7 files changed, 126 insertions(+), 1 deletions(-)
 
-diff --git a/Documentation/vm/protection-keys.txt b/Documentation/vm/protection-keys.txt
-index b643045..ef5f73b 100644
---- a/Documentation/vm/protection-keys.txt
-+++ b/Documentation/vm/protection-keys.txt
-@@ -1,22 +1,45 @@
--Memory Protection Keys for Userspace (PKU aka PKEYs) is a CPU feature
--which will be found on future Intel CPUs.
--
--Memory Protection Keys provides a mechanism for enforcing page-based
--protections, but without requiring modification of the page tables
--when an application changes protection domains.  It works by
--dedicating 4 previously ignored bits in each page table entry to a
--"protection key", giving 16 possible keys.
--
--There is also a new user-accessible register (PKRU) with two separate
--bits (Access Disable and Write Disable) for each key.  Being a CPU
--register, PKRU is inherently thread-local, potentially giving each
--thread a different set of protections from every other thread.
--
--There are two new instructions (RDPKRU/WRPKRU) for reading and writing
--to the new register.  The feature is only available in 64-bit mode,
--even though there is theoretically space in the PAE PTEs.  These
--permissions are enforced on data access only and have no effect on
--instruction fetches.
-+Memory Protection Keys for Userspace (PKU aka PKEYs) is a CPU feature found on
-+future Intel CPUs and on PowerPC 5 and higher CPUs.
-+
-+Memory Protection Keys provide a mechanism for enforcing page-based
-+protections, but without requiring modification of the page tables when an
-+application changes protection domains.
-+
-+It works by dedicating bits in each page table entry to a "protection key".
-+There is also a user-accessible register with two separate bits for each
-+key.  Being a CPU register, the user-accessible register is inherently
-+thread-local, potentially giving each thread a different set of protections
-+from every other thread.
-+
-+On Intel:
-+
-+	Four previously bits are used the page table entry giving 16 possible keys.
-+
-+	The user accessible register(PKRU) has a bit each per key to disable
-+	access and to disable write.
-+
-+	The feature is only available in 64-bit mode, even though there is
-+	theoretically space in the PAE PTEs.  These permissions are enforced on
-+	data access only and have no effect on instruction fetches.
-+
-+On PowerPC:
-+
-+	Five bits in the page table entry are used giving 32 possible keys.
-+	This support is currently for Hash Page Table mode only.
-+
-+	The user accessible register(AMR) has a bit each per key to disable
-+	read and write. Access disable can be achieved by disabling
-+	read and write.
-+
-+	'mtspr 0xd, mem' reads the AMR register
-+	'mfspr mem, 0xd' writes into the AMR register.
-+
-+	Execution can  be  disabled by allocating a key with execute-disabled
-+	permission. The execute-permissions on the key; however, cannot be
-+	changed through a user accessible register. The CPU will not allow
-+	execution of instruction in pages that are associated with
-+	execute-disabled key.
-+
+diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
+index baac435..5924325 100644
+--- a/arch/powerpc/include/asm/pkeys.h
++++ b/arch/powerpc/include/asm/pkeys.h
+@@ -244,6 +244,8 @@ static inline bool pkey_mmu_enabled(void)
+ 		return cpu_has_feature(CPU_FTR_PKEY);
+ }
  
- =========================== Syscalls ===========================
++extern bool arch_supports_pkeys(int cap);
++extern unsigned int arch_usable_pkeys(void);
+ extern void thread_pkey_regs_save(struct thread_struct *thread);
+ extern void thread_pkey_regs_restore(struct thread_struct *new_thread,
+ 			struct thread_struct *old_thread);
+diff --git a/arch/powerpc/mm/pkeys.c b/arch/powerpc/mm/pkeys.c
+index 07e76dc..33c9207 100644
+--- a/arch/powerpc/mm/pkeys.c
++++ b/arch/powerpc/mm/pkeys.c
+@@ -373,3 +373,23 @@ bool arch_vma_access_permitted(struct vm_area_struct *vma,
  
-@@ -28,9 +51,9 @@ There are 3 system calls which directly interact with pkeys:
- 			  unsigned long prot, int pkey);
+ 	return pkey_access_permitted(pkey, write, execute);
+ }
++
++unsigned int arch_usable_pkeys(void)
++{
++	unsigned int reserved;
++
++	if (!pkey_inited)
++		return 0;
++
++	/* Reserve one more to account for the execute-only pkey. */
++	reserved = hweight32(initial_allocation_mask) + 1;
++
++	return pkeys_total > reserved ? pkeys_total - reserved : 0;
++}
++
++bool arch_supports_pkeys(int cap)
++{
++	if (cap & PKEY_DISABLE_EXECUTE)
++		return pkey_execute_disable_support;
++	return (cap & (PKEY_DISABLE_ACCESS | PKEY_DISABLE_WRITE));
++}
+diff --git a/arch/x86/include/asm/mmu_context.h b/arch/x86/include/asm/mmu_context.h
+index 265c907..e960ab2 100644
+--- a/arch/x86/include/asm/mmu_context.h
++++ b/arch/x86/include/asm/mmu_context.h
+@@ -129,13 +129,15 @@ static inline void enter_lazy_tlb(struct mm_struct *mm, struct task_struct *tsk)
+ 		this_cpu_write(cpu_tlbstate.state, TLBSTATE_LAZY);
+ }
  
- Before a pkey can be used, it must first be allocated with
--pkey_alloc().  An application calls the WRPKRU instruction
-+pkey_alloc().  An application calls the WRPKRU/AMR instruction
- directly in order to change access permissions to memory covered
--with a key.  In this example WRPKRU is wrapped by a C function
-+with a key.  In this example WRPKRU/AMR is wrapped by a C function
- called pkey_set().
++#define PKEY_INITIAL_ALLOCATION_MAP	1
++
+ static inline int init_new_context(struct task_struct *tsk,
+ 				   struct mm_struct *mm)
+ {
+ 	#ifdef CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS
+ 	if (cpu_feature_enabled(X86_FEATURE_OSPKE)) {
+ 		/* pkey 0 is the default and always allocated */
+-		mm->context.pkey_allocation_map = 0x1;
++		mm->context.pkey_allocation_map = PKEY_INITIAL_ALLOCATION_MAP;
+ 		/* -1 means unallocated or invalid */
+ 		mm->context.execute_only_pkey = -1;
+ 	}
+diff --git a/arch/x86/include/asm/pkeys.h b/arch/x86/include/asm/pkeys.h
+index fa82799..e1b25aa 100644
+--- a/arch/x86/include/asm/pkeys.h
++++ b/arch/x86/include/asm/pkeys.h
+@@ -105,5 +105,6 @@ extern int arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
+ extern int __arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
+ 		unsigned long init_val);
+ extern void copy_init_pkru_to_fpregs(void);
++extern unsigned int arch_usable_pkeys(void);
  
- 	int real_prot = PROT_READ|PROT_WRITE;
-@@ -52,11 +75,11 @@ is no longer in use:
- 	munmap(ptr, PAGE_SIZE);
- 	pkey_free(pkey);
+ #endif /*_ASM_X86_PKEYS_H */
+diff --git a/arch/x86/mm/pkeys.c b/arch/x86/mm/pkeys.c
+index 2dab69a..6b7f4e1 100644
+--- a/arch/x86/mm/pkeys.c
++++ b/arch/x86/mm/pkeys.c
+@@ -123,6 +123,14 @@ int __arch_override_mprotect_pkey(struct vm_area_struct *vma, int prot, int pkey
+ 	return vma_pkey(vma);
+ }
  
--(Note: pkey_set() is a wrapper for the RDPKRU and WRPKRU instructions.
-+(Note: pkey_set() is a wrapper for the RDPKRU,WRPKRU or AMR instructions.
-  An example implementation can be found in
-- tools/testing/selftests/x86/protection_keys.c)
-+ tools/testing/selftests/vm/protection_keys.c)
++unsigned int arch_usable_pkeys(void)
++{
++	/* Reserve one more to account for the execute-only pkey. */
++	unsigned int reserved = hweight32(PKEY_INITIAL_ALLOCATION_MAP) + 1;
++
++	return arch_max_pkey() > reserved ? arch_max_pkey() - reserved : 0;
++}
++
+ #define PKRU_AD_KEY(pkey)	(PKRU_AD_BIT << ((pkey) * PKRU_BITS_PER_PKEY))
  
--=========================== Behavior ===========================
-+=========================== Behavior =================================
+ /*
+diff --git a/include/linux/pkeys.h b/include/linux/pkeys.h
+index d120810..9350d44 100644
+--- a/include/linux/pkeys.h
++++ b/include/linux/pkeys.h
+@@ -43,6 +43,10 @@ static inline void copy_init_pkru_to_fpregs(void)
+ {
+ }
  
- The kernel attempts to make protection keys consistent with the
- behavior of a plain mprotect().  For instance if you do this:
-@@ -66,7 +89,7 @@ behavior of a plain mprotect().  For instance if you do this:
++unsigned int arch_usable_pkeys(void)
++{
++	return 0;
++}
+ #endif /* ! CONFIG_ARCH_HAS_PKEYS */
  
- you can expect the same effects with protection keys when doing this:
+ #endif /* _LINUX_PKEYS_H */
+diff --git a/mm/mprotect.c b/mm/mprotect.c
+index 1a8c9ca..2917b3e 100644
+--- a/mm/mprotect.c
++++ b/mm/mprotect.c
+@@ -552,4 +552,92 @@ static int do_mprotect_pkey(unsigned long start, size_t len,
+ 	return ret;
+ }
  
--	pkey = pkey_alloc(0, PKEY_DISABLE_WRITE | PKEY_DISABLE_READ);
-+	pkey = pkey_alloc(0, PKEY_DISABLE_ACCESS);
- 	pkey_mprotect(ptr, size, PROT_READ|PROT_WRITE, pkey);
- 	something(ptr);
- 
-@@ -83,3 +106,55 @@ with a read():
- The kernel will send a SIGSEGV in both cases, but si_code will be set
- to SEGV_PKERR when violating protection keys versus SEGV_ACCERR when
- the plain mprotect() permissions are violated.
++#ifdef CONFIG_SYSFS
 +
-+========================== sysfs Interface ==========================
++#define PKEYS_ATTR_RO(_name)						\
++	static struct kobj_attribute _name##_attr = __ATTR_RO(_name)
 +
-+Information about support of protection keys on the system can be
-+found in the /sys/kernel/mm/protection_keys directory, which
-+contains the following files:
++static ssize_t total_keys_show(struct kobject *kobj,
++			       struct kobj_attribute *attr, char *buf)
++{
++	return sprintf(buf, "%u\n", arch_max_pkey());
++}
++PKEYS_ATTR_RO(total_keys);
 +
-+- total_keys: Shows the number of keys supported by the hardware.
-+    Not all of those keys may be available for use by a process
-+    because the platform or operating system may reserve some keys
-+    for their own use.
++static ssize_t usable_keys_show(struct kobject *kobj,
++				struct kobj_attribute *attr, char *buf)
++{
++	return sprintf(buf, "%u\n", arch_usable_pkeys());
++}
++PKEYS_ATTR_RO(usable_keys);
 +
-+- usable_keys: Shows the minimum number of keys guaranteed to be
-+    available for use by a process. In other words: total_keys minus
-+    the keys reserved by the platform or operating system. This
-+    number doesn't change to reflect keys that are already being
-+    used by the process reading the file.
++static ssize_t disable_access_supported_show(struct kobject *kobj,
++					      struct kobj_attribute *attr,
++					      char *buf)
++{
++	if (arch_pkeys_enabled()) {
++		strcpy(buf, "true\n");
++		return sizeof("true\n") - 1;
++	}
 +
-+    There may be one more key available than what is advertised in
-+    this file because the kernel may use one key for mprotect()
-+    calls setting up memory with execute-only permissions. This file
-+    assumes that this key is being used, but if it is not the
-+    process will have one more key it can use for other purposes.
++	strcpy(buf, "false\n");
++	return sizeof("false\n") - 1;
++}
++PKEYS_ATTR_RO(disable_access_supported);
 +
-+- disable_access_supported: Tells whether the system supports keys
-+    which disallow reading from a given page (i.e., the
-+    PKEY_DISABLE_ACCESS flag is supported).
++static ssize_t disable_write_supported_show(struct kobject *kobj,
++					     struct kobj_attribute *attr,
++					     char *buf)
++{
++	if (arch_pkeys_enabled()) {
++		strcpy(buf, "true\n");
++		return sizeof("true\n") - 1;
++	}
 +
-+- disable_write_supported: Tells whether the system supports keys
-+    which disallow writing to a given page (i.e., the
-+    PKEY_DISABLE_WRITE flag is supported).
++	strcpy(buf, "false\n");
++	return sizeof("false\n") - 1;
++}
++PKEYS_ATTR_RO(disable_write_supported);
 +
-+- disable_execute_supported: Tells whether the system supports keys
-+    which disallow code execution from a given page (i.e., the
-+    PKEY_DISABLE_EXECUTE flag is supported).
++static ssize_t disable_execute_supported_show(struct kobject *kobj,
++					      struct kobj_attribute *attr,
++					      char *buf)
++{
++#ifdef PKEY_DISABLE_EXECUTE
++	if (arch_supports_pkeys(PKEY_DISABLE_EXECUTE)) {
++		strcpy(buf, "true\n");
++		return sizeof("true\n") - 1;
++	}
++#endif
 +
-+====================================================================
-+		Semantic differences
++	strcpy(buf, "false\n");
++	return sizeof("false\n") - 1;
++}
++PKEYS_ATTR_RO(disable_execute_supported);
 +
-+The following semantic differences exist between x86 and power.
++static struct attribute *pkeys_attrs[] = {
++	&total_keys_attr.attr,
++	&usable_keys_attr.attr,
++	&disable_access_supported_attr.attr,
++	&disable_write_supported_attr.attr,
++	&disable_execute_supported_attr.attr,
++	NULL,
++};
 +
-+a) powerpc (PowerPC8 onwards) *also* allows creation of a key with
-+   execute-disabled.
-+	The following is allowed
-+	pkey = pkey_alloc(0, PKEY_DISABLE_EXECUTE);
++static const struct attribute_group pkeys_attr_group = {
++	.attrs = pkeys_attrs,
++	.name = "protection_keys",
++};
 +
-+b) changes to the key permission bits from a signal handler do not
-+   persist on x86. The PKRU specific  fpregs  entry  need   to  be
-+   modified for it to persist.  On powerpc the key  permission can
-+   be  modified  by  programming  the AMR register from the signal
-+   handler. The changes persist across signal boundaries.
-+=====================================================================
++static int __init pkeys_sysfs_init(void)
++{
++	int err;
++
++	err = sysfs_create_group(mm_kobj, &pkeys_attr_group);
++
++	return err;
++}
++late_initcall(pkeys_sysfs_init);
++#endif /* CONFIG_SYSFS */
++
+ #endif /* CONFIG_ARCH_HAS_PKEYS */
 -- 
 1.7.1
 
