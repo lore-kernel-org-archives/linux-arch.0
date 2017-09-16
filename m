@@ -1,100 +1,81 @@
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH v2 02/28] arm64: KVM: Hide unsupported AArch64 CPU
- features from guests
-Date: Fri, 15 Sep 2017 01:04:24 +0100
-Message-ID: <20170915000424.GD24231@e103592.cambridge.arm.com>
-References: <1504198860-12951-1-git-send-email-Dave.Martin@arm.com>
- <1504198860-12951-3-git-send-email-Dave.Martin@arm.com>
- <87r2vaacll.fsf@linaro.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:42262 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751532AbdIOAE3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 14 Sep 2017 20:04:29 -0400
-Content-Disposition: inline
-In-Reply-To: <87r2vaacll.fsf@linaro.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>
-Cc: linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Marc Zyngier <marc.zyngier@arm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
+From: Ram Pai <linuxram@us.ibm.com>
+Subject: [PATCH 0/6] mm, x86, powerpc: Memory Protection Keys enhancement
+Date: Fri, 15 Sep 2017 18:21:04 -0700
+Message-ID: <1505524870-4783-1-git-send-email-linuxram@us.ibm.com>
+Return-path: <linux-doc-owner@vger.kernel.org>
+Sender: linux-doc-owner@vger.kernel.org
+To: mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org
+Cc: arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Sep 13, 2017 at 03:37:42PM +0100, Alex Bennée wrote:
-> 
-> Dave Martin <Dave.Martin@arm.com> writes:
+The patch-series enhances memory protection keys feature.
 
-[...]
+The patch(1)  introduces  an  additional  vma bit to support 32
+pkeys.  PowerPC supports 32 pkeys.
 
-> > diff --git a/arch/arm64/kvm/hyp/switch.c b/arch/arm64/kvm/hyp/switch.c
-> > index 945e79c..35a90b8 100644
-> > --- a/arch/arm64/kvm/hyp/switch.c
-> > +++ b/arch/arm64/kvm/hyp/switch.c
-> > @@ -81,11 +81,17 @@ static void __hyp_text __activate_traps(struct kvm_vcpu *vcpu)
-> >  	 * it will cause an exception.
-> >  	 */
-> >  	val = vcpu->arch.hcr_el2;
-> > +
-> >  	if (!(val & HCR_RW) && system_supports_fpsimd()) {
-> >  		write_sysreg(1 << 30, fpexc32_el2);
-> >  		isb();
-> >  	}
-> > +
-> > +	if (val & HCR_RW) /* for AArch64 only: */
-> > +		val |= HCR_TID3; /* TID3: trap feature register accesses */
-> > +
-> 
-> I wondered as this is the hyp switch can we make use of testing val &
-> HCR_RW for both this and above. But it seems minimal in the generated
-> code so probably not.
+The patch(2,3)  introduces a new interface arch_pkeys_enabled(),
+this  interface  can   be used by arch-neutral code to display
+protection key value in smap.
 
-I figured that the code was cleaner ths way, since they're independent
-bits of code that both happen to be applicable only to AArch64 guests.
+The patch(4) introduces a syfs interface, to display the static
+attributes  of the protection key. Eg: max number of keys.
 
-[...]
+The last two patches, (5,6) update documentation.
 
-> > +
-> > +	/*
-> > +	 * ID regs: all ID_SANITISED() entries here must have corresponding
-> > +	 * entries in arm64_ftr_regs[].
-> > +	 */
-> 
-> arm64_ftr_regs isn't updated in this commit. Does this break bisection?
+A separate patch series that enhances selftest will follow. The
+entire  patch  series  that  enables  pkeys  on  powerpc  is at 
+https://github.com/rampai/memorykeys.git memkey.v9-rc1
 
-This commit only adds ID_SANITISED() entries for regs that are already
-present in arm64_ftr_regs[].  (If you spot any that are missing, give me
-a shout...)
+Testing:
+-------
+This  patches are tested on powerpc platform using a
+enhaced set of selftests.
+Could not test on x86 since I do not have access to
+one with pkey support.
 
-SVE only adds one new ID register, ID_AA64ZFR0_EL1 -- but SVE defines no
-fields in there yet, so I just leave it ID_UNALLOCATED() which will
-cause it to read as zero for the guest.
+History:
+-------
+version v3:
+	(1) sysfs interface - thanks Thiago.
+	(2) Documentation update.
 
-> > +
-> > +	/* AArch64 mappings of the AArch32 ID registers */
-> > +	/* CRm=1 */
-> > +	ID_SANITISED(ID_PFR0_EL1),
-> > +	ID_SANITISED(ID_PFR1_EL1),
+version v2:
+	(1) Documentation   is   updated   to  better 
+		capture the semantics.
+	(2) introduced   arch_pkeys_enabled() to find
+       		if an arch enables pkeys.  Correspond-
+		ing change in logic that displays key
+		value in smaps.
+	(3) code  rearranged  in many places based on
+       		comments from   Dave Hansen,   Balbir,
+	       	Anshuman.	
+version v1: Initial version
 
-[...]
+Ram Pai (5):
+  mm: introduce an additional vma bit for powerpc pkey
+  mm, x86 : introduce arch_pkeys_enabled()
+  mm: display pkey in smaps if arch_pkeys_enabled() is true
+  Documentation/x86: Move protecton key documentation to arch neutral
+    directory
+  Documentation/vm: PowerPC specific updates to memory protection keys
 
-> > +	/* CRm=7 */
-> > +	ID_SANITISED(ID_AA64MMFR0_EL1),
-> > +	ID_SANITISED(ID_AA64MMFR1_EL1),
-> > +	ID_SANITISED(ID_AA64MMFR2_EL1),
-> > +	ID_UNALLOCATED(7,3),
-> > +	ID_UNALLOCATED(7,4),
-> > +	ID_UNALLOCATED(7,5),
-> > +	ID_UNALLOCATED(7,6),
-> > +	ID_UNALLOCATED(7,7),
-> > +
-> 
-> I think it might be worthwhile adding a test to kvm-unit-tests to walk
-> all the ID registers to check this.
+Thiago Jung Bauermann (1):
+  mm/mprotect, powerpc/mm/pkeys, x86/mm/pkeys: Add sysfs interface
 
-Sounds sensible, I'll take a look at that.
+ Documentation/vm/protection-keys.txt  |  160 +++++++++++++++++++++++++++++++++
+ Documentation/x86/protection-keys.txt |   85 -----------------
+ arch/powerpc/include/asm/pkeys.h      |    2 +
+ arch/powerpc/mm/pkeys.c               |   20 ++++
+ arch/x86/include/asm/mmu_context.h    |    4 +-
+ arch/x86/include/asm/pkeys.h          |    2 +
+ arch/x86/kernel/fpu/xstate.c          |    5 +
+ arch/x86/kernel/setup.c               |    8 --
+ arch/x86/mm/pkeys.c                   |    8 ++
+ fs/proc/task_mmu.c                    |   17 ++--
+ include/linux/mm.h                    |   16 ++--
+ include/linux/pkeys.h                 |    9 ++
+ mm/mprotect.c                         |   88 ++++++++++++++++++
+ 13 files changed, 317 insertions(+), 107 deletions(-)
+ create mode 100644 Documentation/vm/protection-keys.txt
+ delete mode 100644 Documentation/x86/protection-keys.txt
 
-[...]
-
-Cheers
----Dave
