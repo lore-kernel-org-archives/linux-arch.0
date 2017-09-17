@@ -1,97 +1,169 @@
-From: Brijesh Singh <brijesh.singh@amd.com>
-Subject: [Part1 PATCH v4 15/17] percpu: introduce DEFINE_PER_CPU_UNENCRYPTED
-Date: Sat, 16 Sep 2017 07:34:16 -0500
-Message-ID: <20170916123418.37807-16-brijesh.singh@amd.com>
-References: <20170916123418.37807-1-brijesh.singh@amd.com>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Rough notes from sys_membarrier() lightning BoF
+Date: Sun, 17 Sep 2017 15:36:08 -0700
+Message-ID: <20170917223608.GA14577@linux.vnet.ibm.com>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20170916123418.37807-1-brijesh.singh@amd.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, x86@kernel.org, kvm@vger.kernel.org
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Borislav Petkov <bp@suse.de>, Andy Lutomirski <luto@kernel.org>, Tom Lendacky <thomas.lendacky@amd.com>, Brijesh Singh <brijesh.singh@amd.com>, Arnd Bergmann <arnd@arndb.de>, Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@linux.com>, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:51490 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1751876AbdIQWgO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 17 Sep 2017 18:36:14 -0400
+Received: from pps.filterd (m0098413.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id v8HMXhW6104439
+        for <linux-arch@vger.kernel.org>; Sun, 17 Sep 2017 18:36:14 -0400
+Received: from e11.ny.us.ibm.com (e11.ny.us.ibm.com [129.33.205.201])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2d1r16a5w4-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Sun, 17 Sep 2017 18:36:13 -0400
+Received: from localhost
+        by e11.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+        Sun, 17 Sep 2017 18:36:13 -0400
+Content-Disposition: inline
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: peterz@infradead.org, mathieu.desnoyers@efficios.com, will.deacon@arm.com, stern@rowland.harvard.edu
+Cc: luto@kernel.org, mpe@ellerman.id.au, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, davejwatson@fb.com, maged.michael@gmail.com
 
-When SEV is active, memory is encrypted with guest-specific key, and if
-guest OS wants to share the memory region with hypervisor then it must
-clear the C-bit (i.e set unencrypted) before sharing it.
+Hello!
 
-DEFINE_PER_CPU_UNENCRYPTED can be used to define the per-cpu variables
-which will be shared between guest and hypervisor. Currently, KVM defines
-three variables (steal-time, apf_reason, and avic_eio) which are shared
-with hypervisor.
+Rough notes from our discussion last Thursday.  Please reply to the
+group with any needed elaborations or corrections.
 
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Borislav Petkov <bp@suse.de>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Tejun Heo <tj@kernel.org>
-Cc: Christoph Lameter <cl@linux.com>
-Cc: linux-arch@vger.kernel.org
-Cc: x86@kernel.org
-Cc: linux-kernel@vger.kernel.org
-Cc: Tom Lendacky <thomas.lendacky@amd.com>
-Signed-off-by: Brijesh Singh <brijesh.singh@amd.com>
----
- include/asm-generic/vmlinux.lds.h | 11 +++++++++++
- include/linux/percpu-defs.h       | 15 +++++++++++++++
- 2 files changed, 26 insertions(+)
+Adding Andy and Michael on CC since this most closely affects their
+architectures.  Also adding Dave Watson and Maged Michael because
+the preferred approach requires that processes wanting to use the
+lightweight sys_membarrier() do a registration step.
 
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 8acfc1e099e1..363858f43cbc 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -777,6 +777,16 @@
- #define INIT_RAM_FS
- #endif
- 
-+#ifdef CONFIG_AMD_MEM_ENCRYPT
-+#define PERCPU_UNENCRYPTED_SECTION					\
-+	. = ALIGN(PAGE_SIZE);						\
-+	*(.data..percpu..unencrypted)					\
-+	. = ALIGN(PAGE_SIZE);
-+#else
-+#define PERCPU_UNENCRYPTED_SECTION
-+#endif
-+
-+
- /*
-  * Default discarded sections.
-  *
-@@ -815,6 +825,7 @@
- 	. = ALIGN(cacheline);						\
- 	*(.data..percpu)						\
- 	*(.data..percpu..shared_aligned)				\
-+	PERCPU_UNENCRYPTED_SECTION					\
- 	VMLINUX_SYMBOL(__per_cpu_end) = .;
- 
- /**
-diff --git a/include/linux/percpu-defs.h b/include/linux/percpu-defs.h
-index 8f16299ca068..b2b99ad4b31d 100644
---- a/include/linux/percpu-defs.h
-+++ b/include/linux/percpu-defs.h
-@@ -173,6 +173,21 @@
- 	DEFINE_PER_CPU_SECTION(type, name, "..read_mostly")
- 
- /*
-+ * Declaration/definition used for per-CPU variables that should be accessed
-+ * as unencrypted when memory encryption is enabled in the guest.
-+ */
-+#if defined(CONFIG_VIRTUALIZATION) && defined(CONFIG_AMD_MEM_ENCRYPT)
-+
-+#define DECLARE_PER_CPU_UNENCRYPTED(type, name)				\
-+	DECLARE_PER_CPU_SECTION(type, name, "..unencrypted")
-+
-+#define DEFINE_PER_CPU_UNENCRYPTED(type, name)				\
-+	DEFINE_PER_CPU_SECTION(type, name, "..unencrypted")
-+#else
-+#define DEFINE_PER_CPU_UNENCRYPTED(type, name)	DEFINE_PER_CPU(type, name)
-+#endif
-+
-+/*
-  * Intermodule exports for per-CPU variables.  sparse forgets about
-  * address space across EXPORT_SYMBOL(), change EXPORT_SYMBOL() to
-  * noop if __CHECKER__.
--- 
-2.9.5
+							Thanx, Paul
+
+------------------------------------------------------------------------
+
+Problem:
+
+1.	The current sys_membarrier() introduces an smp_mb() that
+	is not otherwise required on powerpc.
+
+2.	The envisioned JIT variant of sys_membarrier() assumes that
+	the return-to-user instruction sequence handling any change
+	to the usermode instruction stream, and Andy Lutomirski's
+	upcoming changes invalidate this assumption.  It is believed
+	that powerpc has a similar issue.
+
+
+Here are diagrams indicating the memory-ordering requirements:
+
+Scenario 1:  Access preceding sys_membarrier() must see changes
+	from thread that concurrently switches in.
+
+	----------------------------------------------------------------
+
+	Scheduler			sys_membarrier()
+	---------			----------------
+
+	smp_mb();
+
+					usermode load or store to Y
+
+					/* begin system call */
+
+					sys_membarrier()
+					  smp_mb();
+					  Check rq->curr
+
+	rq->curr = new_thread;
+	smp_mb(); /* not powerpc! */
+
+	/* return to user */
+
+	usermode load or store to X
+
+					  smp_mb();
+
+	----------------------------------------------------------------
+
+	Due to the fr link from the check of rq->curr to the scheduler's
+	write, we need full memory barriers on both sides.  However,
+	we don't want to lose the powerpc optimization, at least not in
+	the common case.
+
+
+Scenario 2:  Access following sys_membarrier() must see changes
+	from thread that concurrently switches out.
+
+	----------------------------------------------------------------
+
+	Scheduler			sys_membarrier()
+	---------			----------------
+
+					/* begin system call */
+
+					sys_membarrier()
+					  smp_mb();
+
+	usermode load or store to X
+
+	/* Schedule from user */
+
+	smp_mb();
+	rq->curr = new_thread;
+
+					  Check rq->curr
+					  smp_mb();
+
+	smp_mb(); /* not powerpc! */
+
+					/* return to user */
+
+					usermode load or store to Y
+
+	----------------------------------------------------------------
+
+	Here less ordering is required, given that a read is returning
+	the value previously written.  Weaker barriers could be used,
+	but full memory barriers are in place in any case.
+
+
+Potential resolutions, including known stupid ones:
+
+A.	IPI all CPUs all the time.  Not so good for real-time workloads,
+	and a usermode-induced set of IPIs could potentially be used for
+	a denial-of-service (DoS) attack.
+
+B.	Lock all runqueues all the time.  This could potentially also be
+	used in a usermode-induced DoS attack.
+
+C.	Explicitly interact with all threads rather than with CPUs.
+	This can be quite expensive for the surprisingly common case
+	where applications have very large numbers of thread.  (Java,
+	we are looking at you!!!)
+
+D.	Just keep the redundant smp_mb() and just say "no" to Andy's
+	x86 optimizations.  We would like to avoid the performance
+	degradation in both cases.
+
+E.	Require that threads register before using sys_membarrier() for
+	private or JIT usage.  (The historical implementation using
+	synchronize_sched() would continue to -not- require registration,
+	both for compatibility and because there is no need to do so.)
+
+	For x86 and powerpc, this registration would set a TIF flag
+	on all of the current process's threads.  This flag would be
+	inherited by any later thread creation within that process, and
+	would be cleared by fork() and exec().	When this TIF flag is set,
+	the return-to-user path would execute additional code that would
+	ensure that ordering and newly JITed code was handled correctly.
+	We believe that checks for these TIF flags could be combined with
+	existing checks to avoid adding any overhead in the common case
+	where the process was not using these sys_membarrier() features.
+
+	For all other architecture, the registration step would be
+	a no-op.
+
+Does anyone have any better solution?  If so, please don't keep it
+a secret!
+
+							Thanx, Paul
