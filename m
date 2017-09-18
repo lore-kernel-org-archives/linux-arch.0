@@ -1,86 +1,200 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: Rough notes from sys_membarrier() lightning BoF
-Date: Mon, 18 Sep 2017 13:34:59 -0700
-Message-ID: <20170918203459.GX3521@linux.vnet.ibm.com>
-References: <20170917223608.GA14577@linux.vnet.ibm.com>
- <Pine.LNX.4.44L0.1709181458420.1806-100000@iolanthe.rowland.org>
- <20170918192935.GW3521@linux.vnet.ibm.com>
- <1385244147.12696.1505763442841.JavaMail.zimbra@efficios.com>
-Reply-To: paulmck@linux.vnet.ibm.com
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1385244147.12696.1505763442841.JavaMail.zimbra@efficios.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Cc: Alan Stern <stern@rowland.harvard.edu>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will.deacon@arm.com>, Andy Lutomirski <luto@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, linux-kernel <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Dave Watson <davejwatson@fb.com>, maged michael <maged.michael@gmail.com>
-List-Id: linux-arch.vger.kernel.org
+From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Subject: [RFC PATCH 2/2] membarrier: selftest: Test private expedited cmd
+Date: Mon, 18 Sep 2017 18:36:48 -0400
+Message-ID: <20170918223648.31505-2-mathieu.desnoyers@efficios.com>
+References: <20170918223648.31505-1-mathieu.desnoyers@efficios.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.efficios.com ([167.114.142.141]:50710 "EHLO
+        mail.efficios.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750781AbdIRWhN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 18 Sep 2017 18:37:13 -0400
+In-Reply-To: <20170918223648.31505-1-mathieu.desnoyers@efficios.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>, "Paul E . McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: linux-kernel@vger.kernel.org, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Boqun Feng <boqun.feng@gmail.com>, Andrew Hunter <ahh@google.com>, Maged Michael <maged.michael@gmail.com>, gromer@google.com, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Watson <davejwatson@fb.com>, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, Andy Lutomirski <luto@kernel.org>, linux-arch@vger.kernel.org
 
-On Mon, Sep 18, 2017 at 07:37:22PM +0000, Mathieu Desnoyers wrote:
-> ----- On Sep 18, 2017, at 3:29 PM, Paul E. McKenney paulmck@linux.vnet.ibm.com wrote:
-> 
-> > On Mon, Sep 18, 2017 at 03:04:21PM -0400, Alan Stern wrote:
-> >> On Sun, 17 Sep 2017, Paul E. McKenney wrote:
-> >> 
-> >> > Hello!
-> >> > 
-> >> > Rough notes from our discussion last Thursday.  Please reply to the
-> >> > group with any needed elaborations or corrections.
-> >> > 
-> >> > Adding Andy and Michael on CC since this most closely affects their
-> >> > architectures.  Also adding Dave Watson and Maged Michael because
-> >> > the preferred approach requires that processes wanting to use the
-> >> > lightweight sys_membarrier() do a registration step.
-> >> > 
-> >> > 							Thanx, Paul
-> >> > 
-> >> > ------------------------------------------------------------------------
-> >> > 
-> >> > Problem:
-> >> > 
-> >> > 1.	The current sys_membarrier() introduces an smp_mb() that
-> >> > 	is not otherwise required on powerpc.
-> >> > 
-> >> > 2.	The envisioned JIT variant of sys_membarrier() assumes that
-> >> > 	the return-to-user instruction sequence handling any change
-> >> > 	to the usermode instruction stream, and Andy Lutomirski's
-> >> > 	upcoming changes invalidate this assumption.  It is believed
-> >> > 	that powerpc has a similar issue.
-> >> 
-> >> > E.	Require that threads register before using sys_membarrier() for
-> >> > 	private or JIT usage.  (The historical implementation using
-> >> > 	synchronize_sched() would continue to -not- require registration,
-> >> > 	both for compatibility and because there is no need to do so.)
-> >> > 
-> >> > 	For x86 and powerpc, this registration would set a TIF flag
-> >> > 	on all of the current process's threads.  This flag would be
-> >> > 	inherited by any later thread creation within that process, and
-> >> > 	would be cleared by fork() and exec().	When this TIF flag is set,
-> >> 
-> >> Why a TIF flag, and why clear it during fork()?  If a process registers
-> >> to use private expedited sys_membarrier, shouldn't that apply to
-> >> threads it will create in the future just as much as to threads it has
-> >> already created?
-> > 
-> > The reason for a TIF flag is to keep this per-architecture, as only
-> > powerpc and x86 need it.
-> > 
-> > The reason for clearing it during fork() is that fork() creates a new
-> > process initially having but a single thread, which might or might
-> > not use sys_membarrier().  Usually not, as most instances of fork()
-> > are quickly followed by exec().  In addition, if we give an error for
-> > unregistered use of private sys_membarrier(), clearing on fork() gets an
-> > unambiguous error instead of a silent likely failure (due to libraries
-> > being confused by the fork()).
-> 
-> I think clearing that state on fork() would be unexpected. The child process
-> inherits from the parent flag in my current implementation. Clearing the
-> flag is only provided through exec().
-> 
-> Libraries don't get re-initialized on fork, only on exec(). Therefore, it
-> makes sense for the child process to inherit the state from its parent.
+Test the new MEMBARRIER_CMD_PRIVATE_EXPEDITED and
+MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED commands.
 
-Fair enough!
+Add checks expecting specific error values on system calls expected to
+fail.
 
-							Thanx, Paul
+Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+CC: Peter Zijlstra <peterz@infradead.org>
+CC: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+CC: Boqun Feng <boqun.feng@gmail.com>
+CC: Andrew Hunter <ahh@google.com>
+CC: Maged Michael <maged.michael@gmail.com>
+CC: gromer@google.com
+CC: Avi Kivity <avi@scylladb.com>
+CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+CC: Paul Mackerras <paulus@samba.org>
+CC: Michael Ellerman <mpe@ellerman.id.au>
+CC: Dave Watson <davejwatson@fb.com>
+CC: Alan Stern <stern@rowland.harvard.edu>
+CC: Will Deacon <will.deacon@arm.com>
+CC: Andy Lutomirski <luto@kernel.org>
+CC: linux-arch@vger.kernel.org
+---
+ .../testing/selftests/membarrier/membarrier_test.c | 109 ++++++++++++++++++---
+ 1 file changed, 94 insertions(+), 15 deletions(-)
+
+diff --git a/tools/testing/selftests/membarrier/membarrier_test.c b/tools/testing/selftests/membarrier/membarrier_test.c
+index 21399fcf1a59..f85657374b59 100644
+--- a/tools/testing/selftests/membarrier/membarrier_test.c
++++ b/tools/testing/selftests/membarrier/membarrier_test.c
+@@ -15,49 +15,119 @@ static int sys_membarrier(int cmd, int flags)
+ static int test_membarrier_cmd_fail(void)
+ {
+ 	int cmd = -1, flags = 0;
++	const char *test_name = "sys membarrier invalid command";
+ 
+ 	if (sys_membarrier(cmd, flags) != -1) {
+ 		ksft_exit_fail_msg(
+-			"sys membarrier invalid command test: command = %d, flags = %d. Should fail, but passed\n",
+-			cmd, flags);
++			"%s test: command = %d, flags = %d. Should fail, but passed\n",
++			test_name, cmd, flags);
++	}
++	if (errno != EINVAL) {
++		ksft_exit_fail_msg(
++			"%s test: flags = %d. Should return (%d: \"%s\"), but returned (%d: \"%s\").\n",
++			test_name, flags, EINVAL, strerror(EINVAL),
++			errno, strerror(errno));
+ 	}
+ 
+ 	ksft_test_result_pass(
+-		"sys membarrier invalid command test: command = %d, flags = %d. Failed as expected\n",
+-		cmd, flags);
++		"%s test: command = %d, flags = %d, errno = %d. Failed as expected\n",
++		test_name, cmd, flags, errno);
+ 	return 0;
+ }
+ 
+ static int test_membarrier_flags_fail(void)
+ {
+ 	int cmd = MEMBARRIER_CMD_QUERY, flags = 1;
++	const char *test_name = "sys membarrier MEMBARRIER_CMD_QUERY invalid flags";
+ 
+ 	if (sys_membarrier(cmd, flags) != -1) {
+ 		ksft_exit_fail_msg(
+-			"sys membarrier MEMBARRIER_CMD_QUERY invalid flags test: flags = %d. Should fail, but passed\n",
+-			flags);
++			"%s test: flags = %d. Should fail, but passed\n",
++			test_name, flags);
++	}
++	if (errno != EINVAL) {
++		ksft_exit_fail_msg(
++			"%s test: flags = %d. Should return (%d: \"%s\"), but returned (%d: \"%s\").\n",
++			test_name, flags, EINVAL, strerror(EINVAL),
++			errno, strerror(errno));
+ 	}
+ 
+ 	ksft_test_result_pass(
+-		"sys membarrier MEMBARRIER_CMD_QUERY invalid flags test: flags = %d. Failed as expected\n",
+-		flags);
++		"%s test: flags = %d, errno = %d. Failed as expected\n",
++		test_name, flags, errno);
+ 	return 0;
+ }
+ 
+-static int test_membarrier_success(void)
++static int test_membarrier_shared_success(void)
+ {
+ 	int cmd = MEMBARRIER_CMD_SHARED, flags = 0;
+-	const char *test_name = "sys membarrier MEMBARRIER_CMD_SHARED\n";
++	const char *test_name = "sys membarrier MEMBARRIER_CMD_SHARED";
++
++	if (sys_membarrier(cmd, flags) != 0) {
++		ksft_exit_fail_msg(
++			"%s test: flags = %d, errno = %d\n",
++			test_name, flags, errno);
++	}
++
++	ksft_test_result_pass(
++		"%s test: flags = %d\n", test_name, flags);
++	return 0;
++}
++
++static int test_membarrier_private_expedited_fail(void)
++{
++	int cmd = MEMBARRIER_CMD_PRIVATE_EXPEDITED, flags = 0;
++	const char *test_name = "sys membarrier MEMBARRIER_CMD_PRIVATE_EXPEDITED not registered failure";
++
++	if (sys_membarrier(cmd, flags) != -1) {
++		ksft_exit_fail_msg(
++			"%s test: flags = %d. Should fail, but passed\n",
++			test_name, flags);
++	}
++	if (errno != EPERM) {
++		ksft_exit_fail_msg(
++			"%s test: flags = %d. Should return (%d: \"%s\"), but returned (%d: \"%s\").\n",
++			test_name, flags, EPERM, strerror(EPERM),
++			errno, strerror(errno));
++	}
++
++	ksft_test_result_pass(
++		"%s test: flags = %d, errno = %d\n",
++		test_name, flags, errno);
++	return 0;
++}
++
++static int test_membarrier_register_private_expedited_success(void)
++{
++	int cmd = MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED, flags = 0;
++	const char *test_name = "sys membarrier MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED";
+ 
+ 	if (sys_membarrier(cmd, flags) != 0) {
+ 		ksft_exit_fail_msg(
+-			"sys membarrier MEMBARRIER_CMD_SHARED test: flags = %d\n",
+-			flags);
++			"%s test: flags = %d, errno = %d\n",
++			test_name, flags, errno);
+ 	}
+ 
+ 	ksft_test_result_pass(
+-		"sys membarrier MEMBARRIER_CMD_SHARED test: flags = %d\n",
+-		flags);
++		"%s test: flags = %d\n",
++		test_name, flags);
++	return 0;
++}
++
++static int test_membarrier_private_expedited_success(void)
++{
++	int cmd = MEMBARRIER_CMD_PRIVATE_EXPEDITED, flags = 0;
++	const char *test_name = "sys membarrier MEMBARRIER_CMD_PRIVATE_EXPEDITED";
++
++	if (sys_membarrier(cmd, flags) != 0) {
++		ksft_exit_fail_msg(
++			"%s test: flags = %d, errno = %d\n",
++			test_name, flags, errno);
++	}
++
++	ksft_test_result_pass(
++		"%s test: flags = %d\n",
++		test_name, flags);
+ 	return 0;
+ }
+ 
+@@ -71,7 +141,16 @@ static int test_membarrier(void)
+ 	status = test_membarrier_flags_fail();
+ 	if (status)
+ 		return status;
+-	status = test_membarrier_success();
++	status = test_membarrier_shared_success();
++	if (status)
++		return status;
++	status = test_membarrier_private_expedited_fail();
++	if (status)
++		return status;
++	status = test_membarrier_register_private_expedited_success();
++	if (status)
++		return status;
++	status = test_membarrier_private_expedited_success();
+ 	if (status)
+ 		return status;
+ 	return 0;
+-- 
+2.11.0
