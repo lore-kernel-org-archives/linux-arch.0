@@ -1,103 +1,98 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-dm3nam03on0064.outbound.protection.outlook.com ([104.47.41.64]:54405
-        "EHLO NAM03-DM3-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751587AbdIPMfN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 16 Sep 2017 08:35:13 -0400
-From: Brijesh Singh <brijesh.singh@amd.com>
-Subject: [Part1 PATCH v4 15/17] percpu: introduce DEFINE_PER_CPU_UNENCRYPTED
-Date: Sat, 16 Sep 2017 07:34:16 -0500
-Message-ID: <20170916123418.37807-16-brijesh.singh@amd.com>
-In-Reply-To: <20170916123418.37807-1-brijesh.singh@amd.com>
-References: <20170916123418.37807-1-brijesh.singh@amd.com>
+Received: from mail.efficios.com ([167.114.142.141]:48671 "EHLO
+        mail.efficios.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751445AbdIRT3U (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 18 Sep 2017 15:29:20 -0400
+Date: Mon, 18 Sep 2017 19:30:06 +0000 (UTC)
+From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Message-ID: <802837763.12688.1505763006911.JavaMail.zimbra@efficios.com>
+In-Reply-To: <Pine.LNX.4.44L0.1709181443540.1806-100000@iolanthe.rowland.org>
+References: <Pine.LNX.4.44L0.1709181443540.1806-100000@iolanthe.rowland.org>
+Subject: Re: [RFC PATCH 1/2] membarrier: Provide register expedited private
+ command
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, x86@kernel.org, kvm@vger.kernel.org
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Borislav Petkov <bp@suse.de>, Andy Lutomirski <luto@kernel.org>, Tom Lendacky <thomas.lendacky@amd.com>, Brijesh Singh <brijesh.singh@amd.com>, Arnd Bergmann <arnd@arndb.de>, Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@linux.com>, linux-arch@vger.kernel.org
-Message-ID: <20170916123416.ITTYgd0df9U4CANNCgdiOu5j0p2g1yzmKKy4HXnzl-o@z>
+To: Alan Stern <stern@rowland.harvard.edu>
+Cc: Peter Zijlstra <peterz@infradead.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel <linux-kernel@vger.kernel.org>, Boqun Feng <boqun.feng@gmail.com>, Andrew Hunter <ahh@google.com>, maged michael <maged.michael@gmail.com>, gromer <gromer@google.com>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Watson <davejwatson@fb.com>, Will Deacon <will.deacon@arm.com>, Andy Lutomirski <luto@kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20170918193006.ITYJMfMYQB01egTfS1GzA_eGm8M5mmZXeKe4hOX2fAk@z>
 
-When SEV is active, memory is encrypted with guest-specific key, and if
-guest OS wants to share the memory region with hypervisor then it must
-clear the C-bit (i.e set unencrypted) before sharing it.
+----- On Sep 18, 2017, at 2:46 PM, Alan Stern stern@rowland.harvard.edu wrote:
 
-DEFINE_PER_CPU_UNENCRYPTED can be used to define the per-cpu variables
-which will be shared between guest and hypervisor. Currently, KVM defines
-three variables (steal-time, apf_reason, and avic_eio) which are shared
-with hypervisor.
+> On Mon, 18 Sep 2017, Mathieu Desnoyers wrote:
+> 
+>> Provide a new command allowing processes to register their intent to use
+>> the private expedited command.
+>> 
+>> This allows PowerPC to skip the full memory barrier in switch_mm(), and
+>> only issue the barrier when scheduling into a task belonging to a
+>> process that has registered to use expedited private.
+>> 
+>> Processes are now required to register before using
+>> MEMBARRIER_CMD_PRIVATE_EXPEDITED, otherwise that command returns EPERM.
+>> 
+>> [ Runtime testing on the PowerPC architecture would be welcome. ]
+>> 
+>> Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+> 
+>> +++ b/arch/powerpc/include/asm/membarrier.h
+>> @@ -0,0 +1,37 @@
+>> +#ifndef _ASM_POWERPC_MEMBARRIER_H
+>> +#define _ASM_POWERPC_MEMBARRIER_H
+>> +
+>> +static inline void membarrier_arch_sched_in(struct task_struct *prev,
+>> +		struct task_struct *next)
+>> +{
+>> +	/*
+>> +	 * Only need the full barrier when switching between processes.
+>> +	 */
+>> +	if (likely(!test_thread_flag(TIF_MEMBARRIER_PRIVATE_EXPEDITED)
+>> +			|| prev->mm == next->mm))
 
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Borislav Petkov <bp@suse.de>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Tejun Heo <tj@kernel.org>
-Cc: Christoph Lameter <cl@linux.com>
-Cc: linux-arch@vger.kernel.org
-Cc: x86@kernel.org
-Cc: linux-kernel@vger.kernel.org
-Cc: Tom Lendacky <thomas.lendacky@amd.com>
-Signed-off-by: Brijesh Singh <brijesh.singh@amd.com>
----
- include/asm-generic/vmlinux.lds.h | 11 +++++++++++
- include/linux/percpu-defs.h       | 15 +++++++++++++++
- 2 files changed, 26 insertions(+)
+I think I should use:
 
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 8acfc1e099e1..363858f43cbc 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -777,6 +777,16 @@
- #define INIT_RAM_FS
- #endif
- 
-+#ifdef CONFIG_AMD_MEM_ENCRYPT
-+#define PERCPU_UNENCRYPTED_SECTION					\
-+	. = ALIGN(PAGE_SIZE);						\
-+	*(.data..percpu..unencrypted)					\
-+	. = ALIGN(PAGE_SIZE);
-+#else
-+#define PERCPU_UNENCRYPTED_SECTION
-+#endif
-+
-+
- /*
-  * Default discarded sections.
-  *
-@@ -815,6 +825,7 @@
- 	. = ALIGN(cacheline);						\
- 	*(.data..percpu)						\
- 	*(.data..percpu..shared_aligned)				\
-+	PERCPU_UNENCRYPTED_SECTION					\
- 	VMLINUX_SYMBOL(__per_cpu_end) = .;
- 
- /**
-diff --git a/include/linux/percpu-defs.h b/include/linux/percpu-defs.h
-index 8f16299ca068..b2b99ad4b31d 100644
---- a/include/linux/percpu-defs.h
-+++ b/include/linux/percpu-defs.h
-@@ -173,6 +173,21 @@
- 	DEFINE_PER_CPU_SECTION(type, name, "..read_mostly")
- 
- /*
-+ * Declaration/definition used for per-CPU variables that should be accessed
-+ * as unencrypted when memory encryption is enabled in the guest.
-+ */
-+#if defined(CONFIG_VIRTUALIZATION) && defined(CONFIG_AMD_MEM_ENCRYPT)
-+
-+#define DECLARE_PER_CPU_UNENCRYPTED(type, name)				\
-+	DECLARE_PER_CPU_SECTION(type, name, "..unencrypted")
-+
-+#define DEFINE_PER_CPU_UNENCRYPTED(type, name)				\
-+	DEFINE_PER_CPU_SECTION(type, name, "..unencrypted")
-+#else
-+#define DEFINE_PER_CPU_UNENCRYPTED(type, name)	DEFINE_PER_CPU(type, name)
-+#endif
-+
-+/*
-  * Intermodule exports for per-CPU variables.  sparse forgets about
-  * address space across EXPORT_SYMBOL(), change EXPORT_SYMBOL() to
-  * noop if __CHECKER__.
+test_ti_thread_flag(next, TIF_MEMBARRIER_PRIVATE_EXPEDITED)
+
+instead of test_thread_flag above.
+
+>> +		return;
+>> +
+>> +	/*
+>> +	 * The membarrier system call requires a full memory barrier
+>> +	 * after storing to rq->curr, before going back to user-space.
+>> +	 */
+>> +	smp_mb();
+>> +}
+>> +static inline void membarrier_arch_fork(struct task_struct *t,
+>> +		unsigned long clone_flags)
+>> +{
+>> +	/*
+>> +	 * Coherence of TIF_MEMBARRIER_PRIVATE_EXPEDITED against thread
+>> +	 * fork is protected by siglock. membarrier_arch_fork is called
+>> +	 * with siglock held.
+>> +	 */
+>> +	if (t->mm->membarrier_private_expedited)
+>> +		set_ti_thread_flag(t, TIF_MEMBARRIER_PRIVATE_EXPEDITED);
+>> +}
+> 
+> Why have two separate bitflags for the same thing?  Can't you just use
+> the mm->membarrier_private_expedited flag everywhere and forget about
+> TIF_MEMBARRIER_PRIVATE_EXPEDITED?
+
+The goal here is to save chasing through the task->mm-> pointer in sched_in(),
+and directly access the process registration state through a thread flag.
+
+Thanks,
+
+Mathieu
+
+
+> 
+> Alan Stern
+
 -- 
-2.9.5
+Mathieu Desnoyers
+EfficiOS Inc.
+http://www.efficios.com
