@@ -1,106 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:53681 "EHLO mx1.suse.de"
+Received: from mail-co1nam03on0062.outbound.protection.outlook.com ([104.47.40.62]:40384
+        "EHLO NAM03-CO1-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751284AbdISKjP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 19 Sep 2017 06:39:15 -0400
-Date: Tue, 19 Sep 2017 12:39:06 +0200
-From: Borislav Petkov <bp@suse.de>
+        id S1751237AbdISNua (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 19 Sep 2017 09:50:30 -0400
 Subject: Re: [Part1 PATCH v4 15/17] percpu: introduce
  DEFINE_PER_CPU_UNENCRYPTED
-Message-ID: <20170919103906.GM4733@nazgul.tnic>
 References: <20170916123418.37807-1-brijesh.singh@amd.com>
  <20170916123418.37807-16-brijesh.singh@amd.com>
+ <20170919103906.GM4733@nazgul.tnic>
+From: Brijesh Singh <brijesh.singh@amd.com>
+Message-ID: <c17b7ac8-961b-8e3f-902f-40b18b80c993@amd.com>
+Date: Tue, 19 Sep 2017 08:50:20 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <20170916123418.37807-16-brijesh.singh@amd.com>
+In-Reply-To: <20170919103906.GM4733@nazgul.tnic>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Brijesh Singh <brijesh.singh@amd.com>
-Cc: linux-kernel@vger.kernel.org, x86@kernel.org, kvm@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Andy Lutomirski <luto@kernel.org>, Tom Lendacky <thomas.lendacky@amd.com>, Arnd Bergmann <arnd@arndb.de>, Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@linux.com>, linux-arch@vger.kernel.org
-Message-ID: <20170919103906.J0EKX6WgM_AELihhZwBQExo_EzWzl5mp581oz5b3QZM@z>
+To: Borislav Petkov <bp@suse.de>
+Cc: brijesh.singh@amd.com, linux-kernel@vger.kernel.org, x86@kernel.org, kvm@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Andy Lutomirski <luto@kernel.org>, Tom Lendacky <thomas.lendacky@amd.com>, Arnd Bergmann <arnd@arndb.de>, Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@linux.com>, linux-arch@vger.kernel.org
+Message-ID: <20170919135020.USUf5MH7TYAuAtWuRtjJENkd9Uv4NYdAN-2BrfculkE@z>
 
-On Sat, Sep 16, 2017 at 07:34:16AM -0500, Brijesh Singh wrote:
-> When SEV is active, memory is encrypted with guest-specific key, and if
+Hi Boris,
 
-					  with a
+On 09/19/2017 05:39 AM, Borislav Petkov wrote:
+...
 
-> guest OS wants to share the memory region with hypervisor then it must
-
-the guest OS ...			    with the hypervisor ...
-
-> clear the C-bit (i.e set unencrypted) before sharing it.
+>> @@ -815,6 +825,7 @@
+>>   	. = ALIGN(cacheline);						\
+>>   	*(.data..percpu)						\
+>>   	*(.data..percpu..shared_aligned)				\
+>> +	PERCPU_UNENCRYPTED_SECTION					\
+>>   	VMLINUX_SYMBOL(__per_cpu_end) = .;
 > 
-> DEFINE_PER_CPU_UNENCRYPTED can be used to define the per-cpu variables
-> which will be shared between guest and hypervisor. Currently, KVM defines
-
-		       between a guest and a hypervisor.
-
-> three variables (steal-time, apf_reason, and avic_eio) which are shared
-> with hypervisor.
-
-This sentence should be the opening sentence of your commit message.
-
-> Cc: Thomas Gleixner <tglx@linutronix.de>
-> Cc: Ingo Molnar <mingo@redhat.com>
-> Cc: "H. Peter Anvin" <hpa@zytor.com>
-> Cc: Borislav Petkov <bp@suse.de>
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: Tejun Heo <tj@kernel.org>
-> Cc: Christoph Lameter <cl@linux.com>
-> Cc: linux-arch@vger.kernel.org
-> Cc: x86@kernel.org
-> Cc: linux-kernel@vger.kernel.org
-> Cc: Tom Lendacky <thomas.lendacky@amd.com>
-> Signed-off-by: Brijesh Singh <brijesh.singh@amd.com>
-> ---
->  include/asm-generic/vmlinux.lds.h | 11 +++++++++++
->  include/linux/percpu-defs.h       | 15 +++++++++++++++
->  2 files changed, 26 insertions(+)
+> So looking at this more: I'm wondering if we can simply reuse the
+> PER_CPU_SHARED_ALIGNED_SECTION definition which is for shared per-CPU
+> sections. Instead of introducing a special section which is going to be
+> used only by SEV, practically.
 > 
-> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-> index 8acfc1e099e1..363858f43cbc 100644
-> --- a/include/asm-generic/vmlinux.lds.h
-> +++ b/include/asm-generic/vmlinux.lds.h
-> @@ -777,6 +777,16 @@
->  #define INIT_RAM_FS
->  #endif
->  
-> +#ifdef CONFIG_AMD_MEM_ENCRYPT
-> +#define PERCPU_UNENCRYPTED_SECTION					\
-> +	. = ALIGN(PAGE_SIZE);						\
-> +	*(.data..percpu..unencrypted)					\
-> +	. = ALIGN(PAGE_SIZE);
-> +#else
-> +#define PERCPU_UNENCRYPTED_SECTION
-> +#endif
-> +
-> +
->  /*
->   * Default discarded sections.
->   *
-> @@ -815,6 +825,7 @@
->  	. = ALIGN(cacheline);						\
->  	*(.data..percpu)						\
->  	*(.data..percpu..shared_aligned)				\
-> +	PERCPU_UNENCRYPTED_SECTION					\
->  	VMLINUX_SYMBOL(__per_cpu_end) = .;
+> Because "shared" also kinda implies that it is shared by multiple agents
+> and those agents can just as well be guest and hypervisor. And then that
+> patch is gone too.
+> 
+> Hmmm...?
+> 
 
-So looking at this more: I'm wondering if we can simply reuse the
-PER_CPU_SHARED_ALIGNED_SECTION definition which is for shared per-CPU
-sections. Instead of introducing a special section which is going to be
-used only by SEV, practically.
+"..shared_aligned" section does not start and end with page-size alignment.
+Since the C-bit works on PAGE_SIZE alignment hence the "..unencrypted" section
+starts and ends with page-size alignment. The closest I can find is
+"..page_aligned" but again it does not end with page-size alignment.
 
-Because "shared" also kinda implies that it is shared by multiple agents
-and those agents can just as well be guest and hypervisor. And then that
-patch is gone too.
-
-Hmmm...?
-
--- 
-Regards/Gruss,
-    Boris.
-
-SUSE Linux GmbH, GF: Felix Imendörffer, Jane Smithard, Graham Norton, HRB 21284 (AG Nürnberg)
--- 
+Additionally, since we clear the C-bit from unencrypted section hence we
+should avoid overloading the existing section -- we don't want to expose more
+than we wish.
