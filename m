@@ -1,95 +1,50 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v2 11/28] arm64/sve: Core task context handling
-Date: Wed, 20 Sep 2017 14:58:56 +0100
-Message-ID: <20170920135856.dfuowttwi4bk4nqb@localhost>
-References: <1504198860-12951-1-git-send-email-Dave.Martin@arm.com>
- <1504198860-12951-12-git-send-email-Dave.Martin@arm.com>
- <20170913143325.hi4cfcajbts3bbao@localhost>
- <20170914195555.GB24231@e103592.cambridge.arm.com>
+From: Andy Lutomirski <luto@kernel.org>
+Subject: Re: Rough notes from sys_membarrier() lightning BoF
+Date: Wed, 20 Sep 2017 09:02:15 -0700
+Message-ID: <CALCETrUta2LvC=e7DNDDo_F5_OuEtehFoZJg1MUwUigTT5K7xw@mail.gmail.com>
+References: <20170917223608.GA14577@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:33868 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751192AbdITN7B (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 20 Sep 2017 09:59:01 -0400
-Content-Disposition: inline
-In-Reply-To: <20170914195555.GB24231@e103592.cambridge.arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, Will Deacon <will.deacon@arm.com>, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20170917223608.GA14577@linux.vnet.ibm.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Will Deacon <will.deacon@arm.com>, Alan Stern <stern@rowland.harvard.edu>, Andrew Lutomirski <luto@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Dave Watson <davejwatson@fb.com>, Maged Michael <maged.michael@gmail.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Sep 14, 2017 at 08:55:56PM +0100, Dave P Martin wrote:
-> On Wed, Sep 13, 2017 at 07:33:25AM -0700, Catalin Marinas wrote:
-> > On Thu, Aug 31, 2017 at 06:00:43PM +0100, Dave P Martin wrote:
-> > > +/*
-> > > + * Handle SVE state across fork():
-> > > + *
-> > > + * dst and src must not end up with aliases of the same sve_state.
-> > > + * Because a task cannot fork except in a syscall, we can discard SVE
-> > > + * state for dst here, so long as we take care to retain the FPSIMD
-> > > + * subset of the state if SVE is in use.  Reallocation of the SVE state
-> > > + * will be deferred until dst tries to use SVE.
-> > > + */
-> > > +void fpsimd_dup_sve(struct task_struct *dst, struct task_struct const *src)
-> > > +{
-> > > +	if (test_and_clear_tsk_thread_flag(dst, TIF_SVE)) {
-> > > +		WARN_ON(dst->mm && !in_syscall(task_pt_regs(dst)));
-> > > +		sve_to_fpsimd(dst);
-> > > +	}
-> > > +
-> > > +	dst->thread.sve_state = NULL;
-> > > +}
-> > 
-> > I first thought the thread flags are not visible in dst yet since
-> > dup_task_struct() calls arch_dup_task_struct() before
-> > setup_thread_stack(). However, at the end of the last year we enabled
-> > CONFIG_THREAD_INFO_IN_TASK_STRUCT. But I don't particularly like relying
-> > on this.
-> 
-> Hmmm, I see your point, but there are some sequencing issues here.
-> 
-> > Anyway, IIUC we don't need sve_to_fpsimd() here. The
-> > arch_dup_task_struct() already called fpsimd_preserve_current_state()
-> 
-> I consider SVE discard as an optional side effect of task_fpsimd_save(),
-> not something that is guaranteed to happen -- the decision about whether
-> to do so may become more intelligent later on.  So, for src, we may
-> discard SVE (because syscall), but for dst we must NULL .sve_state (and
-> therefore clear TIF_SVE) simply to avoid aliasing of src->sve_state and
-> dst->sve_state.
+On Sun, Sep 17, 2017 at 3:36 PM, Paul E. McKenney
+<paulmck@linux.vnet.ibm.com> wrote:
+> Hello!
+>
+> Rough notes from our discussion last Thursday.  Please reply to the
+> group with any needed elaborations or corrections.
+>
+> Adding Andy and Michael on CC since this most closely affects their
+> architectures.  Also adding Dave Watson and Maged Michael because
+> the preferred approach requires that processes wanting to use the
+> lightweight sys_membarrier() do a registration step.
 
-My point was that the SVE state of src is already preserved at this
-point and copied into dst. You don't need the sve_to_fpsimd(dst) again
-which basically does the same copying of the src SVE saved state into
-the FPSIMD one in dst. This has already been done in
-arch_dup_task_struct() by the combination of
-fpsimd_preserve_current_state() and *dst = *src (and, of course,
-clearing TIF_SVE in dst).
+Not to be too much of a curmudgeon, but I think that there should be a
+real implementation of the isync membarrier before this get merged.
+This series purports to solve two problems, ppc barriers and x86
+exit-without-isync, but it's very hard to evaluate whether it actually
+solves the latter problem given the complete lack of x86 or isync code
+in the current RFC.
 
-I don't think the TIF_SVE clearing in src is just a side effect of
-task_fpsimd_save() here but rather a requirement. When returning from
-fork(), both src and dst would need to have the same state. However,
-your fpsimd_dup_sve() implementation makes it very clear that the SVE
-state is lost in dst. This is only allowed if we also lose it in src (as
-a result of a syscall). So making dst->sve_state = NULL requires that
-TIF_SVE is also cleared in both src and dst. Alternatively, you'd have
-to allocate a new state here and copy the full src SVE state across to
-dst, together with setting TIF_SVE (that's not necessary, however, since
-we get here as a result of a syscall).
+It still seems to me that you won't get any particular advantage for
+using this registration mechanism on x86 even when you implement
+isync.  Unless I've misunderstood, the only real issue on x86 is that
+you need a helper like arch_force_isync_before_usermode(), and that
+helper doesn't presently exist.  That means that this whole patchset
+is standing on very dangerous ground: you'll end up with an efficient
+implementation that works just fine without even requesting
+registration on every architecture except ppc.  That way lies
+userspace bugs.
 
-> > for src, so the FPSIMD state (which we care about) is transferred during
-> > the *dst = *src assignment. So you'd only need the last statement,
-> > possibly with a different function name like fpsimd_erase_sve (and maybe
-> > make the function static inline in the header).
-> 
-> Not quite: TIF_SVE must be cleared so that a context switch or
-> kernel_neon_begin() after dst is scheduled doesn't try to save state in
-> the (NULL) dst->sve_state.
+Also, can you elaborate on the PPC issue?  PPC appears to track
+mm_cpumask more or less just like x86.  Is the issue just that this
+tracking has no implied barriers?  If so, how does TLB flush on ppc
+work?  It really does seem impressive to me that an architecture can
+efficiently support munmap() but not an expedited private membarrier.
 
-Yes, TIF_SVE must also be cleared in dst when dst->sve_state = NULL (I
-may have forgotten to mention this).
-
--- 
-Catalin
+--Andy
