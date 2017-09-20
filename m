@@ -1,56 +1,62 @@
-From: Borislav Petkov <bp@suse.de>
-Subject: Re: [Part1 PATCH v4 15/17] percpu: introduce
- DEFINE_PER_CPU_UNENCRYPTED
-Date: Wed, 20 Sep 2017 09:34:26 +0200
-Message-ID: <20170920073426.GA26073@nazgul.tnic>
-References: <20170916123418.37807-1-brijesh.singh@amd.com>
- <20170916123418.37807-16-brijesh.singh@amd.com>
- <20170919103906.GM4733@nazgul.tnic>
- <c17b7ac8-961b-8e3f-902f-40b18b80c993@amd.com>
+From: Alan Hayward <Alan.Hayward@arm.com>
+Subject: Re: [PATCH v2 14/28] arm64/sve: Backend logic for setting the vector
+ length
+Date: Wed, 20 Sep 2017 10:57:10 +0000
+Message-ID: <D72E3AB8-6FBE-42B8-8F3D-B67B314B9542@arm.com>
+References: <1504198860-12951-1-git-send-email-Dave.Martin@arm.com>
+ <1504198860-12951-15-git-send-email-Dave.Martin@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <c17b7ac8-961b-8e3f-902f-40b18b80c993@amd.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Brijesh Singh <brijesh.singh@amd.com>
-Cc: linux-kernel@vger.kernel.org, x86@kernel.org, kvm@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Andy Lutomirski <luto@kernel.org>, Tom Lendacky <thomas.lendacky@amd.com>, Arnd Bergmann <arnd@arndb.de>, Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@linux.com>, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-eopbgr50085.outbound.protection.outlook.com ([40.107.5.85]:13574
+        "EHLO EUR03-VE1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1751783AbdITK5N (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 20 Sep 2017 06:57:13 -0400
+In-Reply-To: <1504198860-12951-15-git-send-email-Dave.Martin@arm.com>
+Content-Language: en-US
+Content-ID: <251BF33EED722C488B29338E21C2A12E@eurprd08.prod.outlook.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dave P Martin <Dave.Martin@arm.com>
+Cc: "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, =?utf-8?B?QWxleCBCZW5uw6ll?= <alex.bennee@linaro.org>, Szabolcs Nagy <Szabolcs.Nagy@arm.com>, Richard Sandiford <Richard.Sandiford@arm.com>, "kvmarm@lists.cs.columbia.edu" <kvmarm@lists.cs.columbia.edu>, "libc-alpha@sourceware.org" <libc-alpha@sourceware.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "gdb@sourceware.org" <gdb@sourceware.org>, Yao Qi <Yao.Qi@arm.com>
 
-On Tue, Sep 19, 2017 at 08:50:20AM -0500, Brijesh Singh wrote:
-> "..shared_aligned" section does not start and end with page-size alignment.
-
-Nowhere in the code there's a comment saying: "This percpu section really must
-be page-size aligned because <reasons>." You need to be more verbose
-with requirements like that.
-
-Also, you're ending up needing a whole page per-CPU for those variables.
-And now with the alignment before and after, you have worst-case two
-pages fragmentation of percpu memory and percpu memory is a rather
-limited resource AFAIR.
-
-If only there were a alloc_percpu_page()...
-
-> Since the C-bit works on PAGE_SIZE alignment hence the "..unencrypted" section
-
-Btw, call that section "..decrypted" and everywhere do
-s/unencrypted/decrypted/g.
-
-> starts and ends with page-size alignment. The closest I can find is
-> "..page_aligned" but again it does not end with page-size alignment.
-> 
-> Additionally, since we clear the C-bit from unencrypted section hence we
-> should avoid overloading the existing section -- we don't want to expose more
-> than we wish.
-
-Add that to the comment too.
-
-Thx.
-
--- 
-Regards/Gruss,
-    Boris.
-
-SUSE Linux GmbH, GF: Felix Imendörffer, Jane Smithard, Graham Norton, HRB 21284 (AG Nürnberg)
--- 
+DQo+IE9uIDMxIEF1ZyAyMDE3LCBhdCAxODowMCwgRGF2ZSBNYXJ0aW4gPERhdmUuTWFydGluQGFy
+bS5jb20+IHdyb3RlOg0KDQo+DQo+ICtpbnQgc3ZlX3NldF92ZWN0b3JfbGVuZ3RoKHN0cnVjdCB0
+YXNrX3N0cnVjdCAqdGFzaywNCj4gKyAgdW5zaWduZWQgbG9uZyB2bCwgdW5zaWduZWQgbG9uZyBm
+bGFncykNCj4gK3sNCj4gK1dBUk5fT04odGFzayA9PSBjdXJyZW50ICYmIHByZWVtcHRpYmxlKCkp
+Ow0KPiArDQo+ICtpZiAoZmxhZ3MgJiB+KHVuc2lnbmVkIGxvbmcpKFBSX1NWRV9WTF9JTkhFUklU
+IHwNCj4gKyAgICAgUFJfU1ZFX1NFVF9WTF9PTkVYRUMpKQ0KPiArcmV0dXJuIC1FSU5WQUw7DQo+
+ICsNCj4gK2lmICghc3ZlX3ZsX3ZhbGlkKHZsKSkNCj4gK3JldHVybiAtRUlOVkFMOw0KPiArDQo+
+ICsvKg0KPiArICogQ2xhbXAgdG8gdGhlIG1heGltdW0gdmVjdG9yIGxlbmd0aCB0aGF0IFZMLWFn
+bm9zdGljIFNWRSBjb2RlIGNhbg0KPiArICogd29yayB3aXRoLiAgQSBmbGFnIG1heSBiZSBhc3Np
+Z25lZCBpbiB0aGUgZnV0dXJlIHRvIGFsbG93IHNldHRpbmcNCj4gKyAqIG9mIGxhcmdlciB2ZWN0
+b3IgbGVuZ3RocyB3aXRob3V0IGNvbmZ1c2luZyBvbGRlciBzb2Z0d2FyZS4NCj4gKyAqLw0KPiAr
+aWYgKHZsID4gU1ZFX1ZMX0FSQ0hfTUFYKQ0KPiArdmwgPSBTVkVfVkxfQVJDSF9NQVg7DQo+ICsN
+Cj4gK3ZsID0gZmluZF9zdXBwb3J0ZWRfdmVjdG9yX2xlbmd0aCh2bCk7DQo+ICsNCg0KDQpHaXZl
+biwgc3ZlX3NldF92ZWN0b3JfbGVuZ3RoIGlzIGNhbGxlZCB3aGVuIHNldHRpbmcgdGhlIHZlY3Rv
+ciBsZW5ndGggaW4NClBUUkFDRV9TRVRSRUdTRVQsIGl0IGxvb2tzIHRvIG1lIGxpa2UgaWYgeW91
+IHNldCBWTCB0byBhIHZhbHVlIHRoYXTigJlzIG5vdA0Kc3VwcG9ydGVkIGJ5IHRoZSBoYXJkd2Fy
+ZSwgdGhlbiBpdOKAmXMgZ29pbmcgdG8gcm91bmQgZG93biB0byB0aGUgcHJldmlvdXMgdmFsdWUu
+DQpJcyB0aGF0IGNvcnJlY3Q/IEnigJltIG5vdCBzdXJlIGlmIHRoYXTigJlzIGV4cGxhaW5lZCBp
+biB0aGUgZG9jcz8NCg0KV2hhdCBoYXBwZW5zIGlmIHlvdSBnaXZlIGEgdmwgdmFsdWUgbG93ZXIg
+dGhhbiB0aGUgbWluIHN1cHBvcnRlZCB2YWx1ZSBpbiB0aGUNCmhhcmR3YXJlPw0KDQoNCj4gKy8q
+DQo+ICsgKiBBbGwgdmVjdG9yIGxlbmd0aCBzZWxlY3Rpb24gZnJvbSB1c2Vyc3BhY2UgY29tZXMg
+dGhyb3VnaCBoZXJlLg0KPiArICogV2UncmUgb24gYSBzbG93IHBhdGgsIHNvIHNvbWUgc2FuaXR5
+LWNoZWNrcyBhcmUgaW5jbHVkZWQuDQo+ICsgKiBJZiB0aGluZ3MgZ28gd3JvbmcgdGhlcmUncyBh
+IGJ1ZyBzb21ld2hlcmUsIGJ1dCB0cnkgdG8gZmFsbCBiYWNrIHRvIGENCj4gKyAqIHNhZmUgY2hv
+aWNlLg0KPiArICovDQo+ICtzdGF0aWMgdW5zaWduZWQgaW50IGZpbmRfc3VwcG9ydGVkX3ZlY3Rv
+cl9sZW5ndGgodW5zaWduZWQgaW50IHZsKQ0KPiArew0KPiAraW50IGJpdDsNCj4gK2ludCBtYXhf
+dmwgPSBzdmVfbWF4X3ZsOw0KPiArDQo+ICtpZiAoV0FSTl9PTighc3ZlX3ZsX3ZhbGlkKHZsKSkp
+DQo+ICt2bCA9IFNWRV9WTF9NSU47DQo+ICsNCj4gK2lmIChXQVJOX09OKCFzdmVfdmxfdmFsaWQo
+bWF4X3ZsKSkpDQo+ICttYXhfdmwgPSBTVkVfVkxfTUlOOw0KPiArDQo+ICtpZiAodmwgPiBtYXhf
+dmwpDQo+ICt2bCA9IG1heF92bDsNCj4gKw0KPiArYml0ID0gZmluZF9uZXh0X2JpdChzdmVfdnFf
+bWFwLCBTVkVfVlFfTUFYLA0KPiArICAgIHZxX3RvX2JpdChzdmVfdnFfZnJvbV92bCh2bCkpKTsN
+Cj4gK3JldHVybiBzdmVfdmxfZnJvbV92cShiaXRfdG9fdnEoYml0KSk7DQo+ICt9DQo+ICsNCg0K
+DQpUaGFua3MsDQpBbGFuLg0KSU1QT1JUQU5UIE5PVElDRTogVGhlIGNvbnRlbnRzIG9mIHRoaXMg
+ZW1haWwgYW5kIGFueSBhdHRhY2htZW50cyBhcmUgY29uZmlkZW50aWFsIGFuZCBtYXkgYWxzbyBi
+ZSBwcml2aWxlZ2VkLiBJZiB5b3UgYXJlIG5vdCB0aGUgaW50ZW5kZWQgcmVjaXBpZW50LCBwbGVh
+c2Ugbm90aWZ5IHRoZSBzZW5kZXIgaW1tZWRpYXRlbHkgYW5kIGRvIG5vdCBkaXNjbG9zZSB0aGUg
+Y29udGVudHMgdG8gYW55IG90aGVyIHBlcnNvbiwgdXNlIGl0IGZvciBhbnkgcHVycG9zZSwgb3Ig
+c3RvcmUgb3IgY29weSB0aGUgaW5mb3JtYXRpb24gaW4gYW55IG1lZGl1bS4gVGhhbmsgeW91Lg0K
