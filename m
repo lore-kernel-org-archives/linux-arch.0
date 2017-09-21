@@ -1,72 +1,97 @@
-From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Subject: Re: Rough notes from sys_membarrier() lightning BoF
-Date: Thu, 21 Sep 2017 18:03:06 +0000 (UTC)
-Message-ID: <182479244.15905.1506016986660.JavaMail.zimbra@efficios.com>
-References: <20170917223608.GA14577@linux.vnet.ibm.com> <CALCETrUta2LvC=e7DNDDo_F5_OuEtehFoZJg1MUwUigTT5K7xw@mail.gmail.com> <1264439870.15044.1505931230400.JavaMail.zimbra@efficios.com> <20170921131501.abv4ul2cnpef72j2@hirez.programming.kicks-ass.net>
+From: Thomas Garnier <thgarnie@google.com>
+Subject: Re: x86: PIE support and option to extend KASLR randomization
+Date: Thu, 21 Sep 2017 14:16:43 -0700
+Message-ID: <CAJcbSZHOuxy5BVxD0xJUdQfB-OMgbvfiP-2CJzf52K-7JZAy-A@mail.gmail.com>
+References: <20170815075609.mmzbfwritjzvrpsn@gmail.com> <CAJcbSZE+TiY2whT94WqCJNXzR=2ATOHcQ10H5RqBZA1j=k1VHQ@mail.gmail.com>
+ <20170816151235.oamkdva6cwpc4cex@gmail.com> <CAJcbSZFM_zpL1av1JVaow8NdsGeH+6oZKeDnMPdXR0PGfynzsg@mail.gmail.com>
+ <20170817080920.5ljlkktngw2cisfg@gmail.com> <CAJcbSZGbtc-i0X1NiBAvZA7cxpGkwSLKNB7oDNCsFxOCdhkR_g@mail.gmail.com>
+ <CAJcbSZGhvwt=5ERtBHLJnwS=6AXBZLTMfrafzeUCqYy=-MKWDg@mail.gmail.com>
+ <20170825080443.tvvr6wzs362cjcuu@gmail.com> <CAJcbSZFJQMKw21kLwr4QGoSM7DMgKRzzjWxkYBF2c1HciCzvGg@mail.gmail.com>
+ <CAJcbSZH6hwaWKrvUZR33ExYaZaWKMSv4tJJA3yZkniLvLbTFMw@mail.gmail.com> <20170921155919.skpyt7dutod5ul4t@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20170921131501.abv4ul2cnpef72j2@hirez.programming.kicks-ass.net>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Andy Lutomirski <luto@kernel.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Alan Stern <stern@rowland.harvard.edu>, Michael Ellerman <mpe@ellerman.id.au>, linux-kernel <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Dave Watson <davejwatson@fb.com>, maged michael <maged.michael@gmail.com>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <kernel-hardening-return-9918-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+In-Reply-To: <20170921155919.skpyt7dutod5ul4t@gmail.com>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Herbert Xu <herbert@gondor.apana.org.au>, "David S . Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Matthias Kaehlcke <mka@chromium.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, Paolo Bonzini <pbonzini@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Joerg Roedel <joro@8bytes.org>, Tom Lendacky <thomas.lendacky@amd.com>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Brian Gerst <brgerst@gmail.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, "Rafael J . Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Pavel Machek <pavel@ucw.cz>, Tejun Heo <tj@kernel.org>, Christoph
 List-Id: linux-arch.vger.kernel.org
 
------ On Sep 21, 2017, at 9:15 AM, Peter Zijlstra peterz@infradead.org wrote:
+On Thu, Sep 21, 2017 at 8:59 AM, Ingo Molnar <mingo@kernel.org> wrote:
+>
+> ( Sorry about the delay in answering this. I could blame the delay on the merge
+>   window, but in reality I've been procrastinating this is due to the permanent,
+>   non-trivial impact PIE has on generated C code. )
+>
+> * Thomas Garnier <thgarnie@google.com> wrote:
+>
+>> 1) PIE sometime needs two instructions to represent a single
+>> instruction on mcmodel=kernel.
+>
+> What again is the typical frequency of this occurring in an x86-64 defconfig
+> kernel, with the very latest GCC?
 
-> On Wed, Sep 20, 2017 at 06:13:50PM +0000, Mathieu Desnoyers wrote:
->> My proposed RFC for private expedited membarrier enforces that all
->> architectures perform the registration step. Using the "PRIVATE_EXPEDITED"
->> command without prior process registration returns an error on all
->> architectures. The goal here is to make all architectures behave in the
->> same way, and it allows us to rely on process registration to deal
->> with future arch-specific optimizations.
->> 
->> Adding the "core_sync" behavior could then be done for the next kernel
->> merge window. I'm currently foreseeing two possible ABI approaches to
->> expose it:
->> 
->> Approach 1:
->> 
->> Add MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE and
->> MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE commands. This
->> allows us to return their availability through MEMBARRIER_CMD_QUERY.
->> 
->> Approach 2:
->> 
->> Add a "MEMBARRIER_FLAG_SYNC_CORE" as flag parameter. It could be set
->> when issuing both MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED and
->> MEMBARRIER_CMD_PRIVATE_EXPEDITED, thus ensuring core serializing
->> behavior. Querying whether core serialization is supported could
->> be done by issuing the MEMBARRIER_CMD_QUERY command with the
->> MEMBARRIER_FLAG_SYNC_CORE flag set.
->> 
->> Any other ideas ? Any approach seems better ?
-> 
-> So we really need another FLAG for that? AFAICT the current
-> PRIVATE_EXPEDITED is already sufficient for the cross modifying code,
-> since the IPI triggers an exception return on all currently running CPUs
-> and the future running CPUs will have the return to userspace doing the
-> exception return.
-> 
-> The only issue is Andy fudging our x86 ret-to-userspace to not use IRET,
-> which we can fix by forcing it into the slowpath (that needs to exist
-> anyway) using that new TIF flag.
+I am not sure what is the best way to measure that.
 
-I agree that x86, as it stands today, would provide core serialization
-with the private expedited membarrier command. And we can deal with
-future optimization of ret-to-userspace using the TIF flag set on
-registration.
+>
+> Also, to make sure: which unwinder did you use for your measurements,
+> frame-pointers or ORC? Please use ORC only for future numbers, as
+> frame-pointers is obsolete from a performance measurement POV.
 
-I'm wondering whether all architectures guarantee core serialization
-on return from interrupt triggered by the IPI, and on ret-to-userspace ?
+I used the default configuration which uses frame-pointer. I built all
+the different binaries with ORC and I see an improvement in size:
 
-Thanks,
+On latest revision (just built and ran performance tests this week):
 
-Mathieu
+With framepointer: PIE .text is 0.837324% than baseline
+
+With ORC: PIE .text is 0.814224% than baseline
+
+Comparing baselines only, ORC is -2.849832% than frame-pointers.
+
+>
+>> 2) GCC does not optimize switches in PIE in order to reduce relocations:
+>
+> Hopefully this can either be fixed in GCC or at least influenced via a compiler
+> switch in the future.
+>
+>> The switches are the biggest increase on small functions but I don't
+>> think they represent a large portion of the difference (number 1 is).
+>
+> Ok.
+>
+>> A side note, while testing gcc 7.2.0 on hackbench I have seen the PIE
+>> kernel being faster by 1% across multiple runs (comparing 50 runs done
+>> across 5 reboots twice). I don't think PIE is faster than a
+>> mcmodel=kernel but recent versions of gcc makes them fairly similar.
+>
+> So I think we are down to an overhead range where the inherent noise (both random
+> and systematic one) in 'hackbench' overwhelms the signal we are trying to measure.
+>
+> So I think it's the kernel .text size change that is the best noise-free proxy for
+> the overhead impact of PIE.
+
+I agree but it might be hard to measure the exact impact. What is
+acceptable and what is not?
+
+>
+> It doesn't hurt to double check actual real performance as well, just don't expect
+> there to be much of a signal for anything but fully cached microbenchmark
+> workloads.
+
+That's aligned with what I see in the latest performance testing.
+Performance is close enough that it is hard to get exact numbers (pie
+is just a bit slower than baseline on hackench (~1%)).
+
+>
+> Thanks,
+>
+>         Ingo
+
+
 
 -- 
-Mathieu Desnoyers
-EfficiOS Inc.
-http://www.efficios.com
+Thomas
