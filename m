@@ -1,85 +1,159 @@
-From: Thomas Garnier <thgarnie@google.com>
-Subject: Re: x86: PIE support and option to extend KASLR randomization
-Date: Fri, 22 Sep 2017 07:38:30 -0700
-Message-ID: <CAJcbSZEqDCwJyNFJkK-XSdKQNTdrvJCZO=vDPCqaORKyAM2QLQ@mail.gmail.com>
-References: <CAJcbSZFM_zpL1av1JVaow8NdsGeH+6oZKeDnMPdXR0PGfynzsg@mail.gmail.com>
- <20170817080920.5ljlkktngw2cisfg@gmail.com> <CAJcbSZGbtc-i0X1NiBAvZA7cxpGkwSLKNB7oDNCsFxOCdhkR_g@mail.gmail.com>
- <CAJcbSZGhvwt=5ERtBHLJnwS=6AXBZLTMfrafzeUCqYy=-MKWDg@mail.gmail.com>
- <20170825080443.tvvr6wzs362cjcuu@gmail.com> <CAJcbSZFJQMKw21kLwr4QGoSM7DMgKRzzjWxkYBF2c1HciCzvGg@mail.gmail.com>
- <CAJcbSZH6hwaWKrvUZR33ExYaZaWKMSv4tJJA3yZkniLvLbTFMw@mail.gmail.com>
- <20170921155919.skpyt7dutod5ul4t@gmail.com> <CAKv+Gu8Uw18pW9nK8aVdBoyuybAV6_mhtagVrje_cBUHMGY4WA@mail.gmail.com>
- <CAJcbSZGAsXwMNWnZUs28-3f--ssUYh75XW+aoQztPFYe0j52yQ@mail.gmail.com> <20170922042444.GA235@x4>
+From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Subject: Re: [RFC PATCH v3 1/2] membarrier: Provide register expedited
+ private command
+Date: Fri, 22 Sep 2017 15:10:10 +0000 (UTC)
+Message-ID: <121420896.16597.1506093010487.JavaMail.zimbra@efficios.com>
+References: <20170919221342.29915-1-mathieu.desnoyers@efficios.com> <20170922085959.GG10893@tardis>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <kernel-hardening-return-9927-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <20170922042444.GA235@x4>
-To: Markus Trippelsdorf <markus@trippelsdorf.de>
-Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>, Ingo Molnar <mingo@kernel.org>, Herbert Xu <herbert@gondor.apana.org.au>, "David S . Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Matthias Kaehlcke <mka@chromium.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, Paolo Bonzini <pbonzini@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Joerg Roedel <joro@8bytes.org>, Tom Lendacky <thomas.lendacky@amd.com>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Brian Gerst <brgerst@gmail.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, "Rafael J . Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@inte>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.efficios.com ([167.114.142.141]:49573 "EHLO
+        mail.efficios.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751882AbdIVPJO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 22 Sep 2017 11:09:14 -0400
+In-Reply-To: <20170922085959.GG10893@tardis>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Boqun Feng <boqun.feng@gmail.com>
+Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>, linux-kernel <linux-kernel@vger.kernel.org>, Andrew Hunter <ahh@google.com>, maged michael <maged.michael@gmail.com>, gromer <gromer@google.com>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Watson <davejwatson@fb.com>, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, Andy Lutomirski <luto@kernel.org>, linux-arch <linux-arch@vger.kernel.org>
 
-On Thu, Sep 21, 2017 at 9:24 PM, Markus Trippelsdorf
-<markus@trippelsdorf.de> wrote:
-> On 2017.09.21 at 14:21 -0700, Thomas Garnier wrote:
->> On Thu, Sep 21, 2017 at 9:10 AM, Ard Biesheuvel
->> <ard.biesheuvel@linaro.org> wrote:
->> >
->> > On 21 September 2017 at 08:59, Ingo Molnar <mingo@kernel.org> wrote:
->> > >
->> > > ( Sorry about the delay in answering this. I could blame the delay on the merge
->> > >   window, but in reality I've been procrastinating this is due to the permanent,
->> > >   non-trivial impact PIE has on generated C code. )
->> > >
->> > > * Thomas Garnier <thgarnie@google.com> wrote:
->> > >
->> > >> 1) PIE sometime needs two instructions to represent a single
->> > >> instruction on mcmodel=kernel.
->> > >
->> > > What again is the typical frequency of this occurring in an x86-64 defconfig
->> > > kernel, with the very latest GCC?
->> > >
->> > > Also, to make sure: which unwinder did you use for your measurements,
->> > > frame-pointers or ORC? Please use ORC only for future numbers, as
->> > > frame-pointers is obsolete from a performance measurement POV.
->> > >
->> > >> 2) GCC does not optimize switches in PIE in order to reduce relocations:
->> > >
->> > > Hopefully this can either be fixed in GCC or at least influenced via a compiler
->> > > switch in the future.
->> > >
->> >
->> > There are somewhat related concerns in the ARM world, so it would be
->> > good if we could work with the GCC developers to get a more high level
->> > and arch neutral command line option (-mkernel-pie? sounds yummy!)
->> > that stops the compiler from making inferences that only hold for
->> > shared libraries and/or other hosted executables (GOT indirections,
->> > avoiding text relocations etc). That way, we will also be able to drop
->> > the 'hidden' visibility override at some point, which we currently
->> > need to prevent the compiler from redirecting all global symbol
->> > references via entries in the GOT.
->>
->> My plan was to add a -mtls-reg=<fs|gs> to switch the default segment
->> register for stack cookies but I can see great benefits in having a
->> more general kernel flag that would allow to get rid of the GOT and
->> PLT when you are building position independent code for the kernel. It
->> could also include optimizations like folding switch tables etc...
->>
->> Should we start a separate discussion on that? Anyone that would be
->> more experienced than I to push that to gcc & clang upstream?
->
-> Just open a gcc bug. See
-> https://gcc.gnu.org/bugzilla/show_bug.cgi?id=81708 as an example.
+----- On Sep 22, 2017, at 4:59 AM, Boqun Feng boqun.feng@gmail.com wrote:
 
-Make sense, I will look into this. Thanks Andy for the stack cookie bug!
+> On Tue, Sep 19, 2017 at 06:13:41PM -0400, Mathieu Desnoyers wrote:
+> [...]
+>> +static inline void membarrier_arch_sched_in(struct task_struct *prev,
+>> +		struct task_struct *next)
+>> +{
+>> +	/*
+>> +	 * Only need the full barrier when switching between processes.
+>> +	 */
+>> +	if (likely(!test_ti_thread_flag(task_thread_info(next),
+>> +			TIF_MEMBARRIER_PRIVATE_EXPEDITED)
+>> +				|| prev->mm == next->mm))
+> 
+> And we also don't need the smp_mb() if !prev->mm, because switching from
+> kernel to user will have a smp_mb() implied by mmdrop()?
 
->
-> --
-> Markus
+Right. And we also don't need it when switching from userspace to kernel
+thread neither. Something like this:
+
+static inline void membarrier_arch_sched_in(struct task_struct *prev,
+                struct task_struct *next)
+{
+        /*
+         * Only need the full barrier when switching between processes.
+         * Barrier when switching from kernel to userspace is not
+         * required here, given that it is implied by mmdrop(). Barrier
+         * when switching from userspace to kernel is not needed after
+         * store to rq->curr.
+         */
+        if (likely(!test_ti_thread_flag(task_thread_info(next),
+                        TIF_MEMBARRIER_PRIVATE_EXPEDITED)
+                        || !prev->mm || !next->mm || prev->mm == next->mm))
+                return;
+
+        /*
+         * The membarrier system call requires a full memory barrier
+         * after storing to rq->curr, before going back to user-space.
+         */
+        smp_mb();
+}
+
+> 
+>> +		return;
+>> +
+>> +	/*
+>> +	 * The membarrier system call requires a full memory barrier
+>> +	 * after storing to rq->curr, before going back to user-space.
+>> +	 */
+>> +	smp_mb();
+>> +}
+> 
+> [...]
+> 
+>> +static inline void membarrier_fork(struct task_struct *t,
+>> +		unsigned long clone_flags)
+>> +{
+>> +	if (!current->mm || !t->mm)
+>> +		return;
+>> +	t->mm->membarrier_private_expedited =
+>> +		current->mm->membarrier_private_expedited;
+> 
+> Have we already done the copy of ->membarrier_private_expedited in
+> copy_mm()?
+
+copy_mm() is performed without holding current->sighand->siglock, so
+it appears to be racing with concurrent membarrier register cmd.
+However, given that it is a single flag updated with WRITE_ONCE()
+and read with READ_ONCE(), it might be OK to rely on copy_mm there.
+If userspace runs registration concurrently with fork, they should
+not expect the child to be specifically registered or unregistered.
+
+So yes, I think you are right about removing this copy and relying on
+copy_mm() instead. I also think we can improve membarrier_arch_fork()
+on powerpc to test the current thread flag rather than using current->mm.
+
+Which leads to those two changes:
+
+static inline void membarrier_fork(struct task_struct *t,
+                unsigned long clone_flags)
+{
+        /*
+         * Prior copy_mm() copies the membarrier_private_expedited field
+         * from current->mm to t->mm.
+         */
+        membarrier_arch_fork(t, clone_flags);
+}
+
+And on PowerPC:
+
+static inline void membarrier_arch_fork(struct task_struct *t,
+                unsigned long clone_flags)
+{
+        /*
+         * Coherence of TIF_MEMBARRIER_PRIVATE_EXPEDITED against thread
+         * fork is protected by siglock. membarrier_arch_fork is called
+         * with siglock held.
+         */
+        if (test_thread_flag(TIF_MEMBARRIER_PRIVATE_EXPEDITED))
+                set_ti_thread_flag(task_thread_info(t),
+                                TIF_MEMBARRIER_PRIVATE_EXPEDITED);
+}
+
+Thanks,
+
+Mathieu
 
 
+> 
+> Regards,
+> Boqun
+> 
+>> +	membarrier_arch_fork(t, clone_flags);
+>> +}
+>> +static inline void membarrier_execve(struct task_struct *t)
+>> +{
+>> +	t->mm->membarrier_private_expedited = 0;
+>> +	membarrier_arch_execve(t);
+>> +}
+>> +#else
+>> +static inline void membarrier_sched_in(struct task_struct *prev,
+>> +		struct task_struct *next)
+>> +{
+>> +}
+>> +static inline void membarrier_fork(struct task_struct *t,
+>> +		unsigned long clone_flags)
+>> +{
+>> +}
+>> +static inline void membarrier_execve(struct task_struct *t)
+>> +{
+>> +}
+>> +#endif
+>> +
+> [...]
 
 -- 
-Thomas
+Mathieu Desnoyers
+EfficiOS Inc.
+http://www.efficios.com
