@@ -1,173 +1,77 @@
-From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Subject: Re: [RFC PATCH v3 1/2] membarrier: Provide register expedited
- private command
-Date: Fri, 22 Sep 2017 05:22:19 +0000 (UTC)
-Message-ID: <1526992839.16270.1506057739771.JavaMail.zimbra@efficios.com>
-References: <20170919221342.29915-1-mathieu.desnoyers@efficios.com> <20170922032206.GE10893@tardis> <20170922033057.GF10893@tardis>
+From: Balbir Singh <bsingharora@gmail.com>
+Subject: Re: [PATCH 4/6] mm/mprotect, powerpc/mm/pkeys, x86/mm/pkeys: Add
+ sysfs interface
+Date: Fri, 22 Sep 2017 16:00:19 +1000
+Message-ID: <20170922160019.0d6d1eae@firefly.ozlabs.ibm.com>
+References: <1505524870-4783-1-git-send-email-linuxram@us.ibm.com>
+	<1505524870-4783-5-git-send-email-linuxram@us.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.efficios.com ([167.114.142.141]:43391 "EHLO
-        mail.efficios.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751155AbdIVFVY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 22 Sep 2017 01:21:24 -0400
-In-Reply-To: <20170922033057.GF10893@tardis>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Boqun Feng <boqun.feng@gmail.com>
-Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>, linux-kernel <linux-kernel@vger.kernel.org>, Andrew Hunter <ahh@google.com>, maged michael <maged.michael@gmail.com>, gromer <gromer@google.com>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Watson <davejwatson@fb.com>, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, Andy Lutomirski <luto@kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <1505524870-4783-5-git-send-email-linuxram@us.ibm.com>
+Sender: owner-linux-mm@kvack.org
+To: Ram Pai <linuxram@us.ibm.com>
+Cc: mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com
+List-Id: linux-arch.vger.kernel.org
 
------ On Sep 21, 2017, at 11:30 PM, Boqun Feng boqun.feng@gmail.com wrote:
+On Fri, 15 Sep 2017 18:21:08 -0700
+Ram Pai <linuxram@us.ibm.com> wrote:
 
-> On Fri, Sep 22, 2017 at 11:22:06AM +0800, Boqun Feng wrote:
->> Hi Mathieu,
->> 
->> On Tue, Sep 19, 2017 at 06:13:41PM -0400, Mathieu Desnoyers wrote:
->> > Provide a new command allowing processes to register their intent to use
->> > the private expedited command.
->> > 
->> > This allows PowerPC to skip the full memory barrier in switch_mm(), and
->> > only issue the barrier when scheduling into a task belonging to a
->> > process that has registered to use expedited private.
->> > 
->> > Processes are now required to register before using
->> > MEMBARRIER_CMD_PRIVATE_EXPEDITED, otherwise that command returns EPERM.
->> > 
->> 
->> Sorry I'm late for the party, but I couldn't stop thinking whether we
->> could avoid the register thing at all, because the registering makes
->> sys_membarrier() more complex(both for the interface and the
->> implementation). So how about we trade-off a little bit by taking
->> some(not all) the rq->locks?
->> 
->> The idea is in membarrier_private_expedited(), we go through all ->curr
->> on each CPU and
->> 
->> 1)	If it's a userspace task and its ->mm is matched, we send an ipi
->> 
->> 2)	If it's a kernel task, we skip
->> 
->> 	(Because there will be a smp_mb() implied by mmdrop(), when it
->> 	switchs to userspace task).
->> 
->> 3)	If it's a userspace task and its ->mm is not matched, we take
->> 	the corresponding rq->lock and check rq->curr again, if its ->mm
->> 	matched, we send an ipi, otherwise we do nothing.
->> 
->> 	(Because if we observe rq->curr is not matched with rq->lock
->> 	held, when a task having matched ->mm schedules in, the rq->lock
->> 	pairing along with the smp_mb__after_spinlock() will guarantee
->> 	it observes all memory ops before sys_membarrir()).
->> 
->> membarrier_private_expedited() will look like this if we choose this
->> way:
->> 
->> void membarrier_private_expedited()
->> {
->> 	int cpu;
->> 	bool fallback = false;
->> 	cpumask_var_t tmpmask;
->> 	struct rq_flags rf;
->> 
->> 
->> 	if (num_online_cpus() == 1)
->> 		return;
->> 
->> 	smp_mb();
->> 
->> 	if (!zalloc_cpumask_var(&tmpmask, GFP_NOWAIT)) {
->> 		/* Fallback for OOM. */
->> 		fallback = true;
->> 	}
->> 
->> 	cpus_read_lock();
->> 	for_each_online_cpu(cpu) {
->> 		struct task_struct *p;
->> 
->> 		if (cpu == raw_smp_processor_id())
->> 			continue;
->> 
->> 		rcu_read_lock();
->> 		p = task_rcu_dereference(&cpu_rq(cpu)->curr);
->> 
->> 		if (!p) {
->> 			rcu_read_unlock();
->> 			continue;
->> 		}
->> 
->> 		if (p->mm == current->mm) {
->> 			if (!fallback)
->> 				__cpumask_set_cpu(cpu, tmpmask);
->> 			else
->> 				smp_call_function_single(cpu, ipi_mb, NULL, 1);
->> 		}
->> 
->> 		if (p->mm == current->mm || !p->mm) {
->> 			rcu_read_unlock();
->> 			continue;
->> 		}
->> 
->> 		rcu_read_unlock();
->> 		
->> 		/*
->> 		 * This should be a arch-specific code, as we don't
->> 		 * need it at else place other than some archs without
->> 		 * a smp_mb() in switch_mm() (i.e. powerpc)
->> 		 */
->> 		rq_lock_irq(cpu_rq(cpu), &rf);
->> 		if (p->mm == current->mm) {
+> From: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
 > 
-> Oops, this one should be
+> Expose useful information for programs using memory protection keys.
+> Provide implementation for powerpc and x86.
 > 
->		if (cpu_curr(cpu)->mm == current->mm)
+> On a powerpc system with pkeys support, here is what is shown:
 > 
->> 			if (!fallback)
->> 				__cpumask_set_cpu(cpu, tmpmask);
->> 			else
->> 				smp_call_function_single(cpu, ipi_mb, NULL, 1);
+> $ head /sys/kernel/mm/protection_keys/*
+> ==> /sys/kernel/mm/protection_keys/disable_access_supported <==  
+> true
 > 
-> , and this better be moved out of the lock rq->lock critical section.
+> ==> /sys/kernel/mm/protection_keys/disable_execute_supported <==  
+> true
 > 
-> Regards,
-> Boqun
+> ==> /sys/kernel/mm/protection_keys/disable_write_supported <==  
+> true
 > 
->> 		}
->> 		rq_unlock_irq(cpu_rq(cpu), &rf);
->> 	}
->> 	if (!fallback) {
->> 		smp_call_function_many(tmpmask, ipi_mb, NULL, 1);
->> 		free_cpumask_var(tmpmask);
->> 	}
->> 	cpus_read_unlock();
->> 
->> 	smp_mb();
->> }
->> 
->> Thoughts?
+> ==> /sys/kernel/mm/protection_keys/total_keys <==  
+> 32
+> 
+> ==> /sys/kernel/mm/protection_keys/usable_keys <==  
+> 29
+> 
+> And on an x86 without pkeys support:
+> 
+> $ head /sys/kernel/mm/protection_keys/*
+> ==> /sys/kernel/mm/protection_keys/disable_access_supported <==  
+> false
+> 
+> ==> /sys/kernel/mm/protection_keys/disable_execute_supported <==  
+> false
+> 
+> ==> /sys/kernel/mm/protection_keys/disable_write_supported <==  
+> false
+> 
+> ==> /sys/kernel/mm/protection_keys/total_keys <==  
+> 1
+> 
+> ==> /sys/kernel/mm/protection_keys/usable_keys <==  
+> 0
+> 
+> Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+> Signed-off-by: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
+> ---
 
-Hi Boqun,
+Just curious, how do you see this being used? For debugging
+or will applications parse these properties and use them?
+It's hard for an application to partition its address space
+among keys at runtime, would you agree?
 
-The main concern Peter has with the runqueue locking approach
-is interference with the scheduler by hitting all CPU's runqueue
-locks repeatedly if someone performs membarrier system calls in
-a short loop.
+Balbir Singh.
 
-Just reading the rq->curr pointer does not generate as much
-overhead as grabbing each rq lock.
-
-Thanks,
-
-Mathieu
-
-
->> 
->> Regards,
->> Boqun
->> 
-> [...]
-
--- 
-Mathieu Desnoyers
-EfficiOS Inc.
-http://www.efficios.com
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
