@@ -1,105 +1,32 @@
-From: Boqun Feng <boqun.feng@gmail.com>
-Subject: Re: [RFC PATCH v3 1/2] membarrier: Provide register expedited
- private command
-Date: Fri, 22 Sep 2017 16:59:59 +0800
-Message-ID: <20170922085959.GG10893@tardis>
-References: <20170919221342.29915-1-mathieu.desnoyers@efficios.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: Rough notes from sys_membarrier() lightning BoF
+Date: Fri, 22 Sep 2017 11:33:29 +0200
+Message-ID: <20170922093329.wizest62uolktwc7@hirez.programming.kicks-ass.net>
+References: <20170917223608.GA14577@linux.vnet.ibm.com>
+ <CALCETrUta2LvC=e7DNDDo_F5_OuEtehFoZJg1MUwUigTT5K7xw@mail.gmail.com>
+ <1264439870.15044.1505931230400.JavaMail.zimbra@efficios.com>
+ <20170921130950.nwfbyiil34psoyua@hirez.programming.kicks-ass.net>
+ <1506014619.3848.59.camel@HansenPartnership.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-        protocol="application/pgp-signature"; boundary="lHGcFxmlz1yfXmOs"
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f196.google.com ([209.85.192.196]:35410 "EHLO
-        mail-pf0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751808AbdIVJEP (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 22 Sep 2017 05:04:15 -0400
+Received: from bombadil.infradead.org ([65.50.211.133]:51340 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751809AbdIVJdo (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 22 Sep 2017 05:33:44 -0400
 Content-Disposition: inline
-In-Reply-To: <20170919221342.29915-1-mathieu.desnoyers@efficios.com>
+In-Reply-To: <1506014619.3848.59.camel@HansenPartnership.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Cc: "Paul E . McKenney" <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, Andrew Hunter <ahh@google.com>, Maged Michael <maged.michael@gmail.com>, gromer@google.com, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Watson <davejwatson@fb.com>, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, Andy Lutomirski <luto@kernel.org>, linux-arch@vger.kernel.org
+To: James Bottomley <James.Bottomley@HansenPartnership.com>
+Cc: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Andy Lutomirski <luto@kernel.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Alan Stern <stern@rowland.harvard.edu>, Michael Ellerman <mpe@ellerman.id.au>, linux-kernel <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Dave Watson <davejwatson@fb.com>, maged michael <maged.michael@gmail.com>
 
+On Thu, Sep 21, 2017 at 10:23:39AM -0700, James Bottomley wrote:
 
---lHGcFxmlz1yfXmOs
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+>  We have one system that locks up if
+> multiple CPUs have outstanding coherency operations on the private bus,
+> but that's only one annoying CPU (which we manage with a special lock
+> inside the PA-RISC mmu code).
 
-On Tue, Sep 19, 2017 at 06:13:41PM -0400, Mathieu Desnoyers wrote:
-[...]
-> +static inline void membarrier_arch_sched_in(struct task_struct *prev,
-> +		struct task_struct *next)
-> +{
-> +	/*
-> +	 * Only need the full barrier when switching between processes.
-> +	 */
-> +	if (likely(!test_ti_thread_flag(task_thread_info(next),
-> +			TIF_MEMBARRIER_PRIVATE_EXPEDITED)
-> +				|| prev->mm == next->mm))
-
-And we also don't need the smp_mb() if !prev->mm, because switching from
-kernel to user will have a smp_mb() implied by mmdrop()?
-
-> +		return;
-> +
-> +	/*
-> +	 * The membarrier system call requires a full memory barrier
-> +	 * after storing to rq->curr, before going back to user-space.
-> +	 */
-> +	smp_mb();
-> +}
-
-[...]
-
-> +static inline void membarrier_fork(struct task_struct *t,
-> +		unsigned long clone_flags)
-> +{
-> +	if (!current->mm || !t->mm)
-> +		return;
-> +	t->mm->membarrier_private_expedited =
-> +		current->mm->membarrier_private_expedited;
-
-Have we already done the copy of ->membarrier_private_expedited in
-copy_mm()?
-
-Regards,
-Boqun
-
-> +	membarrier_arch_fork(t, clone_flags);
-> +}
-> +static inline void membarrier_execve(struct task_struct *t)
-> +{
-> +	t->mm->membarrier_private_expedited = 0;
-> +	membarrier_arch_execve(t);
-> +}
-> +#else
-> +static inline void membarrier_sched_in(struct task_struct *prev,
-> +		struct task_struct *next)
-> +{
-> +}
-> +static inline void membarrier_fork(struct task_struct *t,
-> +		unsigned long clone_flags)
-> +{
-> +}
-> +static inline void membarrier_execve(struct task_struct *t)
-> +{
-> +}
-> +#endif
-> +
-[...]
-
---lHGcFxmlz1yfXmOs
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iQEzBAABCAAdFiEEj5IosQTPz8XU1wRHSXnow7UH+rgFAlnE0QwACgkQSXnow7UH
-+rhCVQf+IhTZRUW/ntVGWcPAjRpCk5QP/62TRsYs+jdCDl2ieycED3WVRfqpT9fE
-2lmY5tsMO7qaqM2AxXFI5kpgTyKPiAnYOo1nKsgXVQgW/pLLz/67q1ZXDMGfLreF
-yim1jtI31/5JQiefHkB+n2boQJF3C0m8KzL8qo5ypBBWMWyK5ofK14J/p+9Rwh4K
-ojw2Hvp4QZdWmSysNASNZR0qupsot3AnAVk5qRno3syQ6NbJh/MZHjm9tJnoJC4N
-7y2AvZ219BZ9PEJuratyPS4DMgOkZN1pZCUiuzy+MhSS+SHmaGglWsdy9O+WVLP0
-8PPJ9x09MNZaeaLN0jqWz1yOHNAIuw==
-=fgzU
------END PGP SIGNATURE-----
-
---lHGcFxmlz1yfXmOs--
+Hehe, yeah. I saw that code recently and had a WTF moment ;-)
