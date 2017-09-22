@@ -1,98 +1,80 @@
-From: Ram Pai <linuxram@us.ibm.com>
-Subject: Re: [PATCH 4/6] mm/mprotect, powerpc/mm/pkeys, x86/mm/pkeys: Add
- sysfs interface
-Date: Fri, 22 Sep 2017 09:47:52 -0700
-Message-ID: <20170922164752.GQ5698@ram.oc3035372033.ibm.com>
-References: <1505524870-4783-1-git-send-email-linuxram@us.ibm.com>
- <1505524870-4783-5-git-send-email-linuxram@us.ibm.com>
- <20170922160019.0d6d1eae@firefly.ozlabs.ibm.com>
-Reply-To: Ram Pai <linuxram@us.ibm.com>
+From: Thomas Garnier <thgarnie@google.com>
+Subject: Re: x86: PIE support and option to extend KASLR randomization
+Date: Fri, 22 Sep 2017 11:08:02 -0700
+Message-ID: <CAJcbSZFbNACVrSQ7yFkDMs+4L56_4e73kvdesSdD5W4bdBoOpg@mail.gmail.com>
+References: <20170816151235.oamkdva6cwpc4cex@gmail.com> <CAJcbSZFM_zpL1av1JVaow8NdsGeH+6oZKeDnMPdXR0PGfynzsg@mail.gmail.com>
+ <20170817080920.5ljlkktngw2cisfg@gmail.com> <CAJcbSZGbtc-i0X1NiBAvZA7cxpGkwSLKNB7oDNCsFxOCdhkR_g@mail.gmail.com>
+ <CAJcbSZGhvwt=5ERtBHLJnwS=6AXBZLTMfrafzeUCqYy=-MKWDg@mail.gmail.com>
+ <20170825080443.tvvr6wzs362cjcuu@gmail.com> <CAJcbSZFJQMKw21kLwr4QGoSM7DMgKRzzjWxkYBF2c1HciCzvGg@mail.gmail.com>
+ <CAJcbSZH6hwaWKrvUZR33ExYaZaWKMSv4tJJA3yZkniLvLbTFMw@mail.gmail.com>
+ <20170921155919.skpyt7dutod5ul4t@gmail.com> <CAJcbSZHOuxy5BVxD0xJUdQfB-OMgbvfiP-2CJzf52K-7JZAy-A@mail.gmail.com>
+ <20170922163225.bfrd5myl6d7deiim@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20170922160019.0d6d1eae@firefly.ozlabs.ibm.com>
-Sender: owner-linux-mm@kvack.org
-To: Balbir Singh <bsingharora@gmail.com>
-Cc: mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, dave.hansen@intel.com
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <kernel-hardening-return-9935-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+In-Reply-To: <20170922163225.bfrd5myl6d7deiim@gmail.com>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Herbert Xu <herbert@gondor.apana.org.au>, "David S . Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Matthias Kaehlcke <mka@chromium.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, Paolo Bonzini <pbonzini@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Joerg Roedel <joro@8bytes.org>, Tom Lendacky <thomas.lendacky@amd.com>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Brian Gerst <brgerst@gmail.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, "Rafael J . Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Pavel Machek <pavel@ucw.cz>, Tejun Heo <tj@kernel.org>, Christoph
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Sep 22, 2017 at 04:00:19PM +1000, Balbir Singh wrote:
-> On Fri, 15 Sep 2017 18:21:08 -0700
-> Ram Pai <linuxram@us.ibm.com> wrote:
-> 
-> > From: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
-> > 
-> > Expose useful information for programs using memory protection keys.
-> > Provide implementation for powerpc and x86.
-> > 
-> > On a powerpc system with pkeys support, here is what is shown:
-> > 
-> > $ head /sys/kernel/mm/protection_keys/*
-> > ==> /sys/kernel/mm/protection_keys/disable_access_supported <==  
-> > true
-> > 
-> > ==> /sys/kernel/mm/protection_keys/disable_execute_supported <==  
-> > true
-> > 
-> > ==> /sys/kernel/mm/protection_keys/disable_write_supported <==  
-> > true
-> > 
-> > ==> /sys/kernel/mm/protection_keys/total_keys <==  
-> > 32
-> > 
-> > ==> /sys/kernel/mm/protection_keys/usable_keys <==  
-> > 29
-> > 
-> > And on an x86 without pkeys support:
-> > 
-> > $ head /sys/kernel/mm/protection_keys/*
-> > ==> /sys/kernel/mm/protection_keys/disable_access_supported <==  
-> > false
-> > 
-> > ==> /sys/kernel/mm/protection_keys/disable_execute_supported <==  
-> > false
-> > 
-> > ==> /sys/kernel/mm/protection_keys/disable_write_supported <==  
-> > false
-> > 
-> > ==> /sys/kernel/mm/protection_keys/total_keys <==  
-> > 1
-> > 
-> > ==> /sys/kernel/mm/protection_keys/usable_keys <==  
-> > 0
-> > 
-> > Signed-off-by: Ram Pai <linuxram@us.ibm.com>
-> > Signed-off-by: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
-> > ---
-> 
-> Just curious, how do you see this being used? 
-> For debugging or will applications parse these properties and use them?
+On Fri, Sep 22, 2017 at 9:32 AM, Ingo Molnar <mingo@kernel.org> wrote:
+>
+> * Thomas Garnier <thgarnie@google.com> wrote:
+>
+>> On Thu, Sep 21, 2017 at 8:59 AM, Ingo Molnar <mingo@kernel.org> wrote:
+>> >
+>> > ( Sorry about the delay in answering this. I could blame the delay on the merge
+>> >   window, but in reality I've been procrastinating this is due to the permanent,
+>> >   non-trivial impact PIE has on generated C code. )
+>> >
+>> > * Thomas Garnier <thgarnie@google.com> wrote:
+>> >
+>> >> 1) PIE sometime needs two instructions to represent a single
+>> >> instruction on mcmodel=kernel.
+>> >
+>> > What again is the typical frequency of this occurring in an x86-64 defconfig
+>> > kernel, with the very latest GCC?
+>>
+>> I am not sure what is the best way to measure that.
+>
+> If this is the dominant factor then 'sizeof vmlinux' ought to be enough:
+>
+>> With ORC: PIE .text is 0.814224% than baseline
+>
+> I.e. the overhead is +0.81% in both size and (roughly) in number of instructions
+> executed.
+>
+> BTW., I think things improved with ORC because with ORC we have RBP as an extra
+> register and with PIE we lose RBX - so register pressure in code generation is
+> lower.
 
-Its upto the application to determine the best way to fully exploit all
-the keys. But that cannot happen if the application has no easy way to
-determine the number of available keys.
+That make sense.
+
+>
+> Ok, I suspect we can try it, but my preconditions for merging it would be:
+>
+>   1) Linus doesn't NAK it (obviously)
+
+Of course.
+
+>   2) we first implement the additional entropy bits that Linus suggested.
+>
+> does this work for you?
+
+Sure, I can look at how feasible that is. If it is, can I send
+everything as part of the same patch set? The additional entropy would
+be enabled for all KASLR but PIE will be off-by-default of course.
+
+>
+> Thanks,
+>
+>         Ingo
 
 
-> It's hard for an application to partition its address space
-> among keys at runtime, would you agree?
-
-Why would it be hard? Because the application may not know; in advance,
-the range of its address space?  Well that is true.  But that may not be
-the best strategy. It should not be based on how large its address space
-range is, rather it should be based on how many unique access-domains it
-will need. It can associate a key with each domain and it can associate
-address-ranges to the appropriate domains. The more the number
-of keys the more the number of access-domains and finer the control.
-
-> 
-> Balbir Singh.
 
 -- 
-Ram Pai
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Thomas
