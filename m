@@ -1,77 +1,76 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.efficios.com ([167.114.142.141]:37329 "EHLO
-        mail.efficios.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751813AbdIUSCP (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 21 Sep 2017 14:02:15 -0400
-Date: Thu, 21 Sep 2017 18:03:06 +0000 (UTC)
-From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Message-ID: <182479244.15905.1506016986660.JavaMail.zimbra@efficios.com>
-In-Reply-To: <20170921131501.abv4ul2cnpef72j2@hirez.programming.kicks-ass.net>
-References: <20170917223608.GA14577@linux.vnet.ibm.com> <CALCETrUta2LvC=e7DNDDo_F5_OuEtehFoZJg1MUwUigTT5K7xw@mail.gmail.com> <1264439870.15044.1505931230400.JavaMail.zimbra@efficios.com> <20170921131501.abv4ul2cnpef72j2@hirez.programming.kicks-ass.net>
-Subject: Re: Rough notes from sys_membarrier() lightning BoF
+Received: from mail-pg0-f66.google.com ([74.125.83.66]:37451 "EHLO
+        mail-pg0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751838AbdIVGAh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 22 Sep 2017 02:00:37 -0400
+Date: Fri, 22 Sep 2017 16:00:19 +1000
+From: Balbir Singh <bsingharora@gmail.com>
+Subject: Re: [PATCH 4/6] mm/mprotect, powerpc/mm/pkeys, x86/mm/pkeys: Add
+ sysfs interface
+Message-ID: <20170922160019.0d6d1eae@firefly.ozlabs.ibm.com>
+In-Reply-To: <1505524870-4783-5-git-send-email-linuxram@us.ibm.com>
+References: <1505524870-4783-1-git-send-email-linuxram@us.ibm.com>
+        <1505524870-4783-5-git-send-email-linuxram@us.ibm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Andy Lutomirski <luto@kernel.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Alan Stern <stern@rowland.harvard.edu>, Michael Ellerman <mpe@ellerman.id.au>, linux-kernel <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Dave Watson <davejwatson@fb.com>, maged michael <maged.michael@gmail.com>
-Message-ID: <20170921180306.KLG9eAOmjUUjpv5dXhA1w6pYvLi6t-GPVfhGfrFlZFs@z>
+To: Ram Pai <linuxram@us.ibm.com>
+Cc: mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com
+Message-ID: <20170922060019.jmo8QxvkM3kz3w1yyg4j2nIUFFDu4hlDxTnvdCIEl5g@z>
 
------ On Sep 21, 2017, at 9:15 AM, Peter Zijlstra peterz@infradead.org wrote:
+On Fri, 15 Sep 2017 18:21:08 -0700
+Ram Pai <linuxram@us.ibm.com> wrote:
 
-> On Wed, Sep 20, 2017 at 06:13:50PM +0000, Mathieu Desnoyers wrote:
->> My proposed RFC for private expedited membarrier enforces that all
->> architectures perform the registration step. Using the "PRIVATE_EXPEDITED"
->> command without prior process registration returns an error on all
->> architectures. The goal here is to make all architectures behave in the
->> same way, and it allows us to rely on process registration to deal
->> with future arch-specific optimizations.
->> 
->> Adding the "core_sync" behavior could then be done for the next kernel
->> merge window. I'm currently foreseeing two possible ABI approaches to
->> expose it:
->> 
->> Approach 1:
->> 
->> Add MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE and
->> MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE commands. This
->> allows us to return their availability through MEMBARRIER_CMD_QUERY.
->> 
->> Approach 2:
->> 
->> Add a "MEMBARRIER_FLAG_SYNC_CORE" as flag parameter. It could be set
->> when issuing both MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED and
->> MEMBARRIER_CMD_PRIVATE_EXPEDITED, thus ensuring core serializing
->> behavior. Querying whether core serialization is supported could
->> be done by issuing the MEMBARRIER_CMD_QUERY command with the
->> MEMBARRIER_FLAG_SYNC_CORE flag set.
->> 
->> Any other ideas ? Any approach seems better ?
+> From: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
 > 
-> So we really need another FLAG for that? AFAICT the current
-> PRIVATE_EXPEDITED is already sufficient for the cross modifying code,
-> since the IPI triggers an exception return on all currently running CPUs
-> and the future running CPUs will have the return to userspace doing the
-> exception return.
+> Expose useful information for programs using memory protection keys.
+> Provide implementation for powerpc and x86.
 > 
-> The only issue is Andy fudging our x86 ret-to-userspace to not use IRET,
-> which we can fix by forcing it into the slowpath (that needs to exist
-> anyway) using that new TIF flag.
+> On a powerpc system with pkeys support, here is what is shown:
+> 
+> $ head /sys/kernel/mm/protection_keys/*
+> ==> /sys/kernel/mm/protection_keys/disable_access_supported <==  
+> true
+> 
+> ==> /sys/kernel/mm/protection_keys/disable_execute_supported <==  
+> true
+> 
+> ==> /sys/kernel/mm/protection_keys/disable_write_supported <==  
+> true
+> 
+> ==> /sys/kernel/mm/protection_keys/total_keys <==  
+> 32
+> 
+> ==> /sys/kernel/mm/protection_keys/usable_keys <==  
+> 29
+> 
+> And on an x86 without pkeys support:
+> 
+> $ head /sys/kernel/mm/protection_keys/*
+> ==> /sys/kernel/mm/protection_keys/disable_access_supported <==  
+> false
+> 
+> ==> /sys/kernel/mm/protection_keys/disable_execute_supported <==  
+> false
+> 
+> ==> /sys/kernel/mm/protection_keys/disable_write_supported <==  
+> false
+> 
+> ==> /sys/kernel/mm/protection_keys/total_keys <==  
+> 1
+> 
+> ==> /sys/kernel/mm/protection_keys/usable_keys <==  
+> 0
+> 
+> Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+> Signed-off-by: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
+> ---
 
-I agree that x86, as it stands today, would provide core serialization
-with the private expedited membarrier command. And we can deal with
-future optimization of ret-to-userspace using the TIF flag set on
-registration.
+Just curious, how do you see this being used? For debugging
+or will applications parse these properties and use them?
+It's hard for an application to partition its address space
+among keys at runtime, would you agree?
 
-I'm wondering whether all architectures guarantee core serialization
-on return from interrupt triggered by the IPI, and on ret-to-userspace ?
-
-Thanks,
-
-Mathieu
-
--- 
-Mathieu Desnoyers
-EfficiOS Inc.
-http://www.efficios.com
+Balbir Singh.
