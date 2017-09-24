@@ -1,109 +1,244 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:53774 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1752632AbdIVQsF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 22 Sep 2017 12:48:05 -0400
-Received: from pps.filterd (m0098414.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id v8MGiAxX095211
-        for <linux-arch@vger.kernel.org>; Fri, 22 Sep 2017 12:48:04 -0400
-Received: from e36.co.us.ibm.com (e36.co.us.ibm.com [32.97.110.154])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 2d54xem0q5-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Fri, 22 Sep 2017 12:48:04 -0400
-Received: from localhost
-        by e36.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <linuxram@us.ibm.com>;
-        Fri, 22 Sep 2017 10:48:03 -0600
-Date: Fri, 22 Sep 2017 09:47:52 -0700
-From: Ram Pai <linuxram@us.ibm.com>
-Subject: Re: [PATCH 4/6] mm/mprotect, powerpc/mm/pkeys, x86/mm/pkeys: Add
- sysfs interface
-Reply-To: Ram Pai <linuxram@us.ibm.com>
-References: <1505524870-4783-1-git-send-email-linuxram@us.ibm.com>
- <1505524870-4783-5-git-send-email-linuxram@us.ibm.com>
- <20170922160019.0d6d1eae@firefly.ozlabs.ibm.com>
+Received: from mail-pg0-f65.google.com ([74.125.83.65]:33460 "EHLO
+        mail-pg0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752245AbdIXNa0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 24 Sep 2017 09:30:26 -0400
+Date: Sun, 24 Sep 2017 21:30:38 +0800
+From: Boqun Feng <boqun.feng@gmail.com>
+Subject: Re: [RFC PATCH v3 1/2] membarrier: Provide register expedited
+ private command
+Message-ID: <20170924133038.GA8673@tardis>
+References: <20170919221342.29915-1-mathieu.desnoyers@efficios.com>
+ <20170922085959.GG10893@tardis>
+ <121420896.16597.1506093010487.JavaMail.zimbra@efficios.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: multipart/signed; micalg=pgp-sha256;
+        protocol="application/pgp-signature"; boundary="/04w6evG8XlLl3ft"
 Content-Disposition: inline
-In-Reply-To: <20170922160019.0d6d1eae@firefly.ozlabs.ibm.com>
-Message-ID: <20170922164752.GQ5698@ram.oc3035372033.ibm.com>
+In-Reply-To: <121420896.16597.1506093010487.JavaMail.zimbra@efficios.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Balbir Singh <bsingharora@gmail.com>
-Cc: mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-doc@vger.kernel.org, arnd@arndb.de, akpm@linux-foundation.org, corbet@lwn.net, mingo@redhat.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, dave.hansen@intel.com
-Message-ID: <20170922164752.lgHHkPxn2qyj2vWv-RflGRuNNolOfd2qrxnos2Neen4@z>
-
-On Fri, Sep 22, 2017 at 04:00:19PM +1000, Balbir Singh wrote:
-> On Fri, 15 Sep 2017 18:21:08 -0700
-> Ram Pai <linuxram@us.ibm.com> wrote:
-> 
-> > From: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
-> > 
-> > Expose useful information for programs using memory protection keys.
-> > Provide implementation for powerpc and x86.
-> > 
-> > On a powerpc system with pkeys support, here is what is shown:
-> > 
-> > $ head /sys/kernel/mm/protection_keys/*
-> > ==> /sys/kernel/mm/protection_keys/disable_access_supported <==  
-> > true
-> > 
-> > ==> /sys/kernel/mm/protection_keys/disable_execute_supported <==  
-> > true
-> > 
-> > ==> /sys/kernel/mm/protection_keys/disable_write_supported <==  
-> > true
-> > 
-> > ==> /sys/kernel/mm/protection_keys/total_keys <==  
-> > 32
-> > 
-> > ==> /sys/kernel/mm/protection_keys/usable_keys <==  
-> > 29
-> > 
-> > And on an x86 without pkeys support:
-> > 
-> > $ head /sys/kernel/mm/protection_keys/*
-> > ==> /sys/kernel/mm/protection_keys/disable_access_supported <==  
-> > false
-> > 
-> > ==> /sys/kernel/mm/protection_keys/disable_execute_supported <==  
-> > false
-> > 
-> > ==> /sys/kernel/mm/protection_keys/disable_write_supported <==  
-> > false
-> > 
-> > ==> /sys/kernel/mm/protection_keys/total_keys <==  
-> > 1
-> > 
-> > ==> /sys/kernel/mm/protection_keys/usable_keys <==  
-> > 0
-> > 
-> > Signed-off-by: Ram Pai <linuxram@us.ibm.com>
-> > Signed-off-by: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
-> > ---
-> 
-> Just curious, how do you see this being used? 
-> For debugging or will applications parse these properties and use them?
-
-Its upto the application to determine the best way to fully exploit all
-the keys. But that cannot happen if the application has no easy way to
-determine the number of available keys.
+To: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>, linux-kernel <linux-kernel@vger.kernel.org>, Andrew Hunter <ahh@google.com>, maged michael <maged.michael@gmail.com>, gromer <gromer@google.com>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Watson <davejwatson@fb.com>, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, Andy Lutomirski <luto@kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20170924133038.S0zFuD0i7NLYGPN64AUm16F38fhJHSl0_GR3kbP9JXk@z>
 
 
-> It's hard for an application to partition its address space
-> among keys at runtime, would you agree?
+--/04w6evG8XlLl3ft
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-Why would it be hard? Because the application may not know; in advance,
-the range of its address space?  Well that is true.  But that may not be
-the best strategy. It should not be based on how large its address space
-range is, rather it should be based on how many unique access-domains it
-will need. It can associate a key with each domain and it can associate
-address-ranges to the appropriate domains. The more the number
-of keys the more the number of access-domains and finer the control.
+On Fri, Sep 22, 2017 at 03:10:10PM +0000, Mathieu Desnoyers wrote:
+> ----- On Sep 22, 2017, at 4:59 AM, Boqun Feng boqun.feng@gmail.com wrote:
+>=20
+> > On Tue, Sep 19, 2017 at 06:13:41PM -0400, Mathieu Desnoyers wrote:
+> > [...]
+> >> +static inline void membarrier_arch_sched_in(struct task_struct *prev,
+> >> +		struct task_struct *next)
+> >> +{
+> >> +	/*
+> >> +	 * Only need the full barrier when switching between processes.
+> >> +	 */
+> >> +	if (likely(!test_ti_thread_flag(task_thread_info(next),
+> >> +			TIF_MEMBARRIER_PRIVATE_EXPEDITED)
+> >> +				|| prev->mm =3D=3D next->mm))
+> >=20
+> > And we also don't need the smp_mb() if !prev->mm, because switching from
+> > kernel to user will have a smp_mb() implied by mmdrop()?
+>=20
+> Right. And we also don't need it when switching from userspace to kernel
 
-> 
-> Balbir Singh.
+Yep, but this case is covered already, as I think we don't allow kernel
+thread to have TIF_MEMBARRIER_PRIVATE_EXPEDITED set, right?
 
--- 
-Ram Pai
+> thread neither. Something like this:
+>=20
+> static inline void membarrier_arch_sched_in(struct task_struct *prev,
+>                 struct task_struct *next)
+> {
+>         /*
+>          * Only need the full barrier when switching between processes.
+>          * Barrier when switching from kernel to userspace is not
+>          * required here, given that it is implied by mmdrop(). Barrier
+>          * when switching from userspace to kernel is not needed after
+>          * store to rq->curr.
+>          */
+>         if (likely(!test_ti_thread_flag(task_thread_info(next),
+>                         TIF_MEMBARRIER_PRIVATE_EXPEDITED)
+>                         || !prev->mm || !next->mm || prev->mm =3D=3D next=
+->mm))
+
+, so no need to test next->mm here.
+
+>                 return;
+>=20
+>         /*
+>          * The membarrier system call requires a full memory barrier
+>          * after storing to rq->curr, before going back to user-space.
+>          */
+>         smp_mb();
+> }
+>=20
+> >=20
+> >> +		return;
+> >> +
+> >> +	/*
+> >> +	 * The membarrier system call requires a full memory barrier
+> >> +	 * after storing to rq->curr, before going back to user-space.
+> >> +	 */
+> >> +	smp_mb();
+> >> +}
+> >=20
+> > [...]
+> >=20
+> >> +static inline void membarrier_fork(struct task_struct *t,
+> >> +		unsigned long clone_flags)
+> >> +{
+> >> +	if (!current->mm || !t->mm)
+> >> +		return;
+> >> +	t->mm->membarrier_private_expedited =3D
+> >> +		current->mm->membarrier_private_expedited;
+> >=20
+> > Have we already done the copy of ->membarrier_private_expedited in
+> > copy_mm()?
+>=20
+> copy_mm() is performed without holding current->sighand->siglock, so
+> it appears to be racing with concurrent membarrier register cmd.
+
+Speak of racing, I think we currently have a problem if we do a
+register_private_expedited in one thread and do a
+membarrer_private_expedited in another thread(sharing the same mm), as
+follow:
+
+	{t1,t2,t3 sharing the same ->mm}
+	CPU 0				CPU 1				CPU2
+	=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D		=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D		=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+	{in thread t1}						=09
+	membarrier_register_private_expedited():
+	  ...
+	  WRITE_ONCE(->mm->membarrier_private_expedited, 1);
+	  membarrier_arch_register_private_expedited():
+	    ...
+	    <haven't set the TIF for t3 yet>
+
+	    				{in thread t2}
+					membarrier_private_expedited():
+					  READ_ONCE(->mm->membarrier_private_expedited); // =3D=3D 1
+					  ...
+					  for_each_online_cpu()
+					    ...
+					    <p is cpu_rq(CPU2)->curr>
+					    if (p && p->mm =3D=3D current->mm) // false
+					    <so no ipi sent to CPU2>
+					    			=09
+									{about to switch to t3}
+									rq->curr =3D t3;
+									....
+									context_switch():
+									  ...
+									  finish_task_swtich():
+									    membarrier_sched_in():
+									    <TIF is not set>
+									    // no smp_mb() here.
+
+, and we will miss the smp_mb() on CPU2, right? And this could even
+happen if t2 has a membarrier_register_private_expedited() preceding the
+membarrier_private_expedited().
+				=09
+Am I missing something subtle here?
+
+Regards,
+Boqun
+
+
+> However, given that it is a single flag updated with WRITE_ONCE()
+> and read with READ_ONCE(), it might be OK to rely on copy_mm there.
+> If userspace runs registration concurrently with fork, they should
+> not expect the child to be specifically registered or unregistered.
+>=20
+> So yes, I think you are right about removing this copy and relying on
+> copy_mm() instead. I also think we can improve membarrier_arch_fork()
+> on powerpc to test the current thread flag rather than using current->mm.
+>=20
+> Which leads to those two changes:
+>=20
+> static inline void membarrier_fork(struct task_struct *t,
+>                 unsigned long clone_flags)
+> {
+>         /*
+>          * Prior copy_mm() copies the membarrier_private_expedited field
+>          * from current->mm to t->mm.
+>          */
+>         membarrier_arch_fork(t, clone_flags);
+> }
+>=20
+> And on PowerPC:
+>=20
+> static inline void membarrier_arch_fork(struct task_struct *t,
+>                 unsigned long clone_flags)
+> {
+>         /*
+>          * Coherence of TIF_MEMBARRIER_PRIVATE_EXPEDITED against thread
+>          * fork is protected by siglock. membarrier_arch_fork is called
+>          * with siglock held.
+>          */
+>         if (test_thread_flag(TIF_MEMBARRIER_PRIVATE_EXPEDITED))
+>                 set_ti_thread_flag(task_thread_info(t),
+>                                 TIF_MEMBARRIER_PRIVATE_EXPEDITED);
+> }
+>=20
+> Thanks,
+>=20
+> Mathieu
+>=20
+>=20
+> >=20
+> > Regards,
+> > Boqun
+> >=20
+> >> +	membarrier_arch_fork(t, clone_flags);
+> >> +}
+> >> +static inline void membarrier_execve(struct task_struct *t)
+> >> +{
+> >> +	t->mm->membarrier_private_expedited =3D 0;
+> >> +	membarrier_arch_execve(t);
+> >> +}
+> >> +#else
+> >> +static inline void membarrier_sched_in(struct task_struct *prev,
+> >> +		struct task_struct *next)
+> >> +{
+> >> +}
+> >> +static inline void membarrier_fork(struct task_struct *t,
+> >> +		unsigned long clone_flags)
+> >> +{
+> >> +}
+> >> +static inline void membarrier_execve(struct task_struct *t)
+> >> +{
+> >> +}
+> >> +#endif
+> >> +
+> > [...]
+>=20
+> --=20
+> Mathieu Desnoyers
+> EfficiOS Inc.
+> http://www.efficios.com
+
+--/04w6evG8XlLl3ft
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQEzBAABCAAdFiEEj5IosQTPz8XU1wRHSXnow7UH+rgFAlnHs3sACgkQSXnow7UH
++rg5tAgAgVr4i5pP971szeeRsgIe3fvWupRzUDHaKi2MtNZ06oeALN1fy/CNuen2
+wWLPJ8W7ElQ4ePZ4Qm5ss6tmzs6wdfQ4jtTDyiHmL7e+JBEXLJwSgU+WF/mUqF97
+pyBa1sI+SLSMOtWGIvJ6zxAtkrjknOumKw3UHhbC9iRrbfg2y3r1aM3JNG1olEeX
+RpZO9W6CqkcKH82mYnLnflO+6bajO5aVnN+5P0wqd3nONbgbJhq4aHE7UEcGM3Jp
++GV+trdYBT8DqBmt35jzFIIY0IKfzjVFgnHHJsuOFJ+8vUjmJjAlQj6ygeU1QVCW
+h7w59XWFiQntZGU7IMIicK50o4w77A==
+=XPLM
+-----END PGP SIGNATURE-----
+
+--/04w6evG8XlLl3ft--
