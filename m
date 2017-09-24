@@ -1,263 +1,99 @@
-From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Subject: Re: [RFC PATCH v3 1/2] membarrier: Provide register expedited
- private command
-Date: Sun, 24 Sep 2017 14:23:04 +0000 (UTC)
-Message-ID: <1879888051.17397.1506262984228.JavaMail.zimbra@efficios.com>
-References: <20170919221342.29915-1-mathieu.desnoyers@efficios.com> <20170922085959.GG10893@tardis> <121420896.16597.1506093010487.JavaMail.zimbra@efficios.com> <20170924133038.GA8673@tardis>
+From: Pavel Machek <pavel@ucw.cz>
+Subject: Re: x86: PIE support and option to extend KASLR randomization
+Date: Mon, 25 Sep 2017 00:37:08 +0200
+Message-ID: <20170924223708.GA12616@amd>
+References: <20170810172615.51965-1-thgarnie@google.com>
+ <20170811124127.kkb5pnkljz4umxuj@gmail.com>
+ <CAJcbSZFTX3uiS2g8JriS6+z_+WrG8z3hrQo4OSuyHpiyUDJWYA@mail.gmail.com>
+ <20170815075609.mmzbfwritjzvrpsn@gmail.com>
+ <CAJcbSZE+TiY2whT94WqCJNXzR=2ATOHcQ10H5RqBZA1j=k1VHQ@mail.gmail.com>
+ <20170816151235.oamkdva6cwpc4cex@gmail.com>
+ <20170821133222.2ek6bhqgdeoymxsg@hirez.programming.kicks-ass.net>
+ <20170821142854.dmuusnbc2tsrai3v@hirez.programming.kicks-ass.net>
+ <c830ba59-65d3-187f-3868-732059269f28@zytor.com>
+ <20170923100029.6nzpui6c3ke76bbs@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.efficios.com ([167.114.142.141]:44424 "EHLO
-        mail.efficios.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752473AbdIXOWD (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 24 Sep 2017 10:22:03 -0400
-In-Reply-To: <20170924133038.GA8673@tardis>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Boqun Feng <boqun.feng@gmail.com>
-Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>, linux-kernel <linux-kernel@vger.kernel.org>, Andrew Hunter <ahh@google.com>, maged michael <maged.michael@gmail.com>, gromer <gromer@google.com>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Watson <davejwatson@fb.com>, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, Andy Lutomirski <luto@kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-
------ On Sep 24, 2017, at 9:30 AM, Boqun Feng boqun.feng@gmail.com wrote:
-
-> On Fri, Sep 22, 2017 at 03:10:10PM +0000, Mathieu Desnoyers wrote:
->> ----- On Sep 22, 2017, at 4:59 AM, Boqun Feng boqun.feng@gmail.com wrote:
->> 
->> > On Tue, Sep 19, 2017 at 06:13:41PM -0400, Mathieu Desnoyers wrote:
->> > [...]
->> >> +static inline void membarrier_arch_sched_in(struct task_struct *prev,
->> >> +		struct task_struct *next)
->> >> +{
->> >> +	/*
->> >> +	 * Only need the full barrier when switching between processes.
->> >> +	 */
->> >> +	if (likely(!test_ti_thread_flag(task_thread_info(next),
->> >> +			TIF_MEMBARRIER_PRIVATE_EXPEDITED)
->> >> +				|| prev->mm == next->mm))
->> > 
->> > And we also don't need the smp_mb() if !prev->mm, because switching from
->> > kernel to user will have a smp_mb() implied by mmdrop()?
->> 
->> Right. And we also don't need it when switching from userspace to kernel
-> 
-> Yep, but this case is covered already, as I think we don't allow kernel
-> thread to have TIF_MEMBARRIER_PRIVATE_EXPEDITED set, right?
-
-Good point.
-
-> 
->> thread neither. Something like this:
->> 
->> static inline void membarrier_arch_sched_in(struct task_struct *prev,
->>                 struct task_struct *next)
->> {
->>         /*
->>          * Only need the full barrier when switching between processes.
->>          * Barrier when switching from kernel to userspace is not
->>          * required here, given that it is implied by mmdrop(). Barrier
->>          * when switching from userspace to kernel is not needed after
->>          * store to rq->curr.
->>          */
->>         if (likely(!test_ti_thread_flag(task_thread_info(next),
->>                         TIF_MEMBARRIER_PRIVATE_EXPEDITED)
->>                         || !prev->mm || !next->mm || prev->mm == next->mm))
-> 
-> , so no need to test next->mm here.
-> 
-
-Right, it's redundant wrt testing the thread flag.
-
->>                 return;
->> 
->>         /*
->>          * The membarrier system call requires a full memory barrier
->>          * after storing to rq->curr, before going back to user-space.
->>          */
->>         smp_mb();
->> }
->> 
->> > 
->> >> +		return;
->> >> +
->> >> +	/*
->> >> +	 * The membarrier system call requires a full memory barrier
->> >> +	 * after storing to rq->curr, before going back to user-space.
->> >> +	 */
->> >> +	smp_mb();
->> >> +}
->> > 
->> > [...]
->> > 
->> >> +static inline void membarrier_fork(struct task_struct *t,
->> >> +		unsigned long clone_flags)
->> >> +{
->> >> +	if (!current->mm || !t->mm)
->> >> +		return;
->> >> +	t->mm->membarrier_private_expedited =
->> >> +		current->mm->membarrier_private_expedited;
->> > 
->> > Have we already done the copy of ->membarrier_private_expedited in
->> > copy_mm()?
->> 
->> copy_mm() is performed without holding current->sighand->siglock, so
->> it appears to be racing with concurrent membarrier register cmd.
-> 
-> Speak of racing, I think we currently have a problem if we do a
-> register_private_expedited in one thread and do a
-> membarrer_private_expedited in another thread(sharing the same mm), as
-> follow:
-> 
->	{t1,t2,t3 sharing the same ->mm}
->	CPU 0				CPU 1				CPU2
->	====================		===================		============
->	{in thread t1}
->	membarrier_register_private_expedited():
->	  ...
->	  WRITE_ONCE(->mm->membarrier_private_expedited, 1);
->	  membarrier_arch_register_private_expedited():
->	    ...
->	    <haven't set the TIF for t3 yet>
-> 
->	    				{in thread t2}
->					membarrier_private_expedited():
->					  READ_ONCE(->mm->membarrier_private_expedited); // == 1
->					  ...
->					  for_each_online_cpu()
->					    ...
->					    <p is cpu_rq(CPU2)->curr>
->					    if (p && p->mm == current->mm) // false
->					    <so no ipi sent to CPU2>
->					    				
->									{about to switch to t3}
->									rq->curr = t3;
->									....
->									context_switch():
->									  ...
->									  finish_task_swtich():
->									    membarrier_sched_in():
->									    <TIF is not set>
->									    // no smp_mb() here.
-> 
-> , and we will miss the smp_mb() on CPU2, right? And this could even
-> happen if t2 has a membarrier_register_private_expedited() preceding the
-> membarrier_private_expedited().
->					
-> Am I missing something subtle here?
-
-I think the problem sits in this function:
-
-static void membarrier_register_private_expedited(void)
-{
-        struct task_struct *p = current;
-
-        if (READ_ONCE(p->mm->membarrier_private_expedited))
-                return;
-        WRITE_ONCE(p->mm->membarrier_private_expedited, 1);
-        membarrier_arch_register_private_expedited(p);
-}
-
-I need to change the order between WRITE_ONCE() and invoking
-membarrier_arch_register_private_expedited. If I issue the
-WRITE_ONCE after the arch code (which sets the TIF flags),
-then concurrent membarrier priv exped commands will simply
-return an -EPERM error:
-
-static void membarrier_register_private_expedited(void)
-{
-        struct task_struct *p = current;
-
-        if (READ_ONCE(p->mm->membarrier_private_expedited))
-                return;
-        membarrier_arch_register_private_expedited(p);
-        WRITE_ONCE(p->mm->membarrier_private_expedited, 1);
-}
-
-Do you agree that this would fix the race you identified ?
-
-Thanks,
-
-Mathieu
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature"; boundary="+QahgC5+KEYLbs62"
+Return-path: <kernel-hardening-return-9949-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+Content-Disposition: inline
+In-Reply-To: <20170923100029.6nzpui6c3ke76bbs@gmail.com>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Garnier <thgarnie@google.com>, Herbert Xu <herbert@gondor.apana.org.au>, "David S . Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Matthias Kaehlcke <mka@chromium.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, Paolo Bonzini <pbonzini@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Joerg Roedel <joro@8bytes.org>, Tom Lendacky <thomas.lendacky@amd.com>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Brian Gerst <brgerst@gmail.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, "Rafael J . Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Tejun Heo <tj@kernel.org>, Christo
+List-Id: linux-arch.vger.kernel.org
 
 
-> 
-> Regards,
-> Boqun
-> 
-> 
->> However, given that it is a single flag updated with WRITE_ONCE()
->> and read with READ_ONCE(), it might be OK to rely on copy_mm there.
->> If userspace runs registration concurrently with fork, they should
->> not expect the child to be specifically registered or unregistered.
->> 
->> So yes, I think you are right about removing this copy and relying on
->> copy_mm() instead. I also think we can improve membarrier_arch_fork()
->> on powerpc to test the current thread flag rather than using current->mm.
->> 
->> Which leads to those two changes:
->> 
->> static inline void membarrier_fork(struct task_struct *t,
->>                 unsigned long clone_flags)
->> {
->>         /*
->>          * Prior copy_mm() copies the membarrier_private_expedited field
->>          * from current->mm to t->mm.
->>          */
->>         membarrier_arch_fork(t, clone_flags);
->> }
->> 
->> And on PowerPC:
->> 
->> static inline void membarrier_arch_fork(struct task_struct *t,
->>                 unsigned long clone_flags)
->> {
->>         /*
->>          * Coherence of TIF_MEMBARRIER_PRIVATE_EXPEDITED against thread
->>          * fork is protected by siglock. membarrier_arch_fork is called
->>          * with siglock held.
->>          */
->>         if (test_thread_flag(TIF_MEMBARRIER_PRIVATE_EXPEDITED))
->>                 set_ti_thread_flag(task_thread_info(t),
->>                                 TIF_MEMBARRIER_PRIVATE_EXPEDITED);
->> }
->> 
->> Thanks,
->> 
->> Mathieu
->> 
->> 
->> > 
->> > Regards,
->> > Boqun
->> > 
->> >> +	membarrier_arch_fork(t, clone_flags);
->> >> +}
->> >> +static inline void membarrier_execve(struct task_struct *t)
->> >> +{
->> >> +	t->mm->membarrier_private_expedited = 0;
->> >> +	membarrier_arch_execve(t);
->> >> +}
->> >> +#else
->> >> +static inline void membarrier_sched_in(struct task_struct *prev,
->> >> +		struct task_struct *next)
->> >> +{
->> >> +}
->> >> +static inline void membarrier_fork(struct task_struct *t,
->> >> +		unsigned long clone_flags)
->> >> +{
->> >> +}
->> >> +static inline void membarrier_execve(struct task_struct *t)
->> >> +{
->> >> +}
->> >> +#endif
->> >> +
->> > [...]
->> 
->> --
->> Mathieu Desnoyers
->> EfficiOS Inc.
-> > http://www.efficios.com
+--+QahgC5+KEYLbs62
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
--- 
-Mathieu Desnoyers
-EfficiOS Inc.
-http://www.efficios.com
+Hi!
+
+> > We do need to consider how we want modules to fit into whatever model we
+> > choose, though.  They can be adjacent, or we could go with a more
+> > traditional dynamic link model where the modules can be separate, and
+> > chained together with the main kernel via the GOT.
+>=20
+> So I believe we should start with 'adjacent'. The thing is, having module=
+s=20
+> separately randomized mostly helps if any of the secret locations fails a=
+nd
+> we want to prevent hopping from one to the other. But if one the kernel-p=
+rivileged
+> secret location fails then KASLR has already failed to a significant degr=
+ee...
+>=20
+> So I think the large-PIC model for modules does not buy us any real advan=
+tages in=20
+> practice, and the disadvantages of large-PIC are real and most Linux user=
+s have to=20
+> pay that cost unconditionally, as distro kernels have half of their kerne=
+l=20
+> functionality living in modules.
+>=20
+> But I do see fundamental value in being able to hide the kernel somewhere=
+ in a ~48=20
+> bits address space, especially if we also implement Linus's suggestion to=
+ utilize=20
+> the lower bits as well. 0..281474976710656 is a nicely large range and wi=
+ll get=20
+> larger with time.
+>=20
+> But it should all be done smartly and carefully:
+>=20
+> For example, there would be collision with regular user-space mappings, r=
+ight?
+> Can local unprivileged users use mmap(MAP_FIXED) probing to figure out wh=
+ere
+> the kernel lives?
+
+Local unpriviledged users can probably get your secret bits using
+cache probing and jump prediction buffers.
+
+Yes, you don't want to leak the information using mmap(MAP_FIXED), but
+CPU will leak it for you, anyway.
+									Pavel
+
+--=20
+(english) http://www.livejournal.com/~pavelmachek
+(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blo=
+g.html
+
+--+QahgC5+KEYLbs62
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1
+
+iEYEARECAAYFAlnIM5QACgkQMOfwapXb+vJIOwCdHR6N9F/ftl4zHYKwJHnThgDz
+BhEAn2Rqlf4Dn3hmUmy6pDrdlrDma6Ry
+=oY77
+-----END PGP SIGNATURE-----
+
+--+QahgC5+KEYLbs62--
