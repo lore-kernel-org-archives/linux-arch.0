@@ -1,53 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:51764 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:52870 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932395AbdIYN0K (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 25 Sep 2017 09:26:10 -0400
+        id S934947AbdIYPec (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 25 Sep 2017 11:34:32 -0400
+Date: Mon, 25 Sep 2017 16:33:02 +0100
 From: Mark Rutland <mark.rutland@arm.com>
-Subject: [PATCH] percpu: make this_cpu_generic_read() atomic w.r.t. interrupts
-Date: Mon, 25 Sep 2017 14:24:32 +0100
-Message-ID: <1506345872-30559-1-git-send-email-mark.rutland@arm.com>
+Subject: Re: [PATCH] percpu: make this_cpu_generic_read() atomic w.r.t.
+ interrupts
+Message-ID: <20170925153301.GA29775@leverpostej>
+References: <1506345872-30559-1-git-send-email-mark.rutland@arm.com>
+ <20170925151826.GK828415@devbig577.frc2.facebook.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20170925151826.GK828415@devbig577.frc2.facebook.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Mark Rutland <mark.rutland@arm.com>, Arnd Bergmann <arnd@arndb.de>, Christoph Lameter <cl@linux.com>, Peter Zijlstra <peterz@infradead.org>, Pranith Kumar <bobby.prani@gmail.com>, Tejun Heo <tj@kernel.org>, linux-arch@vger.kernel.org
-Message-ID: <20170925132432.LOSsz0f7M7TcxYy_3ArvFjbQ3TU7DR8pZEKp0Gc8YPE@z>
+To: Tejun Heo <tj@kernel.org>
+Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Christoph Lameter <cl@linux.com>, Peter Zijlstra <peterz@infradead.org>, Pranith Kumar <bobby.prani@gmail.com>, linux-arch@vger.kernel.org
+Message-ID: <20170925153302.WKabJwNZ5kfm2hUwgpkhGQfUjKzrINhf4D_OFNgno-c@z>
 
-As raw_cpu_generic_read() is a plain read from a raw_cpu_ptr() address,
-it's possible (albeit unlikely) that the compiler will split the access
-across multiple instructions.
+On Mon, Sep 25, 2017 at 08:18:27AM -0700, Tejun Heo wrote:
+> Hello, Mark.
+> 
+> On Mon, Sep 25, 2017 at 02:24:32PM +0100, Mark Rutland wrote:
+> > As raw_cpu_generic_read() is a plain read from a raw_cpu_ptr() address,
+> > it's possible (albeit unlikely) that the compiler will split the access
+> > across multiple instructions.
+> > 
+> > In this_cpu_generic_read() we disable preemption but not interrupts
+> > before calling raw_cpu_generic_read(). Thus, an interrupt could be taken
+> > in the middle of the split load instructions. If a this_cpu_write() or
+> > RMW this_cpu_*() op is made to the same variable in the interrupt
+> > handling path, this_cpu_read() will return a torn value.
+> > 
+> > Avoid this by using READ_ONCE() to inhibit tearing.
+> 
+> That's why there are irq-safe variants of the operations. 
 
-In this_cpu_generic_read() we disable preemption but not interrupts
-before calling raw_cpu_generic_read(). Thus, an interrupt could be taken
-in the middle of the split load instructions. If a this_cpu_write() or
-RMW this_cpu_*() op is made to the same variable in the interrupt
-handling path, this_cpu_read() will return a torn value.
+Unfortunately, the generic this_cpu_read(), which is intended to be
+irq-safe, is not:
 
-Avoid this by using READ_ONCE() to inhibit tearing.
+#define this_cpu_generic_read(pcp)                                      \
+({                                                                      \
+        typeof(pcp) __ret;                                              \
+        preempt_disable_notrace();                                      \
+        __ret = raw_cpu_generic_read(pcp);                              \
+        preempt_enable_notrace();                                       \
+        __ret;                                                          \
+})
 
-Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Christoph Lameter <cl@linux.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Pranith Kumar <bobby.prani@gmail.com>
-Cc: Tejun Heo <tj@kernel.org>
-Cc: linux-arch@vger.kernel.org
----
- include/asm-generic/percpu.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+I guess it'd be preferable to manipulate that in-place.
 
-diff --git a/include/asm-generic/percpu.h b/include/asm-generic/percpu.h
-index 0504ef8..79a8a58 100644
---- a/include/asm-generic/percpu.h
-+++ b/include/asm-generic/percpu.h
-@@ -67,7 +67,7 @@
- 
- #define raw_cpu_generic_read(pcp)					\
- ({									\
--	*raw_cpu_ptr(&(pcp));						\
-+	READ_ONCE(*raw_cpu_ptr(&(pcp)));				\
- })
- 
- #define raw_cpu_generic_to_op(pcp, val, op)				\
--- 
-1.9.1
+> Adding READ_ONCE() doesn't generically guarantee that the reads won't
+> be split - e.g. there are arch which simply can't load a 64bit value
+> with a single instruction.
+
+True.
+
+In which case, it really sounds like this_cpu_generic_read() needs to
+disable interrupts too...
+
+Thanks,
+Mark.
