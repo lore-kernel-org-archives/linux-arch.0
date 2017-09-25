@@ -1,50 +1,66 @@
-From: Tejun Heo <tj@kernel.org>
-Subject: Re: [PATCH] percpu: make this_cpu_generic_read() atomic w.r.t.
- interrupts
-Date: Mon, 25 Sep 2017 08:44:04 -0700
-Message-ID: <20170925154404.GA560070@devbig577.frc2.facebook.com>
-References: <1506345872-30559-1-git-send-email-mark.rutland@arm.com>
- <20170925151826.GK828415@devbig577.frc2.facebook.com>
- <20170925153301.GA29775@leverpostej>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Khalid Aziz <khalid.aziz@oracle.com>
+Subject: [PATCH v8 1/9] signals, sparc: Add signal codes for ADI violations
+Date: Mon, 25 Sep 2017 10:48:52 -0600
+Message-ID: <14699ded812ff03644cb0446be7b4d18893550be.1506089472.git.khalid.aziz@oracle.com>
+References: <cover.1506089472.git.khalid.aziz@oracle.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20170925153301.GA29775@leverpostej>
+In-Reply-To: <cover.1506089472.git.khalid.aziz@oracle.com>
+In-Reply-To: <cover.1506089472.git.khalid.aziz@oracle.com>
+References: <cover.1506089472.git.khalid.aziz@oracle.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Mark Rutland <mark.rutland@arm.com>
-Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Christoph Lameter <cl@linux.com>, Peter Zijlstra <peterz@infradead.org>, Pranith Kumar <bobby.prani@gmail.com>, linux-arch@vger.kernel.org
+To: arnd@arndb.de, hpa@zytor.com, davem@davemloft.net, dave.hansen@linux.intel.com
+Cc: Khalid Aziz <khalid.aziz@oracle.com>, 0x7f454c46@gmail.com, tglx@linutronix.de, mingo@redhat.com, x86@kernel.org, jroedel@suse.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, sparclinux@vger.kernel.org, Khalid Aziz <khalid@gonehiking.org>
 List-Id: linux-arch.vger.kernel.org
 
-Hello,
+SPARC M7 processor introduces a new feature - Application Data
+Integrity (ADI). ADI allows MMU to  catch rogue accesses to memory.
+When a rogue access occurs, MMU blocks the access and raises an
+exception. In response to the exception, kernel sends the offending
+task a SIGSEGV with si_code that indicates the nature of exception.
+This patch adds three new signal codes specific to ADI feature:
 
-On Mon, Sep 25, 2017 at 04:33:02PM +0100, Mark Rutland wrote:
-> Unfortunately, the generic this_cpu_read(), which is intended to be
-> irq-safe, is not:
-> 
-> #define this_cpu_generic_read(pcp)                                      \
-> ({                                                                      \
->         typeof(pcp) __ret;                                              \
->         preempt_disable_notrace();                                      \
->         __ret = raw_cpu_generic_read(pcp);                              \
->         preempt_enable_notrace();                                       \
->         __ret;                                                          \
-> })
+1. ADI is not enabled for the address and task attempted to access
+   memory using ADI
+2. Task attempted to access memory using wrong ADI tag and caused
+   a deferred exception.
+3. Task attempted to access memory using wrong ADI tag and caused
+   a precise exception.
 
-I see.  Yeah, that looks like the bug there.
+Signed-off-by: Khalid Aziz <khalid.aziz@oracle.com>
+Cc: Khalid Aziz <khalid@gonehiking.org>
+---
+ arch/x86/kernel/signal_compat.c    | 2 +-
+ include/uapi/asm-generic/siginfo.h | 5 ++++-
+ 2 files changed, 5 insertions(+), 2 deletions(-)
 
-> I guess it'd be preferable to manipulate that in-place.
-> 
-> > Adding READ_ONCE() doesn't generically guarantee that the reads won't
-> > be split - e.g. there are arch which simply can't load a 64bit value
-> > with a single instruction.
-> 
-> In which case, it really sounds like this_cpu_generic_read() needs to
-> disable interrupts too...
-
-Can you please spin up a patch for this?
-
-Thanks.
-
+diff --git a/arch/x86/kernel/signal_compat.c b/arch/x86/kernel/signal_compat.c
+index 71beb28600d4..e6e0b50230c3 100644
+--- a/arch/x86/kernel/signal_compat.c
++++ b/arch/x86/kernel/signal_compat.c
+@@ -26,7 +26,7 @@ static inline void signal_compat_build_tests(void)
+ 	 */
+ 	BUILD_BUG_ON(NSIGILL  != 8);
+ 	BUILD_BUG_ON(NSIGFPE  != 8);
+-	BUILD_BUG_ON(NSIGSEGV != 4);
++	BUILD_BUG_ON(NSIGSEGV != 7);
+ 	BUILD_BUG_ON(NSIGBUS  != 5);
+ 	BUILD_BUG_ON(NSIGTRAP != 4);
+ 	BUILD_BUG_ON(NSIGCHLD != 6);
+diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
+index 9c4eca6b374a..72b435beb930 100644
+--- a/include/uapi/asm-generic/siginfo.h
++++ b/include/uapi/asm-generic/siginfo.h
+@@ -224,7 +224,10 @@ typedef struct siginfo {
+ #define SEGV_ACCERR	(__SI_FAULT|2)	/* invalid permissions for mapped object */
+ #define SEGV_BNDERR	(__SI_FAULT|3)  /* failed address bound checks */
+ #define SEGV_PKUERR	(__SI_FAULT|4)  /* failed protection key checks */
+-#define NSIGSEGV	4
++#define SEGV_ACCADI	(__SI_FAULT|5)	/* ADI not enabled for mapped object */
++#define SEGV_ADIDERR	(__SI_FAULT|6)	/* Disrupting MCD error */
++#define SEGV_ADIPERR	(__SI_FAULT|7)	/* Precise MCD exception */
++#define NSIGSEGV	7
+ 
+ /*
+  * SIGBUS si_codes
 -- 
-tejun
+2.11.0
