@@ -1,77 +1,200 @@
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCH] percpu: make this_cpu_generic_read() atomic w.r.t.
- interrupts
-Date: Tue, 26 Sep 2017 18:28:31 +0100
-Message-ID: <20170926172830.GF15480@leverpostej>
-References: <1506345872-30559-1-git-send-email-mark.rutland@arm.com>
- <20170925151826.GK828415@devbig577.frc2.facebook.com>
- <20170925153301.GA29775@leverpostej>
- <20170925154404.GA560070@devbig577.frc2.facebook.com>
- <alpine.DEB.2.20.1709260143330.21864@nuc-kabylake>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Subject: [PATCH for 4.14 2/3] membarrier: selftest: Test private expedited cmd
+Date: Tue, 26 Sep 2017 13:51:50 -0400
+Message-ID: <20170926175151.14264-2-mathieu.desnoyers@efficios.com>
+References: <20170926175151.14264-1-mathieu.desnoyers@efficios.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:36608 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S968060AbdIZR37 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 26 Sep 2017 13:29:59 -0400
-Content-Disposition: inline
-In-Reply-To: <alpine.DEB.2.20.1709260143330.21864@nuc-kabylake>
+Received: from mail.efficios.com ([167.114.142.141]:46471 "EHLO
+        mail.efficios.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S964956AbdIZRwU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 26 Sep 2017 13:52:20 -0400
+In-Reply-To: <20170926175151.14264-1-mathieu.desnoyers@efficios.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christopher Lameter <cl@linux.com>
-Cc: Tejun Heo <tj@kernel.org>, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Pranith Kumar <bobby.prani@gmail.com>, linux-arch@vger.kernel.org
+To: "Paul E . McKenney" <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>
+Cc: linux-kernel@vger.kernel.org, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Boqun Feng <boqun.feng@gmail.com>, Andrew Hunter <ahh@google.com>, Maged Michael <maged.michael@gmail.com>, gromer@google.com, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Watson <davejwatson@fb.com>, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, Andy Lutomirski <luto@kernel.org>, linux-arch@vger.kernel.org
 
-Hi,
+Test the new MEMBARRIER_CMD_PRIVATE_EXPEDITED and
+MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED commands.
 
-On Tue, Sep 26, 2017 at 01:47:27AM -0500, Christopher Lameter wrote:
-> On Mon, 25 Sep 2017, Tejun Heo wrote:
-> > On Mon, Sep 25, 2017 at 04:33:02PM +0100, Mark Rutland wrote:
-> > > Unfortunately, the generic this_cpu_read(), which is intended to be
-> > > irq-safe, is not:
-> > >
-> > > #define this_cpu_generic_read(pcp)                                      \
-> > > ({                                                                      \
-> > >         typeof(pcp) __ret;                                              \
-> > >         preempt_disable_notrace();                                      \
-> > >         __ret = raw_cpu_generic_read(pcp);                              \
-> > >         preempt_enable_notrace();                                       \
-> > >         __ret;                                                          \
-> > > })
-> >
-> > I see.  Yeah, that looks like the bug there.
-> 
-> This is a single fetch operation of a value that needs to be atomic. It
-> really does not matter if an interrupt happens before or after that load
-> because it could also occur before or after the preempt_enable/disable
-> without the code being able to distinguish that case.
+Add checks expecting specific error values on system calls expected to
+fail.
 
-Unfortunately, this instance is not necessarily a single fetch operation,
-given that the access is a plain C load from a pointer:
+Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+CC: Peter Zijlstra <peterz@infradead.org>
+CC: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+CC: Boqun Feng <boqun.feng@gmail.com>
+CC: Andrew Hunter <ahh@google.com>
+CC: Maged Michael <maged.michael@gmail.com>
+CC: gromer@google.com
+CC: Avi Kivity <avi@scylladb.com>
+CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+CC: Paul Mackerras <paulus@samba.org>
+CC: Michael Ellerman <mpe@ellerman.id.au>
+CC: Dave Watson <davejwatson@fb.com>
+CC: Alan Stern <stern@rowland.harvard.edu>
+CC: Will Deacon <will.deacon@arm.com>
+CC: Andy Lutomirski <luto@kernel.org>
+CC: linux-arch@vger.kernel.org
+---
+ .../testing/selftests/membarrier/membarrier_test.c | 109 ++++++++++++++++++---
+ 1 file changed, 94 insertions(+), 15 deletions(-)
 
-#define raw_cpu_generic_read(pcp)                                       \
-({                                                                      \
-        *raw_cpu_ptr(&(pcp));                                           \
-})
-
-... and thus the compiler is at liberty to tear the access across
-multiple instructions. It probably won't, and it would almost certainly
-be stupid to do so, but for better or worse we have no guarantee.
-
-> The fetch of a scalar value from memory is an atomic operation and that is
-> required from all arches.
-
-Sure, where we ensure said fetch is a single access (e.g. with
-READ_ONCE()). Otherwise the compiler is at liberty to tear the access
-(e.g. if it fuses it with nearby accesses into a memcpy).
-
-> There is an exception for double word fetches.  Maybe we would need to
-> special code that case but so far this does not seem to have been an
-> issue.
-
-I've sent a v2 which fixes both cases, only disabling interrupts for
-those doubleword fetches, and otherwise using READ_ONCE() to prevent
-tearing.
-
-Thanks,
-Mark.
+diff --git a/tools/testing/selftests/membarrier/membarrier_test.c b/tools/testing/selftests/membarrier/membarrier_test.c
+index 21399fcf1a59..f85657374b59 100644
+--- a/tools/testing/selftests/membarrier/membarrier_test.c
++++ b/tools/testing/selftests/membarrier/membarrier_test.c
+@@ -15,49 +15,119 @@ static int sys_membarrier(int cmd, int flags)
+ static int test_membarrier_cmd_fail(void)
+ {
+ 	int cmd = -1, flags = 0;
++	const char *test_name = "sys membarrier invalid command";
+ 
+ 	if (sys_membarrier(cmd, flags) != -1) {
+ 		ksft_exit_fail_msg(
+-			"sys membarrier invalid command test: command = %d, flags = %d. Should fail, but passed\n",
+-			cmd, flags);
++			"%s test: command = %d, flags = %d. Should fail, but passed\n",
++			test_name, cmd, flags);
++	}
++	if (errno != EINVAL) {
++		ksft_exit_fail_msg(
++			"%s test: flags = %d. Should return (%d: \"%s\"), but returned (%d: \"%s\").\n",
++			test_name, flags, EINVAL, strerror(EINVAL),
++			errno, strerror(errno));
+ 	}
+ 
+ 	ksft_test_result_pass(
+-		"sys membarrier invalid command test: command = %d, flags = %d. Failed as expected\n",
+-		cmd, flags);
++		"%s test: command = %d, flags = %d, errno = %d. Failed as expected\n",
++		test_name, cmd, flags, errno);
+ 	return 0;
+ }
+ 
+ static int test_membarrier_flags_fail(void)
+ {
+ 	int cmd = MEMBARRIER_CMD_QUERY, flags = 1;
++	const char *test_name = "sys membarrier MEMBARRIER_CMD_QUERY invalid flags";
+ 
+ 	if (sys_membarrier(cmd, flags) != -1) {
+ 		ksft_exit_fail_msg(
+-			"sys membarrier MEMBARRIER_CMD_QUERY invalid flags test: flags = %d. Should fail, but passed\n",
+-			flags);
++			"%s test: flags = %d. Should fail, but passed\n",
++			test_name, flags);
++	}
++	if (errno != EINVAL) {
++		ksft_exit_fail_msg(
++			"%s test: flags = %d. Should return (%d: \"%s\"), but returned (%d: \"%s\").\n",
++			test_name, flags, EINVAL, strerror(EINVAL),
++			errno, strerror(errno));
+ 	}
+ 
+ 	ksft_test_result_pass(
+-		"sys membarrier MEMBARRIER_CMD_QUERY invalid flags test: flags = %d. Failed as expected\n",
+-		flags);
++		"%s test: flags = %d, errno = %d. Failed as expected\n",
++		test_name, flags, errno);
+ 	return 0;
+ }
+ 
+-static int test_membarrier_success(void)
++static int test_membarrier_shared_success(void)
+ {
+ 	int cmd = MEMBARRIER_CMD_SHARED, flags = 0;
+-	const char *test_name = "sys membarrier MEMBARRIER_CMD_SHARED\n";
++	const char *test_name = "sys membarrier MEMBARRIER_CMD_SHARED";
++
++	if (sys_membarrier(cmd, flags) != 0) {
++		ksft_exit_fail_msg(
++			"%s test: flags = %d, errno = %d\n",
++			test_name, flags, errno);
++	}
++
++	ksft_test_result_pass(
++		"%s test: flags = %d\n", test_name, flags);
++	return 0;
++}
++
++static int test_membarrier_private_expedited_fail(void)
++{
++	int cmd = MEMBARRIER_CMD_PRIVATE_EXPEDITED, flags = 0;
++	const char *test_name = "sys membarrier MEMBARRIER_CMD_PRIVATE_EXPEDITED not registered failure";
++
++	if (sys_membarrier(cmd, flags) != -1) {
++		ksft_exit_fail_msg(
++			"%s test: flags = %d. Should fail, but passed\n",
++			test_name, flags);
++	}
++	if (errno != EPERM) {
++		ksft_exit_fail_msg(
++			"%s test: flags = %d. Should return (%d: \"%s\"), but returned (%d: \"%s\").\n",
++			test_name, flags, EPERM, strerror(EPERM),
++			errno, strerror(errno));
++	}
++
++	ksft_test_result_pass(
++		"%s test: flags = %d, errno = %d\n",
++		test_name, flags, errno);
++	return 0;
++}
++
++static int test_membarrier_register_private_expedited_success(void)
++{
++	int cmd = MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED, flags = 0;
++	const char *test_name = "sys membarrier MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED";
+ 
+ 	if (sys_membarrier(cmd, flags) != 0) {
+ 		ksft_exit_fail_msg(
+-			"sys membarrier MEMBARRIER_CMD_SHARED test: flags = %d\n",
+-			flags);
++			"%s test: flags = %d, errno = %d\n",
++			test_name, flags, errno);
+ 	}
+ 
+ 	ksft_test_result_pass(
+-		"sys membarrier MEMBARRIER_CMD_SHARED test: flags = %d\n",
+-		flags);
++		"%s test: flags = %d\n",
++		test_name, flags);
++	return 0;
++}
++
++static int test_membarrier_private_expedited_success(void)
++{
++	int cmd = MEMBARRIER_CMD_PRIVATE_EXPEDITED, flags = 0;
++	const char *test_name = "sys membarrier MEMBARRIER_CMD_PRIVATE_EXPEDITED";
++
++	if (sys_membarrier(cmd, flags) != 0) {
++		ksft_exit_fail_msg(
++			"%s test: flags = %d, errno = %d\n",
++			test_name, flags, errno);
++	}
++
++	ksft_test_result_pass(
++		"%s test: flags = %d\n",
++		test_name, flags);
+ 	return 0;
+ }
+ 
+@@ -71,7 +141,16 @@ static int test_membarrier(void)
+ 	status = test_membarrier_flags_fail();
+ 	if (status)
+ 		return status;
+-	status = test_membarrier_success();
++	status = test_membarrier_shared_success();
++	if (status)
++		return status;
++	status = test_membarrier_private_expedited_fail();
++	if (status)
++		return status;
++	status = test_membarrier_register_private_expedited_success();
++	if (status)
++		return status;
++	status = test_membarrier_private_expedited_success();
+ 	if (status)
+ 		return status;
+ 	return 0;
+-- 
+2.11.0
