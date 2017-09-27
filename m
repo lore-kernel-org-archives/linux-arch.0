@@ -1,85 +1,60 @@
-From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: Re: [PATCH for 4.14 2/3] membarrier: selftest: Test private
- expedited cmd
-Date: Tue, 26 Sep 2017 23:15:20 +0200
-Message-ID: <20170926211520.GA28529@kroah.com>
-References: <20170926175151.14264-1-mathieu.desnoyers@efficios.com>
- <20170926175151.14264-2-mathieu.desnoyers@efficios.com>
- <CAKocOOPtzm+P-hbUAGDwpPMbPdrbQSpkJH-ideDvsD4-uUZepw@mail.gmail.com>
- <1861482846.19234.1506455717905.JavaMail.zimbra@efficios.com>
- <CAKocOOMQ6Nk=Oytay2T12L0jT_3vnPgX5CEt=9+_kmTnFTfigg@mail.gmail.com>
- <998801080.19251.1506456925340.JavaMail.zimbra@efficios.com>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH] percpu: make this_cpu_generic_read() atomic w.r.t.
+ interrupts
+Date: Wed, 27 Sep 2017 11:01:13 +0200 (CEST)
+Message-ID: <alpine.DEB.2.20.1709271058030.4773@nanos>
+References: <1506345872-30559-1-git-send-email-mark.rutland@arm.com> <20170925151826.GK828415@devbig577.frc2.facebook.com> <20170925153301.GA29775@leverpostej> <20170925154404.GA560070@devbig577.frc2.facebook.com> <alpine.DEB.2.20.1709260143330.21864@nuc-kabylake>
+ <alpine.DEB.2.20.1709260941040.1941@nanos> <alpine.DEB.2.20.1709261134280.25986@nuc-kabylake>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=US-ASCII
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <998801080.19251.1506456925340.JavaMail.zimbra@efficios.com>
+In-Reply-To: <alpine.DEB.2.20.1709261134280.25986@nuc-kabylake>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Cc: Shuah Khan <shuahkhan@gmail.com>, Alice Ferrazzi <alice.ferrazzi@gmail.com>, Paul Elder <paul.elder@pitt.edu>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kselftest <linux-kselftest@vger.kernel.org>, shuah <shuah@kernel.org>, Peter Zijlstra <peterz@infradead.org>, linux-kernel <linux-kernel@vger.kernel.org>, Boqun Feng <boqun.feng@gmail.com>, Andrew Hunter <ahh@google.com>, maged michael <maged.michael@gmail.com>, gromer <gromer@google.com>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Watson <davejwatson@fb.com>, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, Andy Lutomirski <luto@kernel.org>
+To: Christopher Lameter <cl@linux.com>
+Cc: Tejun Heo <tj@kernel.org>, Mark Rutland <mark.rutland@arm.com>, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Pranith Kumar <bobby.prani@gmail.com>, linux-arch@vger.kernel.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Sep 26, 2017 at 08:15:25PM +0000, Mathieu Desnoyers wrote:
-> 
-> 
-> ----- On Sep 26, 2017, at 4:08 PM, Shuah Khan shuahkhan@gmail.com wrote:
-> 
-> > On Tue, Sep 26, 2017 at 1:55 PM, Mathieu Desnoyers
-> > <mathieu.desnoyers@efficios.com> wrote:
-> >> ----- On Sep 26, 2017, at 3:41 PM, Shuah Khan shuahkhan@gmail.com wrote:
-> >>
-> >>> Hi Mathew,
-> >>>
-> >>> On Tue, Sep 26, 2017 at 11:51 AM, Mathieu Desnoyers
-> >>> <mathieu.desnoyers@efficios.com> wrote:
-> >>>> Test the new MEMBARRIER_CMD_PRIVATE_EXPEDITED and
-> >>>> MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED commands.
-> >>>>
-> >>>> Add checks expecting specific error values on system calls expected to
-> >>>> fail.
-> >>>>
-> >>>> Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-> >>>> CC: Peter Zijlstra <peterz@infradead.org>
-> >>>> CC: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-> >>>> CC: Boqun Feng <boqun.feng@gmail.com>
-> >>>> CC: Andrew Hunter <ahh@google.com>
-> >>>> CC: Maged Michael <maged.michael@gmail.com>
-> >>>> CC: gromer@google.com
-> >>>> CC: Avi Kivity <avi@scylladb.com>
-> >>>> CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-> >>>> CC: Paul Mackerras <paulus@samba.org>
-> >>>> CC: Michael Ellerman <mpe@ellerman.id.au>
-> >>>> CC: Dave Watson <davejwatson@fb.com>
-> >>>> CC: Alan Stern <stern@rowland.harvard.edu>
-> >>>> CC: Will Deacon <will.deacon@arm.com>
-> >>>> CC: Andy Lutomirski <luto@kernel.org>
-> >>>> CC: linux-arch@vger.kernel.org
-> >>>> ---
-> >>>>  .../testing/selftests/membarrier/membarrier_test.c | 109
-> >>>
-> >>> Did you run get_maintainers script on this patch? I am curious why
-> >>> get_maintainers didn't include linux-kselftest@vger.kernel.org and
-> >>> shuah@kernel.org
-> >>
-> >> My mistake. I'll add this script to my checklist before I send out
-> >> patches.
-> >>
-> >> If OK with you, I can just add the ML in CC here.
-> >>
-> > 
-> > Please add everybody get_maintainers suggest for this patch as well.
-> > If this patch is going through linux-kselftest, you will have to resend the
-> > patch to me at some point, so I can pull it in.
-> > 
-> > I am guessing this has dependency on the other patches in the series
-> > and will go through the primary tree. In that case CC is just fine and I will
-> > review it and Ack it.
-> 
-> Indeed, it has a dependency on another patch part of this
-> series, which is aimed to go through Paul E. McKenney's tree.
-> 
-> Adding Greg, Alice, and Paul Elder in CC as suggested by get_maintainers.
-> 
-> Do you need me to re-send the series, or is this thread ok ?
+On Tue, 26 Sep 2017, Christopher Lameter wrote:
 
-Acked-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+> On Tue, 26 Sep 2017, Thomas Gleixner wrote:
+> 
+> > > because it could also occur before or after the preempt_enable/disable
+> > > without the code being able to distinguish that case.
+> > >
+> > > The fetch of a scalar value from memory is an atomic operation and that is
+> > > required from all arches. There is an exception for double word fetches.
+> >
+> > this_cpu_read_8() is a double word fetch on many 32bit architectures.
+> 
+> Ok then this_cpu_read_8 for those platforms need to disable interrupts.
+> But that is not true for all arches.
+> 
+> > > Maybe we would need to special code that case but so far this does not
+> > > seem to have been an issue.
+> >
+> > Just because nobody ran into problem with that it is a non issue? That's
+> > just hillarious.
+> 
+> Its is even more (see your above statement) stupid to figure out that this
+> is actually unnecessary in the generic case and then continue the
+> argument.
+> 
+> > It's obviously not correct and needs to be fixed _before_ someone has to go
+> > through the pain of debugging such a problem.
+> 
+> As you pointed out the current approach *is* correct. Fetching a scalar
+> word is an atomic operation and must be one. If an arch cannot guarantee
+> that then arch specific measures need to be implemented to ensure that
+> this guarantee is kept. Could be done with interrupts disables, cmpxchg or
+> the reservation scheme on RISC processors. It definitely does not
+> belong into generic code.
+
+Wrong. The default for 32bit architectures is that they CANNOT do atomic
+fetch/write of 8 bytes. So instead of forcing that to be implemented in
+every affected architecture this wants to be addressed in generic code and
+those few 32bit architectures which can do atomic double word fetch/write
+implement the magic functions to do so.
+
+Thanks,
+
+	tglx
