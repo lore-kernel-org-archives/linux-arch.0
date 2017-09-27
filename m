@@ -1,106 +1,137 @@
-From: Brijesh Singh <brijesh.singh@amd.com>
-Subject: [Part1 PATCH v5 15/17] percpu: Introduce DEFINE_PER_CPU_DECRYPTED
-Date: Wed, 27 Sep 2017 10:13:27 -0500
-Message-ID: <20170927151329.70011-16-brijesh.singh@amd.com>
-References: <20170927151329.70011-1-brijesh.singh@amd.com>
-Mime-Version: 1.0
-Content-Type: text/plain
+From: Will Deacon <will.deacon@arm.com>
+Subject: [RFC PATCH 0/2] Missing READ_ONCE in core and arch-specific pgtable code leading to crashes
+Date: Wed, 27 Sep 2017 16:49:27 +0100
+Message-ID: <1506527369-19535-1-git-send-email-will.deacon@arm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20170927151329.70011-1-brijesh.singh@amd.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: kvm@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org
-Cc: Brijesh Singh <brijesh.singh@amd.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Borislav Petkov <bp@suse.de>, Arnd Bergmann <arnd@arndb.de>, Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@linux.com>, linux-arch@vger.kernel.org, Tom Lendacky <thomas.lendacky@amd.com>
+To: peterz@infradead.org, paulmck@linux.vnet.ibm.com, kirill.shutemov@linux.intel.com
+Cc: linux-kernel@vger.kernel.org, ynorov@caviumnetworks.com, rruigrok@codeaurora.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, catalin.marinas@arm.com, Will Deacon <will.deacon@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-KVM guest defines three per-CPU variables (steal-time, apf_reason, and
-avic_eio) which are shared between a guest and a hypervisor. When SEV
-is active, memory is encrypted with a guest-specific key, and if the
-guest OS wants to share the memory region with the hypervisor then it
-must clear the C-bit (i.e set decrypted) before sharing it.
+Hi,
 
-DEFINE_PER_CPU_DECRYPTED can be used to define the per-CPU variables
-which will be shared between a guest and a hypervisor.
+We recently had a crash report[1] on arm64 that involved a bad dereference
+in the page_vma_mapped code during ext4 writeback with THP active. I can
+reproduce this on -rc2:
 
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Borislav Petkov <bp@suse.de>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Tejun Heo <tj@kernel.org>
-Cc: Christoph Lameter <cl@linux.com>
-Cc: linux-arch@vger.kernel.org
-Cc: x86@kernel.org
-Cc: linux-kernel@vger.kernel.org
-Cc: Tom Lendacky <thomas.lendacky@amd.com>
-Signed-off-by: Brijesh Singh <brijesh.singh@amd.com>
-Acked-by: Tejun Heo <tj@kernel.org>
----
- include/asm-generic/vmlinux.lds.h | 19 +++++++++++++++++++
- include/linux/percpu-defs.h       | 15 +++++++++++++++
- 2 files changed, 34 insertions(+)
+[  254.032812] PC is at check_pte+0x20/0x170
+[  254.032948] LR is at page_vma_mapped_walk+0x2e0/0x540
+[...]
+[  254.036114] Process doio (pid: 2463, stack limit = 0xffff00000f2e8000)
+[  254.036361] Call trace:
+[  254.038977] [<ffff000008233328>] check_pte+0x20/0x170
+[  254.039137] [<ffff000008233758>] page_vma_mapped_walk+0x2e0/0x540
+[  254.039332] [<ffff000008234adc>] page_mkclean_one+0xac/0x278
+[  254.039489] [<ffff000008234d98>] rmap_walk_file+0xf0/0x238
+[  254.039642] [<ffff000008236e74>] rmap_walk+0x64/0xa0
+[  254.039784] [<ffff0000082370c8>] page_mkclean+0x90/0xa8
+[  254.040029] [<ffff0000081f3c64>] clear_page_dirty_for_io+0x84/0x2a8
+[  254.040311] [<ffff00000832f984>] mpage_submit_page+0x34/0x98
+[  254.040518] [<ffff00000832fb4c>] mpage_process_page_bufs+0x164/0x170
+[  254.040743] [<ffff00000832fc8c>] mpage_prepare_extent_to_map+0x134/0x2b8
+[  254.040969] [<ffff00000833530c>] ext4_writepages+0x484/0xe30
+[  254.041175] [<ffff0000081f6ab4>] do_writepages+0x44/0xe8
+[  254.041372] [<ffff0000081e5bd4>] __filemap_fdatawrite_range+0xbc/0x110
+[  254.041568] [<ffff0000081e5e68>] file_write_and_wait_range+0x48/0xd8
+[  254.041739] [<ffff000008324310>] ext4_sync_file+0x80/0x4b8
+[  254.041907] [<ffff0000082bd434>] vfs_fsync_range+0x64/0xc0
+[  254.042106] [<ffff0000082332b4>] SyS_msync+0x194/0x1e8
 
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 8acfc1e099e1..2dd54c3e1a8a 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -778,6 +778,24 @@
- #endif
- 
- /*
-+ * Memory encryption operates on a page basis. Since we need to clear
-+ * the memory encryption mask for this section, it needs to be aligned
-+ * on a page boundary and be a page-size multiple in length.
-+ *
-+ * Note: We use a separate section so that only this section gets
-+ * decrypted to avoid exposing more than we wish.
-+ */
-+#ifdef CONFIG_AMD_MEM_ENCRYPT
-+#define PERCPU_DECRYPTED_SECTION					\
-+	. = ALIGN(PAGE_SIZE);						\
-+	*(.data..percpu..decrypted)					\
-+	. = ALIGN(PAGE_SIZE);
-+#else
-+#define PERCPU_DECRYPTED_SECTION
-+#endif
-+
-+
-+/*
-  * Default discarded sections.
-  *
-  * Some archs want to discard exit text/data at runtime rather than
-@@ -815,6 +833,7 @@
- 	. = ALIGN(cacheline);						\
- 	*(.data..percpu)						\
- 	*(.data..percpu..shared_aligned)				\
-+	PERCPU_DECRYPTED_SECTION					\
- 	VMLINUX_SYMBOL(__per_cpu_end) = .;
- 
- /**
-diff --git a/include/linux/percpu-defs.h b/include/linux/percpu-defs.h
-index 8f16299ca068..2d2096ba1cfe 100644
---- a/include/linux/percpu-defs.h
-+++ b/include/linux/percpu-defs.h
-@@ -173,6 +173,21 @@
- 	DEFINE_PER_CPU_SECTION(type, name, "..read_mostly")
- 
- /*
-+ * Declaration/definition used for per-CPU variables that should be accessed
-+ * as decrypted when memory encryption is enabled in the guest.
-+ */
-+#if defined(CONFIG_VIRTUALIZATION) && defined(CONFIG_AMD_MEM_ENCRYPT)
-+
-+#define DECLARE_PER_CPU_DECRYPTED(type, name)				\
-+	DECLARE_PER_CPU_SECTION(type, name, "..decrypted")
-+
-+#define DEFINE_PER_CPU_DECRYPTED(type, name)				\
-+	DEFINE_PER_CPU_SECTION(type, name, "..decrypted")
-+#else
-+#define DEFINE_PER_CPU_DECRYPTED(type, name)	DEFINE_PER_CPU(type, name)
-+#endif
-+
-+/*
-  * Intermodule exports for per-CPU variables.  sparse forgets about
-  * address space across EXPORT_SYMBOL(), change EXPORT_SYMBOL() to
-  * noop if __CHECKER__.
+After digging into the issue, I found that we appear to be racing with
+a concurrent pmd update in page_vma_mapped_walk, assumedly due a THP
+splitting operation. Looking at the code there:
+
+	pvmw->pmd = pmd_offset(pud, pvmw->address);
+	if (pmd_trans_huge(*pvmw->pmd) || is_pmd_migration_entry(*pvmw->pmd)) {
+		[...]
+	} else {
+		if (!check_pmd(pvmw))
+			return false;
+	}
+	if (!map_pte(pvmw))
+		goto next_pte;
+
+what happens in the crashing scenario is that we see all zeroes for the
+PMD in pmd_trans_huge(*pvmw->pmd), and so go to the 'else' case (migration
+isn't enabled, so the test is removed at compile-time). check_pmd then does:
+
+	pmde = READ_ONCE(*pvmw->pmd);
+	return pmd_present(pmde) && !pmd_trans_huge(pmde);
+
+and reads a valid table entry for the PMD because the splitting has completed
+(i.e. the first dereference reads from the pmdp_invalidate in the splitting
+code, whereas the second dereferenced reads from the following pmd_populate).
+It returns true because we should descend to the PTE level in map_pte. map_pte
+does:
+
+	pvmw->pte = pte_offset_map(pvmw->pmd, pvmw->address);
+
+which on arm64 (and this appears to be the same on x86) ends up doing:
+
+	(pmd_page_paddr((*(pvmw->pmd))) + pte_index(pvmw->address) * sizeof(pte_t))
+
+as part of its calculation. However, this is horribly broken because GCC
+inlines everything and reuses the register it loaded for the initial
+pmd_trans_huge check (when we loaded the value of zero) here, so we end up
+calculating a junk pointer and crashing when we dereference it. Disassembly
+at the end of the mail[2] for those who are curious.
+
+The moral of the story is that read-after-read (same address) ordering *only*
+applies if READ_ONCE is used consistently. This means we need to fix page
+table dereferences in the core code as well as the arch code to avoid this
+problem. The two RFC patches in this series fix arm64 (which is a bigger fix
+that necessary since I clean things up too) and page_vma_mapped_walk.
+
+Comments welcome.
+
+Will
+
+[1] http://lists.infradead.org/pipermail/linux-arm-kernel/2017-September/532786.html
+[2]
+
+// page_vma_mapped_walk
+// pvmw->pmd = pmd_offset(pud, pvmw->address);
+ldr     x0, [x19, #24]		// pvmw->pmd
+
+// if (pmd_trans_huge(*pvmw->pmd) || is_pmd_migration_entry(*pvmw->pmd)) {
+ldr     x1, [x0]		// *pvmw->pmd
+cbz     x1, ffff0000082336a0 <page_vma_mapped_walk+0x228>
+tbz     w1, #1, ffff000008233788 <page_vma_mapped_walk+0x310>	// pmd_trans_huge?
+
+// else if (!check_pmd(pvmw))
+ldr     x0, [x0]		// READ_ONCE in check_pmd
+tst     x0, x24			// pmd_present?
+b.eq    ffff000008233538 <page_vma_mapped_walk+0xc0>  // b.none
+tbz     w0, #1, ffff000008233538 <page_vma_mapped_walk+0xc0>	// pmd_trans_huge?
+
+// if (!map_pte(pvmw))
+ldr     x0, [x19, #16]		// pvmw->address
+
+// pvmw->pte = pte_offset_map(pvmw->pmd, pvmw->address);
+and     x1, x1, #0xfffffffff000	// Reusing the old value of *pvmw->pmd!!!
+[...]
+
+--->8
+
+Will Deacon (2):
+  arm64: mm: Use READ_ONCE/WRITE_ONCE when accessing page tables
+  mm: page_vma_mapped: Ensure pmd is loaded with READ_ONCE outside of
+    lock
+
+ arch/arm64/include/asm/hugetlb.h     |   2 +-
+ arch/arm64/include/asm/kvm_mmu.h     |  18 +--
+ arch/arm64/include/asm/mmu_context.h |   4 +-
+ arch/arm64/include/asm/pgalloc.h     |  42 +++---
+ arch/arm64/include/asm/pgtable.h     |  29 ++--
+ arch/arm64/kernel/hibernate.c        | 148 +++++++++---------
+ arch/arm64/mm/dump.c                 |  54 ++++---
+ arch/arm64/mm/fault.c                |  44 +++---
+ arch/arm64/mm/hugetlbpage.c          |  94 ++++++------
+ arch/arm64/mm/kasan_init.c           |  62 ++++----
+ arch/arm64/mm/mmu.c                  | 281 ++++++++++++++++++-----------------
+ arch/arm64/mm/pageattr.c             |  30 ++--
+ mm/page_vma_mapped.c                 |  25 ++--
+ 13 files changed, 427 insertions(+), 406 deletions(-)
+
 -- 
-2.9.5
+2.1.4
