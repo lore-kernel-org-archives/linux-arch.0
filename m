@@ -1,161 +1,32 @@
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: Re: [RFC PATCH 0/2] Missing READ_ONCE in core and arch-specific
- pgtable code leading to crashes
-Date: Thu, 28 Sep 2017 01:01:07 +0300
-Message-ID: <20170927220107.fms6yauxwccgu2sj@yury-thinkpad>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [RFC PATCH 1/2] arm64: mm: Use READ_ONCE/WRITE_ONCE when
+ accessing page tables
+Date: Thu, 28 Sep 2017 10:38:01 +0200
+Message-ID: <20170928083801.m6rb4frbbgzgam2o@hirez.programming.kicks-ass.net>
 References: <1506527369-19535-1-git-send-email-will.deacon@arm.com>
+ <1506527369-19535-2-git-send-email-will.deacon@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-dm3nam03on0059.outbound.protection.outlook.com ([104.47.41.59]:34791
-        "EHLO NAM03-DM3-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752133AbdI0WBX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 27 Sep 2017 18:01:23 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <1506527369-19535-1-git-send-email-will.deacon@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+In-Reply-To: <1506527369-19535-2-git-send-email-will.deacon@arm.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Will Deacon <will.deacon@arm.com>
-Cc: peterz@infradead.org, paulmck@linux.vnet.ibm.com, kirill.shutemov@linux.intel.com, linux-kernel@vger.kernel.org, rruigrok@codeaurora.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, catalin.marinas@arm.com
+Cc: paulmck@linux.vnet.ibm.com, kirill.shutemov@linux.intel.com, linux-kernel@vger.kernel.org, ynorov@caviumnetworks.com, rruigrok@codeaurora.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, catalin.marinas@arm.com
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Sep 27, 2017 at 04:49:27PM +0100, Will Deacon wrote:
-> Hi,
-> 
-> We recently had a crash report[1] on arm64 that involved a bad dereference
-> in the page_vma_mapped code during ext4 writeback with THP active. I can
-> reproduce this on -rc2:
-> 
-> [  254.032812] PC is at check_pte+0x20/0x170
-> [  254.032948] LR is at page_vma_mapped_walk+0x2e0/0x540
-> [...]
-> [  254.036114] Process doio (pid: 2463, stack limit = 0xffff00000f2e8000)
-> [  254.036361] Call trace:
-> [  254.038977] [<ffff000008233328>] check_pte+0x20/0x170
-> [  254.039137] [<ffff000008233758>] page_vma_mapped_walk+0x2e0/0x540
-> [  254.039332] [<ffff000008234adc>] page_mkclean_one+0xac/0x278
-> [  254.039489] [<ffff000008234d98>] rmap_walk_file+0xf0/0x238
-> [  254.039642] [<ffff000008236e74>] rmap_walk+0x64/0xa0
-> [  254.039784] [<ffff0000082370c8>] page_mkclean+0x90/0xa8
-> [  254.040029] [<ffff0000081f3c64>] clear_page_dirty_for_io+0x84/0x2a8
-> [  254.040311] [<ffff00000832f984>] mpage_submit_page+0x34/0x98
-> [  254.040518] [<ffff00000832fb4c>] mpage_process_page_bufs+0x164/0x170
-> [  254.040743] [<ffff00000832fc8c>] mpage_prepare_extent_to_map+0x134/0x2b8
-> [  254.040969] [<ffff00000833530c>] ext4_writepages+0x484/0xe30
-> [  254.041175] [<ffff0000081f6ab4>] do_writepages+0x44/0xe8
-> [  254.041372] [<ffff0000081e5bd4>] __filemap_fdatawrite_range+0xbc/0x110
-> [  254.041568] [<ffff0000081e5e68>] file_write_and_wait_range+0x48/0xd8
-> [  254.041739] [<ffff000008324310>] ext4_sync_file+0x80/0x4b8
-> [  254.041907] [<ffff0000082bd434>] vfs_fsync_range+0x64/0xc0
-> [  254.042106] [<ffff0000082332b4>] SyS_msync+0x194/0x1e8
-> 
-> After digging into the issue, I found that we appear to be racing with
-> a concurrent pmd update in page_vma_mapped_walk, assumedly due a THP
-> splitting operation. Looking at the code there:
-> 
-> 	pvmw->pmd = pmd_offset(pud, pvmw->address);
-> 	if (pmd_trans_huge(*pvmw->pmd) || is_pmd_migration_entry(*pvmw->pmd)) {
-> 		[...]
-> 	} else {
-> 		if (!check_pmd(pvmw))
-> 			return false;
-> 	}
-> 	if (!map_pte(pvmw))
-> 		goto next_pte;
-> 
-> what happens in the crashing scenario is that we see all zeroes for the
-> PMD in pmd_trans_huge(*pvmw->pmd), and so go to the 'else' case (migration
-> isn't enabled, so the test is removed at compile-time). check_pmd then does:
-> 
-> 	pmde = READ_ONCE(*pvmw->pmd);
-> 	return pmd_present(pmde) && !pmd_trans_huge(pmde);
-> 
-> and reads a valid table entry for the PMD because the splitting has completed
-> (i.e. the first dereference reads from the pmdp_invalidate in the splitting
-> code, whereas the second dereferenced reads from the following pmd_populate).
-> It returns true because we should descend to the PTE level in map_pte. map_pte
-> does:
-> 
-> 	pvmw->pte = pte_offset_map(pvmw->pmd, pvmw->address);
-> 
-> which on arm64 (and this appears to be the same on x86) ends up doing:
-> 
-> 	(pmd_page_paddr((*(pvmw->pmd))) + pte_index(pvmw->address) * sizeof(pte_t))
-> 
-> as part of its calculation. However, this is horribly broken because GCC
-> inlines everything and reuses the register it loaded for the initial
-> pmd_trans_huge check (when we loaded the value of zero) here, so we end up
-> calculating a junk pointer and crashing when we dereference it. Disassembly
-> at the end of the mail[2] for those who are curious.
-> 
-> The moral of the story is that read-after-read (same address) ordering *only*
-> applies if READ_ONCE is used consistently. This means we need to fix page
-> table dereferences in the core code as well as the arch code to avoid this
-> problem. The two RFC patches in this series fix arm64 (which is a bigger fix
-> that necessary since I clean things up too) and page_vma_mapped_walk.
-> 
-> Comments welcome.
-> 
-> Will
-> 
-> [1] http://lists.infradead.org/pipermail/linux-arm-kernel/2017-September/532786.html
-> [2]
- 
-Hi Will, 
+On Wed, Sep 27, 2017 at 04:49:28PM +0100, Will Deacon wrote:
+> In many cases, page tables can be accessed concurrently by either another
+> CPU (due to things like fast gup) or by the hardware page table walker
+> itself, which may set access/dirty bits. In such cases, it is important
+> to use READ_ONCE/WRITE_ONCE when accessing page table entries so that
+> entries cannot be torn, merged or subject to apparent loss of coherence.
 
-The fix works for me. Thanks.
-My cross-compiler is:
-$ /home/yury/work/thunderx-tools-28/bin/aarch64-thunderx-linux-gnu-gcc --version
-aarch64-thunderx-linux-gnu-gcc (Cavium Inc. build 28) 7.1.0
-Copyright (C) 2017 Free Software Foundation, Inc.
+In fact, we should use lockless_dereference() for many of them. Yes
+Alpha is the only one that cares about the difference between that and
+READ_ONCE() and they do have the extra barrier, but if we're going to do
+this, we might as well do it 'right' :-)
 
-Tested-by: Yury Norov <ynorov@caviumnetworks.com>
-
-Yury
-
-> // page_vma_mapped_walk
-> // pvmw->pmd = pmd_offset(pud, pvmw->address);
-> ldr     x0, [x19, #24]		// pvmw->pmd
-> 
-> // if (pmd_trans_huge(*pvmw->pmd) || is_pmd_migration_entry(*pvmw->pmd)) {
-> ldr     x1, [x0]		// *pvmw->pmd
-> cbz     x1, ffff0000082336a0 <page_vma_mapped_walk+0x228>
-> tbz     w1, #1, ffff000008233788 <page_vma_mapped_walk+0x310>	// pmd_trans_huge?
-> 
-> // else if (!check_pmd(pvmw))
-> ldr     x0, [x0]		// READ_ONCE in check_pmd
-> tst     x0, x24			// pmd_present?
-> b.eq    ffff000008233538 <page_vma_mapped_walk+0xc0>  // b.none
-> tbz     w0, #1, ffff000008233538 <page_vma_mapped_walk+0xc0>	// pmd_trans_huge?
-> 
-> // if (!map_pte(pvmw))
-> ldr     x0, [x19, #16]		// pvmw->address
-> 
-> // pvmw->pte = pte_offset_map(pvmw->pmd, pvmw->address);
-> and     x1, x1, #0xfffffffff000	// Reusing the old value of *pvmw->pmd!!!
-> [...]
-> 
-> --->8
-> 
-> Will Deacon (2):
->   arm64: mm: Use READ_ONCE/WRITE_ONCE when accessing page tables
->   mm: page_vma_mapped: Ensure pmd is loaded with READ_ONCE outside of
->     lock
-> 
->  arch/arm64/include/asm/hugetlb.h     |   2 +-
->  arch/arm64/include/asm/kvm_mmu.h     |  18 +--
->  arch/arm64/include/asm/mmu_context.h |   4 +-
->  arch/arm64/include/asm/pgalloc.h     |  42 +++---
->  arch/arm64/include/asm/pgtable.h     |  29 ++--
->  arch/arm64/kernel/hibernate.c        | 148 +++++++++---------
->  arch/arm64/mm/dump.c                 |  54 ++++---
->  arch/arm64/mm/fault.c                |  44 +++---
->  arch/arm64/mm/hugetlbpage.c          |  94 ++++++------
->  arch/arm64/mm/kasan_init.c           |  62 ++++----
->  arch/arm64/mm/mmu.c                  | 281 ++++++++++++++++++-----------------
->  arch/arm64/mm/pageattr.c             |  30 ++--
->  mm/page_vma_mapped.c                 |  25 ++--
->  13 files changed, 427 insertions(+), 406 deletions(-)
-> 
-> -- 
-> 2.1.4
+Also, a very long standing item on my TODO list is to see how much of it
+we can unify across the various architectures, because there's a giant
+amount of boiler plate involved with all this.
