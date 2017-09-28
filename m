@@ -1,50 +1,134 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [RFC PATCH 1/2] arm64: mm: Use READ_ONCE/WRITE_ONCE when
- accessing page tables
-Date: Thu, 28 Sep 2017 09:45:35 +0100
-Message-ID: <20170928084535.GA19060@arm.com>
-References: <1506527369-19535-1-git-send-email-will.deacon@arm.com>
- <1506527369-19535-2-git-send-email-will.deacon@arm.com>
- <20170928083801.m6rb4frbbgzgam2o@hirez.programming.kicks-ass.net>
+From: tip-bot for Kees Cook <tipbot@zytor.com>
+Subject: [tip:locking/core] locking/refcounts, x86/asm: Use unique .text
+ section for refcount exceptions
+Date: Thu, 28 Sep 2017 03:58:27 -0700
+Message-ID: <tip-564c9cc84e2adf8a6671c1937f0a9fe3da2a4b0e@git.kernel.org>
+References: <1504382986-49301-2-git-send-email-keescook@chromium.org>
+Reply-To: efault@gmx.de, peterz@infradead.org, mingo@kernel.org,
+          linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
+          elena.reshetova@intel.com, ard.biesheuvel@linaro.org,
+          hpa@zytor.com, keescook@chromium.org,
+          torvalds@linux-foundation.org, tglx@linutronix.de
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:53682 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752102AbdI1IpW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 28 Sep 2017 04:45:22 -0400
+Received: from terminus.zytor.com ([65.50.211.136]:54771 "EHLO
+        terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751591AbdI1LDC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 28 Sep 2017 07:03:02 -0400
+In-Reply-To: <1504382986-49301-2-git-send-email-keescook@chromium.org>
 Content-Disposition: inline
-In-Reply-To: <20170928083801.m6rb4frbbgzgam2o@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: paulmck@linux.vnet.ibm.com, kirill.shutemov@linux.intel.com, linux-kernel@vger.kernel.org, ynorov@caviumnetworks.com, rruigrok@codeaurora.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, catalin.marinas@arm.com
+To: linux-tip-commits@vger.kernel.org
+Cc: torvalds@linux-foundation.org, tglx@linutronix.de, ard.biesheuvel@linaro.org, keescook@chromium.org, hpa@zytor.com, linux-kernel@vger.kernel.org, elena.reshetova@intel.com, peterz@infradead.org, linux-arch@vger.kernel.org, mingo@kernel.org, efault@gmx.de
 
-On Thu, Sep 28, 2017 at 10:38:01AM +0200, Peter Zijlstra wrote:
-> On Wed, Sep 27, 2017 at 04:49:28PM +0100, Will Deacon wrote:
-> > In many cases, page tables can be accessed concurrently by either another
-> > CPU (due to things like fast gup) or by the hardware page table walker
-> > itself, which may set access/dirty bits. In such cases, it is important
-> > to use READ_ONCE/WRITE_ONCE when accessing page table entries so that
-> > entries cannot be torn, merged or subject to apparent loss of coherence.
-> 
-> In fact, we should use lockless_dereference() for many of them. Yes
-> Alpha is the only one that cares about the difference between that and
-> READ_ONCE() and they do have the extra barrier, but if we're going to do
-> this, we might as well do it 'right' :-)
+Commit-ID:  564c9cc84e2adf8a6671c1937f0a9fe3da2a4b0e
+Gitweb:     https://git.kernel.org/tip/564c9cc84e2adf8a6671c1937f0a9fe3da2a4b0e
+Author:     Kees Cook <keescook@chromium.org>
+AuthorDate: Sat, 2 Sep 2017 13:09:45 -0700
+Committer:  Ingo Molnar <mingo@kernel.org>
+CommitDate: Thu, 28 Sep 2017 09:45:05 +0200
 
-I know this sounds daft, but I think one of the big reasons why
-lockless_dereference() doesn't get an awful lot of use is because it's
-such a mouthful! Why don't we just move the smp_read_barrier_depends()
-into READ_ONCE? Would anybody actually care about the potential impact on
-Alpha (which, frankly, is treading on thin ice given the low adoption of
-lockless_dereference())?
+locking/refcounts, x86/asm: Use unique .text section for refcount exceptions
 
-> Also, a very long standing item on my TODO list is to see how much of it
-> we can unify across the various architectures, because there's a giant
-> amount of boiler plate involved with all this.
+Using .text.unlikely for refcount exceptions isn't safe because gcc may
+move entire functions into .text.unlikely (e.g. in6_dev_dev()), which
+would cause any uses of a protected refcount_t function to stay inline
+with the function, triggering the protection unconditionally:
 
-Yeah, I'd be happy to help with that as a separate series. I already tripped
-over 5 or 6 page table walkers in arch/arm64/ alone :(
+        .section        .text.unlikely,"ax",@progbits
+        .type   in6_dev_get, @function
+in6_dev_getx:
+.LFB4673:
+        .loc 2 4128 0
+        .cfi_startproc
+...
+        lock; incl 480(%rbx)
+        js 111f
+        .pushsection .text.unlikely
+111:    lea 480(%rbx), %rcx
+112:    .byte 0x0f, 0xff
+.popsection
+113:
 
-Will
+This creates a unique .text..refcount section and adds an additional
+test to the exception handler to WARN in the case of having none of OF,
+SF, nor ZF set so we can see things like this more easily in the future.
+
+The double dot for the section name keeps it out of the TEXT_MAIN macro
+namespace, to avoid collisions and so it can be put at the end with
+text.unlikely to keep the cold code together.
+
+See commit:
+
+  cb87481ee89db ("kbuild: linker script do not match C names unless LD_DEAD_CODE_DATA_ELIMINATION is configured")
+
+... which matches C names: [a-zA-Z0-9_] but not ".".
+
+Reported-by: Mike Galbraith <efault@gmx.de>
+Signed-off-by: Kees Cook <keescook@chromium.org>
+Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Cc: Elena <elena.reshetova@intel.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-arch <linux-arch@vger.kernel.org>
+Fixes: 7a46ec0e2f48 ("locking/refcounts, x86/asm: Implement fast refcount overflow protection")
+Link: http://lkml.kernel.org/r/1504382986-49301-2-git-send-email-keescook@chromium.org
+Signed-off-by: Ingo Molnar <mingo@kernel.org>
+---
+ arch/x86/include/asm/refcount.h   | 2 +-
+ arch/x86/mm/extable.c             | 7 ++++++-
+ include/asm-generic/vmlinux.lds.h | 1 +
+ 3 files changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/arch/x86/include/asm/refcount.h b/arch/x86/include/asm/refcount.h
+index ff87121..4e44250 100644
+--- a/arch/x86/include/asm/refcount.h
++++ b/arch/x86/include/asm/refcount.h
+@@ -15,7 +15,7 @@
+  * back to the regular execution flow in .text.
+  */
+ #define _REFCOUNT_EXCEPTION				\
+-	".pushsection .text.unlikely\n"			\
++	".pushsection .text..refcount\n"		\
+ 	"111:\tlea %[counter], %%" _ASM_CX "\n"		\
+ 	"112:\t" ASM_UD0 "\n"				\
+ 	ASM_UNREACHABLE					\
+diff --git a/arch/x86/mm/extable.c b/arch/x86/mm/extable.c
+index c3521e2..3321b44 100644
+--- a/arch/x86/mm/extable.c
++++ b/arch/x86/mm/extable.c
+@@ -67,12 +67,17 @@ bool ex_handler_refcount(const struct exception_table_entry *fixup,
+ 	 * wrapped around) will be set. Additionally, seeing the refcount
+ 	 * reach 0 will set ZF (Zero Flag: result was zero). In each of
+ 	 * these cases we want a report, since it's a boundary condition.
+-	 *
++	 * The SF case is not reported since it indicates post-boundary
++	 * manipulations below zero or above INT_MAX. And if none of the
++	 * flags are set, something has gone very wrong, so report it.
+ 	 */
+ 	if (regs->flags & (X86_EFLAGS_OF | X86_EFLAGS_ZF)) {
+ 		bool zero = regs->flags & X86_EFLAGS_ZF;
+ 
+ 		refcount_error_report(regs, zero ? "hit zero" : "overflow");
++	} else if ((regs->flags & X86_EFLAGS_SF) == 0) {
++		/* Report if none of OF, ZF, nor SF are set. */
++		refcount_error_report(regs, "unexpected saturation");
+ 	}
+ 
+ 	return true;
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 8acfc1e..e549bff 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -459,6 +459,7 @@
+ #define TEXT_TEXT							\
+ 		ALIGN_FUNCTION();					\
+ 		*(.text.hot TEXT_MAIN .text.fixup .text.unlikely)	\
++		*(.text..refcount)					\
+ 		*(.ref.text)						\
+ 	MEM_KEEP(init.text)						\
+ 	MEM_KEEP(exit.text)						\
