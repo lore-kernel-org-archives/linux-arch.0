@@ -1,120 +1,193 @@
-From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Subject: Re: [PATCH v4 for 4.14 1/3] membarrier: Provide register expedited
- private command
-Date: Thu, 28 Sep 2017 13:31:36 +0000 (UTC)
-Message-ID: <911707916.20840.1506605496314.JavaMail.zimbra@efficios.com>
-References: <20170926175151.14264-1-mathieu.desnoyers@efficios.com> <33948425.19289.1506458608221.JavaMail.zimbra@efficios.com> <20170927230436.4af88a62@roar.ozlabs.ibm.com>
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [PATCH v2 16/28] arm64/sve: Probe SVE capabilities and usable
+ vector lengths
+Date: Thu, 28 Sep 2017 15:22:12 +0100
+Message-ID: <20170928142212.GB3611@e103592.cambridge.arm.com>
+References: <1504198860-12951-1-git-send-email-Dave.Martin@arm.com>
+ <1504198860-12951-17-git-send-email-Dave.Martin@arm.com>
+ <87fubpaa1o.fsf@linaro.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20170927230436.4af88a62@roar.ozlabs.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Alexander Viro <viro@zeniv.linux.org.uk>, linux-arch <linux-arch@vger.kernel.org>, Avi Kivity <avi@scylladb.com>, maged michael <maged.michael@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Dave Watson <davejwatson@fb.com>, Will Deacon <will.deacon@arm.com>, linux-kernel <linux-kernel@vger.kernel.org>, Andrew Hunter <ahh@google.com>, Paul Mackerras <paulus@samba.org>, Andy Lutomirski <luto@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, gromer <gromer@google.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:58554 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752017AbdI1OWR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 28 Sep 2017 10:22:17 -0400
+Content-Disposition: inline
+In-Reply-To: <87fubpaa1o.fsf@linaro.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>
+Cc: linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Suzuki K Poulose <Suzuki.Poulose@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
 
------ On Sep 27, 2017, at 9:04 AM, Nicholas Piggin npiggin@gmail.com wrote:
-
-> On Tue, 26 Sep 2017 20:43:28 +0000 (UTC)
-> Mathieu Desnoyers <mathieu.desnoyers@efficios.com> wrote:
+On Thu, Sep 14, 2017 at 10:45:07AM +0100, Alex Bennée wrote:
 > 
->> ----- On Sep 26, 2017, at 1:51 PM, Mathieu Desnoyers
->> mathieu.desnoyers@efficios.com wrote:
->> 
->> > Provide a new command allowing processes to register their intent to use
->> > the private expedited command.
->> >   
->> 
->> I missed a few maintainers that should have been CC'd. Adding them now.
->> This patch is aimed to go through Paul E. McKenney's tree.
+> Dave Martin <Dave.Martin@arm.com> writes:
 > 
-> Honestly this is pretty ugly new user API and fairly large amount of
-> complexity just to avoid the powerpc barrier. And you end up with arch
-> specific hooks anyway!
+> > This patch uses the cpufeatures framework to determine common SVE
+> > capabilities and vector lengths, and configures the runtime SVE
+> > support code appropriately.
+> >
+> > ZCR_ELx is not really a feature register, but it is convenient to
+> > use it as a template for recording the maximum vector length
+> > supported by a CPU, using the LEN field.  This field is similar to
+> > a feature field in that it is a contiguous bitfield for which we
+> > want to determine the minimum system-wide value.  This patch adds
+> > ZCR as a pseudo-register in cpuinfo/cpufeatures, with appropriate
+> > custom code to populate it.  Finding the minimum supported value of
+> > the LEN field is left to the cpufeatures framework in the usual
+> > way.
+> >
+> > The meaning of ID_AA64ZFR0_EL1 is not architecturally defined yet,
+> > so for now we just require it to be zero.
+> >
+> > Note that much of this code is dormant and SVE still won't be used
+> > yet, since system_supports_sve() remains hardwired to false.
+> >
+> > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> > Cc: Alex Bennée <alex.bennee@linaro.org>
+> > Cc: Suzuki K Poulose <Suzuki.Poulose@arm.com>
+> >
+> > ---
+> >
+> > Changes since v1
+> > ----------------
+> >
+> > Requested by Alex Bennée:
+> >
+> > * Thin out BUG_ON()s:
+> > Redundant BUG_ON()s and ones that just check invariants are removed.
+> > Important sanity-checks are migrated to WARN_ON()s, with some
+> > minimal best-effort patch-up code.
+> >
+> > Other changes related to Alex Bennée's comments:
+> >
+> > * Migrate away from magic numbers for converting VL to VQ.
+> >
+> > Requested by Suzuki Poulose:
+> >
+> > * Make sve_vq_map __ro_after_init.
+> >
+> > Other changes related to Suzuki Poulose's comments:
+> >
+> > * Rely on cpufeatures for not attempting to update the vq map after boot.
+> > ---
+> >  arch/arm64/include/asm/cpu.h        |   4 ++
+> >  arch/arm64/include/asm/cpufeature.h |  29 ++++++++++
+> >  arch/arm64/include/asm/fpsimd.h     |  10 ++++
+> >  arch/arm64/kernel/cpufeature.c      |  50 +++++++++++++++++
+> >  arch/arm64/kernel/cpuinfo.c         |   6 ++
+> >  arch/arm64/kernel/fpsimd.c          | 106 +++++++++++++++++++++++++++++++++++-
+> >  6 files changed, 202 insertions(+), 3 deletions(-)
+> >
+> > diff --git a/arch/arm64/include/asm/cpu.h b/arch/arm64/include/asm/cpu.h
+> > index 889226b..8839227 100644
+> > --- a/arch/arm64/include/asm/cpu.h
+> > +++ b/arch/arm64/include/asm/cpu.h
+> > @@ -41,6 +41,7 @@ struct cpuinfo_arm64 {
+> >  	u64		reg_id_aa64mmfr2;
+> >  	u64		reg_id_aa64pfr0;
+> >  	u64		reg_id_aa64pfr1;
+> > +	u64		reg_id_aa64zfr0;
+> >
+> >  	u32		reg_id_dfr0;
+> >  	u32		reg_id_isar0;
+> > @@ -59,6 +60,9 @@ struct cpuinfo_arm64 {
+> >  	u32		reg_mvfr0;
+> >  	u32		reg_mvfr1;
+> >  	u32		reg_mvfr2;
+> > +
+> > +	/* pseudo-ZCR for recording maximum ZCR_EL1 LEN value: */
+> > +	u64		reg_zcr;
+> >  };
+> >
+> >  DECLARE_PER_CPU(struct cpuinfo_arm64, cpu_data);
+> > diff --git a/arch/arm64/include/asm/cpufeature.h b/arch/arm64/include/asm/cpufeature.h
+> > index 4ea3441..d98e7ba 100644
+> > --- a/arch/arm64/include/asm/cpufeature.h
+> > +++ b/arch/arm64/include/asm/cpufeature.h
+> > @@ -10,7 +10,9 @@
+> >  #define __ASM_CPUFEATURE_H
+> >
+> >  #include <asm/cpucaps.h>
+> > +#include <asm/fpsimd.h>
+> >  #include <asm/hwcap.h>
+> > +#include <asm/sigcontext.h>
+> >  #include <asm/sysreg.h>
+> >
+> >  /*
+> > @@ -223,6 +225,13 @@ static inline bool id_aa64pfr0_32bit_el0(u64 pfr0)
+> >  	return val == ID_AA64PFR0_EL0_32BIT_64BIT;
+> >  }
+> >
+> > +static inline bool id_aa64pfr0_sve(u64 pfr0)
+> > +{
+> > +	u32 val = cpuid_feature_extract_unsigned_field(pfr0, ID_AA64PFR0_SVE_SHIFT);
+> > +
+> > +	return val > 0;
+> > +}
+> > +
+> >  void __init setup_cpu_features(void);
+> >
+> >  void update_cpu_capabilities(const struct arm64_cpu_capabilities *caps,
+> > @@ -267,6 +276,26 @@ static inline bool system_supports_sve(void)
+> >  	return false;
+> >  }
+> >
+> > +/*
+> > + * Read the pseudo-ZCR used by cpufeatures to identify the supported SVE
+> > + * vector length.
+> > + * Use only if SVE is present.  This function clobbers the SVE vector length.
+> > + */
 > 
-> So my plan was to add an arch-overridable loop primitive that iterates
-> over all running threads for an mm.
+> :nit whitespace formatting.
 
-Iterating over all threads for an mm is one possible solution that has
-been listed at the membarrier BOF at LPC. We ended up dismissing this
-solution because it would not inefficient for processes which have
-lots of threads (e.g. Java).
+I'll add some newlines now to make this cleaner.
 
-> powerpc will use its mm_cpumask for
-> iterating and use runqueue locks to avoid the barrier.
+/*
+ * Read the pseudo-ZCR used by cpufeatures to identify the supported SVE
+ * vector length.
+ *
+ * Use only if SVE is present.
+ * This function clobbers the SVE vector length.
+ */
 
-This is another solution which has been rejected during the LPC BOF.
-
-What I gather from past threads is that the mm_cpumask's bits on powerpc
-are pretty much only being set, never much cleared. Therefore, over the
-lifetime of a thread which is not affined to specific processors, chances
-are that this cpumask will end up having all cores on the system. Therefore,
-you end up with the same rq lock disruption as if you would iterate on all
-online CPUs. If userspace does that in a loop, you end up, in PeterZ's words,
-with an Insta-DoS. The name may sound cool, but I gather that this is not
-a service the kernel willingly wants to provide to userspace.
-
-A cunning process could easily find a way to fill its mm_cpumask and then
-issue membarrier in a loop to bring a large system to its knees.
-
-> x86 will most
-> likely want to use its mm_cpumask to iterate.
-
-Iterating on mm_cpumask rather than online cpus adds complexity wrt memory
-barriers (unless we go for rq locks approach). We'd need, in addition to
-ensure that we have the proper barriers before/after store to rq->curr,
-to also ensure that we have the proper barriers between mm_cpumask
-updates and user-space loads/stores. Considering that we're not aiming
-at taking the rq locks anyway, iteration over all online cpus seems
-less complex than iterating on mm_cpumask on the architectures that
-keep track of it.
+OK?
 
 > 
-> For the powerpc approach, yes there is some controversy about using
-> runqueue locks even for cpus that we already can interfere with, but I
-> think we have a lot of options we could look at *after* it ever shows
-> up as a problem.
-
-The DoS argument from Peter seems to be a strong opposition to grabbing
-the rq locks.
-
-Here is another point in favor of having a register command for the
-private membarrier: This gives us greater flexibility to improve the
-kernel scheduler and return-to-userspace barriers if need be in the
-future.
-
-For instance, I plan to propose a "MEMBARRIER_FLAG_SYNC_CORE" flag
-that will also provide guarantees about context synchronization of
-all cores for memory reclaim performed by JIT for the next merge
-window. So far, the following architectures seems to have the proper
-core serializing instructions already in place when returning to
-user-space: x86 (iret), powerpc (rfi), arm32/64 (return from exception,
-eret), s390/x (lpswe), ia64 (rfi), parisc (issue at least 7 instructions
-while signing around a bonfire), and mips SMP (eret).
-
-So far, AFAIU, only x86 (eventually going through sysexit), alpha
-(appears to require an explicit imb), and sparc (explicit flush + 5
-instructions around similar bonfire as parisc) appear to require special
-handling.
-
-I therefore plan to use the registration step with a
-MEMBARRIER_FLAG_SYNC_CORE flag set to set TIF flags and add the
-required context synchronizing barriers on sched_in() only for
-processes wishing to use private expedited membarrier.
-
-So I don't see much point in trying to remove that registration step.
-
-Thanks,
-
-Mathieu
-
-
+> > +static u64 __maybe_unused read_zcr_features(void)
+> > +{
+> > +	u64 zcr;
+> > +	unsigned int vq_max;
+> > +
+> > +	write_sysreg_s(ZCR_ELx_LEN_MASK, SYS_ZCR_EL1);
 > 
-> Thanks,
-> Nick
+> I'm confused, why are we writing something here? You mention clobbering
+> the SVE vector length but what was the point?
 
--- 
-Mathieu Desnoyers
-EfficiOS Inc.
-http://www.efficios.com
+Hmm, this deserves a comment -- coming back to this code, I had to think
+about it.  Are the following extra comments sufficient explanation?
+
+	/*
+	 * Set the maximum possible VL, and write zeroes to all other
+	 * bits to see if they stick.
+	 */
+	write_sysreg_s(ZCR_ELx_LEN_MASK, SYS_ZCR_EL1);
+
+	zcr = read_sysreg_s(SYS_ZCR_EL1);
+	zcr &= ~(u64)ZCR_ELx_LEN_MASK; /* flag up sticky 1s outside LEN field */
+	vq_max = sve_vq_from_vl(sve_get_vl());
+	zcr |= vq_max - 1; /* set LEN field to maximum effective value */
+
+
+[...]
+
+> Otherwise:
+> 
+> Reviewed-by: Alex Bennée <alex.bennee@linaro.org>
+
+I'll wait on your responses to the above first.
+
+Cheers
+---Dave
