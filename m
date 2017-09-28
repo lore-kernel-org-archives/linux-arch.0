@@ -1,37 +1,179 @@
-From: Jon Masters <jcm@redhat.com>
-Subject: Re: [RFC PATCH 0/2] Missing READ_ONCE in core and arch-specific
- pgtable code leading to crashes
-Date: Thu, 28 Sep 2017 15:38:00 -0400
-Message-ID: <9f351432-3c6b-3b06-7b49-bc9a5806aff5@redhat.com>
-References: <1506527369-19535-1-git-send-email-will.deacon@arm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1506527369-19535-1-git-send-email-will.deacon@arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Will Deacon <will.deacon@arm.com>, peterz@infradead.org, paulmck@linux.vnet.ibm.com, kirill.shutemov@linux.intel.com
-Cc: linux-kernel@vger.kernel.org, ynorov@caviumnetworks.com, rruigrok@codeaurora.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, catalin.marinas@arm.com
-List-Id: linux-arch.vger.kernel.org
+From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Subject: [RFC PATCH for 4.14] membarrier powerpc: Move hook to switch_mm()
+Date: Thu, 28 Sep 2017 16:21:27 -0400
+Message-ID: <20170928202127.18472-1-mathieu.desnoyers@efficios.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.efficios.com ([167.114.142.141]:50698 "EHLO
+        mail.efficios.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750880AbdI1UVv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 28 Sep 2017 16:21:51 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Paul E . McKenney" <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Nicholas Piggin <npiggin@gmail.com>
+Cc: linux-kernel@vger.kernel.org, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Boqun Feng <boqun.feng@gmail.com>, Andrew Hunter <ahh@google.com>, Maged Michael <maged.michael@gmail.com>, gromer@google.com, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Watson <davejwatson@fb.com>, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Alexander Viro <viro@zeniv.linux.org.uk>, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org
 
-On 09/27/2017 11:49 AM, Will Deacon wrote:
+Nick has a valid point that the sched_in() hook is a fast-path compared
+to switch_mm(). Adding an extra TIF test in a fast-path to save a
+barrier in a comparatively slow-path is therefore not such a good idea
+overall.
 
-> The moral of the story is that read-after-read (same address) ordering *only*
-> applies if READ_ONCE is used consistently. This means we need to fix page
-> table dereferences in the core code as well as the arch code to avoid this
-> problem. The two RFC patches in this series fix arm64 (which is a bigger fix
-> that necessary since I clean things up too) and page_vma_mapped_walk.
-> 
-> Comments welcome.
+Therefore, move the architecture hook to switch_mm() instead.
 
-Thanks for this Will. I'll echo Timur's comment that it would be ideal
-to split this up into the critical piece needed for ordering
-access/update to the PMD in the face of a THP split and separately have
-the cosmetic cleanups. Needless to say, we've got a bunch of people who
-are tracking this one and tracking it ready for backport. We just got
-THP re-enabled so I'm pretty keen that we not have to disable again.
+[ This patch is aimed at Paul's tree. It applies on top of
+  "membarrier: Provide register expedited private command (v4)" and
+  "membarrier: Document scheduler barrier requirements (v4)". ]
 
-Jon.
+Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+CC: Peter Zijlstra <peterz@infradead.org>
+CC: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+CC: Nicholas Piggin <npiggin@gmail.com>
+CC: Boqun Feng <boqun.feng@gmail.com>
+CC: Andrew Hunter <ahh@google.com>
+CC: Maged Michael <maged.michael@gmail.com>
+CC: gromer@google.com
+CC: Avi Kivity <avi@scylladb.com>
+CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+CC: Paul Mackerras <paulus@samba.org>
+CC: Michael Ellerman <mpe@ellerman.id.au>
+CC: Dave Watson <davejwatson@fb.com>
+CC: Alan Stern <stern@rowland.harvard.edu>
+CC: Will Deacon <will.deacon@arm.com>
+CC: Andy Lutomirski <luto@kernel.org>
+CC: Ingo Molnar <mingo@redhat.com>
+CC: Alexander Viro <viro@zeniv.linux.org.uk>
+CC: linuxppc-dev@lists.ozlabs.org
+CC: linux-arch@vger.kernel.org
+---
+ arch/powerpc/include/asm/membarrier.h |  9 ++++-----
+ arch/powerpc/mm/mmu_context.c         |  7 +++++++
+ include/linux/sched/mm.h              | 13 ++++---------
+ kernel/sched/core.c                   |  6 ++----
+ 4 files changed, 17 insertions(+), 18 deletions(-)
 
+diff --git a/arch/powerpc/include/asm/membarrier.h b/arch/powerpc/include/asm/membarrier.h
+index 588154c1cf57..61152a7a3cf9 100644
+--- a/arch/powerpc/include/asm/membarrier.h
++++ b/arch/powerpc/include/asm/membarrier.h
+@@ -1,8 +1,8 @@
+ #ifndef _ASM_POWERPC_MEMBARRIER_H
+ #define _ASM_POWERPC_MEMBARRIER_H
+ 
+-static inline void membarrier_arch_sched_in(struct task_struct *prev,
+-		struct task_struct *next)
++static inline void membarrier_arch_switch_mm(struct mm_struct *prev,
++		struct mm_struct *next, struct task_struct *tsk)
+ {
+ 	/*
+ 	 * Only need the full barrier when switching between processes.
+@@ -11,9 +11,8 @@ static inline void membarrier_arch_sched_in(struct task_struct *prev,
+ 	 * when switching from userspace to kernel is not needed after
+ 	 * store to rq->curr.
+ 	 */
+-	if (likely(!test_ti_thread_flag(task_thread_info(next),
+-			TIF_MEMBARRIER_PRIVATE_EXPEDITED)
+-			|| !prev->mm || prev->mm == next->mm))
++	if (likely(!test_ti_thread_flag(task_thread_info(tsk),
++			TIF_MEMBARRIER_PRIVATE_EXPEDITED) || !prev))
+ 		return;
+ 
+ 	/*
+diff --git a/arch/powerpc/mm/mmu_context.c b/arch/powerpc/mm/mmu_context.c
+index 0f613bc63c50..22f5c91cdc38 100644
+--- a/arch/powerpc/mm/mmu_context.c
++++ b/arch/powerpc/mm/mmu_context.c
+@@ -12,6 +12,7 @@
+ 
+ #include <linux/mm.h>
+ #include <linux/cpu.h>
++#include <linux/sched/mm.h>
+ 
+ #include <asm/mmu_context.h>
+ 
+@@ -67,6 +68,10 @@ void switch_mm_irqs_off(struct mm_struct *prev, struct mm_struct *next,
+ 		 *
+ 		 * On the read side the barrier is in pte_xchg(), which orders
+ 		 * the store to the PTE vs the load of mm_cpumask.
++		 *
++		 * This full barrier is needed by membarrier when switching
++		 * between processes after store to rq->curr, before user-space
++		 * memory accesses.
+ 		 */
+ 		smp_mb();
+ 
+@@ -89,6 +94,8 @@ void switch_mm_irqs_off(struct mm_struct *prev, struct mm_struct *next,
+ 
+ 	if (new_on_cpu)
+ 		radix_kvm_prefetch_workaround(next);
++	else
++		membarrier_arch_switch_mm(prev, next, tsk);
+ 
+ 	/*
+ 	 * The actual HW switching method differs between the various
+diff --git a/include/linux/sched/mm.h b/include/linux/sched/mm.h
+index 1bd10c2c0893..d5a9ab8f3836 100644
+--- a/include/linux/sched/mm.h
++++ b/include/linux/sched/mm.h
+@@ -215,8 +215,8 @@ static inline void memalloc_noreclaim_restore(unsigned int flags)
+ #ifdef CONFIG_ARCH_HAS_MEMBARRIER_HOOKS
+ #include <asm/membarrier.h>
+ #else
+-static inline void membarrier_arch_sched_in(struct task_struct *prev,
+-		struct task_struct *next)
++static inline void membarrier_arch_switch_mm(struct mm_struct *prev,
++		struct mm_struct *next, struct task_struct *tsk)
+ {
+ }
+ static inline void membarrier_arch_fork(struct task_struct *t,
+@@ -232,11 +232,6 @@ static inline void membarrier_arch_register_private_expedited(
+ }
+ #endif
+ 
+-static inline void membarrier_sched_in(struct task_struct *prev,
+-		struct task_struct *next)
+-{
+-	membarrier_arch_sched_in(prev, next);
+-}
+ static inline void membarrier_fork(struct task_struct *t,
+ 		unsigned long clone_flags)
+ {
+@@ -252,8 +247,8 @@ static inline void membarrier_execve(struct task_struct *t)
+ 	membarrier_arch_execve(t);
+ }
+ #else
+-static inline void membarrier_sched_in(struct task_struct *prev,
+-		struct task_struct *next)
++static inline void membarrier_arch_switch_mm(struct mm_struct *prev,
++		struct mm_struct *next, struct task_struct *tsk)
+ {
+ }
+ static inline void membarrier_fork(struct task_struct *t,
+diff --git a/kernel/sched/core.c b/kernel/sched/core.c
+index 6254f87645de..8585abebe32b 100644
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@ -2643,7 +2643,6 @@ static struct rq *finish_task_switch(struct task_struct *prev)
+ 	 */
+ 	prev_state = prev->state;
+ 	vtime_task_switch(prev);
+-	membarrier_sched_in(prev, current);
+ 	perf_event_task_sched_in(prev, current);
+ 	finish_lock_switch(rq, prev);
+ 	finish_arch_post_lock_switch();
+@@ -3357,13 +3356,12 @@ static void __sched notrace __schedule(bool preempt)
+ 		 *
+ 		 * Here are the schemes providing that barrier on the
+ 		 * various architectures:
+-		 * - mm ? switch_mm() : mmdrop() for x86, s390, sparc,
++		 * - mm ? switch_mm() : mmdrop() for x86, s390, sparc, PowerPC.
++		 *   switch_mm() rely on membarrier_arch_switch_mm() on PowerPC.
+ 		 * - finish_lock_switch() for weakly-ordered
+ 		 *   architectures where spin_unlock is a full barrier,
+ 		 * - switch_to() for arm64 (weakly-ordered, spin_unlock
+ 		 *   is a RELEASE barrier),
+-		 * - membarrier_arch_sched_in() for PowerPC,
+-		 *   (weakly-ordered, spin_unlock is a RELEASE barrier).
+ 		 */
+ 		++*switch_count;
+ 
 -- 
-Computer Architect | Sent from my Fedora powered laptop
+2.11.0
