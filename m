@@ -1,109 +1,54 @@
-From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Subject: Re: [PATCH v4 for 4.14 1/3] membarrier: Provide register expedited
- private command
-Date: Thu, 28 Sep 2017 18:28:07 +0000 (UTC)
-Message-ID: <1163007565.21698.1506623287253.JavaMail.zimbra@efficios.com>
-References: <20170926175151.14264-1-mathieu.desnoyers@efficios.com> <33948425.19289.1506458608221.JavaMail.zimbra@efficios.com> <20170927230436.4af88a62@roar.ozlabs.ibm.com> <911707916.20840.1506605496314.JavaMail.zimbra@efficios.com> <20170929010112.3a54be0d@roar.ozlabs.ibm.com> <634837506.21241.1506612590749.JavaMail.zimbra@efficios.com> <20170929021622.5c7d6206@roar.ozlabs.ibm.com>
+From: Michael Cree <mcree@orcon.net.nz>
+Subject: Re: [RFC PATCH 1/2] arm64: mm: Use READ_ONCE/WRITE_ONCE when
+ accessing page tables
+Date: Fri, 29 Sep 2017 07:59:09 +1300
+Message-ID: <20170928185909.kgwy36hkoqxqgyc3@tower>
+References: <1506527369-19535-1-git-send-email-will.deacon@arm.com>
+ <1506527369-19535-2-git-send-email-will.deacon@arm.com>
+ <20170928083801.m6rb4frbbgzgam2o@hirez.programming.kicks-ass.net>
+ <20170928084535.GA19060@arm.com>
+ <20170928154354.GK3521@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.efficios.com ([167.114.142.141]:49532 "EHLO
-        mail.efficios.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750819AbdI1S0z (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 28 Sep 2017 14:26:55 -0400
-In-Reply-To: <20170929021622.5c7d6206@roar.ozlabs.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Alexander Viro <viro@zeniv.linux.org.uk>, linux-arch <linux-arch@vger.kernel.org>, Avi Kivity <avi@scylladb.com>, maged michael <maged.michael@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Dave Watson <davejwatson@fb.com>, Will Deacon <will.deacon@arm.com>, linux-kernel <linux-kernel@vger.kernel.org>, Andrew Hunter <ahh@google.com>, Paul Mackerras <paulus@samba.org>, Andy Lutomirski <luto@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, gromer <gromer@google.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-alpha-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20170928154354.GK3521@linux.vnet.ibm.com>
+Sender: linux-alpha-owner@vger.kernel.org
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, kirill.shutemov@linux.intel.com, linux-kernel@vger.kernel.org, ynorov@caviumnetworks.com, rruigrok@codeaurora.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, catalin.marinas@arm.com, rth@twiddle.net, ink@jurassic.park.msu.ru, mattst88@gmail.com, linux-alpha@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
------ On Sep 28, 2017, at 12:16 PM, Nicholas Piggin npiggin@gmail.com wrote:
-
-> On Thu, 28 Sep 2017 15:29:50 +0000 (UTC)
-> Mathieu Desnoyers <mathieu.desnoyers@efficios.com> wrote:
+On Thu, Sep 28, 2017 at 08:43:54AM -0700, Paul E. McKenney wrote:
+> On Thu, Sep 28, 2017 at 09:45:35AM +0100, Will Deacon wrote:
+> > On Thu, Sep 28, 2017 at 10:38:01AM +0200, Peter Zijlstra wrote:
+> > > On Wed, Sep 27, 2017 at 04:49:28PM +0100, Will Deacon wrote:
+> > > > In many cases, page tables can be accessed concurrently by either another
+> > > > CPU (due to things like fast gup) or by the hardware page table walker
+> > > > itself, which may set access/dirty bits. In such cases, it is important
+> > > > to use READ_ONCE/WRITE_ONCE when accessing page table entries so that
+> > > > entries cannot be torn, merged or subject to apparent loss of coherence.
+> > > 
+> > > In fact, we should use lockless_dereference() for many of them. Yes
+> > > Alpha is the only one that cares about the difference between that and
+> > > READ_ONCE() and they do have the extra barrier, but if we're going to do
+> > > this, we might as well do it 'right' :-)
+> > 
+> > I know this sounds daft, but I think one of the big reasons why
+> > lockless_dereference() doesn't get an awful lot of use is because it's
+> > such a mouthful! Why don't we just move the smp_read_barrier_depends()
+> > into READ_ONCE? Would anybody actually care about the potential impact on
+> > Alpha (which, frankly, is treading on thin ice given the low adoption of
+> > lockless_dereference())?
 > 
->> ----- On Sep 28, 2017, at 11:01 AM, Nicholas Piggin npiggin@gmail.com wrote:
->> 
->> > On Thu, 28 Sep 2017 13:31:36 +0000 (UTC)
->> > Mathieu Desnoyers <mathieu.desnoyers@efficios.com> wrote:
->> >   
->> >> ----- On Sep 27, 2017, at 9:04 AM, Nicholas Piggin npiggin@gmail.com wrote:
->> >>   
+> This is my cue to ask my usual question...  ;-)
 > 
-> [snip]
-> 
->> >> So I don't see much point in trying to remove that registration step.
->> > 
->> > I don't follow you. You are talking about the concept of registering
->> > intention to use a different function? And the registration API is not
->> > merged yet?
->> 
->> Yes, I'm talking about requiring processes to invoke membarrier cmd
->> MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED before they can successfully
->> invoke membarrier cmd MEMBARRIER_CMD_PRIVATE_EXPEDITED.
->> 
->> > Let me say I'm not completely against the idea of a registration API. But
->> > don't think registration for this expedited command is necessary.
->> 
->> Given that we have the powerpc lack-of-full-barrier-on-return-to-userspace
->> case now, and we foresee x86-sysexit, sparc, and alpha also requiring
->> special treatment when we introduce the MEMBARRIER_FLAG_SYNC_CORE behavior
->> in the next release, it seems that we'll have a hard time handling
->> architecture special cases efficiently if we don't expose the registration
->> API right away.
-> 
-> But SYNC_CORE is a different functionality, right? You can add the
-> registration API for it when that goes in.
+> Are people still running mainline kernels on Alpha?  (Added Alpha folks.)
 
-Sure, I could. However, I was hoping to re-use the same command, with a
-"SYNC_CORE" flag, and I would have liked to have consistent behavior
-for same commands used with different flags.
+Yes.  I run two Alpha build daemons that build the unofficial
+debian-alpha port.  Debian popcon reports nine machines running
+Alpha, which are likely to be running the 4.12.y kernel which
+is currently in debian-alpha, (and presumably soon to be 4.13.y
+which is now built on Alpha in experimental).
 
-> 
->> > But (aside) let's say a tif flag turns out to be a good diea for your
->> > second case, why not just check the flag in the membarrier sys call and
->> > do the registration the first time it uses it?
->> 
->> We also considered that option. It's mainly about guaranteeing that
->> an expedited membarrier command never blocks. If we introduce this
->> "lazy auto-registration" behavior, we end up blocking the process
->> at a random point in its execution so we can issue a synchronize_sched().
->> By exposing an explicit registration, we can control where this delay
->> occurs, and even allow library constructors to invoke the registration
->> while the process is a single threaded, therefore allowing us to completely
->> skip synchronize_sched().
-> 
-> Okay I guess that could be a good reason. As I said I'm not opposed to
-> the concept. I suppose you could even have a registration for expedited
-> private even if it's a no-op on all architectures, just in case some new
-> ways of implementing it can be done in future.
-
-That's an approach I would be OK with too. Mandating explicit registration
-will give us much more flexibility.
-
-> I suppose I'm more objecting to the added complexity for powerpc, and
-> more code in the fastpath to make the slowpath faster.
-
-Just to make sure I understand your concern here. The "fastpath" you
-refer to is the TIF flag test in membarrier_sched_in() within
-finish_task_switch(), and the "slowpath" is switch_mm() which lacks
-the required full barrier now, am I correct ?
-
-Would it help if we invoke the membarrier hook from switch_mm()
-instead ? We'd therefore only add the TIF flag test in switch_mm(),
-rather than for every context switch.
-
-Thanks,
-
-Mathieu
-
-
-> 
-> Thanks,
-> Nick
-
--- 
-Mathieu Desnoyers
-EfficiOS Inc.
-http://www.efficios.com
+Cheers
+Michael
