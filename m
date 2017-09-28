@@ -1,42 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:51204 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750759AbdI1TiH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 28 Sep 2017 15:38:07 -0400
-Subject: Re: [RFC PATCH 0/2] Missing READ_ONCE in core and arch-specific
- pgtable code leading to crashes
-References: <1506527369-19535-1-git-send-email-will.deacon@arm.com>
-From: Jon Masters <jcm@redhat.com>
-Message-ID: <9f351432-3c6b-3b06-7b49-bc9a5806aff5@redhat.com>
-Date: Thu, 28 Sep 2017 15:38:00 -0400
+Received: from mx2.suse.de ([195.135.220.15]:60437 "EHLO mx1.suse.de"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1751008AbdI1Ucc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 28 Sep 2017 16:32:32 -0400
+Date: Thu, 28 Sep 2017 22:32:19 +0200
+From: Borislav Petkov <bp@suse.de>
+Subject: Re: [Part1 PATCH v5 15/17] percpu: Introduce DEFINE_PER_CPU_DECRYPTED
+Message-ID: <20170928203219.7xzy3cnzgdraaic3@pd.tnic>
+References: <20170927151329.70011-1-brijesh.singh@amd.com>
+ <20170927151329.70011-16-brijesh.singh@amd.com>
 MIME-Version: 1.0
-In-Reply-To: <1506527369-19535-1-git-send-email-will.deacon@arm.com>
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <20170927151329.70011-16-brijesh.singh@amd.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>, peterz@infradead.org, paulmck@linux.vnet.ibm.com, kirill.shutemov@linux.intel.com
-Cc: linux-kernel@vger.kernel.org, ynorov@caviumnetworks.com, rruigrok@codeaurora.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, catalin.marinas@arm.com
-Message-ID: <20170928193800.NxkNZx94sRpBZYDONaHmDLZYMBjRYzZlhzSGLb8fPuI@z>
+To: Brijesh Singh <brijesh.singh@amd.com>
+Cc: kvm@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@linux.com>, linux-arch@vger.kernel.org, Tom Lendacky <thomas.lendacky@amd.com>
+Message-ID: <20170928203219.mWnbPGB_ZAYr79XAYPawMvuTmT29yJ6ScnKRALgenXI@z>
 
-On 09/27/2017 11:49 AM, Will Deacon wrote:
-
-> The moral of the story is that read-after-read (same address) ordering *only*
-> applies if READ_ONCE is used consistently. This means we need to fix page
-> table dereferences in the core code as well as the arch code to avoid this
-> problem. The two RFC patches in this series fix arm64 (which is a bigger fix
-> that necessary since I clean things up too) and page_vma_mapped_walk.
+On Wed, Sep 27, 2017 at 10:13:27AM -0500, Brijesh Singh wrote:
+> KVM guest defines three per-CPU variables (steal-time, apf_reason, and
+> avic_eio) which are shared between a guest and a hypervisor. When SEV
+> is active, memory is encrypted with a guest-specific key, and if the
+> guest OS wants to share the memory region with the hypervisor then it
+> must clear the C-bit (i.e set decrypted) before sharing it.
 > 
-> Comments welcome.
+> DEFINE_PER_CPU_DECRYPTED can be used to define the per-CPU variables
+> which will be shared between a guest and a hypervisor.
+> 
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Cc: Ingo Molnar <mingo@redhat.com>
+> Cc: "H. Peter Anvin" <hpa@zytor.com>
+> Cc: Borislav Petkov <bp@suse.de>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: Tejun Heo <tj@kernel.org>
+> Cc: Christoph Lameter <cl@linux.com>
+> Cc: linux-arch@vger.kernel.org
+> Cc: x86@kernel.org
+> Cc: linux-kernel@vger.kernel.org
+> Cc: Tom Lendacky <thomas.lendacky@amd.com>
+> Signed-off-by: Brijesh Singh <brijesh.singh@amd.com>
+> Acked-by: Tejun Heo <tj@kernel.org>
+> ---
+>  include/asm-generic/vmlinux.lds.h | 19 +++++++++++++++++++
+>  include/linux/percpu-defs.h       | 15 +++++++++++++++
+>  2 files changed, 34 insertions(+)
 
-Thanks for this Will. I'll echo Timur's comment that it would be ideal
-to split this up into the critical piece needed for ordering
-access/update to the PMD in the face of a THP split and separately have
-the cosmetic cleanups. Needless to say, we've got a bunch of people who
-are tracking this one and tracking it ready for backport. We just got
-THP re-enabled so I'm pretty keen that we not have to disable again.
-
-Jon.
+Reviewed-by: Borislav Petkov <bp@suse.de>
 
 -- 
-Computer Architect | Sent from my Fedora powered laptop
+Regards/Gruss,
+    Boris.
+
+SUSE Linux GmbH, GF: Felix Imendörffer, Jane Smithard, Graham Norton, HRB 21284 (AG Nürnberg)
+-- 
