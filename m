@@ -1,201 +1,109 @@
-From: Alex =?utf-8?Q?Benn=C3=A9e?= <alex.bennee@linaro.org>
-Subject: Re: [PATCH v2 16/28] arm64/sve: Probe SVE capabilities and usable vector lengths
-Date: Thu, 28 Sep 2017 18:32:16 +0100
-Message-ID: <87k20id90f.fsf@linaro.org>
-References: <1504198860-12951-1-git-send-email-Dave.Martin@arm.com> <1504198860-12951-17-git-send-email-Dave.Martin@arm.com> <87fubpaa1o.fsf@linaro.org> <20170928142212.GB3611@e103592.cambridge.arm.com>
+From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Subject: Re: [PATCH v4 for 4.14 1/3] membarrier: Provide register expedited
+ private command
+Date: Thu, 28 Sep 2017 18:28:07 +0000 (UTC)
+Message-ID: <1163007565.21698.1506623287253.JavaMail.zimbra@efficios.com>
+References: <20170926175151.14264-1-mathieu.desnoyers@efficios.com> <33948425.19289.1506458608221.JavaMail.zimbra@efficios.com> <20170927230436.4af88a62@roar.ozlabs.ibm.com> <911707916.20840.1506605496314.JavaMail.zimbra@efficios.com> <20170929010112.3a54be0d@roar.ozlabs.ibm.com> <634837506.21241.1506612590749.JavaMail.zimbra@efficios.com> <20170929021622.5c7d6206@roar.ozlabs.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f181.google.com ([209.85.128.181]:43765 "EHLO
-        mail-wr0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751945AbdI1RcZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 28 Sep 2017 13:32:25 -0400
-Received: by mail-wr0-f181.google.com with SMTP id a43so4012782wrc.0
-        for <linux-arch@vger.kernel.org>; Thu, 28 Sep 2017 10:32:25 -0700 (PDT)
-In-reply-to: <20170928142212.GB3611@e103592.cambridge.arm.com>
+Received: from mail.efficios.com ([167.114.142.141]:49532 "EHLO
+        mail.efficios.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750819AbdI1S0z (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 28 Sep 2017 14:26:55 -0400
+In-Reply-To: <20170929021622.5c7d6206@roar.ozlabs.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Suzuki K Poulose <Suzuki.Poulose@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Alexander Viro <viro@zeniv.linux.org.uk>, linux-arch <linux-arch@vger.kernel.org>, Avi Kivity <avi@scylladb.com>, maged michael <maged.michael@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Dave Watson <davejwatson@fb.com>, Will Deacon <will.deacon@arm.com>, linux-kernel <linux-kernel@vger.kernel.org>, Andrew Hunter <ahh@google.com>, Paul Mackerras <paulus@samba.org>, Andy Lutomirski <luto@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, gromer <gromer@google.com>
+
+----- On Sep 28, 2017, at 12:16 PM, Nicholas Piggin npiggin@gmail.com wrote:
+
+> On Thu, 28 Sep 2017 15:29:50 +0000 (UTC)
+> Mathieu Desnoyers <mathieu.desnoyers@efficios.com> wrote:
+> 
+>> ----- On Sep 28, 2017, at 11:01 AM, Nicholas Piggin npiggin@gmail.com wrote:
+>> 
+>> > On Thu, 28 Sep 2017 13:31:36 +0000 (UTC)
+>> > Mathieu Desnoyers <mathieu.desnoyers@efficios.com> wrote:
+>> >   
+>> >> ----- On Sep 27, 2017, at 9:04 AM, Nicholas Piggin npiggin@gmail.com wrote:
+>> >>   
+> 
+> [snip]
+> 
+>> >> So I don't see much point in trying to remove that registration step.
+>> > 
+>> > I don't follow you. You are talking about the concept of registering
+>> > intention to use a different function? And the registration API is not
+>> > merged yet?
+>> 
+>> Yes, I'm talking about requiring processes to invoke membarrier cmd
+>> MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED before they can successfully
+>> invoke membarrier cmd MEMBARRIER_CMD_PRIVATE_EXPEDITED.
+>> 
+>> > Let me say I'm not completely against the idea of a registration API. But
+>> > don't think registration for this expedited command is necessary.
+>> 
+>> Given that we have the powerpc lack-of-full-barrier-on-return-to-userspace
+>> case now, and we foresee x86-sysexit, sparc, and alpha also requiring
+>> special treatment when we introduce the MEMBARRIER_FLAG_SYNC_CORE behavior
+>> in the next release, it seems that we'll have a hard time handling
+>> architecture special cases efficiently if we don't expose the registration
+>> API right away.
+> 
+> But SYNC_CORE is a different functionality, right? You can add the
+> registration API for it when that goes in.
+
+Sure, I could. However, I was hoping to re-use the same command, with a
+"SYNC_CORE" flag, and I would have liked to have consistent behavior
+for same commands used with different flags.
+
+> 
+>> > But (aside) let's say a tif flag turns out to be a good diea for your
+>> > second case, why not just check the flag in the membarrier sys call and
+>> > do the registration the first time it uses it?
+>> 
+>> We also considered that option. It's mainly about guaranteeing that
+>> an expedited membarrier command never blocks. If we introduce this
+>> "lazy auto-registration" behavior, we end up blocking the process
+>> at a random point in its execution so we can issue a synchronize_sched().
+>> By exposing an explicit registration, we can control where this delay
+>> occurs, and even allow library constructors to invoke the registration
+>> while the process is a single threaded, therefore allowing us to completely
+>> skip synchronize_sched().
+> 
+> Okay I guess that could be a good reason. As I said I'm not opposed to
+> the concept. I suppose you could even have a registration for expedited
+> private even if it's a no-op on all architectures, just in case some new
+> ways of implementing it can be done in future.
+
+That's an approach I would be OK with too. Mandating explicit registration
+will give us much more flexibility.
+
+> I suppose I'm more objecting to the added complexity for powerpc, and
+> more code in the fastpath to make the slowpath faster.
+
+Just to make sure I understand your concern here. The "fastpath" you
+refer to is the TIF flag test in membarrier_sched_in() within
+finish_task_switch(), and the "slowpath" is switch_mm() which lacks
+the required full barrier now, am I correct ?
+
+Would it help if we invoke the membarrier hook from switch_mm()
+instead ? We'd therefore only add the TIF flag test in switch_mm(),
+rather than for every context switch.
+
+Thanks,
+
+Mathieu
 
 
-Dave Martin <Dave.Martin@arm.com> writes:
+> 
+> Thanks,
+> Nick
 
-> On Thu, Sep 14, 2017 at 10:45:07AM +0100, Alex Bennée wrote:
->>
->> Dave Martin <Dave.Martin@arm.com> writes:
->>
->> > This patch uses the cpufeatures framework to determine common SVE
->> > capabilities and vector lengths, and configures the runtime SVE
->> > support code appropriately.
->> >
->> > ZCR_ELx is not really a feature register, but it is convenient to
->> > use it as a template for recording the maximum vector length
->> > supported by a CPU, using the LEN field.  This field is similar to
->> > a feature field in that it is a contiguous bitfield for which we
->> > want to determine the minimum system-wide value.  This patch adds
->> > ZCR as a pseudo-register in cpuinfo/cpufeatures, with appropriate
->> > custom code to populate it.  Finding the minimum supported value of
->> > the LEN field is left to the cpufeatures framework in the usual
->> > way.
->> >
->> > The meaning of ID_AA64ZFR0_EL1 is not architecturally defined yet,
->> > so for now we just require it to be zero.
->> >
->> > Note that much of this code is dormant and SVE still won't be used
->> > yet, since system_supports_sve() remains hardwired to false.
->> >
->> > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
->> > Cc: Alex Bennée <alex.bennee@linaro.org>
->> > Cc: Suzuki K Poulose <Suzuki.Poulose@arm.com>
->> >
->> > ---
->> >
->> > Changes since v1
->> > ----------------
->> >
->> > Requested by Alex Bennée:
->> >
->> > * Thin out BUG_ON()s:
->> > Redundant BUG_ON()s and ones that just check invariants are removed.
->> > Important sanity-checks are migrated to WARN_ON()s, with some
->> > minimal best-effort patch-up code.
->> >
->> > Other changes related to Alex Bennée's comments:
->> >
->> > * Migrate away from magic numbers for converting VL to VQ.
->> >
->> > Requested by Suzuki Poulose:
->> >
->> > * Make sve_vq_map __ro_after_init.
->> >
->> > Other changes related to Suzuki Poulose's comments:
->> >
->> > * Rely on cpufeatures for not attempting to update the vq map after boot.
->> > ---
->> >  arch/arm64/include/asm/cpu.h        |   4 ++
->> >  arch/arm64/include/asm/cpufeature.h |  29 ++++++++++
->> >  arch/arm64/include/asm/fpsimd.h     |  10 ++++
->> >  arch/arm64/kernel/cpufeature.c      |  50 +++++++++++++++++
->> >  arch/arm64/kernel/cpuinfo.c         |   6 ++
->> >  arch/arm64/kernel/fpsimd.c          | 106 +++++++++++++++++++++++++++++++++++-
->> >  6 files changed, 202 insertions(+), 3 deletions(-)
->> >
->> > diff --git a/arch/arm64/include/asm/cpu.h b/arch/arm64/include/asm/cpu.h
->> > index 889226b..8839227 100644
->> > --- a/arch/arm64/include/asm/cpu.h
->> > +++ b/arch/arm64/include/asm/cpu.h
->> > @@ -41,6 +41,7 @@ struct cpuinfo_arm64 {
->> >  	u64		reg_id_aa64mmfr2;
->> >  	u64		reg_id_aa64pfr0;
->> >  	u64		reg_id_aa64pfr1;
->> > +	u64		reg_id_aa64zfr0;
->> >
->> >  	u32		reg_id_dfr0;
->> >  	u32		reg_id_isar0;
->> > @@ -59,6 +60,9 @@ struct cpuinfo_arm64 {
->> >  	u32		reg_mvfr0;
->> >  	u32		reg_mvfr1;
->> >  	u32		reg_mvfr2;
->> > +
->> > +	/* pseudo-ZCR for recording maximum ZCR_EL1 LEN value: */
->> > +	u64		reg_zcr;
->> >  };
->> >
->> >  DECLARE_PER_CPU(struct cpuinfo_arm64, cpu_data);
->> > diff --git a/arch/arm64/include/asm/cpufeature.h b/arch/arm64/include/asm/cpufeature.h
->> > index 4ea3441..d98e7ba 100644
->> > --- a/arch/arm64/include/asm/cpufeature.h
->> > +++ b/arch/arm64/include/asm/cpufeature.h
->> > @@ -10,7 +10,9 @@
->> >  #define __ASM_CPUFEATURE_H
->> >
->> >  #include <asm/cpucaps.h>
->> > +#include <asm/fpsimd.h>
->> >  #include <asm/hwcap.h>
->> > +#include <asm/sigcontext.h>
->> >  #include <asm/sysreg.h>
->> >
->> >  /*
->> > @@ -223,6 +225,13 @@ static inline bool id_aa64pfr0_32bit_el0(u64 pfr0)
->> >  	return val == ID_AA64PFR0_EL0_32BIT_64BIT;
->> >  }
->> >
->> > +static inline bool id_aa64pfr0_sve(u64 pfr0)
->> > +{
->> > +	u32 val = cpuid_feature_extract_unsigned_field(pfr0, ID_AA64PFR0_SVE_SHIFT);
->> > +
->> > +	return val > 0;
->> > +}
->> > +
->> >  void __init setup_cpu_features(void);
->> >
->> >  void update_cpu_capabilities(const struct arm64_cpu_capabilities *caps,
->> > @@ -267,6 +276,26 @@ static inline bool system_supports_sve(void)
->> >  	return false;
->> >  }
->> >
->> > +/*
->> > + * Read the pseudo-ZCR used by cpufeatures to identify the supported SVE
->> > + * vector length.
->> > + * Use only if SVE is present.  This function clobbers the SVE vector length.
->> > + */
->>
->> :nit whitespace formatting.
->
-> I'll add some newlines now to make this cleaner.
->
-> /*
->  * Read the pseudo-ZCR used by cpufeatures to identify the supported SVE
->  * vector length.
->  *
->  * Use only if SVE is present.
->  * This function clobbers the SVE vector length.
->  */
->
-> OK?
-
-Yep.
->
->>
->> > +static u64 __maybe_unused read_zcr_features(void)
->> > +{
->> > +	u64 zcr;
->> > +	unsigned int vq_max;
->> > +
->> > +	write_sysreg_s(ZCR_ELx_LEN_MASK, SYS_ZCR_EL1);
->>
->> I'm confused, why are we writing something here? You mention clobbering
->> the SVE vector length but what was the point?
->
-> Hmm, this deserves a comment -- coming back to this code, I had to think
-> about it.  Are the following extra comments sufficient explanation?
->
-> 	/*
-> 	 * Set the maximum possible VL, and write zeroes to all other
-> 	 * bits to see if they stick.
-> 	 */
-> 	write_sysreg_s(ZCR_ELx_LEN_MASK, SYS_ZCR_EL1);
->
-> 	zcr = read_sysreg_s(SYS_ZCR_EL1);
-> 	zcr &= ~(u64)ZCR_ELx_LEN_MASK; /* flag up sticky 1s outside LEN field */
-> 	vq_max = sve_vq_from_vl(sve_get_vl());
-> 	zcr |= vq_max - 1; /* set LEN field to maximum effective value */
->
->
-> [...]
-
-OK that makes more sense. Thanks.
->
->> Otherwise:
->>
->> Reviewed-by: Alex Bennée <alex.bennee@linaro.org>
->
-> I'll wait on your responses to the above first.
-
-Still good ;-)
-
->
-> Cheers
-> ---Dave
+-- 
+Mathieu Desnoyers
+EfficiOS Inc.
+http://www.efficios.com
