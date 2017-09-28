@@ -1,165 +1,177 @@
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH v2 19/28] arm64/sve: ptrace and ELF coredump support
-Date: Thu, 28 Sep 2017 15:57:18 +0100
-Message-ID: <20170928145717.GD3611@e103592.cambridge.arm.com>
-References: <1504198860-12951-1-git-send-email-Dave.Martin@arm.com>
- <1504198860-12951-20-git-send-email-Dave.Martin@arm.com>
- <87bmmda15n.fsf@linaro.org>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH v4 for 4.14 1/3] membarrier: Provide register expedited
+ private command
+Date: Fri, 29 Sep 2017 01:01:12 +1000
+Message-ID: <20170929010112.3a54be0d@roar.ozlabs.ibm.com>
+References: <20170926175151.14264-1-mathieu.desnoyers@efficios.com>
+        <33948425.19289.1506458608221.JavaMail.zimbra@efficios.com>
+        <20170927230436.4af88a62@roar.ozlabs.ibm.com>
+        <911707916.20840.1506605496314.JavaMail.zimbra@efficios.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:58942 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752357AbdI1O5X (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 28 Sep 2017 10:57:23 -0400
-Content-Disposition: inline
-In-Reply-To: <87bmmda15n.fsf@linaro.org>
+Received: from mail-pg0-f51.google.com ([74.125.83.51]:46667 "EHLO
+        mail-pg0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750763AbdI1PBe (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 28 Sep 2017 11:01:34 -0400
+In-Reply-To: <911707916.20840.1506605496314.JavaMail.zimbra@efficios.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>
-Cc: linux-arch@vger.kernel.org, libc-alpha@sourceware.org, gdb@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Yao Qi <Yao.Qi@arm.com>, Alan Hayward <alan.hayward@arm.com>, Will Deacon <will.deacon@arm.com>, Oleg Nesterov <oleg@redhat.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
+To: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Alexander Viro <viro@zeniv.linux.org.uk>, linux-arch <linux-arch@vger.kernel.org>, Avi Kivity <avi@scylladb.com>, maged michael <maged.michael@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Dave Watson <davejwatson@fb.com>, Will Deacon <will.deacon@arm.com>, linux-kernel <linux-kernel@vger.kernel.org>, Andrew Hunter <ahh@google.com>, Paul Mackerras <paulus@samba.org>, Andy Lutomirski <luto@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, gromer <gromer@google.com>
 
-On Thu, Sep 14, 2017 at 01:57:08PM +0100, Alex Bennée wrote:
+On Thu, 28 Sep 2017 13:31:36 +0000 (UTC)
+Mathieu Desnoyers <mathieu.desnoyers@efficios.com> wrote:
+
+> ----- On Sep 27, 2017, at 9:04 AM, Nicholas Piggin npiggin@gmail.com wrote:
 > 
-> Dave Martin <Dave.Martin@arm.com> writes:
+> > On Tue, 26 Sep 2017 20:43:28 +0000 (UTC)
+> > Mathieu Desnoyers <mathieu.desnoyers@efficios.com> wrote:
+> >   
+> >> ----- On Sep 26, 2017, at 1:51 PM, Mathieu Desnoyers
+> >> mathieu.desnoyers@efficios.com wrote:
+> >>   
+> >> > Provide a new command allowing processes to register their intent to use
+> >> > the private expedited command.
+> >> >     
+> >> 
+> >> I missed a few maintainers that should have been CC'd. Adding them now.
+> >> This patch is aimed to go through Paul E. McKenney's tree.  
+> > 
+> > Honestly this is pretty ugly new user API and fairly large amount of
+> > complexity just to avoid the powerpc barrier. And you end up with arch
+> > specific hooks anyway!
+> > 
+> > So my plan was to add an arch-overridable loop primitive that iterates
+> > over all running threads for an mm.  
 > 
-> > This patch defines and implements a new regset NT_ARM_SVE, which
-> > describes a thread's SVE register state.  This allows a debugger to
-> > manipulate the SVE state, as well as being included in ELF
-> > coredumps for post-mortem debugging.
-> >
-> > Because the regset size and layout are dependent on the thread's
-> > current vector length, it is not possible to define a C struct to
-> > describe the regset contents as is done for existing regsets.
-> > Instead, and for the same reasons, NT_ARM_SVE is based on the
-> > freeform variable-layout approach used for the SVE signal frame.
-> >
-> > Additionally, to reduce debug overhead when debugging threads that
-> > might or might not have live SVE register state, NT_ARM_SVE may be
-> > presented in one of two different formats: the old struct
-> > user_fpsimd_state format is embedded for describing the state of a
-> > thread with no live SVE state, whereas a new variable-layout
-> > structure is embedded for describing live SVE state.  This avoids a
-> > debugger needing to poll NT_PRFPREG in addition to NT_ARM_SVE, and
-> > allows existing userspace code to handle the non-SVE case without
-> > too much modification.
-> >
-> > For this to work, NT_ARM_SVE is defined with a fixed-format header
-> > of type struct user_sve_header, which the recipient can use to
-> > figure out the content, size and layout of the reset of the regset.
-> > Accessor macros are defined to allow the vector-length-dependent
-> > parts of the regset to be manipulated.
-> >
-> > Signed-off-by: Alan Hayward <alan.hayward@arm.com>
-> > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> > Cc: Alex Bennée <alex.bennee@linaro.org>
-> >
-> > ---
-> >
-> > Changes since v1
-> > ----------------
-> >
-> > Other changes related to Alex Bennée's comments:
-> >
-> > * Migrate to SVE_VQ_BYTES instead of magic numbers.
-> >
-> > Requested by Alex Bennée:
-> >
-> > * Thin out BUG_ON()s:
-> > Redundant BUG_ON()s and ones that just check invariants are removed.
-> > Important sanity-checks are migrated to WARN_ON()s, with some
-> > minimal best-effort patch-up code.
-> >
-> > Other:
-> >
-> > * [ABI fix] Bail out with -EIO if attempting to set the
-> > SVE regs for an unsupported VL, instead of misparsing the regset data.
-> >
-> > * Replace some in-kernel open-coded arithmetic with ALIGN()/
-> > DIV_ROUND_UP().
-> > ---
+> Iterating over all threads for an mm is one possible solution that has
+> been listed at the membarrier BOF at LPC. We ended up dismissing this
+> solution because it would not inefficient for processes which have
+> lots of threads (e.g. Java).
 
-[...]
+Sorry I meant hardware threads, I should have said "CPUs".
 
-> > diff --git a/arch/arm64/include/uapi/asm/ptrace.h b/arch/arm64/include/uapi/asm/ptrace.h
-> > index d1ff83d..1915ab0 100644
-> > --- a/arch/arm64/include/uapi/asm/ptrace.h
-> > +++ b/arch/arm64/include/uapi/asm/ptrace.h
-> > @@ -22,6 +22,7 @@
-> >  #include <linux/types.h>
-> >
-> >  #include <asm/hwcap.h>
-> > +#include <asm/sigcontext.h>
-> >
-> >
-> >  /*
-> > @@ -63,6 +64,8 @@
-> >
-> >  #ifndef __ASSEMBLY__
-> >
-> > +#include <linux/prctl.h>
-> > +
-> >  /*
-> >   * User structures for general purpose, floating point and debug registers.
-> >   */
-> > @@ -90,6 +93,138 @@ struct user_hwdebug_state {
-> >  	}		dbg_regs[16];
-> >  };
-> >
-> > +/* SVE/FP/SIMD state (NT_ARM_SVE) */
-> > +
-> > +struct user_sve_header {
-> > +	__u32 size; /* total meaningful regset content in bytes */
-> > +	__u32 max_size; /* maxmium possible size for this thread */
-> > +	__u16 vl; /* current vector length */
-> > +	__u16 max_vl; /* maximum possible vector length */
-> > +	__u16 flags;
-> > +	__u16 __reserved;
-> > +};
-> > +
-> > +/* Definitions for user_sve_header.flags: */
-> > +#define SVE_PT_REGS_MASK		(1 << 0)
-> > +
-> > +/* Flags: must be kept in sync with prctl interface in
-> > <linux/ptrace.h> */
 > 
-> Which flags? We base some on PR_foo flags but we seem to shift them
+> > powerpc will use its mm_cpumask for
+> > iterating and use runqueue locks to avoid the barrier.  
+> 
+> This is another solution which has been rejected during the LPC BOF.
+> 
+> What I gather from past threads is that the mm_cpumask's bits on powerpc
+> are pretty much only being set, never much cleared. Therefore, over the
+> lifetime of a thread which is not affined to specific processors, chances
+> are that this cpumask will end up having all cores on the system.
 
-All the prctl flags that have equivalents here, because they're part of
-the internal API to sve_set_vector_length().  It didn't quite seem
-appropriate to document that in a userspace header, but it's probably
-better to say something here than not.  I'll improve the comment.
+That's fine. If a user is not bound to a subset of CPUs, they could
+also cause disturbances with other syscalls and faults, taking locks,
+causing tlb flushes and IPIs and things.
 
-> anyway so where is the requirement for them to match from?
+> Therefore,
+> you end up with the same rq lock disruption as if you would iterate on all
+> online CPUs. If userspace does that in a loop, you end up, in PeterZ's words,
+> with an Insta-DoS.
 
-There is a bug here though: sve_set() in ptrace.c is supposed to shift
-the flags from header.flags (which is a u16) back into the
-PR_SVE_SET_VL position (<< 16) for the flags argument of
-sve_set_vector_length().  But this isn't done, so attempting to set (or
-restore) those flags through ptrace may resulting EINVALs from
-sve_set_vector_length().
+I really don't see how that can be true. spinlock by definition is for
+sharing of resources, it's not an insta-DoS just because you take shared
+spinlocks!
 
-I'll write a test for this case and implement a fix, something like...
+You can contend other common locks or resources too. Linux simply does not
+have guaranteed strict isolation particularly when you allow threads to be
+scheduled together on CPUs, so this can't be used arbitrarily.
 
--8<-
+If it was taking all locks at once that's one thing which has always been
+good policy to avoid. But it's not, any single rq lock will only be taken
+and released for a very short time, far shorter than a normal context
+switch. And the entire operation will be moderated by the cost of the
+syscall, and the number of runqueues it has to iterate.
 
- static int sve_set(struct task_struct *target,
-[...]
- 	ret = sve_set_vector_length(target, header.vl,
--				    header.flags & ~SVE_PT_REGS_MASK);
-+				    (header.flags & ~SVE_PT_REGS_MASK) << 16UL);
+There's better ways to cause DoS. Start lots of threads and burn cycles,
+bounce between CPUs with affinty, sleep and wake one another between remote
+CPUs etc. Run out of memory, cause hash collisions on various hashes that
+are easy to control, cause lots of TLB flush IPIs...
 
+The runqueue lock is not really special. Might equally complain about a
+zone page allocator or lru lock, or an inode mutex or common dentry lock.
 
-->8-
+> The name may sound cool, but I gather that this is not
+> a service the kernel willingly wants to provide to userspace.
+> 
+> A cunning process could easily find a way to fill its mm_cpumask and then
+> issue membarrier in a loop to bring a large system to its knees.
 
-What do you think?
+I still don't see how. Nothing that you couldn't do with other resources or
+configurations of threads and system calls. Sure you might cause a
+disturbance and admin might notice and kill it.
 
-[...]
+> 
+> > x86 will most
+> > likely want to use its mm_cpumask to iterate.  
+> 
+> Iterating on mm_cpumask rather than online cpus adds complexity wrt memory
+> barriers (unless we go for rq locks approach). We'd need, in addition to
+> ensure that we have the proper barriers before/after store to rq->curr,
+> to also ensure that we have the proper barriers between mm_cpumask
+> updates and user-space loads/stores. Considering that we're not aiming
+> at taking the rq locks anyway, iteration over all online cpus seems
+> less complex than iterating on mm_cpumask on the architectures that
+> keep track of it.
 
-> Reviewed-by: Alex Bennée <alex.bennee@linaro.org>
+Well x86 does not *have* to implement it. I thought it probably would
+like to, and I didn't think its barriers would have been all that
+complex when I last looked, but didn't look too closely.
 
-Again, I'll wait for your feedback first.
+> 
+> > 
+> > For the powerpc approach, yes there is some controversy about using
+> > runqueue locks even for cpus that we already can interfere with, but I
+> > think we have a lot of options we could look at *after* it ever shows
+> > up as a problem.  
+> 
+> The DoS argument from Peter seems to be a strong opposition to grabbing
+> the rq locks.
 
-Cheers
----Dave
+Well if I still can't unconvince you, then we should try testing that
+theory.
+
+> 
+> Here is another point in favor of having a register command for the
+> private membarrier: This gives us greater flexibility to improve the
+> kernel scheduler and return-to-userspace barriers if need be in the
+> future.
+> 
+> For instance, I plan to propose a "MEMBARRIER_FLAG_SYNC_CORE" flag
+> that will also provide guarantees about context synchronization of
+> all cores for memory reclaim performed by JIT for the next merge
+> window. So far, the following architectures seems to have the proper
+> core serializing instructions already in place when returning to
+> user-space: x86 (iret), powerpc (rfi), arm32/64 (return from exception,
+> eret), s390/x (lpswe), ia64 (rfi), parisc (issue at least 7 instructions
+> while signing around a bonfire), and mips SMP (eret).
+> 
+> So far, AFAIU, only x86 (eventually going through sysexit), alpha
+> (appears to require an explicit imb), and sparc (explicit flush + 5
+> instructions around similar bonfire as parisc) appear to require special
+> handling.
+> 
+> I therefore plan to use the registration step with a
+> MEMBARRIER_FLAG_SYNC_CORE flag set to set TIF flags and add the
+> required context synchronizing barriers on sched_in() only for
+> processes wishing to use private expedited membarrier.
+> 
+> So I don't see much point in trying to remove that registration step.
+
+I don't follow you. You are talking about the concept of registering
+intention to use a different function? And the registration API is not
+merged yet?
+
+Let me say I'm not completely against the idea of a registration API. But
+don't think registration for this expedited command is necessary.
+
+But (aside) let's say a tif flag turns out to be a good diea for your
+second case, why not just check the flag in the membarrier sys call and
+do the registration the first time it uses it?
+
+Thanks,
+Nick
