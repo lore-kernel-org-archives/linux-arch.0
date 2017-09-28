@@ -1,179 +1,53 @@
-From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Subject: [RFC PATCH for 4.14] membarrier powerpc: Move hook to switch_mm()
-Date: Thu, 28 Sep 2017 16:21:27 -0400
-Message-ID: <20170928202127.18472-1-mathieu.desnoyers@efficios.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.efficios.com ([167.114.142.141]:50698 "EHLO
-        mail.efficios.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750880AbdI1UVv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 28 Sep 2017 16:21:51 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E . McKenney" <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Nicholas Piggin <npiggin@gmail.com>
-Cc: linux-kernel@vger.kernel.org, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Boqun Feng <boqun.feng@gmail.com>, Andrew Hunter <ahh@google.com>, Maged Michael <maged.michael@gmail.com>, gromer@google.com, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Watson <davejwatson@fb.com>, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Alexander Viro <viro@zeniv.linux.org.uk>, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org
+From: Borislav Petkov <bp@suse.de>
+Subject: Re: [Part1 PATCH v5 15/17] percpu: Introduce DEFINE_PER_CPU_DECRYPTED
+Date: Thu, 28 Sep 2017 22:32:19 +0200
+Message-ID: <20170928203219.7xzy3cnzgdraaic3@pd.tnic>
+References: <20170927151329.70011-1-brijesh.singh@amd.com>
+ <20170927151329.70011-16-brijesh.singh@amd.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20170927151329.70011-16-brijesh.singh@amd.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Brijesh Singh <brijesh.singh@amd.com>
+Cc: kvm@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@linux.com>, linux-arch@vger.kernel.org, Tom Lendacky <thomas.lendacky@amd.com>
+List-Id: linux-arch.vger.kernel.org
 
-Nick has a valid point that the sched_in() hook is a fast-path compared
-to switch_mm(). Adding an extra TIF test in a fast-path to save a
-barrier in a comparatively slow-path is therefore not such a good idea
-overall.
+On Wed, Sep 27, 2017 at 10:13:27AM -0500, Brijesh Singh wrote:
+> KVM guest defines three per-CPU variables (steal-time, apf_reason, and
+> avic_eio) which are shared between a guest and a hypervisor. When SEV
+> is active, memory is encrypted with a guest-specific key, and if the
+> guest OS wants to share the memory region with the hypervisor then it
+> must clear the C-bit (i.e set decrypted) before sharing it.
+> 
+> DEFINE_PER_CPU_DECRYPTED can be used to define the per-CPU variables
+> which will be shared between a guest and a hypervisor.
+> 
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Cc: Ingo Molnar <mingo@redhat.com>
+> Cc: "H. Peter Anvin" <hpa@zytor.com>
+> Cc: Borislav Petkov <bp@suse.de>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: Tejun Heo <tj@kernel.org>
+> Cc: Christoph Lameter <cl@linux.com>
+> Cc: linux-arch@vger.kernel.org
+> Cc: x86@kernel.org
+> Cc: linux-kernel@vger.kernel.org
+> Cc: Tom Lendacky <thomas.lendacky@amd.com>
+> Signed-off-by: Brijesh Singh <brijesh.singh@amd.com>
+> Acked-by: Tejun Heo <tj@kernel.org>
+> ---
+>  include/asm-generic/vmlinux.lds.h | 19 +++++++++++++++++++
+>  include/linux/percpu-defs.h       | 15 +++++++++++++++
+>  2 files changed, 34 insertions(+)
 
-Therefore, move the architecture hook to switch_mm() instead.
+Reviewed-by: Borislav Petkov <bp@suse.de>
 
-[ This patch is aimed at Paul's tree. It applies on top of
-  "membarrier: Provide register expedited private command (v4)" and
-  "membarrier: Document scheduler barrier requirements (v4)". ]
-
-Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-CC: Peter Zijlstra <peterz@infradead.org>
-CC: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-CC: Nicholas Piggin <npiggin@gmail.com>
-CC: Boqun Feng <boqun.feng@gmail.com>
-CC: Andrew Hunter <ahh@google.com>
-CC: Maged Michael <maged.michael@gmail.com>
-CC: gromer@google.com
-CC: Avi Kivity <avi@scylladb.com>
-CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-CC: Paul Mackerras <paulus@samba.org>
-CC: Michael Ellerman <mpe@ellerman.id.au>
-CC: Dave Watson <davejwatson@fb.com>
-CC: Alan Stern <stern@rowland.harvard.edu>
-CC: Will Deacon <will.deacon@arm.com>
-CC: Andy Lutomirski <luto@kernel.org>
-CC: Ingo Molnar <mingo@redhat.com>
-CC: Alexander Viro <viro@zeniv.linux.org.uk>
-CC: linuxppc-dev@lists.ozlabs.org
-CC: linux-arch@vger.kernel.org
----
- arch/powerpc/include/asm/membarrier.h |  9 ++++-----
- arch/powerpc/mm/mmu_context.c         |  7 +++++++
- include/linux/sched/mm.h              | 13 ++++---------
- kernel/sched/core.c                   |  6 ++----
- 4 files changed, 17 insertions(+), 18 deletions(-)
-
-diff --git a/arch/powerpc/include/asm/membarrier.h b/arch/powerpc/include/asm/membarrier.h
-index 588154c1cf57..61152a7a3cf9 100644
---- a/arch/powerpc/include/asm/membarrier.h
-+++ b/arch/powerpc/include/asm/membarrier.h
-@@ -1,8 +1,8 @@
- #ifndef _ASM_POWERPC_MEMBARRIER_H
- #define _ASM_POWERPC_MEMBARRIER_H
- 
--static inline void membarrier_arch_sched_in(struct task_struct *prev,
--		struct task_struct *next)
-+static inline void membarrier_arch_switch_mm(struct mm_struct *prev,
-+		struct mm_struct *next, struct task_struct *tsk)
- {
- 	/*
- 	 * Only need the full barrier when switching between processes.
-@@ -11,9 +11,8 @@ static inline void membarrier_arch_sched_in(struct task_struct *prev,
- 	 * when switching from userspace to kernel is not needed after
- 	 * store to rq->curr.
- 	 */
--	if (likely(!test_ti_thread_flag(task_thread_info(next),
--			TIF_MEMBARRIER_PRIVATE_EXPEDITED)
--			|| !prev->mm || prev->mm == next->mm))
-+	if (likely(!test_ti_thread_flag(task_thread_info(tsk),
-+			TIF_MEMBARRIER_PRIVATE_EXPEDITED) || !prev))
- 		return;
- 
- 	/*
-diff --git a/arch/powerpc/mm/mmu_context.c b/arch/powerpc/mm/mmu_context.c
-index 0f613bc63c50..22f5c91cdc38 100644
---- a/arch/powerpc/mm/mmu_context.c
-+++ b/arch/powerpc/mm/mmu_context.c
-@@ -12,6 +12,7 @@
- 
- #include <linux/mm.h>
- #include <linux/cpu.h>
-+#include <linux/sched/mm.h>
- 
- #include <asm/mmu_context.h>
- 
-@@ -67,6 +68,10 @@ void switch_mm_irqs_off(struct mm_struct *prev, struct mm_struct *next,
- 		 *
- 		 * On the read side the barrier is in pte_xchg(), which orders
- 		 * the store to the PTE vs the load of mm_cpumask.
-+		 *
-+		 * This full barrier is needed by membarrier when switching
-+		 * between processes after store to rq->curr, before user-space
-+		 * memory accesses.
- 		 */
- 		smp_mb();
- 
-@@ -89,6 +94,8 @@ void switch_mm_irqs_off(struct mm_struct *prev, struct mm_struct *next,
- 
- 	if (new_on_cpu)
- 		radix_kvm_prefetch_workaround(next);
-+	else
-+		membarrier_arch_switch_mm(prev, next, tsk);
- 
- 	/*
- 	 * The actual HW switching method differs between the various
-diff --git a/include/linux/sched/mm.h b/include/linux/sched/mm.h
-index 1bd10c2c0893..d5a9ab8f3836 100644
---- a/include/linux/sched/mm.h
-+++ b/include/linux/sched/mm.h
-@@ -215,8 +215,8 @@ static inline void memalloc_noreclaim_restore(unsigned int flags)
- #ifdef CONFIG_ARCH_HAS_MEMBARRIER_HOOKS
- #include <asm/membarrier.h>
- #else
--static inline void membarrier_arch_sched_in(struct task_struct *prev,
--		struct task_struct *next)
-+static inline void membarrier_arch_switch_mm(struct mm_struct *prev,
-+		struct mm_struct *next, struct task_struct *tsk)
- {
- }
- static inline void membarrier_arch_fork(struct task_struct *t,
-@@ -232,11 +232,6 @@ static inline void membarrier_arch_register_private_expedited(
- }
- #endif
- 
--static inline void membarrier_sched_in(struct task_struct *prev,
--		struct task_struct *next)
--{
--	membarrier_arch_sched_in(prev, next);
--}
- static inline void membarrier_fork(struct task_struct *t,
- 		unsigned long clone_flags)
- {
-@@ -252,8 +247,8 @@ static inline void membarrier_execve(struct task_struct *t)
- 	membarrier_arch_execve(t);
- }
- #else
--static inline void membarrier_sched_in(struct task_struct *prev,
--		struct task_struct *next)
-+static inline void membarrier_arch_switch_mm(struct mm_struct *prev,
-+		struct mm_struct *next, struct task_struct *tsk)
- {
- }
- static inline void membarrier_fork(struct task_struct *t,
-diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index 6254f87645de..8585abebe32b 100644
---- a/kernel/sched/core.c
-+++ b/kernel/sched/core.c
-@@ -2643,7 +2643,6 @@ static struct rq *finish_task_switch(struct task_struct *prev)
- 	 */
- 	prev_state = prev->state;
- 	vtime_task_switch(prev);
--	membarrier_sched_in(prev, current);
- 	perf_event_task_sched_in(prev, current);
- 	finish_lock_switch(rq, prev);
- 	finish_arch_post_lock_switch();
-@@ -3357,13 +3356,12 @@ static void __sched notrace __schedule(bool preempt)
- 		 *
- 		 * Here are the schemes providing that barrier on the
- 		 * various architectures:
--		 * - mm ? switch_mm() : mmdrop() for x86, s390, sparc,
-+		 * - mm ? switch_mm() : mmdrop() for x86, s390, sparc, PowerPC.
-+		 *   switch_mm() rely on membarrier_arch_switch_mm() on PowerPC.
- 		 * - finish_lock_switch() for weakly-ordered
- 		 *   architectures where spin_unlock is a full barrier,
- 		 * - switch_to() for arm64 (weakly-ordered, spin_unlock
- 		 *   is a RELEASE barrier),
--		 * - membarrier_arch_sched_in() for PowerPC,
--		 *   (weakly-ordered, spin_unlock is a RELEASE barrier).
- 		 */
- 		++*switch_count;
- 
 -- 
-2.11.0
+Regards/Gruss,
+    Boris.
+
+SUSE Linux GmbH, GF: Felix Imendörffer, Jane Smithard, Graham Norton, HRB 21284 (AG Nürnberg)
+-- 
