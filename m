@@ -1,157 +1,201 @@
-From: Richard Ruigrok <rruigrok@codeaurora.org>
-Subject: Re: [RFC PATCH 0/2] Missing READ_ONCE in core and arch-specific
- pgtable code leading to crashes
-Date: Thu, 28 Sep 2017 11:30:03 -0600
-Message-ID: <7b9537f3-37dc-5b01-4ee0-2a350456e6d5@codeaurora.org>
-References: <1506527369-19535-1-git-send-email-will.deacon@arm.com>
+From: Alex =?utf-8?Q?Benn=C3=A9e?= <alex.bennee@linaro.org>
+Subject: Re: [PATCH v2 16/28] arm64/sve: Probe SVE capabilities and usable vector lengths
+Date: Thu, 28 Sep 2017 18:32:16 +0100
+Message-ID: <87k20id90f.fsf@linaro.org>
+References: <1504198860-12951-1-git-send-email-Dave.Martin@arm.com> <1504198860-12951-17-git-send-email-Dave.Martin@arm.com> <87fubpaa1o.fsf@linaro.org> <20170928142212.GB3611@e103592.cambridge.arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1506527369-19535-1-git-send-email-will.deacon@arm.com>
-Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: Will Deacon <will.deacon@arm.com>, peterz@infradead.org, paulmck@linux.vnet.ibm.com, kirill.shutemov@linux.intel.com
-Cc: linux-kernel@vger.kernel.org, ynorov@caviumnetworks.com, linux-arch@vger.kernel.org, akpm@linux-foundation.org, catalin.marinas@arm.com
-List-Id: linux-arch.vger.kernel.org
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wr0-f181.google.com ([209.85.128.181]:43765 "EHLO
+        mail-wr0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751945AbdI1RcZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 28 Sep 2017 13:32:25 -0400
+Received: by mail-wr0-f181.google.com with SMTP id a43so4012782wrc.0
+        for <linux-arch@vger.kernel.org>; Thu, 28 Sep 2017 10:32:25 -0700 (PDT)
+In-reply-to: <20170928142212.GB3611@e103592.cambridge.arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Suzuki K Poulose <Suzuki.Poulose@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
 
 
+Dave Martin <Dave.Martin@arm.com> writes:
 
-On 9/27/2017 9:49 AM, Will Deacon wrote:
-> Hi,
+> On Thu, Sep 14, 2017 at 10:45:07AM +0100, Alex Bennée wrote:
+>>
+>> Dave Martin <Dave.Martin@arm.com> writes:
+>>
+>> > This patch uses the cpufeatures framework to determine common SVE
+>> > capabilities and vector lengths, and configures the runtime SVE
+>> > support code appropriately.
+>> >
+>> > ZCR_ELx is not really a feature register, but it is convenient to
+>> > use it as a template for recording the maximum vector length
+>> > supported by a CPU, using the LEN field.  This field is similar to
+>> > a feature field in that it is a contiguous bitfield for which we
+>> > want to determine the minimum system-wide value.  This patch adds
+>> > ZCR as a pseudo-register in cpuinfo/cpufeatures, with appropriate
+>> > custom code to populate it.  Finding the minimum supported value of
+>> > the LEN field is left to the cpufeatures framework in the usual
+>> > way.
+>> >
+>> > The meaning of ID_AA64ZFR0_EL1 is not architecturally defined yet,
+>> > so for now we just require it to be zero.
+>> >
+>> > Note that much of this code is dormant and SVE still won't be used
+>> > yet, since system_supports_sve() remains hardwired to false.
+>> >
+>> > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+>> > Cc: Alex Bennée <alex.bennee@linaro.org>
+>> > Cc: Suzuki K Poulose <Suzuki.Poulose@arm.com>
+>> >
+>> > ---
+>> >
+>> > Changes since v1
+>> > ----------------
+>> >
+>> > Requested by Alex Bennée:
+>> >
+>> > * Thin out BUG_ON()s:
+>> > Redundant BUG_ON()s and ones that just check invariants are removed.
+>> > Important sanity-checks are migrated to WARN_ON()s, with some
+>> > minimal best-effort patch-up code.
+>> >
+>> > Other changes related to Alex Bennée's comments:
+>> >
+>> > * Migrate away from magic numbers for converting VL to VQ.
+>> >
+>> > Requested by Suzuki Poulose:
+>> >
+>> > * Make sve_vq_map __ro_after_init.
+>> >
+>> > Other changes related to Suzuki Poulose's comments:
+>> >
+>> > * Rely on cpufeatures for not attempting to update the vq map after boot.
+>> > ---
+>> >  arch/arm64/include/asm/cpu.h        |   4 ++
+>> >  arch/arm64/include/asm/cpufeature.h |  29 ++++++++++
+>> >  arch/arm64/include/asm/fpsimd.h     |  10 ++++
+>> >  arch/arm64/kernel/cpufeature.c      |  50 +++++++++++++++++
+>> >  arch/arm64/kernel/cpuinfo.c         |   6 ++
+>> >  arch/arm64/kernel/fpsimd.c          | 106 +++++++++++++++++++++++++++++++++++-
+>> >  6 files changed, 202 insertions(+), 3 deletions(-)
+>> >
+>> > diff --git a/arch/arm64/include/asm/cpu.h b/arch/arm64/include/asm/cpu.h
+>> > index 889226b..8839227 100644
+>> > --- a/arch/arm64/include/asm/cpu.h
+>> > +++ b/arch/arm64/include/asm/cpu.h
+>> > @@ -41,6 +41,7 @@ struct cpuinfo_arm64 {
+>> >  	u64		reg_id_aa64mmfr2;
+>> >  	u64		reg_id_aa64pfr0;
+>> >  	u64		reg_id_aa64pfr1;
+>> > +	u64		reg_id_aa64zfr0;
+>> >
+>> >  	u32		reg_id_dfr0;
+>> >  	u32		reg_id_isar0;
+>> > @@ -59,6 +60,9 @@ struct cpuinfo_arm64 {
+>> >  	u32		reg_mvfr0;
+>> >  	u32		reg_mvfr1;
+>> >  	u32		reg_mvfr2;
+>> > +
+>> > +	/* pseudo-ZCR for recording maximum ZCR_EL1 LEN value: */
+>> > +	u64		reg_zcr;
+>> >  };
+>> >
+>> >  DECLARE_PER_CPU(struct cpuinfo_arm64, cpu_data);
+>> > diff --git a/arch/arm64/include/asm/cpufeature.h b/arch/arm64/include/asm/cpufeature.h
+>> > index 4ea3441..d98e7ba 100644
+>> > --- a/arch/arm64/include/asm/cpufeature.h
+>> > +++ b/arch/arm64/include/asm/cpufeature.h
+>> > @@ -10,7 +10,9 @@
+>> >  #define __ASM_CPUFEATURE_H
+>> >
+>> >  #include <asm/cpucaps.h>
+>> > +#include <asm/fpsimd.h>
+>> >  #include <asm/hwcap.h>
+>> > +#include <asm/sigcontext.h>
+>> >  #include <asm/sysreg.h>
+>> >
+>> >  /*
+>> > @@ -223,6 +225,13 @@ static inline bool id_aa64pfr0_32bit_el0(u64 pfr0)
+>> >  	return val == ID_AA64PFR0_EL0_32BIT_64BIT;
+>> >  }
+>> >
+>> > +static inline bool id_aa64pfr0_sve(u64 pfr0)
+>> > +{
+>> > +	u32 val = cpuid_feature_extract_unsigned_field(pfr0, ID_AA64PFR0_SVE_SHIFT);
+>> > +
+>> > +	return val > 0;
+>> > +}
+>> > +
+>> >  void __init setup_cpu_features(void);
+>> >
+>> >  void update_cpu_capabilities(const struct arm64_cpu_capabilities *caps,
+>> > @@ -267,6 +276,26 @@ static inline bool system_supports_sve(void)
+>> >  	return false;
+>> >  }
+>> >
+>> > +/*
+>> > + * Read the pseudo-ZCR used by cpufeatures to identify the supported SVE
+>> > + * vector length.
+>> > + * Use only if SVE is present.  This function clobbers the SVE vector length.
+>> > + */
+>>
+>> :nit whitespace formatting.
 >
-> We recently had a crash report[1] on arm64 that involved a bad dereference
-> in the page_vma_mapped code during ext4 writeback with THP active. I can
-> reproduce this on -rc2:
+> I'll add some newlines now to make this cleaner.
 >
-> [  254.032812] PC is at check_pte+0x20/0x170
-> [  254.032948] LR is at page_vma_mapped_walk+0x2e0/0x540
+> /*
+>  * Read the pseudo-ZCR used by cpufeatures to identify the supported SVE
+>  * vector length.
+>  *
+>  * Use only if SVE is present.
+>  * This function clobbers the SVE vector length.
+>  */
+>
+> OK?
+
+Yep.
+>
+>>
+>> > +static u64 __maybe_unused read_zcr_features(void)
+>> > +{
+>> > +	u64 zcr;
+>> > +	unsigned int vq_max;
+>> > +
+>> > +	write_sysreg_s(ZCR_ELx_LEN_MASK, SYS_ZCR_EL1);
+>>
+>> I'm confused, why are we writing something here? You mention clobbering
+>> the SVE vector length but what was the point?
+>
+> Hmm, this deserves a comment -- coming back to this code, I had to think
+> about it.  Are the following extra comments sufficient explanation?
+>
+> 	/*
+> 	 * Set the maximum possible VL, and write zeroes to all other
+> 	 * bits to see if they stick.
+> 	 */
+> 	write_sysreg_s(ZCR_ELx_LEN_MASK, SYS_ZCR_EL1);
+>
+> 	zcr = read_sysreg_s(SYS_ZCR_EL1);
+> 	zcr &= ~(u64)ZCR_ELx_LEN_MASK; /* flag up sticky 1s outside LEN field */
+> 	vq_max = sve_vq_from_vl(sve_get_vl());
+> 	zcr |= vq_max - 1; /* set LEN field to maximum effective value */
+>
+>
 > [...]
-> [  254.036114] Process doio (pid: 2463, stack limit = 0xffff00000f2e8000)
-> [  254.036361] Call trace:
-> [  254.038977] [<ffff000008233328>] check_pte+0x20/0x170
-> [  254.039137] [<ffff000008233758>] page_vma_mapped_walk+0x2e0/0x540
-> [  254.039332] [<ffff000008234adc>] page_mkclean_one+0xac/0x278
-> [  254.039489] [<ffff000008234d98>] rmap_walk_file+0xf0/0x238
-> [  254.039642] [<ffff000008236e74>] rmap_walk+0x64/0xa0
-> [  254.039784] [<ffff0000082370c8>] page_mkclean+0x90/0xa8
-> [  254.040029] [<ffff0000081f3c64>] clear_page_dirty_for_io+0x84/0x2a8
-> [  254.040311] [<ffff00000832f984>] mpage_submit_page+0x34/0x98
-> [  254.040518] [<ffff00000832fb4c>] mpage_process_page_bufs+0x164/0x170
-> [  254.040743] [<ffff00000832fc8c>] mpage_prepare_extent_to_map+0x134/0x2b8
-> [  254.040969] [<ffff00000833530c>] ext4_writepages+0x484/0xe30
-> [  254.041175] [<ffff0000081f6ab4>] do_writepages+0x44/0xe8
-> [  254.041372] [<ffff0000081e5bd4>] __filemap_fdatawrite_range+0xbc/0x110
-> [  254.041568] [<ffff0000081e5e68>] file_write_and_wait_range+0x48/0xd8
-> [  254.041739] [<ffff000008324310>] ext4_sync_file+0x80/0x4b8
-> [  254.041907] [<ffff0000082bd434>] vfs_fsync_range+0x64/0xc0
-> [  254.042106] [<ffff0000082332b4>] SyS_msync+0x194/0x1e8
->
-> After digging into the issue, I found that we appear to be racing with
-> a concurrent pmd update in page_vma_mapped_walk, assumedly due a THP
-> splitting operation. Looking at the code there:
->
-> 	pvmw->pmd = pmd_offset(pud, pvmw->address);
-> 	if (pmd_trans_huge(*pvmw->pmd) || is_pmd_migration_entry(*pvmw->pmd)) {
-> 		[...]
-> 	} else {
-> 		if (!check_pmd(pvmw))
-> 			return false;
-> 	}
-> 	if (!map_pte(pvmw))
-> 		goto next_pte;
->
-> what happens in the crashing scenario is that we see all zeroes for the
-> PMD in pmd_trans_huge(*pvmw->pmd), and so go to the 'else' case (migration
-> isn't enabled, so the test is removed at compile-time). check_pmd then does:
->
-> 	pmde = READ_ONCE(*pvmw->pmd);
-> 	return pmd_present(pmde) && !pmd_trans_huge(pmde);
->
-> and reads a valid table entry for the PMD because the splitting has completed
-> (i.e. the first dereference reads from the pmdp_invalidate in the splitting
-> code, whereas the second dereferenced reads from the following pmd_populate).
-> It returns true because we should descend to the PTE level in map_pte. map_pte
-> does:
->
-> 	pvmw->pte = pte_offset_map(pvmw->pmd, pvmw->address);
->
-> which on arm64 (and this appears to be the same on x86) ends up doing:
->
-> 	(pmd_page_paddr((*(pvmw->pmd))) + pte_index(pvmw->address) * sizeof(pte_t))
->
-> as part of its calculation. However, this is horribly broken because GCC
-> inlines everything and reuses the register it loaded for the initial
-> pmd_trans_huge check (when we loaded the value of zero) here, so we end up
-> calculating a junk pointer and crashing when we dereference it. Disassembly
-> at the end of the mail[2] for those who are curious.
->
-> The moral of the story is that read-after-read (same address) ordering *only*
-> applies if READ_ONCE is used consistently. This means we need to fix page
-> table dereferences in the core code as well as the arch code to avoid this
-> problem. The two RFC patches in this series fix arm64 (which is a bigger fix
-> that necessary since I clean things up too) and page_vma_mapped_walk.
->
-> Comments welcome.
-Hi Will,
-This fix works for me, tested with LTP rwtest 15 iterations on Qualcomm Centiq2400.
-Compiler: gcc version 5.2.1 20151005 (Linaro GCC 5.2-2015.11-1)
 
-Tested-by: Richard Ruigrok <rruigrok@codeaurora.org>
+OK that makes more sense. Thanks.
+>
+>> Otherwise:
+>>
+>> Reviewed-by: Alex Bennée <alex.bennee@linaro.org>
+>
+> I'll wait on your responses to the above first.
 
-Thanks,
-Richard
-> Will
->
-> [1] http://lists.infradead.org/pipermail/linux-arm-kernel/2017-September/532786.html
-> [2]
->
-> // page_vma_mapped_walk
-> // pvmw->pmd = pmd_offset(pud, pvmw->address);
-> ldr     x0, [x19, #24]		// pvmw->pmd
->
-> // if (pmd_trans_huge(*pvmw->pmd) || is_pmd_migration_entry(*pvmw->pmd)) {
-> ldr     x1, [x0]		// *pvmw->pmd
-> cbz     x1, ffff0000082336a0 <page_vma_mapped_walk+0x228>
-> tbz     w1, #1, ffff000008233788 <page_vma_mapped_walk+0x310>	// pmd_trans_huge?
->
-> // else if (!check_pmd(pvmw))
-> ldr     x0, [x0]		// READ_ONCE in check_pmd
-> tst     x0, x24			// pmd_present?
-> b.eq    ffff000008233538 <page_vma_mapped_walk+0xc0>  // b.none
-> tbz     w0, #1, ffff000008233538 <page_vma_mapped_walk+0xc0>	// pmd_trans_huge?
->
-> // if (!map_pte(pvmw))
-> ldr     x0, [x19, #16]		// pvmw->address
->
-> // pvmw->pte = pte_offset_map(pvmw->pmd, pvmw->address);
-> and     x1, x1, #0xfffffffff000	// Reusing the old value of *pvmw->pmd!!!
-> [...]
->
-> --->8
->
-> Will Deacon (2):
->   arm64: mm: Use READ_ONCE/WRITE_ONCE when accessing page tables
->   mm: page_vma_mapped: Ensure pmd is loaded with READ_ONCE outside of
->     lock
->
->  arch/arm64/include/asm/hugetlb.h     |   2 +-
->  arch/arm64/include/asm/kvm_mmu.h     |  18 +--
->  arch/arm64/include/asm/mmu_context.h |   4 +-
->  arch/arm64/include/asm/pgalloc.h     |  42 +++---
->  arch/arm64/include/asm/pgtable.h     |  29 ++--
->  arch/arm64/kernel/hibernate.c        | 148 +++++++++---------
->  arch/arm64/mm/dump.c                 |  54 ++++---
->  arch/arm64/mm/fault.c                |  44 +++---
->  arch/arm64/mm/hugetlbpage.c          |  94 ++++++------
->  arch/arm64/mm/kasan_init.c           |  62 ++++----
->  arch/arm64/mm/mmu.c                  | 281 ++++++++++++++++++-----------------
->  arch/arm64/mm/pageattr.c             |  30 ++--
->  mm/page_vma_mapped.c                 |  25 ++--
->  13 files changed, 427 insertions(+), 406 deletions(-)
->
+Still good ;-)
 
--- 
-Qualcomm Datacenter Technologies as an affiliate of Qualcomm Technologies, Inc.
-Qualcomm Technologies, Inc. is a member of the
-Code Aurora Forum, a Linux Foundation Collaborative Project.
+>
+> Cheers
+> ---Dave
