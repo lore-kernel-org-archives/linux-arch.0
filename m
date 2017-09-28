@@ -1,134 +1,65 @@
-From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Subject: Re: [PATCH v4 for 4.14 1/3] membarrier: Provide register expedited
- private command
-Date: Thu, 28 Sep 2017 15:29:50 +0000 (UTC)
-Message-ID: <634837506.21241.1506612590749.JavaMail.zimbra@efficios.com>
-References: <20170926175151.14264-1-mathieu.desnoyers@efficios.com> <33948425.19289.1506458608221.JavaMail.zimbra@efficios.com> <20170927230436.4af88a62@roar.ozlabs.ibm.com> <911707916.20840.1506605496314.JavaMail.zimbra@efficios.com> <20170929010112.3a54be0d@roar.ozlabs.ibm.com>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [RFC PATCH 1/2] arm64: mm: Use READ_ONCE/WRITE_ONCE when
+ accessing page tables
+Date: Thu, 28 Sep 2017 08:43:54 -0700
+Message-ID: <20170928154354.GK3521@linux.vnet.ibm.com>
+References: <1506527369-19535-1-git-send-email-will.deacon@arm.com>
+ <1506527369-19535-2-git-send-email-will.deacon@arm.com>
+ <20170928083801.m6rb4frbbgzgam2o@hirez.programming.kicks-ass.net>
+ <20170928084535.GA19060@arm.com>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.efficios.com ([167.114.142.141]:47191 "EHLO
-        mail.efficios.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750775AbdI1P2j (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 28 Sep 2017 11:28:39 -0400
-In-Reply-To: <20170929010112.3a54be0d@roar.ozlabs.ibm.com>
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:38266 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S932113AbdI1PoC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 28 Sep 2017 11:44:02 -0400
+Received: from pps.filterd (m0098394.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id v8SFgwJE008321
+        for <linux-arch@vger.kernel.org>; Thu, 28 Sep 2017 11:44:02 -0400
+Received: from e15.ny.us.ibm.com (e15.ny.us.ibm.com [129.33.205.205])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2d93yc02x2-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Thu, 28 Sep 2017 11:44:01 -0400
+Received: from localhost
+        by e15.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+        Thu, 28 Sep 2017 11:44:00 -0400
+Content-Disposition: inline
+In-Reply-To: <20170928084535.GA19060@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Alexander Viro <viro@zeniv.linux.org.uk>, linux-arch <linux-arch@vger.kernel.org>, Avi Kivity <avi@scylladb.com>, maged michael <maged.michael@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Dave Watson <davejwatson@fb.com>, Will Deacon <will.deacon@arm.com>, linux-kernel <linux-kernel@vger.kernel.org>, Andrew Hunter <ahh@google.com>, Paul Mackerras <paulus@samba.org>, Andy Lutomirski <luto@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, gromer <gromer@google.com>
+To: Will Deacon <will.deacon@arm.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, kirill.shutemov@linux.intel.com, linux-kernel@vger.kernel.org, ynorov@caviumnetworks.com, rruigrok@codeaurora.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, catalin.marinas@arm.com, rth@twiddle.net, ink@jurassic.park.msu.ru, mattst88@gmail.com, linux-alpha@vger.kernel.org
 
------ On Sep 28, 2017, at 11:01 AM, Nicholas Piggin npiggin@gmail.com wrote:
-
-> On Thu, 28 Sep 2017 13:31:36 +0000 (UTC)
-> Mathieu Desnoyers <mathieu.desnoyers@efficios.com> wrote:
+On Thu, Sep 28, 2017 at 09:45:35AM +0100, Will Deacon wrote:
+> On Thu, Sep 28, 2017 at 10:38:01AM +0200, Peter Zijlstra wrote:
+> > On Wed, Sep 27, 2017 at 04:49:28PM +0100, Will Deacon wrote:
+> > > In many cases, page tables can be accessed concurrently by either another
+> > > CPU (due to things like fast gup) or by the hardware page table walker
+> > > itself, which may set access/dirty bits. In such cases, it is important
+> > > to use READ_ONCE/WRITE_ONCE when accessing page table entries so that
+> > > entries cannot be torn, merged or subject to apparent loss of coherence.
+> > 
+> > In fact, we should use lockless_dereference() for many of them. Yes
+> > Alpha is the only one that cares about the difference between that and
+> > READ_ONCE() and they do have the extra barrier, but if we're going to do
+> > this, we might as well do it 'right' :-)
 > 
->> ----- On Sep 27, 2017, at 9:04 AM, Nicholas Piggin npiggin@gmail.com wrote:
->> 
->> > On Tue, 26 Sep 2017 20:43:28 +0000 (UTC)
->> > Mathieu Desnoyers <mathieu.desnoyers@efficios.com> wrote:
->> >   
->> >> ----- On Sep 26, 2017, at 1:51 PM, Mathieu Desnoyers
->> >> mathieu.desnoyers@efficios.com wrote:
->> >>
-   
-[...]
+> I know this sounds daft, but I think one of the big reasons why
+> lockless_dereference() doesn't get an awful lot of use is because it's
+> such a mouthful! Why don't we just move the smp_read_barrier_depends()
+> into READ_ONCE? Would anybody actually care about the potential impact on
+> Alpha (which, frankly, is treading on thin ice given the low adoption of
+> lockless_dereference())?
 
->> Therefore,
->> you end up with the same rq lock disruption as if you would iterate on all
->> online CPUs. If userspace does that in a loop, you end up, in PeterZ's words,
->> with an Insta-DoS.
-> 
-> I really don't see how that can be true. spinlock by definition is for
-> sharing of resources, it's not an insta-DoS just because you take shared
-> spinlocks!
+This is my cue to ask my usual question...  ;-)
 
-[...]
+Are people still running mainline kernels on Alpha?  (Added Alpha folks.)
 
->> 
->> > 
->> > For the powerpc approach, yes there is some controversy about using
->> > runqueue locks even for cpus that we already can interfere with, but I
->> > think we have a lot of options we could look at *after* it ever shows
->> > up as a problem.
->> 
->> The DoS argument from Peter seems to be a strong opposition to grabbing
->> the rq locks.
-> 
-> Well if I still can't unconvince you, then we should try testing that
-> theory.
+As always, if anyone is, we must continue to support Alpha, but sounds
+like time to check again.
 
-[ I'll let PeterZ pitch in on this part of the discussion ]
-
-> 
->> 
->> Here is another point in favor of having a register command for the
->> private membarrier: This gives us greater flexibility to improve the
->> kernel scheduler and return-to-userspace barriers if need be in the
->> future.
->> 
->> For instance, I plan to propose a "MEMBARRIER_FLAG_SYNC_CORE" flag
->> that will also provide guarantees about context synchronization of
->> all cores for memory reclaim performed by JIT for the next merge
->> window. So far, the following architectures seems to have the proper
->> core serializing instructions already in place when returning to
->> user-space: x86 (iret), powerpc (rfi), arm32/64 (return from exception,
->> eret), s390/x (lpswe), ia64 (rfi), parisc (issue at least 7 instructions
->> while signing around a bonfire), and mips SMP (eret).
->> 
->> So far, AFAIU, only x86 (eventually going through sysexit), alpha
->> (appears to require an explicit imb), and sparc (explicit flush + 5
->> instructions around similar bonfire as parisc) appear to require special
->> handling.
->> 
->> I therefore plan to use the registration step with a
->> MEMBARRIER_FLAG_SYNC_CORE flag set to set TIF flags and add the
->> required context synchronizing barriers on sched_in() only for
->> processes wishing to use private expedited membarrier.
->> 
->> So I don't see much point in trying to remove that registration step.
-> 
-> I don't follow you. You are talking about the concept of registering
-> intention to use a different function? And the registration API is not
-> merged yet?
-
-Yes, I'm talking about requiring processes to invoke membarrier cmd
-MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED before they can successfully
-invoke membarrier cmd MEMBARRIER_CMD_PRIVATE_EXPEDITED.
-
-> Let me say I'm not completely against the idea of a registration API. But
-> don't think registration for this expedited command is necessary.
-
-Given that we have the powerpc lack-of-full-barrier-on-return-to-userspace
-case now, and we foresee x86-sysexit, sparc, and alpha also requiring
-special treatment when we introduce the MEMBARRIER_FLAG_SYNC_CORE behavior
-in the next release, it seems that we'll have a hard time handling
-architecture special cases efficiently if we don't expose the registration
-API right away.
-
-> 
-> But (aside) let's say a tif flag turns out to be a good diea for your
-> second case, why not just check the flag in the membarrier sys call and
-> do the registration the first time it uses it?
-
-We also considered that option. It's mainly about guaranteeing that
-an expedited membarrier command never blocks. If we introduce this
-"lazy auto-registration" behavior, we end up blocking the process
-at a random point in its execution so we can issue a synchronize_sched().
-By exposing an explicit registration, we can control where this delay
-occurs, and even allow library constructors to invoke the registration
-while the process is a single threaded, therefore allowing us to completely
-skip synchronize_sched().
-
-Thanks,
-
-Mathieu
-
-> 
-> Thanks,
-> Nick
-
--- 
-Mathieu Desnoyers
-EfficiOS Inc.
-http://www.efficios.com
+							Thanx, Paul
