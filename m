@@ -1,50 +1,133 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v4 for 4.14 1/3] membarrier: Provide register expedited
- private command
-Date: Fri, 29 Sep 2017 13:45:18 +0200
-Message-ID: <20170929114518.gtr7v7sf4oskjuut@hirez.programming.kicks-ass.net>
-References: <20170926175151.14264-1-mathieu.desnoyers@efficios.com>
- <33948425.19289.1506458608221.JavaMail.zimbra@efficios.com>
- <20170927230436.4af88a62@roar.ozlabs.ibm.com>
- <911707916.20840.1506605496314.JavaMail.zimbra@efficios.com>
- <20170929010112.3a54be0d@roar.ozlabs.ibm.com>
- <20170928155115.fou577qzxepnnxqc@hirez.programming.kicks-ass.net>
- <20170929022757.62d43dfc@roar.ozlabs.ibm.com>
- <20170929103131.un7tzxsixjoretal@hirez.programming.kicks-ass.net>
- <20170929213853.46c4675b@roar.ozlabs.ibm.com>
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [PATCH v2 19/28] arm64/sve: ptrace and ELF coredump support
+Date: Fri, 29 Sep 2017 13:46:06 +0100
+Message-ID: <20170929124605.GF3611@e103592.cambridge.arm.com>
+References: <1504198860-12951-1-git-send-email-Dave.Martin@arm.com>
+ <1504198860-12951-20-git-send-email-Dave.Martin@arm.com>
+ <87bmmda15n.fsf@linaro.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([65.50.211.133]:43725 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751920AbdI2Lpi (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 29 Sep 2017 07:45:38 -0400
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:43110 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1750926AbdI2MqL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 29 Sep 2017 08:46:11 -0400
 Content-Disposition: inline
-In-Reply-To: <20170929213853.46c4675b@roar.ozlabs.ibm.com>
+In-Reply-To: <87bmmda15n.fsf@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@redhat.com>, Alexander Viro <viro@zeniv.linux.org.uk>, linux-arch <linux-arch@vger.kernel.org>, Avi Kivity <avi@scylladb.com>, maged michael <maged.michael@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Dave Watson <davejwatson@fb.com>, Will Deacon <will.deacon@arm.com>, linux-kernel <linux-kernel@vger.kernel.org>, Andrew Hunter <ahh@google.com>, Paul Mackerras <paulus@samba.org>, Andy Lutomirski <luto@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, gromer <gromer@google.com>
+To: Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>
+Cc: linux-arch@vger.kernel.org, libc-alpha@sourceware.org, gdb@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Yao Qi <Yao.Qi@arm.com>, Alan Hayward <alan.hayward@arm.com>, Will Deacon <will.deacon@arm.com>, Oleg Nesterov <oleg@redhat.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
 
-On Fri, Sep 29, 2017 at 09:38:53PM +1000, Nicholas Piggin wrote:
-
-> Not really. There is some ability to hold onto a line for a time, but
-> there is no way to starve them, let alone starve hundreds of other
-> CPUs. They will request the cacheline exclusive and eventually get it.
-
-OK, hardware fairness there is nice.
-
-> I would really prefer to go this way on powerpc first. We could add the
-> the registration APIs as basically no-ops, but which would allow the
-> locking approach to be changed if we find it causes issues. I'll try to
-> find some time and a big system when I can.
-
-Fair enough I suppose.
-
-> > A semi related issue; I suppose we can do a arch upcall to flush_tlb_mm
-> > and reset the mm_cpumask when we change cpuset groups.
+On Thu, Sep 14, 2017 at 01:57:08PM +0100, Alex Bennée wrote:
 > 
-> For powerpc we have been looking at how mm_cpumask can be improved.
-> It has real drawbacks even when you don't consider this new syscall.
+> Dave Martin <Dave.Martin@arm.com> writes:
+> 
+> > This patch defines and implements a new regset NT_ARM_SVE, which
+> > describes a thread's SVE register state.  This allows a debugger to
+> > manipulate the SVE state, as well as being included in ELF
+> > coredumps for post-mortem debugging.
+> >
+> > Because the regset size and layout are dependent on the thread's
+> > current vector length, it is not possible to define a C struct to
+> > describe the regset contents as is done for existing regsets.
+> > Instead, and for the same reasons, NT_ARM_SVE is based on the
+> > freeform variable-layout approach used for the SVE signal frame.
+> >
+> > Additionally, to reduce debug overhead when debugging threads that
+> > might or might not have live SVE register state, NT_ARM_SVE may be
+> > presented in one of two different formats: the old struct
+> > user_fpsimd_state format is embedded for describing the state of a
+> > thread with no live SVE state, whereas a new variable-layout
+> > structure is embedded for describing live SVE state.  This avoids a
+> > debugger needing to poll NT_PRFPREG in addition to NT_ARM_SVE, and
+> > allows existing userspace code to handle the non-SVE case without
+> > too much modification.
+> >
+> > For this to work, NT_ARM_SVE is defined with a fixed-format header
+> > of type struct user_sve_header, which the recipient can use to
+> > figure out the content, size and layout of the reset of the regset.
+> > Accessor macros are defined to allow the vector-length-dependent
+> > parts of the regset to be manipulated.
+> >
+> > Signed-off-by: Alan Hayward <alan.hayward@arm.com>
+> > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> > Cc: Alex Bennée <alex.bennee@linaro.org>
+> >
+> > ---
+> >
+> > Changes since v1
+> > ----------------
+> >
+> > Other changes related to Alex Bennée's comments:
+> >
+> > * Migrate to SVE_VQ_BYTES instead of magic numbers.
+> >
+> > Requested by Alex Bennée:
+> >
+> > * Thin out BUG_ON()s:
+> > Redundant BUG_ON()s and ones that just check invariants are removed.
+> > Important sanity-checks are migrated to WARN_ON()s, with some
+> > minimal best-effort patch-up code.
+> >
+> > Other:
+> >
+> > * [ABI fix] Bail out with -EIO if attempting to set the
+> > SVE regs for an unsupported VL, instead of misparsing the regset data.
+> >
+> > * Replace some in-kernel open-coded arithmetic with ALIGN()/
+> > DIV_ROUND_UP().
+> > ---
 
-What else do you use mm_cpumask for?
+[...]
+
+> > diff --git a/arch/arm64/include/uapi/asm/ptrace.h b/arch/arm64/include/uapi/asm/ptrace.h
+
+[...]
+
+> > +/* Definitions for user_sve_header.flags: */
+> > +#define SVE_PT_REGS_MASK		(1 << 0)
+> > +
+> > +/* Flags: must be kept in sync with prctl interface in
+> > <linux/ptrace.h> */
+> 
+> Which flags? We base some on PR_foo flags but we seem to shift them
+> anyway so where is the requirement for them to match from?
+
+I've rearranged this as:
+
+-8<-
+
+/* Definitions for user_sve_header.flags: */
+#define SVE_PT_REGS_MASK		(1 << 0)
+
+#define SVE_PT_REGS_FPSIMD		0
+#define SVE_PT_REGS_SVE			SVE_PT_REGS_MASK
+
+/*
+ * Common SVE_PT_* flags:
+ * These must be kept in sync with prctl interface in <linux/ptrace.h>
+ */
+#define SVE_PT_VL_INHERIT		(PR_SVE_VL_INHERIT >> 16)
+#define SVE_PT_VL_ONEXEC		(PR_SVE_SET_VL_ONEXEC >> 16)
+
+->8-
+
+This avoids the suggestion that SVE_PT_REGS_{MASK,FPSIMD,SVE} are
+supposed to have prctl counterparts.
+
+I don't really want to write more, in case it is misinterpreted as
+specification of behaviour.
+
+This comment is really only meant as a reminder to maintainers that
+they should go look at prctl.h too, before blindly making changes
+here.
+
+
+Any good?  If you have a different suggestion, I'm all ears...
+
+[...]
+
+Cheers
+---Dave
