@@ -1,53 +1,58 @@
-From: Borislav Petkov <bp@suse.de>
-Subject: Re: [Part1 PATCH v5 15/17] percpu: Introduce DEFINE_PER_CPU_DECRYPTED
-Date: Thu, 28 Sep 2017 22:32:19 +0200
-Message-ID: <20170928203219.7xzy3cnzgdraaic3@pd.tnic>
-References: <20170927151329.70011-1-brijesh.singh@amd.com>
- <20170927151329.70011-16-brijesh.singh@amd.com>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [RFC PATCH 1/2] arm64: mm: Use READ_ONCE/WRITE_ONCE when
+ accessing page tables
+Date: Thu, 28 Sep 2017 17:58:30 -0700
+Message-ID: <20170929005830.GU3521@linux.vnet.ibm.com>
+References: <1506527369-19535-1-git-send-email-will.deacon@arm.com>
+ <1506527369-19535-2-git-send-email-will.deacon@arm.com>
+ <20170928083801.m6rb4frbbgzgam2o@hirez.programming.kicks-ass.net>
+ <20170928084535.GA19060@arm.com>
+ <20170928154354.GK3521@linux.vnet.ibm.com>
+ <20170928185909.kgwy36hkoqxqgyc3@tower>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-alpha-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20170927151329.70011-16-brijesh.singh@amd.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Brijesh Singh <brijesh.singh@amd.com>
-Cc: kvm@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@linux.com>, linux-arch@vger.kernel.org, Tom Lendacky <thomas.lendacky@amd.com>
+In-Reply-To: <20170928185909.kgwy36hkoqxqgyc3@tower>
+Sender: linux-alpha-owner@vger.kernel.org
+To: Michael Cree <mcree@orcon.net.nz>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, kirill.shutemov@linux.intel.com, linux-kernel@vger.kernel.org, ynorov@caviumnetworks.com, rruigrok@codeaurora.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, catalin.marinas@arm.com, rth@twiddle.net, ink@jurassic.park.msu.ru, mattst88@gmail.com, linux-alpha@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Sep 27, 2017 at 10:13:27AM -0500, Brijesh Singh wrote:
-> KVM guest defines three per-CPU variables (steal-time, apf_reason, and
-> avic_eio) which are shared between a guest and a hypervisor. When SEV
-> is active, memory is encrypted with a guest-specific key, and if the
-> guest OS wants to share the memory region with the hypervisor then it
-> must clear the C-bit (i.e set decrypted) before sharing it.
+On Fri, Sep 29, 2017 at 07:59:09AM +1300, Michael Cree wrote:
+> On Thu, Sep 28, 2017 at 08:43:54AM -0700, Paul E. McKenney wrote:
+> > On Thu, Sep 28, 2017 at 09:45:35AM +0100, Will Deacon wrote:
+> > > On Thu, Sep 28, 2017 at 10:38:01AM +0200, Peter Zijlstra wrote:
+> > > > On Wed, Sep 27, 2017 at 04:49:28PM +0100, Will Deacon wrote:
+> > > > > In many cases, page tables can be accessed concurrently by either another
+> > > > > CPU (due to things like fast gup) or by the hardware page table walker
+> > > > > itself, which may set access/dirty bits. In such cases, it is important
+> > > > > to use READ_ONCE/WRITE_ONCE when accessing page table entries so that
+> > > > > entries cannot be torn, merged or subject to apparent loss of coherence.
+> > > > 
+> > > > In fact, we should use lockless_dereference() for many of them. Yes
+> > > > Alpha is the only one that cares about the difference between that and
+> > > > READ_ONCE() and they do have the extra barrier, but if we're going to do
+> > > > this, we might as well do it 'right' :-)
+> > > 
+> > > I know this sounds daft, but I think one of the big reasons why
+> > > lockless_dereference() doesn't get an awful lot of use is because it's
+> > > such a mouthful! Why don't we just move the smp_read_barrier_depends()
+> > > into READ_ONCE? Would anybody actually care about the potential impact on
+> > > Alpha (which, frankly, is treading on thin ice given the low adoption of
+> > > lockless_dereference())?
+> > 
+> > This is my cue to ask my usual question...  ;-)
+> > 
+> > Are people still running mainline kernels on Alpha?  (Added Alpha folks.)
 > 
-> DEFINE_PER_CPU_DECRYPTED can be used to define the per-CPU variables
-> which will be shared between a guest and a hypervisor.
-> 
-> Cc: Thomas Gleixner <tglx@linutronix.de>
-> Cc: Ingo Molnar <mingo@redhat.com>
-> Cc: "H. Peter Anvin" <hpa@zytor.com>
-> Cc: Borislav Petkov <bp@suse.de>
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: Tejun Heo <tj@kernel.org>
-> Cc: Christoph Lameter <cl@linux.com>
-> Cc: linux-arch@vger.kernel.org
-> Cc: x86@kernel.org
-> Cc: linux-kernel@vger.kernel.org
-> Cc: Tom Lendacky <thomas.lendacky@amd.com>
-> Signed-off-by: Brijesh Singh <brijesh.singh@amd.com>
-> Acked-by: Tejun Heo <tj@kernel.org>
-> ---
->  include/asm-generic/vmlinux.lds.h | 19 +++++++++++++++++++
->  include/linux/percpu-defs.h       | 15 +++++++++++++++
->  2 files changed, 34 insertions(+)
+> Yes.  I run two Alpha build daemons that build the unofficial
+> debian-alpha port.  Debian popcon reports nine machines running
+> Alpha, which are likely to be running the 4.12.y kernel which
+> is currently in debian-alpha, (and presumably soon to be 4.13.y
+> which is now built on Alpha in experimental).
 
-Reviewed-by: Borislav Petkov <bp@suse.de>
+I salute your dedication to Alpha!  ;-)
 
--- 
-Regards/Gruss,
-    Boris.
+							Thanx, Paul
 
-SUSE Linux GmbH, GF: Felix Imendörffer, Jane Smithard, Graham Norton, HRB 21284 (AG Nürnberg)
--- 
