@@ -1,90 +1,94 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f193.google.com ([209.85.192.193]:35757 "EHLO
-        mail-pf0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751643AbdI2LjQ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 29 Sep 2017 07:39:16 -0400
-Date: Fri, 29 Sep 2017 21:38:53 +1000
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH v4 for 4.14 1/3] membarrier: Provide register expedited
- private command
-Message-ID: <20170929213853.46c4675b@roar.ozlabs.ibm.com>
-In-Reply-To: <20170929103131.un7tzxsixjoretal@hirez.programming.kicks-ass.net>
-References: <20170926175151.14264-1-mathieu.desnoyers@efficios.com>
-        <33948425.19289.1506458608221.JavaMail.zimbra@efficios.com>
-        <20170927230436.4af88a62@roar.ozlabs.ibm.com>
-        <911707916.20840.1506605496314.JavaMail.zimbra@efficios.com>
-        <20170929010112.3a54be0d@roar.ozlabs.ibm.com>
-        <20170928155115.fou577qzxepnnxqc@hirez.programming.kicks-ass.net>
-        <20170929022757.62d43dfc@roar.ozlabs.ibm.com>
-        <20170929103131.un7tzxsixjoretal@hirez.programming.kicks-ass.net>
+Received: from mail-wm0-f49.google.com ([74.125.82.49]:54559 "EHLO
+        mail-wm0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751830AbdI2Onm (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 29 Sep 2017 10:43:42 -0400
+Received: by mail-wm0-f49.google.com with SMTP id i124so431368wmf.3
+        for <linux-arch@vger.kernel.org>; Fri, 29 Sep 2017 07:43:42 -0700 (PDT)
+References: <1504198860-12951-1-git-send-email-Dave.Martin@arm.com> <1504198860-12951-24-git-send-email-Dave.Martin@arm.com> <874ls59zku.fsf@linaro.org> <20170929130029.GG3611@e103592.cambridge.arm.com>
+From: Alex =?utf-8?Q?Benn=C3=A9e?= <alex.bennee@linaro.org>
+Subject: Re: [PATCH v2 23/28] arm64/sve: KVM: Treat guest SVE use as undefined instruction execution
+In-reply-to: <20170929130029.GG3611@e103592.cambridge.arm.com>
+Date: Fri, 29 Sep 2017 15:43:40 +0100
+Message-ID: <87bmltd0pv.fsf@linaro.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@redhat.com>, Alexander Viro <viro@zeniv.linux.org.uk>, linux-arch <linux-arch@vger.kernel.org>, Avi Kivity <avi@scylladb.com>, maged michael <maged.michael@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Dave Watson <davejwatson@fb.com>, Will Deacon <will.deacon@arm.com>, linux-kernel <linux-kernel@vger.kernel.org>, Andrew Hunter <ahh@google.com>, Paul Mackerras <paulus@samba.org>, Andy Lutomirski <luto@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, gromer <gromer@google.com>
-Message-ID: <20170929113853.gOk2Pr3JCb45eApFXBEzUvd38E9lUlr-mU22TWL0SmY@z>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Marc Zyngier <marc.zyngier@arm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
+Message-ID: <20170929144340.hgt5gANHIyuNIebFPPZFvZXjT_CjWBAHYMAbC98_3xw@z>
 
-On Fri, 29 Sep 2017 12:31:31 +0200
-Peter Zijlstra <peterz@infradead.org> wrote:
 
-> On Fri, Sep 29, 2017 at 02:27:57AM +1000, Nicholas Piggin wrote:
-> 
-> > The biggest power boxes are more tightly coupled than those big
-> > SGI systems, but even so just plodding along taking and releasing
-> > locks in turn would be fine on those SGI ones as well really. Not DoS
-> > level. This is not a single mega hot cache line or lock that is
-> > bouncing over the entire machine, but one process grabbing a line and
-> > lock from each of 1000 CPUs.
-> > 
-> > Slight disturbance sure, but each individual CPU will see it as 1/1000th
-> > of a disturbance, most of the cost will be concentrated in the syscall
-> > caller.  
-> 
-> But once the:
-> 
-> 	while (1)
-> 		sys_membarrier()
-> 
-> thread has all those (lock) lines in M state locally, it will become
-> very hard for the remote CPUs to claim them back, because its constantly
+Dave Martin <Dave.Martin@arm.com> writes:
 
-Not really. There is some ability to hold onto a line for a time, but
-there is no way to starve them, let alone starve hundreds of other
-CPUs. They will request the cacheline exclusive and eventually get it.
-Then the membarrier CPU has to pay to get it back. If there is a lot of
-activity on the locks, the membarrier will have a difficult time to take
-each one.
+> On Thu, Sep 14, 2017 at 02:31:13PM +0100, Alex Bennée wrote:
+>>
+>> Dave Martin <Dave.Martin@arm.com> writes:
+>>
+>> > When trapping forbidden attempts by a guest to use SVE, we want the
+>> > guest to see a trap consistent with SVE not being implemented.
+>> >
+>> > This patch injects an undefined instruction exception into the
+>> > guest in response to such an exception.
+>>
+>> I do wonder if this should be merged with the previous trap enabling
+>> patch though?
+>
+> Yes, that would make sense now I look at it.
+>
+> Can I keep your Reviewed-by on the combined patch?
 
-I don't say there is zero cost or can't interfere with others, only that
-it does not seem particularly bad compared with other things. Once you
-restrict it to mm_cpumask, then it's quite partitionable.
+Sure.
 
-I would really prefer to go this way on powerpc first. We could add the
-the registration APIs as basically no-ops, but which would allow the
-locking approach to be changed if we find it causes issues. I'll try to
-find some time and a big system when I can.
+>
+> Cheers
+> ---Dave
+>
+>>
+>> >
+>> > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+>> > ---
+>> >  arch/arm64/kvm/handle_exit.c | 8 ++++++++
+>> >  1 file changed, 8 insertions(+)
+>> >
+>> > diff --git a/arch/arm64/kvm/handle_exit.c b/arch/arm64/kvm/handle_exit.c
+>> > index 17d8a16..e3e42d0 100644
+>> > --- a/arch/arm64/kvm/handle_exit.c
+>> > +++ b/arch/arm64/kvm/handle_exit.c
+>> > @@ -147,6 +147,13 @@ static int kvm_handle_unknown_ec(struct kvm_vcpu *vcpu, struct kvm_run *run)
+>> >  	return 1;
+>> >  }
+>> >
+>> > +static int handle_sve(struct kvm_vcpu *vcpu, struct kvm_run *run)
+>> > +{
+>> > +	/* Until SVE is supported for guests: */
+>> > +	kvm_inject_undefined(vcpu);
+>> > +	return 1;
+>> > +}
+>> > +
+>> >  static exit_handle_fn arm_exit_handlers[] = {
+>> >  	[0 ... ESR_ELx_EC_MAX]	= kvm_handle_unknown_ec,
+>> >  	[ESR_ELx_EC_WFx]	= kvm_handle_wfx,
+>> > @@ -160,6 +167,7 @@ static exit_handle_fn arm_exit_handlers[] = {
+>> >  	[ESR_ELx_EC_HVC64]	= handle_hvc,
+>> >  	[ESR_ELx_EC_SMC64]	= handle_smc,
+>> >  	[ESR_ELx_EC_SYS64]	= kvm_handle_sys_reg,
+>> > +	[ESR_ELx_EC_SVE]	= handle_sve,
+>> >  	[ESR_ELx_EC_IABT_LOW]	= kvm_handle_guest_abort,
+>> >  	[ESR_ELx_EC_DABT_LOW]	= kvm_handle_guest_abort,
+>> >  	[ESR_ELx_EC_SOFTSTP_LOW]= kvm_handle_guest_debug,
+>>
+>>
+>> --
+>> Alex Bennée
+>>
+>> _______________________________________________
+>> linux-arm-kernel mailing list
+>> linux-arm-kernel@lists.infradead.org
+>> http://lists.infradead.org/mailman/listinfo/linux-arm-kernel
 
-> touching them. Sure it will touch a 1000 other lines before its back to
-> this one, but if they're all local that's fairly quick.
-> 
-> But you're right, your big machines have far smaller NUMA factors.
-> 
-> > > Bouncing that lock across the machine is *painful*, I have vague
-> > > memories of cases where the lock ping-pong was most the time spend.
-> > > 
-> > > But only Power needs this, all the other architectures are fine with the
-> > > lockless approach for MEMBAR_EXPEDITED_PRIVATE.  
-> > 
-> > Yes, we can add an iterator function that power can override in a few
-> > lines. Less arch specific code than this proposal.  
-> 
-> A semi related issue; I suppose we can do a arch upcall to flush_tlb_mm
-> and reset the mm_cpumask when we change cpuset groups.
 
-For powerpc we have been looking at how mm_cpumask can be improved.
-It has real drawbacks even when you don't consider this new syscall.
-
-Thanks,
-Nick
+--
+Alex Bennée
