@@ -1,84 +1,62 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [RFC PATCH 1/2] arm64: mm: Use READ_ONCE/WRITE_ONCE when
- accessing page tables
-Date: Fri, 29 Sep 2017 10:08:43 +0100
-Message-ID: <20170929090843.GB14791@arm.com>
-References: <1506527369-19535-1-git-send-email-will.deacon@arm.com>
- <1506527369-19535-2-git-send-email-will.deacon@arm.com>
- <20170928083801.m6rb4frbbgzgam2o@hirez.programming.kicks-ass.net>
- <20170928084535.GA19060@arm.com>
- <20170928154354.GK3521@linux.vnet.ibm.com>
- <20170928185909.kgwy36hkoqxqgyc3@tower>
- <20170929005830.GU3521@linux.vnet.ibm.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v4 for 4.14 1/3] membarrier: Provide register expedited
+ private command
+Date: Fri, 29 Sep 2017 12:31:31 +0200
+Message-ID: <20170929103131.un7tzxsixjoretal@hirez.programming.kicks-ass.net>
+References: <20170926175151.14264-1-mathieu.desnoyers@efficios.com>
+ <33948425.19289.1506458608221.JavaMail.zimbra@efficios.com>
+ <20170927230436.4af88a62@roar.ozlabs.ibm.com>
+ <911707916.20840.1506605496314.JavaMail.zimbra@efficios.com>
+ <20170929010112.3a54be0d@roar.ozlabs.ibm.com>
+ <20170928155115.fou577qzxepnnxqc@hirez.programming.kicks-ass.net>
+ <20170929022757.62d43dfc@roar.ozlabs.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-alpha-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from bombadil.infradead.org ([65.50.211.133]:34357 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750715AbdI2Kbw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 29 Sep 2017 06:31:52 -0400
 Content-Disposition: inline
-In-Reply-To: <20170929005830.GU3521@linux.vnet.ibm.com>
-Sender: linux-alpha-owner@vger.kernel.org
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: Michael Cree <mcree@orcon.net.nz>, Peter Zijlstra <peterz@infradead.org>, kirill.shutemov@linux.intel.com, linux-kernel@vger.kernel.org, ynorov@caviumnetworks.com, rruigrok@codeaurora.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, catalin.marinas@arm.com, rth@twiddle.net, ink@jurassic.park.msu.ru, mattst88@gmail.com, linux-alpha@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20170929022757.62d43dfc@roar.ozlabs.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@redhat.com>, Alexander Viro <viro@zeniv.linux.org.uk>, linux-arch <linux-arch@vger.kernel.org>, Avi Kivity <avi@scylladb.com>, maged michael <maged.michael@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Dave Watson <davejwatson@fb.com>, Will Deacon <will.deacon@arm.com>, linux-kernel <linux-kernel@vger.kernel.org>, Andrew Hunter <ahh@google.com>, Paul Mackerras <paulus@samba.org>, Andy Lutomirski <luto@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, gromer <gromer@google.com>
 
-On Thu, Sep 28, 2017 at 05:58:30PM -0700, Paul E. McKenney wrote:
-> On Fri, Sep 29, 2017 at 07:59:09AM +1300, Michael Cree wrote:
-> > On Thu, Sep 28, 2017 at 08:43:54AM -0700, Paul E. McKenney wrote:
-> > > On Thu, Sep 28, 2017 at 09:45:35AM +0100, Will Deacon wrote:
-> > > > On Thu, Sep 28, 2017 at 10:38:01AM +0200, Peter Zijlstra wrote:
-> > > > > On Wed, Sep 27, 2017 at 04:49:28PM +0100, Will Deacon wrote:
-> > > > > > In many cases, page tables can be accessed concurrently by either another
-> > > > > > CPU (due to things like fast gup) or by the hardware page table walker
-> > > > > > itself, which may set access/dirty bits. In such cases, it is important
-> > > > > > to use READ_ONCE/WRITE_ONCE when accessing page table entries so that
-> > > > > > entries cannot be torn, merged or subject to apparent loss of coherence.
-> > > > > 
-> > > > > In fact, we should use lockless_dereference() for many of them. Yes
-> > > > > Alpha is the only one that cares about the difference between that and
-> > > > > READ_ONCE() and they do have the extra barrier, but if we're going to do
-> > > > > this, we might as well do it 'right' :-)
-> > > > 
-> > > > I know this sounds daft, but I think one of the big reasons why
-> > > > lockless_dereference() doesn't get an awful lot of use is because it's
-> > > > such a mouthful! Why don't we just move the smp_read_barrier_depends()
-> > > > into READ_ONCE? Would anybody actually care about the potential impact on
-> > > > Alpha (which, frankly, is treading on thin ice given the low adoption of
-> > > > lockless_dereference())?
-> > > 
-> > > This is my cue to ask my usual question...  ;-)
-> > > 
-> > > Are people still running mainline kernels on Alpha?  (Added Alpha folks.)
-> > 
-> > Yes.  I run two Alpha build daemons that build the unofficial
-> > debian-alpha port.  Debian popcon reports nine machines running
-> > Alpha, which are likely to be running the 4.12.y kernel which
-> > is currently in debian-alpha, (and presumably soon to be 4.13.y
-> > which is now built on Alpha in experimental).
+On Fri, Sep 29, 2017 at 02:27:57AM +1000, Nicholas Piggin wrote:
+
+> The biggest power boxes are more tightly coupled than those big
+> SGI systems, but even so just plodding along taking and releasing
+> locks in turn would be fine on those SGI ones as well really. Not DoS
+> level. This is not a single mega hot cache line or lock that is
+> bouncing over the entire machine, but one process grabbing a line and
+> lock from each of 1000 CPUs.
 > 
-> I salute your dedication to Alpha!  ;-)
+> Slight disturbance sure, but each individual CPU will see it as 1/1000th
+> of a disturbance, most of the cost will be concentrated in the syscall
+> caller.
 
-Ok, but where does that leave us wrt my initial proposal of moving
-smp_read_barrier_depends() into READ_ONCE and getting rid of
-lockless_dereference?
+But once the:
 
-Michael (or anybody else running mainline on SMP Alpha) -- would you be
-able to give the diff below a spin and see whether there's a measurable
-performance impact?
+	while (1)
+		sys_membarrier()
 
-Cheers,
+thread has all those (lock) lines in M state locally, it will become
+very hard for the remote CPUs to claim them back, because its constantly
+touching them. Sure it will touch a 1000 other lines before its back to
+this one, but if they're all local that's fairly quick.
 
-Will
+But you're right, your big machines have far smaller NUMA factors.
 
---->8
+> > Bouncing that lock across the machine is *painful*, I have vague
+> > memories of cases where the lock ping-pong was most the time spend.
+> > 
+> > But only Power needs this, all the other architectures are fine with the
+> > lockless approach for MEMBAR_EXPEDITED_PRIVATE.
+> 
+> Yes, we can add an iterator function that power can override in a few
+> lines. Less arch specific code than this proposal.
 
-diff --git a/include/linux/compiler.h b/include/linux/compiler.h
-index e95a2631e545..0ce21e25492a 100644
---- a/include/linux/compiler.h
-+++ b/include/linux/compiler.h
-@@ -340,6 +340,7 @@ static __always_inline void __write_once_size(volatile void *p, void *res, int s
- 		__read_once_size(&(x), __u.__c, sizeof(x));		\
- 	else								\
- 		__read_once_size_nocheck(&(x), __u.__c, sizeof(x));	\
-+	smp_read_barrier_depends(); /* Enforce dependency ordering from x */ \
- 	__u.__val;							\
- })
- #define READ_ONCE(x) __READ_ONCE(x, 1)
+A semi related issue; I suppose we can do a arch upcall to flush_tlb_mm
+and reset the mm_cpumask when we change cpuset groups.
