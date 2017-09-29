@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-eopbgr00120.outbound.protection.outlook.com ([40.107.0.120]:20640
+Received: from mail-eopbgr00135.outbound.protection.outlook.com ([40.107.0.135]:50503
         "EHLO EUR02-AM5-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752108AbdI2QG0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 29 Sep 2017 12:06:26 -0400
-Subject: [PATCH REBASED 3/6] s390: Add __down_read_killable()
+        id S1752108AbdI2QG4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 29 Sep 2017 12:06:56 -0400
+Subject: [PATCH REBASED 6/6] fs: Use killable down_read() in iterate_dir()
 From: Kirill Tkhai <ktkhai@virtuozzo.com>
-Date: Fri, 29 Sep 2017 19:06:18 +0300
-Message-ID: <150670117817.23930.13068785028558453848.stgit@localhost.localdomain>
+Date: Fri, 29 Sep 2017 19:06:48 +0300
+Message-ID: <150670120820.23930.5455667921545937220.stgit@localhost.localdomain>
 In-Reply-To: <150670038738.23930.7190484711222807884.stgit@localhost.localdomain>
 References: <150670038738.23930.7190484711222807884.stgit@localhost.localdomain>
 MIME-Version: 1.0
@@ -16,51 +16,45 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-ia64@vger.kernel.org, avagin@virtuozzo.com, peterz@infradead.org, heiko.carstens@de.ibm.com, hpa@zytor.com, gorcunov@virtuozzo.com, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, x86@kernel.org, mingo@redhat.com, mattst88@gmail.com, fenghua.yu@intel.com, arnd@arndb.de, ktkhai@virtuozzo.com, ink@jurassic.park.msu.ru, tglx@linutronix.de, rth@twiddle.net, tony.luck@intel.com, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, schwidefsky@de.ibm.com, davem@davemloft.net, rientjes@google.com, viro@zeniv.linux.org.uk
-Message-ID: <20170929160618.wl_U0OZWMbqyd-0fhBUtZXuKnLNrKoty0lddVx3VKS4@z>
+Message-ID: <20170929160648.PXOWWFf46F9EszrnPu6fw41qUQKi9-N6VPuGIYClhYQ@z>
 
-Similar to __down_write_killable(), and read killable primitive.
+There was mutex_lock_interruptible() initially, and it was changed
+to rwsem, but there were not killable rwsem primitives that time.
+From commit 9902af79c01a:
+
+    "The main issue is the lack of down_write_killable(), so the places
+     like readdir.c switched to plain inode_lock(); once killable
+     variants of rwsem primitives appear, that'll be dealt with"
+
+Use down_read_killable() same as down_write_killable() in !shared
+case, as concurrent inode_lock() may take much time, that may be
+wanted to be interrupted by user.
 
 Signed-off-by: Kirill Tkhai <ktkhai@virtuozzo.com>
 ---
- arch/s390/include/asm/rwsem.h |   18 ++++++++++++++++--
- 1 file changed, 16 insertions(+), 2 deletions(-)
+ fs/readdir.c |   11 +++++------
+ 1 file changed, 5 insertions(+), 6 deletions(-)
 
-diff --git a/arch/s390/include/asm/rwsem.h b/arch/s390/include/asm/rwsem.h
-index 597e7e96b59e..6bef7d5fbf1c 100644
---- a/arch/s390/include/asm/rwsem.h
-+++ b/arch/s390/include/asm/rwsem.h
-@@ -49,7 +49,7 @@
- /*
-  * lock for reading
-  */
--static inline void __down_read(struct rw_semaphore *sem)
-+static inline int ___down_read(struct rw_semaphore *sem)
- {
- 	signed long old, new;
+diff --git a/fs/readdir.c b/fs/readdir.c
+index 89659549c09d..7c584bbb4ce3 100644
+--- a/fs/readdir.c
++++ b/fs/readdir.c
+@@ -36,13 +36,12 @@ int iterate_dir(struct file *file, struct dir_context *ctx)
+ 	if (res)
+ 		goto out;
  
-@@ -62,10 +62,24 @@ static inline void __down_read(struct rw_semaphore *sem)
- 		: "=&d" (old), "=&d" (new), "=Q" (sem->count)
- 		: "Q" (sem->count), "i" (RWSEM_ACTIVE_READ_BIAS)
- 		: "cc", "memory");
--	if (old < 0)
-+	return (old < 0);
-+}
-+
-+static inline void __down_read(struct rw_semaphore *sem)
-+{
-+	if (___down_read(sem))
- 		rwsem_down_read_failed(sem);
- }
+-	if (shared) {
+-		inode_lock_shared(inode);
+-	} else {
++	if (shared)
++		res = down_read_killable(&inode->i_rwsem);
++	else
+ 		res = down_write_killable(&inode->i_rwsem);
+-		if (res)
+-			goto out;
+-	}
++	if (res)
++		goto out;
  
-+static inline int __down_read_killable(struct rw_semaphore *sem)
-+{
-+	if (___down_read(sem))
-+		if (IS_ERR(rwsem_down_read_failed_killable(sem)))
-+			return -EINTR;
-+
-+	return 0;
-+}
-+
- /*
-  * trylock for reading -- returns 1 if successful, 0 if contention
-  */
+ 	res = -ENOENT;
+ 	if (!IS_DEADDIR(inode)) {
