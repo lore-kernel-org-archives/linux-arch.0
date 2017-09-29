@@ -1,56 +1,84 @@
 From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [RFC PATCH 0/2] Missing READ_ONCE in core and arch-specific
- pgtable code leading to crashes
-Date: Fri, 29 Sep 2017 09:56:34 +0100
-Message-ID: <20170929085634.GA14791@arm.com>
+Subject: Re: [RFC PATCH 1/2] arm64: mm: Use READ_ONCE/WRITE_ONCE when
+ accessing page tables
+Date: Fri, 29 Sep 2017 10:08:43 +0100
+Message-ID: <20170929090843.GB14791@arm.com>
 References: <1506527369-19535-1-git-send-email-will.deacon@arm.com>
- <9f351432-3c6b-3b06-7b49-bc9a5806aff5@redhat.com>
+ <1506527369-19535-2-git-send-email-will.deacon@arm.com>
+ <20170928083801.m6rb4frbbgzgam2o@hirez.programming.kicks-ass.net>
+ <20170928084535.GA19060@arm.com>
+ <20170928154354.GK3521@linux.vnet.ibm.com>
+ <20170928185909.kgwy36hkoqxqgyc3@tower>
+ <20170929005830.GU3521@linux.vnet.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:39834 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751004AbdI2I4U (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 29 Sep 2017 04:56:20 -0400
+Return-path: <linux-alpha-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <9f351432-3c6b-3b06-7b49-bc9a5806aff5@redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Jon Masters <jcm@redhat.com>
-Cc: peterz@infradead.org, paulmck@linux.vnet.ibm.com, kirill.shutemov@linux.intel.com, linux-kernel@vger.kernel.org, ynorov@caviumnetworks.com, rruigrok@codeaurora.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, catalin.marinas@arm.com, timur@codeaurora.org
+In-Reply-To: <20170929005830.GU3521@linux.vnet.ibm.com>
+Sender: linux-alpha-owner@vger.kernel.org
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: Michael Cree <mcree@orcon.net.nz>, Peter Zijlstra <peterz@infradead.org>, kirill.shutemov@linux.intel.com, linux-kernel@vger.kernel.org, ynorov@caviumnetworks.com, rruigrok@codeaurora.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, catalin.marinas@arm.com, rth@twiddle.net, ink@jurassic.park.msu.ru, mattst88@gmail.com, linux-alpha@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-[+ Timur]
-
-On Thu, Sep 28, 2017 at 03:38:00PM -0400, Jon Masters wrote:
-> On 09/27/2017 11:49 AM, Will Deacon wrote:
-> 
-> > The moral of the story is that read-after-read (same address) ordering *only*
-> > applies if READ_ONCE is used consistently. This means we need to fix page
-> > table dereferences in the core code as well as the arch code to avoid this
-> > problem. The two RFC patches in this series fix arm64 (which is a bigger fix
-> > that necessary since I clean things up too) and page_vma_mapped_walk.
+On Thu, Sep 28, 2017 at 05:58:30PM -0700, Paul E. McKenney wrote:
+> On Fri, Sep 29, 2017 at 07:59:09AM +1300, Michael Cree wrote:
+> > On Thu, Sep 28, 2017 at 08:43:54AM -0700, Paul E. McKenney wrote:
+> > > On Thu, Sep 28, 2017 at 09:45:35AM +0100, Will Deacon wrote:
+> > > > On Thu, Sep 28, 2017 at 10:38:01AM +0200, Peter Zijlstra wrote:
+> > > > > On Wed, Sep 27, 2017 at 04:49:28PM +0100, Will Deacon wrote:
+> > > > > > In many cases, page tables can be accessed concurrently by either another
+> > > > > > CPU (due to things like fast gup) or by the hardware page table walker
+> > > > > > itself, which may set access/dirty bits. In such cases, it is important
+> > > > > > to use READ_ONCE/WRITE_ONCE when accessing page table entries so that
+> > > > > > entries cannot be torn, merged or subject to apparent loss of coherence.
+> > > > > 
+> > > > > In fact, we should use lockless_dereference() for many of them. Yes
+> > > > > Alpha is the only one that cares about the difference between that and
+> > > > > READ_ONCE() and they do have the extra barrier, but if we're going to do
+> > > > > this, we might as well do it 'right' :-)
+> > > > 
+> > > > I know this sounds daft, but I think one of the big reasons why
+> > > > lockless_dereference() doesn't get an awful lot of use is because it's
+> > > > such a mouthful! Why don't we just move the smp_read_barrier_depends()
+> > > > into READ_ONCE? Would anybody actually care about the potential impact on
+> > > > Alpha (which, frankly, is treading on thin ice given the low adoption of
+> > > > lockless_dereference())?
+> > > 
+> > > This is my cue to ask my usual question...  ;-)
+> > > 
+> > > Are people still running mainline kernels on Alpha?  (Added Alpha folks.)
 > > 
-> > Comments welcome.
+> > Yes.  I run two Alpha build daemons that build the unofficial
+> > debian-alpha port.  Debian popcon reports nine machines running
+> > Alpha, which are likely to be running the 4.12.y kernel which
+> > is currently in debian-alpha, (and presumably soon to be 4.13.y
+> > which is now built on Alpha in experimental).
 > 
-> Thanks for this Will. I'll echo Timur's comment that it would be ideal
-> to split this up into the critical piece needed for ordering
-> access/update to the PMD in the face of a THP split and separately have
-> the cosmetic cleanups. Needless to say, we've got a bunch of people who
-> are tracking this one and tracking it ready for backport. We just got
-> THP re-enabled so I'm pretty keen that we not have to disable again.
+> I salute your dedication to Alpha!  ;-)
 
-Yeah, of course. I already posted a point diff to Yury in the original
-thread:
+Ok, but where does that leave us wrt my initial proposal of moving
+smp_read_barrier_depends() into READ_ONCE and getting rid of
+lockless_dereference?
 
-http://lists.infradead.org/pipermail/linux-arm-kernel/2017-September/533299.html
+Michael (or anybody else running mainline on SMP Alpha) -- would you be
+able to give the diff below a spin and see whether there's a measurable
+performance impact?
 
-so I'd like to queue that as an arm64 fix after we've worked out the general
-direction of the full fix. I also don't see why other architectures
-(including x86) can't be hit by this, so an alternative (completely
-untested) approach would just be to take patch 2 of this series.
-
-The full fix isn't just cosmetic; it's also addressing the wider problem
-of unannotated racing page table accesses outside of the specific failure
-case we've run into.
+Cheers,
 
 Will
+
+--->8
+
+diff --git a/include/linux/compiler.h b/include/linux/compiler.h
+index e95a2631e545..0ce21e25492a 100644
+--- a/include/linux/compiler.h
++++ b/include/linux/compiler.h
+@@ -340,6 +340,7 @@ static __always_inline void __write_once_size(volatile void *p, void *res, int s
+ 		__read_once_size(&(x), __u.__c, sizeof(x));		\
+ 	else								\
+ 		__read_once_size_nocheck(&(x), __u.__c, sizeof(x));	\
++	smp_read_barrier_depends(); /* Enforce dependency ordering from x */ \
+ 	__u.__val;							\
+ })
+ #define READ_ONCE(x) __READ_ONCE(x, 1)
