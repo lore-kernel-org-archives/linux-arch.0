@@ -1,38 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from yes.iam.tj ([109.74.197.121]:57098 "EHLO iam.tj"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751566AbdI3WmU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 30 Sep 2017 18:42:20 -0400
-From: Tj <linux@iam.tj>
-Subject: Regression: x86/mm: Add Secure Memory Encryption (SME) support
-Message-ID: <d5c60048-dbb3-0440-d139-ea325621e654@iam.tj>
-Date: Sat, 30 Sep 2017 23:36:35 +0100
+Received: from merlin.infradead.org ([205.233.59.134]:56362 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751229AbdJCJD3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 3 Oct 2017 05:03:29 -0400
+Date: Tue, 3 Oct 2017 11:03:03 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH REBASED 0/6] rwsem: Implement down_read_killable()
+Message-ID: <20171003090303.aclppj3jozdirtxl@hirez.programming.kicks-ass.net>
+References: <150670038738.23930.7190484711222807884.stgit@localhost.localdomain>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <150670038738.23930.7190484711222807884.stgit@localhost.localdomain>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org
-Message-ID: <20170930223635.fK2-H4JrZN6J-10KaA_oq2oE7hMcrAO4Fcw8jtbXEDA@z>
+To: Kirill Tkhai <ktkhai@virtuozzo.com>
+Cc: linux-ia64@vger.kernel.org, avagin@virtuozzo.com, heiko.carstens@de.ibm.com, hpa@zytor.com, gorcunov@virtuozzo.com, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, x86@kernel.org, mingo@redhat.com, mattst88@gmail.com, fenghua.yu@intel.com, arnd@arndb.de, ink@jurassic.park.msu.ru, tglx@linutronix.de, rth@twiddle.net, tony.luck@intel.com, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, schwidefsky@de.ibm.com, davem@davemloft.net, rientjes@google.com, viro@zeniv.linux.org.uk
+Message-ID: <20171003090303.xCRabxeedLBZ9ZjCHROZcmbBzJJV3RuKoG2HH07UICw@z>
 
-With 4.14.0rc2 on an Intel CPU with an Nvidia GPU the proprietary nvidia
-driver (v340.102) fails to modpost due to:
+On Fri, Sep 29, 2017 at 07:05:45PM +0300, Kirill Tkhai wrote:
+> The series introduces new down_read_killable() primitive, which
+> is similar to down_read(), but it may be interrupted by a signal.
+> The most touched is architectures code. Also, it marks a new user
+> of the primitive, which is iterate_dir().
+> 
+> ---
+> 
+> Kirill Tkhai (6):
+>       alpha: Add __down_read_killable()
+>       ia64: Add __down_read_killable()
+>       s390: Add __down_read_killable()
+>       x86: Add __down_read_killable()
+>       rwsem: Add down_read_killable()
+>       fs: Use killable down_read() in iterate_dir()
+> 
+> 
+>  arch/alpha/include/asm/rwsem.h |   18 ++++++++++++++++--
+>  arch/ia64/include/asm/rwsem.h  |   22 +++++++++++++++++++---
+>  arch/s390/include/asm/rwsem.h  |   18 ++++++++++++++++--
+>  arch/x86/include/asm/rwsem.h   |   35 +++++++++++++++++++++++++----------
+>  arch/x86/lib/rwsem.S           |   12 ++++++++++++
+>  fs/readdir.c                   |   11 +++++------
+>  include/asm-generic/rwsem.h    |    8 ++++++++
+>  include/linux/rwsem.h          |    1 +
+>  kernel/locking/rwsem.c         |   16 ++++++++++++++++
+>  9 files changed, 118 insertions(+), 23 deletions(-)
 
-FATAL: modpost: GPL-incompatible module nvidia.ko uses GPL-only symbol
-'sme_me_mask'
-
-I think this is due to:
-
-config ARCH_HAS_MEM_ENCRYPT
-       def_bool y
-
-
-I noticed that a grep of the built kernel for "sme_me_mask" shows the
-symbol imported into more than 300 modules on an Ubuntu mainline build
-of 4.14.0-041400rc2-lowlatency.
-
-Should the new symbol be referenced so widely and how can it be
-prevented from being included in proprietary modules on systems that
-don't have SME even if the kernel is built with it enabled?
+thanks!
