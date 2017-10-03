@@ -1,160 +1,130 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:47000 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750797AbdJCLLG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 3 Oct 2017 07:11:06 -0400
-Date: Tue, 3 Oct 2017 12:11:01 +0100
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH v2 11/28] arm64/sve: Core task context handling
-Message-ID: <20171003111100.GQ3611@e103592.cambridge.arm.com>
-References: <1504198860-12951-1-git-send-email-Dave.Martin@arm.com>
- <1504198860-12951-12-git-send-email-Dave.Martin@arm.com>
- <20170913143325.hi4cfcajbts3bbao@localhost>
- <20170914195555.GB24231@e103592.cambridge.arm.com>
- <20170920135856.dfuowttwi4bk4nqb@localhost>
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:51044 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1751132AbdJCTLR (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 3 Oct 2017 15:11:17 -0400
+Received: from pps.filterd (m0098410.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id v93JA78X096713
+        for <linux-arch@vger.kernel.org>; Tue, 3 Oct 2017 15:11:17 -0400
+Received: from e16.ny.us.ibm.com (e16.ny.us.ibm.com [129.33.205.206])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2dccjbwqnn-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Tue, 03 Oct 2017 15:11:16 -0400
+Received: from localhost
+        by e16.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+        Tue, 3 Oct 2017 15:11:15 -0400
+Date: Tue, 3 Oct 2017 12:11:10 -0700
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [RFC PATCH 1/2] arm64: mm: Use READ_ONCE/WRITE_ONCE when
+ accessing page tables
+Reply-To: paulmck@linux.vnet.ibm.com
+References: <1506527369-19535-1-git-send-email-will.deacon@arm.com>
+ <1506527369-19535-2-git-send-email-will.deacon@arm.com>
+ <20170928083801.m6rb4frbbgzgam2o@hirez.programming.kicks-ass.net>
+ <20170928084535.GA19060@arm.com>
+ <20170928154354.GK3521@linux.vnet.ibm.com>
+ <20170928185909.kgwy36hkoqxqgyc3@tower>
+ <20170929005830.GU3521@linux.vnet.ibm.com>
+ <20170929090843.GB14791@arm.com>
+ <20170929162939.GY3521@linux.vnet.ibm.com>
+ <20170929163348.GD2376@arm.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20170920135856.dfuowttwi4bk4nqb@localhost>
+In-Reply-To: <20170929163348.GD2376@arm.com>
+Message-ID: <20171003191109.GB3521@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, Will Deacon <will.deacon@arm.com>, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
-Message-ID: <20171003111101.htxvq6y2oIyAPokdNn534px6jBb-4JWqvoUm4VX6SJk@z>
+To: Will Deacon <will.deacon@arm.com>
+Cc: Michael Cree <mcree@orcon.net.nz>, Peter Zijlstra <peterz@infradead.org>, kirill.shutemov@linux.intel.com, linux-kernel@vger.kernel.org, ynorov@caviumnetworks.com, rruigrok@codeaurora.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, catalin.marinas@arm.com, rth@twiddle.net, ink@jurassic.park.msu.ru, mattst88@gmail.com, linux-alpha@vger.kernel.org
+Message-ID: <20171003191110.xYALexmTlyaQETx05nqhhuiL99aULjLPeujwvTdHeP4@z>
 
-On Wed, Sep 20, 2017 at 02:58:56PM +0100, Catalin Marinas wrote:
-> On Thu, Sep 14, 2017 at 08:55:56PM +0100, Dave P Martin wrote:
-> > On Wed, Sep 13, 2017 at 07:33:25AM -0700, Catalin Marinas wrote:
-> > > On Thu, Aug 31, 2017 at 06:00:43PM +0100, Dave P Martin wrote:
-> > > > +/*
-> > > > + * Handle SVE state across fork():
-> > > > + *
-> > > > + * dst and src must not end up with aliases of the same sve_state.
-> > > > + * Because a task cannot fork except in a syscall, we can discard SVE
-> > > > + * state for dst here, so long as we take care to retain the FPSIMD
-> > > > + * subset of the state if SVE is in use.  Reallocation of the SVE state
-> > > > + * will be deferred until dst tries to use SVE.
-> > > > + */
-> > > > +void fpsimd_dup_sve(struct task_struct *dst, struct task_struct const *src)
-> > > > +{
-> > > > +	if (test_and_clear_tsk_thread_flag(dst, TIF_SVE)) {
-> > > > +		WARN_ON(dst->mm && !in_syscall(task_pt_regs(dst)));
-> > > > +		sve_to_fpsimd(dst);
-> > > > +	}
-> > > > +
-> > > > +	dst->thread.sve_state = NULL;
-> > > > +}
+On Fri, Sep 29, 2017 at 05:33:49PM +0100, Will Deacon wrote:
+> On Fri, Sep 29, 2017 at 09:29:39AM -0700, Paul E. McKenney wrote:
+> > On Fri, Sep 29, 2017 at 10:08:43AM +0100, Will Deacon wrote:
+> > > On Thu, Sep 28, 2017 at 05:58:30PM -0700, Paul E. McKenney wrote:
+> > > > On Fri, Sep 29, 2017 at 07:59:09AM +1300, Michael Cree wrote:
+> > > > > On Thu, Sep 28, 2017 at 08:43:54AM -0700, Paul E. McKenney wrote:
+> > > > > > On Thu, Sep 28, 2017 at 09:45:35AM +0100, Will Deacon wrote:
+> > > > > > > On Thu, Sep 28, 2017 at 10:38:01AM +0200, Peter Zijlstra wrote:
+> > > > > > > > On Wed, Sep 27, 2017 at 04:49:28PM +0100, Will Deacon wrote:
+> > > > > > > > > In many cases, page tables can be accessed concurrently by either another
+> > > > > > > > > CPU (due to things like fast gup) or by the hardware page table walker
+> > > > > > > > > itself, which may set access/dirty bits. In such cases, it is important
+> > > > > > > > > to use READ_ONCE/WRITE_ONCE when accessing page table entries so that
+> > > > > > > > > entries cannot be torn, merged or subject to apparent loss of coherence.
+> > > > > > > > 
+> > > > > > > > In fact, we should use lockless_dereference() for many of them. Yes
+> > > > > > > > Alpha is the only one that cares about the difference between that and
+> > > > > > > > READ_ONCE() and they do have the extra barrier, but if we're going to do
+> > > > > > > > this, we might as well do it 'right' :-)
+> > > > > > > 
+> > > > > > > I know this sounds daft, but I think one of the big reasons why
+> > > > > > > lockless_dereference() doesn't get an awful lot of use is because it's
+> > > > > > > such a mouthful! Why don't we just move the smp_read_barrier_depends()
+> > > > > > > into READ_ONCE? Would anybody actually care about the potential impact on
+> > > > > > > Alpha (which, frankly, is treading on thin ice given the low adoption of
+> > > > > > > lockless_dereference())?
+> > > > > > 
+> > > > > > This is my cue to ask my usual question...  ;-)
+> > > > > > 
+> > > > > > Are people still running mainline kernels on Alpha?  (Added Alpha folks.)
+> > > > > 
+> > > > > Yes.  I run two Alpha build daemons that build the unofficial
+> > > > > debian-alpha port.  Debian popcon reports nine machines running
+> > > > > Alpha, which are likely to be running the 4.12.y kernel which
+> > > > > is currently in debian-alpha, (and presumably soon to be 4.13.y
+> > > > > which is now built on Alpha in experimental).
+> > > > 
+> > > > I salute your dedication to Alpha!  ;-)
 > > > 
-> > > I first thought the thread flags are not visible in dst yet since
-> > > dup_task_struct() calls arch_dup_task_struct() before
-> > > setup_thread_stack(). However, at the end of the last year we enabled
-> > > CONFIG_THREAD_INFO_IN_TASK_STRUCT. But I don't particularly like relying
-> > > on this.
+> > > Ok, but where does that leave us wrt my initial proposal of moving
+> > > smp_read_barrier_depends() into READ_ONCE and getting rid of
+> > > lockless_dereference?
+> > > 
+> > > Michael (or anybody else running mainline on SMP Alpha) -- would you be
+> > > able to give the diff below a spin and see whether there's a measurable
+> > > performance impact?
 > > 
-> > Hmmm, I see your point, but there are some sequencing issues here.
-> > 
-> > > Anyway, IIUC we don't need sve_to_fpsimd() here. The
-> > > arch_dup_task_struct() already called fpsimd_preserve_current_state()
-> > 
-> > I consider SVE discard as an optional side effect of task_fpsimd_save(),
-> > not something that is guaranteed to happen -- the decision about whether
-> > to do so may become more intelligent later on.  So, for src, we may
-> > discard SVE (because syscall), but for dst we must NULL .sve_state (and
-> > therefore clear TIF_SVE) simply to avoid aliasing of src->sve_state and
-> > dst->sve_state.
+> > This will be a sensitive test.  The smp_read_barrier_depends() can be
+> > removed from lockless_dereference().  Without this removal Alpha will
+> > get two memory barriers from rcu_dereference() and friends.
 > 
-> My point was that the SVE state of src is already preserved at this
-> point and copied into dst. You don't need the sve_to_fpsimd(dst) again
-> which basically does the same copying of the src SVE saved state into
-> the FPSIMD one in dst. This has already been done in
-> arch_dup_task_struct() by the combination of
-> fpsimd_preserve_current_state() and *dst = *src (and, of course,
-> clearing TIF_SVE in dst).
+> Oh yes, good point. I was trying to keep the diff simple, but you're
+> right that this is packing too many barriers. Fixed diff below.
+
+Not seeing any objections thus far.  If there are none by (say) the
+end of this week, I would be happy to queue a patch for the 4.16
+merge window.  That should give ample opportunity for further review
+and testing.
+
+							Thanx, Paul
+
+> Thanks,
 > 
-> I don't think the TIF_SVE clearing in src is just a side effect of
-> task_fpsimd_save() here but rather a requirement. When returning from
-> fork(), both src and dst would need to have the same state. However,
-> your fpsimd_dup_sve() implementation makes it very clear that the SVE
-> state is lost in dst. This is only allowed if we also lose it in src (as
-> a result of a syscall). So making dst->sve_state = NULL requires that
-> TIF_SVE is also cleared in both src and dst. Alternatively, you'd have
-> to allocate a new state here and copy the full src SVE state across to
-> dst, together with setting TIF_SVE (that's not necessary, however, since
-> we get here as a result of a syscall).
-
-The currently intended ABI is that the SVE bits are unspecified after a
-syscall, so it is legitimate (though perhaps surprising) for different
-things to happen in dst and src.
-
-This complicates things a lot though, just to avoid the next SVE usage
-exception in src after the fork.
-
-
-It should be simpler to do what you suggest and discard the SVE state of
-src unconditionally before the copy: then we really are just cloning the
-thread apart from the need to set dst->thread.sve_state to NULL.
-
-fpsimd_preserve_current_state() does not necessarily write back to
-current->thread.fpsmid_state though: at the moment, it does do this as a
-side effect of task_fpsimd_save() because we happen to be in a syscall
-(i.e., fork).  
-
-What we really want is unconditional discarding of the state.  This
-wasn't needed anywhere else yet, so there's no explicit helper for it.
-But it makes sense to add one.
-
-What about refactoring along these lines:
-
-
-fpsimd.c:
-/* Unconditionally discard the SVE state */
-void task_sve_discard(struct task_struct *task)
-{
-	if (!system_supports_sve())
-		return;
-
-	local_bh_disable();
-	if (test_and_clear_tsk_thread_flag(task, TIF_SVE))
-		sve_to_fpsimd(task);
-	local_bh_enable();
-}
-
-process.c:
-int arch_dup_task_struct(sturct task_struct *dst, struct task_struct *src)
-{
-	if (current->mm) {
-		fpsimd_preserve_current_state();
-		task_sve_discard(src);
-	}
-
-	*dst = *src;
-
-	dst->thread.sve_state = NULL;
-}
-
-
-This also avoids having to touch dst's thread flags, since now we
-are just cloning the task except for assigning NULL to
-dst->thread.sve_state.
-
-
-> > > for src, so the FPSIMD state (which we care about) is transferred during
-> > > the *dst = *src assignment. So you'd only need the last statement,
-> > > possibly with a different function name like fpsimd_erase_sve (and maybe
-> > > make the function static inline in the header).
-> > 
-> > Not quite: TIF_SVE must be cleared so that a context switch or
-> > kernel_neon_begin() after dst is scheduled doesn't try to save state in
-> > the (NULL) dst->sve_state.
+> Will
 > 
-> Yes, TIF_SVE must also be cleared in dst when dst->sve_state = NULL (I
-> may have forgotten to mention this).
-
-With the above factoring, the constraint "TIF_SVE implies sve_state
-valid" is then never false, because TIF_SVE is already cleared before
-the NULL assignment.
-
-What do you think?
-
-Cheers
----Dave
+> --->8
+> 
+> diff --git a/include/linux/compiler.h b/include/linux/compiler.h
+> index e95a2631e545..c4ee9d6d8f2d 100644
+> --- a/include/linux/compiler.h
+> +++ b/include/linux/compiler.h
+> @@ -340,6 +340,7 @@ static __always_inline void __write_once_size(volatile void *p, void *res, int s
+>  		__read_once_size(&(x), __u.__c, sizeof(x));		\
+>  	else								\
+>  		__read_once_size_nocheck(&(x), __u.__c, sizeof(x));	\
+> +	smp_read_barrier_depends(); /* Enforce dependency ordering from x */ \
+>  	__u.__val;							\
+>  })
+>  #define READ_ONCE(x) __READ_ONCE(x, 1)
+> @@ -620,7 +621,6 @@ static __always_inline void __write_once_size(volatile void *p, void *res, int s
+>  ({ \
+>  	typeof(p) _________p1 = READ_ONCE(p); \
+>  	typeof(*(p)) *___typecheck_p __maybe_unused; \
+> -	smp_read_barrier_depends(); /* Dependency order vs. p above. */ \
+>  	(_________p1); \
+>  })
+> 
+> 
