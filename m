@@ -1,36 +1,44 @@
-From: Jon Masters <jcm@redhat.com>
-Subject: Re: [RFC PATCH 0/2] Missing READ_ONCE in core and arch-specific
- pgtable code leading to crashes
-Date: Tue, 3 Oct 2017 02:36:42 -0400
-Message-ID: <95366fe6-e1eb-dd39-6f13-903704b5180f@redhat.com>
-References: <1506527369-19535-1-git-send-email-will.deacon@arm.com>
- <9f351432-3c6b-3b06-7b49-bc9a5806aff5@redhat.com>
- <20170929085634.GA14791@arm.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH REBASED 0/6] rwsem: Implement down_read_killable()
+Date: Tue, 3 Oct 2017 11:03:03 +0200
+Message-ID: <20171003090303.aclppj3jozdirtxl@hirez.programming.kicks-ass.net>
+References: <150670038738.23930.7190484711222807884.stgit@localhost.localdomain>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:59242 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750767AbdJCGgp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 3 Oct 2017 02:36:45 -0400
-In-Reply-To: <20170929085634.GA14791@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>, Jon Masters <jcm@redhat.com>
-Cc: peterz@infradead.org, paulmck@linux.vnet.ibm.com, kirill.shutemov@linux.intel.com, linux-kernel@vger.kernel.org, ynorov@caviumnetworks.com, rruigrok@codeaurora.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, catalin.marinas@arm.com, timur@codeaurora.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-alpha-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <150670038738.23930.7190484711222807884.stgit@localhost.localdomain>
+Sender: linux-alpha-owner@vger.kernel.org
+To: Kirill Tkhai <ktkhai@virtuozzo.com>
+Cc: linux-ia64@vger.kernel.org, avagin@virtuozzo.com, heiko.carstens@de.ibm.com, hpa@zytor.com, gorcunov@virtuozzo.com, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, x86@kernel.org, mingo@redhat.com, mattst88@gmail.com, fenghua.yu@intel.com, arnd@arndb.de, ink@jurassic.park.msu.ru, tglx@linutronix.de, rth@twiddle.net, tony.luck@intel.com, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, schwidefsky@de.ibm.com, davem@davemloft.net, rientjes@google.com, viro@zeniv.linux.org.uk
+List-Id: linux-arch.vger.kernel.org
 
-On 09/29/2017 04:56 AM, Will Deacon wrote:
+On Fri, Sep 29, 2017 at 07:05:45PM +0300, Kirill Tkhai wrote:
+> The series introduces new down_read_killable() primitive, which
+> is similar to down_read(), but it may be interrupted by a signal.
+> The most touched is architectures code. Also, it marks a new user
+> of the primitive, which is iterate_dir().
+> 
+> ---
+> 
+> Kirill Tkhai (6):
+>       alpha: Add __down_read_killable()
+>       ia64: Add __down_read_killable()
+>       s390: Add __down_read_killable()
+>       x86: Add __down_read_killable()
+>       rwsem: Add down_read_killable()
+>       fs: Use killable down_read() in iterate_dir()
+> 
+> 
+>  arch/alpha/include/asm/rwsem.h |   18 ++++++++++++++++--
+>  arch/ia64/include/asm/rwsem.h  |   22 +++++++++++++++++++---
+>  arch/s390/include/asm/rwsem.h  |   18 ++++++++++++++++--
+>  arch/x86/include/asm/rwsem.h   |   35 +++++++++++++++++++++++++----------
+>  arch/x86/lib/rwsem.S           |   12 ++++++++++++
+>  fs/readdir.c                   |   11 +++++------
+>  include/asm-generic/rwsem.h    |    8 ++++++++
+>  include/linux/rwsem.h          |    1 +
+>  kernel/locking/rwsem.c         |   16 ++++++++++++++++
+>  9 files changed, 118 insertions(+), 23 deletions(-)
 
-> The full fix isn't just cosmetic; it's also addressing the wider problem
-> of unannotated racing page table accesses outside of the specific failure
-> case we've run into.
-
-Let us know if there are additional tests we should be running on the
-Red Hat end. We've got high hundreds of ARM server systems at this
-point, including pretty much everything out there.
-
-Jon.
-
--- 
-Computer Architect | Sent from my Fedora powered laptop
+thanks!
