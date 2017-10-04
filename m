@@ -1,130 +1,90 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:51044 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1751132AbdJCTLR (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 3 Oct 2017 15:11:17 -0400
-Received: from pps.filterd (m0098410.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id v93JA78X096713
-        for <linux-arch@vger.kernel.org>; Tue, 3 Oct 2017 15:11:17 -0400
-Received: from e16.ny.us.ibm.com (e16.ny.us.ibm.com [129.33.205.206])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2dccjbwqnn-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Tue, 03 Oct 2017 15:11:16 -0400
-Received: from localhost
-        by e16.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Tue, 3 Oct 2017 15:11:15 -0400
-Date: Tue, 3 Oct 2017 12:11:10 -0700
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [RFC PATCH 1/2] arm64: mm: Use READ_ONCE/WRITE_ONCE when
- accessing page tables
-Reply-To: paulmck@linux.vnet.ibm.com
-References: <1506527369-19535-1-git-send-email-will.deacon@arm.com>
- <1506527369-19535-2-git-send-email-will.deacon@arm.com>
- <20170928083801.m6rb4frbbgzgam2o@hirez.programming.kicks-ass.net>
- <20170928084535.GA19060@arm.com>
- <20170928154354.GK3521@linux.vnet.ibm.com>
- <20170928185909.kgwy36hkoqxqgyc3@tower>
- <20170929005830.GU3521@linux.vnet.ibm.com>
- <20170929090843.GB14791@arm.com>
- <20170929162939.GY3521@linux.vnet.ibm.com>
- <20170929163348.GD2376@arm.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20170929163348.GD2376@arm.com>
-Message-ID: <20171003191109.GB3521@linux.vnet.ibm.com>
+Received: from mga07.intel.com ([134.134.136.100]:46550 "EHLO mga07.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751158AbdJDDzc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 3 Oct 2017 23:55:32 -0400
+From: Ricardo Neri <ricardo.neri-calderon@linux.intel.com>
+Subject: [PATCH v9 02/29] x86/boot: Relocate definition of the initial state of CR0
+Date: Tue,  3 Oct 2017 20:54:05 -0700
+Message-ID: <1507089272-32733-3-git-send-email-ricardo.neri-calderon@linux.intel.com>
+In-Reply-To: <1507089272-32733-1-git-send-email-ricardo.neri-calderon@linux.intel.com>
+References: <1507089272-32733-1-git-send-email-ricardo.neri-calderon@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Michael Cree <mcree@orcon.net.nz>, Peter Zijlstra <peterz@infradead.org>, kirill.shutemov@linux.intel.com, linux-kernel@vger.kernel.org, ynorov@caviumnetworks.com, rruigrok@codeaurora.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, catalin.marinas@arm.com, rth@twiddle.net, ink@jurassic.park.msu.ru, mattst88@gmail.com, linux-alpha@vger.kernel.org
-Message-ID: <20171003191110.xYALexmTlyaQETx05nqhhuiL99aULjLPeujwvTdHeP4@z>
+To: Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>
+Cc: Peter Zijlstra <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Brian Gerst <brgerst@gmail.com>, Chris Metcalf <cmetcalf@mellanox.com>, Dave Hansen <dave.hansen@linux.intel.com>, Paolo Bonzini <pbonzini@redhat.com>, Liang Z Li <liang.z.li@intel.com>, Masami Hiramatsu <mhiramat@kernel.org>, Huang Rui <ray.huang@amd.com>, Jiri Slaby <jslaby@suse.cz>, Jonathan Corbet <corbet@lwn.net>, "Michael S. Tsirkin" <mst@redhat.com>, Paul Gortmaker <paul.gortmaker@windriver.com>, Vlastimil Babka <vbabka@suse.cz>, Chen Yucong <slaoub@gmail.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Shuah Khan <shuah@kernel.org>, linux-kernel@vger.kernel.org, x86@kernel.org, ricardo.neri@intel.com, Ricardo Neri <ricardo.neri-calderon@linux.intel.com>, Andy Lutomirski <luto@amacapital.net>, Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@intel.com>, Denys Vlasenko <dvlasenk@redhat.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Message-ID: <20171004035405.Fgd5-ZZQ7RbmtQ2oSDdrwhrn0Y4BFFHeieiGQUJPXSA@z>
 
-On Fri, Sep 29, 2017 at 05:33:49PM +0100, Will Deacon wrote:
-> On Fri, Sep 29, 2017 at 09:29:39AM -0700, Paul E. McKenney wrote:
-> > On Fri, Sep 29, 2017 at 10:08:43AM +0100, Will Deacon wrote:
-> > > On Thu, Sep 28, 2017 at 05:58:30PM -0700, Paul E. McKenney wrote:
-> > > > On Fri, Sep 29, 2017 at 07:59:09AM +1300, Michael Cree wrote:
-> > > > > On Thu, Sep 28, 2017 at 08:43:54AM -0700, Paul E. McKenney wrote:
-> > > > > > On Thu, Sep 28, 2017 at 09:45:35AM +0100, Will Deacon wrote:
-> > > > > > > On Thu, Sep 28, 2017 at 10:38:01AM +0200, Peter Zijlstra wrote:
-> > > > > > > > On Wed, Sep 27, 2017 at 04:49:28PM +0100, Will Deacon wrote:
-> > > > > > > > > In many cases, page tables can be accessed concurrently by either another
-> > > > > > > > > CPU (due to things like fast gup) or by the hardware page table walker
-> > > > > > > > > itself, which may set access/dirty bits. In such cases, it is important
-> > > > > > > > > to use READ_ONCE/WRITE_ONCE when accessing page table entries so that
-> > > > > > > > > entries cannot be torn, merged or subject to apparent loss of coherence.
-> > > > > > > > 
-> > > > > > > > In fact, we should use lockless_dereference() for many of them. Yes
-> > > > > > > > Alpha is the only one that cares about the difference between that and
-> > > > > > > > READ_ONCE() and they do have the extra barrier, but if we're going to do
-> > > > > > > > this, we might as well do it 'right' :-)
-> > > > > > > 
-> > > > > > > I know this sounds daft, but I think one of the big reasons why
-> > > > > > > lockless_dereference() doesn't get an awful lot of use is because it's
-> > > > > > > such a mouthful! Why don't we just move the smp_read_barrier_depends()
-> > > > > > > into READ_ONCE? Would anybody actually care about the potential impact on
-> > > > > > > Alpha (which, frankly, is treading on thin ice given the low adoption of
-> > > > > > > lockless_dereference())?
-> > > > > > 
-> > > > > > This is my cue to ask my usual question...  ;-)
-> > > > > > 
-> > > > > > Are people still running mainline kernels on Alpha?  (Added Alpha folks.)
-> > > > > 
-> > > > > Yes.  I run two Alpha build daemons that build the unofficial
-> > > > > debian-alpha port.  Debian popcon reports nine machines running
-> > > > > Alpha, which are likely to be running the 4.12.y kernel which
-> > > > > is currently in debian-alpha, (and presumably soon to be 4.13.y
-> > > > > which is now built on Alpha in experimental).
-> > > > 
-> > > > I salute your dedication to Alpha!  ;-)
-> > > 
-> > > Ok, but where does that leave us wrt my initial proposal of moving
-> > > smp_read_barrier_depends() into READ_ONCE and getting rid of
-> > > lockless_dereference?
-> > > 
-> > > Michael (or anybody else running mainline on SMP Alpha) -- would you be
-> > > able to give the diff below a spin and see whether there's a measurable
-> > > performance impact?
-> > 
-> > This will be a sensitive test.  The smp_read_barrier_depends() can be
-> > removed from lockless_dereference().  Without this removal Alpha will
-> > get two memory barriers from rcu_dereference() and friends.
-> 
-> Oh yes, good point. I was trying to keep the diff simple, but you're
-> right that this is packing too many barriers. Fixed diff below.
+Both head_32.S and head_64.S utilize the same value to initialize the
+control register CR0. Also, other parts of the kernel might want to access
+this initial definition (e.g., emulation code for User-Mode Instruction
+Prevention uses this state to provide a sane dummy value for CR0 when
+emulating the smsw instruction). Thus, relocate this definition to a
+header file from which it can be conveniently accessed.
 
-Not seeing any objections thus far.  If there are none by (say) the
-end of this week, I would be happy to queue a patch for the 4.16
-merge window.  That should give ample opportunity for further review
-and testing.
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Andy Lutomirski <luto@amacapital.net>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: Brian Gerst <brgerst@gmail.com>
+Cc: Dave Hansen <dave.hansen@intel.com>
+Cc: Denys Vlasenko <dvlasenk@redhat.com>
+Cc: H. Peter Anvin <hpa@zytor.com>
+Cc: Josh Poimboeuf <jpoimboe@redhat.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-arch@vger.kernel.org
+Cc: linux-mm@kvack.org
+Suggested-by: Borislav Petkov <bp@alien8.de>
+Reviewed-by: Borislav Petkov <bp@suse.de>
+Signed-off-by: Ricardo Neri <ricardo.neri-calderon@linux.intel.com>
+---
+ arch/x86/include/uapi/asm/processor-flags.h | 3 +++
+ arch/x86/kernel/head_32.S                   | 3 ---
+ arch/x86/kernel/head_64.S                   | 3 ---
+ 3 files changed, 3 insertions(+), 6 deletions(-)
 
-							Thanx, Paul
-
-> Thanks,
-> 
-> Will
-> 
-> --->8
-> 
-> diff --git a/include/linux/compiler.h b/include/linux/compiler.h
-> index e95a2631e545..c4ee9d6d8f2d 100644
-> --- a/include/linux/compiler.h
-> +++ b/include/linux/compiler.h
-> @@ -340,6 +340,7 @@ static __always_inline void __write_once_size(volatile void *p, void *res, int s
->  		__read_once_size(&(x), __u.__c, sizeof(x));		\
->  	else								\
->  		__read_once_size_nocheck(&(x), __u.__c, sizeof(x));	\
-> +	smp_read_barrier_depends(); /* Enforce dependency ordering from x */ \
->  	__u.__val;							\
->  })
->  #define READ_ONCE(x) __READ_ONCE(x, 1)
-> @@ -620,7 +621,6 @@ static __always_inline void __write_once_size(volatile void *p, void *res, int s
->  ({ \
->  	typeof(p) _________p1 = READ_ONCE(p); \
->  	typeof(*(p)) *___typecheck_p __maybe_unused; \
-> -	smp_read_barrier_depends(); /* Dependency order vs. p above. */ \
->  	(_________p1); \
->  })
-> 
-> 
+diff --git a/arch/x86/include/uapi/asm/processor-flags.h b/arch/x86/include/uapi/asm/processor-flags.h
+index 185f3d1..39946d0 100644
+--- a/arch/x86/include/uapi/asm/processor-flags.h
++++ b/arch/x86/include/uapi/asm/processor-flags.h
+@@ -151,5 +151,8 @@
+ #define CX86_ARR_BASE	0xc4
+ #define CX86_RCR_BASE	0xdc
+ 
++#define CR0_STATE	(X86_CR0_PE | X86_CR0_MP | X86_CR0_ET | \
++			 X86_CR0_NE | X86_CR0_WP | X86_CR0_AM | \
++			 X86_CR0_PG)
+ 
+ #endif /* _UAPI_ASM_X86_PROCESSOR_FLAGS_H */
+diff --git a/arch/x86/kernel/head_32.S b/arch/x86/kernel/head_32.S
+index 9ed3074..c3cfc65 100644
+--- a/arch/x86/kernel/head_32.S
++++ b/arch/x86/kernel/head_32.S
+@@ -211,9 +211,6 @@ ENTRY(startup_32_smp)
+ #endif
+ 
+ .Ldefault_entry:
+-#define CR0_STATE	(X86_CR0_PE | X86_CR0_MP | X86_CR0_ET | \
+-			 X86_CR0_NE | X86_CR0_WP | X86_CR0_AM | \
+-			 X86_CR0_PG)
+ 	movl $(CR0_STATE & ~X86_CR0_PG),%eax
+ 	movl %eax,%cr0
+ 
+diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
+index 42e32c2..205dabc 100644
+--- a/arch/x86/kernel/head_64.S
++++ b/arch/x86/kernel/head_64.S
+@@ -152,9 +152,6 @@ ENTRY(secondary_startup_64)
+ 1:	wrmsr				/* Make changes effective */
+ 
+ 	/* Setup cr0 */
+-#define CR0_STATE	(X86_CR0_PE | X86_CR0_MP | X86_CR0_ET | \
+-			 X86_CR0_NE | X86_CR0_WP | X86_CR0_AM | \
+-			 X86_CR0_PG)
+ 	movl	$CR0_STATE, %eax
+ 	/* Make changes effective */
+ 	movq	%rax, %cr0
+-- 
+2.7.4
