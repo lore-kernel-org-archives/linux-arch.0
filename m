@@ -1,91 +1,150 @@
-From: Ricardo Neri <ricardo.neri-calderon@linux.intel.com>
-Subject: [PATCH v9 02/29] x86/boot: Relocate definition of the initial state of CR0
-Date: Tue,  3 Oct 2017 20:54:05 -0700
-Message-ID: <1507089272-32733-3-git-send-email-ricardo.neri-calderon@linux.intel.com>
-References: <1507089272-32733-1-git-send-email-ricardo.neri-calderon@linux.intel.com>
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1507089272-32733-1-git-send-email-ricardo.neri-calderon@linux.intel.com>
-Sender: owner-linux-mm@kvack.org
-To: Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>
-Cc: Peter Zijlstra <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Brian Gerst <brgerst@gmail.com>, Chris Metcalf <cmetcalf@mellanox.com>, Dave Hansen <dave.hansen@linux.intel.com>, Paolo Bonzini <pbonzini@redhat.com>, Liang Z Li <liang.z.li@intel.com>, Masami Hiramatsu <mhiramat@kernel.org>, Huang Rui <ray.huang@amd.com>, Jiri Slaby <jslaby@suse.cz>, Jonathan Corbet <corbet@lwn.net>, "Michael S. Tsirkin" <mst@redhat.com>, Paul Gortmaker <paul.gortmaker@windriver.com>, Vlastimil Babka <vbabka@suse.cz>, Chen Yucong <slaoub@gmail.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Shuah Khan <shuah@kernel.org>, linux-kernel@vger.kernel.org, x86@kernel.org, ricardo.neri@intel.com, Ricardo Neri <ricardo.neri-calderon@linux.intel.com>, Andy Lutomirski <luto@amacapital.net>, Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@intel.com>, Denys
-List-Id: linux-arch.vger.kernel.org
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v2 11/28] arm64/sve: Core task context handling
+Date: Wed, 4 Oct 2017 18:29:56 +0100
+Message-ID: <20171004172955.tyooqxdoo73iq66u@armageddon.cambridge.arm.com>
+References: <1504198860-12951-1-git-send-email-Dave.Martin@arm.com>
+ <1504198860-12951-12-git-send-email-Dave.Martin@arm.com>
+ <20170913143325.hi4cfcajbts3bbao@localhost>
+ <20170914195555.GB24231@e103592.cambridge.arm.com>
+ <20170920135856.dfuowttwi4bk4nqb@localhost>
+ <20171003111100.GQ3611@e103592.cambridge.arm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:35846 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1750779AbdJDRaB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 4 Oct 2017 13:30:01 -0400
+Content-Disposition: inline
+In-Reply-To: <20171003111100.GQ3611@e103592.cambridge.arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, Will Deacon <will.deacon@arm.com>, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
 
-Both head_32.S and head_64.S utilize the same value to initialize the
-control register CR0. Also, other parts of the kernel might want to access
-this initial definition (e.g., emulation code for User-Mode Instruction
-Prevention uses this state to provide a sane dummy value for CR0 when
-emulating the smsw instruction). Thus, relocate this definition to a
-header file from which it can be conveniently accessed.
+On Tue, Oct 03, 2017 at 12:11:01PM +0100, Dave P Martin wrote:
+> On Wed, Sep 20, 2017 at 02:58:56PM +0100, Catalin Marinas wrote:
+> > On Thu, Sep 14, 2017 at 08:55:56PM +0100, Dave P Martin wrote:
+> > > On Wed, Sep 13, 2017 at 07:33:25AM -0700, Catalin Marinas wrote:
+> > > > On Thu, Aug 31, 2017 at 06:00:43PM +0100, Dave P Martin wrote:
+> > > > > +/*
+> > > > > + * Handle SVE state across fork():
+> > > > > + *
+> > > > > + * dst and src must not end up with aliases of the same sve_state.
+> > > > > + * Because a task cannot fork except in a syscall, we can discard SVE
+> > > > > + * state for dst here, so long as we take care to retain the FPSIMD
+> > > > > + * subset of the state if SVE is in use.  Reallocation of the SVE state
+> > > > > + * will be deferred until dst tries to use SVE.
+> > > > > + */
+> > > > > +void fpsimd_dup_sve(struct task_struct *dst, struct task_struct const *src)
+> > > > > +{
+> > > > > +	if (test_and_clear_tsk_thread_flag(dst, TIF_SVE)) {
+> > > > > +		WARN_ON(dst->mm && !in_syscall(task_pt_regs(dst)));
+> > > > > +		sve_to_fpsimd(dst);
+> > > > > +	}
+> > > > > +
+> > > > > +	dst->thread.sve_state = NULL;
+> > > > > +}
+> > > > 
+> > > > I first thought the thread flags are not visible in dst yet since
+> > > > dup_task_struct() calls arch_dup_task_struct() before
+> > > > setup_thread_stack(). However, at the end of the last year we enabled
+> > > > CONFIG_THREAD_INFO_IN_TASK_STRUCT. But I don't particularly like relying
+> > > > on this.
+> > > 
+> > > Hmmm, I see your point, but there are some sequencing issues here.
+> > > 
+> > > > Anyway, IIUC we don't need sve_to_fpsimd() here. The
+> > > > arch_dup_task_struct() already called fpsimd_preserve_current_state()
+> > > 
+> > > I consider SVE discard as an optional side effect of task_fpsimd_save(),
+> > > not something that is guaranteed to happen -- the decision about whether
+> > > to do so may become more intelligent later on.  So, for src, we may
+> > > discard SVE (because syscall), but for dst we must NULL .sve_state (and
+> > > therefore clear TIF_SVE) simply to avoid aliasing of src->sve_state and
+> > > dst->sve_state.
+> > 
+> > My point was that the SVE state of src is already preserved at this
+> > point and copied into dst. You don't need the sve_to_fpsimd(dst) again
+> > which basically does the same copying of the src SVE saved state into
+> > the FPSIMD one in dst. This has already been done in
+> > arch_dup_task_struct() by the combination of
+> > fpsimd_preserve_current_state() and *dst = *src (and, of course,
+> > clearing TIF_SVE in dst).
+> > 
+> > I don't think the TIF_SVE clearing in src is just a side effect of
+> > task_fpsimd_save() here but rather a requirement. When returning from
+> > fork(), both src and dst would need to have the same state. However,
+> > your fpsimd_dup_sve() implementation makes it very clear that the SVE
+> > state is lost in dst. This is only allowed if we also lose it in src (as
+> > a result of a syscall). So making dst->sve_state = NULL requires that
+> > TIF_SVE is also cleared in both src and dst. Alternatively, you'd have
+> > to allocate a new state here and copy the full src SVE state across to
+> > dst, together with setting TIF_SVE (that's not necessary, however, since
+> > we get here as a result of a syscall).
+> 
+> The currently intended ABI is that the SVE bits are unspecified after a
+> syscall, so it is legitimate (though perhaps surprising) for different
+> things to happen in dst and src.
+> 
+> This complicates things a lot though, just to avoid the next SVE usage
+> exception in src after the fork.
+> 
+> 
+> It should be simpler to do what you suggest and discard the SVE state of
+> src unconditionally before the copy: then we really are just cloning the
+> thread apart from the need to set dst->thread.sve_state to NULL.
+> 
+> fpsimd_preserve_current_state() does not necessarily write back to
+> current->thread.fpsmid_state though: at the moment, it does do this as a
+> side effect of task_fpsimd_save() because we happen to be in a syscall
+> (i.e., fork).  
+> 
+> What we really want is unconditional discarding of the state.  This
+> wasn't needed anywhere else yet, so there's no explicit helper for it.
+> But it makes sense to add one.
+> 
+> What about refactoring along these lines:
+> 
+> 
+> fpsimd.c:
+> /* Unconditionally discard the SVE state */
+> void task_sve_discard(struct task_struct *task)
+> {
+> 	if (!system_supports_sve())
+> 		return;
+> 
+> 	local_bh_disable();
+> 	if (test_and_clear_tsk_thread_flag(task, TIF_SVE))
+> 		sve_to_fpsimd(task);
+> 	local_bh_enable();
+> }
+> 
+> process.c:
+> int arch_dup_task_struct(sturct task_struct *dst, struct task_struct *src)
+> {
+> 	if (current->mm) {
+> 		fpsimd_preserve_current_state();
+> 		task_sve_discard(src);
+> 	}
+> 
+> 	*dst = *src;
+> 
+> 	dst->thread.sve_state = NULL;
+> }
+> 
+> 
+> This also avoids having to touch dst's thread flags, since now we
+> are just cloning the task except for assigning NULL to
+> dst->thread.sve_state.
 
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Andy Lutomirski <luto@amacapital.net>
-Cc: Andy Lutomirski <luto@kernel.org>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: Brian Gerst <brgerst@gmail.com>
-Cc: Dave Hansen <dave.hansen@intel.com>
-Cc: Denys Vlasenko <dvlasenk@redhat.com>
-Cc: H. Peter Anvin <hpa@zytor.com>
-Cc: Josh Poimboeuf <jpoimboe@redhat.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-arch@vger.kernel.org
-Cc: linux-mm@kvack.org
-Suggested-by: Borislav Petkov <bp@alien8.de>
-Reviewed-by: Borislav Petkov <bp@suse.de>
-Signed-off-by: Ricardo Neri <ricardo.neri-calderon@linux.intel.com>
----
- arch/x86/include/uapi/asm/processor-flags.h | 3 +++
- arch/x86/kernel/head_32.S                   | 3 ---
- arch/x86/kernel/head_64.S                   | 3 ---
- 3 files changed, 3 insertions(+), 6 deletions(-)
+This looks fine to me, the execution of task_sve_discard() is nearly a
+no-op with the current code.
 
-diff --git a/arch/x86/include/uapi/asm/processor-flags.h b/arch/x86/include/uapi/asm/processor-flags.h
-index 185f3d1..39946d0 100644
---- a/arch/x86/include/uapi/asm/processor-flags.h
-+++ b/arch/x86/include/uapi/asm/processor-flags.h
-@@ -151,5 +151,8 @@
- #define CX86_ARR_BASE	0xc4
- #define CX86_RCR_BASE	0xdc
- 
-+#define CR0_STATE	(X86_CR0_PE | X86_CR0_MP | X86_CR0_ET | \
-+			 X86_CR0_NE | X86_CR0_WP | X86_CR0_AM | \
-+			 X86_CR0_PG)
- 
- #endif /* _UAPI_ASM_X86_PROCESSOR_FLAGS_H */
-diff --git a/arch/x86/kernel/head_32.S b/arch/x86/kernel/head_32.S
-index 9ed3074..c3cfc65 100644
---- a/arch/x86/kernel/head_32.S
-+++ b/arch/x86/kernel/head_32.S
-@@ -211,9 +211,6 @@ ENTRY(startup_32_smp)
- #endif
- 
- .Ldefault_entry:
--#define CR0_STATE	(X86_CR0_PE | X86_CR0_MP | X86_CR0_ET | \
--			 X86_CR0_NE | X86_CR0_WP | X86_CR0_AM | \
--			 X86_CR0_PG)
- 	movl $(CR0_STATE & ~X86_CR0_PG),%eax
- 	movl %eax,%cr0
- 
-diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
-index 42e32c2..205dabc 100644
---- a/arch/x86/kernel/head_64.S
-+++ b/arch/x86/kernel/head_64.S
-@@ -152,9 +152,6 @@ ENTRY(secondary_startup_64)
- 1:	wrmsr				/* Make changes effective */
- 
- 	/* Setup cr0 */
--#define CR0_STATE	(X86_CR0_PE | X86_CR0_MP | X86_CR0_ET | \
--			 X86_CR0_NE | X86_CR0_WP | X86_CR0_AM | \
--			 X86_CR0_PG)
- 	movl	$CR0_STATE, %eax
- 	/* Make changes effective */
- 	movq	%rax, %cr0
+We still have some local_bh_disable/enable() calls, though I don't think
+it's worth optimising them now (e.g. having a
+fpsimd_preserve_current_state_and_discard_sve() function with a
+"sve_discard" argument to task_fpsimd_save() to force this). 
+
 -- 
-2.7.4
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Catalin
