@@ -1,47 +1,69 @@
-From: Thomas Garnier <thgarnie@google.com>
-Subject: Re: [RFC v3 20/27] x86/ftrace: Adapt function tracing for PIE support
-Date: Thu, 5 Oct 2017 09:01:14 -0700
-Message-ID: <CAJcbSZHa3SyCR8zEm-Yor9CmBUfcjr0eE_6HMnaeq83gitdJNQ@mail.gmail.com>
-References: <20171004212003.28296-1-thgarnie@google.com> <20171004212003.28296-21-thgarnie@google.com>
- <20171005090633.5a6ce840@gandalf.local.home>
+From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Subject: Re: [PATCH tip/core/rcu 1/3] membarrier: Provide register expedited
+ private command
+Date: Thu, 5 Oct 2017 16:05:10 +0000 (UTC)
+Message-ID: <449773494.31740.1507219510868.JavaMail.zimbra@efficios.com>
+References: <20171004213734.GA11463@linux.vnet.ibm.com> <1507153075-12345-1-git-send-email-paulmck@linux.vnet.ibm.com> <20171005121250.prr5ff5kf3lxq6hx@hirez.programming.kicks-ass.net> <20171005122458.zfl2vl7h4jiu67ms@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <kernel-hardening-return-10086-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <20171005090633.5a6ce840@gandalf.local.home>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: Herbert Xu <herbert@gondor.apana.org.au>, "David S . Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>, Matthias Kaehlcke <mka@chromium.org>, Tom Lendacky <thomas.lendacky@amd.com>, Andy Lutomirski <luto@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Borislav Petkov <bp@suse.de>, "Rafael J . Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Pavel Machek <pavel@ucw.cz>, Juergen Gross <jgross@suse.com>, Chris Wright <chrisw@sous-sol.org>, Alok Kataria <akataria@vmware.com>, Rusty Russell <rusty@rustcorp.com.au>, Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@linux.com>, Boris Ostrovsky <boris.ostrovsky@orac>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20171005122458.zfl2vl7h4jiu67ms@hirez.programming.kicks-ass.net>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Lai Jiangshan <jiangshanlai@gmail.com>, dipankar <dipankar@in.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Josh Triplett <josh@joshtriplett.org>, Thomas Gleixner <tglx@linutronix.de>, rostedt <rostedt@goodmis.org>, David Howells <dhowells@redhat.com>, Eric Dumazet <edumazet@google.com>, fweisbec <fweisbec@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Boqun Feng <boqun.feng@gmail.com>, Andrew Hunter <ahh@google.com>, maged michael <maged.michael@gmail.com>, gromer <gromer@google.com>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Oct 5, 2017 at 6:06 AM, Steven Rostedt <rostedt@goodmis.org> wrote:
-> On Wed,  4 Oct 2017 14:19:56 -0700
-> Thomas Garnier <thgarnie@google.com> wrote:
->
->> When using -fPIE/PIC with function tracing, the compiler generates a
->> call through the GOT (call *__fentry__@GOTPCREL). This instruction
->> takes 6 bytes instead of 5 on the usual relative call.
->>
->> With this change, function tracing supports 6 bytes on traceable
->> function and can still replace relative calls on the ftrace assembly
->> functions.
->>
->> Position Independent Executable (PIE) support will allow to extended the
->> KASLR randomization range below the -2G memory limit.
->
-> Question: This 6 bytes is only the initial call that gcc creates. When
-> function tracing is enabled, the calls are back to the normal call to
-> the ftrace trampoline?
 
-That is correct.
+----- On Oct 5, 2017, at 8:24 AM, Peter Zijlstra peterz@infradead.org wrote:
 
->
-> -- Steve
->
+> On Thu, Oct 05, 2017 at 02:12:50PM +0200, Peter Zijlstra wrote:
+>> On Wed, Oct 04, 2017 at 02:37:53PM -0700, Paul E. McKenney wrote:
+>> > diff --git a/arch/powerpc/kernel/membarrier.c b/arch/powerpc/kernel/membarrier.c
+>> > new file mode 100644
+>> > index 000000000000..b0d79a5f5981
+>> > --- /dev/null
+>> > +++ b/arch/powerpc/kernel/membarrier.c
+>> > @@ -0,0 +1,45 @@
+>> 
+>> > +void membarrier_arch_register_private_expedited(struct task_struct *p)
+>> > +{
+>> > +	struct task_struct *t;
+>> > +
+>> > +	if (get_nr_threads(p) == 1) {
+>> > +		set_thread_flag(TIF_MEMBARRIER_PRIVATE_EXPEDITED);
+>> > +		return;
+>> > +	}
+>> > +	/*
+>> > +	 * Coherence of TIF_MEMBARRIER_PRIVATE_EXPEDITED against thread
+>> > +	 * fork is protected by siglock.
+>> > +	 */
+>> > +	spin_lock(&p->sighand->siglock);
+>> > +	for_each_thread(p, t)
+>> > +		set_ti_thread_flag(task_thread_info(t),
+>> > +				TIF_MEMBARRIER_PRIVATE_EXPEDITED);
+>> 
+>> I'm not sure this works correctly vs CLONE_VM without CLONE_THREAD.
+> 
+> Also, for easier reading I would suggest putting { } around the block.
 
+Will do, thanks,
 
+Mathieu
+
+> 
+>> > +	spin_unlock(&p->sighand->siglock);
+>> > +	/*
+>> > +	 * Ensure all future scheduler executions will observe the new
+>> > +	 * thread flag state for this process.
+>> > +	 */
+>> > +	synchronize_sched();
+>> 
+>> This relies on the flag being read inside rq->lock, right?
+>> 
+> > > +}
 
 -- 
-Thomas
+Mathieu Desnoyers
+EfficiOS Inc.
+http://www.efficios.com
