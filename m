@@ -1,44 +1,90 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [RFC PATCH 0/2] Missing READ_ONCE in core and arch-specific
- pgtable code leading to crashes
-Date: Thu, 5 Oct 2017 17:54:33 +0100
-Message-ID: <20171005165433.GA4047@arm.com>
-References: <1506527369-19535-1-git-send-email-will.deacon@arm.com>
- <9f351432-3c6b-3b06-7b49-bc9a5806aff5@redhat.com>
- <20170929085634.GA14791@arm.com>
- <95366fe6-e1eb-dd39-6f13-903704b5180f@redhat.com>
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [PATCH v2 26/28] arm64/sve: Add documentation
+Date: Thu, 5 Oct 2017 18:02:54 +0100
+Message-ID: <20171005170254.GY3611@e103592.cambridge.arm.com>
+References: <1504198860-12951-1-git-send-email-Dave.Martin@arm.com>
+ <1504198860-12951-27-git-send-email-Dave.Martin@arm.com>
+ <59D6603C.2040603@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:49086 "EHLO
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:49202 "EHLO
         foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751335AbdJEQyd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 5 Oct 2017 12:54:33 -0400
+        id S1751144AbdJERC7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 5 Oct 2017 13:02:59 -0400
 Content-Disposition: inline
-In-Reply-To: <95366fe6-e1eb-dd39-6f13-903704b5180f@redhat.com>
+In-Reply-To: <59D6603C.2040603@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jon Masters <jcm@redhat.com>
-Cc: peterz@infradead.org, paulmck@linux.vnet.ibm.com, kirill.shutemov@linux.intel.com, linux-kernel@vger.kernel.org, ynorov@caviumnetworks.com, rruigrok@codeaurora.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, catalin.marinas@arm.com, timur@codeaurora.org
+To: Szabolcs Nagy <szabolcs.nagy@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>nd@arm.com, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu
 
-On Tue, Oct 03, 2017 at 02:36:42AM -0400, Jon Masters wrote:
-> On 09/29/2017 04:56 AM, Will Deacon wrote:
+On Thu, Oct 05, 2017 at 05:39:24PM +0100, Szabolcs Nagy wrote:
+> On 31/08/17 18:00, Dave Martin wrote:
+
+[...]
+
+> > +	PR_SVE_SET_VL_ONEXEC
+> > +
+> > +	    Defer the requested vector length change until the next execve().
+> > +	    This allows launching of a new program with a different vector
+> > +	    length, while avoiding runtime side effects in the caller.
+> > +
+> > +	    This also overrides the effect of PR_SVE_SET_VL_INHERIT for the
+> > +	    first execve().
+> > +
+> > +	    Without PR_SVE_SET_VL_ONEXEC, any outstanding deferred vector
+> > +	    length change is cancelled.
+> > +
 > 
-> > The full fix isn't just cosmetic; it's also addressing the wider problem
-> > of unannotated racing page table accesses outside of the specific failure
-> > case we've run into.
+> based on later text it seems this works if exeve is
+> called in the same thread as prctl was called in.
 > 
-> Let us know if there are additional tests we should be running on the
-> Red Hat end. We've got high hundreds of ARM server systems at this
-> point, including pretty much everything out there.
+> this is a bit weird from user-space pov so it may
+> make sense to state it here explicitly.
 
-TBH, there's nothing ARM-specific about this issue afaict and it should
-be reproducible on x86 if the compiler can keep the initially loaded pmd
-live in a GPR for long enough.
+True.  Looking at the prctl(2) man page it looks like other per-thread
+properties are inherited across execve() in a similar way, but it's at
+least worth a mention.  PR_SET_SECCOMP seems to work like this, for
+example.
 
-As for wider problems, you want to stress anything that does page table
-modification concurrently with lockless walkers (although GUP looks mostly
-ok modulo the lack of pud_trans_huge support, which I'll try to fix if
-I find time).
+So, the intention is that you do a prctl(...ONEXEC) in the run up to
+execve(), rather than doing it at other random times.  The primary
+reason for ONEXEC is to avoid the side-effects of actually changing
+the VL.
 
-Will
+
+Looking at this though...
+I wonder whether PR_SVE_SET_VL(... PR_SVE_SET_VL_ONEXEC) should return
+the VL set for exec, rather than the current VL (which is unchanged by
+definition in this case, thus uninteresting).
+
+This would allow the ONEXEC flag to be used to probe for available VLs
+without the other side-effects of changing VL, something like:
+
+	int old = prctl(PR_SVE_GET_VL);
+	int ret;
+
+	ret = prctl(PR_SVE_SET_VL, 144 | PR_SVE_SET_VL_ONEXEC);
+	if (ret == -1) {
+		perror("PR_SVE_SET_VL");
+		goto error;
+	}
+
+	if ((ret & PR_SVE_VL_LEN_MASK) == 144)
+		have_vl_144 = true;
+
+	if (prctl(PR_SVE_SET_VL, old | PR_SVE_SET_VL_ONEXEC) == -1) {
+		perror("PR_SVE_SET_VL");
+		goto error;
+	}
+
+
+This does _not_ do the expected thing right now, since there's no
+direct way to retrieve thread.sve_vl_onexec directly from the kernel
+(and it didn't really seem justified to add one).
+
+Thoughts?
+
+Cheers
+---Dave
