@@ -1,66 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:39336 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751286AbdJEQVy (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 5 Oct 2017 12:21:54 -0400
-Date: Thu, 5 Oct 2017 18:21:01 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH tip/core/rcu 1/3] membarrier: Provide register expedited
- private command
-Message-ID: <20171005162101.ryhmtlc3sa72dmyr@hirez.programming.kicks-ass.net>
-References: <20171004213734.GA11463@linux.vnet.ibm.com>
- <1507153075-12345-1-git-send-email-paulmck@linux.vnet.ibm.com>
- <20171005121250.prr5ff5kf3lxq6hx@hirez.programming.kicks-ass.net>
- <312162.31738.1507219326334.JavaMail.zimbra@efficios.com>
+Received: from foss.arm.com ([217.140.101.70]:48636 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751144AbdJEQby (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 5 Oct 2017 12:31:54 -0400
+Date: Thu, 5 Oct 2017 17:31:54 +0100
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [RFC PATCH 1/2] arm64: mm: Use READ_ONCE/WRITE_ONCE when
+ accessing page tables
+Message-ID: <20171005163154.GH11088@arm.com>
+References: <1506527369-19535-2-git-send-email-will.deacon@arm.com>
+ <20170928083801.m6rb4frbbgzgam2o@hirez.programming.kicks-ass.net>
+ <20170928084535.GA19060@arm.com>
+ <20170928154354.GK3521@linux.vnet.ibm.com>
+ <20170928185909.kgwy36hkoqxqgyc3@tower>
+ <20170929005830.GU3521@linux.vnet.ibm.com>
+ <20170929090843.GB14791@arm.com>
+ <20170929162939.GY3521@linux.vnet.ibm.com>
+ <20170929163348.GD2376@arm.com>
+ <20171003191109.GB3521@linux.vnet.ibm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <312162.31738.1507219326334.JavaMail.zimbra@efficios.com>
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <20171003191109.GB3521@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Lai Jiangshan <jiangshanlai@gmail.com>, dipankar <dipankar@in.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Josh Triplett <josh@joshtriplett.org>, Thomas Gleixner <tglx@linutronix.de>, rostedt <rostedt@goodmis.org>, David Howells <dhowells@redhat.com>, Eric Dumazet <edumazet@google.com>, fweisbec <fweisbec@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Boqun Feng <boqun.feng@gmail.com>, Andrew Hunter <ahh@google.com>, maged michael <maged.michael@gmail.com>, gromer <gromer@google.com>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Watson <davejwatson@fb.com>, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Nicholas Piggin <npiggin@gmail.com>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20171005162101.yeu4UEikV6xMCaoJWsqBIjmgV8YQxUuFRRKD5LddNUE@z>
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: Michael Cree <mcree@orcon.net.nz>, Peter Zijlstra <peterz@infradead.org>, kirill.shutemov@linux.intel.com, linux-kernel@vger.kernel.org, ynorov@caviumnetworks.com, rruigrok@codeaurora.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, catalin.marinas@arm.com, rth@twiddle.net, ink@jurassic.park.msu.ru, mattst88@gmail.com, linux-alpha@vger.kernel.org
+Message-ID: <20171005163154.0teVCk4Q-Iv45SJCXgQwMRAS-fxwRypZuNKchezvAaU@z>
 
-On Thu, Oct 05, 2017 at 04:02:06PM +0000, Mathieu Desnoyers wrote:
-> ----- On Oct 5, 2017, at 8:12 AM, Peter Zijlstra peterz@infradead.org wrote:
-> 
-> > On Wed, Oct 04, 2017 at 02:37:53PM -0700, Paul E. McKenney wrote:
-> >> diff --git a/arch/powerpc/kernel/membarrier.c b/arch/powerpc/kernel/membarrier.c
-> >> new file mode 100644
-> >> index 000000000000..b0d79a5f5981
-> >> --- /dev/null
-> >> +++ b/arch/powerpc/kernel/membarrier.c
-> >> @@ -0,0 +1,45 @@
-> > 
-> >> +void membarrier_arch_register_private_expedited(struct task_struct *p)
-> >> +{
-> >> +	struct task_struct *t;
-> >> +
-> >> +	if (get_nr_threads(p) == 1) {
-> >> +		set_thread_flag(TIF_MEMBARRIER_PRIVATE_EXPEDITED);
-> >> +		return;
-> >> +	}
-> >> +	/*
-> >> +	 * Coherence of TIF_MEMBARRIER_PRIVATE_EXPEDITED against thread
-> >> +	 * fork is protected by siglock.
-> >> +	 */
-> >> +	spin_lock(&p->sighand->siglock);
-> >> +	for_each_thread(p, t)
-> >> +		set_ti_thread_flag(task_thread_info(t),
-> >> +				TIF_MEMBARRIER_PRIVATE_EXPEDITED);
-> > 
-> > I'm not sure this works correctly vs CLONE_VM without CLONE_THREAD.
-> 
-> The intent here is to hold the sighand siglock to provide mutual
-> exclusion against invocation of membarrier_fork(p, clone_flags)
-> by copy_process().
-> 
-> copy_process() grabs spin_lock(&current->sighand->siglock) for both
-> CLONE_THREAD and not CLONE_THREAD flags.
-> 
-> What am I missing here ?
+Hi Paul,
 
-If you do CLONE_VM without CLONE_THREAD you'll end up sharing the mm but
-you'll not be part of thread_head, so the for_each_thread() iteration
-will not find the task.
+On Tue, Oct 03, 2017 at 12:11:10PM -0700, Paul E. McKenney wrote:
+> On Fri, Sep 29, 2017 at 05:33:49PM +0100, Will Deacon wrote:
+> > On Fri, Sep 29, 2017 at 09:29:39AM -0700, Paul E. McKenney wrote:
+> > > On Fri, Sep 29, 2017 at 10:08:43AM +0100, Will Deacon wrote:
+> > > > Ok, but where does that leave us wrt my initial proposal of moving
+> > > > smp_read_barrier_depends() into READ_ONCE and getting rid of
+> > > > lockless_dereference?
+> > > > 
+> > > > Michael (or anybody else running mainline on SMP Alpha) -- would you be
+> > > > able to give the diff below a spin and see whether there's a measurable
+> > > > performance impact?
+> > > 
+> > > This will be a sensitive test.  The smp_read_barrier_depends() can be
+> > > removed from lockless_dereference().  Without this removal Alpha will
+> > > get two memory barriers from rcu_dereference() and friends.
+> > 
+> > Oh yes, good point. I was trying to keep the diff simple, but you're
+> > right that this is packing too many barriers. Fixed diff below.
+> 
+> Not seeing any objections thus far.  If there are none by (say) the
+> end of this week, I would be happy to queue a patch for the 4.16
+> merge window.  That should give ample opportunity for further review
+> and testing.
+
+Ok, full patch below.
+
+Will
+
+--->8
