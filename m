@@ -1,80 +1,99 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: [GIT PULL membarrier/urgent] membarrier commits for 4.14
-Date: Wed, 4 Oct 2017 15:05:53 -0700
-Message-ID: <20171004220553.GA16154@linux.vnet.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH tip/core/rcu 1/3] membarrier: Provide register expedited
+ private command
+Date: Thu, 5 Oct 2017 14:23:46 +1000
+Message-ID: <20171005142325.5a407f18@roar.ozlabs.ibm.com>
+References: <20171004213734.GA11463@linux.vnet.ibm.com>
+        <1507153075-12345-1-git-send-email-paulmck@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:38472 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1751132AbdJDWGA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 4 Oct 2017 18:06:00 -0400
-Received: from pps.filterd (m0098396.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id v94M3pdX027409
-        for <linux-arch@vger.kernel.org>; Wed, 4 Oct 2017 18:06:00 -0400
-Received: from e11.ny.us.ibm.com (e11.ny.us.ibm.com [129.33.205.201])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2dd4knsmgm-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Wed, 04 Oct 2017 18:06:00 -0400
-Received: from localhost
-        by e11.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Wed, 4 Oct 2017 18:05:59 -0400
-Content-Disposition: inline
+Received: from mail-pg0-f66.google.com ([74.125.83.66]:37910 "EHLO
+        mail-pg0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750793AbdJEEYH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 5 Oct 2017 00:24:07 -0400
+In-Reply-To: <1507153075-12345-1-git-send-email-paulmck@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: mingo@kernel.org
-Cc: mathieu.desnoyers@efficios.com, peterz@infradead.org, boqun.feng@gmail.com, ahh@google.com, maged.michael@gmail.com, gromer@google.com, avi@scylladb.com, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, davejwatson@fb.com, stern@rowland.harvard.edu, will.deacon@arm.com, luto@kernel.org, mingo@redhat.com, viro@zeniv.linux.org.uk, npiggin@gmail.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: linux-kernel@vger.kernel.org, mingo@kernel.org, jiangshanlai@gmail.com, dipankar@in.ibm.com, akpm@linux-foundation.org, mathieu.desnoyers@efficios.com, josh@joshtriplett.org, tglx@linutronix.de, peterz@infradead.org, rostedt@goodmis.org, dhowells@redhat.com, edumazet@google.com, fweisbec@gmail.com, oleg@redhat.com, Boqun Feng <boqun.feng@gmail.com>, Andrew Hunter <ahh@google.com>, Maged Michael <maged.michael@gmail.com>, gromer@google.com, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Watson <davejwatson@fb.com>, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, Andy Lutomirski <luto@kernel.org>Ingo Molnar <min>
 
-Hello, Ingo,
+On Wed,  4 Oct 2017 14:37:53 -0700
+"Paul E. McKenney" <paulmck@linux.vnet.ibm.com> wrote:
 
-This urgent pull request contains three commits that fix a problem
-that arose when designing requested extensions to sys_membarrier()
-to allow JITs to efficiently flush old code from instruction caches.
-Several potential algorithms are much less painful if the user register
-intent to use this functionality early on, for example, before the process
-spawns the second thread.  Registering at this time removes the need to
-interrupt each and every thread in that process at the first expedited
-sys_membarrier() system call.
+> From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+> 
+> Provide a new command allowing processes to register their intent to use
+> the private expedited command.
+> 
+> This allows PowerPC to skip the full memory barrier in switch_mm(), and
+> only issue the barrier when scheduling into a task belonging to a
+> process that has registered to use expedited private.
+> 
+> Processes are now required to register before using
+> MEMBARRIER_CMD_PRIVATE_EXPEDITED, otherwise that command returns EPERM.
+> 
+> Changes since v1:
+> - Use test_ti_thread_flag(next, ...) instead of test_thread_flag() in
+>   powerpc membarrier_arch_sched_in(), given that we want to specifically
+>   check the next thread state.
+> - Add missing ARCH_HAS_MEMBARRIER_HOOKS in Kconfig.
+> - Use task_thread_info() to pass thread_info from task to
+>   *_ti_thread_flag().
+> 
+> Changes since v2:
+> - Move membarrier_arch_sched_in() call to finish_task_switch().
+> - Check for NULL t->mm in membarrier_arch_fork().
+> - Use membarrier_sched_in() in generic code, which invokes the
+>   arch-specific membarrier_arch_sched_in(). This fixes allnoconfig
+>   build on PowerPC.
+> - Move asm/membarrier.h include under CONFIG_MEMBARRIER, fixing
+>   allnoconfig build on PowerPC.
+> - Build and runtime tested on PowerPC.
+> 
+> Changes since v3:
+> - Simply rely on copy_mm() to copy the membarrier_private_expedited mm
+>   field on fork.
+> - powerpc: test thread flag instead of reading
+>   membarrier_private_expedited in membarrier_arch_fork().
+> - powerpc: skip memory barrier in membarrier_arch_sched_in() if coming
+>   from kernel thread, since mmdrop() implies a full barrier.
+> - Set membarrier_private_expedited to 1 only after arch registration
+>   code, thus eliminating a race where concurrent commands could succeed
+>   when they should fail if issued concurrently with process
+>   registration.
+> - Use READ_ONCE() for membarrier_private_expedited field access in
+>   membarrier_private_expedited. Matches WRITE_ONCE() performed in
+>   process registration.
+> 
+> Changes since v4:
+> - Move powerpc hook from sched_in() to switch_mm(), based on feedback
+>   from Nicholas Piggin.
 
-However, if we let the current function out, then user programs might be
-written without registration, which would make it more difficult to add
-required registration after the fact.  Hence the late-in-merge-window
-pull request.
+For now, the powerpc approach is okay by me. I plan to test
+others (e.g., taking runqueue locks) on larger systems, but that can
+be sent as an incremental patch at a later time.
 
-These have been subject to 0day test robot and -next testing and
-are available in the git repository at:
+The main thing I would like is for people to review the userspace API.
 
-  git://git.kernel.org/pub/scm/linux/kernel/git/paulmck/linux-rcu.git urgent-for-mingo
 
-for you to fetch changes up to 204a0fa1a3ecd9244869fa67608ad4fda232cba1:
+> diff --git a/include/linux/sched/mm.h b/include/linux/sched/mm.h
+> index 3a19c253bdb1..4af1b719c65f 100644
+> --- a/include/linux/sched/mm.h
+> +++ b/include/linux/sched/mm.h
+> @@ -205,4 +205,54 @@ static inline void memalloc_noreclaim_restore(unsigned int flags)
+>  	current->flags = (current->flags & ~PF_MEMALLOC) | flags;
+>  }
+>  
+> +#ifdef CONFIG_MEMBARRIER
+> +
+> +#ifdef CONFIG_ARCH_HAS_MEMBARRIER_HOOKS
+> +#include <asm/membarrier.h>
+> +#else
+> +static inline void membarrier_arch_switch_mm(struct mm_struct *prev,
+> +		struct mm_struct *next, struct task_struct *tsk)
+> +{
+> +}
 
-  membarrier: Document scheduler barrier requirements (2017-10-04 11:02:18 -0700)
-
-----------------------------------------------------------------
-Mathieu Desnoyers (3):
-      membarrier: Provide register expedited private command
-      membarrier: selftest: Test private expedited cmd
-      membarrier: Document scheduler barrier requirements
-
- MAINTAINERS                                        |   2 +
- arch/powerpc/Kconfig                               |   1 +
- arch/powerpc/include/asm/membarrier.h              |  43 ++++++++
- arch/powerpc/include/asm/thread_info.h             |   3 +
- arch/powerpc/kernel/Makefile                       |   2 +
- arch/powerpc/kernel/membarrier.c                   |  45 +++++++++
- arch/powerpc/mm/mmu_context.c                      |   7 ++
- arch/x86/mm/tlb.c                                  |   5 +
- fs/exec.c                                          |   1 +
- include/linux/mm_types.h                           |   3 +
- include/linux/sched/mm.h                           |  55 +++++++++++
- include/uapi/linux/membarrier.h                    |  23 +++--
- init/Kconfig                                       |   3 +
- kernel/fork.c                                      |   2 +
- kernel/sched/core.c                                |  47 +++++----
- kernel/sched/membarrier.c                          |  25 ++++-
- .../testing/selftests/membarrier/membarrier_test.c | 109 ++++++++++++++++++---
- 17 files changed, 329 insertions(+), 47 deletions(-)
- create mode 100644 arch/powerpc/include/asm/membarrier.h
- create mode 100644 arch/powerpc/kernel/membarrier.c
+This is no longer required in architecture independent code, is it?
