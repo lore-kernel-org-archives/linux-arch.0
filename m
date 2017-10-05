@@ -1,58 +1,44 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH tip/core/rcu 1/3] membarrier: Provide register expedited
- private command
-Date: Thu, 5 Oct 2017 14:24:59 +0200
-Message-ID: <20171005122458.zfl2vl7h4jiu67ms@hirez.programming.kicks-ass.net>
-References: <20171004213734.GA11463@linux.vnet.ibm.com>
- <1507153075-12345-1-git-send-email-paulmck@linux.vnet.ibm.com>
- <20171005121250.prr5ff5kf3lxq6hx@hirez.programming.kicks-ass.net>
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [RFC v3 20/27] x86/ftrace: Adapt function tracing for PIE support
+Date: Thu, 5 Oct 2017 09:06:33 -0400
+Message-ID: <20171005090633.5a6ce840@gandalf.local.home>
+References: <20171004212003.28296-1-thgarnie@google.com>
+	<20171004212003.28296-21-thgarnie@google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20171005121250.prr5ff5kf3lxq6hx@hirez.programming.kicks-ass.net>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: linux-kernel@vger.kernel.org, mingo@kernel.org, jiangshanlai@gmail.com, dipankar@in.ibm.com, akpm@linux-foundation.org, mathieu.desnoyers@efficios.com, josh@joshtriplett.org, tglx@linutronix.de, rostedt@goodmis.org, dhowells@redhat.com, edumazet@google.com, fweisbec@gmail.com, oleg@redhat.com, Boqun Feng <boqun.feng@gmail.com>, Andrew Hunter <ahh@google.com>, Maged Michael <maged.michael@gmail.com>, gromer@google.com, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Watson <davejwatson@fb.com>, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Alexan
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+In-Reply-To: <20171004212003.28296-21-thgarnie@google.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Thomas Garnier <thgarnie@google.com>
+Cc: Nicolas Pitre <nicolas.pitre@linaro.org>, Michal Hocko <mhocko@suse.com>, Radim =?UTF-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, linux-doc@vger.kernel.org, Daniel Micay <danielmicay@gmail.com>, Len Brown <len.brown@intel.com>, Peter Zijlstra <peterz@infradead.org>, Christopher Li <sparse@chrisli.org>, "Jan H .
+	=?UTF-8?B?U2Now7ZuaGVycg==?=" <jschoenh@amazon.de>, Alexei Starovoitov <ast@kernel.org>, Matthew Wilcox <mawilcox@microsoft.com>, virtualization@lists.linux-foundation.org, David Howells <dhowells@redhat.com>, Paul Gortmaker <paul.gortmaker@windriver.com>, Pavel Machek <pavel@ucw.cz>, "H . Peter Anvin" <hpa@zytor.com>, kernel-hardening@lists.openwall.com, Andrey Ryabinin <aryabinin@virtuozzo.com>, Christoph Lameter <cl@linux.com>, Thomas Gleixner <tglx@linutronix.de>, Chris Metcalf <cmetcalf@mellanox.com>, x86@kernel.org, Herbert Xu <herbert@gondor.apana.org.au>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Oct 05, 2017 at 02:12:50PM +0200, Peter Zijlstra wrote:
-> On Wed, Oct 04, 2017 at 02:37:53PM -0700, Paul E. McKenney wrote:
-> > diff --git a/arch/powerpc/kernel/membarrier.c b/arch/powerpc/kernel/membarrier.c
-> > new file mode 100644
-> > index 000000000000..b0d79a5f5981
-> > --- /dev/null
-> > +++ b/arch/powerpc/kernel/membarrier.c
-> > @@ -0,0 +1,45 @@
-> 
-> > +void membarrier_arch_register_private_expedited(struct task_struct *p)
-> > +{
-> > +	struct task_struct *t;
-> > +
-> > +	if (get_nr_threads(p) == 1) {
-> > +		set_thread_flag(TIF_MEMBARRIER_PRIVATE_EXPEDITED);
-> > +		return;
-> > +	}
-> > +	/*
-> > +	 * Coherence of TIF_MEMBARRIER_PRIVATE_EXPEDITED against thread
-> > +	 * fork is protected by siglock.
-> > +	 */
-> > +	spin_lock(&p->sighand->siglock);
-> > +	for_each_thread(p, t)
-> > +		set_ti_thread_flag(task_thread_info(t),
-> > +				TIF_MEMBARRIER_PRIVATE_EXPEDITED);
-> 
-> I'm not sure this works correctly vs CLONE_VM without CLONE_THREAD.
+On Wed,  4 Oct 2017 14:19:56 -0700
+Thomas Garnier <thgarnie@google.com> wrote:
 
-Also, for easier reading I would suggest putting { } around the block.
+> When using -fPIE/PIC with function tracing, the compiler generates a
+> call through the GOT (call *__fentry__@GOTPCREL). This instruction
+> takes 6 bytes instead of 5 on the usual relative call.
+> 
+> With this change, function tracing supports 6 bytes on traceable
+> function and can still replace relative calls on the ftrace assembly
+> functions.
+> 
+> Position Independent Executable (PIE) support will allow to extended the
+> KASLR randomization range below the -2G memory limit.
 
-> > +	spin_unlock(&p->sighand->siglock);
-> > +	/*
-> > +	 * Ensure all future scheduler executions will observe the new
-> > +	 * thread flag state for this process.
-> > +	 */
-> > +	synchronize_sched();
-> 
-> This relies on the flag being read inside rq->lock, right?
-> 
-> > +}
+Question: This 6 bytes is only the initial call that gcc creates. When
+function tracing is enabled, the calls are back to the normal call to
+the ftrace trampoline?
+
+-- Steve
