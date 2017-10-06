@@ -1,38 +1,81 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH tip/core/rcu 1/3] membarrier: Provide register expedited
- private command
-Date: Fri, 6 Oct 2017 10:32:19 +0200
-Message-ID: <20171006083219.asdpl5w4pl6hedcd@hirez.programming.kicks-ass.net>
-References: <20171004213734.GA11463@linux.vnet.ibm.com>
- <1507153075-12345-1-git-send-email-paulmck@linux.vnet.ibm.com>
- <20171005121250.prr5ff5kf3lxq6hx@hirez.programming.kicks-ass.net>
- <312162.31738.1507219326334.JavaMail.zimbra@efficios.com>
- <20171005220214.GA7140@andrea>
- <206890579.32344.1507241955010.JavaMail.zimbra@efficios.com>
+From: Pavel Machek <pavel@ucw.cz>
+Subject: Re: x86: PIE support and option to extend KASLR randomization
+Date: Fri, 6 Oct 2017 12:39:33 +0200
+Message-ID: <20171006103933.GA9497@amd>
+References: <CAJcbSZFTX3uiS2g8JriS6+z_+WrG8z3hrQo4OSuyHpiyUDJWYA@mail.gmail.com>
+ <20170815075609.mmzbfwritjzvrpsn@gmail.com>
+ <CAJcbSZE+TiY2whT94WqCJNXzR=2ATOHcQ10H5RqBZA1j=k1VHQ@mail.gmail.com>
+ <20170816151235.oamkdva6cwpc4cex@gmail.com>
+ <20170821133222.2ek6bhqgdeoymxsg@hirez.programming.kicks-ass.net>
+ <20170821142854.dmuusnbc2tsrai3v@hirez.programming.kicks-ass.net>
+ <c830ba59-65d3-187f-3868-732059269f28@zytor.com>
+ <20170923100029.6nzpui6c3ke76bbs@gmail.com>
+ <20170924223708.GA12616@amd>
+ <20170925073342.2yoghmanhx6c75ho@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([65.50.211.133]:35119 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750714AbdJFIcp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 6 Oct 2017 04:32:45 -0400
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature"; boundary="fUYQa+Pmc3FrFX/N"
+Return-path: <kernel-hardening-return-10092-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
 Content-Disposition: inline
-In-Reply-To: <206890579.32344.1507241955010.JavaMail.zimbra@efficios.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Cc: Andrea Parri <parri.andrea@gmail.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Lai Jiangshan <jiangshanlai@gmail.com>, dipankar <dipankar@in.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Josh Triplett <josh@joshtriplett.org>, Thomas Gleixner <tglx@linutronix.de>, rostedt <rostedt@goodmis.org>, David Howells <dhowells@redhat.com>, Eric Dumazet <edumazet@google.com>, fweisbec <fweisbec@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Boqun Feng <boqun.feng@gmail.com>, Andrew Hunter <ahh@google.com>, maged michael <maged.michael@gmail.com>, gromer <gromer@google.com>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>Paul
+In-Reply-To: <20170925073342.2yoghmanhx6c75ho@gmail.com>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Garnier <thgarnie@google.com>, Herbert Xu <herbert@gondor.apana.org.au>, "David S . Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Matthias Kaehlcke <mka@chromium.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, Paolo Bonzini <pbonzini@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Joerg Roedel <joro@8bytes.org>, Tom Lendacky <thomas.lendacky@amd.com>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Brian Gerst <brgerst@gmail.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, "Rafael J . Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Tejun Heo <tj@kernel.org>, Christo
+List-Id: linux-arch.vger.kernel.org
 
-> AFAIU the scheduler rq->lock is held while preemption is disabled.
-> synchronize_sched() is used here to ensure that all pre-existing
-> preempt-off critical sections have completed.
-> 
-> So saying that we use synchronize_sched() to synchronize with rq->lock
-> would be stretching the truth a bit. It's actually only true because the
-> scheduler holding the rq->lock is surrounded by a preempt-off
-> critical section.
 
-No, rq->lock is sufficient, note that rq->lock is a raw_spinlock_t which
-implies !preempt. Yes, we also surround the rq->lock usage with a
-slightly larger preempt_disable() section but that's not in fact
-required for this.
+--fUYQa+Pmc3FrFX/N
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
+
+On Mon 2017-09-25 09:33:42, Ingo Molnar wrote:
+>=20
+> * Pavel Machek <pavel@ucw.cz> wrote:
+>=20
+> > > For example, there would be collision with regular user-space mapping=
+s, right?=20
+> > > Can local unprivileged users use mmap(MAP_FIXED) probing to figure ou=
+t where=20
+> > > the kernel lives?
+> >=20
+> > Local unpriviledged users can probably get your secret bits using cache=
+ probing=20
+> > and jump prediction buffers.
+> >=20
+> > Yes, you don't want to leak the information using mmap(MAP_FIXED), but =
+CPU will=20
+> > leak it for you, anyway.
+>=20
+> Depends on the CPU I think, and CPU vendors are busy trying to mitigate t=
+his=20
+> angle.
+
+I believe any x86 CPU running Linux will leak it. And with CPU vendors
+putting "artifical inteligence" into branch prediction, no, I don't
+think it is going to get better.
+
+That does not mean we shoudl not prevent mmap() info leak, but...
+
+									Pavel
+--=20
+(english) http://www.livejournal.com/~pavelmachek
+(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blo=
+g.html
+
+--fUYQa+Pmc3FrFX/N
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1
+
+iEYEARECAAYFAlnXXWUACgkQMOfwapXb+vLHdQCfT0gtt1DcnPzO7HUoTmQNbTIP
+73cAn2DmS20EcLXQtKA4VV7Dur1vaFqH
+=9iUT
+-----END PGP SIGNATURE-----
+
+--fUYQa+Pmc3FrFX/N--
