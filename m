@@ -1,147 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:35428 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751487AbdJFPPd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 6 Oct 2017 11:15:33 -0400
-Date: Fri, 6 Oct 2017 16:15:28 +0100
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH v2 11/28] arm64/sve: Core task context handling
-Message-ID: <20171006151528.GB3611@e103592.cambridge.arm.com>
-References: <1504198860-12951-1-git-send-email-Dave.Martin@arm.com>
- <1504198860-12951-12-git-send-email-Dave.Martin@arm.com>
- <20170913143325.hi4cfcajbts3bbao@localhost>
- <20171003113302.GR3611@e103592.cambridge.arm.com>
- <20171005112835.2rhaqx23bhe6tnwl@armageddon.cambridge.arm.com>
- <20171006131005.GA3611@e103592.cambridge.arm.com>
- <20171006133639.ialgglabo7yca5bm@armageddon.cambridge.arm.com>
+Received: from mail-wm0-f66.google.com ([74.125.82.66]:36129 "EHLO
+        mail-wm0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751119AbdJGPKP (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 7 Oct 2017 11:10:15 -0400
+Date: Sat, 7 Oct 2017 17:10:04 +0200
+From: Andrea Parri <parri.andrea@gmail.com>
+Subject: Re: [PATCH tip/core/rcu 1/3] membarrier: Provide register expedited
+ private command
+Message-ID: <20171007151004.GA3874@andrea>
+References: <20171004213734.GA11463@linux.vnet.ibm.com>
+ <1507153075-12345-1-git-send-email-paulmck@linux.vnet.ibm.com>
+ <20171005121250.prr5ff5kf3lxq6hx@hirez.programming.kicks-ass.net>
+ <312162.31738.1507219326334.JavaMail.zimbra@efficios.com>
+ <20171005220214.GA7140@andrea>
+ <206890579.32344.1507241955010.JavaMail.zimbra@efficios.com>
+ <20171006083219.asdpl5w4pl6hedcd@hirez.programming.kicks-ass.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20171006133639.ialgglabo7yca5bm@armageddon.cambridge.arm.com>
+In-Reply-To: <20171006083219.asdpl5w4pl6hedcd@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, Will Deacon <will.deacon@arm.com>, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
-Message-ID: <20171006151528.drqXHvf-PTOC0FNl_OeaJWj2V1p9OQhUDuQNrYadCDs@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Lai Jiangshan <jiangshanlai@gmail.com>, dipankar <dipankar@in.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Josh Triplett <josh@joshtriplett.org>, Thomas Gleixner <tglx@linutronix.de>, rostedt <rostedt@goodmis.org>, David Howells <dhowells@redhat.com>, Eric Dumazet <edumazet@google.com>, fweisbec <fweisbec@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Boqun Feng <boqun.feng@gmail.com>, Andrew Hunter <ahh@google.com>, maged michael <maged.michael@gmail.com>, gromer <gromer@google.com>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Watson <davejwatson@fb.com>, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Nicholas Piggin <npiggin@gmail.com>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20171007151004.zN7KK_LorwPQo4DIiP2nQgmaJ-XJRo7xasy9oSeVa_o@z>
 
-On Fri, Oct 06, 2017 at 02:36:40PM +0100, Catalin Marinas wrote:
-> On Fri, Oct 06, 2017 at 02:10:09PM +0100, Dave P Martin wrote:
-> > On Thu, Oct 05, 2017 at 12:28:35PM +0100, Catalin Marinas wrote:
-> > > On Tue, Oct 03, 2017 at 12:33:03PM +0100, Dave P Martin wrote:
-> > > > TIF_FOREIGN_FPSTATE's meaning is expanded to cover SVE, but otherwise
-> > > > unchanged:
-> > > > 
-> > > >  * If a task is running and !TIF_FOREIGN_FPSTATE, then the the CPU
-> > > >    registers of the CPU the task is running on contain the authoritative
-> > > >    FPSIMD/SVE state of the task.  The backing memory may be stale.
-> > > > 
-> > > >  * Otherwise (i.e., task not running, or task running and
-> > > >    TIF_FOREIGN_FPSTATE), the task's FPSIMD/SVE backing memory is
-> > > >    authoritative.  If additionally per_cpu(fpsimd_last_state,
-> > > >    task->fpsimd_state.cpu) == &task->fpsimd_state.cpu, then
-> > > >    task->fpsimd_state.cpu's registers are also up to date for task, but
-> > > >    not authorititive: the current FPSIMD/SVE state may be read from
-> > > >    them, but they must not be written.
-> > > >  
-> > > > The FPSIMD/SVE backing memory is selected by TIF_SVE:
-> > > > 
-> > > >  * TIF_SVE set: Zn (incorporating Vn in bits[127:0]), Pn and FFR are
-> > > >    stored in task->thread.sve_state, formatted appropriately for vector
-> > > >    length task->thread.sve_vl.  task->thread.sve_state must point to a
-> > > >    valid buffer at least sve_state_size(task) bytes in size.
+On Fri, Oct 06, 2017 at 10:32:19AM +0200, Peter Zijlstra wrote:
+> > AFAIU the scheduler rq->lock is held while preemption is disabled.
+> > synchronize_sched() is used here to ensure that all pre-existing
+> > preempt-off critical sections have completed.
+> > 
+> > So saying that we use synchronize_sched() to synchronize with rq->lock
+> > would be stretching the truth a bit. It's actually only true because the
+> > scheduler holding the rq->lock is surrounded by a preempt-off
+> > critical section.
 > 
-> "Zn [...] stored in  task->thread.sve_state" - is this still true with
-> the changes you proposed? I guess even without these changes, you have
-> situations where the hardware regs are out of sync with sve_state (see
-> more below).
+> No, rq->lock is sufficient, note that rq->lock is a raw_spinlock_t which
+> implies !preempt. Yes, we also surround the rq->lock usage with a
+> slightly larger preempt_disable() section but that's not in fact
+> required for this.
 
-I guess I need to tweak the wording here.
+That's what it is, according to the current sources: we seemed to agree that
+a preempt-off critical section is what we rely on here and that the start of
+this critical section is not marked by that raw_spin_lock.
 
-TIF_SVE says where the vector state should be loaded/stored from,
-but does not say whether the data is up to date in memory, or when
-it should be loaded/stored.
-
-The latter is described by a cocktail of different things including
-which bit of kernel code we are executing if any, whether the task
-is running/stopped etc., TIF_FOREIGN_FPSTATE,
-task->thread.fpsimd_state.cpu and per_cpu(fpsimd_last_state).
-
-
-Does this make any better sense of my code below?
-
-> 
-> > > >  * TIF_SVE clear: Vn are stored in task->fpsimd_state; Zn[max : 128] are
-> > > >    logically zero[*] but not stored anywhere; Pn, FFR are not stored and
-> > > >    have unspecified values from userspace's point of view.
-> > > >    task->thread.sve_state does not need to be non-null, valid or any
-> > > >    particular size: it must not be dereferenced.
-> > > > 
-> > > >    In practice I don't exploit the "unspecifiedness" much.  The Zn high
-> > > >    bits, Pn and FFR are all zeroed when setting TIF_SVE again:
-> > > >    sve_alloc() is the common path for this.
-> > > > 
-> > > >  * FPSR and FPCR are always stored in task->fpsimd_state irrespctive of
-> > > >    whether TIF_SVE is clear or set, since these are not vector length
-> > > >    dependent.
-> [...]
-> > > Just wondering, as an optimisation for do_sve_acc() - instead of
-> > > sve_alloc() and fpsimd_to_sve(), can we not force the loading of the
-> > > FPSIMD regs on the return to user via TIF_FOREIGN_FPSTATE? This would
-> > > ensure the zeroing of the top SVE bits and we only need to allocate the
-> > > SVE state on the saving path. This means enabling SVE for user and
-> > > setting TIF_SVE without having the backing storage allocated.
-> > 
-> > Currently the set of places where the "TIF_SVE implies sve_state valid"
-> > assumption is applied is not very constrained, so while your suggestion
-> > is reasonable I'd rather not mess with it just now, if possible.
-> > 
-> > 
-> > But we can do this (which is what my current fixup has):
-> > 
-> > el0_sve_acc:
-> > 	enable_dbg_and_irq
-> > 	// ...
-> > 	bl	do_sve_acc
-> > 	b	ret_to_user
-> > 
-> > void do_sve_acc(unsigned int esr, struct pt_regs *regs)
-> > {
-> > 	/* Even if we chose not to use SVE, the hardware could still trap: */
-> > 	if (unlikely(!system_supports_sve()) || WARN_ON(is_compat_task())) {
-> > 		force_signal_inject(SIGILL, ILL_ILLOPC, regs, 0);
-> > 		return;
-> > 	}
-> > 
-> > 	sve_alloc(current);
-> > 
-> > 	local_bh_disable();
-> > 	if (test_and_clear_thread_flag(TIF_FOREIGN_FPSTATE)) {
-> > 		task_fpsimd_load(); /* flushes high Zn bits as a side-effect */
-> > 		sve_flush_pregs();
-> > 	} else {
-> > 		sve_flush_all(); /* flush all the SVE bits in-place */
-> > 	}
-> > 
-> > 	if (test_and_set_thread_flag(TIF_SVE))
-> > 		WARN_ON(1); /* SVE access shouldn't have trapped */
-> > 	local_bh_enable();
-> > }
-> > 
-> > where sve_flush_all() zeroes all the high Zn bits via a series of
-> > MOV Vn, Vn instructions, and also zeroes Pn and FFR.  sve_fplush_pregs()
-> > just does the latter.
-> 
-> This looks fine to me but I added a comment above. IIUC, we can now have
-> TIF_SVE set while sve_state contains stale data. I don't see an issue
-> given that every time you enter the kernel from user space you have
-> TIF_SVE set and the sve_state storage out of sync. Maybe tweak the
-> TIF_SVE description above slightly.
-> 
-
-See my comment above ... any better?
-
-If so, I'll paste some of that explanatory text into fpsimd.c (in lieu
-of a better place to put it).
-
-Cheers
----Dave
+  Andrea
