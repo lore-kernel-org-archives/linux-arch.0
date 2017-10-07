@@ -1,114 +1,46 @@
-From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Subject: Re: [RFC PATCH for 4.14 1/2] membarrier: Remove unused code for
- architectures without membarrier hooks
-Date: Fri, 6 Oct 2017 21:53:33 +0000 (UTC)
-Message-ID: <285657409.33327.1507326813468.JavaMail.zimbra@efficios.com>
-References: <20171005223327.3500-1-mathieu.desnoyers@efficios.com> <20171006210801.GL3521@linux.vnet.ibm.com>
+From: Andrea Parri <parri.andrea@gmail.com>
+Subject: Re: [PATCH tip/core/rcu 1/3] membarrier: Provide register expedited
+ private command
+Date: Sat, 7 Oct 2017 17:10:04 +0200
+Message-ID: <20171007151004.GA3874@andrea>
+References: <20171004213734.GA11463@linux.vnet.ibm.com>
+ <1507153075-12345-1-git-send-email-paulmck@linux.vnet.ibm.com>
+ <20171005121250.prr5ff5kf3lxq6hx@hirez.programming.kicks-ass.net>
+ <312162.31738.1507219326334.JavaMail.zimbra@efficios.com>
+ <20171005220214.GA7140@andrea>
+ <206890579.32344.1507241955010.JavaMail.zimbra@efficios.com>
+ <20171006083219.asdpl5w4pl6hedcd@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.efficios.com ([167.114.142.141]:42133 "EHLO
-        mail.efficios.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751412AbdJFVwM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 6 Oct 2017 17:52:12 -0400
-In-Reply-To: <20171006210801.GL3521@linux.vnet.ibm.com>
+Received: from mail-wm0-f66.google.com ([74.125.82.66]:36129 "EHLO
+        mail-wm0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751119AbdJGPKP (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 7 Oct 2017 11:10:15 -0400
+Content-Disposition: inline
+In-Reply-To: <20171006083219.asdpl5w4pl6hedcd@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, linux-kernel <linux-kernel@vger.kernel.org>, Boqun Feng <boqun.feng@gmail.com>, Andrew Hunter <ahh@google.com>, maged michael <maged.michael@gmail.com>, gromer <gromer@google.com>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Watson <davejwatson@fb.com>, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Alexander Viro <viro@zeniv.linux.org.uk>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-arch <linux-arch@vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Lai Jiangshan <jiangshanlai@gmail.com>, dipankar <dipankar@in.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Josh Triplett <josh@joshtriplett.org>, Thomas Gleixner <tglx@linutronix.de>, rostedt <rostedt@goodmis.org>, David Howells <dhowells@redhat.com>, Eric Dumazet <edumazet@google.com>, fweisbec <fweisbec@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Boqun Feng <boqun.feng@gmail.com>, Andrew Hunter <ahh@google.com>, maged michael <maged.michael@gmail.com>, gromer <gromer@google.com>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-
------ On Oct 6, 2017, at 5:08 PM, Paul E. McKenney paulmck@linux.vnet.ibm.com wrote:
-
-> On Thu, Oct 05, 2017 at 06:33:26PM -0400, Mathieu Desnoyers wrote:
->> Architectures without membarrier hooks don't need to emit the
->> empty membarrier_arch_switch_mm() static inline when
->> CONFIG_MEMBARRIER=y.
->> 
->> Adapt the CONFIG_MEMBARRIER=n counterpart to only emit the empty
->> membarrier_arch_switch_mm() for architectures with membarrier hooks.
->> 
->> Reported-by: Nicholas Piggin <npiggin@gmail.com>
->> Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+On Fri, Oct 06, 2017 at 10:32:19AM +0200, Peter Zijlstra wrote:
+> > AFAIU the scheduler rq->lock is held while preemption is disabled.
+> > synchronize_sched() is used here to ensure that all pre-existing
+> > preempt-off critical sections have completed.
+> > 
+> > So saying that we use synchronize_sched() to synchronize with rq->lock
+> > would be stretching the truth a bit. It's actually only true because the
+> > scheduler holding the rq->lock is surrounded by a preempt-off
+> > critical section.
 > 
-> Queued for further review and testing, targeting v4.15.  Please let me
-> know if you need it sooner.
+> No, rq->lock is sufficient, note that rq->lock is a raw_spinlock_t which
+> implies !preempt. Yes, we also surround the rq->lock usage with a
+> slightly larger preempt_disable() section but that's not in fact
+> required for this.
 
-Hi Paul,
+That's what it is, according to the current sources: we seemed to agree that
+a preempt-off critical section is what we rely on here and that the start of
+this critical section is not marked by that raw_spin_lock.
 
-Given that the following patch in this patchset (2/2)
-"Fix: membarrier: Handle CLONE_VM + !CLONE_THREAD correctly on powerpc"
-is based on this patch, and that the fix needs to go into 4.14,
-I would recommend queuing both patches for 4.14 is possible.
-
-Otherwise I could try swapping the order of the two patches if
-needed, but since both are touching nearby code areas, rebasing
-is not straightforward.
-
-Thanks,
-
-Mathieu
-
-> 
->							Thanx, Paul
-> 
->> CC: Peter Zijlstra <peterz@infradead.org>
->> CC: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
->> CC: Boqun Feng <boqun.feng@gmail.com>
->> CC: Andrew Hunter <ahh@google.com>
->> CC: Maged Michael <maged.michael@gmail.com>
->> CC: gromer@google.com
->> CC: Avi Kivity <avi@scylladb.com>
->> CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
->> CC: Paul Mackerras <paulus@samba.org>
->> CC: Michael Ellerman <mpe@ellerman.id.au>
->> CC: Dave Watson <davejwatson@fb.com>
->> CC: Alan Stern <stern@rowland.harvard.edu>
->> CC: Will Deacon <will.deacon@arm.com>
->> CC: Andy Lutomirski <luto@kernel.org>
->> CC: Ingo Molnar <mingo@redhat.com>
->> CC: Alexander Viro <viro@zeniv.linux.org.uk>
->> CC: linuxppc-dev@lists.ozlabs.org
->> CC: linux-arch@vger.kernel.org
->> ---
->>  include/linux/sched/mm.h | 6 ++----
->>  1 file changed, 2 insertions(+), 4 deletions(-)
->> 
->> diff --git a/include/linux/sched/mm.h b/include/linux/sched/mm.h
->> index d5a9ab8f3836..b2767ecb21a8 100644
->> --- a/include/linux/sched/mm.h
->> +++ b/include/linux/sched/mm.h
->> @@ -215,10 +215,6 @@ static inline void memalloc_noreclaim_restore(unsigned int
->> flags)
->>  #ifdef CONFIG_ARCH_HAS_MEMBARRIER_HOOKS
->>  #include <asm/membarrier.h>
->>  #else
->> -static inline void membarrier_arch_switch_mm(struct mm_struct *prev,
->> -		struct mm_struct *next, struct task_struct *tsk)
->> -{
->> -}
->>  static inline void membarrier_arch_fork(struct task_struct *t,
->>  		unsigned long clone_flags)
->>  {
->> @@ -247,10 +243,12 @@ static inline void membarrier_execve(struct task_struct
->> *t)
->>  	membarrier_arch_execve(t);
->>  }
->>  #else
->> +#ifdef CONFIG_ARCH_HAS_MEMBARRIER_HOOKS
->>  static inline void membarrier_arch_switch_mm(struct mm_struct *prev,
->>  		struct mm_struct *next, struct task_struct *tsk)
->>  {
->>  }
->> +#endif
->>  static inline void membarrier_fork(struct task_struct *t,
->>  		unsigned long clone_flags)
->>  {
->> --
->> 2.11.0
-
--- 
-Mathieu Desnoyers
-EfficiOS Inc.
-http://www.efficios.com
+  Andrea
