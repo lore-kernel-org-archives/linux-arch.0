@@ -1,65 +1,56 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [RFC PATCH v3] membarrier: provide core serialization
-Date: Mon, 9 Oct 2017 09:32:53 +0100
-Message-ID: <20171009083252.GA4693@arm.com>
-References: <20170901161007.2661-1-mathieu.desnoyers@efficios.com>
- <20170901162547.GA20313@arm.com>
- <1051991998.1330.1504285238477.JavaMail.zimbra@efficios.com>
- <20170901171048.GA20817@arm.com>
- <238182999.1493.1504291547065.JavaMail.zimbra@efficios.com>
- <CAMOCf+jjy2hjqdmrqFuVvnS8p-i+3Z3ZLubk4ymnRfsdT_F8PA@mail.gmail.com>
- <20170918170129.GF11343@arm.com>
- <CAMOCf+gqMFmw9WCYqE_dXG3J+K=qBVT3Pv=z6CyrbppU6Y5qig@mail.gmail.com>
- <2063294388.33291.1507323476486.JavaMail.zimbra@efficios.com>
- <20171006210825.GA6524@worktop.programming.kicks-ass.net>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20171006210825.GA6524@worktop.programming.kicks-ass.net>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Hans Boehm <hboehm@google.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Boqun Feng <boqun.feng@gmail.com>, Andrew Hunter <ahh@google.com>, maged michael <maged.michael@gmail.com>, gromer <gromer@google.com>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Watson <davejwatson@fb.com>, Andy Lutomirski <luto@kernel.org>, "Russell King, ARM Linux" <linux@armlinux.org.uk>, Greg Hackmann <ghackmann@google.com>, David Sehr <sehr@google.com>, linux-kernel <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, ralf@linux-mips.org
-List-Id: linux-arch.vger.kernel.org
+From: Geert Uytterhoeven <geert+renesas@glider.be>
+Subject: [PATCH] bitfield: Use __ffs64(x) to fix missing __ffsdi2()
+Date: Mon,  9 Oct 2017 10:40:49 +0200
+Message-ID: <1507538449-22775-1-git-send-email-geert+renesas@glider.be>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from andre.telenet-ops.be ([195.130.132.53]:47512 "EHLO
+        andre.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751598AbdJIIkx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Oct 2017 04:40:53 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Jakub Kicinski <jakub.kicinski@netronome.com>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>
+Cc: kbuild test robot <fengguang.wu@intel.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert+renesas@glider.be>
 
-On Fri, Oct 06, 2017 at 11:08:25PM +0200, Peter Zijlstra wrote:
-> On Fri, Oct 06, 2017 at 08:57:56PM +0000, Mathieu Desnoyers wrote:
-> > Hi Hans, 
-> > 
-> > I'm currently making sure the
-> > MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED command makes its way into
-> > the 4.14 kernel before the end of the release candidates.  Once that
-> > is done, I plan to post a patch adding a new MEMBARRIER_FLAG_SYNC_CORE
-> > flag for the 4.15 merge window. 
-> > 
-> > I have done a bit of research on the various architecture requirements
-> > for core serialization.  Here are my findings so far about
-> > instructions providing core serialization on the main architectures
-> > supported by Linux. 
-> > 
-> > There are two places where we need it: in the interrupt handler for
-> > the membarrier IPI, and between scheduler execution (which can change
-> > the current "mm") and return to user-space. 
-> > 
-> > Please let me know if I missed anything. 
-> > 
-> > x86: iret, cpuid, wbinvd -> iret currently provides core serialization
-> > when going back to userspace and at the end of the IPI. There are
-> > plans to implement a return path without iret in the future, in which
-> > case I would need to issue an explicit "cpuid" instruction
-> > (sync_core()) in switch_mm() if the process is registered with
-> > MEMBARRIER_FLAG_SYNC_CORE. 
-> 
-> I would much prefer setting a TIF flag that forces the IRET path instead
-> of doing additional work in switch_mm().
-> 
-> > arm32: returning to user-space provides core serialization. Same at
-> > the end of membarrier IPI (to be confirmed).  aarch64: ERET
-> > instruction used when returning to user-space provides core sync. Same
-> > at the end of membarrier IPI (to be confirmed). 
-> 
-> I thought Will already confirmed ERET did what we need, no?
+On most architectures[*], gcc turns __builtin_ffsll() into a call to
+__ffsdi2(), which is not provided by any architecture, leading to
+failures like:
 
-Yes.
+    rcar-gen3-cpg.c:(.text+0x289): undefined reference to `__ffsdi2'
 
-Will
+To fix this, use __ffs64() instead, which is available on all
+architectures.
+
+[*] Known exceptions are some 64-bit architectures like amd64, arm64,
+    ia64, powerpc64, and tilegx.
+
+Reported-by: kbuild test robot <fengguang.wu@intel.com>
+Fixes: 3e9b3112ec74f192 ("add basic register-field manipulation macros")
+Signed-off-by: Geert Uytterhoeven <geert+renesas@glider.be>
+---
+ include/linux/bitfield.h | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/include/linux/bitfield.h b/include/linux/bitfield.h
+index 8b9d6fff002db113..0a827677372756fa 100644
+--- a/include/linux/bitfield.h
++++ b/include/linux/bitfield.h
+@@ -15,6 +15,7 @@
+ #ifndef _LINUX_BITFIELD_H
+ #define _LINUX_BITFIELD_H
+ 
++#include <linux/bitops.h>
+ #include <linux/bug.h>
+ 
+ /*
+@@ -46,7 +47,7 @@
+  *  reg |= FIELD_PREP(REG_FIELD_C, c);
+  */
+ 
+-#define __bf_shf(x) (__builtin_ffsll(x) - 1)
++#define __bf_shf(x) __ffs64(x)
+ 
+ #define __BF_FIELD_CHECK(_mask, _reg, _val, _pfx)			\
+ 	({								\
+-- 
+2.7.4
