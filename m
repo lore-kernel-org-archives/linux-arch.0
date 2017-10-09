@@ -1,46 +1,73 @@
-From: Andrea Parri <parri.andrea@gmail.com>
-Subject: Re: [PATCH tip/core/rcu 1/3] membarrier: Provide register expedited
- private command
-Date: Sat, 7 Oct 2017 17:10:04 +0200
-Message-ID: <20171007151004.GA3874@andrea>
-References: <20171004213734.GA11463@linux.vnet.ibm.com>
- <1507153075-12345-1-git-send-email-paulmck@linux.vnet.ibm.com>
- <20171005121250.prr5ff5kf3lxq6hx@hirez.programming.kicks-ass.net>
- <312162.31738.1507219326334.JavaMail.zimbra@efficios.com>
- <20171005220214.GA7140@andrea>
- <206890579.32344.1507241955010.JavaMail.zimbra@efficios.com>
- <20171006083219.asdpl5w4pl6hedcd@hirez.programming.kicks-ass.net>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [renesas:topic/rcar-gen3-z-clk-v3 2/6] rcar-gen3-cpg.c:undefined
+ reference to `__ffsdi2'
+Date: Mon, 9 Oct 2017 10:02:22 +0200
+Message-ID: <CAMuHMdUrXQO0q1=O2ica6-OmSTWqjkCNxZtTW3eqGVzfVG9F1Q@mail.gmail.com>
+References: <201710060047.JNfwlYZq%fengguang.wu@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f66.google.com ([74.125.82.66]:36129 "EHLO
-        mail-wm0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751119AbdJGPKP (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 7 Oct 2017 11:10:15 -0400
-Content-Disposition: inline
-In-Reply-To: <20171006083219.asdpl5w4pl6hedcd@hirez.programming.kicks-ass.net>
+Received: from mail-wm0-f68.google.com ([74.125.82.68]:37300 "EHLO
+        mail-wm0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751834AbdJIICY (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Oct 2017 04:02:24 -0400
+In-Reply-To: <201710060047.JNfwlYZq%fengguang.wu@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Lai Jiangshan <jiangshanlai@gmail.com>, dipankar <dipankar@in.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Josh Triplett <josh@joshtriplett.org>, Thomas Gleixner <tglx@linutronix.de>, rostedt <rostedt@goodmis.org>, David Howells <dhowells@redhat.com>, Eric Dumazet <edumazet@google.com>, fweisbec <fweisbec@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Boqun Feng <boqun.feng@gmail.com>, Andrew Hunter <ahh@google.com>, maged michael <maged.michael@gmail.com>, gromer <gromer@google.com>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+To: kbuild test robot <fengguang.wu@intel.com>
+Cc: Takeshi Kihara <takeshi.kihara.df@renesas.com>, "kbuild-all@01.org" <kbuild-all@01.org>, Linux-Renesas <linux-renesas-soc@vger.kernel.org>, Simon Horman <horms+renesas@verge.net.au>, Linux-Arch <linux-arch@vger.kernel.org>
 
-On Fri, Oct 06, 2017 at 10:32:19AM +0200, Peter Zijlstra wrote:
-> > AFAIU the scheduler rq->lock is held while preemption is disabled.
-> > synchronize_sched() is used here to ensure that all pre-existing
-> > preempt-off critical sections have completed.
-> > 
-> > So saying that we use synchronize_sched() to synchronize with rq->lock
-> > would be stretching the truth a bit. It's actually only true because the
-> > scheduler holding the rq->lock is surrounded by a preempt-off
-> > critical section.
-> 
-> No, rq->lock is sufficient, note that rq->lock is a raw_spinlock_t which
-> implies !preempt. Yes, we also surround the rq->lock usage with a
-> slightly larger preempt_disable() section but that's not in fact
-> required for this.
+On Thu, Oct 5, 2017 at 6:52 PM, kbuild test robot
+<fengguang.wu@intel.com> wrote:
+> tree:   https://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git topic/rcar-gen3-z-clk-v3
+> head:   4b41ea6e92cdc7fce15ba99b02c40938a134cff7
+> commit: fda8dbe29dd1f04b61c443147a106962cf5d3f14 [2/6] clk: renesas: rcar-gen3: Add Z2 clock divider support
+> config: i386-allmodconfig (attached as .config)
+> compiler: gcc-6 (Debian 6.2.0-3) 6.2.0 20160901
+> reproduce:
+>         git checkout fda8dbe29dd1f04b61c443147a106962cf5d3f14
+>         # save the attached .config to linux build tree
+>         make ARCH=i386
+>
+> All errors (new ones prefixed by >>):
+>
+>    drivers/clk/renesas/rcar-gen3-cpg.o: In function `cpg_z_clk_set_rate':
+>>> rcar-gen3-cpg.c:(.text+0x289): undefined reference to `__ffsdi2'
 
-That's what it is, according to the current sources: we seemed to agree that
-a preempt-off critical section is what we rely on here and that the start of
-this critical section is not marked by that raw_spin_lock.
+This is caused by the use of __builtin_ffsll() in <linux/bitfield.h>.
+On several architectures, gcc generates a call to __ffsdi2().
+This is the case on (non-exhaustive list):
+    alpha
+    arm32
+    avr32
+    bfin
+    cris
+    frv
+    h8300
+    ia32
+    m32r
+    m68k
+    microblaze
+    mn10300
+    mips32
+    mips64
+    openrisc
+    parisc
+    powerpc32
+    s390x
+    sh4
+    sparc32
+    sparc64
+    unicore
+    xtensa
 
-  Andrea
+The following are OK:
+    amd64
+    arm64
+    ia64
+    powerpc64
+    tilegx (but tile is the only one exporting the symbol to modules?)
+
+Gr{oetje,eeting}s,
+
+                        Geert
