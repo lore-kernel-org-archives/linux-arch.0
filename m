@@ -1,24 +1,24 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga06.intel.com ([134.134.136.31]:5882 "EHLO mga06.intel.com"
+Received: from mga09.intel.com ([134.134.136.24]:41823 "EHLO mga09.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1754644AbdJIWhs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 9 Oct 2017 18:37:48 -0400
-Date: Tue, 10 Oct 2017 06:37:29 +0800
+        id S1754404AbdJIW6f (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 9 Oct 2017 18:58:35 -0400
+Date: Tue, 10 Oct 2017 06:57:12 +0800
 From: kbuild test robot <lkp@intel.com>
 Subject: Re: [PATCH] bitfield: Use __ffs64(x) to fix missing __ffsdi2()
-Message-ID: <201710100623.BxOZSgpf%fengguang.wu@intel.com>
+Message-ID: <201710100627.lAtWacmj%fengguang.wu@intel.com>
 MIME-Version: 1.0
-Content-Type: multipart/mixed; boundary="y0ulUmNC+osPPQO6"
+Content-Type: multipart/mixed; boundary="CE+1k2dSO48ffgeK"
 Content-Disposition: inline
 In-Reply-To: <1507538449-22775-1-git-send-email-geert+renesas@glider.be>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Geert Uytterhoeven <geert+renesas@glider.be>
 Cc: kbuild-all@01.org, Jakub Kicinski <jakub.kicinski@netronome.com>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, kbuild test robot <fengguang.wu@intel.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20171009223729.GUzDefMDxHlRfPM80I77pMP-qyp6NAJbRIhdcx5vfrA@z>
+Message-ID: <20171009225712.muG6GhgiRo8e08weooAmf5XDuPD29NidbZMJoMas47M@z>
 
 
---y0ulUmNC+osPPQO6
+--CE+1k2dSO48ffgeK
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
 
@@ -26,7 +26,7 @@ Hi Geert,
 
 [auto build test ERROR on linus/master]
 [also build test ERROR on v4.14-rc4]
-[cannot apply to next-20170929]
+[cannot apply to next-20171009]
 [if your patch is applied to the wrong git tree, please drop us a note to help improve the system]
 
 url:    https://github.com/0day-ci/linux/commits/Geert-Uytterhoeven/bitfield-Use-__ffs64-x-to-fix-missing-__ffsdi2/20171010-050009
@@ -38,18 +38,12 @@ reproduce:
 
 All error/warnings (new ones prefixed by >>):
 
-   In file included from include/uapi/linux/stddef.h:1:0,
-                    from include/linux/stddef.h:4,
-                    from include/uapi/linux/posix_types.h:4,
-                    from include/uapi/linux/types.h:13,
-                    from include/linux/types.h:5,
-                    from include/linux/list.h:4,
-                    from include/linux/module.h:9,
-                    from net/mac80211/sta_info.c:12:
-   In function 'sta_stats_decode_rate',
-       inlined from 'sta_set_rate_info_rx' at net/mac80211/sta_info.c:2016:2,
-       inlined from 'sta_set_sinfo' at net/mac80211/sta_info.c:2218:7:
->> include/linux/compiler.h:576:38: error: call to '__compiletime_assert_1971' declared with attribute error: BUILD_BUG_ON failed: ((((((~0UL) - (1UL << (8)) + 1) & (~0UL >> (64 - 1 - (11))))) + (1ULL << __ffs64((((~0UL) - (1UL << (8)) + 1) & (~0UL >> (64 - 1 - (11))))))) & ((((((~0UL) - (1UL << (8)) + 1) & (~0UL >> (64 - 1 - (11))))) + (1ULL << __ffs64((((~0UL) - (1UL << (8)) + 1) & (~0UL >> (64 - 1 - (11))))))) - 1)) != 0
+   In file included from arch/x86/include/asm/current.h:4:0,
+                    from include/linux/sched.h:11,
+                    from drivers/net/wireless/intel/iwlwifi/pcie/rx.c:31:
+   In function 'iwl_pcie_rx_mq_hw_init',
+       inlined from 'iwl_pcie_rx_init' at drivers/net/wireless/intel/iwlwifi/pcie/rx.c:976:3:
+>> include/linux/compiler.h:576:38: error: call to '__compiletime_assert_857' declared with attribute error: BUILD_BUG_ON failed: (((0xF00) + (1ULL << __ffs64(0xF00))) & (((0xF00) + (1ULL << __ffs64(0xF00))) - 1)) != 0
      _compiletime_assert(condition, msg, __compiletime_assert_, __LINE__)
                                          ^
    include/linux/compiler.h:556:4: note: in definition of macro '__compiletime_assert'
@@ -64,22 +58,22 @@ All error/warnings (new ones prefixed by >>):
    include/linux/build_bug.h:70:2: note: in expansion of macro 'BUILD_BUG_ON_MSG'
      BUILD_BUG_ON_MSG(condition, "BUILD_BUG_ON failed: " #condition)
      ^~~~~~~~~~~~~~~~
->> include/linux/build_bug.h:19:2: note: in expansion of macro 'BUILD_BUG_ON'
+   include/linux/build_bug.h:19:2: note: in expansion of macro 'BUILD_BUG_ON'
      BUILD_BUG_ON(((n) & ((n) - 1)) != 0)
      ^~~~~~~~~~~~
->> include/linux/bitfield.h:62:3: note: in expansion of macro '__BUILD_BUG_ON_NOT_POWER_OF_2'
+   include/linux/bitfield.h:62:3: note: in expansion of macro '__BUILD_BUG_ON_NOT_POWER_OF_2'
       __BUILD_BUG_ON_NOT_POWER_OF_2((_mask) +   \
       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
->> include/linux/bitfield.h:103:3: note: in expansion of macro '__BF_FIELD_CHECK'
-      __BF_FIELD_CHECK(_mask, _reg, 0U, "FIELD_GET: "); \
+   include/linux/bitfield.h:89:3: note: in expansion of macro '__BF_FIELD_CHECK'
+      __BF_FIELD_CHECK(_mask, 0ULL, _val, "FIELD_PREP: "); \
       ^~~~~~~~~~~~~~~~
->> net/mac80211/sta_info.h:764:32: note: in expansion of macro 'FIELD_GET'
-    #define STA_STATS_GET(_n, _v)  FIELD_GET(STA_STATS_FIELD_ ## _n, _v)
-                                   ^~~~~~~~~
->> net/mac80211/sta_info.c:1971:14: note: in expansion of macro 'STA_STATS_GET'
-     rinfo->bw = STA_STATS_GET(BW, rate);
-                 ^~~~~~~~~~~~~
-   include/linux/compiler.h:576:38: error: call to '__compiletime_assert_1973' declared with attribute error: BUILD_BUG_ON failed: ((((((~0UL) - (1UL << (13)) + 1) & (~0UL >> (64 - 1 - (15))))) + (1ULL << __ffs64((((~0UL) - (1UL << (13)) + 1) & (~0UL >> (64 - 1 - (15))))))) & ((((((~0UL) - (1UL << (13)) + 1) & (~0UL >> (64 - 1 - (15))))) + (1ULL << __ffs64((((~0UL) - (1UL << (13)) + 1) & (~0UL >> (64 - 1 - (15))))))) - 1)) != 0
+>> drivers/net/wireless/intel/iwlwifi/iwl-fh.h:487:34: note: in expansion of macro 'FIELD_PREP'
+    #define RFH_GEN_CFG_VAL(_n, _v)  FIELD_PREP(RFH_GEN_CFG_ ## _n, _v)
+                                     ^~~~~~~~~~
+>> drivers/net/wireless/intel/iwlwifi/pcie/rx.c:857:11: note: in expansion of macro 'RFH_GEN_CFG_VAL'
+              RFH_GEN_CFG_VAL(DEFAULT_RXQ_NUM, 0) |
+              ^~~~~~~~~~~~~~~
+>> include/linux/compiler.h:576:38: error: call to '__compiletime_assert_862' declared with attribute error: BUILD_BUG_ON failed: ((((1UL << (4))) + (1ULL << __ffs64((1UL << (4))))) & ((((1UL << (4))) + (1ULL << __ffs64((1UL << (4))))) - 1)) != 0
      _compiletime_assert(condition, msg, __compiletime_assert_, __LINE__)
                                          ^
    include/linux/compiler.h:556:4: note: in definition of macro '__compiletime_assert'
@@ -94,115 +88,30 @@ All error/warnings (new ones prefixed by >>):
    include/linux/build_bug.h:70:2: note: in expansion of macro 'BUILD_BUG_ON_MSG'
      BUILD_BUG_ON_MSG(condition, "BUILD_BUG_ON failed: " #condition)
      ^~~~~~~~~~~~~~~~
->> include/linux/build_bug.h:19:2: note: in expansion of macro 'BUILD_BUG_ON'
+   include/linux/build_bug.h:19:2: note: in expansion of macro 'BUILD_BUG_ON'
      BUILD_BUG_ON(((n) & ((n) - 1)) != 0)
      ^~~~~~~~~~~~
->> include/linux/bitfield.h:62:3: note: in expansion of macro '__BUILD_BUG_ON_NOT_POWER_OF_2'
+   include/linux/bitfield.h:62:3: note: in expansion of macro '__BUILD_BUG_ON_NOT_POWER_OF_2'
       __BUILD_BUG_ON_NOT_POWER_OF_2((_mask) +   \
       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
->> include/linux/bitfield.h:103:3: note: in expansion of macro '__BF_FIELD_CHECK'
-      __BF_FIELD_CHECK(_mask, _reg, 0U, "FIELD_GET: "); \
+   include/linux/bitfield.h:89:3: note: in expansion of macro '__BF_FIELD_CHECK'
+      __BF_FIELD_CHECK(_mask, 0ULL, _val, "FIELD_PREP: "); \
       ^~~~~~~~~~~~~~~~
->> net/mac80211/sta_info.h:764:32: note: in expansion of macro 'FIELD_GET'
-    #define STA_STATS_GET(_n, _v)  FIELD_GET(STA_STATS_FIELD_ ## _n, _v)
-                                   ^~~~~~~~~
-   net/mac80211/sta_info.c:1973:10: note: in expansion of macro 'STA_STATS_GET'
-     switch (STA_STATS_GET(TYPE, rate)) {
-             ^~~~~~~~~~~~~
-   include/linux/compiler.h:576:38: error: call to '__compiletime_assert_1976' declared with attribute error: BUILD_BUG_ON failed: ((((((~0UL) - (1UL << (0)) + 1) & (~0UL >> (64 - 1 - (3))))) + (1ULL << __ffs64((((~0UL) - (1UL << (0)) + 1) & (~0UL >> (64 - 1 - (3))))))) & ((((((~0UL) - (1UL << (0)) + 1) & (~0UL >> (64 - 1 - (3))))) + (1ULL << __ffs64((((~0UL) - (1UL << (0)) + 1) & (~0UL >> (64 - 1 - (3))))))) - 1)) != 0
-     _compiletime_assert(condition, msg, __compiletime_assert_, __LINE__)
-                                         ^
-   include/linux/compiler.h:556:4: note: in definition of macro '__compiletime_assert'
-       prefix ## suffix();    \
-       ^~~~~~
-   include/linux/compiler.h:576:2: note: in expansion of macro '_compiletime_assert'
-     _compiletime_assert(condition, msg, __compiletime_assert_, __LINE__)
-     ^~~~~~~~~~~~~~~~~~~
-   include/linux/build_bug.h:46:37: note: in expansion of macro 'compiletime_assert'
-    #define BUILD_BUG_ON_MSG(cond, msg) compiletime_assert(!(cond), msg)
-                                        ^~~~~~~~~~~~~~~~~~
-   include/linux/build_bug.h:70:2: note: in expansion of macro 'BUILD_BUG_ON_MSG'
-     BUILD_BUG_ON_MSG(condition, "BUILD_BUG_ON failed: " #condition)
-     ^~~~~~~~~~~~~~~~
->> include/linux/build_bug.h:19:2: note: in expansion of macro 'BUILD_BUG_ON'
-     BUILD_BUG_ON(((n) & ((n) - 1)) != 0)
-     ^~~~~~~~~~~~
->> include/linux/bitfield.h:62:3: note: in expansion of macro '__BUILD_BUG_ON_NOT_POWER_OF_2'
-      __BUILD_BUG_ON_NOT_POWER_OF_2((_mask) +   \
-      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
->> include/linux/bitfield.h:103:3: note: in expansion of macro '__BF_FIELD_CHECK'
-      __BF_FIELD_CHECK(_mask, _reg, 0U, "FIELD_GET: "); \
-      ^~~~~~~~~~~~~~~~
->> net/mac80211/sta_info.h:764:32: note: in expansion of macro 'FIELD_GET'
-    #define STA_STATS_GET(_n, _v)  FIELD_GET(STA_STATS_FIELD_ ## _n, _v)
-                                   ^~~~~~~~~
-   net/mac80211/sta_info.c:1976:16: note: in expansion of macro 'STA_STATS_GET'
-      rinfo->mcs = STA_STATS_GET(VHT_MCS, rate);
-                   ^~~~~~~~~~~~~
-   include/linux/compiler.h:576:38: error: call to '__compiletime_assert_1977' declared with attribute error: BUILD_BUG_ON failed: ((((((~0UL) - (1UL << (4)) + 1) & (~0UL >> (64 - 1 - (7))))) + (1ULL << __ffs64((((~0UL) - (1UL << (4)) + 1) & (~0UL >> (64 - 1 - (7))))))) & ((((((~0UL) - (1UL << (4)) + 1) & (~0UL >> (64 - 1 - (7))))) + (1ULL << __ffs64((((~0UL) - (1UL << (4)) + 1) & (~0UL >> (64 - 1 - (7))))))) - 1)) != 0
-     _compiletime_assert(condition, msg, __compiletime_assert_, __LINE__)
-                                         ^
-   include/linux/compiler.h:556:4: note: in definition of macro '__compiletime_assert'
-       prefix ## suffix();    \
-       ^~~~~~
-   include/linux/compiler.h:576:2: note: in expansion of macro '_compiletime_assert'
-     _compiletime_assert(condition, msg, __compiletime_assert_, __LINE__)
-     ^~~~~~~~~~~~~~~~~~~
-   include/linux/build_bug.h:46:37: note: in expansion of macro 'compiletime_assert'
-    #define BUILD_BUG_ON_MSG(cond, msg) compiletime_assert(!(cond), msg)
-                                        ^~~~~~~~~~~~~~~~~~
-   include/linux/build_bug.h:70:2: note: in expansion of macro 'BUILD_BUG_ON_MSG'
-     BUILD_BUG_ON_MSG(condition, "BUILD_BUG_ON failed: " #condition)
-     ^~~~~~~~~~~~~~~~
->> include/linux/build_bug.h:19:2: note: in expansion of macro 'BUILD_BUG_ON'
-     BUILD_BUG_ON(((n) & ((n) - 1)) != 0)
-     ^~~~~~~~~~~~
->> include/linux/bitfield.h:62:3: note: in expansion of macro '__BUILD_BUG_ON_NOT_POWER_OF_2'
-      __BUILD_BUG_ON_NOT_POWER_OF_2((_mask) +   \
-      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
->> include/linux/bitfield.h:103:3: note: in expansion of macro '__BF_FIELD_CHECK'
-      __BF_FIELD_CHECK(_mask, _reg, 0U, "FIELD_GET: "); \
-      ^~~~~~~~~~~~~~~~
->> net/mac80211/sta_info.h:764:32: note: in expansion of macro 'FIELD_GET'
-    #define STA_STATS_GET(_n, _v)  FIELD_GET(STA_STATS_FIELD_ ## _n, _v)
-                                   ^~~~~~~~~
-   net/mac80211/sta_info.c:1977:16: note: in expansion of macro 'STA_STATS_GET'
-      rinfo->nss = STA_STATS_GET(VHT_NSS, rate);
-                   ^~~~~~~~~~~~~
-   include/linux/compiler.h:576:38: error: call to '__compiletime_assert_1978' declared with attribute error: BUILD_BUG_ON failed: ((((((~0UL) - (1UL << (12)) + 1) & (~0UL >> (64 - 1 - (12))))) + (1ULL << __ffs64((((~0UL) - (1UL << (12)) + 1) & (~0UL >> (64 - 1 - (12))))))) & ((((((~0UL) - (1UL << (12)) + 1) & (~0UL >> (64 - 1 - (12))))) + (1ULL << __ffs64((((~0UL) - (1UL << (12)) + 1) & (~0UL >> (64 - 1 - (12))))))) - 1)) != 0
-     _compiletime_assert(condition, msg, __compiletime_assert_, __LINE__)
-                                         ^
-   include/linux/compiler.h:556:4: note: in definition of macro '__compiletime_assert'
-       prefix ## suffix();    \
-       ^~~~~~
-   include/linux/compiler.h:576:2: note: in expansion of macro '_compiletime_assert'
-     _compiletime_assert(condition, msg, __compiletime_assert_, __LINE__)
-     ^~~~~~~~~~~~~~~~~~~
-   include/linux/build_bug.h:46:37: note: in expansion of macro 'compiletime_assert'
-    #define BUILD_BUG_ON_MSG(cond, msg) compiletime_assert(!(cond), msg)
-                                        ^~~~~~~~~~~~~~~~~~
-   include/linux/build_bug.h:70:2: note: in expansion of macro 'BUILD_BUG_ON_MSG'
-     BUILD_BUG_ON_MSG(condition, "BUILD_BUG_ON failed: " #condition)
-     ^~~~~~~~~~~~~~~~
->> include/linux/build_bug.h:19:2: note: in expansion of macro 'BUILD_BUG_ON'
-     BUILD_BUG_ON(((n) & ((n) - 1)) != 0)
-     ^~~~~~~~~~~~
->> include/linux/bitfield.h:62:3: note: in expansion of macro '__BUILD_BUG_ON_NOT_POWER_OF_2'
-      __BUILD_BUG_ON_NOT_POWER_OF_2((_mask) +   \
-      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+>> drivers/net/wireless/intel/iwlwifi/iwl-fh.h:487:34: note: in expansion of macro 'FIELD_PREP'
+    #define RFH_GEN_CFG_VAL(_n, _v)  FIELD_PREP(RFH_GEN_CFG_ ## _n, _v)
+                                     ^~~~~~~~~~
+   drivers/net/wireless/intel/iwlwifi/pcie/rx.c:859:11: note: in expansion of macro 'RFH_GEN_CFG_VAL'
+              RFH_GEN_CFG_VAL(RB_CHUNK_SIZE,
+              ^~~~~~~~~~~~~~~
 --
-   In file included from include/uapi/linux/stddef.h:1:0,
-                    from include/linux/stddef.h:4,
-                    from include/uapi/linux/posix_types.h:4,
-                    from include/uapi/linux/types.h:13,
-                    from include/linux/types.h:5,
-                    from include/uapi/linux/sysinfo.h:4,
-                    from include/uapi/linux/kernel.h:4,
-                    from include/linux/cache.h:4,
-                    from include/linux/jiffies.h:4,
-                    from net/mac80211/rx.c:14:
-   net/mac80211/sta_info.h: In function 'sta_stats_encode_rate':
-   include/linux/compiler.h:576:38: error: call to '__compiletime_assert_772' declared with attribute error: BUILD_BUG_ON failed: ((((((~0UL) - (1UL << (8)) + 1) & (~0UL >> (64 - 1 - (11))))) + (1ULL << __ffs64((((~0UL) - (1UL << (8)) + 1) & (~0UL >> (64 - 1 - (11))))))) & ((((((~0UL) - (1UL << (8)) + 1) & (~0UL >> (64 - 1 - (11))))) + (1ULL << __ffs64((((~0UL) - (1UL << (8)) + 1) & (~0UL >> (64 - 1 - (11))))))) - 1)) != 0
+   In file included from include/linux/linkage.h:4:0,
+                    from include/linux/kernel.h:6,
+                    from include/linux/skbuff.h:17,
+                    from include/linux/if_ether.h:23,
+                    from include/linux/etherdevice.h:25,
+                    from drivers/net/wireless/intel/iwlwifi/pcie/tx.c:31:
+   drivers/net/wireless/intel/iwlwifi/pcie/tx.c: In function 'iwl_trans_pcie_txq_enable':
+>> include/linux/compiler.h:576:38: error: call to '__compiletime_assert_1368' declared with attribute error: BUILD_BUG_ON failed: ((((0x0000007F)) + (1ULL << __ffs64((0x0000007F)))) & ((((0x0000007F)) + (1ULL << __ffs64((0x0000007F)))) - 1)) != 0
      _compiletime_assert(condition, msg, __compiletime_assert_, __LINE__)
                                          ^
    include/linux/compiler.h:556:4: note: in definition of macro '__compiletime_assert'
@@ -217,46 +126,22 @@ All error/warnings (new ones prefixed by >>):
    include/linux/build_bug.h:70:2: note: in expansion of macro 'BUILD_BUG_ON_MSG'
      BUILD_BUG_ON_MSG(condition, "BUILD_BUG_ON failed: " #condition)
      ^~~~~~~~~~~~~~~~
->> include/linux/build_bug.h:19:2: note: in expansion of macro 'BUILD_BUG_ON'
+   include/linux/build_bug.h:19:2: note: in expansion of macro 'BUILD_BUG_ON'
      BUILD_BUG_ON(((n) & ((n) - 1)) != 0)
      ^~~~~~~~~~~~
->> include/linux/bitfield.h:62:3: note: in expansion of macro '__BUILD_BUG_ON_NOT_POWER_OF_2'
+   include/linux/bitfield.h:62:3: note: in expansion of macro '__BUILD_BUG_ON_NOT_POWER_OF_2'
       __BUILD_BUG_ON_NOT_POWER_OF_2((_mask) +   \
       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
    include/linux/bitfield.h:89:3: note: in expansion of macro '__BF_FIELD_CHECK'
       __BF_FIELD_CHECK(_mask, 0ULL, _val, "FIELD_PREP: "); \
       ^~~~~~~~~~~~~~~~
->> net/mac80211/sta_info.h:763:34: note: in expansion of macro 'FIELD_PREP'
-    #define STA_STATS_FIELD(_n, _v)  FIELD_PREP(STA_STATS_FIELD_ ## _n, _v)
-                                     ^~~~~~~~~~
->> net/mac80211/sta_info.h:772:6: note: in expansion of macro 'STA_STATS_FIELD'
-     r = STA_STATS_FIELD(BW, s->bw);
-         ^~~~~~~~~~~~~~~
-   include/linux/compiler.h:576:38: error: call to '__compiletime_assert_775' declared with attribute error: BUILD_BUG_ON failed: ((((((~0UL) - (1UL << (12)) + 1) & (~0UL >> (64 - 1 - (12))))) + (1ULL << __ffs64((((~0UL) - (1UL << (12)) + 1) & (~0UL >> (64 - 1 - (12))))))) & ((((((~0UL) - (1UL << (12)) + 1) & (~0UL >> (64 - 1 - (12))))) + (1ULL << __ffs64((((~0UL) - (1UL << (12)) + 1) & (~0UL >> (64 - 1 - (12))))))) - 1)) != 0
-     _compiletime_assert(condition, msg, __compiletime_assert_, __LINE__)
-                                         ^
-   include/linux/compiler.h:556:4: note: in definition of macro '__compiletime_assert'
-       prefix ## suffix();    \
-       ^~~~~~
-   include/linux/compiler.h:576:2: note: in expansion of macro '_compiletime_assert'
-     _compiletime_assert(condition, msg, __compiletime_assert_, __LINE__)
-     ^~~~~~~~~~~~~~~~~~~
-   include/linux/build_bug.h:46:37: note: in expansion of macro 'compiletime_assert'
-    #define BUILD_BUG_ON_MSG(cond, msg) compiletime_assert(!(cond), msg)
-                                        ^~~~~~~~~~~~~~~~~~
->> include/linux/bitfield.h:57:3: note: in expansion of macro 'BUILD_BUG_ON_MSG'
-      BUILD_BUG_ON_MSG(__builtin_constant_p(_val) ?  \
-      ^~~~~~~~~~~~~~~~
-   include/linux/bitfield.h:89:3: note: in expansion of macro '__BF_FIELD_CHECK'
-      __BF_FIELD_CHECK(_mask, 0ULL, _val, "FIELD_PREP: "); \
-      ^~~~~~~~~~~~~~~~
->> net/mac80211/sta_info.h:763:34: note: in expansion of macro 'FIELD_PREP'
-    #define STA_STATS_FIELD(_n, _v)  FIELD_PREP(STA_STATS_FIELD_ ## _n, _v)
-                                     ^~~~~~~~~~
-   net/mac80211/sta_info.h:775:8: note: in expansion of macro 'STA_STATS_FIELD'
-      r |= STA_STATS_FIELD(SGI, 1);
-           ^~~~~~~~~~~~~~~
-   include/linux/compiler.h:576:38: error: call to '__compiletime_assert_775' declared with attribute error: BUILD_BUG_ON failed: ((((((~0UL) - (1UL << (12)) + 1) & (~0UL >> (64 - 1 - (12))))) + (1ULL << __ffs64((((~0UL) - (1UL << (12)) + 1) & (~0UL >> (64 - 1 - (12))))))) & ((((((~0UL) - (1UL << (12)) + 1) & (~0UL >> (64 - 1 - (12))))) + (1ULL << __ffs64((((~0UL) - (1UL << (12)) + 1) & (~0UL >> (64 - 1 - (12))))))) - 1)) != 0
+>> drivers/net/wireless/intel/iwlwifi/iwl-prph.h:256:41: note: in expansion of macro 'FIELD_PREP'
+    #define SCD_QUEUE_CTX_REG2_VAL(_n, _v)  FIELD_PREP(SCD_QUEUE_CTX_REG2_ ## _n, _v)
+                                            ^~~~~~~~~~
+>> drivers/net/wireless/intel/iwlwifi/pcie/tx.c:1368:4: note: in expansion of macro 'SCD_QUEUE_CTX_REG2_VAL'
+       SCD_QUEUE_CTX_REG2_VAL(WIN_SIZE, frame_limit) |
+       ^~~~~~~~~~~~~~~~~~~~~~
+>> include/linux/compiler.h:576:38: error: call to '__compiletime_assert_1369' declared with attribute error: BUILD_BUG_ON failed: ((((0x007F0000)) + (1ULL << __ffs64((0x007F0000)))) & ((((0x007F0000)) + (1ULL << __ffs64((0x007F0000)))) - 1)) != 0
      _compiletime_assert(condition, msg, __compiletime_assert_, __LINE__)
                                          ^
    include/linux/compiler.h:556:4: note: in definition of macro '__compiletime_assert'
@@ -271,149 +156,23 @@ All error/warnings (new ones prefixed by >>):
    include/linux/build_bug.h:70:2: note: in expansion of macro 'BUILD_BUG_ON_MSG'
      BUILD_BUG_ON_MSG(condition, "BUILD_BUG_ON failed: " #condition)
      ^~~~~~~~~~~~~~~~
->> include/linux/build_bug.h:19:2: note: in expansion of macro 'BUILD_BUG_ON'
+   include/linux/build_bug.h:19:2: note: in expansion of macro 'BUILD_BUG_ON'
      BUILD_BUG_ON(((n) & ((n) - 1)) != 0)
      ^~~~~~~~~~~~
->> include/linux/bitfield.h:62:3: note: in expansion of macro '__BUILD_BUG_ON_NOT_POWER_OF_2'
+   include/linux/bitfield.h:62:3: note: in expansion of macro '__BUILD_BUG_ON_NOT_POWER_OF_2'
       __BUILD_BUG_ON_NOT_POWER_OF_2((_mask) +   \
       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
    include/linux/bitfield.h:89:3: note: in expansion of macro '__BF_FIELD_CHECK'
       __BF_FIELD_CHECK(_mask, 0ULL, _val, "FIELD_PREP: "); \
       ^~~~~~~~~~~~~~~~
->> net/mac80211/sta_info.h:763:34: note: in expansion of macro 'FIELD_PREP'
-    #define STA_STATS_FIELD(_n, _v)  FIELD_PREP(STA_STATS_FIELD_ ## _n, _v)
-                                     ^~~~~~~~~~
-   net/mac80211/sta_info.h:775:8: note: in expansion of macro 'STA_STATS_FIELD'
-      r |= STA_STATS_FIELD(SGI, 1);
-           ^~~~~~~~~~~~~~~
-   include/linux/compiler.h:576:38: error: call to '__compiletime_assert_779' declared with attribute error: BUILD_BUG_ON failed: ((((((~0UL) - (1UL << (13)) + 1) & (~0UL >> (64 - 1 - (15))))) + (1ULL << __ffs64((((~0UL) - (1UL << (13)) + 1) & (~0UL >> (64 - 1 - (15))))))) & ((((((~0UL) - (1UL << (13)) + 1) & (~0UL >> (64 - 1 - (15))))) + (1ULL << __ffs64((((~0UL) - (1UL << (13)) + 1) & (~0UL >> (64 - 1 - (15))))))) - 1)) != 0
-     _compiletime_assert(condition, msg, __compiletime_assert_, __LINE__)
-                                         ^
-   include/linux/compiler.h:556:4: note: in definition of macro '__compiletime_assert'
-       prefix ## suffix();    \
-       ^~~~~~
-   include/linux/compiler.h:576:2: note: in expansion of macro '_compiletime_assert'
-     _compiletime_assert(condition, msg, __compiletime_assert_, __LINE__)
-     ^~~~~~~~~~~~~~~~~~~
-   include/linux/build_bug.h:46:37: note: in expansion of macro 'compiletime_assert'
-    #define BUILD_BUG_ON_MSG(cond, msg) compiletime_assert(!(cond), msg)
-                                        ^~~~~~~~~~~~~~~~~~
->> include/linux/bitfield.h:57:3: note: in expansion of macro 'BUILD_BUG_ON_MSG'
-      BUILD_BUG_ON_MSG(__builtin_constant_p(_val) ?  \
-      ^~~~~~~~~~~~~~~~
-   include/linux/bitfield.h:89:3: note: in expansion of macro '__BF_FIELD_CHECK'
-      __BF_FIELD_CHECK(_mask, 0ULL, _val, "FIELD_PREP: "); \
-      ^~~~~~~~~~~~~~~~
->> net/mac80211/sta_info.h:763:34: note: in expansion of macro 'FIELD_PREP'
-    #define STA_STATS_FIELD(_n, _v)  FIELD_PREP(STA_STATS_FIELD_ ## _n, _v)
-                                     ^~~~~~~~~~
-   net/mac80211/sta_info.h:779:8: note: in expansion of macro 'STA_STATS_FIELD'
-      r |= STA_STATS_FIELD(TYPE, STA_STATS_RATE_TYPE_VHT);
-           ^~~~~~~~~~~~~~~
-   include/linux/compiler.h:576:38: error: call to '__compiletime_assert_779' declared with attribute error: BUILD_BUG_ON failed: ((((((~0UL) - (1UL << (13)) + 1) & (~0UL >> (64 - 1 - (15))))) + (1ULL << __ffs64((((~0UL) - (1UL << (13)) + 1) & (~0UL >> (64 - 1 - (15))))))) & ((((((~0UL) - (1UL << (13)) + 1) & (~0UL >> (64 - 1 - (15))))) + (1ULL << __ffs64((((~0UL) - (1UL << (13)) + 1) & (~0UL >> (64 - 1 - (15))))))) - 1)) != 0
-     _compiletime_assert(condition, msg, __compiletime_assert_, __LINE__)
-                                         ^
-   include/linux/compiler.h:556:4: note: in definition of macro '__compiletime_assert'
-       prefix ## suffix();    \
-       ^~~~~~
-   include/linux/compiler.h:576:2: note: in expansion of macro '_compiletime_assert'
-     _compiletime_assert(condition, msg, __compiletime_assert_, __LINE__)
-     ^~~~~~~~~~~~~~~~~~~
-   include/linux/build_bug.h:46:37: note: in expansion of macro 'compiletime_assert'
-    #define BUILD_BUG_ON_MSG(cond, msg) compiletime_assert(!(cond), msg)
-                                        ^~~~~~~~~~~~~~~~~~
-   include/linux/build_bug.h:70:2: note: in expansion of macro 'BUILD_BUG_ON_MSG'
-     BUILD_BUG_ON_MSG(condition, "BUILD_BUG_ON failed: " #condition)
-     ^~~~~~~~~~~~~~~~
->> include/linux/build_bug.h:19:2: note: in expansion of macro 'BUILD_BUG_ON'
-     BUILD_BUG_ON(((n) & ((n) - 1)) != 0)
-     ^~~~~~~~~~~~
->> include/linux/bitfield.h:62:3: note: in expansion of macro '__BUILD_BUG_ON_NOT_POWER_OF_2'
-      __BUILD_BUG_ON_NOT_POWER_OF_2((_mask) +   \
-      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   include/linux/bitfield.h:89:3: note: in expansion of macro '__BF_FIELD_CHECK'
-      __BF_FIELD_CHECK(_mask, 0ULL, _val, "FIELD_PREP: "); \
-      ^~~~~~~~~~~~~~~~
->> net/mac80211/sta_info.h:763:34: note: in expansion of macro 'FIELD_PREP'
-    #define STA_STATS_FIELD(_n, _v)  FIELD_PREP(STA_STATS_FIELD_ ## _n, _v)
-                                     ^~~~~~~~~~
-   net/mac80211/sta_info.h:779:8: note: in expansion of macro 'STA_STATS_FIELD'
-      r |= STA_STATS_FIELD(TYPE, STA_STATS_RATE_TYPE_VHT);
-           ^~~~~~~~~~~~~~~
-   include/linux/compiler.h:576:38: error: call to '__compiletime_assert_780' declared with attribute error: BUILD_BUG_ON failed: ((((((~0UL) - (1UL << (4)) + 1) & (~0UL >> (64 - 1 - (7))))) + (1ULL << __ffs64((((~0UL) - (1UL << (4)) + 1) & (~0UL >> (64 - 1 - (7))))))) & ((((((~0UL) - (1UL << (4)) + 1) & (~0UL >> (64 - 1 - (7))))) + (1ULL << __ffs64((((~0UL) - (1UL << (4)) + 1) & (~0UL >> (64 - 1 - (7))))))) - 1)) != 0
-     _compiletime_assert(condition, msg, __compiletime_assert_, __LINE__)
-                                         ^
-   include/linux/compiler.h:556:4: note: in definition of macro '__compiletime_assert'
-       prefix ## suffix();    \
-       ^~~~~~
-   include/linux/compiler.h:576:2: note: in expansion of macro '_compiletime_assert'
-     _compiletime_assert(condition, msg, __compiletime_assert_, __LINE__)
-     ^~~~~~~~~~~~~~~~~~~
-   include/linux/build_bug.h:46:37: note: in expansion of macro 'compiletime_assert'
-    #define BUILD_BUG_ON_MSG(cond, msg) compiletime_assert(!(cond), msg)
-                                        ^~~~~~~~~~~~~~~~~~
-   include/linux/build_bug.h:70:2: note: in expansion of macro 'BUILD_BUG_ON_MSG'
-     BUILD_BUG_ON_MSG(condition, "BUILD_BUG_ON failed: " #condition)
-     ^~~~~~~~~~~~~~~~
->> include/linux/build_bug.h:19:2: note: in expansion of macro 'BUILD_BUG_ON'
-     BUILD_BUG_ON(((n) & ((n) - 1)) != 0)
-     ^~~~~~~~~~~~
->> include/linux/bitfield.h:62:3: note: in expansion of macro '__BUILD_BUG_ON_NOT_POWER_OF_2'
-      __BUILD_BUG_ON_NOT_POWER_OF_2((_mask) +   \
-      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   include/linux/bitfield.h:89:3: note: in expansion of macro '__BF_FIELD_CHECK'
-      __BF_FIELD_CHECK(_mask, 0ULL, _val, "FIELD_PREP: "); \
-      ^~~~~~~~~~~~~~~~
->> net/mac80211/sta_info.h:763:34: note: in expansion of macro 'FIELD_PREP'
-    #define STA_STATS_FIELD(_n, _v)  FIELD_PREP(STA_STATS_FIELD_ ## _n, _v)
-                                     ^~~~~~~~~~
-   net/mac80211/sta_info.h:780:8: note: in expansion of macro 'STA_STATS_FIELD'
-      r |= STA_STATS_FIELD(VHT_NSS, s->nss);
-           ^~~~~~~~~~~~~~~
-   include/linux/compiler.h:576:38: error: call to '__compiletime_assert_781' declared with attribute error: BUILD_BUG_ON failed: ((((((~0UL) - (1UL << (0)) + 1) & (~0UL >> (64 - 1 - (3))))) + (1ULL << __ffs64((((~0UL) - (1UL << (0)) + 1) & (~0UL >> (64 - 1 - (3))))))) & ((((((~0UL) - (1UL << (0)) + 1) & (~0UL >> (64 - 1 - (3))))) + (1ULL << __ffs64((((~0UL) - (1UL << (0)) + 1) & (~0UL >> (64 - 1 - (3))))))) - 1)) != 0
-     _compiletime_assert(condition, msg, __compiletime_assert_, __LINE__)
-                                         ^
-   include/linux/compiler.h:556:4: note: in definition of macro '__compiletime_assert'
-       prefix ## suffix();    \
-       ^~~~~~
-   include/linux/compiler.h:576:2: note: in expansion of macro '_compiletime_assert'
-     _compiletime_assert(condition, msg, __compiletime_assert_, __LINE__)
-     ^~~~~~~~~~~~~~~~~~~
-   include/linux/build_bug.h:46:37: note: in expansion of macro 'compiletime_assert'
-    #define BUILD_BUG_ON_MSG(cond, msg) compiletime_assert(!(cond), msg)
-                                        ^~~~~~~~~~~~~~~~~~
-   include/linux/build_bug.h:70:2: note: in expansion of macro 'BUILD_BUG_ON_MSG'
-     BUILD_BUG_ON_MSG(condition, "BUILD_BUG_ON failed: " #condition)
-     ^~~~~~~~~~~~~~~~
->> include/linux/build_bug.h:19:2: note: in expansion of macro 'BUILD_BUG_ON'
-     BUILD_BUG_ON(((n) & ((n) - 1)) != 0)
-     ^~~~~~~~~~~~
->> include/linux/bitfield.h:62:3: note: in expansion of macro '__BUILD_BUG_ON_NOT_POWER_OF_2'
-      __BUILD_BUG_ON_NOT_POWER_OF_2((_mask) +   \
-      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   include/linux/bitfield.h:89:3: note: in expansion of macro '__BF_FIELD_CHECK'
-      __BF_FIELD_CHECK(_mask, 0ULL, _val, "FIELD_PREP: "); \
-      ^~~~~~~~~~~~~~~~
->> net/mac80211/sta_info.h:763:34: note: in expansion of macro 'FIELD_PREP'
-    #define STA_STATS_FIELD(_n, _v)  FIELD_PREP(STA_STATS_FIELD_ ## _n, _v)
-                                     ^~~~~~~~~~
-   net/mac80211/sta_info.h:781:8: note: in expansion of macro 'STA_STATS_FIELD'
-      r |= STA_STATS_FIELD(VHT_MCS, s->rate_idx);
-           ^~~~~~~~~~~~~~~
-   include/linux/compiler.h:576:38: error: call to '__compiletime_assert_784' declared with attribute error: BUILD_BUG_ON failed: ((((((~0UL) - (1UL << (13)) + 1) & (~0UL >> (64 - 1 - (15))))) + (1ULL << __ffs64((((~0UL) - (1UL << (13)) + 1) & (~0UL >> (64 - 1 - (15))))))) & ((((((~0UL) - (1UL << (13)) + 1) & (~0UL >> (64 - 1 - (15))))) + (1ULL << __ffs64((((~0UL) - (1UL << (13)) + 1) & (~0UL >> (64 - 1 - (15))))))) - 1)) != 0
-     _compiletime_assert(condition, msg, __compiletime_assert_, __LINE__)
-                                         ^
-   include/linux/compiler.h:556:4: note: in definition of macro '__compiletime_assert'
-       prefix ## suffix();    \
-       ^~~~~~
-   include/linux/compiler.h:576:2: note: in expansion of macro '_compiletime_assert'
-     _compiletime_assert(condition, msg, __compiletime_assert_, __LINE__)
-     ^~~~~~~~~~~~~~~~~~~
-   include/linux/build_bug.h:46:37: note: in expansion of macro 'compiletime_assert'
-    #define BUILD_BUG_ON_MSG(cond, msg) compiletime_assert(!(cond), msg)
-                                        ^~~~~~~~~~~~~~~~~~
+>> drivers/net/wireless/intel/iwlwifi/iwl-prph.h:256:41: note: in expansion of macro 'FIELD_PREP'
+    #define SCD_QUEUE_CTX_REG2_VAL(_n, _v)  FIELD_PREP(SCD_QUEUE_CTX_REG2_ ## _n, _v)
+                                            ^~~~~~~~~~
+   drivers/net/wireless/intel/iwlwifi/pcie/tx.c:1369:4: note: in expansion of macro 'SCD_QUEUE_CTX_REG2_VAL'
+       SCD_QUEUE_CTX_REG2_VAL(FRAME_LIMIT, frame_limit));
+       ^~~~~~~~~~~~~~~~~~~~~~
 
-vim +/__compiletime_assert_1971 +576 include/linux/compiler.h
+vim +/__compiletime_assert_857 +576 include/linux/compiler.h
 
 9a8ab1c3 Daniel Santos 2013-02-21  562  
 9a8ab1c3 Daniel Santos 2013-02-21  563  #define _compiletime_assert(condition, msg, prefix, suffix) \
@@ -442,12 +201,12 @@ vim +/__compiletime_assert_1971 +576 include/linux/compiler.h
 0-DAY kernel test infrastructure                Open Source Technology Center
 https://lists.01.org/pipermail/kbuild-all                   Intel Corporation
 
---y0ulUmNC+osPPQO6
+--CE+1k2dSO48ffgeK
 Content-Type: application/gzip
 Content-Disposition: attachment; filename=".config.gz"
 Content-Transfer-Encoding: base64
 
-H4sICKLw21kAAy5jb25maWcAjDzJcuQ2snd/RUX7HWYOdku96HXECx1QIFgFF0mwAbAWXRiy
+H4sICNn721kAAy5jb25maWcAjDzJcuQ2snd/RUX7HWYOdku96HXECx1QIFgFF0mwAbAWXRiy
 VN1WjFrq0TJj//3LTHABQLDaPtiuzAQIJBK5Qz//9POCvb48frt+ubu5vr//a/H1+HB8un45
 3i6+3N0f/2+RqUWl7EJk0v4KxMXdw+ufb//8dNFefFh8+PX8w69nvzzdvF9sjk8Px/sFf3z4
 cvf1FSa4e3z46eefuKpyuQLapbSXf/U/9zQ8+D3+kJWxuuFWqqrNBFeZ0CNSNbZubJsrXTJ7
@@ -1181,4 +940,4 @@ V+6EulihtGGnxSx5gobVIN6ZLgdtjGFSpaHpCJyXqCfwbaYQTsY9R/rZ3zOnhNnfF5ZSR6Cf
 XEZKJwIT8JRGa4ezTOCEYJQ2H1WhEZ91BRytCXVwc2lg5gQKEsrc1WqZsrSl5uF/AY1iThfv
 fAIA
 
---y0ulUmNC+osPPQO6--
+--CE+1k2dSO48ffgeK--
