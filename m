@@ -1,34 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:45830 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752207AbdJJIoD (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 10 Oct 2017 04:44:03 -0400
-Date: Tue, 10 Oct 2017 10:43:34 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH RFC tip/core/rcu 14/15] netfilter: Remove now-redundant
- smp_read_barrier_depends()
-Message-ID: <20171010084334.nbyhryiwyrl6km4u@hirez.programming.kicks-ass.net>
-References: <20171010001951.GA6476@linux.vnet.ibm.com>
- <1507594969-8347-14-git-send-email-paulmck@linux.vnet.ibm.com>
+Received: from mx1.redhat.com ([209.132.183.28]:33066 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1756200AbdJJJft (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 10 Oct 2017 05:35:49 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <1507594969-8347-12-git-send-email-paulmck@linux.vnet.ibm.com>
+References: <1507594969-8347-12-git-send-email-paulmck@linux.vnet.ibm.com> <20171010001951.GA6476@linux.vnet.ibm.com>
+Subject: Re: [PATCH RFC tip/core/rcu 12/15] lib/assoc_array: Remove smp_read_barrier_depends()
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1507594969-8347-14-git-send-email-paulmck@linux.vnet.ibm.com>
+Content-Type: text/plain; charset="us-ascii"
+Content-ID: <8078.1507628146.1@warthog.procyon.org.uk>
+Content-Transfer-Encoding: 8BIT
+Date: Tue, 10 Oct 2017 10:35:46 +0100
+Message-ID: <8079.1507628146@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: linux-kernel@vger.kernel.org, mingo@kernel.org, torvalds@linux-foundation.org, mark.rutland@arm.com, dhowells@redhat.com, linux-arch@vger.kernel.org, will.deacon@arm.com, Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@blackhole.kfki.hu>, Florian Westphal <fw@strlen.de>, "David S. Miller" <davem@davemloft.net>, netfilter-devel@vger.kernel.org, coreteam@netfilter.org, netdev@vger.kernel.org
-Message-ID: <20171010084334.LgGB_IUPyTPdD5iDnf_EYQ7VpgpelkK5WjIy9Hnn4_c@z>
+Cc: dhowells@redhat.com, linux-kernel@vger.kernel.org, mingo@kernel.org, torvalds@linux-foundation.org, mark.rutland@arm.com, linux-arch@vger.kernel.org, peterz@infradead.org, will.deacon@arm.com, Jonathan Corbet <corbet@lwn.net>, Alexander Kuleshov <kuleshovmail@gmail.com>
+Message-ID: <20171010093546.1NjLX9eLNpdRO9aIZvCS3ceCf03jZZROv2SBmKg0bGI@z>
 
-On Mon, Oct 09, 2017 at 05:22:48PM -0700, Paul E. McKenney wrote:
-> READ_ONCE() now implies smp_read_barrier_depends(), which means that
-> the instances in arpt_do_table(), ipt_do_table(), and ip6t_do_table()
-> are now redundant.  This commit removes them and adjusts the comments.
+Paul E. McKenney <paulmck@linux.vnet.ibm.com> wrote:
 
-Similar to the previous patch, the lack of READ_ONCE() in the original
-code is a pre-existing bug. It would allow the compiler to tear the load
-and observe a composite of two difference pointer values, or reload the
-private pointer and result in table_base and jumpstacl being part of
-different objects.
+>  static inline void *assoc_array_ptr_to_leaf(const struct assoc_array_ptr *x)
+>  {
+> -	return (void *)((unsigned long)x & ~ASSOC_ARRAY_PTR_TYPE_MASK);
+> +	return (void *)((unsigned long)READ_ONCE(x) & /* Address dependency. */
+> +		~ASSOC_ARRAY_PTR_TYPE_MASK);
+>  }
 
-It would be good to point out this actually fixes a bug in the code.
+This is the wrong place to do this.  assoc_array_ptr_to_leaf() is effectively
+no more than a special cast; it removes a metadata bit from a pointer.  x is
+the value we're modifying, not *x, and x was read by the caller.
+
+>  static inline
+>  unsigned long __assoc_array_ptr_to_meta(const struct assoc_array_ptr *x)
+>  {
+> -	return (unsigned long)x &
+> +	return (unsigned long)READ_ONCE(x) & /* Address dependency. */
+>  		~(ASSOC_ARRAY_PTR_SUBTYPE_MASK | ASSOC_ARRAY_PTR_TYPE_MASK);
+>  }
+
+Ditto.
+
+> -		ptr = READ_ONCE(node->slots[slot]);
+> +		ptr = READ_ONCE(node->slots[slot]); /* Address dependency. */
+>  		has_meta |= (unsigned long)ptr;
+>  		if (ptr && assoc_array_ptr_is_leaf(ptr)) {
+> -			/* We need a barrier between the read of the pointer
+> -			 * and dereferencing the pointer - but only if we are
+> -			 * actually going to dereference it.
+> -			 */
+> -			smp_read_barrier_depends();
+> -
+
+For example, you can see the READ_ONCE() here; that is already done.
+
+Can you also not just delete the comment, but rephrase it to indicate that a
+barrier is necessary and it's done by READ_ONCE(), please?
+
+David
