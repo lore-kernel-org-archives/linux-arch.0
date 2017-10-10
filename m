@@ -1,23 +1,23 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:47210 "EHLO
+Received: from mail.linuxfoundation.org ([140.211.169.12]:46078 "EHLO
         mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S934885AbdJJUEj (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 10 Oct 2017 16:04:39 -0400
+        with ESMTP id S1754282AbdJJT7s (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 10 Oct 2017 15:59:48 -0400
 From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.13 112/160] percpu: make this_cpu_generic_read() atomic w.r.t. interrupts
-Date: Tue, 10 Oct 2017 21:50:40 +0200
-Message-ID: <20171010190553.163114031@linuxfoundation.org>
-In-Reply-To: <20171010190548.690912997@linuxfoundation.org>
-References: <20171010190548.690912997@linuxfoundation.org>
+Subject: [PATCH 4.9 080/105] percpu: make this_cpu_generic_read() atomic w.r.t. interrupts
+Date: Tue, 10 Oct 2017 21:50:51 +0200
+Message-ID: <20171010192546.077105489@linuxfoundation.org>
+In-Reply-To: <20171010192533.717049376@linuxfoundation.org>
+References: <20171010192533.717049376@linuxfoundation.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, Arnd Bergmann <arnd@arndb.de>, Christoph Lameter <cl@linux.com>, Peter Zijlstra <peterz@infradead.org>, Pranith Kumar <bobby.prani@gmail.com>, Tejun Heo <tj@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org
-Message-ID: <20171010195040.0gWp5WPoKX7XKpm8-TEJGPQgsF9TplgihdO-siZ1SDY@z>
+Message-ID: <20171010195051._rf2nb0usjtJnI2Xg8apfgKpf-5e6ngVaJmgpk0HwE8@z>
 
-4.13-stable review patch.  If anyone has any objections, please let me know.
+4.9-stable review patch.  If anyone has any objections, please let me know.
 
 ------------------
 
