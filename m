@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:48794 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1756578AbdJJSi5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 10 Oct 2017 14:38:57 -0400
+Received: from foss.arm.com ([217.140.101.70]:48962 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S932492AbdJJSjU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 10 Oct 2017 14:39:20 -0400
 From: Dave Martin <Dave.Martin@arm.com>
-Subject: [PATCH v3 01/28] regset: Add support for dynamically sized regsets
-Date: Tue, 10 Oct 2017 19:38:18 +0100
-Message-ID: <1507660725-7986-2-git-send-email-Dave.Martin@arm.com>
+Subject: [PATCH v3 12/28] arm64/sve: Support vector length resetting for new processes
+Date: Tue, 10 Oct 2017 19:38:29 +0100
+Message-ID: <1507660725-7986-13-git-send-email-Dave.Martin@arm.com>
 In-Reply-To: <1507660725-7986-1-git-send-email-Dave.Martin@arm.com>
 References: <1507660725-7986-1-git-send-email-Dave.Martin@arm.com>
 MIME-Version: 1.0
@@ -16,169 +16,88 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org
 Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, =?UTF-8?q?Alex=20Benn=C3=A9e?= <alex.bennee@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, kvmarm@lists.cs.columbia.edu, libc-alpha@sourceware.org, linux-arch@vger.kernel.org
-Message-ID: <20171010183818.PQx6nfj6StdlRl8st3e0mqanE4qUyVcp8xY3kHre2fc@z>
+Message-ID: <20171010183829.xV8Y9HnHekTOaHiHZF5KzNV8qxxU5tWQKb_iCi3uTVk@z>
 
-Currently the regset API doesn't allow for the possibility that
-regsets (or at least, the amount of meaningful data in a regset)
-may change in size.
+It's desirable to be able to reset the vector length to some sane
+default for new processes, since the new binary and its libraries
+processes may or may not be SVE-aware.
 
-In particular, this results in useless padding being added to
-coredumps in a regset's current size is smaller than its
-theoretical maximum size.
-
-This patch adds a get_size() function to struct user_regset.
-Individual regset implementations can implement this function to
-return the current size of the regset data.  A regset_size()
-function is added to provide callers with an abstract interface for
-determining the size of a regset without needing to know whether
-the regset is dynamically sized or not.
-
-The only affected user of this interface is the ELF coredump code:
-This patch ports ELF coredump to dump regsets with their actual
-size in the coredump.  This has no effect except for new regsets
-that are dynamically sized and provide a get_size() implementation.
+This patch tracks the desired post-exec vector length (if any) in a
+new thread member sve_vl_onexec, and adds a new thread flag
+TIF_SVE_VL_INHERIT to control whether to inherit or reset the
+vector length.  Currently these are inactive.  Subsequent patches
+will provide the capability to configure them.
 
 Signed-off-by: Dave Martin <Dave.Martin@arm.com>
 Reviewed-by: Alex Bennée <alex.bennee@linaro.org>
 ---
- fs/binfmt_elf.c        |  6 ++---
- include/linux/regset.h | 67 ++++++++++++++++++++++++++++++++++++++++++++------
- 2 files changed, 63 insertions(+), 10 deletions(-)
+ arch/arm64/include/asm/processor.h   |  1 +
+ arch/arm64/include/asm/thread_info.h |  1 +
+ arch/arm64/kernel/fpsimd.c           | 16 ++++++++++++----
+ 3 files changed, 14 insertions(+), 4 deletions(-)
 
-diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
-index 73b01e4..35aa03f 100644
---- a/fs/binfmt_elf.c
-+++ b/fs/binfmt_elf.c
-@@ -1699,7 +1699,7 @@ static int fill_thread_core_info(struct elf_thread_core_info *t,
- 				 long signr, size_t *total)
- {
- 	unsigned int i;
--	unsigned int regset_size = view->regsets[0].n * view->regsets[0].size;
-+	unsigned int size = regset_size(t->task, &view->regsets[0]);
+diff --git a/arch/arm64/include/asm/processor.h b/arch/arm64/include/asm/processor.h
+index 4831d28..3faceac 100644
+--- a/arch/arm64/include/asm/processor.h
++++ b/arch/arm64/include/asm/processor.h
+@@ -87,6 +87,7 @@ struct thread_struct {
+ 	struct fpsimd_state	fpsimd_state;
+ 	void			*sve_state;	/* SVE registers, if any */
+ 	unsigned int		sve_vl;		/* SVE vector length */
++	unsigned int		sve_vl_onexec;	/* SVE vl after next exec */
+ 	unsigned long		fault_address;	/* fault info */
+ 	unsigned long		fault_code;	/* ESR_EL1 value */
+ 	struct debug_info	debug;		/* debugging */
+diff --git a/arch/arm64/include/asm/thread_info.h b/arch/arm64/include/asm/thread_info.h
+index 04dbf50..c6400fc 100644
+--- a/arch/arm64/include/asm/thread_info.h
++++ b/arch/arm64/include/asm/thread_info.h
+@@ -93,6 +93,7 @@ void arch_setup_new_exec(void);
+ #define TIF_SINGLESTEP		21
+ #define TIF_32BIT		22	/* 32bit process */
+ #define TIF_SVE			23	/* Scalable Vector Extension in use */
++#define TIF_SVE_VL_INHERIT	24	/* Inherit sve_vl_onexec across exec */
  
- 	/*
- 	 * NT_PRSTATUS is the one special case, because the regset data
-@@ -1708,7 +1708,7 @@ static int fill_thread_core_info(struct elf_thread_core_info *t,
- 	 * We assume that regset 0 is NT_PRSTATUS.
- 	 */
- 	fill_prstatus(&t->prstatus, t->task, signr);
--	(void) view->regsets[0].get(t->task, &view->regsets[0], 0, regset_size,
-+	(void) view->regsets[0].get(t->task, &view->regsets[0], 0, size,
- 				    &t->prstatus.pr_reg, NULL);
+ #define _TIF_SIGPENDING		(1 << TIF_SIGPENDING)
+ #define _TIF_NEED_RESCHED	(1 << TIF_NEED_RESCHED)
+diff --git a/arch/arm64/kernel/fpsimd.c b/arch/arm64/kernel/fpsimd.c
+index e60d451..aabeaee 100644
+--- a/arch/arm64/kernel/fpsimd.c
++++ b/arch/arm64/kernel/fpsimd.c
+@@ -109,6 +109,9 @@
+  */
+ static DEFINE_PER_CPU(struct fpsimd_state *, fpsimd_last_state);
  
- 	fill_note(&t->notes[0], "CORE", NT_PRSTATUS,
-@@ -1728,7 +1728,7 @@ static int fill_thread_core_info(struct elf_thread_core_info *t,
- 		if (regset->core_note_type && regset->get &&
- 		    (!regset->active || regset->active(t->task, regset))) {
- 			int ret;
--			size_t size = regset->n * regset->size;
-+			size_t size = regset_size(t->task, regset);
- 			void *data = kmalloc(size, GFP_KERNEL);
- 			if (unlikely(!data))
- 				return 0;
-diff --git a/include/linux/regset.h b/include/linux/regset.h
-index 8e0c9fe..494ceda 100644
---- a/include/linux/regset.h
-+++ b/include/linux/regset.h
-@@ -107,6 +107,28 @@ typedef int user_regset_writeback_fn(struct task_struct *target,
- 				     int immediate);
- 
- /**
-+ * user_regset_get_size_fn - type of @get_size function in &struct user_regset
-+ * @target:	thread being examined
-+ * @regset:	regset being examined
-+ *
-+ * This call is optional; usually the pointer is %NULL.
-+ *
-+ * When provided, this function must return the current size of regset
-+ * data, as observed by the @get function in &struct user_regset.  The
-+ * value returned must be a multiple of @size.  The returned size is
-+ * required to be valid only until the next time (if any) @regset is
-+ * modified for @target.
-+ *
-+ * This function is intended for dynamically sized regsets.  A regset
-+ * that is statically sized does not need to implement it.
-+ *
-+ * This function should not be called directly: instead, callers should
-+ * call regset_size() to determine the current size of a regset.
-+ */
-+typedef unsigned int user_regset_get_size_fn(struct task_struct *target,
-+					     const struct user_regset *regset);
++/* Default VL for tasks that don't set it explicitly: */
++static int sve_default_vl = SVE_VL_MIN;
 +
-+/**
-  * struct user_regset - accessible thread CPU state
-  * @n:			Number of slots (registers).
-  * @size:		Size in bytes of a slot (register).
-@@ -117,19 +139,33 @@ typedef int user_regset_writeback_fn(struct task_struct *target,
-  * @set:		Function to store values.
-  * @active:		Function to report if regset is active, or %NULL.
-  * @writeback:		Function to write data back to user memory, or %NULL.
-+ * @get_size:		Function to return the regset's size, or %NULL.
-  *
-  * This data structure describes a machine resource we call a register set.
-  * This is part of the state of an individual thread, not necessarily
-  * actual CPU registers per se.  A register set consists of a number of
-  * similar slots, given by @n.  Each slot is @size bytes, and aligned to
-- * @align bytes (which is at least @size).
-+ * @align bytes (which is at least @size).  For dynamically-sized
-+ * regsets, @n must contain the maximum possible number of slots for the
-+ * regset, and @get_size must point to a function that returns the
-+ * current regset size.
-  *
-- * These functions must be called only on the current thread or on a
-- * thread that is in %TASK_STOPPED or %TASK_TRACED state, that we are
-- * guaranteed will not be woken up and return to user mode, and that we
-- * have called wait_task_inactive() on.  (The target thread always might
-- * wake up for SIGKILL while these functions are working, in which case
-- * that thread's user_regset state might be scrambled.)
-+ * Callers that need to know only the current size of the regset and do
-+ * not care about its internal structure should call regset_size()
-+ * instead of inspecting @n or calling @get_size.
-+ *
-+ * For backward compatibility, the @get and @set methods must pad to, or
-+ * accept, @n * @size bytes, even if the current regset size is smaller.
-+ * The precise semantics of these operations depend on the regset being
-+ * accessed.
-+ *
-+ * The functions to which &struct user_regset members point must be
-+ * called only on the current thread or on a thread that is in
-+ * %TASK_STOPPED or %TASK_TRACED state, that we are guaranteed will not
-+ * be woken up and return to user mode, and that we have called
-+ * wait_task_inactive() on.  (The target thread always might wake up for
-+ * SIGKILL while these functions are working, in which case that
-+ * thread's user_regset state might be scrambled.)
-  *
-  * The @pos argument must be aligned according to @align; the @count
-  * argument must be a multiple of @size.  These functions are not
-@@ -156,6 +192,7 @@ struct user_regset {
- 	user_regset_set_fn		*set;
- 	user_regset_active_fn		*active;
- 	user_regset_writeback_fn	*writeback;
-+	user_regset_get_size_fn		*get_size;
- 	unsigned int			n;
- 	unsigned int 			size;
- 	unsigned int 			align;
-@@ -371,5 +408,21 @@ static inline int copy_regset_from_user(struct task_struct *target,
- 	return regset->set(target, regset, offset, size, NULL, data);
- }
+ static void sve_free(struct task_struct *task)
+ {
+ 	kfree(task->thread.sve_state);
+@@ -480,15 +483,20 @@ void fpsimd_flush_thread(void)
+ 		 * If a bug causes this to go wrong, we make some noise and
+ 		 * try to fudge thread.sve_vl to a safe value here.
+ 		 */
+-		vl = current->thread.sve_vl;
+-
+-		if (vl == 0)
+-			vl = SVE_VL_MIN;
++		vl = current->thread.sve_vl_onexec ?
++			current->thread.sve_vl_onexec : sve_default_vl;
  
-+/**
-+ * regset_size - determine the current size of a regset
-+ * @target:	thread to be examined
-+ * @regset:	regset to be examined
-+ *
-+ * Note that the returned size is valid only until the next time
-+ * (if any) @regset is modified for @target.
-+ */
-+static inline unsigned int regset_size(struct task_struct *target,
-+				       const struct user_regset *regset)
-+{
-+	if (!regset->get_size)
-+		return regset->n * regset->size;
-+	else
-+		return regset->get_size(target, regset);
-+}
+ 		if (WARN_ON(!sve_vl_valid(vl)))
+ 			vl = SVE_VL_MIN;
  
- #endif	/* <linux/regset.h> */
+ 		current->thread.sve_vl = vl;
++
++		/*
++		 * If the task is not set to inherit, ensure that the vector
++		 * length will be reset by a subsequent exec:
++		 */
++		if (!test_thread_flag(TIF_SVE_VL_INHERIT))
++			current->thread.sve_vl_onexec = 0;
+ 	}
+ 
+ 	set_thread_flag(TIF_FOREIGN_FPSTATE);
 -- 
 2.1.4
