@@ -1,103 +1,78 @@
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 Subject: Re: [PATCH RFC tip/core/rcu 12/15] lib/assoc_array: Remove
  smp_read_barrier_depends()
-Date: Tue, 10 Oct 2017 08:50:42 -0700
-Message-ID: <20171010155042.GD3521@linux.vnet.ibm.com>
-References: <1507594969-8347-12-git-send-email-paulmck@linux.vnet.ibm.com>
+Date: Tue, 10 Oct 2017 08:52:37 -0700
+Message-ID: <20171010155237.GE3521@linux.vnet.ibm.com>
+References: <8079.1507628146@warthog.procyon.org.uk>
+ <1507594969-8347-12-git-send-email-paulmck@linux.vnet.ibm.com>
  <20171010001951.GA6476@linux.vnet.ibm.com>
- <8079.1507628146@warthog.procyon.org.uk>
+ <8368.1507629579@warthog.procyon.org.uk>
 Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:34930 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S932142AbdJJPut (ORCPT
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:56020 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S932142AbdJJPwp (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 10 Oct 2017 11:50:49 -0400
-Received: from pps.filterd (m0098414.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id v9AFnIcb133559
-        for <linux-arch@vger.kernel.org>; Tue, 10 Oct 2017 11:50:48 -0400
-Received: from e19.ny.us.ibm.com (e19.ny.us.ibm.com [129.33.205.209])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 2dh16983p8-1
+        Tue, 10 Oct 2017 11:52:45 -0400
+Received: from pps.filterd (m0098394.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id v9AFpSnB051264
+        for <linux-arch@vger.kernel.org>; Tue, 10 Oct 2017 11:52:45 -0400
+Received: from e17.ny.us.ibm.com (e17.ny.us.ibm.com [129.33.205.207])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2dgy2fytxt-1
         (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Tue, 10 Oct 2017 11:50:48 -0400
+        for <linux-arch@vger.kernel.org>; Tue, 10 Oct 2017 11:52:43 -0400
 Received: from localhost
-        by e19.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        by e17.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
         for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Tue, 10 Oct 2017 11:50:47 -0400
+        Tue, 10 Oct 2017 11:52:42 -0400
 Content-Disposition: inline
-In-Reply-To: <8079.1507628146@warthog.procyon.org.uk>
+In-Reply-To: <8368.1507629579@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: David Howells <dhowells@redhat.com>
 Cc: linux-kernel@vger.kernel.org, mingo@kernel.org, torvalds@linux-foundation.org, mark.rutland@arm.com, linux-arch@vger.kernel.org, peterz@infradead.org, will.deacon@arm.com, Jonathan Corbet <corbet@lwn.net>, Alexander Kuleshov <kuleshovmail@gmail.com>
 
-On Tue, Oct 10, 2017 at 10:35:46AM +0100, David Howells wrote:
-> Paul E. McKenney <paulmck@linux.vnet.ibm.com> wrote:
+On Tue, Oct 10, 2017 at 10:59:39AM +0100, David Howells wrote:
+> David Howells <dhowells@redhat.com> wrote:
 > 
-> >  static inline void *assoc_array_ptr_to_leaf(const struct assoc_array_ptr *x)
-> >  {
-> > -	return (void *)((unsigned long)x & ~ASSOC_ARRAY_PTR_TYPE_MASK);
-> > +	return (void *)((unsigned long)READ_ONCE(x) & /* Address dependency. */
-> > +		~ASSOC_ARRAY_PTR_TYPE_MASK);
-> >  }
+> > Paul E. McKenney <paulmck@linux.vnet.ibm.com> wrote:
+> > 
+> > >  static inline void *assoc_array_ptr_to_leaf(const struct assoc_array_ptr *x)
+> > >  {
+> > > -	return (void *)((unsigned long)x & ~ASSOC_ARRAY_PTR_TYPE_MASK);
+> > > +	return (void *)((unsigned long)READ_ONCE(x) & /* Address dependency. */
+> > > +		~ASSOC_ARRAY_PTR_TYPE_MASK);
+> > >  }
+> > 
+> > This is the wrong place to do this.  assoc_array_ptr_to_leaf() is effectively
+> > no more than a special cast; it removes a metadata bit from a pointer.  x is
+> > the value we're modifying, not *x, and x was read by the caller.
 > 
-> This is the wrong place to do this.  assoc_array_ptr_to_leaf() is effectively
-> no more than a special cast; it removes a metadata bit from a pointer.  x is
-> the value we're modifying, not *x, and x was read by the caller.
+> Also, x is not a pointer you can read from, so if READ_ONCE(x) ever effects a
+> memory access, you might get an oops.
 
-OK, so in at least one of these cases, the barrier is already provided
-by the ACCESS_ONCE(array->root) in assoc_array_walk().  I took a quick
-look at the other instances of ->root and convinced myself that they
-were update-side accesses, but please let me know if I am missing
-something.
+Agreed, and I got rid of it.
 
-I marked the ACCESS_ONCE() instances that seemed to me to be heading
-address-dependency chains, please let me know how I did.  ;-)
+And thank you for looking this over!
 
-> >  static inline
-> >  unsigned long __assoc_array_ptr_to_meta(const struct assoc_array_ptr *x)
-> >  {
-> > -	return (unsigned long)x &
-> > +	return (unsigned long)READ_ONCE(x) & /* Address dependency. */
-> >  		~(ASSOC_ARRAY_PTR_SUBTYPE_MASK | ASSOC_ARRAY_PTR_TYPE_MASK);
-> >  }
-> 
-> Ditto.
-> 
-> > -		ptr = READ_ONCE(node->slots[slot]);
-> > +		ptr = READ_ONCE(node->slots[slot]); /* Address dependency. */
-> >  		has_meta |= (unsigned long)ptr;
-> >  		if (ptr && assoc_array_ptr_is_leaf(ptr)) {
-> > -			/* We need a barrier between the read of the pointer
-> > -			 * and dereferencing the pointer - but only if we are
-> > -			 * actually going to dereference it.
-> > -			 */
-> > -			smp_read_barrier_depends();
-> > -
-> 
-> For example, you can see the READ_ONCE() here; that is already done.
-> 
-> Can you also not just delete the comment, but rephrase it to indicate that a
-> barrier is necessary and it's done by READ_ONCE(), please?
-
-So, is the patch below at least somewhat less confused?  ;-)
+And the patch again below, but this time also updating the commit log.
 
 							Thanx, Paul
 
 ------------------------------------------------------------------------
 
-commit a25170d6998c587b296c75be09b49b5e31bc515b
+commit 472850f320e8eb47cfb06420c128c3f2bb8ccf27
 Author: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
 Date:   Mon Oct 9 11:39:57 2017 -0700
 
     lib/assoc_array: Remove smp_read_barrier_depends()
     
-    Now that smp_read_barrier_depends() is implied by READ_ONCE(), adding
-    READ_ONCE() to assoc_array_ptr_to_leaf() and __assoc_array_ptr_to_meta()
-    allows the several smp_read_barrier_depends() calls to be removed from
-    lib/assoc_array.c.  This commit makes this change.
+    Now that smp_read_barrier_depends() is implied by READ_ONCE(), the several
+    smp_read_barrier_depends() calls may be removed from lib/assoc_array.c.
+    This commit makes this change and marks the READ_ONCE() calls that head
+    address dependencies.
     
     Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
     Cc: Jonathan Corbet <corbet@lwn.net>
