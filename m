@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:49080 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:49030 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932526AbdJJSjf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 10 Oct 2017 14:39:35 -0400
+        id S932521AbdJJSj2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 10 Oct 2017 14:39:28 -0400
 From: Dave Martin <Dave.Martin@arm.com>
-Subject: [PATCH v3 19/28] arm64/sve: ptrace and ELF coredump support
-Date: Tue, 10 Oct 2017 19:38:36 +0100
-Message-ID: <1507660725-7986-20-git-send-email-Dave.Martin@arm.com>
+Subject: [PATCH v3 16/28] arm64/sve: Probe SVE capabilities and usable vector lengths
+Date: Tue, 10 Oct 2017 19:38:33 +0100
+Message-ID: <1507660725-7986-17-git-send-email-Dave.Martin@arm.com>
 In-Reply-To: <1507660725-7986-1-git-send-email-Dave.Martin@arm.com>
 References: <1507660725-7986-1-git-send-email-Dave.Martin@arm.com>
 MIME-Version: 1.0
@@ -15,712 +15,508 @@ Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, =?UTF-8?q?Alex=20Benn=C3=A9e?= <alex.bennee@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, kvmarm@lists.cs.columbia.edu, libc-alpha@sourceware.org, linux-arch@vger.kernel.org, Alan Hayward <alan.hayward@arm.com>
-Message-ID: <20171010183836.VJx8W27-O3pjLnJtkpp2yY4RCDbMIkl-wfJWG1nHAPo@z>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, =?UTF-8?q?Alex=20Benn=C3=A9e?= <alex.bennee@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, kvmarm@lists.cs.columbia.edu, libc-alpha@sourceware.org, linux-arch@vger.kernel.org, Suzuki K Poulose <Suzuki.Poulose@arm.com>
+Message-ID: <20171010183833.qP5G5n684zs5pNsxo-xSXy9XF8Ol91VrXjnSlNShpAo@z>
 
-This patch defines and implements a new regset NT_ARM_SVE, which
-describes a thread's SVE register state.  This allows a debugger to
-manipulate the SVE state, as well as being included in ELF
-coredumps for post-mortem debugging.
+This patch uses the cpufeatures framework to determine common SVE
+capabilities and vector lengths, and configures the runtime SVE
+support code appropriately.
 
-Because the regset size and layout are dependent on the thread's
-current vector length, it is not possible to define a C struct to
-describe the regset contents as is done for existing regsets.
-Instead, and for the same reasons, NT_ARM_SVE is based on the
-freeform variable-layout approach used for the SVE signal frame.
+ZCR_ELx is not really a feature register, but it is convenient to
+use it as a template for recording the maximum vector length
+supported by a CPU, using the LEN field.  This field is similar to
+a feature field in that it is a contiguous bitfield for which we
+want to determine the minimum system-wide value.  This patch adds
+ZCR as a pseudo-register in cpuinfo/cpufeatures, with appropriate
+custom code to populate it.  Finding the minimum supported value of
+the LEN field is left to the cpufeatures framework in the usual
+way.
 
-Additionally, to reduce debug overhead when debugging threads that
-might or might not have live SVE register state, NT_ARM_SVE may be
-presented in one of two different formats: the old struct
-user_fpsimd_state format is embedded for describing the state of a
-thread with no live SVE state, whereas a new variable-layout
-structure is embedded for describing live SVE state.  This avoids a
-debugger needing to poll NT_PRFPREG in addition to NT_ARM_SVE, and
-allows existing userspace code to handle the non-SVE case without
-too much modification.
+The meaning of ID_AA64ZFR0_EL1 is not architecturally defined yet,
+so for now we just require it to be zero.
 
-For this to work, NT_ARM_SVE is defined with a fixed-format header
-of type struct user_sve_header, which the recipient can use to
-figure out the content, size and layout of the reset of the regset.
-Accessor macros are defined to allow the vector-length-dependent
-parts of the regset to be manipulated.
+Note that much of this code is dormant and SVE still won't be used
+yet, since system_supports_sve() remains hardwired to false.
 
-Signed-off-by: Alan Hayward <alan.hayward@arm.com>
 Signed-off-by: Dave Martin <Dave.Martin@arm.com>
 Cc: Alex Bennée <alex.bennee@linaro.org>
-Cc: Okamoto Takayuki <tokamoto@jp.fujitsu.com>
+Cc: Suzuki K Poulose <Suzuki.Poulose@arm.com>
 
 ---
 
-Dropped Alex Bennée's reviewed-by, since bug fixes have been applied.
+Dropped Alex Bennée's Reviewed-by, since there is new logic in this
+patch.
 
 Changes since v2
 ----------------
 
 Bug fixes:
 
- * Initialised user_sve_header.sve_max_vl properly in
-   sve_init_header_from_task().  (Reported by Okamoto Takayuki.)
+ * Got rid of dynamic allocation of the shadow vector length map during
+   secondary boot.  Secondary CPU boot takes place in atomic context,
+   and relying on GFP_ATOMIC here doesn't seem justified.
 
-   This bug was introduced by the refactoring since v1 to remove
-   BUG_ON()s.  A WARN_ON() was introduced to fix up the error case
-   here, but the code for the non-error case was lost.
+   Instead, the needed additional bitmap is allocated statically.  Only
+   one shadow map is needed, because CPUs don't boot concurrently.
 
-   This resulted in userspace seeing max_size == 0 when reading
-   NT_ARM_SVE with PTRACE_GETREGSET.  NT_ARM_SVE would also get
-   truncated in coredmups (though I've not tested that).
+Requested by Alex Bennée:
 
-   This fix ensures that max_size is initialised, and only overrides
-   the value written if it would be garbage.
+ * Reflowed untidy comment above read_zcr_features()
 
- * In sve_set(), the flags for sve_set_vector_length() are shifted
-   into the correct position.  Without this, a PTRACE_SETREGSET for
-   NT_ARM_SVE may reject valid flags (including flags read via
-   PTRACE_GETREGSET) with -EINVAL: thus, legitimate uses including
-   save/restore may not work.
+ * Added comments to read_zcr_features() to explain what it's trying to do
+   (which is otherwise not readily apparent).
+
+Requested by Catalin Marinas:
+
+ * Moved disabling of the EL1 SVE trap to the cpufeatures C code.
+   This allows addition of new assembler in __cpu_setup to be
+   avoided.
 
 Miscellaneous:
-
- * Clarified comment in ptrace.h about keeping flags in sync with
-   prctl.h so that it won't be misinterpreted as applying to
-   SVE_PT_REGS_{MASK, FPSIMD,SVE} (which deliberately have no prctl
-   equivalent).
 
  * Added comments explaining the intent, purpose and basic constraints
    for fpsimd.c helpers.
 ---
- arch/arm64/include/asm/fpsimd.h      |  13 +-
- arch/arm64/include/uapi/asm/ptrace.h | 138 ++++++++++++++++++
- arch/arm64/kernel/fpsimd.c           |  60 ++++++++
- arch/arm64/kernel/ptrace.c           | 271 +++++++++++++++++++++++++++++++++--
- include/uapi/linux/elf.h             |   1 +
- 5 files changed, 474 insertions(+), 9 deletions(-)
+ arch/arm64/include/asm/cpu.h        |   4 ++
+ arch/arm64/include/asm/cpufeature.h |  36 ++++++++++++
+ arch/arm64/include/asm/fpsimd.h     |  14 +++++
+ arch/arm64/kernel/cpufeature.c      |  50 ++++++++++++++++
+ arch/arm64/kernel/cpuinfo.c         |   6 ++
+ arch/arm64/kernel/fpsimd.c          | 114 +++++++++++++++++++++++++++++++++++-
+ 6 files changed, 221 insertions(+), 3 deletions(-)
 
-diff --git a/arch/arm64/include/asm/fpsimd.h b/arch/arm64/include/asm/fpsimd.h
-index bad72fd..ee6db38 100644
---- a/arch/arm64/include/asm/fpsimd.h
-+++ b/arch/arm64/include/asm/fpsimd.h
-@@ -38,13 +38,16 @@ struct fpsimd_state {
- 			__uint128_t vregs[32];
- 			u32 fpsr;
- 			u32 fpcr;
-+			/*
-+			 * For ptrace compatibility, pad to next 128-bit
-+			 * boundary here if extending this struct.
-+			 */
- 		};
- 	};
- 	/* the id of the last cpu to have restored this state */
- 	unsigned int cpu;
+diff --git a/arch/arm64/include/asm/cpu.h b/arch/arm64/include/asm/cpu.h
+index 889226b..8839227 100644
+--- a/arch/arm64/include/asm/cpu.h
++++ b/arch/arm64/include/asm/cpu.h
+@@ -41,6 +41,7 @@ struct cpuinfo_arm64 {
+ 	u64		reg_id_aa64mmfr2;
+ 	u64		reg_id_aa64pfr0;
+ 	u64		reg_id_aa64pfr1;
++	u64		reg_id_aa64zfr0;
+ 
+ 	u32		reg_id_dfr0;
+ 	u32		reg_id_isar0;
+@@ -59,6 +60,9 @@ struct cpuinfo_arm64 {
+ 	u32		reg_mvfr0;
+ 	u32		reg_mvfr1;
+ 	u32		reg_mvfr2;
++
++	/* pseudo-ZCR for recording maximum ZCR_EL1 LEN value: */
++	u64		reg_zcr;
  };
  
--
- #if defined(__KERNEL__) && defined(CONFIG_COMPAT)
- /* Masks for extracting the FPSR and FPCR from the FPSCR */
- #define VFP_FPSCR_STAT_MASK	0xf800009f
-@@ -89,6 +92,10 @@ extern size_t sve_state_size(struct task_struct const *task);
+ DECLARE_PER_CPU(struct cpuinfo_arm64, cpu_data);
+diff --git a/arch/arm64/include/asm/cpufeature.h b/arch/arm64/include/asm/cpufeature.h
+index 4ea3441..51be8e8 100644
+--- a/arch/arm64/include/asm/cpufeature.h
++++ b/arch/arm64/include/asm/cpufeature.h
+@@ -10,7 +10,9 @@
+ #define __ASM_CPUFEATURE_H
  
- extern void sve_alloc(struct task_struct *task);
- extern void fpsimd_release_thread(struct task_struct *task);
-+extern void fpsimd_sync_to_sve(struct task_struct *task);
-+extern void sve_sync_to_fpsimd(struct task_struct *task);
-+extern void sve_sync_from_fpsimd_zeropad(struct task_struct *task);
-+
- extern int sve_set_vector_length(struct task_struct *task,
- 				 unsigned long vl, unsigned long flags);
- 
-@@ -105,6 +112,10 @@ extern void __init sve_setup(void);
- 
- static void __maybe_unused sve_alloc(struct task_struct *task) { }
- static void __maybe_unused fpsimd_release_thread(struct task_struct *task) { }
-+static void __maybe_unused sve_sync_to_fpsimd(struct task_struct *task) { }
-+static void __maybe_unused sve_sync_from_fpsimd_zeropad(
-+	struct task_struct *task) { }
-+
- static void __maybe_unused sve_init_vq_map(void) { }
- static void __maybe_unused sve_update_vq_map(void) { }
- static int __maybe_unused sve_verify_vq_map(void) { return 0; }
-diff --git a/arch/arm64/include/uapi/asm/ptrace.h b/arch/arm64/include/uapi/asm/ptrace.h
-index d1ff83d..a0fc6a8 100644
---- a/arch/arm64/include/uapi/asm/ptrace.h
-+++ b/arch/arm64/include/uapi/asm/ptrace.h
-@@ -22,6 +22,7 @@
- #include <linux/types.h>
- 
+ #include <asm/cpucaps.h>
++#include <asm/fpsimd.h>
  #include <asm/hwcap.h>
 +#include <asm/sigcontext.h>
- 
+ #include <asm/sysreg.h>
  
  /*
-@@ -63,6 +64,8 @@
+@@ -223,6 +225,13 @@ static inline bool id_aa64pfr0_32bit_el0(u64 pfr0)
+ 	return val == ID_AA64PFR0_EL0_32BIT_64BIT;
+ }
  
- #ifndef __ASSEMBLY__
++static inline bool id_aa64pfr0_sve(u64 pfr0)
++{
++	u32 val = cpuid_feature_extract_unsigned_field(pfr0, ID_AA64PFR0_SVE_SHIFT);
++
++	return val > 0;
++}
++
+ void __init setup_cpu_features(void);
  
-+#include <linux/prctl.h>
-+
- /*
-  * User structures for general purpose, floating point and debug registers.
-  */
-@@ -90,6 +93,141 @@ struct user_hwdebug_state {
- 	}		dbg_regs[16];
- };
+ void update_cpu_capabilities(const struct arm64_cpu_capabilities *caps,
+@@ -267,6 +276,33 @@ static inline bool system_supports_sve(void)
+ 	return false;
+ }
  
-+/* SVE/FP/SIMD state (NT_ARM_SVE) */
-+
-+struct user_sve_header {
-+	__u32 size; /* total meaningful regset content in bytes */
-+	__u32 max_size; /* maxmium possible size for this thread */
-+	__u16 vl; /* current vector length */
-+	__u16 max_vl; /* maximum possible vector length */
-+	__u16 flags;
-+	__u16 __reserved;
-+};
-+
-+/* Definitions for user_sve_header.flags: */
-+#define SVE_PT_REGS_MASK		(1 << 0)
-+
-+#define SVE_PT_REGS_FPSIMD		0
-+#define SVE_PT_REGS_SVE			SVE_PT_REGS_MASK
-+
 +/*
-+ * Common SVE_PT_* flags:
-+ * These must be kept in sync with prctl interface in <linux/ptrace.h>
++ * Read the pseudo-ZCR used by cpufeatures to identify the supported SVE
++ * vector length.
++ *
++ * Use only if SVE is present.
++ * This function clobbers the SVE vector length.
 + */
-+#define SVE_PT_VL_INHERIT		(PR_SVE_VL_INHERIT >> 16)
-+#define SVE_PT_VL_ONEXEC		(PR_SVE_SET_VL_ONEXEC >> 16)
++static u64 __maybe_unused read_zcr_features(void)
++{
++	u64 zcr;
++	unsigned int vq_max;
 +
++	/*
++	 * Set the maximum possible VL, and write zeroes to all other
++	 * bits to see if they stick.
++	 */
++	sve_kernel_enable(NULL);
++	write_sysreg_s(ZCR_ELx_LEN_MASK, SYS_ZCR_EL1);
 +
-+/*
-+ * The remainder of the SVE state follows struct user_sve_header.  The
-+ * total size of the SVE state (including header) depends on the
-+ * metadata in the header:  SVE_PT_SIZE(vq, flags) gives the total size
-+ * of the state in bytes, including the header.
-+ *
-+ * Refer to <asm/sigcontext.h> for details of how to pass the correct
-+ * "vq" argument to these macros.
-+ */
++	zcr = read_sysreg_s(SYS_ZCR_EL1);
++	zcr &= ~(u64)ZCR_ELx_LEN_MASK; /* find sticky 1s outside LEN field */
++	vq_max = sve_vq_from_vl(sve_get_vl());
++	zcr |= vq_max - 1; /* set LEN field to maximum effective value */
 +
-+/* Offset from the start of struct user_sve_header to the register data */
-+#define SVE_PT_REGS_OFFSET					\
-+	((sizeof(struct sve_context) + (SVE_VQ_BYTES - 1))	\
-+		/ SVE_VQ_BYTES * SVE_VQ_BYTES)
-+
-+/*
-+ * The register data content and layout depends on the value of the
-+ * flags field.
-+ */
-+
-+/*
-+ * (flags & SVE_PT_REGS_MASK) == SVE_PT_REGS_FPSIMD case:
-+ *
-+ * The payload starts at offset SVE_PT_FPSIMD_OFFSET, and is of type
-+ * struct user_fpsimd_state.  Additional data might be appended in the
-+ * future: use SVE_PT_FPSIMD_SIZE(vq, flags) to compute the total size.
-+ * SVE_PT_FPSIMD_SIZE(vq, flags) will never be less than
-+ * sizeof(struct user_fpsimd_state).
-+ */
-+
-+#define SVE_PT_FPSIMD_OFFSET		SVE_PT_REGS_OFFSET
-+
-+#define SVE_PT_FPSIMD_SIZE(vq, flags)	(sizeof(struct user_fpsimd_state))
-+
-+/*
-+ * (flags & SVE_PT_REGS_MASK) == SVE_PT_REGS_SVE case:
-+ *
-+ * The payload starts at offset SVE_PT_SVE_OFFSET, and is of size
-+ * SVE_PT_SVE_SIZE(vq, flags).
-+ *
-+ * Additional macros describe the contents and layout of the payload.
-+ * For each, SVE_PT_SVE_x_OFFSET(args) is the start offset relative to
-+ * the start of struct user_sve_header, and SVE_PT_SVE_x_SIZE(args) is
-+ * the size in bytes:
-+ *
-+ *	x	type				description
-+ *	-	----				-----------
-+ *	ZREGS		\
-+ *	ZREG		|
-+ *	PREGS		| refer to <asm/sigcontext.h>
-+ *	PREG		|
-+ *	FFR		/
-+ *
-+ *	FPSR	uint32_t			FPSR
-+ *	FPCR	uint32_t			FPCR
-+ *
-+ * Additional data might be appended in the future.
-+ */
-+
-+#define SVE_PT_SVE_ZREG_SIZE(vq)	SVE_SIG_ZREG_SIZE(vq)
-+#define SVE_PT_SVE_PREG_SIZE(vq)	SVE_SIG_PREG_SIZE(vq)
-+#define SVE_PT_SVE_FFR_SIZE(vq)		SVE_SIG_FFR_SIZE(vq)
-+#define SVE_PT_SVE_FPSR_SIZE		sizeof(__u32)
-+#define SVE_PT_SVE_FPCR_SIZE		sizeof(__u32)
-+
-+#define __SVE_SIG_TO_PT(offset) \
-+	((offset) - SVE_SIG_REGS_OFFSET + SVE_PT_REGS_OFFSET)
-+
-+#define SVE_PT_SVE_OFFSET		SVE_PT_REGS_OFFSET
-+
-+#define SVE_PT_SVE_ZREGS_OFFSET \
-+	__SVE_SIG_TO_PT(SVE_SIG_ZREGS_OFFSET)
-+#define SVE_PT_SVE_ZREG_OFFSET(vq, n) \
-+	__SVE_SIG_TO_PT(SVE_SIG_ZREG_OFFSET(vq, n))
-+#define SVE_PT_SVE_ZREGS_SIZE(vq) \
-+	(SVE_PT_SVE_ZREG_OFFSET(vq, SVE_NUM_ZREGS) - SVE_PT_SVE_ZREGS_OFFSET)
-+
-+#define SVE_PT_SVE_PREGS_OFFSET(vq) \
-+	__SVE_SIG_TO_PT(SVE_SIG_PREGS_OFFSET(vq))
-+#define SVE_PT_SVE_PREG_OFFSET(vq, n) \
-+	__SVE_SIG_TO_PT(SVE_SIG_PREG_OFFSET(vq, n))
-+#define SVE_PT_SVE_PREGS_SIZE(vq) \
-+	(SVE_PT_SVE_PREG_OFFSET(vq, SVE_NUM_PREGS) - \
-+		SVE_PT_SVE_PREGS_OFFSET(vq))
-+
-+#define SVE_PT_SVE_FFR_OFFSET(vq) \
-+	__SVE_SIG_TO_PT(SVE_SIG_FFR_OFFSET(vq))
-+
-+#define SVE_PT_SVE_FPSR_OFFSET(vq)				\
-+	((SVE_PT_SVE_FFR_OFFSET(vq) + SVE_PT_SVE_FFR_SIZE(vq) +	\
-+			(SVE_VQ_BYTES - 1))			\
-+		/ SVE_VQ_BYTES * SVE_VQ_BYTES)
-+#define SVE_PT_SVE_FPCR_OFFSET(vq) \
-+	(SVE_PT_SVE_FPSR_OFFSET(vq) + SVE_PT_SVE_FPSR_SIZE)
-+
-+/*
-+ * Any future extension appended after FPCR must be aligned to the next
-+ * 128-bit boundary.
-+ */
-+
-+#define SVE_PT_SVE_SIZE(vq, flags)					\
-+	((SVE_PT_SVE_FPCR_OFFSET(vq) + SVE_PT_SVE_FPCR_SIZE		\
-+			- SVE_PT_SVE_OFFSET + (SVE_VQ_BYTES - 1))	\
-+		/ SVE_VQ_BYTES * SVE_VQ_BYTES)
-+
-+#define SVE_PT_SIZE(vq, flags)						\
-+	 (((flags) & SVE_PT_REGS_MASK) == SVE_PT_REGS_SVE ?		\
-+		  SVE_PT_SVE_OFFSET + SVE_PT_SVE_SIZE(vq, flags)	\
-+		: SVE_PT_FPSIMD_OFFSET + SVE_PT_FPSIMD_SIZE(vq, flags))
++	return zcr;
++}
 +
  #endif /* __ASSEMBLY__ */
  
- #endif /* _UAPI__ASM_PTRACE_H */
+ #endif
+diff --git a/arch/arm64/include/asm/fpsimd.h b/arch/arm64/include/asm/fpsimd.h
+index 7dd3939..bad72fd 100644
+--- a/arch/arm64/include/asm/fpsimd.h
++++ b/arch/arm64/include/asm/fpsimd.h
+@@ -79,6 +79,7 @@ extern void sve_save_state(void *state, u32 *pfpsr);
+ extern void sve_load_state(void const *state, u32 const *pfpsr,
+ 			   unsigned long vq_minus_1);
+ extern unsigned int sve_get_vl(void);
++extern int sve_kernel_enable(void *);
+ 
+ extern int __ro_after_init sve_max_vl;
+ 
+@@ -91,10 +92,23 @@ extern void fpsimd_release_thread(struct task_struct *task);
+ extern int sve_set_vector_length(struct task_struct *task,
+ 				 unsigned long vl, unsigned long flags);
+ 
++/*
++ * Probing and setup functions.
++ * Calls to these functions must be serialised with one another.
++ */
++extern void __init sve_init_vq_map(void);
++extern void sve_update_vq_map(void);
++extern int sve_verify_vq_map(void);
++extern void __init sve_setup(void);
++
+ #else /* ! CONFIG_ARM64_SVE */
+ 
+ static void __maybe_unused sve_alloc(struct task_struct *task) { }
+ static void __maybe_unused fpsimd_release_thread(struct task_struct *task) { }
++static void __maybe_unused sve_init_vq_map(void) { }
++static void __maybe_unused sve_update_vq_map(void) { }
++static int __maybe_unused sve_verify_vq_map(void) { return 0; }
++static void __maybe_unused sve_setup(void) { }
+ 
+ #endif /* ! CONFIG_ARM64_SVE */
+ 
+diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
+index 92a9502..c5acf38 100644
+--- a/arch/arm64/kernel/cpufeature.c
++++ b/arch/arm64/kernel/cpufeature.c
+@@ -27,6 +27,7 @@
+ #include <asm/cpu.h>
+ #include <asm/cpufeature.h>
+ #include <asm/cpu_ops.h>
++#include <asm/fpsimd.h>
+ #include <asm/mmu_context.h>
+ #include <asm/processor.h>
+ #include <asm/sysreg.h>
+@@ -283,6 +284,12 @@ static const struct arm64_ftr_bits ftr_id_dfr0[] = {
+ 	ARM64_FTR_END,
+ };
+ 
++static const struct arm64_ftr_bits ftr_zcr[] = {
++	ARM64_FTR_BITS(FTR_HIDDEN, FTR_NONSTRICT, FTR_LOWER_SAFE,
++		ZCR_ELx_LEN_SHIFT, ZCR_ELx_LEN_SIZE, 0),	/* LEN */
++	ARM64_FTR_END,
++};
++
+ /*
+  * Common ftr bits for a 32bit register with all hidden, strict
+  * attributes, with 4bit feature fields and a default safe value of
+@@ -349,6 +356,7 @@ static const struct __ftr_reg_entry {
+ 	/* Op1 = 0, CRn = 0, CRm = 4 */
+ 	ARM64_FTR_REG(SYS_ID_AA64PFR0_EL1, ftr_id_aa64pfr0),
+ 	ARM64_FTR_REG(SYS_ID_AA64PFR1_EL1, ftr_raz),
++	ARM64_FTR_REG(SYS_ID_AA64ZFR0_EL1, ftr_raz),
+ 
+ 	/* Op1 = 0, CRn = 0, CRm = 5 */
+ 	ARM64_FTR_REG(SYS_ID_AA64DFR0_EL1, ftr_id_aa64dfr0),
+@@ -363,6 +371,9 @@ static const struct __ftr_reg_entry {
+ 	ARM64_FTR_REG(SYS_ID_AA64MMFR1_EL1, ftr_id_aa64mmfr1),
+ 	ARM64_FTR_REG(SYS_ID_AA64MMFR2_EL1, ftr_id_aa64mmfr2),
+ 
++	/* Op1 = 0, CRn = 1, CRm = 2 */
++	ARM64_FTR_REG(SYS_ZCR_EL1, ftr_zcr),
++
+ 	/* Op1 = 3, CRn = 0, CRm = 0 */
+ 	{ SYS_CTR_EL0, &arm64_ftr_reg_ctrel0 },
+ 	ARM64_FTR_REG(SYS_DCZID_EL0, ftr_dczid),
+@@ -500,6 +511,7 @@ void __init init_cpu_features(struct cpuinfo_arm64 *info)
+ 	init_cpu_ftr_reg(SYS_ID_AA64MMFR2_EL1, info->reg_id_aa64mmfr2);
+ 	init_cpu_ftr_reg(SYS_ID_AA64PFR0_EL1, info->reg_id_aa64pfr0);
+ 	init_cpu_ftr_reg(SYS_ID_AA64PFR1_EL1, info->reg_id_aa64pfr1);
++	init_cpu_ftr_reg(SYS_ID_AA64ZFR0_EL1, info->reg_id_aa64zfr0);
+ 
+ 	if (id_aa64pfr0_32bit_el0(info->reg_id_aa64pfr0)) {
+ 		init_cpu_ftr_reg(SYS_ID_DFR0_EL1, info->reg_id_dfr0);
+@@ -520,6 +532,10 @@ void __init init_cpu_features(struct cpuinfo_arm64 *info)
+ 		init_cpu_ftr_reg(SYS_MVFR2_EL1, info->reg_mvfr2);
+ 	}
+ 
++	if (id_aa64pfr0_sve(info->reg_id_aa64pfr0)) {
++		init_cpu_ftr_reg(SYS_ZCR_EL1, info->reg_zcr);
++		sve_init_vq_map();
++	}
+ }
+ 
+ static void update_cpu_ftr_reg(struct arm64_ftr_reg *reg, u64 new)
+@@ -623,6 +639,9 @@ void update_cpu_features(int cpu,
+ 	taint |= check_update_ftr_reg(SYS_ID_AA64PFR1_EL1, cpu,
+ 				      info->reg_id_aa64pfr1, boot->reg_id_aa64pfr1);
+ 
++	taint |= check_update_ftr_reg(SYS_ID_AA64ZFR0_EL1, cpu,
++				      info->reg_id_aa64zfr0, boot->reg_id_aa64zfr0);
++
+ 	/*
+ 	 * If we have AArch32, we care about 32-bit features for compat.
+ 	 * If the system doesn't support AArch32, don't update them.
+@@ -670,6 +689,14 @@ void update_cpu_features(int cpu,
+ 					info->reg_mvfr2, boot->reg_mvfr2);
+ 	}
+ 
++	if (id_aa64pfr0_sve(info->reg_id_aa64pfr0)) {
++		taint |= check_update_ftr_reg(SYS_ZCR_EL1, cpu,
++					info->reg_zcr, boot->reg_zcr);
++
++		if (!sys_caps_initialised)
++			sve_update_vq_map();
++	}
++
+ 	/*
+ 	 * Mismatched CPU features are a recipe for disaster. Don't even
+ 	 * pretend to support them.
+@@ -1097,6 +1124,23 @@ verify_local_cpu_features(const struct arm64_cpu_capabilities *caps)
+ 	}
+ }
+ 
++static void verify_sve_features(void)
++{
++	u64 safe_zcr = read_sanitised_ftr_reg(SYS_ZCR_EL1);
++	u64 zcr = read_zcr_features();
++
++	unsigned int safe_len = safe_zcr & ZCR_ELx_LEN_MASK;
++	unsigned int len = zcr & ZCR_ELx_LEN_MASK;
++
++	if (len < safe_len || sve_verify_vq_map()) {
++		pr_crit("CPU%d: SVE: required vector length(s) missing\n",
++			smp_processor_id());
++		cpu_die_early();
++	}
++
++	/* Add checks on other ZCR bits here if necessary */
++}
++
+ /*
+  * Run through the enabled system capabilities and enable() it on this CPU.
+  * The capabilities were decided based on the available CPUs at the boot time.
+@@ -1110,8 +1154,12 @@ static void verify_local_cpu_capabilities(void)
+ 	verify_local_cpu_errata_workarounds();
+ 	verify_local_cpu_features(arm64_features);
+ 	verify_local_elf_hwcaps(arm64_elf_hwcaps);
++
+ 	if (system_supports_32bit_el0())
+ 		verify_local_elf_hwcaps(compat_elf_hwcaps);
++
++	if (system_supports_sve())
++		verify_sve_features();
+ }
+ 
+ void check_local_cpu_capabilities(void)
+@@ -1189,6 +1237,8 @@ void __init setup_cpu_features(void)
+ 	if (system_supports_32bit_el0())
+ 		setup_elf_hwcaps(compat_elf_hwcaps);
+ 
++	sve_setup();
++
+ 	/* Advertise that we have computed the system capabilities */
+ 	set_sys_caps_initialised();
+ 
+diff --git a/arch/arm64/kernel/cpuinfo.c b/arch/arm64/kernel/cpuinfo.c
+index 3118859..be260e8 100644
+--- a/arch/arm64/kernel/cpuinfo.c
++++ b/arch/arm64/kernel/cpuinfo.c
+@@ -19,6 +19,7 @@
+ #include <asm/cpu.h>
+ #include <asm/cputype.h>
+ #include <asm/cpufeature.h>
++#include <asm/fpsimd.h>
+ 
+ #include <linux/bitops.h>
+ #include <linux/bug.h>
+@@ -326,6 +327,7 @@ static void __cpuinfo_store_cpu(struct cpuinfo_arm64 *info)
+ 	info->reg_id_aa64mmfr2 = read_cpuid(ID_AA64MMFR2_EL1);
+ 	info->reg_id_aa64pfr0 = read_cpuid(ID_AA64PFR0_EL1);
+ 	info->reg_id_aa64pfr1 = read_cpuid(ID_AA64PFR1_EL1);
++	info->reg_id_aa64zfr0 = read_cpuid(ID_AA64ZFR0_EL1);
+ 
+ 	/* Update the 32bit ID registers only if AArch32 is implemented */
+ 	if (id_aa64pfr0_32bit_el0(info->reg_id_aa64pfr0)) {
+@@ -348,6 +350,10 @@ static void __cpuinfo_store_cpu(struct cpuinfo_arm64 *info)
+ 		info->reg_mvfr2 = read_cpuid(MVFR2_EL1);
+ 	}
+ 
++	if (IS_ENABLED(CONFIG_ARM64_SVE) &&
++	    id_aa64pfr0_sve(info->reg_id_aa64pfr0))
++		info->reg_zcr = read_zcr_features();
++
+ 	cpuinfo_detect_icache_policy(info);
+ }
+ 
 diff --git a/arch/arm64/kernel/fpsimd.c b/arch/arm64/kernel/fpsimd.c
-index c194627..6db9f30 100644
+index 324c112..5673f50 100644
 --- a/arch/arm64/kernel/fpsimd.c
 +++ b/arch/arm64/kernel/fpsimd.c
-@@ -438,6 +438,66 @@ void sve_alloc(struct task_struct *task)
- 	BUG_ON(!task->thread.sve_state);
+@@ -113,19 +113,19 @@
+ static DEFINE_PER_CPU(struct fpsimd_state *, fpsimd_last_state);
+ 
+ /* Default VL for tasks that don't set it explicitly: */
+-static int sve_default_vl = SVE_VL_MIN;
++static int sve_default_vl = -1;
+ 
+ #ifdef CONFIG_ARM64_SVE
+ 
+ /* Maximum supported vector length across all CPUs (initially poisoned) */
+ int __ro_after_init sve_max_vl = -1;
+ /* Set of available vector lengths, as vq_to_bit(vq): */
+-static DECLARE_BITMAP(sve_vq_map, SVE_VQ_MAX);
++static __ro_after_init DECLARE_BITMAP(sve_vq_map, SVE_VQ_MAX);
+ 
+ #else /* ! CONFIG_ARM64_SVE */
+ 
+ /* Dummy declaration for code that will be optimised out: */
+-extern DECLARE_BITMAP(sve_vq_map, SVE_VQ_MAX);
++extern __ro_after_init DECLARE_BITMAP(sve_vq_map, SVE_VQ_MAX);
+ 
+ #endif /* ! CONFIG_ARM64_SVE */
+ 
+@@ -506,6 +506,111 @@ int sve_set_vector_length(struct task_struct *task,
+ 	return 0;
  }
  
-+
 +/*
-+ * Ensure that task->thread.sve_state is up to date with respect to
-+ * the user task, irrespective of when SVE is in use or not.
-+ *
-+ * This should only be called by ptrace.  task must be non-runnable.
-+ * task->thread.sve_state must point to at least sve_state_size(task)
-+ * bytes of allocated kernel memory.
++ * Bitmap for temporary storage of the per-CPU set of supported vector lengths
++ * during secondary boot.
 + */
-+void fpsimd_sync_to_sve(struct task_struct *task)
++static DECLARE_BITMAP(sve_secondary_vq_map, SVE_VQ_MAX);
++
++static void sve_probe_vqs(DECLARE_BITMAP(map, SVE_VQ_MAX))
 +{
-+	if (!test_tsk_thread_flag(task, TIF_SVE))
-+		fpsimd_to_sve(task);
++	unsigned int vq, vl;
++	unsigned long zcr;
++
++	bitmap_zero(map, SVE_VQ_MAX);
++
++	zcr = ZCR_ELx_LEN_MASK;
++	zcr = read_sysreg_s(SYS_ZCR_EL1) & ~zcr;
++
++	for (vq = SVE_VQ_MAX; vq >= SVE_VQ_MIN; --vq) {
++		write_sysreg_s(zcr | (vq - 1), SYS_ZCR_EL1); /* self-syncing */
++		vl = sve_get_vl();
++		vq = sve_vq_from_vl(vl); /* skip intervening lengths */
++		set_bit(vq_to_bit(vq), map);
++	}
++}
++
++void __init sve_init_vq_map(void)
++{
++	sve_probe_vqs(sve_vq_map);
 +}
 +
 +/*
-+ * Ensure that task->thread.fpsimd_state is up to date with respect to
-+ * the user task, irrespective of whether SVE is in use or not.
-+ *
-+ * This should only be called by ptrace.  task must be non-runnable.
-+ * task->thread.sve_state must point to at least sve_state_size(task)
-+ * bytes of allocated kernel memory.
++ * If we haven't committed to the set of supported VQs yet, filter out
++ * those not supported by the current CPU.
 + */
-+void sve_sync_to_fpsimd(struct task_struct *task)
++void sve_update_vq_map(void)
 +{
-+	if (test_tsk_thread_flag(task, TIF_SVE))
-+		sve_to_fpsimd(task);
++	sve_probe_vqs(sve_secondary_vq_map);
++	bitmap_and(sve_vq_map, sve_vq_map, sve_secondary_vq_map, SVE_VQ_MAX);
++}
++
++/* Check whether the current CPU supports all VQs in the committed set */
++int sve_verify_vq_map(void)
++{
++	int ret = 0;
++
++	sve_probe_vqs(sve_secondary_vq_map);
++	bitmap_andnot(sve_secondary_vq_map, sve_vq_map, sve_secondary_vq_map,
++		      SVE_VQ_MAX);
++	if (!bitmap_empty(sve_secondary_vq_map, SVE_VQ_MAX)) {
++		pr_warn("SVE: cpu%d: Required vector length(s) missing\n",
++			smp_processor_id());
++		ret = -EINVAL;
++	}
++
++	return ret;
 +}
 +
 +/*
-+ * Ensure that task->thread.sve_state is up to date with respect to
-+ * the task->thread.fpsimd_state.
-+ *
-+ * This should only be called by ptrace to merge new FPSIMD register
-+ * values into a task for which SVE is currently active.
-+ * task must be non-runnable.
-+ * task->thread.sve_state must point to at least sve_state_size(task)
-+ * bytes of allocated kernel memory.
-+ * task->thread.fpsimd_state must already have been initialised with
-+ * the new FPSIMD register values to be merged in.
++ * Enable SVE for EL1.
++ * Intended for use by the cpufeatures code during CPU boot.
 + */
-+void sve_sync_from_fpsimd_zeropad(struct task_struct *task)
++int sve_kernel_enable(void *__always_unused p)
 +{
-+	unsigned int vq;
-+	void *sst = task->thread.sve_state;
-+	struct fpsimd_state const *fst = &task->thread.fpsimd_state;
-+	unsigned int i;
++	write_sysreg(read_sysreg(CPACR_EL1) | CPACR_EL1_ZEN_EL1EN, CPACR_EL1);
++	isb();
 +
-+	if (!test_tsk_thread_flag(task, TIF_SVE))
++	return 0;
++}
++
++void __init sve_setup(void)
++{
++	u64 zcr;
++
++	if (!system_supports_sve())
 +		return;
 +
-+	vq = sve_vq_from_vl(task->thread.sve_vl);
++	/*
++	 * The SVE architecture mandates support for 128-bit vectors,
++	 * so sve_vq_map must have at least SVE_VQ_MIN set.
++	 * If something went wrong, at least try to patch it up:
++	 */
++	if (WARN_ON(!test_bit(vq_to_bit(SVE_VQ_MIN), sve_vq_map)))
++		set_bit(vq_to_bit(SVE_VQ_MIN), sve_vq_map);
 +
-+	memset(sst, 0, SVE_SIG_REGS_SIZE(vq));
++	zcr = read_sanitised_ftr_reg(SYS_ZCR_EL1);
++	sve_max_vl = sve_vl_from_vq((zcr & ZCR_ELx_LEN_MASK) + 1);
 +
-+	for (i = 0; i < 32; ++i)
-+		memcpy(ZREG(sst, vq, i), &fst->vregs[i],
-+		       sizeof(fst->vregs[i]));
++	/*
++	 * Sanity-check that the max VL we determined through CPU features
++	 * corresponds properly to sve_vq_map.  If not, do our best:
++	 */
++	if (WARN_ON(sve_max_vl != find_supported_vector_length(sve_max_vl)))
++		sve_max_vl = find_supported_vector_length(sve_max_vl);
++
++	/*
++	 * For the default VL, pick the maximum supported value <= 64.
++	 * VL == 64 is guaranteed not to grow the signal frame.
++	 */
++	sve_default_vl = find_supported_vector_length(64);
++
++	pr_info("SVE: maximum available vector length %u bytes per vector\n",
++		sve_max_vl);
++	pr_info("SVE: default vector length %u bytes per vector\n",
++		sve_default_vl);
 +}
 +
- int sve_set_vector_length(struct task_struct *task,
- 			  unsigned long vl, unsigned long flags)
+ void fpsimd_release_thread(struct task_struct *dead_task)
  {
-diff --git a/arch/arm64/kernel/ptrace.c b/arch/arm64/kernel/ptrace.c
-index 9cbb612..7252209 100644
---- a/arch/arm64/kernel/ptrace.c
-+++ b/arch/arm64/kernel/ptrace.c
-@@ -32,6 +32,7 @@
- #include <linux/security.h>
- #include <linux/init.h>
- #include <linux/signal.h>
-+#include <linux/string.h>
- #include <linux/uaccess.h>
- #include <linux/perf_event.h>
- #include <linux/hw_breakpoint.h>
-@@ -40,6 +41,7 @@
- #include <linux/elf.h>
- 
- #include <asm/compat.h>
-+#include <asm/cpufeature.h>
- #include <asm/debug-monitors.h>
- #include <asm/pgtable.h>
- #include <asm/stacktrace.h>
-@@ -618,33 +620,66 @@ static int gpr_set(struct task_struct *target, const struct user_regset *regset,
- /*
-  * TODO: update fp accessors for lazy context switching (sync/flush hwstate)
-  */
--static int fpr_get(struct task_struct *target, const struct user_regset *regset,
--		   unsigned int pos, unsigned int count,
--		   void *kbuf, void __user *ubuf)
-+static int __fpr_get(struct task_struct *target,
-+		     const struct user_regset *regset,
-+		     unsigned int pos, unsigned int count,
-+		     void *kbuf, void __user *ubuf, unsigned int start_pos)
- {
- 	struct user_fpsimd_state *uregs;
-+
-+	sve_sync_to_fpsimd(target);
-+
- 	uregs = &target->thread.fpsimd_state.user_fpsimd;
- 
-+	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, uregs,
-+				   start_pos, start_pos + sizeof(*uregs));
-+}
-+
-+static int fpr_get(struct task_struct *target, const struct user_regset *regset,
-+		   unsigned int pos, unsigned int count,
-+		   void *kbuf, void __user *ubuf)
-+{
- 	if (target == current)
- 		fpsimd_preserve_current_state();
- 
--	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, uregs, 0, -1);
-+	return __fpr_get(target, regset, pos, count, kbuf, ubuf, 0);
- }
- 
--static int fpr_set(struct task_struct *target, const struct user_regset *regset,
--		   unsigned int pos, unsigned int count,
--		   const void *kbuf, const void __user *ubuf)
-+static int __fpr_set(struct task_struct *target,
-+		     const struct user_regset *regset,
-+		     unsigned int pos, unsigned int count,
-+		     const void *kbuf, const void __user *ubuf,
-+		     unsigned int start_pos)
- {
- 	int ret;
- 	struct user_fpsimd_state newstate =
- 		target->thread.fpsimd_state.user_fpsimd;
- 
--	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, &newstate, 0, -1);
-+	sve_sync_to_fpsimd(target);
-+
-+	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, &newstate,
-+				 start_pos, start_pos + sizeof(newstate));
- 	if (ret)
- 		return ret;
- 
- 	target->thread.fpsimd_state.user_fpsimd = newstate;
-+
-+	return ret;
-+}
-+
-+static int fpr_set(struct task_struct *target, const struct user_regset *regset,
-+		   unsigned int pos, unsigned int count,
-+		   const void *kbuf, const void __user *ubuf)
-+{
-+	int ret;
-+
-+	ret = __fpr_set(target, regset, pos, count, kbuf, ubuf, 0);
-+	if (ret)
-+		return ret;
-+
-+	sve_sync_from_fpsimd_zeropad(target);
- 	fpsimd_flush_task_state(target);
-+
- 	return ret;
- }
- 
-@@ -702,6 +737,211 @@ static int system_call_set(struct task_struct *target,
- 	return ret;
- }
- 
-+#ifdef CONFIG_ARM64_SVE
-+
-+static void sve_init_header_from_task(struct user_sve_header *header,
-+				      struct task_struct *target)
-+{
-+	unsigned int vq;
-+
-+	memset(header, 0, sizeof(*header));
-+
-+	header->flags = test_tsk_thread_flag(target, TIF_SVE) ?
-+		SVE_PT_REGS_SVE : SVE_PT_REGS_FPSIMD;
-+	if (test_tsk_thread_flag(target, TIF_SVE_VL_INHERIT))
-+		header->flags |= SVE_PT_VL_INHERIT;
-+
-+	header->vl = target->thread.sve_vl;
-+	vq = sve_vq_from_vl(header->vl);
-+
-+	header->max_vl = sve_max_vl;
-+	if (WARN_ON(!sve_vl_valid(sve_max_vl)))
-+		header->max_vl = header->vl;
-+
-+	header->size = SVE_PT_SIZE(vq, header->flags);
-+	header->max_size = SVE_PT_SIZE(sve_vq_from_vl(header->max_vl),
-+				      SVE_PT_REGS_SVE);
-+}
-+
-+static unsigned int sve_size_from_header(struct user_sve_header const *header)
-+{
-+	return ALIGN(header->size, SVE_VQ_BYTES);
-+}
-+
-+static unsigned int sve_get_size(struct task_struct *target,
-+				 const struct user_regset *regset)
-+{
-+	struct user_sve_header header;
-+
-+	if (!system_supports_sve())
-+		return 0;
-+
-+	sve_init_header_from_task(&header, target);
-+	return sve_size_from_header(&header);
-+}
-+
-+static int sve_get(struct task_struct *target,
-+		   const struct user_regset *regset,
-+		   unsigned int pos, unsigned int count,
-+		   void *kbuf, void __user *ubuf)
-+{
-+	int ret;
-+	struct user_sve_header header;
-+	unsigned int vq;
-+	unsigned long start, end;
-+
-+	if (!system_supports_sve())
-+		return -EINVAL;
-+
-+	/* Header */
-+	sve_init_header_from_task(&header, target);
-+	vq = sve_vq_from_vl(header.vl);
-+
-+	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf, &header,
-+				  0, sizeof(header));
-+	if (ret)
-+		return ret;
-+
-+	if (target == current)
-+		fpsimd_preserve_current_state();
-+
-+	/* Registers: FPSIMD-only case */
-+
-+	BUILD_BUG_ON(SVE_PT_FPSIMD_OFFSET != sizeof(header));
-+	if ((header.flags & SVE_PT_REGS_MASK) == SVE_PT_REGS_FPSIMD)
-+		return __fpr_get(target, regset, pos, count, kbuf, ubuf,
-+				 SVE_PT_FPSIMD_OFFSET);
-+
-+	/* Otherwise: full SVE case */
-+
-+	BUILD_BUG_ON(SVE_PT_SVE_OFFSET != sizeof(header));
-+	start = SVE_PT_SVE_OFFSET;
-+	end = SVE_PT_SVE_FFR_OFFSET(vq) + SVE_PT_SVE_FFR_SIZE(vq);
-+	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
-+				  target->thread.sve_state,
-+				  start, end);
-+	if (ret)
-+		return ret;
-+
-+	start = end;
-+	end = SVE_PT_SVE_FPSR_OFFSET(vq);
-+	ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
-+				       start, end);
-+	if (ret)
-+		return ret;
-+
-+	/*
-+	 * Copy fpsr, and fpcr which must follow contiguously in
-+	 * struct fpsimd_state:
-+	 */
-+	start = end;
-+	end = SVE_PT_SVE_FPCR_OFFSET(vq) + SVE_PT_SVE_FPCR_SIZE;
-+	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
-+				  &target->thread.fpsimd_state.fpsr,
-+				  start, end);
-+	if (ret)
-+		return ret;
-+
-+	start = end;
-+	end = sve_size_from_header(&header);
-+	return user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
-+					start, end);
-+}
-+
-+static int sve_set(struct task_struct *target,
-+		   const struct user_regset *regset,
-+		   unsigned int pos, unsigned int count,
-+		   const void *kbuf, const void __user *ubuf)
-+{
-+	int ret;
-+	struct user_sve_header header;
-+	unsigned int vq;
-+	unsigned long start, end;
-+
-+	if (!system_supports_sve())
-+		return -EINVAL;
-+
-+	/* Header */
-+	if (count < sizeof(header))
-+		return -EINVAL;
-+	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, &header,
-+				 0, sizeof(header));
-+	if (ret)
-+		goto out;
-+
-+	/*
-+	 * Apart from PT_SVE_REGS_MASK, all PT_SVE_* flags are consumed by
-+	 * sve_set_vector_length(), which will also validate them for us:
-+	 */
-+	ret = sve_set_vector_length(target, header.vl,
-+		((unsigned long)header.flags & ~SVE_PT_REGS_MASK) << 16);
-+	if (ret)
-+		goto out;
-+
-+	/* Actual VL set may be less than the user asked for: */
-+	vq = sve_vq_from_vl(target->thread.sve_vl);
-+
-+	/* Registers: FPSIMD-only case */
-+
-+	BUILD_BUG_ON(SVE_PT_FPSIMD_OFFSET != sizeof(header));
-+	if ((header.flags & SVE_PT_REGS_MASK) == SVE_PT_REGS_FPSIMD) {
-+		sve_sync_to_fpsimd(target);
-+
-+		ret = __fpr_set(target, regset, pos, count, kbuf, ubuf,
-+				SVE_PT_FPSIMD_OFFSET);
-+		clear_tsk_thread_flag(target, TIF_SVE);
-+		goto out;
-+	}
-+
-+	/* Otherwise: full SVE case */
-+
-+	/*
-+	 * If setting a different VL from the requested VL and there is
-+	 * register data, the data layout will be wrong: don't even
-+	 * try to set the registers in this case.
-+	 */
-+	if (count && vq != sve_vq_from_vl(header.vl)) {
-+		ret = -EIO;
-+		goto out;
-+	}
-+
-+	sve_alloc(target);
-+	fpsimd_sync_to_sve(target);
-+	set_tsk_thread_flag(target, TIF_SVE);
-+
-+	BUILD_BUG_ON(SVE_PT_SVE_OFFSET != sizeof(header));
-+	start = SVE_PT_SVE_OFFSET;
-+	end = SVE_PT_SVE_FFR_OFFSET(vq) + SVE_PT_SVE_FFR_SIZE(vq);
-+	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
-+				 target->thread.sve_state,
-+				 start, end);
-+	if (ret)
-+		goto out;
-+
-+	start = end;
-+	end = SVE_PT_SVE_FPSR_OFFSET(vq);
-+	ret = user_regset_copyin_ignore(&pos, &count, &kbuf, &ubuf,
-+					start, end);
-+	if (ret)
-+		goto out;
-+
-+	/*
-+	 * Copy fpsr, and fpcr which must follow contiguously in
-+	 * struct fpsimd_state:
-+	 */
-+	start = end;
-+	end = SVE_PT_SVE_FPCR_OFFSET(vq) + SVE_PT_SVE_FPCR_SIZE;
-+	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
-+				 &target->thread.fpsimd_state.fpsr,
-+				 start, end);
-+
-+out:
-+	fpsimd_flush_task_state(target);
-+	return ret;
-+}
-+
-+#endif /* CONFIG_ARM64_SVE */
-+
- enum aarch64_regset {
- 	REGSET_GPR,
- 	REGSET_FPR,
-@@ -711,6 +951,9 @@ enum aarch64_regset {
- 	REGSET_HW_WATCH,
- #endif
- 	REGSET_SYSTEM_CALL,
-+#ifdef CONFIG_ARM64_SVE
-+	REGSET_SVE,
-+#endif
- };
- 
- static const struct user_regset aarch64_regsets[] = {
-@@ -768,6 +1011,18 @@ static const struct user_regset aarch64_regsets[] = {
- 		.get = system_call_get,
- 		.set = system_call_set,
- 	},
-+#ifdef CONFIG_ARM64_SVE
-+	[REGSET_SVE] = { /* Scalable Vector Extension */
-+		.core_note_type = NT_ARM_SVE,
-+		.n = DIV_ROUND_UP(SVE_PT_SIZE(SVE_VQ_MAX, SVE_PT_REGS_SVE),
-+				  SVE_VQ_BYTES),
-+		.size = SVE_VQ_BYTES,
-+		.align = SVE_VQ_BYTES,
-+		.get = sve_get,
-+		.set = sve_set,
-+		.get_size = sve_get_size,
-+	},
-+#endif
- };
- 
- static const struct user_regset_view user_aarch64_view = {
-diff --git a/include/uapi/linux/elf.h b/include/uapi/linux/elf.h
-index b5280db..735b8f4 100644
---- a/include/uapi/linux/elf.h
-+++ b/include/uapi/linux/elf.h
-@@ -416,6 +416,7 @@ typedef struct elf64_shdr {
- #define NT_ARM_HW_BREAK	0x402		/* ARM hardware breakpoint registers */
- #define NT_ARM_HW_WATCH	0x403		/* ARM hardware watchpoint registers */
- #define NT_ARM_SYSTEM_CALL	0x404	/* ARM system call number */
-+#define NT_ARM_SVE	0x405		/* ARM Scalable Vector Extension registers */
- #define NT_METAG_CBUF	0x500		/* Metag catch buffer registers */
- #define NT_METAG_RPIPE	0x501		/* Metag read pipeline state */
- #define NT_METAG_TLS	0x502		/* Metag TLS pointer */
+ 	sve_free(dead_task);
+@@ -637,6 +742,9 @@ void fpsimd_flush_thread(void)
+ 		 * This is where we ensure that all user tasks have a valid
+ 		 * vector length configured: no kernel task can become a user
+ 		 * task without an exec and hence a call to this function.
++		 * By the time the first call to this function is made, all
++		 * early hardware probing is complete, so sve_default_vl
++		 * should be valid.
+ 		 * If a bug causes this to go wrong, we make some noise and
+ 		 * try to fudge thread.sve_vl to a safe value here.
+ 		 */
 -- 
 2.1.4
