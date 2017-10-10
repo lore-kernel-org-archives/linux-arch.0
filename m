@@ -1,18 +1,18 @@
 From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.9 080/105] percpu: make this_cpu_generic_read() atomic w.r.t. interrupts
-Date: Tue, 10 Oct 2017 21:50:51 +0200
-Message-ID: <20171010192546.077105489@linuxfoundation.org>
-References: <20171010192533.717049376@linuxfoundation.org>
+Subject: [PATCH 4.13 112/160] percpu: make this_cpu_generic_read() atomic w.r.t. interrupts
+Date: Tue, 10 Oct 2017 21:50:40 +0200
+Message-ID: <20171010190553.163114031@linuxfoundation.org>
+References: <20171010190548.690912997@linuxfoundation.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20171010192533.717049376@linuxfoundation.org>
+In-Reply-To: <20171010190548.690912997@linuxfoundation.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
 Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, Arnd Bergmann <arnd@arndb.de>, Christoph Lameter <cl@linux.com>, Peter Zijlstra <peterz@infradead.org>, Pranith Kumar <bobby.prani@gmail.com>, Tejun Heo <tj@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-4.9-stable review patch.  If anyone has any objections, please let me know.
+4.13-stable review patch.  If anyone has any objections, please let me know.
 
 ------------------
 
