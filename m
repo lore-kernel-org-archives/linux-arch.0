@@ -1,35 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f170.google.com ([209.85.216.170]:52044 "EHLO
-        mail-qt0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S932193AbdJJPuC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 10 Oct 2017 11:50:02 -0400
-Date: Tue, 10 Oct 2017 08:49:58 -0700
-From: Tejun Heo <tj@kernel.org>
-Subject: Re: [PATCH RFC tip/core/rcu 05/15] percpu: READ_ONCE() now implies
+Received: from merlin.infradead.org ([205.233.59.134]:54736 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S932385AbdJJPzC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 10 Oct 2017 11:55:02 -0400
+Date: Tue, 10 Oct 2017 17:54:51 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH RFC tip/core/rcu 12/15] lib/assoc_array: Remove
  smp_read_barrier_depends()
-Message-ID: <20171010154958.GM3301751@devbig577.frc2.facebook.com>
-References: <20171010001951.GA6476@linux.vnet.ibm.com>
- <1507594969-8347-5-git-send-email-paulmck@linux.vnet.ibm.com>
- <20171010140813.GK3301751@devbig577.frc2.facebook.com>
- <20171010153047.GB3521@linux.vnet.ibm.com>
+Message-ID: <20171010155451.wv2dfirmra5aeake@hirez.programming.kicks-ass.net>
+References: <1507594969-8347-12-git-send-email-paulmck@linux.vnet.ibm.com>
+ <20171010001951.GA6476@linux.vnet.ibm.com>
+ <8079.1507628146@warthog.procyon.org.uk>
+ <20171010155042.GD3521@linux.vnet.ibm.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20171010153047.GB3521@linux.vnet.ibm.com>
+In-Reply-To: <20171010155042.GD3521@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: linux-kernel@vger.kernel.org, mingo@kernel.org, torvalds@linux-foundation.org, mark.rutland@arm.com, dhowells@redhat.com, linux-arch@vger.kernel.org, peterz@infradead.org, will.deacon@arm.com, Christoph Lameter <cl@linux.com>
-Message-ID: <20171010154958.y3gVHaRuBfO8VBPzkt6UskD46FjBxgqqE45qo34eSC4@z>
+Cc: David Howells <dhowells@redhat.com>, linux-kernel@vger.kernel.org, mingo@kernel.org, torvalds@linux-foundation.org, mark.rutland@arm.com, linux-arch@vger.kernel.org, will.deacon@arm.com, Jonathan Corbet <corbet@lwn.net>, Alexander Kuleshov <kuleshovmail@gmail.com>
+Message-ID: <20171010155451.1DCs3M_kXTa6wbuTEEGf-7xv0fbSugye0OpziVV-RNE@z>
 
-On Tue, Oct 10, 2017 at 08:30:47AM -0700, Paul E. McKenney wrote:
-> > Please feel free to route with other patches.  If this should be
-> > routed through the percpu tree, please let me know.
-> 
-> This depends on some other not-yet-finalized patch series, so if you
-> are OK with it, I will route them with that group of serieses.
+On Tue, Oct 10, 2017 at 08:50:42AM -0700, Paul E. McKenney wrote:
+> +			/* We need a barrier between the read of the pointer,
+> +			 * which is supplied by the above READ_ONCE().
+>  			 */
 
-Sure thing.  Thanks for the much needed simplification!
+>  			/* We need a barrier between the read of the pointer
+>  			 * and dereferencing the pointer - but only if we are
+>  			 * actually going to dereference it.
+>  			 */
 
--- 
-tejun
+Could you also fix those "disgusting drug-induced crap" comment styles
+while you're there anyway?
+
+  http://lkml.iu.edu/hypermail/linux/kernel/1607.1/00627.html
