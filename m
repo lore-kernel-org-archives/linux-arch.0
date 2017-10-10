@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:48996 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932492AbdJJSjY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 10 Oct 2017 14:39:24 -0400
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:48904 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S932294AbdJJSjO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 10 Oct 2017 14:39:14 -0400
 From: Dave Martin <Dave.Martin@arm.com>
-Subject: [PATCH v3 14/28] arm64/sve: Backend logic for setting the vector length
-Date: Tue, 10 Oct 2017 19:38:31 +0100
-Message-ID: <1507660725-7986-15-git-send-email-Dave.Martin@arm.com>
+Subject: [PATCH v3 09/28] arm64/sve: Signal frame and context structure definition
+Date: Tue, 10 Oct 2017 19:38:26 +0100
+Message-ID: <1507660725-7986-10-git-send-email-Dave.Martin@arm.com>
 In-Reply-To: <1507660725-7986-1-git-send-email-Dave.Martin@arm.com>
 References: <1507660725-7986-1-git-send-email-Dave.Martin@arm.com>
 MIME-Version: 1.0
@@ -16,17 +16,18 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org
 Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, =?UTF-8?q?Alex=20Benn=C3=A9e?= <alex.bennee@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, kvmarm@lists.cs.columbia.edu, libc-alpha@sourceware.org, linux-arch@vger.kernel.org
-Message-ID: <20171010183831.WyEZ3WE3TRcqqfcSP0ymlUqW7q2WCMhdSELVNfFZFPI@z>
+Message-ID: <20171010183826.XBiOaPuMUa5dOejdwqLY_F7mZJoUG57XqpneqczTX0c@z>
 
-This patch implements the core logic for changing a task's vector
-length on request from userspace.  This will be used by the ptrace
-and prctl frontends that are implemented in later patches.
+This patch defines the representation that will be used for the SVE
+register state in the signal frame, and implements support for
+saving and restoring the SVE registers around signals.
 
-The SVE architecture permits, but does not require, implementations
-to support vector lengths that are not a power of two.  To handle
-this, logic is added to check a requested vector length against a
-possibly sparse bitmap of available vector lengths at runtime, so
-that the best supported value can be chosen.
+The same layout will also be used for the in-kernel task state.
+
+Due to the variability of the SVE vector length, it is not possible
+to define a fixed C struct to describe all the registers.  Instead,
+Macros are defined in sigcontext.h to facilitate access to the
+parts of the structure.
 
 Signed-off-by: Dave Martin <Dave.Martin@arm.com>
 Cc: Alex Bennée <alex.bennee@linaro.org>
@@ -36,277 +37,156 @@ Cc: Alex Bennée <alex.bennee@linaro.org>
 Changes since v2
 ----------------
 
-Bug fixes:
+Requested by Catalin Marinas:
 
- * sve_set_vector_length() sets or clears TIF_SVE_VL_INHERIT based
-   on the incoming flags, but it is erroneously always set/cleared
-   for current, instead of for the requested task.
-
-   Fixed these operations to operate on the target task.
-
-   Without this fix, a PTRACE_SETREGSET for NT_ARM_SVE will change
-   the vector length inheritance mode of the caller instead of that
-   of the target task.
-
- * Fixed sve_set_vector_length() to guard against softirq instead of just
-   preemption.  This is now done by sve_set_vector_length() itself
-   instead of its caller, not least because sve_free() should probably
-   not be called from atomic context.
-
-   (Bug detected by the extra WARN_ON()s in task_fpsimd_{load,save}().)
-
-Miscellaneous:
-
- * Add comments explaining the intent, purpose and basic constraints
-   for fpsimd.c helpers.
+ * Rewrite the SVE_VQ_BYTES and SVE_VQ_MAX definitions in decimal, to
+   avoid any resemblance to masks or bitfields.
 ---
- arch/arm64/include/asm/fpsimd.h |   8 +++
- arch/arm64/kernel/fpsimd.c      | 137 +++++++++++++++++++++++++++++++++++++++-
- include/uapi/linux/prctl.h      |   5 ++
- 3 files changed, 149 insertions(+), 1 deletion(-)
+ arch/arm64/include/uapi/asm/sigcontext.h | 117 ++++++++++++++++++++++++++++++-
+ 1 file changed, 116 insertions(+), 1 deletion(-)
 
-diff --git a/arch/arm64/include/asm/fpsimd.h b/arch/arm64/include/asm/fpsimd.h
-index 52e01c5..7dd3939 100644
---- a/arch/arm64/include/asm/fpsimd.h
-+++ b/arch/arm64/include/asm/fpsimd.h
-@@ -20,6 +20,7 @@
+diff --git a/arch/arm64/include/uapi/asm/sigcontext.h b/arch/arm64/include/uapi/asm/sigcontext.h
+index f0a76b9..7654a81 100644
+--- a/arch/arm64/include/uapi/asm/sigcontext.h
++++ b/arch/arm64/include/uapi/asm/sigcontext.h
+@@ -16,6 +16,8 @@
+ #ifndef _UAPI__ASM_SIGCONTEXT_H
+ #define _UAPI__ASM_SIGCONTEXT_H
  
- #ifndef __ASSEMBLY__
- 
-+#include <linux/cache.h>
- #include <linux/stddef.h>
++#ifndef __ASSEMBLY__
++
+ #include <linux/types.h>
  
  /*
-@@ -71,17 +72,24 @@ extern void fpsimd_update_current_state(struct fpsimd_state *state);
+@@ -41,10 +43,11 @@ struct sigcontext {
+  *
+  *	0x210		fpsimd_context
+  *	 0x10		esr_context
++ *	0x8a0		sve_context (vl <= 64) (optional)
+  *	 0x20		extra_context (optional)
+  *	 0x10		terminator (null _aarch64_ctx)
+  *
+- *	0xdb0		(reserved for future allocation)
++ *	0x510		(reserved for future allocation)
+  *
+  * New records that can exceed this space need to be opt-in for userspace, so
+  * that an expanded signal frame is not generated unexpectedly.  The mechanism
+@@ -116,4 +119,116 @@ struct extra_context {
+ 	__u32 __reserved[3];
+ };
  
- extern void fpsimd_flush_task_state(struct task_struct *target);
- 
-+/* Maximum VL that SVE VL-agnostic software can transparently support */
-+#define SVE_VL_ARCH_MAX 0x100
++#define SVE_MAGIC	0x53564501
 +
- extern void sve_save_state(void *state, u32 *pfpsr);
- extern void sve_load_state(void const *state, u32 const *pfpsr,
- 			   unsigned long vq_minus_1);
- extern unsigned int sve_get_vl(void);
- 
-+extern int __ro_after_init sve_max_vl;
++struct sve_context {
++	struct _aarch64_ctx head;
++	__u16 vl;
++	__u16 __reserved[3];
++};
 +
- #ifdef CONFIG_ARM64_SVE
- 
- extern size_t sve_state_size(struct task_struct const *task);
- 
- extern void sve_alloc(struct task_struct *task);
- extern void fpsimd_release_thread(struct task_struct *task);
-+extern int sve_set_vector_length(struct task_struct *task,
-+				 unsigned long vl, unsigned long flags);
- 
- #else /* ! CONFIG_ARM64_SVE */
- 
-diff --git a/arch/arm64/kernel/fpsimd.c b/arch/arm64/kernel/fpsimd.c
-index fa4ed34..324c112 100644
---- a/arch/arm64/kernel/fpsimd.c
-+++ b/arch/arm64/kernel/fpsimd.c
-@@ -17,8 +17,10 @@
-  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-  */
- 
-+#include <linux/bitmap.h>
- #include <linux/bottom_half.h>
- #include <linux/bug.h>
-+#include <linux/cache.h>
- #include <linux/compat.h>
- #include <linux/cpu.h>
- #include <linux/cpu_pm.h>
-@@ -27,6 +29,7 @@
- #include <linux/init.h>
- #include <linux/percpu.h>
- #include <linux/preempt.h>
-+#include <linux/prctl.h>
- #include <linux/ptrace.h>
- #include <linux/sched/signal.h>
- #include <linux/signal.h>
-@@ -112,6 +115,20 @@ static DEFINE_PER_CPU(struct fpsimd_state *, fpsimd_last_state);
- /* Default VL for tasks that don't set it explicitly: */
- static int sve_default_vl = SVE_VL_MIN;
- 
-+#ifdef CONFIG_ARM64_SVE
-+
-+/* Maximum supported vector length across all CPUs (initially poisoned) */
-+int __ro_after_init sve_max_vl = -1;
-+/* Set of available vector lengths, as vq_to_bit(vq): */
-+static DECLARE_BITMAP(sve_vq_map, SVE_VQ_MAX);
-+
-+#else /* ! CONFIG_ARM64_SVE */
-+
-+/* Dummy declaration for code that will be optimised out: */
-+extern DECLARE_BITMAP(sve_vq_map, SVE_VQ_MAX);
-+
-+#endif /* ! CONFIG_ARM64_SVE */
-+
- static void sve_free(struct task_struct *task)
- {
- 	kfree(task->thread.sve_state);
-@@ -281,6 +298,50 @@ static void task_fpsimd_save(void)
- 	__task_fpsimd_save(false);
- }
- 
-+/*
-+ * Helpers to translate bit indices in sve_vq_map to VQ values (and
-+ * vice versa).  This allows find_next_bit() to be used to find the
-+ * _maximum_ VQ not exceeding a certain value.
-+ */
-+
-+static unsigned int vq_to_bit(unsigned int vq)
-+{
-+	return SVE_VQ_MAX - vq;
-+}
-+
-+static unsigned int bit_to_vq(unsigned int bit)
-+{
-+	if (WARN_ON(bit >= SVE_VQ_MAX))
-+		bit = SVE_VQ_MAX - 1;
-+
-+	return SVE_VQ_MAX - bit;
-+}
++#endif /* !__ASSEMBLY__ */
 +
 +/*
-+ * All vector length selection from userspace comes through here.
-+ * We're on a slow path, so some sanity-checks are included.
-+ * If things go wrong there's a bug somewhere, but try to fall back to a
-+ * safe choice.
++ * The SVE architecture leaves space for future expansion of the
++ * vector length beyond its initial architectural limit of 2048 bits
++ * (16 quadwords).
 + */
-+static unsigned int find_supported_vector_length(unsigned int vl)
-+{
-+	int bit;
-+	int max_vl = sve_max_vl;
++#define SVE_VQ_BYTES		16	/* number of bytes per quadword */
 +
-+	if (WARN_ON(!sve_vl_valid(vl)))
-+		vl = SVE_VL_MIN;
++#define SVE_VQ_MIN		1
++#define SVE_VQ_MAX		512
 +
-+	if (WARN_ON(!sve_vl_valid(max_vl)))
-+		max_vl = SVE_VL_MIN;
++#define SVE_VL_MIN		(SVE_VQ_MIN * SVE_VQ_BYTES)
++#define SVE_VL_MAX		(SVE_VQ_MAX * SVE_VQ_BYTES)
 +
-+	if (vl > max_vl)
-+		vl = max_vl;
++#define SVE_NUM_ZREGS		32
++#define SVE_NUM_PREGS		16
 +
-+	bit = find_next_bit(sve_vq_map, SVE_VQ_MAX,
-+			    vq_to_bit(sve_vq_from_vl(vl)));
-+	return sve_vl_from_vq(bit_to_vq(bit));
-+}
++#define sve_vl_valid(vl) \
++	((vl) % SVE_VQ_BYTES == 0 && (vl) >= SVE_VL_MIN && (vl) <= SVE_VL_MAX)
++#define sve_vq_from_vl(vl)	((vl) / SVE_VQ_BYTES)
++#define sve_vl_from_vq(vq)	((vq) * SVE_VQ_BYTES)
 +
- #define ZREG(sve_state, vq, n) ((char *)(sve_state) +		\
- 	(SVE_SIG_ZREG_OFFSET(vq, n) - SVE_SIG_REGS_OFFSET))
- 
-@@ -375,6 +436,76 @@ void sve_alloc(struct task_struct *task)
- 	BUG_ON(!task->thread.sve_state);
- }
- 
-+int sve_set_vector_length(struct task_struct *task,
-+			  unsigned long vl, unsigned long flags)
-+{
-+	if (flags & ~(unsigned long)(PR_SVE_VL_INHERIT |
-+				     PR_SVE_SET_VL_ONEXEC))
-+		return -EINVAL;
++/*
++ * If the SVE registers are currently live for the thread at signal delivery,
++ * sve_context.head.size >=
++ *	SVE_SIG_CONTEXT_SIZE(sve_vq_from_vl(sve_context.vl))
++ * and the register data may be accessed using the SVE_SIG_*() macros.
++ *
++ * If sve_context.head.size <
++ *	SVE_SIG_CONTEXT_SIZE(sve_vq_from_vl(sve_context.vl)),
++ * the SVE registers were not live for the thread and no register data
++ * is included: in this case, the SVE_SIG_*() macros should not be
++ * used except for this check.
++ *
++ * The same convention applies when returning from a signal: a caller
++ * will need to remove or resize the sve_context block if it wants to
++ * make the SVE registers live when they were previously non-live or
++ * vice-versa.  This may require the the caller to allocate fresh
++ * memory and/or move other context blocks in the signal frame.
++ *
++ * Changing the vector length during signal return is not permitted:
++ * sve_context.vl must equal the thread's current vector length when
++ * doing a sigreturn.
++ *
++ *
++ * Note: for all these macros, the "vq" argument denotes the SVE
++ * vector length in quadwords (i.e., units of 128 bits).
++ *
++ * The correct way to obtain vq is to use sve_vq_from_vl(vl).  The
++ * result is valid if and only if sve_vl_valid(vl) is true.  This is
++ * guaranteed for a struct sve_context written by the kernel.
++ *
++ *
++ * Additional macros describe the contents and layout of the payload.
++ * For each, SVE_SIG_x_OFFSET(args) is the start offset relative to
++ * the start of struct sve_context, and SVE_SIG_x_SIZE(args) is the
++ * size in bytes:
++ *
++ *	x	type				description
++ *	-	----				-----------
++ *	REGS					the entire SVE context
++ *
++ *	ZREGS	__uint128_t[SVE_NUM_ZREGS][vq]	all Z-registers
++ *	ZREG	__uint128_t[vq]			individual Z-register Zn
++ *
++ *	PREGS	uint16_t[SVE_NUM_PREGS][vq]	all P-registers
++ *	PREG	uint16_t[vq]			individual P-register Pn
++ *
++ *	FFR	uint16_t[vq]			first-fault status register
++ *
++ * Additional data might be appended in the future.
++ */
 +
-+	if (!sve_vl_valid(vl))
-+		return -EINVAL;
++#define SVE_SIG_ZREG_SIZE(vq)	((__u32)(vq) * SVE_VQ_BYTES)
++#define SVE_SIG_PREG_SIZE(vq)	((__u32)(vq) * (SVE_VQ_BYTES / 8))
++#define SVE_SIG_FFR_SIZE(vq)	SVE_SIG_PREG_SIZE(vq)
 +
-+	/*
-+	 * Clamp to the maximum vector length that VL-agnostic SVE code can
-+	 * work with.  A flag may be assigned in the future to allow setting
-+	 * of larger vector lengths without confusing older software.
-+	 */
-+	if (vl > SVE_VL_ARCH_MAX)
-+		vl = SVE_VL_ARCH_MAX;
++#define SVE_SIG_REGS_OFFSET					\
++	((sizeof(struct sve_context) + (SVE_VQ_BYTES - 1))	\
++		/ SVE_VQ_BYTES * SVE_VQ_BYTES)
 +
-+	vl = find_supported_vector_length(vl);
++#define SVE_SIG_ZREGS_OFFSET	SVE_SIG_REGS_OFFSET
++#define SVE_SIG_ZREG_OFFSET(vq, n) \
++	(SVE_SIG_ZREGS_OFFSET + SVE_SIG_ZREG_SIZE(vq) * (n))
++#define SVE_SIG_ZREGS_SIZE(vq) \
++	(SVE_SIG_ZREG_OFFSET(vq, SVE_NUM_ZREGS) - SVE_SIG_ZREGS_OFFSET)
 +
-+	if (flags & (PR_SVE_VL_INHERIT |
-+		     PR_SVE_SET_VL_ONEXEC))
-+		task->thread.sve_vl_onexec = vl;
-+	else
-+		/* Reset VL to system default on next exec: */
-+		task->thread.sve_vl_onexec = 0;
++#define SVE_SIG_PREGS_OFFSET(vq) \
++	(SVE_SIG_ZREGS_OFFSET + SVE_SIG_ZREGS_SIZE(vq))
++#define SVE_SIG_PREG_OFFSET(vq, n) \
++	(SVE_SIG_PREGS_OFFSET(vq) + SVE_SIG_PREG_SIZE(vq) * (n))
++#define SVE_SIG_PREGS_SIZE(vq) \
++	(SVE_SIG_PREG_OFFSET(vq, SVE_NUM_PREGS) - SVE_SIG_PREGS_OFFSET(vq))
 +
-+	/* Only actually set the VL if not deferred: */
-+	if (flags & PR_SVE_SET_VL_ONEXEC)
-+		goto out;
++#define SVE_SIG_FFR_OFFSET(vq) \
++	(SVE_SIG_PREGS_OFFSET(vq) + SVE_SIG_PREGS_SIZE(vq))
 +
-+	if (vl == task->thread.sve_vl)
-+		goto out;
++#define SVE_SIG_REGS_SIZE(vq) \
++	(SVE_SIG_FFR_OFFSET(vq) + SVE_SIG_FFR_SIZE(vq) - SVE_SIG_REGS_OFFSET)
 +
-+	/*
-+	 * To ensure the FPSIMD bits of the SVE vector registers are preserved,
-+	 * write any live register state back to task_struct, and convert to a
-+	 * non-SVE thread.
-+	 */
-+	if (task == current) {
-+		local_bh_disable();
++#define SVE_SIG_CONTEXT_SIZE(vq) (SVE_SIG_REGS_OFFSET + SVE_SIG_REGS_SIZE(vq))
 +
-+		task_fpsimd_save();
-+		set_thread_flag(TIF_FOREIGN_FPSTATE);
-+	}
 +
-+	fpsimd_flush_task_state(task);
-+	if (test_and_clear_tsk_thread_flag(task, TIF_SVE))
-+		sve_to_fpsimd(task);
-+
-+	if (task == current)
-+		local_bh_enable();
-+
-+	/*
-+	 * Force reallocation of task SVE state to the correct size
-+	 * on next use:
-+	 */
-+	sve_free(task);
-+
-+	task->thread.sve_vl = vl;
-+
-+out:
-+	if (flags & PR_SVE_VL_INHERIT)
-+		set_tsk_thread_flag(task, TIF_SVE_VL_INHERIT);
-+	else
-+		clear_tsk_thread_flag(task, TIF_SVE_VL_INHERIT);
-+
-+	return 0;
-+}
-+
- void fpsimd_release_thread(struct task_struct *dead_task)
- {
- 	sve_free(dead_task);
-@@ -487,7 +618,7 @@ void fpsimd_thread_switch(struct task_struct *next)
- 
- void fpsimd_flush_thread(void)
- {
--	int vl;
-+	int vl, supported_vl;
- 
- 	if (!system_supports_fpsimd())
- 		return;
-@@ -515,6 +646,10 @@ void fpsimd_flush_thread(void)
- 		if (WARN_ON(!sve_vl_valid(vl)))
- 			vl = SVE_VL_MIN;
- 
-+		supported_vl = find_supported_vector_length(vl);
-+		if (WARN_ON(supported_vl != vl))
-+			vl = supported_vl;
-+
- 		current->thread.sve_vl = vl;
- 
- 		/*
-diff --git a/include/uapi/linux/prctl.h b/include/uapi/linux/prctl.h
-index a8d0759..1b64901 100644
---- a/include/uapi/linux/prctl.h
-+++ b/include/uapi/linux/prctl.h
-@@ -197,4 +197,9 @@ struct prctl_mm_map {
- # define PR_CAP_AMBIENT_LOWER		3
- # define PR_CAP_AMBIENT_CLEAR_ALL	4
- 
-+/* arm64 Scalable Vector Extension controls */
-+# define PR_SVE_SET_VL_ONEXEC		(1 << 18) /* defer effect until exec */
-+# define PR_SVE_VL_LEN_MASK		0xffff
-+# define PR_SVE_VL_INHERIT		(1 << 17) /* inherit across exec */
-+
- #endif /* _LINUX_PRCTL_H */
+ #endif /* _UAPI__ASM_SIGCONTEXT_H */
 -- 
 2.1.4
