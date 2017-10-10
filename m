@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:48962 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:49024 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932492AbdJJSjU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 10 Oct 2017 14:39:20 -0400
+        id S932518AbdJJSj0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 10 Oct 2017 14:39:26 -0400
 From: Dave Martin <Dave.Martin@arm.com>
-Subject: [PATCH v3 12/28] arm64/sve: Support vector length resetting for new processes
-Date: Tue, 10 Oct 2017 19:38:29 +0100
-Message-ID: <1507660725-7986-13-git-send-email-Dave.Martin@arm.com>
+Subject: [PATCH v3 15/28] arm64: cpufeature: Move sys_caps_initialised declarations
+Date: Tue, 10 Oct 2017 19:38:32 +0100
+Message-ID: <1507660725-7986-16-git-send-email-Dave.Martin@arm.com>
 In-Reply-To: <1507660725-7986-1-git-send-email-Dave.Martin@arm.com>
 References: <1507660725-7986-1-git-send-email-Dave.Martin@arm.com>
 MIME-Version: 1.0
@@ -16,88 +16,74 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org
 Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, =?UTF-8?q?Alex=20Benn=C3=A9e?= <alex.bennee@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, kvmarm@lists.cs.columbia.edu, libc-alpha@sourceware.org, linux-arch@vger.kernel.org
-Message-ID: <20171010183829.xV8Y9HnHekTOaHiHZF5KzNV8qxxU5tWQKb_iCi3uTVk@z>
+Message-ID: <20171010183832.FF7HuQfH9f3WolAb9YXZS-n2Cpytn2xO2IgfPgpLvHo@z>
 
-It's desirable to be able to reset the vector length to some sane
-default for new processes, since the new binary and its libraries
-processes may or may not be SVE-aware.
+update_cpu_features() currently cannot tell whether it is being
+called during early or late secondary boot.  This doesn't
+desperately matter for anything it currently does.
 
-This patch tracks the desired post-exec vector length (if any) in a
-new thread member sve_vl_onexec, and adds a new thread flag
-TIF_SVE_VL_INHERIT to control whether to inherit or reset the
-vector length.  Currently these are inactive.  Subsequent patches
-will provide the capability to configure them.
+However, SVE will need to know here whether the set of available
+vector lengths is fixed of still to be determined when booting a
+CPU so that it can be updated appropriately.
+
+This patch simply moves the sys_caps_initialised stuff to the top
+of the file so that it can be more widely.  There doesn't seem to
+be a more obvious place to put it.
 
 Signed-off-by: Dave Martin <Dave.Martin@arm.com>
 Reviewed-by: Alex Bennée <alex.bennee@linaro.org>
+Reviewed-by: Suzuki K Poulose <suzuki.poulose@arm.com>
 ---
- arch/arm64/include/asm/processor.h   |  1 +
- arch/arm64/include/asm/thread_info.h |  1 +
- arch/arm64/kernel/fpsimd.c           | 16 ++++++++++++----
- 3 files changed, 14 insertions(+), 4 deletions(-)
+ arch/arm64/kernel/cpufeature.c | 30 +++++++++++++++---------------
+ 1 file changed, 15 insertions(+), 15 deletions(-)
 
-diff --git a/arch/arm64/include/asm/processor.h b/arch/arm64/include/asm/processor.h
-index 4831d28..3faceac 100644
---- a/arch/arm64/include/asm/processor.h
-+++ b/arch/arm64/include/asm/processor.h
-@@ -87,6 +87,7 @@ struct thread_struct {
- 	struct fpsimd_state	fpsimd_state;
- 	void			*sve_state;	/* SVE registers, if any */
- 	unsigned int		sve_vl;		/* SVE vector length */
-+	unsigned int		sve_vl_onexec;	/* SVE vl after next exec */
- 	unsigned long		fault_address;	/* fault info */
- 	unsigned long		fault_code;	/* ESR_EL1 value */
- 	struct debug_info	debug;		/* debugging */
-diff --git a/arch/arm64/include/asm/thread_info.h b/arch/arm64/include/asm/thread_info.h
-index 04dbf50..c6400fc 100644
---- a/arch/arm64/include/asm/thread_info.h
-+++ b/arch/arm64/include/asm/thread_info.h
-@@ -93,6 +93,7 @@ void arch_setup_new_exec(void);
- #define TIF_SINGLESTEP		21
- #define TIF_32BIT		22	/* 32bit process */
- #define TIF_SVE			23	/* Scalable Vector Extension in use */
-+#define TIF_SVE_VL_INHERIT	24	/* Inherit sve_vl_onexec across exec */
+diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
+index 21e2c95..92a9502 100644
+--- a/arch/arm64/kernel/cpufeature.c
++++ b/arch/arm64/kernel/cpufeature.c
+@@ -51,6 +51,21 @@ unsigned int compat_elf_hwcap2 __read_mostly;
+ DECLARE_BITMAP(cpu_hwcaps, ARM64_NCAPS);
+ EXPORT_SYMBOL(cpu_hwcaps);
  
- #define _TIF_SIGPENDING		(1 << TIF_SIGPENDING)
- #define _TIF_NEED_RESCHED	(1 << TIF_NEED_RESCHED)
-diff --git a/arch/arm64/kernel/fpsimd.c b/arch/arm64/kernel/fpsimd.c
-index e60d451..aabeaee 100644
---- a/arch/arm64/kernel/fpsimd.c
-+++ b/arch/arm64/kernel/fpsimd.c
-@@ -109,6 +109,9 @@
-  */
- static DEFINE_PER_CPU(struct fpsimd_state *, fpsimd_last_state);
- 
-+/* Default VL for tasks that don't set it explicitly: */
-+static int sve_default_vl = SVE_VL_MIN;
++/*
++ * Flag to indicate if we have computed the system wide
++ * capabilities based on the boot time active CPUs. This
++ * will be used to determine if a new booting CPU should
++ * go through the verification process to make sure that it
++ * supports the system capabilities, without using a hotplug
++ * notifier.
++ */
++static bool sys_caps_initialised;
 +
- static void sve_free(struct task_struct *task)
++static inline void set_sys_caps_initialised(void)
++{
++	sys_caps_initialised = true;
++}
++
+ static int dump_cpu_hwcaps(struct notifier_block *self, unsigned long v, void *p)
  {
- 	kfree(task->thread.sve_state);
-@@ -480,15 +483,20 @@ void fpsimd_flush_thread(void)
- 		 * If a bug causes this to go wrong, we make some noise and
- 		 * try to fudge thread.sve_vl to a safe value here.
- 		 */
--		vl = current->thread.sve_vl;
+ 	/* file-wide pr_fmt adds "CPU features: " prefix */
+@@ -1041,21 +1056,6 @@ void __init enable_cpu_capabilities(const struct arm64_cpu_capabilities *caps)
+ }
+ 
+ /*
+- * Flag to indicate if we have computed the system wide
+- * capabilities based on the boot time active CPUs. This
+- * will be used to determine if a new booting CPU should
+- * go through the verification process to make sure that it
+- * supports the system capabilities, without using a hotplug
+- * notifier.
+- */
+-static bool sys_caps_initialised;
 -
--		if (vl == 0)
--			vl = SVE_VL_MIN;
-+		vl = current->thread.sve_vl_onexec ?
-+			current->thread.sve_vl_onexec : sve_default_vl;
- 
- 		if (WARN_ON(!sve_vl_valid(vl)))
- 			vl = SVE_VL_MIN;
- 
- 		current->thread.sve_vl = vl;
-+
-+		/*
-+		 * If the task is not set to inherit, ensure that the vector
-+		 * length will be reset by a subsequent exec:
-+		 */
-+		if (!test_thread_flag(TIF_SVE_VL_INHERIT))
-+			current->thread.sve_vl_onexec = 0;
- 	}
- 
- 	set_thread_flag(TIF_FOREIGN_FPSTATE);
+-static inline void set_sys_caps_initialised(void)
+-{
+-	sys_caps_initialised = true;
+-}
+-
+-/*
+  * Check for CPU features that are used in early boot
+  * based on the Boot CPU value.
+  */
 -- 
 2.1.4
