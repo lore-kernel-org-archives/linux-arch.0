@@ -1,33 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:52056 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1755221AbdJJJgz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 10 Oct 2017 05:36:55 -0400
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <20171010083948.5s6bmggp3cyqtkrf@hirez.programming.kicks-ass.net>
-References: <20171010083948.5s6bmggp3cyqtkrf@hirez.programming.kicks-ass.net> <20171010001951.GA6476@linux.vnet.ibm.com> <1507594969-8347-12-git-send-email-paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH RFC tip/core/rcu 12/15] lib/assoc_array: Remove smp_read_barrier_depends()
+Received: from mail-qt0-f193.google.com ([209.85.216.193]:38674 "EHLO
+        mail-qt0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1755888AbdJJOIQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 10 Oct 2017 10:08:16 -0400
+Date: Tue, 10 Oct 2017 07:08:13 -0700
+From: Tejun Heo <tj@kernel.org>
+Subject: Re: [PATCH RFC tip/core/rcu 05/15] percpu: READ_ONCE() now implies
+ smp_read_barrier_depends()
+Message-ID: <20171010140813.GK3301751@devbig577.frc2.facebook.com>
+References: <20171010001951.GA6476@linux.vnet.ibm.com>
+ <1507594969-8347-5-git-send-email-paulmck@linux.vnet.ibm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-ID: <8103.1507628212.1@warthog.procyon.org.uk>
-Date: Tue, 10 Oct 2017 10:36:52 +0100
-Message-ID: <8104.1507628212@warthog.procyon.org.uk>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1507594969-8347-5-git-send-email-paulmck@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: dhowells@redhat.com, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, mingo@kernel.org, torvalds@linux-foundation.org, mark.rutland@arm.com, linux-arch@vger.kernel.org, will.deacon@arm.com, Jonathan Corbet <corbet@lwn.net>, Alexander Kuleshov <kuleshovmail@gmail.com>
-Message-ID: <20171010093652.D6zfhNjk9fzlHK8EnDKu0UccXda0s2R6guk5pKgapGc@z>
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: linux-kernel@vger.kernel.org, mingo@kernel.org, torvalds@linux-foundation.org, mark.rutland@arm.com, dhowells@redhat.com, linux-arch@vger.kernel.org, peterz@infradead.org, will.deacon@arm.com, Christoph Lameter <cl@linux.com>
+Message-ID: <20171010140813.3RcxTAI9-QYXAAwBIFKTGgEmi9xfwAkK4jos7BaQei0@z>
 
-Peter Zijlstra <peterz@infradead.org> wrote:
-
-> > Now that smp_read_barrier_depends() is implied by READ_ONCE(), adding
-> > READ_ONCE() to assoc_array_ptr_to_leaf() and __assoc_array_ptr_to_meta()
-> > allows the several smp_read_barrier_depends() calls to be removed from
-> > lib/assoc_array.c.  This commit makes this change.
+On Mon, Oct 09, 2017 at 05:22:39PM -0700, Paul E. McKenney wrote:
+> Because READ_ONCE() now implies smp_read_barrier_depends(), this commit
+> removes the now-redundant smp_read_barrier_depends() following the
+> READ_ONCE() in __ref_is_percpu().
 > 
-> So arguably this code was broken for not already having READ_ONCE().
+> Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+> Cc: Tejun Heo <tj@kernel.org>
+> Cc: Christoph Lameter <cl@linux.com>
 
-No, the code is right; this is the wrong place to use READ_ONCE().  The
-callers already call READ_ONCE() or ACCESS_ONCE().
+Acked-by: Tejun Heo <tj@kernel.org>
 
-David
+Please feel free to route with other patches.  If this should be
+routed through the percpu tree, please let me know.
+
+Thanks.
+
+-- 
+tejun
