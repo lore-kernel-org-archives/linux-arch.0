@@ -1,70 +1,36 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH RFC tip/core/rcu 12/15] lib/assoc_array: Remove
- smp_read_barrier_depends()
-Date: Wed, 11 Oct 2017 15:18:17 +0100
-Message-ID: <20171011141817.GG11106@arm.com>
-References: <20171010155042.GD3521@linux.vnet.ibm.com>
- <1507594969-8347-12-git-send-email-paulmck@linux.vnet.ibm.com>
- <20171010001951.GA6476@linux.vnet.ibm.com>
- <8079.1507628146@warthog.procyon.org.uk>
- <26455.1507724399@warthog.procyon.org.uk>
- <20171011122217.GD11106@arm.com>
- <20171011125451.GW3521@linux.vnet.ibm.com>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v3 05/28] arm64: fpsimd: Simplify uses of {set,
+ clear}_ti_thread_flag()
+Date: Wed, 11 Oct 2017 15:19:05 +0100
+Message-ID: <20171011141904.n7mi6rwmmprvcg27@armageddon.cambridge.arm.com>
+References: <1507660725-7986-1-git-send-email-Dave.Martin@arm.com>
+ <1507660725-7986-6-git-send-email-Dave.Martin@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:33522 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751554AbdJKOSO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 11 Oct 2017 10:18:14 -0400
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:33570 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751459AbdJKOTK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 11 Oct 2017 10:19:10 -0400
 Content-Disposition: inline
-In-Reply-To: <20171011125451.GW3521@linux.vnet.ibm.com>
+In-Reply-To: <1507660725-7986-6-git-send-email-Dave.Martin@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: David Howells <dhowells@redhat.com>, linux-kernel@vger.kernel.org, mingo@kernel.org, torvalds@linux-foundation.org, mark.rutland@arm.com, linux-arch@vger.kernel.org, peterz@infradead.org, Jonathan Corbet <corbet@lwn.net>, Alexander Kuleshov <kuleshovmail@gmail.com>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu
 
-On Wed, Oct 11, 2017 at 05:54:51AM -0700, Paul E. McKenney wrote:
-> On Wed, Oct 11, 2017 at 01:22:17PM +0100, Will Deacon wrote:
-> > On Wed, Oct 11, 2017 at 01:19:59PM +0100, David Howells wrote:
-> > > Paul E. McKenney <paulmck@linux.vnet.ibm.com> wrote:
-> > > 
-> > > > -	node = result.terminal_node.node;
-> > > > -	smp_read_barrier_depends();
-> > > > +	node = READ_ONCE(result.terminal_node.node); /* Address dependency. */
-> > > 
-> > > The main problem I have with this method of annotation is that it's not
-> > > obvious there's a barrier there or which side the barrier is.
-> > > 
-> > > I think one of the trickiest issues is that a barrier is typically between two
-> > > things and we're not making it clear what those two things actually are.
-> > > 
-> > > Also, I would say that the most natural interpretation of READ_ONCE() is that
-> > > the implicit barrier comes after the read, e.g.:
-> > > 
-> > > 	f = READ_ONCE(stuff->foo);
-> > > 	/* Implied barrier */
-> > > 	look_at(f->a);
-> > > 	look_at(f->b);
-> > > 
-> > > I.e. READ_ONCE() prevents stuff->foo from being reread whilst you access f and
-> > > orders LOAD(stuff->foo) before LOAD(f->a) and LOAD(f->b).
-> > 
-> > FWIW, that's exactly what my patches do, this fixup looks a bit weird
-> > because it removes a prior barrier which suggests that either (a) it's in
-> > the wrong place to start with, or (b) we're annotating the wrong load.
+On Tue, Oct 10, 2017 at 07:38:22PM +0100, Dave P Martin wrote:
+> The existing FPSIMD context switch code contains a couple of
+> instances of {set,clear}_ti_thread(task_thread_info(task)).  Since
+> there are thread flag manipulators that operate directly on
+> task_struct, this verbosity isn't strictly needed.
 > 
-> You lost me on this one.  Here is the side-by-side change, minus the
-> comment:
+> For consistency, this patch simplifies the affected calls.  This
+> should have no impact on behaviour.
 > 
-> node = result.terminal_node.node;		 node = READ_ONCE(result.terminal_node.node);
-> smp_read_barrier_depends();
-> 
-> The barrier was after the load that got annotated.
+> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> Reviewed-by: Alex Bennée <alex.bennee@linaro.org>
+> Acked-by: Ard Biesheuvel <ard.biesheuvel@linaro.org>
 
-Yes, sorry, I completely lost my ability to read diff. Looking again, I
-don't actually know what's being ordered by the smp_read_barrier_depends()
-in the snippet above, given that assigning "node" is a load from the stack
-afaict.
-
-Will
+Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
