@@ -1,74 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:34186 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752213AbdJKOps (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 11 Oct 2017 10:45:48 -0400
-Date: Wed, 11 Oct 2017 15:45:43 +0100
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH v3 01/28] regset: Add support for dynamically sized
- regsets
-Message-ID: <20171011144543.GE19485@e103592.cambridge.arm.com>
-References: <1507660725-7986-1-git-send-email-Dave.Martin@arm.com>
- <1507660725-7986-2-git-send-email-Dave.Martin@arm.com>
- <20171011141410.tu53u2ugvs6n7uem@armageddon.cambridge.arm.com>
+Received: from mx1.redhat.com ([209.132.183.28]:33838 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751918AbdJKPR3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 11 Oct 2017 11:17:29 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <20171011122217.GD11106@arm.com>
+References: <20171011122217.GD11106@arm.com> <20171010155042.GD3521@linux.vnet.ibm.com> <1507594969-8347-12-git-send-email-paulmck@linux.vnet.ibm.com> <20171010001951.GA6476@linux.vnet.ibm.com> <8079.1507628146@warthog.procyon.org.uk> <26455.1507724399@warthog.procyon.org.uk>
+Subject: Re: [PATCH RFC tip/core/rcu 12/15] lib/assoc_array: Remove smp_read_barrier_depends()
 MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <20171011141410.tu53u2ugvs6n7uem@armageddon.cambridge.arm.com>
+Content-Type: text/plain; charset="us-ascii"
+Content-ID: <6308.1507735045.1@warthog.procyon.org.uk>
+Date: Wed, 11 Oct 2017 16:17:25 +0100
+Message-ID: <6309.1507735045@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arch@vger.kernel.org, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, Will Deacon <will.deacon@arm.com>, viro@zeniv.linux.org.uk, linux-fsdevel@vger.kernel.org, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
-Message-ID: <20171011144543.2pOA-pBQht1XhyN3b6m7iaaX4-wLorPaNEqIebfaukg@z>
+To: Will Deacon <will.deacon@arm.com>
+Cc: dhowells@redhat.com, paulmck@linux.vnet.ibm.com, linux-kernel@vger.kernel.org, mingo@kernel.org, torvalds@linux-foundation.org, mark.rutland@arm.com, linux-arch@vger.kernel.org, peterz@infradead.org, Jonathan Corbet <corbet@lwn.net>, Alexander Kuleshov <kuleshovmail@gmail.com>
+Message-ID: <20171011151725.z_DMUuTUeaerKRrXxhZzf0LgNHhm86KXPRC03kPC_jg@z>
 
-On Wed, Oct 11, 2017 at 03:14:10PM +0100, Catalin Marinas wrote:
-> On Tue, Oct 10, 2017 at 07:38:18PM +0100, Dave P Martin wrote:
-> > Currently the regset API doesn't allow for the possibility that
-> > regsets (or at least, the amount of meaningful data in a regset)
-> > may change in size.
-> > 
-> > In particular, this results in useless padding being added to
-> > coredumps in a regset's current size is smaller than its
-> > theoretical maximum size.
-> > 
-> > This patch adds a get_size() function to struct user_regset.
-> > Individual regset implementations can implement this function to
-> > return the current size of the regset data.  A regset_size()
-> > function is added to provide callers with an abstract interface for
-> > determining the size of a regset without needing to know whether
-> > the regset is dynamically sized or not.
-> > 
-> > The only affected user of this interface is the ELF coredump code:
-> > This patch ports ELF coredump to dump regsets with their actual
-> > size in the coredump.  This has no effect except for new regsets
-> > that are dynamically sized and provide a get_size() implementation.
-> > 
-> > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> > Reviewed-by: Alex Bennée <alex.bennee@linaro.org>
-> > ---
-> >  fs/binfmt_elf.c        |  6 ++---
-> >  include/linux/regset.h | 67 ++++++++++++++++++++++++++++++++++++++++++++------
-> >  2 files changed, 63 insertions(+), 10 deletions(-)
-> 
-> The patch looks fine to me:
-> 
-> Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
-> 
-> However, you'd probably need an ack from the filesystem maintainers
-> (cc'ed; patch below for reference).
+Will Deacon <will.deacon@arm.com> wrote:
 
-Apologies for that -- I manually added Ccs to this patch in previous
-postings, and predictably lost them in the respin.
+> FWIW, that's exactly what my patches do, this fixup looks a bit weird
+> because it removes a prior barrier which suggests that either (a) it's in
+> the wrong place to start with, or (b) we're annotating the wrong load.
 
-I'll add Cc lines in the commit message, since there will be a
-further re-spin of the series to apply the Documentation changes
-requested by Szabolcs that I missed.
+There is a loop involved.  The barrier is against the read in the previous
+iteration of the loop.  IIRC, the reason I did it this way is to avoid the
+need for the barrier if there's nothing on the 'after-side' - ie. we examine
+the pointer and see that it's NULL or a leaf.  However, I'm not sure that's a
+particularly necessary optimisation.
 
-I don't currently have any pending fixes to _this_ patch, so it's still
-worth reviewing.
+So if READ_ONCE() issues a smp_read_barrier_depends() after the read, then
+I've no problem with the removal of these explicit barriers.
 
-Cheers
----Dave
+I will, however, quibble with the appropriateness of the name READ_ONCE()...
+I still think it's not sufficiently obvious that this is a barrier and the
+barrier is after.  Maybe READ_AND_BARRIER()?
 
-[...]
+Also, does WRITE_ONCE() imply a preceding barrier?
+
+David
