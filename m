@@ -1,48 +1,70 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v3 04/28] arm64: Port deprecated instruction emulation to
- new sysctl interface
-Date: Wed, 11 Oct 2017 15:17:57 +0100
-Message-ID: <20171011141757.idn45rmsvvwot7by@armageddon.cambridge.arm.com>
-References: <1507660725-7986-1-git-send-email-Dave.Martin@arm.com>
- <1507660725-7986-5-git-send-email-Dave.Martin@arm.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH RFC tip/core/rcu 12/15] lib/assoc_array: Remove
+ smp_read_barrier_depends()
+Date: Wed, 11 Oct 2017 15:18:17 +0100
+Message-ID: <20171011141817.GG11106@arm.com>
+References: <20171010155042.GD3521@linux.vnet.ibm.com>
+ <1507594969-8347-12-git-send-email-paulmck@linux.vnet.ibm.com>
+ <20171010001951.GA6476@linux.vnet.ibm.com>
+ <8079.1507628146@warthog.procyon.org.uk>
+ <26455.1507724399@warthog.procyon.org.uk>
+ <20171011122217.GD11106@arm.com>
+ <20171011125451.GW3521@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:33500 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:33522 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750883AbdJKOSC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 11 Oct 2017 10:18:02 -0400
+        id S1751554AbdJKOSO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 11 Oct 2017 10:18:14 -0400
 Content-Disposition: inline
-In-Reply-To: <1507660725-7986-5-git-send-email-Dave.Martin@arm.com>
+In-Reply-To: <20171011125451.GW3521@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: David Howells <dhowells@redhat.com>, linux-kernel@vger.kernel.org, mingo@kernel.org, torvalds@linux-foundation.org, mark.rutland@arm.com, linux-arch@vger.kernel.org, peterz@infradead.org, Jonathan Corbet <corbet@lwn.net>, Alexander Kuleshov <kuleshovmail@gmail.com>
 
-On Tue, Oct 10, 2017 at 07:38:21PM +0100, Dave P Martin wrote:
-> Currently, armv8_deprected.c takes charge of the "abi" sysctl
-> directory, which makes life difficult for other code that wants to
-> register sysctls in the same directory.
+On Wed, Oct 11, 2017 at 05:54:51AM -0700, Paul E. McKenney wrote:
+> On Wed, Oct 11, 2017 at 01:22:17PM +0100, Will Deacon wrote:
+> > On Wed, Oct 11, 2017 at 01:19:59PM +0100, David Howells wrote:
+> > > Paul E. McKenney <paulmck@linux.vnet.ibm.com> wrote:
+> > > 
+> > > > -	node = result.terminal_node.node;
+> > > > -	smp_read_barrier_depends();
+> > > > +	node = READ_ONCE(result.terminal_node.node); /* Address dependency. */
+> > > 
+> > > The main problem I have with this method of annotation is that it's not
+> > > obvious there's a barrier there or which side the barrier is.
+> > > 
+> > > I think one of the trickiest issues is that a barrier is typically between two
+> > > things and we're not making it clear what those two things actually are.
+> > > 
+> > > Also, I would say that the most natural interpretation of READ_ONCE() is that
+> > > the implicit barrier comes after the read, e.g.:
+> > > 
+> > > 	f = READ_ONCE(stuff->foo);
+> > > 	/* Implied barrier */
+> > > 	look_at(f->a);
+> > > 	look_at(f->b);
+> > > 
+> > > I.e. READ_ONCE() prevents stuff->foo from being reread whilst you access f and
+> > > orders LOAD(stuff->foo) before LOAD(f->a) and LOAD(f->b).
+> > 
+> > FWIW, that's exactly what my patches do, this fixup looks a bit weird
+> > because it removes a prior barrier which suggests that either (a) it's in
+> > the wrong place to start with, or (b) we're annotating the wrong load.
 > 
-> There is a "new" [1] sysctl registration interface that removes the
-> need to define ctl_tables for parent directories explicitly, which
-> is ideal here.
+> You lost me on this one.  Here is the side-by-side change, minus the
+> comment:
 > 
-> This patch ports register_insn_emulation_sysctl() over to the
-> register_sysctl() interface and removes the redundant ctl_table for
-> "abi".
+> node = result.terminal_node.node;		 node = READ_ONCE(result.terminal_node.node);
+> smp_read_barrier_depends();
 > 
-> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> Reviewed-by: Alex Bennée <alex.bennee@linaro.org>
-> 
-> [1] fea478d4101a (sysctl: Add register_sysctl for normal sysctl
-> users)
-> The commit message notes an intent to port users of the
-> pre-existing interfaces over to register_sysctl(), though the
-> number of users of the new interface currently appears negligible.
-> ---
->  arch/arm64/kernel/armv8_deprecated.c | 15 +++------------
->  1 file changed, 3 insertions(+), 12 deletions(-)
+> The barrier was after the load that got annotated.
 
-Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+Yes, sorry, I completely lost my ability to read diff. Looking again, I
+don't actually know what's being ordered by the smp_read_barrier_depends()
+in the snippet above, given that assigning "node" is a load from the stack
+afaict.
+
+Will
