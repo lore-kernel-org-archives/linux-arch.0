@@ -1,20 +1,39 @@
-From: Szabolcs Nagy <szabolcs.nagy-5wv7dgnIgG8@public.gmane.org>
-Subject: Re: [PATCH v3 26/28] arm64/sve: Add documentation
-Date: Wed, 11 Oct 2017 12:30:00 +0100
-Message-ID: <59DE00B8.5000101@arm.com>
-References: <1507660725-7986-1-git-send-email-Dave.Martin@arm.com> <1507660725-7986-27-git-send-email-Dave.Martin@arm.com> <59DDE958.4080605@arm.com> <20171011110811.GB19485@e103592.cambridge.arm.com>
+From: David Howells <dhowells@redhat.com>
+Subject: Re: [PATCH RFC tip/core/rcu 12/15] lib/assoc_array: Remove smp_read_barrier_depends()
+Date: Wed, 11 Oct 2017 13:19:59 +0100
+Message-ID: <26455.1507724399@warthog.procyon.org.uk>
+References: <20171010155042.GD3521@linux.vnet.ibm.com> <1507594969-8347-12-git-send-email-paulmck@linux.vnet.ibm.com> <20171010001951.GA6476@linux.vnet.ibm.com> <8079.1507628146@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <20171011110811.GB19485-M5GwZQ6tE7x5pKCnmE3YQBJ8xKzm50AiAL8bYrjMMd8@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Dave Martin <Dave.Martin-5wv7dgnIgG8@public.gmane.org>
-Cc: nd-5wv7dgnIgG8@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, Catalin Marinas <catalin.marinas-5wv7dgnIgG8@public.gmane.org>, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, Ard Biesheuvel <ard.biesheuvel-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, =?windows-1252?Q?Alex_Benn=E9e?= <alex.bennee-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Richard Sandiford <richard.sandiford-5wv7dgnIgG8@public.gmane.org>, Okamoto Takayuki <tokamoto-+CUm20s59erQFUHtdCDX3A@public.gmane.org>, kvmarm-FPEHb7Xf0XXUo1n7N8X6UoWGPAHP3yOg@public.gmane.org, libc-alpha-9JcytcrH/bA+uJoB2kUjGw@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Michael Kerrisk <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>, Alan Hayward <alan.hayward-5wv7dgnIgG8@public.gmane.org>
+Content-Type: text/plain; charset="us-ascii"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20171010155042.GD3521@linux.vnet.ibm.com>
+Content-ID: <26454.1507724399.1@warthog.procyon.org.uk>
+Sender: linux-kernel-owner@vger.kernel.org
+To: paulmck@linux.vnet.ibm.com
+Cc: dhowells@redhat.com, linux-kernel@vger.kernel.org, mingo@kernel.org, torvalds@linux-foundation.org, mark.rutland@arm.com, linux-arch@vger.kernel.org, peterz@infradead.org, will.deacon@arm.com, Jonathan Corbet <corbet@lwn.net>, Alexander Kuleshov <kuleshovmail@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 11/10/17 12:08, Dave Martin wrote:
-> How does this look:
-> 
+Paul E. McKenney <paulmck@linux.vnet.ibm.com> wrote:
 
-looks reasonable.
+> -	node = result.terminal_node.node;
+> -	smp_read_barrier_depends();
+> +	node = READ_ONCE(result.terminal_node.node); /* Address dependency. */
+
+The main problem I have with this method of annotation is that it's not
+obvious there's a barrier there or which side the barrier is.
+
+I think one of the trickiest issues is that a barrier is typically between two
+things and we're not making it clear what those two things actually are.
+
+Also, I would say that the most natural interpretation of READ_ONCE() is that
+the implicit barrier comes after the read, e.g.:
+
+	f = READ_ONCE(stuff->foo);
+	/* Implied barrier */
+	look_at(f->a);
+	look_at(f->b);
+
+I.e. READ_ONCE() prevents stuff->foo from being reread whilst you access f and
+orders LOAD(stuff->foo) before LOAD(f->a) and LOAD(f->b).
+
+David
