@@ -1,98 +1,186 @@
-From: Dmitry Vyukov <dvyukov@google.com>
-Subject: Re: [PATCH RFC tip/core/rcu 12/15] lib/assoc_array: Remove smp_read_barrier_depends()
-Date: Wed, 11 Oct 2017 21:59:41 +0200
-Message-ID: <CACT4Y+YLiCu=+ofR32+eFW+suPGKnnF5KfMo+ywfitZccS+JTw@mail.gmail.com>
-References: <8079.1507628146@warthog.procyon.org.uk> <26455.1507724399@warthog.procyon.org.uk>
- <6309.1507735045@warthog.procyon.org.uk> <20171011155948.GE3521@linux.vnet.ibm.com>
- <20171011161220.zqkdhynxerrcmvdd@hirez.programming.kicks-ass.net>
- <20171011162412.o6lmjiag7spwabge@hirez.programming.kicks-ass.net>
- <20171011164748.GK3521@linux.vnet.ibm.com> <20171011165405.xd4xfa2x3dcz4e57@hirez.programming.kicks-ass.net>
- <20171011170631.GN3521@linux.vnet.ibm.com> <20171011171137.bb2evetsnk2qtdhc@hirez.programming.kicks-ass.net>
- <20171011173423.GO3521@linux.vnet.ibm.com> <CACT4Y+aMzyBeRpXR2DGY=AASxYUGT4N+-MWW4ykLFxCpY0pFAg@mail.gmail.com>
- <CA+55aFz=sfrQRHyoiy9L2SmRO5d3ZgoZpHh=6u2aHQsvbN1OHw@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f169.google.com ([209.85.223.169]:43729 "EHLO
-        mail-io0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752534AbdJKUAD (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 11 Oct 2017 16:00:03 -0400
-Received: by mail-io0-f169.google.com with SMTP id f202so3085521ioe.0
-        for <linux-arch@vger.kernel.org>; Wed, 11 Oct 2017 13:00:03 -0700 (PDT)
-In-Reply-To: <CA+55aFz=sfrQRHyoiy9L2SmRO5d3ZgoZpHh=6u2aHQsvbN1OHw@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Mark Rutland <mark.rutland@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, Alexander Kuleshov <kuleshovmail@gmail.com>
+From: Thomas Garnier <thgarnie@google.com>
+Subject: [PATCH v1 00/27] x86: PIE support and option to extend KASLR randomization
+Date: Wed, 11 Oct 2017 13:30:00 -0700
+Message-ID: <20171011203027.11248-1-thgarnie@google.com>
+Return-path: <kernel-hardening-return-10117-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+To: Herbert Xu <herbert@gondor.apana.org.au>, "David S . Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Thomas Garnier <thgarnie@google.com>, Kees Cook <keescook@chromium.org>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Matthias Kaehlcke <mka@chromium.org>, Tom Lendacky <thomas.lendacky@amd.com>, Andy Lutomirski <luto@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Borislav Petkov <bp@suse.de>, "Rafael J . Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Pavel Machek <pavel@ucw.cz>, Juergen Gross <jgross@suse.com>, Chris Wright <chrisw@sous-sol.org>, Alok Kataria <akataria@vmware.com>, Rusty Russell <rusty@rustcorp.com.au>
+Cc: x86@kernel.org, linux-crypto@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pm@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, linux-arch@vger.kernel.org, linux-sparse@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Oct 11, 2017 at 8:56 PM, Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
-> On Wed, Oct 11, 2017 at 11:43 AM, Dmitry Vyukov <dvyukov@google.com> wrote:
->>
->> A long thread and I lost track somewhat, but, yes, from KTSAN (data
->> race detector) point of view we will need a way to understand when
->> things are ordered due to data and control dependencies
->> (i.e.effectively acquire but only wrt the dependent stuff).
->> There is a logic level and physical level, it's perfectly fine if on
->> physical level all these _DEP/_CTRL variants are no-op (the same as
->> READ_ONCE, at least on todays archs with todays compilers). But on
->> logical level they represent a well defined, meaningful thing.
->
-> No, they do not.
->
-> Do you believe in fairies and Santa Claus?
->
-> Because quite frankly, the likelihood of either of those being true is
-> _way_ higher than the likelihood of any normal human ever getting
-> those things right.
->
-> So asking a programmer to annotate whether two memory accesses have a
-> data dependency or a control dependency is completely inappropriate.
-> You won't get people understanding it to begin with, much less then
-> figure out subtle things like whether a control dependency is an
-> actual branch, or might be turned into a data dependency through
-> select, or whatever.
->
-> We've had really smart people who wrote core code that couldn't get it
-> right, and that weren't sure if a control dependency was really
-> guaranteed or not.
->
-> That is *exactly* the kinds of thing that _automation_ should handle.
-> Not some human. Figure the data/control dependencies out from the
-> code, not from some logical level.
->
-> I saw the contortions that the ISO C people tried to go through just
-> to describe control and data dependencies. It was awful.  It should
-> have never been described on that kind of level to begin with, when it
-> would have been much easier to just describe it to compiler people as
-> "this is a consume relationship". The same rules apply here. Don't
-> make it about some high-level thing and humans annontating things.
-> Make it about the actual generated code.
+Changes:
+ - patch v1:
+   - Simplify ftrace implementation.
+   - Use gcc mstack-protector-guard-reg=%gs with PIE when possible.
+ - rfc v3:
+   - Use --emit-relocs instead of -pie to reduce dynamic relocation space on
+     mapped memory. It also simplifies the relocation process.
+   - Move the start the module section next to the kernel. Remove the need for
+     -mcmodel=large on modules. Extends module space from 1 to 2G maximum.
+   - Support for XEN PVH as 32-bit relocations can be ignored with
+     --emit-relocs.
+   - Support for GOT relocations previously done automatically with -pie.
+   - Remove need for dynamic PLT in modules.
+   - Support dymamic GOT for modules.
+ - rfc v2:
+   - Add support for global stack cookie while compiler default to fs without
+     mcmodel=kernel
+   - Change patch 7 to correctly jump out of the identity mapping on kexec load
+     preserve.
 
+These patches make the changes necessary to build the kernel as Position
+Independent Executable (PIE) on x86_64. A PIE kernel can be relocated below
+the top 2G of the virtual address space. It allows to optionally extend the
+KASLR randomization range from 1G to 3G.
 
-First of all, I am not asking for a big overhaul and nothing changes
-wrt codegen (i.e. the code works the same way it used to work).
-If/when it is done, it will be guided by the race detector. It is
-similar to enabling a new compiler warning and cleaning up the code
-base incrementally. Compiler warnings don't affect code behavior, and
-one doesn't need to proactively guess where they will fire (a compiler
-warnings points you to the line what compiler does not like).
+Thanks a lot to Ard Biesheuvel & Kees Cook on their feedback on compiler
+changes, PIE support and KASLR in general. Thanks to Roland McGrath on his
+feedback for using -pie versus --emit-relocs and details on compiler code
+generation.
 
-Second, we would very much like to just analyze the code as is. And in
-fact we gone to great lengths teaching it about standalone memory
-barriers (rmb/wmb), per-cpu variables, seqlocks, rcu, etc (none of
-that we had in user-space). But this is just where we need help
-(basically the same problem you mentioned with ISO C, it's effectively
-not defineable/analyzable by compiler).
+The patches:
+ - 1-3, 5-1#, 17-18: Change in assembly code to be PIE compliant.
+ - 4: Add a new _ASM_GET_PTR macro to fetch a symbol address generically.
+ - 14: Adapt percpu design to work correctly when PIE is enabled.
+ - 15: Provide an option to default visibility to hidden except for key symbols.
+       It removes errors between compilation units.
+ - 16: Adapt relocation tool to handle PIE binary correctly.
+ - 19: Add support for global cookie.
+ - 20: Support ftrace with PIE (used on Ubuntu config).
+ - 21: Fix incorrect address marker on dump_pagetables.
+ - 22: Add option to move the module section just after the kernel.
+ - 23: Adapt module loading to support PIE with dynamic GOT.
+ - 24: Make the GOT read-only.
+ - 25: Add the CONFIG_X86_PIE option (off by default).
+ - 26: Adapt relocation tool to generate a 64-bit relocation table.
+ - 27: Add the CONFIG_RANDOMIZE_BASE_LARGE option to increase relocation range
+       from 1G to 3G (off by default).
 
-As far as I remember we added just few of READ_ONCE_CTRL (<5) to get
-the prototype running. So it's not that we are talking about
-hundreds/thousands of them. And again the tool will point to the
-places it does not like. So I am just asking for a practical tradeoff:
-few annotations in exchange for hundreds/thousands of bugs killed.
+Performance/Size impact:
 
-I did not want to revive this discussion right now, we already had it
-and decided that we need a clear story for READ_ONCE_CTRL first. Our
-plan is to revive the tool, find more real bugs and show what are the
-actual code changes required for the tool. Hope we can get to some
-compromise.
+Size of vmlinux (Default configuration):
+ File size:
+ - PIE disabled: +0.000031%
+ - PIE enabled: -3.210% (less relocations)
+ .text section:
+ - PIE disabled: +0.000644%
+ - PIE enabled: +0.837%
+
+Size of vmlinux (Ubuntu configuration):
+ File size:
+ - PIE disabled: -0.201%
+ - PIE enabled: -0.082%
+ .text section:
+ - PIE disabled: same
+ - PIE enabled: +1.319%
+
+Size of vmlinux (Default configuration + ORC):
+ File size:
+ - PIE enabled: -3.167%
+ .text section:
+ - PIE enabled: +0.814%
+
+Size of vmlinux (Ubuntu configuration + ORC):
+ File size:
+ - PIE enabled: -3.167%
+ .text section:
+ - PIE enabled: +1.26%
+
+The size increase is mainly due to not having access to the 32-bit signed
+relocation that can be used with mcmodel=kernel. A small part is due to reduced
+optimization for PIE code. This bug [1] was opened with gcc to provide a better
+code generation for kernel PIE.
+
+Hackbench (50% and 1600% on thread/process for pipe/sockets):
+ - PIE disabled: no significant change (avg +0.1% on latest test).
+ - PIE enabled: between -0.50% to +0.86% in average (default and Ubuntu config).
+
+slab_test (average of 10 runs):
+ - PIE disabled: no significant change (-2% on latest run, likely noise).
+ - PIE enabled: between -1% and +0.8% on latest runs.
+
+Kernbench (average of 10 Half and Optimal runs):
+ Elapsed Time:
+ - PIE disabled: no significant change (avg -0.239%)
+ - PIE enabled: average +0.07%
+ System Time:
+ - PIE disabled: no significant change (avg -0.277%)
+ - PIE enabled: average +0.7%
+
+[1] https://gcc.gnu.org/bugzilla/show_bug.cgi?id=82303
+
+diffstat:
+ Documentation/x86/x86_64/mm.txt              |    3 
+ arch/x86/Kconfig                             |   43 ++++++
+ arch/x86/Makefile                            |   40 +++++
+ arch/x86/boot/boot.h                         |    2 
+ arch/x86/boot/compressed/Makefile            |    5 
+ arch/x86/boot/compressed/misc.c              |   10 +
+ arch/x86/crypto/aes-x86_64-asm_64.S          |   45 ++++--
+ arch/x86/crypto/aesni-intel_asm.S            |   14 +-
+ arch/x86/crypto/aesni-intel_avx-x86_64.S     |    6 
+ arch/x86/crypto/camellia-aesni-avx-asm_64.S  |   42 +++---
+ arch/x86/crypto/camellia-aesni-avx2-asm_64.S |   44 +++---
+ arch/x86/crypto/camellia-x86_64-asm_64.S     |    8 -
+ arch/x86/crypto/cast5-avx-x86_64-asm_64.S    |   50 ++++---
+ arch/x86/crypto/cast6-avx-x86_64-asm_64.S    |   44 +++---
+ arch/x86/crypto/des3_ede-asm_64.S            |   96 +++++++++-----
+ arch/x86/crypto/ghash-clmulni-intel_asm.S    |    4 
+ arch/x86/crypto/glue_helper-asm-avx.S        |    4 
+ arch/x86/crypto/glue_helper-asm-avx2.S       |    6 
+ arch/x86/entry/entry_32.S                    |    3 
+ arch/x86/entry/entry_64.S                    |   29 ++--
+ arch/x86/include/asm/asm.h                   |   13 +
+ arch/x86/include/asm/bug.h                   |    2 
+ arch/x86/include/asm/ftrace.h                |    6 
+ arch/x86/include/asm/jump_label.h            |    8 -
+ arch/x86/include/asm/kvm_host.h              |    6 
+ arch/x86/include/asm/module.h                |   11 +
+ arch/x86/include/asm/page_64_types.h         |    9 +
+ arch/x86/include/asm/paravirt_types.h        |   12 +
+ arch/x86/include/asm/percpu.h                |   25 ++-
+ arch/x86/include/asm/pgtable_64_types.h      |    6 
+ arch/x86/include/asm/pm-trace.h              |    2 
+ arch/x86/include/asm/processor.h             |   12 +
+ arch/x86/include/asm/sections.h              |    8 +
+ arch/x86/include/asm/setup.h                 |    2 
+ arch/x86/include/asm/stackprotector.h        |   19 ++
+ arch/x86/kernel/acpi/wakeup_64.S             |   31 ++--
+ arch/x86/kernel/asm-offsets.c                |    3 
+ arch/x86/kernel/asm-offsets_32.c             |    3 
+ arch/x86/kernel/asm-offsets_64.c             |    3 
+ arch/x86/kernel/cpu/common.c                 |    7 -
+ arch/x86/kernel/cpu/microcode/core.c         |    4 
+ arch/x86/kernel/ftrace.c                     |   42 +++++-
+ arch/x86/kernel/head64.c                     |   32 +++-
+ arch/x86/kernel/head_32.S                    |    3 
+ arch/x86/kernel/head_64.S                    |   41 +++++-
+ arch/x86/kernel/kvm.c                        |    6 
+ arch/x86/kernel/module.c                     |  182 ++++++++++++++++++++++++++-
+ arch/x86/kernel/module.lds                   |    3 
+ arch/x86/kernel/process.c                    |    5 
+ arch/x86/kernel/relocate_kernel_64.S         |    8 -
+ arch/x86/kernel/setup_percpu.c               |    2 
+ arch/x86/kernel/vmlinux.lds.S                |   13 +
+ arch/x86/kvm/svm.c                           |    4 
+ arch/x86/lib/cmpxchg16b_emu.S                |    8 -
+ arch/x86/mm/dump_pagetables.c                |   11 +
+ arch/x86/power/hibernate_asm_64.S            |    4 
+ arch/x86/tools/relocs.c                      |  170 +++++++++++++++++++++++--
+ arch/x86/tools/relocs.h                      |    4 
+ arch/x86/tools/relocs_common.c               |   15 +-
+ arch/x86/xen/xen-asm.S                       |   12 -
+ arch/x86/xen/xen-head.S                      |    9 -
+ arch/x86/xen/xen-pvh.S                       |   13 +
+ drivers/base/firmware_class.c                |    4 
+ include/asm-generic/sections.h               |    6 
+ include/asm-generic/vmlinux.lds.h            |   12 +
+ include/linux/compiler.h                     |    8 +
+ init/Kconfig                                 |    9 +
+ kernel/kallsyms.c                            |   16 +-
+ kernel/trace/trace.h                         |    4 
+ lib/dynamic_debug.c                          |    4 
+ 70 files changed, 1032 insertions(+), 308 deletions(-)
