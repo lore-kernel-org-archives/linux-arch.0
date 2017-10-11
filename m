@@ -1,48 +1,57 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v3 16/28] arm64/sve: Probe SVE capabilities and usable
- vector lengths
-Date: Wed, 11 Oct 2017 17:55:08 +0100
-Message-ID: <20171011165508.runtc4rkipdg2kdw@armageddon.cambridge.arm.com>
-References: <1507660725-7986-1-git-send-email-Dave.Martin@arm.com>
- <1507660725-7986-17-git-send-email-Dave.Martin@arm.com>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [PATCH RFC tip/core/rcu 12/15] lib/assoc_array: Remove
+ smp_read_barrier_depends()
+Date: Wed, 11 Oct 2017 10:06:31 -0700
+Message-ID: <20171011170631.GN3521@linux.vnet.ibm.com>
+References: <1507594969-8347-12-git-send-email-paulmck@linux.vnet.ibm.com>
+ <20171010001951.GA6476@linux.vnet.ibm.com>
+ <8079.1507628146@warthog.procyon.org.uk>
+ <26455.1507724399@warthog.procyon.org.uk>
+ <6309.1507735045@warthog.procyon.org.uk>
+ <20171011155948.GE3521@linux.vnet.ibm.com>
+ <20171011161220.zqkdhynxerrcmvdd@hirez.programming.kicks-ass.net>
+ <20171011162412.o6lmjiag7spwabge@hirez.programming.kicks-ass.net>
+ <20171011164748.GK3521@linux.vnet.ibm.com>
+ <20171011165405.xd4xfa2x3dcz4e57@hirez.programming.kicks-ass.net>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:36194 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751147AbdJKQzN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 11 Oct 2017 12:55:13 -0400
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:52500 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1752221AbdJKRGh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 11 Oct 2017 13:06:37 -0400
+Received: from pps.filterd (m0098396.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id v9BH66pi114332
+        for <linux-arch@vger.kernel.org>; Wed, 11 Oct 2017 13:06:36 -0400
+Received: from e18.ny.us.ibm.com (e18.ny.us.ibm.com [129.33.205.208])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2dhmy5yt2r-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Wed, 11 Oct 2017 13:06:36 -0400
+Received: from localhost
+        by e18.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+        Wed, 11 Oct 2017 13:06:35 -0400
 Content-Disposition: inline
-In-Reply-To: <1507660725-7986-17-git-send-email-Dave.Martin@arm.com>
+In-Reply-To: <20171011165405.xd4xfa2x3dcz4e57@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Suzuki K Poulose <Suzuki.Poulose@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, mingo@kernel.org, torvalds@linux-foundation.org, mark.rutland@arm.com, linux-arch@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, Alexander Kuleshov <kuleshovmail@gmail.com>, dvyukov@google.com
 
-On Tue, Oct 10, 2017 at 07:38:33PM +0100, Dave P Martin wrote:
-> This patch uses the cpufeatures framework to determine common SVE
-> capabilities and vector lengths, and configures the runtime SVE
-> support code appropriately.
+On Wed, Oct 11, 2017 at 06:54:05PM +0200, Peter Zijlstra wrote:
+> On Wed, Oct 11, 2017 at 09:47:48AM -0700, Paul E. McKenney wrote:
+> > Interesting.  Do we currently have any dependencies headed by
+> > this_cpu_read()?
 > 
-> ZCR_ELx is not really a feature register, but it is convenient to
-> use it as a template for recording the maximum vector length
-> supported by a CPU, using the LEN field.  This field is similar to
-> a feature field in that it is a contiguous bitfield for which we
-> want to determine the minimum system-wide value.  This patch adds
-> ZCR as a pseudo-register in cpuinfo/cpufeatures, with appropriate
-> custom code to populate it.  Finding the minimum supported value of
-> the LEN field is left to the cpufeatures framework in the usual
-> way.
-> 
-> The meaning of ID_AA64ZFR0_EL1 is not architecturally defined yet,
-> so for now we just require it to be zero.
-> 
-> Note that much of this code is dormant and SVE still won't be used
-> yet, since system_supports_sve() remains hardwired to false.
-> 
-> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> Cc: Alex Bennée <alex.bennee@linaro.org>
-> Cc: Suzuki K Poulose <Suzuki.Poulose@arm.com>
+> Nope, but almost, look for: cpufreq_update_util_data.
 
-Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+This, you mean?
+
+data = rcu_dereference_sched(*this_cpu_ptr(&cpufreq_update_util_data));
+
+True, a non-RCU dependency use case would want to use ACCESS_ONCE()
+in the new regime.
+
+							Thanx, Paul
