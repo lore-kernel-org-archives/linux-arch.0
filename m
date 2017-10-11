@@ -1,68 +1,108 @@
-From: <sherrilyn@oceansfleet.com>
-Subject: (unknown)
-Date: Wed, 11 Oct 2017 08:20:46 -0000
-Message-ID: <150771004664.32758.8650734684564677355@dynamic.mm.pl>
+From: Szabolcs Nagy <szabolcs.nagy@arm.com>
+Subject: Re: [PATCH v3 26/28] arm64/sve: Add documentation
+Date: Wed, 11 Oct 2017 10:50:16 +0100
+Message-ID: <59DDE958.4080605@arm.com>
+References: <1507660725-7986-1-git-send-email-Dave.Martin@arm.com> <1507660725-7986-27-git-send-email-Dave.Martin@arm.com>
 Mime-Version: 1.0
-Content-Type: application/zip; name="00401005801.zip"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from host-89-231-13-28.dynamic.mm.pl ([89.231.13.28]:37498 "HELO
-        dynamic.mm.pl" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with SMTP
-        id S1751415AbdJKIUs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 11 Oct 2017 04:20:48 -0400
-Content-Disposition: attachment
-Subject: 
+Received: from mail-db5eur01on0051.outbound.protection.outlook.com ([104.47.2.51]:8416
+        "EHLO EUR01-DB5-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1750912AbdJKJuX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 11 Oct 2017 05:50:23 -0400
+In-Reply-To: <1507660725-7986-27-git-send-email-Dave.Martin@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+To: Dave Martin <Dave.Martin@arm.com>, linux-arm-kernel@lists.infradead.org
+Cc: nd@arm.com, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, =?UTF-8?B?QWxleCBCZW5uw6ll?= <alex.bennee@linaro.org>, Richard Sandiford <richard.sandiford@arm.com>, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, kvmarm@lists.cs.columbia.edu, libc-alpha@sourceware.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Michael Kerrisk <mtk.manpages@gmail.com>, Mark Rutland <mark.rutland@arm.com>, Alan Hayward <alan.hayward@arm.com>
 
-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
-fwoAAAAA
+On 10/10/17 19:38, Dave Martin wrote:
+> This patch adds basic documentation of the user/kernel interface
+> provided by the for SVE.
+> 
+> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> Cc: Alex Bennée <alex.bennee@linaro.org>
+> Cc: Mark Rutland <mark.rutland@arm.com>
+> Cc: Alan Hayward <alan.hayward@arm.com>
+> 
+> ---
+> 
+> Changes since v2
+> ----------------
+> 
+> Changes requested by Alan Hayward:
+> 
+>  * Added a note that the caller of PTRACE_SETREGSET will need to do a
+>    GETREGSET if complete certainty about the resulting VL is desired.
+> 
+> ABI changes:
+> 
+>  * Documented the changed return value value semantics for PR_SET_SET_VL
+>    when the PR_SVE_SET_VL_ONEXEC flag is passed.
+> ---
+...
+> +prctl(PR_SVE_SET_VL, unsigned long arg)
+> +
+> +    Sets the vector length of the calling thread and related flags, where
+> +    arg == vl | flags.
+> +
+> +    vl is the desired vector length, where sve_vl_valid(vl) must be true.
+> +
+> +    flags:
+> +
+> +	PR_SVE_SET_VL_INHERIT
+> +
+> +	    Inherit the current vector length across execve().  Otherwise, the
+> +	    vector length is reset to the system default at execve().  (See
+> +	    Section 9.)
+> +
+> +	PR_SVE_SET_VL_ONEXEC
+> +
+> +	    Defer the requested vector length change until the next execve().
+> +	    This allows launching of a new program with a different vector
+> +	    length, while avoiding runtime side effects in the caller.
+> +
+> +	    This also overrides the effect of PR_SVE_SET_VL_INHERIT for the
+> +	    first execve().
+> +
+> +	    Without PR_SVE_SET_VL_ONEXEC, any outstanding deferred vector
+> +	    length change is cancelled.
+> +
+
+"next execve" is still ambiguous. (execve has process
+global effect so it may plausibly mean next in the
+process or next in the calling thread)
+
+"any outstanding deferred vector length change" is
+ambiguous. (it may be for all threads in a process or
+in the calling thread only)
+
+> +    Return value: a nonnegative on success, or a negative value on error:
+> +	EINVAL: SVE not supported, invalid vector length requested, or
+> +	    invalid flags.
+> +
+> +    On success, the calling thread's vector length is changed to the largest
+> +    value supported by the system that is less than or equal to vl.
+> +    If vl == SVE_VL_MAX, the calling thread's vector length is changed to the
+> +    largest value supported by the system.
+> +
+> +    The returned value describes the resulting configuration, encoded as for
+> +    PR_SVE_GET_VL.  The vector length reported in this value is the new current
+> +    vector length for this thread if PR_SVE_SET_VL_ONEXEC was not passed in the
+> +    input arg; otherwise, the reported vector length is the deferred vector
+> +    length that will be applied at the next exec.
+> +
+...
+> +9.  System runtime configuration
+> +--------------------------------
+> +
+> +* To mitigate the ABI impact of expansion of the signal frame, a policy
+> +  mechanism is provided for administrators, distro maintainers and developers
+> +  to set the default vector length for userspace processes:
+> +
+> +/proc/cpu/sve_default_vector_length
+> +
+
+still wrong.
