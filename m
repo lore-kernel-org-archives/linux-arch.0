@@ -1,68 +1,242 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH RFC tip/core/rcu 12/15] lib/assoc_array: Remove
- smp_read_barrier_depends()
-Date: Wed, 11 Oct 2017 18:24:12 +0200
-Message-ID: <20171011162412.o6lmjiag7spwabge@hirez.programming.kicks-ass.net>
-References: <20171011122217.GD11106@arm.com>
- <20171010155042.GD3521@linux.vnet.ibm.com>
- <1507594969-8347-12-git-send-email-paulmck@linux.vnet.ibm.com>
- <20171010001951.GA6476@linux.vnet.ibm.com>
- <8079.1507628146@warthog.procyon.org.uk>
- <26455.1507724399@warthog.procyon.org.uk>
- <6309.1507735045@warthog.procyon.org.uk>
- <20171011155948.GE3521@linux.vnet.ibm.com>
- <20171011161220.zqkdhynxerrcmvdd@hirez.programming.kicks-ass.net>
+From: Marc Zyngier <marc.zyngier@arm.com>
+Subject: Re: [PATCH v3 22/28] arm64/sve: KVM: Prevent guests from using SVE
+Date: Wed, 11 Oct 2017 17:28:06 +0100
+Message-ID: <c28b3f0d-7beb-cca3-46db-3fce964f4725@arm.com>
+References: <1507660725-7986-1-git-send-email-Dave.Martin@arm.com>
+ <1507660725-7986-23-git-send-email-Dave.Martin@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20171011161220.zqkdhynxerrcmvdd@hirez.programming.kicks-ass.net>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, mingo@kernel.org, torvalds@linux-foundation.org, mark.rutland@arm.com, linux-arch@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, Alexander Kuleshov <kuleshovmail@gmail.com>, dvyukov@google.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:35694 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1757565AbdJKQ2K (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 11 Oct 2017 12:28:10 -0400
+In-Reply-To: <1507660725-7986-23-git-send-email-Dave.Martin@arm.com>
+Content-Language: en-GB
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dave Martin <Dave.Martin@arm.com>, linux-arm-kernel@lists.infradead.org
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, =?UTF-8?Q?Alex_Benn=c3=a9e?= <alex.bennee@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, kvmarm@lists.cs.columbia.edu, libc-alpha@sourceware.org, linux-arch@vger.kernel.org, Christoffer Dall <cdall@linaro.org>
 
-On Wed, Oct 11, 2017 at 06:12:20PM +0200, Peter Zijlstra wrote:
-> On Wed, Oct 11, 2017 at 08:59:48AM -0700, Paul E. McKenney wrote:
-> > On Wed, Oct 11, 2017 at 04:17:25PM +0100, David Howells wrote:
-> > > I will, however, quibble with the appropriateness of the name READ_ONCE()...
-> > > I still think it's not sufficiently obvious that this is a barrier and the
-> > > barrier is after.  Maybe READ_AND_BARRIER()?
-> > 
-> > Linus was unhappy with READ_ONCE_CTRL() to tag control dependencies, but
-> > indicated that he might consider it if it helped code-analysis tools.
-> > Adding Dmitry Vyukov for his thoughts on whether tagging READ_ONCE()
-> > for dependencies would help.  Me, I would suggest READ_ONCE_DEP(), but
-> > let's figure out if the bikeshed needs to be painted before arguing over
-> > the color.  ;-)
+[+ Christoffer]
+
+On 10/10/17 19:38, Dave Martin wrote:
+> Until KVM has full SVE support, guests must not be allowed to
+> execute SVE instructions.
 > 
-> Count me one vote for the READ_ONCE() name. This is about dependent
-> reads, which are nothing special on anything except Alpha.
+> This patch enables the necessary traps, and also ensures that the
+> traps are disabled again on exit from the guest so that the host
+> can still use SVE if it wants to.
 > 
-> We want to remove the exception/specialness from the memory model; and
-> therefore have to fix up all primitives that could possibly be used for
-> these reads to unconditionally issue the barrier (on Alpha). The
-> alternative is: rm -rf arch/alpha.
+> This patch introduces another instance of
+> __this_cpu_write(fpsimd_last_state, NULL), so this flush operation
+> is abstracted out as a separate helper fpsimd_flush_cpu_state().
+> Other instances are ported appropriately.
 > 
-> Adding something like READ_ONCE_DEP() does not rid us of the idea that
-> dependent reads are special and thus defeats the purpose, we might as
-> well retain lockless_dereference().
+> As a side effect of this refactoring, a this_cpu_write() in
+> fpsimd_cpu_pm_notifier() is changed to __this_cpu_write().  This
+> should be fine, since cpu_pm_enter() is supposed to be called only
+> with interrupts disabled.
 > 
-> Now; any user of dependent reads must use READ_ONCE() in any case, to
-> avoid load tearing and reloads. So using READ_ONCE() for the dependent
-> reads is not extra or additional (note we'll also have to add the
-> barrier to all our relaxed and release atomics and anything else that
-> implies READ_ONCE and doesn't already imply smp_mb() after).
+> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> Reviewed-by: Alex Bennée <alex.bennee@linaro.org>
+> Cc: Marc Zyngier <marc.zyngier@arm.com>
+> Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+> ---
+>  arch/arm/include/asm/kvm_host.h   |  3 +++
+>  arch/arm64/include/asm/fpsimd.h   |  1 +
+>  arch/arm64/include/asm/kvm_arm.h  |  4 +++-
+>  arch/arm64/include/asm/kvm_host.h | 11 +++++++++++
+>  arch/arm64/kernel/fpsimd.c        | 31 +++++++++++++++++++++++++++++--
+>  arch/arm64/kvm/hyp/switch.c       |  6 +++---
+>  virt/kvm/arm/arm.c                |  3 +++
+>  7 files changed, 53 insertions(+), 6 deletions(-)
+> 
+> diff --git a/arch/arm/include/asm/kvm_host.h b/arch/arm/include/asm/kvm_host.h
+> index 4a879f6..242151e 100644
+> --- a/arch/arm/include/asm/kvm_host.h
+> +++ b/arch/arm/include/asm/kvm_host.h
+> @@ -293,4 +293,7 @@ int kvm_arm_vcpu_arch_get_attr(struct kvm_vcpu *vcpu,
+>  int kvm_arm_vcpu_arch_has_attr(struct kvm_vcpu *vcpu,
+>  			       struct kvm_device_attr *attr);
+>  
+> +/* All host FP/SIMD state is restored on guest exit, so nothing to save: */
+> +static inline void kvm_fpsimd_flush_cpu_state(void) {}
+> +
+>  #endif /* __ARM_KVM_HOST_H__ */
+> diff --git a/arch/arm64/include/asm/fpsimd.h b/arch/arm64/include/asm/fpsimd.h
+> index 3cfdfbe..10b2824 100644
+> --- a/arch/arm64/include/asm/fpsimd.h
+> +++ b/arch/arm64/include/asm/fpsimd.h
+> @@ -75,6 +75,7 @@ extern void fpsimd_restore_current_state(void);
+>  extern void fpsimd_update_current_state(struct fpsimd_state *state);
+>  
+>  extern void fpsimd_flush_task_state(struct task_struct *target);
+> +extern void sve_flush_cpu_state(void);
+>  
+>  /* Maximum VL that SVE VL-agnostic software can transparently support */
+>  #define SVE_VL_ARCH_MAX 0x100
+> diff --git a/arch/arm64/include/asm/kvm_arm.h b/arch/arm64/include/asm/kvm_arm.h
+> index dbf0537..7f069ff 100644
+> --- a/arch/arm64/include/asm/kvm_arm.h
+> +++ b/arch/arm64/include/asm/kvm_arm.h
+> @@ -186,7 +186,8 @@
+>  #define CPTR_EL2_TTA	(1 << 20)
+>  #define CPTR_EL2_TFP	(1 << CPTR_EL2_TFP_SHIFT)
+>  #define CPTR_EL2_TZ	(1 << 8)
+> -#define CPTR_EL2_DEFAULT	0x000033ff
+> +#define CPTR_EL2_RES1	0x000032ff /* known RES1 bits in CPTR_EL2 */
+> +#define CPTR_EL2_DEFAULT	CPTR_EL2_RES1
+>  
+>  /* Hyp Debug Configuration Register bits */
+>  #define MDCR_EL2_TPMS		(1 << 14)
+> @@ -237,5 +238,6 @@
+>  
+>  #define CPACR_EL1_FPEN		(3 << 20)
+>  #define CPACR_EL1_TTA		(1 << 28)
+> +#define CPACR_EL1_DEFAULT	(CPACR_EL1_FPEN | CPACR_EL1_ZEN_EL1EN)
+>  
+>  #endif /* __ARM64_KVM_ARM_H__ */
+> diff --git a/arch/arm64/include/asm/kvm_host.h b/arch/arm64/include/asm/kvm_host.h
+> index e923b58..674912d 100644
+> --- a/arch/arm64/include/asm/kvm_host.h
+> +++ b/arch/arm64/include/asm/kvm_host.h
+> @@ -25,6 +25,7 @@
+>  #include <linux/types.h>
+>  #include <linux/kvm_types.h>
+>  #include <asm/cpufeature.h>
+> +#include <asm/fpsimd.h>
+>  #include <asm/kvm.h>
+>  #include <asm/kvm_asm.h>
+>  #include <asm/kvm_mmio.h>
+> @@ -384,4 +385,14 @@ static inline void __cpu_init_stage2(void)
+>  		  "PARange is %d bits, unsupported configuration!", parange);
+>  }
+>  
+> +/*
+> + * All host FP/SIMD state is restored on guest exit, so nothing needs
+> + * doing here except in the SVE case:
+> +*/
+> +static inline void kvm_fpsimd_flush_cpu_state(void)
+> +{
+> +	if (system_supports_sve())
+> +		sve_flush_cpu_state();
 
-Add the per-cpu ops to that list, they imply READ_ONCE(). Consider for
-example this example:
+Hmmm. How does this work if...
 
+> +}
+> +
+>  #endif /* __ARM64_KVM_HOST_H__ */
+> diff --git a/arch/arm64/kernel/fpsimd.c b/arch/arm64/kernel/fpsimd.c
+> index a9cb794..6ae3703 100644
+> --- a/arch/arm64/kernel/fpsimd.c
+> +++ b/arch/arm64/kernel/fpsimd.c
+> @@ -1073,6 +1073,33 @@ void fpsimd_flush_task_state(struct task_struct *t)
+>  	t->thread.fpsimd_state.cpu = NR_CPUS;
+>  }
+>  
+> +static inline void fpsimd_flush_cpu_state(void)
+> +{
+> +	__this_cpu_write(fpsimd_last_state, NULL);
+> +}
+> +
+> +/*
+> + * Invalidate any task SVE state currently held in this CPU's regs.
+> + *
+> + * This is used to prevent the kernel from trying to reuse SVE register data
+> + * that is detroyed by KVM guest enter/exit.  This function should go away when
+> + * KVM SVE support is implemented.  Don't use it for anything else.
+> + */
+> +#ifdef CONFIG_ARM64_SVE
+> +void sve_flush_cpu_state(void)
+> +{
+> +	struct fpsimd_state *const fpstate = __this_cpu_read(fpsimd_last_state);
+> +	struct task_struct *tsk;
+> +
+> +	if (!fpstate)
+> +		return;
+> +
+> +	tsk = container_of(fpstate, struct task_struct, thread.fpsimd_state);
+> +	if (test_tsk_thread_flag(tsk, TIF_SVE))
+> +		fpsimd_flush_cpu_state();
+> +}
+> +#endif /* CONFIG_ARM64_SVE */
 
-	for_each_possible_cpu(cpu)
-		smp_store_release(per_cpu_ptr(&foo, cpu), obj);
+... CONFIG_ARM64_SVE is not set? Fixing this should just be a matter of
+moving the #ifdef/#endif inside the function...
 
--vs-
+> +
+>  #ifdef CONFIG_KERNEL_MODE_NEON
+>  
+>  DEFINE_PER_CPU(bool, kernel_neon_busy);
+> @@ -1113,7 +1140,7 @@ void kernel_neon_begin(void)
+>  	}
+>  
+>  	/* Invalidate any task state remaining in the fpsimd regs: */
+> -	__this_cpu_write(fpsimd_last_state, NULL);
+> +	fpsimd_flush_cpu_state();
+>  
+>  	preempt_disable();
+>  
+> @@ -1234,7 +1261,7 @@ static int fpsimd_cpu_pm_notifier(struct notifier_block *self,
+>  	case CPU_PM_ENTER:
+>  		if (current->mm)
+>  			task_fpsimd_save();
+> -		this_cpu_write(fpsimd_last_state, NULL);
+> +		fpsimd_flush_cpu_state();
+>  		break;
+>  	case CPU_PM_EXIT:
+>  		if (current->mm)
+> diff --git a/arch/arm64/kvm/hyp/switch.c b/arch/arm64/kvm/hyp/switch.c
+> index 35a90b8..951f3eb 100644
+> --- a/arch/arm64/kvm/hyp/switch.c
+> +++ b/arch/arm64/kvm/hyp/switch.c
+> @@ -48,7 +48,7 @@ static void __hyp_text __activate_traps_vhe(void)
+>  
+>  	val = read_sysreg(cpacr_el1);
+>  	val |= CPACR_EL1_TTA;
+> -	val &= ~CPACR_EL1_FPEN;
+> +	val &= ~(CPACR_EL1_FPEN | CPACR_EL1_ZEN);
+>  	write_sysreg(val, cpacr_el1);
+>  
+>  	write_sysreg(__kvm_hyp_vector, vbar_el1);
+> @@ -59,7 +59,7 @@ static void __hyp_text __activate_traps_nvhe(void)
+>  	u64 val;
+>  
+>  	val = CPTR_EL2_DEFAULT;
+> -	val |= CPTR_EL2_TTA | CPTR_EL2_TFP;
+> +	val |= CPTR_EL2_TTA | CPTR_EL2_TFP | CPTR_EL2_TZ;
+>  	write_sysreg(val, cptr_el2);
+>  }
+>  
+> @@ -117,7 +117,7 @@ static void __hyp_text __deactivate_traps_vhe(void)
+>  
+>  	write_sysreg(mdcr_el2, mdcr_el2);
+>  	write_sysreg(HCR_HOST_VHE_FLAGS, hcr_el2);
+> -	write_sysreg(CPACR_EL1_FPEN, cpacr_el1);
+> +	write_sysreg(CPACR_EL1_DEFAULT, cpacr_el1);
+>  	write_sysreg(vectors, vbar_el1);
+>  }
+>  
+> diff --git a/virt/kvm/arm/arm.c b/virt/kvm/arm/arm.c
+> index b9f68e4..4d3cf9c 100644
+> --- a/virt/kvm/arm/arm.c
+> +++ b/virt/kvm/arm/arm.c
+> @@ -652,6 +652,9 @@ int kvm_arch_vcpu_ioctl_run(struct kvm_vcpu *vcpu, struct kvm_run *run)
+>  		 */
+>  		preempt_disable();
+>  
+> +		/* Flush FP/SIMD state that can't survive guest entry/exit */
+> +		kvm_fpsimd_flush_cpu_state();
+> +
+>  		kvm_pmu_flush_hwstate(vcpu);
+>  
+>  		kvm_timer_flush_hwstate(vcpu);
+> 
 
-	obj = this_cpu_read(foo);
-	if (obj->ponies)
-		fart_rainbow(obj);
+Thanks,
+
+	M.
+-- 
+Jazz is not dead. It just smells funny...
