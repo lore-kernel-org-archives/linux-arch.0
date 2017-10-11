@@ -1,40 +1,34 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v3 15/28] arm64: cpufeature: Move sys_caps_initialised
- declarations
-Date: Wed, 11 Oct 2017 17:50:37 +0100
-Message-ID: <20171011165036.n4gl4k753zafgpbx@armageddon.cambridge.arm.com>
-References: <1507660725-7986-1-git-send-email-Dave.Martin@arm.com>
- <1507660725-7986-16-git-send-email-Dave.Martin@arm.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH RFC tip/core/rcu 12/15] lib/assoc_array: Remove
+ smp_read_barrier_depends()
+Date: Wed, 11 Oct 2017 18:54:05 +0200
+Message-ID: <20171011165405.xd4xfa2x3dcz4e57@hirez.programming.kicks-ass.net>
+References: <20171010155042.GD3521@linux.vnet.ibm.com>
+ <1507594969-8347-12-git-send-email-paulmck@linux.vnet.ibm.com>
+ <20171010001951.GA6476@linux.vnet.ibm.com>
+ <8079.1507628146@warthog.procyon.org.uk>
+ <26455.1507724399@warthog.procyon.org.uk>
+ <6309.1507735045@warthog.procyon.org.uk>
+ <20171011155948.GE3521@linux.vnet.ibm.com>
+ <20171011161220.zqkdhynxerrcmvdd@hirez.programming.kicks-ass.net>
+ <20171011162412.o6lmjiag7spwabge@hirez.programming.kicks-ass.net>
+ <20171011164748.GK3521@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:36088 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751906AbdJKQum (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 11 Oct 2017 12:50:42 -0400
+Received: from merlin.infradead.org ([205.233.59.134]:51536 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751147AbdJKQyQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 11 Oct 2017 12:54:16 -0400
 Content-Disposition: inline
-In-Reply-To: <1507660725-7986-16-git-send-email-Dave.Martin@arm.com>
+In-Reply-To: <20171011164748.GK3521@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, mingo@kernel.org, torvalds@linux-foundation.org, mark.rutland@arm.com, linux-arch@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, Alexander Kuleshov <kuleshovmail@gmail.com>, dvyukov@google.com
 
-On Tue, Oct 10, 2017 at 07:38:32PM +0100, Dave P Martin wrote:
-> update_cpu_features() currently cannot tell whether it is being
-> called during early or late secondary boot.  This doesn't
-> desperately matter for anything it currently does.
-> 
-> However, SVE will need to know here whether the set of available
-> vector lengths is fixed of still to be determined when booting a
-> CPU so that it can be updated appropriately.
-> 
-> This patch simply moves the sys_caps_initialised stuff to the top
-> of the file so that it can be more widely.  There doesn't seem to
-> be a more obvious place to put it.
-> 
-> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> Reviewed-by: Alex Bennée <alex.bennee@linaro.org>
-> Reviewed-by: Suzuki K Poulose <suzuki.poulose@arm.com>
+On Wed, Oct 11, 2017 at 09:47:48AM -0700, Paul E. McKenney wrote:
+> Interesting.  Do we currently have any dependencies headed by
+> this_cpu_read()?
 
-Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+Nope, but almost, look for: cpufreq_update_util_data.
