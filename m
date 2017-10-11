@@ -1,46 +1,40 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH RFC tip/core/rcu 12/15] lib/assoc_array: Remove
- smp_read_barrier_depends()
-Date: Wed, 11 Oct 2017 09:50:04 -0700
-Message-ID: <20171011165004.GA14318@linux.vnet.ibm.com>
-References: <20171011122217.GD11106@arm.com>
- <20171010155042.GD3521@linux.vnet.ibm.com>
- <1507594969-8347-12-git-send-email-paulmck@linux.vnet.ibm.com>
- <20171010001951.GA6476@linux.vnet.ibm.com>
- <8079.1507628146@warthog.procyon.org.uk>
- <26455.1507724399@warthog.procyon.org.uk>
- <6309.1507735045@warthog.procyon.org.uk>
- <20171011155948.GE3521@linux.vnet.ibm.com>
- <20171011161220.zqkdhynxerrcmvdd@hirez.programming.kicks-ass.net>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v3 15/28] arm64: cpufeature: Move sys_caps_initialised
+ declarations
+Date: Wed, 11 Oct 2017 17:50:37 +0100
+Message-ID: <20171011165036.n4gl4k753zafgpbx@armageddon.cambridge.arm.com>
+References: <1507660725-7986-1-git-send-email-Dave.Martin@arm.com>
+ <1507660725-7986-16-git-send-email-Dave.Martin@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:36088 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751906AbdJKQum (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 11 Oct 2017 12:50:42 -0400
 Content-Disposition: inline
-In-Reply-To: <20171011161220.zqkdhynxerrcmvdd@hirez.programming.kicks-ass.net>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, mingo@kernel.org, torvalds@linux-foundation.org, mark.rutland@arm.com, linux-arch@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, Alexander Kuleshov <kuleshovmail@gmail.com>, dvyukov@google.com
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <1507660725-7986-16-git-send-email-Dave.Martin@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu
 
-On Wed, Oct 11, 2017 at 06:12:20PM +0200, Peter Zijlstra wrote:
-> On Wed, Oct 11, 2017 at 08:59:48AM -0700, Paul E. McKenney wrote:
-> > On Wed, Oct 11, 2017 at 04:17:25PM +0100, David Howells wrote:
-> > > I will, however, quibble with the appropriateness of the name READ_ONCE()...
-> > > I still think it's not sufficiently obvious that this is a barrier and the
-> > > barrier is after.  Maybe READ_AND_BARRIER()?
-> > 
-> > Linus was unhappy with READ_ONCE_CTRL() to tag control dependencies, but
-> > indicated that he might consider it if it helped code-analysis tools.
-> > Adding Dmitry Vyukov for his thoughts on whether tagging READ_ONCE()
-> > for dependencies would help.  Me, I would suggest READ_ONCE_DEP(), but
-> > let's figure out if the bikeshed needs to be painted before arguing over
-> > the color.  ;-)
+On Tue, Oct 10, 2017 at 07:38:32PM +0100, Dave P Martin wrote:
+> update_cpu_features() currently cannot tell whether it is being
+> called during early or late secondary boot.  This doesn't
+> desperately matter for anything it currently does.
 > 
-> Count me one vote for the READ_ONCE() name. This is about dependent
-> reads, which are nothing special on anything except Alpha.
+> However, SVE will need to know here whether the set of available
+> vector lengths is fixed of still to be determined when booting a
+> CPU so that it can be updated appropriately.
+> 
+> This patch simply moves the sys_caps_initialised stuff to the top
+> of the file so that it can be more widely.  There doesn't seem to
+> be a more obvious place to put it.
+> 
+> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> Reviewed-by: Alex Bennée <alex.bennee@linaro.org>
+> Reviewed-by: Suzuki K Poulose <suzuki.poulose@arm.com>
 
-Agreed, unless specially marking them makes it easier for tools to
-find bugs.  In which case, we should definitely specially mark them.
-
-							Thanx, Paul
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
