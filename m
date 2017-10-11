@@ -1,26 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-he1eur01on0045.outbound.protection.outlook.com ([104.47.0.45]:23242
-        "EHLO EUR01-HE1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752099AbdJKLaI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 11 Oct 2017 07:30:08 -0400
-Message-ID: <59DE00B8.5000101@arm.com>
-Date: Wed, 11 Oct 2017 12:30:00 +0100
-From: Szabolcs Nagy <szabolcs.nagy@arm.com>
+Received: from mx1.redhat.com ([209.132.183.28]:36490 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751958AbdJKMUC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 11 Oct 2017 08:20:02 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <20171010155042.GD3521@linux.vnet.ibm.com>
+References: <20171010155042.GD3521@linux.vnet.ibm.com> <1507594969-8347-12-git-send-email-paulmck@linux.vnet.ibm.com> <20171010001951.GA6476@linux.vnet.ibm.com> <8079.1507628146@warthog.procyon.org.uk>
+Subject: Re: [PATCH RFC tip/core/rcu 12/15] lib/assoc_array: Remove smp_read_barrier_depends()
 MIME-Version: 1.0
-Subject: Re: [PATCH v3 26/28] arm64/sve: Add documentation
-References: <1507660725-7986-1-git-send-email-Dave.Martin@arm.com> <1507660725-7986-27-git-send-email-Dave.Martin@arm.com> <59DDE958.4080605@arm.com> <20171011110811.GB19485@e103592.cambridge.arm.com>
-In-Reply-To: <20171011110811.GB19485@e103592.cambridge.arm.com>
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="us-ascii"
+Content-ID: <26454.1507724399.1@warthog.procyon.org.uk>
+Date: Wed, 11 Oct 2017 13:19:59 +0100
+Message-ID: <26455.1507724399@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: nd@arm.com, linux-arm-kernel@lists.infradead.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, =?windows-1252?Q?Alex_Benn=E9e?= <alex.bennee@linaro.org>, Richard Sandiford <richard.sandiford@arm.com>, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, kvmarm@lists.cs.columbia.edu, libc-alpha@sourceware.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Michael Kerrisk <mtk.manpages@gmail.com>, Mark Rutland <mark.rutland@arm.com>, Alan Hayward <alan.hayward@arm.com>
-Message-ID: <20171011113000.pt7ILHpXE0k-x4F403aIjboew97bmW6T5dmEtotDZ5E@z>
+To: paulmck@linux.vnet.ibm.com
+Cc: dhowells@redhat.com, linux-kernel@vger.kernel.org, mingo@kernel.org, torvalds@linux-foundation.org, mark.rutland@arm.com, linux-arch@vger.kernel.org, peterz@infradead.org, will.deacon@arm.com, Jonathan Corbet <corbet@lwn.net>, Alexander Kuleshov <kuleshovmail@gmail.com>
+Message-ID: <20171011121959.37GNWE38RE-yDp6KI2Ou8IZwYb9kgAuQlSDwsjgqeM8@z>
 
-On 11/10/17 12:08, Dave Martin wrote:
-> How does this look:
-> 
+Paul E. McKenney <paulmck@linux.vnet.ibm.com> wrote:
 
-looks reasonable.
+> -	node = result.terminal_node.node;
+> -	smp_read_barrier_depends();
+> +	node = READ_ONCE(result.terminal_node.node); /* Address dependency. */
+
+The main problem I have with this method of annotation is that it's not
+obvious there's a barrier there or which side the barrier is.
+
+I think one of the trickiest issues is that a barrier is typically between two
+things and we're not making it clear what those two things actually are.
+
+Also, I would say that the most natural interpretation of READ_ONCE() is that
+the implicit barrier comes after the read, e.g.:
+
+	f = READ_ONCE(stuff->foo);
+	/* Implied barrier */
+	look_at(f->a);
+	look_at(f->b);
+
+I.e. READ_ONCE() prevents stuff->foo from being reread whilst you access f and
+orders LOAD(stuff->foo) before LOAD(f->a) and LOAD(f->b).
+
+David
