@@ -1,7 +1,7 @@
 From: Waiman Long <longman@redhat.com>
-Subject: [PATCH v6 05/11] locking/rwsem: Move rwsem internal function declarations to rwsem-xadd.h
-Date: Wed, 11 Oct 2017 14:01:56 -0400
-Message-ID: <1507744922-15196-6-git-send-email-longman@redhat.com>
+Subject: [PATCH v6 10/11] locking/rwsem: Make rwsem_spin_on_owner() return a tri-state value
+Date: Wed, 11 Oct 2017 14:02:01 -0400
+Message-ID: <1507744922-15196-11-git-send-email-longman@redhat.com>
 References: <1507744922-15196-1-git-send-email-longman@redhat.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1507744922-15196-1-git-send-email-longman@redhat.com>
@@ -10,50 +10,61 @@ To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>
 Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, Dave Chinner <david@fromorbit.com>, Waiman Long <longman@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
-We don't need to expose rwsem internal functions which are not supposed
-to be called directly from other kernel code.
+This patch modifies rwsem_spin_on_owner() to return a tri-state value
+to better reflect the state of lock holder which enables us to make a
+better decision of what to do next.
 
 Signed-off-by: Waiman Long <longman@redhat.com>
 ---
- include/linux/rwsem.h       | 7 -------
- kernel/locking/rwsem-xadd.h | 7 +++++++
- 2 files changed, 7 insertions(+), 7 deletions(-)
+ kernel/locking/rwsem-xadd.c | 14 +++++++++-----
+ 1 file changed, 9 insertions(+), 5 deletions(-)
 
-diff --git a/include/linux/rwsem.h b/include/linux/rwsem.h
-index d0f59df..32389ee 100644
---- a/include/linux/rwsem.h
-+++ b/include/linux/rwsem.h
-@@ -42,13 +42,6 @@ struct rw_semaphore {
- #endif
- };
+diff --git a/kernel/locking/rwsem-xadd.c b/kernel/locking/rwsem-xadd.c
+index 38a6c32..d0f3778 100644
+--- a/kernel/locking/rwsem-xadd.c
++++ b/kernel/locking/rwsem-xadd.c
+@@ -301,9 +301,13 @@ static inline bool rwsem_can_spin_on_owner(struct rw_semaphore *sem)
+ }
  
--extern struct rw_semaphore *rwsem_down_read_failed(struct rw_semaphore *sem);
--extern struct rw_semaphore *rwsem_down_read_failed_killable(struct rw_semaphore *sem);
--extern struct rw_semaphore *rwsem_down_write_failed(struct rw_semaphore *sem);
--extern struct rw_semaphore *rwsem_down_write_failed_killable(struct rw_semaphore *sem);
--extern struct rw_semaphore *rwsem_wake(struct rw_semaphore *);
--extern struct rw_semaphore *rwsem_downgrade_wake(struct rw_semaphore *sem);
--
- #define RWSEM_UNLOCKED_VALUE	0
- 
- /* In all implementations count != 0 means locked */
-diff --git a/kernel/locking/rwsem-xadd.h b/kernel/locking/rwsem-xadd.h
-index 4c19539..9b30f0c 100644
---- a/kernel/locking/rwsem-xadd.h
-+++ b/kernel/locking/rwsem-xadd.h
-@@ -90,6 +90,13 @@ static inline void rwsem_set_reader_owned(struct rw_semaphore *sem)
- 
- #define RWSEM_COUNT_IS_LOCKED(c)	((c) & RWSEM_LOCK_MASK)
- 
-+extern struct rw_semaphore *rwsem_down_read_failed(struct rw_semaphore *sem);
-+extern struct rw_semaphore *rwsem_down_read_failed_killable(struct rw_semaphore *sem);
-+extern struct rw_semaphore *rwsem_down_write_failed(struct rw_semaphore *sem);
-+extern struct rw_semaphore *rwsem_down_write_failed_killable(struct rw_semaphore *sem);
-+extern struct rw_semaphore *rwsem_wake(struct rw_semaphore *);
-+extern struct rw_semaphore *rwsem_downgrade_wake(struct rw_semaphore *sem);
-+
  /*
-  * lock for reading
+- * Return true only if we can still spin on the owner field of the rwsem.
++ * Return the folowing three values depending on the lock owner state.
++ *   1	when owner has changed and no reader is detected yet.
++ *   0	when owner has change and/or owner is a reader.
++ *  -1	when optimistic spinning has to stop because either the owner stops
++ *	running or its timeslice has been used up.
   */
+-static noinline bool rwsem_spin_on_owner(struct rw_semaphore *sem)
++static noinline int rwsem_spin_on_owner(struct rw_semaphore *sem)
+ {
+ 	struct task_struct *owner = READ_ONCE(sem->owner);
+ 
+@@ -327,7 +331,7 @@ static noinline bool rwsem_spin_on_owner(struct rw_semaphore *sem)
+ 		if (!owner->on_cpu || need_resched() ||
+ 				vcpu_is_preempted(task_cpu(owner))) {
+ 			rcu_read_unlock();
+-			return false;
++			return -1;
+ 		}
+ 
+ 		cpu_relax();
+@@ -338,7 +342,7 @@ static noinline bool rwsem_spin_on_owner(struct rw_semaphore *sem)
+ 	 * If there is a new owner or the owner is not set, we continue
+ 	 * spinning.
+ 	 */
+-	return !rwsem_owner_is_reader(READ_ONCE(sem->owner));
++	return rwsem_owner_is_reader(READ_ONCE(sem->owner)) ? 0 : 1;
+ }
+ 
+ static bool
+@@ -359,7 +363,7 @@ static noinline bool rwsem_spin_on_owner(struct rw_semaphore *sem)
+ 	 *  2) readers own the lock as we can't determine if they are
+ 	 *     actively running or not.
+ 	 */
+-	while (rwsem_spin_on_owner(sem)) {
++	while (rwsem_spin_on_owner(sem) > 0) {
+ 		/*
+ 		 * Try to acquire the lock
+ 		 */
 -- 
 1.8.3.1
