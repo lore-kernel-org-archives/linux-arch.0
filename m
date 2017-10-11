@@ -1,70 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:48776 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1751991AbdJKM7E (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 11 Oct 2017 08:59:04 -0400
-Received: from pps.filterd (m0098394.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id v9BCx22N146844
-        for <linux-arch@vger.kernel.org>; Wed, 11 Oct 2017 08:59:03 -0400
-Received: from e13.ny.us.ibm.com (e13.ny.us.ibm.com [129.33.205.203])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2dhj86egw8-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Wed, 11 Oct 2017 08:59:03 -0400
-Received: from localhost
-        by e13.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Wed, 11 Oct 2017 08:59:02 -0400
-Date: Wed, 11 Oct 2017 05:58:57 -0700
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH RFC tip/core/rcu 12/15] lib/assoc_array: Remove
- smp_read_barrier_depends()
-Reply-To: paulmck@linux.vnet.ibm.com
-References: <20171010155042.GD3521@linux.vnet.ibm.com>
- <1507594969-8347-12-git-send-email-paulmck@linux.vnet.ibm.com>
- <20171010001951.GA6476@linux.vnet.ibm.com>
- <8079.1507628146@warthog.procyon.org.uk>
- <26455.1507724399@warthog.procyon.org.uk>
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:33730 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751816AbdJKO2Y (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 11 Oct 2017 10:28:24 -0400
+Date: Wed, 11 Oct 2017 15:28:19 +0100
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v3 07/28] arm64/sve: Low-level SVE architectural state
+ manipulation functions
+Message-ID: <20171011142819.jheh4jwb347demj6@armageddon.cambridge.arm.com>
+References: <1507660725-7986-1-git-send-email-Dave.Martin@arm.com>
+ <1507660725-7986-8-git-send-email-Dave.Martin@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=iso-8859-1
 Content-Disposition: inline
-In-Reply-To: <26455.1507724399@warthog.procyon.org.uk>
-Message-ID: <20171011125857.GY3521@linux.vnet.ibm.com>
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <1507660725-7986-8-git-send-email-Dave.Martin@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: linux-kernel@vger.kernel.org, mingo@kernel.org, torvalds@linux-foundation.org, mark.rutland@arm.com, linux-arch@vger.kernel.org, peterz@infradead.org, will.deacon@arm.com, Jonathan Corbet <corbet@lwn.net>, Alexander Kuleshov <kuleshovmail@gmail.com>
-Message-ID: <20171011125857.PKjpBo4GlXk6IAvkKHlsl_l7s8G2Lj_PYM3iGqBfXpk@z>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu
+Message-ID: <20171011142819.RRsa48P_SiF7XLLyBXTae67fcQsce9nby3D2BxdN7I4@z>
 
-On Wed, Oct 11, 2017 at 01:19:59PM +0100, David Howells wrote:
-> Paul E. McKenney <paulmck@linux.vnet.ibm.com> wrote:
+On Tue, Oct 10, 2017 at 07:38:24PM +0100, Dave P Martin wrote:
+> Manipulating the SVE architectural state, including the vector and
+> predicate registers, first-fault register and the vector length,
+> requires the use of dedicated instructions added by SVE.
 > 
-> > -	node = result.terminal_node.node;
-> > -	smp_read_barrier_depends();
-> > +	node = READ_ONCE(result.terminal_node.node); /* Address dependency. */
+> This patch adds suitable assembly functions for saving and
+> restoring the SVE registers and querying the vector length.
+> Setting of the vector length is done as part of register restore.
 > 
-> The main problem I have with this method of annotation is that it's not
-> obvious there's a barrier there or which side the barrier is.
+> Since people building kernels may not all get an SVE-enabled
+> toolchain for a while, this patch uses macros that generate
+> explicit opcodes in place of assembler mnemonics.
 > 
-> I think one of the trickiest issues is that a barrier is typically between two
-> things and we're not making it clear what those two things actually are.
-> 
-> Also, I would say that the most natural interpretation of READ_ONCE() is that
-> the implicit barrier comes after the read, e.g.:
-> 
-> 	f = READ_ONCE(stuff->foo);
-> 	/* Implied barrier */
-> 	look_at(f->a);
-> 	look_at(f->b);
-> 
-> I.e. READ_ONCE() prevents stuff->foo from being reread whilst you access f and
-> orders LOAD(stuff->foo) before LOAD(f->a) and LOAD(f->b).
+> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> Reviewed-by: Alex Bennée <alex.bennee@linaro.org>
 
-Placing the comment on the same line makes it less likely that some
-later change will move the comment away from the load that it applies to.
-Which appears to have happened on some of the other instances of
-smp_read_barrier_depends() in other parts of the kernel.  It is not at
-all clear what load they go with, or if that load is even still present
-in the kernel.  :-/
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
 
-							Thanx, Paul
+(not adding reviewed-by as I haven't checked the instruction encodings,
+I just trust you to be correct ;))
