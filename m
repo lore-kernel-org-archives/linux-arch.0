@@ -1,97 +1,230 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:46078 "EHLO
-        mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754282AbdJJT7s (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 10 Oct 2017 15:59:48 -0400
-From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.9 080/105] percpu: make this_cpu_generic_read() atomic w.r.t. interrupts
-Date: Tue, 10 Oct 2017 21:50:51 +0200
-Message-ID: <20171010192546.077105489@linuxfoundation.org>
-In-Reply-To: <20171010192533.717049376@linuxfoundation.org>
-References: <20171010192533.717049376@linuxfoundation.org>
+Received: from foss.arm.com ([217.140.101.70]:58364 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751979AbdJKLIR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 11 Oct 2017 07:08:17 -0400
+Date: Wed, 11 Oct 2017 12:08:11 +0100
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [PATCH v3 26/28] arm64/sve: Add documentation
+Message-ID: <20171011110811.GB19485@e103592.cambridge.arm.com>
+References: <1507660725-7986-1-git-send-email-Dave.Martin@arm.com>
+ <1507660725-7986-27-git-send-email-Dave.Martin@arm.com>
+ <59DDE958.4080605@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=iso-8859-1
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <59DDE958.4080605@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, Arnd Bergmann <arnd@arndb.de>, Christoph Lameter <cl@linux.com>, Peter Zijlstra <peterz@infradead.org>, Pranith Kumar <bobby.prani@gmail.com>, Tejun Heo <tj@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org
-Message-ID: <20171010195051._rf2nb0usjtJnI2Xg8apfgKpf-5e6ngVaJmgpk0HwE8@z>
+To: Szabolcs Nagy <szabolcs.nagy@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, Richard Sandiford <richard.sandiford@arm.com>, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, kvmarm@lists.cs.columbia.edu, libc-alpha@sourceware.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Michael Kerrisk <mtk.manpages@gmail.com>, Mark Rutland <mark.rutland@arm.com>, Alan Hayward <alan.hayward@arm.com>
+Message-ID: <20171011110811.J-0_YKrsw6FZ9Vbegpp4445PFjI4KyCTCE2MNH0Q8rU@z>
 
-4.9-stable review patch.  If anyone has any objections, please let me know.
+On Wed, Oct 11, 2017 at 10:50:16AM +0100, Szabolcs Nagy wrote:
+> On 10/10/17 19:38, Dave Martin wrote:
+> > This patch adds basic documentation of the user/kernel interface
+> > provided by the for SVE.
+> > 
+> > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> > Cc: Alex Bennée <alex.bennee@linaro.org>
+> > Cc: Mark Rutland <mark.rutland@arm.com>
+> > Cc: Alan Hayward <alan.hayward@arm.com>
+> > 
+> > ---
+> > 
+> > Changes since v2
+> > ----------------
+> > 
+> > Changes requested by Alan Hayward:
+> > 
+> >  * Added a note that the caller of PTRACE_SETREGSET will need to do a
+> >    GETREGSET if complete certainty about the resulting VL is desired.
+> > 
+> > ABI changes:
+> > 
+> >  * Documented the changed return value value semantics for PR_SET_SET_VL
+> >    when the PR_SVE_SET_VL_ONEXEC flag is passed.
+> > ---
+> ...
+> > +prctl(PR_SVE_SET_VL, unsigned long arg)
+> > +
+> > +    Sets the vector length of the calling thread and related flags, where
+> > +    arg == vl | flags.
+> > +
+> > +    vl is the desired vector length, where sve_vl_valid(vl) must be true.
+> > +
+> > +    flags:
+> > +
+> > +	PR_SVE_SET_VL_INHERIT
+> > +
+> > +	    Inherit the current vector length across execve().  Otherwise, the
+> > +	    vector length is reset to the system default at execve().  (See
+> > +	    Section 9.)
+> > +
+> > +	PR_SVE_SET_VL_ONEXEC
+> > +
+> > +	    Defer the requested vector length change until the next execve().
+> > +	    This allows launching of a new program with a different vector
+> > +	    length, while avoiding runtime side effects in the caller.
+> > +
+> > +	    This also overrides the effect of PR_SVE_SET_VL_INHERIT for the
+> > +	    first execve().
+> > +
+> > +	    Without PR_SVE_SET_VL_ONEXEC, any outstanding deferred vector
+> > +	    length change is cancelled.
+> > +
+> 
+> "next execve" is still ambiguous. (execve has process
+> global effect so it may plausibly mean next in the
+> process or next in the calling thread)
+> 
+> "any outstanding deferred vector length change" is
+> ambiguous. (it may be for all threads in a process or
+> in the calling thread only)
+> 
+> > +    Return value: a nonnegative on success, or a negative value on error:
+> > +	EINVAL: SVE not supported, invalid vector length requested, or
+> > +	    invalid flags.
+> > +
+> > +    On success, the calling thread's vector length is changed to the largest
+> > +    value supported by the system that is less than or equal to vl.
+> > +    If vl == SVE_VL_MAX, the calling thread's vector length is changed to the
+> > +    largest value supported by the system.
+> > +
+> > +    The returned value describes the resulting configuration, encoded as for
+> > +    PR_SVE_GET_VL.  The vector length reported in this value is the new current
+> > +    vector length for this thread if PR_SVE_SET_VL_ONEXEC was not passed in the
+> > +    input arg; otherwise, the reported vector length is the deferred vector
+> > +    length that will be applied at the next exec.
+> > +
+> ...
+> > +9.  System runtime configuration
+> > +--------------------------------
+> > +
+> > +* To mitigate the ABI impact of expansion of the signal frame, a policy
+> > +  mechanism is provided for administrators, distro maintainers and developers
+> > +  to set the default vector length for userspace processes:
+> > +
+> > +/proc/cpu/sve_default_vector_length
+> > +
+> 
+> still wrong.
 
-------------------
+Dang, sorry, I was focusing on the code and completely missed these
+documentation changes.
 
-From: Mark Rutland <mark.rutland@arm.com>
+The text actually leaves a fair amount to be desired in some places,
+now I look again at it.
 
-commit e88d62cd4b2f0b1ae55e9008e79c2794b1fc914d upstream.
+How does this look:
 
-As raw_cpu_generic_read() is a plain read from a raw_cpu_ptr() address,
-it's possible (albeit unlikely) that the compiler will split the access
-across multiple instructions.
-
-In this_cpu_generic_read() we disable preemption but not interrupts
-before calling raw_cpu_generic_read(). Thus, an interrupt could be taken
-in the middle of the split load instructions. If a this_cpu_write() or
-RMW this_cpu_*() op is made to the same variable in the interrupt
-handling path, this_cpu_read() will return a torn value.
-
-For native word types, we can avoid tearing using READ_ONCE(), but this
-won't work in all cases (e.g. 64-bit types on most 32-bit platforms).
-This patch reworks this_cpu_generic_read() to use READ_ONCE() where
-possible, otherwise falling back to disabling interrupts.
-
-Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Christoph Lameter <cl@linux.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Pranith Kumar <bobby.prani@gmail.com>
-Cc: Tejun Heo <tj@kernel.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-arch@vger.kernel.org
-Signed-off-by: Tejun Heo <tj@kernel.org>
-Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-
----
- include/asm-generic/percpu.h |   24 ++++++++++++++++++++++--
- 1 file changed, 22 insertions(+), 2 deletions(-)
-
---- a/include/asm-generic/percpu.h
-+++ b/include/asm-generic/percpu.h
-@@ -115,15 +115,35 @@ do {									\
- 	(__ret);							\
- })
+diff --git a/Documentation/arm64/sve.txt b/Documentation/arm64/sve.txt
+index 2e8f009..27b8833 100644
+--- a/Documentation/arm64/sve.txt
++++ b/Documentation/arm64/sve.txt
+@@ -75,6 +75,15 @@ the SVE instruction set architecture.
+   assumptions about this.  The kernel behaviour may vary on a case-by-case
+   basis.
  
--#define this_cpu_generic_read(pcp)					\
-+#define __this_cpu_generic_read_nopreempt(pcp)				\
- ({									\
- 	typeof(pcp) __ret;						\
- 	preempt_disable_notrace();					\
--	__ret = raw_cpu_generic_read(pcp);				\
-+	__ret = READ_ONCE(*raw_cpu_ptr(&(pcp)));			\
- 	preempt_enable_notrace();					\
- 	__ret;								\
- })
++* All other SVE state of a thread, including the currently configured vector
++  length, the state of the PR_SVE_VL_INHERIT flag, and the deferred vector
++  length (if any), is preserved across all syscalls, subject to the specific
++  exceptions for execve() described in section 6.
++
++  In particular, on return from a fork() or clone(), the parent and new child
++  process or thread share identical SVE configuration, matching that of the
++  parent before the call.
++
  
-+#define __this_cpu_generic_read_noirq(pcp)				\
-+({									\
-+	typeof(pcp) __ret;						\
-+	unsigned long __flags;						\
-+	raw_local_irq_save(__flags);					\
-+	__ret = raw_cpu_generic_read(pcp);				\
-+	raw_local_irq_restore(__flags);					\
-+	__ret;								\
-+})
+ 4.  Signal handling
+ -------------------
+@@ -136,7 +145,7 @@ length:
+ prctl(PR_SVE_SET_VL, unsigned long arg)
+ 
+     Sets the vector length of the calling thread and related flags, where
+-    arg == vl | flags.
++    arg == vl | flags.  Other threads of the calling process are unaffected.
+ 
+     vl is the desired vector length, where sve_vl_valid(vl) must be true.
+ 
+@@ -150,36 +159,51 @@ prctl(PR_SVE_SET_VL, unsigned long arg)
+ 
+ 	PR_SVE_SET_VL_ONEXEC
+ 
+-	    Defer the requested vector length change until the next execve().
++	    Defer the requested vector length change until the next execve()
++	    performed by this thread.
 +
-+#define this_cpu_generic_read(pcp)					\
-+({									\
-+	typeof(pcp) __ret;						\
-+	if (__native_word(pcp))						\
-+		__ret = __this_cpu_generic_read_nopreempt(pcp);		\
-+	else								\
-+		__ret = __this_cpu_generic_read_noirq(pcp);		\
-+	__ret;								\
-+})
++	    The effect is equivalent to implicit exceution of the following
++	    call immediately after the next execve() (if any) by the thread:
 +
- #define this_cpu_generic_to_op(pcp, val, op)				\
- do {									\
- 	unsigned long __flags;						\
++		prctl(PR_SVE_SET_VL, arg & ~PR_SVE_SET_VL_ONEXEC)
++
+ 	    This allows launching of a new program with a different vector
+ 	    length, while avoiding runtime side effects in the caller.
+ 
+-	    This also overrides the effect of PR_SVE_SET_VL_INHERIT for the
+-	    first execve().
+ 
+-	    Without PR_SVE_SET_VL_ONEXEC, any outstanding deferred vector
+-	    length change is cancelled.
++	    Without PR_SVE_SET_VL_ONEXEC, the requested change takes effect
++	    immediately.
++
+ 
+     Return value: a nonnegative on success, or a negative value on error:
+ 	EINVAL: SVE not supported, invalid vector length requested, or
+ 	    invalid flags.
+ 
+-    On success, the calling thread's vector length is changed to the largest
+-    value supported by the system that is less than or equal to vl.
+-    If vl == SVE_VL_MAX, the calling thread's vector length is changed to the
+-    largest value supported by the system.
+ 
+-    The returned value describes the resulting configuration, encoded as for
+-    PR_SVE_GET_VL.  The vector length reported in this value is the new current
+-    vector length for this thread if PR_SVE_SET_VL_ONEXEC was not passed in the
+-    input arg; otherwise, the reported vector length is the deferred vector
+-    length that will be applied at the next exec.
++    On success:
++
++    * Either the calling thread's vector length or the deferred vector length
++      to be applied at the next execve() by the thread (dependent on whether
++      PR_SVE_SET_VL_ONEXEC is present in arg), is set to the largest value
++      supported by the system that is less than or equal to vl.  If vl ==
++      SVE_VL_MAX, the value set will be the largest value supported by the
++      system.
++
++    * Any previously outstanding deferred vector length change in the calling
++      thread is cancelled.
++
++    * The returned value describes the resulting configuration, encoded as for
++      PR_SVE_GET_VL.  The vector length reported in this value is the new
++      current vector length for this thread if PR_SVE_SET_VL_ONEXEC was not
++      present in arg; otherwise, the reported vector length is the deferred
++      vector length that will be applied at the next execve() by the calling
++      thread.
+ 
+-    Changing the vector length causes all of P0..P15, FFR and all bits of
+-    Z0..V31 except for Z0 bits [127:0] .. Z31 bits [127:0] to become
+-    unspecified.  Calling PR_SVE_SET_VL with vl equal to the thread's current
+-    vector length does not constitute a change to the vector length for this
+-    purpose.
++    * Changing the vector length causes all of P0..P15, FFR and all bits of
++      Z0..V31 except for Z0 bits [127:0] .. Z31 bits [127:0] to become
++      unspecified.  Calling PR_SVE_SET_VL with vl equal to the thread's current
++      vector length, or calling PR_SVE_SET_VL with the PR_SVE_SET_VL_ONEXEC
++      flag, does not constitute a change to the vector length for this purpose.
+ 
+ 
+ prctl(PR_SVE_GET_VL)
+@@ -315,7 +339,7 @@ The regset data starts with struct user_sve_header, containing:
+   mechanism is provided for administrators, distro maintainers and developers
+   to set the default vector length for userspace processes:
+ 
+-/proc/cpu/sve_default_vector_length
++/proc/sys/abi/sve_default_vector_length
+ 
+     Writing the text representation of an integer to this file sets the system
+     default vector length to the specified value, unless the value is greater
