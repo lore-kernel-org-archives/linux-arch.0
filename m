@@ -1,69 +1,63 @@
-From: Thomas Garnier <thgarnie@google.com>
-Subject: [PATCH v1 18/27] kvm: Adapt assembly for PIE support
-Date: Wed, 11 Oct 2017 13:30:18 -0700
-Message-ID: <20171011203027.11248-19-thgarnie@google.com>
-References: <20171011203027.11248-1-thgarnie@google.com>
+From: Dave Chinner <david@fromorbit.com>
+Subject: Re: [PATCH v6 00/11] locking/rwsem: Rework rwsem-xadd & enable new
+ rwsem features
+Date: Thu, 12 Oct 2017 07:45:57 +1100
+Message-ID: <20171011204557.GJ15067@dastard>
+References: <1507744922-15196-1-git-send-email-longman@redhat.com>
+ <20171011184840.3uomgj3hxxzernfd@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <xen-devel-bounces@lists.xen.org>
-In-Reply-To: <20171011203027.11248-1-thgarnie@google.com>
-List-Unsubscribe: <https://lists.xen.org/cgi-bin/mailman/options/xen-devel>,
- <mailto:xen-devel-request@lists.xen.org?subject=unsubscribe>
-List-Post: <mailto:xen-devel@lists.xen.org>
-List-Help: <mailto:xen-devel-request@lists.xen.org?subject=help>
-List-Subscribe: <https://lists.xen.org/cgi-bin/mailman/listinfo/xen-devel>,
- <mailto:xen-devel-request@lists.xen.org?subject=subscribe>
-Errors-To: xen-devel-bounces@lists.xen.org
-Sender: "Xen-devel" <xen-devel-bounces@lists.xen.org>
-To: Herbert Xu <herbert@gondor.apana.org.au>, "David S . Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Thomas Garnier <thgarnie@google.com>, Kees Cook <keescook@chromium.org>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Matthias Kaehlcke <mka@chromium.org>, Tom Lendacky <thomas.lendacky@amd.com>, Andy Lutomirski <luto@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Borislav Petkov <bp@suse.de>, "Rafael J . Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Pavel Machek <pavel@ucw.cz>, Juergen Gross <jgross@suse.com>, Chris Wright <chrisw@sous-sol.org>, Alok Kataria <akataria@vmware.com>, Rusty Russell <rusty@rustcorp.com.au>, Tejun Heo <tj@kernel.>
-Cc: linux-arch@vger.kernel.org, kvm@vger.kernel.org, linux-pm@vger.kernel.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, linux-sparse@vger.kernel.org, linux-crypto@vger.kernel.org, kernel-hardening@lists.openwall.com, xen-devel@lists.xenproject.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20171011184840.3uomgj3hxxzernfd@hirez.programming.kicks-ass.net>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Waiman Long <longman@redhat.com>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>
 List-Id: linux-arch.vger.kernel.org
 
-Q2hhbmdlIHRoZSBhc3NlbWJseSBjb2RlIHRvIHVzZSBvbmx5IHJlbGF0aXZlIHJlZmVyZW5jZXMg
-b2Ygc3ltYm9scyBmb3IgdGhlCmtlcm5lbCB0byBiZSBQSUUgY29tcGF0aWJsZS4gVGhlIG5ldyBf
-X0FTTV9HRVRfUFRSX1BSRSBtYWNybyBpcyB1c2VkIHRvCmdldCB0aGUgYWRkcmVzcyBvZiBhIHN5
-bWJvbCBvbiBib3RoIDMyIGFuZCA2NC1iaXQgd2l0aCBQSUUgc3VwcG9ydC4KClBvc2l0aW9uIElu
-ZGVwZW5kZW50IEV4ZWN1dGFibGUgKFBJRSkgc3VwcG9ydCB3aWxsIGFsbG93IHRvIGV4dGVuZGVk
-IHRoZQpLQVNMUiByYW5kb21pemF0aW9uIHJhbmdlIGJlbG93IHRoZSAtMkcgbWVtb3J5IGxpbWl0
-LgoKU2lnbmVkLW9mZi1ieTogVGhvbWFzIEdhcm5pZXIgPHRoZ2FybmllQGdvb2dsZS5jb20+Ci0t
-LQogYXJjaC94ODYvaW5jbHVkZS9hc20va3ZtX2hvc3QuaCB8IDYgKysrKy0tCiBhcmNoL3g4Ni9r
-ZXJuZWwva3ZtLmMgICAgICAgICAgIHwgNiArKysrLS0KIGFyY2gveDg2L2t2bS9zdm0uYyAgICAg
-ICAgICAgICAgfCA0ICsrLS0KIDMgZmlsZXMgY2hhbmdlZCwgMTAgaW5zZXJ0aW9ucygrKSwgNiBk
-ZWxldGlvbnMoLSkKCmRpZmYgLS1naXQgYS9hcmNoL3g4Ni9pbmNsdWRlL2FzbS9rdm1faG9zdC5o
-IGIvYXJjaC94ODYvaW5jbHVkZS9hc20va3ZtX2hvc3QuaAppbmRleCA5ZDdkODU2YjJkODkuLjE0
-MDczZmRhNzVmYiAxMDA2NDQKLS0tIGEvYXJjaC94ODYvaW5jbHVkZS9hc20va3ZtX2hvc3QuaAor
-KysgYi9hcmNoL3g4Ni9pbmNsdWRlL2FzbS9rdm1faG9zdC5oCkBAIC0xMzQyLDkgKzEzNDIsMTEg
-QEAgYXNtbGlua2FnZSB2b2lkIGt2bV9zcHVyaW91c19mYXVsdCh2b2lkKTsKIAkiLnB1c2hzZWN0
-aW9uIC5maXh1cCwgXCJheFwiIFxuIiBcCiAJIjY2NzogXG5cdCIgXAogCWNsZWFudXBfaW5zbiAi
-XG5cdCIJCSAgICAgIFwKLQkiY21wYiAkMCwga3ZtX3JlYm9vdGluZyBcblx0IgkgICAgICBcCisJ
-ImNtcGIgJDAsIGt2bV9yZWJvb3RpbmciIF9fQVNNX1NFTCgsKCUlcmlwKSkgIiBcblx0IiBcCiAJ
-ImpuZSA2NjhiIFxuXHQiICAgICAgCQkgICAgICBcCi0JX19BU01fU0laRShwdXNoKSAiICQ2NjZi
-IFxuXHQiCSAgICAgIFwKKwlfX0FTTV9TSVpFKHB1c2gpICIlJSIgX0FTTV9BWCAiIFxuXHQiCQlc
-CisJX19BU01fR0VUX1BUUl9QUkUoNjY2YikgIiUlIiBfQVNNX0FYICJcblx0IglcCisJInhjaGcg
-JSUiIF9BU01fQVggIiwgKCUlIiBfQVNNX1NQICIpIFxuXHQiCVwKIAkiY2FsbCBrdm1fc3B1cmlv
-dXNfZmF1bHQgXG5cdCIJICAgICAgXAogCSIucG9wc2VjdGlvbiBcblx0IiBcCiAJX0FTTV9FWFRB
-QkxFKDY2NmIsIDY2N2IpCmRpZmYgLS1naXQgYS9hcmNoL3g4Ni9rZXJuZWwva3ZtLmMgYi9hcmNo
-L3g4Ni9rZXJuZWwva3ZtLmMKaW5kZXggOGJiOTU5NGQwNzYxLi40NDY0YzM2Njc4MzEgMTAwNjQ0
-Ci0tLSBhL2FyY2gveDg2L2tlcm5lbC9rdm0uYworKysgYi9hcmNoL3g4Ni9rZXJuZWwva3ZtLmMK
-QEAgLTYyNyw4ICs2MjcsMTAgQEAgYXNtKAogIi5nbG9iYWwgX19yYXdfY2FsbGVlX3NhdmVfX19r
-dm1fdmNwdV9pc19wcmVlbXB0ZWQ7IgogIi50eXBlIF9fcmF3X2NhbGxlZV9zYXZlX19fa3ZtX3Zj
-cHVfaXNfcHJlZW1wdGVkLCBAZnVuY3Rpb247IgogIl9fcmF3X2NhbGxlZV9zYXZlX19fa3ZtX3Zj
-cHVfaXNfcHJlZW1wdGVkOiIKLSJtb3ZxCV9fcGVyX2NwdV9vZmZzZXQoLCVyZGksOCksICVyYXg7
-IgotImNtcGIJJDAsICIgX19zdHJpbmdpZnkoS1ZNX1NURUFMX1RJTUVfcHJlZW1wdGVkKSAiK3N0
-ZWFsX3RpbWUoJXJheCk7IgorImxlYXEJX19wZXJfY3B1X29mZnNldCglcmlwKSwgJXJheDsiCisi
-bW92cQkoJXJheCwlcmRpLDgpLCAlcmF4OyIKKyJhZGRxCSIgX19zdHJpbmdpZnkoS1ZNX1NURUFM
-X1RJTUVfcHJlZW1wdGVkKSAiK3N0ZWFsX3RpbWUoJXJpcCksICVyYXg7IgorImNtcGIJJDAsICgl
-cmF4KTsiCiAic2V0bmUJJWFsOyIKICJyZXQ7IgogIi5wb3BzZWN0aW9uIik7CmRpZmYgLS1naXQg
-YS9hcmNoL3g4Ni9rdm0vc3ZtLmMgYi9hcmNoL3g4Ni9rdm0vc3ZtLmMKaW5kZXggMGU2OGYwYjNj
-YmY3Li4zNjQ1MzYwODA0MzggMTAwNjQ0Ci0tLSBhL2FyY2gveDg2L2t2bS9zdm0uYworKysgYi9h
-cmNoL3g4Ni9rdm0vc3ZtLmMKQEAgLTU2OCwxMiArNTY4LDEyIEBAIHN0YXRpYyB1MzIgc3ZtX21z
-cnBtX29mZnNldCh1MzIgbXNyKQogCiBzdGF0aWMgaW5saW5lIHZvaWQgY2xnaSh2b2lkKQogewot
-CWFzbSB2b2xhdGlsZSAoX19leChTVk1fQ0xHSSkpOworCWFzbSB2b2xhdGlsZSAoX19leChTVk1f
-Q0xHSSkgOiA6KTsKIH0KIAogc3RhdGljIGlubGluZSB2b2lkIHN0Z2kodm9pZCkKIHsKLQlhc20g
-dm9sYXRpbGUgKF9fZXgoU1ZNX1NUR0kpKTsKKwlhc20gdm9sYXRpbGUgKF9fZXgoU1ZNX1NUR0kp
-IDogOik7CiB9CiAKIHN0YXRpYyBpbmxpbmUgdm9pZCBpbnZscGdhKHVuc2lnbmVkIGxvbmcgYWRk
-ciwgdTMyIGFzaWQpCi0tIAoyLjE1LjAucmMwLjI3MS5nMzZiNjY5ZWRjYy1nb29nCgoKX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18KWGVuLWRldmVsIG1haWxp
-bmcgbGlzdApYZW4tZGV2ZWxAbGlzdHMueGVuLm9yZwpodHRwczovL2xpc3RzLnhlbi5vcmcveGVu
-LWRldmVsCg==
+On Wed, Oct 11, 2017 at 08:48:40PM +0200, Peter Zijlstra wrote:
+> On Wed, Oct 11, 2017 at 02:01:51PM -0400, Waiman Long wrote:
+> >   # of Patches		   Reader 		  Writer
+> >     Applied		Locking Rate		Locking Rate
+> >   ------------		------------		------------
+> > 	0	5,155/    5,155/    5,155    5,154/248,852/346,281
+> > 	7	5,696/    5,697/    5,698  113,500/215,826/320,872
+> > 	8	4,827/    5,047/    5,215    4,826/176,797/284,069
+> > 	9     211,276/  509,712/1,134,007    4,894/221,839/246,818
+> >        11     884,513/1,043,989/1,252,533    9,604/ 11,105/ 25,225
+> > 
+> > It can be seen that rwsem changes from writer-preferring to
+> > reader-preferring.
+> 
+> A bit radically so, you almost starve the writers there.
+
+Which is a bit of a problem for us, because we often use the write
+locks as an IO barrier for operations like truncate, fallocate, etc.
+i.e. we want it to immediately block readers.
+
+That's going to be a bit of a problem if, for example, we have so
+many AIO-based direct IO writers on a file we can't get fallocate to
+run in a timely fashion to preallocate the space the writers are
+soon going to write into.
+
+Not to mention the AIO-DIO append case where we have multiple
+concurrent writers at EOF, and so every so often one of the many IOs
+needs to take the write lock extending EOF safely. Blocking that for
+10ms waiting for a hand-off is going to make all the people who care
+about deterministic IO latency go nuts....
+
+So from my perspective on the IO side, I'd much prefer a write bias.
+Indeed, if we go back to the Irix XFS code, all these locks we
+defined as "MR_BARRIER" locks, which meant the XFS rwsems were
+specifically intended to have writer bias.
+
+I think we can live with a fair r/w bias, but swinging from a
+50:1 write bias to a 100:1 read bias is going change behaviour
+dramatically, and in many cases it won't be an improvement...
+
+Cheers,
+
+Dave.
+-- 
+Dave Chinner
+david@fromorbit.com
