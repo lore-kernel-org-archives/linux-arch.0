@@ -1,159 +1,227 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:58336 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:53024 "EHLO mx1.redhat.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1757875AbdJKSC2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 11 Oct 2017 14:02:28 -0400
+        id S1757907AbdJKSCW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 11 Oct 2017 14:02:22 -0400
 From: Waiman Long <longman@redhat.com>
-Subject: [PATCH v6 08/11] locking/rwsem: Enable readers spinning on writer
-Date: Wed, 11 Oct 2017 14:01:59 -0400
-Message-ID: <1507744922-15196-9-git-send-email-longman@redhat.com>
+Subject: [PATCH v6 04/11] locking/rwsem: Remove kernel/locking/rwsem.h
+Date: Wed, 11 Oct 2017 14:01:55 -0400
+Message-ID: <1507744922-15196-5-git-send-email-longman@redhat.com>
 In-Reply-To: <1507744922-15196-1-git-send-email-longman@redhat.com>
 References: <1507744922-15196-1-git-send-email-longman@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>
 Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, Dave Chinner <david@fromorbit.com>, Waiman Long <longman@redhat.com>
-Message-ID: <20171011180159.UK0-utIuUAhtubkb5m6YgGozwB1_kVYH0ABpM5y4cYY@z>
+Message-ID: <20171011180155.Ds-QbrCs1rc8R6Xt2ccxagqhX5wcQg9aEpiNqAwzjoU@z>
 
-This patch enables readers to optimistically spin on a
-rwsem when it is owned by a writer instead of going to sleep
-directly.  The rwsem_can_spin_on_owner() function is extracted
-out of rwsem_optimistic_spin() and is called directly by
-rwsem_down_read_failed() and rwsem_down_write_failed().
-
-This patch may actually reduce performance under certain circumstances
-as the readers may not be grouped together in the wait queue anymore.
-So we may have a number of small reader groups among writers instead
-of a large reader group. However, this change is needed for some of
-the subsequent patches.
+The content of kernel/locking/rwsem.h is now specific to rwsem-xadd. So
+we can just move the its content into rwsem-xadd.h and remove it.
 
 Signed-off-by: Waiman Long <longman@redhat.com>
 ---
- kernel/locking/rwsem-xadd.c | 66 ++++++++++++++++++++++++++++++++++++++-------
- 1 file changed, 57 insertions(+), 9 deletions(-)
+ kernel/locking/percpu-rwsem.c |  4 ++-
+ kernel/locking/rwsem-xadd.c   |  2 +-
+ kernel/locking/rwsem-xadd.h   | 66 +++++++++++++++++++++++++++++++++++++++++
+ kernel/locking/rwsem.c        |  4 ++-
+ kernel/locking/rwsem.h        | 69 -------------------------------------------
+ 5 files changed, 73 insertions(+), 72 deletions(-)
+ delete mode 100644 kernel/locking/rwsem.h
 
+diff --git a/kernel/locking/percpu-rwsem.c b/kernel/locking/percpu-rwsem.c
+index f17dad9..d06f7c3 100644
+--- a/kernel/locking/percpu-rwsem.c
++++ b/kernel/locking/percpu-rwsem.c
+@@ -7,7 +7,9 @@
+ #include <linux/sched.h>
+ #include <linux/errno.h>
+ 
+-#include "rwsem.h"
++#ifdef CONFIG_RWSEM_XCHGADD_ALGORITHM
++#include "rwsem-xadd.h"
++#endif
+ 
+ int __percpu_init_rwsem(struct percpu_rw_semaphore *sem,
+ 			const char *name, struct lock_class_key *rwsem_key)
 diff --git a/kernel/locking/rwsem-xadd.c b/kernel/locking/rwsem-xadd.c
-index bca412f..52305c3 100644
+index 30bc163..e3ab430 100644
 --- a/kernel/locking/rwsem-xadd.c
 +++ b/kernel/locking/rwsem-xadd.c
-@@ -228,6 +228,28 @@ static void __rwsem_mark_wake(struct rw_semaphore *sem,
+@@ -18,7 +18,7 @@
+ #include <linux/sched/debug.h>
+ #include <linux/osq_lock.h>
  
- #ifdef CONFIG_RWSEM_SPIN_ON_OWNER
+-#include "rwsem.h"
++#include "rwsem-xadd.h"
+ 
  /*
-+ * Try to acquire read lock before the reader is put on wait queue.
+  * Guide to the rw_semaphore's count field.
+diff --git a/kernel/locking/rwsem-xadd.h b/kernel/locking/rwsem-xadd.h
+index abcb484..4c19539 100644
+--- a/kernel/locking/rwsem-xadd.h
++++ b/kernel/locking/rwsem-xadd.h
+@@ -4,6 +4,72 @@
+ #include <linux/rwsem.h>
+ 
+ /*
++ * The owner field of the rw_semaphore structure will be set to
++ * RWSEM_READ_OWNED when a reader grabs the lock. A writer will clear
++ * the owner field when it unlocks. A reader, on the other hand, will
++ * not touch the owner field when it unlocks.
++ *
++ * In essence, the owner field now has the following 3 states:
++ *  1) 0
++ *     - lock is free or the owner hasn't set the field yet
++ *  2) RWSEM_READER_OWNED
++ *     - lock is currently or previously owned by readers (lock is free
++ *       or not set by owner yet)
++ *  3) Other non-zero value
++ *     - a writer owns the lock
 + */
-+static inline bool rwsem_try_read_lock_unqueued(struct rw_semaphore *sem)
++#define RWSEM_READER_OWNED	((struct task_struct *)1UL)
++
++#ifdef CONFIG_RWSEM_SPIN_ON_OWNER
++/*
++ * All writes to owner are protected by WRITE_ONCE() to make sure that
++ * store tearing can't happen as optimistic spinners may read and use
++ * the owner value concurrently without lock. Read from owner, however,
++ * may not need READ_ONCE() as long as the pointer value is only used
++ * for comparison and isn't being dereferenced.
++ */
++static inline void rwsem_set_owner(struct rw_semaphore *sem)
 +{
-+	int count = atomic_read(&sem->count);
++	WRITE_ONCE(sem->owner, current);
++}
 +
-+	if (count & (RWSEM_FLAG_HANDOFF|RWSEM_WRITER_LOCKED))
-+		return false;
-+
-+	count = atomic_fetch_add_acquire(RWSEM_READER_BIAS, &sem->count);
-+	if (!(count & (RWSEM_FLAG_HANDOFF|RWSEM_WRITER_LOCKED))) {
-+		if (!(count >> RWSEM_READER_SHIFT))
-+			rwsem_set_reader_owned(sem);
-+		return true;
-+	}
-+
-+	/* Back out the change */
-+	atomic_add(-RWSEM_READER_BIAS, &sem->count);
-+	return false;
++static inline void rwsem_clear_owner(struct rw_semaphore *sem)
++{
++	WRITE_ONCE(sem->owner, NULL);
 +}
 +
 +/*
-  * Try to acquire write lock before the writer has been put on wait queue.
-  */
- static inline bool rwsem_try_write_lock_unqueued(struct rw_semaphore *sem)
-@@ -318,16 +340,14 @@ static noinline bool rwsem_spin_on_owner(struct rw_semaphore *sem)
- 	return !rwsem_owner_is_reader(READ_ONCE(sem->owner));
- }
- 
--static bool rwsem_optimistic_spin(struct rw_semaphore *sem)
-+static bool
-+rwsem_optimistic_spin(struct rw_semaphore *sem, enum rwsem_waiter_type type)
- {
- 	bool taken = false;
- 
- 	preempt_disable();
- 
- 	/* sem->wait_lock should not be held when doing optimistic spinning */
--	if (!rwsem_can_spin_on_owner(sem))
--		goto done;
--
- 	if (!osq_lock(&sem->osq))
- 		goto done;
- 
-@@ -342,10 +362,12 @@ static bool rwsem_optimistic_spin(struct rw_semaphore *sem)
- 		/*
- 		 * Try to acquire the lock
- 		 */
--		if (rwsem_try_write_lock_unqueued(sem)) {
--			taken = true;
-+		taken = (type == RWSEM_WAITING_FOR_WRITE)
-+		      ? rwsem_try_write_lock_unqueued(sem)
-+		      : rwsem_try_read_lock_unqueued(sem);
-+
-+		if (taken)
- 			break;
--		}
- 
- 		/*
- 		 * When there's no owner, we might have preempted between the
-@@ -379,7 +401,13 @@ static inline bool rwsem_has_spinner(struct rw_semaphore *sem)
- }
- 
- #else
--static bool rwsem_optimistic_spin(struct rw_semaphore *sem)
-+static inline bool rwsem_can_spin_on_owner(struct rw_semaphore *sem)
++ * This should only be called by the first reader that acquires the read lock.
++ */
++static inline void rwsem_set_reader_owned(struct rw_semaphore *sem)
 +{
-+	return false;
++	WRITE_ONCE(sem->owner, RWSEM_READER_OWNED);
 +}
 +
-+static inline bool
-+rwsem_optimistic_spin(struct rw_semaphore *sem, enum rwsem_waiter_type type)
- {
- 	return false;
- }
-@@ -406,10 +434,29 @@ static inline bool rwsem_has_spinner(struct rw_semaphore *sem)
- static inline struct rw_semaphore __sched *
- __rwsem_down_read_failed_common(struct rw_semaphore *sem, int state)
- {
-+	bool can_spin;
- 	int count, adjustment = -RWSEM_READER_BIAS;
- 	struct rwsem_waiter waiter;
- 	DEFINE_WAKE_Q(wake_q);
- 
-+	/*
-+	 * Undo read bias from down_read operation to stop active locking if:
-+	 * 1) Optimistic spinners are present; or
-+	 * 2) optimistic spinning is allowed.
-+	 */
-+	can_spin = rwsem_can_spin_on_owner(sem);
-+	if (can_spin || rwsem_has_spinner(sem)) {
-+		atomic_add(-RWSEM_READER_BIAS, &sem->count);
-+		adjustment = 0;
++static inline bool rwsem_owner_is_writer(struct task_struct *owner)
++{
++	return owner && owner != RWSEM_READER_OWNED;
++}
 +
-+		/*
-+		 * Do optimistic spinning and steal lock if possible.
-+		 */
-+		if (can_spin &&
-+		    rwsem_optimistic_spin(sem, RWSEM_WAITING_FOR_READ))
-+			return sem;
-+	}
++static inline bool rwsem_owner_is_reader(struct task_struct *owner)
++{
++	return owner == RWSEM_READER_OWNED;
++}
++#else
++static inline void rwsem_set_owner(struct rw_semaphore *sem)
++{
++}
 +
- 	waiter.task = current;
- 	waiter.type = RWSEM_WAITING_FOR_READ;
- 	waiter.timeout = jiffies + RWSEM_WAIT_TIMEOUT;
-@@ -492,7 +539,8 @@ static inline bool rwsem_has_spinner(struct rw_semaphore *sem)
- 	DEFINE_WAKE_Q(wake_q);
++static inline void rwsem_clear_owner(struct rw_semaphore *sem)
++{
++}
++
++static inline void rwsem_set_reader_owned(struct rw_semaphore *sem)
++{
++}
++#endif
++
++/*
+  * The definition of the atomic counter in the semaphore:
+  *
+  * Bit  0    - writer locked bit
+diff --git a/kernel/locking/rwsem.c b/kernel/locking/rwsem.c
+index 0a32725..2ad3af8 100644
+--- a/kernel/locking/rwsem.c
++++ b/kernel/locking/rwsem.c
+@@ -12,7 +12,9 @@
+ #include <linux/rwsem.h>
+ #include <linux/atomic.h>
  
- 	/* do optimistic spinning and steal lock if possible */
--	if (rwsem_optimistic_spin(sem))
-+	if (rwsem_can_spin_on_owner(sem) &&
-+	    rwsem_optimistic_spin(sem, RWSEM_WAITING_FOR_WRITE))
- 		return sem;
+-#include "rwsem.h"
++#ifdef CONFIG_RWSEM_XCHGADD_ALGORITHM
++#include "rwsem-xadd.h"
++#endif
  
- 	/*
+ /*
+  * lock for reading
+diff --git a/kernel/locking/rwsem.h b/kernel/locking/rwsem.h
+deleted file mode 100644
+index 612109f..0000000
+--- a/kernel/locking/rwsem.h
++++ /dev/null
+@@ -1,69 +0,0 @@
+-/*
+- * The owner field of the rw_semaphore structure will be set to
+- * RWSEM_READ_OWNED when a reader grabs the lock. A writer will clear
+- * the owner field when it unlocks. A reader, on the other hand, will
+- * not touch the owner field when it unlocks.
+- *
+- * In essence, the owner field now has the following 3 states:
+- *  1) 0
+- *     - lock is free or the owner hasn't set the field yet
+- *  2) RWSEM_READER_OWNED
+- *     - lock is currently or previously owned by readers (lock is free
+- *       or not set by owner yet)
+- *  3) Other non-zero value
+- *     - a writer owns the lock
+- */
+-#define RWSEM_READER_OWNED	((struct task_struct *)1UL)
+-
+-#ifdef CONFIG_RWSEM_SPIN_ON_OWNER
+-/*
+- * All writes to owner are protected by WRITE_ONCE() to make sure that
+- * store tearing can't happen as optimistic spinners may read and use
+- * the owner value concurrently without lock. Read from owner, however,
+- * may not need READ_ONCE() as long as the pointer value is only used
+- * for comparison and isn't being dereferenced.
+- */
+-static inline void rwsem_set_owner(struct rw_semaphore *sem)
+-{
+-	WRITE_ONCE(sem->owner, current);
+-}
+-
+-static inline void rwsem_clear_owner(struct rw_semaphore *sem)
+-{
+-	WRITE_ONCE(sem->owner, NULL);
+-}
+-
+-/*
+- * This should only be called by the first reader that acquires the read lock.
+- */
+-static inline void rwsem_set_reader_owned(struct rw_semaphore *sem)
+-{
+-	WRITE_ONCE(sem->owner, RWSEM_READER_OWNED);
+-}
+-
+-static inline bool rwsem_owner_is_writer(struct task_struct *owner)
+-{
+-	return owner && owner != RWSEM_READER_OWNED;
+-}
+-
+-static inline bool rwsem_owner_is_reader(struct task_struct *owner)
+-{
+-	return owner == RWSEM_READER_OWNED;
+-}
+-#else
+-static inline void rwsem_set_owner(struct rw_semaphore *sem)
+-{
+-}
+-
+-static inline void rwsem_clear_owner(struct rw_semaphore *sem)
+-{
+-}
+-
+-static inline void rwsem_set_reader_owned(struct rw_semaphore *sem)
+-{
+-}
+-#endif
+-
+-#ifdef CONFIG_RWSEM_XCHGADD_ALGORITHM
+-#include "rwsem-xadd.h"
+-#endif
 -- 
 1.8.3.1
