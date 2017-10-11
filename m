@@ -1,39 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:33806 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751744AbdJKO3z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 11 Oct 2017 10:29:55 -0400
-Date: Wed, 11 Oct 2017 15:29:51 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v3 09/28] arm64/sve: Signal frame and context structure
- definition
-Message-ID: <20171011142950.zdhpaenvz4u5oyc3@armageddon.cambridge.arm.com>
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:34186 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752213AbdJKOps (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 11 Oct 2017 10:45:48 -0400
+Date: Wed, 11 Oct 2017 15:45:43 +0100
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [PATCH v3 01/28] regset: Add support for dynamically sized
+ regsets
+Message-ID: <20171011144543.GE19485@e103592.cambridge.arm.com>
 References: <1507660725-7986-1-git-send-email-Dave.Martin@arm.com>
- <1507660725-7986-10-git-send-email-Dave.Martin@arm.com>
+ <1507660725-7986-2-git-send-email-Dave.Martin@arm.com>
+ <20171011141410.tu53u2ugvs6n7uem@armageddon.cambridge.arm.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=iso-8859-1
 Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
-In-Reply-To: <1507660725-7986-10-git-send-email-Dave.Martin@arm.com>
+In-Reply-To: <20171011141410.tu53u2ugvs6n7uem@armageddon.cambridge.arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu
-Message-ID: <20171011142951.v6_cWGmpYXnJ-AB91NQ_blRzFyL-jMfeSpWDExZVsBc@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: linux-arch@vger.kernel.org, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, Will Deacon <will.deacon@arm.com>, viro@zeniv.linux.org.uk, linux-fsdevel@vger.kernel.org, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
+Message-ID: <20171011144543.2pOA-pBQht1XhyN3b6m7iaaX4-wLorPaNEqIebfaukg@z>
 
-On Tue, Oct 10, 2017 at 07:38:26PM +0100, Dave P Martin wrote:
-> This patch defines the representation that will be used for the SVE
-> register state in the signal frame, and implements support for
-> saving and restoring the SVE registers around signals.
+On Wed, Oct 11, 2017 at 03:14:10PM +0100, Catalin Marinas wrote:
+> On Tue, Oct 10, 2017 at 07:38:18PM +0100, Dave P Martin wrote:
+> > Currently the regset API doesn't allow for the possibility that
+> > regsets (or at least, the amount of meaningful data in a regset)
+> > may change in size.
+> > 
+> > In particular, this results in useless padding being added to
+> > coredumps in a regset's current size is smaller than its
+> > theoretical maximum size.
+> > 
+> > This patch adds a get_size() function to struct user_regset.
+> > Individual regset implementations can implement this function to
+> > return the current size of the regset data.  A regset_size()
+> > function is added to provide callers with an abstract interface for
+> > determining the size of a regset without needing to know whether
+> > the regset is dynamically sized or not.
+> > 
+> > The only affected user of this interface is the ELF coredump code:
+> > This patch ports ELF coredump to dump regsets with their actual
+> > size in the coredump.  This has no effect except for new regsets
+> > that are dynamically sized and provide a get_size() implementation.
+> > 
+> > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> > Reviewed-by: Alex Bennée <alex.bennee@linaro.org>
+> > ---
+> >  fs/binfmt_elf.c        |  6 ++---
+> >  include/linux/regset.h | 67 ++++++++++++++++++++++++++++++++++++++++++++------
+> >  2 files changed, 63 insertions(+), 10 deletions(-)
 > 
-> The same layout will also be used for the in-kernel task state.
+> The patch looks fine to me:
 > 
-> Due to the variability of the SVE vector length, it is not possible
-> to define a fixed C struct to describe all the registers.  Instead,
-> Macros are defined in sigcontext.h to facilitate access to the
-> parts of the structure.
+> Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
 > 
-> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> Cc: Alex Bennée <alex.bennee@linaro.org>
+> However, you'd probably need an ack from the filesystem maintainers
+> (cc'ed; patch below for reference).
 
-Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+Apologies for that -- I manually added Ccs to this patch in previous
+postings, and predictably lost them in the respin.
+
+I'll add Cc lines in the commit message, since there will be a
+further re-spin of the series to apply the Documentation changes
+requested by Szabolcs that I missed.
+
+I don't currently have any pending fixes to _this_ patch, so it's still
+worth reviewing.
+
+Cheers
+---Dave
+
+[...]
