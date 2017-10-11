@@ -1,39 +1,42 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH RFC tip/core/rcu 12/15] lib/assoc_array: Remove
- smp_read_barrier_depends()
-Date: Wed, 11 Oct 2017 19:11:37 +0200
-Message-ID: <20171011171137.bb2evetsnk2qtdhc@hirez.programming.kicks-ass.net>
-References: <20171010001951.GA6476@linux.vnet.ibm.com>
- <8079.1507628146@warthog.procyon.org.uk>
- <26455.1507724399@warthog.procyon.org.uk>
- <6309.1507735045@warthog.procyon.org.uk>
- <20171011155948.GE3521@linux.vnet.ibm.com>
- <20171011161220.zqkdhynxerrcmvdd@hirez.programming.kicks-ass.net>
- <20171011162412.o6lmjiag7spwabge@hirez.programming.kicks-ass.net>
- <20171011164748.GK3521@linux.vnet.ibm.com>
- <20171011165405.xd4xfa2x3dcz4e57@hirez.programming.kicks-ass.net>
- <20171011170631.GN3521@linux.vnet.ibm.com>
+From: Suzuki K Poulose <Suzuki.Poulose@arm.com>
+Subject: Re: [PATCH v3 25/28] arm64/sve: Detect SVE and activate runtime
+ support
+Date: Wed, 11 Oct 2017 18:11:48 +0100
+Message-ID: <54bcf388-ee66-c3f3-8eca-d6553a7f2c54@arm.com>
+References: <1507660725-7986-1-git-send-email-Dave.Martin@arm.com>
+ <1507660725-7986-26-git-send-email-Dave.Martin@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=us-ascii; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:51834 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751528AbdJKRLs (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 11 Oct 2017 13:11:48 -0400
-Content-Disposition: inline
-In-Reply-To: <20171011170631.GN3521@linux.vnet.ibm.com>
+Received: from foss.arm.com ([217.140.101.70]:36448 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751659AbdJKRLw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 11 Oct 2017 13:11:52 -0400
+In-Reply-To: <1507660725-7986-26-git-send-email-Dave.Martin@arm.com>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, mingo@kernel.org, torvalds@linux-foundation.org, mark.rutland@arm.com, linux-arch@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, Alexander Kuleshov <kuleshovmail@gmail.com>, dvyukov@google.com
+To: Dave Martin <Dave.Martin@arm.com>, linux-arm-kernel@lists.infradead.org
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, =?UTF-8?Q?Alex_Benn=c3=a9e?= <alex.bennee@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, kvmarm@lists.cs.columbia.edu, libc-alpha@sourceware.org, linux-arch@vger.kernel.org
 
-On Wed, Oct 11, 2017 at 10:06:31AM -0700, Paul E. McKenney wrote:
-
-> This, you mean?
+On 10/10/17 19:38, Dave Martin wrote:
+> This patch enables detection of hardware SVE support via the
+> cpufeatures framework, and reports its presence to the kernel and
+> userspace via the new ARM64_SVE cpucap and HWCAP_SVE hwcap
+> respectively.
 > 
-> data = rcu_dereference_sched(*this_cpu_ptr(&cpufreq_update_util_data));
+> Userspace can also detect SVE using ID_AA64PFR0_EL1, using the
+> cpufeatures MRS emulation.
+> 
+> When running on hardware that supports SVE, this enables runtime
+> kernel support for SVE, and allows user tasks to execute SVE
+> instructions and make of the of the SVE-specific user/kernel
+> interface extensions implemented by this series.
+> 
+> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> Cc: Suzuki K Poulose <suzuki.poulose@arm.com>
 
-Yep, that one. Although in my tree it now appears to look like:
+Looks good to me.
 
-        data = rcu_dereference_sched(*per_cpu_ptr(&cpufreq_update_util_data,
-                                                  cpu_of(rq)));
+Reviewed-by: Suzuki K Poulose <suzuki.poulose@arm.com>
