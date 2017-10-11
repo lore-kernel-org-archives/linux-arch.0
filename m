@@ -1,53 +1,128 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH RFC tip/core/rcu 12/15] lib/assoc_array: Remove
- smp_read_barrier_depends()
-Date: Wed, 11 Oct 2017 18:12:20 +0200
-Message-ID: <20171011161220.zqkdhynxerrcmvdd@hirez.programming.kicks-ass.net>
-References: <20171011122217.GD11106@arm.com>
- <20171010155042.GD3521@linux.vnet.ibm.com>
- <1507594969-8347-12-git-send-email-paulmck@linux.vnet.ibm.com>
- <20171010001951.GA6476@linux.vnet.ibm.com>
- <8079.1507628146@warthog.procyon.org.uk>
- <26455.1507724399@warthog.procyon.org.uk>
- <6309.1507735045@warthog.procyon.org.uk>
- <20171011155948.GE3521@linux.vnet.ibm.com>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v3 11/28] arm64/sve: Core task context handling
+Date: Wed, 11 Oct 2017 17:15:58 +0100
+Message-ID: <20171011161558.ts7adaryabttg47z@armageddon.cambridge.arm.com>
+References: <1507660725-7986-1-git-send-email-Dave.Martin@arm.com>
+ <1507660725-7986-12-git-send-email-Dave.Martin@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:35456 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751350AbdJKQQD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 11 Oct 2017 12:16:03 -0400
 Content-Disposition: inline
-In-Reply-To: <20171011155948.GE3521@linux.vnet.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, mingo@kernel.org, torvalds@linux-foundation.org, mark.rutland@arm.com, linux-arch@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, Alexander Kuleshov <kuleshovmail@gmail.com>, dvyukov@google.com
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <1507660725-7986-12-git-send-email-Dave.Martin@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu
 
-On Wed, Oct 11, 2017 at 08:59:48AM -0700, Paul E. McKenney wrote:
-> On Wed, Oct 11, 2017 at 04:17:25PM +0100, David Howells wrote:
-> > I will, however, quibble with the appropriateness of the name READ_ONCE()...
-> > I still think it's not sufficiently obvious that this is a barrier and the
-> > barrier is after.  Maybe READ_AND_BARRIER()?
-> 
-> Linus was unhappy with READ_ONCE_CTRL() to tag control dependencies, but
-> indicated that he might consider it if it helped code-analysis tools.
-> Adding Dmitry Vyukov for his thoughts on whether tagging READ_ONCE()
-> for dependencies would help.  Me, I would suggest READ_ONCE_DEP(), but
-> let's figure out if the bikeshed needs to be painted before arguing over
-> the color.  ;-)
+On Tue, Oct 10, 2017 at 07:38:28PM +0100, Dave P Martin wrote:
+> diff --git a/arch/arm64/include/asm/fpsimd.h b/arch/arm64/include/asm/fpsimd.h
+> index 026a7c7..b1409de 100644
+> --- a/arch/arm64/include/asm/fpsimd.h
+> +++ b/arch/arm64/include/asm/fpsimd.h
+> @@ -72,6 +75,20 @@ extern void sve_load_state(void const *state, u32 const *pfpsr,
+>  			   unsigned long vq_minus_1);
+>  extern unsigned int sve_get_vl(void);
+>  
+> +#ifdef CONFIG_ARM64_SVE
+> +
+> +extern size_t sve_state_size(struct task_struct const *task);
+> +
+> +extern void sve_alloc(struct task_struct *task);
+> +extern void fpsimd_release_thread(struct task_struct *task);
+> +
+> +#else /* ! CONFIG_ARM64_SVE */
+> +
+> +static void __maybe_unused sve_alloc(struct task_struct *task) { }
+> +static void __maybe_unused fpsimd_release_thread(struct task_struct *task) { }
 
-Count me one vote for the READ_ONCE() name. This is about dependent
-reads, which are nothing special on anything except Alpha.
+Nitpick: usually we just add static inline functions here rather than
+__maybe_unused.
 
-We want to remove the exception/specialness from the memory model; and
-therefore have to fix up all primitives that could possibly be used for
-these reads to unconditionally issue the barrier (on Alpha). The
-alternative is: rm -rf arch/alpha.
+> diff --git a/arch/arm64/include/asm/processor.h b/arch/arm64/include/asm/processor.h
+> index 29adab8..4831d28 100644
+> --- a/arch/arm64/include/asm/processor.h
+> +++ b/arch/arm64/include/asm/processor.h
+> @@ -39,6 +47,8 @@
+>  #define FPEXC_IDF	(1 << 7)
+>  
+>  /*
+> + * (Note: in this discussion, statements about FPSIMD apply equally to SVE.)
+> + *
+>   * In order to reduce the number of times the FPSIMD state is needlessly saved
+>   * and restored, we need to keep track of two things:
+>   * (a) for each task, we need to remember which CPU was the last one to have
+> @@ -99,6 +109,287 @@
+>   */
+>  static DEFINE_PER_CPU(struct fpsimd_state *, fpsimd_last_state);
+>  
+> +static void sve_free(struct task_struct *task)
+> +{
+> +	kfree(task->thread.sve_state);
+> +	task->thread.sve_state = NULL;
+> +}
 
-Adding something like READ_ONCE_DEP() does not rid us of the idea that
-dependent reads are special and thus defeats the purpose, we might as
-well retain lockless_dereference().
+I think we need a WARN_ON if TIF_SVE is still set here (and the callers
+making sure it is cleared). I haven't checked the code paths via
+fpsimd_release_thread() but wondering what happens if we get an
+interrupt between freeing the state and making the pointer NULL, with
+some context switching in a preemptible kernel.
 
-Now; any user of dependent reads must use READ_ONCE() in any case, to
-avoid load tearing and reloads. So using READ_ONCE() for the dependent
-reads is not extra or additional (note we'll also have to add the
-barrier to all our relaxed and release atomics and anything else that
-implies READ_ONCE and doesn't already imply smp_mb() after).
+Alternatively, always clear TIF_SVE here before freeing (also wondering
+whether we should make sve_state NULL before the actual freeing but I
+think TIF_SVE clearing should suffice).
+
+> +/*
+> + * TIF_SVE controls whether a task can use SVE without trapping while
+> + * in userspace, and also the way a task's FPSIMD/SVE state is stored
+> + * in thread_struct.
+> + *
+> + * The kernel uses this flag to track whether a user task is actively
+> + * using SVE, and therefore whether full SVE register state needs to
+> + * be tracked.  If not, the cheaper FPSIMD context handling code can
+> + * be used instead of the more costly SVE equivalents.
+> + *
+> + *  * TIF_SVE set:
+> + *
+> + *    The task can execute SVE instructions while in userspace without
+> + *    trapping to the kernel.
+> + *
+> + *    When stored, Z0-Z31 (incorporating Vn in bits[127:0] or the
+> + *    corresponding Zn), P0-P15 and FFR are encoded in in
+> + *    task->thread.sve_state, formatted appropriately for vector
+> + *    length task->thread.sve_vl.
+> + *
+> + *    task->thread.sve_state must point to a valid buffer at least
+> + *    sve_state_size(task) bytes in size.
+> + *
+> + *    During any syscall, the kernel may optionally clear TIF_SVE and
+> + *    discard the vector state except for the FPSIMD subset.
+> + *
+> + *  * TIF_SVE clear:
+> + *
+> + *    An attempt by the user task to execute an SVE instruction causes
+> + *    do_sve_acc() to be called, which does some preparation and then
+> + *    sets TIF_SVE.
+> + *
+> + *    When stored, FPSIMD registers V0-V31 are encoded in
+> + *    task->fpsimd_state; bits [max : 128] for each of Z0-Z31 are
+> + *    logically zero but not stored anywhere; P0-P15 and FFR are not
+> + *    stored and have unspecified values from userspace's point of
+> + *    view.  For hygiene purposes, the kernel zeroes them on next use,
+> + *    but userspace is discouraged from relying on this.
+> + *
+> + *    task->thread.sve_state does not need to be non-NULL, valid or any
+> + *    particular size: it must not be dereferenced.
+> + *
+> + *  * FPSR and FPCR are always stored in task->fpsimd_state irrespctive of
+> + *    whether TIF_SVE is clear or set, since these are not vector length
+> + *    dependent.
+> + */
+
+This looks fine, thanks for adding the description.
+
+-- 
+Catalin
