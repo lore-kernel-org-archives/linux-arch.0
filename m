@@ -1,71 +1,131 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: [GIT PULL v2 membarrier/urgent] membarrier commits for 4.14
-Date: Thu, 12 Oct 2017 10:00:51 -0700
-Message-ID: <20171012170051.GA27468@linux.vnet.ibm.com>
-References: <20171004220553.GA16154@linux.vnet.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v3 19/28] arm64/sve: ptrace and ELF coredump support
+Date: Thu, 12 Oct 2017 18:06:32 +0100
+Message-ID: <20171012170632.35zifttm55rzu745@armageddon.cambridge.arm.com>
+References: <1507660725-7986-1-git-send-email-Dave.Martin@arm.com>
+ <1507660725-7986-20-git-send-email-Dave.Martin@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:49766 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1753230AbdJLRGh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 12 Oct 2017 13:06:37 -0400
 Content-Disposition: inline
-In-Reply-To: <20171004220553.GA16154@linux.vnet.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: mingo@kernel.org
-Cc: mathieu.desnoyers@efficios.com, peterz@infradead.org, boqun.feng@gmail.com, ahh@google.com, maged.michael@gmail.com, gromer@google.com, avi@scylladb.com, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, davejwatson@fb.com, stern@rowland.harvard.edu, will.deacon@arm.com, luto@kernel.org, mingo@redhat.com, viro@zeniv.linux.org.uk, npiggin@gmail.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <1507660725-7986-20-git-send-email-Dave.Martin@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Alan Hayward <alan.hayward@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu
 
-Hello, Ingo,
+On Tue, Oct 10, 2017 at 07:38:36PM +0100, Dave P Martin wrote:
+> @@ -702,6 +737,211 @@ static int system_call_set(struct task_struct *target,
+>  	return ret;
+>  }
+>  
+> +#ifdef CONFIG_ARM64_SVE
+> +
+> +static void sve_init_header_from_task(struct user_sve_header *header,
+> +				      struct task_struct *target)
+> +{
+> +	unsigned int vq;
+> +
+> +	memset(header, 0, sizeof(*header));
+> +
+> +	header->flags = test_tsk_thread_flag(target, TIF_SVE) ?
+> +		SVE_PT_REGS_SVE : SVE_PT_REGS_FPSIMD;
 
-This v2 urgent pull request contains five commits that fix a problem
-that arose when designing requested extensions to sys_membarrier()
-to allow JITs to efficiently flush old code from instruction caches.
-Several potential algorithms are much less painful if the user register
-intent to use this functionality early on, for example, before the process
-spawns the second thread.  Registering at this time removes the need to
-interrupt each and every thread in that process at the first expedited
-sys_membarrier() system call.
+For PTRACE_SYSCALL, we may or may not have TIF_SVE depending on what
+happened with the target. Just a thought: shall we clear TIF_SVE (and
+sync it to fpsimd) in syscall_trace_enter()?
 
-However, if we let the current function out, then user programs might be
-written without registration, which would make it more difficult to add
-required registration after the fact.  Hence the late-in-merge-window
-pull request.
+> +	if (test_tsk_thread_flag(target, TIF_SVE_VL_INHERIT))
+> +		header->flags |= SVE_PT_VL_INHERIT;
+> +
+> +	header->vl = target->thread.sve_vl;
+> +	vq = sve_vq_from_vl(header->vl);
+> +
+> +	header->max_vl = sve_max_vl;
+> +	if (WARN_ON(!sve_vl_valid(sve_max_vl)))
+> +		header->max_vl = header->vl;
+> +
+> +	header->size = SVE_PT_SIZE(vq, header->flags);
+> +	header->max_size = SVE_PT_SIZE(sve_vq_from_vl(header->max_vl),
+> +				      SVE_PT_REGS_SVE);
+> +}
+[...]
+> +static int sve_set(struct task_struct *target,
+> +		   const struct user_regset *regset,
+> +		   unsigned int pos, unsigned int count,
+> +		   const void *kbuf, const void __user *ubuf)
+> +{
+> +	int ret;
+> +	struct user_sve_header header;
+> +	unsigned int vq;
+> +	unsigned long start, end;
+> +
+> +	if (!system_supports_sve())
+> +		return -EINVAL;
+> +
+> +	/* Header */
+> +	if (count < sizeof(header))
+> +		return -EINVAL;
+> +	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, &header,
+> +				 0, sizeof(header));
+> +	if (ret)
+> +		goto out;
+> +
+> +	/*
+> +	 * Apart from PT_SVE_REGS_MASK, all PT_SVE_* flags are consumed by
+> +	 * sve_set_vector_length(), which will also validate them for us:
+> +	 */
+> +	ret = sve_set_vector_length(target, header.vl,
+> +		((unsigned long)header.flags & ~SVE_PT_REGS_MASK) << 16);
+> +	if (ret)
+> +		goto out;
+> +
+> +	/* Actual VL set may be less than the user asked for: */
+> +	vq = sve_vq_from_vl(target->thread.sve_vl);
+> +
+> +	/* Registers: FPSIMD-only case */
+> +
+> +	BUILD_BUG_ON(SVE_PT_FPSIMD_OFFSET != sizeof(header));
+> +	if ((header.flags & SVE_PT_REGS_MASK) == SVE_PT_REGS_FPSIMD) {
+> +		sve_sync_to_fpsimd(target);
+> +
+> +		ret = __fpr_set(target, regset, pos, count, kbuf, ubuf,
+> +				SVE_PT_FPSIMD_OFFSET);
+> +		clear_tsk_thread_flag(target, TIF_SVE);
+> +		goto out;
+> +	}
 
-The additional two commits added by v2 remove unused code from
-architectures not supporting sys_membarrier() and fix a problem that
-arises when tasks are created with CLONE_VM but !CLONE_THREAD on powerpc.
+__fpr_set() already calls sve_sync_to_fpsimd(). Anyway, do you actually
+need this since we are going to override the FPSIMD state anyway here.
 
-These have been subject to 0day test robot and -next testing and
-are available in the git repository at:
+> +
+> +	/* Otherwise: full SVE case */
+> +
+> +	/*
+> +	 * If setting a different VL from the requested VL and there is
+> +	 * register data, the data layout will be wrong: don't even
+> +	 * try to set the registers in this case.
+> +	 */
+> +	if (count && vq != sve_vq_from_vl(header.vl)) {
+> +		ret = -EIO;
+> +		goto out;
+> +	}
+> +
+> +	sve_alloc(target);
+> +	fpsimd_sync_to_sve(target);
 
-  git://git.kernel.org/pub/scm/linux/kernel/git/paulmck/linux-rcu.git urgent-membarrier
+Similarly here, it's a full SVE case, so we are going to override it
+anyway.
 
-for you to fetch changes up to f7399e01ccd0850786bdedbee2fd351651ce99f8:
+> +	set_tsk_thread_flag(target, TIF_SVE);
 
-  Fix: membarrier: Handle CLONE_VM + !CLONE_THREAD correctly on powerpc (2017-10-09 14:24:49 -0700)
+This has the side-effect of enabling TIF_SVE even for PTRACE_SYSCALL
+which may be cleared in some circumstances. It may not be an issue
+though.
 
-----------------------------------------------------------------
-Mathieu Desnoyers (5):
-      membarrier: Provide register expedited private command
-      membarrier: selftest: Test private expedited cmd
-      membarrier: Document scheduler barrier requirements
-      membarrier: Remove unused code for architectures without membarrier hooks
-      Fix: membarrier: Handle CLONE_VM + !CLONE_THREAD correctly on powerpc
-
- MAINTAINERS                                        |   2 +
- arch/powerpc/Kconfig                               |   1 +
- arch/powerpc/include/asm/membarrier.h              |  26 +++++
- arch/powerpc/kernel/Makefile                       |   2 +
- arch/powerpc/kernel/membarrier.c                   |  36 +++++++
- arch/powerpc/mm/mmu_context.c                      |   7 ++
- arch/x86/mm/tlb.c                                  |   5 +
- fs/exec.c                                          |   1 +
- include/linux/mm_types.h                           |   3 +
- include/linux/sched/mm.h                           |  37 +++++++
- include/uapi/linux/membarrier.h                    |  23 +++--
- init/Kconfig                                       |   3 +
- kernel/sched/core.c                                |  47 +++++----
- kernel/sched/membarrier.c                          |  35 ++++++-
- .../testing/selftests/membarrier/membarrier_test.c | 109 ++++++++++++++++++---
- 15 files changed, 290 insertions(+), 47 deletions(-)
- create mode 100644 arch/powerpc/include/asm/membarrier.h
- create mode 100644 arch/powerpc/kernel/membarrier.c
+-- 
+Catalin
