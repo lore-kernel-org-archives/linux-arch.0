@@ -1,116 +1,111 @@
-From: Marc Zyngier <marc.zyngier@arm.com>
-Subject: Re: [PATCH v3 22/28] arm64/sve: KVM: Prevent guests from using SVE
-Date: Thu, 12 Oct 2017 12:28:32 +0100
-Message-ID: <d8a50bf1-bfe0-2423-c56b-adac3925309e@arm.com>
+From: Suzuki K Poulose <Suzuki.Poulose@arm.com>
+Subject: Re: [PATCH v3 16/28] arm64/sve: Probe SVE capabilities and usable
+ vector lengths
+Date: Thu, 12 Oct 2017 13:56:51 +0100
+Message-ID: <a39354fb-9f21-47ff-2ad9-b5bcb04e9990@arm.com>
 References: <1507660725-7986-1-git-send-email-Dave.Martin@arm.com>
- <1507660725-7986-23-git-send-email-Dave.Martin@arm.com>
- <c28b3f0d-7beb-cca3-46db-3fce964f4725@arm.com>
- <20171012110409.GG19485@e103592.cambridge.arm.com>
+ <1507660725-7986-17-git-send-email-Dave.Martin@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:44726 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753246AbdJLL2g (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 12 Oct 2017 07:28:36 -0400
-In-Reply-To: <20171012110409.GG19485@e103592.cambridge.arm.com>
-Content-Language: en-GB
+Received: from foss.arm.com ([217.140.101.70]:46456 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751040AbdJLM4z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 12 Oct 2017 08:56:55 -0400
+In-Reply-To: <1507660725-7986-17-git-send-email-Dave.Martin@arm.com>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Christoffer Dall <cdall@linaro.org>, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, =?UTF-8?Q?Alex_Benn=c3=a9e?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu
+To: Dave Martin <Dave.Martin@arm.com>, linux-arm-kernel@lists.infradead.org
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, =?UTF-8?Q?Alex_Benn=c3=a9e?= <alex.bennee@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, kvmarm@lists.cs.columbia.edu, libc-alpha@sourceware.org, linux-arch@vger.kernel.org
 
-On 12/10/17 12:04, Dave Martin wrote:
-> On Wed, Oct 11, 2017 at 05:28:06PM +0100, Marc Zyngier wrote:
->> [+ Christoffer]
->>
->> On 10/10/17 19:38, Dave Martin wrote:
->>> Until KVM has full SVE support, guests must not be allowed to
->>> execute SVE instructions.
->>>
->>> This patch enables the necessary traps, and also ensures that the
->>> traps are disabled again on exit from the guest so that the host
->>> can still use SVE if it wants to.
->>>
->>> This patch introduces another instance of
->>> __this_cpu_write(fpsimd_last_state, NULL), so this flush operation
->>> is abstracted out as a separate helper fpsimd_flush_cpu_state().
->>> Other instances are ported appropriately.
->>>
->>> As a side effect of this refactoring, a this_cpu_write() in
->>> fpsimd_cpu_pm_notifier() is changed to __this_cpu_write().  This
->>> should be fine, since cpu_pm_enter() is supposed to be called only
->>> with interrupts disabled.
->>>
->>> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
->>> Reviewed-by: Alex Bennée <alex.bennee@linaro.org>
->>> Cc: Marc Zyngier <marc.zyngier@arm.com>
->>> Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>
->>> ---
+On 10/10/17 19:38, Dave Martin wrote:
+> This patch uses the cpufeatures framework to determine common SVE
+> capabilities and vector lengths, and configures the runtime SVE
+> support code appropriately.
 > 
-> [...]
+> ZCR_ELx is not really a feature register, but it is convenient to
+> use it as a template for recording the maximum vector length
+> supported by a CPU, using the LEN field.  This field is similar to
+> a feature field in that it is a contiguous bitfield for which we
+> want to determine the minimum system-wide value.  This patch adds
+> ZCR as a pseudo-register in cpuinfo/cpufeatures, with appropriate
+> custom code to populate it.  Finding the minimum supported value of
+> the LEN field is left to the cpufeatures framework in the usual
+> way.
 > 
->>> diff --git a/arch/arm64/include/asm/kvm_host.h b/arch/arm64/include/asm/kvm_host.h
->>> index e923b58..674912d 100644
->>> --- a/arch/arm64/include/asm/kvm_host.h
->>> +++ b/arch/arm64/include/asm/kvm_host.h
+> The meaning of ID_AA64ZFR0_EL1 is not architecturally defined yet,
+> so for now we just require it to be zero.
 > 
-> [...]
+> Note that much of this code is dormant and SVE still won't be used
+> yet, since system_supports_sve() remains hardwired to false.
 > 
->>> @@ -384,4 +385,14 @@ static inline void __cpu_init_stage2(void)
+> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> Cc: Alex Bennée <alex.bennee@linaro.org>
+> Cc: Suzuki K Poulose <Suzuki.Poulose@arm.com>
 > 
-> [...]
+> ---
 > 
->>> +static inline void kvm_fpsimd_flush_cpu_state(void)
->>> +{
->>> +	if (system_supports_sve())
->>> +		sve_flush_cpu_state();
->>
->> Hmmm. How does this work if...
+> Dropped Alex Bennée's Reviewed-by, since there is new logic in this
+> patch.
 > 
-> !IS_ENABLED(CONFIG_ARM64_SVE) implies !system_supports_sve(), so
-> if CONFIG_ARM64_SVE is not set, the call is optimised away.
+> Changes since v2
+> ----------------
 > 
-> [...]
+> Bug fixes:
 > 
->>> diff --git a/arch/arm64/kernel/fpsimd.c b/arch/arm64/kernel/fpsimd.c
->>> index a9cb794..6ae3703 100644
->>> --- a/arch/arm64/kernel/fpsimd.c
->>> +++ b/arch/arm64/kernel/fpsimd.c
->>> @@ -1073,6 +1073,33 @@ void fpsimd_flush_task_state(struct task_struct *t)
+>   * Got rid of dynamic allocation of the shadow vector length map during
+>     secondary boot.  Secondary CPU boot takes place in atomic context,
+>     and relying on GFP_ATOMIC here doesn't seem justified.
 > 
-> [...]
+>     Instead, the needed additional bitmap is allocated statically.  Only
+>     one shadow map is needed, because CPUs don't boot concurrently.
 > 
->>> +#ifdef CONFIG_ARM64_SVE
->>> +void sve_flush_cpu_state(void)
->>> +{
->>> +	struct fpsimd_state *const fpstate = __this_cpu_read(fpsimd_last_state);
->>> +	struct task_struct *tsk;
->>> +
->>> +	if (!fpstate)
->>> +		return;
->>> +
->>> +	tsk = container_of(fpstate, struct task_struct, thread.fpsimd_state);
->>> +	if (test_tsk_thread_flag(tsk, TIF_SVE))
->>> +		fpsimd_flush_cpu_state();
->>> +}
->>> +#endif /* CONFIG_ARM64_SVE */
->>
->> ... CONFIG_ARM64_SVE is not set? Fixing this should just be a matter of
->> moving the #ifdef/#endif inside the function...
+> Requested by Alex Bennée:
 > 
-> Because sve_flush_cpu_state() is not in the same compilation unit it
-> can't be static, and that means the compiler won't remove it
-> automatically if it's unused -- hence the #ifdef.
+>   * Reflowed untidy comment above read_zcr_features()
 > 
-> Because the call site is optimised away, there is no link failure.
+>   * Added comments to read_zcr_features() to explain what it's trying to do
+>     (which is otherwise not readily apparent).
 > 
-> Don't we rely on this sort of thing all over the place?
-Dunno. It just feels weird. But if you are sure that it won't break,
-fine by me. I guess we'll find out pretty quickly how this fares,
-specially with older toolchains.
+> Requested by Catalin Marinas:
+> 
+>   * Moved disabling of the EL1 SVE trap to the cpufeatures C code.
+>     This allows addition of new assembler in __cpu_setup to be
+>     avoided.
+> 
+> Miscellaneous:
+> 
+>   * Added comments explaining the intent, purpose and basic constraints
+>     for fpsimd.c helpers.
 
-	M.
--- 
-Jazz is not dead. It just smells funny...
+...
+
+   
+> diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
+> index 92a9502..c5acf38 100644
+> --- a/arch/arm64/kernel/cpufeature.c
+> +++ b/arch/arm64/kernel/cpufeature.c
+
+...
+
+> @@ -670,6 +689,14 @@ void update_cpu_features(int cpu,
+>   					info->reg_mvfr2, boot->reg_mvfr2);
+>   	}
+>   
+> +	if (id_aa64pfr0_sve(info->reg_id_aa64pfr0)) {
+> +		taint |= check_update_ftr_reg(SYS_ZCR_EL1, cpu,
+> +					info->reg_zcr, boot->reg_zcr);
+> +
+> +		if (!sys_caps_initialised)
+> +			sve_update_vq_map();
+> +	}
+
+nit: I am not sure if we should also check if the "current" sanitised value
+of the id_aa64pfr0 also supports sve and skip the update if it isn't. The code
+is as such fine without the check, its just that we can avoid computing the
+map. It is in the CPU boot up path and hence is not performance critical.
+So, either way we are fine.
+
+Reviewed-by: Suzuki K Poulose <suzuki.poulose@arm.com>
