@@ -1,532 +1,240 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: [PATCH tip/sched/membarrier 1/5] membarrier: Provide register expedited private command
-Date: Fri, 13 Oct 2017 09:12:21 -0700
-Message-ID: <1507911145-4134-1-git-send-email-paulmck@linux.vnet.ibm.com>
-References: <20171012170051.GA27468@linux.vnet.ibm.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20171012170051.GA27468@linux.vnet.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: mingo@kernel.org, mathieu.desnoyers@efficios.com, peterz@infradead.org, boqun.feng@gmail.com, ahh@google.com, maged.michael@gmail.com, gromer@google.com, avi@scylladb.com, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, davejwatson@fb.com, stern@rowland.harvard.edu, will.deacon@arm.com, luto@kernel.org, viro@zeniv.linux.org.uk, piggin@gmail.com, linux-arch@vger.kernel.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@redhat.com>, Nicholas Piggin <npiggin@gmail.com>, linuxppc-dev@lists.ozlabs.org
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [PATCH v3 19/28] arm64/sve: ptrace and ELF coredump support
+Date: Fri, 13 Oct 2017 17:16:39 +0100
+Message-ID: <20171013161638.GM19485@e103592.cambridge.arm.com>
+References: <1507660725-7986-1-git-send-email-Dave.Martin@arm.com>
+ <1507660725-7986-20-git-send-email-Dave.Martin@arm.com>
+ <20171012170632.35zifttm55rzu745@armageddon.cambridge.arm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <kvmarm-bounces@lists.cs.columbia.edu>
+Content-Disposition: inline
+In-Reply-To: <20171012170632.35zifttm55rzu745@armageddon.cambridge.arm.com>
+List-Unsubscribe: <https://lists.cs.columbia.edu/mailman/options/kvmarm>,
+ <mailto:kvmarm-request@lists.cs.columbia.edu?subject=unsubscribe>
+List-Archive: <https://lists.cs.columbia.edu/pipermail/kvmarm>
+List-Post: <mailto:kvmarm@lists.cs.columbia.edu>
+List-Help: <mailto:kvmarm-request@lists.cs.columbia.edu?subject=help>
+List-Subscribe: <https://lists.cs.columbia.edu/mailman/listinfo/kvmarm>,
+ <mailto:kvmarm-request@lists.cs.columbia.edu?subject=subscribe>
+Errors-To: kvmarm-bounces@lists.cs.columbia.edu
+Sender: kvmarm-bounces@lists.cs.columbia.edu
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: linux-arch@vger.kernel.org, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, Will Deacon <will.deacon@arm.com>, Alan Hayward <alan.hayward@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+On Thu, Oct 12, 2017 at 06:06:32PM +0100, Catalin Marinas wrote:
+> On Tue, Oct 10, 2017 at 07:38:36PM +0100, Dave P Martin wrote:
+> > @@ -702,6 +737,211 @@ static int system_call_set(struct task_struct *target,
+> >  	return ret;
+> >  }
+> >  
+> > +#ifdef CONFIG_ARM64_SVE
+> > +
+> > +static void sve_init_header_from_task(struct user_sve_header *header,
+> > +				      struct task_struct *target)
+> > +{
+> > +	unsigned int vq;
+> > +
+> > +	memset(header, 0, sizeof(*header));
+> > +
+> > +	header->flags = test_tsk_thread_flag(target, TIF_SVE) ?
+> > +		SVE_PT_REGS_SVE : SVE_PT_REGS_FPSIMD;
+> 
+> For PTRACE_SYSCALL, we may or may not have TIF_SVE depending on what
+> happened with the target. Just a thought: shall we clear TIF_SVE (and
+> sync it to fpsimd) in syscall_trace_enter()?
 
-Provide a new command allowing processes to register their intent to use
-the private expedited command.
+I'm not so sure: if we were to do that, a syscall that is cancelled by
+writing -1 to REGSET_SYSCALL could still discard the SVE registers as a
+side-effect.
 
-This allows PowerPC to skip the full memory barrier in switch_mm(), and
-only issue the barrier when scheduling into a task belonging to a
-process that has registered to use expedited private.
+The target committed to discard by executing SVC, but my feeling is
+that cancellation of a syscall in this way shouldn't have avoidable
+side-effects for the target.  But the semantics of cancelled syscalls
+are a bit of a grey area, so I can see potential arguments on both
+sides.
 
-Processes are now required to register before using
-MEMBARRIER_CMD_PRIVATE_EXPEDITED, otherwise that command returns EPERM.
+The current approach at least saves a bit of code.  What do you think?
 
-Changes since v1:
-- Use test_ti_thread_flag(next, ...) instead of test_thread_flag() in
-  powerpc membarrier_arch_sched_in(), given that we want to specifically
-  check the next thread state.
-- Add missing ARCH_HAS_MEMBARRIER_HOOKS in Kconfig.
-- Use task_thread_info() to pass thread_info from task to
-  *_ti_thread_flag().
+> > +	if (test_tsk_thread_flag(target, TIF_SVE_VL_INHERIT))
+> > +		header->flags |= SVE_PT_VL_INHERIT;
+> > +
+> > +	header->vl = target->thread.sve_vl;
+> > +	vq = sve_vq_from_vl(header->vl);
+> > +
+> > +	header->max_vl = sve_max_vl;
+> > +	if (WARN_ON(!sve_vl_valid(sve_max_vl)))
+> > +		header->max_vl = header->vl;
+> > +
+> > +	header->size = SVE_PT_SIZE(vq, header->flags);
+> > +	header->max_size = SVE_PT_SIZE(sve_vq_from_vl(header->max_vl),
+> > +				      SVE_PT_REGS_SVE);
+> > +}
+> [...]
+> > +static int sve_set(struct task_struct *target,
+> > +		   const struct user_regset *regset,
+> > +		   unsigned int pos, unsigned int count,
+> > +		   const void *kbuf, const void __user *ubuf)
+> > +{
+> > +	int ret;
+> > +	struct user_sve_header header;
+> > +	unsigned int vq;
+> > +	unsigned long start, end;
+> > +
+> > +	if (!system_supports_sve())
+> > +		return -EINVAL;
+> > +
+> > +	/* Header */
+> > +	if (count < sizeof(header))
+> > +		return -EINVAL;
+> > +	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, &header,
+> > +				 0, sizeof(header));
+> > +	if (ret)
+> > +		goto out;
+> > +
+> > +	/*
+> > +	 * Apart from PT_SVE_REGS_MASK, all PT_SVE_* flags are consumed by
+> > +	 * sve_set_vector_length(), which will also validate them for us:
+> > +	 */
+> > +	ret = sve_set_vector_length(target, header.vl,
+> > +		((unsigned long)header.flags & ~SVE_PT_REGS_MASK) << 16);
+> > +	if (ret)
+> > +		goto out;
+> > +
+> > +	/* Actual VL set may be less than the user asked for: */
+> > +	vq = sve_vq_from_vl(target->thread.sve_vl);
+> > +
+> > +	/* Registers: FPSIMD-only case */
+> > +
+> > +	BUILD_BUG_ON(SVE_PT_FPSIMD_OFFSET != sizeof(header));
+> > +	if ((header.flags & SVE_PT_REGS_MASK) == SVE_PT_REGS_FPSIMD) {
+> > +		sve_sync_to_fpsimd(target);
+> > +
+> > +		ret = __fpr_set(target, regset, pos, count, kbuf, ubuf,
+> > +				SVE_PT_FPSIMD_OFFSET);
+> > +		clear_tsk_thread_flag(target, TIF_SVE);
+> > +		goto out;
+> > +	}
+> 
+> __fpr_set() already calls sve_sync_to_fpsimd(). Anyway, do you actually
 
-Changes since v2:
-- Move membarrier_arch_sched_in() call to finish_task_switch().
-- Check for NULL t->mm in membarrier_arch_fork().
-- Use membarrier_sched_in() in generic code, which invokes the
-  arch-specific membarrier_arch_sched_in(). This fixes allnoconfig
-  build on PowerPC.
-- Move asm/membarrier.h include under CONFIG_MEMBARRIER, fixing
-  allnoconfig build on PowerPC.
-- Build and runtime tested on PowerPC.
+Yes, the call to sve_sync_to_fpsimd() is superfluous here -- I think
+that I realised that all callers of __fpr_set() need this to happen,
+but never deleted the explicit call from sve_set().
 
-Changes since v3:
-- Simply rely on copy_mm() to copy the membarrier_private_expedited mm
-  field on fork.
-- powerpc: test thread flag instead of reading
-  membarrier_private_expedited in membarrier_arch_fork().
-- powerpc: skip memory barrier in membarrier_arch_sched_in() if coming
-  from kernel thread, since mmdrop() implies a full barrier.
-- Set membarrier_private_expedited to 1 only after arch registration
-  code, thus eliminating a race where concurrent commands could succeed
-  when they should fail if issued concurrently with process
-  registration.
-- Use READ_ONCE() for membarrier_private_expedited field access in
-  membarrier_private_expedited. Matches WRITE_ONCE() performed in
-  process registration.
+I'll delete it.
 
-Changes since v4:
-- Move powerpc hook from sched_in() to switch_mm(), based on feedback
-  from Nicholas Piggin.
 
-Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-CC: Peter Zijlstra <peterz@infradead.org>
-CC: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-CC: Boqun Feng <boqun.feng@gmail.com>
-CC: Andrew Hunter <ahh@google.com>
-CC: Maged Michael <maged.michael@gmail.com>
-CC: gromer@google.com
-CC: Avi Kivity <avi@scylladb.com>
-CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-CC: Paul Mackerras <paulus@samba.org>
-CC: Michael Ellerman <mpe@ellerman.id.au>
-CC: Dave Watson <davejwatson@fb.com>
-CC: Alan Stern <stern@rowland.harvard.edu>
-CC: Will Deacon <will.deacon@arm.com>
-CC: Andy Lutomirski <luto@kernel.org>
-CC: Ingo Molnar <mingo@redhat.com>
-CC: Alexander Viro <viro@zeniv.linux.org.uk>
-CC: Nicholas Piggin <npiggin@gmail.com>
-CC: linuxppc-dev@lists.ozlabs.org
-CC: linux-arch@vger.kernel.org
-Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
----
- MAINTAINERS                            |  2 ++
- arch/powerpc/Kconfig                   |  1 +
- arch/powerpc/include/asm/membarrier.h  | 43 +++++++++++++++++++++++++++++
- arch/powerpc/include/asm/thread_info.h |  3 ++
- arch/powerpc/kernel/Makefile           |  2 ++
- arch/powerpc/kernel/membarrier.c       | 45 ++++++++++++++++++++++++++++++
- arch/powerpc/mm/mmu_context.c          |  7 +++++
- fs/exec.c                              |  1 +
- include/linux/mm_types.h               |  3 ++
- include/linux/sched/mm.h               | 50 ++++++++++++++++++++++++++++++++++
- include/uapi/linux/membarrier.h        | 23 +++++++++++-----
- init/Kconfig                           |  3 ++
- kernel/fork.c                          |  2 ++
- kernel/sched/core.c                    | 10 -------
- kernel/sched/membarrier.c              | 25 ++++++++++++++---
- 15 files changed, 199 insertions(+), 21 deletions(-)
- create mode 100644 arch/powerpc/include/asm/membarrier.h
- create mode 100644 arch/powerpc/kernel/membarrier.c
+Looking more closely at __fpr_set() though, I think it needs this change
+too, because the sync is unintentionally placed after reading
+thread.fpsimd_state instead of before:
 
-diff --git a/MAINTAINERS b/MAINTAINERS
-index 2d3d750b19c0..f0bc68b2d221 100644
---- a/MAINTAINERS
-+++ b/MAINTAINERS
-@@ -8829,6 +8829,8 @@ L:	linux-kernel@vger.kernel.org
- S:	Supported
- F:	kernel/sched/membarrier.c
- F:	include/uapi/linux/membarrier.h
-+F:	arch/powerpc/kernel/membarrier.c
-+F:	arch/powerpc/include/asm/membarrier.h
- 
- MEMORY MANAGEMENT
- L:	linux-mm@kvack.org
-diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index 809c468edab1..6f44c5f74f71 100644
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -138,6 +138,7 @@ config PPC
- 	select ARCH_HAS_ELF_RANDOMIZE
- 	select ARCH_HAS_FORTIFY_SOURCE
- 	select ARCH_HAS_GCOV_PROFILE_ALL
-+	select ARCH_HAS_MEMBARRIER_HOOKS
- 	select ARCH_HAS_SCALED_CPUTIME		if VIRT_CPU_ACCOUNTING_NATIVE
- 	select ARCH_HAS_SG_CHAIN
- 	select ARCH_HAS_TICK_BROADCAST		if GENERIC_CLOCKEVENTS_BROADCAST
-diff --git a/arch/powerpc/include/asm/membarrier.h b/arch/powerpc/include/asm/membarrier.h
-new file mode 100644
-index 000000000000..61152a7a3cf9
---- /dev/null
-+++ b/arch/powerpc/include/asm/membarrier.h
-@@ -0,0 +1,43 @@
-+#ifndef _ASM_POWERPC_MEMBARRIER_H
-+#define _ASM_POWERPC_MEMBARRIER_H
-+
-+static inline void membarrier_arch_switch_mm(struct mm_struct *prev,
-+		struct mm_struct *next, struct task_struct *tsk)
-+{
-+	/*
-+	 * Only need the full barrier when switching between processes.
-+	 * Barrier when switching from kernel to userspace is not
-+	 * required here, given that it is implied by mmdrop(). Barrier
-+	 * when switching from userspace to kernel is not needed after
-+	 * store to rq->curr.
-+	 */
-+	if (likely(!test_ti_thread_flag(task_thread_info(tsk),
-+			TIF_MEMBARRIER_PRIVATE_EXPEDITED) || !prev))
-+		return;
-+
-+	/*
-+	 * The membarrier system call requires a full memory barrier
-+	 * after storing to rq->curr, before going back to user-space.
-+	 */
-+	smp_mb();
-+}
-+static inline void membarrier_arch_fork(struct task_struct *t,
-+		unsigned long clone_flags)
-+{
-+	/*
-+	 * Coherence of TIF_MEMBARRIER_PRIVATE_EXPEDITED against thread
-+	 * fork is protected by siglock. membarrier_arch_fork is called
-+	 * with siglock held.
-+	 */
-+	if (test_thread_flag(TIF_MEMBARRIER_PRIVATE_EXPEDITED))
-+		set_ti_thread_flag(task_thread_info(t),
-+				TIF_MEMBARRIER_PRIVATE_EXPEDITED);
-+}
-+static inline void membarrier_arch_execve(struct task_struct *t)
-+{
-+	clear_ti_thread_flag(task_thread_info(t),
-+			TIF_MEMBARRIER_PRIVATE_EXPEDITED);
-+}
-+void membarrier_arch_register_private_expedited(struct task_struct *t);
-+
-+#endif /* _ASM_POWERPC_MEMBARRIER_H */
-diff --git a/arch/powerpc/include/asm/thread_info.h b/arch/powerpc/include/asm/thread_info.h
-index a941cc6fc3e9..2a208487724b 100644
---- a/arch/powerpc/include/asm/thread_info.h
-+++ b/arch/powerpc/include/asm/thread_info.h
-@@ -100,6 +100,7 @@ static inline struct thread_info *current_thread_info(void)
- #if defined(CONFIG_PPC64)
- #define TIF_ELF2ABI		18	/* function descriptors must die! */
- #endif
-+#define TIF_MEMBARRIER_PRIVATE_EXPEDITED	19	/* membarrier */
- 
- /* as above, but as bit values */
- #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
-@@ -119,6 +120,8 @@ static inline struct thread_info *current_thread_info(void)
- #define _TIF_SYSCALL_TRACEPOINT	(1<<TIF_SYSCALL_TRACEPOINT)
- #define _TIF_EMULATE_STACK_STORE	(1<<TIF_EMULATE_STACK_STORE)
- #define _TIF_NOHZ		(1<<TIF_NOHZ)
-+#define _TIF_MEMBARRIER_PRIVATE_EXPEDITED \
-+				(1<<TIF_MEMBARRIER_PRIVATE_EXPEDITED)
- #define _TIF_SYSCALL_DOTRACE	(_TIF_SYSCALL_TRACE | _TIF_SYSCALL_AUDIT | \
- 				 _TIF_SECCOMP | _TIF_SYSCALL_TRACEPOINT | \
- 				 _TIF_NOHZ)
-diff --git a/arch/powerpc/kernel/Makefile b/arch/powerpc/kernel/Makefile
-index 91960f83039c..2dd4b9e3313a 100644
---- a/arch/powerpc/kernel/Makefile
-+++ b/arch/powerpc/kernel/Makefile
-@@ -135,6 +135,8 @@ endif
- obj-$(CONFIG_EPAPR_PARAVIRT)	+= epapr_paravirt.o epapr_hcalls.o
- obj-$(CONFIG_KVM_GUEST)		+= kvm.o kvm_emul.o
- 
-+obj-$(CONFIG_MEMBARRIER)	+= membarrier.o
-+
- # Disable GCOV & sanitizers in odd or sensitive code
- GCOV_PROFILE_prom_init.o := n
- UBSAN_SANITIZE_prom_init.o := n
-diff --git a/arch/powerpc/kernel/membarrier.c b/arch/powerpc/kernel/membarrier.c
-new file mode 100644
-index 000000000000..b0d79a5f5981
---- /dev/null
-+++ b/arch/powerpc/kernel/membarrier.c
-@@ -0,0 +1,45 @@
-+/*
-+ * Copyright (C) 2010-2017 Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-+ *
-+ * membarrier system call - PowerPC architecture code
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ */
-+
-+#include <linux/sched/mm.h>
-+#include <linux/sched/signal.h>
-+#include <linux/thread_info.h>
-+#include <linux/spinlock.h>
-+#include <linux/rcupdate.h>
-+
-+void membarrier_arch_register_private_expedited(struct task_struct *p)
-+{
-+	struct task_struct *t;
-+
-+	if (get_nr_threads(p) == 1) {
-+		set_thread_flag(TIF_MEMBARRIER_PRIVATE_EXPEDITED);
-+		return;
-+	}
-+	/*
-+	 * Coherence of TIF_MEMBARRIER_PRIVATE_EXPEDITED against thread
-+	 * fork is protected by siglock.
-+	 */
-+	spin_lock(&p->sighand->siglock);
-+	for_each_thread(p, t)
-+		set_ti_thread_flag(task_thread_info(t),
-+				TIF_MEMBARRIER_PRIVATE_EXPEDITED);
-+	spin_unlock(&p->sighand->siglock);
-+	/*
-+	 * Ensure all future scheduler executions will observe the new
-+	 * thread flag state for this process.
-+	 */
-+	synchronize_sched();
-+}
-diff --git a/arch/powerpc/mm/mmu_context.c b/arch/powerpc/mm/mmu_context.c
-index 0f613bc63c50..22f5c91cdc38 100644
---- a/arch/powerpc/mm/mmu_context.c
-+++ b/arch/powerpc/mm/mmu_context.c
-@@ -12,6 +12,7 @@
- 
- #include <linux/mm.h>
- #include <linux/cpu.h>
-+#include <linux/sched/mm.h>
- 
- #include <asm/mmu_context.h>
- 
-@@ -67,6 +68,10 @@ void switch_mm_irqs_off(struct mm_struct *prev, struct mm_struct *next,
- 		 *
- 		 * On the read side the barrier is in pte_xchg(), which orders
- 		 * the store to the PTE vs the load of mm_cpumask.
-+		 *
-+		 * This full barrier is needed by membarrier when switching
-+		 * between processes after store to rq->curr, before user-space
-+		 * memory accesses.
- 		 */
- 		smp_mb();
- 
-@@ -89,6 +94,8 @@ void switch_mm_irqs_off(struct mm_struct *prev, struct mm_struct *next,
- 
- 	if (new_on_cpu)
- 		radix_kvm_prefetch_workaround(next);
-+	else
-+		membarrier_arch_switch_mm(prev, next, tsk);
- 
- 	/*
- 	 * The actual HW switching method differs between the various
-diff --git a/fs/exec.c b/fs/exec.c
-index 5470d3c1892a..3e14ba25f678 100644
---- a/fs/exec.c
-+++ b/fs/exec.c
-@@ -1802,6 +1802,7 @@ static int do_execveat_common(int fd, struct filename *filename,
- 	/* execve succeeded */
- 	current->fs->in_exec = 0;
- 	current->in_execve = 0;
-+	membarrier_execve(current);
- 	acct_update_integrals(current);
- 	task_numa_free(current);
- 	free_bprm(bprm);
-diff --git a/include/linux/mm_types.h b/include/linux/mm_types.h
-index 46f4ecf5479a..5e0fe8ce053b 100644
---- a/include/linux/mm_types.h
-+++ b/include/linux/mm_types.h
-@@ -445,6 +445,9 @@ struct mm_struct {
- 	unsigned long flags; /* Must use atomic bitops to access the bits */
- 
- 	struct core_state *core_state; /* coredumping support */
-+#ifdef CONFIG_MEMBARRIER
-+	int membarrier_private_expedited;
-+#endif
- #ifdef CONFIG_AIO
- 	spinlock_t			ioctx_lock;
- 	struct kioctx_table __rcu	*ioctx_table;
-diff --git a/include/linux/sched/mm.h b/include/linux/sched/mm.h
-index ae53e413fb13..1b9c39f3d1e3 100644
---- a/include/linux/sched/mm.h
-+++ b/include/linux/sched/mm.h
-@@ -211,4 +211,54 @@ static inline void memalloc_noreclaim_restore(unsigned int flags)
- 	current->flags = (current->flags & ~PF_MEMALLOC) | flags;
- }
- 
-+#ifdef CONFIG_MEMBARRIER
-+
-+#ifdef CONFIG_ARCH_HAS_MEMBARRIER_HOOKS
-+#include <asm/membarrier.h>
-+#else
-+static inline void membarrier_arch_switch_mm(struct mm_struct *prev,
-+		struct mm_struct *next, struct task_struct *tsk)
-+{
-+}
-+static inline void membarrier_arch_fork(struct task_struct *t,
-+		unsigned long clone_flags)
-+{
-+}
-+static inline void membarrier_arch_execve(struct task_struct *t)
-+{
-+}
-+static inline void membarrier_arch_register_private_expedited(
-+		struct task_struct *p)
-+{
-+}
-+#endif
-+
-+static inline void membarrier_fork(struct task_struct *t,
-+		unsigned long clone_flags)
-+{
-+	/*
-+	 * Prior copy_mm() copies the membarrier_private_expedited field
-+	 * from current->mm to t->mm.
-+	 */
-+	membarrier_arch_fork(t, clone_flags);
-+}
-+static inline void membarrier_execve(struct task_struct *t)
-+{
-+	t->mm->membarrier_private_expedited = 0;
-+	membarrier_arch_execve(t);
-+}
-+#else
-+static inline void membarrier_arch_switch_mm(struct mm_struct *prev,
-+		struct mm_struct *next, struct task_struct *tsk)
-+{
-+}
-+static inline void membarrier_fork(struct task_struct *t,
-+		unsigned long clone_flags)
-+{
-+}
-+static inline void membarrier_execve(struct task_struct *t)
-+{
-+}
-+#endif
-+
- #endif /* _LINUX_SCHED_MM_H */
-diff --git a/include/uapi/linux/membarrier.h b/include/uapi/linux/membarrier.h
-index 6d47b3249d8a..4e01ad7ffe98 100644
---- a/include/uapi/linux/membarrier.h
-+++ b/include/uapi/linux/membarrier.h
-@@ -52,21 +52,30 @@
-  *                          (non-running threads are de facto in such a
-  *                          state). This only covers threads from the
-  *                          same processes as the caller thread. This
-- *                          command returns 0. The "expedited" commands
-- *                          complete faster than the non-expedited ones,
-- *                          they never block, but have the downside of
-- *                          causing extra overhead.
-+ *                          command returns 0 on success. The
-+ *                          "expedited" commands complete faster than
-+ *                          the non-expedited ones, they never block,
-+ *                          but have the downside of causing extra
-+ *                          overhead. A process needs to register its
-+ *                          intent to use the private expedited command
-+ *                          prior to using it, otherwise this command
-+ *                          returns -EPERM.
-+ * @MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED:
-+ *                          Register the process intent to use
-+ *                          MEMBARRIER_CMD_PRIVATE_EXPEDITED. Always
-+ *                          returns 0.
-  *
-  * Command to be passed to the membarrier system call. The commands need to
-  * be a single bit each, except for MEMBARRIER_CMD_QUERY which is assigned to
-  * the value 0.
-  */
- enum membarrier_cmd {
--	MEMBARRIER_CMD_QUERY			= 0,
--	MEMBARRIER_CMD_SHARED			= (1 << 0),
-+	MEMBARRIER_CMD_QUERY				= 0,
-+	MEMBARRIER_CMD_SHARED				= (1 << 0),
- 	/* reserved for MEMBARRIER_CMD_SHARED_EXPEDITED (1 << 1) */
- 	/* reserved for MEMBARRIER_CMD_PRIVATE (1 << 2) */
--	MEMBARRIER_CMD_PRIVATE_EXPEDITED	= (1 << 3),
-+	MEMBARRIER_CMD_PRIVATE_EXPEDITED		= (1 << 3),
-+	MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED	= (1 << 4),
- };
- 
- #endif /* _UAPI_LINUX_MEMBARRIER_H */
-diff --git a/init/Kconfig b/init/Kconfig
-index 78cb2461012e..a3dc6a66f0d1 100644
---- a/init/Kconfig
-+++ b/init/Kconfig
-@@ -1400,6 +1400,9 @@ config MEMBARRIER
- 
- 	  If unsure, say Y.
- 
-+config ARCH_HAS_MEMBARRIER_HOOKS
-+	bool
-+
- config EMBEDDED
- 	bool "Embedded system"
- 	option allnoconfig_y
-diff --git a/kernel/fork.c b/kernel/fork.c
-index e702cb9ffbd8..0171db20176e 100644
---- a/kernel/fork.c
-+++ b/kernel/fork.c
-@@ -1858,6 +1858,8 @@ static __latent_entropy struct task_struct *copy_process(
- 	 */
- 	copy_seccomp(p);
- 
-+	membarrier_fork(p, clone_flags);
-+
- 	/*
- 	 * Process group and session signals need to be delivered to just the
- 	 * parent before the fork or both the parent and the child after the
-diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index d17c5da523a0..f29525e453c4 100644
---- a/kernel/sched/core.c
-+++ b/kernel/sched/core.c
-@@ -2644,16 +2644,6 @@ static struct rq *finish_task_switch(struct task_struct *prev)
- 	prev_state = prev->state;
- 	vtime_task_switch(prev);
- 	perf_event_task_sched_in(prev, current);
--	/*
--	 * The membarrier system call requires a full memory barrier
--	 * after storing to rq->curr, before going back to user-space.
--	 *
--	 * TODO: This smp_mb__after_unlock_lock can go away if PPC end
--	 * up adding a full barrier to switch_mm(), or we should figure
--	 * out if a smp_mb__after_unlock_lock is really the proper API
--	 * to use.
--	 */
--	smp_mb__after_unlock_lock();
- 	finish_lock_switch(rq, prev);
- 	finish_arch_post_lock_switch();
- 
-diff --git a/kernel/sched/membarrier.c b/kernel/sched/membarrier.c
-index a92fddc22747..f06949a279ca 100644
---- a/kernel/sched/membarrier.c
-+++ b/kernel/sched/membarrier.c
-@@ -26,21 +26,25 @@
-  * except MEMBARRIER_CMD_QUERY.
-  */
- #define MEMBARRIER_CMD_BITMASK	\
--	(MEMBARRIER_CMD_SHARED | MEMBARRIER_CMD_PRIVATE_EXPEDITED)
-+	(MEMBARRIER_CMD_SHARED | MEMBARRIER_CMD_PRIVATE_EXPEDITED	\
-+	| MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED)
- 
- static void ipi_mb(void *info)
+@@ -652,11 +652,12 @@ static int __fpr_set(struct task_struct *target,
+                     unsigned int start_pos)
  {
- 	smp_mb();	/* IPIs should be serializing but paranoid. */
- }
+        int ret;
+-       struct user_fpsimd_state newstate =
+-               target->thread.fpsimd_state.user_fpsimd;
++       struct user_fpsimd_state newstate;
  
--static void membarrier_private_expedited(void)
-+static int membarrier_private_expedited(void)
- {
- 	int cpu;
- 	bool fallback = false;
- 	cpumask_var_t tmpmask;
+        sve_sync_to_fpsimd(target);
  
-+	if (!READ_ONCE(current->mm->membarrier_private_expedited))
-+		return -EPERM;
++       newstate = target->thread.fpsimd_state.user_fpsimd;
 +
- 	if (num_online_cpus() == 1)
--		return;
-+		return 0;
- 
- 	/*
- 	 * Matches memory barriers around rq->curr modification in
-@@ -94,6 +98,17 @@ static void membarrier_private_expedited(void)
- 	 * rq->curr modification in scheduler.
- 	 */
- 	smp_mb();	/* exit from system call is not a mb */
-+	return 0;
-+}
-+
-+static void membarrier_register_private_expedited(void)
-+{
-+	struct task_struct *p = current;
-+
-+	if (READ_ONCE(p->mm->membarrier_private_expedited))
-+		return;
-+	membarrier_arch_register_private_expedited(p);
-+	WRITE_ONCE(p->mm->membarrier_private_expedited, 1);
- }
- 
- /**
-@@ -144,7 +159,9 @@ SYSCALL_DEFINE2(membarrier, int, cmd, int, flags)
- 			synchronize_sched();
- 		return 0;
- 	case MEMBARRIER_CMD_PRIVATE_EXPEDITED:
--		membarrier_private_expedited();
-+		return membarrier_private_expedited();
-+	case MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED:
-+		membarrier_register_private_expedited();
- 		return 0;
- 	default:
- 		return -EINVAL;
--- 
-2.5.2
+        ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, &newstate,
+[...]
+
+(Or were you confident that this was already OK?  Maybe I'm confusing
+myself.)
+
+> need this since we are going to override the FPSIMD state anyway here.
+
+The underlying reason for this is the issue of what should happen
+for short regset writes.  Historically, writes through fpr_set() can
+be truncated arbitrarily, and the rest of fpsimd_state will remain
+unchanged.
+
+The issue is that if TIF_SVE is set, fpsimd_state can be stale for
+target.  If the initial sve_sync_to_fpsimd() is removed in sve_set()
+above, then we may resurrect old values for the untouched registers,
+instead of simply leaving them unmodified.
+
+Should I add comments explaining the purpose?  I guess it is rather
+non-obvious.
+
+
+Of course, I don't know whether userspace should really rely on partial
+regset writes doing anything sane, but I figured the implemented
+behaviour is at least less surprising with respect to the fpr_set()
+behavior.
+
+No legacy software can be relying on NT_ARM_SVE at all, so the behaviour
+here may not matter that much.  My idea was to reduce the invasiveness
+of porting ptrace clients to use NT_ARM_SVE.
+
+> 
+> > +
+> > +	/* Otherwise: full SVE case */
+> > +
+> > +	/*
+> > +	 * If setting a different VL from the requested VL and there is
+> > +	 * register data, the data layout will be wrong: don't even
+> > +	 * try to set the registers in this case.
+> > +	 */
+> > +	if (count && vq != sve_vq_from_vl(header.vl)) {
+> > +		ret = -EIO;
+> > +		goto out;
+> > +	}
+> > +
+> > +	sve_alloc(target);
+> > +	fpsimd_sync_to_sve(target);
+> 
+> Similarly here, it's a full SVE case, so we are going to override it
+> anyway.
+
+The argument here is similar: target->sve_state might already be
+allocated and if so it could contain data that doesn't match the user
+task's idea of what's in the V-regs.  (In fact, sve_alloc() currently
+zeroes sve_state, but that's still different from the current V-regs.)
+
+There is no possibility of legacy software relying on this code path,
+so we could say that a short write to NT_ARM_SVE with PT_SVE_REGS_SVE
+in flags zeroes any trailing data instead of preserving it.
+
+
+Either way, I don't intend to document the behaviour of partial
+writes to NT_ARM_SVE.  From a userspace point of view, I leave it
+unspecified.
+
+> > +	set_tsk_thread_flag(target, TIF_SVE);
+> 
+> This has the side-effect of enabling TIF_SVE even for PTRACE_SYSCALL
+> which may be cleared in some circumstances. It may not be an issue
+> though.
+
+I would argue that this is correct behaviour: the syscall enter trap and
+exit traps should both behave as if they are outside the syscall,
+allowing the debugger to simulate the effect of inserting any
+instructions the target could have inserted before or after the SVC.
+This may include simulating SVE instructions or modifying SVE regs,
+which would require TIF_SVE to get set.
+
+If the tracer doesn't cancel the syscall at the enter trap, then a
+real syscall will execute and that may cause the SVE state to be
+discarded in the usual way in the case of preemption or blocking: it
+seems cleaner for the debug illusion that this decision isn't made
+differently just because the target is being traced.
+
+(Spoiler alert though: the syscall exit trap will force the target
+to be scheduled out, which will force discard with the current
+task_fpsimd_save() behaviour ... but that could be changed in the
+future, and I prefer not to document any sort of guarantee here.)
+
+
+Does this make sense?  There may be issues or corner cases here
+that I didn't spot...
+
+Cheers
+---Dave
