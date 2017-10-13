@@ -1,106 +1,93 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:59696 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1757910AbdJMLRY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 13 Oct 2017 07:17:24 -0400
-Date: Fri, 13 Oct 2017 12:17:19 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v3 13/28] arm64/sve: Signal handling support
-Message-ID: <20171013111718.nqd2nllr7niytfss@armageddon.cambridge.arm.com>
-References: <1507660725-7986-1-git-send-email-Dave.Martin@arm.com>
- <1507660725-7986-14-git-send-email-Dave.Martin@arm.com>
- <20171011164052.exvy2w5p47mewrmg@armageddon.cambridge.arm.com>
- <20171012161156.GI19485@e103592.cambridge.arm.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20171012161156.GI19485@e103592.cambridge.arm.com>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:56756 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1751490AbdJMQMf (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 13 Oct 2017 12:12:35 -0400
+Received: from pps.filterd (m0098417.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id v9DG5F6K023029
+        for <linux-arch@vger.kernel.org>; Fri, 13 Oct 2017 12:12:34 -0400
+Received: from e19.ny.us.ibm.com (e19.ny.us.ibm.com [129.33.205.209])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2djx99qa21-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Fri, 13 Oct 2017 12:12:34 -0400
+Received: from localhost
+        by e19.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+        Fri, 13 Oct 2017 12:12:33 -0400
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: [PATCH tip/sched/membarrier 4/5] membarrier: Remove unused code for architectures without membarrier hooks
+Date: Fri, 13 Oct 2017 09:12:24 -0700
+In-Reply-To: <20171012170051.GA27468@linux.vnet.ibm.com>
+References: <20171012170051.GA27468@linux.vnet.ibm.com>
+Message-ID: <1507911145-4134-4-git-send-email-paulmck@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-arch@vger.kernel.org, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, Will Deacon <will.deacon@arm.com>, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
-Message-ID: <20171013111719.9wq_deP97ezwpIP5RmKp6R60ZD-kbsy2kfMgfRTFcL4@z>
+To: linux-kernel@vger.kernel.org
+Cc: mingo@kernel.org, mathieu.desnoyers@efficios.com, peterz@infradead.org, boqun.feng@gmail.com, ahh@google.com, maged.michael@gmail.com, gromer@google.com, avi@scylladb.com, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, davejwatson@fb.com, stern@rowland.harvard.edu, will.deacon@arm.com, luto@kernel.org, viro@zeniv.linux.org.uk, piggin@gmail.com, linux-arch@vger.kernel.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@redhat.com>, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20171013161224.w_M2Yds83LVmEB4kh-du_ip4e6JRUd1w7TDHInSS_PA@z>
 
-On Thu, Oct 12, 2017 at 05:11:57PM +0100, Dave P Martin wrote:
-> On Wed, Oct 11, 2017 at 05:40:52PM +0100, Catalin Marinas wrote:
-> > On Tue, Oct 10, 2017 at 07:38:30PM +0100, Dave P Martin wrote:
-> > > diff --git a/arch/arm64/kernel/fpsimd.c b/arch/arm64/kernel/fpsimd.c
-> > > index aabeaee..fa4ed34 100644
-> > > --- a/arch/arm64/kernel/fpsimd.c
-> > > +++ b/arch/arm64/kernel/fpsimd.c
-> > > @@ -310,6 +310,32 @@ static void fpsimd_to_sve(struct task_struct *task)
-> > >  		       sizeof(fst->vregs[i]));
-> > >  }
-> > >  
-> > > +/*
-> > > + * Transfer the SVE state in task->thread.sve_state to
-> > > + * task->thread.fpsimd_state.
-> > > + *
-> > > + * Task can be a non-runnable task, or current.  In the latter case,
-> > > + * softirqs (and preemption) must be disabled.
-> > > + * task->thread.sve_state must point to at least sve_state_size(task)
-> > > + * bytes of allocated kernel memory.
-> > > + * task->thread.sve_state must be up to date before calling this function.
-> > > + */
-> > > +static void sve_to_fpsimd(struct task_struct *task)
-> > > +{
-> > > +	unsigned int vq;
-> > > +	void const *sst = task->thread.sve_state;
-> > > +	struct fpsimd_state *fst = &task->thread.fpsimd_state;
-> > > +	unsigned int i;
-> > > +
-> > > +	if (!system_supports_sve())
-> > > +		return;
-> > > +
-> > > +	vq = sve_vq_from_vl(task->thread.sve_vl);
-> > > +	for (i = 0; i < 32; ++i)
-> > > +		memcpy(&fst->vregs[i], ZREG(sst, vq, i),
-> > > +		       sizeof(fst->vregs[i]));
-> > > +}
-> > 
-> > Nit: could we actually just do an assignment with some pointer casting?
-> > It looks like we invoke memcpy for every 16 bytes (same for
-> > fpsimd_to_sve).
-> 
-> I was uneasy about what the type of ZREG(sst, vq, i) ought to be.
-> In any case, memest() is magic: my oldskool GCC (5.3.0) generates:
-> 
-> ffff000008084c70 <sve_to_fpsimd>:
-> ffff000008084c70:       14000004        b       ffff000008084c80 <sve_to_fpsimd+0x10>
-> ffff000008084c74:       d503201f        nop
-> ffff000008084c78:       d65f03c0        ret
-> ffff000008084c7c:       d503201f        nop
-> ffff000008084c80:       f0007d61        adrp    x1, ffff000009033000 <reset_devices>
-> ffff000008084c84:       f942a021        ldr     x1, [x1,#1344]
-> ffff000008084c88:       36b001c1        tbz     w1, #22, ffff000008084cc0 <sve_to_fpsimd+0x50>
-> ffff000008084c8c:       b94ca805        ldr     w5, [x0,#3240]
-> ffff000008084c90:       912a0001        add     x1, x0, #0xa80
-> ffff000008084c94:       91320004        add     x4, x0, #0xc80
-> ffff000008084c98:       f9465006        ldr     x6, [x0,#3232]
-> ffff000008084c9c:       121c6ca5        and     w5, w5, #0xfffffff0
-> ffff000008084ca0:       52800000        mov     w0, #0x0                        // #0
-> ffff000008084ca4:       8b2040c2        add     x2, x6, w0, uxtw
-> ffff000008084ca8:       0b050000        add     w0, w0, w5
-> ffff000008084cac:       a9400c42        ldp     x2, x3, [x2]
-> ffff000008084cb0:       a8810c22        stp     x2, x3, [x1],#16
-> ffff000008084cb4:       eb01009f        cmp     x4, x1
-> ffff000008084cb8:       54ffff61        b.ne    ffff000008084ca4 <sve_to_fpsimd+0x34>
-> ffff000008084cbc:       d65f03c0        ret
-> ffff000008084cc0:       d65f03c0        ret
-> ffff000008084cc4:       d503201f        nop
-> 
-> 
-> Without volatile, I think assigning a single object and doing a memcpy()
-> are equivalent to the compiler: which it actually uses depends solely on
-> optimisation considerations.
-> 
-> (But then I'm not a language lawyer ... not a professional one anyway).
-> 
-> Are you concerned compilers may mess this up?
+From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
 
-That's fine, please ignore my comment then. I was worried that gcc would
-always generate a call to the memcpy implementation rather than inlining
-it.
+Architectures without membarrier hooks don't need to emit the
+empty membarrier_arch_switch_mm() static inline when
+CONFIG_MEMBARRIER=y.
 
+Adapt the CONFIG_MEMBARRIER=n counterpart to only emit the empty
+membarrier_arch_switch_mm() for architectures with membarrier hooks.
+
+Reported-by: Nicholas Piggin <npiggin@gmail.com>
+Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+CC: Peter Zijlstra <peterz@infradead.org>
+CC: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+CC: Boqun Feng <boqun.feng@gmail.com>
+CC: Andrew Hunter <ahh@google.com>
+CC: Maged Michael <maged.michael@gmail.com>
+CC: gromer@google.com
+CC: Avi Kivity <avi@scylladb.com>
+CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+CC: Paul Mackerras <paulus@samba.org>
+CC: Michael Ellerman <mpe@ellerman.id.au>
+CC: Dave Watson <davejwatson@fb.com>
+CC: Alan Stern <stern@rowland.harvard.edu>
+CC: Will Deacon <will.deacon@arm.com>
+CC: Andy Lutomirski <luto@kernel.org>
+CC: Ingo Molnar <mingo@redhat.com>
+CC: Alexander Viro <viro@zeniv.linux.org.uk>
+CC: linuxppc-dev@lists.ozlabs.org
+CC: linux-arch@vger.kernel.org
+Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+---
+ include/linux/sched/mm.h | 6 ++----
+ 1 file changed, 2 insertions(+), 4 deletions(-)
+
+diff --git a/include/linux/sched/mm.h b/include/linux/sched/mm.h
+index e4955d293687..40379edac388 100644
+--- a/include/linux/sched/mm.h
++++ b/include/linux/sched/mm.h
+@@ -221,10 +221,6 @@ static inline void memalloc_noreclaim_restore(unsigned int flags)
+ #ifdef CONFIG_ARCH_HAS_MEMBARRIER_HOOKS
+ #include <asm/membarrier.h>
+ #else
+-static inline void membarrier_arch_switch_mm(struct mm_struct *prev,
+-		struct mm_struct *next, struct task_struct *tsk)
+-{
+-}
+ static inline void membarrier_arch_fork(struct task_struct *t,
+ 		unsigned long clone_flags)
+ {
+@@ -253,10 +249,12 @@ static inline void membarrier_execve(struct task_struct *t)
+ 	membarrier_arch_execve(t);
+ }
+ #else
++#ifdef CONFIG_ARCH_HAS_MEMBARRIER_HOOKS
+ static inline void membarrier_arch_switch_mm(struct mm_struct *prev,
+ 		struct mm_struct *next, struct task_struct *tsk)
+ {
+ }
++#endif
+ static inline void membarrier_fork(struct task_struct *t,
+ 		unsigned long clone_flags)
+ {
 -- 
-Catalin
+2.5.2
