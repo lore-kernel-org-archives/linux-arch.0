@@ -1,75 +1,110 @@
-From: <nfrankiyamu@centrum.cz>
-Subject: (unknown)
-Date: Fri, 13 Oct 2017 06:16:20 -0000
-Message-ID: <150787538086.10910.5127212890812537313@vnpt.vn>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v3 13/28] arm64/sve: Signal handling support
+Date: Fri, 13 Oct 2017 12:17:19 +0100
+Message-ID: <20171013111718.nqd2nllr7niytfss@armageddon.cambridge.arm.com>
+References: <1507660725-7986-1-git-send-email-Dave.Martin@arm.com>
+ <1507660725-7986-14-git-send-email-Dave.Martin@arm.com>
+ <20171011164052.exvy2w5p47mewrmg@armageddon.cambridge.arm.com>
+ <20171012161156.GI19485@e103592.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: application/zip; name="362936577323.zip"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from static.vnpt.vn ([113.161.77.45]:60203 "HELO vnpt.vn"
-        rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with SMTP
-        id S1751901AbdJMGQZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 13 Oct 2017 02:16:25 -0400
-Content-Disposition: attachment
-Subject: 
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <kvmarm-bounces@lists.cs.columbia.edu>
+Content-Disposition: inline
+In-Reply-To: <20171012161156.GI19485@e103592.cambridge.arm.com>
+List-Unsubscribe: <https://lists.cs.columbia.edu/mailman/options/kvmarm>,
+ <mailto:kvmarm-request@lists.cs.columbia.edu?subject=unsubscribe>
+List-Archive: <https://lists.cs.columbia.edu/pipermail/kvmarm>
+List-Post: <mailto:kvmarm@lists.cs.columbia.edu>
+List-Help: <mailto:kvmarm-request@lists.cs.columbia.edu?subject=help>
+List-Subscribe: <https://lists.cs.columbia.edu/mailman/listinfo/kvmarm>,
+ <mailto:kvmarm-request@lists.cs.columbia.edu?subject=subscribe>
+Errors-To: kvmarm-bounces@lists.cs.columbia.edu
+Sender: kvmarm-bounces@lists.cs.columbia.edu
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-arch@vger.kernel.org, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, Will Deacon <will.deacon@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
+List-Id: linux-arch.vger.kernel.org
 
-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
-AAABAAEAWwAAABcMAAAAAA==
+On Thu, Oct 12, 2017 at 05:11:57PM +0100, Dave P Martin wrote:
+> On Wed, Oct 11, 2017 at 05:40:52PM +0100, Catalin Marinas wrote:
+> > On Tue, Oct 10, 2017 at 07:38:30PM +0100, Dave P Martin wrote:
+> > > diff --git a/arch/arm64/kernel/fpsimd.c b/arch/arm64/kernel/fpsimd.c
+> > > index aabeaee..fa4ed34 100644
+> > > --- a/arch/arm64/kernel/fpsimd.c
+> > > +++ b/arch/arm64/kernel/fpsimd.c
+> > > @@ -310,6 +310,32 @@ static void fpsimd_to_sve(struct task_struct *task)
+> > >  		       sizeof(fst->vregs[i]));
+> > >  }
+> > >  
+> > > +/*
+> > > + * Transfer the SVE state in task->thread.sve_state to
+> > > + * task->thread.fpsimd_state.
+> > > + *
+> > > + * Task can be a non-runnable task, or current.  In the latter case,
+> > > + * softirqs (and preemption) must be disabled.
+> > > + * task->thread.sve_state must point to at least sve_state_size(task)
+> > > + * bytes of allocated kernel memory.
+> > > + * task->thread.sve_state must be up to date before calling this function.
+> > > + */
+> > > +static void sve_to_fpsimd(struct task_struct *task)
+> > > +{
+> > > +	unsigned int vq;
+> > > +	void const *sst = task->thread.sve_state;
+> > > +	struct fpsimd_state *fst = &task->thread.fpsimd_state;
+> > > +	unsigned int i;
+> > > +
+> > > +	if (!system_supports_sve())
+> > > +		return;
+> > > +
+> > > +	vq = sve_vq_from_vl(task->thread.sve_vl);
+> > > +	for (i = 0; i < 32; ++i)
+> > > +		memcpy(&fst->vregs[i], ZREG(sst, vq, i),
+> > > +		       sizeof(fst->vregs[i]));
+> > > +}
+> > 
+> > Nit: could we actually just do an assignment with some pointer casting?
+> > It looks like we invoke memcpy for every 16 bytes (same for
+> > fpsimd_to_sve).
+> 
+> I was uneasy about what the type of ZREG(sst, vq, i) ought to be.
+> In any case, memest() is magic: my oldskool GCC (5.3.0) generates:
+> 
+> ffff000008084c70 <sve_to_fpsimd>:
+> ffff000008084c70:       14000004        b       ffff000008084c80 <sve_to_fpsimd+0x10>
+> ffff000008084c74:       d503201f        nop
+> ffff000008084c78:       d65f03c0        ret
+> ffff000008084c7c:       d503201f        nop
+> ffff000008084c80:       f0007d61        adrp    x1, ffff000009033000 <reset_devices>
+> ffff000008084c84:       f942a021        ldr     x1, [x1,#1344]
+> ffff000008084c88:       36b001c1        tbz     w1, #22, ffff000008084cc0 <sve_to_fpsimd+0x50>
+> ffff000008084c8c:       b94ca805        ldr     w5, [x0,#3240]
+> ffff000008084c90:       912a0001        add     x1, x0, #0xa80
+> ffff000008084c94:       91320004        add     x4, x0, #0xc80
+> ffff000008084c98:       f9465006        ldr     x6, [x0,#3232]
+> ffff000008084c9c:       121c6ca5        and     w5, w5, #0xfffffff0
+> ffff000008084ca0:       52800000        mov     w0, #0x0                        // #0
+> ffff000008084ca4:       8b2040c2        add     x2, x6, w0, uxtw
+> ffff000008084ca8:       0b050000        add     w0, w0, w5
+> ffff000008084cac:       a9400c42        ldp     x2, x3, [x2]
+> ffff000008084cb0:       a8810c22        stp     x2, x3, [x1],#16
+> ffff000008084cb4:       eb01009f        cmp     x4, x1
+> ffff000008084cb8:       54ffff61        b.ne    ffff000008084ca4 <sve_to_fpsimd+0x34>
+> ffff000008084cbc:       d65f03c0        ret
+> ffff000008084cc0:       d65f03c0        ret
+> ffff000008084cc4:       d503201f        nop
+> 
+> 
+> Without volatile, I think assigning a single object and doing a memcpy()
+> are equivalent to the compiler: which it actually uses depends solely on
+> optimisation considerations.
+> 
+> (But then I'm not a language lawyer ... not a professional one anyway).
+> 
+> Are you concerned compilers may mess this up?
+
+That's fine, please ignore my comment then. I was worried that gcc would
+always generate a call to the memcpy implementation rather than inlining
+it.
+
+-- 
+Catalin
