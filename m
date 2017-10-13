@@ -1,125 +1,124 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v3 11/28] arm64/sve: Core task context handling
-Date: Fri, 13 Oct 2017 14:57:37 +0100
-Message-ID: <20171013135736.hd75eja76n4bt2rq@armageddon.cambridge.arm.com>
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [PATCH v3 22/28] arm64/sve: KVM: Prevent guests from using SVE
+Date: Fri, 13 Oct 2017 15:15:40 +0100
+Message-ID: <20171013141539.GK19485@e103592.cambridge.arm.com>
 References: <1507660725-7986-1-git-send-email-Dave.Martin@arm.com>
- <1507660725-7986-12-git-send-email-Dave.Martin@arm.com>
- <20171011161558.ts7adaryabttg47z@armageddon.cambridge.arm.com>
- <20171012160506.GH19485@e103592.cambridge.arm.com>
+ <1507660725-7986-23-git-send-email-Dave.Martin@arm.com>
+ <c28b3f0d-7beb-cca3-46db-3fce964f4725@arm.com>
+ <20171012110409.GG19485@e103592.cambridge.arm.com>
+ <d8a50bf1-bfe0-2423-c56b-adac3925309e@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:33580 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:33892 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753447AbdJMN5m (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 13 Oct 2017 09:57:42 -0400
+        id S1753478AbdJMOPp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 13 Oct 2017 10:15:45 -0400
 Content-Disposition: inline
-In-Reply-To: <20171012160506.GH19485@e103592.cambridge.arm.com>
+In-Reply-To: <d8a50bf1-bfe0-2423-c56b-adac3925309e@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-arch@vger.kernel.org, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, Will Deacon <will.deacon@arm.com>, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
+To: Marc Zyngier <marc.zyngier@arm.com>
+Cc: linux-arch@vger.kernel.org, Christoffer Dall <cdall@linaro.org>, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
 
-On Thu, Oct 12, 2017 at 05:05:07PM +0100, Dave P Martin wrote:
-> On Wed, Oct 11, 2017 at 05:15:58PM +0100, Catalin Marinas wrote:
-> > On Tue, Oct 10, 2017 at 07:38:28PM +0100, Dave P Martin wrote:
-> > > diff --git a/arch/arm64/include/asm/processor.h b/arch/arm64/include/asm/processor.h
-> > > index 29adab8..4831d28 100644
-> > > --- a/arch/arm64/include/asm/processor.h
-> > > +++ b/arch/arm64/include/asm/processor.h
-> > > @@ -39,6 +47,8 @@
-> > >  #define FPEXC_IDF	(1 << 7)
-> > >  
-> > >  /*
-> > > + * (Note: in this discussion, statements about FPSIMD apply equally to SVE.)
-> > > + *
-> > >   * In order to reduce the number of times the FPSIMD state is needlessly saved
-> > >   * and restored, we need to keep track of two things:
-> > >   * (a) for each task, we need to remember which CPU was the last one to have
-> > > @@ -99,6 +109,287 @@
-> > >   */
-> > >  static DEFINE_PER_CPU(struct fpsimd_state *, fpsimd_last_state);
-> > >  
-> > > +static void sve_free(struct task_struct *task)
-> > > +{
-> > > +	kfree(task->thread.sve_state);
-> > > +	task->thread.sve_state = NULL;
-> > > +}
+On Thu, Oct 12, 2017 at 12:28:32PM +0100, Marc Zyngier wrote:
+> On 12/10/17 12:04, Dave Martin wrote:
+> > On Wed, Oct 11, 2017 at 05:28:06PM +0100, Marc Zyngier wrote:
+> >> [+ Christoffer]
+> >>
+> >> On 10/10/17 19:38, Dave Martin wrote:
+> >>> Until KVM has full SVE support, guests must not be allowed to
+> >>> execute SVE instructions.
+> >>>
+> >>> This patch enables the necessary traps, and also ensures that the
+> >>> traps are disabled again on exit from the guest so that the host
+> >>> can still use SVE if it wants to.
+> >>>
+> >>> This patch introduces another instance of
+> >>> __this_cpu_write(fpsimd_last_state, NULL), so this flush operation
+> >>> is abstracted out as a separate helper fpsimd_flush_cpu_state().
+> >>> Other instances are ported appropriately.
+> >>>
+> >>> As a side effect of this refactoring, a this_cpu_write() in
+> >>> fpsimd_cpu_pm_notifier() is changed to __this_cpu_write().  This
+> >>> should be fine, since cpu_pm_enter() is supposed to be called only
+> >>> with interrupts disabled.
+> >>>
+> >>> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> >>> Reviewed-by: Alex Bennée <alex.bennee@linaro.org>
+> >>> Cc: Marc Zyngier <marc.zyngier@arm.com>
+> >>> Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+> >>> ---
 > > 
-> > I think we need a WARN_ON if TIF_SVE is still set here (and the callers
-> > making sure it is cleared). I haven't checked the code paths via
-> > fpsimd_release_thread() but wondering what happens if we get an
-> > interrupt between freeing the state and making the pointer NULL, with
-> > some context switching in a preemptible kernel.
-> 
-> Having a WARN_ON() here may be a decent way to sanity-check that we
-> don't ever have sve_state NULL with TIF_SVE set.  This is a lot more
-> economical than putting a WARN_ON() at each dereference of sve_state
-> (of which there are quite a few).  sve_free() is also a slow path.
-> 
-> Currently, there are two callsites: sve_set_vector_length(), where we
-> test_and_clear_tsk_thread_flags(task, TIF_SVE) before calling sve_free();
-> and fpsimd_release_thread() where we "don't care" because the thread
-> is dying.
-> 
-> Looking more closely though, is the release_thread() path preemptible?
-> I can't see anything in the scheduler core to ensure this, nor any
-> general reason why it should be needed.
-> 
-> In which case preemption during thread exit after sve_free() could
-> result in a NULL deference in fpsimd_thread_switch().
-> 
-> 
-> So, I think my favoured approach is:
-> 
-> sve_release_thread()
-> {
-> 	local_bh_disable();
-> 	fpsimd_flush_task_state(current);
-> 	clear_thread_flag(TIF_SVE);
-> 	local_bh_enable();
-> 
-> 	sve_free();
-> }
-> 
-> The local_bh stuff is cumbersome here, and could be replaced with
-> barrier()s to force the order of fpsimd_flusk_task_state() versus
-> clearing TIF_SVE.  Or should the barrier really be in
-> fpsimd_flush_task_state()?  Disabling softirqs avoids the need to answer
-> such questions...
-> 
-> 
-> Then:
-> 
-> sve_free(task)
-> {
-> 	WARN_ON(test_thread_flag(TIF_SVE));
-> 
-> 	barrier();
-> 	kfree(task->thread.sve_state);
-> 	tash->thread.sve_state = NULL;
-> }
-> 
-> I'm assuming here that kfree() can't be called safely from atomic
-> context, but this is unclear.  I would expect to be able to free
-> GFP_ATOMIC memory from atomic context (though sve_statue is GFP_KERNEL,
-> so dunno).
+> > [...]
+> > 
+> >>> diff --git a/arch/arm64/include/asm/kvm_host.h b/arch/arm64/include/asm/kvm_host.h
+> >>> index e923b58..674912d 100644
+> >>> --- a/arch/arm64/include/asm/kvm_host.h
+> >>> +++ b/arch/arm64/include/asm/kvm_host.h
+> > 
+> > [...]
+> > 
+> >>> @@ -384,4 +385,14 @@ static inline void __cpu_init_stage2(void)
+> > 
+> > [...]
+> > 
+> >>> +static inline void kvm_fpsimd_flush_cpu_state(void)
+> >>> +{
+> >>> +	if (system_supports_sve())
+> >>> +		sve_flush_cpu_state();
+> >>
+> >> Hmmm. How does this work if...
+> > 
+> > !IS_ENABLED(CONFIG_ARM64_SVE) implies !system_supports_sve(), so
+> > if CONFIG_ARM64_SVE is not set, the call is optimised away.
+> > 
+> > [...]
+> > 
+> >>> diff --git a/arch/arm64/kernel/fpsimd.c b/arch/arm64/kernel/fpsimd.c
+> >>> index a9cb794..6ae3703 100644
+> >>> --- a/arch/arm64/kernel/fpsimd.c
+> >>> +++ b/arch/arm64/kernel/fpsimd.c
+> >>> @@ -1073,6 +1073,33 @@ void fpsimd_flush_task_state(struct task_struct *t)
+> > 
+> > [...]
+> > 
+> >>> +#ifdef CONFIG_ARM64_SVE
+> >>> +void sve_flush_cpu_state(void)
+> >>> +{
+> >>> +	struct fpsimd_state *const fpstate = __this_cpu_read(fpsimd_last_state);
+> >>> +	struct task_struct *tsk;
+> >>> +
+> >>> +	if (!fpstate)
+> >>> +		return;
+> >>> +
+> >>> +	tsk = container_of(fpstate, struct task_struct, thread.fpsimd_state);
+> >>> +	if (test_tsk_thread_flag(tsk, TIF_SVE))
+> >>> +		fpsimd_flush_cpu_state();
+> >>> +}
+> >>> +#endif /* CONFIG_ARM64_SVE */
+> >>
+> >> ... CONFIG_ARM64_SVE is not set? Fixing this should just be a matter of
+> >> moving the #ifdef/#endif inside the function...
+> > 
+> > Because sve_flush_cpu_state() is not in the same compilation unit it
+> > can't be static, and that means the compiler won't remove it
+> > automatically if it's unused -- hence the #ifdef.
+> > 
+> > Because the call site is optimised away, there is no link failure.
+> > 
+> > Don't we rely on this sort of thing all over the place?
+> Dunno. It just feels weird. But if you are sure that it won't break,
+> fine by me. I guess we'll find out pretty quickly how this fares,
+> specially with older toolchains.
 
-The kfree should be fine.
+I thought this was why the kernel doesn't support building with -O0.
+There are many instances of this in the series, not just here.
 
-Alternative proposal: free the SVE state in arch_release_task_struct().
-This is called via the RCU mechanism and the task is no longer current,
-so no preemption issues.
+Let me know if you feel this isn't good enough though.
 
-> > Alternatively, always clear TIF_SVE here before freeing (also wondering
-> > whether we should make sve_state NULL before the actual freeing but I
-> > think TIF_SVE clearing should suffice).
-> 
-> Could do.  I feel that the current placement of the TIF_SVE clearing in
-> sve_set_vector_length() feels "more natural", but this is a pretty
-> flimsy argument.  How strongly do you feel about this?
+Do you have any other comments on this patch?
 
-I agree with you, keep the TIF_SVE clearing in sve_set_vector_length().
-
--- 
-Catalin
+Cheers
+---Dave
