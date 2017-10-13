@@ -1,110 +1,165 @@
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH v3 13/28] arm64/sve: Signal handling support
-Date: Fri, 13 Oct 2017 15:26:32 +0100
-Message-ID: <20171013142632.GL19485@e103592.cambridge.arm.com>
-References: <1507660725-7986-1-git-send-email-Dave.Martin@arm.com>
- <1507660725-7986-14-git-send-email-Dave.Martin@arm.com>
- <20171011164052.exvy2w5p47mewrmg@armageddon.cambridge.arm.com>
- <20171012161156.GI19485@e103592.cambridge.arm.com>
- <20171013111718.nqd2nllr7niytfss@armageddon.cambridge.arm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:34158 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1758055AbdJMO0h (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 13 Oct 2017 10:26:37 -0400
-Content-Disposition: inline
-In-Reply-To: <20171013111718.nqd2nllr7niytfss@armageddon.cambridge.arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arch@vger.kernel.org, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, Will Deacon <will.deacon@arm.com>, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: [PATCH tip/sched/membarrier 3/5] membarrier: Document scheduler barrier requirements
+Date: Fri, 13 Oct 2017 09:12:23 -0700
+Message-ID: <1507911145-4134-3-git-send-email-paulmck@linux.vnet.ibm.com>
+References: <20171012170051.GA27468@linux.vnet.ibm.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20171012170051.GA27468@linux.vnet.ibm.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: mingo@kernel.org, mathieu.desnoyers@efficios.com, peterz@infradead.org, boqun.feng@gmail.com, ahh@google.com, maged.michael@gmail.com, gromer@google.com, avi@scylladb.com, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, davejwatson@fb.com, stern@rowland.harvard.edu, will.deacon@arm.com, luto@kernel.org, viro@zeniv.linux.org.uk, piggin@gmail.com, linux-arch@vger.kernel.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrea Parri <parri.andrea@gmail.com>, x86@kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Oct 13, 2017 at 12:17:19PM +0100, Catalin Marinas wrote:
-> On Thu, Oct 12, 2017 at 05:11:57PM +0100, Dave P Martin wrote:
-> > On Wed, Oct 11, 2017 at 05:40:52PM +0100, Catalin Marinas wrote:
-> > > On Tue, Oct 10, 2017 at 07:38:30PM +0100, Dave P Martin wrote:
-> > > > diff --git a/arch/arm64/kernel/fpsimd.c b/arch/arm64/kernel/fpsimd.c
-> > > > index aabeaee..fa4ed34 100644
-> > > > --- a/arch/arm64/kernel/fpsimd.c
-> > > > +++ b/arch/arm64/kernel/fpsimd.c
-> > > > @@ -310,6 +310,32 @@ static void fpsimd_to_sve(struct task_struct *task)
-> > > >  		       sizeof(fst->vregs[i]));
-> > > >  }
-> > > >  
-> > > > +/*
-> > > > + * Transfer the SVE state in task->thread.sve_state to
-> > > > + * task->thread.fpsimd_state.
-> > > > + *
-> > > > + * Task can be a non-runnable task, or current.  In the latter case,
-> > > > + * softirqs (and preemption) must be disabled.
-> > > > + * task->thread.sve_state must point to at least sve_state_size(task)
-> > > > + * bytes of allocated kernel memory.
-> > > > + * task->thread.sve_state must be up to date before calling this function.
-> > > > + */
-> > > > +static void sve_to_fpsimd(struct task_struct *task)
-> > > > +{
-> > > > +	unsigned int vq;
-> > > > +	void const *sst = task->thread.sve_state;
-> > > > +	struct fpsimd_state *fst = &task->thread.fpsimd_state;
-> > > > +	unsigned int i;
-> > > > +
-> > > > +	if (!system_supports_sve())
-> > > > +		return;
-> > > > +
-> > > > +	vq = sve_vq_from_vl(task->thread.sve_vl);
-> > > > +	for (i = 0; i < 32; ++i)
-> > > > +		memcpy(&fst->vregs[i], ZREG(sst, vq, i),
-> > > > +		       sizeof(fst->vregs[i]));
-> > > > +}
-> > > 
-> > > Nit: could we actually just do an assignment with some pointer casting?
-> > > It looks like we invoke memcpy for every 16 bytes (same for
-> > > fpsimd_to_sve).
-> > 
-> > I was uneasy about what the type of ZREG(sst, vq, i) ought to be.
-> > In any case, memest() is magic: my oldskool GCC (5.3.0) generates:
-> > 
-> > ffff000008084c70 <sve_to_fpsimd>:
-> > ffff000008084c70:       14000004        b       ffff000008084c80 <sve_to_fpsimd+0x10>
-> > ffff000008084c74:       d503201f        nop
-> > ffff000008084c78:       d65f03c0        ret
-> > ffff000008084c7c:       d503201f        nop
-> > ffff000008084c80:       f0007d61        adrp    x1, ffff000009033000 <reset_devices>
-> > ffff000008084c84:       f942a021        ldr     x1, [x1,#1344]
-> > ffff000008084c88:       36b001c1        tbz     w1, #22, ffff000008084cc0 <sve_to_fpsimd+0x50>
-> > ffff000008084c8c:       b94ca805        ldr     w5, [x0,#3240]
-> > ffff000008084c90:       912a0001        add     x1, x0, #0xa80
-> > ffff000008084c94:       91320004        add     x4, x0, #0xc80
-> > ffff000008084c98:       f9465006        ldr     x6, [x0,#3232]
-> > ffff000008084c9c:       121c6ca5        and     w5, w5, #0xfffffff0
-> > ffff000008084ca0:       52800000        mov     w0, #0x0                        // #0
-> > ffff000008084ca4:       8b2040c2        add     x2, x6, w0, uxtw
-> > ffff000008084ca8:       0b050000        add     w0, w0, w5
-> > ffff000008084cac:       a9400c42        ldp     x2, x3, [x2]
-> > ffff000008084cb0:       a8810c22        stp     x2, x3, [x1],#16
-> > ffff000008084cb4:       eb01009f        cmp     x4, x1
-> > ffff000008084cb8:       54ffff61        b.ne    ffff000008084ca4 <sve_to_fpsimd+0x34>
-> > ffff000008084cbc:       d65f03c0        ret
-> > ffff000008084cc0:       d65f03c0        ret
-> > ffff000008084cc4:       d503201f        nop
-> > 
-> > 
-> > Without volatile, I think assigning a single object and doing a memcpy()
-> > are equivalent to the compiler: which it actually uses depends solely on
-> > optimisation considerations.
-> > 
-> > (But then I'm not a language lawyer ... not a professional one anyway).
-> > 
-> > Are you concerned compilers may mess this up?
-> 
-> That's fine, please ignore my comment then. I was worried that gcc would
-> always generate a call to the memcpy implementation rather than inlining
-> it.
+From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
 
-OK.  I'll keep an eye on this, but in any case it won't impact the
-FPSIMD-only case.
+Document the membarrier requirement on having a full memory barrier in
+__schedule() after coming from user-space, before storing to rq->curr.
+It is provided by smp_mb__after_spinlock() in __schedule().
 
-Cheers
----Dave
+Document that membarrier requires a full barrier on transition from
+kernel thread to userspace thread. We currently have an implicit barrier
+from atomic_dec_and_test() in mmdrop() that ensures this.
+
+The x86 switch_mm_irqs_off() full barrier is currently provided by many
+cpumask update operations as well as write_cr3(). Document that
+write_cr3() provides this barrier.
+
+Changes since v1:
+- Update comments to match reality for code paths which are after
+  storing to rq->curr, before returning to user-space, based on feedback
+  from Andrea Parri.
+Changes since v2:
+- Update changelog (smp_mb__before_spinlock -> smp_mb__after_spinlock).
+  Based on feedback from Andrea Parri.
+Changes since v3:
+- Clarify comments following feeback from Peter Zijlstra.
+Changes since v4:
+- Update comment regarding powerpc barrier.
+
+Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+CC: Peter Zijlstra <peterz@infradead.org>
+CC: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+CC: Boqun Feng <boqun.feng@gmail.com>
+CC: Andrew Hunter <ahh@google.com>
+CC: Maged Michael <maged.michael@gmail.com>
+CC: gromer@google.com
+CC: Avi Kivity <avi@scylladb.com>
+CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+CC: Paul Mackerras <paulus@samba.org>
+CC: Michael Ellerman <mpe@ellerman.id.au>
+CC: Dave Watson <davejwatson@fb.com>
+CC: Thomas Gleixner <tglx@linutronix.de>
+CC: Ingo Molnar <mingo@redhat.com>
+CC: "H. Peter Anvin" <hpa@zytor.com>
+CC: Andrea Parri <parri.andrea@gmail.com>
+CC: x86@kernel.org
+Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+---
+ arch/x86/mm/tlb.c        |  5 +++++
+ include/linux/sched/mm.h |  5 +++++
+ kernel/sched/core.c      | 37 ++++++++++++++++++++++++++-----------
+ 3 files changed, 36 insertions(+), 11 deletions(-)
+
+diff --git a/arch/x86/mm/tlb.c b/arch/x86/mm/tlb.c
+index 49d9778376d7..38f6cbd8cd80 100644
+--- a/arch/x86/mm/tlb.c
++++ b/arch/x86/mm/tlb.c
+@@ -143,6 +143,11 @@ void switch_mm_irqs_off(struct mm_struct *prev, struct mm_struct *next,
+ 	}
+ #endif
+ 
++	/*
++	 * The membarrier system call requires a full memory barrier
++	 * before returning to user-space, after storing to rq->curr.
++	 * Writing to CR3 provides that full memory barrier.
++	 */
+ 	if (real_prev == next) {
+ 		VM_BUG_ON(this_cpu_read(cpu_tlbstate.ctxs[prev_asid].ctx_id) !=
+ 			  next->context.ctx_id);
+diff --git a/include/linux/sched/mm.h b/include/linux/sched/mm.h
+index 1b9c39f3d1e3..e4955d293687 100644
+--- a/include/linux/sched/mm.h
++++ b/include/linux/sched/mm.h
+@@ -38,6 +38,11 @@ static inline void mmgrab(struct mm_struct *mm)
+ extern void __mmdrop(struct mm_struct *);
+ static inline void mmdrop(struct mm_struct *mm)
+ {
++	/*
++	 * The implicit full barrier implied by atomic_dec_and_test is
++	 * required by the membarrier system call before returning to
++	 * user-space, after storing to rq->curr.
++	 */
+ 	if (unlikely(atomic_dec_and_test(&mm->mm_count)))
+ 		__mmdrop(mm);
+ }
+diff --git a/kernel/sched/core.c b/kernel/sched/core.c
+index f29525e453c4..8a176892b4f0 100644
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@ -2648,6 +2648,12 @@ static struct rq *finish_task_switch(struct task_struct *prev)
+ 	finish_arch_post_lock_switch();
+ 
+ 	fire_sched_in_preempt_notifiers(current);
++	/*
++	 * When transitioning from a kernel thread to a userspace
++	 * thread, mmdrop()'s implicit full barrier is required by the
++	 * membarrier system call, because the current active_mm can
++	 * become the current mm without going through switch_mm().
++	 */
+ 	if (mm)
+ 		mmdrop(mm);
+ 	if (unlikely(prev_state == TASK_DEAD)) {
+@@ -2753,6 +2759,13 @@ context_switch(struct rq *rq, struct task_struct *prev,
+ 	 */
+ 	arch_start_context_switch(prev);
+ 
++	/*
++	 * If mm is non-NULL, we pass through switch_mm(). If mm is
++	 * NULL, we will pass through mmdrop() in finish_task_switch().
++	 * Both of these contain the full memory barrier required by
++	 * membarrier after storing to rq->curr, before returning to
++	 * user-space.
++	 */
+ 	if (!mm) {
+ 		next->active_mm = oldmm;
+ 		mmgrab(oldmm);
+@@ -3289,6 +3302,9 @@ static void __sched notrace __schedule(bool preempt)
+ 	 * Make sure that signal_pending_state()->signal_pending() below
+ 	 * can't be reordered with __set_current_state(TASK_INTERRUPTIBLE)
+ 	 * done by the caller to avoid the race with signal_wake_up().
++	 *
++	 * The membarrier system call requires a full memory barrier
++	 * after coming from user-space, before storing to rq->curr.
+ 	 */
+ 	rq_lock(rq, &rf);
+ 	smp_mb__after_spinlock();
+@@ -3336,17 +3352,16 @@ static void __sched notrace __schedule(bool preempt)
+ 		/*
+ 		 * The membarrier system call requires each architecture
+ 		 * to have a full memory barrier after updating
+-		 * rq->curr, before returning to user-space. For TSO
+-		 * (e.g. x86), the architecture must provide its own
+-		 * barrier in switch_mm(). For weakly ordered machines
+-		 * for which spin_unlock() acts as a full memory
+-		 * barrier, finish_lock_switch() in common code takes
+-		 * care of this barrier. For weakly ordered machines for
+-		 * which spin_unlock() acts as a RELEASE barrier (only
+-		 * arm64 and PowerPC), arm64 has a full barrier in
+-		 * switch_to(), and PowerPC has
+-		 * smp_mb__after_unlock_lock() before
+-		 * finish_lock_switch().
++		 * rq->curr, before returning to user-space.
++		 *
++		 * Here are the schemes providing that barrier on the
++		 * various architectures:
++		 * - mm ? switch_mm() : mmdrop() for x86, s390, sparc, PowerPC.
++		 *   switch_mm() rely on membarrier_arch_switch_mm() on PowerPC.
++		 * - finish_lock_switch() for weakly-ordered
++		 *   architectures where spin_unlock is a full barrier,
++		 * - switch_to() for arm64 (weakly-ordered, spin_unlock
++		 *   is a RELEASE barrier),
+ 		 */
+ 		++*switch_count;
+ 
+-- 
+2.5.2
