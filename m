@@ -1,112 +1,119 @@
-From: Brijesh Singh <brijesh.singh@amd.com>
-Subject: [Part1 PATCH v6 15/17] percpu: Introduce DEFINE_PER_CPU_DECRYPTED
-Date: Mon, 16 Oct 2017 10:34:21 -0500
-Message-ID: <20171016153423.2980-16-brijesh.singh@amd.com>
-References: <20171016153423.2980-1-brijesh.singh@amd.com>
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [PATCH v3 16/28] arm64/sve: Probe SVE capabilities and usable
+ vector lengths
+Date: Mon, 16 Oct 2017 16:46:00 +0100
+Message-ID: <20171016154557.GR19485@e103592.cambridge.arm.com>
+References: <1507660725-7986-1-git-send-email-Dave.Martin@arm.com>
+ <1507660725-7986-17-git-send-email-Dave.Martin@arm.com>
+ <a39354fb-9f21-47ff-2ad9-b5bcb04e9990@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-cys01nam02on0052.outbound.protection.outlook.com ([104.47.37.52]:10176
-        "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1754195AbdJPPfN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 16 Oct 2017 11:35:13 -0400
-In-Reply-To: <20171016153423.2980-1-brijesh.singh@amd.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: x86@kernel.org
-Cc: bp@alien8.de, Brijesh Singh <brijesh.singh@amd.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Borislav Petkov <bp@suse.de>, Arnd Bergmann <arnd@arndb.de>, Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@linux.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Tom Lendacky <thomas.lendacky@amd.com>
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: 8bit
+Return-path: <libc-alpha-return-85879-glibc-alpha=m.gmane.org@sourceware.org>
+List-Unsubscribe: <mailto:libc-alpha-unsubscribe-glibc-alpha=m.gmane.org@sourceware.org>
+List-Subscribe: <mailto:libc-alpha-subscribe@sourceware.org>
+List-Archive: <http://sourceware.org/ml/libc-alpha/>
+List-Post: <mailto:libc-alpha@sourceware.org>
+List-Help: <mailto:libc-alpha-help@sourceware.org>, <http://sourceware.org/ml/#faqs>
+Sender: libc-alpha-owner@sourceware.org
+Content-Disposition: inline
+In-Reply-To: <a39354fb-9f21-47ff-2ad9-b5bcb04e9990@arm.com>
+To: Suzuki K Poulose <Suzuki.Poulose@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu
+List-Id: linux-arch.vger.kernel.org
 
-KVM guest defines three per-CPU variables (steal-time, apf_reason, and
-avic_eio) which are shared between a guest and a hypervisor. When SEV
-is active, memory is encrypted with a guest-specific key, and if the
-guest OS wants to share the memory region with the hypervisor then it
-must clear the C-bit (i.e set decrypted) before sharing it.
+On Thu, Oct 12, 2017 at 01:56:51PM +0100, Suzuki K Poulose wrote:
+> On 10/10/17 19:38, Dave Martin wrote:
+> >This patch uses the cpufeatures framework to determine common SVE
+> >capabilities and vector lengths, and configures the runtime SVE
+> >support code appropriately.
+> >
+> >ZCR_ELx is not really a feature register, but it is convenient to
+> >use it as a template for recording the maximum vector length
+> >supported by a CPU, using the LEN field.  This field is similar to
+> >a feature field in that it is a contiguous bitfield for which we
+> >want to determine the minimum system-wide value.  This patch adds
+> >ZCR as a pseudo-register in cpuinfo/cpufeatures, with appropriate
+> >custom code to populate it.  Finding the minimum supported value of
+> >the LEN field is left to the cpufeatures framework in the usual
+> >way.
+> >
+> >The meaning of ID_AA64ZFR0_EL1 is not architecturally defined yet,
+> >so for now we just require it to be zero.
+> >
+> >Note that much of this code is dormant and SVE still won't be used
+> >yet, since system_supports_sve() remains hardwired to false.
+> >
+> >Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> >Cc: Alex Bennée <alex.bennee@linaro.org>
+> >Cc: Suzuki K Poulose <Suzuki.Poulose@arm.com>
+> >
+> >---
+> >
+> >Dropped Alex Bennée's Reviewed-by, since there is new logic in this
+> >patch.
+> >
+> >Changes since v2
+> >----------------
+> >
+> >Bug fixes:
+> >
+> >  * Got rid of dynamic allocation of the shadow vector length map during
+> >    secondary boot.  Secondary CPU boot takes place in atomic context,
+> >    and relying on GFP_ATOMIC here doesn't seem justified.
+> >
+> >    Instead, the needed additional bitmap is allocated statically.  Only
+> >    one shadow map is needed, because CPUs don't boot concurrently.
+> >
+> >Requested by Alex Bennée:
+> >
+> >  * Reflowed untidy comment above read_zcr_features()
+> >
+> >  * Added comments to read_zcr_features() to explain what it's trying to do
+> >    (which is otherwise not readily apparent).
+> >
+> >Requested by Catalin Marinas:
+> >
+> >  * Moved disabling of the EL1 SVE trap to the cpufeatures C code.
+> >    This allows addition of new assembler in __cpu_setup to be
+> >    avoided.
+> >
+> >Miscellaneous:
+> >
+> >  * Added comments explaining the intent, purpose and basic constraints
+> >    for fpsimd.c helpers.
+> 
+> ...
+> 
+> >diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
+> >index 92a9502..c5acf38 100644
+> >--- a/arch/arm64/kernel/cpufeature.c
+> >+++ b/arch/arm64/kernel/cpufeature.c
+> 
+> ...
+> 
+> >@@ -670,6 +689,14 @@ void update_cpu_features(int cpu,
+> >  					info->reg_mvfr2, boot->reg_mvfr2);
+> >  	}
+> >+	if (id_aa64pfr0_sve(info->reg_id_aa64pfr0)) {
+> >+		taint |= check_update_ftr_reg(SYS_ZCR_EL1, cpu,
+> >+					info->reg_zcr, boot->reg_zcr);
+> >+
+> >+		if (!sys_caps_initialised)
+> >+			sve_update_vq_map();
+> >+	}
+> 
+> nit: I am not sure if we should also check if the "current" sanitised value
+> of the id_aa64pfr0 also supports sve and skip the update if it isn't. The code
+> is as such fine without the check, its just that we can avoid computing the
+> map. It is in the CPU boot up path and hence is not performance critical.
+> So, either way we are fine.
+> 
+> Reviewed-by: Suzuki K Poulose <suzuki.poulose@arm.com>
 
-DEFINE_PER_CPU_DECRYPTED can be used to define the per-CPU variables
-which will be shared between a guest and a hypervisor.
+I think I prefer to avoid adding extra code to optimise the "broken SoC
+design" case.
 
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Borislav Petkov <bp@suse.de>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Tejun Heo <tj@kernel.org>
-Cc: Christoph Lameter <cl@linux.com>
-Cc: linux-arch@vger.kernel.org
-Cc: x86@kernel.org
-Cc: linux-kernel@vger.kernel.org
-Cc: Tom Lendacky <thomas.lendacky@amd.com>
-Signed-off-by: Brijesh Singh <brijesh.singh@amd.com>
-Acked-by: Tejun Heo <tj@kernel.org>
-Reviewed-by: Borislav Petkov <bp@suse.de>
----
- include/asm-generic/vmlinux.lds.h | 19 +++++++++++++++++++
- include/linux/percpu-defs.h       | 15 +++++++++++++++
- 2 files changed, 34 insertions(+)
+Maybe we could revisit this later if needed.
 
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 353f52fdc35e..bdcd1caae092 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -779,6 +779,24 @@
- #endif
- 
- /*
-+ * Memory encryption operates on a page basis. Since we need to clear
-+ * the memory encryption mask for this section, it needs to be aligned
-+ * on a page boundary and be a page-size multiple in length.
-+ *
-+ * Note: We use a separate section so that only this section gets
-+ * decrypted to avoid exposing more than we wish.
-+ */
-+#ifdef CONFIG_AMD_MEM_ENCRYPT
-+#define PERCPU_DECRYPTED_SECTION					\
-+	. = ALIGN(PAGE_SIZE);						\
-+	*(.data..percpu..decrypted)					\
-+	. = ALIGN(PAGE_SIZE);
-+#else
-+#define PERCPU_DECRYPTED_SECTION
-+#endif
-+
-+
-+/*
-  * Default discarded sections.
-  *
-  * Some archs want to discard exit text/data at runtime rather than
-@@ -816,6 +834,7 @@
- 	. = ALIGN(cacheline);						\
- 	*(.data..percpu)						\
- 	*(.data..percpu..shared_aligned)				\
-+	PERCPU_DECRYPTED_SECTION					\
- 	VMLINUX_SYMBOL(__per_cpu_end) = .;
- 
- /**
-diff --git a/include/linux/percpu-defs.h b/include/linux/percpu-defs.h
-index 8f16299ca068..2d2096ba1cfe 100644
---- a/include/linux/percpu-defs.h
-+++ b/include/linux/percpu-defs.h
-@@ -173,6 +173,21 @@
- 	DEFINE_PER_CPU_SECTION(type, name, "..read_mostly")
- 
- /*
-+ * Declaration/definition used for per-CPU variables that should be accessed
-+ * as decrypted when memory encryption is enabled in the guest.
-+ */
-+#if defined(CONFIG_VIRTUALIZATION) && defined(CONFIG_AMD_MEM_ENCRYPT)
-+
-+#define DECLARE_PER_CPU_DECRYPTED(type, name)				\
-+	DECLARE_PER_CPU_SECTION(type, name, "..decrypted")
-+
-+#define DEFINE_PER_CPU_DECRYPTED(type, name)				\
-+	DEFINE_PER_CPU_SECTION(type, name, "..decrypted")
-+#else
-+#define DEFINE_PER_CPU_DECRYPTED(type, name)	DEFINE_PER_CPU(type, name)
-+#endif
-+
-+/*
-  * Intermodule exports for per-CPU variables.  sparse forgets about
-  * address space across EXPORT_SYMBOL(), change EXPORT_SYMBOL() to
-  * noop if __CHECKER__.
--- 
-2.9.5
+Can you suggest some code?  Maybe the check is simpler than I think.
