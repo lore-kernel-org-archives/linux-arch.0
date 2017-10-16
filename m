@@ -1,112 +1,51 @@
-From: Suzuki K Poulose <Suzuki.Poulose@arm.com>
-Subject: Re: [PATCH v3 16/28] arm64/sve: Probe SVE capabilities and usable
- vector lengths
-Date: Mon, 16 Oct 2017 17:58:45 +0100
-Message-ID: <d08bc563-93ea-f438-ba58-14db5b57f66a@arm.com>
-References: <1507660725-7986-1-git-send-email-Dave.Martin@arm.com>
- <1507660725-7986-17-git-send-email-Dave.Martin@arm.com>
- <a39354fb-9f21-47ff-2ad9-b5bcb04e9990@arm.com>
- <20171016154557.GR19485@e103592.cambridge.arm.com>
- <812b6d11-2458-6d5d-c490-3421f7d3afb3@arm.com>
- <20171016164407.GS19485@e103592.cambridge.arm.com>
- <7854a2cc-d3b1-ac76-8d12-2aa5e1be7aca@arm.com>
- <20171016165553.GT19485@e103592.cambridge.arm.com>
+From: Richard Weinberger <richard@nod.at>
+Subject: Re: [PATCH 1/3] bpf: Don't check for current being NULL
+Date: Tue, 17 Oct 2017 00:23:13 +0200
+Message-ID: <1838884.qlCOuH57mO@blindfold>
+References: <CAADnVQJzM3DH_gxAwo2mnGiv7bOsip1TAFF8YGPLx-dqSb1SPQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:60094 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753053AbdJPQ6t (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 16 Oct 2017 12:58:49 -0400
-In-Reply-To: <20171016165553.GT19485@e103592.cambridge.arm.com>
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-arch@vger.kernel.org, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, =?UTF-8?Q?Alex_Benn=c3=a9e?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CAADnVQJzM3DH_gxAwo2mnGiv7bOsip1TAFF8YGPLx-dqSb1SPQ@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Alexei Starovoitov <alexei.starovoitov@gmail.com>, Al Viro <viro@ftp.linux.org.uk>
+Cc: "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Alexei Starovoitov <ast@kernel.org>, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On 16/10/17 17:55, Dave Martin wrote:
-> On Mon, Oct 16, 2017 at 05:47:16PM +0100, Suzuki K Poulose wrote:
->> On 16/10/17 17:44, Dave Martin wrote:
->>> On Mon, Oct 16, 2017 at 05:27:59PM +0100, Suzuki K Poulose wrote:
->>>> On 16/10/17 16:46, Dave Martin wrote:
->>>>> On Thu, Oct 12, 2017 at 01:56:51PM +0100, Suzuki K Poulose wrote:
->>>>>> On 10/10/17 19:38, Dave Martin wrote:
->>>
->>> [...]
->>>
->>>>>>> @@ -670,6 +689,14 @@ void update_cpu_features(int cpu,
->>>>>>>   					info->reg_mvfr2, boot->reg_mvfr2);
->>>>>>>   	}
->>>>>>> +	if (id_aa64pfr0_sve(info->reg_id_aa64pfr0)) {
->>>>>>> +		taint |= check_update_ftr_reg(SYS_ZCR_EL1, cpu,
->>>>>>> +					info->reg_zcr, boot->reg_zcr);
->>>>>>> +
->>>>>>> +		if (!sys_caps_initialised)
->>>>>>> +			sve_update_vq_map();
->>>>>>> +	}
->>>>>>
->>>>>> nit: I am not sure if we should also check if the "current" sanitised value
->>>>>> of the id_aa64pfr0 also supports sve and skip the update if it isn't. The code
->>>>>> is as such fine without the check, its just that we can avoid computing the
->>>>>> map. It is in the CPU boot up path and hence is not performance critical.
->>>>>> So, either way we are fine.
->>>>>>
->>>>>> Reviewed-by: Suzuki K Poulose <suzuki.poulose@arm.com>
->>>>>
->>>>> I think I prefer to avoid adding extra code to optimise the "broken SoC
->>>>> design" case.
->>>>>
->>>>
->>>> Sure.
->>>>
->>>>> Maybe we could revisit this later if needed.
->>>>>
->>>>> Can you suggest some code?  Maybe the check is simpler than I think.
->>>>
->>>> Something like :
->>>>
->>>> if (id_aa64pfr0_sve(read_sanitised_ftr_reg(SYS_IDAA64PFR0)) &&
->>>>      id_aa64pfr0_sve(id_aa64pfr0)) {
->>>>      ...
->>>> }
->>>>
->>>> should be enough.
->>>>
->>>> Or even we could hack it to :
->>>>
->>>> if (id_aa64pfr0_sve(id_aa64pfr0 | read_sanitised_ftr_reg(SYS_IDAA64PFR0)))
->>>>
->>>> As I mentioned, the code as such is fine. Its just that we try to detect
->>>> if the SVE is already moot and skip the steps for this CPU.
->>>
->>> How about the following, keeping the outer
->>> if(id_aa64pfr0_sve(int->reg_id_aa64pfr0)) from my current code:
->>>
->>> -		if (!sys_caps_initialised)
->>> +		/* Probe vector lengths, unless we already gave up on SVE */
->>> +		if (id_aa64pfr0_sve(read_sanitised_ftr_reg(ID_AA64PFR0_SVE)) &&
->>> +		    !sys_caps_initialised)
->>> 			sve_update_vq_map();
->>
->> Yep, that looks neater.
-> 
-> Sorry, that should have been
-> 
-> 	if (id_aa64pfr0_sve(read_sanitised_ftr_reg(SYS_ID_AA64PFR0_EL1)) &&
-> 
-> (Disturbingly, the original does build and then hits a BUG(), because
-> ID_AA64PFR0_SVE happens to be defined).
+Alexei,
 
-Ouch ! I didn't notice that ;-). Good to see the BUG() catching such mistakes.
-
+Am Dienstag, 17. Oktober 2017, 00:06:08 CEST schrieb Alexei Starovoitov:
+> On Mon, Oct 16, 2017 at 11:18 AM, Richard Weinberger <richard@nod.at> wrote:
+> > current is never NULL.
+> > 
+> > Signed-off-by: Richard Weinberger <richard@nod.at>
+> > ---
+> > 
+> >  kernel/bpf/helpers.c | 12 ------------
+> >  1 file changed, 12 deletions(-)
+> > 
+> > diff --git a/kernel/bpf/helpers.c b/kernel/bpf/helpers.c
+> > index 3d24e238221e..e8845adcd15e 100644
+> > --- a/kernel/bpf/helpers.c
+> > +++ b/kernel/bpf/helpers.c
+> > @@ -120,9 +120,6 @@ BPF_CALL_0(bpf_get_current_pid_tgid)
+> > 
+> >  {
+> >  
+> >         struct task_struct *task = current;
+> > 
+> > -       if (unlikely(!task))
+> > -               return -EINVAL;
+> > -
 > 
-> 
-> With the above, are you happy for me to apply your Reviewed-by, or would
-> you prefer to wait for the respin?
+> really? in all context? including irq and nmi?
 
-With the changes as we discussed above, please feel free to
-add :
+I would be astonished current is NULL in such a context.
 
-Reviewed-by : Suzuki K Poulose <suzuki.poulose@arm.com>
+To be sure, let's CC linux-arch.
+IIRC I talked also with Al about this and he also assumed that current
+cannot be NULL.
+
+Thanks,
+//richard
