@@ -1,58 +1,119 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:36984 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:58948 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752752AbdJMRfG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 13 Oct 2017 13:35:06 -0400
-Date: Fri, 13 Oct 2017 18:35:01 +0100
+        id S1751720AbdJPPqE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 16 Oct 2017 11:46:04 -0400
+Date: Mon, 16 Oct 2017 16:46:00 +0100
 From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH v3 26/28] arm64/sve: Add documentation
-Message-ID: <20171013173500.GP19485@e103592.cambridge.arm.com>
+Subject: Re: [PATCH v3 16/28] arm64/sve: Probe SVE capabilities and usable
+ vector lengths
+Message-ID: <20171016154557.GR19485@e103592.cambridge.arm.com>
 References: <1507660725-7986-1-git-send-email-Dave.Martin@arm.com>
- <1507660725-7986-27-git-send-email-Dave.Martin@arm.com>
- <20171013142421.j32jzisukewxtosx@armageddon.cambridge.arm.com>
+ <1507660725-7986-17-git-send-email-Dave.Martin@arm.com>
+ <a39354fb-9f21-47ff-2ad9-b5bcb04e9990@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=iso-8859-1
 Content-Disposition: inline
-In-Reply-To: <20171013142421.j32jzisukewxtosx@armageddon.cambridge.arm.com>
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <a39354fb-9f21-47ff-2ad9-b5bcb04e9990@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arch@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, Will Deacon <will.deacon@arm.com>, Michael Kerrisk <mtk.manpages@gmail.com>, Alan Hayward <alan.hayward@arm.com>, linux-api@vger.kernel.org, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
-Message-ID: <20171013173501.2j_vDvCxbblmgVp8d65FQNWxRaUp-606a3FLsOafRmU@z>
+To: Suzuki K Poulose <Suzuki.Poulose@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu
+Message-ID: <20171016154600.odN-SbJyQKkwAfJNPSK5WHkBsRQgpMqhWs8zkCKwiUY@z>
 
-On Fri, Oct 13, 2017 at 03:24:21PM +0100, Catalin Marinas wrote:
-> On Tue, Oct 10, 2017 at 07:38:43PM +0100, Dave P Martin wrote:
-
-[...]
-
-> > +* If the SVE context is too big to fit in sigcontext.__reserved[], then extra
-> > +  space is allocated on the stack, an extra_context record is written in
-> > +  __reserved[] referencing this space.  sve_context is then written in the
-> > +  extra space.  Refer to [1] for further details about this mechanism.
+On Thu, Oct 12, 2017 at 01:56:51PM +0100, Suzuki K Poulose wrote:
+> On 10/10/17 19:38, Dave Martin wrote:
+> >This patch uses the cpufeatures framework to determine common SVE
+> >capabilities and vector lengths, and configures the runtime SVE
+> >support code appropriately.
+> >
+> >ZCR_ELx is not really a feature register, but it is convenient to
+> >use it as a template for recording the maximum vector length
+> >supported by a CPU, using the LEN field.  This field is similar to
+> >a feature field in that it is a contiguous bitfield for which we
+> >want to determine the minimum system-wide value.  This patch adds
+> >ZCR as a pseudo-register in cpuinfo/cpufeatures, with appropriate
+> >custom code to populate it.  Finding the minimum supported value of
+> >the LEN field is left to the cpufeatures framework in the usual
+> >way.
+> >
+> >The meaning of ID_AA64ZFR0_EL1 is not architecturally defined yet,
+> >so for now we just require it to be zero.
+> >
+> >Note that much of this code is dormant and SVE still won't be used
+> >yet, since system_supports_sve() remains hardwired to false.
+> >
+> >Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> >Cc: Alex Bennée <alex.bennee@linaro.org>
+> >Cc: Suzuki K Poulose <Suzuki.Poulose@arm.com>
+> >
+> >---
+> >
+> >Dropped Alex Bennée's Reviewed-by, since there is new logic in this
+> >patch.
+> >
+> >Changes since v2
+> >----------------
+> >
+> >Bug fixes:
+> >
+> >  * Got rid of dynamic allocation of the shadow vector length map during
+> >    secondary boot.  Secondary CPU boot takes place in atomic context,
+> >    and relying on GFP_ATOMIC here doesn't seem justified.
+> >
+> >    Instead, the needed additional bitmap is allocated statically.  Only
+> >    one shadow map is needed, because CPUs don't boot concurrently.
+> >
+> >Requested by Alex Bennée:
+> >
+> >  * Reflowed untidy comment above read_zcr_features()
+> >
+> >  * Added comments to read_zcr_features() to explain what it's trying to do
+> >    (which is otherwise not readily apparent).
+> >
+> >Requested by Catalin Marinas:
+> >
+> >  * Moved disabling of the EL1 SVE trap to the cpufeatures C code.
+> >    This allows addition of new assembler in __cpu_setup to be
+> >    avoided.
+> >
+> >Miscellaneous:
+> >
+> >  * Added comments explaining the intent, purpose and basic constraints
+> >    for fpsimd.c helpers.
 > 
-> Does this document require that the user stack is sufficiently large or
-> should we cap the vector length (prior to the last two RFC patches)?
+> ...
+> 
+> >diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
+> >index 92a9502..c5acf38 100644
+> >--- a/arch/arm64/kernel/cpufeature.c
+> >+++ b/arch/arm64/kernel/cpufeature.c
+> 
+> ...
+> 
+> >@@ -670,6 +689,14 @@ void update_cpu_features(int cpu,
+> >  					info->reg_mvfr2, boot->reg_mvfr2);
+> >  	}
+> >+	if (id_aa64pfr0_sve(info->reg_id_aa64pfr0)) {
+> >+		taint |= check_update_ftr_reg(SYS_ZCR_EL1, cpu,
+> >+					info->reg_zcr, boot->reg_zcr);
+> >+
+> >+		if (!sys_caps_initialised)
+> >+			sve_update_vq_map();
+> >+	}
+> 
+> nit: I am not sure if we should also check if the "current" sanitised value
+> of the id_aa64pfr0 also supports sve and skip the update if it isn't. The code
+> is as such fine without the check, its just that we can avoid computing the
+> map. It is in the CPU boot up path and hence is not performance critical.
+> So, either way we are fine.
+> 
+> Reviewed-by: Suzuki K Poulose <suzuki.poulose@arm.com>
 
-Oh, I think I missed your point here.
+I think I prefer to avoid adding extra code to optimise the "broken SoC
+design" case.
 
-I don't think it's worth capping the vector length beyond what the
-series alread does: the last two patches provide a way to find out how
-big the signal frame could be, but software still needs porting either
-way if it enables large vectors via prctl or ptrace.
+Maybe we could revisit this later if needed.
 
-Conversely, software basing its stack allocations on SIGSTKSZ (16K) will
-probably get away with it: this seems to be the common choice when
-allocating stacks.  Apart from models, we're not likely to see SVE
-implementations with huge vector lengths for a while yet.
-
-
-In any case, /proc/sys/abi/sve_default_vector_length proves a
-discretionary global clamp that can be set by the distro or admin.  This
-will prevent programs from seeing large frames unless the VL is set
-explicitly to something > 64 bytes via prctl/ptrace (which current
-software won't do).
-
-[...]
-
-Cheers
----Dave
+Can you suggest some code?  Maybe the check is simpler than I think.
