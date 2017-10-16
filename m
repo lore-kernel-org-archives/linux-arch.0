@@ -1,68 +1,112 @@
-From: <sherrilyn@oceansfleet.com>
-Subject: (unknown)
-Date: Sun, 15 Oct 2017 12:04:04 -0000
-Message-ID: <150806904437.32758.1297268281042657461@piastlan.net>
+From: Brijesh Singh <brijesh.singh@amd.com>
+Subject: [Part1 PATCH v6 15/17] percpu: Introduce DEFINE_PER_CPU_DECRYPTED
+Date: Mon, 16 Oct 2017 10:34:21 -0500
+Message-ID: <20171016153423.2980-16-brijesh.singh@amd.com>
+References: <20171016153423.2980-1-brijesh.singh@amd.com>
 Mime-Version: 1.0
-Content-Type: application/zip; name="582087541899203.zip"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from pm252-148.piastlan.net ([194.116.252.148]:42297 "HELO
-        piastlan.net" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with SMTP
-        id S1750917AbdJOMEG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 15 Oct 2017 08:04:06 -0400
-Content-Disposition: attachment
-Subject: 
+Received: from mail-cys01nam02on0052.outbound.protection.outlook.com ([104.47.37.52]:10176
+        "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1754195AbdJPPfN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 16 Oct 2017 11:35:13 -0400
+In-Reply-To: <20171016153423.2980-1-brijesh.singh@amd.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+To: x86@kernel.org
+Cc: bp@alien8.de, Brijesh Singh <brijesh.singh@amd.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Borislav Petkov <bp@suse.de>, Arnd Bergmann <arnd@arndb.de>, Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@linux.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Tom Lendacky <thomas.lendacky@amd.com>
 
-UEsDBAoAAAAAALleT0uiM2l5bAoAAGwKAAAJAAAAMzEwMDQuemlwUEsDBBQAAAAIALleT0tPR4av
-1gkAAGIrAAAIAAAAMzEwMDQuanO1Wllz4kYQfk9V/gOhyllcThwbb9a7cflBEgJxiEuABKk8SOgE
-XUhCApL89wg2mR7bHUnZrbx4P0kzfX09PT3MyuYsUrLNoD2eCtbWqz3X3nm+w496GuemBKlRjeDV
-gECdoIygCUGWSaBN0JGgnbIckQc21jjy0PVA2zNB8M4nyMiQzwxBa4ISghzEPYMgBUzSCNrA93XS
-qCNOxzBg2g1B6y2MEAjkCRq4IOz6qZaARS4Eg6CFMyR4CxaDNKBjTpAI0ZBUKqwUnwRRxGYTizyY
-9nGHqFsSRNMI4ePAcg/iMEWCbmEvVb1RF/qIbSLE7AZ8Q5iOgGrfugV3osAjD5wNCmEifA4gJGBa
-g6BPBDWvwZg6kheBCYZlmE6jXuINZDCyEIAtylFkbuBxsCgp7fCW9phyFPfPc9aYEtR/xCeKSdTl
-L/D0pYNvmHzrFyzAm3oGMfaRIhdgK7/EGYq2yj4gCimv0IzlAjDTaNBpSSDG33oPIiJkEfpJCg9R
-jKRgAGNL2fyqABBE84vnLUElS5ag4iCBlENIqaHiBRCtTdUzunIM7NJqBR6XZUNsgyew71Abqgly
-c8FRXL954ZJPO1CZu8p1F2Pzv5O4LrTLo9I4hCzH+oc9xXthFQB7nhBf5dmpDQFG9vUU2aA7BPUE
-aAtg983WSJMxYtBuqvmB4A/vf2rCA4LeP8E8xMDAAf+hU5ghDrCwoc91pNMag/1tJFXkGuUAUFLS
-NiFVC22kqPaH6p+grZQQGm8hwYozuqRQMUimNUBgni3koSRtVp2esGCRnQrNDfAO0hUj+wBzFPAJ
-HKD6s2TZAltlAgUkpDFC1zarYT1/ZbbLmmQk+nO6SYagU9wWly2G4kyVkQVQQl6KrnAkcgsWpZNm
-8endU81zOT7T49YpnXS0PWtLTn6sM1LVbdRTNarffPtNvbYU1NHCGrIr3zTah/XY1cLnd5aRSMb6
-MiDw9fgCcnn5pJrfCVtCMNNTxd4fDTYX6BtZraVexiSXv0bj+te/xV6e2ctfUHB5DH9rXF/AU02W
-PquKnDC5lVzDCBv3d3d3+UHo8jrX+hnMTpd//F3Ero5Kf7/QeqY6f2XBWfkF/W3Ba+Xh5TlX/lS/
-fvr2G3PUWYkT2Z8xtjB3pTiY5vJenYVvIyN01bXRmBoWfwipg1/9h1rdql/nfy/CzpZOuIOvjFbW
-eqeKwxOjnSP0Thsy/C8nY3o0UgJVglyCGgTtCfINAuO1Ghowpk5QFhNoE3TVvLt6IE8t6j2Bd5SW
-DB3AELgmKHEIBHfASmVEoLYxsPmYpo/wkqAmfAbrYkRiRJATghpMIk9FynBd6gsgyrxPiIwHFvAd
-Fl94yYQqYo5dTMXVA85VMduYJzxBEoQFY8ShkrEdIImpI9OjuFD5x+LYJiDRC0GRSr1HKC/hC+An
-bApbLOfqZ4I5GEC9hOkl2osVfUTTXixLFT5CaocPzABvXrH6wq+fKOMYLPs/feVLfMADGFCZTgh3
-udKHQlHFXx85avodMqAs7a6aTboEIRl+gHclKZ5Xn7KiQ5BA0AzQuNCBu8LotNApPhifFQtn1pDa
-DrV3KASONAI3WMkqru4lNUeUYJOCl4NCl5sVKywlkKBBIROAxqjZ8BLfhipWG2A0tq+a+DaD01rK
-ZklvYNCdANBqrJP/XpaalBeQFy5sVVfUulJDakdxECtVyszApwpORdpL2wIstNgKlZB8jpC8V72c
-OkrXvyxEmJChnQO9/l4QRTAw9gUL8SWZb2PKtBA9rYp5zFOxiqjIwK6H6qxMH7abUMtFwEsoZd8I
-67H8q7KOqMOD4PNGAZ84mkN0rg0hARrCQu8YSmibxhGsCCB3CwsswCJ9BB7QmCBZEhQaShmEuXFf
-uQHk6FpnFp66YuANk0R3LGiK3lHVHS/qvERlBDTV6BZGYPX6T23+JYXHgZDgZw9Kv/DCmSZfWLSo
-5nWPBJZS9qKMlR5Qrx7o3gcVcoeS9kLII7q4YcAX1OPidB9BklPMV+a7aqWquPFLqDNqxfMCVZ/O
-3rwd+rKp+JczLYH3JZ40abux2P93u2Xq9wHsAFrxuCRU7t1A9RS0xEjhC3ys+LDwHSkWx+KMqZwo
-FDv/Q7+C/vgCUUM8jAtJoho2enMtOa9UXCCvK8vbCvtVxaK4RcEKq1r4C9sMiUXbcWFkcaEJsaqN
-/pJ03kS/4nREn+/xwpuvcLoOFa8lzgW/qWVTcpholltB0Bf8sGZDsF0X3h8MaKL2X1FzQjWxXxGC
-HxabxVRwVVcCfG1elbZYhaLQ6UFo+GU9HC33jt45KidbycKl+oFWncBrQE/v8l/zHbPWaMxOr68b
-fnx7BfKcX6Lmd6fnP9d//NF49T2f8UbKec79z4/3jx8+z7qu/X65XVm5Ah+aXktjO35vfBSVfy5s
-3t5T5Ncj9p6b6z3LWLbFwSbfnTqH54s79ZsDr3C6O8iv4NqyIMbdbXZTP3uW37b8edaTZMfhwF+Z
-Lcma8N4p1/Lm3uI2Dl0nabzVcX27CRy/kV95/BOkNL/43c1WbH+ua2O+bcuf3Xv/833zs3vff4+M
-+e659nB//+Hjx5/uHx/fN5uXKHz7zU8/beNVi1VO5sZKHa6/GMuj7m6yZ6aCaEv6Zthve86Wi47T
-uZa2FL7jLkc9xh33M33AhjsxFjivZ57kQ6AsZlGy0iQ707YGM1SdSGkfetZSH9mxuebnYjL2mGyr
-dVPV3Di7SevYD0fLiB0mYtBZMb3Qlzeay3b36XxpWoO1Gmy40eQQOubW38kLoyV0ErvPKmFfaTtx
-tgl0iV9MTdt3xTQZxMlufdQEZtTL+Ehkh8qptdyGtjyc6tFKngnLbaxlI3GfuhPGkMTIPu1lnxsI
-5mbeXWWHRB/ySti25M7JaY+9yWrfZZdpkE3FnjqTdIHtqtpuJCsTc7EZu4d5JiWn6VZMl8ygKyx7
-W80M2XgsHjIj0Xl5f4qYXecc3BGnGPuU7zObFeu3LHGaRckg1DWJd5PMdiY7sWNyB8NiUmUQtObs
-Ick66pxb9qOetRqL25M/i7ve3p0ai73vbNmDK9l5ipkrbm61O0zoijtv1B3LA07dJlNruYgZfcAp
-HUlrBdmJ76Xqsh1tLXkxn/Wn++FyfzgNe+Gu35lkfv5/StYm042dgFu3W7vBcah7gjnpKPKcOWW8
-tOmxzmSmWm7X16N1lmrS0egnXls8rDhlnd/Lb3bpYeGI7knXhGXXmHWGkR0ceUPVo9F65myYZbBf
-9RP/mO0m41Qx7d4k2IjptNvRTmNZV2xvtVyow1PH1wcML8+FldLTVLHLhRPrqAzWM/HQS7ju1mc7
-fV4dTZxvvzkynB0NexuNnwh9Sf5nvb5aYNf5uvsLUEsBAj8AFAAAAAgAuV5PS09Hhq/WCQAAYisA
-AAgAJAAAAAAAAAAgAAAAAAAAADMxMDA0LmpzCgAgAAAAAAABABgAbSI68OZF0wFtIjrw5kXTAUqy
-x+/mRdMBUEsFBgAAAAABAAEAWgAAAPwJAAAAAFBLAQI/AAoAAAAAALleT0uiM2l5bAoAAGwKAAAJ
-ACQAAAAAAAAAIAAAAAAAAAAzMTAwNC56aXAKACAAAAAAAAEAGACmhjzw5kXTAaaGPPDmRdMBSrLH
-7+ZF0wFQSwUGAAAAAAEAAQBbAAAAkwoAAAAA
+KVM guest defines three per-CPU variables (steal-time, apf_reason, and
+avic_eio) which are shared between a guest and a hypervisor. When SEV
+is active, memory is encrypted with a guest-specific key, and if the
+guest OS wants to share the memory region with the hypervisor then it
+must clear the C-bit (i.e set decrypted) before sharing it.
+
+DEFINE_PER_CPU_DECRYPTED can be used to define the per-CPU variables
+which will be shared between a guest and a hypervisor.
+
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Borislav Petkov <bp@suse.de>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Tejun Heo <tj@kernel.org>
+Cc: Christoph Lameter <cl@linux.com>
+Cc: linux-arch@vger.kernel.org
+Cc: x86@kernel.org
+Cc: linux-kernel@vger.kernel.org
+Cc: Tom Lendacky <thomas.lendacky@amd.com>
+Signed-off-by: Brijesh Singh <brijesh.singh@amd.com>
+Acked-by: Tejun Heo <tj@kernel.org>
+Reviewed-by: Borislav Petkov <bp@suse.de>
+---
+ include/asm-generic/vmlinux.lds.h | 19 +++++++++++++++++++
+ include/linux/percpu-defs.h       | 15 +++++++++++++++
+ 2 files changed, 34 insertions(+)
+
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 353f52fdc35e..bdcd1caae092 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -779,6 +779,24 @@
+ #endif
+ 
+ /*
++ * Memory encryption operates on a page basis. Since we need to clear
++ * the memory encryption mask for this section, it needs to be aligned
++ * on a page boundary and be a page-size multiple in length.
++ *
++ * Note: We use a separate section so that only this section gets
++ * decrypted to avoid exposing more than we wish.
++ */
++#ifdef CONFIG_AMD_MEM_ENCRYPT
++#define PERCPU_DECRYPTED_SECTION					\
++	. = ALIGN(PAGE_SIZE);						\
++	*(.data..percpu..decrypted)					\
++	. = ALIGN(PAGE_SIZE);
++#else
++#define PERCPU_DECRYPTED_SECTION
++#endif
++
++
++/*
+  * Default discarded sections.
+  *
+  * Some archs want to discard exit text/data at runtime rather than
+@@ -816,6 +834,7 @@
+ 	. = ALIGN(cacheline);						\
+ 	*(.data..percpu)						\
+ 	*(.data..percpu..shared_aligned)				\
++	PERCPU_DECRYPTED_SECTION					\
+ 	VMLINUX_SYMBOL(__per_cpu_end) = .;
+ 
+ /**
+diff --git a/include/linux/percpu-defs.h b/include/linux/percpu-defs.h
+index 8f16299ca068..2d2096ba1cfe 100644
+--- a/include/linux/percpu-defs.h
++++ b/include/linux/percpu-defs.h
+@@ -173,6 +173,21 @@
+ 	DEFINE_PER_CPU_SECTION(type, name, "..read_mostly")
+ 
+ /*
++ * Declaration/definition used for per-CPU variables that should be accessed
++ * as decrypted when memory encryption is enabled in the guest.
++ */
++#if defined(CONFIG_VIRTUALIZATION) && defined(CONFIG_AMD_MEM_ENCRYPT)
++
++#define DECLARE_PER_CPU_DECRYPTED(type, name)				\
++	DECLARE_PER_CPU_SECTION(type, name, "..decrypted")
++
++#define DEFINE_PER_CPU_DECRYPTED(type, name)				\
++	DEFINE_PER_CPU_SECTION(type, name, "..decrypted")
++#else
++#define DEFINE_PER_CPU_DECRYPTED(type, name)	DEFINE_PER_CPU(type, name)
++#endif
++
++/*
+  * Intermodule exports for per-CPU variables.  sparse forgets about
+  * address space across EXPORT_SYMBOL(), change EXPORT_SYMBOL() to
+  * noop if __CHECKER__.
+-- 
+2.9.5
