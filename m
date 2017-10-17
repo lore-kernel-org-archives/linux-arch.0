@@ -1,94 +1,84 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:48466 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932308AbdJQO3o (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 17 Oct 2017 10:29:44 -0400
-Subject: Re: [PATCH v3 24/28] arm64/sve: KVM: Hide SVE from CPU features
- exposed to guests
+Received: from foss.arm.com ([217.140.101.70]:48514 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S932648AbdJQObr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 17 Oct 2017 10:31:47 -0400
+Date: Tue, 17 Oct 2017 15:31:42 +0100
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [PATCH v3 22/28] arm64/sve: KVM: Prevent guests from using SVE
+Message-ID: <20171017143142.GX19485@e103592.cambridge.arm.com>
 References: <1507660725-7986-1-git-send-email-Dave.Martin@arm.com>
- <1507660725-7986-25-git-send-email-Dave.Martin@arm.com>
- <20171017135816.GF5886@lvm>
- <20171017140749.GW19485@e103592.cambridge.arm.com>
-From: Marc Zyngier <marc.zyngier@arm.com>
-Message-ID: <2c6d9aa4-f6a8-2c6b-4138-e07d773bf4a2@arm.com>
-Date: Tue, 17 Oct 2017 15:29:36 +0100
+ <1507660725-7986-23-git-send-email-Dave.Martin@arm.com>
+ <20171017115024.GS1845@lvm>
 MIME-Version: 1.0
-In-Reply-To: <20171017140749.GW19485@e103592.cambridge.arm.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-GB
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20171017115024.GS1845@lvm>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>, Christoffer Dall <cdall@linaro.org>
-Cc: linux-arch@vger.kernel.org, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
-Message-ID: <20171017142936.dYp5rKL5YiOh_sshbfLECV5iiFkOret86zWQXHci0to@z>
+To: Christoffer Dall <cdall@linaro.org>
+Cc: linux-arch@vger.kernel.org, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Marc Zyngier <marc.zyngier@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
+Message-ID: <20171017143142.dc3gT7IqBoUiqwMZHQCdlVCpQBr57YaDEz3wPuBnxSQ@z>
 
-On 17/10/17 15:07, Dave Martin wrote:
-> On Tue, Oct 17, 2017 at 06:58:16AM -0700, Christoffer Dall wrote:
->> On Tue, Oct 10, 2017 at 07:38:41PM +0100, Dave Martin wrote:
->>> KVM guests cannot currently use SVE, because SVE is always
->>> configured to trap to EL2.
->>>
->>> However, a guest that sees SVE reported as present in
->>> ID_AA64PFR0_EL1 may legitimately expect that SVE works and try to
->>> use it.  Instead of working, the guest will receive an injected
->>> undef exception, which may cause the guest to oops or go into a
->>> spin.
->>>
->>> To avoid misleading the guest into believing that SVE will work,
->>> this patch masks out the SVE field from ID_AA64PFR0_EL1 when a
->>> guest attempts to read this register.  No support is explicitly
->>> added for ID_AA64ZFR0_EL1 either, so that is still emulated as
->>> reading as zero, which is consistent with SVE not being
->>> implemented.
->>>
->>> This is a temporary measure, and will be removed in a later series
->>> when full KVM support for SVE is implemented.
->>>
->>> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
->>> Reviewed-by: Alex Bennée <alex.bennee@linaro.org>
->>> Cc: Marc Zyngier <marc.zyngier@arm.com>
->>> ---
->>>  arch/arm64/kvm/sys_regs.c | 12 +++++++++++-
->>>  1 file changed, 11 insertions(+), 1 deletion(-)
->>>
->>> diff --git a/arch/arm64/kvm/sys_regs.c b/arch/arm64/kvm/sys_regs.c
->>> index b1f7552..a0ee9b0 100644
->>> --- a/arch/arm64/kvm/sys_regs.c
->>> +++ b/arch/arm64/kvm/sys_regs.c
->>> @@ -23,6 +23,7 @@
->>>  #include <linux/bsearch.h>
->>>  #include <linux/kvm_host.h>
->>>  #include <linux/mm.h>
->>> +#include <linux/printk.h>
->>>  #include <linux/uaccess.h>
->>>  
->>>  #include <asm/cacheflush.h>
->>> @@ -897,8 +898,17 @@ static u64 read_id_reg(struct sys_reg_desc const *r, bool raz)
->>>  {
->>>  	u32 id = sys_reg((u32)r->Op0, (u32)r->Op1,
->>>  			 (u32)r->CRn, (u32)r->CRm, (u32)r->Op2);
->>> +	u64 val = raz ? 0 : read_sanitised_ftr_reg(id);
->>>  
->>> -	return raz ? 0 : read_sanitised_ftr_reg(id);
->>> +	if (id == SYS_ID_AA64PFR0_EL1) {
->>> +		if (val & (0xfUL << ID_AA64PFR0_SVE_SHIFT))
->>> +			pr_err_once("kvm [%i]: SVE unsupported for guests, suppressing\n",
->>> +				    task_pid_nr(current));
->>
->> nit: does this really qualify as an error print?
+On Tue, Oct 17, 2017 at 01:50:24PM +0200, Christoffer Dall wrote:
+> On Tue, Oct 10, 2017 at 07:38:39PM +0100, Dave Martin wrote:
+> > Until KVM has full SVE support, guests must not be allowed to
+> > execute SVE instructions.
+> > 
+> > This patch enables the necessary traps, and also ensures that the
+> > traps are disabled again on exit from the guest so that the host
+> > can still use SVE if it wants to.
+> > 
+> > This patch introduces another instance of
+> > __this_cpu_write(fpsimd_last_state, NULL), so this flush operation
+> > is abstracted out as a separate helper fpsimd_flush_cpu_state().
+> > Other instances are ported appropriately.
 > 
-> I have no strong opinion on this: maz suggested I should add this --
-> his concern was to make it difficult to ignore.
+> I don't understand this paragraph, beginning from ", so this...".
 > 
-> This is transitional: the main purpose is to circumvent bug reports from
-> people who find that SVE doesn't work in their guests, in the interim
-> before proper KVM support lands upstream.
 > 
-> Marc, do you still agree with this position?
+> From reading the code, what I think is the reason for having to flush
+> the SVE state (and mark the host state invalid) is that even though we
+> disallow SVE usage in the guest, the guest can use the normal FP state,
+> and while we always fully preserve the host state, this could still
+> corrupt some additional SVE state not properly preserved for the host.
+> Is that correct?
 
-As long as this is transitional, I'm OK with this.
+Yes, that's right: the guest can't touch the SVE-specific registers
+Pn/FFR, but FPSIMD accesses to Vn regs cause the high bits of the
+corresponding SVE Zn registers to be clobbered.  In any case, the
+FPSIMD restore done by KVM after guest exit is sufficient to clobber
+those bits even if the guest didn't do it.
 
-	M.
--- 
-Jazz is not dead. It just smells funny...
+This is a band-aid for not making the KVM world switch code properly
+SVE-aware yet.
+
+Does the following wording sound better:
+
+--8<--
+
+On guest exit, high bits of the SVE Zn registers may have been
+clobbered as a side-effect the execution of FPSIMD instructions in
+the guest.  The existing KVM host FPSIMD restore code is not
+sufficient to restore these bits, so this patch explicitly marks
+the CPU as not containing cached vector state for any task, this
+forcing a reload on the next return to userspace.  This is an
+interim measure, in advance of adding full SVE awareness to KVM.
+
+Because of the duplication of this operation
+(__this_cpu_write(fpsimd_last_state, NULL)), it is factored out as
+a new helper fpsimd_flush_cpu_state() to make the purpose clearer.
+
+-->8--
+
+> > 
+> > As a side effect of this refactoring, a this_cpu_write() in
+> > fpsimd_cpu_pm_notifier() is changed to __this_cpu_write().  This
+> > should be fine, since cpu_pm_enter() is supposed to be called only
+> > with interrupts disabled.
+> 
+> Otherwise the patch itself looks good to me.
+
+Thanks, let me know about the above wording change though.
+
+---Dave
