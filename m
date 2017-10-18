@@ -1,7 +1,7 @@
 From: Waiman Long <longman@redhat.com>
-Subject: [PATCH-tip v7 15/15] locking/rwsem: Wake up all readers in wait queue
-Date: Wed, 18 Oct 2017 14:30:31 -0400
-Message-ID: <1508351431-22375-16-git-send-email-longman@redhat.com>
+Subject: [PATCH-tip v7 12/15] locking/rwsem: Eliminate redundant writer wakeup calls
+Date: Wed, 18 Oct 2017 14:30:28 -0400
+Message-ID: <1508351431-22375-13-git-send-email-longman@redhat.com>
 References: <1508351431-22375-1-git-send-email-longman@redhat.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1508351431-22375-1-git-send-email-longman@redhat.com>
@@ -10,45 +10,110 @@ To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>
 Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, Dave Chinner <david@fromorbit.com>, Waiman Long <longman@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
-When the front of the wait queue is a reader, other readers
-immediately following the first reader will also be woken up at the
-same time.
+When tasks with short lock hold time acquire a rwsem consecutively,
+it is possible that they all try to wake up the same waiting task at
+unlock time. Beside the first wakeup, the rests are a waste of precious
+CPU cycles. This patch limits the actual wakeup call to only one.
 
-Assuming that the lock hold times of the other readers still in the
-queue will be about the same as the readers that are being woken up,
-there is really not much additional cost other than the additional
-latency due to the wakeup of additional tasks by the waker. Therefore
-all the readers in the queue are woken up to improve reader throughput.
+To simplify sychronization of the waking flag, the inner schedule
+loop of __rwsem_down_write_failed_common() is removed and
+raw_spin_lock_irq() is always called after wakeup.
 
 Signed-off-by: Waiman Long <longman@redhat.com>
 ---
- kernel/locking/rwsem-xadd.c | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+ kernel/locking/rwsem-xadd.c | 39 +++++++++++++++++++++------------------
+ 1 file changed, 21 insertions(+), 18 deletions(-)
 
 diff --git a/kernel/locking/rwsem-xadd.c b/kernel/locking/rwsem-xadd.c
-index 42129fa..e8da0a9 100644
+index ba00795..3bdbf39 100644
 --- a/kernel/locking/rwsem-xadd.c
 +++ b/kernel/locking/rwsem-xadd.c
-@@ -177,16 +177,16 @@ static void __rwsem_mark_wake(struct rw_semaphore *sem,
- 	}
+@@ -70,6 +70,7 @@ struct rwsem_waiter {
+ 	struct list_head list;
+ 	struct task_struct *task;
+ 	enum rwsem_waiter_type type;
++	bool waking;	/* For writer, protected by wait_lock */
+ 	unsigned long timeout;
+ };
  
- 	/*
--	 * Grant an infinite number of read locks to the readers at the front
--	 * of the queue. We know that woken will be at least 1 as we accounted
--	 * for above. Note we increment the 'active part' of the count by the
-+	 * Grant an infinite number of read locks to all the readers in the
-+	 * queue. We know that woken will be at least 1 as we accounted for
-+	 * above. Note we increment the 'active part' of the count by the
- 	 * number of readers before waking any processes up.
+@@ -129,6 +130,12 @@ static void __rwsem_mark_wake(struct rw_semaphore *sem,
+ 	if (waiter->type == RWSEM_WAITING_FOR_WRITE) {
+ 		if (wake_type == RWSEM_WAKE_ANY) {
+ 			/*
++			 * No redundant wakeup if the waiter is waking up.
++			 */
++			if (waiter->waking)
++				return;
++
++			/*
+ 			 * Mark writer at the front of the queue for wakeup.
+ 			 * Until the task is actually later awoken later by
+ 			 * the caller, other writers are able to steal it.
+@@ -136,6 +143,7 @@ static void __rwsem_mark_wake(struct rw_semaphore *sem,
+ 			 * will notice the queued writer.
+ 			 */
+ 			wake_q_add(wake_q, waiter->task);
++			waiter->waking = true;
+ 		}
+ 
+ 		return;
+@@ -600,6 +608,7 @@ static inline bool rwsem_has_spinner(struct rw_semaphore *sem)
  	 */
- 	list_for_each_entry_safe(waiter, tmp, &sem->wait_list, list) {
- 		struct task_struct *tsk;
+ 	waiter.task = current;
+ 	waiter.type = RWSEM_WAITING_FOR_WRITE;
++	waiter.waking = false;
+ 	waiter.timeout = jiffies + RWSEM_WAIT_TIMEOUT;
  
- 		if (waiter->type == RWSEM_WAITING_FOR_WRITE)
--			break;
-+			continue;
+ 	raw_spin_lock_irq(&sem->wait_lock);
+@@ -646,29 +655,24 @@ static inline bool rwsem_has_spinner(struct rw_semaphore *sem)
+ 		if (rwsem_try_write_lock(count, sem, first))
+ 			break;
  
- 		woken++;
- 		tsk = waiter->task;
+-		raw_spin_unlock_irq(&sem->wait_lock);
++		if (signal_pending_state(state, current))
++			goto out_nolock;
+ 
+-		/* Block until there are no active lockers. */
+-		for (;;) {
+-			if (signal_pending_state(state, current))
+-				goto out_nolock;
++		if (!first)
++			first = rwsem_waiter_is_first(sem, &waiter);
+ 
+-			schedule();
+-			set_current_state(state);
+-			count = atomic_read(&sem->count);
++		waiter.waking = false;
++		raw_spin_unlock_irq(&sem->wait_lock);
+ 
+-			if (!first)
+-				first = rwsem_waiter_is_first(sem, &waiter);
++		if (first && !RWSEM_COUNT_HANDOFF(count) &&
++		    time_after(jiffies, waiter.timeout))
++			atomic_or(RWSEM_FLAG_WHANDOFF, &sem->count);
+ 
+-			if (!RWSEM_COUNT_LOCKED(count))
+-				break;
+-
+-			if (first && !RWSEM_COUNT_HANDOFF(count) &&
+-			    time_after(jiffies, waiter.timeout))
+-				atomic_or(RWSEM_FLAG_WHANDOFF, &sem->count);
+-		}
++		schedule();
++		set_current_state(state);
+ 
+ 		raw_spin_lock_irq(&sem->wait_lock);
++		count = atomic_read(&sem->count);
+ 	}
+ 	__set_current_state(TASK_RUNNING);
+ 	list_del(&waiter.list);
+@@ -678,7 +682,6 @@ static inline bool rwsem_has_spinner(struct rw_semaphore *sem)
+ 
+ out_nolock:
+ 	__set_current_state(TASK_RUNNING);
+-	raw_spin_lock_irq(&sem->wait_lock);
+ 	list_del(&waiter.list);
+ 	adjustment = 0;
+ 	if (list_empty(&sem->wait_list))
 -- 
 1.8.3.1
