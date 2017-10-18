@@ -1,12 +1,16 @@
 From: Mark Rutland <mark.rutland@arm.com>
-Subject: [PATCH v3.10.y] percpu: make this_cpu_generic_read() atomic w.r.t. interrupts
-Date: Wed, 18 Oct 2017 14:36:41 +0100
-Message-ID: <20171018133641.25078-1-mark.rutland@arm.com>
-Return-path: <stable-owner@vger.kernel.org>
-Sender: stable-owner@vger.kernel.org
+Subject: [PATCH v3.2.y] percpu: make this_cpu_generic_read() atomic w.r.t. interrupts
+Date: Wed, 18 Oct 2017 14:37:28 +0100
+Message-ID: <20171018133728.25174-1-mark.rutland@arm.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:40862 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1754615AbdJRNhg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 18 Oct 2017 09:37:36 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: stable@vger.kernel.org
 Cc: Mark Rutland <mark.rutland@arm.com>, Arnd Bergmann <arnd@arndb.de>, Christoph Lameter <cl@linux.com>, Peter Zijlstra <peterz@infradead.org>, Pranith Kumar <bobby.prani@gmail.com>, Tejun Heo <tj@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
 
 Commit e88d62cd4b2f0b1ae55e9008e79c2794b1fc914d upstream.
 
@@ -47,10 +51,10 @@ Signed-off-by: Mark Rutland <mark.rutland@arm.com>
  2 files changed, 30 insertions(+), 4 deletions(-)
 
 diff --git a/include/linux/compiler.h b/include/linux/compiler.h
-index a2ce6f8871c4..84d36b5ce832 100644
+index 01b6d065d609..45289f72c35b 100644
 --- a/include/linux/compiler.h
 +++ b/include/linux/compiler.h
-@@ -302,6 +302,11 @@ void ftrace_likely_update(struct ftrace_branch_data *f, int val, int expect);
+@@ -287,6 +287,11 @@ void ftrace_likely_update(struct ftrace_branch_data *f, int val, int expect);
  # define __same_type(a, b) __builtin_types_compatible_p(typeof(a), typeof(b))
  #endif
  
@@ -63,10 +67,10 @@ index a2ce6f8871c4..84d36b5ce832 100644
  #ifndef __compiletime_object_size
  # define __compiletime_object_size(obj) -1
 diff --git a/include/linux/percpu.h b/include/linux/percpu.h
-index cc88172c7d9a..3c047cd54ca0 100644
+index 9ca008f0c542..03e0f0d738fb 100644
 --- a/include/linux/percpu.h
 +++ b/include/linux/percpu.h
-@@ -267,12 +267,33 @@ do {									\
+@@ -321,12 +321,33 @@ do {									\
   *    used.
   */
  
