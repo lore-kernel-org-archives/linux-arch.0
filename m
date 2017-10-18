@@ -1,98 +1,71 @@
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH v3 24/28] arm64/sve: KVM: Hide SVE from CPU features
- exposed to guests
-Date: Tue, 17 Oct 2017 16:47:08 +0100
-Message-ID: <20171017154708.GY19485@e103592.cambridge.arm.com>
+From: Catalin Marinas <catalin.marinas-5wv7dgnIgG8@public.gmane.org>
+Subject: Re: [PATCH v3 26/28] arm64/sve: Add documentation
+Date: Wed, 18 Oct 2017 10:32:03 +0100
+Message-ID: <20171018093203.xp5tro636chgaiuq@armageddon.cambridge.arm.com>
 References: <1507660725-7986-1-git-send-email-Dave.Martin@arm.com>
- <1507660725-7986-25-git-send-email-Dave.Martin@arm.com>
- <20171017135816.GF5886@lvm>
- <20171017140749.GW19485@e103592.cambridge.arm.com>
- <2c6d9aa4-f6a8-2c6b-4138-e07d773bf4a2@arm.com>
+ <1507660725-7986-27-git-send-email-Dave.Martin@arm.com>
+ <20171013142421.j32jzisukewxtosx@armageddon.cambridge.arm.com>
+ <20171013171758.GO19485@e103592.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:50412 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S933194AbdJQPrN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 17 Oct 2017 11:47:13 -0400
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
 Content-Disposition: inline
-In-Reply-To: <2c6d9aa4-f6a8-2c6b-4138-e07d773bf4a2@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Marc Zyngier <marc.zyngier@arm.com>
-Cc: Christoffer Dall <cdall@linaro.org>, linux-arch@vger.kernel.org, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
+In-Reply-To: <20171013171758.GO19485-M5GwZQ6tE7x5pKCnmE3YQBJ8xKzm50AiAL8bYrjMMd8@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Dave Martin <Dave.Martin-5wv7dgnIgG8@public.gmane.org>
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>, Okamoto Takayuki <tokamoto-+CUm20s59erQFUHtdCDX3A@public.gmane.org>, libc-alpha-9JcytcrH/bA+uJoB2kUjGw@public.gmane.org, Ard Biesheuvel <ard.biesheuvel-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Szabolcs Nagy <szabolcs.nagy-5wv7dgnIgG8@public.gmane.org>, Richard Sandiford <richard.sandiford-5wv7dgnIgG8@public.gmane.org>, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, Michael Kerrisk <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Alan Hayward <alan.hayward-5wv7dgnIgG8@public.gmane.org>, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, kvmarm-FPEHb7Xf0XXUo1n7N8X6UoWGPAHP3yOg@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Oct 17, 2017 at 03:29:36PM +0100, Marc Zyngier wrote:
-> On 17/10/17 15:07, Dave Martin wrote:
-> > On Tue, Oct 17, 2017 at 06:58:16AM -0700, Christoffer Dall wrote:
-> >> On Tue, Oct 10, 2017 at 07:38:41PM +0100, Dave Martin wrote:
-> >>> KVM guests cannot currently use SVE, because SVE is always
-> >>> configured to trap to EL2.
-> >>>
-> >>> However, a guest that sees SVE reported as present in
-> >>> ID_AA64PFR0_EL1 may legitimately expect that SVE works and try to
-> >>> use it.  Instead of working, the guest will receive an injected
-> >>> undef exception, which may cause the guest to oops or go into a
-> >>> spin.
-> >>>
-> >>> To avoid misleading the guest into believing that SVE will work,
-> >>> this patch masks out the SVE field from ID_AA64PFR0_EL1 when a
-> >>> guest attempts to read this register.  No support is explicitly
-> >>> added for ID_AA64ZFR0_EL1 either, so that is still emulated as
-> >>> reading as zero, which is consistent with SVE not being
-> >>> implemented.
-> >>>
-> >>> This is a temporary measure, and will be removed in a later series
-> >>> when full KVM support for SVE is implemented.
-> >>>
-> >>> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> >>> Reviewed-by: Alex Bennée <alex.bennee@linaro.org>
-> >>> Cc: Marc Zyngier <marc.zyngier@arm.com>
-> >>> ---
-> >>>  arch/arm64/kvm/sys_regs.c | 12 +++++++++++-
-> >>>  1 file changed, 11 insertions(+), 1 deletion(-)
-> >>>
-> >>> diff --git a/arch/arm64/kvm/sys_regs.c b/arch/arm64/kvm/sys_regs.c
-> >>> index b1f7552..a0ee9b0 100644
-> >>> --- a/arch/arm64/kvm/sys_regs.c
-> >>> +++ b/arch/arm64/kvm/sys_regs.c
-> >>> @@ -23,6 +23,7 @@
-> >>>  #include <linux/bsearch.h>
-> >>>  #include <linux/kvm_host.h>
-> >>>  #include <linux/mm.h>
-> >>> +#include <linux/printk.h>
-> >>>  #include <linux/uaccess.h>
-> >>>  
-> >>>  #include <asm/cacheflush.h>
-> >>> @@ -897,8 +898,17 @@ static u64 read_id_reg(struct sys_reg_desc const *r, bool raz)
-> >>>  {
-> >>>  	u32 id = sys_reg((u32)r->Op0, (u32)r->Op1,
-> >>>  			 (u32)r->CRn, (u32)r->CRm, (u32)r->Op2);
-> >>> +	u64 val = raz ? 0 : read_sanitised_ftr_reg(id);
-> >>>  
-> >>> -	return raz ? 0 : read_sanitised_ftr_reg(id);
-> >>> +	if (id == SYS_ID_AA64PFR0_EL1) {
-> >>> +		if (val & (0xfUL << ID_AA64PFR0_SVE_SHIFT))
-> >>> +			pr_err_once("kvm [%i]: SVE unsupported for guests, suppressing\n",
-> >>> +				    task_pid_nr(current));
-> >>
-> >> nit: does this really qualify as an error print?
+On Fri, Oct 13, 2017 at 06:17:59PM +0100, Dave P Martin wrote:
+> On Fri, Oct 13, 2017 at 03:24:21PM +0100, Catalin Marinas wrote:
+> > On Tue, Oct 10, 2017 at 07:38:43PM +0100, Dave P Martin wrote:
+> > > +* If the SVE context is too big to fit in sigcontext.__reserved[], then extra
+> > > +  space is allocated on the stack, an extra_context record is written in
+> > > +  __reserved[] referencing this space.  sve_context is then written in the
+> > > +  extra space.  Refer to [1] for further details about this mechanism.
 > > 
-> > I have no strong opinion on this: maz suggested I should add this --
-> > his concern was to make it difficult to ignore.
-> > 
-> > This is transitional: the main purpose is to circumvent bug reports from
-> > people who find that SVE doesn't work in their guests, in the interim
-> > before proper KVM support lands upstream.
-> > 
-> > Marc, do you still agree with this position?
+> > Does this document require that the user stack is sufficiently large or
+> > should we cap the vector length (prior to the last two RFC patches)?
 > 
-> As long as this is transitional, I'm OK with this.
+> We don't know how much free stack space there actually is until the
+> signal is delivered.
+[...]
+> Possibly sigaltstack() should fail with ENOMEM if ss_size is too small
+> for the maximum VL supported by the system, but strictly speaking that
+> violates POSIX if ss_size >= MINSIGSTKSZ.
 
-No argument from me, since it was your request in the first place ;)
+We also don't know whether the application is going to use SVE or not,
+so MINSIGSTKSZ could be just fine. I don't have a better idea here
+without the last two RFC patches. So just ignore my comment.
 
-Christoffer?
+> > > +5.  Signal return
+> > > +-----------------
+> > > +
+> > > +When returning from a signal handler:
+> > > +
+> > > +* If there is no sve_context record in the signal frame, or if the record is
+> > > +  present but contains no register data as desribed in the previous section,
+> > > +  then the SVE registers/bits become non-live and take unspecified values.
+> > > +
+> > > +* If sve_context is present in the signal frame and contains full register
+> > > +  data, the SVE registers become live and are populated with the specified
+> > > +  data.  However, for backward compatibility reasons, bits [127:0] of Z0..Z31
+> > > +  are always restored from the corresponding members of fpsimd_context.vregs[]
+> > > +  and not from sve_context.  The remaining bits are restored from sve_context.
+> > > +
+> > > +* Inclusion of fpsimd_context in the signal frame remains mandatory,
+> > > +  irrespective of whether sve_context is present or not.
+> > 
+> > Could we relax this? I'm not sure it's worth it.
+> 
+> It would be cleaner, but I think it's an ABI break.  Consider a non-SVE
+> program that gets linked (perhaps dynamically) against a library variant
+> that happens to use SVE:
 
-Cheers
----Dave
+I agree that in general the kernel always needs to provide user space
+with FPSIMD_MAGIC. I was wondering whether on sigreturn the kernel may
+choose not to enforce this. But I'm not sure we have a scenario where it
+actually matters (IIUC set/getcontext is done in user space anyway).
+
+-- 
+Catalin
