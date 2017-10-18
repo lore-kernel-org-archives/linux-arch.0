@@ -1,12 +1,12 @@
 From: Mark Rutland <mark.rutland@arm.com>
-Subject: [PATCH v4.4.y] percpu: make this_cpu_generic_read() atomic w.r.t. interrupts
-Date: Wed, 18 Oct 2017 14:32:37 +0100
-Message-ID: <20171018133237.55218-1-mark.rutland@arm.com>
+Subject: [PATCH v4.1.y] percpu: make this_cpu_generic_read() atomic w.r.t. interrupts
+Date: Wed, 18 Oct 2017 14:33:43 +0100
+Message-ID: <20171018133343.55337-1-mark.rutland@arm.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:40634 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753871AbdJRNcq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 18 Oct 2017 09:32:46 -0400
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:40672 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752652AbdJRNdw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 18 Oct 2017 09:33:52 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: stable@vger.kernel.org
@@ -39,7 +39,7 @@ Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: linux-arch@vger.kernel.org
 Cc: stable@vger.kernel.org
 Signed-off-by: Tejun Heo <tj@kernel.org>
-[Mark: backport to v4.4.y]
+[Mark: backport to v4.1.y]
 Signed-off-by: Mark Rutland <mark.rutland@arm.com>
 ---
  include/asm-generic/percpu.h | 24 ++++++++++++++++++++++--
