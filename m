@@ -1,81 +1,196 @@
-From: Christoffer Dall <cdall@linaro.org>
-Subject: Re: [PATCH v3 24/28] arm64/sve: KVM: Hide SVE from CPU features
- exposed to guests
-Date: Wed, 18 Oct 2017 18:49:29 +0200
-Message-ID: <CAMJs5B9cA0xMeeZ2UYa9es0HfTH=vt=TZ=oMX6iBkvx5aBLDow@mail.gmail.com>
-References: <1507660725-7986-1-git-send-email-Dave.Martin@arm.com>
- <1507660725-7986-25-git-send-email-Dave.Martin@arm.com>
- <20171017135816.GF5886@lvm>
- <20171017140749.GW19485@e103592.cambridge.arm.com>
- <2c6d9aa4-f6a8-2c6b-4138-e07d773bf4a2@arm.com>
- <20171017154708.GY19485@e103592.cambridge.arm.com>
- <20171018132145.GF8900@cbox>
- <20171018150149.GB19485@e103592.cambridge.arm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <kvmarm-bounces@lists.cs.columbia.edu>
-In-Reply-To: <20171018150149.GB19485@e103592.cambridge.arm.com>
-List-Unsubscribe: <https://lists.cs.columbia.edu/mailman/options/kvmarm>,
- <mailto:kvmarm-request@lists.cs.columbia.edu?subject=unsubscribe>
-List-Archive: <https://lists.cs.columbia.edu/pipermail/kvmarm>
-List-Post: <mailto:kvmarm@lists.cs.columbia.edu>
-List-Help: <mailto:kvmarm-request@lists.cs.columbia.edu?subject=help>
-List-Subscribe: <https://lists.cs.columbia.edu/mailman/listinfo/kvmarm>,
- <mailto:kvmarm-request@lists.cs.columbia.edu?subject=subscribe>
-Errors-To: kvmarm-bounces@lists.cs.columbia.edu
-Sender: kvmarm-bounces@lists.cs.columbia.edu
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-arch@vger.kernel.org, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Marc Zyngier <marc.zyngier@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, "kvmarm@lists.cs.columbia.edu" <kvmarm@lists.cs.columbia.edu>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
-List-Id: linux-arch.vger.kernel.org
+From: Waiman Long <longman@redhat.com>
+Subject: [PATCH-tip v7 01/15] locking/rwsem: relocate rwsem_down_read_failed()
+Date: Wed, 18 Oct 2017 14:30:17 -0400
+Message-ID: <1508351431-22375-2-git-send-email-longman@redhat.com>
+References: <1508351431-22375-1-git-send-email-longman@redhat.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:33626 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1750853AbdJRSau (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 18 Oct 2017 14:30:50 -0400
+In-Reply-To: <1508351431-22375-1-git-send-email-longman@redhat.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>
+Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, Dave Chinner <david@fromorbit.com>, Waiman Long <longman@redhat.com>
 
-On Wed, Oct 18, 2017 at 5:01 PM, Dave Martin <Dave.Martin@arm.com> wrote:
-> On Wed, Oct 18, 2017 at 03:21:45PM +0200, Christoffer Dall wrote:
->> On Tue, Oct 17, 2017 at 04:47:08PM +0100, Dave Martin wrote:
->> > On Tue, Oct 17, 2017 at 03:29:36PM +0100, Marc Zyngier wrote:
->> > > On 17/10/17 15:07, Dave Martin wrote:
->> > > > On Tue, Oct 17, 2017 at 06:58:16AM -0700, Christoffer Dall wrote:
->> > > >> On Tue, Oct 10, 2017 at 07:38:41PM +0100, Dave Martin wrote:
->
-> [...]
->
->> > > >>> diff --git a/arch/arm64/kvm/sys_regs.c b/arch/arm64/kvm/sys_regs.c
->
-> [...]
->
->> > > >>> @@ -897,8 +898,17 @@ static u64 read_id_reg(struct sys_reg_desc const *r, bool raz)
->> > > >>>  {
->> > > >>>       u32 id = sys_reg((u32)r->Op0, (u32)r->Op1,
->> > > >>>                        (u32)r->CRn, (u32)r->CRm, (u32)r->Op2);
->> > > >>> +     u64 val = raz ? 0 : read_sanitised_ftr_reg(id);
->> > > >>>
->> > > >>> -     return raz ? 0 : read_sanitised_ftr_reg(id);
->> > > >>> +     if (id == SYS_ID_AA64PFR0_EL1) {
->> > > >>> +             if (val & (0xfUL << ID_AA64PFR0_SVE_SHIFT))
->> > > >>> +                     pr_err_once("kvm [%i]: SVE unsupported for guests, suppressing\n",
->> > > >>> +                                 task_pid_nr(current));
->> > > >>
->> > > >> nit: does this really qualify as an error print?
->> > > >
->> > > > I have no strong opinion on this: maz suggested I should add this --
->> > > > his concern was to make it difficult to ignore.
->> > > >
->> > > > This is transitional: the main purpose is to circumvent bug reports from
->> > > > people who find that SVE doesn't work in their guests, in the interim
->> > > > before proper KVM support lands upstream.
->> > > >
->> > > > Marc, do you still agree with this position?
->> > >
->> > > As long as this is transitional, I'm OK with this.
->> >
->> > No argument from me, since it was your request in the first place ;)
->> >
->> > Christoffer?
->> >
->> No (further) argument from me.
->
-> OK, thanks.  Can I take that as an Ack?
->
-Yes:
+The rwsem_down_read_failed*() functions were relocted from above the
+optimistic spinning section to below that section. This enables
+them to use functions in that section in future patches. There is no
+code change.
 
-Acked-by: Christoffer Dall <christoffer.dall@linaro.org>
+Signed-off-by: Waiman Long <longman@redhat.com>
+---
+ kernel/locking/rwsem-xadd.c | 150 ++++++++++++++++++++++----------------------
+ 1 file changed, 75 insertions(+), 75 deletions(-)
+
+diff --git a/kernel/locking/rwsem-xadd.c b/kernel/locking/rwsem-xadd.c
+index 1fefe6d..db5dedf 100644
+--- a/kernel/locking/rwsem-xadd.c
++++ b/kernel/locking/rwsem-xadd.c
+@@ -219,81 +219,6 @@ static void __rwsem_mark_wake(struct rw_semaphore *sem,
+ }
+ 
+ /*
+- * Wait for the read lock to be granted
+- */
+-static inline struct rw_semaphore __sched *
+-__rwsem_down_read_failed_common(struct rw_semaphore *sem, int state)
+-{
+-	long count, adjustment = -RWSEM_ACTIVE_READ_BIAS;
+-	struct rwsem_waiter waiter;
+-	DEFINE_WAKE_Q(wake_q);
+-
+-	waiter.task = current;
+-	waiter.type = RWSEM_WAITING_FOR_READ;
+-
+-	raw_spin_lock_irq(&sem->wait_lock);
+-	if (list_empty(&sem->wait_list))
+-		adjustment += RWSEM_WAITING_BIAS;
+-	list_add_tail(&waiter.list, &sem->wait_list);
+-
+-	/* we're now waiting on the lock, but no longer actively locking */
+-	count = atomic_long_add_return(adjustment, &sem->count);
+-
+-	/*
+-	 * If there are no active locks, wake the front queued process(es).
+-	 *
+-	 * If there are no writers and we are first in the queue,
+-	 * wake our own waiter to join the existing active readers !
+-	 */
+-	if (count == RWSEM_WAITING_BIAS ||
+-	    (count > RWSEM_WAITING_BIAS &&
+-	     adjustment != -RWSEM_ACTIVE_READ_BIAS))
+-		__rwsem_mark_wake(sem, RWSEM_WAKE_ANY, &wake_q);
+-
+-	raw_spin_unlock_irq(&sem->wait_lock);
+-	wake_up_q(&wake_q);
+-
+-	/* wait to be given the lock */
+-	while (true) {
+-		set_current_state(state);
+-		if (!waiter.task)
+-			break;
+-		if (signal_pending_state(state, current)) {
+-			raw_spin_lock_irq(&sem->wait_lock);
+-			if (waiter.task)
+-				goto out_nolock;
+-			raw_spin_unlock_irq(&sem->wait_lock);
+-			break;
+-		}
+-		schedule();
+-	}
+-
+-	__set_current_state(TASK_RUNNING);
+-	return sem;
+-out_nolock:
+-	list_del(&waiter.list);
+-	if (list_empty(&sem->wait_list))
+-		atomic_long_add(-RWSEM_WAITING_BIAS, &sem->count);
+-	raw_spin_unlock_irq(&sem->wait_lock);
+-	__set_current_state(TASK_RUNNING);
+-	return ERR_PTR(-EINTR);
+-}
+-
+-__visible struct rw_semaphore * __sched
+-rwsem_down_read_failed(struct rw_semaphore *sem)
+-{
+-	return __rwsem_down_read_failed_common(sem, TASK_UNINTERRUPTIBLE);
+-}
+-EXPORT_SYMBOL(rwsem_down_read_failed);
+-
+-__visible struct rw_semaphore * __sched
+-rwsem_down_read_failed_killable(struct rw_semaphore *sem)
+-{
+-	return __rwsem_down_read_failed_common(sem, TASK_KILLABLE);
+-}
+-EXPORT_SYMBOL(rwsem_down_read_failed_killable);
+-
+-/*
+  * This function must be called with the sem->wait_lock held to prevent
+  * race conditions between checking the rwsem wait list and setting the
+  * sem->count accordingly.
+@@ -488,6 +413,81 @@ static inline bool rwsem_has_spinner(struct rw_semaphore *sem)
+ #endif
+ 
+ /*
++ * Wait for the read lock to be granted
++ */
++static inline struct rw_semaphore __sched *
++__rwsem_down_read_failed_common(struct rw_semaphore *sem, int state)
++{
++	long count, adjustment = -RWSEM_ACTIVE_READ_BIAS;
++	struct rwsem_waiter waiter;
++	DEFINE_WAKE_Q(wake_q);
++
++	waiter.task = current;
++	waiter.type = RWSEM_WAITING_FOR_READ;
++
++	raw_spin_lock_irq(&sem->wait_lock);
++	if (list_empty(&sem->wait_list))
++		adjustment += RWSEM_WAITING_BIAS;
++	list_add_tail(&waiter.list, &sem->wait_list);
++
++	/* we're now waiting on the lock, but no longer actively locking */
++	count = atomic_long_add_return(adjustment, &sem->count);
++
++	/*
++	 * If there are no active locks, wake the front queued process(es).
++	 *
++	 * If there are no writers and we are first in the queue,
++	 * wake our own waiter to join the existing active readers !
++	 */
++	if (count == RWSEM_WAITING_BIAS ||
++	    (count > RWSEM_WAITING_BIAS &&
++	     adjustment != -RWSEM_ACTIVE_READ_BIAS))
++		__rwsem_mark_wake(sem, RWSEM_WAKE_ANY, &wake_q);
++
++	raw_spin_unlock_irq(&sem->wait_lock);
++	wake_up_q(&wake_q);
++
++	/* wait to be given the lock */
++	while (true) {
++		set_current_state(state);
++		if (!waiter.task)
++			break;
++		if (signal_pending_state(state, current)) {
++			raw_spin_lock_irq(&sem->wait_lock);
++			if (waiter.task)
++				goto out_nolock;
++			raw_spin_unlock_irq(&sem->wait_lock);
++			break;
++		}
++		schedule();
++	}
++
++	__set_current_state(TASK_RUNNING);
++	return sem;
++out_nolock:
++	list_del(&waiter.list);
++	if (list_empty(&sem->wait_list))
++		atomic_long_add(-RWSEM_WAITING_BIAS, &sem->count);
++	raw_spin_unlock_irq(&sem->wait_lock);
++	__set_current_state(TASK_RUNNING);
++	return ERR_PTR(-EINTR);
++}
++
++__visible struct rw_semaphore * __sched
++rwsem_down_read_failed(struct rw_semaphore *sem)
++{
++	return __rwsem_down_read_failed_common(sem, TASK_UNINTERRUPTIBLE);
++}
++EXPORT_SYMBOL(rwsem_down_read_failed);
++
++__visible struct rw_semaphore * __sched
++rwsem_down_read_failed_killable(struct rw_semaphore *sem)
++{
++	return __rwsem_down_read_failed_common(sem, TASK_KILLABLE);
++}
++EXPORT_SYMBOL(rwsem_down_read_failed_killable);
++
++/*
+  * Wait until we successfully acquire the write lock
+  */
+ static inline struct rw_semaphore *
+-- 
+1.8.3.1
