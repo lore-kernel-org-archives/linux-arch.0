@@ -1,174 +1,114 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:57864 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751439AbdJRSbA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 18 Oct 2017 14:31:00 -0400
-From: Waiman Long <longman@redhat.com>
-Subject: [PATCH-tip v7 08/15] locking/rwsem: Enable readers spinning on writer
-Date: Wed, 18 Oct 2017 14:30:24 -0400
-Message-ID: <1508351431-22375-9-git-send-email-longman@redhat.com>
-In-Reply-To: <1508351431-22375-1-git-send-email-longman@redhat.com>
-References: <1508351431-22375-1-git-send-email-longman@redhat.com>
+Received: from mail-wm0-f68.google.com ([74.125.82.68]:57197 "EHLO
+        mail-wm0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750991AbdJRTWl (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 18 Oct 2017 15:22:41 -0400
+Received: by mail-wm0-f68.google.com with SMTP id l68so12077747wmd.5
+        for <linux-arch@vger.kernel.org>; Wed, 18 Oct 2017 12:22:40 -0700 (PDT)
+Date: Wed, 18 Oct 2017 21:22:41 +0200
+From: Christoffer Dall <cdall@linaro.org>
+Subject: Re: [PATCH v3 22/28] arm64/sve: KVM: Prevent guests from using SVE
+Message-ID: <20171018192241.GL8900@cbox>
+References: <1507660725-7986-1-git-send-email-Dave.Martin@arm.com>
+ <1507660725-7986-23-git-send-email-Dave.Martin@arm.com>
+ <20171017115024.GS1845@lvm>
+ <20171017143142.GX19485@e103592.cambridge.arm.com>
+ <20171018132323.GG8900@cbox>
+ <20171018150004.GA19485@e103592.cambridge.arm.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20171018150004.GA19485@e103592.cambridge.arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>
-Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, Dave Chinner <david@fromorbit.com>, Waiman Long <longman@redhat.com>
-Message-ID: <20171018183024.ScaYFkPnNkO-gNV7dERwTB6JhtBVxgqW4vTKZ-smcHY@z>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-arch@vger.kernel.org, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Marc Zyngier <marc.zyngier@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
+Message-ID: <20171018192241.Ev6FRJ2KyhR9vZP9ou5MpQ63-qIryqumwX4z6X8CW3M@z>
 
-This patch enables readers to optimistically spin on a
-rwsem when it is owned by a writer instead of going to sleep
-directly.  The rwsem_can_spin_on_owner() function is extracted
-out of rwsem_optimistic_spin() and is called directly by
-rwsem_down_read_failed() and rwsem_down_write_failed().
+On Wed, Oct 18, 2017 at 04:00:05PM +0100, Dave Martin wrote:
+> On Wed, Oct 18, 2017 at 03:23:23PM +0200, Christoffer Dall wrote:
+> > On Tue, Oct 17, 2017 at 03:31:42PM +0100, Dave Martin wrote:
+> > > On Tue, Oct 17, 2017 at 01:50:24PM +0200, Christoffer Dall wrote:
+> > > > On Tue, Oct 10, 2017 at 07:38:39PM +0100, Dave Martin wrote:
+> > > > > Until KVM has full SVE support, guests must not be allowed to
+> > > > > execute SVE instructions.
+> > > > > 
+> > > > > This patch enables the necessary traps, and also ensures that the
+> > > > > traps are disabled again on exit from the guest so that the host
+> > > > > can still use SVE if it wants to.
+> > > > > 
+> > > > > This patch introduces another instance of
+> > > > > __this_cpu_write(fpsimd_last_state, NULL), so this flush operation
+> > > > > is abstracted out as a separate helper fpsimd_flush_cpu_state().
+> > > > > Other instances are ported appropriately.
+> > > > 
+> > > > I don't understand this paragraph, beginning from ", so this...".
+> > > > 
+> > > > 
+> > > > From reading the code, what I think is the reason for having to flush
+> > > > the SVE state (and mark the host state invalid) is that even though we
+> > > > disallow SVE usage in the guest, the guest can use the normal FP state,
+> > > > and while we always fully preserve the host state, this could still
+> > > > corrupt some additional SVE state not properly preserved for the host.
+> > > > Is that correct?
+> > > 
+> > > Yes, that's right: the guest can't touch the SVE-specific registers
+> > > Pn/FFR, but FPSIMD accesses to Vn regs cause the high bits of the
+> > > corresponding SVE Zn registers to be clobbered.  In any case, the
+> > > FPSIMD restore done by KVM after guest exit is sufficient to clobber
+> > > those bits even if the guest didn't do it.
+> > > 
+> > > This is a band-aid for not making the KVM world switch code properly
+> > > SVE-aware yet.
+> > > 
+> > > Does the following wording sound better:
+> > > 
+> > > --8<--
+> > > 
+> > > On guest exit, high bits of the SVE Zn registers may have been
+> > > clobbered as a side-effect the execution of FPSIMD instructions in
+> > > the guest.  The existing KVM host FPSIMD restore code is not
+> > > sufficient to restore these bits, so this patch explicitly marks
+> > > the CPU as not containing cached vector state for any task, this
+> > > forcing a reload on the next return to userspace.  This is an
+> > > interim measure, in advance of adding full SVE awareness to KVM.
+> > > 
+> > > Because of the duplication of this operation
+> > > (__this_cpu_write(fpsimd_last_state, NULL)), it is factored out as
+> > 
+> > s/it is/is/  (I think)
+> > 
+> > > a new helper fpsimd_flush_cpu_state() to make the purpose clearer.
+> > 
+> > Yes, the wording is good and helps a lot.  Thanks for writing that.
+> > 
+> 
+> I think it "it is" is correct, but it's a pretty ghastly sentence...
 
-This patch may actually reduce performance under certain circumstances
-as the readers may not be grouped together in the wait queue anymore.
-So we may have a number of small reader groups among writers instead
-of a large reader group. However, this change is needed for some of
-the subsequent patches.
+Ah, I missed the comma, before and read it as __this_cpu_write... is
+factored... but that doesn't make any sense.  Sorry, I was just not
+paying proper attention.
 
-Signed-off-by: Waiman Long <longman@redhat.com>
----
- kernel/locking/rwsem-xadd.c | 68 +++++++++++++++++++++++++++++++++++++++------
- kernel/locking/rwsem-xadd.h |  1 +
- 2 files changed, 60 insertions(+), 9 deletions(-)
+> 
+> I'll split it as:
+> 
+> This marking of cached vector state in the CPU as invalid is done using
+> __this_cpu_write(fpsimd_last_state, NULL) in fpsimd.c.  Due to the
+> repeated use of this rather obscure operation, it makes sense to factor
+> it out as a separate helper with a clearer name.  This patch factors it
+> out as fpsimd_flush_cpu_state().
+> 
 
-diff --git a/kernel/locking/rwsem-xadd.c b/kernel/locking/rwsem-xadd.c
-index 65717d8..15cdb28 100644
---- a/kernel/locking/rwsem-xadd.c
-+++ b/kernel/locking/rwsem-xadd.c
-@@ -224,6 +224,30 @@ static void __rwsem_mark_wake(struct rw_semaphore *sem,
- 
- #ifdef CONFIG_RWSEM_SPIN_ON_OWNER
- /*
-+ * Try to acquire read lock before the reader is put on wait queue.
-+ * Lock acquisition isn't allowed if the rwsem is locked or a writer handoff
-+ * is ongoing.
-+ */
-+static inline bool rwsem_try_read_lock_unqueued(struct rw_semaphore *sem)
-+{
-+	int count = atomic_read(&sem->count);
-+
-+	if (RWSEM_COUNT_WLOCKED(count) || RWSEM_COUNT_HANDOFF_WRITER(count))
-+		return false;
-+
-+	count = atomic_fetch_add_acquire(RWSEM_READER_BIAS, &sem->count);
-+	if (!RWSEM_COUNT_WLOCKED(count) && !RWSEM_COUNT_HANDOFF_WRITER(count)) {
-+		if (!(count >> RWSEM_READER_SHIFT))
-+			rwsem_set_reader_owned(sem);
-+		return true;
-+	}
-+
-+	/* Back out the change */
-+	atomic_add(-RWSEM_READER_BIAS, &sem->count);
-+	return false;
-+}
-+
-+/*
-  * Try to acquire write lock before the writer has been put on wait queue.
-  */
- static inline bool rwsem_try_write_lock_unqueued(struct rw_semaphore *sem)
-@@ -314,16 +338,14 @@ static noinline bool rwsem_spin_on_owner(struct rw_semaphore *sem)
- 	return !rwsem_owner_is_reader(READ_ONCE(sem->owner));
- }
- 
--static bool rwsem_optimistic_spin(struct rw_semaphore *sem)
-+static bool rwsem_optimistic_spin(struct rw_semaphore *sem,
-+				  enum rwsem_waiter_type type)
- {
- 	bool taken = false;
- 
- 	preempt_disable();
- 
- 	/* sem->wait_lock should not be held when doing optimistic spinning */
--	if (!rwsem_can_spin_on_owner(sem))
--		goto done;
--
- 	if (!osq_lock(&sem->osq))
- 		goto done;
- 
-@@ -338,10 +360,12 @@ static bool rwsem_optimistic_spin(struct rw_semaphore *sem)
- 		/*
- 		 * Try to acquire the lock
- 		 */
--		if (rwsem_try_write_lock_unqueued(sem)) {
--			taken = true;
-+		taken = (type == RWSEM_WAITING_FOR_WRITE)
-+		      ? rwsem_try_write_lock_unqueued(sem)
-+		      : rwsem_try_read_lock_unqueued(sem);
-+
-+		if (taken)
- 			break;
--		}
- 
- 		/*
- 		 * When there's no owner, we might have preempted between the
-@@ -375,7 +399,13 @@ static inline bool rwsem_has_spinner(struct rw_semaphore *sem)
- }
- 
- #else
--static bool rwsem_optimistic_spin(struct rw_semaphore *sem)
-+static inline bool rwsem_can_spin_on_owner(struct rw_semaphore *sem)
-+{
-+	return false;
-+}
-+
-+static inline bool
-+rwsem_optimistic_spin(struct rw_semaphore *sem, enum rwsem_waiter_type type)
- {
- 	return false;
- }
-@@ -402,10 +432,29 @@ static inline bool rwsem_has_spinner(struct rw_semaphore *sem)
- static inline struct rw_semaphore __sched *
- __rwsem_down_read_failed_common(struct rw_semaphore *sem, int state)
- {
-+	bool can_spin;
- 	int count, adjustment = -RWSEM_READER_BIAS;
- 	struct rwsem_waiter waiter;
- 	DEFINE_WAKE_Q(wake_q);
- 
-+	/*
-+	 * Undo read bias from down_read operation to stop active locking if:
-+	 * 1) Optimistic spinners are present; or
-+	 * 2) optimistic spinning is allowed.
-+	 */
-+	can_spin = rwsem_can_spin_on_owner(sem);
-+	if (can_spin || rwsem_has_spinner(sem)) {
-+		atomic_add(-RWSEM_READER_BIAS, &sem->count);
-+		adjustment = 0;
-+
-+		/*
-+		 * Do optimistic spinning and steal lock if possible.
-+		 */
-+		if (can_spin &&
-+		    rwsem_optimistic_spin(sem, RWSEM_WAITING_FOR_READ))
-+			return sem;
-+	}
-+
- 	waiter.task = current;
- 	waiter.type = RWSEM_WAITING_FOR_READ;
- 	waiter.timeout = jiffies + RWSEM_WAIT_TIMEOUT;
-@@ -487,7 +536,8 @@ static inline bool rwsem_has_spinner(struct rw_semaphore *sem)
- 	DEFINE_WAKE_Q(wake_q);
- 
- 	/* do optimistic spinning and steal lock if possible */
--	if (rwsem_optimistic_spin(sem))
-+	if (rwsem_can_spin_on_owner(sem) &&
-+	    rwsem_optimistic_spin(sem, RWSEM_WAITING_FOR_WRITE))
- 		return sem;
- 
- 	/*
-diff --git a/kernel/locking/rwsem-xadd.h b/kernel/locking/rwsem-xadd.h
-index a340ea4..db9726b 100644
---- a/kernel/locking/rwsem-xadd.h
-+++ b/kernel/locking/rwsem-xadd.h
-@@ -98,6 +98,7 @@ static inline void rwsem_set_reader_owned(struct rw_semaphore *sem)
- 				 RWSEM_FLAG_HANDOFF)
- 
- #define RWSEM_COUNT_LOCKED(c)	((c) & RWSEM_LOCK_MASK)
-+#define RWSEM_COUNT_WLOCKED(c)	((c) & RWSEM_WRITER_LOCKED)
- #define RWSEM_COUNT_HANDOFF(c)	((c) & RWSEM_FLAG_HANDOFF)
- #define RWSEM_COUNT_HANDOFF_WRITER(c)		\
- 	(((c) & RWSEM_FLAG_HANDOFFS) == RWSEM_FLAG_WHANDOFF)
--- 
-1.8.3.1
+That's definitely clear.
+
+> > Reviewed-by: Christoffer Dall <christoffer.dall@linaro.org>
+> 
+> I'll assume I can keep keep your Reviewed-by, since this change is just
+> clarification.
+> 
+> But if you're not happy, please shout!
+> 
+I'm happy - in most aspects of life - indeed keep my reviewed-by.
+
+Thanks,
+-Christoffer
