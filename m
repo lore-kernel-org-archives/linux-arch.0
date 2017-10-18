@@ -1,12 +1,12 @@
 From: Mark Rutland <mark.rutland@arm.com>
-Subject: [PATCH v4.1.y] percpu: make this_cpu_generic_read() atomic w.r.t. interrupts
-Date: Wed, 18 Oct 2017 14:33:43 +0100
-Message-ID: <20171018133343.55337-1-mark.rutland@arm.com>
+Subject: [PATCH v3.16.y] percpu: make this_cpu_generic_read() atomic w.r.t. interrupts
+Date: Wed, 18 Oct 2017 14:35:24 +0100
+Message-ID: <20171018133524.24911-1-mark.rutland@arm.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:40672 "EHLO
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:40716 "EHLO
         foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752652AbdJRNdw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 18 Oct 2017 09:33:52 -0400
+        id S1754030AbdJRNfd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 18 Oct 2017 09:35:33 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: stable@vger.kernel.org
@@ -39,42 +39,44 @@ Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: linux-arch@vger.kernel.org
 Cc: stable@vger.kernel.org
 Signed-off-by: Tejun Heo <tj@kernel.org>
-[Mark: backport to v4.1.y]
+[Mark: backport to v3.16.y]
 Signed-off-by: Mark Rutland <mark.rutland@arm.com>
 ---
- include/asm-generic/percpu.h | 24 ++++++++++++++++++++++--
- 1 file changed, 22 insertions(+), 2 deletions(-)
+ include/linux/percpu.h | 29 +++++++++++++++++++++++++----
+ 1 file changed, 25 insertions(+), 4 deletions(-)
 
-diff --git a/include/asm-generic/percpu.h b/include/asm-generic/percpu.h
-index 4d9f233c4ba8..7d58ffdacd62 100644
---- a/include/asm-generic/percpu.h
-+++ b/include/asm-generic/percpu.h
-@@ -105,15 +105,35 @@ do {									\
- 	(__ret);							\
- })
+diff --git a/include/linux/percpu.h b/include/linux/percpu.h
+index 8419053d0f2e..37ff713a7c7f 100644
+--- a/include/linux/percpu.h
++++ b/include/linux/percpu.h
+@@ -276,12 +276,33 @@ do {									\
+  *    used.
+  */
  
--#define this_cpu_generic_read(pcp)					\
+-#define _this_cpu_generic_read(pcp)					\
+-({	typeof(pcp) ret__;						\
 +#define __this_cpu_generic_read_nopreempt(pcp)				\
- ({									\
- 	typeof(pcp) __ret;						\
++({									\
++	typeof(pcp) __ret;						\
  	preempt_disable();						\
--	__ret = *this_cpu_ptr(&(pcp));					\
-+	__ret = READ_ONCE(*raw_cpu_ptr(&(pcp)));			\
+-	ret__ = *this_cpu_ptr(&(pcp));					\
++	__ret = ACCESS_ONCE(*raw_cpu_ptr(&(pcp)));			\
  	preempt_enable();						\
- 	__ret;								\
- })
- 
+-	ret__;								\
++	__ret;								\
++})
++
 +#define __this_cpu_generic_read_noirq(pcp)				\
 +({									\
 +	typeof(pcp) __ret;						\
 +	unsigned long __flags;						\
 +	raw_local_irq_save(__flags);					\
-+	__ret = *raw_cpu_ptr(&(pcp));					\
++	__ret = *raw_cpu_ptr(&(pcp)); 					\
 +	raw_local_irq_restore(__flags);					\
 +	__ret;								\
 +})
 +
-+#define this_cpu_generic_read(pcp)					\
++#define _this_cpu_generic_read(pcp)					\
 +({									\
 +	typeof(pcp) __ret;						\
 +	if (__native_word(pcp))						\
@@ -82,10 +84,8 @@ index 4d9f233c4ba8..7d58ffdacd62 100644
 +	else								\
 +		__ret = __this_cpu_generic_read_noirq(pcp);		\
 +	__ret;								\
-+})
-+
- #define this_cpu_generic_to_op(pcp, val, op)				\
- do {									\
- 	unsigned long __flags;						\
+ })
+ 
+ #ifndef this_cpu_read
 -- 
 2.11.0
