@@ -1,87 +1,97 @@
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: [PATCH v3.16.y] percpu: make this_cpu_generic_read() atomic w.r.t. interrupts
-Date: Wed, 18 Oct 2017 14:40:22 +0100
-Message-ID: <20171018134022.25282-1-mark.rutland@arm.com>
-Return-path: <stable-owner@vger.kernel.org>
-Sender: stable-owner@vger.kernel.org
-To: stable@vger.kernel.org
-Cc: Mark Rutland <mark.rutland@arm.com>, Arnd Bergmann <arnd@arndb.de>, Christoph Lameter <cl@linux.com>, Peter Zijlstra <peterz@infradead.org>, Pranith Kumar <bobby.prani@gmail.com>, Tejun Heo <tj@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [PATCH v3 02/28] arm64: KVM: Hide unsupported AArch64 CPU
+ features from guests
+Date: Wed, 18 Oct 2017 15:45:10 +0100
+Message-ID: <20171018144509.GZ19485@e103592.cambridge.arm.com>
+References: <1507660725-7986-1-git-send-email-Dave.Martin@arm.com>
+ <1507660725-7986-3-git-send-email-Dave.Martin@arm.com>
+ <20171017135145.GT1845@lvm>
+ <d7b9fac4-1a71-d7be-822a-1898f133aa70@arm.com>
+ <20171018132026.GE8900@cbox>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:42250 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751243AbdJROpP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 18 Oct 2017 10:45:15 -0400
+Content-Disposition: inline
+In-Reply-To: <20171018132026.GE8900@cbox>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Christoffer Dall <cdall@linaro.org>
+Cc: Marc Zyngier <marc.zyngier@arm.com>, linux-arch@vger.kernel.org, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, kvmarm@lists.cs.columbia.edu, Richard Sandiford <richard.sandiford@arm.com>, linux-arm-kernel@lists.infradead.org
 
-Commit e88d62cd4b2f0b1ae55e9008e79c2794b1fc914d upstream.
+On Wed, Oct 18, 2017 at 03:20:26PM +0200, Christoffer Dall wrote:
+> On Tue, Oct 17, 2017 at 03:08:40PM +0100, Marc Zyngier wrote:
+> > On 17/10/17 14:51, Christoffer Dall wrote:
+> > > On Tue, Oct 10, 2017 at 07:38:19PM +0100, Dave Martin wrote:
 
-As raw_cpu_generic_read() is a plain read from a raw_cpu_ptr() address,
-it's possible (albeit unlikely) that the compiler will split the access
-across multiple instructions.
+[...]
 
-In this_cpu_generic_read() we disable preemption but not interrupts
-before calling raw_cpu_generic_read(). Thus, an interrupt could be taken
-in the middle of the split load instructions. If a this_cpu_write() or
-RMW this_cpu_*() op is made to the same variable in the interrupt
-handling path, this_cpu_read() will return a torn value.
+> > >> +/* sys_reg_desc initialiser for known cpufeature ID registers */
+> > >> +#define ID_SANITISED(name) {			\
+> > >> +	SYS_DESC(SYS_##name),			\
+> > >> +	.access	= access_id_reg,		\
+> > >> +	.get_user = get_id_reg,			\
+> > >> +	.set_user = set_id_reg,			\
+> > >> +}
+> > >> +
+> > >> +/*
+> > >> + * sys_reg_desc initialiser for architecturally unallocated cpufeature ID
+> > >> + * register with encoding Op0=3, Op1=0, CRn=0, CRm=crm, Op2=op2
+> > >> + * (1 <= crm < 8, 0 <= Op2 < 8).
+> > >> + */
+> > >> +#define ID_UNALLOCATED(crm, op2) {			\
+> > >> +	Op0(3), Op1(0), CRn(0), CRm(crm), Op2(op2),	\
+> > >> +	.access = access_raz_id_reg,			\
+> > >> +	.get_user = get_raz_id_reg,			\
+> > >> +	.set_user = set_raz_id_reg,			\
+> > >> +}
+> > >> +
+> > >> +/*
+> > >> + * sys_reg_desc initialiser for known ID registers that we hide from guests.
+> > >> + * For now, these are exposed just like unallocated ID regs: they appear
+> > >> + * RAZ for the guest.
+> > >> + */
+> > > 
+> > > What is a hidden ID register as opposed to an unallocated one?
+> > 
+> > A hidden register is one where all the features have been removed (RAZ),
+> > making it similar to an unallocated one.
+> > 
+> > > Shouldn't one of them presumably cause an undefined exception in the
+> > > guest?
+> > 
+> > No, that'd be a violation of the architecture. The unallocated ID
+> > registers are required to be RAZ (see table D9-2 in D9.3.1), so that
+> > software can probe for feature without running the risk of getting an UNDEF.
+> > 
+> Then I'm not really sure why we need the two defines.  Is that just to
+> make it clear what the different rationales for dealing with various
+> registers in the same way are?
 
-For native word types, we can avoid tearing using READ_ONCE(), but this
-won't work in all cases (e.g. 64-bit types on most 32-bit platforms).
-This patch reworks this_cpu_generic_read() to use READ_ONCE() where
-possible, otherwise falling back to disabling interrupts.
+Basically yes.
 
-Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Christoph Lameter <cl@linux.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Pranith Kumar <bobby.prani@gmail.com>
-Cc: Tejun Heo <tj@kernel.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-arch@vger.kernel.org
-Cc: stable@vger.kernel.org
-Signed-off-by: Tejun Heo <tj@kernel.org>
-[Mark: backport to v3.16.y]
-Signed-off-by: Mark Rutland <mark.rutland@arm.com>
----
- include/linux/percpu.h | 29 +++++++++++++++++++++++++----
- 1 file changed, 25 insertions(+), 4 deletions(-)
+ID_HIDDEN() means we are bodging around something that we don't know
+how to sanitise, whereas ID_UNALLOCATED() means that we follow the
+architecture in returning zero for reads (maybe following an older
+architecture version than the silicon).  
 
-diff --git a/include/linux/percpu.h b/include/linux/percpu.h
-index 8419053d0f2e..37ff713a7c7f 100644
---- a/include/linux/percpu.h
-+++ b/include/linux/percpu.h
-@@ -276,12 +276,33 @@ do {									\
-  *    used.
-  */
- 
--#define _this_cpu_generic_read(pcp)					\
--({	typeof(pcp) ret__;						\
-+#define __this_cpu_generic_read_nopreempt(pcp)				\
-+({									\
-+	typeof(pcp) __ret;						\
- 	preempt_disable();						\
--	ret__ = *this_cpu_ptr(&(pcp));					\
-+	__ret = ACCESS_ONCE(*raw_cpu_ptr(&(pcp)));			\
- 	preempt_enable();						\
--	ret__;								\
-+	__ret;								\
-+})
-+
-+#define __this_cpu_generic_read_noirq(pcp)				\
-+({									\
-+	typeof(pcp) __ret;						\
-+	unsigned long __flags;						\
-+	raw_local_irq_save(__flags);					\
-+	__ret = *raw_cpu_ptr(&(pcp)); 					\
-+	raw_local_irq_restore(__flags);					\
-+	__ret;								\
-+})
-+
-+#define _this_cpu_generic_read(pcp)					\
-+({									\
-+	typeof(pcp) __ret;						\
-+	if (__native_word(pcp))						\
-+		__ret = __this_cpu_generic_read_nopreempt(pcp);		\
-+	else								\
-+		__ret = __this_cpu_generic_read_noirq(pcp);		\
-+	__ret;								\
- })
- 
- #ifndef this_cpu_read
--- 
-2.11.0
+ID_HIDDEN()s may need to evolve SoC-specific quirkage if we need to
+expose non-architectural SoC-specific features via the mechanism.
+These should never simply be exposed unless the architecture is
+tightened in the future in such a way as to make this safe (unlikely).
+
+ID_UNALLOCATED()s OTOH will mostly turn into ID_SANITISED() as the
+architecture gains new features.  The architecture could allocate new
+IMP DEF feature regs though, in which case they would become ID_HIDDEN()
+as soon as we know about them.
+
+
+The distinction is drawn in attempt to help maintainers: the future
+maintenance requirements for IN_UNALLOCATED()s will differ from
+ID_HIDDEN()s.
+
+Cheers
+---Dave
