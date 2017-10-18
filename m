@@ -1,16 +1,12 @@
 From: Mark Rutland <mark.rutland@arm.com>
-Subject: [PATCH v3.16.y] percpu: make this_cpu_generic_read() atomic w.r.t. interrupts
-Date: Wed, 18 Oct 2017 14:35:24 +0100
-Message-ID: <20171018133524.24911-1-mark.rutland@arm.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:40716 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1754030AbdJRNfd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 18 Oct 2017 09:35:33 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Subject: [PATCH v3.10.y] percpu: make this_cpu_generic_read() atomic w.r.t. interrupts
+Date: Wed, 18 Oct 2017 14:36:41 +0100
+Message-ID: <20171018133641.25078-1-mark.rutland@arm.com>
+Return-path: <stable-owner@vger.kernel.org>
+Sender: stable-owner@vger.kernel.org
 To: stable@vger.kernel.org
 Cc: Mark Rutland <mark.rutland@arm.com>, Arnd Bergmann <arnd@arndb.de>, Christoph Lameter <cl@linux.com>, Peter Zijlstra <peterz@infradead.org>, Pranith Kumar <bobby.prani@gmail.com>, Tejun Heo <tj@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
 Commit e88d62cd4b2f0b1ae55e9008e79c2794b1fc914d upstream.
 
@@ -39,17 +35,38 @@ Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: linux-arch@vger.kernel.org
 Cc: stable@vger.kernel.org
 Signed-off-by: Tejun Heo <tj@kernel.org>
-[Mark: backport to v3.16.y]
+[Mark: backport to v3.10.y:
+ folded in __native_word from upstream commits
+ - 47933ad41a86a4a9 ("arch: Introduce smp_load_acquire(), smp_store_release()")
+ - 536fa402221f0963 ("compiler: Allow 1- and 2-byte smp_load_acquire() and smp_store_release()")
+]
 Signed-off-by: Mark Rutland <mark.rutland@arm.com>
 ---
- include/linux/percpu.h | 29 +++++++++++++++++++++++++----
- 1 file changed, 25 insertions(+), 4 deletions(-)
+ include/linux/compiler.h |  5 +++++
+ include/linux/percpu.h   | 29 +++++++++++++++++++++++++----
+ 2 files changed, 30 insertions(+), 4 deletions(-)
 
+diff --git a/include/linux/compiler.h b/include/linux/compiler.h
+index a2ce6f8871c4..84d36b5ce832 100644
+--- a/include/linux/compiler.h
++++ b/include/linux/compiler.h
+@@ -302,6 +302,11 @@ void ftrace_likely_update(struct ftrace_branch_data *f, int val, int expect);
+ # define __same_type(a, b) __builtin_types_compatible_p(typeof(a), typeof(b))
+ #endif
+ 
++/* Is this type a native word size -- useful for atomic operations */
++#ifndef __native_word
++# define __native_word(t) (sizeof(t) == sizeof(char) || sizeof(t) == sizeof(short) || sizeof(t) == sizeof(int) || sizeof(t) == sizeof(long))
++#endif
++
+ /* Compile time object size, -1 for unknown */
+ #ifndef __compiletime_object_size
+ # define __compiletime_object_size(obj) -1
 diff --git a/include/linux/percpu.h b/include/linux/percpu.h
-index 8419053d0f2e..37ff713a7c7f 100644
+index cc88172c7d9a..3c047cd54ca0 100644
 --- a/include/linux/percpu.h
 +++ b/include/linux/percpu.h
-@@ -276,12 +276,33 @@ do {									\
+@@ -267,12 +267,33 @@ do {									\
   *    used.
   */
  
@@ -60,7 +77,7 @@ index 8419053d0f2e..37ff713a7c7f 100644
 +	typeof(pcp) __ret;						\
  	preempt_disable();						\
 -	ret__ = *this_cpu_ptr(&(pcp));					\
-+	__ret = ACCESS_ONCE(*raw_cpu_ptr(&(pcp)));			\
++	__ret = ACCESS_ONCE(*this_cpu_ptr(&(pcp)));			\
  	preempt_enable();						\
 -	ret__;								\
 +	__ret;								\
@@ -71,7 +88,7 @@ index 8419053d0f2e..37ff713a7c7f 100644
 +	typeof(pcp) __ret;						\
 +	unsigned long __flags;						\
 +	raw_local_irq_save(__flags);					\
-+	__ret = *raw_cpu_ptr(&(pcp)); 					\
++	__ret = *this_cpu_ptr(&(pcp)); 					\
 +	raw_local_irq_restore(__flags);					\
 +	__ret;								\
 +})
