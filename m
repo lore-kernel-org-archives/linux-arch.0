@@ -1,116 +1,85 @@
-From: Christoffer Dall <cdall@linaro.org>
-Subject: Re: [PATCH v3 22/28] arm64/sve: KVM: Prevent guests from using SVE
-Date: Wed, 18 Oct 2017 21:22:41 +0200
-Message-ID: <20171018192241.GL8900@cbox>
-References: <1507660725-7986-1-git-send-email-Dave.Martin@arm.com>
- <1507660725-7986-23-git-send-email-Dave.Martin@arm.com>
- <20171017115024.GS1845@lvm>
- <20171017143142.GX19485@e103592.cambridge.arm.com>
- <20171018132323.GG8900@cbox>
- <20171018150004.GA19485@e103592.cambridge.arm.com>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: [GIT PULL urgent-membarrier] membarrier commits for 4.14
+Date: Wed, 18 Oct 2017 12:59:44 -0700
+Message-ID: <20171018195944.GA15331@linux.vnet.ibm.com>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <kvmarm-bounces@lists.cs.columbia.edu>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:51100 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1750880AbdJRT7x (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 18 Oct 2017 15:59:53 -0400
+Received: from pps.filterd (m0098409.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id v9IJwkVJ061808
+        for <linux-arch@vger.kernel.org>; Wed, 18 Oct 2017 15:59:53 -0400
+Received: from e11.ny.us.ibm.com (e11.ny.us.ibm.com [129.33.205.201])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2dp9p4we0j-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Wed, 18 Oct 2017 15:59:53 -0400
+Received: from localhost
+        by e11.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+        Wed, 18 Oct 2017 15:59:51 -0400
 Content-Disposition: inline
-In-Reply-To: <20171018150004.GA19485@e103592.cambridge.arm.com>
-List-Unsubscribe: <https://lists.cs.columbia.edu/mailman/options/kvmarm>,
- <mailto:kvmarm-request@lists.cs.columbia.edu?subject=unsubscribe>
-List-Archive: <https://lists.cs.columbia.edu/pipermail/kvmarm>
-List-Post: <mailto:kvmarm@lists.cs.columbia.edu>
-List-Help: <mailto:kvmarm-request@lists.cs.columbia.edu?subject=help>
-List-Subscribe: <https://lists.cs.columbia.edu/mailman/listinfo/kvmarm>,
- <mailto:kvmarm-request@lists.cs.columbia.edu?subject=subscribe>
-Errors-To: kvmarm-bounces@lists.cs.columbia.edu
-Sender: kvmarm-bounces@lists.cs.columbia.edu
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-arch@vger.kernel.org, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Marc Zyngier <marc.zyngier@arm.com>, Richard Sandiford <richard.sandiford@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
-List-Id: linux-arch.vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: torvalds@linux-foundation.org
+Cc: mingo@kernel.org, mathieu.desnoyers@efficios.com, peterz@infradead.org, boqun.feng@gmail.com, ahh@google.com, maged.michael@gmail.com, gromer@google.com, avi@scylladb.com, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, davejwatson@fb.com, stern@rowland.harvard.edu, will.deacon@arm.com, luto@kernel.org, viro@zeniv.linux.org.uk, npiggin@gmail.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Wed, Oct 18, 2017 at 04:00:05PM +0100, Dave Martin wrote:
-> On Wed, Oct 18, 2017 at 03:23:23PM +0200, Christoffer Dall wrote:
-> > On Tue, Oct 17, 2017 at 03:31:42PM +0100, Dave Martin wrote:
-> > > On Tue, Oct 17, 2017 at 01:50:24PM +0200, Christoffer Dall wrote:
-> > > > On Tue, Oct 10, 2017 at 07:38:39PM +0100, Dave Martin wrote:
-> > > > > Until KVM has full SVE support, guests must not be allowed to
-> > > > > execute SVE instructions.
-> > > > > 
-> > > > > This patch enables the necessary traps, and also ensures that the
-> > > > > traps are disabled again on exit from the guest so that the host
-> > > > > can still use SVE if it wants to.
-> > > > > 
-> > > > > This patch introduces another instance of
-> > > > > __this_cpu_write(fpsimd_last_state, NULL), so this flush operation
-> > > > > is abstracted out as a separate helper fpsimd_flush_cpu_state().
-> > > > > Other instances are ported appropriately.
-> > > > 
-> > > > I don't understand this paragraph, beginning from ", so this...".
-> > > > 
-> > > > 
-> > > > From reading the code, what I think is the reason for having to flush
-> > > > the SVE state (and mark the host state invalid) is that even though we
-> > > > disallow SVE usage in the guest, the guest can use the normal FP state,
-> > > > and while we always fully preserve the host state, this could still
-> > > > corrupt some additional SVE state not properly preserved for the host.
-> > > > Is that correct?
-> > > 
-> > > Yes, that's right: the guest can't touch the SVE-specific registers
-> > > Pn/FFR, but FPSIMD accesses to Vn regs cause the high bits of the
-> > > corresponding SVE Zn registers to be clobbered.  In any case, the
-> > > FPSIMD restore done by KVM after guest exit is sufficient to clobber
-> > > those bits even if the guest didn't do it.
-> > > 
-> > > This is a band-aid for not making the KVM world switch code properly
-> > > SVE-aware yet.
-> > > 
-> > > Does the following wording sound better:
-> > > 
-> > > --8<--
-> > > 
-> > > On guest exit, high bits of the SVE Zn registers may have been
-> > > clobbered as a side-effect the execution of FPSIMD instructions in
-> > > the guest.  The existing KVM host FPSIMD restore code is not
-> > > sufficient to restore these bits, so this patch explicitly marks
-> > > the CPU as not containing cached vector state for any task, this
-> > > forcing a reload on the next return to userspace.  This is an
-> > > interim measure, in advance of adding full SVE awareness to KVM.
-> > > 
-> > > Because of the duplication of this operation
-> > > (__this_cpu_write(fpsimd_last_state, NULL)), it is factored out as
-> > 
-> > s/it is/is/  (I think)
-> > 
-> > > a new helper fpsimd_flush_cpu_state() to make the purpose clearer.
-> > 
-> > Yes, the wording is good and helps a lot.  Thanks for writing that.
-> > 
-> 
-> I think it "it is" is correct, but it's a pretty ghastly sentence...
+Hello, Linus,
 
-Ah, I missed the comma, before and read it as __this_cpu_write... is
-factored... but that doesn't make any sense.  Sorry, I was just not
-paying proper attention.
+This urgent pull request contains five commits that fix a problem
+that arose when designing requested extensions to sys_membarrier()
+to allow JITs to efficiently flush old code from instruction caches.
+Several potential algorithms are much less painful if the user register
+intent to use this functionality early on, for example, before the process
+spawns the second thread.  Registering at this time removes the need to
+interrupt each and every thread in that process at the first expedited
+sys_membarrier() system call.
 
-> 
-> I'll split it as:
-> 
-> This marking of cached vector state in the CPU as invalid is done using
-> __this_cpu_write(fpsimd_last_state, NULL) in fpsimd.c.  Due to the
-> repeated use of this rather obscure operation, it makes sense to factor
-> it out as a separate helper with a clearer name.  This patch factors it
-> out as fpsimd_flush_cpu_state().
-> 
+However, if we let the current function out, then user programs might be
+written without registration, which would make it more difficult to add
+required registration after the fact.  Hence the late-in-merge-window
+pull request.
 
-That's definitely clear.
+The last two commits remove unused code from architectures not supporting
+sys_membarrier() and fix a problem that arises when tasks are created
+with CLONE_VM but !CLONE_THREAD on powerpc.
 
-> > Reviewed-by: Christoffer Dall <christoffer.dall@linaro.org>
-> 
-> I'll assume I can keep keep your Reviewed-by, since this change is just
-> clarification.
-> 
-> But if you're not happy, please shout!
-> 
-I'm happy - in most aspects of life - indeed keep my reviewed-by.
+These have been subject to 0day test robot and -next testing and
+are available in the git repository at:
 
-Thanks,
--Christoffer
+  git://git.kernel.org/pub/scm/linux/kernel/git/paulmck/linux-rcu.git membarrier.2017.10.09a
+
+for you to fetch changes up to f7399e01ccd0850786bdedbee2fd351651ce99f8:
+
+  Fix: membarrier: Handle CLONE_VM + !CLONE_THREAD correctly on powerpc (2017-10-09 14:24:49 -0700)
+
+----------------------------------------------------------------
+Mathieu Desnoyers (5):
+      membarrier: Provide register expedited private command
+      membarrier: selftest: Test private expedited cmd
+      membarrier: Document scheduler barrier requirements
+      membarrier: Remove unused code for architectures without membarrier hooks
+      Fix: membarrier: Handle CLONE_VM + !CLONE_THREAD correctly on powerpc
+
+ MAINTAINERS                                        |   2 +
+ arch/powerpc/Kconfig                               |   1 +
+ arch/powerpc/include/asm/membarrier.h              |  26 +++++
+ arch/powerpc/kernel/Makefile                       |   2 +
+ arch/powerpc/kernel/membarrier.c                   |  36 +++++++
+ arch/powerpc/mm/mmu_context.c                      |   7 ++
+ arch/x86/mm/tlb.c                                  |   5 +
+ fs/exec.c                                          |   1 +
+ include/linux/mm_types.h                           |   3 +
+ include/linux/sched/mm.h                           |  37 +++++++
+ include/uapi/linux/membarrier.h                    |  23 +++--
+ init/Kconfig                                       |   3 +
+ kernel/sched/core.c                                |  47 +++++----
+ kernel/sched/membarrier.c                          |  35 ++++++-
+ .../testing/selftests/membarrier/membarrier_test.c | 109 ++++++++++++++++++---
+ 15 files changed, 290 insertions(+), 47 deletions(-)
+ create mode 100644 arch/powerpc/include/asm/membarrier.h
+ create mode 100644 arch/powerpc/kernel/membarrier.c
