@@ -1,159 +1,99 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:37468 "EHLO
+Received: from mail.linuxfoundation.org ([140.211.169.12]:47716 "EHLO
         mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751701AbdJSHlM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Oct 2017 03:41:12 -0400
-Date: Thu, 19 Oct 2017 09:41:18 +0200
-From: Greg KH <gregkh@linuxfoundation.org>
-Subject: Re: [PATCH 2/4][PoC][RFC] Add rlimit-events framework
-Message-ID: <20171019074118.GD20787@kroah.com>
-References: <20171018203230.29871-1-k.opasiak@samsung.com>
- <CGME20171018203333epcas1p3d8dd8f3a755cb6ee8e9dde63cb91851b@epcas1p3.samsung.com>
- <20171018203230.29871-3-k.opasiak@samsung.com>
+        with ESMTP id S1754042AbdJSNwC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Oct 2017 09:52:02 -0400
+From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Subject: [PATCH 4.4 01/46] percpu: make this_cpu_generic_read() atomic w.r.t. interrupts
+Date: Thu, 19 Oct 2017 15:48:37 +0200
+Message-ID: <20171019134845.432402508@linuxfoundation.org>
+In-Reply-To: <20171019134845.293630834@linuxfoundation.org>
+References: <20171019134845.293630834@linuxfoundation.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20171018203230.29871-3-k.opasiak@samsung.com>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Krzysztof Opasiak <k.opasiak@samsung.com>
-Cc: viro@zeniv.linux.org.uk, arnd@arndb.de, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, k.lewandowsk@samsung.com, l.stelmach@samsung.com, p.szewczyk@samsung.com, b.zolnierkie@samsung.com, andrzej.p@samsung.com, kopasiak90@gmail.com
-Message-ID: <20171019074118.4lThC2Yz6lxucpF9O9ElckHvyLi3ZBUGES_3rVZ_GUY@z>
+To: linux-kernel@vger.kernel.org
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, Arnd Bergmann <arnd@arndb.de>, Christoph Lameter <cl@linux.com>, Peter Zijlstra <peterz@infradead.org>, Pranith Kumar <bobby.prani@gmail.com>, Tejun Heo <tj@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org
+Message-ID: <20171019134837.2CR0p3F-HgppWUaK8tDo_8mjxyxO6AXO9uBZ4igAQr0@z>
 
-Meta-comments on the code, I'm not commenting on the content, just
-normal code review things that I always see in kernel code...
+4.4-stable review patch.  If anyone has any objections, please let me know.
 
-On Wed, Oct 18, 2017 at 10:32:28PM +0200, Krzysztof Opasiak wrote:
-> diff --git a/include/linux/rlimit_noti_kern.h b/include/linux/rlimit_noti_kern.h
-> new file mode 100644
-> index 000000000000..e49fddaa21c0
-> --- /dev/null
-> +++ b/include/linux/rlimit_noti_kern.h
-> @@ -0,0 +1,54 @@
-> +/*
-> + * This program is free software; you can redistribute it and/or modify
-> + * it under the terms of the GNU General Public License as published by
-> + * the Free Software Foundation; either version 2 of the License, or
-> + * (at your option) any later version.
+------------------
 
-I have to ask, do you really mean "any later version" for this, and the
-other new files you created?
+From: Mark Rutland <mark.rutland@arm.com>
 
-And, it is nice to use SPDX for new files to identify their license.
-It's not that prevelant, but is getting there...
+commit e88d62cd4b2f0b1ae55e9008e79c2794b1fc914d upstream.
 
-> --- a/include/uapi/linux/netlink.h
-> +++ b/include/uapi/linux/netlink.h
-> @@ -28,6 +28,7 @@
->  #define NETLINK_RDMA		20
->  #define NETLINK_CRYPTO		21	/* Crypto layer */
->  #define NETLINK_SMC		22	/* SMC monitoring */
-> +#define NETLINK_RLIMIT_EVENTS   23      /* rlimit notification */
+As raw_cpu_generic_read() is a plain read from a raw_cpu_ptr() address,
+it's possible (albeit unlikely) that the compiler will split the access
+across multiple instructions.
 
-No tabs?
+In this_cpu_generic_read() we disable preemption but not interrupts
+before calling raw_cpu_generic_read(). Thus, an interrupt could be taken
+in the middle of the split load instructions. If a this_cpu_write() or
+RMW this_cpu_*() op is made to the same variable in the interrupt
+handling path, this_cpu_read() will return a torn value.
 
-> --- /dev/null
-> +++ b/include/uapi/linux/rlimit_noti.h
-> @@ -0,0 +1,71 @@
-> +/*
-> + * This program is free software; you can redistribute it and/or modify
-> + * it under the terms of the GNU General Public License as published by
-> + * the Free Software Foundation; either version 2 of the License, or
-> + * (at your option) any later version.
+For native word types, we can avoid tearing using READ_ONCE(), but this
+won't work in all cases (e.g. 64-bit types on most 32-bit platforms).
+This patch reworks this_cpu_generic_read() to use READ_ONCE() where
+possible, otherwise falling back to disabling interrupts.
 
-GPLv2+ in a user api header file?  You are really brave :)
+Signed-off-by: Mark Rutland <mark.rutland@arm.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Christoph Lameter <cl@linux.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Pranith Kumar <bobby.prani@gmail.com>
+Cc: Tejun Heo <tj@kernel.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-arch@vger.kernel.org
+Signed-off-by: Tejun Heo <tj@kernel.org>
+[Mark: backport to v4.4.y]
+Signed-off-by: Mark Rutland <mark.rutland@arm.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 
-> + *
-> + * This program is distributed in the hope that it will be useful,
-> + * but WITHOUT ANY WARRANTY; without even the implied warranty of
-> + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-> + * GNU General Public License for more details.
-> + */
-> +
-> +#ifndef _UAPI_LINUX_RLIMIT_NOTI_H_
-> +#define _UAPI_LINUX_RLIMIT_NOTI_H_
-> +
-> +#ifdef __KERNEL__
-> +#include <linux/types.h>
-> +#include <linux/resource.h>
-> +#else
-> +#include <stdint.h>
-> +#endif
-> +
-> +#define RLIMIT_GET_NOTI_FD 1000
-> +
-> +/* ioctl's */
-> +#define RLIMIT_ADD_NOTI_LVL 1
-> +#define RLIMIT_RM_NOTI_LVL 2
-> +
-> +#define RLIMIT_SET_NOTI_ALL 3
-> +#define RLIMIT_CLEAR_NOTI_ALL 4
+---
+ include/asm-generic/percpu.h |   24 ++++++++++++++++++++++--
+ 1 file changed, 22 insertions(+), 2 deletions(-)
 
-No tabs?
-
-> +
-> +/*
-> + * For future (notify every 5, 10 units change):
-> + * #define RLIMIT_SET_NOTI_STEP 5
-> + */
-> +
-> +#define RLIMIT_GET_NOTI_LVLS 6
-> +#define RLIMIT_GET_NOTI_LVL_COUNT 7
-> +
-> +/* Flags for ioctl's */
-> +#define RLIMIT_FLAG_NO_INHERIT (1u << 0)
-> +
-> +/* Event types */
-> +enum {
-> +	RLIMIT_EVENT_TYPE_RES_CHANGED,
-> +	RLIMIT_EVENT_TYPE_MAX
-> +};
-> +
-> +/* TODO take care of padding (packed) */
-> +struct rlimit_noti_subject {
-> +	pid_t pid;
-> +	uint32_t resource;
-> +};
-
-For structures that cross the user/kernel boundry, you have to use the
-correct variable types.  And that is never "unit32_t" and such, use
-"__u32" and the other "__" types.
-
-And are you _sure_ that pid_t is able to be exported to userspace
-correctly?
-
-> +
-> +struct rlimit_noti_level {
-> +	struct rlimit_noti_subject subj;
-> +	uint64_t value;
-
-__u64
-
-> +	uint32_t flags;
-
-__u32
-
-And so on for all others.
-
-You don't seem to describe an ioctl here in the "normal" method, but
-only use vague numbers up above, that's odd, why?
-
-> diff --git a/init/Kconfig b/init/Kconfig
-> index 1d3475fc9496..4bc44fa86640 100644
-> --- a/init/Kconfig
-> +++ b/init/Kconfig
-> @@ -332,6 +332,12 @@ config AUDIT_TREE
->  	depends on AUDITSYSCALL
->  	select FSNOTIFY
->  
-> +config RLIMIT_NOTIFICATION
-> +       bool "Support fd notifications on given resource usage"
-> +       depends on NET
-> +       help
-> +	Enable this to monitor process resource changes usage via fd.
-
-Mix of tab and spaces :(
-
-thanks,
-
-greg k-h
+--- a/include/asm-generic/percpu.h
++++ b/include/asm-generic/percpu.h
+@@ -105,15 +105,35 @@ do {									\
+ 	(__ret);							\
+ })
+ 
+-#define this_cpu_generic_read(pcp)					\
++#define __this_cpu_generic_read_nopreempt(pcp)				\
+ ({									\
+ 	typeof(pcp) __ret;						\
+ 	preempt_disable();						\
+-	__ret = *this_cpu_ptr(&(pcp));					\
++	__ret = READ_ONCE(*raw_cpu_ptr(&(pcp)));			\
+ 	preempt_enable();						\
+ 	__ret;								\
+ })
+ 
++#define __this_cpu_generic_read_noirq(pcp)				\
++({									\
++	typeof(pcp) __ret;						\
++	unsigned long __flags;						\
++	raw_local_irq_save(__flags);					\
++	__ret = *raw_cpu_ptr(&(pcp));					\
++	raw_local_irq_restore(__flags);					\
++	__ret;								\
++})
++
++#define this_cpu_generic_read(pcp)					\
++({									\
++	typeof(pcp) __ret;						\
++	if (__native_word(pcp))						\
++		__ret = __this_cpu_generic_read_nopreempt(pcp);		\
++	else								\
++		__ret = __this_cpu_generic_read_noirq(pcp);		\
++	__ret;								\
++})
++
+ #define this_cpu_generic_to_op(pcp, val, op)				\
+ do {									\
+ 	unsigned long __flags;						\
