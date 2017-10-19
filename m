@@ -1,25 +1,25 @@
 From: Greg KH <greg@kroah.com>
-Subject: Re: [PATCH v3.16.y] percpu: make this_cpu_generic_read() atomic
+Subject: Re: [PATCH v4.4.y] percpu: make this_cpu_generic_read() atomic
  w.r.t. interrupts
-Date: Thu, 19 Oct 2017 11:24:34 +0200
-Message-ID: <20171019092434.GA16355@kroah.com>
-References: <20171018134022.25282-1-mark.rutland@arm.com>
+Date: Thu, 19 Oct 2017 11:25:28 +0200
+Message-ID: <20171019092528.GB16355@kroah.com>
+References: <20171018133237.55218-1-mark.rutland@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from out4-smtp.messagingengine.com ([66.111.4.28]:52337 "EHLO
+Received: from out4-smtp.messagingengine.com ([66.111.4.28]:37167 "EHLO
         out4-smtp.messagingengine.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1751797AbdJSJY0 (ORCPT
+        by vger.kernel.org with ESMTP id S1752557AbdJSJZU (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 19 Oct 2017 05:24:26 -0400
+        Thu, 19 Oct 2017 05:25:20 -0400
 Content-Disposition: inline
-In-Reply-To: <20171018134022.25282-1-mark.rutland@arm.com>
+In-Reply-To: <20171018133237.55218-1-mark.rutland@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Mark Rutland <mark.rutland@arm.com>
 Cc: stable@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Christoph Lameter <cl@linux.com>, Peter Zijlstra <peterz@infradead.org>, Pranith Kumar <bobby.prani@gmail.com>, Tejun Heo <tj@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org
 
-On Wed, Oct 18, 2017 at 02:40:22PM +0100, Mark Rutland wrote:
+On Wed, Oct 18, 2017 at 02:32:37PM +0100, Mark Rutland wrote:
 > Commit e88d62cd4b2f0b1ae55e9008e79c2794b1fc914d upstream.
 > 
 > As raw_cpu_generic_read() is a plain read from a raw_cpu_ptr() address,
@@ -47,11 +47,8 @@ On Wed, Oct 18, 2017 at 02:40:22PM +0100, Mark Rutland wrote:
 > Cc: linux-arch@vger.kernel.org
 > Cc: stable@vger.kernel.org
 > Signed-off-by: Tejun Heo <tj@kernel.org>
-> [Mark: backport to v3.16.y]
+> [Mark: backport to v4.4.y]
 
-You sent 2 patches for 3.16.y, did you mean for one of these to be for
-3.18.y?
-
-thanks,
+Now applied, thanks!
 
 greg k-h
