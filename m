@@ -1,99 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:47716 "EHLO
-        mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754042AbdJSNwC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Oct 2017 09:52:02 -0400
-From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.4 01/46] percpu: make this_cpu_generic_read() atomic w.r.t. interrupts
-Date: Thu, 19 Oct 2017 15:48:37 +0200
-Message-ID: <20171019134845.432402508@linuxfoundation.org>
-In-Reply-To: <20171019134845.293630834@linuxfoundation.org>
-References: <20171019134845.293630834@linuxfoundation.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Received: from mailout2.samsung.com ([203.254.224.25]:36141 "EHLO
+        mailout2.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752727AbdJSR23 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Oct 2017 13:28:29 -0400
+Subject: Re: [PATCH 4/4][PoC][RFC] Allow to trace fd usage with
+ rlimit-events
+From: Krzysztof Opasiak <k.opasiak@samsung.com>
+Message-ID: <e9dd8610-abb3-2247-666d-e12fd656c2d6@samsung.com>
+Date: Thu, 19 Oct 2017 19:28:21 +0200
+MIME-version: 1.0
+In-reply-to: <20171018230521.GP21978@ZenIV.linux.org.uk>
+Content-type: text/plain; charset="utf-8"; format="flowed"
+Content-language: en-US
+Content-transfer-encoding: 7bit
+References: <20171018203230.29871-1-k.opasiak@samsung.com>
+        <CGME20171018203342epcas1p23933a20a33807f92c716433374374397@epcas1p2.samsung.com>
+        <20171018203230.29871-5-k.opasiak@samsung.com>
+        <20171018230521.GP21978@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, Arnd Bergmann <arnd@arndb.de>, Christoph Lameter <cl@linux.com>, Peter Zijlstra <peterz@infradead.org>, Pranith Kumar <bobby.prani@gmail.com>, Tejun Heo <tj@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org
-Message-ID: <20171019134837.2CR0p3F-HgppWUaK8tDo_8mjxyxO6AXO9uBZ4igAQr0@z>
+To: Al Viro <viro@ZenIV.linux.org.uk>
+Cc: gregkh@linuxfoundation.org, arnd@arndb.de, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, k.lewandowsk@samsung.com, l.stelmach@samsung.com, p.szewczyk@samsung.com, b.zolnierkie@samsung.com, andrzej.p@samsung.com, kopasiak90@gmail.com
+Message-ID: <20171019172821.Y1ePrFB3-Set74MX3pL5Se-GpMnAyvVUtfvIm7o3gio@z>
 
-4.4-stable review patch.  If anyone has any objections, please let me know.
+Hi,
 
-------------------
+On 10/19/2017 01:05 AM, Al Viro wrote:
+> On Wed, Oct 18, 2017 at 10:32:30PM +0200, Krzysztof Opasiak wrote:
+> 
+>> @@ -417,7 +417,7 @@ static int task_get_unused_fd_flags(struct binder_proc *proc, int flags)
+>>   	rlim_cur = task_rlimit(proc->tsk, RLIMIT_NOFILE);
+>>   	unlock_task_sighand(proc->tsk, &irqs);
+>>   
+>> -	return __alloc_fd(files, 0, rlim_cur, flags);
+>> +	return __alloc_fd(proc->tsk, 0, rlim_cur, flags);
+> 
+> Who said that proc->files will remain equal to proc->tsk->files?
+> 
+>> -static void __put_unused_fd(struct files_struct *files, unsigned int fd)
+>> +static void __put_unused_fd(struct task_struct *owner, unsigned int fd)
+>>   {
+>> +	struct files_struct *files = owner->files;
+>>   	struct fdtable *fdt = files_fdtable(files);
+>>   	__clear_open_fd(fd, fdt);
+>>   	if (fd < files->next_fd)
+>>   		files->next_fd = fd;
+>> +
+>> +	if (rlimit_noti_watch_active(owner, RLIMIT_NOFILE)) {
+>> +		unsigned int count;
+>> +
+>> +		count = count_open_fds(fdt);
+>> +		rlimit_noti_res_changed(owner, RLIMIT_NOFILE, count + 1, count);
+>> +	}
+>>   }
+> 
+> [... and similar for other __...fd() primitives]
+> This is blatantly wrong - you *CAN'T* modify files_struct unless it's
+> 	a) yours (i.e. current->files) or
+> 	b) you've had its refcount incremented for you by some process that
+> did, at the time, have current->files pointing to it.
+> 
+> There is a reason why binder keeps ->files explicitly, rather than going through
+> ->tsk->files.
 
-From: Mark Rutland <mark.rutland@arm.com>
+Your are perfectly right! Thank you very much for catching this.
 
-commit e88d62cd4b2f0b1ae55e9008e79c2794b1fc914d upstream.
+To be honest, initially I just added the struct task_struct ptr to the 
+argument list keeping that in mind. Then when I was cleaning up patches 
+before sending I found this to look a litlle bit odd and forgot that I 
+did this on purpose because tsk->files can be reassigned and that's why 
+I removed the files param.
 
-As raw_cpu_generic_read() is a plain read from a raw_cpu_ptr() address,
-it's possible (albeit unlikely) that the compiler will split the access
-across multiple instructions.
+I'll fix this for v2. Thanks once again.
 
-In this_cpu_generic_read() we disable preemption but not interrupts
-before calling raw_cpu_generic_read(). Thus, an interrupt could be taken
-in the middle of the split load instructions. If a this_cpu_write() or
-RMW this_cpu_*() op is made to the same variable in the interrupt
-handling path, this_cpu_read() will return a torn value.
-
-For native word types, we can avoid tearing using READ_ONCE(), but this
-won't work in all cases (e.g. 64-bit types on most 32-bit platforms).
-This patch reworks this_cpu_generic_read() to use READ_ONCE() where
-possible, otherwise falling back to disabling interrupts.
-
-Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Christoph Lameter <cl@linux.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Pranith Kumar <bobby.prani@gmail.com>
-Cc: Tejun Heo <tj@kernel.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-arch@vger.kernel.org
-Signed-off-by: Tejun Heo <tj@kernel.org>
-[Mark: backport to v4.4.y]
-Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-
----
- include/asm-generic/percpu.h |   24 ++++++++++++++++++++++--
- 1 file changed, 22 insertions(+), 2 deletions(-)
-
---- a/include/asm-generic/percpu.h
-+++ b/include/asm-generic/percpu.h
-@@ -105,15 +105,35 @@ do {									\
- 	(__ret);							\
- })
- 
--#define this_cpu_generic_read(pcp)					\
-+#define __this_cpu_generic_read_nopreempt(pcp)				\
- ({									\
- 	typeof(pcp) __ret;						\
- 	preempt_disable();						\
--	__ret = *this_cpu_ptr(&(pcp));					\
-+	__ret = READ_ONCE(*raw_cpu_ptr(&(pcp)));			\
- 	preempt_enable();						\
- 	__ret;								\
- })
- 
-+#define __this_cpu_generic_read_noirq(pcp)				\
-+({									\
-+	typeof(pcp) __ret;						\
-+	unsigned long __flags;						\
-+	raw_local_irq_save(__flags);					\
-+	__ret = *raw_cpu_ptr(&(pcp));					\
-+	raw_local_irq_restore(__flags);					\
-+	__ret;								\
-+})
-+
-+#define this_cpu_generic_read(pcp)					\
-+({									\
-+	typeof(pcp) __ret;						\
-+	if (__native_word(pcp))						\
-+		__ret = __this_cpu_generic_read_nopreempt(pcp);		\
-+	else								\
-+		__ret = __this_cpu_generic_read_noirq(pcp);		\
-+	__ret;								\
-+})
-+
- #define this_cpu_generic_to_op(pcp, val, op)				\
- do {									\
- 	unsigned long __flags;						\
+Best regards,
+-- 
+Krzysztof Opasiak
+Samsung R&D Institute Poland
+Samsung Electronics
