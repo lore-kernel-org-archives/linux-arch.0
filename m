@@ -1,54 +1,57 @@
-From: Greg KH <gregkh@linuxfoundation.org>
-Subject: Re: [PATCH 3/4][PoC][RFC] Connect rlimit-events with process life
- cycle
-Date: Thu, 19 Oct 2017 09:41:41 +0200
-Message-ID: <20171019074141.GE20787@kroah.com>
-References: <20171018203230.29871-1-k.opasiak@samsung.com>
- <CGME20171018203337epcas2p22bc3a5ac063486c9c7906fe6e88277bb@epcas2p2.samsung.com>
- <20171018203230.29871-4-k.opasiak@samsung.com>
+From: Greg KH <greg@kroah.com>
+Subject: Re: [PATCH v3.16.y] percpu: make this_cpu_generic_read() atomic
+ w.r.t. interrupts
+Date: Thu, 19 Oct 2017 11:24:34 +0200
+Message-ID: <20171019092434.GA16355@kroah.com>
+References: <20171018134022.25282-1-mark.rutland@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:37482 "EHLO
-        mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751701AbdJSHle (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Oct 2017 03:41:34 -0400
+Received: from out4-smtp.messagingengine.com ([66.111.4.28]:52337 "EHLO
+        out4-smtp.messagingengine.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1751797AbdJSJY0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 19 Oct 2017 05:24:26 -0400
 Content-Disposition: inline
-In-Reply-To: <20171018203230.29871-4-k.opasiak@samsung.com>
+In-Reply-To: <20171018134022.25282-1-mark.rutland@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Krzysztof Opasiak <k.opasiak@samsung.com>
-Cc: viro@zeniv.linux.org.uk, arnd@arndb.de, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, k.lewandowsk@samsung.com, l.stelmach@samsung.com, p.szewczyk@samsung.com, b.zolnierkie@samsung.com, andrzej.p@samsung.com, kopasiak90@gmail.com
+To: Mark Rutland <mark.rutland@arm.com>
+Cc: stable@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Christoph Lameter <cl@linux.com>, Peter Zijlstra <peterz@infradead.org>, Pranith Kumar <bobby.prani@gmail.com>, Tejun Heo <tj@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org
 
-On Wed, Oct 18, 2017 at 10:32:29PM +0200, Krzysztof Opasiak wrote:
-> Add rlimit-events call to process lifecycle to ensure that
-> we get notified whenever process dies (to cleanup our watch
-> levels) or forks (to implement watch levels inheritance).
+On Wed, Oct 18, 2017 at 02:40:22PM +0100, Mark Rutland wrote:
+> Commit e88d62cd4b2f0b1ae55e9008e79c2794b1fc914d upstream.
 > 
-> Signed-off-by: Krzysztof Opasiak <k.opasiak@samsung.com>
-> ---
->  kernel/exit.c |  4 ++++
->  kernel/fork.c | 16 +++++++++++++++-
->  2 files changed, 19 insertions(+), 1 deletion(-)
+> As raw_cpu_generic_read() is a plain read from a raw_cpu_ptr() address,
+> it's possible (albeit unlikely) that the compiler will split the access
+> across multiple instructions.
 > 
-> diff --git a/kernel/exit.c b/kernel/exit.c
-> index 516acdb0e0ec..c7e435ac4428 100644
-> --- a/kernel/exit.c
-> +++ b/kernel/exit.c
-> @@ -62,6 +62,7 @@
->  #include <linux/kcov.h>
->  #include <linux/random.h>
->  #include <linux/rcuwait.h>
-> +#include <linux/rlimit_noti.h>
->  
->  #include <linux/uaccess.h>
->  #include <asm/unistd.h>
-> @@ -858,6 +859,9 @@ void __noreturn do_exit(long code)
->  	if (group_dead)
->  		tty_audit_exit();
->  	audit_free(tsk);
-> +#ifdef CONFIG_RLIMIT_NOTIFICATION
-> +	rlimit_noti_task_exit(tsk);
-> +#endif
+> In this_cpu_generic_read() we disable preemption but not interrupts
+> before calling raw_cpu_generic_read(). Thus, an interrupt could be taken
+> in the middle of the split load instructions. If a this_cpu_write() or
+> RMW this_cpu_*() op is made to the same variable in the interrupt
+> handling path, this_cpu_read() will return a torn value.
+> 
+> For native word types, we can avoid tearing using READ_ONCE(), but this
+> won't work in all cases (e.g. 64-bit types on most 32-bit platforms).
+> This patch reworks this_cpu_generic_read() to use READ_ONCE() where
+> possible, otherwise falling back to disabling interrupts.
+> 
+> Signed-off-by: Mark Rutland <mark.rutland@arm.com>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: Christoph Lameter <cl@linux.com>
+> Cc: Peter Zijlstra <peterz@infradead.org>
+> Cc: Pranith Kumar <bobby.prani@gmail.com>
+> Cc: Tejun Heo <tj@kernel.org>
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Cc: linux-arch@vger.kernel.org
+> Cc: stable@vger.kernel.org
+> Signed-off-by: Tejun Heo <tj@kernel.org>
+> [Mark: backport to v3.16.y]
 
-#ifdef should not be needed in a .c file :(
+You sent 2 patches for 3.16.y, did you mean for one of these to be for
+3.18.y?
+
+thanks,
+
+greg k-h
