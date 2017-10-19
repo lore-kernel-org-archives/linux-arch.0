@@ -1,47 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout1.samsung.com ([203.254.224.24]:18805 "EHLO
-        mailout1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751493AbdJSRdW (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Oct 2017 13:33:22 -0400
-Subject: Re: [PATCH 1/4][PoC][RFC] sched: Allow to get() and put() signal
- struct
-From: Krzysztof Opasiak <k.opasiak@samsung.com>
-Message-ID: <bb167290-4373-25a5-ef8e-5330a7cde425@samsung.com>
-Date: Thu, 19 Oct 2017 19:33:12 +0200
-MIME-version: 1.0
-In-reply-to: <20171019073418.GC20787@kroah.com>
-Content-type: text/plain; charset="utf-8"; format="flowed"
-Content-language: en-US
-Content-transfer-encoding: 7bit
-References: <20171018203230.29871-1-k.opasiak@samsung.com>
-        <CGME20171018203328epcas2p4bdcc3650d1c0f0add143488792243932@epcas2p4.samsung.com>
-        <20171018203230.29871-2-k.opasiak@samsung.com>
-        <20171019073418.GC20787@kroah.com>
+Received: from Galois.linutronix.de ([146.0.238.70]:35451 "EHLO
+        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752913AbdJSThS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Oct 2017 15:37:18 -0400
+Date: Thu, 19 Oct 2017 21:36:59 +0200 (CEST)
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: Regression: x86/mm: Add Secure Memory Encryption (SME) support
+In-Reply-To: <c0528ed8-2d00-dedf-4f90-8aa7eead4b5a@amd.com>
+Message-ID: <alpine.DEB.2.20.1710192126150.2054@nanos>
+References: <d5c60048-dbb3-0440-d139-ea325621e654@iam.tj> <c0528ed8-2d00-dedf-4f90-8aa7eead4b5a@amd.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greg KH <gregkh@linuxfoundation.org>
-Cc: viro@zeniv.linux.org.uk, arnd@arndb.de, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, k.lewandowsk@samsung.com, l.stelmach@samsung.com, p.szewczyk@samsung.com, b.zolnierkie@samsung.com, andrzej.p@samsung.com, kopasiak90@gmail.com
-Message-ID: <20171019173312.hvWvPl5qefZTvzvgafYNZi6fLi36qld0p7lzuYgEUxw@z>
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: Tj <linux@iam.tj>, linux-mm@kvack.org, linux-arch@vger.kernel.org, Borislav Petkov <bp@suse.de>, Greg KH <greg@kroah.com>
+Message-ID: <20171019193659.r_OcTFxFaTkdHGLZwj7lUopiRkZ-maW-uH64Hr7F5ZM@z>
 
-
-
-On 10/19/2017 09:34 AM, Greg KH wrote:
-> On Wed, Oct 18, 2017 at 10:32:27PM +0200, Krzysztof Opasiak wrote:
->> Allow to get() and put() signal struct from different
->> parts of kernel core, not only from signal.c.
+On Mon, 2 Oct 2017, Tom Lendacky wrote:
+> On 9/30/2017 5:36 PM, Tj wrote:
+> > With 4.14.0rc2 on an Intel CPU with an Nvidia GPU the proprietary nvidia
+> > driver (v340.102) fails to modpost due to:
+> > 
+> > FATAL: modpost: GPL-incompatible module nvidia.ko uses GPL-only symbol
+> > 'sme_me_mask'
+> > 
+> > I think this is due to:
+> > 
+> > config ARCH_HAS_MEM_ENCRYPT
+> >         def_bool y
+> > 
 > 
-> That says what this does, but not _why_.  Who would ever want to have
-> access to these internal-only functions?
+> I think this is more likely because of CONFIG_AMD_MEM_ENCRYPT=y. If
+> CONFIG_AMD_MEM_ENCRYPT=n then sme_me_mask becomes a #define. I'm
+> assuming that changing the sme_me_mask in arch/x86/mm/mem_encrypt.c
+> from EXPORT_SYMBOL_GPL to EXPORT_SYMBOL fixes the issue?
 > 
+> Boris, is it a big deal to make this change if that's the issue?
 
-Those functions are exposed because I added rlimit-events context to the 
-signal_struct and because I'm accessing signal struct of subject 
-(process that's being monitored) from context of monitor I need to 
-ensure that this structure won't go away until I release all watchers 
-that were associated with that process.
+It's a big deal.
 
-Best regards,
--- 
-Krzysztof Opasiak
-Samsung R&D Institute Poland
-Samsung Electronics
+And no, it's GPL and it stays that way. This discussion pops up every few
+month when we add a new feature.
+
+If people want to run the nviodit module, then they can set
+
+   CONFIG_AMD_MEM_ENCRYPT=n
+
+and be done with it.
+
+The proprietaery nvidia driver is tolerated as is and it's operating in a
+legal grey zone.  That tolerance does not include that the existance of
+this driver can dictate our choice of licensing. Especially not if the
+reason why it fails to compile or load can be disabled.
+
+There is a choice, but the option for free lunch does not exist.
+
+Thanks,
+
+	tglx
