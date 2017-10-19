@@ -1,80 +1,102 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout2.samsung.com ([203.254.224.25]:36141 "EHLO
-        mailout2.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752727AbdJSR23 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Oct 2017 13:28:29 -0400
-Subject: Re: [PATCH 4/4][PoC][RFC] Allow to trace fd usage with
- rlimit-events
-From: Krzysztof Opasiak <k.opasiak@samsung.com>
-Message-ID: <e9dd8610-abb3-2247-666d-e12fd656c2d6@samsung.com>
-Date: Thu, 19 Oct 2017 19:28:21 +0200
-MIME-version: 1.0
-In-reply-to: <20171018230521.GP21978@ZenIV.linux.org.uk>
-Content-type: text/plain; charset="utf-8"; format="flowed"
-Content-language: en-US
-Content-transfer-encoding: 7bit
-References: <20171018203230.29871-1-k.opasiak@samsung.com>
-        <CGME20171018203342epcas1p23933a20a33807f92c716433374374397@epcas1p2.samsung.com>
-        <20171018203230.29871-5-k.opasiak@samsung.com>
-        <20171018230521.GP21978@ZenIV.linux.org.uk>
+Received: from mail.efficios.com ([167.114.142.141]:53896 "EHLO
+        mail.efficios.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752727AbdJSR2e (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Oct 2017 13:28:34 -0400
+Date: Thu, 19 Oct 2017 17:30:42 +0000 (UTC)
+From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Message-ID: <1300627407.45155.1508434242913.JavaMail.zimbra@efficios.com>
+In-Reply-To: <20171018195944.GA15331@linux.vnet.ibm.com>
+References: <20171018195944.GA15331@linux.vnet.ibm.com>
+Subject: Re: [GIT PULL urgent-membarrier] membarrier commits for 4.14
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: gregkh@linuxfoundation.org, arnd@arndb.de, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, k.lewandowsk@samsung.com, l.stelmach@samsung.com, p.szewczyk@samsung.com, b.zolnierkie@samsung.com, andrzej.p@samsung.com, kopasiak90@gmail.com
-Message-ID: <20171019172821.Y1ePrFB3-Set74MX3pL5Se-GpMnAyvVUtfvIm7o3gio@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Boqun Feng <boqun.feng@gmail.com>, Andrew Hunter <ahh@google.com>, maged michael <maged.michael@gmail.com>, gromer <gromer@google.com>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Watson <davejwatson@fb.com>, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, Andy Lutomirski <luto@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Nicholas Piggin <npiggin@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, linux-kernel <linux-kernel@vger.kernel.org>
+Message-ID: <20171019173042.RY__Z4tePqppdH_IOFArtmWGf4CeotpgS2kYtr30SJY@z>
 
-Hi,
+----- On Oct 18, 2017, at 3:59 PM, Paul E. McKenney paulmck@linux.vnet.ibm.com wrote:
 
-On 10/19/2017 01:05 AM, Al Viro wrote:
-> On Wed, Oct 18, 2017 at 10:32:30PM +0200, Krzysztof Opasiak wrote:
+> Hello, Linus,
+
+Hi Linus,
+
+Time did fly since I submitted this series near the beginning of
+the 4.14 rc cycle. Now that we are closer to the end of the cycle,
+a more surgical approach would be more appropriate.
+
+I have prepared the minimal patch that needs to be applied to
+modify the user-space visible ABI before the end of the 4.14
+cycle.
+
+I will send that patch to you directly, hoping you can apply
+it before the end of the 4.14 cycle.
+
+Thanks,
+
+Mathieu
+
 > 
->> @@ -417,7 +417,7 @@ static int task_get_unused_fd_flags(struct binder_proc *proc, int flags)
->>   	rlim_cur = task_rlimit(proc->tsk, RLIMIT_NOFILE);
->>   	unlock_task_sighand(proc->tsk, &irqs);
->>   
->> -	return __alloc_fd(files, 0, rlim_cur, flags);
->> +	return __alloc_fd(proc->tsk, 0, rlim_cur, flags);
+> This urgent pull request contains five commits that fix a problem
+> that arose when designing requested extensions to sys_membarrier()
+> to allow JITs to efficiently flush old code from instruction caches.
+> Several potential algorithms are much less painful if the user register
+> intent to use this functionality early on, for example, before the process
+> spawns the second thread.  Registering at this time removes the need to
+> interrupt each and every thread in that process at the first expedited
+> sys_membarrier() system call.
 > 
-> Who said that proc->files will remain equal to proc->tsk->files?
+> However, if we let the current function out, then user programs might be
+> written without registration, which would make it more difficult to add
+> required registration after the fact.  Hence the late-in-merge-window
+> pull request.
 > 
->> -static void __put_unused_fd(struct files_struct *files, unsigned int fd)
->> +static void __put_unused_fd(struct task_struct *owner, unsigned int fd)
->>   {
->> +	struct files_struct *files = owner->files;
->>   	struct fdtable *fdt = files_fdtable(files);
->>   	__clear_open_fd(fd, fdt);
->>   	if (fd < files->next_fd)
->>   		files->next_fd = fd;
->> +
->> +	if (rlimit_noti_watch_active(owner, RLIMIT_NOFILE)) {
->> +		unsigned int count;
->> +
->> +		count = count_open_fds(fdt);
->> +		rlimit_noti_res_changed(owner, RLIMIT_NOFILE, count + 1, count);
->> +	}
->>   }
+> The last two commits remove unused code from architectures not supporting
+> sys_membarrier() and fix a problem that arises when tasks are created
+> with CLONE_VM but !CLONE_THREAD on powerpc.
 > 
-> [... and similar for other __...fd() primitives]
-> This is blatantly wrong - you *CAN'T* modify files_struct unless it's
-> 	a) yours (i.e. current->files) or
-> 	b) you've had its refcount incremented for you by some process that
-> did, at the time, have current->files pointing to it.
+> These have been subject to 0day test robot and -next testing and
+> are available in the git repository at:
 > 
-> There is a reason why binder keeps ->files explicitly, rather than going through
-> ->tsk->files.
+>  git://git.kernel.org/pub/scm/linux/kernel/git/paulmck/linux-rcu.git
+>  membarrier.2017.10.09a
+> 
+> for you to fetch changes up to f7399e01ccd0850786bdedbee2fd351651ce99f8:
+> 
+>  Fix: membarrier: Handle CLONE_VM + !CLONE_THREAD correctly on powerpc
+>  (2017-10-09 14:24:49 -0700)
+> 
+> ----------------------------------------------------------------
+> Mathieu Desnoyers (5):
+>      membarrier: Provide register expedited private command
+>      membarrier: selftest: Test private expedited cmd
+>      membarrier: Document scheduler barrier requirements
+>      membarrier: Remove unused code for architectures without membarrier hooks
+>      Fix: membarrier: Handle CLONE_VM + !CLONE_THREAD correctly on powerpc
+> 
+> MAINTAINERS                                        |   2 +
+> arch/powerpc/Kconfig                               |   1 +
+> arch/powerpc/include/asm/membarrier.h              |  26 +++++
+> arch/powerpc/kernel/Makefile                       |   2 +
+> arch/powerpc/kernel/membarrier.c                   |  36 +++++++
+> arch/powerpc/mm/mmu_context.c                      |   7 ++
+> arch/x86/mm/tlb.c                                  |   5 +
+> fs/exec.c                                          |   1 +
+> include/linux/mm_types.h                           |   3 +
+> include/linux/sched/mm.h                           |  37 +++++++
+> include/uapi/linux/membarrier.h                    |  23 +++--
+> init/Kconfig                                       |   3 +
+> kernel/sched/core.c                                |  47 +++++----
+> kernel/sched/membarrier.c                          |  35 ++++++-
+> .../testing/selftests/membarrier/membarrier_test.c | 109 ++++++++++++++++++---
+> 15 files changed, 290 insertions(+), 47 deletions(-)
+> create mode 100644 arch/powerpc/include/asm/membarrier.h
+>  create mode 100644 arch/powerpc/kernel/membarrier.c
 
-Your are perfectly right! Thank you very much for catching this.
-
-To be honest, initially I just added the struct task_struct ptr to the 
-argument list keeping that in mind. Then when I was cleaning up patches 
-before sending I found this to look a litlle bit odd and forgot that I 
-did this on purpose because tsk->files can be reassigned and that's why 
-I removed the files param.
-
-I'll fix this for v2. Thanks once again.
-
-Best regards,
 -- 
-Krzysztof Opasiak
-Samsung R&D Institute Poland
-Samsung Electronics
+Mathieu Desnoyers
+EfficiOS Inc.
+http://www.efficios.com
