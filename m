@@ -1,86 +1,97 @@
-From: Waiman Long <longman@redhat.com>
-Subject: Re: [PATCH-tip v7 00/15] locking/rwsem: Rework rwsem-xadd & enable
- new rwsem features
-Date: Thu, 19 Oct 2017 11:21:40 -0400
-Message-ID: <ecb6fd0b-a242-1426-112e-e582898565d2@redhat.com>
-References: <1508351431-22375-1-git-send-email-longman@redhat.com>
+From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Subject: Re: [GIT PULL urgent-membarrier] membarrier commits for 4.14
+Date: Thu, 19 Oct 2017 17:30:42 +0000 (UTC)
+Message-ID: <1300627407.45155.1508434242913.JavaMail.zimbra@efficios.com>
+References: <20171018195944.GA15331@linux.vnet.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:29567 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752459AbdJSPVm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 19 Oct 2017 11:21:42 -0400
-In-Reply-To: <1508351431-22375-1-git-send-email-longman@redhat.com>
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>
-Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, Dave Chinner <david@fromorbit.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20171018195944.GA15331@linux.vnet.ibm.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Boqun Feng <boqun.feng@gmail.com>, Andrew Hunter <ahh@google.com>, maged michael <maged.michael@gmail.com>, gromer <gromer@google.com>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Watson <davejwatson@fb.com>, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, Andy Lutomirski <luto@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Nicholas Piggin <npiggin@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, linux-kernel <linux-kernel@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-Hi,
+----- On Oct 18, 2017, at 3:59 PM, Paul E. McKenney paulmck@linux.vnet.ibm.com wrote:
 
-I had just run the rwsem microbenchmark on a 1-socket 44-core Qualcomm
-Amberwing (Centriq 2400) arm64 system. There were 18 writer and 18
-reader threads running.
+> Hello, Linus,
 
-For the patched kernel, the results were:
+Hi Linus,
 
-                       Reader                       Writer
-  CS Load         Locking Ops/Thread           Locking Ops/Thread
-  -------         ------------------           ------------------
-     1          18,800/103,894/223,371      496,362/695,560/1,034,278
-    10          28,503/ 68,834/154,348      425,708/791,553/1,469,845
-    50           7,997/ 28,278/102,327      431,577/897,064/1,898,146
-   100          31,628/ 52,555/ 89,431      432,844/580,496/  910,290
- 1us sleep      15,625/ 16,071/ 16,535       42,339/ 44,866/   46,189
+Time did fly since I submitted this series near the beginning of
+the 4.14 rc cycle. Now that we are closer to the end of the cycle,
+a more surgical approach would be more appropriate.
 
-                     Reader                       Writer
-  CS Load     Slowpath Locking Ops         Slowpath Locking Ops
-  -------     --------------------         --------------------
-     1            1,296,904                     11,196,177
-    10            1,125,334                     13,242,082
-    50              284,342                     14,960,882
-   100              916,305                      9,652,818
- 1us sleep          289,177                        807,584
+I have prepared the minimal patch that needs to be applied to
+modify the user-space visible ABI before the end of the 4.14
+cycle.
 
-                 All Writers        Half Writers
-  CS Load    Locking Ops/Thread  Locking Ops/Thread     % Change
-  -------    ------------------  ------------------     --------
-     1           1,634,230           695,560             -57.4
-    10           1,658,228           791,553             -52.3
-    50           1,494,180           897,064             -40.0
-   100           1,089,364           580,496             -46.7
- 1us sleep          25,380            44,866             +76.8
+I will send that patch to you directly, hoping you can apply
+it before the end of the 4.14 cycle.
 
-It is obvious that for arm64, the writers are preferred under all
-circumstances. One special thing about the results was that for the
-all writers case, the number of slowpath calls were exceedingly small.
-It was about 1000 or less which are significantly less than in x86-64
-which was in the millions. Maybe it was due to the LL/SC architecture
-that allows it to stay in the fast path as much as possible with
-homogenous operation.
+Thanks,
 
-The corresponding results for the unpatched kernel were:
+Mathieu
 
-                       Reader                       Writer
-  CS Load         Locking Ops/Thread           Locking Ops/Thread
-  -------         ------------------           ------------------
-     1           23,898/23,899/23,905        45,264/177,375/461,387
-    10           25,114/25,115/25,122        26,188/190,517/458,960
-    50           23,762/23,762/23,763        67,862/174,640/269,519
-   100           25,050/25,051/25,053        57,214/200,725/814,178
- 1us sleep            6/     6/     7             6/ 58,512/180,892
+> 
+> This urgent pull request contains five commits that fix a problem
+> that arose when designing requested extensions to sys_membarrier()
+> to allow JITs to efficiently flush old code from instruction caches.
+> Several potential algorithms are much less painful if the user register
+> intent to use this functionality early on, for example, before the process
+> spawns the second thread.  Registering at this time removes the need to
+> interrupt each and every thread in that process at the first expedited
+> sys_membarrier() system call.
+> 
+> However, if we let the current function out, then user programs might be
+> written without registration, which would make it more difficult to add
+> required registration after the fact.  Hence the late-in-merge-window
+> pull request.
+> 
+> The last two commits remove unused code from architectures not supporting
+> sys_membarrier() and fix a problem that arises when tasks are created
+> with CLONE_VM but !CLONE_THREAD on powerpc.
+> 
+> These have been subject to 0day test robot and -next testing and
+> are available in the git repository at:
+> 
+>  git://git.kernel.org/pub/scm/linux/kernel/git/paulmck/linux-rcu.git
+>  membarrier.2017.10.09a
+> 
+> for you to fetch changes up to f7399e01ccd0850786bdedbee2fd351651ce99f8:
+> 
+>  Fix: membarrier: Handle CLONE_VM + !CLONE_THREAD correctly on powerpc
+>  (2017-10-09 14:24:49 -0700)
+> 
+> ----------------------------------------------------------------
+> Mathieu Desnoyers (5):
+>      membarrier: Provide register expedited private command
+>      membarrier: selftest: Test private expedited cmd
+>      membarrier: Document scheduler barrier requirements
+>      membarrier: Remove unused code for architectures without membarrier hooks
+>      Fix: membarrier: Handle CLONE_VM + !CLONE_THREAD correctly on powerpc
+> 
+> MAINTAINERS                                        |   2 +
+> arch/powerpc/Kconfig                               |   1 +
+> arch/powerpc/include/asm/membarrier.h              |  26 +++++
+> arch/powerpc/kernel/Makefile                       |   2 +
+> arch/powerpc/kernel/membarrier.c                   |  36 +++++++
+> arch/powerpc/mm/mmu_context.c                      |   7 ++
+> arch/x86/mm/tlb.c                                  |   5 +
+> fs/exec.c                                          |   1 +
+> include/linux/mm_types.h                           |   3 +
+> include/linux/sched/mm.h                           |  37 +++++++
+> include/uapi/linux/membarrier.h                    |  23 +++--
+> init/Kconfig                                       |   3 +
+> kernel/sched/core.c                                |  47 +++++----
+> kernel/sched/membarrier.c                          |  35 ++++++-
+> .../testing/selftests/membarrier/membarrier_test.c | 109 ++++++++++++++++++---
+> 15 files changed, 290 insertions(+), 47 deletions(-)
+> create mode 100644 arch/powerpc/include/asm/membarrier.h
+>  create mode 100644 arch/powerpc/kernel/membarrier.c
 
-                 All Writers        Half Writers
-  CS Load    Locking Ops/Thread  Locking Ops/Thread     % Change
-  -------    ------------------  ------------------     --------
-     1           1,687,691           177,375             -89.5
-    10           1,627,061           190,517             -88.3
-    50           1,469,431           174,640             -88.1
-   100           1,148,905           200,725             -82.5
- 1us sleep          29,865            58,512             +95.9
-
-Cheers,
-Longman
+-- 
+Mathieu Desnoyers
+EfficiOS Inc.
+http://www.efficios.com
