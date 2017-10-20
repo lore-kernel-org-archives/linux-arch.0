@@ -1,108 +1,123 @@
-From: Brijesh Singh <brijesh.singh@amd.com>
-Subject: [Part1 PATCH v7 15/17] percpu: Introduce DEFINE_PER_CPU_DECRYPTED
-Date: Fri, 20 Oct 2017 09:30:57 -0500
-Message-ID: <20171020143059.3291-16-brijesh.singh@amd.com>
-References: <20171020143059.3291-1-brijesh.singh@amd.com>
+From: Thomas Garnier <thgarnie@google.com>
+Subject: Re: [PATCH v1 06/27] x86/entry/64: Adapt assembly for PIE support
+Date: Fri, 20 Oct 2017 07:47:44 -0700
+Message-ID: <CAJcbSZFScsqOORMGXFQdsqcN5xbfHWpzSHGdxQB=45zgSDryLw@mail.gmail.com>
+References: <20171011203027.11248-1-thgarnie@google.com> <20171011203027.11248-7-thgarnie@google.com>
+ <20171020082646.bkxrps35sb3gq2nr@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20171020143059.3291-1-brijesh.singh@amd.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: x86@kernel.org, kvm@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Borislav Petkov <bp@alien8.de>, Brijesh Singh <brijesh.singh@amd.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Borislav Petkov <bp@suse.de>, Arnd Bergmann <arnd@arndb.de>, Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@linux.com>, linux-arch@vger.kernel.org, Tom Lendacky <thomas.lendacky@amd.com>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <kernel-hardening-return-10210-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+In-Reply-To: <20171020082646.bkxrps35sb3gq2nr@gmail.com>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Herbert Xu <herbert@gondor.apana.org.au>, "David S . Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Matthias Kaehlcke <mka@chromium.org>, Tom Lendacky <thomas.lendacky@amd.com>, Andy Lutomirski <luto@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Borislav Petkov <bp@suse.de>, "Rafael J . Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Pavel Machek <pavel@ucw.cz>, Juergen Gross <jgross@suse.com>, Chris Wright <chrisw@sous-sol.org>, Alok Kataria <akataria@vmware.com>, Rusty Russell <rusty@rustcorp.com.au>, Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@linu>
 List-Id: linux-arch.vger.kernel.org
 
-KVM guest defines three per-CPU variables (steal-time, apf_reason, and
-avic_eio) which are shared between a guest and a hypervisor. When SEV
-is active, memory is encrypted with a guest-specific key, and if the
-guest OS wants to share the memory region with the hypervisor then it
-must clear the C-bit (i.e set decrypted) before sharing it.
+On Fri, Oct 20, 2017 at 1:26 AM, Ingo Molnar <mingo@kernel.org> wrote:
+>
+> * Thomas Garnier <thgarnie@google.com> wrote:
+>
+>> Change the assembly code to use only relative references of symbols for the
+>> kernel to be PIE compatible.
+>>
+>> Position Independent Executable (PIE) support will allow to extended the
+>> KASLR randomization range below the -2G memory limit.
+>>
+>> Signed-off-by: Thomas Garnier <thgarnie@google.com>
+>> ---
+>>  arch/x86/entry/entry_64.S | 22 +++++++++++++++-------
+>>  1 file changed, 15 insertions(+), 7 deletions(-)
+>>
+>> diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
+>> index 49167258d587..15bd5530d2ae 100644
+>> --- a/arch/x86/entry/entry_64.S
+>> +++ b/arch/x86/entry/entry_64.S
+>> @@ -194,12 +194,15 @@ entry_SYSCALL_64_fastpath:
+>>       ja      1f                              /* return -ENOSYS (already in pt_regs->ax) */
+>>       movq    %r10, %rcx
+>>
+>> +     /* Ensures the call is position independent */
+>> +     leaq    sys_call_table(%rip), %r11
+>> +
+>>       /*
+>>        * This call instruction is handled specially in stub_ptregs_64.
+>>        * It might end up jumping to the slow path.  If it jumps, RAX
+>>        * and all argument registers are clobbered.
+>>        */
+>> -     call    *sys_call_table(, %rax, 8)
+>> +     call    *(%r11, %rax, 8)
+>>  .Lentry_SYSCALL_64_after_fastpath_call:
+>>
+>>       movq    %rax, RAX(%rsp)
+>> @@ -334,7 +337,8 @@ ENTRY(stub_ptregs_64)
+>>        * RAX stores a pointer to the C function implementing the syscall.
+>>        * IRQs are on.
+>>        */
+>> -     cmpq    $.Lentry_SYSCALL_64_after_fastpath_call, (%rsp)
+>> +     leaq    .Lentry_SYSCALL_64_after_fastpath_call(%rip), %r11
+>> +     cmpq    %r11, (%rsp)
+>>       jne     1f
+>>
+>>       /*
+>> @@ -1172,7 +1176,8 @@ ENTRY(error_entry)
+>>       movl    %ecx, %eax                      /* zero extend */
+>>       cmpq    %rax, RIP+8(%rsp)
+>>       je      .Lbstep_iret
+>> -     cmpq    $.Lgs_change, RIP+8(%rsp)
+>> +     leaq    .Lgs_change(%rip), %rcx
+>> +     cmpq    %rcx, RIP+8(%rsp)
+>>       jne     .Lerror_entry_done
+>>
+>>       /*
+>> @@ -1383,10 +1388,10 @@ ENTRY(nmi)
+>>        * resume the outer NMI.
+>>        */
+>>
+>> -     movq    $repeat_nmi, %rdx
+>> +     leaq    repeat_nmi(%rip), %rdx
+>>       cmpq    8(%rsp), %rdx
+>>       ja      1f
+>> -     movq    $end_repeat_nmi, %rdx
+>> +     leaq    end_repeat_nmi(%rip), %rdx
+>>       cmpq    8(%rsp), %rdx
+>>       ja      nested_nmi_out
+>>  1:
+>> @@ -1440,7 +1445,8 @@ nested_nmi:
+>>       pushq   %rdx
+>>       pushfq
+>>       pushq   $__KERNEL_CS
+>> -     pushq   $repeat_nmi
+>> +     leaq    repeat_nmi(%rip), %rdx
+>> +     pushq   %rdx
+>>
+>>       /* Put stack back */
+>>       addq    $(6*8), %rsp
+>> @@ -1479,7 +1485,9 @@ first_nmi:
+>>       addq    $8, (%rsp)      /* Fix up RSP */
+>>       pushfq                  /* RFLAGS */
+>>       pushq   $__KERNEL_CS    /* CS */
+>> -     pushq   $1f             /* RIP */
+>> +     pushq   %rax            /* Support Position Independent Code */
+>> +     leaq    1f(%rip), %rax  /* RIP */
+>> +     xchgq   %rax, (%rsp)    /* Restore RAX, put 1f */
+>>       INTERRUPT_RETURN        /* continues at repeat_nmi below */
+>>       UNWIND_HINT_IRET_REGS
+>
+> This patch seems to add extra overhead to the syscall fast-path even when PIE is
+> disabled, right?
 
-DEFINE_PER_CPU_DECRYPTED can be used to define the per-CPU variables
-which will be shared between a guest and a hypervisor.
+It does add extra instructions when one is not possible, I preferred
+that over ifdefing but I can change it.
 
-Signed-off-by: Brijesh Singh <brijesh.singh@amd.com>
-Acked-by: Tejun Heo <tj@kernel.org>
-Reviewed-by: Borislav Petkov <bp@suse.de>
-Tested-by: Borislav Petkov <bp@suse.de>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Borislav Petkov <bp@suse.de>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Tejun Heo <tj@kernel.org>
-Cc: Christoph Lameter <cl@linux.com>
-Cc: linux-arch@vger.kernel.org
-Cc: x86@kernel.org
-Cc: linux-kernel@vger.kernel.org
-Cc: Tom Lendacky <thomas.lendacky@amd.com>
----
- include/asm-generic/vmlinux.lds.h | 19 +++++++++++++++++++
- include/linux/percpu-defs.h       | 15 +++++++++++++++
- 2 files changed, 34 insertions(+)
+>
+> Thanks,
+>
+>         Ingo
 
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 353f52fdc35e..bdcd1caae092 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -779,6 +779,24 @@
- #endif
- 
- /*
-+ * Memory encryption operates on a page basis. Since we need to clear
-+ * the memory encryption mask for this section, it needs to be aligned
-+ * on a page boundary and be a page-size multiple in length.
-+ *
-+ * Note: We use a separate section so that only this section gets
-+ * decrypted to avoid exposing more than we wish.
-+ */
-+#ifdef CONFIG_AMD_MEM_ENCRYPT
-+#define PERCPU_DECRYPTED_SECTION					\
-+	. = ALIGN(PAGE_SIZE);						\
-+	*(.data..percpu..decrypted)					\
-+	. = ALIGN(PAGE_SIZE);
-+#else
-+#define PERCPU_DECRYPTED_SECTION
-+#endif
-+
-+
-+/*
-  * Default discarded sections.
-  *
-  * Some archs want to discard exit text/data at runtime rather than
-@@ -816,6 +834,7 @@
- 	. = ALIGN(cacheline);						\
- 	*(.data..percpu)						\
- 	*(.data..percpu..shared_aligned)				\
-+	PERCPU_DECRYPTED_SECTION					\
- 	VMLINUX_SYMBOL(__per_cpu_end) = .;
- 
- /**
-diff --git a/include/linux/percpu-defs.h b/include/linux/percpu-defs.h
-index 8f16299ca068..2d2096ba1cfe 100644
---- a/include/linux/percpu-defs.h
-+++ b/include/linux/percpu-defs.h
-@@ -173,6 +173,21 @@
- 	DEFINE_PER_CPU_SECTION(type, name, "..read_mostly")
- 
- /*
-+ * Declaration/definition used for per-CPU variables that should be accessed
-+ * as decrypted when memory encryption is enabled in the guest.
-+ */
-+#if defined(CONFIG_VIRTUALIZATION) && defined(CONFIG_AMD_MEM_ENCRYPT)
-+
-+#define DECLARE_PER_CPU_DECRYPTED(type, name)				\
-+	DECLARE_PER_CPU_SECTION(type, name, "..decrypted")
-+
-+#define DEFINE_PER_CPU_DECRYPTED(type, name)				\
-+	DEFINE_PER_CPU_SECTION(type, name, "..decrypted")
-+#else
-+#define DEFINE_PER_CPU_DECRYPTED(type, name)	DEFINE_PER_CPU(type, name)
-+#endif
-+
-+/*
-  * Intermodule exports for per-CPU variables.  sparse forgets about
-  * address space across EXPORT_SYMBOL(), change EXPORT_SYMBOL() to
-  * noop if __CHECKER__.
+
+
 -- 
-2.9.5
+Thomas
