@@ -1,138 +1,108 @@
-From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Subject: Re: [PATCH v1 01/27] x86/crypto: Adapt assembly for PIE support
-Date: Fri, 20 Oct 2017 09:28:00 +0100
-Message-ID: <CAKv+Gu9XMnNA0UoGfFMQmC9=Ryh6dcOduxH+tq49bcdvBwhyQw@mail.gmail.com>
-References: <20171011203027.11248-1-thgarnie@google.com>
-	<20171011203027.11248-2-thgarnie@google.com>
-	<20171020082420.lsvu7mqjrgnahm5t@gmail.com>
+From: Brijesh Singh <brijesh.singh@amd.com>
+Subject: [Part1 PATCH v7 15/17] percpu: Introduce DEFINE_PER_CPU_DECRYPTED
+Date: Fri, 20 Oct 2017 09:30:57 -0500
+Message-ID: <20171020143059.3291-16-brijesh.singh@amd.com>
+References: <20171020143059.3291-1-brijesh.singh@amd.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <20171020082420.lsvu7mqjrgnahm5t@gmail.com>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Nicolas Pitre <nicolas.pitre@linaro.org>, Michal Hocko <mhocko@suse.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Linux Doc Mailing List <linux-doc@vger.kernel.org>, Daniel Micay <danielmicay@gmail.com>, Len Brown <len.brown@intel.com>, Peter Zijlstra <peterz@infradead.org>, Christopher Li <sparse@chrisli.org>, =?UTF-8?B?SmFuIEggLiBTY2jDtm5oZXJy?= <jschoenh@amazon.de>, Alexei Starovoitov <ast@kernel.org>, virtualization@lists.linux-foundation.org, David Howells <dhowells@redhat.com>, Paul Gortmaker <paul.gortmaker@windriver.com>, Waiman Long <longman@redhat.com>, Pavel Machek <pavel@ucw.cz>, "H . Peter Anvin" <hpa@zytor.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Christoph Lameter <cl@linux.com>, Thomas Gleixner <tglx@linutronix.de>, "x86@kernel.org" <x86@kernel.org>, Herbert Xu <herbert@gondor.apana.org.au>, Daniel Borkmann <daniel@io>
+Content-Type: text/plain
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20171020143059.3291-1-brijesh.singh@amd.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: x86@kernel.org, kvm@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Borislav Petkov <bp@alien8.de>, Brijesh Singh <brijesh.singh@amd.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Borislav Petkov <bp@suse.de>, Arnd Bergmann <arnd@arndb.de>, Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@linux.com>, linux-arch@vger.kernel.org, Tom Lendacky <thomas.lendacky@amd.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 20 October 2017 at 09:24, Ingo Molnar <mingo@kernel.org> wrote:
->
-> * Thomas Garnier <thgarnie@google.com> wrote:
->
->> Change the assembly code to use only relative references of symbols for the
->> kernel to be PIE compatible.
->>
->> Position Independent Executable (PIE) support will allow to extended the
->> KASLR randomization range below the -2G memory limit.
->
->> diff --git a/arch/x86/crypto/aes-x86_64-asm_64.S b/arch/x86/crypto/aes-x86_64-asm_64.S
->> index 8739cf7795de..86fa068e5e81 100644
->> --- a/arch/x86/crypto/aes-x86_64-asm_64.S
->> +++ b/arch/x86/crypto/aes-x86_64-asm_64.S
->> @@ -48,8 +48,12 @@
->>  #define R10  %r10
->>  #define R11  %r11
->>
->> +/* Hold global for PIE suport */
->> +#define RBASE        %r12
->> +
->>  #define prologue(FUNC,KEY,B128,B192,r1,r2,r5,r6,r7,r8,r9,r10,r11) \
->>       ENTRY(FUNC);                    \
->> +     pushq   RBASE;                  \
->>       movq    r1,r2;                  \
->>       leaq    KEY+48(r8),r9;          \
->>       movq    r10,r11;                \
->> @@ -74,54 +78,63 @@
->>       movl    r6 ## E,4(r9);          \
->>       movl    r7 ## E,8(r9);          \
->>       movl    r8 ## E,12(r9);         \
->> +     popq    RBASE;                  \
->>       ret;                            \
->>       ENDPROC(FUNC);
->>
->> +#define round_mov(tab_off, reg_i, reg_o) \
->> +     leaq    tab_off(%rip), RBASE; \
->> +     movl    (RBASE,reg_i,4), reg_o;
->> +
->> +#define round_xor(tab_off, reg_i, reg_o) \
->> +     leaq    tab_off(%rip), RBASE; \
->> +     xorl    (RBASE,reg_i,4), reg_o;
->> +
->>  #define round(TAB,OFFSET,r1,r2,r3,r4,r5,r6,r7,r8,ra,rb,rc,rd) \
->>       movzbl  r2 ## H,r5 ## E;        \
->>       movzbl  r2 ## L,r6 ## E;        \
->> -     movl    TAB+1024(,r5,4),r5 ## E;\
->> +     round_mov(TAB+1024, r5, r5 ## E)\
->>       movw    r4 ## X,r2 ## X;        \
->> -     movl    TAB(,r6,4),r6 ## E;     \
->> +     round_mov(TAB, r6, r6 ## E)     \
->>       roll    $16,r2 ## E;            \
->>       shrl    $16,r4 ## E;            \
->>       movzbl  r4 ## L,r7 ## E;        \
->>       movzbl  r4 ## H,r4 ## E;        \
->>       xorl    OFFSET(r8),ra ## E;     \
->>       xorl    OFFSET+4(r8),rb ## E;   \
->> -     xorl    TAB+3072(,r4,4),r5 ## E;\
->> -     xorl    TAB+2048(,r7,4),r6 ## E;\
->> +     round_xor(TAB+3072, r4, r5 ## E)\
->> +     round_xor(TAB+2048, r7, r6 ## E)\
->>       movzbl  r1 ## L,r7 ## E;        \
->>       movzbl  r1 ## H,r4 ## E;        \
->> -     movl    TAB+1024(,r4,4),r4 ## E;\
->> +     round_mov(TAB+1024, r4, r4 ## E)\
->>       movw    r3 ## X,r1 ## X;        \
->>       roll    $16,r1 ## E;            \
->>       shrl    $16,r3 ## E;            \
->> -     xorl    TAB(,r7,4),r5 ## E;     \
->> +     round_xor(TAB, r7, r5 ## E)     \
->>       movzbl  r3 ## L,r7 ## E;        \
->>       movzbl  r3 ## H,r3 ## E;        \
->> -     xorl    TAB+3072(,r3,4),r4 ## E;\
->> -     xorl    TAB+2048(,r7,4),r5 ## E;\
->> +     round_xor(TAB+3072, r3, r4 ## E)\
->> +     round_xor(TAB+2048, r7, r5 ## E)\
->>       movzbl  r1 ## L,r7 ## E;        \
->>       movzbl  r1 ## H,r3 ## E;        \
->>       shrl    $16,r1 ## E;            \
->> -     xorl    TAB+3072(,r3,4),r6 ## E;\
->> -     movl    TAB+2048(,r7,4),r3 ## E;\
->> +     round_xor(TAB+3072, r3, r6 ## E)\
->> +     round_mov(TAB+2048, r7, r3 ## E)\
->>       movzbl  r1 ## L,r7 ## E;        \
->>       movzbl  r1 ## H,r1 ## E;        \
->> -     xorl    TAB+1024(,r1,4),r6 ## E;\
->> -     xorl    TAB(,r7,4),r3 ## E;     \
->> +     round_xor(TAB+1024, r1, r6 ## E)\
->> +     round_xor(TAB, r7, r3 ## E)     \
->>       movzbl  r2 ## H,r1 ## E;        \
->>       movzbl  r2 ## L,r7 ## E;        \
->>       shrl    $16,r2 ## E;            \
->> -     xorl    TAB+3072(,r1,4),r3 ## E;\
->> -     xorl    TAB+2048(,r7,4),r4 ## E;\
->> +     round_xor(TAB+3072, r1, r3 ## E)\
->> +     round_xor(TAB+2048, r7, r4 ## E)\
->>       movzbl  r2 ## H,r1 ## E;        \
->>       movzbl  r2 ## L,r2 ## E;        \
->>       xorl    OFFSET+8(r8),rc ## E;   \
->>       xorl    OFFSET+12(r8),rd ## E;  \
->> -     xorl    TAB+1024(,r1,4),r3 ## E;\
->> -     xorl    TAB(,r2,4),r4 ## E;
->> +     round_xor(TAB+1024, r1, r3 ## E)\
->> +     round_xor(TAB, r2, r4 ## E)
->
-> This appears to be adding unconditional overhead to a function that was moved to
-> assembly to improve its performance.
->
+KVM guest defines three per-CPU variables (steal-time, apf_reason, and
+avic_eio) which are shared between a guest and a hypervisor. When SEV
+is active, memory is encrypted with a guest-specific key, and if the
+guest OS wants to share the memory region with the hypervisor then it
+must clear the C-bit (i.e set decrypted) before sharing it.
 
-I did some benchmarking on this code a while ago and, interestingly,
-it was slower than the generic C implementation (on a Pentium E2200),
-so we may want to consider whether we still need this driver in the
-first place.
+DEFINE_PER_CPU_DECRYPTED can be used to define the per-CPU variables
+which will be shared between a guest and a hypervisor.
+
+Signed-off-by: Brijesh Singh <brijesh.singh@amd.com>
+Acked-by: Tejun Heo <tj@kernel.org>
+Reviewed-by: Borislav Petkov <bp@suse.de>
+Tested-by: Borislav Petkov <bp@suse.de>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Borislav Petkov <bp@suse.de>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Tejun Heo <tj@kernel.org>
+Cc: Christoph Lameter <cl@linux.com>
+Cc: linux-arch@vger.kernel.org
+Cc: x86@kernel.org
+Cc: linux-kernel@vger.kernel.org
+Cc: Tom Lendacky <thomas.lendacky@amd.com>
+---
+ include/asm-generic/vmlinux.lds.h | 19 +++++++++++++++++++
+ include/linux/percpu-defs.h       | 15 +++++++++++++++
+ 2 files changed, 34 insertions(+)
+
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 353f52fdc35e..bdcd1caae092 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -779,6 +779,24 @@
+ #endif
+ 
+ /*
++ * Memory encryption operates on a page basis. Since we need to clear
++ * the memory encryption mask for this section, it needs to be aligned
++ * on a page boundary and be a page-size multiple in length.
++ *
++ * Note: We use a separate section so that only this section gets
++ * decrypted to avoid exposing more than we wish.
++ */
++#ifdef CONFIG_AMD_MEM_ENCRYPT
++#define PERCPU_DECRYPTED_SECTION					\
++	. = ALIGN(PAGE_SIZE);						\
++	*(.data..percpu..decrypted)					\
++	. = ALIGN(PAGE_SIZE);
++#else
++#define PERCPU_DECRYPTED_SECTION
++#endif
++
++
++/*
+  * Default discarded sections.
+  *
+  * Some archs want to discard exit text/data at runtime rather than
+@@ -816,6 +834,7 @@
+ 	. = ALIGN(cacheline);						\
+ 	*(.data..percpu)						\
+ 	*(.data..percpu..shared_aligned)				\
++	PERCPU_DECRYPTED_SECTION					\
+ 	VMLINUX_SYMBOL(__per_cpu_end) = .;
+ 
+ /**
+diff --git a/include/linux/percpu-defs.h b/include/linux/percpu-defs.h
+index 8f16299ca068..2d2096ba1cfe 100644
+--- a/include/linux/percpu-defs.h
++++ b/include/linux/percpu-defs.h
+@@ -173,6 +173,21 @@
+ 	DEFINE_PER_CPU_SECTION(type, name, "..read_mostly")
+ 
+ /*
++ * Declaration/definition used for per-CPU variables that should be accessed
++ * as decrypted when memory encryption is enabled in the guest.
++ */
++#if defined(CONFIG_VIRTUALIZATION) && defined(CONFIG_AMD_MEM_ENCRYPT)
++
++#define DECLARE_PER_CPU_DECRYPTED(type, name)				\
++	DECLARE_PER_CPU_SECTION(type, name, "..decrypted")
++
++#define DEFINE_PER_CPU_DECRYPTED(type, name)				\
++	DEFINE_PER_CPU_SECTION(type, name, "..decrypted")
++#else
++#define DEFINE_PER_CPU_DECRYPTED(type, name)	DEFINE_PER_CPU(type, name)
++#endif
++
++/*
+  * Intermodule exports for per-CPU variables.  sparse forgets about
+  * address space across EXPORT_SYMBOL(), change EXPORT_SYMBOL() to
+  * noop if __CHECKER__.
+-- 
+2.9.5
