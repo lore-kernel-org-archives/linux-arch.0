@@ -1,61 +1,114 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([146.0.238.70]:35451 "EHLO
-        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752913AbdJSThS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Oct 2017 15:37:18 -0400
-Date: Thu, 19 Oct 2017 21:36:59 +0200 (CEST)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: Regression: x86/mm: Add Secure Memory Encryption (SME) support
-In-Reply-To: <c0528ed8-2d00-dedf-4f90-8aa7eead4b5a@amd.com>
-Message-ID: <alpine.DEB.2.20.1710192126150.2054@nanos>
-References: <d5c60048-dbb3-0440-d139-ea325621e654@iam.tj> <c0528ed8-2d00-dedf-4f90-8aa7eead4b5a@amd.com>
+Received: from mail-dm3nam03on0088.outbound.protection.outlook.com ([104.47.41.88]:47104
+        "EHLO NAM03-DM3-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1752851AbdJTObs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 20 Oct 2017 10:31:48 -0400
+From: Brijesh Singh <brijesh.singh@amd.com>
+Subject: [Part1 PATCH v7 15/17] percpu: Introduce DEFINE_PER_CPU_DECRYPTED
+Date: Fri, 20 Oct 2017 09:30:57 -0500
+Message-ID: <20171020143059.3291-16-brijesh.singh@amd.com>
+In-Reply-To: <20171020143059.3291-1-brijesh.singh@amd.com>
+References: <20171020143059.3291-1-brijesh.singh@amd.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: Tj <linux@iam.tj>, linux-mm@kvack.org, linux-arch@vger.kernel.org, Borislav Petkov <bp@suse.de>, Greg KH <greg@kroah.com>
-Message-ID: <20171019193659.r_OcTFxFaTkdHGLZwj7lUopiRkZ-maW-uH64Hr7F5ZM@z>
+To: x86@kernel.org, kvm@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Borislav Petkov <bp@alien8.de>, Brijesh Singh <brijesh.singh@amd.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Borislav Petkov <bp@suse.de>, Arnd Bergmann <arnd@arndb.de>, Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@linux.com>, linux-arch@vger.kernel.org, Tom Lendacky <thomas.lendacky@amd.com>
+Message-ID: <20171020143057.9HDPosKdHLX9e5AYxLDhdRr5_oHyHOE9Aze85KyrWX8@z>
 
-On Mon, 2 Oct 2017, Tom Lendacky wrote:
-> On 9/30/2017 5:36 PM, Tj wrote:
-> > With 4.14.0rc2 on an Intel CPU with an Nvidia GPU the proprietary nvidia
-> > driver (v340.102) fails to modpost due to:
-> > 
-> > FATAL: modpost: GPL-incompatible module nvidia.ko uses GPL-only symbol
-> > 'sme_me_mask'
-> > 
-> > I think this is due to:
-> > 
-> > config ARCH_HAS_MEM_ENCRYPT
-> >         def_bool y
-> > 
-> 
-> I think this is more likely because of CONFIG_AMD_MEM_ENCRYPT=y. If
-> CONFIG_AMD_MEM_ENCRYPT=n then sme_me_mask becomes a #define. I'm
-> assuming that changing the sme_me_mask in arch/x86/mm/mem_encrypt.c
-> from EXPORT_SYMBOL_GPL to EXPORT_SYMBOL fixes the issue?
-> 
-> Boris, is it a big deal to make this change if that's the issue?
+KVM guest defines three per-CPU variables (steal-time, apf_reason, and
+avic_eio) which are shared between a guest and a hypervisor. When SEV
+is active, memory is encrypted with a guest-specific key, and if the
+guest OS wants to share the memory region with the hypervisor then it
+must clear the C-bit (i.e set decrypted) before sharing it.
 
-It's a big deal.
+DEFINE_PER_CPU_DECRYPTED can be used to define the per-CPU variables
+which will be shared between a guest and a hypervisor.
 
-And no, it's GPL and it stays that way. This discussion pops up every few
-month when we add a new feature.
+Signed-off-by: Brijesh Singh <brijesh.singh@amd.com>
+Acked-by: Tejun Heo <tj@kernel.org>
+Reviewed-by: Borislav Petkov <bp@suse.de>
+Tested-by: Borislav Petkov <bp@suse.de>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Borislav Petkov <bp@suse.de>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Tejun Heo <tj@kernel.org>
+Cc: Christoph Lameter <cl@linux.com>
+Cc: linux-arch@vger.kernel.org
+Cc: x86@kernel.org
+Cc: linux-kernel@vger.kernel.org
+Cc: Tom Lendacky <thomas.lendacky@amd.com>
+---
+ include/asm-generic/vmlinux.lds.h | 19 +++++++++++++++++++
+ include/linux/percpu-defs.h       | 15 +++++++++++++++
+ 2 files changed, 34 insertions(+)
 
-If people want to run the nviodit module, then they can set
-
-   CONFIG_AMD_MEM_ENCRYPT=n
-
-and be done with it.
-
-The proprietaery nvidia driver is tolerated as is and it's operating in a
-legal grey zone.  That tolerance does not include that the existance of
-this driver can dictate our choice of licensing. Especially not if the
-reason why it fails to compile or load can be disabled.
-
-There is a choice, but the option for free lunch does not exist.
-
-Thanks,
-
-	tglx
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 353f52fdc35e..bdcd1caae092 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -779,6 +779,24 @@
+ #endif
+ 
+ /*
++ * Memory encryption operates on a page basis. Since we need to clear
++ * the memory encryption mask for this section, it needs to be aligned
++ * on a page boundary and be a page-size multiple in length.
++ *
++ * Note: We use a separate section so that only this section gets
++ * decrypted to avoid exposing more than we wish.
++ */
++#ifdef CONFIG_AMD_MEM_ENCRYPT
++#define PERCPU_DECRYPTED_SECTION					\
++	. = ALIGN(PAGE_SIZE);						\
++	*(.data..percpu..decrypted)					\
++	. = ALIGN(PAGE_SIZE);
++#else
++#define PERCPU_DECRYPTED_SECTION
++#endif
++
++
++/*
+  * Default discarded sections.
+  *
+  * Some archs want to discard exit text/data at runtime rather than
+@@ -816,6 +834,7 @@
+ 	. = ALIGN(cacheline);						\
+ 	*(.data..percpu)						\
+ 	*(.data..percpu..shared_aligned)				\
++	PERCPU_DECRYPTED_SECTION					\
+ 	VMLINUX_SYMBOL(__per_cpu_end) = .;
+ 
+ /**
+diff --git a/include/linux/percpu-defs.h b/include/linux/percpu-defs.h
+index 8f16299ca068..2d2096ba1cfe 100644
+--- a/include/linux/percpu-defs.h
++++ b/include/linux/percpu-defs.h
+@@ -173,6 +173,21 @@
+ 	DEFINE_PER_CPU_SECTION(type, name, "..read_mostly")
+ 
+ /*
++ * Declaration/definition used for per-CPU variables that should be accessed
++ * as decrypted when memory encryption is enabled in the guest.
++ */
++#if defined(CONFIG_VIRTUALIZATION) && defined(CONFIG_AMD_MEM_ENCRYPT)
++
++#define DECLARE_PER_CPU_DECRYPTED(type, name)				\
++	DECLARE_PER_CPU_SECTION(type, name, "..decrypted")
++
++#define DEFINE_PER_CPU_DECRYPTED(type, name)				\
++	DEFINE_PER_CPU_SECTION(type, name, "..decrypted")
++#else
++#define DEFINE_PER_CPU_DECRYPTED(type, name)	DEFINE_PER_CPU(type, name)
++#endif
++
++/*
+  * Intermodule exports for per-CPU variables.  sparse forgets about
+  * address space across EXPORT_SYMBOL(), change EXPORT_SYMBOL() to
+  * noop if __CHECKER__.
+-- 
+2.9.5
