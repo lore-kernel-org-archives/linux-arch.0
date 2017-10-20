@@ -1,54 +1,140 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: Re: [PATCH v1 06/27] x86/entry/64: Adapt assembly for PIE support
-Date: Fri, 20 Oct 2017 18:27:24 +0200
-Message-ID: <1F0B8A18-092F-42AF-91B4-7A5D414ED83D@amacapital.net>
-References: <20171011203027.11248-1-thgarnie@google.com> <20171011203027.11248-7-thgarnie@google.com> <20171020082646.bkxrps35sb3gq2nr@gmail.com> <CAJcbSZFScsqOORMGXFQdsqcN5xbfHWpzSHGdxQB=45zgSDryLw@mail.gmail.com> <20171020152028.syq6woeet6it3z3h@gmail.com>
-Mime-Version: 1.0 (1.0)
-Content-Type: text/plain;
-	charset=us-ascii
-Content-Transfer-Encoding: quoted-printable
-Return-path: <kernel-hardening-return-10213-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <20171020152028.syq6woeet6it3z3h@gmail.com>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Thomas Garnier <thgarnie@google.com>, Herbert Xu <herbert@gondor.apana.org.au>, "David S . Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Matthias Kaehlcke <mka@chromium.org>, Tom Lendacky <thomas.lendacky@amd.com>, Andy Lutomirski <luto@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Borislav Petkov <bp@suse.de>, "Rafael J . Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Pavel Machek <pavel@ucw.cz>, Juergen Gross <jgross@suse.com>, Chris Wright <chrisw@sous-sol.org>, Alok Kataria <akataria@vmware.com>, Rusty Russell <rusty@rustcorp.com.au>, Tejun Heo <tj@kernel>
+From: Khalid Aziz <khalid.aziz@oracle.com>
+Subject: [PATCH v9 02/10] mm, swap: Add infrastructure for saving page metadata as well on swap
+Date: Fri, 20 Oct 2017 10:57:55 -0600
+Message-ID: <9152c4afc14316bb1b26158559964f8e8c07ab1a.1508364660.git.khalid.aziz@oracle.com>
+References: <cover.1508364660.git.khalid.aziz@oracle.com>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <cover.1508364660.git.khalid.aziz@oracle.com>
+In-Reply-To: <cover.1508364660.git.khalid.aziz@oracle.com>
+References: <cover.1508364660.git.khalid.aziz@oracle.com>
+Sender: owner-linux-mm@kvack.org
+To: akpm@linux-foundation.org, davem@davemloft.net, dave.hansen@linux.intel.com, arnd@arndb.de
+Cc: Khalid Aziz <khalid.aziz@oracle.com>, kirill.shutemov@linux.intel.com, mhocko@suse.com, jack@suse.cz, ross.zwisler@linux.intel.com, aneesh.kumar@linux.vnet.ibm.com, dave.jiang@intel.com, willy@infradead.org, hughd@google.com, minchan@kernel.org, hannes@cmpxchg.org, shli@fb.com, mingo@kernel.org, jmarchan@redhat.com, lstoakes@gmail.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, sparclinux@vger.kernel.org, Khalid Aziz <khalid@gonehiking.org>
 List-Id: linux-arch.vger.kernel.org
 
+If a processor supports special metadata for a page, for example ADI
+version tags on SPARC M7, this metadata must be saved when the page is
+swapped out. The same metadata must be restored when the page is swapped
+back in. This patch adds two new architecture specific functions -
+arch_do_swap_page() to be called when a page is swapped in, and
+arch_unmap_one() to be called when a page is being unmapped for swap
+out. These architecture hooks allow page metadata to be saved if the
+architecture supports it.
 
+Signed-off-by: Khalid Aziz <khalid.aziz@oracle.com>
+Cc: Khalid Aziz <khalid@gonehiking.org>
+Acked-by: Jerome Marchand <jmarchan@redhat.com>
+---
+v8:
+	- Fixed an erroneous "}"
+v6:
+	- Updated parameter list for arch_do_swap_page() and
+	  arch_unmap_one()
+v5:
+	- Replaced set_swp_pte() function with new architecture
+	  functions arch_do_swap_page() and arch_unmap_one()
 
-> On Oct 20, 2017, at 5:20 PM, Ingo Molnar <mingo@kernel.org> wrote:
->=20
->=20
-> * Thomas Garnier <thgarnie@google.com> wrote:
->=20
->>>>       */
->>>> -     cmpq    $.Lentry_SYSCALL_64_after_fastpath_call, (%rsp)
->>>> +     leaq    .Lentry_SYSCALL_64_after_fastpath_call(%rip), %r11
->>>> +     cmpq    %r11, (%rsp)
->>>>      jne     1f
->=20
->>> This patch seems to add extra overhead to the syscall fast-path even whe=
-n PIE is
->>> disabled, right?
->>=20
->> It does add extra instructions when one is not possible, I preferred
->> that over ifdefing but I can change it.
->=20
-> So my problem is, this pattern repeats in many other places as well, but s=
-prinking=20
-> various pieces of assembly code with #ifdefs would be very bad as well.
->=20
-> I have no good idea how to solve this.
->=20
+ include/asm-generic/pgtable.h | 36 ++++++++++++++++++++++++++++++++++++
+ mm/memory.c                   |  1 +
+ mm/rmap.c                     | 14 ++++++++++++++
+ 3 files changed, 51 insertions(+)
 
-How about:
+diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+index 7dfa767dc680..15668c2470b4 100644
+--- a/include/asm-generic/pgtable.h
++++ b/include/asm-generic/pgtable.h
+@@ -392,6 +392,42 @@ static inline int pud_same(pud_t pud_a, pud_t pud_b)
+ #endif /* CONFIG_TRANSPARENT_HUGEPAGE */
+ #endif
+ 
++#ifndef __HAVE_ARCH_DO_SWAP_PAGE
++/*
++ * Some architectures support metadata associated with a page. When a
++ * page is being swapped out, this metadata must be saved so it can be
++ * restored when the page is swapped back in. SPARC M7 and newer
++ * processors support an ADI (Application Data Integrity) tag for the
++ * page as metadata for the page. arch_do_swap_page() can restore this
++ * metadata when a page is swapped back in.
++ */
++static inline void arch_do_swap_page(struct mm_struct *mm,
++				     struct vm_area_struct *vma,
++				     unsigned long addr,
++				     pte_t pte, pte_t oldpte)
++{
++
++}
++#endif
++
++#ifndef __HAVE_ARCH_UNMAP_ONE
++/*
++ * Some architectures support metadata associated with a page. When a
++ * page is being swapped out, this metadata must be saved so it can be
++ * restored when the page is swapped back in. SPARC M7 and newer
++ * processors support an ADI (Application Data Integrity) tag for the
++ * page as metadata for the page. arch_unmap_one() can save this
++ * metadata on a swap-out of a page.
++ */
++static inline int arch_unmap_one(struct mm_struct *mm,
++				  struct vm_area_struct *vma,
++				  unsigned long addr,
++				  pte_t orig_pte)
++{
++	return 0;
++}
++#endif
++
+ #ifndef __HAVE_ARCH_PGD_OFFSET_GATE
+ #define pgd_offset_gate(mm, addr)	pgd_offset(mm, addr)
+ #endif
+diff --git a/mm/memory.c b/mm/memory.c
+index 56e48e4593cb..ef0459938e96 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -2828,6 +2828,7 @@ int do_swap_page(struct vm_fault *vmf)
+ 	if (pte_swp_soft_dirty(vmf->orig_pte))
+ 		pte = pte_mksoft_dirty(pte);
+ 	set_pte_at(vma->vm_mm, vmf->address, vmf->pte, pte);
++	arch_do_swap_page(vma->vm_mm, vma, vmf->address, pte, vmf->orig_pte);
+ 	vmf->orig_pte = pte;
+ 	if (page == swapcache) {
+ 		do_page_add_anon_rmap(page, vma, vmf->address, exclusive);
+diff --git a/mm/rmap.c b/mm/rmap.c
+index c570f82e6827..40a436c927c6 100644
+--- a/mm/rmap.c
++++ b/mm/rmap.c
+@@ -1448,6 +1448,14 @@ static bool try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
+ 				(flags & TTU_MIGRATION)) {
+ 			swp_entry_t entry;
+ 			pte_t swp_pte;
++
++			if (arch_unmap_one(mm, vma, address, pteval) < 0) {
++				set_pte_at(mm, address, pvmw.pte, pteval);
++				ret = false;
++				page_vma_mapped_walk_done(&pvmw);
++				break;
++			}
++
+ 			/*
+ 			 * Store the pfn of the page in a special migration
+ 			 * pte. do_swap_page() will wait until the migration
+@@ -1498,6 +1506,12 @@ static bool try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
+ 				page_vma_mapped_walk_done(&pvmw);
+ 				break;
+ 			}
++			if (arch_unmap_one(mm, vma, address, pteval) < 0) {
++				set_pte_at(mm, address, pvmw.pte, pteval);
++				ret = false;
++				page_vma_mapped_walk_done(&pvmw);
++				break;
++			}
+ 			if (list_empty(&mm->mmlist)) {
+ 				spin_lock(&mmlist_lock);
+ 				if (list_empty(&mm->mmlist))
+-- 
+2.11.0
 
-.macro JMP_TO_LABEL ...
-
-
-> Thanks,
->=20
->    Ingo
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
