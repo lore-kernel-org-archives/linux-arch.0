@@ -1,114 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-dm3nam03on0088.outbound.protection.outlook.com ([104.47.41.88]:47104
-        "EHLO NAM03-DM3-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752851AbdJTObs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 20 Oct 2017 10:31:48 -0400
-From: Brijesh Singh <brijesh.singh@amd.com>
-Subject: [Part1 PATCH v7 15/17] percpu: Introduce DEFINE_PER_CPU_DECRYPTED
-Date: Fri, 20 Oct 2017 09:30:57 -0500
-Message-ID: <20171020143059.3291-16-brijesh.singh@amd.com>
-In-Reply-To: <20171020143059.3291-1-brijesh.singh@amd.com>
-References: <20171020143059.3291-1-brijesh.singh@amd.com>
-MIME-Version: 1.0
-Content-Type: text/plain
+Received: from aserp1040.oracle.com ([141.146.126.69]:26945 "EHLO
+        aserp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753397AbdJTQ7S (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Oct 2017 12:59:18 -0400
+From: Khalid Aziz <khalid.aziz@oracle.com>
+Subject: [PATCH v9 01/10] signals, sparc: Add signal codes for ADI violations
+Date: Fri, 20 Oct 2017 10:57:54 -0600
+Message-ID: <6aaf85946246e352cb55df577228c1b247aa674b.1508364660.git.khalid.aziz@oracle.com>
+In-Reply-To: <cover.1508364660.git.khalid.aziz@oracle.com>
+References: <cover.1508364660.git.khalid.aziz@oracle.com>
+In-Reply-To: <cover.1508364660.git.khalid.aziz@oracle.com>
+References: <cover.1508364660.git.khalid.aziz@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: x86@kernel.org, kvm@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Borislav Petkov <bp@alien8.de>, Brijesh Singh <brijesh.singh@amd.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Borislav Petkov <bp@suse.de>, Arnd Bergmann <arnd@arndb.de>, Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@linux.com>, linux-arch@vger.kernel.org, Tom Lendacky <thomas.lendacky@amd.com>
-Message-ID: <20171020143057.9HDPosKdHLX9e5AYxLDhdRr5_oHyHOE9Aze85KyrWX8@z>
+To: arnd@arndb.de, hpa@zytor.com, davem@davemloft.net, dave.hansen@linux.intel.com
+Cc: Khalid Aziz <khalid.aziz@oracle.com>, 0x7f454c46@gmail.com, tglx@linutronix.de, mingo@redhat.com, x86@kernel.org, jroedel@suse.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, sparclinux@vger.kernel.org, Khalid Aziz <khalid@gonehiking.org>
+Message-ID: <20171020165754.piNxM8m6ta-lLzy9haJcXl4duSswqa586b5rx6Ih0nk@z>
 
-KVM guest defines three per-CPU variables (steal-time, apf_reason, and
-avic_eio) which are shared between a guest and a hypervisor. When SEV
-is active, memory is encrypted with a guest-specific key, and if the
-guest OS wants to share the memory region with the hypervisor then it
-must clear the C-bit (i.e set decrypted) before sharing it.
+SPARC M7 processor introduces a new feature - Application Data
+Integrity (ADI). ADI allows MMU to  catch rogue accesses to memory.
+When a rogue access occurs, MMU blocks the access and raises an
+exception. In response to the exception, kernel sends the offending
+task a SIGSEGV with si_code that indicates the nature of exception.
+This patch adds three new signal codes specific to ADI feature:
 
-DEFINE_PER_CPU_DECRYPTED can be used to define the per-CPU variables
-which will be shared between a guest and a hypervisor.
+1. ADI is not enabled for the address and task attempted to access
+   memory using ADI
+2. Task attempted to access memory using wrong ADI tag and caused
+   a deferred exception.
+3. Task attempted to access memory using wrong ADI Ttag and caused
+   a precise exception.
 
-Signed-off-by: Brijesh Singh <brijesh.singh@amd.com>
-Acked-by: Tejun Heo <tj@kernel.org>
-Reviewed-by: Borislav Petkov <bp@suse.de>
-Tested-by: Borislav Petkov <bp@suse.de>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Borislav Petkov <bp@suse.de>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Tejun Heo <tj@kernel.org>
-Cc: Christoph Lameter <cl@linux.com>
-Cc: linux-arch@vger.kernel.org
-Cc: x86@kernel.org
-Cc: linux-kernel@vger.kernel.org
-Cc: Tom Lendacky <thomas.lendacky@amd.com>
+Signed-off-by: Khalid Aziz <khalid.aziz@oracle.com>
+Cc: Khalid Aziz <khalid@gonehiking.org>
 ---
- include/asm-generic/vmlinux.lds.h | 19 +++++++++++++++++++
- include/linux/percpu-defs.h       | 15 +++++++++++++++
- 2 files changed, 34 insertions(+)
+ arch/x86/kernel/signal_compat.c    | 2 +-
+ include/uapi/asm-generic/siginfo.h | 5 ++++-
+ 2 files changed, 5 insertions(+), 2 deletions(-)
 
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 353f52fdc35e..bdcd1caae092 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -779,6 +779,24 @@
- #endif
+diff --git a/arch/x86/kernel/signal_compat.c b/arch/x86/kernel/signal_compat.c
+index 71beb28600d4..e6e0b50230c3 100644
+--- a/arch/x86/kernel/signal_compat.c
++++ b/arch/x86/kernel/signal_compat.c
+@@ -26,7 +26,7 @@ static inline void signal_compat_build_tests(void)
+ 	 */
+ 	BUILD_BUG_ON(NSIGILL  != 8);
+ 	BUILD_BUG_ON(NSIGFPE  != 8);
+-	BUILD_BUG_ON(NSIGSEGV != 4);
++	BUILD_BUG_ON(NSIGSEGV != 7);
+ 	BUILD_BUG_ON(NSIGBUS  != 5);
+ 	BUILD_BUG_ON(NSIGTRAP != 4);
+ 	BUILD_BUG_ON(NSIGCHLD != 6);
+diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
+index 9c4eca6b374a..72b435beb930 100644
+--- a/include/uapi/asm-generic/siginfo.h
++++ b/include/uapi/asm-generic/siginfo.h
+@@ -224,7 +224,10 @@ typedef struct siginfo {
+ #define SEGV_ACCERR	(__SI_FAULT|2)	/* invalid permissions for mapped object */
+ #define SEGV_BNDERR	(__SI_FAULT|3)  /* failed address bound checks */
+ #define SEGV_PKUERR	(__SI_FAULT|4)  /* failed protection key checks */
+-#define NSIGSEGV	4
++#define SEGV_ACCADI	(__SI_FAULT|5)	/* ADI not enabled for mapped object */
++#define SEGV_ADIDERR	(__SI_FAULT|6)	/* Disrupting MCD error */
++#define SEGV_ADIPERR	(__SI_FAULT|7)	/* Precise MCD exception */
++#define NSIGSEGV	7
  
  /*
-+ * Memory encryption operates on a page basis. Since we need to clear
-+ * the memory encryption mask for this section, it needs to be aligned
-+ * on a page boundary and be a page-size multiple in length.
-+ *
-+ * Note: We use a separate section so that only this section gets
-+ * decrypted to avoid exposing more than we wish.
-+ */
-+#ifdef CONFIG_AMD_MEM_ENCRYPT
-+#define PERCPU_DECRYPTED_SECTION					\
-+	. = ALIGN(PAGE_SIZE);						\
-+	*(.data..percpu..decrypted)					\
-+	. = ALIGN(PAGE_SIZE);
-+#else
-+#define PERCPU_DECRYPTED_SECTION
-+#endif
-+
-+
-+/*
-  * Default discarded sections.
-  *
-  * Some archs want to discard exit text/data at runtime rather than
-@@ -816,6 +834,7 @@
- 	. = ALIGN(cacheline);						\
- 	*(.data..percpu)						\
- 	*(.data..percpu..shared_aligned)				\
-+	PERCPU_DECRYPTED_SECTION					\
- 	VMLINUX_SYMBOL(__per_cpu_end) = .;
- 
- /**
-diff --git a/include/linux/percpu-defs.h b/include/linux/percpu-defs.h
-index 8f16299ca068..2d2096ba1cfe 100644
---- a/include/linux/percpu-defs.h
-+++ b/include/linux/percpu-defs.h
-@@ -173,6 +173,21 @@
- 	DEFINE_PER_CPU_SECTION(type, name, "..read_mostly")
- 
- /*
-+ * Declaration/definition used for per-CPU variables that should be accessed
-+ * as decrypted when memory encryption is enabled in the guest.
-+ */
-+#if defined(CONFIG_VIRTUALIZATION) && defined(CONFIG_AMD_MEM_ENCRYPT)
-+
-+#define DECLARE_PER_CPU_DECRYPTED(type, name)				\
-+	DECLARE_PER_CPU_SECTION(type, name, "..decrypted")
-+
-+#define DEFINE_PER_CPU_DECRYPTED(type, name)				\
-+	DEFINE_PER_CPU_SECTION(type, name, "..decrypted")
-+#else
-+#define DEFINE_PER_CPU_DECRYPTED(type, name)	DEFINE_PER_CPU(type, name)
-+#endif
-+
-+/*
-  * Intermodule exports for per-CPU variables.  sparse forgets about
-  * address space across EXPORT_SYMBOL(), change EXPORT_SYMBOL() to
-  * noop if __CHECKER__.
+  * SIGBUS si_codes
 -- 
-2.9.5
+2.11.0
