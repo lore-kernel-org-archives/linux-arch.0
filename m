@@ -1,763 +1,423 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:53148 "EHLO
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:47511 "EHLO
         mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1751630AbdJWVHn (ORCPT
+        by vger.kernel.org with ESMTP id S1751595AbdJWVHm (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 23 Oct 2017 17:07:43 -0400
-Received: from pps.filterd (m0098414.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id v9NL7K9i101030
-        for <linux-arch@vger.kernel.org>; Mon, 23 Oct 2017 17:07:42 -0400
-Received: from e19.ny.us.ibm.com (e19.ny.us.ibm.com [129.33.205.209])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 2dskdjv656-1
+        Mon, 23 Oct 2017 17:07:42 -0400
+Received: from pps.filterd (m0098416.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id v9NL7Faa137472
+        for <linux-arch@vger.kernel.org>; Mon, 23 Oct 2017 17:07:41 -0400
+Received: from e18.ny.us.ibm.com (e18.ny.us.ibm.com [129.33.205.208])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2dsheuaqqy-1
         (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Mon, 23 Oct 2017 17:07:42 -0400
+        for <linux-arch@vger.kernel.org>; Mon, 23 Oct 2017 17:07:41 -0400
 Received: from localhost
-        by e19.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        by e18.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
         for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Mon, 23 Oct 2017 17:07:41 -0400
+        Mon, 23 Oct 2017 17:07:40 -0400
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: [PATCH 16/19] linux/compiler.h: Split into compiler.h and compiler-types.h
-Date: Mon, 23 Oct 2017 14:07:26 -0700
+Subject: [PATCH 17/19] locking/barriers: Kill lockless_dereference
+Date: Mon, 23 Oct 2017 14:07:27 -0700
 In-Reply-To: <20171023210408.GA2930@linux.vnet.ibm.com>
 References: <20171023210408.GA2930@linux.vnet.ibm.com>
-Message-ID: <1508792849-3115-16-git-send-email-paulmck@linux.vnet.ibm.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Message-ID: <1508792849-3115-17-git-send-email-paulmck@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mingo@kernel.org
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, will.deacon@arm.com, mark.rutland@arm.com, snitzer@redhat.com, thor.thayer@linux.intel.com, viro@zeniv.linux.org.uk, davem@davemloft.net, shuah@kernel.org, mpe@ellerman.id.au, tj@kernel.org, torvalds@linux-foundation.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Message-ID: <20171023210726.gQQQ5T0bF1eOSoVdGhtXXqNFGHbx4tdG0w4-DydXSZg@z>
+Message-ID: <20171023210727.WoaE784uHt5J-duhMajM003uvZzYBlUbZe6HjrdUxsY@z>
 
 From: Will Deacon <will.deacon@arm.com>
 
-linux/compiler.h is included indirectly by linux/types.h via
-uapi/linux/types.h -> uapi/linux/posix_types.h -> linux/stddef.h
--> uapi/linux/stddef.h and is needed to provide a proper definition of
-offsetof.
+lockless_dereference is a nice idea, but its gained little traction in
+kernel code since it's introduction three years ago. This is partly
+because it's a pain to type, but also because using READ_ONCE instead
+will work correctly on all architectures apart from Alpha, which is a
+fully supported but somewhat niche architecture these days.
 
-Unfortunately, compiler.h requires a definition of
-smp_read_barrier_depends() for defining lockless_dereference and soon
-for defining READ_ONCE, which means that all
-users of READ_ONCE will need to include asm/barrier.h to avoid splats
-such as:
+This patch moves smp_read_barrier_depends() (a NOP on all architectures
+other than Alpha) from lockless_dereference into READ_ONCE, converts
+the few actual users over to READ_ONCE and then finally removes
+lockless_dereference altogether.
 
-   In file included from include/uapi/linux/stddef.h:1:0,
-                    from include/linux/stddef.h:4,
-                    from arch/h8300/kernel/asm-offsets.c:11:
-   include/linux/list.h: In function 'list_empty':
->> include/linux/compiler.h:343:2: error: implicit declaration of function 'smp_read_barrier_depends' [-Werror=implicit-function-declaration]
-     smp_read_barrier_depends(); /* Enforce dependency ordering from x */ \
-     ^
-
-A better alternative is to include asm/barrier.h in linux/compiler.h,
-but this requires a type definition for "bool" on some architectures
-(e.g. x86), which is defined later by linux/types.h. Type "bool" is also
-used directly in linux/compiler.h, so the whole thing is pretty fragile.
-
-This patch splits compiler.h in two: compiler-types.h contains type
-annotations, definitions and the compiler-specific parts, whereas
-compiler.h #includes compiler-types.h and additionally defines macros
-such as {READ,WRITE.ACCESS}_ONCE.
-
-uapi/linux/stddef.h and linux/linkage.h are then moved over to include
-linux/compiler-types.h, which fixes the build for h8 and blackfin.
-
-Reported-by: kbuild test robot <fengguang.wu@intel.com>
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-[ paulmck: Add Will's fixes for issues reported by kbuild test robot. ]
 ---
- arch/arm/include/asm/ptrace.h   |   3 +-
- arch/sparc/include/asm/ptrace.h |   1 +
- arch/um/include/shared/init.h   |   2 +-
- include/linux/compiler-clang.h  |   2 +-
- include/linux/compiler-gcc.h    |   2 +-
- include/linux/compiler-intel.h  |   2 +-
- include/linux/compiler-types.h  | 274 ++++++++++++++++++++++++++++++++++++++++
- include/linux/compiler.h        | 265 +-------------------------------------
- include/linux/linkage.h         |   2 +-
- include/uapi/linux/stddef.h     |   2 +-
- scripts/headers_install.sh      |   2 +-
- 11 files changed, 286 insertions(+), 271 deletions(-)
- create mode 100644 include/linux/compiler-types.h
+ Documentation/memory-barriers.txt                   | 12 ------------
+ .../translations/ko_KR/memory-barriers.txt          | 12 ------------
+ arch/x86/events/core.c                              |  2 +-
+ arch/x86/include/asm/mmu_context.h                  |  4 ++--
+ arch/x86/kernel/ldt.c                               |  2 +-
+ drivers/md/dm-mpath.c                               | 20 ++++++++++----------
+ fs/dcache.c                                         |  4 ++--
+ fs/overlayfs/ovl_entry.h                            |  2 +-
+ fs/overlayfs/readdir.c                              |  2 +-
+ include/linux/compiler.h                            | 21 +--------------------
+ include/linux/rculist.h                             |  4 ++--
+ include/linux/rcupdate.h                            |  4 ++--
+ kernel/events/core.c                                |  4 ++--
+ kernel/seccomp.c                                    |  2 +-
+ kernel/task_work.c                                  |  2 +-
+ mm/slab.h                                           |  2 +-
+ 16 files changed, 28 insertions(+), 71 deletions(-)
 
-diff --git a/arch/arm/include/asm/ptrace.h b/arch/arm/include/asm/ptrace.h
-index e9c9a117bd25..c7cdbb43ae7c 100644
---- a/arch/arm/include/asm/ptrace.h
-+++ b/arch/arm/include/asm/ptrace.h
-@@ -126,8 +126,7 @@ extern unsigned long profile_pc(struct pt_regs *regs);
- /*
-  * kprobe-based event tracer support
-  */
--#include <linux/stddef.h>
--#include <linux/types.h>
-+#include <linux/compiler.h>
- #define MAX_REG_OFFSET (offsetof(struct pt_regs, ARM_ORIG_r0))
+diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
+index b759a60624fd..470a682f3fa4 100644
+--- a/Documentation/memory-barriers.txt
++++ b/Documentation/memory-barriers.txt
+@@ -1886,18 +1886,6 @@ There are some more advanced barrier functions:
+      See Documentation/atomic_{t,bitops}.txt for more information.
  
- extern int regs_query_register_offset(const char *name);
-diff --git a/arch/sparc/include/asm/ptrace.h b/arch/sparc/include/asm/ptrace.h
-index d73428e4333c..b383484edcd3 100644
---- a/arch/sparc/include/asm/ptrace.h
-+++ b/arch/sparc/include/asm/ptrace.h
-@@ -6,6 +6,7 @@
- #if defined(__sparc__) && defined(__arch64__)
- #ifndef __ASSEMBLY__
  
-+#include <linux/compiler.h>
- #include <linux/threads.h>
- #include <asm/switch_to.h>
+- (*) lockless_dereference();
+-
+-     This can be thought of as a pointer-fetch wrapper around the
+-     smp_read_barrier_depends() data-dependency barrier.
+-
+-     This is also similar to rcu_dereference(), but in cases where
+-     object lifetime is handled by some mechanism other than RCU, for
+-     example, when the objects removed only when the system goes down.
+-     In addition, lockless_dereference() is used in some data structures
+-     that can be used both with and without RCU.
+-
+-
+  (*) dma_wmb();
+  (*) dma_rmb();
  
-diff --git a/arch/um/include/shared/init.h b/arch/um/include/shared/init.h
-index 233e2593eee0..3ad7de77aad0 100644
---- a/arch/um/include/shared/init.h
-+++ b/arch/um/include/shared/init.h
-@@ -40,7 +40,7 @@
- typedef int (*initcall_t)(void);
- typedef void (*exitcall_t)(void);
+diff --git a/Documentation/translations/ko_KR/memory-barriers.txt b/Documentation/translations/ko_KR/memory-barriers.txt
+index a7a813258013..ec3b46e27b7a 100644
+--- a/Documentation/translations/ko_KR/memory-barriers.txt
++++ b/Documentation/translations/ko_KR/memory-barriers.txt
+@@ -1858,18 +1858,6 @@ Mandatory 배리어들은 SMP 시스템에서도 UP 시스템에서도 SMP 효
+      참고하세요.
  
--#include <linux/compiler.h>
-+#include <linux/compiler-types.h>
  
- /* These are for everybody (although not all archs will actually
-    discard it in modules) */
-diff --git a/include/linux/compiler-clang.h b/include/linux/compiler-clang.h
-index de179993e039..5947a3e6c0e6 100644
---- a/include/linux/compiler-clang.h
-+++ b/include/linux/compiler-clang.h
-@@ -1,4 +1,4 @@
--#ifndef __LINUX_COMPILER_H
-+#ifndef __LINUX_COMPILER_TYPES_H
- #error "Please don't include <linux/compiler-clang.h> directly, include <linux/compiler.h> instead."
- #endif
+- (*) lockless_dereference();
+-
+-     이 함수는 smp_read_barrier_depends() 데이터 의존성 배리어를 사용하는
+-     포인터 읽어오기 래퍼(wrapper) 함수로 생각될 수 있습니다.
+-
+-     객체의 라이프타임이 RCU 외의 메커니즘으로 관리된다는 점을 제외하면
+-     rcu_dereference() 와도 유사한데, 예를 들면 객체가 시스템이 꺼질 때에만
+-     제거되는 경우 등입니다.  또한, lockless_dereference() 은 RCU 와 함께
+-     사용될수도, RCU 없이 사용될 수도 있는 일부 데이터 구조에 사용되고
+-     있습니다.
+-
+-
+  (*) dma_wmb();
+  (*) dma_rmb();
  
-diff --git a/include/linux/compiler-gcc.h b/include/linux/compiler-gcc.h
-index 16d41de92ee3..ce8e965646ef 100644
---- a/include/linux/compiler-gcc.h
-+++ b/include/linux/compiler-gcc.h
-@@ -1,4 +1,4 @@
--#ifndef __LINUX_COMPILER_H
-+#ifndef __LINUX_COMPILER_TYPES_H
- #error "Please don't include <linux/compiler-gcc.h> directly, include <linux/compiler.h> instead."
- #endif
+diff --git a/arch/x86/events/core.c b/arch/x86/events/core.c
+index 80534d3c2480..589af1eec7c1 100644
+--- a/arch/x86/events/core.c
++++ b/arch/x86/events/core.c
+@@ -2371,7 +2371,7 @@ static unsigned long get_segment_base(unsigned int segment)
+ 		struct ldt_struct *ldt;
  
-diff --git a/include/linux/compiler-intel.h b/include/linux/compiler-intel.h
-index d4c71132d07f..e438ac89c692 100644
---- a/include/linux/compiler-intel.h
-+++ b/include/linux/compiler-intel.h
-@@ -1,4 +1,4 @@
--#ifndef __LINUX_COMPILER_H
-+#ifndef __LINUX_COMPILER_TYPES_H
- #error "Please don't include <linux/compiler-intel.h> directly, include <linux/compiler.h> instead."
- #endif
+ 		/* IRQs are off, so this synchronizes with smp_store_release */
+-		ldt = lockless_dereference(current->active_mm->context.ldt);
++		ldt = READ_ONCE(current->active_mm->context.ldt);
+ 		if (!ldt || idx >= ldt->nr_entries)
+ 			return 0;
  
-diff --git a/include/linux/compiler-types.h b/include/linux/compiler-types.h
-new file mode 100644
-index 000000000000..6b79a9bba9a7
---- /dev/null
-+++ b/include/linux/compiler-types.h
-@@ -0,0 +1,274 @@
-+#ifndef __LINUX_COMPILER_TYPES_H
-+#define __LINUX_COMPILER_TYPES_H
-+
-+#ifndef __ASSEMBLY__
-+
-+#ifdef __CHECKER__
-+# define __user		__attribute__((noderef, address_space(1)))
-+# define __kernel	__attribute__((address_space(0)))
-+# define __safe		__attribute__((safe))
-+# define __force	__attribute__((force))
-+# define __nocast	__attribute__((nocast))
-+# define __iomem	__attribute__((noderef, address_space(2)))
-+# define __must_hold(x)	__attribute__((context(x,1,1)))
-+# define __acquires(x)	__attribute__((context(x,0,1)))
-+# define __releases(x)	__attribute__((context(x,1,0)))
-+# define __acquire(x)	__context__(x,1)
-+# define __release(x)	__context__(x,-1)
-+# define __cond_lock(x,c)	((c) ? ({ __acquire(x); 1; }) : 0)
-+# define __percpu	__attribute__((noderef, address_space(3)))
-+# define __rcu		__attribute__((noderef, address_space(4)))
-+# define __private	__attribute__((noderef))
-+extern void __chk_user_ptr(const volatile void __user *);
-+extern void __chk_io_ptr(const volatile void __iomem *);
-+# define ACCESS_PRIVATE(p, member) (*((typeof((p)->member) __force *) &(p)->member))
-+#else /* __CHECKER__ */
-+# ifdef STRUCTLEAK_PLUGIN
-+#  define __user __attribute__((user))
-+# else
-+#  define __user
-+# endif
-+# define __kernel
-+# define __safe
-+# define __force
-+# define __nocast
-+# define __iomem
-+# define __chk_user_ptr(x) (void)0
-+# define __chk_io_ptr(x) (void)0
-+# define __builtin_warning(x, y...) (1)
-+# define __must_hold(x)
-+# define __acquires(x)
-+# define __releases(x)
-+# define __acquire(x) (void)0
-+# define __release(x) (void)0
-+# define __cond_lock(x,c) (c)
-+# define __percpu
-+# define __rcu
-+# define __private
-+# define ACCESS_PRIVATE(p, member) ((p)->member)
-+#endif /* __CHECKER__ */
-+
-+/* Indirect macros required for expanded argument pasting, eg. __LINE__. */
-+#define ___PASTE(a,b) a##b
-+#define __PASTE(a,b) ___PASTE(a,b)
-+
-+#ifdef __KERNEL__
-+
-+#ifdef __GNUC__
-+#include <linux/compiler-gcc.h>
-+#endif
-+
-+#if defined(CC_USING_HOTPATCH) && !defined(__CHECKER__)
-+#define notrace __attribute__((hotpatch(0,0)))
-+#else
-+#define notrace __attribute__((no_instrument_function))
-+#endif
-+
-+/* Intel compiler defines __GNUC__. So we will overwrite implementations
-+ * coming from above header files here
-+ */
-+#ifdef __INTEL_COMPILER
-+# include <linux/compiler-intel.h>
-+#endif
-+
-+/* Clang compiler defines __GNUC__. So we will overwrite implementations
-+ * coming from above header files here
-+ */
-+#ifdef __clang__
-+#include <linux/compiler-clang.h>
-+#endif
-+
-+/*
-+ * Generic compiler-dependent macros required for kernel
-+ * build go below this comment. Actual compiler/compiler version
-+ * specific implementations come from the above header files
-+ */
-+
-+struct ftrace_branch_data {
-+	const char *func;
-+	const char *file;
-+	unsigned line;
-+	union {
-+		struct {
-+			unsigned long correct;
-+			unsigned long incorrect;
-+		};
-+		struct {
-+			unsigned long miss;
-+			unsigned long hit;
-+		};
-+		unsigned long miss_hit[2];
-+	};
-+};
-+
-+struct ftrace_likely_data {
-+	struct ftrace_branch_data	data;
-+	unsigned long			constant;
-+};
-+
-+#endif /* __KERNEL__ */
-+
-+#endif /* __ASSEMBLY__ */
-+
-+#ifdef __KERNEL__
-+/*
-+ * Allow us to mark functions as 'deprecated' and have gcc emit a nice
-+ * warning for each use, in hopes of speeding the functions removal.
-+ * Usage is:
-+ * 		int __deprecated foo(void)
-+ */
-+#ifndef __deprecated
-+# define __deprecated		/* unimplemented */
-+#endif
-+
-+#ifdef MODULE
-+#define __deprecated_for_modules __deprecated
-+#else
-+#define __deprecated_for_modules
-+#endif
-+
-+#ifndef __must_check
-+#define __must_check
-+#endif
-+
-+#ifndef CONFIG_ENABLE_MUST_CHECK
-+#undef __must_check
-+#define __must_check
-+#endif
-+#ifndef CONFIG_ENABLE_WARN_DEPRECATED
-+#undef __deprecated
-+#undef __deprecated_for_modules
-+#define __deprecated
-+#define __deprecated_for_modules
-+#endif
-+
-+#ifndef __malloc
-+#define __malloc
-+#endif
-+
-+/*
-+ * Allow us to avoid 'defined but not used' warnings on functions and data,
-+ * as well as force them to be emitted to the assembly file.
-+ *
-+ * As of gcc 3.4, static functions that are not marked with attribute((used))
-+ * may be elided from the assembly file.  As of gcc 3.4, static data not so
-+ * marked will not be elided, but this may change in a future gcc version.
-+ *
-+ * NOTE: Because distributions shipped with a backported unit-at-a-time
-+ * compiler in gcc 3.3, we must define __used to be __attribute__((used))
-+ * for gcc >=3.3 instead of 3.4.
-+ *
-+ * In prior versions of gcc, such functions and data would be emitted, but
-+ * would be warned about except with attribute((unused)).
-+ *
-+ * Mark functions that are referenced only in inline assembly as __used so
-+ * the code is emitted even though it appears to be unreferenced.
-+ */
-+#ifndef __used
-+# define __used			/* unimplemented */
-+#endif
-+
-+#ifndef __maybe_unused
-+# define __maybe_unused		/* unimplemented */
-+#endif
-+
-+#ifndef __always_unused
-+# define __always_unused	/* unimplemented */
-+#endif
-+
-+#ifndef noinline
-+#define noinline
-+#endif
-+
-+/*
-+ * Rather then using noinline to prevent stack consumption, use
-+ * noinline_for_stack instead.  For documentation reasons.
-+ */
-+#define noinline_for_stack noinline
-+
-+#ifndef __always_inline
-+#define __always_inline inline
-+#endif
-+
-+#endif /* __KERNEL__ */
-+
-+/*
-+ * From the GCC manual:
-+ *
-+ * Many functions do not examine any values except their arguments,
-+ * and have no effects except the return value.  Basically this is
-+ * just slightly more strict class than the `pure' attribute above,
-+ * since function is not allowed to read global memory.
-+ *
-+ * Note that a function that has pointer arguments and examines the
-+ * data pointed to must _not_ be declared `const'.  Likewise, a
-+ * function that calls a non-`const' function usually must not be
-+ * `const'.  It does not make sense for a `const' function to return
-+ * `void'.
-+ */
-+#ifndef __attribute_const__
-+# define __attribute_const__	/* unimplemented */
-+#endif
-+
-+#ifndef __designated_init
-+# define __designated_init
-+#endif
-+
-+#ifndef __latent_entropy
-+# define __latent_entropy
-+#endif
-+
-+#ifndef __randomize_layout
-+# define __randomize_layout __designated_init
-+#endif
-+
-+#ifndef __no_randomize_layout
-+# define __no_randomize_layout
-+#endif
-+
-+#ifndef randomized_struct_fields_start
-+# define randomized_struct_fields_start
-+# define randomized_struct_fields_end
-+#endif
-+
-+/*
-+ * Tell gcc if a function is cold. The compiler will assume any path
-+ * directly leading to the call is unlikely.
-+ */
-+
-+#ifndef __cold
-+#define __cold
-+#endif
-+
-+/* Simple shorthand for a section definition */
-+#ifndef __section
-+# define __section(S) __attribute__ ((__section__(#S)))
-+#endif
-+
-+#ifndef __visible
-+#define __visible
-+#endif
-+
-+#ifndef __nostackprotector
-+# define __nostackprotector
-+#endif
-+
-+/*
-+ * Assume alignment of return value.
-+ */
-+#ifndef __assume_aligned
-+#define __assume_aligned(a, ...)
-+#endif
-+
-+
-+/* Are two types/vars the same type (ignoring qualifiers)? */
-+#ifndef __same_type
-+# define __same_type(a, b) __builtin_types_compatible_p(typeof(a), typeof(b))
-+#endif
-+
-+/* Is this type a native word size -- useful for atomic operations */
-+#ifndef __native_word
-+# define __native_word(t) (sizeof(t) == sizeof(char) || sizeof(t) == sizeof(short) || sizeof(t) == sizeof(int) || sizeof(t) == sizeof(long))
-+#endif
-+
-+#endif /* __LINUX_COMPILER_TYPES_H */
+diff --git a/arch/x86/include/asm/mmu_context.h b/arch/x86/include/asm/mmu_context.h
+index c120b5db178a..9037a4e546e8 100644
+--- a/arch/x86/include/asm/mmu_context.h
++++ b/arch/x86/include/asm/mmu_context.h
+@@ -72,8 +72,8 @@ static inline void load_mm_ldt(struct mm_struct *mm)
+ #ifdef CONFIG_MODIFY_LDT_SYSCALL
+ 	struct ldt_struct *ldt;
+ 
+-	/* lockless_dereference synchronizes with smp_store_release */
+-	ldt = lockless_dereference(mm->context.ldt);
++	/* READ_ONCE synchronizes with smp_store_release */
++	ldt = READ_ONCE(mm->context.ldt);
+ 
+ 	/*
+ 	 * Any change to mm->context.ldt is followed by an IPI to all
+diff --git a/arch/x86/kernel/ldt.c b/arch/x86/kernel/ldt.c
+index f0e64db18ac8..0a21390642c4 100644
+--- a/arch/x86/kernel/ldt.c
++++ b/arch/x86/kernel/ldt.c
+@@ -101,7 +101,7 @@ static void finalize_ldt_struct(struct ldt_struct *ldt)
+ static void install_ldt(struct mm_struct *current_mm,
+ 			struct ldt_struct *ldt)
+ {
+-	/* Synchronizes with lockless_dereference in load_mm_ldt. */
++	/* Synchronizes with READ_ONCE in load_mm_ldt. */
+ 	smp_store_release(&current_mm->context.ldt, ldt);
+ 
+ 	/* Activate the LDT for all CPUs using current_mm. */
+diff --git a/drivers/md/dm-mpath.c b/drivers/md/dm-mpath.c
+index 11f273d2f018..3f88c9d32f7e 100644
+--- a/drivers/md/dm-mpath.c
++++ b/drivers/md/dm-mpath.c
+@@ -366,7 +366,7 @@ static struct pgpath *choose_path_in_pg(struct multipath *m,
+ 
+ 	pgpath = path_to_pgpath(path);
+ 
+-	if (unlikely(lockless_dereference(m->current_pg) != pg)) {
++	if (unlikely(READ_ONCE(m->current_pg) != pg)) {
+ 		/* Only update current_pgpath if pg changed */
+ 		spin_lock_irqsave(&m->lock, flags);
+ 		m->current_pgpath = pgpath;
+@@ -390,7 +390,7 @@ static struct pgpath *choose_pgpath(struct multipath *m, size_t nr_bytes)
+ 	}
+ 
+ 	/* Were we instructed to switch PG? */
+-	if (lockless_dereference(m->next_pg)) {
++	if (READ_ONCE(m->next_pg)) {
+ 		spin_lock_irqsave(&m->lock, flags);
+ 		pg = m->next_pg;
+ 		if (!pg) {
+@@ -406,7 +406,7 @@ static struct pgpath *choose_pgpath(struct multipath *m, size_t nr_bytes)
+ 
+ 	/* Don't change PG until it has no remaining paths */
+ check_current_pg:
+-	pg = lockless_dereference(m->current_pg);
++	pg = READ_ONCE(m->current_pg);
+ 	if (pg) {
+ 		pgpath = choose_path_in_pg(m, pg, nr_bytes);
+ 		if (!IS_ERR_OR_NULL(pgpath))
+@@ -473,7 +473,7 @@ static int multipath_clone_and_map(struct dm_target *ti, struct request *rq,
+ 	struct request *clone;
+ 
+ 	/* Do we need to select a new pgpath? */
+-	pgpath = lockless_dereference(m->current_pgpath);
++	pgpath = READ_ONCE(m->current_pgpath);
+ 	if (!pgpath || !test_bit(MPATHF_QUEUE_IO, &m->flags))
+ 		pgpath = choose_pgpath(m, nr_bytes);
+ 
+@@ -535,7 +535,7 @@ static int __multipath_map_bio(struct multipath *m, struct bio *bio, struct dm_m
+ 	bool queue_io;
+ 
+ 	/* Do we need to select a new pgpath? */
+-	pgpath = lockless_dereference(m->current_pgpath);
++	pgpath = READ_ONCE(m->current_pgpath);
+ 	queue_io = test_bit(MPATHF_QUEUE_IO, &m->flags);
+ 	if (!pgpath || !queue_io)
+ 		pgpath = choose_pgpath(m, nr_bytes);
+@@ -1804,7 +1804,7 @@ static int multipath_prepare_ioctl(struct dm_target *ti,
+ 	struct pgpath *current_pgpath;
+ 	int r;
+ 
+-	current_pgpath = lockless_dereference(m->current_pgpath);
++	current_pgpath = READ_ONCE(m->current_pgpath);
+ 	if (!current_pgpath)
+ 		current_pgpath = choose_pgpath(m, 0);
+ 
+@@ -1826,7 +1826,7 @@ static int multipath_prepare_ioctl(struct dm_target *ti,
+ 	}
+ 
+ 	if (r == -ENOTCONN) {
+-		if (!lockless_dereference(m->current_pg)) {
++		if (!READ_ONCE(m->current_pg)) {
+ 			/* Path status changed, redo selection */
+ 			(void) choose_pgpath(m, 0);
+ 		}
+@@ -1895,9 +1895,9 @@ static int multipath_busy(struct dm_target *ti)
+ 		return (m->queue_mode != DM_TYPE_MQ_REQUEST_BASED);
+ 
+ 	/* Guess which priority_group will be used at next mapping time */
+-	pg = lockless_dereference(m->current_pg);
+-	next_pg = lockless_dereference(m->next_pg);
+-	if (unlikely(!lockless_dereference(m->current_pgpath) && next_pg))
++	pg = READ_ONCE(m->current_pg);
++	next_pg = READ_ONCE(m->next_pg);
++	if (unlikely(!READ_ONCE(m->current_pgpath) && next_pg))
+ 		pg = next_pg;
+ 
+ 	if (!pg) {
+diff --git a/fs/dcache.c b/fs/dcache.c
+index f90141387f01..34c852af215c 100644
+--- a/fs/dcache.c
++++ b/fs/dcache.c
+@@ -231,7 +231,7 @@ static inline int dentry_cmp(const struct dentry *dentry, const unsigned char *c
+ {
+ 	/*
+ 	 * Be careful about RCU walk racing with rename:
+-	 * use 'lockless_dereference' to fetch the name pointer.
++	 * use 'READ_ONCE' to fetch the name pointer.
+ 	 *
+ 	 * NOTE! Even if a rename will mean that the length
+ 	 * was not loaded atomically, we don't care. The
+@@ -245,7 +245,7 @@ static inline int dentry_cmp(const struct dentry *dentry, const unsigned char *c
+ 	 * early because the data cannot match (there can
+ 	 * be no NUL in the ct/tcount data)
+ 	 */
+-	const unsigned char *cs = lockless_dereference(dentry->d_name.name);
++	const unsigned char *cs = READ_ONCE(dentry->d_name.name);
+ 
+ 	return dentry_string_cmp(cs, ct, tcount);
+ }
+diff --git a/fs/overlayfs/ovl_entry.h b/fs/overlayfs/ovl_entry.h
+index 25d9b5adcd42..36b49bd09264 100644
+--- a/fs/overlayfs/ovl_entry.h
++++ b/fs/overlayfs/ovl_entry.h
+@@ -77,5 +77,5 @@ static inline struct ovl_inode *OVL_I(struct inode *inode)
+ 
+ static inline struct dentry *ovl_upperdentry_dereference(struct ovl_inode *oi)
+ {
+-	return lockless_dereference(oi->__upperdentry);
++	return READ_ONCE(oi->__upperdentry);
+ }
+diff --git a/fs/overlayfs/readdir.c b/fs/overlayfs/readdir.c
+index 0f85ee9c3268..c67a7703296b 100644
+--- a/fs/overlayfs/readdir.c
++++ b/fs/overlayfs/readdir.c
+@@ -754,7 +754,7 @@ static int ovl_dir_fsync(struct file *file, loff_t start, loff_t end,
+ 	if (!od->is_upper && OVL_TYPE_UPPER(ovl_path_type(dentry))) {
+ 		struct inode *inode = file_inode(file);
+ 
+-		realfile = lockless_dereference(od->upperfile);
++		realfile = READ_ONCE(od->upperfile);
+ 		if (!realfile) {
+ 			struct path upperpath;
+ 
 diff --git a/include/linux/compiler.h b/include/linux/compiler.h
-index e95a2631e545..c714239f453f 100644
+index c714239f453f..4517662f128c 100644
 --- a/include/linux/compiler.h
 +++ b/include/linux/compiler.h
-@@ -1,111 +1,12 @@
- #ifndef __LINUX_COMPILER_H
- #define __LINUX_COMPILER_H
+@@ -242,6 +242,7 @@ static __always_inline void __write_once_size(volatile void *p, void *res, int s
+ 		__read_once_size(&(x), __u.__c, sizeof(x));		\
+ 	else								\
+ 		__read_once_size_nocheck(&(x), __u.__c, sizeof(x));	\
++	smp_read_barrier_depends(); /* Enforce dependency ordering from x */ \
+ 	__u.__val;							\
+ })
+ #define READ_ONCE(x) __READ_ONCE(x, 1)
+@@ -345,24 +346,4 @@ static __always_inline void __write_once_size(volatile void *p, void *res, int s
+ 	(volatile typeof(x) *)&(x); })
+ #define ACCESS_ONCE(x) (*__ACCESS_ONCE(x))
  
--#ifndef __ASSEMBLY__
-+#include <linux/compiler-types.h>
- 
--#ifdef __CHECKER__
--# define __user		__attribute__((noderef, address_space(1)))
--# define __kernel	__attribute__((address_space(0)))
--# define __safe		__attribute__((safe))
--# define __force	__attribute__((force))
--# define __nocast	__attribute__((nocast))
--# define __iomem	__attribute__((noderef, address_space(2)))
--# define __must_hold(x)	__attribute__((context(x,1,1)))
--# define __acquires(x)	__attribute__((context(x,0,1)))
--# define __releases(x)	__attribute__((context(x,1,0)))
--# define __acquire(x)	__context__(x,1)
--# define __release(x)	__context__(x,-1)
--# define __cond_lock(x,c)	((c) ? ({ __acquire(x); 1; }) : 0)
--# define __percpu	__attribute__((noderef, address_space(3)))
--# define __rcu		__attribute__((noderef, address_space(4)))
--# define __private	__attribute__((noderef))
--extern void __chk_user_ptr(const volatile void __user *);
--extern void __chk_io_ptr(const volatile void __iomem *);
--# define ACCESS_PRIVATE(p, member) (*((typeof((p)->member) __force *) &(p)->member))
--#else /* __CHECKER__ */
--# ifdef STRUCTLEAK_PLUGIN
--#  define __user __attribute__((user))
--# else
--#  define __user
--# endif
--# define __kernel
--# define __safe
--# define __force
--# define __nocast
--# define __iomem
--# define __chk_user_ptr(x) (void)0
--# define __chk_io_ptr(x) (void)0
--# define __builtin_warning(x, y...) (1)
--# define __must_hold(x)
--# define __acquires(x)
--# define __releases(x)
--# define __acquire(x) (void)0
--# define __release(x) (void)0
--# define __cond_lock(x,c) (c)
--# define __percpu
--# define __rcu
--# define __private
--# define ACCESS_PRIVATE(p, member) ((p)->member)
--#endif /* __CHECKER__ */
--
--/* Indirect macros required for expanded argument pasting, eg. __LINE__. */
--#define ___PASTE(a,b) a##b
--#define __PASTE(a,b) ___PASTE(a,b)
-+#ifndef __ASSEMBLY__
- 
- #ifdef __KERNEL__
- 
--#ifdef __GNUC__
--#include <linux/compiler-gcc.h>
--#endif
--
--#if defined(CC_USING_HOTPATCH) && !defined(__CHECKER__)
--#define notrace __attribute__((hotpatch(0,0)))
--#else
--#define notrace __attribute__((no_instrument_function))
--#endif
--
--/* Intel compiler defines __GNUC__. So we will overwrite implementations
-- * coming from above header files here
+-/**
+- * lockless_dereference() - safely load a pointer for later dereference
+- * @p: The pointer to load
+- *
+- * Similar to rcu_dereference(), but for situations where the pointed-to
+- * object's lifetime is managed by something other than RCU.  That
+- * "something other" might be reference counting or simple immortality.
+- *
+- * The seemingly unused variable ___typecheck_p validates that @p is
+- * indeed a pointer type by using a pointer to typeof(*p) as the type.
+- * Taking a pointer to typeof(*p) again is needed in case p is void *.
 - */
--#ifdef __INTEL_COMPILER
--# include <linux/compiler-intel.h>
--#endif
+-#define lockless_dereference(p) \
+-({ \
+-	typeof(p) _________p1 = READ_ONCE(p); \
+-	typeof(*(p)) *___typecheck_p __maybe_unused; \
+-	smp_read_barrier_depends(); /* Dependency order vs. p above. */ \
+-	(_________p1); \
+-})
 -
--/* Clang compiler defines __GNUC__. So we will overwrite implementations
-- * coming from above header files here
-- */
--#ifdef __clang__
--#include <linux/compiler-clang.h>
--#endif
--
--/*
-- * Generic compiler-dependent macros required for kernel
-- * build go below this comment. Actual compiler/compiler version
-- * specific implementations come from the above header files
-- */
--
--struct ftrace_branch_data {
--	const char *func;
--	const char *file;
--	unsigned line;
--	union {
--		struct {
--			unsigned long correct;
--			unsigned long incorrect;
--		};
--		struct {
--			unsigned long miss;
--			unsigned long hit;
--		};
--		unsigned long miss_hit[2];
--	};
--};
--
--struct ftrace_likely_data {
--	struct ftrace_branch_data	data;
--	unsigned long			constant;
--};
--
- /*
-  * Note: DISABLE_BRANCH_PROFILING can be used by special lowlevel code
-  * to disable branch tracing on a per file basis.
-@@ -332,6 +233,7 @@ static __always_inline void __write_once_size(volatile void *p, void *res, int s
-  * with an explicit memory barrier or atomic instruction that provides the
-  * required ordering.
+ #endif /* __LINUX_COMPILER_H */
+diff --git a/include/linux/rculist.h b/include/linux/rculist.h
+index b1fd8bf85fdc..3a2bb7d8ed4d 100644
+--- a/include/linux/rculist.h
++++ b/include/linux/rculist.h
+@@ -274,7 +274,7 @@ static inline void list_splice_tail_init_rcu(struct list_head *list,
+  * primitives such as list_add_rcu() as long as it's guarded by rcu_read_lock().
   */
-+#include <asm/barrier.h>
+ #define list_entry_rcu(ptr, type, member) \
+-	container_of(lockless_dereference(ptr), type, member)
++	container_of(READ_ONCE(ptr), type, member)
  
- #define __READ_ONCE(x, check)						\
- ({									\
-@@ -362,167 +264,6 @@ static __always_inline void __write_once_size(volatile void *p, void *res, int s
+ /**
+  * Where are list_empty_rcu() and list_first_entry_rcu()?
+@@ -367,7 +367,7 @@ static inline void list_splice_tail_init_rcu(struct list_head *list,
+  * example is when items are added to the list, but never deleted.
+  */
+ #define list_entry_lockless(ptr, type, member) \
+-	container_of((typeof(ptr))lockless_dereference(ptr), type, member)
++	container_of((typeof(ptr))READ_ONCE(ptr), type, member)
  
- #endif /* __ASSEMBLY__ */
+ /**
+  * list_for_each_entry_lockless - iterate over rcu list of given type
+diff --git a/include/linux/rcupdate.h b/include/linux/rcupdate.h
+index de50d8a4cf41..380a3aeb09d7 100644
+--- a/include/linux/rcupdate.h
++++ b/include/linux/rcupdate.h
+@@ -346,7 +346,7 @@ static inline void rcu_preempt_sleep_check(void) { }
+ #define __rcu_dereference_check(p, c, space) \
+ ({ \
+ 	/* Dependency order vs. p above. */ \
+-	typeof(*p) *________p1 = (typeof(*p) *__force)lockless_dereference(p); \
++	typeof(*p) *________p1 = (typeof(*p) *__force)READ_ONCE(p); \
+ 	RCU_LOCKDEP_WARN(!(c), "suspicious rcu_dereference_check() usage"); \
+ 	rcu_dereference_sparse(p, space); \
+ 	((typeof(*p) __force __kernel *)(________p1)); \
+@@ -360,7 +360,7 @@ static inline void rcu_preempt_sleep_check(void) { }
+ #define rcu_dereference_raw(p) \
+ ({ \
+ 	/* Dependency order vs. p above. */ \
+-	typeof(p) ________p1 = lockless_dereference(p); \
++	typeof(p) ________p1 = READ_ONCE(p); \
+ 	((typeof(*p) __force __kernel *)(________p1)); \
+ })
  
--#ifdef __KERNEL__
--/*
-- * Allow us to mark functions as 'deprecated' and have gcc emit a nice
-- * warning for each use, in hopes of speeding the functions removal.
-- * Usage is:
-- * 		int __deprecated foo(void)
-- */
--#ifndef __deprecated
--# define __deprecated		/* unimplemented */
--#endif
--
--#ifdef MODULE
--#define __deprecated_for_modules __deprecated
--#else
--#define __deprecated_for_modules
--#endif
--
--#ifndef __must_check
--#define __must_check
--#endif
--
--#ifndef CONFIG_ENABLE_MUST_CHECK
--#undef __must_check
--#define __must_check
--#endif
--#ifndef CONFIG_ENABLE_WARN_DEPRECATED
--#undef __deprecated
--#undef __deprecated_for_modules
--#define __deprecated
--#define __deprecated_for_modules
--#endif
--
--#ifndef __malloc
--#define __malloc
--#endif
--
--/*
-- * Allow us to avoid 'defined but not used' warnings on functions and data,
-- * as well as force them to be emitted to the assembly file.
-- *
-- * As of gcc 3.4, static functions that are not marked with attribute((used))
-- * may be elided from the assembly file.  As of gcc 3.4, static data not so
-- * marked will not be elided, but this may change in a future gcc version.
-- *
-- * NOTE: Because distributions shipped with a backported unit-at-a-time
-- * compiler in gcc 3.3, we must define __used to be __attribute__((used))
-- * for gcc >=3.3 instead of 3.4.
-- *
-- * In prior versions of gcc, such functions and data would be emitted, but
-- * would be warned about except with attribute((unused)).
-- *
-- * Mark functions that are referenced only in inline assembly as __used so
-- * the code is emitted even though it appears to be unreferenced.
-- */
--#ifndef __used
--# define __used			/* unimplemented */
--#endif
--
--#ifndef __maybe_unused
--# define __maybe_unused		/* unimplemented */
--#endif
--
--#ifndef __always_unused
--# define __always_unused	/* unimplemented */
--#endif
--
--#ifndef noinline
--#define noinline
--#endif
--
--/*
-- * Rather then using noinline to prevent stack consumption, use
-- * noinline_for_stack instead.  For documentation reasons.
-- */
--#define noinline_for_stack noinline
--
--#ifndef __always_inline
--#define __always_inline inline
--#endif
--
--#endif /* __KERNEL__ */
--
--/*
-- * From the GCC manual:
-- *
-- * Many functions do not examine any values except their arguments,
-- * and have no effects except the return value.  Basically this is
-- * just slightly more strict class than the `pure' attribute above,
-- * since function is not allowed to read global memory.
-- *
-- * Note that a function that has pointer arguments and examines the
-- * data pointed to must _not_ be declared `const'.  Likewise, a
-- * function that calls a non-`const' function usually must not be
-- * `const'.  It does not make sense for a `const' function to return
-- * `void'.
-- */
--#ifndef __attribute_const__
--# define __attribute_const__	/* unimplemented */
--#endif
--
--#ifndef __designated_init
--# define __designated_init
--#endif
--
--#ifndef __latent_entropy
--# define __latent_entropy
--#endif
--
--#ifndef __randomize_layout
--# define __randomize_layout __designated_init
--#endif
--
--#ifndef __no_randomize_layout
--# define __no_randomize_layout
--#endif
--
--#ifndef randomized_struct_fields_start
--# define randomized_struct_fields_start
--# define randomized_struct_fields_end
--#endif
--
--/*
-- * Tell gcc if a function is cold. The compiler will assume any path
-- * directly leading to the call is unlikely.
-- */
--
--#ifndef __cold
--#define __cold
--#endif
--
--/* Simple shorthand for a section definition */
--#ifndef __section
--# define __section(S) __attribute__ ((__section__(#S)))
--#endif
--
--#ifndef __visible
--#define __visible
--#endif
--
--#ifndef __nostackprotector
--# define __nostackprotector
--#endif
--
--/*
-- * Assume alignment of return value.
-- */
--#ifndef __assume_aligned
--#define __assume_aligned(a, ...)
--#endif
--
--
--/* Are two types/vars the same type (ignoring qualifiers)? */
--#ifndef __same_type
--# define __same_type(a, b) __builtin_types_compatible_p(typeof(a), typeof(b))
--#endif
--
--/* Is this type a native word size -- useful for atomic operations */
--#ifndef __native_word
--# define __native_word(t) (sizeof(t) == sizeof(char) || sizeof(t) == sizeof(short) || sizeof(t) == sizeof(int) || sizeof(t) == sizeof(long))
--#endif
--
- /* Compile time object size, -1 for unknown */
- #ifndef __compiletime_object_size
- # define __compiletime_object_size(obj) -1
-diff --git a/include/linux/linkage.h b/include/linux/linkage.h
-index a6a42dd02466..9599d13cea0c 100644
---- a/include/linux/linkage.h
-+++ b/include/linux/linkage.h
-@@ -1,7 +1,7 @@
- #ifndef _LINUX_LINKAGE_H
- #define _LINUX_LINKAGE_H
+diff --git a/kernel/events/core.c b/kernel/events/core.c
+index 6bc21e202ae4..417812ce0099 100644
+--- a/kernel/events/core.c
++++ b/kernel/events/core.c
+@@ -4231,7 +4231,7 @@ static void perf_remove_from_owner(struct perf_event *event)
+ 	 * indeed free this event, otherwise we need to serialize on
+ 	 * owner->perf_event_mutex.
+ 	 */
+-	owner = lockless_dereference(event->owner);
++	owner = READ_ONCE(event->owner);
+ 	if (owner) {
+ 		/*
+ 		 * Since delayed_put_task_struct() also drops the last
+@@ -4328,7 +4328,7 @@ int perf_event_release_kernel(struct perf_event *event)
+ 		 * Cannot change, child events are not migrated, see the
+ 		 * comment with perf_event_ctx_lock_nested().
+ 		 */
+-		ctx = lockless_dereference(child->ctx);
++		ctx = READ_ONCE(child->ctx);
+ 		/*
+ 		 * Since child_mutex nests inside ctx::mutex, we must jump
+ 		 * through hoops. We start by grabbing a reference on the ctx.
+diff --git a/kernel/seccomp.c b/kernel/seccomp.c
+index bb3a38005b9c..1daa8b61a268 100644
+--- a/kernel/seccomp.c
++++ b/kernel/seccomp.c
+@@ -189,7 +189,7 @@ static u32 seccomp_run_filters(const struct seccomp_data *sd,
+ 	u32 ret = SECCOMP_RET_ALLOW;
+ 	/* Make sure cross-thread synced filter points somewhere sane. */
+ 	struct seccomp_filter *f =
+-			lockless_dereference(current->seccomp.filter);
++			READ_ONCE(current->seccomp.filter);
  
--#include <linux/compiler.h>
-+#include <linux/compiler-types.h>
- #include <linux/stringify.h>
- #include <linux/export.h>
- #include <asm/linkage.h>
-diff --git a/include/uapi/linux/stddef.h b/include/uapi/linux/stddef.h
-index 621fa8ac4425..1ec6a7867c46 100644
---- a/include/uapi/linux/stddef.h
-+++ b/include/uapi/linux/stddef.h
-@@ -1,4 +1,4 @@
--#include <linux/compiler.h>
-+#include <linux/compiler-types.h>
+ 	/* Ensure unexpected behavior doesn't result in failing open. */
+ 	if (unlikely(WARN_ON(f == NULL)))
+diff --git a/kernel/task_work.c b/kernel/task_work.c
+index 836a72a66fba..9a9f262fc53d 100644
+--- a/kernel/task_work.c
++++ b/kernel/task_work.c
+@@ -67,7 +67,7 @@ task_work_cancel(struct task_struct *task, task_work_func_t func)
+ 	 * we raced with task_work_run(), *pprev == NULL/exited.
+ 	 */
+ 	raw_spin_lock_irqsave(&task->pi_lock, flags);
+-	while ((work = lockless_dereference(*pprev))) {
++	while ((work = READ_ONCE(*pprev))) {
+ 		if (work->func != func)
+ 			pprev = &work->next;
+ 		else if (cmpxchg(pprev, work, work->next) == work)
+diff --git a/mm/slab.h b/mm/slab.h
+index 073362816acc..8894f811a89d 100644
+--- a/mm/slab.h
++++ b/mm/slab.h
+@@ -258,7 +258,7 @@ cache_from_memcg_idx(struct kmem_cache *s, int idx)
+ 	 * memcg_caches issues a write barrier to match this (see
+ 	 * memcg_create_kmem_cache()).
+ 	 */
+-	cachep = lockless_dereference(arr->entries[idx]);
++	cachep = READ_ONCE(arr->entries[idx]);
+ 	rcu_read_unlock();
  
- #ifndef __always_inline
- #define __always_inline inline
-diff --git a/scripts/headers_install.sh b/scripts/headers_install.sh
-index fdebd66f8fc1..bbb7f3d35289 100755
---- a/scripts/headers_install.sh
-+++ b/scripts/headers_install.sh
-@@ -33,7 +33,7 @@ do
- 	sed -r \
- 		-e 's/([ \t(])(__user|__force|__iomem)[ \t]/\1/g' \
- 		-e 's/__attribute_const__([ \t]|$)/\1/g' \
--		-e 's@^#include <linux/compiler.h>@@' \
-+		-e 's@^#include <linux/compiler(|-types).h>@@' \
- 		-e 's/(^|[^a-zA-Z0-9])__packed([^a-zA-Z0-9_]|$)/\1__attribute__((packed))\2/g' \
- 		-e 's/(^|[ \t(])(inline|asm|volatile)([ \t(]|$)/\1__\2__\3/g' \
- 		-e 's@#(ifndef|define|endif[ \t]*/[*])[ \t]*_UAPI@#\1 @' \
+ 	return cachep;
 -- 
 2.5.2
