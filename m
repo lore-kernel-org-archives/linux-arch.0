@@ -1,98 +1,746 @@
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: [PATCH 18/19] alpha: atomics: Add smp_read_barrier_depends() to release/relaxed atomics
-Date: Mon, 23 Oct 2017 14:07:28 -0700
-Message-ID: <1508792849-3115-18-git-send-email-paulmck@linux.vnet.ibm.com>
+Subject: [PATCH 16/19] linux/compiler.h: Split into compiler.h and compiler-types.h
+Date: Mon, 23 Oct 2017 14:07:26 -0700
+Message-ID: <1508792849-3115-16-git-send-email-paulmck@linux.vnet.ibm.com>
 References: <20171023210408.GA2930@linux.vnet.ibm.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:39114 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1751635AbdJWVHn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 23 Oct 2017 17:07:43 -0400
-Received: from pps.filterd (m0098419.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id v9NL7A9P067795
-        for <linux-arch@vger.kernel.org>; Mon, 23 Oct 2017 17:07:42 -0400
-Received: from e19.ny.us.ibm.com (e19.ny.us.ibm.com [129.33.205.209])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 2dspxqtnna-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Mon, 23 Oct 2017 17:07:42 -0400
-Received: from localhost
-        by e19.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Mon, 23 Oct 2017 17:07:42 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20171023210408.GA2930@linux.vnet.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: mingo@kernel.org
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, will.deacon@arm.com, mark.rutland@arm.com, snitzer@redhat.com, thor.thayer@linux.intel.com, viro@zeniv.linux.org.uk, davem@davemloft.net, shuah@kernel.org, mpe@ellerman.id.au, tj@kernel.org, torvalds@linux-foundation.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+List-Id: linux-arch.vger.kernel.org
 
 From: Will Deacon <will.deacon@arm.com>
 
-As part of the fight against smp_read_barrier_depends(), we require
-dependency ordering to be preserved when a dependency is headed by a load
-performed using an atomic operation.
+linux/compiler.h is included indirectly by linux/types.h via
+uapi/linux/types.h -> uapi/linux/posix_types.h -> linux/stddef.h
+-> uapi/linux/stddef.h and is needed to provide a proper definition of
+offsetof.
 
-This patch adds smp_read_barrier_depends() to the _release and _relaxed
-atomics on alpha, which otherwise lack anything to enforce dependency
-ordering.
+Unfortunately, compiler.h requires a definition of
+smp_read_barrier_depends() for defining lockless_dereference and soon
+for defining READ_ONCE, which means that all
+users of READ_ONCE will need to include asm/barrier.h to avoid splats
+such as:
 
+   In file included from include/uapi/linux/stddef.h:1:0,
+                    from include/linux/stddef.h:4,
+                    from arch/h8300/kernel/asm-offsets.c:11:
+   include/linux/list.h: In function 'list_empty':
+>> include/linux/compiler.h:343:2: error: implicit declaration of function 'smp_read_barrier_depends' [-Werror=implicit-function-declaration]
+     smp_read_barrier_depends(); /* Enforce dependency ordering from x */ \
+     ^
+
+A better alternative is to include asm/barrier.h in linux/compiler.h,
+but this requires a type definition for "bool" on some architectures
+(e.g. x86), which is defined later by linux/types.h. Type "bool" is also
+used directly in linux/compiler.h, so the whole thing is pretty fragile.
+
+This patch splits compiler.h in two: compiler-types.h contains type
+annotations, definitions and the compiler-specific parts, whereas
+compiler.h #includes compiler-types.h and additionally defines macros
+such as {READ,WRITE.ACCESS}_ONCE.
+
+uapi/linux/stddef.h and linux/linkage.h are then moved over to include
+linux/compiler-types.h, which fixes the build for h8 and blackfin.
+
+Reported-by: kbuild test robot <fengguang.wu@intel.com>
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+[ paulmck: Add Will's fixes for issues reported by kbuild test robot. ]
 ---
- arch/alpha/include/asm/atomic.h | 13 +++++++++++++
- 1 file changed, 13 insertions(+)
+ arch/arm/include/asm/ptrace.h   |   3 +-
+ arch/sparc/include/asm/ptrace.h |   1 +
+ arch/um/include/shared/init.h   |   2 +-
+ include/linux/compiler-clang.h  |   2 +-
+ include/linux/compiler-gcc.h    |   2 +-
+ include/linux/compiler-intel.h  |   2 +-
+ include/linux/compiler-types.h  | 274 ++++++++++++++++++++++++++++++++++++++++
+ include/linux/compiler.h        | 265 +-------------------------------------
+ include/linux/linkage.h         |   2 +-
+ include/uapi/linux/stddef.h     |   2 +-
+ scripts/headers_install.sh      |   2 +-
+ 11 files changed, 286 insertions(+), 271 deletions(-)
+ create mode 100644 include/linux/compiler-types.h
 
-diff --git a/arch/alpha/include/asm/atomic.h b/arch/alpha/include/asm/atomic.h
-index 498933a7df97..16961a3f45ba 100644
---- a/arch/alpha/include/asm/atomic.h
-+++ b/arch/alpha/include/asm/atomic.h
-@@ -13,6 +13,15 @@
-  * than regular operations.
+diff --git a/arch/arm/include/asm/ptrace.h b/arch/arm/include/asm/ptrace.h
+index e9c9a117bd25..c7cdbb43ae7c 100644
+--- a/arch/arm/include/asm/ptrace.h
++++ b/arch/arm/include/asm/ptrace.h
+@@ -126,8 +126,7 @@ extern unsigned long profile_pc(struct pt_regs *regs);
+ /*
+  * kprobe-based event tracer support
   */
+-#include <linux/stddef.h>
+-#include <linux/types.h>
++#include <linux/compiler.h>
+ #define MAX_REG_OFFSET (offsetof(struct pt_regs, ARM_ORIG_r0))
  
-+/*
-+ * To ensure dependency ordering is preserved for the _relaxed and
-+ * _release atomics, an smp_read_barrier_depends() is unconditionally
-+ * inserted into the _relaxed variants, which are used to build the
-+ * barriered versions. To avoid redundant back-to-back fences, we can
-+ * define the _acquire and _fence versions explicitly.
+ extern int regs_query_register_offset(const char *name);
+diff --git a/arch/sparc/include/asm/ptrace.h b/arch/sparc/include/asm/ptrace.h
+index d73428e4333c..b383484edcd3 100644
+--- a/arch/sparc/include/asm/ptrace.h
++++ b/arch/sparc/include/asm/ptrace.h
+@@ -6,6 +6,7 @@
+ #if defined(__sparc__) && defined(__arch64__)
+ #ifndef __ASSEMBLY__
+ 
++#include <linux/compiler.h>
+ #include <linux/threads.h>
+ #include <asm/switch_to.h>
+ 
+diff --git a/arch/um/include/shared/init.h b/arch/um/include/shared/init.h
+index 233e2593eee0..3ad7de77aad0 100644
+--- a/arch/um/include/shared/init.h
++++ b/arch/um/include/shared/init.h
+@@ -40,7 +40,7 @@
+ typedef int (*initcall_t)(void);
+ typedef void (*exitcall_t)(void);
+ 
+-#include <linux/compiler.h>
++#include <linux/compiler-types.h>
+ 
+ /* These are for everybody (although not all archs will actually
+    discard it in modules) */
+diff --git a/include/linux/compiler-clang.h b/include/linux/compiler-clang.h
+index de179993e039..5947a3e6c0e6 100644
+--- a/include/linux/compiler-clang.h
++++ b/include/linux/compiler-clang.h
+@@ -1,4 +1,4 @@
+-#ifndef __LINUX_COMPILER_H
++#ifndef __LINUX_COMPILER_TYPES_H
+ #error "Please don't include <linux/compiler-clang.h> directly, include <linux/compiler.h> instead."
+ #endif
+ 
+diff --git a/include/linux/compiler-gcc.h b/include/linux/compiler-gcc.h
+index 16d41de92ee3..ce8e965646ef 100644
+--- a/include/linux/compiler-gcc.h
++++ b/include/linux/compiler-gcc.h
+@@ -1,4 +1,4 @@
+-#ifndef __LINUX_COMPILER_H
++#ifndef __LINUX_COMPILER_TYPES_H
+ #error "Please don't include <linux/compiler-gcc.h> directly, include <linux/compiler.h> instead."
+ #endif
+ 
+diff --git a/include/linux/compiler-intel.h b/include/linux/compiler-intel.h
+index d4c71132d07f..e438ac89c692 100644
+--- a/include/linux/compiler-intel.h
++++ b/include/linux/compiler-intel.h
+@@ -1,4 +1,4 @@
+-#ifndef __LINUX_COMPILER_H
++#ifndef __LINUX_COMPILER_TYPES_H
+ #error "Please don't include <linux/compiler-intel.h> directly, include <linux/compiler.h> instead."
+ #endif
+ 
+diff --git a/include/linux/compiler-types.h b/include/linux/compiler-types.h
+new file mode 100644
+index 000000000000..6b79a9bba9a7
+--- /dev/null
++++ b/include/linux/compiler-types.h
+@@ -0,0 +1,274 @@
++#ifndef __LINUX_COMPILER_TYPES_H
++#define __LINUX_COMPILER_TYPES_H
++
++#ifndef __ASSEMBLY__
++
++#ifdef __CHECKER__
++# define __user		__attribute__((noderef, address_space(1)))
++# define __kernel	__attribute__((address_space(0)))
++# define __safe		__attribute__((safe))
++# define __force	__attribute__((force))
++# define __nocast	__attribute__((nocast))
++# define __iomem	__attribute__((noderef, address_space(2)))
++# define __must_hold(x)	__attribute__((context(x,1,1)))
++# define __acquires(x)	__attribute__((context(x,0,1)))
++# define __releases(x)	__attribute__((context(x,1,0)))
++# define __acquire(x)	__context__(x,1)
++# define __release(x)	__context__(x,-1)
++# define __cond_lock(x,c)	((c) ? ({ __acquire(x); 1; }) : 0)
++# define __percpu	__attribute__((noderef, address_space(3)))
++# define __rcu		__attribute__((noderef, address_space(4)))
++# define __private	__attribute__((noderef))
++extern void __chk_user_ptr(const volatile void __user *);
++extern void __chk_io_ptr(const volatile void __iomem *);
++# define ACCESS_PRIVATE(p, member) (*((typeof((p)->member) __force *) &(p)->member))
++#else /* __CHECKER__ */
++# ifdef STRUCTLEAK_PLUGIN
++#  define __user __attribute__((user))
++# else
++#  define __user
++# endif
++# define __kernel
++# define __safe
++# define __force
++# define __nocast
++# define __iomem
++# define __chk_user_ptr(x) (void)0
++# define __chk_io_ptr(x) (void)0
++# define __builtin_warning(x, y...) (1)
++# define __must_hold(x)
++# define __acquires(x)
++# define __releases(x)
++# define __acquire(x) (void)0
++# define __release(x) (void)0
++# define __cond_lock(x,c) (c)
++# define __percpu
++# define __rcu
++# define __private
++# define ACCESS_PRIVATE(p, member) ((p)->member)
++#endif /* __CHECKER__ */
++
++/* Indirect macros required for expanded argument pasting, eg. __LINE__. */
++#define ___PASTE(a,b) a##b
++#define __PASTE(a,b) ___PASTE(a,b)
++
++#ifdef __KERNEL__
++
++#ifdef __GNUC__
++#include <linux/compiler-gcc.h>
++#endif
++
++#if defined(CC_USING_HOTPATCH) && !defined(__CHECKER__)
++#define notrace __attribute__((hotpatch(0,0)))
++#else
++#define notrace __attribute__((no_instrument_function))
++#endif
++
++/* Intel compiler defines __GNUC__. So we will overwrite implementations
++ * coming from above header files here
 + */
-+#define __atomic_op_acquire(op, args...)	op##_relaxed(args)
-+#define __atomic_op_fence			__atomic_op_release
++#ifdef __INTEL_COMPILER
++# include <linux/compiler-intel.h>
++#endif
++
++/* Clang compiler defines __GNUC__. So we will overwrite implementations
++ * coming from above header files here
++ */
++#ifdef __clang__
++#include <linux/compiler-clang.h>
++#endif
++
++/*
++ * Generic compiler-dependent macros required for kernel
++ * build go below this comment. Actual compiler/compiler version
++ * specific implementations come from the above header files
++ */
++
++struct ftrace_branch_data {
++	const char *func;
++	const char *file;
++	unsigned line;
++	union {
++		struct {
++			unsigned long correct;
++			unsigned long incorrect;
++		};
++		struct {
++			unsigned long miss;
++			unsigned long hit;
++		};
++		unsigned long miss_hit[2];
++	};
++};
++
++struct ftrace_likely_data {
++	struct ftrace_branch_data	data;
++	unsigned long			constant;
++};
++
++#endif /* __KERNEL__ */
++
++#endif /* __ASSEMBLY__ */
++
++#ifdef __KERNEL__
++/*
++ * Allow us to mark functions as 'deprecated' and have gcc emit a nice
++ * warning for each use, in hopes of speeding the functions removal.
++ * Usage is:
++ * 		int __deprecated foo(void)
++ */
++#ifndef __deprecated
++# define __deprecated		/* unimplemented */
++#endif
++
++#ifdef MODULE
++#define __deprecated_for_modules __deprecated
++#else
++#define __deprecated_for_modules
++#endif
++
++#ifndef __must_check
++#define __must_check
++#endif
++
++#ifndef CONFIG_ENABLE_MUST_CHECK
++#undef __must_check
++#define __must_check
++#endif
++#ifndef CONFIG_ENABLE_WARN_DEPRECATED
++#undef __deprecated
++#undef __deprecated_for_modules
++#define __deprecated
++#define __deprecated_for_modules
++#endif
++
++#ifndef __malloc
++#define __malloc
++#endif
++
++/*
++ * Allow us to avoid 'defined but not used' warnings on functions and data,
++ * as well as force them to be emitted to the assembly file.
++ *
++ * As of gcc 3.4, static functions that are not marked with attribute((used))
++ * may be elided from the assembly file.  As of gcc 3.4, static data not so
++ * marked will not be elided, but this may change in a future gcc version.
++ *
++ * NOTE: Because distributions shipped with a backported unit-at-a-time
++ * compiler in gcc 3.3, we must define __used to be __attribute__((used))
++ * for gcc >=3.3 instead of 3.4.
++ *
++ * In prior versions of gcc, such functions and data would be emitted, but
++ * would be warned about except with attribute((unused)).
++ *
++ * Mark functions that are referenced only in inline assembly as __used so
++ * the code is emitted even though it appears to be unreferenced.
++ */
++#ifndef __used
++# define __used			/* unimplemented */
++#endif
++
++#ifndef __maybe_unused
++# define __maybe_unused		/* unimplemented */
++#endif
++
++#ifndef __always_unused
++# define __always_unused	/* unimplemented */
++#endif
++
++#ifndef noinline
++#define noinline
++#endif
++
++/*
++ * Rather then using noinline to prevent stack consumption, use
++ * noinline_for_stack instead.  For documentation reasons.
++ */
++#define noinline_for_stack noinline
++
++#ifndef __always_inline
++#define __always_inline inline
++#endif
++
++#endif /* __KERNEL__ */
++
++/*
++ * From the GCC manual:
++ *
++ * Many functions do not examine any values except their arguments,
++ * and have no effects except the return value.  Basically this is
++ * just slightly more strict class than the `pure' attribute above,
++ * since function is not allowed to read global memory.
++ *
++ * Note that a function that has pointer arguments and examines the
++ * data pointed to must _not_ be declared `const'.  Likewise, a
++ * function that calls a non-`const' function usually must not be
++ * `const'.  It does not make sense for a `const' function to return
++ * `void'.
++ */
++#ifndef __attribute_const__
++# define __attribute_const__	/* unimplemented */
++#endif
++
++#ifndef __designated_init
++# define __designated_init
++#endif
++
++#ifndef __latent_entropy
++# define __latent_entropy
++#endif
++
++#ifndef __randomize_layout
++# define __randomize_layout __designated_init
++#endif
++
++#ifndef __no_randomize_layout
++# define __no_randomize_layout
++#endif
++
++#ifndef randomized_struct_fields_start
++# define randomized_struct_fields_start
++# define randomized_struct_fields_end
++#endif
++
++/*
++ * Tell gcc if a function is cold. The compiler will assume any path
++ * directly leading to the call is unlikely.
++ */
++
++#ifndef __cold
++#define __cold
++#endif
++
++/* Simple shorthand for a section definition */
++#ifndef __section
++# define __section(S) __attribute__ ((__section__(#S)))
++#endif
++
++#ifndef __visible
++#define __visible
++#endif
++
++#ifndef __nostackprotector
++# define __nostackprotector
++#endif
++
++/*
++ * Assume alignment of return value.
++ */
++#ifndef __assume_aligned
++#define __assume_aligned(a, ...)
++#endif
++
++
++/* Are two types/vars the same type (ignoring qualifiers)? */
++#ifndef __same_type
++# define __same_type(a, b) __builtin_types_compatible_p(typeof(a), typeof(b))
++#endif
++
++/* Is this type a native word size -- useful for atomic operations */
++#ifndef __native_word
++# define __native_word(t) (sizeof(t) == sizeof(char) || sizeof(t) == sizeof(short) || sizeof(t) == sizeof(int) || sizeof(t) == sizeof(long))
++#endif
++
++#endif /* __LINUX_COMPILER_TYPES_H */
+diff --git a/include/linux/compiler.h b/include/linux/compiler.h
+index e95a2631e545..c714239f453f 100644
+--- a/include/linux/compiler.h
++++ b/include/linux/compiler.h
+@@ -1,111 +1,12 @@
+ #ifndef __LINUX_COMPILER_H
+ #define __LINUX_COMPILER_H
  
- #define ATOMIC_INIT(i)		{ (i) }
- #define ATOMIC64_INIT(i)	{ (i) }
-@@ -60,6 +69,7 @@ static inline int atomic_##op##_return_relaxed(int i, atomic_t *v)	\
- 	".previous"							\
- 	:"=&r" (temp), "=m" (v->counter), "=&r" (result)		\
- 	:"Ir" (i), "m" (v->counter) : "memory");			\
-+	smp_read_barrier_depends();					\
- 	return result;							\
- }
+-#ifndef __ASSEMBLY__
++#include <linux/compiler-types.h>
  
-@@ -77,6 +87,7 @@ static inline int atomic_fetch_##op##_relaxed(int i, atomic_t *v)	\
- 	".previous"							\
- 	:"=&r" (temp), "=m" (v->counter), "=&r" (result)		\
- 	:"Ir" (i), "m" (v->counter) : "memory");			\
-+	smp_read_barrier_depends();					\
- 	return result;							\
- }
+-#ifdef __CHECKER__
+-# define __user		__attribute__((noderef, address_space(1)))
+-# define __kernel	__attribute__((address_space(0)))
+-# define __safe		__attribute__((safe))
+-# define __force	__attribute__((force))
+-# define __nocast	__attribute__((nocast))
+-# define __iomem	__attribute__((noderef, address_space(2)))
+-# define __must_hold(x)	__attribute__((context(x,1,1)))
+-# define __acquires(x)	__attribute__((context(x,0,1)))
+-# define __releases(x)	__attribute__((context(x,1,0)))
+-# define __acquire(x)	__context__(x,1)
+-# define __release(x)	__context__(x,-1)
+-# define __cond_lock(x,c)	((c) ? ({ __acquire(x); 1; }) : 0)
+-# define __percpu	__attribute__((noderef, address_space(3)))
+-# define __rcu		__attribute__((noderef, address_space(4)))
+-# define __private	__attribute__((noderef))
+-extern void __chk_user_ptr(const volatile void __user *);
+-extern void __chk_io_ptr(const volatile void __iomem *);
+-# define ACCESS_PRIVATE(p, member) (*((typeof((p)->member) __force *) &(p)->member))
+-#else /* __CHECKER__ */
+-# ifdef STRUCTLEAK_PLUGIN
+-#  define __user __attribute__((user))
+-# else
+-#  define __user
+-# endif
+-# define __kernel
+-# define __safe
+-# define __force
+-# define __nocast
+-# define __iomem
+-# define __chk_user_ptr(x) (void)0
+-# define __chk_io_ptr(x) (void)0
+-# define __builtin_warning(x, y...) (1)
+-# define __must_hold(x)
+-# define __acquires(x)
+-# define __releases(x)
+-# define __acquire(x) (void)0
+-# define __release(x) (void)0
+-# define __cond_lock(x,c) (c)
+-# define __percpu
+-# define __rcu
+-# define __private
+-# define ACCESS_PRIVATE(p, member) ((p)->member)
+-#endif /* __CHECKER__ */
+-
+-/* Indirect macros required for expanded argument pasting, eg. __LINE__. */
+-#define ___PASTE(a,b) a##b
+-#define __PASTE(a,b) ___PASTE(a,b)
++#ifndef __ASSEMBLY__
  
-@@ -111,6 +122,7 @@ static __inline__ long atomic64_##op##_return_relaxed(long i, atomic64_t * v)	\
- 	".previous"							\
- 	:"=&r" (temp), "=m" (v->counter), "=&r" (result)		\
- 	:"Ir" (i), "m" (v->counter) : "memory");			\
-+	smp_read_barrier_depends();					\
- 	return result;							\
- }
+ #ifdef __KERNEL__
  
-@@ -128,6 +140,7 @@ static __inline__ long atomic64_fetch_##op##_relaxed(long i, atomic64_t * v)	\
- 	".previous"							\
- 	:"=&r" (temp), "=m" (v->counter), "=&r" (result)		\
- 	:"Ir" (i), "m" (v->counter) : "memory");			\
-+	smp_read_barrier_depends();					\
- 	return result;							\
- }
+-#ifdef __GNUC__
+-#include <linux/compiler-gcc.h>
+-#endif
+-
+-#if defined(CC_USING_HOTPATCH) && !defined(__CHECKER__)
+-#define notrace __attribute__((hotpatch(0,0)))
+-#else
+-#define notrace __attribute__((no_instrument_function))
+-#endif
+-
+-/* Intel compiler defines __GNUC__. So we will overwrite implementations
+- * coming from above header files here
+- */
+-#ifdef __INTEL_COMPILER
+-# include <linux/compiler-intel.h>
+-#endif
+-
+-/* Clang compiler defines __GNUC__. So we will overwrite implementations
+- * coming from above header files here
+- */
+-#ifdef __clang__
+-#include <linux/compiler-clang.h>
+-#endif
+-
+-/*
+- * Generic compiler-dependent macros required for kernel
+- * build go below this comment. Actual compiler/compiler version
+- * specific implementations come from the above header files
+- */
+-
+-struct ftrace_branch_data {
+-	const char *func;
+-	const char *file;
+-	unsigned line;
+-	union {
+-		struct {
+-			unsigned long correct;
+-			unsigned long incorrect;
+-		};
+-		struct {
+-			unsigned long miss;
+-			unsigned long hit;
+-		};
+-		unsigned long miss_hit[2];
+-	};
+-};
+-
+-struct ftrace_likely_data {
+-	struct ftrace_branch_data	data;
+-	unsigned long			constant;
+-};
+-
+ /*
+  * Note: DISABLE_BRANCH_PROFILING can be used by special lowlevel code
+  * to disable branch tracing on a per file basis.
+@@ -332,6 +233,7 @@ static __always_inline void __write_once_size(volatile void *p, void *res, int s
+  * with an explicit memory barrier or atomic instruction that provides the
+  * required ordering.
+  */
++#include <asm/barrier.h>
  
+ #define __READ_ONCE(x, check)						\
+ ({									\
+@@ -362,167 +264,6 @@ static __always_inline void __write_once_size(volatile void *p, void *res, int s
+ 
+ #endif /* __ASSEMBLY__ */
+ 
+-#ifdef __KERNEL__
+-/*
+- * Allow us to mark functions as 'deprecated' and have gcc emit a nice
+- * warning for each use, in hopes of speeding the functions removal.
+- * Usage is:
+- * 		int __deprecated foo(void)
+- */
+-#ifndef __deprecated
+-# define __deprecated		/* unimplemented */
+-#endif
+-
+-#ifdef MODULE
+-#define __deprecated_for_modules __deprecated
+-#else
+-#define __deprecated_for_modules
+-#endif
+-
+-#ifndef __must_check
+-#define __must_check
+-#endif
+-
+-#ifndef CONFIG_ENABLE_MUST_CHECK
+-#undef __must_check
+-#define __must_check
+-#endif
+-#ifndef CONFIG_ENABLE_WARN_DEPRECATED
+-#undef __deprecated
+-#undef __deprecated_for_modules
+-#define __deprecated
+-#define __deprecated_for_modules
+-#endif
+-
+-#ifndef __malloc
+-#define __malloc
+-#endif
+-
+-/*
+- * Allow us to avoid 'defined but not used' warnings on functions and data,
+- * as well as force them to be emitted to the assembly file.
+- *
+- * As of gcc 3.4, static functions that are not marked with attribute((used))
+- * may be elided from the assembly file.  As of gcc 3.4, static data not so
+- * marked will not be elided, but this may change in a future gcc version.
+- *
+- * NOTE: Because distributions shipped with a backported unit-at-a-time
+- * compiler in gcc 3.3, we must define __used to be __attribute__((used))
+- * for gcc >=3.3 instead of 3.4.
+- *
+- * In prior versions of gcc, such functions and data would be emitted, but
+- * would be warned about except with attribute((unused)).
+- *
+- * Mark functions that are referenced only in inline assembly as __used so
+- * the code is emitted even though it appears to be unreferenced.
+- */
+-#ifndef __used
+-# define __used			/* unimplemented */
+-#endif
+-
+-#ifndef __maybe_unused
+-# define __maybe_unused		/* unimplemented */
+-#endif
+-
+-#ifndef __always_unused
+-# define __always_unused	/* unimplemented */
+-#endif
+-
+-#ifndef noinline
+-#define noinline
+-#endif
+-
+-/*
+- * Rather then using noinline to prevent stack consumption, use
+- * noinline_for_stack instead.  For documentation reasons.
+- */
+-#define noinline_for_stack noinline
+-
+-#ifndef __always_inline
+-#define __always_inline inline
+-#endif
+-
+-#endif /* __KERNEL__ */
+-
+-/*
+- * From the GCC manual:
+- *
+- * Many functions do not examine any values except their arguments,
+- * and have no effects except the return value.  Basically this is
+- * just slightly more strict class than the `pure' attribute above,
+- * since function is not allowed to read global memory.
+- *
+- * Note that a function that has pointer arguments and examines the
+- * data pointed to must _not_ be declared `const'.  Likewise, a
+- * function that calls a non-`const' function usually must not be
+- * `const'.  It does not make sense for a `const' function to return
+- * `void'.
+- */
+-#ifndef __attribute_const__
+-# define __attribute_const__	/* unimplemented */
+-#endif
+-
+-#ifndef __designated_init
+-# define __designated_init
+-#endif
+-
+-#ifndef __latent_entropy
+-# define __latent_entropy
+-#endif
+-
+-#ifndef __randomize_layout
+-# define __randomize_layout __designated_init
+-#endif
+-
+-#ifndef __no_randomize_layout
+-# define __no_randomize_layout
+-#endif
+-
+-#ifndef randomized_struct_fields_start
+-# define randomized_struct_fields_start
+-# define randomized_struct_fields_end
+-#endif
+-
+-/*
+- * Tell gcc if a function is cold. The compiler will assume any path
+- * directly leading to the call is unlikely.
+- */
+-
+-#ifndef __cold
+-#define __cold
+-#endif
+-
+-/* Simple shorthand for a section definition */
+-#ifndef __section
+-# define __section(S) __attribute__ ((__section__(#S)))
+-#endif
+-
+-#ifndef __visible
+-#define __visible
+-#endif
+-
+-#ifndef __nostackprotector
+-# define __nostackprotector
+-#endif
+-
+-/*
+- * Assume alignment of return value.
+- */
+-#ifndef __assume_aligned
+-#define __assume_aligned(a, ...)
+-#endif
+-
+-
+-/* Are two types/vars the same type (ignoring qualifiers)? */
+-#ifndef __same_type
+-# define __same_type(a, b) __builtin_types_compatible_p(typeof(a), typeof(b))
+-#endif
+-
+-/* Is this type a native word size -- useful for atomic operations */
+-#ifndef __native_word
+-# define __native_word(t) (sizeof(t) == sizeof(char) || sizeof(t) == sizeof(short) || sizeof(t) == sizeof(int) || sizeof(t) == sizeof(long))
+-#endif
+-
+ /* Compile time object size, -1 for unknown */
+ #ifndef __compiletime_object_size
+ # define __compiletime_object_size(obj) -1
+diff --git a/include/linux/linkage.h b/include/linux/linkage.h
+index a6a42dd02466..9599d13cea0c 100644
+--- a/include/linux/linkage.h
++++ b/include/linux/linkage.h
+@@ -1,7 +1,7 @@
+ #ifndef _LINUX_LINKAGE_H
+ #define _LINUX_LINKAGE_H
+ 
+-#include <linux/compiler.h>
++#include <linux/compiler-types.h>
+ #include <linux/stringify.h>
+ #include <linux/export.h>
+ #include <asm/linkage.h>
+diff --git a/include/uapi/linux/stddef.h b/include/uapi/linux/stddef.h
+index 621fa8ac4425..1ec6a7867c46 100644
+--- a/include/uapi/linux/stddef.h
++++ b/include/uapi/linux/stddef.h
+@@ -1,4 +1,4 @@
+-#include <linux/compiler.h>
++#include <linux/compiler-types.h>
+ 
+ #ifndef __always_inline
+ #define __always_inline inline
+diff --git a/scripts/headers_install.sh b/scripts/headers_install.sh
+index fdebd66f8fc1..bbb7f3d35289 100755
+--- a/scripts/headers_install.sh
++++ b/scripts/headers_install.sh
+@@ -33,7 +33,7 @@ do
+ 	sed -r \
+ 		-e 's/([ \t(])(__user|__force|__iomem)[ \t]/\1/g' \
+ 		-e 's/__attribute_const__([ \t]|$)/\1/g' \
+-		-e 's@^#include <linux/compiler.h>@@' \
++		-e 's@^#include <linux/compiler(|-types).h>@@' \
+ 		-e 's/(^|[^a-zA-Z0-9])__packed([^a-zA-Z0-9_]|$)/\1__attribute__((packed))\2/g' \
+ 		-e 's/(^|[ \t(])(inline|asm|volatile)([ \t(]|$)/\1__\2__\3/g' \
+ 		-e 's@#(ifndef|define|endif[ \t]*/[*])[ \t]*_UAPI@#\1 @' \
 -- 
 2.5.2
