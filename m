@@ -1,31 +1,31 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:39694 "EHLO
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:54068 "EHLO
         mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1751628AbdJWVHm (ORCPT
+        by vger.kernel.org with ESMTP id S1751619AbdJWVHm (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
         Mon, 23 Oct 2017 17:07:42 -0400
-Received: from pps.filterd (m0098394.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id v9NL7Mq9102880
+Received: from pps.filterd (m0098399.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id v9NL68fl147280
         for <linux-arch@vger.kernel.org>; Mon, 23 Oct 2017 17:07:42 -0400
-Received: from e14.ny.us.ibm.com (e14.ny.us.ibm.com [129.33.205.204])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2dsnegxu3t-1
+Received: from e18.ny.us.ibm.com (e18.ny.us.ibm.com [129.33.205.208])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2dsng0q0qa-1
         (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
         for <linux-arch@vger.kernel.org>; Mon, 23 Oct 2017 17:07:42 -0400
 Received: from localhost
-        by e14.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        by e18.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
         for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
         Mon, 23 Oct 2017 17:07:40 -0400
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: [PATCH 02/19] EDAC, altera: Kill off ACCESS_ONCE()
-Date: Mon, 23 Oct 2017 14:07:12 -0700
+Subject: [PATCH 06/19] media: dvb_ringbuffer: Kill off ACCESS_ONCE()
+Date: Mon, 23 Oct 2017 14:07:16 -0700
 In-Reply-To: <20171023210408.GA2930@linux.vnet.ibm.com>
 References: <20171023210408.GA2930@linux.vnet.ibm.com>
-Message-ID: <1508792849-3115-2-git-send-email-paulmck@linux.vnet.ibm.com>
+Message-ID: <1508792849-3115-6-git-send-email-paulmck@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mingo@kernel.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, will.deacon@arm.com, mark.rutland@arm.com, snitzer@redhat.com, thor.thayer@linux.intel.com, viro@zeniv.linux.org.uk, davem@davemloft.net, shuah@kernel.org, mpe@ellerman.id.au, tj@kernel.org, torvalds@linux-foundation.org, Borislav Petkov <bp@alien8.de>
-Message-ID: <20171023210712.83T6w3sFIabSDDMNicr-ZSrfMs8BZB0ccVgXGXZjX60@z>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, will.deacon@arm.com, mark.rutland@arm.com, snitzer@redhat.com, thor.thayer@linux.intel.com, viro@zeniv.linux.org.uk, davem@davemloft.net, shuah@kernel.org, mpe@ellerman.id.au, tj@kernel.org, torvalds@linux-foundation.org, Mauro Carvalho Chehab <mchehab@kernel.org>, Sakari Ailus <sakari.ailus@linux.intel.com>
+Message-ID: <20171023210716.ezaO-zoYzCGKkCds57j2BNq7TLBAHI4axLrFl49Wl04@z>
 
 From: Mark Rutland <mark.rutland@arm.com>
 
@@ -41,7 +41,7 @@ distinction is critical to correct operation.
 It's possible to transform the bulk of kernel code using the Coccinelle
 script below. However, this doesn't handle comments, leaving references
 to ACCESS_ONCE() instances which have been removed. As a preparatory
-step, this patch converts the Altera EDAC code and comments to use
+step, this patch converts the DVB ringbuffer code and comments to use
 {READ,WRITE}_ONCE() consistently.
 
 ----
@@ -63,48 +63,48 @@ expression E;
 ----
 
 Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-Acked-by: Thor Thayer <thor.thayer@linux.intel.com>
-Cc: Borislav Petkov <bp@alien8.de>
+Cc: Mauro Carvalho Chehab <mchehab@kernel.org>
+Cc: Sakari Ailus <sakari.ailus@linux.intel.com>
 ---
- drivers/edac/altera_edac.c | 10 +++++-----
- 1 file changed, 5 insertions(+), 5 deletions(-)
+ drivers/media/dvb-core/dvb_ringbuffer.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/drivers/edac/altera_edac.c b/drivers/edac/altera_edac.c
-index 346c4987b284..11d6419788c2 100644
---- a/drivers/edac/altera_edac.c
-+++ b/drivers/edac/altera_edac.c
-@@ -175,11 +175,11 @@ static ssize_t altr_sdr_mc_err_inject_write(struct file *file,
- 	/*
- 	 * To trigger the error, we need to read the data back
- 	 * (the data was written with errors above).
--	 * The ACCESS_ONCE macros and printk are used to prevent the
-+	 * The READ_ONCE macros and printk are used to prevent the
- 	 * the compiler optimizing these reads out.
+diff --git a/drivers/media/dvb-core/dvb_ringbuffer.c b/drivers/media/dvb-core/dvb_ringbuffer.c
+index 2322af1b8742..53011629c9ad 100644
+--- a/drivers/media/dvb-core/dvb_ringbuffer.c
++++ b/drivers/media/dvb-core/dvb_ringbuffer.c
+@@ -66,12 +66,12 @@ ssize_t dvb_ringbuffer_free(struct dvb_ringbuffer *rbuf)
+ {
+ 	ssize_t free;
+ 
+-	/* ACCESS_ONCE() to load read pointer on writer side
++	/* READ_ONCE() to load read pointer on writer side
+ 	 * this pairs with smp_store_release() in dvb_ringbuffer_read(),
+ 	 * dvb_ringbuffer_read_user(), dvb_ringbuffer_flush(),
+ 	 * or dvb_ringbuffer_reset()
  	 */
--	reg = ACCESS_ONCE(ptemp[0]);
--	read_reg = ACCESS_ONCE(ptemp[1]);
-+	reg = READ_ONCE(ptemp[0]);
-+	read_reg = READ_ONCE(ptemp[1]);
- 	/* Force Read */
- 	rmb();
- 
-@@ -618,7 +618,7 @@ static ssize_t altr_edac_device_trig(struct file *file,
- 	for (i = 0; i < (priv->trig_alloc_sz / sizeof(*ptemp)); i++) {
- 		/* Read data so we're in the correct state */
- 		rmb();
--		if (ACCESS_ONCE(ptemp[i]))
-+		if (READ_ONCE(ptemp[i]))
- 			result = -1;
- 		/* Toggle Error bit (it is latched), leave ECC enabled */
- 		writel(error_mask, (drvdata->base + priv->set_err_ofst));
-@@ -635,7 +635,7 @@ static ssize_t altr_edac_device_trig(struct file *file,
- 
- 	/* Read out written data. ECC error caused here */
- 	for (i = 0; i < ALTR_TRIGGER_READ_WRD_CNT; i++)
--		if (ACCESS_ONCE(ptemp[i]) != i)
-+		if (READ_ONCE(ptemp[i]) != i)
- 			edac_printk(KERN_ERR, EDAC_DEVICE,
- 				    "Read doesn't match written data\n");
- 
+-	free = ACCESS_ONCE(rbuf->pread) - rbuf->pwrite;
++	free = READ_ONCE(rbuf->pread) - rbuf->pwrite;
+ 	if (free <= 0)
+ 		free += rbuf->size;
+ 	return free-1;
+@@ -143,7 +143,7 @@ ssize_t dvb_ringbuffer_read_user(struct dvb_ringbuffer *rbuf, u8 __user *buf, si
+ 		todo -= split;
+ 		/* smp_store_release() for read pointer update to ensure
+ 		 * that buf is not overwritten until read is complete,
+-		 * this pairs with ACCESS_ONCE() in dvb_ringbuffer_free()
++		 * this pairs with READ_ONCE() in dvb_ringbuffer_free()
+ 		 */
+ 		smp_store_release(&rbuf->pread, 0);
+ 	}
+@@ -168,7 +168,7 @@ void dvb_ringbuffer_read(struct dvb_ringbuffer *rbuf, u8 *buf, size_t len)
+ 		todo -= split;
+ 		/* smp_store_release() for read pointer update to ensure
+ 		 * that buf is not overwritten until read is complete,
+-		 * this pairs with ACCESS_ONCE() in dvb_ringbuffer_free()
++		 * this pairs with READ_ONCE() in dvb_ringbuffer_free()
+ 		 */
+ 		smp_store_release(&rbuf->pread, 0);
+ 	}
 -- 
 2.5.2
