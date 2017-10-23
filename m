@@ -1,139 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from userp1040.oracle.com ([156.151.31.81]:34934 "EHLO
-        userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752099AbdJTQ7x (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Oct 2017 12:59:53 -0400
-From: Khalid Aziz <khalid.aziz@oracle.com>
-Subject: [PATCH v9 02/10] mm, swap: Add infrastructure for saving page metadata as well on swap
-Date: Fri, 20 Oct 2017 10:57:55 -0600
-Message-ID: <9152c4afc14316bb1b26158559964f8e8c07ab1a.1508364660.git.khalid.aziz@oracle.com>
-In-Reply-To: <cover.1508364660.git.khalid.aziz@oracle.com>
-References: <cover.1508364660.git.khalid.aziz@oracle.com>
-In-Reply-To: <cover.1508364660.git.khalid.aziz@oracle.com>
-References: <cover.1508364660.git.khalid.aziz@oracle.com>
+Received: from mail-by2nam01on0043.outbound.protection.outlook.com ([104.47.34.43]:9952
+        "EHLO NAM01-BY2-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1751612AbdJWQeN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 23 Oct 2017 12:34:13 -0400
+Date: Mon, 23 Oct 2017 19:33:56 +0300
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: Re: [PATCH] lib: optimize cpumask_next_and()
+Message-ID: <20171023163356.u4h2djpylxxh5glp@yury-thinkpad>
+References: <20171023080510.30550-1-courbet@google.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20171023080510.30550-1-courbet@google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org, davem@davemloft.net, dave.hansen@linux.intel.com, arnd@arndb.de
-Cc: Khalid Aziz <khalid.aziz@oracle.com>, kirill.shutemov@linux.intel.com, mhocko@suse.com, jack@suse.cz, ross.zwisler@linux.intel.com, aneesh.kumar@linux.vnet.ibm.com, dave.jiang@intel.com, willy@infradead.org, hughd@google.com, minchan@kernel.org, hannes@cmpxchg.org, shli@fb.com, mingo@kernel.org, jmarchan@redhat.com, lstoakes@gmail.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, sparclinux@vger.kernel.org, Khalid Aziz <khalid@gonehiking.org>
-Message-ID: <20171020165755.v9qRgljJewaYHkDYouLju0aSMGYIya1-DMwB_9E6ZOg@z>
+To: Clement Courbet <courbet@google.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Andrew Morton <akpm@linux-foundation.org>, Matthew Wilcox <mawilcox@microsoft.com>, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20171023163356.aEM3VAgtVuD2lfuKwGoQAThhDv5c61vIOmZUf50fBMI@z>
 
-If a processor supports special metadata for a page, for example ADI
-version tags on SPARC M7, this metadata must be saved when the page is
-swapped out. The same metadata must be restored when the page is swapped
-back in. This patch adds two new architecture specific functions -
-arch_do_swap_page() to be called when a page is swapped in, and
-arch_unmap_one() to be called when a page is being unmapped for swap
-out. These architecture hooks allow page metadata to be saved if the
-architecture supports it.
+Hi Clement,
 
-Signed-off-by: Khalid Aziz <khalid.aziz@oracle.com>
-Cc: Khalid Aziz <khalid@gonehiking.org>
-Acked-by: Jerome Marchand <jmarchan@redhat.com>
----
-v8:
-	- Fixed an erroneous "}"
-v6:
-	- Updated parameter list for arch_do_swap_page() and
-	  arch_unmap_one()
-v5:
-	- Replaced set_swp_pte() function with new architecture
-	  functions arch_do_swap_page() and arch_unmap_one()
+> diff --git a/lib/find_bit.c b/lib/find_bit.c
+> index 6ed74f78380c..83ea8b97ed3e 100644
+> --- a/lib/find_bit.c
+> +++ b/lib/find_bit.c
+> @@ -75,6 +75,40 @@ unsigned long find_next_zero_bit(const unsigned long *addr, unsigned long size,
+>  EXPORT_SYMBOL(find_next_zero_bit);
+>  #endif
+>  
+> +#if !defined(find_next_and_bit)
+> +
+> +/*
+> + * Find the next set bit in a memory region.
+> + */
+> +unsigned long find_next_and_bit(const unsigned long *addr1,
+> +		const unsigned long *addr2, unsigned long nbits,
+> +		unsigned long start)
+> +{
+> +	unsigned long tmp;
+> +
+> +	if (!nbits || start >= nbits)
+> +		return nbits;
 
- include/asm-generic/pgtable.h | 36 ++++++++++++++++++++++++++++++++++++
- mm/memory.c                   |  1 +
- mm/rmap.c                     | 14 ++++++++++++++
- 3 files changed, 51 insertions(+)
+It should be:
+       if (unlikely(start >= nbits))
+                return nbits;
 
-diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-index 7dfa767dc680..15668c2470b4 100644
---- a/include/asm-generic/pgtable.h
-+++ b/include/asm-generic/pgtable.h
-@@ -392,6 +392,42 @@ static inline int pud_same(pud_t pud_a, pud_t pud_b)
- #endif /* CONFIG_TRANSPARENT_HUGEPAGE */
- #endif
- 
-+#ifndef __HAVE_ARCH_DO_SWAP_PAGE
-+/*
-+ * Some architectures support metadata associated with a page. When a
-+ * page is being swapped out, this metadata must be saved so it can be
-+ * restored when the page is swapped back in. SPARC M7 and newer
-+ * processors support an ADI (Application Data Integrity) tag for the
-+ * page as metadata for the page. arch_do_swap_page() can restore this
-+ * metadata when a page is swapped back in.
-+ */
-+static inline void arch_do_swap_page(struct mm_struct *mm,
-+				     struct vm_area_struct *vma,
-+				     unsigned long addr,
-+				     pte_t pte, pte_t oldpte)
-+{
-+
-+}
-+#endif
-+
-+#ifndef __HAVE_ARCH_UNMAP_ONE
-+/*
-+ * Some architectures support metadata associated with a page. When a
-+ * page is being swapped out, this metadata must be saved so it can be
-+ * restored when the page is swapped back in. SPARC M7 and newer
-+ * processors support an ADI (Application Data Integrity) tag for the
-+ * page as metadata for the page. arch_unmap_one() can save this
-+ * metadata on a swap-out of a page.
-+ */
-+static inline int arch_unmap_one(struct mm_struct *mm,
-+				  struct vm_area_struct *vma,
-+				  unsigned long addr,
-+				  pte_t orig_pte)
-+{
-+	return 0;
-+}
-+#endif
-+
- #ifndef __HAVE_ARCH_PGD_OFFSET_GATE
- #define pgd_offset_gate(mm, addr)	pgd_offset(mm, addr)
- #endif
-diff --git a/mm/memory.c b/mm/memory.c
-index 56e48e4593cb..ef0459938e96 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -2828,6 +2828,7 @@ int do_swap_page(struct vm_fault *vmf)
- 	if (pte_swp_soft_dirty(vmf->orig_pte))
- 		pte = pte_mksoft_dirty(pte);
- 	set_pte_at(vma->vm_mm, vmf->address, vmf->pte, pte);
-+	arch_do_swap_page(vma->vm_mm, vma, vmf->address, pte, vmf->orig_pte);
- 	vmf->orig_pte = pte;
- 	if (page == swapcache) {
- 		do_page_add_anon_rmap(page, vma, vmf->address, exclusive);
-diff --git a/mm/rmap.c b/mm/rmap.c
-index c570f82e6827..40a436c927c6 100644
---- a/mm/rmap.c
-+++ b/mm/rmap.c
-@@ -1448,6 +1448,14 @@ static bool try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
- 				(flags & TTU_MIGRATION)) {
- 			swp_entry_t entry;
- 			pte_t swp_pte;
-+
-+			if (arch_unmap_one(mm, vma, address, pteval) < 0) {
-+				set_pte_at(mm, address, pvmw.pte, pteval);
-+				ret = false;
-+				page_vma_mapped_walk_done(&pvmw);
-+				break;
-+			}
-+
- 			/*
- 			 * Store the pfn of the page in a special migration
- 			 * pte. do_swap_page() will wait until the migration
-@@ -1498,6 +1506,12 @@ static bool try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
- 				page_vma_mapped_walk_done(&pvmw);
- 				break;
- 			}
-+			if (arch_unmap_one(mm, vma, address, pteval) < 0) {
-+				set_pte_at(mm, address, pvmw.pte, pteval);
-+				ret = false;
-+				page_vma_mapped_walk_done(&pvmw);
-+				break;
-+			}
- 			if (list_empty(&mm->mmlist)) {
- 				spin_lock(&mmlist_lock);
- 				if (list_empty(&mm->mmlist))
--- 
-2.11.0
+See patch e4afd2e5567f (lib/find_bit.c: micro-optimise find_next_*_bit)
+from Matthew Wilcox.
+
+> +
+> +	tmp = addr1[start / BITS_PER_LONG] & addr2[start / BITS_PER_LONG];
+> +
+> +	/* Handle 1st word. */
+> +	tmp &= BITMAP_FIRST_WORD_MASK(start);
+> +	start = round_down(start, BITS_PER_LONG);
+> +
+> +	while (!tmp) {
+> +		start += BITS_PER_LONG;
+> +		if (start >= nbits)
+> +			return nbits;
+> +
+> +		tmp = addr1[start / BITS_PER_LONG] &
+> +			addr2[start / BITS_PER_LONG];
+> +	}
+> +
+> +	return min(start + __ffs(tmp), nbits);
+> +}
+> +EXPORT_SYMBOL(find_next_and_bit);
+> +#endif
+
+This function is looking very based on _find_next_bit(). The original
+_find_next_bit() implements the invert-trick that allows share the
+same code for find_next_bit() and find_next_zero_bit().  Did you consider
+to take this approach for new function? If no objections from performance
+side, I think it worth to do for sane of completeness.
+
+Yury
