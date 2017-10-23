@@ -1,30 +1,30 @@
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: [PATCH 12/19] workqueue: Kill off ACCESS_ONCE()
-Date: Mon, 23 Oct 2017 14:07:22 -0700
-Message-ID: <1508792849-3115-12-git-send-email-paulmck@linux.vnet.ibm.com>
+Subject: [PATCH 13/19] rcutorture: formal: Prepare for ACCESS_ONCE() removal
+Date: Mon, 23 Oct 2017 14:07:23 -0700
+Message-ID: <1508792849-3115-13-git-send-email-paulmck@linux.vnet.ibm.com>
 References: <20171023210408.GA2930@linux.vnet.ibm.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:38704 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1751427AbdJWVHl (ORCPT
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:52586 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1751524AbdJWVHl (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
         Mon, 23 Oct 2017 17:07:41 -0400
-Received: from pps.filterd (m0098419.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id v9NL7DYG068024
-        for <linux-arch@vger.kernel.org>; Mon, 23 Oct 2017 17:07:40 -0400
-Received: from e11.ny.us.ibm.com (e11.ny.us.ibm.com [129.33.205.201])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 2dspxqtnkj-1
+Received: from pps.filterd (m0098393.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id v9NL6ABL064093
+        for <linux-arch@vger.kernel.org>; Mon, 23 Oct 2017 17:07:41 -0400
+Received: from e14.ny.us.ibm.com (e14.ny.us.ibm.com [129.33.205.204])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2dsj2trm2k-1
         (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
         for <linux-arch@vger.kernel.org>; Mon, 23 Oct 2017 17:07:40 -0400
 Received: from localhost
-        by e11.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        by e14.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
         for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
         Mon, 23 Oct 2017 17:07:39 -0400
 In-Reply-To: <20171023210408.GA2930@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mingo@kernel.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, will.deacon@arm.com, mark.rutland@arm.com, snitzer@redhat.com, thor.thayer@linux.intel.com, viro@zeniv.linux.org.uk, davem@davemloft.net, shuah@kernel.org, mpe@ellerman.id.au, tj@kernel.org, torvalds@linux-foundation.org, Lai Jiangshan <jiangshanlai@gmail.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, will.deacon@arm.com, mark.rutland@arm.com, snitzer@redhat.com, thor.thayer@linux.intel.com, viro@zeniv.linux.org.uk, davem@davemloft.net, shuah@kernel.org, mpe@ellerman.id.au, tj@kernel.org, torvalds@linux-foundation.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 
 From: Mark Rutland <mark.rutland@arm.com>
 
@@ -37,58 +37,37 @@ However, for some features it is necessary to instrument reads and
 writes separately, which is not possible with ACCESS_ONCE(). This
 distinction is critical to correct operation.
 
-It's possible to transform the bulk of kernel code using the Coccinelle
-script below. However, this doesn't handle comments, leaving references
-to ACCESS_ONCE() instances which have been removed. As a preparatory
-step, this patch converts the workqueue code and comments to use
-{READ,WRITE}_ONCE() consistently.
+The bulk of the kernel code can be transformed via Coccinelle to use
+{READ,WRITE}_ONCE(), though this only modifies users of ACCESS_ONCE(),
+and not the implementation itself. As such, it has the potential to
+break homebrew ACCESS_ONCE() macros seen in some user code in the kernel
+tree (e.g. the virtio code, as fixed in commit ea9156fb3b71d9f7).
 
-----
-virtual patch
-
-@ depends on patch @
-expression E1, E2;
-@@
-
-- ACCESS_ONCE(E1) = E2
-+ WRITE_ONCE(E1, E2)
-
-@ depends on patch @
-expression E;
-@@
-
-- ACCESS_ONCE(E)
-+ READ_ONCE(E)
-----
+To avoid fragility if/when that transformation occurs, this patch
+reworks the definitions of {READ,WRITE}_ONCE() in the rcutorture formal
+tests, and removes the unused ACCESS_ONCE() helper. There should be no
+functional change as a result of this patch.
 
 Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-Acked-by: Tejun Heo <tj@kernel.org>
-Cc: Lai Jiangshan <jiangshanlai@gmail.com>
+Cc: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
 ---
- kernel/workqueue.c | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ tools/testing/selftests/rcutorture/formal/srcu-cbmc/src/barriers.h | 5 ++---
+ 1 file changed, 2 insertions(+), 3 deletions(-)
 
-diff --git a/kernel/workqueue.c b/kernel/workqueue.c
-index 64d0edf428f8..39831b2f3c5f 100644
---- a/kernel/workqueue.c
-+++ b/kernel/workqueue.c
-@@ -4647,7 +4647,7 @@ static void rebind_workers(struct worker_pool *pool)
- 		 * concurrency management.  Note that when or whether
- 		 * @worker clears REBOUND doesn't affect correctness.
- 		 *
--		 * ACCESS_ONCE() is necessary because @worker->flags may be
-+		 * WRITE_ONCE() is necessary because @worker->flags may be
- 		 * tested without holding any lock in
- 		 * wq_worker_waking_up().  Without it, NOT_RUNNING test may
- 		 * fail incorrectly leading to premature concurrency
-@@ -4656,7 +4656,7 @@ static void rebind_workers(struct worker_pool *pool)
- 		WARN_ON_ONCE(!(worker_flags & WORKER_UNBOUND));
- 		worker_flags |= WORKER_REBOUND;
- 		worker_flags &= ~WORKER_UNBOUND;
--		ACCESS_ONCE(worker->flags) = worker_flags;
-+		WRITE_ONCE(worker->flags, worker_flags);
- 	}
+diff --git a/tools/testing/selftests/rcutorture/formal/srcu-cbmc/src/barriers.h b/tools/testing/selftests/rcutorture/formal/srcu-cbmc/src/barriers.h
+index 6687acc08e6d..cc27b9ebcf20 100644
+--- a/tools/testing/selftests/rcutorture/formal/srcu-cbmc/src/barriers.h
++++ b/tools/testing/selftests/rcutorture/formal/srcu-cbmc/src/barriers.h
+@@ -34,8 +34,7 @@
+ #define rs_smp_mb() do {} while (0)
+ #endif
  
- 	spin_unlock_irq(&pool->lock);
+-#define ACCESS_ONCE(x) (*(volatile typeof(x) *) &(x))
+-#define READ_ONCE(x) ACCESS_ONCE(x)
+-#define WRITE_ONCE(x, val) (ACCESS_ONCE(x) = (val))
++#define READ_ONCE(x) (*(volatile typeof(x) *) &(x))
++#define WRITE_ONCE(x) ((*(volatile typeof(x) *) &(x)) = (val))
+ 
+ #endif
 -- 
 2.5.2
