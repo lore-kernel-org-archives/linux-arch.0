@@ -1,30 +1,16 @@
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: [PATCH 14/19] doc: filesystems: Kill off ACCESS_ONCE()
-Date: Mon, 23 Oct 2017 14:07:24 -0700
-Message-ID: <1508792849-3115-14-git-send-email-paulmck@linux.vnet.ibm.com>
+Subject: [PATCH 06/19] media: dvb_ringbuffer: Kill off ACCESS_ONCE()
+Date: Mon, 23 Oct 2017 14:07:16 -0700
+Message-ID: <1508792849-3115-6-git-send-email-paulmck@linux.vnet.ibm.com>
 References: <20171023210408.GA2930@linux.vnet.ibm.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:54020 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1751608AbdJWVHm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 23 Oct 2017 17:07:42 -0400
-Received: from pps.filterd (m0098399.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id v9NL6XIa002172
-        for <linux-arch@vger.kernel.org>; Mon, 23 Oct 2017 17:07:41 -0400
-Received: from e19.ny.us.ibm.com (e19.ny.us.ibm.com [129.33.205.209])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2dsng0q0pp-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Mon, 23 Oct 2017 17:07:41 -0400
-Received: from localhost
-        by e19.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Mon, 23 Oct 2017 17:07:40 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20171023210408.GA2930@linux.vnet.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: mingo@kernel.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, will.deacon@arm.com, mark.rutland@arm.com, snitzer@redhat.com, thor.thayer@linux.intel.com, viro@zeniv.linux.org.uk, davem@davemloft.net, shuah@kernel.org, mpe@ellerman.id.au, tj@kernel.org, torvalds@linux-foundation.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, will.deacon@arm.com, mark.rutland@arm.com, snitzer@redhat.com, thor.thayer@linux.intel.com, viro@zeniv.linux.org.uk, davem@davemloft.net, shuah@kernel.org, mpe@ellerman.id.au, tj@kernel.org, torvalds@linux-foundation.org, Mauro Carvalho Chehab <mchehab@kernel.org>, Sakari Ailus <sakari.ailus@linux.intel.com>
+List-Id: linux-arch.vger.kernel.org
+
+From: Mark Rutland <mark.rutland@arm.com>
 
 For several reasons, it is desirable to use {READ,WRITE}_ONCE() in
 preference to ACCESS_ONCE(), and new code is expected to use one of the
@@ -36,10 +22,10 @@ writes separately, which is not possible with ACCESS_ONCE(). This
 distinction is critical to correct operation.
 
 It's possible to transform the bulk of kernel code using the Coccinelle
-script below. However, this doesn't handle documentation, leaving
-references to ACCESS_ONCE() instances which have been removed. As a
-preparatory step, this patch converts the filesystems documentation to
-use {READ,WRITE}_ONCE() consistently.
+script below. However, this doesn't handle comments, leaving references
+to ACCESS_ONCE() instances which have been removed. As a preparatory
+step, this patch converts the DVB ringbuffer code and comments to use
+{READ,WRITE}_ONCE() consistently.
 
 ----
 virtual patch
@@ -59,29 +45,49 @@ expression E;
 + READ_ONCE(E)
 ----
 
-Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-Acked-by: Will Deacon <will.deacon@arm.com>
-Acked-by: Mark Rutland <mark.rutland@arm.com>
+Signed-off-by: Mark Rutland <mark.rutland@arm.com>
+Cc: Mauro Carvalho Chehab <mchehab@kernel.org>
+Cc: Sakari Ailus <sakari.ailus@linux.intel.com>
 ---
- Documentation/filesystems/path-lookup.md | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+ drivers/media/dvb-core/dvb_ringbuffer.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/Documentation/filesystems/path-lookup.md b/Documentation/filesystems/path-lookup.md
-index 1b39e084a2b2..1933ef734e63 100644
---- a/Documentation/filesystems/path-lookup.md
-+++ b/Documentation/filesystems/path-lookup.md
-@@ -826,9 +826,9 @@ If the filesystem may need to revalidate dcache entries, then
- *is* passed the dentry but does not have access to the `inode` or the
- `seq` number from the `nameidata`, so it needs to be extra careful
- when accessing fields in the dentry.  This "extra care" typically
--involves using `ACCESS_ONCE()` or the newer [`READ_ONCE()`] to access
--fields, and verifying the result is not NULL before using it.  This
--pattern can be see in `nfs_lookup_revalidate()`.
-+involves using [`READ_ONCE()`] to access fields, and verifying the
-+result is not NULL before using it.  This pattern can be seen in
-+`nfs_lookup_revalidate()`.
+diff --git a/drivers/media/dvb-core/dvb_ringbuffer.c b/drivers/media/dvb-core/dvb_ringbuffer.c
+index 2322af1b8742..53011629c9ad 100644
+--- a/drivers/media/dvb-core/dvb_ringbuffer.c
++++ b/drivers/media/dvb-core/dvb_ringbuffer.c
+@@ -66,12 +66,12 @@ ssize_t dvb_ringbuffer_free(struct dvb_ringbuffer *rbuf)
+ {
+ 	ssize_t free;
  
- A pair of patterns
- ------------------
+-	/* ACCESS_ONCE() to load read pointer on writer side
++	/* READ_ONCE() to load read pointer on writer side
+ 	 * this pairs with smp_store_release() in dvb_ringbuffer_read(),
+ 	 * dvb_ringbuffer_read_user(), dvb_ringbuffer_flush(),
+ 	 * or dvb_ringbuffer_reset()
+ 	 */
+-	free = ACCESS_ONCE(rbuf->pread) - rbuf->pwrite;
++	free = READ_ONCE(rbuf->pread) - rbuf->pwrite;
+ 	if (free <= 0)
+ 		free += rbuf->size;
+ 	return free-1;
+@@ -143,7 +143,7 @@ ssize_t dvb_ringbuffer_read_user(struct dvb_ringbuffer *rbuf, u8 __user *buf, si
+ 		todo -= split;
+ 		/* smp_store_release() for read pointer update to ensure
+ 		 * that buf is not overwritten until read is complete,
+-		 * this pairs with ACCESS_ONCE() in dvb_ringbuffer_free()
++		 * this pairs with READ_ONCE() in dvb_ringbuffer_free()
+ 		 */
+ 		smp_store_release(&rbuf->pread, 0);
+ 	}
+@@ -168,7 +168,7 @@ void dvb_ringbuffer_read(struct dvb_ringbuffer *rbuf, u8 *buf, size_t len)
+ 		todo -= split;
+ 		/* smp_store_release() for read pointer update to ensure
+ 		 * that buf is not overwritten until read is complete,
+-		 * this pairs with ACCESS_ONCE() in dvb_ringbuffer_free()
++		 * this pairs with READ_ONCE() in dvb_ringbuffer_free()
+ 		 */
+ 		smp_store_release(&rbuf->pread, 0);
+ 	}
 -- 
 2.5.2
