@@ -1,13 +1,13 @@
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: [PATCH 02/19] EDAC, altera: Kill off ACCESS_ONCE()
-Date: Mon, 23 Oct 2017 14:07:12 -0700
-Message-ID: <1508792849-3115-2-git-send-email-paulmck@linux.vnet.ibm.com>
+Subject: [PATCH 08/19] net/ipv4/tcp_input.c: Kill off ACCESS_ONCE()
+Date: Mon, 23 Oct 2017 14:07:18 -0700
+Message-ID: <1508792849-3115-8-git-send-email-paulmck@linux.vnet.ibm.com>
 References: <20171023210408.GA2930@linux.vnet.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20171023210408.GA2930@linux.vnet.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: mingo@kernel.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, will.deacon@arm.com, mark.rutland@arm.com, snitzer@redhat.com, thor.thayer@linux.intel.com, viro@zeniv.linux.org.uk, davem@davemloft.net, shuah@kernel.org, mpe@ellerman.id.au, tj@kernel.org, torvalds@linux-foundation.org, Borislav Petkov <bp@alien8.de>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, will.deacon@arm.com, mark.rutland@arm.com, snitzer@redhat.com, thor.thayer@linux.intel.com, viro@zeniv.linux.org.uk, davem@davemloft.net, shuah@kernel.org, mpe@ellerman.id.au, tj@kernel.org, torvalds@linux-foundation.org
 List-Id: linux-arch.vger.kernel.org
 
 From: Mark Rutland <mark.rutland@arm.com>
@@ -24,7 +24,7 @@ distinction is critical to correct operation.
 It's possible to transform the bulk of kernel code using the Coccinelle
 script below. However, this doesn't handle comments, leaving references
 to ACCESS_ONCE() instances which have been removed. As a preparatory
-step, this patch converts the Altera EDAC code and comments to use
+step, this patch converts the IPv4 TCP input code and comments to use
 {READ,WRITE}_ONCE() consistently.
 
 ----
@@ -46,48 +46,30 @@ expression E;
 ----
 
 Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-Acked-by: Thor Thayer <thor.thayer@linux.intel.com>
-Cc: Borislav Petkov <bp@alien8.de>
+Cc: David S. Miller <davem@davemloft.net>
 ---
- drivers/edac/altera_edac.c | 10 +++++-----
- 1 file changed, 5 insertions(+), 5 deletions(-)
+ net/ipv4/tcp_input.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/drivers/edac/altera_edac.c b/drivers/edac/altera_edac.c
-index 346c4987b284..11d6419788c2 100644
---- a/drivers/edac/altera_edac.c
-+++ b/drivers/edac/altera_edac.c
-@@ -175,11 +175,11 @@ static ssize_t altr_sdr_mc_err_inject_write(struct file *file,
- 	/*
- 	 * To trigger the error, we need to read the data back
- 	 * (the data was written with errors above).
--	 * The ACCESS_ONCE macros and printk are used to prevent the
-+	 * The READ_ONCE macros and printk are used to prevent the
- 	 * the compiler optimizing these reads out.
+diff --git a/net/ipv4/tcp_input.c b/net/ipv4/tcp_input.c
+index c5d7656beeee..133e7e4d94b5 100644
+--- a/net/ipv4/tcp_input.c
++++ b/net/ipv4/tcp_input.c
+@@ -815,12 +815,12 @@ static void tcp_update_pacing_rate(struct sock *sk)
+ 	if (likely(tp->srtt_us))
+ 		do_div(rate, tp->srtt_us);
+ 
+-	/* ACCESS_ONCE() is needed because sch_fq fetches sk_pacing_rate
++	/* WRITE_ONCE() is needed because sch_fq fetches sk_pacing_rate
+ 	 * without any lock. We want to make sure compiler wont store
+ 	 * intermediate values in this location.
  	 */
--	reg = ACCESS_ONCE(ptemp[0]);
--	read_reg = ACCESS_ONCE(ptemp[1]);
-+	reg = READ_ONCE(ptemp[0]);
-+	read_reg = READ_ONCE(ptemp[1]);
- 	/* Force Read */
- 	rmb();
+-	ACCESS_ONCE(sk->sk_pacing_rate) = min_t(u64, rate,
+-						sk->sk_max_pacing_rate);
++	WRITE_ONCE(sk->sk_pacing_rate, min_t(u64, rate,
++					     sk->sk_max_pacing_rate));
+ }
  
-@@ -618,7 +618,7 @@ static ssize_t altr_edac_device_trig(struct file *file,
- 	for (i = 0; i < (priv->trig_alloc_sz / sizeof(*ptemp)); i++) {
- 		/* Read data so we're in the correct state */
- 		rmb();
--		if (ACCESS_ONCE(ptemp[i]))
-+		if (READ_ONCE(ptemp[i]))
- 			result = -1;
- 		/* Toggle Error bit (it is latched), leave ECC enabled */
- 		writel(error_mask, (drvdata->base + priv->set_err_ofst));
-@@ -635,7 +635,7 @@ static ssize_t altr_edac_device_trig(struct file *file,
- 
- 	/* Read out written data. ECC error caused here */
- 	for (i = 0; i < ALTR_TRIGGER_READ_WRD_CNT; i++)
--		if (ACCESS_ONCE(ptemp[i]) != i)
-+		if (READ_ONCE(ptemp[i]) != i)
- 			edac_printk(KERN_ERR, EDAC_DEVICE,
- 				    "Read doesn't match written data\n");
- 
+ /* Calculate rto without backoff.  This is the second half of Van Jacobson's
 -- 
 2.5.2
