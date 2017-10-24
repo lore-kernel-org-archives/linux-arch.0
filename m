@@ -1,68 +1,84 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from s3.sipsolutions.net ([144.76.63.242]:58184 "EHLO
-        sipsolutions.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751432AbdJXG3F (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 24 Oct 2017 02:29:05 -0400
-Message-ID: <1508824691.2639.26.camel@sipsolutions.net>
-Subject: Re: [PATCH 09/19] net: average: Kill off ACCESS_ONCE()
-From: Johannes Berg <johannes@sipsolutions.net>
-Date: Tue, 24 Oct 2017 07:58:11 +0200
-In-Reply-To: <1508792849-3115-9-git-send-email-paulmck@linux.vnet.ibm.com>
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:52140 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S932327AbdJXJa0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 24 Oct 2017 05:30:26 -0400
+Date: Tue, 24 Oct 2017 10:30:26 +0100
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH 16/19] linux/compiler.h: Split into compiler.h and
+ compiler-types.h
+Message-ID: <20171024093026.GB17909@arm.com>
 References: <20171023210408.GA2930@linux.vnet.ibm.com>
-         <1508792849-3115-9-git-send-email-paulmck@linux.vnet.ibm.com>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+ <1508792849-3115-16-git-send-email-paulmck@linux.vnet.ibm.com>
+ <20171024092512.nwumnxqrpaols55g@gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20171024092512.nwumnxqrpaols55g@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, "mingo@kernel.org" <mingo@kernel.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "will.deacon@arm.com" <will.deacon@arm.com>, "mark.rutland@arm.com" <mark.rutland@arm.com>, "snitzer@redhat.com" <snitzer@redhat.com>, "thor.thayer@linux.intel.com" <thor.thayer@linux.intel.com>, "viro@zeniv.linux.org.uk" <viro@zeniv.linux.org.uk>, "davem@davemloft.net" <davem@davemloft.net>, "shuah@kernel.org" <shuah@kernel.org>, "mpe@ellerman.id.au" <mpe@ellerman.id.au>, "tj@kernel.org" <tj@kernel.org>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>
-Message-ID: <20171024055811.jsLZZK_i3we_4dbZWX3yW1L1iPy4IqFembIhtne20Kg@z>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mark.rutland@arm.com, snitzer@redhat.com, thor.thayer@linux.intel.com, viro@zeniv.linux.org.uk, davem@davemloft.net, shuah@kernel.org, mpe@ellerman.id.au, tj@kernel.org, torvalds@linux-foundation.org
+Message-ID: <20171024093026.ktAtHXUxVPcfCpooie624TdzU2Ikw9Ubv9eBG4hwYQo@z>
 
-On Mon, 2017-10-23 at 21:07 +0000, Paul E. McKenney wrote:
-> From: Mark Rutland <mark.rutland@arm.com>
+On Tue, Oct 24, 2017 at 11:25:12AM +0200, Ingo Molnar wrote:
 > 
-> For several reasons, it is desirable to use {READ,WRITE}_ONCE() in
-> preference to ACCESS_ONCE(), and new code is expected to use one of the
-> former. So far, there's been no reason to change most existing uses of
-> ACCESS_ONCE(), as these aren't currently harmful.
+> * Paul E. McKenney <paulmck@linux.vnet.ibm.com> wrote:
 > 
-> However, for some features it is necessary to instrument reads and
-> writes separately, which is not possible with ACCESS_ONCE(). This
-> distinction is critical to correct operation.
+> > From: Will Deacon <will.deacon@arm.com>
+> > 
+> > linux/compiler.h is included indirectly by linux/types.h via
+> > uapi/linux/types.h -> uapi/linux/posix_types.h -> linux/stddef.h
+> > -> uapi/linux/stddef.h and is needed to provide a proper definition of
+> > offsetof.
+> > 
+> > Unfortunately, compiler.h requires a definition of
+> > smp_read_barrier_depends() for defining lockless_dereference and soon
+> > for defining READ_ONCE, which means that all
+> > users of READ_ONCE will need to include asm/barrier.h to avoid splats
+> > such as:
+> > 
+> >    In file included from include/uapi/linux/stddef.h:1:0,
+> >                     from include/linux/stddef.h:4,
+> >                     from arch/h8300/kernel/asm-offsets.c:11:
+> >    include/linux/list.h: In function 'list_empty':
+> > >> include/linux/compiler.h:343:2: error: implicit declaration of function 'smp_read_barrier_depends' [-Werror=implicit-function-declaration]
+> >      smp_read_barrier_depends(); /* Enforce dependency ordering from x */ \
+> >      ^
+> > 
+> > A better alternative is to include asm/barrier.h in linux/compiler.h,
+> > but this requires a type definition for "bool" on some architectures
+> > (e.g. x86), which is defined later by linux/types.h. Type "bool" is also
+> > used directly in linux/compiler.h, so the whole thing is pretty fragile.
+> > 
+> > This patch splits compiler.h in two: compiler-types.h contains type
+> > annotations, definitions and the compiler-specific parts, whereas
+> > compiler.h #includes compiler-types.h and additionally defines macros
+> > such as {READ,WRITE.ACCESS}_ONCE.
+> > 
+> > uapi/linux/stddef.h and linux/linkage.h are then moved over to include
+> > linux/compiler-types.h, which fixes the build for h8 and blackfin.
+> > 
+> > Reported-by: kbuild test robot <fengguang.wu@intel.com>
+> > Signed-off-by: Will Deacon <will.deacon@arm.com>
+> > Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+> > [ paulmck: Add Will's fixes for issues reported by kbuild test robot. ]
+> > ---
+> >  arch/arm/include/asm/ptrace.h   |   3 +-
+> >  arch/sparc/include/asm/ptrace.h |   1 +
+> >  arch/um/include/shared/init.h   |   2 +-
+> >  include/linux/compiler-clang.h  |   2 +-
+> >  include/linux/compiler-gcc.h    |   2 +-
+> >  include/linux/compiler-intel.h  |   2 +-
+> >  include/linux/compiler-types.h  | 274 ++++++++++++++++++++++++++++++++++++++++
+> >  include/linux/compiler.h        | 265 +-------------------------------------
 > 
-> It's possible to transform the bulk of kernel code using the Coccinelle
-> script below. However, this doesn't pick up some uses, including those
-> in <linux/average.h>. As a preparatory step, this patch converts the
-> file to use {READ,WRITE}_ONCE() consistently.
-> 
-> At the same time, this patch addds missing includes necessary for
-> {READ,WRITE}_ONCE(), *BUG_ON*(), and ilog2().
-> 
-> ----
-> virtual patch
-> 
-> @ depends on patch @
-> expression E1, E2;
-> @@
-> 
-> - ACCESS_ONCE(E1) = E2
-> + WRITE_ONCE(E1, E2)
-> 
-> @ depends on patch @
-> expression E;
-> @@
-> 
-> - ACCESS_ONCE(E)
-> + READ_ONCE(E)
-> ----
-> 
-> Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-> Cc: Johannes Berg <johannes.berg@intel.com>
+> The common pattern is to use an underscore (compiler_types.h), not a hyphen 
+> (compiler-types.h) ...
 
-Reviewed-by: Johannes Berg <johannes@sipsolutions.net>
+I just followed the existing examples of compiler-{clang,gcc,intel}.h!
+I can respin if you like, but it will be inconsistent with the existing
+compiler* headers and it's not like there aren't other hyphenated header
+files in include/linux/ (I count 433).
 
-Let me know if you want me to apply this, since I seem to be the
-average.h maintainer :-)
-
-johannes
+Will
